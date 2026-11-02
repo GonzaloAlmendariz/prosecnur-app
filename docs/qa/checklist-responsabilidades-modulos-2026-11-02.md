@@ -51,6 +51,7 @@ manifiesto, Home, chrome y enlaces entre módulos → Revamp (esta sesión).
 | R10 | El recibo de la entrega de Material no enlazaba a Monitoreo ni decía que el seguimiento sigue allá | `recopiladores/DeliverySection.tsx` | Revamp (enlace entre módulos) | ☑ `7debb6870` + test de render (con recibo: frase y «Abrir Monitoreo» si el shell sabe ir). Sin captura en vivo: ningún proyecto de referencia trae una entrega de Material |
 | R11 | El envío de Hojas de ruta a Material sí enlaza a la campaña territorial una vez enviado | `hojasRuta/mapa/seleccion/SalidasPanel.tsx` | — | ☑ sin cambio: ya conforme |
 | R12 | Material telefónica explica qué lee Monitoreo del Sheets del barrido y que una fila sin Status «sale del avance»: es correcto (Material prepara la planilla y avisa qué la rompe) | `recopiladores/telefonica/SeccionesTelefonicas.tsx:232-245` | — | ☑ conforme: no es seguimiento, es el contrato de la planilla |
+| R17 | Las metas de acreditación se editan en Monitoreo (Modelo › Metas), no llegan de Cálculo como en las demás campañas | `monitoreo/profiles/acreditacion/` (Modelo › Metas) | Monitoreo-Cálculo | ☑ **excepción declarada** (2026-11-02): Gonzalo, el 1/11 vía Planner, textual: «la muestra de acreditación se define en Monitoreo, generalmente con porcentajes». El editor de metas se queda en Monitoreo; Cálculo no la reclama |
 
 ## Traspaso Material → Monitoreo por Sheets
 
