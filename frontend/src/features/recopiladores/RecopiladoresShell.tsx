@@ -103,8 +103,8 @@ export function RecopiladoresShell({ cabecera = null }: Props = {}) {
   const { overview, addedSlugs } = useProjectModules();
   // De dónde sale la lista de unidades: el destino del vacío de Unidades.
   const origen = useMemo(
-    () => origenDelPlan({ modoDelCalculo: overview?.facts.calc.mode, modulos: addedSlugs }),
-    [overview?.facts.calc.mode, addedSlugs],
+    () => origenDelPlan({ modoDelCalculo: overview?.facts.calc.mode, macroFamilia: overview?.facts.calc.macro_familia, modulos: addedSlugs }),
+    [overview?.facts.calc.mode, overview?.facts.calc.macro_familia, addedSlugs],
   );
   const irA = useCallback((to: string) => navigate(to), [navigate]);
   const params = useMemo(() => new URLSearchParams(location.search), [location.search]);

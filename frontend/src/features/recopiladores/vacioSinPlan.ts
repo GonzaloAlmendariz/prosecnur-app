@@ -28,6 +28,8 @@ export type VacioSinPlan = {
 export type OrigenDelPlanEntrada = {
   /** `facts.calc.mode` del overview del proyecto: "aulas" | "territorial" | "general". */
   modoDelCalculo?: string | null;
+  /** `facts.calc.macro_familia`: dice que el estudio es de aulas antes de que haya sorteo. */
+  macroFamilia?: string | null;
   /** Módulos agregados al proyecto. */
   modulos?: readonly string[];
 };
@@ -38,11 +40,23 @@ const A_UNIDADES: DestinoDelVacio = {
 };
 
 /** El módulo de donde sale la lista de unidades del plan. */
-export function origenDelPlan({ modoDelCalculo, modulos = [] }: OrigenDelPlanEntrada): DestinoDelVacio {
+/** Las familias que Cálculo de muestra resuelve como opinión universitaria (CalcMuestraPage). */
+const FAMILIAS_DE_AULAS = ["encuesta_estudiantes", "hsvg_universitario"];
+
+export function origenDelPlan({ modoDelCalculo, macroFamilia, modulos = [] }: OrigenDelPlanEntrada): DestinoDelVacio {
   if (modoDelCalculo === "aulas") {
     return {
       label: "Ir a Cálculo de muestra",
       to: "/calc-muestra?modo=opinion-universitaria&seccion=salidas",
+    };
+  }
+  // Revisión con ojo de usuario (1 nov 2026): el overview sólo dice «aulas» cuando ya hay sorteo; antes,
+  // un estudio de aulas caía en el destino genérico y aterrizaba en Datos. Sin sorteo, lo que falta
+  // está en Selección.
+  if (FAMILIAS_DE_AULAS.includes(macroFamilia ?? "")) {
+    return {
+      label: "Ir a Cálculo de muestra",
+      to: "/calc-muestra?modo=opinion-universitaria&seccion=aulas",
     };
   }
   if (modulos.includes("hojas-ruta") && !modulos.includes("calc-muestra")) {
