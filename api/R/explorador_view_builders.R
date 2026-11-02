@@ -107,7 +107,9 @@
 
   # (1) y (2): usar .interactivo_tipo_pregunta para so/sm nativos.
   if (!is.null(survey) && "name" %in% names(survey) && "type" %in% names(survey)) {
-    mask <- !is.na(survey$name) & as.character(survey$name) == var
+    # Sin distinguir mayúsculas: el normalizador de la base baja los nombres
+    # (`D1_information` en el XLSForm llega como `d1_information`).
+    mask <- !is.na(survey$name) & tolower(as.character(survey$name)) == tolower(var)
     if (any(mask)) {
       tipos <- tolower(as.character(unique(na.omit(survey$type[mask]))))
       if (any(grepl("^select_multiple(\\s|$)", tipos))) return("sm")
@@ -134,6 +136,12 @@
       non_na <- col[!is.na(col) & nzchar(as.character(col))]
       if (!length(non_na)) return("texto")
       uniq <- length(unique(non_na))
+      txt <- trimws(as.character(non_na))
+      # Una columna derivada (calculate, metadatos de la plataforma) llega como
+      # texto: si todo es fecha ISO es fecha, y si todo es número con más de
+      # diez valores distintos es numérica, no una «única» de cientos de códigos.
+      if (all(grepl("^\\d{4}-\\d{2}-\\d{2}([ T].*)?$", txt))) return("fecha")
+      if (uniq > 10L && all(grepl("^-?\\d+(\\.\\d+)?$", txt))) return("num")
       if (uniq / length(non_na) > 0.30) return("texto")
       return("so")  # baja cardinalidad → probablemente categorial
     }
@@ -967,6 +975,13 @@
     as.character(surv$name[m])
   } else character(0)
 
+  # La madre se nombra como la trae la base, que puede venir en minúsculas.
+  sm_madres <- vapply(sm_madres, function(m) {
+    m_esc <- gsub("([\\W])", "\\\\\\1", m, perl = TRUE)
+    hit <- grep(paste0("^", m_esc, "[/\\.]"), nombres_df, value = TRUE, ignore.case = TRUE)
+    if (length(hit)) sub("[/\\.][^/\\.]*$", "", hit[1]) else m
+  }, character(1), USE.NAMES = FALSE)
+
   var_candidatas <- unique(c(nombres_df, sm_madres))
   var_candidatas <- var_candidatas[!is.na(var_candidatas) & nzchar(var_candidatas)]
 
@@ -978,6 +993,14 @@
                 "_submission_time", "_id", "_submitted_by", "_index",
                 "_parent_table_name", "_parent_index")
   var_candidatas <- var_candidatas[!var_candidatas %in% excluir]
+  # Columnas de sistema de la plataforma (`_status`, `formhub.uuid`,
+  # `meta.instanceid`, `__version__`) no son preguntas: fuera, salvo que el
+  # formulario las declare.
+  en_survey <- if (!is.null(surv) && "name" %in% names(surv)) {
+    tolower(var_candidatas) %in% tolower(as.character(surv$name))
+  } else rep(TRUE, length(var_candidatas))
+  de_sistema <- grepl("^_|^(formhub|meta)[/.]", var_candidatas, ignore.case = TRUE)
+  var_candidatas <- var_candidatas[!(de_sistema & !en_survey)]
   if (!is.null(dummy_patterns)) {
     var_candidatas <- var_candidatas[!grepl(dummy_patterns, var_candidatas)]
   }
@@ -1010,7 +1033,7 @@
       seccion = unname(var_seccion[v]) %||% "General"
     )
   })
-  meta_rows <- Filter(function(r) r$tipo %in% c("so", "sm", "num", "texto"), meta_rows)
+  meta_rows <- Filter(function(r) r$tipo %in% c("so", "sm", "num", "fecha", "texto"), meta_rows)
 
   # Agrupar por sección.
   secciones_chr <- vapply(meta_rows, function(r) r$seccion, character(1))
