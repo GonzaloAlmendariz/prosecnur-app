@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import type { MonitoreoActorUnit, MonitoreoSource, MonitoreoState } from "../../../../../api/client";
 import { apiMonitoreoActorRename, apiMonitoreoActores } from "../../../../../api/monitoreo";
 import { claveDeActor, cuentasPorActor, elencoVisible } from "../../../fuentes/rosterDeActores";
+import { alternarTelefonico, canalesDesde, firmaDeCanales, tieneTelefonico, type Canal } from "./canalesDelPublicoModelo";
 
 /**
  * Borrador y guardado del elenco de actores (públicos) del estudio. Salió de
@@ -16,7 +17,10 @@ export type Borrador = {
   actor: string;
   /** El nombre con el que este actor está guardado hoy, "" si es nuevo. */
   guardadoComo: string;
+  /** Se deriva de `canales`: hay canal telefónico si alguna ronda lo es. */
   phone: boolean;
+  /** ADR 0125 §5: los canales del público, por ronda. */
+  canales: Canal[];
 };
 
 export function borradorDesde(unit: MonitoreoActorUnit): Borrador {
@@ -24,7 +28,8 @@ export function borradorDesde(unit: MonitoreoActorUnit): Borrador {
     key: unit.id || claveDeActor(unit.actor),
     actor: unit.actor,
     guardadoComo: unit.actor,
-    phone: Boolean(unit.phone?.enabled),
+    phone: tieneTelefonico(canalesDesde(unit)) || Boolean(unit.phone?.enabled),
+    canales: canalesDesde(unit),
   };
 }
 
@@ -47,7 +52,7 @@ export function useElencoDeActores({
   // El elenco del servidor manda mientras no haya edición en curso. Sin esta
   // sincronización, conectar una fuente nueva en otra pestaña dejaba aquí una
   // lista vieja que al guardar habría borrado al actor recién aparecido.
-  const firmaServidor = elenco.map((unit) => `${unit.actor}:${unit.phone?.enabled}`).join("|");
+  const firmaServidor = elenco.map((unit) => `${unit.actor}:${unit.phone?.enabled}:${firmaDeCanales(canalesDesde(unit))}`).join("|");
   useEffect(() => {
     setBorradores(elenco.map(borradorDesde));
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -56,7 +61,9 @@ export function useElencoDeActores({
   const sucio = useMemo(() => {
     if (borradores.length !== elenco.length) return true;
     return borradores.some((fila, i) => (
-      fila.actor.trim() !== elenco[i].actor || fila.phone !== Boolean(elenco[i].phone?.enabled)
+      fila.actor.trim() !== elenco[i].actor
+      || fila.phone !== Boolean(elenco[i].phone?.enabled)
+      || firmaDeCanales(fila.canales) !== firmaDeCanales(canalesDesde(elenco[i]))
     ));
   }, [borradores, elenco]);
 
@@ -76,12 +83,24 @@ export function useElencoDeActores({
   const puedeGuardar = sucio && !guardando && duplicados.size === 0 && vacios === 0;
 
   function editar(key: string, cambios: Partial<Borrador>) {
-    setBorradores((actual) => actual.map((fila) => (fila.key === key ? { ...fila, ...cambios } : fila)));
+    setBorradores((actual) => actual.map((fila) => {
+      if (fila.key !== key) return fila;
+      const siguiente = { ...fila, ...cambios };
+      // Los canales mandan sobre el switch: cambiar uno arrastra al otro.
+      if (cambios.canales) siguiente.phone = tieneTelefonico(cambios.canales);
+      return siguiente;
+    }));
+  }
+
+  /** El switch telefónico, como ronda: encenderlo suma una telefónica, apagarlo la quita. */
+  function alternarCanalTelefonico(key: string) {
+    const fila = borradores.find((b) => b.key === key);
+    if (fila) editar(key, { canales: alternarTelefonico(fila.canales) });
   }
 
   function agregar(nombre = "") {
     const key = `nuevo-${borradores.length}-${nombre || "actor"}`;
-    setBorradores((actual) => [...actual, { key, actor: nombre, guardadoComo: "", phone: false }]);
+    setBorradores((actual) => [...actual, { key, actor: nombre, guardadoComo: "", phone: false, canales: [] }]);
   }
 
   function quitar(key: string) {
@@ -114,6 +133,7 @@ export function useElencoDeActores({
           actor: fila.actor.trim(),
           label: fila.actor.trim(),
           phone: { enabled: fila.phone, role: fila.phone ? "target" : "none" },
+          canales: fila.canales,
         })));
       ultimoEstado = result.state;
       if (ultimoEstado) onStateChange?.(ultimoEstado);
@@ -124,5 +144,5 @@ export function useElencoDeActores({
     }
   }
 
-  return { elenco, borradores, guardando, error, sucio, duplicados, vacios, puedeGuardar, cuentas, editar, agregar, quitar, guardar };
+  return { elenco, borradores, guardando, error, sucio, duplicados, vacios, puedeGuardar, cuentas, editar, alternarCanalTelefonico, agregar, quitar, guardar };
 }

@@ -5101,6 +5101,8 @@ export type MonitoreoActorUnit = {
   group: string;
   origin: "declarado" | "fuentes";
   phone: { enabled: boolean; role: string };
+  /** ADR 0125 §5: canales del público en el orden en que se abrieron (rondas). */
+  canales?: Array<{ ronda: number; canal: string }>;
 };
 
 export type MonitoreoActorRosterResult = {

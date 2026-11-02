@@ -216,7 +216,7 @@ export function Publicos({
                       <td>
                         <Switch
                           checked={borrador.phone}
-                          onToggle={() => elenco.editar(borrador.key, { phone: !borrador.phone })}
+                          onToggle={() => elenco.alternarCanalTelefonico(borrador.key)}
                           ariaLabel={`Canal telefónico de ${borrador.actor || "este público"}`}
                           disabled={elenco.guardando}
                           className="acr-in-switch"

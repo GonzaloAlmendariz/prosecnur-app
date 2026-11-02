@@ -23,6 +23,7 @@ import {
 } from "../../../../../vendor/lucide-react";
 import type { MonitoreoActorUnit, MonitoreoSource, MonitoreoState } from "../../../../../api/client";
 import { ACTORES_SEMILLA, claveDeActor, faltantesDelActor } from "../../../fuentes/rosterDeActores";
+import { CanalesDelPublico } from "./CanalesDelPublico";
 import { useElencoDeActores } from "./useElencoDeActores";
 import { actorInitialLabel } from "../formato";
 import "./actoresDelEstudio.css";
@@ -52,7 +53,7 @@ export function ActoresDelEstudio({
   onStateChange?: (state: MonitoreoState) => void;
 }) {
   const {
-    borradores, guardando, error, duplicados, puedeGuardar, cuentas, editar, agregar, quitar, guardar,
+    borradores, guardando, error, duplicados, puedeGuardar, cuentas, editar, alternarCanalTelefonico, agregar, quitar, guardar,
   } = useElencoDeActores({ sources, unidades, onStateChange });
 
   const sinDeclarar = ACTORES_SEMILLA.filter((nombre) => (
@@ -130,7 +131,7 @@ export function ActoresDelEstudio({
                   <div className="mon-switch-line mon-acr-actor-card-phone">
                     <Switch
                       checked={fila.phone}
-                      onToggle={() => editar(fila.key, { phone: !fila.phone })}
+                      onToggle={() => alternarCanalTelefonico(fila.key)}
                       ariaLabel={`Canal telefónico de ${fila.actor || "este público"}`}
                       disabled={guardando}
                     />
@@ -139,6 +140,15 @@ export function ActoresDelEstudio({
                       <strong>{fila.phone ? "Con canal telefónico" : "Sin canal telefónico"}</strong>
                     </span>
                   </div>
+
+                  {/* ADR 0125 §5: el switch crece hasta ser la declaración de
+                    * canales del público, por ronda. Material abre esas campañas. */}
+                  <CanalesDelPublico
+                    publico={fila.actor}
+                    canales={fila.canales}
+                    onCambio={(canales) => editar(fila.key, { canales })}
+                    deshabilitado={guardando}
+                  />
 
                   {/* Lo que este actor ya tiene conectado. Es el dato que decide
                     * si su avance se puede calcular, no un adorno de estado. */}

@@ -1,0 +1,69 @@
+/* Canales del público por ronda (ADR 0125 §5). */
+.mon-acr-canales {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-2);
+  min-width: 0;
+}
+
+.mon-acr-canales-rondas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--pulso-space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.mon-acr-canales-ronda {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--pulso-space-1);
+  padding: 2px 4px 2px 8px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 999px;
+  background: var(--pulso-surface-2);
+  font-size: var(--pulso-type-caption-size);
+  white-space: nowrap;
+}
+
+.mon-acr-canales-numero {
+  color: var(--pulso-text-soft);
+  font-variant-numeric: tabular-nums;
+}
+
+.mon-acr-canales-quitar {
+  display: inline-grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--pulso-text-faint);
+  cursor: pointer;
+}
+
+.mon-acr-canales-quitar:hover:not(:disabled) {
+  background: var(--pulso-surface-3);
+  color: var(--pulso-text);
+}
+
+.mon-acr-canales-quitar:focus-visible {
+  outline: 2px solid var(--pulso-brand-navy);
+  outline-offset: 1px;
+}
+
+.mon-acr-canales-vacio {
+  margin: 0;
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+}
+
+.mon-acr-canales-sumar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--pulso-space-2);
+}
