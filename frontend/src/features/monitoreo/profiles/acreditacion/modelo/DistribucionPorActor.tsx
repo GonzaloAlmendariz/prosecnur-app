@@ -28,6 +28,7 @@ import {
 } from "../../../core/variablesDeInteres";
 
 import "./distribucionPorActor.css";
+import { Switch } from "../../../../../components/Switch";
 
 export type ActorConCatalogo = {
   actor: string;
@@ -162,19 +163,19 @@ function TarjetaDeActor({
               </button>
             </div>
             {columna.normalizacionSugerida === "anio" ? (
-              <label className="mon-dist-agrupar">
-                <input
-                  type="checkbox"
+              <div className="mon-dist-agrupar">
+                <Switch
                   checked={declarada.normalization === "anio"}
                   disabled={guardando}
-                  onChange={(event) => onNormalizar(
+                  ariaLabel={`Agrupar ${declarada.variable} por año`}
+                  onToggle={() => onNormalizar(
                     item.actor,
                     declarada.variable,
-                    event.currentTarget.checked ? "anio" : "ninguna",
+                    declarada.normalization === "anio" ? "ninguna" : "anio",
                   )}
                 />
                 <span>Agrupar por año <small>2021-1 y 2021-2 cuentan como 2021</small></span>
-              </label>
+              </div>
             ) : null}
             {columna.motivoNoSegmenta === "sin-analizar" ? (
               <p className="mon-dist-vacio">Su reparto aparece al actualizar esta fuente.</p>

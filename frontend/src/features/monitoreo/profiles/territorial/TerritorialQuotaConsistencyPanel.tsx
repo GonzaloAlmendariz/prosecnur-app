@@ -1,5 +1,6 @@
 import { memo, useMemo, useState } from "react";
 import { CalendarRange, Clock, ContactRound, ListChecks, Search, Table2, Target, XCircle } from "lucide-react";
+import { Switch } from "../../../../components/Switch";
 import type {
   MonitoreoTerritorialDashboard,
   TerritorialQuotaProgressBlock,
@@ -107,19 +108,19 @@ function TerritorialQuotaConsistencyPanelImpl({ reports }: { reports: MonitoreoT
           />
         </label>
         <div className="mon-territorial-quota-command-actions">
-          <label
+          <div
             className={`mon-territorial-quota-replacement-toggle ${showReplacements ? "is-active" : ""}`}
             title={showReplacements ? "Ocultar manzanas de reemplazo" : "Incluir manzanas de reemplazo"}
           >
-            <input
-              type="checkbox"
+            <Switch
               checked={showReplacements}
-              onChange={(event) => setShowReplacements(event.currentTarget.checked)}
+              onToggle={() => setShowReplacements(!showReplacements)}
+              ariaLabel="Incluir manzanas de reemplazo"
             />
             <ListChecks size={13} />
             <span>Reemplazos</span>
             <strong>{showReplacements ? "Sí" : formatMetric(replacementCount)}</strong>
-          </label>
+          </div>
           <div role="group" aria-label="Filtrar cuotas por estado">
             {filterOptions.map((option) => (
               <button

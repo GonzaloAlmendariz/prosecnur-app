@@ -26,6 +26,7 @@ import { ACTORES_SEMILLA, claveDeActor, faltantesDelActor } from "../../../fuent
 import { useElencoDeActores } from "./useElencoDeActores";
 import { actorInitialLabel } from "../formato";
 import "./actoresDelEstudio.css";
+import { Switch } from "../../../../../components/Switch";
 
 /**
  * Plural explícito, no un sufijo pegado.
@@ -126,18 +127,18 @@ export function ActoresDelEstudio({
                     </button>
                   </div>
 
-                  <label className="mon-switch-line mon-acr-actor-card-phone">
-                    <input
-                      type="checkbox"
+                  <div className="mon-switch-line mon-acr-actor-card-phone">
+                    <Switch
                       checked={fila.phone}
-                      onChange={(event) => editar(fila.key, { phone: event.currentTarget.checked })}
+                      onToggle={() => editar(fila.key, { phone: !fila.phone })}
+                      ariaLabel={`Canal telefónico de ${fila.actor || "este público"}`}
                       disabled={guardando}
                     />
                     <span>
                       <PhoneCall size={13} />
                       <strong>{fila.phone ? "Con canal telefónico" : "Sin canal telefónico"}</strong>
                     </span>
-                  </label>
+                  </div>
 
                   {/* Lo que este actor ya tiene conectado. Es el dato que decide
                     * si su avance se puede calcular, no un adorno de estado. */}
