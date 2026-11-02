@@ -44,7 +44,7 @@ test_that("la espec rotula «conteo (porcentaje)», pinta por la cifra que se le
                   porcentaje = c(14.25, 12.75, 5.5), ubigeo = c("150136", "150140", "150108"))
   e <- .espec_mapa_distribucion(f, lima, cortes = c(6, 10))
   expect_identical(e$ranking$cifra, c("57 (14%)", "51 (13%)", "22 (6%)"))
-  expect_identical(e$ranking$color[3], .MAPA_RESULTADO_PALETA[2])   # 5.5 se lee «6%»: va en la clase de 6, no en «Menos de 6»
+  expect_identical(e$ranking$color[3], e$leyenda$colores[2])   # 5.5 se lee «6%»: va en la clase de 6, no en «Menos de 6»
   expect_identical(e$leyenda$rotulos, c("Menos de 6 %", "6 a 9 %", "10 % a más", "Sin encuestados"))
   expect_identical(e$panel$titulo, "Encuestados por distrito")
   total <- .espec_mapa_distribucion(f, lima, cortes = c(6, 10), encuadre = "completo")$caja
@@ -123,4 +123,15 @@ test_that("un punto se declara por coordenadas o por enlace largo de Google Maps
   expect_true(e$caja[["ymax"]] >= -12.0693 && e$caja[["xmin"]] <= -77.0794)
   geoms <- vapply(.lam_mapa_gg(e)$layers, function(l) class(l$geom)[1], "")
   expect_true(all(c("GeomPoint", "GeomText", "GeomPath") %in% geoms))
+})
+
+test_that("las clases se distinguen entre sí y de «Sin encuestados»", {
+  lum <- function(col) { r <- grDevices::col2rgb(col)[, 1] / 255; sum(c(0.2126, 0.7152, 0.0722) * ifelse(r <= 0.03928, r / 12.92, ((r + 0.055) / 1.055)^2.4)) }
+  l <- vapply(.MAPA_DISTRIBUCION_PALETA, lum, 0)
+  expect_true(all(-diff(l) > 0.1))   # cada clase, un salto claro de luminosidad
+  rgb_vacio <- grDevices::col2rgb(.MAPA_DISTRIBUCION_VACIO)[, 1]
+  expect_identical(length(unique(rgb_vacio)), 1L)   # gris neutro: no se lee como otra clase azul
+  lima <- .mapa_distribucion_cartografia("lima_callao")
+  f <- data.frame(codigo = "150136", etiqueta = "San Miguel", n = 5L, porcentaje = 100, ubigeo = "150136")
+  expect_identical(tail(.espec_mapa_distribucion(f, lima, cortes = c(5, 10, 20))$leyenda$colores, 1), .MAPA_DISTRIBUCION_VACIO)
 })

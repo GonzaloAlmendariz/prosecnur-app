@@ -16,6 +16,12 @@
 
 .MAPA_DISTRIBUCION_AREAS <- c("lima_callao", "peru")
 
+# Gonzalo, 2026-11-02: con la rampa del mapa de resultado las clases «no se distinguen» y la primera se confundía con
+# «Sin encuestados» (#C9D5EA contra #E2E6EC). Aquí cada clase da un salto claro de luminosidad (de celeste a navy) y lo
+# vacío va en un gris neutro, sin tinte azul, para que no se lea como una clase más.
+.MAPA_DISTRIBUCION_PALETA <- c("#BFD7EF", "#6FA3D6", "#2F64A8", "#081F5C")
+.MAPA_DISTRIBUCION_VACIO <- "#D9D9D9"
+
 #' Mapa de la distribución de los encuestados por distrito de Lima y Callao o por departamento del Perú
 #'
 #' @param var Pregunta con el área de cada encuestado (códigos UBIGEO o nombres de distrito o departamento).
@@ -185,12 +191,13 @@ p_mapa_distribucion <- function(var, area = c("lima_callao", "peru"), titulo = N
     data.frame(ubigeo = d$ubigeo[1], n = sum(d$n), porcentaje = sum(d$porcentaje), stringsAsFactors = FALSE)
   }))
   cortes <- if (length(cortes)) cortes else .mapa_distribucion_cortes(ok$porcentaje)
-  pal <- c(.MAPA_RESULTADO_PALETA, .std_color("azul"))[seq_len(length(cortes) + 1L)]
-  if (length(cortes) + 1L > 4L) pal <- grDevices::colorRampPalette(c(.MAPA_RESULTADO_PALETA[1], .std_color("azul")))(length(cortes) + 1L)
+  k <- length(cortes) + 1L
+  pal <- if (k == 4L) .MAPA_DISTRIBUCION_PALETA else
+    grDevices::colorRampPalette(.MAPA_DISTRIBUCION_PALETA[c(1, 4)], space = "Lab")(k)   # extremos fijos, saltos parejos
   clase <- findInterval(.pulso_round_half_up(ok$porcentaje), cortes) + 1L   # la clase del número que se lee
   poly <- carto$poligonos
   fill_de <- stats::setNames(pal[clase], ok$ubigeo)
-  poly$fill <- ifelse(poly$ubigeo %in% names(fill_de), fill_de[poly$ubigeo], .std_color("mapa_fuera"))
+  poly$fill <- ifelse(poly$ubigeo %in% names(fill_de), fill_de[poly$ubigeo], .MAPA_DISTRIBUCION_VACIO)
   o <- order(-ok$porcentaje, carto$nombres$nombre[match(ok$ubigeo, carto$nombres$ubigeo)])
   nombre <- carto$nombres$nombre[match(ok$ubigeo, carto$nombres$ubigeo)]
   valor <- .pulso_round_half_up(ok$porcentaje)
@@ -198,9 +205,10 @@ p_mapa_distribucion <- function(var, area = c("lima_callao", "peru"), titulo = N
   bb <- .mapa_distribucion_caja(poly, ok$ubigeo, encuadre, puntos)
   poly <- .mapa_distribucion_recortar(poly, bb)
   list(version = "mapa/1", tipo = "mapa", forma = "resultado",
-       capas = list(list(datos = poly, borde = "#FFFFFF", grosor = 0.3)), caja = bb,
+       # Borde blanco más grueso que en el resultado: dos vecinos de la misma clase no se funden en una mancha.
+       capas = list(list(datos = poly, borde = "#FFFFFF", grosor = 0.55)), caja = bb,
        leyenda = list(titulo = paste("Por", carto$unidad), rotulos = c(.mapa_clases_rotulos(cortes, pal), "Sin encuestados"),
-                      colores = c(pal, .std_color("mapa_fuera"))),
+                      colores = c(pal, .MAPA_DISTRIBUCION_VACIO)),
        ranking = data.frame(distrito = nombre[o], valor = valor[o], n = ok$n[o], color = pal[clase][o], cifra = cifra[o], stringsAsFactors = FALSE),
        escala_max = max(c(1, ok$porcentaje)),
        panel = list(titulo = paste("Encuestados por", carto$unidad), sub = "Número y porcentaje, de mayor a menor"),
