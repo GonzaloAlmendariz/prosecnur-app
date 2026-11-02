@@ -225,12 +225,17 @@
     display: none;
   }
 
+  /* El pin va entero SOBRE el halo (que sobresale 6 px del círculo): a −13 px
+     se montaba encima de la insignia chica y la tapaba. */
   .cmv2-muestra-flow[data-compacto="true"] .cmv2-muestra-flow-pin {
+    top: -26px;
+    padding: 1px 7px;
     font-size: var(--pulso-type-micro-size);
+    line-height: 1.4;
   }
 
   .cmv2-muestra-flow[data-compacto="true"] .cmv2-muestra-flow-track {
-    padding: 14px 0 2px;
+    padding: 26px 0 2px;
   }
 }
 
