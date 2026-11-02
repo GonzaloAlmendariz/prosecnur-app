@@ -586,14 +586,16 @@ export default function HojasRutaMapaPage() {
   );
   // Perfil NSE de lo elegido para la gráfica del inspector de Territorio: viviendas
   // por nivel de las manzanas ya cargadas en el lienzo. null mientras no hay geometría.
+  // Con una ciudad abierta, sólo los suyos: el resto de «Lo elegido» ya habla de esa ciudad, y el perfil sumaba
+  // el estudio entero (visto en vivo: Arequipa y Trujillo daban el mismo perfil, el de Lima).
   const viviendasPorNse = useMemo(() => {
     const elegidos = new Set(borrador);
-    const cargados = distritos.filter((d) => elegidos.has(d.ubigeo));
+    const cargados = distritos.filter((d) => elegidos.has(d.ubigeo) && (!ciudadAbierta || ciudadDeUbigeo(d.ubigeo) === ciudadAbierta));
     if (!cargados.length) return null;
     const out: Record<number, number> = {};
     for (const d of cargados) for (const m of d.manzanas) out[m.nse] = (out[m.nse] ?? 0) + Math.max(0, m.viviendas);
     return out;
-  }, [distritos, borrador]);
+  }, [distritos, borrador, ciudadAbierta]);
   // B38: NSE del marco (viviendas de los distritos confirmados) y de la muestra (UMP titulares).
   const perfilNseMarco = useMemo(() => {
     const out: Record<number, number> = {};
