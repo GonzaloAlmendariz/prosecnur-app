@@ -1,5 +1,6 @@
 import type { SeccionTelefonica, VistaInterna } from "./direccionTelefonica";
 import { subvistasDePestana } from "./direccionTelefonica";
+import { SelectorDeSubvistas } from "../../../core/cabeceraDePestana/CabeceraDePestana";
 
 /**
  * Selector de las vistas que una pestaña absorbe mientras no tiene contenido
@@ -25,26 +26,11 @@ export function SubvistasDePestana({
   onElegir: (vista: VistaInterna) => void;
 }) {
   const opciones = subvistasDePestana(seccion, pestana).filter((item) => disponible(item.interna));
-  if (opciones.length < 2) return null;
   return (
-    <div className="mon-tel-subvistas" role="group" aria-label="Vista de la pestaña">
-      {opciones.map((item) => {
-        const elegida = item.interna.seccion === activa.seccion && item.interna.pestana === activa.pestana;
-        return (
-          <button
-            key={item.panel ?? "principal"}
-            type="button"
-            className={`mon-tel-subvista${elegida ? " is-active" : ""}`}
-            aria-pressed={elegida}
-            data-subvista={item.panel ?? "principal"}
-            onClick={() => {
-              if (!elegida) onElegir(item.interna);
-            }}
-          >
-            {item.etiqueta}
-          </button>
-        );
-      })}
-    </div>
+    <SelectorDeSubvistas
+      opciones={opciones.map((item) => ({ clave: item.panel ?? "principal", etiqueta: item.etiqueta, valor: item.interna }))}
+      esActiva={(vista) => vista.seccion === activa.seccion && vista.pestana === activa.pestana}
+      onElegir={onElegir}
+    />
   );
 }

@@ -42,61 +42,8 @@
 }
 
 /* Cabecera de pestaña, 44 px. */
-.mon-tel-cabecera {
-  display: flex;
-  align-items: center;
-  gap: var(--pulso-space-3);
-  height: 44px;
-  min-width: 0;
-}
-
-.mon-tel-cabecera-icono {
-  display: grid;
-  flex: none;
-  place-items: center;
-  width: 36px;
-  height: 36px;
-  border-radius: 11px;
-  background: var(--pulso-module-monitoring-soft);
-  color: var(--pulso-module-monitoring);
-}
-
-.mon-tel-cabecera-copia {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-self: stretch;
-  gap: 2px;
-  min-width: 0;
-  line-height: 1.2;
-}
-
-.mon-tel-cabecera-antetitulo {
-  color: var(--pulso-text-soft);
-  font-size: 10px;
-  font-weight: var(--pulso-weight-bold);
-  letter-spacing: 0.09em;
-  text-transform: uppercase;
-}
-
-.mon-tel-cabecera-copia h2 {
-  margin: 0;
-  color: var(--pulso-text);
-  font-size: 18px;
-  font-weight: var(--pulso-weight-bold);
-  letter-spacing: -0.01em;
-  line-height: 1.2;
-}
-
-.mon-tel-cabecera-derecha {
-  display: flex;
-  align-self: stretch;
-  align-items: center;
-  gap: var(--pulso-space-2);
-  margin-left: auto;
-  min-width: 0;
-}
-
+/* La cabecera de pestaña vive en `core/cabeceraDePestana` (L14); aquí queda
+ * el chip, que también usan los paneles de Control. */
 .mon-tel-chip {
   display: inline-flex;
   align-items: center;

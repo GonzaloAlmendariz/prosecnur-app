@@ -1,5 +1,6 @@
 import { MonitoreoWorkbenchRail, type MonitoreoWorkbenchRailTab } from "../../../components/MonitoreoWorkbenchRail";
 import { TERRITORIAL_SECCIONES_PUBLICAS } from "../../../core/monitoreoRegistry";
+import { CabeceraDePestana, SelectorDeSubvistas } from "../../../core/cabeceraDePestana/CabeceraDePestana";
 import { antetituloDePestana } from "./modeloDelRail";
 import { subvistasDePestana, type DireccionTerritorial, type SeccionTerritorial } from "./direccionTerritorial";
 // Las clases de la cabecera de pestaña (`mon-tel-cabecera`, `mon-tel-chip`,
@@ -51,6 +52,7 @@ export function RailTerritorial({
 /**
  * Cabecera de pestaña de una línea (§0): ícono, sobrelínea «SECCIÓN · GRUPO» y
  * el nombre; a la derecha el selector de sub-vistas y los chips de contexto.
+ * Se pinta con la cabecera común de Monitoreo (L14).
  */
 export function CabeceraTerritorial({
   direccion,
@@ -65,43 +67,20 @@ export function CabeceraTerritorial({
 }) {
   const definicion = definicionDe(direccion.seccion);
   const actual = pestanas.find((item) => item.key === direccion.pestana);
-  const Icono = actual?.icon ?? definicion.icon;
   const subvistas = subvistasDePestana(direccion.seccion, direccion.pestana);
   return (
-    <header className="mon-tel-cabecera mon-ter-cabecera">
-      <span className="mon-tel-cabecera-icono" aria-hidden="true">
-        <Icono size={17} />
-      </span>
-      <span className="mon-tel-cabecera-copia">
-        <span className="mon-tel-cabecera-antetitulo">{antetituloDePestana(direccion.seccion, direccion.pestana)}</span>
-        <h2>{actual?.label ?? definicion.label}</h2>
-      </span>
-      <span className="mon-tel-cabecera-derecha">
-        {subvistas.length ? (
-          <span className="mon-tel-subvistas" role="group" aria-label="Vista de la pestaña">
-            {subvistas.map((item) => {
-              const elegida = (item.panel ?? null) === (direccion.panel ?? null);
-              return (
-                <button
-                  key={item.panel ?? "principal"}
-                  type="button"
-                  className={`mon-tel-subvista${elegida ? " is-active" : ""}`}
-                  aria-pressed={elegida}
-                  data-subvista={item.panel ?? "principal"}
-                  onClick={() => {
-                    if (!elegida) onSubvista(item.panel);
-                  }}
-                >
-                  {item.etiqueta}
-                </button>
-              );
-            })}
-          </span>
-        ) : null}
-        {chips.map((chip) => (
-          <span key={chip} className="mon-tel-chip">{chip}</span>
-        ))}
-      </span>
-    </header>
+    <CabeceraDePestana
+      icono={actual?.icon ?? definicion.icon}
+      antetitulo={antetituloDePestana(direccion.seccion, direccion.pestana)}
+      titulo={actual?.label ?? definicion.label}
+      control={
+        <SelectorDeSubvistas
+          opciones={subvistas.map((item) => ({ clave: item.panel ?? "principal", etiqueta: item.etiqueta, valor: item.panel ?? null }))}
+          esActiva={(panel) => panel === (direccion.panel ?? null)}
+          onElegir={onSubvista}
+        />
+      }
+      chips={chips}
+    />
   );
 }
