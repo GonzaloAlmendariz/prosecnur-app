@@ -1,4 +1,7 @@
-// Territorial › Paquetes › Armado (ADR 0118 §1): el ZIP del paquete, el Excel
+// Territorial › Paquetes › Armado (ADR 0118 §1, revamp v5): «Para campo» es la lista de
+// piezas con su estado y una acción cada una (ZIP con su detalle por distrito, Excel
+// operativo, hojas de ruteo y consolidados); los reemplazos puntuales van a un lado,
+// como tarea de excepción. El ZIP del paquete, el Excel
 // operativo y los reemplazos puntuales, con los mismos endpoints y la misma
 // lógica pura que Selección › Salidas en Hojas de ruta (`salidas.ts`). Ninguno
 // cambia el sorteo: sólo producen archivos.
@@ -47,6 +50,7 @@ import {
 import { nombreDistrito } from "../../hojasRuta/mapa/nombres";
 import { codigoDeUmp } from "../../hojasRuta/seleccion/revisionMarco";
 import { HojasDelPaquete } from "./HojasDeCampo";
+import "./paquetes.css";
 import { AvisoDesactualizada, HREF_REENVIO, VacioSinFuente } from "./UnidadesTerritoriales";
 
 const fmt = (n: number) => new Intl.NumberFormat("es-PE").format(Math.round(Number(n) || 0));
@@ -58,6 +62,13 @@ const COLUMNAS_PAQUETE: PulsoTableColumna<FilaPaquete>[] = [
   { id: "zonas", encabezado: "Hojas por zona", ancho: 130, tipo: "cifra", celda: (f) => fmt(f.zonas) },
 ];
 const POLITICAS = [["alternate_zone_same_district", "Otra zona"], ["paired_by_titular_zone", "Misma zona"]] as const;
+
+/** El estado de una pieza en esta sesión: el backend no guarda cuándo se generó (requiere dato). */
+function EstadoDePieza({ listo, generando }: { listo: boolean; generando: boolean }) {
+  if (generando) return <span className="rec-terr-pieza-estado" data-estado="generando">Generando</span>;
+  if (listo) return <span className="rec-terr-pieza-estado" data-estado="listo">Lista</span>;
+  return <span className="rec-terr-pieza-estado">Sin generar</span>;
+}
 
 type Trabajo = "" | "zip" | "excel" | "puntuales";
 type Estado = {
@@ -137,76 +148,95 @@ export function PaquetesTerritoriales({ campaignId, unidades, hojas, onRecargar,
         </div>
       ) : null}
 
-      <div className="rec-terr-tarjetas" data-qa-geometry-group="material-campo/territorial/paquetes" data-qa-geometry-contract="intrinsic">
-        <article className="rec-terr-tarjeta" data-qa-geometry-member aria-label="Paquete de entrega">
-          <h3><Archive size={15} aria-hidden /> Paquete de entrega</h3>
-          {!listo ? (
-            <p className="rec-terr-aviso" role="status">
-              Falta en Hojas de ruta: {pasos.filter((p) => !p.ok).map((p) => p.label.toLocaleLowerCase("es-PE")).join(", ")}. <Link to={HREF_REENVIO}>Ir a Hojas de ruta</Link>
-            </p>
-          ) : null}
-          {muestra ? (
-            <>
-              <p className="rec-terr-nota">Qué incluye, distrito por distrito: una carpeta con sus fichas, las hojas por zona, el Excel operativo y los metadatos del marco.</p>
-              <PulsoTable
-                columnas={COLUMNAS_PAQUETE}
-                filas={[...porDistrito, { ubigeo: "total", distrito: "Total", titulares: paquete.titulares, reemplazos: paquete.reemplazos, zonas: paquete.zonas }]}
-                idDeFila={(f) => f.ubigeo}
-                ariaLabel="Contenido del paquete por distrito"
-                densidad="compacta"
-                altoMaximo={100000}
-              />
-            </>
-          ) : (
-            <p className="rec-terr-nota">Hojas de ruta no tiene una muestra guardada con la que armar el paquete.</p>
-          )}
-          <div className="rec-terr-fila">
-            <PulsoButton variant="primary" size="sm" disabled={!config || !listo || corriendo || unidades.stale} onClick={() => config && void correr("zip", () => apiHojasRutaGenerate(config, muestra), (r) => ({ jobZip: r.job_id, zip: null }))}>
-              <Archive size={14} aria-hidden /> {e.ocupado === "zip" ? "Preparando…" : "Generar ZIP"}
-            </PulsoButton>
-            <PulsoButton
-              variant="secondary"
-              size="sm"
-              disabled={!config || !listo || corriendo || unidades.stale}
-              onClick={() => config && void correr("excel", () => apiHojasRutaRouteWorkbook(config, muestra), (r) => {
-                window.open(downloadUrl(r.file_id), "_blank", "noopener,noreferrer");
-                return { excel: r };
-              })}
-            >
-              <FileSpreadsheet size={14} aria-hidden /> {e.ocupado === "excel" ? "Creando…" : "Excel operativo"}
-            </PulsoButton>
-          </div>
-          <JobProgress<HojasRutaJobResult>
-            label="Generando las hojas de ruta"
-            jobId={e.jobZip}
-            onDone={(r) => setE((s) => ({ ...s, zip: r, jobZip: null }))}
-            onError={(msg) => setE((s) => ({ ...s, error: msg, jobZip: null }))}
-            onCancelled={() => setE((s) => ({ ...s, jobZip: null }))}
-          />
-          {e.zip ? (
-            <a className="rec-terr-archivo" href={downloadUrl(e.zip.file_id)}>
-              <strong>Descargar ZIP</strong>
-              {/* P9 de la paridad: las hojas de zona y la versión del marco con que salió, como en la clásica. */}
-              <small>{resumenDelZip(e.zip, pesoLegible(e.zip.size))}</small>
-            </a>
-          ) : null}
-          {e.excel ? (
-            <a className="rec-terr-archivo" href={downloadUrl(e.excel.file_id)}>
-              <strong>Descargar Excel</strong>
-              <small>{fmt(e.excel.n_blocks)} titulares · {fmt(e.excel.n_replacement_blocks)} reemplazos · {pesoLegible(e.excel.size)}</small>
-            </a>
-          ) : null}
-          <p className="rec-terr-nota">
-            Se arman con la muestra enviada desde Hojas de ruta. Si allí se vuelve a sortear, Material queda desfasado y no genera nada hasta que la muestra se envíe de nuevo; después, vuelve a generarlos.
-          </p>
-          {!muestra ? (
-            <PulsoButton variant="ghost" size="sm" onClick={() => { void onRecargar(); }}>Volver a leer Hojas de ruta</PulsoButton>
-          ) : null}
-        </article>
+      <div className="rec-terr-paquetes" data-qa-geometry-group="material-campo/territorial/paquetes" data-qa-geometry-contract="intrinsic">
+        <div className="rec-terr-paquetes-principal" data-qa-geometry-member>
+          <section className="rec-terr-piezas" aria-labelledby="rec-terr-piezas-titulo">
+            <h2 id="rec-terr-piezas-titulo">Para campo</h2>
+            {!listo ? (
+              <p className="rec-terr-aviso" role="status">
+                Falta en Hojas de ruta: {pasos.filter((p) => !p.ok).map((p) => p.label.toLocaleLowerCase("es-PE")).join(", ")}. <Link to={HREF_REENVIO}>Ir a Hojas de ruta</Link>
+              </p>
+            ) : null}
+            {!muestra ? (
+              <div className="rec-terr-fila">
+                <p className="rec-terr-nota">Hojas de ruta no tiene una muestra guardada con la que armar el paquete.</p>
+                <PulsoButton variant="ghost" size="sm" onClick={() => { void onRecargar(); }}>Volver a leer Hojas de ruta</PulsoButton>
+              </div>
+            ) : null}
+            <ul className="rec-terr-piezas-lista">
+              <li className="rec-terr-pieza">
+                <span className="rec-terr-pieza-icono" aria-hidden><Archive size={16} /></span>
+                <span className="rec-terr-pieza-texto">
+                  <strong>Paquete por distrito</strong>
+                  <small>Fichas, hojas por zona, Excel operativo y metadatos del marco, una carpeta por distrito</small>
+                </span>
+                <span className="rec-terr-pieza-formato">ZIP</span>
+                <EstadoDePieza listo={Boolean(e.zip)} generando={Boolean(e.jobZip) || e.ocupado === "zip"} />
+                {e.zip ? (
+                  <a className="pulso-button pulso-button--secondary pulso-button--sm" href={downloadUrl(e.zip.file_id)} title={resumenDelZip(e.zip, pesoLegible(e.zip.size))}>Descargar</a>
+                ) : (
+                  <PulsoButton variant="primary" size="sm" disabled={!config || !listo || corriendo || unidades.stale} onClick={() => config && void correr("zip", () => apiHojasRutaGenerate(config, muestra), (r) => ({ jobZip: r.job_id, zip: null }))}>
+                    {e.ocupado === "zip" ? "Preparando…" : "Generar"}
+                  </PulsoButton>
+                )}
+                <div className="rec-terr-pieza-extra">
+                  <JobProgress<HojasRutaJobResult>
+                    label="Generando las hojas de ruta"
+                    jobId={e.jobZip}
+                    onDone={(r) => setE((s) => ({ ...s, zip: r, jobZip: null }))}
+                    onError={(msg) => setE((s) => ({ ...s, error: msg, jobZip: null }))}
+                    onCancelled={() => setE((s) => ({ ...s, jobZip: null }))}
+                  />
+                  {muestra ? (
+                    <details className="rec-terr-pieza-detalle">
+                      <summary>Ver por distrito ({fmt(porDistrito.length)})</summary>
+                      <PulsoTable
+                        columnas={COLUMNAS_PAQUETE}
+                        filas={[...porDistrito, { ubigeo: "total", distrito: "Total", titulares: paquete.titulares, reemplazos: paquete.reemplazos, zonas: paquete.zonas }]}
+                        idDeFila={(f) => f.ubigeo}
+                        ariaLabel="Contenido del paquete por distrito"
+                        densidad="compacta"
+                        altoMaximo={100000}
+                      />
+                    </details>
+                  ) : null}
+                </div>
+              </li>
+              <li className="rec-terr-pieza">
+                <span className="rec-terr-pieza-icono" aria-hidden><FileSpreadsheet size={16} /></span>
+                <span className="rec-terr-pieza-texto">
+                  <strong>Excel operativo</strong>
+                  <small>
+                    {e.excel
+                      ? `${fmt(e.excel.n_blocks)} titulares y ${fmt(e.excel.n_replacement_blocks)} reemplazos, ${pesoLegible(e.excel.size)}`
+                      : `${fmt(paquete.titulares)} titulares, una hoja por distrito`}
+                  </small>
+                </span>
+                <span className="rec-terr-pieza-formato">XLSX</span>
+                <EstadoDePieza listo={Boolean(e.excel)} generando={e.ocupado === "excel"} />
+                {e.excel ? (
+                  <a className="pulso-button pulso-button--secondary pulso-button--sm" href={downloadUrl(e.excel.file_id)}>Descargar</a>
+                ) : (
+                  <PulsoButton
+                    variant="secondary"
+                    size="sm"
+                    disabled={!config || !listo || corriendo || unidades.stale}
+                    onClick={() => config && void correr("excel", () => apiHojasRutaRouteWorkbook(config, muestra), (r) => {
+                      window.open(downloadUrl(r.file_id), "_blank", "noopener,noreferrer");
+                      return { excel: r };
+                    })}
+                  >
+                    {e.ocupado === "excel" ? "Creando…" : "Generar"}
+                  </PulsoButton>
+                )}
+              </li>
+            </ul>
+          </section>
 
-        <HojasDelPaquete campaignId={campaignId} unidades={unidades} />
+          <HojasDelPaquete campaignId={campaignId} unidades={unidades} />
+        </div>
 
-        <article className="rec-terr-tarjeta" data-qa-geometry-member aria-label="Reemplazos puntuales">
+        <article className="rec-terr-tarjeta rec-terr-paquetes-secundaria" data-qa-geometry-member aria-label="Reemplazos puntuales">
           <h3><Shuffle size={15} aria-hidden /> Reemplazos puntuales</h3>
           <p className="rec-terr-nota">Para las titulares que fallaron en campo: un PDF con reemplazos nuevos, sin tocar el sorteo.</p>
           {sugeridas.length ? (

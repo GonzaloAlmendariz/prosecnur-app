@@ -1,0 +1,125 @@
+/* Territorial › Paquetes (revamp v5): las piezas para campo a la izquierda, con su
+   estado y una acción; los reemplazos puntuales a la derecha, en tono secundario. */
+
+.rec-terr-paquetes {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  align-items: start;
+  gap: var(--pulso-space-4);
+}
+@media (max-width: 1100px) {
+  .rec-terr-paquetes { grid-template-columns: minmax(0, 1fr); }
+}
+.rec-terr-paquetes-principal {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-4);
+  min-width: 0;
+}
+.rec-terr-paquetes-secundaria {
+  background: var(--pulso-surface-2);
+}
+
+.rec-terr-piezas {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-3);
+}
+.rec-terr-piezas h2 {
+  margin: 0;
+  font-size: var(--pulso-type-title-size);
+  font-weight: var(--pulso-type-title-weight);
+  color: var(--pulso-text);
+}
+.rec-terr-piezas-lista {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-card);
+  background: var(--pulso-surface);
+}
+.rec-terr-pieza {
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr) auto auto auto;
+  align-items: center;
+  gap: var(--pulso-space-3);
+  padding: var(--pulso-space-3) var(--pulso-space-4);
+}
+.rec-terr-pieza + .rec-terr-pieza {
+  border-top: 1px solid var(--pulso-border);
+}
+.rec-terr-pieza-icono {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--pulso-radius);
+  background: var(--pulso-module-fieldkit-soft);
+  color: var(--pulso-module-fieldkit);
+}
+.rec-terr-pieza-texto {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.rec-terr-pieza-texto strong {
+  font-size: var(--pulso-type-body-size);
+  color: var(--pulso-text);
+}
+.rec-terr-pieza-texto small {
+  font-size: var(--pulso-type-caption-size);
+  color: var(--pulso-text-soft);
+}
+.rec-terr-pieza-formato {
+  padding: 0 var(--pulso-space-1);
+  border-radius: 4px;
+  background: var(--pulso-surface-3);
+  color: var(--pulso-text-soft);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  line-height: 20px;
+}
+.rec-terr-pieza-estado {
+  display: inline-flex;
+  align-items: center;
+  height: 24px;
+  padding: 0 var(--pulso-space-2);
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-chip);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--pulso-text-soft);
+  white-space: nowrap;
+}
+.rec-terr-pieza-estado[data-estado="listo"] {
+  border-color: var(--pulso-success-border);
+  background: var(--pulso-success-bg);
+  color: var(--pulso-success-fg);
+}
+.rec-terr-pieza-estado[data-estado="generando"] {
+  border-color: var(--pulso-module-fieldkit-border);
+  background: var(--pulso-module-fieldkit-soft);
+  color: var(--pulso-module-fieldkit);
+}
+.rec-terr-pieza-extra {
+  grid-column: 2 / -1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-2);
+}
+.rec-terr-pieza-extra:empty { display: none; }
+.rec-terr-pieza-detalle summary {
+  cursor: pointer;
+  font-size: var(--pulso-type-caption-size);
+  font-weight: 600;
+  color: var(--pulso-module-fieldkit);
+}
+.rec-terr-pieza-detalle summary:focus-visible {
+  outline: 2px solid var(--pulso-module-fieldkit);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+.rec-terr-pieza-detalle[open] summary { margin-bottom: var(--pulso-space-2); }
