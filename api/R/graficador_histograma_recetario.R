@@ -28,7 +28,7 @@
                                   color_titulo = .std_color("coral"), size_titulo = 12,
                                   color_subtitulo = .std_color("azul"), size_subtitulo = 10,
                                   color_nota_pie = .std_color("azul"), size_nota_pie = 8,
-                                  unidad = "", ancho = NULL) {
+                                  unidad = "", ancho = NULL, mostrar_frecuencia = FALSE) {
   cara <- function(token) if (token %in% textos_negrita) "bold" else "plain"
   mediana <- stats::median(x)
   tope <- suppressWarnings(as.numeric(limite_superior)[1])
@@ -36,7 +36,8 @@
   niveles <- seq(min(xv), max(xv))
   cnt <- as.vector(table(factor(xv, levels = niveles)))
   valor <- switch(modo, conteo = cnt, cnt / sum(cnt) * 100)
-  lab <- if (identical(modo, "conteo")) format(cnt, trim = TRUE) else .pulso_fmt_pct_half_up(valor, decimales, escala = 1)
+  lab <- if (isTRUE(mostrar_frecuencia)) .histograma_cifra_con_frecuencia(cnt, decimales) else
+    if (identical(modo, "conteo")) format(cnt, trim = TRUE) else .pulso_fmt_pct_half_up(valor, decimales, escala = 1)
   lab[cnt == 0] <- ""
   rot <- as.character(niveles)
   if (is.finite(tope) && any(x > tope)) rot[length(rot)] <- paste0(rot[length(rot)], "+")
@@ -77,4 +78,28 @@
   attr(p, "pulso_espec") <- list(version = "histograma/1", tipo = "histograma", rotulos = rot, valores = valor, cifras = lab,
                                  conteos = cnt, mediana = mediana, x_mediana = x_med - 1, texto_mediana = texto_med, enteros = enteros)
   p
+}
+
+#' Cifra «conteo (porcentaje)» de cada barra: «103 (26%)»
+#'
+#' Con `mostrar_frecuencia` la barra dice cuántos son y qué parte del total (CCSS Perfil 2026, lámina 11: «Edad: conteo y
+#' porcentaje entre paréntesis»), en cualquier modo: la altura de la barra sigue el modo, la cifra lleva las dos medidas.
+#' El porcentaje es sobre el total de casos del histograma y redondea como el resto del motor (medio hacia arriba).
+#' @keywords internal
+.histograma_cifra_con_frecuencia <- function(cnt, decimales = 0) {
+  tot <- sum(cnt)
+  pct <- .pulso_fmt_pct_half_up(if (tot > 0) cnt / tot * 100 else cnt * 0, decimales, escala = 1)
+  sprintf("%s (%s)", format(cnt, big.mark = ",", trim = TRUE), pct)
+}
+
+#' La cifra de la lámina nativa en una o dos líneas: «103 (26%)» se parte antes del paréntesis si no cabe en su columna
+#' @return `list(textos, lineas)`; `lineas` es 1 o 2 y vale para todas las barras (que se lean parejas).
+#' @keywords internal
+.histograma_cifras_en_columna <- function(cifras, wcol, size = 12) {
+  cabe <- function(t) all(.lam_ancho_txt(t[nzchar(t)], size, TRUE) <= wcol - 0.22)   # la caja de `.lam_txt` pierde 0.1 in por lado
+  if (!length(cifras) || cabe(cifras) || !any(grepl(" (", cifras, fixed = TRUE))) return(list(textos = cifras, lineas = 1L))
+  partes <- strsplit(cifras, " (", fixed = TRUE)
+  tramos <- unlist(lapply(partes, function(p) if (length(p) > 1L) c(p[1], paste0("(", p[-1])) else p))
+  if (!cabe(tramos)) return(list(textos = cifras, lineas = 1L))
+  list(textos = sub(" (", "\n(", cifras, fixed = TRUE), lineas = 2L)
 }

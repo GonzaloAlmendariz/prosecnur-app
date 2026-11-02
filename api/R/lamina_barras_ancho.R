@@ -37,7 +37,7 @@
   U <- .LAM_BARRAS_ANCHO; tope <- U$tope_rotulo * ancho
   natural <- max(1.4, max(.lam_ancho_tinta(rotulos, size, nb)) + 0.3)
   if (natural <= tope) return(list(wlab = natural, size = size, acotada = FALSE))
-  piso <- max(U$piso_pt, .std_valor("ppt", "tipografia", "cifra_minimo") %||% 8)
+  piso <- min(size, max(U$piso_pt, .std_valor("ppt", "tipografia", "cifra_minimo") %||% 8))   # un cuerpo declarado bajo el piso no sube
   for (s in unique(c(seq(size, piso, by = -0.5), piso))) {
     if (s < piso) next
     lin <- .lam_lineas_tinta(rotulos, tope, s, nb)

@@ -3409,7 +3409,7 @@ stopifnot(setequal(names(.GRAFICOS_SALIDA_EDITOR), names(.GRAFICADORES_META)))
 
       list(name = "mostrar_valores", label = "Mostrar etiquetas", tipo_input = "bool", grupo = "valores", default = TRUE),
       list(name = "mostrar_frecuencia", label = "Mostrar frecuencia junto al %", tipo_input = "bool", grupo = "valores", default = FALSE,
-           descripcion = "Agrega el conteo al porcentaje: 42% (76) en vez de 42%. Apagado por defecto."),
+           descripcion = "Rotula conteo y porcentaje: 76 (42%) con una barra por valor; 42% (76) con intervalos o grupos. Apagado por defecto."),
       list(name = "mostrar_resumen_grupos_subtitulo", label = "Resumen de grupos en subtítulo", tipo_input = "bool", grupo = "valores",
            default = FALSE,
            descripcion = "Agrega al subtítulo la distribución general de los grupos visibles. Ejemplo: Sexo: Hombre 82% · Mujer 18%."),

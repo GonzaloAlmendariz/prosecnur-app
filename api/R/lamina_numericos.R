@@ -15,11 +15,15 @@
 .lam_histograma <- function(lz, espec, x, y, w, hb) {
   azul <- .std_color("azul"); coral <- .std_color("coral")
   n <- length(espec$valores); wcol <- w / n; vmax <- max(espec$valores)
+  cif <- .histograma_cifras_en_columna(espec$cifras, wcol)   # «103 (26%)» en dos líneas si no cabe en una
+  h_cif <- 0.28 + (cif$lineas - 1L) * 0.2
   for (k in seq_len(n)) {
     hk <- if (vmax > 0) hb * espec$valores[k] / vmax else 0; xk <- x + (k - 1) * wcol
     if (hk > 0) {
       .lam_caja(lz, xk + 0.02, y + hb - hk, wcol - 0.04, hk, azul, nombre = "histograma:barra")
-      .lam_txt(lz, espec$cifras[k], xk, y + hb - hk - 0.3, wcol, 0.28, 12, azul, bold = TRUE, align = "center", nombre = "histograma:cifra")
+      lin <- strsplit(cif$textos[k], "\n", fixed = TRUE)[[1]]   # el conteo arriba y su porcentaje debajo, en cajas propias
+      for (j in seq_along(lin)) .lam_txt(lz, lin[j], xk, y + hb - hk - 0.02 - h_cif + (j - 1L) * 0.2, wcol, 0.28, 12, azul, bold = TRUE,
+                                         align = "center", nombre = if (j == 1L) "histograma:cifra" else "histograma:cifra_pct")
     }
     .lam_txt(lz, espec$rotulos[k], xk, y + hb + 0.06, wcol, 0.28, 12, azul, align = "center", nombre = "histograma:valor")
   }
@@ -386,7 +390,9 @@
   switch(espec$tipo,
     histograma = {
       n <- length(espec$valores); wcol <- ancho / n
-      n >= 2L && n <= 30L && all(.lam_ancho_txt(c(espec$cifras, espec$rotulos), 12, TRUE) <= wcol - 0.02)
+      n >= 2L && n <= 30L && all(.lam_ancho_txt(espec$rotulos, 12, TRUE) <= wcol - 0.02) &&
+        all(.lam_ancho_txt(unlist(strsplit(.histograma_cifras_en_columna(espec$cifras, wcol)$textos, "\n", fixed = TRUE)), 12, TRUE) <=
+              wcol - (if (any(grepl(" (", espec$cifras, fixed = TRUE))) 0.22 else 0.02))
     },
     numerico = {
       k <- length(espec$valores); paso <- (ancho - 1.2) / k; wr <- min(paso * 0.56 + 0.8, paso - 0.05)

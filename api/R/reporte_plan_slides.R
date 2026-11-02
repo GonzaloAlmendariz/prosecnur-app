@@ -2018,6 +2018,7 @@ p_barras_agrupadas <- function(var, titulo = NULL, cruces = NULL, overrides = li
                                   opciones = eval(formals(graficar_barras_agrupadas)$normalizar_etiquetas))
   # TXT-20: el texto abierto que se codificó en `var` (temas); apagado por defecto. reporte_plan_temas_texto.R
   overrides <- .ppt_slot_override(overrides, "temas_de_texto", temas_de_texto, "texto")
+  overrides <- .agrupadas_tamanos_declarados_mandan(overrides)   # CCSS 2026, lámina 64 (lamina_tamanos_declarados.R)
 
   el <- list(
     .element_type = "barras_agrupadas",
