@@ -12,7 +12,7 @@ cronograma se va por completo («Sí, procede»). Sólo Gonzalo da los ítems po
 | 4 | Se borran las pantallas del Planner y de la Bitácora (Resumen, Tipos, Camino, cronograma, calendario, registro, lienzo) | `features/bitacora/` (sobreviven en `features/estudio/` el hook del estudio, el vacío y `usePlannerModos`) | hecho, por revisar con Gonzalo |
 | 5 | Enlaces de Cálculo y Monitoreo que mandaban a declarar el tipo en el Planner → panel del Home | `AterrizajeDelPlanner.tsx`, `FichaEstudio.tsx`, `usePlannerIdentidad.ts`, `MonitoreoShell.tsx`: abren la ficha sobre la vista actual y releen al guardar | hecho, por revisar con Gonzalo |
 | 6 | «Alinear la fase/ventana» de Monitoreo y la etapa del Planner en Hojas de ruta: ya no aparecen; su código lo retira cada sesión dueña | Monitoreo, Hojas de ruta | pendiente, de otras sesiones |
-| 7 | Backend de la Bitácora y del calendario (routers, motores, jobs, exportación del mapa): queda dormido; se retira aparte | `router_bitacora*.R`, `plan_trabajo`, `planner_calendario.R` | fuera de esta tanda |
+| 7 | Backend de la Bitácora y del calendario (routers, motores, jobs, exportación del mapa): queda dormido; se retira aparte | `router_bitacora*.R`, `plan_trabajo`, `planner_calendario.R` | **bloqueado** (2026-11-02): el ADR 0124 §4 respalda quitar la UI y conservar las claves en el `.pulso`, no borrar routers ni motores; retirar el backend pide decidirlo (enmienda al ADR), para la mañana |
 
 ## Notas
 
