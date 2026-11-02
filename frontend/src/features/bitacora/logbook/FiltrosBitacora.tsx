@@ -48,7 +48,7 @@ export function FiltrosBitacora({
       <div className="bit-filtros-controles">
       <label className="bit-filtros-busqueda">
         <Search size={14} aria-hidden="true" />
-        <span className="pulso-sr-only">Buscar en la bitácora</span>
+        <span className="pulso-sr-only">Buscar en el registro de decisiones</span>
         <input
           type="search"
           value={filtro.texto}

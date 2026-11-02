@@ -92,7 +92,9 @@ PLANNER_MAX_INSUMOS <- 60L
   list(
     nombre = .bit_texto(x$nombre, 160L),
     codigo = .bit_texto(x$codigo, 40L),
-    cliente = .bit_texto(x$cliente, 160L)
+    cliente = .bit_texto(x$cliente, 160L),
+    # ADR 0123 §1: el objetivo en una línea. No se publica (§7, planner_publico.R).
+    objetivo = .bit_texto(x$objetivo, 240L)
   )
 }
 
@@ -319,6 +321,34 @@ PLANNER_MAX_INSUMOS <- 60L
   perfiles
 }
 
+# ADR 0123 §2: la pantalla de perfiles no muestra la representatividad (es de
+# Cálculo y aquí sólo queda de respaldo) y puede no mandar los canales o las
+# bases. Lo que el cliente no manda se conserva del valor previo, en vez de que
+# el normalizador lo borre o ponga los canales por defecto; la representatividad
+# que llegue del cliente se ignora.
+.planner_conservar_perfiles <- function(limpios, crudo, previos) {
+  previos <- previos %||% list()
+  crudos <- .planner_registros(crudo, 50L)
+  lapply(seq_along(limpios), function(i) {
+    p <- limpios[[i]]
+    antes <- Filter(function(x) identical(x$tipo, p$tipo), previos)
+    antes <- if (length(antes)) antes[[1]] else NULL
+    mando <- if (i <= length(crudos)) crudos[[i]] else list()
+    if (!is.null(antes) && is.null(mando$canales)) p$canales <- antes$canales
+    pobl_antes <- if (is.null(antes)) list() else stats::setNames(antes$poblaciones, vapply(antes$poblaciones, `[[`, "", "id"))
+    mando_pobl <- .planner_registros(mando$poblaciones, PLANNER_MAX_POBLACIONES)
+    p$poblaciones <- lapply(seq_along(p$poblaciones), function(j) {
+      x <- p$poblaciones[[j]]
+      vieja <- pobl_antes[[x$id]]
+      x$representatividad <- if (is.null(vieja)) NULL else vieja$representatividad
+      cruda <- if (j <= length(mando_pobl)) mando_pobl[[j]] else list()
+      if (!is.null(vieja) && is.null(cruda$bases)) x$bases <- vieja$bases
+      x
+    })
+    p
+  })
+}
+
 # --- Escritura -----------------------------------------------------------------
 
 #' Declara una sección del Planner. Exige la revisión vigente y la sube en uno.
@@ -347,7 +377,8 @@ PLANNER_MAX_INSUMOS <- 60L
              details = list(expected_revision = esperado, current_revision = actual$revision))
   }
   limpio <- switch(seccion,
-                   perfiles = .planner_validar_perfiles(valor),
+                   perfiles = .planner_conservar_perfiles(.planner_validar_perfiles(valor), valor,
+                                                          actual$secciones$perfiles$valor),
                    etapa = .planner_validar_etapa(valor),
                    ventana = .planner_validar_ventana(valor),
                    .planner_normalizar_seccion(seccion, valor))

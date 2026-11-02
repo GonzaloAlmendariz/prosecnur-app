@@ -5,7 +5,7 @@
 # El modo público no expone el Planner: sus rutas no están en
 # PUBLIC_MODE_WHITELIST y `mount_planner` sólo se monta fuera de él. Lo único
 # del Planner que puede viajar en un artefacto publicado es la identidad del
-# estudio (nombre, código, cliente). El equipo, los códigos, los insumos, la
+# estudio (nombre, código, cliente; el objetivo no). El equipo, los códigos, los insumos, la
 # etapa y los perfiles nunca: el equipo trae nombres de personas y el resto es
 # operación interna del estudio.
 
@@ -21,11 +21,13 @@
     s["planner"] <- list(NULL)
     return(s)
   }
+  # El objetivo es interno (ADR 0123 §7, decisión de Gonzalo): se publican nombre,
+  # código y cliente.
   s["planner"] <- list(list(
     schema = PLANNER_SCHEMA,
     revision = p$revision,
     declarado_en = list(estudio = estudio$declarado_en),
-    estudio = estudio$valor
+    estudio = estudio$valor[c("nombre", "codigo", "cliente")]
   ))
   s
 }

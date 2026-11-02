@@ -128,10 +128,11 @@ type SeccionRenombrada = { seccion: string; pestana?: string; aviso?: string };
 const SECCIONES_RENOMBRADAS: Partial<Record<ProsecnurModuleSlug, Readonly<Record<string, SeccionRenombrada>>>> = {
   "diseno-estudio": {
     calendario: { seccion: "cronograma", pestana: "mes" },
-    canvas: { seccion: "camino" },
+    canvas: { seccion: "camino", pestana: "lienzo" },
     bitacora: { seccion: "cronograma", pestana: "registro" },
     "bitacora/registro": { seccion: "cronograma", pestana: "registro" },
-    "bitacora/lienzo": { seccion: "camino" },
+    "bitacora/lienzo": { seccion: "camino", pestana: "lienzo" },
+    muestra: { seccion: "estudio", aviso: "universo-en-calculo" },
     equipo: { seccion: "estudio", aviso: "equipo-en-monitoreo" },
     codigos: { seccion: "estudio", aviso: "codigos-en-material" },
     "estudio/insumos": { seccion: "estudio", aviso: "insumos-no-se-registran" },

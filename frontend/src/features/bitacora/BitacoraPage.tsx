@@ -1,5 +1,5 @@
-// El Planner del estudio (ADR 0122, reemplazado en parte por el 0123). Cuatro
-// secciones —Estudio, Muestra, Camino y Cronograma— con la dirección
+// El Planner del estudio (ADR 0122, reemplazado en parte por el 0123). Tres
+// secciones —Estudio, Camino y Cronograma— con la dirección
 // canónica (`useSeccion`): las secciones van en el pillbar compartido y las
 // pestañas de una sección con dos o más, en el rail de la casa.
 //
@@ -39,19 +39,20 @@ import { usePanelDireccionable } from "../../lib/navegacion/paneles";
 import { useDireccion, useSeccion } from "../../lib/navegacion/useDireccion";
 import { PlannerCalendarioResumen } from "./planner/PlannerCalendarioResumen";
 import { PlannerEstudio } from "./planner/PlannerEstudio";
-import { PlannerMuestra } from "./planner/PlannerMuestra";
+import { PlannerCamino } from "./planner/PlannerCamino";
+import { PlannerResumen } from "./planner/PlannerResumen";
 import { usePlanner } from "./planner/usePlanner";
 import "./bitacora.css";
 import "./planner/planner.css";
 
-type Seccion = "estudio" | "muestra" | "camino" | "cronograma";
+type Seccion = "estudio" | "camino" | "cronograma";
 
 const BITACORA_MODULE =
   PROSECNUR_MODULES.find((module) => module.slug === "diseno-estudio") ?? PROSECNUR_MODULES[0];
 
 type PlannerSection = ProsecnurModuleSectionMeta & { id: Seccion };
 
-const SECCIONES_PLANNER: readonly string[] = ["estudio", "muestra", "camino", "cronograma"];
+const SECCIONES_PLANNER: readonly string[] = ["estudio", "camino", "cronograma"];
 
 function isPlannerSection(section: ProsecnurModuleSectionMeta): section is PlannerSection {
   return SECCIONES_PLANNER.includes(section.id);
@@ -73,6 +74,11 @@ const MUDANZAS: Record<string, { texto: string; enlace?: string; href?: string }
     texto: "Los códigos de resultado y los status del barrido ya no se declaran en el Planner: viven en Material de campo.",
     enlace: "Ir a Material de campo",
     href: "/material-campo?modo=territorial&seccion=catalogo&pestana=codigos",
+  },
+  "universo-en-calculo": {
+    texto: "El universo y las cuotas ya no se declaran en el Planner: viven en Cálculo de muestra.",
+    enlace: "Ir a Cálculo de muestra",
+    href: "/calc-muestra",
   },
   "insumos-no-se-registran": {
     texto: "Los insumos del cliente ya no se registran en el Planner: cada módulo pide y lee el archivo que usa.",
@@ -149,19 +155,21 @@ export default function BitacoraPage() {
   function contenido() {
     const rol = conRail && pestana !== "mes" && pestana !== "semana";
     // El cronograma y el lienzo traen su propio marco a toda altura (ADR 0047):
-    // el grupo intrinsic sólo se declara para las secciones nuevas del Planner.
-    const propia = tab !== "cronograma" && tab !== "camino";
+    // el grupo intrinsic sólo se declara para las vistas nuevas del Planner.
+    const lienzo = tab === "camino" && pestana === "lienzo";
+    const propia = tab !== "cronograma" && !lienzo;
     return (
       <section
         id={rol ? panelIdDe(pestana) : undefined}
         role={rol ? "tabpanel" : undefined}
         aria-labelledby={rol ? tabIdDe(pestana) : undefined}
-        className={`planner-panel planner-panel--${tab}`}
+        className={`planner-panel planner-panel--${tab}${lienzo ? " planner-panel--lienzo" : ""}`}
         data-qa-geometry-group={propia ? `diseno-estudio/${tab}` : undefined}
         data-qa-geometry-contract={propia ? "intrinsic" : undefined}
       >
-        {tab === "estudio" && <PlannerEstudio control={planner} pestana={pestana} />}
-        {tab === "muestra" && <PlannerMuestra control={planner} />}
+        {tab === "estudio" && pestana === "resumen" && <PlannerResumen control={planner} />}
+        {tab === "estudio" && pestana !== "resumen" && <PlannerEstudio control={planner} pestana={pestana} />}
+        {tab === "camino" && pestana === "recorrido" && <PlannerCamino control={planner} />}
         {tab === "cronograma" && plan && pestana === "gantt" && (
           <>
             <PlannerCalendarioResumen recarga={plan} control={planner} />
@@ -172,7 +180,7 @@ export default function BitacoraPage() {
           <Calendar state={plan} onChange={setPlan} selectorDeVista={false} />
         )}
         {tab === "cronograma" && pestana === "registro" && <LogbookSection entries={entries} onChange={setEntries} />}
-        {tab === "camino" && bitacoraEstado && (
+        {lienzo && bitacoraEstado && (
           <CanvasSection estado={bitacoraEstado} onEstado={setBitacoraEstado} />
         )}
       </section>

@@ -504,11 +504,11 @@ export function CanvasSection({
     return (
       <div className="bcanvas-vacio" data-audit-ready="bitacora-canvas-vacio">
         <Network size={34} aria-hidden="true" />
-        <strong>Arma el mapa del estudio</strong>
+        <strong>Dibuja el camino a mano</strong>
         <p>
-          El cronograma va en línea recta. Un estudio real se bifurca: dos actores
-          con campos distintos, una base que se procesa dos veces, un entregable
-          que depende de dos análisis. Acá conectas esas piezas como realmente son.
+          El recorrido del estudio sale solo de sus tipos. Si quieres dibujar algo
+          más —dos actores con campos distintos, una base que se procesa dos veces—,
+          aquí conectas esas piezas a mano. Es un camino, no un mando.
         </p>
         {error && <Alert kind="error">{error}</Alert>}
         <button

@@ -1,6 +1,6 @@
-// Planner › Estudio: identidad y perfiles de recojo (ADR 0122 §1; los insumos
-// del cliente salieron con el ADR 0123 §2). Los perfiles son lo que más pesa:
-// de ellos sale el modo de Cálculo de muestra, Material de campo y Monitoreo.
+// Planner › Estudio: identificación y tipos de estudio (ADR 0123 §1; el Resumen
+// vive en PlannerResumen). Los tipos son lo que más pesa: de ellos sale el modo
+// de Cálculo de muestra, Material de campo y Monitoreo.
 
 import { useEffect, useState } from "react";
 
@@ -13,7 +13,7 @@ import {
 import { PulsoSwitch } from "../../../components/PulsoSwitch";
 import { Plus, Trash2 } from "../../../vendor/lucide-react";
 import { PlannerAvisos, PlannerCabecera } from "./PlannerCabecera";
-import { DETALLE_PERFIL, ETIQUETA_DISENO, ETIQUETA_PERFIL, modosDelPerfil } from "./plannerCopia";
+import { CANALES_ACREDITACION, DETALLE_PERFIL, ETIQUETA_DISENO, ETIQUETA_PERFIL, modosDelPerfil } from "./plannerCopia";
 import { PlannerFaseActiva } from "./PlannerFaseActiva";
 import { usePlannerCalendario } from "./usePlannerCalendario";
 import type { ControlPlanner } from "./usePlanner";
@@ -30,27 +30,27 @@ export function PlannerEstudio({ control, pestana }: Props) {
 function PlannerIdentidad({ control }: { control: ControlPlanner }) {
   const { estado, declarar, guardando } = control;
   const base = estado?.planner.estudio;
-  const [form, setForm] = useState({ nombre: "", codigo: "", cliente: "" });
+  const [form, setForm] = useState({ nombre: "", codigo: "", cliente: "", objetivo: "" });
   const cal = usePlannerCalendario(estado?.revision);
   useEffect(() => {
     if (base) setForm(base);
   }, [base]);
   if (!estado || !base) return null;
-  const cambio = form.nombre !== base.nombre || form.codigo !== base.codigo || form.cliente !== base.cliente;
-  const declarable = cambio;
+  const cambio = form.nombre !== base.nombre || form.codigo !== base.codigo || form.cliente !== base.cliente
+    || form.objetivo !== base.objetivo;
 
   return (
     <div className="planner-seccion">
       <PlannerCabecera
-        titulo="Identidad del estudio"
-        lead="El nombre, el código y el cliente con que todos los módulos nombran este estudio."
+        titulo="Identificación del estudio"
+        lead="El nombre con que todos los módulos y los entregables nombran este estudio. Sólo el nombre es obligatorio."
         origen={estado.origen.estudio}
         declaradoEn={estado.declaradoEn.estudio}
         acciones={(
           <button
             type="button"
             className="plan-button plan-button--primary"
-            disabled={!declarable || guardando === "estudio" || !form.nombre.trim()}
+            disabled={!cambio || guardando === "estudio" || !form.nombre.trim()}
             onClick={() => void declarar("estudio", form)}
           >
             {guardando === "estudio" ? "Guardando…" : "Guardar"}
@@ -63,12 +63,16 @@ function PlannerIdentidad({ control }: { control: ControlPlanner }) {
           <input value={form.nombre} maxLength={160} onChange={(e) => setForm({ ...form, nombre: e.target.value })} />
         </label>
         <label className="planner-campo">
-          <span>Código</span>
+          <span>Código · opcional</span>
           <input value={form.codigo} maxLength={40} onChange={(e) => setForm({ ...form, codigo: e.target.value })} />
         </label>
         <label className="planner-campo">
-          <span>Cliente</span>
+          <span>Cliente · opcional</span>
           <input value={form.cliente} maxLength={160} onChange={(e) => setForm({ ...form, cliente: e.target.value })} />
+        </label>
+        <label className="planner-campo planner-campo--completo">
+          <span>Objetivo, en una línea · opcional (no se publica)</span>
+          <input value={form.objetivo} maxLength={240} onChange={(e) => setForm({ ...form, objetivo: e.target.value })} />
         </label>
       </div>
       <PlannerFaseActiva cal={cal} />
@@ -83,7 +87,7 @@ function perfilNuevo(tipo: PlannerTipoPerfil): PlannerPerfil {
     tipo,
     seleccion: tipo === "aulas" ? "conglomerados" : tipo === "territorial" ? "ump_aleatoria" : null,
     diseno: tipo === "territorial" ? "hojas-ruta" : "calc-muestra",
-    canales: [],
+    canales: tipo === "acreditacion" ? ["correo"] : [],
     poblaciones: [{ id: "principal", etiqueta: tipo === "aulas" ? "Estudiantes" : "Población", bases: [], representatividad: null }],
   };
 }
@@ -118,8 +122,8 @@ function PlannerPerfiles({ control }: { control: ControlPlanner }) {
   return (
     <div className="planner-seccion">
       <PlannerCabecera
-        titulo="Perfiles de recojo"
-        lead="Cómo se recoge este estudio. Cada perfil fija el modo de Cálculo de muestra, Material de campo y Monitoreo."
+        titulo="Tipos de estudio"
+        lead="Cómo se recoge este estudio y quién diseña su muestra. Cada perfil fija el modo de Cálculo de muestra, Material de campo y Monitoreo."
         origen={estado.origen.perfiles}
         declaradoEn={estado.declaradoEn.perfiles}
         acciones={(
@@ -205,6 +209,27 @@ function PerfilTarjeta({ perfil, onCambio }: { perfil: PlannerPerfil; onCambio: 
               <option value="conveniencia">Por conveniencia o cuotas</option>
             </select>
           </label>
+        ) : null}
+        {perfil.tipo === "acreditacion" ? (
+          <fieldset className="planner-campo planner-campo--completo planner-canales">
+            <legend>Canales por los que se encuesta</legend>
+            <div className="planner-chips-canal">
+              {CANALES_ACREDITACION.map(([id, rotulo]) => {
+                const activo = perfil.canales.includes(id);
+                return (
+                  <button
+                    key={id}
+                    type="button"
+                    className={`planner-chip-canal${activo ? " is-activo" : ""}`}
+                    aria-pressed={activo}
+                    onClick={() => onCambio({ canales: activo ? perfil.canales.filter((c) => c !== id) : [...perfil.canales, id] })}
+                  >
+                    {rotulo}
+                  </button>
+                );
+              })}
+            </div>
+          </fieldset>
         ) : null}
         {perfil.tipo === "aulas" ? (
           <label className="planner-campo">

@@ -7,6 +7,7 @@ import {
   CheckCircle2,
   ClipboardCheck,
   ClipboardList,
+  Compass,
   DatabaseZap,
   FileSpreadsheet,
   FileText,
@@ -267,26 +268,28 @@ export const PROSECNUR_MODULES: ProsecnurModuleMeta[] = [
         icon: IconStudyDesign,
         to: "/planner",
         layoutPolicy: "viewport",
+        // ADR 0123 §1: el estudio se define con su identificación y sus tipos;
+        // el Resumen dice qué falta y cómo abre cada módulo. La sección Muestra
+        // salió: el universo y las cuotas son de Cálculo de muestra.
         tabs: [
-          { id: "identidad", label: "Identidad", icon: FileText, to: "/planner?seccion=estudio&pestana=identidad", layoutPolicy: "viewport" },
-          { id: "perfiles", label: "Perfiles de recojo", icon: Layers, to: "/planner?seccion=estudio&pestana=perfiles", layoutPolicy: "viewport" },
+          { id: "resumen", label: "Resumen", icon: Compass, to: "/planner?seccion=estudio&pestana=resumen", layoutPolicy: "viewport" },
+          { id: "identidad", label: "Identificación", icon: FileText, to: "/planner?seccion=estudio&pestana=identidad", layoutPolicy: "viewport" },
+          { id: "perfiles", label: "Tipos de estudio", icon: Layers, to: "/planner?seccion=estudio&pestana=perfiles", layoutPolicy: "viewport" },
         ],
       },
       {
-        id: "muestra",
-        label: "Muestra",
-        icon: Target,
-        to: "/planner?seccion=muestra",
-        layoutPolicy: "viewport",
-      },
-      {
-        // El lienzo, que ya no es bitácora: el camino del estudio entre los
-        // módulos (ADR 0123 §4). Un camino, no un mando.
+        // El camino del estudio entre los módulos (ADR 0123 §4): el recorrido
+        // sale de los tipos; el lienzo libre queda para dibujar a mano. Un
+        // camino, no un mando.
         id: "camino",
         label: "Camino",
         icon: Network,
         to: "/planner?seccion=camino",
         layoutPolicy: "viewport",
+        tabs: [
+          { id: "recorrido", label: "Recorrido", icon: Route, to: "/planner?seccion=camino&pestana=recorrido", layoutPolicy: "viewport" },
+          { id: "lienzo", label: "Lienzo", icon: Network, to: "/planner?seccion=camino&pestana=lienzo", layoutPolicy: "viewport" },
+        ],
       },
       {
         id: "cronograma",

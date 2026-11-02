@@ -39,7 +39,6 @@ const EXPECTED_PRIMARY_NAVIGATION: Record<
     to: "/planner",
     sections: [
       { id: "estudio", label: "Estudio", to: "/planner", layoutPolicy: "viewport" },
-      { id: "muestra", label: "Muestra", to: "/planner?seccion=muestra", layoutPolicy: "viewport" },
       { id: "camino", label: "Camino", to: "/planner?seccion=camino", layoutPolicy: "viewport" },
       { id: "cronograma", label: "Cronograma", to: "/planner?seccion=cronograma", layoutPolicy: "viewport" },
     ],

@@ -138,12 +138,16 @@ BITACORA_DESTINOS_RENOMBRADOS <- c(
   "diseno-estudio/calendario" = "diseno-estudio/cronograma/mes",
   "diseno-estudio/calendario/mes" = "diseno-estudio/cronograma/mes",
   "diseno-estudio/calendario/semana" = "diseno-estudio/cronograma/semana",
-  "diseno-estudio/canvas" = "diseno-estudio/camino",
+  "diseno-estudio/canvas" = "diseno-estudio/camino/lienzo",
   # ADR 0123 §3: la Bitácora dejó de ser sección. El registro es una pestaña del
   # cronograma y el lienzo es la sección Camino.
   "diseno-estudio/bitacora" = "diseno-estudio/cronograma/registro",
   "diseno-estudio/bitacora/registro" = "diseno-estudio/cronograma/registro",
-  "diseno-estudio/bitacora/lienzo" = "diseno-estudio/camino",
+  "diseno-estudio/bitacora/lienzo" = "diseno-estudio/camino/lienzo",
+  # Q5: Camino ganó la pestaña Recorrido; lo que apuntaba a Camino era el lienzo.
+  "diseno-estudio/camino" = "diseno-estudio/camino/lienzo",
+  # La sección Muestra salió (ADR 0123 §2): el universo vive en Cálculo.
+  "diseno-estudio/muestra" = "diseno-estudio/estudio",
   # Secciones que salieron del Planner (ADR 0123 §2): su destino es Estudio,
   # que dice dónde vive ahora el dato.
   "diseno-estudio/equipo" = "diseno-estudio/estudio",

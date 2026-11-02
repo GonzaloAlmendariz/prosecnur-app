@@ -14,7 +14,7 @@ export const DETALLE_PERFIL: Record<PlannerTipoPerfil, string> = {
   territorial: "Encuestas en el territorio: por manzanas sorteadas o por cuotas.",
   aulas: "Cursos-horario o personas de una universidad, encuestadas en aula.",
   telefonico: "Una lista de personas que se llaman por teléfono.",
-  acreditacion: "Públicos de una carrera o institución, invitados por correo.",
+  acreditacion: "Públicos de una carrera o institución: por correo, por teléfono o en el aula.",
 };
 
 export const ETIQUETA_DISENO: Record<PlannerDiseno, string> = {
@@ -23,6 +23,20 @@ export const ETIQUETA_DISENO: Record<PlannerDiseno, string> = {
   cliente: "La entrega el cliente",
   cuotas: "Cuotas del Planner, sin sorteo",
 };
+
+// Acreditación no es sólo por correo (Gonzalo, 1/11): el perfil declara sus canales
+// y cada uno abre su campaña en Material. El presencial con QR todavía no abre
+// ninguna: lo decide Material (checklist-planner-q5, ítem 4b).
+export const CANALES_ACREDITACION: readonly (readonly [string, string, string])[] = [
+  ["correo", "Correo", "Campaña de correo"],
+  ["telefono", "Teléfono", "Campaña telefónica"],
+  ["qr", "Presencial con QR", "Presencial con QR (por definir en Material)"],
+];
+
+export function campanasDeAcreditacion(perfil: PlannerPerfil): string[] {
+  const canales = perfil.canales.length ? perfil.canales : ["correo"];
+  return CANALES_ACREDITACION.filter(([id]) => canales.includes(id)).map(([, , campana]) => campana);
+}
 
 export type ModoPorModulo = { calc: string; hojas: string; material: string; monitoreo: string };
 
@@ -40,7 +54,9 @@ export function modosDelPerfil(perfil: PlannerPerfil): ModoPorModulo {
   return {
     calc,
     hojas: perfil.tipo === "territorial" && !conveniencia ? "Mapa, marco y sorteo de manzanas" : "No aplica",
-    material: { territorial: "Campaña territorial", aulas: "Campaña de aulas", telefonico: "Campaña telefónica", acreditacion: "Campaña de correo" }[perfil.tipo],
+    material: perfil.tipo === "acreditacion"
+      ? campanasDeAcreditacion(perfil).join(" · ") || "Sin canal: elige al menos uno"
+      : { territorial: "Campaña territorial", aulas: "Campaña de aulas", telefonico: "Campaña telefónica" }[perfil.tipo],
     monitoreo: { territorial: "Territorial", aulas: "Cursos-horario", telefonico: "Telefónico", acreditacion: "Acreditación" }[perfil.tipo],
   };
 }

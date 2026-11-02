@@ -239,7 +239,7 @@ test_that("los nodos del lienzo que apuntaban a Calendario o Lienzo siguen resol
   s <- .bitacora_migrar_estado(list(bitacora_canvas = canvas))
   destinos <- vapply(s$bitacora_canvas$canvases[[1]]$nodes, function(n) n$ref$target_id, character(1))
   expect_equal(destinos, c("diseno-estudio/cronograma/mes", "diseno-estudio/cronograma/semana",
-                           "diseno-estudio/camino", "monitoreo::territorial/avance",
+                           "diseno-estudio/camino/lienzo", "monitoreo::territorial/avance",
                            "diseno-estudio/canvas"))
   # Idempotente: migrar lo migrado no cambia nada.
   expect_identical(.bitacora_migrar_estado(s), s)
@@ -248,13 +248,14 @@ test_that("los nodos del lienzo que apuntaban a Calendario o Lienzo siguen resol
 test_that("los nodos que apuntaban a la Bitácora o a secciones retiradas siguen resolviendo (ADR 0123)", {
   canvas <- list(schema = "bitacora_canvas_v1", canvases = list(list(id = "c1", nodes = lapply(seq_along(.d <- c(
     "diseno-estudio/bitacora", "diseno-estudio/bitacora/registro", "diseno-estudio/bitacora/lienzo",
-    "diseno-estudio/equipo", "diseno-estudio/codigos/barrido", "diseno-estudio/estudio/insumos")), function(i) {
+    "diseno-estudio/equipo", "diseno-estudio/codigos/barrido", "diseno-estudio/estudio/insumos",
+    "diseno-estudio/muestra", "diseno-estudio/camino")), function(i) {
     list(id = paste0("n", i), type = "referencia", ref = list(target_type = "modulo", target_id = .d[[i]]))
   }))))
   s <- .bitacora_migrar_estado(list(bitacora_canvas = canvas))
   destinos <- vapply(s$bitacora_canvas$canvases[[1]]$nodes, function(n) n$ref$target_id, character(1))
   expect_equal(destinos, c("diseno-estudio/cronograma/registro", "diseno-estudio/cronograma/registro",
-                           "diseno-estudio/camino", "diseno-estudio/estudio", "diseno-estudio/estudio",
-                           "diseno-estudio/estudio"))
+                           "diseno-estudio/camino/lienzo", "diseno-estudio/estudio", "diseno-estudio/estudio",
+                           "diseno-estudio/estudio", "diseno-estudio/estudio", "diseno-estudio/camino/lienzo"))
   expect_identical(.bitacora_migrar_estado(s), s)
 })

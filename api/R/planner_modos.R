@@ -78,8 +78,15 @@
 
   modos_mon <- unname(.PLANNER_PERFIL_A_MODO_MONITOREO[tipos])
   familias <- unname(.PLANNER_PERFIL_A_FAMILIA[tipos])
-  campanas <- unname(.PLANNER_PERFIL_A_CAMPANA[tipos])
-  # Un perfil que declara el canal correo también abre campañas de correo.
+  # Acreditación no es sólo por correo (Gonzalo, 1/11): sus campañas salen de sus
+  # canales, correo y teléfono. Qué abre su canal presencial con QR lo decide
+  # Material (checklist-planner-q5, ítem 4b). Los demás perfiles abren la suya,
+  # y cualquiera que declare el canal correo abre además campañas de correo.
+  campanas <- unlist(lapply(perfiles, function(p) {
+    canales <- unlist(p$canales)
+    if (!identical(p$tipo, "acreditacion")) return(unname(.PLANNER_PERFIL_A_CAMPANA[p$tipo]))
+    c(if ("correo" %in% canales) "correo", if ("telefono" %in% canales) "telefonica")
+  }))
   con_correo <- vapply(perfiles, function(p) "correo" %in% unlist(p$canales), logical(1))
   if (any(con_correo)) campanas <- c(campanas, "correo")
 

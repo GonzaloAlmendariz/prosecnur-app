@@ -488,7 +488,6 @@ describe("audit-ready route root contract", () => {
     // readiness anidadas del cronograma y del lienzo.
     expect(bitacoraKeys(), "Bitácora audit tab keys").toEqual([
       "estudio",
-      "muestra",
       "camino",
       "cronograma",
     ]);

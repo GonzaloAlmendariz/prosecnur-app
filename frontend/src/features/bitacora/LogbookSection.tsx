@@ -45,7 +45,7 @@ export function LogbookSection({
       setEstado(siguiente);
       onChange(siguiente.bitacora);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "No se pudo abrir la bitácora.");
+      setError(err instanceof Error ? err.message : "No se pudo abrir el registro de decisiones.");
     } finally {
       setCargando(false);
     }
@@ -99,7 +99,7 @@ export function LogbookSection({
       descargar(res.markdown, `bitacora-${new Date().toISOString().slice(0, 10)}.md`);
       toast.exito(`${res.total} ${res.total === 1 ? "entrada exportada" : "entradas exportadas"}`);
     } catch (err) {
-      toast.error("No se pudo exportar la bitácora", {
+      toast.error("No se pudo exportar el registro de decisiones", {
         detalle: err instanceof Error ? err.message : undefined,
       });
     } finally {
@@ -107,7 +107,7 @@ export function LogbookSection({
     }
   }
 
-  if (cargando && !estado) return <LoadingBlock label="Abriendo la bitácora..." />;
+  if (cargando && !estado) return <LoadingBlock label="Abriendo el registro de decisiones..." />;
 
   return (
     <div className="bit-logbook">

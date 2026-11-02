@@ -87,7 +87,7 @@ export function EntradaRapida({
         value={crudo}
         rows={crudo.includes("\n") ? 4 : 1}
         placeholder="¿Qué pasó? Enter para registrar · !riesgo @monitoreo #campo"
-        aria-label="Nueva entrada de bitácora"
+        aria-label="Nueva decisión del registro"
         disabled={guardando}
         onChange={(event) => setCrudo(event.target.value)}
         onKeyDown={(event) => {

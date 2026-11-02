@@ -44,17 +44,19 @@ describe("gramática de direcciones", () => {
     // su pestaña nueva y conserva la que pedía (mes o semana).
     expect(parsearDireccion("/planner", "?seccion=calendario")).toMatchObject({ seccion: "cronograma", pestana: "mes" });
     expect(parsearDireccion("/planner", "?seccion=calendario&pestana=semana")).toMatchObject({ seccion: "cronograma", pestana: "semana" });
-    // ADR 0123: el lienzo es ahora la sección Camino; el alias se encadena.
-    expect(parsearDireccion("/planner", "?seccion=canvas")).toMatchObject({ seccion: "camino" });
-    expect(parsearDireccion("/planner", "?tab=canvas")).toMatchObject({ seccion: "camino" });
-    expect(serializarDireccion(parsearDireccion("/planner", "?seccion=canvas")!)).toBe("/planner?seccion=camino");
+    // ADR 0123: el lienzo es la pestaña Lienzo de Camino; el alias se encadena.
+    expect(parsearDireccion("/planner", "?seccion=canvas")).toMatchObject({ seccion: "camino", pestana: "lienzo" });
+    expect(parsearDireccion("/planner", "?tab=canvas")).toMatchObject({ seccion: "camino", pestana: "lienzo" });
+    expect(serializarDireccion(parsearDireccion("/planner", "?seccion=canvas")!)).toBe("/planner?seccion=camino&pestana=lienzo");
     // La Bitácora dejó de ser sección: el registro es una pestaña del cronograma
     // y el lienzo, Camino. La pareja sección/pestaña gana a la sección sola.
     expect(parsearDireccion("/planner", "?seccion=bitacora")).toMatchObject({ seccion: "cronograma", pestana: "registro" });
     expect(parsearDireccion("/planner", "?seccion=bitacora&pestana=registro")).toMatchObject({ seccion: "cronograma", pestana: "registro" });
-    const lienzo = parsearDireccion("/planner", "?seccion=bitacora&pestana=lienzo");
-    expect(lienzo).toMatchObject({ seccion: "camino" });
-    expect(lienzo?.pestana).toBeUndefined();
+    expect(parsearDireccion("/planner", "?seccion=bitacora&pestana=lienzo")).toMatchObject({ seccion: "camino", pestana: "lienzo" });
+    // Q5: la sección Muestra salió; el universo vive en Cálculo.
+    const muestra = parsearDireccion("/planner", "?seccion=muestra");
+    expect(muestra).toMatchObject({ seccion: "estudio", aviso: "universo-en-calculo" });
+    expect(muestra?.pestana).toBeUndefined();
     // Los insumos del cliente ya no se registran: Estudio, con el aviso.
     const insumos = parsearDireccion("/planner", "?seccion=estudio&pestana=insumos");
     expect(insumos).toMatchObject({ seccion: "estudio", aviso: "insumos-no-se-registran" });

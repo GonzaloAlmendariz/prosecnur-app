@@ -412,3 +412,49 @@ test_that("declarar la variante la persiste y llega a quien lee los perfiles", {
   expect_equal(session_get(sid)$planner$perfiles[[1]]$seleccion, "conveniencia")
   expect_equal(.planner_payload_perfiles(session_get(sid))[[1]]$seleccion, "conveniencia")
 })
+
+# --- Q5 del ADR 0123 ------------------------------------------------------------
+
+test_that("el objetivo se declara con la identidad y no se publica (ADR 0123 §7)", {
+  sid <- .pl_sesion()
+  .planner_declarar(sid, "estudio", list(nombre = "Estudio Ejemplo", cliente = "Cliente Ejemplo",
+                                         objetivo = "Medir la convivencia en seis distritos."), 0L)
+  s <- session_get(sid)
+  expect_equal(.planner_identidad(s)$objetivo, "Medir la convivencia en seis distritos.")
+  publicado <- .planner_para_publicar(s)$planner$estudio
+  expect_setequal(names(publicado), c("nombre", "codigo", "cliente"))
+  expect_null(publicado$objetivo)
+})
+
+test_that("editar perfiles conserva lo que la pantalla no manda (ADR 0123 §2)", {
+  sid <- .pl_sesion()
+  rep <- list(schema = "representatividad_v1", universo = list(nivel = "carrera"), variables = list(list(clave = "sexo")))
+  .planner_sembrar_legado(sid, "perfiles", list(list(
+    tipo = "acreditacion", diseno = "cliente", canales = list("correo", "telefono"),
+    poblaciones = list(list(id = "egresados", etiqueta = "Egresados", bases = list("b_egr"), representatividad = rep)))))
+  # La pantalla manda el perfil sin canales, sin bases y con otra representatividad.
+  .planner_declarar(sid, "perfiles", list(list(
+    tipo = "acreditacion", diseno = "cliente",
+    poblaciones = list(list(id = "egresados", etiqueta = "Egresados 2025",
+                            representatividad = list(universo = list(nivel = "otro")))))), 1L)
+  p <- session_get(sid)$planner$perfiles[[1]]
+  expect_equal(unlist(p$canales), c("correo", "telefono"))
+  expect_equal(p$poblaciones[[1]]$etiqueta, "Egresados 2025")
+  expect_equal(unlist(p$poblaciones[[1]]$bases), "b_egr")
+  expect_equal(p$poblaciones[[1]]$representatividad$universo$nivel, "carrera")
+  # Lo que sí manda gana: quitar el teléfono lo quita.
+  .planner_declarar(sid, "perfiles", list(list(tipo = "acreditacion", diseno = "cliente", canales = list("correo"),
+                                               poblaciones = list(list(id = "egresados", etiqueta = "Egresados 2025")))), 2L)
+  expect_equal(unlist(session_get(sid)$planner$perfiles[[1]]$canales), "correo")
+})
+
+test_that("acreditación abre las campañas de sus canales, no sólo la de correo", {
+  campanas <- function(canales) unlist(.planner_modos_de(list(.planner_norm_perfil(list(tipo = "acreditacion", canales = canales))))$material$campanas)
+  expect_equal(campanas(list("correo")), "correo")
+  expect_setequal(campanas(list("correo", "telefono")), c("correo", "telefonica"))
+  expect_equal(campanas(list("telefono")), "telefonica")
+  # Presencial con QR: lo decide Material (checklist-planner-q5, 4b); por ahora no abre campaña.
+  expect_length(campanas(list("qr")), 0L)
+  # Sin canales declarados, el de siempre: correo.
+  expect_equal(campanas(NULL), "correo")
+})

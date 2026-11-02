@@ -48,8 +48,8 @@ export function TimelinePorDia({
       <div className="pulso-panel bit-timeline-vacio" data-qa-geometry-capacity="owned">
         <EmptyState
           icon={<History size={26} aria-hidden="true" />}
-          title="La bitácora está vacía"
-          hint="Registra decisiones, riesgos y bloqueos mientras pasan. Escribe arriba y pulsa Enter: lo que anotes acá es lo que vas a agradecer tener cuando toque explicar el estudio."
+          title="Todavía no hay decisiones registradas"
+          hint="Es opcional. Anota aquí por qué se decidió algo del estudio o del cronograma: escribe arriba y pulsa Enter."
         />
       </div>
     );

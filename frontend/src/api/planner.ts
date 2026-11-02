@@ -79,7 +79,8 @@ export type PlannerAviso = { codigo: string; mensaje: string; fuente?: string | 
 export type PlannerEstado = {
   revision: number;
   planner: {
-    estudio: { nombre: string; codigo: string; cliente: string };
+    /** `objetivo`: en una línea; no se publica (ADR 0123 §7). */
+    estudio: { nombre: string; codigo: string; cliente: string; objetivo: string };
     perfiles: PlannerPerfil[];
     equipo: PlannerEquipo;
     codigos: PlannerCodigos;
@@ -191,7 +192,7 @@ export function normalizarPlannerEstado(raw: unknown): PlannerEstado {
   return {
     revision: num(r.revision) ?? 0,
     planner: {
-      estudio: { nombre: txt(est.nombre), codigo: txt(est.codigo), cliente: txt(est.cliente) },
+      estudio: { nombre: txt(est.nombre), codigo: txt(est.codigo), cliente: txt(est.cliente), objetivo: txt(est.objetivo) },
       perfiles: arr(pl.perfiles).map(normalizarPerfil).filter((p): p is PlannerPerfil => p !== null),
       equipo: {
         code_format: txt(eq.code_format),
