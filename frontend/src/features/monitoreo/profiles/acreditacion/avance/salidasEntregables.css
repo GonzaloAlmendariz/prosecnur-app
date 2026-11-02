@@ -132,9 +132,11 @@
   color: var(--pulso-text);
 }
 
+/* Aquí el indicador deslizante está oculto y la elegida se pinta sola: su hover
+   sube un punto el tinte del módulo en vez de cubrirlo con un velo. */
 .acr-sa .mon-outputs-audience-tabs button.is-active:hover {
-  background: color-mix(in srgb, var(--pulso-surface) 20%, transparent);
-  color: var(--pulso-gliding-active-color);
+  background: color-mix(in srgb, var(--pulso-module-monitoring) 16%, var(--pulso-surface-2));
+  color: color-mix(in srgb, var(--pulso-module-monitoring) 72%, var(--pulso-text));
 }
 
 .acr-sa .mon-outputs-audience-tabs .pulso-gliding-tab-indicator {

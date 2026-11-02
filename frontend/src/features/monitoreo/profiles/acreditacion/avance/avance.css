@@ -2171,17 +2171,18 @@ ul.acr-sa-puntos:not(.acr-sa-cuerpo) {
   border-left: 1px solid var(--pulso-border);
 }
 
-/* El activo también reacciona al mouse (contrato de estados de navegación):
-   velo gris en los demás; en el activo, un velo claro que deja ver el indicador
-   deslizante y conserva su color. */
+/* El activo también reacciona al mouse (contrato de estados de navegación).
+   Velo gris en los demás. El activo no puede pintar su propio fondo: en las
+   listas horizontales theme.css lo fuerza transparente (!important) porque lo
+   pinta el indicador deslizante. Así que es el indicador el que sube un punto
+   de tinte mientras el activo tiene el mouse encima. */
 .mon-profile-canonical-shell .acr-vc-reporte .mon-gs-report-tabs button:hover {
   background: color-mix(in srgb, var(--pulso-surface-3) 70%, transparent);
   color: var(--pulso-text);
 }
 
-.mon-profile-canonical-shell .acr-vc-reporte .mon-gs-report-tabs button.is-active:hover {
-  background: color-mix(in srgb, var(--pulso-surface) 20%, transparent);
-  color: var(--pulso-gliding-active-color);
+.mon-profile-canonical-shell .acr-vc-reporte .mon-gs-report-tabs.pulso-gliding-tab-list:has(button.is-active:hover) {
+  --pulso-gliding-indicator-bg: color-mix(in srgb, var(--pulso-module-monitoring) 16%, var(--pulso-surface-2));
 }
 
 .mon-profile-canonical-shell .acr-vc-reporte .mon-gs-report-tabs button:focus-visible {
