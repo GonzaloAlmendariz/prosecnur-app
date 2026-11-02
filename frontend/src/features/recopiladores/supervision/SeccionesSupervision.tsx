@@ -15,6 +15,7 @@ import { PulsoInput } from "../../../components/PulsoInput";
 import { PulsoSwitch } from "../../../components/PulsoSwitch";
 import { serializarDireccion } from "../../../lib/navegacion/direccion";
 import { CheckCircle2, ListChecks, PhoneCall, Search, ShieldCheck, Table2 } from "../../../vendor/lucide-react";
+import { SupervisionEnSheets } from "./SupervisionEnSheets";
 
 /** Dónde Monitoreo arma los lotes de supervisión. */
 const A_MONITOREO_SUPERVISION = serializarDireccion({ modulo: "monitoreo", modo: "telefonico", seccion: "control", pestana: "supervision" });
@@ -88,8 +89,9 @@ export function ColumnasSupervision({ columnas, guardando, onGuardar }: {
   );
 }
 
-export function EntregaSupervision({ campaignId, columnas, casos, sinLote }: {
+export function EntregaSupervision({ campaignId, columnas, casos, sinLote, loteId = "" }: {
   campaignId: string;
+  loteId?: string;
   columnas: ColumnasDeSupervision;
   casos: number;
   sinLote: boolean;
@@ -133,6 +135,7 @@ export function EntregaSupervision({ campaignId, columnas, casos, sinLote }: {
         </div>
         {error ? <p className="rec-terr-error" role="alert">{error}</p> : null}
       </article>
+      <SupervisionEnSheets campaignId={campaignId} loteId={loteId} />
       <article className="rec-terr-tarjeta" data-qa-geometry-member>
         <h3><CheckCircle2 size={15} aria-hidden /> Lo que lee Monitoreo</h3>
         <p className="rec-terr-nota">

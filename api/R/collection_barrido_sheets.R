@@ -153,6 +153,10 @@ collection_telefonica_sheets_sembrar <- function(sid, campaign_id = NULL, enlace
       google(.monitoreo_sheets_batch_update(id, .mbs_formato(mapa[[.MBP_HOJA]]$sheet_id, pestanas[[.MBP_HOJA]], pestanas[[.MBS_HOJA_LISTAS]]$listas)))
     }
   }
+  # Se recuerda qué documento es el barrido: la base de supervisión trae de él nombre y teléfono por fórmula
+  # (collection_supervision_sheets.R) y nunca se arma en él. Sólo el id: ningún dato del listado.
+  session_set(sid, "material_telefonica_sheets", list(campaign_id = hit$entry$id, spreadsheet_id = id,
+                                                      actualizado_en = .collection_now_iso()))
   list(
     ok = TRUE, campaign_id = hit$entry$id, spreadsheet_id = id,
     url = sprintf("https://docs.google.com/spreadsheets/d/%s/edit", id),

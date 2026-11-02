@@ -88,3 +88,31 @@ export async function apiSupervisionExcel(campaignId: string): Promise<{ file_id
   if (!file_id) throw new Error("El backend no devolvió la base de supervisión.");
   return { file_id, casos: entero(o.casos) };
 }
+
+// ---- La base en su propio Sheets (Gonzalo: «Fórmula en el Sheets») ----------------------------------
+
+export type SupervisionEnSheets = { url: string; pestana: string; hojas: { hoja: string; accion: "sembrada" | "respetada"; filas: number }[] };
+
+export function normalizarSupervisionEnSheets(r: unknown): SupervisionEnSheets {
+  const o = esRegistro(r) ? r : {};
+  const url = texto(o.url);
+  if (!url) throw new Error("El backend no devolvió el Sheets de la supervisión.");
+  return {
+    url,
+    pestana: texto(o.pestana),
+    hojas: lista(o.hojas).filter(esRegistro).map((h) => ({
+      hoja: texto(h.hoja),
+      accion: texto(h.accion) === "sembrada" ? ("sembrada" as const) : ("respetada" as const),
+      filas: entero(h.filas),
+    })).filter((h) => h.hoja),
+  };
+}
+
+/** Arma la pestaña del lote en el Sheets de supervisión; vacío usa el documento ya recordado. */
+export async function apiSupervisionSheets(campaignId: string, enlace: string): Promise<SupervisionEnSheets> {
+  return normalizarSupervisionEnSheets(await handle<unknown>(await apiFetch("/api/recopiladores/campaigns/supervision/sheets", {
+    method: "POST",
+    headers: headers({ "Content-Type": "application/json" }),
+    body: JSON.stringify({ id: campaignId, enlace }),
+  })));
+}

@@ -209,6 +209,15 @@ mount_recopiladores <- function(pr) {
       body <- .collection_parse_body(req)
       collection_supervision_excel(session_header(req), body[["id"]])
     })) |>
+    # La base en su propio Sheets, con nombre y teléfono por fórmula desde el barrido
+    # (collection_supervision_sheets.R); y los documentos que Monitoreo lee en vez de sus «Ronda N».
+    plumber::pr_post("/api/recopiladores/campaigns/supervision/sheets", wrap_endpoint(function(req, res, ...) {
+      body <- .collection_parse_body(req)
+      collection_supervision_sheets_sembrar(session_header(req), body[["id"]], body[["enlace"]])
+    })) |>
+    plumber::pr_get("/api/recopiladores/campaigns/supervision/documentos", wrap_endpoint(function(req, res, ...) {
+      list(ok = TRUE, documentos = collection_supervision_documentos(session_get(session_header(req))))
+    })) |>
     # Plantilla del barrido telefónico (C8, collection_barrido_plantilla.R): sólo genera el
     # libro; dónde vive el barrido en Material (P10) está por decidir.
     # Etapa 3 (collection_aulas_material.R): la entrega de aulas de solo lectura, para

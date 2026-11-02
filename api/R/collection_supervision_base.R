@@ -107,8 +107,11 @@ collection_supervision_columnas_put <- function(sid, campaign_id = NULL, barrido
   if (!is.list(x) || !identical(.mtf_txt(x$schema), MATERIAL_SUPERVISION_CONFIG_SCHEMA)) {
     x <- list(schema = MATERIAL_SUPERVISION_CONFIG_SCHEMA, por_campana = list())
   }
-  x$por_campana[[actual$campaign_id]] <- list(barrido = as.list(b), resultados = as.list(r), revision = actual$revision + 1L,
-                                              updated_at = .collection_now_iso())
+  previo <- x$por_campana[[actual$campaign_id]] %||% list()
+  # El documento de supervisión (collection_supervision_sheets.R) se conserva al cambiar columnas.
+  x$por_campana[[actual$campaign_id]] <- c(list(barrido = as.list(b), resultados = as.list(r), revision = actual$revision + 1L,
+                                                updated_at = .collection_now_iso()),
+                                           previo[intersect(c("spreadsheet_id", "construida_en"), names(previo))])
   session_set(sid, "material_supervision_config", x)
   collection_supervision_columnas_get(sid, actual$campaign_id)
 }

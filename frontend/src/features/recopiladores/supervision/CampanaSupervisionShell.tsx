@@ -95,7 +95,7 @@ export function CampanaSupervisionShell({ campana, cabecera = null }: Props) {
               {!columnas ? (cargando ? <p className="rec-terr-nota">Leyendo las columnas…</p> : null) : seccion === "columnas" ? (
                 <ColumnasSupervision columnas={columnas} guardando={guardando} onGuardar={(e) => void guardar(e)} />
               ) : (
-                <EntregaSupervision campaignId={campana.id} columnas={columnas} casos={casos} sinLote={Boolean(estado?.sin_lote)} />
+                <EntregaSupervision campaignId={campana.id} columnas={columnas} casos={casos} sinLote={Boolean(estado?.sin_lote)} loteId={estado?.lote_id ?? ""} />
               )}
             </div>
           </div>

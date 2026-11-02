@@ -60,6 +60,8 @@ describe("campaña de supervisión", () => {
     const html = renderToStaticMarkup(<MemoryRouter><EntregaSupervision campaignId="supervision.ronda-1" columnas={COLUMNAS} casos={2} sinLote={false} /></MemoryRouter>);
     expect(html).toContain("2 casos");
     expect(html).toContain("Excel de la supervisión");
+    expect(html).toContain("En su propio Sheets");
+    expect(html).toContain("Permitir");
     const sin = renderToStaticMarkup(<MemoryRouter><EntregaSupervision campaignId="supervision.ronda-1" columnas={COLUMNAS} casos={0} sinLote /></MemoryRouter>);
     expect(sin).toContain("Monitoreo ya no tiene este lote");
     expect(sin).toContain("seccion=control");
