@@ -328,7 +328,8 @@ monitoreo_territorial_asignacion_planificada_desde <- function(auditoria, asig, 
 .mtap_regiones <- function(s, fase) {
   envio <- tryCatch(.mcamp_territorial_envio(s, fase), error = function(e) NULL)
   if (is.null(envio)) return(character(0))
-  filas <- c(.hojas_ruta_envio_rows(envio$sample$blocks), .hojas_ruta_envio_rows(envio$sample$replacement_blocks))
+  muestra <- envio[["sample"]] %||% list()   # `[[`: por cuotas no hay `sample` y `$` casaba `sample_fingerprint`
+  filas <- c(.hojas_ruta_envio_rows(muestra[["blocks"]]), .hojas_ruta_envio_rows(muestra[["replacement_blocks"]]))
   if (!length(filas)) return(character(0))
   stats::setNames(vapply(filas, function(b) .hojas_ruta_envio_chr(b[["departamento"]]), ""),
                   vapply(filas, function(b) .hojas_ruta_envio_chr(b[["id_manzana"]]), ""))

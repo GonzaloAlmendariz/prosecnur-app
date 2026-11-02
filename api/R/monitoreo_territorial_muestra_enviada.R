@@ -57,14 +57,23 @@ monitoreo_territorial_muestra_enviada_desde <- function(envio, viva, phase = "fi
                ump_enviadas = 0L, ump_vivas = 0L, entran = list(), salen = list(), cambian_rol = list(),
                cambian = 0L, texto = "")
   if (is.null(envio)) return(utils::modifyList(base, list(estado = "sin_envio")))
-  rol_env <- .mtme_roles(envio$sample)
+  # Un envío por cuotas (ADR 0125 A1) no trae muestra de UMP: trae zonas. No hay
+  # UMP que comparar, y `envio$sample` casaba por prefijo `sample_fingerprint`
+  # (texto) y reventaba con 500 (D14). Lecturas con `[[`.
+  if (identical(.monitoreo_scalar(envio[["kind"]], ""), "cuotas")) {
+    return(utils::modifyList(base, list(
+      estado = "cuotas", enviado_at = .monitoreo_scalar(envio[["enviado_at"]], ""),
+      texto = "La muestra se envió por cuotas, por zona: no hay UMP que comparar con la muestra viva."
+    )))
+  }
+  rol_env <- .mtme_roles(envio[["sample"]])
   rol_viv <- .mtme_roles(viva)
   enviadas <- names(rol_env)
   vivas <- names(rol_viv)
   semilla <- function(x) .hojas_ruta_envio_int(x$seed %||% x$config$seed)
   out <- utils::modifyList(base, list(
     enviado_at = .monitoreo_scalar(envio$enviado_at, ""),
-    semilla_enviada = semilla(envio$sample),
+    semilla_enviada = semilla(envio[["sample"]]),
     semilla_viva = if (is.list(viva)) semilla(viva) else NA_integer_,
     ump_enviadas = length(enviadas),
     ump_vivas = length(vivas)

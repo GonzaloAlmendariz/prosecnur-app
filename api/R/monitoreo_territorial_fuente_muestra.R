@@ -37,7 +37,18 @@
       enviado_at = ""
     ))
   }
-  quota <- envio$sample$quota %||% NULL
+  # Por cuotas no hay muestra de UMP sino zonas con su cuota por celda (ADR
+  # 0125 A1). `envio$sample` casaba por prefijo `sample_fingerprint` y el `$`
+  # siguiente reventaba (D14): lecturas con `[[`.
+  if (identical(.monitoreo_scalar(envio[["kind"]], ""), "cuotas")) {
+    return(list(
+      source = "envio", kind = "cuotas", sample = list(), zonas = envio[["zonas"]] %||% list(),
+      config = envio[["config"]] %||% list(), quota = NULL,
+      sample_fingerprint = .monitoreo_scalar(envio[["sample_fingerprint"]], ""),
+      enviado_at = .monitoreo_scalar(envio[["enviado_at"]], "")
+    ))
+  }
+  quota <- (envio[["sample"]] %||% list())[["quota"]]
   if (is.null(quota)) {
     config_viva <- tryCatch(hojas_ruta_integrada_normalize_config(if (is.list(run$config)) run$config else list()),
                             error = function(e) NULL)
@@ -45,7 +56,7 @@
   }
   list(
     source = "envio",
-    sample = envio$sample,
+    sample = envio[["sample"]],
     config = envio$config %||% list(),
     quota = quota,
     sample_fingerprint = .monitoreo_scalar(envio$sample_fingerprint, ""),
