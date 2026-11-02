@@ -177,3 +177,22 @@ describe("H25 — el recibo sólo se firma si hubo traspaso", () => {
     expect(markup).toContain(">fp-plan<");
   });
 });
+
+describe("entrega bloqueada sin accesos", () => {
+  beforeEach(() => {
+    vi.stubGlobal("localStorage", { getItem: () => null, setItem: () => undefined, removeItem: () => undefined });
+  });
+  afterEach(() => { vi.unstubAllGlobals(); });
+
+  it("dice qué falta y lleva a Accesos, sólo si el shell sabe ir", () => {
+    // Con un material generado la sección se pinta aunque no haya accesos (sin él, es el vacío sin plan).
+    const base = payloadWithReceipts([receipt("x")]);
+    const sinAccesos = { ...base, state: { ...base.state, deployment: null } } as CollectionStatePayload;
+    const html = (onIrAAccesos?: () => void) => renderToStaticMarkup(
+      <DeliverySection payload={sinAccesos} latestArtifact={null} onState={() => undefined} onIrAAccesos={onIrAAccesos} />,
+    );
+    expect(html(() => undefined)).toContain("Ir a Accesos");
+    expect(html()).not.toContain("Ir a Accesos");
+  });
+});
+

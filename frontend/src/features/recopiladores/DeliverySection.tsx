@@ -24,6 +24,8 @@ type Props = {
   onState: (payload: CollectionStatePayload) => void;
   /** Navega a una dirección de la app (la acción del vacío sin plan). */
   onIr?: (to: string) => void;
+  /** Abre Accesos en la campaña abierta (lo que falta cuando la entrega está bloqueada). */
+  onIrAAccesos?: () => void;
 };
 
 /** Donde se regenera un material cuyo archivo ya no está en la sesión. */
@@ -54,7 +56,7 @@ export function faltaParaElRecibo(readiness: HandoffReadiness): string {
   return `${readiness.reason} El recibo aparece aquí cuando se entreguen.`;
 }
 
-export function DeliverySection({ payload, latestArtifact, onState, onIr }: Props) {
+export function DeliverySection({ payload, latestArtifact, onState, onIr, onIrAAccesos }: Props) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const deployment = payload?.state.deployment ?? null;
@@ -105,7 +107,14 @@ export function DeliverySection({ payload, latestArtifact, onState, onIr }: Prop
       >
         <div className={`rec-handoff-status${readiness.delivered ? " is-delivered" : readiness.ready ? " is-ready" : " is-blocked"}`}>
           {readiness.delivered ? <CheckCircle2 size={22} /> : <ShieldCheck size={22} />}
-          <div><strong>{readiness.delivered ? "Entrega registrada" : readiness.ready ? "Listo para entregar" : "Entrega bloqueada"}</strong><p>{readiness.reason}</p></div>
+          <div>
+            <strong>{readiness.delivered ? "Entrega registrada" : readiness.ready ? "Listo para entregar" : "Entrega bloqueada"}</strong>
+            <p>{readiness.reason}</p>
+            {/* Revisión con ojo de usuario (2 nov 2026): «Falta preparar los accesos» no llevaba a ningún lado. */}
+            {!deployment && onIrAAccesos ? (
+              <PulsoButton variant="secondary" size="sm" onClick={onIrAAccesos}>Ir a Accesos</PulsoButton>
+            ) : null}
+          </div>
         </div>
         <dl>
           <div><dt>Accesos</dt><dd title={deployment?.deployment_id ?? undefined}>{shortFingerprint(deployment?.deployment_id)}</dd></div>

@@ -312,7 +312,7 @@ export function RecopiladoresShell({ cabecera = null }: Props = {}) {
         />
       ) : null}
       {!loading && direction.seccion === "entrega" && direction.pestana === "traspaso" ? (
-        <DeliverySection payload={payload} latestArtifact={latestArtifact} onState={aplicarMutacion} onIr={irA} />
+        <DeliverySection payload={payload} latestArtifact={latestArtifact} onState={aplicarMutacion} onIr={irA} onIrAAccesos={() => navigate(`${location.pathname}${searchFor(location.search, "accesos", "canales")}`)} />
       ) : null}
       {!loading && direction.seccion === "entrega" && direction.pestana === "plantillas" ? <PlantillasDelEquipo /> : null}
     </section>
