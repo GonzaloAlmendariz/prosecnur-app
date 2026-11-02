@@ -15018,6 +15018,9 @@ monitoreo_territorial_reportes <- function(data, cfg, hojas_ruta_context = NULL,
     phase_source_message = .monitoreo_scalar(phase_status$message, ""),
     kpis = kpis,
     advance = advance,
+    # Por cuotas el avance es por zona y celda, no por UMP (monitoreo_territorial_cuotas.R).
+    cuotas = if (identical(context$envio_kind %||% "", "cuotas")) monitoreo_territorial_avance_cuotas(
+      list(kind = "cuotas", zonas = context$zonas %||% list()), audit, context$asignacion_zonas %||% list()) else NULL,
     source_coherence = list(
       asset_uid = .monitoreo_scalar(kobo_schema$asset_uid %||% tcfg$asset_uid, ""),
       asset_name = .monitoreo_scalar(kobo_schema$name %||% tcfg$kobo_asset_name, ""),

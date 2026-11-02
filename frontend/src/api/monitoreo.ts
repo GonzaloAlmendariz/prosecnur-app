@@ -4344,6 +4344,8 @@ export type TerritorialQuotaProgressPayload = {
 
 export type MonitoreoTerritorialDashboard = {
   schema: string;
+  /** ADR 0125 A1: con envío por cuotas, el avance por zona y celda (lo normaliza avance/porZonaModelo.ts). */
+  cuotas?: unknown;
   report_scope?: "source" | "route_summary" | "advance_summary" | "validation_summary" | "queries_summary" | "phone_summary" | "full" | string;
   generated_at: string;
   active_route_phase: "pilot" | "field" | string;

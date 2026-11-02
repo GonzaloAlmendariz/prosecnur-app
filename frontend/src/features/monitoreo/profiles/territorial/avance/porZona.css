@@ -1,0 +1,97 @@
+/* Avance territorial por cuotas (ADR 0125 A1): una tarjeta por zona con su
+   matriz sexo × rango de edad. */
+.mon-pz {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-3);
+}
+
+.mon-pz-resumen {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-1);
+}
+
+.mon-pz-cifra {
+  margin: 0;
+  color: var(--pulso-text-soft);
+}
+
+.mon-pz-cifra strong {
+  color: var(--pulso-text);
+  font-size: var(--pulso-type-kpi-size);
+  font-variant-numeric: tabular-nums;
+}
+
+.mon-pz-nota {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--pulso-space-2);
+  margin: 0;
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+}
+
+.mon-pz-zonas {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+  gap: var(--pulso-space-3);
+  align-items: start;
+}
+
+.mon-pz-zona {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-2);
+  min-width: 0;
+}
+
+.mon-pz-cabecera {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--pulso-space-2);
+}
+
+.mon-pz-cabecera h3 {
+  margin: 0;
+  font-size: var(--pulso-type-subtitle-size);
+}
+
+.mon-pz-cabecera .is-cumple { color: var(--pulso-success-fg); font-weight: var(--pulso-weight-bold); }
+.mon-pz-cabecera .is-falta { color: var(--pulso-module-monitoring); font-weight: var(--pulso-weight-bold); }
+
+.mon-pz-matriz {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--pulso-type-caption-size);
+  font-variant-numeric: tabular-nums;
+}
+
+.mon-pz-matriz th,
+.mon-pz-matriz td {
+  padding: 4px 4px;
+  border-bottom: 1px solid var(--pulso-surface-3);
+  text-align: left;
+  white-space: nowrap;
+}
+
+.mon-pz-matriz thead th {
+  color: var(--pulso-text-soft);
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.mon-pz-matriz .is-celda {
+  text-align: center;
+}
+
+.mon-pz-personas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--pulso-space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+}

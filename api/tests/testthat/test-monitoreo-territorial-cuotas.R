@@ -76,3 +76,13 @@ test_that("una zona con dos personas reparte su cuota y cada una lleva sus efect
   # Sin asignación, las zonas no inventan personas.
   expect_length(monitoreo_territorial_avance_cuotas(envio_cuotas(), audit)$zonas[[1]]$personas, 0L)
 })
+
+test_that("el sexo con código de Kobo (1, 2) casa con las celdas Hombre y Mujer", {
+  audit <- data.frame(ubigeo = "150101", sex = c("1", "2", "3"), age = c(20, 70, 25),
+                      advance_valid = TRUE, observation_status = "sin_observacion", stringsAsFactors = FALSE)
+  out <- monitoreo_territorial_avance_cuotas(envio_cuotas(), audit)
+  lima <- out$zonas[[1]]
+  expect_identical(lima$celdas[[1]]$efectivas, 1L)   # hombre 18 a 29
+  expect_identical(lima$celdas[[2]]$efectivas, 1L)   # mujer 60 o más
+  expect_identical(out$sin_celda, 1L)                # el código 3 no es una celda
+})

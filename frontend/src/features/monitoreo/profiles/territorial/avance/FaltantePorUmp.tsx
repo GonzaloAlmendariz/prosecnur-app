@@ -15,6 +15,8 @@ import {
   type ModeloFaltante,
 } from "./faltanteModel";
 import { DetalleDeUmp } from "./DetalleDeUmp";
+import { AvancePorZona } from "./AvancePorZona";
+import { avancePorZona } from "./porZonaModelo";
 import type { UmpPlanificada } from "../../../../../api/monitoreoAsignacionPlanificada";
 import { useAsignacionPlanificada } from "./useAsignacionPlanificada";
 import { SiluetaDeDistrito } from "./SiluetaDeDistrito";
@@ -41,6 +43,10 @@ function FaltantePorUmpImpl({ reports }: { reports: MonitoreoTerritorialDashboar
   const coordinacionDe = useMemo(() => new Map(
     asignacion?.estado === "comparable" ? asignacion.porUmp.map((u) => [u.idManzana, u]) : [],
   ), [asignacion]);
+
+  // ADR 0125 A1: con envío por cuotas no hay UMP; el avance va por zona y celda.
+  const porZona = avancePorZona(reports?.cuotas);
+  if (porZona) return <AvancePorZona modelo={porZona} />;
 
   if (!modelo.configurado) {
     return (

@@ -654,7 +654,10 @@
     total_entrevistas = as.integer(sample$total_entrevistas %||% sum(suppressWarnings(as.integer(blocks$entrevistas)), na.rm = TRUE)),
     total_replacement_interviews = as.integer(sample$total_replacement_interviews %||% sum(suppressWarnings(as.integer(replacements$entrevistas)), na.rm = TRUE)),
     n_blocks = as.integer(nrow(blocks)),
-    n_replacement_blocks = as.integer(nrow(replacements))
+    n_replacement_blocks = as.integer(nrow(replacements)),
+    # ADR 0125 A1: por cuotas, zonas y su asignación por persona (Material) en vez de UMP.
+    envio_kind = fuente$kind %||% "ump", zonas = fuente$zonas %||% list(),
+    asignacion_zonas = if (identical(fuente$kind, "cuotas")) tryCatch(.mta_guardada(s)$asignacion, error = function(e) list()) else list()
   )
 }
 

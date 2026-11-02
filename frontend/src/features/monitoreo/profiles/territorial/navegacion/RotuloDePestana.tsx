@@ -23,14 +23,15 @@ export function RotuloDePestanaProvider({ valor, children }: { valor: RotuloDePe
   return <Contexto.Provider value={valor}>{children}</Contexto.Provider>;
 }
 
-export function RotuloDePestana() {
+/** `titulo` reemplaza al de la pestaña cuando la vista dice otra cosa (Faltante con envío por cuotas). */
+export function RotuloDePestana({ titulo }: { titulo?: string } = {}) {
   const valor = useContext(Contexto);
   if (!valor) return null;
   return (
     <span className="mon-ter-rotulo">
       <span className="mon-ter-rotulo-copia">
         <small>{valor.antetitulo}</small>
-        <h2>{valor.titulo}</h2>
+        <h2>{titulo ?? valor.titulo}</h2>
       </span>
       {valor.subvistas.length > 1 ? (
         <span className="mon-ter-rotulo-subvistas" role="group" aria-label="Vista de la pestaña">

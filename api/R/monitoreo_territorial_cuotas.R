@@ -16,13 +16,10 @@
 #' Sexo normalizado a «hombre» / «mujer» / «».
 #' @keywords internal
 .mtcu_sexo <- function(x) {
-  k <- .monitoreo_text_key(as.character(x %||% ""))
-  out <- rep("", length(k))
-  # En castellano «h» es hombre y «m» mujer; male/female por si el formulario
-  # vino en inglés.
-  out[k %in% c("h", "hombre", "hombres", "masculino", "varon", "male")] <- "hombre"
-  out[k %in% c("m", "mujer", "mujeres", "femenino", "female", "f")] <- "mujer"
-  out
+  # El mismo rotulador que el cruce por celda del motor: el sexo llega con el
+  # código de Kobo (1 hombre, 2 mujer) o con su etiqueta.
+  lab <- .monitoreo_territorial_quota_sex_label(as.character(x %||% ""))
+  ifelse(lab == "Hombre", "hombre", ifelse(lab == "Mujer", "mujer", ""))
 }
 
 #' Límites de un rango de edad escrito como «18 a 29», «18-29» o «60 o más».
