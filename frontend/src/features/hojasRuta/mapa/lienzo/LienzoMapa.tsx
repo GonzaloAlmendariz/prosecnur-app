@@ -44,6 +44,9 @@ export type ColoresLienzo = {
   viaBorde: string;
   reemplazo: string;
   reemplazoBorde: string;
+  /** Contexto OSM (P9): parques y plazas, agua. */
+  verde: string;
+  agua: string;
   texto: string;
   suave: string;
   acento: string;
@@ -115,6 +118,8 @@ function leerColores(): ColoresLienzo {
     viaBorde: v("--pulso-mapa-via-borde"),
     reemplazo: v("--pulso-mapa-reemplazo"),
     reemplazoBorde: v("--pulso-mapa-reemplazo-borde"),
+    verde: v("--pulso-success-bg"),
+    agua: v("--pulso-info-bg"),
     texto: v("--pulso-text"),
     suave: v("--pulso-text-soft"),
     acento: v("--pulso-module-routes"),

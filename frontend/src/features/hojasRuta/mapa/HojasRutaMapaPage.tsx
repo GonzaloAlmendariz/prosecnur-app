@@ -23,6 +23,8 @@ import { useContornosRegiones } from "./territorio/useContornosRegiones";
 import { AtlasEstructura, AtlasInspector, CiudadCabecera, MigaAtlas } from "./territorio/AtlasPaneles";
 import { ciudadEnPantalla, dibujarCiudadesAtlas } from "./territorio/atlasCapas";
 import { LienzoMapa, type UtilLienzo } from "./lienzo/LienzoMapa";
+import { dibujarContexto } from "./lienzo/contextoOsm";
+import { useContextoOsm } from "./useContextoOsm";
 import { dibujarExcluidasPiloto } from "./lienzo/excluidasPiloto";
 import { piezasDeGeometria, unirCajas, type PiezaManzana, type PiezasDistrito } from "./lienzo/piezas";
 import {
@@ -428,6 +430,8 @@ export default function HojasRutaMapaPage() {
     return m ? m.centro : null;
   }, [titularEnfocada, manzanaPorId]);
 
+  // P9: la capa de contexto OSM de los distritos confirmados (un pedido por distrito, con caché).
+  const contextoOsm = useContextoOsm(enManzanas || enSeleccion ? confirmados : []);
   // P2: en Campo real que evita el piloto, sus titulares se ven en Manzanas como excluidas.
   const excluidasPiloto = useMemo<PiezaManzana[]>(() => {
     if (fase !== "field" || estado?.runs?.field?.pilot_exclusion_mode === "ignore") return [];
@@ -500,6 +504,8 @@ export default function HojasRutaMapaPage() {
   const capaContraste = conSelectorDeCapa(nav.seccion as SeccionLienzo) && capaMapa !== "manzanas";
   const dibujarMundo = useCallback(
     (ctx: CanvasRenderingContext2D, u: UtilLienzo) => {
+      // P9: parques, plazas y agua (OSM) al fondo, para orientarse donde se ven manzanas.
+      if (contextoOsm.length && u.camara.s > 0.08) dibujarContexto(ctx, u, contextoOsm);
       if (enTerritorio) {
 
         const enfocadoC = distritoEnfocado ? contornos.find((c) => c.ubigeo === distritoEnfocado) : null;
@@ -559,7 +565,7 @@ export default function HojasRutaMapaPage() {
       if (enSeleccion) dibujarReemplazosMundo(ctx, u, reemplazosEnfocados);
       if (!enPoblacion && !enMuestra) dibujarTitularesMundo(ctx, u, titulares, enSeleccion ? umpEnfocada : null, capaContraste);
     },
-    [enMuestra, enPoblacion, enTerritorio, enManzanas, enSeleccion, borrador, distritoBajoCursor, distritoEnfocado, titulares, reemplazos, excluidasPiloto, reemplazosEnfocados, umpEnfocada, zonasCortas, distritos, configSorteo, dibujoArea, capaContraste, contornos],
+    [enMuestra, enPoblacion, enTerritorio, enManzanas, enSeleccion, borrador, distritoBajoCursor, distritoEnfocado, titulares, reemplazos, excluidasPiloto, contextoOsm, reemplazosEnfocados, umpEnfocada, zonasCortas, distritos, configSorteo, dibujoArea, capaContraste, contornos],
   );
   // Perfil NSE de lo elegido para la gráfica del inspector de Territorio: viviendas
   // por nivel de las manzanas ya cargadas en el lienzo. null mientras no hay geometría.
