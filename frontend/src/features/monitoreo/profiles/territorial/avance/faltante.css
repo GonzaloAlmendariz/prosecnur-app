@@ -859,10 +859,32 @@
   white-space: normal;
 }
 
-/* Partido, el chip no se vuelve óvalo: dos líneas con esquinas de tarjeta. */
+/* Partido, el chip no se vuelve óvalo: dos líneas con esquinas de tarjeta.
+ * A 1024 la tabla entera cabe en su marco (antes Saldo y Cubre quedaban 164 px
+ * a la derecha, tras un desplazamiento sin indicio): la manzana y «cubre»
+ * parten en dos líneas, las cabeceras de celda también, y los chips de celda
+ * se ciñen. Las filas crecen en alto, pero ninguna columna queda escondida. */
 @media (max-width: 1180px) {
   .mon-falt-tabla tbody td.is-cubre {
-    min-width: 124px;
+    min-width: 100px;
+  }
+
+  .mon-falt-tabla tbody td.is-manzana {
+    white-space: normal;
+  }
+
+  .mon-falt-tabla thead th.is-celda {
+    white-space: normal;
+    line-height: 1.2;
+  }
+
+  .mon-falt-tabla :is(thead th, tbody td).is-celda {
+    padding-inline: 3px;
+  }
+
+  .mon-falt-tabla .mon-falt-celda {
+    gap: 2px;
+    padding-inline: 3px;
   }
 
   .mon-falt-tabla td.is-cubre .mon-falt-chip {

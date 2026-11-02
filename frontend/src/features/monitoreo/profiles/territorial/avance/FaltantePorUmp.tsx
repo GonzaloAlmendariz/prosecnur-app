@@ -335,7 +335,7 @@ function TablaDeCuotas({
                     </button>
                   </th>
                   <td className="is-distrito">{fila.distrito}</td>
-                  <td>{fila.reemplazo ? "Reemplazo" : "Titular"} {fila.manzana}</td>
+                  <td className="is-manzana">{`${fila.reemplazo ? "Reemplazo" : "Titular"} ${fila.manzana}`}</td>
                   <td className="is-aplicador">{fila.aplicador}</td>
                   {fila.celdas.map((celda) => (
                     <td key={celda.clave} className="is-celda"><CeldaDeTabla celda={celda} /></td>
