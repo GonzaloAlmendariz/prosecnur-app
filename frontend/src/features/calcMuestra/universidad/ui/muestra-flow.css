@@ -226,7 +226,7 @@
   }
 
   .cmv2-muestra-flow[data-compacto="true"] .cmv2-muestra-flow-pin {
-    font-size: 9px;
+    font-size: var(--pulso-type-micro-size);
   }
 
   .cmv2-muestra-flow[data-compacto="true"] .cmv2-muestra-flow-track {
