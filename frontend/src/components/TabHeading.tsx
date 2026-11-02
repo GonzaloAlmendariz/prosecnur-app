@@ -7,10 +7,11 @@
  *
  *   tile de ícono · copy · control de sección · chips de contexto
  *
- * y tres variantes del MISMO marco: estándar (62 px), compacta (40 px, sin
- * eyebrow visible ni detalle) y con control de sección (lo que manda sobre
- * toda la sección —el selector de facultad de Cursos-horario— vive aquí y no se
- * mueve con el scroll).
+ * y cuatro variantes del MISMO marco: estándar (62 px), compacta (40 px, sin
+ * eyebrow visible ni detalle), sección (44 px: antetítulo «SECCIÓN · GRUPO» y
+ * título, sin detalle; la geometría de la cabecera de Monitoreo, estándar §2b
+ * G1) y con control de sección (lo que manda sobre toda la sección —el selector
+ * de facultad de Cursos-horario— vive aquí y no se mueve con el scroll).
  *
  * Reglas que el componente garantiza y un patrón copiado no:
  *
@@ -50,6 +51,13 @@ export const ETIQUETA_ESTADO_TAB: Readonly<Record<TabHeadingEstado, string>> = {
   bloqueado: "Bloqueado",
 };
 
+/**
+ * `seccion` (L14 opción a): 44 px, antetítulo visible y sin detalle, sin borde
+ * ni relleno propios porque vive dentro del marco de la sección. Es la forma de
+ * `features/monitoreo/core/cabeceraDePestana`, que la adopta.
+ */
+export type TabHeadingVariante = "estandar" | "compacta" | "seccion";
+
 /** Cuánto sobrevive un chip cuando el ancho aprieta. Misma escala que la command bar. */
 export type TabHeadingChipRank = 1 | 2 | 3;
 
@@ -87,8 +95,10 @@ export type TabHeadingProps = {
   /** Control que manda sobre TODA la sección (selector de facultad, de base…). */
   control?: ReactNode;
   chips?: readonly TabHeadingChip[];
-  /** Variante de 40 px: sin eyebrow visible ni detalle. */
+  /** Variante de 40 px: sin eyebrow visible ni detalle. Equivale a `variante="compacta"`. */
   compacta?: boolean;
+  /** Gana sobre `compacta`. Sin ella: `compacta` o `estandar`. */
+  variante?: TabHeadingVariante;
   /**
    * Fuerza la densidad de los chips. Sin ella se deriva del ancho real de la
    * cabecera (ResizeObserver); en el servidor y en el primer render es `normal`.
@@ -244,21 +254,25 @@ export function TabHeading({
   control,
   chips = [],
   compacta = false,
+  variante,
   densidad,
   className,
 }: TabHeadingProps) {
+  const varianteEfectiva: TabHeadingVariante = variante ?? (compacta ? "compacta" : "estandar");
+  const esCompacta = varianteEfectiva === "compacta";
   const ref = useRef<HTMLElement>(null);
   const conControl = control !== undefined && control !== null && control !== false;
   const densidadEfectiva = useDensidadPorAncho(ref, conControl, densidad);
   const { visibles, recogidos } = repartirChips(chips, densidadEfectiva);
   const eyebrowTexto = textoEyebrow(eyebrow, pestanaN, pestanaDe);
-  const detalleVisible = compacta ? null : detalleUtil(titulo, detalle);
+  // La compacta y la de sección no llevan detalle: su alto no lo admite.
+  const detalleVisible = varianteEfectiva === "estandar" ? detalleUtil(titulo, detalle) : null;
 
   return (
     <header
       ref={ref}
       className={["pulso-tab-heading", className].filter(Boolean).join(" ")}
-      data-variante={compacta ? "compacta" : "estandar"}
+      data-variante={varianteEfectiva}
       data-con-control={conControl ? "true" : undefined}
       data-densidad={densidadEfectiva}
       data-estado={estado}
@@ -268,12 +282,12 @@ export function TabHeading({
       {/* Baldosa de alto fijo (34/26 px) con el glifo centrado: el aire bajo el
           ícono es su forma, no capacidad inflada por datos. */}
       <span className="pulso-tab-heading-icon" aria-hidden="true" data-qa-geometry-capacity="owned">
-        <Icono size={compacta ? 14 : 17} />
+        <Icono size={esCompacta ? 14 : 17} />
       </span>
 
       <div className="pulso-tab-heading-copy">
         {eyebrowTexto ? (
-          <span className={compacta ? "pulso-sr-only" : "pulso-section-eyebrow pulso-tab-heading-eyebrow"}>
+          <span className={esCompacta ? "pulso-sr-only" : "pulso-section-eyebrow pulso-tab-heading-eyebrow"}>
             {eyebrowTexto}
           </span>
         ) : null}

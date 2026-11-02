@@ -137,6 +137,28 @@ describe("TabHeading — render", () => {
   });
 });
 
+describe("TabHeading — variante sección (L14 opción a)", () => {
+  test("44 px: antetítulo visible, título y sin detalle", () => {
+    const html = renderToStaticMarkup(
+      <TabHeading variante="seccion" eyebrow="Avance · Territorial" titulo="Resumen" icono={PlugZap}
+        detalle="Esto no se pinta en la de sección" />,
+    );
+    expect(html).toContain('data-variante="seccion"');
+    expect(html).toContain('class="pulso-section-eyebrow pulso-tab-heading-eyebrow">Avance · Territorial</span>');
+    expect(html).toMatch(/<h2>Resumen<\/h2>/);
+    expect(html).not.toContain("pulso-tab-heading-detalle");
+    expect(html).not.toContain("pulso-sr-only");
+  });
+
+  test("gana sobre `compacta`, y `compacta` sola sigue siendo la de 40 px", () => {
+    const ambas = renderToStaticMarkup(<TabHeading variante="seccion" compacta eyebrow="A" titulo="B" icono={PlugZap} />);
+    expect(ambas).toContain('data-variante="seccion"');
+    const compacta = renderToStaticMarkup(<TabHeading compacta eyebrow="A" titulo="B" icono={PlugZap} />);
+    expect(compacta).toContain('data-variante="compacta"');
+    expect(compacta).toContain("pulso-sr-only");
+  });
+});
+
 describe("TabHeading — lógica pura", () => {
   test("detalleUtil", () => {
     expect(detalleUtil("Fuentes", undefined)).toBeNull();
