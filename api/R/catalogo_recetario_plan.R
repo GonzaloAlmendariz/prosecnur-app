@@ -443,6 +443,10 @@
         .cr_g("p_mapa_resultado_distrital", var = "egresados$satisf_general", cruces = "egresados$distrito",
               corte = "3,4", rotulo = "Satisfechos o muy satisfechos"),
         "Mapa de Lima por distrito", "un resultado se compara entre distritos de Lima", 107),
+    uno("La mayoría de los egresados vive en Lima Centro y Lima Moderna",
+        "¿En qué distrito vive?",
+        .cr_g("p_mapa_distribucion", var = "egresados$distrito", area = "lima_callao", puntos = "Facultad | -12.0693, -77.0794"),
+        "Mapa de distribución por distrito", "muestras dónde están los encuestados, con su número y porcentaje"),
 
     # ---- 11. Diferencias significativas ------------------------------------------------------------------------------
     cap("Diferencias significativas", NULL, 11, "Qué diferencias entre grupos no son azar", "Capítulo con rótulo", "abres un capítulo del informe"),

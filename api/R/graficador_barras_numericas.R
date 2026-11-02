@@ -1079,7 +1079,8 @@ graficar_histograma <- function(
                                color_titulo = color_titulo, size_titulo = size_titulo,
                                color_subtitulo = color_subtitulo, size_subtitulo = size_subtitulo,
                                color_nota_pie = color_nota_pie, size_nota_pie = size_nota_pie,
-                               unidad = .unidad_de_etiqueta(attr(data[[var]], "label", exact = TRUE) %||% var))
+                               unidad = .unidad_de_etiqueta(attr(data[[var]], "label", exact = TRUE) %||% var),
+                               mostrar_frecuencia = mostrar_frecuencia)   # CCSS 2026: «103 (26%)»
     if (identical(exportar, "png") && !is.null(path_salida) && nzchar(path_salida)) {
       ggplot2::ggsave(path_salida, p, width = ancho, height = alto %||% 4.6, dpi = dpi, bg = "transparent")
     }

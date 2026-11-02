@@ -1889,10 +1889,32 @@ p_slide_6_graficos_poblacion <- function(
   filtros
 }
 
+#' Lista de textos de un arg del slot: `character()` o el arreglo JSON que llega como lista de escalares
+#'
+#' El export parsea el body con `simplifyVector = FALSE` (`.graficos_body_sin_simplificar`), así que un arreglo
+#' `["NS/NR"]` llega como `list("NS/NR")`. Se acepta todo lo que sea texto o número escalar (un código numérico cuenta
+#' como su texto); cualquier otra forma devuelve NULL. `/validar` usa el mismo criterio (`.validar_plan_json`), así que un
+#' plan que valida no cae en el job.
+#' @keywords internal
+.ppt_chr_vec_coercionar <- function(x) {
+  if (is.list(x)) {
+    if (!all(vapply(x, function(v) is.null(v) || ((is.character(v) || is.numeric(v) || is.logical(v)) && length(v) <= 1L), TRUE))) return(NULL)
+    x <- unlist(x, use.names = FALSE)
+    if (is.null(x)) return(character(0))
+  }
+  if (is.factor(x)) x <- as.character(x)
+  if (!is.character(x) && !is.numeric(x)) {
+    if (is.logical(x) && all(is.na(x))) return(character(0))
+    return(NULL)
+  }
+  as.character(x)
+}
+
 .ppt_norm_chr_vec_arg <- function(x, nm) {
   if (is.null(x)) return(NULL)
-  if (!is.character(x)) .plan_spec_abort("`", nm, "` debe ser NULL o character().")
-  x <- trimws(as.character(x))
+  x <- .ppt_chr_vec_coercionar(x)
+  if (is.null(x)) .plan_spec_abort("`", nm, "` debe ser NULL o una lista de textos.")
+  x <- trimws(x)
   x <- x[!is.na(x) & nzchar(x)]
   if (!length(x)) return(NULL)
   unique(x)
@@ -1996,6 +2018,7 @@ p_barras_agrupadas <- function(var, titulo = NULL, cruces = NULL, overrides = li
                                   opciones = eval(formals(graficar_barras_agrupadas)$normalizar_etiquetas))
   # TXT-20: el texto abierto que se codificó en `var` (temas); apagado por defecto. reporte_plan_temas_texto.R
   overrides <- .ppt_slot_override(overrides, "temas_de_texto", temas_de_texto, "texto")
+  overrides <- .agrupadas_tamanos_declarados_mandan(overrides)   # CCSS 2026, lámina 64 (lamina_tamanos_declarados.R)
 
   el <- list(
     .element_type = "barras_agrupadas",
@@ -2152,6 +2175,9 @@ p_barras_apiladas <- function(var, titulo = NULL, cruces = NULL, overrides = lis
 #'   para cada bloque. La lámina del PPT no cambia.
 #' @param word_titulo_figura Título de la figura única del Word (`modo = "var"` con `un_grafico` o
 #'   `un_grafico_mismo_publico`); `NULL` o `""` la deja sin título. No cambia el PPT ni los demás modos.
+#'   Es la ÚNICA vía para titular esa figura: el `titulo` de la lámina no la titula a propósito (D-b, decisión del
+#'   usuario del 2026-10-22: con el título de lámina salían varios «Gráfico N» idénticos). Sin declarar, el rótulo queda
+#'   «Gráfico N° N» (fijado en test-word-multiapiladas-modos.R).
 #' @examples
 #' p_barras_multiapiladas(
 #'   modo = "cruce",

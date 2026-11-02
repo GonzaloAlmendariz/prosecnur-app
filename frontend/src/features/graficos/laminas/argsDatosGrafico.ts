@@ -282,7 +282,7 @@ const LISTA_BLANCA: Record<string, Entrada> = {
     cuando: serieEnMarco,
   },
   min_n: { rotulo: "Casos mínimos por distrito", ayuda: AYUDA_MIN_N, soloEn: ["p_mapa_resultado_distrital"] },
-  cortes: { rotulo: "Cortes de las clases (%)", ayuda: AYUDA_CORTES, placeholder: "55, 65, 75", soloEn: ["p_mapa_resultado_distrital"] },
+  cortes: { rotulo: "Cortes de las clases (%)", ayuda: AYUDA_CORTES, placeholder: "55, 65, 75", soloEn: ["p_mapa_resultado_distrital", "p_mapa_distribucion"] },
   // I-c: en la serie temporal los decimales son decisión del informe (Estilo del informe › Cálculos); sólo el radar.
   valores_decimales: { rotulo: "Decimales", soloEn: ["p_radar"] },
 };

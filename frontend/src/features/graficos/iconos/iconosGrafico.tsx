@@ -346,6 +346,7 @@ const ICONOS: Readonly<Record<string, DibujoGrafico>> = {
 /** Graficadores que comparten el ícono de otro tipo porque el recetario los dibuja igual. */
 export const ALIAS_GRAFICO: Readonly<Record<string, string>> = {
   p_barras_apiladas: "p_barras_multiapiladas",
+  p_mapa_distribucion: "p_mapa_resultado_distrital",   // el mismo mapa por zonas; el glifo del selector sí es propio
 };
 
 /**

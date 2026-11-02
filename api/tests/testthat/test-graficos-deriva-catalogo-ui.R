@@ -31,7 +31,9 @@ source("setup-load-all.R")
   "p_dim_foda", "p_dim_heatmap_criterios",
   "p_dicotomica",   # alias de p_barras_categoricas (G10): usa su renderer
   # Recetario p192–p194 y p111–p112: su render arma la lámina con otros renders (barras) o con su propio cálculo.
-  "p_filtro_subpregunta", "p_significancia_publicos"
+  "p_filtro_subpregunta", "p_significancia_publicos",
+  # Su render arma la espec de distribución y dibuja con `graficar_mapa_resultado_distrital` (graficos_mapa_distribucion_plan.R).
+  "p_mapa_distribucion"
 )
 
 # Args catalogados que no son formals de NINGUNA de las dos capas porque los
@@ -67,10 +69,10 @@ source("setup-load-all.R")
            nombres(.presets_metadata_payload()$presets)))
 }
 
-test_that("los 31 graficadores del registro resuelven, ninguno se salta", {
-  # 24 + p_cifra y p_mapa_resultado_distrital (F6), ambos con renderer graficar_* propio.
+test_that("los 32 graficadores del registro resuelven, ninguno se salta", {
+  # 24 + p_cifra y p_mapa_resultado_distrital (F6), ambos con renderer graficar_* propio, y p_mapa_distribucion (CCSS 2026).
   gs <- .graficos_registry_payload()$graficadores
-  expect_length(gs, 31L)
+  expect_length(gs, 32L)
   for (g in gs) {
     fn <- tryCatch(getExportedValue("prosecnurapp", g$name), error = function(e) NULL)
     expect_true(is.function(fn), info = sprintf("%s no resuelve como el router lo resuelve", g$name))

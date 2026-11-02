@@ -327,10 +327,20 @@
   # La especificación entera, no la parte (estándar `base_chica`). El «x de y» lo gobierna el mismo interruptor que «N respuestas»
   # (`mostrar_respuestas`, N3b+): apagado no se dibuja; la regla sigue en `.lam_base_chica` y el pie «Base: N» no cambia.
   hay_chica <- con_n && .lam_base_chica(espec)
-  wp <- .lam_escala_ancho_prem(premisas); geo <- .lam_escala_geo(premisas, wp, nb)
+  wp <- .lam_escala_ancho_prem(premisas)
+  # CCSS 2026 (lámina 51): en un cruce sin públicos, la columna mide sus rótulos (o lo que declare el gráfico) y la barra
+  # arranca ahí. La multilista (`estirar`) no se ajusta a la tinta, para que sus bloques no corran sus barras por separado.
+  dx_prem <- 0
+  if (.lam_escala_sin_actor(premisas) && !(isTRUE(encabezar_tema) && length(premisas) == 1L)) {
+    wp2 <- .lam_escala_columna_premisa(premisas, wp, espec, auto = is.null(estirar))
+    dx_prem <- wp - wp2; wp <- wp2
+  }
+  geo <- .lam_escala_geo(premisas, wp, nb)
   g <- geo$g; fila <- geo$fila; gap <- geo$gap
   extra_gap <- rep(0, max(0L, length(premisas) - 1L))   # M1: aire extra por separación (donde una cifra chica pide más); 0 = el gap uniforme de siempre
-  WB <- cb$ancho_barra   # G17 y Conta: toda barra mide lo mismo, con o sin columna Top Two Box, sea Sí/No o escala (Gonzalo, 2026-10-28)
+  # G17 y Conta: toda barra mide lo mismo, con o sin columna Top Two Box (Gonzalo, 2026-10-28). En un cruce sin públicos
+  # la columna de rótulos se ajusta a su tinta (CCSS 2026, lámina 51) y la barra recupera ese ancho para no dejar el borde derecho vacío.
+  WB <- cb$ancho_barra + dx_prem
   altos_de <- function() vapply(premisas, function(p) max(.lam_premisa_alto(p, wp), length(p$filas) * fila), 0)
   altos <- altos_de(); tot <- sum(altos) + gap * (length(premisas) - 1) + sum(extra_gap)
   disp <- y1 - y0 - (if (isTRUE(leyenda)) 0.7 else 0)
@@ -381,7 +391,7 @@
   # no se parte sobre sus respuestas. Si el tema repite el título de la lámina, no se escribe.
   un_tema <- isTRUE(encabezar_tema) && length(premisas) == 1L && con_filete
   x_act <- if (un_tema) L$x_premisa else L$x_actor
-  w_act <- L$ancho_actor; x_bar <- L$x_barra
+  w_act <- L$ancho_actor; x_bar <- L$x_barra - dx_prem
   if (un_tema) {
     # La barra arranca donde empezaba la columna del tema, tras el rótulo más ancho de los públicos (Gonzalo,
     # 2026-10-14: «que el eje empiece antes, donde antes empezaba el tema, para que esa columna no se vea vacía»).

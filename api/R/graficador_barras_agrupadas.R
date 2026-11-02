@@ -1175,7 +1175,9 @@ graficar_barras_agrupadas <- function(
   if (isTRUE(comparativo_activo)) grosor_barras_eff <- width_dodge_eff
   # CCSS-7: el par del cruce va pegado como el del comparativo, la cifra cabe en su barra y la primera serie va arriba.
   cruce_agr <- if (.agrupadas_es_cruce(n_series, comparativo_activo, orientacion, usar_canvas)) {
-    .agrupadas_cruce_par(size_texto_barras_eff, length(cat_lvls), n_series, alto,
+    # La cifra parte del cuerpo declarado, no del escalado por número de series: el par la baja si no cabe en su barra,
+    # y con el panel a todo el alto (`.agrupadas_cruce_barras_por_fila`) suele caber entera.
+    .agrupadas_cruce_par(suppressWarnings(as.numeric(size_texto_barras)[1]), length(cat_lvls), n_series, alto,
                          frac_panel = if (exists("frac_panel_agr", inherits = FALSE)) frac_panel_agr else 0.62)
   }
   if (!is.null(cruce_agr)) {
@@ -1890,14 +1892,16 @@ graficar_barras_agrupadas <- function(
       is.finite(alto_hueco) && alto_hueco > 0 &&
       h_total_in > 0 && h_total_in < alto_hueco) {
     panel_disponible <- alto_hueco - h_header_in - h_legend_in - h_caption_in
-    panel_nuevo <- min(panel_disponible, h_panel_in * .AGRUPADAS_PANEL_ESTIRA_MAX)
+    # En un cruce cada fila lleva una barra por grupo: el estirado y el techo cuentan barras, no filas (CCSS 2026, lámina 46).
+    barras_fila <- .agrupadas_cruce_barras_por_fila(cruce_agr, n_series)
+    panel_nuevo <- min(panel_disponible, h_panel_in * .AGRUPADAS_PANEL_ESTIRA_MAX * barras_fila)
     # El estirado engorda la barra: la fraccion no cambia, pero la fila si. Sin
     # tope, el cuadrante de dos barras de un perfil salia a 1.68 cm y el de
     # cinco a 0.70, sobre la misma lamina. Se limita para que la barra no pase
     # del techo; el panel queda mas corto que su hueco, que es preferible a que
     # dos cuadrantes hermanos no midan lo mismo.
     if (is.finite(grosor_barras_eff) && grosor_barras_eff > 0) {
-      panel_techo <- (.GROSOR_TECHO_IN / grosor_barras_eff) * n_filas_panel
+      panel_techo <- (.GROSOR_TECHO_IN / grosor_barras_eff) * n_filas_panel * barras_fila
       if (is.finite(panel_techo) && panel_techo > 0) {
         panel_nuevo <- min(panel_nuevo, max(h_panel_in, panel_techo))
       }

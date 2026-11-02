@@ -40,8 +40,10 @@
   v <- espec$largos; et <- espec$rotulos
   # Las agrupadas van de 0 a 100 % por defecto (`escala_completa`); el resto, al máximo con aire, como el recetario.
   escala <- escala %||% (if (isTRUE(espec$escala_completa)) max(1, v) else max(v) * 1.12)
-  # La cifra lleva su propia columna: 0.8 in, o lo que mida si trae «(n)» o letras (no se parte en dos líneas).
-  wcif <- max(0.8, max(.lam_ancho_txt(espec$cifras, size, TRUE)) + 0.12)
+  # La cifra lleva su propia columna: 0.8 in, o lo que mida si trae «(n)» o letras (no se parte en dos líneas). Su cuerpo
+  # es el de los rótulos salvo que el gráfico declare `size_texto_barras` (lamina_tamanos_declarados.R).
+  size_cif <- (espec$tamanos %||% list())$cifra_pt %||% size
+  wcif <- max(0.8, max(.lam_ancho_txt(espec$cifras, size_cif, TRUE)) + 0.12)
   wbar <- w - wlab - wcif; yy <- y
   azul <- .std_color("azul"); tenue <- .std_color("tenue")
   cols <- .espec_colores_de(espec, et)   # ADR 0097: con paleta del usuario cada barra lleva su color (y no hay tenue)
@@ -54,7 +56,8 @@
     yb <- yy + (fila - g) / 2; bw <- if (escala > 0) wbar * v[k] / escala else 0
     fill <- st$fill %||% (if (!is.null(cols) && !length(elegidas)) cols[k] else if ((isTRUE(espec$realce) || length(elegidas)) && !es_max) tenue else azul)
     if (bw > 0.004) .lam_caja(lz, x + wlab + 0.12, yb, bw, g, fill, nombre = "barra")
-    .lam_txt(lz, espec$cifras[k], x + wlab + 0.16 + bw, yb + (g - 0.3) / 2, wcif, 0.3, size, azul, bold = st$cifra_bold %||% TRUE, nombre = "cifra")
+    h_cif <- max(0.3, size_cif * 1.25 / 72)
+    .lam_txt(lz, espec$cifras[k], x + wlab + 0.16 + bw, yb + (g - h_cif) / 2, wcif, h_cif, size_cif, azul, bold = st$cifra_bold %||% TRUE, nombre = "cifra")
     yy <- yy + fila
   }
   # Marcas 0-25-50-75-100 % bajo las barras, opcionales con la escala de 0 a 100 % (Gonzalo, 2026-10-09: «A,bas y en
@@ -72,13 +75,14 @@
 .lam_barras_geo <- function(espec) {
   g_ <- .std_geom; yt <- g_("zona_datos_y0"); yf <- g_("contenido_y1")
   n <- max(1L, length(espec$largos))
-  size <- if (any(nchar(espec$rotulos) > 45)) 11 else 12
+  # El cuerpo que declare el gráfico (`size_ejes`, lamina_tamanos_declarados.R) manda sobre el del recetario.
+  size <- (espec$tamanos %||% list())$rotulo_pt %||% (if (any(nchar(espec$rotulos) > 45)) 11 else 12)
   uf <- .lam_uso_area_fila(n, yf - yt - .LAM_USO_AREA$reserva); fila <- uf$fila; g <- uf$g   # lamina_uso_area.R: crece hasta el tope
   nb <- .std_negrita_forzada("categorias") || .lam_jer_activa(espec)   # TXT-26: con jerarquía, la columna se mide en negrita
   wlab <- min(6.3, max(1.4, max(.lam_ancho_tinta(espec$rotulos, size, nb)) + 0.3))
   ancho <- g_("ancho") - g_("margen_izq") - g_("margen_der")   # CCSS-8 (lamina_barras_ancho.R): columna acotada y bloque a lo ancho
   r <- .lam_barras_ancho_rotulos(espec$rotulos, ancho, size, fila, nb, previa = wlab); wlab <- r$wlab; size <- r$size
-  list(size = size, fila = fila, g = g, wlab = wlab, ancho_geo = .lam_barras_ancho_geo(espec, ancho, wlab, size))
+  list(size = size, fila = fila, g = g, wlab = wlab, ancho_geo = .lam_barras_ancho_geo(espec, ancho, wlab, (espec$tamanos %||% list())$cifra_pt %||% size))
 }
 
 #' ¿En qué forma cabe la categórica? Columnas (lámina 68), barras (lámina 73) o ninguna (`NA`)

@@ -304,6 +304,12 @@
       "en_selector": true
     },
     {
+      "name": "p_mapa_distribucion",
+      "familia_editor": "territorio",
+      "salida": "nativa",
+      "en_selector": true
+    },
+    {
       "name": "p_mapa_resultado_distrital",
       "familia_editor": "territorio",
       "salida": "nativa",

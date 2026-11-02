@@ -214,6 +214,7 @@
   }
   espec <- .lam_con_estilo_dicotomia(attr(p, "pulso_espec"), el_plot)   # el slot pide el estilo de la dicotómica
   espec <- .lam_espec_menor_uno(espec)   # U5: «0%» con casos se escribe «<1%» (lamina_cifra_menor_uno.R)
+  espec <- .lam_espec_con_tamanos(espec, el_plot)   # los tamaños que declara el gráfico (lamina_tamanos_declarados.R)
   base_var <- .base_nombre_visible(sub("\\$.*$", "", as.character(el_plot$var %||% "")[1]))   # «default» no se nombra (graficos_base_por_base.R)
   texto <- function(x) if (is.null(x) || !length(x) || is.na(x[1]) || !nzchar(trimws(as.character(x)[1]))) NULL else trimws(as.character(x)[1])
   # La base de una categórica viaja en la nota del gráfico (su caption en la ruta anterior).

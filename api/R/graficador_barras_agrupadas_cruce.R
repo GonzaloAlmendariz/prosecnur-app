@@ -112,6 +112,19 @@
   list(size = s0, wrap = p$wrap, w_etiquetas = we2, w_bars = wb + (we - we2), cabe = TRUE)
 }
 
+#' Barras por fila del lienzo: una por grupo en un cruce, una fuera de él
+#'
+#' El estirado del panel y el techo de grosor (`.GROSOR_TECHO_IN`) se pensaron para una barra por fila. En un cruce la
+#' fila se reparte entre sus grupos, así que medirla como una sola barra dejaba el panel en la franja superior de la
+#' lámina con barras de un cuarto del techo: con una opción visible y cuatro grupos, 0.82 in de panel en una lámina de 5.
+#' @param cruce Lo que decidió `.agrupadas_cruce_par()`, o `NULL` fuera del cruce.
+#' @keywords internal
+.agrupadas_cruce_barras_por_fila <- function(cruce, n_series) {
+  k <- suppressWarnings(as.integer(n_series)[1])
+  if (is.null(cruce) || is.na(k) || k < 2L) return(1L)
+  k
+}
+
 #' Grosor del par y cuerpo de la cifra de un cruce
 #'
 #' El par va pegado (grosor igual al dodge del comparativo, 0.86): el aire va entre categorías. La cifra baja hasta caber
