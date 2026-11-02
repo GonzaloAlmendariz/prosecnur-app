@@ -2791,6 +2791,16 @@
   border-bottom: 1px solid var(--pulso-border);
 }
 
+/* La cabecera del libro NO es pegajosa. Su marco desplaza en horizontal (27
+   columnas) y no en vertical —sin tope a propósito: No Scroll Jail, ver la regla
+   de `.mon-profile-table-wrap` más arriba—, y un `sticky` sólo se pega dentro
+   de su marco: aquí nunca se pegaba, y al desplazar la página sus dos filas
+   (bloques y columnas, ambas con `top: 0`) quedaban encima de la primera fila de
+   datos. Se declara estática en vez de prometer lo que no hace. */
+.mon-profile-page.is-aulas-flow .aulas-control-libro .mon-profile-table th {
+  position: static;
+}
+
 /* El corte entre bloques: una línea, no un hueco. Un separador de ancho vacío
    habría desalineado las cifras que acabamos de alinear. */
 .mon-profile-page.is-aulas-flow .aulas-control-libro th.es-corte,
