@@ -198,6 +198,12 @@ export function LienzoMapa({
   const moverRotulo = useCallback((x: number | null, y: number | null) => {
     cursorRef.current = x === null || y === null ? null : [x, y];
     const el = rotuloRef.current;
+    // Con rótulo hay algo que se puede cliquear bajo el cursor: la mano de arrastrar pasa a puntero.
+    const lienzo = lienzoRef.current;
+    if (lienzo) {
+      if (el && cursorRef.current) lienzo.dataset.sobre = "true";
+      else delete lienzo.dataset.sobre;
+    }
     if (!el) return;
     if (!cursorRef.current) { el.style.visibility = "hidden"; return; }
     const caja = el.parentElement?.getBoundingClientRect();
