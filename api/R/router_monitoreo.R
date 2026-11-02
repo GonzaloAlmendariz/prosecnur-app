@@ -937,6 +937,7 @@
   # Unidad 3.1: token barato ANTES de anotar/normalizar; hit = derivados cacheados (monitoreo_state_cache.R).
   derived <- monitoreo_state_derived(sid, s, sources)
   data <- derived$data; cfg <- .monitoreo_supervision_rondas_en_cfg(derived$cfg, s); family <- derived$family # rondas guardadas: monitoreo_supervision_rondas.R
+  if (isTRUE(include_reports) && identical(family, "aulas_universitarias")) report_scope <- "full" # su tablero no depende del scope: uno para los cinco (2k, test-monitoreo-aulas-cache-entre-scopes.R)
   territorial_light_state <- identical(family, "territorial") && !isTRUE(include_reports)
   display_data <- derived$display_data
   if (isTRUE(include_reports) && identical(family, "territorial") && !identical(report_scope, "light")) {
