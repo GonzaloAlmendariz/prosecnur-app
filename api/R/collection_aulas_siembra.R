@@ -27,18 +27,6 @@ MATERIAL_AULAS_SIEMBRA_MODOS <- c("calculo", "monitoreo")
 
 #' El modo de siembra del plan de aulas de Material y por qué. Lectura pura.
 #' @keywords internal
-#' TRUE si el estudio ya tiene de dónde sembrar una campaña de aulas: el sorteo de
-#' cursos-horario de Cálculo de muestra o el plan de aulas de Monitoreo. Lectura pura.
-#'
-#' El Planner lo usa para el canal presencial con QR de acreditación (checklist-planner-q5,
-#' 4b): sin sorteo, abrir la campaña de aulas sería abrirla vacía.
-#' @keywords internal
-.collection_hay_sorteo_aulas <- function(s) {
-  sel <- s$calc_muestra_aulas_selection
-  filas <- if (is.list(sel)) sel$selection else NULL
-  NROW(filas) > 0L || NROW(s$monitoreo_aulas_plan) > 0L
-}
-
 # ¿El plan de Monitoreo es la copia que escribió la entrega de este plan? Mismo criterio que
 # .collection_origen_circular (entregado y todas las filas con su deployment_id), leído por
 # columna: convertir en filas las 2.373 de HSVG costaba en cada lectura.

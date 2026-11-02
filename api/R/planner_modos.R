@@ -68,8 +68,10 @@
 #' Cálculo muestra su vacío propio. `monitoreo$modos` y `material$campanas` son
 #' listas: con más de un perfil, el landing del módulo ofrece sólo esas.
 #' @keywords internal
-.planner_modos_de <- function(perfiles, sorteo_aulas = FALSE) {
+.planner_modos_de <- function(perfiles) {
   perfiles <- Filter(function(p) is.list(p) && nzchar(p$tipo %||% ""), perfiles %||% list())
+  # ADR 0124: un estudio, un tipo. Un .pulso que guardó dos fija el modo con el primero.
+  perfiles <- utils::head(perfiles, 1L)
   tipos <- vapply(perfiles, `[[`, "", "tipo")
   con_calc <- Filter(function(p) identical(p$diseno, "calc-muestra"), perfiles)
   territorial <- Filter(function(p) identical(p$tipo, "territorial") && !identical(p$diseno, "cuotas"), perfiles)
@@ -78,21 +80,9 @@
 
   modos_mon <- unname(.PLANNER_PERFIL_A_MODO_MONITOREO[tipos])
   familias <- unname(.PLANNER_PERFIL_A_FAMILIA[tipos])
-  # Acreditación no es sólo por correo (Gonzalo, 1/11): sus campañas salen de sus
-  # canales. El presencial con QR abre la campaña de aulas sólo si el estudio ya
-  # tiene un sorteo de aulas del que sembrarla (checklist-planner-q5, 4b, opción b);
-  # sin él queda declarado y `material$pendientes` dice qué falta. Los demás perfiles
-  # abren la suya, y cualquiera que declare el canal correo abre además la de correo.
-  qr_sin_sorteo <- FALSE
-  campanas <- unlist(lapply(perfiles, function(p) {
-    canales <- unlist(p$canales)
-    if (!identical(p$tipo, "acreditacion")) return(unname(.PLANNER_PERFIL_A_CAMPANA[p$tipo]))
-    if ("qr" %in% canales && !isTRUE(sorteo_aulas)) qr_sin_sorteo <<- TRUE
-    c(if ("correo" %in% canales) "correo", if ("telefono" %in% canales) "telefonica",
-      if ("qr" %in% canales && isTRUE(sorteo_aulas)) "aulas")
-  }))
-  con_correo <- vapply(perfiles, function(p) "correo" %in% unlist(p$canales), logical(1))
-  if (any(con_correo)) campanas <- c(campanas, "correo")
+  # ADR 0124: un estudio, un tipo, y el Planner no declara canales: acreditación
+  # abre la de correo y Material crea las demás campañas que Monitoreo defina.
+  campanas <- unname(.PLANNER_PERFIL_A_CAMPANA[tipos])
 
   modo_calc <- if (is.null(perfil_calc)) NULL else .planner_modo_calc(perfil_calc)
   list(
@@ -111,12 +101,7 @@
       familia = if (length(familias) == 1L) familias[[1]] else NULL
     ),
     material = list(
-      campanas = as.list(unique(campanas)),
-      pendientes = if (qr_sin_sorteo) list(list(
-        canal = "qr", campana = "aulas",
-        texto = "El presencial con QR abre la campaña de aulas cuando haya un sorteo de cursos-horario.",
-        href = "/calc-muestra"
-      )) else list()
+      campanas = as.list(unique(campanas))
     ),
     hojas_ruta = list(
       # Sólo el territorial por UMP aleatoria hace hoja de ruta.
@@ -136,7 +121,7 @@
 #' @keywords internal
 .planner_modos <- function(s) {
   guardado <- .planner_leer(s)
-  c(.planner_modos_de(.planner_payload_perfiles(s), sorteo_aulas = .collection_hay_sorteo_aulas(s)),
+  c(.planner_modos_de(.planner_payload_perfiles(s)),
     list(origen = if (is.null(guardado$secciones$perfiles)) "deducido" else "declarado",
          revision = guardado$revision))
 }

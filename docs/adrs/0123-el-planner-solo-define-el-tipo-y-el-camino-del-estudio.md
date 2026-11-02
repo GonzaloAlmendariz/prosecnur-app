@@ -26,6 +26,8 @@ Sigue vigente:
 - El ciclo X7/X8 (§11) y el reparto entre módulos (§12).
 - La enmienda que el 0122 le hizo al [ADR 0111](0111-material-de-campo-se-organiza-por-campanas-tipadas.md) §3.
 
+Reemplazado en parte por: [ADR 0124](0124-el-planner-sale-como-modulo.md) (2026-11-01): el Planner sale como módulo; §1, §3, §4 y §6 ya no rigen.
+
 Extiende: —
 
 Enmienda:

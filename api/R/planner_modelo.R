@@ -61,8 +61,11 @@ PLANNER_MAX_INSUMOS <- 60L
          list())
 }
 
+# ADR 0124: quién diseña la muestra sale del tipo (la variante territorial la
+# ajusta .planner_norm_perfil): aulas, Cálculo; telefónico, la lista del cliente;
+# acreditación, Monitoreo con porcentajes, así que Cálculo no participa.
 .planner_diseno_por_tipo <- function(tipo) {
-  if (identical(tipo, "territorial")) "hojas-ruta" else "calc-muestra"
+  switch(tipo, territorial = "hojas-ruta", aulas = "calc-muestra", "cliente")
 }
 
 .planner_id <- function(x, default = "") {
@@ -302,9 +305,9 @@ PLANNER_MAX_INSUMOS <- 60L
   if (length(desconocidos)) {
     .planner_invalido("Hay un perfil de recojo que el Planner no conoce.", tipos = as.list(desconocidos))
   }
-  if (anyDuplicated(tipos)) {
-    .planner_invalido("Cada perfil de recojo se declara una sola vez: dos operativos del mismo tipo son dos estudios.",
-                      tipo = tipos[duplicated(tipos)][[1]])
+  if (length(tipos) > 1L) {
+    .planner_invalido("Un estudio tiene un solo tipo: dos operativos distintos son dos estudios (ADR 0124).",
+                      tipos = as.list(tipos))
   }
   perfiles <- .planner_norm_perfiles(valor)
   con_calc <- vapply(perfiles, function(p) identical(p$diseno, "calc-muestra"), logical(1))

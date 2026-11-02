@@ -180,18 +180,28 @@ test_that("el equipo y los códigos ya no se declaran en el Planner (ADR 0123 §
   expect_false(any(c("equipo", "codigos") %in% unlist(.planner_payload(session_get(sid))$escribibles)))
 })
 
-test_that("un perfil por tipo y un solo perfil diseñado en Cálculo", {
+test_that("un estudio tiene un solo tipo y quién diseña la muestra sale del tipo (ADR 0124)", {
   sid <- .pl_sesion()
-  dup <- tryCatch(.planner_declarar(sid, "perfiles", list(list(tipo = "aulas"), list(tipo = "aulas")), 0L), error = identity)
-  expect_equal(dup$code, "E_PLANNER_INVALIDO")
-  dos_calc <- tryCatch(.planner_declarar(sid, "perfiles", list(
-    list(tipo = "aulas", diseno = "calc-muestra"), list(tipo = "telefonico", diseno = "calc-muestra")), 0L), error = identity)
-  expect_equal(dos_calc$code, "E_PLANNER_INVALIDO")
-  .planner_declarar(sid, "perfiles", list(list(tipo = "territorial", diseno = "calc-muestra"),
-                                          list(tipo = "telefonico", diseno = "cliente")), 0L)
-  perfiles <- .planner_payload(session_get(sid))$planner$perfiles
-  # Territorial lo diseña siempre Hojas de ruta, diga lo que diga el cliente.
-  expect_equal(vapply(perfiles, `[[`, "", "diseno"), c("hojas-ruta", "cliente"))
+  dos <- tryCatch(.planner_declarar(sid, "perfiles", list(list(tipo = "territorial"), list(tipo = "telefonico")), 0L),
+                  error = identity)
+  expect_equal(dos$code, "E_PLANNER_INVALIDO")
+  diseno <- function(...) .planner_norm_perfil(list(...))$diseno
+  expect_equal(diseno(tipo = "territorial"), "hojas-ruta")
+  expect_equal(diseno(tipo = "territorial", seleccion = "conveniencia"), "cuotas")
+  expect_equal(diseno(tipo = "aulas"), "calc-muestra")
+  expect_equal(diseno(tipo = "telefonico"), "cliente")
+  # Acreditación: la muestra la define Monitoreo con porcentajes; Cálculo no participa.
+  expect_equal(diseno(tipo = "acreditacion"), "cliente")
+  expect_null(.planner_modos_de(list(.planner_norm_perfil(list(tipo = "acreditacion"))))$calc$modo)
+})
+
+test_that("un .pulso que ya guardó dos perfiles se lee y fija el modo con el primero", {
+  sid <- .pl_sesion()
+  .planner_sembrar_legado(sid, "perfiles", list(list(tipo = "aulas"), list(tipo = "telefonico")))
+  expect_length(.planner_payload(session_get(sid))$planner$perfiles, 2L)
+  m <- .planner_modos(session_get(sid))
+  expect_equal(unlist(m$perfiles), "aulas")
+  expect_equal(m$monitoreo$modo, "aulas")
 })
 
 test_that("los cinco proyectos de referencia abren el Planner vacío y conservan su modo (ADR 0123 §5)", {
@@ -240,33 +250,36 @@ test_that("la tabla perfil → modo del §4, perfil por perfil", {
   expect_false(a$hojas_ruta$aplica)
   expect_equal(m(tipo = "aulas", seleccion = "marco")$calc$modo, "marco-disponible")
 
-  tel <- m(tipo = "telefonico")
+  # ADR 0124: el telefónico usa por defecto la lista del cliente; con Cálculo
+  # declarado (un .pulso anterior) sigue en marco disponible.
+  expect_null(m(tipo = "telefonico")$calc$modo)
+  tel <- m(tipo = "telefonico", diseno = "calc-muestra")
   expect_equal(tel$calc$modo, "marco-disponible")
   # No `listado_telefonico`: Cálculo lo manda a su mesa legacy (inferDesk).
   expect_equal(tel$calc$macro_familia, "estudio_propio")
   expect_equal(m(tipo = "aulas", seleccion = "marco")$calc$macro_familia, "estudio_propio")
   expect_equal(m(tipo = "territorial")$calc$macro_familia, "territorial")
-  expect_equal(m(tipo = "acreditacion")$calc$macro_familia, "acreditacion")
+  expect_equal(m(tipo = "acreditacion", diseno = "calc-muestra")$calc$macro_familia, "acreditacion")
   expect_equal(unlist(tel$material$campanas), "telefonica")
   # Una lista que entrega el cliente: Cálculo no diseña nada.
   cli <- m(tipo = "telefonico", diseno = "cliente")
   expect_null(cli$calc$modo)
   expect_equal(unlist(cli$calc$del_cliente), "telefonico")
 
+  # Acreditación: la muestra la define Monitoreo con porcentajes (ADR 0124).
   acr <- m(tipo = "acreditacion")
-  expect_equal(acr$calc$modo, "acreditacion")
+  expect_null(acr$calc$modo)
   expect_equal(unlist(acr$material$campanas), "correo")
 })
 
-test_that("con varios perfiles cada módulo recibe la lista y ningún modo único", {
+test_that("con dos perfiles (un .pulso anterior al ADR 0124) los módulos reciben sólo el primero", {
   modos <- .planner_modos_de(list(
     .planner_norm_perfil(list(tipo = "territorial")),
-    .planner_norm_perfil(list(tipo = "telefonico", diseno = "cliente", canales = list("telefono", "correo")))
+    .planner_norm_perfil(list(tipo = "telefonico", diseno = "cliente"))
   ))
-  expect_equal(unlist(modos$monitoreo$modos), c("territorial", "telefonico"))
-  expect_null(modos$monitoreo$modo)
-  expect_equal(unlist(modos$material$campanas), c("territorial", "telefonica", "correo"))
-  # Nadie diseña en Cálculo: el territorial lo lleva a su puntero a Hojas de ruta.
+  expect_equal(unlist(modos$monitoreo$modos), "territorial")
+  expect_equal(modos$monitoreo$modo, "territorial")
+  expect_equal(unlist(modos$material$campanas), "territorial")
   expect_equal(modos$calc$modo, "territorial-handoff")
 })
 
@@ -391,7 +404,7 @@ test_that("el territorial declara su variante; por defecto, UMP aleatoria", {
   expect_equal(conv$seleccion, "conveniencia")
   expect_equal(conv$diseno, "cuotas")
   # «cuotas» es sólo del territorial por conveniencia.
-  expect_equal(.planner_norm_perfil(list(tipo = "telefonico", diseno = "cuotas"))$diseno, "calc-muestra")
+  expect_equal(.planner_norm_perfil(list(tipo = "telefonico", diseno = "cuotas"))$diseno, "cliente")
 })
 
 test_that("sólo el territorial por UMP aleatoria hace hoja de ruta", {
@@ -448,36 +461,10 @@ test_that("editar perfiles conserva lo que la pantalla no manda (ADR 0123 §2)",
   expect_equal(unlist(session_get(sid)$planner$perfiles[[1]]$canales), "correo")
 })
 
-test_that("el QR presencial de acreditación abre la campaña de aulas sólo con un sorteo de aulas", {
-  qr <- list(.planner_norm_perfil(list(tipo = "acreditacion", canales = list("correo", "qr"))))
-  sin <- .planner_modos_de(qr)$material
-  expect_equal(unlist(sin$campanas), "correo")
-  expect_length(sin$pendientes, 1L)
-  expect_identical(sin$pendientes[[1]]$campana, "aulas")
-  con <- .planner_modos_de(qr, sorteo_aulas = TRUE)$material
-  expect_setequal(unlist(con$campanas), c("correo", "aulas"))
-  expect_length(con$pendientes, 0L)
 
-  # El sorteo se lee de Cálculo de muestra o del plan de aulas de Monitoreo.
-  expect_false(.collection_hay_sorteo_aulas(list()))
-  expect_true(.collection_hay_sorteo_aulas(list(calc_muestra_aulas_selection = list(selection = data.frame(course_id = "CH 1")))))
-  expect_true(.collection_hay_sorteo_aulas(list(monitoreo_aulas_plan = data.frame(aula = "A1"))))
-
-  # Y Material ofrece la campaña de aulas sólo en el segundo caso.
-  sid <- session_create(); on.exit(session_delete(sid), add = TRUE)
-  .planner_declarar(sid, "perfiles", qr, 0L)
-  expect_false("aulas" %in% .mcamp_tipos_del_estudio(session_get(sid)))
-  session_set(sid, "calc_muestra_aulas_selection", list(selection = data.frame(course_id = "CH 1")))
-  expect_true("aulas" %in% .mcamp_tipos_del_estudio(session_get(sid)))
-})
-
-test_that("acreditación abre las campañas de sus canales, no sólo la de correo", {
+test_that("acreditación abre la campaña de correo y no lee canales (ADR 0124)", {
   campanas <- function(canales) unlist(.planner_modos_de(list(.planner_norm_perfil(list(tipo = "acreditacion", canales = canales))))$material$campanas)
-  expect_equal(campanas(list("correo")), "correo")
-  expect_setequal(campanas(list("correo", "telefono")), c("correo", "telefonica"))
-  expect_equal(campanas(list("telefono")), "telefonica")
-  # Presencial con QR sin sorteo de aulas: no abre una campaña vacía (checklist-planner-q5, 4b).
-  expect_length(campanas(list("qr")), 0L)
-  # Sin canales declarados, el de siempre: correo.
   expect_equal(campanas(NULL), "correo")
+  # Los canales los define Monitoreo y Material crea sus campañas: declararlos no cambia nada aquí.
+  expect_equal(campanas(list("telefono", "qr")), "correo")
 })

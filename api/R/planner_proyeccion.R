@@ -96,7 +96,8 @@
   if (!length(fuentes)) return(list())
   tipo_calc <- .planner_tipo_de_calc(s)
   marco <- .planner_chr1(((s[["calc_muestra_estudio"]] %||% list())$workspace %||% list())$frame_mode)
-  lapply(fuentes[[1]], function(tipo) {
+  # ADR 0124: un estudio, un tipo; si la fuente ganadora dice dos, manda el primero.
+  lapply(fuentes[[1]][1], function(tipo) {
     .planner_norm_perfil(list(
       tipo = tipo,
       # Un territorial de antes se deduce como UMP aleatoria: es la única
