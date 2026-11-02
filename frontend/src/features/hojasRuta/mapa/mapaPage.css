@@ -223,7 +223,10 @@
 .hr-muestra-campo { display: flex; flex-direction: column; gap: 6px; }
 .hr-muestra-campo > small { font-size: 11.5px; font-weight: 600; color: var(--pulso-text-soft); }
 /* B16: segmentado de verdad — riel tenue, píldora blanca que se desliza y texto activo en el tono del módulo. */
-.hr-muestra-opciones {
+/* Compuesto, como sus botones: con la clase sola empata con el indicador del kit
+   (theme.css) y pierde según el orden del bundle; la opción activa quedaba en el
+   acento con su texto del mismo color. */
+.hr-muestra-opciones.pulso-gliding-tab-list {
   --pulso-gliding-indicator-bg: var(--pulso-surface);
   --pulso-gliding-indicator-border: var(--pulso-border);
   --pulso-gliding-indicator-shadow: 0 1px 3px color-mix(in srgb, var(--pulso-text) 14%, transparent);

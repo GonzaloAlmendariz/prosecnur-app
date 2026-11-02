@@ -43,6 +43,7 @@ const TRANSVERSALES = [
   "src/components/inputsDelKit.contract.test.ts",  // una casilla o un input fuera del kit
   "src/components/dialogsDelKit.contract.test.ts", // un overlay que no es Dialog/Sideover
   "src/components/estadosDelKit.contract.test.ts", // un vacío o un error dibujado a mano
+  "src/components/indicadorDelKit.contract.test.ts", // un segmentado que empata con el indicador del kit
 ];
 
 const area = process.argv[2] ?? "";
