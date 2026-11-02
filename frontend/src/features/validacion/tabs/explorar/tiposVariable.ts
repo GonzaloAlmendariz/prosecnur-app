@@ -28,6 +28,16 @@ export const TIPO_ETIQUETA: Readonly<Record<TipoVariable, { corta: string; larga
   mixto: { corta: "Mixto", larga: "Tipo mixto" },
 };
 
+/** Tipo XLSForm cuyo sello (editor de formularios) representa a cada tipo del explorador. */
+export const TIPO_XLSFORM: Readonly<Record<TipoVariable, string>> = {
+  so: "select_one",
+  sm: "select_multiple",
+  num: "decimal",
+  fecha: "date",
+  texto: "text",
+  mixto: "calculate",
+};
+
 /** Fracción de casos con dato, o null si la variable no tiene casos. */
 export function completitud(v: Pick<ExploradorVariable, "n_validos" | "n_nulos">): number | null {
   const total = v.n_validos + v.n_nulos;

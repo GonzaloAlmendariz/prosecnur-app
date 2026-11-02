@@ -52,7 +52,7 @@ test("el selector de cruce lista fecha y abierta y anticipa el gráfico del par"
   expect(texto).toContain("Cajas por categoría");
   expect(texto).not.toMatch(/\bsexo\b.*Tabla de calor/);
   // El chip «Abierta» filtra la lista.
-  const abierta = Array.from(panel.querySelectorAll<HTMLButtonElement>(".vx-chip")).find((b) => b.textContent?.startsWith("Abierta"))!;
+  const abierta = Array.from(panel.querySelectorAll<HTMLButtonElement>(".vx-chip")).find((b) => b.querySelector("b")?.textContent === "Abierta")!;
   act(() => abierta.click());
   const opciones = Array.from(panel.querySelectorAll(".crossbar-opcion")).map((b) => b.textContent);
   expect(opciones).toHaveLength(1);

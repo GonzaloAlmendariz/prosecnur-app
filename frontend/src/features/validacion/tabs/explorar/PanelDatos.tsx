@@ -11,9 +11,11 @@ export default function PanelDatos({ ficha, filtrado }: { ficha: ExploradorFicha
   const d = ficha.datos;
   const categorica = ficha.tipo === "so" || ficha.tipo === "sm";
   return (
-    <section className="vx-tarjeta vx-panel" aria-label="Lo que se ve en los datos">
-      <h4>Lo que se ve en los datos</h4>
-      {filtrado && <p>Sobre toda la base, sin los filtros de arriba.</p>}
+    <section className="vx-panel" aria-label="Lo que se ve en los datos">
+      <div className="vx-panel-cab">
+        <h4>En los datos</h4>
+        {filtrado && <span>toda la base, sin filtros</span>}
+      </div>
       <dl className="vx-dl is-cifras">
         <dt>Sin respuesta</dt>
         <dd>
@@ -22,7 +24,7 @@ export default function PanelDatos({ ficha, filtrado }: { ficha: ExploradorFicha
         </dd>
         {categorica && (
           <>
-            <dt>Casos con códigos fuera de la lista</dt>
+            <dt>Fuera de la lista</dt>
             <dd>{fmtN(d.n_fuera_de_lista)}</dd>
           </>
         )}

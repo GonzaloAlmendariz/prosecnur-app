@@ -15,26 +15,16 @@
 .vx-tipo-texto { --vx-tono: var(--pulso-text-soft); --vx-dato: var(--pulso-text-soft); }
 .vx-tipo-mixto { --vx-tono: var(--pulso-text-faint); --vx-dato: var(--pulso-text-faint); }
 
+/* El tipo va con el sello del editor de formularios (xlsformEditor/kit/Sello). */
 .vx-insignia {
-  --vx-tono: var(--pulso-text-soft);
   display: inline-flex;
   align-items: center;
-  justify-content: center;
   flex: none;
-  min-width: 42px;
-  height: 20px;
-  padding: 0 var(--pulso-space-1);
-  border-radius: 5px;
-  background: color-mix(in srgb, var(--vx-tono) 13%, var(--pulso-surface));
-  color: color-mix(in srgb, var(--vx-tono) 72%, var(--pulso-text));
-  font-size: var(--pulso-type-micro-size);
-  font-weight: var(--pulso-type-micro-weight);
-  letter-spacing: 0.02em;
+  gap: var(--pulso-space-1);
+  color: var(--pulso-text-soft);
   white-space: nowrap;
 }
 .vx-insignia.is-larga {
-  height: 22px;
-  padding: 0 var(--pulso-space-2);
   font-size: var(--pulso-type-caption-size);
   font-weight: var(--pulso-weight-semibold);
 }
@@ -80,8 +70,8 @@
   gap: var(--pulso-space-3);
 }
 .vx-lateral {
-  flex: 1 1 280px;
-  max-width: 340px;
+  flex: 1 1 320px;
+  max-width: 380px;
   min-width: 0;
   display: flex;
   flex-direction: column;
@@ -110,17 +100,24 @@
   color: var(--pulso-text-soft);
   font-size: var(--pulso-type-caption-size);
 }
+/* Rejilla de celdas iguales: en la lista (angosta) dos columnas, cada chip con
+   su nombre entero y el conteo alineado a la derecha; en el selector de cruce
+   (ancho) las seis en una fila. */
 .vx-chips {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 6px;
 }
+.crossbar-panel-cab .vx-chips {
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+}
 .vx-chip {
-  display: inline-flex;
+  display: flex;
   align-items: center;
   gap: 6px;
+  min-width: 0;
   height: 28px;
-  padding: 0 10px;
+  padding: 0 8px;
   border: 1px solid var(--pulso-border-strong);
   border-radius: 8px;
   background: var(--pulso-surface);
@@ -130,7 +127,15 @@
   font-weight: var(--pulso-weight-medium);
   cursor: pointer;
 }
+.vx-chip b {
+  min-width: 0;
+  overflow: hidden;
+  font-weight: inherit;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 .vx-chip span {
+  margin-left: auto;
   color: var(--pulso-text-faint);
   font-weight: var(--pulso-weight-regular);
   font-variant-numeric: tabular-nums;
@@ -1009,6 +1014,22 @@
   font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-bold);
 }
+/* E10 + E11 son una sola ficha: una tarjeta, dos secciones con la misma
+   cabecera y la misma rejilla rótulo · valor, separadas por un filete. */
+.vx-ficha {
+  display: flex;
+  flex-direction: column;
+}
+.vx-ficha > .vx-panel + .vx-panel {
+  border-top: 1px solid var(--pulso-border);
+}
+.vx-ficha .vx-panel h4 {
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+  font-weight: var(--pulso-weight-semibold);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
 .vx-panel-cab > span {
   color: var(--pulso-text-faint);
   font-size: var(--pulso-type-caption-size);
@@ -1034,7 +1055,8 @@
 .vx-dl {
   margin: 0;
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
+  /* Misma columna de rótulos en las dos secciones de la ficha. */
+  grid-template-columns: 8.5em minmax(0, 1fr);
   gap: 7px 14px;
   font-size: var(--pulso-type-body-size);
 }
@@ -1053,13 +1075,9 @@
 .vx-dl dd .vx-mono {
   font-size: var(--pulso-type-caption-size);
 }
-.vx-dl.is-cifras {
-  grid-template-columns: minmax(0, 1fr) auto;
-}
 .vx-dl.is-cifras dd {
   font-weight: var(--pulso-weight-semibold);
   font-variant-numeric: tabular-nums;
-  text-align: right;
 }
 .vx-opciones {
   display: flex;
@@ -1070,13 +1088,15 @@
 }
 .vx-opciones > div {
   display: grid;
-  grid-template-columns: 40px minmax(0, 1fr) 48px;
+  /* 4.5em: «Código» entra entero; un código más largo se parte. */
+  grid-template-columns: 4.5em minmax(0, 1fr) 48px;
   gap: var(--pulso-space-2);
   padding: 6px 10px;
   border-top: 1px solid var(--pulso-surface-3);
   font-size: var(--pulso-type-caption-size);
 }
 .vx-opciones > div:first-child {
+  white-space: nowrap;
   border-top: 0;
   background: var(--pulso-surface-3);
   color: var(--pulso-text-soft);

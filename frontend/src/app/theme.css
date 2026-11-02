@@ -4750,7 +4750,6 @@ a { color: var(--pulso-primary); }
   }
 
   .pulso-validacion-explorar-sidebar {
-    top: 52px;
     max-height: none;
     min-height: 0;
     padding: 12px;

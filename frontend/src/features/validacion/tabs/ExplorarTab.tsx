@@ -455,8 +455,10 @@ export default function ExplorarTab({
       </aside>
     ) : !crossVar && ficha && uniVigente ? (
       <aside className="vx-lateral" aria-label="Ficha de la pregunta">
-        <PanelFormulario ficha={ficha} />
-        <PanelDatos ficha={ficha} filtrado={uniVigente.filtros_aplicados > 0} />
+        <div className="vx-tarjeta vx-ficha">
+          <PanelFormulario ficha={ficha} />
+          <PanelDatos ficha={ficha} filtrado={uniVigente.filtros_aplicados > 0} />
+        </div>
       </aside>
     ) : null;
 

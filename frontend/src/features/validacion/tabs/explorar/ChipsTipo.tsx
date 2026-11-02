@@ -1,4 +1,5 @@
-import { FAMILIAS_TIPO, type FamiliaTipo } from "./tiposVariable";
+import { Sello } from "../../../xlsformEditor/kit/Sello";
+import { FAMILIAS_TIPO, TIPO_XLSFORM, type FamiliaTipo } from "./tiposVariable";
 
 /**
  * Chips de tipo con su conteo (E1, E7): filtran la lista. Un chip sin
@@ -26,7 +27,9 @@ export default function ChipsTipo({
           disabled={f.id !== "todas" && conteo[f.id] === 0}
           onClick={() => onCambio(f.id)}
         >
-          {f.etiqueta} <span>{conteo[f.id]}</span>
+          {f.id !== "todas" && <Sello baseType={TIPO_XLSFORM[f.id]} size={14} />}
+          <b>{f.etiqueta}</b>
+          <span>{conteo[f.id]}</span>
         </button>
       ))}
     </div>

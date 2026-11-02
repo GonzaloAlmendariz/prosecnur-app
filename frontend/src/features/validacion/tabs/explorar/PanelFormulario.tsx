@@ -20,7 +20,7 @@ export default function PanelFormulario({ ficha }: { ficha: ExploradorFicha }) {
     .join(" ");
   const opciones = todas ? ficha.opciones : ficha.opciones.slice(0, OPCIONES_VISIBLES);
   return (
-    <section className="vx-tarjeta vx-panel" aria-label="En el formulario">
+    <section className="vx-panel" aria-label="En el formulario">
       <div className="vx-panel-cab">
         <h4>En el formulario</h4>
         {ficha.version_formulario && <span className="vx-mono">versión {ficha.version_formulario}</span>}
