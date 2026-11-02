@@ -514,36 +514,19 @@ mount_monitoreo_supervision_rondas <- function(pr) {
       list(ok = TRUE, ronda = .monitoreo_supervision_ronda_payload(ronda),
            rondas = lapply(rondas, .monitoreo_supervision_ronda_payload), state = .monitoreo_state_payload(sid))
     })) |>
+    # ADR 0125 A3 (coordinación, 2 nov 2026): la base de supervisión la arma
+    # Material por lote, en su propio documento; Monitoreo ya no escribe «Ronda N».
     plumber::pr_post("/api/monitoreo/telefonico/supervision/ronda/publicar", wrap_endpoint(function(req, res, ...) {
-      sid <- .monitoreo_session(req, res)
-      parsed <- .monitoreo_parse_body(req)
-      ctx <- .monitoreo_supervision_contexto(sid)
-      numero <- .monitoreo_int(parsed$numero %||% parsed$ronda, NA_integer_)
-      i <- match(numero, vapply(ctx$rondas, function(r) r$numero, integer(1)))
-      if (is.na(i)) {
-        stop_api(404, "E_MONITOREO_SUPERVISION_RONDA", "Esa ronda no está guardada: genera la ronda antes de publicarla.",
-                 list(numero = .monitoreo_scalar(parsed$numero %||% parsed$ronda, "")))
-      }
-      fuente <- .monitoreo_supervision_fuente_hoja(ctx$sources)
-      # La hoja de supervisión no puede ser el documento del barrido.
-      monitoreo_guarda_destino_no_barrido(ctx$s, fuente$sheet_binding$spreadsheet_id, "la ronda de supervisión")
-      data <- ctx$data
-      phone <- .monitoreo_report_phone_data(.monitoreo_report_phone_scope_data(data, ctx$cfg$monitoreo_profile %||% list(), ctx$cfg))
-      respuestas <- data[.monitoreo_report_role_mask(data, "respuestas"), , drop = FALSE]
-      contactos <- .monitoreo_chr_vec(((ctx$cfg$operational_model %||% list())$cases %||% list())$contact_vars)
-      filas <- .monitoreo_supervision_ronda_filas(ctx$rondas[[i]], phone, respuestas,
-                                                  .monitoreo_chr_vec(parsed$preguntas), contactos)
-      ctx$rondas[[i]]$publicada <- .monitoreo_supervision_publicar_ronda(ctx$rondas[[i]], filas, fuente$sheet_binding$spreadsheet_id)
-      rondas <- .monitoreo_supervision_guardar_rondas(sid, ctx$rondas)
-      list(ok = TRUE, ronda = .monitoreo_supervision_ronda_payload(rondas[[i]]),
-           rondas = lapply(rondas, .monitoreo_supervision_ronda_payload), state = .monitoreo_state_payload(sid))
+      stop_api(409, "E_MONITOREO_SUPERVISION_EN_MATERIAL",
+               paste("La base de supervisión se arma en Material: abre la campaña de supervisión del lote",
+                     "(supervision.ronda-N) y construye su documento. Monitoreo lee los resultados de ahí."))
     })) |>
     plumber::pr_post("/api/monitoreo/telefonico/supervision/resultados/leer", wrap_endpoint(function(req, res, ...) {
       sid <- .monitoreo_session(req, res)
       s <- session_get(sid)
-      fuente <- .monitoreo_supervision_fuente_hoja(monitoreo_normalize_sources(s$monitoreo_sources %||% list()))
       rondas <- .monitoreo_supervision_rondas_normalizar(s[["monitoreo_supervision_rondas"]])
-      lectura <- .monitoreo_supervision_leer_pestanas(fuente$sheet_binding$spreadsheet_id, rondas)
+      # Primero la base de Material; las rondas sin documento allí, de su «Ronda N» vieja.
+      lectura <- monitoreo_supervision_leer_resultados(s, rondas)
       if (length(rondas)) .monitoreo_supervision_guardar_rondas(sid, lectura$rondas)
       list(ok = TRUE, leidas = lectura$leidas, avisos = as.list(lectura$avisos),
            rondas = lapply(lectura$rondas, .monitoreo_supervision_ronda_payload), state = .monitoreo_state_payload(sid))
