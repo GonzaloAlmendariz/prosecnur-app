@@ -103,3 +103,18 @@ Material aterriza en `vacio:sin-campanas` (lo mismo que el hallazgo 13).
 | 16 | Monitoreo no montaba con el bundle de producción entre e8aafb4b4 y 9d500b2b5 | e8aafb4b4 (mío, por el chunk de `panelEstudio.ts`) | arreglado por 9d500b2b5 | verificado con el bundle: montan los 12 destinos | Planner (esta sesión) |
 | 17 | En Control › Bandeja a 1024, el botón del código de caso desborda 2–4 px (60 px de caja, 62 de contenido: 80 `overflow-x` y 16 `texto-fuera`), y «R144» se parte en la columna UMP (5 `rotulo-partido`) | `bandeja.css` sin commit de Monitoreo | `p2-acg/report.json` | reportado a Monitoreo; es su archivo con cambios en curso | Monitoreo |
 | 18 | En Avance › Salidas de aulas, «Libro del operativo» ofrece «Construir en Material», pero su línea dice «Se conecta en Insumos › Fuentes»; la vista previa cierra con un «·» suelto | 347a18545 | `p2-aulas`, Salidas a 1024 | reportado a Monitoreo | Monitoreo |
+
+### Corte de la segunda pasada sobre 856c97999
+
+Lo que entró después de 0fc705e23: ADR 0125 en código (32f208721, 856c97999), envío por cuotas de Hojas
+(e84b0165d), territorial por cuotas en Material (9441c48b6), tablas construidas y distribución de aulas en Monitoreo
+(9494202a4, 4dd011300), las efectivas del Home (2cb7659e9, 75bce08bc), la Bandeja y Faltante a 1024 (192274eb8,
+62361f04e) y el ratchet del indicador de Cálculo (866036a52).
+
+| Gate | Alcance | Resultado |
+|---|---|---|
+| R, `gate-area` con patrón | handoff a carga, envío de Hojas por cuotas, tablas de aulas, overview y efectivas de Monitoreo, campañas, Planner y overview del proyecto, más los transversales | 1007 pass, 0 fail |
+| Front, `gate-front` | monitoreo (6581), home (717), calcMuestra (2960), recopiladores (1733), hojasRuta (817) y components (832), con sus transversales | verde en las seis |
+| Typecheck | árbol entero | 0 |
+
+El hallazgo 17 (Bandeja a 1024) lo tomó Monitoreo en 192274eb8; falta recapturarlo. El 18 sigue abierto con su dueño.
