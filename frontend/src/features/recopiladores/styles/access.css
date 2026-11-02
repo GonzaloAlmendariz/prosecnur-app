@@ -331,3 +331,11 @@
   cursor: default;
   opacity: 0.5;
 }
+
+/* Vinculación: a 1024 el panel mide ~530 px y el mínimo genérico de 700 dejaba «Estado» —lo
+   que dice qué falta— fuera, a la derecha. Sus cuatro columnas caben en ~520 con su contenido
+   (revisión con ojo de usuario, 2 nov 2026). Misma salida que la tabla de Unidades. */
+.rec-table-scroll table.rec-vinculacion-tabla {
+  min-width: 500px;
+}
+

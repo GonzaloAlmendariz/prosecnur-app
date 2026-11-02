@@ -495,7 +495,7 @@ export function AccessSection({ payload, activeTab, onState, onIr, onVerVinculac
           <>
             {candidate?.bindings.length ? (
               <TableScroll>
-                <table><thead><tr><th>Curso-horario</th><th>Tipo</th><th>Recopilador</th><th>Estado</th></tr></thead>
+                <table className="rec-vinculacion-tabla"><thead><tr><th>Curso-horario</th><th>Tipo</th><th>Recopilador</th><th>Estado</th></tr></thead>
                   <tbody>{candidate.bindings.map((binding) => (
                     // El `unit_id` es un hash —«unit-aulas-urb209-5524e6773d»—
                     // y era lo único que esta tabla enseñaba. El código de
