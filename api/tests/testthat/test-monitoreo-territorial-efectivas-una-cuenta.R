@@ -51,6 +51,12 @@ test_that("Home y Avance cuentan las mismas efectivas, las en observación inclu
   # subconjunto de las efectivas, nunca se suma.
   expect_identical(report$kpis$validas + report$kpis$no_defendibles, report$kpis$total_respuestas)
 
+  # Por día, por responsable y por manzana se cuentan las mismas efectivas.
+  suma <- function(xs, campo) sum(vapply(xs %||% list(), function(x) as.integer(x[[campo]] %||% 0L), integer(1)))
+  expect_identical(suma(report$daily, "validas"), report$kpis$validas)
+  expect_identical(suma(report$daily, "revision"), report$kpis$revision)
+  expect_identical(suma(report$team, "validas"), report$kpis$validas)
+
   # Lo que pinta la tarjeta del Home sale de esos kpis: la misma cifra, rotulada
   # «efectivas», con las en observación como alerta.
   sid <- session_create()
@@ -80,4 +86,31 @@ test_that("un corte anterior a la cuenta única se lee como validadas más en ob
   expect_identical(monitoreo_territorial_efectivas_de_kpis(list(validas = 1028L, revision = 255L)), 1283L)
   expect_identical(monitoreo_territorial_efectivas_de_kpis(list(validas = 1283L, efectivas = 1283L, revision = 255L)), 1283L)
   expect_identical(monitoreo_territorial_efectivas_de_kpis(NULL), 0L)
+})
+
+test_that("sin advance_valid la cuenta cae a validation_status: validada + revision", {
+  audit <- data.frame(validation_status = c("validada", "revision", "no_defendible", "validada"), stringsAsFactors = FALSE)
+  cuenta <- .monitoreo_territorial_efectivas(audit)
+  expect_identical(cuenta$efectivas, 3L)
+  expect_identical(cuenta$en_observacion, 1L)
+  expect_identical(cuenta$no_validas, 1L)
+})
+
+test_that("el avance por manzana cuenta efectivas, las en observación incluidas", {
+  blocks <- data.frame(id_manzana = c("M1", "M2"), ubigeo = "150133", distrito = "SJM", zona = "001",
+                       manzana = c("001", "002"), entrevistas = c(2L, 2L), stringsAsFactors = FALSE)
+  audit <- data.frame(
+    advance_block_id = c("M1", "M1", "M2", "M2"),
+    validation_status = c("validada", "revision", "revision", "no_defendible"),
+    advance_valid = c(TRUE, TRUE, TRUE, FALSE),
+    observation_status = c("sin_observacion", "en_observacion", "en_observacion", "no_valida"),
+    responsible_display = "P1", enumerator_assigned = "", submitted_by = "a",
+    stringsAsFactors = FALSE
+  )
+  bp <- .monitoreo_territorial_block_progress(blocks, audit, block_key_col = "advance_block_id")
+  expect_identical(bp[[1]]$validas, 2L)
+  expect_identical(bp[[1]]$revision, 1L)
+  expect_identical(bp[[2]]$validas, 1L)
+  expect_identical(bp[[2]]$no_defendibles, 1L)
+  expect_equal(bp[[1]]$avance_pct, 100)
 })

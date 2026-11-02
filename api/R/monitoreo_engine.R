@@ -7855,6 +7855,21 @@ monitoreo_enrich_kobo_datetime_columns <- function(data) {
   out
 }
 
+# Por fila: si es efectiva y si está en observación. Sale de `advance_valid` y
+# `observation_status`; un audit sin esas columnas (corte anterior, fixture)
+# cae a `validation_status`, donde «validada» + «revision» son las efectivas.
+.monitoreo_territorial_mascaras_efectivas <- function(audit) {
+  n <- if (is.data.frame(audit)) nrow(audit) else 0L
+  if (!n) return(list(efectiva = logical(0), observacion = logical(0)))
+  if ("advance_valid" %in% names(audit)) {
+    efectiva <- audit$advance_valid %in% TRUE
+    obs <- if ("observation_status" %in% names(audit)) audit$observation_status %in% "en_observacion" else rep(FALSE, n)
+    return(list(efectiva = efectiva, observacion = efectiva & obs))
+  }
+  status <- as.character(audit$validation_status %||% rep("", n))
+  list(efectiva = status %in% c("validada", "revision"), observacion = status %in% "revision")
+}
+
 # **Una sola cuenta de efectivas territoriales** (Gonzalo, 2026-11-02: «Ambos
 # deben contar las efectivas de Kobo, las observadas están en observación pero
 # no quitan la cuenta»). Home (`kpis$validas`) y Avance (`advance$validas`)
@@ -7862,8 +7877,9 @@ monitoreo_enrich_kobo_datetime_columns <- function(data) {
 # acnur_acg decía 1,028 en un lado y 1,283 en el otro. Estar en observación es
 # una marca de calidad aparte, con su conteo, que no resta de las efectivas.
 .monitoreo_territorial_efectivas <- function(audit) {
-  valid <- audit$advance_valid %in% TRUE
-  observed <- valid & (audit$observation_status %in% "en_observacion")
+  m <- .monitoreo_territorial_mascaras_efectivas(audit)
+  valid <- m$efectiva
+  observed <- m$observacion
   list(
     efectivas = as.integer(sum(valid)),
     en_observacion = as.integer(sum(observed)),
@@ -8309,8 +8325,7 @@ monitoreo_enrich_kobo_datetime_columns <- function(data) {
     }
     block_variants <- unique(c(block_id, .monitoreo_territorial_block_id_variants(block_id)))
     rows <- audit[audit_key %in% block_variants, , drop = FALSE]
-    status <- if (status_col %in% names(rows)) rows[[status_col]] else rows$validation_status
-    cts <- .monitoreo_territorial_status_counts(status)
+    c_b <- .monitoreo_territorial_efectivas(rows)
     planned_responsible <- chr_cell(i, "responsable", chr_cell(i, "Responsable"))
     block_progress[[length(block_progress) + 1L]] <- list(
       id_manzana = block_id,
@@ -8360,11 +8375,12 @@ monitoreo_enrich_kobo_datetime_columns <- function(data) {
       nse_codigo = chr_cell(i, "nse_codigo"),
       nse_nivel = chr_cell(i, "nse_nivel"),
       meta = target,
-      validas = as.integer(cts[["validada"]]),
-      revision = as.integer(cts[["revision"]]),
-      no_defendibles = as.integer(cts[["no_defendible"]]),
-      avance_pct = if (is.finite(target) && target > 0) round(100 * cts[["validada"]] / target, 1) else NA_real_,
-      brecha = if (is.finite(target)) as.integer(max(0, target - cts[["validada"]])) else NA_integer_
+      # Efectivas, las en observación incluidas (cuenta única, 2026-11-02).
+      validas = c_b$efectivas,
+      revision = c_b$en_observacion,
+      no_defendibles = c_b$no_validas,
+      avance_pct = if (is.finite(target) && target > 0) round(100 * c_b$efectivas / target, 1) else NA_real_,
+      brecha = if (is.finite(target)) as.integer(max(0, target - c_b$efectivas)) else NA_integer_
     )
   }
   block_progress
@@ -14073,9 +14089,11 @@ monitoreo_territorial_occurrences_report <- function(data, cfg, context = NULL) 
   audit_responsible[!nzchar(audit_responsible)] <- fallback_responsible[!nzchar(audit_responsible)]
   audit_responsible[!nzchar(audit_responsible)] <- audit_chr("submitted_by")[!nzchar(audit_responsible)]
   audit_responsible_key <- vapply(audit_responsible, .monitoreo_territorial_route_sheet_responsible_key, character(1))
-  audit_valid <- audit_chr("validation_status") == "validada"
-  audit_review <- audit_chr("validation_status") == "revision"
-  audit_no_def <- audit_chr("validation_status") == "no_defendible"
+  # Efectivas, las en observación incluidas (cuenta única, 2026-11-02).
+  mascaras <- .monitoreo_territorial_mascaras_efectivas(audit)
+  audit_valid <- mascaras$efectiva
+  audit_review <- mascaras$observacion
+  audit_no_def <- !mascaras$efectiva
 
   block_variants <- function(id) unique(c(id, .monitoreo_territorial_block_id_variants(id)))
   rows_for_assignment <- function(block_id) {
@@ -14760,7 +14778,7 @@ monitoreo_territorial_reportes <- function(data, cfg, hojas_ruta_context = NULL,
 
   team_rows <- split(audit, audit$responsible_display)
   team <- unname(lapply(team_rows, function(rows) {
-    cts <- .monitoreo_territorial_status_counts(rows$validation_status)
+    c_r <- .monitoreo_territorial_efectivas(rows)
     finite_duration <- rows$duration_seconds[is.finite(rows$duration_seconds)]
     duration_operational <- as.character(rows$duration_operational_status %||% rep("", nrow(rows)))
     if (length(duration_operational) < nrow(rows)) duration_operational <- rep_len(duration_operational, nrow(rows))
@@ -14783,9 +14801,9 @@ monitoreo_territorial_reportes <- function(data, cfg, hojas_ruta_context = NULL,
       submitted_by = rows$responsible_display[[1]],
       raw_submitted_by = rows$submitted_by[[1]],
       total = as.integer(nrow(rows)),
-      validas = as.integer(cts[["validada"]]),
-      revision = as.integer(cts[["revision"]]),
-      no_defendibles = as.integer(cts[["no_defendible"]]),
+      validas = c_r$efectivas,
+      revision = c_r$en_observacion,
+      no_defendibles = c_r$no_validas,
       duration_median = if (length(finite_duration)) round(stats::median(finite_duration, na.rm = TRUE), 1) else NA_real_,
       duration_p95 = if (length(finite_duration) > 1L) round(stats::quantile(finite_duration, 0.95, na.rm = TRUE, names = FALSE), 1) else NA_real_,
       duration_normal = as.integer(sum(is.finite(rows$duration_seconds) & duration_operational == "normal", na.rm = TRUE)),
@@ -14811,15 +14829,15 @@ monitoreo_territorial_reportes <- function(data, cfg, hojas_ruta_context = NULL,
   daily_rows <- split(audit, date_chr)
   daily <- unname(lapply(names(daily_rows), function(day) {
     rows <- daily_rows[[day]]
-    cts <- .monitoreo_territorial_status_counts(rows$validation_status)
+    c_d <- .monitoreo_territorial_efectivas(rows)
     labels <- rows$submission_date[.monitoreo_report_nonempty(rows$submission_date)]
     label <- if (length(labels)) labels[[1]] else ""
     list(
       date = day,
       date_label = if (nzchar(label)) label else if (identical(day, "sin_fecha")) "Sin fecha" else day,
       total = as.integer(nrow(rows)),
-      validas = as.integer(cts[["validada"]]),
-      revision = as.integer(cts[["revision"]])
+      validas = c_d$efectivas,
+      revision = c_d$en_observacion
     )
   }))
 

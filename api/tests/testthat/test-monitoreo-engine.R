@@ -4139,10 +4139,12 @@ test_that("monitoreo territorial valida respuestas y separa avance oficial", {
   )
   report <- monitoreo_territorial_reportes(data, cfg, context)
   expect_equal(report$kpis$total_respuestas, 4L)
-  expect_equal(report$kpis$validas, 1L)
+  # Cuenta única (Gonzalo, 2026-11-02): las efectivas incluyen las en
+  # observación (1 validada + 1 en revisión); `revision` es su marca aparte.
+  expect_equal(report$kpis$validas, 2L)
   expect_equal(report$kpis$revision, 1L)
   expect_equal(report$kpis$no_defendibles, 2L)
-  expect_equal(report$district_progress[[1]]$validas, 1L)
+  expect_equal(report$district_progress[[1]]$validas, 2L)
   expect_equal(report$block_progress[[1]]$validas, 0L)
   expect_equal(report$response_audit[[1]]$submission_date, "1 Junio")
   expect_equal(report$response_audit[[1]]$submission_hour, "05:10am")
