@@ -5689,3 +5689,15 @@ span.aulas-sexo-chip { cursor: default; }
   color: var(--pulso-danger-fg);
   font-weight: 600;
 }
+
+/* Una cabecera cuyo subtítulo es una frase (Estado del campo › «Respuestas que
+ * pide el plan…»): a 1024 título y frase no cabían en una fila y empujaban el
+ * contenido 128 px a lo ancho. Aquí bajan a dos líneas en vez de desbordar. */
+.mon-profile-page.is-aulas-flow .mon-profile-panel > .mon-profile-panel-head.es-con-lectura {
+  flex-wrap: wrap;
+  row-gap: 2px;
+}
+.mon-profile-page.is-aulas-flow .mon-profile-panel > .mon-profile-panel-head.es-con-lectura > :is(h3, span) {
+  min-width: 0;
+  white-space: normal;
+}

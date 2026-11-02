@@ -352,7 +352,7 @@ export function AulasPestanaResumen({
               data-qa-geometry-group="monitoring-aulas-avance"
               data-qa-geometry-contract="intrinsic"
             >
-              <div className="mon-profile-panel-head">
+              <div className="mon-profile-panel-head es-con-lectura">
                 {/* Abre la sección porque es su primera pregunta —¿se está
                     cumpliendo?—. La unidad va en el TÍTULO y no en el contador: se
                     llamaba «Cumplimiento de la meta» y dos paneles más abajo estaba
