@@ -1097,6 +1097,14 @@ body:has(.cmg-mesa) .pulso-module-command-bar[data-modulo="calc-muestra"] .pulso
   margin-bottom: var(--pulso-space-3);
 }
 
+/* D6 (1280×720): el indicador «Tipo» de la barra abre el mismo selector, así
+   que en pantallas bajas esta fila entera no se paga; la acción sigue al alcance. */
+@media (max-height: 760px) {
+  .cmg-cambiar-tipo {
+    display: none;
+  }
+}
+
 .cmg-salida-acreditacion .cmg-reporte {
   padding-top: 0;
   border-top: 0;

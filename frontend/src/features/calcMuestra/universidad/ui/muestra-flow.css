@@ -206,6 +206,34 @@
   font-size: 10px;
 }
 
+/* --- Pantallas bajas (D6, 1280×720): el recorrido es un indicador de avance,
+   no una segunda botonera (D5: la barra superior manda). Se reduce a una
+   franja delgada —glifo chico y título— para devolverle alto al contenido. */
+@media (max-height: 760px) {
+  .cmv2-muestra-flow[data-compacto="true"] {
+    --cmv2-flow-badge: 30px;
+    --cmv2-flow-node: 84px;
+  }
+
+  .cmv2-muestra-flow[data-compacto="true"] .cmv2-muestra-flow-glyph {
+    width: 18px;
+    height: 18px;
+  }
+
+  .cmv2-muestra-flow[data-compacto="true"] .cmv2-muestra-flow-label small,
+  .cmv2-muestra-flow[data-compacto="true"] .cmv2-muestra-flow-link-copy {
+    display: none;
+  }
+
+  .cmv2-muestra-flow[data-compacto="true"] .cmv2-muestra-flow-pin {
+    font-size: 9px;
+  }
+
+  .cmv2-muestra-flow[data-compacto="true"] .cmv2-muestra-flow-track {
+    padding: 14px 0 2px;
+  }
+}
+
 /* --- Motion ---------------------------------------------------------------- */
 @media (prefers-reduced-motion: no-preference) {
   .cmv2-muestra-flow-node {
