@@ -39,6 +39,7 @@ import "./styles/materials.css";
 import "./driveDeFichas.css";
 import { composicionDelPlan, unidadesDelPlan } from "./codigoOperativo";
 import { fichasAlDia, fichasHechasDelEstado, instanciaReutilizable } from "./fichasDelEstado";
+import { nombreDeReceta } from "./editor/modeloEditor";
 
 type Props = {
   payload: CollectionStatePayload | null;
@@ -129,11 +130,11 @@ export function MaterialsSection({ payload, activeTab, onStateRefresh, onArtifac
   // creaba 2.616.
   const aulasDelPlan = unidadesDelPlan(payload?.state.plan);
   const composicion = composicionDelPlan(payload?.state.plan);
-  // Por que estan apagados los tres botones de render. `null` cuando no lo
-  // estan: asi el vacio y los `title` preguntan lo mismo en un solo sitio.
+  // Por qué están apagados los botones de render y «Crear las fichas». `null` cuando no lo
+  // están: así el vacío y los `title` preguntan lo mismo en un solo sitio.
   const motivoBloqueo = deployment
     ? null
-    : "Todavia no hay accesos preparados, asi que la ficha no tiene enlace que codificar.";
+    : "Todavía no hay accesos preparados, así que la ficha no tiene enlace que codificar.";
   // Del estado persistido: una instancia cubre muchas unidades y sobrevive a
   // la visita, así que contar las creadas en esta sesión daba «0 de 2,373».
   const fichasHechas = cuentaDeFichas(fichasHechasDelEstado(payload?.state), aulasDelPlan);
@@ -290,7 +291,8 @@ export function MaterialsSection({ payload, activeTab, onStateRefresh, onArtifac
           title={<><Archive size={18} aria-hidden /> La ficha de estos accesos</>}
         >
           <dl>
-            <div><dt>Plantilla</dt><dd>{template.template_id}</dd></div>
+            {/* El nombre del catálogo, no el id interno («template-ficha-aplicacion-a4-v1»). */}
+            <div><dt>Plantilla</dt><dd title={template.template_id}>{nombreDeReceta(template)}</dd></div>
             <div><dt>Accesos</dt><dd>{deployment?.deployment_id ?? "pendiente"}</dd></div>
             {/* Con su denominador: «Fichas 0» no dice de cuántas, y las que
                 hay que hacer son las aulas que se van a visitar. Es el mismo
@@ -321,7 +323,7 @@ export function MaterialsSection({ payload, activeTab, onStateRefresh, onArtifac
             variant="secondary"
             onClick={() => { void createInstances(); }}
             disabled={!deployment || instanceBusy || alDia}
-            title={alDia ? "Las fichas vigentes ya cubren todas las unidades del plan." : undefined}
+            title={alDia ? "Las fichas vigentes ya cubren todas las unidades del plan." : motivoBloqueo ?? undefined}
           >
             {instanceBusy ? <Loader2 size={15} className="pulso-spin" /> : alDia ? <CheckCircle2 size={15} /> : <Layers size={15} />}
             {alDia ? " Fichas al día" : " Crear las fichas"}
@@ -400,7 +402,7 @@ export function MaterialsSection({ payload, activeTab, onStateRefresh, onArtifac
                 <>
                   <strong>{motivoBloqueo}</strong>
                   <span>
-                    Los accesos se preparan en la seccion Accesos: cada
+                    Los accesos se preparan en la sección Accesos: cada
                     curso-horario recibe su enlace y ese enlace es lo que va
                     dentro del QR de su ficha.
                   </span>

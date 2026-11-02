@@ -80,7 +80,7 @@ describe("el panel de render explica su propio bloqueo", () => {
     // «Sin accesos» es el hecho; que la ficha no tenga enlace que codificar es
     // la causa, y es lo que deja actuar.
     expect(fuente).toContain("no tiene enlace que codificar");
-    expect(fuente).toContain("Los accesos se preparan en la seccion Accesos");
+    expect(fuente).toContain("Los accesos se preparan en la sección Accesos");
   });
 
   it("con accesos listos, el vacío vuelve a su nota de archivo", () => {
