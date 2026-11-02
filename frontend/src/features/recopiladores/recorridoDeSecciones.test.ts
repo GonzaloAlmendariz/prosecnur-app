@@ -27,8 +27,8 @@ describe("el selector de secciones dice qué falta", () => {
 
   it("el avance va como marca no numérica del rail compartido", () => {
     // Desde 2026-10-16 ningún módulo numera sus secciones. Lo hecho viaja en
-    // `done` de `SectionPillbar`; el numeral y «es lo siguiente» se retiraron.
-    expect(fuente).toContain("done: pasosHechos[id]");
+    // `lista` de `SectionPillbar` (✓, revamp v5); el numeral y «es lo siguiente» se retiraron.
+    expect(fuente).toContain("lista: pasosHechos[id]");
     expect(fuente).toContain("<SectionPillbar");
     expect(fuente).not.toContain("pulso-phase-pill-number");
     expect(fuente).not.toContain("is-next");

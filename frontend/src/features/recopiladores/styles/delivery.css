@@ -266,3 +266,22 @@
   display: grid;
   gap: var(--pulso-space-3);
 }
+
+/* Revamp v5: lo que bloquea la entrega, arriba y con su acción. */
+.rec-delivery {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-4);
+}
+.rec-delivery-bloqueo {
+  display: flex;
+  align-items: center;
+  gap: var(--pulso-space-3);
+  padding: var(--pulso-space-3) var(--pulso-space-4);
+  border: 1px solid var(--pulso-warn-border);
+  border-radius: var(--pulso-radius-card);
+  background: var(--pulso-warn-bg);
+  color: var(--pulso-warn-fg);
+  font-size: var(--pulso-type-body-size);
+}
+.rec-delivery-bloqueo > span { margin-right: auto; }

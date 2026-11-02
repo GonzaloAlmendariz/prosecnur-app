@@ -100,6 +100,17 @@ export function DeliverySection({ payload, latestArtifact, onState, onIr, onIrAA
   }
 
   return (
+    <div className="rec-delivery">
+    {/* Revamp v5: lo que bloquea la entrega va arriba, con su acción, y no al pie del recibo. */}
+    {desfasados ? (
+      <div className="rec-delivery-bloqueo" role="status">
+        <span>
+          <strong>{desfasados} {desfasados === 1 ? "material salió" : "materiales salieron"} de un plan anterior</strong>
+          {" "}Vuelve a generarlos antes de llevarlos a campo.
+        </span>
+        {onIr ? <PulsoButton variant="secondary" size="sm" onClick={() => onIr(A_PAQUETES)}>Regenerar en Paquetes</PulsoButton> : null}
+      </div>
+    ) : null}
     <div className="rec-delivery-layout">
       {/* La columna de lo que hace Material: entregar y, con lo entregado, armar las tablas (R13). */}
       <div className="rec-delivery-columna">
@@ -131,7 +142,6 @@ export function DeliverySection({ payload, latestArtifact, onState, onIr, onIrAA
           {busy ? <Loader2 size={15} className="pulso-spin" /> : <Send size={15} />}
           {readiness.delivered ? "Entregado" : "Entregar a Monitoreo"}
         </PulsoButton>
-        <p className="rec-policy-note">Entregar dos veces no duplica nada: con la misma huella se conserva un solo recibo y el traspaso no se repite.</p>
         {error ? <p className="rec-inline-error" role="alert">{error}</p> : null}
       </Panel>
       <ConstruirTablasEnSheets entregado={Boolean(receipt)} />
@@ -155,7 +165,7 @@ export function DeliverySection({ payload, latestArtifact, onState, onIr, onIrAA
             </dl>
             {/* El traspaso enlaza al que recibe: Material entrega y no hace seguimiento. */}
             <p className="rec-receipt-siguiente">
-              Material termina aquí. Monitoreo trae esta entrega en Insumos › Fuentes y la sigue contra las metas de Cálculo de muestra.{" "}
+              Monitoreo la trae en Insumos › Fuentes y la sigue contra las metas de Cálculo de muestra.{" "}
               {onIr ? <PulsoButton variant="link" size="sm" onClick={() => onIr(A_MONITOREO_FUENTES)}>Abrir Monitoreo</PulsoButton> : null}
             </p>
           </article>
@@ -169,16 +179,7 @@ export function DeliverySection({ payload, latestArtifact, onState, onIr, onIrAA
         <div className="rec-artifact-list" data-qa-geometry-group="material-campo/artefactos" data-qa-geometry-contract="intrinsic">
           {/* El aviso va ARRIBA de la lista: se descarga desde cada fila, así que
               enterarse después de haber bajado el archivo no sirve de nada. */}
-          {desfasados ? (
-            <p className="rec-artifact-stale-aviso" role="status">
-              <strong>{desfasados}</strong>{" "}
-              {desfasados === 1
-                ? "material salió de un plan anterior"
-                : "materiales salieron de un plan anterior"}
-              : sus cursos-horario ya no son los del sorteo vigente. Vuelve a generarlos
-              antes de llevarlos a campo.
-            </p>
-          ) : null}
+          {/* El aviso de desfase vive arriba, junto a su acción (revamp v5); cada fila desfasada lo marca. */}
           {juzgados.map(({ material: artifact, desfasado }) => {
             // El `.pulso` guarda el recibo, no el archivo: al reabrir, el
             // recibo queda como evidencia y su descarga daría 404. Sólo un
@@ -228,6 +229,7 @@ export function DeliverySection({ payload, latestArtifact, onState, onIr, onIrAA
           ) : null}
         </div>
       </Panel>
+    </div>
     </div>
   );
 }

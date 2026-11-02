@@ -182,12 +182,14 @@ describe("H25 — el recibo sólo se firma si hubo traspaso", () => {
     const conIr = renderToStaticMarkup(
       <DeliverySection payload={payloadWithDeployment(deployment)} latestArtifact={null} onState={() => undefined} onIr={() => undefined} />,
     );
-    expect(conIr).toContain("Material termina aquí. Monitoreo trae esta entrega en Insumos › Fuentes");
+    // Revamp v5: sin el remate «Material termina aquí»; el enlace dice a dónde va la entrega.
+    expect(conIr).toContain("Monitoreo la trae en Insumos › Fuentes");
     expect(conIr).toContain("Abrir Monitoreo");
     const sinIr = renderToStaticMarkup(
       <DeliverySection payload={payloadWithDeployment(deployment)} latestArtifact={null} onState={() => undefined} />,
     );
-    expect(sinIr).toContain("Material termina aquí.");
+    expect(sinIr).toContain("Monitoreo la trae en Insumos › Fuentes");
+    expect(sinIr).not.toContain("Material termina aquí");
     expect(sinIr).not.toContain("Abrir Monitoreo");
   });
 });

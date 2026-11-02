@@ -3,7 +3,6 @@ import { useLocation, useNavigate } from "react-router-dom";
 
 import { apiRecopiladoresState, type CollectionArtifactReceipt, type CollectionStatePayload } from "../../api/recopiladores";
 import { AdaptiveSplitView } from "../../components/AdaptiveSplitView";
-import { ChromeIndicator, ChromeIndicatorGroup } from "../../components/ChromeIndicator";
 import { ContextTabRail, type ContextTabRailItem } from "../../components/ContextTabRail";
 import { ModuleCommandBar } from "../../components/ModuleCommandBar";
 import { useDensidadDelChrome } from "./useDensidadDelChrome";
@@ -27,6 +26,7 @@ import {
   type RecopiladoresSeccion,
 } from "./navegacion";
 import { deploymentStatusLabel } from "./providerRules";
+import { ChipDeEntrada } from "./campanas/ChipDeEntrada";
 import { origenDelPlan } from "./vacioSinPlan";
 import { TIPO_DE_UNIDAD } from "./tipoDeUnidad";
 import { useProjectModules } from "../project/ProjectModulesContext";
@@ -247,7 +247,7 @@ export function RecopiladoresShell({ cabecera = null }: Props = {}) {
           id,
           label: section.label,
           href: `${location.pathname}${searchFor(location.search, id, PESTANAS_POR_SECCION[id][0] as RecopiladoresPestana)}`,
-          done: pasosHechos[id],
+          lista: pasosHechos[id],
         };
       })}
     />
@@ -338,32 +338,17 @@ export function RecopiladoresShell({ cabecera = null }: Props = {}) {
             <>
             {cabecera}
             {state?.plan ? (
-            // La zona de contexto lleva el dato, no el nombre del módulo: eso ya
-            // lo dice el ícono activo del rail y repetirlo desperdicia el único
-            // hueco donde los demás módulos ponen su cifra —Bitácora pone
-            // entradas, Hojas de ruta distritos, Cálculo la mesa—. Aquí el dato
-            // es la forma del plan: cuántas unidades y de qué tipo.
-            <ChromeIndicatorGroup ariaLabel="Contexto de Material de campo">
-              {/* Los cursos-horario que hay que visitar, no el total de filas
-                  del plan. Decía «2 468 unidades» mientras el resumen de abajo
-                  decía «175 cursos-horario»: la diferencia son las reservas y el
-                  banco, que no son visitas. Dos cifras para lo mismo en la misma
-                  pantalla es justo lo que este módulo lleva corrigiendo. */}
-              <ChromeIndicator
-                label="Cursos-horario"
-                value={String(
-                  state.plan.units.filter((u) => (u.role ?? "") === "titular").length
-                  || state.plan.units.length,
-                )}
-                prioridad="alta"
-              />
-              {state.plan.unit_type ? (
-                <ChromeIndicator
-                  label="Tipo"
-                  value={TIPO_DE_UNIDAD[state.plan.unit_type] ?? state.plan.unit_type}
-                />
-              ) : null}
-            </ChromeIndicatorGroup>
+            // Revamp v5: la zona de contexto dice de dónde entra el plan (el sorteo de Cálculo de muestra
+            // o el plan de Monitoreo) y cuántos cursos-horario hay que visitar: titulares, no filas del plan
+            // con reservas y banco, que no son visitas.
+            <ChipDeEntrada
+              origen={state.plan.source_ref?.module === "monitoreo" ? "monitoreo" : "calculo"}
+              dato={`${(state.plan.units.filter((u) => (u.role ?? "") === "titular").length || state.plan.units.length).toLocaleString("es-PE")} ${state.plan.unit_type ? (TIPO_DE_UNIDAD[state.plan.unit_type] ?? state.plan.unit_type).toLocaleLowerCase("es-PE") : "unidades"}`}
+              aviso={payload?.source_vigente?.desfasado === true}
+              detalle={payload?.source_vigente?.desfasado
+                ? "La selección cambió desde que se sembró el plan: revisa Unidades › Origen"
+                : "Cursos-horario titulares del plan, sembrados desde la selección"}
+            />
             ) : null}
             </>
           ) : null}
@@ -379,8 +364,9 @@ export function RecopiladoresShell({ cabecera = null }: Props = {}) {
           }]}
           estado={[{
             id: "deployment-status",
-            label: deploymentStatusLabel(status),
+            label: status === "handed_off" ? "Entregada a Monitoreo" : deploymentStatusLabel(status),
             tone: status === "handed_off" ? "success" : status === "stale" ? "danger" : "neutral",
+            detail: "Lo que Monitoreo lee de esta campaña: la entrega de aulas, en Insumos › Fuentes",
           }]}
           ariaLabel="Controles de Material de campo"
         />
