@@ -65,15 +65,14 @@
 #' Fallos, cada mitad con su motivo:
 #'   - `lectura_fallo`: el remoto no se pudo leer → la publicación NO corre
 #'     (jamás publicar un control desactualizado como verdad del día).
-#'   - `documento_virgen` (DECISIÓN DEL LEAD, 2026-08-31): si la lectura vuelve
-#'     vacía pero el documento RESPONDE y no tiene NINGUNA pestaña del libro,
-#'     no es un fallo — es «nada que leer aún». El gesto publica igual (la
-#'     siembra crea las hojas del equipo y las de la app) y devuelve
-#'     `conversado = TRUE` con `motivo_lectura = "documento_virgen"` y
-#'     `leido = NULL`. La sonda es UN GET de metadata que solo corre en esta
-#'     rama; una pestaña del libro presente pero ilegible sigue siendo
-#'     `lectura_fallo` (desde fuera no se distingue de un GET caído, y ante la
-#'     duda no se escribe).
+#'   - `sin_construir` (Gonzalo, 2026-11-02, opción a; ADR 0125): si la lectura
+#'     vuelve vacía pero el documento RESPONDE y no tiene NINGUNA pestaña del
+#'     libro, el libro no existe todavía. Antes se sembraba aquí
+#'     (`documento_virgen`); construir es de Material, así que no se escribe
+#'     nada y el aviso manda a Material › Entrega. La sonda es UN GET de
+#'     metadata que solo corre en esta rama; una pestaña del libro presente
+#'     pero ilegible sigue siendo `lectura_fallo` (desde fuera no se distingue
+#'     de un GET caído, y ante la duda no se escribe).
 #'   - `publicacion_fallo`: la lectura fue y la escritura no → lo leído SE
 #'     CONSERVA en sesión (la mitad buena no se revierte) y viaja en `leido`.
 #'
@@ -118,7 +117,14 @@ monitoreo_aulas_conversar_libro <- function(sid, cfg = list()) {
       # Hay pestañas del libro que no se pudieron leer: fallo real.
       return(list(conversado = FALSE, motivo = "lectura_fallo", mensaje = lectura[["mensaje"]]))
     }
-    motivo_lectura <- "documento_virgen"
+    # **Sembrar el documento vacío es construir, y construir es de Material**
+    # (Gonzalo, 2026-11-02, opción a; ADR 0125). Monitoreo sigue refrescando
+    # las hojas de seguimiento de un libro que ya existe, pero no lo crea: lo
+    # dice y no escribe nada. Material lo construye desde Entrega.
+    return(list(
+      conversado = FALSE, motivo = "sin_construir",
+      mensaje = "El libro todavía no se construyó en el Sheets: se construye en Material › Entrega."
+    ))
   } else {
     return(list(conversado = FALSE, motivo = "lectura_fallo", mensaje = lectura[["mensaje"]]))
   }

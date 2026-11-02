@@ -52,6 +52,10 @@ export function avisoConversacion(
         tono: "atencion",
       };
     }
+    // ADR 0125: el documento vacío ya no se siembra desde aquí; lo construye Material.
+    if (motivo === "sin_construir") {
+      return { texto: "El libro todavía no se construyó en el Sheets: se construye en Material › Entrega.", tono: "atencion" };
+    }
     if (motivo === "publicacion_fallo") {
       const partes: string[] = [];
       // Solo se afirma que algo entró si de verdad se leyó algo: en un
