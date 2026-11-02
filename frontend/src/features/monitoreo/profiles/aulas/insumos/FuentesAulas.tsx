@@ -78,6 +78,10 @@ function FuentesAulasImpl({ dashboard, cargando, contexto }: {
               </button>
             </span>
           </header>
+          {/* R6: dos entradas, cada una manda en lo suyo. */}
+          <p className="aulas-ins-nota">
+            Las metas y el plan llegan de Cálculo de muestra; lo que campo registra, de Material. El seguimiento es de Monitoreo.
+          </p>
           {confirmando ? (
             <div className="aulas-ins-confirmar" role="alertdialog" aria-label="Confirmar importación del plan">
               <p>
