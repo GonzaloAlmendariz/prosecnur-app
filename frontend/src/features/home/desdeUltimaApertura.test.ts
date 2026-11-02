@@ -40,7 +40,7 @@ describe("desde tu última apertura (L31)", () => {
     const clave = claveDelProyecto(overview(100))!;
     expect(aperturaAnteriorDeLaSesion(clave, overview(100), almacen, AHORA)).toBeNull();
     expect(leerHoy(null, overview(100))).toEqual({ tipo: "primera" });
-    expect(leerApertura(clave, almacen)?.cifras["monitoreo.validas"]).toBe(100);
+    expect(leerApertura(clave, almacen)?.cifras["monitoreo.efectivas"]).toBe(100);
   });
 
   it("compara contra la apertura anterior y nombra cada cambio con su módulo", () => {
@@ -71,6 +71,13 @@ describe("desde tu última apertura (L31)", () => {
     expect(leerHoy(anterior, overview(100))).toEqual({ tipo: "sin-cambios", desde: anterior.en });
   });
 
+  it("una apertura guardada con la clave vieja de válidas no se lee como avance de efectivas (L20)", () => {
+    const anterior = aperturaDe(overview(100), AHORA);
+    anterior.cifras["monitoreo.validas"] = anterior.cifras["monitoreo.efectivas"] - 255;
+    delete anterior.cifras["monitoreo.efectivas"];
+    expect(leerHoy(anterior, overview(100))).toEqual({ tipo: "sin-cambios", desde: anterior.en });
+  });
+
   it("dentro de la misma sesión mide siempre contra la misma apertura anterior", () => {
     const almacen = new Memoria();
     const clave = claveDelProyecto(overview(100))!;
@@ -78,7 +85,7 @@ describe("desde tu última apertura (L31)", () => {
     const primera = aperturaAnteriorDeLaSesion(clave, overview(100), almacen, AHORA);
     const segunda = aperturaAnteriorDeLaSesion(clave, overview(120), almacen, AHORA);
     expect(segunda).toBe(primera);
-    expect(primera?.cifras["monitoreo.validas"]).toBe(50);
+    expect(primera?.cifras["monitoreo.efectivas"]).toBe(50);
   });
 
   it("un almacenamiento bloqueado o roto no tumba el Home", () => {

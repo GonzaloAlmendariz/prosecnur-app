@@ -419,7 +419,7 @@ describe("moduleCardModel", () => {
     const monitoreo = view("monitoreo", overview);
     expect(monitoreo.viz).toMatchObject({
       kind: "stat",
-      value: "65.5%",
+      value: "66 %",
       label: "avance de meta",
     });
     expect(monitoreo.sub).toBe("188 de 287 efectivas, faltan 99");
@@ -447,7 +447,7 @@ describe("moduleCardModel", () => {
       avance_label: "avance de meta",
     };
     const monitoreo = view("monitoreo", overview);
-    expect(monitoreo.viz).toMatchObject({ kind: "stat", value: "105.8%" });
+    expect(monitoreo.viz).toMatchObject({ kind: "stat", value: "106 %" });
     expect(monitoreo.sub).toBe("423 de 400 efectivas, meta cumplida");
     expect(monitoreo.sub).not.toContain("Faltan");
     expect(monitoreo.facts).toContainEqual({ label: "universo", value: "2,296" });

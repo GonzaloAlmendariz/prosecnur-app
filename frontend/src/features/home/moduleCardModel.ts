@@ -321,7 +321,9 @@ export function buildModuleCardView(
         regenerando
           ? { kind: "stat", value: "Actualizando", label: avanceLabel }
           : monitoring.avance_pct >= 0
-          ? { kind: "stat", value: `${monitoring.avance_pct}%`, label: avanceLabel }
+          // Entero y con espacio, la convención de la insignia de Avance de
+          // Monitoreo (`pctEntero`): «107 %» en los dos lados, no «106.9%» (L20).
+          ? { kind: "stat", value: `${Math.round(monitoring.avance_pct)} %`, label: avanceLabel }
           : monitoring.valid > 0
             ? { kind: "stat", value: formatCount(monitoring.valid), label: `casos ${validLabel}` }
             : monitoring.collected > 0

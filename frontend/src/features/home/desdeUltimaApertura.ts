@@ -50,7 +50,11 @@ export function cifrasDelProyecto(overview: ProjectOverview): Cifra[] {
   const cifras: Cifra[] = [
     { clave: "editor.preguntas", etiqueta: "preguntas en el instrumento", singular: "pregunta en el instrumento", valor: facts.editor?.questions_count ?? 0 },
     // El rótulo lo manda el backend según la familia («validadas», «efectivas»): el singular le quita la «s».
-    { clave: "monitoreo.validas", etiqueta: `${validas} en Monitoreo`, singular: `${validas.replace(/s$/, "")} en Monitoreo`, valor: monitoreo?.valid ?? 0 },
+    // La clave cambió de nombre cuando el avance pasó a contar las efectivas
+    // de Kobo, con las en observación dentro (L20, 2cb7659e9): comparada con
+    // la cifra vieja, la primera apertura habría dicho «+255» sin campo de por
+    // medio. Una clave que la apertura anterior no tiene no se lee como cambio.
+    { clave: "monitoreo.efectivas", etiqueta: `${validas} en Monitoreo`, singular: `${validas.replace(/s$/, "")} en Monitoreo`, valor: monitoreo?.valid ?? 0 },
     { clave: "monitoreo.alertas", etiqueta: "casos por revisar en Monitoreo", singular: "caso por revisar en Monitoreo", valor: monitoreo?.alerts ?? 0 },
     { clave: "procesamiento.registros", etiqueta: "registros en la base", singular: "registro en la base", valor: metrics.records_count ?? 0 },
     { clave: "procesamiento.fases", etiqueta: "fases de Procesamiento listas", singular: "fase de Procesamiento lista", valor: fasesListas },
