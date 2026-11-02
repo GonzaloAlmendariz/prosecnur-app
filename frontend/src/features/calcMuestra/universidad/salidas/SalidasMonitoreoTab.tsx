@@ -151,7 +151,7 @@ export function SalidasMonitoreoTab({
         compact
         showEngineOutputs
         title={selectionReady ? "Plan listo para fichas QR" : "Completa la selección antes de emitir fichas"}
-        summary="Esta salida entrega la agenda de cursos-horario del estudio: cada fila conserva curso, horario, salón, selección y trazabilidad para que Monitoreo prepare fichas QR/PDF y lea el avance."
+        summary="Esta salida entrega la agenda de cursos-horario del estudio: cada fila conserva curso, horario, salón, selección y trazabilidad para que Material imprima las fichas QR y Monitoreo siga el avance."
         metrics={[
           { label: "Agenda", value: selectionReady ? `${fmtInt(m1Rows.length + reservasTotal)} cursos-horario` : "pendiente", tone: selectionReady ? "ready" : "warning" },
           { label: "Titulares", value: m1Rows.length ? fmtInt(m1Rows.length) : "pendiente", tone: m1Rows.length ? "ready" : "warning" },
