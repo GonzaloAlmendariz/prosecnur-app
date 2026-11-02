@@ -102,8 +102,10 @@ function salidaDelLibro(config: EntradaDeSalidas["config"], corte: string): Sali
   if (!destino) {
     return {
       clave: "libro", titulo: "Libro del operativo", estado: "Sin destino", tono: "neutro",
-      detalle: "El Sheets del equipo no está conectado. Se conecta en Insumos › Fuentes.",
-      acciones: [revisar, { accion: "publicar", rotulo: "Construir en Material", principal: true, deshabilitada: "Falta conectar el Sheets del equipo." }],
+      // ADR 0125: el libro lo construye Material sobre el enlace del estudio;
+      // sin destino, el botón lleva justo allá.
+      detalle: "Todavía no se construyó. Material lo arma sobre el Sheets del estudio, en Material › Entrega.",
+      acciones: [revisar, { accion: "publicar", rotulo: "Construir en Material", principal: true }],
     };
   }
   if (!publicado) {
@@ -239,6 +241,11 @@ const COLUMNAS_DE_LA_VISTA = [
 
 function vistaPreviaDe(tablas: EntradaDeSalidas["tablas"], error: string): VistaPrevia {
   if (tablas == null) return { tipo: "cargando" };
+  // Sin plan no hay nada que previsualizar: es un vacío legítimo con su salida,
+  // no una falla (el mensaje crudo de la API arrastraba «· E_AULAS_LIBRO_SIN_PLAN»).
+  if (error.includes("E_AULAS_LIBRO_SIN_PLAN")) {
+    return { tipo: "vacio", vacio: { clase: "legitimo", causa: "Todavía no hay plan de aulas: se importa de Cálculo de muestra en Insumos › Fuentes." } };
+  }
   if (error) return { tipo: "vacio", vacio: { clase: "desconexion", causa: `No se pudo armar la vista previa: ${error}` } };
   const tabla = tablas.find((t) => t.clave === "facultad");
   if (!tabla) return { tipo: "vacio", vacio: { clase: "desconexion", causa: "El corte no trae la tabla por facultad de «Avance de campo»." } };

@@ -37,11 +37,12 @@ describe("construirSalidas (A5)", () => {
     expect(libro.acciones.map((a) => a.rotulo)).toEqual(["Revisar cambios", "Construir en Material"]);
   });
 
-  it("un corte más nuevo deja el libro anterior al corte; sin destino, Publicar se deshabilita con su motivo", () => {
+  it("un corte más nuevo deja el libro anterior al corte; sin destino, Construir en Material lleva a Material", () => {
     expect(construirSalidas({ ...entrada, corte: "2026-10-02T15:00:00Z" }).salidas[0].estado).toBe("Anterior al corte");
     const sin = construirSalidas({ ...entrada, config: {} as MonitoreoAulasConfig }).salidas[0];
     expect(sin.estado).toBe("Sin destino");
-    expect(sin.acciones.find((a) => a.accion === "publicar")?.deshabilitada).toBe("Falta conectar el Sheets del equipo.");
+    expect(sin.acciones.find((a) => a.accion === "publicar")?.deshabilitada).toBeUndefined();
+    expect(sin.detalle).toContain("Material › Entrega");
   });
 
   it("qué toca Publicar separa las hojas de la app de las del equipo y nombra la regla de cada una", () => {
