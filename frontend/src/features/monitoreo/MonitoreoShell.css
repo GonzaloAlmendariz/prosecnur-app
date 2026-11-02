@@ -56,31 +56,14 @@
   align-items: start;
 }
 
+/* D7: alineado al título de la página (antes iba centrado en 980 px y su borde
+   quedaba 150 px a la derecha del titular a 1440). */
 .mon-mode-choice {
   width: min(980px, 100%);
   display: grid;
   gap: 18px;
-  margin: 0 auto;
-  padding: 18px;
-}
-
-.mon-mode-choice__intro {
-  max-width: 720px;
-  display: grid;
-  gap: 5px;
-}
-
-.mon-mode-choice__intro strong {
-  color: var(--pulso-text);
-  font-size: 16px;
-  line-height: 1.25;
-}
-
-.mon-mode-choice__intro p {
   margin: 0;
-  color: var(--pulso-text-soft);
-  font-size: 12.5px;
-  line-height: 1.45;
+  padding: 18px 0;
 }
 
 .mon-mode-choice__grid {
