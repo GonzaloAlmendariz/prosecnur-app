@@ -512,7 +512,9 @@ div.hr-mapa-aviso { display: flex; flex-direction: column; align-items: flex-sta
 .hr-me-atajos button:disabled { opacity: 0.5; cursor: default; }
 .hr-sel-cajon-titulo { font-size: 12.5px; font-weight: 700; color: var(--pulso-text); }
 .hr-sel-cajon > header { flex-wrap: wrap; }
-.hr-sel-cajon > header .hr-cajon-agrupar { width: 270px; flex: none; }
+.hr-sel-cajon > header .hr-cajon-agrupar { width: 352px; max-width: 100%; flex: none; } /* cuatro opciones desde que se sumó «Ubigeo» (P9) */
+/* A ancho angosto las acciones del cajón bajan de línea en vez de salirse (revisión de usuario, 1 nov). */
+.hr-sel-cajon > header .hr-sel-cajon-acciones { flex-wrap: wrap; max-width: 100%; }
 .hr-edad-lista li.is-fija { grid-template-columns: 10px minmax(0, 1fr) auto; }
 .hr-edad-lista li.is-fija > b { font-size: 13px; font-weight: 700; }
 .hr-mapa-cab--pila .hr-mapa-cab-titulo { flex-wrap: wrap; row-gap: 2px; }
