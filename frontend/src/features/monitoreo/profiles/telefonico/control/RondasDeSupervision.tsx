@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Loader2, Plus, RefreshCw, Save, Upload } from "../../../../../vendor/lucide-react";
+import { Link } from "react-router-dom";
+import { ExternalLink, Loader2, Plus, RefreshCw, Save } from "../../../../../vendor/lucide-react";
 import { apiSupervisionLeerResultados, apiSupervisionNuevaRonda, type RondaDeSupervisionApi } from "../../../../../api/monitoreoTelefonico";
 import type { MonitoreoState } from "../../../../../api/client";
 import type { PanelDeclarado } from "../../../../../lib/navegacion/paneles";
@@ -44,7 +45,6 @@ export function RondasDeSupervision({
   nuevas,
   onElegir,
   onNueva,
-  onPublicar,
   onGuardada,
   hojaConectada = false,
   avisos = [],
@@ -55,7 +55,8 @@ export function RondasDeSupervision({
   nuevas: number | null;
   onElegir: (numero: number) => void;
   onNueva: () => void;
-  onPublicar: (numero: number) => void;
+  /** Ya no se usa: la base de supervisión la arma Material (ADR 0125 A3). */
+  onPublicar?: (numero: number) => void;
   onGuardada: (rondas: RondaDeSupervisionApi[], state: MonitoreoState) => void;
   /** Hay hoja de supervisión conectada: se pueden leer los resultados de sus pestañas. */
   hojaConectada?: boolean;
@@ -167,10 +168,12 @@ export function RondasDeSupervision({
                 </em>
                 {ronda.lectura === "leida" && ronda.leidaEl ? <small className="mon-sup-ronda-lectura">Resultados leídos el {fecha(ronda.leidaEl)}</small> : null}
               </button>
+              {/* ADR 0125 A3: la base de supervisión la arma Material por lote, en su
+                  propio documento; Monitoreo lee los resultados de ahí. */}
               {ronda.guardada && !ronda.publicadaEn ? (
-                <button type="button" className="mon-insumos-boton" onClick={() => onPublicar(ronda.numero)}>
-                  <Upload size={13} /> Publicar en el Sheets
-                </button>
+                <Link className="mon-insumos-boton" to={`/material-campo?modo=supervision&campana=supervision.ronda-${ronda.numero}`}>
+                  <ExternalLink size={13} /> Armar la base en Material
+                </Link>
               ) : null}
             </li>
           ))}

@@ -45,3 +45,15 @@ test_that("si la pestaña de Material no se puede leer, la ronda queda marcada y
   expect_length(out$avisos, 1L)
   expect_identical(out$pendientes, 1L)
 })
+
+test_that("si la llave del barrido no se llama «Código», la primera columna es la llave", {
+  docs <- list(`ronda-1` = list(lote_id = "ronda-1", spreadsheet_id = "SUP1", pestana = "Supervisión ronda-1"))
+  valores_de <- function(id, pestana) list(
+    list("proGres", "Enumerador", "Observaciones del supervisor", "Estatus de la llamada de supervisión", "Veredicto"),
+    list("00123", "Ana", "", "Contestó", "Confirmada")
+  )
+  out <- monitoreo_supervision_leer_material(rondas_fx(), docs, valores_de)
+  f <- out$rondas[[1]]$resultados$filas
+  expect_identical(f$Código, "00123")
+  expect_length(out$avisos, 0L)
+})

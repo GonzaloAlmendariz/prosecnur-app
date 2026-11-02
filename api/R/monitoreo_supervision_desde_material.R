@@ -51,6 +51,9 @@ monitoreo_supervision_leer_material <- function(rondas, documentos, valores_de, 
       next
     }
     tabla <- .monitoreo_supervision_tabla_pestana(valores)
+    # La llave va primera y se llama «Código» o como se llame la llave del
+    # barrido (contrato con Hojas): sin «Código», la primera columna es la llave.
+    if (ncol(tabla) && !"Código" %in% names(tabla)) names(tabla)[[1]] <- "Código"
     faltan <- setdiff(.MSDM_COLUMNAS, names(tabla))
     if (length(faltan)) {
       avisos <- c(avisos, sprintf("A «%s» le faltan las columnas %s; se leyó lo que trae.", pestana,
