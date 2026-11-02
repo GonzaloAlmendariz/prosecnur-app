@@ -91,8 +91,10 @@ const PLANTILLAS: TarjetaTipo[] = [
   {
     id: "territorial_handoff",
     title: "Muestreo de áreas y viviendas",
-    eyebrow: "Plantilla · Hojas de ruta",
-    copy: "Para estudios donde el diseño depende de zonas, manzanas y viviendas, con viviendas de reserva y recorrido de campo.",
+    eyebrow: "Se diseña en Hojas de ruta",
+    // Cálculo de muestra es «de todo menos de territorial aleatorio» (Gonzalo,
+    // 2026-11-02): esta tarjeta no ofrece un cálculo, lleva a donde vive.
+    copy: "No se calcula aquí: el muestreo territorial aleatorio —zonas, manzanas, viviendas y su reserva— se diseña en Hojas de ruta.",
     action: "Ir a Hojas de ruta",
     details: ["Zonas", "Manzanas", "Viviendas", "Reserva"],
     guidance: [
