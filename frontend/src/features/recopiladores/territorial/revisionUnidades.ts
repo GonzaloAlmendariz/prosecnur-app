@@ -31,7 +31,7 @@ function comoBloque(u: UnidadTerritorial): SelectedBlock {
 }
 
 /** Estado de cada unidad (por `unit_id`) y, por distrito, cuántas rutas hay que revisar. */
-export function revisarUnidades(units: readonly UnidadTerritorial[], supuestos?: SupuestosVisitas): { porUnidad: Map<string, EstadoUnidad>; distritos: ResumenDistrito[] } {
+export function revisarUnidades(units: readonly UnidadTerritorial[], supuestos?: SupuestosVisitas): { porUnidad: Map<string, EstadoUnidad>; distritos: ResumenDistrito[]; rutasPorRevisar: Set<string> } {
   const titulares = units.filter((u) => u.role === "titular").map(comoBloque);
   const reemplazos = units.filter((u) => u.role === "reemplazo").map(comoBloque);
   const revision = revisarSeleccion(titulares, reemplazos, supuestos);
@@ -45,15 +45,19 @@ export function revisarUnidades(units: readonly UnidadTerritorial[], supuestos?:
   // Una ruta está «por revisar» si su titular o alguno de sus reemplazos tiene aviso o error (como Selección).
   const porRuta = estadosPorTitular(titulares, reemplazos, revision);
   const distritos = new Map<string, ResumenDistrito>();
+  const rutasPorRevisar = new Set<string>();
   for (const u of units) {
     const clave = u.ubigeo || u.distrito || "—";
     const d = distritos.get(clave) ?? { clave, distrito: u.distrito, titulares: 0, reemplazos: 0, porRevisar: 0 };
     if (u.role === "titular") {
       d.titulares += 1;
       const e = porRuta.get(u.unit_id) ?? "ok";
-      if (e === "aviso" || e === "error") d.porRevisar += 1;
+      if (e === "aviso" || e === "error") {
+        d.porRevisar += 1;
+        rutasPorRevisar.add(u.unit_id);
+      }
     } else d.reemplazos += 1;
     distritos.set(clave, d);
   }
-  return { porUnidad, distritos: [...distritos.values()] };
+  return { porUnidad, distritos: [...distritos.values()], rutasPorRevisar };
 }

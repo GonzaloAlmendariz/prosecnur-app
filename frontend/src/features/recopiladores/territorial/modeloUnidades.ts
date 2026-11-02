@@ -76,6 +76,44 @@ export function agruparUnidades(units: readonly UnidadTerritorial[], busqueda = 
   return salida;
 }
 
+/** Qué UMP se ven en Unidades: la tarea primero (revisar), luego asignar, luego todas. */
+export type VistaDeUnidades = "por-revisar" | "sin-encuestador" | "todas";
+
+/** ¿La ruta de esta titular entra en la vista? (sus reemplazos van con ella). */
+function entraEnVista(titular: UnidadTerritorial, vista: VistaDeUnidades, rutasPorRevisar: ReadonlySet<string>, encuestadorDe: ReadonlyMap<string, string>): boolean {
+  if (vista === "por-revisar") return rutasPorRevisar.has(titular.unit_id);
+  if (vista === "sin-encuestador") return !encuestadorDe.get(titular.unit_id);
+  return true;
+}
+
+/** Filtra los grupos por vista y distrito. `distrito = null` deja todos. */
+export function filtrarUnidades(
+  grupos: readonly GrupoDeDistrito[],
+  vista: VistaDeUnidades,
+  distrito: string | null,
+  rutasPorRevisar: ReadonlySet<string>,
+  encuestadorDe: ReadonlyMap<string, string>,
+): GrupoDeDistrito[] {
+  return grupos
+    .filter((g) => !distrito || g.clave === distrito)
+    .map((g) => ({
+      ...g,
+      titulares: g.titulares.filter((f) => entraEnVista(f.titular, vista, rutasPorRevisar, encuestadorDe)),
+      sueltos: vista === "todas" ? g.sueltos : [],
+    }))
+    .filter((g) => g.titulares.length || g.sueltos.length);
+}
+
+/** Cuántas titulares hay en cada vista (para el segmentado). */
+export function contarVistas(units: readonly UnidadTerritorial[], rutasPorRevisar: ReadonlySet<string>, encuestadorDe: ReadonlyMap<string, string>): Record<VistaDeUnidades, number> {
+  const titulares = units.filter((u) => u.role === "titular");
+  return {
+    "por-revisar": titulares.filter((t) => rutasPorRevisar.has(t.unit_id)).length,
+    "sin-encuestador": titulares.filter((t) => !encuestadorDe.get(t.unit_id)).length,
+    todas: titulares.length,
+  };
+}
+
 /** La unidad de un `foco` (`id_manzana`), o `null`. */
 export function unidadDelFoco(units: readonly UnidadTerritorial[], foco: string | null | undefined): UnidadTerritorial | null {
   if (!foco) return null;

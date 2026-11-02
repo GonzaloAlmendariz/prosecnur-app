@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { normalizarUnidadesTerritoriales, type UnidadTerritorial } from "../../../api/materialTerritorial";
-import { agruparUnidades, coincide, fechaDelEnvio, rangoDeLaUmp, unidadDelFoco } from "./modeloUnidades";
+import { agruparUnidades, coincide, contarVistas, fechaDelEnvio, filtrarUnidades, rangoDeLaUmp, unidadDelFoco } from "./modeloUnidades";
 
 function u(parcial: Partial<UnidadTerritorial> & Pick<UnidadTerritorial, "unit_id" | "role">): UnidadTerritorial {
   return {
@@ -97,5 +97,32 @@ describe("normalizarUnidadesTerritoriales", () => {
   it("una sola unidad serializada como objeto sigue siendo una lista", () => {
     expect(normalizarUnidadesTerritoriales({ units: { unit_id: "A1", role: "titular" } }).units).toHaveLength(1);
     expect(normalizarUnidadesTerritoriales({ units: {} }).units).toHaveLength(0);
+  });
+});
+
+describe("las vistas de Unidades (revamp v5)", () => {
+  const grupos = agruparUnidades(UNIDADES);
+  const porRevisar = new Set(["A2"]);
+  const encuestador = new Map([["A1", "E03"]]);
+
+  it("«Por revisar» deja sólo las rutas con aviso, con sus reemplazos", () => {
+    const g = filtrarUnidades(grupos, "por-revisar", null, porRevisar, encuestador);
+    expect(g.flatMap((x) => x.titulares.map((t) => t.titular.unit_id))).toEqual(["A2"]);
+    expect(g.flatMap((x) => x.sueltos)).toEqual([]);
+  });
+
+  it("«Sin encuestador» deja las titulares sin código en la asignación", () => {
+    const g = filtrarUnidades(grupos, "sin-encuestador", null, porRevisar, encuestador);
+    expect(g.flatMap((x) => x.titulares.map((t) => t.titular.unit_id))).toEqual(["A2", "B1"]);
+  });
+
+  it("el distrito acota y «Todas» conserva los reemplazos sueltos", () => {
+    const g = filtrarUnidades(grupos, "todas", "150101", porRevisar, encuestador);
+    expect(g.map((x) => x.clave)).toEqual(["150101"]);
+    expect(g[0].sueltos.map((r) => r.unit_id)).toEqual(["RX"]);
+  });
+
+  it("cuenta titulares por vista", () => {
+    expect(contarVistas(UNIDADES, porRevisar, encuestador)).toEqual({ "por-revisar": 1, "sin-encuestador": 2, todas: 3 });
   });
 });

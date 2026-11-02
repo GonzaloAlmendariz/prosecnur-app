@@ -1,0 +1,163 @@
+/* Territorial › Unidades (revamp v5): herramientas en una fila, la lista y el inspector
+   de la UMP enfocada. El panel de la sección es el dueño del scroll; el inspector se
+   pega arriba y lleva su propio cuerpo desplazable. */
+
+.rec-terr-herramientas {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--pulso-space-3);
+}
+.rec-terr-herramientas .rec-terr-buscar {
+  flex: 1 1 240px;
+  min-width: 0;
+}
+.rec-terr-herramientas .rec-terr-distrito-select {
+  flex: 0 0 220px;
+  width: 220px;
+}
+.rec-terr-vista-cifra {
+  margin-left: var(--pulso-space-1);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--pulso-text-faint);
+}
+.rec-terr-opciones.pulso-gliding-tab-list > button[aria-checked="true"] .rec-terr-vista-cifra {
+  color: inherit;
+}
+.rec-terr-sin-asignar {
+  color: var(--pulso-text-faint);
+}
+
+.rec-terr-unidades {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--pulso-space-4);
+  align-items: start;
+}
+.rec-terr-unidades[data-con-inspector] {
+  grid-template-columns: minmax(0, 1fr) 360px;
+}
+@media (min-width: 1400px) {
+  .rec-terr-unidades[data-con-inspector] {
+    grid-template-columns: minmax(0, 1fr) 400px;
+  }
+}
+.rec-terr-unidades-lista {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-4);
+  min-width: 0;
+}
+
+.rec-terr-inspector {
+  position: sticky;
+  top: 0;
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100vh - 220px);
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-card);
+  background: var(--pulso-surface);
+  animation: rec-inspector-entra var(--motion-dur-base) var(--motion-ease-drawer) both;
+}
+@keyframes rec-inspector-entra {
+  from { opacity: 0; transform: translateX(12px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .rec-terr-inspector { animation-name: rec-inspector-aparece; }
+  @keyframes rec-inspector-aparece { from { opacity: 0; } }
+}
+.rec-terr-inspector-cabeza {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--pulso-space-2);
+  padding: var(--pulso-space-4) var(--pulso-space-5) var(--pulso-space-3);
+  border-bottom: 1px solid var(--pulso-border);
+}
+.rec-terr-inspector-cabeza small {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--pulso-text-faint);
+}
+.rec-terr-inspector-cabeza h3 {
+  display: flex;
+  align-items: center;
+  gap: var(--pulso-space-2);
+  margin: var(--pulso-space-1) 0 0;
+  font-size: 17px;
+  color: var(--pulso-text);
+}
+.rec-terr-inspector-cerrar {
+  margin-left: auto;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--pulso-radius);
+  color: var(--pulso-text-soft);
+}
+.rec-terr-inspector-cerrar:hover {
+  background: var(--pulso-surface-3);
+  color: var(--pulso-text);
+}
+.rec-terr-inspector-cerrar:focus-visible {
+  outline: 2px solid var(--pulso-module-fieldkit);
+  outline-offset: 2px;
+}
+.rec-terr-inspector-cuerpo {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-4);
+  padding: var(--pulso-space-4) var(--pulso-space-5);
+}
+.rec-terr-inspector-datos {
+  display: grid;
+  grid-template-columns: 120px minmax(0, 1fr);
+  gap: var(--pulso-space-2) var(--pulso-space-3);
+  margin: 0;
+  font-size: var(--pulso-type-body-size);
+}
+.rec-terr-inspector-datos dt { color: var(--pulso-text-faint); }
+.rec-terr-inspector-datos dd { margin: 0; color: var(--pulso-text); font-variant-numeric: tabular-nums; }
+.rec-terr-inspector-reemplazo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-2);
+  padding: var(--pulso-space-3);
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius);
+}
+.rec-terr-inspector-reemplazo small {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--pulso-text-faint);
+}
+.rec-terr-inspector-reemplazo p {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  font-size: var(--pulso-type-body-size);
+}
+.rec-terr-inspector-reemplazo span { color: var(--pulso-text-soft); font-size: var(--pulso-type-caption-size); }
+.rec-terr-inspector-pie {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-2);
+  padding: var(--pulso-space-3) var(--pulso-space-5);
+  border-top: 1px solid var(--pulso-border);
+}
+.rec-terr-inspector-principal { justify-content: center; }
+.rec-terr-inspector-secundarias {
+  display: flex;
+  gap: var(--pulso-space-2);
+}
+.rec-terr-inspector-secundarias > :first-child { flex: 1; justify-content: center; }

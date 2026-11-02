@@ -75,6 +75,13 @@ export function CampanaTerritorialShell({ campana, cabecera = null }: Props) {
   }, [campana.id, unidades]);
   const distritos = useMemo(() => revisarUnidades(unidades?.units ?? [], supuestos).distritos, [unidades, supuestos]);
   const recorrido = recorridoTerritorial(unidades, distritos, asignacion);
+  const encuestadorDe = useMemo(() => {
+    const nombres = new Map((asignacion?.equipo ?? []).map((e) => [e.codigo, e.nombre]));
+    return new Map((asignacion?.asignacion ?? []).filter((a) => a.codigo).map((a) => {
+      const nombre = nombres.get(a.codigo);
+      return [a.id_manzana, nombre ? `${nombre} (${a.codigo})` : a.codigo] as const;
+    }));
+  }, [asignacion]);
   const enviadaEl = fechaDelEnvio(unidades?.enviado_at);
 
   const hrefDe = useCallback((s: SeccionTerritorial, p: string, extra: { panel?: string; foco?: string } = {}) => (
@@ -112,7 +119,10 @@ export function CampanaTerritorialShell({ campana, cabecera = null }: Props) {
           foco={direccion?.foco ?? null}
           hrefDeFoco={(foco) => hrefDe("unidades", "lista", { foco })}
           hrefDeHoja={(foco) => hrefDe("unidades", "lista", { foco, panel: "hoja" })}
+          hrefDeReemplazo={(foco) => hrefDe("paquetes", PESTANAS_TERRITORIALES.paquetes[0], { foco })}
+          hrefSinFoco={hrefDe("unidades", "lista")}
           supuestos={supuestos}
+          encuestadorDe={encuestadorDe}
         />
       ) : null}
       {!cargando && seccion === "catalogo" ? (
