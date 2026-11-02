@@ -9,6 +9,7 @@
 // - C3/C4: cada tarjeta contiene su vacío; la lista de titulares tiene tope y
 //   dice cuántas quedan fuera, el scroll es del panel de la sección.
 
+import { resumenDelZip } from "./resumenDelZip";
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 
@@ -185,7 +186,8 @@ export function PaquetesTerritoriales({ campaignId, unidades, hojas, onRecargar,
           {e.zip ? (
             <a className="rec-terr-archivo" href={downloadUrl(e.zip.file_id)}>
               <strong>Descargar ZIP</strong>
-              <small>{fmt(e.zip.n_pdfs)} PDF · {fmt(e.zip.total_entrevistas)} entrevistas · {pesoLegible(e.zip.size)}</small>
+              {/* P9 de la paridad: las hojas de zona y la versión del marco con que salió, como en la clásica. */}
+              <small>{resumenDelZip(e.zip, pesoLegible(e.zip.size))}</small>
             </a>
           ) : null}
           {e.excel ? (
