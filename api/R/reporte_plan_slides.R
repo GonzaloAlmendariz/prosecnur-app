@@ -2174,6 +2174,9 @@ p_barras_apiladas <- function(var, titulo = NULL, cruces = NULL, overrides = lis
 #'   para cada bloque. La lámina del PPT no cambia.
 #' @param word_titulo_figura Título de la figura única del Word (`modo = "var"` con `un_grafico` o
 #'   `un_grafico_mismo_publico`); `NULL` o `""` la deja sin título. No cambia el PPT ni los demás modos.
+#'   Es la ÚNICA vía para titular esa figura: el `titulo` de la lámina no la titula a propósito (D-b, decisión del
+#'   usuario del 2026-10-22: con el título de lámina salían varios «Gráfico N» idénticos). Sin declarar, el rótulo queda
+#'   «Gráfico N° N» (fijado en test-word-multiapiladas-modos.R).
 #' @examples
 #' p_barras_multiapiladas(
 #'   modo = "cruce",
