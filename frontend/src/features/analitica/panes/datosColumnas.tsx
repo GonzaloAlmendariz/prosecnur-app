@@ -69,7 +69,7 @@ export function columnasDeDatos(ctx: DatosColumnasContexto): PulsoTableColumna<D
     {
       id: "con-dato",
       encabezado: "Con dato",
-      ancho: 130,
+      ancho: 110,
       valor: (variable) => describirCobertura(variable, ctx.padresRepartidos.has(variable.name)).texto,
       celda: (variable) => {
         const cobertura = describirCobertura(variable, ctx.padresRepartidos.has(variable.name));
@@ -83,7 +83,10 @@ export function columnasDeDatos(ctx: DatosColumnasContexto): PulsoTableColumna<D
     {
       id: "etiqueta",
       encabezado: "Etiqueta",
-      ancho: 264,
+      // 734 px en total: cabe junto al inspector a 1280 (barrido 2026-11-02:
+      // con 834 «Opciones» quedaba 88 px fuera). La etiqueta es un campo y su
+      // texto se desplaza dentro; no necesita el ancho de la frase entera.
+      ancho: 190,
       celda: (variable) => {
         const etiqueta = ctx.etiquetaDe(variable);
         return (
@@ -101,7 +104,7 @@ export function columnasDeDatos(ctx: DatosColumnasContexto): PulsoTableColumna<D
     {
       id: "opciones",
       encabezado: "Opciones",
-      ancho: 96,
+      ancho: 90,
       tipo: "cifra",
       celda: (variable) => {
         if (!ctx.editables(variable)) return <span className="pulso-datos-sin-opciones">—</span>;
