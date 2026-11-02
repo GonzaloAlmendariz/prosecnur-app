@@ -107,8 +107,8 @@ export function RitmoVista({ actores, diarioGeneral, diarioPorPublico, fuentes, 
             <>
               <DiarioYAcumulado fechas={serie.fechas} totales={totalesVisibles} meta={metaDelEstudio} etiqueta={`Efectivas por día y acumuladas de ${fmt(serie.fechas.length)} días`} />
               <ul className="acr-ri-leyenda" aria-label="Series">
-                <li><i className="acr-av-capa-muestra is-dia" aria-hidden="true" />Efectivas del día <span className="acr-av-tenue">(eje izquierdo)</span></li>
-                <li><i className="acr-av-capa-muestra is-acumulado" aria-hidden="true" />Acumulado <b className="acr-av-num">{fmt(totalesVisibles.reduce((a, b) => a + b, 0))}</b> <span className="acr-av-tenue">(eje derecho)</span></li>
+                <li><i className="acr-av-capa-muestra is-dia" aria-hidden="true" />Efectivas del día</li>
+                <li><i className="acr-av-capa-muestra is-acumulado" aria-hidden="true" />Acumulado <b className="acr-av-num">{fmt(totalesVisibles.reduce((a, b) => a + b, 0))}</b></li>
                 {metaDelEstudio ? <li><i className="acr-av-capa-muestra is-meta" aria-hidden="true" />{capaSola ? "Meta del público" : "Meta"} <b className="acr-av-num">{fmt(metaDelEstudio)}</b></li> : null}
               </ul>
             </>

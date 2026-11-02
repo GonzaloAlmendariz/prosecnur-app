@@ -29,7 +29,7 @@ describe("Avance › Ritmo por público", () => {
     expect(pregrado.diasDelPromedio).toBe(2);
   });
 
-  it("«Otros públicos» no lleva tarjeta y sin meta no se proyecta", () => {
+  it("sin meta no se proyecta", () => {
     const ritmo = ritmoPorPublico(serie, [{ Actor: "Administrativos", Meta: 1115 }]);
     expect(ritmo.some((item) => item.publico.startsWith("Otros"))).toBe(false);
     const pregrado = ritmo.find((item) => item.publico === "Estudiantes de pregrado");

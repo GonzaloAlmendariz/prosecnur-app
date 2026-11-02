@@ -429,6 +429,11 @@ export function BarrasApiladas({
     const indice = posicion.get(fecha) ?? (fecha < (fechas[0] ?? "") ? 0 : n - 1);
     return izquierda + (indice + (final ? 1 : 0)) * paso;
   };
+  // Todos los totales con la misma letra o ninguno: la más grande (11 a 10 px, el piso) en
+  // la que la cifra más larga cabe en el ancho del día (≈0,6 em por carácter).
+  const caracteres = Math.max(1, ...totales.map((total) => fmt(total).length));
+  const letraQueCabe = Math.min(11, (paso - 2) / (caracteres * 0.6));
+  const letraDelTotal = letraQueCabe >= 10 ? Math.floor(letraQueCabe) : null;
   return (
     <div ref={ref} className="acr-av-grafico" role="img" aria-label={etiqueta}>
       {ancho > 0 && alto > 0 && n ? (
@@ -471,8 +476,8 @@ export function BarrasApiladas({
                   return rect;
                 })}
                 {/* El total del día sobre la barra: la suma de sus públicos, sin sumar a ojo. */}
-                {paso >= 22 && totales[indice] > 0 ? (
-                  <text className="acr-av-eje is-cifra" x={izquierda + indice * paso + paso / 2} y={y(totales[indice]) - 4} textAnchor="middle">{fmt(totales[indice])}</text>
+                {letraDelTotal && totales[indice] > 0 ? (
+                  <text className="acr-av-eje is-cifra" x={izquierda + indice * paso + paso / 2} y={y(totales[indice]) - 4} textAnchor="middle" style={{ fontSize: letraDelTotal }}>{fmt(totales[indice])}</text>
                 ) : null}
               </g>
             );
