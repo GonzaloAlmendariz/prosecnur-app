@@ -23,6 +23,7 @@ import { PANEL_CORREO_CAMPANA_BORRAR, PANEL_CORREO_IDENTIDAD, PANEL_CORREO_IMPOR
 import { useCorreosStore } from "../correos/store";
 import { useCampanas, type AccionesDeCampanas } from "../correos/useCampanas";
 import { RecopiladoresShell } from "../RecopiladoresShell";
+import { usePlannerModos } from "../../estudio/usePlannerModos";
 import { CampanaSupervisionShell } from "../supervision/CampanaSupervisionShell";
 import { CampanaTelefonicaShell } from "../telefonica/CampanaTelefonicaShell";
 import { CampanaTerritorialShell } from "../territorial/CampanaTerritorialShell";
@@ -91,6 +92,8 @@ export function MaterialCampoShell() {
   const borrar = usePanelDireccionable(PANEL_CORREO_CAMPANA_BORRAR);
   const [aviso, setAviso] = useState<AvisoDeLaLista | null>(null);
   const [plataformaImportar, setPlataformaImportar] = useState<MailPlatform>("mailchimp");
+  // ADR 0125 A4: en acreditación, «Nueva campaña» nombra «Acreditación telefónica» / «Acreditación en aulas».
+  const { modos: modosDelEstudio } = usePlannerModos();
 
   const registro = reg.registro;
   const resolucion = useMemo(() => (registro
@@ -378,6 +381,7 @@ export function MaterialCampoShell() {
             onCrearTerritorial={crearTerritorial}
             onCrearTelefonica={crearTelefonica}
             onCrearSupervision={crearSupervision}
+            proposito={modosDelEstudio?.material.proposito ?? null}
             onCrearCorreo={crearCorreo}
             onImportar={(platform) => {
               setPlataformaImportar(platform);

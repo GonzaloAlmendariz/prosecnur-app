@@ -65,3 +65,17 @@ describe("campaña de supervisión", () => {
     expect(sin).toContain("seccion=control");
   });
 });
+
+describe("acreditación (ADR 0125 A4)", () => {
+  it("el registro lee el propósito de la campaña", () => {
+    const r = normalizarRegistroDeCampanas({
+      schema: "material_campaigns/v1", registry_revision: 1, state_revision: 0,
+      campaigns: [
+        { id: "telefonica.principal", tipo: "telefonica", name: "Acreditación telefónica", proposito: ["acreditacion"], estado: {} },
+        { id: "aulas.principal", tipo: "aulas", name: "Campo en aulas", estado: {} },
+      ],
+      tipos: [],
+    });
+    expect(r.campaigns.map((c) => c.proposito)).toEqual(["acreditacion", null]);
+  });
+});

@@ -30,7 +30,7 @@ import { origenDePreset } from "../correos/modeloCorreo";
 import { AvisoDeNombreRepetido } from "./AvisoDeNombreRepetido";
 import { hrefDeCampana } from "./direccionDeCampanas";
 import { useFocoDeRetorno } from "./focoDeRetorno";
-import { NOMBRE_CAMPANA_AULAS, NOMBRE_CAMPANA_TELEFONICA, NOMBRE_CAMPANA_TERRITORIAL, QUE_ES_EL_TIPO, ROTULO_DE_FASE, ROTULO_DEL_TIPO, disponibilidadDe, fechaCorta } from "./modeloRegistro";
+import { NOMBRE_CAMPANA_AULAS, NOMBRE_CAMPANA_TELEFONICA, NOMBRE_CAMPANA_TERRITORIAL, NOMBRE_DE_ACREDITACION, QUE_ES_EL_TIPO, ROTULO_DE_FASE, ROTULO_DEL_TIPO, disponibilidadDe, fechaCorta } from "./modeloRegistro";
 import { eleccionDeFase, faseParaCrear } from "../territorial/fasesDelEnvio";
 import { useEnviosTerritoriales } from "../territorial/useEnviosTerritoriales";
 import { campanaHomonima } from "./nombreUnico";
@@ -52,6 +52,8 @@ type Props = {
   /** `fase` es `null` cuando el backend debe usar la activa (ninguna fase con envío conocida). */
   onCrearTerritorial: (name: string, fase: FaseTerritorial | null) => Promise<Resultado>;
   onCrearTelefonica: (name: string) => Promise<Resultado>;
+  /** ADR 0125 A4: el Planner fija `material.proposito`; en acreditación los nombres lo dicen. */
+  proposito?: "acreditacion" | null;
   /** ADR 0125 A3: una supervisión por lote de Monitoreo. */
   onCrearSupervision: (name: string, lote: string) => Promise<Resultado>;
   onCrearCorreo: (input: { name: string; actor: string; origen: string; platform: MailPlatform }) => Promise<Resultado>;
@@ -119,7 +121,7 @@ export function TiposDeCampana({ registro, elegido, ocupado, onElegir }: {
   );
 }
 
-export function DialogoNuevaCampana({ panel, registro, fuente, presets, miniaturas, ocupado, onCrearAulas, onCrearTerritorial, onCrearTelefonica, onCrearSupervision, onCrearCorreo, onImportar }: Props) {
+export function DialogoNuevaCampana({ panel, registro, fuente, presets, miniaturas, ocupado, onCrearAulas, onCrearTerritorial, onCrearTelefonica, proposito = null, onCrearSupervision, onCrearCorreo, onImportar }: Props) {
   const ids = useId();
   const { abierto, cerrar } = panel;
   const [tipo, setTipo] = useState<TipoDeCampana | null>(null);
@@ -157,7 +159,8 @@ export function DialogoNuevaCampana({ panel, registro, fuente, presets, miniatur
   const elegir = (t: TipoDeCampana) => {
     setTipo(t);
     setError("");
-    setNombre(t === "aulas" ? NOMBRE_CAMPANA_AULAS : t === "territorial" ? NOMBRE_CAMPANA_TERRITORIAL : t === "telefonica" ? NOMBRE_CAMPANA_TELEFONICA : "");
+    const deAcreditacion = proposito === "acreditacion" ? NOMBRE_DE_ACREDITACION[t] : undefined;
+    setNombre(deAcreditacion ?? (t === "aulas" ? NOMBRE_CAMPANA_AULAS : t === "territorial" ? NOMBRE_CAMPANA_TERRITORIAL : t === "telefonica" ? NOMBRE_CAMPANA_TELEFONICA : ""));
     // Con un solo lote libre, ya está elegido.
     if (t === "supervision" && lotesLibres.length === 1) elegirLote(lotesLibres[0].lote_id);
   };

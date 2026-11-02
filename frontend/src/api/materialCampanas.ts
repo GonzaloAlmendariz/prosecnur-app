@@ -113,6 +113,8 @@ export type CampanaMaterial = {
   estado: EstadoCampana | null;
   /** ADR 0122 P2: el Planner declara perfiles y este tipo no es de ellos. Se abre igual. */
   fuera_del_estudio?: boolean;
+  /** ADR 0125 A4: "acreditacion" si se creó en un estudio de acreditación. */
+  proposito?: "acreditacion" | null;
 };
 
 export type DisponibilidadDeTipo = {
@@ -289,6 +291,7 @@ export function normalizarCampana(valor: unknown): CampanaMaterial | null {
     ref: refDe(valor.ref, id, tipo),
     estado: normalizarEstado(tipo, valor.estado, valor.ref),
     fuera_del_estudio: logico(valor.fuera_del_estudio),
+    proposito: texto(valor.proposito).trim() === "acreditacion" ? "acreditacion" : null,
   };
 }
 

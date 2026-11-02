@@ -31,6 +31,12 @@ export const NOMBRE_CAMPANA_TERRITORIAL = "Campo territorial";
 export const ID_CAMPANA_TELEFONICA = "telefonica.principal";
 export const NOMBRE_CAMPANA_TELEFONICA = "Barrido telefónico";
 
+/** ADR 0125 A4: en acreditación, «Solo indicando que es de acreditación» (Gonzalo). */
+export const NOMBRE_DE_ACREDITACION: Readonly<Partial<Record<TipoDeCampana, string>>> = {
+  telefonica: "Acreditación telefónica",
+  aulas: "Acreditación en aulas",
+};
+
 /** Cómo se dice cada fase de Hojas de ruta a quien elige la foto. */
 export const ROTULO_DE_FASE: Readonly<Record<"pilot" | "field", string>> = {
   pilot: "Piloto",

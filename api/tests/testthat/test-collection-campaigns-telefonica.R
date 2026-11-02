@@ -90,3 +90,21 @@ test_that("HTTP: config y plantilla", {
   expect_identical(x$status, 200L)
   expect_true(nzchar(x$body$file_id))
 })
+
+test_that("en acreditación la telefónica y la de aulas guardan su propósito; fuera de ella, no hay clave (ADR 0125 A4)", {
+  sid <- session_create(); on.exit(session_delete(sid), add = TRUE)
+  local_mocked_bindings(.planner_modos = function(s) list(material = list(proposito = "acreditacion")))
+  r <- collection_campaign_create(sid, "telefonica", "Acreditación telefónica")
+  expect_identical(r$campaign$proposito, "acreditacion")
+  entry <- Find(function(e) identical(e$tipo, "telefonica"), session_get(sid)$material_campaigns$campaigns)
+  expect_identical(entry$proposito, "acreditacion")
+  a <- collection_campaign_create(sid, "aulas", "Acreditación en aulas")
+  expect_identical(a$campaign$proposito, "acreditacion")
+
+  sid2 <- session_create(); on.exit(session_delete(sid2), add = TRUE)
+  local_mocked_bindings(.planner_modos = function(s) list(material = list(proposito = NULL)))
+  collection_campaign_create(sid2, "telefonica", "Barrido")
+  entry2 <- Find(function(e) identical(e$tipo, "telefonica"), session_get(sid2)$material_campaigns$campaigns)
+  expect_false("proposito" %in% names(entry2))
+  expect_null(collection_campaigns_get(sid2)$campaigns[[1]]$proposito)
+})

@@ -46,7 +46,7 @@ MATERIAL_TELEFONICA_CONFIG_SCHEMA <- "material_telefonica_config/v1"
   e <- hit$entry
   list(id = e$id, tipo = "telefonica", name = e$name, created_at = e$created_at %||% NA_character_,
        archived = isTRUE(e$archived), persisted = TRUE, ref = list(store = "material_telefonica_config"),
-       estado = .mcamp_telefonica_estado(s, e))
+       proposito = e$proposito %||% NULL, estado = .mcamp_telefonica_estado(s, e))
 }
 
 .mcamp_telefonica_tipo <- function(hit) {
@@ -71,6 +71,7 @@ MATERIAL_TELEFONICA_CONFIG_SCHEMA <- "material_telefonica_config/v1"
   name <- .cmail_campaign_text(name, "name", 1L, 80L)
   entry <- list(id = .MCAMP_TELEFONICA_ID, tipo = "telefonica", name = name, created_at = .collection_now_iso(),
                 archived = FALSE, ref = list(store = "material_telefonica_config"))
+  entry$proposito <- .mcamp_proposito(session_get(sid))  # ADR 0125 A4; NULL no deja la clave
   .mcamp_registry_commit(sid, l$reg, c(l$reg$campaigns, list(entry)))
   .mcamp_response(sid, .MCAMP_TELEFONICA_ID)
 }

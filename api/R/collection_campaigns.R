@@ -33,7 +33,14 @@ MATERIAL_CAMPAIGNS_SCHEMA <- "material_campaigns/v1"
 .MCAMP_AULAS_ID <- "aulas.principal"
 .MCAMP_TERRITORIAL_MOTIVO <- "Requiere leer las UMP de Hojas de ruta"
 # `relacion` (ADR 0125 anexo A3/A4): de qué campaña viene una supervisión y, en acreditación, su público y ronda.
-.MCAMP_ENTRY_KEYS <- c("id", "tipo", "name", "created_at", "archived", "ref", "relacion")
+# `proposito` (A4): "acreditacion" cuando el estudio es de acreditación; se fija al crear la campaña.
+.MCAMP_ENTRY_KEYS <- c("id", "tipo", "name", "created_at", "archived", "ref", "relacion", "proposito")
+
+# El propósito que el Planner fija hoy (ADR 0125 A4): "acreditacion" o NULL. Nunca falla hacia arriba.
+.mcamp_proposito <- function(s) {
+  p <- tryCatch(.planner_modos(s)$material$proposito, error = function(e) NULL)
+  if (identical(.mtf_txt(p), "acreditacion")) "acreditacion" else NULL
+}
 
 # ---- lectura ------------------------------------------------------------------
 
@@ -150,7 +157,7 @@ MATERIAL_CAMPAIGNS_SCHEMA <- "material_campaigns/v1"
   e <- hit$entry
   list(id = e$id, tipo = "aulas", name = e$name, created_at = e$created_at %||% NA_character_,
        archived = isTRUE(e$archived), persisted = isTRUE(hit$persisted), ref = .mcamp_aulas_ref(state),
-       estado = .mcamp_aulas_estado(s, state))
+       proposito = e$proposito %||% NULL, estado = .mcamp_aulas_estado(s, state))
 }
 
 # La campaña de correo en migración (persisted FALSE) es tarjeta solo con
@@ -380,6 +387,7 @@ collection_campaign_create <- function(sid, tipo, name, actor = NULL, platform =
   name <- .cmail_campaign_text(name, "name", 1L, 80L)
   entry <- list(id = .MCAMP_AULAS_ID, tipo = "aulas", name = name, created_at = .collection_now_iso(),
                 archived = FALSE, ref = list(store = "collection_state"))
+  entry$proposito <- .mcamp_proposito(s)  # ADR 0125 A4; NULL no deja la clave
   .mcamp_registry_commit(sid, l$reg, c(l$reg$campaigns, list(entry)))
   .mcamp_response(sid, .MCAMP_AULAS_ID)
 }
