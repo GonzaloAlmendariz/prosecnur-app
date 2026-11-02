@@ -1,39 +1,41 @@
 // =============================================================================
-// CrossBar.tsx — control de cruce co-ubicado para ExplorarTab
+// CrossBar.tsx — «Cruzar por» de la barra de lectura del explorador (E7)
 // =============================================================================
-// Estados visuales:
-//   - Sin cruce: botón "+ Cruzar con…" discreto, 1 línea.
-//   - Cruce activo: chip con "Cruzando con «varB»" + × para quitar + botón
-//     "Cambiar" que vuelve a abrir el picker.
+// Sin cruce: un chip «Elegir variable» que abre el selector. Con cruce: el
+// chip lleno con la variable cruzada, «Cambiar» y × para quitarlo.
 //
-// Al abrir: popover anclado al trigger con:
-//   - Search input
-//   - Sugerencias (variables de la misma sección del dataset — si hay)
-//   - Lista completa filtrable por nombre o label
-//
-// El picker sólo lista variables compatibles: tipo so/sm/num (el resto
-// aún no tiene bivariado).
+// El selector lista TODAS las variables (cualquier tipo se cruza con
+// cualquier otro; el motor elige el gráfico por el par), buscable por texto o
+// código, filtrable por tipo, agrupado por sección —la de la pregunta primero—
+// y cada fila anticipa el gráfico que resulta (`graficoDelPar`).
 // =============================================================================
 
-import type { CSSProperties } from "react";
+import type { CSSProperties, ReactElement } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { GitCompare, Search, X as XIcon } from "../../../vendor/lucide-react";
+import { ArrowRight, ChevronDown, X as XIcon } from "../../../vendor/lucide-react";
 import { Popover } from "../../../components/Popover";
+import { PulsoButton } from "../../../components/PulsoButton";
+import { PulsoInput } from "../../../components/PulsoInput";
 import "./crossBar.css";
 import type { ExploradorSeccion, ExploradorVariable } from "../types";
+import ChipsTipo from "../tabs/explorar/ChipsTipo";
+import InsigniaTipo from "../tabs/explorar/InsigniaTipo";
+import { graficoDelPar } from "../tabs/explorar/graficoDelPar";
+import { coincide, conteoPorFamilia, enFamilia, type FamiliaTipo } from "../tabs/explorar/tiposVariable";
 
 export type CrossBarProps = {
   secciones: ExploradorSeccion[];
-  /** Variable principal (no se lista en el picker). */
+  /** Variable principal (no se lista en el selector). */
   selfVar: string;
-  /** Sección de la variable principal (para ordenar sugerencias). */
+  /** Sección de la variable principal (va primero en el selector). */
   selfSeccion: string | null;
   /** Variable cruzada actualmente, o null si no hay cruce. */
   cruzar: string | null;
   onChange: (v: string | null) => void;
-  /** Estilos custom del contenedor. */
   style?: CSSProperties;
 };
+
+type Candidata = ExploradorVariable & { seccion: string };
 
 export default function CrossBar({
   secciones,
@@ -44,40 +46,33 @@ export default function CrossBar({
   style,
 }: CrossBarProps) {
   const [query, setQuery] = useState("");
+  const [familia, setFamilia] = useState<FamiliaTipo>("todas");
 
-  // Variables compatibles con cruce (excluye la propia y tipos no soportados).
-  const compatibles = useMemo(() => {
-    const all = secciones.flatMap((s) =>
-      s.variables
-        .filter((v) => v.name !== selfVar && (v.tipo === "so" || v.tipo === "sm" || v.tipo === "num"))
-        .map((v) => ({ ...v, seccion: s.nombre })),
-    );
-    return all;
-  }, [secciones, selfVar]);
-
-  // Sugerencias: las de la misma sección (primeras 6, excluyendo la propia).
-  const suggestions = useMemo(() => {
-    if (!selfSeccion) return [];
-    return compatibles
-      .filter((v) => v.seccion === selfSeccion)
-      .slice(0, 6);
-  }, [compatibles, selfSeccion]);
-
-  // Búsqueda: filtra por nombre o label.
-  const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    if (!q) return compatibles;
-    return compatibles.filter(
-      (v) =>
-        v.name.toLowerCase().includes(q) ||
-        (v.label ?? "").toLowerCase().includes(q),
-    );
-  }, [compatibles, query]);
-
-  const crossedVar = useMemo(
-    () => (cruzar ? compatibles.find((v) => v.name === cruzar) : null),
-    [compatibles, cruzar],
+  const self = useMemo(
+    () => secciones.flatMap((s) => s.variables).find((v) => v.name === selfVar) ?? null,
+    [secciones, selfVar],
   );
+
+  const candidatas = useMemo<Candidata[]>(
+    () =>
+      secciones.flatMap((s) =>
+        s.variables.filter((v) => v.name !== selfVar).map((v) => ({ ...v, seccion: s.nombre })),
+      ),
+    [secciones, selfVar],
+  );
+  const conteo = useMemo(() => conteoPorFamilia(candidatas), [candidatas]);
+
+  const grupos = useMemo(() => {
+    const visibles = candidatas.filter((v) => enFamilia(v, familia) && coincide(v, query));
+    const orden = secciones
+      .map((s) => s.nombre)
+      .sort((a, b) => Number(b === selfSeccion) - Number(a === selfSeccion));
+    return orden
+      .map((nombre) => ({ nombre, vars: visibles.filter((v) => v.seccion === nombre) }))
+      .filter((g) => g.vars.length > 0);
+  }, [candidatas, familia, query, secciones, selfSeccion]);
+
+  const crossedVar = cruzar ? candidatas.find((v) => v.name === cruzar) ?? null : null;
 
   function handlePick(name: string) {
     onChange(name);
@@ -85,166 +80,83 @@ export default function CrossBar({
   }
 
   // Popover del kit (L1): portal, posición, Escape y click fuera los pone él;
-  // aquí sólo el contenido. Se cierra solo al elegir (cerrarAlCambiar={cruzar}).
-  const panelCruce = (
+  // se cierra solo al elegir (cerrarAlCambiar={cruzar}).
+  const panel = (
     <CrossPanel
+      total={candidatas.length}
       query={query}
       onQueryChange={setQuery}
-      suggestions={suggestions}
-      filtered={filtered}
+      familia={familia}
+      onFamilia={setFamilia}
+      conteo={conteo}
+      grupos={grupos}
+      selfTipo={self?.tipo ?? null}
       cruzar={cruzar}
       onPick={handlePick}
     />
   );
+  const popover = (trigger: ReactElement) => (
+    <Popover
+      trigger={trigger}
+      side="bottom"
+      align="start"
+      maxWidth={460}
+      className="pulso-crossbar-popover"
+      ariaLabel="Elegir variable para cruzar"
+      cerrarAlCambiar={cruzar}
+    >
+      {panel}
+    </Popover>
+  );
 
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", ...style }}>
-      {!cruzar && (
-        <Popover
-          trigger={(
-        <button
-          type="button"
-          aria-haspopup="dialog"
-          style={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: 6,
-            padding: "7px 12px",
-            borderRadius: "var(--pulso-radius-chip)",
-            border: "1px dashed var(--pulso-primary-border)",
-            background: "white",
-            color: "var(--pulso-primary)",
-            fontSize: 12,
-            fontWeight: 700,
-            cursor: "pointer",
-            transition: "background 120ms ease",
-          }}
-        >
-          <GitCompare size={13} />
-          Cruzar con…
-        </button>
+    <div className="crossbar" style={style}>
+      {!crossedVar &&
+        popover(
+          <button type="button" className="vx-chip" aria-haspopup="dialog">
+            Elegir variable
+            <ChevronDown size={12} aria-hidden />
+          </button>,
+        )}
+      {crossedVar && (
+        <>
+          <span className="crossbar-activa" title={crossedVar.name}>
+            {crossedVar.label || crossedVar.name}
+          </span>
+          {popover(
+            <PulsoButton variant="link" size="sm" aria-haspopup="dialog" title="Cambiar variable de cruce">
+              Cambiar
+            </PulsoButton>,
           )}
-          side="bottom"
-          align="start"
-          maxWidth={400}
-          className="pulso-crossbar-popover"
-          ariaLabel="Seleccionar variable de cruce"
-          cerrarAlCambiar={cruzar}
-        >
-          {panelCruce}
-        </Popover>
+          <PulsoButton variant="icon" size="sm" intent="remove" aria-label="Quitar cruce" title="Quitar cruce" onClick={() => onChange(null)}>
+            <XIcon size={12} aria-hidden />
+          </PulsoButton>
+        </>
       )}
-
-      {cruzar && crossedVar && (
-        <div
-          style={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: 6,
-            padding: "4px 4px 4px 10px",
-            borderRadius: "var(--pulso-radius-chip)",
-            background: "var(--pulso-primary-soft)",
-            border: "1px solid var(--pulso-primary-border)",
-            color: "var(--pulso-primary)",
-            fontSize: 12,
-            fontWeight: 700,
-          }}
-        >
-          <GitCompare size={13} />
-          <span>Cruzando con</span>
-          <code
-            style={{
-              fontFamily: "ui-monospace, monospace",
-              background: "white",
-              padding: "1px 6px",
-              borderRadius: 4,
-              color: "var(--pulso-text)",
-              border: "1px solid var(--pulso-border)",
-            }}
-          >
-            {crossedVar.name}
-          </code>
-          <Popover
-            trigger={(
-          <button
-              type="button"
-            title="Cambiar variable de cruce"
-            style={{
-              padding: "3px 8px",
-              fontSize: 11,
-              fontWeight: 700,
-              background: "white",
-              border: "1px solid var(--pulso-primary-border)",
-              color: "var(--pulso-primary)",
-              borderRadius: 999,
-              cursor: "pointer",
-            }}
-          >
-            Cambiar
-          </button>
-            )}
-            side="bottom"
-            align="start"
-            maxWidth={400}
-            className="pulso-crossbar-popover"
-            ariaLabel="Seleccionar variable de cruce"
-            cerrarAlCambiar={cruzar}
-          >
-            {panelCruce}
-          </Popover>
-          <button
-            type="button"
-            onClick={() => onChange(null)}
-            title="Quitar cruce"
-            aria-label="Quitar cruce"
-            style={{
-              width: 24,
-              height: 24,
-              display: "inline-flex",
-              alignItems: "center",
-              justifyContent: "center",
-              padding: 0,
-              background: "white",
-              border: "1px solid var(--pulso-border)",
-              color: "var(--pulso-text-soft)",
-              borderRadius: 999,
-              cursor: "pointer",
-            }}
-          >
-            <XIcon size={12} />
-          </button>
-        </div>
-      )}
-
-      <span
-        style={{
-          fontSize: 10,
-          color: "var(--pulso-text-soft)",
-          lineHeight: 1.4,
-        }}
-      >
-        SO × SO (barras apiladas) · SO × SM (comparación por opción) · SO × NUM (boxplot)
-      </span>
-
     </div>
   );
 }
 
-// -----------------------------------------------------------------------------
-// Popover portal con sugerencias + search + lista completa
-// -----------------------------------------------------------------------------
 function CrossPanel({
+  total,
   query,
   onQueryChange,
-  suggestions,
-  filtered,
+  familia,
+  onFamilia,
+  conteo,
+  grupos,
+  selfTipo,
   cruzar,
   onPick,
 }: {
+  total: number;
   query: string;
   onQueryChange: (v: string) => void;
-  suggestions: Array<ExploradorVariable & { seccion: string }>;
-  filtered: Array<ExploradorVariable & { seccion: string }>;
+  familia: FamiliaTipo;
+  onFamilia: (f: FamiliaTipo) => void;
+  conteo: Readonly<Record<FamiliaTipo, number>>;
+  grupos: { nombre: string; vars: Candidata[] }[];
+  selfTipo: ExploradorVariable["tipo"] | null;
   cruzar: string | null;
   onPick: (name: string) => void;
 }) {
@@ -254,190 +166,52 @@ function CrossPanel({
   }, []);
 
   return (
-    <div
-      style={{
-        width: 400,
-        maxHeight: 480,
-        maxWidth: "100%",
-        overflow: "hidden",
-        display: "flex",
-        flexDirection: "column",
-      }}
-    >
-      {/* Search */}
-      <div
-        style={{
-          position: "relative",
-          padding: "10px 12px",
-          borderBottom: "1px solid var(--pulso-border)",
-          background: "var(--pulso-surface)",
-        }}
-      >
-        <Search
-          size={13}
-          style={{
-            position: "absolute",
-            top: "50%",
-            left: 22,
-            transform: "translateY(-50%)",
-            color: "var(--pulso-text-soft)",
-          }}
-        />
-        <input
+    <div className="crossbar-panel">
+      <div className="crossbar-panel-cab">
+        <PulsoInput
           ref={searchRef}
-          type="text"
-          placeholder="Buscar variable por nombre o etiqueta…"
+          size="sm"
+          type="search"
+          aria-label="Buscar variable para cruzar"
+          placeholder={`Buscar entre las ${total} variables`}
           value={query}
           onChange={(e) => onQueryChange(e.target.value)}
-          style={{
-            width: "100%",
-            padding: "7px 10px 7px 28px",
-            fontSize: 12,
-            border: "1px solid var(--pulso-border)",
-            borderRadius: 8,
-            outline: "none",
-            background: "white",
-          }}
         />
+        <ChipsTipo valor={familia} conteo={conteo} onCambio={onFamilia} etiqueta="Filtrar por tipo" />
       </div>
-
-      {/* Sugerencias (solo si no hay búsqueda activa) */}
-      {!query && suggestions.length > 0 && (
-        <div
-          style={{
-            padding: "10px 12px",
-            borderBottom: "1px solid var(--pulso-border)",
-            background: "var(--pulso-surface-2)",
-          }}
-        >
-          <div
-            style={{
-              fontSize: 10,
-              fontWeight: 800,
-              textTransform: "uppercase",
-              letterSpacing: 0.5,
-              color: "var(--pulso-text-soft)",
-              marginBottom: 6,
-            }}
-          >
-            En la misma sección
-          </div>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-            {suggestions.map((v) => {
-              const active = v.name === cruzar;
-              return (
-                <button
-                  key={v.name}
-                  type="button"
-                  onClick={() => onPick(v.name)}
-                  title={v.label ?? undefined}
-                  style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: 4,
-                    padding: "3px 8px",
-                    borderRadius: 999,
-                    border: `1px solid ${active ? "var(--pulso-primary-border)" : "var(--pulso-border)"}`,
-                    background: active ? "var(--pulso-primary-soft)" : "white",
-                    color: "var(--pulso-text)",
-                    fontSize: 11,
-                    fontWeight: 600,
-                    cursor: "pointer",
-                    fontFamily: "ui-monospace, monospace",
-                  }}
-                >
-                  {v.name}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
-      {/* Lista completa filtrable */}
-      <div style={{ overflowY: "auto", flex: 1 }}>
-        {filtered.length === 0 ? (
-          <div
-            style={{
-              padding: 20,
-              fontSize: 12,
-              color: "var(--pulso-text-soft)",
-              fontStyle: "italic",
-              textAlign: "center",
-            }}
-          >
-            Sin resultados.
-          </div>
+      <div className="crossbar-panel-lista">
+        {grupos.length === 0 ? (
+          <p role="status" className="crossbar-vacio">Sin variables que coincidan.</p>
         ) : (
-          filtered.map((v) => {
-            const active = v.name === cruzar;
-            return (
-              <button
-                key={v.name}
-                type="button"
-                onClick={() => onPick(v.name)}
-                style={{
-                  display: "flex",
-                  width: "100%",
-                  alignItems: "center",
-                  gap: 8,
-                  padding: "8px 12px",
-                  background: active ? "var(--pulso-primary-soft)" : "white",
-                  border: "none",
-                  borderBottom: "1px solid var(--pulso-surface-2)",
-                  cursor: "pointer",
-                  textAlign: "left",
-                }}
-              >
-                <span
-                  style={{
-                    fontSize: 10,
-                    fontWeight: 800,
-                    padding: "2px 5px",
-                    borderRadius: 3,
-                    background: "var(--pulso-surface-2)",
-                    color: "var(--pulso-text-soft)",
-                    fontFamily: "ui-monospace, monospace",
-                    textTransform: "uppercase",
-                    flexShrink: 0,
-                  }}
-                >
-                  {v.tipo}
-                </span>
-                <code
-                  style={{
-                    fontFamily: "ui-monospace, monospace",
-                    fontSize: 11,
-                    color: "var(--pulso-text)",
-                    flexShrink: 0,
-                  }}
-                >
-                  {v.name}
-                </code>
-                <span
-                  style={{
-                    fontSize: 11,
-                    color: "var(--pulso-text-soft)",
-                    flex: 1,
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                    whiteSpace: "nowrap",
-                  }}
-                >
-                  {v.label}
-                </span>
-                <span
-                  style={{
-                    fontSize: 10,
-                    color: "var(--pulso-text-soft)",
-                    flexShrink: 0,
-                  }}
-                >
-                  {v.seccion}
-                </span>
-              </button>
-            );
-          })
+          grupos.map((g) => (
+            <div key={g.nombre} className="crossbar-grupo">
+              <span className="vx-eyebrow">{g.nombre}</span>
+              {g.vars.map((v) => {
+                const grafico = selfTipo ? graficoDelPar(selfTipo, v.tipo) : null;
+                return (
+                  <button
+                    key={v.name}
+                    type="button"
+                    className="crossbar-opcion"
+                    aria-current={v.name === cruzar ? "true" : undefined}
+                    onClick={() => onPick(v.name)}
+                  >
+                    <InsigniaTipo tipo={v.tipo} />
+                    <span className="crossbar-opcion-texto">
+                      <span>{v.label || v.name}</span>
+                      <span className="vx-mono">{v.name}</span>
+                    </span>
+                    {grafico && (
+                      <span className="crossbar-grafico">
+                        <ArrowRight size={12} aria-hidden />
+                        {grafico}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          ))
         )}
       </div>
     </div>

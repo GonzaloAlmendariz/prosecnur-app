@@ -6,7 +6,9 @@ import ts from "typescript";
 import { describe, expect, test } from "vitest";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
-const sourcePath = path.join(here, "ExplorarTab.tsx");
+// La tira de cifras (E5, revamp 2026-11-02) reemplazó al grid de tarjetas KPI
+// y vive en su propio archivo; declara el mismo grupo geométrico.
+const sourcePath = path.join(here, "explorar", "TiraCifras.tsx");
 const sourceFile = ts.createSourceFile(
   sourcePath,
   fs.readFileSync(sourcePath, "utf8"),
@@ -33,7 +35,7 @@ function kpiGridTags(): ts.JsxOpeningLikeElement[] {
   const visit = (node: ts.Node) => {
     if (ts.isJsxOpeningElement(node) || ts.isJsxSelfClosingElement(node)) {
       const classes = literalAttribute(node, "className")?.split(/\s+/) ?? [];
-      if (classes.includes("pulso-validacion-kpi-grid")) matches.push(node);
+      if (classes.includes("vx-tira")) matches.push(node);
     }
     ts.forEachChild(node, visit);
   };
@@ -41,8 +43,8 @@ function kpiGridTags(): ts.JsxOpeningLikeElement[] {
   return matches;
 }
 
-describe("contrato geométrico de los KPIs de Validación > Explorar", () => {
-  test("declara el grid exacto de KPIs como un grupo de miembros iguales", () => {
+describe("contrato geométrico de la tira de cifras de Validación > Explorar", () => {
+  test("declara la tira de cifras como un grupo de miembros iguales", () => {
     const tags = kpiGridTags();
 
     expect(tags).toHaveLength(1);
@@ -54,4 +56,9 @@ describe("contrato geométrico de los KPIs de Validación > Explorar", () => {
       contract: "equal",
     });
   });
+});
+
+test("cada cifra se declara miembro del grupo", () => {
+  const fuente = fs.readFileSync(sourcePath, "utf8");
+  expect(fuente).toMatch(/className="vx-cifra" data-qa-geometry-member/);
 });

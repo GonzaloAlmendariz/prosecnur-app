@@ -1,30 +1,22 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { codigoDeError, esEstadoInicial, vacioSinDatos } from "../estadoEsperado";
-import {
-  AlertTriangle,
-  ChevronLeft,
-  ChevronRight,
-  Compass,
-  ListChecks,
-  Loader2,
-  Search,
-  SlidersHorizontal,
-} from "lucide-react";
+import { AlertTriangle, Compass } from "../../../vendor/lucide-react";
 import {
   apiV2ExplorarBivariado,
+  apiV2ExplorarFicha,
   apiV2ExplorarUnivariado,
   apiV2ExplorarVariables,
   apiV2Limpieza,
   type ExplorarBivariadoResult,
   type ExplorarFiltros,
   type ExplorarFuente,
-  type ExplorarTextResponseRow,
   type ExplorarUnivariadoResult,
-} from "../../../api/client";
-import type { ViewDescriptor } from "../types";
+} from "../../../api/validacion";
+import type { ExploradorFicha } from "../../../api/validacionExplorar";
 import type { ExploradorVariable, ExploradorVariablesList } from "../types";
 import { useValidacionStore } from "../store";
 import { EmptyState, ErrorBlock, LoadingBlock } from "../../../components/States";
+import { PulsoButton } from "../../../components/PulsoButton";
 import { RepeatGrainNote } from "../../../components/RepeatGrainNote";
 import {
   buildExplorerGrain,
@@ -37,14 +29,36 @@ import VariablePicker from "../components/VariablePicker";
 import FiltroCascada from "../components/FiltroCascada";
 import CrossBar from "../components/CrossBar";
 import RepeatDimensionBar from "../components/RepeatDimensionBar";
+import BarraLectura from "./explorar/BarraLectura";
+import CabeceraVariable from "./explorar/CabeceraVariable";
+import Cruce from "./explorar/Cruce";
+import Distribucion from "./explorar/Distribucion";
+import ExplorarLoadingPanel from "./explorar/ExplorarLoadingPanel";
+import FuenteToggle from "./explorar/FuenteToggle";
+import GraficoTarjeta from "./explorar/GraficoTarjeta";
+import PanelApartaTotal from "./explorar/PanelApartaTotal";
+import PanelDatos from "./explorar/PanelDatos";
+import PanelFormulario from "./explorar/PanelFormulario";
+import RielVariables from "./explorar/RielVariables";
+import TextResponsesView from "./explorar/TextResponsesView";
+import TiraCifras from "./explorar/TiraCifras";
+import { cifrasClave, fraseBase, modeloCalor, resolverBase, type LecturaCalor } from "./explorar/explorarModelo";
+import { graficoDelPar } from "./explorar/graficoDelPar";
+import { findSeccionOf, pickInitialVariable } from "./explorar/seleccionInicial";
+import "./explorar/explorar.css";
 
 // =============================================================================
 // ExplorarTab — Sprint 3
 // =============================================================================
-// Layout 2 columnas:
-//   - Left (280px): VariablePicker con buscador + secciones plegables.
-//   - Right (flex): vista de la variable seleccionada — KPIs + chart
-//     univariado. Debajo, cruce opcional con segunda variable (bivariado).
+// Revamp 2026-11-02 (docs/qa/checklist-explorador-variables-2026-11-02.md):
+//   - Izquierda: la lista de variables (E1); al cruzar se pliega en un riel (E12).
+//   - Centro: cabecera (E2), barra de lectura Momento | Filtro | Cruzar por
+//     (E3), la base en una frase (E4), la tira de cifras (E5) y el gráfico por
+//     tipo (E6) o el cruce por par de tipos (E8/E9).
+//   - Derecha: «En el formulario» y «Lo que se ve en los datos» (E10/E11) o,
+//     con una tabla cruzada, «Lo que se aparta del total».
+// Si el motor aún no manda `dist`, `cruce` o la ficha, cada pieza cae a lo
+// anterior (Plotly, las tarjetas KPI) o no se muestra.
 //
 // El deep-link desde Limpieza (prefill.explorar.var) se consume al montar.
 
@@ -78,6 +92,12 @@ export default function ExplorarTab({
   // Si la base tiene Limpieza cerrada, habilitamos el modo "final".
   const [hasFinalizedBase, setHasFinalizedBase] = useState<boolean>(false);
   const [finalizedAt, setFinalizedAt] = useState<string | null>(null);
+  // Ficha de la pregunta, con la variable y la fuente para las que se pidió:
+  // así la readiness sabe si la que está en pantalla es la de la selección.
+  const [fichaEstado, setFichaEstado] = useState<{ var: string; fuente: ExplorarFuente; ficha: ExploradorFicha | null } | null>(null);
+  const [lecturaCalor, setLecturaCalor] = useState<LecturaCalor>("columna");
+  // Con cruce la lista va plegada; «lista» o «buscar» la despliegan a pedido.
+  const [listaAbierta, setListaAbierta] = useState<null | "lista" | "buscar">(null);
 
   const repeatContext = inv?.repeat_context ?? null;
   const selectedRepeatOption = repeatCode
@@ -292,10 +312,54 @@ export default function ExplorarTab({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selected, cruzar, baseNombre, fuente, selectedRepeatIsEmpty, JSON.stringify(effectiveFiltros)]);
 
+  // Ficha de la pregunta (E10/E11). Un motor sin el endpoint devuelve null y
+  // los paneles no se muestran; un error tampoco tumba la vista.
+  useEffect(() => {
+    if (!selected || selectedRepeatIsEmpty) return;
+    let cancel = false;
+    const pedida = { var: selected.name, fuente };
+    apiV2ExplorarFicha(selected.name, baseNombre, fuente)
+      .then((ficha) => {
+        if (!cancel) setFichaEstado({ ...pedida, ficha });
+      })
+      .catch(() => {
+        if (!cancel) setFichaEstado({ ...pedida, ficha: null });
+      });
+    return () => {
+      cancel = true;
+    };
+  }, [selected, baseNombre, fuente, selectedRepeatIsEmpty]);
+
+  const cambiarCruce = useCallback((v: string | null) => {
+    setCruzar(v);
+    setListaAbierta(null);
+  }, []);
+
   const onPickVariable = useCallback((v: ExploradorVariable) => {
     setSelected(v);
     setCruzar(null);
+    setListaAbierta(null);
   }, []);
+
+  const fichaVigente =
+    selected && fichaEstado && fichaEstado.var === selected.name && fichaEstado.fuente === fuente ? fichaEstado : null;
+  const ficha = fichaVigente?.ficha ?? null;
+  const uniVigente = selected && uni && uni.var === selected.name ? uni : null;
+  const dist = uniVigente?.dist ?? null;
+  const base = useMemo(() => (uniVigente ? resolverBase(uniVigente, dist, ficha) : null), [uniVigente, dist, ficha]);
+  const cifras = useMemo(
+    () => (uniVigente && base ? cifrasClave(uniVigente, dist, ficha, base) : []),
+    [uniVigente, dist, ficha, base],
+  );
+  const declarados = useMemo(
+    () => (ficha && ficha.opciones.length ? new Set(ficha.opciones.map((o) => o.codigo)) : null),
+    [ficha],
+  );
+  const cruce = cruzar && biv ? biv.cruce ?? null : null;
+  const modelo = useMemo(
+    () => (cruce?.forma === "tabla" && cruce.tabla ? modeloCalor(cruce.tabla, lecturaCalor, cruce.base_n) : null),
+    [cruce, lecturaCalor],
+  );
 
   // Keyboard shortcuts: ← / → iteran variables mientras no haya foco en
   // un input/textarea (para no pisar la edición de filtros).
@@ -378,27 +442,85 @@ export default function ExplorarTab({
     );
   }
 
+  const crossVar = cruzar ? flatVars.find((v) => v.name === cruzar) ?? null : null;
+  const plegada = !!crossVar && listaAbierta === null;
+  const titulo = selectedRepeatOption ? `Preguntas para ${selectedRepeatOption.label}` : "Variables";
+  const sufijoRepeat = selectedRepeatOption ? ` · ${selectedRepeatOption.label}` : "";
+  const frase = base ? fraseBase(base) : null;
+
+  const lateral =
+    crossVar && modelo ? (
+      <aside className="vx-lateral" aria-label="Lectura del cruce">
+        <PanelApartaTotal modelo={modelo} />
+      </aside>
+    ) : !crossVar && ficha && uniVigente ? (
+      <aside className="vx-lateral" aria-label="Ficha de la pregunta">
+        <PanelFormulario ficha={ficha} />
+        <PanelDatos ficha={ficha} filtrado={uniVigente.filtros_aplicados > 0} />
+      </aside>
+    ) : null;
+
+  const grafico = !uniVigente || !selected ? null : crossVar && biv ? (
+    cruce ? (
+      <Cruce
+        cruce={cruce}
+        modelo={modelo}
+        lectura={lecturaCalor}
+        onLectura={setLecturaCalor}
+        rotuloX={selected.label || selected.name}
+        rotuloY={crossVar.label || crossVar.name}
+      />
+    ) : (
+      <GraficoTarjeta titulo={`${selected.name} × ${crossVar.name}${sufijoRepeat}`}>
+        <PlotlyView view={biv.view} />
+      </GraficoTarjeta>
+    )
+  ) : crossVar ? null : dist ? (
+    <Distribucion dist={dist} sinRespuesta={base?.sinRespuesta ?? null} declarados={declarados} />
+  ) : (
+    <GraficoTarjeta titulo={`Distribución${sufijoRepeat}`} tipo={uniVigente.tipo}>
+      {uniVigente.chart.kind === "table" && uniVigente.chart.text_rows ? (
+        <TextResponsesView view={uniVigente.chart} rows={uniVigente.chart.text_rows} />
+      ) : (
+        <PlotlyView view={uniVigente.chart} />
+      )}
+    </GraficoTarjeta>
+  );
+
   const panelContent = (
     <>
-      {/* --- Sidebar: picker --------------------------------------------- */}
-      <aside className="pulso-validacion-explorar-sidebar">
-        <div className="pulso-validacion-explorar-picker-head">
-          <div>
-            <span>{selectedRepeatOption ? `Preguntas para ${selectedRepeatOption.label}` : "Preguntas y campos"}</span>
-            <strong>{scopedInv?.n_variables ?? inv.n_variables}</strong>
-          </div>
-          <p>{selectedRepeatOption ? `${selectedRepeatOption.n_instancias.toLocaleString("es-PE")} instancias` : "Única · Múltiple · Numérica · Abierta"}</p>
-        </div>
-        <VariablePicker
-          secciones={scopedSections}
-          selectedVar={selected?.name ?? null}
-          onSelect={onPickVariable}
-          repeatCode={repeatCode}
-          repeatLabel={selectedRepeatOption?.label ?? null}
+      {plegada ? (
+        <RielVariables
+          posicion={currentIdx + 1}
+          total={flatVars.length}
+          onDesplegar={() => setListaAbierta("lista")}
+          onBuscar={() => setListaAbierta("buscar")}
+          onAnterior={prevVar ? () => setSelected(prevVar) : undefined}
+          onSiguiente={nextVar ? () => setSelected(nextVar) : undefined}
+          nombreAnterior={prevVar?.name ?? null}
+          nombreSiguiente={nextVar?.name ?? null}
         />
-      </aside>
+      ) : (
+        <aside className="pulso-validacion-explorar-sidebar" aria-label="Variables del formulario">
+          <VariablePicker
+            secciones={scopedSections}
+            selectedVar={selected?.name ?? null}
+            onSelect={onPickVariable}
+            repeatCode={repeatCode}
+            repeatLabel={selectedRepeatOption?.label ?? null}
+            titulo={titulo}
+            autoFocusBusqueda={listaAbierta === "buscar"}
+            accion={
+              crossVar ? (
+                <PulsoButton variant="link" size="sm" onClick={() => setListaAbierta(null)}>
+                  Plegar
+                </PulsoButton>
+              ) : null
+            }
+          />
+        </aside>
+      )}
 
-      {/* --- Vista principal ---------------------------------------------- */}
       <main className="pulso-validacion-explorar-main">
         {rosterGrain && (
           <RepeatGrainNote grain={rosterGrain} className="pulso-validacion-explorar-repeat" />
@@ -412,103 +534,82 @@ export default function ExplorarTab({
           />
         )}
 
-        {/* Toggle de momento: respuestas cargadas vs versión final tras Limpieza. */}
-        <FuenteToggle
-          fuente={fuente}
-          onChange={setFuente}
-          hasFinal={hasFinalizedBase}
-          finalizedAt={finalizedAt}
-        />
-
-        {/* Filtros cascada (siempre visibles arriba cuando hay inventario) */}
-        <FiltroCascada
-          secciones={scopedSections}
-          filtros={filtros}
-          onChange={setFiltros}
-          baseNombre={baseNombre}
-        />
-
-        {selectedRepeatIsEmpty ? (
-          <EmptyState
-            icon={<Compass size={20} />}
-            title={`Sin respuestas para ${selectedRepeatOption?.label ?? "este servicio"}`}
-            hint="El servicio está declarado en el formulario, pero esta base no contiene instancias para analizar."
-          />
-        ) : !selected && (
-          <EmptyState
-            icon={<Compass size={20} />}
-            title="Elige una pregunta o campo"
-            hint="Selecciona un elemento del panel izquierdo para ver su distribución, resumen y cruces."
-          />
-        )}
-
-        {selected && uni && (
-          <>
-            {/* Header unificado: nav ← →, datos de la variable, cruce co-ubicado */}
-            <VariableHeader
-              uni={uni}
-              currentIdx={currentIdx}
-              totalVars={flatVars.length}
-              onPrev={prevVar ? () => setSelected(prevVar) : undefined}
-              onNext={nextVar ? () => setSelected(nextVar) : undefined}
-              prevName={prevVar?.name ?? null}
-              nextName={nextVar?.name ?? null}
-              repeatLabel={selectedRepeatOption?.label ?? null}
-              repeatInstances={selectedRepeatOption?.n_instancias ?? null}
-            />
-
-            {/* Barra de cruce: siempre visible, arriba de los charts. */}
-            <CrossBar
-              secciones={scopedSections}
-              selfVar={selected.name}
-              selfSeccion={scopedInv ? findSeccionOf(selected.name, scopedInv) : null}
-              cruzar={cruzar}
-              onChange={setCruzar}
-            />
-
-            {/* KPIs a todo el ancho (no se parten con el cruce). */}
-            <div
-              className="pulso-validacion-kpi-grid"
-              data-qa-geometry-group="validacion/explorar-kpis"
-              data-qa-geometry-contract="equal"
-            >
-              {uni.kpis.map((k, i) => (
-                <PlotlyView key={i} view={k} />
-              ))}
-            </div>
-
-            {/* Chart principal: cuando hay cruce activo, el biv REEMPLAZA al
-                univariado (no se muestran lado a lado — la comparación en
-                sí contiene la distribución marginal). Cuando no hay cruce,
-                se ve el univariado a todo el ancho. */}
-            {cruzar && biv ? (
-              <ChartPanel
-                title={`${selected.name} × ${cruzar}${selectedRepeatOption ? ` · ${selectedRepeatOption.label}` : ""}`}
-                tone="cross"
-              >
-                <PlotlyView view={biv.view} />
-              </ChartPanel>
-            ) : (
-              <ChartPanel
-                title={`Distribución de ${selected.name}${selectedRepeatOption ? ` · ${selectedRepeatOption.label}` : ""}`}
-                tone="self"
-              >
-                {uni.chart.kind === "table" && uni.chart.text_rows ? (
-                  <TextResponsesView view={uni.chart} rows={uni.chart.text_rows} />
-                ) : (
-                  <PlotlyView view={uni.chart} />
-                )}
-              </ChartPanel>
+        <div className="vx-cuerpo">
+          <div className="vx-centro">
+            {selected && uniVigente && (
+              <CabeceraVariable
+                uni={uniVigente}
+                ficha={ficha}
+                seccion={scopedInv ? findSeccionOf(selected.name, scopedInv) : null}
+                posicion={currentIdx + 1}
+                total={flatVars.length}
+                nOpciones={ficha?.opciones.length || (dist?.filas ? dist.filas.length : null)}
+                cruce={crossVar ? { variable: crossVar, grafico: cruce?.grafico || graficoDelPar(selected.tipo, crossVar.tipo) } : null}
+                onAnterior={prevVar ? () => setSelected(prevVar) : undefined}
+                onSiguiente={nextVar ? () => setSelected(nextVar) : undefined}
+                nombreAnterior={prevVar?.name ?? null}
+                nombreSiguiente={nextVar?.name ?? null}
+                repeatLabel={selectedRepeatOption?.label ?? null}
+                repeatInstances={selectedRepeatOption?.n_instancias ?? null}
+              />
             )}
-          </>
-        )}
 
-        {busy && (
-          <div style={{ marginTop: 4 }}>
-            <LoadingBlock variant="inline" label={busy} />
+            <BarraLectura
+              momento={
+                <FuenteToggle fuente={fuente} onChange={setFuente} hasFinal={hasFinalizedBase} finalizedAt={finalizedAt} />
+              }
+              filtro={
+                <FiltroCascada
+                  secciones={scopedSections}
+                  filtros={filtros}
+                  onChange={setFiltros}
+                  baseNombre={baseNombre}
+                  incrustado
+                />
+              }
+              cruce={
+                selected ? (
+                  <CrossBar
+                    secciones={scopedSections}
+                    selfVar={selected.name}
+                    selfSeccion={scopedInv ? findSeccionOf(selected.name, scopedInv) : null}
+                    cruzar={cruzar}
+                    onChange={cambiarCruce}
+                  />
+                ) : (
+                  <span className="vx-barra-nota">Elige una variable primero</span>
+                )
+              }
+            />
+
+            {selectedRepeatIsEmpty ? (
+              <EmptyState
+                icon={<Compass size={20} />}
+                title={`Sin respuestas para ${selectedRepeatOption?.label ?? "este servicio"}`}
+                hint="El servicio está declarado en el formulario, pero esta base no contiene instancias para analizar."
+              />
+            ) : !selected && (
+              <EmptyState
+                icon={<Compass size={20} />}
+                title="Elige una pregunta o campo"
+                hint="Selecciona un elemento de la lista para ver su distribución, resumen y cruces."
+              />
+            )}
+
+            {frase && (
+              <p className="vx-base">
+                Base: <strong>{frase.destacado}</strong>
+                {frase.resto}
+              </p>
+            )}
+            {!crossVar && <TiraCifras cifras={cifras} />}
+            {grafico}
+
+            {busy && <LoadingBlock variant="inline" label={busy} />}
+            {error && <ErrorBlock label="Error" detail={error} />}
           </div>
-        )}
-        {error && <ErrorBlock label="Error" detail={error} />}
+          {lateral}
+        </div>
       </main>
     </>
   );
@@ -519,574 +620,21 @@ export default function ExplorarTab({
     (
       !selected ||
       (!selectedRepeatIsEmpty && (!uni || uni.var !== selected.name)) ||
+      (!selectedRepeatIsEmpty && !fichaVigente) ||
       (!!cruzar && !biv)
     );
 
+  const layoutClass = `pulso-validacion-explorar-layout${plegada ? " vx-con-riel" : ""}`;
   if (busy || error || primaryResultPending) {
-    return <div className="pulso-validacion-explorar-layout">{panelContent}</div>;
+    return <div className={layoutClass}>{panelContent}</div>;
   }
 
   return (
     <div
-      className="pulso-validacion-explorar-layout"
+      className={layoutClass}
       data-audit-ready="validacion-explorar"
     >
       {panelContent}
     </div>
-  );
-}
-
-function TextResponsesView({
-  view,
-  rows,
-}: {
-  view: ViewDescriptor;
-  rows: ExplorarTextResponseRow[];
-}) {
-  if (!rows.length) {
-    return (
-      <div
-        style={{
-          borderRadius: 14,
-          border: "1px dashed var(--pulso-border)",
-          background: "var(--pulso-surface-2)",
-          padding: "28px 18px",
-          textAlign: "center",
-          color: "var(--pulso-text-soft)",
-          fontSize: 12,
-        }}
-      >
-        No hay respuestas abiertas no vacías para esta variable.
-      </div>
-    );
-  }
-  return (
-    <article
-      style={{
-        borderRadius: 14,
-        border: "1px solid rgba(216, 224, 239, 0.95)",
-        background: "linear-gradient(180deg, rgba(248, 250, 255, 0.92) 0%, #ffffff 100%)",
-        overflow: "hidden",
-      }}
-    >
-      <header
-        style={{
-          padding: "12px 14px",
-          borderBottom: "1px solid var(--pulso-border)",
-          display: "flex",
-          justifyContent: "space-between",
-          gap: 12,
-          alignItems: "flex-start",
-          flexWrap: "wrap",
-        }}
-      >
-        <div style={{ minWidth: 0 }}>
-          <div style={{ fontSize: 13, fontWeight: 800, color: "var(--pulso-text)" }}>
-            {view.title}
-          </div>
-          {view.subtitle && (
-            <div style={{ marginTop: 2, fontSize: 11, color: "var(--pulso-text-soft)" }}>
-              {view.subtitle}
-            </div>
-          )}
-        </div>
-        <span
-          style={{
-            flex: "0 0 auto",
-            borderRadius: 999,
-            border: "1px solid var(--pulso-border)",
-            background: "white",
-            color: "var(--pulso-text-soft)",
-            fontSize: 11,
-            fontWeight: 700,
-            padding: "4px 8px",
-          }}
-        >
-          {rows.length} respuesta{rows.length === 1 ? "" : "s"}
-        </span>
-      </header>
-      <div style={{ maxHeight: 360, overflow: "auto" }}>
-        <table
-          style={{
-            width: "100%",
-            borderCollapse: "separate",
-            borderSpacing: 0,
-            fontSize: 12,
-          }}
-        >
-          <thead>
-            <tr>
-              <TextHead style={{ width: 72 }}>Caso</TextHead>
-              <TextHead style={{ width: 170 }}>Respondente</TextHead>
-              <TextHead>Respuesta</TextHead>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((row, idx) => (
-              <tr key={`${row.row}-${idx}`}>
-                <TextCell mono>{row.row}</TextCell>
-                <TextCell mono>{row.respondent_id}</TextCell>
-                <TextCell>{row.response}</TextCell>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-      {typeof view.meta?.note === "string" && view.meta.note.trim() && (
-        <div
-          style={{
-            padding: "9px 14px",
-            borderTop: "1px solid var(--pulso-border)",
-            color: "var(--pulso-text-soft)",
-            fontSize: 11,
-          }}
-        >
-          {view.meta.note}
-        </div>
-      )}
-    </article>
-  );
-}
-
-function TextHead({
-  children,
-  style,
-}: {
-  children: React.ReactNode;
-  style?: React.CSSProperties;
-}) {
-  return (
-    <th
-      style={{
-        position: "sticky",
-        top: 0,
-        zIndex: 1,
-        padding: "8px 10px",
-        background: "#eef3ff",
-        borderBottom: "1px solid var(--pulso-border)",
-        color: "var(--pulso-text-soft)",
-        fontSize: 10,
-        fontWeight: 800,
-        textTransform: "uppercase",
-        letterSpacing: 0.4,
-        textAlign: "left",
-        ...style,
-      }}
-    >
-      {children}
-    </th>
-  );
-}
-
-function TextCell({
-  children,
-  mono = false,
-}: {
-  children: React.ReactNode;
-  mono?: boolean;
-}) {
-  return (
-    <td
-      style={{
-        verticalAlign: "top",
-        padding: "9px 10px",
-        borderBottom: "1px solid rgba(216, 224, 239, 0.7)",
-        color: "var(--pulso-text)",
-        lineHeight: 1.45,
-        fontFamily: mono ? "ui-monospace, SFMono-Regular, Menlo, monospace" : undefined,
-        fontSize: mono ? 11 : 12,
-        whiteSpace: mono ? "nowrap" : "pre-wrap",
-      }}
-    >
-      {children}
-    </td>
-  );
-}
-
-// -----------------------------------------------------------------------------
-// FuenteToggle — selector de momento de revisión
-// -----------------------------------------------------------------------------
-// Segmentado de 2 posiciones. El botón "Después de limpieza" queda deshabilitado
-// (con tooltip explicativo) hasta que Limpieza se haya finalizado.
-// Cuando está activo, un pequeño hint muestra cuándo se cerró la base.
-function FuenteToggle({
-  fuente,
-  onChange,
-  hasFinal,
-  finalizedAt,
-}: {
-  fuente: ExplorarFuente;
-  onChange: (f: ExplorarFuente) => void;
-  hasFinal: boolean;
-  finalizedAt: string | null;
-}) {
-  const finalizedAtText = (() => {
-    if (!finalizedAt) return null;
-    try {
-      const d = new Date(finalizedAt);
-      if (Number.isNaN(d.getTime())) return null;
-      return d.toLocaleString("es-PE", { dateStyle: "medium", timeStyle: "short" });
-    } catch {
-      return null;
-    }
-  })();
-  return (
-    <div
-      style={{
-        display: "flex",
-        alignItems: "center",
-        gap: 12,
-        padding: "8px 12px",
-        borderRadius: 10,
-        background: "white",
-        border: "1px solid var(--pulso-border)",
-        boxShadow: "var(--pulso-shadow-low)",
-        flexWrap: "wrap",
-      }}
-    >
-      <span
-        style={{
-          fontSize: 11,
-          fontWeight: 700,
-          textTransform: "uppercase",
-          letterSpacing: 0.4,
-          color: "var(--pulso-text-soft)",
-        }}
-      >
-        Momento
-      </span>
-      <div
-        role="group"
-        aria-label="Momento de respuestas del explorador"
-        className="pulso-vv2-segmented"
-      >
-        <FuenteButton
-          label="Antes de limpieza"
-          hint="Respuestas tal como se cargaron. Útil para detectar errores."
-          active={fuente === "raw"}
-          disabled={false}
-          onClick={() => onChange("raw")}
-        />
-        <FuenteButton
-          label="Después de limpieza"
-          hint={
-            hasFinal
-              ? "Respuestas tras aplicar todas las decisiones de Limpieza."
-              : "Cierra Limpieza primero para habilitar este modo."
-          }
-          active={fuente === "final"}
-          disabled={!hasFinal}
-          onClick={() => hasFinal && onChange("final")}
-        />
-      </div>
-      {fuente === "final" && finalizedAtText && (
-        <span style={{ fontSize: 11, color: "var(--pulso-text-soft)" }}>
-          Cerrada el {finalizedAtText}
-        </span>
-      )}
-      {fuente === "raw" && hasFinal && (
-        <span style={{ fontSize: 11, color: "var(--pulso-text-soft)" }}>
-          Hay una versión posterior a limpieza disponible.
-        </span>
-      )}
-    </div>
-  );
-}
-
-function FuenteButton({
-  label,
-  hint,
-  active,
-  disabled,
-  onClick,
-}: {
-  label: string;
-  hint: string;
-  active: boolean;
-  disabled: boolean;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={disabled}
-      title={hint}
-      aria-pressed={active}
-      className={`pulso-vv2-seg-btn${active ? " is-active" : ""}`}
-    >
-      {label}
-    </button>
-  );
-}
-
-// -----------------------------------------------------------------------------
-// VariableHeader — título + tipo + label + navegación ← → + contador
-// -----------------------------------------------------------------------------
-function VariableHeader({
-  uni,
-  currentIdx,
-  totalVars,
-  onPrev,
-  onNext,
-  prevName,
-  nextName,
-  repeatLabel,
-  repeatInstances,
-}: {
-  uni: ExplorarUnivariadoResult;
-  currentIdx: number;
-  totalVars: number;
-  onPrev: (() => void) | undefined;
-  onNext: (() => void) | undefined;
-  prevName: string | null;
-  nextName: string | null;
-  repeatLabel: string | null;
-  repeatInstances: number | null;
-}) {
-  return (
-    <header
-      style={{
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between",
-        gap: 16,
-        padding: "14px 18px",
-        borderRadius: 10,
-        background: "var(--pulso-primary-soft)",
-        border: "1px solid var(--pulso-primary-border)",
-        flexWrap: "wrap",
-      }}
-    >
-      <div style={{ display: "flex", flexDirection: "column", gap: 4, flex: 1, minWidth: 200 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-          <span
-            style={{
-              fontSize: 10,
-              fontWeight: 800,
-              textTransform: "uppercase",
-              letterSpacing: 0.5,
-              color: "var(--pulso-primary)",
-              padding: "2px 8px",
-              borderRadius: 999,
-              background: "white",
-              border: "1px solid var(--pulso-primary-border)",
-            }}
-          >
-            {uni.tipo.toUpperCase()}
-          </span>
-          <code style={{ fontFamily: "ui-monospace, monospace", fontSize: 16, fontWeight: 700, color: "var(--pulso-text)" }}>
-            {uni.var}
-          </code>
-          {repeatLabel && (
-            <span className="pulso-repeat-variable-context">
-              Servicio · {repeatLabel}
-              {repeatInstances != null && ` · ${repeatInstances.toLocaleString("es-PE")} instancias`}
-            </span>
-          )}
-        </div>
-        {uni.label && uni.label !== uni.var && (
-          <div style={{ fontSize: 12, color: "var(--pulso-text-soft)", lineHeight: 1.4 }}>
-            {uni.label}
-          </div>
-        )}
-      </div>
-
-      <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-        <div style={{ fontSize: 11, color: "var(--pulso-text-soft)", fontFamily: "ui-monospace, monospace" }}>
-          {currentIdx + 1} / {totalVars}
-          {uni.filtros_aplicados > 0 && (
-            <span style={{ marginLeft: 8, color: "var(--pulso-primary)", fontWeight: 700 }}>
-              · {uni.n_tras_filtro} / {uni.n_total} tras filtros
-            </span>
-          )}
-        </div>
-        <div style={{ display: "flex", gap: 4 }}>
-          <button
-            type="button"
-            onClick={onPrev}
-            disabled={!onPrev}
-            title={prevName ? `Anterior: ${prevName} (←)` : "Ya estás en la primera variable"}
-            className="pulso-vv2-iconbtn"
-            style={navBtnStyle(!!onPrev)}
-          >
-            <ChevronLeft size={12} />
-          </button>
-          <button
-            type="button"
-            onClick={onNext}
-            disabled={!onNext}
-            title={nextName ? `Siguiente: ${nextName} (→)` : "Ya estás en la última variable"}
-            className="pulso-vv2-iconbtn"
-            style={navBtnStyle(!!onNext)}
-          >
-            <ChevronRight size={12} />
-          </button>
-        </div>
-      </div>
-    </header>
-  );
-}
-
-function navBtnStyle(enabled: boolean) {
-  return {
-    display: "inline-flex",
-    alignItems: "center",
-    justifyContent: "center",
-    width: 28,
-    height: 28,
-    padding: 0,
-    border: "1px solid var(--pulso-primary-border)",
-    background: "white",
-    color: "var(--pulso-primary)",
-    borderRadius: 6,
-    cursor: enabled ? "pointer" : "not-allowed",
-    opacity: enabled ? 1 : 0.4,
-  } as const;
-}
-
-// -----------------------------------------------------------------------------
-// ChartPanel — wrapper unificado para charts: borde sutil + título + tono
-// "self" (variable principal) o "cross" (bivariado).
-// -----------------------------------------------------------------------------
-function ChartPanel({
-  title,
-  tone,
-  children,
-}: {
-  title: string;
-  tone: "self" | "cross";
-  children: React.ReactNode;
-}) {
-  const isCross = tone === "cross";
-  return (
-    <section
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        gap: 8,
-        padding: "14px 16px 16px",
-        borderRadius: 12,
-        background: "white",
-        border: `1px solid ${isCross ? "var(--pulso-primary-border)" : "var(--pulso-border)"}`,
-        boxShadow: "var(--pulso-shadow-low)",
-      }}
-    >
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 6,
-          fontSize: 10,
-          fontWeight: 800,
-          textTransform: "uppercase",
-          letterSpacing: 0.5,
-          color: isCross ? "var(--pulso-primary)" : "var(--pulso-text-soft)",
-        }}
-      >
-        {isCross ? "Cruce" : "Distribución"}
-        <span style={{ color: "var(--pulso-text-soft)", fontWeight: 600, textTransform: "none", letterSpacing: 0, fontFamily: "ui-monospace, monospace" }}>
-          {title}
-        </span>
-      </div>
-      {children}
-    </section>
-  );
-}
-
-function ExplorarLoadingPanel() {
-  const steps = [
-    { label: "Preguntas y campos", hint: "Ordenando secciones del formulario", icon: ListChecks },
-    { label: "Distribuciones", hint: "Preparando lectura inicial", icon: Compass },
-    { label: "Filtros", hint: "Detectando cortes disponibles", icon: SlidersHorizontal },
-  ];
-
-  return (
-    <section className="pulso-validacion-explorar-loading" role="status" aria-live="polite" aria-busy="true">
-      <div className="pulso-validacion-explorar-loading-head">
-        <span className="pulso-validacion-explorar-loading-icon" aria-hidden="true">
-          <Loader2 size={20} className="pulso-spin" />
-        </span>
-        <div>
-          <span className="pulso-section-eyebrow">Explorador de respuestas</span>
-          <h3>Inventariando variables</h3>
-          <p>Estamos organizando preguntas, campos y cortes para abrir la primera vista de revisión.</p>
-        </div>
-      </div>
-
-      <div className="pulso-validacion-explorar-loading-steps" aria-label="Tareas en preparación">
-        {steps.map((step) => {
-          const Icon = step.icon;
-          return (
-            <div className="pulso-validacion-explorar-loading-step" key={step.label}>
-              <span aria-hidden="true"><Icon size={15} /></span>
-              <strong>{step.label}</strong>
-              <small>{step.hint}</small>
-            </div>
-          );
-        })}
-      </div>
-
-      <div className="pulso-validacion-explorar-loading-body" aria-hidden="true">
-        <aside className="pulso-validacion-explorar-loading-sidebar">
-          <div className="pulso-validacion-explorar-loading-search">
-            <Search size={14} />
-            <i />
-          </div>
-          {[0, 1, 2, 3, 4].map((row) => (
-            <div className="pulso-validacion-explorar-loading-row" key={row}>
-              <span />
-              <i />
-            </div>
-          ))}
-        </aside>
-        <main className="pulso-validacion-explorar-loading-preview">
-          <div className="pulso-validacion-explorar-loading-line is-title" />
-          <div className="pulso-validacion-explorar-loading-metrics">
-            <i />
-            <i />
-            <i />
-          </div>
-          <div className="pulso-validacion-explorar-loading-chart">
-            {[0, 1, 2, 3, 4].map((bar) => (
-              <span key={bar} style={{ width: `${92 - bar * 12}%` }} />
-            ))}
-          </div>
-        </main>
-      </div>
-    </section>
-  );
-}
-
-// Busca la sección donde vive una variable — para alimentar las sugerencias
-// del CrossBar.
-function findSeccionOf(
-  varName: string,
-  inv: ExploradorVariablesList,
-): string | null {
-  for (const sec of inv.secciones) {
-    if (sec.variables.some((v) => v.name === varName)) return sec.nombre;
-  }
-  return null;
-}
-
-function pickInitialVariable(inv: ExploradorVariablesList): ExploradorVariable | null {
-  const variables = inv.secciones.flatMap((section) => section.variables);
-  if (!variables.length) return null;
-  const usefulTypes = new Set<ExploradorVariable["tipo"]>(["so", "sm", "num", "fecha"]);
-  const isOperational = (variable: ExploradorVariable) => {
-    const name = variable.name.toLowerCase();
-    const label = variable.label.toLowerCase();
-    return (
-      /^(collector|source|survey|response|respondent|case|date|email|first|last|ip|phone|form|campaign|campania|device)/.test(name) ||
-      /(^|_)(id|uuid|enumerador|enumerator|respondent|response)(_|$)/.test(name) ||
-      /(^|_)(ip|email|correo|mail|first_name|last_name|nombre|apellido|phone|telefono|collector|source|campaign|campania|form|formulario|device|date|time)(_|$)/.test(name) ||
-      /id de respuesta|direcci[oó]n ip|correo|email|nombre|apellido|tel[eé]fono|enumerador|respondente|recopilador|fuente|campa[ñn]a|formulario|dispositivo|fecha|hora/.test(label)
-    );
-  };
-  return (
-    variables.find((variable) => usefulTypes.has(variable.tipo) && !isOperational(variable)) ??
-    variables.find((variable) => !isOperational(variable)) ??
-    variables[0]
   );
 }

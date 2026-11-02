@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Filter, Plus, X as XIcon } from "lucide-react";
+import { Filter, Plus, X as XIcon } from "../../../vendor/lucide-react";
 import {
   apiV2ExplorarValores,
   type ExplorarValoresResult,
@@ -27,6 +27,11 @@ type Props = {
   filtros: ExplorarFiltros;
   onChange: (filtros: ExplorarFiltros) => void;
   baseNombre: string | null;
+  /**
+   * Dentro de la barra de lectura del explorador (E3): sin caja propia ni
+   * rótulo, porque la barra ya dice «Filtro».
+   */
+  incrustado?: boolean;
 };
 
 export default function FiltroCascada({
@@ -34,6 +39,7 @@ export default function FiltroCascada({
   filtros,
   onChange,
   baseNombre,
+  incrustado = false,
 }: Props) {
   const [picking, setPicking] = useState(false);
   const [selectedVar, setSelectedVar] = useState<string | null>(null);
@@ -101,7 +107,14 @@ export default function FiltroCascada({
 
   return (
     <section
-      style={{
+      aria-label="Filtros del explorador"
+      style={incrustado ? {
+        display: "flex",
+        flexDirection: "column",
+        gap: 8,
+        flex: "1 1 auto",
+        minWidth: 0,
+      } : {
         padding: "10px 14px",
         borderRadius: 10,
         background: activeKeys.length > 0 ? "var(--pulso-primary-soft)" : "var(--pulso-surface-2)",
@@ -112,7 +125,7 @@ export default function FiltroCascada({
       }}
     >
       <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-        <span
+        {!incrustado && <span
           style={{
             display: "inline-flex",
             alignItems: "center",
@@ -126,7 +139,7 @@ export default function FiltroCascada({
         >
           <Filter size={12} /> Filtros
           {activeKeys.length > 0 && ` · ${activeKeys.length}`}
-        </span>
+        </span>}
 
         {activeKeys.map((vname) => {
           const f = filtros[vname];
