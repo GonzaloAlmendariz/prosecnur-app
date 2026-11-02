@@ -17,7 +17,7 @@ import {
   Folder,
   Home,
 } from "lucide-react";
-import { motivoGuardadoBloqueado } from "../../api/client";
+import { motivoGuardadoBloqueado, nombreVisibleDelProyecto } from "../../api/client";
 import { projectRelTime } from "./ProjectLifecycleDialog";
 import type { UseProjectReturn } from "./useProject";
 
@@ -69,7 +69,7 @@ export default function ProjectIndicator({ project, onOpenProjectViewer, onReque
           <Folder size={13} />
         </span>
         <span className="pulso-project-chip-copy">
-          <span className="pulso-project-chip-name">{status.name}</span>
+          <span className="pulso-project-chip-name">{nombreVisibleDelProyecto(status)}</span>
         </span>
         {/* El último guardado dejó fuera una referencia que el proyecto declara:
             el `.pulso` sale completo a la vista y roto al reabrirlo en otra

@@ -13,6 +13,7 @@ import {
   type PlannerEstado,
   type PlannerSeccion,
 } from "../../api/planner";
+import { avisarCambioDelEstudio } from "../../lib/avisoDeCambioDelEstudio";
 
 /** Lo emite cada declaración: Cálculo y Monitoreo releen su modo sin recargar la página. */
 export const EVENTO_ESTUDIO_DECLARADO = "pulso:estudio-declarado";
@@ -72,6 +73,10 @@ export function useEstudioDeclarado(): ControlEstudio {
       }
       setError(null);
       window.dispatchEvent(new Event(EVENTO_ESTUDIO_DECLARADO));
+      // El nombre declarado es el del chip y el del Home: que relean ya, sin
+      // esperar al sondeo de 30 s.
+      window.dispatchEvent(new Event("pulso:project-status-changed"));
+      avisarCambioDelEstudio("ficha-del-estudio");
       return true;
     } catch (err) {
       if (esDesactualizado(err)) {

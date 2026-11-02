@@ -18,6 +18,8 @@ export type ProjectStatus = {
   has_project: boolean;
   path: string | null;
   name: string | null;
+  /** Lo que el chip enseña (ADR 0124): el nombre declarado en la Ficha del estudio o, sin declarar, el del archivo. Ausente en backends viejos. */
+  nombre_estudio?: string | null;
   dirty: boolean;
   last_saved_at: string | null;
   /** Campañas de correo cuyos contactos viajan en el `.pulso` (ADR 0112 §5). Ausente en backends viejos. */
@@ -31,6 +33,12 @@ export type ProjectStatus = {
     min_app_version?: string | null;
   };
 };
+
+/** El nombre que el chip enseña: el declarado o, sin declarar (o con un backend viejo), el del archivo. */
+export function nombreVisibleDelProyecto(status: ProjectStatus): string | null {
+  const declarado = status.nombre_estudio;
+  return typeof declarado === "string" && declarado.trim() && declarado !== "NA" ? declarado : status.name;
+}
 
 /** El motivo del candado de guardado, o `null` si se puede guardar (ADR 0122 §7). */
 export function motivoGuardadoBloqueado(status: ProjectStatus): string | null {

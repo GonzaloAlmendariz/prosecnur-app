@@ -2846,6 +2846,12 @@ load_pulso <- function(src_path) {
 # -----------------------------------------------------------------------------
 # project_status — lectura ligera del estado del proyecto activo
 # -----------------------------------------------------------------------------
+.project_status_nombre_estudio <- function(s) {
+  declarado <- tryCatch(trimws(.planner_identidad(s)$nombre %||% ""), error = function(e) "")
+  if (length(declarado) == 1L && nzchar(declarado)) return(declarado)
+  tools::file_path_sans_ext(basename(s$project_path))
+}
+
 project_status <- function(sid) {
   s <- session_get(sid, required = FALSE)
   if (is.null(s)) {
@@ -2862,6 +2868,10 @@ project_status <- function(sid) {
     path          = if (has) as.character(s$project_path) else NA_character_,
     name          = if (has) tools::file_path_sans_ext(basename(s$project_path))
                      else NA_character_,
+    # ADR 0124: lo que el chip enseña. El nombre declarado en la Ficha del
+    # estudio; sin declarar, el del archivo. `name` sigue siendo el del archivo:
+    # es el nombre por defecto al guardar como y en los recientes.
+    nombre_estudio = if (has) .project_status_nombre_estudio(s) else NA_character_,
     dirty         = isTRUE(s$project_dirty),
     dirty_reasons = if (isTRUE(s$project_dirty)) .project_dirty_reasons_payload(s) else list(),
     last_saved_at = s$project_last_saved_at %||% NA_character_,
