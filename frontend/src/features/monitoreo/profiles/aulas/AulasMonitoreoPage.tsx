@@ -101,7 +101,7 @@ import { useRegistrarPestanasMonitoreo } from "../../useRegistrarPestanas";
 import { MonitoreoModuleChrome } from "../../shell/MonitoreoModuleChrome";
 import { MonitoreoOutputsWorkbench } from "../../salidas/MonitoreoOutputsWorkbench";
 import { MonitoreoWorkbenchChrome, MonitoreoWorkbenchRail } from "../../components";
-import { CabeceraDePestana } from "../../core/cabeceraDePestana/CabeceraDePestana";
+import { TabHeading } from "../../../../components/TabHeading";
 import { railDeAulas, rotuloDePestanaAulas } from "./railDeAulas";
 import { readinessDeAulas } from "./navegacion/readinessDeAulas";
 import {
@@ -2227,11 +2227,12 @@ export default function AulasMonitoreoPage() {
              177 px, y esa frase ya la dice el rail al pasar por su icono. Lo
              que aquí no estaba en ninguna parte es el nombre de la pestaña. */
           (
-          // L14: la cabecera común de Monitoreo —antetítulo con la sección y el
-          // nombre de la pestaña—, la misma que los otros tres modos.
-          <CabeceraDePestana
+          // L14: la variante «sección» del TabHeading del kit —antetítulo con la
+          // sección y el nombre de la pestaña—, la misma que los otros tres modos.
+          <TabHeading
+            variante="seccion"
             icono={railDeAulas(direccion.seccion, dashboard).find((tab) => tab.key === direccion.pestana)?.icon ?? activeDef.icon}
-            antetitulo={activeDef.label}
+            eyebrow={activeDef.label}
             titulo={rotuloDePestanaAulas(direccion.seccion, direccion.pestana, dashboard) ?? (pestanaActivaLabel || activeDef.label)}
             // **El MANDO vive sólo en Resumen; el foco sigue cruzando todo.**
             //

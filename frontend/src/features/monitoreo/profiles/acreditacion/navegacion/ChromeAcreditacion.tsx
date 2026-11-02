@@ -1,6 +1,8 @@
 import { MonitoreoWorkbenchRail, type MonitoreoWorkbenchRailTab } from "../../../components/MonitoreoWorkbenchRail";
 import { ACREDITACION_WORKBENCH_VIEWS } from "../../../core/monitoreoRegistry";
-import { CabeceraDePestana, SelectorDeSubvistas } from "../../../core/cabeceraDePestana/CabeceraDePestana";
+import { TabHeading } from "../../../../../components/TabHeading";
+import { chipsDeTexto } from "../../../core/chipsDeTexto";
+import { SelectorDeSubvistas } from "../../../core/selectorDeSubvistas/SelectorDeSubvistas";
 import { PESTANAS_DE_CONTACTO, subvistasDePestana, type SeccionAcreditacion, type VistaInterna } from "./direccionAcreditacion";
 import { antetituloDePestana, catalogoDeSeccion, nombreDePestana } from "./modeloDelRail";
 import type { RotuloDePestana } from "./rotuloDePestana";
@@ -69,11 +71,12 @@ export function CabeceraAcreditacion({
     valor: item.interna,
   }));
   return (
-    <CabeceraDePestana
+    <TabHeading
+      variante="seccion"
       icono={icono}
-      antetitulo={antetituloDePestana(seccion, pestana)}
+      eyebrow={antetituloDePestana(seccion, pestana)}
       titulo={nombreDePestana(seccion, pestana)}
-      chips={chips}
+      chips={chipsDeTexto(chips)}
       control={(
         <SelectorDeSubvistas
           opciones={opciones}

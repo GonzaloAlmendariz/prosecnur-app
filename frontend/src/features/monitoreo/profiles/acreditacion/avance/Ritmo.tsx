@@ -7,7 +7,7 @@ import { SuperficieFlotante } from "../../../core/superficieFlotante/SuperficieF
 import { fmt } from "../formato";
 import { BarrasApiladas, fechaCorta } from "./graficosDeAvance";
 import { DiarioYAcumulado } from "./DiarioYAcumulado";
-import { SelectorDeSubvistas } from "../../../core/cabeceraDePestana/CabeceraDePestana";
+import { SelectorDeSubvistas } from "../../../core/selectorDeSubvistas/SelectorDeSubvistas";
 import { mapaPorSemana } from "./mapaDeCalor";
 import { fasesConFechas, nombresDePublicos, pulsoDelCampo, seriesApiladas } from "./ritmoModelo";
 import { ritmoPorPublico } from "./ritmoPorPublicoModelo";

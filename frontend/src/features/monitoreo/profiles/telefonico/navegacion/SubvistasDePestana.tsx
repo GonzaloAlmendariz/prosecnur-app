@@ -1,6 +1,6 @@
 import type { SeccionTelefonica, VistaInterna } from "./direccionTelefonica";
 import { subvistasDePestana } from "./direccionTelefonica";
-import { SelectorDeSubvistas } from "../../../core/cabeceraDePestana/CabeceraDePestana";
+import { SelectorDeSubvistas } from "../../../core/selectorDeSubvistas/SelectorDeSubvistas";
 
 /**
  * Selector de las vistas que una pestaña absorbe mientras no tiene contenido

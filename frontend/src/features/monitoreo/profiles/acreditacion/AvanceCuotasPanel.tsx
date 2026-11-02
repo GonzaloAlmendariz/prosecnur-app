@@ -6,7 +6,7 @@ import { Alert } from "../../../../components/Alert";
 import { PulsoButton } from "../../../../components/PulsoButton";
 import type { PanelDeclarado } from "../../../../lib/navegacion/paneles";
 import { Eye, Loader2, Trash2, Wand2, X } from "../../../../vendor/lucide-react";
-import { SelectorDeSubvistas } from "../../core/cabeceraDePestana/CabeceraDePestana";
+import { SelectorDeSubvistas } from "../../core/selectorDeSubvistas/SelectorDeSubvistas";
 import { claveDeSeguida } from "./seguidas";
 import { AvanceCuotasEditorMetas } from "./AvanceCuotasEditorMetas";
 import "./cuotasPanelUso.css";

@@ -3068,7 +3068,7 @@
   grid-template-rows: auto minmax(0, 1fr);
 }
 
-.mon-profile-page.is-aulas-flow .mon-profile-workbench > .mon-pcab {
+.mon-profile-page.is-aulas-flow .mon-profile-workbench > .pulso-tab-heading {
   grid-column: 1 / -1;
 }
 
@@ -3077,11 +3077,11 @@
   min-height: 0;
 }
 
-/* La cabecera de pestaña es la común de Monitoreo (`core/cabeceraDePestana`,
-   L14). En aulas vive DENTRO de la tarjeta del workbench, como su primera fila:
+/* La cabecera de pestaña es la variante «sección» del TabHeading del kit
+   (L14). En aulas vive DENTRO de la tarjeta del workbench, como su primera fila:
    lleva el relleno y el filete que la separan del contenido. La altura de 44 px
    es la de la cabecera; el relleno va aparte. */
-.mon-profile-page.is-aulas-flow .mon-profile-workbench > .mon-pcab {
+.mon-profile-page.is-aulas-flow .mon-profile-workbench > .pulso-tab-heading {
   box-sizing: content-box;
   padding: 10px 14px;
   border-bottom: 1px solid var(--pulso-border);

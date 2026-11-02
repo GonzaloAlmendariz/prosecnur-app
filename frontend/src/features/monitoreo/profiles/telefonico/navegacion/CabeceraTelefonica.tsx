@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
-import { CabeceraDePestana } from "../../../core/cabeceraDePestana/CabeceraDePestana";
+import { TabHeading } from "../../../../../components/TabHeading";
+import { chipsDeTexto } from "../../../core/chipsDeTexto";
 import type { MonitoreoWorkbenchRailTab } from "../../../components/MonitoreoWorkbenchRail";
 import { TELEFONICO_WORKBENCH_VIEWS } from "../../../core/monitoreoRegistry";
 import type { SeccionTelefonica } from "./direccionTelefonica";
@@ -8,8 +9,8 @@ import "./chromeTelefonico.css";
 
 /**
  * Cabecera de pestaña del telefónico: resuelve ícono, antetítulo y nombre
- * desde su sección y los pinta con la cabecera común de Monitoreo (L14: una
- * sola implementación de «estás en esta pestaña» en el módulo).
+ * desde su sección y los pinta con la variante «sección» del TabHeading del kit
+ * (L14: una sola implementación de «estás en esta pestaña» en la app).
  */
 export function CabeceraTelefonica({
   seccion,
@@ -27,12 +28,13 @@ export function CabeceraTelefonica({
   const definicion = TELEFONICO_WORKBENCH_VIEWS.find((item) => item.key === seccion) ?? TELEFONICO_WORKBENCH_VIEWS[0];
   const actual = pestanas.find((item) => item.key === pestana);
   return (
-    <CabeceraDePestana
+    <TabHeading
+      variante="seccion"
       icono={actual?.icon ?? definicion.icon}
-      antetitulo={antetituloDePestana(seccion, pestana)}
+      eyebrow={antetituloDePestana(seccion, pestana)}
       titulo={actual?.label ?? definicion.label}
       control={control}
-      chips={chips}
+      chips={chipsDeTexto(chips)}
     />
   );
 }

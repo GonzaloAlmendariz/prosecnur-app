@@ -1,0 +1,63 @@
+/* Selector de sub-vistas de una pestaña, común a los cuatro modos de Monitoreo.
+ * Vivía junto a la cabecera de pestaña propia, que se retiró al adoptar la
+ * variante «sección» del TabHeading del kit (L14). */
+
+/* Un solo control con relieve en todo su borde (Gonzalo, 30/10: «no un botón
+ * dentro de otro botón»): los segmentos se separan con una línea y el elegido
+ * se hunde y toma el tono del módulo. Antes era una pista gris con un segmento
+ * blanco flotando encima. */
+.mon-subvistas {
+  display: inline-flex;
+  gap: 0;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--pulso-border) 70%, var(--pulso-border-strong));
+  border-radius: 8px;
+  background: linear-gradient(180deg, var(--pulso-surface) 0%, color-mix(in srgb, var(--pulso-surface-2) 70%, var(--pulso-surface)) 100%);
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, var(--pulso-surface) 85%, transparent),
+    0 1px 2px color-mix(in srgb, var(--pulso-text) 8%, transparent);
+}
+
+.mon-subvista {
+  min-height: 30px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  color: var(--pulso-text-soft);
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: var(--pulso-weight-semibold);
+  cursor: pointer;
+  transition: background-color 120ms ease, color 120ms ease;
+}
+
+.mon-subvista + .mon-subvista {
+  border-left: 1px solid var(--pulso-border);
+}
+
+.mon-subvista:hover:not(.is-active) {
+  background: color-mix(in srgb, var(--pulso-surface-3) 70%, transparent);
+  color: var(--pulso-text);
+}
+
+.mon-subvista.is-active {
+  background: color-mix(in srgb, var(--module-accent, var(--pulso-module-monitoring)) 11%, var(--pulso-surface-2));
+  color: color-mix(in srgb, var(--module-accent, var(--pulso-module-monitoring)) 72%, var(--pulso-text));
+  box-shadow: inset 0 1px 3px color-mix(in srgb, var(--pulso-text) 14%, transparent);
+}
+
+/* El foco va por dentro: el contenedor recorta (overflow) y un anillo por fuera
+ * quedaba en dos barras que se confundían con los separadores. */
+.mon-subvista:focus-visible {
+  outline: 2px solid var(--pulso-brand-navy);
+  outline-offset: -2px;
+}
+
+/* Sin el salto ni el encogido del botón global: el segmento no se mueve dentro del control. */
+.mon-subvista:hover,
+.mon-subvista:active {
+  transform: none;
+}

@@ -1,6 +1,6 @@
 import { subvistasDePestana, type DireccionAulas } from "./direccionAulas";
 // El selector es el común de Monitoreo (L14): el mismo control en todos los modos.
-import { SelectorDeSubvistas } from "../../../core/cabeceraDePestana/CabeceraDePestana";
+import { SelectorDeSubvistas } from "../../../core/selectorDeSubvistas/SelectorDeSubvistas";
 
 /**
  * Selector de las vistas que una pestaña absorbe mientras no tiene contenido

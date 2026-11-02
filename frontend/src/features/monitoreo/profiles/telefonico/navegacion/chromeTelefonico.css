@@ -42,7 +42,7 @@
 }
 
 /* Cabecera de pestaña, 44 px. */
-/* La cabecera de pestaña vive en `core/cabeceraDePestana` (L14); aquí queda
+/* La cabecera de pestaña es el TabHeading del kit, variante «sección» (L14); aquí queda
  * el chip, que también usan los paneles de Control. */
 .mon-tel-chip {
   display: inline-flex;

@@ -1,6 +1,8 @@
 import { MonitoreoWorkbenchRail, type MonitoreoWorkbenchRailTab } from "../../../components/MonitoreoWorkbenchRail";
 import { TERRITORIAL_SECCIONES_PUBLICAS } from "../../../core/monitoreoRegistry";
-import { CabeceraDePestana, SelectorDeSubvistas } from "../../../core/cabeceraDePestana/CabeceraDePestana";
+import { TabHeading } from "../../../../../components/TabHeading";
+import { chipsDeTexto } from "../../../core/chipsDeTexto";
+import { SelectorDeSubvistas } from "../../../core/selectorDeSubvistas/SelectorDeSubvistas";
 import { antetituloDePestana } from "./modeloDelRail";
 import { subvistasDePestana, type DireccionTerritorial, type SeccionTerritorial } from "./direccionTerritorial";
 // Las clases de la cabecera de pestaña (`mon-tel-cabecera`, `mon-tel-chip`,
@@ -52,7 +54,7 @@ export function RailTerritorial({
 /**
  * Cabecera de pestaña de una línea (§0): ícono, sobrelínea «SECCIÓN · GRUPO» y
  * el nombre; a la derecha el selector de sub-vistas y los chips de contexto.
- * Se pinta con la cabecera común de Monitoreo (L14).
+ * Se pinta con la variante «sección» del TabHeading del kit (L14).
  */
 export function CabeceraTerritorial({
   direccion,
@@ -69,9 +71,10 @@ export function CabeceraTerritorial({
   const actual = pestanas.find((item) => item.key === direccion.pestana);
   const subvistas = subvistasDePestana(direccion.seccion, direccion.pestana);
   return (
-    <CabeceraDePestana
+    <TabHeading
+      variante="seccion"
       icono={actual?.icon ?? definicion.icon}
-      antetitulo={antetituloDePestana(direccion.seccion, direccion.pestana)}
+      eyebrow={antetituloDePestana(direccion.seccion, direccion.pestana)}
       titulo={actual?.label ?? definicion.label}
       control={
         <SelectorDeSubvistas
@@ -80,7 +83,7 @@ export function CabeceraTerritorial({
           onElegir={onSubvista}
         />
       }
-      chips={chips}
+      chips={chipsDeTexto(chips)}
     />
   );
 }
