@@ -10,6 +10,8 @@
 
 import type { HojasRutaPlanSupuestos, HojasRutaState } from "../../../api/hojasRuta";
 import { useMemo } from "react";
+import { Link } from "react-router-dom";
+import { serializarDireccion } from "../../../lib/navegacion/direccion";
 
 import type { UnidadesTerritoriales } from "../../../api/materialTerritorial";
 import { apiMaterialTerritorialHojaDia, apiMaterialTerritorialPlan } from "../../../api/materialTerritorialPlan";
@@ -17,6 +19,9 @@ import { PlanCampo, type FuenteDelPlan } from "../../hojasRuta/mapa/seleccion/Pl
 import { BarraAsignacion, useAsignacionEquipo } from "./AsignacionEquipo";
 import "./asignacion.css";
 import { AvisoDesactualizada, VacioSinFuente } from "./UnidadesTerritoriales";
+
+/** Donde Monitoreo cruza lo asignado con lo observado. */
+const A_MONITOREO_EQUIPO = serializarDireccion({ modulo: "monitoreo", modo: "territorial", seccion: "control", pestana: "equipo" });
 
 type Props = {
   unidades: UnidadesTerritoriales | null;
@@ -52,6 +57,12 @@ export function EntregaTerritorial({ unidades, hojas, onGuardarPlan }: Props) {
           </p>
           {/* Material no lleva costos ni precios: de eso se encarga otra persona (Gonzalo, 2026-10-30). */}
           <BarraAsignacion {...asignacion} />
+          {/* R15 del mapa de responsabilidades (2 nov 2026): en territorial no hay Sheets de por medio; Monitoreo
+              consulta esta asignación guardada (asignacion-planificada) y la cruza con lo que llega del campo. */}
+          <p className="rec-terr-nota">
+            La asignación que se guarda aquí es la que Monitoreo compara con lo que llega del campo, en{" "}
+            <Link to={A_MONITOREO_EQUIPO}>Control › Equipo</Link>.
+          </p>
           <PlanCampo guardados={hojas?.ui_state?.plan_campo} deshabilitado={!conFoto} onGuardar={onGuardarPlan} conCostos={false} cabezaEncuestador={cabeza} fuente={fuente} />
           {!conFoto ? <p className="rec-terr-nota">La muestra enviada no trae UMP con las que armar el plan.</p> : null}
         </article>
