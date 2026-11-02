@@ -125,3 +125,30 @@ test_that("el barrido nunca se arma en un Sheets de control de Monitoreo: es un 
   # El que Monitoreo ya conecta como barrido sí es el de los enumeradores.
   expect_false("Barrido9" %in% .mbs_documentos_de_control(session_get(sid)))
 })
+
+test_that("un solo documento de barrido por estudio: cada telefónica es una pestaña con su sufijo", {
+  sid <- .mbs_sesion(); on.exit(session_delete(sid), add = TRUE)
+  g <- .mbs_doble()
+  collection_telefonica_sheets_sembrar(sid, enlace = "DOC1")
+  expect_identical(session_get(sid)$material_telefonica_sheets$pestanas, list(`telefonica.principal` = "Barrido"))
+  # Otra telefónica (acreditación por ronda): sus pestañas, en el mismo documento, sin tocar las de la principal.
+  s <- session_get(sid)
+  s$material_campaigns$campaigns <- c(s$material_campaigns$campaigns, list(list(id = "telefonica.egresados-r2", tipo = "telefonica",
+    name = "R2", archived = FALSE, ref = list(store = "material_telefonica_config"))))
+  .session_env[[sid]] <- s
+  g$escrituras <- list()
+  r <- collection_telefonica_sheets_sembrar(sid, "telefonica.egresados-r2", enlace = "")
+  expect_identical(r$spreadsheet_id, "DOC1")
+  expect_identical(r$pestana, "Barrido egresados-r2")
+  expect_identical(vapply(r$hojas, `[[`, "", "hoja"), c("Barrido egresados-r2", "Listas egresados-r2", "Léeme"))
+  expect_identical(vapply(r$hojas, `[[`, "", "accion"), c("sembrada", "sembrada", "respetada"))
+  rangos <- unlist(lapply(Filter(function(w) identical(w$tipo, "values"), g$escrituras), function(w) vapply(w$body$data, `[[`, "", "range")))
+  expect_false(any(rangos %in% c("'Barrido'", "'Listas'")))
+  valid <- unlist(lapply(Filter(function(w) identical(w$tipo, "batch"), g$escrituras), function(w)
+    lapply(w$requests, function(q) q$setDataValidation$rule$condition$values[[1]]$userEnteredValue)))
+  expect_true(all(startsWith(valid, "='Listas egresados-r2'!")))
+  expect_identical(.mbs_pestana_de(session_get(sid), "telefonica.egresados-r2"), "Barrido egresados-r2")
+  # Otro documento para el mismo estudio: no.
+  e <- tryCatch(collection_telefonica_sheets_sembrar(sid, "telefonica.egresados-r2", enlace = "DOC2"), api_error = function(e) e)
+  expect_identical(e$code, "E_COLLECTION_BARRIDO_SHEETS_OTRO_DOCUMENTO")
+})

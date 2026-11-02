@@ -91,10 +91,15 @@ MATERIAL_SUPERVISION_VEREDICTOS <- c("Confirmada", "No confirmada", "No contacta
   if (any(vapply(l$supervision, function(h) identical(h$entry$id, id), TRUE))) {
     stop_api(409, "E_COLLECTION_SUPERVISION_UNICA", "Ese lote ya tiene su campaña de supervisión.", details = list(id = id))
   }
+  # Viene de su campaña telefónica concreta: la que nombra el lote si existe, la única si hay una sola
+  # (en acreditación hay una por público y ronda), y si no, la principal.
+  telefonicas <- vapply(.mcamp_telefonica_entries(l$reg), function(h) h$entry$id, "")
+  viene_de <- if (.mtf_txt(hit$campana_origen) %in% telefonicas) .mtf_txt(hit$campana_origen)
+              else if (length(telefonicas) == 1L) telefonicas[[1]] else .MCAMP_SUPERVISION_VIENE_DE
   name <- .cmail_campaign_text(name, "name", 1L, 80L)
   entry <- list(id = id, tipo = "supervision", name = name, created_at = .collection_now_iso(), archived = FALSE,
                 ref = list(store = "monitoreo_supervision_lotes", lote_id = lote_id),
-                relacion = list(publico = NULL, ronda = NULL, viene_de = .MCAMP_SUPERVISION_VIENE_DE))
+                relacion = list(publico = NULL, ronda = NULL, viene_de = viene_de))
   .mcamp_registry_commit(sid, l$reg, c(l$reg$campaigns, list(entry)))
   .mcamp_response(sid, id)
 }

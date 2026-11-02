@@ -26,8 +26,11 @@ MATERIAL_SUPERVISION_CONFIG_SCHEMA <- "material_supervision_config/v1"
 
 # Columnas del barrido que puede llevar la base: las de la plantilla de la telefónica, sin la llave (va
 # siempre primera) ni las sensibles.
-.msup_barrido_disponibles <- function(s) {
-  tel <- .mcamp_telefonica_entry(.mcamp_registry(s))
+.msup_viene_de <- function(entry) .mtf_txt((entry$relacion %||% list())$viene_de) |> (\(v) if (nzchar(v)) v else .MCAMP_SUPERVISION_VIENE_DE)()
+
+.msup_barrido_disponibles <- function(s, viene_de = .MCAMP_SUPERVISION_VIENE_DE) {
+  hits <- .mcamp_telefonica_entries(.mcamp_registry(s))
+  tel <- Find(function(h) identical(h$entry$id, viene_de), hits) %||% (if (length(hits)) hits[[1]] else NULL)
   if (is.null(tel)) return(list(llave = "Código", columnas = character(0)))
   cfg <- .mtel_config(s, tel$entry$id)
   p <- tryCatch(.mbp_parametros("", cfg$llave, cfg$estratos, cfg$telefonos, cfg$reemplazo, cfg$responsables, cfg$status,
@@ -65,7 +68,7 @@ MATERIAL_SUPERVISION_CONFIG_SCHEMA <- "material_supervision_config/v1"
 collection_supervision_columnas_get <- function(sid, campaign_id = NULL) {
   s <- session_get(sid)
   hit <- .msup_campana(s, campaign_id)
-  barrido <- .msup_barrido_disponibles(s)
+  barrido <- .msup_barrido_disponibles(s, .msup_viene_de(hit$entry))
   resultados <- .msup_resultados_disponibles(sid)
   g <- .msup_config_guardada(s, hit$entry$id)
   nombres_res <- vapply(resultados, `[[`, "", "nombre")

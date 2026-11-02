@@ -31,18 +31,19 @@ export function BarridoEnSheets({ campaignId, sensibles }: { campaignId: string;
         La base de barrido es un documento propio, el que se comparte con los enumeradores: crea un Sheets nuevo para ella, aparte
         de la base de control de Monitoreo, que los enumeradores no ven. Aquí se crean sus pestañas «Barrido», «Listas» y «Léeme»
         con estas columnas y sus desplegables; el analista pega ahí la base del cliente, con nombres y teléfonos. Si una pestaña
-        ya existe, no se toca, y si el enlace es un Sheets de control, no se construye.
+        ya existe, no se toca, y si el enlace es un Sheets de control, no se construye. Si el estudio tiene varias campañas
+        telefónicas, todas van en ese mismo documento, cada una en su pestaña.
         {sensibles.length ? ` Las columnas sensibles (${sensibles.join(", ")}) no se copian.` : ""}
       </p>
       <div className="rec-terr-fila">
         <PulsoInput
           aria-label="Enlace del Sheets del barrido"
-          placeholder="https://docs.google.com/spreadsheets/d/…"
+          placeholder="Vacío: el documento de barrido del estudio"
           value={enlace}
           onChange={(e) => setEnlace(e.target.value)}
           disabled={ocupado}
         />
-        <PulsoButton variant="secondary" size="sm" disabled={ocupado || !enlace.trim()} onClick={construir}>
+        <PulsoButton variant="secondary" size="sm" disabled={ocupado} onClick={construir}>
           {ocupado ? "Construyendo…" : "Construir en el Sheets"}
         </PulsoButton>
       </div>

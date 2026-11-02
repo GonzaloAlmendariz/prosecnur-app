@@ -40,8 +40,26 @@
 .MBS_HOJA_LISTAS <- "Listas"
 .MBS_HOJA_LEEME <- "Léeme"
 
+# Un solo documento de barrido por estudio, con una pestaña por campaña telefónica (decisión de coordinación,
+# 2 nov 2026): así no se multiplican los documentos que hay que compartir con los enumeradores. La principal
+# conserva los nombres de siempre («Barrido», «Listas»), que es lo que Monitoreo ya lee; una de acreditación
+# por ronda lleva su sufijo («Barrido egresados-r2»). «Léeme» es una sola para el documento.
+.mbs_nombres <- function(campaign_id) {
+  if (identical(campaign_id, .MCAMP_TELEFONICA_ID)) {
+    return(c(barrido = .MBP_HOJA, listas = .MBS_HOJA_LISTAS, leeme = .MBS_HOJA_LEEME))
+  }
+  suf <- sub("^telefonica\\.", "", campaign_id)
+  c(barrido = paste(.MBP_HOJA, suf), listas = paste(.MBS_HOJA_LISTAS, suf), leeme = .MBS_HOJA_LEEME)
+}
+
+# La pestaña del barrido de una campaña en el documento del estudio (la que lee la supervisión).
+.mbs_pestana_de <- function(s, campaign_id) {
+  guardada <- .mtf_txt(((s$material_telefonica_sheets %||% list())$pestanas %||% list())[[campaign_id]])
+  if (nzchar(guardada)) guardada else .mbs_nombres(campaign_id)[["barrido"]]
+}
+
 # Lo que se siembra: encabezados y cuerpo no personal de cada pestaña, en el orden en que se crean.
-.mbs_pestanas <- function(p) {
+.mbs_pestanas <- function(p, nombres = .mbs_nombres(.MCAMP_TELEFONICA_ID)) {
   col <- .mbp_columnas(p)
   cabecera <- setdiff(col$todas, p$sensibles)
   filas <- p$filas
@@ -69,18 +87,18 @@
     "Pega aquí la base del cliente, con nombres y teléfonos: este documento se comparte sólo con el equipo del operativo.",
     sprintf("Las columnas en ámbar las llena campo: %s.", paste(col$campo, collapse = ", ")),
     if (length(p$sensibles)) sprintf("No están aquí, a propósito, las columnas sensibles: %s. No se copian a este documento.", paste(p$sensibles, collapse = ", ")),
-    "Status es obligatorio en cuanto hay Intentos o Fecha. Los valores permitidos están en «Listas».",
+    sprintf("Status es obligatorio en cuanto hay Intentos o Fecha. Los valores permitidos están en «%s».", nombres[["listas"]]),
     "Para filtrar usa vistas de filtro, no un filtro con orden en el documento compartido."
   )
   stats::setNames(list(
     list(valores = barrido, columnas = cabecera, campo = intersect(col$campo, cabecera)),
     list(valores = tabla_listas, listas = listas),
     list(valores = matrix(leeme, ncol = 1L))
-  ), c(.MBP_HOJA, .MBS_HOJA_LISTAS, .MBS_HOJA_LEEME))
+  ), unname(nombres[c("barrido", "listas", "leeme")]))
 }
 
 # Encabezado congelado y en navy, la cola de campo en ámbar y los desplegables contra «Listas».
-.mbs_formato <- function(sheet_id, pestana, listas) {
+.mbs_formato <- function(sheet_id, pestana, listas, hoja_listas = .MBS_HOJA_LISTAS) {
   n <- length(pestana$columnas); filas <- nrow(pestana$valores)
   color <- function(hex) { v <- strtoi(substring(hex, c(2, 4, 6), c(3, 5, 7)), 16L) / 255; list(red = v[1], green = v[2], blue = v[3]) }
   celdas <- function(c0, c1, fondo) list(repeatCell = list(
@@ -99,7 +117,7 @@
     k <- match(nombre, pestana$columnas)
     if (is.na(k)) next
     j <- match(nombre, names(listas))
-    rango <- sprintf("=%s!$%s$2:$%s$%d", .monitoreo_sheets_quote_sheet(.MBS_HOJA_LISTAS), letra(j), letra(j), length(listas[[nombre]]) + 1L)
+    rango <- sprintf("=%s!$%s$2:$%s$%d", .monitoreo_sheets_quote_sheet(hoja_listas), letra(j), letra(j), length(listas[[nombre]]) + 1L)
     reqs[[length(reqs) + 1L]] <- list(setDataValidation = list(
       range = list(sheetId = sheet_id, startRowIndex = 1L, endRowIndex = filas, startColumnIndex = k - 1L, endColumnIndex = k),
       rule = list(condition = list(type = "ONE_OF_RANGE", values = list(list(userEnteredValue = rango))),
@@ -118,9 +136,16 @@ collection_telefonica_sheets_sembrar <- function(sid, campaign_id = NULL, enlace
   hit <- .mtel_campana(s, campaign_id)
   cfg <- .mtel_config(s, hit$entry$id)
   id <- .monitoreo_extract_spreadsheet_id(.mtf_txt(enlace))
+  del_estudio <- .mtf_txt((s$material_telefonica_sheets %||% list())$spreadsheet_id)
+  if (!nzchar(id)) id <- del_estudio  # vacío: el documento que el estudio ya tiene
   if (!nzchar(id)) {
     stop_api(422, "E_COLLECTION_BARRIDO_SHEETS_SIN_ENLACE",
              "Pega el enlace del Sheets del estudio: ahí se construye la base de barrido.")
+  }
+  if (nzchar(del_estudio) && !identical(id, del_estudio)) {
+    stop_api(409, "E_COLLECTION_BARRIDO_SHEETS_OTRO_DOCUMENTO",
+             "El estudio ya tiene su documento de barrido: cada campaña telefónica es una pestaña de ese mismo Sheets. Deja el enlace vacío para usarlo.",
+             details = list(spreadsheet_id = id, del_estudio = del_estudio))
   }
   if (id %in% .mbs_documentos_de_control(s)) {
     stop_api(409, "E_COLLECTION_BARRIDO_SHEETS_ES_CONTROL",
@@ -131,7 +156,8 @@ collection_telefonica_sheets_sembrar <- function(sid, campaign_id = NULL, enlace
   p <- .mbp_parametros(hit$entry$name, cfg$llave, cfg$estratos, cfg$telefonos, cfg$reemplazo, cfg$responsables,
                        cfg$status, if (casos > 0L) casos else 2000L, cfg$observacion, cfg$sensibles)
   p$muestra <- cfg$muestra; p$backup <- cfg$backup
-  pestanas <- .mbs_pestanas(p)
+  nombres <- .mbs_nombres(hit$entry$id)
+  pestanas <- .mbs_pestanas(p, nombres)
 
   google <- function(expr) tryCatch(expr, api_error = function(e) stop(e), error = function(e) {
     stop_api(502, "E_COLLECTION_BARRIDO_SHEETS_GOOGLE",
@@ -149,21 +175,26 @@ collection_telefonica_sheets_sembrar <- function(sid, campaign_id = NULL, enlace
         range = .monitoreo_sheets_quote_sheet(h), majorDimension = "ROWS",
         values = lapply(seq_len(nrow(pestanas[[h]]$valores)), function(i) as.list(pestanas[[h]]$valores[i, ])))))
     ))
-    if (.MBP_HOJA %in% faltan) {
-      google(.monitoreo_sheets_batch_update(id, .mbs_formato(mapa[[.MBP_HOJA]]$sheet_id, pestanas[[.MBP_HOJA]], pestanas[[.MBS_HOJA_LISTAS]]$listas)))
+    if (nombres[["barrido"]] %in% faltan) {
+      google(.monitoreo_sheets_batch_update(id, .mbs_formato(mapa[[nombres[["barrido"]]]]$sheet_id, pestanas[[nombres[["barrido"]]]],
+                                                             pestanas[[nombres[["listas"]]]]$listas, nombres[["listas"]])))
     }
   }
   # Se recuerda qué documento es el barrido: la base de supervisión trae de él nombre y teléfono por fórmula
   # (collection_supervision_sheets.R) y nunca se arma en él. Sólo el id: ningún dato del listado.
-  session_set(sid, "material_telefonica_sheets", list(campaign_id = hit$entry$id, spreadsheet_id = id,
-                                                      actualizado_en = .collection_now_iso()))
+  previo <- s$material_telefonica_sheets %||% list()
+  pestanas_de <- previo$pestanas %||% list()
+  pestanas_de[[hit$entry$id]] <- nombres[["barrido"]]
+  session_set(sid, "material_telefonica_sheets", list(campaign_id = previo$campaign_id %||% hit$entry$id, spreadsheet_id = id,
+                                                      pestanas = pestanas_de, actualizado_en = .collection_now_iso()))
   list(
     ok = TRUE, campaign_id = hit$entry$id, spreadsheet_id = id,
     url = sprintf("https://docs.google.com/spreadsheets/d/%s/edit", id),
     hojas = lapply(names(pestanas), function(h) list(
       hoja = h, accion = if (h %in% faltan) "sembrada" else "respetada",
       filas = if (h %in% faltan) as.integer(nrow(pestanas[[h]]$valores) - 1L) else 0L)),
-    columnas = as.list(pestanas[[.MBP_HOJA]]$columnas),
+    pestana = nombres[["barrido"]],
+    columnas = as.list(pestanas[[nombres[["barrido"]]]]$columnas),
     sin_sensibles = as.list(p$sensibles)
   )
 }

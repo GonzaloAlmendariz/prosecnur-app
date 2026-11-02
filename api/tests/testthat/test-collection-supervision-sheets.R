@@ -65,15 +65,16 @@ test_that("en un documento en español: separador «;», nombre y teléfono por 
                                      "Observaciones del supervisor", "Estatus de la llamada de supervisión", "Veredicto"))
   fila <- unlist(v[[2]])
   expect_identical(fila[1], "'00123")  # el cero no se pierde
-  expect_match(fila[4], '^=IFERROR\\(XLOOKUP\\(\\$A2;IMPORTRANGE\\("https://docs.google.com/spreadsheets/d/BARRIDO1/edit";"Barrido!B:B"\\);IMPORTRANGE\\("[^"]+";"Barrido!C:C"\\);""\\);""\\)$')
-  expect_match(fila[5], '"Barrido!D:D"', fixed = TRUE)
+  url_b <- "https://docs.google.com/spreadsheets/d/BARRIDO1/edit"
+  expect_identical(fila[4], paste0("=IFERROR(XLOOKUP($A2;IMPORTRANGE(\"", url_b, "\";\"'Barrido'!B:B\");IMPORTRANGE(\"", url_b, "\";\"'Barrido'!C:C\");\"\");\"\")"))
+  expect_match(fila[5], "\"'Barrido'!D:D\"", fixed = TRUE)
   expect_identical(fila[7:9], c("", "", ""))
   # Ningún pedido lleva un nombre: sólo llaves, rótulos y fórmulas.
   todo <- paste(unlist(lapply(e$escrituras, function(w) unlist(w$body))), collapse = " ")
   expect_false(grepl("Ana Pérez|Beto Gómez", todo))
   # La pestaña de acceso lleva el IMPORTRANGE desnudo, donde se pulsa «Permitir acceso».
   acceso <- Filter(function(x) identical(x$tipo, "values") && identical(x$body$data[[1]]$range, "'Acceso al barrido'"), e$escrituras)
-  expect_match(unlist(acceso[[1]]$body$data[[1]]$values)[2], '^=IMPORTRANGE\\("[^"]+";"Barrido!B1"\\)$')
+  expect_match(unlist(acceso[[1]]$body$data[[1]]$values)[2], "^=IMPORTRANGE\\(\"[^\"]+\";\"'Barrido'!B1\"\\)$")
   # Monitoreo lo lee de aquí.
   d <- collection_supervision_documentos(session_get(sid))
   expect_identical(d[[1]][c("campaign_id", "lote_id", "spreadsheet_id", "pestana")],
@@ -85,7 +86,7 @@ test_that("en un documento en inglés el separador es «,»", {
   e <- .msst_doble("en")
   collection_supervision_sheets_sembrar(sid, "supervision.ronda-1", enlace = "SUP2")
   fila <- unlist(.msst_base(e)[[2]])
-  expect_match(fila[4], '^=IFERROR\\(XLOOKUP\\(\\$A2,IMPORTRANGE\\("[^"]+","Barrido!B:B"\\),IMPORTRANGE\\("[^"]+","Barrido!C:C"\\),""\\),""\\)$')
+  expect_match(fila[4], "^=IFERROR\\(XLOOKUP\\(\\$A2,IMPORTRANGE\\(\"[^\"]+\",\"'Barrido'!B:B\"\\),IMPORTRANGE\\(\"[^\"]+\",\"'Barrido'!C:C\"\\),\"\"\\),\"\"\\)$")
 })
 
 test_that("la pestaña del lote ya existe: no recibe ningún pedido; cambiar columnas no olvida el documento", {
@@ -108,4 +109,33 @@ test_that("nunca en el documento del barrido; sin barrido construido ni enlace, 
   sid2 <- .msst_sesion(con_barrido = FALSE); on.exit(session_delete(sid2), add = TRUE)
   expect_identical(code(collection_supervision_sheets_sembrar(sid2, "supervision.ronda-1", enlace = "SUP4")), "E_COLLECTION_SUPERVISION_SHEETS_SIN_BARRIDO")
   expect_length(collection_supervision_documentos(session_get(sid2)), 0L)
+})
+
+test_that("un lote de una telefónica por ronda lee la pestaña de esa campaña en el mismo documento del barrido", {
+  sid <- .msst_sesion(); on.exit(session_delete(sid), add = TRUE)
+  s <- session_get(sid)
+  s$material_telefonica_sheets$pestanas <- list(`telefonica.principal` = "Barrido")
+  # Una segunda telefónica (acreditación por ronda) en el registro, y un lote que viene de ella.
+  reg <- s$material_campaigns
+  reg$campaigns <- c(reg$campaigns, list(list(id = "telefonica.egresados-r2", tipo = "telefonica", name = "R2", archived = FALSE,
+                                              ref = list(store = "material_telefonica_config"))))
+  s$material_campaigns <- reg
+  s$material_telefonica_sheets$pestanas[["telefonica.egresados-r2"]] <- "Barrido egresados-r2"
+  ronda2 <- .msst_ronda(2)
+  s$monitoreo_supervision_rondas <- list(rondas = list(.msst_ronda(1), ronda2))
+  .session_env[[sid]] <- s
+  local_mocked_bindings(monitoreo_supervision_lotes = function(rondas) lapply(rondas, function(r) list(
+    lote_id = paste0("ronda-", r$numero), creado_en = "", criterio = "x",
+    campana_origen = if (r$numero == 2) "telefonica.egresados-r2" else "telefonica.principal",
+    casos = list(list(llave = "P9", responsable = "Ana", fecha_llamada = "2026-10-30")))))
+  r <- collection_campaign_create(sid, "supervision", "Sup R2", lote = "ronda-2")
+  expect_identical(r$campaign$relacion$viene_de, "telefonica.egresados-r2")
+  e <- .msst_doble("es")
+  local_mocked_bindings(.mss_cabecera_del_barrido = function(barrido_id, google, hoja) {
+    expect_identical(hoja, "Barrido egresados-r2")
+    c("Cod pulso", "Código", "Nombre", "Teléfono 1", "Responsable", "Status")
+  })
+  collection_supervision_sheets_sembrar(sid, "supervision.ronda-2", enlace = "SUP9")
+  w <- Filter(function(x) identical(x$tipo, "values") && identical(x$body$data[[1]]$range, "'Supervisión ronda-2'"), e$escrituras)
+  expect_match(unlist(w[[1]]$body$data[[1]]$values[[2]])[4], "'Barrido egresados-r2'!B:B", fixed = TRUE)
 })

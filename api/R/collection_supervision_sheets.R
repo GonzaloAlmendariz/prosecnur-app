@@ -38,16 +38,17 @@
 }
 
 # La fórmula que trae una columna del barrido por llave. `sep` es el separador del documento.
-.mss_formula <- function(barrido_url, col_llave, col_valor, fila, sep) {
-  rango <- function(col) sprintf("IMPORTRANGE(\"%s\"%s\"Barrido!%s:%s\")", barrido_url, sep, col, col)
+.mss_formula <- function(barrido_url, col_llave, col_valor, fila, sep, hoja = .MBP_HOJA) {
+  ref <- .monitoreo_sheets_quote_sheet(hoja)
+  rango <- function(col) sprintf("IMPORTRANGE(\"%s\"%s\"%s!%s:%s\")", barrido_url, sep, ref, col, col)
   sprintf("=IFERROR(XLOOKUP($A%d%s%s%s%s%s\"\")%s\"\")", fila, sep, rango(col_llave), sep, rango(col_valor), sep, sep)
 }
 
 # La fila 1 del Barrido del documento del barrido: de ahí salen las letras de cada columna (el equipo
 # pudo moverlas; se lee lo que hay, no lo que se sembró).
-.mss_cabecera_del_barrido <- function(barrido_id, google) {
+.mss_cabecera_del_barrido <- function(barrido_id, google, hoja = .MBP_HOJA) {
   r <- google(.monitoreo_google_api(paste0(.monitoreo_sheets_api_base(barrido_id), "/values/",
-                                           utils::URLencode(paste0(.monitoreo_sheets_quote_sheet(.MBP_HOJA), "!1:1"), reserved = TRUE))))
+                                           utils::URLencode(paste0(.monitoreo_sheets_quote_sheet(hoja), "!1:1"), reserved = TRUE))))
   trimws(as.character(unlist(r$values[[1]] %||% list())))
 }
 
@@ -89,11 +90,13 @@ collection_supervision_sheets_sembrar <- function(sid, campaign_id = NULL, enlac
   if (pestana %in% existentes) {
     hojas[[length(hojas) + 1L]] <- list(hoja = pestana, accion = "respetada", filas = 0L)
   } else {
-    cab_barrido <- .mss_cabecera_del_barrido(barrido_id, google)
+    # La pestaña del barrido de la campaña de la que viene este lote (una por telefónica en el mismo documento).
+    hoja_barrido <- .mbs_pestana_de(s, .msup_viene_de(hit$entry))
+    cab_barrido <- .mss_cabecera_del_barrido(barrido_id, google, hoja_barrido)
     k_llave <- match(col$llave, cab_barrido)
     if (is.na(k_llave)) {
       stop_api(409, "E_COLLECTION_SUPERVISION_SHEETS_SIN_LLAVE",
-               sprintf("La pestaña Barrido no tiene la columna «%s»: sin ella no se encuentra a nadie.", col$llave))
+               sprintf("La pestaña «%s» no tiene la columna «%s»: sin ella no se encuentra a nadie.", hoja_barrido, col$llave))
     }
     barrido_cols <- setdiff(unlist(col$elegidas$barrido) %||% character(0), c(col$llave, "Enumerador", "Fecha de la llamada"))
     resultados <- unlist(col$elegidas$resultados) %||% character(0)
@@ -109,7 +112,7 @@ collection_supervision_sheets_sembrar <- function(sid, campaign_id = NULL, enlac
       c(paste0("'", caso$llave), paste0("'", caso$responsable), paste0("'", caso$fecha_llamada),
         vapply(barrido_cols, function(b) {
           l <- letra(b)
-          if (is.na(l)) "" else .mss_formula(url_b, openxlsx::int2col(k_llave), l, fila, sep)
+          if (is.na(l)) "" else .mss_formula(url_b, openxlsx::int2col(k_llave), l, fila, sep, hoja_barrido)
         }, ""),
         rep("", length(resultados) + length(MATERIAL_SUPERVISION_COLUMNAS_FIJAS)))
     })
@@ -128,7 +131,7 @@ collection_supervision_sheets_sembrar <- function(sid, campaign_id = NULL, enlac
         body = list(valueInputOption = "USER_ENTERED", data = list(list(
           range = .monitoreo_sheets_quote_sheet(.MSS_HOJA_ACCESO), majorDimension = "ROWS",
           values = list(list("Si la celda de abajo dice #REF!, pásale el cursor y pulsa «Permitir acceso»: así la supervisión trae nombre y teléfono del barrido."),
-                        list(sprintf("=IMPORTRANGE(\"%s\"%s\"Barrido!%s1\")", url_b, sep, openxlsx::int2col(k_llave)))))))))
+                        list(sprintf("=IMPORTRANGE(\"%s\"%s\"%s!%s1\")", url_b, sep, .monitoreo_sheets_quote_sheet(hoja_barrido), openxlsx::int2col(k_llave)))))))))
       hojas[[length(hojas) + 1L]] <- list(hoja = .MSS_HOJA_ACCESO, accion = "sembrada", filas = 1L)
     }
   }
