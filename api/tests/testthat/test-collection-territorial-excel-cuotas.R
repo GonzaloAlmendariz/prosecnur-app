@@ -61,3 +61,27 @@ test_that("el Excel tiene una fila por zona con su cuota, y se lee de vuelta por
   expect_identical(imp$resumen$titulares_con_encuestador, 2L)
   expect_false(imp$otra_muestra)
 })
+
+test_that("la hoja de conteo sale una por zona y sólo en cuotas", {
+  sid <- .mtxc_sesion(); on.exit(session_delete(sid), add = TRUE)
+  m <- .mtp_conteo_matriz(list(list(sexo = "Mujer", rango_id = "r1", rango_edad = "18-29", n = 3L),
+                               list(sexo = "Hombre", rango_id = "r1", rango_edad = "18-29", n = 2L),
+                               list(sexo = "Mujer", rango_id = "r2", rango_edad = "30-44", n = 4L)))
+  expect_identical(dimnames(m), list(c("18-29", "30-44"), c("Mujer", "Hombre")))
+  expect_true(is.na(m["30-44", "Hombre"]))
+  r <- collection_territorial_papel(sid, pieza = "conteo")
+  expect_identical(r$umps, 2L)
+  expect_identical(r$paginas, 2L)
+  expect_match(r$filename, "^HojaConteo_2Zonas\\.pdf$")
+  uno <- collection_territorial_papel(sid, pieza = "conteo", unidad = "150103")
+  expect_identical(uno$paginas, 1L)
+  expect_true(file.exists(session_get(sid)$files[[uno$file_id]]$path))
+})
+
+test_that("la hoja de conteo no se imprime para una muestra por UMP", {
+  sid <- .hre_session(); on.exit(session_delete(sid), add = TRUE)
+  hojas_ruta_enviar(sid)
+  collection_campaign_create(sid, "territorial", "UMP", fase = "field")
+  e <- tryCatch(collection_territorial_papel(sid, pieza = "conteo"), api_error = function(e) e)
+  expect_identical(e$code, "E_COLLECTION_TERRITORIAL_PAPEL_PIEZA")
+})

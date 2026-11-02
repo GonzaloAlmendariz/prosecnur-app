@@ -8,7 +8,7 @@
 # app no los guarda (arquitectura de campo §11). La hoja del encuestador sólo muestra su
 # código y su nombre, nunca un DNI.
 
-.MTP_PIEZAS <- c("ruteo", "consolidados")
+.MTP_PIEZAS <- c("ruteo", "consolidados", "conteo")  # conteo: sólo cuotas (collection_territorial_papel_conteo.R)
 .MTP_ALCANCES <- c("titulares", "todas")
 
 .mtp_txt <- function(x) if (is.null(x) || !length(x) || is.na(x[[1]])) "" else as.character(x[[1]])
@@ -41,7 +41,7 @@
       stop_api(404, "E_COLLECTION_TERRITORIAL_PAPEL_UNIDAD", "Esa UMP no está en la muestra enviada.", details = list(unidad = id))
     }
   } else if (!identical(alcance, "todas")) {
-    unidades <- Filter(function(u) identical(u$role, "titular"), unidades)
+    unidades <- Filter(function(u) u$role %in% c("titular", "zona"), unidades)  # en cuotas, todas las zonas
   }
   asig <- collection_territorial_asignacion_get(sid, hit$entry$id)
   nombre_de <- stats::setNames(vapply(asig$equipo, `[[`, "", "nombre"), vapply(asig$equipo, `[[`, "", "codigo"))
@@ -54,6 +54,10 @@
       nm <- unname(nombre_de[cod]); if (nzchar(nm)) paste0(cod, " · ", nm) else cod
     } else ""
     rango <- if (!is.na(u$rango_inicio) && !is.na(u$rango_fin)) c(u$rango_inicio, u$rango_fin) else integer(0)
+    if (identical(u$role, "zona")) {
+      return(list(unit_id = u$unit_id, label = u$label, encuestador = enc, rango = rango, n = u$n, cuotas = u$cuotas,
+                  subtitulo = sprintf("%d entrevistas por cuota de sexo y edad", u$n)))
+    }
     partes <- c(.hojas_ruta_title_case(.mtp_txt(u$distrito)),
                 if (nzchar(.mtp_txt(u$zona))) paste("Zona", u$zona),
                 if (nzchar(.mtp_txt(u$manzana))) paste("Manzana", u$manzana),
@@ -289,16 +293,21 @@ collection_territorial_papel <- function(sid, campaign_id = NULL, pieza = "ruteo
   pieza <- .mtp_txt(pieza); alcance <- .mtp_txt(alcance)
   if (!nzchar(alcance)) alcance <- "titulares"
   if (!pieza %in% .MTP_PIEZAS || !alcance %in% .MTP_ALCANCES) {
-    stop_api(422, "E_COLLECTION_TERRITORIAL_PAPEL_PIEZA", "La hoja pedida no existe: es «ruteo» o «consolidados».",
+    stop_api(422, "E_COLLECTION_TERRITORIAL_PAPEL_PIEZA", "La hoja pedida no existe: es «ruteo», «consolidados» o «conteo».",
              details = list(pieza = pieza, alcance = alcance))
   }
   ctx <- .mtp_contexto(sid, campaign_id, unidad, alcance)
+  if (identical(pieza, "conteo") && !all(vapply(ctx$cabeceras, function(c) is.list(c$cuotas), TRUE))) {
+    stop_api(422, "E_COLLECTION_TERRITORIAL_PAPEL_PIEZA", "La hoja de conteo es de un territorial por cuotas: esta muestra se envió por UMP.",
+             details = list(pieza = pieza))
+  }
   path <- tempfile(fileext = ".pdf")
-  out <- if (identical(pieza, "ruteo")) .mtp_ruteo_pdf(ctx, path) else .mtp_consolidados_pdf(ctx, path)
-  base <- if (identical(pieza, "ruteo")) "HojaRuteo" else "HojaConsolidados"
+  out <- switch(pieza, ruteo = .mtp_ruteo_pdf(ctx, path), consolidados = .mtp_consolidados_pdf(ctx, path),
+                conteo = .mtp_conteo_pdf(ctx, path))
+  base <- c(ruteo = "HojaRuteo", consolidados = "HojaConsolidados", conteo = "HojaConteo")[[pieza]]
   nombre <- if (length(ctx$cabeceras) == 1L) {
     sprintf("%s_%s.pdf", base, hojas_ruta_sanitize_filename(ctx$cabeceras[[1]]$label))
-  } else sprintf("%s_%dUMP.pdf", base, length(ctx$cabeceras))
+  } else sprintf("%s_%d%s.pdf", base, length(ctx$cabeceras), if (identical(pieza, "conteo")) "Zonas" else "UMP")
   meta <- .register_output_file(sid, paste0("material_", pieza), path, original_name = nombre)
   list(ok = TRUE, file_id = meta$file_id, filename = meta$original_name, pieza = pieza,
        umps = length(ctx$cabeceras), paginas = attr(out, "paginas") %||% NA_integer_)
