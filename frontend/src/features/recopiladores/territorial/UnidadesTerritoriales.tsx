@@ -28,8 +28,9 @@ import { revisarUnidades, type EstadoUnidad } from "./revisionUnidades";
 import type { SupuestosVisitas } from "../../hojasRuta/seleccion/visitas";
 import "./unidades.css";
 
-/** Selección › Entrega en Hojas de ruta: donde se (re)envía la muestra. */
-export const HREF_REENVIO = "/hojas-ruta?seccion=seleccion&panel=salidas";
+import { HREF_REENVIO } from "./rutasTerritoriales";
+
+export { HREF_REENVIO };
 
 type Props = {
   unidades: Unidades | null;

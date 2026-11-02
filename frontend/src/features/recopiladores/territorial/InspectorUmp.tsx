@@ -11,7 +11,7 @@ import { Link } from "react-router-dom";
 import type { UnidadTerritorial } from "../../../api/materialTerritorial";
 import { X } from "../../../vendor/lucide-react";
 import type { EstadoUnidad } from "./revisionUnidades";
-import { HREF_REENVIO } from "./UnidadesTerritoriales";
+import { HREF_REENVIO } from "./rutasTerritoriales";
 import "./unidades.css";
 
 type Props = {

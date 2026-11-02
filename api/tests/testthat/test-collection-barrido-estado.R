@@ -35,6 +35,15 @@ test_that("está conectado sólo si el mismo Sheets es una fuente de Monitoreo",
   expect_true(.mtel_barrido_estado(mismo, "telefonica.principal")$conectado_en_monitoreo)
 })
 
+test_that("conectar la pestaña de una ronda no marca conectadas a las demás del mismo documento", {
+  s <- list(
+    material_telefonica_sheets = list(spreadsheet_id = "abc123", pestanas = list(
+      "telefonica.principal" = "Barrido", "telefonica.egresados-r2" = "Barrido egresados-r2")),
+    monitoreo_sources = list(list(kind = "google_sheets", sheet_binding = list(spreadsheet_id = "abc123", sheet_name = "Barrido egresados-r2"))))
+  expect_true(.mtel_barrido_estado(s, "telefonica.egresados-r2")$conectado_en_monitoreo)
+  expect_false(.mtel_barrido_estado(s, "telefonica.principal")$conectado_en_monitoreo)
+})
+
 test_that("la config de la campaña lleva el estado del barrido", {
   sid <- session_create()
   collection_campaign_create(sid, "telefonica", "Barrido de prueba")

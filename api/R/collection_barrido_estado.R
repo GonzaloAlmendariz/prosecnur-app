@@ -13,12 +13,16 @@
   }
   fuentes <- Filter(function(f) is.list(f) && identical(.mtf_txt(f$kind), "google_sheets"),
                     s$monitoreo_sources %||% list())
+  # Cuenta como conectada sólo la fuente que apunta a ESTE documento y a la pestaña de ESTA
+  # campaña: varias rondas comparten el Sheets, cada una en su pestaña. Una fuente sin pestaña
+  # declarada lee la primera hoja, así que no se toma como conexión de ninguna ronda en particular.
   # Una fuente mal formada no debe tumbar la lectura de la campaña: cuenta como «no es esta».
-  ids <- vapply(fuentes, function(f) {
-    .mtf_txt(tryCatch(.monitoreo_sheet_binding(f)$spreadsheet_id, error = function(e) ""))
-  }, character(1))
+  conectada <- vapply(fuentes, function(f) {
+    b <- tryCatch(.monitoreo_sheet_binding(f), error = function(e) list())
+    identical(.mtf_txt(b$spreadsheet_id), id) && identical(.mtf_txt(b$sheet_name), pestana)
+  }, logical(1))
   cuando <- .mtf_txt(b$actualizado_en)
   list(construido = TRUE, url = sprintf("https://docs.google.com/spreadsheets/d/%s/edit", id),
        pestana = pestana, actualizado_en = if (nzchar(cuando)) cuando else NULL,
-       conectado_en_monitoreo = id %in% ids)
+       conectado_en_monitoreo = any(conectada))
 }
