@@ -135,6 +135,19 @@ export function resolveAulasStageNotice(
   if (!model.comparisonReady && (etapaEjecuta || (!model.selectionReady && !model.metodoElegido))) {
     const stored = model.hasStoredComparison || model.hasStoredSelection;
     const partialSimulation = stage === "laboratorio" && hasAulasSimulationEvidence(model);
+    // En Simulación, con un método ya elegido, la comparación no es lo que
+    // falta para avanzar (Selección ya sortea): lo que falta son las corridas.
+    if (stage === "laboratorio" && model.metodoElegido && !stored && !partialSimulation) {
+      return {
+        kind: "missing-comparison",
+        icon: BarChart3,
+        eyebrow: "Simulación",
+        title: "Faltan las corridas de simulación",
+        detail: "La selección ya puede sortearse con el método elegido. Las corridas miden, además, la estabilidad de los pesos, la frecuencia con que sale cada aula y la variabilidad del diseño frente a los otros métodos.",
+        actionLabel: "Ejecutar corridas",
+        localAction: "compare",
+      };
+    }
     return {
       kind: "missing-comparison",
       icon: BarChart3,

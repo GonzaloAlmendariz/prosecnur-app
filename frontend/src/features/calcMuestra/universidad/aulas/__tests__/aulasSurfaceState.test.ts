@@ -211,7 +211,16 @@ describe("con un método elegido, Selección sortea sin comparar", () => {
 
   it("en Método y Simulación la comparación sigue siendo lo que se ejecuta", () => {
     for (const stage of ["metodo", "laboratorio"] as AulasSurfaceStage[]) {
-      expect(resolveAulasStageNotice(model({ ...sinComparar, metodoElegido: true }), stage)?.kind, stage).toBe("missing-comparison");
+      const notice = resolveAulasStageNotice(model({ ...sinComparar, metodoElegido: true }), stage);
+      expect(notice?.kind, stage).toBe("missing-comparison");
+      expect(notice?.localAction, stage).toBe("compare");
     }
+  });
+
+  it("en Simulación no dice «Falta comparar los métodos»: pide las corridas", () => {
+    const notice = resolveAulasStageNotice(model({ ...sinComparar, metodoElegido: true }), "laboratorio");
+    expect(notice?.title).toBe("Faltan las corridas de simulación");
+    expect(notice?.detail).toContain("ya puede sortearse");
+    expect(notice?.actionLabel).toBe("Ejecutar corridas");
   });
 });
