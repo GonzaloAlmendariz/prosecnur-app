@@ -74,7 +74,8 @@ const SECTION_COPY: Record<RecopiladoresSeccion, { title: string; lead: string }
   },
   entrega: {
     title: "Entrega",
-    lead: "Cierra el plan y deja constancia de qué se entregó. Repetirla no duplica nada, y Monitoreo la lee de ahí.",
+    // R6 del mapa de responsabilidades (2 nov 2026): qué se entrega, de dónde salen las metas y quién sigue.
+    lead: "Entrega el registro que campo llena al inicio (aulas, accesos y fichas) y deja constancia de qué se entregó. Repetirla no duplica nada. Las metas salen de Cálculo de muestra y el seguimiento lo hace Monitoreo.",
   },
 };
 

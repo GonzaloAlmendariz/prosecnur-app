@@ -147,7 +147,7 @@ export function DeliverySection({ payload, latestArtifact, onState, onIr, onIrAA
             </dl>
             {/* El traspaso enlaza al que recibe: Material entrega y no hace seguimiento. */}
             <p className="rec-receipt-siguiente">
-              Material termina aquí. Monitoreo trae esta entrega en Insumos › Fuentes y hace el seguimiento del campo.{" "}
+              Material termina aquí. Monitoreo trae esta entrega en Insumos › Fuentes y la sigue contra las metas de Cálculo de muestra.{" "}
               {onIr ? <PulsoButton variant="link" size="sm" onClick={() => onIr(A_MONITOREO_FUENTES)}>Abrir Monitoreo</PulsoButton> : null}
             </p>
           </article>
