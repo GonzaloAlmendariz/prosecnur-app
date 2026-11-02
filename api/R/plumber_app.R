@@ -151,6 +151,7 @@ build_plumber_app <- function(static_dir = system.file("www", package = "prosecn
     pr <- mount_monitoreo_territorial_rechazos(pr)
     pr <- mount_monitoreo_aulas_plantilla(pr)
     pr <- mount_monitoreo_aulas_libro(pr)
+    pr <- mount_monitoreo_aulas_tablas_construidas(pr)   # ADR 0125: Monitoreo comprueba lo que Material construyó
     pr <- mount_monitoreo_aulas_avance(pr)
     pr <- mount_monitoreo_aulas_distribucion(pr)
     pr <- mount_graficos(pr)

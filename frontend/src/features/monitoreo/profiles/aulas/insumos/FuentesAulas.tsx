@@ -5,6 +5,7 @@ import type { MonitoreoAulasDashboard } from "../../../../../api/monitoreo";
 import type { ContextoDeInsumos } from "./contextoDeInsumos";
 import { fmt } from "../kpisDeAulas";
 import { EntregaDeMaterial } from "./EntregaDeMaterial";
+import { TablasDeMaterial } from "./TablasDeMaterial";
 import { construirFuentes, readinessDeFuentes, type FilaDeFuente, type Tono } from "./fuentesModelo";
 import "./insumos.css";
 
@@ -118,6 +119,8 @@ function FuentesAulasImpl({ dashboard, cargando, contexto }: {
                 {m.filas.map((f) => <Fila key={f.clave} f={f} />)}
                 {/* X8: la entrega de Material, que Monitoreo trae a su plan. */}
                 <EntregaDeMaterial ocupado={contexto.ocupado} onTraida={contexto.recargar} />
+                {/* ADR 0125: Monitoreo comprueba que existen las tablas que Material construyó. */}
+                <TablasDeMaterial />
               </tbody>
             </table>
           </div>
