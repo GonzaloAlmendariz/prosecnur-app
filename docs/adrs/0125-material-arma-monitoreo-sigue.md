@@ -120,6 +120,10 @@ Monitoreo no asigna encuestadores: compara lo asignado con lo que llega del camp
 
 Monitoreo deja de publicar la base de supervisión: calcula el lote y lo entrega.
 
+**El barrido se construye en el Sheets del estudio, con nombres y teléfonos.** Decisión de Gonzalo del 2/11 (textual:
+«Sí, en el Sheets»), ante la advertencia de Material de que la plantilla declaraba esas columnas sensibles y fuera
+del Sheets compartido. Material arma la base de barrido sobre el enlace del estudio, como las tablas de aulas (R13).
+
 ### 5. Acreditación: los canales que declara el Modelo, por público
 
 > «Solo indicando que es de acreditación, o sea es Acreditación telefónica o Acreditación en aulas».
@@ -187,7 +191,8 @@ Enmienda del mismo día (Gonzalo, ~07:15, textual):
   cuando el Modelo los declara, y sigue dándolo cuando no.
 - Hay tres traspasos que todavía no existen y quedan como trabajo:
   - asignación de aplicadores en Material de aulas (R7);
-  - entrega del lote de supervisión de Monitoreo a Material, y base de supervisión armada en Material (§4);
+  - entrega del lote de supervisión de Monitoreo a Material, y base de supervisión armada en Material (§4, A3);
+  - territorial por cuotas por zona en Hojas, Material y Monitoreo (A1);
   - los canales por público con sus rondas en el Modelo de Monitoreo, y la `relacion` entre campañas en Material
     (§5).
 
@@ -208,6 +213,63 @@ Enmienda del mismo día (Gonzalo, ~07:15, textual):
   - **Monitoreo-Cálculo**: declarar `canales` por público en el Modelo de acreditación y conservarlos al
     normalizar; entregar el lote en vez de publicar la ronda; pasar a lectura la asignación de aulas
     cuando Material la tenga; usar el marco de alumnos como fuente de variables y metas en cursos-horario.
+
+## Anexo A. Contratos de traspaso congelados (2/11)
+
+Propuestos por Hojas/Material (`contratos-material-por-tipo-2026-11-02.md`, notas de la coordinación) y aceptados
+por la coordinación como decisión reversible. Cada dueño construye su lado contra esta forma.
+
+### A1. Territorial por cuotas (§2): Hojas → Material → Monitoreo
+
+- **Planner.** `/api/planner/modos` → `hojas_ruta = list(aplica, modo = "ump" | "cuotas")`. `modo` ya está
+  (166b6c71c y siguientes). `aplica = TRUE` también en cuotas entra cuando el Home lea ese caso (hoy
+  `project_overview` lo trata como «no aplica»).
+- **Hojas.** En `cuotas` las secciones son Territorio · Población · Muestra · Entrega, sin Manzanas ni Selección.
+  La unidad es la **zona** (distrito, o zona censal si el estudio baja a ese nivel), con su N y su cuota por celda
+  (sexo × rango de edad, la matriz de Población).
+- **Foto del envío** (`runs[[fase]]$envio`): suma `kind = "cuotas"` y, en lugar de bloques, trae
+  `zonas = list(list(ubigeo, zona, nombre, n, cuotas = list(list(sexo, edad, n))))`, con la misma huella
+  (`sample_fingerprint`) y `envio_meta`.
+- **Material.** La campaña territorial lee `kind`. En cuotas:
+  - Unidades lista las zonas con su cuota.
+  - La ficha de seguimiento es una hoja de conteo por zona, con las celdas de cuota para marcar.
+  - El Excel de asignación es encuestador ↔ zona, con su parte de la cuota.
+  - La asignación se guarda como hoy (`collection_territorial_asignacion.R`), con `id_zona` en lugar de
+    `id_manzana`.
+- **Monitoreo.** Lee la foto de cuotas (zonas y metas por celda) y la asignación por zona
+  (`asignacion-planificada` con `id_zona`). En cuotas el avance se mide por celda, no por UMP.
+
+### A2. Telefónico: base de barrido (§4)
+
+- Material › Barrido genera la base con sus columnas, y el analista pone los casos y los números.
+- Por la decisión de Gonzalo, se construye en el Sheets del estudio, con nombres y teléfonos.
+- Monitoreo la conecta como fuente y define las cuotas en su Modelo.
+
+### A3. Telefónico: campaña de supervisión (§4): Monitoreo → Material → Monitoreo
+
+- **Lote (lo arma Monitoreo).** `GET /api/monitoreo/telefonico/supervision/lotes`, de lectura, devuelve
+  `list(list(lote_id, creado_en, campana_origen = "telefonica.principal", criterio, casos = list(list(llave,
+  responsable, fecha_llamada))))`. `llave` es la del barrido (`cfg$llave` de la campaña telefónica). Monitoreo decide
+  a quién y cuándo; Material no recalcula.
+- **Campaña (la arma Material).** Tipo nuevo de campaña, `supervision`, una por lote:
+  - id `supervision.<lote_id>`;
+  - `relacion = list(publico = NULL, ronda = NULL, viene_de = "telefonica.principal")`.
+  No puede ser una `telefonica`, porque esa es única por proyecto. `/api/planner/modos` agrega `supervision` a
+  `material.campanas` siempre que haya `telefonica`, también en acreditación.
+- **Columnas.** Material propone y el analista elige, con el selector del kit, no el nativo:
+  - del barrido: sus columnas (por defecto, `Responsable` y `Status`);
+  - de los resultados: las variables que se repreguntan;
+  - siempre, las de la supervisión, con nombre fijo porque las lee Monitoreo: `Observaciones del supervisor`,
+    `Estatus de la llamada de supervisión` y `Veredicto`. El veredicto tiene catálogo cerrado: `Confirmada`,
+    `No confirmada`, `No contactado`.
+- **Salida.** Excel o Sheets, con una fila por caso del lote.
+- **Lectura (Monitoreo).** Lee esas tres columnas por `llave` y dice de qué lote y de qué campaña viene cada caso.
+
+### A4. Acreditación (§5)
+
+- Material nombra «Acreditación telefónica» y «Acreditación en aulas» cuando `material.proposito = "acreditacion"`.
+- `proposito` y `relacion = list(publico, ronda, viene_de)` van en la entrada del registro de cada campaña.
+- Se construye cuando Monitoreo exponga `canales` por público (contrato del §5).
 
 ## Notas
 

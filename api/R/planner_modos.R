@@ -115,6 +115,10 @@
   if ("acreditacion" %in% tipos && length(canales_acreditacion)) {
     campanas <- c(setdiff(campanas, "correo"), canales_acreditacion)
   }
+  # ADR 0125 §4: toda campaña telefónica (también la de acreditación) tiene su
+  # supervisión, una campaña `supervision` por lote que arma Material con
+  # `relacion$viene_de` apuntando a la telefónica.
+  if ("telefonica" %in% campanas) campanas <- c(campanas, "supervision")
   aulas <- Filter(function(p) identical(p$tipo, "aulas"), perfiles)
 
   modo_calc <- if (is.null(perfil_calc)) NULL else .planner_modo_calc(perfil_calc)
@@ -144,7 +148,14 @@
     ),
     hojas_ruta = list(
       # Sólo el territorial por UMP aleatoria hace hoja de ruta.
-      aplica = length(territorial) > 0L
+      aplica = length(territorial) > 0L,
+      # ADR 0125 §2: Hojas trabaja por UMP (aleatorio) o por zona con cuotas
+      # por celda. `aplica` pasa a ser verdadero también en cuotas cuando el
+      # Home lo lea así (anexo A del ADR).
+      modo = {
+        t <- Filter(function(p) identical(p$tipo, "territorial"), perfiles)
+        if (!length(t)) NULL else if (identical(t[[1]]$diseno, "cuotas")) "cuotas" else "ump"
+      }
     ),
     territorial = list(
       seleccion = {

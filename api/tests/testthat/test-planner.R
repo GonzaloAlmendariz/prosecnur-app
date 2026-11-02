@@ -208,7 +208,8 @@ test_that("los cinco proyectos de referencia abren el Planner vacío y conservan
   # Oráculo medido el 1/11 (tabla de Cumplimiento del ADR 0123).
   esperados <- list(
     acnur_acg = list(calc = "territorial-handoff", mon = "territorial", mat = "territorial", hojas = TRUE),
-    acnur_pdm = list(calc = NA, mon = "telefonico", mat = "telefonica", hojas = FALSE),
+    # ADR 0125 §4: la telefónica trae su supervisión.
+    acnur_pdm = list(calc = NA, mon = "telefonico", mat = c("telefonica", "supervision"), hojas = FALSE),
     hsvg2026 = list(calc = "opinion-universitaria", mon = "aulas", mat = "aulas", hojas = FALSE),
     # ADR 0125 §5: sin canales declarados en el Modelo, acreditación abre correo.
     acrconta = list(calc = NA, mon = "acreditacion", mat = "correo", hojas = FALSE),
@@ -240,6 +241,10 @@ test_that("la tabla perfil → modo del §4, perfil por perfil", {
   t <- m(tipo = "territorial")
   expect_equal(t$calc$modo, "territorial-handoff")
   expect_true(t$hojas_ruta$aplica)
+  expect_equal(t$hojas_ruta$modo, "ump")
+  # ADR 0125 §2: por cuotas, Hojas trabaja por zona.
+  expect_equal(m(tipo = "territorial", seleccion = "conveniencia")$hojas_ruta$modo, "cuotas")
+  expect_null(m(tipo = "aulas")$hojas_ruta$modo)
   expect_equal(t$monitoreo$familia, "territorial")
   expect_equal(unlist(t$material$campanas), "territorial")
 
@@ -267,7 +272,7 @@ test_that("la tabla perfil → modo del §4, perfil por perfil", {
   expect_equal(tel$calc$macro_familia, "estudio_propio")
   expect_equal(m(tipo = "territorial")$calc$macro_familia, "territorial")
   expect_equal(m(tipo = "acreditacion", diseno = "calc-muestra")$calc$macro_familia, "acreditacion")
-  expect_equal(unlist(tel$material$campanas), "telefonica")
+  expect_equal(unlist(tel$material$campanas), c("telefonica", "supervision"))
   # Una lista que entrega el cliente: Cálculo no diseña nada.
   cli <- m(tipo = "telefonico", diseno = "cliente")
   expect_null(cli$calc$modo)
@@ -281,7 +286,7 @@ test_that("la tabla perfil → modo del §4, perfil por perfil", {
   expect_equal(acr$material$proposito, "acreditacion")
   expect_null(tel$material$proposito)
   tres <- .planner_modos_de(list(.planner_norm_perfil(list(tipo = "acreditacion"))), c("telefonica", "correo", "aulas"))
-  expect_equal(unlist(tres$material$campanas), c("telefonica", "correo", "aulas"))
+  expect_equal(unlist(tres$material$campanas), c("telefonica", "correo", "aulas", "supervision"))
   # Los canales del Modelo no tocan a un estudio que no es de acreditación.
   expect_equal(unlist(.planner_modos_de(list(.planner_norm_perfil(list(tipo = "aulas"))), "telefonica")$material$campanas), "aulas")
 })
