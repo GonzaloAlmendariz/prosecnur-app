@@ -261,7 +261,9 @@ pulso_pdf_footer <- function(page_no, periodo = "", tokens = pulso_pdf_tokens(),
   # relleno a igual texto y tocaba la regla.
   grid::grid.lines(x = grid::unit(c(m, right), "npc"), y = grid::unit(0.066, "npc"),
                    gp = grid::gpar(col = tokens$line, lwd = 0.7))
-  .pulso_pdf_draw_logo(m, 0.036, width_npc = 0.135, geo = geo, tokens = tokens)
+  # 0,040 y no 0,036: con la insignia de contorno el logo quedaba a 4,4 mm del borde
+  # inferior en vertical, donde muchas impresoras ya no imprimen (test-collection-ficha-campo).
+  .pulso_pdf_draw_logo(m, 0.040, width_npc = 0.135, geo = geo, tokens = tokens)
   if (nzchar(periodo)) {
     grid::grid.text(periodo, x = grid::unit(0.5, "npc"), y = grid::unit(0.038, "npc"),
                     gp = grid::gpar(fontsize = ty$footer, col = tokens$soft))
