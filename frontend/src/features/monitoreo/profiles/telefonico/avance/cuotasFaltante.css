@@ -202,16 +202,18 @@
   background: var(--pulso-brand-navy);
 }
 
+/* La marca empieza bajo el rótulo «meta»: si sube hasta él, lo atraviesa. */
 .mon-tel-cuotas-barra-meta {
-  top: 4px;
+  top: 7px;
   width: 2px;
-  height: 22px;
+  height: 18px;
   background: var(--pulso-module-monitoring);
 }
 
 .mon-tel-cuotas-barra em {
   position: absolute;
-  top: -6px;
+  top: -9px;
+  line-height: 1;
   transform: translateX(-50%);
   color: var(--pulso-module-monitoring);
   font-size: 10.5px;
