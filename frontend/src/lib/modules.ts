@@ -229,6 +229,76 @@ export const MODULE_TONES: Record<ProsecnurModuleSlug, ProsecnurModuleTone> = {
   },
 };
 
+/** Hojas de ruta por UMP (aleatorio): el juego completo, con el sorteo de manzanas y la selección. */
+const HOJAS_RUTA_SECCIONES_UMP: readonly ProsecnurModuleSectionMeta[] = [
+  {
+    id: "territorio",
+    label: "Territorio",
+    icon: MapPinned,
+    to: "/hojas-ruta?seccion=territorio",
+    layoutPolicy: "viewport",
+  },
+  {
+    id: "poblacion",
+    label: "Población",
+    icon: BarChart3,
+    to: "/hojas-ruta?seccion=poblacion",
+    layoutPolicy: "viewport",
+  },
+  {
+    id: "muestra",
+    label: "Muestra",
+    icon: Target,
+    to: "/hojas-ruta?seccion=muestra",
+    layoutPolicy: "viewport",
+  },
+  {
+    id: "manzanas",
+    label: "Manzanas",
+    icon: Shuffle,
+    to: "/hojas-ruta?seccion=manzanas",
+    layoutPolicy: "viewport",
+  },
+  {
+    id: "seleccion",
+    label: "Selección",
+    icon: FileText,
+    to: "/hojas-ruta?seccion=seleccion",
+    layoutPolicy: "viewport",
+    tabs: [
+      {
+        id: "cuotas",
+        label: "Cuotas",
+        icon: BarChart3,
+        to: "/hojas-ruta?seccion=seleccion&pestana=cuotas",
+        layoutPolicy: "viewport",
+      },
+      {
+        id: "titulares",
+        label: "Titulares",
+        icon: MapPinned,
+        to: "/hojas-ruta?seccion=seleccion&pestana=titulares",
+        layoutPolicy: "viewport",
+      },
+      {
+        id: "reemplazos",
+        label: "Reemplazos",
+        icon: Shuffle,
+        to: "/hojas-ruta?seccion=seleccion&pestana=reemplazos",
+        layoutPolicy: "viewport",
+      },
+      {
+        // Cada UMP cruzada con las viviendas censales de su manzana.
+        id: "revision",
+        label: "Revisión",
+        icon: ShieldAlert,
+        to: "/hojas-ruta?seccion=seleccion&pestana=revision",
+        layoutPolicy: "viewport",
+      },
+    ],
+  },
+];
+
 export const PROSECNUR_MODULES: ProsecnurModuleMeta[] = [
   {
     slug: "calc-muestra",
@@ -380,71 +450,19 @@ export const PROSECNUR_MODULES: ProsecnurModuleMeta[] = [
     tone: MODULE_TONES["hojas-ruta"],
     to: "/hojas-ruta",
     landingKind: "entrypoint",
-    sections: [
+    sections: HOJAS_RUTA_SECCIONES_UMP,
+    // ADR 0125 §2: el Planner fija el modo. Por cuotas no hay sorteo de manzanas: la cuarta sección es la
+    // entrega de las zonas a Material (id `seleccion`, el canónico de la entrega; `entrega` es su alias viejo).
+    modos: [
+      { id: "ump", label: "Muestra por manzanas", sections: HOJAS_RUTA_SECCIONES_UMP },
       {
-        id: "territorio",
-        label: "Territorio",
-        icon: MapPinned,
-        to: "/hojas-ruta?seccion=territorio",
-        layoutPolicy: "viewport",
-      },
-      {
-        id: "poblacion",
-        label: "Población",
-        icon: BarChart3,
-        to: "/hojas-ruta?seccion=poblacion",
-        layoutPolicy: "viewport",
-      },
-      {
-        id: "muestra",
-        label: "Muestra",
-        icon: Target,
-        to: "/hojas-ruta?seccion=muestra",
-        layoutPolicy: "viewport",
-      },
-      {
-        id: "manzanas",
-        label: "Manzanas",
-        icon: Shuffle,
-        to: "/hojas-ruta?seccion=manzanas",
-        layoutPolicy: "viewport",
-      },
-      {
-        id: "seleccion",
-        label: "Selección",
-        icon: FileText,
-        to: "/hojas-ruta?seccion=seleccion",
-        layoutPolicy: "viewport",
-        tabs: [
-          {
-            id: "cuotas",
-            label: "Cuotas",
-            icon: BarChart3,
-            to: "/hojas-ruta?seccion=seleccion&pestana=cuotas",
-            layoutPolicy: "viewport",
-          },
-          {
-            id: "titulares",
-            label: "Titulares",
-            icon: MapPinned,
-            to: "/hojas-ruta?seccion=seleccion&pestana=titulares",
-            layoutPolicy: "viewport",
-          },
-          {
-            id: "reemplazos",
-            label: "Reemplazos",
-            icon: Shuffle,
-            to: "/hojas-ruta?seccion=seleccion&pestana=reemplazos",
-            layoutPolicy: "viewport",
-          },
-          {
-            // Cada UMP cruzada con las viviendas censales de su manzana.
-            id: "revision",
-            label: "Revisión",
-            icon: ShieldAlert,
-            to: "/hojas-ruta?seccion=seleccion&pestana=revision",
-            layoutPolicy: "viewport",
-          },
+        id: "cuotas",
+        label: "Muestra por cuotas",
+        sections: [
+          { id: "territorio", label: "Territorio", icon: MapPinned, to: "/hojas-ruta?modo=cuotas&seccion=territorio", layoutPolicy: "viewport" },
+          { id: "poblacion", label: "Población", icon: BarChart3, to: "/hojas-ruta?modo=cuotas&seccion=poblacion", layoutPolicy: "viewport" },
+          { id: "muestra", label: "Muestra", icon: Target, to: "/hojas-ruta?modo=cuotas&seccion=muestra", layoutPolicy: "viewport" },
+          { id: "seleccion", label: "Entrega", icon: FileText, to: "/hojas-ruta?modo=cuotas&seccion=seleccion", layoutPolicy: "viewport" },
         ],
       },
     ],

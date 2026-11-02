@@ -267,6 +267,20 @@ export function nodoPorClave(clave: string): NodoNavegacion | null {
 }
 
 /**
+ * Como `nodoPorClave`, pero una clave sin modo de un módulo que los tiene cae en su primer modo: así
+ * `hojas-ruta/seleccion` sigue llegando a la selección por UMP desde que Hojas de ruta declaró sus modos
+ * (ADR 0125 §2). Lo usa el puente; los contratos siguen leyendo la clave exacta.
+ */
+export function nodoPorClaveOModoPorDefecto(clave: string): NodoNavegacion | null {
+  const exacto = nodoPorClave(clave);
+  if (exacto) return exacto;
+  const [modulo, ...resto] = clave.split("/");
+  const primerModo = PROSECNUR_MODULES.find((m) => m.slug === modulo)?.modos?.[0]?.id;
+  if (!primerModo || !resto.length || resto[0] === primerModo) return null;
+  return nodoPorClave([modulo, primerModo, ...resto].join("/"));
+}
+
+/**
  * Recorrido plano para runners de QA: una fila por vista visitable.
  *
  * El orden es determinista (el del manifiesto de módulos), así que dos

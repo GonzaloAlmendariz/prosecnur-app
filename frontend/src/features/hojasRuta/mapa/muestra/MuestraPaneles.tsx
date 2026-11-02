@@ -289,8 +289,9 @@ export function MuestraInspector({ config, resultado: r, bloqueado, guardando, h
             <PulsoButton variant="secondary" disabled={!hayMuestra && !hayTamano} aria-pressed={cajonMuestra} onClick={() => setCajonMuestra(!cajonMuestra)}>
               {cajonMuestra ? "Ocultar cuotas" : "Ver cuotas"}
             </PulsoButton>
-            <PulsoButton variant="primary" disabled={!hayMuestra} onClick={() => nav.irA("seccion", "manzanas")}>
-              Ir al sorteo
+            {/* Por cuotas no hay sorteo de manzanas: lo que sigue es enviar las zonas (ADR 0125 §2). */}
+            <PulsoButton variant="primary" disabled={!hayMuestra} onClick={() => nav.irA("seccion", nav.modo === "cuotas" ? "seleccion" : "manzanas")}>
+              {nav.modo === "cuotas" ? "Ir a la entrega" : "Ir al sorteo"}
             </PulsoButton>
           </>
         )}

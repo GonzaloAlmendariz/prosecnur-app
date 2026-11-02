@@ -255,7 +255,8 @@ export type PlannerModos = {
   /** `pendientes`: un canal declarado que todavía no abre su campaña, con qué falta y adónde ir. */
   /** `proposito: "acreditacion"`: las campañas telefónica y de aulas son de acreditación (ADR 0125 §5). */
   material: { campanas: string[]; proposito: "acreditacion" | null; pendientes: { canal: string; campana: string; texto: string; href: string }[] };
-  hojasRuta: { aplica: boolean };
+  /** `modo`: por UMP (aleatorio) o por zona con cuotas por celda (ADR 0125 §2); null sin territorial. */
+  hojasRuta: { aplica: boolean; modo: "ump" | "cuotas" | null };
   /** Variante del perfil territorial, si hay uno. */
   territorial: { seleccion: PlannerSeleccionTerritorial | null };
   /** Aulas con marco de alumnos: identidad, variables y metas del marco (ADR 0125 §3). */
@@ -286,7 +287,10 @@ export function normalizarPlannerModos(raw: unknown): PlannerModos {
         .map((x) => ({ canal: txt(x.canal), campana: txt(x.campana), texto: txt(x.texto), href: txt(x.href) }))
         .filter((x) => x.texto),
     },
-    hojasRuta: { aplica: obj(r.hojas_ruta).aplica === true || txt(obj(r.hojas_ruta).aplica) === "true" },
+    hojasRuta: {
+      aplica: obj(r.hojas_ruta).aplica === true || txt(obj(r.hojas_ruta).aplica) === "true",
+      modo: (["ump", "cuotas"] as const).find((v) => v === txt(obj(r.hojas_ruta).modo)) ?? null,
+    },
     territorial: { seleccion: (["ump_aleatoria", "conveniencia"] as const).find((v) => v === txt(obj(r.territorial).seleccion)) ?? null },
     aulas: { conMarco: obj(r.aulas).con_marco === true || txt(obj(r.aulas).con_marco) === "true" },
     origen: txt(r.origen) === "declarado" ? "declarado" : "deducido",

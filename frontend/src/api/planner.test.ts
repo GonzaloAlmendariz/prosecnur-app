@@ -21,6 +21,13 @@ describe("normalizadores del Planner", () => {
     expect(modos.origen).toBe("declarado");
   });
 
+  it("lee el modo de Hojas de ruta y descarta el que no conoce (ADR 0125 §2)", () => {
+    expect(normalizarPlannerModos({ hojas_ruta: { aplica: true, modo: ["cuotas"] } }).hojasRuta).toEqual({ aplica: true, modo: "cuotas" });
+    expect(normalizarPlannerModos({ hojas_ruta: { aplica: true, modo: "ump" } }).hojasRuta.modo).toBe("ump");
+    expect(normalizarPlannerModos({ hojas_ruta: { aplica: true, modo: "zonal" } }).hojasRuta.modo).toBeNull();
+    expect(normalizarPlannerModos({ hojas_ruta: {} }).hojasRuta.modo).toBeNull();
+  });
+
   it("sin perfiles no inventa modos", () => {
     const modos = normalizarPlannerModos({ perfiles: {}, calc: { modo: null }, monitoreo: {}, material: {}, hojas_ruta: {} });
     expect(modos.calc.modo).toBeNull();

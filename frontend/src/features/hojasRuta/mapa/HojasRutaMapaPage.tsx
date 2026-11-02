@@ -14,6 +14,8 @@ import { SectionPillbar } from "../../../components/SectionPillbar";
 import { ChromeIndicator, ChromeIndicatorGroup } from "../../../components/ChromeIndicator";
 import { apiHojasRutaCreateFieldFromPilot, apiHojasRutaGeometria, apiHojasRutaGuardarConfig, apiHojasRutaMarcoElegiblePreview, apiHojasRutaPersistWorkspace, apiHojasRutaPopulationPreview, apiHojasRutaQuotaPreview, apiHojasRutaSamplePreview, apiHojasRutaSampleSizePreview, apiHojasRutaSetPhase, apiHojasRutaState, type HojasRutaIntegratedConfig, type HojasRutaMarcoElegiblePreview, type HojasRutaPilotExclusionMode, type HojasRutaRouteSnapshot, type HojasRutaSamplePreview, type HojasRutaState } from "../../../api/hojasRuta";
 import { useSeccion } from "../../../lib/navegacion/useDireccion";
+import { usePlannerModos } from "../../estudio/usePlannerModos";
+import { EntregaCuotas } from "./seleccion/EntregaCuotas";
 import { indicadoresDecididos } from "../chrome/loDecidido";
 import peruDepartamentos from "../peruDepartamentos.json";
 import { dibujarLimites, dibujarNombresDepartamento, limitesDePeru, type LimitesCrudos } from "./lienzo/limites";
@@ -99,7 +101,12 @@ export default function HojasRutaMapaPage() {
   const enPoblacion = nav.seccion === "poblacion";
   const enMuestra = nav.seccion === "muestra";
   const enManzanas = nav.seccion === "manzanas";
-  const enSeleccion = nav.seccion === "seleccion";
+  // ADR 0125 §2: por cuotas, la cuarta sección es la entrega de las zonas, no la selección de UMP.
+  const enCuotas = nav.modo === "cuotas";
+  const enSeleccion = nav.seccion === "seleccion" && !enCuotas;
+  const enEntregaCuotas = nav.seccion === "seleccion" && enCuotas;
+  const { modos: modosDelEstudio } = usePlannerModos();
+  const modoDelEstudio = modosDelEstudio?.hojasRuta.modo ?? null;
   // Territorio: atlas de ciudades o una ciudad abierta, según el `foco` («lima» o provincia).
   const [foco, setFoco] = useFoco();
   const ciudadAbierta = enTerritorio ? ciudadAbiertaDeFoco(foco) : null;
@@ -668,6 +675,15 @@ export default function HojasRutaMapaPage() {
 
   // B1: la zona de acciones del documento (fase, avisos por revisar, bitácora, Material).
   const navegar = useNavigate();
+  // El modo lo fija el estudio, no un click: si la dirección dice otro, se corrige sin perder la sección.
+  useEffect(() => {
+    if (!modoDelEstudio || modoDelEstudio === (nav.modo ?? "ump")) return;
+    const q = new URLSearchParams(location.search);
+    if (modoDelEstudio === "ump") q.delete("modo"); else q.set("modo", modoDelEstudio);
+    if (modoDelEstudio === "cuotas" && q.get("seccion") === "manzanas") q.delete("seccion");
+    const s = q.toString();
+    navegar(`${location.pathname}${s ? `?${s}` : ""}`, { replace: true });
+  }, [modoDelEstudio, nav.modo, location.pathname, location.search, navegar]);
   const [entradasBitacora, setEntradasBitacora] = useState<number | null>(null);
   useEffect(() => {
     let vivo = true;
@@ -720,10 +736,10 @@ export default function HojasRutaMapaPage() {
       icon: Send,
       kind: "secondary" as const,
       rank: 2 as const,
-      disabled: !salidas?.sample,
+      disabled: enCuotas ? !confirmados.length : !salidas?.sample,
       title: envio ? (envio.desactualizado ? "La muestra cambió desde el envío: reenvíala" : "La muestra está enviada a Material de campo") : "Envía la muestra a Material de campo, que produce las fichas y el paquete",
-      // ADR 0118 F3: abre «Entrega», donde se envía y se enlaza la campaña territorial.
-      onSelect: () => navegar(`${location.pathname}?seccion=seleccion&panel=salidas`),
+      // ADR 0118 F3: abre «Entrega», donde se envía y se enlaza la campaña territorial (en cuotas, la sección misma).
+      onSelect: () => (enCuotas ? nav.irA("seccion", "seleccion") : navegar(`${location.pathname}?seccion=seleccion&panel=salidas`)),
     },
   ];
   const seccionActual = nav.secciones.find((s) => s.id === nav.seccion);
@@ -749,7 +765,7 @@ export default function HojasRutaMapaPage() {
           modulo="hojas-ruta"
           ariaLabel="Secciones de Hojas de ruta"
           seccionActiva={nav.seccion}
-          items={nav.secciones.map((s) => ({ id: s.id, label: s.label, href: `${location.pathname}?seccion=${s.id}` }))}
+          items={nav.secciones.map((s) => ({ id: s.id, label: s.label, href: nav.hrefDe("seccion", s.id) }))}
         />
       }
     />
@@ -893,6 +909,8 @@ export default function HojasRutaMapaPage() {
               onVecina={(paso) => setUmpEnfocada(vecina(grupos, umpEnfocada, paso))}
               salidas={<SalidasPanel salidas={salidas} envio={envio} onCambio={releerEstado} fase={fase} />}
             />
+          ) : enEntregaCuotas && estado ? (
+            <EntregaCuotas envio={envio} distritos={confirmados.length} nObjetivo={estado.integrated_config.n_objetivo || null} fase={fase} onCambio={releerEstado} />
           ) : enManzanas && estado && configSorteo ? (
             <ManzanasInspector
               guardada={estado.integrated_config}

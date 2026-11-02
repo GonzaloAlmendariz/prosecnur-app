@@ -1548,6 +1548,19 @@ export async function apiHojasRutaEnviar(): Promise<EnvioMeta | null> {
   return normalizarEnvioMeta(r.envio_meta);
 }
 
+/**
+ * «Enviar a Material» de un estudio por cuotas (ADR 0125 §2): el servidor arma las zonas con su N y su cuota
+ * por celda desde la configuración de la fase y las guarda como foto con huella. Sin zonas, 409.
+ */
+export async function apiHojasRutaEnviarCuotas(fase?: string): Promise<EnvioMeta | null> {
+  const r = await handle<{ envio_meta?: unknown }>(await apiFetch("/api/hojas-ruta/envio", {
+    method: "POST",
+    headers: headers({ "Content-Type": "application/json" }),
+    body: JSON.stringify({ kind: "cuotas", ...(fase ? { fase } : {}) }),
+  }));
+  return normalizarEnvioMeta(r.envio_meta);
+}
+
 /** Reparte la cuota de sexo y edad de cada distrito entre las hojas de la muestra guardada (mismas manzanas). */
 export async function apiHojasRutaCuotasPorFicha(): Promise<HojasRutaCuotasRepartidas> {
   const r = await handle<{ resumen?: unknown }>(await apiFetch("/api/hojas-ruta/cuotas-por-ficha", { method: "POST", headers: headers({ "Content-Type": "application/json" }), body: "{}" }));
