@@ -34,6 +34,7 @@ import {
   dibujarReemplazosMundo,
   dibujarNombresFuera,
   dibujarRotulosDistrito,
+  type CajaOcupada,
   dibujarTitularesMundo,
   dibujarTitularesPantalla,
   type TitularEnMapa,
@@ -655,9 +656,10 @@ export default function HojasRutaMapaPage() {
       dibujarNombresDepartamento(ctx, u, limites);
       if (!enTerritorio && !enPoblacion && !enMuestra) dibujarTitularesPantalla(ctx, u, titulares, enSeleccion ? umpEnfocada : null, null, enSeleccion ? reemplazosEnfocados : [], capaContraste);
       const visibles = enTerritorio ? contornosAbiertos.filter((c) => borrador.includes(c.ubigeo) || confirmados.includes(c.ubigeo)) : contornos.filter((c) => confirmados.includes(c.ubigeo));
-      if (enTerritorio) dibujarNombresFuera(ctx, u, contornosAbiertos.filter((c) => !visibles.includes(c)).map((c) => ({ clave: c.ubigeo, nombre: nombreDistrito(c.nombre), x: c.rotulo[0], y: c.rotulo[1] })));
+      // D11 (checklist visual 2/11): primero las fichas del estudio y después los nombres de los demás, que no las pisan.
+      let fichas: CajaOcupada[] = [];
       if (u.camara.s < 0.09 || enTerritorio || enPoblacion || enMuestra) {
-        dibujarRotulosDistrito(
+        fichas = dibujarRotulosDistrito(
           ctx,
           u,
           visibles.map((c) => {
@@ -669,6 +671,7 @@ export default function HojasRutaMapaPage() {
           }),
         );
       }
+      if (enTerritorio) dibujarNombresFuera(ctx, u, contornosAbiertos.filter((c) => !visibles.includes(c)).map((c) => ({ clave: c.ubigeo, nombre: nombreDistrito(c.nombre), x: c.rotulo[0], y: c.rotulo[1] })), fichas);
     },
     [titulares, confirmados, borrador, enTerritorio, enPoblacion, enMuestra, enSeleccion, umpEnfocada, reemplazosEnfocados, matriz, tamano, habitantes, capaContraste, enAtlas, atlas, enEstudio, ciudadEnfocada, contornos, contornosAbiertos],
   );

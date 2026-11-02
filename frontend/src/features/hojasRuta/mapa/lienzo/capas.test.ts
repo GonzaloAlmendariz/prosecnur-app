@@ -1,7 +1,7 @@
 import { describe, expect, test } from "vitest";
 import cobertura from "../../limaDistrictCoverage.json";
 import { proyectarLonLat } from "./camara";
-import { contornosDeCobertura, elegirRotulos, mezclar, rotulosAlCostado } from "./capas";
+import { contornosDeCobertura, elegirRotulos, mezclar, rotulosAlCostado, sinPisarFichas } from "./capas";
 
 describe("proyección lon/lat", () => {
   test("coincide con la de R (.hojas_ruta_geometria_proyectar)", () => {
@@ -135,3 +135,15 @@ describe("fichas al costado del lienzo (revisión del mapa, 2 nov 2026)", () => 
   });
 });
 
+describe("sinPisarFichas (D11, checklist visual 2/11)", () => {
+  test("quita el nombre que caería bajo una ficha y deja los que están lejos", () => {
+    const ficha = { x: 100, y: 100, w: 80, h: 38 };
+    const nombres = [
+      { clave: "callao", x: 110, y: 105, w: 40, h: 14 },
+      { clave: "bellavista", x: 100, y: 125, w: 60, h: 14 },
+      { clave: "lejos", x: 300, y: 300, w: 40, h: 14 },
+    ];
+    expect(sinPisarFichas(nombres, [ficha]).map((n) => n.clave)).toEqual(["lejos"]);
+    expect(sinPisarFichas(nombres, [])).toHaveLength(3);
+  });
+});

@@ -321,7 +321,18 @@ export type RotuloDistrito = { ubigeo: string; nombre: string; detalle?: string;
  * sin competir con los rótulos de los elegidos. Sin caja ni desplazamiento: el que
  * choca con otro simplemente no se escribe.
  */
-export function dibujarNombresFuera(ctx: CanvasRenderingContext2D, u: UtilLienzo, nombres: readonly { clave: string; nombre: string; x: number; y: number }[]) {
+/** Una caja ya pintada en pantalla (centro y tamaño), que un nombre no debe pisar. */
+export type CajaOcupada = { x: number; y: number; w: number; h: number };
+
+const seTocan = (a: CajaOcupada, b: CajaOcupada, aire = 3) =>
+  Math.abs(a.x - b.x) * 2 < a.w + b.w + aire * 2 && Math.abs(a.y - b.y) * 2 < a.h + b.h + aire * 2;
+
+/** D11 (checklist visual 2/11): un nombre que caería bajo una ficha de distrito no se pinta. */
+export function sinPisarFichas<T extends CajaOcupada>(medidos: readonly T[], ocupadas: readonly CajaOcupada[]): T[] {
+  return medidos.filter((m) => !ocupadas.some((o) => seTocan(m, o)));
+}
+
+export function dibujarNombresFuera(ctx: CanvasRenderingContext2D, u: UtilLienzo, nombres: readonly { clave: string; nombre: string; x: number; y: number }[], ocupadas: readonly CajaOcupada[] = []) {
   ctx.font = "600 10.5px -apple-system, system-ui, sans-serif";
   const medidos = nombres
     .map((n) => {
@@ -329,7 +340,7 @@ export function dibujarNombresFuera(ctx: CanvasRenderingContext2D, u: UtilLienzo
       return { clave: n.clave, nombre: n.nombre, x, y, w: ctx.measureText(n.nombre).width + 6, h: 14 };
     })
     .filter((m) => m.x > 30 && m.y > 60 && m.x < u.tamano.w - 30 && m.y < u.tamano.h - 50);
-  const libres = new Set(elegirRotulos(medidos, 6, false).map((c) => c.clave));
+  const libres = new Set(elegirRotulos(sinPisarFichas(medidos, ocupadas), 6, false).map((c) => c.clave));
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
   ctx.fillStyle = u.colores.suave;
@@ -338,7 +349,8 @@ export function dibujarNombresFuera(ctx: CanvasRenderingContext2D, u: UtilLienzo
   ctx.globalAlpha = 1;
 }
 
-export function dibujarRotulosDistrito(ctx: CanvasRenderingContext2D, u: UtilLienzo, rotulos: readonly RotuloDistrito[]) {
+export function dibujarRotulosDistrito(ctx: CanvasRenderingContext2D, u: UtilLienzo, rotulos: readonly RotuloDistrito[]): CajaOcupada[] {
+  const pintadas: CajaOcupada[] = [];
   const compactos = rotulos.length > 8;
   const medidos = rotulos.map((r) => {
     ctx.font = "800 12px -apple-system, system-ui, sans-serif";
@@ -377,6 +389,7 @@ export function dibujarRotulosDistrito(ctx: CanvasRenderingContext2D, u: UtilLie
       ctx.arc(m.x, m.y, 2.5, 0, Math.PI * 2);
       ctx.fill();
     }
+    pintadas.push({ x, y, w, h });
     ctx.beginPath();
     ctx.roundRect(x - w / 2, y - h / 2, w, h, compactos ? 7 : 10);
     ctx.fillStyle = "rgba(255, 255, 255, 0.95)";
@@ -399,6 +412,7 @@ export function dibujarRotulosDistrito(ctx: CanvasRenderingContext2D, u: UtilLie
       ctx.fillText(m.r.detalle, x + 4, y + 8);
     }
   }
+  return pintadas;
 }
 
 export type { Caja };
