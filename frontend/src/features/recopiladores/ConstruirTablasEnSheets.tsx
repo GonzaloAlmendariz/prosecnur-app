@@ -1,13 +1,14 @@
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { ApiError } from "../../api/core";
 import { apiMonitoreoAulasPublicarDistribucion, apiMonitoreoAulasPublicarLibro } from "../../api/monitoreo";
 import { apiMonitoreoAulasEntrega, apiMonitoreoAulasTraerEntrega } from "../../api/monitoreoAulasEntrega";
+import { apiMonitoreoAulasTablasConstruidas, type TablasConstruidas } from "../../api/monitoreoAulasTablas";
 import { Panel } from "../../components/Panel";
 import { PulsoButton } from "../../components/PulsoButton";
 import { PulsoField } from "../../components/PulsoField";
 import { PulsoInput } from "../../components/PulsoInput";
 import { FileSpreadsheet, Loader2 } from "../../vendor/lucide-react";
-import { construirTablasEnSheets, rotuloDeHoja, type ResultadoDeTablas } from "./tablasEnSheets";
+import { construirTablasEnSheets, estadoEnElSheets, rotuloDeHoja, type ResultadoDeTablas } from "./tablasEnSheets";
 
 /** Las tablas que Material construye sobre el motor de Monitoreo: cada una es un documento aparte. */
 export const TABLAS = {
@@ -48,6 +49,13 @@ export function ConstruirTablasEnSheets({ entregado, tabla = "libro" }: { entreg
   const [confirmando, setConfirmando] = useState(false);
   const [ocupado, setOcupado] = useState(false);
   const [resultado, setResultado] = useState<ResultadoDeTablas | null>(null);
+  // Monitoreo comprueba que lo construido existe (ADR 0125): se lee al abrir y después de escribir.
+  const [enElSheets, setEnElSheets] = useState<TablasConstruidas | null>(null);
+  const comprobar = useCallback(() => {
+    apiMonitoreoAulasTablasConstruidas().then(setEnElSheets).catch(() => setEnElSheets(null));
+  }, []);
+  useEffect(() => { comprobar(); }, [comprobar]);
+  const estado = enElSheets ? estadoEnElSheets(enElSheets, tabla) : null;
 
   const construir = async () => {
     setOcupado(true);
@@ -60,6 +68,7 @@ export function ConstruirTablasEnSheets({ entregado, tabla = "libro" }: { entreg
     } finally {
       setOcupado(false);
       setConfirmando(false);
+      comprobar();
     }
   };
 
@@ -67,6 +76,7 @@ export function ConstruirTablasEnSheets({ entregado, tabla = "libro" }: { entreg
     <Panel className="rec-tablas-sheets" eyebrow="Sheets del operativo" title={<><FileSpreadsheet size={18} aria-hidden /> {t.titulo}</>}>
       <div className="rec-tablas-sheets-cuerpo">
       <p className="rec-policy-note">{t.nota}</p>
+      {estado ? <p className="rec-policy-note" data-tono={estado.tono} role="status">{estado.texto}</p> : null}
       <PulsoField label={t.campo} hint="Vacío: se usa el que ya está recordado.">
         <PulsoInput size="sm" value={enlace} placeholder="https://docs.google.com/spreadsheets/d/…" disabled={ocupado} onChange={(e) => setEnlace(e.currentTarget.value)} />
       </PulsoField>

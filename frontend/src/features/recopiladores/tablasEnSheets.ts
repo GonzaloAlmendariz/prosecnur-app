@@ -1,5 +1,6 @@
 import type { EstadoDeEntrega } from "../../api/monitoreoAulasEntrega";
 import type { MonitoreoAulasHojaPublicada } from "../../api/monitoreo";
+import type { TablasConstruidas } from "../../api/monitoreoAulasTablas";
 
 /**
  * R13 del mapa de responsabilidades (2 nov 2026): Material construye sobre el Sheets del estudio las
@@ -43,4 +44,23 @@ const ACCION: Record<string, string> = {
 export function rotuloDeHoja(h: MonitoreoAulasHojaPublicada): string {
   const accion = ACCION[h.accion] ?? h.accion;
   return `${h.hoja} · ${accion} (${h.filas.toLocaleString("es-PE")} ${h.filas === 1 ? "fila" : "filas"})`;
+}
+
+/**
+ * Lo que hay hoy en el Sheets, según la comprobación de Monitoreo (`GET /aulas/tablas-construidas`).
+ * Con destino pero sin poder leerlo (`existe = null`) no se afirma que falte nada: se dice que no se sabe.
+ */
+export function estadoEnElSheets(t: TablasConstruidas, tabla: "libro" | "distribucion"): { texto: string; tono: "ok" | "aviso" | "neutro" } {
+  const x = t[tabla];
+  if (!x.destino) return { texto: "Todavía no hay un Sheets recordado.", tono: "neutro" };
+  if (x.existe === null) return { texto: "No se pudo leer el Sheets ahora: no se sabe si las tablas están.", tono: "aviso" };
+  if (tabla === "libro") {
+    const faltan = t.libro.faltan;
+    if (x.existe && !faltan.length) return { texto: "En el Sheets hoy: están todas las hojas.", tono: "ok" };
+    if (faltan.length) return { texto: `En el Sheets hoy faltan: ${faltan.join(", ")}.`, tono: "aviso" };
+    return { texto: "El Sheets todavía no tiene las tablas.", tono: "aviso" };
+  }
+  const semanas = t.distribucion.semanas;
+  if (semanas.length) return { texto: `En el Sheets hoy: ${semanas.join(", ")}.`, tono: "ok" };
+  return { texto: "El Sheets todavía no tiene la distribución.", tono: "aviso" };
 }
