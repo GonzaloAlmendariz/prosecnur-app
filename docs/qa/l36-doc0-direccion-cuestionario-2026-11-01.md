@@ -73,8 +73,8 @@ Lo que está mal, por orden de lo que se ve primero:
 | DOC.0c | D-L36-5, primer paso: «Título del documento» en Impreso › Formato; viaja como `options$title` y «Así queda» lo dibuja. D-L36-4 retirada (manda la decisión del 2026-10-15) | ☑ `81baf012d`. Portada completa (institución, periodo, bloque de control) queda con DOC.1 |
 | DOC.1 | Clave `cuestionario` en el estándar; el motor lee de ahí | ☑ `1c2457aae`: tipografía y colores en `estandar_pulso.json`, el motor sin hex propios y el `.docx` idéntico byte a byte |
 | DOC.2 | Visor fiel: páginas del Word y mapa pregunta → página | ☑ `002be9126`, `325f40903`, `b1f56dd23` |
-| DOC.3 | Bloques seleccionables sobre la página, con «Papel por pregunta» como inspector | ◐ `64de55dee`, con tests; falta verlo en vivo |
-| DOC.4 | Opciones en el `.pulso` y versiones | ◐ D-L36-15 a 18 implementadas, con tests (R 26, vitest 8); falta verlo en vivo |
+| DOC.3 | Bloques seleccionables sobre la página, con «Papel por pregunta» como inspector | ☑ `64de55dee` + `b277f1421`: en vivo, 87 bloques en 9 páginas; elegir uno abre su fila y, apilado, lleva la columna a la ficha |
+| DOC.4 | Opciones en el `.pulso` y versiones | ☑ `02746ba38` + `b277f1421`: en vivo se guarda en el proyecto, «Piloto» se guarda y se usa, y al recargar gana el proyecto sobre la copia local |
 | DOC.5 | QA: golden de estructura del `.docx` y OOXML válido | ☑ golden del instrumento de docentes (`test-xlsform-formulario-golden.R`) |
 
 Los arreglos de DOC.0b se hacen sobre el motor que existe: no hace falta
@@ -158,3 +158,10 @@ el papel por defecto.
   `POST …/impreso {opciones}` y `POST …/impreso/versiones {nombre, opciones}`.
   Unas opciones que no son un objeto JSON, o de más de 200 KB, se rechazan con
   `E_IMPRESO_OPCIONES_INVALIDAS` (400).
+
+**Visto en vivo (2026-11-01, 1440 y 1024).** Dos arreglos (`b277f1421`): con
+detalle y previa apilados la ficha abierta desde un bloque quedaba fuera de la
+vista, y un formulario que el proyecto aún no recibió (el editor mostraba su
+copia local) decía el uuid y `E_FORM_NOT_FOUND`; ahora dice que el formulario
+aún no está guardado en el proyecto. Las opciones se guardan con la próxima
+edición del formulario, que lo sube.
