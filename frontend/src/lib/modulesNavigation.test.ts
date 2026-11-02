@@ -308,6 +308,14 @@ describe("manifiesto primario de navegación", () => {
         ],
       },
       {
+        // ADR 0125 A3: la supervisión de un lote de Monitoreo.
+        id: "supervision",
+        sections: [
+          { id: "columnas", to: "/material-campo?modo=supervision&seccion=columnas", tabs: ["/material-campo?modo=supervision&seccion=columnas&pestana=seleccion"] },
+          { id: "entrega", to: "/material-campo?modo=supervision&seccion=entrega", tabs: ["/material-campo?modo=supervision&seccion=entrega&pestana=base"] },
+        ],
+      },
+      {
         id: "correo",
         sections: [
           { id: "correo", to: "/material-campo?modo=correo&seccion=correo", tabs: ["/material-campo?modo=correo&seccion=correo&pestana=editor", "/material-campo?modo=correo&seccion=correo&pestana=contactos"] },

@@ -29,11 +29,11 @@ import { ApiError, apiFetch, handle, headers } from "./core";
 
 export const MATERIAL_CAMPANAS_SCHEMA = "material_campaigns/v1";
 
-export const TIPOS_DE_CAMPANA = ["aulas", "territorial", "correo", "telefonica"] as const;
+export const TIPOS_DE_CAMPANA = ["aulas", "territorial", "correo", "telefonica", "supervision"] as const;
 export type TipoDeCampana = (typeof TIPOS_DE_CAMPANA)[number];
 
-/** `^(aulas|territorial|correo|telefonica)\.[a-z0-9][a-z0-9-]{0,39}$` (ADR 0111 §4; P10). */
-export const ID_DE_CAMPANA_RE = /^(aulas|territorial|correo|telefonica)\.[a-z0-9][a-z0-9-]{0,39}$/;
+/** `^(aulas|territorial|correo|telefonica|supervision)\.[a-z0-9][a-z0-9-]{0,39}$` (ADR 0111 §4; P10; ADR 0125 A3). */
+export const ID_DE_CAMPANA_RE = /^(aulas|territorial|correo|telefonica|supervision)\.[a-z0-9][a-z0-9-]{0,39}$/;
 
 export type EstadoCampanaAulas = {
   tipo: "aulas";
@@ -86,7 +86,17 @@ export type EstadoCampanaTelefonica = {
   configurada: boolean;
 };
 
-export type EstadoCampana = EstadoCampanaAulas | EstadoCampanaCorreo | EstadoCampanaTerritorial | EstadoCampanaTelefonica;
+/** La supervisión de un lote de Monitoreo (ADR 0125 A3): cuántos casos trae y si el lote sigue en Monitoreo. */
+export type EstadoCampanaSupervision = {
+  tipo: "supervision";
+  lote_id: string;
+  casos: number;
+  /** Monitoreo borró o rehízo el lote: la campaña ya no tiene de dónde armar la base. */
+  sin_lote: boolean;
+  criterio: string;
+};
+
+export type EstadoCampana = EstadoCampanaAulas | EstadoCampanaCorreo | EstadoCampanaTerritorial | EstadoCampanaTelefonica | EstadoCampanaSupervision;
 
 export type CampanaMaterial = {
   id: string;
@@ -112,7 +122,11 @@ export type DisponibilidadDeTipo = {
   motivo: string | null;
   /** ADR 0122 P2: `false` si el Planner declaró perfiles y este tipo no es de ellos. */
   del_estudio?: boolean;
+  /** Sólo supervisión (ADR 0125 A3): los lotes de Monitoreo que todavía no tienen su campaña. */
+  lotes_libres?: LoteDeSupervision[];
 };
+
+export type LoteDeSupervision = { lote_id: string; criterio: string; casos: number; creado_en: string | null };
 
 export type RegistroDeCampanas = {
   schema: typeof MATERIAL_CAMPANAS_SCHEMA;
@@ -210,6 +224,15 @@ function normalizarEstado(tipo: TipoDeCampana, valor: unknown, ref?: unknown): E
       configurada: logico(valor.configurada),
     };
   }
+  if (tipo === "supervision") {
+    return {
+      tipo,
+      lote_id: texto(valor.lote_id).trim(),
+      casos: entero(valor.casos),
+      sin_lote: logico(valor.sin_lote),
+      criterio: texto(valor.criterio).trim(),
+    };
+  }
   if (tipo === "aulas") {
     return {
       tipo,
@@ -286,7 +309,12 @@ function normalizarTipo(valor: unknown): DisponibilidadDeTipo | null {
   const disponible = logico(valor.disponible);
   // Sin el campo (backend anterior) el tipo es del estudio.
   const delEstudio = valor.del_estudio == null ? true : logico(valor.del_estudio);
-  return { tipo, disponible, motivo: disponible ? null : motivoSinCodigo(textoONulo(valor.motivo)), del_estudio: delEstudio };
+  const base: DisponibilidadDeTipo = { tipo, disponible, motivo: disponible ? null : motivoSinCodigo(textoONulo(valor.motivo)), del_estudio: delEstudio };
+  if (tipo !== "supervision") return base;
+  const lotes_libres = lista(valor.lotes_libres).filter(esRegistro)
+    .map((l) => ({ lote_id: texto(l.lote_id).trim(), criterio: texto(l.criterio).trim(), casos: entero(l.casos), creado_en: textoONulo(l.creado_en) }))
+    .filter((l) => l.lote_id);
+  return { ...base, lotes_libres };
 }
 
 export function normalizarRegistroDeCampanas(valor: unknown): RegistroDeCampanas {
@@ -381,6 +409,8 @@ export type NuevaCampana = {
   import_id?: string | null;
   /** Sólo territorial: de qué fase de Hojas de ruta se lee la foto. */
   fase?: "pilot" | "field";
+  /** Sólo supervisión: el lote de Monitoreo que se supervisa. */
+  lote?: string;
   expected_state_revision?: number | null;
   expected_registry_revision?: number | null;
 };

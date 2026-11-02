@@ -12,7 +12,7 @@ import { Link } from "react-router-dom";
 
 import type { CampanaMaterial } from "../../../api/materialCampanas";
 import type { LucideIcon } from "../../../vendor/lucide-react";
-import { Backpack, Mail, MapPinned, PhoneCall } from "../../../vendor/lucide-react";
+import { Backpack, Mail, MapPinned, PhoneCall, ShieldCheck } from "../../../vendor/lucide-react";
 import type { AccionDeCampana, IdDeAccion } from "./accionesDeCampana";
 import type { MiniaturaDeCorreo } from "./miniaturaDeCorreo";
 import { MenuDeCampana } from "./MenuDeCampana";
@@ -24,6 +24,7 @@ export const ICONO_DEL_TIPO: Readonly<Record<CampanaMaterial["tipo"], LucideIcon
   territorial: MapPinned,
   correo: Mail,
   telefonica: PhoneCall,
+  supervision: ShieldCheck,
 };
 
 type Props = {

@@ -101,13 +101,15 @@ describe("«Nueva campaña»", () => {
     return renderToStaticMarkup(<MemoryRouter><TiposDeCampana registro={registro} elegido={elegido} ocupado={false} onElegir={noop} /></MemoryRouter>);
   }
 
-  it("muestra los cuatro tipos; territorial deshabilitada con su motivo", () => {
+  it("muestra los cinco tipos; territorial y supervisión deshabilitadas con su motivo", () => {
     const html = tipos(VACIO);
-    expect(html.match(/data-qa-geometry-member/g)).toHaveLength(4);
+    expect(html.match(/data-qa-geometry-member/g)).toHaveLength(5);
     expect(html).toContain("Telefónica");
+    expect(html).toContain("Supervisión");
     expect(html).toContain("Campo en aulas");
     expect(html).toContain("Requiere leer las UMP de Hojas de ruta");
-    expect(html.match(/disabled=""/g)).toHaveLength(1);
+    // Sin lotes de Monitoreo (ADR 0125 A3) la supervisión no se crea.
+    expect(html.match(/disabled=""/g)).toHaveLength(2);
   });
 
   it("el enlace a Hojas de ruta sólo acompaña la elección, no a otro tipo ya elegido", () => {
@@ -123,6 +125,6 @@ describe("«Nueva campaña»", () => {
   it("aulas se deshabilita si el proyecto ya tiene la suya", () => {
     const html = tipos(LLENO);
     expect(html).toContain("El proyecto ya tiene su campaña de aulas.");
-    expect(html.match(/disabled=""/g)).toHaveLength(2);
+    expect(html.match(/disabled=""/g)).toHaveLength(3);
   });
 });

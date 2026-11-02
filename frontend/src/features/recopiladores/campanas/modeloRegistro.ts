@@ -42,6 +42,7 @@ export const ROTULO_DEL_TIPO: Readonly<Record<TipoDeCampana, string>> = {
   territorial: "Territorial",
   correo: "Correo",
   telefonica: "Telefónica",
+  supervision: "Supervisión",
 };
 
 /** Qué es cada tipo, en una línea, para «Nueva campaña». */
@@ -50,6 +51,7 @@ export const QUE_ES_EL_TIPO: Readonly<Record<TipoDeCampana, string>> = {
   territorial: "Fichas y hojas de zona por UMP desde la muestra de Hojas de ruta; el avance se sigue en Monitoreo.",
   correo: "Un correo para un grupo, con sus envíos, para Mailchimp o SurveyMonkey.",
   telefonica: "La plantilla del barrido de un listado de casos; Monitoreo lee el Sheets que llena el equipo.",
+  supervision: "La base para volver a llamar a los casos de un lote que eligió Monitoreo; Monitoreo lee el veredicto.",
 };
 
 export function idDeCorreo(campaignId: string): string {
@@ -65,7 +67,7 @@ export function refDeCorreo(id: string | null | undefined): string | null {
 
 export function tipoDelId(id: string | null | undefined): TipoDeCampana | null {
   const prefijo = (id ?? "").split(".")[0];
-  return prefijo === "aulas" || prefijo === "territorial" || prefijo === "correo" || prefijo === "telefonica" ? prefijo : null;
+  return prefijo === "aulas" || prefijo === "territorial" || prefijo === "correo" || prefijo === "telefonica" || prefijo === "supervision" ? prefijo : null;
 }
 
 /** Las que se ven en la lista: todas menos las archivadas, en el orden del registro. */
@@ -189,9 +191,16 @@ export function ponerEnRegistro(registro: RegistroDeCampanas, campana: CampanaMa
       ? `El proyecto ya tiene su campaña ${deCual} (archivada): reábrela.`
       : `El proyecto ya tiene su campaña ${deCual}.`
     : null;
+  // Una supervisión toma su lote: deja de ofrecerse, y sin lotes libres el tipo se cierra como lo cierra el backend.
+  const sinSuLote = (t: RegistroDeCampanas["tipos"][number]) => {
+    const lotes_libres = (t.lotes_libres ?? []).filter((l) => `supervision.${l.lote_id}` !== campana.id);
+    return lotes_libres.length ? { ...t, lotes_libres } : { ...t, lotes_libres, disponible: false, motivo: "Cada lote de Monitoreo ya tiene su campaña de supervisión." };
+  };
   const tipos = unica
     ? registro.tipos.map((t) => (t.tipo === campana.tipo ? { ...t, disponible: false, motivo: unica } : t))
-    : registro.tipos;
+    : campana.tipo === "supervision"
+      ? registro.tipos.map((t) => (t.tipo === "supervision" ? sinSuLote(t) : t))
+      : registro.tipos;
   return { ...registro, campaigns, tipos, registry_revision: registryRevision ?? registro.registry_revision };
 }
 
@@ -368,6 +377,19 @@ export function resumenDeTarjeta(campana: CampanaMaterial): ResumenDeTarjeta {
       ],
       envios: [],
       hechos: [`Llave: ${estado.llave}`],
+    };
+  }
+  if (campana.tipo === "supervision") {
+    if (!estado || estado.tipo !== "supervision" || estado.sin_lote) {
+      return { estado: "Sin lote", tono: "neutral", avance: null, hechos: ["Monitoreo ya no tiene el lote de esta campaña"], cifras: [], envios: [] };
+    }
+    return {
+      estado: "Lista",
+      tono: "activo",
+      avance: null,
+      cifras: [{ valor: estado.casos, rotulo: estado.casos === 1 ? "caso" : "casos" }],
+      envios: [],
+      hechos: [`Lote ${estado.lote_id}${estado.criterio ? ` · ${estado.criterio}` : ""}`],
     };
   }
   return { estado: "No disponible", tono: "neutral", avance: null, hechos: [], cifras: [], envios: [] };

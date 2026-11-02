@@ -13,6 +13,7 @@
 import type { CampanaMaterial, RegistroDeCampanas, TipoDeCampana } from "../../../api/materialCampanas";
 import { SEPARADOR_FOCO } from "../editor/modeloEditor";
 import { PESTANAS_DEL_CORREO_LEGADAS } from "../navegacion";
+import { resolverSeccionSupervision } from "../supervision/navegacionSupervision";
 import { resolverSeccionTelefonica } from "../telefonica/navegacionTelefonica";
 import { resolverSeccionTerritorial } from "../territorial/navegacionTerritorial";
 import { PANEL_NUEVA_CAMPANA_ID, PANEL_RENOMBRAR_CAMPANA } from "./panelesCampanas";
@@ -140,6 +141,19 @@ function aTelefonica(campana: CampanaMaterial, entrada: EntradaDeCampanas): Reso
   return resolucion({ vista: "campana", campana, modo: "telefonica" }, deseada, entrada);
 }
 
+/** Una campaña de supervisión abierta (ADR 0125 A3): sección y pestaña siempre canónicas. */
+function aSupervision(campana: CampanaMaterial, entrada: EntradaDeCampanas): ResolucionDeCampanas {
+  const { seccion, pestana } = resolverSeccionSupervision(entrada.seccion);
+  const deseada: DireccionDeCampanas = {
+    modo: "supervision",
+    campana: campana.id,
+    seccion,
+    pestana,
+    ...(entrada.panel ? { panel: entrada.panel } : {}),
+  };
+  return resolucion({ vista: "campana", campana, modo: "supervision" }, deseada, entrada);
+}
+
 /**
  * El correo abierto: una sección con dos pestañas, el editor y los contactos;
  * `foco` es el bloque del editor y se conserva también en Contactos, donde el
@@ -201,6 +215,7 @@ export function resolverVistaDeCampanas(entrada: EntradaDeCampanas, registro: Re
       if (campana.tipo === "aulas") return aAulas(campana, entrada);
       if (campana.tipo === "correo") return aCorreo(campana, entrada, limpio(entrada.foco) || null);
       if (campana.tipo === "telefonica") return aTelefonica(campana, entrada);
+      if (campana.tipo === "supervision") return aSupervision(campana, entrada);
       return aTerritorial(campana, entrada);
     }
     // La de aulas que todavía no existe pero se puede crear: nace al abrirla.

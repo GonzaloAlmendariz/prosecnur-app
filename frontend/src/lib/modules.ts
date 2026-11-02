@@ -670,6 +670,34 @@ export const PROSECNUR_MODULES: ProsecnurModuleMeta[] = [
         ],
       },
       {
+        // ADR 0125 A3: la supervisión de un lote que arma Monitoreo. Material elige las columnas del
+        // barrido y de los resultados, añade las tres que lee Monitoreo y entrega la base del lote.
+        id: "supervision",
+        label: "Supervisión",
+        sections: [
+          {
+            id: "columnas",
+            label: "Columnas",
+            icon: ListChecks,
+            to: "/material-campo?modo=supervision&seccion=columnas",
+            layoutPolicy: "viewport",
+            tabs: [
+              { id: "seleccion", label: "Selección", icon: ListChecks, to: "/material-campo?modo=supervision&seccion=columnas&pestana=seleccion", layoutPolicy: "viewport" },
+            ],
+          },
+          {
+            id: "entrega",
+            label: "Entrega",
+            icon: CheckCircle2,
+            to: "/material-campo?modo=supervision&seccion=entrega",
+            layoutPolicy: "viewport",
+            tabs: [
+              { id: "base", label: "Base del lote", icon: CalendarDays, to: "/material-campo?modo=supervision&seccion=entrega&pestana=base", layoutPolicy: "viewport" },
+            ],
+          },
+        ],
+      },
+      {
         // Una sola sección: el correo, con identidad, destinatarios, plataforma,
         // envíos, revisión e importar como paneles (ADR 0111 §3).
         id: "correo",

@@ -27,6 +27,7 @@ export function searchDeCampanas(search: string, direccion: DireccionDeCampanas)
 export function direccionDeApertura(campana: Pick<CampanaMaterial, "id" | "tipo">): DireccionDeCampanas {
   if (campana.tipo === "correo") return { modo: "correo", campana: campana.id, seccion: "correo", pestana: "editor" };
   if (campana.tipo === "telefonica") return { modo: "telefonica", campana: campana.id, seccion: "casos", pestana: "configuracion" };
+  if (campana.tipo === "supervision") return { modo: "supervision", campana: campana.id, seccion: "columnas", pestana: "seleccion" };
   return { modo: campana.tipo, campana: campana.id, seccion: "unidades", pestana: "lista" };
 }
 

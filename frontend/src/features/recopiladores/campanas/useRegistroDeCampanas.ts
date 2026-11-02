@@ -166,6 +166,21 @@ export function useRegistroDeCampanas() {
     }
   }, [delBackend?.registry_revision, fallo, poner]);
 
+  // ADR 0125 A3: una supervisión por lote de Monitoreo.
+  const crearSupervision = useCallback(async (name: string, lote: string): Promise<ResultadoDelRegistro> => {
+    setOcupado(true);
+    try {
+      const out = await apiMaterialCampanaCrear({ tipo: "supervision", name: name.trim(), lote, expected_registry_revision: delBackend?.registry_revision ?? null });
+      if (!out) return { ok: false, mensaje: "Esta versión del backend no registra campañas de supervisión." };
+      poner(out.campaign, out.registry_revision);
+      return { ok: true, campana: out.campaign };
+    } catch (causa) {
+      return fallo(causa, "No se pudo crear la campaña de supervisión.");
+    } finally {
+      if (vivo.current) setOcupado(false);
+    }
+  }, [delBackend?.registry_revision, fallo, poner]);
+
   /**
    * Renombra, archiva o reabre una campaña del registro: aulas, territorial o telefónica
    * (las de correo se renombran por su engine).
@@ -189,7 +204,7 @@ export function useRegistroDeCampanas() {
     }
   }, [delBackend?.registry_revision, fallo, poner]);
 
-  return { registro, carga, error, fuente, ocupado, recargar, crearAulas, crearTerritorial, crearTelefonica, cambiarAulas, marcarExportacion };
+  return { registro, carga, error, fuente, ocupado, recargar, crearAulas, crearTerritorial, crearTelefonica, crearSupervision, cambiarAulas, marcarExportacion };
 }
 
 export type RegistroVivo = ReturnType<typeof useRegistroDeCampanas>;

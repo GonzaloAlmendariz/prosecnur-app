@@ -102,9 +102,9 @@ describe("contrato con el manifiesto de módulos", () => {
   test("el modo aulas declara exactamente las cinco secciones canónicas", () => {
     expect(modulo).toBeTruthy();
     // ADR 0111 §3: el módulo aterriza en la lista y el modo es el tipo de la
-    // campaña abierta; `territorial` desde el ADR 0118 (F2) y `telefonica` desde P10.
+    // campaña abierta; `territorial` desde el ADR 0118 (F2), `telefonica` desde P10 y `supervision` desde el ADR 0125 A3.
     expect(modulo?.sections.map((s) => s.id)).toEqual(["campanas"]);
-    expect(modulo?.modos?.map((m) => m.id)).toEqual(["aulas", "territorial", "telefonica", "correo"]);
+    expect(modulo?.modos?.map((m) => m.id)).toEqual(["aulas", "territorial", "telefonica", "supervision", "correo"]);
     expect(modoAulas?.sections.map((s) => s.id)).toEqual([...SECCIONES]);
   });
 

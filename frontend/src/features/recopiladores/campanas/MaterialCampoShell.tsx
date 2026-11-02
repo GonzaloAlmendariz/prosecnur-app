@@ -23,6 +23,7 @@ import { PANEL_CORREO_CAMPANA_BORRAR, PANEL_CORREO_IDENTIDAD, PANEL_CORREO_IMPOR
 import { useCorreosStore } from "../correos/store";
 import { useCampanas, type AccionesDeCampanas } from "../correos/useCampanas";
 import { RecopiladoresShell } from "../RecopiladoresShell";
+import { CampanaSupervisionShell } from "../supervision/CampanaSupervisionShell";
 import { CampanaTelefonicaShell } from "../telefonica/CampanaTelefonicaShell";
 import { CampanaTerritorialShell } from "../territorial/CampanaTerritorialShell";
 import type { FaseTerritorial } from "../../../api/materialTerritorial";
@@ -186,7 +187,7 @@ export function MaterialCampoShell() {
         texto: archivar
           ? campana.tipo === "territorial"
             ? `«${campana.name}» se archivó: sale de la lista sin tocar la muestra enviada. Se reabre desde «Archivadas».`
-            : campana.tipo === "telefonica"
+            : campana.tipo === "telefonica" || campana.tipo === "supervision"
             ? `«${campana.name}» se archivó: sale de la lista con su configuración intacta. Se reabre desde «Archivadas».`
             : `«${campana.name}» se archivó: sale de la lista sin perder plan, fichas ni traspaso. Se reabre desde «Archivadas».`
           : `«${campana.name}» volvió a la lista.`,
@@ -196,7 +197,7 @@ export function MaterialCampoShell() {
   }, [aLaLista, abrirPanelSobre, campanasAcc, correos, direccion?.campana, reg]);
 
   const guardarNombre = useCallback(async (campana: CampanaMaterial, cambio: { name: string; actor: string; platform?: MailPlatform }): Promise<Resultado> => {
-    if (campana.tipo === "aulas" || campana.tipo === "territorial" || campana.tipo === "telefonica") {
+    if (campana.tipo === "aulas" || campana.tipo === "territorial" || campana.tipo === "telefonica" || campana.tipo === "supervision") {
       const out = await reg.cambiarAulas(campana.id, { name: cambio.name });
       if (!out.ok) return out;
     } else {
@@ -242,6 +243,13 @@ export function MaterialCampoShell() {
 
   const crearTelefonica = useCallback(async (name: string): Promise<Resultado> => {
     const out = await reg.crearTelefonica(name);
+    if (!out.ok) return out;
+    navigate(hrefDeCampana(out.campana));
+    return { ok: true };
+  }, [navigate, reg]);
+
+  const crearSupervision = useCallback(async (name: string, lote: string): Promise<Resultado> => {
+    const out = await reg.crearSupervision(name, lote);
     if (!out.ok) return out;
     navigate(hrefDeCampana(out.campana));
     return { ok: true };
@@ -315,6 +323,15 @@ export function MaterialCampoShell() {
     );
   }
 
+  if (vista?.vista === "campana" && vista.modo === "supervision") {
+    return (
+      <>
+        <CampanaSupervisionShell key={vista.campana.id} campana={vista.campana} cabecera={cabecera} />
+        {dialogosComunes}
+      </>
+    );
+  }
+
   if (vista?.vista === "campana" && vista.modo === "correo") {
     return (
       <>
@@ -360,6 +377,7 @@ export function MaterialCampoShell() {
             onCrearAulas={crearAulas}
             onCrearTerritorial={crearTerritorial}
             onCrearTelefonica={crearTelefonica}
+            onCrearSupervision={crearSupervision}
             onCrearCorreo={crearCorreo}
             onImportar={(platform) => {
               setPlataformaImportar(platform);
