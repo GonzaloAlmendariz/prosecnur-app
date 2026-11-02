@@ -86,6 +86,12 @@ export type ProsecnurNavigationLeafMeta = {
 
 export type ProsecnurModuleSectionMeta = ProsecnurNavigationLeafMeta & {
   tabs?: readonly ProsecnurNavigationLeafMeta[];
+  /**
+   * Rótulo de la sección según una variante del modo que decide el estudio, no un
+   * click: en Material territorial, el tipo de envío (`cuotas` → «Zonas»). La
+   * dirección (`seccion=`) no cambia; sólo lo que se lee en la píldora.
+   */
+  labelsPorVariante?: Readonly<Record<string, string>>;
 };
 
 /**
@@ -585,6 +591,8 @@ export const PROSECNUR_MODULES: ProsecnurModuleMeta[] = [
           {
             id: "unidades",
             label: "Unidades",
+            // Revamp v5: con envío por cuotas la unidad es la zona (ADR 0125 A1), no la UMP.
+            labelsPorVariante: { cuotas: "Zonas" },
             icon: ClipboardList,
             to: "/material-campo?modo=territorial&seccion=unidades",
             layoutPolicy: "viewport",

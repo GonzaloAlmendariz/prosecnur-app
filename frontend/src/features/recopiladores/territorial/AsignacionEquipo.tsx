@@ -99,10 +99,15 @@ export function useAsignacionEquipo(campaignId: string | null) {
   return { campaignId, datos, borrador, bloqueo, cabeza, estado, error, guardar, aplicar: guardarCuerpo, cambiado: hayCambios(borrador, datos) };
 }
 
-type Props = Omit<ReturnType<typeof useAsignacionEquipo>, "cabeza" | "borrador">;
+type Props = Omit<ReturnType<typeof useAsignacionEquipo>, "cabeza" | "borrador"> & {
+  /** Qué se asigna: UMP (envío aleatorio) o zona (envío por cuotas, ADR 0125 A1). */
+  unidad?: "ump" | "zona";
+};
+
+const ROTULO_UNIDAD = { ump: ["UMP asignada", "UMP asignadas"], zona: ["asignación de zona", "asignaciones de zona"] } as const;
 
 /** Encabezado de la asignación: el motivo de bloqueo, lo que quedó fuera y el guardado. */
-export function BarraAsignacion({ campaignId, datos, bloqueo, estado, error, guardar, aplicar, cambiado }: Props) {
+export function BarraAsignacion({ campaignId, datos, bloqueo, estado, error, guardar, aplicar, cambiado, unidad = "ump" }: Props) {
   if (error && !datos) return <p className="rec-terr-nota" role="alert">{error}</p>;
   // Revisión con ojo de usuario (1 nov 2026): la lista llegaba tarde y empujaba el plan bajo el cursor.
   // Mientras se lee, la tarjeta ya ocupa su lugar.
@@ -127,7 +132,9 @@ export function BarraAsignacion({ campaignId, datos, bloqueo, estado, error, gua
           <small>
             {bloqueo
               ? "Se eligen de la lista de Monitoreo."
-              : `${datos.equipo.length} en la lista de Monitoreo · ${asignadas} UMP asignadas. Campo asigna en el Excel; también puedes elegir por columna del calendario.`}
+              : unidad === "zona"
+                ? `${datos.equipo.length} en la lista de Monitoreo, ${asignadas} ${ROTULO_UNIDAD.zona[asignadas === 1 ? 0 : 1]}. Campo asigna en el Excel, una fila por encuestador y zona con su parte de la cuota.`
+                : `${datos.equipo.length} en la lista de Monitoreo · ${asignadas} ${ROTULO_UNIDAD.ump[asignadas === 1 ? 0 : 1]}. Campo asigna en el Excel; también puedes elegir por columna del calendario.`}
           </small>
         </span>
         {!bloqueo ? (
@@ -140,7 +147,7 @@ export function BarraAsignacion({ campaignId, datos, bloqueo, estado, error, gua
       {!bloqueo ? <ExcelDeAsignacion campaignId={campaignId} deshabilitado={estado === "guardando"} aplicar={aplicar} /> : null}
       {datos.desactualizada && datos.huerfanas > 0 ? (
         <p className="rec-asig-aviso" role="status">
-          <AlertTriangle size={14} aria-hidden /> {datos.huerfanas === 1 ? "1 UMP asignada ya no está" : `${datos.huerfanas} UMP asignadas ya no están`} en la muestra reenviada; se descartan al guardar.
+          <AlertTriangle size={14} aria-hidden /> {datos.huerfanas === 1 ? `1 ${ROTULO_UNIDAD[unidad][0]} ya no está` : `${datos.huerfanas} ${ROTULO_UNIDAD[unidad][1]} ya no están`} en la muestra reenviada; se descartan al guardar.
         </p>
       ) : null}
       {datos.codigos_fuera_del_equipo.length ? (
@@ -149,7 +156,7 @@ export function BarraAsignacion({ campaignId, datos, bloqueo, estado, error, gua
         </p>
       ) : null}
       {datos.descartadas > 0 && estado === "guardado" ? (
-        <p className="rec-terr-nota">Se descartaron {datos.descartadas} asignaciones de UMP que ya no están en la muestra.</p>
+        <p className="rec-terr-nota">Se descartaron {datos.descartadas} asignaciones {unidad === "zona" ? "de zonas" : "de UMP"} que ya no están en la muestra.</p>
       ) : null}
       {error ? <p className="rec-terr-nota" role="alert">{error}</p> : null}
     </div>

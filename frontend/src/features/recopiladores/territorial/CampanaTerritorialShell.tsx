@@ -180,7 +180,8 @@ export function CampanaTerritorialShell({ campana, cabecera = null }: Props) {
               items={SECCIONES_TERRITORIALES.map((s) => {
                 const id = s.id as SeccionTerritorial;
                 const pendientes = id === "unidades" ? recorrido.porRevisar : id === "entrega" ? recorrido.sinAsignar : 0;
-                return { id, label: s.label, href: hrefDe(id, PESTANAS_TERRITORIALES[id][0]), pendientes };
+                const label = (unidades && s.labelsPorVariante?.[unidades.kind]) || s.label;
+                return { id, label, href: hrefDe(id, PESTANAS_TERRITORIALES[id][0]), pendientes };
               })}
             />
           )}
