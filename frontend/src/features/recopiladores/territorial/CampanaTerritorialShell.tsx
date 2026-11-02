@@ -9,12 +9,13 @@
 // Contrato de Superficie: el panel activo es `material-campo/territorial/<sección>`
 // (intrinsic) y es el único dueño del scroll (`.rec-tab-panel`, No Scroll Jail).
 
-import { useCallback, useMemo, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 
 import type { CampanaMaterial } from "../../../api/materialCampanas";
+import { apiMaterialTerritorialAsignacion, type AsignacionTerritorial } from "../../../api/materialTerritorial";
 import { AdaptiveSplitView } from "../../../components/AdaptiveSplitView";
-import { ChromeIndicator, ChromeIndicatorGroup } from "../../../components/ChromeIndicator";
+import { ChipDeEntrada } from "../campanas/ChipDeEntrada";
 import { ContextTabRail, type ContextTabRailItem } from "../../../components/ContextTabRail";
 import { ModuleCommandBar } from "../../../components/ModuleCommandBar";
 import { useDensidadDelChrome } from "../useDensidadDelChrome";
@@ -26,7 +27,10 @@ import { searchDeCampanas } from "../campanas/direccionDeCampanas";
 import { CatalogoTerritorial, esPestanaDeCatalogo } from "./CatalogoTerritorial";
 import { EntregaTerritorial } from "./EntregaTerritorial";
 import { PESTANAS_TERRITORIALES, SECCIONES_TERRITORIALES, resolverSeccionTerritorial, type SeccionTerritorial } from "./navegacionTerritorial";
+import { fechaDelEnvio } from "./modeloUnidades";
 import { PaquetesTerritoriales } from "./PaquetesTerritoriales";
+import { recorridoTerritorial } from "./recorridoTerritorial";
+import { revisarUnidades } from "./revisionUnidades";
 import { UnidadesTerritoriales } from "./UnidadesTerritoriales";
 import { ZonasDeCuotas } from "./ZonasDeCuotas";
 import { useCampanaTerritorial } from "./useCampanaTerritorial";
@@ -57,6 +61,21 @@ export function CampanaTerritorialShell({ campana, cabecera = null }: Props) {
   // M4: «no alcanza» se mide en visitas con la respuesta y la ocupación del estudio, como en Selección.
   const ss = hojas?.integrated_config.sample_size;
   const supuestos = useMemo(() => (ss ? { respuesta: ss.response_rate, ocupacion: ss.ocupacion ?? 1 } : undefined), [ss]);
+  // El recorrido de la barra: rutas por revisar (Unidades) y titulares o zonas sin encuestador (Entrega).
+  const [asignacion, setAsignacion] = useState<AsignacionTerritorial | null>(null);
+  useEffect(() => {
+    let vigente = true;
+    if (!unidades) { setAsignacion(null); return; }
+    const leer = () => {
+      apiMaterialTerritorialAsignacion(campana.id).then((a) => { if (vigente) setAsignacion(a); }).catch(() => { if (vigente) setAsignacion(null); });
+    };
+    leer();
+    window.addEventListener("pulso:material-asignacion-guardada", leer);
+    return () => { vigente = false; window.removeEventListener("pulso:material-asignacion-guardada", leer); };
+  }, [campana.id, unidades]);
+  const distritos = useMemo(() => revisarUnidades(unidades?.units ?? [], supuestos).distritos, [unidades, supuestos]);
+  const recorrido = recorridoTerritorial(unidades, distritos, asignacion);
+  const enviadaEl = fechaDelEnvio(unidades?.enviado_at);
 
   const hrefDe = useCallback((s: SeccionTerritorial, p: string, extra: { panel?: string; foco?: string } = {}) => (
     `${location.pathname}${searchDeCampanas(location.search, { modo: "territorial", campana: campana.id, seccion: s, pestana: p, ...extra })}`
@@ -126,17 +145,20 @@ export function CampanaTerritorialShell({ campana, cabecera = null }: Props) {
           contexto={(
             <>
               {cabecera}
-              {unidades?.kind === "cuotas" ? (
-                <ChromeIndicatorGroup ariaLabel="Contexto de la campaña territorial">
-                  <ChromeIndicator label="Zonas" value={unidades.n_zonas.toLocaleString("es-PE")} prioridad="alta" />
-                  <ChromeIndicator label="Entrevistas" value={unidades.n_entrevistas.toLocaleString("es-PE")} />
-                </ChromeIndicatorGroup>
-              ) : unidades ? (
-                <ChromeIndicatorGroup ariaLabel="Contexto de la campaña territorial">
-                  <ChromeIndicator label="Titulares" value={unidades.n_titulares.toLocaleString("es-PE")} prioridad="alta" />
-                  <ChromeIndicator label="Reemplazos" value={unidades.n_reemplazos.toLocaleString("es-PE")} />
-                </ChromeIndicatorGroup>
-              ) : null}
+              {unidades ? (
+                <ChipDeEntrada
+                  origen="hojas"
+                  dato={enviadaEl ?? undefined}
+                  aviso={unidades.stale}
+                  detalle={unidades.stale
+                    ? "Hojas de ruta volvió a sortear: reenvía la muestra antes de imprimir o asignar"
+                    : unidades.kind === "cuotas"
+                      ? `${unidades.n_zonas.toLocaleString("es-PE")} zonas y ${unidades.n_entrevistas.toLocaleString("es-PE")} entrevistas`
+                      : `${unidades.n_titulares.toLocaleString("es-PE")} titulares y ${unidades.n_reemplazos.toLocaleString("es-PE")} reemplazos`}
+                />
+              ) : (
+                <ChipDeEntrada origen="hojas" aviso detalle="Hojas de ruta todavía no envía la muestra" dato="sin envío" />
+              )}
             </>
           )}
           secciones={(
@@ -147,7 +169,8 @@ export function CampanaTerritorialShell({ campana, cabecera = null }: Props) {
               className="rec-section-selector"
               items={SECCIONES_TERRITORIALES.map((s) => {
                 const id = s.id as SeccionTerritorial;
-                return { id, label: s.label, href: hrefDe(id, PESTANAS_TERRITORIALES[id][0]) };
+                const pendientes = id === "unidades" ? recorrido.porRevisar : id === "entrega" ? recorrido.sinAsignar : 0;
+                return { id, label: s.label, href: hrefDe(id, PESTANAS_TERRITORIALES[id][0]), pendientes };
               })}
             />
           )}
@@ -160,10 +183,11 @@ export function CampanaTerritorialShell({ campana, cabecera = null }: Props) {
             rank: 2,
             busy: cargando,
           }]}
-          estado={unidades ? [{
-            id: "territorial-envio",
-            label: unidades.stale ? "Desactualizada" : "Muestra recibida",
-            tone: unidades.stale ? "danger" : "success",
+          estado={unidades && recorrido.total ? [{
+            id: "territorial-entrega",
+            label: `${unidades.kind === "cuotas" ? "Zonas cubiertas" : "Asignadas"} ${recorrido.asignadas.toLocaleString("es-PE")} de ${recorrido.total.toLocaleString("es-PE")}`,
+            tone: unidades.stale ? "danger" : recorrido.sinAsignar ? "warn" : "success",
+            detail: "Lo que Monitoreo lee de esta campaña: la asignación de encuestadores, en Control › Equipo",
           }] : []}
           ariaLabel="Controles de la campaña territorial"
         />

@@ -306,3 +306,32 @@
   background: var(--pulso-danger-bg);
   color: var(--pulso-danger-fg);
 }
+
+/* Marca de la píldora de sección: pendientes en ámbar o ✓ de lista. Una sola cifra,
+   siempre del mismo tipo; en la píldora activa conserva su tono para que el ámbar
+   no se pierda justo donde el analista está trabajando. */
+.pulso-phase-pill-badge {
+  display: inline-grid;
+  place-items: center;
+  min-width: 20px;
+  height: 20px;
+  margin-left: var(--pulso-space-2);
+  padding: 0 4px;
+  border-radius: var(--pulso-radius-chip);
+  font-size: 11px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+.pulso-phase-pill-badge[data-estado="pendiente"] {
+  background: var(--pulso-warn-bg);
+  color: var(--pulso-warn-fg);
+}
+.pulso-phase-pill-badge[data-estado="lista"] {
+  background: color-mix(in srgb, var(--module-accent, var(--pulso-primary)) 16%, transparent);
+  color: var(--module-accent, var(--pulso-primary));
+}
+.pulso-phase-pill.is-active .pulso-phase-pill-badge[data-estado="lista"] {
+  background: rgba(255, 255, 255, 0.24);
+  color: inherit;
+}

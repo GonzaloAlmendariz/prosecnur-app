@@ -51,6 +51,14 @@ export type SectionPillbarItem = {
    * no está bloqueada («falta la base», «sección lista»).
    */
   nota?: string;
+  /**
+   * Cuántas cosas faltan por hacer en la sección. Se pinta como número en ámbar;
+   * con 0 o sin valor no se pinta nada. Es la única cifra que lleva la píldora:
+   * ni fracciones ni totales, para que el número signifique siempre lo mismo.
+   */
+  pendientes?: number;
+  /** La sección quedó lista: se pinta un ✓. Cede ante `pendientes`. */
+  lista?: boolean;
 };
 
 export type SectionPillbarProps = {
@@ -103,6 +111,11 @@ export function SectionPillbar({
           {items.map((item, indice) => {
             const activa = item.id === seccionActiva;
             const texto = densidad === "compact" ? (item.shortLabel ?? item.label) : item.label;
+            const pendientes = item.pendientes && item.pendientes > 0 ? item.pendientes : 0;
+            const marca = pendientes
+              ? `${pendientes.toLocaleString("es-PE")} ${pendientes === 1 ? "pendiente" : "pendientes"}`
+              : item.lista ? "lista" : "";
+            const detalle = [item.lockedReason ?? item.nota, marca].filter(Boolean).join(". ");
             return (
               <li key={item.id} className="pulso-phase-pill-item">
                 <Link
@@ -113,9 +126,7 @@ export function SectionPillbar({
                   data-nav-state={activa ? "selected" : undefined}
                   aria-current={activa ? "page" : undefined}
                   title={item.lockedReason ?? item.nota ?? item.label}
-                  aria-label={
-                    item.lockedReason || item.nota ? `${item.label}. ${item.lockedReason ?? item.nota}` : undefined
-                  }
+                  aria-label={detalle ? `${item.label}. ${detalle}` : undefined}
                   className={[
                     "pulso-phase-pill",
                     activa ? "is-active" : "",
@@ -131,6 +142,13 @@ export function SectionPillbar({
                       <span className="pulso-phase-pill-text">{texto}</span>
                     </span>
                   </span>
+                  {pendientes ? (
+                    <span className="pulso-phase-pill-badge" data-estado="pendiente" aria-hidden="true">
+                      {pendientes.toLocaleString("es-PE")}
+                    </span>
+                  ) : item.lista ? (
+                    <span className="pulso-phase-pill-badge" data-estado="lista" aria-hidden="true">✓</span>
+                  ) : null}
                 </Link>
               </li>
             );

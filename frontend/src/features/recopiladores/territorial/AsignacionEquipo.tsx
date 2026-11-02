@@ -56,6 +56,8 @@ export function useAsignacionEquipo(campaignId: string | null) {
           setDatos(a);
           setBorrador(borradorDe(a));
           setEstado("guardado");
+          // La barra de la campaña cuenta las asignadas: que se entere sin recargar.
+          window.dispatchEvent(new CustomEvent("pulso:material-asignacion-guardada"));
           return true;
         })
         .catch((e: unknown) => {
