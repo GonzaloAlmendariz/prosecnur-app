@@ -388,6 +388,52 @@ const settledMotionPageHtml = `<!doctype html>
   </body>
 </html>`;
 
+
+// Falso positivo de `scroll-unreachable` (Monitoreo territorial y ficha de aulas, 2026-11-01): los miembros de un
+// grupo se auditaban en paralelo. Con un miembro anidado en otro, los dos resuelven al MISMO dueño de scroll; la
+// primera auditoría devolvía el scroll a 0 mientras la segunda esperaba sus dos frames, y la segunda medía en 0:
+// el último contenido quedaba `maxScroll` píxeles bajo el borde, aunque sí se alcanza.
+const sharedOwnerPageHtml = `<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8">
+    <title>Shared owner fixture</title>
+    <style>
+      * { box-sizing: border-box; }
+      body { margin: 0; font: 16px sans-serif; }
+      .shared-group { margin: 16px; }
+      .marco { height: 120px; overflow-y: auto; border: 1px solid #999; }
+      .marco p { height: 40px; margin: 0; }
+    </style>
+  </head>
+  <body>
+    <main data-audit-ready="shared-owner">
+      <section class="shared-group" data-qa-geometry-group="shared-owner" data-qa-geometry-contract="intrinsic">
+        <article id="exterior" data-qa-geometry-member>
+          <div id="interior" data-qa-geometry-member>
+            <div class="marco">
+              <p>Fila 1</p><p>Fila 2</p><p>Fila 3</p><p>Fila 4</p><p>Fila 5</p><p>Fila 6</p><p>Fila 7 final</p>
+            </div>
+          </div>
+        </article>
+      </section>
+    </main>
+  </body>
+</html>`;
+
+// La otra causa posible: un efecto que devuelve el scroll a 0 justo después de llegar al final (una sola vez).
+const resetOnceOwnerPageHtml = sharedOwnerPageHtml
+  .replace('data-audit-ready="shared-owner"', 'data-audit-ready="reset-once"')
+  .replace("</body>", `<script>
+    const marco = document.querySelector(".marco");
+    let reseteado = false;
+    marco.addEventListener("scroll", () => {
+      if (reseteado || marco.scrollTop < marco.scrollHeight - marco.clientHeight - 1) return;
+      reseteado = true;
+      setTimeout(() => { marco.scrollTop = 0; }, 0);
+    });
+  </script></body>`);
+
 async function startFixtureServer() {
   const server = createServer((request, response) => {
     response.writeHead(200, { "content-type": "text/html; charset=utf-8", connection: "close" });
@@ -398,6 +444,10 @@ async function startFixtureServer() {
           ? unequalWidthPageHtml
         : request.url === "/undeclared-geometry"
           ? undeclaredGeometryPageHtml
+        : request.url === "/reset-once"
+          ? resetOnceOwnerPageHtml
+        : request.url === "/shared-owner"
+          ? sharedOwnerPageHtml
         : request.url === "/zero-scroll"
           ? zeroCapacityScrollPageHtml
           : request.url === "/terminal-content"
@@ -538,13 +588,13 @@ async function runUnequalWidthQuickCheck({ url, out }) {
   });
 }
 
-async function runSettledMotionQuickCheck({ url, out }) {
+async function runSettledMotionQuickCheck({ url, out, route = "/settled-motion" }) {
   return await new Promise((resolve, reject) => {
     const child = spawn(process.execPath, [
       quickCheckPath,
       "--url", url,
       "--api", "stub",
-      "--route", "/settled-motion",
+      "--route", route,
       "--viewport", "900x700",
       "--out", out,
       "--require-geometry",
@@ -771,4 +821,45 @@ test("ui-quick-check inspects settled staggered motion and excludes effective op
     memberIds: ["settled-one", "settled-two", "settled-three", "partially-visible"],
     allAtFinalY: true,
   }, "the stagger must settle, positive opacity must remain, and effective opacity: 0 must stay absent");
+});
+
+test("ui-quick-check audita en serie: dos miembros con el mismo dueño de scroll no se miden en 0", async (t) => {
+  const fixture = await startFixtureServer();
+  const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), "prosecnur-ui-shared-owner-"));
+  t.after(async () => {
+    await new Promise((resolve, reject) => fixture.server.close((error) => error ? reject(error) : resolve()));
+    await fs.rm(tempRoot, { recursive: true, force: true });
+  });
+
+  const result = await runSettledMotionQuickCheck({ url: fixture.url, out: tempRoot, route: "/shared-owner" });
+  const report = JSON.parse(await fs.readFile(path.join(tempRoot, "report.json"), "utf8"));
+  assert.deepEqual(
+    report.results[0].geometryIssues.map((issue) => issue.type),
+    [],
+    `${result.stdout}\n${result.stderr}`,
+  );
+  const audits = report.results[0].geometryAudits[0].members.map((member) => member.overflowOwner.scrollAudit);
+  assert.equal(audits.length, 2);
+  for (const audit of audits) {
+    assert.equal(audit.atEnd, true);
+    assert.equal(audit.lastContentReachable, true);
+    assert.equal(audit.scrollTopAtMeasure, audit.maxScroll, "se mide con el scroll donde se dejó");
+  }
+});
+
+test("ui-quick-check registra un scroll que algo resetea durante la espera y mide en el final", async (t) => {
+  const fixture = await startFixtureServer();
+  const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), "prosecnur-ui-reset-once-"));
+  t.after(async () => {
+    await new Promise((resolve, reject) => fixture.server.close((error) => error ? reject(error) : resolve()));
+    await fs.rm(tempRoot, { recursive: true, force: true });
+  });
+
+  const result = await runSettledMotionQuickCheck({ url: fixture.url, out: tempRoot, route: "/reset-once" });
+  const report = JSON.parse(await fs.readFile(path.join(tempRoot, "report.json"), "utf8"));
+  assert.deepEqual(report.results[0].geometryIssues.map((issue) => issue.type), [], `${result.stdout}\n${result.stderr}`);
+  const audit = report.results[0].geometryAudits[0].members[0].overflowOwner.scrollAudit;
+  assert.deepEqual(audit.scrollReset, { expected: audit.maxScroll, observed: 0 });
+  assert.equal(audit.scrollTopAtMeasure, audit.maxScroll);
+  assert.equal(audit.lastContentReachable, true);
 });

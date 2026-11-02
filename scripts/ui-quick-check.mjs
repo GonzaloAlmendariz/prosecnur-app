@@ -2169,14 +2169,26 @@ async function inspectDomCajas(page, { projectMode, geometryGroups, geometryTole
       // coordenadas negativas y fabrica un `scroll-unreachable`, aunque el
       // usuario sí haya llegado al final. Dos frames permiten render + medida
       // sin relajar la comprobación del contenido terminal.
-      await new Promise((resolve) => window.requestAnimationFrame(() => (
+      const dosFrames = () => new Promise((resolve) => window.requestAnimationFrame(() => (
         window.requestAnimationFrame(resolve)
       )));
+      await dosFrames();
+      // Se mide con el scroll que hay AHORA, no con el que se pidió: si algo lo
+      // movió durante la espera (un efecto que lo resetea), se registra y se
+      // vuelve a llevar al final una vez, para que el informe diga qué pasó en
+      // vez de reportar `maxScroll` píxeles bajo el borde como inalcanzables.
+      let scrollReset = null;
+      if (Math.abs(owner.scrollTop - positions.end) > 1) {
+        scrollReset = { expected: positions.end, observed: owner.scrollTop };
+        setScrollTop(maxScroll);
+        await dosFrames();
+      }
+      const scrollTopAtMeasure = owner.scrollTop;
       const ownerRect = owner.getBoundingClientRect();
       const reachabilityEnd = resolveReachabilityEnd(owner, ownerRect);
       const lastContent = reachabilityEnd?.node ?? null;
       const lastRect = reachabilityEnd?.rect ?? null;
-      const atEnd = Math.abs(positions.end - maxScroll) <= 1;
+      const atEnd = Math.abs(scrollTopAtMeasure - maxScroll) <= 1;
       const lastContentReachable = !reachabilityEnd?.clippedBy && (!lastRect || (
         lastRect.bottom <= ownerRect.bottom + 2
         && lastRect.bottom >= ownerRect.top - 2
@@ -2188,6 +2200,8 @@ async function inspectDomCajas(page, { projectMode, geometryGroups, geometryTole
           maxScrollX,
           originalScrollTop,
           positions,
+          scrollTopAtMeasure,
+          scrollReset,
           atEnd,
           lastContentReachable,
           lastContent: lastContent ? elementHint(lastContent) : null,
@@ -2200,6 +2214,7 @@ async function inspectDomCajas(page, { projectMode, geometryGroups, geometryTole
       };
     };
 
+    const auditedScrollOwners = new Map();
     for (const spec of geometrySpecs) {
       const group = spec.group;
       if (auditedGroups.has(group) || !isVisibleElement(group)) continue;
@@ -2220,7 +2235,14 @@ async function inspectDomCajas(page, { projectMode, geometryGroups, geometryTole
       }
 
       const groupRect = group.getBoundingClientRect();
-      const memberMeasures = await Promise.all(members.map(async (member) => {
+      // En SERIE: cada auditoría mueve el scroll de su dueño, espera dos frames y
+      // lo devuelve. Con un miembro anidado en otro, los dos resuelven al mismo
+      // dueño; en paralelo, la primera lo devolvía a 0 mientras la segunda
+      // esperaba, y la segunda medía en 0 (falso `scroll-unreachable` en la tabla
+      // de distritos territorial y la ficha de aulas, 2026-11-01). Un dueño ya
+      // auditado reusa su evidencia y no se reporta dos veces.
+      const memberMeasures = [];
+      for (const member of members) memberMeasures.push(await (async () => {
         const rect = member.getBoundingClientRect();
         const style = window.getComputedStyle(member);
         const explicitContent = Array.from(member.querySelectorAll("[data-qa-geometry-content]"))
@@ -2247,9 +2269,11 @@ async function inspectDomCajas(page, { projectMode, geometryGroups, geometryTole
         const ownedCapacity = member.getAttribute("data-qa-geometry-capacity") === "owned"
           || Boolean(member.querySelector("[data-qa-geometry-capacity='owned']"));
         const scrollOwner = scrollOwnerInside(member);
-        const scrollEvidence = scrollOwner ? await auditScrollOwner(scrollOwner) : null;
+        const yaAuditado = scrollOwner ? auditedScrollOwners.get(scrollOwner) : undefined;
+        const scrollEvidence = scrollOwner ? (yaAuditado ?? await auditScrollOwner(scrollOwner)) : null;
+        if (scrollOwner && !yaAuditado) auditedScrollOwners.set(scrollOwner, scrollEvidence);
         const lastContent = contentNodes.at(-1) || null;
-        if (scrollOwner && scrollEvidence && (
+        if (scrollOwner && scrollEvidence && !yaAuditado && (
           !scrollEvidence.scrollAudit.atEnd
           || !scrollEvidence.scrollAudit.lastContentReachable
         )) {
@@ -2282,7 +2306,7 @@ async function inspectDomCajas(page, { projectMode, geometryGroups, geometryTole
           } : null,
           lastContent: lastContent ? elementHint(lastContent) : null,
         };
-      }));
+      })());
       const heights = memberMeasures.map((member) => member.rect.height);
       const widths = memberMeasures.map((member) => member.rect.width);
       const heightDelta = round2(Math.max(...heights) - Math.min(...heights));
