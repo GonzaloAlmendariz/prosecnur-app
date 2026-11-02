@@ -18,6 +18,8 @@ type EstadoLienzo = {
   distritoBajoCursor: string | null;
   /** La titular bajo el cursor en Selección (rótulo junto al cursor). */
   umpBajoCursor: string | null;
+  /** La manzana bajo el cursor en Manzanas (rótulo junto al cursor). */
+  manzanaBajoCursor: string | null;
   /** Rangos de edad en edición; `null` = los de la configuración. */
   rangosBorrador: HojasRutaAgeRange[] | null;
   setRangosBorrador: (next: HojasRutaAgeRange[] | null) => void;
@@ -69,10 +71,11 @@ type EstadoLienzo = {
   setSoloElegidos: (valor: boolean) => void;
   setDistritoBajoCursor: (ubigeo: string | null) => void;
   setUmpBajoCursor: (id: string | null) => void;
+  setManzanaBajoCursor: (id: string | null) => void;
   reiniciar: () => void;
 };
 
-const INICIAL = { borrador: null, busquedaDistrito: "", soloElegidos: false, distritoBajoCursor: null, umpBajoCursor: null as string | null, rangosBorrador: null, muestraBorrador: null, sorteoBorrador: null, dibujoArea: null, soloPorRevisar: false, busquedaUmp: "", capaMapa: "manzanas" as CapaLienzo, zonaFiltro: null as string | null, distritoEnfocado: null as string | null, ciudadEnfocada: null as string | null, departamentoEnfocado: null as string | null, manzanaEnfocada: null as string | null, cajonPoblacion: null as "matriz" | "pct" | null, cajonMuestra: false, escenariosMuestra: [] as EscenarioMuestra[], cortesBorrador: null as { modo: HojasRutaAgeRangeMode; base: HojasRutaAgeRangeScope } | null };
+const INICIAL = { borrador: null, busquedaDistrito: "", soloElegidos: false, distritoBajoCursor: null, umpBajoCursor: null as string | null, manzanaBajoCursor: null as string | null, rangosBorrador: null, muestraBorrador: null, sorteoBorrador: null, dibujoArea: null, soloPorRevisar: false, busquedaUmp: "", capaMapa: "manzanas" as CapaLienzo, zonaFiltro: null as string | null, distritoEnfocado: null as string | null, ciudadEnfocada: null as string | null, departamentoEnfocado: null as string | null, manzanaEnfocada: null as string | null, cajonPoblacion: null as "matriz" | "pct" | null, cajonMuestra: false, escenariosMuestra: [] as EscenarioMuestra[], cortesBorrador: null as { modo: HojasRutaAgeRangeMode; base: HojasRutaAgeRangeScope } | null };
 
 export const useLienzoHojasRuta = create<EstadoLienzo>((set) => ({
   ...INICIAL,
@@ -97,5 +100,6 @@ export const useLienzoHojasRuta = create<EstadoLienzo>((set) => ({
   setSoloElegidos: (soloElegidos) => set({ soloElegidos }),
   setDistritoBajoCursor: (distritoBajoCursor) => set((s) => (s.distritoBajoCursor === distritoBajoCursor ? s : { distritoBajoCursor })),
   setUmpBajoCursor: (umpBajoCursor) => set((s) => (s.umpBajoCursor === umpBajoCursor ? s : { umpBajoCursor })),
+  setManzanaBajoCursor: (manzanaBajoCursor) => set((s) => (s.manzanaBajoCursor === manzanaBajoCursor ? s : { manzanaBajoCursor })),
   reiniciar: () => set(INICIAL),
 }));

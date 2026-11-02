@@ -93,7 +93,7 @@ export default function HojasRutaMapaPage() {
   const [sorteoDesde, setSorteoDesde] = useState<number | null>(null);
   // Al volver a un ruteo: si la muestra que salió es la de entonces, y si no, por qué.
   const [ruteoUsado, setRuteoUsado] = useState<{ id: string; causa: CausaRuteo } | null>(null);
-  const { borrador: borradorCrudo, distritoBajoCursor, umpBajoCursor, setBorrador, setDistritoBajoCursor, setUmpBajoCursor, rangosBorrador, setRangosBorrador, setCortesBorrador, muestraBorrador, setMuestraBorrador, sorteoBorrador, setSorteoBorrador, soloPorRevisar, busquedaUmp, dibujoArea, setDibujoArea, capaMapa, setCapaMapa, distritoEnfocado, setDistritoEnfocado, ciudadEnfocada, setCiudadEnfocada, departamentoEnfocado, setDepartamentoEnfocado, manzanaEnfocada, setManzanaEnfocada } = useLienzoHojasRuta();
+  const { borrador: borradorCrudo, distritoBajoCursor, umpBajoCursor, manzanaBajoCursor, setBorrador, setDistritoBajoCursor, setUmpBajoCursor, setManzanaBajoCursor, rangosBorrador, setRangosBorrador, setCortesBorrador, muestraBorrador, setMuestraBorrador, sorteoBorrador, setSorteoBorrador, soloPorRevisar, busquedaUmp, dibujoArea, setDibujoArea, capaMapa, setCapaMapa, distritoEnfocado, setDistritoEnfocado, ciudadEnfocada, setCiudadEnfocada, departamentoEnfocado, setDepartamentoEnfocado, manzanaEnfocada, setManzanaEnfocada } = useLienzoHojasRuta();
   const { umpEnfocada, setUmpEnfocada, cajon } = useSeleccionDireccion();
   const enTerritorio = nav.seccion === "territorio";
   const enPoblacion = nav.seccion === "poblacion";
@@ -400,6 +400,8 @@ export default function HojasRutaMapaPage() {
   const estados = useMemo(() => estadosPorTitular(bloquesTitulares, bloquesReemplazos, revision), [bloquesTitulares, bloquesReemplazos, revision]);
   const grupos = useMemo(() => rutasPorDistrito(bloquesTitulares, bloquesReemplazos, estados, { soloPorRevisar, busqueda: busquedaUmp }), [bloquesTitulares, bloquesReemplazos, estados, soloPorRevisar, busquedaUmp]);
   const manzanaPorId = useMemo(() => new Map(distritos.flatMap((d) => d.manzanas.map((m) => [m.id, m] as const))), [distritos]);
+  // Una sola lista para el acierto del cursor: armarla en cada pointermove serían decenas de miles de copias.
+  const todasLasManzanas = useMemo(() => [...manzanaPorId.values()], [manzanaPorId]);
 
   // La ficha de manzana es de la sección donde se abrió: al cambiar de sección no tapa su inspector.
   useEffect(() => { setManzanaEnfocada(null); }, [nav.seccion, setManzanaEnfocada]);
@@ -607,6 +609,18 @@ export default function HojasRutaMapaPage() {
         </>
       );
     }
+    if (enManzanas) {
+      const m = manzanaBajoCursor && manzanaBajoCursor !== manzanaEnfocada ? manzanaPorId.get(manzanaBajoCursor) : undefined;
+      if (!m) return null;
+      const distrito = (estado?.territories ?? []).find((t) => t.ubigeo === m.ubigeo)?.distrito;
+      return (
+        <>
+          <b>Zona {m.zona} · Mz {m.id.slice(-4)}</b>
+          <span>{distrito ? `${nombreDistrito(distrito)} · ` : ""}{fmt(m.viviendas)} viviendas</span>
+          <span>Clic para ver su ficha</span>
+        </>
+      );
+    }
     if (!enTerritorio || !distritoBajoCursor || distritoBajoCursor === distritoEnfocado) return null;
     const t = (estado?.territories ?? []).find((x) => x.ubigeo === distritoBajoCursor);
     if (!t) return null;
@@ -617,7 +631,7 @@ export default function HojasRutaMapaPage() {
         <span>Clic para ver su ficha</span>
       </>
     );
-  }, [enTerritorio, distritoBajoCursor, distritoEnfocado, estado, enSeleccion, umpBajoCursor, umpEnfocada, bloquesTitulares, bloquesReemplazos]);
+  }, [enTerritorio, distritoBajoCursor, distritoEnfocado, estado, enSeleccion, umpBajoCursor, umpEnfocada, bloquesTitulares, bloquesReemplazos, enManzanas, manzanaBajoCursor, manzanaEnfocada, manzanaPorId]);
   // Habitantes por distrito para los rótulos de Territorio (B9), de todo el catálogo.
   const habitantes = useMemo(() => new Map((estado?.territories ?? []).map((t) => [t.ubigeo, t.poblacion])), [estado]);
   const dibujarPantalla = useCallback(
@@ -843,6 +857,8 @@ export default function HojasRutaMapaPage() {
               ? (punto) => setDistritoBajoCursor(punto ? distritoEnPunto(contornosAbiertos, punto[0], punto[1])?.ubigeo ?? null : null)
               : enSeleccion
               ? (punto) => setUmpBajoCursor(punto ? manzanaEnPunto(titulares.map((t) => t.manzana), punto[0], punto[1])?.id ?? null : null)
+              : enManzanas && !dibujoArea
+              ? (punto) => setManzanaBajoCursor(punto ? manzanaEnPunto(todasLasManzanas, punto[0], punto[1])?.id ?? null : null)
               : undefined
           }
           rotuloCursor={rotuloDelCursor}
