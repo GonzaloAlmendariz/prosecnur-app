@@ -306,13 +306,12 @@ function MarcoTerritorial({ meta }: { meta: TerritorialFrameMeta | null }) {
         <div><dt>Manzanas</dt><dd>INEI {meta.year || "—"}</dd></div>
         <div><dt>Cartografía</dt><dd>{cartografia || "—"}</dd></div>
         <div><dt>En el marco</dt><dd>{miles(meta.n_manzanas)} manzanas · {miles(meta.viviendas)} viviendas · {miles(meta.poblacion)} hab.</dd></div>
+        {/* P6: la comparación con la cartografía oficial INEI, corta; la nota completa del motor va en el title. */}
+        {cartografiaMarco && !cartografiaMarco.piloto ? (
+          <div title={cartografiaMarco.detalle} data-audit-marco-cartografia><dt>Frente a la oficial</dt><dd>{cartografiaMarco.resumen}</dd></div>
+        ) : null}
       </dl>
-      {/* P6: la nota del motor y la comparación con la cartografía oficial INEI, para sustentar el marco. */}
-      {cartografiaMarco ? (
-        <p className={cartografiaMarco.piloto ? "hr-mapa-aviso" : "hr-mapa-nota"} title={cartografiaMarco.detalle} data-audit-marco-cartografia>
-          {cartografiaMarco.detalle}
-        </p>
-      ) : null}
+      {cartografiaMarco?.piloto ? <p className="hr-mapa-aviso" data-audit-marco-cartografia>{cartografiaMarco.detalle}</p> : null}
     </section>
   );
 }
