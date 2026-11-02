@@ -139,21 +139,24 @@
 }
 
 /* L18: los indicadores sin cifra no ocupan una casilla cada uno; se nombran
-   juntos en una línea que cruza la franja entera, sea cual sea la rejilla. */
+   juntos en una línea bajo la franja, a lo ancho. Va FUERA de la rejilla (D3):
+   así no cambia de geometría cuando la franja corta pasa a una sola fila. */
 .rec-resumen-item.rec-resumen-vacios {
-  grid-column: 1 / -1;
-  border-left: none;
-  border-top: 1px solid var(--cmv2-border);
+  border: 1px solid color-mix(in srgb, var(--cmv2-border) 88%, transparent);
+  border-radius: var(--pulso-radius);
+  background: var(--pulso-material-bg-strong, var(--pulso-surface));
 }
 
-.rec-resumen-item.rec-resumen-vacios:first-child {
-  border-top: none;
+/* La procedencia del marco, una sola vez (D3). */
+.rec-resumen-procedencia {
+  color: var(--pulso-warn-fg);
+  font-size: var(--pulso-type-caption-size);
 }
 
 /* Los nombres no son cifras: van al tamaño del rótulo con método, en el tono del
    texto y sin el acento del grupo, para que la línea no grite más que los
    indicadores que sí tienen valor. */
-.rec-resumen .rec-resumen-item.rec-resumen-vacios strong {
+.rec-resumen-item.rec-resumen-vacios strong {
   color: var(--pulso-text-soft);
   font-size: 12.5px;
   font-weight: var(--pulso-weight-semibold);
@@ -388,6 +391,14 @@
 
   .rec-resumen-item-icon {
     display: none;
+  }
+
+  /* Fuera de la rejilla, la línea «Sin cifra todavía» no hereda la regla de
+     arriba: sin ícono, su texto caía en la columna de 28 px (D3). */
+  .rec-resumen-item.rec-resumen-vacios {
+    grid-template-columns: minmax(0, 1fr);
+    min-height: 0;
+    padding: 4px 9px;
   }
 
   .rec-resumen-item-copy > span {

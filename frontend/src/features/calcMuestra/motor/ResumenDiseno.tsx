@@ -320,7 +320,9 @@ export function ResumenDiseno({
     {
       label: "Universo de estudiantes",
       value: universoEstudiantes,
-      note: notaDeFuentes ?? "base completa",
+      // La procedencia del marco se dice UNA vez, bajo la franja (D3): repetirla
+      // en cada tarjeta ocultaba lo que cada una sí sabe.
+      note: "base completa",
       icon: <Users size={16} aria-hidden="true" />,
       tone: "universe",
     },
@@ -331,7 +333,7 @@ export function ResumenDiseno({
       // define el catálogo. Cuando el año no cuadra con el del estudio se dice
       // entero —«base 2025 · el estudio es 2026»—: nombrar los dos es lo que
       // deja ver el error sin abrir ningún archivo.
-      note: notaDeFuentes ?? (periodoMarco
+      note: (periodoMarco
         ? periodoCuadra === false
           ? `base ${periodoMarco} · el estudio es ${anio(perfil.nombre)}`
           : `base ${periodoMarco} · unidades únicas`
@@ -342,14 +344,14 @@ export function ResumenDiseno({
     {
       label: "Estudiantes elegibles",
       value: estudiantesElegibles,
-      note: notaDeFuentes ?? notaIntegridad ?? (estudiantesDesactualizados ? "criterios cambiados · reconstruye" : "marco vigente"),
+      note: notaIntegridad ?? (estudiantesDesactualizados ? "criterios cambiados · reconstruye" : notaDeFuentes ? "del marco actual" : "marco vigente"),
       icon: <ClipboardCheck size={16} aria-hidden="true" />,
       tone: fuentesCambiaron || procedenciaDesconocida || estudiantesDesactualizados || !marcoPublicable ? "estimated" : "confirmed",
     },
     {
       label: "Cursos-horario elegibles",
       value: cursosHorarioElegibles,
-      note: notaDeFuentes ?? notaIntegridad ?? (cursosDesactualizados ? "criterios cambiados · reconstruye" : "marco vigente"),
+      note: notaIntegridad ?? (cursosDesactualizados ? "criterios cambiados · reconstruye" : notaDeFuentes ? "del marco actual" : "marco vigente"),
       icon: <BookOpenCheck size={16} aria-hidden="true" />,
       tone: fuentesCambiaron || procedenciaDesconocida || cursosDesactualizados || !marcoPublicable ? "estimated" : "confirmed",
     },
@@ -425,6 +427,10 @@ export function ResumenDiseno({
           <strong>Universo → elegibles → operación → aulas</strong>
         </span>
         <span className="rec-resumen-meta">
+          {/* La procedencia del marco, una sola vez y en la cabecera de la franja (D3). */}
+          {notaDeFuentes ? (
+            <span className="rec-resumen-procedencia" data-tone="estimated">Marco: {notaDeFuentes}</span>
+          ) : null}
           {perfil.esEjemplo && <span className="rec-badge-ejemplo">EJEMPLO</span>}
           {/* De dónde salen las cifras, en una frase llana. Antes era una píldora
               con jerga interna («Manual · Proyecto nuevo — universidad») que se
@@ -467,17 +473,20 @@ export function ResumenDiseno({
             </span>
           </div>
         ))}
-        {indicadores.vacios.length > 0 && (
-          <div className="rec-resumen-item rec-resumen-vacios" data-tone="operation">
-            <span className="rec-resumen-item-icon" aria-hidden="true"><Sigma size={16} aria-hidden="true" /></span>
-            <span className="rec-resumen-item-copy">
-              <small>Sin cifra todavía</small>
-              <strong>{indicadores.vacios.map((metric) => metric.label).join(" · ")}</strong>
-              <span>{notaResultado}</span>
-            </span>
-          </div>
-        )}
       </div>
+      {/* Fuera de la rejilla (D3): con la franja corta a 1280×720 la rejilla pasa
+          a una sola fila y esta línea, metida en ella, se apretaba en una
+          columna; afuera mide lo mismo en todos los anchos. */}
+      {indicadores.vacios.length > 0 && (
+        <div className="rec-resumen-item rec-resumen-vacios" data-tone="operation">
+          <span className="rec-resumen-item-icon" aria-hidden="true"><Sigma size={16} aria-hidden="true" /></span>
+          <span className="rec-resumen-item-copy">
+            <small>Sin cifra todavía</small>
+            <strong>{indicadores.vacios.map((metric) => metric.label).join(" · ")}</strong>
+            <span>{notaResultado}</span>
+          </span>
+        </div>
+      )}
     </section>
   );
 }
