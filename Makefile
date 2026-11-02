@@ -346,7 +346,7 @@ build-if-stale:
 	  elif [ "$$status" = "1" ]; then \
 	    echo "→ Compilando frontend de producción..."; \
 	    build_started=$$(date +%s); \
-	    cd frontend && UV_THREADPOOL_SIZE="$(NODE_UV_THREADPOOL_SIZE)" pnpm build; \
+	    cd frontend && UV_THREADPOOL_SIZE="$(NODE_UV_THREADPOOL_SIZE)" pnpm build || exit $$?; \
 	    cd "$(REPO_ROOT)" && node scripts/frontend-build-status.mjs --stamp; \
 	    build_elapsed=$$(( $$(date +%s) - build_started )); \
 	    total_elapsed=$$(( $$(date +%s) - started )); \
@@ -366,7 +366,7 @@ build-if-stale-fast:
 	  elif [ "$$status" = "1" ]; then \
 	    echo "→ Compilando frontend de desarrollo rápido..."; \
 	    build_started=$$(date +%s); \
-	    cd frontend && UV_THREADPOOL_SIZE="$(NODE_UV_THREADPOOL_SIZE)" pnpm build:fast; \
+	    cd frontend && UV_THREADPOOL_SIZE="$(NODE_UV_THREADPOOL_SIZE)" pnpm build:fast || exit $$?; \
 	    cd "$(REPO_ROOT)" && node scripts/frontend-build-status.mjs --stamp; \
 	    build_elapsed=$$(( $$(date +%s) - build_started )); \
 	    total_elapsed=$$(( $$(date +%s) - started )); \
