@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { describirMarcoCartografia } from "./marcoCartografia";
+import { marcoDeLaVista, type CiudadEnVista } from "./marcoDeLaVista";
 import { TerritorioGraficos } from "./TerritorioGraficos";
 import { MapPinned, Minus, Plus, X } from "../../../../vendor/lucide-react";
 import { GlidingRadioGroup } from "../../../../components/GlidingRadioGroup";
@@ -12,7 +13,7 @@ import { useLienzoHojasRuta } from "../store";
 import { tonoCss } from "../lienzo/tonos";
 import { agregarVarios, alternar, cambios } from "./borrador";
 import type { ZonaLima } from "./zonasLima";
-import { captacionDe, contarProvincias, etiquetaProvincia, gruposPorProvincia, marcoDeProvincias, nombreDelMarco } from "./provincias";
+import { captacionDe, etiquetaProvincia, gruposPorProvincia, marcoDeProvincias, nombreDelMarco } from "./provincias";
 
 const FILTRO = [["todos", "Todos"], ["elegidos", "Elegidos"]] as const;
 
@@ -238,7 +239,7 @@ export function TerritorioInspector({ territorios, confirmados, bloqueado, guard
           </section>
         ) : null}
         {/* El distrito bajo el cursor ya no entra aquí: va junto al cursor, sobre el mapa (rotuloCursor). */}
-        <MarcoTerritorial meta={marcoMeta} ubigeosDeLaCiudad={ciudad?.ubigeos ?? null} />
+        <MarcoTerritorial meta={marcoMeta} territorios={territorios} ciudad={ciudad} />
         {pendiente ? (
           <section className="hr-mapa-cambios" aria-label="Cambios sin confirmar">
             <h3>Cambios sin confirmar</h3>
@@ -250,10 +251,6 @@ export function TerritorioInspector({ territorios, confirmados, bloqueado, guard
           </section>
         ) : null}
         <TerritorioGraficos elegidos={elegidos} confirmados={confirmados} viviendasPorNse={viviendasPorNse} />
-        <dl className="hr-mapa-filas" aria-label="Marco territorial">
-          <div><dt>Cobertura</dt><dd>{contarProvincias(territorios)} provincias · {territorios.length} distritos</dd></div>
-          <div><dt>Manzanas</dt><dd>INEI 2017</dd></div>
-        </dl>
         {bloqueado ? <p className="hr-mapa-aviso">El piloto es histórico: su territorio no se cambia.</p> : null}
       </div>
       <footer className="hr-mapa-pie">
@@ -272,20 +269,20 @@ export function TerritorioInspector({ territorios, confirmados, bloqueado, guard
  * Marco territorial (brecha B27): cobertura, año del marco de manzanas y año de la
  * cartografía de cada provincia, tal como los declara el motor en `frame_meta`.
  */
-function MarcoTerritorial({ meta, ubigeosDeLaCiudad = null }: { meta: TerritorialFrameMeta | null; ubigeosDeLaCiudad?: readonly string[] | null }) {
-  // Con una ciudad abierta, su cartografía: el frame_meta del estado sólo trae la del paquete de Lima y Callao.
-  const [deLaCiudad, setDeLaCiudad] = useState<string | null>(null);
-  // Un ubigeo por provincia: la «ciudad» de Lima trae también al Callao, y cada una tiene su cartografía.
-  const clave = ubigeosDeLaCiudad ? [...new Map(ubigeosDeLaCiudad.map((u) => [u.slice(0, 4), u])).values()].sort().join(",") : "";
+function MarcoTerritorial({ meta, territorios, ciudad = null }: { meta: TerritorialFrameMeta | null; territorios: readonly HojasRutaTerritory[]; ciudad?: CiudadEnVista }) {
+  const filas = meta?.ok ? marcoDeLaVista(meta, territorios, ciudad) : null;
+  // La cartografía de lo que se mira, por provincia: el frame_meta del estado sólo trae la del paquete de Lima y Callao.
+  const [deLaVista, setDeLaVista] = useState<string | null>(null);
+  const clave = filas?.ubigeosCartografia.join(",") ?? "";
   useEffect(() => {
-    if (!clave) { setDeLaCiudad(null); return undefined; }
+    if (!clave) { setDeLaVista(null); return undefined; }
     let vivo = true;
-    apiHojasRutaCartografia(clave.split(",")).then((p) => { if (vivo) setDeLaCiudad(rotuloDeCartografia(p) || null); }).catch(() => { if (vivo) setDeLaCiudad(null); });
+    apiHojasRutaCartografia(clave.split(",")).then((p) => { if (vivo) setDeLaVista(rotuloDeCartografia(p) || null); }).catch(() => { if (vivo) setDeLaVista(null); });
     return () => { vivo = false; };
   }, [clave]);
   if (!meta) return null;
   // P6/P9 de la paridad: sin paquete del marco no hay nada que elegir, y se dice.
-  if (!meta.ok) {
+  if (!meta.ok || !filas) {
     return (
       <section className="hr-muestra-grupo" aria-label="Marco territorial">
         <h3>Marco territorial</h3>
@@ -293,10 +290,10 @@ function MarcoTerritorial({ meta, ubigeosDeLaCiudad = null }: { meta: Territoria
       </section>
     );
   }
-  const cartografiaMarco = describirMarcoCartografia(meta);
+  const cartografiaMarco = filas.conComparacion ? describirMarcoCartografia(meta) : null;
   const miles = (n: number | undefined) => (typeof n === "number" && Number.isFinite(n) && n > 0 ? n.toLocaleString("es-PE") : "—");
   const fuentes = meta.block_cartography?.sources ?? {};
-  const cartografia = (["lima", "callao"] as const)
+  const delPaquete = (["lima", "callao"] as const)
     .map((k) => (fuentes[k]?.year ? `${k === "lima" ? "Lima" : "Callao"} ${fuentes[k].year}` : ""))
     .filter(Boolean)
     .join(" · ");
@@ -304,11 +301,11 @@ function MarcoTerritorial({ meta, ubigeosDeLaCiudad = null }: { meta: Territoria
     <section className="hr-muestra-grupo" aria-label="Marco territorial">
       <h3>Marco territorial</h3>
       <dl className="hr-mapa-filas">
-        <div><dt>Cobertura</dt><dd>{meta.coverage || "—"}{meta.n_distritos ? ` · ${meta.n_distritos} distritos` : ""}</dd></div>
+        <div><dt>{filas.rotuloCobertura}</dt><dd>{filas.cobertura}</dd></div>
         <div><dt>Manzanas</dt><dd>INEI {meta.year || "—"}</dd></div>
-        <div><dt>Cartografía</dt><dd>{(clave ? deLaCiudad : cartografia) || "—"}</dd></div>
-        <div><dt>En el marco</dt><dd>{miles(meta.n_manzanas)} manzanas · {miles(meta.viviendas)} viviendas · {miles(meta.poblacion)} hab.</dd></div>
-        {/* P6: la comparación con la cartografía oficial INEI, corta; la nota completa del motor va en el title. */}
+        <div><dt>Cartografía</dt><dd>{(clave ? deLaVista : delPaquete ? `Lima y Callao: ${delPaquete}; las demás ciudades, INEI ${meta.year || 2017}` : "") || "—"}</dd></div>
+        <div><dt>{filas.rotuloCifras}</dt><dd>{miles(filas.manzanas)} manzanas · {miles(filas.viviendas)} viviendas · {miles(filas.poblacion)} hab.</dd></div>
+        {/* P6: la comparación con la cartografía oficial INEI es del paquete de Lima y Callao; la nota completa va en el title. */}
         {cartografiaMarco && !cartografiaMarco.piloto ? (
           <div title={cartografiaMarco.detalle} data-audit-marco-cartografia><dt>Frente a la oficial</dt><dd>{cartografiaMarco.resumen}</dd></div>
         ) : null}
