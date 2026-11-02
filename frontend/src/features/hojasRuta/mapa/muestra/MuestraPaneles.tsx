@@ -246,7 +246,7 @@ export function MuestraInspector({ config, resultado: r, bloqueado, guardando, h
           </div>
         </section>
 
-        <PulsoSwitch label="Corrección por población finita (FPC)" size="sm" checked={s.apply_fpc} disabled={ed} onCheckedChange={(v) => cambiarS({ apply_fpc: v })} />
+        <PulsoSwitch className="hr-muestra-fpc" label="Corrección por población finita (FPC)" size="sm" checked={s.apply_fpc} disabled={ed} onCheckedChange={(v) => cambiarS({ apply_fpc: v })} />
 
         <details className="hr-muestra-formula">
           <summary>¿De dónde sale este N?</summary>
