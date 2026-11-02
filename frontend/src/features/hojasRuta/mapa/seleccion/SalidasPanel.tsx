@@ -10,6 +10,7 @@ import type { EnvioMeta } from "../../../../api/materialTerritorial";
 import { Send } from "../../../../vendor/lucide-react";
 import { PANEL_SALIDAS_SELECCION } from "../../seleccion/panelesSeleccion";
 import { BitacoraSeccion } from "./BitacoraSeccion";
+import { envioVigente } from "./envioVigente";
 import { InformeDiseno } from "./InformeDiseno";
 import { muestraV1 } from "../manzanas/sorteoV1";
 import { useProjectModules } from "../../../project/ProjectModulesContext";
@@ -44,13 +45,15 @@ type Props = {
   fase?: "pilot" | "field";
 };
 
-export function SalidasPanel({ salidas, envio, onCambio, fase = "field" }: Props) {
+export function SalidasPanel({ salidas, envio: envioDelEstado, onCambio, fase = "field" }: Props) {
   const nav = useSeccion("hojas-ruta");
   // Checklist I2: un estudio que envió su muestra a Material de campo no puede tenerlo fuera de la barra.
   const { addModule } = useProjectModules();
   const [ocupado, setOcupado] = useState<"" | "envio" | "cuotas">("");
   const [error, setError] = useState("");
   const [codigo, setCodigo] = useState("");
+  const [envioRecien, setEnvioRecien] = useState<EnvioMeta | null>(null);
+  const envio = envioVigente(envioDelEstado, envioRecien);
   const muestra = salidas?.sample ?? null;
 
   async function correr(trabajo: "envio" | "cuotas", f: () => Promise<unknown>) {
@@ -59,6 +62,8 @@ export function SalidasPanel({ salidas, envio, onCambio, fase = "field" }: Props
     setCodigo("");
     try {
       await f();
+      // La relectura puede esperar detrás de otro pedido del backend: el botón ya no la espera.
+      setOcupado("");
       await onCambio?.();
     } catch (err: unknown) {
       setCodigo(err instanceof ApiError ? err.code : "");
@@ -133,7 +138,7 @@ export function SalidasPanel({ salidas, envio, onCambio, fase = "field" }: Props
             Se envía la corrida de {fase === "pilot" ? "Piloto" : "Campo real"}.{estado === "nunca" ? " La campaña territorial de Material queda en esa fase." : ""}
           </p>
           <div className="hr-salidas-acciones">
-            <PulsoButton variant={estado === "al-dia" ? "secondary" : "primary"} disabled={!muestra || ocupado !== "" || Boolean(v1)} onClick={() => void correr("envio", async () => { await apiHojasRutaEnviar(); addModule("material-campo"); await asegurarCampanaTerritorial(); })}>
+            <PulsoButton variant={estado === "al-dia" ? "secondary" : "primary"} disabled={!muestra || ocupado !== "" || Boolean(v1)} onClick={() => void correr("envio", async () => { setEnvioRecien(await apiHojasRutaEnviar()); addModule("material-campo"); await asegurarCampanaTerritorial(); })}>
               <Send size={14} aria-hidden /> {ocupado === "envio" ? "Enviando…" : estado === "nunca" ? "Enviar a Material" : "Reenviar a Material"}
             </PulsoButton>
             {envio ? (
