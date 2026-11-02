@@ -238,6 +238,11 @@ export function AccessSection({ payload, activeTab, onState, onIr, onVerVinculac
   // El plan es de dónde salen las aulas y su código de campo: la vinculación
   // sólo guarda `unit_id`, que es un hash.
   const codigosDeUnidad = useMemo(() => mapaDeCodigosDelPlan(payload?.state.plan), [payload?.state.plan]);
+  // El curso del aula («dee207_0504»), como en Unidades: con él campo la ubica.
+  const cursoDeUnidad = useMemo(
+    () => new Map((payload?.state.plan?.units ?? []).map((u) => [u.unit_id, u.label] as const)),
+    [payload?.state.plan],
+  );
   const aulasDelPlan = titularesDelPlan(payload?.state.plan);
   const backendBlocking = preflight?.blocking ?? [];
   const blocked = localBlocking.length > 0 || backendBlocking.length > 0;
@@ -496,7 +501,11 @@ export function AccessSection({ payload, activeTab, onState, onIr, onVerVinculac
                     // y era lo único que esta tabla enseñaba. El código de
                     // campo manda; el hash deja de verse porque nadie lo dice
                     // en voz alta.
-                    <tr key={binding.access_id}><td><strong>{codigosDeUnidad.get(binding.unit_id) || binding.unit_id}</strong><small>{binding.access_id}</small></td><td>{accessKindLabel(binding.access_kind)}</td><td>{binding.logical_collector_id}</td><td><span className={`rec-state is-${binding.status}`}>{bindingStatusLabel(binding.status)}</span></td></tr>
+                    // Revisión con ojo de usuario (2 nov 2026): debajo iba el `access_id` y en
+                    // Recopilador el `logical_collector_id`, dos hashes. Ahora el curso y, en
+                    // Recopilador, el id que de verdad usa la plataforma (collectorID) si ya
+                    // existe; los internos quedan en el `title`.
+                    <tr key={binding.access_id}><td title={binding.access_id}><strong>{codigosDeUnidad.get(binding.unit_id) || binding.unit_id}</strong><small>{cursoDeUnidad.get(binding.unit_id) ?? ""}</small></td><td>{accessKindLabel(binding.access_kind)}</td><td title={binding.logical_collector_id}>{typeof binding.provider_collector_id === "string" && binding.provider_collector_id ? binding.provider_collector_id : "—"}</td><td><span className={`rec-state is-${binding.status}`}>{bindingStatusLabel(binding.status)}</span></td></tr>
                   ))}</tbody>
                 </table>
               </TableScroll>
