@@ -84,9 +84,10 @@
     sprintf("Barrido telefónico%s", if (nzchar(p$estudio)) paste(" ·", p$estudio) else ""),
     "Una fila por caso. No cambies los encabezados de la fila 1: con ellos lee Monitoreo.",
     sprintf("«%s» es el correlativo de Pulso y «%s» la llave del caso: escríbela como texto y no la repitas.", .MBP_COD_PULSO, p$llave),
-    "Pega aquí la base del cliente, con nombres y teléfonos: este documento se comparte sólo con el equipo del operativo.",
+    "Pega aquí la base del cliente: de los datos personales, sólo nombre y teléfono de cada caso. Este documento se comparte con los enumeradores.",
     sprintf("Las columnas en ámbar las llena campo: %s.", paste(col$campo, collapse = ", ")),
-    if (length(p$sensibles)) sprintf("No están aquí, a propósito, las columnas sensibles: %s. No se copian a este documento.", paste(p$sensibles, collapse = ", ")),
+    sprintf("Lo demás que la plantilla marca sensible (documento, correo y otros datos personales) no va en este documento%s.",
+            if (length(p$sensibles)) paste0(": no están ", paste(p$sensibles, collapse = ", ")) else ""),
     sprintf("Status es obligatorio en cuanto hay Intentos o Fecha. Los valores permitidos están en «%s».", nombres[["listas"]]),
     "Para filtrar usa vistas de filtro, no un filtro con orden en el documento compartido."
   )

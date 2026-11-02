@@ -58,6 +58,10 @@ test_that("un documento vacío recibe las tres pestañas, con la base sin datos 
   expect_identical(vapply(barrido[-1], function(f) f[[1]], ""), as.character(1:5))
   expect_identical(vapply(barrido[-1], function(f) f[[match("Origen", cabecera)]], ""), c("Muestra", "Muestra", "Muestra", "Backup", "Backup"))
   expect_true(all(vapply(barrido[-1], function(f) f[[match("Nombre", cabecera)]], "") == ""))
+  # El Léeme dice que de lo personal sólo van nombre y teléfono, y nombra lo sensible que quedó fuera.
+  leeme <- unlist(Filter(function(d) identical(d$range, "'Léeme'"), valores)[[1]]$values)
+  expect_true(any(grepl("sólo nombre y teléfono", leeme, fixed = TRUE)))
+  expect_true(any(grepl("no están Estatus Legal", leeme, fixed = TRUE)))
   # Los desplegables apuntan a «Listas».
   formato <- Filter(function(w) identical(w$tipo, "batch") && any(vapply(w$requests, function(q) !is.null(q$setDataValidation), TRUE)), g$escrituras)
   expect_length(formato, 1L)

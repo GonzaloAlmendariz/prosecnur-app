@@ -30,7 +30,8 @@ export function BarridoEnSheets({ campaignId, sensibles }: { campaignId: string;
       <p className="rec-terr-nota">
         La base de barrido es un documento propio, el que se comparte con los enumeradores: crea un Sheets nuevo para ella, aparte
         de la base de control de Monitoreo, que los enumeradores no ven. Aquí se crean sus pestañas «Barrido», «Listas» y «Léeme»
-        con estas columnas y sus desplegables; el analista pega ahí la base del cliente, con nombres y teléfonos. Si una pestaña
+        con estas columnas y sus desplegables; de los datos personales, el analista pega ahí sólo nombre y teléfono, y lo demás
+        que la plantilla marca sensible (documento, correo) no va. Si una pestaña
         ya existe, no se toca, y si el enlace es un Sheets de control, no se construye. Si el estudio tiene varias campañas
         telefónicas, todas van en ese mismo documento, cada una en su pestaña.
         {sensibles.length ? ` Las columnas sensibles (${sensibles.join(", ")}) no se copian.` : ""}

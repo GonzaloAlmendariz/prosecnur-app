@@ -241,7 +241,8 @@ por la coordinación como decisión reversible. Cada dueño construye su lado co
 ### A2. Telefónico: base de barrido (§4)
 
 - Material › Barrido genera la base con sus columnas, y el analista pone los casos y los números.
-- Por la decisión de Gonzalo, se construye en el Sheets del estudio, con nombres y teléfonos.
+- Por la decisión de Gonzalo, se construye en el Sheets del estudio. De los datos personales, **sólo nombre y
+  teléfono** (aclaración de Gonzalo, 2 nov 2026).
 - Monitoreo la conecta como fuente y define las cuotas en su Modelo.
 - **El barrido es un documento propio de los enumeradores, separado del de control.** Gonzalo, textual, citado en
   `collection_barrido_sheets.R`: «los enumeradores solo tienen acceso a la base de barrido no la de control».
@@ -250,8 +251,9 @@ por la coordinación como decisión reversible. Cada dueño construye su lado co
     d3c62f254).
 - Material siembra sólo la estructura: encabezados, «Cod pulso», Origen y Listas. No toca pestañas que ya existan.
   Los nombres y teléfonos los pega el analista en el Sheets (ae2814128).
-- **Pendiente con Gonzalo:** las columnas que la plantilla marca como sensibles (en rojo) siguen sin ir al Sheets.
-  Hay que confirmar si su «Sí, en el Sheets» las incluye o se limita a nombres y teléfonos.
+- **Las columnas sensibles no van al Sheets.** Lo que la plantilla marca en rojo (documento, correo, estatus legal y
+  otros datos personales) se queda fuera del documento que ven los enumeradores: Material no crea esas columnas y el
+  Léeme lo dice.
 
 ### A3. Telefónico: campaña de supervisión (§4): Monitoreo → Material → Monitoreo
 

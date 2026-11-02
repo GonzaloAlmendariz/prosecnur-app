@@ -153,8 +153,8 @@ export function CasosTelefonicos({ datos }: { datos: Datos }) {
         <article className="rec-terr-tarjeta rec-tel-tarjeta" data-qa-geometry-member>
           <h3><ShieldAlert size={15} aria-hidden /> Columnas sensibles</h3>
           <p className="rec-terr-nota">
-            Una columna sensible, como el estatus legal, va marcada en rojo y no se copia al Sheets del estudio ni sale en ningún
-            artefacto. Se guarda al elegir.
+            Una columna sensible, como el estatus legal, el documento o el correo, va marcada en rojo y no va al Sheets de los
+            enumeradores, donde de los datos personales sólo van nombre y teléfono; tampoco sale en ningún artefacto. Se guarda al elegir.
           </p>
           {config.estratos.map((e) => (
             <PulsoSwitch
