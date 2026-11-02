@@ -82,7 +82,7 @@ function SalidasAulasImpl({ contexto }: { contexto: ContextoDeSalidas }) {
           <header className="aulas-sl-cabecera">
             <h3 id="aulas-sl-salidas-titulo" className="aulas-sl-titulo">Salidas del corte</h3>
           </header>
-          <ul className="aulas-sl-lista">
+          <ul className="aulas-sl-lista" data-qa-geometry-group="aulas-salidas-lista" data-qa-geometry-contract="intrinsic">
             {modelo.salidas.map((s) => (
               <FilaDeSalida
                 key={s.clave}
@@ -150,7 +150,7 @@ function FilaDeSalida({ salida, ocupado, hrefHerramientas, onAccion }: {
   const navegar = useNavigate();
   const Icono = ICONOS[salida.clave];
   return (
-    <li className="aulas-sl-salida">
+    <li className="aulas-sl-salida" data-qa-geometry-member>
       <span className="aulas-sl-icono" aria-hidden="true"><Icono size={18} /></span>
       <div className="aulas-sl-texto">
         <div className="aulas-sl-nombre">
@@ -227,7 +227,7 @@ function VistaPreviaDelAvance({ vista }: { vista: VistaPrevia }) {
 function ListaDeHojas({ queToca }: { queToca: QueTocaPublicar }) {
   if (queToca.tipo === "vacio") return <Nota vacio={queToca.vacio} />;
   const grupo = (titulo: string, filas: FilaDeHoja[]) => (filas.length ? (
-    <div className="aulas-sl-grupo">
+    <div className="aulas-sl-grupo" data-qa-geometry-member>
       <h4>{titulo}</h4>
       <ul className="aulas-sl-hojas">
         {filas.map((f) => (
@@ -250,7 +250,7 @@ function ListaDeHojas({ queToca }: { queToca: QueTocaPublicar }) {
 function QueTocaPublicarPanel({ queToca }: { queToca: QueTocaPublicar }) {
   const id = "aulas-sl-hojas-titulo";
   return (
-    <section className="aulas-sl-panel aulas-sl-que-toca" aria-labelledby={id}>
+    <section className="aulas-sl-panel aulas-sl-que-toca" aria-labelledby={id} data-qa-geometry-group="aulas-salidas-que-toca" data-qa-geometry-contract="intrinsic">
       <header className="aulas-sl-cabecera">
         <h3 id={id} className="aulas-sl-titulo">Qué toca Publicar en el libro</h3>
         {queToca.tipo === "hojas" ? <span className="aulas-sl-sub">{queToca.sub}</span> : null}
