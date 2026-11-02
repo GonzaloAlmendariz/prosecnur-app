@@ -283,10 +283,15 @@
   }
 }
 
-/* Entre 1181 y 1365 la cifra queda y su base pasa al `title` y al nombre
- * accesible, que la llevan siempre. */
+/* Entre 1181 y 1365 cabe una sola lectura: la que trae su base («1,283/1,200»),
+ * no el porcentaje solo (L20: ninguna cifra de avance sin su base). El
+ * porcentaje queda en el `title` y en el nombre accesible, que lo llevan siempre. */
 @media (max-width: 1365px) {
-  .mon-commandbar.is-barra-comun .mon-pill-metric-base {
+  .mon-commandbar.is-barra-comun .pulso-phase-pill-metric.has-base .mon-pill-metric-valor {
     display: none;
+  }
+  .mon-commandbar.is-barra-comun .pulso-phase-pill-metric.has-base .mon-pill-metric-base {
+    padding-left: 0;
+    border-left: 0;
   }
 }
