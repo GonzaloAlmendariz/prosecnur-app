@@ -118,3 +118,11 @@ Lo que entró después de 0fc705e23: ADR 0125 en código (32f208721, 856c97999),
 | Typecheck | árbol entero | 0 |
 
 El hallazgo 17 (Bandeja a 1024) lo tomó Monitoreo en 192274eb8; falta recapturarlo. El 18 sigue abierto con su dueño.
+
+Recaptura a 1024 sobre bde2547c3:
+- **Hallazgo 17, cerrado** por 192274eb8: Control › Bandeja de acnur_acg da `ok=true`, 0 issues, `desplazamientoH=0`.
+- **Hallazgo 18, cerrado** por bde2547c3: en Avance › Salidas de hsvg2026 (aulas), la fila del libro dice «Material lo
+  arma sobre el Sheets del estudio, en Material › Entrega». «Construir en Material» queda activo aunque todavía no
+  haya libro, y la vista previa sin plan es un vacío limpio, sin separador colgado.
+- El `ok=false` de esa captura es un 409 de `/api/monitoreo/aulas/avance-tablas`: el vacío esperado de un proyecto sin
+  plan de aulas, el mismo que la pantalla declara. 0 issues visuales.
