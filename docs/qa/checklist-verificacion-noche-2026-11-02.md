@@ -126,3 +126,50 @@ Recaptura a 1024 sobre bde2547c3:
   haya libro, y la vista previa sin plan es un vacío limpio, sin separador colgado.
 - El `ok=false` de esa captura es un 409 de `/api/monitoreo/aulas/avance-tablas`: el vacío esperado de un proyecto sin
   plan de aulas, el mismo que la pantalla declara. 0 issues visuales.
+
+## Tercera pasada (2/11, desde las 08:00)
+
+Encargo de la coordinación tras el «Ya volvimos» de Gonzalo. Alcance:
+- cuotas de punta a punta: e84b0165d, 9441c48b6, 5c710ec16, a09329446, b3003cc50, 0e82e4f51, 25e8c9243, a188f16bf;
+- supervisión: ea6b50a14, bb86b0252, 3b9779174, 51cf4f62c;
+- barrido: ae2814128, 1cefd3326;
+- padrón: f42e758f9, 5896629cd;
+- canales: c36597d3d;
+- guardas 409: d3c62f254;
+- efectivas: 2cb7659e9.
+
+Antes, el A3 del ADR 0125 dejó dicho que el catálogo del Veredicto es propuesta de Hojas, revisable por Gonzalo
+(9bba5c4d5).
+
+| Gate | Alcance | Resultado |
+|---|---|---|
+| R, `gate-area` con patrón | las 15 suites que tocaron esos commits, más campañas, Planner, correo y los transversales (sobre 9bba5c4d5) | 5223 pass, 1 fail: `test-errors-registry`, por `errors_registry.R` sin commit de otra sesión; aislada después, 6/6 (hallazgo 19) |
+| Front, `gate-front` | monitoreo (6587), recopiladores (1748), hojasRuta (822), lib (932), api (1225), con sus transversales | dos rojos, cada uno con su dueño (hallazgos 20 y 21) |
+| Typecheck | árbol entero | 0 |
+
+Capturas a 1440x1000, una por perfil, todas con `ok=true` y 0 issues:
+
+| Proyecto | Rutas | Lo que se ve |
+|---|---|---|
+| copia de acnur_acg declarada en cuotas | Hojas de ruta, Monitoreo › Avance y Material | Hojas aterriza en Territorio · Población · Muestra · Entrega, el modo cuotas (`/api/planner/modos`: `modo = cuotas`, `aplica = TRUE`). Monitoreo sigue por UMP, y es lo correcto: el envío guardado es por UMP y declarar cuotas no reenvía. El avance por zona y celda (25e8c9243, a188f16bf) sólo se ve con un envío `kind = "cuotas"`, que ningún `.pulso` de referencia trae; lo cubren `test-hojas-ruta-envio-cuotas` y `test-monitoreo-territorial-cuotas` |
+| acnur_acg | Monitoreo › Avance | sin cambios visibles respecto de la segunda pasada |
+| hsvg2026 aulas | Monitoreo › Avance | limpio |
+| acnur_pdm | Monitoreo › Avance | limpio |
+| acrconta | Monitoreo › Modelo | limpio |
+
+Contrato contra código:
+- **Supervisión (A3):** Material cumple. Id `supervision.<lote_id>`, `relacion$viene_de = "telefonica.principal"`, las tres
+  columnas fijas y el catálogo del Veredicto (`collection_campaigns_supervision.R`).
+- **Barrido (A2):** la app siembra sólo la estructura y el analista pega los nombres y teléfonos. Faltaba en el ADR la
+  separación barrido/control, que Gonzalo decidió y el código ya cumple (1cefd3326, d3c62f254); quedó en el A2
+  (31e47423d), con la duda de las columnas sensibles para Gonzalo.
+
+### Hallazgos de la tercera pasada
+
+| # | Hallazgo | Commit de origen | Evidencia | Estado | Dueño |
+|---|---|---|---|---|---|
+| 19 | `test-errors-registry` cae en el gate con `errors_registry.R` modificado sin commit | trabajo en curso de otra sesión | aislado sobre 5e6010d5f: 6/6 | observación: se cierra cuando esa sesión commitee | Monitoreo |
+| 20 | `materialCampanas.test.ts` espera cuatro tipos y ya son cinco, con `supervision` | ea6b50a14 | `gate-front api`: 1 fail | cerrado por Hojas en aef9f3e62 (api 1225/1225) | Hojas (Material) |
+| 21 | `estadosAtadosAlMotor.contract.test.ts`: `en_zona` sigue en `VOCABULARIO_PROPIO`, pero el motor ya lo publica | 25e8c9243 / a188f16bf | `gate-front monitoreo`: 1 fail, también aislado | reportado | Monitoreo |
+| 22 | A3, lectura de Monitoreo: `supervision/resultados/leer` todavía leía las pestañas «Ronda N» de su hoja propia, no la base de Material por `llave` y lote | — | `monitoreo_supervision_rondas.R:541` | en obra: `monitoreo_supervision_desde_material.R` sin commit; ca7e5052b ya dice que «Monitoreo la lee por lote» | Monitoreo |
+| 23 | No se puede ver el avance por cuotas en pantalla | — | ningún `.pulso` de referencia trae un envío `kind = "cuotas"` | observación: haría falta un proyecto de referencia en cuotas | Hojas + Monitoreo |
