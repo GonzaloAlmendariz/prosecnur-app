@@ -122,5 +122,5 @@ test_that("un punto se declara por coordenadas o por enlace largo de Google Maps
   e <- .espec_mapa_distribucion(f, lima, encuadre = "datos", puntos = pucp)
   expect_true(e$caja[["ymax"]] >= -12.0693 && e$caja[["xmin"]] <= -77.0794)
   geoms <- vapply(.lam_mapa_gg(e)$layers, function(l) class(l$geom)[1], "")
-  expect_true(all(c("GeomPoint", "GeomText", "GeomSegment") %in% geoms))
+  expect_true(all(c("GeomPoint", "GeomText", "GeomPath") %in% geoms))
 })

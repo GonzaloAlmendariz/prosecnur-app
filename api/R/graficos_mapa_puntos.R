@@ -77,12 +77,14 @@
   caja
 }
 
-#' Capas de los puntos sobre el ggplot del mapa: punto chico con halo blanco y rótulo sobre el mar, unido por una guía
+#' Capas de los puntos sobre el ggplot del mapa: punto chico con halo blanco y rótulo sobre el mar, unido por una guía en codo
 #'
-#' Gonzalo, 2026-11-02: «el punto muy grande; la etiqueta puede irse al mar, con flecha; de costado o en diagonal hacia
-#' arriba». El rótulo arranca en el borde izquierdo de la caja (el mar, que `.mapa_puntos_caja_con_mar` reservó) y un
-#' poco más arriba que su punto; una línea fina en diagonal lo une al punto. Si dos rótulos se acercan, el de abajo baja.
-#' Sólo se dibujan los puntos dentro de la caja (fuera del recorte el dispositivo del PPT se cae).
+#' Gonzalo, 2026-11-02: «el punto muy grande; la etiqueta puede irse al mar», y luego «¿por qué se va por arriba si puede
+#' irse en diagonal abajo y luego línea recta a la izquierda?». La guía baja en diagonal desde el punto hasta un codo y
+#' sigue horizontal hacia la izquierda hasta el rótulo, que arranca en el borde de la caja (el mar, que
+#' `.mapa_puntos_caja_con_mar` reservó). En Lima, el Callao y el Perú el mar está al oeste y al sur-oeste de la costa.
+#' Si dos rótulos se acercan, el de abajo baja. Sólo se dibujan los puntos dentro de la caja (fuera del recorte el
+#' dispositivo del PPT se cae).
 #' @keywords internal
 .mapa_puntos_capas <- function(puntos, caja) {
   if (is.null(puntos) || !NROW(puntos)) return(list())
@@ -96,12 +98,17 @@
   p$x_txt <- ifelse(al_mar, caja[["xmin"]] + margen, pmin(caja[["xmax"]] - w_txt - margen, p$lon + 0.12 * ancho))
   p$hjust <- 0
   p$x_guia <- ifelse(al_mar, p$x_txt + w_txt + 0.01 * ancho, p$x_txt - 0.01 * ancho)
-  p$y_txt <- pmin(p$lat + 0.08 * alto, caja[["ymax"]] - 0.03 * alto)   # en diagonal hacia arriba
+  p$y_txt <- pmax(p$lat - 0.07 * alto, caja[["ymin"]] + 0.03 * alto)   # el codo baja hacia el mar
   for (k in seq_len(nrow(p))[-1]) p$y_txt[k] <- min(p$y_txt[k], p$y_txt[k - 1] - 0.06 * alto)   # rótulos que no se pisan
+  # El codo: la diagonal baja 45° (en la caja) desde el punto; de ahí la recta va al rótulo.
+  p$x_codo <- p$lon + ifelse(al_mar, -1, 1) * (p$lat - p$y_txt) * ancho / alto
+  p$x_codo <- ifelse(al_mar, pmax(p$x_codo, p$x_guia), pmin(p$x_codo, p$x_guia))
+  guia <- do.call(rbind, lapply(seq_len(nrow(p)), function(k) data.frame(g = k, x = c(p$lon[k], p$x_codo[k], p$x_guia[k]),
+                                                                          y = c(p$lat[k], p$y_txt[k], p$y_txt[k]))))
   azul <- .std_color("azul")
   list(
-    ggplot2::geom_segment(data = p, ggplot2::aes(.data$x_guia, .data$y_txt, xend = .data$lon, yend = .data$lat), inherit.aes = FALSE,
-                          colour = azul, linewidth = 0.3),
+    ggplot2::geom_path(data = guia, ggplot2::aes(.data$x, .data$y, group = .data$g), inherit.aes = FALSE, colour = azul, linewidth = 0.3,
+                       linejoin = "round"),
     ggplot2::geom_point(data = p, ggplot2::aes(.data$lon, .data$lat), inherit.aes = FALSE, shape = 21, size = 1.6, stroke = 0.5,
                         colour = "#FFFFFF", fill = p$color),
     ggplot2::geom_text(data = p, ggplot2::aes(.data$x_txt, .data$y_txt, label = .data$etiqueta, hjust = .data$hjust), inherit.aes = FALSE,
