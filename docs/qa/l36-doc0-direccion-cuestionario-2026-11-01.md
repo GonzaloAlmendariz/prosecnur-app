@@ -186,3 +186,13 @@ edición del formulario, que lo sube.
   tal como irá al papel, con los avisos de lógica del motor. Sale del mismo
   modelo (`POST /api/xlsform-editor/logica-impresa`, `xlsform_logica_impresa.R`)
   y cambia al elegir «Saltos» o «Condiciones».
+- **D-L36-21 · Estilos con candado.** La tipografía (Arial Narrow; título
+  20, cuerpo 10 y rótulos 8 pt) y los colores (tinta, rejilla, bandas y filas
+  alternas) del papel vienen de `estandar_pulso.json` › `cuestionario` (DOC.1) y
+  no se cambian por documento: todos los estudios salen iguales y en grises
+  que se fotocopian. Impreso › Formato › Estilos los muestra con candado, igual
+  que las láminas estándar de F6. El front los lee de
+  `estandarCuestionario.generated.ts`, que un test de contrato ata al JSON:
+  cambiar el estándar sin regenerarlo deja el test en rojo.
+
+Con D-L36-19 a 21 queda cerrada la sección Documento de L36.

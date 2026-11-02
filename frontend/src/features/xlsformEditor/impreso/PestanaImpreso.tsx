@@ -46,6 +46,7 @@ import { primeraPagina, tituloDelFormulario } from "./primeraPagina";
 import { useEstadoImpreso } from "./useEstadoImpreso";
 import { VersionesImpreso } from "./VersionesImpreso";
 import { LogicaImpresa } from "./LogicaImpresa";
+import { EstilosImpreso } from "./EstilosImpreso";
 import "./impreso.css";
 
 const ID_DETALLE = "xf-impreso-detalle";
@@ -211,6 +212,7 @@ export function PestanaImpreso({
             {parte === "formato" && (
               <>
                 <DetalleFormato estado={estado} actualizar={actualizar} tituloDelFormulario={tituloDelFormulario(workbook)} />
+                <EstilosImpreso />
                 <VersionesImpreso
                   sincronia={sincronia}
                   versiones={versiones}

@@ -772,3 +772,56 @@
   color: var(--pulso-warn-fg);
   font-size: var(--pulso-type-caption-size);
 }
+
+/* L36 · D-L36-21 — «Estilos» con candado: el estándar del cuestionario, sin editar por documento. */
+.pulso-xf-imp-candado {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--pulso-space-2);
+  margin: 0;
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+  line-height: 1.45;
+}
+
+.pulso-xf-imp-candado svg {
+  flex: none;
+  margin-top: 1px;
+}
+
+.pulso-xf-imp-estilos-lista {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr));
+  gap: var(--pulso-space-1) var(--pulso-space-3);
+  margin: 0;
+}
+
+.pulso-xf-imp-estilos-fila {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--pulso-space-2);
+  min-width: 0;
+  padding: var(--pulso-space-1) 0;
+  border-bottom: 1px solid var(--pulso-border);
+}
+
+.pulso-xf-imp-estilos-fila dt {
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+}
+
+.pulso-xf-imp-estilos-fila dd {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--pulso-space-1);
+  margin: 0;
+  font-size: var(--pulso-type-caption-size);
+  font-variant-numeric: tabular-nums;
+}
+
+.pulso-xf-imp-estilos-muestra {
+  width: 12px;
+  height: 12px;
+  border: 1px solid var(--pulso-border-strong);
+  border-radius: 3px;
+}
