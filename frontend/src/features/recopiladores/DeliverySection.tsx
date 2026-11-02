@@ -105,6 +105,8 @@ export function DeliverySection({ payload, latestArtifact, onState, onIr, onIrAA
         eyebrow="Entrega"
         title={<><Send size={18} aria-hidden /> Lo que se entrega a Monitoreo</>}
       >
+        {/* R6: el subtítulo de la sección es sólo para lector de pantalla (headerMode sr-only); esto sí se ve. */}
+        <p className="rec-policy-note">El registro que campo llena al inicio. Las metas salen de Cálculo de muestra y el seguimiento lo hace Monitoreo.</p>
         <div className={`rec-handoff-status${readiness.delivered ? " is-delivered" : readiness.ready ? " is-ready" : " is-blocked"}`}>
           {readiness.delivered ? <CheckCircle2 size={22} /> : <ShieldCheck size={22} />}
           <div>
