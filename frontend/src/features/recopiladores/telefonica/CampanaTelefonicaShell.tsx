@@ -10,7 +10,6 @@ import { useLocation, useNavigate } from "react-router-dom";
 
 import type { CampanaMaterial } from "../../../api/materialCampanas";
 import { AdaptiveSplitView } from "../../../components/AdaptiveSplitView";
-import { ChromeIndicator, ChromeIndicatorGroup } from "../../../components/ChromeIndicator";
 import { ContextTabRail, type ContextTabRailItem } from "../../../components/ContextTabRail";
 import { ModuleCommandBar } from "../../../components/ModuleCommandBar";
 import { useDensidadDelChrome } from "../useDensidadDelChrome";
@@ -18,6 +17,7 @@ import { PageFrame } from "../../../components/PageFrame";
 import { SectionPillbar } from "../../../components/SectionPillbar";
 import { useDireccion } from "../../../lib/navegacion/useDireccion";
 import { RefreshCw } from "../../../vendor/lucide-react";
+import { ChipDeEntrada } from "../campanas/ChipDeEntrada";
 import { searchDeCampanas } from "../campanas/direccionDeCampanas";
 import { PESTANAS_TELEFONICAS, SECCIONES_TELEFONICAS, resolverSeccionTelefonica, type SeccionTelefonica } from "./navegacionTelefonica";
 import { BarridoTelefonico, CasosTelefonicos, EntregaTelefonica } from "./SeccionesTelefonicas";
@@ -69,7 +69,7 @@ export function CampanaTelefonicaShell({ campana, cabecera = null }: Props) {
       <div className="rec-terr-seccion">
         <div className="rec-terr-tarjetas" data-qa-geometry-group={`material-campo/telefonica/${seccion}`} data-qa-geometry-contract="intrinsic">
           {seccion === "casos" ? <CasosTelefonicos datos={datos} /> : null}
-          {seccion === "barrido" ? <BarridoTelefonico datos={datos} pestana={pestana} campaignId={campana.id} /> : null}
+          {seccion === "barrido" ? <BarridoTelefonico datos={datos} pestana={pestana} campaignId={campana.id} hrefCasos={hrefDe("casos", PESTANAS_TELEFONICAS.casos[0])} /> : null}
           {seccion === "entrega" ? <EntregaTelefonica config={config} /> : null}
         </div>
       </div>
@@ -94,12 +94,16 @@ export function CampanaTelefonicaShell({ campana, cabecera = null }: Props) {
           contexto={(
             <>
               {cabecera}
-              {config ? (
-                <ChromeIndicatorGroup ariaLabel="Contexto de la campaña telefónica">
-                  <ChromeIndicator label="Muestra" value={config.muestra.toLocaleString("es-PE")} prioridad="alta" />
-                  <ChromeIndicator label="Backup" value={config.backup.toLocaleString("es-PE")} />
-                </ChromeIndicatorGroup>
-              ) : null}
+              {campana.relacion?.ronda ? (
+                <ChipDeEntrada
+                  origen="monitoreo"
+                  rotulo="Ronda"
+                  dato={String(campana.relacion.ronda)}
+                  detalle={`Ronda ${campana.relacion.ronda}${campana.relacion.publico ? ` de ${campana.relacion.publico}` : ""} del Modelo de Monitoreo${campana.relacion.viene_de ? ", viene de la ronda anterior" : ", primera ronda"}`}
+                />
+              ) : (
+                <ChipDeEntrada origen="monitoreo" rotulo="Modelo de Monitoreo" detalle="Las rondas y las cuotas las define el Modelo de Monitoreo" />
+              )}
             </>
           )}
           secciones={(
@@ -110,7 +114,12 @@ export function CampanaTelefonicaShell({ campana, cabecera = null }: Props) {
               className="rec-section-selector"
               items={SECCIONES_TELEFONICAS.map((s) => {
                 const id = s.id as SeccionTelefonica;
-                return { id, label: s.label, href: hrefDe(id, PESTANAS_TELEFONICAS[id][0]) };
+                const pendientes = !config ? 0
+                  : id === "casos" ? (config.muestra + config.backup > 0 ? 0 : 1)
+                  : id === "barrido" ? Number(!config.barrido.construido) + Number(!config.barrido.conectado_en_monitoreo)
+                  : 0;
+                const lista = Boolean(config) && pendientes === 0 && id !== "entrega";
+                return { id, label: s.label, href: hrefDe(id, PESTANAS_TELEFONICAS[id][0]), pendientes, lista };
               })}
             />
           )}
@@ -124,9 +133,10 @@ export function CampanaTelefonicaShell({ campana, cabecera = null }: Props) {
             busy: cargando,
           }]}
           estado={config ? [{
-            id: "telefonica-config",
-            label: config.revision > 0 ? "Configurada" : "Por configurar",
-            tone: config.revision > 0 ? "success" : "neutral",
+            id: "telefonica-entrega",
+            label: config.barrido.conectado_en_monitoreo ? "Conectado en Monitoreo" : config.barrido.construido ? "Sin conectar en Monitoreo" : "Sin Sheets del barrido",
+            tone: config.barrido.conectado_en_monitoreo ? "success" : config.barrido.construido ? "warn" : "neutral",
+            detail: "Lo que Monitoreo lee de esta campaña: el Sheets del barrido, conectado en Insumos › Fuentes",
           }] : []}
           ariaLabel="Controles de la campaña telefónica"
         />

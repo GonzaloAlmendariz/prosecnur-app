@@ -171,7 +171,9 @@ MATERIAL_TELEFONICA_CONFIG_SCHEMA <- "material_telefonica_config/v1"
 collection_telefonica_config_get <- function(sid, campaign_id = NULL) {
   s <- session_get(sid)
   hit <- .mtel_campana(s, campaign_id)
-  .mtel_publica(.mtel_config(s, hit$entry$id), hit$entry$id)
+  out <- .mtel_publica(.mtel_config(s, hit$entry$id), hit$entry$id)
+  out$barrido <- .mtel_barrido_estado(s, hit$entry$id)
+  out
 }
 
 #' Guarda la configuración: se valida con las mismas reglas de la plantilla, de modo que

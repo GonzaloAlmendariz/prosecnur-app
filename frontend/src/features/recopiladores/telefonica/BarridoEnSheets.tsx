@@ -1,17 +1,26 @@
 // Barrido › Plantilla: la base construida en el Sheets del estudio (decisión de Gonzalo 2 nov 2026,
 // «Sí, en el Sheets»). Material crea las pestañas que faltan con las columnas de la plantilla; el analista
 // pega ahí los casos y campo la llena. Una pestaña que ya existe es del equipo y no se toca: la respuesta lo dice.
+// Un enlace que es el Sheets de control de Monitoreo se rechaza en el backend (409) con su motivo.
 
 import { useState } from "react";
 
 import { apiMaterialTelefonicaSheets, type BarridoEnSheets as Resultado } from "../../../api/materialTelefonica";
 import { PulsoButton } from "../../../components/PulsoButton";
 import { PulsoInput } from "../../../components/PulsoInput";
-import { ExternalLink, FileSpreadsheet } from "../../../vendor/lucide-react";
 
 const ACCION = { sembrada: "creada", respetada: "ya existía, sin tocar" } as const;
 
-export function BarridoEnSheets({ campaignId, sensibles }: { campaignId: string; sensibles: string[] }) {
+type Props = {
+  campaignId: string;
+  sensibles: string[];
+  /** Ya hay pestaña de esta campaña: el control pasa a «crear las que falten». */
+  construido?: boolean;
+  /** Tras construir, la campaña se relee para que los pasos digan el estado nuevo. */
+  onHecho?: () => void;
+};
+
+export function BarridoEnSheets({ campaignId, sensibles, construido = false, onHecho }: Props) {
   const [enlace, setEnlace] = useState("");
   const [ocupado, setOcupado] = useState(false);
   const [error, setError] = useState("");
@@ -20,45 +29,34 @@ export function BarridoEnSheets({ campaignId, sensibles }: { campaignId: string;
     setOcupado(true);
     setError("");
     apiMaterialTelefonicaSheets(campaignId, enlace.trim())
-      .then(setHecho)
+      .then((r) => { setHecho(r); onHecho?.(); })
       .catch((e: unknown) => setError(e instanceof Error ? e.message.replace(/ · E_[A-Z_]+$/, "") : "No se pudo construir el barrido en el Sheets."))
       .finally(() => setOcupado(false));
   };
   return (
-    <article className="rec-terr-tarjeta" data-qa-geometry-member>
-      <h3><FileSpreadsheet size={15} aria-hidden /> En su propio Sheets</h3>
-      <p className="rec-terr-nota">
-        La base de barrido es un documento propio, el que se comparte con los enumeradores: crea un Sheets nuevo para ella, aparte
-        de la base de control de Monitoreo, que los enumeradores no ven. Aquí se crean sus pestañas «Barrido», «Listas» y «Léeme»
-        con estas columnas y sus desplegables; de los datos personales, el analista pega ahí sólo nombre y teléfono, y lo demás
-        que la plantilla marca sensible (documento, correo) no va. Si una pestaña
-        ya existe, no se toca, y si el enlace es un Sheets de control, no se construye. Si el estudio tiene varias campañas
-        telefónicas, todas van en ese mismo documento, cada una en su pestaña.
-        {sensibles.length ? ` Las columnas sensibles (${sensibles.join(", ")}) no se copian.` : ""}
-      </p>
+    <div className="rec-tel-construir">
       <div className="rec-terr-fila">
         <PulsoInput
           aria-label="Enlace del Sheets del barrido"
-          placeholder="Vacío: el documento de barrido del estudio"
+          placeholder={construido ? "El mismo documento del barrido" : "Enlace de un Sheets nuevo, sólo para el barrido"}
           value={enlace}
           onChange={(e) => setEnlace(e.target.value)}
           disabled={ocupado}
+          invalid={Boolean(error)}
         />
-        <PulsoButton variant="secondary" size="sm" disabled={ocupado} onClick={construir}>
-          {ocupado ? "Construyendo…" : "Construir en el Sheets"}
+        <PulsoButton variant={construido ? "secondary" : "primary"} size="sm" disabled={ocupado} onClick={construir}>
+          {ocupado ? "Construyendo…" : construido ? "Crear las pestañas que falten" : "Construir en el Sheets"}
         </PulsoButton>
       </div>
+      {sensibles.length && !construido ? <p className="rec-terr-nota">Las columnas sensibles ({sensibles.join(", ")}) no se copian.</p> : null}
       {hecho ? (
-        <div className="rec-terr-nota" role="status">
-          <ul className="rec-tel-lista">
-            {hecho.hojas.map((h) => (
-              <li key={h.hoja}>{h.hoja} · {ACCION[h.accion]}{h.accion === "sembrada" && h.filas ? ` (${h.filas.toLocaleString("es-PE")} ${h.filas === 1 ? "fila" : "filas"})` : ""}</li>
-            ))}
-          </ul>
-          <a href={hecho.url} target="_blank" rel="noopener noreferrer"><ExternalLink size={13} aria-hidden /> Abrir el Sheets</a>
-        </div>
+        <ul className="rec-tel-lista" role="status">
+          {hecho.hojas.map((h) => (
+            <li key={h.hoja}>{h.hoja}: {ACCION[h.accion]}{h.accion === "sembrada" && h.filas ? ` (${h.filas.toLocaleString("es-PE")} ${h.filas === 1 ? "fila" : "filas"})` : ""}</li>
+          ))}
+        </ul>
       ) : null}
       {error ? <p className="rec-terr-error" role="alert">{error}</p> : null}
-    </article>
+    </div>
   );
 }

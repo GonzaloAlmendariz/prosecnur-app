@@ -34,7 +34,30 @@ export type ConfigTelefonica = {
   revision: number;
   /** Columnas que Monitoreo telefónico lee del Sheets: no se renombran. */
   lee_monitoreo: string[];
+  /** El documento del barrido de esta campaña y si Monitoreo ya lo conectó como fuente (revamp v5). */
+  barrido: EstadoDelBarrido;
 };
+
+export type EstadoDelBarrido = {
+  construido: boolean;
+  url: string | null;
+  pestana: string | null;
+  actualizado_en: string | null;
+  conectado_en_monitoreo: boolean;
+};
+
+export function normalizarEstadoDelBarrido(valor: unknown): EstadoDelBarrido {
+  const o = esRegistro(valor) ? valor : {};
+  const url = texto(o.url);
+  const construido = escalar(o.construido) === true && Boolean(url);
+  return {
+    construido,
+    url: construido ? url : null,
+    pestana: construido ? texto(o.pestana) || null : null,
+    actualizado_en: construido ? texto(o.actualizado_en) || null : null,
+    conectado_en_monitoreo: construido && escalar(o.conectado_en_monitoreo) === true,
+  };
+}
 
 export type TelefonosPorCaso = 1 | 2 | 3 | 4;
 
@@ -107,6 +130,7 @@ export function normalizarConfigTelefonica(valor: unknown): ConfigTelefonica {
     status_propio: escalar(o.status_propio) === true,
     revision: entero(o.revision),
     lee_monitoreo: lista(o.lee_monitoreo).map(texto).filter(Boolean),
+    barrido: normalizarEstadoDelBarrido(o.barrido),
   };
 }
 

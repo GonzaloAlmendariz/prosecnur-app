@@ -1,0 +1,148 @@
+/* Telefónica › Barrido (revamp v5): el documento y sus pasos a la izquierda; las columnas,
+   en tono secundario, a la derecha. */
+
+.rec-tel-barrido {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 360px;
+  align-items: start;
+  gap: var(--pulso-space-4);
+}
+@media (max-width: 1100px) {
+  .rec-tel-barrido { grid-template-columns: minmax(0, 1fr); }
+}
+.rec-tel-barrido-principal {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-3);
+  min-width: 0;
+}
+.rec-tel-barrido-principal h2 {
+  margin: 0;
+  font-size: var(--pulso-type-title-size);
+  font-weight: var(--pulso-type-title-weight);
+  color: var(--pulso-text);
+}
+.rec-tel-doc {
+  display: flex;
+  align-items: center;
+  gap: var(--pulso-space-3);
+  padding: var(--pulso-space-4);
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-card);
+  background: var(--pulso-surface-2);
+}
+.rec-tel-doc-icono {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--pulso-radius);
+  background: var(--pulso-success-bg);
+  color: var(--pulso-success-fg);
+  flex: none;
+}
+.rec-tel-doc-texto {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  margin-right: auto;
+}
+.rec-tel-doc-texto strong { font-size: 15px; color: var(--pulso-text); }
+.rec-tel-doc-texto small { font-size: var(--pulso-type-caption-size); color: var(--pulso-text-soft); }
+.rec-tel-construir {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-2);
+}
+
+.rec-tel-pasos {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-card);
+  background: var(--pulso-surface);
+}
+.rec-tel-pasos li {
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--pulso-space-3);
+  padding: var(--pulso-space-3) var(--pulso-space-4);
+}
+.rec-tel-pasos li + li { border-top: 1px solid var(--pulso-border); }
+.rec-tel-paso-num {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-surface-3);
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+  font-weight: 700;
+}
+.rec-tel-pasos li[data-estado="hecho"] .rec-tel-paso-num {
+  background: var(--pulso-module-fieldkit);
+  color: var(--pulso-surface);
+}
+.rec-tel-paso-texto { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.rec-tel-paso-texto strong { font-size: var(--pulso-type-body-size); color: var(--pulso-text); }
+.rec-tel-paso-texto small { font-size: var(--pulso-type-caption-size); color: var(--pulso-text-faint); }
+.rec-tel-paso-estado {
+  display: inline-flex;
+  align-items: center;
+  height: 24px;
+  padding: 0 var(--pulso-space-2);
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-chip);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--pulso-text-soft);
+  white-space: nowrap;
+}
+.rec-tel-paso-estado[data-estado="hecho"] {
+  border-color: var(--pulso-success-border);
+  background: var(--pulso-success-bg);
+  color: var(--pulso-success-fg);
+}
+.rec-tel-alterno {
+  display: flex;
+  align-items: center;
+  gap: var(--pulso-space-1);
+  margin: 0;
+  font-size: var(--pulso-type-caption-size);
+  color: var(--pulso-text-soft);
+}
+
+.rec-tel-barrido-lado {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-card);
+  background: var(--pulso-surface-2);
+}
+.rec-tel-barrido-lado h3 {
+  margin: 0;
+  padding: var(--pulso-space-4);
+  border-bottom: 1px solid var(--pulso-border);
+  font-size: 15px;
+  color: var(--pulso-text);
+}
+.rec-tel-barrido-lado h3 small { font-size: 12px; font-weight: 500; color: var(--pulso-text-faint); margin-left: var(--pulso-space-1); }
+.rec-tel-barrido-lado-cuerpo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-4);
+  padding: var(--pulso-space-4);
+}
+.rec-tel-grupo { display: flex; flex-direction: column; gap: var(--pulso-space-1); }
+.rec-tel-grupo > span { font-size: 12px; font-weight: 650; color: var(--pulso-text); }
+.rec-tel-grupo > span small { font-weight: 500; color: var(--pulso-text-faint); margin-left: var(--pulso-space-1); }
+.rec-tel-reglas { padding-top: var(--pulso-space-3); border-top: 1px solid var(--pulso-border); }
+.rec-tel-reglas > small { font-size: 12px; line-height: 1.5; color: var(--pulso-text-soft); }
+
+/* Un enlace con forma de botón no lleva el subrayado de los enlaces de texto. */
+.rec-tel-pasos a.pulso-button,
+.rec-tel-doc a.pulso-button { text-decoration: none; }

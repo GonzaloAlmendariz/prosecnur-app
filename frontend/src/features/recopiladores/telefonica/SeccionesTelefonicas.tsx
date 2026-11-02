@@ -16,7 +16,7 @@ import { PulsoInput } from "../../../components/PulsoInput";
 import { PulsoSwitch } from "../../../components/PulsoSwitch";
 import { PulsoTable, type PulsoTableColumna } from "../../../components/PulsoTable";
 import { CheckCircle2, ClipboardList, ListChecks, ShieldAlert, Table2 } from "../../../vendor/lucide-react";
-import { BarridoEnSheets } from "./BarridoEnSheets";
+import { DocumentoDelBarrido } from "./DocumentoDelBarrido";
 import { partirLista } from "./modeloTelefonico";
 import { serializarDireccion } from "../../../lib/navegacion/direccion";
 import type { useConfigTelefonica } from "./useConfigTelefonica";
@@ -186,9 +186,7 @@ const COLUMNAS_STATUS: PulsoTableColumna<StatusDelBarrido>[] = [
   { id: "clase", encabezado: "Clase", ancho: 140, celda: (s) => ROTULO_CLASE[s.clase], valor: (s) => s.clase },
 ];
 
-export function BarridoTelefonico({ datos, pestana, campaignId }: { datos: Datos; pestana: string; campaignId: string }) {
-  const [ocupado, setOcupado] = useState(false);
-  const [error, setError] = useState("");
+export function BarridoTelefonico({ datos, pestana, campaignId, hrefCasos }: { datos: Datos; pestana: string; campaignId: string; hrefCasos: string }) {
   const { config } = datos;
   if (!config) return <Cargando datos={datos} titulo="Plantilla del barrido" />;
   if (pestana === "status") {
@@ -204,41 +202,16 @@ export function BarridoTelefonico({ datos, pestana, campaignId }: { datos: Datos
       </article>
     );
   }
-  const casos = config.muestra + config.backup;
   // Igual que la plantilla (collection_barrido_plantilla.R): «Cod pulso» primero; Origen y Tanda sólo con backup;
-  // la cola de campo contigua y el reemplazo al final (T12).
-  const columnas = ["Cod pulso", config.llave, ...(config.reemplazo ? ["Origen", "Tanda"] : []), "Nombre",
-    ...Array.from({ length: config.telefonos }, (_, i) => `Teléfono ${i + 1}`), ...config.estratos];
-  const cola = ["Responsable", "Status", "Teléfono de la encuesta", "Intentos", "Fecha", config.observacion,
-    ...(config.reemplazo ? REEMPLAZO : [])];
-  const descargar = () => {
-    setOcupado(true);
-    setError("");
-    apiMaterialTelefonicaPlantilla(campaignId)
-      .then((r) => window.open(downloadUrl(r.file_id), "_blank", "noopener,noreferrer"))
-      .catch((e: unknown) => setError(e instanceof Error ? e.message.replace(/ · E_[A-Z_]+$/, "") : "No se pudo generar la plantilla."))
-      .finally(() => setOcupado(false));
-  };
+  // la cola de campo contigua y el reemplazo al final (T12). Las columnas se arman en DocumentoDelBarrido.
   return (
-    <>
-    <article className="rec-terr-tarjeta" data-qa-geometry-member>
-      <h3><Table2 size={15} aria-hidden /> Plantilla del barrido</h3>
-      <p className="rec-terr-nota">
-        Una fila por caso{casos ? ` (${fmt(casos)} filas: ${fmt(config.muestra)} de muestra y ${fmt(config.backup)} de backup)` : ""}. La identidad
-        la pega el equipo desde la base del cliente; la cola, en ámbar, la llena quien llama.
-      </p>
-      <div className="rec-tel-columnas" aria-label="Columnas de la plantilla">
-        {columnas.map((c) => <span key={c} className={config.sensibles.includes(c) ? "rec-tel-col is-sensible" : "rec-tel-col"}>{c}</span>)}
-        {cola.map((c) => <span key={c} className="rec-tel-col is-campo">{c}</span>)}
-      </div>
-      <div className="rec-terr-fila">
-        <PulsoButton variant="primary" size="sm" disabled={ocupado} onClick={descargar}>{ocupado ? "Generando…" : "Excel del barrido"}</PulsoButton>
-      </div>
-      {!casos ? <p className="rec-terr-nota">Sin casos declarados en Casos, la plantilla sale con 2.000 filas.</p> : null}
-      {error ? <p className="rec-terr-error" role="alert">{error}</p> : null}
-    </article>
-    <BarridoEnSheets campaignId={campaignId} sensibles={config.sensibles} />
-    </>
+    <DocumentoDelBarrido
+      config={config}
+      campaignId={campaignId}
+      hrefCasos={hrefCasos}
+      hrefFuentes={A_MONITOREO_FUENTES_TELEFONICO}
+      onCambio={() => { void datos.recargar(); }}
+    />
   );
 }
 

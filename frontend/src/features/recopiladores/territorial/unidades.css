@@ -161,3 +161,6 @@
   gap: var(--pulso-space-2);
 }
 .rec-terr-inspector-secundarias > :first-child { flex: 1; justify-content: center; }
+
+/* Un enlace con forma de botón no lleva el subrayado de los enlaces de texto. */
+.rec-terr-inspector-pie a.pulso-button { text-decoration: none; }
