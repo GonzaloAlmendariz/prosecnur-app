@@ -379,7 +379,7 @@
   background: var(--pulso-surface);
 }
 
-.pulso-emparejamiento-filtro {
+.pulso-emparejamiento-filtro.pulso-gliding-tab-list {
   --pulso-gliding-indicator-bg: var(--pulso-surface);
   --pulso-gliding-indicator-border: var(--pulso-border-strong);
   display: inline-flex;

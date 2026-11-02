@@ -28,8 +28,6 @@ const KIT = new Set(["app/theme.css"]);
 const CONOCIDOS = new Set([
   "features/calcMuestra/general/general.css :: .cmg-metodos",
   "features/calcMuestra/universidad/aulas/aulas.css :: .cmv2-aulas-modalidad",
-  "features/carga/fuentesEmparejamiento.css :: .pulso-emparejamiento-filtro",
-  "features/home/home-v2.css :: .home-settings-nav",
   "features/recopiladores/correos/correos.css :: .rec-mail-tabs",
   "features/recopiladores/correos/correosCaja.css :: .rec-caja-vistas",
 ]);

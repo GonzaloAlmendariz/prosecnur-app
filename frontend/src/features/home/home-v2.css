@@ -1853,7 +1853,7 @@
  * aquí el activo es una tarjeta clara con borde de acento, así que se le dicen
  * esos dos colores al rail. Sin esto, el subtítulo y el ícono quedaban verdes
  * sobre verde. */
-.home-settings-nav {
+.home-settings-nav.pulso-gliding-tab-list {
   --pulso-gliding-indicator-bg: var(--pulso-surface);
   --pulso-gliding-active-color: var(--pulso-text);
 }
