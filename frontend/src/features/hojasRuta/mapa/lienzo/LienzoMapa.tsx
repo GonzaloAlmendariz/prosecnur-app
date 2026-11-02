@@ -96,6 +96,11 @@ type Props = {
   leyenda?: ReactNode;
   /** Controles arriba a la derecha (selector de capas, brecha B7). */
   controles?: ReactNode;
+  /**
+   * Lo que se muestra junto al cursor (el distrito bajo el mouse). Va sobre el mapa y no en el
+   * inspector, que saltaba con cada distrito al pasar el mouse (revisión de UI, 2 nov 2026).
+   */
+  rotuloCursor?: ReactNode;
   /** Punto del mundo al que se acercan «+» y «−» (la UMP enfocada); sin él, el centro. */
   anclaZoom?: readonly [number, number] | null;
 };
@@ -157,6 +162,7 @@ export function LienzoMapa({
   dibujarPantalla,
   alClic,
   alMover,
+  rotuloCursor,
   version = 0,
   ariaLabel,
   className,
@@ -186,6 +192,27 @@ export function LienzoMapa({
     manual: false,
   });
   // Lo que cambia con cada render se lee por referencia desde el bucle de dibujo.
+  // El rótulo del cursor se mueve por ref: re-renderizar en cada pointermove sería pagar React por píxel.
+  const rotuloRef = useRef<HTMLDivElement | null>(null);
+  const cursorRef = useRef<[number, number] | null>(null);
+  const moverRotulo = useCallback((x: number | null, y: number | null) => {
+    cursorRef.current = x === null || y === null ? null : [x, y];
+    const el = rotuloRef.current;
+    if (!el) return;
+    if (!cursorRef.current) { el.style.visibility = "hidden"; return; }
+    const caja = el.parentElement?.getBoundingClientRect();
+    const w = el.offsetWidth, h = el.offsetHeight;
+    // A la derecha y abajo del cursor; si no cabe, del otro lado.
+    const izq = caja && x! + 16 + w > caja.width ? x! - 16 - w : x! + 16;
+    const arr = caja && y! + 16 + h > caja.height ? y! - 16 - h : y! + 16;
+    el.style.transform = `translate(${Math.max(4, izq)}px, ${Math.max(4, arr)}px)`;
+    el.style.visibility = "visible";
+  }, []);
+  // Al aparecer (o cambiar de distrito) se ubica donde está el cursor, sin esperar otro movimiento.
+  useEffect(() => {
+    const c = cursorRef.current;
+    moverRotulo(c ? c[0] : null, c ? c[1] : null);
+  }, [rotuloCursor, moverRotulo]);
   const props = useRef({ distritos, capa, colorManzana, dibujarFondo, dibujarMundo, dibujarPantalla, alClic, alMover });
   props.current = { distritos, capa, colorManzana, dibujarFondo, dibujarMundo, dibujarPantalla, alClic, alMover };
 
@@ -423,6 +450,7 @@ export function LienzoMapa({
         return;
       }
       props.current.alMover?.(aMundo(e.camara, e.tamano, x, y), util());
+      moverRotulo(x, y);
     };
     const arriba = (ev: PointerEvent) => {
       const a = e.arrastre;
@@ -432,7 +460,10 @@ export function LienzoMapa({
       const [x, y] = local(ev);
       props.current.alClic?.(aMundo(e.camara, e.tamano, x, y), util());
     };
-    const salir = () => props.current.alMover?.(null, util());
+    const salir = () => {
+      props.current.alMover?.(null, util());
+      moverRotulo(null, null);
+    };
     const rueda = (ev: WheelEvent) => {
       ev.preventDefault();
       e.vuelo = 0;
@@ -454,7 +485,7 @@ export function LienzoMapa({
       lienzo.removeEventListener("pointerleave", salir);
       lienzo.removeEventListener("wheel", rueda);
     };
-  }, [marcarInteraccion, pintar, util]);
+  }, [marcarInteraccion, pintar, util, moverRotulo]);
 
   const zoomBoton = (factor: number) => {
     const e = estado.current;
@@ -467,6 +498,7 @@ export function LienzoMapa({
     <div className={["hr-lienzo", className].filter(Boolean).join(" ")}>
       <canvas ref={lienzoRef} className="hr-lienzo-canvas" role="img" aria-label={ariaLabel} />
       {miga ? <div className="hr-lienzo-capsula hr-lienzo-miga">{miga}</div> : null}
+      {rotuloCursor ? <div ref={rotuloRef} className="hr-lienzo-cursor" role="status" aria-live="polite">{rotuloCursor}</div> : null}
       {leyenda ? <div className="hr-lienzo-capsula hr-lienzo-leyenda">{leyenda}</div> : null}
       {controles ? <div className="hr-lienzo-capsula hr-lienzo-controles">{controles}</div> : null}
       <div className="hr-lienzo-pie">

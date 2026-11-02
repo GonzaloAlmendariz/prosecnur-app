@@ -592,6 +592,19 @@ export default function HojasRutaMapaPage() {
     for (const t of titulares) if (t.manzana) out[t.manzana.nse] = (out[t.manzana.nse] ?? 0) + 1;
     return Object.keys(out).length ? out : null;
   }, [titulares]);
+  // El distrito bajo el cursor, junto al cursor (antes iba al inspector y lo hacía saltar).
+  const rotuloDelCursor = useMemo(() => {
+    if (!enTerritorio || !distritoBajoCursor || distritoBajoCursor === distritoEnfocado) return null;
+    const t = (estado?.territories ?? []).find((x) => x.ubigeo === distritoBajoCursor);
+    if (!t) return null;
+    return (
+      <>
+        <b>{nombreDistrito(t.distrito)}</b>
+        <span>{fmt(t.poblacion)} hab. · {fmt(t.viviendas)} viviendas · {fmt(t.manzanas)} manzanas</span>
+        <span>Clic para ver su ficha</span>
+      </>
+    );
+  }, [enTerritorio, distritoBajoCursor, distritoEnfocado, estado]);
   // Habitantes por distrito para los rótulos de Territorio (B9), de todo el catálogo.
   const habitantes = useMemo(() => new Map((estado?.territories ?? []).map((t) => [t.ubigeo, t.poblacion])), [estado]);
   const dibujarPantalla = useCallback(
@@ -813,6 +826,7 @@ export default function HojasRutaMapaPage() {
               : undefined
           }
           alMover={enTerritorio && ciudadAbierta ? (punto) => setDistritoBajoCursor(punto ? distritoEnPunto(contornosAbiertos, punto[0], punto[1])?.ubigeo ?? null : null) : undefined}
+          rotuloCursor={rotuloDelCursor}
         />
         {enSeleccion ? <SeleccionCajon titulares={bloquesTitulares} reemplazos={bloquesReemplazos} cuotas={cuotas} /> : null}
         {enMuestra ? <MuestraCajon cuotas={cuotas} calculando={guardando} onCalcular={salidas?.sample_size_preview && !bloqueado ? () => void calcularCuotas() : undefined} /> : null}

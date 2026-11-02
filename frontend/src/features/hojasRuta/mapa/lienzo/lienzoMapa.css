@@ -146,3 +146,33 @@
 .hr-lienzo-capas button:hover { color: var(--pulso-text); }
 .hr-lienzo-capas button[aria-pressed="true"] { background: var(--pulso-surface-3); color: var(--pulso-text); }
 .hr-lienzo-capas button:focus-visible { outline: 2px solid var(--pulso-module-routes-border); }
+
+/* El distrito bajo el cursor, junto al cursor (LienzoMapa: rotuloCursor). Lo mueve una ref. */
+.hr-lienzo-cursor {
+  background: var(--pulso-surface);
+  border: 1px solid var(--pulso-border);
+  border-radius: 10px;
+  box-shadow: 0 6px 18px color-mix(in srgb, var(--pulso-text) 14%, transparent);
+  color: var(--pulso-text);
+  font-size: var(--pulso-type-caption-size);
+  left: 0;
+  line-height: 1.35;
+  max-width: 240px;
+  padding: 7px 10px;
+  pointer-events: none;
+  position: absolute;
+  top: 0;
+  visibility: hidden;
+  z-index: 3;
+}
+
+.hr-lienzo-cursor b {
+  display: block;
+  font-size: var(--pulso-type-body-size);
+}
+
+.hr-lienzo-cursor span {
+  color: var(--pulso-text-soft);
+  display: block;
+}
+

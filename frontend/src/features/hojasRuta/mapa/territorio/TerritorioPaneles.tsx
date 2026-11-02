@@ -162,7 +162,7 @@ type InspectorProps = {
 };
 
 export function TerritorioInspector({ territorios, confirmados, bloqueado, guardando, onConfirmar, viviendasPorNse = null, marcoMeta = null, ciudad = null }: InspectorProps) {
-  const { borrador: b, distritoBajoCursor, setBorrador } = useLienzoHojasRuta();
+  const { borrador: b, setBorrador } = useLienzoHojasRuta();
   const borrador = b ?? [...confirmados];
   const { agrega, quita, pendiente } = cambios(confirmados, borrador);
   const porUbigeo = useMemo(() => new Map(territorios.map((t) => [t.ubigeo, t])), [territorios]);
@@ -174,7 +174,6 @@ export function TerritorioInspector({ territorios, confirmados, bloqueado, guard
   const marco = marcoDeProvincias(territorios, elegidos);
   const { distritoEnfocado, setDistritoEnfocado } = useLienzoHojasRuta();
   const enfocado = distritoEnfocado ? porUbigeo.get(distritoEnfocado) : undefined;
-  const bajo = distritoBajoCursor && distritoBajoCursor !== distritoEnfocado ? porUbigeo.get(distritoBajoCursor) : undefined;
   const nombre = (u: string) => nombreDistrito(porUbigeo.get(u)?.distrito ?? u);
 
   return (
@@ -238,14 +237,7 @@ export function TerritorioInspector({ territorios, confirmados, bloqueado, guard
             </PulsoButton>
           </section>
         ) : null}
-        {bajo ? (
-          <dl className="hr-mapa-filas" aria-label="Distrito bajo el cursor">
-            <div><dt>{nombreDistrito(bajo.distrito)}</dt><dd>{bajo.ubigeo}</dd></div>
-            <div><dt>Población 2017</dt><dd>{fmt(bajo.poblacion)}</dd></div>
-            <div><dt>Viviendas</dt><dd>{fmt(bajo.viviendas)}</dd></div>
-            <div><dt>Manzanas censales</dt><dd>{fmt(bajo.manzanas)}</dd></div>
-          </dl>
-        ) : null}
+        {/* El distrito bajo el cursor ya no entra aquí: va junto al cursor, sobre el mapa (rotuloCursor). */}
         <MarcoTerritorial meta={marcoMeta} />
         {pendiente ? (
           <section className="hr-mapa-cambios" aria-label="Cambios sin confirmar">
