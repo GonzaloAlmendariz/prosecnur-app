@@ -39,13 +39,31 @@ MATERIAL_AULAS_SIEMBRA_MODOS <- c("calculo", "monitoreo")
   NROW(filas) > 0L || NROW(s$monitoreo_aulas_plan) > 0L
 }
 
+# ¿El plan de Monitoreo es la copia que escribió la entrega de este plan? Mismo criterio que
+# .collection_origen_circular (entregado y todas las filas con su deployment_id), leído por
+# columna: convertir en filas las 2.373 de HSVG costaba en cada lectura.
+.collection_monitoreo_es_eco <- function(s) {
+  dep <- (s$collection_state %||% list())$deployment
+  if (!is.list(dep) || !identical(.cm_aulas_scalar(dep$status, ""), "handed_off")) return(FALSE)
+  id <- .cm_aulas_scalar(dep$deployment_id, "")
+  plan <- s$monitoreo_aulas_plan
+  if (!nzchar(id)) return(FALSE)
+  marcas <- if (is.data.frame(plan)) as.character(plan[["collection_deployment_id"]] %||% character(0))
+            else vapply(.collection_rows(plan), function(r) .collection_origen_chr(r$collection_deployment_id), "")
+  length(marcas) > 0L && all(!is.na(marcas) & marcas == id)
+}
+
 .collection_siembra_modo <- function(s) {
   guardado <- as.character(unlist(s$material_aulas_siembra %||% ""))[1]
   if (!is.na(guardado) && guardado %in% MATERIAL_AULAS_SIEMBRA_MODOS) return(list(modo = guardado, origen = "elegido"))
   modulo <- as.character(((s$collection_state %||% list())$plan$source_ref$module) %||% "")
   if (identical(modulo, "monitoreo")) return(list(modo = "monitoreo", origen = "plan_existente"))
   sembrado <- length(((s$collection_state %||% list())$plan %||% list())$units %||% list()) > 0L
-  if (sembrado && length(.collection_rows(s$monitoreo_aulas_plan))) return(list(modo = "monitoreo", origen = "operativo_en_curso"))
+  # El plan de Monitoreo que es el eco de la entrega de este mismo plan no es un operativo propio:
+  # un estudio nuevo que sembró de Cálculo y entregó sigue en «calculo» (test-collection-origen).
+  if (sembrado && NROW(s$monitoreo_aulas_plan) > 0L && !.collection_monitoreo_es_eco(s)) {
+    return(list(modo = "monitoreo", origen = "operativo_en_curso"))
+  }
   if (isTRUE(tryCatch(.mas_es_hsvg(s), error = function(e) FALSE))) return(list(modo = "monitoreo", origen = "operativo_hsvg"))
   list(modo = "calculo", origen = "estudio_nuevo")
 }
