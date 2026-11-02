@@ -22,7 +22,7 @@ import {
 import { DASHBOARD_PESTANAS } from "./navegacion/catalogos/dashboard";
 
 const EXPECTED_PRIMARY_NAVIGATION: Record<
-  Exclude<ProsecnurModuleSlug, "plan-trabajo">,
+  Exclude<ProsecnurModuleSlug, "plan-trabajo" | "diseno-estudio">,
   {
     landingKind: "section" | "entrypoint";
     to: string;
