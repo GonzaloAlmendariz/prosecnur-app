@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import type {
   MonitoreoAulasTramo,
   MonitoreoAulasDistribucionSheets,
@@ -18,7 +19,6 @@ import {
   apiMonitoreoAulasImportarSheets,
   apiMonitoreoAulasPublicarDistribucion,
   apiMonitoreoAulasSincronizarDistribucion,
-  apiMonitoreoAulasPublicarLibro,
   apiMonitoreoAulasRecalcularTraslape,
   apiMonitoreoAulasImportFromCalcMuestra,
   apiMonitoreoAulasConfig,
@@ -61,7 +61,10 @@ import { avisoDelSync } from "./avisoDelSync";
 import { avisoLibroGenerado } from "./avisoLibroGenerado";
 import { avisoLibroImportado, type TonoAviso } from "./avisoLibroImportado";
 import { avisoDisponibilidadImportada } from "./avisoDisponibilidadImportada";
-import { avisoLibroPublicado, avisoTraslapeRecalculado } from "./avisoLibroPublicado";
+import { avisoTraslapeRecalculado } from "./avisoLibroPublicado";
+
+/** Material › Entrega de cursos-horario, donde se construyen las tablas del Sheets (R13). */
+const RUTA_CONSTRUIR_EN_MATERIAL = "/material-campo?modo=aulas&campana=aulas.principal&seccion=entrega&pestana=traspaso";
 import { avisoDistribucionPublicada } from "./distribucionDeAplicadores";
 import { sugerenciasDeDescarte } from "./AulasSexoYDescartes";
 import { AulasOrigenDesfasado } from "./AulasOrigenDesfasado";
@@ -1509,20 +1512,10 @@ export default function AulasMonitoreoPage() {
     }
   }, []);
 
-  const publicarASheets = useCallback(async (enlace?: string) => {
-    setMutating(true);
-    setError("");
-    setAviso({ texto: "", tono: "ok" });
-    try {
-      const res = await apiMonitoreoAulasPublicarLibro(enlace);
-      setAviso(avisoLibroPublicado(res));
-      await loadView(seccionActiva, true, true);
-    } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "No se pudo publicar el libro al Sheets.");
-    } finally {
-      setMutating(false);
-    }
-  }, [loadView, seccionActiva]);
+  // R13: las tablas del Sheets se construyen en Material › Entrega (mismo motor,
+  // 8d9659dfe); Monitoreo lleva allá y se queda con leer y supervisar.
+  const navigate = useNavigate();
+  const irAMaterial = useCallback(() => navigate(RUTA_CONSTRUIR_EN_MATERIAL), [navigate]);
 
 
   useEffect(() => {
@@ -2067,7 +2060,7 @@ export default function AulasMonitoreoPage() {
                   onGenerarLibro={() => { void generarLibro(); }}
                   onImportarLibro={(archivo) => { void importarLibro(archivo); }}
                   onLeerDeSheets={(enlace) => { void leerDeSheets(enlace); }}
-                  onPublicarASheets={(enlace) => { void publicarASheets(enlace); }}
+                  onIrAMaterial={irAMaterial}
                   onRecalcularTraslape={
                     aulasConfig?.traslape_fuente?.etiqueta
                       ? () => { void recalcularTraslape(); }
@@ -2089,7 +2082,7 @@ export default function AulasMonitoreoPage() {
           corte: state?.synced_at ?? "",
           clientSheets: state?.publication?.client_last_sheets ?? null,
           ocupado: busy,
-          publicarLibro: () => publicarASheets(),
+          irAMaterial,
           generarLibro,
           hrefHerramientas: HREF_HERRAMIENTAS_DE_SALIDAS,
         }}

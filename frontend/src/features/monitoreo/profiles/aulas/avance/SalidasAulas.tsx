@@ -26,8 +26,8 @@ export type ContextoDeSalidas = {
   corte: string;
   clientSheets: MonitoreoLastSheetsPublication | null | undefined;
   ocupado: boolean;
-  /** Publica el libro al Sheets del equipo (la página muestra el recibo). */
-  publicarLibro: () => Promise<void>;
+  /** R13: lleva a Material › Entrega, donde se construyen las tablas del Sheets. */
+  irAMaterial: () => void;
   /** Genera y descarga el libro en Excel. */
   generarLibro: () => Promise<void>;
   /** La sub-vista con los flujos de PDF y del Sheets del cliente. */
@@ -47,7 +47,7 @@ const ICONOS: Record<Salida["clave"], typeof FileText> = {
  *
  * Izquierda: las cuatro salidas del corte con su estado y su acción, y debajo
  * cómo se verá «Avance de campo». Derecha, 400 px: qué toca Publicar en el
- * libro, hoja por hoja. Publicar pasa siempre por «Revisar cambios» (P2, G7).
+ * libro, hoja por hoja. «Revisar cambios» no escribe: las tablas se construyen en Material (R13).
  */
 function SalidasAulasImpl({ contexto }: { contexto: ContextoDeSalidas }) {
   const { tablas, error } = useTablasDeAvance();
@@ -63,7 +63,6 @@ function SalidasAulasImpl({ contexto }: { contexto: ContextoDeSalidas }) {
   );
   const revisar = usePanelDireccionable(PANEL_REVISAR_LIBRO);
   const libro = modelo.salidas.find((s) => s.clave === "libro");
-  const publicar = libro?.acciones.find((a) => a.accion === "publicar");
 
   const ejecutar = (accion: AccionDeSalida) => {
     if (accion === "revisar" || accion === "publicar") revisar.abrir();
@@ -105,20 +104,19 @@ function SalidasAulasImpl({ contexto }: { contexto: ContextoDeSalidas }) {
         size="md"
         icon={<ListChecks size={18} />}
         title="Revisar cambios del libro"
-        subtitle="Qué escribe Publicar en el Sheets del equipo. Revisar no escribe nada."
+        subtitle="Qué escribe en el Sheets del equipo construir las tablas. Revisar no escribe nada: las tablas se construyen en Material."
         dismissible={!contexto.ocupado}
         footer={
           <PulsoButton
             variant="primary"
-            disabled={contexto.ocupado || Boolean(publicar?.deshabilitada)}
-            title={publicar?.deshabilitada}
-            onClick={async () => {
-              await contexto.publicarLibro();
+            disabled={contexto.ocupado}
+            title="Material › Entrega construye las tablas con el mismo motor"
+            onClick={() => {
               revisar.cerrar();
+              contexto.irAMaterial();
             }}
           >
-            {contexto.ocupado ? <Loader2 size={14} className="pulso-spin" /> : null}
-            Publicar
+            Construir en Material
           </PulsoButton>
         }
       >
@@ -126,7 +124,7 @@ function SalidasAulasImpl({ contexto }: { contexto: ContextoDeSalidas }) {
           {libro ? <p className="aulas-sl-revision-estado">{libro.estado}. {libro.detalle}</p> : null}
           <ListaDeHojas queToca={modelo.queToca} />
           <p className="aulas-sl-pie">
-            Antes de escribir, Publicar lee las hojas del equipo y la de los aplicadores: lo que cambiaron a mano manda.
+            Antes de escribir, construir las tablas lee las hojas del equipo y la de los aplicadores: lo que cambiaron a mano manda.
           </p>
         </div>
       </Dialog>

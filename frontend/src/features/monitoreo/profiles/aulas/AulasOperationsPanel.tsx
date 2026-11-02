@@ -76,6 +76,12 @@ export type AulasOperationsPanelProps = {
    *  recuerda; `undefined` usa el destino ya recordado en el proyecto. */
   onPublicarASheets?: (enlace?: string) => void;
   /**
+   * R13: construir las tablas en el Sheets es de Material (Entrega › «Construir
+   * las tablas en Sheets», que llama al mismo motor). Con esto, el panel lleva
+   * allá en vez de publicar; Monitoreo se queda con leer y supervisar.
+   */
+  onIrAMaterial?: () => void;
+  /**
    * Releer el cruce con el otro estudio. **Ausente sin fuente declarada**: un
    * botón que sólo puede fallar ocupa sitio para no hacer nada, y la causa —que
    * el estudio no declara contra quién se cruza— no se arregla pulsándolo.
@@ -87,7 +93,7 @@ export type AulasOperationsPanelProps = {
 
 export function AulasOperationsPanel({
   config, sources, busy, origen = null, onImportPlan, onSyncField, onGenerarLibro, onImportarLibro,
-  onLeerDeSheets, onPublicarASheets, onRecalcularTraslape, traslapeDe = "",
+  onLeerDeSheets, onPublicarASheets, onIrAMaterial, onRecalcularTraslape, traslapeDe = "",
   selloDeLibro = null, sincronizadoEn = "",
 }: AulasOperationsPanelProps) {
   // Se calcula aquí y no en el render de abajo para que la frase exista una
@@ -342,6 +348,15 @@ export function AulasOperationsPanel({
           >
             {busy ? <Loader2 size={14} className="pulso-spin" /> : <UploadCloud size={14} />}
             <span>Publicar al Sheets</span>
+          </button>
+        ) : onIrAMaterial ? (
+          <button
+            type="button"
+            onClick={() => onIrAMaterial()}
+            title="Las tablas del Sheets se construyen en Material › Entrega; aquí se leen y se supervisan"
+          >
+            <UploadCloud size={14} />
+            <span>Construir en Material</span>
           </button>
         ) : null}
         {/* **Releer el cruce con el otro estudio.** Va junto a las dos de Sheets

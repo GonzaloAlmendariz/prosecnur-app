@@ -34,7 +34,7 @@ describe("construirSalidas (A5)", () => {
     const libro = construirSalidas(entrada).salidas[0];
     expect(libro).toMatchObject({ clave: "libro", estado: "Al día con el corte", tono: "ok" });
     expect(libro.detalle).toBe("13 hojas en el Sheets del equipo. Publicado el 01/10 a las 15:04.");
-    expect(libro.acciones.map((a) => a.rotulo)).toEqual(["Revisar cambios", "Publicar"]);
+    expect(libro.acciones.map((a) => a.rotulo)).toEqual(["Revisar cambios", "Construir en Material"]);
   });
 
   it("un corte más nuevo deja el libro anterior al corte; sin destino, Publicar se deshabilita con su motivo", () => {

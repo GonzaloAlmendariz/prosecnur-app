@@ -15,7 +15,7 @@ const contexto: ContextoDeSalidas = {
   corte: "2026-10-01T20:03:00Z",
   clientSheets: null,
   ocupado: false,
-  publicarLibro: async () => {},
+  irAMaterial: () => {},
   generarLibro: async () => {},
   hrefHerramientas: "/monitoreo?modo=aulas&seccion=avance&pestana=salidas&panel=herramientas",
 };

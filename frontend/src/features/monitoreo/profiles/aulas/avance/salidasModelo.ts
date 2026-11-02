@@ -103,14 +103,14 @@ function salidaDelLibro(config: EntradaDeSalidas["config"], corte: string): Sali
     return {
       clave: "libro", titulo: "Libro del operativo", estado: "Sin destino", tono: "neutro",
       detalle: "El Sheets del equipo no está conectado. Se conecta en Insumos › Fuentes.",
-      acciones: [revisar, { accion: "publicar", rotulo: "Publicar", principal: true, deshabilitada: "Falta conectar el Sheets del equipo." }],
+      acciones: [revisar, { accion: "publicar", rotulo: "Construir en Material", principal: true, deshabilitada: "Falta conectar el Sheets del equipo." }],
     };
   }
   if (!publicado) {
     return {
       clave: "libro", titulo: "Libro del operativo", estado: "Sin publicar", tono: "aviso",
       detalle: "Conectado, pero la app todavía no publicó sus hojas en él.",
-      acciones: [revisar, { accion: "publicar", rotulo: "Publicar", principal: true }],
+      acciones: [revisar, { accion: "publicar", rotulo: "Construir en Material", principal: true }],
     };
   }
   const alDia = Boolean(corte) && texto(sello?.synced_at) === corte;
@@ -119,7 +119,7 @@ function salidaDelLibro(config: EntradaDeSalidas["config"], corte: string): Sali
     estado: alDia ? "Al día con el corte" : "Anterior al corte",
     tono: alDia ? "ok" : "aviso",
     detalle: `${fmt(hojas)} ${hojas === 1 ? "hoja" : "hojas"} en el Sheets del equipo. Publicado el ${momentoCorto(publicado)}.`,
-    acciones: [revisar, { accion: "publicar", rotulo: "Publicar", principal: true }],
+    acciones: [revisar, { accion: "publicar", rotulo: "Construir en Material", principal: true }],
   };
 }
 
