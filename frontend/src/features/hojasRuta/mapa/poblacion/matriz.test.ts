@@ -53,3 +53,13 @@ describe("agruparFilas", () => {
     expect(g.map((f) => [f.territorio, f.total])).toEqual([["Este", 32], ["Otros", 7]]);
   });
 });
+
+describe("matriz por ubigeo (P9 de la paridad)", () => {
+  test("son las mismas filas, ordenadas por código", async () => {
+    const { agruparFilas } = await import("./matriz");
+    const f = (ubigeo: string, territorio: string) => ({ ubigeo, territorio, porRango: [{ H: 1, M: 1 }], total: 2 });
+    const r = agruparFilas([f("150135", "SMP"), f("150103", "ATE")], "ubigeo");
+    expect(r.map((x) => x.ubigeo)).toEqual(["150103", "150135"]);
+    expect(r).toHaveLength(2);
+  });
+});

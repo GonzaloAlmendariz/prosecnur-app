@@ -18,18 +18,18 @@ import { agruparFilas, type AgruparFilas, type FilaMatriz, type GrupoDeZona, typ
  */
 
 const PESTANAS = [["matriz", "Personas"], ["pct", "Distribución %"]] as const;
-const AGRUPAR = [["distrito", "Distrito"], ["provincia", "Provincia"], ["zona", "Zona"]] as const;
-const ENCABEZADO: Record<AgruparFilas, string> = { distrito: "Distrito", provincia: "Provincia", zona: "Zona" };
+const AGRUPAR = [["distrito", "Distrito"], ["ubigeo", "Ubigeo"], ["provincia", "Provincia"], ["zona", "Zona"]] as const;
+const ENCABEZADO: Record<AgruparFilas, string> = { distrito: "Distrito", ubigeo: "Ubigeo", provincia: "Provincia", zona: "Zona" };
 const fmt = (n: number) => new Intl.NumberFormat("es-PE").format(Math.round(n));
 const pct = (n: number, d: number) => (d ? `${((n / d) * 100).toLocaleString("es-PE", { maximumFractionDigits: 1 })} %` : "—");
 const enRango = (f: FilaMatriz, i: number) => (f.porRango[i] ? f.porRango[i].H + f.porRango[i].M : 0);
 
 function descargarCsv(filasCsv: readonly FilaMatriz[], por: AgruparFilas, rangos: readonly HojasRutaAgeRange[], sexo: boolean) {
-  const distrito = por === "distrito";
-  const cab = [ENCABEZADO[por], ...(distrito ? ["Ubigeo"] : []), ...rangos.flatMap((r) => (sexo ? [`${r.label} H`, `${r.label} M`] : [r.label])), "Total"];
+  const distrito = por === "distrito" || por === "ubigeo";
+  const cab = [por === "ubigeo" ? "Ubigeo" : ENCABEZADO[por], ...(distrito ? [por === "ubigeo" ? "Distrito" : "Ubigeo"] : []), ...rangos.flatMap((r) => (sexo ? [`${r.label} H`, `${r.label} M`] : [r.label])), "Total"];
   const filas = filasCsv.map((f) => [
-    distrito ? nombreDistrito(f.territorio) : f.territorio,
-    ...(distrito ? [f.ubigeo] : []),
+    por === "ubigeo" ? f.ubigeo : distrito ? nombreDistrito(f.territorio) : f.territorio,
+    ...(distrito ? [por === "ubigeo" ? nombreDistrito(f.territorio) : f.ubigeo] : []),
     ...rangos.flatMap((_, i) => (sexo ? [f.porRango[i]?.H ?? 0, f.porRango[i]?.M ?? 0] : [enRango(f, i)])).map((n) => Math.round(n)),
     Math.round(f.total),
   ]);
@@ -60,7 +60,7 @@ export function PoblacionCajon({ matriz, rangos, sexo, zonas, config }: Props) {
   };
   if (!vista || !matriz.vigente) return null;
   const filas = agruparFilas(matriz.filas, por, zonas);
-  const nombre = (f: FilaMatriz) => (por === "distrito" ? nombreDistrito(f.territorio) : f.territorio);
+  const nombre = (f: FilaMatriz) => (por === "distrito" ? nombreDistrito(f.territorio) : por === "ubigeo" ? `${f.ubigeo} · ${nombreDistrito(f.territorio)}` : f.territorio);
   const columnasRango = rangos.flatMap((r, i) =>
     vista === "pct"
       ? [{ id: `r${i}`, encabezado: r.label, ancho: 88, tipo: "cifra" as const, celda: (f: FilaMatriz) => pct(enRango(f, i), f.total), valor: (f: FilaMatriz) => (f.total ? enRango(f, i) / f.total : 0) }]

@@ -38,7 +38,7 @@ export function resumirMatriz(poblacion: PopulationPlan | null | undefined, rang
   return { vigente: lista.length > 0, pesoPorRango: peso, total: peso.reduce((a, b) => a + b, 0), porUbigeo: Object.fromEntries(lista.map((f) => [f.ubigeo, f.total])), filas: lista };
 }
 
-export type AgruparFilas = "distrito" | "provincia" | "zona";
+export type AgruparFilas = "distrito" | "ubigeo" | "provincia" | "zona";
 
 function provinciaDe(ubigeo: string): string {
   const prov = ubigeo.slice(0, 4);
@@ -57,6 +57,8 @@ export type GrupoDeZona = { etiqueta: string; ubigeos: readonly string[] };
  */
 export function agruparFilas(filas: readonly FilaMatriz[], por: AgruparFilas, zonas: readonly GrupoDeZona[] = []): FilaMatriz[] {
   if (por === "distrito") return [...filas];
+  // P9 de la paridad: por ubigeo, las mismas filas ordenadas por su código (la clásica lo tenía en `row_var`).
+  if (por === "ubigeo") return [...filas].sort((a, b) => a.ubigeo.localeCompare(b.ubigeo));
   const grupoDe = (f: FilaMatriz) =>
     por === "provincia" ? provinciaDe(f.ubigeo) : zonas.find((z) => z.ubigeos.includes(f.ubigeo))?.etiqueta ?? "Otros";
   const grupos = new Map<string, FilaMatriz>();
