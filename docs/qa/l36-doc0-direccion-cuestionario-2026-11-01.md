@@ -74,7 +74,7 @@ Lo que está mal, por orden de lo que se ve primero:
 | DOC.1 | Clave `cuestionario` en el estándar; el motor lee de ahí | ☑ `1c2457aae`: tipografía y colores en `estandar_pulso.json`, el motor sin hex propios y el `.docx` idéntico byte a byte |
 | DOC.2 | Visor fiel: páginas del Word y mapa pregunta → página | ☑ `002be9126`, `325f40903`, `b1f56dd23` |
 | DOC.3 | Bloques seleccionables sobre la página, con «Papel por pregunta» como inspector | ◐ `64de55dee`, con tests; falta verlo en vivo |
-| DOC.4 | Opciones en el `.pulso` y versiones | ☐ |
+| DOC.4 | Opciones en el `.pulso` y versiones | ◐ D-L36-15 a 18 implementadas, con tests (R 26, vitest 8); falta verlo en vivo |
 | DOC.5 | QA: golden de estructura del `.docx` y OOXML válido | ☑ golden del instrumento de docentes (`test-xlsform-formulario-golden.R`) |
 
 Los arreglos de DOC.0b se hacen sobre el motor que existe: no hace falta
@@ -131,3 +131,30 @@ versión). Sigue DOC.3: bloques seleccionables sobre la página.
   parte (`foco=papel`) con la fila de la pregunta, y el bloque queda marcado
   mientras esa fila está abierta. Un inspector flotante propio duplicaría esa
   navegación.
+
+## DOC.4 · Opciones en el `.pulso` y versiones (2026-11-01)
+
+Hasta hoy las opciones de Impreso (columnas, lógica, matrices, título…) vivían
+sólo en `localStorage` (`pulso.xlsformEditor.pdfExport.v1.<proyecto>.<formulario>`):
+otra máquina, otro usuario o un navegador limpio abrían el mismo `.pulso` con
+el papel por defecto.
+
+- **D-L36-15 · Las opciones viven en la entrada del formulario.** Cada
+  formulario de `s$xlsform_forms` lleva `impreso = {opciones, guardado_en,
+  versiones}`. `opciones` es el `PdfDialogState` serializado (texto JSON): R no
+  lo interpreta, el front lo valida campo a campo al leerlo
+  (`parsePdfDialogState`), así una opción nueva del front no exige tocar R. El
+  autosave del workbook no es dueño de `impreso` y lo conserva, igual que las
+  campañas (ADR 0101).
+- **D-L36-16 · Al abrir, manda el `.pulso`.** La pestaña arranca con la copia
+  local (instantánea) y, si el servidor trae opciones y la persona aún no tocó
+  nada, las adopta. Cada cambio se guarda en el servidor tras 800 ms y marca
+  el proyecto sin guardar. `localStorage` queda como copia local.
+- **D-L36-17 · Versiones con nombre, a pedido.** «Guardar versión» guarda una
+  instantánea con nombre (hasta 10, la más nueva primero; repetir un nombre la
+  reemplaza). «Usar» la restaura como opciones actuales sin borrarla. Exportar
+  no crea versiones solo: sería ruido.
+- **D-L36-18 · Rutas.** `GET /api/xlsform-editor/forms/<id>/impreso`,
+  `POST …/impreso {opciones}` y `POST …/impreso/versiones {nombre, opciones}`.
+  Unas opciones que no son un objeto JSON, o de más de 200 KB, se rechazan con
+  `E_IMPRESO_OPCIONES_INVALIDAS` (400).

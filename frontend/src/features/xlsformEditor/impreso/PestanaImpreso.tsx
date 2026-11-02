@@ -44,6 +44,7 @@ import { generarPrevia, previaVieja, usePreviaImpreso } from "./storePrevia";
 import { PreviaImpreso } from "./PreviaImpreso";
 import { primeraPagina, tituloDelFormulario } from "./primeraPagina";
 import { useEstadoImpreso } from "./useEstadoImpreso";
+import { VersionesImpreso } from "./VersionesImpreso";
 import "./impreso.css";
 
 const ID_DETALLE = "xf-impreso-detalle";
@@ -88,7 +89,15 @@ export function PestanaImpreso({
 }: PestanaImpresoProps) {
   // Sólo se sugieren matrices con lista corta, y nacen apagadas (E7, 2026-10-20).
   const candidatas = useMemo(() => candidatasSugeribles(candidatasDetectadas), [candidatasDetectadas]);
-  const { estado: estadoGuardado, actualizar, actualizarMatriz } = useEstadoImpreso(storageKey, candidatas);
+  const {
+    estado: estadoGuardado,
+    actualizar,
+    actualizarMatriz,
+    sincronia,
+    versiones,
+    guardarVersion,
+    usarVersion,
+  } = useEstadoImpreso(storageKey, candidatas, formId);
   const estado = useMemo(
     () => ({ ...estadoGuardado, matrices: conSugerenciasApagadas(candidatas, estadoGuardado.matrices) }),
     [estadoGuardado, candidatas],
@@ -183,7 +192,18 @@ export function PestanaImpreso({
             data-qa-geometry-group="xlsform/impreso-detalle"
             data-qa-geometry-contract="intrinsic"
           >
-            {parte === "formato" && <DetalleFormato estado={estado} actualizar={actualizar} tituloDelFormulario={tituloDelFormulario(workbook)} />}
+            {parte === "formato" && (
+              <>
+                <DetalleFormato estado={estado} actualizar={actualizar} tituloDelFormulario={tituloDelFormulario(workbook)} />
+                <VersionesImpreso
+                  sincronia={sincronia}
+                  versiones={versiones}
+                  puedeGuardar={formId !== null}
+                  onGuardar={guardarVersion}
+                  onUsar={usarVersion}
+                />
+              </>
+            )}
             {parte === "logica" && <DetalleLogica estado={estado} actualizar={actualizar} consentimiento={consentimiento} plano={plano} />}
             {parte === "contenido" && <DetalleContenido estado={estado} actualizar={actualizar} />}
             {parte === "matrices" && <DetalleMatrices candidatas={candidatas} matrices={estado.matrices} onCambiar={actualizarMatriz} plano={plano} />}

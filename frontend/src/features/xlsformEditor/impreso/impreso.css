@@ -664,3 +664,49 @@
 .pulso-xf-imp-papel-cuerpo .pulso-xf-tech {
   display: none;
 }
+
+/* L36 · DOC.4 — «Versiones» de las opciones, guardadas en el .pulso. */
+.pulso-xf-imp-versiones-nueva {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--pulso-space-2);
+  min-width: 0;
+}
+
+.pulso-xf-imp-versiones-nueva > :first-child {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.pulso-xf-imp-versiones-lista {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--pulso-border);
+}
+
+.pulso-xf-imp-versiones-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: var(--pulso-space-2);
+  padding: var(--pulso-space-1) 0;
+  border-bottom: 1px solid var(--pulso-border);
+}
+
+.pulso-xf-imp-versiones-nombre {
+  overflow: hidden;
+  font-size: var(--pulso-type-body-size);
+  font-weight: var(--pulso-weight-medium);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pulso-xf-imp-versiones-fecha,
+.pulso-xf-imp-versiones-vacio {
+  margin: 0;
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+}

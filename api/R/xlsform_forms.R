@@ -291,6 +291,9 @@
     previous$source %||% list(),
     entry$source %||% list()
   )
+  # Ni el autosave ni las demás rutas que reescriben la entrada son dueños de
+  # las opciones de Impreso (L36 · DOC.4, `xlsform_impreso.R`): se conservan.
+  if (is.null(entry$impreso) && !is.null(previous$impreso)) entry$impreso <- previous$impreso
   first <- length(forms) == 0L
   forms[[id]] <- entry
   s$xlsform_forms <- forms

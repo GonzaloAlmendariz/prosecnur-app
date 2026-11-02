@@ -1648,5 +1648,6 @@ mount_xlsform_editor <- function(pr) {
         diagnostics = diagnostics,
         count = length(diagnostics)
       )
-    }))
+    })) |>
+    mount_xlsform_impreso()
 }
