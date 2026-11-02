@@ -10,6 +10,7 @@ import {
   campanasVisibles,
   cuentaDeCampanas,
   lineaDeEnvios,
+  ponerEnRegistro,
   refDeCorreo,
   resumenDeTarjeta,
   tipoDelId,
@@ -198,5 +199,17 @@ describe("la miniatura del correo es su imagen real", () => {
     })?.url).toBe("https://x.org/i.png");
     // Sin URL pública (imagen por subir) no se inventa una miniatura.
     expect(miniaturaDeLaPlantilla({ header: { kind: "banner", image_ref: "b" }, images: { b: { alt: "x" } }, blocks: [] })).toBeNull();
+  });
+});
+
+describe("ponerEnRegistro", () => {
+  it("el motivo del tipo único sigue a la campaña: archivada dice que se reabre", () => {
+    const tel = { id: "telefonica.principal", tipo: "telefonica", name: "Barrido telefónico", archived: false } as Parameters<typeof ponerEnRegistro>[1];
+    const motivo = (r: ReturnType<typeof ponerEnRegistro>) => r.tipos.find((t) => t.tipo === "telefonica")?.motivo;
+    const creada = ponerEnRegistro(REGISTRO, tel, null);
+    expect(motivo(creada)).toBe("El proyecto ya tiene su campaña telefónica.");
+    const archivada = ponerEnRegistro(creada, { ...tel, archived: true }, null);
+    expect(motivo(archivada)).toBe("El proyecto ya tiene su campaña telefónica (archivada): reábrela.");
+    expect(motivo(ponerEnRegistro(archivada, tel, null))).toBe("El proyecto ya tiene su campaña telefónica.");
   });
 });

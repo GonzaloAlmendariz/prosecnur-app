@@ -181,12 +181,16 @@ export function conCorreosVivos(registro: RegistroDeCampanas, correos: readonly 
 export function ponerEnRegistro(registro: RegistroDeCampanas, campana: CampanaMaterial, registryRevision: number | null): RegistroDeCampanas {
   const existe = registro.campaigns.some((c) => c.id === campana.id);
   const campaigns = existe ? registro.campaigns.map((c) => (c.id === campana.id ? campana : c)) : [...registro.campaigns, campana];
-  const unica = campana.tipo === "aulas"
-    ? "El proyecto ya tiene su campaña de aulas."
-    : campana.tipo === "territorial" ? "El proyecto ya tiene su campaña territorial."
-    : campana.tipo === "telefonica" ? "El proyecto ya tiene su campaña telefónica." : null;
+  const deCual = campana.tipo === "aulas" ? "de aulas" : campana.tipo === "territorial" ? "territorial" : campana.tipo === "telefonica" ? "telefónica" : null;
+  // Revisión con ojo de usuario (1 nov 2026): el motivo seguía diciendo el anterior tras archivar o
+  // reabrir. Es el mismo texto que publica el backend (collection_campaigns*.R), según su estado.
+  const unica = deCual
+    ? campana.archived
+      ? `El proyecto ya tiene su campaña ${deCual} (archivada): reábrela.`
+      : `El proyecto ya tiene su campaña ${deCual}.`
+    : null;
   const tipos = unica
-    ? registro.tipos.map((t) => (t.tipo === campana.tipo ? { ...t, disponible: false, motivo: t.motivo ?? unica } : t))
+    ? registro.tipos.map((t) => (t.tipo === campana.tipo ? { ...t, disponible: false, motivo: unica } : t))
     : registro.tipos;
   return { ...registro, campaigns, tipos, registry_revision: registryRevision ?? registro.registry_revision };
 }
