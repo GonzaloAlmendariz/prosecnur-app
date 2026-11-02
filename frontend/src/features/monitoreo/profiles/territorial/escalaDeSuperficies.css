@@ -573,3 +573,35 @@
   text-overflow: clip;
   hyphens: auto;
 }
+
+/* Control › Señales › Duración (2026-11-01). La tabla pedía 1180 px y repartía
+ * el ancho entre OCHO columnas cuando tiene siete: a 1024 y 1280 «Duración» y
+ * «Estado operativo» —lo que la tabla está para enseñar— quedaban fuera, a la
+ * derecha. Las celdas son de dos líneas (dato y detalle) y envuelven bien, así
+ * que caben en el ancho del panel. Y al soltar el scroll la fila que asoma
+ * encaja entera bajo la cabecera pegajosa (30 px), como las demás tablas de la
+ * casa, en vez de quedar a medias debajo de ella. */
+.mon-duration-review-scroll,
+.mon-duration-enumerator-scroll {
+  scroll-padding-top: 30px;
+  scroll-snap-type: y proximity;
+}
+
+.mon-duration-review-scroll .mon-duration-review-table tbody > tr,
+.mon-duration-enumerator-scroll tbody > tr {
+  scroll-snap-align: start;
+}
+
+/* El caso es un identificador de 19 caracteres («adf50e90...a4547aea»): pide
+ * ~130 px, y con el 13 % a 1024 salía de su celda. */
+.mon-duration-review-scroll .mon-duration-review-table {
+  min-width: 880px;
+}
+
+.mon-duration-review-scroll .mon-duration-review-table th:nth-child(1) { width: 17%; }
+.mon-duration-review-scroll .mon-duration-review-table th:nth-child(2) { width: 9%; }
+.mon-duration-review-scroll .mon-duration-review-table th:nth-child(3) { width: 19%; }
+.mon-duration-review-scroll .mon-duration-review-table th:nth-child(4) { width: 12%; }
+.mon-duration-review-scroll .mon-duration-review-table th:nth-child(5) { width: 12%; }
+.mon-duration-review-scroll .mon-duration-review-table th:nth-child(6) { width: 13%; }
+.mon-duration-review-scroll .mon-duration-review-table th:nth-child(7) { width: 18%; }
