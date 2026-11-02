@@ -65,3 +65,41 @@ serie con el candado `pesado.sh` de las notas compartidas, porque el de octubre 
 Backend dormido de la Bitácora: **bloqueado**. El ADR 0124 §4 dice que las claves de la Bitácora se conservan en los
 `.pulso` y nadie las borra; no decide retirar `router_bitacora*.R`, `plan_trabajo` ni `planner_calendario.R`. Borrarlos
 sin esa decisión excede lo autorizado esta noche. Va para la mañana: enmendar el ADR o dejarlo dormido.
+
+## Segunda pasada (2/11, mañana)
+
+Encargo de coordinación tras el «Sigue» de Gonzalo: lo que entró desde ~01:30 (cadena de Sheets R13, R6, R8, R14 y R15
+de Material, a517d2ece, f46f263e6, 4206995f8 y e4d104f9f), un build de producción y gates y capturas por perfil. Se
+interrumpió para el ADR 0125 (9f5f73608, 166b6c71c) y se retomó después.
+
+| Paso | Alcance | Resultado |
+|---|---|---|
+| Build de producción | `vite build` del árbol en bcad195fc, en una carpeta temporal, servido por un Plumber propio en el 8895 con la copia de hsvg2026 en aulas | compila sin error; con el bundle montan los 12 destinos (Home y Ficha, Cálculo, Formularios, Hojas, Material, Monitoreo en `monitoreo-aulas-avance-porfacultad`, Carga, Validación, Codificación, Analítica, Gráficos, Tablero), sin errores sin capturar; sólo dos 409 de `validacion/v2/explorar/variables` en un proyecto sin base |
+| QA anterior a 9d500b2b5 | ¿vale la QA de la primera pasada? | sí: `ui-quick-check` levanta Vite en desarrollo (`scripts/ui-quick-check.mjs:491-497`), no el bundle; el TDZ de app-core ↔ monitoreo-core sólo existía en el build |
+| Front, `gate-front` por área | monitoreo (6578), recopiladores (1730), home (715), calcMuestra (2959), analitica (864), aulasFlow (641), estudio (641), project (663), hojasRuta (811), cada uno con sus transversales | verde en las nueve |
+| Typecheck | árbol entero | 0 errores: el hallazgo 15 se cerró cuando aulas commiteó su trabajo |
+| R, cadena de Sheets R13 | `gate-area` con patrón `libro\|sheets\|entrega\|publicar` (suites con `helper-sheets-mock.R`, sin red) | 3971 pass, 0 fail. En el front, `tablasEnSheets.test.ts` y `DeliverySection.test.tsx` prueban el orden y los cortes con dobles |
+
+Capturas de la segunda pasada, todas distintas (`md5`):
+
+| Proyecto | Rutas y viewports | Resultado |
+|---|---|---|
+| hsvg2026 aulas | Insumos › Fuentes, Avance › Salidas, Control y Cálculo, a 1440 y 1024 | 8 de 8 distintas, 0 issues. El `ok=false` lo causó la dirección que pedí: Fuentes es una pestaña de Insumos y el runner aterrizó bien. «Construir en Material» se ve en Salidas (hallazgo 18) |
+| acnur_acg territorial | Avance, Control, Analítica y Validación, a 1280 y 1024 | 8 de 8 distintas; 80 issues, todos en Control › Bandeja a 1024 (hallazgo 17) |
+| acnur_pdm telefónico | Avance e Insumos, a 1440 y 1024 | 4 de 4 distintas, 0 issues |
+| acrconta acreditación | Avance y Modelo, a 1440 y 1024 | 4 de 4 distintas, 0 issues |
+
+Material › Entrega (R13, R14 y R15) no se pudo ver en pantalla: ningún `.pulso` de referencia trae campañas, y
+Material aterriza en `vacio:sin-campanas` (lo mismo que el hallazgo 13).
+
+### Hallazgos de la segunda pasada
+
+| # | Hallazgo | Commit de origen | Evidencia | Estado | Dueño |
+|---|---|---|---|---|---|
+| 2 | (de la primera pasada) tarjeta muerta de la Bitácora en `moduleCardModel.ts` | e8aafb4b4 | — | cerrado por 0c44980cd | Revamp |
+| 6 | (de la primera pasada) a 1024, la Bandeja territorial escondía Motivo, Distancia y Duración | — | `p2-acg`, Control a 1024: las ocho columnas se ven, `desplazamientoH=0` | resuelto con el `bandeja.css` en curso de Monitoreo; ver el 17 | Monitoreo |
+| 10 | (de la primera pasada) «Sin act.» cortado al pie del riel de aulas | — | `p2-aulas`: el chip dice «Sin corte» entero | cerrado | Monitoreo |
+| 15 | (de la primera pasada) typecheck en rojo por trabajo de aulas | — | `tsc` 0 | cerrado | Monitoreo |
+| 16 | Monitoreo no montaba con el bundle de producción entre e8aafb4b4 y 9d500b2b5 | e8aafb4b4 (mío, por el chunk de `panelEstudio.ts`) | arreglado por 9d500b2b5 | verificado con el bundle: montan los 12 destinos | Planner (esta sesión) |
+| 17 | En Control › Bandeja a 1024, el botón del código de caso desborda 2–4 px (60 px de caja, 62 de contenido: 80 `overflow-x` y 16 `texto-fuera`), y «R144» se parte en la columna UMP (5 `rotulo-partido`) | `bandeja.css` sin commit de Monitoreo | `p2-acg/report.json` | reportado a Monitoreo; es su archivo con cambios en curso | Monitoreo |
+| 18 | En Avance › Salidas de aulas, «Libro del operativo» ofrece «Construir en Material», pero su línea dice «Se conecta en Insumos › Fuentes»; la vista previa cierra con un «·» suelto | 347a18545 | `p2-aulas`, Salidas a 1024 | reportado a Monitoreo | Monitoreo |
