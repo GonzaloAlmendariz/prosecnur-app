@@ -136,3 +136,35 @@
   }
   errs
 }
+
+# ---- Listas de texto del slot -----------------------------------------------------------------------------------------
+#
+# `excluir_opciones` llega como arreglo JSON (lista en R, porque el export parsea sin simplificar). `/validar` daba ok y el
+# job caía con «`excluir_opciones` debe ser NULL o character()» (Perfil CCSS 2026, 2026-11-02). Ahora el constructor
+# acepta la lista y aquí se rechaza, con el mismo criterio (`.ppt_chr_vec_coercionar`), lo que el constructor rechazaría.
+
+#' Graficadores cuyo constructor normaliza `excluir_opciones` con `.ppt_norm_chr_vec_arg` (reporte_plan_slides.R)
+#' @keywords internal
+.PLAN_GRAFICADORES_EXCLUIR_OPCIONES <- c("p_barras_agrupadas", "p_barras_categoricas", "p_barras_apiladas")
+
+#' Errores que impiden exportar por una lista de opciones a ocultar que no es una lista de textos
+#' @param slides Láminas del plan JSON.
+#' @return `character()` de errores.
+#' @keywords internal
+.plan_errores_listas_texto <- function(slides) {
+  errs <- character(0)
+  for (i in seq_along(slides)) {
+    s <- as.list(slides[[i]])
+    for (g in (.as_json_list(s$payload) %||% list())) {
+      g <- .as_json_list(g)
+      if (!is.list(g)) next
+      graf <- .graficos_resolve_graficador_name(as.character(g$graficador %||% "")[1])
+      if (!(graf %in% .PLAN_GRAFICADORES_EXCLUIR_OPCIONES)) next
+      x <- (.as_json_list(g$args) %||% list())$excluir_opciones
+      if (is.null(x) || !is.null(.ppt_chr_vec_coercionar(x))) next
+      errs <- c(errs, sprintf("%s: «Opciones a ocultar» debe ser una lista de opciones (textos o códigos)",
+                              .aviso_lamina(i, .aviso_titulo_payload(s))))
+    }
+  }
+  errs
+}

@@ -1889,10 +1889,32 @@ p_slide_6_graficos_poblacion <- function(
   filtros
 }
 
+#' Lista de textos de un arg del slot: `character()` o el arreglo JSON que llega como lista de escalares
+#'
+#' El export parsea el body con `simplifyVector = FALSE` (`.graficos_body_sin_simplificar`), así que un arreglo
+#' `["NS/NR"]` llega como `list("NS/NR")`. Se acepta todo lo que sea texto o número escalar (un código numérico cuenta
+#' como su texto); cualquier otra forma devuelve NULL. `/validar` usa el mismo criterio (`.validar_plan_json`), así que un
+#' plan que valida no cae en el job.
+#' @keywords internal
+.ppt_chr_vec_coercionar <- function(x) {
+  if (is.list(x)) {
+    if (!all(vapply(x, function(v) is.null(v) || ((is.character(v) || is.numeric(v) || is.logical(v)) && length(v) <= 1L), TRUE))) return(NULL)
+    x <- unlist(x, use.names = FALSE)
+    if (is.null(x)) return(character(0))
+  }
+  if (is.factor(x)) x <- as.character(x)
+  if (!is.character(x) && !is.numeric(x)) {
+    if (is.logical(x) && all(is.na(x))) return(character(0))
+    return(NULL)
+  }
+  as.character(x)
+}
+
 .ppt_norm_chr_vec_arg <- function(x, nm) {
   if (is.null(x)) return(NULL)
-  if (!is.character(x)) .plan_spec_abort("`", nm, "` debe ser NULL o character().")
-  x <- trimws(as.character(x))
+  x <- .ppt_chr_vec_coercionar(x)
+  if (is.null(x)) .plan_spec_abort("`", nm, "` debe ser NULL o una lista de textos.")
+  x <- trimws(x)
   x <- x[!is.na(x) & nzchar(x)]
   if (!length(x)) return(NULL)
   unique(x)
