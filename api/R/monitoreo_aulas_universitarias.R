@@ -2905,7 +2905,7 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
   validation <- data.frame(
     check = c("anonymous_responses", "personal_identifiers", "unmapped_valid_responses", "duplicate_responses", "effective_representativity", "sex_faculty_quota", "field_report_reconciliation", "book_sheets_cross_check", "unnamed_control_columns", "unknown_sample_status", "valid_response_criterion", "shared_collector_link"),
     status = c(
-      if (isTRUE(cfg$anonymous_responses)) "ok" else "review",
+      monitoreo_aulas_control_anonimato(cfg)$status,
       identificadores$status,
       monitoreo_aulas_estado_control(length(huerfanas) > 0L, any(huerfanas), "warning"),
       # **«No se puede comprobar» NO es «correcto».**
@@ -2978,7 +2978,7 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
       monitoreo_aulas_estado_control(enlaces$comprobable, enlaces$enlaces > 0L, "warning")
     ),
     detail = c(
-      "El tablero agrega por curso-horario, recopilador y enlace.",
+      monitoreo_aulas_control_anonimato(cfg)$detail,
       identificadores$detail,
       if (any(huerfanas)) {
         # La causa, no sólo el hecho: sin recopilador y con uno ajeno son dos

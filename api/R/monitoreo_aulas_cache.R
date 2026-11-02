@@ -299,6 +299,9 @@ monitoreo_aulas_dashboard_cached <- function(sid, plan, data, cfg, token) {
   # la config del tablero y en su token, igual que el padrón.
   planner_rep <- .mrpl_de_sesion(sid)
   if (is.list(planner_rep) && is.list(cfg)) cfg$representatividad_planner <- planner_rep
+  # ADR 0125 §3: con marco de alumnos el anonimato lo fija el marco (monitoreo_aulas_anonimato_marco.R).
+  con_marco <- .maam_con_marco_sesion(sid)
+  cfg <- monitoreo_aulas_anonimato_por_marco(cfg, con_marco)
   # B29 + decisión del lead sobre el hueco de cache: el router (congelado)
   # deriva el token sin ver la sesión, y la disponibilidad vive SOLO en la
   # sesión. Este es el único punto sid-aware, así que aquí se completa el
@@ -311,7 +314,7 @@ monitoreo_aulas_dashboard_cached <- function(sid, plan, data, cfg, token) {
   # ausencia la que también tiene que invalidar, porque purgarlo cambia lo que
   # el tablero puede afirmar.
   if (nzchar(token)) {
-    token <- paste(token, .mac_padron_marca(padron), .mrpl_marca(planner_rep), sep = "|")
+    token <- paste(token, .mac_padron_marca(padron), .mrpl_marca(planner_rep), paste0("marco:", con_marco), sep = "|")
   }
   construir <- function() {
     .mac_publicar_disponibilidad(
