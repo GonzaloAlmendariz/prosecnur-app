@@ -51,6 +51,14 @@
   padding: 12px;
 }
 
+/* El paso siguiente del traspaso: quién sigue y dónde (responsabilidades, 2026-11-02). */
+.rec-receipt-siguiente {
+  margin: 10px 0 0;
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+  line-height: 1.45;
+}
+
 .rec-receipt > strong {
   font-family: ui-monospace, monospace;
   font-size: 12px;

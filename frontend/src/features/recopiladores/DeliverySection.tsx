@@ -29,6 +29,9 @@ type Props = {
 /** Donde se regenera un material cuyo archivo ya no está en la sesión. */
 const A_PAQUETES = serializarDireccion({ modulo: "material-campo", seccion: "paquetes" });
 
+/** Donde sigue el trabajo: Monitoreo trae la entrega desde Insumos › Fuentes y desde ahí hace el seguimiento. */
+const A_MONITOREO_FUENTES = serializarDireccion({ modulo: "monitoreo", seccion: "insumos", pestana: "fuentes" });
+
 function paginas(n: number): string {
   return n === 1 ? "1 página" : `${n.toLocaleString("es-PE")} páginas`;
 }
@@ -133,6 +136,11 @@ export function DeliverySection({ payload, latestArtifact, onState, onIr }: Prop
               <div><dt>Plan</dt><dd title={receipt.plan_fingerprint}>{shortFingerprint(receipt.plan_fingerprint)}</dd></div>
               <div><dt>Accesos</dt><dd title={receipt.deployment_fingerprint}>{shortFingerprint(receipt.deployment_fingerprint)}</dd></div>
             </dl>
+            {/* El traspaso enlaza al que recibe: Material entrega y no hace seguimiento. */}
+            <p className="rec-receipt-siguiente">
+              Material termina aquí. Monitoreo trae esta entrega en Insumos › Fuentes y hace el seguimiento del campo.{" "}
+              {onIr ? <PulsoButton variant="link" size="sm" onClick={() => onIr(A_MONITOREO_FUENTES)}>Abrir Monitoreo</PulsoButton> : null}
+            </p>
           </article>
         ) : (
           <div className="rec-contained-empty rec-receipt-empty" data-qa-geometry-capacity="owned" role="status">
