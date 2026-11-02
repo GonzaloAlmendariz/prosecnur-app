@@ -137,11 +137,13 @@
       if (!length(non_na)) return("texto")
       uniq <- length(unique(non_na))
       txt <- trimws(as.character(non_na))
+      # Kobo escribe «NaN» cuando un calculate no tiene con qué operar: es vacío.
+      txt <- txt[!tolower(txt) %in% c("nan", "na", "inf", "-inf")]
       # Una columna derivada (calculate, metadatos de la plataforma) llega como
       # texto: si todo es fecha ISO es fecha, y si todo es número con más de
       # diez valores distintos es numérica, no una «única» de cientos de códigos.
-      if (all(grepl("^\\d{4}-\\d{2}-\\d{2}([ T].*)?$", txt))) return("fecha")
-      if (uniq > 10L && all(grepl("^-?\\d+(\\.\\d+)?$", txt))) return("num")
+      if (length(txt) && all(grepl("^\\d{4}-\\d{2}-\\d{2}([ T].*)?$", txt))) return("fecha")
+      if (length(txt) && uniq > 10L && all(grepl("^-?\\d+(\\.\\d+)?$", txt))) return("num")
       if (uniq / length(non_na) > 0.30) return("texto")
       return("so")  # baja cardinalidad → probablemente categorial
     }

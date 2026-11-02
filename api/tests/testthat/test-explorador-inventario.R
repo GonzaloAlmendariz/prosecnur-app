@@ -14,7 +14,7 @@ inventario_fixture <- function() {
     consent = rep(c("1", "2"), length.out = n),
     d1_information.1 = rep(c("1", "0"), length.out = n),
     d1_information.2 = rep(c("0", "1"), length.out = n),
-    duracion_A_seg = as.character(seq_len(n) * 7L),
+    duracion_A_seg = c("NaN", as.character(seq_len(n - 1L) * 7L)),
     comentario = paste("texto", seq_len(n)),
     kobo_fecha = rep(c("2026-07-01", "2026-07-02", "2026-07-03"), length.out = n),
     `_status` = rep("submitted_via_web", n),
