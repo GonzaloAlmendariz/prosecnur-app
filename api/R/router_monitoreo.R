@@ -1171,8 +1171,8 @@
     # tablero general venia de cache. Medido: 6,6 s por request sobre 2.616
     # cursos-horario x 6 requests que dispara abrir un proyecto = ~40 s con
     # Plumber bloqueado. Detalle y token en `monitoreo_aulas_cache.R`.
-    aulas_cache_token <- monitoreo_aulas_cache_token(
-      cache_token, aulas_plan, aulas_cfg, scope = report_scope
+    aulas_cache_token <- monitoreo_aulas_cache_token( # base SIN scope: con `cache_token` cada scope expulsaba al anterior (11 s por pedido, test-monitoreo-aulas-cache-entre-scopes.R)
+      .monitoreo_dashboard_cache_token(snapshot %||% list(), display_data, cfg, report_scope = "full", route_sig = route_sig), aulas_plan, aulas_cfg, scope = report_scope
     )
     aulas_cache <- monitoreo_aulas_dashboard_cached(
       sid, aulas_plan, display_data, aulas_cfg, aulas_cache_token
