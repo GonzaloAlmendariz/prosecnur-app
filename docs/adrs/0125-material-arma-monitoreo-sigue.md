@@ -221,9 +221,8 @@ por la coordinación como decisión reversible. Cada dueño construye su lado co
 
 ### A1. Territorial por cuotas (§2): Hojas → Material → Monitoreo
 
-- **Planner.** `/api/planner/modos` → `hojas_ruta = list(aplica, modo = "ump" | "cuotas")`. `modo` ya está
-  (166b6c71c y siguientes). `aplica = TRUE` también en cuotas entra cuando el Home lea ese caso (hoy
-  `project_overview` lo trata como «no aplica»).
+- **Planner.** `/api/planner/modos` → `hojas_ruta = list(aplica, modo = "ump" | "cuotas")`. Todo territorial
+  aplica, también en cuotas, y el Home lo cuenta así (`.overview_hojas_aplica`).
 - **Hojas.** En `cuotas` las secciones son Territorio · Población · Muestra · Entrega, sin Manzanas ni Selección.
   La unidad es la **zona** (distrito, o zona censal si el estudio baja a ese nivel), con su N y su cuota por celda
   (sexo × rango de edad, la matriz de Población).

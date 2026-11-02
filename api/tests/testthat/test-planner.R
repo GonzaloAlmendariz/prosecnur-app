@@ -447,13 +447,16 @@ test_that("el territorial declara su variante; por defecto, UMP aleatoria", {
   expect_equal(.planner_norm_perfil(list(tipo = "telefonico", diseno = "cuotas"))$diseno, "cliente")
 })
 
-test_that("sólo el territorial por UMP aleatoria hace hoja de ruta", {
+# ADR 0125 §2: Hojas trabaja por UMP o por zona con cuotas; los dos pasan por Hojas.
+test_that("todo territorial pasa por Hojas de ruta, con su modo", {
   ump <- .planner_modos_de(list(.planner_norm_perfil(list(tipo = "territorial"))))
   expect_true(ump$hojas_ruta$aplica)
   expect_equal(ump$calc$modo, "territorial-handoff")
   expect_equal(ump$territorial$seleccion, "ump_aleatoria")
   conv <- .planner_modos_de(list(.planner_norm_perfil(list(tipo = "territorial", seleccion = "conveniencia"))))
-  expect_false(conv$hojas_ruta$aplica)
+  expect_true(conv$hojas_ruta$aplica)
+  expect_equal(conv$hojas_ruta$modo, "cuotas")
+  expect_equal(ump$hojas_ruta$modo, "ump")
   expect_null(conv$calc$modo)
   expect_equal(conv$monitoreo$modo, "territorial")
   expect_equal(conv$territorial$seleccion, "conveniencia")

@@ -146,17 +146,15 @@
     aulas = list(
       con_marco = length(aulas) > 0L && identical(aulas[[1]]$seleccion, "marco")
     ),
-    hojas_ruta = list(
-      # Sólo el territorial por UMP aleatoria hace hoja de ruta.
-      aplica = length(territorial) > 0L,
-      # ADR 0125 §2: Hojas trabaja por UMP (aleatorio) o por zona con cuotas
-      # por celda. `aplica` pasa a ser verdadero también en cuotas cuando el
-      # Home lo lea así (anexo A del ADR).
-      modo = {
-        t <- Filter(function(p) identical(p$tipo, "territorial"), perfiles)
-        if (!length(t)) NULL else if (identical(t[[1]]$diseno, "cuotas")) "cuotas" else "ump"
-      }
-    ),
+    hojas_ruta = {
+      # ADR 0125 §2 y anexo A1: todo territorial pasa por Hojas de ruta, por UMP
+      # (aleatorio) o por zona con cuotas por celda.
+      t <- Filter(function(p) identical(p$tipo, "territorial"), perfiles)
+      list(
+        aplica = length(t) > 0L,
+        modo = if (!length(t)) NULL else if (identical(t[[1]]$diseno, "cuotas")) "cuotas" else "ump"
+      )
+    },
     territorial = list(
       seleccion = {
         t <- Filter(function(p) identical(p$tipo, "territorial"), perfiles)

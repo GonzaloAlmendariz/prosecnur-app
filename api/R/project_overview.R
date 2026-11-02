@@ -331,8 +331,8 @@
 }
 
 # ¿Aplica Hojas de ruta en este estudio? Lo dice el Planner (ADR 0122 P2,
-# `modos$hojas_ruta$aplica`): sólo un territorial por UMP aleatoria hace hoja de ruta;
-# uno por conveniencia, o un estudio sin territorial, no. Sin perfiles en el Planner
+# `modos$hojas_ruta$aplica`): todo territorial, por UMP o por cuotas (ADR 0125 §2);
+# un estudio sin territorial, no. Sin perfiles en el Planner
 # no se sabe, y se asume que aplica, como antes.
 .overview_hojas_aplica <- function(s) {
   modos <- tryCatch(.planner_modos(s), error = function(e) NULL)
