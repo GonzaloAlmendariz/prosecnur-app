@@ -65,6 +65,13 @@ function manualChunks(id: string) {
   // Repartido entre chunks de módulo, Rollup llegó a ejecutar `manifiesto.ts`
   // (que arma MANIFIESTO_NAVEGACION en top-level) antes de que `direccion.ts`
   // inicializara TABLA_RUTAS, y el TDZ dejaba la app en blanco sin montar React.
+  // El panel de la Ficha del estudio (ADR 0124) lo declara el manifiesto global
+  // de `lib/navegacion/`. Sin regla, Rollup lo metía en monitoreo-core (Monitoreo
+  // también importa `features/estudio/`), el manifiesto importaba monitoreo-core
+  // de vuelta y el arranque moría con un TDZ («Cannot access 'Er' before
+  // initialization», 2026-11-02). Es una constante sin dependencias: viaja con
+  // el manifiesto.
+  if (normalized.endsWith("/src/features/estudio/panelEstudio.ts")) return "app-core";
   if (normalized.includes("/src/components/") || normalized.includes("/src/lib/")) {
     if (APP_CORE_VALUE_COUPLED_EXCLUDED.some((suffix) => normalized.endsWith(suffix))) {
       return undefined;
