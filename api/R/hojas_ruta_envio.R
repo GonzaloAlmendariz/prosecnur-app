@@ -12,7 +12,9 @@
 # rol, titular, rango y viviendas) más la semilla y el algoritmo del sorteo.
 # Material y Monitoreo usan esta misma función (enmienda al ADR 0108 §1).
 
-.HOJAS_RUTA_ENVIO_KEYS <- c("sample", "config", "sample_fingerprint", "enviado_at", "n_titulares", "n_reemplazos")
+.HOJAS_RUTA_ENVIO_KEYS <- c("kind", "sample", "config", "sample_fingerprint", "enviado_at", "n_titulares", "n_reemplazos")
+# El envío por cuotas (hojas_ruta_envio_cuotas.R) lleva zonas en lugar de la muestra.
+.HOJAS_RUTA_ENVIO_CUOTAS_KEYS <- c("kind", "zonas", "config", "sample_fingerprint", "enviado_at", "n_zonas", "n_entrevistas")
 
 # Filas de un bloque de la muestra como lista de listas (llega como data.frame
 # desde el motor o como lista de filas desde el cliente / el .pulso).
@@ -73,12 +75,29 @@
 #' Normaliza la foto del envío; NULL si no tiene forma de envío.
 #' @keywords internal
 .hojas_ruta_envio_normalize <- function(x) {
+  # Territorial por cuotas (ADR 0125 §2, hojas_ruta_envio_cuotas.R): zonas con cuota en vez de bloques.
+  if (is.list(x) && identical(.hojas_ruta_envio_chr(x$kind), "cuotas")) {
+    zonas <- Filter(is.list, x$zonas %||% list())
+    if (!length(zonas)) return(NULL)
+    fp <- .hojas_ruta_envio_chr(x$sample_fingerprint)
+    if (!grepl("^sha256:[0-9a-f]{64}$", fp)) fp <- .hojas_ruta_cuotas_fingerprint(zonas)
+    return(list(
+      kind = "cuotas",
+      zonas = zonas,
+      config = hojas_ruta_integrada_normalize_config(if (is.list(x$config)) x$config else list()),
+      sample_fingerprint = fp,
+      enviado_at = .hojas_ruta_envio_chr(x$enviado_at),
+      n_zonas = length(zonas),
+      n_entrevistas = as.integer(sum(vapply(zonas, function(z) .hojas_ruta_envio_int(z$n) %||% 0L, 0L), na.rm = TRUE))
+    ))
+  }
   if (is.null(x) || !is.list(x) || !.hojas_ruta_envio_tiene_bloques(x$sample)) return(NULL)
   fp <- .hojas_ruta_envio_chr(x$sample_fingerprint)
   if (!grepl("^sha256:[0-9a-f]{64}$", fp)) fp <- .hojas_ruta_sample_fingerprint(x$sample)
   n_tit <- .hojas_ruta_envio_int(x$n_titulares)
   n_rem <- .hojas_ruta_envio_int(x$n_reemplazos)
   list(
+    kind = "ump",
     sample = x$sample,
     config = hojas_ruta_integrada_normalize_config(if (is.list(x$config)) x$config else list()),
     sample_fingerprint = fp,
@@ -94,8 +113,23 @@ hojas_ruta_envio_meta <- function(run) {
   if (!is.list(run)) return(NULL)
   envio <- .hojas_ruta_envio_normalize(run[["envio"]])
   if (is.null(envio)) return(NULL)
+  if (identical(envio$kind, "cuotas")) {
+    vigente <- tryCatch(.hojas_ruta_cuotas_fingerprint(.hojas_ruta_zonas_vigentes(run$config)), error = function(e) NA_character_)
+    return(list(
+      kind = "cuotas",
+      enviado_at = envio$enviado_at,
+      sorteado_en = "",
+      sample_fingerprint = envio$sample_fingerprint,
+      n_titulares = 0L,
+      n_reemplazos = 0L,
+      n_zonas = as.integer(envio$n_zonas),
+      n_entrevistas = as.integer(envio$n_entrevistas),
+      desactualizado = is.na(vigente) || !identical(vigente, envio$sample_fingerprint)
+    ))
+  }
   vigente <- .hojas_ruta_sample_fingerprint(.hojas_ruta_list_get(run$workspace_outputs, "sample"))
   list(
+    kind = "ump",
     enviado_at = envio$enviado_at,
     # Cuándo se sorteó la muestra enviada ("" si se guardó antes de que se sellara la fecha).
     sorteado_en = .hojas_ruta_envio_chr(envio$sample$sorteado_en),

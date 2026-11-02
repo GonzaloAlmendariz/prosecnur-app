@@ -200,6 +200,9 @@ errores_registrados <- function() {
     "E_HOJAS_RUTA_ENVIO_SIN_MUESTRA",                        "hojas_ruta_envio.R",                "409",
     "E_HOJAS_RUTA_ENVIO_FASE",                               "hojas_ruta_envio.R",                "422",
     "E_HOJAS_RUTA_ENVIO_SORTEO_V1",                          "hojas_ruta_envio.R",                "409",
+    # Envío por cuotas (ADR 0125 §2).
+    "E_HOJAS_RUTA_ENVIO_SIN_CUOTAS",                         "hojas_ruta_envio_cuotas.R",         "409",
+    "E_HOJAS_RUTA_ENVIO_KIND",                               "router_hojas_ruta_envio.R",         "422",
     # Contornos por región del lienzo (paquete por regiones, R2).
     "E_HOJAS_RUTA_REGION",                                   "router_hojas_ruta_contornos.R",     "400",
     "E_HOJAS_RUTA_REGION_SIN_CONTORNOS",                     "router_hojas_ruta_contornos.R",     "404",
