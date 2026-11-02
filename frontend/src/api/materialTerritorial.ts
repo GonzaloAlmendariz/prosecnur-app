@@ -6,6 +6,10 @@
 //       la fase de la campaña, con su huella y `stale` si la muestra viva ya no
 //       la tiene. 409 `E_COLLECTION_TERRITORIAL_SIN_FUENTE` si la foto no está.
 //
+// Un envío por cuotas (`kind = "cuotas"`, ADR 0125 §2) no trae UMP sino ZONAS con su N y su cuota por celda
+// (sexo × rango de edad): llegan en `zonas` y `units` queda vacío, así lo que lee UMP no confunde una zona con
+// una manzana.
+//
 // Y, para «Nueva campaña», qué fases tienen un envío: `runs[fase].envio_meta`
 // de `GET /api/hojas-ruta/state` (sin la foto).
 //
@@ -35,8 +39,26 @@ export type UnidadTerritorial = {
   viviendas: number | null;
 };
 
+export type TipoDeEnvio = "ump" | "cuotas";
+
+export type CuotaDeCelda = { sexo: string; rango_id: string; rango_edad: string; n: number };
+
+export type ZonaDeCuotas = {
+  id_zona: string;
+  nombre: string;
+  ubigeo: string;
+  /** Entrevistas de la zona: la suma de sus cuotas. */
+  n: number;
+  cuotas: CuotaDeCelda[];
+};
+
 export type UnidadesTerritoriales = {
   campaign_id: string;
+  kind: TipoDeEnvio;
+  /** Sólo en cuotas; en UMP, vacío. */
+  zonas: ZonaDeCuotas[];
+  n_zonas: number;
+  n_entrevistas: number;
   fase: FaseTerritorial;
   units: UnidadTerritorial[];
   n_titulares: number;
@@ -49,6 +71,9 @@ export type UnidadesTerritoriales = {
 };
 
 export type EnvioMeta = {
+  kind: TipoDeEnvio;
+  n_zonas: number;
+  n_entrevistas: number;
   enviado_at: string | null;
   /** Cuándo se sorteó la muestra enviada (ISO UTC); null si se envió antes de sellar fechas. */
   sorteado_en: string | null;
@@ -127,11 +152,45 @@ export function normalizarUnidadTerritorial(valor: unknown): UnidadTerritorial |
   };
 }
 
+function tipoDeEnvio(valor: unknown): TipoDeEnvio {
+  return texto(valor) === "cuotas" ? "cuotas" : "ump";
+}
+
+export function normalizarZonaDeCuotas(valor: unknown): ZonaDeCuotas | null {
+  if (!esRegistro(valor)) return null;
+  const id_zona = texto(valor.unit_id) || texto(valor.id_zona);
+  if (!id_zona) return null;
+  const cuotas: CuotaDeCelda[] = [];
+  for (const crudo of lista(valor.cuotas)) {
+    if (!esRegistro(crudo)) continue;
+    const sexo = texto(crudo.sexo);
+    if (!sexo) continue;
+    cuotas.push({ sexo, rango_id: texto(crudo.rango_id), rango_edad: texto(crudo.rango_edad), n: entero(crudo.n) });
+  }
+  const suma = cuotas.reduce((acc, c) => acc + c.n, 0);
+  return {
+    id_zona,
+    nombre: texto(valor.label) || texto(valor.nombre) || texto(valor.distrito) || id_zona,
+    ubigeo: texto(valor.ubigeo) || id_zona,
+    n: enteroONulo(valor.n) ?? suma,
+    cuotas,
+  };
+}
+
 export function normalizarUnidadesTerritoriales(valor: unknown): UnidadesTerritoriales {
   if (!esRegistro(valor)) throw new Error("El backend devolvió unidades territoriales inválidas.");
+  const kind = tipoDeEnvio(valor.kind);
   const vistas = new Set<string>();
   const units: UnidadTerritorial[] = [];
+  const zonas: ZonaDeCuotas[] = [];
   for (const crudo of lista(valor.units)) {
+    if (kind === "cuotas") {
+      const z = normalizarZonaDeCuotas(crudo);
+      if (!z || vistas.has(z.id_zona)) continue;
+      vistas.add(z.id_zona);
+      zonas.push(z);
+      continue;
+    }
     const u = normalizarUnidadTerritorial(crudo);
     // Una manzana no se repite: la segunda aparición es ruido del payload.
     if (!u || vistas.has(u.unit_id)) continue;
@@ -142,6 +201,10 @@ export function normalizarUnidadesTerritoriales(valor: unknown): UnidadesTerrito
   const titulares = units.filter((u) => u.role === "titular").length;
   return {
     campaign_id: texto(valor.campaign_id),
+    kind,
+    zonas,
+    n_zonas: enteroONulo(valor.n_zonas) ?? zonas.length,
+    n_entrevistas: enteroONulo(valor.n_entrevistas) ?? zonas.reduce((acc, z) => acc + z.n, 0),
     fase: esFaseTerritorial(fase) ? fase : "field",
     units,
     n_titulares: enteroONulo(valor.n_titulares) ?? titulares,
@@ -157,6 +220,9 @@ export function normalizarEnvioMeta(valor: unknown): EnvioMeta | null {
   const huella = texto(valor.sample_fingerprint);
   if (!huella) return null;
   return {
+    kind: tipoDeEnvio(valor.kind),
+    n_zonas: entero(valor.n_zonas),
+    n_entrevistas: entero(valor.n_entrevistas),
     enviado_at: textoONulo(valor.enviado_at),
     sorteado_en: textoONulo(valor.sorteado_en),
     sample_fingerprint: huella,

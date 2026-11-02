@@ -81,3 +81,43 @@ test_that("normalizar el run conserva el envío por cuotas con sus zonas (no lo 
   expect_length(run[["envio"]]$zonas, 2L)
 })
 
+
+test_that("Material lee el envío por cuotas: unidades son zonas con su cuota y la huella sigue a la config", {
+  sid <- .hrc_session()
+  on.exit(session_delete(sid), add = TRUE)
+  hojas_ruta_enviar_cuotas(sid)
+  r <- collection_campaign_create(sid, "territorial", "Cuotas Lima", fase = "field", expected_registry_revision = 0L)
+  expect_identical(r$campaign$estado$kind, "cuotas")
+  expect_identical(r$campaign$estado$zonas, 2L)
+  expect_gt(r$campaign$estado$entrevistas, 0L)
+  expect_false(r$campaign$estado$stale)
+
+  u <- collection_territorial_unidades(sid, "territorial.principal")
+  expect_identical(u$kind, "cuotas")
+  expect_identical(u$unit_type, "territorial_zona")
+  expect_length(u$units, 2L)
+  expect_identical(vapply(u$units, `[[`, "", "unit_id"), c("150103", "150132"))
+  expect_true(all(vapply(u$units, `[[`, "", "role") == "zona"))
+  # La cuota de cada zona suma su N y el total, las entrevistas del envío.
+  for (z in u$units) expect_identical(sum(vapply(z$cuotas, `[[`, 0L, "n")), z$n)
+  expect_identical(sum(vapply(u$units, `[[`, 0L, "n")), u$n_entrevistas)
+  expect_identical(u$n_titulares, 0L)
+  expect_false(u$stale)
+
+  # Cambiar el N en Hojas deja la lista desactualizada, sin reescribir la foto.
+  s <- session_get(sid)
+  s$hojas_ruta_runs$field$config$n_objetivo <- 300L
+  .session_env[[sid]] <- s
+  expect_true(collection_territorial_unidades(sid, "territorial.principal")$stale)
+  expect_identical(collection_territorial_unidades(sid, "territorial.principal")$n_entrevistas, u$n_entrevistas)
+})
+
+test_that("la lectura UMP declara su kind", {
+  sid <- .hre_session()
+  on.exit(session_delete(sid), add = TRUE)
+  hojas_ruta_enviar(sid)
+  collection_campaign_create(sid, "territorial", "UMP", fase = "field", expected_registry_revision = 0L)
+  u <- collection_territorial_unidades(sid, "territorial.principal")
+  expect_identical(u$kind, "ump")
+  expect_identical(u$unit_type, "territorial_ump")
+})

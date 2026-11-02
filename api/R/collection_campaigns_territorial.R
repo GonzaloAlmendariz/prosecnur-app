@@ -15,6 +15,7 @@
 .MCAMP_TERRITORIAL_SIN_ENVIO <- "Primero envía la muestra desde Hojas de ruta"
 .MCAMP_TERRITORIAL_SOURCE <- "ump_territorial_v1"
 .MCAMP_TERRITORIAL_UNIT_TYPE <- "territorial_ump"
+.MCAMP_TERRITORIAL_UNIT_TYPE_ZONA <- "territorial_zona"  # envío por cuotas (ADR 0125 §2)
 
 .mcamp_territorial_habilitada <- function() isTRUE(.MCAMP_TERRITORIAL_HABILITADA)
 
@@ -37,6 +38,11 @@
 # Huella de la muestra viva de la fase frente a la de la foto.
 .mcamp_territorial_stale <- function(s, fase, envio) {
   run <- s$hojas_ruta_runs[[fase]]
+  if (identical(envio$kind, "cuotas")) {
+    # En cuotas la huella es de las zonas que hoy saldrían de la configuración (hojas_ruta_envio_cuotas.R).
+    vigente <- .hojas_ruta_cuotas_fingerprint(.hojas_ruta_zonas_vigentes(if (is.list(run)) run$config else list()))
+    return(is.na(vigente) || !identical(vigente, envio$sample_fingerprint))
+  }
   sample <- if (is.list(run)) .hojas_ruta_list_get(run$workspace_outputs, "sample") else NULL
   vigente <- .hojas_ruta_sample_fingerprint(sample)
   is.na(vigente) || !identical(vigente, envio$sample_fingerprint)
@@ -59,8 +65,13 @@
   if (is.null(envio)) {
     return(list(titulares = 0L, reemplazos = 0L, stale = TRUE, enviado_at = NA_character_))
   }
-  list(titulares = as.integer(envio$n_titulares), reemplazos = as.integer(envio$n_reemplazos),
-       stale = .mcamp_territorial_stale(s, fase, envio), enviado_at = envio$enviado_at)
+  stale <- .mcamp_territorial_stale(s, fase, envio)
+  if (identical(envio$kind, "cuotas")) {
+    return(list(kind = "cuotas", titulares = 0L, reemplazos = 0L, zonas = as.integer(envio$n_zonas),
+                entrevistas = as.integer(envio$n_entrevistas), stale = stale, enviado_at = envio$enviado_at))
+  }
+  list(kind = "ump", titulares = as.integer(envio$n_titulares), reemplazos = as.integer(envio$n_reemplazos),
+       stale = stale, enviado_at = envio$enviado_at)
 }
 
 .mcamp_territorial_public <- function(s, hit) {
@@ -143,6 +154,32 @@
   )
 }
 
+# Una zona del envío por cuotas como unidad: la cuota por celda viaja con ella (la ficha de conteo la pinta).
+.mcamp_territorial_unidad_zona <- function(zona) {
+  chr <- function(x) { v <- .hojas_ruta_envio_chr(x); if (nzchar(v)) v else NA_character_ }
+  list(
+    unit_id = .hojas_ruta_envio_chr(zona[["id_zona"]]),
+    unit_type = .MCAMP_TERRITORIAL_UNIT_TYPE_ZONA,
+    label = chr(zona[["nombre"]]) %||% .hojas_ruta_envio_chr(zona[["id_zona"]]),
+    role = "zona",
+    titular_id = NA_character_,
+    distrito = chr(zona[["nombre"]]),
+    ubigeo = chr(zona[["ubigeo"]]),
+    zona = chr(zona[["id_zona"]]),
+    manzana = NA_character_,
+    rango_inicio = NA_integer_,
+    rango_fin = NA_integer_,
+    viviendas = NA_integer_,
+    n = .hojas_ruta_envio_int(zona[["n"]]),
+    cuotas = lapply(zona[["cuotas"]] %||% list(), function(c) list(
+      sexo = .hojas_ruta_envio_chr(c[["sexo"]]),
+      rango_id = .hojas_ruta_envio_chr(c[["rango_id"]]),
+      rango_edad = .hojas_ruta_envio_chr(c[["rango_edad"]]),
+      n = .hojas_ruta_envio_int(c[["n"]])
+    ))
+  )
+}
+
 #' Unidades de la campaña territorial (`ump_territorial_v1`, ADR 0118 §3).
 #'
 #' Proyección pura de la foto enviada en la fase de la campaña: no escribe ni
@@ -165,13 +202,22 @@ collection_territorial_unidades <- function(sid, campaign_id) {
              "La muestra enviada desde Hojas de ruta ya no está: vuelve a enviarla.",
              details = list(id = id, fase = fase))
   }
+  stale <- .mcamp_territorial_stale(s, fase, envio)
+  if (identical(envio$kind, "cuotas")) {
+    return(list(ok = TRUE, campaign_id = id, fase = fase, kind = "cuotas", source = .MCAMP_TERRITORIAL_SOURCE,
+                unit_type = .MCAMP_TERRITORIAL_UNIT_TYPE_ZONA,
+                units = lapply(envio$zonas %||% list(), .mcamp_territorial_unidad_zona),
+                n_titulares = 0L, n_reemplazos = 0L,
+                n_zonas = as.integer(envio$n_zonas), n_entrevistas = as.integer(envio$n_entrevistas),
+                enviado_at = envio$enviado_at, sample_fingerprint = envio$sample_fingerprint, stale = stale))
+  }
   units <- c(
     lapply(.hojas_ruta_envio_rows(envio$sample$blocks), .mcamp_territorial_unidad, role = "titular"),
     lapply(.hojas_ruta_envio_rows(envio$sample$replacement_blocks), .mcamp_territorial_unidad, role = "reemplazo")
   )
-  list(ok = TRUE, campaign_id = id, fase = fase, source = .MCAMP_TERRITORIAL_SOURCE,
+  list(ok = TRUE, campaign_id = id, fase = fase, kind = "ump", source = .MCAMP_TERRITORIAL_SOURCE,
        unit_type = .MCAMP_TERRITORIAL_UNIT_TYPE, units = units,
        n_titulares = as.integer(envio$n_titulares), n_reemplazos = as.integer(envio$n_reemplazos),
        enviado_at = envio$enviado_at, sample_fingerprint = envio$sample_fingerprint,
-       stale = .mcamp_territorial_stale(s, fase, envio))
+       stale = stale)
 }

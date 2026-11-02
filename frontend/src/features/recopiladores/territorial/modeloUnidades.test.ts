@@ -69,6 +69,31 @@ describe("normalizarUnidadesTerritoriales", () => {
     expect(n.n_reemplazos).toBe(1);
   });
 
+  it("en cuotas las unidades son zonas: van a `zonas` con su cuota y no a `units`", () => {
+    const n = normalizarUnidadesTerritoriales({
+      campaign_id: "territorial.principal", fase: "field", kind: ["cuotas"], n_zonas: [2], n_entrevistas: [9],
+      units: [
+        { unit_id: "150103", role: "zona", label: "ATE", ubigeo: "150103", n: [5],
+          cuotas: [{ sexo: "Mujer", rango_id: "r1", rango_edad: "18-29", n: [3] }, { sexo: "Hombre", rango_id: "r1", rango_edad: "18-29", n: 2 }] },
+        { unit_id: "150103", role: "zona" },
+        { unit_id: "150132", role: "zona", cuotas: { sexo: "Mujer", rango_id: "r1", rango_edad: "18-29", n: 4 } },
+      ],
+    });
+    expect(n.kind).toBe("cuotas");
+    expect(n.units).toEqual([]);
+    expect(n.zonas.map((z) => z.id_zona)).toEqual(["150103", "150132"]);
+    expect(n.zonas[0].nombre).toBe("ATE");
+    expect(n.zonas[0].cuotas.map((c) => c.n)).toEqual([3, 2]);
+    // Sin `n`, la zona suma sus cuotas; una cuota sola llega como objeto, no como lista.
+    expect(n.zonas[1].n).toBe(4);
+    expect(n.n_zonas).toBe(2);
+    expect(n.n_entrevistas).toBe(9);
+  });
+
+  it("sin kind el envío es por UMP", () => {
+    expect(normalizarUnidadesTerritoriales({ units: [] }).kind).toBe("ump");
+  });
+
   it("una sola unidad serializada como objeto sigue siendo una lista", () => {
     expect(normalizarUnidadesTerritoriales({ units: { unit_id: "A1", role: "titular" } }).units).toHaveLength(1);
     expect(normalizarUnidadesTerritoriales({ units: {} }).units).toHaveLength(0);
