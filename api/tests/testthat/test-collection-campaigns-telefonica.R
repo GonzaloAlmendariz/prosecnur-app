@@ -41,6 +41,16 @@ test_that("la configuración se guarda con revisión y con las reglas de la plan
   expect_identical(collection_telefonica_config_get(sid)$revision, 1L)
 })
 
+test_that("con reemplazo, Entrega declara «Origen» entre lo que lee Monitoreo", {
+  sid <- session_create(); on.exit(session_delete(sid), add = TRUE)
+  collection_campaign_create(sid, "telefonica", "Barrido RMS")
+  sin <- collection_telefonica_config_put(sid, muestra = 10, backup = 5, expected_revision = 0L)
+  expect_false("Origen" %in% unlist(sin$lee_monitoreo))
+  # La cola y los no barridos de Monitoreo separan muestra de backup por «Origen»: también es llave.
+  con <- collection_telefonica_config_put(sid, reemplazo = TRUE, expected_revision = 1L)
+  expect_identical(utils::tail(unlist(con$lee_monitoreo), 1L), "Origen")
+})
+
 test_that("la plantilla sale con la configuración y con tantas filas como casos", {
   sid <- session_create(); on.exit(session_delete(sid), add = TRUE)
   collection_campaign_create(sid, "telefonica", "Barrido RMS")

@@ -91,8 +91,10 @@ MATERIAL_TELEFONICA_CONFIG_SCHEMA <- "material_telefonica_config/v1"
        muestra = cfg$muestra, backup = cfg$backup, responsables = cfg$responsables,
        status = catalogo, status_propio = !is.null(cfg$status), revision = cfg$revision,
        observacion = cfg$observacion, sensibles = cfg$sensibles, telefonos_max = .MBP_TELEFONOS_MAX,
-       # Lo que Monitoreo telefónico lee del Sheets: no se cambia de nombre.
-       lee_monitoreo = list(cfg$llave, "Status", "Responsable", "Intentos", "Fecha"))
+       # Lo que Monitoreo telefónico lee del Sheets: no se cambia de nombre. Con reemplazo, la cola y los
+       # no barridos separan muestra de backup por «Origen» (monitoreo_telefonico_cola.R).
+       lee_monitoreo = c(list(cfg$llave, "Status", "Responsable", "Intentos", "Fecha"),
+                         if (isTRUE(cfg$reemplazo)) list("Origen")))
 }
 
 #' Configuración de la campaña telefónica (lectura pura).
