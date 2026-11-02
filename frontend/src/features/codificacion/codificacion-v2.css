@@ -450,6 +450,25 @@ button.pulso-ghost-nav:disabled {
   grid-template-rows: minmax(0, 1fr);
 }
 
+/* L14: con la cabecera única de pestaña, la primera fila es la cabecera y el
+   cuerpo (que es quien desplaza) se queda con el resto. Sin insumos (la puerta
+   de Carga) no hay cabecera y sigue la fila única. */
+.pulso-codificacion-frame .pulso-codificacion-content.con-cabecera {
+  grid-template-rows: auto minmax(0, 1fr);
+}
+
+.pulso-codificacion-base-actual {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-inline-size: 260px;
+  overflow: hidden;
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .pulso-codificacion-frame .pulso-codificacion-panel-body,
 .pulso-codificacion-frame .pulso-codificacion-wizard,
 .pulso-codificacion-frame .pulso-codificacion-wizard-main,
