@@ -45,6 +45,7 @@ import { PreviaImpreso } from "./PreviaImpreso";
 import { primeraPagina, tituloDelFormulario } from "./primeraPagina";
 import { useEstadoImpreso } from "./useEstadoImpreso";
 import { VersionesImpreso } from "./VersionesImpreso";
+import { LogicaImpresa } from "./LogicaImpresa";
 import "./impreso.css";
 
 const ID_DETALLE = "xf-impreso-detalle";
@@ -219,7 +220,12 @@ export function PestanaImpreso({
                 />
               </>
             )}
-            {parte === "logica" && <DetalleLogica estado={estado} actualizar={actualizar} consentimiento={consentimiento} plano={plano} />}
+            {parte === "logica" && (
+              <>
+                <DetalleLogica estado={estado} actualizar={actualizar} consentimiento={consentimiento} plano={plano} />
+                <LogicaImpresa workbook={workbook} opciones={opciones} />
+              </>
+            )}
             {parte === "contenido" && <DetalleContenido estado={estado} actualizar={actualizar} />}
             {parte === "matrices" && <DetalleMatrices candidatas={candidatas} matrices={estado.matrices} onCambiar={actualizarMatriz} plano={plano} />}
             {parte === "papel" && (

@@ -1649,5 +1649,6 @@ mount_xlsform_editor <- function(pr) {
         count = length(diagnostics)
       )
     })) |>
-    mount_xlsform_impreso()
+    mount_xlsform_impreso() |>
+    mount_xlsform_logica_impresa()
 }

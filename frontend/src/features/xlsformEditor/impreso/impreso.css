@@ -710,3 +710,65 @@
   color: var(--pulso-text-soft);
   font-size: var(--pulso-type-caption-size);
 }
+
+/* L36 · D-L36-20 — «Así se lee la lógica»: la lógica tal como irá al papel. */
+.pulso-xf-imp-logica-lista {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--pulso-border);
+}
+
+.pulso-xf-imp-logica-pregunta {
+  display: grid;
+  grid-template-columns: 2.5em minmax(0, 1fr);
+  gap: var(--pulso-space-2);
+  padding: var(--pulso-space-2) 0;
+  border-bottom: 1px solid var(--pulso-border);
+}
+
+.pulso-xf-imp-logica-numero {
+  font-size: var(--pulso-type-body-size);
+  font-weight: var(--pulso-weight-semibold);
+  font-variant-numeric: tabular-nums;
+}
+
+.pulso-xf-imp-logica-cuerpo {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.pulso-xf-imp-logica-variable {
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+}
+
+.pulso-xf-imp-logica-linea,
+.pulso-xf-imp-logica-nota {
+  margin: 0;
+  font-size: var(--pulso-type-body-size);
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.pulso-xf-imp-logica-cuando {
+  color: var(--pulso-text-soft);
+}
+
+.pulso-xf-imp-logica-avisos {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-1);
+  margin: 0;
+  padding: var(--pulso-space-2) var(--pulso-space-3);
+  list-style: none;
+  border-radius: var(--pulso-radius-card);
+  border: 1px solid var(--pulso-warn-border);
+  background: var(--pulso-warn-bg);
+  color: var(--pulso-warn-fg);
+  font-size: var(--pulso-type-caption-size);
+}

@@ -6,6 +6,8 @@
 // (D-L36-15 a 18). No se reexporta desde el barrel `client.ts`.
 
 import { apiFetch, handle, headers } from "./core";
+import type { XlsformEditorWorkbook } from "./multiIntegrado";
+import type { XlsformPaperExportOptions } from "./xlsformEditor";
 
 export type ImpresoVersion = {
   nombre: string;
@@ -66,4 +68,47 @@ export async function apiImpresoGuardar(formId: string, opciones: string): Promi
 export async function apiImpresoGuardarVersion(formId: string, nombre: string, opciones: string): Promise<ImpresoGuardado> {
   const raw = registro(await handle<unknown>(await apiFetch(`${ruta(formId)}/versiones`, post({ nombre, opciones }))));
   return normalizeImpresoGuardado(raw.impreso);
+}
+
+// ── Lógica impresa (L36 · D-L36-20) ─────────────────────────────────────────
+// La lógica tal como sale en papel: cada condición, salto y salida, del mismo
+// modelo que dibujan Word y PDF (`api/R/xlsform_logica_impresa.R`).
+
+export type InstruccionImpresa = {
+  numero: string;
+  nombre: string;
+  /** «condicion» va antes de la pregunta; «salto», junto a una opción; «salida», al final. */
+  tipo: "condicion" | "salto" | "salida";
+  /** Opción que dispara el salto, «Etiqueta (código)»; vacío en los otros tipos. */
+  opcion: string;
+  texto: string;
+};
+
+export type LogicaImpresa = {
+  lenguaje: "saltos" | "condiciones";
+  instrucciones: InstruccionImpresa[];
+  avisos: string[];
+};
+
+export function normalizeLogicaImpresa(raw: unknown): LogicaImpresa {
+  const r = registro(raw);
+  const instrucciones: InstruccionImpresa[] = [];
+  for (const v of Array.isArray(r.instrucciones) ? r.instrucciones : []) {
+    const i = registro(v);
+    const tipo = i.tipo === "condicion" || i.tipo === "salto" || i.tipo === "salida" ? i.tipo : null;
+    const textoImpreso = texto(i.texto).trim();
+    if (!tipo || !textoImpreso) continue;
+    instrucciones.push({ numero: texto(i.numero), nombre: texto(i.nombre), tipo, opcion: texto(i.opcion), texto: textoImpreso });
+  }
+  const avisos = (Array.isArray(r.avisos) ? r.avisos : []).map(texto).filter(Boolean);
+  return { lenguaje: r.lenguaje === "condiciones" ? "condiciones" : "saltos", instrucciones, avisos };
+}
+
+export async function apiLogicaImpresa(workbook: XlsformEditorWorkbook, options: XlsformPaperExportOptions): Promise<LogicaImpresa> {
+  const raw = await handle<unknown>(await apiFetch("/api/xlsform-editor/logica-impresa", {
+    method: "POST",
+    headers: headers({ "Content-Type": "application/json" }),
+    body: JSON.stringify({ workbook, options }),
+  }));
+  return normalizeLogicaImpresa(raw);
 }

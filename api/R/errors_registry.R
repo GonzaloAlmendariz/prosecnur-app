@@ -590,6 +590,7 @@ errores_registrados <- function() {
     "E_LOGICA_EXTERNA_NO_DECLARADA",                         "xlsform_logica_externa.R",          "409",
     "E_IMPRESO_OPCIONES_INVALIDAS",                          "xlsform_impreso.R",                 "400",
     "E_IMPRESO_VERSION_SIN_NOMBRE",                          "xlsform_impreso.R",                 "400",
+    "E_LOGICA_IMPRESA_FAILED",                               "xlsform_logica_impresa.R",          "422",
     "E_REVISION_NOT_FOUND",                                  "carga_formulario_publicado.R",      "404",
     "E_FUENTE_NO_CALZA",                                     "carga_formulario_publicado.R",      "indirecto",
     "E_BASE_EXISTE",                                         "carga_formulario_publicado.R",      "409",

@@ -175,3 +175,14 @@ edición del formulario, que lo sube.
   que llaman el modelo, el Word y el PDF (la reserva de alto del PDF suma
   exactamente lo que dibuja). Se edita en Impreso › Formato › Portada y «Así
   queda» lo dibuja. Viaja como `institution`, `period` y `control_block`.
+- **D-L36-20 · Lógica impresa: leerla antes de imprimir.** El motor ya
+  cumplía lo central de D-L36-6: el salto va junto a la opción que lo dispara,
+  el filtro antes de la pregunta y el `relevant` crudo nunca llega al papel (lo
+  que no entiende se enuncia de forma general y deja aviso). La redacción
+  «Salto a la N» / «pase a la pregunta N» se conserva: cambiarla a «Si responde
+  2 → …» chocaría con la decisión vigente del verbo de salto, igual que pasó con
+  D-L36-4. Lo que faltaba era poder leerla: Impreso › Lógica suma «Así se lee
+  la lógica», la lista pregunta por pregunta de cada condición, salto y salida
+  tal como irá al papel, con los avisos de lógica del motor. Sale del mismo
+  modelo (`POST /api/xlsform-editor/logica-impresa`, `xlsform_logica_impresa.R`)
+  y cambia al elegir «Saltos» o «Condiciones».
