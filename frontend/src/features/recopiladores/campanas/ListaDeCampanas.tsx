@@ -21,7 +21,8 @@ import { PulsoButton } from "../../../components/PulsoButton";
 import { AlertTriangle, Layers, Plus, RefreshCw } from "../../../vendor/lucide-react";
 import type { AccionDeCampana, IdDeAccion } from "./accionesDeCampana";
 import type { MiniaturaDeCorreo } from "./miniaturaDeCorreo";
-import { campanasArchivadas, campanasVisibles, cuentaDeCampanas } from "./modeloRegistro";
+import { campanaPorId, campanasArchivadas, campanasVisibles, cuentaDeCampanas } from "./modeloRegistro";
+import { agruparPorPublico, procedenciaDe } from "./rondasDelRegistro";
 import { TarjetaDeCampana } from "./TarjetaDeCampana";
 import type { FuenteDelRegistro } from "./useRegistroDeCampanas";
 import "./campanas.css";
@@ -67,9 +68,12 @@ export function ListaDeCampanas({
 }: Props) {
   const visibles = registro ? campanasVisibles(registro) : [];
   const archivadas = registro ? campanasArchivadas(registro) : [];
+  const nombreDe = (id: string) => (registro ? campanaPorId(registro, id)?.name ?? null : null);
   const tarjeta = (c: CampanaMaterial) => (
-    <TarjetaDeCampana campana={c} href={hrefDe(c)} acciones={accionesDe(c)} onAccion={onAccion} miniatura={miniaturas[c.id] ?? null} asunto={asuntos[c.id] ?? null} />
+    <TarjetaDeCampana campana={c} href={hrefDe(c)} acciones={accionesDe(c)} onAccion={onAccion} miniatura={miniaturas[c.id] ?? null} asunto={asuntos[c.id] ?? null} procedencia={procedenciaDe(c, nombreDe)} />
   );
+  // Revamp v5 (ADR 0125 §5): en acreditación, un bloque por público con sus rondas en orden.
+  const porPublico = agruparPorPublico(visibles);
 
   return (
     <PageFrame
@@ -122,6 +126,16 @@ export function ListaDeCampanas({
           </div>
         ) : !registro ? (
           <div className="rec-loading" data-qa-geometry-capacity="owned">Leyendo las campañas…</div>
+        ) : visibles.length && porPublico.grupos.length ? (
+          <>
+            {porPublico.grupos.map((g) => (
+              <section key={g.publico} className="rec-campanas-publico" aria-label={`Campañas de ${g.publico}`}>
+                <h2 className="rec-campanas-publico-titulo">{g.publico}<small>{g.campanas.length.toLocaleString("es-PE")} {g.campanas.length === 1 ? "campaña" : "campañas"}</small></h2>
+                <Grilla campanas={g.campanas} grupo={`material-campo/campanas/${g.publico}`}>{tarjeta}</Grilla>
+              </section>
+            ))}
+            {porPublico.sueltas.length ? <Grilla campanas={porPublico.sueltas} grupo="material-campo/campanas">{tarjeta}</Grilla> : null}
+          </>
         ) : visibles.length ? (
           <Grilla campanas={visibles} grupo="material-campo/campanas">{tarjeta}</Grilla>
         ) : (

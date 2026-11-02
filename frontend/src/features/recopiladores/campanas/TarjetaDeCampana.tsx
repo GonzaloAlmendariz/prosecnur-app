@@ -35,9 +35,11 @@ type Props = {
   miniatura?: MiniaturaDeCorreo | null;
   /** El asunto del correo: distingue a dos campañas del mismo nombre cuando no hay actor (F1). */
   asunto?: string | null;
+  /** Ronda y de qué campaña viene (acreditación, supervisión), ya redactado. */
+  procedencia?: string | null;
 };
 
-export function TarjetaDeCampana({ campana, href, acciones, onAccion, miniatura = null, asunto = null }: Props) {
+export function TarjetaDeCampana({ campana, href, acciones, onAccion, miniatura = null, asunto = null, procedencia = null }: Props) {
   const resumen = resumenDeTarjeta(campana);
   const subtitulo = subtituloDeCampana(campana, asunto);
   const Icono = ICONO_DEL_TIPO[campana.tipo];
@@ -60,6 +62,7 @@ export function TarjetaDeCampana({ campana, href, acciones, onAccion, miniatura 
             {campana.archived ? campana.name : <Link className="rec-campana-abrir" to={href}>{campana.name}</Link>}
           </h3>
           {subtitulo ? <span className="rec-campana-actor" title={subtitulo}>{subtitulo}</span> : null}
+          {procedencia ? <span className="rec-campana-procedencia" title={procedencia}>{procedencia}</span> : null}
         </span>
         <MenuDeCampana campana={campana} acciones={acciones} onAccion={onAccion} subtitulo={subtitulo} />
       </header>

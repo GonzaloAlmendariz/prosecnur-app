@@ -855,3 +855,33 @@
 /* Checklist F18: debajo de los tipos, el camino a Hojas de ruta cuando el territorial espera el envío. */
 .rec-nueva-ir-hojas { margin: var(--pulso-space-2) 0 0; font-size: 12.5px; }
 .rec-nueva-ir-hojas a { font-weight: 600; color: var(--pulso-module-routes); }
+
+/* Revamp v5: el registro por público y ronda (acreditación). */
+.rec-campanas-publico {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-3);
+}
+.rec-campanas-publico-titulo {
+  display: flex;
+  align-items: baseline;
+  gap: var(--pulso-space-2);
+  margin: 0;
+  font-size: 15px;
+  font-weight: 650;
+  color: var(--pulso-text);
+  text-transform: capitalize;
+}
+.rec-campanas-publico-titulo small {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--pulso-text-faint);
+  text-transform: none;
+}
+.rec-campana-procedencia {
+  font-size: 12px;
+  color: var(--pulso-text-soft);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
