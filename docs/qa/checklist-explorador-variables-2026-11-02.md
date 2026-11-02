@@ -16,13 +16,13 @@ Maqueta: https://claude.ai/artifact/8UdLQMeheKjCC3oNXUorW4 (cinco tableros).
 | E3 | Una sola barra de lectura: Momento, Filtro, Cruzar por en un renglón | `tabs/explorar/BarraLectura.tsx` + `FiltroCascada`, `CrossBar` | ◐ visto en vivo (sin abrir un filtro) |
 | E4 | La base dicha en una frase («642 de 1,283 casos con el filtro activo · 604 responden y 38 quedan sin respuesta») | `BarraLectura` / ficha | ◐ visto en vivo |
 | E5 | Tira de cifras clave (Responden, Sin respuesta, Más frecuente, Opciones usadas) en lugar de las tarjetas KPI | `tabs/explorar/TiraCifras.tsx` | ◐ visto en vivo |
-| E6 | Gráfico univariado por tipo: única ordenada, escala divergente, múltiple con «cuántas marca», numérica histograma + caja, fecha por día, abierta agrupada | motor `explorador_distribucion.R` (`uni.dist`) + `tabs/explorar/Distribucion*.tsx` | ◐ única vista en vivo; numérica, fecha, múltiple y abierta sin ver |
-| E7 | Selector de cruce con TODAS las variables, buscable, filtrable por tipo, que anticipa el gráfico del par | `components/CrossBar.tsx` + `tabs/explorar/graficoDelPar.ts` | ☐ |
+| E6 | Gráfico univariado por tipo: única ordenada, escala divergente, múltiple con «cuántas marca», numérica histograma + caja, fecha por día, abierta agrupada | motor `explorador_distribucion.R` (`uni.dist`) + `tabs/explorar/Distribucion*.tsx` | ◐ única, múltiple (una sola variable, 9 opciones) y numérica (histograma + caja) vistas en vivo; fecha y abierta sin ver |
+| E7 | Selector de cruce con TODAS las variables, buscable, filtrable por tipo, que anticipa el gráfico del par | `components/CrossBar.tsx` + `tabs/explorar/graficoDelPar.ts` | ◐ visto en vivo: busca entre todas, chips por tipo en 3 columnas y anticipa «Tabla de calor» (4bbf5e480) |
 | E8 | Los 25 pares tipo × tipo con gráfico propio (hoy 5) | motor `explorador_cruces.R` (`biv.cruce`) | ☐ |
-| E9 | Tabla de calor del cruce categórico: % por columna / por fila / n, ▲▼ a 5 pts del total, Total aparte, «Lo que se aparta del total» | `tabs/explorar/TablaCalor.tsx` | ☐ |
+| E9 | Tabla de calor del cruce categórico: % por columna / por fila / n, ▲▼ a 5 pts del total, Total aparte, «Lo que se aparta del total» | `tabs/explorar/TablaCalor.tsx` | ◐ visto en vivo con consent × sexo: % por columna / fila / n y Total aparte |
 | E10 | Panel «En el formulario»: texto y ayuda, tipo y lista, grupo, aparece si, restricción, obligatoria, filtro de opciones, qué abre «Otro», versión, opciones con código/etiqueta/n | motor `explorador_ficha.R` (GET `/api/validacion/v2/explorar/ficha`) + `tabs/explorar/PanelFormulario.tsx` | ◐ visto en vivo; una sola ficha con E11 y columna Código entera (45a26ab0d) |
 | E11 | Panel «Lo que se ve en los datos»: sin respuesta, códigos fuera de la lista, textos en «Otro»; reglas sólo cuando existan (hoy: «aún no hay ninguna aplicada») | ficha (`datos`) + `tabs/explorar/PanelDatos.tsx` | ◐ visto en vivo, en la misma tarjeta que E10 |
-| E12 | Al cruzar, la lista se pliega en un riel con anterior/siguiente | `ExplorarTab.tsx` layout | ☐ |
+| E12 | Al cruzar, la lista se pliega en un riel con anterior/siguiente | `ExplorarTab.tsx` layout | ◐ visto en vivo: la lista se pliega en riel con 2/63 y anterior/siguiente |
 
 ## Contrato congelado (front ↔ motor)
 
@@ -69,3 +69,6 @@ Filas = la variable que se lee (`var_x`); columnas = la del cruce (`var_y`).
 - Fecha no tiene univariado propio (`.explorar_chart_univariado`).
 - Las reglas de validación aún no se aplican por pregunta: el panel no puede
   mostrar semáforos de reglas.
+- En acnur_acg el XLSForm dice `D1_information` y la base `d1_information.*`; los
+  `calculate` llegan como texto con «NaN» de Kobo. Ambas cosas rompían la lista
+  (89aa0950b, 3d700f8b4): de 94 «variables» quedan 63 preguntas.
