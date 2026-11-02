@@ -4645,6 +4645,7 @@ a { color: var(--pulso-primary); }
   gap: 12px;
 }
 .pulso-validacion-kpi-card {
+  container: validacion-kpi / inline-size;
   min-height: 144px;
   display: flex;
   flex-direction: column;
@@ -4701,6 +4702,13 @@ a { color: var(--pulso-primary); }
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.85);
   color: var(--pulso-validacion-kpi-fg);
+}
+/* En tarjeta angosta el ícono grande repite el del eyebrow y le roba el
+   ancho que necesita su rótulo: se retira antes de partir una palabra. */
+@container validacion-kpi (max-width: 220px) {
+  .pulso-validacion-kpi-icon {
+    display: none;
+  }
 }
 .pulso-validacion-kpi-value {
   color: var(--pulso-validacion-kpi-fg);
