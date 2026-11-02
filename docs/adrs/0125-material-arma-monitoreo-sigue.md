@@ -260,7 +260,8 @@ por la coordinación como decisión reversible. Cada dueño construye su lado co
   - de los resultados: las variables que se repreguntan;
   - siempre, las de la supervisión, con nombre fijo porque las lee Monitoreo: `Observaciones del supervisor`,
     `Estatus de la llamada de supervisión` y `Veredicto`. El veredicto tiene catálogo cerrado: `Confirmada`,
-    `No confirmada`, `No contactado`.
+    `No confirmada`, `No contactado`. Ese catálogo es una propuesta de Hojas, no una decisión de Gonzalo: él puede
+    revisarlo. Si cambia, cambian Material, que lo escribe, y Monitoreo, que lo lee.
 - **Salida.** Excel o Sheets, con una fila por caso del lote.
 - **Lectura (Monitoreo).** Lee esas tres columnas por `llave` y dice de qué lote y de qué campaña viene cada caso.
 
