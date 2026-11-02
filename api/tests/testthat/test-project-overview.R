@@ -58,17 +58,17 @@ test_that("facts.monitoreo despacha KPIs por familia (territorial vs generico)",
 
   session_set(sid, "monitoreo_config", list(monitoreo_profile = list(family = "territorial")))
   session_set(sid, "monitoreo_snapshot", list(dashboard = list(territorial_reports = list(kpis = list(
-    total_respuestas = 100L, validas = 80L, meta = 200L, avance_pct = 40,
+    total_respuestas = 100L, validas = 80L, efectivas = 80L, meta = 200L, avance_pct = 40,
     revision = 5L, geo_no_defendible = 2L
   )))))
   mon_t <- .project_overview_payload(sid)$facts$monitoreo
   expect_equal(mon_t$family, "territorial")
   expect_equal(mon_t$collected, 100L)
-  # Numerador = las validadas (80), el mismo criterio que avance_pct (80/200 =
-  # 40 %): la cifra y el porcentaje de la tarjeta no pueden contradecirse. Las
-  # de revision (5) van como alerta, no al numerador.
+  # Numerador = las efectivas (80, en observacion incluidas: el motor ya las
+  # cuenta en `validas`), el mismo criterio que avance_pct (80/200 = 40 %). Las
+  # en observacion (5) van ademas como alerta (Gonzalo, 2026-11-02).
   expect_equal(mon_t$valid, 80L)
-  expect_equal(mon_t$valid_label, "validadas")
+  expect_equal(mon_t$valid_label, "efectivas")
   expect_equal(mon_t$avance_pct, 40)
   expect_equal(mon_t$avance_pct, round(100 * mon_t$valid / mon_t$target, 1))
   # Alertas = casos en revision, sin sumar el eje geo (ver

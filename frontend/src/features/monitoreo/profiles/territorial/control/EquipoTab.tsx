@@ -81,7 +81,7 @@ function EquipoTabImpl({
                 <th scope="col">Código</th>
                 <th scope="col">Estado</th>
                 <th scope="col" className="is-num">Recibidas</th>
-                <th scope="col" className="is-num" title="Efectivas validadas que no se anularon, por quien las envió: la base del avance">Cuentan</th>
+                <th scope="col" className="is-num" title="Efectivas de Kobo que no se anularon, en observación incluidas, por quien las envió: la base del avance">Cuentan</th>
                 <th scope="col" className="is-num">UMP</th>
                 <th scope="col" className="is-distritos">Distritos</th>
                 <th scope="col">GPS observado</th>
@@ -92,7 +92,7 @@ function EquipoTabImpl({
                   <>
                     <th scope="col" className="is-num" title="Efectivas que declara coordinación en su registro; no se suman a Kobo">Declaradas</th>
                     <th scope="col" className="is-num" title="UMP donde lo declarado no coincide con Kobo validado">No cuadran</th>
-                    <th scope="col" className="is-num" title="Efectivas validadas en sus UMP planificadas sobre los intentos que declara coordinación">Rendimiento</th>
+                    <th scope="col" className="is-num" title="Efectivas en sus UMP planificadas sobre los intentos que declara coordinación">Rendimiento</th>
                     <th scope="col" title="Supervisión: aprobadas / no aprobadas">Supervisión</th>
                   </>
                 ) : null}

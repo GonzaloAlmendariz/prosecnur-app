@@ -7855,9 +7855,25 @@ monitoreo_enrich_kobo_datetime_columns <- function(data) {
   out
 }
 
+# **Una sola cuenta de efectivas territoriales** (Gonzalo, 2026-11-02: «Ambos
+# deben contar las efectivas de Kobo, las observadas están en observación pero
+# no quitan la cuenta»). Home (`kpis$validas`) y Avance (`advance$validas`)
+# salían de dos sumas distintas —«validada» sola contra `advance_valid`— y
+# acnur_acg decía 1,028 en un lado y 1,283 en el otro. Estar en observación es
+# una marca de calidad aparte, con su conteo, que no resta de las efectivas.
+.monitoreo_territorial_efectivas <- function(audit) {
+  valid <- audit$advance_valid %in% TRUE
+  observed <- valid & (audit$observation_status %in% "en_observacion")
+  list(
+    efectivas = as.integer(sum(valid)),
+    en_observacion = as.integer(sum(observed)),
+    no_validas = as.integer(sum(!valid))
+  )
+}
+
 .monitoreo_territorial_advance_progress <- function(district_goals, blocks, audit, target_total) {
   advance_valid <- audit$advance_valid %in% TRUE
-  observed_pending <- audit$observation_status %in% "en_observacion"
+  cuenta <- .monitoreo_territorial_efectivas(audit)
   approved <- rep(FALSE, nrow(audit))
 
   district_progress <- lapply(seq_len(nrow(district_goals)), function(i) {
@@ -7869,15 +7885,16 @@ monitoreo_enrich_kobo_datetime_columns <- function(data) {
     u <- as.character(district_goals$ubigeo[[i]])
     rows <- audit[district_key == u, , drop = FALSE]
     meta <- suppressWarnings(as.integer(district_goals$meta[[i]]))
-    valids <- sum(rows$advance_valid %in% TRUE, na.rm = TRUE)
+    c_d <- .monitoreo_territorial_efectivas(rows)
+    valids <- c_d$efectivas
     list(
       ubigeo = u,
       distrito = as.character(district_goals$distrito[[i]]),
       meta = if (is.finite(meta)) meta else NA_integer_,
       total = as.integer(nrow(rows)),
-      validas = as.integer(valids),
-      revision = as.integer(sum(rows$observation_status %in% "en_observacion", na.rm = TRUE)),
-      no_defendibles = as.integer(sum(!(rows$advance_valid %in% TRUE), na.rm = TRUE)),
+      validas = valids,
+      revision = c_d$en_observacion,
+      no_defendibles = c_d$no_validas,
       avance_pct = if (is.finite(meta) && meta > 0) round(100 * valids / meta, 1) else NA_real_,
       brecha = if (is.finite(meta)) as.integer(max(0, meta - valids)) else NA_integer_
     )
@@ -7897,13 +7914,13 @@ monitoreo_enrich_kobo_datetime_columns <- function(data) {
 
   list(
     total_respuestas = as.integer(nrow(audit)),
-    validas = as.integer(sum(advance_valid, na.rm = TRUE)),
-    observacion = as.integer(sum(observed_pending, na.rm = TRUE)),
+    validas = cuenta$efectivas,
+    observacion = cuenta$en_observacion,
     observacion_aprobada = as.integer(sum(approved, na.rm = TRUE)),
-    no_validas = as.integer(sum(!advance_valid, na.rm = TRUE)),
+    no_validas = cuenta$no_validas,
     meta = if (is.finite(target_total)) as.integer(target_total) else NA_integer_,
-    avance_pct = if (is.finite(target_total) && target_total > 0) round(100 * sum(advance_valid, na.rm = TRUE) / target_total, 1) else NA_real_,
-    brecha = if (is.finite(target_total)) as.integer(max(0, target_total - sum(advance_valid, na.rm = TRUE))) else NA_integer_,
+    avance_pct = if (is.finite(target_total) && target_total > 0) round(100 * cuenta$efectivas / target_total, 1) else NA_real_,
+    brecha = if (is.finite(target_total)) as.integer(max(0, target_total - cuenta$efectivas)) else NA_integer_,
     district_progress = district_progress,
     block_progress = .monitoreo_territorial_block_progress(blocks, audit, status_col = "advance_status", block_key_col = "advance_block_id"),
     daily = daily
@@ -14650,21 +14667,24 @@ monitoreo_territorial_reportes <- function(data, cfg, hojas_ruta_context = NULL,
   if (!is.finite(target_total)) target_total <- NA_integer_
   gps_crossable <- audit$gps_parseable & nzchar(audit$ubigeo) & !audit$geo_estado %in% c("geo_sin_cruce")
   geo_counts <- table(factor(audit$geo_estado, levels = c("geo_ok", "geo_cerca", "geo_revision", "geo_no_defendible", "geo_sin_cruce", "geo_sin_gps")))
-  counts <- .monitoreo_territorial_status_counts(audit$validation_status)
+  cuenta <- .monitoreo_territorial_efectivas(audit)
   visible_duration <- audit$duration_seconds
   kpis <- list(
     total_respuestas = as.integer(nrow(audit)),
     consentidas = as.integer(sum(audit$source_effective %in% TRUE, na.rm = TRUE)),
-    validas = as.integer(counts[["validada"]]),
-    revision = as.integer(counts[["revision"]]),
-    no_defendibles = as.integer(counts[["no_defendible"]]),
+    # `validas` son las EFECTIVAS de Kobo, las en observación incluidas: la
+    # misma función que `advance$validas` (Gonzalo, 2026-11-02). `revision`
+    # es la marca de observación, con su conteo, no una resta.
+    validas = cuenta$efectivas,
+    # Llave propia: su presencia dice que `validas` ya trae las en observación.
+    # Un corte anterior no la tiene y su `validas` era sólo «validada»; los
+    # lectores (Home, Carga) reconstruyen ahí `validas + revision`.
+    efectivas = cuenta$efectivas,
+    revision = cuenta$en_observacion,
+    no_defendibles = cuenta$no_validas,
     meta = if (is.finite(target_total)) as.integer(target_total) else NA_integer_,
-    # Avance = lo LEVANTADO: validadas + en revision. Un caso en revision es
-    # trabajo de campo ya hecho pendiente de aprobar, no trabajo faltante;
-    # dejarlo fuera hacia que el tablero dijera 81.2% (975/1200) donde el
-    # operativo iba 107% (1283/1200), y que el home contradijera al PDF de
-    # avance. Los no defendibles SI quedan fuera: son descartes.
-    avance_pct = if (is.finite(target_total) && target_total > 0) round(100 * (counts[["validada"]] + counts[["revision"]]) / target_total, 1) else NA_real_,
+    # Los no defendibles quedan fuera: son descartes.
+    avance_pct = if (is.finite(target_total) && target_total > 0) round(100 * cuenta$efectivas / target_total, 1) else NA_real_,
     gps_crossable = as.integer(sum(gps_crossable, na.rm = TRUE)),
     geo_ok = as.integer(geo_counts[["geo_ok"]]),
     geo_cerca = as.integer(geo_counts[["geo_cerca"]]),
@@ -14716,18 +14736,18 @@ monitoreo_territorial_reportes <- function(data, cfg, hojas_ruta_context = NULL,
   district_progress <- lapply(seq_len(nrow(district_goals)), function(i) {
     u <- as.character(district_goals$ubigeo[[i]])
     rows <- audit[audit$ubigeo == u, , drop = FALSE]
-    cts <- .monitoreo_territorial_status_counts(rows$validation_status)
+    c_d <- .monitoreo_territorial_efectivas(rows)
     meta <- suppressWarnings(as.integer(district_goals$meta[[i]]))
     list(
       ubigeo = u,
       distrito = as.character(district_goals$distrito[[i]]),
       meta = if (is.finite(meta)) meta else NA_integer_,
       total = as.integer(nrow(rows)),
-      validas = as.integer(cts[["validada"]]),
-      revision = as.integer(cts[["revision"]]),
-      no_defendibles = as.integer(cts[["no_defendible"]]),
-      avance_pct = if (is.finite(meta) && meta > 0) round(100 * (cts[["validada"]] + cts[["revision"]]) / meta, 1) else NA_real_,
-      brecha = if (is.finite(meta)) as.integer(max(0, meta - (cts[["validada"]] + cts[["revision"]]))) else NA_integer_
+      validas = c_d$efectivas,
+      revision = c_d$en_observacion,
+      no_defendibles = c_d$no_validas,
+      avance_pct = if (is.finite(meta) && meta > 0) round(100 * c_d$efectivas / meta, 1) else NA_real_,
+      brecha = if (is.finite(meta)) as.integer(max(0, meta - c_d$efectivas)) else NA_integer_
     )
   })
 

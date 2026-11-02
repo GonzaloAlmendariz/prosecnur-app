@@ -177,22 +177,23 @@
   if (identical(fam, "territorial")) {
     k <- snap$territorial_overview_facts %||% (dash$territorial_reports %||% list())$kpis %||% list()
     collected <- as.integer(.diseno_num(k$total_respuestas, 0))
-    # El numerador del avance son las VALIDADAS, el mismo criterio que el
-    # `avance_pct` del modulo (validas / meta) y el PDF de avance. Sumar las de
-    # revision al numerador y dejar el porcentaje en validadas hacia que la
-    # tarjeta se contradijera sola: "1,283 de 1,200 levantadas, meta cumplida"
-    # encima de "85.7%" (Gonzalo, 2026-10-31: «solo validadas»). Las de revision
-    # siguen en la tarjeta como alerta («N por revisar»).
-    valid <- as.integer(.diseno_num(k$validas, 0))
+    # El numerador del avance son las EFECTIVAS de Kobo, las en observacion
+    # incluidas (Gonzalo, 2026-11-02: «Ambos deben contar las efectivas de
+    # Kobo, las observadas están en observación pero no quitan la cuenta»).
+    # `k$validas` sale de `.monitoreo_territorial_efectivas`, la misma funcion
+    # que `advance$validas` de Avance, asi que Home y Avance dicen la misma
+    # cifra. Las en observacion siguen en la tarjeta como marca («N por revisar»).
+    valid <- monitoreo_territorial_efectivas_de_kpis(k)
     target <- as.integer(.diseno_num(k$meta, 0))
     avance <- .overview_pct(k$avance_pct)
-    # Solo `revision`: validas + revision + no_defendibles particionan el total,
+    # Solo `revision`: es el subconjunto de las efectivas en observacion
+    # (efectivas + no_defendibles particionan el total),
     # mientras que los `geo_*` son un eje ortogonal de geolocalizacion. Sumarlos
     # daba mas "alertas" que casos no validos en el estudio.
     # Los casos en revision cuentan para el avance Y siguen pidiendo revision:
     # son dos lecturas distintas del mismo caso, no una contradiccion.
     alerts <- as.integer(.diseno_num(k$revision, 0))
-    valid_label <- "validadas"
+    valid_label <- "efectivas"
     # Territorial ya mide validas sobre meta; se nombra igual que las demas
     # familias para que "avance" signifique lo mismo en toda la app.
     if (target > 0L) avance_label <- "avance de meta"

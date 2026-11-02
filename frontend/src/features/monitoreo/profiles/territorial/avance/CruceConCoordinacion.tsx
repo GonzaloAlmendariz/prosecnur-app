@@ -47,7 +47,7 @@ export function CruceConCoordinacion({ modelo, ump }: { modelo: Modelo; ump: str
         ))}
       </div>
       <p className="mon-falt-coord-pie">
-        Kobo cuenta las efectivas validadas de la manzana en uso (la misma base del avance, sin las subsanaciones). Lo declarado no se suma al avance: si no cuadra, se revisa en el Excel o en Kobo.
+        Kobo cuenta las efectivas de la manzana en uso, en observación incluidas (la misma base del avance, sin las subsanaciones). Lo declarado no se suma al avance: si no cuadra, se revisa en el Excel o en Kobo.
       </p>
     </section>
   );

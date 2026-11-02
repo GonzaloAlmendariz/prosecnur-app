@@ -102,12 +102,16 @@
   facts <- (snapshot %||% list())$territorial_overview_facts %||%
     (((snapshot %||% list())$dashboard %||% list())$territorial_reports %||% list())$kpis %||%
     list()
-  validada <- int0(facts$validas)
+  # Efectivas = las en observacion incluidas (Gonzalo, 2026-11-02); `validada`
+  # queda como la parte sin observacion. Sumar `validas + revision` de un corte
+  # nuevo contaba dos veces las en observacion.
   revision <- int0(facts$revision)
+  efectivas <- monitoreo_territorial_efectivas_de_kpis(facts)
+  validada <- as.integer(max(0L, efectivas - revision))
   no_defendible <- int0(facts$geo_no_defendible %||% facts$no_defendible)
   total_rows <- int0(facts$total_respuestas %||%
     (if (is.data.frame(snapshot$data)) nrow(snapshot$data) else 0L))
-  processable <- validada + revision
+  processable <- efectivas
   counts <- list(
     processable = as.integer(processable),
     validada = as.integer(validada),
