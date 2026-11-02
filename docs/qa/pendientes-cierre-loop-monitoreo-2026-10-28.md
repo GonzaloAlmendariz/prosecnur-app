@@ -52,6 +52,21 @@ mergeó ni se borró al cerrar. `main` local va **175 commits por delante de
 
 **Traspaso (2026-10-31):** lo que sigue de esta lista pasa a una sesión nueva que propone Meta B, con alcance `frontend/src/features/monitoreo/**` y `api/R/monitoreo_*`. La sesión que cerró el loop no vuelve a tocar Monitoreo.
 
+## Abierto para otra ronda (cierre de sesión, 2026-11-02)
+
+Lo cerrado esta noche y la mañana del 2/11 está en `main` (local, sin push). Queda abierto, con dónde vive y qué lo destraba:
+
+| # | Qué falta | Dónde vive | Qué lo destraba |
+|---|---|---|---|
+| 3a | **Supervisión de rondas de acreditación**: hoy las rondas de supervisión sólo existen en el perfil telefónico y sus lotes salen siempre de `telefonica.principal`. Una telefónica de acreditación por ronda (`telefonica.<público>-r<n>`) necesita lotes con ese `campana_origen` para que Material lea su pestaña («Barrido <público>-r<n>») | `monitoreo_supervision_lotes.R`, `monitoreo_supervision_rondas.R`; contrato A3 del ADR 0125 | Que acreditación tenga rondas de supervisión propias |
+| 3b | **Sugerencia «¿abrir otra ronda?»** cuando un público de acreditación no llega a su meta, con enlace a Material | Modelo de acreditación (`fuentes/CanalesDelPublico.tsx`, c36597d3d) | Diseño de dónde se muestra (Avance o Modelo) |
+| 3c | **Anonimato con marco en los exports**: el libro y el PDF que arman el tablero sin sesión conservan «Respuestas anónimas: Sí» | `monitoreo_build_dashboard` / snapshot (supuesto del revisor en b3ae6b5e8) | Inyectar `con_marco` en la config persistida o en `monitoreo_build_dashboard` |
+| 3d | **Cuotas en territorial, segunda parte**: el resto de Avance (Resumen por distrito, Mapa, UMP) y Control siguen pensados para UMP; con un envío por cuotas sólo Faltante muestra el avance por zona (87c5afb76) | `features/monitoreo/profiles/territorial/avance/*` | Revisar pestaña por pestaña con la copia `d1_cuotas` |
+| 3e | **Lectura del barrido por pestaña de campaña**: en acreditación por ronda la pestaña es «Barrido <público>-r<n>» (053487ea4), no «Barrido» | fuente de barrido de Monitoreo; `.mbs_pestana_de(s, campaign_id)` de Material | Primer estudio de acreditación con telefónica por ronda |
+| 3f | **«308 en observación» frente a 255** (fila 2l) y el **capacity-drift** del aviso de partes (fila 2m) | ver 2l y 2m | Decisión sobre la cartografía de Avance; hipótesis nueva para el drift |
+| 3g | **R7 asignación de aplicadores de aulas**: la asignación diaria vive en Monitoreo; Material aún no asigna aplicadores | `aulas/AulasAsignacionDeAplicadores.tsx`; checklist de responsabilidades R7 | Que Material de aulas asigne desde el padrón (f42e758f9) |
+| 3h | **Relanzar 8787 y 8841** para que la app de Gonzalo vea los cambios de R de esta ronda | — | OK de Gonzalo |
+
 ## Decisiones que esperan a Gonzalo
 
 | Pregunta | Contexto | Qué pasa con cada respuesta |
