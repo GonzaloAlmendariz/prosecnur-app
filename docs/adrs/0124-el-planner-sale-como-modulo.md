@@ -2,7 +2,7 @@
 
 Estado: Aceptado (Gonzalo, 2026-11-01, al revisar la pantalla nueva del Planner: «Sí, procede»)
 
-Implementación: En curso
+Implementación: backend en b00932653 (un estudio, un tipo); frontend en el commit del retiro (panel «Ficha del estudio» en `features/estudio/`, módulo `diseno-estudio` fuera, `features/bitacora/` borrado, `/planner`, `/bitacora`, `/diseno-estudio` y `/plan-trabajo` → `/?panel=estudio`). Pendiente: retirar el backend dormido de la Bitácora (checklist del retiro, ítem 7)
 
 Fecha: 2026-11-01
 

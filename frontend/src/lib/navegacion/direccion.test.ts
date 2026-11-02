@@ -39,47 +39,10 @@ describe("gramática de direcciones", () => {
     expect(hojas?.pestana).toBe("cuotas");
   });
 
-  it("lee las secciones que pasaron a pestañas del Planner (ADR 0122) sin escribirlas", () => {
-    // Calendario y Lienzo dejaron de ser secciones: un enlace viejo aterriza en
-    // su pestaña nueva y conserva la que pedía (mes o semana).
-    expect(parsearDireccion("/planner", "?seccion=calendario")).toMatchObject({ seccion: "cronograma", pestana: "mes" });
-    expect(parsearDireccion("/planner", "?seccion=calendario&pestana=semana")).toMatchObject({ seccion: "cronograma", pestana: "semana" });
-    // ADR 0123: el lienzo es la pestaña Lienzo de Camino; el alias se encadena.
-    expect(parsearDireccion("/planner", "?seccion=canvas")).toMatchObject({ seccion: "camino", pestana: "lienzo" });
-    expect(parsearDireccion("/planner", "?tab=canvas")).toMatchObject({ seccion: "camino", pestana: "lienzo" });
-    expect(serializarDireccion(parsearDireccion("/planner", "?seccion=canvas")!)).toBe("/planner?seccion=camino&pestana=lienzo");
-    // La Bitácora dejó de ser sección: el registro es una pestaña del cronograma
-    // y el lienzo, Camino. La pareja sección/pestaña gana a la sección sola.
-    expect(parsearDireccion("/planner", "?seccion=bitacora")).toMatchObject({ seccion: "cronograma", pestana: "registro" });
-    expect(parsearDireccion("/planner", "?seccion=bitacora&pestana=registro")).toMatchObject({ seccion: "cronograma", pestana: "registro" });
-    expect(parsearDireccion("/planner", "?seccion=bitacora&pestana=lienzo")).toMatchObject({ seccion: "camino", pestana: "lienzo" });
-    // Q5: la sección Muestra salió; el universo vive en Cálculo.
-    const muestra = parsearDireccion("/planner", "?seccion=muestra");
-    expect(muestra).toMatchObject({ seccion: "estudio", aviso: "universo-en-calculo" });
-    expect(muestra?.pestana).toBeUndefined();
-    // Los insumos del cliente ya no se registran: Estudio, con el aviso.
-    const insumos = parsearDireccion("/planner", "?seccion=estudio&pestana=insumos");
-    expect(insumos).toMatchObject({ seccion: "estudio", aviso: "insumos-no-se-registran" });
-    expect(insumos?.pestana).toBeUndefined();
-    expect(parsearDireccion("/planner", "?seccion=estudio&pestana=perfiles")).toMatchObject({ seccion: "estudio", pestana: "perfiles" });
-    expect(parsearDireccion("/planner", "?seccion=estudio&pestana=perfiles")?.aviso).toBeUndefined();
-    // ADR 0123 §3: Equipo y Códigos salieron del Planner. La dirección vieja
-    // aterriza en Estudio con el aviso de dónde vive el dato, y la pestaña vieja
-    // (que Estudio no tiene) se descarta. El aviso nunca se escribe.
-    expect(parsearDireccion("/planner", "?seccion=equipo")).toMatchObject({ seccion: "estudio", aviso: "equipo-en-monitoreo" });
-    const codigos = parsearDireccion("/planner", "?seccion=codigos&pestana=barrido");
-    expect(codigos).toMatchObject({ seccion: "estudio", aviso: "codigos-en-material" });
-    expect(codigos?.pestana).toBeUndefined();
-    expect(serializarDireccion(codigos!)).toBe("/planner");
-    expect(parsearDireccion("/planner", "?seccion=cronograma")?.aviso).toBeUndefined();
-  });
-
   it("acepta los alias legacy de cada módulo", () => {
     expect(parsearDireccion("/calc-muestra", "?mesa=aulas")?.modo).toBe("aulas");
     expect(parsearDireccion("/calc-muestra", "?desk=aulas")?.modo).toBe("aulas");
-    expect(parsearDireccion("/planner", "?tab=cronograma")?.seccion).toBe(
-      "cronograma",
-    );
+    expect(parsearDireccion("/hojas-ruta", "?stage=seleccion")?.seccion).toBe("seleccion");
     expect(parsearDireccion("/monitoreo", "?perfil=aulas")?.modo).toBe("aulas");
   });
 
@@ -167,7 +130,6 @@ describe("gramática de direcciones", () => {
       "/monitoreo?modo=territorial&seccion=avance",
       "/hojas-ruta?seccion=seleccion&pestana=titulares",
       "/carga",
-      "/planner?seccion=cronograma",
       "/calc-muestra?modo=aulas",
     ];
     for (const href of casos) {

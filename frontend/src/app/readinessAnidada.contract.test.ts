@@ -127,6 +127,8 @@ describe("el puente y el runner aplican el mismo contrato", () => {
  * archivo aquí exige comprobar que el `false` es una carga, no un vacío.
  */
 const FALSE_TRANSITORIO: Record<string, string> = {
+  "features/estudio/FichaDelEstudio.tsx":
+    "lectura de GET /api/planner (ADR 0124): el `finally` apaga la carga con la ficha o con el error, que se pinta dentro",
   "features/calcMuestra/universidad/salidas/DeclararRepresentatividad.tsx":
     "lectura del escenario y del Planner (ADR 0121 F4): el `finally` apaga la carga con datos o con error",
   "features/calcMuestra/AterrizajeDelPlanner.tsx":
@@ -158,8 +160,6 @@ const FALSE_TRANSITORIO: Record<string, string> = {
     "vista previa pedida («Previsualizar») mientras el motor dibuja; lista o en error (también desactualizada) publica true",
   "features/graficos/estiloInforme/PestanaEstiloInforme.tsx": "`cargando` de la lectura del estilo del informe",
   "features/graficos/indice/BibliotecaIconos.tsx": "listo al llegar los nombres de íconos o su error",
-  "features/bitacora/CronogramaSection.tsx":
-    "lectura del estado de la bitácora (fases y lista del cronograma): con el estado monta su superficie y con el error publica vacio:cronograma-ilegible",
   "features/calcMuestra/CalcMuestraPage.tsx":
     "`calc-muestra-hidratando`: la rehidratación del estado del proyecto",
   "features/calcMuestra/general/ArchivoMarcoGeneral.tsx":

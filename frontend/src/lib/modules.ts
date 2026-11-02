@@ -3,15 +3,12 @@ import {
   Archive,
   BarChart3,
   CalendarDays,
-  CalendarRange,
   CheckCircle2,
   ClipboardCheck,
   ClipboardList,
-  Compass,
   DatabaseZap,
   FileSpreadsheet,
   FileText,
-  GanttChart,
   Hash,
   Link2,
   LayoutGrid,
@@ -20,7 +17,6 @@ import {
   ListChecks,
   ListOrdered,
   MapPinned,
-  Network,
   PhoneCall,
   PlugZap,
   Route,
@@ -47,7 +43,6 @@ import {
   IconSample,
   IconStudyDesign,
   IconTemplate,
-  IconWorkPlan,
 } from "./icons";
 import { MONITOREO_PESTANAS } from "./navegacion/catalogos/monitoreo";
 import {
@@ -214,6 +209,8 @@ export const MODULE_TONES: Record<ProsecnurModuleSlug, ProsecnurModuleTone> = {
     accentSoft: "var(--pulso-module-workplan-soft)",
     accentBorder: "var(--pulso-module-workplan-border)",
   },
+  // ADR 0124: el Planner (antes Bitácora) dejó de ser módulo; el slug queda
+  // por los .pulso que lo traen en sus módulos agregados.
   "diseno-estudio": {
     accent: "var(--pulso-module-encyclopedia)",
     accentSoft: "var(--pulso-module-encyclopedia-soft)",
@@ -233,83 +230,6 @@ export const MODULE_TONES: Record<ProsecnurModuleSlug, ProsecnurModuleTone> = {
 };
 
 export const PROSECNUR_MODULES: ProsecnurModuleMeta[] = [
-  {
-    slug: "diseno-estudio",
-    chrome: {
-      progreso: "none",
-      densidad: "normal",
-      rail: true,
-      chromeOwner: "page",
-    },
-    // ADR 0122: la Bitácora pasa a ser el Planner. El slug `diseno-estudio` no
-    // cambia (tonos, manifiesto, lienzo y tests lo usan como contrato); cambian
-    // el nombre visible, la ruta y las secciones. `/bitacora` redirige aquí con
-    // su query, y `calendario`/`canvas` se leen como alias por valor. ADR 0123:
-    // ya no es bitácora; el registro es una pestaña del cronograma y el lienzo
-    // es el camino entre módulos.
-    title: "Planner del estudio",
-    shortLabel: "Planner",
-    tagline: "El estudio definido una vez para todos los módulos",
-    blurb:
-      "Define el estudio una sola vez —su nombre, sus tipos y el camino entre los módulos— para que cada módulo abra en su modo sin volver a preguntarlo, con un cronograma opcional.",
-    features: [
-      "Perfiles de recojo y quién diseña la muestra",
-      "El camino del estudio entre los módulos",
-      "Cronograma opcional, con registro de decisiones",
-    ],
-    icon: IconStudyDesign,
-    tone: MODULE_TONES["diseno-estudio"],
-    to: "/planner",
-    landingKind: "section",
-    sections: [
-      {
-        id: "estudio",
-        label: "Estudio",
-        icon: IconStudyDesign,
-        to: "/planner",
-        layoutPolicy: "viewport",
-        // ADR 0123 §1: el estudio se define con su identificación y sus tipos;
-        // el Resumen dice qué falta y cómo abre cada módulo. La sección Muestra
-        // salió: el universo y las cuotas son de Cálculo de muestra.
-        tabs: [
-          { id: "resumen", label: "Resumen", icon: Compass, to: "/planner?seccion=estudio&pestana=resumen", layoutPolicy: "viewport" },
-          { id: "identidad", label: "Identificación", icon: FileText, to: "/planner?seccion=estudio&pestana=identidad", layoutPolicy: "viewport" },
-          { id: "perfiles", label: "Tipos de estudio", icon: Layers, to: "/planner?seccion=estudio&pestana=perfiles", layoutPolicy: "viewport" },
-        ],
-      },
-      {
-        // El camino del estudio entre los módulos (ADR 0123 §4): el recorrido
-        // sale de los tipos; el lienzo libre queda para dibujar a mano. Un
-        // camino, no un mando.
-        id: "camino",
-        label: "Camino",
-        icon: Network,
-        to: "/planner?seccion=camino",
-        layoutPolicy: "viewport",
-        tabs: [
-          { id: "recorrido", label: "Recorrido", icon: Route, to: "/planner?seccion=camino&pestana=recorrido", layoutPolicy: "viewport" },
-          { id: "lienzo", label: "Lienzo", icon: Network, to: "/planner?seccion=camino&pestana=lienzo", layoutPolicy: "viewport" },
-        ],
-      },
-      {
-        id: "cronograma",
-        label: "Cronograma",
-        icon: IconWorkPlan,
-        to: "/planner?seccion=cronograma",
-        layoutPolicy: "viewport",
-        // El calendario dejó de ser sección (ADR 0122 §1): Mes y Semana son
-        // pestañas del cronograma y el selector propio del calendario se calla
-        // dentro del Planner, para no duplicar la navegación.
-        tabs: [
-          { id: "gantt", label: "Plan", icon: GanttChart, to: "/planner?seccion=cronograma&pestana=gantt", layoutPolicy: "viewport" },
-          { id: "mes", label: "Mes", icon: CalendarDays, to: "/planner?seccion=cronograma&pestana=mes", layoutPolicy: "viewport" },
-          { id: "semana", label: "Semana", icon: CalendarRange, to: "/planner?seccion=cronograma&pestana=semana", layoutPolicy: "viewport" },
-          // Opcional (ADR 0123 §1): el registro de decisiones vive dentro del cronograma.
-          { id: "registro", label: "Registro de decisiones", icon: ClipboardList, to: "/planner?seccion=cronograma&pestana=registro", layoutPolicy: "viewport" },
-        ],
-      },
-    ],
-  },
   {
     slug: "calc-muestra",
     chrome: {

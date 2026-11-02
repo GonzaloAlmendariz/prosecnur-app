@@ -200,14 +200,6 @@ const MODULE_PROFILES: ModuleWarmupProfile[] = [
     backend: ["project", "editor_xlsform"],
     messages: ["Preparando formulario", "Leyendo estructura", "Abriendo editor"],
   },
-  {
-    key: "bitacora",
-    title: "Planner",
-    moduleTo: "/planner",
-    frontend: ["diseno_estudio"],
-    backend: ["project"],
-    messages: ["Leyendo el estudio", "Preparando cronograma", "Abriendo módulo"],
-  },
 ];
 
 function cleanPathname(pathname: string) {
@@ -230,9 +222,6 @@ function warmupProfileForPath(pathname: string) {
   }
   if (path === "/material-campo" || path === "/recopiladores") {
     return MODULE_PROFILES.find((profile) => profile.key === "material-campo") ?? null;
-  }
-  if (path === "/planner" || path === "/bitacora" || path === "/plan-trabajo" || path === "/diseno-estudio") {
-    return MODULE_PROFILES.find((profile) => profile.key === "bitacora") ?? null;
   }
   if (path === "/tablero") return MODULE_PROFILES.find((profile) => profile.key === "dashboard") ?? null;
   if (path === "/editor-xlsform") return MODULE_PROFILES.find((profile) => profile.key === "editor-xlsform") ?? null;

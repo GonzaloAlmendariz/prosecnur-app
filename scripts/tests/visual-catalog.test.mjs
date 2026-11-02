@@ -377,30 +377,6 @@ test("cada ocurrencia usa una sección registrada en su módulo", () => {
 
 test("expande tuplas, records, factories y arrays de controles críticos", () => {
   assertExactLabels(
-    "frontend/src/features/bitacora/logbook/gramatica.ts",
-    "MODULOS_BITACORA",
-    [
-      "Bitácora",
-      "Muestra",
-      "Formulario",
-      "Rutas",
-      "Material",
-      "Monitoreo",
-      "Carga",
-      "Validación",
-      "Codificación",
-      "Analítica",
-      "Gráficos",
-      "Dashboard",
-      "Proyecto",
-    ],
-  );
-  assertExactLabels(
-    "frontend/src/features/bitacora/logbook/gramatica.ts",
-    "TONOS",
-    ["Nota", "Decisión", "Avance", "Riesgo", "Bloqueo"],
-  );
-  assertExactLabels(
     "frontend/src/lib/navegacion/catalogos/calcMuestra.ts",
     "CALC_MUESTRA_UNIVERSIDAD_PESTANAS.aulas",
     [

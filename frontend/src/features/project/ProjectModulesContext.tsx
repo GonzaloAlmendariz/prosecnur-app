@@ -19,9 +19,9 @@ import { EVENTO_CAMBIO_DEL_ESTUDIO } from "../../lib/avisoDeCambioDelEstudio";
 import { slugCanonicoDeModulo, slugsCanonicosDeModulo } from "../../lib/navegacion/aliasDeModulo";
 
 // Slugs de módulos primarios que un proyecto puede agregar (coincide con
-// lib/modules.ts y el backend). "diseno-estudio" es Bitácora.
+// lib/modules.ts y el backend). "diseno-estudio" (el Planner) salió con el
+// ADR 0124: un .pulso que lo traía en su lista lo pierde al leerla.
 export const PRIMARY_MODULE_SLUGS = [
-  "diseno-estudio",
   "procesamiento",
   "calc-muestra",
   "editor-xlsform",
@@ -42,9 +42,6 @@ export function deriveDefaultAdded(overview: ProjectOverview): string[] {
     return !!m && m.state !== "pending";
   };
   const out: string[] = [];
-  if (overview.maturity.level === "in_progress" || hasWork("plan-trabajo")) {
-    out.push("diseno-estudio");
-  }
   if (PROCESAMIENTO_SUBMODULES.some(hasWork)) out.push("procesamiento");
   for (const slug of ["calc-muestra", "editor-xlsform", "hojas-ruta", "material-campo", "monitoreo", "dashboard"]) {
     if (hasWork(slug)) out.push(slug);
@@ -86,11 +83,8 @@ export function modulosVisibles(
   const derivados = deriveDefaultAdded(overview);
   if (!curados) return derivados;
   // Lo que se AÑADE a la curación es sólo lo que tiene trabajo de verdad, no
-  // todo lo que el default abriría. `deriveDefaultAdded` también mete la
-  // bitácora cuando el estudio está en marcha —aunque no tenga ni una entrada—,
-  // y eso es correcto para un proyecto sin curar y no para uno que ya decidió
-  // qué ver: medido en pantalla, la unión a secas colaba una tarjeta «Bitácora ·
-  // Sin actividad» que su dueño había quitado a propósito.
+  // todo lo que el default abriría: un proyecto que ya decidió qué ver no
+  // recibe de vuelta una tarjeta vacía que su dueño quitó a propósito.
   const conTrabajo = derivados.filter((slug) => tieneTrabajo(overview, slug));
   return canonicalOrder([...curados, ...conTrabajo]);
 }

@@ -11,8 +11,8 @@ import { MonitoreoModeChoice } from "./MonitoreoModeChoice";
 import type { MonitoreoModo, MonitoreoModoDefinicion } from "./core/monitoreoRegistry";
 import { sugerirModoDeMonitoreo, type SugerenciaDeModo } from "./core/sugerenciaDeModo";
 import { decidirAterrizajeDeMonitoreo } from "./core/aterrizajeDeMonitoreo";
-import { usePlannerModos } from "../bitacora/planner/usePlannerModos";
-import { PerfilNoDeclarado } from "../bitacora/planner/PerfilNoDeclarado";
+import { usePlannerModos } from "../estudio/usePlannerModos";
+import { PerfilNoDeclarado } from "../estudio/PerfilNoDeclarado";
 import "./MonitoreoShell.css";
 
 function familyFromState(state: MonitoreoState | null): MonitoreoFamilyId {
@@ -158,11 +158,11 @@ export default function MonitoreoShell() {
     );
   }
 
-  if (state && aterrizaje.tipo === "cargando") return <ShellFallback label="Leyendo el Planner" />;
+  if (state && aterrizaje.tipo === "cargando") return <ShellFallback label="Leyendo el tipo del estudio" />;
   if (state && aterrizaje.tipo === "sin-perfil") {
     return (
       <div className="mon-shell-fallback" style={MODULE_TONES.monitoreo as CSSProperties}>
-        <PerfilNoDeclarado detalle="Monitoreo abre en el modo que fija el perfil de recojo del estudio." />
+        <PerfilNoDeclarado detalle="Monitoreo abre en el modo que fija el tipo del estudio." />
       </div>
     );
   }
@@ -176,7 +176,7 @@ export default function MonitoreoShell() {
         busyFamily={busyFamily}
         error={error}
         sugerencia={aterrizaje.tipo === "alinear"
-          ? { family: aterrizaje.modo.family, motivo: "Es el perfil de recojo que declara el Planner." } as SugerenciaDeModo
+          ? { family: aterrizaje.modo.family, motivo: "Es el tipo que declara la ficha del estudio." } as SugerenciaDeModo
           : null}
         onChoose={(mode) => void chooseMode(mode)}
       />

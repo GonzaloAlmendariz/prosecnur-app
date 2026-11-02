@@ -26,6 +26,7 @@ import {
   PANEL_MODULOS,
   PANEL_PALETA,
 } from "../../features/home/panelesHome";
+import { PANEL_ESTUDIO } from "../../features/estudio/panelEstudio";
 import { PANELES_GRAFICOS } from "../../features/graficos/panelesGraficos";
 import { PANELES_CARGA } from "../../features/carga/panelesCarga";
 import { PANELES_VALIDACION } from "../../features/validacion/panelesValidacion";
@@ -212,34 +213,12 @@ export const PANEL_REVISAR_LIBRO: PanelDeclarado = {
   clase: "dialogo",
 };
 
-/** Centro de avisos del cronograma (ADR 0047). */
-export const PANEL_AVISOS: PanelDeclarado = {
-  id: "avisos",
-  label: "Centro de avisos",
-  clase: "sideover",
-};
-
-/** Bitácora › Canvas: elegir una parte de la app, un hito o una entrada para llevarla al lienzo. */
-export const PANEL_REFERENCIAS: PanelDeclarado = {
-  id: "referencias",
-  label: "Referenciar en el lienzo",
-  clase: "popover",
-};
-
-/** Importación del grafo con vista previa (ADR 0047). */
-export const PANEL_IMPORTAR: PanelDeclarado = {
-  id: "importar",
-  label: "Importar mapa del estudio",
-  clase: "dialogo",
-};
-
 /** Paneles declarados por módulo. `null` = disponibles en toda la app. */
 export const PANELES_POR_MODULO: Readonly<
   Partial<Record<ProsecnurModuleSlug | "global", readonly PanelDeclarado[]>>
 > = {
-  global: [PANEL_MODULOS, PANEL_CONFIGURACION, PANEL_PALETA, PANEL_ATAJOS_APP],
+  global: [PANEL_MODULOS, PANEL_CONFIGURACION, PANEL_PALETA, PANEL_ATAJOS_APP, PANEL_ESTUDIO],
   monitoreo: [PANEL_CONECTAR_FUENTE, PANEL_REEMPLAZO_AULAS, PANEL_REVISAR_PUBLICACION, PANEL_REVISAR_LIBRO],
-  "diseno-estudio": [PANEL_AVISOS, PANEL_IMPORTAR, PANEL_REFERENCIAS],
   // Se abre sobre un formulario: `?panel=campana-complementaria&foco=<id>`.
   // `?panel=logica-externa&foco=<id>`: lógica y limpieza hechas fuera.
   // `?panel=catalogos`: el editor de listas; `?panel=logica-surveymonkey`: el borrador de saltos de SurveyMonkey.

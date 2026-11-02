@@ -596,22 +596,6 @@ const HIERARCHY = [
 
 const DECLARED_VISUAL_SURFACES = [
   surface(
-    "bitacora",
-    "cronograma",
-    "Gantt",
-    "Gantt interactivo",
-    "Barras de duración, hitos, ventanas, progreso y riesgo; las filas se seleccionan para editar la actividad.",
-    "frontend/src/features/bitacora/CronogramaSection.tsx",
-  ),
-  surface(
-    "bitacora",
-    "calendario",
-    "Mes / Semana",
-    "Calendario temporal",
-    "Grilla mensual o semanal con carriles, eventos solapados, arrastre y franjas de 15 minutos.",
-    "frontend/src/features/bitacora/Calendar.tsx",
-  ),
-  surface(
     "calculo-muestra",
     "universidad-calculo",
     "Diseño",

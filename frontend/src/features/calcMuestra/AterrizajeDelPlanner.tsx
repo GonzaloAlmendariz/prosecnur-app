@@ -1,7 +1,8 @@
-import { Link } from "react-router-dom";
 
-import type { PlannerModos } from "../../api/planner";
-import { PerfilNoDeclarado, RUTA_PERFILES_DEL_PLANNER } from "../bitacora/planner/PerfilNoDeclarado";
+import type { PlannerModos, PlannerTipoPerfil } from "../../api/planner";
+import { ETIQUETA_PERFIL } from "../estudio/copiaDelEstudio";
+import { EnlaceFichaDelEstudio } from "../estudio/EnlaceFichaDelEstudio";
+import { PerfilNoDeclarado } from "../estudio/PerfilNoDeclarado";
 import { deskDeModo } from "./navegacion";
 import type { ActiveDesk } from "./sharedCore";
 import { TIPOS_DE_ESTUDIO } from "./SelectorTipo";
@@ -24,7 +25,7 @@ export type DecisionDeAterrizaje =
   | { tipo: "cargando" }
   | { tipo: "error"; mensaje: string }
   | { tipo: "sin-perfil" }
-  | { tipo: "del-cliente"; perfiles: string[] }
+  | { tipo: "del-cliente"; perfiles: PlannerTipoPerfil[] }
   | { tipo: "empezar"; desk: ActiveDesk; titulo: string }
   | { tipo: "cambiar"; desk: ActiveDesk; titulo: string; actual: string }
   | { tipo: "al-dia"; desk: ActiveDesk };
@@ -67,29 +68,29 @@ export function AterrizajeDelPlanner({ decision, perdidas, confirmando, onEmpeza
   if (decision.tipo === "error") {
     return (
       <section className="cmv2-panel cmv2-aterrizaje" role="status" data-audit-ready="vacio:planner-ilegible">
-        <strong>No se pudo leer el Planner</strong>
+        <strong>No se pudo leer el tipo del estudio</strong>
         <p className="cmv2-sal-nota">{decision.mensaje}</p>
       </section>
     );
   }
   if (decision.tipo === "sin-perfil") {
-    return <PerfilNoDeclarado detalle="Cálculo de muestra abre en el modo que fija el perfil de recojo del estudio." />;
+    return <PerfilNoDeclarado detalle="Cálculo de muestra abre en el modo que fija el tipo del estudio." />;
   }
   if (decision.tipo === "del-cliente") {
     return (
       <section className="cmv2-panel cmv2-aterrizaje" role="status" data-audit-ready="vacio:muestra-del-cliente">
         <strong>La muestra la entrega el cliente</strong>
         <p className="cmv2-sal-nota">
-          El Planner declara que el diseño de este estudio ({decision.perfiles.join(", ")}) no se calcula aquí.
+          En un estudio {decision.perfiles.map((t) => ETIQUETA_PERFIL[t].toLowerCase()).join(", ")} la muestra no se calcula aquí.
         </p>
-        <Link to={RUTA_PERFILES_DEL_PLANNER}>Ver los perfiles en el Planner</Link>
+        <EnlaceFichaDelEstudio>Ver la ficha del estudio</EnlaceFichaDelEstudio>
       </section>
     );
   }
   if (decision.tipo === "al-dia") {
     return (
       <section className="cmv2-panel cmv2-aterrizaje" role="status" data-audit-ready="calc-muestra-aterrizaje">
-        <strong>El escenario ya es el que declara el Planner</strong>
+        <strong>El escenario ya es el que fija el tipo del estudio</strong>
         <div><button type="button" className="pulso-button pulso-button--secondary" onClick={onCancelar}>Volver al escenario</button></div>
       </section>
     );
@@ -98,7 +99,7 @@ export function AterrizajeDelPlanner({ decision, perdidas, confirmando, onEmpeza
     return (
       <section className="cmv2-panel cmv2-aterrizaje" aria-label="Empezar el diseño" data-audit-ready="calc-muestra-aterrizaje">
         <strong>{decision.titulo}</strong>
-        <p className="cmv2-sal-nota">Es el diseño que fija el perfil de recojo declarado en el Planner.</p>
+        <p className="cmv2-sal-nota">Es el diseño que fija el tipo declarado en la ficha del estudio.</p>
         <div>
           <button type="button" className="pulso-button is-primary" onClick={() => onEmpezar(decision.desk)}>
             Empezar el diseño
@@ -108,8 +109,8 @@ export function AterrizajeDelPlanner({ decision, perdidas, confirmando, onEmpeza
     );
   }
   return (
-    <section className="cmv2-panel cmv2-aterrizaje" aria-label="El Planner declara otro diseño" data-audit-ready="calc-muestra-aterrizaje">
-      <strong>El Planner declara «{decision.titulo}»</strong>
+    <section className="cmv2-panel cmv2-aterrizaje" aria-label="El tipo del estudio pide otro diseño" data-audit-ready="calc-muestra-aterrizaje">
+      <strong>El tipo del estudio pide «{decision.titulo}»</strong>
       <p className="cmv2-sal-nota">Este escenario es «{decision.actual}». Para cambiarlo hay que reiniciar el cálculo.</p>
       {confirmando ? (
         <>

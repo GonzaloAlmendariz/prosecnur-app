@@ -1,8 +1,8 @@
 import type { CalcMuestraEstudio, CalcMuestraWorkspace } from "../../../api/calcMuestra";
-import { Link } from "react-router-dom";
 
 import { CambiarTipoEstudio } from "./CambiarTipoEstudio";
-import { RUTA_IDENTIDAD_DEL_PLANNER, usePlannerIdentidad } from "../usePlannerIdentidad";
+import { EnlaceFichaDelEstudio } from "../../estudio/EnlaceFichaDelEstudio";
+import { usePlannerIdentidad } from "../usePlannerIdentidad";
 import "./general.css";
 
 type CampoContexto = "cliente" | "tipo_cliente" | "descripcion_libre";
@@ -53,8 +53,8 @@ export function FichaEstudio({
           <b>{identidad?.cliente || "sin declarar"}</b>
         </div>
         <p className="cmg-ficha-identidad-nota">
-          Nombre y {acreditacion ? "institución" : "cliente"} se declaran una vez en el Planner.{" "}
-          <Link to={RUTA_IDENTIDAD_DEL_PLANNER}>Editar en el Planner</Link>
+          Nombre y {acreditacion ? "institución" : "cliente"} se declaran una vez, en la ficha del estudio.{" "}
+          <EnlaceFichaDelEstudio>Editar la ficha</EnlaceFichaDelEstudio>
         </p>
         <label>
           <span>{acreditacion ? "Fuente de los marcos" : "Fuente del marco"}</span>

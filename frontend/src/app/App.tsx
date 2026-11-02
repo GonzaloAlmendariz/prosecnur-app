@@ -78,10 +78,6 @@ const MuestraHub = lazyWithReload(
   () => import("../features/muestra/MuestraHub"),
   "MuestraHub",
 );
-const BitacoraPage = lazyWithReload(
-  () => import("../features/bitacora/BitacoraPage"),
-  "BitacoraPage",
-);
 const CalcMuestraPage = lazyWithReload(
   () => import("../features/calcMuestra/CalcMuestraPage"),
   "CalcMuestraPage",
@@ -153,13 +149,14 @@ export default function App() {
                   <Route path="/graficos" element={<GraficosPage />} />
                   <Route path="/hojas-ruta" element={<HojasRutaPage />} />
                   <Route path="/calc-muestra" element={<CalcMuestraPage />} />
-                  <Route path="/planner" element={<BitacoraPage />} />
-                  {/* ADR 0122: la Bitácora es el Planner; los enlaces viejos llegan con su query. */}
-                  <Route path="/bitacora" element={<RedireccionConQuery to="/planner" />} />
+                  {/* ADR 0124: el Planner y la Bitácora ya no son módulo; sus enlaces abren la
+                      Ficha del estudio sobre el Home. */}
+                  <Route path="/planner" element={<Navigate to="/?panel=estudio" replace />} />
+                  <Route path="/bitacora" element={<Navigate to="/?panel=estudio" replace />} />
                   <Route path="/material-campo" element={<RecopiladoresPage />} />
                   <Route path="/recopiladores" element={<RedireccionConQuery to="/material-campo" />} />
-                  <Route path="/diseno-estudio" element={<RedireccionConQuery to="/planner" />} />
-                  <Route path="/plan-trabajo" element={<Navigate to="/planner?seccion=cronograma" replace />} />
+                  <Route path="/diseno-estudio" element={<Navigate to="/?panel=estudio" replace />} />
+                  <Route path="/plan-trabajo" element={<Navigate to="/?panel=estudio" replace />} />
                   <Route path="/diseno-muestra" element={<Navigate to="/calc-muestra" replace />} />
                   <Route path="/diseno-muestra/metodologia/:metodologia" element={<Navigate to="/calc-muestra" replace />} />
                   <Route path="/muestra" element={<MuestraHub />} />

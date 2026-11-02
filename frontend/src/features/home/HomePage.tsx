@@ -1,5 +1,5 @@
 import { type ReactNode, useEffect, useMemo, useState } from "react";
-import { Power, Settings2 } from "lucide-react";
+import { FileText, Power, Settings2 } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useLayoutPreset } from "../../lib/layoutPreference";
 import { useSession } from "../../lib/SessionContext";
@@ -8,6 +8,7 @@ import { useProjectShell } from "../project/ProjectShell";
 import { useProjectModules } from "../project/ProjectModulesContext";
 import { usePanelDireccionable } from "../../lib/navegacion/paneles";
 import { PANEL_CONFIGURACION, PANEL_MODULOS } from "./panelesHome";
+import { PANEL_ESTUDIO } from "../estudio/panelEstudio";
 import { MissionControl, type ProcState } from "./MissionControl";
 import { ModuleCarousel } from "./ModuleCarousel";
 import "./home-v2.css";
@@ -83,6 +84,7 @@ export default function HomePage() {
   // como alias.
   const panelConfiguracion = usePanelDireccionable(PANEL_CONFIGURACION);
   const panelModulos = usePanelDireccionable(PANEL_MODULOS);
+  const panelEstudio = usePanelDireccionable(PANEL_ESTUDIO);
   const { overview, loading, addedSlugs, addModule, removeModule } = useProjectModules();
 
   const hasModules = addedSlugs.length > 0;
@@ -136,6 +138,7 @@ export default function HomePage() {
         version={version}
         onClose={requestAppExit}
         onOpenSettings={panelConfiguracion.abrir}
+        onOpenEstudio={panelEstudio.abrir}
       />
 
     </div>
@@ -168,10 +171,12 @@ function HomeFooter({
   version,
   onClose,
   onOpenSettings,
+  onOpenEstudio,
 }: {
   version: string;
   onClose: () => void;
   onOpenSettings: () => void;
+  onOpenEstudio: () => void;
 }) {
   return (
     <footer className="home-footer">
@@ -180,6 +185,9 @@ function HomeFooter({
         <span aria-hidden="true">·</span>
         <span>Hecho para el {PULSO_FULL_NAME}</span>
         <div style={{ flex: 1 }} />
+        <button type="button" className="home-footer-notes" onClick={onOpenEstudio}>
+          <FileText size={14} aria-hidden="true" /> Ficha del estudio
+        </button>
         <button
           type="button"
           className="home-footer-notes"

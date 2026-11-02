@@ -204,7 +204,6 @@ function view(
 describe("moduleCardModel", () => {
   it("mantiene una card contextual para cada módulo del carrusel", () => {
     expect(PROSECNUR_PRIMARY_ACTIVE_MODULES.map(({ slug }) => slug)).toEqual([
-      "diseno-estudio",
       "calc-muestra",
       "editor-xlsform",
       "hojas-ruta",
@@ -221,12 +220,6 @@ describe("moduleCardModel", () => {
         expect(card.action?.route, module.slug).toBe(module.to);
       }
     }
-  });
-
-  it("no declara lista una Bitácora vacía ni la resume con un guion", () => {
-    const card = view("diseno-estudio");
-    expect(card.state).toBe("pending");
-    expect(JSON.stringify(card)).not.toContain("—");
   });
 
   it("lee los hechos de un backend anterior al ADR 0108 (`facts.recopiladores`)", () => {
@@ -324,24 +317,6 @@ describe("moduleCardModel", () => {
     }
   });
 
-  it("no presenta como próxima una fecha pasada del cronograma", () => {
-    const overview = makeOverview();
-    overview.facts.bitacora = {
-      ...overview.facts.bitacora,
-      next_title: "Entrega registrada",
-      next_date: "2026-07-10",
-      pending: 1,
-      total_tasks: 1,
-    };
-
-    const bitacora = view("diseno-estudio", overview);
-    expect(JSON.stringify(bitacora).toLocaleLowerCase("es")).not.toContain("próxim");
-    expect(bitacora.facts).toEqual(
-      expect.arrayContaining([expect.objectContaining({ label: "fecha de cronograma" })]),
-    );
-    expect(bitacora.facts.find(({ label }) => label === "fecha de cronograma")?.value).toContain("10");
-  });
-
   it("Material de campo resume por campaña cuando el inicio trae `campaigns` (ADR 0111 §9)", () => {
     const crudo = makeOverview() as unknown as { facts: Record<string, Record<string, unknown>> };
     crudo.facts["material-campo"] = {
@@ -422,37 +397,6 @@ describe("moduleCardModel", () => {
     expect(module?.shortLabel).toBe("Material");
     // Comparte la cabecera con el chip «Por iniciar»: tiene que caber entera.
     expect(module?.tagline.length).toBeLessThanOrEqual(28);
-  });
-
-  it("abre directamente el cronograma cuando la acción lo nombra", () => {
-    const overview = makeOverview();
-    overview.facts.bitacora = {
-      ...overview.facts.bitacora,
-      pending: 1,
-      total_tasks: 2,
-    };
-
-    expect(view("diseno-estudio", overview).action).toEqual({
-      label: "Continuar cronograma",
-      route: "/planner?seccion=cronograma",
-    });
-  });
-
-  it("calcula hoy y mañana con el calendario de Lima, no con la zona del host", () => {
-    const overview = makeOverview();
-    overview.facts.bitacora = {
-      ...overview.facts.bitacora,
-      next_title: "Entrega de mañana",
-      next_date: "2026-07-15",
-    };
-    const nearMidnightInLima = new Date("2026-07-14T23:30:00-05:00").getTime();
-
-    expect(view("diseno-estudio", overview, nearMidnightInLima).viz).toMatchObject({
-      kind: "date",
-      label: "próximo entregable",
-      countdown: "Mañana",
-      tone: "future",
-    });
   });
 
   it("mide el avance por lo que falta para la meta, no por la base recorrida", () => {
@@ -594,7 +538,6 @@ describe("moduleCardModel", () => {
   it("marca la actividad como señal principal cuando una cifra no explica qué hacer", () => {
     expect(view("monitoreo").emphasis).toBe("activity");
     expect(view("calc-muestra").emphasis).toBe("activity");
-    expect(view("diseno-estudio").emphasis).toBe("activity");
     expect(view("editor-xlsform").emphasis).toBeUndefined();
   });
 });

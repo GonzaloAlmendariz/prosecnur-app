@@ -27,7 +27,6 @@ const DEUDA_CONOCIDA = new Set([
   "--pulso-material-thin",
   "--pulso-muted",
   "--pulso-muted-fg",
-  "--pulso-on-primary",
   "--pulso-primary-bg",
   "--pulso-radius-control",
   "--pulso-radius-lg",

@@ -14,6 +14,7 @@ import {
 import { ModuleNavigationRuntimeProvider } from "../lib/moduleNavigationRuntime";
 import { ModulePickerHost } from "../features/home/ModulePickerHost";
 import { ConfiguracionHost } from "../features/home/ConfiguracionHost";
+import { FichaDelEstudioHost } from "../features/estudio/FichaDelEstudioHost";
 import { PaletaDeComandosHost } from "../features/home/PaletaDeComandos";
 import { Toaster } from "../components/Toaster";
 import { TonoDePortales } from "../components/TonoDePortales";
@@ -208,14 +209,6 @@ function SessionErrorChip() {
 
 function activeModuleRoute(pathname: string): string {
   if (isProcesamientoRoute(pathname)) return "/procesamiento";
-  // Cronograma y Diseño del estudio se fusionaron en Bitácora, que es el Planner (ADR 0122).
-  if (
-    pathname === "/plan-trabajo" || pathname.startsWith("/plan-trabajo/") ||
-    pathname === "/diseno-estudio" || pathname.startsWith("/diseno-estudio/") ||
-    pathname === "/bitacora" || pathname.startsWith("/bitacora/")
-  ) {
-    return "/planner";
-  }
   const match = MODULE_SWITCHER_ITEMS
     .filter((item) => item.to !== "/")
     .find((item) => pathname === item.to || pathname.startsWith(`${item.to}/`));
@@ -672,6 +665,7 @@ export default function Layout() {
       </ModuleChromeSlotsProvider>
       <ModulePickerHost />
       <ConfiguracionHost />
+      <FichaDelEstudioHost />
       <PaletaDeComandosHost />
       {/* Los portales (diálogos, sideovers, popovers) viven fuera del frame del
           módulo: heredan su acento desde lo que esto publica en <body>. */}

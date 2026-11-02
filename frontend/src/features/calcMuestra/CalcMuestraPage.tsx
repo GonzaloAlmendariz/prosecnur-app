@@ -163,7 +163,7 @@ import "./universidad/universidad-base.css";
 import "./calcMuestra.css";
 import { estrato, matrizEjemplo } from "./ComponenteTablas";
 import { AterrizajeDelPlanner, decidirAterrizaje } from "./AterrizajeDelPlanner";
-import { usePlannerModos } from "../bitacora/planner/usePlannerModos";
+import { usePlannerModos } from "../estudio/usePlannerModos";
 import { loQueSePierde } from "./modeloVistaPreviaTipo";
 import { MesaAcreditacion, MesaGeneral, TerritorialHandoff, labelMarcoOcasional, productoLabel, tecnicaCalculadaLabel, tecnicaLabel, tecnicaProducto, variableControl, type MarcoOcasional } from "./general";
 

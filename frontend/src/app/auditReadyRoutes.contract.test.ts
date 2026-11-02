@@ -187,25 +187,6 @@ function literalClassNames(tag: JsxTag): string[] {
     : [];
 }
 
-function bitacoraKeys(): string[] {
-  return PROSECNUR_MODULES
-    .find((module) => module.slug === "diseno-estudio")
-    ?.sections.map((section) => section.id) ?? [];
-}
-
-function hasBitacoraTabKey(node: ts.Node): boolean {
-  return visit(
-    node,
-    (candidate) =>
-      ts.isTemplateExpression(candidate) &&
-      candidate.head.text === "bitacora-" &&
-      candidate.templateSpans.length === 1 &&
-      ts.isIdentifier(candidate.templateSpans[0].expression) &&
-      candidate.templateSpans[0].expression.text === "tab" &&
-      candidate.templateSpans[0].literal.text === "",
-  );
-}
-
 function terminalReadinessKeys(relativePaths: string[], prefix: string): string[] {
   const keys = relativePaths.flatMap((relativePath) => {
     const source = fs.readFileSync(path.join(srcDir, relativePath), "utf8");
@@ -476,28 +457,6 @@ describe("audit-ready route root contract", () => {
       terminalReadinessCount("features/analitica/panes/ComparativosPane.tsx", "analitica-comparativos"),
       "Comparativos marks loaded, empty and error",
     ).toBe(3);
-  });
-
-  test("Bitácora publishes an exact semantic key for each guarded tab", () => {
-    const { tag } = pageFunctionRoot("features/bitacora/BitacoraPage.tsx", "PageFrame");
-    const value = readinessValue(tag, "auditReady", "Bitácora");
-
-    // ADR 0122: la Bitácora es el Planner. ADR 0123: Equipo y Códigos salieron
-    // del Planner, el lienzo es la sección Camino y el registro una pestaña del
-    // cronograma. La clave conserva el prefijo `bitacora-` que ya usan las
-    // readiness anidadas del cronograma y del lienzo.
-    expect(bitacoraKeys(), "Bitácora audit tab keys").toEqual([
-      "estudio",
-      "camino",
-      "cronograma",
-    ]);
-    expect(hasBitacoraTabKey(value), "Bitácora readiness must be `bitacora-${tab}`").toBe(true);
-    expectNegatedGuard(value, "Bitácora", "loading");
-    expectNegatedGuard(value, "Bitácora", "error");
-    expectSemanticReadiness(value, "Bitácora", "bitacora-");
-    expect(compactExpression(value), "Bitácora guard polarity and fallback").toBe(
-      "!loading&&!error&&!planner.cargando?`bitacora-${tab}`:false",
-    );
   });
 
   test("Material de campo delegates its exact directional readiness to the shell", () => {

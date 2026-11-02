@@ -510,11 +510,6 @@ export const WARMUP_MODULES: WarmupModuleEntry[] = [
     load: () => import("../features/calcMuestra/CalcMuestraPage"),
   },
   {
-    id: "plan_trabajo",
-    label: "Cronograma del proyecto",
-    load: () => import("../features/bitacora/BitacoraPage"),
-  },
-  {
     id: "material_campo",
     label: "Material de campo",
     load: () => import("../features/recopiladores/RecopiladoresPage"),
@@ -543,11 +538,6 @@ export const WARMUP_MODULES: WarmupModuleEntry[] = [
     id: "editor_xlsform",
     label: "Editor de formularios",
     load: () => import("../features/xlsformEditor/XlsformEditorPage"),
-  },
-  {
-    id: "diseno_estudio",
-    label: "Bitácora",
-    load: () => import("../features/bitacora/BitacoraPage"),
   },
   {
     id: "plotly",

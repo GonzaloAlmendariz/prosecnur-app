@@ -63,7 +63,6 @@ const SNAPSHOT: Record<"layout" | "infinitas" | "retardo", Record<string, number
     "components/recent-project-card.css": 1,
     "components/states.css": 1,
     "features/analitica/analitica-v2.css": 2,
-    "features/bitacora/cronograma.css": 1,
     "features/calcMuestra/calcMuestra.css": 1,
     "features/calcMuestra/didactica/didactica.css": 1,
     // EXCEPCIÓN con motivo, no deuda: el bucle didáctico ES la explicación del método (cae al cuadro final con movimiento reducido).

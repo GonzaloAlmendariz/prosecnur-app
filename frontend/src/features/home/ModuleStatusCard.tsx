@@ -391,7 +391,7 @@ export const ModuleStatusCard = forwardRef<
             </Dialog.Description>
             <div className="home-confirm-actions">
               <Dialog.Close asChild>
-                <button ref={cancelRef} type="button" className="plan-button">
+                <button ref={cancelRef} type="button" className="pulso-button pulso-button--secondary pulso-button--md">
                   Cancelar
                 </button>
               </Dialog.Close>

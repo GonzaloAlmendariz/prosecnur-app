@@ -34,15 +34,6 @@ const EXPECTED_PRIMARY_NAVIGATION: Record<
     }>;
   }
 > = {
-  "diseno-estudio": {
-    landingKind: "section",
-    to: "/planner",
-    sections: [
-      { id: "estudio", label: "Estudio", to: "/planner", layoutPolicy: "viewport" },
-      { id: "camino", label: "Camino", to: "/planner?seccion=camino", layoutPolicy: "viewport" },
-      { id: "cronograma", label: "Cronograma", to: "/planner?seccion=cronograma", layoutPolicy: "viewport" },
-    ],
-  },
   "calc-muestra": {
     landingKind: "section",
     to: "/calc-muestra",
@@ -117,8 +108,9 @@ describe("manifiesto primario de navegación", () => {
     });
   });
 
-  it("da a los ocho módulos un landing y secciones primarias válidas", () => {
-    expect(PROSECNUR_MODULES).toHaveLength(8);
+  // ADR 0124: el Planner salió; quedan siete.
+  it("da a los siete módulos un landing y secciones primarias válidas", () => {
+    expect(PROSECNUR_MODULES).toHaveLength(7);
 
     const navigationKeys: string[] = [];
     const publishedRoutes: string[] = [];
@@ -200,10 +192,10 @@ describe("manifiesto primario de navegación", () => {
     ]);
   });
 
-  it("mantiene ocho acentos de módulo distintos y fuera de los estados semánticos", () => {
+  it("mantiene siete acentos de módulo distintos y fuera de los estados semánticos", () => {
     const accents = PROSECNUR_MODULES.map((module) => module.tone.accent);
 
-    expect(new Set(accents).size).toBe(8);
+    expect(new Set(accents).size).toBe(7);
     for (const module of PROSECNUR_MODULES) {
       expect(module.tone).toBe(MODULE_TONES[module.slug]);
     }

@@ -219,7 +219,6 @@ const ALTURA_PROPIA_PENDIENTE = [
   "app/theme.css :: .pulso-analitica-sourcebar--panel .pulso-analitica-source-option",
   "app/theme.css :: .pulso-context-bar-divider",
   "features/analitica/analitica-v2.css :: .pulso-analitica-sourcebar--panel .pulso-analitica-source-option-icon",
-  "features/bitacora/logbook.css :: .diseno-commandbar",
   "features/carga/carga-v2.css :: .pulso-sav-review-commandbar",
   "features/graficos/v2/styles/editor-v2.css :: .pulso-graficos-frame .pulso-gv2-command-header .pulso-gv2-icon-button",
   "features/graficos/v2/styles/editor-v2.css :: .pulso-graficos-frame .pulso-gv2-command-header .pulso-gv2-pill-button, .pulso-graficos-frame .pulso-gv2-co...",
@@ -301,7 +300,6 @@ const SUPRIME_HOVER_PENDIENTE = [
   "app/theme.css :: .pulso-phase-pill.is-blocked:not(.is-active):hover",
   "app/theme.css :: .pulso-phase-pill:hover:not(.is-blocked):not(.is-disabled):not(.is-active) .pulso-phase-pill-circle",
   "app/theme.css :: .pulso-phase-pill:hover:not(.is-blocked):not(.is-disabled):not(.is-active) .pulso-phase-pill-label",
-  "features/bitacora/cronograma.css :: .plan-rail-item:hover:not(.is-active)",
   "features/calcMuestra/calcMuestra.css :: .cmv2-section-local-tab:hover:not(.is-active)",
   "features/calcMuestra/calcMuestra.css :: .cmv2-section-local-tabs.is-guided .cmv2-section-local-tab.is-pending:not(.is-active):hover",
   "features/calcMuestra/calcMuestra.css :: .cmv2-section-pill.pulso-phase-pill:hover:not(.is-active)",
@@ -363,7 +361,6 @@ describe("estados de navegación", () => {
   const FONDO_SIN_COLOR_PENDIENTE = [
     "app/theme.css :: .pulso-app-header:has(.pulso-phase-rail) .pulso-phase-pill:hover:not(.is-blocked):not(.is-disabled):not(.is...",
     "app/theme.css :: .pulso-phase-pill.is-blocked:not(.is-active):hover",
-    "features/bitacora/cronograma.css :: .plan-rail-item:hover:not(.is-active)",
     "features/graficos/v2/styles/editor-v2.css :: .pulso-gv2-picker-rail .pulso-gv2-picker-tab:hover",
     "features/graficos/v2/styles/editor-v2.css :: .pulso-gv2-preset-nav-item:hover",
     "features/monitoreo/monitoreo.css :: .mon-workbench-rail.is-collapsible .mon-section-local-tabs .mon-nav-item:hover, .mon-workbench-rail.is-coll...",
