@@ -2,8 +2,6 @@ import { useEffect, useId, useRef, useState } from "react";
 import { Check, ChevronDown } from "lucide-react";
 import type { MonitoreoTerritorialPhase } from "../../../../../api/client";
 import type { OpcionDeFase } from "./fase";
-import { apiMonitoreoTerritorialConfig } from "../../../../../api/monitoreo";
-import { discrepanciaDeEtapa, discrepanciaDeVentana, usePlannerCalendario } from "./etapaDelPlanner";
 
 /**
  * `FASE ▾` en la barra del modo (A4): abre la lista de fases con lo que trae
@@ -24,30 +22,8 @@ export function SelectorDeFase({
   const boton = useRef<HTMLButtonElement | null>(null);
   const listaId = useId();
   const activa = opciones.find((item) => item.activa) ?? opciones[0];
-  // 2i: la etapa que declara el Planner; si discrepa, se ofrece alinear.
-  const calendario = usePlannerCalendario();
-  const discrepancia = discrepanciaDeEtapa(calendario, activa?.fase);
-  // La ventana que propone el Planner; alinearla cambia qué respuestas cuentan
-  // como campo, así que sólo con el clic. Se aplica al volver a actualizar.
-  const ventana = discrepanciaDeVentana(calendario, {
-    pilotoDesde: opciones.find((o) => o.fase === "pilot")?.inicio ?? "",
-    campoDesde: opciones.find((o) => o.fase === "field")?.inicio ?? "",
-  });
-  const [ventanaAlineada, setVentanaAlineada] = useState("");
-  async function alinearVentana() {
-    if (!ventana) return;
-    try {
-      await apiMonitoreoTerritorialConfig({
-        phase_windows: {
-          pilot: { start_at: ventana.pilotoDesde },
-          field: { start_at: ventana.inicio },
-        },
-      } as never);
-      setVentanaAlineada("Ventana alineada: las cifras la usan al actualizar.");
-    } catch (e) {
-      setVentanaAlineada(`No se pudo alinear la ventana: ${(e as Error).message}`);
-    }
-  }
+  // El «Alinear la fase / la ventana» con el Planner (2i) se retiró con el
+  // Planner (ADR 0124): la fase y su ventana las decide Monitoreo aquí.
 
   useEffect(() => {
     if (!abierto) return undefined;
@@ -69,30 +45,6 @@ export function SelectorDeFase({
 
   return (
     <span className="mon-ter-fase" ref={raiz}>
-      {discrepancia ? (
-        <button
-          type="button"
-          className="mon-ter-fase-alinear"
-          title={`${discrepancia.texto} Alinear cambia la fase de Monitoreo; la ventana de campo no se toca.`}
-          disabled={deshabilitado}
-          onClick={() => onElegir(discrepancia.fase)}
-        >
-          {discrepancia.texto} <b>Alinear la fase</b>
-        </button>
-      ) : null}
-      {ventanaAlineada ? (
-        <span className="mon-ter-fase-alinear" role="status">{ventanaAlineada}</span>
-      ) : ventana ? (
-        <button
-          type="button"
-          className="mon-ter-fase-alinear"
-          title={`${ventana.texto} Alinear cambia qué respuestas cuentan como campo.`}
-          disabled={deshabilitado}
-          onClick={() => { void alinearVentana(); }}
-        >
-          {ventana.texto} <b>Alinear la ventana</b>
-        </button>
-      ) : null}
       <button
         ref={boton}
         type="button"
