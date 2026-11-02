@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { construirApiladoDeEstados, detalleDeSegmento, resumenDelDia } from "./apiladoDeEstados";
-import type { AcreditacionPhoneDailyStatusSeries } from "../profiles/acreditacion/AcreditacionPhoneDailyTrend";
+import type { AcreditacionPhoneDailyStatusSeries } from "../core/tendenciaTelefonicaDiaria";
 
 function punto(dia: string, value: number) {
   return {

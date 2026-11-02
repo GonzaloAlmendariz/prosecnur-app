@@ -9,7 +9,7 @@
 import { useState, type CSSProperties } from "react";
 
 import type { AcreditacionDeclaracionEstado } from "./familiasDeLlamada";
-import type { AcreditacionPhoneDailyStatusSeries } from "../profiles/acreditacion/AcreditacionPhoneDailyTrend";
+import type { AcreditacionPhoneDailyStatusSeries } from "../core/tendenciaTelefonicaDiaria";
 import { contar } from "../fuentes/vocabulario";
 import { construirApiladoDeEstados, detalleDeSegmento, resumenDelDia, tituloDelDia } from "./apiladoDeEstados";
 

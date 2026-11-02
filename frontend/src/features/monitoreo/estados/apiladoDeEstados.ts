@@ -19,7 +19,7 @@
  */
 
 import { contar } from "../fuentes/vocabulario";
-import type { AcreditacionPhoneDailyStatusSeries } from "../profiles/acreditacion/AcreditacionPhoneDailyTrend";
+import type { AcreditacionPhoneDailyStatusSeries } from "../core/tendenciaTelefonicaDiaria";
 import {
   ACREDITACION_ORDEN_FAMILIAS,
   acreditacionColorDeFamilia,
