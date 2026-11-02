@@ -2,6 +2,7 @@
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { MemoryRouter } from "react-router-dom";
 import { RitmoVista } from "./Ritmo";
 
 const actores = [
@@ -37,7 +38,7 @@ function boton(texto: string): HTMLButtonElement {
 
 describe("Avance › Ritmo, un público a la vez", () => {
   it("un clic en la botonera aísla al público; otro clic vuelve a Todos", () => {
-    act(() => root.render(<RitmoVista actores={actores} diarioGeneral={[]} diarioPorPublico={diarioPorPublico} fuentes={[]} fases={[]} onDeclararFases={() => {}} />));
+    act(() => root.render(<MemoryRouter initialEntries={["/monitoreo?seccion=avance&pestana=ritmo"]}><RitmoVista actores={actores} diarioGeneral={[]} diarioPorPublico={diarioPorPublico} fuentes={[]} fases={[]} onDeclararFases={() => {}} /></MemoryRouter>));
     expect(boton("Todos").getAttribute("aria-pressed")).toBe("true");
     expect(host.textContent).toContain("por público");
 
@@ -51,7 +52,7 @@ describe("Avance › Ritmo, un público a la vez", () => {
   });
 
   it("el público elegido sigue elegido al pasar a Diario y acumulado", () => {
-    act(() => root.render(<RitmoVista actores={actores} diarioGeneral={[]} diarioPorPublico={diarioPorPublico} fuentes={[]} fases={[]} onDeclararFases={() => {}} />));
+    act(() => root.render(<MemoryRouter initialEntries={["/monitoreo?seccion=avance&pestana=ritmo"]}><RitmoVista actores={actores} diarioGeneral={[]} diarioPorPublico={diarioPorPublico} fuentes={[]} fases={[]} onDeclararFases={() => {}} /></MemoryRouter>));
     act(() => boton("Estudiantes").click());
     const acumulado = [...host.querySelectorAll<HTMLButtonElement>("button")].find((b) => b.textContent === "Diario y acumulado");
     act(() => acumulado?.click());

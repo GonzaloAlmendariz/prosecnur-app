@@ -18,6 +18,9 @@ import { CabeceraDeTarjeta } from "../navegacion/rotuloDePestana";
 import { AvisoDeTarjeta, PestanaSinContenido } from "../piezas/AvisoDeTarjeta";
 import { clasePublico, paletaDePublicos } from "../paletaPublicos";
 import "../paletaPublicos.css";
+import { useSubvistaEnFoco } from "../../../core/subvistaEnFoco";
+
+const GRAFICOS_DE_RITMO = ["publico", "acumulado"] as const;
 
 /** Con menos días el promedio por día de la semana es una o dos muestras por día: no se dibuja. */
 const DIAS_PARA_LEER_LA_SEMANA = 14;
@@ -51,7 +54,8 @@ export function RitmoVista({ actores, diarioGeneral, diarioPorPublico, fuentes, 
   const totalCanal = pulso.porCanal.reduce((suma, item) => suma + item.efectivas, 0);
   const porPublico = useMemo(() => ritmoPorPublico(serie, actores), [serie, actores]);
   // «Por público» (apilado) o «Diario y acumulado» (doble eje, con la meta del estudio).
-  const [grafico, setGrafico] = useState<"publico" | "acumulado">("publico");
+  // Viaja en el foco (L19): `?foco=acumulado`; «Por público» no se escribe.
+  const [grafico, setGrafico] = useSubvistaEnFoco(GRAFICOS_DE_RITMO, "publico");
   // Un público a la vez (Gonzalo, 30/10: «seleccionar un actor en específico y que
   // muestre sólo ese»): un clic en la leyenda lo aísla en los dos gráficos.
   const [solo, setSolo] = useState<string | null>(null);

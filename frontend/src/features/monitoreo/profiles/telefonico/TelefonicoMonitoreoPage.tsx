@@ -297,6 +297,8 @@ import { caseIdentity, countCaseOptions, caseChannelValue, caseSourceValue, case
 import { preferredPhoneEffectiveValue, splitListInput, calendarPhaseDurationDays, calendarPhaseWeekDurationDays, calendarPhaseOverlapCount, calendarBasePhase, distributeCalendarDatesByWeek, inferCalendarModality, calendarGoalActor, calendarGoalForActor, calendarTargetRule, splitCalendarTokens, phoneQuotaGoalValue, statusValueOptions, phoneIsUnassignedResponsible, phoneQuotaStatusTone, phoneDailyBlockForPanel, uniqueDisplayValues, isPlatformResponseSource, isSurveyMonkeyResponseSource, isKoboResponseSource, shortenMiddle, sourceFlatField, presetSourceStatus, cleanSourceDimensions, sourceDimensionEntries, collectorDisplayName, countFromRecord, inferAcreditacionSurveyChannel, surveyMonkeyDisplayTitle, csvCell, platformToneValue, crossingToneValue, acreditacionQueryDonutBackground, uniqueNormalizedKeys, addAcreditacionDailyValue, dailySeriesTotals, collectorDisplayLookupKey, sourceRoleForActor, surveySourceForAcreditacionId, surveySourceForAcreditacionTitle, sheetTitleIcon } from "../../core/helpersComunesTelAcr";
 import { phoneQuotaGoalHasActor, phoneQuotaGoalTotal, phoneQuotaRemoveGoal, phoneQuotaGoalVariables, phoneQuotaUpsertGoal } from "../../core/cuotasTelefonicasComunes";
 import { phoneRowNumber, phoneRowOptionalNumber, phoneRowRatioPct, phoneAttemptValue, phoneDurationAlertThreshold, phoneDurationAlertDisplayDetail, phoneAlertCaseCount, phoneContractReadyCount, acreditacionPhoneAlertSignalRows } from "../../core/alertasTelefonicasComunes";
+import { useSubvistaEnFoco } from "../../core/subvistaEnFoco";
+const VISTAS_DE_SUPERVISION = ["tiempo", "muestra", "prioridad"] as const;
 export { caseResponseDateTimeLabel, caseResponseTimeDetailLabel } from "../../core/rotulosComunes";
 export { TELEFONICO_VISIBLE_PHONE_TABS, TELEFONICO_VISIBLE_ADVANCE_TABS } from "./telefonicoBase";
 
@@ -5097,7 +5099,7 @@ function AcreditacionPhoneSupervisionBoard({
   totals: ReturnType<typeof phoneOperationTotals>;
   platformEffective: number | null;
 }) {
-  const [activeSupervisionTab, setActiveSupervisionTab] = useState<"tiempo" | "muestra" | "prioridad">("tiempo");
+  const [activeSupervisionTab, setActiveSupervisionTab] = useSubvistaEnFoco(VISTAS_DE_SUPERVISION, "tiempo"); // L19: viaja en el foco
   const sampleRows = acreditacionPhoneControlSampleRows(reports);
   const model = buildAcreditacionPhoneSupervisionModel({ alertRows, pendingRows, insistenceRows, reattemptRows });
   const koboEffectiveTotal = platformEffective ?? totals.effective;

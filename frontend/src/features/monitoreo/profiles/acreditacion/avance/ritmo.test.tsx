@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
+import { MemoryRouter } from "react-router-dom";
 import { calendario, fasesConFechas, nombresDePublicos, pulsoDelCampo, seriesApiladas } from "./ritmoModelo";
 import { lunesDe, mapaPorSemana } from "./mapaDeCalor";
 import { RitmoVista } from "./Ritmo";
@@ -77,7 +78,7 @@ describe("Avance › Ritmo", () => {
 
   it("dibuja la vista sin claves técnicas y ofrece declarar fases cuando no hay", () => {
     const html = renderToStaticMarkup(
-      <RitmoVista actores={actores} diarioGeneral={[]} diarioPorPublico={diarioPorPublico} fuentes={fuentes} fases={[]} onDeclararFases={() => {}} onVerFuentes={() => {}} />,
+      <MemoryRouter initialEntries={["/monitoreo?seccion=avance&pestana=ritmo"]}><RitmoVista actores={actores} diarioGeneral={[]} diarioPorPublico={diarioPorPublico} fuentes={fuentes} fases={[]} onDeclararFases={() => {}} onVerFuentes={() => {}} /></MemoryRouter>,
     );
     expect(html).toContain("Declarar fases");
     expect(html).toContain("Pulso del campo");
@@ -104,7 +105,7 @@ describe("fecha local del corte", () => {
 
   it("con un solo día de campo dice la fecha una vez, no «29 oct a 29 oct»", () => {
     const html = renderToStaticMarkup(
-      <RitmoVista actores={actores} diarioGeneral={[]} diarioPorPublico={[{ Actor: "Docentes", Fecha: "2026-10-29", Efectivas: 5 }]} fuentes={fuentes} fases={[]} onDeclararFases={() => {}} />,
+      <MemoryRouter initialEntries={["/monitoreo?seccion=avance&pestana=ritmo"]}><RitmoVista actores={actores} diarioGeneral={[]} diarioPorPublico={[{ Actor: "Docentes", Fecha: "2026-10-29", Efectivas: 5 }]} fuentes={fuentes} fases={[]} onDeclararFases={() => {}} /></MemoryRouter>,
     );
     expect(html).toMatch(/29 oct, por público/);
     expect(html).not.toMatch(/29 oct a 29 oct/);
@@ -112,11 +113,20 @@ describe("fecha local del corte", () => {
 
   it("ofrece ver el ritmo por público o diario con el acumulado en dos ejes", () => {
     const html = renderToStaticMarkup(
-      <RitmoVista actores={actores} diarioGeneral={[]} diarioPorPublico={diarioPorPublico} fuentes={fuentes} fases={[]} onDeclararFases={() => {}} onVerFuentes={() => {}} />,
+      <MemoryRouter initialEntries={["/monitoreo?seccion=avance&pestana=ritmo"]}><RitmoVista actores={actores} diarioGeneral={[]} diarioPorPublico={diarioPorPublico} fuentes={fuentes} fases={[]} onDeclararFases={() => {}} onVerFuentes={() => {}} /></MemoryRouter>,
     );
     expect(html).toContain("Por público");
     expect(html).toContain("Diario y acumulado");
     expect(html).toMatch(/aria-pressed="true"[^>]*>Por público/);
     expect(acumulado([3, 0, 5, 2])).toEqual([3, 3, 8, 10]);
+  });
+  it("el gráfico elegido viaja en el foco: ?foco=acumulado abre el diario con el acumulado (L19)", () => {
+    const vista = (entrada: string) => renderToStaticMarkup(
+      <MemoryRouter initialEntries={[entrada]}>
+        <RitmoVista actores={actores} diarioGeneral={[]} diarioPorPublico={diarioPorPublico} fuentes={fuentes} fases={[]} onDeclararFases={() => {}} />
+      </MemoryRouter>,
+    );
+    expect(vista("/monitoreo?seccion=avance&pestana=ritmo")).toContain(", por público");
+    expect(vista("/monitoreo?seccion=avance&pestana=ritmo&foco=acumulado")).toContain(", con el acumulado");
   });
 });
