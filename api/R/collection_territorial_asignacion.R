@@ -53,7 +53,13 @@ MATERIAL_TERRITORIAL_ASIGNACION_SCHEMA <- "material_territorial_asignacion/v1"
   list(schema = MATERIAL_TERRITORIAL_ASIGNACION_SCHEMA,
        campaign_id = .hojas_ruta_envio_chr(x$campaign_id), fase = .hojas_ruta_envio_chr(x$fase),
        revision = max(0L, suppressWarnings(as.integer(x$revision %||% 0L)), na.rm = TRUE),
-       asignacion = lapply(filas, function(a) list(id_manzana = .hojas_ruta_envio_chr(a$id_manzana), codigo = .hojas_ruta_envio_chr(a$codigo))),
+       # `parte`: sólo en una zona por cuotas con varias personas (collection_territorial_asignacion_zonas.R).
+       asignacion = lapply(filas, function(a) {
+         f <- list(id_manzana = .hojas_ruta_envio_chr(a$id_manzana), codigo = .hojas_ruta_envio_chr(a$codigo))
+         parte <- .mtaz_parte(a$parte)
+         if (!is.na(parte)) f$parte <- parte
+         f
+       }),
        sample_fingerprint = .hojas_ruta_envio_chr(x$sample_fingerprint), updated_at = .hojas_ruta_envio_chr(x$updated_at),
        # C7: el Estado y las fechas que campo declara en el Excel (campo aditivo; sin él, vacío).
        estados = .mte_limpiar(x$estados), estados_at = .hojas_ruta_envio_chr(x$estados_at))
@@ -106,6 +112,9 @@ collection_territorial_asignacion_get <- function(sid, campaign_id = NULL) {
     fila
   })
   asignacion <- Filter(Negate(is.null), asignacion)
+  # En cuotas una zona puede tener varias personas, cada una con su parte (excepción de Gonzalo).
+  por_cuotas <- identical(envio$kind, "cuotas")
+  if (por_cuotas) asignacion <- .mtaz_filas(unidades, if (propia) g$asignacion else list())
   codigos_equipo <- vapply(eq$equipo, `[[`, "", "codigo")
   list(
     ok = TRUE, campaign_id = hit$entry$id, fase = fase, kind = if (is.null(envio)) NA_character_ else envio$kind %||% "ump",
@@ -117,7 +126,8 @@ collection_territorial_asignacion_get <- function(sid, campaign_id = NULL) {
     stale = if (is.null(envio)) TRUE else .mcamp_territorial_stale(s, fase, envio),
     desactualizada = propia && !is.null(envio) && nzchar(g$sample_fingerprint) && !identical(g$sample_fingerprint, envio$sample_fingerprint),
     huerfanas = as.integer(sum(!names(explicita) %in% ids)),
-    codigos_fuera_del_equipo = if (identical(eq$code_format, "DNI")) list() else as.list(sort(unique(setdiff(unname(explicita), codigos_equipo))))
+    codigos_fuera_del_equipo = if (identical(eq$code_format, "DNI")) list() else as.list(sort(unique(setdiff(unname(explicita), codigos_equipo)))),
+    cuadre = if (por_cuotas) .mtaz_cuadre(unidades, asignacion) else list()
   )
 }
 
@@ -155,6 +165,7 @@ collection_territorial_asignacion_put <- function(sid, campaign_id = NULL, asign
   ids <- vapply(.mta_unidades(envio), `[[`, "", "unit_id")
   filas <- if (is.data.frame(asignacion)) lapply(seq_len(nrow(asignacion)), function(i) as.list(asignacion[i, , drop = FALSE])) else Filter(is.list, asignacion %||% list())
   limpias <- list(); malas <- list()
+  por_cuotas <- identical(envio$kind, "cuotas")
   for (a in filas) {
     id <- .hojas_ruta_envio_chr(a[["id_zona"]] %||% a[["id_manzana"]])
     crudo <- .hojas_ruta_envio_chr(a$codigo)
@@ -162,7 +173,15 @@ collection_territorial_asignacion_put <- function(sid, campaign_id = NULL, asign
     codigo <- .monitoreo_territorial_clean_code(crudo, eq$code_format)
     if (!id %in% ids) { malas[[length(malas) + 1L]] <- list(id_manzana = id, motivo = "no está en la muestra enviada"); next }
     if (!codigo %in% codigos) { malas[[length(malas) + 1L]] <- list(id_manzana = id, codigo = crudo, motivo = "no está en el equipo de Monitoreo"); next }
-    limpias[[id]] <- list(id_manzana = id, codigo = codigo)
+    if (por_cuotas) {
+      # Varias personas por zona: una fila por persona, con su parte si la declara.
+      fila <- list(id_manzana = id, codigo = codigo)
+      parte <- .mtaz_parte(a[["parte"]])
+      if (!is.na(parte)) fila$parte <- parte
+      limpias[[paste(id, codigo, sep = "\r")]] <- fila
+    } else {
+      limpias[[id]] <- list(id_manzana = id, codigo = codigo)
+    }
   }
   if (length(malas)) {
     stop_api(422, "E_COLLECTION_TERRITORIAL_ASIGNACION_INVALIDA",

@@ -8,7 +8,7 @@
 # guarda el PUT de collection_territorial_asignacion.R, como en UMP.
 
 .MTX_CUOTAS_COLUMNAS_FIJAS_INICIO <- c("Zona", "Código de zona", "Entrevistas")
-.MTX_CUOTAS_COLUMNAS_FIJAS_FIN <- c("Encuestador", "Fecha de salida", "Fecha de retorno", "Estado", "Observaciones")
+.MTX_CUOTAS_COLUMNAS_FIJAS_FIN <- c("Encuestador", "Parte de la cuota", "Fecha de salida", "Fecha de retorno", "Estado", "Observaciones")
 
 # Las celdas de cuota en el orden en que llegan (sexo y rango, como la matriz de Población).
 .mtx_cuotas_celdas <- function(zonas) {
@@ -25,26 +25,35 @@
   etiquetas <- vapply(equipo, .mtx_etiqueta, "")
   etiqueta_de <- stats::setNames(etiquetas, vapply(equipo, `[[`, "", "codigo"))
   actual <- collection_territorial_asignacion_get(sid, ctx$hit$entry$id)
-  codigo_de <- stats::setNames(vapply(actual$asignacion, `[[`, "", "codigo"), vapply(actual$asignacion, `[[`, "", "id_manzana"))
   zonas <- ctx$unidades
   celdas <- .mtx_cuotas_celdas(zonas)
 
-  filas <- lapply(zonas, function(z) {
-    cod <- unname(codigo_de[z$unit_id])
-    enc <- if (is.na(cod)) "" else unname(etiqueta_de[cod])
-    if (!is.na(cod) && is.na(enc)) enc <- cod  # código que ya no está en la lista: se escribe tal cual
+  # Una fila por zona; si dos o más personas la trabajan (la excepción), una fila más por cada una, con
+  # su parte. La cuota de la zona va sólo en la primera fila, así el total no la cuenta dos veces.
+  filas <- unlist(lapply(zonas, function(z) {
+    suyas <- Filter(function(a) identical(a$id_zona, z$unit_id), actual$asignacion)
+    if (!length(suyas)) suyas <- list(list(codigo = NA_character_, parte = NA_integer_))
     cuota <- stats::setNames(rep(NA_integer_, length(celdas)), celdas)
     for (c in z$cuotas) {
       k <- trimws(paste(c$sexo, if (nzchar(c$rango_edad %||% "")) c$rango_edad else c$rango_id, sep = " · "))
       cuota[[k]] <- c$n
     }
-    cbind(
-      data.frame(Zona = z$label, `Código de zona` = z$unit_id, Entrevistas = z$n, check.names = FALSE, stringsAsFactors = FALSE),
-      as.data.frame(as.list(cuota), check.names = FALSE),
-      data.frame(Encuestador = if (is.na(enc)) "" else enc, `Fecha de salida` = "", `Fecha de retorno` = "",
-                 Estado = "Pendiente", Observaciones = "", check.names = FALSE, stringsAsFactors = FALSE)
-    )
-  })
+    lapply(seq_along(suyas), function(i) {
+      cod <- suyas[[i]]$codigo
+      enc <- if (is.na(cod)) "" else unname(etiqueta_de[cod])
+      if (!is.na(cod) && is.na(enc)) enc <- cod  # código que ya no está en la lista: se escribe tal cual
+      primera <- i == 1L
+      cbind(
+        data.frame(Zona = z$label, `Código de zona` = z$unit_id, Entrevistas = if (primera) z$n else NA_integer_,
+                   check.names = FALSE, stringsAsFactors = FALSE),
+        as.data.frame(as.list(if (primera) cuota else cuota * NA_integer_), check.names = FALSE),
+        data.frame(Encuestador = if (is.na(enc)) "" else enc,
+                   `Parte de la cuota` = if (length(suyas) > 1L) suyas[[i]]$parte %||% NA_integer_ else if (primera) z$n else NA_integer_,
+                   `Fecha de salida` = "", `Fecha de retorno` = "",
+                   Estado = "Pendiente", Observaciones = "", check.names = FALSE, stringsAsFactors = FALSE)
+      )
+    })
+  }), recursive = FALSE)
   tabla <- do.call(rbind, filas)
   columnas <- names(tabla)
   n <- nrow(tabla)
@@ -58,6 +67,7 @@
   openxlsx::writeData(wb, .MTX_HOJA, sprintf("Asignación de zonas a encuestadores · %s", ctx$hit$entry$name), startRow = 1)
   openxlsx::writeData(wb, .MTX_HOJA, paste(
     "Elige en «Encuestador» quién trabaja cada zona; las columnas de sexo y edad son la cuota que hay que cubrir en ella.",
+    "Si una zona la trabajan dos personas, copia su fila debajo, elige al segundo encuestador y reparte la cuota en «Parte de la cuota»: las partes deben sumar las entrevistas de la zona.",
     "Para reasignar, cambia el encuestador y vuelve a subir el archivo en Material de campo.",
     "No cambies «Código de zona»: con ella la app lee este archivo."
   ), startRow = 2)
@@ -84,7 +94,7 @@
   openxlsx::addStyle(wb, .MTX_HOJA, openxlsx::createStyle(numFmt = "dd/mm/yyyy"), rows = primera:ultima,
                      cols = match(c("Fecha de salida", "Fecha de retorno"), columnas), gridExpand = TRUE, stack = TRUE)
   openxlsx::setColWidths(wb, .MTX_HOJA, cols = seq_along(columnas),
-                         widths = c(24, 14, 12, rep(11, length(celdas)), 34, 13, 13, 12, 36))
+                         widths = c(24, 14, 12, rep(11, length(celdas)), 34, 12, 13, 13, 12, 36))
   openxlsx::freezePane(wb, .MTX_HOJA, firstActiveRow = primera, firstActiveCol = 3L)
   openxlsx::addFilter(wb, .MTX_HOJA, rows = .MTX_FILA_CABECERA, cols = seq_along(columnas))
   openxlsx::pageSetup(wb, .MTX_HOJA, orientation = "landscape", fitToWidth = TRUE, fitToHeight = FALSE,
@@ -96,7 +106,7 @@
                                                        `Como aparece en la lista` = unname(etiquetas), check.names = FALSE),
                       headerStyle = openxlsx::createStyle(textDecoration = "bold", border = "Bottom"))
   enc_l <- openxlsx::int2col(col_enc)
-  ent_l <- openxlsx::int2col(match("Entrevistas", columnas))
+  ent_l <- openxlsx::int2col(match("Parte de la cuota", columnas))  # lo que le toca a cada uno, no la zona entera
   openxlsx::writeData(wb, .MTX_HOJA_EQUIPO, data.frame(a = "Zonas asignadas", b = "Entrevistas"), startCol = 4, startRow = 1, colNames = FALSE)
   openxlsx::addStyle(wb, .MTX_HOJA_EQUIPO, openxlsx::createStyle(textDecoration = "bold", border = "Bottom"), rows = 1, cols = 4:5, gridExpand = TRUE)
   for (i in seq_along(etiquetas)) {
@@ -123,7 +133,7 @@
   openxlsx::saveWorkbook(wb, path, overwrite = TRUE)
   nombre <- .export_filename(sid, "asignacion_encuestadores", "xlsx")
   meta <- .register_output_file(sid, "asignacion_encuestadores", path, original_name = nombre)
-  list(ok = TRUE, file_id = meta$file_id, filename = meta$original_name, kind = "cuotas", zonas = n, umps = 0L,
+  list(ok = TRUE, file_id = meta$file_id, filename = meta$original_name, kind = "cuotas", zonas = length(zonas), filas = n, umps = 0L,
        entrevistas = as.integer(sum(tabla$Entrevistas, na.rm = TRUE)),
        encuestadores = length(equipo), asignadas = length(actual$asignacion), hojas_registro = list(), variante = NA_character_)
 }

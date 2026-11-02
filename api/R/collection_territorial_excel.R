@@ -217,7 +217,8 @@ collection_territorial_asignacion_excel <- function(sid, campaign_id = NULL) {
         de_conteo <- which(grepl("^\\s*[0-9]+\\s*·", cab))
         conteos <- stats::setNames(lapply(de_conteo, function(k) cuerpo[[k]]), trimws(sub("·.*$", "", cab[de_conteo])))
         return(list(hoja = h, fila0 = r, id = cuerpo[[ci]], encuestador = cuerpo[[ce]], estado = opcional("Estado"),
-                    fecha_salida = opcional("Fecha de salida"), fecha_entrega = opcional(c("Fecha de retorno", "Fecha de entrega")), conteos = conteos))
+                    fecha_salida = opcional("Fecha de salida"), fecha_entrega = opcional(c("Fecha de retorno", "Fecha de entrega")), conteos = conteos,
+                    parte = opcional("Parte de la cuota")))
       }
     }
   }
@@ -287,10 +288,13 @@ collection_territorial_asignacion_importar <- function(sid, campaign_id = NULL, 
       problemas[[length(problemas) + 1L]] <- list(fila = fila, id_manzana = id, valor = encs[[i]], motivo = "La UMP no está en la muestra enviada")
       next
     }
-    if (id %in% vistos) {
+    # En cuotas una zona puede repetirse, una fila por persona (collection_territorial_asignacion_zonas.R).
+    es_zona <- identical(unidades[[id]]$role, "zona")
+    if (id %in% vistos && !es_zona) {
       problemas[[length(problemas) + 1L]] <- list(fila = fila, id_manzana = id, valor = encs[[i]], motivo = "La UMP aparece dos veces; vale la primera")
       next
     }
+    repetida <- id %in% vistos
     vistos <- c(vistos, id)
     # C7: lo declarado se lee en toda UMP de la muestra, tenga o no encuestador.
     est <- .mte_estado(t$estado[i]); fs <- .mte_fecha(t$fecha_salida[i]); fe <- .mte_fecha(t$fecha_entrega[i])
@@ -308,7 +312,7 @@ collection_territorial_asignacion_importar <- function(sid, campaign_id = NULL, 
         problemas[[length(problemas) + 1L]] <- list(fila = fila, id_manzana = id, valor = as.character(v), motivo = sprintf("El conteo del código %s no es un entero desde cero", k))
       } else cuenta[[k]] <- as.integer(num)
     }
-    if (nzchar(est) || !is.na(fs) || !is.na(fe) || length(cuenta)) {
+    if (!repetida && (nzchar(est) || !is.na(fs) || !is.na(fe) || length(cuenta))) {
       estados[[id]] <- list(id_manzana = id, estado_declarado = est,
                             fecha_salida = if (is.na(fs)) "" else fs, fecha_entrega = if (is.na(fe)) "" else fe,
                             conteos = cuenta)
@@ -319,7 +323,17 @@ collection_territorial_asignacion_importar <- function(sid, campaign_id = NULL, 
       problemas[[length(problemas) + 1L]] <- list(fila = fila, id_manzana = id, valor = encs[[i]], motivo = "No está en la lista de encuestadores de Monitoreo")
       next
     }
-    propuesta[[id]] <- list(id_manzana = id, codigo = cod, fila = fila)
+    if (es_zona) {
+      clave <- paste(id, cod, sep = "\r")
+      if (!is.null(propuesta[[clave]])) {
+        problemas[[length(problemas) + 1L]] <- list(fila = fila, id_manzana = id, valor = encs[[i]], motivo = "La misma persona aparece dos veces en la zona; vale la primera")
+        next
+      }
+      parte <- .mtaz_parte(t$parte[[i]])
+      propuesta[[clave]] <- c(list(id_manzana = id, codigo = cod, fila = fila), if (!is.na(parte)) list(parte = parte))
+    } else {
+      propuesta[[id]] <- list(id_manzana = id, codigo = cod, fila = fila)
+    }
   }
   # Registro del coordinador: lo declarado por UMP se suma a lo leído de la Asignación; sus
   # conteos mandan sobre los de un Excel viejo que los traía en la Asignación.
@@ -344,20 +358,21 @@ collection_territorial_asignacion_importar <- function(sid, campaign_id = NULL, 
     }
   }
   titulares <- Filter(function(u) u$role %in% c("titular", "zona"), ctx$unidades)  # en cuotas cuentan las zonas
-  con <- vapply(titulares, function(u) !is.null(propuesta[[u$unit_id]]), TRUE)
+  ids_con <- vapply(propuesta, `[[`, "", "id_manzana")
+  con <- vapply(titulares, function(u) u$unit_id %in% ids_con, TRUE)
   conteo <- table(factor(vapply(propuesta, `[[`, "", "codigo"), levels = codigos))
   # Aplicar reemplaza todo: cuántas UMP con encuestador hoy se quedarían sin él.
   guardada <- collection_territorial_asignacion_get(sid, ctx$hit$entry$id)
   hoy <- vapply(Filter(function(a) identical(a$origen, "explicita"), guardada$asignacion), `[[`, "", "id_manzana")
   # Un reemplazo que ahora hereda de su titular asignado no pierde a nadie.
   pierden <- Filter(function(id) {
-    if (!is.null(propuesta[[id]])) return(FALSE)
+    if (id %in% ids_con) return(FALSE)
     u <- unidades[[id]]
     !(identical(u$role, "reemplazo") && !is.na(u$titular_id) && !is.null(propuesta[[u$titular_id]]))
-  }, setdiff(hoy, names(propuesta)))
+  }, setdiff(hoy, ids_con))
   list(
     ok = TRUE, campaign_id = ctx$hit$entry$id, hoja = t$hoja,
-    propuesta = unname(lapply(propuesta, function(p) p[c("id_manzana", "codigo")])),
+    propuesta = unname(lapply(propuesta, function(p) p[intersect(c("id_manzana", "codigo", "parte"), names(p))])),
     estados = unname(estados),
     problemas = problemas,
     resumen = list(titulares = length(titulares), titulares_con_encuestador = as.integer(sum(con)),

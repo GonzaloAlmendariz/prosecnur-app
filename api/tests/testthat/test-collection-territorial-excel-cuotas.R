@@ -85,3 +85,41 @@ test_that("la hoja de conteo no se imprime para una muestra por UMP", {
   e <- tryCatch(collection_territorial_papel(sid, pieza = "conteo"), api_error = function(e) e)
   expect_identical(e$code, "E_COLLECTION_TERRITORIAL_PAPEL_PIEZA")
 })
+
+test_that("la excepción: dos personas en una zona, con su parte; si no cuadra, se avisa sin rechazar", {
+  sid <- .mtxc_sesion(); on.exit(session_delete(sid), add = TRUE)
+  n_ate <- collection_territorial_unidades(sid, "territorial.principal")$units[[1]]$n
+  r <- collection_territorial_asignacion_put(sid, asignacion = list(
+    list(id_zona = "150103", codigo = "P844", parte = 40L),
+    list(id_zona = "150103", codigo = "P930", parte = n_ate - 40L),
+    list(id_zona = "150132", codigo = "P930")))
+  ate <- Filter(function(a) identical(a$id_zona, "150103"), r$asignacion)
+  expect_length(ate, 2L)
+  expect_identical(vapply(ate, `[[`, 0L, "parte"), c(40L, n_ate - 40L))
+  # Una sola persona: su parte es la cuota entera.
+  expect_identical(Filter(function(a) identical(a$id_zona, "150132"), r$asignacion)[[1]]$parte,
+                   collection_territorial_unidades(sid, "territorial.principal")$units[[2]]$n)
+  expect_length(r$cuadre, 1L)
+  expect_true(r$cuadre[[1]]$cuadra)
+  mal <- collection_territorial_asignacion_put(sid, asignacion = list(
+    list(id_zona = "150103", codigo = "P844", parte = 10L), list(id_zona = "150103", codigo = "P930", parte = 10L)))
+  expect_false(mal$cuadre[[1]]$cuadra)
+  expect_identical(mal$cuadre[[1]]$suma, 20L)
+
+  # El Excel: una fila por persona; la cuota de la zona sólo en la primera, y se relee con sus partes.
+  collection_territorial_asignacion_put(sid, asignacion = list(
+    list(id_zona = "150103", codigo = "P844", parte = 40L), list(id_zona = "150103", codigo = "P930", parte = n_ate - 40L)))
+  x <- collection_territorial_asignacion_excel(sid)
+  expect_identical(x$filas, 3L)
+  path <- session_get(sid)$files[[x$file_id]]$path
+  t <- openxlsx::read.xlsx(path, sheet = "Asignación", startRow = 4, check.names = FALSE, sep.names = " ")
+  t <- t[!is.na(t[["Código de zona"]]), , drop = FALSE]
+  expect_identical(as.character(t[["Código de zona"]]), c("150103", "150103", "150132"))
+  expect_identical(as.integer(t$Entrevistas[1:2]), c(n_ate, NA))
+  expect_identical(as.integer(t[["Parte de la cuota"]][1:2]), c(40L, n_ate - 40L))
+  imp <- collection_territorial_asignacion_importar(sid, file_raw = readBin(path, "raw", file.info(path)$size))
+  expect_length(imp$problemas, 0L)
+  ate_imp <- Filter(function(p) identical(p$id_manzana, "150103"), imp$propuesta)
+  expect_identical(vapply(ate_imp, `[[`, "", "codigo"), c("P844", "P930"))
+  expect_identical(vapply(ate_imp, `[[`, 0L, "parte"), c(40L, n_ate - 40L))
+})
