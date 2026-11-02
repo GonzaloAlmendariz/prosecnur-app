@@ -119,9 +119,14 @@ test_that("cache persistida de reportes territoriales sirve hits por fase y scop
   expect_gt(length(advance$dashboard$territorial_reports$daily), 0L)
   expect_equal(advance$dashboard$territorial_reports$daily[[1]]$date, "2026-06-01")
   expect_equal(advance$dashboard$territorial_reports$daily[[1]]$total, 2L)
+  # Cuenta única (2026-11-02): las en observación están DENTRO de las efectivas,
+  # así que el invariante es efectivas <= total (y revision <= efectivas).
   expect_true(
-    advance$dashboard$territorial_reports$daily[[1]]$validas +
-      advance$dashboard$territorial_reports$daily[[1]]$revision <=
+    advance$dashboard$territorial_reports$daily[[1]]$revision <=
+      advance$dashboard$territorial_reports$daily[[1]]$validas
+  )
+  expect_true(
+    advance$dashboard$territorial_reports$daily[[1]]$validas <=
       advance$dashboard$territorial_reports$daily[[1]]$total
   )
   expect_gt(length(advance$dashboard$territorial_reports$advance$daily), 0L)
