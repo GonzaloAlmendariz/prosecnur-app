@@ -676,10 +676,15 @@ export default function HojasRutaMapaPage() {
   // B1: la zona de acciones del documento (fase, avisos por revisar, bitácora, Material).
   const navegar = useNavigate();
   // El modo lo fija el estudio, no un click: si la dirección dice otro, se corrige sin perder la sección.
+  // D2 (checklist visual 2/11): `?seccion=entrega` es el nombre viejo de `seleccion` y aterrizaba mudo en
+  // Territorio; se reescribe a la sección que nombra, sin historial.
   useEffect(() => {
-    if (!modoDelEstudio || modoDelEstudio === (nav.modo ?? "ump")) return;
+    const vieja = new URLSearchParams(location.search).get("seccion") === "entrega";
+    const otroModo = Boolean(modoDelEstudio) && modoDelEstudio !== (nav.modo ?? "ump");
+    if (!vieja && !otroModo) return;
     const q = new URLSearchParams(location.search);
-    if (modoDelEstudio === "ump") q.delete("modo"); else q.set("modo", modoDelEstudio);
+    if (vieja) q.set("seccion", "seleccion");
+    if (otroModo && modoDelEstudio === "ump") q.delete("modo"); else if (otroModo && modoDelEstudio) q.set("modo", modoDelEstudio);
     if (modoDelEstudio === "cuotas" && q.get("seccion") === "manzanas") q.delete("seccion");
     const s = q.toString();
     navegar(`${location.pathname}${s ? `?${s}` : ""}`, { replace: true });
@@ -712,7 +717,8 @@ export default function HojasRutaMapaPage() {
     })),
     // F11: la muestra del reparto v1 se ve desde cualquier sección, no sólo al fondo de Manzanas.
     ...(muestraV1(salidas?.sample?.alerts)
-      ? [{ id: "sorteo-v1", label: "Re-sortear", tone: "warn" as const, detail: "Se sorteó con el reparto por zonas anterior y deja manzanas sin probabilidad de salir: vuelve a sortear en Manzanas.", onSelect: () => navegar(`${location.pathname}?seccion=manzanas`) }]
+      // D10 (checklist visual 2/11): los chips dicen estados; la acción («vuelve a sortear») va en su detalle.
+      ? [{ id: "sorteo-v1", label: "Sorteo con reparto anterior", tone: "warn" as const, detail: "Se sorteó con el reparto por zonas anterior y deja manzanas sin probabilidad de salir: vuelve a sortear en Manzanas.", onSelect: () => navegar(`${location.pathname}?seccion=manzanas`) }]
       : []),
     ...(porRevisarTotal
       ? [{ id: "revisar", label: `${porRevisarTotal} por revisar`, tone: "warn" as const, detail: "UMP con observaciones contra el marco: ábrelas en Selección.", onSelect: () => navegar(`${location.pathname}?seccion=seleccion`) }]

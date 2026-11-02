@@ -89,7 +89,8 @@ export function ListaDeCampanas({
           <div className="rec-campanas-cabeza-fila">
             {/* El h1 lo pone PageFrame (sr-only) con el mismo título: este no se repite al lector. */}
             <p className="rec-campanas-titulo" aria-hidden>Campañas</p>
-            <PulsoButton variant="primary" size="sm" onClick={onNueva} disabled={!registro} data-retorno="nueva-campana">
+            {/* D8 (checklist visual 2/11): sin campañas el primario es el del vacío; aquí queda secundario, en su sitio. */}
+            <PulsoButton variant={registro && !visibles.length ? "secondary" : "primary"} size="sm" onClick={onNueva} disabled={!registro} data-retorno="nueva-campana">
               <Plus size={14} aria-hidden /> Nueva campaña
             </PulsoButton>
           </div>

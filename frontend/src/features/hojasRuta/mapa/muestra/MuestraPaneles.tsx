@@ -377,7 +377,8 @@ export function MuestraEstructura({ config, resultado: r, bloqueado }: Estructur
               )}
             </div>
             <div className="hr-muestra-barra" aria-hidden="true">
-              <i style={{ width: `${(f.nUsado / tope) * 100}%` }} />
+              {/* D9 (checklist visual 2/11): la barra lleva el color de su distrito, como el punto y el mapa. */}
+              <i style={{ width: `${(f.nUsado / tope) * 100}%`, background: tonoCss(config.territorios.indexOf(f.ubigeo)) }} />
               <s style={{ left: `${(f.nMinimo / tope) * 100}%` }} />
             </div>
             <small>
