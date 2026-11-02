@@ -890,6 +890,11 @@ export async function apiXlsformEditorExport(
  */
 export type XlsformPaperExportOptions = {
   title?: string;
+  /** Portada (L36 · D-L36-5): «institución · periodo» bajo el título. */
+  institution?: string;
+  period?: string;
+  /** Portada: encuestador, fecha y supervisor con línea para escribir. */
+  control_block?: boolean;
   footer_title?: string;
   columns?: 1 | 2 | "auto";
   logic_language?: "saltos" | "condiciones";

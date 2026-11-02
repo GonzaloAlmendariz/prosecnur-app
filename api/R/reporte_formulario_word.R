@@ -1129,6 +1129,7 @@ formulario_word_render <- function(model, output_file) {
       # Regla corta centrada bajo el titulo (paridad con la portada del PDF).
       doc <- .form_word_par(doc, strrep("─", 10), size = .std_cuestionario("tipografia", "cuerpo"), color = .std_cuestionario("colores", "tinta"),
                             align = "center", space_after = 10)
+      doc <- .form_word_portada_extra(doc, block, usable)
 
     } else if (identical(kind, "paper")) {
       # ITEM 5: consentimiento / introducción van ENMARCADOS, y el marco es una

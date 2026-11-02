@@ -650,7 +650,10 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
 
   # Portada: titulo prominente centrado en la primera pagina, sobre las
   # instrucciones (jerarquia tipo referencia Word).
-  add_block(list(kind = "cover", title = title, full_width = TRUE))
+  # L36 · D-L36-5: subtítulo (institución · periodo) y bloque de control (reporte_formulario_portada.R).
+  portada <- .form_portada_opciones(options)
+  add_block(list(kind = "cover", title = title, full_width = TRUE,
+                 subtitle = portada$subtitulo, control = portada$control))
 
   if (nrow(paper)) {
     pos <- suppressWarnings(as.numeric(paper$position))
@@ -1186,8 +1189,9 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
     # margenes—. Antes eran 0.056 + lineas * 0.026: 90.9 pt reservados para
     # dibujar 61.5.
     lay <- .form_pdf_rt_si(.form_rt_campo(block, "title"), width, 15, 0.023, base_b = TRUE)
-    if (!is.null(lay)) return(0.027 + lay$alto)
-    return(0.027 + length(.form_pdf_wrap(block$title, 46)) * 0.023)
+    extra <- .form_pdf_portada_extra_alto(block)
+    if (!is.null(lay)) return(0.027 + lay$alto + extra)
+    return(0.027 + length(.form_pdf_wrap(block$title, 46)) * 0.023 + extra)
   }
   if (identical(block$kind, "section")) {
     # L19 — LA RESERVA SIGUE AL DIBUJO. Aqui habia un `0.058` fijo (48.8 pt) mas
@@ -1499,7 +1503,7 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
   }
   grid::grid.lines(x = grid::unit(c(cx - 0.055, cx + 0.055), "npc"),
                    y = grid::unit(y, "npc"), gp = grid::gpar(col = tk$ink, lwd = 1.2))
-  y - 0.011
+  .form_pdf_draw_portada_extra(block, x, y - 0.011, w)
 }
 
 .form_pdf_draw_paper <- function(block, x, y, w) {

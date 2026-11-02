@@ -350,3 +350,17 @@ describe("título del documento (L36 · D-L36-5)", () => {
     expect(parsePdfDialogState(JSON.stringify({ columns: 2 })).documentTitle).toBe("");
   });
 });
+
+describe("portada en las opciones del motor (L36 · D-L36-5)", () => {
+  it("manda institución, periodo y bloque de control sólo cuando se eligieron, y los recuerda", () => {
+    const vacio = buildPaperExportOptions(DEFAULT_PDF_DIALOG_STATE, [], []);
+    expect(vacio).not.toHaveProperty("institution");
+    expect(vacio).not.toHaveProperty("period");
+    expect(vacio).not.toHaveProperty("control_block");
+    const estado = { ...DEFAULT_PDF_DIALOG_STATE, institution: " UNSA ", period: "2026-2", controlBlock: true };
+    expect(buildPaperExportOptions(estado, [], [])).toMatchObject({ institution: "UNSA", period: "2026-2", control_block: true });
+    const leido = parsePdfDialogState(serializePdfDialogState(estado, []));
+    expect(leido).toMatchObject({ institution: " UNSA ", period: "2026-2", controlBlock: true });
+    expect(parsePdfDialogState('{"controlBlock":"si"}').controlBlock).toBe(false);
+  });
+});

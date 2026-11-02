@@ -165,3 +165,13 @@ vista, y un formulario que el proyecto aún no recibió (el editor mostraba su
 copia local) decía el uuid y `E_FORM_NOT_FOUND`; ahora dice que el formulario
 aún no está guardado en el proyecto. Las opciones se guardan con la próxima
 edición del formulario, que lo sube.
+
+## Sección Documento (2026-11-01)
+
+- **D-L36-19 · Portada completa.** Bajo el título y su regla van «institución ·
+  periodo» en una línea (se omite si los dos están vacíos) y, si se activa, un
+  bloque de control: encuestador, fecha y supervisor, cada uno con su línea para
+  escribir y sin raya corrida entre ellos. Vive en `reporte_formulario_portada.R`,
+  que llaman el modelo, el Word y el PDF (la reserva de alto del PDF suma
+  exactamente lo que dibuja). Se edita en Impreso › Formato › Portada y «Así
+  queda» lo dibuja. Viaja como `institution`, `period` y `control_block`.

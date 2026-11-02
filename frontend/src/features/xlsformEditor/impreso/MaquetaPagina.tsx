@@ -174,6 +174,34 @@ export function MaquetaPagina({ estado, hayMatrices, pagina }: {
     partes.push(<path key="sep" d={`M${M} ${y} h${ANCHO}`} stroke={TINTA} strokeWidth={0.6} />);
     y += 6;
   }
+  // Portada (L36 · D-L36-5): «institución · periodo» y el bloque de control, como los imprime el motor.
+  const subtitulo = [estado.institution.trim(), estado.period.trim()].filter(Boolean).join(" · ");
+  if (subtitulo) {
+    partes.push(
+      <text key="subtitulo" x={105} y={y + 3} fontSize={3.4} textAnchor="middle" fill={TEXTO}>
+        {partirEnLineas(subtitulo, caben(ANCHO, 3.4), 1)[0]}
+      </text>,
+    );
+    y += 8;
+  }
+  if (estado.controlBlock) {
+    const hueco = 6;
+    const ancho = (ANCHO - hueco * 2) / 3;
+    partes.push(
+      <g key="control">
+        {["Encuestador:", "Fecha:", "Supervisor:"].map((rotulo, i) => {
+          const x = M + i * (ancho + hueco);
+          return (
+            <g key={rotulo}>
+              <text x={x} y={y + 4} fontSize={2.8} fill={TEXTO}>{rotulo}</text>
+              <path d={`M${x} ${y + 6} h${ancho}`} stroke={TINTA} strokeWidth={0.5} />
+            </g>
+          );
+        })}
+      </g>,
+    );
+    y += 12;
+  }
   // Instrucciones
   if (estado.defaultIntro) {
     partes.push(

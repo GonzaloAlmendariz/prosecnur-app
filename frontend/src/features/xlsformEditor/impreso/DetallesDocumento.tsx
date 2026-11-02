@@ -19,7 +19,7 @@ import {
   parseMaxOptionsPerQuestion,
   type PdfDialogState,
 } from "../shell/pdfExportPreference";
-import { PulsoField } from "../../../components/PulsoField";
+import { PulsoField, PulsoFieldRow } from "../../../components/PulsoField";
 import { PulsoInput } from "../../../components/PulsoInput";
 import { InterruptorImpreso, TarjetaImpreso } from "./TarjetaImpreso";
 
@@ -85,7 +85,7 @@ export function DetalleFormato({ estado, actualizar, tituloDelFormulario }: {
 }) {
   return (
     <>
-      <TarjetaImpreso id="imp-titulo" titulo="Título del documento" ayuda="El nombre que lleva la portada y la cabecera de cada página.">
+      <TarjetaImpreso id="imp-titulo" titulo="Portada" ayuda="Lo que abre la primera página: título, institución y periodo.">
         <PulsoField label="Título impreso" hint={tituloDelFormulario ? `Si lo dejas vacío se imprime «${tituloDelFormulario}».` : "Si lo dejas vacío se imprime el título del formulario."}>
           <PulsoInput
             value={estado.documentTitle}
@@ -93,6 +93,22 @@ export function DetalleFormato({ estado, actualizar, tituloDelFormulario }: {
             onChange={(e) => actualizar({ documentTitle: e.target.value })}
           />
         </PulsoField>
+        <PulsoFieldRow geometryGroup="xlsform/impreso-portada">
+          <PulsoField label="Institución">
+            <PulsoInput value={estado.institution} placeholder="Ej. Universidad Nacional de San Agustín"
+              onChange={(e) => actualizar({ institution: e.target.value })} />
+          </PulsoField>
+          <PulsoField label="Periodo">
+            <PulsoInput value={estado.period} placeholder="Ej. 2026-2"
+              onChange={(e) => actualizar({ period: e.target.value })} />
+          </PulsoField>
+        </PulsoFieldRow>
+        <InterruptorImpreso
+          activo={estado.controlBlock}
+          titulo="Bloque de control"
+          detalle="Encuestador, fecha y supervisor, con línea para escribir."
+          onCambiar={(v) => actualizar({ controlBlock: v })}
+        />
       </TarjetaImpreso>
       <TarjetaImpreso id="imp-columnas" titulo="Columnas" ayuda="Cómo se reparte el cuestionario en la página.">
         <Opciones etiqueta="Columnas" valor={estado.columns} opciones={COLUMNAS} onElegir={(columns) => actualizar({ columns })} />

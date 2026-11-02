@@ -159,6 +159,11 @@ export type PdfDialogState = {
   showHeaderTitle: boolean;
   /** Título impreso del documento (L36 · D-L36-5). Vacío = el `form_title` del formulario. */
   documentTitle: string;
+  /** Portada (L36 · D-L36-5): institución y periodo van en una línea bajo el título; vacíos, no se imprime nada. */
+  institution: string;
+  period: string;
+  /** Bloque de control de la portada: encuestador, fecha y supervisor con línea para escribir. */
+  controlBlock: boolean;
   /** Elecciones por matriz, indexadas por `matrixSignature`. */
   matrices: Record<string, PdfMatrixChoice>;
 };
@@ -171,6 +176,9 @@ export const DEFAULT_PDF_DIALOG_STATE: PdfDialogState = {
   defaultIntro: true,
   showHeaderTitle: true,
   documentTitle: "",
+  institution: "",
+  period: "",
+  controlBlock: false,
   matrices: {},
 };
 
@@ -262,6 +270,9 @@ export function buildPaperExportOptions(
     ...(state.defaultIntro ? {} : { no_default_intro: true }),
     ...(state.showHeaderTitle ? {} : { show_header_title: false }),
     ...(state.documentTitle.trim() ? { title: state.documentTitle.trim() } : {}),
+    ...(state.institution.trim() ? { institution: state.institution.trim() } : {}),
+    ...(state.period.trim() ? { period: state.period.trim() } : {}),
+    ...(state.controlBlock ? { control_block: true } : {}),
   };
 }
 
@@ -326,6 +337,9 @@ export function parsePdfDialogState(raw: string | null | undefined): PdfDialogSt
     defaultIntro: bool(data.defaultIntro, d.defaultIntro),
     showHeaderTitle: bool(data.showHeaderTitle, d.showHeaderTitle),
     documentTitle: str(data.documentTitle) ?? d.documentTitle,
+    institution: str(data.institution) ?? d.institution,
+    period: str(data.period) ?? d.period,
+    controlBlock: bool(data.controlBlock, d.controlBlock),
     matrices,
   };
 }
