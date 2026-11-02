@@ -32,7 +32,8 @@ TRANSVERSALES <- c(
   "test-monitoreo-aulas-campos-declarados.R",   # un campo que el normalizador se traga
   "test-monitoreo-aulas-estado-normalizado.R",  # un motor que compara el estado en crudo
   "test-helpers-sin-duplicar.R",                # un micro-helper redefinido por módulo
-  "test-guards-que-guardan.R"                   # un guard que dejó de encontrar su objeto
+  "test-guards-que-guardan.R",                  # un guard que dejó de encontrar su objeto
+  "test-session-schema.R"                       # una clave de sesión nueva sin censar (persistencia del .pulso)
 )
 
 dir_tests <- file.path("api", "tests", "testthat")
