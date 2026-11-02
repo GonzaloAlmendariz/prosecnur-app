@@ -92,8 +92,8 @@ MATERIAL_TERRITORIAL_ASIGNACION_SCHEMA <- "material_territorial_asignacion/v1"
 .mta_unidades <- function(envio) {
   if (is.null(envio)) return(list())
   if (identical(envio$kind, "cuotas")) return(lapply(envio$zonas %||% list(), .mcamp_territorial_unidad_zona))
-  c(lapply(.hojas_ruta_envio_rows(envio$sample$blocks), .mcamp_territorial_unidad, role = "titular"),
-    lapply(.hojas_ruta_envio_rows(envio$sample$replacement_blocks), .mcamp_territorial_unidad, role = "reemplazo"))
+  c(lapply(.hojas_ruta_envio_rows(envio[["sample"]]$blocks), .mcamp_territorial_unidad, role = "titular"),
+    lapply(.hojas_ruta_envio_rows(envio[["sample"]]$replacement_blocks), .mcamp_territorial_unidad, role = "reemplazo"))
 }
 
 #' Asignación UMP → encuestador de la campaña territorial (lectura pura).

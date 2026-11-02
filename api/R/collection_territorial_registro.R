@@ -45,7 +45,7 @@
   defs <- envio$config$age_ranges
   if (!length(defs)) defs <- .hojas_ruta_age_defs_default()
   edades <- vapply(defs, function(d) .hojas_ruta_scalar(d$label, .hojas_ruta_scalar(d$id, "")), "")
-  filas <- c(.hojas_ruta_envio_rows(envio$sample$blocks), .hojas_ruta_envio_rows(envio$sample$replacement_blocks))
+  filas <- c(.hojas_ruta_envio_rows(envio[["sample"]]$blocks), .hojas_ruta_envio_rows(envio[["sample"]]$replacement_blocks))
   cuota <- lapply(filas, function(b) list(
     sexo = .hojas_ruta_parse_edad_totals(b[["cuota_sexo_totals"]], 2L),
     edad = .hojas_ruta_parse_edad_totals(b[["cuota_edad_totals"]], length(edades))

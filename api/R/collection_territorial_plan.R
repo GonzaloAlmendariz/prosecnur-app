@@ -12,7 +12,7 @@
   hit <- .mta_campana(s, campaign_id)
   fase <- .mcamp_territorial_fase_of(hit$entry)
   envio <- .mcamp_territorial_envio(s, fase)
-  if (is.null(envio) || !length(envio$sample$blocks %||% list())) {
+  if (is.null(envio) || !length(envio[["sample"]]$blocks %||% list())) {
     stop_api(409, "E_COLLECTION_TERRITORIAL_SIN_FUENTE", "La muestra enviada desde Hojas de ruta ya no está: vuelve a enviarla.",
              details = list(id = hit$entry$id, fase = fase))
   }
@@ -25,7 +25,7 @@
 #' @keywords internal
 collection_territorial_plan <- function(sid, campaign_id = NULL, supuestos = NULL) {
   ctx <- .mtpl_contexto(sid, campaign_id)
-  plan <- hojas_ruta_plan_campo(ctx$envio$sample$blocks, supuestos %||% ctx$guardados)
+  plan <- hojas_ruta_plan_campo(ctx$envio[["sample"]]$blocks, supuestos %||% ctx$guardados)
   plan$fuente <- "envio"
   plan$sample_fingerprint <- ctx$envio$sample_fingerprint
   plan$stale <- ctx$stale
@@ -38,7 +38,7 @@ collection_territorial_hoja_dia <- function(sid, campaign_id = NULL, jornada = N
   jornada <- toupper(.mtf_txt(jornada))
   if (!nzchar(jornada)) stop_api(400, "E_BAD_REQUEST", "Falta la jornada (p. ej. «J03»).")
   ctx <- .mtpl_contexto(sid, campaign_id)
-  modelo <- hojas_ruta_hoja_dia_modelo(ctx$envio$sample, jornada, supuestos %||% ctx$guardados)
+  modelo <- hojas_ruta_hoja_dia_modelo(ctx$envio[["sample"]], jornada, supuestos %||% ctx$guardados)
   if (is.null(modelo)) {
     stop_api(404, "E_NOT_FOUND", sprintf("La jornada %s no existe en el plan de campo con estos supuestos.", jornada))
   }

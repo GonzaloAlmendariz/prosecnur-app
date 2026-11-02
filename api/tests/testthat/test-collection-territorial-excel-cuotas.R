@@ -123,3 +123,17 @@ test_that("la excepción: dos personas en una zona, con su parte; si no cuadra, 
   expect_identical(vapply(ate_imp, `[[`, "", "codigo"), c("P844", "P930"))
   expect_identical(vapply(ate_imp, `[[`, 0L, "parte"), c(40L, n_ate - 40L))
 })
+
+test_that("con un envío por cuotas, `envio$sample` no casa por prefijo con sample_fingerprint (aviso de Monitoreo, D14)", {
+  sid <- .mtxc_sesion(); on.exit(session_delete(sid), add = TRUE)
+  envio <- .mcamp_territorial_envio(session_get(sid), "field")
+  expect_identical(envio$kind, "cuotas")
+  expect_true(is.character(envio$sample))  # la trampa: `$` completa a sample_fingerprint
+  expect_null(envio[["sample"]])
+  # El plan y la hoja del día son de UMP: con cuotas dicen que no hay muestra, no revientan.
+  e <- tryCatch(collection_territorial_plan(sid), api_error = function(e) e, error = function(e) e)
+  expect_s3_class(e, "api_error")
+  expect_identical(e$code, "E_COLLECTION_TERRITORIAL_SIN_FUENTE")
+  expect_length(.mtr_celdas(envio)$cuota %||% list(), 0L)
+  expect_true(is.list(hojas_ruta_envio_meta(session_get(sid)$hojas_ruta_runs$field)))
+})

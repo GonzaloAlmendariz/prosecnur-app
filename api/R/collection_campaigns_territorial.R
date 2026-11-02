@@ -212,8 +212,8 @@ collection_territorial_unidades <- function(sid, campaign_id) {
                 enviado_at = envio$enviado_at, sample_fingerprint = envio$sample_fingerprint, stale = stale))
   }
   units <- c(
-    lapply(.hojas_ruta_envio_rows(envio$sample$blocks), .mcamp_territorial_unidad, role = "titular"),
-    lapply(.hojas_ruta_envio_rows(envio$sample$replacement_blocks), .mcamp_territorial_unidad, role = "reemplazo")
+    lapply(.hojas_ruta_envio_rows(envio[["sample"]]$blocks), .mcamp_territorial_unidad, role = "titular"),
+    lapply(.hojas_ruta_envio_rows(envio[["sample"]]$replacement_blocks), .mcamp_territorial_unidad, role = "reemplazo")
   )
   list(ok = TRUE, campaign_id = id, fase = fase, kind = "ump", source = .MCAMP_TERRITORIAL_SOURCE,
        unit_type = .MCAMP_TERRITORIAL_UNIT_TYPE, units = units,
