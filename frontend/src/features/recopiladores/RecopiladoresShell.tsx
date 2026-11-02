@@ -283,7 +283,7 @@ export function RecopiladoresShell({ cabecera = null }: Props = {}) {
         <OrigenSection payload={payload} onState={aplicarMutacion} onCargando={setSeccionCargando} />
       ) : null}
       {!loading && direction.seccion === "accesos" ? (
-        <AccessSection payload={payload} activeTab={direction.pestana} onState={aplicarMutacion} onIr={irA} />
+        <AccessSection payload={payload} activeTab={direction.pestana} onState={aplicarMutacion} onIr={irA} onVerVinculacion={() => selectTab("vinculacion")} />
       ) : null}
       {!loading && direction.seccion === "catalogo" && direction.pestana === "tipos" ? (
         <CatalogoTipos

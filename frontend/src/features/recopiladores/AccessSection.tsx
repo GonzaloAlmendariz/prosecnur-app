@@ -45,6 +45,8 @@ type Props = {
   onState: (payload: CollectionStatePayload) => void;
   /** Navega a una dirección de la app (la acción del vacío sin plan). */
   onIr?: (to: string) => void;
+  /** Pasa a la pestaña Vinculación, donde se pinta la vista previa. */
+  onVerVinculacion?: () => void;
 };
 
 const PROVIDER_BY_ADAPTER: Record<CollectionAdapterId, string> = {
@@ -194,7 +196,7 @@ function policyLabel(value: string | undefined): string | null {
   return POLICY_LABELS[value as CapabilityPolicy] ?? value;
 }
 
-export function AccessSection({ payload, activeTab, onState, onIr }: Props) {
+export function AccessSection({ payload, activeTab, onState, onIr, onVerVinculacion }: Props) {
   const plan = payload?.state.plan ?? null;
   const currentDeployment = payload?.state.deployment ?? null;
   const [adapterId, setAdapterId] = useState<CollectionAdapterId>(
@@ -296,6 +298,9 @@ export function AccessSection({ payload, activeTab, onState, onIr }: Props) {
     setError("");
     try {
       setPreview(await apiRecopiladoresDeploymentPreview(cuerpoDeVistaPrevia({ adapterId, plan, target, pendientes })));
+      // Revisión con ojo de usuario (2 nov 2026): en Canales el panel de la derecha sólo pinta la
+      // comprobación, así que la vista previa salía y no se veía. Se muestra donde vive: Vinculación.
+      if (activeTab === "canales") onVerVinculacion?.();
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "No se pudo construir la vista previa.");
     } finally {
