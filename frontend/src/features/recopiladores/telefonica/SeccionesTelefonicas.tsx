@@ -6,6 +6,7 @@
 // vacío y su error (C3); el scroll es del panel de la sección (C4).
 
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 
 import { downloadUrl } from "../../../api/core";
 import { apiMaterialTelefonicaPlantilla, type ClaseDeStatus, type ConfigTelefonica, type StatusDelBarrido } from "../../../api/materialTelefonica";
@@ -16,7 +17,11 @@ import { PulsoSwitch } from "../../../components/PulsoSwitch";
 import { PulsoTable, type PulsoTableColumna } from "../../../components/PulsoTable";
 import { CheckCircle2, ClipboardList, ListChecks, ShieldAlert, Table2 } from "../../../vendor/lucide-react";
 import { partirLista } from "./modeloTelefonico";
+import { serializarDireccion } from "../../../lib/navegacion/direccion";
 import type { useConfigTelefonica } from "./useConfigTelefonica";
+
+/** Donde Monitoreo telefónico conecta el Sheets del barrido. */
+const A_MONITOREO_FUENTES_TELEFONICO = serializarDireccion({ modulo: "monitoreo", modo: "telefonico", seccion: "insumos", pestana: "fuentes" });
 
 type Datos = ReturnType<typeof useConfigTelefonica>;
 
@@ -230,9 +235,11 @@ export function EntregaTelefonica({ config }: { config: ConfigTelefonica | null 
     <>
       <article className="rec-terr-tarjeta" data-qa-geometry-member>
         <h3><CheckCircle2 size={15} aria-hidden /> Lo que lee Monitoreo</h3>
+        {/* R14 del mapa de responsabilidades (2 nov 2026): de dónde sale el Sheets y a dónde va. */}
         <p className="rec-terr-nota">
-          El equipo llena la plantilla en un Sheets compartido y Monitoreo telefónico lo lee para el avance. Estas columnas son la llave de
-          esa lectura: no cambian de nombre.
+          La plantilla sale de Barrido; el equipo la copia al Sheets compartido del operativo y la llena. Monitoreo lo conecta en{" "}
+          <Link to={A_MONITOREO_FUENTES_TELEFONICO}>Insumos › Fuentes</Link> y desde ahí sigue el avance. Estas columnas son la llave
+          de esa lectura: no cambian de nombre.
         </p>
         {lee.length ? (
           <div className="rec-tel-columnas">{lee.map((c) => <span key={c} className="rec-tel-col">{c}</span>)}</div>
