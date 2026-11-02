@@ -1630,3 +1630,24 @@ export async function apiHojasRutaHojaDia(jornada: string, supuestos?: HojasRuta
     "pdf",
   );
 }
+
+// ---------- Cartografía de manzanas por ciudad ----------
+
+export type CartografiaDeProvincia = { provincia: string; disponible: boolean; cobertura: string; anio: number | null; fuente: string };
+
+/** Año y fuente de la cartografía de manzanas de cada provincia de los ubigeos (una por provincia). */
+export async function apiHojasRutaCartografia(ubigeos: readonly string[]): Promise<CartografiaDeProvincia[]> {
+  const qs = new URLSearchParams({ ubigeos: ubigeos.join(",") });
+  const r = await handle<{ provincias?: unknown }>(await apiFetch(`/api/hojas-ruta/cartografia?${qs.toString()}`, { headers: headers() }));
+  return (esArreglo(r.provincias) ? r.provincias : []).map((x) => {
+    const d = (x && typeof x === "object" ? x : {}) as Record<string, unknown>;
+    const anio = comoNumero(d.anio);
+    return { provincia: comoTexto(d.provincia), disponible: d.disponible === true || (Array.isArray(d.disponible) && d.disponible[0] === true),
+      cobertura: comoTexto(d.cobertura), anio: anio > 0 ? anio : null, fuente: comoTexto(d.fuente) };
+  }).filter((p) => p.provincia);
+}
+
+/** «Arequipa, Arequipa 2017»: lo que dice la fila Cartografía con una ciudad abierta. */
+export function rotuloDeCartografia(provincias: readonly CartografiaDeProvincia[]): string {
+  return provincias.map((p) => (p.disponible ? `${p.cobertura}${p.anio ? ` ${p.anio}` : ""}` : "sin cartografía de manzanas")).join(" · ");
+}

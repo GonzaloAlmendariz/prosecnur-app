@@ -18,5 +18,10 @@ mount_hojas_ruta_contornos <- function(pr) {
       res$setHeader("Content-Length", as.character(nchar(body, type = "bytes")))
       res$body <- body
       res
+    })) |>
+    # Año y fuente de la cartografía de manzanas por provincia (hojas_ruta_cartografia_ciudad.R): el inspector
+    # la pide para la ciudad abierta. Tampoco depende de la sesión.
+    plumber::pr_get("/api/hojas-ruta/cartografia", wrap_endpoint(function(req, res, ubigeos = NULL) {
+      list(ok = TRUE, provincias = hojas_ruta_cartografia_de_ciudad(strsplit(as.character(ubigeos %||% ""), ",", fixed = TRUE)[[1]]))
     }))
 }

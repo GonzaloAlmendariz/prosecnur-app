@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { describirMarcoCartografia } from "./marcoCartografia";
 import { TerritorioGraficos } from "./TerritorioGraficos";
 import { MapPinned, Minus, Plus, X } from "../../../../vendor/lucide-react";
@@ -6,7 +6,7 @@ import { GlidingRadioGroup } from "../../../../components/GlidingRadioGroup";
 import { InspectorCabecera } from "../InspectorCabecera";
 import { PulsoButton } from "../../../../components/PulsoButton";
 import { PulsoSwitch } from "../../../../components/PulsoSwitch";
-import type { HojasRutaTerritory, TerritorialFrameMeta } from "../../../../api/hojasRuta";
+import { apiHojasRutaCartografia, rotuloDeCartografia, type HojasRutaTerritory, type TerritorialFrameMeta } from "../../../../api/hojasRuta";
 import { nombreDistrito } from "../nombres";
 import { useLienzoHojasRuta } from "../store";
 import { tonoCss } from "../lienzo/tonos";
@@ -238,7 +238,7 @@ export function TerritorioInspector({ territorios, confirmados, bloqueado, guard
           </section>
         ) : null}
         {/* El distrito bajo el cursor ya no entra aquí: va junto al cursor, sobre el mapa (rotuloCursor). */}
-        <MarcoTerritorial meta={marcoMeta} />
+        <MarcoTerritorial meta={marcoMeta} ubigeosDeLaCiudad={ciudad?.ubigeos ?? null} />
         {pendiente ? (
           <section className="hr-mapa-cambios" aria-label="Cambios sin confirmar">
             <h3>Cambios sin confirmar</h3>
@@ -272,7 +272,16 @@ export function TerritorioInspector({ territorios, confirmados, bloqueado, guard
  * Marco territorial (brecha B27): cobertura, año del marco de manzanas y año de la
  * cartografía de cada provincia, tal como los declara el motor en `frame_meta`.
  */
-function MarcoTerritorial({ meta }: { meta: TerritorialFrameMeta | null }) {
+function MarcoTerritorial({ meta, ubigeosDeLaCiudad = null }: { meta: TerritorialFrameMeta | null; ubigeosDeLaCiudad?: readonly string[] | null }) {
+  // Con una ciudad abierta, su cartografía: el frame_meta del estado sólo trae la del paquete de Lima y Callao.
+  const [deLaCiudad, setDeLaCiudad] = useState<string | null>(null);
+  const clave = ubigeosDeLaCiudad?.slice(0, 1).join(",") ?? "";
+  useEffect(() => {
+    if (!clave) { setDeLaCiudad(null); return undefined; }
+    let vivo = true;
+    apiHojasRutaCartografia(clave.split(",")).then((p) => { if (vivo) setDeLaCiudad(rotuloDeCartografia(p) || null); }).catch(() => { if (vivo) setDeLaCiudad(null); });
+    return () => { vivo = false; };
+  }, [clave]);
   if (!meta) return null;
   // P6/P9 de la paridad: sin paquete del marco no hay nada que elegir, y se dice.
   if (!meta.ok) {
@@ -296,7 +305,7 @@ function MarcoTerritorial({ meta }: { meta: TerritorialFrameMeta | null }) {
       <dl className="hr-mapa-filas">
         <div><dt>Cobertura</dt><dd>{meta.coverage || "—"}{meta.n_distritos ? ` · ${meta.n_distritos} distritos` : ""}</dd></div>
         <div><dt>Manzanas</dt><dd>INEI {meta.year || "—"}</dd></div>
-        <div><dt>Cartografía</dt><dd>{cartografia || "—"}</dd></div>
+        <div><dt>Cartografía</dt><dd>{(clave ? deLaCiudad : cartografia) || "—"}</dd></div>
         <div><dt>En el marco</dt><dd>{miles(meta.n_manzanas)} manzanas · {miles(meta.viviendas)} viviendas · {miles(meta.poblacion)} hab.</dd></div>
         {/* P6: la comparación con la cartografía oficial INEI, corta; la nota completa del motor va en el title. */}
         {cartografiaMarco && !cartografiaMarco.piloto ? (
