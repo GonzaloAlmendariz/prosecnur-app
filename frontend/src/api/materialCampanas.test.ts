@@ -52,16 +52,18 @@ describe("normalizarRegistroDeCampanas", () => {
     });
   });
 
-  it("devuelve los cuatro tipos en orden, con su motivo cuando no se pueden crear", () => {
+  it("devuelve los cinco tipos en orden, con su motivo cuando no se pueden crear", () => {
     const r = normalizarRegistroDeCampanas(REGISTRO_CRUDO);
     expect(r.tipos.map(({ tipo, disponible, motivo }) => ({ tipo, disponible, motivo }))).toEqual([
       { tipo: "aulas", disponible: false, motivo: "El proyecto ya tiene su campaña de aulas." },
       { tipo: "territorial", disponible: false, motivo: "Requiere leer las UMP de Hojas de ruta" },
       { tipo: "correo", disponible: true, motivo: null },
       { tipo: "telefonica", disponible: true, motivo: null },
+      // ADR 0125 A3: un backend que no la manda deja la supervisión sin poder crearse.
+      { tipo: "supervision", disponible: false, motivo: null },
     ]);
     // Sin `del_estudio` (backend anterior al ADR 0122 P2), los tipos que llegan son del estudio.
-    expect(r.tipos.every((t) => t.del_estudio === true)).toBe(true);
+    expect(r.tipos.filter((t) => t.tipo !== "supervision").every((t) => t.del_estudio === true)).toBe(true);
     const conPlanner = normalizarRegistroDeCampanas({ campaigns: [], tipos: [{ tipo: "correo", disponible: true, del_estudio: [false] }] });
     expect(conPlanner.tipos.find((t) => t.tipo === "correo")?.del_estudio).toBe(false);
     // `ref` llega como objeto: se lee el nombre en su fuente.
