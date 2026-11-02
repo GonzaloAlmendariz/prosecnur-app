@@ -135,3 +135,23 @@ test_that("las clases se distinguen entre sí y de «Sin encuestados»", {
   f <- data.frame(codigo = "150136", etiqueta = "San Miguel", n = 5L, porcentaje = 100, ubigeo = "150136")
   expect_identical(tail(.espec_mapa_distribucion(f, lima, cortes = c(5, 10, 20))$leyenda$colores, 1), .MAPA_DISTRIBUCION_VACIO)
 })
+
+test_that("la lámina de distribución gana calidad: recorte geométrico, leyenda abajo y marco cuando el mapa se recorta", {
+  lima <- .mapa_distribucion_cartografia("lima_callao")
+  f <- data.frame(codigo = c("150136", "150108"), etiqueta = c("San Miguel", "Chorrillos"), n = c(5L, 3L), porcentaje = c(62.5, 37.5),
+                  ubigeo = c("150136", "150108"))
+  e <- .espec_mapa_distribucion(f, lima)
+  expect_true(isTRUE(e$recortado)); expect_true(isTRUE(e$leyenda_abajo))
+  d <- e$capas[[1]]$datos
+  # Ningún anillo queda aplastado contra el borde (lo que dejaba líneas blancas sueltas): cada uno tiene área.
+  area <- vapply(split(d, d$group), function(a) abs(sum(a$x * c(a$y[-1], a$y[1]) - c(a$x[-1], a$x[1]) * a$y)) / 2, 0)
+  expect_true(all(area > 0))
+  expect_false(isTRUE(.espec_mapa_distribucion(f, lima, encuadre = "completo")$recortado))
+  out <- tempfile(fileext = ".pptx"); fx <- .md_fx()
+  suppressMessages(suppressWarnings(reporte_ppt_plan(data = fx$data, instrumento = fx$inst, path_ppt = out, mensajes_progreso = FALSE,
+    plan = p_plan(slides = list(p_slide_1_grafico(titulo = "Distrito", grafico = p_mapa_distribucion("dist")))))))
+  x <- xml2::read_xml(unz(out, "ppt/slides/slide1.xml"))
+  nm <- xml2::xml_attr(xml2::xml_find_all(x, "//p:cNvPr"), "name")
+  expect_identical(sum(nm == "mapa:marco"), 4L)
+  expect_true("mapa:leyenda_titulo" %in% nm)
+})

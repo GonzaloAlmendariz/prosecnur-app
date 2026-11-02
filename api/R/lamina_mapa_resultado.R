@@ -25,11 +25,19 @@
 #' @keywords internal
 .lam_mapa_resultado_geo <- function(espec) {
   R <- .LAM_MAPA_RES; g_ <- .std_geom; ml <- g_("margen_izq"); W <- g_("ancho"); yt <- g_("zona_datos_y0"); yf <- g_("contenido_y1")
+  if (isTRUE(espec$leyenda_abajo)) {
+    # La distribución (graficos_mapa_distribucion_plan.R): la leyenda va debajo en dos columnas y el mapa usa todo el
+    # ancho de su caja, centrado («se ve de baja calidad», Gonzalo, 2026-11-02: el mapa se quedaba en ~2.8 in).
+    h_ley <- .lam_mapa_leyenda_abajo_alto(espec$leyenda)
+    r <- .lam_mapa_rect(espec, ml, yt, R$ancho_mapa, yf - yt - 0.2 - h_ley)
+    r$x <- ml + (R$ancho_mapa - r$w) / 2
+  } else {
   r <- .lam_mapa_rect(espec, ml, yt, R$ancho_mapa, yf - yt - 0.1)
   # Un mapa ancho (el encuadre a los datos de la distribución) llegaría al margen y la leyenda caería encima: se achica
   # hasta dejarle su columna de 1.75 in. El de Lima y Callao entero es alto y no llega a esto.
   if (R$ancho_mapa - r$w < 1.75) r <- .lam_mapa_rect(espec, ml, yt, R$ancho_mapa - 1.75, yf - yt - 0.1)
   r$x <- ml + R$ancho_mapa - r$w   # alineado a la derecha de su caja
+  }
   xr <- ml + R$ancho_mapa + R$aire; fin <- W - g_("margen_der")
   n <- nrow(espec$ranking); forma <- .lam_mapa_resultado_forma(n)
   ncol <- c(una = 1L, dos = 2L, lista = 3L)[[forma]]; por_col <- max(1L, ceiling(n / ncol))
@@ -58,7 +66,12 @@
   doc <- officer::ph_with(doc, rvg::dml(ggobj = .lam_mapa_gg(espec), bg = "transparent", fonts = list(sans = .std_pt("fuente"))),
                           location = officer::ph_location(left = G$r$x, top = G$r$y, width = G$r$w, height = G$r$h, newlabel = "prosecnur:grafico:mapa"))
   lz <- .lam_lienzo()
-  .lam_mapa_leyenda(lz, G$ml, G$r$y + G$r$h, espec$leyenda, G$w_ley)
+  if (isTRUE(espec$leyenda_abajo)) {
+    .lam_mapa_leyenda_abajo(lz, G$ml, G$r$y + G$r$h + 0.15, espec$leyenda, R$ancho_mapa)
+    if (isTRUE(espec$recortado)) .lam_mapa_marco(lz, G$r)   # el recorte se lee como encuadre, no como un corte seco
+  } else {
+    .lam_mapa_leyenda(lz, G$ml, G$r$y + G$r$h, espec$leyenda, G$w_ley)
+  }
   .lam_separador_v(lz, G$xr - 0.35, G$yt, G$yf - 0.1)
   .lam_panel_titulo(lz, G$xr, G$yt, G$wr, espec$panel$titulo, espec$panel$sub)
   if (!nrow(espec$ranking)) {   # el vacío se dice dentro de la lámina, con el mapa y su leyenda en pie
@@ -91,6 +104,35 @@
 .lam_mapa_resultado_cabe <- function(espec) {
   if (is.null(espec) || !identical(espec$forma, "resultado") || is.null(espec$ranking)) return(FALSE)
   G <- .lam_mapa_resultado_geo(espec)
-  G$y_ult <= G$yf - 0.1 && all(.lam_ancho_tinta(espec$ranking$distrito, G$pt) <= G$w_nombre - 0.15) &&
+  ley_ok <- if (isTRUE(espec$leyenda_abajo)) G$r$y + G$r$h + 0.15 + .lam_mapa_leyenda_abajo_alto(espec$leyenda) <= G$yf + 0.05 else
     G$r$y + G$r$h - (0.32 + length(espec$leyenda$rotulos) * 0.3) >= G$yt
+  G$y_ult <= G$yf - 0.1 && all(.lam_ancho_tinta(espec$ranking$distrito, G$pt) <= G$w_nombre - 0.15) && ley_ok
+}
+
+#' Alto (in) de la leyenda de dos columnas bajo el mapa: título y una fila cada dos rótulos
+#' @keywords internal
+.lam_mapa_leyenda_abajo_alto <- function(leyenda) 0.32 + ceiling(length(leyenda$rotulos %||% character(0)) / 2) * 0.28
+
+#' Leyenda bajo el mapa en dos columnas (la distribución de encuestados)
+#' @keywords internal
+.lam_mapa_leyenda_abajo <- function(lz, x, y, leyenda, w) {
+  n <- length(leyenda$rotulos); col_w <- w / 2
+  .lam_txt(lz, leyenda$titulo, x - 0.06, y, w, 0.26, 10, .std_color("texto_suave"), bold = TRUE, nombre = "mapa:leyenda_titulo")
+  for (k in seq_len(n)) {
+    xk <- x + ((k - 1) %% 2) * col_w; yk <- y + 0.32 + ((k - 1) %/% 2) * 0.28; col <- leyenda$colores[k]
+    .lam_caja(lz, xk, yk + 0.06, 0.16, 0.16, col, nombre = "leyenda:cuadro", borde = col, borde_pt = 0.5)
+    .lam_txt(lz, leyenda$rotulos[k], xk + 0.2, yk, col_w - 0.24, 0.28, 11, .std_color("azul"), nombre = "leyenda:texto")
+  }
+  invisible(y)
+}
+
+#' Marco fino alrededor de un mapa recortado a sus datos: cuatro filetes del color del borde del mapa
+#' @keywords internal
+.lam_mapa_marco <- function(lz, r, grosor = 0.01) {
+  col <- .std_color("mapa_borde")
+  .lam_caja(lz, r$x, r$y, r$w, grosor, col, nombre = "mapa:marco")
+  .lam_caja(lz, r$x, r$y + r$h - grosor, r$w, grosor, col, nombre = "mapa:marco")
+  .lam_caja(lz, r$x, r$y, grosor, r$h, col, nombre = "mapa:marco")
+  .lam_caja(lz, r$x + r$w - grosor, r$y, grosor, r$h, col, nombre = "mapa:marco")
+  invisible(lz)
 }

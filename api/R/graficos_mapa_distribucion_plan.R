@@ -168,18 +168,42 @@ p_mapa_distribucion <- function(var, area = c("lima_callao", "peru"), titulo = N
   .mapa_puntos_caja_con_mar(cj, pin)
 }
 
-#' Recorta los polígonos a la caja: los vértices de fuera se llevan a su borde y los anillos sin nada dentro se quitan
+#' Recorta los polígonos a la caja con geometría de verdad (`sf`): lo de fuera se corta en el borde y se descarta
 #'
 #' El dispositivo vectorial del PPT (rvg) se cae (segfault) al dibujar polígonos que salen del recorte de
-#' `coord_quickmap`; acotados al borde, el dibujo es el mismo y nada sale de la vista.
+#' `coord_quickmap`. Acotar los vértices al borde lo evitaba, pero dejaba anillos aplastados contra el borde cuyo contorno
+#' blanco se veía como líneas sueltas («se ve de baja calidad», Gonzalo, 2026-11-02). La intersección con la caja corta
+#' cada anillo donde toca el borde. Sin `sf`, queda el acotado de antes.
 #' @keywords internal
 .mapa_distribucion_recortar <- function(poly, bb) {
   dentro <- poly$x >= bb[["xmin"]] & poly$x <= bb[["xmax"]] & poly$y >= bb[["ymin"]] & poly$y <= bb[["ymax"]]
   if (all(dentro)) return(poly)
-  vivos <- unique(poly$group[dentro])
-  poly <- poly[poly$group %in% vivos, , drop = FALSE]
-  poly$x <- pmin(pmax(poly$x, bb[["xmin"]]), bb[["xmax"]]); poly$y <- pmin(pmax(poly$y, bb[["ymin"]]), bb[["ymax"]])
-  poly
+  if (!requireNamespace("sf", quietly = TRUE)) {
+    poly <- poly[poly$group %in% unique(poly$group[dentro]), , drop = FALSE]
+    poly$x <- pmin(pmax(poly$x, bb[["xmin"]]), bb[["xmax"]]); poly$y <- pmin(pmax(poly$y, bb[["ymin"]]), bb[["ymax"]])
+    return(poly)
+  }
+  caja <- sf::st_sfc(sf::st_polygon(list(rbind(c(bb[["xmin"]], bb[["ymin"]]), c(bb[["xmax"]], bb[["ymin"]]), c(bb[["xmax"]], bb[["ymax"]]),
+                                                c(bb[["xmin"]], bb[["ymax"]]), c(bb[["xmin"]], bb[["ymin"]])))))   # sin CRS: plano (GEOS)
+  attrs <- setdiff(names(poly), c("x", "y", "group"))
+  piezas <- lapply(split(poly, factor(poly$group, levels = unique(poly$group))), function(d) {
+    if (max(d$x) < bb[["xmin"]] || min(d$x) > bb[["xmax"]] || max(d$y) < bb[["ymin"]] || min(d$y) > bb[["ymax"]]) return(NULL)
+    if (all(d$x >= bb[["xmin"]] & d$x <= bb[["xmax"]] & d$y >= bb[["ymin"]] & d$y <= bb[["ymax"]])) return(d)
+    m <- as.matrix(d[c("x", "y")]); if (any(m[1, ] != m[nrow(m), ])) m <- rbind(m, m[1, ])
+    if (nrow(m) < 4L) return(NULL)
+    r <- tryCatch(sf::st_intersection(sf::st_make_valid(sf::st_sfc(sf::st_polygon(list(m)))), caja), error = function(e) NULL)
+    if (is.null(r) || !length(r) || all(sf::st_is_empty(r))) return(NULL)
+    r <- sf::st_collection_extract(r, "POLYGON")
+    if (!length(r)) return(NULL)
+    xy <- as.data.frame(sf::st_coordinates(r))
+    anillo <- interaction(xy[intersect(c("L1", "L2", "L3"), names(xy))], drop = TRUE)
+    out <- data.frame(x = xy$X, y = xy$Y, group = paste(d$group[1], as.integer(anillo), sep = "~"), stringsAsFactors = FALSE)
+    for (a in attrs) out[[a]] <- d[[a]][1]
+    out
+  })
+  piezas <- Filter(Negate(is.null), piezas)
+  if (!length(piezas)) return(poly[0, , drop = FALSE])
+  do.call(rbind, lapply(piezas, function(d) d[c("x", "y", "group", attrs)]))
 }
 
 #' Especificación del mapa de distribución (forma «resultado» de mapa/1, con la cifra «conteo (porcentaje)»)
@@ -203,6 +227,8 @@ p_mapa_distribucion <- function(var, area = c("lima_callao", "peru"), titulo = N
   valor <- .pulso_round_half_up(ok$porcentaje)
   cifra <- sprintf("%s (%s%%)", format(ok$n, big.mark = ",", trim = TRUE), valor)
   bb <- .mapa_distribucion_caja(poly, ok$ubigeo, encuadre, puntos)
+  recortado <- bb[["xmin"]] > min(poly$x) + 1e-9 || bb[["xmax"]] < max(poly$x) - 1e-9 ||
+    bb[["ymin"]] > min(poly$y) + 1e-9 || bb[["ymax"]] < max(poly$y) - 1e-9
   poly <- .mapa_distribucion_recortar(poly, bb)
   list(version = "mapa/1", tipo = "mapa", forma = "resultado",
        # Borde blanco más grueso que en el resultado: dos vecinos de la misma clase no se funden en una mancha.
@@ -212,7 +238,7 @@ p_mapa_distribucion <- function(var, area = c("lima_callao", "peru"), titulo = N
        ranking = data.frame(distrito = nombre[o], valor = valor[o], n = ok$n[o], color = pal[clase][o], cifra = cifra[o], stringsAsFactors = FALSE),
        escala_max = max(c(1, ok$porcentaje)),
        panel = list(titulo = paste("Encuestados por", carto$unidad), sub = "Número y porcentaje, de mayor a menor"),
-       puntos = puntos, sin_casar = filas$etiqueta[is.na(filas$ubigeo)], pocos_casos = character(0))
+       leyenda_abajo = TRUE, recortado = recortado, puntos = puntos, sin_casar = filas$etiqueta[is.na(filas$ubigeo)], pocos_casos = character(0))
 }
 
 #' @keywords internal

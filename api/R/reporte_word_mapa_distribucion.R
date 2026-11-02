@@ -47,6 +47,9 @@
   mapa <- mapa + ggplot2::guides(colour = ggplot2::guide_legend(ncol = 2, byrow = TRUE, title.position = "top",
                                                                 override.aes = list(alpha = 1, shape = 22, size = 3.6, fill = espec$leyenda$colores,
                                                                                     colour = .std_color("mapa_borde")))) +
+    # El recorte a los datos lleva el mismo marco fino que en la lámina (lamina_mapa_resultado.R).
+    ggplot2::theme(panel.border = if (isTRUE(espec$recortado)) ggplot2::element_rect(fill = NA, colour = .std_color("mapa_borde"), linewidth = 0.4)
+                                  else ggplot2::element_blank()) +
     ggplot2::theme(legend.position = "bottom", legend.justification = "center", legend.box.spacing = ggplot2::unit(0.08, "in"),
                    legend.key.spacing.x = ggplot2::unit(0.12, "in"))   # dos columnas: cabe bajo un mapa de 2 in
   # El alto lo pone lo mayor: el mapa del recetario (4 in) o la columna de barras; con muchas áreas crece hasta 7.5 in.

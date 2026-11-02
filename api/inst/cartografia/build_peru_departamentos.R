@@ -6,7 +6,7 @@
 #   Rscript api/inst/cartografia/build_peru_departamentos.R /tmp/ne/ne_10m_admin_1_states_provinces.geojson
 #
 # Qué hace: toma las 26 unidades del Perú, funde «Lima» y «Lima Province» en el departamento de Lima, asigna el UBIGEO
-# de departamento del INEI (2 dígitos), simplifica a ~1.5 km en UTM 18S y redondea a 4 decimales (~11 m).
+# de departamento del INEI (2 dígitos), simplifica a ~300 m en UTM 18S y redondea a 4 decimales (~11 m).
 
 args <- commandArgs(trailingOnly = TRUE)
 origen <- if (length(args)) args[[1]] else stop("Falta la ruta de ne_10m_admin_1_states_provinces.geojson.")
@@ -26,7 +26,7 @@ faltan <- setdiff(names(ubigeo), pe$departamento)
 if (length(faltan)) stop("Natural Earth no trae: ", paste(faltan, collapse = ", "))
 pe <- stats::aggregate(pe["geometry"], by = list(departamento = pe$departamento), FUN = function(x) x[1])
 pe <- sf::st_transform(pe, 32718)
-pe$geometry <- sf::st_simplify(sf::st_make_valid(pe$geometry), preserveTopology = TRUE, dTolerance = 1500)
+pe$geometry <- sf::st_simplify(sf::st_make_valid(pe$geometry), preserveTopology = TRUE, dTolerance = 300)
 pe <- sf::st_transform(pe, 4326)
 pe$ubigeo <- unname(ubigeo[pe$departamento])
 pe <- pe[order(pe$ubigeo), c("ubigeo", "departamento", "geometry")]

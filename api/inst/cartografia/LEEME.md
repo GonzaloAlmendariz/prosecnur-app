@@ -11,7 +11,7 @@ el Callao aparte), para el mapa de distribución de encuestados (`p_mapa_distrib
   this website are in the public domain» (https://www.naturalearthdata.com/about/terms-of-use/). Se puede redistribuir
   y modificar sin permiso; se agradece citar «Made with Natural Earth».
 - **Transformación:** `build_peru_departamentos.R` (en esta carpeta). Filtra el Perú, funde «Lima» y «Lima Province»,
-  asigna el UBIGEO de departamento del INEI (2 dígitos), simplifica a ~1.5 km (UTM 18S) y redondea a 4 decimales.
+  asigna el UBIGEO de departamento del INEI (2 dígitos), simplifica a ~300 m (UTM 18S) y redondea a 4 decimales.
   Descargado y construido el 2026-11-02.
 - **Límites:** cartografía de escala pequeña, útil para pintar una distribución por departamento; no es cartografía
   oficial ni sirve para medir. Natural Earth sigue la representación de facto de los límites.
