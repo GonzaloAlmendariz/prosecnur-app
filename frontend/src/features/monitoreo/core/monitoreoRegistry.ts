@@ -134,11 +134,13 @@ export const MONITOREO_MODOS: MonitoreoModoDefinicion[] = [
     icon: CalendarRange,
     eyebrow: "Disponible en v1",
     title: "Aplicación por cursos-horario",
-    summary: "Monitoreo de intervenciones universitarias por cursos-horario: agenda, QR/Kobo, avance, reemplazos y brechas.",
-    details: ["Muestra de cursos-horario", "Fichas QR/PDF", "Agenda de aplicación", "Cuotas y brechas"],
+    summary: "Seguimiento de la aplicación por cursos-horario: agenda, avance, reemplazos y brechas, sobre las fichas QR que imprime Material.",
+    details: ["Muestra de cursos-horario", "Agenda de aplicación", "Avance por curso-horario", "Cuotas y brechas"],
     sourceRoles: [
       { label: "Plan", detail: "Titulares y reservas importados desde el cálculo de muestra de cursos-horario" },
-      { label: "Fichas QR", detail: "Enlace de Kobo, QR, Word/PDF y consolidado por selección de cursos-horario" },
+      // R5: las fichas son de Material (las imprime al inicio); Monitoreo las LEE
+      // para cruzar cada respuesta con su curso-horario.
+      { label: "Fichas de Material", detail: "Enlace de Kobo y QR por curso-horario que imprime Material; Monitoreo los lee para cruzar respuestas" },
       { label: "Respuestas", detail: "Kobo o Sheets agregadas por curso-horario y enlace de la intervención" },
       { label: "Cierre", detail: "Titulares, reemplazos usados y brechas justificadas" },
     ],
