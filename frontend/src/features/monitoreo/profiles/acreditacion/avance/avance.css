@@ -2171,9 +2171,17 @@ ul.acr-sa-puntos:not(.acr-sa-cuerpo) {
   border-left: 1px solid var(--pulso-border);
 }
 
-.mon-profile-canonical-shell .acr-vc-reporte .mon-gs-report-tabs button:hover:not(.is-active) {
+/* El activo también reacciona al mouse (contrato de estados de navegación):
+   velo gris en los demás; en el activo, un velo claro que deja ver el indicador
+   deslizante y conserva su color. */
+.mon-profile-canonical-shell .acr-vc-reporte .mon-gs-report-tabs button:hover {
   background: color-mix(in srgb, var(--pulso-surface-3) 70%, transparent);
   color: var(--pulso-text);
+}
+
+.mon-profile-canonical-shell .acr-vc-reporte .mon-gs-report-tabs button.is-active:hover {
+  background: color-mix(in srgb, var(--pulso-surface) 20%, transparent);
+  color: var(--pulso-gliding-active-color);
 }
 
 .mon-profile-canonical-shell .acr-vc-reporte .mon-gs-report-tabs button:focus-visible {

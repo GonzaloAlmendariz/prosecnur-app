@@ -124,9 +124,17 @@
   color: color-mix(in srgb, var(--pulso-module-monitoring) 72%, var(--pulso-text));
 }
 
-.acr-sa .mon-outputs-audience-tabs button:hover:not(.is-active) {
+/* El activo también reacciona al mouse (contrato de estados de navegación), y
+   el hover que pinta fondo fija el color en el mismo bloque. */
+.acr-sa .mon-outputs-audience-tabs button:hover {
   border: 0;
   background: color-mix(in srgb, var(--pulso-surface-3) 70%, transparent);
+  color: var(--pulso-text);
+}
+
+.acr-sa .mon-outputs-audience-tabs button.is-active:hover {
+  background: color-mix(in srgb, var(--pulso-surface) 20%, transparent);
+  color: var(--pulso-gliding-active-color);
 }
 
 .acr-sa .mon-outputs-audience-tabs .pulso-gliding-tab-indicator {
