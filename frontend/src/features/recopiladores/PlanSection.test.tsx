@@ -50,7 +50,7 @@ describe("adaptación del plan legacy", () => {
     const markup = renderToStaticMarkup(
       <MemoryRouter><PlanSection payload={emptyPayload(false)} onState={() => undefined} /></MemoryRouter>,
     );
-    expect(markup).not.toContain("Adaptar fuente disponible");
+    expect(markup).not.toContain("Sembrar las unidades");
     expect(markup).toContain("Sin unidades en el plan");
     expect(markup).toContain("Llegan de la selección de la muestra");
   });
@@ -59,8 +59,8 @@ describe("adaptación del plan legacy", () => {
     const markup = renderToStaticMarkup(
       <MemoryRouter><PlanSection payload={emptyPayload(true)} onState={() => undefined} /></MemoryRouter>,
     );
-    expect(markup).toContain("Adaptar fuente disponible");
-    expect(markup).toContain("conserva una selección compatible");
+    expect(markup).toContain("Sembrar las unidades");
+    expect(markup).toContain("selección de cursos-horario lista");
   });
 });
 

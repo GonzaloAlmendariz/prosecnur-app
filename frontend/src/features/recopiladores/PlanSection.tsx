@@ -259,18 +259,20 @@ export function PlanSection({ payload, onState, origen, onIr, onCargando }: Prop
 
   if (!plan) {
     const seedAvailable = payload?.seed_available === true;
-    // Con semilla, la acción que resuelve el vacío está aquí mismo: adaptarla.
+    // Con semilla, la acción que resuelve el vacío está aquí mismo: sembrarla.
     // Sin ella, la acción lleva al módulo de donde sale la selección.
+    // Revisión con ojo de usuario (1 nov 2026): «conserva una selección compatible» y «Adaptar
+    // fuente disponible» no decían que era el sorteo recién hecho ni qué pasaba al pulsar.
     return (
       <VacioSinPlanCard
         vacio={vacioSinPlan("unidades", origen)}
         icono={<DatabaseZap size={18} />}
         onIr={onIr}
         descripcion={seedAvailable
-          ? "El proyecto conserva una selección compatible."
+          ? "Ya hay una selección de cursos-horario lista: al sembrarla, sus aulas y reservas entran al plan."
           : undefined}
         accionPropia={seedAvailable ? {
-          label: "Adaptar fuente disponible",
+          label: "Sembrar las unidades",
           icono: <DatabaseZap size={14} />,
           ocupado: seeding,
           onSelect: () => { void seed(); },
