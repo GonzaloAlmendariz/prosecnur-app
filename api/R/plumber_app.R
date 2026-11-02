@@ -140,6 +140,7 @@ build_plumber_app <- function(static_dir = system.file("www", package = "prosecn
     pr <- mount_monitoreo_telefonico_discrepancias(pr)
     pr <- mount_monitoreo_supervision_rondas(pr)
     pr <- mount_monitoreo_supervision_lotes(pr)      # ADR 0125 A3: el lote que Material convierte en campaña
+    pr <- mount_monitoreo_equipo_padron(pr)          # el padrón del equipo, del que asigna Material
     pr <- mount_monitoreo_mailchimp(pr)
     pr <- mount_monitoreo_cuotas(pr)
     pr <- mount_monitoreo_acreditacion_pool(pr)   # personas asignables bajo demanda (Por resolver)
