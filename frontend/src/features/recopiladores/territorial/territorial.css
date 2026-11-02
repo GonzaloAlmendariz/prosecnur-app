@@ -692,3 +692,44 @@
 .rec-terr-guardar {
   align-items: center;
 }
+
+/* Segmentado de Material (Casos, hojas de campo, catálogo, paquetes): riel gris y la
+   opción elegida en blanco con el tono del módulo, como el resto de los segmentados. */
+.rec-terr-opciones.pulso-gliding-tab-list {
+  --pulso-gliding-indicator-bg: var(--pulso-surface);
+  --pulso-gliding-indicator-border: var(--pulso-border);
+  --pulso-gliding-indicator-shadow: 0 1px 3px color-mix(in srgb, var(--pulso-text) 14%, transparent);
+  display: inline-grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  justify-self: start;
+  gap: 2px;
+  padding: 3px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--pulso-text) 6%, var(--pulso-surface));
+  box-shadow: inset 0 0 0 1px var(--pulso-border);
+}
+.rec-terr-opciones.pulso-gliding-tab-list > button {
+  min-height: 28px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--pulso-text-soft);
+  font: inherit;
+  font-size: var(--pulso-type-caption-size);
+  font-weight: var(--pulso-weight-semibold);
+  white-space: nowrap;
+  cursor: pointer;
+}
+.rec-terr-opciones.pulso-gliding-tab-list > button:hover:not(:disabled):not([aria-checked="true"]) {
+  color: var(--pulso-text);
+}
+.rec-terr-opciones.pulso-gliding-tab-list > button[aria-checked="true"] {
+  color: var(--pulso-module-fieldkit);
+  font-weight: var(--pulso-weight-bold);
+}
+.rec-terr-opciones.pulso-gliding-tab-list > button:focus-visible {
+  outline: 2px solid var(--pulso-module-fieldkit-border);
+  outline-offset: -2px;
+}

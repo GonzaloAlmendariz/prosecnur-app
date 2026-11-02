@@ -42,3 +42,36 @@
 .rec-tel-tarjeta .rec-terr-campo {
   flex: none;
 }
+
+/* Casos: muestra, backup y llave en una fila; el guardar abajo a la derecha con su estado. */
+.rec-tel-campos {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: var(--pulso-space-3);
+}
+.rec-tel-campos .rec-terr-campo {
+  min-width: 0;
+}
+.rec-tel-pie {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--pulso-space-3);
+  padding-top: var(--pulso-space-3);
+  border-top: 1px solid var(--pulso-border);
+}
+
+/* Contacto: rótulo a la izquierda, control a la derecha, un ajuste por renglón. */
+.rec-tel-ajuste {
+  display: grid;
+  grid-template-columns: minmax(140px, 1fr) auto;
+  align-items: center;
+  gap: var(--pulso-space-3);
+  padding: var(--pulso-space-2) 0;
+  border-top: 1px solid var(--pulso-border);
+}
+.rec-tel-ajuste > span:first-child {
+  color: var(--pulso-text);
+  font-size: var(--pulso-type-body-size);
+  font-weight: var(--pulso-weight-medium);
+}

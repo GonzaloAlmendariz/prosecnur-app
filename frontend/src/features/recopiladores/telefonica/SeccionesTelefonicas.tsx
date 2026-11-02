@@ -87,7 +87,7 @@ export function CasosTelefonicos({ datos }: { datos: Datos }) {
           Cuántos casos entrega el cliente y cómo se identifican. Los nombres y teléfonos no pasan por la app: viven sólo en el archivo
           del operativo.
         </p>
-        <div className="rec-terr-fila">
+        <div className="rec-tel-campos">
           <div className="rec-terr-campo">
             <span aria-hidden>Casos de muestra</span>
             <PulsoInput size="sm" type="number" min={0} aria-label="Casos de muestra" value={muestra} disabled={guardando} onChange={(e) => setMuestra(e.target.value)} />
@@ -96,10 +96,10 @@ export function CasosTelefonicos({ datos }: { datos: Datos }) {
             <span aria-hidden>Casos de backup</span>
             <PulsoInput size="sm" type="number" min={0} aria-label="Casos de backup" value={backup} disabled={guardando} onChange={(e) => setBackup(e.target.value)} />
           </div>
-        </div>
-        <div className="rec-terr-campo">
-          <span aria-hidden>Llave del caso</span>
-          <PulsoInput size="sm" aria-label="Llave del caso" maxLength={40} placeholder="Código" value={llave} disabled={guardando} onChange={(e) => setLlave(e.target.value)} />
+          <div className="rec-terr-campo">
+            <span aria-hidden>Llave del caso</span>
+            <PulsoInput size="sm" aria-label="Llave del caso" maxLength={40} placeholder="Código" value={llave} disabled={guardando} onChange={(e) => setLlave(e.target.value)} />
+          </div>
         </div>
         <div className="rec-terr-campo">
           <span aria-hidden>Estratos (separados por coma)</span>
@@ -110,19 +110,21 @@ export function CasosTelefonicos({ datos }: { datos: Datos }) {
           <PulsoInput size="sm" aria-label="Responsables" placeholder="Sin lista: la columna queda libre" value={responsables} disabled={guardando} onChange={(e) => setResponsables(e.target.value)} />
           {config.responsables_del_padron ? <small className="rec-terr-nota">Del equipo de Monitoreo. Si escribes otra lista y la guardas, manda la tuya.</small> : null}
         </div>
-        <div className="rec-terr-fila rec-terr-guardar">
+        <div className="rec-tel-pie">
+          {error ? <span className="rec-terr-error" role="alert">{error}</span>
+            : !casosValidos ? <span className="rec-terr-nota">Los casos son enteros desde cero.</span>
+            : <span className="rec-terr-nota">{sucio ? "Hay cambios sin guardar." : "Sin cambios."}</span>}
           <PulsoButton variant="primary" size="sm" disabled={!sucio || !casosValidos || guardando} onClick={() => void guardar(cambio)}>
             {guardando ? "Guardando…" : "Guardar casos"}
           </PulsoButton>
-          {!casosValidos ? <span className="rec-terr-nota">Los casos son enteros desde cero.</span> : null}
-          {error ? <span className="rec-terr-error" role="alert">{error}</span> : null}
         </div>
       </article>
 
       <article className="rec-terr-tarjeta rec-tel-tarjeta" data-qa-geometry-member>
         <h3><Table2 size={15} aria-hidden /> Contacto</h3>
-        <p className="rec-terr-nota">Se guarda al elegir.</p>
-        <span className="rec-terr-nota">Teléfonos por caso</span>
+        <p className="rec-terr-nota">Cómo se llama a cada caso. Se guarda al elegir.</p>
+        <div className="rec-tel-ajuste">
+        <span>Teléfonos por caso</span>
         <GlidingRadioGroup
           value={config.telefonos}
           options={TELEFONOS}
@@ -134,8 +136,13 @@ export function CasosTelefonicos({ datos }: { datos: Datos }) {
         >
           {(o) => <span>{o[1]}</span>}
         </GlidingRadioGroup>
-        <PulsoSwitch size="sm" label="Con reemplazo desde el backup" checked={config.reemplazo} disabled={guardando} onCheckedChange={(v) => void guardar({ reemplazo: v })} />
-        <span className="rec-terr-nota">Rótulo de la observación</span>
+        </div>
+        <div className="rec-tel-ajuste">
+        <span>Reemplazo</span>
+        <PulsoSwitch size="sm" label="Desde el backup" checked={config.reemplazo} disabled={guardando} onCheckedChange={(v) => void guardar({ reemplazo: v })} />
+        </div>
+        <div className="rec-tel-ajuste">
+        <span>Rótulo de la observación</span>
         <GlidingRadioGroup
           value={config.observacion}
           options={OBSERVACIONES}
@@ -147,6 +154,7 @@ export function CasosTelefonicos({ datos }: { datos: Datos }) {
         >
           {(o) => <span>{o}</span>}
         </GlidingRadioGroup>
+        </div>
       </article>
 
       {config.estratos.length ? (
