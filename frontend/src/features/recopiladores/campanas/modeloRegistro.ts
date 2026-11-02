@@ -189,7 +189,9 @@ export function conCorreosVivos(registro: RegistroDeCampanas, correos: readonly 
 export function ponerEnRegistro(registro: RegistroDeCampanas, campana: CampanaMaterial, registryRevision: number | null): RegistroDeCampanas {
   const existe = registro.campaigns.some((c) => c.id === campana.id);
   const campaigns = existe ? registro.campaigns.map((c) => (c.id === campana.id ? campana : c)) : [...registro.campaigns, campana];
-  const deCual = campana.tipo === "aulas" ? "de aulas" : campana.tipo === "territorial" ? "territorial" : campana.tipo === "telefonica" ? "telefónica" : null;
+  // En acreditación la telefónica no es única: hay una por público y ronda (ADR 0125 §5).
+  const porRonda = campana.tipo === "telefonica" && campana.relacion?.ronda != null;
+  const deCual = campana.tipo === "aulas" ? "de aulas" : campana.tipo === "territorial" ? "territorial" : campana.tipo === "telefonica" && !porRonda ? "telefónica" : null;
   // Revisión con ojo de usuario (1 nov 2026): el motivo seguía diciendo el anterior tras archivar o
   // reabrir. Es el mismo texto que publica el backend (collection_campaigns*.R), según su estado.
   const unica = deCual
@@ -202,9 +204,15 @@ export function ponerEnRegistro(registro: RegistroDeCampanas, campana: CampanaMa
     const lotes_libres = (t.lotes_libres ?? []).filter((l) => `supervision.${l.lote_id}` !== campana.id);
     return lotes_libres.length ? { ...t, lotes_libres } : { ...t, lotes_libres, disponible: false, motivo: "Cada lote de Monitoreo ya tiene su campaña de supervisión." };
   };
+  const sinSuRonda = (t: RegistroDeCampanas["tipos"][number]) => {
+    const rondas_libres = (t.rondas_libres ?? []).filter((r) => r.id !== campana.id);
+    return rondas_libres.length ? { ...t, rondas_libres } : { ...t, rondas_libres, disponible: false, motivo: "Cada ronda telefónica del Modelo ya tiene su campaña." };
+  };
   const tipos = unica
     ? registro.tipos.map((t) => (t.tipo === campana.tipo ? { ...t, disponible: false, motivo: unica } : t))
-    : campana.tipo === "supervision"
+    : porRonda
+      ? registro.tipos.map((t) => (t.tipo === "telefonica" ? sinSuRonda(t) : t))
+      : campana.tipo === "supervision"
       ? registro.tipos.map((t) => (t.tipo === "supervision" ? sinSuLote(t) : t))
       : registro.tipos;
   return { ...registro, campaigns, tipos, registry_revision: registryRevision ?? registro.registry_revision };

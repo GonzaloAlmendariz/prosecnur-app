@@ -229,19 +229,20 @@ MATERIAL_CAMPAIGNS_SCHEMA <- "material_campaigns/v1"
   aulas <- .mcamp_aulas_entry(s, state, reg)
   territorial <- .mcamp_territorial_entry(reg)
   telefonica <- .mcamp_telefonica_entry(reg)
+  telefonicas <- .mcamp_telefonica_entries(reg)  # en acreditación, una por público y ronda
   supervision <- .mcamp_supervision_entries(reg)  # collection_campaigns_supervision.R
   correo <- .mcamp_correo_visibles(state)
   campaigns <- c(
     if (!is.null(aulas)) list(.mcamp_aulas_public(s, state, aulas)),
     if (!is.null(territorial)) list(.mcamp_territorial_public(s, territorial)),
-    if (!is.null(telefonica)) list(.mcamp_telefonica_public(s, telefonica)),
+    lapply(telefonicas, function(h) .mcamp_telefonica_public(s, h)),
     lapply(supervision, function(h) .mcamp_supervision_public(s, h)),
     lapply(correo$campaigns, function(c) .mcamp_correo_public(s, c, correo$set))
   )
   list(state = state, reg = reg, aulas = aulas, territorial = territorial, telefonica = telefonica, correo = correo,
        supervision = supervision, campaigns = campaigns,
        tipos = .mcamp_tipos(aulas, length(correo$set$campaigns), .mcamp_territorial_tipo(s, territorial),
-                            .mcamp_telefonica_tipo(telefonica), .mcamp_supervision_tipo(s, telefonica, supervision)))
+                            .mcamp_telefonica_tipo(telefonica, s, reg), .mcamp_supervision_tipo(s, telefonica, supervision)))
 }
 
 #' Campañas del proyecto (ADR 0111): GET /api/recopiladores/campaigns.
@@ -340,7 +341,8 @@ collection_campaigns_get <- function(sid) {
 #' @keywords internal
 collection_campaign_create <- function(sid, tipo, name, actor = NULL, platform = NULL, preset_id = NULL,
                                        template = NULL, import_id = NULL, expected_state_revision = NULL,
-                                       expected_registry_revision = NULL, fase = NULL, lote = NULL) {
+                                       expected_registry_revision = NULL, fase = NULL, lote = NULL,
+                                       publico = NULL, ronda = NULL) {
   tipo <- .mcamp_tipo_arg(tipo)
   .mcamp_assert_del_estudio(session_get(sid), tipo)
   if (identical(tipo, "supervision")) {
@@ -358,7 +360,7 @@ collection_campaign_create <- function(sid, tipo, name, actor = NULL, platform =
   if (identical(tipo, "telefonica")) {
     return(.mcamp_telefonica_create(sid, name, list(actor = actor, platform = platform, preset_id = preset_id,
                                                     template = template, import_id = import_id, fase = fase),
-                                    expected_registry_revision))
+                                    expected_registry_revision, publico = publico, ronda = ronda))
   }
   if (identical(tipo, "correo")) {
     created <- collection_mail_campaign_create(sid, expected_revision = expected_state_revision, name = name,
@@ -422,7 +424,8 @@ collection_campaign_meta_put <- function(sid, id, name = NULL, actor = NULL, pla
   if (!is.null(actor) || !is.null(platform)) {
     stop_api(422, "E_COLLECTION_CAMPAIGN_INVALID", "actor y platform solo aplican a campañas de correo.")
   }
-  hit <- switch(tipo, territorial = l$territorial, telefonica = l$telefonica,
+  hit <- switch(tipo, territorial = l$territorial,
+                telefonica = Find(function(h) identical(h$entry$id, id), .mcamp_telefonica_entries(l$reg)),
                 supervision = Find(function(h) identical(h$entry$id, id), l$supervision), l$aulas)
   entry <- hit$entry
   next_entry <- entry

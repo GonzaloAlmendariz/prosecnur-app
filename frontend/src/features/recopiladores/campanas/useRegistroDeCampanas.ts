@@ -152,10 +152,10 @@ export function useRegistroDeCampanas() {
     }
   }, [delBackend?.registry_revision, fallo, poner]);
 
-  const crearTelefonica = useCallback(async (name: string): Promise<ResultadoDelRegistro> => {
+  const crearTelefonica = useCallback(async (name: string, ronda?: { publico: string; ronda: number }): Promise<ResultadoDelRegistro> => {
     setOcupado(true);
     try {
-      const out = await apiMaterialCampanaCrear({ tipo: "telefonica", name: name.trim(), expected_registry_revision: delBackend?.registry_revision ?? null });
+      const out = await apiMaterialCampanaCrear({ tipo: "telefonica", name: name.trim(), ...(ronda ?? {}), expected_registry_revision: delBackend?.registry_revision ?? null });
       if (!out) return { ok: false, mensaje: "Esta versión del backend no registra campañas telefónicas." };
       poner(out.campaign, out.registry_revision);
       return { ok: true, campana: out.campaign };

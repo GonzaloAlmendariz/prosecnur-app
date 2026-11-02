@@ -115,6 +115,8 @@ export type CampanaMaterial = {
   fuera_del_estudio?: boolean;
   /** ADR 0125 A4: "acreditacion" si se creó en un estudio de acreditación. */
   proposito?: "acreditacion" | null;
+  /** ADR 0125 §5: de qué público y ronda es, y de qué campaña viene. */
+  relacion?: RelacionDeCampana | null;
 };
 
 export type DisponibilidadDeTipo = {
@@ -126,7 +128,12 @@ export type DisponibilidadDeTipo = {
   del_estudio?: boolean;
   /** Sólo supervisión (ADR 0125 A3): los lotes de Monitoreo que todavía no tienen su campaña. */
   lotes_libres?: LoteDeSupervision[];
+  /** Sólo telefónica en acreditación (ADR 0125 §5): las rondas del Modelo que todavía no tienen su campaña. */
+  rondas_libres?: RondaLibre[];
 };
+
+export type RondaLibre = { publico: string; etiqueta: string; ronda: number; id: string; viene_de: string | null };
+export type RelacionDeCampana = { publico: string | null; ronda: number | null; viene_de: string | null };
 
 export type LoteDeSupervision = { lote_id: string; criterio: string; casos: number; creado_en: string | null };
 
@@ -292,6 +299,9 @@ export function normalizarCampana(valor: unknown): CampanaMaterial | null {
     estado: normalizarEstado(tipo, valor.estado, valor.ref),
     fuera_del_estudio: logico(valor.fuera_del_estudio),
     proposito: texto(valor.proposito).trim() === "acreditacion" ? "acreditacion" : null,
+    relacion: esRegistro(valor.relacion)
+      ? { publico: textoONulo(valor.relacion.publico), ronda: valor.relacion.ronda == null ? null : entero(valor.relacion.ronda), viene_de: textoONulo(valor.relacion.viene_de) }
+      : null,
   };
 }
 
@@ -313,6 +323,12 @@ function normalizarTipo(valor: unknown): DisponibilidadDeTipo | null {
   // Sin el campo (backend anterior) el tipo es del estudio.
   const delEstudio = valor.del_estudio == null ? true : logico(valor.del_estudio);
   const base: DisponibilidadDeTipo = { tipo, disponible, motivo: disponible ? null : motivoSinCodigo(textoONulo(valor.motivo)), del_estudio: delEstudio };
+  if (tipo === "telefonica" && valor.rondas_libres != null) {
+    const rondas_libres = lista(valor.rondas_libres).filter(esRegistro)
+      .map((r) => ({ publico: texto(r.publico).trim(), etiqueta: texto(r.etiqueta).trim() || texto(r.publico).trim(), ronda: entero(r.ronda), id: texto(r.id).trim(), viene_de: textoONulo(r.viene_de) }))
+      .filter((r) => r.publico && r.id);
+    return { ...base, rondas_libres };
+  }
   if (tipo !== "supervision") return base;
   const lotes_libres = lista(valor.lotes_libres).filter(esRegistro)
     .map((l) => ({ lote_id: texto(l.lote_id).trim(), criterio: texto(l.criterio).trim(), casos: entero(l.casos), creado_en: textoONulo(l.creado_en) }))
@@ -414,6 +430,9 @@ export type NuevaCampana = {
   fase?: "pilot" | "field";
   /** Sólo supervisión: el lote de Monitoreo que se supervisa. */
   lote?: string;
+  /** Sólo telefónica en acreditación: el público y la ronda del Modelo. */
+  publico?: string;
+  ronda?: number;
   expected_state_revision?: number | null;
   expected_registry_revision?: number | null;
 };

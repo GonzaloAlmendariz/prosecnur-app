@@ -51,7 +51,8 @@ type Props = {
   onCrearAulas: (name: string) => Promise<Resultado>;
   /** `fase` es `null` cuando el backend debe usar la activa (ninguna fase con envío conocida). */
   onCrearTerritorial: (name: string, fase: FaseTerritorial | null) => Promise<Resultado>;
-  onCrearTelefonica: (name: string) => Promise<Resultado>;
+  /** En acreditación, `ronda` es el público y la ronda del Modelo que abre (ADR 0125 §5). */
+  onCrearTelefonica: (name: string, ronda?: { publico: string; ronda: number }) => Promise<Resultado>;
   /** ADR 0125 A4: el Planner fija `material.proposito`; en acreditación los nombres lo dicen. */
   proposito?: "acreditacion" | null;
   /** ADR 0125 A3: una supervisión por lote de Monitoreo. */
@@ -132,6 +133,9 @@ export function DialogoNuevaCampana({ panel, registro, fuente, presets, miniatur
   const [error, setError] = useState("");
   const [fase, setFase] = useState<FaseTerritorial | null>(null);
   const [lote, setLote] = useState<string | null>(null);
+  const [rondaElegida, setRondaElegida] = useState<string | null>(null);
+  const rondasLibres = registro?.tipos.find((t) => t.tipo === "telefonica")?.rondas_libres ?? [];
+  const ronda = rondasLibres.find((r) => r.id === rondaElegida) ?? null;
   const lotesLibres = registro?.tipos.find((t) => t.tipo === "supervision")?.lotes_libres ?? [];
   const territorialDisponible = registro ? disponibilidadDe(registro, "territorial").disponible : false;
   const envios = useEnviosTerritoriales(abierto && territorialDisponible);
@@ -142,6 +146,7 @@ export function DialogoNuevaCampana({ panel, registro, fuente, presets, miniatur
     setTipo(null);
     setFase(null);
     setLote(null);
+    setRondaElegida(null);
     setNombre("");
     setActor("");
     setError("");
@@ -161,6 +166,7 @@ export function DialogoNuevaCampana({ panel, registro, fuente, presets, miniatur
     setError("");
     const deAcreditacion = proposito === "acreditacion" ? NOMBRE_DE_ACREDITACION[t] : undefined;
     setNombre(deAcreditacion ?? (t === "aulas" ? NOMBRE_CAMPANA_AULAS : t === "territorial" ? NOMBRE_CAMPANA_TERRITORIAL : t === "telefonica" ? NOMBRE_CAMPANA_TELEFONICA : ""));
+    if (t === "telefonica" && rondasLibres.length === 1) setRondaElegida(rondasLibres[0].id);
     // Con un solo lote libre, ya está elegido.
     if (t === "supervision" && lotesLibres.length === 1) elegirLote(lotesLibres[0].lote_id);
   };
@@ -175,12 +181,15 @@ export function DialogoNuevaCampana({ panel, registro, fuente, presets, miniatur
   // F12: por qué «Crear campaña» todavía no se puede pulsar, dicho junto al botón.
   const faltaFase = tipo === "territorial" && eleccion.tipo === "elegir" && !fase;
   const faltaLote = tipo === "supervision" && !lote;
+  const faltaRonda = tipo === "telefonica" && rondasLibres.length > 0 && !ronda;
   const motivo = !tipo
     ? "Elige un tipo para seguir."
     : faltaFase
       ? "Elige de qué fase se lee la muestra."
       : faltaLote
       ? "Elige el lote de Monitoreo que se supervisa."
+      : faltaRonda
+      ? "Elige el público y la ronda del Modelo."
       : !nombre.trim()
       ? "Escribe el nombre de la campaña para crearla."
       : homonima
@@ -190,14 +199,14 @@ export function DialogoNuevaCampana({ panel, registro, fuente, presets, miniatur
 
   const crear = async (e: FormEvent) => {
     e.preventDefault();
-    if (!tipo || problema || homonima || !nombre.trim() || faltaFase || faltaLote) return;
+    if (!tipo || problema || homonima || !nombre.trim() || faltaFase || faltaLote || faltaRonda) return;
     setError("");
     const out = tipo === "aulas"
       ? await onCrearAulas(nombre)
       : tipo === "territorial"
         ? await onCrearTerritorial(nombre, faseParaCrear(eleccion, fase))
         : tipo === "telefonica"
-        ? await onCrearTelefonica(nombre)
+        ? await onCrearTelefonica(nombre, ronda ? { publico: ronda.publico, ronda: ronda.ronda } : undefined)
         : tipo === "supervision" && lote
         ? await onCrearSupervision(nombre, lote)
         : await onCrearCorreo({ name: nombre, actor, origen, platform: plataforma });
@@ -259,6 +268,22 @@ export function DialogoNuevaCampana({ panel, registro, fuente, presets, miniatur
                 ni saber qué seguía. */}
             {tipo === "telefonica" ? (
               <div className="rec-nueva-paso">
+                {rondasLibres.length ? (
+                  <fieldset className="rec-nueva-plataformas">
+                    <legend>Ronda del Modelo</legend>
+                    <span className="rec-nueva-plataformas-opciones">
+                      {rondasLibres.map((r) => (
+                        <label key={r.id} className={`rec-nueva-plataforma${rondaElegida === r.id ? " is-on" : ""}`}>
+                          <input type="radio" name={`${ids}-ronda`} value={r.id} checked={rondaElegida === r.id} onChange={() => setRondaElegida(r.id)} />
+                          <span>
+                            <b>{r.etiqueta} · ronda {r.ronda}</b>
+                            <small>{r.viene_de ? `Viene de «${registro?.campaigns.find((c) => c.id === r.viene_de)?.name ?? r.viene_de}»` : r.ronda > 1 ? "La ronda anterior no es telefónica" : "Primera ronda"}</small>
+                          </span>
+                        </label>
+                      ))}
+                    </span>
+                  </fieldset>
+                ) : null}
                 <label className="rec-camp-campo rec-nueva-campo">
                   <span>Nombre de la campaña</span>
                   <input

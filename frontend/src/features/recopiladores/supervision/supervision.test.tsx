@@ -80,4 +80,28 @@ describe("acreditación (ADR 0125 A4)", () => {
     });
     expect(r.campaigns.map((c) => c.proposito)).toEqual(["acreditacion", null]);
   });
+
+  it("en acreditación la telefónica trae sus rondas libres y crear una no cierra el tipo mientras quede otra", () => {
+    const r = normalizarRegistroDeCampanas({
+      schema: "material_campaigns/v1", registry_revision: 1, state_revision: 0,
+      campaigns: [],
+      tipos: [{ tipo: "telefonica", disponible: true, rondas_libres: [
+        { publico: "Egresados", etiqueta: "Egresados", ronda: 2, id: "telefonica.egresados-r2", viene_de: null },
+        { publico: "Egresados", etiqueta: "Egresados", ronda: [3], id: "telefonica.egresados-r3", viene_de: "telefonica.egresados-r2" },
+      ] }],
+    });
+    const tel = (reg: typeof r) => reg.tipos.find((x) => x.tipo === "telefonica")!;
+    expect(tel(r).rondas_libres?.map((x) => x.ronda)).toEqual([2, 3]);
+    const creada = normalizarRegistroDeCampanas({
+      schema: "material_campaigns/v1", registry_revision: 2, state_revision: 0, tipos: [],
+      campaigns: [{ id: "telefonica.egresados-r2", tipo: "telefonica", name: "R2", proposito: "acreditacion",
+        relacion: { publico: "Egresados", ronda: 2, viene_de: null }, estado: {} }],
+    }).campaigns[0];
+    expect(creada.relacion).toEqual({ publico: "Egresados", ronda: 2, viene_de: null });
+    const tras = tel(ponerEnRegistro(r, creada, 2));
+    expect(tras.disponible).toBe(true);
+    expect(tras.rondas_libres?.map((x) => x.id)).toEqual(["telefonica.egresados-r3"]);
+    const ultima = tel(ponerEnRegistro({ ...r, tipos: r.tipos.map((x) => (x.tipo === "telefonica" ? { ...x, rondas_libres: [x.rondas_libres![0]] } : x)) }, creada, 3));
+    expect(ultima.disponible).toBe(false);
+  });
 });

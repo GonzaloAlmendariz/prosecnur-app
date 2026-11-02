@@ -244,8 +244,8 @@ export function MaterialCampoShell() {
     return { ok: true };
   }, [navigate, reg]);
 
-  const crearTelefonica = useCallback(async (name: string): Promise<Resultado> => {
-    const out = await reg.crearTelefonica(name);
+  const crearTelefonica = useCallback(async (name: string, ronda?: { publico: string; ronda: number }): Promise<Resultado> => {
+    const out = await reg.crearTelefonica(name, ronda);
     if (!out.ok) return out;
     navigate(hrefDeCampana(out.campana));
     return { ok: true };
