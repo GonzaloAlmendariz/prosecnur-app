@@ -429,7 +429,7 @@ describe("AulasAsignacionDeAplicadores · el Sheets de los aplicadores", () => {
       />,
     );
     expect(html).toContain("El reparto cambió desde la última publicación");
-    expect(html).toContain("Publicar distribución");
+    expect(html).toContain("Construir en Material");
     expect(html).toContain("https://docs.google.com/spreadsheets/d/ABC/edit");
     expect(html).toContain('data-tono="atencion"');
   });
@@ -447,7 +447,7 @@ describe("AulasAsignacionDeAplicadores · el Sheets de los aplicadores", () => {
     const soloLectura = renderToStaticMarkup(
       <AulasAsignacionDeAplicadores reparto={vacio} distribucion={{ recordado, vigente: { huella: "h-2" } }} />,
     );
-    expect(soloLectura).not.toContain("Publicar distribución");
+    expect(soloLectura).not.toContain("Construir en Material");
   });
 
   // **El ciclo del Sheets, sin salir de la app.** Hasta el 2026-09-09 los cuatro

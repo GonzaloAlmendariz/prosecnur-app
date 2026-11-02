@@ -427,13 +427,10 @@ export function AulasAsignacionDeAplicadores({
               <button
                 type="button"
                 className="aulas-asigna-rango-boton"
-                disabled={!hayDestinoDistribucion}
-                title={hayDestinoDistribucion
-                  ? "Escribe el reparto vigente en el Sheets de los aplicadores"
-                  : "Pega el enlace del Sheets de los aplicadores: sin él no hay dónde publicar"}
+                title="La distribución se construye en Material › Entrega; aquí se sigue"
                 onClick={() => { void onPublicarDistribucion(escritoDistribucion || undefined); }}
               >
-                Publicar distribución
+                Construir en Material
               </button>
               {recordadoUrl ? (
                 <a className="aulas-asigna-sheets-enlace" href={recordadoUrl} target="_blank" rel="noreferrer">

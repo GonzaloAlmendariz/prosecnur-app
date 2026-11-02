@@ -17,7 +17,6 @@ import {
   apiMonitoreoAulasDisponibilidadPlantilla,
   apiMonitoreoAulasImportarLibro,
   apiMonitoreoAulasImportarSheets,
-  apiMonitoreoAulasPublicarDistribucion,
   apiMonitoreoAulasSincronizarDistribucion,
   apiMonitoreoAulasRecalcularTraslape,
   apiMonitoreoAulasImportFromCalcMuestra,
@@ -65,7 +64,6 @@ import { avisoTraslapeRecalculado } from "./avisoLibroPublicado";
 
 /** Material › Entrega de cursos-horario, donde se construyen las tablas del Sheets (R13). */
 const RUTA_CONSTRUIR_EN_MATERIAL = "/material-campo?modo=aulas&campana=aulas.principal&seccion=entrega&pestana=traspaso";
-import { avisoDistribucionPublicada } from "./distribucionDeAplicadores";
 import { sugerenciasDeDescarte } from "./AulasSexoYDescartes";
 import { AulasOrigenDesfasado } from "./AulasOrigenDesfasado";
 import { AulasCriterioDeAula } from "./AulasCriterioDeAula";
@@ -1424,26 +1422,6 @@ export default function AulasMonitoreoPage() {
    * motivo, que es la regla de dueño hecha visible, no un fallo—. La recarga
    * silenciosa trae la config con el destino recién recordado al campo.
    */
-  /**
-   * S7: publicar la distribución de la semana al Sheets de los aplicadores.
-   * Con enlace lo recuerda; sin él usa el recordado. La recarga trae el
-   * bloque recordado y la huella nueva, y el aviso de Asignación pasa a
-   * «al día».
-   */
-  const publicarDistribucion = useCallback(async (enlace?: string) => {
-    setMutating(true);
-    setError("");
-    setAviso({ texto: "", tono: "ok" });
-    try {
-      const res = await apiMonitoreoAulasPublicarDistribucion(enlace);
-      setAviso(avisoDistribucionPublicada(res));
-      await loadView(seccionActiva, true, true);
-    } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "No se pudo publicar la distribución a los aplicadores.");
-    } finally {
-      setMutating(false);
-    }
-  }, [loadView, seccionActiva]);
 
   /**
    * El ciclo del Sheets de los aplicadores en una sola acción: lee la hoja,
@@ -2092,7 +2070,8 @@ export default function AulasMonitoreoPage() {
           ocupado: busy,
           onConcentrar: (valor) => { void concentrar(valor); },
           onResortear: (semilla) => { void resortear(semilla); },
-          onPublicarDistribucion: () => { void publicarDistribucion(); },
+          // La distribución se construye en Material (ADR 0125): el botón lleva allá.
+          onPublicarDistribucion: irAMaterial,
           onSincronizarDistribucion: (aplicar) => { void sincronizarDistribucion(aplicar); },
           sincronizacion,
         }}
@@ -2481,7 +2460,7 @@ export default function AulasMonitoreoPage() {
               onConcentrar: concentrar,
               // S7: el Sheets de los aplicadores, recordado en la config.
               distribucionRecordada: aulasConfig?.distribucion_sheets ?? null,
-              onPublicarDistribucion: publicarDistribucion,
+              onPublicarDistribucion: irAMaterial,
               onSincronizarDistribucion: sincronizarDistribucion,
               sincronizacion,
             })}

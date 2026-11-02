@@ -149,8 +149,8 @@ function DistribucionAulasImpl({ dashboard, cargando, vacioSinTablero, contexto 
           </ol>
           <div className="aulas-ins-acciones aulas-dist-hoja-acciones">
             {!modelo.hoja.conectada && contexto.onPublicarDistribucion ? (
-              <button type="button" className="pulso-button is-primary pulso-button--sm" disabled={contexto.ocupado} onClick={() => contexto.onPublicarDistribucion?.()}>
-                Crear la hoja de los aplicadores
+              <button type="button" className="pulso-button is-primary pulso-button--sm" disabled={contexto.ocupado} onClick={() => contexto.onPublicarDistribucion?.()} title="La hoja de los aplicadores se construye en Material › Entrega">
+                Construir en Material
               </button>
             ) : null}
             {modelo.hoja.conectada && contexto.onSincronizarDistribucion ? (
