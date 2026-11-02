@@ -150,10 +150,14 @@
    Sin esto, una tarjeta con overflow:hidden se aplastaba y cortaba sus cifras. */
 .hr-mapa-ins-cuerpo > * { flex-shrink: 0; }
 .hr-mapa-ins-cuerpo .hr-mapa-filas { margin: 0; }
-.hr-mapa-cifras { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+/* Las cifras reparten la fila en partes iguales, pero ninguna baja de su palabra más larga: si
+   «Reemplazos» no cabe, la cifra pasa a la fila siguiente y la ocupa entera, en vez de partirse
+   («Entre-vistas», hallazgo 12 de la verificación nocturna). */
+.hr-mapa-cifras { display: flex; flex-wrap: wrap; gap: 6px; }
+.hr-mapa-cifras > div { flex: 1 1 0; min-width: min-content; }
 .hr-mapa-cifras div { display: flex; flex-direction: column; gap: 3px; padding: 9px 11px; border-radius: 10px; background: var(--pulso-surface-2); }
 .hr-mapa-cifras small { font-size: 10.5px; font-weight: 600; color: var(--pulso-text-soft); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.hr-mapa-cifras div { min-width: 0; }
+/* (El mínimo de cada cifra lo fija min-content, arriba.) */
 .hr-mapa-cifras strong { font-size: 17px; font-weight: 700; letter-spacing: -0.01em; font-variant-numeric: tabular-nums; color: var(--pulso-text); }
 .hr-mapa-pasos { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 8px; font-size: 12.5px; }
 .hr-mapa-cambios h3 { margin: 0 0 6px; font-size: 10.5px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--pulso-text-soft); }
