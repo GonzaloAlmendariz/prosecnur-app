@@ -152,7 +152,7 @@
   display: grid;
   gap: var(--pulso-space-3);
   grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  /* Las cinco iguales entre sí y de alto intrínseco: si envuelven, cada fila
+  /* Las cuatro iguales entre sí y de alto intrínseco: si envuelven, cada fila
      mide lo que la cifra más alta, nunca lo que el vecino de la cabeza. */
   align-content: start;
   grid-auto-rows: 1fr;
@@ -504,10 +504,6 @@
   width: 100%;
 }
 
-.rec-contactos-dist-fila.is-con-respuestas {
-  grid-template-columns: minmax(84px, 30%) minmax(40px, 1fr) 7ch 6.5ch 13ch;
-}
-
 .rec-contactos-dist-fila--cabeza {
   color: var(--pulso-text-faint);
   font-size: 11.5px;
@@ -550,8 +546,7 @@ button.rec-contactos-dist-fila.is-on {
   white-space: nowrap;
 }
 
-.rec-contactos-dist-pct,
-.rec-contactos-dist-tasa {
+.rec-contactos-dist-pct {
   color: var(--pulso-text-soft);
 }
 
@@ -563,24 +558,13 @@ button.rec-contactos-dist-fila.is-on {
   position: relative;
 }
 
-.rec-contactos-dist-relleno,
-.rec-contactos-dist-respondio {
+.rec-contactos-dist-relleno {
   border-radius: 4px;
   inset: 0 auto 0 0;
   position: absolute;
 }
 
 .rec-contactos-dist-relleno {
-  background: var(--pulso-module-fieldkit);
-}
-
-/* Con respuestas, la barra de los efectivos baja de tono y quienes
-   respondieron se pintan encima, en el tono pleno. */
-.is-con-respuestas .rec-contactos-dist-relleno {
-  background: var(--pulso-module-fieldkit-border);
-}
-
-.rec-contactos-dist-respondio {
   background: var(--pulso-module-fieldkit);
 }
 
@@ -944,3 +928,11 @@ button.rec-contactos-dist-fila.is-on {
   --pulso-switch-accent: var(--pulso-module-fieldkit);
   --pulso-switch-accent-ring: color-mix(in srgb, var(--pulso-module-fieldkit) 18%, transparent);
 }
+
+/* R8: la línea que manda el avance del correo a Monitoreo. */
+.rec-contactos-a-monitoreo {
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+  margin: 0;
+}
+

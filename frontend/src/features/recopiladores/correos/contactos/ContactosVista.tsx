@@ -1,6 +1,8 @@
 // La pestaña Contactos de una campaña de correo (ADR 0112 §4): quién está en
-// la lista, cómo se reparte por perfil y quién respondió, más el enlace
-// personal a la encuesta (§2).
+// la lista y cómo se reparte por perfil, más el enlace personal a la encuesta
+// (§2). Saber quién respondió sirve para elegir a quién recordarle (el filtro de
+// la lista); las tasas y cómo rinde cada envío son avance y se siguen en
+// Monitoreo (R8 del mapa de responsabilidades, 2 nov 2026).
 //
 // Contrato de Superficie:
 // - C1: `material-campo/correo/contactos` (intrinsic) con dos grupos dentro:
@@ -13,9 +15,11 @@
 //   queda pegada arriba y las tablas se desplazan en horizontal dentro de sí.
 
 import { useEffect, useMemo, type ReactNode } from "react";
+import { Link } from "react-router-dom";
 
 import { EstadoVacio } from "../../../../components/EstadoVacio";
 import { PulsoButton } from "../../../../components/PulsoButton";
+import { serializarDireccion } from "../../../../lib/navegacion/direccion";
 import { usePanelDireccionable } from "../../../../lib/navegacion/paneles";
 import { RefreshCw, Users } from "../../../../vendor/lucide-react";
 import { CruceDeVariables } from "./CruceDeVariables";
@@ -30,6 +34,9 @@ import { TableroDePerfil } from "./TableroDePerfil";
 import { useContactos } from "./useContactos";
 import "../correosBarra.css";
 import "./contactos.css";
+
+/** Donde se sigue el rendimiento del correo (Monitoreo de acreditación › Control › Correo). */
+const A_MONITOREO_CORREO = serializarDireccion({ modulo: "monitoreo", modo: "acreditacion", seccion: "control", pestana: "correo" });
 
 type Props = {
   /** El `campaign_id` de mail-* (sin el prefijo `correo.` del registro). */
@@ -113,7 +120,7 @@ export function ContactosVista({ campaignId, cabecera = null, onCargando, onIrAI
             tamano="normal"
             icono={<Users size={22} />}
             titulo="Esta campaña todavía no tiene contactos"
-            descripcion="La lista se importa en Personas, dentro del editor del correo. Con ella aquí se ve quién está, cómo se reparte y quién respondió."
+            descripcion="La lista se importa en Personas, dentro del editor del correo. Con ella aquí se ve quién está y cómo se reparte."
             accion={<PulsoButton variant="primary" size="sm" onClick={onIrAImportar}>Importar la lista</PulsoButton>}
           />
         </div>
@@ -121,7 +128,7 @@ export function ContactosVista({ campaignId, cabecera = null, onCargando, onIrAI
         <>
           <div className="rec-contactos-cabeza">
             {resumen ? (
-              <ResumenContactos resumen={resumen} respuestasLeidas={Boolean(perfil?.respuestas_leidas) || resumen.respondieron !== null} />
+              <ResumenContactos resumen={resumen} />
             ) : listaError ? null : (
               <div className="rec-contactos-vacio-caja" data-qa-geometry-capacity="owned"><p>Leyendo la lista…</p></div>
             )}
@@ -131,6 +138,11 @@ export function ContactosVista({ campaignId, cabecera = null, onCargando, onIrAI
               onGenerar={() => { void acciones.generarEnlaces(); }}
             />
           </div>
+
+          <p className="rec-contactos-a-monitoreo">
+            Quién respondió y cómo rinde cada envío se sigue en{" "}
+            <Link to={A_MONITOREO_CORREO}>Monitoreo › Control › Correo</Link>. Aquí queda para elegir a quién escribir o recordar.
+          </p>
 
           <TableroDePerfil
             perfil={perfil}

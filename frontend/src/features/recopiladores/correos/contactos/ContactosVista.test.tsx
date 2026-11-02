@@ -122,7 +122,10 @@ describe("pestaña Contactos", () => {
     expect(html).toContain('data-qa-geometry-group="material-campo/correo/contactos/distribuciones"');
     expect(html).toContain('aria-pressed="false"');
     expect(html).toContain("Sin dato");
-    expect(html).toContain("Respondieron");
+    // R8: las tasas de respuesta se siguen en Monitoreo; aquí, el enlace.
+    expect(html).toContain("Monitoreo › Control › Correo");
+    expect(html).toMatch(/href="\/monitoreo\?[^"]*modo=acreditacion[^"]*seccion=control[^"]*pestana=correo/);
+    expect(html).not.toContain("rec-contactos-dist-tasa");
     // El porcentaje siempre con su base.
     expect(html).toContain("base 4");
     expect(html).toMatch(/<tfoot>.*Total.*<\/tfoot>/s);

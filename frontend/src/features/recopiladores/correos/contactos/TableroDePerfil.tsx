@@ -30,7 +30,6 @@ type Props = {
 
 export function TableroDePerfil(p: Props) {
   const perfil = p.perfil;
-  const conRespuestas = Boolean(perfil?.respuestas_leidas);
   return (
     <section className="rec-contactos-seccion" aria-labelledby="rec-contactos-perfil-titulo" data-testid="contactos-perfil">
       <header className="rec-contactos-seccion-cabecera">
@@ -79,7 +78,7 @@ export function TableroDePerfil(p: Props) {
           aria-busy={p.carga === "cargando" || undefined}
         >
           {perfil.variables.map((variable) => (
-            <DistribucionDeVariable key={variable.key} variable={variable} base={perfil.base} conRespuestas={conRespuestas} />
+            <DistribucionDeVariable key={variable.key} variable={variable} base={perfil.base} />
           ))}
         </div>
       ) : (

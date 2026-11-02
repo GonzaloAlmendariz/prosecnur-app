@@ -1,6 +1,7 @@
 // La distribución de los efectivos en una variable de control: una barra por
 // categoría con su frecuencia y su porcentaje sobre la base del corte, y
-// —cuando ya se leyó quién respondió— cuántos respondieron y su tasa.
+// sin respuestas ni tasas: cómo rinde cada envío se sigue en Monitoreo (R8 del mapa de
+// responsabilidades, 2 nov 2026). Aquí se describe a quién se escribe.
 //
 // Clic en una categoría la agrega a los filtros (tablero y lista); otro clic la
 // quita. Dentro de una variable los filtros suman (OR) y entre variables se
@@ -23,14 +24,12 @@ import {
   formatoPorcentaje,
   proporcion,
   sumaDeLaVariable,
-  tasaDe,
 } from "./modeloContactos";
 import { useContactosStore } from "./store";
 
 type Props = {
   variable: VariableDelPerfil;
   base: number;
-  conRespuestas: boolean;
 };
 
 type Fila = {
@@ -39,11 +38,10 @@ type Fila = {
   valorDelFiltro: string | null;
   rotulo: string;
   n: number;
-  respondieron: number | null;
   sinDato: boolean;
 };
 
-export function DistribucionDeVariable({ variable: delCorte, base: baseDelCorte, conRespuestas }: Props) {
+export function DistribucionDeVariable({ variable: delCorte, base: baseDelCorte }: Props) {
   const filtros = useContactosStore((s) => s.filtros);
   const facetas = useContactosStore((s) => s.facetas);
   const faceta = facetaVigente(facetas, filtros, delCorte.key);
@@ -55,7 +53,6 @@ export function DistribucionDeVariable({ variable: delCorte, base: baseDelCorte,
   const { visibles, ocultas } = categoriasDeLaTarjeta(variable, expandida);
   const idTitulo = `rec-contactos-dist-${variable.key}`;
   const cuadra = cuadraConLaBase(variable, base);
-  const columnas = conRespuestas ? " is-con-respuestas" : "";
 
   const filas: Fila[] = [
     ...visibles.map((c) => ({
@@ -63,7 +60,6 @@ export function DistribucionDeVariable({ variable: delCorte, base: baseDelCorte,
       valorDelFiltro: c.otros ? null : c.valor,
       rotulo: c.valor,
       n: c.n,
-      respondieron: c.respondieron,
       sinDato: false,
     })),
     ...(variable.sin_dato.n > 0 ? [{
@@ -71,7 +67,6 @@ export function DistribucionDeVariable({ variable: delCorte, base: baseDelCorte,
       valorDelFiltro: VALOR_SIN_DATO,
       rotulo: "Sin dato",
       n: variable.sin_dato.n,
-      respondieron: variable.sin_dato.respondieron,
       sinDato: true,
     }] : []),
   ];
@@ -85,7 +80,7 @@ export function DistribucionDeVariable({ variable: delCorte, base: baseDelCorte,
         </span>
       </header>
       <div
-        className={`rec-contactos-dist-fila rec-contactos-dist-fila--cabeza${columnas}`}
+        className={`rec-contactos-dist-fila rec-contactos-dist-fila--cabeza`}
         aria-hidden
         // Los rótulos de columna: cada uno con el ancho de su columna (C1).
         data-qa-geometry-group={`material-campo/correo/contactos/columnas/${variable.key}`}
@@ -95,29 +90,19 @@ export function DistribucionDeVariable({ variable: delCorte, base: baseDelCorte,
         <span />
         <span className="is-num">Contactos</span>
         <span className="is-num">%</span>
-        {conRespuestas ? <span className="is-num">Respondieron</span> : null}
       </div>
       <ul className="rec-contactos-dist-lista">
         {filas.map((f) => {
           const pct = formatoPorcentaje(proporcion(f.n, base));
-          const tasa = tasaDe({ n: f.n, respondieron: f.respondieron });
-          const clases = `rec-contactos-dist-fila${columnas}${f.sinDato ? " is-sin-dato" : ""}`;
+          const clases = `rec-contactos-dist-fila${f.sinDato ? " is-sin-dato" : ""}`;
           const celdas = (
             <>
               <span className="rec-contactos-dist-nombre" title={f.rotulo}>{f.rotulo}</span>
               <span className="rec-contactos-dist-pista" aria-hidden>
                 <span className="rec-contactos-dist-relleno" style={{ width: `${anchoDeBarra(f.n, base)}%` }} />
-                {conRespuestas && f.respondieron ? (
-                  <span className="rec-contactos-dist-respondio" style={{ width: `${anchoDeBarra(f.respondieron, base)}%` }} />
-                ) : null}
               </span>
               <span className="is-num">{formatoConteo(f.n)}</span>
               <span className="is-num rec-contactos-dist-pct">{pct}</span>
-              {conRespuestas ? (
-                <span className="is-num rec-contactos-dist-tasa">
-                  {f.respondieron === null ? "—" : `${formatoConteo(f.respondieron)} · ${formatoPorcentaje(tasa)}`}
-                </span>
-              ) : null}
             </>
           );
           if (f.valorDelFiltro === null) {
@@ -125,8 +110,7 @@ export function DistribucionDeVariable({ variable: delCorte, base: baseDelCorte,
           }
           const valor = f.valorDelFiltro;
           const activa = estaFiltrada(filtros, variable.key, valor);
-          const nombre = `${variable.label}: ${f.rotulo}. ${formatoConteo(f.n)} contactos, ${pct} de ${formatoConteo(base)}`
-            + (conRespuestas && f.respondieron !== null ? `. Respondieron ${formatoConteo(f.respondieron)}, ${formatoPorcentaje(tasa)}` : "");
+          const nombre = `${variable.label}: ${f.rotulo}. ${formatoConteo(f.n)} contactos, ${pct} de ${formatoConteo(base)}`;
           return (
             <li key={f.clave}>
               <button
