@@ -12,7 +12,7 @@
 // al Constructor sólo se va con «Editar en Constructor».
 // =============================================================================
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ListaPartes, type GrupoDePartes } from "../../../components/ListaPartes";
 import { PulsoButton } from "../../../components/PulsoButton";
 import { FileText } from "../../../vendor/lucide-react";
@@ -115,6 +115,21 @@ export function PestanaImpreso({
   const filas = useMemo(() => filasConPapel(structure), [structure]);
   // La fila de «Papel por pregunta» con sus ajustes abiertos (una a la vez).
   const [papelAbierto, setPapelAbierto] = useState<number | null>(null);
+  // L36 · DOC.3 visto en vivo: con detalle y previa apilados (≤1280 px), la ficha abierta desde un bloque quedaba
+  // fuera de la vista. Se desplaza sólo la columna (scrollIntoView movería también la pestaña).
+  const contenidoRef = useRef<HTMLDivElement>(null);
+  const [fichaPedida, setFichaPedida] = useState<number | null>(null);
+  useEffect(() => {
+    if (fichaPedida === null) return;
+    const columna = contenidoRef.current;
+    const ficha = columna?.querySelector<HTMLElement>(`#xf-imp-papel-${fichaPedida}`)?.closest("li");
+    setFichaPedida(null);
+    if (!columna || !ficha) return;
+    const caja = ficha.getBoundingClientRect();
+    const marco = columna.getBoundingClientRect();
+    if (caja.top >= marco.top && caja.top < marco.bottom - 40) return;
+    columna.scrollTo({ top: columna.scrollTop + caja.top - marco.top - 24, behavior: "smooth" });
+  }, [fichaPedida]);
   const filasPapel = useMemo(() => filasPapelVisibles(structure, papelAbierto), [structure, papelAbierto]);
   const sinPapel = useMemo(
     () => filasSinPapel(structure).filter((f) => f.rowIndex !== papelAbierto),
@@ -183,7 +198,7 @@ export function PestanaImpreso({
         <div className="pulso-xf-imp-partes">
           <ListaPartes etiqueta="Partes del impreso" grupos={grupos} actual={parte} onElegir={onParte} idPanel={ID_DETALLE} prefijoId={PREFIJO} />
         </div>
-        <div className="pulso-xf-imp-contenido" data-qa-scroll-owner="impreso">
+        <div className="pulso-xf-imp-contenido" data-qa-scroll-owner="impreso" ref={contenidoRef}>
           <div
             id={ID_DETALLE}
             className="pulso-xf-imp-detalle"
@@ -228,6 +243,7 @@ export function PestanaImpreso({
               if (!nodo) return;
               onParte("papel");
               setPapelAbierto(nodo.rowIndex);
+              setFichaPedida(nodo.rowIndex);
             }} estado={estado} hayMatrices={matricesActivas(reales, estado.matrices) > 0} pagina={pagina} />
         </div>
       </div>

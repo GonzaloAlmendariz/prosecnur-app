@@ -111,6 +111,14 @@ describe("useEstadoImpreso con el proyecto", () => {
     expect(textoSincronia(control.sincronia)).toContain("sin sesión");
   });
 
+  it("un formulario que el proyecto aún no tiene se explica sin el código técnico", async () => {
+    guardar.mockRejectedValue(new Error("No existe el formulario 'abc'. · E_FORM_NOT_FOUND"));
+    await montar();
+    act(() => control.actualizar({ columns: 1 }));
+    await act(async () => { vi.advanceTimersByTime(ESPERA_GUARDADO_MS); await Promise.resolve(); });
+    expect(control.sincronia).toEqual({ fase: "error", causa: "el formulario aún no está guardado en el proyecto" });
+  });
+
   it("sin formulario no habla con el servidor", async () => {
     await montar(null);
     act(() => control.actualizar({ columns: 1 }));

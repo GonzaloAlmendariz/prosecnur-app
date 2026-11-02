@@ -45,7 +45,11 @@ export type ControlEstadoImpreso = {
 };
 
 function causaDe(error: unknown): string {
-  return error instanceof Error && error.message ? error.message : "el servidor no respondió";
+  if (!(error instanceof Error) || !error.message) return "el servidor no respondió";
+  // El editor muestra la copia local de un formulario que el proyecto aún no recibió: se sube con la próxima
+  // edición del formulario (autosave), y entonces las opciones ya se pueden guardar.
+  if (error.message.includes("E_FORM_NOT_FOUND")) return "el formulario aún no está guardado en el proyecto";
+  return error.message;
 }
 
 export function useEstadoImpreso(
