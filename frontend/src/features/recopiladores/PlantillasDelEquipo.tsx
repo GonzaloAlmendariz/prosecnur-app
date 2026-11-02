@@ -9,16 +9,24 @@
 
 import { useEffect, useState } from "react";
 
+import { Link } from "react-router-dom";
+
 import { downloadUrl } from "../../api/core";
 import { apiMaterialAulasEntrega, apiMaterialAulasPlantilla, type EntregaDeAulas, type PiezaDelEquipo } from "../../api/materialAulasEntrega";
 import { PulsoButton } from "../../components/PulsoButton";
+import { serializarDireccion } from "../../lib/navegacion/direccion";
 import { CalendarDays, FileSpreadsheet } from "../../vendor/lucide-react";
 import "./styles/plantillas-equipo.css";
 
 const PIEZAS: readonly { pieza: PiezaDelEquipo; titulo: string; llena: string; requiereEntrega: boolean }[] = [
   { pieza: "libro", titulo: "Libro del equipo", llena: "Aulas Agendadas (fecha, hora y aplicador de cada aula) y Aulas Aplicadas (el parte)", requiereEntrega: true },
   { pieza: "disponibilidad", titulo: "Disponibilidad de aplicadores", llena: "Qué días y franjas puede cada aplicador", requiereEntrega: false },
+  // R7 del mapa de responsabilidades (2 nov 2026): la asignación con la que campo empieza.
+  { pieza: "asignacion", titulo: "Asignación inicial de aplicadores", llena: "Qué aplicador va a cada aula titular, elegido de la lista del equipo", requiereEntrega: true },
 ];
+
+/** Donde Monitoreo rehace el reparto de cada día sobre la agenda (control, no material). */
+const A_MONITOREO_REPARTO = serializarDireccion({ modulo: "monitoreo", modo: "aulas", seccion: "modelo", pestana: "carga" });
 
 const fecha = (iso: string) => {
   const d = new Date(iso);
@@ -70,6 +78,10 @@ export function PlantillasDelEquipo() {
             );
           })}
         </ul>
+        <p className="rec-equipo-nota">
+          La asignación inicial es con la que campo empieza. El reparto de cada día sobre la agenda lo rehace Monitoreo, en{" "}
+          <Link to={A_MONITOREO_REPARTO}>Modelo › Carga</Link>.
+        </p>
         {error ? <p className="rec-equipo-error" role="alert">{error}</p> : null}
       </article>
 

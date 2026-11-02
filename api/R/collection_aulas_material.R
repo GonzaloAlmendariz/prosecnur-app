@@ -1,6 +1,6 @@
 # collection_aulas_material.R — Aulas en Material (etapa 3 del plan maestro; ADR 0122 §11, X8).
 #
-# Dos piezas:
+# Dos piezas (y la planilla inicial de aplicadores, R7):
 #
 #   - La ENTREGA, de solo lectura: el recibo `collection_handoff/v1` (sellado por
 #     `deployment_fingerprint`) y la proyección de las unidades entregadas en el idioma
@@ -65,8 +65,8 @@ collection_aulas_entrega_get <- function(sid) {
 #' @keywords internal
 collection_aulas_plantilla <- function(sid, pieza = "libro", body = list()) {
   pieza <- .mtf_txt(pieza)
-  if (!pieza %in% c("libro", "disponibilidad")) {
-    stop_api(422, "E_COLLECTION_CAMPAIGN_INVALID", "pieza es «libro» o «disponibilidad».")
+  if (!pieza %in% c("libro", "disponibilidad", "asignacion")) {
+    stop_api(422, "E_COLLECTION_CAMPAIGN_INVALID", "pieza es «libro», «disponibilidad» o «asignacion».")
   }
   s <- session_get(sid)
   dir.create(file.path(s$dir, "downloads"), showWarnings = FALSE, recursive = TRUE)
@@ -85,6 +85,15 @@ collection_aulas_plantilla <- function(sid, pieza = "libro", body = list()) {
   if (!isTRUE(entrega$entregada) || !length(entrega$unidades)) {
     stop_api(409, "E_COLLECTION_HANDOFF_NOT_READY",
              "Todavía no hay una entrega de aulas a Monitoreo: entrega el material antes de sacar el libro del equipo.")
+  }
+  # R7: la planilla inicial de aplicadores, con las titulares de la entrega (sin agenda ni sorteo).
+  if (identical(pieza, "asignacion")) {
+    nombre <- .export_filename(sid, "asignacion_aplicadores_PLANTILLA", "xlsx")
+    path <- file.path(s$dir, "downloads", sprintf("%s_%s", uuid::UUIDgenerate(), nombre))
+    r <- aulas_asignacion_plantilla(path, entrega$unidades, .mau_aplicadores(sid))
+    meta <- .register_output_file(sid, "aulas_asignacion_plantilla", path, original_name = nombre)
+    return(list(ok = TRUE, pieza = pieza, file_id = meta$file_id, filename = meta$original_name,
+                unidades = r$aulas, aplicadores = r$aplicadores, deployment_fingerprint = entrega$deployment_fingerprint))
   }
   nombre <- .export_filename(sid, "libro_aulas_PLANTILLA", "xlsx")
   path <- file.path(s$dir, "downloads", sprintf("%s_%s", uuid::UUIDgenerate(), nombre))

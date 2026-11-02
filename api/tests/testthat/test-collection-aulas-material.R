@@ -56,3 +56,37 @@ test_that("HTTP: GET de la entrega y POST de la plantilla", {
   r2 <- .hre_call(pr, sid, "POST", "/api/recopiladores/campaigns/aulas/plantilla", body = .hre_json(list(pieza = "disponibilidad")))
   expect_identical(r2$status, 200L)
 })
+
+test_that("R7: la planilla inicial de aplicadores trae sólo titulares, la columna Aplicador y la lista del equipo", {
+  unidades <- list(
+    list(sample_role = "titular", operational_code = "CH 1", faculty = "Ingeniería", course_name = "Cálculo", teacher = "Docente A", schedule = "Lu 8-10", eligible_n = 35),
+    list(sample_role = "chain_reserve", operational_code = "R 1.1", faculty = "Ingeniería"),
+    list(sample_role = "titular", operational_code = "", label = "Aula 2", faculty = "Derecho", eligible_n = 20)
+  )
+  path <- tempfile(fileext = ".xlsx")
+  r <- aulas_asignacion_plantilla(path, unidades, c("Ana", "Luis", "Ana", ""))
+  expect_identical(r$aulas, 2L)
+  expect_identical(r$aplicadores, 2L)
+  expect_identical(openxlsx::getSheetNames(path), c("Asignación", "Equipo", "Instrucciones"))
+  hoja <- openxlsx::read.xlsx(path, sheet = "Asignación", check.names = FALSE)
+  expect_identical(names(hoja), c("Código", "Facultad", "Curso", "Docente", "Horario", "Elegibles", "Aplicador", "Observación"))
+  # Sin código operativo, el rótulo; las reservas no entran (se asignan cuando su titular cae).
+  expect_identical(hoja[["Código"]], c("CH 1", "Aula 2"))
+  expect_identical(openxlsx::read.xlsx(path, sheet = "Equipo")$Aplicador, c("Ana", "Luis"))
+  # El desplegable apunta a la hoja Equipo.
+  xml <- unzip(path, files = "xl/worksheets/sheet1.xml", exdir = tempfile())
+  expect_match(paste(readLines(xml, warn = FALSE), collapse = ""), "Equipo'!\\$A\\$2:\\$A\\$3", perl = TRUE)
+})
+
+test_that("R7: la pieza «asignacion» sale de la entrega y no toca el plan de Monitoreo; sin entrega es 409", {
+  sid <- session_create(); on.exit(session_delete(sid), add = TRUE)
+  expect_identical(.mau_code(collection_aulas_plantilla(sid, "asignacion")), "E_COLLECTION_HANDOFF_NOT_READY")
+  session_set(sid, "monitoreo_aulas_plan", .mau_legacy())
+  seeded <- collection_state_seed(sid)
+  collection_handoff(sid, seeded$state_revision)
+  plan_monitoreo <- session_get(sid)$monitoreo_aulas_plan
+  a <- collection_aulas_plantilla(sid, "asignacion")
+  expect_identical(a$pieza, "asignacion")
+  expect_true(file.exists(session_get(sid)$files[[a$file_id]]$path))
+  expect_identical(session_get(sid)$monitoreo_aulas_plan, plan_monitoreo)
+})

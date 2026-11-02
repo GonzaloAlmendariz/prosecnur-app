@@ -15,7 +15,8 @@ export type EntregaDeAulas = {
   unidades: number;
 };
 
-export type PiezaDelEquipo = "libro" | "disponibilidad";
+/** `asignacion`: la planilla inicial de aplicadores (R7), con las titulares de la entrega. */
+export type PiezaDelEquipo = "libro" | "disponibilidad" | "asignacion";
 export type PlantillaDelEquipo = { file_id: string; filename: string };
 
 type Registro = Record<string, unknown>;
