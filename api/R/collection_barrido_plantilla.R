@@ -137,7 +137,7 @@ collection_barrido_plantilla <- function(sid, estudio = "", llave = NULL, estrat
     if (p$reemplazo) "Origen es Muestra o Backup; la tanda va aparte, en «Tanda» (1, 2, 3…).",
     "La identidad del caso (de «Cod pulso» al último estrato) va protegida. Para pegar la base del cliente, desprotege la hoja (no tiene contraseña) y vuelve a protegerla.",
     sprintf("Las columnas en ámbar las llena campo: %s.", paste(col$campo, collapse = ", ")),
-    if (length(p$sensibles)) sprintf("Columnas sensibles (en rojo): %s. No se copian al Sheets compartido ni salen en ningún artefacto.",
+    if (length(p$sensibles)) sprintf("Columnas sensibles (en rojo): %s. No se copian al Sheets del estudio ni salen en ningún artefacto.",
                                      paste(p$sensibles, collapse = ", ")),
     if (length(p$responsables)) "Cuántos casos lleva cada responsable está en «Asignaciones».",
     "Status es obligatorio en cuanto hay Intentos o Fecha: la fila se marca si falta.",

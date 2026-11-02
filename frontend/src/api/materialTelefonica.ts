@@ -139,3 +139,41 @@ export async function apiMaterialTelefonicaPlantilla(campaignId: string): Promis
   if (!file_id) throw new Error("El backend no devolvió la plantilla.");
   return { file_id, filename: texto(o.filename), filas: entero(o.filas), status: entero(o.status) };
 }
+
+// ---- La base de barrido en el Sheets del estudio (decisión de Gonzalo 2 nov 2026) ----------------------
+
+export type AccionEnSheets = "sembrada" | "respetada";
+export type PestanaSembrada = { hoja: string; accion: AccionEnSheets; filas: number };
+export type BarridoEnSheets = { url: string; hojas: PestanaSembrada[]; columnas: string[]; sinSensibles: string[] };
+
+export function normalizarBarridoEnSheets(r: unknown): BarridoEnSheets {
+  const o = esRegistro(r) ? r : {};
+  // R manda una lista de uno como escalar suelto (texto u objeto) y una vacía como `{}`.
+  const lista = (v: unknown): unknown[] =>
+    Array.isArray(v) ? v : typeof v === "string" ? [v] : esRegistro(v) && Object.keys(v).length ? [v] : [];
+  const url = texto(o.url);
+  if (!url) throw new Error("El backend no devolvió el Sheets.");
+  return {
+    url,
+    hojas: lista(o.hojas).filter(esRegistro).map((h): PestanaSembrada => ({
+      hoja: texto(h.hoja),
+      accion: texto(h.accion) === "sembrada" ? "sembrada" : "respetada",
+      filas: entero(h.filas),
+    })).filter((h) => h.hoja),
+    columnas: lista(o.columnas).map(texto).filter(Boolean),
+    sinSensibles: lista(o.sin_sensibles).map(texto).filter(Boolean),
+  };
+}
+
+/** Siembra «Barrido», «Listas» y «Léeme» en el Sheets del enlace; una pestaña que ya existe no se toca. */
+export async function apiMaterialTelefonicaSheets(campaignId: string, enlace: string): Promise<BarridoEnSheets> {
+  return normalizarBarridoEnSheets(
+    await handle<unknown>(
+      await apiFetch("/api/recopiladores/campaigns/telefonica/sheets", {
+        method: "POST",
+        headers: headers({ "Content-Type": "application/json" }),
+        body: JSON.stringify({ id: campaignId, enlace }),
+      }),
+    ),
+  );
+}

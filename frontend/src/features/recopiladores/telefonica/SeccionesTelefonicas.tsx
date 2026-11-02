@@ -16,6 +16,7 @@ import { PulsoInput } from "../../../components/PulsoInput";
 import { PulsoSwitch } from "../../../components/PulsoSwitch";
 import { PulsoTable, type PulsoTableColumna } from "../../../components/PulsoTable";
 import { CheckCircle2, ClipboardList, ListChecks, ShieldAlert, Table2 } from "../../../vendor/lucide-react";
+import { BarridoEnSheets } from "./BarridoEnSheets";
 import { partirLista } from "./modeloTelefonico";
 import { serializarDireccion } from "../../../lib/navegacion/direccion";
 import type { useConfigTelefonica } from "./useConfigTelefonica";
@@ -151,7 +152,7 @@ export function CasosTelefonicos({ datos }: { datos: Datos }) {
         <article className="rec-terr-tarjeta rec-tel-tarjeta" data-qa-geometry-member>
           <h3><ShieldAlert size={15} aria-hidden /> Columnas sensibles</h3>
           <p className="rec-terr-nota">
-            Una columna sensible, como el estatus legal, va marcada en rojo y no se copia al Sheets compartido ni sale en ningún
+            Una columna sensible, como el estatus legal, va marcada en rojo y no se copia al Sheets del estudio ni sale en ningún
             artefacto. Se guarda al elegir.
           </p>
           {config.estratos.map((e) => (
@@ -210,6 +211,7 @@ export function BarridoTelefonico({ datos, pestana, campaignId }: { datos: Datos
       .finally(() => setOcupado(false));
   };
   return (
+    <>
     <article className="rec-terr-tarjeta" data-qa-geometry-member>
       <h3><Table2 size={15} aria-hidden /> Plantilla del barrido</h3>
       <p className="rec-terr-nota">
@@ -226,6 +228,8 @@ export function BarridoTelefonico({ datos, pestana, campaignId }: { datos: Datos
       {!casos ? <p className="rec-terr-nota">Sin casos declarados en Casos, la plantilla sale con 2.000 filas.</p> : null}
       {error ? <p className="rec-terr-error" role="alert">{error}</p> : null}
     </article>
+    <BarridoEnSheets campaignId={campaignId} sensibles={config.sensibles} />
+    </>
   );
 }
 
@@ -237,7 +241,8 @@ export function EntregaTelefonica({ config }: { config: ConfigTelefonica | null 
         <h3><CheckCircle2 size={15} aria-hidden /> Lo que lee Monitoreo</h3>
         {/* R14 del mapa de responsabilidades (2 nov 2026): de dónde sale el Sheets y a dónde va. */}
         <p className="rec-terr-nota">
-          La plantilla sale de Barrido; el equipo la copia al Sheets compartido del operativo y la llena. Monitoreo lo conecta en{" "}
+          La base sale de Barrido: Material la construye en el Sheets del estudio, o la entrega en Excel para copiarla ahí, y el
+          equipo la llena. Monitoreo conecta ese Sheets en{" "}
           <Link to={A_MONITOREO_FUENTES_TELEFONICO}>Insumos › Fuentes</Link> y desde ahí sigue el avance. Estas columnas son la llave
           de esa lectura: no cambian de nombre.
         </p>

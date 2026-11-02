@@ -189,6 +189,12 @@ mount_recopiladores <- function(pr) {
       body <- .collection_parse_body(req)
       collection_telefonica_plantilla(session_header(req), body[["id"]])
     })) |>
+    # La base de barrido construida en el Sheets del estudio (collection_barrido_sheets.R): sólo
+    # siembra las pestañas que faltan; una que existe es del equipo y no se toca.
+    plumber::pr_post("/api/recopiladores/campaigns/telefonica/sheets", wrap_endpoint(function(req, res, ...) {
+      body <- .collection_parse_body(req)
+      collection_telefonica_sheets_sembrar(session_header(req), body[["id"]], body[["enlace"]])
+    })) |>
     # Plantilla del barrido telefónico (C8, collection_barrido_plantilla.R): sólo genera el
     # libro; dónde vive el barrido en Material (P10) está por decidir.
     # Etapa 3 (collection_aulas_material.R): la entrega de aulas de solo lectura, para
