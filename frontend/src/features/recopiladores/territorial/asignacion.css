@@ -9,6 +9,9 @@
   background: var(--pulso-surface);
 }
 
+/* Lo que mide con la lista y el Excel: el plan de abajo no salta cuando llega. */
+.rec-asig[aria-busy="true"] { min-height: 90px; }
+
 .rec-asig-cab {
   display: flex;
   align-items: center;

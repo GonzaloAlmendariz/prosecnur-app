@@ -101,7 +101,21 @@ type Props = Omit<ReturnType<typeof useAsignacionEquipo>, "cabeza" | "borrador">
 
 /** Encabezado de la asignación: el motivo de bloqueo, lo que quedó fuera y el guardado. */
 export function BarraAsignacion({ campaignId, datos, bloqueo, estado, error, guardar, aplicar, cambiado }: Props) {
-  if (!datos) return error ? <p className="rec-terr-nota" role="alert">{error}</p> : null;
+  if (error && !datos) return <p className="rec-terr-nota" role="alert">{error}</p>;
+  // Revisión con ojo de usuario (1 nov 2026): la lista llegaba tarde y empujaba el plan bajo el cursor.
+  // Mientras se lee, la tarjeta ya ocupa su lugar.
+  if (!datos) {
+    return campaignId ? (
+      <div className="rec-asig" aria-label="Asignación de encuestadores" aria-busy="true">
+        <div className="rec-asig-cab">
+          <span>
+            <strong>Encuestadores</strong>
+            <small>Leyendo la lista de Monitoreo…</small>
+          </span>
+        </div>
+      </div>
+    ) : null;
+  }
   const asignadas = datos.asignacion.length;
   return (
     <div className="rec-asig" aria-label="Asignación de encuestadores">
