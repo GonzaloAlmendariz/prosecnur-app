@@ -447,20 +447,25 @@
 
 @media (max-width: 1180px) {
   .mon-ban {
-    grid-template-columns: 216px minmax(0, 1fr);
+    grid-template-columns: 184px minmax(0, 1fr);
   }
 
-  /* Compacto: la tabla conserva un ancho legible y desplaza en horizontal
-   * dentro de su marco, en vez de aplastar al aplicador letra por letra. */
-  .mon-ban-tabla.is-casos {
-    min-width: 960px;
-  }
+  /* Compacto: las ocho columnas caben en el marco (728 px a 1024). Antes la
+   * tabla medía 960 px y escondía Motivo, Distancia y Duración tras un
+   * desplazamiento horizontal sin indicio. El día parte en fecha y hora, y
+   * distrito, aplicador y motivo en dos líneas. */
+  .mon-ban-tabla.is-casos col.is-caso { width: 94px; }
+  .mon-ban-tabla.is-casos col.is-dia { width: 64px; }
+  .mon-ban-tabla.is-casos col.is-distrito { width: 98px; }
+  .mon-ban-tabla.is-casos col.is-ump { width: 56px; }
+  .mon-ban-tabla.is-casos col.is-motivo { width: 108px; }
+  .mon-ban-tabla.is-casos col.is-cifra { width: 76px; }
 
-  .mon-ban-tabla.is-casos col.is-caso { width: 92px; }
-  .mon-ban-tabla.is-casos col.is-dia { width: 100px; }
-  .mon-ban-tabla.is-casos col.is-distrito { width: 150px; }
-  .mon-ban-tabla.is-casos col.is-motivo { width: 170px; }
-  .mon-ban-tabla.is-casos col.is-cifra { width: 84px; }
+  /* Con el inspector abierto le quedan unos 600 px: ahí sí conserva un ancho
+   * legible y desplaza dentro de su marco antes que aplastar al aplicador. */
+  .mon-ban.con-inspector .mon-ban-tabla.is-casos {
+    min-width: 760px;
+  }
 }
 
 .mon-ban-tabla > tbody > tr {
