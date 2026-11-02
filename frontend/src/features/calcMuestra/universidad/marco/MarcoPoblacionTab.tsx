@@ -53,9 +53,9 @@ export function MarcoPoblacionTab({
   const etapasFallback: FlujoEtapa[] = [
     {
       id: "universo",
-      label: "Universo",
+      label: "Filas leídas",
       valor: inputRows > 0 ? fmtInt(inputRows) : undefined,
-      detalle: "filas leídas del archivo",
+      detalle: "del archivo, antes de depurar",
       estado: inputRows > 0 ? "ready" : "pending",
       merma: filasExcluidas > 0 ? { n: filasExcluidas, label: "filas excluidas" } : undefined,
     },

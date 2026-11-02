@@ -154,9 +154,11 @@ export function DefEstudioTab({
   const etapas: FlujoEtapa[] = [
     {
       id: "universo",
-      label: "Universo",
+      // Es un conteo de FILAS, no el universo de estudiantes de la franja (D4):
+      // con «Universo» había dos universos a la vista con cifras distintas.
+      label: "Filas leídas",
       valor: universo > 0 ? fmtInt(universo) : undefined,
-      detalle: universo > 0 ? "filas leídas del archivo" : "se conoce al leer la base",
+      detalle: universo > 0 ? "del archivo, antes de depurar" : "se conoce al leer la base",
       estado: universo > 0 ? "ready" : "pending",
       merma: filasExcluidas > 0 ? { n: filasExcluidas, label: "filas excluidas" } : undefined,
     },
