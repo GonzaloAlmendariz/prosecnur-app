@@ -148,7 +148,7 @@ import { sourceRowCount, sourceSheetField, sourceSyncLabel } from "./fuentes/cam
 import { sourcePayloadFromExisting } from "./fuentes/payloadDeFuente";
 import { efectivasDeLaEncuesta, eslabonesDelContrato } from "./fuentes/eslabonesDelContrato";
 import { filasDeCruceDeCasos, lecturaDeCruceDeCasos } from "../../core/crucesDeCasos";
-import { MonitoreoWorkbenchChrome, MonitoreoWorkbenchHead, MonitoreoWorkbenchRail, type MonitoreoWorkbenchRailTab } from "../../components";
+import { MonitoreoWorkbenchChrome, MonitoreoWorkbenchRail, type MonitoreoWorkbenchRailTab } from "../../components";
 import {
   filterInternalQueryCases,
   compareInternalQueryDateValues,
