@@ -176,6 +176,20 @@ describe("H25 — el recibo sólo se firma si hubo traspaso", () => {
     expect(markup).toContain("<dd>5</dd>");
     expect(markup).toContain(">fp-plan<");
   });
+
+  it("con traspaso, dice que el seguimiento sigue en Monitoreo y lleva allá si el shell sabe ir (R10)", () => {
+    const deployment: CollectionDeployment = { ...BASE_DEPLOYMENT, status: "handed_off", handoff: RECIBO };
+    const conIr = renderToStaticMarkup(
+      <DeliverySection payload={payloadWithDeployment(deployment)} latestArtifact={null} onState={() => undefined} onIr={() => undefined} />,
+    );
+    expect(conIr).toContain("Material termina aquí. Monitoreo trae esta entrega en Insumos › Fuentes");
+    expect(conIr).toContain("Abrir Monitoreo");
+    const sinIr = renderToStaticMarkup(
+      <DeliverySection payload={payloadWithDeployment(deployment)} latestArtifact={null} onState={() => undefined} />,
+    );
+    expect(sinIr).toContain("Material termina aquí.");
+    expect(sinIr).not.toContain("Abrir Monitoreo");
+  });
 });
 
 describe("entrega bloqueada sin accesos", () => {
