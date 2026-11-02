@@ -64,11 +64,11 @@ monitoreo_territorial_avance_cuotas <- function(envio, audit, asignacion = list(
   salida <- lapply(zonas, function(z) {
     u <- trimws(.monitoreo_scalar(z$ubigeo %||% z$id_zona, ""))
     ubigeos <<- c(ubigeos, u)
-    en_zona <- ubigeo == u
+    de_la_zona <- ubigeo == u
     celdas <- lapply(Filter(is.list, z$cuotas %||% list()), function(cu) {
       lim <- .mtcu_rango(.monitoreo_scalar(cu$rango_edad %||% cu$rango_id, ""))
       s <- .mtcu_sexo(.monitoreo_scalar(cu$sexo, ""))
-      cae <- en_zona & m$efectiva & sexo == s & is.finite(edad) & edad >= lim[[1]] & edad <= lim[[2]]
+      cae <- de_la_zona & m$efectiva & sexo == s & is.finite(edad) & edad >= lim[[1]] & edad <= lim[[2]]
       en_alguna_celda <<- en_alguna_celda | cae
       meta <- suppressWarnings(as.integer(.monitoreo_scalar(cu$n, 0L)))
       if (is.na(meta)) meta <- 0L
@@ -84,7 +84,7 @@ monitoreo_territorial_avance_cuotas <- function(envio, audit, asignacion = list(
     personas <- lapply(suyas, function(a) {
       cod <- toupper(trimws(.monitoreo_scalar(a$codigo, "")))
       parte <- suppressWarnings(as.integer(.monitoreo_scalar(a$parte, NA)))
-      ef <- as.integer(sum(en_zona & m$efectiva & nzchar(cod) & codigo == cod))
+      ef <- as.integer(sum(de_la_zona & m$efectiva & nzchar(cod) & codigo == cod))
       list(codigo = .monitoreo_scalar(a$codigo, ""), parte = if (is.na(parte)) NA_integer_ else parte,
            efectivas = ef, falta = if (is.na(parte)) NA_integer_ else as.integer(max(0L, parte - ef)))
     })
@@ -92,8 +92,8 @@ monitoreo_territorial_avance_cuotas <- function(envio, audit, asignacion = list(
       id_zona = id_z, ubigeo = u, nombre = .monitoreo_scalar(z$nombre, ""),
       meta = meta,
       personas = personas,
-      efectivas = as.integer(sum(en_zona & m$efectiva)),
-      en_observacion = as.integer(sum(en_zona & m$observacion)),
+      efectivas = as.integer(sum(de_la_zona & m$efectiva)),
+      en_observacion = as.integer(sum(de_la_zona & m$observacion)),
       celdas = celdas,
       celdas_completas = as.integer(sum(vapply(celdas, function(c) c$falta == 0L, logical(1))))
     )
