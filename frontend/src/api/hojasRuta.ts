@@ -766,8 +766,8 @@ export type HojasRutaState = {
   runs?: Partial<Record<HojasRutaPhase, HojasRutaRun>>;
   active_phase?: HojasRutaPhase;
   phase_notice?: HojasRutaPhaseNotice | null;
-  /** La etapa del estudio: la corrida que mira Hojas; la del Planner es una propuesta (ADR 0123 §6). */
-  etapa?: { fase: HojasRutaPhase; origen: "hojas_ruta"; planner?: HojasRutaPhase | null; alineada?: boolean };
+  /** La etapa del estudio: la corrida que mira Hojas (ADR 0124: el Planner ya no propone otra). */
+  etapa?: { fase: HojasRutaPhase; origen: "hojas_ruta" };
   frame_meta: TerritorialFrameMeta;
   territories: HojasRutaTerritory[];
   campos: HojasRutaCampos | null;

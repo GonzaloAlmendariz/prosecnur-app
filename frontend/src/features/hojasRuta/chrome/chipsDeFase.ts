@@ -1,21 +1,18 @@
 import type { HojasRutaPhase } from "../../../api/hojasRuta";
 
 /**
- * P1 de la paridad con la página clásica. La etapa es la corrida que mira Hojas de ruta y lo que
- * declara el Planner es una propuesta (ADR 0123 §6; Gonzalo: «fase y ventana: propuesta; se mantiene
- * Alinear en Monitoreo y Hojas»), así que desde la barra:
+ * P1 de la paridad con la página clásica. La etapa es la corrida que mira Hojas de ruta, así que
+ * desde la barra:
  *   - el chip de fase abre la otra corrida;
- *   - si el Planner propone otra etapa, se ve la diferencia y «Alinear» la abre con un clic;
  *   - con un piloto y un Campo real todavía vacío, se crea Campo real desde el piloto. Con muestra o
  *     envío en campo no se ofrece: el backend lo rechaza (E_HOJAS_RUTA_CAMPO_CON_MUESTRA) porque
  *     reemplazaría la corrida entera.
  * Una sola fase en juego: la que se ve es la que usan los cálculos y el envío (hojas_ruta_etapa.R).
+ * Hasta el ADR 0124 el Planner proponía una etapa y aquí se ofrecía «Alinear»; el Planner salió.
  */
 
-export type EtapaDelEstudio = { fase: HojasRutaPhase; planner?: HojasRutaPhase | null; alineada?: boolean };
-
 export type ChipDeFase = {
-  id: "fase" | "alinear" | "crear-campo";
+  id: "fase" | "crear-campo";
   label: string;
   tone: "info" | "warn";
   detail: string;
@@ -31,9 +28,8 @@ export function chipsDeFase(args: {
   /** Campo real tiene muestra sorteada o envío a Material. */
   campoConMuestra: boolean;
   evitaPiloto: boolean;
-  etapa: EtapaDelEstudio | null;
 }): ChipDeFase[] {
-  const { fase, hayPiloto, campoConMuestra, evitaPiloto, etapa } = args;
+  const { fase, hayPiloto, campoConMuestra, evitaPiloto } = args;
   const otra: HojasRutaPhase = fase === "pilot" ? "field" : "pilot";
   // La corrida de campo siempre existe; la piloto, sólo si se hizo.
   const hayOtra = otra === "pilot" ? hayPiloto : true;
@@ -48,17 +44,6 @@ export function chipsDeFase(args: {
       ...(hayOtra ? { accion: { tipo: "ver" as const, fase: otra } } : {}),
     },
   ];
-  // Defensivo: sólo una fase conocida es una propuesta (un payload viejo o un `{}` no lo son).
-  const propuesta = etapa?.planner === "pilot" || etapa?.planner === "field" ? etapa.planner : null;
-  if (propuesta && propuesta !== fase && (propuesta === "field" || hayPiloto)) {
-    chips.push({
-      id: "alinear",
-      label: `Planner: ${NOMBRE[propuesta]} · Alinear`,
-      tone: "warn",
-      detail: `El Planner propone la etapa ${NOMBRE[propuesta]} y aquí estás en ${NOMBRE[fase]}. Alinear abre la corrida de ${NOMBRE[propuesta]}; nada cambia sin ese clic.`,
-      accion: { tipo: "ver", fase: propuesta },
-    });
-  }
   if (hayPiloto && !campoConMuestra) {
     chips.push({
       id: "crear-campo",

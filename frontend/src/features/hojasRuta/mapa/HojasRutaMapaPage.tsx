@@ -294,8 +294,8 @@ export default function HojasRutaMapaPage() {
   // Con una corrida legacy la vista previa describe la adopción, no el estado actual: no se pinta como vigente.
   const marcoDeclarado = configSorteo?.marco_elegible?.declarado === true;
   const zonasCortas = useMemo(() => new Set(marcoDeclarado ? (vistaMarco?.capacidad ?? []).filter((z) => z.falta).map((z) => `${z.ubigeo}|${z.zona}`) : []), [vistaMarco, marcoDeclarado]);
-  // P1: mirar la otra corrida, alinear con la propuesta del Planner o crear Campo real desde el
-  // piloto. La corrida que se mira es la etapa del estudio (hojas_ruta_etapa.R, ADR 0123 §6).
+  // P1: mirar la otra corrida o crear Campo real desde el piloto. La corrida que se mira es la
+  // etapa del estudio (hojas_ruta_etapa.R; desde el ADR 0124 el Planner ya no propone otra).
   const cambiarFase = useCallback(
     async (accion: NonNullable<ChipDeFase["accion"]>) => {
       if (guardando) return;
@@ -638,13 +638,12 @@ export default function HojasRutaMapaPage() {
   const porRevisarTotal = [...estados.values()].filter((e) => e === "error" || e === "aviso").length;
   const evitaPiloto = fase === "field" && Boolean(estado?.runs?.pilot) && estado?.runs?.field?.pilot_exclusion_mode !== "ignore";
   const chipsEstado = [
-    // P1: la fase se mira, se alinea con el Planner y se crea desde la barra (chrome/chipsDeFase.ts).
+    // P1: la fase se mira y se crea desde la barra (chrome/chipsDeFase.ts).
     ...chipsDeFase({
       fase,
       hayPiloto: Boolean(estado?.runs?.pilot),
       campoConMuestra: Boolean(estado?.runs?.field?.workspace_outputs?.sample?.blocks?.length) || Boolean(estado?.runs?.field?.envio_meta),
       evitaPiloto,
-      etapa: estado?.etapa ?? null,
     }).map((c) => ({
       id: c.id,
       label: c.label,
