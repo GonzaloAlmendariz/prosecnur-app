@@ -26,7 +26,6 @@ const SNAPSHOT_BAJO_10PX: Record<string, number> = {
   "features/graficos/graficadorPicker.css": 9,
   "features/graficos/v2/styles/editor-v2.css": 2,
   "features/graficos/v2/timeline/slidePicker.css": 6,
-  "features/recopiladores/styles/plan.css": 1,
 };
 
 function archivos(dir: string): string[] {

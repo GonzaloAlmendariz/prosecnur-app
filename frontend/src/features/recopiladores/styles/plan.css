@@ -146,7 +146,7 @@
   display: grid;
   font-size: 11.5px;
   gap: 6px;
-  grid-template-columns: minmax(0, 1fr) 30px 50px;
+  grid-template-columns: minmax(0, 1fr) 36px 58px;
   isolation: isolate;
   padding: 4px 5px;
   position: relative;
@@ -189,9 +189,11 @@
 .rec-facultades-cabecera {
   color: var(--pulso-text-faint);
   display: grid;
-  font-size: 9.5px;
+  /* L29: el piso es 10 px (rol micro). A 10 px «AULAS» mide 34 y «ELEGIBLES» 55: las
+     columnas pasan a 36 y 58 —aquí y en las filas— para que no se desborden ni se pisen. */
+  font-size: var(--pulso-type-micro-size);
   gap: 6px;
-  grid-template-columns: minmax(0, 1fr) 30px 50px;
+  grid-template-columns: minmax(0, 1fr) 36px 58px;
   letter-spacing: .02em;
   margin: 0 0 3px;
   padding: 0 5px;
