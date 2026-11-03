@@ -60,7 +60,7 @@ const SNAPSHOT: Record<string, number> = {
   "general/tituloCorrida.ts": 4,
   "motor/ResumenDiseno.tsx": 13,
   "universidad/UniversidadDesk.tsx": 4,
-  "universidad/aulas/AulaInspectorPanel.tsx": 5,
+  "universidad/aulas/AulaInspectorPanel.tsx": 4,
   "universidad/aulas/AulasObjetivoTab.tsx": 1,
   "universidad/aulas/AulasPerfilTab.tsx": 1,
   "universidad/aulas/AulasReemplazosTab.tsx": 1,

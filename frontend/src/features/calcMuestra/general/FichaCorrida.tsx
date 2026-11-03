@@ -144,12 +144,12 @@ export function FichaCorrida({
 
           <dl className="cmg-traza">
             <div><dt>Modalidad</dt><dd>{nombre?.modalidad}</dd></div>
-            <div><dt>Semilla</dt><dd><code>{c.semilla}</code></dd></div>
-            <div><dt>RNG</dt><dd><code>{partirEnBarras(c.rng_kind)}</code></dd></div>
+            <div><dt>Semilla</dt><dd className="cmg-traza-tecnico">{c.semilla}</dd></div>
+            <div><dt>RNG</dt><dd className="cmg-traza-tecnico">{partirEnBarras(c.rng_kind)}</dd></div>
             <div><dt>R</dt><dd>{c.r_version || "—"}</dd></div>
-            <div><dt>Identificador</dt><dd><code title={c.run_id}>{hashCorto(c.run_id, 12)}</code></dd></div>
-            <div><dt>Marco</dt><dd><code title={c.marco_hash}>{hashCorto(c.marco_hash)}</code></dd></div>
-            <div><dt>Configuración</dt><dd><code title={c.config_hash}>{hashCorto(c.config_hash)}</code></dd></div>
+            <div><dt>Identificador</dt><dd className="cmg-traza-tecnico" title={c.run_id}>{hashCorto(c.run_id, 12)}</dd></div>
+            <div><dt>Marco</dt><dd className="cmg-traza-tecnico" title={c.marco_hash}>{hashCorto(c.marco_hash)}</dd></div>
+            <div><dt>Configuración</dt><dd className="cmg-traza-tecnico" title={c.config_hash}>{hashCorto(c.config_hash)}</dd></div>
             <div><dt>Fecha</dt><dd title={corrida.sorteado_at}>{formatearFechaLocal(corrida.sorteado_at)}</dd></div>
           </dl>
 

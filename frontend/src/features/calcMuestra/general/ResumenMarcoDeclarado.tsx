@@ -29,7 +29,7 @@ export function ResumenMarcoDeclarado({ marco }: { marco: CalcMuestraGeneralMarc
         />
       </CifraFila>
       <p className="cmg-nota">
-        Huella <code className="cmg-huella" title={marco.marco_hash}>{hashCorto(marco.marco_hash)}</code>
+        Huella <span className="cmg-huella" title={marco.marco_hash}>{hashCorto(marco.marco_hash)}</span>
         {" "}(SHA-256). El N del cálculo sale de este archivo.
       </p>
       {conEstrato && marco.estratos.length > 0 && (

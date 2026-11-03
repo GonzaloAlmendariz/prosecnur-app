@@ -65,7 +65,7 @@ export function AulaInspectorPanel({
         <div className="cmv2-aulas-inspector-titulo">
           <span className="cmv2-aulas-inspector-rol" data-rol={model.rol}>{model.rolLabel}</span>
           <strong>{model.courseName}</strong>
-          <code>{model.code} · {model.id}</code>
+          <small className="cmv2-aulas-inspector-codigo">{model.code}, {model.id}</small>
         </div>
         <button
           type="button"

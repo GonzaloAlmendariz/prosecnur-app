@@ -348,7 +348,7 @@ export function CalculoDisenoTab({
               e Ingeniería 0,2, que son los de la tabla y no la global.
               Decir «vacío = 0,5» hacía leer como neutro un valor heredado de otro estudio. */}
           <p className="cmv2-calc-diseno-nota">
-            Opcional: sobrescribe la <code>p</code> esperada de una facultad concreta. Si la dejas vacía,
+            Opcional: sobrescribe la <i>p</i> esperada de una facultad concreta. Si la dejas vacía,
             el motor usa la prevalencia que esa facultad tuvo en el estudio de referencia; y si no
             aparece ahí, la p global ({fmtDecimal(pF, 2)}). Cada facultad se calcula como estrato propio
             con su margen y su p.

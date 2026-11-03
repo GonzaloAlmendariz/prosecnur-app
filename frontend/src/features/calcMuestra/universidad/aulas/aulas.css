@@ -784,11 +784,11 @@
   line-height: 1.25;
 }
 
-.cmv2-aulas-inspector-titulo code {
+.cmv2-aulas-inspector-codigo {
   overflow: hidden;
   color: var(--pulso-text-soft);
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: var(--pulso-type-micro-size);
+  font-size: var(--pulso-type-caption-size);
+  font-variant-numeric: tabular-nums;
   white-space: nowrap;
   text-overflow: ellipsis;
 }
