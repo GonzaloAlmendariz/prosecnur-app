@@ -306,7 +306,8 @@ export function BaseUploadCard({
           <div className="cmv2-defi-upload-stats">
             <div className="cmv2-defi-upload-stat">
               <span>Archivo</span>
-              <strong>{binding.file_name || "cargado"}</strong>
+              {/* El nombre se parte en los espacios, no en el guion de «curso-horario» o «2025-2». */}
+              <strong title={binding.file_name || undefined}>{(binding.file_name || "cargado").replace(/-/g, "\u2011")}</strong>
             </div>
             <label className="cmv2-compact-field">
               <span>Hoja leída</span>
