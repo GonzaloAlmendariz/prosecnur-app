@@ -305,7 +305,25 @@ export type CeldaCalor = {
   /** Puntos frente al total (sólo en lectura por columna o por fila). */
   dif: number | null;
   marca: "arriba" | "abajo" | null;
+  /** Su denominador tiene menos de 30 casos: se atenúa y no lleva flecha. */
+  chica?: boolean;
 };
+
+/** Bajo este número de casos, el denominador de una celda es chico: un 100 % de 1 caso no compite con uno de 300. */
+export const BASE_CHICA = 30;
+
+/**
+ * El tono de una celda (maqueta v4). En porcentajes dice cuánto se aparta del total y hacia dónde, no el valor: así
+ * una tabla sin diferencias se ve pareja. Tramos de 2, 5 y 10 puntos; la flecha va desde 5. En n, el tono es el
+ * conteo en cinco tramos. Una base chica queda neutra.
+ */
+export function tonoDeCelda(c: CeldaCalor, lectura: LecturaCalor): string {
+  if (lectura === "n") return `is-n${Math.max(1, Math.min(5, Math.ceil(c.peso * 5)))}`;
+  if (c.chica || c.dif === null) return "is-parejo";
+  const a = Math.abs(c.dif);
+  const k = a < 2 ? 0 : a < UMBRAL_PUNTOS ? 1 : a < 10 ? 2 : 3;
+  return k === 0 ? "is-parejo" : `is-${c.dif > 0 ? "sobre" : "bajo"}${k}`;
+}
 
 export type ModeloCalor = {
   lectura: LecturaCalor;
@@ -331,10 +349,10 @@ export type Desviacion = {
   dif: number;
 };
 
-function celda(n: number, valor: number, esPct: boolean, total: number | null): CeldaCalor {
+function celda(n: number, valor: number, esPct: boolean, total: number | null, chica = false): CeldaCalor {
   const dif = total === null ? null : valor - total;
-  const marca = dif === null || Math.abs(dif) < UMBRAL_PUNTOS ? null : dif > 0 ? "arriba" : "abajo";
-  return { n, valor, texto: esPct ? fmtDecimal(valor, 1) : fmtN(valor), peso: 0, dif, marca };
+  const marca = chica || dif === null || Math.abs(dif) < UMBRAL_PUNTOS ? null : dif > 0 ? "arriba" : "abajo";
+  return { n, valor, texto: esPct ? fmtDecimal(valor, 1) : fmtN(valor), peso: 0, dif, marca, chica };
 }
 
 /** Una celda que no se puede calcular sin mezclar menciones: se dice «—» y no compite. */
@@ -385,11 +403,13 @@ export function modeloCalor(
     const casos = nFila[r];
     if (lectura === "columna") {
       const pctTotal = pctDe(casos);
-      celdas = tabla.n[r].map((x, c) => (nCol[c] > 0 ? celda(x, porcentaje(x, nCol[c]), true, pctTotal) : celdaSinDato(x)));
+      celdas = tabla.n[r].map((x, c) =>
+        nCol[c] > 0 ? celda(x, porcentaje(x, nCol[c]), true, pctTotal, nCol[c] < BASE_CHICA) : celdaSinDato(x),
+      );
       total = pctTotal === null || casos === null ? null : celda(casos, pctTotal, true, null);
     } else if (lectura === "fila") {
       celdas = tabla.n[r].map((x, c) =>
-        casos !== null && casos > 0 ? celda(x, porcentaje(x, casos), true, pctDe(nCol[c])) : celdaSinDato(x),
+        casos !== null && casos > 0 ? celda(x, porcentaje(x, casos), true, pctDe(nCol[c]), casos < BASE_CHICA) : celdaSinDato(x),
       );
       // La fila suma 100 sólo si la columna es única; con una múltiple, el Total dice sus casos.
       total = casos === null ? null : tipoY === "so" ? celda(casos, casos > 0 ? 100 : 0, true, null) : celda(casos, casos, false, null);

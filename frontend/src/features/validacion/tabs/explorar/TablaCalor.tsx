@@ -1,6 +1,6 @@
 import { GlidingRadioGroup } from "../../../../components/GlidingRadioGroup";
 import { estiloConVariables } from "./estiloConVariables";
-import { fmtN, type CeldaCalor, type LecturaCalor, type ModeloCalor } from "./explorarModelo";
+import { fmtN, tonoDeCelda, UMBRAL_PUNTOS, type CeldaCalor, type LecturaCalor, type ModeloCalor } from "./explorarModelo";
 
 export const LECTURAS_CALOR: readonly { valor: LecturaCalor; etiqueta: string }[] = [
   { valor: "columna", etiqueta: "% por columna" },
@@ -27,12 +27,12 @@ export function LecturaCalorSelector({ valor, onCambio }: { valor: LecturaCalor;
 const ANCHO_ROTULO = 230;
 const ANCHO_CELDA = 80;
 
-function Celda({ c, total = false, columna, fila }: { c: CeldaCalor; total?: boolean; columna: string; fila: string }) {
-  const oscura = !total && c.peso > 0.58;
+function Celda({ c, total = false, columna, fila, lectura }: { c: CeldaCalor; total?: boolean; columna: string; fila: string; lectura: LecturaCalor }) {
+  const tono = total ? null : tonoDeCelda(c, lectura);
   const clase = [
     "vx-calor-celda",
-    total ? "is-total" : null,
-    oscura ? "is-oscura" : null,
+    total ? "is-total" : tono,
+    c.chica && !total ? "is-chica" : null,
     c.marca ? `is-${c.marca}` : null,
   ].filter(Boolean).join(" ");
   const sentido =
@@ -43,8 +43,7 @@ function Celda({ c, total = false, columna, fila }: { c: CeldaCalor; total?: boo
     <div
       role="cell"
       className={clase}
-      title={`${fila} × ${columna}: ${c.texto} (n = ${fmtN(c.n)})${sentido}`}
-      style={total ? undefined : estiloConVariables({ "--vx-peso": `${Math.round(8 + 82 * c.peso)}%` })}
+      title={`${fila} × ${columna}: ${c.texto} (n = ${fmtN(c.n)})${sentido}${c.chica ? " · base chica, sin flecha" : ""}`}
     >
       {c.texto}
       {c.marca && (
@@ -104,11 +103,11 @@ export default function TablaCalor({
               {f.n !== null && <small>n = {fmtN(f.n)}</small>}
             </div>
             {f.celdas.map((c, i) => (
-              <Celda key={i} c={c} columna={modelo.columnas[i].etiqueta} fila={f.etiqueta} />
+              <Celda key={i} c={c} columna={modelo.columnas[i].etiqueta} fila={f.etiqueta} lectura={modelo.lectura} />
             ))}
             {f.total && (
               <div className="is-col-total" role="presentation">
-                <Celda c={f.total} total columna="Total" fila={f.etiqueta} />
+                <Celda c={f.total} total columna="Total" fila={f.etiqueta} lectura={modelo.lectura} />
               </div>
             )}
           </div>
@@ -117,14 +116,38 @@ export default function TablaCalor({
           <div className="vx-calor-fila is-fila-total" role="row">
             <div className="vx-calor-rotulo" role="rowheader">Total</div>
             {modelo.filaTotal.map((c, i) => (
-              <Celda key={i} c={c} total columna={modelo.columnas[i].etiqueta} fila="Total" />
+              <Celda key={i} c={c} total columna={modelo.columnas[i].etiqueta} fila="Total" lectura={modelo.lectura} />
             ))}
-            {conColTotal && <div className="is-col-total" role="presentation"><Celda c={modelo.esquina} total columna="Total" fila="Total" /></div>}
+            {conColTotal && <div className="is-col-total" role="presentation"><Celda c={modelo.esquina} total columna="Total" fila="Total" lectura={modelo.lectura} /></div>}
           </div>
         )}
       </div>
     </div>
+    <LeyendaCalor lectura={modelo.lectura} />
     {modelo.nota && <p className="vx-pie vx-calor-nota">{modelo.nota}</p>}
     </>
+  );
+}
+
+/** La escala de tonos, centrada bajo la tabla (D4): en % frente al total, en n del menor al mayor conteo. */
+function LeyendaCalor({ lectura }: { lectura: LecturaCalor }) {
+  if (lectura === "n") {
+    return (
+      <div className="vx-leyenda vx-calor-leyenda" aria-hidden>
+        <span>Menos casos</span>
+        <span className="vx-calor-tiras">{[1, 2, 3, 4, 5].map((k) => <i key={k} className={`vx-calor-celda is-n${k}`} />)}</span>
+        <span>Más casos</span>
+      </div>
+    );
+  }
+  return (
+    <div className="vx-leyenda vx-calor-leyenda" aria-hidden>
+      <span>Por debajo del total</span>
+      <span className="vx-calor-tiras">
+        {["is-bajo3", "is-bajo2", "is-bajo1", "is-parejo", "is-sobre1", "is-sobre2", "is-sobre3"].map((t) => <i key={t} className={`vx-calor-celda ${t}`} />)}
+      </span>
+      <span>Por encima</span>
+      <span className="vx-calor-tramos">tramos de 2, {UMBRAL_PUNTOS} y 10 puntos · ▲▼ desde {UMBRAL_PUNTOS}</span>
+    </div>
   );
 }

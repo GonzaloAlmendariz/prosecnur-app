@@ -42,6 +42,8 @@ import PanelFormulario from "./explorar/PanelFormulario";
 import RielVariables from "./explorar/RielVariables";
 import TextResponsesView from "./explorar/TextResponsesView";
 import TiraCifras from "./explorar/TiraCifras";
+import { enfrentados } from "./explorar/CruceEnfrentados";
+import { recodificacion } from "./explorar/CruceRecodificacion";
 import { cifrasClave, fraseBase, lecturaInicial, modeloCalor, resolverBase, type LecturaCalor } from "./explorar/explorarModelo";
 import { graficoDelPar } from "./explorar/graficoDelPar";
 import { findSeccionOf, pickInitialVariable } from "./explorar/seleccionInicial";
@@ -365,7 +367,8 @@ export default function ExplorarTab({
   const setLecturaCalor = useCallback((lectura: LecturaCalor) => setLecturaElegida({ par: parCruce, lectura }), [parCruce]);
   const modelo = useMemo(
     () =>
-      cruce?.forma === "tabla" && cruce.tabla
+      // Con puntos enfrentados (única × múltiple, 2 o 3 grupos) no hay tabla, ni panel de lo que se aparta del total.
+      cruce?.forma === "tabla" && cruce.tabla && !enfrentados(cruce.tabla, cruce.tipo_x, cruce.tipo_y, cruce.base_n)
         ? modeloCalor(cruce.tabla, lecturaCalor, cruce.base_n, cruce.tipo_x, cruce.tipo_y)
         : null,
     [cruce, lecturaCalor],
@@ -458,8 +461,10 @@ export default function ExplorarTab({
   const sufijoRepeat = selectedRepeatOption ? ` · ${selectedRepeatOption.label}` : "";
   const frase = base ? fraseBase(base) : null;
 
+  // Con una recodificación (E8d), lo que «se aparta del total» es la diagonal: el panel no aporta.
+  const esRecodificacion = !!(cruce?.tabla && cruce.tipo_x === "sm" && cruce.tipo_y === "sm" && recodificacion(cruce.tabla));
   const lateral =
-    crossVar && modelo ? (
+    crossVar && modelo && !esRecodificacion ? (
       <aside className="vx-lateral" aria-label="Lectura del cruce">
         <PanelApartaTotal modelo={modelo} />
       </aside>
