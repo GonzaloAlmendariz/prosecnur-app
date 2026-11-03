@@ -110,12 +110,7 @@ export function MetodoGeneralVista({
         </Panel>
       )}
       {pestana === "metodo-parametros" && (
-        <section className="cmv2-panel" aria-labelledby="cmg-parametros-titulo">
-          <div className="cmv2-panel-head">
-            <div>
-              <h3 className="cmg-panel-titulo" id="cmg-parametros-titulo">Los que usa esta técnica</h3>
-            </div>
-          </div>
+        <Panel aria-labelledby="cmg-parametros-titulo" title={<span id="cmg-parametros-titulo">Los que usa esta técnica</span>}>
           <ParametrosTecnicaVista
             comp={comp}
             estado={catalogo}
@@ -132,7 +127,7 @@ export function MetodoGeneralVista({
             nota="Calcula el n con estos parámetros; cambiar uno borra el resultado anterior."
             motivo={marcoN === 0 ? "Declara primero el N del marco en Marco." : null}
           />
-        </section>
+        </Panel>
       )}
       {pestana === "metodo-memoria" && (
         <>
