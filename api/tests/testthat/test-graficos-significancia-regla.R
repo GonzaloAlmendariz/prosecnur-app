@@ -171,3 +171,23 @@ test_that("«Cómo leer las diferencias» se escribe desde la regla del estudio 
   options(prosecnur.sig_informe = NULL)
   expect_identical(.sig_plan_como_leer(list(slides = list(slide)))$slides[[1]], slide)   # sin regla vigente, intacta
 })
+
+test_that("D6: la prueba de tendencia por nivel es opcional y, encendida, dice la dirección en la nota", {
+  set.seed(9)
+  g <- rep(c("6", "7", "8", "9"), each = 100)
+  y <- as.numeric(stats::runif(400) < c(`6` = 0.2, `7` = 0.35, `8` = 0.5, `9` = 0.65)[g])
+  apagada <- .sig_veredictos(.sig_evaluar(.ind_de(list(Si = y)), g, c("6", "7", "8", "9"),
+                                          regla = .regla_test(prueba = "z", conglomerado = NULL), filas = "Si"),
+                             .regla_test(prueba = "z"))
+  expect_null(apagada$tendencia)
+  expect_false(grepl("Tendencia", .nota_plana(apagada, .regla_test(prueba = "z"))))
+  r <- .regla_test(prueba = "z", conglomerado = NULL, tendencia = TRUE)
+  ev <- .sig_veredictos(.sig_evaluar(.ind_de(list(Si = y)), g, c("6", "7", "8", "9"), regla = r, filas = "Si"), r)
+  expect_equal(ev$tendencia$direccion, "aumenta")
+  expect_lt(ev$tendencia$p, 0.001)
+  expect_match(.nota_plana(ev, r), "«Si» aumenta con el nivel")
+  # Un cruce no ordenado (códigos no numéricos) no lleva prueba de tendencia.
+  g2 <- c(A = "x", B = "y", C = "z", D = "w")[match(g, c("6", "7", "8", "9"))]
+  ev2 <- .sig_evaluar(.ind_de(list(Si = y)), unname(g2), c("x", "y", "z", "w"), regla = r, filas = "Si")
+  expect_null(ev2$tendencia)
+})

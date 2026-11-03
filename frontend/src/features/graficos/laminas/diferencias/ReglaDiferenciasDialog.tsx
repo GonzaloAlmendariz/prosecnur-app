@@ -28,6 +28,8 @@ import { Capsula } from "./Capsula";
 import {
   mismaRegla,
   OPCIONES_FRAGILES,
+  OPCIONES_TENDENCIA,
+  type TendenciaDiferencias,
   opcionesAlfa,
   opcionesBaseMinima,
   opcionesUmbral,
@@ -238,6 +240,11 @@ function FormularioRegla({ respuesta, borrador, previa, onCambiar, onRestablecer
           <div className="pulso-sig-fila">
             <span className="pulso-sig-fila-rotulo">Diferencias frágiles</span>
             <Segmentado<FragilesDiferencias> etiqueta="Diferencias frágiles" valor={borrador.fragiles} opciones={OPCIONES_FRAGILES} onCambiar={(fragiles) => onCambiar({ fragiles })} />
+          </div>
+          <div className="pulso-sig-fila">
+            <span className="pulso-sig-fila-rotulo">Tendencia por nivel</span>
+            <Segmentado<TendenciaDiferencias> etiqueta="Prueba de tendencia por nivel" valor={borrador.tendencia ? "si" : "no"}
+              opciones={OPCIONES_TENDENCIA} onCambiar={(v) => onCambiar({ tendencia: v === "si" })} />
           </div>
         </section>
 

@@ -111,6 +111,9 @@
   base$pares <- .sig_pares_json(res)
   base$nota <- .sig_nota_de_evaluacion(res, ctx$regla, niveles = grepl("nivel", l$cruce, ignore.case = TRUE))
   base$revisar <- as.list(.sig_revisar(res, titulo))
+  td <- res$tendencia
+  base$tendencia <- if (is.null(td) || !nrow(td)) list() else lapply(seq_len(nrow(td)), function(i) list(
+    fila = td$fila[i], direccion = td$direccion[i], p = signif(td$p[i], 3), p_ajustado = signif(td$p_ajustado[i], 3)))
   base
 }
 
