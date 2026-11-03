@@ -1,12 +1,13 @@
 # El Excel encuestador ↔ zona de un territorial por cuotas (ADR 0125 §2): una fila por zona con su cuota,
 # se lee de vuelta por «Código de zona» y la asignación se guarda y se lee con `id_zona`. Sin red.
 
-.mtxc_sesion <- function() {
+.mtxc_sesion <- function(caracter = list()) {
   sid <- session_create()
   s <- session_get(sid)
   s$project_path <- tempfile(fileext = ".pulso")
   s$hojas_ruta_runs <- list(field = .hojas_ruta_run_normalize(list(
-    config = hojas_ruta_integrada_normalize_config(list(territorios = list("150103", "150132"), n_objetivo = 200L))), "field"))
+    config = hojas_ruta_integrada_normalize_config(list(territorios = list("150103", "150132"), n_objetivo = 200L,
+                                                        caracter_cuotas = caracter))), "field"))
   s$monitoreo_config$territorial$enumerator_roster <- list(code_format = "PXXX", assignments = list(
     list(codigo_pulso = "P844", nombre = "Encuestador Ejemplo Uno", dni = "40000001"),
     list(codigo_pulso = "P930", nombre = "Encuestadora Ejemplo Dos", dni = "40000002")))
@@ -136,4 +137,36 @@ test_that("con un envío por cuotas, `envio$sample` no casa por prefijo con samp
   expect_identical(e$code, "E_COLLECTION_TERRITORIAL_SIN_FUENTE")
   expect_length(.mtr_celdas(envio)$cuota %||% list(), 0L)
   expect_true(is.list(hojas_ruta_envio_meta(session_get(sid)$hojas_ruta_runs$field)))
+})
+
+test_that("la hoja de conteo sólo ordena cortar lo que se exige (ADR 0126)", {
+  # Sin declaración: los textos de siempre.
+  base <- .mtp_conteo_textos(list())
+  expect_identical(base$celda, "cuota")
+  expect_match(base$corte, "^Cuando una celda llega a su cuota")
+  expect_identical(.mtp_conteo_subtitulo(120L), "120 entrevistas por cuota de sexo y edad")
+  # El sexo es referencia: se exige la fila de edad.
+  sexo <- .mtp_conteo_textos(list(sexo = "referencial"))
+  expect_identical(sexo$celda, "referencia")
+  expect_identical(sexo$ultima, "Meta de la fila")
+  expect_true(sexo$fila_meta)
+  expect_false(grepl("celda llega a su cuota", sexo$corte))
+  # La edad es referencia: se exige el total por sexo.
+  edad <- .mtp_conteo_textos(list(edad = "referencial"))
+  expect_identical(edad$total, "Meta por sexo")
+  expect_true(edad$total_meta)
+  # Las dos: sólo el total de la zona.
+  dos <- .mtp_conteo_textos(list(sexo = "referencial", edad = "referencial"))
+  expect_match(dos$corte, "^Sólo se exige el total de la zona")
+})
+
+test_that("la marca viaja de Hojas de ruta a la unidad de la campaña y a la hoja de conteo", {
+  sid <- .mtxc_sesion(list(sexo = "referencial")); on.exit(session_delete(sid), add = TRUE)
+  u <- collection_territorial_unidades(sid, "territorial.principal")$units[[1]]
+  expect_identical(u$caracter, list(sexo = "referencial"))
+  r <- collection_territorial_papel(sid, pieza = "conteo", unidad = "150103")
+  expect_identical(r$paginas, 1L)
+  # Sin declarar, la unidad no lleva el campo.
+  sid2 <- .mtxc_sesion(); on.exit(session_delete(sid2), add = TRUE)
+  expect_null(collection_territorial_unidades(sid2, "territorial.principal")$units[[1]]$caracter)
 })

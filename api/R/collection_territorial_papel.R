@@ -56,7 +56,8 @@
     rango <- if (!is.na(u$rango_inicio) && !is.na(u$rango_fin)) c(u$rango_inicio, u$rango_fin) else integer(0)
     if (identical(u$role, "zona")) {
       return(list(unit_id = u$unit_id, label = u$label, encuestador = enc, rango = rango, n = u$n, cuotas = u$cuotas,
-                  subtitulo = sprintf("%d entrevistas por cuota de sexo y edad", u$n)))
+                  caracter = u$caracter %||% list(),
+                  subtitulo = .mtp_conteo_subtitulo(u$n, u$caracter %||% list())))
     }
     partes <- c(.hojas_ruta_title_case(.mtp_txt(u$distrito)),
                 if (nzchar(.mtp_txt(u$zona))) paste("Zona", u$zona),
