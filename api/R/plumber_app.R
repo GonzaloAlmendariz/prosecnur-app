@@ -164,6 +164,7 @@ build_plumber_app <- function(static_dir = system.file("www", package = "prosecn
     pr <- mount_graficos_miniaturas(pr)
     pr <- mount_graficos_estilo(pr)
     pr <- mount_graficos_lineas(pr)
+    pr <- mount_graficos_diferencias(pr)   # ADR 0126: diferencias entre grupos
     pr <- mount_dashboard(pr)
   }
 
