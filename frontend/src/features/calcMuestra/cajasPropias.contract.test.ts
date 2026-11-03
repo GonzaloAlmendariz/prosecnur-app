@@ -95,6 +95,53 @@ const SNAPSHOT: Record<string, number> = {
   "vistaPreviaTipo.css": 3,
 };
 
+/**
+ * `.cmv2-panel` arma su caja repartida en varias reglas (borde en una, radio en otra), así que el detector de arriba
+ * no la ve: los 23 bloques de la tanda anterior pasaron al kit sin que el conteo bajara. Este segundo ratchet cuenta
+ * los usos de la clase en los componentes. Foto del 3 nov 2026; sólo baja, y cae a cero cuando el último pase a `Panel`.
+ */
+const SNAPSHOT_CMV2_PANEL: Record<string, number> = {
+  "AterrizajeDelPlanner.tsx": 6,
+  "general/MesaAcreditacion.tsx": 1,
+  "general/MetodoGeneral.tsx": 1,
+  "general/SeleccionActores.tsx": 1,
+  "general/SeleccionGeneral.tsx": 1,
+  "universidad/aulas/AulasObjetivoTab.tsx": 3,
+  "universidad/aulas/AulasReemplazosTab.tsx": 2,
+  "universidad/aulas/AulasRerandomizacionTab.tsx": 3,
+  "universidad/aulas/AulasSeleccionTab.tsx": 2,
+  "universidad/aulas/AulasSolidezTab.tsx": 1,
+  "universidad/aulas/ClassroomMethodStories.tsx": 1,
+  "universidad/aulas/ClassroomSelectionMap.tsx": 1,
+  "universidad/aulas/DescuentoRepetidosPanel.tsx": 1,
+  "universidad/aulas/relato/RelatoTab.tsx": 2,
+  "universidad/calculo/CalculoCursosHorarioFacultadTab.tsx": 1,
+  "universidad/definicion/DefBasesTab.tsx": 1,
+  "universidad/definicion/DefEstudioTab.tsx": 3,
+  "universidad/definicion/DefVariablesTab.tsx": 1,
+  "universidad/marco/AlumnosPorChMarcoTab.tsx": 2,
+  "universidad/marco/CursosHorarioSexo.tsx": 1,
+  "universidad/marco/InventarioUnicosPanel.tsx": 1,
+  "universidad/marco/MarcoAulasTab.tsx": 1,
+  "universidad/marco/MarcoConsistenciaTab.tsx": 1,
+  "universidad/marco/MarcoPoblacionTab.tsx": 1,
+  "universidad/marco/MatrizEmbudoCriterios.tsx": 2,
+  "universidad/marco/ParticularidadesPanel.tsx": 1,
+  "universidad/salidas/SustentoCoberturaCard.tsx": 1,
+};
+
+function componentes(dir: string): string[] {
+  return readdirSync(dir, { withFileTypes: true }).flatMap((e) => {
+    const completo = path.join(dir, e.name);
+    if (e.isDirectory()) return componentes(completo);
+    return e.name.endsWith(".tsx") && !e.name.includes(".test.") ? [completo] : [];
+  });
+}
+
+export function usosDeCmv2Panel(tsx: string): number {
+  return (tsx.match(/\bcmv2-panel(?![-\w])/g) ?? []).length;
+}
+
 describe("cajas propias (P2)", () => {
   const conteo: Record<string, number> = {};
   for (const f of hojas(aqui)) {
@@ -116,6 +163,22 @@ describe("cajas propias (P2)", () => {
       .filter(([f, n]) => (conteo[f] ?? 0) < n)
       .map(([f, n]) => `${f}: ${n} → ${conteo[f] ?? 0}`);
     expect(viejos).toEqual([]);
+  });
+
+  it("ningún componente suma usos de .cmv2-panel ni aparece uno nuevo; el snapshot no guarda los que bajaron", () => {
+    const usos: Record<string, number> = {};
+    for (const f of componentes(aqui)) {
+      const n = usosDeCmv2Panel(readFileSync(f, "utf8"));
+      if (n > 0) usos[rel(f)] = n;
+    }
+    const suben = Object.entries(usos).filter(([f, n]) => n > (SNAPSHOT_CMV2_PANEL[f] ?? 0)).map(([f, n]) => `${f}: ${SNAPSHOT_CMV2_PANEL[f] ?? 0} → ${n}`);
+    expect(suben, "Un bloque con marco es components/Panel, no .cmv2-panel.").toEqual([]);
+    const bajaron = Object.entries(SNAPSHOT_CMV2_PANEL).filter(([f, n]) => (usos[f] ?? 0) < n).map(([f, n]) => `${f}: ${n} → ${usos[f] ?? 0}`);
+    expect(bajaron).toEqual([]);
+  });
+
+  it("el detector de .cmv2-panel no cuenta sus hijas (-head, -head-actions)", () => {
+    expect(usosDeCmv2Panel('<section className="cmv2-panel cmv2-x"><div className="cmv2-panel-head" /></section>')).toBe(1);
   });
 
   it("el detector reconoce una caja", () => {
