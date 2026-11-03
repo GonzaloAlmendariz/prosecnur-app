@@ -175,7 +175,7 @@ export default function MonitoreoPublicReportPage({ artifact }: { artifact: Publ
     <section className="mon-public-page" data-public-artifact="monitoreo">
       <header className="mon-public-header">
         <div>
-          <span className="mon-public-kicker">Monitoreo · {family}</span>
+          <span className="mon-public-kicker">Monitoreo {family}</span>
           <h1>{title}</h1>
           <p>Corte publicado {formatDate(payload.synced_at || payload.generated_at)}</p>
         </div>
@@ -1184,7 +1184,7 @@ function ActorProgress({ actors }: { actors: MonitoreoRow[] }) {
               </dl>
               <p className="mon-public-progress-note">
                 Base reportada: {formatMetric(state.universe)}
-                {state.reference ? ` · ${state.referenceLabel}: ${formatMetric(state.reference)}` : ""}
+                {state.reference ? `, ${state.referenceLabel}: ${formatMetric(state.reference)}` : ""}
               </p>
             </section>
           );

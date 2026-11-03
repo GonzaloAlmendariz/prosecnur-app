@@ -68,7 +68,6 @@ const SNAPSHOT_PUNTO: Record<string, number> = {
   "profiles/territorial/avance/faltanteModel.ts": 1,
   "profiles/territorial/control/equipoModel.ts": 2,
   "profiles/territorial/rotulos.ts": 1,
-  "public/MonitoreoPublicReportPage.tsx": 2,
 };
 
 const SNAPSHOT_TO_LOCALE: Record<string, number> = {
