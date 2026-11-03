@@ -28,7 +28,7 @@
 // añadió `export` a lo que el page-file consume.
 
 import type { CSSProperties } from "react";
-import { AlertCircle, BarChart3, CalendarRange, CheckCircle2, ClipboardCheck, Clock3, ContactRound, Download, Layers3, Link2, ListChecks, PhoneCall, ShieldAlert, Table2, Target } from "lucide-react";
+import { BarChart3, CalendarRange, ClipboardCheck, Clock3, ContactRound, Download, Layers3, Link2, ListChecks, PhoneCall, ShieldAlert, Table2 } from "lucide-react";
 import { MONITOREO_MODOS } from "../../core/monitoreoRegistry";
 import { MONITOREO_PESTANAS_INTERNAS_TELEFONICO as INTERNAS } from "../../../../lib/navegacion/catalogos/monitoreo";
 import { normalizeInternalQueries, summarizeInternalCases } from "../../internalQueries";
@@ -366,14 +366,7 @@ function EstadoProgresoCompact({ summary, label = "Estado + progreso" }: { summa
 }
 
 
-export function AcreditacionCumplimientoBadge({ estado }: { estado: MonitoreoAcreditacion["dashboard"]["cards"][number]["estado"] }) {
-  return (
-    <span className={`mon-acr-model-badge is-${estado}`}>
-      {estado === "cumple_meta" ? <CheckCircle2 size={13} /> : estado === "sin_objetivo" ? <Target size={13} /> : <AlertCircle size={13} />}
-      {cumplimientoLabel(estado)}
-    </span>
-  );
-}
+export { AcreditacionCumplimientoBadge } from "../../core/CumplimientoChip";
 
 export function AcreditacionMetric({ label, value, hint }: { label: string; value: number | null | undefined; hint?: string }) {
   return (

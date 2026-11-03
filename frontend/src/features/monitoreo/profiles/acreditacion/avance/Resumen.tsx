@@ -94,9 +94,9 @@ function PublicoEnBarra({
           <b className="acr-res-publico-nombre"><i className="mon-publico-punto" aria-hidden="true" />{tarjeta.actor}</b>
           {conMeta
             ? faltan > 0
-              ? <span className="acr-av-chip is-falta">Faltan {fmt(faltan)}</span>
-              : <span className="acr-av-chip is-cumple">Cumple</span>
-            : <span className="acr-av-chip">Sin meta</span>}
+              ? <EstadoChip label={`Faltan ${fmt(faltan)}`} tone="warn" />
+              : <EstadoChip label="Cumple" tone="success" />
+            : <EstadoChip label="Sin meta" tone="neutral" />}
           <span className="acr-res-publico-cifra">
             <b className="acr-av-num">{fmt(tarjeta.effective)}</b>
             <span className="acr-av-tenue">{`/ ${fmt(conMeta ? meta : tarjeta.universe)}`}</span>

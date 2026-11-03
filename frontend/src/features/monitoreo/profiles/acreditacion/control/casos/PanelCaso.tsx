@@ -24,7 +24,7 @@ function Dato({ etiqueta, valor }: { etiqueta: string; valor: string }) {
   );
 }
 
-/** El tono que pintaba `.acr-av-chip.is-exact / .is-possible` (porResolver.css); «manual» iba sin color. */
+/** El tono de la evidencia (lo pintaban `.acr-av-chip.is-exact / .is-possible`); «manual» va sin color. */
 const TONO_DE_EVIDENCIA = { exact: "success", possible: "warn", manual: "neutral" } as const;
 
 function nombreDe(candidato: { person_label?: string; base_record?: string }) {
@@ -202,7 +202,7 @@ export function PanelCaso({
                           <b>{nombreDe(candidato)}</b>
                           <small>{[candidato.case_key || "Sin código", candidato.current_status || candidato.base_status].filter(Boolean).join(", ")}</small>
                         </span>
-                        <span className={`acr-av-chip is-${assistedCandidateEvidenceLevel(candidato)}`}>{assistedCandidateEvidenceLabel(candidato)}</span>
+                        <EstadoChip label={assistedCandidateEvidenceLabel(candidato)} tone={TONO_DE_EVIDENCIA[assistedCandidateEvidenceLevel(candidato)]} />
                       </button>
                     </li>
                   );

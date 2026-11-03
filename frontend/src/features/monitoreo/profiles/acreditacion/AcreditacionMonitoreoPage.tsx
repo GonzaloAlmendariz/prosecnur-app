@@ -277,6 +277,7 @@ import { preferredPhoneEffectiveValue, splitListInput, calendarPhaseDurationDays
 import { phoneQuotaGoalHasActor, phoneQuotaGoalTotal, phoneQuotaRemoveGoal, phoneQuotaGoalVariables, phoneQuotaUpsertGoal } from "../../core/cuotasTelefonicasComunes";
 import { phoneRowNumber, phoneRowOptionalNumber, phoneRowRatioPct, phoneAttemptValue, phoneDurationAlertThreshold, phoneDurationAlertDisplayDetail, phoneAlertCaseCount, phoneContractReadyCount, acreditacionPhoneAlertSignalRows } from "../../core/alertasTelefonicasComunes";
 import { cumplimientoLabel, formatCaseLabel, isTelefonicoMonitoreoState, pctFrom, unknownArray } from "../../core/baseComunTelAcr";
+import { AcreditacionCumplimientoBadge } from "../../core/CumplimientoChip";
 export { caseResponseDateTimeLabel, caseResponseTimeDetailLabel } from "../../core/rotulosComunes";
 
 const ACREDITACION_ROUTE = MONITOREO_MODOS.find((route) => route.family === "acreditacion") ?? MONITOREO_MODOS[0];
@@ -558,15 +559,6 @@ function EstadoProgresoCompact({ summary, label = "Estado + progreso" }: { summa
   );
 }
 
-
-function AcreditacionCumplimientoBadge({ estado }: { estado: MonitoreoAcreditacion["dashboard"]["cards"][number]["estado"] }) {
-  return (
-    <span className={`mon-acr-model-badge is-${estado}`}>
-      {estado === "cumple_meta" ? <CheckCircle2 size={13} /> : estado === "sin_objetivo" ? <Target size={13} /> : <AlertCircle size={13} />}
-      {cumplimientoLabel(estado)}
-    </span>
-  );
-}
 
 function AcreditacionMetric({ label, value, hint }: { label: string; value: number | null | undefined; hint?: string }) {
   return (

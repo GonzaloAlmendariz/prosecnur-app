@@ -79,3 +79,16 @@ en el mismo paso) y se commitea con `git commit -m "…" -- <rutas>`.**
   veces y el árbol entero dejó de compilar hasta 848fca579 (lo avisó la sesión de Cálculo). Si el diff toca un
   `.ts`, aunque sea un test de contrato, `tsc` va en el gate.
 - **`git apply --3way` deja staged lo que aplica** (ver «Incidente»).
+
+## Vistas sin terminar, de la más fea a la menos (40 capturas D1, 1440 y 1280)
+
+| # | Vista | Qué se ve | Estado |
+|---|---|---|---|
+| 1 | Territorial › Insumos › Conexiones | Cada fuente Kobo es un formulario plano de 7 pares rótulo/valor («Fase desde» cae sola a una segunda fila a 1280); la serie de lecturas de Piloto son 7 bloques iguales de 220×55 px; tres botones sueltos; subtítulo en MAYÚSCULAS crudas del formulario; «Muestra de campo» con otra receta de mini tarjeta; vacío grande al pie | ◐ rediseño en curso (Panel, CifrasEnTarjeta, tira de lecturas compacta, una primaria) |
+| 2 | Telefónico › Avance › Cuotas a 1280×720 | La columna derecha recortaba sus tres tarjetas | ☑ 11fae58b9 |
+| 3 | Aulas › Modelo › Metas y Avance › Por facultad sin plan | Una franja de una línea sobre una superficie en blanco; la Semana vacía de la Agenda estirada hasta el pie | ☑ P5 (EstadoVacio normal; la Semana mide su nota) y 8d758e801 (44 px a 1280) |
+| 4 | Acreditación › Avance › Resumen, cinta «Respuestas → Cruzan → Efectivas» | Las celdas de descuento (−276, −24) llevan tres líneas de texto apretadas en ~150 px («265 sin llave (pruebas o enlace sin id) / 11 con llave fuera de las bases») | ☐ |
+| 5 | Territorial › Avance › Faltante por UMP (envío UMP) | La lista de tarjetas por UMP se corta a media tarjeta dentro de su caja («UMP 4» partida) antes de la nota «Las otras 50 UMP…» | ☐ |
+| 6 | Telefónico › Modelo › Cuotas a 1280×720 | La tabla de metas muestra dos filas y desplaza por dentro, y su cabecera pegajosa tapa 34 px de la fila que asoma (`cabecerasQueTapan=1`, sale en unas corridas y en otras no); la tarjeta Calendario recorta su gráfico al pie | ☐ **abierto**: el `scroll-padding` de 11fae58b9 NO lo resuelve, ni con encaje obligatorio (probado y descartado). El marco que desplaza no parece ser `.mon-metas-marco`: hay que mirarlo en el navegador |
+| 7 | Territorial › Avance › Cuota de cada UMP | El aplicador va en dos líneas («P884, Norma Flores / Bustamante») y «Sin excedente compatible cerca» también; «Saldo» es una columna entera de «—» | ☐ |
+| 8 | Telefónico › Control › Barrido | Ya tiene cabecera de bloque única (P2); queda la mezcla de dos gramáticas de mini cifra (franja de 4 con barra frente a «Asignados / Sin asignar» al pie de «Sin llamar») | ☐ |

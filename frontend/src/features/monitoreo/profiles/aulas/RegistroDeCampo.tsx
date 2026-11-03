@@ -31,7 +31,8 @@ import { ESTADOS_OPERATIVOS, MOTIVOS_DE_REEMPLAZO } from "./aulasPresentation";
 import { ChipDato, ChipHora, ChipLugar } from "./AulasSistemaPabellon";
 import { etiquetaSinRepetir, facultadesDelRegistro } from "./registroPorFacultad";
 import { porQueEsaMeta } from "./porQueEsaMeta";
-import { EstadoEnCelda } from "./EstadoEnCelda";
+import { EstadoEnCelda, colorDeEstado } from "./EstadoEnCelda";
+import { EstadoChip } from "../../../../components/EstadoChip";
 import "./registroDeCampo.css";
 import { fmt } from "./kpisDeAulas";
 import { ordenarPorCadenaOperativa } from "../../../../lib/cadenaOperativa";
@@ -41,6 +42,7 @@ import { usePanelDireccionable } from "../../../../lib/navegacion/paneles";
 // Mudado a `aulasPresentation`, que es donde vive el vocabulario: acá sólo
 // alimentaba este select y la tabla que pinta la misma columna no lo alcanzaba.
 const ESTADOS = ESTADOS_OPERATIVOS;
+const rotuloDeEstado = (estado: string) => ESTADOS.find((e) => e.value === estado)?.label ?? estado;
 
 // El vocabulario vive en `aulasPresentation`, que es donde están todos los
 // rótulos: aquí se ofrecía en un select y la tabla de la cadena no lo alcanzaba,
@@ -568,6 +570,7 @@ export function RegistroDeCampo({
             {visibles.map((row) => {
               const clave = String(row.operational_code ?? row.classroom_id);
               const estado = String(row.operational_status ?? "planificada");
+              const rotulo = rotuloDeEstado(estado);
               return (
                 <li key={clave}>
                   <button
@@ -604,9 +607,12 @@ export function RegistroDeCampo({
                         con parte
                       </span>
                     ) : null}
-                    <span className={`registro-campo-estado is-${estado}`}>
-                      <EstadoEnCelda valor={ESTADOS.find((e) => e.value === estado)?.label ?? estado} />
-                    </span>
+                    {/* Un estado operativo conocido lleva el color de su desenlace
+                        (`aulas-estado-chip`, el mismo de la franja por día, B33);
+                        uno que el vocabulario no reconoce, el EstadoChip neutro. */}
+                    {colorDeEstado(rotulo)
+                      ? <EstadoEnCelda valor={rotulo} />
+                      : <EstadoChip label={rotulo} tone="neutral" />}
                   </button>
                 </li>
               );

@@ -126,21 +126,6 @@
   white-space: nowrap;
 }
 
-.registro-campo-estado {
-  font-size: var(--pulso-type-caption-size);
-  color: var(--pulso-text-soft);
-}
-
-.registro-campo-estado.is-sin_acceso,
-.registro-campo-estado.is-cancelada {
-  color: var(--pulso-danger-fg);
-}
-
-.registro-campo-estado.is-aplicada,
-.registro-campo-estado.is-cerrada {
-  color: var(--pulso-success-fg);
-}
-
 .registro-campo-form {
   display: flex;
   flex-direction: column;

@@ -296,18 +296,6 @@
   font-variant-numeric: tabular-nums;
 }
 
-.acr-av-chip.is-exact {
-  border-color: var(--pulso-success-border);
-  background: var(--pulso-success-bg);
-  color: var(--pulso-success-fg);
-}
-
-.acr-av-chip.is-possible {
-  border-color: var(--pulso-warn-border);
-  background: var(--pulso-warn-bg);
-  color: var(--pulso-warn-fg);
-}
-
 .acr-pr-buscador {
   display: flex;
   align-items: center;

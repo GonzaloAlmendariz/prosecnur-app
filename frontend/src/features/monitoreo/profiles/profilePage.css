@@ -1863,40 +1863,6 @@
   background: var(--pulso-module-monitoring);
 }
 
-.mon-acr-model-badge {
-  width: fit-content;
-  max-width: 100%;
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  border: 1px solid var(--pulso-border);
-  border-radius: 999px;
-  background: #fff;
-  color: var(--pulso-text-soft);
-  font-size: var(--pulso-type-micro-size);
-  font-weight: var(--pulso-weight-black);
-  line-height: 1;
-  padding: 5px 8px;
-}
-
-.mon-acr-model-badge.is-cumple_meta {
-  border-color: var(--pulso-success-border);
-  background: var(--pulso-success-bg);
-  color: var(--pulso-success-fg);
-}
-
-.mon-acr-model-badge.is-brecha_menor_documentada {
-  border-color: var(--pulso-warn-border);
-  background: var(--pulso-warn-bg);
-  color: var(--pulso-warn-fg);
-}
-
-.mon-acr-model-badge.is-brecha_relevante {
-  border-color: var(--pulso-danger-border);
-  background: var(--pulso-danger-bg);
-  color: var(--pulso-danger-fg);
-}
-
 .mon-acr-model-metrics,
 .mon-acr-model-form {
   display: grid;

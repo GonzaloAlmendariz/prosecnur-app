@@ -1,13 +1,18 @@
 import { memo, useState, type ReactNode } from "react";
 
 import type { MonitoreoAulasDashboard } from "../../../../../api/monitoreo";
+import { EstadoChip } from "../../../../../components/EstadoChip";
+import type { ChromeStatusTone } from "../../../../../components/ModuleCommandBar";
 import { fmt } from "../kpisDeAulas";
 import { useMarcarRefuerzo } from "../useMarcarRefuerzo";
-import { construirRegistro, readinessDeRegistro, type FiltroDePartes } from "./registroModelo";
+import { construirRegistro, readinessDeRegistro, type FiltroDePartes, type ItemDeParte } from "./registroModelo";
 import "../insumos/insumos.css";
 import "./registro.css";
 
 const FILTROS: Array<[FiltroDePartes, string]> = [["todos", "Todos"], ["sin", "Sin parte"], ["con", "Con parte"]];
+
+/** El tono que pintaba `.aulas-ins-chip[data-tono]` en la fila de la lista (insumos.css). */
+const TONO_DE_LECTURA: Record<ItemDeParte["tono"], ChromeStatusTone> = { ok: "success", aviso: "warn", riesgo: "danger", neutro: "neutral" };
 
 /**
  * Control › Registro de campo (ficha Ctl4). Izquierda, los partes; al centro,
@@ -53,7 +58,7 @@ function RegistroAulasImpl({ dashboard, cargando, vacioSinTablero, onGuardado }:
               <button type="button" className={p?.codigo === i.codigo ? "is-elegido" : undefined} aria-pressed={p?.codigo === i.codigo} onClick={() => setCodigo(i.codigo)}>
                 <b>{i.codigo}</b>
                 <span className="aulas-ins-sub">{i.facultad}</span>
-                <span className="aulas-ins-chip" data-tono={i.tono}>{i.lectura}</span>
+                <EstadoChip label={i.lectura} tone={TONO_DE_LECTURA[i.tono]} />
               </button>
             </li>
           ))}
