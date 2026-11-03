@@ -318,20 +318,6 @@
   gap: 4px;
 }
 
-.rec-campana-avance-barra {
-  background: var(--pulso-surface-2);
-  border-radius: 999px;
-  height: 6px;
-  overflow: hidden;
-}
-
-.rec-campana-avance-barra > span {
-  background: var(--module-accent, var(--pulso-primary));
-  border-radius: inherit;
-  display: block;
-  height: 100%;
-}
-
 .rec-campana-avance-texto,
 .rec-campana-hechos {
   color: var(--pulso-text-soft);
@@ -885,3 +871,60 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+/* Pasada de diseño (2 nov 2026): al final de la grilla, la tarjeta para empezar otra campaña.
+   Con una o dos campañas, el registro no queda como una tarjeta sola sobre el lienzo. */
+.rec-campana-nueva {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--pulso-space-2);
+  width: 100%;
+  height: 100%;
+  min-height: 220px;
+  padding: var(--pulso-space-5);
+  border: 1.5px dashed var(--pulso-border-strong);
+  border-radius: var(--pulso-radius-card);
+  background: transparent;
+  color: var(--pulso-text-soft);
+  font: inherit;
+  white-space: normal;
+  cursor: pointer;
+  transition: border-color var(--motion-dur-fast) var(--motion-ease-out), background-color var(--motion-dur-fast) var(--motion-ease-out);
+}
+.rec-campana-nueva:hover {
+  border-color: var(--pulso-module-fieldkit);
+  background: color-mix(in srgb, var(--pulso-module-fieldkit) 5%, transparent);
+  color: var(--pulso-text);
+}
+.rec-campana-nueva-icono {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--pulso-module-fieldkit) 12%, var(--pulso-surface));
+  color: var(--pulso-module-fieldkit);
+}
+.rec-campana-nueva strong {
+  font-size: var(--pulso-type-subtitle-size);
+  font-weight: var(--pulso-type-subtitle-weight);
+}
+.rec-campana-nueva small {
+  max-width: 28ch;
+  white-space: normal;
+  font-size: var(--pulso-type-caption-size);
+  text-align: center;
+}
+
+/* Pasada de diseño (2 nov 2026): la franja de cada tipo lleva su tono y el emblema el color de
+   donde viene su muestra (territorial: Hojas de ruta), en vez de un ícono gris sobre blanco. */
+.rec-campana-tarjeta.is-territorial .rec-campana-franja { background: color-mix(in srgb, var(--pulso-module-routes) 10%, var(--pulso-surface)); }
+.rec-campana-tarjeta.is-territorial .rec-campana-emblema { background: var(--pulso-surface); color: var(--pulso-module-routes); }
+.rec-campana-tarjeta.is-telefonica .rec-campana-franja { background: color-mix(in srgb, var(--pulso-accent-cyan) 10%, var(--pulso-surface)); }
+.rec-campana-tarjeta.is-telefonica .rec-campana-emblema { background: var(--pulso-surface); color: var(--pulso-accent-cyan); }
+.rec-campana-tarjeta.is-supervision .rec-campana-franja { background: color-mix(in srgb, var(--pulso-accent-violet) 10%, var(--pulso-surface)); }
+.rec-campana-tarjeta.is-supervision .rec-campana-emblema { background: var(--pulso-surface); color: var(--pulso-accent-violet); }
+.rec-campana-tarjeta.is-archivada .rec-campana-franja { background: var(--pulso-surface-2); }
+.rec-campana-tarjeta.is-archivada .rec-campana-emblema { background: var(--pulso-surface-2); color: var(--pulso-text-soft); }
