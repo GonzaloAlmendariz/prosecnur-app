@@ -75,7 +75,7 @@ test_that("los 25 pares tipo × tipo devuelven su gráfico y su forma, con el cu
     expect_identical(cr$tipo_x, tx, info = clave)
     expect_identical(cr$tipo_y, ty, info = clave)
     expect_identical(c(cr$grafico, cr$forma), .ecr_esperado[[clave]], info = clave)
-    expect_identical(names(cr), c("tipo_x", "tipo_y", "grafico", "forma", "base_n", cr$forma), info = clave)
+    expect_identical(names(cr), c("tipo_x", "tipo_y", "grafico", "forma", "base_n", "n_x", "n_y", cr$forma), info = clave)
     expect_true(is.integer(cr$base_n) && cr$base_n > 0L, info = clave)
   }
   expect_setequal(names(.explorador_cruces_catalogo()), names(.ecr_esperado))
@@ -190,6 +190,39 @@ test_that("lista: grupos por categoría, tramo, día o valor; máximo 20 grupos 
   expect_true(all(vapply(tt$lista$grupos, function(z) length(z$respuestas) <= 15L, logical(1))))
 })
 
+test_that("filas[].n y columnas[].n cuentan CASOS de la base, no menciones (E8b–d, revisión metodológica)", {
+  d <- .ecr_data(); inst <- .ecr_inst()
+  # so × sm: cada categoría cuenta sus casos que responden la múltiple; suman la base.
+  cr <- explorador_cruce(d, "sexo", "medios", inst)
+  filas_n <- vapply(cr$tabla$filas, `[[`, 1L, "n")
+  ok <- !is.na(d$sexo) & rowSums(d[, grep("^medios\\.", names(d))], na.rm = TRUE) > 0
+  expect_identical(filas_n, c(as.integer(sum(ok & d$sexo == "1")), as.integer(sum(ok & d$sexo == "2")),
+                              as.integer(sum(ok & d$sexo == "9"))))
+  expect_identical(sum(filas_n), cr$base_n)
+  # El código fuera de lista (9) es una fila legítima, dentro de la base.
+  expect_true("9" %in% vapply(cr$tabla$filas, `[[`, "", "codigo"))
+  # Con la múltiple en columnas, la suma de celdas de una fila NO es su n (un caso marca varias).
+  expect_false(identical(as.integer(rowSums(cr$tabla$n)), filas_n))
+  # sm × so: la fila es cuántos casos de la base marcan la opción = colSums de las dummies dentro de la base.
+  inv <- explorador_cruce(d, "medios", "sexo", inst)
+  mat <- as.matrix(d[ok, c("medios.tv", "medios.radio", "medios.web", "medios.otro", "medios.cine")])
+  expect_identical(vapply(inv$tabla$filas, `[[`, 1L, "n"), as.integer(colSums(mat)))
+  # Con y única, filas.n coincide con la suma de celdas.
+  expect_identical(vapply(inv$tabla$filas, `[[`, 1L, "n"), as.integer(rowSums(inv$tabla$n)))
+  # n_x / n_y: los que responden cada una por separado, con los mismos filtros.
+  expect_identical(cr$n_x, as.integer(sum(!is.na(d$sexo))))
+  expect_identical(cr$n_y, as.integer(sum(rowSums(d[, grep("^medios\\.", names(d))], na.rm = TRUE) > 0)))
+})
+
+test_that("una categoría sin casos en la base se omite y una base vacía no rompe la tabla", {
+  d <- .ecr_data(); inst <- .ecr_inst()
+  cr <- explorador_cruce_filtrado(d, "satis", "sexo", inst, filtros = list(satis = list("4")))
+  expect_identical(vapply(cr$tabla$filas, `[[`, "", "codigo"), "4")
+  vacio <- explorador_cruce(d[0, , drop = FALSE], "sexo", "medios", inst)
+  expect_identical(vacio$base_n, 0L)
+  expect_length(vacio$tabla$filas, 0L)
+})
+
 test_that("los filtros del explorador se aplican al cruce igual que a la vista", {
   cr <- explorador_cruce_filtrado(.ecr_data(), "sexo", "satis", .ecr_inst(), filtros = list(sexo = list("1")))
   expect_identical(cr$base_n, 5L)
@@ -224,4 +257,26 @@ test_that("POST /explorar/bivariado suma `cruce` sin quitar `view`, sobre la bas
   expect_identical(j$cruce$grafico, "Casos por día, apilados")
   expect_identical(j$cruce$base_n, 6L)
   expect_null(j$cruce$serie$puntos[[1]]$baja)
+})
+
+test_that("POST /explorar/bivariado rechaza cruzar una variable consigo misma", {
+  sid <- session_create()
+  on.exit(session_delete(sid), add = TRUE)
+  estudio_add_base(sid, nombre = "unica", xlsform_file_id = "x-u", data_file_id = "d-u",
+                   data_ext = "xlsx", rp_data = .ecr_data(), rp_inst = .ecr_inst())
+  pr <- plumber::pr() |>
+    plumber::pr_set_serializer(.api_serializer()) |>
+    plumber::pr_set_error(function(req, res, err) handle_api_error(req, res, err)) |>
+    mount_validacion()
+  body <- '{"var_x":"medios","var_y":"medios","fuente":"raw"}'
+  raw_body <- charToRaw(body)
+  input <- list(read = function(...) raw_body, rewind = function() invisible(0), read_lines = function(...) body)
+  r <- pr$call(as.environment(list(
+    REQUEST_METHOD = "POST", PATH_INFO = "/api/validacion/v2/explorar/bivariado", QUERY_STRING = "",
+    CONTENT_TYPE = "application/json", HTTP_X_PULSO_SESSION = sid, HTTP_X_BASE_NOMBRE = "unica",
+    rook.input = input
+  )))
+  j <- jsonlite::fromJSON(as.character(r$body), simplifyVector = FALSE)
+  expect_identical(as.integer(r$status), 400L)
+  expect_identical(j$code %||% j$error$code, "E_EXPLORAR_CRUCE_MISMA_VARIABLE")
 })

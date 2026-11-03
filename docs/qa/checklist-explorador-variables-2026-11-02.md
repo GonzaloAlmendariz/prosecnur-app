@@ -77,8 +77,8 @@ dist: { tipo, ordinal: bool, base_n,
 **Bivariado** — la respuesta de `/explorar/bivariado` suma `cruce` (se mantiene `view`):
 
 ```
-cruce: { tipo_x, tipo_y, grafico, forma: "tabla"|"cajas"|"dispersion"|"serie"|"lista", base_n,
-  tabla?: { filas: [{codigo, etiqueta}], columnas: [{codigo, etiqueta, n}], n: number[][] },   # n[fila][col]
+cruce: { tipo_x, tipo_y, grafico, forma: "tabla"|"cajas"|"dispersion"|"serie"|"lista", base_n, n_x, n_y,
+  tabla?: { filas: [{codigo, etiqueta, n}], columnas: [{codigo, etiqueta, n}], n: number[][] },   # n[fila][col]
   cajas?: { grupos: [{etiqueta, n, min, p25, mediana, p75, max, n_atipicos}] },
   dispersion?: { puntos: [[x, y]], tendencia: {pendiente, intercepto}|null, n },
   serie?: { puntos: [{fecha, valor, baja|null, alta|null, serie|null}] },
@@ -86,6 +86,10 @@ cruce: { tipo_x, tipo_y, grafico, forma: "tabla"|"cajas"|"dispersion"|"serie"|"l
 ```
 
 Filas = la variable que se lee (`var_x`); columnas = la del cruce (`var_y`).
+`filas[].n` y `columnas[].n` son CASOS de la base en esa fila o columna, nunca sumas de celdas (con una múltiple, un
+caso está en varias): son los denominadores de porcentajes y totales. `n_x` / `n_y`: casos que responden cada una con los
+mismos filtros. Cruzar una variable consigo misma responde 400 `E_EXPLORAR_CRUCE_MISMA_VARIABLE` (revisión metodológica,
+2026-11-03).
 
 ## Aprendido
 

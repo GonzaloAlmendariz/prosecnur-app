@@ -2,12 +2,15 @@
 # Explorador de variables — cruces tipo × tipo (E8, `biv.cruce`)
 # =============================================================================
 # Contrato congelado (docs/qa/checklist-explorador-variables-2026-11-02.md):
-#   cruce: { tipo_x, tipo_y, grafico, forma, base_n, tabla? | cajas? | dispersion? | serie? | lista? }
+#   cruce: { tipo_x, tipo_y, grafico, forma, base_n, n_x, n_y, tabla? | cajas? | dispersion? | serie? | lista? }
 # Filas = la variable que se lee (`var_x`); columnas = la del cruce (`var_y`).
 # Base (`base_n`): casos de la base ya filtrada que responden LAS DOS variables (ver `.explorador_leer`).
+# `n_x` / `n_y`: casos que responden cada una por separado, con los mismos filtros (para decir de cuántos sale la base).
 #   - tabla: n[fila][col] = casos de la fila (categoría so / opción sm de x) que están en la columna (categoría so /
-#     opción sm de y). `columnas[].n` = casos de la base en esa columna. En so × so, cada fila suma su marginal y el
-#     total suma `base_n`; con sm las sumas exceden la base porque un caso marca varias opciones.
+#     opción sm de y). `filas[].n` y `columnas[].n` = CASOS de la base en esa fila o columna, no menciones: son los
+#     denominadores de los porcentajes y de los totales (revisión metodológica de E8b–d, 2026-11-03). En so × so cada
+#     fila suma su `n` y el total suma `base_n`; con sm las sumas de celdas exceden la base porque un caso marca
+#     varias opciones, y por eso el front nunca divide entre sumas de celdas.
 #   - cajas: cuartiles tipo 7 y atípicos por 1.5 × IQR (`.explorador_caja`); las fechas se miden en días desde la
 #     fecha mínima de la base del cruce.
 #   - serie: so × fecha cuenta casos por día y categoría (grilla completa, con ceros); sm × fecha da el % (0–100) de
@@ -63,7 +66,7 @@
   n <- matrix(0L, nrow = length(gx), ncol = length(gy))
   for (i in seq_along(gx)) for (j in seq_along(gy)) n[i, j] <- as.integer(sum(gx[[i]]$idx & gy[[j]]$idx))
   list(tabla = list(
-    filas = lapply(gx, function(g) list(codigo = g$codigo, etiqueta = g$etiqueta)),
+    filas = lapply(gx, function(g) list(codigo = g$codigo, etiqueta = g$etiqueta, n = as.integer(sum(g$idx)))),
     columnas = lapply(gy, function(g) list(codigo = g$codigo, etiqueta = g$etiqueta, n = as.integer(sum(g$idx)))),
     n = n
   ))
@@ -223,7 +226,7 @@ explorador_cruce <- function(df, var_x, var_y, instrumento) {
     lista = .explorador_cruce_lista(lx, ly, ok)
   )
   c(list(tipo_x = lx$tipo, tipo_y = ly$tipo, grafico = spec$grafico, forma = spec$forma,
-         base_n = as.integer(sum(ok))), cuerpo)
+         base_n = as.integer(sum(ok)), n_x = as.integer(sum(lx$valido)), n_y = as.integer(sum(ly$valido))), cuerpo)
 }
 
 #' Cruce con los filtros del explorador aplicados igual que en `build_view_bivariado`

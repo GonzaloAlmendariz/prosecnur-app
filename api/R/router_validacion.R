@@ -1789,6 +1789,11 @@ mount_validacion <- function(pr) {
       if (!nzchar(var_x) || !nzchar(var_y)) {
         stop_api(400, "E_MISSING_VARS", "Body debe incluir 'var_x' y 'var_y'.")
       }
+      # Una variable cruzada consigo misma da una diagonal al 100 % y marca todo como diferencia (revisión
+      # metodológica de E8, 2026-11-03): no es un cruce.
+      if (identical(var_x, var_y)) {
+        stop_api(400, "E_EXPLORAR_CRUCE_MISMA_VARIABLE", "Elige otra variable para cruzar: no se cruza una variable consigo misma.")
+      }
       resolved <- .resolve_explorar_data(sid, base, fuente)
       view <- build_view_bivariado(
         data = resolved$data,
