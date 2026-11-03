@@ -210,7 +210,7 @@
     ancho <- attr(g, "ancho") %||% .std_word("pagina", "ancho_util")
     png <- .word_png(g, attr(g, "alto"), ancho = ancho)
     doc <- .word_figura(doc, figura, .word_oracion(e$title), png, alto = attr(g, "alto"), ancho = ancho, base = base_de(e),
-                        tabla = attr(p, "pulso_word_tabla"))   # radar entre públicos con `word_tabla`: tabla nativa encima de la figura
+                        tabla = attr(p, "pulso_word_tabla"), nota_sig = .lam_nota_sig_de(p))   # ADR 0128: la nota de diferencias   # radar entre públicos con `word_tabla`: tabla nativa encima de la figura
     figura <- figura + 1L
   }
   doc <- poner_como_leer(doc)      # un plan sin secciones igual lleva «Cómo leer» si tiene escalas

@@ -234,7 +234,7 @@
 
 #' Une las líneas lógicas de la nota, cada una envuelta para el caption del Word
 #' @keywords internal
-.sig_nota_lineas <- function(lineas, ancho = 110L) {
+.sig_nota_lineas <- function(lineas, ancho = 72L) {
   lineas <- lineas[!is.na(lineas) & nzchar(lineas)]
   if (requireNamespace("stringr", quietly = TRUE)) lineas <- stringr::str_wrap(lineas, width = ancho)
   paste(lineas, collapse = .SIG_NOTA_SALTO)
