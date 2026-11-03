@@ -14,7 +14,7 @@ import type { MonitoreoAcreditacionReports, MonitoreoStateRule } from "../../../
 import { fechaDeColumna } from "../control/barridoModel";
 import { clasificadorDeStatus, type FamiliaDelCliente } from "../control/familiasDelCliente";
 import { filasDeBloque } from "../navegacion/bloques";
-import { nombreDelSegmento } from "../segmentoDeCuotas";
+import { variableDeCuotas } from "../segmentoDeCuotas";
 import { formatoConteo } from "../../../../../lib/formatoNumero";
 
 type Fila = Record<string, unknown>;
@@ -54,6 +54,11 @@ export type SerieKobo = {
   fueraDeCuota: Array<{ nombre: string; casos: number }>;
   /** De `fueraDeCuota`, las que además no tienen fecha (ya cuentan como fuera de cuota). */
   fueraDeCuotaSinFecha: number;
+  /**
+   * De dónde sale la serie por variable: Kobo, o «Completa» de la hoja cuando la plataforma no trae
+   * respuestas (el motor usa el mismo numerador que el total de Avance › Cuotas).
+   */
+  origen: "kobo" | "hoja";
 };
 
 function claveDeValor(valor: unknown) {
@@ -69,7 +74,7 @@ export function serieKobo(
   const porVariable = filasDeBloque(reports, ["avance_efectivo_variable_dia"])
     .filter((fila) => !segmento || texto(fila.Variable).toLocaleLowerCase("es") === segmento.toLocaleLowerCase("es"));
   const filas: Array<{ categoria: string; fecha: string; casos: number }> = porVariable.length
-    ? porVariable.map((fila) => ({ categoria: texto(fila.Valor) || "Sin dato", fecha: texto(fila.Fecha), casos: numero(fila["Efectivas Kobo"] ?? fila.Efectivas) }))
+    ? porVariable.map((fila) => ({ categoria: texto(fila.Valor) || "Sin dato", fecha: texto(fila.Fecha), casos: numero(fila.Efectivas ?? fila["Efectivas Kobo"]) }))
     : filasDeBloque(reports, ["avance_efectivo_dia"]).map((fila) => ({ categoria: "Efectivas", fecha: texto(fila.Fecha), casos: numero(fila["Efectivas Kobo"] ?? fila.Efectivas) }));
   const celdas: Record<string, Record<string, number>> = {};
   const porFecha: Record<string, number> = {};
@@ -96,6 +101,10 @@ export function serieKobo(
     totales.set(categoria, (totales.get(categoria) ?? 0) + casos);
   });
   const fechas = Object.keys(porFecha).sort();
+  // Sin una sola efectiva de Kobo y con efectivas en la serie, la serie es la de la hoja.
+  const origen = porVariable.length
+    && porVariable.some((fila) => numero(fila.Efectivas) > 0)
+    && porVariable.every((fila) => numero(fila["Efectivas Kobo"]) === 0) ? "hoja" : "kobo";
   return {
     fechas,
     categorias: [...totales.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], "es")).map(([nombre, total]) => ({ nombre, total })),
@@ -105,6 +114,7 @@ export function serieKobo(
     sinFecha,
     fueraDeCuota: [...fueraDeCuota.entries()].sort((a, b) => b[1] - a[1]).map(([nombre, casos]) => ({ nombre, casos })),
     fueraDeCuotaSinFecha,
+    origen,
   };
 }
 
@@ -230,10 +240,10 @@ export function resumenDeRitmo(serie: Pick<SerieKobo, "fechas" | "porFecha" | "t
   };
 }
 
-/** Segmento de cuota del corte (Sede, Actor…), el mismo de Avance › Cuotas. */
+/** Segmento de cuota del corte (Sede, Actor…): la misma variable que Avance › Cuotas (`variableDeCuotas`). */
 export function segmentoDeCuotas(reports: MonitoreoAcreditacionReports | null | undefined) {
-  return nombreDelSegmento(filasDeBloque(reports, ["cuotas_variable", "cuotas_telefonicas", "cuotas_por_variable"])
-    .map((fila) => texto(fila.Variable)));
+  return variableDeCuotas(filasDeBloque(reports, ["cuotas_variable", "cuotas_telefonicas", "cuotas_por_variable"])
+    .map((fila) => ({ variable: texto(fila.Variable), meta: fila.Meta })));
 }
 
 /**

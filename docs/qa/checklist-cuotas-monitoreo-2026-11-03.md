@@ -48,7 +48,7 @@ Estados: ☐ pendiente · ◐ en curso · ☑ hecho · ⛔ bloqueado (espera una
 | # | Indicación de Gonzalo | Perfil | Qué se ve hoy (evidencia) | Dónde vive | Estado |
 |---|---|---|---|---|---|
 | 1a | «mezcla conceptos» | Acreditación | Avance › Por cuota (`PorCuota.tsx:145-150`) pone en una lista las cuotas con meta (efectivas del rollup) y las variables sin meta con su Δ pp (de `client_report.controls`): dos motores y dos denominadores (meta frente a universo) | `profiles/acreditacion/avance/PorCuota.tsx`, `monitoreo_acreditacion_cuotas.R:73-80`, `monitoreo_engine.R:17084` | ☑ acreditación (ADR 0126): Avance › Por cuota en dos bloques, «Metas» y «Referenciales, sin meta»; una cuota declarada referencial se lee como composición frente al universo (cifras del motor de cuotas, sin «Sin dato»), igual que las variables de control. Los dos motores siguen siendo dos (cuotas y `client_report.controls`), cada uno en su bloque |
-| 1b | «mezcla conceptos» | Telefónico | Modelo pinta «Avance de cada meta» con efectivas junto a «meta frente al reparto proporcional» (`modelo/Cuotas.tsx:138,172,216-228`); el total por cuota usa plataforma si hay respuestas y si no «Completa» de la hoja, pero la serie diaria siempre usa plataforma (`monitoreo_telefonico.R:463-465,905,923`); sin `goals` la meta sale de una columna de la base (`:411,505`); `metaDelProyecto.ts:12-15` suma también las metas por actor (posible doble conteo, sin verificar con datos) | `profiles/telefonico/modelo/Cuotas.tsx`, `monitoreo_telefonico.R`, `metaDelProyecto.ts` | ☑ telefónico (ADR 0126): Modelo ya no pinta avance; Avance › Cuotas separa «Metas» (con su total sin compensar entre celdas) de «Referenciales» (composición frente al listado, en puntos y con su n); `metaDelProyecto` suma una sola partición. **Sigue abierto**: el numerador distinto entre total y serie diaria (`monitoreo_telefonico.R:905,923`) y que Ritmo y Cuotas pueden elegir variables distintas |
+| 1b | «mezcla conceptos» | Telefónico | Modelo pinta «Avance de cada meta» con efectivas junto a «meta frente al reparto proporcional» (`modelo/Cuotas.tsx:138,172,216-228`); el total por cuota usa plataforma si hay respuestas y si no «Completa» de la hoja, pero la serie diaria siempre usa plataforma (`monitoreo_telefonico.R:463-465,905,923`); sin `goals` la meta sale de una columna de la base (`:411,505`); `metaDelProyecto.ts:12-15` suma también las metas por actor (posible doble conteo, sin verificar con datos) | `profiles/telefonico/modelo/Cuotas.tsx`, `monitoreo_telefonico.R`, `metaDelProyecto.ts` | ☑ telefónico (ADR 0126): Modelo ya no pinta avance; Avance › Cuotas separa «Metas» (con su total sin compensar entre celdas) de «Referenciales» (composición frente al listado, en puntos y con su n); `metaDelProyecto` suma una sola partición. ☑ (3/11, decidido por coordinación, revisable por Gonzalo) el numerador: total y serie usan una sola regla. Con respuestas de plataforma cuenta la efectiva de Kobo; sin ellas, «Completa» de la hoja. Ritmo, Cuotas y la barra eligen la misma variable (`variableDeCuotas`). Reparos del revisor: ver «Numerador telefónico» abajo |
 | 1c | «mezcla conceptos» | Territorial | Celdas cruzadas frente a marginales sin resolver (pregunta 6 de `revamp-monitoreo/territorial.md`); la regla «sexo/edad flexible» se deduce de los déficits, no se declara (`monitoreo_engine.R:11502,11512`); cuota por UMP con respaldo fijo de 8 y 9 nombres de campo (`:23925-23952`) | `monitoreo_engine.R` (congelado), `territorial/avance/FaltantePorUmp.tsx` | ◐ territorial (ADR 0126): con una dimensión referencial lo exigido es la marginal de la otra, contada sobre los casos (sin compensar dentro de ella), y la referencial se describe frente a su parte en el reparto de Hojas; con las dos referenciales sólo se exige el total de la zona. **Sigue abierto**: la pregunta 6 (cruzadas frente a marginales) cuando las dos son meta, la regla «sexo/edad flexible» deducida de déficits y el respaldo de 8 por UMP (que ahora publica su `fuente` sólo en aulas; en UMP queda como estaba) |
 | 1d | «mezcla conceptos» | Cursos-horario (aulas) | «Muestra», «meta», «meta operativa», sobremuestra, techo y comprometido conviven; el Resumen mide contra la meta operativa aunque el ADR 0079 dice que el cumplimiento va contra la cuota (`resumenAulasModelo.ts:16-17,231-241`); la sobremuestra es «referencia» en `AulasSerieDeRendimiento.tsx:207-209,1444` y «una de las dos metas» en `:1316-1319` y `AulasAvanceParaCliente.tsx:314-319` | `profiles/aulas/avance/*`, `corte/corteContract.ts:46-59` | ◐ aulas (ADR 0126): la sobremuestra es el segundo nivel de la meta en el motor (`avance_cuota$niveles`: muestra por celda sin compensar, sobremuestra contra el total con `compensa = TRUE`); los comentarios que la llamaban «referencia» se corrigen (no había texto visible que lo dijera). **Abierto**: el Resumen mide contra la meta operativa (`resumenAulasModelo.ts:233-241`): cambia una cifra visible, va a `revisor-metodologico` y a Gonzalo antes |
 | 2a | «no permite que el modelo distinga cuotas establecidas como metas de cuotas referenciales» | Acreditación | Sin marca por cuota; «sólo seguimiento» vive en otro sitio (`interest_variables`) | `router_monitoreo_cuotas.R:62` (normalizador), `useConfiguracionDeCuotas.tsx:152-188` | ☑ `cuotas[].caracter` (entrada en `.mcu_cuotas_entrada`, omitido si no se declara); en el editor de cuota, «Meta / Referencial» con la columna «Del universo» para la referencial; Modelo muestra la referencia y su peso en el universo. Guardar otra cuota conserva los números de una referencial |
@@ -118,6 +118,26 @@ monitoreo. El rótulo «Sobremuestra de 3,750» está cubierto por el test con e
 
 **Defecto encontrado y corregido** (f46bbc07f): `avance_cuota$niveles` juzgaba la sobremuestra contra el excedente
 (1.250) y no contra el total (3.750); el test usaba 3.750 a mano y lo tapaba.
+
+## Numerador telefónico (1b) — cifras de PDM_MedVida2026.pulso
+
+Efectivas por actor, como total de la cuota / suma de su serie diaria (Homologación de Títulos y Vinculación Laboral):
+
+| Situación | Antes | Después |
+|---|---|---|
+| Hoja y Kobo | 55/55 y 14/14 | igual |
+| Sin respuestas de plataforma | 58/0 y 14/0 (serie vacía) | 58/58 y 14/14; Ritmo dice «de la hoja» |
+| Sin hoja de barrido (base inferida de la población) | 0/55 y 0/14 (total en 0) | 55/55 y 14/14 |
+
+Reparos de `revisor-metodologico` (aprobado con reparos) y su estado:
+
+| # | Reparo | Estado |
+|---|---|---|
+| R1 | Sin plataforma, Cuotas y la barra no dicen que la cifra sale de la hoja (58 de la hoja frente a 55 de Kobo) | ☐ en curso |
+| R2 | El cambio a Kobo es para todo el estudio: un actor sin Kobo conectado cae a 0 | ☐ |
+| R3 | `avance_efectivo_dia` y `avance_efectivo_actor_dia` cuentan sólo plataforma: 0 frente a 72 sin plataforma, y 70 frente a 69 con las completas de Kobo fuera de la hoja | ☐ |
+| R4 | `has_key` va por fila: una llave repetida en la población cuenta dos veces una completa | ☐ |
+| R5 | Una sola variable de cuota en pantalla: las metas de otra variable no aparecen | **bloqueado**: decisión de Gonzalo (propuesta pendiente) |
 
 ## Pedidos de Gonzalo durante la ronda
 

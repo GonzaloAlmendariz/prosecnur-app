@@ -89,6 +89,7 @@ export function Ritmo({
   const hojaSeDetiene = hoja.ultima && ultimoKobo && hoja.ultima < ultimoKobo ? hoja.ultima : null;
   const maximoCelda = Math.max(1, ...kobo.categorias.flatMap((categoria) => kobo.fechas.map((iso) => kobo.celdas[categoria.nombre]?.[iso] ?? 0)));
   const rotulo = rotuloDelSegmento(segmento);
+  const deOrigen = kobo.origen === "hoja" ? "de la hoja" : "de Kobo";
   // Un día sin efectivas de Kobo conserva el acumulado del día anterior (RMS
   // ficticio mostraba «—» el 15/10 y el 16/10 entre 1 y 36).
   const acumuladoAl = (iso: string) => {
@@ -103,11 +104,11 @@ export function Ritmo({
   return (
     <div className="mon-cadencia" data-qa-geometry-group="telefonico-avance-ritmo" data-qa-geometry-contract="intrinsic">
       <div className="mon-cadencia-columna">
-        <section className="mon-ctl-panel mon-cadencia-grafico" aria-label={`Efectivas de Kobo por día y ${nombreDeSegmento}`}>
+        <section className="mon-ctl-panel mon-cadencia-grafico" aria-label={`Efectivas ${deOrigen} por día y ${nombreDeSegmento}`}>
           {/* §2a-bis: el rótulo de la pestaña encabeza su primera tarjeta. */}
           <RotuloDeTarjeta />
           <header className="mon-cadencia-cabecera">
-            <strong>Efectivas de Kobo por día{segmento ? ` y ${nombreDeSegmento}` : ""}</strong>
+            <strong>Efectivas {deOrigen} por día{segmento ? ` y ${nombreDeSegmento}` : ""}</strong>
           </header>
           <TrazadoDeBarras
             tituloIzquierdo="Efectivas por día"

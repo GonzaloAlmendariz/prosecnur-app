@@ -6,7 +6,7 @@ import type { MonitoreoAcreditacionReports, MonitoreoState } from "../../../../.
 import type { BarraDelModo } from "../../../shell/BarraDelModo";
 import type { MetricaDeSeccion } from "../../../shell/metricaDeSeccion";
 import { fmt } from "../formato";
-import { nombreDelSegmento, rotuloDelSegmento } from "../segmentoDeCuotas";
+import { rotuloDelSegmento, variableDeCuotas } from "../segmentoDeCuotas";
 import { filasDeBloque } from "./bloques";
 import { chipsDeInsistencia } from "../control/insistenciaModel";
 import { contarDesvios } from "../control/equipoModel";
@@ -45,12 +45,12 @@ export function resumenDelModo({
   porRevisar,
 }: {
   cuotas: readonly CuotaParaLaBarra[];
-  /** Columna `Variable` de las filas de cuota, para nombrar el eje. */
-  variables: readonly string[];
+  /** Columnas `Variable` y `Meta` de las filas de cuota, para nombrar el eje (`variableDeCuotas`). */
+  variables: ReadonlyArray<{ variable: unknown; meta?: unknown }>;
   porRevisar: number | null;
 }): ResumenDelModoTelefonico {
   const conMeta = cuotas.filter((item) => item.meta != null && item.meta > 0);
-  const segmento = cuotas.length ? nombreDelSegmento(variables, "") : "";
+  const segmento = cuotas.length ? variableDeCuotas(variables, "") : "";
   return {
     ejeDeCuota: segmento ? `${rotuloDelSegmento(segmento)}, ${fmt(cuotas.length)} ${cuotas.length === 1 ? "valor" : "valores"}` : null,
     meta: conMeta.length ? conMeta.reduce((suma, item) => suma + (item.meta ?? 0), 0) : null,
@@ -117,7 +117,7 @@ export function useResumenDelModo(
     const cuotas = filasDeCuota.length ? leerCuotas(reports) : [];
     const nuevo = resumenDelModo({
       cuotas,
-      variables: filasDeCuota.map((fila) => String(fila.Variable ?? "")),
+      variables: filasDeCuota.map((fila) => ({ variable: fila.Variable, meta: fila.Meta })),
       porRevisar: comparacion.length ? leerComparacion(comparacion).mismatch : ultimo.current?.porRevisar ?? null,
     });
     const fusionado = cuotas.length || !ultimo.current

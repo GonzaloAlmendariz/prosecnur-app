@@ -902,7 +902,12 @@
   }
   platform_dates <- phone_platform_dates
   if (length(platform_dates) != nrow(phone)) platform_dates <- rep("Sin fecha", nrow(phone))
-  quota_effective_mask <- if (nrow(responses) && !isTRUE(phone_from_population)) phone_platform_complete else NULL
+  # Un solo numerador para el total por cuota y su serie diaria (checklist de cuotas 1b): con respuestas de
+  # plataforma, la efectiva de Kobo; sin ellas, «Completa» de la hoja. Antes la base inferida de la población
+  # contaba 0 en el total con la serie en Kobo, y sin plataforma el total contaba la hoja con la serie vacía.
+  quota_effective_mask <- if (nrow(responses)) phone_platform_complete else NULL
+  quota_day_mask <- if (is.null(quota_effective_mask)) states == "Completa" else phone_platform_complete
+  quota_day_dates <- if (is.null(quota_effective_mask)) dates else platform_dates
   quotas <- .monitoreo_report_phone_quota_df(phone, profile, cfg, effective_mask = quota_effective_mask)
   quota_variables <- unique(as.character(quotas$Variable %||% character(0)))
   quota_variables <- quota_variables[nzchar(quota_variables) & !is.na(quota_variables)]
@@ -920,16 +925,16 @@
   if (length(quota_value_columns)) {
     for (variable in names(quota_value_columns)) {
       values <- quota_value_columns[[variable]]
-      valid <- phone_platform_complete &
+      valid <- quota_day_mask &
         .monitoreo_report_nonempty(values) &
         values != "Sin dato" &
-        .monitoreo_report_nonempty(platform_dates) &
-        platform_dates != "Sin fecha"
+        .monitoreo_report_nonempty(quota_day_dates) &
+        quota_day_dates != "Sin fecha"
       if (!any(valid, na.rm = TRUE)) next
       combos <- unique(data.frame(
         Variable = variable,
         Valor = values[valid],
-        Fecha = platform_dates[valid],
+        Fecha = quota_day_dates[valid],
         stringsAsFactors = FALSE,
         check.names = FALSE
       ))
@@ -937,12 +942,12 @@
       for (combo_idx in seq_len(nrow(combos))) {
         mask <- valid &
           values == combos$Valor[[combo_idx]] &
-          platform_dates == combos$Fecha[[combo_idx]]
+          quota_day_dates == combos$Fecha[[combo_idx]]
         quota_day_rows[[length(quota_day_rows) + 1L]] <- data.frame(
           Variable = combos$Variable[[combo_idx]],
           Valor = combos$Valor[[combo_idx]],
           Fecha = combos$Fecha[[combo_idx]],
-          `Efectivas Kobo` = as.integer(sum(mask, na.rm = TRUE)),
+          `Efectivas Kobo` = as.integer(sum(mask & phone_platform_complete, na.rm = TRUE)),
           Efectivas = as.integer(sum(mask, na.rm = TRUE)),
           check.names = FALSE,
           stringsAsFactors = FALSE
@@ -1199,7 +1204,7 @@
     ),
     .monitoreo_report_block("estatus_telefonico", "Distribución por estatus", dist),
     .monitoreo_report_block("cuotas_variable", "Cuotas por variable", quotas, "Distribución de la base telefónica por variable de control."),
-    .monitoreo_report_block("avance_efectivo_variable_dia", "Avance efectivo por variable y día", quota_day, "Efectivas Kobo por variable de cuota y fecha de plataforma."),
+    .monitoreo_report_block("avance_efectivo_variable_dia", "Avance efectivo por variable y día", quota_day, "Efectivas por variable de cuota y fecha: de Kobo si la plataforma trae respuestas; si no, «Completa» de la hoja con su fecha."),
     .monitoreo_report_block("control_tiempo_kobo", "Control de tiempos Kobo", utils::head(duration_control, 500L), "Efectivas Kobo que pasan filtro y no son pruebas, clasificadas por duración."),
     .monitoreo_report_block("produccion_dia", "Producción por día", by_day),
     .monitoreo_report_block("avance_efectivo_dia", "Avance efectivo por día", efectivo_dia),

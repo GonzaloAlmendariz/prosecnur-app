@@ -1,7 +1,7 @@
 import type { MonitoreoAcreditacionReports, MonitoreoState } from "../../../../../api/client";
 import { criteriosDesdeFiltro } from "../../../filtroEfectiva/criterios";
 import { filasDeBloque } from "../navegacion/bloques";
-import { nombreDelSegmento, rotuloDelSegmento } from "../segmentoDeCuotas";
+import { rotuloDelSegmento, variableDeCuotas } from "../segmentoDeCuotas";
 import { caracterDeclarado, estadoDeCuotaDesde } from "../../../core/caracterDeCuota";
 import { normalizeSourceMatch } from "../formato";
 import { cadenaDeLaCifra, construirCuotasFaltante, type CuotaDeEntrada } from "./cuotasFaltanteModel";
@@ -61,7 +61,7 @@ export function entradaDeCuotasFaltante(
   cuotas: readonly CuotaDeEntrada[],
 ) {
   const filasDeCuota = filasDeBloque(reports, ["cuotas_variable", "cuotas_telefonicas", "cuotas_por_variable"]);
-  const segmento = nombreDelSegmento(filasDeCuota.map((fila) => String(fila.Variable ?? "")));
+  const segmento = variableDeCuotas(filasDeCuota.map((fila) => ({ variable: fila.Variable, meta: fila.Meta })));
   const modelo = construirCuotasFaltante({
     cuotas: conCaracter(cuotas, filasDeCuota),
     segmento: rotuloDelSegmento(segmento),

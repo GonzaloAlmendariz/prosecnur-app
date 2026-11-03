@@ -228,7 +228,7 @@ import { PanelConectarFuente } from "../../fuentes/PanelConectarFuente";
 import { useAbrirConectarFuente } from "../../fuentes/abrirConectarFuente";
 import { DefinidorDeEstados } from "../../estados/DefinidorDeEstados";
 import { criteriosDesdeFiltro, filtroDesdeCriterios, resumenDeCriterios } from "../../filtroEfectiva/criterios";
-import { contarSegmentos, nombreDelSegmento, pluralDelSegmento } from "./segmentoDeCuotas";
+import { contarSegmentos, pluralDelSegmento, variableDeCuotas } from "./segmentoDeCuotas";
 import { TelefonicoEffectiveConsultedFilters } from "./TelefonicoEffectiveConsultedFilters";
 import { GraficoDeEstadosPorDia } from "../../estados/GraficoDeEstadosPorDia";
 import { estadosPorDiaDeLaCuota } from "../../estados/estadosPorCuota";
@@ -6315,7 +6315,7 @@ function AcreditacionPhoneOperationsWorkbench({
   const quotaRows = rowsForSheetBlock(reports, "monitoreo_telefonico", ["cuotas_variable", "cuotas_telefonicas", "cuotas_por_variable"]);
   // Mismo origen que en la vista de cuotas: el nombre lo declara el estudio en
   // `control_vars` y viaja en la columna `Variable` de cada fila.
-  const segmentoDeLasCuotas = nombreDelSegmento(phoneQuotaRowsForPanel(quotaRows).map((row) => row.variable));
+  const segmentoDeLasCuotas = variableDeCuotas(phoneQuotaRowsForPanel(quotaRows));
   const responsibleRows = mergeAcreditacionPhoneResponsibleRows(
     rowsForSheetBlock(reports, "monitoreo_telefonico", ["operacion_responsable"]),
     rowsForSheetBlock(reports, "monitoreo_telefonico", ["efectivos_responsable"]),
@@ -13778,12 +13778,8 @@ export function advanceCardsFromRows(rows: Array<Record<string, unknown>>, goals
 }
 
 function preferredPhoneAdvanceQuotaVariable(rows: AcreditacionPhoneQuotaRow[]) {
-  const withMeta = rows.filter((row) => row.meta != null && row.meta > 0);
-  const variables = uniqueDisplayValues((withMeta.length ? withMeta : rows).map((row) => row.variable));
-  const priority = ["sede", "distrito", "grupo", "segmento", "actor"];
-  return variables.find((variable) => priority.includes(normalizeSourceMatch(variable)))
-    ?? variables[0]
-    ?? "";
+  // La misma variable que Ritmo y la barra: una sola regla (`segmentoDeCuotas.ts`).
+  return variableDeCuotas(rows, "");
 }
 
 function phoneQuotaCategoryNoun(variable: string) {
@@ -15392,10 +15388,10 @@ function AcreditacionAdvanceActorsWorkbench({
   // PDM MedVida el segmento es `Actor`.
   const esCuotaTelefonica = isPhoneModel && phoneQuotaCards.length > 0;
   const segmentoDeLasCuotas = useMemo(
-    () => nombreDelSegmento(
+    () => variableDeCuotas(
       phoneQuotaRowsForPanel(
         rowsForSheetBlock(reports, "monitoreo_telefonico", ["cuotas_variable", "cuotas_telefonicas", "cuotas_por_variable"]),
-      ).map((row) => row.variable),
+      ),
     ),
     [reports],
   );
@@ -16815,10 +16811,10 @@ function AcreditacionAdvanceSummaryWorkbench({
   // El nombre del segmento lo declara el estudio, no la vista. Ver
   // `segmentoDeCuotas.ts`.
   const segmentoDeLasCuotas = useMemo(
-    () => nombreDelSegmento(
+    () => variableDeCuotas(
       phoneQuotaRowsForPanel(
         rowsForSheetBlock(reports, "monitoreo_telefonico", ["cuotas_variable", "cuotas_telefonicas", "cuotas_por_variable"]),
-      ).map((row) => row.variable),
+      ),
     ),
     [reports],
   );
