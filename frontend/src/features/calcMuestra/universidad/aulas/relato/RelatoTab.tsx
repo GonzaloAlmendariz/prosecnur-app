@@ -185,7 +185,7 @@ export function RelatoTab({
             <strong>Relato de la selección</strong>
             <small>
               corrida {relato.runId || "sin identificador"}
-              {relato.semilla ? ` · semilla ${relato.semilla}` : " · sin semilla publicada"}
+              {relato.semilla ? `, semilla ${relato.semilla}` : ", sin semilla publicada"}
             </small>
           </div>
           <label className="cmv2-compact-field cmv2-relato-foco">
@@ -194,7 +194,7 @@ export function RelatoTab({
               value={focoVigente ? focoDeFacultad(focoVigente) : ""}
               onChange={(event) => publicarFoco(event.currentTarget.value || null)}
             >
-              <option value="">Estudio completo · {relato.facultades.length} facultades</option>
+              <option value="">Estudio completo, {relato.facultades.length} facultades</option>
               {relato.facultades.map((facultad) => (
                 <option key={facultad} value={focoDeFacultad(facultad)}>
                   {facultad}
@@ -301,7 +301,7 @@ export function RelatoTab({
                 }}
               />
               <p className="cmv2-relato-indicador" aria-live="polite">
-                Escena {indexVigente + 1} de {totalEscenas} · {escenaActiva.titulo}
+                Escena {indexVigente + 1} de {totalEscenas}, {escenaActiva.titulo}
               </p>
             </div>
           </>

@@ -979,7 +979,7 @@ export function ClassroomBarPlot({
             </div>
             <strong>
               {fmtInt(row.value)}{" "}
-              <small>{Number.isFinite(total) && total && row.value > 0 ? `${shareComparison ? fmtComparisonPct(row.value / total) : fmtStackPct(row.value / total)} · ${unit}` : unit}</small>
+              <small>{Number.isFinite(total) && total && row.value > 0 ? `${shareComparison ? fmtComparisonPct(row.value / total) : fmtStackPct(row.value / total)}, ${unit}` : unit}</small>
             </strong>
           </div>
         );
@@ -990,7 +990,7 @@ export function ClassroomBarPlot({
           <div aria-hidden="true"><i style={{ width: `${Math.min(100, Math.max(3, (overflow.value / max) * 100))}%` }} /></div>
           <strong>
             {fmtInt(overflow.value)}{" "}
-            <small>{Number.isFinite(total) && total && overflow.value > 0 ? `${fmtStackPct(overflow.value / total)} · ${unit}` : unit}</small>
+            <small>{Number.isFinite(total) && total && overflow.value > 0 ? `${fmtStackPct(overflow.value / total)}, ${unit}` : unit}</small>
           </strong>
         </div>
       )}

@@ -532,7 +532,7 @@ export function DistribucionCategoria({
           metatexto multiplicado por el número de categorías. */}
       {convencionCaida ? (
         <p className="cmv2-dist-pie">
-          <span className="cmv2-dist-convencion">bigotes en P10–P90 · reconstruye el marco para los de Tukey</span>
+          <span className="cmv2-dist-convencion">bigotes en P10–P90, reconstruye el marco para los de Tukey</span>
         </p>
       ) : null}
     </div>

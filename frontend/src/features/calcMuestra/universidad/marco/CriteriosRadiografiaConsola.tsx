@@ -194,7 +194,7 @@ export function CriteriosRadiografiaConsola({
     <section className="cmv2-crc" aria-label={`Consola analítica de criterios de ${scope === "alumno" ? "estudiante" : "curso-horario"}`}>
       <header className="cmv2-crc-head">
         <h3>Radiografía por facultad</h3>
-        <p>{cards.length} criterios · {model.expectedGateIds.length} gates</p>
+        <p>{cards.length} criterios, {model.expectedGateIds.length} gates</p>
       </header>
       {/* Un solo control para enfocar un criterio. La tira reemplaza al
           `<select>` que la duplicaba: lleva el estado de la evidencia encima,
@@ -226,7 +226,7 @@ export function CriteriosRadiografiaConsola({
       {model.orphanGateIds.length || model.duplicateCardIds.length ? (
         <div className="cmv2-crc-contract-alert" role="alert">
           Detalle incompleto: {model.orphanGateIds.length ? `reglas sin tarjeta ${model.orphanGateIds.join(", ")}` : ""}
-          {model.orphanGateIds.length && model.duplicateCardIds.length ? " · " : ""}
+          {model.orphanGateIds.length && model.duplicateCardIds.length ? ", " : ""}
           {model.duplicateCardIds.length ? `tarjetas duplicadas ${model.duplicateCardIds.join(", ")}` : ""}.
         </div>
       ) : null}

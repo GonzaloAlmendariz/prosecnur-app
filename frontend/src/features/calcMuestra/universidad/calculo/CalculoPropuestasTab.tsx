@@ -244,7 +244,7 @@ export function EscenarioCard({
             // que no cambia nada no lo detecta ningún test—.
             : precision == null
               ? `Ajuste sobre la fórmula: ${fmtSignedInt(extra)}.`
-              : `Ajuste sobre la fórmula: ${fmtSignedInt(extra)} · precisión estimada con este n: ${fmtPct(precision)}.`}
+              : `Ajuste sobre la fórmula: ${fmtSignedInt(extra)}, precisión estimada con este n: ${fmtPct(precision)}.`}
       </div>
     </article>
   );
@@ -403,8 +403,8 @@ export function CalculoPropuestasTab({
       {cuotasRows.length > 0 && (
         <section className="cmv2-panel cmv2-calc-cuotas-panel">
           <div className="cmv2-panel-head">
-            <strong>Cuotas por facultad · P2</strong>
-            <span className="cmv2-pill-soft">Propuesta 2 · {fmtInt(totalCuotas)} entrevistas asignadas</span>
+            <strong>Cuotas por facultad, P2</strong>
+            <span className="cmv2-pill-soft">Propuesta 2, {fmtInt(totalCuotas)} entrevistas asignadas</span>
           </div>
           {cuotasComp && <CadenaAfijacion comp={cuotasComp} rows={cuotasRows} />}
           <FormulaLatex

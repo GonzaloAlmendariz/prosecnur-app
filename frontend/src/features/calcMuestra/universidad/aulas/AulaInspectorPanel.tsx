@@ -50,8 +50,8 @@ export function AulaInspectorPanel({
 
   const identidad = [
     { label: "Facultad", value: model.faculty },
-    { label: "Programa", value: model.level ? `${model.program} · nivel ${model.level}` : model.program },
-    { label: "Horario", value: model.modality ? `${model.schedule} · ${model.modality}` : model.schedule },
+    { label: "Programa", value: model.level ? `${model.program}, nivel ${model.level}` : model.program },
+    { label: "Horario", value: model.modality ? `${model.schedule}, ${model.modality}` : model.schedule },
     ...(model.teacher ? [{ label: "Docente", value: model.teacher }] : []),
   ];
 
@@ -100,7 +100,7 @@ export function AulaInspectorPanel({
           <DatoFila label="Método" value={model.metodoLabel} />
           {model.rol === "reemplazo" && (
             <>
-              <DatoFila label="Reemplaza a" value={model.titular ? `${model.titular.code} · ${model.titular.label}` : DASH} />
+              <DatoFila label="Reemplaza a" value={model.titular ? `${model.titular.code}, ${model.titular.label}` : DASH} />
               <DatoFila label="Equivalencia" value={model.equivalenciaLabel} />
             </>
           )}
@@ -139,7 +139,7 @@ export function AulaInspectorPanel({
                   >
                     <b>{eslabon.code}</b>
                     <span>{eslabon.label}</span>
-                    <small>{eslabon.equivalencia}{eslabon.activo ? " · este curso-horario" : ""}</small>
+                    <small>{eslabon.equivalencia}{eslabon.activo ? ", este curso-horario" : ""}</small>
                   </button>
                 </li>
               ))}

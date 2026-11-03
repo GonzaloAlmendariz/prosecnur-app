@@ -188,7 +188,7 @@ export function SalidasMonitoreoTab({
       <section className="cmv2-panel cmv2-sal-panel" aria-label="Reservas listas para campo">
         <div className="cmv2-panel-head">
           <strong>Reservas listas para campo</strong>
-          <span className="cmv2-pill-soft">solo lectura · se gestiona en Selección</span>
+          <span className="cmv2-pill-soft">solo lectura, se gestiona en Selección</span>
         </div>
         {reserveDepthRows.length > 0 && (() => {
           // Celdas más ajustadas primero; las holgadas se resumen en un conteo.

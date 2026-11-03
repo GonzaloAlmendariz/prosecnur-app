@@ -80,7 +80,7 @@ function CeldaSexo({
 }) {
   const celda = fila.sexo.find((c) => c.sexo === sexo);
   if (!celda || celda.margen == null) return <td>—</td>;
-  const detalle = `${sexo === "F" ? "Mujeres" : "Hombres"}: cuota ${celda.cuota ?? "—"} · ${celda.elegibles ?? "—"} elegibles · ${celda.esperadas ?? "—"} esperadas${ref2025 != null ? ` · 2025 realizó ${ref2025.toFixed(2).replace(".", ",")}× (referencial, agregado por facultad)` : ""}`;
+  const detalle = `${sexo === "F" ? "Mujeres" : "Hombres"}: cuota ${celda.cuota ?? "—"}, ${celda.elegibles ?? "—"} elegibles, ${celda.esperadas ?? "—"} esperadas${ref2025 != null ? `, 2025 realizó ${ref2025.toFixed(2).replace(".", ",")}× (referencial, agregado por facultad)` : ""}`;
   return (
     <td title={detalle}>
       <span className="cmv2-cert-sexo" data-cubre={celda.cubre === true ? "si" : celda.cubre === false ? "no" : "sin_tasa"}>

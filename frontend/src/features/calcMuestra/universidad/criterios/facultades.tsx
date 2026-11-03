@@ -53,7 +53,7 @@ export function ControlRange({
       <p className="cmv2-crit-range-note" role="note">
         Sin rango, la facultad admite <strong>todos los niveles</strong> y no filtra.
         Activa una facultad para limitarla a un tramo de niveles.
-        {conRango > 0 ? <span className="cmv2-crit-range-note-count"> · {conRango} con rango propio</span> : null}
+        {conRango > 0 ? <span className="cmv2-crit-range-note-count">, {conRango} con rango propio</span> : null}
       </p>
       <div className="cmv2-crit-range-head" role="row">
         <span role="columnheader">Facultad</span>

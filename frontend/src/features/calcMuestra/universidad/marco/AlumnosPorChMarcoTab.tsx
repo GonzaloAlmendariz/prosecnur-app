@@ -197,7 +197,7 @@ export function AlumnosPorChMarcoTab({
                 <th scope="col">Facultad</th>
                 <th scope="col">CH elegibles</th>
                 <th scope="col">Distribución del marco elegible</th>
-                <th scope="col">Todos los CH · contraste</th>
+                <th scope="col">Todos los CH, contraste</th>
                 <th scope="col">Método aplicado</th>
                 <th scope="col">Valor elegido</th>
               </tr>
@@ -237,7 +237,7 @@ export function AlumnosPorChMarcoTab({
                           value={overrides[row.faculty_key] ?? ""}
                           onChange={(event) => setOverride(row.faculty_key, event.currentTarget.value)}
                         >
-                          <option value="">Global · {etiquetaAlumnosPorChMetodo(defaultMethod)}</option>
+                          <option value="">Global, {etiquetaAlumnosPorChMetodo(defaultMethod)}</option>
                           {ALUMNOS_POR_CH_METHODS.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}
                         </select>
                       )}
@@ -263,7 +263,7 @@ export function AlumnosPorChMarcoTab({
           <span>
             {missing.length
               ? `Falta ${missing.join(", ")}: el estadístico elegido no tiene dato publicado.`
-              : `${etiquetaAlumnosPorChMetodo(defaultMethod)} global · ${Object.keys(overrides).length} overrides por facultad.`}
+              : `${etiquetaAlumnosPorChMetodo(defaultMethod)} global, ${Object.keys(overrides).length} overrides por facultad.`}
           </span>
         </div>
         <div className="cmv2-inline-actions">

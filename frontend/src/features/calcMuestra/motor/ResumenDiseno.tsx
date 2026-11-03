@@ -294,7 +294,7 @@ export function ResumenDiseno({
   // mientras el sorteo llevaba 174: la elección nunca se hizo y la pantalla no
   // tenía cómo decirlo. El aviso nombra la causa, no sólo el hecho.
   const notaEscenario = vigor.discrepa && vigor.delSorteo
-    ? `el sorteo ejecutado dimensionó con ${calculoDistribucionScenarioMeta(vigor.delSorteo).shortLabel} · revisa`
+    ? `el sorteo ejecutado dimensionó con ${calculoDistribucionScenarioMeta(vigor.delSorteo).shortLabel}, revisa`
     : vigor.origen === "sorteo"
       ? "escenario tomado del sorteo ejecutado; nadie lo eligió"
       : null;
@@ -302,20 +302,20 @@ export function ResumenDiseno({
   // una interfaz en español— y «contrato anterior», que no le dice a nadie qué
   // hacer. Los estados que piden acción la nombran: «recalcula».
   const resultNote = resultReady
-    ? `${resultModel.selection.shortLabel} · R · marco vigente`
+    ? `${resultModel.selection.shortLabel}, R, marco vigente`
     : resultModel.state.kind === "stale"
-      ? `${resultModel.selection.shortLabel} · R · marco anterior · recalcula`
+      ? `${resultModel.selection.shortLabel}, R, marco anterior, recalcula`
       : resultModel.state.kind === "invalid"
         // Con la razón que R publicó, no sólo «inválido». El motor explica por
         // qué —«La suma de facultades no coincide con el marco validado del
         // diseño», con los dos números— y esa explicación llegaba al front y
         // se quedaba sin mostrar: la cabecera decía «resultado inválido» y el
         // usuario no tenía forma de saber qué revisar.
-        ? `${resultModel.selection.shortLabel} · R · ${primeraRazonInvalida(resultModel.state) ?? "resultado inválido"}`
+        ? `${resultModel.selection.shortLabel}, R, ${primeraRazonInvalida(resultModel.state) ?? "resultado inválido"}`
         : resultModel.state.kind === "legacy"
-          ? `${resultModel.selection.shortLabel} · calculado con una versión anterior · recalcula`
-          : `${resultModel.selection.shortLabel} · falta calcular`;
-  const notaResultado = notaEscenario ? `${resultNote} · ${notaEscenario}` : resultNote;
+          ? `${resultModel.selection.shortLabel}, calculado con una versión anterior, recalcula`
+          : `${resultModel.selection.shortLabel}, falta calcular`;
+  const notaResultado = notaEscenario ? `${resultNote}, ${notaEscenario}` : resultNote;
 
   const metrics: SummaryMetric[] = [
     {
@@ -336,8 +336,8 @@ export function ResumenDiseno({
       // deja ver el error sin abrir ningún archivo.
       note: (periodoMarco
         ? periodoCuadra === false
-          ? `base ${periodoMarco} · el estudio es ${anio(perfil.nombre)}`
-          : `base ${periodoMarco} · unidades únicas`
+          ? `base ${periodoMarco}, el estudio es ${anio(perfil.nombre)}`
+          : `base ${periodoMarco}, unidades únicas`
         : "unidades únicas"),
       icon: <BookOpenCheck size={16} aria-hidden="true" />,
       tone: fuentesCambiaron || procedenciaDesconocida || periodoCuadra === false ? "estimated" : "universe",

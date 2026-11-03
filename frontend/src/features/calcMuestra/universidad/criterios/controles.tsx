@@ -278,7 +278,7 @@ export function ControlFlat({
                 // corregido en F51 tras la observación de Gonzalo.
                 return (
                   <span className="cmv2-crit-item-aporte" data-aporta={dato.ch === 0 ? "cero" : "si"}>
-                    {dato.elegibles === null ? "—" : fmtInt(dato.elegibles)} elegibles ·{" "}
+                    {dato.elegibles === null ? "—" : fmtInt(dato.elegibles)} elegibles,{" "}
                     {dato.ch === null ? "—" : fmtInt(dato.ch)} CH <em>en el marco</em>
                   </span>
                 );

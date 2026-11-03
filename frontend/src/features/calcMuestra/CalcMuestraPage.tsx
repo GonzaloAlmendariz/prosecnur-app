@@ -2244,7 +2244,7 @@ export default function CalcMuestraPage() {
     ? sidebarTabs.map((tab) => ({
         key: tab.classroomTab ?? tab.id,
         label: tab.label,
-        description: `${tab.detail} · ${guidedStatusLabel(tab.status)}`,
+        description: `${tab.detail}, ${guidedStatusLabel(tab.status)}`,
         icon: tab.icon,
       }))
     : [];
@@ -2322,9 +2322,9 @@ export default function CalcMuestraPage() {
                   {desk === "opinion_universitaria" && (
                     <ChromeIndicator
                       label="Etapa"
-                      value={(workspace.etapa ?? "propuesta") === "campo" ? "Campo · DTI" : "Propuesta"}
+                      value={(workspace.etapa ?? "propuesta") === "campo" ? "Campo, DTI" : "Propuesta"}
                       prioridad="media"
-                      detalle="Etapa del estudio · se define en Datos → Estudio"
+                      detalle="Etapa del estudio, se define en Datos → Estudio"
                     />
                   )}
                 </ChromeIndicatorGroup>
@@ -2561,7 +2561,7 @@ function CalcMuestraSectionRail({
                   data-gliding-key={item.id}
                   className={`pulso-phase-pill cmv2-section-pill ${active ? "is-active" : ""}${stateClass}`}
                   aria-pressed={active}
-                  title={`${item.label}: ${item.detail}${state ? ` · ${guidedStatusLabel(state)}` : ""}`}
+                  title={`${item.label}: ${item.detail}${state ? `, ${guidedStatusLabel(state)}` : ""}`}
                   onClick={() => onSection(item)}
                 >
                   <span className="pulso-phase-pill-circle" aria-hidden="true" />

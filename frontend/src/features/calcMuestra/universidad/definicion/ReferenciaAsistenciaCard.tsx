@@ -102,7 +102,7 @@ export function ReferenciaAsistenciaCard({
     >
       <header className="cmv2-ref-asist-head" data-qa-geometry-member>
         <div>
-          <span className="cmv2-eyebrow">Fuente opcional · evidencia histórica</span>
+          <span className="cmv2-eyebrow">Fuente opcional, evidencia histórica</span>
           <h3 id="cmv2-ref-asist-title">Referencia de asistencia</h3>
         </div>
         <p>
@@ -145,7 +145,7 @@ export function ReferenciaAsistenciaCard({
             <div>
               <small>Transferencia</small>
               <strong>Modelo por celda</strong>
-              <span>Cada dimensión por separado · no se cruzan</span>
+              <span>Cada dimensión por separado, no se cruzan</span>
             </div>
           </div>
 
@@ -171,7 +171,7 @@ export function ReferenciaAsistenciaCard({
           {rendimiento ? (
             <p className="cmv2-ref-asist-rendimiento" data-qa-geometry-member>
               Por cada aula aplicada se agendaron{" "}
-              <strong>{rendimiento.porAplicada.toFixed(1)}</strong> · llegó a
+              <strong>{rendimiento.porAplicada.toFixed(1)}</strong>, llegó a
               aplicarse el <strong>{(rendimiento.tasaAplicacion * 100).toFixed(0)}%</strong>{" "}
               de lo agendado
             </p>
@@ -263,7 +263,7 @@ export function ReferenciaAsistenciaCard({
                 : "Identidad por revisar"}
             </strong>
             <span>
-              {fmtInt(referencia.identidad.verificables)} filas verificables · {fmtInt(referencia.identidad.inconsistentes)} inconsistencias
+              {fmtInt(referencia.identidad.verificables)} filas verificables, {fmtInt(referencia.identidad.inconsistentes)} inconsistencias
             </span>
           </div>
         </>

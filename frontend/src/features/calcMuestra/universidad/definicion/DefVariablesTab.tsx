@@ -238,7 +238,7 @@ export function DefVariablesTab({
           <p>
             {huerfanas.map((h, i) => (
               <span key={h.role}>
-                {i > 0 ? " · " : null}
+                {i > 0 ? ", " : null}
                 <strong>{h.label}</strong> → <code>{h.column}</code>
               </span>
             ))}

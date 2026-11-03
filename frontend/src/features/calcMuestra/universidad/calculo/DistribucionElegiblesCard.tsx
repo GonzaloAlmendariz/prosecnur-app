@@ -138,9 +138,9 @@ export function DistribucionElegiblesCard({
       </ul>
       <p className="cmv2-distelig-leyenda">
         <i className="cmv2-distelig-leyenda-p25" />{" "}
-        {hayDivisorSellado ? `${nombreDivisor} (dimensiona)` : "P25"} ·{" "}
-        <i className="cmv2-distelig-leyenda-mediana" /> mediana ·{" "}
-        <i className="cmv2-distelig-leyenda-caja" /> del P25 al P75 ·{" "}
+        {hayDivisorSellado ? `${nombreDivisor} (dimensiona)` : "P25"},{" "}
+        <i className="cmv2-distelig-leyenda-mediana" /> mediana,{" "}
+        <i className="cmv2-distelig-leyenda-caja" /> del P25 al P75,{" "}
         <i className="cmv2-distelig-leyenda-rango" /> aula más chica → más grande. Referencial: el
         valor que rige es el sellado en cada estrato.
       </p>

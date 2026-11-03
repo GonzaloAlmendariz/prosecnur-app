@@ -64,7 +64,7 @@ const UPLOAD_ACCEPT = [
   "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
 ].join(",");
 
-const UPLOAD_ACCEPT_LABEL = ".xlsx · .xls · .csv";
+const UPLOAD_ACCEPT_LABEL = ".xlsx, .xls, .csv";
 
 /** Nombre corto de cada variable requerida para la franja de compatibilidad. */
 const REQUIRED_SHORT_LABEL: Record<string, string> = {
@@ -121,7 +121,7 @@ function RequisitosReferencia() {
       <p>
         {requisitos.map((req, i) => (
           <span key={req.campo}>
-            {i > 0 ? " · " : null}
+            {i > 0 ? ", " : null}
             <code title={req.alias.length > 1 ? `También se acepta: ${req.alias.filter((a) => a !== req.campo).join(", ")}` : undefined}>
               {req.campo}
             </code>
@@ -614,8 +614,8 @@ export function DefBasesTab({
       {showCompat && (
         <AvisoModulo tone={compatOk ? "success" : "warn"} role="status" compact>
           {compatOk
-            ? `Compatible · ${detectedRequired.length}/${requiredVariables.length} variables requeridas detectadas · confírmalas en la pestaña Variables`
-            : `Por revisar · ${detectedRequired.length}/${requiredVariables.length} variables requeridas detectadas · faltan: ${missingRequired
+            ? `Compatible, ${detectedRequired.length}/${requiredVariables.length} variables requeridas detectadas, confírmalas en la pestaña Variables`
+            : `Por revisar, ${detectedRequired.length}/${requiredVariables.length} variables requeridas detectadas, faltan: ${missingRequired
                 .map((row) => REQUIRED_SHORT_LABEL[row.role] ?? row.label.toLowerCase())
                 .join(", ")} — mapéalas en la pestaña Variables`}
         </AvisoModulo>

@@ -182,7 +182,7 @@ export function ClassroomSelectionMapWorkspace({
                   {item.kind === "group" ? (
                     <div className="cmv2-selection-map-faculty">
                       <strong>{item.group.faculty}</strong>
-                      <span>{fmtInt(item.group.chains.length)} CH · {fmtInt(item.group.chains.reduce((total, chain) => total + chain.reserves.length, 0) + item.group.unlinkedReserves.length)} reemplazos</span>
+                      <span>{fmtInt(item.group.chains.length)} CH, {fmtInt(item.group.chains.reduce((total, chain) => total + chain.reserves.length, 0) + item.group.unlinkedReserves.length)} reemplazos</span>
                     </div>
                   ) : item.kind === "chain" ? (
                     <MapChainRow chain={item.chain} selectedRow={selectedRow} onInspect={onInspect} />

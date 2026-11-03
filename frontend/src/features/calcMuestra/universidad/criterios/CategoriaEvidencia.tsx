@@ -147,7 +147,7 @@ export function EjeCategorias({ dominio }: { dominio: DominioCategorias }) {
             rotulado ya enseña. Gonzalo: «siento todavía que hay como mucho
             metatexto». Queda lo que el eje no puede decir por sí solo: qué se
             está midiendo. */}
-        Estudiantes elegibles por curso-horario · escala común a las categorías
+        Estudiantes elegibles por curso-horario, escala común a las categorías
         de este criterio, de <strong>{fmt(dominio.min)}</strong> a{" "}
         <strong>{fmt(dominio.max)}</strong>.
       </p>

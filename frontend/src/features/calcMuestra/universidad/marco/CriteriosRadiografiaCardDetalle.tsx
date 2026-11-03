@@ -143,7 +143,7 @@ function Snapshot({
       data-qa-geometry-capacity="owned"
     >
       <strong>{title}</strong>
-      <CriterioBoxplotPercentilar label={`${label} · ${title}`} distribution={snapshot.distribution} domain={domain} />
+      <CriterioBoxplotPercentilar label={`${label}, ${title}`} distribution={snapshot.distribution} domain={domain} />
       <dl className="cmv2-crc-counts">
         <div><dt>{variant === "actual" ? "CH elegibles" : "CH de contraste"}</dt><dd>{fmt(snapshot.n_ch)}</dd></div>
         <div><dt>CH con dato</dt><dd>{fmt(snapshot.n_ch_con_dato)}</dd></div>
@@ -167,7 +167,7 @@ function Snapshot({
           <div data-main><dt>Media</dt><dd>{fmt(snapshot.distribution.media)}</dd></div>
           <div><dt>P10</dt><dd>{fmt(snapshot.distribution.p10)}</dd></div>
           <div><dt>P25</dt><dd>{fmt(snapshot.distribution.p25)}</dd></div>
-          <div><dt>P50 · mediana</dt><dd>{fmt(snapshot.distribution.p50)}</dd></div>
+          <div><dt>P50, mediana</dt><dd>{fmt(snapshot.distribution.p50)}</dd></div>
           <div><dt>P75</dt><dd>{fmt(snapshot.distribution.p75)}</dd></div>
           <div><dt>P90</dt><dd>{fmt(snapshot.distribution.p90)}</dd></div>
         </dl>
@@ -252,7 +252,7 @@ function GateMetadata({ entry }: { entry: CalcMuestraAulasCriterioRadiografiaV2E
       {entry.gate === "informativo" ? (
         <p role="note">Se aplica o reportará en la capa <strong>{entry.effective_layer}</strong>; no altera el N del marco.</p>
       ) : null}
-      {entry.overlap ? <p className="cmv2-crc-overlap">segmentos solapados · no aditivos</p> : null}
+      {entry.overlap ? <p className="cmv2-crc-overlap">segmentos solapados, no aditivos</p> : null}
     </div>
   );
 }
@@ -267,7 +267,7 @@ function Segment({
   domain: BoxplotDomain | null;
   signalDomain: BoxplotDomain | null;
 }) {
-  const label = `${row.facultyLabel} · ${row.gateLabel} · ${row.segmentLabel}`;
+  const label = `${row.facultyLabel}, ${row.gateLabel}, ${row.segmentLabel}`;
   // Un segmento sin CH ni distribución no merece el mismo espacio que uno con
   // datos: se declara en una línea. Sigue presente y contable — no desaparece,
   // que sería mentir sobre el inventario.
@@ -319,14 +319,14 @@ function Segment({
       {row.signalDistribution ? (
         <div className="cmv2-crc-signal" data-solo-cifra="true">
           <p className="cmv2-crc-signal-head">
-            Señal · {row.signalDistribution.unit.replace("_", " ")} · {fmt(row.signalDistribution.n_con_dato)} de {fmt(row.signalDistribution.n_total)} con dato
+            Señal, {row.signalDistribution.unit.replace("_", " ")}, {fmt(row.signalDistribution.n_con_dato)} de {fmt(row.signalDistribution.n_total)} con dato
           </p>
-          <CriterioBoxplotPercentilar label={`${label} · señal`} distribution={row.signalDistribution} domain={signalDomain} />
+          <CriterioBoxplotPercentilar label={`${label}, señal`} distribution={row.signalDistribution} domain={signalDomain} />
           <dl className="cmv2-crc-stats" aria-label={`Señal de ${row.segmentLabel}: media y cuantiles`}>
             <div data-main><dt>Media</dt><dd>{fmt(row.signalDistribution.media)}</dd></div>
             <div><dt>P10</dt><dd>{fmt(row.signalDistribution.p10)}</dd></div>
             <div><dt>P25</dt><dd>{fmt(row.signalDistribution.p25)}</dd></div>
-            <div><dt>P50 · mediana</dt><dd>{fmt(row.signalDistribution.p50)}</dd></div>
+            <div><dt>P50, mediana</dt><dd>{fmt(row.signalDistribution.p50)}</dd></div>
             <div><dt>P75</dt><dd>{fmt(row.signalDistribution.p75)}</dd></div>
             <div><dt>P90</dt><dd>{fmt(row.signalDistribution.p90)}</dd></div>
           </dl>
@@ -440,7 +440,7 @@ function V1Distribution({ card }: { card: CriterioRadiografiaCard }) {
           data-qa-geometry-capacity="owned"
         >
           <header><strong>{row.facultad_label}</strong><span>{row.categoria_label}</span></header>
-          <CriterioBoxplotPercentilar label={`${row.facultad_label} · ${row.categoria_label}`} distribution={row.distribucion_elegible} domain={domain} />
+          <CriterioBoxplotPercentilar label={`${row.facultad_label}, ${row.categoria_label}`} distribution={row.distribucion_elegible} domain={domain} />
           <dl className="cmv2-crc-counts">
             <div><dt>N CH total</dt><dd>{fmt(row.n_ch_total)}</dd></div>
             <div><dt>N CH elegibles</dt><dd>{fmt(row.n_ch_elegibles)}</dd></div>
@@ -451,7 +451,7 @@ function V1Distribution({ card }: { card: CriterioRadiografiaCard }) {
             <div data-main><dt>Media</dt><dd>{fmt(row.distribucion_elegible.media)}</dd></div>
             <div><dt>P10</dt><dd>{fmt(row.distribucion_elegible.p10)}</dd></div>
             <div><dt>P25</dt><dd>{fmt(row.distribucion_elegible.p25)}</dd></div>
-            <div><dt>P50 · mediana</dt><dd>{fmt(row.distribucion_elegible.p50)}</dd></div>
+            <div><dt>P50, mediana</dt><dd>{fmt(row.distribucion_elegible.p50)}</dd></div>
             <div><dt>P75</dt><dd>{fmt(row.distribucion_elegible.p75)}</dd></div>
             <div><dt>P90</dt><dd>{fmt(row.distribucion_elegible.p90)}</dd></div>
           </dl>
@@ -496,9 +496,9 @@ function ImpactoMarginal({
       <ul className="cmv2-crc-impact-list">
         {rows.map(({ entry, row }) => (
           <li key={`${entry.id}:${row.faculty_key}:${row.segment_key}`}>
-            <span><strong>{row.faculty_label}</strong> · {entry.label} · {rotulo(row)}</span>
-            <span>{signed(row.delta.delta_ch, "CH")} · {signed(row.delta.delta_matriculas, "matrículas")} · {signed(row.delta.delta_estudiantes_unicos, "alumnos únicos")}</span>
-            <small>{row.delta.reconstruccion_valida ? "Contrafactual reconstruido" : "Reconstrucción no válida · deltas NA"}</small>
+            <span><strong>{row.faculty_label}</strong>, {entry.label}, {rotulo(row)}</span>
+            <span>{signed(row.delta.delta_ch, "CH")}, {signed(row.delta.delta_matriculas, "matrículas")}, {signed(row.delta.delta_estudiantes_unicos, "alumnos únicos")}</span>
+            <small>{row.delta.reconstruccion_valida ? "Contrafactual reconstruido" : "Reconstrucción no válida, deltas NA"}</small>
           </li>
         ))}
       </ul>
@@ -509,8 +509,8 @@ function ImpactoMarginal({
       <ul className="cmv2-crc-impact-list">
         {v1Rows.map((row) => (
           <li key={`${row.facultad_key}:${row.categoria_key}`}>
-            <span><strong>{row.facultad_label}</strong> · {row.categoria_label}</span>
-            <span>{signed(row.delta_marginal.delta_ch, "CH")} · {signed(row.delta_marginal.delta_matriculas_elegibles, "matrículas")}</span>
+            <span><strong>{row.facultad_label}</strong>, {row.categoria_label}</span>
+            <span>{signed(row.delta_marginal.delta_ch, "CH")}, {signed(row.delta_marginal.delta_matriculas_elegibles, "matrículas")}</span>
             <small>Referencia: {row.delta_marginal.referencia}</small>
           </li>
         ))}
@@ -643,7 +643,7 @@ export function CriteriosRadiografiaCardDetalle({
             {rows.map(({ entry, row }) => (
               <li key={`${entry.id}:${row.faculty_key}:${row.segment_key}`}>
                 <strong>{ACTION_COPY[row.delta.action] ?? row.delta.action}</strong>
-                <span>{row.faculty_label} · {rotulo(row)}</span>
+                <span>{row.faculty_label}, {rotulo(row)}</span>
                 {entry.gate === "informativo" ? <small>No altera el N del marco.</small> : null}
               </li>
             ))}

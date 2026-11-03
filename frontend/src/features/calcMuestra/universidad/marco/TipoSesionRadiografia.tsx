@@ -74,7 +74,7 @@ function LegacyTipoSesion({ facultad }: { facultad: CalcMuestraAulasExploracionF
         <thead>
           <tr>
             <th>Tipo</th>
-            <th data-numeric="true">CH · eleg.</th>
+            <th data-numeric="true">CH, eleg.</th>
             <th data-numeric="true">Elegibles</th>
             <th data-numeric="true">Elegibles/aula</th>
             {hayBoxplot && <th className="cmv2-boxplot-col">Distribución</th>}
@@ -97,7 +97,7 @@ function LegacyTipoSesion({ facultad }: { facultad: CalcMuestraAulasExploracionF
                 title={`${fmtInt(tipo.chElegibles)} de ${fmtInt(tipo.ch)} cursos-horario con ≥1 elegible`}
               >
                 {fmtInt(tipo.ch)}
-                <span className="cmv2-dist-sub"> · {fmtInt(tipo.chElegibles)}</span>
+                <span className="cmv2-dist-sub">, {fmtInt(tipo.chElegibles)}</span>
               </td>
               <td data-numeric="true">{fmtInt(tipo.elegibles)}</td>
               <td data-numeric="true" title={medianaTitle(tipo.medianaElegibles)}>
@@ -105,7 +105,7 @@ function LegacyTipoSesion({ facultad }: { facultad: CalcMuestraAulasExploracionF
                   <>
                     <strong>{fmtDec(tipo.medianaElegibles, 0)}</strong>
                     {tipo.caja?.media != null ? (
-                      <span className="cmv2-dist-sub"> · μ{fmtDec(tipo.caja.media, 0)}</span>
+                      <span className="cmv2-dist-sub">, μ{fmtDec(tipo.caja.media, 0)}</span>
                     ) : null}
                     {tipo.caja ? (
                       <span className="cmv2-dist-rango">
@@ -195,7 +195,7 @@ export function TipoSesionRadiografia({
     (f) => f.categoria_label,
   );
   const procedencia = contexto === "editable"
-    ? "Exploración previa · último marco ejecutado"
+    ? "Exploración previa, último marco ejecutado"
     : "Marco ejecutado";
   const filasOwner = radiografia?.schema === "calc_muestra_aulas_criterios_radiografia_v2"
     ? radiografia.filas_owner
@@ -216,7 +216,7 @@ export function TipoSesionRadiografia({
           <header className="cmv2-tsr-head">
             <div>
               <span className="cmv2-tsr-chip">{procedencia}</span>
-              <strong>Tipo de sesión · radiografía por categoría</strong>
+              <strong>Tipo de sesión, radiografía por categoría</strong>
             </div>
             <dl className="cmv2-tsr-provenance" aria-label="Procedencia de la radiografía">
               <div><dt>Motor</dt><dd>{filasOwner}</dd></div>
@@ -278,7 +278,7 @@ export function TipoSesionRadiografia({
                       <small>{fmtInt(fila.distribucion_elegible.n_ch_con_dato)} CH con dato</small>
                     </div>
                     <div data-secondary>
-                      <span>Media total · contraste</span>
+                      <span>Media total, contraste</span>
                       <strong>{fmtDec(fila.contraste_total.media, 1)}</strong>
                       <small>{fmtInt(fila.contraste_total.n_ch_con_dato)} CH con dato</small>
                     </div>

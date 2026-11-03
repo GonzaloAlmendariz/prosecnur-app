@@ -34,7 +34,7 @@ export function DocenteUnicoAviso({ registro }: { registro: unknown }) {
             <span className="cmv2-docente-unico-celda">{a.stratum}</span>
             <span className="cmv2-docente-unico-swap">
               {a.saliente} → {a.entrante}
-              {a.intercambiado_con_ola ? <i title="el aula saliente pasó a la ola de reserva; nada se pierde"> · con ola</i> : null}
+              {a.intercambiado_con_ola ? <i title="el aula saliente pasó a la ola de reserva; nada se pierde">, con ola</i> : null}
             </span>
           </li>
         ))}

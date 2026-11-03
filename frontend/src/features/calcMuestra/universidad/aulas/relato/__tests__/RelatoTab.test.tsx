@@ -143,7 +143,7 @@ describe("RelatoTab — ensamblaje balanceado en reduced motion (iteración cube
     // Cifra oficial del balance = la publicada por R, tal cual.
     expect(html).toContain("87.4");
     // Composición final estática (marco 50% vs muestra 50% con su conteo).
-    expect(html).toContain("marco 50.0% · muestra 50.0% (1)");
+    expect(html).toContain("marco 50.0%, muestra 50.0% (1)");
     // Polish 2026-08-07: en estático el cluster nace COMPLETO y el sub-stepper
     // del ensamblaje sigue operable como cuadros discretos.
     expect(html).toContain("Bola 2 de 2");
@@ -183,7 +183,7 @@ describe("RelatoTab — vacío gobernado (gate 5)", () => {
   it("un foco inválido cae al estudio completo sin romper la superficie", () => {
     stubMatchMedia(false);
     const html = render(modeloConSeleccion(), "facultad-inexistente");
-    expect(html).toContain("Estudio completo · 2 facultades");
+    expect(html).toContain("Estudio completo, 2 facultades");
   });
 });
 

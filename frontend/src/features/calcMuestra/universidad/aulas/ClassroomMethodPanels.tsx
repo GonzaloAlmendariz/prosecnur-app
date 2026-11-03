@@ -189,8 +189,8 @@ function ProfileBalanceRow({ row }: { row: CalcMuestraAulasProfileDistribution }
         <strong>{row.category}</strong>
         {/* Marco y muestra solo vivían en el aria-label de la barra: se leían
             con lector de pantalla y no con los ojos. */}
-        <span>marco {fmtPct(frame)} · muestra {fmtPct(selected)}</span>
-        <em>{fmtPct(gap)} de brecha{hasTolerance ? ` · tolerancia ±${fmtPct(tolerance)}` : ""}</em>
+        <span>marco {fmtPct(frame)}, muestra {fmtPct(selected)}</span>
+        <em>{fmtPct(gap)} de brecha{hasTolerance ? `, tolerancia ±${fmtPct(tolerance)}` : ""}</em>
       </div>
       {/* Barras PAREADAS (2026-08-20): las dos superpuestas desde cero se
           leian como un grafico «partido a la mitad» (Gonzalo). Marco arriba
@@ -405,7 +405,7 @@ export function ClassroomRecommendation({
       <small>Recomendación del laboratorio</small>
       <strong>{classroomMethodLabel(comparison.recommendation.method_id ?? "") || comparison.recommendation.method_label}</strong>
       <span>{classroomMethodReasonVisible(String(comparison.recommendation.method_id ?? ""), comparison.recommendation.operational_reason)}</span>
-      <b>Calidad {classroomScore(comparison.recommendation.representativity_score ?? comparison.recommendation.overall_score)} · distancia {classroomNumberText(comparison.recommendation as Record<string, unknown>, ["representativity_distance"])}</b>
+      <b>Calidad {classroomScore(comparison.recommendation.representativity_score ?? comparison.recommendation.overall_score)}, distancia {classroomNumberText(comparison.recommendation as Record<string, unknown>, ["representativity_distance"])}</b>
       <em>{comparison.recommendation.methodological_reason}</em>
     </div>
   );

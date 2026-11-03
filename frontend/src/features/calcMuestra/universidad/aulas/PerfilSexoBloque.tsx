@@ -59,7 +59,7 @@ export function PerfilSexoBloque({ perfil }: { perfil: PerfilSexo | null }) {
                 ) : null}
               </span>
               <span className="cmv2-psx-cifras">
-                {fmtInt(fila.mujeres)} M · {fmtInt(fila.hombres)} H
+                {fmtInt(fila.mujeres)} M, {fmtInt(fila.hombres)} H
               </span>
             </li>
           );

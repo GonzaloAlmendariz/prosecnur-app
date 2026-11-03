@@ -186,11 +186,11 @@ function MetricStep({
         data-qa-geometry-contract="equal"
         data-stack-order="p1-p2-delta"
       >
-        <ScenarioValue scenario="p1" label="P1 · Universidad" value={p1Value} note={p1Note} />
-        <ScenarioValue scenario="p2" label="P2 · Facultades" value={p2Value} note={p2Note} />
+        <ScenarioValue scenario="p1" label="P1, Universidad" value={p1Value} note={p1Note} />
+        <ScenarioValue scenario="p2" label="P2, Facultades" value={p2Value} note={p2Note} />
       </div>
       <aside className="cmv2-compare-delta" aria-label={`Diferencia publicada para ${title}`}>
-        <span>Δ publicado · P2−P1</span>
+        <span>Δ publicado (P2−P1)</span>
         <strong>{fmtDelta(delta)}</strong>
         <p>{deltaNote}</p>
       </aside>
@@ -255,7 +255,7 @@ export function CalculoComparacionEscenarios({
               data-stack-order="p1-p2-delta"
             >
               <article className="cmv2-compare-scenario" data-scenario="p1" data-active={escenario === "e1" || undefined} data-qa-geometry-member>
-                <span>P1 · Universidad</span>
+                <span>P1, Universidad</span>
                 <h4>Alcance formal global</h4>
                 <p>Una unidad formal para la universidad completa.</p>
                 <dl>
@@ -274,7 +274,7 @@ export function CalculoComparacionEscenarios({
                 </button>
               </article>
               <article className="cmv2-compare-scenario" data-scenario="p2" data-active={escenario === "e2" || undefined} data-qa-geometry-member>
-                <span>P2 · Facultades</span>
+                <span>P2, Facultades</span>
                 <h4>Alcances formales independientes</h4>
                 <p>Cada facultad conserva su propio alcance formal.</p>
                 <dl>
@@ -340,7 +340,7 @@ export function CalculoComparacionEscenarios({
           />
 
           <footer className="cmv2-compare-provenance" data-qa-geometry-member>
-            <span><Database size={14} aria-hidden="true" /> owner · engine_r</span>
+            <span><Database size={14} aria-hidden="true" /> calculado por el motor R</span>
             <dl aria-label="Procedencia de la comparación">
               <div><dt>Calculado</dt><dd>{fmtDate(state.data.computed_at)}</dd></div>
               <div><dt>Frame</dt><dd title={state.data.source_frame_hash}>{fmtHash(state.data.source_frame_hash)}</dd></div>

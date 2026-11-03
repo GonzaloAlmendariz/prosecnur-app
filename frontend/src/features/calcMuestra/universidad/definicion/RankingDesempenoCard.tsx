@@ -30,7 +30,7 @@ function parSexo(mujeres: number | null, hombres: number | null): string {
   if (mujeres == null && hombres == null) return "—";
   const m = mujeres == null ? "—" : fmtInt(mujeres);
   const h = hombres == null ? "—" : fmtInt(hombres);
-  return `${m} · ${h}`;
+  return `${m}, ${h}`;
 }
 
 export function RankingDesempenoCard({
@@ -115,7 +115,7 @@ export function RankingDesempenoCard({
                       <span className="cmv2-rankdes-curso">{fila.nombreCurso || fila.cursoHorario}</span>
                       <small>
                         {fila.cursoHorario}
-                        {fila.rol.toLowerCase() === "titular" ? "" : ` · ${fila.rol.toLowerCase()}`}
+                        {fila.rol.toLowerCase() === "titular" ? "" : `, ${fila.rol.toLowerCase()}`}
                       </small>
                     </th>
                     <td>{fila.tipo ? fila.tipo.toLowerCase() : "—"}</td>

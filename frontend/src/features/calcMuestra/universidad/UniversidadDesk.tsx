@@ -1017,14 +1017,14 @@ export function UniversidadDesk({
                   el paso 2 convierte en titulares; sin declararlo, la cadena
                   empieza en el aire. */}
               <div className="cmv2-recorrido-paso" data-paso="0">
-                <span className="cmv2-recorrido-kicker">Paso 0 · Qué se busca: la muestra y su sobremuestra</span>
+                <span className="cmv2-recorrido-kicker">Paso 0. Qué se busca: la muestra y su sobremuestra</span>
                 <MuestraOperativaCard
                   comp={compActivo ?? null}
                   onIrACalculo={() => onNavigate("calculo", "calculo-propuestas")}
                 />
               </div>
               <div className="cmv2-recorrido-paso" data-paso="1">
-                <span className="cmv2-recorrido-kicker">Paso 1 · Qué hay: los elegibles y el tamaño de las aulas</span>
+                <span className="cmv2-recorrido-kicker">Paso 1. Qué hay: los elegibles y el tamaño de las aulas</span>
                 <DistribucionElegiblesCard
                   aulaFrame={(aulasState?.frame?.aula_frame ?? null) as Record<string, unknown>[] | null}
                   estratos={(compActivo?.resultado?.aulas_por_estrato ?? null) as
@@ -1032,7 +1032,7 @@ export function UniversidadDesk({
                 />
               </div>
               <div className="cmv2-recorrido-paso" data-paso="2">
-                <span className="cmv2-recorrido-kicker">Paso 2 · Qué rinde: la tasa que convierte cuota en titulares</span>
+                <span className="cmv2-recorrido-kicker">Paso 2. Qué rinde: la tasa que convierte cuota en titulares</span>
                 <FuenteEfectividadCard
                   efectividad={(syncedWorkspace.aulas_config as CalcMuestraWorkspaceAulasConfig | undefined)?.efectividad}
                   aulaFrame={aulasState?.frame?.aula_frame ?? null}
@@ -1054,7 +1054,7 @@ export function UniversidadDesk({
                 />
               </div>
               <div className="cmv2-recorrido-paso" data-paso="3">
-                <span className="cmv2-recorrido-kicker">Paso 3 · Qué se pide: titulares, reservas y si llegan a la cuota</span>
+                <span className="cmv2-recorrido-kicker">Paso 3. Qué se pide: titulares, reservas y si llegan a la cuota</span>
                 <CalculoCursosHorarioFacultadTab
                   componentes={[totalComp, facultyComp]}
                   currentFrameHash={aulasState?.frame?.frame_hash}

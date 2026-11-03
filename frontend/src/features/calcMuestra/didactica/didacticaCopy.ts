@@ -70,6 +70,6 @@ export function pasoMeta(id: string): PasoMeta {
 
 export const BADGE_COPY = {
   validado: "cifra validada",
-  preview: "vista previa · calculando…",
+  preview: "vista previa, calculando…",
   error: "sin conexión con la calculadora",
 } as const;

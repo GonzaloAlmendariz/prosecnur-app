@@ -127,9 +127,9 @@ function SeccionHead({
       <strong>{titulo}</strong>
       <span className="cmv2-partic-summary-counts">
         {fmtInt(countTotal)} {countTotal === 1 ? "detectado" : "detectados"}
-        {resumen.excluir > 0 ? ` · ${fmtInt(resumen.excluir)} a excluir` : ""}
+        {resumen.excluir > 0 ? `, ${fmtInt(resumen.excluir)} a excluir` : ""}
         {resumen.pendientes > 0 && resumen.pendientes < resumen.total
-          ? ` · ${fmtInt(resumen.pendientes)} sin decidir`
+          ? `, ${fmtInt(resumen.pendientes)} sin decidir`
           : ""}
       </span>
     </header>

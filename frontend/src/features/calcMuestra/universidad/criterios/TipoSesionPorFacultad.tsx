@@ -53,7 +53,7 @@ function listar(items: string[]): string {
 function etiquetaCorta(label: string): string {
   const { base, agrupadas } = analizarEtiquetaCategoria(label);
   if (!base) return label;
-  return agrupadas.length > 1 ? `${base} · agrupa ${agrupadas.length}` : base;
+  return agrupadas.length > 1 ? `${base}, agrupa ${agrupadas.length}` : base;
 }
 
 /** Mini-distribución de tipos de una facultad: barra apilada proporcional al CH. */
@@ -67,7 +67,7 @@ function MiniDistribucion({ fila }: { fila: FilaFacultad }) {
           key={t.key}
           data-activo={t.activo ? "true" : "false"}
           style={{ width: `${((t.ch ?? 0) / fila.chTotal) * 100}%` }}
-          title={`${t.label}: ${fmtInt(t.ch ?? 0)} CH${t.elegibles != null ? ` · ${fmtInt(t.elegibles)} elegibles` : ""}${t.activo ? "" : " · excluido aquí"}`}
+          title={`${t.label}: ${fmtInt(t.ch ?? 0)} CH${t.elegibles != null ? `, ${fmtInt(t.elegibles)} elegibles` : ""}${t.activo ? "" : ", excluido aquí"}`}
         />
       ))}
     </span>

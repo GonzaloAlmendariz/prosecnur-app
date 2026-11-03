@@ -133,7 +133,7 @@ export function TasaEfectividadFacultadCard({
                   data-origen="historico"
                   title={`Su composición por tamaño (la mezcla de aulas que tiene en el marco) y además su razón observado/esperado: en 2025 aplicó ${f.k != null ? fmtInt(f.k) : "—"} aulas, suficientes para medir si rinde por encima o por debajo de lo que su tamaño predice.`}
                 >
-                  composición × razón O/E 2025 · k={f.k != null ? fmtInt(f.k) : "—"}
+                  composición × razón O/E 2025, k={f.k != null ? fmtInt(f.k) : "—"}
                 </span>
               ) : origen === "general" ? (
                 /* Sin histórico la tasa no se deriva de nada: es la de
@@ -152,7 +152,7 @@ export function TasaEfectividadFacultadCard({
                   data-origen="mix"
                   title="Aplicó menos de 12 aulas en 2025, así que no se le estima una razón observado/esperado propia (sobre tan pocos casos sería ruido) y se fija en 1: rinde lo que su tamaño predice. La función de efectividad según tamaño sí sale del histórico; lo propio de esta facultad es su composición por tamaño."
                 >
-                  composición por tamaño · sin razón propia
+                  composición por tamaño, sin razón propia
                 </span>
               )}
             </div>

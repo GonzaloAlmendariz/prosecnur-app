@@ -262,7 +262,7 @@ export function AulasFinalesCard({
             <p className="cmv2-aulas-finales-depth">
               <span>
                 {recortada
-                  ? `Mostrando ${TOPE_FILAS} de ${fmtInt(filtradas.length)} · usa el buscador para llegar a uno concreto`
+                  ? `Mostrando ${TOPE_FILAS} de ${fmtInt(filtradas.length)}, usa el buscador para llegar a uno concreto`
                   : `Mostrando los ${fmtInt(filtradas.length)}`}
               </span>
               <button type="button" onClick={() => setVerTodas((v) => !v)}>

@@ -179,8 +179,8 @@ export function CalculoCursosHorarioFacultadTab({
             />
           </div>
           <div className="cmv2-segment" role="radiogroup" aria-label="Propuesta que dimensiona las aulas">
-            <button type="button" role="radio" aria-checked={escenario !== "e2"} data-active={escenario !== "e2" || undefined} onClick={() => onEscenario("e1")}>P1 · Universidad</button>
-            <button type="button" role="radio" aria-checked={escenario === "e2"} data-active={escenario === "e2" || undefined} onClick={() => onEscenario("e2")}>P2 · Facultades</button>
+            <button type="button" role="radio" aria-checked={escenario !== "e2"} data-active={escenario !== "e2" || undefined} onClick={() => onEscenario("e1")}>P1, Universidad</button>
+            <button type="button" role="radio" aria-checked={escenario === "e2"} data-active={escenario === "e2" || undefined} onClick={() => onEscenario("e2")}>P2, Facultades</button>
           </div>
         </div>
 
@@ -239,7 +239,7 @@ export function CalculoCursosHorarioFacultadTab({
             </tbody>
           </table>
         </div>
-        <small className="cmv2-calc-diseno-nota">Marco firmado: {model.decision.frame_hash.slice(0, 12)} · confirmación {model.decision.confirmado_at}</small>
+        <small className="cmv2-calc-diseno-nota">Marco firmado: {model.decision.frame_hash.slice(0, 12)}, confirmación {model.decision.confirmado_at}</small>
       </section>
 
       {/* La certeza vivía aquí debajo. Se mudó a su pestaña propia al final de

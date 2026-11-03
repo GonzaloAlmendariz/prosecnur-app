@@ -130,7 +130,7 @@ export function HistorialCorridas({ workspace }: { workspace: CalcMuestraWorkspa
   return (
     <PanelAvanzado
       titulo="Historial de corridas"
-      descripcion={`últimas ${fmtInt(corridas.length)} · elige dos para compararlas`}
+      descripcion={`últimas ${fmtInt(corridas.length)}, elige dos para compararlas`}
       defaultOpen
     >
       <div className="cmv2-sal-historial">
@@ -173,8 +173,8 @@ export function HistorialCorridas({ workspace }: { workspace: CalcMuestraWorkspa
               <thead>
                 <tr>
                   <th scope="col">Parámetro / resultado</th>
-                  <th scope="col">A · {fechaCorrida(corridaA.timestamp)}</th>
-                  <th scope="col">B · {fechaCorrida(corridaB.timestamp)}</th>
+                  <th scope="col">A, {fechaCorrida(corridaA.timestamp)}</th>
+                  <th scope="col">B, {fechaCorrida(corridaB.timestamp)}</th>
                   <th scope="col">Δ (B − A)</th>
                 </tr>
               </thead>

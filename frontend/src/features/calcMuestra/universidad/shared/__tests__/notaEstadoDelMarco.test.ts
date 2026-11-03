@@ -29,9 +29,9 @@ const marcoSano = frame({
 describe("notaEstadoDelMarco", () => {
   it("un proyecto recién creado no pide reconstruir nada", () => {
     // EL caso medido. `{}` es como llega un marco ausente desde el backend.
-    expect(notaEstadoDelMarco(frame({}))).toBe("sin construir · calcula elegibles");
-    expect(notaEstadoDelMarco(null)).toBe("sin construir · calcula elegibles");
-    expect(notaEstadoDelMarco(undefined)).toBe("sin construir · calcula elegibles");
+    expect(notaEstadoDelMarco(frame({}))).toBe("sin construir, calcula elegibles");
+    expect(notaEstadoDelMarco(null)).toBe("sin construir, calcula elegibles");
+    expect(notaEstadoDelMarco(undefined)).toBe("sin construir, calcula elegibles");
 
     // Y lo que hace falso al mensaje viejo: sin marco, la integridad dice
     // «unverifiable», que es de donde salía el «reconstruye».
@@ -82,8 +82,8 @@ describe("notaEstadoDelMarco", () => {
 
   it("un hash vacío cuenta como no construido, no como marco roto", () => {
     // Un frame a medio serializar no acredita una construcción.
-    expect(notaEstadoDelMarco(frame({ frame_hash: "" }))).toBe("sin construir · calcula elegibles");
-    expect(notaEstadoDelMarco(frame({ frame_hash: "   " }))).toBe("sin construir · calcula elegibles");
-    expect(notaEstadoDelMarco(frame({ aula_frame: [], perfil: {} }))).toBe("sin construir · calcula elegibles");
+    expect(notaEstadoDelMarco(frame({ frame_hash: "" }))).toBe("sin construir, calcula elegibles");
+    expect(notaEstadoDelMarco(frame({ frame_hash: "   " }))).toBe("sin construir, calcula elegibles");
+    expect(notaEstadoDelMarco(frame({ aula_frame: [], perfil: {} }))).toBe("sin construir, calcula elegibles");
   });
 });

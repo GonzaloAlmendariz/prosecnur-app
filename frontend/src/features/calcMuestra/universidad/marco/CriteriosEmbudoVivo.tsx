@@ -210,7 +210,7 @@ export function CriteriosEmbudoVivo({
           ))}
         </ol>
       )}
-      <footer>Unidad: curso-horario único · firma {cascade.criteria_hash.slice(0, 12)}</footer>
+      <footer>Unidad: curso-horario único, firma {cascade.criteria_hash.slice(0, 12)}</footer>
     </div>
   );
 }

@@ -382,14 +382,14 @@ export function ExploradorBasesTab({
           ) : columnas.length ? (
             <>
               <strong>{fmtInt(filas)}</strong>
-              {acotada ? <> de {fmtInt(filasBase)}</> : null} filas ·{" "}
+              {acotada ? <> de {fmtInt(filasBase)}</> : null} filas,{" "}
               <strong>{fmtInt(columnas.length)}</strong> columnas
               {unidad === "estudiantes" && perfil?.estudiantes != null ? (
-                <> · {fmtInt(perfil.estudiantes)} estudiantes distintos</>
+                <>, {fmtInt(perfil.estudiantes)} estudiantes distintos</>
               ) : null}
               {fuente?.tipo === "marco"
-                ? " · lo que el motor derivó, no tu archivo"
-                : " · tal como se leyó, sin criterios"}
+                ? ", lo que el motor derivó, no tu archivo"
+                : ", tal como se leyó, sin criterios"}
             </>
           ) : null}
         </p>
@@ -472,7 +472,7 @@ export function ExploradorBasesTab({
               <p>
                 {seleccionadosEnEdicion
                   ? `${fmtInt(seleccionadosEnEdicion)} de ${fmtInt(valoresEnEdicion.length)} elegidos`
-                  : `${fmtInt(valoresEnEdicion.length)} valores · elige los que quieras ver`}
+                  : `${fmtInt(valoresEnEdicion.length)} valores, elige los que quieras ver`}
               </p>
               <button type="button" onClick={() => setEditandoFiltro(null)}>
                 Listo
@@ -564,7 +564,7 @@ export function ExploradorBasesTab({
                         type="button"
                         data-activa={activa?.columna === col.columna || undefined}
                         onClick={() => { setVariable(col.columna); setColaAbierta(false); }}
-                        title={`${col.titulo} · ${fmtPct(share)} con dato`}
+                        title={`${col.titulo}, ${fmtPct(share)} con dato`}
                       >
                         <span className="cmv2-expb-var">{col.titulo}</span>
                         {share < 0.995 ? (
@@ -599,8 +599,8 @@ export function ExploradorBasesTab({
                     <p>
                       {activa.tipo === "numerica"
                         ? "Numérica"
-                        : `Categórica · ${fmtInt(activa.distintos)} valores distintos${acotada ? " aquí" : ""}`}
-                      {activa.detalle ? <> · {activa.detalle}</> : null}
+                        : `Categórica, ${fmtInt(activa.distintos)} valores distintos${acotada ? " aquí" : ""}`}
+                      {activa.detalle ? <>, {activa.detalle}</> : null}
                     </p>
                   </div>
                   <dl className="cmv2-expb-chips">
@@ -665,7 +665,7 @@ export function ExploradorBasesTab({
                               type="button"
                               className="cmv2-expb-cat-label"
                               data-en-filtro={enFiltro || undefined}
-                              title={`${etiqueta} · filtrar por este valor`}
+                              title={`${etiqueta}, filtrar por este valor`}
                               onClick={() => alternarValor(activa.columna, categoria.clave)}
                             >
                               {etiqueta}

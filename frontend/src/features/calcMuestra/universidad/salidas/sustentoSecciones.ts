@@ -117,7 +117,7 @@ export function seccionesSustento(ctx: Contexto): SeccionSustento[] {
       reemplazos || haySeleccion, "Todavía no hay cadenas de reemplazo."),
     // El único externo. Se declara, no se omite ni se rellena.
     s(9, "campo-monitoreo", "Criterios para el campo y su monitoreo", "externo",
-      "Monitoreo · perfil de aulas (`AulasCriterioDeAula`, `alcanceDelBanco`, `agendamiento`)",
+      "Monitoreo, perfil de aulas (`AulasCriterioDeAula`, `alcanceDelBanco`, `agendamiento`)",
       false,
       "Este capítulo vive en Monitoreo, que hoy lo muestra en pantalla pero no lo publica como dato. El documento puede citarlo pero no reconstruirlo."),
     s(10, "vs-propuesta", "Contraste con la propuesta técnica", "estudio",

@@ -94,7 +94,7 @@ export function aulasSupervivientesFacultad(
       return {
         classroomId,
         classroomKey: textKey(classroomId),
-        label: seccion ? `${curso} · ${seccion}` : curso,
+        label: seccion ? `${curso}, ${seccion}` : curso,
         detalle,
         eligibleN: rowNum(r, "eligible_n"),
       };

@@ -82,7 +82,7 @@ function describeMinimo(min: Record<string, unknown> | undefined): string {
   const by = (min.byFaculty ?? {}) as Record<string, unknown>;
   const n = Object.keys(by).length;
   if (!Number.isFinite(thr)) return "";
-  const propios = n ? ` · ${n} facultad${n === 1 ? "" : "es"} con mínimo propio` : "";
+  const propios = n ? `, ${n} facultad${n === 1 ? "" : "es"} con mínimo propio` : "";
   return `${thr} elegibles${propios}`;
 }
 

@@ -195,7 +195,7 @@ export function MatrizCascadaCriterios({
         className="cmv2-mtz-scroll"
         tabIndex={0}
         role="region"
-        aria-label="Tabla de criterios por facultad · desplazable en horizontal"
+        aria-label="Tabla de criterios por facultad, desplazable en horizontal"
       >
         <table className="cmv2-mtz-tabla">
           <caption className="cmv2-mtz-caption">
@@ -245,7 +245,7 @@ export function MatrizCascadaCriterios({
         {hayOperativos ? (
           <span><i data-m="operativo" />paso operativo, no un criterio</span>
         ) : null}
-        {edicion ? <span><i data-m="edit" />en edición · su fila espera confirmación</span> : null}
+        {edicion ? <span><i data-m="edit" />en edición, su fila espera confirmación</span> : null}
       </p>
 
       {/* Un descuadre no es un fallo de la matriz: significa que algún paso no

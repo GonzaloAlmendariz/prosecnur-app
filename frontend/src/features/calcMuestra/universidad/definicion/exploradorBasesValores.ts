@@ -55,10 +55,10 @@ const POR_COLUMNA: Record<string, Record<string, string>> = {
     modal: "Nivel más frecuente del aula",
   },
   size_group: {
-    g1: "Tramo 1 · los más pequeños",
+    g1: "Tramo 1, los más pequeños",
     g2: "Tramo 2",
     g3: "Tramo 3",
-    g4: "Tramo 4 · los más grandes",
+    g4: "Tramo 4, los más grandes",
   },
   sex_top_1: { f: "Femenino", m: "Masculino" },
   sex_top_2: { f: "Femenino", m: "Masculino" },

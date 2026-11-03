@@ -185,7 +185,7 @@ export function FacultadCategoriaToggles({
                   ) : null}
                   {t.elegibles != null ? (
                     <>
-                      {" · "}
+                      {", "}
                       {fmtInt(t.elegibles)} <em>elegibles</em>
                     </>
                   ) : null}

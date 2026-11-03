@@ -61,7 +61,7 @@ export function PanoramaCursosHorario({
       <header className="cmv2-panorama-head">
         <h3>Panorama por facultad</h3>
         <p className="cmv2-panorama-escala">
-          {filas.length} facultades · barra sobre escala común 0 – {fmtInt(escala)} CH ·
+          {filas.length} facultades, barra sobre escala común 0 – {fmtInt(escala)} CH ·
           el punto (·) hereda la regla general del estudio
         </p>
       </header>

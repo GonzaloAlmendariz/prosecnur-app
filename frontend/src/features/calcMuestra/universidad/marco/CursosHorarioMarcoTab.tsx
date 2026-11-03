@@ -1115,7 +1115,7 @@ export function CursosHorarioMarcoTab({
                   <School size={18} />
                 </span>
                 <div className="cmv2-chfp-section-copy">
-                  <h3>Por facultad · información y decisión</h3>
+                  <h3>Por facultad, información y decisión</h3>
                   <p>
                     Ordenadas por matrículas elegibles. Abre una facultad para ver su radiografía y decidir sus
                     criterios de curso-horario en la misma superficie, luego pasa a la siguiente.
@@ -1177,7 +1177,7 @@ export function CursosHorarioMarcoTab({
                         </option>
                       ))}
                     </select>
-                    <small>{bloques.length} facultades · se muestra una a la vez con todo su detalle</small>
+                    <small>{bloques.length} facultades, se muestra una a la vez con todo su detalle</small>
                   </label>
                   {(bloqueFoco ? [bloqueFoco] : []).map((bloque) => (
                     <FacultadDecisionBloque

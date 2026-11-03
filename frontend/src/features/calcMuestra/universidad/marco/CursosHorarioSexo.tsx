@@ -152,7 +152,7 @@ export function CursosHorarioSexo({
         <p className="cmv2-ch-sexo-depth">
           <span>
             {recortada
-              ? `Mostrando los ${TOPE} de mayor tamaño · ${fmtInt(visible.length)} cursos-horario en ${activeFaculty || "el marco"}`
+              ? `Mostrando los ${TOPE} de mayor tamaño, ${fmtInt(visible.length)} cursos-horario en ${activeFaculty || "el marco"}`
               : `Mostrando los ${fmtInt(visible.length)} cursos-horario de ${activeFaculty || "el marco"}`}
           </span>
           <button type="button" onClick={() => setVerTodos((v) => !v)}>

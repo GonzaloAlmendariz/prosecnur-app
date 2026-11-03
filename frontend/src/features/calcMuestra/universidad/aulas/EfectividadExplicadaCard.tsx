@@ -253,7 +253,7 @@ export function EfectividadExplicadaCard({
                 >
                   <b>{rolCorto(f)}</b>
                   <span>
-                    {texto(f.course_name) || texto(f.course_id)} · {texto(f.schedule)} ·{" "}
+                    {texto(f.course_name) || texto(f.course_id)}, {texto(f.schedule)},{" "}
                     {texto(f.faculty_aula) || texto(f.faculty)}
                   </span>
                 </button>
@@ -277,7 +277,7 @@ export function EfectividadExplicadaCard({
             <strong>{radio.curso}</strong>
             <small>
               {radio.codigo}
-              {radio.horario ? ` · ${radio.horario}` : ""} · {radio.facultad}
+              {radio.horario ? `, ${radio.horario}` : ""}, {radio.facultad}
             </small>
           </header>
           <ol className="cmv2-efexp-pasos">
@@ -351,7 +351,7 @@ export function EfectividadExplicadaCard({
             <strong>{radioTau.curso}</strong>
             <small>
               {radioTau.codigo}
-              {radioTau.horario ? ` · ${radioTau.horario}` : ""} · {radioTau.facultad}
+              {radioTau.horario ? `, ${radioTau.horario}` : ""}, {radioTau.facultad}
             </small>
           </header>
           <ol className="cmv2-efexp-pasos">

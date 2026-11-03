@@ -171,8 +171,8 @@ describe("CalculoComparacionEscenarios", () => {
     sequence.slice(1).forEach((label, index) => {
       expect(html.indexOf(sequence[index])).toBeLessThan(html.indexOf(label));
     });
-    expect(html).toContain("P1 · Universidad");
-    expect(html).toContain("P2 · Facultades");
+    expect(html).toContain("P1, Universidad");
+    expect(html).toContain("P2, Facultades");
     expect(html).toContain("2,372");
     expect(html).toContain("5,932");
     expect(html).toContain("+3,560");

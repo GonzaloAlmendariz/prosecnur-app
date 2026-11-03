@@ -156,11 +156,11 @@ function FilaCerteza({ fila, nivel, onFijarAulas }: {
                 ? `Decidido con ${precision.corridas} sorteos, y el veredicto es frágil: a ${fila.aulas_certeza! - 1} aulas le falta sólo ${(precision.distancia * 100).toFixed(2)} puntos para alcanzar el nivel, que son ${precision.erroresHastaVoltear!.toFixed(1)} veces el error de muestreo (±${(precision.error * 100).toFixed(2)}). Otra corrida podría dejar el mínimo en ${fila.aulas_certeza! - 1}.`
                 : precision.erroresHastaVoltear == null
                   ? `Decidido con ${precision.corridas} sorteos`
-                  : `Decidido con ${precision.corridas} sorteos · el veredicto aguanta: a ${fila.aulas_certeza! - 1} aulas le faltan ${(precision.distancia * 100).toFixed(1)} puntos para el nivel, ${precision.erroresHastaVoltear.toFixed(1)} veces el error de muestreo`
+                  : `Decidido con ${precision.corridas} sorteos, el veredicto aguanta: a ${fila.aulas_certeza! - 1} aulas le faltan ${(precision.distancia * 100).toFixed(1)} puntos para el nivel, ${precision.erroresHastaVoltear.toFixed(1)} veces el error de muestreo`
             }
           >
             {fmtInt(precision.corridas)} sorteos
-            {precision.dentroDelRuido && " · veredicto frágil"}
+            {precision.dentroDelRuido && ", veredicto frágil"}
           </small>
         )}
       </td>

@@ -79,7 +79,7 @@ function filasComparables(rows: Array<Record<string, unknown>>): ComparacionFila
     const categoria = rowText(row, ["category", "categoria", "metric_id"]);
     // Categorías vacías o placeholder no aportan comparación.
     if (!categoria || /^sin[_ ]dato/i.test(categoria)) return;
-    const etiqueta = dimension && categoria !== dimension ? `${dimension} · ${categoria}` : categoria;
+    const etiqueta = dimension && categoria !== dimension ? `${dimension}, ${categoria}` : categoria;
     brutas.push({ etiqueta, marco, muestra, dimension: dimension || categoria });
   });
   // Dimensiones con una sola categoría (100% marco y 100% muestra) no dicen
@@ -182,7 +182,7 @@ export function SeleccionAulasVisual({
           <span className="cmv2-did-kpi-hint" data-tono={brechaEsperados ? "warn" : undefined}>
             {objetivo
               ? brechaEsperados && coberturaEsperados != null
-                ? `objetivo del cálculo: ${formatoDecimal(objetivo, 3)} · cubre ${fmtPct(coberturaEsperados)}`
+                ? `objetivo del cálculo: ${formatoDecimal(objetivo, 3)}, cubre ${fmtPct(coberturaEsperados)}`
                 : `objetivo del cálculo: ${formatoDecimal(objetivo, 3)}`
               : "según los cursos-horario titulares"}
           </span>
@@ -245,8 +245,8 @@ export function SeleccionAulasVisual({
                   x: modelo.diagnostico.map((fila) => (enProporcion ? fila.marco * 100 : fila.marco)),
                   marker: { color: colorWithAlpha(tokens.textMuted, 0.45), line: { color: tokens.surface, width: 1 } },
                   hovertemplate: enProporcion
-                    ? "%{y} · marco: %{x:.1f}%<extra></extra>"
-                    : "%{y} · marco: %{x:,.2f}<extra></extra>",
+                    ? "%{y}, marco: %{x:.1f}%<extra></extra>"
+                    : "%{y}, marco: %{x:,.2f}<extra></extra>",
                 },
                 {
                   type: "bar",
@@ -256,8 +256,8 @@ export function SeleccionAulasVisual({
                   x: modelo.diagnostico.map((fila) => (enProporcion ? fila.muestra * 100 : fila.muestra)),
                   marker: { color: tokens.accent, line: { color: tokens.surface, width: 1 } },
                   hovertemplate: enProporcion
-                    ? "%{y} · muestra: %{x:.1f}%<extra></extra>"
-                    : "%{y} · muestra: %{x:,.2f}<extra></extra>",
+                    ? "%{y}, muestra: %{x:.1f}%<extra></extra>"
+                    : "%{y}, muestra: %{x:,.2f}<extra></extra>",
                 },
               ]}
               layout={didPlotLayout(tokens, {

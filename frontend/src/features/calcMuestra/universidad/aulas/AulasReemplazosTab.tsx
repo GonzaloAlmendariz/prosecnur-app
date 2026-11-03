@@ -115,7 +115,7 @@ function ReserveDepthHeader({
           label="Reservas por titular"
           value={titulares > 0 ? fmtRatio(reservas / titulares) : "—"}
           detalle={historico
-            ? `${fmtInt(reservas)} reservas para ${fmtInt(titulares)} titulares · en ${referencia?.estudio.label ?? "el estudio previo"} se agendaron ${historico.porAplicada.toFixed(1)} por cada aula aplicada`
+            ? `${fmtInt(reservas)} reservas para ${fmtInt(titulares)} titulares, en ${referencia?.estudio.label ?? "el estudio previo"} se agendaron ${historico.porAplicada.toFixed(1)} por cada aula aplicada`
             : `${fmtInt(reservas)} reservas para ${fmtInt(titulares)} titulares`}
           origen="motor"
         />

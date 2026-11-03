@@ -147,7 +147,7 @@ describe("CalculoDistribucionTab", () => {
     expect(html.indexOf(headings[0])).toBeLessThan(html.indexOf(headings[1]));
     expect(html.indexOf(headings[1])).toBeLessThan(html.indexOf(headings[2]));
     expect(html.indexOf(headings[2])).toBeLessThan(html.indexOf(headings[3]));
-    expect(html).toContain("owner · engine_r");
+    expect(html).toContain("calculado por el motor R");
     expect(html).toContain("Población × cuota planificada por facultad y sexo");
     expect(html).toContain("Cuotas objetivo planificadas");
     // ADR 0057 · «frame» es la palabra del motor; la app dice «marco» en todas
@@ -159,7 +159,7 @@ describe("CalculoDistribucionTab", () => {
 
   it("distingue promesa global P1 de promesa formal por facultad P2", () => {
     const p1 = render({ escenario: "e1" });
-    expect(p1).toContain("P1 · Universidad");
+    expect(p1).toContain("P1, Universidad");
     expect(p1).toContain("Promesa global con diagnóstico por facultad");
     expect(p1).toContain("Diagnóstico");
     expect(p1).toContain("Lectura diagnóstica");
@@ -167,7 +167,7 @@ describe("CalculoDistribucionTab", () => {
     expect(p1).not.toContain(">Cumple<");
 
     const p2 = render({ escenario: "e2" });
-    expect(p2).toContain("P2 · Facultades");
+    expect(p2).toContain("P2, Facultades");
     expect(p2).toContain("Promesa formal por facultad");
     expect(p2).toContain("Por facultad");
     expect(p2).toContain("Resultado formal");
