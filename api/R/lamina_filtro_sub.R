@@ -32,12 +32,26 @@
   trimws(sprintf("Sólo los %s%s %s", cuantos, publico, quienes))
 }
 
-#' El pie con las dos bases: «Base: 201 estudiantes. Sólo los 20 estudiantes que respondieron «Sí»»
+#' Base del dependiente por debajo de la cual sus cifras se leen como referenciales (plan de análisis CCSS 2026, sección 7)
+#' @keywords internal
+.LAM_FILTRO_SUB_BASE_MINIMA <- 30L
+
+#' El pie con las dos bases: «Base: 201 estudiantes. Sólo los 20 que respondieron «Sí». Fuente: …»
+#'
+#' La base del dependiente va antes de la fuente, que cierra el pie, y todo termina en punto (CCSS 2026, M1 y B15: el pie
+#' decía «… Fuente: PULSO PUCP 2026. Sólo los 96 que respondieron…», sin punto final). Con menos de
+#' `.LAM_FILTRO_SUB_BASE_MINIMA` casos el pie lo advierte (M3).
 #' @keywords internal
 .lam_filtro_sub_pie <- function(base, espec) {
   # PPT 23 (Renzo, v3): «Sólo los 77 que conocen el reglamento», una vez y sin «La subpregunta,» delante.
-  partes <- c(if (!is.null(base) && nzchar(trimws(base))) sub("\\.\\s*$", "", trimws(base)), .lam_filtro_sub_base(espec))
-  paste(partes, collapse = ". ")
+  b <- if (!is.null(base) && nzchar(trimws(base))) sub("\\.\\s*$", "", trimws(base)) else ""
+  corte <- regexpr("\\.\\s+Fuente:", b)
+  cuerpo <- if (corte > 0) substr(b, 1, corte - 1) else b
+  fuente <- if (corte > 0) trimws(substring(b, corte + 1)) else ""
+  n <- suppressWarnings(as.numeric(espec$n_sub)[1])
+  aviso <- if (length(n) && is.finite(n) && n < .LAM_FILTRO_SUB_BASE_MINIMA) "Base menor de 30 casos: cifras referenciales"
+  partes <- c(if (nzchar(cuerpo)) cuerpo, .lam_filtro_sub_base(espec), aviso, if (nzchar(fuente)) fuente)
+  paste0(paste(partes, collapse = ". "), ".")
 }
 
 #' La dicotomía del filtro con sus casos en el rótulo («Sí (20)»): son la base del dependiente (recetario p192–p193)
@@ -71,6 +85,7 @@
 .lam_filtro_sub_cabe_sub <- function(s) {
   if (is.null(s)) return(FALSE)
   if (identical(s$tipo, "categorica")) return(length(s$rotulos) >= 1L && length(s$rotulos) <= 8L)
+  if (.lam_filtro_sub_es_mapa(s)) return(TRUE)   # el mapa dependiente tiene su propia lámina (lamina_filtro_mapa.R)
   identical(s$tipo, "escala") && NROW(s$filas) >= 1L && NROW(s$filas) <= 8L
 }
 
@@ -84,6 +99,10 @@
   list(x = x + wl, w = w - wl - wbox, wl = wl, wbox = wbox)
 }
 
+#' Alto máximo (in) de la fila de una barra del filtro o del dependiente: con pocas respuestas, las filas llenan el alto
+#' @keywords internal
+.LAM_FILTRO_SUB_FILA_MAX <- 1.0
+
 #' La subpregunta en su caja: barras de una serie o una escala al 100 % con su leyenda debajo
 #' @keywords internal
 #'
@@ -92,7 +111,9 @@
 #' ancho de la columna y, si se le da `yc`, centrada a esa altura (la del disco del filtro, de donde sale el conector).
 .lam_filtro_sub_dibujar_sub <- function(lz, s, x, y, w, alto, yc = NULL, rotulo = NULL, centro_ley = NULL, lim_ley = NULL, n_encima = NULL) {
   if (identical(s$tipo, "categorica")) {
-    k <- length(s$rotulos); fila <- min(0.75, alto / max(1L, k)); g <- min(0.42, max(.std_grosor(k, "categorias"), fila * 0.55))
+    # Las filas se reparten en todo el alto de la columna (Gonzalo, 2026-11-03: «el gráfico que depende de otra pregunta
+    # no usa todo su alto»); el techo de 1 in por fila y el de 0.42 in de grosor evitan barras que parezcan bloques.
+    k <- length(s$rotulos); fila <- min(.LAM_FILTRO_SUB_FILA_MAX, alto / max(1L, k)); g <- min(0.42, max(.std_grosor(k, "categorias"), fila * 0.55))
     return(.lam_barras_h(lz, s, x, y, w, wlab = min(2.5, w * 0.4), g = g, fila = fila, size = 12))
   }
   if (NROW(s$filas) > 1L) {
@@ -144,6 +165,10 @@
                                     layout = "Graficos2", master = "Office Theme", por_lamina = function(doc) doc) {
   force(folio)
   espec$unidad_n <- unidad_n
+  if (.lam_filtro_sub_es_mapa(espec$sub) && !is.null(espec$filtro)) {
+    return(.lam_laminas_filtro_mapa(doc, espec, titulo, ante = ante, base = base, folio = folio, sub = sub, layout = layout, master = master,
+                                    por_lamina = por_lamina))
+  }
   if (!isTRUE(.lam_filtro_sub_cabe_filtro(espec))) {
     return(.lam_laminas_filtro_sub_respaldo(doc, espec, titulo, ante = ante, base = base, folio = folio, sub = sub, unidad_n = unidad_n,
                                             layout = layout, master = master, por_lamina = por_lamina))
@@ -224,7 +249,7 @@
       # p194: el filtro en barras, las que habilitan en azul y el resto tenue; la llave las abraza.
       f2 <- f; f2$realce <- FALSE
       f2$colores <- stats::setNames(ifelse(f$rotulos %in% espec$habilita, azul, tenue), f$rotulos)
-      k <- length(f$rotulos); fila <- min(0.66, (yf - y0 - 0.3) / k); g <- min(0.36, fila * 0.6)
+      k <- length(f$rotulos); fila <- min(.LAM_FILTRO_SUB_FILA_MAX, (yf - y0 - 0.3) / k); g <- min(0.36, fila * 0.6)
       .lam_barras_h(lz, f2, ml, y0, col - 0.45, wlab = min(2.5, col * 0.4), g = g, fila = fila, size = 12)
       hab <- which(f$rotulos %in% espec$habilita)
       .lam_llave_a_titulo(lz, ml + col - 0.35, y0 + (min(hab) - 1) * fila + (fila - g) / 2,

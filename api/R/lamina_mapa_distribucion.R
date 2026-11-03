@@ -102,31 +102,41 @@
   invisible(lz)
 }
 
+#' El mapa de distribución en una caja de la lámina: la tarjeta del mapa con su leyenda y, al lado, la del ranking
+#'
+#' Lo usan la lámina del mapa (a todo el ancho) y la del filtro con su mapa dependiente (lamina_filtro_mapa.R).
+#' @param x,y,w,h La caja (in).
+#' @return `doc` con el mapa y sus dos tarjetas.
+#' @keywords internal
+.lam_mapa_dist_en_caja <- function(doc, espec, x, y, w, h) {
+  P <- .MAPA_DIST_PX; R <- .LAM_MAPA_DIST
+  # La tarjeta del mapa mide lo que su contenido pide (entre el 40 % y el 62 % del ancho): un ancho fijo dejaba franjas de
+  # mar vacías a los lados («se ve raro el encuadre», Gonzalo, 2026-11-02). La leyenda decide su alto con ese ancho.
+  wm <- min(0.62 * w, max(0.4 * w, .mapa_dist_ancho_natural(espec, h - R$h_ley * P - P, .mapa_dist_pt("lamina")) + 2 * P))
+  h_ley <- .lam_mapa_dist_leyenda_reparto(espec, wm)$alto; h_map <- h - h_ley
+  lz <- .lam_lienzo()
+  .lam_caja(lz, x, y, wm, h, "#FFFFFF", nombre = "mapa:tarjeta", borde = "#DDE1E7", borde_pt = 0.75)
+  doc <- .lam_agrupar(doc, lz, nombre = "prosecnur:grafico:mapa:fondo")
+  panel <- .mapa_dist_panel_gg(espec, wm - 2 * P, h_map - P, .mapa_dist_pt("lamina"))
+  doc <- officer::ph_with(doc, rvg::dml(ggobj = panel, bg = "transparent", fonts = list(sans = .std_pt("fuente"))),
+                          location = officer::ph_location(left = x + P, top = y + P, width = wm - 2 * P, height = h_map - P,
+                                                          newlabel = "prosecnur:grafico:mapa"))
+  lz <- .lam_lienzo()
+  .lam_mapa_dist_leyenda(lz, espec, x, y + h_map, wm)
+  .lam_mapa_dist_ranking(lz, espec, x + wm + R$aire * P, y, w - wm - R$aire * P, h)
+  .lam_agrupar(doc, lz, nombre = "prosecnur:grafico:mapa:panel")
+}
+
 #' Lámina del mapa de distribución
 #' @keywords internal
 .lam_laminas_mapa_distribucion <- function(doc, espec, titulo, ante = NULL, base = NULL, folio = NULL, sub = NULL,
                                            layout = "Graficos2", master = "Office Theme", por_lamina = function(doc) doc) {
   force(folio)
-  P <- .MAPA_DIST_PX; R <- .LAM_MAPA_DIST; g_ <- .std_geom
+  g_ <- .std_geom
   ml <- g_("margen_izq"); ancho <- g_("ancho") - ml - g_("margen_der"); yt <- g_("zona_datos_y0") - 0.1; yf <- g_("contenido_y1")
-  h <- yf - yt
-  # La tarjeta del mapa mide lo que su contenido pide (entre el 40 % y el 62 % del ancho): un ancho fijo dejaba franjas de
-  # mar vacías a los lados («se ve raro el encuadre», Gonzalo, 2026-11-02). La leyenda decide su alto con ese ancho.
-  wm <- min(0.62 * ancho, max(0.4 * ancho, .mapa_dist_ancho_natural(espec, h - R$h_ley * P - P, .mapa_dist_pt("lamina")) + 2 * P))
-  h_ley <- .lam_mapa_dist_leyenda_reparto(espec, wm)$alto; h_map <- h - h_ley
   doc <- officer::add_slide(doc, layout = layout, master = master)
   doc <- .lam_titulo(doc, titulo, ante = ante, sub = sub)
-  lz <- .lam_lienzo()
-  .lam_caja(lz, ml, yt, wm, h, "#FFFFFF", nombre = "mapa:tarjeta", borde = "#DDE1E7", borde_pt = 0.75)
-  doc <- .lam_agrupar(doc, lz, nombre = "prosecnur:grafico:mapa:fondo")
-  panel <- .mapa_dist_panel_gg(espec, wm - 2 * P, h_map - P, .mapa_dist_pt("lamina"))
-  doc <- officer::ph_with(doc, rvg::dml(ggobj = panel, bg = "transparent", fonts = list(sans = .std_pt("fuente"))),
-                          location = officer::ph_location(left = ml + P, top = yt + P, width = wm - 2 * P, height = h_map - P,
-                                                          newlabel = "prosecnur:grafico:mapa"))
-  lz <- .lam_lienzo()
-  .lam_mapa_dist_leyenda(lz, espec, ml, yt + h_map, wm)
-  .lam_mapa_dist_ranking(lz, espec, ml + wm + R$aire * P, yt, ancho - wm - R$aire * P, h)
-  doc <- .lam_agrupar(doc, lz, nombre = "prosecnur:grafico:mapa:panel")
+  doc <- .lam_mapa_dist_en_caja(doc, espec, ml, yt, ancho, yf - yt)
   base <- paste(c(if (!is.null(base) && nzchar(base)) sub("\\.?\\s*$", ".", base), espec$nota_pie), collapse = " ")
   doc <- .lam_pie(doc, base, folio)
   list(doc = por_lamina(doc), partes = 1L)
