@@ -78,7 +78,6 @@ const SNAPSHOT_LITERALES: Record<string, number> = {
   "features/monitoreo/profiles/territorial/avance/resumen.css": 1,
   "features/monitoreo/profiles/territorial/control/anulaciones.css": 1,
   "features/monitoreo/profiles/territorial/territorialProfile.css": 2,
-  "features/monitoreo/public/monitoreoPublic.css": 1,
   "features/monitoreo/public/monitoreoPublic.css": 38,
 };
 
