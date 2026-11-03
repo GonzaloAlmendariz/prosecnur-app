@@ -16,6 +16,8 @@ import {
   type FamiliaDeLlamada,
 } from "./ritmoModel";
 import { metaDelProyecto } from "./metaDelProyecto";
+import { origenDeEfectivas } from "./origenDeEfectivas";
+import { filasDeBloque, notaDeBloque } from "../navegacion/bloques";
 import { TrazadoDeBarras } from "./TrazadoDeBarras";
 import { NotaDelModo } from "../../../core/NotaDelModo";
 import { RotuloDePestana, useHayRotulo } from "../navegacion/RotuloDePestana";
@@ -67,6 +69,8 @@ export function Ritmo({
   // La misma serie que leen el calendario de Cuotas, la vista del PDF y los chips.
   const { segmento, serie: kobo, sinCategoria, fueraDeCuota, sinFecha } = useMemo(() => serieDiariaDelCorte(reports), [reports]);
   const notaDeSerie = notaSinCategoria(sinCategoria, rotuloDelSegmento(segmento), fueraDeCuota, sinFecha);
+  // Completas de Kobo sin caso que no se suman porque algún actor cuenta su hoja: el motor dice la causa.
+  const notaDeFueraDeLaBase = useMemo(() => notaDeBloque(reports, "avance_efectivo_dia"), [reports]);
   const hoja = useMemo(() => serieHoja(reports, reglas ?? []), [reports, reglas]);
   const fechasDeLaHoja = useMemo(() => formatosDeFecha(reports), [reports]);
   const meta = metaDelProyecto(state);
@@ -89,7 +93,9 @@ export function Ritmo({
   const hojaSeDetiene = hoja.ultima && ultimoKobo && hoja.ultima < ultimoKobo ? hoja.ultima : null;
   const maximoCelda = Math.max(1, ...kobo.categorias.flatMap((categoria) => kobo.fechas.map((iso) => kobo.celdas[categoria.nombre]?.[iso] ?? 0)));
   const rotulo = rotuloDelSegmento(segmento);
-  const deOrigen = kobo.origen === "hoja" ? "de la hoja" : "de Kobo";
+  // El origen lo publica cada fila de cuota (por actor); la serie lo confirma cuando no trae una sola de Kobo.
+  const origenDeCuotas = origenDeEfectivas(filasDeBloque(reports, ["cuotas_variable", "cuotas_telefonicas", "cuotas_por_variable"]));
+  const deOrigen = kobo.origen === "hoja" || origenDeCuotas === "hoja" ? "de la hoja" : origenDeCuotas === "mixto" ? "de Kobo y de la hoja" : "de Kobo";
   // Un día sin efectivas de Kobo conserva el acumulado del día anterior (RMS
   // ficticio mostraba «—» el 15/10 y el 16/10 entre 1 y 36).
   const acumuladoAl = (iso: string) => {
@@ -203,6 +209,7 @@ export function Ritmo({
             {n(kobo.total)} en {n(resumen.dias)} {resumen.dias === 1 ? "día" : "días"}
           </p>
           {notaDeSerie ? <NotaDelModo tono="aviso">{notaDeSerie}.</NotaDelModo> : null}
+          {notaDeFueraDeLaBase ? <NotaDelModo tono="aviso">{notaDeFueraDeLaBase}</NotaDelModo> : null}
         </section>
 
         <section className="mon-ctl-panel mon-cadencia-dia-a-dia" aria-label="Día a día" data-qa-geometry-capacity="owned">

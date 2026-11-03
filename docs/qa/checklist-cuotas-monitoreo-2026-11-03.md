@@ -134,10 +134,10 @@ Reparos de `revisor-metodologico` (aprobado con reparos) y su estado:
 | # | Reparo | Estado |
 |---|---|---|
 | R1 | Sin plataforma, Cuotas y la barra no dicen que la cifra sale de la hoja (58 de la hoja frente a 55 de Kobo) | ☑ cada fila de `cuotas_variable` publica `Origen` («kobo» o «hoja») y Avance › Cuotas y la barra escriben «efectivas de la hoja», como Ritmo. Sin cambio de cifra |
-| R2 | El cambio a Kobo es para todo el estudio: un actor sin Kobo conectado cae a 0 | ☐ |
+| R2 | El cambio a Kobo es para todo el estudio: un actor sin Kobo conectado cae a 0 | ☑ por actor: pasa a Kobo el actor con al menos un caso que cruza por llave; el que no, cuenta su hoja (`Origen` «hoja», o «mixto» en una fila Total). Las completas de Kobo sin caso se suman al diario sólo si todos los actores van por Kobo; si no, se declaran en `Fuera de la base` y en una nota que Ritmo muestra («… no se suman a Efectivas: X cuenta la hoja … Revisa sus llaves»). La revisión rechazó la primera versión por doble conteo (20 entrevistas con 16 reales) y aprobó la corregida. En MedVida y MEDVID no cambia ninguna cifra (ningún escenario mezcla actores) |
 | R3 | `avance_efectivo_dia` y `avance_efectivo_actor_dia` cuentan sólo plataforma: 0 frente a 72 sin plataforma, y 70 frente a 69 con las completas de Kobo fuera de la hoja | ☑ 2775c2d8e (ver la tabla de abajo) |
 | R4 | `has_key` va por fila: una llave repetida en la población cuenta dos veces una completa | ☐ |
-| R5 | Una sola variable de cuota en pantalla: las metas de otra variable no aparecen | **bloqueado**: decisión de Gonzalo (propuesta pendiente) |
+| R5 | Una sola variable de cuota en pantalla: las metas de otra variable no aparecen | ☐ paso 1 (aviso) y paso 2 (selector, aprobado por Gonzalo el 3/11); ver «R5: propuesta» |
 
 ### R3: las series diarias con el mismo numerador (2775c2d8e)
 
@@ -155,6 +155,17 @@ Reparos de `revisor-metodologico` (aprobado con reparos) y su estado:
 Regresión de 0f5db3359 corregida en 2775c2d8e. En acreditación sin barrido la base son las propias respuestas, y quitar `!phone_from_population` dejaba la cuota en 0 (`test-monitoreo-engine.R:1741`). Ahora esas filas cuentan con su propio estado, y en esa rama no se suma «fuera de la base»: en MEDVID duplicaba, 214 de 107. El doble conteo lo verifica la medición sobre MEDVID; ningún test sintético lo reproduce todavía.
 
 **Sigue abierto**: MEDVID sin barrido da 0 en cuotas y 107 en el diario porque la variable de cuota no está en las filas de población (ya era así). El nombre `platformEffectiveFromDaily` de la página congelada ahora lleva la cifra de la hoja cuando no hay plataforma (la cifra es la misma que su respaldo).
+
+### R5: propuesta (decisión de Gonzalo)
+
+Hoy Avance › Cuotas, Ritmo y la barra muestran una sola variable de cuota (`variableDeCuotas`). Si el estudio declara metas en dos variables (por ejemplo sede y sexo), las de la segunda no aparecen en ninguna parte.
+
+Propuesta, en dos pasos:
+
+1. **Nunca en silencio (sin decisión de diseño):** cuando otra variable tenga metas, Avance › Cuotas pone bajo su título «También hay metas por sexo (2): no se muestran aquí». El total de «Faltan» sigue siendo el de la variable a la vista, sin sumar entre variables, porque las dos particionan la misma población y sumarlas contaría dos veces.
+2. **Elegir la variable (decisión de diseño):** un selector de variable en la cabecera de Avance › Cuotas, direccionable como `panel=variable&foco=<variable>`, que cambia juntos Cuotas, Ritmo y la barra (los tres leen `variableDeCuotas`, así que el selector sólo fija su entrada). Por defecto, la regla actual.
+
+**Paso 1 decidido por coordinación (3/11). R5 paso 2 aprobado por Gonzalo (3/11), textual: «Sí, agrégalo».** El selector va en los perfiles donde aplique y con la misma gramática. Queda abierta una pregunta: en la barra, ¿«Faltan» se dice por la variable a la vista (lo que hará el selector) o por la más atrasada?
 
 ## Pedidos de Gonzalo durante la ronda
 

@@ -139,3 +139,54 @@ test_that("con la base hecha de las propias respuestas, cada completa cuenta una
   expect_identical(sum(as.integer(diario$Efectivas)), 1L)       # ni 2 (doble) ni la de correo
   expect_identical(sum(as.integer(diario$`Fuera de la base`)), 0L)
 })
+
+test_that("un actor sin Kobo conectado cuenta su hoja en vez de caer a 0; el otro sigue en Kobo (reparo 2)", {
+  bar <- rms_barrido()
+  sin_kobo <- PERIODOS_RMS[[1]]
+  resp <- rms_respuestas(bar, n_huerfanas = 0L)
+  resp <- resp[!resp$`intro/Intro01` %in% bar$`Código proGres`[bar$Periodo == sin_kobo], , drop = FALSE]
+  esc <- rms_escenario(bar = bar, resp = resp)
+  b <- num_bloques(esc$datos, esc$cfg)
+  q <- b$cuotas_variable
+  fila <- function(actor) q[q$Valor == actor & q$Actor == actor, , drop = FALSE]
+  hoja <- sum(bar$Periodo == sin_kobo & bar$Status == "Efectivo")
+  expect_gt(hoja, 0L)
+  expect_identical(as.integer(fila(sin_kobo)$Efectivas), as.integer(hoja))  # antes: 0
+  expect_identical(fila(sin_kobo)$Origen, "hoja")
+  expect_identical(unique(q$Origen[q$Valor != sin_kobo & q$Actor != "Total"]), "kobo")
+  diario_actor <- b$avance_efectivo_actor_dia
+  expect_identical(sum(as.integer(diario_actor$Efectivas[diario_actor$Actor == sin_kobo])), as.integer(hoja))
+})
+
+test_that("un actor con sus llaves rotas cuenta su hoja y sus completas de Kobo se declaran sin sumarse: cada entrevista una vez", {
+  bar <- rms_barrido()
+  p1 <- PERIODOS_RMS[[1]]
+  resp <- rms_respuestas(bar, n_huerfanas = 0L)
+  de_p1 <- resp$`intro/Intro01` %in% bar$`Código proGres`[bar$Periodo == p1]
+  resp$`intro/Intro01`[de_p1] <- sub("CGU-26-9", "CGU-26-8", resp$`intro/Intro01`[de_p1])  # llave válida, ajena a la base
+  esc <- rms_escenario(bar = bar, resp = resp)
+  b <- num_bloques(esc$datos, esc$cfg)
+  reales <- sum(bar$Status == "Efectivo")
+  expect_identical(sum(as.integer(b$avance_efectivo_dia$Efectivas)), as.integer(reales))  # la revisión medía 20 con 16
+  expect_identical(sum(as.integer(b$avance_efectivo_dia$`Fuera de la base`)), sum(de_p1))
+  bloques <- .monitoreo_report_phone_blocks(esc$datos, esc$cfg$monitoreo_profile, esc$cfg)
+  nota <- Filter(function(x) identical(x$id, "avance_efectivo_dia"), bloques)[[1]]$note
+  expect_match(nota, "no se suman a Efectivas")
+  expect_match(nota, p1, fixed = TRUE)
+})
+
+test_that("una fila Total que junta un actor con Kobo y otro con la hoja se publica «mixto» (reparo 2)", {
+  bar <- rms_barrido()
+  sin_kobo <- PERIODOS_RMS[[1]]
+  resp <- rms_respuestas(bar, n_huerfanas = 0L)
+  resp <- resp[!resp$`intro/Intro01` %in% bar$`Código proGres`[bar$Periodo == sin_kobo], , drop = FALSE]
+  esc <- rms_escenario(bar = bar, resp = resp)
+  esc$cfg$goals <- c(esc$cfg$goals, list(list(filters = list(Origen = "Muestra"), meta = 40L)))
+  q <- .monitoreo_report_phone_quota_df(esc$datos[esc$datos$.source_role == "barrido", , drop = FALSE],
+    esc$cfg$monitoreo_profile, esc$cfg,
+    effective_mask = rep(TRUE, sum(esc$datos$.source_role == "barrido")),
+    kobo_rows = esc$datos$Periodo[esc$datos$.source_role == "barrido"] != sin_kobo)
+  total <- q[q$Actor == "Total" & q$Valor == "Muestra", , drop = FALSE]
+  expect_identical(nrow(total), 1L)
+  expect_identical(total$Origen, "mixto")
+})
