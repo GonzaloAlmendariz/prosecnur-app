@@ -1,0 +1,21 @@
+/* BarraDeAvance.tsx — el avance con scaleX (contrato de movimiento L37). */
+
+.pulso-barra-avance {
+  position: relative;
+  height: 6px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--pulso-surface-3);
+}
+.pulso-barra-avance > span {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--module-accent, var(--pulso-primary));
+  transform: scaleX(var(--pulso-barra-avance, 0));
+  transform-origin: left center;
+  transition: transform var(--motion-dur-panel) var(--motion-ease-out);
+}
+@media (prefers-reduced-motion: reduce) {
+  .pulso-barra-avance > span { transition: none; }
+}

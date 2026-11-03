@@ -1,0 +1,53 @@
+/* CifrasEnTarjeta.tsx — cifras de sección en tarjeta, valor en el rol kpi. */
+
+.pulso-cifras-tarjeta {
+  display: grid;
+  grid-template-columns: repeat(var(--pulso-cifras-columnas, 4), minmax(0, 1fr));
+  gap: var(--pulso-space-3);
+  margin: 0;
+}
+@media (max-width: 1100px) {
+  .pulso-cifras-tarjeta { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+.pulso-cifra-tarjeta {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-1);
+  padding: var(--pulso-space-4);
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-card);
+  background: var(--pulso-surface);
+  box-shadow: var(--pulso-shadow-soft);
+}
+.pulso-cifra-tarjeta dt {
+  font-size: var(--pulso-type-eyebrow-size);
+  font-weight: var(--pulso-type-eyebrow-weight);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--pulso-text-soft);
+}
+.pulso-cifra-tarjeta dd {
+  margin: 0;
+  font-size: var(--pulso-type-kpi-size);
+  font-weight: var(--pulso-type-kpi-weight);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+  color: var(--pulso-text);
+}
+.pulso-cifra-tarjeta dd small {
+  font-size: var(--pulso-type-body-size);
+  font-weight: var(--pulso-type-body-weight);
+  color: var(--pulso-text-soft);
+}
+.pulso-cifra-tarjeta > span {
+  font-size: var(--pulso-type-caption-size);
+  color: var(--pulso-text-soft);
+}
+.pulso-cifra-tarjeta .pulso-barra-avance { margin-top: var(--pulso-space-1); }
+.pulso-cifra-tarjeta[data-tono="aviso"] {
+  border-color: var(--pulso-warn-border);
+  background: color-mix(in srgb, var(--pulso-warn-bg) 55%, var(--pulso-surface));
+}
+.pulso-cifra-tarjeta[data-tono="aviso"] dd { color: var(--pulso-warn-fg); }
+.pulso-cifra-tarjeta[data-tono="listo"] dd { color: var(--pulso-success-fg); }
+
