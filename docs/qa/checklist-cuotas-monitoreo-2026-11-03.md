@@ -133,7 +133,7 @@ Reparos de `revisor-metodologico` (aprobado con reparos) y su estado:
 
 | # | Reparo | Estado |
 |---|---|---|
-| R1 | Sin plataforma, Cuotas y la barra no dicen que la cifra sale de la hoja (58 de la hoja frente a 55 de Kobo) | ☐ en curso |
+| R1 | Sin plataforma, Cuotas y la barra no dicen que la cifra sale de la hoja (58 de la hoja frente a 55 de Kobo) | ☑ cada fila de `cuotas_variable` publica `Origen` («kobo» o «hoja») y Avance › Cuotas y la barra escriben «efectivas de la hoja», como Ritmo. Sin cambio de cifra |
 | R2 | El cambio a Kobo es para todo el estudio: un actor sin Kobo conectado cae a 0 | ☐ |
 | R3 | `avance_efectivo_dia` y `avance_efectivo_actor_dia` cuentan sólo plataforma: 0 frente a 72 sin plataforma, y 70 frente a 69 con las completas de Kobo fuera de la hoja | ☐ |
 | R4 | `has_key` va por fila: una llave repetida en la población cuenta dos veces una completa | ☐ |

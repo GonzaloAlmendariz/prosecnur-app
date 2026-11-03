@@ -9,6 +9,7 @@ import type { CadenaDeLaCifra, CuotasFaltante as Modelo, FilaDeCuota, FilaRefere
 import { llevaFaltanteDiario } from "./cuotasFaltanteModel";
 import { RotuloDePestana, useHayRotulo } from "../navegacion/RotuloDePestana";
 import { PesasReferenciales } from "../../../core/PesasReferenciales";
+import { sufijoDeOrigen } from "./origenDeEfectivas";
 import "../control/controlTelefonico.css";
 import "./cuotasFaltante.css";
 
@@ -224,7 +225,7 @@ export function CuotasFaltante({ modelo, cadena }: { modelo: Modelo; cadena: Cad
           <div role="row" className="mon-tel-cuotas-fila is-cabecera">
             <span role="columnheader">{segmento}</span>
             <span role="columnheader" className="is-num">Faltan</span>
-            <span role="columnheader">Efectivas y meta</span>
+            <span role="columnheader">Efectivas{sufijoDeOrigen(modelo.origen)} y meta</span>
             <span role="columnheader" className="is-num">Efect. / meta</span>
             <span role="columnheader" className="is-num">%</span>
             <span role="columnheader">Acumulado por día</span>
@@ -267,7 +268,7 @@ export function CuotasFaltante({ modelo, cadena }: { modelo: Modelo; cadena: Cad
 
       <div className="mon-tel-cuotas-lado">
         <section className="mon-tel-cuotas-panel mon-tel-cuotas-meta" aria-label="Faltan para la meta">
-          <header className="mon-ctl-panel-cabecera"><b>{sinMetas ? "Efectivas" : "Faltan para la meta"}</b></header>
+          <header className="mon-ctl-panel-cabecera"><b>{sinMetas ? `Efectivas${sufijoDeOrigen(modelo.origen)}` : "Faltan para la meta"}</b></header>
           {sinMetas ? (
             <strong className="mon-tel-cuotas-grande is-num">{fmt(total.efectivas)}</strong>
           ) : (
@@ -280,7 +281,7 @@ export function CuotasFaltante({ modelo, cadena }: { modelo: Modelo; cadena: Cad
             className="mon-tel-cuotas-meta-nota is-num"
             title={sinMetas ? "Avance mide cobertura del listado" : `${porcentaje(total.pct)} de la meta`}
           >
-            {sinMetas ? "Sin metas declaradas" : `${fmt(total.efectivas)} efectivas, ${notaTotal}`}
+            {sinMetas ? "Sin metas declaradas" : `${fmt(total.efectivas)} efectivas${sufijoDeOrigen(modelo.origen)}, ${notaTotal}`}
           </span>
           <div className="mon-tel-cuotas-indicadores">
             <Indicador

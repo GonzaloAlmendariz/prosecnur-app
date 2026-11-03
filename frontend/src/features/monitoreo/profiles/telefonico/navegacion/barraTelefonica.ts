@@ -7,6 +7,7 @@ import type { BarraDelModo } from "../../../shell/BarraDelModo";
 import type { MetricaDeSeccion } from "../../../shell/metricaDeSeccion";
 import { fmt } from "../formato";
 import { rotuloDelSegmento, variableDeCuotas } from "../segmentoDeCuotas";
+import { origenDeEfectivas, sufijoDeOrigen, type OrigenDeEfectivas } from "../avance/origenDeEfectivas";
 import { filasDeBloque } from "./bloques";
 import { chipsDeInsistencia } from "../control/insistenciaModel";
 import { contarDesvios } from "../control/equipoModel";
@@ -35,6 +36,8 @@ export type ResumenDelModoTelefonico = {
   efectivas: number;
   /** Casos en que Kobo y la hoja no dicen lo mismo (insignia de Control). */
   porRevisar: number | null;
+  /** De dónde salen las efectivas (`origenDeEfectivas.ts`). */
+  origen?: OrigenDeEfectivas;
 };
 
 export { filasDeBloque } from "./bloques";
@@ -43,8 +46,10 @@ export function resumenDelModo({
   cuotas,
   variables,
   porRevisar,
+  origen = "kobo",
 }: {
   cuotas: readonly CuotaParaLaBarra[];
+  origen?: OrigenDeEfectivas;
   /** Columnas `Variable` y `Meta` de las filas de cuota, para nombrar el eje (`variableDeCuotas`). */
   variables: ReadonlyArray<{ variable: unknown; meta?: unknown }>;
   porRevisar: number | null;
@@ -52,6 +57,7 @@ export function resumenDelModo({
   const conMeta = cuotas.filter((item) => item.meta != null && item.meta > 0);
   const segmento = cuotas.length ? variableDeCuotas(variables, "") : "";
   return {
+    origen,
     ejeDeCuota: segmento ? `${rotuloDelSegmento(segmento)}, ${fmt(cuotas.length)} ${cuotas.length === 1 ? "valor" : "valores"}` : null,
     meta: conMeta.length ? conMeta.reduce((suma, item) => suma + (item.meta ?? 0), 0) : null,
     faltan: conMeta.length ? conMeta.reduce((suma, item) => suma + (item.missing ?? 0), 0) : null,
@@ -74,7 +80,7 @@ export function indicadoresDelModo(resumen: ResumenDelModoTelefonico): BarraDelM
         etiqueta: "Faltan",
         valor: `${fmt(resumen.faltan)} de ${fmt(resumen.meta)}`,
         tono: resumen.faltan > 0 ? "falta" as const : "cumple" as const,
-        detalle: `${fmt(resumen.efectivas)} efectivas de una meta de ${fmt(resumen.meta)}`,
+        detalle: `${fmt(resumen.efectivas)} efectivas${sufijoDeOrigen(resumen.origen)} de una meta de ${fmt(resumen.meta)}`,
       }
       : { etiqueta: "Faltan", valor: "Sin metas" },
   ];
@@ -92,7 +98,7 @@ export function insigniasDelModo(resumen: ResumenDelModoTelefonico): Partial<Rec
     insignias.avance = {
       valor: `${fmt(Math.round((resumen.efectivas / resumen.meta) * 100))} %`,
       base: `${fmt(resumen.efectivas)}/${fmt(resumen.meta)}`,
-      lectura: `${fmt(resumen.efectivas)} efectivas de una meta de ${fmt(resumen.meta)}`,
+      lectura: `${fmt(resumen.efectivas)} efectivas${sufijoDeOrigen(resumen.origen)} de una meta de ${fmt(resumen.meta)}`,
     };
   }
   return insignias;
@@ -116,6 +122,7 @@ export function useResumenDelModo(
     if (!filasDeCuota.length && !comparacion.length) return ultimo.current;
     const cuotas = filasDeCuota.length ? leerCuotas(reports) : [];
     const nuevo = resumenDelModo({
+      origen: origenDeEfectivas(filasDeCuota),
       cuotas,
       variables: filasDeCuota.map((fila) => ({ variable: fila.Variable, meta: fila.Meta })),
       porRevisar: comparacion.length ? leerComparacion(comparacion).mismatch : ultimo.current?.porRevisar ?? null,

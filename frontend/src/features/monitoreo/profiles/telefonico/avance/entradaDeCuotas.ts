@@ -2,6 +2,7 @@ import type { MonitoreoAcreditacionReports, MonitoreoState } from "../../../../.
 import { criteriosDesdeFiltro } from "../../../filtroEfectiva/criterios";
 import { filasDeBloque } from "../navegacion/bloques";
 import { rotuloDelSegmento, variableDeCuotas } from "../segmentoDeCuotas";
+import { origenDeEfectivas } from "./origenDeEfectivas";
 import { caracterDeclarado, estadoDeCuotaDesde } from "../../../core/caracterDeCuota";
 import { normalizeSourceMatch } from "../formato";
 import { cadenaDeLaCifra, construirCuotasFaltante, type CuotaDeEntrada } from "./cuotasFaltanteModel";
@@ -62,11 +63,14 @@ export function entradaDeCuotasFaltante(
 ) {
   const filasDeCuota = filasDeBloque(reports, ["cuotas_variable", "cuotas_telefonicas", "cuotas_por_variable"]);
   const segmento = variableDeCuotas(filasDeCuota.map((fila) => ({ variable: fila.Variable, meta: fila.Meta })));
-  const modelo = construirCuotasFaltante({
-    cuotas: conCaracter(cuotas, filasDeCuota),
-    segmento: rotuloDelSegmento(segmento),
-    sinAsignar: sinAsignarDesdeBloque(filasDeBloque(reports, ["no_barridos_responsable"])),
-  });
+  const modelo = {
+    ...construirCuotasFaltante({
+      cuotas: conCaracter(cuotas, filasDeCuota),
+      segmento: rotuloDelSegmento(segmento),
+      sinAsignar: sinAsignarDesdeBloque(filasDeBloque(reports, ["no_barridos_responsable"])),
+    }),
+    origen: origenDeEfectivas(filasDeCuota),
+  };
 
   const fuentesKobo = new Set((state?.sources ?? []).filter((fuente) => fuente.enabled && fuente.kind === "kobo").map((fuente) => fuente.id));
   const encuestas = Object.values(state?.source_metadata?.surveys ?? {}).filter((encuesta) => fuentesKobo.has(encuesta.source_id));

@@ -88,6 +88,8 @@ export type CadenaDeLaCifra = Array<{ nombre: string; detalle: string; valor: nu
 
 export type CuotasFaltante = {
   segmento: string;
+  /** De dónde salen las efectivas (`origenDeEfectivas.ts`); sin dato, Kobo. */
+  origen?: import("./origenDeEfectivas").OrigenDeEfectivas;
   /** Sólo las metas (ADR 0126): lo que se exige. */
   filas: FilaDeCuota[];
   /** Todas las categorías, para el listado: el barrido no distingue carácter. */

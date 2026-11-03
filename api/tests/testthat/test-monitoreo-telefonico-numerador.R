@@ -45,3 +45,14 @@ test_that("sin respuestas de plataforma, total y serie cuentan «Completa» de l
   expect_identical(r$serie, r$total)    # …con la serie vacía
   expect_identical(r$kobo, 0L)
 })
+
+test_that("cada fila de cuota publica de dónde sale su numerador: «kobo» o «hoja» (reparo 1)", {
+  esc <- rms_escenario()
+  origen <- function(datos) {
+    b <- .monitoreo_report_phone_blocks(datos, esc$cfg$monitoreo_profile, esc$cfg)
+    q <- Filter(function(x) identical(x$id, "cuotas_variable"), b)[[1]]$rows
+    unique(vapply(q, function(r) as.character(r$Origen), ""))
+  }
+  expect_identical(origen(esc$datos), "kobo")
+  expect_identical(origen(esc$datos[esc$datos$.source_role != "respuestas", , drop = FALSE]), "hoja")
+})

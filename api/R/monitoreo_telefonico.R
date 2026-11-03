@@ -460,6 +460,8 @@
   actors <- .monitoreo_report_trace_actor_values(phone, profile)
   actors[!.monitoreo_report_nonempty(actors)] <- "Sin actor"
   states <- .monitoreo_report_states(phone, profile)
+  # De dónde sale el numerador de cada fila (reparo 1 del numerador, 3/11): la vista lo escribe.
+  origen <- if (is.null(effective_mask) || length(effective_mask) != nrow(phone)) "hoja" else "kobo"
   if (is.null(effective_mask) || length(effective_mask) != nrow(phone)) {
     effective_mask <- states == "Completa"
   } else {
@@ -592,6 +594,7 @@
 
   if (!length(rows)) return(data.frame())
   out <- do.call(rbind, rows)
+  out$Origen <- origen
   out$.__actor_order <- ifelse(out$Actor %in% c("Total", "Todos"), "", out$Actor)
   out <- out[order(out$.__actor_order, out$Variable, -out$Brecha, out$Valor), , drop = FALSE]
   out$.__actor_order <- NULL
