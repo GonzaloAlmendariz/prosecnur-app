@@ -4,6 +4,7 @@
    como un botón más. */
 
 .pulso-estado-chip {
+  cursor: default;
   font-size: var(--pulso-type-caption-size);
   font-weight: var(--pulso-weight-semibold);
 }
@@ -27,3 +28,4 @@
   margin-right: var(--pulso-space-1);
   border-right: 1px solid var(--pulso-border);
 }
+button.pulso-estado-chip { cursor: pointer; }

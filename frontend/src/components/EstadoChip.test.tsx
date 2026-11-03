@@ -28,11 +28,21 @@ describe("EstadoChip y el slot de estado de la barra (P6)", () => {
     expect(html).toContain('title="Lo que lee Monitoreo"');
   });
 
-  it("un estado sin onSelect no se ofrece como acción", () => {
+  it("un estado sin onSelect no es un control: span de estado, ningún botón", () => {
+    // Un <button disabled> no se puede anidar en otro control (chips dentro del botón de una
+    // fila) y en Chromium se traga el clic de la fila padre (Monitoreo, 2 nov 2026).
     const html = renderToStaticMarkup(<EstadoChip label="sin lote" tone="warn" />);
-    expect(html).toContain("disabled");
+    expect(html).not.toContain("<button");
+    expect(html).not.toContain("disabled");
+    expect(html).toContain('role="status"');
     expect(html).toContain('data-tone="warn"');
     expect(html).toContain('title="Sin lote"');
+  });
+
+  it("con onSelect sí es un botón", () => {
+    const html = renderToStaticMarkup(<EstadoChip label="sin lote" tone="warn" onSelect={() => undefined} />);
+    expect(html).toContain("<button");
+    expect(html).not.toContain("disabled");
   });
 
   it("la mayúscula inicial respeta el resto del rótulo", () => {

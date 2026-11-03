@@ -182,7 +182,7 @@ export function ModuleCommandBar({
         {herramientas}
 
         {!chipsRecogidos && slotDeEstado && estado.length ? (
-          <div className="pulso-command-bar-estado" role="status" aria-label="Estado">
+          <div className="pulso-command-bar-estado" role="group" aria-label="Estado">
             {estado.map((chip) => <EstadoChip key={chip.id} label={chip.label} tone={chip.tone} detail={chip.detail} onSelect={chip.onSelect} />)}
           </div>
         ) : null}
