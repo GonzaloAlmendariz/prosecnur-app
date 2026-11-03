@@ -270,8 +270,10 @@
   min-width: 600px;
 }
 
+/* «Curso-horario» en versalitas mide ~98 px: con 18 % (96 px de contenido a 1024) el encabezado se
+   partía en el guion (captura de aulas con datos, D17). 21 % le deja 102 px. */
 .rec-plan-tabla th:nth-child(1),
-.rec-plan-tabla td:nth-child(1) { width: 18%; }
+.rec-plan-tabla td:nth-child(1) { width: 21%; }
 
 /* El código del curso-horario es la llave con que campo encuentra el aula: no se parte. Con 15 %
    (90 px a 1024) «dee207_0504» salía en dos renglones; el más largo de HSVG mide 75 px + 24 de
@@ -283,10 +285,10 @@
 }
 
 .rec-plan-tabla th:nth-child(2),
-.rec-plan-tabla td:nth-child(2) { width: 27%; }
+.rec-plan-tabla td:nth-child(2) { width: 26%; }
 
 .rec-plan-tabla th:nth-child(3),
-.rec-plan-tabla td:nth-child(3) { width: 26%; }
+.rec-plan-tabla td:nth-child(3) { width: 24%; }
 
 .rec-plan-tabla th:nth-child(4),
 .rec-plan-tabla td:nth-child(4) { width: 13%; }
@@ -294,13 +296,25 @@
 .rec-plan-tabla th:nth-child(5),
 .rec-plan-tabla td:nth-child(5) { width: 16%; }
 
+/* Sin docente en el plan (D17, C5) la tabla tiene cuatro columnas: el curso se queda con el sitio. */
+.rec-plan-tabla--sin-docente th:nth-child(1),
+.rec-plan-tabla--sin-docente td:nth-child(1) { width: 22%; }
+.rec-plan-tabla--sin-docente th:nth-child(2),
+.rec-plan-tabla--sin-docente td:nth-child(2) { width: 46%; }
+.rec-plan-tabla--sin-docente th:nth-child(3),
+.rec-plan-tabla--sin-docente td:nth-child(3) { width: 14%; }
+.rec-plan-tabla--sin-docente th:nth-child(4),
+.rec-plan-tabla--sin-docente td:nth-child(4) { width: 18%; }
+
 .rec-plan-num {
   font-variant-numeric: tabular-nums;
   text-align: right;
   white-space: nowrap;
 }
 
-.rec-data-card thead th.rec-plan-num {
+/* `.rec-table-scroll td` (text-align: left) pesaba más que `.rec-plan-num`: el encabezado iba a la
+   derecha y las cifras a la izquierda de la misma columna (captura de aulas con datos, D17). */
+.rec-data-card :is(th, td).rec-plan-num {
   text-align: right;
 }
 

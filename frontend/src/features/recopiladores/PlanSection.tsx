@@ -100,6 +100,11 @@ function texto(valor: unknown): string {
  * la pena la visita. Un 0 se pinta como tal —no como raya— porque un aula con
  * cero elegibles es un problema, no un dato ausente.
  */
+/** D17 (C5): la columna Docente sólo va si alguna unidad del plan lo trae; un «sin docente» en cada fila no informa. */
+export function planTraeDocente(units: readonly Pick<CollectionUnit, "dimensions">[]): boolean {
+  return units.some((unit) => texto(unit.dimensions?.teacher) !== "");
+}
+
 function elegibles(unit: Pick<CollectionUnit, "dimensions">): string {
   const bruto = unit.dimensions?.eligible_n;
   const n = typeof bruto === "number" ? bruto : Number(texto(bruto));
@@ -237,6 +242,7 @@ export function PlanSection({ payload, onState, origen, onIr, onCargando }: Prop
     [unidades],
   );
   const forma = useMemo(() => formaDelOperativo(unidades), [unidades]);
+  const conDocente = useMemo(() => planTraeDocente(unidades), [unidades]);
   // Qué cadenas están desplegadas. Colapsadas por defecto: la reserva importa
   // el día que su titular se cae, no antes.
   const [abiertas, setAbiertas] = useState<Set<string>>(() => new Set());
@@ -368,11 +374,11 @@ export function PlanSection({ payload, onState, origen, onIr, onCargando }: Prop
         {plan.units.length ? (
           <>
             <TableScroll data-qa-geometry-capacity="owned">
-              <table className="rec-plan-tabla">
+              <table className={`rec-plan-tabla${conDocente ? "" : " rec-plan-tabla--sin-docente"}`}>
                 <thead><tr>
                   <th>Curso-horario</th>
                   <th>Curso</th>
-                  <th>Docente</th>
+                  {conDocente ? <th>Docente</th> : null}
                   <th className="rec-plan-num">Elegibles</th>
                   <th>Reservas</th>
                 </tr></thead>
@@ -399,9 +405,11 @@ export function PlanSection({ payload, onState, origen, onIr, onCargando }: Prop
                         <strong>{capitalizarDelMarco(texto(unit.dimensions?.course_name))|| "—"}</strong>
                         <small>{nombreCortoDeFacultad(texto(unit.dimensions?.faculty))}</small>
                       </td>
-                      <td className="rec-plan-docente" title={texto(unit.dimensions?.teacher)}>
-                        {capitalizarDelMarco(texto(unit.dimensions?.teacher)) || <span className="rec-plan-sin-reservas">sin docente</span>}
-                      </td>
+                      {conDocente ? (
+                        <td className="rec-plan-docente" title={texto(unit.dimensions?.teacher)}>
+                          {capitalizarDelMarco(texto(unit.dimensions?.teacher)) || <span className="rec-plan-sin-reservas">sin docente</span>}
+                        </td>
+                      ) : null}
                       <td className="rec-plan-num">{elegibles(unit)}</td>
                       {/* El plan B, contado y no desplegado: «3 reservas» ocupa
                           una celda donde tres filas ocupaban tres renglones de
@@ -430,9 +438,11 @@ export function PlanSection({ payload, onState, origen, onIr, onCargando }: Prop
                           <strong>{capitalizarDelMarco(texto(reserva.dimensions?.course_name)) || "—"}</strong>
                           <small>{unitRoleLabel(reserva, unit)}</small>
                         </td>
-                        <td className="rec-plan-docente" title={texto(reserva.dimensions?.teacher)}>
-                          {capitalizarDelMarco(texto(reserva.dimensions?.teacher))}
-                        </td>
+                        {conDocente ? (
+                          <td className="rec-plan-docente" title={texto(reserva.dimensions?.teacher)}>
+                            {capitalizarDelMarco(texto(reserva.dimensions?.teacher))}
+                          </td>
+                        ) : null}
                         <td className="rec-plan-num">{elegibles(reserva)}</td>
                         <td />
                       </tr>
@@ -455,9 +465,11 @@ export function PlanSection({ payload, onState, origen, onIr, onCargando }: Prop
                           <strong>{capitalizarDelMarco(texto(unit.dimensions?.course_name)) || "—"}</strong>
                           <small>{unitRoleLabel(unit)}</small>
                         </td>
-                        <td className="rec-plan-docente" title={texto(unit.dimensions?.teacher)}>
-                          {capitalizarDelMarco(texto(unit.dimensions?.teacher))}
-                        </td>
+                        {conDocente ? (
+                          <td className="rec-plan-docente" title={texto(unit.dimensions?.teacher)}>
+                            {capitalizarDelMarco(texto(unit.dimensions?.teacher))}
+                          </td>
+                        ) : null}
                         <td className="rec-plan-num">{elegibles(unit)}</td>
                         <td><span className="rec-plan-sin-reservas">sin titular en el plan</span></td>
                       </tr>
