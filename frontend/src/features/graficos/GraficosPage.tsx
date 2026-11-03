@@ -301,8 +301,8 @@ export default function GraficosPage() {
                   <strong>Puedes diseñar el informe, pero todavía no exportarlo.</strong>
                   <span>
                     {pendingSharedRequirements.length
-                      ? pendingSharedRequirements.map((item) => `${item.actor}: ${item.detail}`).join(" · ")
-                      : sharedPreflight?.blockers.map((blocker) => blocker.message).join(" · ")}
+                      ? pendingSharedRequirements.map((item) => `${item.actor}: ${item.detail}`).join("; ")
+                      : sharedPreflight?.blockers.map((blocker) => blocker.message).join("; ")}
                   </span>
                 </div>
                 <div className="pulso-graficos-shared-gate-actions">

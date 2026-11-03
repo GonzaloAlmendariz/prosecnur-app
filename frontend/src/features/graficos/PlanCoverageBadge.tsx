@@ -149,7 +149,7 @@ export function PlanCoverageBadge({ conNombre = false }: { conNombre?: boolean }
               <strong>{coveragePhrase}</strong>
               <span>
                 {summary
-                  ? `${summary.total_variables} variables totales · ${summary.graphable_variables} graficables detectadas`
+                  ? `${summary.total_variables} variables totales, ${summary.graphable_variables} graficables detectadas`
                   : "Calculando inventario del instrumento"}
               </span>
             </div>
@@ -168,7 +168,7 @@ export function PlanCoverageBadge({ conNombre = false }: { conNombre?: boolean }
 
           {coverage?.warnings?.length ? (
             <div className="pulso-gv2-coverage-warning">
-              {coverage.warnings.join(" · ")}
+              {coverage.warnings.join("; ")}
             </div>
           ) : null}
 

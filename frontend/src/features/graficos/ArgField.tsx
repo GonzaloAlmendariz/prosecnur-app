@@ -2446,7 +2446,7 @@ function OrdenCategoriasField({
               onClick={() => sembrar(l)}
               style={escalaBtn}
             >
-              {l.choices.map((c) => c.label).join(" · ")}
+              {l.choices.map((c) => c.label).join(", ")}
             </button>
           ))}
         </div>
@@ -2590,7 +2590,7 @@ function CategoriasEscalaField({
     <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
       <p style={{ margin: 0, fontSize: 11, color: "var(--pulso-text-soft)" }}>
         {cubiertas > 0
-          ? `${cubiertas} de ${listas.length} listas cubiertas · ${grupos.length} escalas distintas`
+          ? `${cubiertas} de ${listas.length} listas cubiertas, ${grupos.length} escalas distintas`
           : `Marca las categorías. ${grupos.length} escalas distintas en ${listas.length} listas.`}
       </p>
       {/* Acotado y con scroll propio: sin esto ocupaba ~6.570 px y enterraba
@@ -2633,7 +2633,7 @@ function CategoriasEscalaField({
               </div>
               <span style={{ fontSize: 10.5, color: "var(--pulso-text-soft)" }} title={g.listas.join(", ")}>
                 {g.listas.length === 1 ? g.listas[0] : `${g.listas.length} listas`}
-                {fuentes.length ? ` · ${fuentes.join(", ")}` : ""}
+                {fuentes.length ? `: ${fuentes.join(", ")}` : ""}
               </span>
             </div>
           );
@@ -3397,7 +3397,7 @@ function SwatchRow({
             type="button"
             onMouseDown={(e) => e.preventDefault()}
             onClick={() => onPick(c.value)}
-            title={`${c.label} · ${c.value}`}
+            title={`${c.label} (${c.value})`}
             aria-label={`${c.label} (${c.value})`}
             className={`pulso-gv2-swatch ${isActive ? "is-active" : ""}`}
             style={{

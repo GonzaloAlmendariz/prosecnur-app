@@ -450,7 +450,7 @@ export function SuggestedPlanButton() {
 
               {result.warnings?.length ? (
                 <div className="pulso-gv2-suggest-warning">
-                  {result.warnings.join(" · ")}
+                  {result.warnings.join("; ")}
                 </div>
               ) : null}
 
@@ -477,7 +477,7 @@ export function SuggestedPlanButton() {
                       <dd>{result.report_inputs.profile?.available ? "Incluido" : "No incluido"}</dd>
                       <small>
                         {[result.report_inputs.profile?.sex_variable, result.report_inputs.profile?.age_variable]
-                          .filter(Boolean).join(" · ") || "Sin variables asignadas"}
+                          .filter(Boolean).join(", ") || "Sin variables asignadas"}
                       </small>
                     </div>
                     <div>

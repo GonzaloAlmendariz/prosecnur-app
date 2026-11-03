@@ -1205,7 +1205,7 @@ function slugKey(text: string): string {
 function displayRef(ref: string, multi: boolean): string {
   const { source, name } = parseVarRef(ref);
   if (!multi || !source) return name;
-  return `${name} · ${source.charAt(0).toUpperCase()}${source.slice(1).replace(/_/g, " ")}`;
+  return `${name} (${source.charAt(0).toUpperCase()}${source.slice(1).replace(/_/g, " ")})`;
 }
 
 function friendlyVarType(tipo: string) {

@@ -23,7 +23,7 @@ const render = (m = matriz) => renderToStaticMarkup(createElement(TemasPorPublic
 describe("la línea vacía muestra la sugerencia de la matriz (P20)", () => {
   it("sólo sugiere lo declarado: «Equivalente según tu matriz», la escala distinta dicha y fuera del lote", () => {
     const html = render();
-    expect(html).toContain("Equivalente según tu matriz: <code>p10_1</code> · Etiqueta p10_1");
+    expect(html).toContain("Equivalente según tu matriz: <code>p10_1</code> (Etiqueta p10_1)");
     expect(html).toContain("Equivalente según tu matriz: <code>p11_1</code>");
     expect(html).toContain("pulso-mapi-sugerencia is-otra-escala");
     expect(html).toContain("otra escala");

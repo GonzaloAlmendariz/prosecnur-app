@@ -5,6 +5,7 @@ import { Check, Database, Plus, Search, X } from "lucide-react";
 import { useVariables, parseVarRef, formatVarRef, type VarWithSource } from "./useVariables";
 import { safeText } from "./safeText";
 import { LoadingBlock } from "../../components/States";
+import { formatoConteo } from "../../lib/formatoNumero";
 
 type Props = {
   value: string[] | null | undefined;
@@ -166,7 +167,7 @@ export default function VarsListPicker({ value, onChange }: Props) {
             <span aria-hidden="true"><Database size={15} /></span>
             <div>
               <strong>Agregar variables</strong>
-              <small>{vals.length} seleccionadas · {variables.length} disponibles</small>
+              <small>{formatoConteo(vals.length)} seleccionadas de {formatoConteo(variables.length)} disponibles</small>
             </div>
           </div>
 

@@ -13,14 +13,14 @@ describe("modo multibase del plan de gráficos", () => {
   test("bases combinadas: un plan que las mezcla", () => {
     const modo = modoMultibaseDelPlan("multibase", 4);
     expect(modo.clave).toBe("conjunto");
-    expect(modo.etiqueta).toBe("Un informe conjunto · 4 bases");
+    expect(modo.etiqueta).toBe("Un informe conjunto (4 bases)");
     expect(modo.explicacion).toContain("cada gráfico declara de cuál");
   });
 
   test("hermanas independientes: un plan por base, nombrando la activa", () => {
     const modo = modoMultibaseDelPlan("independent_siblings", 4, "docentes");
     expect(modo.clave).toBe("por-base");
-    expect(modo.etiqueta).toBe("Un informe por base · docentes");
+    expect(modo.etiqueta).toBe("Un informe por base (docentes)");
     expect(modo.explicacion).toContain("su propio plan");
   });
 
@@ -35,13 +35,13 @@ describe("modo multibase del plan de gráficos", () => {
   test("informe compartido: nombra el conjunto y nunca la base activa (A7-1 H2)", () => {
     const modo = modoMultibaseDelPlan("independent_siblings", 4, "docentes", "consolidated");
     expect(modo.clave).toBe("compartido");
-    expect(modo.etiqueta).toBe("Informe compartido · 4 bases");
+    expect(modo.etiqueta).toBe("Informe compartido (4 bases)");
     expect(`${modo.etiqueta} ${modo.explicacion}`).not.toMatch(/base activa|docentes/);
   });
 
   test("con alcance activo, o sin el 4.º argumento, el chip es el de siempre", () => {
     expect(modoMultibaseDelPlan("independent_siblings", 4, "docentes", "active").etiqueta)
-      .toBe("Un informe por base · docentes");
+      .toBe("Un informe por base (docentes)");
     expect(modoMultibaseDelPlan("independent_siblings", 4, "docentes").clave).toBe("por-base");
     expect(modoMultibaseDelPlan("multibase", 4, null, "consolidated").clave).toBe("conjunto");
     expect(modoMultibaseDelPlan("independent_siblings", 1, "docentes", "consolidated").visible).toBe(false);

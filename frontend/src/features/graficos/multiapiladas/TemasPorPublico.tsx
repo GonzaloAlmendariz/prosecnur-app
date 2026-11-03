@@ -37,13 +37,13 @@ function ChipSugerencia({ s, publico, variables, onAplicar }: { s: SugerenciaPub
   const codigo = v?.name ?? s.ref;
   const etiqueta = v?.label || s.etiquetaEstandar;
   const prefijo = "Equivalente según tu matriz";
-  const nombre = `${prefijo} para ${nombrePublico(publico)}: ${codigo}${etiqueta ? ` · ${etiqueta}` : ""}${s.otraEscala ? " (otra escala)" : ""}. Usarla`;
+  const nombre = `${prefijo} para ${nombrePublico(publico)}: ${codigo}${etiqueta ? ` (${etiqueta})` : ""}${s.otraEscala ? " (otra escala)" : ""}. Usarla`;
   return (
     <button type="button" className={`pulso-mapi-sugerencia${s.otraEscala ? " is-otra-escala" : ""}`}
             aria-label={nombre} title={nombre} onClick={onAplicar}>
       <Link2 size={12} aria-hidden="true" />
       <span className="pulso-mapi-sugerencia-texto">
-        {prefijo}: <code>{codigo}</code>{etiqueta ? ` · ${etiqueta}` : ""}
+        {prefijo}: <code>{codigo}</code>{etiqueta ? ` (${etiqueta})` : ""}
       </span>
       {s.otraEscala && <span className="pulso-mapi-sugerencia-escala">otra escala</span>}
     </button>
@@ -60,7 +60,7 @@ export function TemasPorPublico({ temas, publicos, variables, onChange, nuevoTem
   const n = (p: string) => Math.max(0, ...lista.map((t) => buscar(variables, refDePublico(t, p))?.n_non_empty ?? 0));
   return (
     <div className="pulso-mapi-temas" data-qa-geometry-group="graficos/mapi-temas" data-qa-geometry-contract="intrinsic">
-      <p className="pulso-mapi-publicos">{publicos.map((p) => (n(p) ? `${nombrePublico(p)} · ${n(p)}` : nombrePublico(p))).join("   ")}</p>
+      <p className="pulso-mapi-publicos">{publicos.map((p) => (n(p) ? `${nombrePublico(p)}: ${n(p)}` : nombrePublico(p))).join("   ")}</p>
       {lista.map((tema, i) => {
         const sugerencias = sugerenciasDeTema(tema, publicos, variables, matriz);
         const lote = aplicablesEnLote(sugerencias);

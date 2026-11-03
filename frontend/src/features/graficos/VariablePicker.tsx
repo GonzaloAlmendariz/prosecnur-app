@@ -6,6 +6,7 @@ import { useVariables, parseVarRef, formatVarRef } from "./useVariables";
 import { safeText } from "./safeText";
 import { getDerivedReportVariable } from "./derivedReportVariables";
 import { LoadingBlock } from "../../components/States";
+import { formatoConteo } from "../../lib/formatoNumero";
 
 type Props = {
   value: string | null | undefined;
@@ -257,7 +258,7 @@ export default function VariablePicker({
             <span aria-hidden="true"><Database size={15} /></span>
             <div>
               <strong>Elegir variable</strong>
-              <small>{source?.name ?? "Base activa"} · {eligible.length} disponibles</small>
+              <small>{source?.name ?? "Base activa"}, {formatoConteo(eligible.length)} disponibles</small>
             </div>
           </div>
 

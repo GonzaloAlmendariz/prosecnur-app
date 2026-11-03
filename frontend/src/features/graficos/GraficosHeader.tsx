@@ -694,7 +694,7 @@ function PlanSnapshotBadge({
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
         aria-haspopup="dialog"
-        title={`${nSlides} ${nSlides === 1 ? "slide" : "slides"} · ${saveLabel}`}
+        title={`${nSlides} ${nSlides === 1 ? "slide" : "slides"}, ${saveLabel}`}
       >
         <FileText size={13} />
         <strong>{nSlides}</strong>

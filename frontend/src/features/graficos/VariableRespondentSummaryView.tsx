@@ -33,8 +33,7 @@ export default function VariableRespondentSummary({ refs, variables, multi }: Pr
               aria-label={accessibleGroupLabel(group, displaySource)}
               style={chipStyle}
             >
-              <b style={sourceStyle}>{displaySource}</b>
-              <span aria-hidden="true">·</span>
+              <b style={sourceStyle}>{displaySource}:</b>
               <span>{visibleGroupLabel(group)}</span>
             </span>
           );
