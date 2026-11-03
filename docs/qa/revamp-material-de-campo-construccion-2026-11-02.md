@@ -337,4 +337,5 @@ en su archivo. Captura antes y después, gate-front verde y un commit por vista.
 |---|---|---|
 | Territorial › Entrega (faro) | cifras, reparto por distrito con fichas por encuestador, equipo con avatares | bc82383b9, f162c3aab |
 | Aulas › Accesos | cifras del acceso, tres chequeos como lista, aulas como fichas que esperan enlace | 24b87e8a6 |
-| Aulas › Entrega › Traspaso | cifras de la entrega; recorrido de cuatro pasos con estado y acción en vez de cuatro «—»; recibo pendiente que enseña sus campos; material generado con su rótulo | (este) |
+| Aulas › Entrega › Traspaso | cifras de la entrega; recorrido de cuatro pasos con estado y acción en vez de cuatro «—»; recibo pendiente que enseña sus campos; material generado con su rótulo | 194f5e036 |
+| Aulas › Paquetes | cifras del lote (fichas con barra, titulares, reemplazos, banco); el motivo del bloqueo una vez arriba con «Ir a Accesos»; los tres formatos como tarjetas con descripción y el PDF como principal; ficha de prueba sin rayas ni monoespaciada | (este) |

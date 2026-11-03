@@ -134,6 +134,16 @@
   display: block;
   margin-top: 12px;
   padding-top: 12px;
+  font-size: var(--pulso-type-subtitle-size);
+  font-weight: var(--pulso-type-subtitle-weight);
+  color: var(--pulso-text);
+}
+.rec-prueba-campo > small {
+  display: block;
+  margin-top: var(--pulso-space-1);
+  font-size: var(--pulso-type-caption-size);
+  font-weight: var(--pulso-type-caption-weight);
+  color: var(--pulso-text-soft);
 }
 
 .rec-prueba-fila {
