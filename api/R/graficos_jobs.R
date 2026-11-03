@@ -171,7 +171,7 @@ graficos_job_worker_ppt <- function(rp_data_path, rp_inst_path, plan, presets, p
   sig_previa <- .sig_informe_preparar(significancia, rp_data_path, rp_inst_path, active_base)   # ADR 0128
   on.exit(options(sig_previa), add = TRUE)
   palette_env <- .graficos_palette_env(paletas, parent = parent.frame())
-  plan <- .graficos_calificar_refs_plan(plan, active_base)
+  plan <- .sig_plan_como_leer(.graficos_calificar_refs_plan(plan, active_base))   # ADR 0128: «Cómo leer» desde la regla
   slides_r <- .graficos_job_rebuild_slides(
     plan, slide_registry, graficador_registry, icon_registry,
     report = report, base_error = base_error, item_label = "la lámina"
@@ -306,7 +306,7 @@ graficos_job_worker_word <- function(rp_data_path, rp_inst_path, plan, presets, 
   sig_previa <- .sig_informe_preparar(significancia, rp_data_path, rp_inst_path, active_base)   # ADR 0128
   on.exit(options(sig_previa), add = TRUE)
   palette_env <- .graficos_palette_env(paletas, parent = parent.frame())
-  plan <- .graficos_calificar_refs_plan(plan, active_base)
+  plan <- .sig_plan_como_leer(.graficos_calificar_refs_plan(plan, active_base))   # ADR 0128: «Cómo leer» desde la regla
   slides_r <- .graficos_job_rebuild_slides(
     plan, slide_registry, graficador_registry, icon_registry,
     report = report, base_error = base_error, item_label = "la sección"

@@ -1318,13 +1318,21 @@ graficar_barras_agrupadas <- function(
     if (!is.null(sufijos_etiqueta) && is.data.frame(sufijos_etiqueta) &&
         nrow(sufijos_etiqueta) && all(c(".col_pct", ".sufijo") %in% names(sufijos_etiqueta)) &&
         var_categoria %in% names(sufijos_etiqueta)) {
+      # El rótulo puede llegar partido en líneas para el eje: se compara sin los saltos (ADR 0128).
+      clave_sig <- function(x) gsub("\\s+", " ", trimws(as.character(x)))
       idx <- match(
-        paste0(df_lab[[var_categoria]], "\r", df_lab$.col_pct),
-        paste0(sufijos_etiqueta[[var_categoria]], "\r", sufijos_etiqueta$.col_pct)
+        paste0(clave_sig(df_lab[[var_categoria]]), "\r", df_lab$.col_pct),
+        paste0(clave_sig(sufijos_etiqueta[[var_categoria]]), "\r", sufijos_etiqueta$.col_pct)
       )
       extra <- sufijos_etiqueta$.sufijo[idx]
       con_extra <- !is.na(extra) & nzchar(df_lab$lab)
-      df_lab$lab[con_extra] <- paste0(df_lab$lab[con_extra], extra[con_extra])
+      if (".letras" %in% names(sufijos_etiqueta) && is.null(espec_agrupada)) {
+        # ADR 0128: la marca es una cápsula aparte, no texto pegado a la cifra (lamina_significancia_capsula.R).
+        df_lab$.sig_txt <- ifelse(con_extra, trimws(extra), "")
+        df_lab$.sig_fragil <- sufijos_etiqueta$.fragil[idx] %in% TRUE
+      } else {
+        df_lab$lab[con_extra] <- paste0(df_lab$lab[con_extra], extra[con_extra])
+      }
     }
     if (isTRUE(mostrar_n_en_etiquetas) && ".n_label_val" %in% names(df_lab)) {
       n_val <- suppressWarnings(as.numeric(df_lab$.n_label_val))
@@ -1459,6 +1467,8 @@ graficar_barras_agrupadas <- function(
         show.legend = FALSE
       ) +
       ggplot2::scale_colour_identity(guide = "none")
+    p <- .sig_capa_capsula(p, df_lab, var_categoria, width_dodge, isTRUE(cruce_agr$dodge_invertido), base_max,
+                           ancho_texto_datos, size_texto_barras_eff, font_family)   # ADR 0128: cápsula ▲A
   }
 
   # ---------------------------------------------------------------------------

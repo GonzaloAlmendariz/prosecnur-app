@@ -285,6 +285,7 @@
 .mini_render_pptx <- function(ctx, out_path) {
   presets <- if (length(ctx$presets_json)) .build_presets(ctx$presets_json) else NULL
   sig_previa <- .sig_informe_activar(ctx$opciones_motor[["prosecnur.sig_informe"]]); on.exit(options(sig_previa), add = TRUE)   # ADR 0128
+  ctx$slide <- .sig_slide_como_leer(ctx$slide)
   palette_env <- .graficos_palette_env(ctx$paletas %||% list(), parent = environment())
   conteo <- new.env(parent = emptyenv())
   slide_r <- .mini_rebuild_slide(ctx$slide, icon_registry = ctx$icon_registry, conteo = conteo,

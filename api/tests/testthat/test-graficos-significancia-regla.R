@@ -136,3 +136,38 @@ test_that("ninguna diferencia: la nota dice las cifras extremas en vez de callar
   expect_equal(.sig_estado(ev), "ninguna")
   expect_match(.nota_plana(ev, .regla_test()), "el 40% de Mujer y el 38% de Hombre no se distinguen")
 })
+
+test_that("la cápsula ▲A es una capa aparte de la cifra, con contorno en la frágil, y no deja cajas vacías", {
+  df_lab <- data.frame(categoria = c("a", "a", "b", "b"), .serie = c("A", "B", "A", "B"),
+                       .valor_plot = c(0.5, 0.2, 0.3, 0.1), valor_label = c(0.25, 0.22, 0.15, 0.12),
+                       inside = c(TRUE, FALSE, TRUE, FALSE), lab = c("50%", "20%", "30%", "10%"),
+                       .sig_txt = c("▲B", "", "△B", ""), .sig_fragil = c(FALSE, FALSE, TRUE, FALSE),
+                       stringsAsFactors = FALSE)
+  p <- ggplot2::ggplot(df_lab, ggplot2::aes(categoria, .valor_plot, fill = .serie)) + ggplot2::geom_col(position = "dodge")
+  p2 <- .sig_capa_capsula(p, df_lab, "categoria", 0.8, FALSE, 1, ancho_cifra = rep(0.06, 4), size_texto = 4)
+  capas <- Filter(function(l) inherits(l$geom, "GeomLabel"), p2$layers)
+  expect_length(capas, 2L)                                  # firmes y frágiles
+  expect_equal(sum(!is.na(capas[[1]]$data$.sig_txt)), 1L)   # solo la celda marcada, sin cajas vacías
+  expect_identical(capas[[2]]$aes_params$linetype %||% capas[[2]]$geom_params$linetype, "dashed")
+  # Sin marcas, el gráfico queda igual.
+  expect_identical(.sig_capa_capsula(p, transform(df_lab, .sig_txt = ""), "categoria", 0.8, FALSE, 1, rep(0.06, 4), 4), p)
+})
+
+test_that("«Cómo leer las diferencias» se escribe desde la regla del estudio y cambia con ella", {
+  rs <- .regla_test(correccion = "bh_informe")
+  slide <- list(id = "s5", tipo = "p_slide_texto",
+                payload = list(titulo = "Cómo leer las diferencias entre grupos", texto = "prueba z con Bonferroni, 95%"))
+  vieja <- .sig_informe_activar(list(regla = rs, familia = NULL)); on.exit(options(vieja), add = TRUE)
+  nuevo <- .sig_plan_como_leer(list(slides = list(slide, list(id = "s6", payload = list(titulo = "Otra", texto = "x")))))
+  t5 <- nuevo$slides[[1]]$payload$texto
+  expect_match(t5, "Rao-Scott")
+  expect_match(t5, "Benjamini-Hochberg")
+  expect_match(t5, "al menos 10 puntos")
+  expect_false(grepl("prueba z", t5))
+  expect_identical(nuevo$slides[[2]]$payload$texto, "x")      # las demás láminas no se tocan
+  tz <- .sig_texto_como_leer(.regla_test(prueba = "z", fragiles = "ocultar"))
+  expect_match(tz, "prueba z")
+  expect_false(grepl("Frágil|frágil", tz))
+  options(prosecnur.sig_informe = NULL)
+  expect_identical(.sig_plan_como_leer(list(slides = list(slide)))$slides[[1]], slide)   # sin regla vigente, intacta
+})
