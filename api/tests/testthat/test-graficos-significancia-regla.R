@@ -191,3 +191,18 @@ test_that("D6: la prueba de tendencia por nivel es opcional y, encendida, dice l
   ev2 <- .sig_evaluar(.ind_de(list(Si = y)), unname(g2), c("x", "y", "z", "w"), regla = r, filas = "Si")
   expect_null(ev2$tendencia)
 })
+
+test_that("geometría de la cápsula (propuesta §4.2): hueco de 0.05 in, márgenes 0.06/0.07 in, alto 1.45 × cuerpo", {
+  # Panel de barras de 5 in sobre una escala 0-1: 0.2 unidades de datos por pulgada.
+  g <- .sig_capsula_geometria("34%", "△A", size_texto = 14 / ggplot2::.pt, base_max = 1, panel_in = 5)
+  expect_equal(g$hueco, 0.05 / 5)
+  expect_equal(as.numeric(g$margen[2]), 0.07 * 72)   # derecha, en pt
+  expect_equal(as.numeric(g$margen[4]), 0.06 * 72)   # izquierda
+  cuerpo <- 14 * 0.8
+  expect_equal(as.numeric(g$margen[1]) * 2 + cuerpo, 1.45 * cuerpo, tolerance = 1e-9)
+  expect_equal(as.numeric(g$radio), 1.45 * cuerpo / 2)
+  expect_gt(g$capsula, (0.06 + 0.07) / 5)            # el texto más los dos márgenes
+  # Entre el triángulo y las letras va un espacio fino, no una separación de palabra.
+  expect_identical(.sig_capsula_texto("△A"), "△ A")
+  expect_identical(.sig_capsula_texto("▲ AB"), "▲ AB")
+})

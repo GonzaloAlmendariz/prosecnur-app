@@ -1468,7 +1468,8 @@ graficar_barras_agrupadas <- function(
       ) +
       ggplot2::scale_colour_identity(guide = "none")
     p <- .sig_capa_capsula(p, df_lab, var_categoria, width_dodge, isTRUE(cruce_agr$dodge_invertido), base_max,
-                           ancho_texto_datos, size_texto_barras_eff, font_family)   # ADR 0128: cápsula ▲A
+                           ancho_texto_datos, size_texto_barras_eff, font_family,   # ADR 0128: cápsula ▲A
+                           panel_in = ancho * (if (isTRUE(usar_canvas)) canvas_w_bars else 1 - canvas_w_etiquetas))
   }
 
   # ---------------------------------------------------------------------------
