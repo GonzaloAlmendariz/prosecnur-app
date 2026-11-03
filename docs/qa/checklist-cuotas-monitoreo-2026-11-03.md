@@ -135,9 +135,26 @@ Reparos de `revisor-metodologico` (aprobado con reparos) y su estado:
 |---|---|---|
 | R1 | Sin plataforma, Cuotas y la barra no dicen que la cifra sale de la hoja (58 de la hoja frente a 55 de Kobo) | ☑ cada fila de `cuotas_variable` publica `Origen` («kobo» o «hoja») y Avance › Cuotas y la barra escriben «efectivas de la hoja», como Ritmo. Sin cambio de cifra |
 | R2 | El cambio a Kobo es para todo el estudio: un actor sin Kobo conectado cae a 0 | ☐ |
-| R3 | `avance_efectivo_dia` y `avance_efectivo_actor_dia` cuentan sólo plataforma: 0 frente a 72 sin plataforma, y 70 frente a 69 con las completas de Kobo fuera de la hoja | ☐ |
+| R3 | `avance_efectivo_dia` y `avance_efectivo_actor_dia` cuentan sólo plataforma: 0 frente a 72 sin plataforma, y 70 frente a 69 con las completas de Kobo fuera de la hoja | ☑ 2775c2d8e (ver la tabla de abajo) |
 | R4 | `has_key` va por fila: una llave repetida en la población cuenta dos veces una completa | ☐ |
 | R5 | Una sola variable de cuota en pantalla: las metas de otra variable no aparecen | **bloqueado**: decisión de Gonzalo (propuesta pendiente) |
+
+### R3: las series diarias con el mismo numerador (2775c2d8e)
+
+`Efectivas` del diario y del diario por actor es el numerador de las cuotas, más (sólo con Kobo) las completas de Kobo sin caso en la base. Estas últimas se publican en la columna nueva `Fuera de la base`. El invariante es diario = Σ cuotas + fuera de la base. `Efectivas Kobo` no cambia. El PDF telefónico dibuja su serie con `Efectivas`: sin plataforma su serie quedaba en 0 frente a 72 en su propio cuadro por actor.
+
+| Proyecto, situación | Antes: cuotas / diario | Después: cuotas / diario (fuera de la base) |
+|---|---|---|
+| MedVida, hoja y Kobo | 69 / 70 | 69 / 70 (1) |
+| MedVida, sin plataforma | 72 / **0** | 72 / 72 (0) |
+| MedVida, sin barrido | 69 / 70 | 69 / 70 (1) |
+| MEDVID, hoja y Kobo | 107 / 107 | igual |
+| MEDVID, sin plataforma | 107 / **0** | 107 / 107 |
+| MEDVID, sin barrido | 0 / 107 | 0 / 107 |
+
+Regresión de 0f5db3359 corregida en 2775c2d8e. En acreditación sin barrido la base son las propias respuestas, y quitar `!phone_from_population` dejaba la cuota en 0 (`test-monitoreo-engine.R:1741`). Ahora esas filas cuentan con su propio estado, y en esa rama no se suma «fuera de la base»: en MEDVID duplicaba, 214 de 107. El doble conteo lo verifica la medición sobre MEDVID; ningún test sintético lo reproduce todavía.
+
+**Sigue abierto**: MEDVID sin barrido da 0 en cuotas y 107 en el diario porque la variable de cuota no está en las filas de población (ya era así). El nombre `platformEffectiveFromDaily` de la página congelada ahora lleva la cifra de la hoja cuando no hay plataforma (la cifra es la misma que su respaldo).
 
 ## Pedidos de Gonzalo durante la ronda
 
