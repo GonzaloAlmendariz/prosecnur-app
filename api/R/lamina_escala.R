@@ -100,7 +100,9 @@
   }
   .leyenda_avisar(plan)
   k <- length(plan$filas)
-  if (k > 1L) y <- min(y, g("base_y") - 0.02 - 0.3 * k)
+  # La nota de significancia reserva su alto sobre «Base:» (`prosecnur.lam_reserva_pie`): el bloque de varias filas
+  # sube también lo que ella ocupa, o su segunda fila se monta sobre la nota (CCSS v6, lámina 50).
+  if (k > 1L) y <- min(y, g("base_y") - getOption("prosecnur.lam_reserva_pie", 0) - 0.02 - 0.3 * k)
   .lam_leyenda_dibujar(lz, plan, y, labels, cols, centrar_en, ml, fin)
   invisible(lz)
 }

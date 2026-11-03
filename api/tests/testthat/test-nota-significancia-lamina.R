@@ -87,3 +87,28 @@ test_that("sin significancia la lámina no lleva nota ni reserva espacio", {
   x <- .ns_render(p_barras_apiladas("p1", cruces = "grupo"))
   expect_false("Nota significancia" %in% .ns_cajas(x)$nombre)
 })
+
+test_that("una leyenda de dos filas sube sobre la nota de significancia y no la pisa (CCSS v6, lámina 50)", {
+  skip_if_not_installed("officer"); skip_if_not_installed("rvg"); skip_if_not_installed("stringr")
+  set.seed(11)
+  ops <- c("No la uso", "Algunas veces al mes", "Uno o dos días por semana", "Tres o más días a la semana",
+           "Todos los días, en momentos puntuales", "Todos los días, a lo largo del día")
+  g <- rep(c("n6", "n7", "n8", "n9"), each = 100)
+  prob <- list(n6 = c(.6, .2, .1, .05, .03, .02), n7 = c(.3, .2, .1, .1, .1, .2), n8 = c(.5, .3, .05, .05, .05, .05),
+               n9 = c(.55, .2, .1, .1, .03, .02))
+  p1 <- unlist(lapply(names(prob), function(k) sample(as.character(1:6), 100, TRUE, prob = prob[[k]])))
+  fuente <- list(
+    data = data.frame(id = seq_along(g), p1 = p1, niv = g, stringsAsFactors = FALSE),
+    inst = list(survey = data.frame(type = c("integer", "select_one fr", "select_one nv"), name = c("id", "p1", "niv"),
+                                    label = c("id", "Frecuencia", "Nivel"), list_name = c(NA, "fr", "nv"),
+                                    stringsAsFactors = FALSE),
+                choices = data.frame(list_name = c(rep("fr", 6), rep("nv", 4)), name = c(as.character(1:6), "n6", "n7", "n8", "n9"),
+                                     label = c(ops, "Nivel 6", "Nivel 7", "Nivel 8", "Nivel 9"), stringsAsFactors = FALSE)))
+  x <- .ns_render(p_barras_apiladas("p1", cruces = "niv", mostrar_significancia = TRUE), fuente)
+  cajas <- .ns_cajas(x)
+  nota <- cajas[cajas$nombre == "Nota significancia", ]
+  ley <- cajas[cajas$nombre == "leyenda:texto", ]
+  expect_equal(nrow(nota), 1L)
+  expect_gt(length(unique(round(ley$y, 2))), 1L)            # la leyenda va en dos filas
+  expect_true(all(ley$y + ley$h <= nota$y + 1e-6), info = paste(round(ley$y + ley$h, 2), collapse = " "))
+})
