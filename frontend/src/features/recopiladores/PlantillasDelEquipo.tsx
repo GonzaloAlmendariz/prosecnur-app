@@ -13,11 +13,13 @@ import { Link } from "react-router-dom";
 
 import { downloadUrl } from "../../api/core";
 import { apiMaterialAulasEntrega, apiMaterialAulasPlantilla, type EntregaDeAulas, type PiezaDelEquipo } from "../../api/materialAulasEntrega";
+import { Panel } from "../../components/Panel";
 import { PulsoButton } from "../../components/PulsoButton";
 import { serializarDireccion } from "../../lib/navegacion/direccion";
-import { CalendarDays, FileSpreadsheet } from "../../vendor/lucide-react";
+import { CalendarDays, Download, FileSpreadsheet } from "../../vendor/lucide-react";
 import "./styles/plantillas-equipo.css";
 import { CargaDeBloque } from "./CargaDeBloque";
+import { FormatoDeSalida, FormatosDeSalida } from "./PaquetesAulasTablero";
 
 const PIEZAS: readonly { pieza: PiezaDelEquipo; titulo: string; llena: string; requiereEntrega: boolean }[] = [
   { pieza: "libro", titulo: "Libro del equipo", llena: "Aulas Agendadas (fecha, hora y aplicador de cada aula) y Aulas Aplicadas (el parte)", requiereEntrega: true },
@@ -58,56 +60,61 @@ export function PlantillasDelEquipo() {
 
   const entregada = Boolean(entrega?.entregada);
   return (
+    // Pasada de diseño (2 nov 2026): cada planilla es una tarjeta de salida, como los formatos de Paquetes,
+    // y las dos partes de la pestaña viven en un Panel con su línea.
     <div className="rec-equipo-tarjetas" data-qa-geometry-group="material-campo/entrega/plantillas" data-qa-geometry-contract="intrinsic">
-      <article className="rec-equipo-tarjeta" data-qa-geometry-member>
-        <h3><FileSpreadsheet size={15} aria-hidden /> Plantillas del equipo</h3>
-        <p className="rec-equipo-nota">En blanco y con las aulas de la entrega ya puestas. Campo las llena; la lectura y el seguimiento siguen en Monitoreo.</p>
-        <ul className="rec-equipo-piezas">
+      <Panel
+        data-qa-geometry-member
+        title={<><FileSpreadsheet size={16} aria-hidden /> Plantillas del equipo</>}
+        hint="En blanco y con las aulas de la entrega ya puestas. Campo las llena; la lectura y el seguimiento siguen en Monitoreo."
+      >
+        <FormatosDeSalida>
           {PIEZAS.map((p) => {
             const bloqueada = p.requiereEntrega && !entregada;
             return (
-              <li key={p.pieza}>
-                <span>
-                  <b>{p.titulo}</b>
-                  <small>{p.llena}</small>
-                  {bloqueada ? <small className="rec-equipo-nota">Sale después de entregar el material a Monitoreo.</small> : null}
-                </span>
+              <FormatoDeSalida
+                key={p.pieza}
+                icono={<FileSpreadsheet size={16} />}
+                titulo={p.titulo}
+                descripcion={bloqueada ? `${p.llena}. Sale después de entregar el material a Monitoreo.` : `${p.llena}.`}
+              >
                 <PulsoButton size="sm" variant="secondary" disabled={bloqueada || ocupado !== null || entrega === null} onClick={() => descargar(p.pieza)}>
-                  {ocupado === p.pieza ? "Generando…" : "Excel"}
+                  <Download size={14} aria-hidden /> {ocupado === p.pieza ? "Generando…" : "Excel"}
                 </PulsoButton>
-              </li>
+              </FormatoDeSalida>
             );
           })}
-        </ul>
+        </FormatosDeSalida>
         <p className="rec-equipo-nota">
           La asignación inicial es con la que campo empieza. El reparto de cada día sobre la agenda lo rehace Monitoreo, en{" "}
           <Link to={A_MONITOREO_REPARTO}>Modelo › Carga</Link>.
         </p>
         {error ? <p className="rec-equipo-error" role="alert">{error}</p> : null}
-      </article>
+      </Panel>
 
-      <article className="rec-equipo-tarjeta" data-qa-geometry-member>
-        <h3><CalendarDays size={15} aria-hidden /> Traspaso a Monitoreo</h3>
+      <Panel
+        data-qa-geometry-member
+        title={<><CalendarDays size={16} aria-hidden /> Traspaso a Monitoreo</>}
+        hint={entrega && entregada ? undefined : "Al entregar, Monitoreo la trae desde Insumos › Fuentes con «Traer la entrega»."}
+      >
         {entrega === null && !error ? <CargaDeBloque label="Leyendo la entrega…" /> : null}
-        {entrega && !entregada ? (
-          <p className="rec-equipo-nota">Todavía no hay entrega. Al entregar, Monitoreo la trae desde Insumos › Fuentes con «Traer la entrega».</p>
-        ) : null}
+        {entrega && !entregada ? <p className="rec-equipo-estado">Todavía no hay entrega</p> : null}
         {entrega && entregada ? (
           <>
             <p className="rec-equipo-nota">
-              Entrega del {fecha(entrega.entregadaEl)} · {entrega.unidades.toLocaleString("es-PE")} aulas. Material ya no escribe el plan de
+              Entrega del {fecha(entrega.entregadaEl)}, con {entrega.unidades.toLocaleString("es-PE")} aulas. Material ya no escribe el plan de
               Monitoreo: Monitoreo consulta esta entrega y avisa si cambia.
             </p>
             <p className={entrega.vigente && !entrega.desactualizada ? "rec-equipo-nota" : "rec-equipo-error"}>
               {entrega.desactualizada
                 ? "El plan cambió desde la entrega: prepara y entrega otra vez para que Monitoreo la traiga."
                 : entrega.vigente
-                  ? `Sello de la entrega: ${entrega.sello.replace(/^sha256:/, "").slice(0, 12)}`
+                  ? <span title={entrega.sello}>La entrega sigue vigente.</span>
                   : "El despliegue cambió desde la entrega: vuelve a entregar."}
             </p>
           </>
         ) : null}
-      </article>
+      </Panel>
     </div>
   );
 }
