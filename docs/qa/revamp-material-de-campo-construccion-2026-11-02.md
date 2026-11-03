@@ -317,3 +317,13 @@ rediseña una vista entera al nivel del Sistema Pabellón para fijar la vara ant
 - Equipo: las 26 personas con avatar de color determinista, código y barra de carga, sin techo.
 - Asignación y Plan de campo en tarjetas con cabecera. En cuotas ya no se pinta el formulario apagado del plan.
 - Modelo puro `territorial/modeloTablero.ts` con 5 tests. Capturas `faro-ump` (1280 y 1440) y `faro-cuotas`.
+
+### Qué se reusa y qué es nuevo (pedido de coordinación, para no abrir una tercera gramática)
+
+| Pieza | Decisión | Por qué |
+|---|---|---|
+| Bloque con cabecera | **Se reusa `components/Panel.tsx`** (título con ícono, `hint` como línea, `actions`) | Ya existía; el `BloqueDeTablero` local lo duplicaba y se borró antes de commitearse. P2 sigue siendo una sola gramática: `Panel`. |
+| Cifras en tarjeta | **Nueva en `components/CifrasEnTarjeta.tsx`** | No había una compartida: cada módulo tiene la suya (`KpiCard` en Dashboard, `CifraMotor` en Cálculo de muestra, `Metric` en aulas). `CifrasPestana` de Analítica es otra cosa (chips de cabecera de pestaña) y se queda. Las otras pueden converger aquí cuando se toquen. |
+| Barra de avance | **Nueva en `components/BarraDeAvance.tsx`** | Tampoco había: `JobProgress` es la de un job y Home, Monitoreo y Correo pintan la suya con `role="progressbar"`. Usa `--module-accent`, así sirve a cualquier módulo. Anima con scaleX (contrato de movimiento L37). |
+| Reparto por distrito, equipo con avatares | Propio de Territorial (`TableroDeEntrega.tsx`, `tableroEntrega.css`) | Es contenido de la vista, no una primitiva. Los tonos copian el patrón del Sistema Pabellón sin importarlo, porque su módulo es de Monitoreo. |
+| Chequeos del origen, aulas que esperan enlace | Propio de Accesos (`AccesosTablero.tsx`) | Ídem. |
