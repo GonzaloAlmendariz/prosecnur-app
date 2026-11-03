@@ -8,7 +8,8 @@
 # `sf` al borde: el dispositivo vectorial del PPT (rvg) se cae con polígonos fuera del recorte.
 #
 # Capas, de abajo arriba (maqueta, tableros 2–4): mar; tierra de contexto; contorno gris de 2,4 pt (asoma sólo por fuera
-# porque las áreas se pintan encima); áreas con borde blanco de 0,75 pt; Lima Metropolitana y el Callao (Perú) con trazo
+# porque las áreas se pintan encima); áreas con borde gris oscuro de 0,5 pt (la maqueta usaba blanco; Gonzalo pidió que
+# se distingan los distritos); Lima Metropolitana y el Callao (Perú) con trazo
 # de su propio color; rótulos; «Océano Pacífico»; escala gráfica; en el Perú, el recuadro de la zona de Lima.
 
 .MAPA_DIST_PX <- 1 / 96   # 1 px del lienzo de la maqueta, en pulgadas
@@ -225,7 +226,7 @@
     ggplot2::geom_polygon(data = poly, ggplot2::aes(.data$x, .data$y, group = .data$grupo),
                           fill = NA, colour = M$contorno, linewidth = .mapa_dist_lw(2.4), linejoin = "round") +
     ggplot2::geom_polygon(data = poly, ggplot2::aes(.data$x, .data$y, group = .data$grupo, fill = .data$color,
-                                                    colour = .data$trazo), linewidth = .mapa_dist_lw(0.75), linejoin = "round") +
+                                                    colour = .data$trazo), linewidth = .mapa_dist_lw(M$borde_pt), linejoin = "round") +
     ggplot2::scale_fill_identity() + ggplot2::scale_colour_identity()
   # Rótulos.
   rot <- espec$rotulos

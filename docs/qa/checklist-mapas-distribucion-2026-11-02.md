@@ -10,7 +10,7 @@ Estados: pendiente · en curso · hecho (a revisar) · bloqueado. Sólo Gonzalo 
 |---|---|---|---|
 | 1 | Paleta Blues de 5 clases (Lima) y de 4 (Perú), sin violetas | `.MAPA_DIST` en `graficos_mapa_distribucion_plan.R`; `.mapa_distribucion_clases()` | hecho (a revisar) |
 | 2 | «Sin encuestados» #FAF9F6, con borde #C9CED6 sólo en la leyenda | `.MAPA_DIST$vacio`; leyenda en `lamina_mapa_distribucion.R` y `reporte_word_mapa_distribucion.R` | hecho (a revisar) |
-| 3 | Bordes blancos de 0,75 pt con uniones redondeadas; contorno #8E98A8 de 2,4 pt debajo de las áreas | `.mapa_dist_panel_gg()` (`graficos_mapa_distribucion_dibujo.R`) | hecho (a revisar) |
+| 3 | Bordes blancos de 0,75 pt (cambiados a gris oscuro de 0,5 pt, ítem 21) con uniones redondeadas; contorno #8E98A8 de 2,4 pt debajo de las áreas | `.mapa_dist_panel_gg()` (`graficos_mapa_distribucion_dibujo.R`) | hecho (a revisar) |
 | 4 | Mar #E6EEF5 con «Océano Pacífico»; tierra de contexto (dpto. de Lima en Lima; países vecinos rotulados en el Perú) | dibujo + `peru_vecinos.geojson` (Natural Earth admin-0 50m, dominio público; `api/inst/cartografia/`) | hecho (a revisar). Bolivia y Chile apenas asoman y no se rotulan |
 | 5 | Cortes en estudiantes (1–2, 3–5, 6–10, 11–20, 21+; Perú hasta 11+); leyenda escalonada en franja propia, centrada, sin tapar el mapa | `.mapa_distribucion_clases()`; `.lam_mapa_dist_leyenda()`; `.word_mapa_dist_leyenda()` | hecho (a revisar) |
 | 6 | Tasa por 10 000 habitantes (Censo 2017 de `lima_district_coverage.json`), cortes 0,5·1·2·3, pie «Población: INEI, Censo 2017» | `medida = "tasa"`; `espec$nota_pie` (lámina: al pie; Word: nota del ranking) | hecho (a revisar) |
@@ -38,7 +38,7 @@ Estados: pendiente · en curso · hecho (a revisar) · bloqueado. Sólo Gonzalo 
 | # | Indicación | Dónde vive | Estado |
 |---|---|---|---|
 | 15 | «Lima provincias» contaba 0 con 6 casos | `.mapa_distribucion_casar()`: el código de la lista «16» se leía como UBIGEO 16 (Loreto); ahora manda el nombre y el código sólo decide si la etiqueta no nombra un área | hecho (a revisar), con prueba |
-| 16 | Rótulos de distritos (≥ 12 casos; en tasa, los 6 primeros) en la columna sobre el mar | **Contradice la indicación directa de Gonzalo** («la línea hacia afuera es sólo para los puntos de Google Maps; los distritos se colorean con leyenda y gráfico de barras al lado»). Hoy sólo los puntos llevan rótulo | bloqueado: lo decide Gonzalo |
+| 16 | Rótulos de distritos (≥ 12 casos; en tasa, los 6 primeros) en la columna sobre el mar | **Contradice la indicación directa de Gonzalo** («la línea hacia afuera es sólo para los puntos de Google Maps; los distritos se colorean con leyenda y gráfico de barras al lado»). Hoy sólo los puntos llevan rótulo | resuelto por Gonzalo (2026-11-03): sólo los puntos de Google Maps llevan rótulo; no se implementa |
 | 17 | El recuadro «Zona de Lima» salía en subpreguntas sin Lima | sólo si Lima Metropolitana + Callao + Lima provincias ≥ 5 % de la base, o `zona_lima = TRUE/FALSE`; sin recuadro, el Perú se centra | hecho (a revisar), con prueba |
 | 18 | El recuadro mal encuadrado (costa vacía, Callao casi invisible) | `.mapa_dist_zona_lima()`: caja de Lima Metropolitana + Callao con 30 % de aire; el recuadro crece con su letra en el Word | hecho (a revisar) |
 
@@ -48,5 +48,5 @@ Estados: pendiente · en curso · hecho (a revisar) · bloqueado. Sólo Gonzalo 
 |---|---|---|---|
 | 19 | La PUCP sólo va en el mapa distrital, no en el nacional («por definición propia») | `.espec_mapa_distribucion()`: en el Perú los puntos se descartan | hecho (a revisar), con prueba |
 | 20 | «El mapa del Perú o de Lima tiene mucho ancho y se ve raro el encuadre» | la tarjeta del mapa mide lo que pide su contenido (`.mapa_dist_ancho_natural`, entre 40 % y 62 % de la lámina); Word: alto natural a 16 cm; la leyenda baja sus extras a una 2.ª fila si no cabe | hecho (a revisar) |
-| 21 | «No se distinguen los distritos» | bordes blancos de 0,75 pt de la maqueta aprobada; antes se pidieron negros. Falta decidir con Gonzalo | bloqueado: lo decide Gonzalo |
+| 21 | «No se distinguen los distritos» | Gonzalo eligió (2026-11-03) borde gris oscuro #5A6478 de 0,5 pt: `.MAPA_DIST$borde` | hecho (a revisar) |
 | 22 | «etc.»: más ajustes de acabado | por definir en la próxima revisión | pendiente |

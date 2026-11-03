@@ -23,7 +23,8 @@
   blues5 = c("#C6DBEF", "#9ECAE1", "#6BAED6", "#3182BD", "#08519C"),
   blues4 = c("#C6DBEF", "#9ECAE1", "#4292C6", "#08519C"),
   vacio = "#FAF9F6", vacio_borde = "#C9CED6", fuera = "#14213D", punto = "#C8463D",
-  borde = "#FFFFFF", contorno = "#8E98A8", mar = "#E6EEF5", oceano = "#7A8AA0",
+  # Borde entre áreas gris oscuro fino (Gonzalo, 2026-11-03: «no se distinguen los distritos»; la maqueta usaba blanco).
+  borde = "#5A6478", borde_pt = 0.5, contorno = "#8E98A8", mar = "#E6EEF5", oceano = "#7A8AA0",
   tierra = "#EEECE7", tierra_borde = "#D9D5CD", pais = "#A39E94", texto = "#14213D", gris = "#5A6478", guia = "#3C4658",
   cortes_conteo = list(lima_callao = c(3, 6, 11, 21), peru = c(3, 6, 11)),
   cortes_tasa = c(0.5, 1, 2, 3),
