@@ -96,6 +96,15 @@ export function universityContextTabId(section: string, key: string) {
   return `cmv2-context-tab-${section}-${key}`;
 }
 
+/** El rótulo de cada sección en la barra de arriba (lib/modules.ts): el antetítulo de la pestaña lo repite. */
+const ROTULO_SECCION: Record<string, string> = {
+  definicion: "Datos",
+  marco: "Marco",
+  calculo: "Cálculo",
+  aulas: "Selección",
+  salidas: "Entrega",
+};
+
 export function UniversidadDesk({
   estudio,
   workspace,
@@ -758,7 +767,12 @@ export function UniversidadDesk({
         </div>
       )}
       {activeTabMeta ? (
-        <UniversityTabHeader tab={activeTabMeta} />
+        <UniversityTabHeader
+          tab={activeTabMeta}
+          seccion={ROTULO_SECCION[selectedSection]}
+          pestanaN={localTabs.indexOf(activeTabMeta) + 1}
+          pestanaDe={localTabs.length}
+        />
       ) : null}
       <div className="cmv2-university-workbench" data-active-section={selectedSection}>
         {selectedSection === "definicion" && (
