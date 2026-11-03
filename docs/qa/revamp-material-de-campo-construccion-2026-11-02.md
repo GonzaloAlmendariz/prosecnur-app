@@ -343,4 +343,12 @@ en su archivo. Captura antes y después, gate-front verde y un commit por vista.
 | Territorial › Catálogo (Zonas, Ruteo, Consolidados) | el esquema de Fichas en las tres: la hoja de la UMP o zona elegida en maqueta legible (`MaquetaDeHoja.tsx`: columnas de ruteo, códigos y registro numerado, plano con rutas y «R») y el panel de acciones al lado | 4ceb29037 |
 | Territorial › Paquetes | cifras del paquete (titulares, reemplazos, zonas, piezas listas con barra); «Para campo», hojas y reemplazos puntuales en Panel; fichas sugeridas con código y motivo, sin «·» y sin techo | 09c5130a0 |
 | Telefónica (Casos, Barrido, Entrega) | cifras del barrido en el shell (casos, backup, teléfonos, documento); las siete tarjetas en Panel; Entrega con recorrido de tres pasos (la pieza del Traspaso); la clase de cada status como EstadoChip con tono | 715a6faa1 |
-| Registro de campañas | sin «·» en la tarjeta (enumerar y comas); avance con BarraDeAvance y «x de y»; envíos con el nombre en negrita; tarjeta punteada «Nueva campaña» al final de la grilla; franja teñida por tipo | (este) |
+| Registro de campañas | sin «·» en la tarjeta (enumerar y comas); avance con BarraDeAvance y «x de y»; envíos con el nombre en negrita; tarjeta punteada «Nueva campaña» al final de la grilla; franja teñida por tipo | 7fe8b4ad2 |
+
+### Pasada final (3 nov 2026)
+
+- Kit y ratchets de Material: P3 `puntoMedio.contract.test.ts` («·» 116 → 61, casi todo en el correo; 5c27aaa7e),
+  P4 `conteosConMiles.contract.test.ts` (83119d2c3), P5 `vaciosYCargasDelKit`, P1 `letraPorRol` (meta 0).
+- 26 vistas a 1280 (`final-*`), 26 md5 distintos, textosFuera 0. Cuotas › Zonas arrastraba un contrato de geometría
+  `owned` inválido desde antes del rediseño: corregido en 253a6ad52. Con eso las 26 salen ok=true.
+- Queda abierto: los «·» del correo (61, bajo ratchet) y Códigos de resultado, que sigue como formulario.
