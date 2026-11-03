@@ -24,28 +24,26 @@
 #'   cifra cabe dentro de la barra).
 #' @keywords internal
 .sig_capa_capsula <- function(p, df_lab, var_categoria, width_dodge, dodge_invertido = FALSE, base_max = 1,
-                              ancho_cifra, size_texto, font_family = "") {
+                              ancho_cifra, size_texto, font_family = "", panel_in = NULL) {
   if (!".sig_txt" %in% names(df_lab)) return(p)
   txt <- as.character(df_lab$.sig_txt); txt[is.na(txt)] <- ""
   con <- nzchar(txt) & nzchar(df_lab$lab) & is.finite(df_lab$.valor_plot)
   if (!any(con)) return(p)
   d <- df_lab
-  chars <- pmax(1, nchar(gsub("\\s+", "", d$lab), type = "width"))
-  por_caracter <- ancho_cifra / chars
-  ancho_caps <- por_caracter * 0.8 * (nchar(txt, type = "width") + 1.6)
-  aire <- 0.012 * base_max
-  # Pegada a la cifra: dentro de la barra si la cifra va dentro y queda aire hasta el extremo; si no, tras la barra.
-  tras_cifra_dentro <- d$valor_label + ancho_cifra / 2 + aire
-  dentro <- d$inside & (tras_cifra_dentro + ancho_caps + aire) <= d$.valor_plot
-  y <- ifelse(dentro, tras_cifra_dentro, ifelse(d$inside, d$.valor_plot + aire, d$valor_label + ancho_cifra + aire))
+  g <- .sig_capsula_geometria(d$lab, txt, size_texto, base_max, panel_in, ancho_cifra)
+  # Pegada a la cifra (0.05 in): dentro de la barra si la cifra va dentro y queda aire hasta el extremo; si no, tras
+  # la barra.
+  tras_cifra_dentro <- d$valor_label + g$cifra / 2 + g$hueco
+  dentro <- d$inside & (tras_cifra_dentro + g$capsula + g$hueco) <= d$.valor_plot
+  y <- ifelse(dentro, tras_cifra_dentro, ifelse(d$inside, d$.valor_plot + g$hueco, d$valor_label + g$cifra + g$hueco))
   hj <- rep(0, nrow(d))
   # Una cápsula que no cabe a la derecha del eje entra en la barra, pegada a su extremo.
-  fuera_eje <- !dentro & (y + ancho_caps) > base_max
-  y[fuera_eje] <- d$.valor_plot[fuera_eje] - aire; hj[fuera_eje] <- 1
+  fuera_eje <- !dentro & (y + g$capsula) > base_max
+  y[fuera_eje] <- d$.valor_plot[fuera_eje] - g$hueco; hj[fuera_eje] <- 1
   d$.y_caps <- y; d$.hj_caps <- hj
   # Las celdas sin marca se quedan en los datos (el dodge las necesita para ubicar las demás) pero con NA: ggplot las
   # descarta al dibujar y no deja una caja vacía.
-  d$.sig_txt <- ifelse(con, txt, NA_character_)
+  d$.sig_txt <- ifelse(con, .sig_capsula_texto(txt), NA_character_)
   fragil <- con & as.logical(d$.sig_fragil %||% FALSE) %in% TRUE
   pos <- ggplot2::position_dodge(width = width_dodge, reverse = isTRUE(dodge_invertido))
   capa <- function(datos, texto, borde, tipo) {
@@ -53,11 +51,10 @@
       data = datos,
       mapping = ggplot2::aes(x = .data[[var_categoria]], y = .data$.y_caps, label = .data$.sig_txt, group = .data$.serie,
                              hjust = .data$.hj_caps),
-      inherit.aes = FALSE, position = pos, vjust = 0.5, size = size_texto * 0.8, family = font_family,
+      inherit.aes = FALSE, position = pos, vjust = 0.5, size = g$size, family = font_family,
       fontface = "bold", fill = .sig_color("banda_clara", "#E3E7EF"), text.colour = texto, border.colour = borde,
       linetype = tipo, linewidth = if (identical(tipo, "solid")) 0 else 0.35,
-      label.r = grid::unit(0.5, "lines"), label.padding = grid::unit(0.14, "lines"), show.legend = FALSE,
-      na.rm = TRUE
+      label.r = g$radio, label.padding = g$margen, show.legend = FALSE, na.rm = TRUE
     )
   }
   firmes <- d; firmes$.sig_txt[fragil] <- NA_character_
@@ -67,4 +64,41 @@
     p <- p + capa(debiles, .SIG_COLOR_FRAGIL, .SIG_COLOR_FRAGIL, "dashed")
   }
   p
+}
+
+# Medidas de la propuesta §4.2, en pulgadas.
+.SIG_CAPSULA_IN <- list(hueco = 0.05, izquierda = 0.06, derecha = 0.07, entre = 0.04)
+
+#' Texto de la cápsula con el aire de 0.04 in entre el triángulo y las letras (un espacio fino)
+#' @keywords internal
+.sig_capsula_texto <- function(txt) sub("^([▲△▼▽])\\s*", "\\1\u2009", txt)
+
+#' Geometría de la cápsula: cuerpo, márgenes, radio y anchos en unidades de datos
+#'
+#' Con el ancho físico del panel de barras (`panel_in`), las medidas salen en pulgadas reales: hueco de 0.05 in tras la
+#' cifra, 0.06 in de margen a la izquierda y 0.07 a la derecha, alto de 1.45 × el cuerpo y radio de la mitad del alto.
+#' Sin él, se usa la estimación por carácter del graficador.
+#' @keywords internal
+.sig_capsula_geometria <- function(cifras, txt, size_texto, base_max = 1, panel_in = NULL, ancho_cifra = NULL) {
+  size_caps <- size_texto * 0.8                       # mm de ggplot
+  cuerpo_pt <- size_caps * ggplot2::.pt
+  alto_pt <- 1.45 * cuerpo_pt
+  vertical_pt <- max(0.5, (alto_pt - cuerpo_pt) / 2)
+  medidas <- .SIG_CAPSULA_IN
+  margen <- ggplot2::margin(vertical_pt, medidas$derecha * 72, vertical_pt, medidas$izquierda * 72, unit = "pt")
+  radio <- grid::unit(alto_pt / 2, "pt")
+  panel <- suppressWarnings(as.numeric(panel_in)[1])
+  if (is.finite(panel) && panel > 0) {
+    por_in <- base_max / panel
+    cifra_in <- tryCatch(.lam_ancho_tinta(as.character(cifras), size_texto * ggplot2::.pt, bold = TRUE),
+                         error = function(e) nchar(as.character(cifras)) * size_texto * ggplot2::.pt * 0.56 / 72)
+    txt_in <- tryCatch(.lam_ancho_tinta(.sig_capsula_texto(as.character(txt)), cuerpo_pt, bold = TRUE),
+                       error = function(e) nchar(as.character(txt)) * cuerpo_pt * 0.56 / 72)
+    return(list(size = size_caps, margen = margen, radio = radio, hueco = medidas$hueco * por_in,
+                cifra = cifra_in * por_in, capsula = (txt_in + medidas$izquierda + medidas$derecha) * por_in))
+  }
+  chars <- pmax(1, nchar(gsub("\\s+", "", cifras), type = "width"))
+  por_caracter <- ancho_cifra / chars
+  list(size = size_caps, margen = margen, radio = radio, hueco = 0.012 * base_max, cifra = ancho_cifra,
+       capsula = por_caracter * 0.8 * (nchar(txt, type = "width") + 1.6))
 }

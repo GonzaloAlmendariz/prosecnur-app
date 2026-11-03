@@ -161,7 +161,9 @@ Códigos nuevos: `E_SIG_SIN_CONGLOMERADO` (422: se pidió Rao-Scott y la columna
 
 ## Fuera de alcance de esta implementación
 
-- La prueba de tendencia (D6) queda declarada en la regla y apagada; su cálculo no se implementa todavía.
+- La prueba de tendencia (D6) es opcional y está apagada por defecto. Encendida, con tres o más niveles de código
+  numérico, prueba el contraste lineal entre las proporciones por nivel con la misma varianza de la prueba por pares
+  (Bonferroni entre las filas de la pregunta) y la nota dice en qué filas aumenta o disminuye con el nivel.
 - Los filtros de lámina no entran en la familia: una lámina filtrada interpola su p ajustado sobre la familia del
   estudio.
 
@@ -178,6 +180,8 @@ Códigos nuevos: `E_SIG_SIN_CONGLOMERADO` (422: se pidió Rao-Scott y la columna
 ## Notas
 
 - Las medias de dimensiones se corrigen dentro de la fila: no entran a la familia de BH del informe.
-- Las series por niveles y la armonizada aún no usan la regla: con el estudio en diseño se abstienen y lo dicen.
-- La cápsula ▲A dibujada (fondo y contorno) queda pendiente en los graficadores; hoy la marca va como texto tras la cifra.
+- Las barras agrupadas dibujan la cápsula ▲A (pastilla y contorno punteado en la frágil); las apiladas y la columna del
+  *top two box* llevan la marca como texto tras la cifra.
+- La serie por niveles usa la regla. La armonizada aún no: con el estudio en diseño se abstiene y lo dice.
+- La lámina «Cómo leer las diferencias» se escribe desde la regla en cada exportación; se reconoce por su título.
 

@@ -25,6 +25,13 @@ export const OPCIONES_FRAGILES: readonly { clave: FragilesDiferencias; rotulo: s
   { clave: "ocultar", rotulo: "No marcar" },
 ];
 
+/** Prueba de tendencia entre niveles ordenados (D6): opcional, apagada por defecto. */
+export type TendenciaDiferencias = "no" | "si";
+export const OPCIONES_TENDENCIA: readonly { clave: TendenciaDiferencias; rotulo: string }[] = [
+  { clave: "no", rotulo: "No" },
+  { clave: "si", rotulo: "Sí" },
+];
+
 /** El nivel en el texto de la UI: «p < 0.05» (punto decimal, es-PE). */
 export const rotuloAlfa = (a: number): string => `p < ${a.toFixed(2)}`;
 
@@ -67,7 +74,7 @@ export function resumenRegla(regla: ReglaDiferencias): string {
 export function mismaRegla(a: ReglaDiferencias, b: ReglaDiferencias): boolean {
   const campos: (keyof ReglaDiferencias)[] = [
     "prueba", "correccion", "alfa", "umbral_puntos", "base_minima", "conglomerados_minimos", "fragiles", "conglomerado",
-    "estrato", "incluir_ns", "max_letras",
+    "estrato", "incluir_ns", "max_letras", "tendencia",
   ];
   return campos.every((c) => a[c] === b[c]);
 }

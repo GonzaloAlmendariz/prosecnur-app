@@ -90,6 +90,7 @@
   K <- length(grupos)
   celdas <- list()
   pares <- list()
+  vcovs <- list()
   for (k in seq_along(filas)) {
     y <- Y[, k]
     en_base <- !is.na(y) & w > 0
@@ -112,7 +113,12 @@
       U <- U[match(cl_niveles, rownames(U)), , drop = FALSE]
       U[is.na(U)] <- 0
       V <- .sig_vcov_conglomerados(U, estrato_cl)
+    } else {
+      # Prueba z: grupos independientes, varianza binomial de cada proporción.
+      V <- diag(ifelse(Wg > 0 & is.finite(p), p * (1 - p) / pmax(Wg, 1e-12), 0), nrow = K)
     }
+    dimnames(V) <- list(grupos, grupos)
+    vcovs[[filas[[k]]]] <- list(p = stats::setNames(unname(p), grupos), V = V)
     if (K < 2L) next
     for (i in seq_len(K - 1L)) for (j in (i + 1L):K) {
       if (!is.finite(p[[i]]) || !is.finite(p[[j]]) || Wg[[i]] <= 0 || Wg[[j]] <= 0) next
@@ -162,6 +168,7 @@
                     stringsAsFactors = FALSE)
     } else vacio_pares,
     gl = as.integer(gl),
+    vcov = vcovs,
     conglomerados = length(cl_niveles),
     prueba = prueba
   )

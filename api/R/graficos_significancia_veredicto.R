@@ -113,8 +113,53 @@
     pares$elegible <- logical(0)
     pares$duplicada <- logical(0)
   }
+  tendencia <- if (isTRUE(regla$tendencia)) .sig_tendencia(res, grupos, grupos_df, gl = res$gl, prueba = prueba) else NULL
   list(modo = if (frente_al_resto) "frente_al_resto" else "letras", grupos = grupos_df, pares = pares,
-       celdas = celdas, letras = letras, etiquetas_grupos = etiquetas_grupos, prueba = prueba, gl = res$gl)
+       celdas = celdas, letras = letras, etiquetas_grupos = etiquetas_grupos, prueba = prueba, gl = res$gl,
+       tendencia = tendencia)
+}
+
+#' Prueba de tendencia lineal entre niveles ordenados (decisión D6: opcional, apagada por defecto)
+#'
+#' Con tres o más grupos de código numérico (niveles 6 a 9), el contraste lineal Σ c_k p_k con c_k = nivel − media de
+#' los niveles comparables, y su varianza c' V c con la misma matriz de la prueba por pares (de diseño o binomial).
+#' Corrección de Bonferroni entre las filas de la pregunta. Solo entran los grupos comparables.
+#' @return data.frame(fila, estimado, p, p_ajustado, direccion) o NULL si el cruce no es ordenado.
+#' @keywords internal
+.sig_tendencia <- function(res, grupos, grupos_df, gl = NA_integer_, prueba = "rao_scott") {
+  nivel <- suppressWarnings(as.numeric(grupos))
+  ok <- !is.na(nivel) & grupos_df$comparable[match(grupos, grupos_df$codigo)] %in% TRUE
+  if (sum(ok) < 3L || is.null(res$vcov) || !length(res$vcov)) return(NULL)
+  c_k <- stats::setNames(rep(0, length(grupos)), grupos)
+  c_k[ok] <- nivel[ok] - mean(nivel[ok])
+  filas <- names(res$vcov)
+  out <- lapply(filas, function(f) {
+    v <- res$vcov[[f]]
+    if (any(!is.finite(v$p[ok]))) return(NULL)
+    est <- sum(c_k * ifelse(is.finite(v$p), v$p, 0))
+    var <- as.numeric(t(c_k) %*% v$V %*% c_k)
+    if (!is.finite(var) || var <= 0) return(NULL)
+    z <- est / sqrt(var)
+    pv <- if (identical(prueba, "rao_scott")) 2 * stats::pt(-abs(z), df = max(gl, 1L)) else 2 * stats::pnorm(-abs(z))
+    data.frame(fila = f, estimado = est, p = pv, stringsAsFactors = FALSE)
+  })
+  out <- do.call(rbind, out)
+  if (is.null(out) || !nrow(out)) return(NULL)
+  out$p_ajustado <- stats::p.adjust(out$p, method = "bonferroni")
+  out$direccion <- ifelse(out$estimado > 0, "aumenta", "disminuye")
+  out
+}
+
+#' Línea de la nota con la tendencia por nivel, o NULL si no se pidió o no aplica
+#' @keywords internal
+.sig_texto_tendencia <- function(ev, regla) {
+  td <- ev$tendencia
+  if (!isTRUE(regla$tendencia) || is.null(td) || !nrow(td)) return(NULL)
+  sig <- td[td$p_ajustado < (regla$alfa %||% 0.05), , drop = FALSE]
+  if (!nrow(sig)) return("Tendencia por nivel: ninguna fila muestra una tendencia lineal significativa.")
+  partes <- sprintf("«%s» %s con el nivel", sig$fila, sig$direccion)
+  sprintf("Tendencia por nivel: %s (prueba de tendencia lineal, p < %s con corrección de Bonferroni).",
+          paste(partes, collapse = "; "), .sig_num(regla$alfa %||% 0.05))
 }
 
 #' p de la evaluación que entran a la familia de BH (elegibles y no duplicados)
@@ -224,7 +269,7 @@
       linea <- .sig_texto_ninguna(regla, NA, "", NA, "", niveles = niveles)
     }
   }
-  .sig_nota_lineas(c(contexto, linea))
+  .sig_nota_lineas(c(contexto, linea, .sig_texto_tendencia(ev, regla)))
 }
 
 # Separador de líneas LÓGICAS de la nota (contexto y marcas, propuesta §4.2). El salto suave que envuelve una línea larga
