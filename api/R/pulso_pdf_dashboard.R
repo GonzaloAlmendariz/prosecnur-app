@@ -817,15 +817,21 @@ pulso_pdf_serie_partida <- function(x, y, w, h, dias, diarias, acumulado,
     grid::grid.text(formato(v), x = x - 0.008, y = py_acu(v), just = c("right", "centre"),
                     gp = grid::gpar(col = tokens$faint, fontsize = fs))
   }
+  # Caja de cada rótulo de meta: una cifra del acumulado que cae dentro se monta
+  # sobre él («413» encima de «Previstas 400» en el último día del RMS).
+  cajas_meta <- list()
   for (k in seq_along(metas)) {
     yy <- py_acu(metas[[k]])
     grid::grid.lines(x = grid::unit(c(x, x + w), "npc"), y = grid::unit(yy, "npc"),
                      gp = grid::gpar(col = tokens$danger, lwd = pesos$bloque, lty = 2))
     nombre <- names(metas)[[k]] %||% ""
     if (nzchar(nombre)) {
-      grid::grid.text(paste0(nombre, " ", formato(metas[[k]])), x = x + w, y = yy + 0.010,
-                      just = c("right", "bottom"),
-                      gp = grid::gpar(col = tokens$danger, fontsize = fs, fontface = "bold"))
+      rotulo_meta <- paste0(nombre, " ", formato(metas[[k]]))
+      gp_meta <- grid::gpar(col = tokens$danger, fontsize = fs, fontface = "bold")
+      grid::grid.text(rotulo_meta, x = x + w, y = yy + 0.010, just = c("right", "bottom"), gp = gp_meta)
+      ancho_meta <- grid::convertWidth(grid::grobWidth(grid::textGrob(rotulo_meta, gp = gp_meta)), "npc", valueOnly = TRUE)
+      alto_meta <- grid::convertHeight(grid::grobHeight(grid::textGrob(rotulo_meta, gp = gp_meta)), "npc", valueOnly = TRUE)
+      cajas_meta[[length(cajas_meta) + 1L]] <- c(x0 = x + w - ancho_meta, y0 = yy + 0.010, y1 = yy + 0.010 + alto_meta)
     }
   }
   vivos <- which(is.finite(acumulado))
@@ -871,6 +877,15 @@ pulso_pdf_serie_partida <- function(x, y, w, h, dias, diarias, acumulado,
     # línea punteada la tacha («3606» sobre el mínimo esperado).
     y_rot <- py_acu(acumulado[[i]]) + 0.013
     tachada <- length(metas) && any(abs(py_acu(metas) - (y_rot + 0.007)) < 0.012)
+    if (!tachada && length(cajas_meta)) {
+      gp_cifra <- grid::gpar(fontsize = fs, fontface = "bold")
+      cifra <- grid::textGrob(formato(acumulado[[i]]), gp = gp_cifra)
+      medio <- grid::convertWidth(grid::grobWidth(cifra), "npc", valueOnly = TRUE) / 2
+      alto <- grid::convertHeight(grid::grobHeight(cifra), "npc", valueOnly = TRUE)
+      tachada <- any(vapply(cajas_meta, function(cm) {
+        px(i) + medio > cm[["x0"]] && y_rot < cm[["y1"]] && y_rot + alto > cm[["y0"]]
+      }, logical(1)))
+    }
     grid::grid.text(formato(acumulado[[i]]), x = px(i),
                     y = if (tachada) py_acu(acumulado[[i]]) - 0.010 else y_rot,
                     just = c("centre", if (tachada) "top" else "bottom"),

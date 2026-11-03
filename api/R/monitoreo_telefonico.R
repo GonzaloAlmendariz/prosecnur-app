@@ -1766,12 +1766,12 @@
 monitoreo_telefonico_report_pdf_job_runner <- function(model_path,
                                                        include_targets = FALSE,
                                                        result_path = NULL,
-                                                       progress_path = NULL) {
+                                                       progress_path = NULL, portada = list()) {
   report <- if (!is.null(progress_path)) job_progress_writer(progress_path) else function(...) invisible(NULL)
   report("prepare", percent = 15, message = "Preparando avance telefónico...")
   model <- readRDS(model_path)
   report("render", percent = 55, message = "Renderizando avance telefónico...")
-  monitoreo_telefonico_advance_report_pdf(model, result_path, include_targets = include_targets)
+  monitoreo_telefonico_advance_report_pdf(model, result_path, include_targets = include_targets, portada = portada)
   report("export", percent = 95, message = "Guardando PDF...")
   list(ok = TRUE, size = as.numeric(file.info(result_path)$size %||% 0), filename = basename(result_path))
 }

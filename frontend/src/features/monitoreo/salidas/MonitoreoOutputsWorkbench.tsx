@@ -665,9 +665,10 @@ export function MonitoreoOutputsWorkbench({
   const ficha = variante === "ficha" || family !== "aulas";
   const pdfDeLaFamilia = PDF_POR_FAMILIA[family] ?? { client: true, production: true };
   const ofreceClientPdf = pdfSupport?.client ?? pdfDeLaFamilia.client;
-  // La portada existe sólo en el renderizador de aulas. Ofrecer sus campos en un
-  // perfil cuyo PDF no la dibuja sería prometer un control que no hace nada.
-  const ofrecePortada = ofreceClientPdf && family === "aulas";
+  // La portada existe en los renderizadores de aulas y telefónico
+  // (`monitoreo_telefonico_avance_pdf.R`). Ofrecer sus campos en un perfil cuyo
+  // PDF no la dibuja sería prometer un control que no hace nada.
+  const ofrecePortada = ofreceClientPdf && (family === "aulas" || family === "telefonico");
   // **«Incluir metas» no hace nada en cursos-horario.** Su reporte se define
   // contra la cuota del diseño —«1.390 de 2.500», «faltan 1.110»— y apagarla lo
   // dejaría sin objeto, así que el motor ignora el parámetro. Ofrecer la casilla

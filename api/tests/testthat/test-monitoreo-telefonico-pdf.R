@@ -265,6 +265,51 @@ test_that("sin perfil telefónico la reconciliación conserva su conteo por fila
   expect_equal(reconciled$metrics$kobo_effective, 3L)
 })
 
+test_that("el día de cada encuesta válida es el de Lima, no el de UTC", {
+  # RMS 2026: `kobo_fecha_iso` es el día UTC del envío. Una entrevista enviada
+  # a las 22:30 de Lima (03:30Z del día siguiente) caía al día siguiente, y el
+  # campo parecía seguir el 31/10 con 5 encuestas que eran del 30.
+  data <- data.frame(
+    .source_role = rep("respuestas", 3L),
+    kobo_timestamp_iso = c("2026-10-30T15:00:00Z", "2026-10-31T03:30:33Z", "2026-10-31T04:10:00Z"),
+    kobo_fecha_iso = c("2026-10-30", "2026-10-31", "2026-10-31"),
+    stringsAsFactors = FALSE
+  )
+  model <- list(metrics = list(kobo_effective = 3L), quotas = data.frame())
+
+  daily <- .mtpdf_reconcile_response_counts(model, data)$daily
+
+  expect_equal(as.character(daily$Fecha), "2026-10-30")
+  expect_equal(daily$`Efectivas Kobo`, 3L)
+})
+
+test_that("una dimensión que las respuestas no traen no borra las efectivas del motor", {
+  # RMS 2026: el periodo de llegada vive en el barrido (`dim_actor`) y el motor
+  # cruza cada respuesta con su hogar por la llave (109 / 101 / 101 / 100). Las
+  # respuestas de Kobo traen la columna `dim_actor`, pero vacía: contarla
+  # reescribía las cuatro cuotas con 0.
+  data <- data.frame(
+    .source_role = c(rep("barrido", 2L), rep("respuestas", 3L)),
+    kobo_fecha_iso = c(NA, NA, rep("2026-10-30", 3L)),
+    dim_actor = c("Pandemia", "Actualidad", NA, NA, NA),
+    stringsAsFactors = FALSE
+  )
+  model <- list(
+    metrics = list(kobo_effective = 3L),
+    quotas = data.frame(
+      Variable = c("dim_actor", "dim_actor"), Valor = c("Actualidad", "Pandemia"),
+      Meta = c(2L, 2L), Efectivas = c(2L, 1L), `Avance meta` = c(100, 50),
+      Brecha = c(0L, 1L), check.names = FALSE, stringsAsFactors = FALSE
+    )
+  )
+
+  q <- .mtpdf_reconcile_response_counts(model, data)$quotas
+
+  expect_equal(q$Efectivas, c(2L, 1L))
+  expect_equal(q$`Avance meta`, c(100, 50))
+  expect_equal(q$Brecha, c(0L, 1L))
+})
+
 test_that("reporte cliente conserva las cifras de referencia y composición", {
   model <- list(
     metrics = list(total = 2296L, swept = 631L, not_swept = 1665L, phone_effective = 222L, kobo_effective = 423L),
@@ -403,7 +448,11 @@ test_that("pendientes desconocidos no fabrican cobertura por categoría", {
   expect_false(facts$has_category_coverage)
 })
 
-.mtpdf_test_model <- function(variable, values, actual, target = NULL, with_coverage = FALSE) {
+# --- Render: entregable de cliente en la familia Pulso PDF ---------------------
+# Checklist: docs/qa/checklist-pdf-avance-telefonico-2026-11-03.md
+
+.mtpdf_test_model <- function(variable, values, actual, target = NULL, with_coverage = FALSE,
+                              labels = NULL, extra_valid = 0L, daily_actor = FALSE) {
   stopifnot(length(values) == length(actual))
   quotas <- data.frame(
     Variable = rep(variable, length(values)),
@@ -416,235 +465,160 @@ test_that("pendientes desconocidos no fabrican cobertura por categoría", {
     quotas$Universo <- actual * 4L
     quotas$Pendientes <- actual * 2L
   }
-  total_valid <- sum(actual)
-  list(
+  total_valid <- sum(actual) + extra_valid
+  dias <- as.Date(c("2026-07-01", "2026-07-02", "2026-07-03"))
+  reparto <- function(n) c(floor(n / 4), floor(n / 3), n - floor(n / 4) - floor(n / 3))
+  model <- list(
     schema = "monitoreo_telefonico_advance_report_v1",
     report_kind = "telefonico_advance_pdf",
     family = "telefonico",
     generated_at = "2026-07-14 12:00 -05",
+    synced_at = "2026-07-04T15:00:00Z",
     metrics = list(
       total = total_valid * 4L,
       swept = total_valid * 2L,
       not_swept = total_valid * 2L,
       kobo_effective = total_valid
     ),
-    daily = data.frame(
-      Fecha = as.Date(c("2026-07-01", "2026-07-02", "2026-07-03")),
-      `Efectivas Kobo` = c(floor(total_valid / 4), floor(total_valid / 3), total_valid - floor(total_valid / 4) - floor(total_valid / 3)),
-      check.names = FALSE
-    ),
+    daily = data.frame(Fecha = dias, `Efectivas Kobo` = reparto(total_valid), check.names = FALSE),
     quotas = quotas,
-    universe_filter = list(
-      applied = TRUE,
-      responses_before = total_valid + 2L,
-      responses_after = total_valid,
-      excluded = 2L
-    )
+    quota_labels = labels %||% stats::setNames(list(variable), variable),
+    universe_filter = list(applied = FALSE)
   )
+  if (isTRUE(daily_actor)) {
+    model$daily_actor <- do.call(rbind, lapply(seq_along(values), function(i) {
+      data.frame(Actor = values[[i]], Fecha = dias, Efectivas = reparto(actual[[i]]), stringsAsFactors = FALSE)
+    }))
+  }
+  model
 }
 
-.mtpdf_test_pdf_text <- function(model) {
+.mtpdf_test_render <- function(model, include_targets = FALSE, portada = list()) {
   if (!nzchar(Sys.which("pdftotext"))) skip("pdftotext no está disponible")
   path <- tempfile(fileext = ".pdf")
-  text_path <- tempfile(fileext = ".txt")
-  monitoreo_telefonico_advance_report_pdf(model, path)
-  status <- system2("pdftotext", c("-layout", path, text_path))
-  expect_identical(status, 0L)
-  list(
-    path = path,
-    text = paste(readLines(text_path, warn = FALSE, encoding = "UTF-8"), collapse = "\n")
-  )
+  monitoreo_telefonico_advance_report_pdf(model, path, include_targets = include_targets, portada = portada)
+  pagina <- function(n) {
+    text_path <- tempfile(fileext = ".txt")
+    status <- system2("pdftotext", c("-f", n, "-l", n, "-layout", path, text_path))
+    expect_identical(status, 0L)
+    paste(readLines(text_path, warn = FALSE, encoding = "UTF-8"), collapse = "\n")
+  }
+  info <- system2("pdfinfo", path, stdout = TRUE)
+  n <- as.integer(sub("^Pages:\\s+", "", grep("^Pages:", info, value = TRUE)))
+  paginas <- vapply(seq_len(n), pagina, character(1))
+  # Las versalitas llevan aire entre letras: se compara sin espacios.
+  list(path = path, paginas = paginas, texto = paste(paginas, collapse = "\n"),
+       compacto = toupper(gsub("\\s+", "", paste(paginas, collapse = ""))))
 }
 
-.mtpdf_test_pdf_page_text <- function(model, page = 1L) {
-  if (!nzchar(Sys.which("pdftotext"))) skip("pdftotext no está disponible")
-  path <- tempfile(fileext = ".pdf")
-  text_path <- tempfile(fileext = ".txt")
-  monitoreo_telefonico_advance_report_pdf(model, path)
-  status <- system2(
-    "pdftotext",
-    c("-f", as.character(page), "-l", as.character(page), "-layout", path, text_path)
-  )
-  expect_identical(status, 0L)
-  paste(readLines(text_path, warn = FALSE, encoding = "UTF-8"), collapse = "\n")
-}
+.mtpdf_compacto <- function(x) toupper(gsub("\\s+", "", x))
 
-test_that("portada presenta la dimensión y el detalle recogido y previsto", {
+test_that("el resumen publica previstas, válidas y faltan de cada grupo con su frecuencia", {
   model <- .mtpdf_test_model(
-    variable = "Sede",
-    values = c("Cercado", "Chorrillos", "Pueblo Libre", "SJL", "SMP"),
-    actual = c(100L, 59L, 45L, 109L, 110L),
-    target = c(95L, 58L, 41L, 107L, 99L)
+    variable = "Sexo", values = c("Mujer", "Hombre"),
+    actual = c(52L, 41L), target = c(50L, 50L), with_coverage = TRUE
   )
-  page1 <- .mtpdf_test_pdf_page_text(model)
+  r <- .mtpdf_test_render(model, include_targets = TRUE)
+  resumen <- .mtpdf_compacto(r$paginas[[2]])
 
-  expect_match(page1, "Sede", fixed = TRUE)
-  for (label in c("Cercado", "Chorrillos", "Pueblo Libre", "SJL", "SMP")) {
-    expect_match(page1, label, fixed = TRUE)
-  }
-  for (value in c(100L, 59L, 45L, 109L, 110L, 95L, 58L, 41L, 107L, 99L)) {
-    expect_true(grepl(paste0("\\b", value, "\\b"), page1, perl = TRUE))
-  }
-  expect_true(grepl("\\brecogid[ao]s?\\b", page1, ignore.case = TRUE, perl = TRUE))
-  expect_true(grepl("\\bprevist[ao]s?\\b", page1, ignore.case = TRUE, perl = TRUE))
-  expect_false(grepl("VARIABLE DE CUOTA", page1, fixed = TRUE))
-  expect_false(grepl("categorías con mayor volumen", tolower(page1), fixed = TRUE))
-  expect_false(grepl("75[.,]4%", page1, perl = TRUE))
+  expect_match(resumen, "RESUMENDELAVANCE", fixed = TRUE)
+  expect_match(resumen, "ENCUESTASVÁLIDASPORSEXO", fixed = TRUE)
+  for (cifra in c("52DE50", "41DE50", "93DE100", "104.0%", "82.0%", "93.0%")) expect_match(resumen, cifra, fixed = TRUE)
+  expect_match(resumen, "FALTAN", fixed = TRUE)
+  # Los faltantes se suman por grupo: los 2 de más de Mujer no cubren a Hombre.
+  tabla <- strsplit(r$paginas[[2]], "\n")[[1]]
+  expect_match(grep("^\\s*Total", tabla, value = TRUE), "\\b9\\s*$", perl = TRUE)
+  expect_false(grepl("\\bsedes?\\b|\\bterritorial(?:es)?\\b", r$texto, ignore.case = TRUE, perl = TRUE))
 })
 
-test_that("portada agrega categorías excedentes sin perder las primeras", {
-  labels <- c("Norte", "Sur", "Centro", "Oriente", "Occidente", "Costa", "Sierra", "Selva")
+test_that("sin «Incluir metas» el documento no publica las previstas", {
   model <- .mtpdf_test_model(
-    variable = "Región",
-    values = labels,
-    actual = c(18L, 17L, 16L, 15L, 14L, 13L, 12L, 11L),
-    target = c(20L, 19L, 18L, 17L, 16L, 15L, 14L, 13L)
+    variable = "Sexo", values = c("Mujer", "Hombre"),
+    actual = c(52L, 41L), target = c(50L, 50L), with_coverage = TRUE
   )
-  page1 <- .mtpdf_test_pdf_page_text(model)
+  r <- .mtpdf_test_render(model, include_targets = FALSE)
 
-  expect_match(page1, "Región", fixed = TRUE)
-  for (label in labels[seq_len(4L)]) expect_match(page1, label, fixed = TRUE)
-  for (label in labels[5:8]) expect_false(grepl(label, page1, fixed = TRUE))
-  expect_true(grepl("otras 4 categorías", tolower(page1), fixed = TRUE))
+  expect_false(grepl("PREVIST", r$compacto, fixed = TRUE))
+  expect_false(grepl("FALTAN", r$compacto, fixed = TRUE))
+  expect_match(r$compacto, "PARTICIPACIÓNENELTOTAL", fixed = TRUE)
 })
 
-test_that("portada sin metas muestra solo cantidades recogidas", {
+test_that("la dimensión se rotula con su columna, nunca con dim_actor", {
   model <- .mtpdf_test_model(
-    variable = "Sexo",
-    values = c("Mujer", "Hombre", "Otro"),
-    actual = c(17L, 12L, 1L)
+    variable = "dim_actor", values = c("Actualidad", "Pandemia"),
+    actual = c(109L, 101L), target = c(100L, 100L), with_coverage = TRUE,
+    labels = list(dim_actor = "Periodo de llegada"), daily_actor = TRUE
   )
-  page1 <- .mtpdf_test_pdf_page_text(model)
+  r <- .mtpdf_test_render(model, include_targets = TRUE)
 
-  expect_match(page1, "Sexo", fixed = TRUE)
-  for (label in c("Mujer", "Hombre", "Otro")) expect_match(page1, label, fixed = TRUE)
-  for (value in c(17L, 12L, 1L)) {
-    expect_true(grepl(paste0("\\b", value, "\\b"), page1, perl = TRUE))
-  }
-  expect_true(grepl("\\brecogid[ao]s?\\b", page1, ignore.case = TRUE, perl = TRUE))
-  expect_false(grepl("\\bprevist[ao]s?\\b", page1, ignore.case = TRUE, perl = TRUE))
+  expect_false(grepl("dim_actor", r$texto, ignore.case = TRUE))
+  expect_match(r$compacto, "ENCUESTASVÁLIDASPORPERIODODELLEGADA", fixed = TRUE)
+  expect_match(r$compacto, "AVANCEDIARIOPORPERIODODELLEGADA", fixed = TRUE)
 })
 
-test_that("composición y comparación hablan del total encuestado", {
-  model <- .mtpdf_test_model(
-    variable = "Sede",
-    values = c("Centro", "Norte", "Sur", "Este", "Oeste"),
-    actual = c(6L, 6L, 6L, 6L, 6L),
-    target = c(6L, 6L, 6L, 6L, 6L)
+test_that("el rótulo interno se traduce a la columna del barrido que dice lo mismo", {
+  data <- data.frame(
+    .source_role = c("barrido", "barrido", "respuestas"),
+    dim_actor = c("Pandemia", "Actualidad", NA),
+    `Periodo de Llegada` = c("Pandemia", "Actualidad", NA),
+    Origen = c("Muestra", "Muestra", NA),
+    check.names = FALSE, stringsAsFactors = FALSE
   )
-  composition <- .mtpdf_test_pdf_page_text(model, page = 2L)
-  comparison <- .mtpdf_test_pdf_page_text(model, page = 4L)
+  quotas <- data.frame(Variable = c("dim_actor", "Sexo"), Valor = c("Pandemia", "Mujer"))
 
-  expect_match(composition, "Total encuestado", fixed = TRUE)
-  expect_match(composition, "del total encuestado", fixed = TRUE)
-  expect_match(composition, "TOTAL ENCUESTADO", fixed = TRUE)
-  expect_false(grepl("Referencia prevista", composition, fixed = TRUE))
-  expect_match(comparison, "PARTICIPACIÓN EN EL TOTAL ENCUESTADO", fixed = TRUE)
-  expect_false(grepl("clasificad", tolower(paste(composition, comparison)), fixed = TRUE))
+  expect_identical(unname(.mtpdf_quota_labels(quotas, data)), c("Periodo de llegada", "Sexo"))
+  expect_identical(unname(.mtpdf_quota_labels(quotas, data[, c(".source_role", "dim_actor")])), c("Grupo", "Sexo"))
 })
 
-test_that("PDF de Sexo conserva categorías y no usa vocabulario territorial", {
+test_that("las válidas sin grupo se suman al total con su asterisco", {
   model <- .mtpdf_test_model(
-    variable = "Sexo",
-    values = c("Mujer", "Hombre", "Otro"),
-    actual = c(17L, 12L, 1L)
+    variable = "dim_actor", values = c("Actualidad", "Pandemia"),
+    actual = c(109L, 101L), target = c(100L, 100L), with_coverage = TRUE,
+    labels = list(dim_actor = "Periodo de llegada"), extra_valid = 2L, daily_actor = TRUE
   )
-  report <- .mtpdf_test_pdf_text(model)
+  r <- .mtpdf_test_render(model, include_targets = TRUE)
+  resumen <- .mtpdf_compacto(r$paginas[[2]])
 
-  expect_false(grepl("Variable de cuota", report$text, fixed = TRUE))
-  expect_match(report$text, "Sexo", fixed = TRUE)
-  expect_match(report$text, "ENCUESTAS VÁLIDAS POR SEXO", fixed = TRUE)
-  for (label in c("Mujer", "Hombre", "Otro")) expect_match(report$text, label, fixed = TRUE)
-  expect_false(grepl("\\bsedes?\\b|\\bterritorial(?:es)?\\b", report$text, ignore.case = TRUE, perl = TRUE))
+  expect_match(resumen, "TOTAL*", fixed = TRUE)
+  expect_match(resumen, "212DE200", fixed = TRUE)
+  expect_match(resumen, "INCLUYE2ENCUESTASVÁLIDASSINPERIODODELLEGADAIDENTIFICADO", fixed = TRUE)
 })
 
-test_that("PDF pagina una dimensión extensa sin omitir categorías", {
-  labels <- c("Norte", "Sur", "Centro", "Oriente", "Occidente", "Costa", "Sierra", "Selva")
+test_that("la tabla diaria por grupo cuadra con el total de cada día", {
   model <- .mtpdf_test_model(
-    variable = "Región",
-    values = labels,
-    actual = c(12L, 11L, 10L, 9L, 8L, 7L, 6L, 5L),
-    target = rep(9L, length(labels)),
-    with_coverage = TRUE
+    variable = "Sexo", values = c("Mujer", "Hombre"),
+    actual = c(52L, 40L), target = c(50L, 50L), with_coverage = TRUE, daily_actor = TRUE
   )
-  report <- .mtpdf_test_pdf_text(model)
-
-  for (label in labels) expect_match(report$text, label, fixed = TRUE)
-  if (nzchar(Sys.which("pdfinfo"))) {
-    info <- system2("pdfinfo", report$path, stdout = TRUE)
-    pages <- as.integer(sub("^Pages:\\s+", "", grep("^Pages:", info, value = TRUE)))
-    expect_gt(pages, 5L)
+  r <- .mtpdf_test_render(model, include_targets = TRUE)
+  tabla <- r$paginas[[length(r$paginas)]]
+  filas <- grep("^\\s*(mié|jue|vie) 0[123]/07", strsplit(tabla, "\n")[[1]], value = TRUE)
+  expect_length(filas, 3L)
+  for (fila in filas) {
+    n <- as.numeric(regmatches(fila, gregexpr("\\b[0-9]+\\b(?!/)", sub("^.*?[0-9]{2}/07", "", fila), perl = TRUE))[[1]])
+    expect_equal(n[[1]] + n[[2]], n[[3]])
   }
 })
 
-test_that("PDF de una sola categoría omite páginas de composición redundantes", {
-  model <- .mtpdf_test_model(
-    variable = "Tipo de atención",
-    values = "Telefónica",
-    actual = 30L,
-    target = 30L,
-    with_coverage = TRUE
-  )
-  report <- .mtpdf_test_pdf_text(model)
+test_that("PDF sin cuotas informa válidas y ritmo sin tabla por grupo", {
+  model <- .mtpdf_test_model(variable = "Sexo", values = "Todos", actual = 12L)
+  model$quotas <- data.frame()
+  model$quota_labels <- list()
+  r <- .mtpdf_test_render(model)
 
-  expect_match(report$text, "Tipo de atención", fixed = TRUE)
-  expect_match(report$text, "Telefónica", fixed = TRUE)
-  expect_false(grepl("sin un desglose diferenciado de cuota", tolower(report$text), fixed = TRUE))
-  expect_false(grepl("composición de las entrevistas|distribución prevista y recogida|composición prevista y recogida", report$text, ignore.case = TRUE, perl = TRUE))
-  if (nzchar(Sys.which("pdfinfo"))) {
-    info <- system2("pdfinfo", report$path, stdout = TRUE)
-    pages <- as.integer(sub("^Pages:\\s+", "", grep("^Pages:", info, value = TRUE)))
-    expect_equal(pages, 3L)
-  }
+  expect_match(r$compacto, "RITMODELCAMPO", fixed = TRUE)
+  expect_false(grepl("ENCUESTASVÁLIDASPOR", gsub("ENCUESTASVÁLIDASPORDÍA", "", r$compacto, fixed = TRUE), fixed = TRUE))
+  expect_false(grepl("RESULTADODELOSCONTACTADOS", r$compacto, fixed = TRUE))
 })
 
-test_that("PDF sin cuotas no anuncia variables de cuota", {
-  model <- .mtpdf_test_model(
-    variable = "Sin dimensión",
-    values = character(0),
-    actual = numeric(0)
-  )
-  model$metrics <- list(total = 40L, swept = 20L, not_swept = 20L, kobo_effective = 12L)
-  model$daily <- data.frame(
-    Fecha = as.Date(c("2026-07-01", "2026-07-02")),
-    `Efectivas Kobo` = c(5L, 7L),
-    check.names = FALSE
-  )
-  report <- .mtpdf_test_pdf_text(model)
+test_that("la portada usa lo escrito en Salidas y el corte en hora de Lima", {
+  model <- .mtpdf_test_model(variable = "Sexo", values = c("Mujer", "Hombre"), actual = c(5L, 4L))
+  r <- .mtpdf_test_render(model, portada = list(subtitulo = "Results Monitoring Survey (RMS) 2026", cliente = "ACNUR Perú"))
+  portada <- .mtpdf_compacto(r$paginas[[1]])
 
-  expect_match(report$text, "Encuestas válidas y periodo de campo", fixed = TRUE)
-  expect_false(grepl("variables de cuota", tolower(report$text), fixed = TRUE))
-  expect_false(grepl("RESULTADO DE LOS CONTACTADOS", report$text, fixed = TRUE))
-})
-
-test_that("encabezado del PDF identifica el periodo de campo", {
-  source <- paste(deparse(body(monitoreo_telefonico_advance_report_pdf)), collapse = "\n")
-
-  expect_match(source, 'txt\\(\"CAMPO\"', perl = TRUE)
-  expect_false(grepl("PERIODO INFORMADO", source, fixed = TRUE))
-})
-
-test_that("leyenda diaria queda centrada y separada de las fechas", {
-  layout <- .mtpdf_daily_legend_layout()
-
-  expect_equal(layout$x + layout$width / 2, 0.050 + 0.640 / 2)
-  expect_gt(layout$y - 0.135, 0.015)
-  expect_gt(0.188 - layout$y, 0.025)
-})
-
-test_that("tipografía del PDF respeta el mínimo legible", {
-  source <- paste(deparse(body(monitoreo_telefonico_advance_report_pdf)), collapse = "\n")
-  if (exists(".mtpdf_safe_font_size", mode = "function", inherits = TRUE)) {
-    expect_gte(.mtpdf_safe_font_size(1), 7)
-    expect_gte(.mtpdf_safe_font_size(6.9), 7)
-    expect_equal(.mtpdf_safe_font_size(9), 9)
-    expect_match(source, ".mtpdf_safe_font_size", fixed = TRUE)
-  } else {
-    hits <- regmatches(source, gregexpr("size\\s*=\\s*[0-9]+(?:\\.[0-9]+)?", source, perl = TRUE))[[1L]]
-    sizes <- as.numeric(sub(".*=\\s*", "", hits))
-    expect_true(length(sizes) > 0L)
-    expect_gte(min(sizes), 7)
-  }
+  expect_match(portada, .mtpdf_compacto("Results Monitoring Survey (RMS) 2026"), fixed = TRUE)
+  expect_match(portada, .mtpdf_compacto("ACNUR Perú"), fixed = TRUE)
+  expect_match(portada, .mtpdf_compacto("4 de julio de 2026, 10:00 (hora de Lima)"), fixed = TRUE)
+  expect_match(portada, .mtpdf_compacto("Del 1 de julio de 2026 al 3 de julio de 2026"), fixed = TRUE)
 })
 
 test_that("runner telefónico genera PDF cliente de avance y cuotas", {
@@ -654,63 +628,56 @@ test_that("runner telefónico genera PDF cliente de avance y cuotas", {
     family = "telefonico",
     generated_at = "2026-07-14 12:00 -05",
     synced_at = "2026-07-10T16:44:42Z",
-    metrics = list(total = 100L, swept = 60L, not_swept = 40L, phone_effective = 25L, kobo_effective = 30L),
+    metrics = list(total = 1200L, swept = 60L, not_swept = 1140L, phone_effective = 25L, kobo_effective = 30L),
     daily = data.frame(Fecha = as.Date(c("2026-07-01", "2026-07-02")), Barridos = c(20, 40), `Efectivas telefónicas` = c(10, 15), `Efectivas Kobo` = c(12, 18), check.names = FALSE),
     daily_quality = list(invalid = 0L, outside = 0L),
+    status = data.frame(Estatus = c("Efectivo", "No contesta", "No barrido"), Casos = c(25L, 35L, 1140L)),
     quotas = data.frame(
       Variable = rep("Sede", 5L),
       Valor = c("Centro", "Norte", "Sur", "Este", "Oeste"),
-      Universo = c(20L, 20L, 20L, 20L, 20L),
-      Pendientes = c(8L, 8L, 8L, 8L, 8L),
+      Universo = c(240L, 240L, 240L, 240L, 240L),
+      Pendientes = c(228L, 228L, 228L, 228L, 228L),
       Meta = c(6L, 6L, 6L, 6L, 6L),
       Efectivas = c(6L, 6L, 6L, 6L, 6L)
     ),
-    sources = data.frame(Rol = c("barrido", "respuestas"), Fuente = c("Barrido", "Kobo"), Registros = c(100L, 30L)),
+    quota_labels = list(Sede = "Sede"),
+    sources = data.frame(Rol = c("barrido", "respuestas"), Fuente = c("Barrido", "Kobo"), Registros = c(1200L, 30L)),
     methodology = "Sin datos individuales.",
     universe_filter = list(applied = TRUE, excluded = 3L)
   )
   model_path <- tempfile(fileext = ".rds")
   result_path <- tempfile(fileext = ".pdf")
   saveRDS(model, model_path)
-  out <- monitoreo_client_report_pdf_job_runner(model_path, result_path = result_path)
+  out <- monitoreo_client_report_pdf_job_runner(model_path, include_targets = TRUE, result_path = result_path,
+                                                portada = list(cliente = "ACNUR Perú"))
   expect_true(out$ok)
   expect_true(file.exists(result_path))
-  expect_gt(file.info(result_path)$size, 5000)
   expect_identical(readBin(result_path, "raw", 4), charToRaw("%PDF"))
   if (nzchar(Sys.which("pdfinfo"))) {
     info <- system2("pdfinfo", result_path, stdout = TRUE)
+    # Portada, resumen, ritmo, cobertura y tabla diaria.
     expect_true(any(grepl("Pages:\\s+5", info)))
   }
   if (nzchar(Sys.which("pdftotext"))) {
     text_path <- tempfile(fileext = ".txt")
     system2("pdftotext", c("-layout", result_path, text_path))
     report_text <- paste(readLines(text_path, warn = FALSE, encoding = "UTF-8"), collapse = "\n")
-    page1_path <- tempfile(fileext = ".txt")
-    page1_status <- system2("pdftotext", c("-f", "1", "-l", "1", "-layout", result_path, page1_path))
-    expect_identical(page1_status, 0L)
-    page1_text <- paste(readLines(page1_path, warn = FALSE, encoding = "UTF-8"), collapse = "\n")
-    expect_false(grepl("Variable de cuota", report_text, fixed = TRUE))
-    expect_false(grepl("periodo informado", report_text, ignore.case = TRUE))
-    expect_false(grepl("TOTAL AL CIERRE", report_text, fixed = TRUE))
-    expect_false(grepl("Variable de referencia|POR CATEGORÍA|CATEGORÍAS INCLUIDAS", report_text, ignore.case = TRUE, perl = TRUE))
-    expect_match(report_text, "Sede", fixed = TRUE)
-    expect_match(report_text, "Distribución prevista y recogida", fixed = TRUE)
-    expect_false(grepl("DATOS CONSIDERADOS", report_text, fixed = TRUE))
-    expect_false(grepl("El avance y la composición consideran", report_text, fixed = TRUE))
-    expect_false(grepl("pruebas retiradas", report_text, fixed = TRUE))
-    expect_match(report_text, "registros contactados", ignore.case = TRUE)
-    expect_match(report_text, "no contactados", ignore.case = TRUE)
-    expect_match(report_text, "RESULTADO DE LOS CONTACTADOS", fixed = TRUE)
-    expect_match(report_text, "CONTACTOS EFECTIVOS", fixed = TRUE)
-    expect_match(report_text, "CONTACTOS NO EFECTIVOS", fixed = TRUE)
-    expect_match(report_text, "41.7% de contactados", fixed = TRUE)
+    compacto <- .mtpdf_compacto(report_text)
+    expect_match(report_text, "ACNUR Perú", fixed = TRUE)
+    for (frase in c("REGISTROSCONTACTADOS", "NOCONTACTADOS", "RESULTADODELOSCONTACTADOS",
+                    "CONTACTOSEFECTIVOS", "CONTACTOSNOEFECTIVOS", "41.7%DECONTACTADOS")) {
+      expect_match(compacto, frase, fixed = TRUE)
+    }
+    # Sin separador de miles: «1200», no «1,200».
+    expect_match(report_text, "\\b1200\\b", perl = TRUE)
+    expect_false(grepl("1,200", report_text, fixed = TRUE))
+    expect_false(grepl("Variable de cuota|TOTAL AL CIERRE|DATOS CONSIDERADOS|pruebas retiradas", report_text, ignore.case = TRUE, perl = TRUE))
     expect_false(grepl("revisad|por revisar|por contactar", report_text, ignore.case = TRUE, perl = TRUE))
-    expect_false(grepl("La composición se presenta para la variable", report_text, fixed = TRUE))
     forbidden <- paste(
       "trazabilidad", "lectura ejecutiva", "lectura del ritmo",
       "balance de la muestra", "meta cumplida", "cuotas cumplidas",
       "margen", "mejor día", "\\bpp\\b", "máxima desviación",
-      "respuestas reales", "cumplimiento", "de la meta",
+      "respuestas reales", "cumplimiento", "de la meta", "dim_actor",
       sep = "|"
     )
     expect_false(grepl(forbidden, report_text, ignore.case = TRUE, perl = TRUE))
