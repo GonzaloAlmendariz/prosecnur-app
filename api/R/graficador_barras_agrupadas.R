@@ -309,6 +309,9 @@
 #'
 #' @param usar_canvas Si `TRUE`, arma el grafico mediante `cowplot` separando encabezado,
 #'   panel, leyenda y pie en bloques.
+#' @param cifras_dentro Con una sola serie, `NULL` o `FALSE` pone las cifras fuera de la barra con el cuerpo de la lámina
+#'   nativa (12 pt; 11 con rótulos de más de 45 letras); `TRUE` las mete dentro cuando caben. Con dos o más series no
+#'   interviene.
 #' @param preservar_tamanos_texto Si `TRUE`, conserva los tamanos solicitados
 #'   para categorias y valores aunque el grafico tenga muchas categorias o series.
 #' @param canvas_w_adaptativo Si `TRUE`, reparte el ancho entre etiquetas y barras
@@ -474,6 +477,7 @@ graficar_barras_agrupadas <- function(
     # ==========================
     usar_canvas               = FALSE,
     preservar_tamanos_texto   = FALSE,
+    cifras_dentro             = NULL,
     canvas_w_adaptativo       = FALSE,
     alinear_etiquetas         = c("derecha", "izquierda"),
 
@@ -1123,6 +1127,10 @@ graficar_barras_agrupadas <- function(
     if (!is.null(aj_cruce)) {
       size_ejes_eff <- aj_cruce$size; ancho_max_eje_y_eff <- aj_cruce$wrap
       canvas_w_etiquetas <- aj_cruce$w_etiquetas; canvas_w_bars <- aj_cruce$w_bars
+      # El hueco del preset entre rótulos y barras (~0.37 in) dejaba «Bus» suelto, lejos de su par (CCSS 2026, cruces de
+      # respuesta múltiple): en un cruce pasa a las barras y queda un aire mínimo.
+      aire_buf <- .agrupadas_cruce_aire_rotulos(canvas_w_buf_etq_bars)
+      canvas_w_bars <- canvas_w_bars + (canvas_w_buf_etq_bars - aire_buf); canvas_w_buf_etq_bars <- aire_buf
     } else if (!forzar_ancho_max_eje_y && size_ejes_eff < size_previo_eje) {
       aj_rot <- .agrupadas_rotulos_ajustar(
         cat_lvls, ancho, canvas_w_etiquetas, canvas_w_bars,
@@ -1158,6 +1166,12 @@ graficar_barras_agrupadas <- function(
       TRUE          ~ size_texto_barras * 0.55
     )
   }
+
+  # Una sola serie: la cifra va fuera de la barra y con el cuerpo de la lámina nativa, que es por donde salen casi todas
+  # las agrupadas; dentro y en blanco sólo si el gráfico lo pide (CCSS 2026: 11 opciones salían dentro y grandes, 10
+  # opciones fuera y chicas, según la ruta). graficador_barras_agrupadas_rotulos.R
+  una_serie_fuera <- .agrupadas_una_serie_fuera(length(cols_porcentaje), cifras_dentro)
+  if (una_serie_fuera && !isTRUE(preservar_tamanos_texto)) size_texto_barras_eff <- .agrupadas_cifra_una_serie_mm(cat_lvls)
 
   # Ancho del grupo dentro de la unidad de categoria. 0.70 deja un 30 % de aire
   # ENTRE categorias, que con una sola barra por categoria separa bien. Con dos
@@ -1398,6 +1412,7 @@ graficar_barras_agrupadas <- function(
         (df_lab$.valor_plot >= umbral_inside | cabe_texto_inside)
     }
 
+    if (una_serie_fuera) df_lab$inside <- rep(FALSE, nrow(df_lab))
     df_lab$valor_label <- df_lab$.valor_plot
     mask_inside <- df_lab$inside & !is.na(df_lab$inside)
     if (identical(orientacion, "horizontal")) {
@@ -1901,7 +1916,10 @@ graficar_barras_agrupadas <- function(
     # del techo; el panel queda mas corto que su hueco, que es preferible a que
     # dos cuadrantes hermanos no midan lo mismo.
     if (is.finite(grosor_barras_eff) && grosor_barras_eff > 0) {
-      panel_techo <- (.GROSOR_TECHO_IN / grosor_barras_eff) * n_filas_panel * barras_fila
+      # En un cruce el techo es por BARRA y más bajo que el del perfil: con 2 opciones × 2 grupos las barras llenaban la
+      # lámina y con 1 × 2 medían 0.7 in (CCSS 2026, mazo de 97 láminas). Un solo grosor máximo para todo el mazo.
+      techo_barra <- if (barras_fila > 1L) .AGRUPADAS_CRUCE_BARRA_MAX_IN else .GROSOR_TECHO_IN
+      panel_techo <- (techo_barra / grosor_barras_eff) * n_filas_panel * barras_fila
       if (is.finite(panel_techo) && panel_techo > 0) {
         panel_nuevo <- min(panel_nuevo, max(h_panel_in, panel_techo))
       }
@@ -1912,22 +1930,27 @@ graficar_barras_agrupadas <- function(
       h_total_in <- h_header_in + h_panel_in + h_legend_in + h_caption_in
     }
   }
+  # El bloque del cruce (barras y leyenda) se centra en el alto que sobra, en vez de quedar pegado arriba: con el grosor
+  # topado el panel es más corto que su hueco (CCSS 2026: «barras que ocupan sólo la mitad superior»).
+  h_pad_in <- .agrupadas_cruce_relleno(cruce_agr, usar_canvas, panel_fijado_in, alto_hueco, h_total_in)
+  h_total_in <- h_total_in + 2 * h_pad_in
   if (h_total_in <= 0) h_total_in <- 1
 
   header_h  <- h_header_in  / h_total_in
   panel_h   <- h_panel_in   / h_total_in
   legend_h  <- h_legend_in  / h_total_in
   caption_h <- h_caption_in / h_total_in
+  pad_h     <- h_pad_in     / h_total_in
 
   y_header0 <- 1 - header_h
   if (has_legend && legend_is_top && !legend_is_side) {
-    y_legend0  <- y_header0 - legend_h
+    y_legend0  <- y_header0 - pad_h - legend_h
     y_panel0   <- y_legend0 - panel_h
-    y_caption0 <- y_panel0 - caption_h
+    y_caption0 <- y_panel0 - pad_h - caption_h
   } else {
-    y_panel0   <- y_header0 - panel_h
+    y_panel0   <- y_header0 - pad_h - panel_h
     y_legend0  <- y_panel0  - legend_h
-    y_caption0 <- y_legend0 - caption_h
+    y_caption0 <- y_legend0 - pad_h - caption_h
   }
 
   # widths
@@ -2235,6 +2258,7 @@ graficar_barras_agrupadas <- function(
       grosor_eff = grosor_barras_eff,
       canvas_min_filas = canvas_min_filas_eff,
       h_panel_in = h_panel_in, h_total_in = h_total_in, h_top_in = top_in,   # A12: la fila real (lamina_titulo_lienzo.R)
+      h_pad_in = h_pad_in, h_header_in = h_header_in, h_legend_in = h_legend_in, h_caption_in = h_caption_in,
       size_ejes_eff = size_ejes_eff,
       size_texto_barras_eff = size_texto_barras_eff,
       lineheight_eje_y_eff = lineheight_eje_y_eff,

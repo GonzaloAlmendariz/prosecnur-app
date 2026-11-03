@@ -56,8 +56,11 @@ test_that("1: el cruce de respuesta múltiple con una opción visible usa el alt
   r <- .tdc_render(p_barras_agrupadas("sm", cruces = "nivel", excluir_opciones = c("Auto", "Bicicleta")), solo_lista = TRUE)
   lay <- attr(r$rendered[[1]], "pulso_barras_agrupadas_layout")
   expect_identical(lay$n_categorias, 1L)
-  # Antes 0.82 in: el techo de una barra por fila, con cuatro barras en la fila.
-  expect_gt(lay$h_panel_in, 2.5)
+  # Antes 0.82 in: el techo de una barra por fila, con cuatro barras en la fila. Desde el mazo de 97 láminas (2026-11-03)
+  # el grosor tiene un tope por barra y lo que sobra del hueco centra el bloque (test-graficos-agrupadas-grosor-cifras.R).
+  expect_gt(lay$h_panel_in, 1.5)
+  expect_lte(lay$h_panel_in * lay$grosor_eff / 4, .AGRUPADAS_CRUCE_BARRA_MAX_IN + 1e-9)
+  expect_gt(lay$h_pad_in, 0)
   # La cifra deja el piso de 8 pt: con la barra gruesa cabe el cuerpo declarado.
   cr <- attr(r$rendered[[1]], "pulso_barras_agrupadas_cruce")
   expect_gt(cr$size_cifra_mm * 72 / 25.4, 10)

@@ -112,6 +112,28 @@
   list(size = s0, wrap = p$wrap, w_etiquetas = we2, w_bars = wb + (we - we2), cabe = TRUE)
 }
 
+#' Grosor máximo (in) de una barra de un cruce: el mismo en todo el mazo, con 1 o 4 grupos y 1 o 3 opciones
+#' @keywords internal
+.AGRUPADAS_CRUCE_BARRA_MAX_IN <- 0.45   # en la lámina (hueco de ~4.6 in dibujado a 6) mide ~0.35 in
+
+#' Aire entre la columna de rótulos y las barras de un cruce: el del preset, con tope de 0.01 del ancho del lienzo
+#' @keywords internal
+.agrupadas_cruce_aire_rotulos <- function(buf) {
+  b <- suppressWarnings(as.numeric(buf)[1])
+  if (!is.finite(b) || b < 0) 0 else min(b, 0.01)
+}
+
+#' Relleno (in) arriba y abajo del bloque de un cruce para centrarlo en su hueco
+#'
+#' Con el grosor topado (`.AGRUPADAS_CRUCE_BARRA_MAX_IN`) el panel de un cruce de pocas barras es más corto que su hueco;
+#' el sobrante se reparte por mitades arriba y abajo del bloque. Fuera del cruce, o con el panel fijado, 0.
+#' @keywords internal
+.agrupadas_cruce_relleno <- function(cruce, usar_canvas, panel_fijado, alto_hueco, h_total) {
+  a <- suppressWarnings(as.numeric(alto_hueco)[1])
+  if (is.null(cruce) || !isTRUE(usar_canvas) || isTRUE(panel_fijado) || !is.finite(a) || !is.finite(h_total) || h_total >= a) return(0)
+  (a - h_total) / 2
+}
+
 #' Barras por fila del lienzo: una por grupo en un cruce, una fuera de él
 #'
 #' El estirado del panel y el techo de grosor (`.GROSOR_TECHO_IN`) se pensaron para una barra por fila. En un cruce la
