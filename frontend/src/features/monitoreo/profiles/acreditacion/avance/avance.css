@@ -347,6 +347,12 @@
   text-transform: uppercase;
 }
 
+/* La segunda línea del eje de fechas: el mes, sólo donde empieza. */
+.acr-av-eje.is-mes {
+  fill: var(--pulso-text-soft);
+  font-weight: var(--pulso-weight-bold);
+}
+
 .acr-av-eje.is-cifra {
   fill: var(--pulso-text-soft);
   font-weight: var(--pulso-weight-bold);
