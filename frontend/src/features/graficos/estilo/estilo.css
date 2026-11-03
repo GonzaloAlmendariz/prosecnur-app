@@ -628,7 +628,9 @@
   margin: var(--pulso-space-1) 0 0;
   color: var(--pulso-text-faint);
   font-size: var(--pulso-type-caption-size);
-  line-height: 1.4;
+  /* 1.35 y no 1.4: a 11.5 px (rol caption, P1) el medio interlineado bajo la
+     última línea pasaba de 2 px y el gate lo leía como capacidad sin usar. */
+  line-height: 1.35;
 }
 
 /* ID3 del rediseño (2026-10-15): biblioteca de líneas visuales. Tarjetas pares por grupo (C2), con sus colores, qué
