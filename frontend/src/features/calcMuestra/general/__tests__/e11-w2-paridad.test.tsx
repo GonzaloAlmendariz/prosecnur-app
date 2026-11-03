@@ -139,7 +139,7 @@ describe("Acreditación › Actores", () => {
   it("V13 · readiness declarada y V12 · el título es un h3 bajo el h2 de la sección", () => {
     const html = tabla([docentesMas()]);
     expect(html).toContain('data-audit-ready="true"');
-    expect(html).toContain('<h3 class="cmg-panel-titulo" id="cmg-actores-marco-titulo">');
+    expect(html).toContain('<h3 class="pulso-panel-title"><span id="cmg-actores-marco-titulo">');
     expect(sinSaltos(html)).toBe(true);
   });
 
