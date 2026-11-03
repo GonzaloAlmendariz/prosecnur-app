@@ -89,7 +89,9 @@ export function AvanceCuotasPanel({
   const porDefecto = coberturaPorDefecto(publico);
   const suma = sumaDeMetas(borrador);
   const metaPublico = publico?.meta ?? null;
-  const diferencia = metaPublico != null && borrador.filas.length ? suma - metaPublico : null;
+  // Una referencial no se compara con la meta del público: no se exige (ADR 0126).
+  const referencial = borrador.caracter === "referencial";
+  const diferencia = !referencial && metaPublico != null && borrador.filas.length ? suma - metaPublico : null;
   const problema = problemaDelBorrador(borrador, cuotas);
 
   useEffect(() => {
@@ -205,6 +207,20 @@ export function AvanceCuotasPanel({
               </>)}
             </div>
 
+            {seguimiento ? null : (
+              <div className="mon-cuotas-uso">
+                <SelectorDeSubvistas
+                  opciones={[{ clave: "meta", etiqueta: "Meta", valor: "meta" as const }, { clave: "referencial", etiqueta: "Referencial", valor: "referencial" as const }]}
+                  esActiva={(valor) => valor === borrador.caracter}
+                  onElegir={(caracter) => onBorrador({ tipo: "caracter", caracter })}
+                />
+                <small className="mon-cuotas-tenue">
+                  {borrador.caracter === "referencial"
+                    ? "Los números son una referencia: se describe la composición frente al universo, sin faltante."
+                    : "Los números se exigen: cada categoría tiene su faltante y se cumple o no."}
+                </small>
+              </div>
+            )}
             {seguimiento ? (
               <EstadoVacio
                 icono={<Target size={16} />}
@@ -215,8 +231,8 @@ export function AvanceCuotasPanel({
             ) : borrador.filas.length ? (
               <>
                 <p className="mon-cuotas-suma" role="status">
-                  <span>Suma de metas <strong>{cifra(suma)}</strong></span>
-                  {metaPublico != null ? <span>meta del público <strong>{cifra(metaPublico)}</strong></span> : null}
+                  <span>{referencial ? "Suma de referencias" : "Suma de metas"} <strong>{cifra(suma)}</strong></span>
+                  {metaPublico != null && !referencial ? <span>meta del público <strong>{cifra(metaPublico)}</strong></span> : null}
                   {diferencia ? (
                     <span className={diferencia > 0 ? "es-sobre" : "es-bajo"}>
                       {diferencia > 0 ? `${cifra(diferencia)} sobre` : `${cifra(-diferencia)} bajo`} la meta del público
@@ -226,6 +242,7 @@ export function AvanceCuotasPanel({
                 <AvanceCuotasEditorMetas
                   filas={borrador.filas}
                   deshabilitado={ocupado}
+                  referencial={referencial}
                   onMeta={(categoria, meta) => onBorrador({ tipo: "meta", categoria, meta })}
                 />
               </>

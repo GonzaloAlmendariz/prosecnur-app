@@ -39,8 +39,8 @@ describe("Avance › Por cuota", () => {
     const html = renderToStaticMarkup(
       <PorCuotaVista publicos={publicos} cuotas={[cuota]} controles={variablesDeControl(controles, [cuota])} foco={null} onElegir={() => {}} onEditarEnModelo={() => {}} onDefinirEnModelo={() => {}} />,
     );
-    expect(html).toContain("Con meta");
-    expect(html).toContain("Variables de control, sin meta");
+    expect(html).toContain("Metas");
+    expect(html).toContain("Referenciales, sin meta");
     expect(html).toContain("+5 por redondeo");
     expect(html).toContain("Editar en Modelo");
     expect(html).not.toMatch(/Diferencia pp|% base|>en_curso</);

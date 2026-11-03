@@ -13,16 +13,25 @@ export function AvanceCuotasEditorMetas({
   filas,
   deshabilitado,
   onMeta,
+  referencial = false,
 }: {
   filas: FilaBorrador[];
   deshabilitado: boolean;
   onMeta: (categoria: string, meta: string) => void;
+  /**
+   * ADR 0126: en una referencial el número es una referencia y lo que se
+   * compara es el peso de la categoría en el universo (Gonzalo, 3/11: «debe
+   * estar el porcentaje del universo para poder referenciarlo»). «Sin dato» no
+   * entra a ese peso, igual que en el motor.
+   */
+  referencial?: boolean;
 }) {
   const [filtro, setFiltro] = useState("");
   const visibles = useMemo(() => {
     const f = normalizarBusqueda(filtro);
     return f ? filas.filter((x) => normalizarBusqueda(x.categoria).includes(f)) : filas;
   }, [filas, filtro]);
+  const universoConocido = filas.reduce((suma, f) => suma + (f.categoria === "Sin dato" ? 0 : f.universo ?? 0), 0);
 
   return (
     <div className="mon-cuotas-editor">
@@ -43,8 +52,8 @@ export function AvanceCuotasEditorMetas({
           <tr>
             <th scope="col">Categoría</th>
             <th scope="col" className="is-num">Universo</th>
-            <th scope="col" className="is-num">Meta</th>
-            <th scope="col" className="is-num">De su universo</th>
+            <th scope="col" className="is-num">{referencial ? "Referencia" : "Meta"}</th>
+            <th scope="col" className="is-num">{referencial ? "Del universo" : "De su universo"}</th>
           </tr>
         </thead>
         <tbody>
@@ -62,11 +71,15 @@ export function AvanceCuotasEditorMetas({
                     step={1}
                     value={f.meta}
                     disabled={deshabilitado}
-                    aria-label={`Meta de ${f.categoria}`}
+                    aria-label={`${referencial ? "Referencia" : "Meta"} de ${f.categoria}`}
                     onChange={(e) => onMeta(f.categoria, e.target.value)}
                   />
                 </td>
-                <td className="is-num mon-cuotas-tenue">{f.universo ? porcentaje(meta / f.universo) : "—"}</td>
+                <td className="is-num mon-cuotas-tenue">
+                  {referencial
+                    ? f.categoria !== "Sin dato" && universoConocido ? porcentaje((f.universo ?? 0) / universoConocido) : "—"
+                    : f.universo ? porcentaje(meta / f.universo) : "—"}
+                </td>
               </tr>
             );
           })}

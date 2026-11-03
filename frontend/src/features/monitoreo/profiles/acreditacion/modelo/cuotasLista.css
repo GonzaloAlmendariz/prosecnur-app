@@ -92,3 +92,11 @@
 .acr-cu-publico button.is-seguida > svg {
   color: var(--pulso-module-monitoring);
 }
+
+/* Cuota referencial (ADR 0126): su referencia es el peso en el universo. */
+.acr-cu-peso {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--pulso-space-2);
+  align-items: center;
+}

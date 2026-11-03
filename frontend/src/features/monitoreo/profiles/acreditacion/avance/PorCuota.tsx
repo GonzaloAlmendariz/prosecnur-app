@@ -9,7 +9,7 @@ import { resumenCuota } from "../avanceCuotasModelo";
 import { clasePublico, paletaDePublicos } from "../paletaPublicos";
 import { useEstadoDeCuotas } from "../insumos/useEstadoDeCuotas";
 import { PesasDeComposicion } from "./PesasDeComposicion";
-import { franjaDeCuota, variablesDeControl, type VariableDeControl } from "./composicionModelo";
+import { franjaDeCuota, referencialesDeCuotas, variablesDeControl, type VariableDeControl } from "./composicionModelo";
 import "../paletaPublicos.css";
 import "../AvanceCuotas.css";
 import "./avance.css";
@@ -63,7 +63,7 @@ export function PorCuotaVista({ publicos, cuotas, controles, foco, onElegir, onE
           {leyendo && !cuotas.length && !controles.length ? <VacioDeBloque vacio="cargando" icono={<Target size={15} />} titulo="Leyendo las cuotas del estudio." /> : null}
           {cuotas.length ? (
             <section className="acr-pr-grupo">
-              <h3 className="acr-av-antetitulo">Con meta <span className="acr-av-num">{fmt(cuotas.length)}</span></h3>
+              <h3 className="acr-av-antetitulo">Metas <span className="acr-av-num">{fmt(cuotas.length)}</span></h3>
               <ul>
                 {cuotas.map((item) => {
                   const resumen = resumenCuota(item);
@@ -90,7 +90,7 @@ export function PorCuotaVista({ publicos, cuotas, controles, foco, onElegir, onE
           ) : null}
           {controles.length ? (
             <section className="acr-pr-grupo">
-              <h3 className="acr-av-antetitulo">Variables de control, sin meta <span className="acr-av-num">{fmt(controles.length)}</span></h3>
+              <h3 className="acr-av-antetitulo">Referenciales, sin meta <span className="acr-av-num">{fmt(controles.length)}</span></h3>
               <ul>
                 {controles.map((item) => {
                   const activa = elegidoControl?.id === item.id;
@@ -152,8 +152,15 @@ export function PorCuotaVista({ publicos, cuotas, controles, foco, onElegir, onE
 export function PorCuota({ controles }: { controles: ReadonlyArray<Record<string, unknown>> }) {
   const { estado, error } = useEstadoDeCuotas();
   const [foco, escribirFoco] = useFocoMonitoreo();
-  const cuotas = estado?.cuotas ?? [];
-  const variables = useMemo(() => variablesDeControl(controles, cuotas), [controles, cuotas]);
+  // ADR 0126: dos bloques fijos. Las metas se siguen con su faltante; las
+  // referenciales —cuotas declaradas así y variables de control sin meta— se
+  // describen frente al universo.
+  const todas = estado?.cuotas ?? [];
+  const cuotas = useMemo(() => todas.filter((cuota) => cuota.caracter === "meta"), [todas]);
+  const variables = useMemo(
+    () => [...referencialesDeCuotas(todas), ...variablesDeControl(controles, todas)],
+    [controles, todas],
+  );
   if (!estado && !controles.length && error) {
     return <PestanaSinContenido vacio="error" titulo="Variables" icono={<Target size={18} />} motivo={error} />;
   }

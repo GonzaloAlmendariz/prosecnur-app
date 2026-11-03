@@ -47,11 +47,11 @@ Estados: ☐ pendiente · ◐ en curso · ☑ hecho · ⛔ bloqueado (espera una
 
 | # | Indicación de Gonzalo | Perfil | Qué se ve hoy (evidencia) | Dónde vive | Estado |
 |---|---|---|---|---|---|
-| 1a | «mezcla conceptos» | Acreditación | Avance › Por cuota (`PorCuota.tsx:145-150`) pone en una lista las cuotas con meta (efectivas del rollup) y las variables sin meta con su Δ pp (de `client_report.controls`): dos motores y dos denominadores (meta frente a universo) | `profiles/acreditacion/avance/PorCuota.tsx`, `monitoreo_acreditacion_cuotas.R:73-80`, `monitoreo_engine.R:17084` | ⛔ D1 |
+| 1a | «mezcla conceptos» | Acreditación | Avance › Por cuota (`PorCuota.tsx:145-150`) pone en una lista las cuotas con meta (efectivas del rollup) y las variables sin meta con su Δ pp (de `client_report.controls`): dos motores y dos denominadores (meta frente a universo) | `profiles/acreditacion/avance/PorCuota.tsx`, `monitoreo_acreditacion_cuotas.R:73-80`, `monitoreo_engine.R:17084` | ☑ acreditación (ADR 0126): Avance › Por cuota en dos bloques, «Metas» y «Referenciales, sin meta»; una cuota declarada referencial se lee como composición frente al universo (cifras del motor de cuotas, sin «Sin dato»), igual que las variables de control. Los dos motores siguen siendo dos (cuotas y `client_report.controls`), cada uno en su bloque |
 | 1b | «mezcla conceptos» | Telefónico | Modelo pinta «Avance de cada meta» con efectivas junto a «meta frente al reparto proporcional» (`modelo/Cuotas.tsx:138,172,216-228`); el total por cuota usa plataforma si hay respuestas y si no «Completa» de la hoja, pero la serie diaria siempre usa plataforma (`monitoreo_telefonico.R:463-465,905,923`); sin `goals` la meta sale de una columna de la base (`:411,505`); `metaDelProyecto.ts:12-15` suma también las metas por actor (posible doble conteo, sin verificar con datos) | `profiles/telefonico/modelo/Cuotas.tsx`, `monitoreo_telefonico.R`, `metaDelProyecto.ts` | ☑ telefónico (ADR 0126): Modelo ya no pinta avance; Avance › Cuotas separa «Metas» (con su total sin compensar entre celdas) de «Referenciales» (composición frente al listado, en puntos y con su n); `metaDelProyecto` suma una sola partición. **Sigue abierto**: el numerador distinto entre total y serie diaria (`monitoreo_telefonico.R:905,923`) y que Ritmo y Cuotas pueden elegir variables distintas |
 | 1c | «mezcla conceptos» | Territorial | Celdas cruzadas frente a marginales sin resolver (pregunta 6 de `revamp-monitoreo/territorial.md`); la regla «sexo/edad flexible» se deduce de los déficits, no se declara (`monitoreo_engine.R:11502,11512`); cuota por UMP con respaldo fijo de 8 y 9 nombres de campo (`:23925-23952`) | `monitoreo_engine.R` (congelado), `territorial/avance/FaltantePorUmp.tsx` | ⛔ D1, D2 |
 | 1d | «mezcla conceptos» | Cursos-horario (aulas) | «Muestra», «meta», «meta operativa», sobremuestra, techo y comprometido conviven; el Resumen mide contra la meta operativa aunque el ADR 0079 dice que el cumplimiento va contra la cuota (`resumenAulasModelo.ts:16-17,231-241`); la sobremuestra es «referencia» en `AulasSerieDeRendimiento.tsx:207-209,1444` y «una de las dos metas» en `:1316-1319` y `AulasAvanceParaCliente.tsx:314-319` | `profiles/aulas/avance/*`, `corte/corteContract.ts:46-59` | ⛔ D1 |
-| 2a | «no permite que el modelo distinga cuotas establecidas como metas de cuotas referenciales» | Acreditación | Sin marca por cuota; «sólo seguimiento» vive en otro sitio (`interest_variables`) | `router_monitoreo_cuotas.R:62` (normalizador), `useConfiguracionDeCuotas.tsx:152-188` | ⛔ D1, D2 |
+| 2a | «no permite que el modelo distinga cuotas establecidas como metas de cuotas referenciales» | Acreditación | Sin marca por cuota; «sólo seguimiento» vive en otro sitio (`interest_variables`) | `router_monitoreo_cuotas.R:62` (normalizador), `useConfiguracionDeCuotas.tsx:152-188` | ☑ `cuotas[].caracter` (entrada en `.mcu_cuotas_entrada`, omitido si no se declara); en el editor de cuota, «Meta / Referencial» con la columna «Del universo» para la referencial; Modelo muestra la referencia y su peso en el universo. Guardar otra cuota conserva los números de una referencial |
 | 2b | ídem | Telefónico | Sin marca por cuota en `goals[]`; `objetivo` (barrido/mínimo) es otra cosa y choca de nombre | `monitoreo_engine.R:3813-3845`, `modelo/Cuotas.tsx` | ☑ `goals[].caracter` (lista blanca en `monitoreo_cuotas_caracter.R`, una línea en el congelado), control Meta / Referencial por categoría en Modelo; una referencial declarada publica su número en `Referencia` y deja de sumar a las brechas |
 | 2c | ídem | Territorial | Sin marca; Modelo › Cuotas es de sólo lectura y `FaltantePorUmp.tsx:66` dice «se declara en Modelo › Cuotas» | Hojas de ruta (dueño); Monitoreo sólo lee | ⛔ D1, D2 (escritura fuera de Monitoreo) |
 | 2d | ídem | Cursos-horario | Existe por estructura (eje = meta; `category_profiles` = referencial, ADR 0086 §7); el sexo es meta en HSVG y referencial en CCSS según el eje | `monitoreo_aulas_representatividad_declarada.R:20-35`, `monitoreo_aulas_composicion_referencial.R` | ☐ publicarlo con el nombre común de D1 |
@@ -84,6 +84,20 @@ Estados: ☐ pendiente · ◐ en curso · ☑ hecho · ⛔ bloqueado (espera una
 D1, D2 y D3 se toman como propuestas, revisables por Gonzalo (Meta B). Contrato en
 `docs/adrs/0126-cada-cuota-declara-si-es-meta-o-referencial.md`, revisado por `guardian-contratos` y
 `revisor-metodologico`.
+
+## Pedidos de Gonzalo durante la ronda
+
+| Pedido | Dónde vive | Estado |
+|---|---|---|
+| «Cuando es referencial debe estar el porcentaje del universo para poder referenciarlo» (3/11) | Telefónico: Modelo › Cuotas muestra «N % del universo» en la fila referencial; Avance › Referenciales, «Del listado». Acreditación: editor de cuota y Modelo con «Del universo»; Avance con la composición | ☑ telefónico y acreditación; ☐ aulas y territorial (van con sus pasos) |
+
+## Observado al capturar (no tocado)
+
+- Acreditación, copia `d1_acr` con cuotas sembradas: las cuotas leen 0 efectivas, también la de meta (0.0 %). Sale del
+  cruce de la copia (llaves `codigo:` del `case_rollup`), no del ADR 0126; hay que mirarlo con un proyecto de acreditación
+  con cuotas reales.
+- Acreditación › Modelo › Cuotas: el botón «Usar este color» del popover de color del público desborda 4 px (detector
+  `overflow-x`). Ya estaba; no lo toca esta ronda.
 
 ## Aprendido
 
