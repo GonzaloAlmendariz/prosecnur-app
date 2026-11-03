@@ -85,3 +85,17 @@
   margin-right: var(--pulso-space-1);
   font-weight: 700;
 }
+
+/* Pasada de diseño (2 nov 2026): las tarjetas son Panel. Dentro de la grilla no llevan el margen
+   inferior que el tema da al Panel en densidad corta, y su contenido se apila con aire. */
+.rec-terr .rec-terr-tarjetas > .pulso-panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-3);
+  min-width: 0;
+  margin-bottom: 0;
+}
+.rec-terr .rec-terr-tarjetas > .pulso-panel > .pulso-panel-header { margin-bottom: 0; }
+
+.rec-terr .rec-terr-tarjetas > .rec-tel-recorrido { grid-column: 1 / -1; }
+.rec-terr .rec-terr-tarjetas:has(> .rec-tel-recorrido) { grid-template-columns: repeat(2, minmax(0, 1fr)); }

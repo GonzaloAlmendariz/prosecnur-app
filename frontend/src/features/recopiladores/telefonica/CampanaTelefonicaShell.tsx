@@ -10,6 +10,8 @@ import { useLocation, useNavigate } from "react-router-dom";
 
 import type { CampanaMaterial } from "../../../api/materialCampanas";
 import { AdaptiveSplitView } from "../../../components/AdaptiveSplitView";
+import { CifrasEnTarjeta } from "../../../components/CifrasEnTarjeta";
+import { formatoConteo } from "../../../lib/formatoNumero";
 import { ContextTabRail, type ContextTabRailItem } from "../../../components/ContextTabRail";
 import { ModuleCommandBar } from "../../../components/ModuleCommandBar";
 import { useDensidadDelChrome } from "../useDensidadDelChrome";
@@ -68,6 +70,22 @@ export function CampanaTelefonicaShell({ campana, cabecera = null }: Props) {
       aria-busy={cargando}
     >
       <div className="rec-terr-seccion">
+        {/* Pasada de diseño (2 nov 2026): las cifras del barrido arriba, comunes a sus tres secciones. */}
+        {config ? (
+          <CifrasEnTarjeta
+            cifras={[
+              { id: "muestra", rotulo: "Casos de muestra", valor: formatoConteo(config.muestra), nota: "los que entrega el cliente" },
+              { id: "backup", rotulo: "Backup", valor: formatoConteo(config.backup), nota: "para reponer los que no contestan" },
+              { id: "telefonos", rotulo: "Teléfonos por caso", valor: formatoConteo(config.telefonos), nota: `llave «${config.llave}»` },
+              {
+                id: "documento", rotulo: "Documento",
+                valor: config.barrido.conectado_en_monitoreo ? "Conectado" : config.barrido.construido ? "Construido" : "Sin construir",
+                nota: config.barrido.conectado_en_monitoreo ? "Monitoreo ya lo lee" : config.barrido.construido ? "falta conectarlo en Monitoreo" : "se arma en Barrido",
+                tono: config.barrido.conectado_en_monitoreo ? "listo" : "aviso",
+              },
+            ]}
+          />
+        ) : null}
         {/* Revamp v5: en Casos los bloques son pares y comparten alto (C2); el resto son secciones independientes. */}
         <div
           className={`rec-terr-tarjetas${seccion === "casos" ? " rec-tel-pares" : ""}`}
