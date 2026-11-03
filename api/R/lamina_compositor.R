@@ -337,6 +337,8 @@
     # Dos categorías que reparten el 100 % de un público: la dicotomía partida a todo el ancho (lámina 74). La
     # pregunta encabeza el panel cuando la lámina tiene su propio título; si no, el título ya es la pregunta.
     pregunta <- if (!is.null(slide$title)) .lam_pregunta_dicotomia(el_plot, titulo_de_var)   # lamina_pregunta_dicotomia.R
+    # B6 (CCSS 2026, láminas 73 y 78): la pregunta que ya es el título de la lámina no se repite encima de la barra.
+    if (.lam_mismo_texto(pregunta, texto(titulo))) pregunta <- NULL
     n_pub <- .espec_n_base(espec)
     publico <- .lam_dicotomia_publico(n_pub, base_var, el_plot$var, el_plot$overrides, espec)
     return(.lam_laminas_dicotomia(doc, espec, titulo = texto(titulo) %||% "", ante = texto(antetitulo), pregunta = pregunta,
