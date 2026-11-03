@@ -2499,9 +2499,15 @@
    pegan al leerse y salen como «faltan 100 %» —visto en pantalla el 2026-09-08,
    el margen los separaba a la vista pero no al ojo que los lee seguidos—. */
 .mon-profile-page.is-aulas-flow .aulas-piramide-pct::before {
-  content: "·";
+  /* Filete vertical, no un punto medio: separa a la vista sin un glifo que
+     se lea como puntuación (regla de la pasada de formato, 3 nov 2026). */
+  content: "";
+  display: inline-block;
+  width: 1px;
+  height: 0.9em;
+  vertical-align: -0.1em;
+  background: var(--pulso-border-strong);
   margin: 0 5px 0 0;
-  color: var(--pulso-border-strong);
 }
 
 .mon-profile-page.is-aulas-flow .aulas-piramide-pct {

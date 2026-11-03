@@ -158,7 +158,7 @@ function ratchet(actual: Record<string, number>, foto: Record<string, number>) {
   return { suben, bajaron };
 }
 
-describe("frases, cifras y metadatos de Monitoreo · P3, P4 y P8", () => {
+describe("frases, cifras y metadatos de Monitoreo (P3, P4 y P8)", () => {
   it("el barrido ve el feature (centinela)", () => {
     expect(archivos(aqui).length).toBeGreaterThan(600);
   });

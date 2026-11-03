@@ -371,8 +371,15 @@
 }
 
 .mon-sup-ronda-datos > span + span::before {
+  /* Filete vertical, no un punto medio: separa a la vista sin un glifo que
+     se lea como puntuación (regla de la pasada de formato, 3 nov 2026). */
+  content: "";
+  display: inline-block;
+  width: 1px;
+  height: 0.9em;
+  vertical-align: -0.1em;
+  background: var(--pulso-border-strong);
   margin-right: 6px;
-  content: "·";
 }
 
 .mon-sup-ronda em {

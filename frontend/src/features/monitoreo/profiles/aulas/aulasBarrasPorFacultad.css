@@ -40,7 +40,16 @@
 
 .aulas-bpf-cabecera-meta strong { color: var(--pulso-text); }
 .aulas-bpf-cabecera-sexo { margin-left: 10px; }
-.aulas-bpf-cabecera-sexo::before { content: "· "; color: var(--pulso-text-faint); }
+/* Filete vertical, no un punto medio (regla de la pasada de formato, 3 nov 2026). */
+.aulas-bpf-cabecera-sexo::before {
+  content: "";
+  display: inline-block;
+  width: 1px;
+  height: 0.9em;
+  margin-right: 6px;
+  vertical-align: -0.1em;
+  background: var(--pulso-border-strong);
+}
 
 .aulas-bpf-leyenda {
   display: inline-flex;
