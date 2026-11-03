@@ -19,11 +19,6 @@
   margin-bottom: var(--pulso-space-4);
 }
 
-.cmg-mesa .cmg-panel-titulo,
-.cmg-mesa .cmv2-panel-head .cmg-panel-titulo {
-  font-size: var(--pulso-type-title-size);
-}
-
 /* Ficha del estudio */
 .cmg-mesa .cmv2-form-grid {
   gap: var(--pulso-space-5) var(--pulso-space-6);

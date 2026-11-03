@@ -832,23 +832,6 @@
 
 /* --- E11 · Paridad con aulas: encabezados, tablas y foco -------------------- */
 
-/* Los títulos de panel son h3 bajo el h2 de la sección (V12), con la misma
-   voz que el `strong` de los paneles de aulas. */
-.cmv2-panel-head .cmg-panel-titulo {
-  display: block;
-  margin: 0;
-  color: var(--pulso-text);
-  font-size: var(--pulso-type-title-size);
-  font-weight: var(--pulso-weight-bold);
-  line-height: 1.25;
-  letter-spacing: 0;
-}
-
-.cmv2-side .cmv2-panel-head .cmg-panel-titulo {
-  font-size: var(--pulso-type-title-size);
-  line-height: 1.15;
-}
-
 /* V9 · Cabecera fija con UN dueño de scroll. Mientras la tabla cabe, el
    envoltorio no es contenedor de scroll (overflow visible) y la cabecera se
    pega al panel de la sección, que es quien desplaza; el recorte redondeado

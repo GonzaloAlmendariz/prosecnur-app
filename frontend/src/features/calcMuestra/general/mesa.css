@@ -394,16 +394,6 @@
 
 /* --- Títulos de panel como encabezados reales (H3/H4) ----------------------- */
 
-.cmg-panel-titulo {
-  display: block;
-  margin: 0;
-  color: var(--pulso-text);
-  font-size: var(--pulso-type-title-size);
-  font-weight: var(--pulso-weight-bold);
-  line-height: 1.25;
-  letter-spacing: 0;
-}
-
 .cmg-subtitulo {
   margin: 0 0 6px;
   color: var(--pulso-text);
