@@ -110,7 +110,7 @@
     if (is.null(l)) next
     filas[[length(filas) + 1L]] <- list(var = l$var, cruce = l$cruce, top2box = l$top2box)
   }
-  cruces <- vapply(analitica_config$cruces_vars %||% list(), function(x) as.character(x$name %||% x)[1], character(1))
+  cruces <- .sig_cruces_de_analitica(analitica_config)
   secciones <- analitica_config$secciones %||% list()
   vars <- unique(unlist(lapply(secciones, function(s) if (isTRUE(s$oculto)) NULL else unlist(s$variables))))
   ol <- names(fuente$orders_list %||% list())
@@ -173,4 +173,12 @@
   }
   list(regla = regla, origen = rr$origen, familia = familia$tabla %||% NULL, m = familia$m %||% 0L,
        familia_completa = familia)
+}
+
+#' Variables de cruce de Analítica: las de la raíz y las que exporta la tabla de cruces (`cruces$cruces_vars`)
+#' @keywords internal
+.sig_cruces_de_analitica <- function(analitica_config) {
+  nombres <- function(l) vapply(l %||% list(), function(x) as.character(if (is.list(x)) x$name %||% NA else x)[1], character(1))
+  out <- unique(c(nombres(analitica_config$cruces_vars), nombres(analitica_config$cruces$cruces_vars)))
+  out[!is.na(out) & nzchar(out)]
 }

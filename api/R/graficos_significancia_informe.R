@@ -162,8 +162,7 @@
 #' Cuántas celdas de las tablas de cruces cambian de letras al pasar de la regla de siempre a `regla`
 #' @keywords internal
 .sig_cambios_tablas <- function(fuente, regla, familia, analitica_config) {
-  cruces <- vapply(analitica_config$cruces_vars %||% list(), function(x) as.character(x$name %||% x)[1], character(1))
-  cruces <- intersect(cruces, names(fuente$data))
+  cruces <- intersect(.sig_cruces_de_analitica(analitica_config), names(fuente$data))
   combos <- Filter(function(cb) cb$cruce %in% cruces && !length(cb$top2box),
                    .sig_combinaciones_estudio(fuente, NULL, analitica_config))
   legado <- .sig_regla_legado()

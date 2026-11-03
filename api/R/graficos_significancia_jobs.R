@@ -17,7 +17,8 @@
   ac <- tryCatch(.analitica_get_config(sid), error = function(e) list())
   list(significancia = list(
     graficos_config = list(significancia = cfg$significancia %||% NULL, plan = plan %||% cfg$plan),
-    analitica_config = list(cruces_vars = ac$cruces_vars %||% list(), secciones = ac$secciones %||% list())
+    analitica_config = list(cruces_vars = ac$cruces_vars %||% list(), secciones = ac$secciones %||% list(),
+                            cruces = list(cruces_vars = ac$cruces$cruces_vars %||% list()))
   ))
 }
 
