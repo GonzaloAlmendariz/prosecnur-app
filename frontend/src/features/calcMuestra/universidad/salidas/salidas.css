@@ -226,7 +226,7 @@
   line-height: 1.12;
 }
 
-.cmv2-sal-panel .cmv2-uni-cifra[data-hero="true"] .cmv2-uni-cifra-valor {
+.cmv2-sal-panel .cmv2-uni-cifra[data-hero="true"]:not([data-sin-cifra="true"]) .cmv2-uni-cifra-valor {
   font-size: var(--pulso-type-kpi-size);
 }
 
