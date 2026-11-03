@@ -107,9 +107,9 @@ Límite de la medición: `marco-disponible` no tiene un `.pulso` de referencia; 
 la dirección aterriza muda en otra vista. Sus cambios (P3 en `general/`, P5, P1) quedan verificados por tests, no por
 captura.
 
-## P2: bloques que faltan pasar a `Panel` (25, al 3 nov 2026)
+## P2: bloques que faltan pasar a `Panel` (23, al 3 nov 2026)
 
-Hechos: Entrega (8), Cálculo › Diseño y Propuestas (4), Marco › Sexo por curso-horario (1). Los que siguen tienen
+Hechos: Entrega (8), Cálculo › Diseño y Propuestas (4), Marco › Sexo por curso-horario (1), Muestra general › Forma del marco (1) y Acreditación › Actores (1). Los que siguen tienen
 antetítulo y un `h3` con `id` al que apunta `aria-labelledby` (se pasa `title={<span id="…">…</span>}`), o piezas
 propias en la cabecera; van uno por commit, empezando por la primera pestaña de cada modo. El ratchet
 `cajasPropias` cuenta reglas CSS: baja cuando se migra el último usuario de una regla y esa regla se borra (la de
