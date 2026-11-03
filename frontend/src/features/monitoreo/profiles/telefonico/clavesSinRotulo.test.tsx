@@ -190,6 +190,11 @@ const STATE = {
 } as unknown as MonitoreoState;
 
 const RUTA = "/monitoreo?modo=telefonico";
+const SJL = {
+  clave: "sjl", nombre: "San Juan de Lurigancho (SJL)", estado: "cumple" as const, caracter: "meta" as const, estadoCuota: "cumple" as const,
+  meta: 107, referencia: null, efectivas: 109, faltan: 0, pct: 101.9, acumulado: [], cumplio: "03/07", cumplioClave: "2026-07-03",
+  sinLlamar: 0, universo: 614, rechazoOParcial: 0, llamadoSinEfectiva: 0,
+};
 const nada = () => undefined;
 
 const PESTANAS: Array<[string, () => string]> = [
@@ -254,11 +259,10 @@ const PESTANAS: Array<[string, () => string]> = [
     <Entregas
       modelo={{
         segmento: "Sede",
-        filas: [{
-          clave: "sjl", nombre: "San Juan de Lurigancho (SJL)", estado: "cumple", meta: 107, efectivas: 109, faltan: 0, pct: 101.9,
-          acumulado: [], cumplio: "03/07", cumplioClave: "2026-07-03", sinLlamar: 0, universo: 614, rechazoOParcial: 0, llamadoSinEfectiva: 0,
-        }],
-        total: { meta: 107, efectivas: 109, faltan: 0, pct: 101.9, desde: null, hasta: null, cumplio: null, sinLlamar: 0, universo: 614 },
+        filas: [SJL],
+        todas: [SJL],
+        referenciales: [],
+        total: { meta: 107, efectivas: 109, efectivasDeMetas: 109, faltan: 0, pct: 101.9, desde: null, hasta: null, cumplio: null, sinLlamar: 0, universo: 614 },
         ritmo: null,
         rendimiento: null,
         sinAsignar: null,

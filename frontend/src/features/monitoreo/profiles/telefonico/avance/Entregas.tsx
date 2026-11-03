@@ -80,7 +80,7 @@ export function Entregas({
                   <tr>
                     <th scope="row">Total</th>
                     <td className="is-num">{n(modelo.total.meta)}</td>
-                    <td className="is-num">{n(modelo.total.efectivas)}</td>
+                    <td className="is-num">{n(modelo.total.efectivasDeMetas)}</td>
                     <td className="is-num">{n(modelo.total.faltan)}</td>
                     <td className="is-num">{pctConEspacio(modelo.total.pct)}</td>
                   </tr>

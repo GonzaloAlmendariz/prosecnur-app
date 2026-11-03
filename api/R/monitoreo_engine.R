@@ -3833,14 +3833,8 @@ monitoreo_normalize_config <- function(config = list(), data = NULL, previous_co
       if (is.finite(meta_pct) && meta_pct >= 0) {
         goal$meta_pct <- as.numeric(meta_pct)
       }
-      # `objetivo` declara si el actor se barre entero o si el minimo ES el
-      # acuerdo. La meta siempre fue un PISO interno, no el objetivo: sin este
-      # campo la UI daba por cerrado a un actor con universo por trabajar.
-      # Campo nuevo => whitelist explicita, o no sobrevive el round-trip .pulso.
-      objetivo <- .monitoreo_scalar(g$objetivo %||% g$objective %||% "", "")
-      if (objetivo %in% c("barrido", "minimo")) {
-        goal$objetivo <- objetivo
-      }
+      # `objetivo` y `caracter` (ADR 0126): whitelist en monitoreo_cuotas_caracter.R.
+      goal <- .monitoreo_goal_declarado(goal, g)
       goals[[length(goals) + 1L]] <- goal
     }
   }

@@ -97,11 +97,13 @@
   outline-offset: 2px;
 }
 
+/* Sin el avance (ADR 0126: Modelo declara, Avance sigue), el panel de metas
+ * mide su tabla: estirado al pie dejaría un hueco entre la última fila y el
+ * total. Con muchas categorías desplaza la columna. */
 .mon-metas-modelo-columna > .mon-metas-metas {
   display: flex;
-  flex: 1 1 auto;
+  flex: none;
   flex-direction: column;
-  min-height: 280px;
   overflow: hidden;
 }
 
@@ -157,7 +159,57 @@
 .mon-metas-tabla th:nth-child(3) { width: 96px; }
 .mon-metas-tabla th:nth-child(4) { width: 112px; }
 .mon-metas-tabla th:nth-child(6) { width: 72px; }
-.mon-metas-tabla th:nth-child(7) { width: 40px; }
+.mon-metas-tabla th:nth-child(7) { width: 164px; }
+.mon-metas-tabla th:nth-child(8) { width: 40px; }
+
+/* Meta o referencial (ADR 0126): el radio del kit, compacto dentro de la fila.
+ * Misma receta que los radios de Material, con el tono de Monitoreo. */
+.mon-metas-tabla .mon-metas-caracter.pulso-gliding-tab-list {
+  --pulso-gliding-indicator-bg: var(--pulso-surface);
+  --pulso-gliding-indicator-border: var(--pulso-border);
+  --pulso-gliding-indicator-shadow: 0 1px 3px color-mix(in srgb, var(--pulso-text) 14%, transparent);
+  display: inline-grid;
+  grid-auto-flow: column;
+  gap: 2px;
+  padding: 3px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--pulso-text) 6%, var(--pulso-surface));
+  box-shadow: inset 0 0 0 1px var(--pulso-border);
+}
+
+.mon-metas-tabla .mon-metas-caracter.pulso-gliding-tab-list > button {
+  min-height: 26px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  box-shadow: none;
+  color: var(--pulso-text-soft);
+  font: inherit;
+  font-size: var(--pulso-type-caption-size);
+  font-weight: var(--pulso-weight-semibold);
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.mon-metas-tabla .mon-metas-caracter.pulso-gliding-tab-list > button[aria-checked="true"] {
+  color: var(--pulso-module-monitoring);
+  font-weight: var(--pulso-weight-bold);
+}
+
+.mon-metas-tabla .mon-metas-caracter.pulso-gliding-tab-list > button:focus-visible {
+  outline: 2px solid var(--pulso-brand-navy);
+  outline-offset: -2px;
+}
+
+/* Con la columna de carácter, la tabla no cabe entera por debajo de 1500 px:
+ * «Sobre el universo» cede su lugar, porque la barra de al lado lo dibuja. */
+@media (max-width: 1500px) {
+  .mon-metas-tabla th:nth-child(4),
+  .mon-metas-tabla td:nth-child(4) {
+    display: none;
+  }
+}
 
 .mon-metas-tabla tbody th,
 .mon-metas-tabla tbody td {
@@ -224,91 +276,6 @@
 
 .mon-metas-quitar:focus-visible {
   outline: 2px solid var(--pulso-brand-navy);
-}
-
-.mon-metas-avance {
-  display: flex;
-  flex: 1 1 auto;
-  flex-direction: column;
-  gap: var(--pulso-space-2);
-  min-height: 140px;
-  padding: var(--pulso-space-3) var(--pulso-space-4);
-  border-top: 1px solid var(--pulso-border);
-  overflow: hidden;
-}
-
-.mon-metas-avance-lienzo {
-  display: grid;
-  flex: 1 1 0;
-  gap: var(--pulso-space-4);
-  min-height: 0;
-}
-
-.mon-metas-avance-columna {
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  gap: 4px;
-  min-width: 0;
-  min-height: 0;
-  text-align: center;
-}
-
-.mon-metas-modelo .mon-metas-avance-cifra,
-.mon-metas-modelo .mon-metas-avance-faltan {
-  text-align: center;
-}
-
-.mon-metas-avance-cifra {
-  font-weight: var(--pulso-weight-bold);
-}
-
-.mon-metas-avance-area {
-  position: relative;
-  display: flex;
-  flex: 1 1 0;
-  align-items: flex-end;
-  justify-content: center;
-  min-height: 48px;
-  border-bottom: 1px solid var(--pulso-border-strong);
-}
-
-.mon-metas-avance-area > i {
-  display: block;
-  width: min(72%, 96px);
-  min-height: 2px;
-  border-radius: 4px 4px 0 0;
-  background: var(--pulso-module-monitoring);
-}
-
-.mon-metas-avance-columna.is-cumple .mon-metas-avance-area > i {
-  background: var(--pulso-success-fg);
-}
-
-.mon-metas-avance-area > b {
-  position: absolute;
-  right: 8%;
-  left: 8%;
-  border-top: 2px dashed var(--pulso-text);
-}
-
-.mon-metas-avance-nombre {
-  min-height: 2.6em;
-  font-size: var(--pulso-type-subtitle-size);
-  font-weight: var(--pulso-weight-semibold);
-  line-height: 1.3;
-  overflow-wrap: anywhere;
-}
-
-.mon-metas-avance-faltan {
-  color: var(--pulso-module-monitoring);
-  font-size: var(--pulso-type-subtitle-size);
-  font-weight: var(--pulso-weight-bold);
-  text-align: center;
-}
-
-.mon-metas-avance-columna.is-cumple .mon-metas-avance-faltan {
-  color: var(--pulso-success-fg);
 }
 
 .mon-metas-pie {
@@ -533,17 +500,10 @@
     height: 160px;
   }
 
-  .mon-metas-marco,
-  .mon-metas-avance,
-  .mon-metas-avance-lienzo {
+  .mon-metas-marco {
     flex: none;
     min-height: 0;
     overflow: visible;
-  }
-
-  .mon-metas-avance-area {
-    flex: none;
-    height: 120px;
   }
 
   .mon-metas-tabla th:nth-child(5),
@@ -585,9 +545,7 @@
     overflow: clip;
   }
 
-  .mon-metas-marco,
-  .mon-metas-avance,
-  .mon-metas-avance-lienzo {
+  .mon-metas-marco {
     flex: none;
     min-height: 0;
     overflow: visible;
@@ -595,11 +553,6 @@
 
   .mon-metas-tabla thead th {
     position: static;
-  }
-
-  .mon-metas-avance-area {
-    flex: none;
-    height: 120px;
   }
 
   .mon-metas-dias {

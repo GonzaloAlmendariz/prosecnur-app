@@ -742,3 +742,49 @@
   flex: none;
   overflow: visible;
 }
+
+/* ---------- Referenciales (ADR 0126) ----------
+ * Debajo de las metas, siempre en el mismo lugar: lo obtenido frente al
+ * listado, en puntos y con su n. Sin barra de meta, sin faltante y sin color
+ * de alarma: una diferencia se enseña, no se juzga. */
+.mon-tel-cuotas-referenciales {
+  flex: none;
+  border-top: 1px solid var(--pulso-border);
+}
+
+.mon-tel-cuotas-referenciales > .mon-tel-cuotas-tabla-cabecera > span {
+  color: var(--pulso-text-faint);
+}
+
+.mon-tel-cuotas-ref-fila {
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) repeat(4, minmax(84px, 1fr));
+  gap: var(--pulso-space-3);
+  align-items: center;
+  min-height: 44px;
+  padding: var(--pulso-space-2) 18px;
+  border-bottom: 1px solid var(--pulso-surface-3);
+  font-variant-numeric: tabular-nums;
+}
+
+.mon-tel-cuotas-ref-fila:last-child {
+  border-bottom: 0;
+}
+
+.mon-tel-cuotas-ref-fila.is-cabecera {
+  min-height: 0;
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-micro-size);
+  font-weight: var(--pulso-weight-bold);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.mon-tel-cuotas-ref-fila .is-num {
+  text-align: right;
+}
+
+.mon-tel-cuotas-ref-nota {
+  color: var(--pulso-text-faint);
+  font-size: var(--pulso-type-caption-size);
+}

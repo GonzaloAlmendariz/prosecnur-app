@@ -9,8 +9,15 @@
  */
 
 import { formatoConteo } from "../../../../../lib/formatoNumero";
+import type { CaracterDeCuota } from "../../../core/caracterDeCuota";
 
-export type FilaDeMeta = { value: string; universe: number; meta: number | null; effective: number };
+/**
+ * `caracter` (ADR 0126): una referencial no entra a la suma de metas ni al
+ * reparto proporcional; su número es una referencia. Sin él, cuenta como meta.
+ */
+export type FilaDeMeta = { value: string; universe: number; meta: number | null; effective: number; caracter?: CaracterDeCuota };
+
+const esReferencial = (fila: FilaDeMeta) => fila.caracter === "referencial";
 
 export type MetaConProporcion = FilaDeMeta & {
   /** Meta sobre el universo de la categoría, de 0 a 1; null sin universo o sin meta. */
@@ -22,10 +29,11 @@ export type MetaConProporcion = FilaDeMeta & {
 };
 
 export function metasConProporcion(filas: readonly FilaDeMeta[]): MetaConProporcion[] {
-  const universo = filas.reduce((suma, fila) => suma + fila.universe, 0);
-  const metas = filas.reduce((suma, fila) => suma + (fila.meta ?? 0), 0);
+  const deMeta = filas.filter((fila) => !esReferencial(fila));
+  const universo = deMeta.reduce((suma, fila) => suma + fila.universe, 0);
+  const metas = deMeta.reduce((suma, fila) => suma + (fila.meta ?? 0), 0);
   return filas.map((fila) => {
-    const proporcional = universo > 0 && metas > 0 ? (fila.universe / universo) * metas : null;
+    const proporcional = !esReferencial(fila) && universo > 0 && metas > 0 ? (fila.universe / universo) * metas : null;
     return {
       ...fila,
       sobreUniverso: fila.meta != null && fila.universe > 0 ? fila.meta / fila.universe : null,
@@ -43,7 +51,7 @@ const fmt = (n: number) => formatoConteo(n);
 export const DESVIO_QUE_SE_SENALA = 5;
 
 export function validarMetas({
-  filas,
+  filas: todas,
   variable,
   objetivoTotal,
 }: {
@@ -51,8 +59,15 @@ export function validarMetas({
   variable: string;
   objetivoTotal: number | null;
 }): Validacion[] {
+  let filas = todas;
   const out: Validacion[] = [];
   if (!filas.length) return [{ tono: "aviso", texto: `${variable} no tiene categorías en la hoja ni metas declaradas.` }];
+  const referenciales = filas.filter(esReferencial);
+  if (referenciales.length) {
+    out.push({ tono: "ok", texto: `${referenciales.map((fila) => fila.value).join(", ")} ${referenciales.length === 1 ? "es referencial: se describe" : "son referenciales: se describen"} en Avance y no suma a la meta.` });
+    filas = filas.filter((fila) => !esReferencial(fila));
+    if (!filas.length) return out;
+  }
   const suma = filas.reduce((total, fila) => total + (fila.meta ?? 0), 0);
   const conMeta = filas.filter((fila) => fila.meta != null && fila.meta > 0);
   const cuantas = filas.length === 1 ? "La meta suma" : `Las ${fmt(filas.length)} metas suman`;

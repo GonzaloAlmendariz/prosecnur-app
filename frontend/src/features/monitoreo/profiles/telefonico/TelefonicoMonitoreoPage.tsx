@@ -299,7 +299,7 @@ import { compactSelectLabel, calendarWeekWindowLabel, calendarDateWindowLabel, p
 import { calendarAddDaysIso, calendarReportExceptions, calendarWeekRange, calendarReportDateForWeek, reportsFromState, normalizeAcreditacionReports, rowValue, rowsFromSheets, rowsForSheetBlock, phoneDisplayRowsWithBaseColumn, acreditacionPhoneControlSampleRows, caseDisplayName, caseWithoutCrossing, caseIsAuditable, casePrimaryEvidence, caseSecondaryEvidence, casePhoneAction, responseCounts, groupedCaseRows, caseDimensionRows, reportBlockForSheet, reportBlockColumns, reportStateTone, acreditacionReportRowValue, acreditacionReportColumn, acreditacionReportBlockDateColumns, reportPanelSheetTitle, reportBlockTone, reportBlockMetric } from "../../core/tablasComunes";
 import { caseIdentity, countCaseOptions, caseChannelValue, caseSourceValue, caseCollectorValue, caseToneClass, assistedReviewCandidateCountForCase, caseNeedsReconciliationReview, acreditacionSurveyStateTone, caseDailyTone } from "../../core/casosComunes";
 import { preferredPhoneEffectiveValue, splitListInput, calendarPhaseDurationDays, calendarPhaseWeekDurationDays, calendarPhaseOverlapCount, calendarBasePhase, distributeCalendarDatesByWeek, inferCalendarModality, calendarGoalActor, calendarGoalForActor, calendarTargetRule, splitCalendarTokens, phoneQuotaGoalValue, statusValueOptions, phoneIsUnassignedResponsible, phoneQuotaStatusTone, phoneDailyBlockForPanel, uniqueDisplayValues, isPlatformResponseSource, isSurveyMonkeyResponseSource, isKoboResponseSource, shortenMiddle, sourceFlatField, presetSourceStatus, cleanSourceDimensions, sourceDimensionEntries, collectorDisplayName, countFromRecord, inferAcreditacionSurveyChannel, surveyMonkeyDisplayTitle, csvCell, platformToneValue, crossingToneValue, acreditacionQueryDonutBackground, uniqueNormalizedKeys, addAcreditacionDailyValue, dailySeriesTotals, collectorDisplayLookupKey, sourceRoleForActor, surveySourceForAcreditacionId, surveySourceForAcreditacionTitle, sheetTitleIcon } from "../../core/helpersComunesTelAcr";
-import { phoneQuotaGoalHasActor, phoneQuotaGoalTotal, phoneQuotaRemoveGoal, phoneQuotaGoalVariables, phoneQuotaUpsertGoal } from "../../core/cuotasTelefonicasComunes";
+import { caracterDeCuotas, phoneQuotaGoalHasActor, phoneQuotaGoalTotal, phoneQuotaRemoveGoal, phoneQuotaGoalVariables, phoneQuotaUpsertGoal } from "../../core/cuotasTelefonicasComunes";
 import { phoneRowNumber, phoneRowOptionalNumber, phoneRowRatioPct, phoneAttemptValue, phoneDurationAlertThreshold, phoneDurationAlertDisplayDetail, phoneAlertCaseCount, phoneContractReadyCount, acreditacionPhoneAlertSignalRows } from "../../core/alertasTelefonicasComunes";
 import { useSubvistaEnFoco } from "../../core/subvistaEnFoco";
 const VISTAS_DE_SUPERVISION = ["tiempo", "muestra", "prioridad"] as const;
@@ -2547,8 +2547,8 @@ function AcreditacionPhoneQuotaEditor({
       etiquetaConfirmar={etiquetaDeConfirmacion(metasCambiadas.length)}
       onConfirmar={confirmarMetas}
       onDescartar={descartarMetas}
-      onQuitar={removeValue}
-      onAgregar={addCategory}
+      onQuitar={removeValue} onAgregar={addCategory}
+      {...caracterDeCuotas(draft.goals, activeVariable, patchGoals)}
       objetivoTotal={draft.objetivo_total ?? (quotaTotal || null)}
       onObjetivoTotal={(valor) => onPatchConfig({ objetivo_total: valor })}
       filtro={filtroTexto}
@@ -4424,7 +4424,7 @@ export function phoneQuotaRowsForPanel(rows: Array<Record<string, unknown>>): Ac
     };
   }).filter((row) => row.value && (row.universe > 0 || (row.meta != null && row.meta > 0)));
   const totalKeys = new Set(mapped
-    .filter((row) => ["total", "todos"].includes(normalizeSourceMatch(row.actor)) && row.meta != null)
+    .filter((row) => ["total", "todos"].includes(normalizeSourceMatch(row.actor))) // ADR 0126: una referencial declarada trae Meta vacía
     .map((row) => `${normalizeSourceMatch(row.variable)}\r${normalizeSourceMatch(row.value)}`));
   return mapped
     .filter((row) => !totalKeys.has(`${normalizeSourceMatch(row.variable)}\r${normalizeSourceMatch(row.value)}`) || ["total", "todos"].includes(normalizeSourceMatch(row.actor)))

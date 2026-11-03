@@ -596,7 +596,7 @@
   out <- out[order(out$.__actor_order, out$Variable, -out$Brecha, out$Valor), , drop = FALSE]
   out$.__actor_order <- NULL
   rownames(out) <- NULL
-  utils::head(out, 240L)
+  .monitoreo_cuotas_marcar_telefonico(utils::head(out, 240L), cfg$goals %||% list())
 }
 
 .monitoreo_report_phone_blocks <- function(data, profile = list(), cfg = list()) {

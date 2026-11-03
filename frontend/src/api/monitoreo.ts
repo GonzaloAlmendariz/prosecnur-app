@@ -140,6 +140,8 @@ export type MonitoreoGoal = {
   meta: number;
   meta_pct?: number | null;
   objetivo?: MonitoreoGoalObjetivo | null;
+  /** ADR 0126: `meta` se exige; `referencial` se describe. Sin declarar, meta si hay número. */
+  caracter?: "meta" | "referencial" | null;
 };
 
 export type MonitoreoReportWeekday = "lunes" | "martes" | "miercoles" | "jueves" | "viernes" | "sabado" | "domingo";
