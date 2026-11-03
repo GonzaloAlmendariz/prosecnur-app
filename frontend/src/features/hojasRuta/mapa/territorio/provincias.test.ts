@@ -26,7 +26,7 @@ const territorios = [
 describe("provincias del registro de territorios (ADR 0119)", () => {
   it("agrupa por provincia con Lima y Callao primero y las ciudades por nombre", () => {
     const grupos = gruposPorProvincia(territorios);
-    expect(grupos.map((g) => g.etiqueta)).toEqual(["Lima Metropolitana", "Callao", "Arequipa", "Cusco", "Huaura · Lima"]);
+    expect(grupos.map((g) => g.etiqueta)).toEqual(["Lima Metropolitana", "Callao", "Arequipa", "Cusco", "Huaura, Lima"]);
     expect(grupos[2].filas.map((f) => f.distrito)).toEqual(["AREQUIPA", "CERRO COLORADO"]);
     expect(grupos[2].nivel).toBe("1");
   });
@@ -42,7 +42,7 @@ describe("provincias del registro de territorios (ADR 0119)", () => {
   });
 
   it("separa Lima Metropolitana de las provincias de la región Lima", () => {
-    expect(etiquetaProvincia(territorios[5])).toBe("Huaura · Lima");
+    expect(etiquetaProvincia(territorios[5])).toBe("Huaura, Lima");
     expect(contarProvincias(territorios)).toBe(5);
   });
 

@@ -19,7 +19,7 @@ export function SorteoEnCurso({ desde, distritos }: { desde: number; distritos: 
   }, []);
   return (
     <p className="hr-mapa-nota" role="status" aria-live="polite">
-      Sorteando {distritos === 1 ? "1 distrito" : `${distritos} distritos`} · lleva {transcurrido(desde, ahora)}. Con el marco completo suele tardar
+      Sorteando {distritos === 1 ? "1 distrito" : `${distritos} distritos`}, lleva {transcurrido(desde, ahora)}. Con el marco completo suele tardar
       entre 1 y 5 minutos; mientras tanto puedes seguir mirando el mapa.
     </p>
   );

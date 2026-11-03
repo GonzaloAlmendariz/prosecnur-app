@@ -15,7 +15,7 @@ export function InformeDiseno({ deshabilitado }: { deshabilitado: boolean }) {
     setError("");
     apiHojasRutaReporteDecisionalIniciar("html")
       .then((r) => setJob(r.job_id))
-      .catch((e: unknown) => setError(e instanceof Error ? e.message.replace(/ · E_[A-Z_]+$/, "") : "No se pudo preparar el informe"));
+      .catch((e: unknown) => setError(e instanceof Error ? e.message.replace(/, E_[A-Z_]+$/, "") : "No se pudo preparar el informe"));
   };
   return (
     <section className="hr-muestra-grupo" aria-label="Informe de diseño muestral">

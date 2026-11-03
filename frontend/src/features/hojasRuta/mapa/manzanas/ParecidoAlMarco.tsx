@@ -41,8 +41,8 @@ export function ParecidoAlMarco({ marco, muestra, causaV1 = false }: Props) {
   return (
     <section className="hr-graf" aria-label="¿Se parece al marco?">
       <h3 className="hr-graf-titulo">¿Se parece al marco?</h3>
-      <Barra titulo="Marco · viviendas" datos={marco} />
-      <Barra titulo="Muestra · UMP titulares" datos={muestra} />
+      <Barra titulo="Marco (viviendas)" datos={marco} />
+      <Barra titulo="Muestra (UMP titulares)" datos={muestra} />
       <ul className="hr-parecido-tabla">
         {filas.map((f) => (
           <li key={f.n} data-lejos={Math.abs(f.brecha) >= UMBRAL || undefined}>

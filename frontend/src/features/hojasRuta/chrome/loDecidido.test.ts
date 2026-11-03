@@ -7,7 +7,7 @@ describe("indicadoresDecididos", () => {
     expect(ind.map((i) => [i.label, i.value, i.seccion])).toEqual([
       ["Territorio", "6 distritos", "territorio"],
       ["Población", "3.11 M", "poblacion"],
-      ["Muestra", "N 1,200 · ±2.8 %", "muestra"],
+      ["Muestra", "N 1,200, ±2.8 %", "muestra"],
       ["UMP", "150 + 150 R", "manzanas"],
     ]);
     // Con la matriz calculada, la población es la objetivo (brecha B2).

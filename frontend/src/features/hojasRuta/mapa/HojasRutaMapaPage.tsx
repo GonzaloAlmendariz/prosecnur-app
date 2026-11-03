@@ -621,8 +621,8 @@ export default function HojasRutaMapaPage() {
       const n = reemplazosDe(b.id_manzana, bloquesReemplazos).length;
       return (
         <>
-          <b>UMP {b.hoja_num ?? "–"} · Zona {b.zona} · Mz {String(b.id_manzana).slice(-4)}</b>
-          <span>{fmt(b.viviendas)} viviendas · {n === 1 ? "1 reemplazo" : `${n} reemplazos`}</span>
+          <b>UMP {b.hoja_num ?? "–"}, Zona {b.zona}, Mz {String(b.id_manzana).slice(-4)}</b>
+          <span>{fmt(b.viviendas)} viviendas, {n === 1 ? "1 reemplazo" : `${n} reemplazos`}</span>
           <span>Clic para enfocarla</span>
         </>
       );
@@ -633,8 +633,8 @@ export default function HojasRutaMapaPage() {
       const distrito = (estado?.territories ?? []).find((t) => t.ubigeo === m.ubigeo)?.distrito;
       return (
         <>
-          <b>Zona {m.zona} · Mz {m.id.slice(-4)}</b>
-          <span>{distrito ? `${nombreDistrito(distrito)} · ` : ""}{fmt(m.viviendas)} viviendas</span>
+          <b>Zona {m.zona}, Mz {m.id.slice(-4)}</b>
+          <span>{distrito ? `${nombreDistrito(distrito)}, ` : ""}{fmt(m.viviendas)} viviendas</span>
           <span>Clic para ver su ficha</span>
         </>
       );
@@ -645,7 +645,7 @@ export default function HojasRutaMapaPage() {
     return (
       <>
         <b>{nombreDistrito(t.distrito)}</b>
-        <span>{fmt(t.poblacion)} hab. · {fmt(t.viviendas)} viviendas · {fmt(t.manzanas)} manzanas</span>
+        <span>{fmt(t.poblacion)} hab., {fmt(t.viviendas)} viviendas, {fmt(t.manzanas)} manzanas</span>
         <span>Clic para ver su ficha</span>
       </>
     );
@@ -672,7 +672,7 @@ export default function HojasRutaMapaPage() {
           visibles.map((c) => {
             const enB = borrador.includes(c.ubigeo), conf = confirmados.includes(c.ubigeo);
             const fila = enMuestra ? tamano?.filas.find((f) => f.ubigeo === c.ubigeo) : undefined;
-            const detalle = fila ? `${fmt(fila.nUsado)} entr. · ±${((fila.margen ?? 0) * 100).toLocaleString("es-PE", { maximumFractionDigits: 1 })} %` : enTerritorio && enB !== conf ? (enB ? "Se agrega al confirmar" : "Se quita al confirmar") : enPoblacion && matriz.vigente && matriz.porUbigeo[c.ubigeo] ? `${fmt(matriz.porUbigeo[c.ubigeo])} en la población objetivo`
+            const detalle = fila ? `${fmt(fila.nUsado)} entr., ±${((fila.margen ?? 0) * 100).toLocaleString("es-PE", { maximumFractionDigits: 1 })} %` : enTerritorio && enB !== conf ? (enB ? "Se agrega al confirmar" : "Se quita al confirmar") : enPoblacion && matriz.vigente && matriz.porUbigeo[c.ubigeo] ? `${fmt(matriz.porUbigeo[c.ubigeo])} en la población objetivo`
               : enTerritorio && habitantes.get(c.ubigeo) ? `${fmt(habitantes.get(c.ubigeo) ?? 0)} hab.` : undefined;
             return { ubigeo: c.ubigeo, nombre: nombreDistrito(c.nombre), detalle, x: c.rotulo[0], y: c.rotulo[1], tono: conf ? tonoDistrito(u, confirmados.indexOf(c.ubigeo)) : u.colores.acento };
           }),
@@ -738,7 +738,7 @@ export default function HojasRutaMapaPage() {
   const accionesChrome = [
     {
       id: "bitacora",
-      label: entradasBitacora ? `Bitácora · ${entradasBitacora}` : "Bitácora",
+      label: entradasBitacora ? `Bitácora (${entradasBitacora})` : "Bitácora",
       shortLabel: "Bitácora",
       icon: BookOpenText,
       kind: "ghost" as const,
@@ -766,7 +766,7 @@ export default function HojasRutaMapaPage() {
       ariaLabel="Contexto operativo de hojas de ruta"
       densidad={barraAngosta ? "compact" : "normal"}
       contexto={
-        <ChromeIndicatorGroup ariaLabel="Lo decidido" resumen={decidido.map((i) => i.detalle).join(" · ")}>
+        <ChromeIndicatorGroup ariaLabel="Lo decidido" resumen={decidido.map((i) => i.detalle).join(", ")}>
           {decidido.map((i) => (
             // B4: el lienzo lleva fase, revisión, bitácora y Material en la barra; bajo 1080 px de barra
             // los indicadores ceden todos (como en el artefacto) para que secciones y acciones no se monten.
@@ -819,8 +819,8 @@ export default function HojasRutaMapaPage() {
               <li key={t.ubigeo}>
                 <strong>{nombreDistrito(t.distrito)}</strong>
                 <small>
-                  {fmt(t.poblacion)} hab. · {fmt(t.manzanas)} manzanas
-                  {geometrias[t.ubigeo] ? "" : " · cargando el mapa…"}
+                  {fmt(t.poblacion)} hab., {fmt(t.manzanas)} manzanas
+                  {geometrias[t.ubigeo] ? "" : ", cargando el mapa…"}
                 </small>
               </li>
             ))}
@@ -832,7 +832,7 @@ export default function HojasRutaMapaPage() {
         <LienzoMapa
           className="hr-mapa-lienzo"
           ariaLabel="Mapa del territorio del estudio"
-          miga={enAtlas ? <MigaAtlas total={atlas.length} departamento={departamentoEnfocado} ciudad={atlas.find((c) => c.codigo === ciudadEnfocada) ?? null} distritos={contornos.filter((c) => ciudadDeUbigeo(c.ubigeo) === ciudadEnfocada).length} cargando={regionesCargando.length > 0} enEstudio={Boolean(ciudadEnfocada && enEstudio.includes(ciudadEnfocada))} onPeru={() => { setCiudadEnfocada(null); setDepartamentoEnfocado(null); }} onDepartamento={(d) => { setCiudadEnfocada(null); setDepartamentoEnfocado(d); }} /> : enTerritorio && ciudadAbierta ? <><b>{atlas.find((c) => c.codigo === ciudadAbierta)?.nombre}</b>{regionesCargando.length ? " · cargando su mapa…" : <span className="hr-lienzo-miga-ayuda"> · clic en un distrito para ver su ficha</span>}</> : migaLienzo(nav.seccion as SeccionLienzo, confirmados.length, titularEnfocada ? { distrito: nombreDistrito(titularEnfocada.distrito), ump: codigoDeUmp(titularEnfocada) } : null, atlas.filter((c) => enEstudio.includes(c.codigo)).map((c) => c.nombre))}
+          miga={enAtlas ? <MigaAtlas total={atlas.length} departamento={departamentoEnfocado} ciudad={atlas.find((c) => c.codigo === ciudadEnfocada) ?? null} distritos={contornos.filter((c) => ciudadDeUbigeo(c.ubigeo) === ciudadEnfocada).length} cargando={regionesCargando.length > 0} enEstudio={Boolean(ciudadEnfocada && enEstudio.includes(ciudadEnfocada))} onPeru={() => { setCiudadEnfocada(null); setDepartamentoEnfocado(null); }} onDepartamento={(d) => { setCiudadEnfocada(null); setDepartamentoEnfocado(d); }} /> : enTerritorio && ciudadAbierta ? <><b>{atlas.find((c) => c.codigo === ciudadAbierta)?.nombre}</b>{regionesCargando.length ? ", cargando su mapa…" : <span className="hr-lienzo-miga-ayuda">, clic en un distrito para ver su ficha</span>}</> : migaLienzo(nav.seccion as SeccionLienzo, confirmados.length, titularEnfocada ? { distrito: nombreDistrito(titularEnfocada.distrito), ump: codigoDeUmp(titularEnfocada) } : null, atlas.filter((c) => enEstudio.includes(c.codigo)).map((c) => c.nombre))}
           leyenda={enAtlas ? <><span className="hr-atlas-punto" aria-hidden="true" /> Con cartografía <span className="hr-atlas-punto" data-en-estudio aria-hidden="true" /> En el estudio</> : leyendaLienzo(nav.seccion as SeccionLienzo, { zonasCortas: zonasCortas.size > 0, areas: (configSorteo?.marco_elegible?.areas_excluidas ?? []).length > 0, capa: capaMapa })}
           distritos={enPoblacion || enMuestra ? [] : distritos}
           capa={conSelectorDeCapa(nav.seccion as SeccionLienzo) ? capaMapa : "manzanas"}

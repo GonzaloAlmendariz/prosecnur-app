@@ -41,11 +41,11 @@ export function IccPanel({ config, deshabilitado, onAplicar }: { config: HojasRu
         {(entradas ?? []).map((e) => (
           <li key={e.id} data-aplicable={e.aplicable.ok || undefined}>
             <span>
-              <strong>{e.estudio || e.id} · {e.indicador || "indicador"}</strong>
+              <strong>{e.estudio || e.id}, {e.indicador || "indicador"}</strong>
               <small>
-                ICC {num(e.icc)} · {num(e.conglomerados, 0)} conglomerados
-                {e.aplicable.ok ? ` · DEFF con ${k} por ruta: ${num(1 + (k - 1) * e.icc, 2)}` : ""}
-                {e.id === mayor?.id && aplicables.length > 1 ? " · el mayor (conservador)" : ""}
+                ICC {num(e.icc)}, {num(e.conglomerados, 0)} conglomerados
+                {e.aplicable.ok ? `, DEFF con ${k} por ruta: ${num(1 + (k - 1) * e.icc, 2)}` : ""}
+                {e.id === mayor?.id && aplicables.length > 1 ? ", el mayor (conservador)" : ""}
               </small>
               {!e.aplicable.ok ? <small className="hr-icc-motivo">{e.aplicable.motivo}</small> : null}
               {(e.aplicable.avisos ?? []).map((a) => <small key={a.code} className="hr-icc-motivo">{a.message}</small>)}

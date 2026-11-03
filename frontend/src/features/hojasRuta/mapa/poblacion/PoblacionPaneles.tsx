@@ -54,7 +54,7 @@ export function PoblacionEstructura({ rangosConfig, config, matriz, bloqueado }:
       <div className="hr-mapa-cab hr-mapa-cab--pila">
         <div className="hr-mapa-cab-titulo">
           <h2>Rangos de edad</h2>
-          <small>{rangos.length} rangos{matriz.vigente ? ` · ${fmt(matriz.total)} personas` : ""}</small>
+          <small>{rangos.length} rangos{matriz.vigente ? `, ${fmt(matriz.total)} personas` : ""}</small>
         </div>
         <GlidingRadioGroup
           value={enCortes ? "cortes" : "manual"}
@@ -239,7 +239,7 @@ export function PoblacionInspector({ config, rangosConfig, matriz, poblacionDist
         <PulsoSwitch label="Dividir por sexo" size="sm" checked={sexo} disabled={bloqueado || guardando} onCheckedChange={(v) => onGuardarYCalcular({ subquota_var: v ? "sexo" : "ninguna" })} />
         {matriz.vigente ? (
           <PulsoButton variant="secondary" onClick={() => setCajonPoblacion(cajonPoblacion ? null : "matriz")} aria-pressed={Boolean(cajonPoblacion)}>
-            <Table2 size={14} aria-hidden /> {cajonPoblacion ? "Ocultar la matriz" : `Ver la matriz · ${matriz.filas.length} distritos`}
+            <Table2 size={14} aria-hidden /> {cajonPoblacion ? "Ocultar la matriz" : `Ver la matriz, ${matriz.filas.length} distritos`}
           </PulsoButton>
         ) : null}
         {matriz.vigente && sexo && !cambiaron ? <PiramidePoblacion filas={matriz.filas} rangos={rangosConfig} /> : null}

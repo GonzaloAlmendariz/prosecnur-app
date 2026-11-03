@@ -19,8 +19,8 @@ export function PiramidePoblacion({ filas, rangos }: { filas: readonly FilaMatri
     <section className="hr-graf hr-piramide" aria-label="Pirámide de la población objetivo">
       <h3 className="hr-graf-titulo">Población objetivo por sexo y edad</h3>
       <div className="hr-piramide-cab" aria-hidden="true">
-        <span><i data-sexo="H" /> Hombres · {enMiles(totH)}</span>
-        <span>Mujeres · {enMiles(totM)} <i data-sexo="M" /></span>
+        <span><i data-sexo="H" /> Hombres, {enMiles(totH)}</span>
+        <span>Mujeres, {enMiles(totM)} <i data-sexo="M" /></span>
       </div>
       <ul>
         {barras.map((b) => (

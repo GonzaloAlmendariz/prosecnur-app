@@ -52,7 +52,7 @@ export function SeleccionEstructura({ grupos, total, observadas, confirmados = [
         </div>
         <input className="hr-mapa-buscar" type="search" aria-label="Buscar ruta" placeholder="Buscar UMP, zona o manzana" value={busquedaUmp} onChange={(e) => setBusquedaUmp(e.target.value)} />
         <GlidingRadioGroup value={soloPorRevisar ? "revisar" : "todas"} options={FILTRO_RUTAS} getOptionValue={(o) => o[0]} onValueChange={(v) => setSoloPorRevisar(v === "revisar")} className="hr-muestra-opciones" aria-label="Qué rutas ver">
-          {(o) => <span>{o[0] === "revisar" ? `${o[1]} · ${fmt(observadas)}` : `${o[1]} · ${fmt(total)}`}</span>}
+          {(o) => <span>{o[0] === "revisar" ? `${o[1]}, ${fmt(observadas)}` : `${o[1]}, ${fmt(total)}`}</span>}
         </GlidingRadioGroup>
       </div>
       <div className="hr-mapa-catalogo">
@@ -78,7 +78,7 @@ export function SeleccionEstructura({ grupos, total, observadas, confirmados = [
                   >
                     <span className="hr-sel-num" aria-hidden="true">{f.numero || "–"}</span>
                     <span className="hr-sel-copia">
-                      <strong><span className="hr-sel-rotulo">Zona </span>{f.zona} · Mz {f.id.slice(-4)}</strong>
+                      <strong><span className="hr-sel-rotulo">Zona </span>{f.zona}, Mz {f.id.slice(-4)}</strong>
                       <small>
                         <span className="hr-sel-pips" aria-hidden="true">{Array.from({ length: Math.min(f.reemplazos, 6) }, (_, i) => <i key={i} />)}</span>
                         {f.reemplazos === 1 ? "1 reempl." : `${f.reemplazos} reempl.`}
@@ -127,8 +127,8 @@ export function SeleccionInspector({ titular, estado, reemplazos, revision, tota
         <InspectorCabecera
           marca={codigoDeUmp(titular).replace(/^UMP\s*/, "")}
           estado={estado === "error" ? "error" : estado === "aviso" ? "aviso" : "ok"}
-          sobre={`UMP titular · ${nombreDistrito(titular.distrito)}`}
-          titulo={`Zona ${titular.zona} · Manzana ${String(titular.id_manzana).slice(-4)}`}
+          sobre={`UMP titular, ${nombreDistrito(titular.distrito)}`}
+          titulo={`Zona ${titular.zona}, Manzana ${String(titular.id_manzana).slice(-4)}`}
           derecha={
             <>
               <span className="hr-ins-pasos">
@@ -182,8 +182,8 @@ export function SeleccionInspector({ titular, estado, reemplazos, revision, tota
                 <ol className="hr-sel-reemplazos">
                   {suyos.map((r) => (
                     <li key={r.id_manzana}>
-                      <strong>{codigoDeUmp(r)} · Mz {String(r.id_manzana).slice(-4)}</strong>
-                      <span>Zona {r.zona} · {fmt(r.viviendas)} viv. · NSE {nse(r)}</span>
+                      <strong>{codigoDeUmp(r)}, Mz {String(r.id_manzana).slice(-4)}</strong>
+                      <span>Zona {r.zona}, {fmt(r.viviendas)} viv., NSE {nse(r)}</span>
                     </li>
                   ))}
                 </ol>

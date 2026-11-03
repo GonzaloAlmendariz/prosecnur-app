@@ -36,7 +36,7 @@ export function marcoDeLaVista(meta: TerritorialFrameMeta, territorios: readonly
   if (!ciudad) {
     return {
       rotuloCobertura: "Catálogo",
-      cobertura: `${meta.coverage || "—"}${meta.n_distritos ? ` · ${meta.n_distritos} distritos` : ""}`,
+      cobertura: `${meta.coverage || "—"}${meta.n_distritos ? `, ${meta.n_distritos} distritos` : ""}`,
       ubigeosCartografia: [],
       rotuloCifras: "En el catálogo",
       manzanas: meta.n_manzanas ?? 0,
@@ -50,7 +50,7 @@ export function marcoDeLaVista(meta: TerritorialFrameMeta, territorios: readonly
   const suma = (k: "manzanas" | "viviendas" | "poblacion") => deLaCiudad.reduce((a, t) => a + (t[k] || 0), 0);
   return {
     rotuloCobertura: "Cobertura",
-    cobertura: `${ciudad.nombre} · ${deLaCiudad.length} ${deLaCiudad.length === 1 ? "distrito" : "distritos"}`,
+    cobertura: `${ciudad.nombre}, ${deLaCiudad.length} ${deLaCiudad.length === 1 ? "distrito" : "distritos"}`,
     ubigeosCartografia: unoPorProvincia(ciudad.ubigeos),
     rotuloCifras: "En el marco",
     manzanas: suma("manzanas"),

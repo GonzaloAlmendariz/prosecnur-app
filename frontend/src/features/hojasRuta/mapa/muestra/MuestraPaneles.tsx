@@ -116,7 +116,7 @@ export function MuestraInspector({ config, resultado: r, bloqueado, guardando, h
           <small>N final</small>
           <strong>{fmt(r.nUsado)}</strong>
           <span>
-            {fmt(Math.floor(r.nUsado / ruta))} rutas de {ruta} · {razon}
+            {fmt(Math.floor(r.nUsado / ruta))} rutas de {ruta}, {razon}
           </span>
           <div className="hr-mapa-cifras">
             <div><small>Margen total</small><strong data-aviso={r.margenTotal != null && r.margenTotal > s.margin_total + 1e-9 || undefined}>{pct(r.margenTotal)}</strong></div>
@@ -382,8 +382,8 @@ export function MuestraEstructura({ config, resultado: r, bloqueado }: Estructur
               <s style={{ left: `${(f.nMinimo / tope) * 100}%` }} />
             </div>
             <small>
-              {f.nUsado % ruta ? `${fmt(f.nUsado)} entr.` : `${fmt(f.nUsado / ruta)} rutas`} · mín. {fmt(f.nMinimo)} · <span data-aviso={(f.margen ?? 0) > f.margenObjetivo + 1e-9 || undefined}>{pct(f.margen)}</span>
-              {porDistrito && f.nUsado % ruta ? <span data-error> · no es múltiplo de {ruta}</span> : null}
+              {f.nUsado % ruta ? `${fmt(f.nUsado)} entr.` : `${fmt(f.nUsado / ruta)} rutas`}, mín. {fmt(f.nMinimo)}, <span data-aviso={(f.margen ?? 0) > f.margenObjetivo + 1e-9 || undefined}>{pct(f.margen)}</span>
+              {porDistrito && f.nUsado % ruta ? <span data-error>, no es múltiplo de {ruta}</span> : null}
             </small>
           </li>
         ))}
