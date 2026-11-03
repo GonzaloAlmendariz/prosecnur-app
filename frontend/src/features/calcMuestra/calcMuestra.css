@@ -2736,10 +2736,6 @@
   padding: var(--cmv2-space-4);
 }
 
-.cmv2-output {
-  border-color: color-mix(in srgb, var(--pulso-success-border) 40%, var(--cmv2-border));
-}
-
 .cmv2-panel-head {
   display: flex;
   align-items: flex-start;
@@ -2805,7 +2801,7 @@
 }
 
 .cmv2-form-grid input,
-:is(.cmv2-panel, .cmv2-form-grid) textarea,
+:is(.cmv2-panel, .cmv2-form-grid, .cmg-propuesta-campo) textarea,
 .cmv2-table input,
 .cmv2-table select,
 .cmv2-variable input,
@@ -2823,14 +2819,14 @@
 }
 
 .cmv2-form-grid input::placeholder,
-:is(.cmv2-panel, .cmv2-form-grid) textarea::placeholder,
+:is(.cmv2-panel, .cmv2-form-grid, .cmg-propuesta-campo) textarea::placeholder,
 .cmv2-table input::placeholder {
   color: color-mix(in srgb, var(--pulso-text-soft) 72%, transparent);
   font-weight: var(--pulso-weight-semibold);
 }
 
 .cmv2-form-grid input:focus,
-:is(.cmv2-panel, .cmv2-form-grid) textarea:focus,
+:is(.cmv2-panel, .cmv2-form-grid, .cmg-propuesta-campo) textarea:focus,
 .cmv2-table input:focus,
 .cmv2-table select:focus,
 .cmv2-variable input:focus,
@@ -2853,7 +2849,7 @@
   min-width: 116px;
 }
 
-:is(.cmv2-panel, .cmv2-form-grid) textarea {
+:is(.cmv2-panel, .cmv2-form-grid, .cmg-propuesta-campo) textarea {
   resize: vertical;
   min-height: 86px;
   padding: 8px;
@@ -3477,7 +3473,7 @@
 .cmv2-compact-field select,
 .cmv2-compact-field textarea,
 .cmv2-form-grid input,
-:is(.cmv2-panel, .cmv2-form-grid) textarea,
+:is(.cmv2-panel, .cmv2-form-grid, .cmg-propuesta-campo) textarea,
 .cmv2-table input,
 .cmv2-table select,
 .cmv2-variable input,
@@ -3497,7 +3493,7 @@
 .cmv2-compact-field select:focus,
 .cmv2-compact-field textarea:focus,
 .cmv2-form-grid input:focus,
-:is(.cmv2-panel, .cmv2-form-grid) textarea:focus,
+:is(.cmv2-panel, .cmv2-form-grid, .cmg-propuesta-campo) textarea:focus,
 .cmv2-table input:focus,
 .cmv2-table select:focus,
 .cmv2-variable input:focus,

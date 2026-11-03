@@ -44,7 +44,7 @@
   font-size: var(--pulso-type-body-size);
 }
 
-.cmg-mesa :is(.cmv2-panel, .cmv2-form-grid) textarea {
+.cmg-mesa :is(.cmv2-panel, .cmv2-form-grid, .cmg-propuesta-campo) textarea {
   padding: var(--pulso-space-3);
   font-size: var(--pulso-type-body-size);
   line-height: 1.45;
