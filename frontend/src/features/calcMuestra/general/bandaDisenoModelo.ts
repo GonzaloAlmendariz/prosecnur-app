@@ -335,7 +335,8 @@ export function estadoMesaAcreditacion(args: {
       clave: "sin-sorteo",
       tono: "pendiente",
       etiqueta: "Falta seleccionar",
-      siguiente: `Falta seleccionar ${fmtInt(sinSorteo.length)} de ${plural(sorteables.length, "actor con π", "actores con π")}.`,
+      // El chip ya dice «Falta seleccionar»: la siguiente condición cuenta cuántos (P9).
+      siguiente: `${fmtInt(sinSorteo.length)} de ${plural(sorteables.length, "actor con π todavía sin selección", "actores con π todavía sin selección")}.`,
       accion: irA("seleccion", "Ir a Selección"),
     };
   }
