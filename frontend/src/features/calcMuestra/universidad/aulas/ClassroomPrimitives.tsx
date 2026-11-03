@@ -1,5 +1,8 @@
 import { Database } from "lucide-react";
 
+import { EstadoVacio } from "../../../../components/EstadoVacio";
+import { PulsoButton } from "../../../../components/PulsoButton";
+
 export function Metric({ label, value }: { label: string; value: string | number }) {
   return (
     <div className="cmv2-metric">
@@ -25,17 +28,16 @@ export function ClassroomEmptyState({
   disabled?: boolean;
 }) {
   return (
-    <div className="cmv2-classroom-empty">
-      <span><Icon size={18} /></span>
-      <div>
-        <strong>{title}</strong>
-        <em>{detail}</em>
-        {actionLabel && onAction && (
-          <button type="button" className="cmv2-ghost" onClick={onAction} disabled={disabled}>
-            {actionLabel}
-          </button>
-        )}
-      </div>
-    </div>
+    <EstadoVacio
+      tamano="normal"
+      icono={<Icon size={18} aria-hidden="true" />}
+      titulo={title}
+      descripcion={detail}
+      accion={actionLabel && onAction ? (
+        <PulsoButton variant="secondary" size="sm" onClick={onAction} disabled={disabled}>
+          {actionLabel}
+        </PulsoButton>
+      ) : undefined}
+    />
   );
 }

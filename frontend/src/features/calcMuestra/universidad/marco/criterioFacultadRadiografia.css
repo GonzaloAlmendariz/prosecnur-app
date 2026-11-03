@@ -136,12 +136,6 @@
   display: none;
 }
 
-.cmv2-crc-compact-segment .cmv2-i18b-boxplot-empty {
-  min-height: 30px;
-  padding: 4px 6px;
-  font-size: var(--pulso-type-micro-size);
-}
-
 /*
  * Cinco columnas fijas cabían a 1440 y no a 1024: cada celda quedaba en 34 px y
  * «Matrículas 19.846» desbordaba 3 px, siete veces. `auto-fit` deja que las

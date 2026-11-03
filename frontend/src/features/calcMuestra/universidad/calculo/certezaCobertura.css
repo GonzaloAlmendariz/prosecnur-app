@@ -21,13 +21,6 @@
   flex-wrap: wrap;
 }
 
-.cmv2-certeza-vacio {
-  margin: 0;
-  max-width: 68ch;
-  color: var(--pulso-text-muted);
-  font-size: 11.5px;
-}
-
 /* --- Tabla ---------------------------------------------------------------
    La columna que carga el hallazgo es "Alcanza en": un 62% ahí es la
    diferencia entre un diseño que cierra y uno que no, así que se destaca por

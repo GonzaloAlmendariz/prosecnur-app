@@ -718,11 +718,6 @@
   min-width: 0;
 }
 
-.cmv2-marco-stack .cmv2-plot-card > .cmv2-descriptive-empty-state,
-.cmv2-marco-stack .cmv2-plot-card .cmv2-marco-drill-swap > .cmv2-descriptive-empty-state {
-  align-self: center;
-}
-
 /* --- Barras horizontales: etiquetas 12px con truncado + title, valores
    tabulares a la derecha, pista de referencia más ligera que la serie y
    filas que respiran (sin efecto "peine" con 16 facultades). --- */
@@ -1720,18 +1715,6 @@
 }
 .cmv2-partic-lead strong { color: var(--pulso-text); }
 
-.cmv2-partic-empty {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 14px 16px;
-  border: 1px dashed var(--cmv2-border);
-  border-radius: var(--pulso-radius);
-  color: var(--pulso-text-muted);
-}
-.cmv2-partic-empty svg { flex: none; color: var(--cmv2-accent-fg); }
-.cmv2-partic-empty p { margin: 0; font-size: 12px; line-height: 1.5; }
-
 .cmv2-partic-sections {
   display: grid;
   gap: 10px;
@@ -2577,12 +2560,6 @@
 .cmv2-explorador-card-body {
   display: grid;
   gap: 8px;
-}
-
-.cmv2-explorador-card-vacio {
-  margin: 0;
-  font-size: 11px;
-  color: var(--pulso-text-muted);
 }
 
 /* Tabla de distribución por tipo/nivel dentro de la tarjeta. Layout FIJO: sin

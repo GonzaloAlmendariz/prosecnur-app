@@ -51,8 +51,7 @@
 .cmv2-tsr-provenance dd { margin: 0; font-variant-numeric: tabular-nums; }
 
 .cmv2-tsr-edit-note,
-.cmv2-tsr-legacy-note,
-.cmv2-tsr-empty {
+.cmv2-tsr-legacy-note {
   margin: 0;
   font-size: 11px;
   line-height: 1.45;

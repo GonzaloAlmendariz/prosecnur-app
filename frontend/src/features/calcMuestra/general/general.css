@@ -433,17 +433,6 @@
   font-variant-numeric: tabular-nums;
 }
 
-.cmg-vacio-tabla {
-  margin: 0;
-  padding: var(--cmv2-space-4);
-  border: 1px dashed var(--cmv2-border-strong);
-  border-radius: var(--pulso-radius);
-  color: var(--pulso-text-soft);
-  font-size: 13px;
-  font-weight: var(--pulso-weight-heavy);
-  text-align: center;
-}
-
 .cmg-error {
   display: flex;
   flex-direction: column;

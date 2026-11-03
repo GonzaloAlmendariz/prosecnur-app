@@ -108,22 +108,6 @@
   display: grid;
 }
 
-/* --- Estado vacío ---------------------------------------------------------- */
-.cmv2-crit-empty {
-  display: grid;
-  justify-items: center;
-  gap: 8px;
-  padding: 40px 24px;
-  text-align: center;
-  border: 1px dashed var(--cmv2-border);
-  border-radius: var(--pulso-radius);
-  color: var(--pulso-text-muted);
-}
-
-.cmv2-crit-empty strong { color: var(--pulso-text); font-size: 14px; }
-.cmv2-crit-empty p { margin: 0; max-width: 60ch; font-size: 12px; line-height: 1.55; }
-.cmv2-crit-empty svg { color: var(--cmv2-accent-fg); }
-
 /* --- Secciones (estudiante / aula) ----------------------------------------- */
 .cmv2-crit-section { display: grid; gap: 12px; }
 
@@ -2083,15 +2067,13 @@
 }
 
 .cmv2-facultades-excluidas-lista > li > small,
-.cmv2-facultades-excluidas-pie,
-.cmv2-facultades-excluidas-vacio {
+.cmv2-facultades-excluidas-pie {
   color: var(--pulso-text-muted);
   font-size: 12px;
   white-space: nowrap;
 }
 
-.cmv2-facultades-excluidas-pie,
-.cmv2-facultades-excluidas-vacio {
+.cmv2-facultades-excluidas-pie {
   margin: 10px 0 0;
   white-space: normal;
 }

@@ -1,3 +1,4 @@
+import { BarChart3 } from "lucide-react";
 import type {
   CalcMuestraAulasMethodComparison,
   CalcMuestraAulasMethodSummary,
@@ -7,6 +8,7 @@ import { ComparadorMetodosVisual } from "../../didactica/ComparadorMetodosVisual
 import { fmtPct } from "../../sharedCore";
 import { ClassroomBalanceTable } from "./ClassroomMethodPanels";
 import { classroomMethodLabel, classroomScore } from "./classroomLabels";
+import { EstadoVacio } from "../../../../components/EstadoVacio";
 
 export function ClassroomMethodComparator({
   ready,
@@ -58,16 +60,12 @@ export function ClassroomMethodComparator({
         // que se ve, así que su vacío es la primera frase de la pestaña para
         // quien llega sin haber comparado. Y desde f2623619 comparar dejó de
         // ser requisito para sortear, así que el vacío también lo dice.
-        <div className="cmv2-classroom-empty is-compact">
-          <div>
-            <strong>Todavía no has comparado los métodos</strong>
-            <em>
-              Pulsa <b>Comparar los cuatro métodos</b> arriba para ver qué da cada uno con este
-              marco. No es obligatorio: también puedes sortear directamente con el método que
-              tengas configurado.
-            </em>
-          </div>
-        </div>
+        <EstadoVacio
+          tamano="compacto"
+          icono={<BarChart3 size={16} aria-hidden="true" />}
+          titulo="Todavía no has comparado los métodos"
+          descripcion={<>Pulsa <b>Comparar los cuatro métodos</b> arriba para ver qué da cada uno con este marco. No es obligatorio: también puedes sortear directamente con el método que tengas configurado.</>}
+        />
       ) : (
         <div className="cmv2-method-comparator-body">
           <div

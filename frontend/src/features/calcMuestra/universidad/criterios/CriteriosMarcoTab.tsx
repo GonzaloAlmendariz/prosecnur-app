@@ -67,6 +67,7 @@ import {
 } from "../marco/CriteriosRadiografiaConsola";
 import { avisoEvidenciaCriterios } from "./evidenciaCriteriosTexto";
 import "./criterios.css";
+import { EstadoVacio } from "../../../../components/EstadoVacio";
 
 /** Slug estable para claves de facultad (sin tildes, minúsculas, guiones). */
 function slugFacultad(nombre: string): string {
@@ -479,15 +480,12 @@ export function CriteriosMarcoTab({
       <SaludCriteriosCard salud={saludCriterios} />
 
       {!ready ? (
-        <div className="cmv2-crit-empty">
-          <SlidersHorizontal size={22} aria-hidden="true" />
-          <strong>Aún no hay catálogo de categorías.</strong>
-          <p>
-            La suite enumera las categorías reales de tu base (dirigida por el mapeo de variables) y su conteo por
-            curso-horario. Construye el marco desde tus fuentes para poblarla; luego marca qué categorías entran, con
-            excepciones por facultad y su capa.
-          </p>
-        </div>
+        <EstadoVacio
+          tamano="normal"
+          icono={<SlidersHorizontal size={16} aria-hidden="true" />}
+          titulo="Aún no hay catálogo de categorías"
+          descripcion="Construye el marco desde tus fuentes: aquí aparecerán las categorías reales de tu base, con su conteo por curso-horario, para marcar cuáles entran."
+        />
       ) : (
         <>
           {/* S1: cuando el frame no publica radiografía, la recuperación sigue

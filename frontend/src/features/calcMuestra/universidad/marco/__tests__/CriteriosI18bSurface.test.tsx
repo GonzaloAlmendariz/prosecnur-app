@@ -449,7 +449,8 @@ describe("superficie I18b de criterios", () => {
       />,
     );
     expect(html).toContain("Sin distribución percentilar publicable");
-    expect(html).not.toContain('<svg');
+    // El vacío del kit trae su ícono: lo que no debe aparecer es la caja dibujada.
+    expect(html).not.toContain("cmv2-i18b-boxplot-axis");
   });
 
   it("muestra desde el gate enfocado todos los pasos downstream en orden R", () => {

@@ -1,3 +1,4 @@
+import { CircleHelp } from "lucide-react";
 import type {
   CalcMuestraAulasCriterioRadiografiaV2Entry,
   CalcMuestraAulasCriterioRadiografiaV2Row,
@@ -58,6 +59,7 @@ import {
 import { CriteriosEmbudoVivo } from "./CriteriosEmbudoVivo";
 import "./criteriosRadiografia.css";
 import { rotuloSegmento } from "./segmentoRotulo";
+import { EstadoVacio } from "../../../../components/EstadoVacio";
 
 /**
  * F108 · Rótulo vigente por `segment_key`; el `segment_label` del payload sólo
@@ -464,13 +466,15 @@ function EmptyDistribution({ card }: { card: CriterioRadiografiaCard }) {
   const meta = CRITERIO_RADIOGRAFIA_STATE_COPY[card.state];
   return (
     <div
-      className="cmv2-crc-empty"
       data-qa-geometry-group="calc-muestra/criterios-radiografia-facultades"
       data-qa-geometry-contract="intrinsic"
     >
-      <div data-qa-geometry-member data-qa-geometry-capacity="owned">
-        <strong>{meta.label}</strong>
-        <p>{card.issue ?? meta.detail}</p>
+      <div data-qa-geometry-member>
+        <EstadoVacio
+          icono={<CircleHelp size={16} aria-hidden="true" />}
+          titulo={meta.label}
+          descripcion={card.issue ?? meta.detail}
+        />
       </div>
     </div>
   );

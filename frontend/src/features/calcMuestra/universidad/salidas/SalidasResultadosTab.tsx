@@ -5,6 +5,7 @@
  * (universidad / facultad) con su toggle "incluir en reporte" y un solo badge
  * de procedencia por tabla.
  */
+import { Calculator } from "lucide-react";
 import type {
   CalcMuestraComponente,
   CalcMuestraWorkspace,
@@ -22,6 +23,7 @@ import {
 } from "../shared/study";
 import "../../didactica/didactica.css";
 import "./salidas.css";
+import { EstadoVacio } from "../../../../components/EstadoVacio";
 
 export function salidasChartComponent(
   componentes: readonly CalcMuestraComponente[],
@@ -94,7 +96,11 @@ export function SalidasResultadosTab({
                   />
                 </div>
                 {rows.length === 0 ? (
-                  <div className="cmv2-result-empty">Pendiente de cálculo</div>
+                  <EstadoVacio
+                    icono={<Calculator size={16} aria-hidden="true" />}
+                    titulo="Pendiente de cálculo"
+                    descripcion="Las cuotas de este componente aparecen al calcular la propuesta."
+                  />
                 ) : (
                   <div className="cmv2-table-wrap">
                     <table className="cmv2-table cmv2-table--university">

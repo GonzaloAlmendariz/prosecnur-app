@@ -19,6 +19,7 @@ import {
   classroomOperationalCode,
   classroomPlanLabel,
 } from "./classroomLabels";
+import { EstadoVacio } from "../../../../components/EstadoVacio";
 
 function classroomExpectedSexLabel(row: Record<string, unknown>, workspace?: CalcMuestraWorkspace) {
   const parts = [
@@ -125,13 +126,12 @@ export function ClassroomSelectionTable({
   const conDescuento = hasDiscountColumns(tableRows);
   if (!tableRows.length) {
     return (
-      <div className="cmv2-classroom-empty is-compact">
-        <span><Table2 size={16} /></span>
-        <div>
-          <strong>Sin filas para mostrar</strong>
-          <em>Ajusta el filtro o genera una selección.</em>
-        </div>
-      </div>
+      <EstadoVacio
+        tamano="compacto"
+        icono={<Table2 size={16} aria-hidden="true" />}
+        titulo="Sin filas para mostrar"
+        descripcion="Ajusta el filtro o genera una selección."
+      />
     );
   }
   return (

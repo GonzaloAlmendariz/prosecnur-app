@@ -1,3 +1,4 @@
+import { History } from "lucide-react";
 import type { ReactNode } from "react";
 import type {
   CalcMuestraReferenciaAsistencia,
@@ -7,6 +8,7 @@ import type {
 import { fmtInt, fmtPct } from "../../sharedCore";
 import "./referenciaAsistencia.css";
 import { rendimientoAgenda } from "./rendimientoAgendaModel";
+import { EstadoVacio } from "../../../../components/EstadoVacio";
 
 function rateLabel(value: number | null) {
   return value === null ? "S/D" : fmtPct(value);
@@ -116,12 +118,13 @@ export function ReferenciaAsistenciaCard({
       ) : null}
 
       {!referencia ? (
-        <div className="cmv2-ref-asist-empty" role="status" data-qa-geometry-member>
-          <strong>Sin referencia histórica de asistencia</strong>
-          <span>
-            Sube una base de control para publicar tasas agregadas con su cobertura y
-            verificación de identidad.
-          </span>
+        <div role="status" data-qa-geometry-member>
+          <EstadoVacio
+            tamano="compacto"
+            icono={<History size={16} aria-hidden="true" />}
+            titulo="Sin referencia histórica de asistencia"
+            descripcion="Sube una base de control para publicar tasas agregadas con su cobertura y verificación de identidad."
+          />
         </div>
       ) : (
         <>

@@ -1,3 +1,4 @@
+import { CircleHelp } from "lucide-react";
 import type {
   CalcMuestraAulasCriterioSignalDistribution,
   CalcMuestraAulasCriteriosRadiografia,
@@ -20,6 +21,7 @@ import { varianteDeCriterio } from "./varianteCriterio";
 import type { AporteCategoria } from "../criterios/controles";
 import type { CriterioRadiografiaCard } from "./criteriosRadiografiaModel";
 import "./criterioFacultadRadiografia.css";
+import { EstadoVacio } from "../../../../components/EstadoVacio";
 
 /** F108 · El rótulo vigente por llave; el del payload sólo como respaldo. */
 const rotulo = (row: { segment_key?: string | null; segment_label?: string | null }) =>
@@ -193,8 +195,12 @@ export function CriterioFacultadRadiografia({
 }) {
   if (!card || !evidence) {
     return (
-      <div className="cmv2-crc-inline-empty" role="status">
-        El motor no publicó una radiografía acreditable para este criterio en {facultyLabel}.
+      <div role="status">
+        <EstadoVacio
+          icono={<CircleHelp size={16} aria-hidden="true" />}
+          titulo="Sin radiografía para esta facultad"
+          descripcion={`El motor no publicó una radiografía acreditable para este criterio en ${facultyLabel}.`}
+        />
       </div>
     );
   }

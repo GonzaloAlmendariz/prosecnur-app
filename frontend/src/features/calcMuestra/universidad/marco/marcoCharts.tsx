@@ -36,6 +36,7 @@ import {
   workspaceCategoryLabel,
   type CategoryLabeler,
 } from "../shared/categorias";
+import { EstadoVacio } from "../../../../components/EstadoVacio";
 
 /* ============================================================================
    Tipos y constantes
@@ -802,20 +803,20 @@ export function descriptiveMissingState(
 }
 
 export function DescriptiveEmptyNotice({ state, compact = false }: { state: DescriptiveEmptyState; compact?: boolean }) {
+  // El vacío es ícono, título y UNA línea (P5): el porqué y el qué sigue van
+  // juntos ahí. Los chips repetían la fuente y la variable que ya dice el
+  // título; de ellos sólo se conserva si el faltante bloquea o no.
+  const linea = [state.detail, state.next, state.tone === "optional" ? "No bloquea el cálculo." : null]
+    .filter(Boolean)
+    .join(" ");
   return (
-    <div className={`cmv2-descriptive-empty-state is-${state.tone ?? "waiting"} ${compact ? "is-compact" : ""}`}>
-      <span aria-hidden="true"><CircleHelp size={16} /></span>
-      <div>
-        <strong>{state.title}</strong>
-        <p>{state.detail}</p>
-        {state.next && <small>{state.next}</small>}
-        {state.chips?.length ? (
-          <div className="cmv2-descriptive-empty-tags" aria-label="Motivos del estado">
-            {state.chips.map((chip) => <em key={chip}>{chip}</em>)}
-          </div>
-        ) : null}
-      </div>
-    </div>
+    <EstadoVacio
+      tamano={compact ? "compacto" : "normal"}
+      className={`is-${state.tone ?? "waiting"}`}
+      icono={<CircleHelp size={16} aria-hidden="true" />}
+      titulo={state.title}
+      descripcion={linea}
+    />
   );
 }
 

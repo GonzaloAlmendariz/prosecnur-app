@@ -45,26 +45,6 @@
   background: var(--pulso-info-bg);
 }
 
-.cmv2-ref-asist-empty {
-  display: grid;
-  gap: 4px;
-  padding: 13px;
-  border: 1px dashed var(--pulso-border);
-  border-radius: var(--pulso-radius);
-  background: var(--pulso-surface-2);
-}
-
-.cmv2-ref-asist-empty strong {
-  color: var(--pulso-text);
-  font-size: 12px;
-}
-
-.cmv2-ref-asist-empty span {
-  color: var(--pulso-text-muted);
-  font-size: 11px;
-  line-height: 1.45;
-}
-
 .cmv2-ref-asist-provenance {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));

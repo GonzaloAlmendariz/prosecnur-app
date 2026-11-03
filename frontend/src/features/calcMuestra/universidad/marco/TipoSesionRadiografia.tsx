@@ -4,6 +4,7 @@
  * filas. Frames anteriores conservan la tabla/boxplot legacy, rotulada como tal
  * y sin acreditar cuantiles, contraste total ni deltas que no existen.
  */
+import { BarChart3 } from "lucide-react";
 import type {
   CalcMuestraAulasCriterioRadiografiaAccion,
   CalcMuestraAulasCriteriosRadiografia,
@@ -19,6 +20,7 @@ import {
 } from "./exploradorModel";
 import { BoxplotElegibles } from "./BoxplotElegibles";
 import "./tipoSesionRadiografia.css";
+import { EstadoVacio } from "../../../../components/EstadoVacio";
 
 export type TipoSesionRadiografiaContexto = "ejecutado" | "editable";
 
@@ -49,9 +51,13 @@ function LegacyTipoSesion({ facultad }: { facultad: CalcMuestraAulasExploracionF
   );
   if (!tipos.length) {
     return (
-      <p className="cmv2-explorador-card-vacio" data-qa-geometry-member>
-        El resumen legacy no trae distribución por tipo de sesión para esta facultad.
-      </p>
+      <div data-qa-geometry-member>
+        <EstadoVacio
+          icono={<BarChart3 size={16} aria-hidden="true" />}
+          titulo="Sin distribución por tipo de sesión"
+          descripcion="El resumen de esta facultad no la trae; reconstruye el marco para publicarla."
+        />
+      </div>
     );
   }
 
@@ -298,9 +304,13 @@ export function TipoSesionRadiografia({
               ))}
             </div>
           ) : (
-            <p className="cmv2-tsr-empty" data-qa-geometry-member>
-              El contrato ejecutado no trae categorías de tipo de sesión para esta facultad.
-            </p>
+            <div data-qa-geometry-member>
+              <EstadoVacio
+                icono={<BarChart3 size={16} aria-hidden="true" />}
+                titulo="Sin categorías de tipo de sesión"
+                descripcion="El marco ejecutado no las trae para esta facultad."
+              />
+            </div>
           )}
         </>
       )}

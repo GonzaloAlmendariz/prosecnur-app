@@ -6,6 +6,7 @@
  * promedio? La respuesta viene de R (Monte Carlo del sorteo real); acá se
  * presenta y se explica.
  */
+import { ShieldCheck } from "lucide-react";
 import { useState } from "react";
 import { Info, Shuffle } from "../../../../vendor/lucide-react";
 import type { CalcMuestraAulasEstrato } from "../../../../api/client";
@@ -21,6 +22,7 @@ import {
   type CertezaVista,
 } from "./certezaCoberturaModel";
 import "./certezaCobertura.css";
+import { EstadoVacio } from "../../../../components/EstadoVacio";
 
 const PCT = new Intl.NumberFormat("es-PE", {
   style: "percent",
@@ -282,11 +284,15 @@ export function CertezaCoberturaPanel({
       )}
 
       {!vista ? (
-        <p className="cmv2-certeza-vacio" role="status">
-          {estratos.length === 0
-            ? "Sin facultades con cuota publicada: recalcula la propuesta para poder medir."
-            : `Sin medir todavía. La simulación responde cuántas aulas hacen falta para que la cuota se alcance en al menos ${PCT.format(nivel)} de los sorteos posibles.`}
-        </p>
+        <div role="status">
+          <EstadoVacio
+            icono={<ShieldCheck size={16} aria-hidden="true" />}
+            titulo={estratos.length === 0 ? "Sin facultades con cuota publicada" : "Sin medir todavía"}
+            descripcion={estratos.length === 0
+              ? "Recalcula la propuesta para poder medir."
+              : `La simulación responde cuántas aulas hacen falta para que la cuota se alcance en al menos ${PCT.format(nivel)} de los sorteos posibles.`}
+          />
+        </div>
       ) : (
         <>
           {!vista.vigente && (

@@ -272,7 +272,6 @@
 .cmv2-classroom-method-card,
 .cmv2-classroom-quality-card,
 .cmv2-classroom-reco-panel,
-.cmv2-classroom-empty,
 .cmv2-classroom-overlap-graph,
 .cmv2-classroom-formula,
 .cmv2-classroom-source-grid div,
@@ -371,7 +370,6 @@
 .cmv2-classroom-method-card strong,
 .cmv2-classroom-quality-card strong,
 .cmv2-classroom-reco-panel strong,
-.cmv2-classroom-empty strong,
 .cmv2-classroom-risk-list strong {
   display: block;
   margin-top: 4px;
@@ -386,7 +384,6 @@
 .cmv2-classroom-quality-card span,
 .cmv2-classroom-reco-panel span,
 .cmv2-classroom-reco-panel em,
-.cmv2-classroom-empty em,
 .cmv2-classroom-formula span,
 .cmv2-classroom-source-grid span,
 .cmv2-classroom-risk-list span,
@@ -1114,43 +1111,6 @@
   line-height: 1.3;
 }
 
-.cmv2-classroom-empty {
-  display: grid;
-  grid-template-columns: 34px minmax(0, 1fr);
-  align-items: start;
-  /* `align-items: start` alinea el ícono con la PRIMERA LÍNEA de su fila;
-     `align-content` centra el BLOQUE de filas en la altura que `min-height`
-     reserva. Sin lo segundo, `normal` equivale a `stretch`: las filas auto
-     crecen y el sobrante se cuela como gaps inflados entre ícono y texto.
-     Medido: no cambia el sobrante inferior que audita el gate —eran 15,78 px
-     antes y después—, reparte el mismo espacio de forma legible. El sobrante
-     lo cierra que el vacío tenga contenido, no que el marco se estire. */
-  align-content: center;
-  gap: 10px;
-  min-height: 150px;
-  padding: 18px;
-}
-
-.cmv2-classroom-empty.is-compact {
-  min-height: 92px;
-}
-
-.cmv2-classroom-empty > span {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 34px;
-  height: 34px;
-  border: 1px solid var(--cmv2-accent-border);
-  border-radius: var(--pulso-radius);
-  background: var(--cmv2-accent-soft);
-  color: var(--cmv2-accent-fg);
-}
-
-.cmv2-classroom-empty .cmv2-ghost {
-  margin-top: 10px;
-}
-
 .cmv2-classroom-formula-grid,
 .cmv2-classroom-source-grid {
   display: grid;
@@ -1177,13 +1137,4 @@
   .cmv2-classroom-method-card:hover:not(:disabled):not(.is-active) {
     transform: none;
   }
-}
-
-/* El slot de 34x34 del vacío es para su icono. Cualquier otro hijo directo
-   heredaba ese ancho y desbordaba: medido, un `em` de 86 px dentro de una caja
-   de 34. Ocupa la fila entera y puede envolver. */
-.cmv2-classroom-empty > div {
-  grid-column: 1 / -1;
-  min-width: 0;
-  overflow-wrap: anywhere;
 }

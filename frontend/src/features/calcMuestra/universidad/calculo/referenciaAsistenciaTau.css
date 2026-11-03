@@ -103,15 +103,6 @@
   line-height: 1.4;
 }
 
-.cmv2-ref-tau-empty {
-  min-height: 46px;
-  margin: 0;
-  align-content: center;
-  color: var(--pulso-text-muted);
-  font-size: 11px;
-  line-height: 1.5;
-}
-
 .cmv2-ref-tau-alert {
   margin: 0;
   padding: 7px 9px;

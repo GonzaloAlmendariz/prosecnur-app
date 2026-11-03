@@ -1657,8 +1657,7 @@
   order: -2;
 }
 
-.cmv2-aulas-audit-main > .cmv2-subhead:first-child,
-.cmv2-aulas-audit-main > .cmv2-classroom-empty:first-of-type {
+.cmv2-aulas-audit-main > .cmv2-subhead:first-child {
   order: -1;
 }
 

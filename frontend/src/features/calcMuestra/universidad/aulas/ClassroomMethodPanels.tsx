@@ -17,6 +17,7 @@ import {
   classroomScore,
   selectorFieldLabelTitulo,
 } from "./classroomLabels";
+import { EstadoVacio } from "../../../../components/EstadoVacio";
 
 /** Etiquetas en español para los grupos de métricas que reporta el motor R. */
 const METRIC_GROUP_LABELS: Record<string, string> = {
@@ -142,13 +143,12 @@ export function ProfileBalanceChart({ rows }: { rows?: CalcMuestraAulasProfileDi
     .slice(0, 12);
   if (!visible.length) {
     return (
-      <div className="cmv2-classroom-empty is-compact">
-        <span><BarChart3 size={16} /></span>
-        <div>
-          <strong>Sin perfil calculado</strong>
-          <em>Construye el marco y corre comparación o selección para ver el ajuste frente al marco.</em>
-        </div>
-      </div>
+      <EstadoVacio
+        tamano="compacto"
+        icono={<BarChart3 size={16} aria-hidden="true" />}
+        titulo="Sin perfil calculado"
+        descripcion="Construye el marco y corre comparación o selección para ver el ajuste frente al marco."
+      />
     );
   }
   return (
@@ -305,16 +305,12 @@ export function SimulationSummaryPanel({ rows }: { rows?: CalcMuestraAulasSimula
     && summaryRows.every((row) => safeNumber(row.executed_runs, 0) <= 0);
   if (!summaryRows.length || ningunaCorrida) {
     return (
-      <div className="cmv2-classroom-empty is-compact">
-        <span><BarChart3 size={16} /></span>
-        <div>
-          <strong>Todavía no se ha repetido el sorteo</strong>
-          <em>
-            Cada método se sortea muchas veces con semillas distintas para ver cuánto cambia
-            el resultado de una vez a otra. Pulsa <b>Medir estabilidad</b> arriba para correrlo.
-          </em>
-        </div>
-      </div>
+      <EstadoVacio
+        tamano="compacto"
+        icono={<BarChart3 size={16} aria-hidden="true" />}
+        titulo="Todavía no se ha repetido el sorteo"
+        descripcion={<>Cada método se sortea muchas veces con semillas distintas para ver cuánto cambia el resultado de una vez a otra. Pulsa <b>Medir estabilidad</b> arriba para correrlo.</>}
+      />
     );
   }
   return (
@@ -437,13 +433,12 @@ export function ClassroomBalanceTable({ rows, methodId }: { rows?: Array<Record<
   const dimensiones = new Set(delMetodo.map((row) => classroomRowText(row, ["variable"])));
   if (!visible.length) {
     return (
-      <div className="cmv2-classroom-empty is-compact">
-        <span><BarChart3 size={16} /></span>
-        <div>
-          <strong>Sin diagnóstico de balance visible</strong>
-          <em>El comparador no devolvió filas de balance para este método.</em>
-        </div>
-      </div>
+      <EstadoVacio
+        tamano="compacto"
+        icono={<BarChart3 size={16} aria-hidden="true" />}
+        titulo="Sin diagnóstico de balance visible"
+        descripcion="El comparador no devolvió filas de balance para este método."
+      />
     );
   }
   return (

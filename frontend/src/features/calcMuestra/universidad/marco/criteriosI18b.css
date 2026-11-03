@@ -272,21 +272,6 @@
   font-variant-numeric: tabular-nums;
 }
 
-.cmv2-i18b-boxplot-empty,
-.cmv2-i18b-anchor-empty,
-.cmv2-i18b-cascade-empty {
-  display: grid;
-  gap: 3px;
-  min-height: 54px;
-  align-content: center;
-  padding: 9px 10px;
-  border: 1px dashed var(--cmv2-border);
-  border-radius: var(--pulso-radius);
-  background: var(--pulso-surface-2);
-  color: var(--pulso-text-muted);
-  font-size: 11px;
-}
-
 .cmv2-i18b-anchors,
 .cmv2-i18b-cascade-steps {
   display: grid;

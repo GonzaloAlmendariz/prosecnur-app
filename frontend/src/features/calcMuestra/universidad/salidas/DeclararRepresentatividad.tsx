@@ -7,6 +7,7 @@ import {
   type VistaPreviaDeRepresentatividad,
 } from "../../../../api/calcMuestraRepresentatividad";
 import { construirDeclaracion } from "./declaracionRepresentatividadModelo";
+import { LoadingBlock } from "../../../../components/States";
 
 /**
  * Panel «Representatividad del estudio» en Salida › Pase a Monitoreo (ADR 0121;
@@ -67,7 +68,7 @@ export function DeclararRepresentatividad({ inicial }: {
         <span className="cmv2-pill-soft">viaja con el plan</span>
       </div>
       {cargando ? (
-        <p className="cmv2-sal-nota">Leyendo el escenario…</p>
+        <LoadingBlock variant="inline" label="Leyendo el escenario…" />
       ) : modelo.estado === "sin-diseno" ? (
         <p className="cmv2-sal-nota" data-qa-geometry-empty="legitimo">
           El escenario todavía no fija metas: cuando las tenga, aquí se guardan su universo y sus variables de cuota.

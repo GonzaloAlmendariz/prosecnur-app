@@ -386,26 +386,6 @@
   flex: 1 0 100%;
 }
 
-.cmv2-crc-empty > div {
-  display: grid;
-  gap: 4px;
-  padding: 14px;
-  border: 1px dashed var(--cmv2-border);
-  border-radius: var(--pulso-radius);
-  background: var(--pulso-surface-2);
-}
-
-.cmv2-crc-empty strong {
-  color: var(--pulso-text);
-  font-size: 12px;
-}
-
-.cmv2-crc-empty p {
-  margin: 0;
-  color: var(--pulso-text-muted);
-  font-size: 11px;
-}
-
 .cmv2-crc-impact-list,
 .cmv2-crc-actions {
   display: grid;

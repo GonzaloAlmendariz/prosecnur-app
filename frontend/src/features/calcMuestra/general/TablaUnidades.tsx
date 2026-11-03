@@ -1,4 +1,4 @@
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Table2 } from "lucide-react";
 
 import type { CalcMuestraGeneralUnidad } from "../../../api/calcMuestraGeneral";
 import { GlidingRadioGroup } from "../../../components/GlidingRadioGroup";
@@ -13,6 +13,7 @@ import {
 } from "./modelo";
 import { useDesbordaHorizontal } from "./useDesbordaHorizontal";
 import "./general.css";
+import { EstadoVacio } from "../../../components/EstadoVacio";
 
 const FILTROS: Array<{ id: FiltroUnidades; label: string }> = [
   { id: "todas", label: "Todas" },
@@ -68,9 +69,10 @@ export function TablaUnidades({
       </div>
 
       {filtradas.length === 0 ? (
-        <p className="cmg-vacio-tabla">
-          {filtro === "reserva" ? "Esta selección no incluyó reemplazos." : "El listado está vacío."}
-        </p>
+        <EstadoVacio
+          icono={<Table2 size={16} aria-hidden="true" />}
+          titulo={filtro === "reserva" ? "Esta selección no incluyó reemplazos" : "El listado está vacío"}
+        />
       ) : (
         <>
           <div

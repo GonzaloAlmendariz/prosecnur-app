@@ -38,7 +38,7 @@ import {
   type ExploradorBasePerfil,
   type ExploradorBaseResumen,
 } from "../../../../api/calcMuestraExploradorBase";
-import { EmptyState } from "../../../../components/States";
+import { EmptyState, LoadingBlock } from "../../../../components/States";
 import { fmtDec, fmtInt, fmtPct, rowsFrom } from "../../sharedCore";
 import { distribucionDe, inventarioVariables } from "./exploradorBasesModel";
 import { nombreDeColumna } from "./exploradorBasesNombres";
@@ -508,27 +508,25 @@ export function ExploradorBasesTab({
             hint={error}
           />
         </div>
+      ) : cargando && !columnas.length ? (
+        <LoadingBlock label="Leyendo la base… La primera lectura de una base grande tarda unos segundos." />
       ) : !columnas.length ? (
         <div className="cmv2-expb-vacio-marco">
           {/* Un cruce puede quedarse sin filas, y decir «esta base no trae
               columnas» sería culpar al archivo de lo que hizo el filtro. */}
           <EmptyState
             icon={<Compass size={22} aria-hidden="true" />}
-            title={cargando
-              ? "Leyendo la base…"
-              : filtros.length && !filas
-                ? "Ningún registro cumple estos filtros"
-                : "Esta base no trae columnas legibles"}
-            hint={cargando
-              ? "La primera lectura de una base grande tarda unos segundos; después los filtros son inmediatos."
-              : filtros.length && !filas
-                ? `De ${fmtInt(filasBase)} filas, ninguna cruza todas las condiciones activas.`
-                : "Revisa la hoja declarada en Datos › Fuentes."}
-            cta={!cargando && filtros.length && !filas ? (
+            title={filtros.length && !filas
+              ? "Ningún registro cumple estos filtros"
+              : "Esta base no trae columnas legibles"}
+            hint={filtros.length && !filas
+              ? `De ${fmtInt(filasBase)} filas, ninguna cruza todas las condiciones activas.`
+              : "Revisa la hoja declarada en Datos › Fuentes."}
+            cta={filtros.length && !filas ? (
               <button type="button" className="cmv2-expb-reconstruir" onClick={() => setFiltros([])}>
                 Quitar los filtros
               </button>
-            ) : !cargando && fuente?.tipo === "marco" && onReconstruir && !marcoConstruido ? (
+            ) : fuente?.tipo === "marco" && onReconstruir && !marcoConstruido ? (
               <button
                 type="button"
                 className="cmv2-expb-reconstruir"

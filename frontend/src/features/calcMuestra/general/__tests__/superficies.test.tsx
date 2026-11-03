@@ -136,7 +136,7 @@ describe("Ficha y listado", () => {
     const html = renderToStaticMarkup(
       <TablaUnidades unidades={soloTitulares} filtro="reserva" pagina={0} onFiltro={() => {}} onPagina={() => {}} />,
     );
-    expect(html).toContain("Esta selección no incluyó reemplazos.");
+    expect(html).toContain("Esta selección no incluyó reemplazos");
   });
 });
 
