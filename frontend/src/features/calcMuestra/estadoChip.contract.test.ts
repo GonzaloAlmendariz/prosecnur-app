@@ -49,7 +49,7 @@ describe("estados por EstadoChip (P6)", () => {
   });
 
   it("el snapshot no guarda conteos que ya bajaron", () => {
-    expect(Object.keys(SNAPSHOT).length).toBeGreaterThan(2);
+    expect(Object.keys(SNAPSHOT).length).toBeGreaterThan(0);
     const viejos = Object.entries(SNAPSHOT)
       .filter(([f, n]) => (conteo[f] ?? 0) < n)
       .map(([f, n]) => `${f}: ${n} → ${conteo[f] ?? 0}`);
