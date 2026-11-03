@@ -396,8 +396,13 @@
     border-top: 1px solid var(--pulso-surface-3);
   }
 
+  /* En una columna el cuerpo mide lo que tiene: con `flex: 1` la rejilla
+     repartía el sobrante entre filas y, con la Semana vacía midiendo su nota,
+     dejaba 44 px muertos entre las listas y la Semana (C2). */
   .aulas-ag-cuerpo {
+    flex: 0 0 auto;
     grid-template-columns: minmax(0, 1fr);
+    align-content: start;
   }
 
   .aulas-ag-izquierda {

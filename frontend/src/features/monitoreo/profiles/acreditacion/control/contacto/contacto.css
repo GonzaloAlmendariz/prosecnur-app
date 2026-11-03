@@ -112,7 +112,9 @@
   height: 100%;
   padding: var(--pulso-space-3);
   border-radius: 10px;
-  font-size: var(--pulso-type-body-size);
+  /* El rótulo bajo la cifra es su base: caption, no body (con body,
+     «Conciliadas» se partía en la celda de ~84 px). */
+  font-size: var(--pulso-type-caption-size);
 }
 
 .acr-ct-matriz-celda b {

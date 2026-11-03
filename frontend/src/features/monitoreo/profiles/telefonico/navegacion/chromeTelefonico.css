@@ -110,8 +110,9 @@
   color: var(--pulso-text-faint);
   font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-semibold);
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  /* En caja normal: en versalitas, a 10 px (el piso) «CORTE» no cabía en los
+     40 px de la cápsula y se partía «Cort/e» (P1 de la pasada de formato). */
+  white-space: nowrap;
 }
 
 .is-telefonico-profile .pulso-context-tab-rail-meta strong,
