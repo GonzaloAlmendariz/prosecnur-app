@@ -23,6 +23,7 @@ import {
 } from "./certezaCoberturaModel";
 import "./certezaCobertura.css";
 import { EstadoVacio } from "../../../../components/EstadoVacio";
+import { Panel } from "../../../../components/Panel";
 
 const PCT = new Intl.NumberFormat("es-PE", {
   style: "percent",
@@ -225,30 +226,17 @@ export function CertezaCoberturaPanel({
   const nivelMostrado = vista ? vista.nivelPct : nivel;
 
   return (
-    <section
-      className="cmv2-panel cmv2-certeza-panel"
-      aria-label="Certeza de cobertura"
+    <Panel
+      className="cmv2-certeza-panel"
+      aria-labelledby="cmv2-certeza-titulo"
       data-qa-geometry-group="calc-muestra/certeza-cobertura"
       data-qa-geometry-contract="intrinsic"
-    >
-      <div className="cmv2-panel-head" data-qa-geometry-member>
-        <div>
-          {/* Gonzalo, 2026-08-21: «tampoco entiendo la finalidad de "alcanza".
-              ¿A qué te refieres con alcanza?». El título preguntaba sin decir
-              qué se pregunta: la respuesta estaba en el párrafo de abajo y el
-              rótulo, solo, no significaba nada. */}
-          <strong>¿Esas aulas alcanzan la cuota de cada facultad?</strong>
-          {/* La explicación es el contenido, no una nota al pie: sin ella el
-              usuario no tiene forma de saber por qué dos números distintos
-              responden la misma pregunta. */}
-          <p className="cmv2-certeza-explicacion">
-            La tabla de arriba divide la cuota entre el tamaño típico de un aula. Esa cuenta apunta
-            al centro: dice cuántas aulas harían falta si cada una rindiera lo normal. Pero el
-            sorteo se hace una sola vez, las aulas no son todas iguales y los estudiantes se repiten
-            entre ellas. Acá se simula el sorteo real muchas veces y se cuenta en cuántas se llegó
-            a la cuota.
-          </p>
-        </div>
+      // Gonzalo, 2026-08-21: «tampoco entiendo la finalidad de "alcanza".
+      // ¿A qué te refieres con alcanza?». El título preguntaba sin decir
+      // qué se pregunta: la respuesta estaba en el párrafo de abajo y el
+      // rótulo, solo, no significaba nada.
+      title={<span id="cmv2-certeza-titulo">¿Esas aulas alcanzan la cuota de cada facultad?</span>}
+      actions={(
         <div className="cmv2-certeza-acciones">
           <div className="cmv2-segment" role="radiogroup" aria-label="Nivel de certeza exigido">
             {NIVELES.map((valor) => (
@@ -274,7 +262,18 @@ export function CertezaCoberturaPanel({
             {busy ? "Simulando…" : vista ? "Volver a medir" : "Medir certeza"}
           </button>
         </div>
-      </div>
+      )}
+    >
+      {/* La explicación es el contenido, no una nota al pie: sin ella el
+          usuario no tiene forma de saber por qué dos números distintos
+          responden la misma pregunta. */}
+      <p className="cmv2-certeza-explicacion" data-qa-geometry-member>
+        La tabla de arriba divide la cuota entre el tamaño típico de un aula. Esa cuenta apunta
+        al centro: dice cuántas aulas harían falta si cada una rindiera lo normal. Pero el
+        sorteo se hace una sola vez, las aulas no son todas iguales y los estudiantes se repiten
+        entre ellas. Acá se simula el sorteo real muchas veces y se cuenta en cuántas se llegó
+        a la cuota.
+      </p>
 
       {marcoDesactualizado && (
         <AvisoModulo tone="warn" role="status">
@@ -448,6 +447,6 @@ export function CertezaCoberturaPanel({
           </footer>
         </>
       )}
-    </section>
+    </Panel>
   );
 }
