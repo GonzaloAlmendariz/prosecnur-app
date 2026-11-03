@@ -42,6 +42,7 @@ import { conteoBarrasMultiapiladas, cupoBarras, MOTIVO_TOPE, type ConteoBarras }
 import { ConteoBarrasMultiapiladas } from "./multiapiladas/ConteoBarras";
 import "./multiapiladas/multiapiladas.css";
 import { LoadingBlock } from "../../components/States";
+import { formatoConteo } from "../../lib/formatoNumero";
 
 type Props = {
   graf: GraficadorRef;
@@ -694,7 +695,7 @@ function SingleVarSelect({
       variables={variables}
       multi={multi}
       placeholder="Elegir pregunta…"
-      emptyHint={`${variables.length} disponible${variables.length === 1 ? "" : "s"}`}
+      emptyHint={`${formatoConteo(variables.length)} disponible${variables.length === 1 ? "" : "s"}`}
       allowEmpty
       onPick={onChange}
     />
@@ -846,7 +847,7 @@ function VariableChoicePopover({
             <span aria-hidden="true"><Database size={15} /></span>
             <div>
               <strong>Elegir variable</strong>
-              <small>{variables.length} disponibles</small>
+              <small>{formatoConteo(variables.length)} disponibles</small>
             </div>
           </div>
 

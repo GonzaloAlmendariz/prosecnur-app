@@ -220,7 +220,7 @@ export default function VariablePicker({
           <small>
             {selectedVar
               ? selectedCode
-              : `${eligible.length} pregunta${eligible.length === 1 ? "" : "s"} disponible${eligible.length === 1 ? "" : "s"}`}
+              : `${formatoConteo(eligible.length)} pregunta${eligible.length === 1 ? "" : "s"} disponible${eligible.length === 1 ? "" : "s"}`}
           </small>
         </span>
         {refSinBase ? (
@@ -272,7 +272,7 @@ export default function VariablePicker({
                   onClick={() => handleSourceChange(s.name)}
                 >
                   <span>{s.name}</span>
-                  <b>{s.variables.length}</b>
+                  <b>{formatoConteo(s.variables.length)}</b>
                 </button>
               ))}
             </div>
@@ -354,7 +354,7 @@ export default function VariablePicker({
 
             {filtered.length > visibleVars.length && (
               <div className="pulso-gv2-variable-more">
-                Mostrando {visibleVars.length} de {filtered.length}. Afina la búsqueda para ver resultados más precisos.
+                Mostrando {formatoConteo(visibleVars.length)} de {formatoConteo(filtered.length)}. Afina la búsqueda para ver resultados más precisos.
               </div>
             )}
           </div>

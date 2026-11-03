@@ -4,8 +4,10 @@
 
 import type { RanuraComposicion } from "../../iconos/composicion";
 import type { LaminaEstandar } from "../../iconos/estandarLaminas.generated";
+import { formatoDecimal } from "../../../../lib/formatoNumero";
 
-const num = (n: number): string => n.toLocaleString("es", { maximumFractionDigits: 3 });
+// es-PE escribe punto decimal («0.75 in»); el locale «es» a secas escribía «0,75».
+const num = (n: number): string => formatoDecimal(n, 3);
 
 type Props = {
   estandar: LaminaEstandar | undefined;

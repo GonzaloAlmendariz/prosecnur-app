@@ -150,7 +150,7 @@ export default function VarsListPicker({ value, onChange }: Props) {
         </span>
         <span>
           <strong>Agregar variable</strong>
-          <small>{variables.length} disponibles</small>
+          <small>{formatoConteo(variables.length)} disponibles</small>
         </span>
       </button>
 
@@ -227,7 +227,7 @@ export default function VarsListPicker({ value, onChange }: Props) {
 
             {options.length > visibleOptions.length && (
               <div className="pulso-gv2-variable-more">
-                Mostrando {visibleOptions.length} de {options.length}. Afina la búsqueda para ver resultados más precisos.
+                Mostrando {formatoConteo(visibleOptions.length)} de {formatoConteo(options.length)}. Afina la búsqueda para ver resultados más precisos.
               </div>
             )}
           </div>
