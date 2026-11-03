@@ -92,7 +92,7 @@ D1, D2 y D3 se toman como propuestas, revisables por Gonzalo (Meta B). Contrato 
 | Aulas | ☑ hecho (ver 1d, 2d y 3d); queda el Resumen contra la meta operativa | `monitoreo_aulas_avance_cuota.R`, `monitoreo_aulas_composicion_referencial.R`, `profiles/aulas/avance/*`, `navegacion/direccionAulas.ts` | Nada técnico. El Resumen que mide contra la meta operativa (1d) cambia una cifra visible: pasa por `revisor-metodologico` y se le muestra a Gonzalo antes |
 | Territorial | ☑ hecho (ver 1c y 2c); revisión de `guardian-contratos` aprobada con cambios, aplicados | `hojas_ruta_envio_cuotas.R`, `hojas_ruta_envio.R`, `hojas_ruta_integrada_normalize_config` (congelado: un punto de llamada), UI de Hojas; `profiles/territorial/avance/*` | Autorizado por coordinación (Meta B, 3/11), con revisión de `guardian-contratos` |
 
-## Resumen de aulas (1d) — ☑ opción A, elegida por Gonzalo el 3/11
+## Resumen de aulas (1d) — ☑ opción A, decidida por coordinación (3/11), revisable por Gonzalo
 
 Revisada con `revisor-metodologico` (3/11). **La premisa estaba a medias**: el anillo y el % principal del Resumen ya
 se miden contra la cuota del diseño (`resumenAulasModelo.ts:204-206`, `total.cuota`; cumple el ADR 0079). Lo único que
@@ -110,9 +110,11 @@ Lo leen además `kpisDeAulas.ts:1015`, `AulasPestanaRendimiento.tsx:210`, el lib
 (`AulasAvanceParaCliente.tsx:167`) y `carga_aulas_libro_avance_*.R`; con A no cambia ninguno. No se pudo medir el
 numerador en hsvg2026: el proyecto de referencia no trae monitoreo.
 
-**Implementada A** (3/11, Gonzalo: «Resumen de aulas»): el dato secundario lee el nivel `sobremuestra` de
+**Implementada A** (60fedfc74; decidida por Meta B como coordinación el 3/11 porque no cambia cifras y respeta la segunda meta del 8/9; revisable por Gonzalo): el dato secundario lee el nivel `sobremuestra` de
 `avance_cuota$niveles` (respaldo: `meta_operativa`) y se rotula «Sobremuestra de 3,750»; la cifra (88.7 % en el
-fixture HSVG) no cambia. Test nuevo en `resumenAulasModelo.test.ts` con `niveles` y sin `meta_operativa`.
+fixture HSVG) no cambia. Test nuevo en `resumenAulasModelo.test.ts` con `niveles` y sin `meta_operativa`. Captura del Resumen a 1440 y 1024 (`ok=true`, 2 md5 distintos) sobre una copia de corrida de hsvg2026 y
+sobre d1_aulas. Las dos muestran el respaldo «Sobremuestra: Sin declarar», porque ninguno de los dos proyectos trae avance de
+monitoreo. El rótulo «Sobremuestra de 3,750» está cubierto por el test con el fixture de HSVG; falta verlo con un corte real.
 
 **Defecto encontrado y corregido** (f46bbc07f): `avance_cuota$niveles` juzgaba la sobremuestra contra el excedente
 (1.250) y no contra el total (3.750); el test usaba 3.750 a mano y lo tapaba.
