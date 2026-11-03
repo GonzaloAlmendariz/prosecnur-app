@@ -85,6 +85,16 @@
   out
 }
 
+#' ¿«Lima» a secas es la región Lima? Sí cuando su lista no tiene ninguna opción propia para Lima Metropolitana ni para
+#' Lima provincias (una lista de departamentos); sin la lista, como antes, es Lima Metropolitana
+#' @keywords internal
+.mapa_lima_es_region <- function(etiquetas) {
+  if (!length(etiquetas)) return(FALSE)
+  e <- trimws(gsub("\\s+", " ", gsub("[^a-z ]", " ", .lam_clave(etiquetas))))
+  "lima" %in% e && !any(e %in% c("lima metropolitana", "provincia de lima", "lima metropolitana y callao", "lima provincias",
+                                  "provincias de lima", "lima region", "region lima"))
+}
+
 #' Casa cada respuesta con su área: por nombre sin tildes y, si la etiqueta no nombra un área, por UBIGEO
 #'
 #' En el Perú, «Lima Metropolitana» (también «Provincia de Lima» y «Lima» a secas), «Callao» y «Lima provincias» son tres
@@ -105,6 +115,14 @@
       NA_character_
     }, "", USE.NAMES = FALSE)
   } else ifelse(grepl("^[0-9]{5,6}$", cod), sprintf("%06d", suppressWarnings(as.integer(cod))), NA_character_)
+  filas$nombre_area <- NA_character_
+  if (identical(area, "peru") && .mapa_lima_es_region(attr(filas, "etiquetas_lista", exact = TRUE))) {
+    # En una lista de departamentos sin Lima Metropolitana ni Lima provincias («¿en qué otra región del Perú?»), «Lima» es
+    # la región Lima: quien estudió en Lima Metropolitana respondió antes otra opción del filtro (CCSS 2026, M11: el mapa
+    # la anotaba como «Lima Metropolitana 2 (2%)»). Va al área de Lima provincias y se rotula «Región Lima».
+    es_region <- nombre == "lima"
+    nombre[es_region] <- "lima provincias"; filas$nombre_area[es_region] <- "Región Lima"
+  }
   if (identical(area, "peru")) {
     nombre[nombre %in% c("lima metropolitana", "provincia de lima", "lima", "lima metropolitana y callao")] <- "lima metropolitana"
     nombre[nombre %in% c("lima provincias", "provincias de lima", "lima region", "region lima")] <- "lima provincias"

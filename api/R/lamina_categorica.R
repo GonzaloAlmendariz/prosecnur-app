@@ -33,6 +33,10 @@
   invisible(lz)
 }
 
+#' Márgenes internos (in) que la caja de una cifra suma a su columna para no partirla en dos líneas
+#' @keywords internal
+.LAM_CIFRA_MARGEN_CAJA <- 0.2
+
 #' Barras horizontales de una serie: rótulo a la derecha, barra y cifra; la mayor en navy y negrita y el resto
 #' tenue cuando la especificación pide realce
 #' @keywords internal
@@ -57,7 +61,10 @@
     fill <- st$fill %||% (if (!is.null(cols) && !length(elegidas)) cols[k] else if ((isTRUE(espec$realce) || length(elegidas)) && !es_max) tenue else azul)
     if (bw > 0.004) .lam_caja(lz, x + wlab + 0.12, yb, bw, g, fill, nombre = "barra")
     h_cif <- max(0.3, size_cif * 1.25 / 72)
-    .lam_txt(lz, espec$cifras[k], x + wlab + 0.16 + bw, yb + (g - h_cif) / 2, wcif, h_cif, size_cif, azul, bold = st$cifra_bold %||% TRUE, nombre = "cifra")
+    # La caja de la cifra suma sus márgenes internos (0.1 in por lado) a la columna: con 0.12 de holgura «60% (12)» se partía
+    # en dos líneas (CCSS 2026, B3). La columna, que decide el largo de las barras, no cambia.
+    .lam_txt(lz, espec$cifras[k], x + wlab + 0.16 + bw, yb + (g - h_cif) / 2, wcif + .LAM_CIFRA_MARGEN_CAJA, h_cif, size_cif, azul,
+             bold = st$cifra_bold %||% TRUE, nombre = "cifra")
     yy <- yy + fila
   }
   # Marcas 0-25-50-75-100 % bajo las barras, opcionales con la escala de 0 a 100 % (Gonzalo, 2026-10-09: «A,bas y en

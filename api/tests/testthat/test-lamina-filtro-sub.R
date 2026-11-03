@@ -229,7 +229,7 @@ test_that("F5: el pie lleva las dos bases y el filtro dicotómico es una barra a
   r <- .fsub_textos_de(p_filtro_subpregunta("inter", habilita = "Sí", subpregunta = "util", grafico_sub = "escala", disposicion = "abajo"),
                        base = "Base: 120 estudiantes")
   n_si <- sum(r$fx$df$inter == "1")
-  expect_equal(r$por_nombre("Base lamina"), sprintf("Base: 120 estudiantes. Sólo los %d que respondieron «Sí»", n_si))
+  expect_equal(r$por_nombre("Base lamina"), sprintf("Base: 120 estudiantes. Sólo los %d que respondieron «Sí». Base menor de 30 casos: cifras referenciales.", n_si))   # B15 y M3 (n_si < 30)
   # Como Contabilidad: sin «Sí (77)» sobre la barra; los casos van en el pie y en el «N = 77» del dependiente.
   expect_false(any(r$textos == sprintf("Sí (%d)", n_si)), info = paste(r$textos, collapse = " | "))
   expect_true(all(c("Sí", "No") %in% r$textos), info = paste(r$textos, collapse = " | "))

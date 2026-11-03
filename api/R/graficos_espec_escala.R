@@ -136,6 +136,8 @@ preparar_escala <- function(data, var_categoria, var_n, cols_porcentaje, etiquet
   if (ncol(unidades) == 1L) anchos <- t(anchos)
   dimnames(anchos) <- dimnames(unidades)
   dibujar <- dibujar & (anchos > 0 | matrix(cero_visible, nrow(anchos), ncol(anchos), byrow = TRUE))
+  # B5 (CCSS 2026, lámina 22): una categoría que no se dibuja en ninguna fila no va a la leyenda («Otros» sin casos).
+  leyenda <- .espec_leyenda_con_casos(leyenda, dibujar)
 
   # ---- Top Two Box: suma de las cifras rotuladas (lámina 19) ------------------
   caja <- function(preset, labels, minimo, rotulo) {
@@ -217,3 +219,15 @@ preparar_escala <- function(data, var_categoria, var_n, cols_porcentaje, etiquet
   espec
 }
 
+
+#' Categorías de la leyenda que se dibujan en al menos una fila
+#'
+#' Si ninguna se dibuja (todo en cero), la leyenda queda como venía: no hay barra que explicar pero tampoco se esconde.
+#' @param leyenda Índices de `categorias` en el orden de la leyenda. @param dibujar Matriz filas × categorías.
+#' @keywords internal
+.espec_leyenda_con_casos <- function(leyenda, dibujar) {
+  if (!length(leyenda) || !NROW(dibujar)) return(leyenda)
+  con <- colSums(as.matrix(dibujar) & TRUE) > 0
+  out <- leyenda[con[leyenda]]
+  if (length(out)) out else leyenda
+}

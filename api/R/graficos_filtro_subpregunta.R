@@ -199,6 +199,7 @@ p_filtro_subpregunta <- function(var = NULL, habilita, subpregunta = NULL, grafi
       n_filtro = if (identical(espec_f$tipo, "pie")) espec_f$total_n_casos %||% espec_f$total_n else .espec_n_base(espec_f),
       # F2: en una batería la base es la de quienes la respondieron (la fila con más casos; cada pregunta trae los suyos).
       n_sub = if (identical(espec_s$tipo, "escala") && NROW(espec_s$filas) > 1L) suppressWarnings(max(.espec_casos(espec_s$filas), na.rm = TRUE))
+              else if (.lam_filtro_sub_es_mapa(espec_s)) as.numeric(espec_s$base)   # el mapa dependiente: todos sus encuestados
               else .espec_n_base(espec_s)
     )
   }
