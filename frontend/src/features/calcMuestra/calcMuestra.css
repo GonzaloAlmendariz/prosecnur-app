@@ -2729,6 +2729,14 @@
   min-width: 0;
 }
 
+/* P2: los bloques de la mesa son Panel del kit, que trae margin-bottom: 14px. Aquí cada contenedor
+   (cmv2-stack, cmv2-tab-panel, cmg-resultados-grid…) separa con gap, así que el margen se sumaba: 26 px
+   entre dos paneles en lugar de 12, y una fila de grilla 14 px más alta que su contenido (capacity-drift
+   en Resultados). El espacio entre paneles es del contenedor. */
+.cmv2-main .pulso-panel {
+  margin-bottom: 0;
+}
+
 .cmv2-panel {
   /* Nivel panel de la dirección estética (16-20px). Las secciones con
      overrides locales (definicion.css, calculo.css) pueden retirarlos
