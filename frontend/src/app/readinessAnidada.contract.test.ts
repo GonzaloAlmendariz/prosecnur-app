@@ -139,8 +139,6 @@ const FALSE_TRANSITORIO: Record<string, string> = {
     "previsualización dry_run del resembrado: en error y con la previsualización cargada publica true",
   "components/CargaDeBloque.tsx":
     "carga de un bloque dentro de una vista lista (kit, nacida en Material P5b): quien la monta la quita al llegar el dato o el error, así que la marca desaparece",
-  "features/monitoreo/core/CargaDeBloque.tsx":
-    "carga de un bloque de Monitoreo (P5, copia por mudar al kit): quien la monta la quita al llegar el dato o el error",
   "components/PageFrame.tsx":
     "`auditReady={false}` de la página: la página lo levanta al terminar su lectura (Carga › Revisión)",
   "features/carga/EquivalenciasEsqueleto.tsx":
