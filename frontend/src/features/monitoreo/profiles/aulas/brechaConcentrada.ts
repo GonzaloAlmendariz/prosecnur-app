@@ -62,7 +62,7 @@ export function brechaConcentrada(
     const logrado = numero(f.logrado);
     const facultad = String(f.faculty ?? f.facultad ?? "").trim() || "Sin facultad declarada";
     return {
-      etiqueta: `${facultad} · ${sexoDeLaCelda(f.sex ?? f.sexo)}`,
+      etiqueta: `${facultad}, ${sexoDeLaCelda(f.sex ?? f.sexo)}`,
       // Lo que falta HOY, no la brecha después de proyectar: el panel dice
       // dónde hay que ir, y una celda que «va a llegar» con reservas que aún no
       // han salido a campo sigue necesitando esas encuestas.

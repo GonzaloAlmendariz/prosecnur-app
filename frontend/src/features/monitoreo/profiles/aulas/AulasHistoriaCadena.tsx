@@ -196,17 +196,17 @@ export function AulasHistoriaCadena({ filas, onRelevo }: {
   return (
     <div className="aulas-cadenas" data-qa-geometry-capacity="owned" data-qa-geometry-member="true">
       <p className="aulas-cadenas-lectura">
-        <Cuenta n={cerraronEnTitular} /> cerraron con el titular ·{" "}
-        <Cuenta n={cerraronEnReemplazo} /> con un reemplazo ·{" "}
+        <Cuenta n={cerraronEnTitular} /> cerraron con el titular,{" "}
+        <Cuenta n={cerraronEnReemplazo} /> con un reemplazo,{" "}
         <Cuenta n={abiertas} /> sin cerrar
         {/* **La unidad, porque cambia a media frase.** Los tres números de antes
             son CADENAS y éste son CURSOS-HORARIO titulares. Sin nombrarlo,
             «24 cadenas · … · 146 sin reserva» se lee como 146 cadenas. */}
         {sinReserva
-          ? ` · ${sinReserva} ${sinReserva === 1 ? "curso-horario titular" : "cursos-horario titulares"} sin reserva asignada`
+          ? `, ${sinReserva} ${sinReserva === 1 ? "curso-horario titular" : "cursos-horario titulares"} sin reserva asignada`
           : ""}
         {sinRespuestaAlguna
-          ? ` · ${fmt(sinRespuestaAlguna)} de las abiertas no han recibido ni una respuesta`
+          ? `, ${fmt(sinRespuestaAlguna)} de las abiertas no han recibido ni una respuesta`
           : ""}
       </p>
 
@@ -217,11 +217,11 @@ export function AulasHistoriaCadena({ filas, onRelevo }: {
         Se {piden.length === 1 ? "lista la" : "listan las"} <strong>{fmt(piden.length)}</strong>{" "}
         {piden.length === 1 ? "que requiere" : "que requieren"} gestión
         {intactas ? (
-          <> · <strong>{fmt(intactas)}</strong>{" "}
+          <>, <strong>{fmt(intactas)}</strong>{" "}
             {intactas === 1 ? "sigue intacta, con su titular" : "siguen intactas, con su titular"} en pie</>
         ) : null}
         {cerraronEnTitular + cerraronEnReemplazo ? (
-          <> · <strong>{fmt(cerraronEnTitular + cerraronEnReemplazo)}</strong>{" "}
+          <>, <strong>{fmt(cerraronEnTitular + cerraronEnReemplazo)}</strong>{" "}
             {cerraronEnTitular + cerraronEnReemplazo === 1 ? "ya cerró" : "ya cerraron"}</>
         ) : null}
       </p>
@@ -290,7 +290,7 @@ function Cadena({ h, c, titular, onRelevo }: {
 
   const cuando = String(titular?.sesiones_dia_hora ?? titular?.schedule ?? "").trim();
   const donde = String(titular?.venue ?? "").trim();
-  const seña = [facultadCorta(h.facultad), cuando, donde].filter(Boolean).join(" · ");
+  const seña = [facultadCorta(h.facultad), cuando, donde].filter(Boolean).join(", ");
 
   return (
     <article className={`aulas-cadena es-${c.clave}${onRelevo && (c.clave === "corta" || c.clave === "seca") ? " con-salida" : ""}`}>

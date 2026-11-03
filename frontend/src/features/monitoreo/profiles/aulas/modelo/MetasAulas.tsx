@@ -69,7 +69,7 @@ function MetasAulasImpl({ dashboard, cargando, vacioSinTablero }: {
         <section className="aulas-ins-panel" aria-labelledby="aulas-mm-cuota" data-qa-geometry-member="cuota">
           <header className="aulas-ins-cabecera">
             <h3 id="aulas-mm-cuota">Cuota por {modelo.variables.join(" y ").toLowerCase()}</h3>
-            <span className="aulas-ins-sub">{modelo.origen}{modelo.universo ? ` · ${modelo.universo}` : ""}</span>
+            <span className="aulas-ins-sub">{modelo.origen}{modelo.universo ? `, ${modelo.universo}` : ""}</span>
           </header>
           <div className="aulas-ins-tabla-marco" data-qa-geometry-capacity="owned">
             <table className="aulas-ins-tabla" aria-labelledby="aulas-mm-cuota">

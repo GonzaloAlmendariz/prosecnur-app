@@ -1,3 +1,4 @@
+import { formatoConteo } from "../../../../../lib/formatoNumero";
 import { memo, useMemo, useState, type ReactNode } from "react";
 import { ChevronLeft, ChevronRight, Info } from "lucide-react";
 import { EstadoVacio } from "../../../../../components/EstadoVacio";
@@ -92,7 +93,7 @@ function ListaPendiente({ titulo, tono, filas, vacio }: { titulo: string; tono: 
     <section className="aulas-ag-panel aulas-ag-lista" aria-labelledby={id} data-qa-geometry-member={tono} data-vacia={filas.length ? undefined : ""}>
       <header className="aulas-ag-cabecera">
         <h3 id={id} className="aulas-ag-titulo">{titulo}</h3>
-        <span className="aulas-ag-cuenta" data-tono={tono}>{filas.length}</span>
+        <span className="aulas-ag-cuenta" data-tono={tono}>{formatoConteo(filas.length)}</span>
       </header>
       {filas.length ? (
         <ul className="aulas-ag-pendientes" data-qa-geometry-capacity="owned" tabIndex={0} aria-label={`${titulo}, con desplazamiento`}>

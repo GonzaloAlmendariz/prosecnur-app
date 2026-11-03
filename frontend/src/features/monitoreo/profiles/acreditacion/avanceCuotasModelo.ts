@@ -35,7 +35,7 @@ export function porcentaje(p: number | null | undefined): string {
 /** «57.9 % · 350 de 605». */
 export function conBase(n: number | null | undefined, base: number | null | undefined): string {
   const p = n != null && base ? n / base : null;
-  return `${porcentaje(p)} · ${cifra(n)} de ${cifra(base)}`;
+  return `${porcentaje(p)}, ${cifra(n)} de ${cifra(base)}`;
 }
 
 // ---------- Fases y readiness ----------
@@ -163,7 +163,7 @@ export function resumenCuota(q: MonitoreoCuota): ResumenCuota {
     meta,
     avance,
     relleno: avance == null ? 0 : Math.max(0, Math.min(1, avance)),
-    avanceTexto: meta > 0 ? `${porcentaje(avance)} · ${cifra(efectivas)} de ${cifra(meta)}` : "Sin metas",
+    avanceTexto: meta > 0 ? `${porcentaje(avance)}, ${cifra(efectivas)} de ${cifra(meta)}` : "Sin metas",
     cumplidas: `${cifra(cumplidas)} de ${cifra(total)} ${total === 1 ? "categoría cumplida" : "categorías cumplidas"}`,
     cobertura: q.cobertura != null ? `cobertura ${porcentaje(q.cobertura)}` : "metas escritas a mano",
     tono,

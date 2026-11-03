@@ -164,7 +164,7 @@ function Ficha({ f }: { f: FichaDeCursoHorario }) {
         {/* El literal del plan al lado del estado derivado: si dicen cosas
             distintas —y lo hacen, `operational_status` no se actualiza— quien
             lee tiene que poder verlo, no descubrirlo por su cuenta. */}
-        <span className="aulas-ficha-sub">{f.rol} · el plan lo declara «{f.estadoOperativo}»</span>
+        <span className="aulas-ficha-sub">{f.rol}, el plan lo declara «{f.estadoOperativo}»</span>
       </div>
 
       {/* **El estado y su fecha, en UNA frase.** Antes el chip decía AGENDADO y
@@ -388,7 +388,7 @@ export function AulasFichaDeCursoHorario({
           aria-label="Buscar un curso-horario por su código"
         />
         <span className="aulas-ficha-pista">
-          {fmt(agenda.length)} cursos-horario del plan · da igual el espacio y las mayúsculas
+          {fmt(agenda.length)} cursos-horario del plan, da igual el espacio y las mayúsculas
         </span>
       </div>
 
@@ -401,7 +401,7 @@ export function AulasFichaDeCursoHorario({
             <section key={a.clave}>
               <p className="aulas-ficha-atajo-titulo">
                 <strong>{a.titulo}</strong>
-                <em>{fmt(a.codigos.length)} · {a.motivo}</em>
+                <em>{fmt(a.codigos.length)}, {a.motivo}</em>
               </p>
               <div className="aulas-ficha-atajo-codigos">
                 {a.codigos.map((c) => (

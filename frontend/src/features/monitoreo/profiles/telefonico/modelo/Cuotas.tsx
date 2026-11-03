@@ -12,12 +12,13 @@ import { RotuloDePestana } from "../navegacion/RotuloDePestana";
 import "../control/controlTelefonico.css";
 import "../insumos/insumosTelefonico.css";
 import "./modeloTelefonico.css";
+import { formatoConteo } from "../../../../../lib/formatoNumero";
 
 /** La sub-vista Calendario de Modelo › Cuotas y calendario (`panel=calendario`, ver direccionTelefonica.ts). */
 export const PANEL_CALENDARIO: PanelDeclarado = { id: "calendario", label: "Calendario", clase: "inspector" };
 
 function n(valor: number) {
-  return valor.toLocaleString("es-PE");
+  return formatoConteo(valor);
 }
 
 /** Proporción de 0 a 1 como «17.4 %». */

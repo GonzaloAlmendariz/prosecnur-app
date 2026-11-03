@@ -8,6 +8,8 @@
  * el universo, que es la pregunta que el equipo se hace al revisarlas.
  */
 
+import { formatoConteo } from "../../../../../lib/formatoNumero";
+
 export type FilaDeMeta = { value: string; universe: number; meta: number | null; effective: number };
 
 export type MetaConProporcion = FilaDeMeta & {
@@ -35,7 +37,7 @@ export function metasConProporcion(filas: readonly FilaDeMeta[]): MetaConProporc
 
 export type Validacion = { tono: "ok" | "aviso"; texto: string };
 
-const fmt = (n: number) => n.toLocaleString("es-PE");
+const fmt = (n: number) => formatoConteo(n);
 
 /** Desvío desde el que se dice que una categoría se aparta del reparto. */
 export const DESVIO_QUE_SE_SENALA = 5;

@@ -8,9 +8,10 @@ import { useDialogoDeRonda } from "./useDialogoDeRonda";
 import "../insumos/insumosTelefonico.css";
 import "./supervision.css";
 import { mensajeDeError, repartoPrevio, type CasoDeLaBase } from "./rondasModel";
+import { formatoConteo } from "../../../../../lib/formatoNumero";
 
 function n(valor: number) {
-  return valor.toLocaleString("es-PE");
+  return formatoConteo(valor);
 }
 
 /**
@@ -114,7 +115,7 @@ export function DialogoNuevaRonda({
                 const elegido = agregados.includes(caso.codigo);
                 return (
                   <li key={caso.codigo}>
-                    <span><b>{caso.codigo}</b>{caso.progres ? ` · ${caso.progres}` : ""} · {caso.enumerador}</span>
+                    <span><b>{caso.codigo}</b>{caso.progres ? `, ${caso.progres}` : ""}, {caso.enumerador}</span>
                     {caso.ronda != null ? (
                       <em>ya salió en la Ronda {n(caso.ronda)}</em>
                     ) : (

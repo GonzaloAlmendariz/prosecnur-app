@@ -61,9 +61,9 @@ export function AulasEmbudoDelAula({ filas, plan = [] }: {
       ) : (
         <p className="aulas-cadenas-lectura">
           De <strong>{fmt(e.asistentes)}</strong> personas en el aula quedaron{" "}
-          <strong>{fmt(ultimo.quedan)}</strong> respuestas · <strong>{pctPerfil(ultimo.pct)}</strong>
+          <strong>{fmt(ultimo.quedan)}</strong> respuestas, <strong>{pctPerfil(ultimo.pct)}</strong>
           {e.pasosSinDeclarar.length ? (
-            <em>{" "}· sin contar {e.pasosSinDeclarar[0]}, que ningún parte declara</em>
+            <em>,{" "}sin contar {e.pasosSinDeclarar[0]}, que ningún parte declara</em>
           ) : null}
         </p>
       )}

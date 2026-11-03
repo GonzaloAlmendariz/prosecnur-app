@@ -37,9 +37,9 @@ export function AulasSeguimientoDeFacultad({ seguimiento }: {
         {/* Las tres primeras preguntas, en una frase: cuántas agendadas, cuántas
             faltan y hasta cuándo llega lo que ya tiene fecha. */}
         <strong>{fmt(s.agendados)}</strong> {s.agendados === 1 ? "curso-horario agendado" : "cursos-horario agendados"}
-        {s.sinAgendar ? <> · <strong>{fmt(s.sinAgendar)}</strong> sin fecha todavía</> : null}
-        {s.ultimaFecha ? <> · lo agendado se termina de aplicar el {etiquetaDeFecha(s.ultimaFecha)}</> : null}
-        {!pendientes ? <> · no le queda nada por aplicar</> : null}
+        {s.sinAgendar ? <>, <strong>{fmt(s.sinAgendar)}</strong> sin fecha todavía</> : null}
+        {s.ultimaFecha ? <>, lo agendado se termina de aplicar el {etiquetaDeFecha(s.ultimaFecha)}</> : null}
+        {!pendientes ? <>, no le queda nada por aplicar</> : null}
       </p>
 
       {s.cuotas.length ? (

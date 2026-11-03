@@ -1,5 +1,6 @@
 import { normalizeSourceMatch } from "../formato";
 import { rowNumber, rowText, type AcreditacionAdvanceCard } from "./tarjetasDeAvance";
+import { formatoConteo } from "../../../../../lib/formatoNumero";
 
 /**
  * Modelo puro de Avance › Resumen y Avance › Por público (A1 y A2 del diseño).
@@ -167,5 +168,5 @@ export function marcasDeEje(maximo: number): number[] {
 export const DIAS_PROYECCION_LEJANA = 90;
 export function rotuloDeDiasALaMeta(dias: number): string {
   if (dias > DIAS_PROYECCION_LEJANA) return "Más de 3 meses";
-  return `≈ ${dias.toLocaleString("es-PE")} ${dias === 1 ? "día" : "días"}`;
+  return `≈ ${formatoConteo(dias)} ${dias === 1 ? "día" : "días"}`;
 }

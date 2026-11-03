@@ -43,7 +43,7 @@ function DesgloseEnvio({ envio, id, paleta }: { envio: MonitoreoMailchimpEnvio; 
           </th>
           <td className="is-num es-grupo"><CifraYTasa n={a.enviados} /></td>
           <td className="is-num"><CifraYTasa n={a.entregados} /></td>
-          <td className="is-num">{cifra(a.rebotes_duros)} · {cifra(a.rebotes_blandos)}</td>
+          <td className="is-num">{cifra(a.rebotes_duros)} y {cifra(a.rebotes_blandos)}</td>
           <td className="is-num es-grupo" title="Con las aperturas automáticas de Apple"><CifraYTasa n={a.aperturas} tasa={a.tasa_apertura} /></td>
           <td className="is-num"><CifraYTasa n={a.clics} tasa={a.tasa_clic} /></td>
           <td className="is-num es-grupo"><CifraYTasa n={a.bajas} tasa={a.tasa_baja} /></td>
@@ -81,8 +81,8 @@ export function AvanceCorreoEnvios({
         <div>
           <h3 id={`${base}-titulo`}>Detalle de envíos</h3>
           <p className="mon-correo-bloque-meta">
-            {publico ? <><i className={`mon-publico-punto ${clasePublico(paleta, publico)}`} aria-hidden /> {publico} · </> : null}
-            {cifra(visibles.length)} de {cifra(envios.length)} · tasas sobre entregados
+            {publico ? <><i className={`mon-publico-punto ${clasePublico(paleta, publico)}`} aria-hidden /> {publico}, </> : null}
+            {cifra(visibles.length)} de {cifra(envios.length)}, tasas sobre entregados
           </p>
         </div>
       </header>
@@ -104,7 +104,7 @@ export function AvanceCorreoEnvios({
                 <th scope="col">Público</th>
                 <th scope="col" className="is-num es-grupo">Enviados</th>
                 <th scope="col" className="is-num">Entregados</th>
-                <th scope="col" className="is-num">Rebotes duros · blandos</th>
+                <th scope="col" className="is-num">Rebotes duros y blandos</th>
                 <th scope="col" className="is-num es-grupo">Abrieron</th>
                 <th scope="col" className="is-num">Clics</th>
                 <th scope="col" className="is-num es-grupo">Bajas</th>
@@ -143,7 +143,7 @@ export function AvanceCorreoEnvios({
                       </td>
                       <td className="is-num es-grupo"><CifraYTasa n={e.enviados} /></td>
                       <td className="is-num"><CifraYTasa n={e.entregados} /></td>
-                      <td className="is-num">{cifra(e.rebotes_duros)} · {cifra(e.rebotes_blandos)}</td>
+                      <td className="is-num">{cifra(e.rebotes_duros)} y {cifra(e.rebotes_blandos)}</td>
                       <td className="is-num es-grupo"><CifraYTasa n={e.aperturas_sin_proxy} tasa={e.tasa_apertura} /></td>
                       <td className="is-num"><CifraYTasa n={e.clics} tasa={e.tasa_clic} /></td>
                       <td className="is-num es-grupo"><CifraYTasa n={e.bajas} tasa={e.tasa_baja} /></td>

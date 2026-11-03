@@ -351,7 +351,6 @@
  * para pegarlo en la plataforma, que es para lo único que se muestra. */
 .fuentes-resumen-fila-detalle dd {
   margin: 0;
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: var(--pulso-type-micro-size);
   color: var(--pulso-text-soft);
   word-break: break-all;

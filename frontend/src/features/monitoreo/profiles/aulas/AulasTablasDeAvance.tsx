@@ -1,3 +1,4 @@
+import { formatoDecimal } from "../../../../lib/formatoNumero";
 import { useEffect, useState, type ReactNode } from "react";
 import { Table2 } from "../../../../vendor/lucide-react";
 import { EstadoVacio } from "../../../../components/EstadoVacio";
@@ -228,5 +229,5 @@ function formatear(valor: string | number | null, tipo: "texto" | "numero" | "po
   }
   // Los conteos van sin decimal; lo fraccionario legítimo (tasas por aula) lo
   // trae ya redondeado el motor.
-  return n.toLocaleString("es-PE", { maximumFractionDigits: 1 });
+  return formatoDecimal(n, 1);
 }

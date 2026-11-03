@@ -121,7 +121,7 @@ export function AulasComoMideElEstudio({
               >
                 {puesta ? <Check size={13} aria-hidden="true" /> : null}
                 {d.etiqueta}
-                {veto ? <em> · sin padrón</em> : null}
+                {veto ? <em>, sin padrón</em> : null}
               </button>
             );
           })}

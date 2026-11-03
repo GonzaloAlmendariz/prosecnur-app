@@ -9,6 +9,7 @@
 import type { MonitoreoAcreditacion, MonitoreoLastSheetsPublication } from "../../../../../api/client";
 import type { AcreditacionAdvanceCard } from "./tarjetasDeAvance";
 import { tieneMeta } from "./avanceModelo";
+import { formatoConteo } from "../../../../../lib/formatoNumero";
 
 export type PublicacionFrenteAlCorte = {
   salida: string;
@@ -53,7 +54,7 @@ export type EstadoDelCierre = {
   puntos: PuntoDelCierre[];
 };
 
-const n = (valor: number) => valor.toLocaleString("es-PE");
+const n = (valor: number) => formatoConteo(valor);
 
 export function estadoDelCierre({
   tarjetas,

@@ -606,13 +606,6 @@
   font-variant-numeric: tabular-nums;
 }
 
-.mon-fuentes code {
-  /* Tipografía del sistema, como el resto de la app: un código de caso o un
-   * nombre de columna no pide monoespaciada para leerse. */
-  font-family: inherit;
-  font-variant-numeric: tabular-nums;
-}
-
 .mon-fuentes-lista ul {
   margin: 0;
   padding: 0;

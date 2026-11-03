@@ -13,6 +13,7 @@
 import type { MonitoreoWorkbenchRailTab } from "../../../components";
 import { PESTANAS_DE_FUENTES } from "./pestanas";
 import type { PestanaDeFuentes } from "./pestanas";
+import { formatoConteo } from "../../../../../lib/formatoNumero";
 
 type Estado = NonNullable<MonitoreoWorkbenchRailTab["estado"]>;
 
@@ -61,7 +62,7 @@ function estado(listo: boolean): Estado {
 }
 
 function cuenta(total: number, singular: string, plural: string) {
-  return `${total.toLocaleString("es-PE")} ${total === 1 ? singular : plural}`;
+  return `${formatoConteo(total)} ${total === 1 ? singular : plural}`;
 }
 
 export function railDeFuentesAcreditacion(
@@ -73,7 +74,7 @@ export function railDeFuentesAcreditacion(
       ...definicion("actores"),
       detail: actores.declarados
         ? (actores.sinPadron
-          ? `${cuenta(actores.declarados, "actor", "actores")} · ${actores.sinPadron} sin padrón`
+          ? `${cuenta(actores.declarados, "actor", "actores")}, ${actores.sinPadron} sin padrón`
           : cuenta(actores.declarados, "actor declarado", "actores declarados"))
         : "declara quiénes responden el estudio",
       badge: actores.declarados ? String(actores.declarados) : undefined,
@@ -90,7 +91,7 @@ export function railDeFuentesAcreditacion(
           ? "falta la base de cada actor"
           : !conteos.platformEnabled
             ? "faltan las encuestas de cada actor"
-            : `${cuenta(conteos.sheetsEnabled, "base activa", "bases activas")} · ${cuenta(conteos.platformEnabled, "encuesta activa", "encuestas activas")}`,
+            : `${cuenta(conteos.sheetsEnabled, "base activa", "bases activas")}, ${cuenta(conteos.platformEnabled, "encuesta activa", "encuestas activas")}`,
       badge: conteos.total ? `${conteos.enabled}/${conteos.total}` : undefined,
       estado: estado(conteos.sheetsEnabled > 0 && conteos.platformEnabled > 0),
     },
@@ -132,7 +133,7 @@ export function railDeFuentesTelefonico(conteos: ConteosTelefonicos): MonitoreoW
       ...definicion("recopiladores"),
       label: "Encuestas",
       detail: conteos.plataformaLista
-        ? `${cuenta(conteos.encuestasKobo, "encuesta", "encuestas")} · ${conteos.filtroDefinido ? "filtro de efectiva definido" : "define el filtro de efectiva"}`
+        ? `${cuenta(conteos.encuestasKobo, "encuesta", "encuestas")}, ${conteos.filtroDefinido ? "filtro de efectiva definido" : "define el filtro de efectiva"}`
         : "falta la encuesta y el filtro de efectiva",
       badge: conteos.encuestasKobo ? String(conteos.encuestasKobo) : undefined,
       estado: estado(conteos.plataformaLista && conteos.filtroDefinido),

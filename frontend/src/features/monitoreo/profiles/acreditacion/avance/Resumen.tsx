@@ -30,6 +30,7 @@ import { CabeceraDeTarjeta } from "../navegacion/rotuloDePestana";
 import { VacioDeBloque } from "../piezas/AvisoDeTarjeta";
 import { clasePublico, paletaDePublicos, type PaletaDePublicos } from "../paletaPublicos";
 import "../paletaPublicos.css";
+import { formatoDecimal } from "../../../../../lib/formatoNumero";
 
 function porcentaje(valor: number, total: number) {
   return total > 0 ? pctConEspacio((valor / total) * 100) : "—";
@@ -46,7 +47,7 @@ function ChipDeProyeccion({ serie, totales }: { serie: ReturnType<typeof serieDi
     return <EstadoChip label={lectura.fecha ? `Meta cumplida el ${fechaCorta(lectura.fecha)}` : "Meta cumplida"} tone="success" />;
   }
   // El chip dice la cifra; el cálculo que la sostiene va en el tooltip.
-  const ritmo = lectura.ritmo.toLocaleString("es-PE", { maximumFractionDigits: 1 });
+  const ritmo = formatoDecimal(lectura.ritmo, 1);
   return (
     <span className="acr-res-chips-proyeccion">
       <EstadoChip label={`Faltan ${fmt(lectura.faltan)}`} tone="warn" />
@@ -278,7 +279,7 @@ export function ResumenVista({
             <div className="acr-res-ultimos">
               <BarrasPorDia dias={ultimos.dias} etiqueta="Efectivas por día en los últimos 14 días del corte" />
               <div className="acr-res-ultimos-cifras">
-                <div className="acr-res-kpi"><small>Promedio de 7 días</small><b className="acr-av-num">{ultimos.promedio7.toLocaleString("es-PE", { maximumFractionDigits: 1 })}</b></div>
+                <div className="acr-res-kpi"><small>Promedio de 7 días</small><b className="acr-av-num">{formatoDecimal(ultimos.promedio7, 1)}</b></div>
                 <div className="acr-res-kpi"><small>Mejor día</small><b className="acr-av-num">{ultimos.mejor ? fmt(ultimos.mejor.efectivas) : "—"} <span className="acr-av-tenue">{ultimos.mejor ? fechaCorta(ultimos.mejor.fecha) : ""}</span></b></div>
                 <div className="acr-res-kpi"><small>Días sin efectivas</small><b className="acr-av-num">{fmt(ultimos.sinEfectivas)}</b></div>
               </div>

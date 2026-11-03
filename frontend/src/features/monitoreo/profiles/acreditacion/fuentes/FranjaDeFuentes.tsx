@@ -13,6 +13,7 @@
 // Contrato: docs/plan-fuentes-legibles-2026-07.md R3.
 
 import { Layers3, ListChecks } from "../../../../../vendor/lucide-react";
+import { formatoConteo } from "../../../../../lib/formatoNumero";
 
 export function FranjaDeFuentes({
   universo,
@@ -28,14 +29,14 @@ export function FranjaDeFuentes({
       <span className={universo ? "is-ready" : "is-warning"}>
         <Layers3 size={14} />
         <em>Universo</em>
-        <strong>{universo.toLocaleString("es-PE")}</strong>
+        <strong>{formatoConteo(universo)}</strong>
         <small>{universo === 1 ? "base conectada" : "bases conectadas"}</small>
       </span>
       <span className={encuestas ? "is-ready" : "is-warning"}>
         <ListChecks size={14} />
         <em>Encuestas</em>
-        <strong>{encuestas.toLocaleString("es-PE")}</strong>
-        <small>{barrido ? `${barrido.toLocaleString("es-PE")} de barrido` : "sin barrido"}</small>
+        <strong>{formatoConteo(encuestas)}</strong>
+        <small>{barrido ? `${formatoConteo(barrido)} de barrido` : "sin barrido"}</small>
       </span>
     </div>
   );

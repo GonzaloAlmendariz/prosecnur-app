@@ -13,6 +13,7 @@ import { MonitoreoPathContext } from "./MonitoreoPathContext";
 import { PARAMS_DIRECCION } from "../../../lib/navegacion/direccion";
 import { HerramientasDelModo, IndicadoresDelModo, type BarraDelModo } from "./BarraDelModo";
 import { nombreDeLaPildora, normalizarMetrica, tituloDeLaPildora, type MetricaDeSeccion } from "./metricaDeSeccion";
+import { formatoConteo } from "../../../lib/formatoNumero";
 
 export type MonitoreoModuleChromeProps<K extends MonitoreoSeccion = MonitoreoSeccionDePagina> = {
   routes: MonitoreoModoDefinicion[];
@@ -71,7 +72,7 @@ type MonitoreoModuleSyncProgress = {
 const LEYENDO = "Leyendo…";
 
 function formatChromeCount(value: number) {
-  return Number.isFinite(value) ? value.toLocaleString("es-PE") : "0";
+  return Number.isFinite(value) ? formatoConteo(value) : "0";
 }
 
 function formatChromeDate(value: string) {
@@ -318,7 +319,7 @@ export function MonitoreoModuleChrome<K extends MonitoreoSeccion = MonitoreoSecc
         generationInfo ? `${generationInfo.label}: ${generationInfo.value}` : null,
         `Registros: ${registrosLabel}`,
         `Sincronizado: ${sincronizadoLabel}`,
-      ].filter(Boolean).join(" · ")}
+      ].filter(Boolean).join(", ")}
     >
       {generationInfo ? (
         <ChromeIndicator

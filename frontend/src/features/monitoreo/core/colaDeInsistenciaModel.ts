@@ -10,6 +10,8 @@
  * deduce.
  */
 
+import { formatoConteo } from "../../../lib/formatoNumero";
+
 export type CasoDeCola = {
   codigo: string;
   responsable: string;
@@ -130,7 +132,7 @@ export function ordenarCola(casos: readonly CasoDeCola[], orden: OrdenDeCola): C
 }
 
 function plural(n: number, uno: string, varios: string) {
-  return `${n.toLocaleString("es-PE")} ${n === 1 ? uno : varios}`;
+  return `${formatoConteo(n)} ${n === 1 ? uno : varios}`;
 }
 
 function enumerar(partes: string[]) {
@@ -159,16 +161,16 @@ export function escalaDeIntentos(casos: readonly CasoDeCola[]): string {
     ];
     for (const [rotulo, cumple] of tramos) {
       const n = conDato.filter(cumple).length;
-      if (n) partes.push(`${n.toLocaleString("es-PE")} con ${rotulo}`);
+      if (n) partes.push(`${formatoConteo(n)} con ${rotulo}`);
     }
   } else {
     const valores = [...new Set(conDato)].sort((a, b) => b - a);
     valores.forEach((valor, i) => {
       const n = conDato.filter((x) => x === valor).length;
-      partes.push(`${n.toLocaleString("es-PE")} con ${valor.toLocaleString("es-PE")}${i === 0 ? ` ${valor === 1 ? "intento" : "intentos"}` : ""}`);
+      partes.push(`${formatoConteo(n)} con ${formatoConteo(valor)}${i === 0 ? ` ${valor === 1 ? "intento" : "intentos"}` : ""}`);
     });
   }
-  if (sinDato) partes.push(`${sinDato.toLocaleString("es-PE")} sin dato`);
+  if (sinDato) partes.push(`${formatoConteo(sinDato)} sin dato`);
   return `${total}: ${enumerar(partes)}`;
 }
 
@@ -206,7 +208,7 @@ export function diasDesde(dias: number | null): string {
   if (dias == null) return "";
   if (dias < 0) return "después del corte";
   if (dias === 0) return "el día del corte";
-  return dias === 1 ? "hace 1 día" : `hace ${dias.toLocaleString("es-PE")} días`;
+  return dias === 1 ? "hace 1 día" : `hace ${formatoConteo(dias)} días`;
 }
 
 /** «2026-07-02» a «02/07». */
@@ -256,7 +258,7 @@ export function siglaDeCuota(valor: string): string | null {
 
 /** La línea del reparto bajo «Responsables»: quién tiene casos en cola y cuántos reparte la hoja. */
 export function fraseDelReparto(reparto: { porLlamarAsignados: number; repartidos: number | null; equipo: number }) {
-  const n = (valor: number) => valor.toLocaleString("es-PE");
+  const n = (valor: number) => formatoConteo(valor);
   const repartidos = reparto.repartidos != null
     ? `La hoja reparte ${n(reparto.repartidos)} ${reparto.repartidos === 1 ? "caso" : "casos"}`
     : "";

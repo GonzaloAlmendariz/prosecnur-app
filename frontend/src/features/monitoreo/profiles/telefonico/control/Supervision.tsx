@@ -13,9 +13,10 @@ import { RotuloDePestana, useHayRotulo } from "../navegacion/RotuloDePestana";
 import { construirSupervision, porcentajeLegible } from "./supervisionModel";
 import "./controlTelefonico.css";
 import "./supervision.css";
+import { formatoConteo } from "../../../../../lib/formatoNumero";
 
 function n(valor: number) {
-  return valor.toLocaleString("es-PE");
+  return formatoConteo(valor);
 }
 
 /**
@@ -141,7 +142,7 @@ export function Supervision({
             * no hace falta leyenda al pie. */}
           <div className="mon-sup-lista-cabeza" aria-hidden="true">
             <span>Enumerador</span>
-            <span>Efectivas · <b>sorteados</b></span>
+            <span>Efectivas y <b>sorteados</b></span>
           </div>
           <ul className="mon-sup-lista">
             {repartoVisible.map((fila) => (
@@ -154,7 +155,7 @@ export function Supervision({
                   <i className="is-efectivas" style={{ width: `${(fila.efectivas / maximo) * 100}%` }} />
                   <i className="is-casos" style={{ width: `${(fila.casos / maximo) * 100}%` }} />
                 </i>
-                <span className="mon-sup-cifras is-num" aria-label={`${n(fila.efectivas)} efectivas, ${n(fila.casos)} sorteados`}>{n(fila.efectivas)} · <b>{n(fila.casos)}</b></span>
+                <span className="mon-sup-cifras is-num" aria-label={`${n(fila.efectivas)} efectivas, ${n(fila.casos)} sorteados`}>{n(fila.efectivas)} y <b>{n(fila.casos)}</b></span>
               </li>
             ))}
           </ul>
@@ -212,7 +213,7 @@ export function Supervision({
                       caso.resultado || caso.statusFinal ? (
                         <span className={`mon-sup-resultado${caso.coincide === "No" ? " is-no" : caso.coincide === "Sí" ? " is-si" : ""}`} title={caso.observacion || undefined}>
                           {/* Dato, no explicación: resultado, status y si coincide (P7). */}
-                          {[caso.resultado, caso.statusFinal].filter(Boolean).join(" · ")}
+                          {[caso.resultado, caso.statusFinal].filter(Boolean).join(", ")}
                           {caso.coincide ? ` (${caso.coincide === "Sí" ? "coincide" : "no coincide"})` : ""}
                         </span>
                       ) : <span className="mon-sup-pendiente">Sin rellamar</span>

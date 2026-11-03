@@ -1,3 +1,4 @@
+import { formatoDecimal } from "../../../../lib/formatoNumero";
 import { memo, useEffect, useMemo, useRef, useState } from "react";
 import type { CSSProperties, PointerEvent as ReactPointerEvent } from "react";
 import {
@@ -328,7 +329,7 @@ function TerritorialAdvanceSummary({
       <header className="mon-territorial-exec-commandbar">
         <div>
           <span><MapPin size={14} /> Corte territorial</span>
-          <strong>{phaseLabel} · {cutLabel}</strong>
+          <strong>{phaseLabel}, {cutLabel}</strong>
         </div>
         {/* La banda de corte es común a las dos vistas: sin ella, «Distritos»
             perdería de qué corte está hablando. */}
@@ -392,7 +393,7 @@ function TerritorialExecutiveProgressPanel({
           {/* El número nunca viaja sin su denominador: "1.283 válidas" a secas
               es lo que permitía que cada superficie mostrara un total distinto. */}
           <strong>{textoAvance(advance.validas, advance.meta)}</strong>
-          <em>{advance.meta != null ? "válidas sobre la meta" : "válidas actuales · sin meta declarada"}</em>
+          <em>{advance.meta != null ? "válidas sobre la meta" : "válidas actuales, sin meta declarada"}</em>
         </div>
         <figure
           className="mon-territorial-exec-ring"
@@ -430,7 +431,7 @@ function TerritorialExecutiveUmpPanel({ stack }: { stack: TerritorialExecutiveUm
     : "Incompletas";
   const noneLabel = operational ? "No iniciadas" : "Sin avance";
   const completeDetail = operational && stack.subsanada > 0
-    ? ` · ${formatMetric(stack.subsanada)} subsanadas`
+    ? `, ${formatMetric(stack.subsanada)} subsanadas`
     : "";
   const segments = [
     { key: "complete", label: "Completas", value: stack.complete, tone: "ready" },
@@ -444,8 +445,8 @@ function TerritorialExecutiveUmpPanel({ stack }: { stack: TerritorialExecutiveUm
         {/* De qué UMP habla: las de la cuota operativa. En la misma pantalla,
             «Prioridades» cuenta las de la hoja de ruta, y sobre el corte real las
             dos cifras eran 3 y 21 bajo el mismo rótulo «UMP». */}
-        <span><Route size={14} /> Estado UMP {operational ? "· cuota operativa" : ""}</span>
-        <strong>{formatMetric(stack.complete)} completas · {formatMetric(pending)} faltan{completeDetail}</strong>
+        <span><Route size={14} /> Estado UMP {operational ? "de la cuota operativa" : ""}</span>
+        <strong>{formatMetric(stack.complete)} completas, {formatMetric(pending)} faltan{completeDetail}</strong>
       </header>
       <div className="mon-territorial-exec-ump-stack" role="list" aria-label="Distribución de UMP completas, incompletas y sin avance">
         {segments.map((segment, index) => {
@@ -462,7 +463,7 @@ function TerritorialExecutiveUmpPanel({ stack }: { stack: TerritorialExecutiveUm
               className={className}
               role="listitem"
               style={{ "--exec-stack-size": `${width}%` } as CSSProperties}
-              title={`${segment.label}: ${formatMetric(segment.value)} · ${formatPercentLabel(pct)}`}
+              title={`${segment.label}: ${formatMetric(segment.value)}, ${formatPercentLabel(pct)}`}
             >
               <strong>{formatMetric(segment.value)}</strong>
               <em>{segment.label}</em>
@@ -485,7 +486,7 @@ function TerritorialExecutiveUmpPanel({ stack }: { stack: TerritorialExecutiveUm
             <div key={segment.key} className={`is-${segment.tone}`}>
               <header>
                 <span>{segment.label}</span>
-                <strong>{formatMetric(segment.value)} · {formatPercentLabel(pct)}</strong>
+                <strong>{formatMetric(segment.value)}, {formatPercentLabel(pct)}</strong>
               </header>
               <i aria-hidden="true"><em style={{ width: `${pct}%` }} /></i>
             </div>
@@ -587,8 +588,8 @@ function TerritorialExecutiveDemographics({
           <span><Layers3 size={14} /> Cuotas sexo/edad</span>
           <strong>Cerradas</strong>
           <em>
-            {formatMetric(summary.completeBuckets)}/{formatMetric(summary.totalBuckets)} segmentos ·
-            {" "}{formatMetric(summary.achieved)} de {formatMetric(summary.target)} casos ·
+            {formatMetric(summary.completeBuckets)}/{formatMetric(summary.totalBuckets)} segmentos,
+            {" "}{formatMetric(summary.achieved)} de {formatMetric(summary.target)} casos y
             {" "}sin brecha en {formatMetric(summary.districtCount)} distritos
           </em>
         </section>
@@ -599,7 +600,7 @@ function TerritorialExecutiveDemographics({
       <section className="mon-territorial-exec-demographics" aria-label="Avance agregado por cuotas de sexo y edad">
         <header>
           <span><Layers3 size={14} /> Cuotas agregadas sexo/edad</span>
-          <strong>{formatMetric(summary.achieved)} / {formatMetric(summary.target)} meta sexo/edad · {formatMetric(summary.missing)} brecha</strong>
+          <strong>{formatMetric(summary.achieved)} / {formatMetric(summary.target)} meta sexo/edad, {formatMetric(summary.missing)} brecha</strong>
         </header>
         <div className="mon-territorial-exec-demographics-grid">
           <article className="mon-territorial-demographic-summary" aria-label="Meta demográfica agregada">
@@ -655,7 +656,7 @@ function DemographicQuotaPanel({ title, items }: { title: string; items: Demogra
           <span key={item.key} className={`is-${item.tone}`}>
             <i aria-hidden="true"><em style={{ width: `${clamp(item.pct ?? 0, 0, 100)}%` }} /></i>
             <strong>{item.label}</strong>
-            <em>{formatMetric(item.achieved)} / {formatMetric(item.target)} · faltan {formatMetric(item.missing)}</em>
+            <em>{formatMetric(item.achieved)} / {formatMetric(item.target)}, faltan {formatMetric(item.missing)}</em>
           </span>
         )) : (
           <span className="is-muted">
@@ -743,7 +744,7 @@ function DistributionList({ items, bars = false }: { items: DistributionItem[]; 
         <span key={item.key} className={`is-${item.tone}`}>
           <i style={{ width: `${Math.max(item.value ? 5 : 0, item.pct)}%` }} />
           <strong>{item.label}</strong>
-          <em>{formatMetric(item.value)} · {formatPercentLabel(item.pct)}</em>
+          <em>{formatMetric(item.value)}, {formatPercentLabel(item.pct)}</em>
         </span>
       ))}
     </div>
@@ -1090,14 +1091,14 @@ function TerritorialAdvanceUmpSection({
               <span><MapPin size={14} /> Mapa territorial</span>
               <strong>
                 {mapLayer === "zonas"
-                  ? `${formatMetric(effectiveRouteZoneCount)} zonas · ${formatMetric(effectiveRouteBlocks.length)} UMP completas`
+                  ? `${formatMetric(effectiveRouteZoneCount)} zonas, ${formatMetric(effectiveRouteBlocks.length)} UMP completas`
                   : selected ? advanceBlockLabel(selected) : "Sin UMP seleccionada"}
               </strong>
               <em>
                 {mapLayer === "zonas"
                   ? "Cierre por zona, sin puntos GPS"
                   : visible.length
-                    ? `${formatMetric(visible.length)} manzanas filtradas · ${formatMetric(visibleGpsPoints.length)} puntos GPS · ${selectedDistrictLabel} · ${phaseLabel}`
+                    ? `${formatMetric(visible.length)} manzanas filtradas, ${formatMetric(visibleGpsPoints.length)} puntos GPS, ${selectedDistrictLabel}, ${phaseLabel}`
                     : "Sin manzanas con los filtros activos"}
               </em>
             </div>
@@ -1158,7 +1159,7 @@ function TerritorialAdvanceUmpSection({
               <header>
                 <span><MapPin size={14} /> UMP seleccionada</span>
                 <strong>{selected.ump || selected.id_manzana || "Sin UMP"}</strong>
-                <em>{selected.distrito || "Sin distrito"}{selected.zona ? ` · Zona ${selected.zona}` : ""}</em>
+                <em>{selected.distrito || "Sin distrito"}{selected.zona ? `, zona ${selected.zona}` : ""}</em>
               </header>
               <div className="mon-territorial-ump-detail-status">
                 <span className={`mon-territorial-ump-status is-${blockStatus(selected)}`}>{blockStatusLabel(blockStatus(selected))}</span>
@@ -1215,7 +1216,7 @@ function TerritorialAdvanceUmpSection({
                   <tr key={rowKey} className={selectedRow ? "is-selected" : ""}>
                     <td>
                       <strong>{row.ump || "S/D"}</strong>
-                      <small>{[row.distrito || "Sin distrito", row.zona ? `Zona ${row.zona}` : "", row.manzana ? `Mz ${row.manzana}` : row.id_manzana].filter(Boolean).join(" · ")}</small>
+                      <small>{[row.distrito || "Sin distrito", row.zona ? `Zona ${row.zona}` : "", row.manzana ? `Mz ${row.manzana}` : row.id_manzana].filter(Boolean).join(", ")}</small>
                     </td>
                     <td>
                       <span className="mon-territorial-progress-cell">
@@ -1621,7 +1622,7 @@ function TerritorialAdvanceUmpMap({
         <div>
           <span><MapPin size={14} /> Mapa territorial</span>
           <strong>{selectedBlock ? advanceBlockLabel(selectedBlock) : "Todos los distritos"}</strong>
-          <em>{formatMetric(mapFeatures.length)} manzanas con geometría · {formatMetric(mapGpsPoints.length)} puntos GPS en mapa · {formatMetric(gpsPoints.length)} GPS visibles · {formatMetric(activeUbigeos.size)} distritos filtrados</em>
+          <em>{formatMetric(mapFeatures.length)} manzanas con geometría, {formatMetric(mapGpsPoints.length)} puntos GPS en mapa, {formatMetric(gpsPoints.length)} GPS visibles, {formatMetric(activeUbigeos.size)} distritos filtrados</em>
         </div>
         <div className="mon-territorial-advance-map-selection">
           <span>Selección</span>
@@ -1645,7 +1646,7 @@ function TerritorialAdvanceUmpMap({
           <button type="button" aria-label="Acercar mapa" onClick={() => zoomBy(1.45)}><Plus size={13} /></button>
           <button type="button" aria-label="Alejar mapa" onClick={() => zoomBy(0.69)}><Minus size={13} /></button>
           <button type="button" aria-label="Ver todo el mapa" onClick={resetMap}><Maximize2 size={13} /></button>
-          <span className="mon-territorial-map-zoom-readout">{zoom.toFixed(1)}x</span>
+          <span className="mon-territorial-map-zoom-readout">{formatoDecimal(zoom, 1)}x</span>
         </div>
         {projection.hasGeometry ? (
           <svg
@@ -1811,7 +1812,7 @@ function TerritorialAdvanceUmpMap({
           ))}
           <span className="is-map-legend-section">Ruta</span>
           <span className="is-route-selected">Manzana seleccionada</span>
-          <span className="is-map-context">Hoja de Ruta: {formatMetric(visibleZoneFeatures.length)} zonas · {formatMetric(visibleStreetFeatures.length)} vías · {formatMetric(visibleContextFeatures.length)} contexto</span>
+          <span className="is-map-context">Hoja de Ruta: {formatMetric(visibleZoneFeatures.length)} zonas, {formatMetric(visibleStreetFeatures.length)} vías, {formatMetric(visibleContextFeatures.length)} contexto</span>
           <span className="is-map-level">{formatMetric(neighborFeatures.length)} vecinas</span>
           {backgroundMapLoading ? <span className="is-map-level">Completando manzanas</span> : null}
           {backgroundRichLayerLoading ? <span className="is-map-level">Completando calles</span> : null}
@@ -1821,7 +1822,7 @@ function TerritorialAdvanceUmpMap({
             la mitad contra el borde. Como HTML se ancla al visor y no depende
             de la escala de la cartografía. */}
         <p className="mon-territorial-advance-map-hint" aria-hidden="true">
-          Arrastra o usa trackpad para moverte · Ctrl+rueda o botones para zoom · click enfoca detalle
+          Arrastra o usa trackpad para moverte, Ctrl+rueda o botones para zoom y click enfoca detalle
         </p>
         <TerritorialAdvanceMapFocusStrip
           selectedPoint={selectedGpsPoint}
@@ -1871,8 +1872,8 @@ function TerritorialAdvanceMapFocusStrip({
       >
         <span><CheckCircle2 size={13} /> GPS Kobo</span>
         <strong title={pointId}>{pointId}</strong>
-        <em title={territorialAdvancePointDetail(selectedPoint)}>{declared} · {advancePointSubmissionLabel(selectedPoint)}</em>
-        <b>{geoDispositionLabel(selectedPoint.geoDisposition)} · {formatDistanceLabel(distance)}</b>
+        <em title={territorialAdvancePointDetail(selectedPoint)}>{declared}, {advancePointSubmissionLabel(selectedPoint)}</em>
+        <b>{geoDispositionLabel(selectedPoint.geoDisposition)}, {formatDistanceLabel(distance)}</b>
       </section>
     );
   }
@@ -1889,7 +1890,7 @@ function TerritorialAdvanceMapFocusStrip({
         <span><Route size={13} /> UMP foco</span>
         <strong title={advanceBlockDetail(selectedBlock)}>{advanceBlockLabel(selectedBlock)}</strong>
         <em title={advanceBlockDetail(selectedBlock)}>{advanceBlockDetail(selectedBlock)}</em>
-        <b>{formatMetric(selectedBlock.validas)} / {formatMetric(selectedBlock.meta)} válidas · {formatMetric(selectedBlock.brecha)} pendientes · {hasSelectedGeometry ? "con geometría" : "sin geometría"}</b>
+        <b>{formatMetric(selectedBlock.validas)} / {formatMetric(selectedBlock.meta)} válidas, {formatMetric(selectedBlock.brecha)} pendientes, {hasSelectedGeometry ? "con geometría" : "sin geometría"}</b>
         <i aria-hidden="true"><small style={{ width: `${Math.max(4, pct)}%` }} /></i>
       </section>
     );
@@ -1999,7 +2000,7 @@ function TerritorialUmpMapNavigator({
               </span>
               <span>
                 <strong>{block.ump || block.id_manzana || "S/D"}</strong>
-                <em>{block.zona ? `Zona ${block.zona}` : "Zona S/D"} · {block.manzana ? `Mz ${block.manzana}` : "Mz S/D"}</em>
+                <em>{block.zona ? `Zona ${block.zona}` : "Zona S/D"}, {block.manzana ? `Mz ${block.manzana}` : "Mz S/D"}</em>
               </span>
               <b>{block.distrito || "Sin distrito"}</b>
               <div className="mon-territorial-ump-map-nav-meta" aria-label="Detalle operativo de la manzana">
@@ -2045,7 +2046,7 @@ function advanceBlockStableKey(block: TerritorialBlockProgress) {
 function advanceBlockLabel(block: TerritorialBlockProgress) {
   const ump = stringOrEmpty(block.ump || block.territorio_muestral || block.hoja_num).trim();
   const blockLabel = block.manzana ? `Mz ${block.manzana}` : block.id_manzana ? `Mz ${block.id_manzana}` : "Mz S/D";
-  return ump ? `UMP ${ump} · ${blockLabel}` : blockLabel;
+  return ump ? `UMP ${ump}, ${blockLabel}` : blockLabel;
 }
 
 function advanceBlockDetail(block: TerritorialBlockProgress) {
@@ -2054,7 +2055,7 @@ function advanceBlockDetail(block: TerritorialBlockProgress) {
     block.zona ? `Zona ${block.zona}` : "",
     block.manzana ? `Mz ${block.manzana}` : block.id_manzana || "",
     block.responsable || "Sin responsable",
-  ].filter(Boolean).join(" · ");
+  ].filter(Boolean).join(", ");
 }
 
 function progressPctForBlock(block: TerritorialBlockProgress) {
@@ -2251,7 +2252,7 @@ function territorialAdvancePointDetail(point: TerritorialAdvanceKoboPoint) {
   const ump = stringOrEmpty(point.declared_ump_normalized || point.advance_block_ump || point.declared_ump_raw).trim() || "UMP S/D";
   const place = stringOrEmpty(point.advance_block_distrito || point.distrito || point.advance_block_ubigeo || point.ubigeo).trim() || "Sin distrito";
   const responsible = stringOrEmpty(point.responsible_display || point.enumerator_assigned || point.submitted_by).trim() || "Sin responsable";
-  return `${ump} · ${place} · ${responsible} · ${geoDispositionLabel(point.geoDisposition)}`;
+  return `${ump}, ${place}, ${responsible}, ${geoDispositionLabel(point.geoDisposition)}`;
 }
 
 function advancePointSubmissionLabel(point: TerritorialAdvanceKoboPoint) {
@@ -2264,7 +2265,7 @@ function formatDistanceLabel(value: unknown) {
   if (distance == null) return "S/D";
   if (distance < 1) return "<1 m";
   if (distance < 1000) return `${Math.round(distance)} m`;
-  return `${(distance / 1000).toFixed(1)} km`;
+  return `${formatoDecimal(distance / 1000, 1)} km`;
 }
 
 function TerritorialAdvanceRhythmSection({
@@ -2319,7 +2320,7 @@ function TerritorialAdvanceRhythmSection({
           <header>
             <div>
               <span><CalendarRange size={14} /> Ritmo diario válido</span>
-              <strong>Válidas diarias y acumulado contra meta · sólo las respuestas con fecha</strong>
+              <strong>Válidas diarias y acumulado contra meta, sólo las respuestas con fecha</strong>
             </div>
             <em>{formatMetric(rows.length)} días</em>
           </header>
@@ -2350,7 +2351,7 @@ function TerritorialAdvanceRhythmSection({
                 // la diferencia entre lo que declara el corte y lo que la serie
                 // acumula. El porqué —la serie sólo toma filas con fecha— lo dice
                 // el subtítulo del panel, que es donde se puede afirmar.
-                ? `de ${formatMetric(targetTotal)} de meta · ${formatMetric(validasFueraDeLaSerie)} válidas del corte quedan fuera de esta serie`
+                ? `de ${formatMetric(targetTotal)} de meta, ${formatMetric(validasFueraDeLaSerie)} válidas del corte quedan fuera de esta serie`
                 : `de ${formatMetric(targetTotal)} de meta`
               : "sin fechas en el corte"}
             tone={latest && latest.cumulative_valid > 0 ? "ready" : "base"}
@@ -2368,7 +2369,7 @@ function TerritorialAdvanceRhythmSection({
             hint={!latest
               ? "sin fechas"
               : serieSinUmp
-                ? `la serie diaria no las trae · el corte declara ${formatMetric(umpCompletasDelCorte)}`
+                ? `la serie diaria no las trae, el corte declara ${formatMetric(umpCompletasDelCorte)}`
                 : `${formatMetric(pendingUmp)} pendientes de ${formatMetric(umpTotal)}`}
             tone="base"
           />
@@ -2826,7 +2827,7 @@ function buildAdvancePriorities(districts: TerritorialDistrictProgress[], blocks
       districtKey: districtKey(row),
       umpKey: row.ump || row.id_manzana,
       title: row.ump || row.id_manzana || "UMP sin código",
-      detail: `${row.distrito || "Sin distrito"} · ${row.responsable || "Sin responsable"}`,
+      detail: `${row.distrito || "Sin distrito"}, ${row.responsable || "Sin responsable"}`,
       gap: numberOrZero(row.brecha ?? Math.max(0, numberOrZero(row.meta) - numberOrZero(row.validas))),
       progressPct: clamp(row.avance_pct ?? safePercent(row.validas, row.meta) ?? 0, 0, 100),
       tone: blockStatus(row) === "none" ? "muted" as const : "warning" as const,

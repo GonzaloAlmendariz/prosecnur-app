@@ -19,6 +19,7 @@ import { AvisoDeTarjeta, PestanaSinContenido } from "../piezas/AvisoDeTarjeta";
 import { clasePublico, paletaDePublicos } from "../paletaPublicos";
 import "../paletaPublicos.css";
 import { useSubvistaEnFoco } from "../../../core/subvistaEnFoco";
+import { formatoDecimal } from "../../../../../lib/formatoNumero";
 
 const GRAFICOS_DE_RITMO = ["publico", "acumulado"] as const;
 
@@ -28,7 +29,7 @@ const DIAS_PARA_LEER_LA_SEMANA = 14;
 /** El desglose por fuente y recopilador: `panel=fuentes`. */
 export const PANEL_FUENTES: PanelDeclarado = { id: "fuentes", label: "Por fuente y recopilador", clase: "sideover" };
 
-const UNA_DECIMAL = (valor: number) => valor.toLocaleString("es-PE", { maximumFractionDigits: 1 });
+const UNA_DECIMAL = (valor: number) => formatoDecimal(valor, 1);
 
 type PropsDeVista = {
   actores: ReadonlyArray<Record<string, unknown>>;

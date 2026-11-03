@@ -15,6 +15,7 @@ import { fechaDeColumna } from "../control/barridoModel";
 import { clasificadorDeStatus, type FamiliaDelCliente } from "../control/familiasDelCliente";
 import { filasDeBloque } from "../navegacion/bloques";
 import { nombreDelSegmento } from "../segmentoDeCuotas";
+import { formatoConteo } from "../../../../../lib/formatoNumero";
 
 type Fila = Record<string, unknown>;
 
@@ -295,7 +296,7 @@ export function notaSinCategoria(
   sinFecha = 0,
 ) {
   const nombre = segmento.toLocaleLowerCase("es");
-  const fmt = (n: number) => n.toLocaleString("es-PE");
+  const fmt = (n: number) => formatoConteo(n);
   const partes = [
     sinCategoria ? `${fmt(sinCategoria)} ${sinCategoria === 1 ? "efectiva" : "efectivas"} de Kobo sin ${nombre}` : "",
     ...fueraDeCuota.map((item) => `${fmt(item.casos)} en «${item.nombre}», que no tiene cuota`),
@@ -316,7 +317,7 @@ export function notaDeValidasTelefonica(reports: MonitoreoAcreditacionReports | 
   const fuera = fueraDeCuota.reduce((suma, item) => suma + item.casos, 0);
   if (!sinCategoria && !fuera && !sinFecha) return undefined;
   const nombre = segmento.toLocaleLowerCase("es");
-  const fmt = (n: number) => n.toLocaleString("es-PE");
+  const fmt = (n: number) => formatoConteo(n);
   return [
     `${fmt(serie.total)} con cuota`,
     sinFecha ? `${fmt(sinFecha)} sin fecha` : "",
@@ -365,5 +366,5 @@ export function motivoSinSerie(
 }
 
 function n(valor: number) {
-  return valor.toLocaleString("es-PE");
+  return formatoConteo(valor);
 }

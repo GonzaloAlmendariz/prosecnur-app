@@ -8,9 +8,10 @@ import { FAMILIAS_DEL_CLIENTE, rotuloDeRegla } from "./familiasDelCliente";
 import type { Barrido as Modelo, FilaDeCategoria } from "./barridoModel";
 import { RotuloDePestana, useHayRotulo } from "../navegacion/RotuloDePestana";
 import "./controlTelefonico.css";
+import { formatoConteo } from "../../../../../lib/formatoNumero";
 
 function n(valor: number | null | undefined) {
-  return valor == null ? "—" : valor.toLocaleString("es-PE");
+  return valor == null ? "—" : formatoConteo(valor);
 }
 
 function porcentaje(valor: number | null) {

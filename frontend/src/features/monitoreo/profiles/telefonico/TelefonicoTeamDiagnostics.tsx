@@ -31,9 +31,9 @@ function deviationLabel(value: number | null | undefined) {
 }
 
 function cellTitle(cell: TelefonicoStatusCell, responsable: string) {
-  const base = `${responsable} · ${cell.estado}: ${metric(cell.casos)} casos (${pctLabel(cell.pct)} de su carga)`;
+  const base = `${responsable}, ${cell.estado}: ${metric(cell.casos)} casos (${pctLabel(cell.pct)} de su carga)`;
   const dev = deviationLabel(cell.desviacion);
-  return dev ? `${base} · ${dev}` : base;
+  return dev ? `${base}, ${dev}` : base;
 }
 
 /**

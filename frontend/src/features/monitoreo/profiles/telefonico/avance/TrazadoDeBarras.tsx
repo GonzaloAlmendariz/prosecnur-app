@@ -1,8 +1,9 @@
 import { escalaDeEje } from "./escalaDeEje";
 import { fechaCorta } from "./ritmoModel";
+import { formatoConteo } from "../../../../../lib/formatoNumero";
 
 function n(valor: number) {
-  return valor.toLocaleString("es-PE");
+  return formatoConteo(valor);
 }
 
 /** Alto aproximado de la cifra sobre la barra, en % del área (16 px sobre ~180–250 px). */

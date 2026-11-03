@@ -98,7 +98,7 @@ function Camino({ c, abierto, onAbrir }: {
           <b>{repone ? fmt(c.respuestas) : `+${fmt(c.respuestas)}`}</b>
           <span>
             {repone ? "respuestas recuperadas" : "respuestas adicionales"}
-            {c.porSexo ? ` · ${fmt(c.porSexo.mujeres)} mujeres y ${fmt(c.porSexo.hombres)} hombres` : ""}
+            {c.porSexo ? `, ${fmt(c.porSexo.mujeres)} mujeres y ${fmt(c.porSexo.hombres)} hombres` : ""}
           </span>
         </p>
       ) : (
@@ -140,7 +140,7 @@ function Camino({ c, abierto, onAbrir }: {
                 </span>
                 <span className="aulas-cam-trajo">
                   {a.porSexo
-                    ? `${fmt(a.porSexo.mujeres)} M · ${fmt(a.porSexo.hombres)} H`
+                    ? `${fmt(a.porSexo.mujeres)} M, ${fmt(a.porSexo.hombres)} H`
                     : fmt(a.efectivas)}
                 </span>
               </li>

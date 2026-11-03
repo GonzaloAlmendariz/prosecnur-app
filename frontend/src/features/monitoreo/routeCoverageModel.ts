@@ -125,7 +125,7 @@ export function routeOperationalLabel(block: TerritorialBlockProgress) {
   if (block.tipo_manzana === "reemplazo") {
     const primary = routePrimaryUmpLabel(block);
     const replacement = routeReplacementLabel(block);
-    return primary === "UMP por definir" ? replacement : `${primary} · ${replacement}`;
+    return primary === "UMP por definir" ? replacement : `${primary}, ${replacement}`;
   }
   return routePrimaryUmpLabel(block);
 }

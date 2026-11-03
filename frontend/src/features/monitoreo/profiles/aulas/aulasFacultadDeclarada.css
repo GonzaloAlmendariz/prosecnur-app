@@ -76,7 +76,7 @@
   border-radius: 5px;
   background: var(--pulso-surface-raised);
   border: 1px solid var(--pulso-border);
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-variant-numeric: tabular-nums;
   font-size: var(--pulso-type-caption-size);
   text-align: right;
   color: var(--pulso-text-soft);

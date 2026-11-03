@@ -23,6 +23,7 @@ import "./trazadoDeBarras.css";
 import "../control/controlTelefonico.css";
 import "../insumos/insumosTelefonico.css";
 import "./ritmoTelefonico.css";
+import { formatoConteo } from "../../../../../lib/formatoNumero";
 
 const ETIQUETA_DE_FAMILIA: Record<FamiliaDeLlamada, string> = {
   efectiva: "Efectiva",
@@ -36,7 +37,7 @@ const ETIQUETA_DE_FAMILIA: Record<FamiliaDeLlamada, string> = {
 const SERIES = 6;
 
 function n(valor: number) {
-  return valor.toLocaleString("es-PE");
+  return formatoConteo(valor);
 }
 
 function decimal(valor: number) {

@@ -63,6 +63,6 @@ export function estadoDelSheets(
   }
   return {
     estado: "al_dia",
-    texto: `Sheets al día · publicado el ${cuando} con el corte de las ${hora(corteHoja)}`,
+    texto: `Sheets al día, publicado el ${cuando} con el corte de las ${hora(corteHoja)}`,
   };
 }

@@ -1,6 +1,7 @@
 import type { ResponsableDeCola } from "../colaDeInsistenciaModel";
 import { fraseDelReparto, medianaDeIntentos } from "../colaDeInsistenciaModel";
 import { useFiltrosDeCola } from "../colaDeInsistenciaStore";
+import { formatoConteo } from "../../../../lib/formatoNumero";
 
 const INTENSIDAD: Record<NonNullable<ResponsableDeCola["intensidad"]>, string> = {
   sobre: "insiste más que el equipo",
@@ -38,7 +39,7 @@ export function ResponsablesDeCola({
       </header>
       {/* La cifra en la tarjeta; la frase entera, en su tooltip. */}
       <p className="mon-cola-reparto" title={fraseDelReparto(reparto)}>
-        {reparto.porLlamarAsignados.toLocaleString("es-PE")} por llamar
+        {formatoConteo(reparto.porLlamarAsignados)} por llamar
       </p>
       <ul className="mon-cola-responsables-lista">
         {equipo.map((item) => {
@@ -63,7 +64,7 @@ export function ResponsablesDeCola({
                     {item.intensidad ? <span className="pulso-sr-only">, {INTENSIDAD[item.intensidad]}</span> : null}
                   </span>
                 </span>
-                <strong className="is-num">{item.enCola.toLocaleString("es-PE")}</strong>
+                <strong className="is-num">{formatoConteo(item.enCola)}</strong>
               </button>
             </li>
           );
@@ -72,8 +73,8 @@ export function ResponsablesDeCola({
       {sinAsignar ? (
         <footer className="mon-cola-sin-asignar">
           <b>Sin asignar</b>
-          <span title={`${sinAsignar.enCola.toLocaleString("es-PE")} en cola. Sin llamar y sin responsable.`}>
-            {sinAsignar.porLlamar.toLocaleString("es-PE")} sin llamar
+          <span title={`${formatoConteo(sinAsignar.enCola)} en cola. Sin llamar y sin responsable.`}>
+            {formatoConteo(sinAsignar.porLlamar)} sin llamar
           </span>
         </footer>
       ) : null}

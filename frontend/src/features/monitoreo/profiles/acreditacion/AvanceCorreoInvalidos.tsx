@@ -39,7 +39,7 @@ export function AvanceCorreoInvalidos({
       <header className="mon-correo-bloque-cabeza">
         <div>
           <h3 id={`${base}-titulo`}>Correos inválidos <span className="mon-correo-cuenta">{cifra(total)}</span></h3>
-          <p className="mon-correo-bloque-meta">Rebote duro o dado de baja por Mailchimp · fuera de la base alcanzable</p>
+          <p className="mon-correo-bloque-meta">Rebote duro o dado de baja por Mailchimp, fuera de la base alcanzable</p>
         </div>
       </header>
       {sumaReparto > 0 ? (
@@ -50,7 +50,7 @@ export function AvanceCorreoInvalidos({
                 key={a.actor}
                 className={clasePublico(paleta, a.actor)}
                 style={{ flexGrow: a.n ?? 0 }}
-                title={`${a.actor}: ${cifra(a.n)} · ${porcentaje((a.n ?? 0) / sumaReparto)}`}
+                title={`${a.actor}: ${cifra(a.n)}, ${porcentaje((a.n ?? 0) / sumaReparto)}`}
               />
             ))}
           </span>

@@ -52,7 +52,7 @@ export function AulasRepartoDelTecho({ bloque, celdasDeCuota, plan, techo, onGua
         <label htmlFor="aulas-techo-n">Techo de cursos-horario agendables</label>
         {/* El 1fr de la izquierda tiene que trabajar: el control solo dejaba
             una franja vacía y no decía contra qué se está eligiendo el número. */}
-        <em>cuántos más cabe agendar además de lo que ya hay en pie · el reparto
+        <em>cuántos más cabe agendar además de lo que ya hay en pie, el reparto
           los coloca donde más cierran, no donde más se debe</em>
       </span>
       <div className="aulas-techo-paso">
@@ -169,7 +169,7 @@ export function AulasRepartoDelTecho({ bloque, celdasDeCuota, plan, techo, onGua
             <span className="aulas-techo-puesto">{fmt(i + 1)}</span>
             <span className="aulas-techo-quien">
               <b>{a.codigo}</b>
-              <em>{facultadCorta(a.facultad)}{a.docente ? ` · ${a.docente}` : ""}</em>
+              <em>{facultadCorta(a.facultad)}{a.docente ? `, ${a.docente}` : ""}</em>
             </span>
             <span className="aulas-techo-aporte">
               {/* En las de margen no hay brecha que cerrar, así que el «+N» sería
@@ -202,7 +202,7 @@ export function AulasRepartoDelTecho({ bloque, celdasDeCuota, plan, techo, onGua
                   {pctPerfil(a.traslapeAplicado * 100)} de su facultad ya aplicado
                 </b>
               ) : null}
-              {a.traslapeAplicado >= 0.25 && a.traslape ? " · " : null}
+              {a.traslapeAplicado >= 0.25 && a.traslape ? ", " : null}
               {a.traslape === "docente" ? (
                 <b className="es-docente">mismo docente que {a.solapaCon}</b>
               ) : a.traslape === "curso" ? (
@@ -238,7 +238,7 @@ export function AulasRepartoDelTecho({ bloque, celdasDeCuota, plan, techo, onGua
               {f.hacenFalta > 0 ? `, le harían falta ${fmt(f.hacenFalta)}`
                 : f.hacenFalta < 0 ? ", y su inventario no alcanza" : ""})
             </span>
-          )).reduce<ReactNode[]>((acc, el, i) => (i ? [...acc, " · ", el] : [el]), [])}
+          )).reduce<ReactNode[]>((acc, el, i) => (i ? [...acc, ", ", el] : [el]), [])}
         </p>
       ) : null}
 

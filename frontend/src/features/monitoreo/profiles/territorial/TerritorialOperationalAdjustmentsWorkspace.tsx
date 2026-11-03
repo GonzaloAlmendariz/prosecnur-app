@@ -1,3 +1,4 @@
+import { formatoDecimal } from "../../../../lib/formatoNumero";
 import { useEffect, useMemo, useState } from "react";
 import {
   AlertTriangle,
@@ -288,7 +289,7 @@ export function TerritorialOperationalAdjustmentsWorkspace({
     <section className="mon-operational-adjustments" aria-label="Subsanaciones operativas de avance">
       <header className="mon-operational-adjustments__header">
         <div>
-          <span><ArrowRight size={14} /> Subsanador operativo · {phaseLabel}</span>
+          <span><ArrowRight size={14} /> Subsanador operativo, {phaseLabel}</span>
           <strong>Excedentes reales, paquetes completos</strong>
           <p>Solo aparecen movimientos que cierran una UMP pendiente con respuestas sobrantes trazables y que conservan completa la UMP origen.</p>
         </div>
@@ -626,7 +627,7 @@ export function TerritorialOperationalAdjustmentsWorkspace({
                         <div className="mon-operational-applied__cell is-audit">
                           <small>Evidencia</small>
                           <strong>{formatMetric(caseCount)} caso(s)</strong>
-                          <em>{formatMetric(responseCount)} ID(s) · {territorialOperationalAppliedDateLabel(item)}</em>
+                          <em>{formatMetric(responseCount)} ID(s), {territorialOperationalAppliedDateLabel(item)}</em>
                         </div>
                       </div>
                       {isActive ? (
@@ -663,7 +664,7 @@ function territorialOperationalAdjustmentBlockLabel(item: MonitoreoTerritorialOp
   const manzana = stringOrEmpty(side === "source" ? item.source_manzana : item.target_manzana).trim();
   const block = stringOrEmpty(side === "source" ? item.source_block_id : item.target_block_id).trim();
   const base = ump || (block ? shortenMiddle(block, 18) : "UMP sin código");
-  return manzana ? `${base} · Mz ${manzana}` : base;
+  return manzana ? `${base}, Mz ${manzana}` : base;
 }
 
 function territorialOperationalAdjustmentSelectionId(item: MonitoreoTerritorialOperationalAdjustment) {
@@ -686,7 +687,7 @@ function territorialOperationalAdjustmentCellLabel(item: MonitoreoTerritorialOpe
     stringOrEmpty(item.district).trim() || "Sin distrito",
     stringOrEmpty(item.sex).trim() || "S/D",
     stringOrEmpty(item.age_group).trim() || "sin edad",
-  ].join(" · ");
+  ].join(", ");
 }
 
 function territorialOperationalAdjustmentSideResponsibleLabel(item: MonitoreoTerritorialOperationalAdjustment, side: "source" | "target") {
@@ -703,7 +704,7 @@ function territorialOperationalAdjustmentDistanceLabel(item: MonitoreoTerritoria
   const distance = numberOrNull(item.distance_km);
   if (distance === null || !Number.isFinite(distance) || distance < 0) return "";
   if (distance < 1) return `${Math.max(1, Math.round(distance * 1000))} m`;
-  if (distance < 10) return `${distance.toFixed(1)} km`;
+  if (distance < 10) return `${formatoDecimal(distance, 1)} km`;
   return `${Math.round(distance)} km`;
 }
 

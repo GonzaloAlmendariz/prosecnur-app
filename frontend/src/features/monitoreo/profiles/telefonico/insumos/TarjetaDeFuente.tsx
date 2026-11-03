@@ -93,7 +93,7 @@ export function AcreditacionPhoneSourceSlotCard({
               href={enlacePrimario.href}
               target="_blank"
               rel="noreferrer"
-              title={[enlacePrimario.titulo, !isPlatform ? sourceSheetField(primary, "range") : null].filter(Boolean).join(" · ")}
+              title={[enlacePrimario.titulo, !isPlatform ? sourceSheetField(primary, "range") : null].filter(Boolean).join(", ")}
               onClick={(event) => event.stopPropagation()}
             >
               {primary ? nombreDeFuente(primary) : enlacePrimario.texto}

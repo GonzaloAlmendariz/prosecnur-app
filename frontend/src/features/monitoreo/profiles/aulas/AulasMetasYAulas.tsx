@@ -127,7 +127,7 @@ export function AulasMetasYAulas({ filas , eje}: {
                       </span>
                     ) : (
                     <span className="aulas-metas-aulas">
-                      {fmt(f.aulas_aplicadas)} cursos-horario aplicados ·{" "}
+                      {fmt(f.aulas_aplicadas)} cursos-horario aplicados,{" "}
                       <AulasAgendadasDeLaFila total={f.aulas_agendadas} agendadas={f.agendadas} />
                     </span>
                     )}

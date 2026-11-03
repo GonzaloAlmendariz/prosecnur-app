@@ -12,6 +12,7 @@ import { UMBRALES_NO_BARRIDO, construirNoBarridos, diasLegibles, type OperadorNo
 import "./controlTelefonico.css";
 import "./noBarridos.css";
 import { RotuloDePestana, useHayRotulo } from "../navegacion/RotuloDePestana";
+import { formatoConteo } from "../../../../../lib/formatoNumero";
 
 /** «Estados por operador» es una vista de la pestaña con dirección: `panel=estados`. */
 export const PANEL_ESTADOS: PanelDeclarado = { id: "estados", label: "Estados por operador", clase: "inspector" };
@@ -19,7 +20,7 @@ export const PANEL_ESTADOS: PanelDeclarado = { id: "estados", label: "Estados po
 const ETIQUETA = new Map(FAMILIAS_DEL_CLIENTE.map((item) => [item.id, item.etiqueta]));
 
 function n(valor: number | null | undefined) {
-  return valor == null ? "—" : valor.toLocaleString("es-PE");
+  return valor == null ? "—" : formatoConteo(valor);
 }
 
 function TablaDeCarga({

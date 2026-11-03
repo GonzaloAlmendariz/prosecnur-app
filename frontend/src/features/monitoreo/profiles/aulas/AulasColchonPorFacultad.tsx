@@ -69,7 +69,7 @@ export function AulasColchonPorFacultad({ filas, eje }: {
             </>
           : <>{`Ningún grupo de ${unidad} ha agotado la reserva de una cadena.`}</>}
         {cadenasNuncaTuvo
-          ? <> · el plan dejó <strong>{fmt(cadenasNuncaTuvo)}</strong> {cadenasNuncaTuvo === 1 ? "curso-horario" : "cursos-horario"} sin
+          ? <>, el plan dejó <strong>{fmt(cadenasNuncaTuvo)}</strong> {cadenasNuncaTuvo === 1 ? "curso-horario" : "cursos-horario"} sin
               ninguna reserva desde el diseño</>
           : null}
       </p>

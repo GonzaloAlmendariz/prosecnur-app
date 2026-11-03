@@ -8,6 +8,7 @@
  */
 
 import type { MonitoreoRow } from "../../../../../../api/client";
+import { formatoDecimal } from "../../../../../../lib/formatoNumero";
 
 export type DuracionFueraDeRango = {
   id: string;
@@ -52,7 +53,7 @@ export function duracionesFueraDeRango(
 
 /** «45 s», «12.5 min», «3.2 h» o «9.9 días». */
 export function duracionLegible(segundos: number): string {
-  const una = (n: number) => n.toLocaleString("es-PE", { maximumFractionDigits: 1 });
+  const una = (n: number) => formatoDecimal(n, 1);
   if (segundos < 60) return `${una(segundos)} s`;
   if (segundos < 3600) return `${una(segundos / 60)} min`;
   if (segundos < 86400) return `${una(segundos / 3600)} h`;

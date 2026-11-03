@@ -19,6 +19,7 @@ import {
   lineaPestana,
 } from "./ensayoPublicacionModelo";
 import "./ensayoPublicacion.css";
+import { formatoConteo } from "../../../lib/formatoNumero";
 
 export type EstadoEnsayo =
   | { kind: "cargando" }
@@ -66,7 +67,7 @@ function DetallePestana({ p }: { p: EnsayoPestana }) {
             <h5>Añadidas</h5>
             <ul>
               {anadidas.slice(0, MAX_FILAS_VISIBLES).map((f, i) => (
-                <li key={`a-${i}-${f.clave}`}>{f.valores.filter(Boolean).slice(0, 4).join(" · ")}</li>
+                <li key={`a-${i}-${f.clave}`}>{f.valores.filter(Boolean).slice(0, 4).join(", ")}</li>
               ))}
             </ul>
           </section>
@@ -76,7 +77,7 @@ function DetallePestana({ p }: { p: EnsayoPestana }) {
             <h5>Borradas</h5>
             <ul>
               {borradas.slice(0, MAX_FILAS_VISIBLES).map((f, i) => (
-                <li key={`b-${i}-${f.clave}`}>{f.valores.filter(Boolean).slice(0, 4).join(" · ")}</li>
+                <li key={`b-${i}-${f.clave}`}>{f.valores.filter(Boolean).slice(0, 4).join(", ")}</li>
               ))}
             </ul>
           </section>
@@ -161,7 +162,7 @@ export function EnsayoPublicacionDialog({ destino, estado, aplicando, onAplicar,
           <div className="mon-ensayo-resumen" aria-label="Resumen del ensayo">
             {cifrasResumen(ensayo).map((c) => (
               <div key={c.clave} className={`mon-ensayo-cifra is-${c.clave}${c.valor ? "" : " is-cero"}`}>
-                <b>{c.valor.toLocaleString("es-PE")}</b>
+                <b>{formatoConteo(c.valor)}</b>
                 <span>{c.rotulo}</span>
               </div>
             ))}

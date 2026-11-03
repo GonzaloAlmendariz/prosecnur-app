@@ -1,3 +1,4 @@
+import { formatoConteo, formatoDecimal } from "../../../../lib/formatoNumero";
 import type { ReactNode } from "react";
 import { Scale } from "../../../../vendor/lucide-react";
 import { EstadoVacio } from "../../../../components/EstadoVacio";
@@ -49,15 +50,15 @@ export function AulasRepresentatividad({ bloque }: {
     <div className="aulas-repr">
       <div className="aulas-repr-cabeza">
         <p className="aulas-repr-puntaje">
-          <strong>{vista.efectivo === null ? "—" : vista.efectivo.toLocaleString("es-PE", { maximumFractionDigits: 1 })}</strong>
+          <strong>{vista.efectivo === null ? "—" : formatoDecimal(vista.efectivo, 1)}</strong>
           <span> de 100</span>
         </p>
         <p className="aulas-repr-lectura">
           La muestra que se está aplicando se desvía{" "}
-          <strong>{vista.desvioMedio === null ? "—" : `${vista.desvioMedio.toLocaleString("es-PE", { maximumFractionDigits: 1 })} pp`}</strong>{" "}
+          <strong>{vista.desvioMedio === null ? "—" : `${formatoDecimal(vista.desvioMedio, 1)} pp`}</strong>{" "}
           en promedio de la que sorteó el diseño
           {vista.cursosHorarioEnPie !== null && vista.cursosHorarioDelSorteo !== null
-            ? ` · ${vista.cursosHorarioEnPie.toLocaleString("es-PE")} cursos-horario en pie de los ${vista.cursosHorarioDelSorteo.toLocaleString("es-PE")} del sorteo`
+            ? `, ${formatoConteo(vista.cursosHorarioEnPie)} cursos-horario en pie de los ${formatoConteo(vista.cursosHorarioDelSorteo)} del sorteo`
             : ""}
           {". "}
           <span className="aulas-repr-escala">100 es composición idéntica; 0 es una desviación media de 5 pp o más.</span>
@@ -69,10 +70,10 @@ export function AulasRepresentatividad({ bloque }: {
 
       <ol className="aulas-repr-lista" data-qa-geometry-capacity="owned" data-qa-geometry-member>
         {vista.desvios.map((d) => (
-          <li key={d.clave} title={`Diseñado ${pctPerfil(d.disenada * 100)} · aplicándose ${pctPerfil(d.efectiva * 100)}`}>
+          <li key={d.clave} title={`Diseñado ${pctPerfil(d.disenada * 100)}, aplicándose ${pctPerfil(d.efectiva * 100)}`}>
             <span className="aulas-repr-rotulo">{d.etiqueta}</span>
             <span className="aulas-repr-carril" role="img"
-              aria-label={`${d.etiqueta}: ${d.desvio > 0 ? "sobra" : "falta"} ${Math.abs(d.desvio).toFixed(1)} puntos porcentuales`}>
+              aria-label={`${d.etiqueta}: ${d.desvio > 0 ? "sobra" : "falta"} ${formatoDecimal(Math.abs(d.desvio), 1)} puntos porcentuales`}>
               {/* Una sola barra que arranca del centro. El lado lo da el signo y
                   el largo la magnitud contra el mayor desvío de la lista. */}
               <i
@@ -81,7 +82,7 @@ export function AulasRepresentatividad({ bloque }: {
               />
             </span>
             <span className="aulas-repr-cifra" data-lado={d.desvio > 0 ? "sobra" : "falta"}>
-              {d.desvio > 0 ? "+" : "−"}{Math.abs(d.desvio).toLocaleString("es-PE", { maximumFractionDigits: 1 })} pp
+              {d.desvio > 0 ? "+" : "−"}{formatoDecimal(Math.abs(d.desvio), 1)} pp
             </span>
           </li>
         ))}
@@ -89,7 +90,7 @@ export function AulasRepresentatividad({ bloque }: {
 
       <p className="aulas-repr-pie">
         {vista.sinMoverse > 0
-          ? `Los otros ${vista.sinMoverse.toLocaleString("es-PE")} estratos conservan su peso del sorteo.`
+          ? `Los otros ${formatoConteo(vista.sinMoverse)} estratos conservan su peso del sorteo.`
           : "Todos los estratos del sorteo se han movido."}
       </p>
     </div>

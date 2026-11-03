@@ -79,7 +79,7 @@ function titleLabel(value: unknown) {
 }
 
 function compact(parts: Array<unknown>) {
-  return parts.map(cleanText).filter(Boolean).join(" · ");
+  return parts.map(cleanText).filter(Boolean).join(", ");
 }
 
 function caseIdentity(item: MonitoreoInternalQueryCase) {
@@ -251,7 +251,7 @@ function identityEvidence(item: MonitoreoInternalQueryCase) {
       ]),
     };
   }
-  if (declaredCode && declaredEmail) return { label: "Código + correo", detail: `${declaredCode} · ${declaredEmail}` };
+  if (declaredCode && declaredEmail) return { label: "Código + correo", detail: `${declaredCode}, ${declaredEmail}` };
   if (declaredCode) return { label: "Código declarado", detail: declaredCode };
   if (declaredEmail) return { label: "Correo declarado", detail: declaredEmail };
   if (declaredName) return { label: "Nombre declarado", detail: titleLabel(declaredName) };
@@ -530,7 +530,7 @@ export function buildCaseCrossingExplanation(item: MonitoreoInternalQueryCase): 
   }
 
   return {
-    title: cleanText(item.identity_label) || `${platform} · ${base}`,
+    title: cleanText(item.identity_label) || `${platform}, ${base}`,
     detail: compact([item.channel_key_strategy_label, reviewReason]) || "Revisar evidencia antes de tomar una decisión.",
     evidenceLabel: evidence.label,
     evidenceDetail: evidence.detail,

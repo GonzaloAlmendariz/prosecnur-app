@@ -54,8 +54,8 @@ export function textoDelRecordado(libro: LibroSheetsRecordado): string {
   if (!enlaceRecordado(libro)) return "Pégalo una vez y queda guardado para leer y publicar.";
   const cuando = fechaCorta(libro?.updated_at);
   return cuando
-    ? `Guardado el ${cuando} · leer y publicar usan este enlace.`
-    : "Guardado · leer y publicar usan este enlace.";
+    ? `Guardado el ${cuando}, leer y publicar usan este enlace.`
+    : "Guardado, leer y publicar usan este enlace.";
 }
 
 /**

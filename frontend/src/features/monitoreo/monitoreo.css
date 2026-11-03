@@ -25233,7 +25233,7 @@ button.mon-territorial-ump-audit-scrim {
   display: block;
   overflow: hidden;
   color: var(--pulso-text);
-  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  font-family: inherit;
   font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-bold);
   text-overflow: ellipsis;

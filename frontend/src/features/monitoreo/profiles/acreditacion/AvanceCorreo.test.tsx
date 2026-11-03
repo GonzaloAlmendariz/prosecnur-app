@@ -72,14 +72,14 @@ const pinta = (s: Partial<EstadoCorreo>, extra: Partial<AvanceCorreoVistaProps> 
 
 describe("modelo de Avance › Correo", () => {
   it("el porcentaje lleva su frecuencia y su base", () => {
-    expect(sinSeparador(tasaConBase(9 / 2341, 9, 2341))).toBe("0|38 % · 9 de 2|341");
+    expect(sinSeparador(tasaConBase(9 / 2341, 9, 2341))).toBe("0|38 %, 9 de 2|341");
     expect(sinSeparador(porcentaje(0.137))).toBe("13|7 %");
     expect(porcentaje(0)).toBe("0 %");
   });
 
   it("una tasa nula se escribe «—», no cero", () => {
     expect(porcentaje(null)).toBe("—");
-    expect(tasaConBase(null, 0, 0)).toBe("— · 0 de 0");
+    expect(tasaConBase(null, 0, 0)).toBe("—, 0 de 0");
   });
 
   it("las tasas pequeñas no se aplastan contra el umbral", () => {

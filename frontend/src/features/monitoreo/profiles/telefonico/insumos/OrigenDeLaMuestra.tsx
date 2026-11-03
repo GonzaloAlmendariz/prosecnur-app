@@ -19,6 +19,7 @@ import {
   type BorradorDeOrigen,
   type RolDeOrigen,
 } from "./origenModel";
+import { formatoConteo } from "../../../../../lib/formatoNumero";
 
 const ROLES: ReadonlyArray<{ id: RolDeOrigen; etiqueta: string }> = [
   { id: "titular", etiqueta: "Titular" },
@@ -27,7 +28,7 @@ const ROLES: ReadonlyArray<{ id: RolDeOrigen; etiqueta: string }> = [
 ];
 
 function n(valor: number) {
-  return valor.toLocaleString("es-PE");
+  return formatoConteo(valor);
 }
 
 function casos(valor: number | null) {

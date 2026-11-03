@@ -145,7 +145,7 @@ function pistaEnPalabras(trozos: ReadonlyArray<TrozoDePista>): string {
     if ("tenue" in t) return t.tenue;
     // El titular se lee con su unidad: «18 efectivas del parte», no «18».
     if ("titular" in t) return `${t.titular} ${t.unidad}`;
-    return t.cifras.map((c) => `${c.valor} ${c.de}`).join(" · ");
+    return t.cifras.map((c) => `${c.valor} ${c.de}`).join(", ");
   }).join(", ");
 }
 
@@ -897,7 +897,7 @@ function SerieConDatos({ partes, agenda = [], cuotas = [], plan = [], control = 
             const peso = b > 0 ? c.observadas / b : m > 0 ? c.meta / m : 0;
             return `${fmt(Math.round(total * peso))} ${sexSeriesLabel(c.sexo).toLowerCase()}`;
           })
-          .join(" · ")})`
+          .join(", ")})`
       : "";
     // La cifra que manda es la de la CUOTA, no la del parte: es la que decide si
     // el estudio llega. La del parte se dice aparte y con su nombre.
@@ -913,7 +913,7 @@ function SerieConDatos({ partes, agenda = [], cuotas = [], plan = [], control = 
       ? ` (de ${fmt(disenoDeLaAgenda.conVara)} de las ${fmt(disenoDeLaAgenda.agendadas)} agendadas)`
       : "";
     const segundaLlegada = alCerrarPorDiseno != null && Math.abs(alCerrarPorDiseno - alCerrar) >= 1
-      ? ` · con lo que el diseño pedía de esos cursos-horario, ${fmt(Math.floor(alCerrarPorDiseno))}${coberturaDelDiseno}`
+      ? `, con lo que el diseño pedía de esos cursos-horario, ${fmt(Math.floor(alCerrarPorDiseno))}${coberturaDelDiseno}`
       : "";
     // **Por qué la proyección no llega**, que es la pregunta que deja abierta.
     //
@@ -938,7 +938,7 @@ function SerieConDatos({ partes, agenda = [], cuotas = [], plan = [], control = 
         return !f;
       }).length;
     const porAgendar = sinAgendar > 0 && alCerrar < muestraDelCorte
-      ? ` · la proyección sólo cuenta lo agendado, y quedan ${fmt(sinAgendar)} cursos-horario del plan sin fecha`
+      ? `, la proyección sólo cuenta lo agendado, y quedan ${fmt(sinAgendar)} cursos-horario del plan sin fecha`
       : "";
 
     // **Cuando lo conseguido supera lo esperado, «912 de 761» parece una
@@ -954,7 +954,7 @@ function SerieConDatos({ partes, agenda = [], cuotas = [], plan = [], control = 
       ? `${fmt(conseguido)} encuestas, un ${fmt(porEncima)} % por encima de las ${fmt(meta)} que el plan espera de los cursos-horario visitados`
       : `${fmt(conseguido)} de ${fmt(meta)} encuestas que el plan espera de los cursos-horario visitados`;
     const lectura = meta > 0
-      ? `${contraLoEsperado} · ${
+      ? `${contraLoEsperado}, ${
           alCerrar >= meta
             // **La cifra se dice también cuando se pasa.** Decir sólo «se pasa
             // de esa meta» dejaba la segunda llegada —la del diseño— sin nada
@@ -964,7 +964,7 @@ function SerieConDatos({ partes, agenda = [], cuotas = [], plan = [], control = 
             ? `con lo agendado se llegaría a ${fmt(Math.floor(alCerrar))}, por encima de esa meta`
             : `con lo agendado se llegaría a ${fmt(Math.floor(alCerrar))}, ${fmt(Math.ceil(meta - alCerrar))} por debajo`
         }${segundaLlegada}${porAgendar}`
-      : `${fmt(Math.round(ultimo))} encuestas del parte · el plan no declara meta para esos cursos-horario`;
+      : `${fmt(Math.round(ultimo))} encuestas del parte, el plan no declara meta para esos cursos-horario`;
     // Las cuotas se siguen señalizando aunque no haya serie: son el objetivo, y
     // no depende de que alguien haya respondido.
     // **Una meta por encima del tope del eje NO se dibuja: se declara.**
@@ -1025,7 +1025,7 @@ function SerieConDatos({ partes, agenda = [], cuotas = [], plan = [], control = 
           x: xa(i), y: yy(v), inferido: false,
           lineas: [
             dm(aplicadas[i]),
-            `${fmt(Math.round(v))} / ${fmt(meta)}${v >= meta ? " ✓" : ` · faltan ${fmt(Math.ceil(meta - v))}`}`,
+            `${fmt(Math.round(v))} / ${fmt(meta)}${v >= meta ? " ✓" : `, faltan ${fmt(Math.ceil(meta - v))}`}`,
             // **El desglose por color, no por palabra.** Decía «1 366 mujeres ·
             // 995 hombres» y con el punto del color de la serie la cifra ya dice
             // de quién es: se van dos palabras y, con la cobertura a una línea
@@ -1055,8 +1055,8 @@ function SerieConDatos({ partes, agenda = [], cuotas = [], plan = [], control = 
         ...proyectadas.map((v, i) => ({
           x: xp(i), y: yy(v), inferido: true,
           lineas: [
-            `${dm(porVenir[i])} · inferido`,
-            `~${personasProyectadas(v)} / ${fmt(meta)}${v >= meta ? " ✓" : ` · faltarían ${fmt(Math.ceil(meta - v))}`}`,
+            `${dm(porVenir[i])}, inferido`,
+            `~${personasProyectadas(v)} / ${fmt(meta)}${v >= meta ? " ✓" : `, faltarían ${fmt(Math.ceil(meta - v))}`}`,
           ] as TrozoDePista[],
         })),
       ],
@@ -1118,7 +1118,7 @@ function SerieConDatos({ partes, agenda = [], cuotas = [], plan = [], control = 
     // El orden tambien cambia: primero la cifra que se viene a buscar, despues
     // con que se compara, y el contexto al final. Antes las cuatro lineas
     // pesaban igual y habia que leerlas enteras para encontrar el dato.
-    { tenue: `${dm(d.fecha)} · observado` },
+    { tenue: `${dm(d.fecha)}, observado` },
     { titular: fmt(d.efectivas), unidad: "efectivas del parte" },
     // Con UN curso-horario el por-aula es la misma cifra que el titular: visto
     // en vivo con Educación en foco, el globo decía «20 efectivas del parte»
@@ -1137,7 +1137,7 @@ function SerieConDatos({ partes, agenda = [], cuotas = [], plan = [], control = 
       : d.aulas ? ["ninguno de esos cursos-horario trae meta del diseño"] : []),
     {
       tenue: `${fmt(d.aulas)} ${d.aulas === 1 ? "curso-horario" : "cursos-horario"}`
-        + (d.elegibles ? ` · ${fmt(d.elegibles)} elegibles` : ""),
+        + (d.elegibles ? `, ${fmt(d.elegibles)} elegibles` : ""),
     },
   ];
 
@@ -1194,7 +1194,7 @@ function SerieConDatos({ partes, agenda = [], cuotas = [], plan = [], control = 
           <>
             <strong>{elegida.facultad}</strong> deja <strong>{personasPorAula(elegida.observadoFinal)}</strong>{" "}
             efectivas por curso-horario en {fmt(elegida.aulas)}{" "}
-            {elegida.aulas === 1 ? "curso-horario" : "cursos-horario"} ·
+            {elegida.aulas === 1 ? "curso-horario" : "cursos-horario"},
             {/* **Las dos expectativas, juntas y en la misma unidad.**
 
                 Estaban las dos en esta vista y nunca en la misma frase: lo que el
@@ -1209,15 +1209,15 @@ function SerieConDatos({ partes, agenda = [], cuotas = [], plan = [], control = 
                 espera. Sin vara del diseño no se escribe nada: la leyenda ya
                 declara ese caso y repetirlo aquí sería ruido. */}
             {varaDelDiseno?.porAula != null ? (
-              <> el diseño pedía <strong>{personasPorAula(varaDelDiseno.porAula)}</strong> ·</>
+              <> el diseño pedía <strong>{personasPorAula(varaDelDiseno.porAula)}</strong>,</>
             ) : null}
             {" "}se espera <strong>{personasPorAula(elegida.esperadoFinal)}</strong> de la siguiente
             {elegida.aulas < 5 ? " (con tan pocos cursos-horario, el esperado se apoya en la media del estudio)" : ""}
           </>
         ) : (
           <>
-            <strong>{fmt(facultades.length)}</strong> facultades ·{" "}
-            <strong>{personasPorAula(mediaDelEstudio)}</strong> efectivas por curso-horario de media del estudio ·
+            <strong>{fmt(facultades.length)}</strong> facultades,{" "}
+            <strong>{personasPorAula(mediaDelEstudio)}</strong> efectivas por curso-horario de media del estudio,
             de <strong>{personasPorAula(facultades[0].esperadoFinal)}</strong>{" "}
             ({facultades[0].facultad}) a{" "}
             <strong>{personasPorAula(facultades[facultades.length - 1].esperadoFinal)}</strong>{" "}
@@ -1259,7 +1259,7 @@ function SerieConDatos({ partes, agenda = [], cuotas = [], plan = [], control = 
                 «encuestas del parte, por aula visitada».
                 Cuál de los dos ejes DEBE mandar es otra pregunta, y es de
                 Gonzalo (ítem 17); esto sólo dice cuál se está mirando. */}
-            <b>Acumulado por día <i>· encuestas del parte contra la meta</i></b>
+            <b>Acumulado por día<i>, encuestas del parte contra la meta</i></b>
             {/* Una sola línea de leyenda y sólo con lo que se está dibujando. Con
                 las cuatro explicaciones fijas más el aviso más la sobremuestra, el
                 hueco entre los dos gráficos era un párrafo de 10 px ilegible. */}
@@ -1322,7 +1322,7 @@ function SerieConDatos({ partes, agenda = [], cuotas = [], plan = [], control = 
                       aquí de otra forma era enseñar dos doctrinas del mismo
                       número en dos pantallas. Lo que sí se dice es contra qué se
                       mide, que es información y no juicio. */}
-                  {" · la otra meta del estudio"}
+                  {", la otra meta del estudio"}
                 </em>
               ) : (
                 <em className="es-ausente">Sobremuestra no declarada por el estudio</em>
@@ -1331,7 +1331,7 @@ function SerieConDatos({ partes, agenda = [], cuotas = [], plan = [], control = 
                 <em key={se.sexo} style={{ "--aulas-serie-color": se.color } as React.CSSProperties}>
                   {se.sexo} {fmt(Math.round(se.conseguidas))}/{fmt(se.meta)}
                   {acumulado.cuotasSonDelEstudio ? " del estudio" : ""}
-                  {se.meta > 0 ? (se.alcanza ? " ✓" : ` · faltan ${fmt(Math.ceil(se.faltan))}`) : ""}
+                  {se.meta > 0 ? (se.alcanza ? " ✓" : `, faltan ${fmt(Math.ceil(se.faltan))}`) : ""}
                 </em>
               ))}
               {/* **Las dos cifras de sexo no suman la verde**, y sin esto el
@@ -1656,9 +1656,9 @@ function SerieConDatos({ partes, agenda = [], cuotas = [], plan = [], control = 
               aquí 329 + 165 = 494 y el acumulado, tres centímetros más arriba,
               termina en 298. Sin nombrar las dos fuentes, el acumulado parecía
               menor que la suma de sus propios días. */}
-          <b>Día a día <i>{jornadasEnElEje.length
-            ? "· efectivas de plataforma del día, con lo esperado de fondo"
-            : "· encuestas por curso-horario, con los elegibles de fondo"}</i></b>
+          <b>Día a día<i>{jornadasEnElEje.length
+            ? ", efectivas de plataforma del día, con lo esperado de fondo"
+            : ", encuestas por curso-horario, con los elegibles de fondo"}</i></b>
           {/* **Las tres alturas, nombradas.** El gráfico dibujaba techo, vara y
               línea sin decir cuál era cuál: había que deducirlo del pie, tres
               bandas más abajo, y el pie es prosa. Con la leyenda las tres se
@@ -1672,7 +1672,7 @@ function SerieConDatos({ partes, agenda = [], cuotas = [], plan = [], control = 
                   El diseño pedía {personasPorAula(varaDelDiseno.porAula)} por
                   curso-horario, ajustado por su tamaño
                   {varaDelDiseno.conVara < varaDelDiseno.todas
-                    ? ` · en ${fmt(varaDelDiseno.conVara)} de ${fmt(varaDelDiseno.todas)} cursos-horario`
+                    ? `, en ${fmt(varaDelDiseno.conVara)} de ${fmt(varaDelDiseno.todas)} cursos-horario`
                     : ""}
                 </em>
               ) : (
@@ -2008,7 +2008,7 @@ function SerieConDatos({ partes, agenda = [], cuotas = [], plan = [], control = 
             if (!j) return null;
             const alto = y(j.conseguidas);
             const lineas = [
-              { tenue: `${dm(d.fecha)} · observado` },
+              { tenue: `${dm(d.fecha)}, observado` },
               { titular: fmt(j.conseguidas), unidad: "efectivas del día" },
               { tenue: `${fmt(j.esperadas)} esperadas de los cursos-horario aplicados` },
               { tenue: `${j.diferencia > 0 ? "+" : ""}${fmt(j.diferencia)} contra lo esperado` },
@@ -2037,9 +2037,9 @@ function SerieConDatos({ partes, agenda = [], cuotas = [], plan = [], control = 
           )))}
           {proyectada ? proyectada.dias.map((d, i) => {
             const lineas = [
-              `${dm(d.fecha)} · inferido de la agenda`,
+              `${dm(d.fecha)}, inferido de la agenda`,
               `${fmt(d.aulas)} ${d.aulas === 1 ? "curso-horario agendado" : "cursos-horario agendados"}`,
-              d.elegibles ? `${fmt(d.elegibles)} elegibles · ~${personasProyectadas(d.esperadas)} esperadas` : `~${personasProyectadas(d.esperadas)} esperadas`,
+              d.elegibles ? `${fmt(d.elegibles)} elegibles, ~${personasProyectadas(d.esperadas)} esperadas` : `~${personasProyectadas(d.esperadas)} esperadas`,
             ];
             const px = xp(i);
             const py = y(proyectada.esperadoPorAula);
@@ -2116,7 +2116,7 @@ function SerieConDatos({ partes, agenda = [], cuotas = [], plan = [], control = 
             Cuota de {elegida.facultad} y lo que aportan sus cursos-horario agendados
             {proyectada.reparto === "meta" ? (
               <em>
-                {" "}· el reparto por sexo sale de la META, porque esta facultad
+                ,{" "}el reparto por sexo sale de la META, porque esta facultad
                 todavía no tiene respuestas propias con sexo declarado
               </em>
             ) : null}

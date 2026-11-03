@@ -104,7 +104,7 @@ function AplicadoresAulasImpl({ dashboard, cargando, vacioSinTablero, contexto }
         <section className="aulas-ins-panel" aria-labelledby="aulas-ins-apl-titulo" data-qa-geometry-member="aplicadores">
           <header className="aulas-ins-cabecera">
             <h3 id="aulas-ins-apl-titulo">Aplicadores del tramo</h3>
-            {modelo.elegido ? <span className="aulas-ins-sub">{modelo.elegido.nombre} · {modelo.elegido.rango}</span> : null}
+            {modelo.elegido ? <span className="aulas-ins-sub">{modelo.elegido.nombre}, {modelo.elegido.rango}</span> : null}
             {acciones}
           </header>
           {modelo.tramos.length > 1 ? (
@@ -117,7 +117,7 @@ function AplicadoresAulasImpl({ dashboard, cargando, vacioSinTablero, contexto }
                   aria-pressed={t.elegido}
                   onClick={() => setTramo(t.nombre)}
                 >
-                  {t.nombre}{t.vigente ? " · vigente" : ""}
+                  {t.nombre}{t.vigente ? ", vigente" : ""}
                 </button>
               ))}
             </div>
@@ -184,7 +184,7 @@ function AplicadoresAulasImpl({ dashboard, cargando, vacioSinTablero, contexto }
               {modelo.tramos.map((t) => (
                 <li key={t.nombre} data-qa-geometry-member={t.nombre} className={t.elegido ? "is-elegido" : undefined}>
                   <b>{t.nombre}</b>
-                  <span className="aulas-ins-sub">{t.rango}{t.vigente ? " · vigente" : ""}</span>
+                  <span className="aulas-ins-sub">{t.rango}{t.vigente ? ", vigente" : ""}</span>
                   <span className="is-num">{fmt(t.aplicadas)} de {fmt(t.citas)}</span>
                 </li>
               ))}

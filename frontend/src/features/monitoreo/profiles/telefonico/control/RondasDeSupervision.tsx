@@ -9,12 +9,13 @@ import { NotaDelModo } from "../../../core/NotaDelModo";
 import { pctConEspacio } from "../../../core/formatoComun";
 import { RotuloDePestana } from "../navegacion/RotuloDePestana";
 import { mensajeDeError, type FilaDeRonda } from "./rondasModel";
+import { formatoConteo } from "../../../../../lib/formatoNumero";
 
 export const PANEL_NUEVA_RONDA: PanelDeclarado = { id: "nueva-ronda", label: "Nueva ronda", clase: "dialogo" };
 export const PANEL_PUBLICAR_RONDA: PanelDeclarado = { id: "publicar-ronda", label: "Publicar ronda", clase: "dialogo" };
 
 function n(valor: number) {
-  return valor.toLocaleString("es-PE");
+  return formatoConteo(valor);
 }
 
 function fecha(iso: string) {

@@ -1,3 +1,4 @@
+import { formatoConteo } from "../../../../lib/formatoNumero";
 import type { OpcionDeEslabon } from "./eslabonDeLaAgenda";
 
 import "./aulasEslabon.css";
@@ -38,7 +39,7 @@ export function AulasSelectorDeEslabon({ opciones, valor, onCambio }: {
       >
         {opciones.map((o) => (
           <option key={o.eslabon} value={String(o.eslabon)}>
-            {o.etiqueta} · {o.cursos.toLocaleString("es-PE")}
+            {o.etiqueta} ({formatoConteo(o.cursos)})
           </option>
         ))}
       </select>

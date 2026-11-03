@@ -58,7 +58,7 @@ export function AulasCambioDeAula({ partes, plan }: {
             «una de las dos hojas» obliga a abrir ambas para averiguarlo. */}
         {r.sinComparar ? (
           <>
-            {" "}· <strong>{fmt(r.sinComparar)}</strong>{" "}
+            ,{" "}<strong>{fmt(r.sinComparar)}</strong>{" "}
             {!r.sinSalonAgendado
               ? "sin salón anotado en el parte de campo"
               : !r.sinSalonReal

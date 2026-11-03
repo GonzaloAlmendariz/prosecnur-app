@@ -1,3 +1,4 @@
+import { formatoDecimal } from "../../../../lib/formatoNumero";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import type { PointerEvent as ReactPointerEvent, WheelEvent as ReactWheelEvent } from "react";
@@ -510,7 +511,7 @@ function TerritorialSpatialReconciliationWorkbenchImpl({
           : { ...item, status: "pending", error: "" }));
       if (result.state) onStateChange?.(result.state);
       setMessage(failed.size
-        ? `${formatMetric(applied.size)} guardadas · ${formatMetric(failed.size)} con error`
+        ? `${formatMetric(applied.size)} guardadas, ${formatMetric(failed.size)} con error`
         : `${formatMetric(applied.size)} reconciliaciones guardadas.`);
       if (!failed.size) setConfirmOpen(false);
     } catch (error) {
@@ -584,9 +585,9 @@ function TerritorialSpatialReconciliationBatchBar({
   const patternCount = summary?.metrics?.patterns ?? summary?.patterns?.length ?? 0;
   const hasQueue = changes.length > 0;
   const fallbackMessage = hasQueue
-    ? `${formatMetric(changes.length)} UMP listas para confirmar${errorCount ? ` · ${formatMetric(errorCount)} con error` : ""}`
+    ? `${formatMetric(changes.length)} UMP listas para confirmar${errorCount ? `, ${formatMetric(errorCount)} con error` : ""}`
     : candidateCount || patternCount
-      ? `${formatMetric(candidateCount)} candidatas · ${formatMetric(patternCount)} patrones por revisar`
+      ? `${formatMetric(candidateCount)} candidatas, ${formatMetric(patternCount)} patrones por revisar`
       : "Motor limpio: sin movimientos preparados.";
   return (
     <section className={`mon-territorial-reconciliation-batchbar${hasQueue ? " is-active" : " is-empty"}`} aria-label="Cambios de reconciliación pendientes">
@@ -784,12 +785,12 @@ function TerritorialSpatialReconciliationPanel({
                 return (
                   <article key={pattern.pattern_key} className={`mon-territorial-spatial-pattern is-${normalizeMatch(pattern.confidence)}${patternQueued ? " is-queued" : ""}`}>
                     <div>
-                      <span>Patrón · {territorialSpatialConfidenceLabel(pattern.confidence)}</span>
+                      <span>Patrón, {territorialSpatialConfidenceLabel(pattern.confidence)}</span>
                       <strong>{formatMetric(pattern.count)} casos: UMP {pattern.raw_ump || pattern.declared_ump || "-"} → UMP {pattern.target_ump || "-"}</strong>
-                      <em>{pattern.responsible || pattern.target_responsible || "Sin responsable"} · {pattern.target_district || "Sin distrito"}</em>
+                      <em>{pattern.responsible || pattern.target_responsible || "Sin responsable"}, {pattern.target_district || "Sin distrito"}</em>
                     </div>
                     <div className="mon-territorial-spatial-pattern-actions">
-                      <small>{formatMetric(pattern.score)} pts · {formatMetric(candidateIds.length)} candidatas{stagedCount ? ` · ${formatMetric(stagedCount)} en cola` : ""}</small>
+                      <small>{formatMetric(pattern.score)} pts, {formatMetric(candidateIds.length)} candidatas{stagedCount ? `, ${formatMetric(stagedCount)} en cola` : ""}</small>
                       <button type="button" onClick={() => onStagePattern(pattern)} disabled={saving || !candidateIds.length || patternQueued}>
                         <ClipboardCheck size={13} />
                         <span>{patternQueued ? "Patrón en cola" : "Poner patrón en cola"}</span>
@@ -823,7 +824,7 @@ function TerritorialSpatialReconciliationPanel({
                 <article key={candidate.candidate_id} className={`mon-territorial-spatial-candidate is-${normalizeMatch(candidate.confidence)}${queued ? " is-queued" : ""}`}>
                   <header>
                     <div>
-                      <span>{territorialSpatialConfidenceLabel(candidate.confidence)} · {formatMetric(candidate.score)} pts</span>
+                      <span>{territorialSpatialConfidenceLabel(candidate.confidence)}, {formatMetric(candidate.score)} pts</span>
                       <strong>{candidate.responsible || candidate.target_responsible || "Sin responsable"}</strong>
                     </div>
                     <span className="mon-territorial-spatial-candidate-status">{queued ? "En cola" : "Sugerencia"}</span>
@@ -1039,7 +1040,7 @@ function TerritorialValidationGeoRouteMap({
     selectedGpsPoint ? projection.project(selectedGpsPoint.lonValue, selectedGpsPoint.latValue) : null
   ), [projection, selectedGpsPoint]);
   const selectedLabel = selectedBlock
-    ? `${territorialRouteOperationalLabel(selectedBlock)} · ${territorialPhysicalBlockLabel(selectedBlock)}`
+    ? `${territorialRouteOperationalLabel(selectedBlock)}, ${territorialPhysicalBlockLabel(selectedBlock)}`
     : "GPS y manzanas";
   const zoomClass = zoom >= 2.4 ? "is-zoom-blocks" : zoom >= 1.35 ? "is-zoom-detail" : "is-zoom-general";
   const transform = `translate(${pan.x.toFixed(1)} ${pan.y.toFixed(1)}) scale(${zoom.toFixed(3)})`;
@@ -1191,7 +1192,7 @@ function TerritorialValidationGeoRouteMap({
           <button type="button" aria-label="Acercar mapa" onClick={() => zoomBy(1.45)}><Plus size={13} /></button>
           <button type="button" aria-label="Alejar mapa" onClick={() => zoomBy(0.69)}><Minus size={13} /></button>
           <button type="button" aria-label="Restablecer vista" onClick={resetMap}><Maximize2 size={13} /></button>
-          <span className="mon-territorial-map-zoom-readout" aria-label={`Zoom ${zoom.toFixed(1)}x`}>{zoom.toFixed(1)}x</span>
+          <span className="mon-territorial-map-zoom-readout" aria-label={`Zoom ${formatoDecimal(zoom, 1)}x`}>{formatoDecimal(zoom, 1)}x</span>
         </div>
         {projection.hasGeometry ? (
           <svg
@@ -1334,7 +1335,7 @@ function TerritorialValidationGeoRouteMap({
                         zoomToBlock();
                       }}
                     >
-                      <title>{`${territorialRouteOperationalLabel(item.block)} · ${territorialPhysicalBlockLabel(item.block)}`}</title>
+                      <title>{`${territorialRouteOperationalLabel(item.block)}, ${territorialPhysicalBlockLabel(item.block)}`}</title>
                       <path
                         d={d}
                         className="mon-territorial-map-selected-block-hit"
@@ -1380,7 +1381,7 @@ function TerritorialValidationGeoRouteMap({
                       <circle className="mon-territorial-map-point-hit mon-territorial-map-point-hit-area" r="10.5" />
                       <circle className="mon-territorial-map-point-focus" r={selected ? "6.8" : "5.4"} />
                       <circle className="mon-territorial-map-point-core" r={selected ? "4.2" : "3.2"} />
-                      <title>{`${point.declared_ump_normalized || point.advance_block_ump || "UMP S/D"} · ${point.responsible_display || point.submitted_by || "Sin responsable"}`}</title>
+                      <title>{`${point.declared_ump_normalized || point.advance_block_ump || "UMP S/D"}, ${point.responsible_display || point.submitted_by || "Sin responsable"}`}</title>
                     </g>
                   );
                 })}
@@ -1398,7 +1399,7 @@ function TerritorialValidationGeoRouteMap({
             recortaba contra el borde del viewBox y perdía media frase, sin
             elipsis que lo avisara. Como HTML se ancla al visor. */}
         <p className="mon-territorial-map-caption" aria-hidden="true">
-          {`${selectedLabel} · arrastra o usa trackpad para mover · Ctrl/Cmd+rueda para zoom suave · ${formatMetric(visiblePoints.length)} puntos visibles · ${formatMetric(routeBlocks.length)} manzanas`}
+          {`${selectedLabel}, arrastra o usa trackpad para mover, Ctrl/Cmd+rueda para zoom suave, ${formatMetric(visiblePoints.length)} puntos visibles, ${formatMetric(routeBlocks.length)} manzanas`}
         </p>
         {blockingMapLoading ? (
           <span className="mon-territorial-route-map-loading">
@@ -1525,7 +1526,7 @@ function TerritorialGeoCaseList({
           <span><MapPin size={14} /> Casos por UMP declarada</span>
           <p>La UMP declarada agrupa los casos; el GPS valida zona/distrito y deja la manzana como referencia.</p>
         </div>
-        <strong>{formatMetric(gpsRows.length)} GPS · {formatMetric(groups.reduce((sum, group) => sum + group.rows.length, 0))} casos</strong>
+        <strong>{formatMetric(gpsRows.length)} GPS, {formatMetric(groups.reduce((sum, group) => sum + group.rows.length, 0))} casos</strong>
       </header>
       <div ref={scrollRef} className="mon-territorial-geo-case-scroll">
         <div className="mon-territorial-geo-virtual-list" style={{ height: `${virtualizer.getTotalSize()}px` }}>
@@ -1539,7 +1540,7 @@ function TerritorialGeoCaseList({
             const badgeLabel = replacementCount ? `${formatMetric(replacementCount)} R` : "UMP";
             const block = group.block;
             const blockSubtitle = block
-              ? `${block.distrito || section.distrito || "Sin distrito"} · Zona ${block.zona || "S/D"} · ${group.assignmentLabel}`
+              ? `${block.distrito || section.distrito || "Sin distrito"}, zona ${block.zona || "S/D"}, ${group.assignmentLabel}`
               : group.assignmentLabel;
             const zoneSummary = territorialGeoZoneSummary(group, selected);
             const riskSummary = territorialGeoGroupRiskSummary(group, zoneSummary);
@@ -1549,9 +1550,9 @@ function TerritorialGeoCaseList({
             const casesPanelId = `geo-cases-${item.key.replace(/[^a-zA-Z0-9_-]/g, "-")}`;
             const visiblePointCount = group.rows.filter((item) => territorialResponseHasGps(item.row)).length;
             const childContext = selected && zoneSummary.gpsCount
-              ? `${formatMetric(zoneSummary.inZoneCount)} en zona UMP · ${formatMetric(zoneSummary.outsideZoneCount)} fuera zona · ${formatMetric(zoneSummary.outsideDistrictCount)} fuera distrito`
+              ? `${formatMetric(zoneSummary.inZoneCount)} en zona UMP, ${formatMetric(zoneSummary.outsideZoneCount)} fuera zona, ${formatMetric(zoneSummary.outsideDistrictCount)} fuera distrito`
               : selected
-                ? "UMP enfocada · sin puntos GPS"
+                ? "UMP enfocada, sin puntos GPS"
                 : "Puntos asociados a la UMP declarada";
             return (
               <div
@@ -1564,7 +1565,7 @@ function TerritorialGeoCaseList({
                 {showHeading ? (
                   <div className="mon-territorial-geo-district-heading">
                     <strong>{section.distrito}</strong>
-                    <span>{section.kind === "route" ? sectionMeta : `${section.ubigeo} · ${sectionMeta}`}</span>
+                    <span>{section.kind === "route" ? sectionMeta : `${section.ubigeo}, ${sectionMeta}`}</span>
                   </div>
                 ) : null}
                 <div className="mon-territorial-geo-district-group">
@@ -1626,7 +1627,7 @@ function TerritorialGeoCaseList({
                           const pointLabel = hasGps ? `Punto ${formatMetric(gpsPointIndex)}` : "Sin GPS";
                           const disposition = territorialGeoDispositionMeta(item.geoDisposition);
                           const dispositionDetail = item.geoDisposition === "fuera_distrito" && item.spatialDistrito
-                            ? `${item.spatialDistrito}${item.spatialUbigeo ? ` · ${item.spatialUbigeo}` : ""}`
+                            ? `${item.spatialDistrito}${item.spatialUbigeo ? `, ${item.spatialUbigeo}` : ""}`
                             : item.geoDisposition === "sin_gps"
                               ? `Declarado: ${row.distrito || row.district_code || "sin dato"}`
                               : disposition.detail;
@@ -1634,7 +1635,7 @@ function TerritorialGeoCaseList({
                           const stamp = stampParts.label || `Fila ${formatMetric(row.row_index)}`;
                           const codeLabel = territorialPulsoCodeLabel(row);
                           const enumeratorLabel = territorialCaseResponsibleLabel(row, false);
-                          const demographicLabel = `${territorialReviewSexLabel(row)} · ${territorialReviewAgeLabel(row)}`;
+                          const demographicLabel = `${territorialReviewSexLabel(row)}, ${territorialReviewAgeLabel(row)}`;
                           const focused = Boolean(focusPointId && row.response_id === focusPointId);
                           const rowClickable = Boolean(row.response_id);
                           const fitKind = !hasGps || item.geoDisposition === "sin_gps"
@@ -1650,13 +1651,13 @@ function TerritorialGeoCaseList({
                           const placeLabel = item.geoDisposition === "sin_gps"
                             ? dispositionDetail
                             : item.spatialDistrito
-                              ? `${item.spatialDistrito}${item.spatialUbigeo ? ` · ${item.spatialUbigeo}` : ""}`
-                              : `${row.distrito || item.spatialDistrito || "Sin distrito"}${row.ubigeo || item.spatialUbigeo ? ` · ${row.ubigeo || item.spatialUbigeo}` : ""}`;
+                              ? `${item.spatialDistrito}${item.spatialUbigeo ? `, ${item.spatialUbigeo}` : ""}`
+                              : `${row.distrito || item.spatialDistrito || "Sin distrito"}${row.ubigeo || item.spatialUbigeo ? `, ${row.ubigeo || item.spatialUbigeo}` : ""}`;
                           const gpsTrace = territorialGpsTraceLabel(row);
                           const geoDetail = [
                             item.gpsDiagnosticLabel || (hasGps ? dispositionDetail : "sin punto"),
                             gpsTrace,
-                          ].filter(Boolean).join(" · ");
+                          ].filter(Boolean).join(", ");
                           return (
                             <button
                               type="button"
@@ -1743,7 +1744,7 @@ function buildTerritorialGpsCase(
   const geoDisposition = geoDispositionForCase(row, block, routeBlocks, spatialDistrict, spatialZone, zoneFeatures.length > 0);
   const groupBlock = routeBlocks.find((candidate) => !isReplacementBlock(candidate)) ?? block;
   const groupKey = groupBlock ? territorialBlockStableKey(groupBlock) : `sin-ump:${row.declared_ump_normalized || row.advance_block_ump || row.row_index}`;
-  const blockLabel = groupBlock ? `${territorialRouteOperationalLabel(groupBlock)} · ${territorialPhysicalBlockLabel(groupBlock)}` : "Sin UMP declarada";
+  const blockLabel = groupBlock ? `${territorialRouteOperationalLabel(groupBlock)}, ${territorialPhysicalBlockLabel(groupBlock)}` : "Sin UMP declarada";
   const nearestDiffers = row.nearest_block_id && block?.id_manzana && normalizeRouteBlockCode(row.nearest_block_id) !== normalizeRouteBlockCode(block.id_manzana);
   return {
     row,
@@ -2382,7 +2383,7 @@ function territorialFeatureDisplayLabel(feature: HojasRutaBlockMapFeature) {
     ubigeo ? `UBIGEO ${ubigeo}` : "",
     zona ? `Z ${zona}` : "",
     manzana ? `Mz ${manzana}` : "",
-  ].filter(Boolean).join(" · ") || "sin codigo";
+  ].filter(Boolean).join(", ") || "sin codigo";
 }
 
 function territorialZoneDisplayLabel(feature: HojasRutaZoneMapFeature) {
@@ -2651,10 +2652,10 @@ function territorialGeoCaseSectionMeta(
 }
 
 function territorialGeoGroupSectionLabel(section: TerritorialGeoGroupSection) {
-  if (section.kind === "outside_frame") return `${formatMetric(section.caseCount)} casos · punto observable`;
-  if (section.kind === "without_cross") return `${formatMetric(section.caseCount)} casos · cruce pendiente`;
-  if (section.kind === "without_gps") return `${formatMetric(section.caseCount)} casos · hora registrada`;
-  return `${section.ubigeo || "Sin ubigeo"} · ${formatMetric(section.caseCount)} casos · ${formatMetric(section.groups.length)} UMP`;
+  if (section.kind === "outside_frame") return `${formatMetric(section.caseCount)} casos, punto observable`;
+  if (section.kind === "without_cross") return `${formatMetric(section.caseCount)} casos, cruce pendiente`;
+  if (section.kind === "without_gps") return `${formatMetric(section.caseCount)} casos, hora registrada`;
+  return `${section.ubigeo || "Sin ubigeo"}, ${formatMetric(section.caseCount)} casos, ${formatMetric(section.groups.length)} UMP`;
 }
 
 function territorialGeoGroupSectionComparator(a: TerritorialGeoGroupSection, b: TerritorialGeoGroupSection) {
@@ -2788,7 +2789,7 @@ function territorialRouteReplacementLabel(block: TerritorialBlockProgress) {
 function territorialRouteOperationalLabel(block: TerritorialBlockProgress) {
   if (isReplacementBlock(block)) {
     const titular = numberOrNull(block.titular_hoja_num) ?? numberOrNull(block.titular_orden_seleccion);
-    return `${titular != null ? `UMP ${formatMetric(titular)}` : "UMP por definir"} · ${territorialRouteReplacementLabel(block)}`;
+    return `${titular != null ? `UMP ${formatMetric(titular)}` : "UMP por definir"}, ${territorialRouteReplacementLabel(block)}`;
   }
   const value = territorialRouteUmpNumber(block);
   return Number.isFinite(value) && value !== Number.MAX_SAFE_INTEGER ? `UMP ${formatMetric(value)}` : "UMP por definir";
@@ -2813,7 +2814,7 @@ function territorialResponseIsEffective(row: TerritorialResponseAuditRow) {
 function formatDistanceLabel(value: number | null | undefined) {
   const meters = numberOrNull(value);
   if (meters == null) return "S/D";
-  if (Math.abs(meters) >= 1000) return `${(meters / 1000).toFixed(meters >= 10000 ? 1 : 2)} km`;
+  if (Math.abs(meters) >= 1000) return `${formatoDecimal(meters / 1000, meters >= 10000 ? 1 : 2)} km`;
   return `${Math.round(meters)} m`;
 }
 
@@ -2826,7 +2827,7 @@ function territorialGpsTraceLabel(row: Partial<TerritorialResponseAuditRow>) {
     row.gps_reclassified && primary && source && primary !== source ? `reemplaza ${primary}` : "",
     accuracy != null ? `prec. ${formatDistanceLabel(accuracy)}` : "",
   ].filter(Boolean);
-  return parts.join(" · ");
+  return parts.join(", ");
 }
 
 function territorialMissingResponsibleLabel(value: unknown) {
@@ -2858,7 +2859,7 @@ function territorialEnumeratorName(row: TerritorialResponseAuditRow) {
 function territorialCaseResponsibleLabel(row: TerritorialResponseAuditRow, includeCode = false) {
   const name = territorialEnumeratorName(row);
   const code = territorialPulsoCodeLabel(row);
-  if (name && includeCode && code !== "S/D") return `${code} · ${name}`;
+  if (name && includeCode && code !== "S/D") return `${code}, ${name}`;
   if (name) return name;
   if (code !== "S/D") return "Responsable no identificado";
   return "Sin responsable asignado";
@@ -2915,11 +2916,11 @@ function buildPendingSpatialChange(
     reconciliation.assigned_ump ? `UMP ${reconciliation.assigned_ump}` : "",
     reconciliation.assigned_district,
     reconciliation.assigned_block_id ? `Mz ${reconciliation.assigned_block_id}` : "",
-  ].filter(Boolean).join(" · ");
+  ].filter(Boolean).join(", ");
   return {
     id,
     label: reconciliation.raw_ump || "UMP sin dato",
-    detail: `${territorialSpatialReconciliationScopeLabel(reconciliation.scope || "response")} · ${route || "Sin ruta"}`,
+    detail: `${territorialSpatialReconciliationScopeLabel(reconciliation.scope || "response")}, ${route || "Sin ruta"}`,
     payload: reconciliation,
     status: "pending",
   };
@@ -2966,7 +2967,7 @@ function territorialSpatialBlockLabel({
   const main = [
     ump ? `UMP ${ump}` : "",
     manzana ? `Mz ${manzana}` : "",
-  ].filter(Boolean).join(" · ");
+  ].filter(Boolean).join(", ");
   const fallback = blockId ? `Mz ${blockId}` : "Sin manzana";
   return { main: main || fallback, detail: district || "" };
 }
@@ -3018,8 +3019,8 @@ function territorialSubmissionStampParts(row: TerritorialSubmissionStampSource) 
     isTerritorialMidnightLabel(hour) &&
     !territorialTimestampHasExplicitNonMidnightClock(rawTime) &&
     !["end", "end_time", "start", "start_time"].includes(source);
-  if (date && hour && !midnightFallback) return { date, hour, label: `${date} · ${hour}` };
-  if (date && hour && midnightFallback) return { date, hour: "sin hora", label: `${date} · sin hora` };
+  if (date && hour && !midnightFallback) return { date, hour, label: `${date}, ${hour}` };
+  if (date && hour && midnightFallback) return { date, hour: "sin hora", label: `${date}, sin hora` };
   if (date || hour) return { date, hour: date ? "" : hour, label: date || hour };
   const fallback = String(row.submission_datetime ?? row.submission_time ?? "").trim();
   return { date: "", hour: "", label: fallback };

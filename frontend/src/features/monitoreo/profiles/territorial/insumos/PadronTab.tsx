@@ -101,7 +101,7 @@ function PadronTabImpl({
         <h3 id="mon-ins-fuera" className="mon-ins-titulo">Códigos fuera del padrón <span className="mon-ter-cuenta">{fmt(modelo.fueraDelPadron.length)}</span></h3>
         {modelo.fueraDelPadron.length ? (
           <ul className="mon-ins-lista">
-            {modelo.fueraDelPadron.map((item) => <li key={item.codigo}><code>{item.codigo}</code><span className="mon-ins-lista-cifra">{fmt(item.casos)} {item.casos === 1 ? "caso" : "casos"}</span></li>)}
+            {modelo.fueraDelPadron.map((item) => <li key={item.codigo}><span className="mon-ins-clave">{item.codigo}</span><span className="mon-ins-lista-cifra">{fmt(item.casos)} {item.casos === 1 ? "caso" : "casos"}</span></li>)}
           </ul>
         ) : (
           <p className="mon-ins-base">Todos los códigos de la base están en el padrón.</p>

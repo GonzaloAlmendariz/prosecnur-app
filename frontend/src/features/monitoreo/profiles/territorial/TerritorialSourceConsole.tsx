@@ -437,7 +437,7 @@ function TerritorialSourceConsoleImpl({
         connection_profile_id: profileId,
       });
       onStateChange(result.state);
-      setMessage(`Inspección Kobo lista: ${result.schema.name || activeAssetName || "formulario"} · ${fmt(result.schema.survey_count, "0")} preguntas.`);
+      setMessage(`Inspección Kobo lista: ${result.schema.name || activeAssetName || "formulario"}, ${fmt(result.schema.survey_count, "0")} preguntas.`);
     } catch (error) {
       notifyError(error);
     } finally {
@@ -959,7 +959,7 @@ function TerritorialSourceConsoleImpl({
         <div className="mon-territorial-source-title">
           <span><DatabaseZap size={15} /> Fuentes territoriales</span>
           <strong>{activeAssetName || "Formulario Kobo por definir"}</strong>
-          <em>{sourceOperationalStatus}{sourceReceivedCount ? ` · ${fmt(sourceReceivedCount)} respuestas sincronizadas` : ""}</em>
+          <em>{sourceOperationalStatus}{sourceReceivedCount ? `, ${fmt(sourceReceivedCount)} respuestas sincronizadas` : ""}</em>
         </div>
         <div className="mon-territorial-source-top-metrics" aria-label="Resumen de fuente">
           <span><strong>{fmt(alignedDistricts.length)}</strong><em>alineados</em></span>
@@ -998,7 +998,7 @@ function TerritorialSourceConsoleImpl({
                   <em>{item.hint}</em>
                 </span>
                 <i>{item.assetUid ? "Definido" : "Pendiente"}</i>
-                <small>{item.assetUid ? `${shortenMiddle(item.name, 38)} · ${describirFilasDeFase(item.health, phaseLabel(item.phase))?.badge ?? `${fmt(item.health?.local_rows ?? 0)} locales`}` : "Selecciona un formulario Kobo"}</small>
+                <small>{item.assetUid ? `${shortenMiddle(item.name, 38)}, ${describirFilasDeFase(item.health, phaseLabel(item.phase))?.badge ?? `${fmt(item.health?.local_rows ?? 0)} locales`}` : "Selecciona un formulario Kobo"}</small>
               </button>
             ))}
           </section>
@@ -1011,7 +1011,7 @@ function TerritorialSourceConsoleImpl({
             <div className="mon-territorial-route-sheet-source-body">
               <div className="mon-territorial-route-sheet-source-copy">
                 <strong>{routeSheetSource?.label || "Conecta la Google Sheet de Hojas de Ruta"}</strong>
-                <em>{routeSheetSource?.last_sync_at ? `Actualizada ${formatDate(routeSheetSource.last_sync_at)}` : "Rol hoja_ruta · Hojas_de_ruta · encabezado fila 6"}</em>
+                <em>{routeSheetSource?.last_sync_at ? `Actualizada ${formatDate(routeSheetSource.last_sync_at)}` : "Rol hoja_ruta, Hojas_de_ruta, encabezado fila 6"}</em>
               </div>
               <div className="mon-territorial-route-sheet-source-metrics" aria-label="Resumen de hoja de ruta">
                 <span><strong>{fmt(routeSheetMetrics?.assignments ?? 0)}</strong><em>asignaciones</em></span>
@@ -1131,7 +1131,7 @@ function TerritorialSourceConsoleImpl({
                   <article key={asset.uid} className={active ? "is-active" : pending ? "is-pending" : ""}>
                     <div>
                       <strong>{asset.name}</strong>
-                      <em>{shortenMiddle(asset.uid, 34)} · {asset.version_id || "sin versión"} · {formatDate(asset.date_modified)}</em>
+                      <em>{shortenMiddle(asset.uid, 34)}, {asset.version_id || "sin versión"}, {formatDate(asset.date_modified)}</em>
                     </div>
                     <span className={active ? "is-ready" : pending ? "is-warning" : ""}>{active ? "Aplicado" : pending ? "Pendiente" : asset.deployment_active ? "Desplegado" : "Inactivo"}</span>
                     <button type="button" onClick={() => active ? setPendingAssetUid("") : setPendingAssetUid(asset.uid)} disabled={saving || busy}>
@@ -1163,7 +1163,7 @@ function TerritorialSourceConsoleImpl({
               <div className="mon-territorial-form-apply">
                 <div>
                   <strong>{pendingAsset.name}</strong>
-                  <em>{shortenMiddle(pendingAsset.uid, 36)}{pendingAsset.version_id ? ` · ${pendingAsset.version_id}` : ""}</em>
+                  <em>{shortenMiddle(pendingAsset.uid, 36)}{pendingAsset.version_id ? `, ${pendingAsset.version_id}` : ""}</em>
                 </div>
                 <button type="button" className="pulso-button is-primary" onClick={() => { void applyAsset(pendingAsset); }} disabled={saving || busy}>
                   {saving ? <Loader2 size={13} className="pulso-spin" /> : <Save size={13} />}
@@ -1208,11 +1208,11 @@ function TerritorialSourceConsoleImpl({
           <section className="mon-territorial-source-card mon-territorial-filter-config-summary" aria-label="Configuracion operativa del formulario">
             <header>
               <span><SlidersHorizontal size={14} /> Configuración operativa del formulario</span>
-              <strong>{phaseLabel(phase)} · {activeAssetName || "Formulario territorial"}</strong>
+              <strong>{phaseLabel(phase)}, {activeAssetName || "Formulario territorial"}</strong>
             </header>
             <p>
-              <span>{fmt(sourceReceivedCount)} respuestas locales · {sourceEffectiveCount == null ? "sin corte calculado" : `${fmt(sourceEffectiveCount)} efectivas`} · {fmt(alignedDistricts.length)} distritos cruzados</span>
-              <small>{activeAssetUid ? `${shortenMiddle(activeAssetUid, 48)} · ${activeVersion || "sin versión"}` : "Sin asset aplicado"}</small>
+              <span>{fmt(sourceReceivedCount)} respuestas locales, {sourceEffectiveCount == null ? "sin corte calculado" : `${fmt(sourceEffectiveCount)} efectivas`}, {fmt(alignedDistricts.length)} distritos cruzados</span>
+              <small>{activeAssetUid ? `${shortenMiddle(activeAssetUid, 48)}, ${activeVersion || "sin versión"}` : "Sin asset aplicado"}</small>
             </p>
             <div className={`mon-territorial-filter-config-state is-${validFilterValues.length && alignedDistricts.length ? "ready" : "warning"}`}>
               <span>{validFilterValues.length && alignedDistricts.length ? "Definido" : "Revisar"}</span>
@@ -1271,7 +1271,7 @@ function TerritorialSourceConsoleImpl({
                     }}
                   >
                     <option value="">Por definir</option>
-                    {options.map((option) => <option key={`${key}-${option.name}`} value={option.name}>{option.label} · {option.type || "campo"}</option>)}
+                    {options.map((option) => <option key={`${key}-${option.name}`} value={option.name}>{option.label}, {option.type || "campo"}</option>)}
                   </select>
                 </label>
               ))}
@@ -1300,7 +1300,7 @@ function TerritorialSourceConsoleImpl({
               >
                 <option value="">Por definir</option>
                 {(sourceValidity?.options ?? []).map((option) => (
-                  <option key={option.value} value={option.value}>{option.label || option.value}{option.count != null ? ` · ${fmt(option.count)}` : ""}</option>
+                  <option key={option.value} value={option.value}>{option.label || option.value}{option.count != null ? `, ${fmt(option.count)}` : ""}</option>
                 ))}
                 {!sourceValidity?.options?.length && variables.find((variable) => variable.name === mapping.platform_effective_var)?.values?.slice(0, 80).map((value) => (
                   <option key={value} value={value}>{value}</option>
@@ -1332,7 +1332,7 @@ function TerritorialSourceConsoleImpl({
                   <span><ContactRound size={18} /></span>
                   <div>
                     <strong>{roster?.file_name || "Subir Excel de encuestadores"}</strong>
-                    <em>{roster?.uploaded_at ? `${formatDate(roster.uploaded_at)} · formato ${roster.code_format || rosterFormat}` : "Usa AP PATERNO, AP MATERNO y NOMBRES."}</em>
+                    <em>{roster?.uploaded_at ? `${formatDate(roster.uploaded_at)}, formato ${roster.code_format || rosterFormat}` : "Usa AP PATERNO, AP MATERNO y NOMBRES."}</em>
                   </div>
                 </div>
                 <div className="mon-territorial-enumerator-fieldchips" aria-label="Campos de cruce Kobo">
@@ -1785,7 +1785,7 @@ function TerritorialSourceConsoleImpl({
                 <div>
                   <strong>{entry.type === "inspect" ? "Inspección" : "Sincronización"}</strong>
                   <em>{entry.asset_name || activeAssetName || "Formulario Kobo"}</em>
-                  <small>{entry.version_id || "sin versión"} · {fmt(entry.response_count)} respuestas</small>
+                  <small>{entry.version_id || "sin versión"}, {fmt(entry.response_count)} respuestas</small>
                 </div>
                 <span className={`is-${entry.status === "warning" ? "warning" : entry.status === "error" ? "error" : "ready"}`}>
                   {entry.status === "warning" ? "Alerta" : entry.status === "error" ? "Error" : "OK"}

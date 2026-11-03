@@ -6,6 +6,7 @@ import type { MonitoreoSource, MonitoreoState } from "../../../../../api/client"
 import { NotaDelModo } from "../../../core/NotaDelModo";
 import { sourcePayloadFromExisting } from "../fuentes/payloadDeFuente";
 import { coberturaDe, estadoDelCodigo } from "./codigoDePersonaModel";
+import { formatoConteo } from "../../../../../lib/formatoNumero";
 
 const ROTULO_DE_ORIGEN = {
   declarada: "Declarada",
@@ -97,7 +98,7 @@ export function CodigoDeLaPersona({
           </p>
         ) : null}
         <p className="mon-codigo-persona-detalle">
-          Hoy cruzan {cruce.cruzan.toLocaleString("es-PE")} de {cruce.total.toLocaleString("es-PE")} efectivas.
+          Hoy cruzan {formatoConteo(cruce.cruzan)} de {formatoConteo(cruce.total)} efectivas.
           {envio.hecho ? " Pregunta guardada: el cruce se recalcula al Actualizar." : cambia && elegida ? " Al confirmar, el cruce se recalcula al Actualizar." : ""}
         </p>
         {envio.error ? <NotaDelModo tono="error" estado>{envio.error}</NotaDelModo> : null}

@@ -108,7 +108,7 @@ export function rotuloDeAcreditacion({
     valor: item.interna,
   }));
   return {
-    antetitulo: `${antetituloDePestana(seccion, pestana)} · ${nombreDePestana(seccion, pestana)}`,
+    antetitulo: `${antetituloDePestana(seccion, pestana)} › ${nombreDePestana(seccion, pestana)}`,
     chips,
     control: opciones.length > 1 ? (
       <SelectorDeSubvistas

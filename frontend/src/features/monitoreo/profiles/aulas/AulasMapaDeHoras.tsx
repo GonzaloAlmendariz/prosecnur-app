@@ -41,7 +41,7 @@ export function AulasMapaDeHoras({ franjas, hoy = hoyISO() }: {
         // confirmadas — cada una pide su aplicador.
         <span>
           hasta {fmt(mapa.picoMaximo.aulas)} {mapa.picoMaximo.aulas === 1 ? "aplicación" : "aplicaciones"} a
-          la vez · {mapa.picoMaximo.etiqueta}
+          la vez, {mapa.picoMaximo.etiqueta}
         </span>
       ) : null}
     </div>
@@ -135,7 +135,7 @@ function DiaDelMapa({ dia, esElQueToca = false, esPasado = false }: {
               <strong>
                 {fmt(dia.picoAulas)} {dia.picoAulas === 1 ? "aplicación" : "aplicaciones"} a la vez
               </strong>
-              {dia.pico ? <> · {dia.pico.inicio}–{dia.pico.fin}</> : null}
+              {dia.pico ? <>, {dia.pico.inicio}–{dia.pico.fin}</> : null}
             </>
           ) : (
             <em>sin aplicaciones confirmadas</em>
@@ -182,7 +182,7 @@ function DiaDelMapa({ dia, esElQueToca = false, esPasado = false }: {
                 <i
                   className={`aulas-mapa-barra${v.confirmada ? "" : " es-tentativa"}`}
                   style={{ left: `${v.desdePct}%`, width: `${v.anchoPct}%` }}
-                  title={`${v.codigo} · ${v.inicio}–${v.fin}${v.recojo ? ` · recojo ${v.recojo}` : ""}${v.confirmada ? "" : " · franja del curso, por confirmar"}`}
+                  title={`${v.codigo}, ${v.inicio}–${v.fin}${v.recojo ? `, recojo ${v.recojo}` : ""}${v.confirmada ? "" : ", franja del curso, por confirmar"}`}
                 />
               </div>
             </Fragment>
@@ -197,7 +197,7 @@ function DiaDelMapa({ dia, esElQueToca = false, esPasado = false }: {
         // decisión revocada: la lista larga crece hacia abajo y la sección
         // scrollea — se organiza, jamás se esconde.
         <p className="aulas-mapa-pendientes">
-          <strong>Por confirmar · {fmt(dia.porConfirmar.length)}:</strong>{" "}
+          <strong>Por confirmar ({fmt(dia.porConfirmar.length)}):</strong>{" "}
           {dia.porConfirmar.join(", ")}
         </p>
       ) : null}

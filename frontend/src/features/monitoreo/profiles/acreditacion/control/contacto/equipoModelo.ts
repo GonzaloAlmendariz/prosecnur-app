@@ -13,6 +13,7 @@
 import type { MonitoreoAcreditacionReports, MonitoreoStateRule } from "../../../../../../api/client";
 import { filasDeBloque } from "../../../telefonico/navegacion/bloques";
 import { clasificadorDeStatus, type FamiliaDelCliente } from "../../../telefonico/control/familiasDelCliente";
+import { formatoConteo, formatoDecimal } from "../../../../../../lib/formatoNumero";
 
 type Fila = Record<string, unknown>;
 
@@ -76,7 +77,7 @@ export function umbralesDelPerfil(alertas: Record<string, number> | null | undef
   };
 }
 
-const UNA_DECIMAL = (valor: number) => valor.toLocaleString("es-PE", { maximumFractionDigits: 1 });
+const UNA_DECIMAL = (valor: number) => formatoDecimal(valor, 1);
 
 export function construirEquipo(
   reports: MonitoreoAcreditacionReports | null | undefined,
@@ -141,7 +142,7 @@ export function construirEquipo(
     const nombre = texto(item.Responsable) || "Sin asignar";
     alertas.push({
       clave: `no-contesta-${nombre}`,
-      texto: `${nombre} tiene ${casos.toLocaleString("es-PE")} casos sin contestar, con ${UNA_DECIMAL(promedio)} intentos en promedio`,
+      texto: `${nombre} tiene ${formatoConteo(casos)} casos sin contestar, con ${UNA_DECIMAL(promedio)} intentos en promedio`,
       casos,
       tono: "atencion",
     });

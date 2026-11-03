@@ -1,3 +1,4 @@
+import { formatoConteo } from "../../../../lib/formatoNumero";
 import type { BarraDelModo } from "../../shell/BarraDelModo";
 import { corteCorto, estadoDelModo } from "../../core/barraComun";
 
@@ -41,7 +42,7 @@ export function construirBarraDeAulas({
   onReleerAvance: () => void;
 }): BarraDelModo {
   return {
-    indicadores: [{ etiqueta: "Registros", valor: registros.toLocaleString("es-PE") }],
+    indicadores: [{ etiqueta: "Registros", valor: formatoConteo(registros) }],
     corte: corteCorto(syncedAt),
     estado: estadoDelModo({ actualizando, cargando, hayEstado, generationStatus, pendienteDeRecalcular, error }),
     actualizar: {

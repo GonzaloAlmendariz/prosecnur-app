@@ -9,7 +9,7 @@ import { RondasDeSupervision } from "../control/RondasDeSupervision";
 import { rotuloEnLaPestana, pestanaConLienzo } from "./barraTelefonica";
 import { RotuloDePestana, RotuloDePestanaProvider } from "./RotuloDePestana";
 
-const VALOR = { antetitulo: "Control · Casos", titulo: "Supervisión", chips: ["24 casos"] };
+const VALOR = { antetitulo: "Control › Casos", titulo: "Supervisión", chips: ["24 casos"] };
 
 function conRotulo(nodo: ReactNode) {
   return renderToStaticMarkup(<RotuloDePestanaProvider valor={VALOR}>{nodo}</RotuloDePestanaProvider>).replace(/<!-- -->/g, "");
@@ -18,7 +18,7 @@ function conRotulo(nodo: ReactNode) {
 describe("rótulo de la pestaña", () => {
   it("pinta antetítulo, nombre y chips, sin ícono; sin proveedor no pinta nada", () => {
     const html = conRotulo(<RotuloDePestana />);
-    expect(html).toContain("Control · Casos");
+    expect(html).toContain("Control › Casos");
     expect(html).toContain("<h2>Supervisión</h2>");
     expect(html).toContain("24 casos");
     expect(html).not.toContain("<svg");

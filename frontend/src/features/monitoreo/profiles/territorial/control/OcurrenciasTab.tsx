@@ -1,3 +1,4 @@
+import { formatoDecimal } from "../../../../../lib/formatoNumero";
 import { memo, useMemo } from "react";
 import { ClipboardList } from "lucide-react";
 import { EstadoVacio } from "../../../../../components/EstadoVacio";
@@ -116,7 +117,7 @@ function PorDistrito({ modelo }: { modelo: ModeloOcurrencias }) {
                 <td className="is-num">{fmt(fila.efectivas)}</td>
                 {fila.porCien.map((valor, indice) => (
                   <td key={modelo.columnas[indice]?.clave ?? indice} className="is-num is-calor" style={{ background: `color-mix(in srgb, var(--pulso-warn-accent) ${Math.round((valor / maximo) * 45)}%, var(--pulso-surface))` }}>
-                    {valor.toLocaleString("es-PE", { maximumFractionDigits: 1 })}
+                    {formatoDecimal(valor, 1)}
                   </td>
                 ))}
               </tr>

@@ -92,7 +92,7 @@ function DistribucionAulasImpl({ dashboard, cargando, vacioSinTablero, contexto 
         <div className="aulas-ins-tramos-selector" role="group" aria-label="Día">
           {modelo.dias.map((d) => (
             <button key={d.fecha} type="button" className={d.fecha === modelo.elegido ? "is-activo" : undefined} aria-pressed={d.fecha === modelo.elegido} onClick={() => setDia(d.fecha)}>
-              {d.rotulo} · {d.citas}
+              {d.rotulo} ({d.citas})
             </button>
           ))}
         </div>
@@ -117,7 +117,7 @@ function DistribucionAulasImpl({ dashboard, cargando, vacioSinTablero, contexto 
                     <span
                       className={`aulas-dist-cita${c.fijada ? " is-fijada" : ""}`}
                       style={{ left: `${c.izquierda}%` }}
-                      title={[c.fijada ? "Fijada desde la hoja" : "", c.advertencia].filter(Boolean).join(" · ") || undefined}
+                      title={[c.fijada ? "Fijada desde la hoja" : "", c.advertencia].filter(Boolean).join(", ") || undefined}
                     >
                       <b>{c.codigo}</b> {c.inicio}
                       {lugarDe.get(c.codigo) ? <ChipLugar lugar={lugarDe.get(c.codigo)!} /> : null}

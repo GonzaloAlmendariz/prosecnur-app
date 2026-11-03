@@ -27,6 +27,7 @@ import { ACTORES_SEMILLA, claveDeActor, faltantesDelActor } from "../../../fuent
 import { CanalesDelPublico } from "./CanalesDelPublico";
 import { useElencoDeActores } from "./useElencoDeActores";
 import { actorInitialLabel } from "../formato";
+import { enumerar } from "../../../../../lib/enumerar";
 import "./actoresDelEstudio.css";
 import { Switch } from "../../../../../components/Switch";
 
@@ -175,7 +176,7 @@ export function ActoresDelEstudio({
                         Al guardar, «{fila.guardadoComo}» pasa a llamarse así en {conFuentes === 1 ? "su única fuente" : `sus ${conFuentes} fuentes`}.
                       </span>
                     ) : faltan.length ? (
-                      <span className="is-missing">{faltan.join(" · ")}</span>
+                      <span className="is-missing">{enumerar(faltan)}</span>
                     ) : (
                       <span className="is-ready">Listo para medir avance</span>
                     )}

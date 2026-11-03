@@ -54,7 +54,7 @@ describe("Telefónico: la bandeja de subsanación sigue el patrón de Acreditaci
 
   it("la segunda línea de la fila distingue casos que comparten motivo", () => {
     expect(page).toMatch(
-      /formatInternalQueryDateLabel\(item\.date\)\}\s*·\s*\{internalQueryCollectorDisplayLabel\(item\)\}/,
+      /formatInternalQueryDateLabel\(item\.date\)\},\s*\{internalQueryCollectorDisplayLabel\(item\)\}/,
     );
   });
 });
@@ -199,7 +199,7 @@ describe("el texto recortado de la bandeja conserva su contenido", () => {
       // es aceptable —la ficha tiene el detalle—, pero sin `title` el dato se
       // perdía del todo y no había forma de leerlo.
       expect(fuente).toMatch(
-        /<small title=\{`\$\{item\.actor \|\| "Sin actor"\} · \$\{formatInternalQueryDateLabel\(item\.date\)\}/,
+        /<small title=\{`\$\{item\.actor \|\| "Sin actor"\}, \$\{formatInternalQueryDateLabel\(item\.date\)\}/,
       );
     },
   );

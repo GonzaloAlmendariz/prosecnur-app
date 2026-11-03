@@ -49,7 +49,7 @@ export function columnaPlanificada(asignacion: AsignacionPlanificada | null): Co
     const { texto, tono } = TEXTO[u.lectura];
     porManzana.set(u.idManzana, {
       codigo: u.codigoPlanificado,
-      rotulo: u.nombrePlanificado ? `${u.codigoPlanificado} · ${u.nombrePlanificado}` : u.codigoPlanificado,
+      rotulo: u.nombrePlanificado ? `${u.codigoPlanificado}, ${u.nombrePlanificado}` : u.codigoPlanificado,
       lectura: u.lectura,
       texto,
       tono,
@@ -67,10 +67,10 @@ export function columnaPlanificada(asignacion: AsignacionPlanificada | null): Co
               : null,
           conteo: u.efectivasDeclaradas == null
             ? null
-            : { texto: `Campo ${u.efectivasDeclaradas} · Kobo ${u.efectivasKobo}`, distinto: u.efectivasDeclaradas !== u.efectivasKobo },
+            : { texto: `Campo ${u.efectivasDeclaradas}, Kobo ${u.efectivasKobo}`, distinto: u.efectivasDeclaradas !== u.efectivasKobo },
           coordinacion: u.efectivasCoordinacion == null
             ? null
-            : { texto: `Coordinación ${u.efectivasCoordinacion} · Kobo ${u.efectivasKobo}`, distinto: (u.diferenciaCoordinacion ?? 0) !== 0 },
+            : { texto: `Coordinación ${u.efectivasCoordinacion}, Kobo ${u.efectivasKobo}`, distinto: (u.diferenciaCoordinacion ?? 0) !== 0 },
         }
         : null,
     });

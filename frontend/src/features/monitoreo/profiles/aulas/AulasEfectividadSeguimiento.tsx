@@ -1,3 +1,4 @@
+import { formatoDecimal } from "../../../../lib/formatoNumero";
 import { useMemo } from "react";
 
 import type {
@@ -53,7 +54,7 @@ function disponibles(f: MonitoreoAulasEfectividadFacultad): string {
   if (f.reservas_libres > 0) partes.push(`${fmt(f.reservas_libres)} en cadena`);
   if (f.banco_disponible > 0) partes.push(`${fmt(f.banco_disponible)} de banco`);
   if (!partes.length) return "sin reservas";
-  return partes.join(" · ");
+  return partes.join(", ");
 }
 
 /**
@@ -112,7 +113,7 @@ const alumnos = (n: number | null | undefined) => {
   if (n == null || !Number.isFinite(n)) return "—";
   const v = n < 0 ? Math.ceil(Math.abs(n)) : Math.floor(n);
   if (v === 0) return "0";
-  return `${n < 0 ? "−" : "+"}${v.toLocaleString("es-PE")}`;
+  return `${n < 0 ? "−" : "+"}${formatoDecimal(v, 3)}`;
 };
 
 /** El margen de error en puntos porcentuales, entero. `null` si no hay banda. */
@@ -585,7 +586,7 @@ export function AulasEfectividadSeguimiento({
         ) : null}
         <span className="aulas-tau-sello">
           se cuenta la respuesta que llegó a la plataforma y pasó los filtros
-          {bloque.vigencia !== "vigente" && bloque.motivo ? ` · ${bloque.motivo}` : ""}
+          {bloque.vigencia !== "vigente" && bloque.motivo ? `, ${bloque.motivo}` : ""}
         </span>
       </p>
 
@@ -662,9 +663,9 @@ export function AulasEfectividadSeguimiento({
                       enFoco={enFoco}>
                       {f.facultad}
                       <em>
-                        {fmt(f.aulas_aplicadas)} {f.aulas_aplicadas === 1 ? "curso-horario aplicado" : "cursos-horario aplicados"} ·{" "}
+                        {fmt(f.aulas_aplicadas)} {f.aulas_aplicadas === 1 ? "curso-horario aplicado" : "cursos-horario aplicados"},{" "}
                         {fmt(f.efectivas)} de {fmt(f.elegibles_aplicados)} alumnos
-                        {f.residual_base === "sin_base" ? " · sin base histórica propia" : ""}
+                        {f.residual_base === "sin_base" ? ", sin base histórica propia" : ""}
                       </em>
                     </NombreDeFacultad>
                     {/* **El grano que la τ general esconde.** La cuota se fija

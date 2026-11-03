@@ -5,7 +5,8 @@ import { ErrorBlock } from "../../../../../components/States";
 import { EstadoChip } from "../../../../../components/EstadoChip";
 import type { MonitoreoTerritorialDashboard } from "../../../../../api/client";
 import type { CasoDeUmpConGps, EstadoDeCasoUmp } from "../../../../../api/monitoreoCasosUmp";
-import { celdaEnFrase, diaYMes, enumerar, fmt } from "../rotulos";
+import { enumerar } from "../../../../../lib/enumerar";
+import { celdaEnFrase, diaYMes, fmt } from "../rotulos";
 import {
   LIMA_MAP_HEIGHT,
   LIMA_MAP_WIDTH,

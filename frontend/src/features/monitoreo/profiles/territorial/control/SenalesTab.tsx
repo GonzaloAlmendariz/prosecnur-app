@@ -1,3 +1,4 @@
+import { formatoDecimal } from "../../../../../lib/formatoNumero";
 import { memo, useMemo, type ReactNode } from "react";
 import { Activity } from "lucide-react";
 import { EstadoVacio } from "../../../../../components/EstadoVacio";
@@ -55,7 +56,7 @@ function SenalesTabImpl({ reports }: { reports: MonitoreoTerritorialDashboard | 
           titulo="Duración del formulario"
           base={`${fmt(modelo.duracion.base)} que cuentan con duración`}
           criterio="Se revisan las de menos de 5 min"
-          mediana={modelo.duracion.mediana != null ? `Mediana ${modelo.duracion.mediana.toLocaleString("es-PE", { maximumFractionDigits: 1 })} min` : "Sin mediana"}
+          mediana={modelo.duracion.mediana != null ? `Mediana ${formatoDecimal(modelo.duracion.mediana, 1)} min` : "Sin mediana"}
           histograma={modelo.duracion}
         />
       </div>

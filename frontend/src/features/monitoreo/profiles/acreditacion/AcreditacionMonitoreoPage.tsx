@@ -156,9 +156,9 @@ export { compactAdvanceDateTickLabel };
 import { schedulePrefetchScopes, usePrefetchTimeouts } from "./sync/scopePrefetch";
 import { estadoVisual, readinessDeSalidas, recorteTabla } from "../../corte/corteContract";
 import { MonitoreoOutputsWorkbench } from "../../salidas/MonitoreoOutputsWorkbench";
-import { pct } from "../../core/formatoComun";
+import { pct, pctDecimal } from "../../core/formatoComun";
 import { leerDireccionDeSheets } from "../../fuentes/direccionDeFuente";
-import { pctDecimal } from "../../core/formatoComun";
+import { formatoDecimal } from "../../../../lib/formatoNumero";
 import {
   ACREDITACION_PHONE_ALERT_RULES,
   acreditacionQualityActionLabel,
@@ -542,7 +542,7 @@ function EstadoProgresoCompact({ summary, label = "Estado + progreso" }: { summa
       <div className="mon-acr-state-compact-copy">
         <span>{label}</span>
         <strong>{pct(progress)}</strong>
-        <em>{fmt(summary.effective)} efectivas · {fmt(summary.unanswered)} sin respuesta · base {fmt(summary.universe)}</em>
+        <em>{fmt(summary.effective)} efectivas, {fmt(summary.unanswered)} sin respuesta, base {fmt(summary.universe)}</em>
       </div>
       <div className="mon-acr-state-compact-meter" aria-label={`Base reportada ${fmt(summary.universe)}`}>
         {segments.map((item) => (
@@ -1467,7 +1467,7 @@ function AcreditacionFieldSchedulePanel({
         >
           <span className="mon-field-schedule-observado__label">Campo ejecutado</span>
           <strong>{campoObservado.semanas > draft.durationWeeks ? "Fuera del plan" : "Dentro del plan"}</strong>
-          <span>{campoObservado.inicio} a {campoObservado.fin} · {countText(campoObservado.semanas, "semana", "semanas")} · {countText(campoObservado.diasConRespuesta, "día", "días")} con respuesta</span>
+          <span>{campoObservado.inicio} a {campoObservado.fin}, {countText(campoObservado.semanas, "semana", "semanas")}, {countText(campoObservado.diasConRespuesta, "día", "días")} con respuesta</span>
           <em>{campoObservado.semanas > draft.durationWeeks ? `El campo lleva ${countText(campoObservado.semanas, "semana", "semanas")} y el plan declara ${draft.durationWeeks}.` : `El campo observado no supera las ${countText(draft.durationWeeks, "semana", "semanas")} declaradas.`}</em>
         </p>
       ) : <p className="mon-field-schedule-observado is-empty" role="note"><span className="mon-field-schedule-observado__label">Campo ejecutado</span><strong>Sin corte observado</strong><em>La comparación aparecerá cuando el corte tenga respuestas con fecha.</em></p>}
@@ -1829,7 +1829,7 @@ function AcreditacionModelWorkbench({
                 <div>
                   <span>Componente seleccionado</span>
                   <strong>{selected.actor}</strong>
-                  <p>{selected.tecnica || "Sin técnica"} · {selected.variable_control || "Sin variable de control"}</p>
+                  <p>{selected.tecnica || "Sin técnica"}, {selected.variable_control || "Sin variable de control"}</p>
                 </div>
                 <AcreditacionCumplimientoBadge estado={selected.seguimiento.cumplimiento.estado} />
               </header>
@@ -2152,7 +2152,7 @@ function acreditacionReportCutsFromPhases(phases: MonitoreoStrategyPhase[] = [])
   rows.forEach((row) => {
     if (!row.date) return;
     const weekday = calendarReportWeekdayLabel(row.weekday);
-    const label = row.week ? `S${fmt(row.week)} · ${weekday}` : weekday;
+    const label = row.week ? `S${fmt(row.week)}, ${weekday}` : weekday;
     byDate.set(row.date, { date: row.date, label });
   });
   return Array.from(byDate.values()).sort((a, b) => {
@@ -2308,7 +2308,7 @@ function AcreditacionFieldCalendarTimeline({ phases }: { phases: MonitoreoStrate
                     style={{ gridColumn: `${item.startIndex + 1} / ${item.endIndex + 2}` }}
                   >
                     <strong>{item.phase.stratum || `Fase ${fmt(item.index + 1)}`}</strong>
-                    <span>{item.rangeLabel} · {item.durationLabel}</span>
+                    <span>{item.rangeLabel}, {item.durationLabel}</span>
                   </div>
                 </div>
               ))}
@@ -2625,7 +2625,7 @@ function AcreditacionPhoneQuotaEditor({
     {
       key: "quota",
       label: "Cuotas",
-      value: activeVariable ? `${activeVariableLabel} · ${fmt(rows.length)} categorías` : "Sin variable",
+      value: activeVariable ? `${activeVariableLabel}, ${fmt(rows.length)} categorías` : "Sin variable",
       tone: activeVariable ? "ready" : "warning",
     },
     {
@@ -2747,7 +2747,7 @@ function AcreditacionPhoneQuotaEditor({
           <div className="mon-phone-quota-gap-board" aria-label={`Categorías de cuota por ${activeVariableLabel}`}>
             <header>
               <span><BarChart3 size={13} /> Categorías de {activeVariableLabel}</span>
-              <strong>{fmt(rows.length)} categorías · {quotaTotal ? `${fmt(quotaTotal)} meta` : "sin meta"}</strong>
+              <strong>{fmt(rows.length)} categorías, {quotaTotal ? `${fmt(quotaTotal)} meta` : "sin meta"}</strong>
             </header>
             <div>
               {focusRows.map((row) => {
@@ -2756,7 +2756,7 @@ function AcreditacionPhoneQuotaEditor({
                   <article key={row.key} className={row.meta != null ? "is-ready" : "is-gap"}>
                     <span>
                       <strong>{row.value}</strong>
-                      <em>{fmt(row.universe)} base · {row.meta == null ? "sin meta" : `${fmt(row.meta)} meta`}</em>
+                      <em>{fmt(row.universe)} base, {row.meta == null ? "sin meta" : `${fmt(row.meta)} meta`}</em>
                     </span>
                     <i
                       aria-hidden="true"
@@ -2782,7 +2782,7 @@ function AcreditacionPhoneQuotaEditor({
                 onClick={() => setActiveVariable(candidate.name)}
               >
                 <strong>{candidate.label}</strong>
-                <em>{fmt(candidate.categories)} categorías · {fmt(candidate.universe)} base{candidate.meta ? ` · ${fmt(candidate.meta)} meta` : ""}</em>
+                <em>{fmt(candidate.categories)} categorías, {fmt(candidate.universe)} base{candidate.meta ? `, ${fmt(candidate.meta)} meta` : ""}</em>
               </button>
             ))}
           </div>
@@ -3080,7 +3080,7 @@ function AcreditacionModelConfigWorkbench({
         <section className="mon-contract-block mon-contract-block--wide">
           <div className="mon-contract-block-head">
             <span>Estados válidos y reglas de avance</span>
-            <span className="mon-contract-counter">{fmt(model.events.length)} eventos · {fmt(model.state_rules.length)} reglas</span>
+            <span className="mon-contract-counter">{fmt(model.events.length)} eventos, {fmt(model.state_rules.length)} reglas</span>
           </div>
           <div className="mon-form mon-form--two">
             <AcreditacionVarSelect label="Variable de estado" value={draft.status_var} vars={variableNames} onChange={(status_var) => patchConfig({ status_var })} />
@@ -3209,7 +3209,7 @@ function AcreditacionModelConfigWorkbench({
                   <span><Route size={12} /> {MODEL_MODALITY_OPTIONS.find((option) => option.value === plan.modality)?.label ?? plan.modality}</span>
                   <span><PlugZap size={12} /> {fmt(plan.sourceCount)}</span>
                 </div>
-                <p>{plan.channels.length ? plan.channels.slice(0, 3).join(" · ") : "Canal por definir"}</p>
+                <p>{plan.channels.length ? plan.channels.slice(0, 3).join(", ") : "Canal por definir"}</p>
                 <button type="button" onClick={() => addPhaseForPlan(plan)}>Usar fase</button>
               </article>
             ))}
@@ -3245,7 +3245,7 @@ function AcreditacionModelConfigWorkbench({
                     <span>{dateStatus.durationLabel}</span>
                     <em>
                       {dateStatus.detail}
-                      {reportWeekday ? ` · Reporte ${calendarReportWeekdayLabel(reportWeekday).toLowerCase()}` : ""}
+                      {reportWeekday ? `, reporte ${calendarReportWeekdayLabel(reportWeekday).toLowerCase()}` : ""}
                     </em>
                   </div>
                   <div className="mon-calendar-phase-grid">
@@ -3436,7 +3436,7 @@ function AcreditacionModelConfigWorkbench({
       <section className="mon-contract-block mon-contract-block--wide">
         <div className="mon-contract-block-head">
           <span>Cortes, metas y variables</span>
-          <span className="mon-contract-counter">{fmt(configuredGoals)}/{fmt(draft.goals.length)} metas · total {goalTotal ? fmt(goalTotal) : "S/M"}</span>
+          <span className="mon-contract-counter">{fmt(configuredGoals)}/{fmt(draft.goals.length)} metas, total {goalTotal ? fmt(goalTotal) : "S/M"}</span>
         </div>
         <div className="mon-form mon-form--two">
           <AcreditacionVarSelect label="Enumerador" value={draft.enumerator_var} vars={variableNames} onChange={(enumerator_var) => patchConfig({ enumerator_var })} />
@@ -3623,7 +3623,7 @@ function AcreditacionSweepBaseWorkbench({
                     <span className="mon-collector-use-icon"><PhoneCall size={14} /></span>
                     <div>
                       <strong>{channel.actor}</strong>
-                      <em>{channel.collectorName} · {channel.sourceName}</em>
+                      <em>{channel.collectorName}, {channel.sourceName}</em>
                     </div>
                     <span className="mon-collector-chip">{matched ? "Base confirmada" : "Por confirmar"}</span>
                   </div>
@@ -3643,7 +3643,7 @@ function AcreditacionSweepBaseWorkbench({
                         <option value="">Sin base confirmada</option>
                         {sourceOptions.map((source) => (
                           <option key={source.id} value={source.id}>
-                            {[source.label || source.id, source.sheet_binding?.sheet_name, sourceActorLabel(source)].filter(Boolean).join(" · ")}
+                            {[source.label || source.id, source.sheet_binding?.sheet_name, sourceActorLabel(source)].filter(Boolean).join(", ")}
                           </option>
                         ))}
                       </select>
@@ -3660,7 +3660,7 @@ function AcreditacionSweepBaseWorkbench({
                   </div>
                   <div className="mon-collector-channel-line">
                     <AcreditacionChannelBadge channel={channel.channel} />
-                    <span>{channel.collectorId || channel.sourceId} · {channel.collectorType}</span>
+                    <span>{channel.collectorId || channel.sourceId}, {channel.collectorType}</span>
                   </div>
                   {selectedSource ? (
                     <div className="mon-source-dim-badges">
@@ -3992,7 +3992,7 @@ function phoneResponsibleName(row: Record<string, unknown>, index = 0) {
   const base = phoneResponsibleBaseName(row, index);
   const actor = phoneResponsibleActorName(row);
   const actorKey = normalizeSourceMatch(actor);
-  if (actorKey && !actorKey.includes("sin actor") && normalizeSourceMatch(base) !== actorKey) return `${base} · ${actor}`;
+  if (actorKey && !actorKey.includes("sin actor") && normalizeSourceMatch(base) !== actorKey) return `${base}, ${actor}`;
   return base;
 }
 
@@ -4551,7 +4551,7 @@ function AcreditacionPhoneQuotaPanel({ rows }: { rows: Array<Record<string, unkn
               <article key={group.variable} className="mon-phone-quota-actor mon-phone-quota-variable" data-qa-geometry-capacity="owned">
                 <header>
                   <strong>{group.variable}</strong>
-                  <em>{formatMetric(group.rows.length)} categoría{group.rows.length === 1 ? "" : "s"} · {formatMetric(group.rows.reduce((sum, row) => sum + row.universe, 0))} base</em>
+                  <em>{formatMetric(group.rows.length)} categoría{group.rows.length === 1 ? "" : "s"}, {formatMetric(group.rows.reduce((sum, row) => sum + row.universe, 0))} base</em>
                 </header>
                 <div className="mon-phone-quota-rows">
                   {group.rows.map((row) => {
@@ -4786,7 +4786,7 @@ function AcreditacionPhoneResponsibleCards({ rows }: { rows: Array<Record<string
         const pendingPct = safePercentValue(metrics.unswept ?? 0, total);
         const incidencePct = metrics.incidencePct ?? nonEffectivePct;
         return (
-          <article key={`${name}-${index}`} className="mon-phone-responsible" title={actor ? `${displayName} · ${actor}` : displayName}>
+          <article key={`${name}-${index}`} className="mon-phone-responsible" title={actor ? `${displayName}, ${actor}` : displayName}>
             <header>
               <div className="mon-phone-responsible-title">
                 <strong>{displayName}</strong>
@@ -5420,10 +5420,10 @@ function AcreditacionPhonePendingInsistence({
         <em>{formatMetric(rows.length)} responsables</em>
       </header>
       <div className="mon-phone-pending-workbench-summary">
-        <span><strong>{totalAssigned == null ? "S/D" : formatMetric(totalAssigned)}</strong><em>personas asignadas{sinAsignadas ? ` · ${formatMetric(sinAsignadas)} sin dato` : ""}</em></span>
+        <span><strong>{totalAssigned == null ? "S/D" : formatMetric(totalAssigned)}</strong><em>personas asignadas{sinAsignadas ? `, ${formatMetric(sinAsignadas)} sin dato` : ""}</em></span>
         <span className={totalPending ? "is-warning" : "is-ok"}><strong>{formatMetric(totalPending)}</strong><em>casos por barrer</em></span>
         <span><strong>{formatMetric(totalNoAnswer)}</strong><em>casos que no contestan</em></span>
-        <span><strong>{avgAttempts == null ? "S/D" : avgAttempts.toLocaleString("es-PE", { maximumFractionDigits: 1 })}</strong><em>promedio de intentos</em></span>
+        <span><strong>{avgAttempts == null ? "S/D" : formatoDecimal(avgAttempts, 1)}</strong><em>promedio de intentos</em></span>
       </div>
       <div className="mon-phone-attempt-scale" aria-label="Escala de insistencia por intentos">
         {totalBuckets.map((bucket, index) => (
@@ -5444,7 +5444,7 @@ function AcreditacionPhonePendingInsistence({
               <header>
                 <div>
                   <strong>{row.name}</strong>
-                  <em>{assigned == null ? "S/D" : formatMetric(assigned)} personas asignadas · {formatMetric(row.noAnswer)} casos sin respuesta telefónica</em>
+                  <em>{assigned == null ? "S/D" : formatMetric(assigned)} personas asignadas, {formatMetric(row.noAnswer)} casos sin respuesta telefónica</em>
                 </div>
                 <span className={row.pending ? "is-warning" : "is-ok"}>
                   <strong>{formatMetric(row.pending)}</strong>
@@ -5464,7 +5464,7 @@ function AcreditacionPhonePendingInsistence({
               </div>
               <div className="mon-phone-attempt-track-block">
                 <div className="mon-phone-track-labels">
-                  <span><strong>{row.avg == null ? "S/D" : row.avg.toLocaleString("es-PE", { maximumFractionDigits: 1 })}</strong><em>promedio de intentos</em></span>
+                  <span><strong>{row.avg == null ? "S/D" : formatoDecimal(row.avg, 1)}</strong><em>promedio de intentos</em></span>
                   <span><strong>{formatMetric(row.reattemptable ?? 0)}</strong><em>casos reintentables</em></span>
                 </div>
                 <div className="mon-phone-attempt-track" aria-label={`${row.name}: distribución de intentos en casos que no contestan`}>
@@ -5495,7 +5495,7 @@ function AcreditacionPhonePendingInsistence({
                       <article key={item.id} className={`is-${item.intensity.key}`}>
                         <div>
                           <strong>{item.name}</strong>
-                          <em>{item.actor}{item.code ? ` · CodPulso ${item.code}` : " · sin CodPulso"}{item.dateLabel ? ` · ${item.dateLabel}` : ""}</em>
+                          <em>{item.actor}{item.code ? `, CodPulso ${item.code}` : ", sin CodPulso"}{item.dateLabel ? `, ${item.dateLabel}` : ""}</em>
                         </div>
                         <span><strong>{phoneAttemptCountLabel(item.attempts)}</strong><em>de {formatMetric(item.target)} intentos base</em></span>
                         <i title={`${item.status}: ${phoneAttemptCountLabel(item.attempts)} de ${formatMetric(item.target)}`}>
@@ -5722,7 +5722,7 @@ function AcreditacionPhoneComparisonEvidenceItem({
       </span>
       <span className="mon-phone-compare-evidence-note">
         <em>{phonePlatformComparisonLabel(row)}</em>
-        <strong>{[responsible, date ? formatDate(date) : ""].filter(Boolean).join(" · ") || "Sin responsable/fecha"}</strong>
+        <strong>{[responsible, date ? formatDate(date) : ""].filter(Boolean).join(", ") || "Sin responsable/fecha"}</strong>
       </span>
     </article>
   );
@@ -5827,7 +5827,7 @@ function AcreditacionPhonePlatformComparison({ rows }: { rows: Array<Record<stri
             <strong>{formatMetric(item.value)}</strong>
             <em>{item.key === "matched" ? "alineadas" : item.key === "mismatch" ? "por revisar" : "casos"}</em>
             <i aria-hidden="true" />
-            <small>{item.key === "matched" || item.key === "mismatch" ? item.hint : `${phonePercentLabel(item.pct)} · ${item.hint}`}</small>
+            <small>{item.key === "matched" || item.key === "mismatch" ? item.hint : `${phonePercentLabel(item.pct)}, ${item.hint}`}</small>
           </section>
         ))}
       </div>
@@ -5846,7 +5846,7 @@ function AcreditacionPhonePlatformComparison({ rows }: { rows: Array<Record<stri
       <details className="mon-phone-compare-evidence">
         <summary>
           <span><FileCheck2 size={13} /> Evidencia por llave</span>
-          <em>{formatMetric(evidenceRows.length)} visibles{hiddenEvidenceCount ? ` · ${formatMetric(hiddenEvidenceCount)} más` : ""}</em>
+          <em>{formatMetric(evidenceRows.length)} visibles{hiddenEvidenceCount ? `, ${formatMetric(hiddenEvidenceCount)} más` : ""}</em>
         </summary>
         <div className="mon-phone-compare-evidence-list" aria-label="Evidencia visual de comparación por CodPulso">
           {evidenceRows.map((row, index) => (
@@ -6537,7 +6537,7 @@ function AcreditacionChannelSelectorMatrix({
                     <AcreditacionChannelBadge channel={selected} />
                     <div>
                       <strong>{source.survey_title || source.label || source.id}</strong>
-                      <em>{sourceActorLabel(source)} · {sourceExternalId(source)}</em>
+                      <em>{sourceActorLabel(source)}, {sourceExternalId(source)}</em>
                     </div>
                   </div>
                   <AcreditacionChannelSelect
@@ -6628,7 +6628,7 @@ function AcreditacionChannelSelectorMatrix({
 
                   <div className="mon-collector-channel-line">
                     <AcreditacionChannelBadge channel={channel} />
-                    <span>{collectorDisplayName(item)} · {item.collector_id}</span>
+                    <span>{collectorDisplayName(item)}, {item.collector_id}</span>
                   </div>
 
                   {(item.warnings?.length || item.recipient_summary?.truncated) ? (
@@ -6682,7 +6682,7 @@ function AcreditacionSourceStatusStrip({
       <header>
         <span>Fuentes</span>
         <strong>{phoneContract ? "Paquete telefónico" : "Paquete de acreditación"}</strong>
-        <p>{fmt(packageTotalCount)} operativas · {fmt(packageActiveCount)} listas · corte {formatDate(reports.generated_at)}</p>
+        <p>{fmt(packageTotalCount)} operativas, {fmt(packageActiveCount)} listas, corte {formatDate(reports.generated_at)}</p>
       </header>
       <FranjaDeFuentes universo={baseCount} encuestas={surveyCount} barrido={sweepCount} />
       {/* La familia decide el guion del panel: en acreditación se parte de los
@@ -7043,7 +7043,7 @@ function AcreditacionSheetSourceEditor({
         <div className="mon-acr-sheet-inspection">
           <div className="mon-acr-sheet-inspection-head">
             <strong>{inspection.title || inspection.spreadsheet_id}</strong>
-            <span>{fmt(inspection.sheets.length)} pestañas · {fmt(inspection.headers.length)} encabezados</span>
+            <span>{fmt(inspection.sheets.length)} pestañas, {fmt(inspection.headers.length)} encabezados</span>
           </div>
           <div className="mon-acr-sheet-tabs">
             {inspection.sheets.slice(0, 14).map((sheet) => (
@@ -7250,8 +7250,8 @@ function AcreditacionSurveySourcePicker({
       </div>
       {meta ? (
         <div className="mon-sm-meta">
-          {fmt(results.length)} visibles · {fmt(meta.totalRecent)} recientes en {meta.months === 1 ? "el último mes" : `los últimos ${fmt(meta.months)} meses`}
-          {meta.fromCache ? " · catálogo local" : " · SurveyMonkey"}
+          {fmt(results.length)} visibles, {fmt(meta.totalRecent)} recientes en {meta.months === 1 ? "el último mes" : `los últimos ${fmt(meta.months)} meses`}
+          {meta.fromCache ? ", catálogo local" : ", SurveyMonkey"}
         </div>
       ) : null}
       {status ? <div className={status.tone === "error" ? "mon-sm-error" : "mon-sm-meta"}>{status.message}</div> : null}
@@ -7285,7 +7285,7 @@ function AcreditacionSurveySourcePicker({
                   >
                     <span className="pulso-sm-survey-card-copy">
                       <strong>{surveyMonkeyDisplayTitle(survey)}</strong>
-                      <small>{survey.id}{survey.date_modified ? ` · ${formatDate(survey.date_modified)}` : ""}</small>
+                      <small>{survey.id}{survey.date_modified ? `, ${formatDate(survey.date_modified)}` : ""}</small>
                       <span className="pulso-sm-survey-card-meta">
                         {survey.pais_guess ? <b>{survey.pais_guess}</b> : null}
                         {survey.response_count != null ? <i>{fmt(survey.response_count)} respuestas</i> : null}
@@ -7302,7 +7302,7 @@ function AcreditacionSurveySourcePicker({
             <div className="mon-sm-selected-survey">
               <div className="pulso-sm-selected-head">
                 <strong>Encuesta seleccionada</strong>
-                <span>{surveyMonkeyDisplayTitle(selectedSurvey)} · {selectedSurvey.id}</span>
+                <span>{surveyMonkeyDisplayTitle(selectedSurvey)}, {selectedSurvey.id}</span>
               </div>
               <div className="mon-sm-result">
                 <div className="mon-sm-result-main">
@@ -7582,7 +7582,7 @@ function AcreditacionKoboSourcePicker({
                   >
                     <span className="pulso-sm-survey-card-copy">
                       <strong>{asset.name || asset.uid}</strong>
-                      <small>{asset.uid}{asset.date_modified ? ` · ${formatDate(asset.date_modified)}` : ""}</small>
+                      <small>{asset.uid}{asset.date_modified ? `, ${formatDate(asset.date_modified)}` : ""}</small>
                       <span className="pulso-sm-survey-card-meta">
                         <b>{asset.deployment_active ? "Deploy activo" : "Sin deploy activo"}</b>
                         {asset.version_id ? <i>{asset.version_id}</i> : null}
@@ -7599,7 +7599,7 @@ function AcreditacionKoboSourcePicker({
             <div className="mon-sm-selected-survey">
               <div className="pulso-sm-selected-head">
                 <strong>Encuesta Kobo seleccionada</strong>
-                <span>{selectedAsset.name || selectedAsset.uid} · {shortenMiddle(selectedAsset.uid, 34)}</span>
+                <span>{selectedAsset.name || selectedAsset.uid}, {shortenMiddle(selectedAsset.uid, 34)}</span>
               </div>
               <div className="mon-sm-result">
                 <label className="mon-source-name-field">
@@ -7686,7 +7686,7 @@ function AcreditacionSurveyInspectionCard({
       {columns.length ? (
         <div className="mon-sm-column-list">
           {columns.map((column) => (
-            <span key={column.name} title={column.examples.join(" · ")}>
+            <span key={column.name} title={column.examples.join(", ")}>
               {column.name}
               <em>{fmt(column.non_empty)}</em>
             </span>
@@ -7699,7 +7699,7 @@ function AcreditacionSurveyInspectionCard({
             <div key={`${question.qid}-${question.pos}`}>
               <strong>Q{question.pos}</strong>
               <span>{question.heading || question.family}</span>
-              <em>{question.family}{question.n_choices ? ` · ${fmt(question.n_choices)} opciones` : ""}</em>
+              <em>{question.family}{question.n_choices ? `, ${fmt(question.n_choices)} opciones` : ""}</em>
             </div>
           ))}
         </div>
@@ -7881,7 +7881,7 @@ function AcreditacionPlatformSurveySourcesView({
                       * («527327742»). El identificador vive ahora en el detalle
                       * técnico del Resumen; aquí manda de quién es la encuesta. */}
                     <strong>{acreditacionSurveySourceName(source)}</strong>
-                    <em>{[servicioDeFuente(source), sourceActor].filter(Boolean).join(" · ")}</em>
+                    <em>{[servicioDeFuente(source), sourceActor].filter(Boolean).join(", ")}</em>
                   </div>
                   <span className={source.enabled ? "is-ready" : "is-muted"}>{source.enabled ? "Activa" : "Inactiva"}</span>
                 </div>
@@ -8201,7 +8201,7 @@ function AcreditacionActiveSourcesView({
               {phoneSheetSources.map((source) => (
                 <article key={source.id}>
                   <strong>{source.label || source.sheet_binding?.sheet_name || source.id}</strong>
-                  <span>{source.role === "barrido" ? "Barrido telefónico" : "Base telefónica"} · {source.sheet_binding?.sheet_name || "Sin pestaña"}</span>
+                  <span>{source.role === "barrido" ? "Barrido telefónico" : "Base telefónica"}, {source.sheet_binding?.sheet_name || "Sin pestaña"}</span>
                   <em>{sourceSyncLabel(source)}</em>
                 </article>
               ))}
@@ -8220,7 +8220,7 @@ function AcreditacionActiveSourcesView({
               {koboSources.map((source) => (
                 <article key={source.id}>
                   <strong>{acreditacionSurveySourceName(source)}</strong>
-                  <span>{sourceProviderLabel(source.kind)} · {shortenMiddle(sourceExternalId(source), 34)}</span>
+                  <span>{sourceProviderLabel(source.kind)}, {shortenMiddle(sourceExternalId(source), 34)}</span>
                   <em>{fmt(acreditacionSourceResponseCount(source))} respuestas</em>
                 </article>
               ))}
@@ -8310,7 +8310,7 @@ function AcreditacionActiveSourcesView({
           <div className="mon-acr-object-surface-head">
             <div>
               <span>Recopiladores</span>
-              <strong>{countText(summary.includedCollectors, "incluido", "incluidos")} · {fmt(summary.excludedCollectors)} excluidos</strong>
+              <strong>{countText(summary.includedCollectors, "incluido", "incluidos")}, {fmt(summary.excludedCollectors)} excluidos</strong>
             </div>
             <em>{summary.missingCollectorMetadata ? `${fmt(summary.missingCollectorMetadata)} sin metadata` : "Metadata real lista"}</em>
           </div>
@@ -8320,7 +8320,7 @@ function AcreditacionActiveSourcesView({
               return (
                 <article key={source.id}>
                   <strong>{acreditacionSurveySourceName(source)}</strong>
-                  <span>{sourceActorLabel(source)} · {countText(rows.filter((row) => row.enabled).length, "incluido", "incluidos")}</span>
+                  <span>{sourceActorLabel(source)}, {countText(rows.filter((row) => row.enabled).length, "incluido", "incluidos")}</span>
                   <em>{source.collectors?.length ? `${countText(source.collectors.length, "nombre real", "nombres reales")}` : "Falta Actualizar todo"}</em>
                 </article>
               );
@@ -8340,7 +8340,7 @@ function AcreditacionActiveSourcesView({
             {sheetSources.map((source) => (
               <article key={source.id}>
                 <strong>{source.label || sourceActorLabel(source)}</strong>
-                <span>{source.sheet_binding?.sheet_name || "Sin pestaña"} · {sourceActorLabel(source)}</span>
+                <span>{source.sheet_binding?.sheet_name || "Sin pestaña"}, {sourceActorLabel(source)}</span>
                 <em>{sourceSyncLabel(source)}</em>
               </article>
             ))}
@@ -8553,7 +8553,7 @@ function AcreditacionPhoneSourceSlotCard({
               href={enlacePrimario.href}
               target="_blank"
               rel="noreferrer"
-              title={[enlacePrimario.titulo, !isPlatform ? sourceSheetField(primary, "range") : null].filter(Boolean).join(" · ")}
+              title={[enlacePrimario.titulo, !isPlatform ? sourceSheetField(primary, "range") : null].filter(Boolean).join(", ")}
               onClick={(event) => event.stopPropagation()}
             >
               {primary ? nombreDeFuente(primary) : enlacePrimario.texto}
@@ -8625,22 +8625,22 @@ function AcreditacionPhoneInstrumentDecision({
         </article>
         <div className="mon-phone-kobo-decision-stack" aria-label="Decisiones que convierten Kobo en avance">
           <span className={contract.platform.ready ? "is-ready" : "is-warning"}>
-            <em>1 · Instrumento</em>
+            <em>1. Instrumento</em>
             <strong>{sourceTitle || "Pendiente"}</strong>
             <small>{responseLabel}</small>
           </span>
           <span className={filterConfigured ? "is-ready" : "is-warning"}>
-            <em>2 · Filtro efectiva</em>
+            <em>2. Filtro efectiva</em>
             <strong>{filterLabel}</strong>
             <small>{filterConfigured ? "cuenta como efectiva Kobo" : "sin filtro no hay cierre de avance"}</small>
           </span>
           <span className={contract.universe.ready && contract.sweep.ready ? "is-ready" : "is-warning"}>
-            <em>3 · Contraste telefónico</em>
+            <em>3. Contraste telefónico</em>
             <strong>{contract.universe.ready && contract.sweep.ready ? "Base + barrido listos" : "Faltan Sheets"}</strong>
             <small>estados telefónicos en paralelo</small>
           </span>
           <span className={primary ? "is-ready" : "is-warning"}>
-            <em>4 · Llave CodPulso</em>
+            <em>4. Llave CodPulso</em>
             <strong>{primary ? "Cruce individual" : "Pendiente"}</strong>
             <small>{responseLabel}</small>
           </span>
@@ -9217,7 +9217,7 @@ function DataTable({
         </tbody>
       </table>
       {avisos.length ? (
-        <p className="mon-profile-table-recorte">{avisos.join(" · ")}</p>
+        <p className="mon-profile-table-recorte">{avisos.join(", ")}</p>
       ) : null}
     </div>
   );
@@ -9680,7 +9680,7 @@ function AcreditacionAssistedReviewBlock({
         <div><dt>Correo declarado</dt><dd>{declaredEmail}</dd></div>
       </div>
       <div className="mon-assisted-evidence-found" aria-label="Evidencia encontrada">
-        <span>Evidencia encontrada · no asigna automáticamente</span>
+        <span>Evidencia encontrada, no asigna automáticamente</span>
         {visibleEvidenceRows.length ? (
           <div>
             {visibleEvidenceRows.map((candidate) => {
@@ -9688,7 +9688,7 @@ function AcreditacionAssistedReviewBlock({
               return (
                 <article key={assistedCandidateId(candidate)} className={alreadyCovered ? "is-covered" : ""}>
                   <strong>{assistedCandidateEvidenceLabel(candidate)}</strong>
-                  <small>{[candidate.person_label || candidate.base_record, candidate.case_key || "Sin código oficial"].filter(Boolean).join(" · ")}</small>
+                  <small>{[candidate.person_label || candidate.base_record, candidate.case_key || "Sin código oficial"].filter(Boolean).join(", ")}</small>
                   {alreadyCovered ? <em>Ya asignada</em> : null}
                 </article>
               );
@@ -9717,7 +9717,7 @@ function AcreditacionAssistedReviewBlock({
               {unavailableMatches.slice(0, 4).map((candidate) => (
                 <article key={`unavailable-${assistedCandidateId(candidate)}`}>
                   <strong>{candidate.person_label || candidate.base_record || "Persona del universo"}</strong>
-                  <small>{[candidate.case_key || "Sin código oficial", "No está en pendientes"].join(" · ")}</small>
+                  <small>{[candidate.case_key || "Sin código oficial", "No está en pendientes"].join(", ")}</small>
                   <em>Ya asignada</em>
                 </article>
               ))}
@@ -9739,7 +9739,7 @@ function AcreditacionAssistedReviewBlock({
                   >
                     <span>
                       <strong>{candidate.person_label || candidate.base_record || "Persona del universo"}</strong>
-                      <small>{[candidate.case_key || "Sin código oficial", candidate.current_status || candidate.base_status || "Pendiente en universo/base", candidate.base_source].filter(Boolean).join(" · ")}</small>
+                      <small>{[candidate.case_key || "Sin código oficial", candidate.current_status || candidate.base_status || "Pendiente en universo/base", candidate.base_source].filter(Boolean).join(", ")}</small>
                     </span>
                     <em className={`is-${level}`}>{assistedCandidateEvidenceLabel(candidate)}</em>
                   </button>
@@ -9757,7 +9757,7 @@ function AcreditacionAssistedReviewBlock({
         <div className="mon-assisted-selected">
           <span>Persona seleccionada</span>
           <strong>{selectedCandidate.person_label || selectedCandidate.base_record || "Persona del universo"}</strong>
-          <small>{[selectedCandidate.case_key || "Sin código oficial", item.actor].filter(Boolean).join(" · ")}</small>
+          <small>{[selectedCandidate.case_key || "Sin código oficial", item.actor].filter(Boolean).join(", ")}</small>
           <p>La asignación no se aplica hasta guardar.</p>
         </div>
       ) : null}
@@ -9785,7 +9785,7 @@ function AcreditacionAssistedReviewBlock({
         <div className="mon-assisted-manual">
           <span>Decisión registrada</span>
           <strong>{manual.action === "include_with_caveat" ? "Incluida con salvedad" : "Mantener excluida"}</strong>
-          <small>{[manual.assigned_person_label, manual.assigned_case_key, manual.match_type].filter(Boolean).join(" · ") || "Sin asignación al universo"}</small>
+          <small>{[manual.assigned_person_label, manual.assigned_case_key, manual.match_type].filter(Boolean).join(", ") || "Sin asignación al universo"}</small>
           {manual.note ? <p>{manual.note}</p> : null}
         </div>
       ) : null}
@@ -10071,7 +10071,7 @@ function AcreditacionReconciliacionView({
 
       <section className="mon-profile-panel mon-acr-recon-panel">
         <div className="mon-profile-panel-head">
-          <h3>Reconciliación persona · respuesta · barrido</h3>
+          <h3>Reconciliación de persona, respuesta y barrido</h3>
           <span>{fmt(visible.length)} de {fmt(visibleTotal)} casos</span>
         </div>
         {visible.length ? (
@@ -10097,7 +10097,7 @@ function AcreditacionReconciliacionView({
                       <tr className={counts === true ? "is-counting" : counts === false ? "is-not-counting" : "is-review"}>
                         <td>
                           <strong>{caseDisplayName(item)}</strong>
-                          <small>{item.actor || "Sin actor"} · {item.case_key || "sin llave"} · {item.response_id || "sin response_id"}</small>
+                          <small>{item.actor || "Sin actor"}, {item.case_key || "sin llave"}, {item.response_id || "sin response_id"}</small>
                         </td>
                         <td>
                           <EstadoChip label={caseCountsLabel(item)} tone={tonoDeConteo(counts)} />
@@ -10109,7 +10109,7 @@ function AcreditacionReconciliacionView({
                         </td>
                         <td>
                           <strong>{phoneAction || item.base_status || acreditacionChannelDisplay(item.channel, "Sin acción telefónica")}</strong>
-                          <small>{item.source_label || "Sin fuente"} · {internalQueryCollectorDisplayLabel(item)}</small>
+                          <small>{item.source_label || "Sin fuente"}, {internalQueryCollectorDisplayLabel(item)}</small>
                         </td>
                         <td>
                           <strong>{caseDuplicateLabel(item)}</strong>
@@ -10349,7 +10349,7 @@ function AcreditacionConsultaStatusStrip({
       <header>
         <span>Estado del corte</span>
         <strong>Corte listo para explorar casos</strong>
-        <p>{`Corte ${formatDate(reports.generated_at)}. ${fmt(sourceCount)} fuentes · ${formatCaseLabel(officialCases.length)} en universo · ${formatCaseLabel(model.cases.length)} auditables.`}</p>
+        <p>{`Corte ${formatDate(reports.generated_at)}. ${fmt(sourceCount)} fuentes, ${formatCaseLabel(officialCases.length)} en universo, ${formatCaseLabel(model.cases.length)} auditables.`}</p>
       </header>
       <div className="mon-query-status-metrics">
         <span className={officialCases.length ? "is-base" : "is-warning"}>
@@ -10362,7 +10362,7 @@ function AcreditacionConsultaStatusStrip({
           <Search size={14} />
           <em>Casos</em>
           <strong>{fmt(summary.total)}</strong>
-          <small>{fmt(summary.pending)} sin respuesta · {fmt(missingKey)} sin llave</small>
+          <small>{fmt(summary.pending)} sin respuesta, {fmt(missingKey)} sin llave</small>
         </span>
         <span className={sourceCount ? "is-base" : "is-warning"}>
           <PlugZap size={14} />
@@ -10576,7 +10576,7 @@ function AcreditacionPendingRiskStrip({
           <li key={actor}><b>{actor}</b><em>{fmt(count)}</em></li>
         ))}
       </ul>
-      <small>{fmt(exactCount)} exactas · {fmt(possibleCount)} similares</small>
+      <small>{fmt(exactCount)} exactas, {fmt(possibleCount)} similares</small>
       <button type="button" onClick={onReview}>
         Ver casos revisables
       </button>
@@ -10737,7 +10737,7 @@ function AcreditacionCasesTable({
                 <td>
                   <button type="button" onClick={() => onCaseSelect(item)}>
                     <strong>{caseDisplayName(item)}</strong>
-                    <small>{item.actor || "Sin actor"} · {item.case_key || "sin llave"}</small>
+                    <small>{item.actor || "Sin actor"}, {item.case_key || "sin llave"}</small>
                   </button>
                 </td>
                 <td>
@@ -10750,7 +10750,7 @@ function AcreditacionCasesTable({
                 </td>
                 <td>
                   <span>{item.response_id || "sin response_id"}</span>
-                  <small>{item.date || "sin fecha"} · {item.source_label || "SurveyMonkey"}</small>
+                  <small>{item.date || "sin fecha"}, {item.source_label || "SurveyMonkey"}</small>
                 </td>
                 <td>
                   <span>{internalQueryCollectorDisplayLabel(item)}</span>
@@ -10794,7 +10794,7 @@ function AcreditacionCaseDetail({
   return (
     <aside className={`mon-query-detail is-${caseToneValue(item)}`} aria-label="Detalle de caso seleccionado">
       <header>
-        <span>Ficha 360 del caso · {item.actor || "Sin actor"}</span>
+        <span>Ficha 360 del caso, {item.actor || "Sin actor"}</span>
         <strong>{caseDisplayName(item)}</strong>
         <em>{advancementLabel(item.advancement)}</em>
       </header>
@@ -10829,13 +10829,13 @@ function AcreditacionCaseDetail({
           icon={<Layers3 size={14} />}
           label="Universo / base oficial"
           value={item.base_record || item.case_key || "Sin registro en base"}
-          hint={`${item.base_source || "Sin fuente"} · ${item.base_status || item.base_result || "Sin estado"}`}
+          hint={`${item.base_source || "Sin fuente"}, ${item.base_status || item.base_result || "Sin estado"}`}
         />
         <AcreditacionTraceStep
           icon={<ClipboardCheck size={14} />}
           label="Respuesta"
           value={item.response_id || "Sin response_id"}
-          hint={`${internalCaseResponseStateLabel(responseValue)} · ${item.date || "Sin fecha"}`}
+          hint={`${internalCaseResponseStateLabel(responseValue)}, ${item.date || "Sin fecha"}`}
         />
         <AcreditacionTraceStep
           icon={<Route size={14} />}
@@ -11228,7 +11228,7 @@ function AcreditacionPlatformRecordsView({
                       <td>
                         <button type="button" onClick={() => onCaseSelect(item)}>
                           <strong>{caseDisplayName(item)}</strong>
-                          <small>{item.actor || "Sin actor"} · {item.case_key || "sin llave"}</small>
+                          <small>{item.actor || "Sin actor"}, {item.case_key || "sin llave"}</small>
                         </button>
                       </td>
                       <td>
@@ -11241,7 +11241,7 @@ function AcreditacionPlatformRecordsView({
 	                      </td>
                       <td>
                         <span>{acreditacionChannelLabel(item.channel || item.source_label)}</span>
-                        <small>{[trace.strategyLabel, item.source_label, internalQueryCollectorDisplayLabel(item)].filter(Boolean).join(" · ")}</small>
+                        <small>{[trace.strategyLabel, item.source_label, internalQueryCollectorDisplayLabel(item)].filter(Boolean).join(", ")}</small>
                       </td>
                       <td>
                         <CaseCrossingPill value={internalCaseCrossingValue(item)} />
@@ -11549,7 +11549,7 @@ function AcreditacionCrossingsView({
                       <td>
                         <button type="button" onClick={() => onCaseSelect(item)}>
                           <strong>{caseDisplayName(item)}</strong>
-                          <small>{item.actor || "Sin actor"} · {item.response_id || item.case_key || "sin llave"}</small>
+                          <small>{item.actor || "Sin actor"}, {item.response_id || item.case_key || "sin llave"}</small>
                         </button>
                       </td>
                       <td>
@@ -11562,7 +11562,7 @@ function AcreditacionCrossingsView({
                       </td>
                       <td>
                         <span>{trace.primaryEvidence}</span>
-                        <small>{[trace.strategyLabel, trace.secondaryEvidence || explanation.evidenceDetail].filter(Boolean).join(" · ")}</small>
+                        <small>{[trace.strategyLabel, trace.secondaryEvidence || explanation.evidenceDetail].filter(Boolean).join(", ")}</small>
                       </td>
                       <td>
                         <strong>{explanation.decisionLabel}</strong>
@@ -11636,8 +11636,8 @@ function AcreditacionSubsanacionView({
                           (45 de 45 filas en acrconta). El recorte es aceptable
                           —la ficha tiene el detalle— pero sin `title` el dato se
                           perdía del todo. */}
-                      <small title={`${item.actor || "Sin actor"} · ${formatInternalQueryDateLabel(item.date)} · ${internalQueryCollectorDisplayLabel(item)}`}>
-                        {item.actor || "Sin actor"} · {formatInternalQueryDateLabel(item.date)} · {internalQueryCollectorDisplayLabel(item)}
+                      <small title={`${item.actor || "Sin actor"}, ${formatInternalQueryDateLabel(item.date)}, ${internalQueryCollectorDisplayLabel(item)}`}>
+                        {item.actor || "Sin actor"}, {formatInternalQueryDateLabel(item.date)}, {internalQueryCollectorDisplayLabel(item)}
                       </small>
                       <em>{caseSubsanacionActionLabel(item)}</em>
                     </button>
@@ -12712,7 +12712,7 @@ function actorStatusLabel(card: AcreditacionAdvanceCard) {
   });
   if (lectura.objetivo === "barrido") {
     if (lectura.cumplido) return "Universo cubierto";
-    return lectura.minimoCubierto ? "Mínimo cubierto · falta barrer" : "Bajo el mínimo";
+    return lectura.minimoCubierto ? "Mínimo cubierto, falta barrer" : "Bajo el mínimo";
   }
   if (card.statusTone === "complete") return "Mínimo cubierto";
   if (card.statusTone === "steady") return "En ruta";
@@ -12739,7 +12739,7 @@ function actorGoalValue(summary: ReturnType<typeof actorGoalSummary>) {
 
 function actorGoalHint(summary: ReturnType<typeof actorGoalSummary>) {
   if (!summary.configured) return "metas pendientes";
-  if (summary.gaps) return `${fmt(summary.gaps)} con brecha · ${fmt(summary.totalGap)} faltan`;
+  if (summary.gaps) return `${fmt(summary.gaps)} con brecha, ${fmt(summary.totalGap)} faltan`;
   if (summary.missingMeta) return `${fmt(summary.missingMeta)} sin meta`;
   return "metas cubiertas";
 }
@@ -13202,7 +13202,7 @@ function AcreditacionPhoneQuotaRhythmBoard({
               </div>
               <small>
                 {latestDatedPoint
-                  ? `Último día ${shortAdvanceDateLabel(latestDatedPoint.date)} · ${fmt(dailyEffectiveValue(latestDatedPoint))} efectivas Kobo`
+                  ? `Último día ${shortAdvanceDateLabel(latestDatedPoint.date)}, ${fmt(dailyEffectiveValue(latestDatedPoint))} efectivas Kobo`
                   : "Sin serie diaria para esta cuota."}
               </small>
             </article>
@@ -13296,7 +13296,7 @@ function AcreditacionActorMechanismRow({
       <span className="mon-actor-mechanism-icon"><Icon size={13} /></span>
       <div>
         <strong>{item.label}</strong>
-        <span>{item.provider} · {item.role}{visibleChannel ? ` · ${visibleChannel}` : ""}</span>
+        <span>{item.provider}, {item.role}{visibleChannel ? `, ${visibleChannel}` : ""}</span>
       </div>
       <em>
         {item.observed == null ? "S/D" : fmt(item.observed)}
@@ -13414,8 +13414,8 @@ function AcreditacionActorProgressCardView({
               {/* La otra lectura nunca desaparece: baja a linea secundaria. */}
               <small>
                 {lectura.objetivo === "barrido"
-                  ? `${card.meta == null ? "Sin mínimo" : lectura.minimoCubierto ? `Mínimo ${fmt(card.meta)} cubierto` : `Mínimo ${fmt(card.meta)} pendiente`} · objetivo ${lectura.sugerido ? "sugerido" : "declarado"}`
-                  : `${countText(lectura.universoPendiente, "caso", "casos")} del universo sin cubrir · objetivo ${lectura.sugerido ? "sugerido" : "declarado"}`}
+                  ? `${card.meta == null ? "Sin mínimo" : lectura.minimoCubierto ? `Mínimo ${fmt(card.meta)} cubierto` : `Mínimo ${fmt(card.meta)} pendiente`}, objetivo ${lectura.sugerido ? "sugerido" : "declarado"}`
+                  : `${countText(lectura.universoPendiente, "caso", "casos")} del universo sin cubrir, objetivo ${lectura.sugerido ? "sugerido" : "declarado"}`}
               </small>
             </p>
           ) : null}
@@ -13750,18 +13750,18 @@ function AcreditacionAdvanceSurveyDailyChart({
             {daily ? <option value="total">Encuesta completa</option> : null}
             {collectors.map((item) => (
               <option key={item.id} value={item.id} title={item.collectorId ? `ID ${item.collectorId}` : undefined}>
-                {acreditacionCollectorSeriesDisplayName(item)} · {fmt(item.total)}
+                {acreditacionCollectorSeriesDisplayName(item)}, {fmt(item.total)}
               </option>
             ))}
           </select>
-          <em>{fmt(collectors.length)} recopilador{collectors.length === 1 ? "" : "es"} · {fmt(collectorTotal)} respuestas</em>
+          <em>{fmt(collectors.length)} recopilador{collectors.length === 1 ? "" : "es"}, {fmt(collectorTotal)} respuestas</em>
         </label>
       ) : null}
       {esAgregado ? (
         <AcreditacionAdvanceSurveyAggregate row={row} serie={active} />
       ) : (
         <AcreditacionAdvanceDailyMini
-          title={isCollector ? `${acreditacionCollectorSeriesDisplayName(active)} · ${row.title}` : row.title}
+          title={isCollector ? `${acreditacionCollectorSeriesDisplayName(active)}, ${row.title}` : row.title}
           points={active.points}
           variant="source"
           cutDate={cutDate}
@@ -13770,7 +13770,7 @@ function AcreditacionAdvanceSurveyDailyChart({
         />
       )}
       <div className="mon-advance-daily-foot">
-        <span><strong>{actor}</strong> · {acreditacionChannelLabel(row.channel)}</span>
+        <span><strong>{actor}</strong>, {acreditacionChannelLabel(row.channel)}</span>
         {esAgregado ? (
           <span>sin ritmo por encuesta en este corte</span>
         ) : (
@@ -13805,7 +13805,7 @@ function AcreditacionAdvanceSurveyCard({
         <header>
           <AcreditacionChannelBadge channel={row.channel} />
           <strong>{row.title}</strong>
-          <span>{acreditacionChannelLabel(row.channel)}{row.surveyId ? ` · ${row.surveyId}` : ""}</span>
+          <span>{acreditacionChannelLabel(row.channel)}{row.surveyId ? `, ${row.surveyId}` : ""}</span>
         </header>
         {/* La barra NO es avance hacia una meta: es el peso relativo de esta
             encuesta frente a la que más respuestas trajo. Sin decirlo, se leía
@@ -13885,7 +13885,7 @@ function AcreditacionAdvancePhoneKoboCard({
       <div className="mon-advance-survey-chart-stack">
         {daily ? (
           <AcreditacionAdvanceDailyMini
-            title={`Efectivas por día · ${row.title}`}
+            title={`Efectivas por día, ${row.title}`}
             points={daily.points}
             variant="source"
             cutDate={cutDate}
@@ -14023,7 +14023,7 @@ function AcreditacionAdvancePhoneKoboWorkbench({
               <div>
                 <span>Instrumentos Kobo</span>
                 <strong>Efectivas filtradas</strong>
-                <em>{fmt(totalResponses)} respuestas Kobo leídas · {filterConfigured ? `${filter.variable} = ${filter.values[0]}` : "elige filtro de consentimiento"}</em>
+                <em>{fmt(totalResponses)} respuestas Kobo leídas, {filterConfigured ? `${filter.variable} = ${filter.values[0]}` : "elige filtro de consentimiento"}</em>
               </div>
               <div className="mon-advance-survey-actor-kpis mon-advance-survey-actor-kpis--phone">
                 <span className="is-effective"><em>Efectivas</em><strong>{fmt(totalEffective)}</strong></span>
@@ -14148,7 +14148,7 @@ function AcreditacionAdvanceSurveysWorkbench({
           <p>Integra la producción por encuesta, canal y recopilador para distinguir qué plataforma sostiene el avance de cada actor.</p>
         </div>
         <div className="mon-advance-hero-kpis">
-          <AcreditacionAdvanceMetric label="Fuentes" value={fmt(rows.length)} hint={`${fmt(channelCount)} canales · ${fmt(groups.length)} actores`} tone="base" />
+          <AcreditacionAdvanceMetric label="Fuentes" value={fmt(rows.length)} hint={`${fmt(channelCount)} canales, ${fmt(groups.length)} actores`} tone="base" />
           <AcreditacionAdvanceMetric label="Efectivas" value={fmt(totalEffective)} hint={`${fmt(totalPartial)} parciales`} tone="ready" />
           <AcreditacionAdvanceMetric label="Rechazos" value={fmt(totalRefusals)} hint={`${fmt(totalPartial)} parciales en el corte`} tone={totalRefusals ? "warning" : "base"} />
           {/* Esto NO es el inventario de recopiladores —que Fuentes cifra en 38—
@@ -14170,7 +14170,7 @@ function AcreditacionAdvanceSurveysWorkbench({
                 <div>
                   <span>Actor</span>
                   <strong>{group.actor}</strong>
-                  <em>{fmt(group.rows.length)} fuentes exactas · {fmt(group.total)} respuestas</em>
+                  <em>{fmt(group.rows.length)} fuentes exactas, {fmt(group.total)} respuestas</em>
                 </div>
                 <div className="mon-advance-survey-actor-kpis">
                   <span className="is-effective"><em>Efectivas</em><strong>{fmt(group.effective)}</strong></span>
@@ -14232,7 +14232,7 @@ function AcreditacionAdvanceFocus({ cards, scopeLabel = "Actor" }: { cards: Acre
             <article key={card.id} className={`is-${card.statusTone}`}>
               <div>
                 <strong>{card.actor}</strong>
-                <span>{fmt(card.effective)} efectivas · {fmt(card.universe)} universo</span>
+                <span>{fmt(card.effective)} efectivas, {fmt(card.universe)} universo</span>
               </div>
               <em>{metaLabel}</em>
               <i style={{ "--advance-focus-pct": `${Math.max(0, Math.min(100, progress))}%` } as CSSProperties} />
@@ -14420,7 +14420,7 @@ function GsReportBlockTable({ sheet, block }: { sheet: MonitoreoReportSheet; blo
       <header>
         <div>
           <strong>{block.title}</strong>
-          <small>{fmt(columns.length)} columnas · {fmt(block.rows.length)} filas</small>
+          <small>{fmt(columns.length)} columnas, {fmt(block.rows.length)} filas</small>
         </div>
         <span className={`mon-gs-block-metric is-${metric.tone}`}>
           <em>{metric.label}</em>
@@ -14878,7 +14878,7 @@ function acreditacionRailModelStats(state: MonitoreoState | null, reports: Monit
     goals,
     phases: phases.length,
     schedule: scheduleDraft.durationWeeks
-      ? `${fmt(scheduleDraft.durationWeeks)} sem · ${calendarReportWeekdayLabel(scheduleDraft.reportWeekday)}`
+      ? `${fmt(scheduleDraft.durationWeeks)} sem, ${calendarReportWeekdayLabel(scheduleDraft.reportWeekday)}`
       : phases.length
         ? countText(phases.length, "fase")
         : "sin cronograma",
@@ -15050,22 +15050,22 @@ export function localTabsForAcreditacionView(
     const [platform, base, crosses, fixes] = ACREDITACION_CONSULTA_TABS;
     return [
       railTab(platform, {
-        detail: cases.length ? `${countText(cases.length, "caso")} · respuestas` : "sin casos trazados",
+        detail: cases.length ? `${countText(cases.length, "caso")}, respuestas` : "sin casos trazados",
         badge: cases.length ? fmt(cases.length) : undefined,
         estado: readyStatus(cases.length > 0),
       }),
       railTab(base, {
-        detail: `${countText(caseSummary.pending, "pendiente")} · base`,
+        detail: `${countText(caseSummary.pending, "pendiente")}, base`,
         badge: caseSummary.pending ? fmt(caseSummary.pending) : undefined,
         estado: readyStatus(cases.length > 0),
       }),
       railTab(crosses, {
-        detail: `${countText(caseSummary.effective, "efectiva")} · cruce`,
+        detail: `${countText(caseSummary.effective, "efectiva")}, cruce`,
         badge: caseSummary.effective ? fmt(caseSummary.effective) : undefined,
         estado: readyStatus(caseSummary.effective > 0),
       }),
       railTab(fixes, {
-        detail: issues ? `${countText(issues, "alerta")} · revisar` : "sin alertas",
+        detail: issues ? `${countText(issues, "alerta")}, revisar` : "sin alertas",
         badge: issues ? fmt(issues) : undefined,
         estado: readyStatus(!issues, issues > 0),
       }),
@@ -15099,7 +15099,7 @@ export function localTabsForAcreditacionView(
     return [
       railTab(summary, {
         detail: phoneStats.comparisonRows
-          ? `${fmt(phoneStats.comparison.matchedEffective)} coinciden · ${fmt(phoneStats.comparison.mismatch)} dif.`
+          ? `${fmt(phoneStats.comparison.matchedEffective)} coinciden, ${fmt(phoneStats.comparison.mismatch)} dif.`
           : `${fmt(phoneStats.totals.effective)} efectivas declaradas`,
         badge: phoneStats.comparisonRows ? fmt(phoneStats.comparisonRows) : undefined,
         estado: readyStatus(phoneStats.comparisonRows > 0, phoneStats.comparison.mismatch > 0),
@@ -15109,17 +15109,17 @@ export function localTabsForAcreditacionView(
         estado: "parcial",
       }),
       railTab(day, {
-        detail: `${countText(phoneStats.dailyRows, "día", "días")} · ${fmt(phoneStats.platformEffective)} Kobo`,
+        detail: `${countText(phoneStats.dailyRows, "día", "días")}, ${fmt(phoneStats.platformEffective)} Kobo`,
         badge: phoneStats.dailyRows ? fmt(phoneStats.dailyRows) : undefined,
         estado: readyStatus(phoneStats.dailyRows > 0),
       }),
       railTab(incidence, {
-        detail: `${fmt(phoneStats.totals.incidents)} sin efectiva · ${fmt(phoneStats.totals.unswept)} por barrer`,
+        detail: `${fmt(phoneStats.totals.incidents)} sin efectiva, ${fmt(phoneStats.totals.unswept)} por barrer`,
         badge: phoneStats.pendingRows ? fmt(phoneStats.pendingRows) : undefined,
         estado: phoneStats.totals.incidents || phoneStats.totals.unswept ? "parcial" : "listo",
       }),
       railTab(responsible, {
-        detail: `${countText(phoneStats.totals.responsables || phoneStats.responsibleRows, "persona")} · carga`,
+        detail: `${countText(phoneStats.totals.responsables || phoneStats.responsibleRows, "persona")}, carga`,
         badge: phoneStats.totals.responsables ? fmt(phoneStats.totals.responsables) : undefined,
         estado: readyStatus(phoneStats.responsibleRows > 0),
       }),
@@ -15144,26 +15144,26 @@ export function localTabsForAcreditacionView(
       return [
         railTab(summary, {
           label: "Diario general",
-          detail: `${countText(phoneStats.platformEffective, "efectiva")} · ritmo Kobo`,
+          detail: `${countText(phoneStats.platformEffective, "efectiva")}, ritmo Kobo`,
           badge: phoneStats.platformEffective ? fmt(phoneStats.platformEffective) : undefined,
           estado: readyStatus(phoneStats.platformEffective > 0 && phoneStats.phoneFilterConfigured),
         }),
         railTab(actors, {
           label: "Cuotas",
-          detail: phoneStats.quotaRows ? `${countText(phoneStats.quotaRows, "celda")} · pendientes` : "sin cuotas leídas",
+          detail: phoneStats.quotaRows ? `${countText(phoneStats.quotaRows, "celda")}, pendientes` : "sin cuotas leídas",
           badge: phoneStats.quotaRows ? fmt(phoneStats.quotaRows) : undefined,
           estado: readyStatus(phoneStats.quotaRows > 0),
         }),
         railTab(surveys, {
           label: "Contexto",
-          detail: `${countText(phoneStats.platformEffective, "efectiva")} · barrido paralelo`,
+          detail: `${countText(phoneStats.platformEffective, "efectiva")}, barrido paralelo`,
           badge: phoneStats.platformEffective ? fmt(phoneStats.platformEffective) : undefined,
           estado: readyStatus(phoneStats.platformEffective > 0),
         }),
         railTab(detail, {
           label: "CodPulso",
           detail: phoneStats.comparison.mismatch
-            ? `${countText(phoneStats.comparison.mismatch, "diferencia")} · revisar`
+            ? `${countText(phoneStats.comparison.mismatch, "diferencia")}, revisar`
             : "coincidencia barrido-Kobo",
           badge: phoneStats.comparison.mismatch ? fmt(phoneStats.comparison.mismatch) : undefined,
           estado: readyStatus(!phoneStats.comparison.mismatch, phoneStats.comparison.mismatch > 0),
@@ -15182,7 +15182,7 @@ export function localTabsForAcreditacionView(
     const readinessAvance = readinessDeSalidas(corteAvance);
     return [
       railTab(summary, {
-        detail: `${fmt(advanceStats.summary.effective)} efectivas · ${fmt(advanceStats.summary.universe)} universo`,
+        detail: `${fmt(advanceStats.summary.effective)} efectivas, ${fmt(advanceStats.summary.universe)} universo`,
         badge: advanceStats.summary.effective ? fmt(advanceStats.summary.effective) : undefined,
         estado: estadoVisual({
           configurado: Boolean(state?.has_snapshot),
@@ -15215,7 +15215,7 @@ export function localTabsForAcreditacionView(
         }),
       }),
       railTab(detail, {
-        detail: `${countText(advanceStats.controls, "control")} · reglas`,
+        detail: `${countText(advanceStats.controls, "control")}, reglas`,
         badge: advanceStats.controls ? fmt(advanceStats.controls) : undefined,
         estado: estadoVisual({
           configurado: advanceStats.controls > 0,

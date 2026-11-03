@@ -24,6 +24,7 @@ import {
   type AcreditacionAdvanceDailyPoint,
   type AcreditacionDailyReportCut,
 } from "./ritmoDiario";
+import { formatoDecimal } from "../../../../../lib/formatoNumero";
 
 // Ritmo diario del avance, extraído del page-file congelado
 // (TelefonicoMonitoreoPage.tsx) en la ola 2 del plan de performance (paso 4
@@ -86,7 +87,7 @@ export function AcreditacionAdvanceDailyMini({
         <div>
           <span>Avance diario</span>
           <strong>{title}</strong>
-          <em>{countText(signalDayCount, "día", "días")} con respuesta · {fmt(effectiveOnly ? totals.effective : totals.total)} {dailyLabel} · {averageLabel}/día</em>
+          <em>{countText(signalDayCount, "día", "días")} con respuesta, {fmt(effectiveOnly ? totals.effective : totals.total)} {dailyLabel}, {averageLabel}/día</em>
         </div>
         <div className="mon-advance-daily-mini-tools">
           <div className="mon-advance-daily-mini-kpis">
@@ -293,8 +294,8 @@ function buildAdvanceDailyMiniModel({
     ].join("<br>")
     : [
       "<b>%{customdata[0]}</b>",
-      "Efectivas %{customdata[1]} · Parciales %{customdata[2]} · Rechazos %{customdata[3]}",
-      "Total día <b>%{customdata[4]}</b> · Acumulado <b>%{customdata[5]}</b>",
+      "Efectivas %{customdata[1]}, parciales %{customdata[2]} y rechazos %{customdata[3]}",
+      "Total del día <b>%{customdata[4]}</b>, acumulado <b>%{customdata[5]}</b>",
       "<extra></extra>",
     ].join("<br>");
   const chartData = [
@@ -457,7 +458,7 @@ function buildAdvanceDailyMiniModel({
       tickfont: { color: "#17212f", size: usesEffectiveAxisBand ? 9 : 10 },
     },
   };
-  const averageLabel = average ? average.toLocaleString("es-PE", { maximumFractionDigits: 1 }) : "S/D";
+  const averageLabel = average ? formatoDecimal(average, 1) : "S/D";
   const chartHeight = isCompactChart
     ? Math.max(104, (compactHeight ?? 154) - (usesEffectiveAxisBand ? 34 : 0))
     : variant === "general"

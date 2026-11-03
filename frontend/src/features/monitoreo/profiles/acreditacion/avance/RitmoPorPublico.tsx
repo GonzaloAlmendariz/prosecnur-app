@@ -4,8 +4,9 @@ import { Minibarras } from "./graficosDeAvance";
 import type { RitmoDePublico } from "./ritmoPorPublicoModelo";
 import { rotuloDeDiasALaMeta } from "./avanceModelo";
 import "./ritmoPorPublico.css";
+import { formatoDecimal } from "../../../../../lib/formatoNumero";
 
-const UNA_DECIMAL = (valor: number) => valor.toLocaleString("es-PE", { maximumFractionDigits: 1 });
+const UNA_DECIMAL = (valor: number) => formatoDecimal(valor, 1);
 
 /** «la última semana», o «los últimos 2 días» mientras el campo no cumple siete. */
 function ventana(item: RitmoDePublico) {

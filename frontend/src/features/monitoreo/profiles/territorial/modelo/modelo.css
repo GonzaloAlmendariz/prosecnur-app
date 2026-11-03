@@ -328,7 +328,7 @@
   font-weight: var(--pulso-weight-semibold);
 }
 
-.mon-mod-variables code {
+.mon-mod-variables .mon-mod-columna {
   margin-left: var(--pulso-space-1);
   color: var(--pulso-text-soft);
   font-size: var(--pulso-type-body-size);

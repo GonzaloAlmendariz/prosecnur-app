@@ -163,7 +163,7 @@ function routeOperationalLabel(block: TerritorialBlockProgress) {
   if (block.tipo_manzana === "reemplazo") {
     const primary = routePrimaryUmpLabel(block);
     const replacement = routeReplacementLabel(block);
-    return primary === "UMP por definir" ? replacement : `${primary} · ${replacement}`;
+    return primary === "UMP por definir" ? replacement : `${primary}, ${replacement}`;
   }
   return routePrimaryUmpLabel(block);
 }
@@ -331,7 +331,7 @@ function TerritorialModelWorkbenchImpl({
             <div className="mon-territorial-route-title">
               <span><Route size={15} /> UMPs</span>
               <strong title={activeSourceName}>{activeSourceName}</strong>
-              <em>{phaseLabel(phase)} · {activeAsset} · {activeVersion}</em>
+              <em>{phaseLabel(phase)}, {activeAsset}, {activeVersion}</em>
             </div>
             <div className="mon-territorial-route-command-facts" aria-label="Estado de selección territorial">
               <span><strong>{fmt(titularBlocks.length || reports?.block_progress.length || 0)}</strong><em>titulares</em></span>
@@ -540,7 +540,7 @@ function RouteBlockTable({
     <section className="mon-territorial-route-table-card" aria-label="Manzanas titulares de Hojas de Ruta">
       <header>
         <span><Table2 size={13} /> Manzanas titulares</span>
-        <strong>{filtersActive ? `${fmt(filtered.length)} / ${fmt(titularRows.length)} titulares` : `${fmt(titularRows.length)} titulares`}{replacementCount ? ` · ${fmt(replacementCount)} reemplazos` : ""}</strong>
+        <strong>{filtersActive ? `${fmt(filtered.length)} / ${fmt(titularRows.length)} titulares` : `${fmt(titularRows.length)} titulares`}{replacementCount ? `, ${fmt(replacementCount)} reemplazos` : ""}</strong>
       </header>
       <div className="mon-territorial-route-table-filters" aria-label="Filtros de manzanas">
         <label>
@@ -586,8 +586,8 @@ function RouteBlockTable({
               >
                 <ChevronDown size={14} className={expanded ? "is-expanded" : ""} />
                 <span className="mon-territorial-route-accordion-title">
-                  <strong title={`${block.distrito || block.ubigeo || ""} · ${physicalBlockLabel(block)}`}>{routeOperationalLabel(block)}</strong>
-                  <em>{block.distrito || "Sin distrito"} · {physicalBlockLabel(block)} · Zona {block.zona || "S/D"} · Rango {routeRangeLabel(block)}</em>
+                  <strong title={`${block.distrito || block.ubigeo || ""}, ${physicalBlockLabel(block)}`}>{routeOperationalLabel(block)}</strong>
+                  <em>{block.distrito || "Sin distrito"}, {physicalBlockLabel(block)}, zona {block.zona || "S/D"}, rango {routeRangeLabel(block)}</em>
                   <small>{routeBlockResponsibleLabel(block, "Sin responsable")}</small>
                 </span>
                 <span className="mon-territorial-route-accordion-meta">
@@ -600,8 +600,8 @@ function RouteBlockTable({
                   <button type="button" className={`mon-territorial-route-primary-block${inspected ? " is-inspected" : ""}`} onClick={() => selectTitularBlock(key)}>
                     <span className="mon-territorial-route-badge is-titular">Titular</span>
                     <strong>{routeOperationalLabel(block)}</strong>
-                    <em>{physicalBlockLabel(block)} · Zona {block.zona || "S/D"}</em>
-                    <small>{routeBlockResponsibleLabel(block, "Sin responsable")} · {block.ubigeo || "sin ubigeo"} · {block.territorio_muestral || block.ump || "sin territorio"}</small>
+                    <em>{physicalBlockLabel(block)}, zona {block.zona || "S/D"}</em>
+                    <small>{routeBlockResponsibleLabel(block, "Sin responsable")}, {block.ubigeo || "sin ubigeo"}, {block.territorio_muestral || block.ump || "sin territorio"}</small>
                   </button>
                   <div className="mon-territorial-route-replacement-list" aria-label={`Reemplazos de ${block.manzana || block.id_manzana || "la titular"}`}>
                     {replacements.map((replacement) => {
@@ -610,8 +610,8 @@ function RouteBlockTable({
                         <button key={replacementKey} type="button" className={`mon-territorial-route-replacement-row${replacementKey === inspectedBlockKey ? " is-inspected" : ""}`} onClick={() => inspectReplacementBlock(key, replacementKey)}>
                           <span className="mon-territorial-route-badge is-replacement">{routeReplacementLabel(replacement)}</span>
                           <strong>{routeOperationalLabel(replacement)}</strong>
-                          <em>{physicalBlockLabel(replacement)} · Zona {replacement.zona || "S/D"}</em>
-                          <small>{routeBlockResponsibleLabel(replacement, "Sin responsable")} · Reemplazo de {routePrimaryUmpLabel(replacement)} · rango titular {routeRangeLabel(block)}</small>
+                          <em>{physicalBlockLabel(replacement)}, zona {replacement.zona || "S/D"}</em>
+                          <small>{routeBlockResponsibleLabel(replacement, "Sin responsable")}, reemplazo de {routePrimaryUmpLabel(replacement)}, rango titular {routeRangeLabel(block)}</small>
                         </button>
                       );
                     })}
@@ -664,7 +664,7 @@ function RouteBlockContext({
             <div className="mon-territorial-route-context-hero">
               <span className={`mon-territorial-route-badge ${block.tipo_manzana === "reemplazo" ? "is-replacement" : "is-titular"}`}>{block.tipo_manzana === "reemplazo" ? routeReplacementLabel(block) : "Titular"}</span>
               <strong>{routeOperationalLabel(block)}</strong>
-              <em>{block.distrito || "Sin distrito"} · {physicalBlockLabel(block)} · Zona {block.zona || "S/D"}</em>
+              <em>{block.distrito || "Sin distrito"}, {physicalBlockLabel(block)}, zona {block.zona || "S/D"}</em>
               <p>{block.tipo_manzana === "reemplazo" ? `Reemplazo de ${routePrimaryUmpLabel(block)}` : block.territorio_muestral || "Manzana titular de la ruta"}</p>
             </div>
             <div className="mon-territorial-route-context-metrics">
@@ -696,8 +696,8 @@ function RouteBlockContext({
                     >
                       <span className={`mon-territorial-route-badge ${replacement ? "is-replacement" : "is-titular"}`}>{replacement ? routeReplacementLabel(item) : "Titular"}</span>
                       <strong>{routeOperationalLabel(item)}</strong>
-                      <em>{physicalBlockLabel(item)} · Zona {item.zona || "S/D"}</em>
-                      <small>{replacement ? `Reemplazo de ${routePrimaryUmpLabel(item)}` : `Rango ${routeRangeLabel(item)}`} · {routeBlockResponsibleLabel(item, "Sin responsable")}</small>
+                      <em>{physicalBlockLabel(item)}, zona {item.zona || "S/D"}</em>
+                      <small>{replacement ? `Reemplazo de ${routePrimaryUmpLabel(item)}` : `Rango ${routeRangeLabel(item)}`}, {routeBlockResponsibleLabel(item, "Sin responsable")}</small>
                     </button>
                   );
                 })}

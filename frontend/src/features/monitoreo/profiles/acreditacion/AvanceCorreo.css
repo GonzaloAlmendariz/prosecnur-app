@@ -477,10 +477,8 @@
 }
 
 .mon-correo-tabla .is-token {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   font-size: var(--pulso-type-body-size);
   font-weight: var(--pulso-weight-regular);
-  letter-spacing: 0.02em;
 }
 
 .mon-correo-publico-celda {

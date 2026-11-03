@@ -15,6 +15,7 @@ import {
   type ResponsableDeCola,
 } from "../../../core/colaDeInsistenciaModel";
 import { filasDeBloque } from "../navegacion/bloques";
+import { formatoConteo } from "../../../../../lib/formatoNumero";
 
 type Fila = Record<string, unknown>;
 
@@ -125,7 +126,7 @@ export function chipsDeInsistencia(reports: MonitoreoAcreditacionReports | null 
   if (estado.clave !== "lista") return [];
   const ya = estado.casos.filter((caso) => caso.efectivaKobo).length;
   return [
-    `${estado.casos.length.toLocaleString("es-PE")} casos por rellamar`,
-    ya === 0 ? "Ninguno ya efectivo en Kobo" : ya === 1 ? "1 ya es efectiva en Kobo" : `${ya.toLocaleString("es-PE")} ya son efectivas en Kobo`,
+    `${formatoConteo(estado.casos.length)} casos por rellamar`,
+    ya === 0 ? "Ninguno ya efectivo en Kobo" : ya === 1 ? "1 ya es efectiva en Kobo" : `${formatoConteo(ya)} ya son efectivas en Kobo`,
   ];
 }

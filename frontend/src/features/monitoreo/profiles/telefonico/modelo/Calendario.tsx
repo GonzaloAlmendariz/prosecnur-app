@@ -18,9 +18,10 @@ import {
 import "../control/controlTelefonico.css";
 import "../insumos/insumosTelefonico.css";
 import "./modeloTelefonico.css";
+import { formatoConteo, formatoDecimal } from "../../../../../lib/formatoNumero";
 
 function n(valor: number) {
-  return valor.toLocaleString("es-PE");
+  return formatoConteo(valor);
 }
 
 type Estado = { tono: "info" | "exito" | "error"; texto: string } | null;
@@ -227,7 +228,7 @@ export function Calendario({
           {campo.promedio != null ? (
             <>
               <p className="mon-calendario-cifra">
-                <strong className="is-num">{campo.promedio.toLocaleString("es-PE", { maximumFractionDigits: 1 })}</strong>
+                <strong className="is-num">{formatoDecimal(campo.promedio, 1)}</strong>
                 <span>efectivas por día</span>
               </p>
               <dl className="mon-calendario-datos">

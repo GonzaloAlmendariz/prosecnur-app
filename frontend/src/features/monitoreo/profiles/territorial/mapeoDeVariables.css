@@ -111,7 +111,7 @@
   color: var(--pulso-text);
 }
 
-.mapeo-var__item > header code {
+.mapeo-var__item > header .mapeo-var__campo {
   font-size: var(--pulso-type-micro-size);
   color: var(--pulso-text-faint);
 }

@@ -15,11 +15,12 @@ import { entradasDeEstatus, filasDeEstados, intentosDeLaCola, sinReglaDelMotor }
 import { RotuloDePestana, useHayRotulo } from "../navegacion/RotuloDePestana";
 import "../control/controlTelefonico.css";
 import "./insumosTelefonico.css";
+import { formatoConteo } from "../../../../../lib/formatoNumero";
 
 const ETIQUETA_DEL_MOTOR = Object.fromEntries(FAMILIAS_DEL_CLIENTE.map((familia) => [familia.id, familia.etiqueta]));
 
 function n(valor: number) {
-  return valor.toLocaleString("es-PE");
+  return formatoConteo(valor);
 }
 
 /** `status_from_rules` vive en el perfil pero no en su tipo del frontend. */

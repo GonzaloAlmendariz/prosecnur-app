@@ -1,3 +1,4 @@
+import { enumerar } from "../../../../lib/enumerar";
 import { useState } from "react";
 import { CalendarClock, MousePointer2, Users } from "../../../../vendor/lucide-react";
 import { EstadoVacio } from "../../../../components/EstadoVacio";
@@ -212,7 +213,7 @@ export function AulasDisponibilidadDeAplicadores({
     // separados con punto medio: un nombre YA lleva su coma («Castillo
     // Solorsano, Leidy Viviana») y unirlos con otra los duplicaba a la vista.
     return quienes.length
-      ? `${base}. Pueden: ${quienes.map(nombreDeAplicador).join(" · ")}`
+      ? `${base}. Pueden: ${enumerar(quienes.map(nombreDeAplicador))}`
       : base;
   };
 
@@ -291,7 +292,7 @@ export function AulasDisponibilidadDeAplicadores({
                 ? " no declaró horas."
                 : semana.map((d) => (
                     <span key={d.etiqueta} className="aulas-dispo-semana-dia">
-                      <em>{d.etiqueta}</em> {d.bloques.join(" · ")}
+                      <em>{d.etiqueta}</em> {d.bloques.join(", ")}
                     </span>
                   ))}
             </p>
@@ -391,7 +392,7 @@ export function AulasDisponibilidadDeAplicadores({
                           type="button"
                           className={`aulas-carga-celda${pico ? " es-pico" : ""}${estaActiva ? " es-activa" : ""}${marca}${lente}`}
                           style={celda(n)}
-                          title={nombreDeFranja(i, j) + (pico ? " · pico de la oferta" : "")}
+                          title={nombreDeFranja(i, j) + (pico ? ", pico de la oferta" : "")}
                           aria-label={nombreDeFranja(i, j) + (pico ? ". Pico de la oferta" : "")}
                           aria-pressed={fijada && estaActiva}
                           onMouseEnter={() => { if (!fijada) setCeldaActiva({ i, j }); }}
@@ -440,15 +441,15 @@ export function AulasDisponibilidadDeAplicadores({
             <p className="aulas-carga-detalle-titulo">
               <strong>{oferta.filas[activa.i].etiqueta}</strong>{" "}
               <ChipHora>{comoHora(oferta.franjas[activa.j])}–{comoHora(oferta.franjas[activa.j] + 30)}</ChipHora>
-              {fijada ? <em> · fijada; otro click la suelta</em> : null}
+              {fijada ? <em>, fijada; otro click la suelta</em> : null}
             </p>
             <div className="aulas-carga-detalle-grupo">
               <h4>
-                Disponibles · {fmt(oferta.disponibles[activa.i][activa.j])}
+                Disponibles: {fmt(oferta.disponibles[activa.i][activa.j])}
                 {citasEn(activa.i, activa.j) > 0 ? (
                   <span className={`aulas-carga-detalle-citas${
                     citasEn(activa.i, activa.j) > oferta.disponibles[activa.i][activa.j] ? " es-deficit" : ""}`}>
-                    {" "}· {fmt(citasEn(activa.i, activa.j))}{" "}
+                    ,{" "}{fmt(citasEn(activa.i, activa.j))}{" "}
                     {citasEn(activa.i, activa.j) === 1 ? "cita confirmada" : "citas confirmadas"}
                     {citasEn(activa.i, activa.j) > oferta.disponibles[activa.i][activa.j]
                       ? " — más citas que gente"

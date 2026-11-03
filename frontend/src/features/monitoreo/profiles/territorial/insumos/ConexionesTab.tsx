@@ -1,3 +1,4 @@
+import { formatoDecimal } from "../../../../../lib/formatoNumero";
 import { memo, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { PlugZap } from "lucide-react";
@@ -134,7 +135,7 @@ function Fuente({
       </dl>
       {tarjeta.serie.length > 1 ? (
         <figure className="mon-ins-serie">
-          <svg viewBox={`0 0 ${tarjeta.serie.length * 10} 40`} preserveAspectRatio="none" role="img" aria-label={`Respuestas en cada lectura: de ${tarjeta.serie[0].toLocaleString("es-PE")} a ${tarjeta.serie.at(-1)?.toLocaleString("es-PE")} en ${tarjeta.serie.length} lecturas`}>
+          <svg viewBox={`0 0 ${tarjeta.serie.length * 10} 40`} preserveAspectRatio="none" role="img" aria-label={`Respuestas en cada lectura: de ${formatoDecimal(tarjeta.serie[0], 3)} a ${formatoDecimal(tarjeta.serie.at(-1), 3)} en ${tarjeta.serie.length} lecturas`}>
             {tarjeta.serie.map((valor, indice) => (
               <rect key={indice} x={indice * 10 + 1} width={8} y={40 - (valor / maximo) * 40} height={(valor / maximo) * 40} />
             ))}

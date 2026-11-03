@@ -16,9 +16,10 @@ import {
 } from "./respuestasModel";
 import { RotuloDePestana, useHayRotulo } from "../navegacion/RotuloDePestana";
 import "./controlTelefonico.css";
+import { formatoConteo } from "../../../../../lib/formatoNumero";
 
 function n(valor: number | null | undefined) {
-  return valor == null ? "—" : valor.toLocaleString("es-PE");
+  return valor == null ? "—" : formatoConteo(valor);
 }
 
 function fechaCorta(fecha: string | null) {

@@ -1,3 +1,4 @@
+import { formatoDecimal } from "../../../../lib/formatoNumero";
 import { useMemo } from "react";
 
 import type { MonitoreoRow } from "../../../../api/monitoreo";
@@ -77,7 +78,7 @@ export function AulasRitmoPorFacultad({ partes, facultadEnFoco, onFoco }: {
             los PARTES, y el ritmo diario cuenta los días con respuestas en la
             plataforma. Dos ejes, dos cifras —2 contra 5 en el estudio real— y
             hasta ahora las mismas palabras. */}
-        · {fmt(fechas.length)} {fechas.length === 1 ? "día" : "días"} con parte de campo,
+        , {fmt(fechas.length)} {fechas.length === 1 ? "día" : "días"} con parte de campo,
         de {dm(fechas[0])} a {dm(fechas[fechas.length - 1])}
       </p>
       {/* Cabecera, como en los demás paneles del perfil: sin ella el «−37,9 %»
@@ -95,7 +96,7 @@ export function AulasRitmoPorFacultad({ partes, facultadEnFoco, onFoco }: {
               rol="rowheader"
               enFoco={f.facultad === facultadEnFoco}>
               {f.facultad}
-              <em>{fmt(f.efectivas)} en {fmt(f.diasConCampo)} {f.diasConCampo === 1 ? "día" : "días"} · {f.mediaDiaria.toLocaleString("es-PE")}/día</em>
+              <em>{fmt(f.efectivas)} en {fmt(f.diasConCampo)} {f.diasConCampo === 1 ? "día" : "días"}, {formatoDecimal(f.mediaDiaria, 3)}/día</em>
             </NombreDeFacultad>
             {/* Una barra por día del rango COMPARTIDO: los huecos son días sin
                 recoger y tienen que ocupar su sitio, porque una facultad parada

@@ -8,6 +8,7 @@ import {
   type AcreditacionPhoneDailyStatusSeries,
 } from "../TelefonicoPhoneDailyTrend";
 import { formatMetric, normalizeSourceMatch } from "../formato";
+import { formatoDecimal } from "../../../../../lib/formatoNumero";
 import { EmptyPanel } from "../EmptyPanel";
 import { phoneStatusPalette, phoneStatusTone } from "./ritmoDiario";
 import { COLOR_RESULTADO } from "../../../coloresDeResultado";
@@ -60,7 +61,7 @@ function AcreditacionPhoneDailyStatusBars({ series }: { series: AcreditacionPhon
                   {item.points.map((point) => {
                     const size = point.value > 0 ? Math.max(5, Math.min(100, (point.value / maxPoint) * 100)) : 0;
                     return (
-                      <span key={`${item.label}-${point.rawLabel}`} title={`${item.label} · ${point.label}: ${formatMetric(point.value)}`}>
+                      <span key={`${item.label}-${point.rawLabel}`} title={`${item.label}, ${point.label}: ${formatMetric(point.value)}`}>
                         <i style={{ "--phone-status-day": `${size}%` } as CSSProperties} />
                         <small>{point.axisLabel || point.label}</small>
                         <b>{formatMetric(point.value)}</b>
@@ -250,9 +251,7 @@ function buildPhoneDailyTrendModel(
   });
   const totalPeriod = chartRows[chartRows.length - 1]?.cumulativeTotal ?? 0;
   const averagePerDay = chartRows.length ? totalPeriod / chartRows.length : 0;
-  const averageLabel = averagePerDay.toLocaleString("es-PE", {
-    maximumFractionDigits: averagePerDay < 10 ? 1 : 0,
-  });
+  const averageLabel = formatoDecimal(averagePerDay, averagePerDay < 10 ? 1 : 0);
   const bestPoint = chartRows.reduce<(AcreditacionPhoneDailyPoint & { dailyTotal: number; cumulativeTotal: number }) | null>((best, point) => (
     !best || point.dailyTotal > best.dailyTotal ? point : best
   ), null);

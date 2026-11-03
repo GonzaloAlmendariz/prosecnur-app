@@ -10,6 +10,7 @@ import {
 import { acreditacionDeclaracionesDesdeReglas } from "../../../estados/familiasDeLlamada";
 import { GraficoDeEstadosPorDia } from "../../../estados/GraficoDeEstadosPorDia";
 import { formatMetric } from "../formato";
+import { formatoDecimal } from "../../../../../lib/formatoNumero";
 import { EmptyPanel } from "../EmptyPanel";
 import { COLOR_RESULTADO } from "../../../coloresDeResultado";
 
@@ -192,9 +193,7 @@ function buildPhoneDailyTrendModel(
   });
   const totalPeriod = chartRows[chartRows.length - 1]?.cumulativeTotal ?? 0;
   const averagePerDay = chartRows.length ? totalPeriod / chartRows.length : 0;
-  const averageLabel = averagePerDay.toLocaleString("es-PE", {
-    maximumFractionDigits: averagePerDay < 10 ? 1 : 0,
-  });
+  const averageLabel = formatoDecimal(averagePerDay, averagePerDay < 10 ? 1 : 0);
   const bestPoint = chartRows.reduce<(AcreditacionPhoneDailyPoint & { dailyTotal: number; cumulativeTotal: number }) | null>((best, point) => (
     !best || point.dailyTotal > best.dailyTotal ? point : best
   ), null);

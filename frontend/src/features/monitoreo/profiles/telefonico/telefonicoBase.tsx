@@ -349,7 +349,7 @@ function EstadoProgresoCompact({ summary, label = "Estado + progreso" }: { summa
       <div className="mon-acr-state-compact-copy">
         <span>{label}</span>
         <strong>{pct(progress)}</strong>
-        <em>{fmt(summary.effective)} efectivas · {fmt(summary.unanswered)} sin respuesta · base {fmt(summary.universe)}</em>
+        <em>{fmt(summary.effective)} efectivas, {fmt(summary.unanswered)} sin respuesta, base {fmt(summary.universe)}</em>
       </div>
       <div className="mon-acr-state-compact-meter" aria-label={`Base reportada ${fmt(summary.universe)}`}>
         {segments.map((item) => (

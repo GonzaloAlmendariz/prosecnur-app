@@ -160,7 +160,7 @@ export function AulasMapaDeLaDeuda({ filas, onFacultad, enFoco = "" }: {
         }}
       >
         <title>
-          {f.facultad} · {fmt(f.aulas)} aplicados · {signo(f.mujeres)} mujeres · {signo(f.hombres)} hombres
+          {f.facultad}, {fmt(f.aulas)} aplicados, {signo(f.mujeres)} mujeres, {signo(f.hombres)} hombres
         </title>
         {lejos ? (
           <line

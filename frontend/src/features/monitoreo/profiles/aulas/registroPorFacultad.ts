@@ -69,5 +69,5 @@ export function etiquetaSinRepetir(codigo: string, curso: string): string {
   // nombre, que es el que distingue.
   const normal = (s: string) => s.toLowerCase().replace(/[\s·.\-–—]+/g, " ").trim();
   if (normal(n).includes(normal(c))) return n;
-  return `${c} · ${n}`;
+  return `${c}, ${n}`;
 }

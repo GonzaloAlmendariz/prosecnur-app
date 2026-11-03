@@ -161,7 +161,7 @@ function FuentesAulasImpl({ dashboard, cargando, contexto }: {
           </header>
           {m.libro ? (
             <>
-              <p className="aulas-ins-grupo"><Lock size={13} aria-hidden="true" /> Hojas del equipo · solo lectura</p>
+              <p className="aulas-ins-grupo"><Lock size={13} aria-hidden="true" /> Hojas del equipo, solo lectura</p>
               <ul className="aulas-ins-hojas">
                 {m.libro.equipo.map((h) => <li key={h.hoja} data-de="equipo">{h.hoja}</li>)}
               </ul>

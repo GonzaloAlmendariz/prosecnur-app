@@ -6,6 +6,7 @@ import { fmt, formatDate, formatMetric, normalizeSourceMatch } from "../profiles
 import { ACREDITACION_DAILY_NO_DATE_LABEL, CALENDAR_DAY_MS, isAcreditacionNoDateLabel } from "../profiles/telefonico/avance/ritmoDiario";
 import { formatInternalQueryDateLabel } from "../internalQueries";
 import { pctDecimal } from "./formatoComun";
+import { formatoDecimal } from "../../../lib/formatoNumero";
 
 export function compactSelectLabel(value: string, maxLength = 68) {
   const text = String(value ?? "").replace(/\s+/g, " ").trim();
@@ -233,7 +234,7 @@ export function formatPercentLabel(value: number | null | undefined) {
 export function formatSignedPp(value: number | null | undefined) {
   if (value == null || !Number.isFinite(value)) return "S/D";
   const sign = value > 0 ? "+" : "";
-  return `${sign}${value.toLocaleString("es-PE", { maximumFractionDigits: 1 })} pp`;
+  return `${sign}${formatoDecimal(value, 1)} pp`;
 }
 
 export function normalizeReportMatch(value: unknown) {
@@ -291,7 +292,7 @@ export function formatReportCell(value: unknown, column: string) {
       const pctValue = Math.abs(value) <= 10 ? value * 100 : value;
       return pctDecimal(pctValue);
     }
-    return Number.isInteger(value) ? fmt(value) : value.toLocaleString("es-PE", { maximumFractionDigits: 1 });
+    return Number.isInteger(value) ? fmt(value) : formatoDecimal(value, 1);
   }
   const text = String(value);
   if (normalizeReportMatch(column).includes("fecha")) return text;

@@ -7,6 +7,7 @@ import { useFocoMonitoreo } from "../../../useMonitoreoDireccion";
 import { casosPorRevisar, construirAvisos, porDestino, type Aviso, type NivelDeAviso } from "./avisosModel";
 import { RotuloDePestana, useHayRotulo } from "../navegacion/RotuloDePestana";
 import "./controlTelefonico.css";
+import { formatoConteo } from "../../../../../lib/formatoNumero";
 
 const NIVEL: Record<NivelDeAviso, string> = { alta: "Alta", media: "Media", baja: "Baja" };
 
@@ -21,7 +22,7 @@ function fechaCortaDeAviso(fecha: string) {
 }
 
 function n(valor: number | null | undefined) {
-  return valor == null ? "—" : valor.toLocaleString("es-PE");
+  return valor == null ? "—" : formatoConteo(valor);
 }
 
 /**

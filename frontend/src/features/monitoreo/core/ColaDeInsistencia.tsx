@@ -9,6 +9,7 @@ import { FiltrosDeCola } from "./colaDeInsistencia/FiltrosDeCola";
 import { ResponsablesDeCola } from "./colaDeInsistencia/ResponsablesDeCola";
 import { TablaDeCola, type ColumnasDeCola } from "./colaDeInsistencia/TablaDeCola";
 import "./colaDeInsistencia/colaDeInsistencia.css";
+import { formatoConteo } from "../../../lib/formatoNumero";
 
 /** La ficha del caso es un panel direccionable: `panel=caso&foco=<código>`. */
 export const PANEL_CASO: PanelDeclarado = { id: "caso", label: "Ficha del caso", clase: "inspector" };
@@ -94,7 +95,7 @@ export function ColaDeInsistencia({
             vacia={casos.length ? undefined : "La cola está vacía: ningún caso llamado queda por rellamar en este corte."}
           />
           <footer className="mon-cola-centro-pie">
-            {visibles.length.toLocaleString("es-PE")} de {casos.length.toLocaleString("es-PE")} casos en la cola
+            {formatoConteo(visibles.length)} de {formatoConteo(casos.length)} casos en la cola
           </footer>
         </section>
         <FichaDelCaso

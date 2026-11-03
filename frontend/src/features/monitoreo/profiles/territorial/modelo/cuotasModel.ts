@@ -1,4 +1,5 @@
 import type { MonitoreoState, MonitoreoTerritorialDashboard, TerritorialQuotaProgressItem } from "../../../../../api/client";
+import { enumerar } from "../../../../../lib/enumerar";
 import { fmt, nombreDeDistrito, rotuloDeCelda } from "../rotulos";
 
 /**
@@ -97,5 +98,5 @@ export function construirCuotas(
 }
 
 export function textoDePlantilla(plantilla: readonly CeldaDePlantilla[]): string {
-  return plantilla.map((celda) => `${celda.rotulo} ${fmt(celda.meta)}`).join(" · ");
+  return enumerar(plantilla.map((celda) => `${celda.rotulo} ${fmt(celda.meta)}`));
 }

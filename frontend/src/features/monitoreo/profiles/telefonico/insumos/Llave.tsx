@@ -24,10 +24,11 @@ import { OrigenDeLaMuestra } from "./OrigenDeLaMuestra";
 import { RotuloDePestana, useHayRotulo } from "../navegacion/RotuloDePestana";
 import "../control/controlTelefonico.css";
 import "./insumosTelefonico.css";
+import { formatoConteo } from "../../../../../lib/formatoNumero";
 
 
 function n(valor: number) {
-  return valor.toLocaleString("es-PE");
+  return formatoConteo(valor);
 }
 
 function Columnas({ titulo, columnas }: { titulo: string; columnas: string[] }) {
@@ -36,7 +37,7 @@ function Columnas({ titulo, columnas }: { titulo: string; columnas: string[] }) 
       <span className="mon-ctl-antetitulo">{titulo}</span>
       {columnas.length ? (
         <p>
-          <code>{columnas[0]}</code>
+          <data value={columnas[0]}>{columnas[0]}</data>
           {columnas.length > 1 ? <span title={columnas.slice(1).join(", ")}> y {n(columnas.length - 1)} más si no la encuentra</span> : null}
         </p>
       ) : <p>Sin columna declarada</p>}
@@ -104,8 +105,8 @@ export function LlaveYFiltros({
             <Columnas titulo="Columna en las respuestas" columnas={llave.respuestas} />
           </div>
           <dl className="mon-llave-ejemplos">
-            <div><dt>Ejemplo en la base</dt><dd><code>{ejemplos.base.join(", ") || "—"}</code></dd></div>
-            <div><dt>Ejemplo en las respuestas</dt><dd><code>{ejemplos.respuestas.join(", ") || "—"}</code></dd></div>
+            <div><dt>Ejemplo en la base</dt><dd><data value={ejemplos.base.join(", ")}>{ejemplos.base.join(", ") || "—"}</data></dd></div>
+            <div><dt>Ejemplo en las respuestas</dt><dd><data value={ejemplos.respuestas.join(", ")}>{ejemplos.respuestas.join(", ") || "—"}</data></dd></div>
             <div><dt>Distintos en la base</dt><dd className="is-num">{n(ejemplos.distintosEnLaBase)}</dd></div>
           </dl>
           {llaveSinIdentificador(ejemplos) ? (
@@ -183,9 +184,9 @@ export function LlaveYFiltros({
                 <tbody>
                   {envios.map((envio, i) => (
                     <tr key={`${envio.codigo}-${envio.responseId}-${i}`} className={`is-${envio.llave}`}>
-                      <th scope="row"><code>{envio.codigo}</code></th>
+                      <th scope="row"><data value={envio.codigo}>{envio.codigo}</data></th>
                       <td className="mon-llave-como">{ROTULO_DE_LLAVE[envio.llave]}</td>
-                      <td><code>{envio.codigoEnHoja || "—"}</code></td>
+                      <td><data value={envio.codigoEnHoja}>{envio.codigoEnHoja || "—"}</data></td>
                       <td>{envio.hojaDice || "—"}</td>
                       <td>{envio.responsable || "—"}</td>
                     </tr>
@@ -213,7 +214,7 @@ export function LlaveYFiltros({
               <ul className="mon-llave-lista">
                 {porRevisar.map((item, i) => (
                   <li key={`${item.codigo}-${i}`} className={`is-${item.llave}`}>
-                    <code>{item.codigo}</code>
+                    <data value={item.codigo}>{item.codigo}</data>
                     <span>{ROTULO_DE_LLAVE[item.llave]}</span>
                     <small>{item.lectura}</small>
                   </li>

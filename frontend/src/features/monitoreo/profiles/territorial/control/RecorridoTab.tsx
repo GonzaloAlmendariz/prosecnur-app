@@ -56,10 +56,10 @@ function tooltipDe(formulario: FormularioDelRecorrido, punto: { x: number; y: nu
   return {
     x: punto.x,
     y: punto.y,
-    titulo: `${formulario.orden}. ${formulario.hora || "Sin hora"} · ${textoDeDistanciaDeFormulario(formulario)}`,
+    titulo: `${formulario.orden}. ${formulario.hora || "Sin hora"}, ${textoDeDistanciaDeFormulario(formulario)}`,
     lineas: [
       rotuloDeManzana(formulario),
-      `${ROTULO_DEL_ESTADO[formulario.estado]}${formulario.duracionMin != null ? ` · ${fmt(Math.round(formulario.duracionMin))} min` : ""}`,
+      `${ROTULO_DEL_ESTADO[formulario.estado]}${formulario.duracionMin != null ? `, ${fmt(Math.round(formulario.duracionMin))} min` : ""}`,
     ],
   };
 }
@@ -172,7 +172,7 @@ function RecorridoTabImpl({
   };
   const resaltado = sobre?.id ?? elegido;
   const linea = puntos.map(({ punto }, indice) => `${indice ? "L" : "M"}${punto.x.toFixed(1)},${punto.y.toFixed(1)}`).join(" ");
-  const rotuloDeManzanaEnMapa = (manzana: ManzanaDeLaJornada) => [manzana.ump ? `UMP ${manzana.ump}` : "", manzana.manzana].filter(Boolean).join(" · ");
+  const rotuloDeManzanaEnMapa = (manzana: ManzanaDeLaJornada) => [manzana.ump ? `UMP ${manzana.ump}` : "", manzana.manzana].filter(Boolean).join(", ");
 
   return (
     <section
@@ -190,7 +190,7 @@ function RecorridoTabImpl({
             <select value={aplicador.aplicador} onChange={(event) => elegirAplicador(event.currentTarget.value)}>
               {modelo.aplicadores.map((item) => (
                 <option key={item.aplicador} value={item.aplicador}>
-                  {item.aplicador} · {fmt(item.formularios)} formularios{item.lejos ? ` · ${fmt(item.lejos)} lejos` : ""}
+                  {item.aplicador}, {fmt(item.formularios)} formularios{item.lejos ? `, ${fmt(item.lejos)} lejos` : ""}
                 </option>
               ))}
             </select>

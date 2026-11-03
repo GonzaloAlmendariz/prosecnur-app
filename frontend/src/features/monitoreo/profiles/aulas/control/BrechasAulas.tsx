@@ -68,7 +68,7 @@ function BrechasAulasImpl({ dashboard, cargando, vacioSinTablero, onGuardado }: 
         <section className="aulas-ins-panel" aria-labelledby="aulas-br-brechas" data-qa-geometry-member="brechas">
           <header className="aulas-ins-cabecera">
             <h3 id="aulas-br-brechas">Cursos-horario con brecha</h3>
-            <span className="aulas-ins-sub">{fmt(brechas.length)} · el diagnóstico decide si toca B o C</span>
+            <span className="aulas-ins-sub">{fmt(brechas.length)}, el diagnóstico decide si toca B o C</span>
           </header>
           <AulasBrechasDelCorte filas={brechas} onRelevo={(codigo) => setRelevoDe(codigo)} />
         </section>

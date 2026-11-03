@@ -14,6 +14,7 @@
  */
 
 import { rotuloDeVariable } from "./modelo/variablesDeCuota";
+import { formatoConteo } from "../../../../lib/formatoNumero";
 
 /**
  * Cómo se muestra el segmento. `nombreDelSegmento` devuelve la clave tal como
@@ -76,5 +77,5 @@ export function pluralDelSegmento(nombre: string): string {
 /** «2 actores», «1 sede». */
 export function contarSegmentos(cantidad: number, nombre: string): string {
   const etiqueta = cantidad === 1 ? nombre : pluralDelSegmento(nombre);
-  return `${cantidad.toLocaleString("es-PE")} ${etiqueta.toLocaleLowerCase("es")}`;
+  return `${formatoConteo(cantidad)} ${etiqueta.toLocaleLowerCase("es")}`;
 }

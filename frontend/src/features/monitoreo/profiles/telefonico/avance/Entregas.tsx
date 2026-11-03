@@ -6,9 +6,10 @@ import type { CuotasFaltante } from "./cuotasFaltanteModel";
 import { RotuloDePestana } from "../navegacion/RotuloDePestana";
 import "../control/controlTelefonico.css";
 import "./entregasTelefonico.css";
+import { formatoConteo } from "../../../../../lib/formatoNumero";
 
 function n(valor: number | null) {
-  return valor == null ? "—" : valor.toLocaleString("es-PE");
+  return valor == null ? "—" : formatoConteo(valor);
 }
 
 /**

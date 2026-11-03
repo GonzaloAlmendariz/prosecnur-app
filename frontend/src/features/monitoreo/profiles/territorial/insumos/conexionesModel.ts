@@ -1,3 +1,4 @@
+import { formatoDecimal } from "../../../../../lib/formatoNumero";
 import type {
   MonitoreoState,
   MonitoreoTerritorialDashboard,
@@ -52,7 +53,7 @@ function n(valor: unknown): number | null {
 }
 
 function texto(valor: number | null): string {
-  return valor == null ? "—" : valor.toLocaleString("es-PE");
+  return valor == null ? "—" : formatoDecimal(valor, 3);
 }
 
 function itemDeFase(state: MonitoreoState | null | undefined, fase: MonitoreoTerritorialPhase): MonitoreoTerritorialPhaseCoherenceItem | null {
@@ -90,7 +91,7 @@ export function construirConexiones(
       // Lo que se envió antes del inicio de la fase no entra al avance: si hay,
       // se dice aquí, para que «Recibidas en la fase» de Avance no parezca otra cifra.
       esActiva && enLaFase != null && n(item?.local_rows) != null && enLaFase < (n(item?.local_rows) ?? 0)
-        ? { rotulo: `En la fase · ${texto((n(item?.local_rows) ?? 0) - enLaFase)} antes`, valor: texto(enLaFase) }
+        ? { rotulo: `En la fase, ${texto((n(item?.local_rows) ?? 0) - enLaFase)} antes`, valor: texto(enLaFase) }
         : null,
       esActiva ? { rotulo: "Preguntas", valor: texto(n(reports?.source_coherence?.survey_count)) } : null,
       esActiva ? { rotulo: "Opciones", valor: texto(n(reports?.source_coherence?.choices_count)) } : null,

@@ -22,9 +22,10 @@ import {
 } from "./noBarridosModel";
 import "./controlTelefonico.css";
 import "./noBarridos.css";
+import { formatoConteo } from "../../../../../lib/formatoNumero";
 
 function n(valor: number | null | undefined) {
-  return valor == null ? "—" : valor.toLocaleString("es-PE");
+  return valor == null ? "—" : formatoConteo(valor);
 }
 
 const ROTULO_DE_SEVERIDAD: Record<Severidad, string> = {

@@ -144,7 +144,7 @@ function TerritorialDurationOverview({ model }: { model: TerritorialDurationMode
       <div>
         <span><Clock size={14} /> Duración de encuestas</span>
         <strong>
-          {formatMetric(model.rowsWithDuration.length)} entrevistas con tiempo · {formatMetric(model.normalRows.length)} normales · {formatMetric(model.shortRows.length)} cortas · {formatMetric(model.veryShortRows.length)} muy cortas
+          {formatMetric(model.rowsWithDuration.length)} entrevistas con tiempo, {formatMetric(model.normalRows.length)} normales, {formatMetric(model.shortRows.length)} cortas, {formatMetric(model.veryShortRows.length)} muy cortas
         </strong>
       </div>
       <dl>
@@ -163,7 +163,7 @@ function TerritorialDurationCategoriesPanel({ model }: { model: TerritorialDurat
       <header>
         <div>
           <span><Clock size={14} /> Calidad del tiempo</span>
-          <strong>Normal · Corta (&lt;5 min) · Muy corta (&lt;2 min)</strong>
+          <strong>Normal, corta (&lt;5 min) y muy corta (&lt;2 min)</strong>
         </div>
         <em>{model.reviewRows.length ? `${formatMetric(model.reviewRows.length)} cortas/muy cortas` : "todo normal"}</em>
       </header>
@@ -220,7 +220,7 @@ function TerritorialDurationDailyCard({ rows }: { rows: TerritorialDurationDaily
       <header>
         <div>
           <span><CalendarRange size={14} /> Ritmo por estado</span>
-          <strong>{formatMetric(periodTotals.normal)} normales · {formatMetric(periodTotals.short)} cortas · {formatMetric(periodTotals.veryShort)} muy cortas</strong>
+          <strong>{formatMetric(periodTotals.normal)} normales, {formatMetric(periodTotals.short)} cortas, {formatMetric(periodTotals.veryShort)} muy cortas</strong>
         </div>
         <em>{formatMetric(ordered.length)} días</em>
       </header>
@@ -263,7 +263,7 @@ function TerritorialDurationDailyCard({ rows }: { rows: TerritorialDurationDaily
                 </div>
                 <div className="mon-duration-daily-value">
                   <strong>{formatMetric(total)}</strong>
-                  <small>{formatMetric(normal)} N · {formatMetric(short)} C · {formatMetric(veryShort)} MC</small>
+                  <small>{formatMetric(normal)} N, {formatMetric(short)} C, {formatMetric(veryShort)} MC</small>
                 </div>
                 <em className={veryShort ? "is-danger" : short ? "is-warning" : "is-ready"}>{stateLabel}</em>
               </article>
@@ -683,7 +683,7 @@ function territorialResolvedResponsibleLabel(row: TerritorialResponseAuditRow, i
 function territorialCaseResponsibleLabel(row: TerritorialResponseAuditRow, includeCode = false) {
   const name = stringOrEmpty(row.enumerator_assigned).trim();
   const code = territorialPulsoCodeLabel(row);
-  if (name && includeCode && code !== "S/D") return `${code} · ${name}`;
+  if (name && includeCode && code !== "S/D") return `${code}, ${name}`;
   if (name) return name;
   if (code !== "S/D") return "Responsable no identificado";
   return "Sin responsable asignado";

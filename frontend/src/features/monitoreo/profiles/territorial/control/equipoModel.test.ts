@@ -33,7 +33,7 @@ describe("Control › Equipo", () => {
 
   it("una fila por código, los activos primero y con su base de anulaciones", () => {
     expect(modelo.filas.map((fila) => [fila.codigo, fila.anulado])).toEqual([["P198", false], ["P702", true]]);
-    expect(p198).toMatchObject({ aplicador: "P198 · Aplicador Uno", recibidas: 80, cuentan: null, umps: 9, distritos: ["Ate", "San Martín de Porres"], ultimo: "02/07" });
+    expect(p198).toMatchObject({ aplicador: "P198, Aplicador Uno", recibidas: 80, cuentan: null, umps: 9, distritos: ["Ate", "San Martín de Porres"], ultimo: "02/07" });
   });
 
   it("«Cuentan» es la base del avance cuando el corte la trae, no la efectiva de la plataforma", () => {

@@ -1,3 +1,5 @@
+import { formatoConteo } from "../../../../lib/formatoNumero";
+
 /**
  * Encuestas por aula, en personas enteras y siempre hacia abajo.
  *
@@ -21,11 +23,11 @@
  */
 export function personasPorAula(valor: number | null | undefined): string {
   if (valor == null || !Number.isFinite(valor)) return "S/D";
-  return Math.floor(valor).toLocaleString("es-PE");
+  return formatoConteo(Math.floor(valor));
 }
 
 /** El mismo criterio para un total proyectado: nunca promete de más. */
 export function personasProyectadas(valor: number | null | undefined): string {
   if (valor == null || !Number.isFinite(valor)) return "S/D";
-  return Math.max(0, Math.floor(valor)).toLocaleString("es-PE");
+  return formatoConteo(Math.max(0, Math.floor(valor)));
 }

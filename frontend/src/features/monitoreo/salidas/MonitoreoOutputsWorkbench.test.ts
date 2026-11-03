@@ -412,7 +412,7 @@ describe("MonitoreoOutputsWorkbench processing handoff package", () => {
       would_mutate_pulso: false,
     } as MonitoreoProcessingHandoffResult;
 
-    expect(monitoreoProcessingHandoffDetail(result)).toBe("1,283 filas · estatus validada + revision · 2 KB");
+    expect(monitoreoProcessingHandoffDetail(result)).toBe("1,283 filas, estatus validada + revision, 2 KB");
     expect(monitoreoProcessingHandoffFileLinks(result)).toEqual([
       {
         key: "package",

@@ -53,7 +53,7 @@ describe("Insumos › Conexiones", () => {
   it("si hay respuestas enviadas antes del inicio de la fase, dice cuántas entran a la fase", () => {
     const conPrevias = { ...REPORTS, source_validity: { total_responses: 1693 } } as unknown as MonitoreoTerritorialDashboard;
     const campo = construirConexiones(STATE, conPrevias, "field").tarjetas[0];
-    expect(campo.cifras[1]).toEqual({ rotulo: "En la fase · 4 antes", valor: "1,693" });
+    expect(campo.cifras[1]).toEqual({ rotulo: "En la fase, 4 antes", valor: "1,693" });
     const iguales = { ...REPORTS, source_validity: { total_responses: 1697 } } as unknown as MonitoreoTerritorialDashboard;
     expect(construirConexiones(STATE, iguales, "field").tarjetas[0].cifras.map((c) => c.rotulo).some((r) => r.startsWith("En la fase"))).toBe(false);
   });

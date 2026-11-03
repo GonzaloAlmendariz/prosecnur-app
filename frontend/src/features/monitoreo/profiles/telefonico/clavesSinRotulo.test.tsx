@@ -6,7 +6,7 @@
  * prueba y revisa el texto que ve el usuario. Falla si un nodo de texto es
  * exactamente una clave conocida en minúscula («atencion», «exacta»,
  * «non_effective»…) o tiene forma de clave (`snake_case`, `kebab-case`). El
- * contenido de `<code>` queda fuera: ahí se pintan nombres de columna, que son
+ * contenido de `<code>` y de `<data>` queda fuera: ahí se pintan nombres de columna, que son
  * datos del estudio.
  *
  * Existe porque dos rechazos seguidos del verificador fueron por claves que se
@@ -55,7 +55,7 @@ const FORMA_DE_CLAVE = /^[a-z0-9]+([_-][a-z0-9]+)+$/;
 
 function textosVisibles(html: string): string[] {
   return html
-    .replace(/<code[^>]*>[\s\S]*?<\/code>/g, " ")
+    .replace(/<(code|data)\b[^>]*>[\s\S]*?<\/\1>/g, " ")
     .replace(/<!-- -->/g, "")
     .replace(/<(script|style)[^>]*>[\s\S]*?<\/\1>/g, " ")
     .split(/<[^>]+>/)

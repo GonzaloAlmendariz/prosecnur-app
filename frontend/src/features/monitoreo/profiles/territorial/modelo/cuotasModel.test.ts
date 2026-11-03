@@ -9,7 +9,7 @@ describe("Modelo › Cuotas", () => {
   const modelo = construirCuotas(CORTE_DE_CUOTAS, STATE);
 
   it("la plantilla por UMP es la que usan las manzanas, con su total de entrevistas", () => {
-    expect(textoDePlantilla(modelo.plantilla)).toBe("Hombre 4 · Mujer 4 · 18 a 29 2 · 30 a 44 3 · 45 a 59 2 · 60 o más 1");
+    expect(textoDePlantilla(modelo.plantilla)).toBe("Hombre 4, Mujer 4, 18 a 29 2, 30 a 44 3, 45 a 59 2 y 60 o más 1");
     expect(modelo.entrevistasPorUmp).toBe(8);
     expect(modelo.conPlantilla + modelo.conOtra).toBe(4);
   });

@@ -93,11 +93,11 @@ describe("vista de Avance › Cuotas", () => {
     expect(html).toContain('data-qa-scroll-owner="monitoreo-cuotas"');
     expect(html.match(/class="mon-cuotas-indicador"/g)).toHaveLength(3);
     expect(html).toContain("0 de 3 categorías cumplidas");
-    expect(sinSeparador(html)).toContain("59|2 % · 481 de 812");
+    expect(sinSeparador(html)).toContain("59|2 %, 481 de 812");
     // Detalle de la primera cuota: TPA con su meta, lo que falta y la tasa con base.
     expect(html).toContain("TPA");
     expect(html).toContain("faltan 255");
-    expect(sinSeparador(html)).toContain("18|1 % · 350 de 1|939 en la base");
+    expect(sinSeparador(html)).toContain("18|1 %, 350 de 1|939 en la base");
     expect(html).toContain("Agregar cuota");
   });
 

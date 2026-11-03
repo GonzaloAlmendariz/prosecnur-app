@@ -103,9 +103,9 @@
   color: var(--pulso-text-soft);
 }
 
-.aulas-reserva-dirigida-candidatos code {
+.aulas-reserva-dirigida-candidatos .aulas-reserva-dirigida-aula {
   flex: none;
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-variant-numeric: tabular-nums;
   color: var(--pulso-text);
 }
 

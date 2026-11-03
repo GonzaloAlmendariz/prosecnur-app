@@ -93,7 +93,7 @@ describe("titular", () => {
 
   it("bajo mínimo habla del mínimo y del porcentaje logrado", () => {
     const l = acreditacionLecturaObjetivo({ universo: 270, efectivas: 178, minimo: 108 });
-    expect(acreditacionTitularObjetivo(l, 108, 178)).toBe("Mínimo 108 · 178 logradas (165%)");
+    expect(acreditacionTitularObjetivo(l, 108, 178)).toBe("Mínimo 108, 178 logradas (165%)");
   });
 
   it("universo cubierto lo dice explícitamente", () => {

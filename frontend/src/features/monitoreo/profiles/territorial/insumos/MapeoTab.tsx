@@ -73,7 +73,7 @@ function MapeoTabImpl({
                 {modelo.roles.map((rol) => (
                   <tr key={rol.campo} className={rol.estado === "encontrada" ? "" : "is-falta"}>
                     <th scope="row">{rol.rol}</th>
-                    <td>{rol.columna ? <code>{rol.columna}</code> : "—"}</td>
+                    <td>{rol.columna ? <span className="mon-ins-clave">{rol.columna}</span> : "—"}</td>
                     <td><EstadoChip label={rol.rotuloDeEstado} tone={rol.estado === "encontrada" ? "success" : "warn"} /></td>
                   </tr>
                 ))}
@@ -119,9 +119,9 @@ function MapeoTabImpl({
               {modelo.distritos.map((fila) => (
                 <li key={fila.codigo} className={`mon-ins-distrito${fila.ok ? "" : " is-falta"}`}>
                   <span className="mon-ins-distrito-sello" aria-hidden="true"><SiluetaDeDistrito distrito={fila.ok ? fila.distrito : ""} lado={26} /></span>
-                  <span><code>{fila.codigo}</code> {fila.etiqueta}</span>
+                  <span><span className="mon-ins-clave">{fila.codigo}</span> {fila.etiqueta}</span>
                   {fila.ok
-                    ? <span className="mon-ins-distrito-destino">{fila.distrito} <code>{fila.ubigeo}</code></span>
+                    ? <span className="mon-ins-distrito-destino">{fila.distrito} <span className="mon-ins-ubigeo">{fila.ubigeo}</span></span>
                     : <EstadoChip label="Sin ubigeo" tone="warn" />}
                 </li>
               ))}

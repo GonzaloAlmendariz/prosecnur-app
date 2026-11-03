@@ -172,7 +172,7 @@ export function AulasCrucePorCarrera({ bloque }: { bloque: BloqueDeCruce | null 
     <div className="aulas-cxc" data-qa-geometry-capacity="owned" data-qa-geometry-member>
       <p className="aulas-cxc-titular">
         <strong>{fmt(total.personas)}</strong> alumnos distintos identificados por su código
-        {tasa != null ? <span className="aulas-cxc-pct"> · cruzó el {tasa} % de {fmt(total.consideradas)}</span> : null}
+        {tasa != null ? <span className="aulas-cxc-pct">, cruzó el {tasa} % de {fmt(total.consideradas)}</span> : null}
       </p>
       {/* Las dos notas del total. Sólo cuando existen: un «0 repetidos»
           permanente es ruido, y con el padrón entero resolviendo no hay nada
@@ -225,7 +225,7 @@ export function AulasCrucePorCarrera({ bloque }: { bloque: BloqueDeCruce | null 
                         no se puede ir a buscar. */}
                     {dup > 0 ? (
                       <em className="aulas-cxc-dup">
-                        {dup === 1 ? " · 1 repetida" : ` · ${fmt(dup)} repetidas`}
+                        {dup === 1 ? ", 1 repetida" : `, ${fmt(dup)} repetidas`}
                       </em>
                     ) : null}
                   </span>
@@ -290,7 +290,7 @@ export function AulasCrucePorCarrera({ bloque }: { bloque: BloqueDeCruce | null 
               {/* El recorte se dice: en silencio haría creer que el operativo
                   tiene las filas que se ven. */}
               {bloque?.truncado
-                ? ` · se enseñan las ${fmt(alumnos.length)} últimas de ${fmt(total.consideradas)}`
+                ? `, se enseñan las ${fmt(alumnos.length)} últimas de ${fmt(total.consideradas)}`
                 : null}
             </span>
           </div>
@@ -416,7 +416,7 @@ export function AulasCrucePorCarrera({ bloque }: { bloque: BloqueDeCruce | null 
                         {/* Sin marca de tiempo, un guion: la fila sigue diciendo
                             quién y de qué carrera, y lo que falta es la hora. */}
                         <td className="aulas-cxc-cuando">
-                          {a.fecha ? `${a.fecha} · ${a.hora || "--:--"}` : "—"}
+                          {a.fecha ? `${a.fecha}, ${a.hora || "--:--"}` : "—"}
                         </td>
                         <td className="aulas-cxc-ch">{a.curso_horario || "—"}</td>
                         <td>
@@ -449,7 +449,7 @@ export function AulasCrucePorCarrera({ bloque }: { bloque: BloqueDeCruce | null 
                               renglón hace leer dos veces para entender que es
                               una sola cosa. */}
                           {a.motivo_etiqueta && a.motivo !== "rechazo_participar" ? (
-                            <em className="aulas-cxc-motivo-fila"> · {a.motivo_etiqueta}</em>
+                            <em className="aulas-cxc-motivo-fila">, {a.motivo_etiqueta}</em>
                           ) : null}
                         </td>
                       </tr>

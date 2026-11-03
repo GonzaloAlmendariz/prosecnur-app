@@ -11,6 +11,7 @@
  */
 
 import type { PrioridadDeCaso } from "./motivoDeNoCruce";
+import { formatoConteo } from "../../../lib/formatoNumero";
 
 export type GrupoDeCruce = "cruzaron" | "recuperables" | "por-revisar" | "explicados";
 
@@ -66,7 +67,7 @@ export function balanceDeCruce(casos: CasoDeCruce[]): BalanceDeCruce {
  * que rescatar, lo nombra: es la única cifra sobre la que se puede actuar.
  */
 export function lecturaDeCruce(balance: BalanceDeCruce) {
-  const n = (valor: number) => valor.toLocaleString("es-PE");
+  const n = (valor: number) => formatoConteo(valor);
   if (!balance.total) return "Sin registros para los filtros activos.";
   if (!balance.sinCruce) return `${n(balance.cruzaron)} de ${n(balance.total)} cruzaron con la base.`;
   const cabeza = `${n(balance.cruzaron)} de ${n(balance.total)} cruzaron; ${n(balance.sinCruce)} no.`;
@@ -79,9 +80,9 @@ export const GRUPOS_DE_CRUCE: {
   titulo: string;
   detalle: string;
 }[] = [
-  { grupo: "recuperables", titulo: "No cruzaron · recuperables", detalle: "completas: solo les falta el vínculo" },
-  { grupo: "por-revisar", titulo: "No cruzaron · por revisar", detalle: "falta un dato que el canal debía traer" },
-  { grupo: "explicados", titulo: "No cruzaron · explicados por el canal", detalle: "resolverlos no suma efectivas" },
+  { grupo: "recuperables", titulo: "No cruzaron, recuperables", detalle: "completas: solo les falta el vínculo" },
+  { grupo: "por-revisar", titulo: "No cruzaron, por revisar", detalle: "falta un dato que el canal debía traer" },
+  { grupo: "explicados", titulo: "No cruzaron, explicados por el canal", detalle: "resolverlos no suma efectivas" },
   { grupo: "cruzaron", titulo: "Cruzaron con la base", detalle: "ya están vinculados" },
 ];
 

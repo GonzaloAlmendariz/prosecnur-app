@@ -67,7 +67,7 @@ export function AvanceCorreoCabecera({
                   <option value="">Elige la audiencia</option>
                   {audiencias.map((a) => (
                     <option key={a.id} value={a.id}>
-                      {a.name || a.id}{a.member_count != null ? ` · ${cifra(a.member_count)} contactos` : ""}
+                      {a.name || a.id}{a.member_count != null ? `, ${cifra(a.member_count)} contactos` : ""}
                     </option>
                   ))}
                 </select>

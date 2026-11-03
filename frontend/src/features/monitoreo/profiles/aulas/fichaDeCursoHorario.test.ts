@@ -152,7 +152,7 @@ describe("la frase que contesta «¿y para cuándo?»", () => {
 
   test("un retirado conserva la fecha que tuvo", () => {
     expect(cuandoEnPalabras("retirado", "2026-09-08", ""))
-      .toBe("Retirado del plan · tenía fecha el martes 8 de setiembre");
+      .toBe("Retirado del plan, tenía fecha el martes 8 de setiembre");
   });
 
   test("una fecha que no es fecha se devuelve tal cual, sin inventar", () => {

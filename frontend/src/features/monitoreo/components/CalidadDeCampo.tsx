@@ -15,6 +15,7 @@
 import { AlertTriangle, MessageSquare, PhoneCall, ShieldAlert, Users } from "lucide-react";
 
 import { EstadoVacio } from "../../../components/EstadoVacio";
+import { formatoConteo } from "../../../lib/formatoNumero";
 
 import type {
   MonitoreoCalidadCampo,
@@ -140,7 +141,7 @@ function Grupo({
       <div className="mon-calidad-aviso-cuerpo">
         <p className="mon-calidad-aviso-rotulo">
           <span>{rotuloDeTipo(tipo)}</span>
-          {items.length > 1 ? <b>{items.length} casos</b> : null}
+          {items.length > 1 ? <b>{formatoConteo(items.length)} casos</b> : null}
           {bloqueante ? <em>no se corrige después</em> : null}
         </p>
         {visibles.map((alerta, index) => (
@@ -208,7 +209,7 @@ export default function CalidadDeCampo({
             className="mon-calidad-conteo"
             data-alta={bloqueantes > 0 ? "1" : undefined}
           >
-            {alertas.length} {alertas.length === 1 ? "aviso" : "avisos"}
+            {formatoConteo(alertas.length)} {alertas.length === 1 ? "aviso" : "avisos"}
           </span>
         ) : null}
       </header>

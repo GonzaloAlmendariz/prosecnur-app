@@ -3,6 +3,7 @@ import { CheckCircle2 } from "../../../../../vendor/lucide-react";
 import { EstadoVacio } from "../../../../../components/EstadoVacio";
 import { RotuloDePestana, useHayRotulo } from "../navegacion/RotuloDePestana";
 import "./controlTelefonico.css";
+import { formatoConteo } from "../../../../../lib/formatoNumero";
 
 /** Una efectiva de Kobo que no se pudo identificar, ya en palabras. */
 export type FilaDeSalvedad = {
@@ -19,7 +20,7 @@ export type FilaDeSalvedad = {
 const TOPE = 80;
 
 function n(valor: number) {
-  return valor.toLocaleString("es-PE");
+  return formatoConteo(valor);
 }
 
 /**

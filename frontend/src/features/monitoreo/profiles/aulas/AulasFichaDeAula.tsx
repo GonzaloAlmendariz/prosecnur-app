@@ -1,3 +1,4 @@
+import { formatoDecimal } from "../../../../lib/formatoNumero";
 import { useMemo } from "react";
 
 import type { MonitoreoAulasPlanRow } from "../../../../api/monitoreo";
@@ -26,7 +27,7 @@ import { nombreDeAplicador } from "./nombreDeAplicador";
 // enteros del perfil, que para un valor ausente devuelve «0». Aquí un dato que
 // no llegó tiene que verse como hueco —«—»— y no como un cero, que es una
 // medición.
-const fmtOGuion = (n: number | null) => (n === null ? "—" : n.toLocaleString("es-PE"));
+const fmtOGuion = (n: number | null) => formatoDecimal(n, 3);
 
 /* Loop mejora-ui E6: la cifra de la ficha, con la ausencia en su volumen. Un
    «—» venga de donde venga (fuente que no habló, o fila presente con el campo
@@ -130,7 +131,7 @@ export function AulasFichaDeAula({ codigo, fuentes, onCerrar, onRegistrar }: {
               : [
                 ficha.parte.asistentes !== null ? `${fmtOGuion(ficha.parte.asistentes)} asistentes` : "sin asistentes anotados",
                 ficha.parte.rechazos !== null ? `${fmtOGuion(ficha.parte.rechazos)} rechazos` : null,
-              ].filter(Boolean).join(" · ")}
+              ].filter(Boolean).join(", ")}
           </small>
         </div>
         <div>

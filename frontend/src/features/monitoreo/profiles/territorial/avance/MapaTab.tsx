@@ -5,7 +5,8 @@ import { EstadoChip } from "../../../../../components/EstadoChip";
 import type { MonitoreoTerritorialDashboard } from "../../../../../api/client";
 import { normalizeRouteBlockCode } from "../../../routeCoverageModel";
 import { useFocoMonitoreo } from "../../../useMonitoreoDireccion";
-import { enumerar, fmt, nombreDeDistrito } from "../rotulos";
+import { enumerar } from "../../../../../lib/enumerar";
+import { fmt, nombreDeDistrito } from "../rotulos";
 import {
   LIMA_DISTRICT_FEATURES,
   LIMA_MAP_HEIGHT,
@@ -274,7 +275,7 @@ function MapaTabImpl({
     return {
       x: punto.x,
       y: punto.y,
-      titulo: `UMP ${manzana.ump} · ${estado}`,
+      titulo: `UMP ${manzana.ump}, ${estado}`,
       lineas: [lugar || "Sin ubicación", cifras, manzana.estado === "sin-usar" ? "Ya no se usa en la ruta" : "Clic para ver su ficha"].filter(Boolean),
     };
   };

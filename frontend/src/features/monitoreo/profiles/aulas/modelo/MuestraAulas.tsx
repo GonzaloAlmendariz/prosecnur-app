@@ -21,7 +21,7 @@ export function franjaDeMuestra(dashboard: MonitoreoAulasDashboard) {
   return [
     { clave: "titulares", rotulo: "Titulares", valor: fmt(n(rol?.titulares?.total)), sub: `${fmt(n(rol?.titulares?.aplicado))} aplicados` },
     { clave: "reservas", rotulo: "Reservas en cadena", valor: fmt(n(rol?.reemplazos?.total)), sub: `${fmt(n(rol?.reemplazos?.utilizado))} usadas` },
-    { clave: "banco", rotulo: "Banco de extras", valor: fmt(n(rol?.banco?.total)), sub: `${fmt(n(rol?.banco?.utilizado))} usados · ${fmt(n(rol?.banco?.disponible))} disponibles` },
+    { clave: "banco", rotulo: "Banco de extras", valor: fmt(n(rol?.banco?.total)), sub: `${fmt(n(rol?.banco?.utilizado))} usados, ${fmt(n(rol?.banco?.disponible))} disponibles` },
   ];
 }
 

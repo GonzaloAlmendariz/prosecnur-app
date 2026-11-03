@@ -49,7 +49,7 @@ export function AulasPestanaEfectividad({
             >
               <div className="mon-profile-panel-head">
                 <h3>Cómo le va a cada facultad</h3>
-                <span>lo que debe hoy, por sexo · pulsa una para ver qué la hundió</span>
+                <span>lo que debe hoy, por sexo, pulsa una para ver qué la hundió</span>
               </div>
               <AulasComoVaCadaFacultad
                 bloque={dashboard.efectividad_seguimiento}
@@ -83,7 +83,7 @@ export function AulasPestanaEfectividad({
                     parecido… ésta con el numerador de PLATAFORMA», aquél con el del
                     parte. Esa distinción vivía en el catálogo y en los comentarios,
                     no en la pantalla. */}
-                <span>efectivas de plataforma sobre elegibles, por facultad · decide si hay que activar reservas</span>
+                <span>efectivas de plataforma sobre elegibles, por facultad, decide si hay que activar reservas</span>
               </div>
               <AulasEfectividadSeguimiento
                 bloque={dashboard.efectividad_seguimiento}
@@ -112,7 +112,7 @@ export function AulasPestanaEfectividad({
             >
               <div className="mon-profile-panel-head">
                 <h3>Hacia dónde va la efectividad</h3>
-                <span>jornada a jornada · dice si el campo está mejorando o si hay que intervenir</span>
+                <span>jornada a jornada, dice si el campo está mejorando o si hay que intervenir</span>
               </div>
               {/* **El parte NO trae facultad: hay que unirlo al plan primero.**
                   La hoja «Aulas Aplicadas (Campo)» no tiene columna de facultad

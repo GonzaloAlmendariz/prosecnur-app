@@ -1,3 +1,4 @@
+import { formatoDecimal } from "../../../../lib/formatoNumero";
 import { memo, useEffect, useMemo, useRef, useState } from "react";
 import {
   Clock,
@@ -173,7 +174,7 @@ function TerritorialReviewCasesWorkbenchImpl({
         {!showingOperationalAdjustments ? (
           <section className="mon-territorial-review-hero" aria-label="Resumen de registros consultables">
             <div>
-              <span>Después de Validación · {territorialPhaseLabel(reports.active_route_phase)}</span>
+              <span>Después de Validación, {territorialPhaseLabel(reports.active_route_phase)}</span>
               <strong>{formatMetric(summary.total)} registros del corte</strong>
               <p>Una fila por respuesta, con identidad operativa, clasificación final de tiempo/GPS y acceso directo a las validaciones. Las alertas agregadas de UMP quedan visibles como filtro de cruce responsable.</p>
             </div>
@@ -185,7 +186,7 @@ function TerritorialReviewCasesWorkbenchImpl({
                 label="Tiempo corto/muy corto"
                 value={summary.duration}
                 tone={summary.duration ? "warning" : "ready"}
-                hint={summary.duration ? `${formatMetric(summary.durationShort)} corta · ${formatMetric(summary.durationVeryShort)} muy corta` : "todo normal"}
+                hint={summary.duration ? `${formatMetric(summary.durationShort)} corta, ${formatMetric(summary.durationVeryShort)} muy corta` : "todo normal"}
               />
               <TerritorialReviewMetric icon={ContactRound} label="Cruce responsable" value={summary.unassigned} tone={summary.unassigned ? "warning" : "ready"} hint={summary.unassigned ? "sin responsable" : "resuelto"} />
             </div>
@@ -243,7 +244,7 @@ function TerritorialReviewCasesWorkbenchImpl({
                     <strong>{formatMetric(visibleSummary.total)} visibles de {formatMetric(summary.total)}</strong>
                   </div>
                   <div className="mon-territorial-review-table-tools">
-                    <em>{formatMetric(visibleSummary.durationNormal)} normal · {formatMetric(visibleSummary.durationShort)} corta · {formatMetric(visibleSummary.durationVeryShort)} muy corta · {formatMetric(visibleSummary.gps)} GPS</em>
+                    <em>{formatMetric(visibleSummary.durationNormal)} normal, {formatMetric(visibleSummary.durationShort)} corta, {formatMetric(visibleSummary.durationVeryShort)} muy corta, {formatMetric(visibleSummary.gps)} GPS</em>
                   </div>
                 </header>
                 {filteredRows.length ? (
@@ -289,7 +290,7 @@ function TerritorialReviewCasesWorkbenchImpl({
                               <td><span className={`mon-territorial-review-time ${durationClass}`}>{durationStatusLabel}</span><small>{durationBand.detail}</small></td>
                               <td>
                                 <span className={`mon-territorial-review-gps is-${gpsBand.key}`}>{gpsBand.label}</span>
-                                <small title={row.gpsTrace ? `${gpsBand.detail} · ${row.gpsTrace}` : gpsBand.detail}>{[gpsBand.detail, row.gpsTrace].filter(Boolean).join(" · ")}</small>
+                                <small title={row.gpsTrace ? `${gpsBand.detail}, ${row.gpsTrace}` : gpsBand.detail}>{[gpsBand.detail, row.gpsTrace].filter(Boolean).join(", ")}</small>
                               </td>
                               <td>
                                 {row.responseId ? (
@@ -521,7 +522,7 @@ function territorialReviewRowFromCase(
     ump: stringOrEmpty(item.ump).trim() || "S/D",
     rawUmp: "",
     manzana: stringOrEmpty(item.manzana || item.block_id).trim() || "S/D",
-    manzanaHint: [item.block_type, item.zona ? `Zona ${item.zona}` : ""].filter(Boolean).join(" · ") || "referencia territorial",
+    manzanaHint: [item.block_type, item.zona ? `Zona ${item.zona}` : ""].filter(Boolean).join(", ") || "referencia territorial",
     district: stringOrEmpty(item.district).trim() || "Sin distrito",
     districtHint: stringOrEmpty(item.ubigeo).trim() || "sin ubigeo",
     responsible,
@@ -562,7 +563,7 @@ function territorialReviewRowFromBlock(block: TerritorialBlockProgress, index: n
     ump,
     rawUmp: "",
     manzana: stringOrEmpty(block.manzana || blockId).trim() || "S/D",
-    manzanaHint: [block.tipo_manzana, block.zona ? `Zona ${block.zona}` : ""].filter(Boolean).join(" · ") || "referencia territorial",
+    manzanaHint: [block.tipo_manzana, block.zona ? `Zona ${block.zona}` : ""].filter(Boolean).join(", ") || "referencia territorial",
     district: stringOrEmpty(block.distrito).trim() || "Sin distrito",
     districtHint: stringOrEmpty(block.ubigeo).trim() || "sin ubigeo",
     responsible,
@@ -848,7 +849,7 @@ function gpsTraceLabel(row: Partial<TerritorialResponseAuditRow>) {
     row.gps_reclassified && primary && source && primary !== source ? `reemplaza ${primary}` : "",
     accuracy != null ? `prec. ${formatDistanceLabel(accuracy)}` : "",
   ].filter(Boolean);
-  return parts.join(" · ");
+  return parts.join(", ");
 }
 
 function gpsSourceLabel(value: unknown) {
@@ -908,7 +909,7 @@ function formatDurationLabel(value: number | null | undefined) {
 function formatDistanceLabel(value: number | null | undefined) {
   const meters = numberOrNull(value);
   if (meters == null) return "S/D";
-  if (Math.abs(meters) >= 1000) return `${(meters / 1000).toFixed(meters >= 10000 ? 1 : 2)} km`;
+  if (Math.abs(meters) >= 1000) return `${formatoDecimal(meters / 1000, meters >= 10000 ? 1 : 2)} km`;
   return `${Math.round(meters)} m`;
 }
 

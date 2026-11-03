@@ -1,3 +1,4 @@
+import { formatoDecimal } from "../../../../lib/formatoNumero";
 import { useMemo } from "react";
 
 import type { MonitoreoAulasPlanRow } from "../../../../api/monitoreo";
@@ -115,7 +116,7 @@ export function AulasColaDeContacto({ filas, conReservas, facultadEnFoco, onFoco
         {pendientes.length ? (
           <>
             <strong>{fmt(pendientes.length)}</strong>{" "}
-            {pendientes.length === 1 ? "curso-horario sigue" : "cursos-horario siguen"} sin cita ·
+            {pendientes.length === 1 ? "curso-horario sigue" : "cursos-horario siguen"} sin cita,
             el que más lleva va por <strong>{fmt(pendientes[0].intentos)}</strong>{" "}
             {pendientes[0].intentos === 1 ? "intento" : "intentos"}
             {/* Las que salieron de la cola por estar ya aplicadas se DICEN. Si
@@ -123,7 +124,7 @@ export function AulasColaDeContacto({ filas, conReservas, facultadEnFoco, onFoco
                 estaba usando para repartir llamadas no sabe si mejoró el dato o
                 se perdió trabajo. */}
             {yaAplicadasSinCita ? (
-              <em>{" "}· {fmt(yaAplicadasSinCita)} más ya se aplicaron sin cita registrada,
+              <em>,{" "}{fmt(yaAplicadasSinCita)} más ya se aplicaron sin cita registrada,
                 así que no están en la cola</em>
             ) : null}
             {/* B13b (dictado 2026-09-03, CH 90): el rechazo tecleado sale de
@@ -132,7 +133,7 @@ export function AulasColaDeContacto({ filas, conReservas, facultadEnFoco, onFoco
                 y sobrio» — el dato del rol es lo que informa: un titular
                 rechazado abre su reemplazo. */}
             {rechazadas.total ? (
-              <em>{" "}· {fmt(rechazadas.total)}{" "}
+              <em>,{" "}{fmt(rechazadas.total)}{" "}
                 {rechazadas.total === 1 ? "docente rechazó" : "docentes rechazaron"}
                 {" "}({fmt(rechazadas.titulares)}{" "}
                 {rechazadas.titulares === 1 ? "titular" : "titulares"})</em>
@@ -209,7 +210,7 @@ export function AulasColaDeContacto({ filas, conReservas, facultadEnFoco, onFoco
               {citadas.map((c) => (
                 <tr key={`c-${c.codigo}`} className="es-citada">
                   <td className="aulas-cola-codigo">{c.codigo}</td>
-                  <td className="aulas-cola-quien" title={`${c.docente} · ${c.facultad}`}>
+                  <td className="aulas-cola-quien" title={`${c.docente}, ${c.facultad}`}>
                     {c.docente || "—"}
                     <em>{c.facultad}</em>
                   </td>
@@ -257,7 +258,7 @@ export function AulasColaDeContacto({ filas, conReservas, facultadEnFoco, onFoco
                         antes de marcar (caso A, dictado 2026-09-03). */}
                     {p.relevoDe ? <em className="aulas-cola-releva">releva a {p.relevoDe}</em> : null}
                   </td>
-                  <td className="aulas-cola-quien" title={`${p.docente} · ${p.facultad}`}>
+                  <td className="aulas-cola-quien" title={`${p.docente}, ${p.facultad}`}>
                     {p.docente || "—"}
                     <em>{p.facultad}</em>
                   </td>
@@ -265,10 +266,10 @@ export function AulasColaDeContacto({ filas, conReservas, facultadEnFoco, onFoco
                       mano para hacer la llamada. */}
                   <td className="aulas-cola-como">
                     {p.telefono || "—"}
-                    {p.medio ? <em> · {p.medio}</em> : null}
+                    {p.medio ? <em>, {p.medio}</em> : null}
                     {/* Si el correo de gestión llegó, en las palabras del
                         equipo — la otra mitad del canal de contacto. */}
-                    {p.correo ? <em> · correo: {p.correo}</em> : null}
+                    {p.correo ? <em>, correo: {p.correo}</em> : null}
                   </td>
                   <td className="aulas-cola-intentos es-num">
                     {p.intentos > 0 ? <strong>{fmt(p.intentos)}</strong> : <span className="es-vacio">—</span>}
@@ -297,7 +298,7 @@ export function AulasColaDeContacto({ filas, conReservas, facultadEnFoco, onFoco
               ni cabecera de columna que lo declare: la abreviatura era lo único
               que se leía, y se lee como «medios». */}
           <p className="aulas-cola-subtitulo">
-            Lo que costó agendar, por facultad · <em>mediana de intentos</em>
+            Lo que costó agendar, por facultad (<em>mediana de intentos</em>)
           </p>
           <ul className="aulas-cola-esfuerzo" data-qa-geometry-capacity="owned" data-qa-geometry-member>
             {esfuerzo.map((e) => (
@@ -305,12 +306,12 @@ export function AulasColaDeContacto({ filas, conReservas, facultadEnFoco, onFoco
                 <NombreDeFacultad facultad={e.facultad} className=""
                   enFoco={e.facultad === facultadEnFoco} />
                 <span>
-                  {e.intentos == null ? "—" : `${e.intentos.toLocaleString("es-PE")} ${e.intentos === 1 ? "intento" : "intentos"}`}
+                  {e.intentos == null ? "—" : `${formatoDecimal(e.intentos, 3)} ${e.intentos === 1 ? "intento" : "intentos"}`}
                   {/* «cursos-horario», que es lo que cuenta el plan y lo que
                       dice el vacío de este mismo componente tres líneas arriba
                       —«Todos los cursos-horario del plan tienen cita»—. Decía
                       «aulas», y en este perfil no son la misma unidad. */}
-                  <em> · {fmt(e.aulas)} {e.aulas === 1 ? "curso-horario" : "cursos-horario"}</em>
+                  <em>, {fmt(e.aulas)} {e.aulas === 1 ? "curso-horario" : "cursos-horario"}</em>
                 </span>
               </li>
             ))}
@@ -322,7 +323,7 @@ export function AulasColaDeContacto({ filas, conReservas, facultadEnFoco, onFoco
           {distribucionDeGestiones.length ? (
             <>
               <p className="aulas-cola-subtitulo">
-                Cuántas llamadas cuesta cerrar · <em>todas las gestiones anotadas</em>
+                Cuántas llamadas cuesta cerrar (<em>todas las gestiones anotadas</em>)
               </p>
               <AulasGestionesPorAula distribucion={distribucionDeGestiones} />
             </>

@@ -18,6 +18,7 @@ import {
 import { RotuloDePestana, useHayRotulo } from "../navegacion/RotuloDePestana";
 import "./controlTelefonico.css";
 import "./discrepancias.css";
+import { formatoConteo } from "../../../../../lib/formatoNumero";
 
 const TODOS = "";
 
@@ -28,7 +29,7 @@ const ROTULO_DE_DECISION: Record<EstadoDeDecision, string> = {
 };
 
 function n(valor: number) {
-  return valor.toLocaleString("es-PE");
+  return formatoConteo(valor);
 }
 
 function fechaHora(iso: string) {
@@ -160,7 +161,7 @@ export function Discrepancias({
       <section className="mon-ctl-panel mon-dsc-centro" aria-label="Casos que no coinciden" data-qa-geometry-capacity="owned">
         <header className="mon-ctl-panel-cabecera">
           <b>{responsable === TODOS ? "Casos que no coinciden" : `Casos de ${responsable}`}</b>
-          <span>{n(resumen.pendientes)} por decidir · {n(resumen.decididos)} {resumen.decididos === 1 ? "decidido" : "decididos"}</span>
+          <span>{n(resumen.pendientes)} por decidir, {n(resumen.decididos)} {resumen.decididos === 1 ? "decidido" : "decididos"}</span>
         </header>
         <div className="mon-ctl-tabla-marco mon-dsc-marco">
           <table className="mon-ctl-tabla mon-dsc-tabla">

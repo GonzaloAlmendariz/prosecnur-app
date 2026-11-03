@@ -502,7 +502,7 @@ export function DataTable({
         </tbody>
       </table>
       {avisos.length ? (
-        <p className="mon-profile-table-recorte">{avisos.join(" · ")}</p>
+        <p className="mon-profile-table-recorte">{avisos.join(", ")}</p>
       ) : null}
     </div>
   );
@@ -637,7 +637,7 @@ export function contadorDeCursosHorario(
   const base = total > visibles
     ? `se ven ${fmt(visibles)} de ${fmt(total)} cursos-horario`
     : `${fmt(visibles)} cursos-horario`;
-  return deReservaAdicional ? `${base} · ${fmt(deReservaAdicional)} de la reserva adicional` : base;
+  return deReservaAdicional ? `${base}, ${fmt(deReservaAdicional)} de la reserva adicional` : base;
 }
 
 function cleanCell(value: unknown) {
@@ -2251,7 +2251,7 @@ export default function AulasMonitoreoPage() {
           localTabs={railDeAulas(direccion.seccion, dashboard)}
           modeCountLabel={contar(pestanasDe(direccion.seccion).length || 1, "pestaña", "pestañas")}
           routeLabel="Cursos-horario"
-          routeSectionLabel="Cursos-horario · sección"
+          routeSectionLabel="Cursos-horario, sección"
           routeShortLabel="Cursos-horario"
           statusAriaLabel="Última actualización del monitoreo"
           statusItems={[{

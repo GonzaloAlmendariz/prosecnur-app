@@ -6,6 +6,7 @@ import { nombreDelSegmento, rotuloDelSegmento } from "../segmentoDeCuotas";
 import { estadoDeInsistencia, repartoDelEquipo } from "./insistenciaModel";
 import { RotuloDePestana, useHayRotulo } from "../navegacion/RotuloDePestana";
 import "./controlTelefonico.css";
+import { formatoConteo } from "../../../../../lib/formatoNumero";
 
 function corteCorto(valor: string | null | undefined) {
   const fecha = new Date(String(valor ?? ""));
@@ -28,9 +29,9 @@ function TelefonosPorCaso({ casos }: { casos: readonly CasoDeCola[] }) {
       <ul>
         {reparto.map((item) => (
           <li key={item.telefonos}>
-            <span>{item.telefonos.toLocaleString("es-PE")} {item.telefonos === 1 ? "número" : "números"}</span>
+            <span>{formatoConteo(item.telefonos)} {item.telefonos === 1 ? "número" : "números"}</span>
             <i aria-hidden="true"><b style={{ width: `${(item.casos / maximo) * 100}%` }} /></i>
-            <strong className="is-num">{item.casos.toLocaleString("es-PE")}</strong>
+            <strong className="is-num">{formatoConteo(item.casos)}</strong>
           </li>
         ))}
       </ul>

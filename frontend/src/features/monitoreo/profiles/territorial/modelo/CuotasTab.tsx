@@ -72,7 +72,7 @@ function CuotasTabImpl({
           <dl className="mon-mod-variables">
             {modelo.variables.map((variable) => (
               <div key={variable.rotulo}>
-                <dt>{variable.rotulo} <code>{variable.columna || "sin columna"}</code></dt>
+                <dt>{variable.rotulo} <span className="mon-mod-columna">{variable.columna || "sin columna"}</span></dt>
                 <dd>{variable.categorias.map((categoria) => <span key={categoria} className="mon-ter-chip">{categoria}</span>)}</dd>
               </div>
             ))}

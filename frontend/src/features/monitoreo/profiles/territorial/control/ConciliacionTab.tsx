@@ -102,7 +102,7 @@ function ConciliacionTabImpl({
                         <span className="pulso-sr-only">Código del padrón para «{codigo.codigo}»</span>
                         <select value={elecciones[clave] ?? ""} onChange={(event) => { const valor = event.currentTarget.value; setElecciones((previas) => ({ ...previas, [clave]: valor })); }}>
                           <option value="">Elegir del padrón…</option>
-                          {modelo.padron.map((opcion) => <option key={opcion.codigo} value={opcion.codigo}>{opcion.codigo} · {opcion.nombre}</option>)}
+                          {modelo.padron.map((opcion) => <option key={opcion.codigo} value={opcion.codigo}>{opcion.codigo}, {opcion.nombre}</option>)}
                         </select>
                       </label>
                       <button

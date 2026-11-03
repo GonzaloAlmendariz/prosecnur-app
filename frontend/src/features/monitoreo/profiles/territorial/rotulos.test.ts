@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { nombreDeDistrito, enumerar } from "./rotulos";
+import { enumerar } from "../../../../lib/enumerar";
+import { nombreDeDistrito } from "./rotulos";
 
 describe("nombreDeDistrito", () => {
   it("pone tildes y mayúsculas de nombre propio", () => {
