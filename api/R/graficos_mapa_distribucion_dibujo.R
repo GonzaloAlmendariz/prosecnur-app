@@ -41,7 +41,8 @@
   util_w <- ancho - col - m; util_h <- alto - 2 * m
   s <- min(util_w / dx, util_h / dy) * (if (identical(espec$area, "peru")) 0.94 else 1)
   # Sin recuadro de la zona de Lima ni rótulos que pidan columna, el Perú se centra; si no, va a la derecha.
-  tx <- if (identical(espec$area, "peru") && is.null(espec$zona)) (ancho - dx * s) / 2 else ancho - m - dx * s
+  # Sin columna de rótulos (especificación aprobada: el rótulo de la PUCP va dentro del mapa) el mapa se centra.
+  tx <- if (col <= 0) (ancho - dx * s) / 2 else ancho - m - dx * s
   ty <- (alto - dy * s) / 2 - lat[[1]] * s
   list(k = k, s = s, tx = tx, ty = ty, lon0 = lon0, lat0 = lat0)
 }
@@ -209,8 +210,9 @@
 #' @keywords internal
 .mapa_dist_col <- function(espec, ancho, pt) {
   if (identical(espec$area, "peru") && !is.null(espec$zona)) return(.mapa_dist_zona_ancho(espec, pt) + 16 * .MAPA_DIST_PX)   # la franja del recuadro
-  tinta <- max(c(0, .lam_ancho_tinta(espec$rotulos$texto, pt$rotulo, TRUE)))
-  min(0.36 * ancho, max(0.5, tinta * 1.08 + 0.45))
+  # Especificación aprobada (Gonzalo, 2026-11-03): la guía y el rótulo de la PUCP van dentro del mapa («la etiqueta se
+  # sale del gráfico»), así que no hay columna de rótulos sobre el mar.
+  0
 }
 
 #' El panel del mapa de distribución
@@ -226,7 +228,7 @@
   areas <- espec$carto$areas
   datos <- espec$areas[match(areas$clave, espec$areas$clave), ]
   arriba_de_todo <- areas$clave %in% c("15M", "07") & identical(espec$area, "peru")   # una sola área sin distritos
-  datos$trazo <- ifelse(arriba_de_todo, datos$color, M$borde)
+  datos$trazo <- ifelse(arriba_de_todo | (datos$lima_par %||% FALSE) %in% TRUE, datos$color, M$borde)
   orden <- order(arriba_de_todo)
   poly <- .mapa_dist_df(areas[orden, ], pr, caja, datos[orden, ], c("clave", "color", "trazo"), id = "a")
   ctx <- .mapa_dist_df(espec$carto$contexto, pr, caja, id = "c")
@@ -241,6 +243,14 @@
     ggplot2::geom_polygon(data = poly, ggplot2::aes(.data$x, .data$y, group = .data$grupo, fill = .data$color,
                                                     colour = .data$trazo), linewidth = .mapa_dist_lw(M$borde_pt), linejoin = "round") +
     ggplot2::scale_fill_identity() + ggplot2::scale_colour_identity()
+  # Las áreas de otra respuesta del filtro: gris con rayado, para que no se lean como «Sin encuestados».
+  # Un rayado por grupo, en sentidos alternos: Lima Metropolitana y el Callao no son Lima provincias.
+  grupos <- espec$otra_grupos %||% list(espec$otra %||% character(0))
+  for (gi in seq_along(grupos)) {
+    raya <- .mapa_dist_rayado(poly[poly$clave %in% grupos[[gi]], , drop = FALSE], sentido = if (gi %% 2) 1 else -1)
+    if (nrow(raya)) g <- g + ggplot2::geom_path(data = raya, ggplot2::aes(.data$x, .data$y, group = .data$g), colour = M$otra_raya,
+                                                linewidth = .mapa_dist_lw(0.6), lineend = "butt")
+  }
   # Rótulos.
   rot <- espec$rotulos
   if (NROW(rot)) {
@@ -250,6 +260,8 @@
   }
   if (NROW(rot) && identical(espec$area, "peru") && !is.null(espec$zona)) {
     rot <- rot[0, , drop = FALSE]   # en el Perú los puntos de referencia van en el recuadro de la zona de Lima
+  } else if (NROW(rot) && col <= 0) {
+    g <- .mapa_dist_punto_corto(g, rot, pt, ancho, alto)
   } else if (NROW(rot)) {
     x_txt <- col - 18 * P
     rot$prioridad <- seq(nrow(rot), 1)
@@ -269,28 +281,63 @@
                          size = pt$rotulo / ggplot2::.pt, fontface = "bold", colour = it$color, family = fuente)
     attr(g, "pulso_rotulos") <- it
   }
-  # «Océano Pacífico».
-  # En el Perú, a la derecha del recuadro de la zona de Lima, sobre el mar del sur. Sin recuadro, en la esquina del mar:
-  # a 212 px caía sobre Tacna cuando el mapa va angosto junto a su filtro (CCSS 2026, lámina del filtro con su mapa).
-  x_oc <- if (identical(espec$area, "peru") && !is.null(espec$zona)) 212 * P else 16 * P
-  y_oc <- if (identical(espec$area, "peru")) 0.45 else alto - 26 * P
-  g <- g + ggplot2::annotate("text", x = x_oc, y = y_oc, label = "Océano Pacífico", hjust = 0, vjust = 0.5, size = pt$oceano / ggplot2::.pt,
-                             fontface = "italic", colour = M$oceano, family = fuente)
-  # Escala gráfica, gris y sin flecha de norte: 5 km en la esquina inferior derecha de Lima; en el Perú, 200 km sobre el
-  # mar del sur, bajo «Océano Pacífico» (en la esquina estaría encima de Tacna).
-  km <- if (identical(espec$area, "peru")) 200 else 5
-  largo <- km / 111.32 * pr$s
-  if (identical(espec$area, "peru")) { x0 <- x_oc; x1 <- x0 + largo } else { x1 <- ancho - 22 * P; x0 <- x1 - largo }
-  y0 <- 14 * P
-  esc <- data.frame(x = c(x0, x0, x1, x1), y = c(y0 + 4 * P, y0, y0, y0 + 4 * P))
-  g <- g + ggplot2::geom_path(data = esc, ggplot2::aes(.data$x, .data$y), colour = M$gris, linewidth = .mapa_dist_lw(0.9)) +
-    ggplot2::annotate("text", x = (x0 + x1) / 2, y = y0 + 10 * P, label = paste(km, "km"), vjust = 0, size = pt$escala / ggplot2::.pt,
-                      colour = M$gris, family = fuente)
+  # «Océano Pacífico» sólo cuando el mapa es grande (lámina del mapa suelto); en las tarjetas de la lámina con su filtro no
+  # cabe sin tocar tierra. Sin escala gráfica (especificación aprobada, Gonzalo, 2026-11-03).
+  if (ancho >= 5.5 || !is.null(espec$zona)) {
+    # En el Perú con recuadro, a su derecha sobre el mar del sur; si no, en la esquina del mar (a 212 px caía sobre Tacna).
+    x_oc <- if (identical(espec$area, "peru") && !is.null(espec$zona)) 212 * P else 16 * P
+    y_oc <- if (identical(espec$area, "peru")) 0.45 else alto - 26 * P
+    g <- g + ggplot2::annotate("text", x = x_oc, y = y_oc, label = "Océano Pacífico", hjust = 0, vjust = 0.5, size = pt$oceano / ggplot2::.pt,
+                               fontface = "italic", colour = M$oceano, family = fuente)
+  }
   if (identical(espec$area, "peru") && !is.null(espec$zona)) g <- .mapa_dist_zona_lima(g, espec, pr, alto, pt)
   g <- g + ggplot2::coord_fixed(xlim = c(0, ancho), ylim = c(0, alto), expand = FALSE, clip = "on") +
     ggplot2::theme_void() + ggplot2::theme(plot.margin = ggplot2::margin(0, 0, 0, 0), plot.background = ggplot2::element_blank())
   attr(g, "pulso_proyeccion") <- pr
   g
+}
+
+#' Rayas a 45° dentro de las áreas de otra respuesta (pulgadas del panel): una línea cada 0.07 in recortada a sus anillos
+#' @param d Anillos `x`, `y`, `grupo` (salida de `.mapa_dist_df`). @param sentido 1 («/») o -1 («\\»).
+#' @return data.frame `g`, `x`, `y` para `geom_path`.
+#' @keywords internal
+.mapa_dist_rayado <- function(d, paso = 0.07, sentido = 1) {
+  vacio <- data.frame(g = character(0), x = numeric(0), y = numeric(0))
+  if (!NROW(d)) return(vacio)
+  zona <- tryCatch(.mapa_dist_tierra(d), error = function(e) NULL)
+  if (is.null(zona)) return(vacio)
+  bb <- sf::st_bbox(zona); w <- bb[["xmax"]] - bb[["xmin"]]; h <- bb[["ymax"]] - bb[["ymin"]]
+  cs <- seq(bb[["xmin"]] - h, bb[["xmax"]], by = paso)
+  # `sentido = 1`: «/»; `-1`: «\\».
+  lineas <- sf::st_sfc(lapply(cs, function(c0) if (sentido > 0) sf::st_linestring(rbind(c(c0, bb[["ymin"]]), c(c0 + h, bb[["ymax"]]))) else
+    sf::st_linestring(rbind(c(c0, bb[["ymax"]]), c(c0 + h, bb[["ymin"]])))))
+  r <- tryCatch(suppressWarnings(sf::st_intersection(lineas, zona)), error = function(e) NULL)
+  if (is.null(r) || !length(r)) return(vacio)
+  r <- suppressWarnings(sf::st_cast(sf::st_collection_extract(r, "LINESTRING"), "LINESTRING"))
+  cc <- as.data.frame(sf::st_coordinates(r))
+  if (!nrow(cc)) return(vacio)
+  data.frame(g = paste0("r", cc$L1), x = cc$X, y = cc$Y)
+}
+
+#' El punto de referencia con su guía corta dentro del mapa (especificación aprobada, regla 6): unos 22 px a la izquierda y
+#' 44 hacia abajo del lienzo de 1600 px, y el rótulo centrado bajo la guía, con halo blanco
+#' @keywords internal
+.mapa_dist_punto_corto <- function(g, rot, pt, ancho, alto) {
+  fuente <- .std_pt("fuente"); px <- 13.333 / 1600
+  dx <- 22 * px; dy <- 44 * px
+  it <- rot
+  it$xe <- pmax(0.25, it$x - dx); it$ye <- pmax(0.2, it$y - dy)
+  it$yt <- it$ye - 0.09
+  halo <- do.call(rbind, lapply(seq(0, 2 * pi, length.out = 9)[-9], function(a) transform(it, xt = xe + cos(a) * 0.012, ytt = yt + sin(a) * 0.012)))
+  g + ggplot2::geom_segment(data = it, ggplot2::aes(x = .data$x, y = .data$y, xend = .data$xe, yend = .data$ye), colour = "#FFFFFF",
+                            linewidth = .mapa_dist_lw(2.6), lineend = "round") +
+    ggplot2::geom_segment(data = it, ggplot2::aes(x = .data$x, y = .data$y, xend = .data$xe, yend = .data$ye), colour = it$color,
+                          linewidth = .mapa_dist_lw(1), lineend = "round") +
+    ggplot2::geom_point(data = it, ggplot2::aes(.data$x, .data$y), shape = 21, size = 1.8, stroke = 0.5, colour = "#FFFFFF", fill = it$punto) +
+    ggplot2::geom_text(data = halo, ggplot2::aes(.data$xt, .data$ytt, label = .data$texto), hjust = 0.5, vjust = 1,
+                       size = pt$rotulo / ggplot2::.pt, fontface = "bold", colour = "#FFFFFF", family = fuente) +
+    ggplot2::geom_text(data = it, ggplot2::aes(.data$xe, .data$yt, label = .data$texto), hjust = 0.5, vjust = 1,
+                       size = pt$rotulo / ggplot2::.pt, fontface = "bold", colour = it$color, family = fuente)
 }
 
 #' Ancho (in) del recuadro de la zona de Lima: 184 px a la letra de la lámina, y crece con su letra y sus filas (a 9 pt,

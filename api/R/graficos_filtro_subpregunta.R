@@ -21,19 +21,22 @@
 #' @param frase Quiénes forman la base del dependiente, dicho por el analista («que trabajan»): la lámina escribe «Sólo los
 #'   139 que trabajan». Sin ella, «que respondieron «Sí»».
 #' @param rotulo Rótulo corto a la izquierda de la barra del dependiente cuando es una escala de una fila («Participaron», p192).
+#' @param dependiente2,habilita2 Un segundo dependiente y las respuestas que lo habilitan (sólo con `dependiente`).
 #' @return Objeto `"ppt_element"`.
 #' @family reporte
 #' @export
 p_filtro_subpregunta <- function(var = NULL, habilita, subpregunta = NULL, grafico_sub = c("barras", "escala"),
                                  disposicion = c("costado", "abajo"), titulo = NULL, overrides = list(), base = list(),
                                  filtros = list(), grafico_filtro = c("auto", "torta", "dona"),
-                                 independiente = NULL, dependiente = NULL, frase = NULL, rotulo = NULL) {
+                                 independiente = NULL, dependiente = NULL, frase = NULL, rotulo = NULL,
+                                 dependiente2 = NULL, habilita2 = NULL) {
   grafico_sub <- match.arg(grafico_sub)
   disposicion <- match.arg(disposicion)
   grafico_filtro <- match.arg(grafico_filtro)
   # Dependencia entre los dos gráficos de una lámina (graficos_dependencia.R): llegan los dos gráficos tal cual.
   if (!is.null(independiente) || !is.null(dependiente)) {
     independiente <- .dependencia_elemento(independiente); dependiente <- .dependencia_elemento(dependiente)
+    if (!is.null(dependiente2)) dependiente2 <- .dependencia_elemento(dependiente2)
     var <- as.character(independiente$var %||% "")[1]
     if (is.na(var) || !nzchar(var)) .plan_spec_abort("El gráfico del que depende el otro necesita una sola pregunta.")
     subpregunta <- as.character(dependiente$var %||% unlist(dependiente$vars)[1] %||% "")[1]
@@ -53,10 +56,20 @@ p_filtro_subpregunta <- function(var = NULL, habilita, subpregunta = NULL, grafi
     title_slide = .ppt_norm_text1(titulo, blank = NULL),
     overrides = overrides, base = base, filtros = .ppt_norm_filters(filtros),
     independiente = independiente, dependiente = dependiente, frase = .ppt_norm_text1(frase, blank = NULL),
+    # Un segundo dependiente con sus propias respuestas que lo habilitan (filtro con dos mapas, lamina_filtro_mapa.R).
+    dependiente2 = dependiente2,
+    habilita2 = if (!is.null(dependiente2)) unique(trimws(as.character(unlist(habilita2 %||% character(0))))),
     rotulo = .ppt_norm_text1(rotulo, blank = NULL)
   )
   class(el) <- c("ppt_element", "list")
   el
+}
+
+#' ¿El dependiente es de otra base que el filtro? (`datos_crianza$A9_1` frente a `A9`): entonces no se le filtra por él
+#' @keywords internal
+.fsub_dependiente_de_otra_base <- function(var_dep, var_filtro) {
+  src_d <- .graficos_ref_parts(var_dep)$source; src_f <- .graficos_ref_parts(var_filtro)$source
+  nzchar(src_d) && !identical(src_d, src_f)
 }
 
 #' Los códigos de las respuestas del filtro que habilitan, desde sus rótulos (el filtro de datos compara códigos)
@@ -134,13 +147,24 @@ p_filtro_subpregunta <- function(var = NULL, habilita, subpregunta = NULL, grafi
   # ellas va apagada (si no, el motor la omite y avisa «elígelas en la pestaña Gráfico», un aviso sin salida).
   ov_s <- ov
   if (identical(el$grafico_sub, "escala") && !length(ov$top2box_labels)) ov_s$barra_extra <- FALSE
+  # Un dependiente de OTRA base (lugar de nacimiento de madres y padres: la repetición `datos_crianza`) no se filtra por la
+  # pregunta del filtro, que no está en sus filas: su base es la de sus propias filas (y sus `filtros`).
+  otra_base <- function(d) .fsub_dependiente_de_otra_base(as.character(unlist(d$var %||% d$vars))[1] %||% "", el$filtro)
   el_s <- if (!is.null(el$dependiente)) {
     # La dependencia entre dos gráficos: el dependiente es el gráfico que puso el analista, con la base de quienes lo habilitan.
-    d <- el$dependiente; d$filtros <- utils::modifyList(d$filtros %||% list(), filtros_sub); d
+    d <- el$dependiente; if (!otra_base(d)) d$filtros <- utils::modifyList(d$filtros %||% list(), filtros_sub); d
   } else if (identical(el$grafico_sub, "escala")) p_barras_apiladas(var = el$subpregunta, filtros = filtros_sub, overrides = ov_s)
   else p_barras_agrupadas(var = el$subpregunta, filtros = filtros_sub, overrides = ov)
-  list(el_f = el_f, el_s = el_s, ctx_f = ctx_f, ctx_s = ctx_s, niveles = niveles, codigos = codigos, gf = gf, ov = ov,
-       resolver = resolver)
+  el_s2 <- NULL; codigos2 <- NULL
+  if (!is.null(el$dependiente2)) {
+    codigos2 <- .fsub_codigos(niveles, el$habilita2)
+    if (!length(codigos2)) stop(sprintf("Filtro y subpregunta: «%s» no tiene las respuestas %s.", el$filtro,
+                                        paste0("«", el$habilita2, "»", collapse = ", ")), call. = FALSE)
+    f2 <- el$filtros %||% list(); f2[[ctx_f$var]] <- codigos2
+    el_s2 <- el$dependiente2; if (!otra_base(el_s2)) el_s2$filtros <- utils::modifyList(el_s2$filtros %||% list(), f2)
+  }
+  list(el_f = el_f, el_s = el_s, el_s2 = el_s2, ctx_f = ctx_f, ctx_s = ctx_s, niveles = niveles, codigos = codigos, codigos2 = codigos2,
+       gf = gf, ov = ov, resolver = resolver)
 }
 
 .render_filtro_subpregunta <- function(el, preset_args = list()) {
@@ -202,6 +226,14 @@ p_filtro_subpregunta <- function(var = NULL, habilita, subpregunta = NULL, grafi
               else if (.lam_filtro_sub_es_mapa(espec_s)) as.numeric(espec_s$base)   # el mapa dependiente: todos sus encuestados
               else .espec_n_base(espec_s)
     )
+    # El segundo dependiente (filtro con dos mapas): su espec y su pregunta.
+    if (!is.null(pz$el_s2)) {
+      p_s2 <- rend(pz$el_s2); espec_s2 <- attr(p_s2, "pulso_espec")
+      e <- attr(p, "pulso_espec"); e$sub2 <- espec_s2; e$plot_sub2 <- p_s2
+      ctx2 <- tryCatch(pz$resolver(as.character(unlist(el$dependiente2$var))[1], arg_name = "subpregunta"), error = function(e) ctx_s)
+      e$pregunta_sub2 <- titulo_de(el$dependiente2, ctx2)
+      attr(p, "pulso_espec") <- e
+    }
   }
   p
 }
