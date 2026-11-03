@@ -55,22 +55,21 @@
   so_texto = c("Respuestas por categoría", "lista"),
   sm_so = c("% que marca cada opción, por categoría", "tabla"), sm_sm = c("Coocurrencia de opciones", "tabla"),
   sm_num = c("Cajas por opción marcada", "cajas"), sm_fecha = c("% que marca, por día", "serie"),
-  sm_texto = c("Respuestas por opción marcada", "lista"),
   num_so = c("Cajas por categoría", "cajas"), num_sm = c("Cajas por opción marcada", "cajas"),
   num_num = c("Dispersión con tendencia", "dispersion"), num_fecha = c("Mediana por día", "serie"),
-  num_texto = c("Respuestas ordenadas por valor", "lista"),
   fecha_so = c("Días por categoría", "cajas"), fecha_sm = c("Días por opción marcada", "cajas"),
   fecha_num = c("Fecha frente a la numérica", "dispersion"), fecha_fecha = c("Diferencia en días", "cajas"),
-  fecha_texto = c("Respuestas por día", "lista"),
-  texto_so = c("Respuestas por categoría", "lista"), texto_sm = c("Respuestas por opción marcada", "lista"),
-  texto_num = c("Respuestas por tramos", "lista"), texto_fecha = c("Respuestas por día", "lista"),
-  texto_texto = c("Dos abiertas lado a lado", "lista")
+  texto_so = c("Respuestas por categoría", "lista")
 )
 
-test_that("los 25 pares tipo × tipo devuelven su gráfico y su forma, con el cuerpo de esa forma", {
+# Una abierta sólo se cruza con una única (decisión de Gonzalo, 2026-11-03).
+.ecr_sin_cruce <- c("sm_texto", "texto_sm", "num_texto", "texto_num", "fecha_texto", "texto_fecha", "texto_texto")
+
+test_that("los 18 pares que se cruzan devuelven su gráfico y su forma, con el cuerpo de esa forma", {
   datos <- .ecr_data(); inst <- .ecr_inst()
   for (tx in names(.ecr_vars)) for (ty in names(.ecr_vars)) {
     clave <- paste(tx, ty, sep = "_")
+    if (clave %in% .ecr_sin_cruce) next
     cr <- explorador_cruce(datos, .ecr_vars[[tx]], .ecr_vars[[ty]], inst)
     expect_identical(cr$tipo_x, tx, info = clave)
     expect_identical(cr$tipo_y, ty, info = clave)
@@ -79,6 +78,23 @@ test_that("los 25 pares tipo × tipo devuelven su gráfico y su forma, con el cu
     expect_true(is.integer(cr$base_n) && cr$base_n > 0L, info = clave)
   }
   expect_setequal(names(.explorador_cruces_catalogo()), names(.ecr_esperado))
+  expect_length(.explorador_cruces_catalogo(), 18L)
+})
+
+test_that("una abierta con algo que no es una única no se cruza: 400 con la limitación dicha", {
+  datos <- .ecr_data(); inst <- .ecr_inst()
+  inst$survey <- rbind(inst$survey, transform(inst$survey[8, ], name = "otra", label = "Otra abierta"))
+  datos$otra <- datos$comentario
+  vars <- c(.ecr_vars, texto2 = "otra")
+  for (clave in .ecr_sin_cruce) {
+    tipos <- strsplit(clave, "_", fixed = TRUE)[[1]]
+    vy <- if (identical(tipos, c("texto", "texto"))) "otra" else .ecr_vars[[tipos[2]]]
+    err <- tryCatch(explorador_cruce(datos, .ecr_vars[[tipos[1]]], vy, inst), error = function(e) e)
+    expect_s3_class(err, "api_error")
+    expect_equal(err$status, 400, info = clave)
+    expect_identical(err$code, "E_EXPLORAR_CRUCE_NO_SE_OFRECE", info = clave)
+    expect_match(conditionMessage(err), "sólo con una pregunta de selección única", info = clave)
+  }
 })
 
 test_that("so × so: tabla de calor cuyas filas suman su marginal y el total suma la base", {
@@ -122,6 +138,8 @@ test_that("cajas: por categoría suman la base; fecha en días desde la mínima;
   expect_identical(inv$cajas, cr$cajas)
   fd <- explorador_cruce(.ecr_data(), "fecha", "sexo", .ecr_inst())
   expect_identical(min(vapply(fd$cajas$grupos, `[[`, 1, "min")), 0)
+  expect_identical(fd$cajas$origen, format(min(as.Date(.ecr_data()$fecha), na.rm = TRUE), "%Y-%m-%d"))   # el día cero, para rotular fechas
+  expect_null(cr$cajas$origen)
   datos <- .ecr_data(); datos$fecha2 <- as.character(as.Date(datos$fecha) + 3)
   inst <- .ecr_inst()
   inst$survey <- rbind(inst$survey, transform(inst$survey[7, ], name = "fecha2", label = "Fecha de cierre"))
@@ -146,26 +164,30 @@ test_that("dispersión: tendencia por mínimos cuadrados con todos los casos y a
   expect_identical(explorador_cruce(datos, "edad", "edad2", inst)$dispersion$puntos, cr$dispersion$puntos)
   fx <- explorador_cruce(.ecr_data(), "fecha", "edad", .ecr_inst())
   expect_identical(min(fx$dispersion$puntos[, 1]), 0)
+  expect_match(fx$dispersion$origen, "^\\d{4}-\\d{2}-\\d{2}$")
+  expect_null(cr$dispersion$origen)
 })
 
 test_that("serie: casos por día apilados suman la base; % que marca por día; mediana con p25/p75", {
   cr <- explorador_cruce(.ecr_data(), "sexo", "fecha", .ecr_inst())
   p <- cr$serie$puntos
-  expect_identical(names(p[[1]]), c("fecha", "valor", "baja", "alta", "serie"))
+  expect_identical(names(p[[1]]), c("fecha", "valor", "baja", "alta", "serie", "n"))
   expect_identical(sum(vapply(p, function(z) as.numeric(z$valor), 1)), as.numeric(cr$base_n))
   expect_setequal(unique(vapply(p, `[[`, "", "serie")), c("Hombre", "Mujer", "9"))
   sm <- explorador_cruce(.ecr_data(), "medios", "fecha", .ecr_inst())
   tv1 <- Filter(function(z) z$serie == "Televisión" && z$fecha == "2026-10-01", sm$serie$puntos)[[1]]
   expect_equal(tv1$valor, 50)   # el 1/10 responden dos y uno marca tv
+  expect_identical(tv1$n, 2L)   # …y esos dos son el denominador del día
   md <- explorador_cruce(.ecr_data(), "edad", "fecha", .ecr_inst())
   d1 <- md$serie$puntos[[1]]
   expect_identical(d1$fecha, "2026-10-01")
   expect_equal(d1$valor, 28)
   expect_true(d1$baja <= d1$valor && d1$valor <= d1$alta)
   expect_true(is.na(d1$serie))
+  expect_true(is.integer(d1$n) && d1$n >= 1L)
 })
 
-test_that("lista: grupos por categoría, tramo, día o valor; máximo 20 grupos y 15 respuestas agrupadas", {
+test_that("lista: la abierta agrupada por las categorías de la única; máximo 20 grupos y 15 respuestas agrupadas", {
   cr <- explorador_cruce(.ecr_data(), "sexo", "comentario", .ecr_inst())
   g <- cr$lista$grupos
   expect_identical(names(g[[1]]), c("etiqueta", "respuestas"))
@@ -173,19 +195,17 @@ test_that("lista: grupos por categoría, tramo, día o valor; máximo 20 grupos 
   expect_identical(g[[1]]$respuestas[[1]], list(texto = "Regular", n = 2L))   # Hombre: filas 1, 3, 5, 7, 11
   inv <- explorador_cruce(.ecr_data(), "comentario", "sexo", .ecr_inst())
   expect_identical(inv$lista, cr$lista)
-  tr <- explorador_cruce(.ecr_data(), "edad", "comentario", .ecr_inst())
-  expect_lte(length(tr$lista$grupos), 4L)
-  expect_match(tr$lista$grupos[[1]]$etiqueta, " a ")
   n <- 600L
   muchos <- data.frame(
     comentario = sprintf("Texto %02d", (seq_len(n) %% 30L)),
-    otra = sprintf("Grupo %02d", (seq_len(n) %% 25L)),
+    grupo = sprintf("g%02d", (seq_len(n) %% 25L)),
     stringsAsFactors = FALSE
   )
   inst <- .ecr_inst()
-  inst$survey <- rbind(inst$survey, transform(inst$survey[8, ], name = "otra", label = "Otra abierta"))
-  tt <- explorador_cruce(muchos, "comentario", "otra", inst)
-  expect_identical(tt$grafico, "Dos abiertas lado a lado")
+  inst$survey <- rbind(inst$survey, transform(inst$survey[2, ], name = "grupo", list_name = "grupo", label = "Grupo"))
+  inst$choices <- rbind(inst$choices, data.frame(list_name = "grupo", name = sprintf("g%02d", 0:24), label = sprintf("Grupo %02d", 0:24)))
+  tt <- explorador_cruce(muchos, "comentario", "grupo", inst)
+  expect_identical(tt$grafico, "Respuestas por categoría")
   expect_length(tt$lista$grupos, 20L)
   expect_true(all(vapply(tt$lista$grupos, function(z) length(z$respuestas) <= 15L, logical(1))))
 })

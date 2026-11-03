@@ -232,6 +232,8 @@ export type ExploradorCrucePunto = {
   baja: number | null;
   alta: number | null;
   serie: string | null;
+  /** Casos de la base ese día (el denominador del % en una múltiple); null en un payload viejo. */
+  n: number | null;
 };
 
 export type ExploradorCruce = {
@@ -244,11 +246,13 @@ export type ExploradorCruce = {
   n_x: number | null;
   n_y: number | null;
   tabla?: ExploradorCruceTabla;
-  cajas?: { grupos: ExploradorCruceCaja[] };
+  /** `origen`: con una fecha, el día cero ("AAAA-MM-DD") de los «días desde la mínima»; null si no hay fecha. */
+  cajas?: { grupos: ExploradorCruceCaja[]; origen: string | null };
   dispersion?: {
     puntos: [number, number][];
     tendencia: { pendiente: number; intercepto: number } | null;
     n: number;
+    origen: string | null;
   };
   serie?: { puntos: ExploradorCrucePunto[] };
   lista?: { grupos: { etiqueta: string; respuestas: { texto: string; n: number }[] }[] };
@@ -279,6 +283,12 @@ function tablaCruce(value: unknown): ExploradorCruceTabla | undefined {
   if (!filas.length || !columnas.length) return undefined;
   const n = matriz(t.n, filas.length, columnas.length);
   return n ? { filas, columnas, n } : undefined;
+}
+
+/** Una fecha "AAAA-MM-DD"; cualquier otra cosa (NA, {}, texto suelto) es null y el eje cae a números. */
+function fechaIso(value: unknown): string | null {
+  const t = texto(value);
+  return /^\d{4}-\d{2}-\d{2}$/.test(t) ? t : null;
 }
 
 function punto(value: unknown): [number, number] | null {
@@ -318,6 +328,7 @@ export function normalizeExploradorCruce(raw: unknown): ExploradorCruce | null {
         max: numero(g.max),
         n_atipicos: entero(g.n_atipicos),
       })),
+      origen: fechaIso(cajas.origen),
     };
   }
   const disp = registro(r.dispersion);
@@ -332,6 +343,7 @@ export function normalizeExploradorCruce(raw: unknown): ExploradorCruce | null {
       puntos,
       tendencia: pendiente !== null && intercepto !== null ? { pendiente, intercepto } : null,
       n: enteroONulo(disp.n) ?? puntos.length,
+      origen: fechaIso(disp.origen),
     };
   }
   const serie = registro(r.serie);
@@ -344,6 +356,7 @@ export function normalizeExploradorCruce(raw: unknown): ExploradorCruce | null {
           baja: numeroONulo(p.baja),
           alta: numeroONulo(p.alta),
           serie: textoONulo(p.serie),
+          n: enteroONulo(p.n),
         }))
         .filter((p): p is ExploradorCrucePunto => !!p.fecha && p.valor !== null),
     };

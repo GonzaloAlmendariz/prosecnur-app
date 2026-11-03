@@ -12,19 +12,24 @@
 #     fila suma su `n` y el total suma `base_n`; con sm las sumas de celdas exceden la base porque un caso marca
 #     varias opciones, y por eso el front nunca divide entre sumas de celdas.
 #   - cajas: cuartiles tipo 7 y atípicos por 1.5 × IQR (`.explorador_caja`); las fechas se miden en días desde la
-#     fecha mínima de la base del cruce.
+#     fecha mínima de la base del cruce, que viaja como `origen` ("AAAA-MM-DD") para rotular el eje con fechas.
 #   - serie: so × fecha cuenta casos por día y categoría (grilla completa, con ceros); sm × fecha da el % (0–100) de
 #     quienes responden ese día que marcan la opción; num × fecha da la mediana del día con baja/alta = p25/p75.
+#     Cada punto lleva `n`: los casos de la base de ese día (el denominador del %; un día de 1 caso salta 0 ↔ 100).
 #   - dispersion: hasta 3000 puntos muestreados con semilla fija (sin tocar el RNG de la sesión); la tendencia por
-#     mínimos cuadrados usa TODOS los casos de la base.
-#   - lista: hasta 20 grupos y 15 respuestas por grupo, textos iguales agrupados al normalizar minúsculas y tildes.
+#     mínimos cuadrados usa TODOS los casos de la base. Con x fecha, x son días desde `origen`.
+#   - lista: la abierta agrupada por las categorías de una única; hasta 20 grupos y 15 respuestas por grupo, textos
+#     iguales agrupados al normalizar minúsculas y tildes.
+# Una abierta sólo se cruza con una única (decisión de Gonzalo, 2026-11-03): con una múltiple una respuesta se repite
+# en varios grupos y con una numérica, una fecha u otra abierta no hay grupos que comparar. Esos 7 pares no están en el
+# catálogo y responden 400 `E_EXPLORAR_CRUCE_NO_SE_OFRECE`; quedan 18.
 
 .EXPLORADOR_MAX_PUNTOS <- 3000L
 .EXPLORADOR_SEMILLA_PUNTOS <- 20261102L
 .EXPLORADOR_LISTA_GRUPOS <- 20L
 .EXPLORADOR_LISTA_RESPUESTAS <- 15L
 
-#' Los 25 pares: nombre del gráfico (rótulo de la UI) y forma del contrato
+#' Los 18 pares que se cruzan: nombre del gráfico (rótulo de la UI) y forma del contrato
 #' @keywords internal
 .explorador_cruces_catalogo <- function() {
   par <- function(grafico, forma) list(grafico = grafico, forma = forma)
@@ -38,22 +43,15 @@
     sm_sm = par("Coocurrencia de opciones", "tabla"),
     sm_num = par("Cajas por opción marcada", "cajas"),
     sm_fecha = par("% que marca, por día", "serie"),
-    sm_texto = par("Respuestas por opción marcada", "lista"),
     num_so = par("Cajas por categoría", "cajas"),
     num_sm = par("Cajas por opción marcada", "cajas"),
     num_num = par("Dispersión con tendencia", "dispersion"),
     num_fecha = par("Mediana por día", "serie"),
-    num_texto = par("Respuestas ordenadas por valor", "lista"),
     fecha_so = par("Días por categoría", "cajas"),
     fecha_sm = par("Días por opción marcada", "cajas"),
     fecha_num = par("Fecha frente a la numérica", "dispersion"),
     fecha_fecha = par("Diferencia en días", "cajas"),
-    fecha_texto = par("Respuestas por día", "lista"),
-    texto_so = par("Respuestas por categoría", "lista"),
-    texto_sm = par("Respuestas por opción marcada", "lista"),
-    texto_num = par("Respuestas por tramos", "lista"),
-    texto_fecha = par("Respuestas por día", "lista"),
-    texto_texto = par("Dos abiertas lado a lado", "lista")
+    texto_so = par("Respuestas por categoría", "lista")
   )
 }
 
@@ -78,6 +76,12 @@
   d - min(d[ok])
 }
 
+# El día cero de `.explorador_dias_desde_min`, para que el front rotule el eje con fechas y no con «0 a 20».
+.explorador_origen <- function(fechas, ok) {
+  if (!any(ok)) return(NA_character_)
+  format(as.Date(min(as.numeric(fechas[ok])), origin = "1970-01-01"), "%Y-%m-%d")
+}
+
 .explorador_cruce_cajas <- function(lx, ly, ok) {
   if (!any(ok)) return(list(cajas = list(grupos = list())))
   if (identical(lx$tipo, "fecha") && identical(ly$tipo, "fecha")) {
@@ -88,9 +92,12 @@
   # La categórica agrupa; la otra aporta el valor (num) o los días desde la mínima (fecha).
   cat_lec <- if (.explorador_es_cat(lx$tipo)) lx else ly
   val_lec <- if (.explorador_es_cat(lx$tipo)) ly else lx
-  valores <- if (identical(val_lec$tipo, "fecha")) .explorador_dias_desde_min(val_lec$valor, ok) else val_lec$valor
+  es_fecha <- identical(val_lec$tipo, "fecha")
+  valores <- if (es_fecha) .explorador_dias_desde_min(val_lec$valor, ok) else val_lec$valor
   grupos <- lapply(.explorador_grupos_cat(cat_lec, ok), function(g) .explorador_caja(valores[g$idx], g$etiqueta))
-  list(cajas = list(grupos = Filter(Negate(is.null), grupos)))
+  cajas <- list(grupos = Filter(Negate(is.null), grupos))
+  if (es_fecha) cajas$origen <- .explorador_origen(val_lec$valor, ok)
+  list(cajas = cajas)
 }
 
 # --- dispersion -----------------------------------------------------------------
@@ -110,7 +117,9 @@
 }
 
 .explorador_cruce_dispersion <- function(lx, ly, ok) {
-  x <- if (identical(lx$tipo, "fecha")) .explorador_dias_desde_min(lx$valor, ok) else as.numeric(lx$valor)
+  x_fecha <- identical(lx$tipo, "fecha")
+  origen <- if (x_fecha) .explorador_origen(lx$valor, ok) else NULL
+  x <- if (x_fecha) .explorador_dias_desde_min(lx$valor, ok) else as.numeric(lx$valor)
   y <- as.numeric(ly$valor)
   x <- x[ok]; y <- y[ok]
   n <- length(x)
@@ -121,12 +130,14 @@
   }
   idx <- .explorador_muestra_indices(n)
   puntos <- matrix(c(x[idx], y[idx]), ncol = 2L)
-  list(dispersion = list(puntos = puntos, tendencia = tendencia, n = as.integer(n)))
+  dispersion <- list(puntos = puntos, tendencia = tendencia, n = as.integer(n))
+  if (x_fecha) dispersion$origen <- origen
+  list(dispersion = dispersion)
 }
 
 # --- serie --------------------------------------------------------------------
-.explorador_punto <- function(fecha, valor, baja = NA, alta = NA, serie = NA) {
-  list(fecha = fecha, valor = valor, baja = baja, alta = alta, serie = serie)
+.explorador_punto <- function(fecha, valor, n, baja = NA, alta = NA, serie = NA) {
+  list(fecha = fecha, valor = valor, baja = baja, alta = alta, serie = serie, n = as.integer(n))
 }
 
 .explorador_cruce_serie <- function(lx, ly, ok) {
@@ -138,7 +149,7 @@
     for (d in dias) {
       v <- lx$valor[ok & dia == d]
       q <- stats::quantile(v, c(0.25, 0.5, 0.75), names = FALSE)
-      puntos[[length(puntos) + 1L]] <- .explorador_punto(d, q[2], q[1], q[3])
+      puntos[[length(puntos) + 1L]] <- .explorador_punto(d, q[2], length(v), q[1], q[3])
     }
   } else {
     for (g in .explorador_grupos_cat(lx, ok)) {
@@ -146,7 +157,7 @@
         en_dia <- ok & dia == d
         marcan <- sum(g$idx & en_dia)
         valor <- if (identical(lx$tipo, "sm")) .explorador_pct(marcan, sum(en_dia)) else as.integer(marcan)
-        puntos[[length(puntos) + 1L]] <- .explorador_punto(d, valor, serie = g$etiqueta)
+        puntos[[length(puntos) + 1L]] <- .explorador_punto(d, valor, sum(en_dia), serie = g$etiqueta)
       }
     }
   }
@@ -159,49 +170,16 @@
   list(etiqueta = etiqueta, respuestas = .explorador_textos_json(tb), .n = length(textos))
 }
 
-#' Cuartil de una numérica como tramo «a a b» (los cortes repetidos se funden)
-#' @keywords internal
-.explorador_tramos <- function(v, ok) {
-  cortes <- unique(stats::quantile(v[ok], c(0, 0.25, 0.5, 0.75, 1), names = FALSE))
-  if (length(cortes) < 2L) {
-    return(list(list(etiqueta = sprintf("%s", .fmt_num(cortes[1])), idx = ok)))
-  }
-  tramo <- findInterval(v, cortes, rightmost.closed = TRUE, all.inside = TRUE)
-  lapply(seq_len(length(cortes) - 1L), function(i) list(
-    etiqueta = sprintf("%s a %s", .fmt_num(cortes[i]), .fmt_num(cortes[i + 1L])),
-    idx = ok & !is.na(tramo) & tramo == i
-  ))
-}
-
-.explorador_por_dia <- function(fechas, ok) {
-  dia <- format(fechas, "%Y-%m-%d")
-  lapply(sort(unique(dia[ok])), function(d) list(etiqueta = d, idx = ok & dia == d))
-}
-
-.explorador_por_valor_texto <- function(textos, ok) {
-  clave <- .explorador_clave_texto(textos)
-  tb <- .explorador_agrupar_textos(textos[ok], top = .EXPLORADOR_LISTA_GRUPOS)
-  lapply(seq_len(nrow(tb)), function(i) list(
-    etiqueta = tb$texto[i], idx = ok & clave == .explorador_clave_texto(tb$texto[i])
-  ))
-}
-
 .explorador_cruce_lista <- function(lx, ly, ok) {
-  # El texto que se lista es el de la variable abierta; si las dos lo son, se listan las de x agrupadas por y.
+  # La abierta se lista agrupada por las categorías de la única (el catálogo no ofrece otro par con abierta).
   x_es_texto <- identical(lx$tipo, "texto")
   txt_lec <- if (x_es_texto) lx else ly
   grp_lec <- if (x_es_texto) ly else lx
-  grupos <- switch(
-    grp_lec$tipo,
-    so = , sm = .explorador_grupos_cat(grp_lec, ok),
-    num = .explorador_tramos(grp_lec$valor, ok),
-    fecha = .explorador_por_dia(grp_lec$valor, ok),
-    texto = .explorador_por_valor_texto(grp_lec$valor, ok)
-  )
+  grupos <- .explorador_grupos_cat(grp_lec, ok)
   out <- lapply(grupos, function(g) .explorador_grupo_lista(g$etiqueta, txt_lec$valor[g$idx]))
   out <- Filter(function(g) g$.n > 0L, out)
   if (length(out) > .EXPLORADOR_LISTA_GRUPOS) {
-    # Se quedan los 20 grupos con más respuestas, en su orden natural (catálogo, tramo o día).
+    # Se quedan los 20 grupos con más respuestas, en el orden del catálogo.
     n <- vapply(out, function(g) g$.n, integer(1))
     keep <- sort(order(-n)[seq_len(.EXPLORADOR_LISTA_GRUPOS)])
     out <- out[keep]
@@ -217,6 +195,11 @@ explorador_cruce <- function(df, var_x, var_y, instrumento) {
   ly <- .explorador_leer(df, var_y, instrumento)
   ok <- lx$valido & ly$valido
   spec <- .explorador_cruces_catalogo()[[paste(lx$tipo, ly$tipo, sep = "_")]]
+  if (is.null(spec)) {
+    abierta <- "texto" %in% c(lx$tipo, ly$tipo)
+    stop_api(400, "E_EXPLORAR_CRUCE_NO_SE_OFRECE",
+             if (abierta) "Una abierta se cruza sólo con una pregunta de selección única." else "Este par de variables no se cruza.")
+  }
   cuerpo <- switch(
     spec$forma,
     tabla = .explorador_cruce_tabla(lx, ly, ok),

@@ -6,7 +6,7 @@ import CruceSerie from "../CruceSerie";
 import { bajadaDeSerie, barrasApiladas, modoDeSerie } from "../serieModelo";
 
 const p = (fecha: string, valor: number, serie: string | null, baja: number | null = null, alta: number | null = null): ExploradorCrucePunto => ({
-  fecha, valor, baja, alta, serie,
+  fecha, valor, baja, alta, serie, n: null,
 });
 
 describe("serie por fecha del cruce (E8j, E8k, E8l)", () => {

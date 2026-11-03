@@ -92,9 +92,9 @@ dist: { tipo, ordinal: bool, base_n,
 ```
 cruce: { tipo_x, tipo_y, grafico, forma: "tabla"|"cajas"|"dispersion"|"serie"|"lista", base_n, n_x, n_y,
   tabla?: { filas: [{codigo, etiqueta, n}], columnas: [{codigo, etiqueta, n}], n: number[][] },   # n[fila][col]
-  cajas?: { grupos: [{etiqueta, n, min, p25, mediana, p75, max, n_atipicos}] },
-  dispersion?: { puntos: [[x, y]], tendencia: {pendiente, intercepto}|null, n },
-  serie?: { puntos: [{fecha, valor, baja|null, alta|null, serie|null}] },
+  cajas?: { grupos: [{etiqueta, n, min, p25, mediana, p75, max, n_atipicos}], origen?: "AAAA-MM-DD" },
+  dispersion?: { puntos: [[x, y]], tendencia: {pendiente, intercepto}|null, n, origen?: "AAAA-MM-DD" },
+  serie?: { puntos: [{fecha, valor, baja|null, alta|null, serie|null, n}] },
   lista?: { grupos: [{etiqueta, respuestas: [{texto, n}]}] } }
 ```
 
@@ -102,7 +102,10 @@ Filas = la variable que se lee (`var_x`); columnas = la del cruce (`var_y`).
 `filas[].n` y `columnas[].n` son CASOS de la base en esa fila o columna, nunca sumas de celdas (con una múltiple, un
 caso está en varias): son los denominadores de porcentajes y totales. `n_x` / `n_y`: casos que responden cada una con los
 mismos filtros. Cruzar una variable consigo misma responde 400 `E_EXPLORAR_CRUCE_MISMA_VARIABLE` (revisión metodológica,
-2026-11-03).
+2026-11-03). `origen` (con una fecha en cajas o dispersión) es el día cero de los «días desde la mínima», para rotular el
+eje con fechas; `serie.puntos[].n` son los casos de la base ese día (el denominador del % en una múltiple). Una abierta
+sólo se cruza con una única (D2): los otros 7 pares con abierta no están en el catálogo y responden 400
+`E_EXPLORAR_CRUCE_NO_SE_OFRECE`; la lista agrupa la abierta por las categorías de la única.
 
 ## Aprendido
 

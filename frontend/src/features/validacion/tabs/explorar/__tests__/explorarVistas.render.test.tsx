@@ -59,6 +59,24 @@ test("el selector de cruce lista fecha y abierta y anticipa el gráfico del par"
   expect(opciones[0]).toContain("p14_otro");
 });
 
+test("con una abierta, sólo las únicas se eligen; las demás quedan atenuadas y el pie dice la limitación", () => {
+  const onChange = vi.fn();
+  act(() => root.render(
+    <CrossBar secciones={SECCIONES} selfVar="p14_otro" selfSeccion="General" cruzar={null} onChange={onChange} />,
+  ));
+  act(() => host.querySelector<HTMLButtonElement>("button[aria-haspopup='dialog']")!.click());
+  const panel = document.querySelector<HTMLElement>(".pulso-popover.pulso-crossbar-popover")!;
+  const opciones = Array.from(panel.querySelectorAll<HTMLButtonElement>(".crossbar-opcion"));
+  const por = (codigo: string) => opciones.find((b) => b.textContent?.includes(codigo))!;
+  expect(por("sexo").disabled).toBe(false);
+  expect(por("fecha_ent").disabled).toBe(true);
+  expect(por("edad").disabled).toBe(true);
+  act(() => por("edad").click());
+  expect(onChange).not.toHaveBeenCalled();
+  expect(panel.querySelector(".crossbar-limite")?.textContent).toBe("Una abierta se cruza sólo con una pregunta de selección única.");
+  expect(panel.textContent).not.toMatch(/codific/i);
+});
+
 test("la tabla de calor marca las celdas a 5 puntos del total y deja el Total aparte", () => {
   const modelo = modeloCalor({
     filas: [{ codigo: "1", etiqueta: "Hombre", n: 10 }, { codigo: "2", etiqueta: "Mujer", n: 10 }],

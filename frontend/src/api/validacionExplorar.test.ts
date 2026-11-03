@@ -153,6 +153,22 @@ describe("normalizeExploradorCruce", () => {
     });
     expect(c?.dispersion?.puntos).toEqual([[1, 2], [4, 5]]);
     expect(c?.dispersion?.tendencia).toEqual({ pendiente: 1, intercepto: 0 });
+    expect(c?.dispersion?.origen).toBeNull();
+  });
+
+  it("con una fecha, el día cero del eje y los casos de cada día", () => {
+    const c = normalizeExploradorCruce({
+      tipo_x: "fecha", tipo_y: "so", forma: "cajas",
+      cajas: { grupos: [{ etiqueta: "Hombre", n: 3, min: 0, p25: 1, mediana: 2, p75: 3, max: 4, n_atipicos: 0 }], origen: ["2026-06-13"] },
+    });
+    expect(c?.cajas?.origen).toBe("2026-06-13");
+    const s = normalizeExploradorCruce({
+      tipo_x: "sm", tipo_y: "fecha", forma: "serie",
+      serie: { puntos: [{ fecha: "2026-06-13", valor: 50, baja: null, alta: null, serie: "Radio", n: [2] }, { fecha: "2026-06-14", valor: 0, serie: "Radio" }] },
+    });
+    expect(s?.serie?.puntos.map((p) => p.n)).toEqual([2, null]);
+    const viejo = normalizeExploradorCruce({ tipo_x: "fecha", tipo_y: "num", forma: "dispersion", dispersion: { puntos: [[0, 1]], origen: {} } });
+    expect(viejo?.dispersion?.origen).toBeNull();
   });
 
   it("forma desconocida o sin pieza → null", () => {
