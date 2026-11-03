@@ -19,3 +19,28 @@
 @media (prefers-reduced-motion: reduce) {
   .pulso-barra-avance > span { transition: none; }
 }
+
+/* Indeterminada: un tramo de un tercio que cruza la barra, sólo con transform. Con
+   movimiento reducido no viaja: late en opacidad. */
+.pulso-barra-avance--indeterminada > span {
+  inset: 0 auto 0 0;
+  width: 34%;
+  transform: translateX(-100%);
+  animation: pulso-barra-avance-recorre 1.25s var(--motion-ease-out) infinite;
+}
+@keyframes pulso-barra-avance-recorre {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(300%); }
+}
+@keyframes pulso-barra-avance-late {
+  0%, 100% { opacity: 0.35; }
+  50% { opacity: 0.9; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pulso-barra-avance--indeterminada > span {
+    inset: 0;
+    width: auto;
+    transform: none;
+    animation: pulso-barra-avance-late 1.6s ease-in-out infinite;
+  }
+}
