@@ -3,6 +3,7 @@
 // filtradas por una búsqueda sin acentos.
 
 import type { UnidadTerritorial } from "../../../api/materialTerritorial";
+import type { EstadoUnidad } from "./revisionUnidades";
 
 export type TitularConReemplazos = {
   titular: UnidadTerritorial;
@@ -112,6 +113,17 @@ export function contarVistas(units: readonly UnidadTerritorial[], rutasPorRevisa
     "sin-encuestador": titulares.filter((t) => !encuestadorDe.get(t.unit_id)).length,
     todas: titulares.length,
   };
+}
+
+/** La observación que pinta la tabla: sólo lo que no está en orden. */
+export function observacionDe(estado: EstadoUnidad | undefined): EstadoUnidad | null {
+  return estado && estado.tono !== "ok" ? estado : null;
+}
+
+/** D15 (C5): la columna Observación se muestra sólo si alguna UMP de la campaña trae una; vacía en todas las filas no informa. */
+export function hayObservaciones(porUnidad: ReadonlyMap<string, EstadoUnidad>): boolean {
+  for (const e of porUnidad.values()) if (observacionDe(e)) return true;
+  return false;
 }
 
 /** La unidad de un `foco` (`id_manzana`), o `null`. */
