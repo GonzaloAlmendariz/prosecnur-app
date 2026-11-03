@@ -25,7 +25,7 @@ import { PulsoInput } from "../../../components/PulsoInput";
 import { PulsoSelect } from "../../../components/PulsoSelect";
 import { PulsoSwitch } from "../../../components/PulsoSwitch";
 import { Hash, ListOrdered, Printer, Table2 } from "../../../vendor/lucide-react";
-import { LoadingBlock } from "../../../components/States";
+import { CargaDeBloque } from "../CargaDeBloque";
 
 const ROTULO_MAX = 60;
 const CRITERIO_MAX = 40;
@@ -86,7 +86,7 @@ export function CodigosDeResultado({ campaignId }: { campaignId: string }) {
     return (
       <article className="rec-terr-tarjeta" data-qa-geometry-member>
         <h3><Hash size={15} aria-hidden /> Códigos de resultado</h3>
-        {error ? <p className="rec-terr-error" role="alert">{error}</p> : <LoadingBlock label="Leyendo los códigos…" variant="inline" />}
+        {error ? <p className="rec-terr-error" role="alert">{error}</p> : <CargaDeBloque label="Leyendo los códigos…" />}
       </article>
     );
   }

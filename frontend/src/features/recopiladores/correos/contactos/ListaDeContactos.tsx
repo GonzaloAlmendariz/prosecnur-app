@@ -16,7 +16,7 @@ import { ArrowRight, ChevronLeft, ChevronRight, Search, Users } from "../../../.
 import { TableScroll } from "../../TableScroll";
 import { ETIQUETA_DE_ESTADO, cifraDeLaLista, columnasDeLaLista, paginas, rangoDePagina } from "./modeloContactos";
 import { useContactosStore } from "./store";
-import { LoadingBlock } from "../../../../components/States";
+import { CargaDeBloque } from "../../CargaDeBloque";
 
 type Props = {
   lista: PaginaDeContactos | null;
@@ -201,7 +201,7 @@ export function ListaDeContactos({ lista, control, respuestasLeidas, cargando, e
           </nav>
         </>
       ) : (
-        <LoadingBlock label="Leyendo la lista…" variant="inline" />
+        <CargaDeBloque label="Leyendo la lista…" />
       )}
     </section>
   );

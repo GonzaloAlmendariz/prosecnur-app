@@ -20,7 +20,7 @@ import { DocumentoDelBarrido } from "./DocumentoDelBarrido";
 import { partirLista } from "./modeloTelefonico";
 import { serializarDireccion } from "../../../lib/navegacion/direccion";
 import type { useConfigTelefonica } from "./useConfigTelefonica";
-import { LoadingBlock } from "../../../components/States";
+import { CargaDeBloque } from "../CargaDeBloque";
 
 /** Donde Monitoreo telefónico conecta el Sheets del barrido. */
 const A_MONITOREO_FUENTES_TELEFONICO = serializarDireccion({ modulo: "monitoreo", modo: "telefonico", seccion: "insumos", pestana: "fuentes" });
@@ -44,7 +44,7 @@ function Cargando({ datos, titulo }: { datos: Datos; titulo: string }) {
   return (
     <article className="rec-terr-tarjeta" data-qa-geometry-member>
       <h3>{titulo}</h3>
-      {datos.error ? <p className="rec-terr-error" role="alert">{datos.error}</p> : <LoadingBlock label="Leyendo la campaña…" variant="inline" />}
+      {datos.error ? <p className="rec-terr-error" role="alert">{datos.error}</p> : <CargaDeBloque label="Leyendo la campaña…" />}
     </article>
   );
 }
@@ -229,7 +229,9 @@ export function EntregaTelefonica({ config }: { config: ConfigTelefonica | null 
         </p>
         {lee.length ? (
           <div className="rec-tel-columnas">{lee.map((c) => <span key={c} className="rec-tel-col">{c}</span>)}</div>
-        ) : <LoadingBlock label="Leyendo la campaña…" variant="inline" />}
+        ) : config ? (
+          <p className="rec-terr-nota">Esta campaña no declara columnas de lectura para Monitoreo.</p>
+        ) : <CargaDeBloque label="Leyendo la campaña…" />}
       </article>
       <article className="rec-terr-tarjeta" data-qa-geometry-member>
         <h3><ShieldAlert size={15} aria-hidden /> Antes de abrir el Sheets al equipo</h3>

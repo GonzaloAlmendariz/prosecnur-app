@@ -11,8 +11,8 @@ import { Grid3x3, Inbox } from "../../../../vendor/lucide-react";
 import { TableScroll } from "../../TableScroll";
 import { formatoPorcentaje, intensidadesDelCruce, proporcion, totalesDelCruce } from "./modeloContactos";
 import { useContactosStore, type VistaDelCruce } from "./store";
-import { LoadingBlock } from "../../../../components/States";
 import { EstadoVacio } from "../../../../components/EstadoVacio";
+import { CargaDeBloque } from "../../CargaDeBloque";
 
 type Props = {
   control: readonly string[];
@@ -90,7 +90,7 @@ export function CruceDeVariables({ control, etiquetas, par, cruce, cargando, onE
           <PulsoButton variant="secondary" size="sm" onClick={onElegirVariables}>Elegir variables</PulsoButton>
         </div>
       ) : !vigente ? (
-        cargando ? <LoadingBlock label="Leyendo el cruce…" variant="inline" /> : (
+        cargando ? <CargaDeBloque label="Leyendo el cruce…" /> : (
           <EstadoVacio icono={<Inbox size={16} aria-hidden />} titulo="El cruce no llegó con el perfil" descripcion="Pulsa «Actualizar» para pedirlo de nuevo." />
         )
       ) : (

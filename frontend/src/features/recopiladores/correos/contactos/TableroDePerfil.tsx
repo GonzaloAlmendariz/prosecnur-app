@@ -12,7 +12,7 @@ import { DistribucionDeVariable } from "./DistribucionDeVariable";
 import { FiltrosActivos } from "./FiltrosActivos";
 import type { VacioDelPerfil } from "./modeloContactos";
 import type { Carga } from "./store";
-import { LoadingBlock } from "../../../../components/States";
+import { CargaDeBloque } from "../../CargaDeBloque";
 
 type Props = {
   perfil: PerfilDeContactos | null;
@@ -83,7 +83,7 @@ export function TableroDePerfil(p: Props) {
           ))}
         </div>
       ) : (
-        <LoadingBlock label="Leyendo el perfil…" variant="inline" />
+        <CargaDeBloque label="Leyendo el perfil…" />
       )}
     </section>
   );

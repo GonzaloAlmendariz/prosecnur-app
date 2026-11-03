@@ -284,9 +284,15 @@ Toda vista de Material se arma con estas piezas. Nadie las reinventa por pantall
 - Capturas: antes en `est-*` y después en `p5-*` (26 vistas, 26 md5 distintos, textosFuera 0). Cuotas sale `ok=false`
   antes y después por el mismo `geometryCoverageMisses: 1`, que ya existía.
 
-### P5b, readiness que espera a sus bloques (siguiente)
+### P5b, readiness que espera a sus bloques (hecho)
 
 Tres vistas se declaran listas antes de que termine el fetch de un bloque, así que la captura mide una pantalla a medio
 cargar: Territorial › Catálogo › Códigos (`CodigosDeResultado`), Territorial › Entrega (`AsignacionEquipo`) y
 Aulas › Entrega › Plantillas («Traspaso a Monitoreo», `PlantillasDelEquipo`). Se arreglan con el patrón readinessAnidada:
 cada bloque avisa a su shell que está cargando, y si el fetch falla cuenta como listo con su error, sin un false terminal.
+- Arreglo en la fuente: `CargaDeBloque` (un `LoadingBlock` en línea dentro de `data-audit-ready="false"`) reemplaza las
+  12 cargas en línea de Material, no sólo las tres. Queda declarado en `FALSE_TRANSITORIO` de `readinessAnidada`.
+- De paso: Telefónica › Entrega decía «Leyendo la campaña…» para siempre si la campaña no declaraba columnas. Ahora
+  lo dice, con su test (`telefonica/EntregaTelefonica.test.tsx`).
+- Guard: `vaciosYCargasDelKit.contract.test.ts` exige que toda carga en línea pase por `CargaDeBloque`.
+- Recaptura: Códigos, Entrega UMP, Entrega cuotas, Plantillas y Entrega telefónica muestran el dato (ok=true).

@@ -34,7 +34,7 @@ import { TableroDePerfil } from "./TableroDePerfil";
 import { useContactos } from "./useContactos";
 import "../correosBarra.css";
 import "./contactos.css";
-import { LoadingBlock } from "../../../../components/States";
+import { CargaDeBloque } from "../../CargaDeBloque";
 
 /** Donde se sigue el rendimiento del correo (Monitoreo de acreditación › Control › Correo). */
 const A_MONITOREO_CORREO = serializarDireccion({ modulo: "monitoreo", modo: "acreditacion", seccion: "control", pestana: "correo" });
@@ -131,7 +131,7 @@ export function ContactosVista({ campaignId, cabecera = null, onCargando, onIrAI
             {resumen ? (
               <ResumenContactos resumen={resumen} />
             ) : listaError ? null : (
-              <LoadingBlock label="Leyendo la lista…" variant="inline" />
+              <CargaDeBloque label="Leyendo la lista…" />
             )}
             <EnlaceDeEncuesta
               efectivos={resumen?.efectivos ?? 0}

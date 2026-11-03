@@ -16,7 +16,7 @@ import { PulsoSelect } from "../../../components/PulsoSelect";
 import { AlertTriangle } from "../../../vendor/lucide-react";
 import { ExcelDeAsignacion } from "./ExcelDeAsignacion";
 import { asignarColumna, borradorDe, codigoDeColumna, cuerpoDelBorrador, hayCambios, motivoDeBloqueo, type Borrador } from "./modeloAsignacion";
-import { LoadingBlock } from "../../../components/States";
+import { CargaDeBloque } from "../CargaDeBloque";
 
 const SIN_ASIGNAR = "__sin_asignar";
 
@@ -118,7 +118,7 @@ export function BarraAsignacion({ campaignId, datos, bloqueo, estado, error, gua
         <div className="rec-asig-cab">
           <strong>Encuestadores</strong>
         </div>
-        <LoadingBlock label="Leyendo la lista de Monitoreo…" variant="inline" />
+        <CargaDeBloque label="Leyendo la lista de Monitoreo…" />
       </div>
     ) : null;
   }
