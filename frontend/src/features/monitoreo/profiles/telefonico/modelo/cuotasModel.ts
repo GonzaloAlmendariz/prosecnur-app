@@ -26,9 +26,16 @@ export type MetaConProporcion = FilaDeMeta & {
   proporcional: number | null;
   /** Meta menos el reparto proporcional, redondeado; positivo lleva más. */
   desvio: number | null;
+  /**
+   * Parte del universo de la variable, de 0 a 1 (Gonzalo, 3/11: «cuando es
+   * referencial debe estar el porcentaje del universo para poder
+   * referenciarlo»). Es contra lo que Avance compara a una referencial.
+   */
+  pesoEnUniverso: number | null;
 };
 
 export function metasConProporcion(filas: readonly FilaDeMeta[]): MetaConProporcion[] {
+  const universoTotal = filas.reduce((suma, fila) => suma + Math.max(0, fila.universe), 0);
   const deMeta = filas.filter((fila) => !esReferencial(fila));
   const universo = deMeta.reduce((suma, fila) => suma + fila.universe, 0);
   const metas = deMeta.reduce((suma, fila) => suma + (fila.meta ?? 0), 0);
@@ -39,6 +46,7 @@ export function metasConProporcion(filas: readonly FilaDeMeta[]): MetaConProporc
       sobreUniverso: fila.meta != null && fila.universe > 0 ? fila.meta / fila.universe : null,
       proporcional,
       desvio: proporcional != null && fila.meta != null ? Math.round(fila.meta - proporcional) : null,
+      pesoEnUniverso: universoTotal > 0 ? Math.max(0, fila.universe) / universoTotal : null,
     };
   });
 }

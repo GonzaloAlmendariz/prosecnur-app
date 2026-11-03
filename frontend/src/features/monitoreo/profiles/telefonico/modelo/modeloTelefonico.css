@@ -162,6 +162,19 @@
 .mon-metas-tabla th:nth-child(7) { width: 164px; }
 .mon-metas-tabla th:nth-child(8) { width: 40px; }
 
+/* Una referencial muestra su peso en el universo en lugar del reparto. */
+.mon-metas-peso {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--pulso-space-2);
+  align-items: center;
+}
+
+.mon-metas-peso > span {
+  color: var(--pulso-text-soft);
+  white-space: nowrap;
+}
+
 /* Meta o referencial (ADR 0126): el radio del kit, compacto dentro de la fila.
  * Misma receta que los radios de Material, con el tono de Monitoreo. */
 .mon-metas-tabla .mon-metas-caracter.pulso-gliding-tab-list {

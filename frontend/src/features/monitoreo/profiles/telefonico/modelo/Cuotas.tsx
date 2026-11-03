@@ -204,10 +204,20 @@ export function Cuotas({
                       </td>
                       <td className="is-num">{pct(fila.sobreUniverso)}</td>
                       <td>
-                        <i className="mon-metas-barra" aria-hidden="true">
-                          <i style={{ width: `${Math.min(100, ancho)}%` }} />
-                          {marca != null ? <b style={{ left: `${Math.min(100, marca)}%` }} /> : null}
-                        </i>
+                        {fila.caracter === "referencial" ? (
+                          // Una referencial no se reparte: su referencia es su peso en el universo.
+                          <span className="mon-metas-peso">
+                            <i className="mon-metas-barra" aria-hidden="true">
+                              <i style={{ width: `${Math.min(100, (fila.pesoEnUniverso ?? 0) * 100)}%` }} />
+                            </i>
+                            <span className="is-num">{pct(fila.pesoEnUniverso)} del universo</span>
+                          </span>
+                        ) : (
+                          <i className="mon-metas-barra" aria-hidden="true">
+                            <i style={{ width: `${Math.min(100, ancho)}%` }} />
+                            {marca != null ? <b style={{ left: `${Math.min(100, marca)}%` }} /> : null}
+                          </i>
+                        )}
                       </td>
                       <td className={`is-num mon-metas-desvio${fila.desvio != null && Math.abs(fila.desvio) >= 5 ? " is-aviso" : ""}`}>
                         {fila.desvio == null ? "—" : fila.desvio > 0 ? `+${n(fila.desvio)}` : n(fila.desvio)}

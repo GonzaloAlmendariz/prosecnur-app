@@ -16,6 +16,11 @@ describe("Modelo › Cuotas con referenciales (ADR 0126)", () => {
     expect(pl.desvio).toBeNull();
   });
 
+  it("una referencial lleva su porcentaje del universo para referenciarla", () => {
+    const [, , pl] = metasConProporcion(filas);
+    expect(pl.pesoEnUniverso).toBeCloseTo(1000 / 2000, 5);
+  });
+
   it("la validación suma sólo las metas y nombra a las referenciales", () => {
     const validaciones = validarMetas({ filas: metasConProporcion(filas), variable: "Sede", objetivoTotal: 100 });
     expect(validaciones[0].texto).toContain("PL es referencial");
