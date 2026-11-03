@@ -252,27 +252,6 @@
   pointer-events: none;
 }
 
-/* Estado de la ficha: tono éxito cuando el diseño está cerrado. */
-.cmv2-sal-estado[data-cerrado="true"] {
-  border-color: var(--pulso-success-border, var(--cmv2-accent-border));
-  background: color-mix(in srgb, var(--pulso-success-bg, var(--cmv2-accent-soft)) 55%, transparent);
-  color: var(--pulso-success-fg, var(--cmv2-accent-fg));
-}
-
-/* Salud del diseño: tonos semánticos (no el acento del módulo) cuando hay
-   observaciones o riesgos derivados de las cifras del motor. */
-.cmv2-sal-estado[data-salud="observaciones"] {
-  border-color: var(--pulso-warn-border);
-  background: color-mix(in srgb, var(--pulso-warn-bg) 70%, transparent);
-  color: var(--pulso-warn-fg);
-}
-
-.cmv2-sal-estado[data-salud="riesgos"] {
-  border-color: var(--pulso-danger-border);
-  background: color-mix(in srgb, var(--pulso-danger-bg) 70%, transparent);
-  color: var(--pulso-danger-fg);
-}
-
 /* Lista compacta de observaciones al pie de la ficha ejecutiva. */
 .cmv2-sal-observaciones {
   margin: 0;

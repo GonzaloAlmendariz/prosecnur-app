@@ -4206,3 +4206,11 @@
   flex-wrap: wrap;
   gap: var(--pulso-space-2);
 }
+
+/* P6: un filete separa el estado (EstadoChip) de las acciones en la cabecera de un panel. */
+.cmv2-panel-head-separador {
+  align-self: stretch;
+  width: 1px;
+  margin-inline: 2px;
+  background: var(--pulso-border);
+}

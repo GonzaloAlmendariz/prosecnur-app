@@ -32,6 +32,7 @@ import { SwapValor, fmtNum } from "./calculoUi";
 import { resumenTasaEfectividad } from "./estadisticoAula";
 import "../../didactica/didactica.css";
 import "./calculo.css";
+import { EstadoChip } from "../../../../components/EstadoChip";
 
 function etapasEscenario(comp: CalcMuestraComponente): FlujoEtapa[] {
   const r = comp.resultado;
@@ -325,14 +326,18 @@ export function CalculoPropuestasTab({
       <section className="cmv2-panel cmv2-calc-escenarios-panel" data-qa-geometry-member>
         <div className="cmv2-panel-head">
           <strong>Propuestas de muestra</strong>
+          {/* Estado y acción en su sitio (P6): el estado es un EstadoChip y va
+              antes, separado del botón; antes era una píldora pegada a él. */}
           <div className="cmv2-panel-head-actions">
+            <EstadoChip
+              tone={hasCalculation ? "success" : marcoReady ? "info" : "warn"}
+              label={hasCalculation ? "cifras de la calculadora" : marcoReady ? "lista para calcular" : "requiere marco"}
+            />
+            <span className="cmv2-panel-head-separador" aria-hidden="true" />
             <button type="button" className="cmv2-primary" onClick={onCalcular} disabled={!marcoReady || calculando}>
               {calculando ? <Loader2 size={14} className="pulso-spin" /> : <Calculator size={14} />}
               {hasCalculation ? "Recalcular muestra" : "Calcular muestra"}
             </button>
-            <span className="cmv2-pill-soft">
-              {hasCalculation ? "cifras de la calculadora" : marcoReady ? "lista para calcular" : "requiere marco"}
-            </span>
           </div>
         </div>
         <div className="cmv2-calc-params-elegidos" aria-label="Parámetros elegidos en Diseño">

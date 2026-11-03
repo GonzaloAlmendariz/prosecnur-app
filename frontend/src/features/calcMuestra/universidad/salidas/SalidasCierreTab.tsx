@@ -27,6 +27,7 @@ import "./salidas.css";
 import { profundidadReserva } from "../aulas/profundidadReservaModel";
 import { rendimientoNeto } from "./rendimientoNetoModel";
 import { ROTULO_RESERVAS_TOTALES, detalleReservasTotales } from "../aulas/rotulosReservas";
+import { EstadoChip } from "../../../../components/EstadoChip";
 
 export function SalidasCierreTab({
   model,
@@ -193,13 +194,10 @@ export function SalidasCierreTab({
       <section className="cmv2-panel cmv2-sal-panel cmv2-sal-ficha" aria-label="Ficha ejecutiva del diseño muestral">
         <div className="cmv2-panel-head">
           <strong>Ficha ejecutiva</strong>
-          <span
-            className="cmv2-pill-soft cmv2-sal-estado"
-            data-cerrado={estadoFicha === "cerrado" || undefined}
-            data-salud={estadoFicha === "observaciones" || estadoFicha === "riesgos" ? estadoFicha : undefined}
-          >
-            {estadoFichaLabel}
-          </span>
+          <EstadoChip
+            tone={estadoFicha === "cerrado" ? "success" : estadoFicha === "riesgos" ? "danger" : estadoFicha === "observaciones" ? "warn" : "neutral"}
+            label={estadoFichaLabel}
+          />
         </div>
 
         <FlujoVertical

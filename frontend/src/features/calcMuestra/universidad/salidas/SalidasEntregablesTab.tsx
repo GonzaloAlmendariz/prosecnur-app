@@ -42,6 +42,7 @@ import { useValorSwap } from "../ui/useValorSwap";
 import type { ClassroomLabModel } from "../aulas/aulasParts";
 import "../../didactica/didactica.css";
 import "./salidas.css";
+import { EstadoChip } from "../../../../components/EstadoChip";
 
 /** Props del reporte metodológico que el desk arma con su estado real. */
 export type SalidasReporteProps = {
@@ -199,16 +200,6 @@ const WORKBOOK_TABLE_TOGGLES: Array<[keyof CalcMuestraWorkspacePublicationConfig
   ["include_replacements", "Reemplazos por curso-horario"],
 ];
 
-/** Texto que se funde (blur+opacity) cuando su contenido cambia. */
-function TextoSwap({ texto, className }: { texto: string; className: string }) {
-  const cambiando = useValorSwap(texto);
-  return (
-    <span className={`${className} cmv2-uni-swap`} data-cambiando={cambiando || undefined}>
-      {texto}
-    </span>
-  );
-}
-
 export function SalidasEntregablesTab({
   model,
   workspace,
@@ -282,9 +273,9 @@ export function SalidasEntregablesTab({
               <strong>Excel local</strong>
               <small>libro de trabajo auditable</small>
             </div>
-            <TextoSwap
-              className="cmv2-pill-soft"
-              texto={workbookOn ? (selectionReady ? "listo para exportar" : "configurado") : "desactivado"}
+            <EstadoChip
+              tone={workbookOn ? (selectionReady ? "success" : "info") : "neutral"}
+              label={workbookOn ? (selectionReady ? "listo para exportar" : "configurado") : "desactivado"}
             />
           </header>
           {/* K1 (L27): el destino se enciende con el switch del kit y cada tabla
@@ -327,9 +318,9 @@ export function SalidasEntregablesTab({
               <strong>Google Sheets</strong>
               <small>para compartir avance</small>
             </div>
-            <TextoSwap
-              className="cmv2-pill-soft"
-              texto={sheetsConfigured ? "configurado" : config.google_sheets_enabled ? "falta el enlace" : "opcional"}
+            <EstadoChip
+              tone={sheetsConfigured ? "success" : config.google_sheets_enabled ? "warn" : "neutral"}
+              label={sheetsConfigured ? "configurado" : config.google_sheets_enabled ? "falta el enlace" : "opcional"}
             />
           </header>
           <div className="cmv2-classroom-toggle">
