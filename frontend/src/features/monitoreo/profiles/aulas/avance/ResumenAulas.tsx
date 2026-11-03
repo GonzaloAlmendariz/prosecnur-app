@@ -7,8 +7,10 @@ import { esFocoDelEje, focoDesdeTexto } from "../AulasCuotasResumen";
 import { fmt } from "../kpisDeAulas";
 import { EstadoChip } from "../../../../../components/EstadoChip";
 import { tonoDeEstadoChip } from "../tonoDeEstadoChip";
+import { useAnchoMedido } from "../../../core/useAnchoMedido";
 import {
   construirResumenAulas,
+  marcasDeFecha,
   readinessDelResumen,
   type Invariante,
   type ModeloResumenAulas,
@@ -175,6 +177,10 @@ function DeLasEfectivasALaCuota({ invariante }: { invariante: Invariante }) {
 }
 
 function Acumuladas({ ritmo }: { ritmo: Ritmo }) {
+  // El eje de fechas de dos líneas (core/ejeDeFechas) decide cuántos días caben
+  // con el ancho real de la pista; hasta medirlo, el de 1280.
+  const [pista, anchoDePista] = useAnchoMedido<HTMLDivElement>();
+  const marcas = ritmo.tipo === "serie" ? marcasDeFecha(ritmo.dias, anchoDePista) : [];
   return (
     <section className="aulas-res-panel aulas-res-ritmo" aria-labelledby="aulas-res-ritmo-titulo" data-qa-geometry-member="ritmo">
       <header className="aulas-res-cabecera">
@@ -222,8 +228,13 @@ function Acumuladas({ ritmo }: { ritmo: Ritmo }) {
             </div>
           </div>
           <div className="aulas-res-eje-x" aria-hidden="true">
-            <div className="aulas-res-eje-x-pista">
-              {ritmo.marcasX.map((m) => <span key={m.texto} style={{ left: `${m.x}%` }}>{m.texto}</span>)}
+            <div className="aulas-res-eje-x-pista" ref={pista}>
+              {marcas.map((m) => (
+                <span key={m.x} className="mon-eje-fecha-html" style={{ left: `${m.x}%` }}>
+                  {m.dia}
+                  {m.mes ? <b>{m.mes}</b> : null}
+                </span>
+              ))}
             </div>
           </div>
         </div>

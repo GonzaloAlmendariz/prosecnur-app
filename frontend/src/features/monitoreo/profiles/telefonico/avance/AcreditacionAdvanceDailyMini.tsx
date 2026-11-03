@@ -8,7 +8,7 @@ import { COLOR_RESULTADO, COLOR_SEPARADOR_BARRA } from "../../../coloresDeResult
 import { MarcoDeEjesSiHaceFalta } from "../../../ritmo/MarcoDeEjesSiHaceFalta";
 import {
   calendarReportWeekdayFromDate,
-  compactAdvanceDateTickLabel,
+  advanceAxisDate,
   dailyCutsForChart,
   dailyEffectiveValue,
   dailyPointTotals,
@@ -17,7 +17,6 @@ import {
   mergeAcreditacionDailyPoints,
   normalizeCalendarReportWeekday,
   paddedAdvanceAxisMax,
-  shortAdvanceDateLabel,
   sortAcreditacionDailyPoints,
   sparseDailyChartRows,
   weeklyCutsForChart,
@@ -25,6 +24,7 @@ import {
   type AcreditacionDailyReportCut,
 } from "./ritmoDiario";
 import { formatoDecimal } from "../../../../../lib/formatoNumero";
+import { ANCHO_DEL_DIA, ejeDeFechas, type RotuloDeDia } from "../../../core/ejeDeFechas";
 
 // Ritmo diario del avance, extraído del page-file congelado
 // (TelefonicoMonitoreoPage.tsx) en la ola 2 del plan de performance (paso 4
@@ -71,7 +71,7 @@ export function AcreditacionAdvanceDailyMini({
     orderedPoints, visiblePoints, totals, isCompactChart, usesEffectiveAxisBand, chartRows,
     hasDailySignal, chartData, chartLayout, chartHeight, chartSignature, averageLabel,
     dailyLabel, signalDayCount, dailyAxisMax, cumulativeAxisMax, chartBottomMargin,
-    hayMarcoDeEjes, anchoDelCampo,
+    hayMarcoDeEjes, anchoDelCampo, rotuloPorIndice,
   } = model;
   const [readyChartSignature, setReadyChartSignature] = useState("");
   useEffect(() => {
@@ -141,12 +141,13 @@ export function AcreditacionAdvanceDailyMini({
                 className={`mon-phone-daily-axis-labels${isCompactChart ? " is-compact" : ""}${chartRows.length > 18 ? " is-dense" : ""}`}
                 aria-label="Efectivas Kobo por día"
               >
-                {chartRows.map((point) => {
-                  const [monthLabel, dayLabel = ""] = point.axisLabel.split("<br>");
+                {chartRows.map((point, index) => {
+                  // La cifra del día va en todas; la fecha, donde el eje la rotula.
+                  const rotulo = rotuloPorIndice.get(index);
                   return (
                     <span key={point.date}>
                       <strong>{fmt(point.dailyTotal)}</strong>
-                      <em>{monthLabel}{dayLabel ? <small>{dayLabel}</small> : null}</em>
+                      {rotulo ? <em className="mon-eje-fecha-html">{rotulo.dia}{rotulo.mes ? <b>{rotulo.mes}</b> : null}</em> : null}
                     </span>
                   );
                 })}
@@ -208,8 +209,7 @@ function buildAdvanceDailyMiniModel({
     return {
       ...point,
       x: 0,
-      axisLabel: compactAdvanceDateTickLabel(point.date),
-      displayLabel: shortAdvanceDateLabel(point.date),
+      axisDate: advanceAxisDate(point.date),
       dailyTotal,
       cumulative,
     };
@@ -232,9 +232,17 @@ function buildAdvanceDailyMiniModel({
   const cuts = datedCuts.length ? datedCuts : inferredWeeklyCuts.length ? inferredWeeklyCuts : dailyCutsForChart(chartRows, [], cutDate);
   const cutXSet = new Set(cuts.map((cut) => cut.x));
   const tickEvery = chartRows.length > 40 ? 7 : chartRows.length > 28 ? 5 : chartRows.length > 16 ? 3 : chartRows.length > 10 ? 2 : 1;
-  const tickRows = chartRows.filter((point, index) => (
-    index === 0 || index === chartRows.length - 1 || index % tickEvery === 0 || cutXSet.has(point.x)
-  ));
+  // Eje de fechas común de Monitoreo (`core/ejeDeFechas`): el día bajo su barra
+  // y el mes debajo sólo donde empieza. El gráfico no mide su ancho, así que el
+  // paso por barra se estima: en el compacto, el que ya decidía cada cuánto
+  // rotular (`tickEvery`); en el resto, el ancho típico de la tarjeta repartido
+  // entre los cortes, con los 28 px que garantiza el marco cuando desplaza.
+  const anchoEstimadoDelEje = variant === "general" ? 900 : 600;
+  const pasoDelEje = isCompactChart
+    ? ANCHO_DEL_DIA / tickEvery
+    : Math.max(chartRows.length > 45 ? 28 : 0, anchoEstimadoDelEje / Math.max(1, chartRows.length));
+  const rotulosDeFecha = ejeDeFechas(chartRows.map((point) => point.axisDate), pasoDelEje);
+  const textoDeFecha = (rotulo: RotuloDeDia) => (rotulo.mes ? `${rotulo.dia}<br><b>${rotulo.mes}</b>` : rotulo.dia);
   const cumulativeCandidates = Array.from(new Map([
     ...(chartRows.length <= 14 ? ([chartRows[0]].filter(Boolean) as typeof chartRows) : []),
     ...cuts.map((cut) => cut.point),
@@ -264,11 +272,13 @@ function buildAdvanceDailyMiniModel({
     showDenseDailyLabels ? 1 : variant === "general" ? 2 : 3,
     showDenseDailyLabels ? dailyLabelCandidates.length : variant === "general" ? 8 : 5,
   );
-  const dateLabelRows = isCompactChart || isEffectiveGeneralChart ? [] : chartRows;
-  const xAxisTickRows = isEffectiveGeneralChart ? chartRows : tickRows;
-  const xAxisTickText = isEffectiveGeneralChart
-    ? xAxisTickRows.map((point) => `${fmt(point.dailyTotal)}<br>${point.axisLabel}`)
-    : xAxisTickRows.map((point) => (isCompactChart ? point.displayLabel : point.axisLabel));
+  const rotuloPorIndice = new Map(rotulosDeFecha.map((rotulo) => [rotulo.indice, rotulo]));
+  const dateLabelRows = isCompactChart || isEffectiveGeneralChart ? [] : rotulosDeFecha;
+  // Con la cifra del día en el ticktext, cada corte lleva su tick y la fecha
+  // sólo donde el eje la rotula.
+  const xAxisTickRows = isEffectiveGeneralChart
+    ? chartRows.map((point, index) => ({ x: point.x, text: `${fmt(point.dailyTotal)}${rotuloPorIndice.has(index) ? `<br>${textoDeFecha(rotuloPorIndice.get(index) as RotuloDeDia)}` : ""}` }))
+    : rotulosDeFecha.map((rotulo) => ({ x: rotulo.indice, text: textoDeFecha(rotulo) }));
   const chartBottomMargin = isCompactChart ? (usesEffectiveAxisBand ? 18 : 42) : isEffectiveGeneralChart ? 30 : variant === "general" ? 86 : variant === "actor" ? 78 : 72;
   const maxDaily = chartRows.reduce((max, point) => Math.max(max, point.dailyTotal), 0);
   const maxCumulative = chartRows.reduce((max, point) => Math.max(max, point.cumulative), 0);
@@ -408,12 +418,12 @@ function buildAdvanceDailyMiniModel({
         yanchor: "middle" as const,
         font: { color: COLOR_RESULTADO.efectiva, size: isEffectiveGeneralChart ? 11 : 10, family: "Inter, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" },
       })),
-      ...dateLabelRows.map((point) => ({
-        x: point.x,
+      ...dateLabelRows.map((rotulo) => ({
+        x: rotulo.indice,
         y: isEffectiveGeneralChart ? -0.145 : -0.22,
         xref: "x" as const,
         yref: "paper" as const,
-        text: point.axisLabel,
+        text: textoDeFecha(rotulo),
         showarrow: false,
         xanchor: "center" as const,
         yanchor: "top" as const,
@@ -427,8 +437,8 @@ function buildAdvanceDailyMiniModel({
       zeroline: false,
       range: chartRows.length ? [-0.55, Math.max(0.55, chartRows.length - 0.45)] : undefined,
       tickangle: 0,
-      tickvals: xAxisTickRows.map((point) => point.x),
-      ticktext: xAxisTickText,
+      tickvals: xAxisTickRows.map((tick) => tick.x),
+      ticktext: xAxisTickRows.map((tick) => tick.text),
       showticklabels: isCompactChart && !usesEffectiveAxisBand,
       ticks: "",
       tickfont: { color: isEffectiveGeneralChart ? "#4f647a" : "#474f5b", size: isEffectiveGeneralChart ? 11 : isCompactChart ? 9 : 10 },
@@ -473,6 +483,6 @@ function buildAdvanceDailyMiniModel({
     orderedPoints, visiblePoints, totals, isCompactChart, usesEffectiveAxisBand, chartRows,
     hasDailySignal, chartData, chartLayout, chartHeight, chartSignature, averageLabel,
     dailyLabel, signalDayCount, dailyAxisMax, cumulativeAxisMax, chartBottomMargin,
-    hayMarcoDeEjes, anchoDelCampo: chartRows.length * 28, effectiveOnly,
+    hayMarcoDeEjes, anchoDelCampo: chartRows.length * 28, effectiveOnly, rotuloPorIndice,
   };
 }

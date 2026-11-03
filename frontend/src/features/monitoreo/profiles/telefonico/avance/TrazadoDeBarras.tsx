@@ -1,5 +1,6 @@
 import { escalaDeEje } from "./escalaDeEje";
-import { fechaCorta } from "./ritmoModel";
+import { ejeDeFechas } from "../../../core/ejeDeFechas";
+import { useAnchoMedido } from "../../../core/useAnchoMedido";
 import { formatoConteo } from "../../../../../lib/formatoNumero";
 
 function n(valor: number) {
@@ -74,6 +75,9 @@ export function TrazadoDeBarras({
     : 0;
   const derecha = derecho ? escalaDeEje(maximoDerecho) : null;
   const columnasCss = `repeat(${Math.max(1, columnas.length)}, minmax(0, 1fr))`;
+  // Eje de fechas común de Monitoreo: el día en su columna y el mes debajo donde empieza.
+  const [refFechas, anchoFechas] = useAnchoMedido<HTMLDivElement>();
+  const rotulos = new Map(ejeDeFechas(columnas.map((columna) => columna.fecha), (anchoFechas || 600) / Math.max(1, columnas.length)).map((rotulo) => [rotulo.indice, rotulo]));
   const x = (i: number) => ((i + 0.5) / Math.max(1, columnas.length)) * 100;
   const puntos = derecho && derecha
     ? derecho.valores
@@ -158,8 +162,11 @@ export function TrazadoDeBarras({
         </div>
       ) : null}
 
-      <div className="mon-trazado-fechas" style={{ gridTemplateColumns: columnasCss }}>
-        {columnas.map((columna) => <span key={columna.fecha}>{fechaCorta(columna.fecha)}</span>)}
+      <div ref={refFechas} className="mon-trazado-fechas" style={{ gridTemplateColumns: columnasCss }}>
+        {columnas.map((columna, i) => {
+          const rotulo = rotulos.get(i);
+          return <span key={columna.fecha} className="mon-eje-fecha-html">{rotulo ? <>{rotulo.dia}{rotulo.mes ? <b>{rotulo.mes}</b> : null}</> : null}</span>;
+        })}
       </div>
     </div>
   );

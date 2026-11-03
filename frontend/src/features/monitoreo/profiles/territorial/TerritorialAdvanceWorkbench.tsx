@@ -39,6 +39,7 @@ import type {
 } from "../../../../api/client";
 import { EmptyState } from "../../../../components/States";
 import { PlotlyChart } from "../../../../lib/PlotlyChart";
+import { ticksDeFechas } from "../../core/ejeDeFechas";
 import { textoAvance, textoSobrecumplimiento } from "../../corte/corteContract";
 import {
   buildTerritorialRouteCoverageModel,
@@ -2393,6 +2394,9 @@ function buildTerritorialDailyChart(rows: TerritorialDailyDashboardRow[], target
     row.cumulative_complete_ump,
   ]);
   const y2Max = Math.max(targetTotal, ...rows.map((row) => row.cumulative_valid), 1);
+  // Eje de fechas común (core/ejeDeFechas): día bajo su barra y mes debajo
+  // donde empieza. ~560 px de trazado es lo que deja la columna a 1280.
+  const ticks = ticksDeFechas(rows.map((row) => row.date), 560 / Math.max(1, rows.length), (indice) => xLabels[indice]);
   return {
     data: [
       {
@@ -2432,7 +2436,7 @@ function buildTerritorialDailyChart(rows: TerritorialDailyDashboardRow[], target
       hovermode: "x unified" as const,
       showlegend: true,
       legend: { orientation: "h" as const, x: 0, y: 1.08, font: { size: 11, color: "#474f5b" } },
-      margin: { l: 48, r: 66, t: 34, b: rows.length > 7 ? 62 : 44 },
+      margin: { l: 48, r: 66, t: 34, b: 48 },
       paper_bgcolor: "transparent",
       plot_bgcolor: "transparent",
       hoverlabel: {
@@ -2446,7 +2450,9 @@ function buildTerritorialDailyChart(rows: TerritorialDailyDashboardRow[], target
         fixedrange: true,
         showgrid: false,
         zeroline: false,
-        tickangle: rows.length > 7 ? -32 : 0,
+        tickangle: 0,
+        tickvals: ticks.tickvals,
+        ticktext: ticks.ticktext,
         tickfont: { color: "#474f5b", size: 10 },
         automargin: true,
       },

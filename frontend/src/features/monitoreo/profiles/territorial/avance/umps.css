@@ -430,6 +430,11 @@
   font-size: var(--pulso-type-micro-size);
 }
 
+/* El mes del eje de dos líneas (core/ejeDeFechas), sólo donde empieza. */
+.mon-ump-curva-eje.is-mes {
+  font-weight: var(--pulso-weight-bold);
+}
+
 .mon-ump-curva-hito circle {
   fill: var(--pulso-surface);
   stroke: var(--pulso-brand-navy);

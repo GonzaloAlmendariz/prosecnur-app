@@ -326,20 +326,17 @@
   min-width: 0;
 }
 
+/* El eje de fechas de dos líneas (core/ejeDeFechas, `.mon-eje-fecha-html`):
+ * el día centrado bajo su barra y el mes debajo donde empieza. */
 .mon-res-eje-x {
   position: relative;
   display: block;
-  height: 18px;
+  height: 32px;
 }
 
-.mon-res-eje-x b {
+.mon-res-eje-x > .mon-eje-fecha-html {
   position: absolute;
   top: 4px;
-  color: var(--pulso-text-soft);
-  font-size: var(--pulso-type-micro-size);
-  font-variant-numeric: tabular-nums;
-  font-weight: var(--pulso-weight-regular);
-  line-height: 1;
   white-space: nowrap;
   transform: translateX(-50%);
 }

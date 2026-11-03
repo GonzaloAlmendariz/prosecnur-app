@@ -3,6 +3,8 @@ import { Info, Target } from "lucide-react";
 import { EstadoVacio } from "../../../../../components/EstadoVacio";
 import type { MonitoreoTerritorialDashboard } from "../../../../../api/client";
 import { useFocoMonitoreo } from "../../../useMonitoreoDireccion";
+import { ejeDeFechas } from "../../../core/ejeDeFechas";
+import { useAnchoMedido } from "../../../core/useAnchoMedido";
 import { fmt, fmtConSigno } from "../rotulos";
 import { construirResumen, type DiaDelRitmo, type ModeloResumen, type TirasDeUmp } from "./resumenModel";
 import { avancePorZona, faltaDeZona, type AvancePorZona } from "./porZonaModelo";
@@ -190,7 +192,10 @@ function Ritmo({ modelo }: { modelo: ModeloResumen }) {
   const x = (indice: number) => margen.izquierda + paso * indice + paso / 2;
   const linea = dias.map((dia, indice) => `${indice ? "L" : "M"}${x(indice).toFixed(1)},${y(dia.acumulado).toFixed(1)}`).join(" ");
   const base = alto - margen.abajo;
-  const cada = Math.max(1, Math.ceil(dias.length / 8));
+  // El eje de fechas de dos líneas (core/ejeDeFechas): cuántos días caben lo
+  // decide el paso en px reales del SVG estirado; hasta medirlo, el del viewBox.
+  const [pista, anchoDePista] = useAnchoMedido<HTMLSpanElement>();
+  const rotulos = ejeDeFechas(dias.map((dia) => dia.fecha), paso * ((anchoDePista || ancho) / ancho));
   return (
     <section className="mon-res-panel mon-res-ritmo" aria-labelledby="mon-res-ritmo-titulo" data-qa-geometry-member="ritmo">
       <header className="mon-res-cabecera">
@@ -217,10 +222,13 @@ function Ritmo({ modelo }: { modelo: ModeloResumen }) {
         </svg>
         {/* Las fechas van en HTML, como el eje Y: dentro del SVG estirado con
          * preserveAspectRatio="none" el texto se ensanchaba con el panel. */}
-        <span className="mon-res-eje-x" aria-hidden="true">
-          {dias.map((dia, indice) => (indice % cada === 0 ? (
-            <b key={dia.fecha} style={{ left: `${(x(indice) / ancho) * 100}%` }}>{dia.rotulo}</b>
-          ) : null))}
+        <span className="mon-res-eje-x" aria-hidden="true" ref={pista}>
+          {rotulos.map((rotulo) => (
+            <span key={dias[rotulo.indice].fecha} className="mon-eje-fecha-html" style={{ left: `${(x(rotulo.indice) / ancho) * 100}%` }}>
+              {rotulo.dia}
+              {rotulo.mes ? <b>{rotulo.mes}</b> : null}
+            </span>
+          ))}
         </span>
         </div>
         </div>

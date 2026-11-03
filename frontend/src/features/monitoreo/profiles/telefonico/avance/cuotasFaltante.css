@@ -321,7 +321,8 @@
   position: relative;
   flex: 1 1 auto;
   min-height: 0;
-  margin: var(--pulso-space-6) var(--pulso-space-2) 22px 28px;
+  /* 36 px abajo: el eje de fechas lleva dos líneas (día y, donde empieza, mes). */
+  margin: var(--pulso-space-6) var(--pulso-space-2) 36px 28px;
 }
 
 .mon-tel-cuotas-diario-lienzo svg {

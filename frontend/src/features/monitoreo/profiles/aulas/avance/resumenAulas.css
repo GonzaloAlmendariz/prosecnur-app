@@ -380,10 +380,11 @@
   white-space: nowrap;
 }
 
-/* Una fecha bajo cada barra (raleadas por el modelo), centrada en su x. */
+/* El eje de fechas de dos líneas (core/ejeDeFechas): el día bajo su barra,
+ * centrado en su x, y el mes debajo donde empieza. Alto de dos líneas. */
 .aulas-res-eje-x-pista {
   position: relative;
-  height: 1.3em;
+  height: 2.6em;
 }
 
 .aulas-res-eje-x-pista span {
