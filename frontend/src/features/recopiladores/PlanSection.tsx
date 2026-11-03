@@ -19,6 +19,7 @@ import { fechaDeCorrida } from "./fechaDeCorrida";
 import { avisoDeLaLista, nombreDelModulo, planVigente } from "./origen";
 import { useOrigen } from "./useOrigen";
 import { EstadoVacio } from "../../components/EstadoVacio";
+import { formatoConteo } from "../../lib/formatoNumero";
 
 type Props = {
   payload: CollectionStatePayload | null;
@@ -298,7 +299,7 @@ export function PlanSection({ payload, onState, origen, onIr, onCargando }: Prop
           // Los cursos-horario que hay que visitar, no el total de unidades. Con
           // 193 titulares y 507 reservas, «700 unidades» dice que hay 700 aulas
           // que atender; el resto son contingencias y el banco, capacidad.
-          <><ClipboardList size={18} aria-hidden /> {operativo.cadenas.length} cursos-horario</>
+          <><ClipboardList size={18} aria-hidden /> {formatoConteo(operativo.cadenas.length)} cursos-horario</>
         }
       >
         {/* **La forma del operativo, antes que sus metadatos.**
