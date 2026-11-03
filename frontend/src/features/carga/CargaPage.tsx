@@ -687,7 +687,7 @@ export default function CargaPage() {
       const desglose = [
         fr.validada != null ? `${nf(fr.validada)} validadas` : null,
         fr.revision ? `${nf(fr.revision)} en revisión` : null,
-      ].filter(Boolean).join(" · ");
+      ].filter(Boolean).join(", ");
       const excluidas = fr.no_defendible_excluidos
         ? ` ${nf(fr.no_defendible_excluidos)} excluidas por no defendibles.`
         : "";
@@ -1364,7 +1364,7 @@ export default function CargaPage() {
           </span>
           <div className="pulso-recon-panel-copy">
             <span className="pulso-recon-panel-title">
-              Variables extra{cargaReview?.base_nombre ? ` · ${cargaReview.base_nombre}` : " en la data"}
+              Variables extra{cargaReview?.base_nombre ? ` de ${cargaReview.base_nombre}` : " en la data"}
             </span>
             <span className="pulso-recon-panel-summary">{reconSummaryLabel(reconInfo)}</span>
           </div>
@@ -1741,7 +1741,7 @@ export default function CargaPage() {
                 </>
               }
               accept=".xlsx,.xls,.csv,.sav,.zip,application/x-spss-sav,application/octet-stream,application/zip,application/x-zip-compressed"
-              acceptLabel=".xlsx · .csv · .sav · .zip"
+              acceptLabel=".xlsx, .csv, .sav o .zip"
               done={hasData}
               busy={!!busy}
               disabled={!!busy || !hasXlsform}
@@ -1934,7 +1934,7 @@ function FieldWorkHandoffCallout({
         </strong>
         {studyLabel ? (
           <span className="pulso-carga-handoff-study">
-            {studyLabel}{selectedSource?.kind ? ` · ${selectedSource.kind}` : ""}
+            {studyLabel}{selectedSource?.kind ? `, ${selectedSource.kind}` : ""}
           </span>
         ) : null}
         <p className="pulso-carga-handoff-count">
@@ -2209,7 +2209,7 @@ function PlatformImportPanel({
           >
             {profiles.length > 0 ? profiles.map((profile) => (
               <option key={profile.id || profile.alias} value={profile.id}>
-                {profile.alias}{profile.base_url ? ` · ${profile.base_url.replace(/^https?:\/\//, "")}` : ""}
+                {profile.alias}{profile.base_url ? ` (${profile.base_url.replace(/^https?:\/\//, "")})` : ""}
               </option>
             )) : (
               <option value="">Sin perfil conectado</option>
@@ -2286,8 +2286,8 @@ function PlatformImportPanel({
                 <strong>{survey.title}</strong>
                 <small>
                   Survey ID {survey.id}
-                  {survey.nickname ? ` · ${survey.nickname}` : ""}
-                  {survey.date_modified ? ` · ${survey.date_modified.slice(0, 10)}` : ""}
+                  {survey.nickname ? `, ${survey.nickname}` : ""}
+                  {survey.date_modified ? `, ${survey.date_modified.slice(0, 10)}` : ""}
                 </small>
               </span>
               <span className="pulso-platform-row-count">
@@ -2308,7 +2308,7 @@ function PlatformImportPanel({
                 <strong>{asset.name}</strong>
                 <small>
                   Asset {asset.uid}
-                  {asset.date_modified ? ` · ${asset.date_modified.slice(0, 10)}` : ""}
+                  {asset.date_modified ? `, ${asset.date_modified.slice(0, 10)}` : ""}
                 </small>
               </span>
               <span className={`pulso-platform-row-count${asset.deployment_active ? " is-live" : ""}`}>
@@ -2372,8 +2372,8 @@ function CargaBaseSheetPane({
       : "Agrega al menos una base para ver sus respuestas cargadas."
     : "Carga el formulario y las respuestas para ver la base completa.";
   const sourceLabel = isMultiBase && activeBase
-    ? `Carga · ${cargaBaseLabel(activeBase)} · antes de validación, limpieza y codificación`
-    : "Carga · antes de validación, limpieza y codificación";
+    ? `Carga de ${cargaBaseLabel(activeBase)}, antes de validación, limpieza y codificación`
+    : "Carga, antes de validación, limpieza y codificación";
 
   if (!enabled) {
     return (
@@ -2433,7 +2433,7 @@ function cargaBaseLabel(base: EstudioBase) {
 function cargaBaseMeta(base: EstudioBase) {
   const rows = typeof base.n_filas === "number" ? base.n_filas.toLocaleString("es-PE") : "sin conteo";
   const cols = typeof base.n_columnas === "number" ? base.n_columnas.toLocaleString("es-PE") : "sin columnas";
-  return `${base.nombre} · ${rows} filas · ${cols} columnas`;
+  return `${base.nombre}: ${rows} filas y ${cols} columnas`;
 }
 
 // =====================================================================
