@@ -161,7 +161,6 @@ export function SeleccionGeneralVista({
         <section className="cmv2-panel cmg-sorteo-vacio" aria-labelledby="cmg-sorteo-titulo" data-qa-geometry-member>
           <div className="cmv2-panel-head">
             <div>
-              <span className="cmv2-eyebrow">Selección aleatoria</span>
               <h3 className="cmg-panel-titulo" id="cmg-sorteo-titulo">Método, semilla y reemplazos</h3>
             </div>
           </div>
@@ -195,7 +194,6 @@ export function SeleccionGeneralVista({
           <section className="cmv2-panel cmg-sorteo" aria-labelledby="cmg-sorteo-titulo" data-qa-geometry-member>
             <div className="cmv2-panel-head">
               <div>
-                <span className="cmv2-eyebrow">Selección aleatoria</span>
                 <h3 className="cmg-panel-titulo" id="cmg-sorteo-titulo">{esCenso ? "Orden de contacto" : "Método, semilla y reemplazos"}</h3>
               </div>
             </div>
@@ -349,7 +347,6 @@ export function SeleccionGeneralVista({
         <section className="cmv2-panel" aria-labelledby="cmg-unidades-vacio-titulo" data-qa-geometry-member>
           <div className="cmv2-panel-head">
             <div>
-              <span className="cmv2-eyebrow">Unidades</span>
               <h3 className="cmg-panel-titulo" id="cmg-unidades-vacio-titulo">Listado de la selección</h3>
             </div>
           </div>

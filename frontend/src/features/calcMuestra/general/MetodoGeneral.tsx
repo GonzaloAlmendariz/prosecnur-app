@@ -93,7 +93,6 @@ export function MetodoGeneralVista({
         <section className="cmv2-panel" aria-labelledby="cmg-tecnica-titulo">
           <div className="cmv2-panel-head">
             <div>
-              <span className="cmv2-eyebrow">Técnica</span>
               <h3 className="cmg-panel-titulo" id="cmg-tecnica-titulo">Tipo de cálculo</h3>
             </div>
           </div>
@@ -118,7 +117,6 @@ export function MetodoGeneralVista({
         <section className="cmv2-panel" aria-labelledby="cmg-parametros-titulo">
           <div className="cmv2-panel-head">
             <div>
-              <span className="cmv2-eyebrow">Parámetros</span>
               <h3 className="cmg-panel-titulo" id="cmg-parametros-titulo">Los que usa esta técnica</h3>
             </div>
           </div>
@@ -181,7 +179,6 @@ function EstratosNoAplican() {
     <section className="cmv2-panel" aria-labelledby="cmg-estratos-vacio-titulo">
       <div className="cmv2-panel-head">
         <div>
-          <span className="cmv2-eyebrow">Estratos</span>
           <h3 className="cmg-panel-titulo" id="cmg-estratos-vacio-titulo">Reparto entre estratos</h3>
         </div>
       </div>

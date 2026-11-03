@@ -98,7 +98,6 @@ export function ArchivoMarcoGeneral({ componente }: { componente: CalcMuestraCom
     >
       <div className="cmv2-panel-head">
         <div>
-          <span className="cmv2-eyebrow">Archivo del marco</span>
           <h3 className="cmg-panel-titulo" id="cmg-archivo-titulo">{marco ? "Marco declarado" : "Declara el listado de unidades"}</h3>
         </div>
         {marco && !estado.editando && (

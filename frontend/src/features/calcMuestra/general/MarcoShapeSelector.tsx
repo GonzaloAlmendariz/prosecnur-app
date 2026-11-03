@@ -23,7 +23,6 @@ export function MarcoShapeSelector({
     <section className="cmv2-panel" aria-labelledby="cmg-forma-marco-titulo">
       <div className="cmv2-panel-head">
         <div>
-          <span className="cmv2-eyebrow">Forma del marco</span>
           <h3 className="cmg-panel-titulo" id="cmg-forma-marco-titulo">Qué elementos contiene</h3>
         </div>
       </div>
