@@ -107,7 +107,7 @@ export function SalidasMonitoreoTab({
     >
       <section className="cmv2-panel cmv2-sal-panel" aria-label="Qué recibe Monitoreo">
         <div className="cmv2-panel-head">
-          <strong>Pase a Monitoreo</strong>
+          <strong>Qué recibe Monitoreo</strong>
           <span className="cmv2-pill-soft">Monitoreo no rediseña la muestra</span>
         </div>
         <FlujoVertical

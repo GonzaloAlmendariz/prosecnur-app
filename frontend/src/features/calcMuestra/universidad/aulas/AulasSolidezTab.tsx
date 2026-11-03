@@ -84,9 +84,6 @@ export function AulasSolidezTab({
         data-qa-geometry-contract="intrinsic"
       >
         <section className="cmv2-panel cmv2-aulas-panel" data-qa-geometry-member>
-          <div className="cmv2-subhead">
-            <strong>Solidez de la selección</strong>
-          </div>
           <EmptyState
             icon={<ShieldCheck size={22} aria-hidden="true" />}
             title="Todavía no hay una selección corrida"
