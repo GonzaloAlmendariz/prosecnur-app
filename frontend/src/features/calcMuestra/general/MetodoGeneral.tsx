@@ -131,15 +131,14 @@ export function MetodoGeneralVista({
       )}
       {pestana === "metodo-memoria" && (
         <>
-          <section className="cmv2-panel cmg-cadena-n" aria-labelledby="cmg-cadena-titulo">
-            <div className="cmv2-panel-head">
-              <div>
-                <span className="cmv2-eyebrow">Cadena</span>
-                <h3 className="cmg-panel-titulo" id="cmg-cadena-titulo">Del marco a la muestra a contactar</h3>
-              </div>
-            </div>
+          <Panel
+            className="cmg-cadena-n"
+            aria-labelledby="cmg-cadena-titulo"
+            eyebrow="Cadena"
+            title={<span id="cmg-cadena-titulo">Del marco a la muestra a contactar</span>}
+          >
             <FlujoVertical etapas={cadenaDelN(comp, marcoN ?? 0)} orientacion="horizontal" ariaLabel="Del marco a la muestra a contactar" geometryGroup="calc-muestra/general-cadena-del-n" />
-          </section>
+          </Panel>
           {esTecnicaDeElementos(comp.tecnica) ? (
             <MemoriaCalculoGeneral comp={comp} calculando={calculando} onCalcular={onCalcular} />
           ) : (
