@@ -136,3 +136,19 @@ test_that("ninguna diferencia: la nota dice las cifras extremas en vez de callar
   expect_equal(.sig_estado(ev), "ninguna")
   expect_match(.nota_plana(ev, .regla_test()), "el 40% de Mujer y el 38% de Hombre no se distinguen")
 })
+
+test_that("la cápsula ▲A es una capa aparte de la cifra, con contorno en la frágil, y no deja cajas vacías", {
+  df_lab <- data.frame(categoria = c("a", "a", "b", "b"), .serie = c("A", "B", "A", "B"),
+                       .valor_plot = c(0.5, 0.2, 0.3, 0.1), valor_label = c(0.25, 0.22, 0.15, 0.12),
+                       inside = c(TRUE, FALSE, TRUE, FALSE), lab = c("50%", "20%", "30%", "10%"),
+                       .sig_txt = c("▲B", "", "△B", ""), .sig_fragil = c(FALSE, FALSE, TRUE, FALSE),
+                       stringsAsFactors = FALSE)
+  p <- ggplot2::ggplot(df_lab, ggplot2::aes(categoria, .valor_plot, fill = .serie)) + ggplot2::geom_col(position = "dodge")
+  p2 <- .sig_capa_capsula(p, df_lab, "categoria", 0.8, FALSE, 1, ancho_cifra = rep(0.06, 4), size_texto = 4)
+  capas <- Filter(function(l) inherits(l$geom, "GeomLabel"), p2$layers)
+  expect_length(capas, 2L)                                  # firmes y frágiles
+  expect_equal(sum(!is.na(capas[[1]]$data$.sig_txt)), 1L)   # solo la celda marcada, sin cajas vacías
+  expect_identical(capas[[2]]$aes_params$linetype %||% capas[[2]]$geom_params$linetype, "dashed")
+  # Sin marcas, el gráfico queda igual.
+  expect_identical(.sig_capa_capsula(p, transform(df_lab, .sig_txt = ""), "categoria", 0.8, FALSE, 1, rep(0.06, 4), 4), p)
+})
