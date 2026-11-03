@@ -13,6 +13,7 @@ import { ORIGEN_CAMBIO_CRUDO, origenAlDia, origenDe, origenSinFuente } from "./o
 import {
   accionActualizar,
   avisoDeLaLista,
+  planVigente,
   avisoDeTruncado,
   detalleDeLaFuente,
   enlacesDeLaFuente,
@@ -253,6 +254,17 @@ describe("huella y vigencia en una línea", () => {
       sorteo_vigente: { run_id: "sel_otro", generado_at: "2026-09-03T10:15:00Z", desfasado: true },
     });
     expect(huellaYVigencia(o).cuando).toBe("");
+  });
+});
+
+describe("el plan al día (revamp v5): verde por conformidad, no por ausencia", () => {
+  it("sólo se afirma con los dos veredictos a la vista", () => {
+    expect(planVigente({ desfasado: false }, origenAlDia())).toBe(true);
+    expect(planVigente({ desfasado: true }, origenAlDia())).toBe(false);
+    expect(planVigente({ desfasado: false }, origenDe())).toBe(false);
+    expect(planVigente({ desfasado: false }, null)).toBe(false);
+    expect(planVigente(null, origenAlDia())).toBe(false);
+    expect(planVigente({ desfasado: false }, origenSinFuente())).toBe(false);
   });
 });
 

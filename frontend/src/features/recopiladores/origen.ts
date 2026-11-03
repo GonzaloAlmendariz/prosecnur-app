@@ -423,6 +423,18 @@ export function vacioDeLaLista(origen: CollectionOrigen, filtro: FiltroDeDiferen
  *
  * `null` = nada que avisar. Sin origen leído todavía, sólo cuenta el sorteo.
  */
+/**
+ * El plan coincide con la selección vigente (revamp v5): verde por conformidad, no por
+ * ausencia. Sólo se afirma con los DOS veredictos del backend a la vista —el sorteo
+ * vigente es el del plan y la huella de la fuente no cambió—; sin uno de ellos, no se dice.
+ */
+export function planVigente(
+  sourceVigente: { desfasado: boolean } | null | undefined,
+  origen: CollectionOrigen | null,
+): boolean {
+  return sourceVigente?.desfasado === false && origen?.estado === "al_dia";
+}
+
 export function avisoDeLaLista(
   sourceVigente: { selection_run_id: string; desfasado: boolean } | null | undefined,
   origen: CollectionOrigen | null,

@@ -377,3 +377,11 @@
   color: var(--pulso-warn-fg);
   font-weight: var(--pulso-weight-semibold);
 }
+
+/* Revamp v5: el plan coincide con la selección vigente, dicho en una línea (verde por conformidad). */
+.rec-plan-vigente {
+  margin: var(--pulso-space-2) 0 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--pulso-success-fg);
+}

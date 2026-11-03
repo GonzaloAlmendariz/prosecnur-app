@@ -22,7 +22,7 @@ import { codigoOperativoDe } from "./codigoOperativo";
 import { formaDelOperativo, type FormaDelOperativo } from "./formaDelOperativo";
 import { nombreCortoDeFacultad } from "./nombreDeFacultad";
 import { fechaDeCorrida } from "./fechaDeCorrida";
-import { avisoDeLaLista } from "./origen";
+import { avisoDeLaLista, planVigente } from "./origen";
 import { useOrigen } from "./useOrigen";
 
 type Props = {
@@ -347,6 +347,8 @@ export function PlanSection({ payload, onState, origen, onIr, onCargando }: Prop
             {desfase.texto}{" "}
             <Link to={desfase.enlace.to}>{desfase.enlace.label}</Link>
           </p>
+        ) : !leyendoOrigen && planVigente(payload?.source_vigente, cargaOrigen.origen) ? (
+          <p className="rec-plan-vigente" role="status">Coincide con la selección vigente.</p>
         ) : null}
       </Panel>
       {/* Con qué facultades se reparte el operativo. Va bajo el resumen y sobre
