@@ -228,14 +228,19 @@ function protagonistaDe(
     chip = { tono: "ok", texto: "Muestra cumplida" };
   }
 
-  const metaOperativa = numeroONulo(bloque.meta_operativa);
+  // ADR 0126 y decisión del 8/9: la segunda meta del estudio es la SOBREMUESTRA
+  // (muestra + excedente). Se lee del nivel que publica el motor; sin él (corte
+  // anterior), de `meta_operativa`, que es la misma cifra. «Meta operativa» queda
+  // para la suma de esperadas por aula, que es otra cosa (ADR 0079).
+  const nivelSobremuestra = (bloque.niveles ?? []).find((n) => n.nivel === "sobremuestra");
+  const metaOperativa = numeroONulo(nivelSobremuestra?.meta ?? bloque.meta_operativa);
   const efectivasTexto = efectivasDelEstudio == null ? "—" : fmt(efectivasDelEstudio);
   let secundarios: [DatoSecundario, DatoSecundario];
   if (metaOperativa != null && metaOperativa > 0 && (muestra == null || metaOperativa > muestra)) {
     const pct = cuentan == null ? null : (100 * cuentan) / metaOperativa;
     const falta = cuentan == null ? null : Math.max(0, metaOperativa - cuentan);
     secundarios = [
-      { rotulo: `Meta operativa de ${fmt(metaOperativa)}`, valor: pct == null ? "—" : pctPerfil(pct) },
+      { rotulo: `Sobremuestra de ${fmt(metaOperativa)}`, valor: pct == null ? "—" : pctPerfil(pct) },
       falta === 0
         ? { rotulo: "Faltan para cumplirla", valor: "Cumplida" }
         : { rotulo: "Faltan para cumplirla", valor: falta == null ? "—" : fmt(falta) },
@@ -247,7 +252,7 @@ function protagonistaDe(
         valor: efectivasTexto,
         titulo: "Incluye las que no caen en ninguna celda de la cuota",
       },
-      { rotulo: "Sobremuestra", valor: "Sin declarar", titulo: "El diseño no publica una meta operativa por encima de la muestra" },
+      { rotulo: "Sobremuestra", valor: "Sin declarar", titulo: "El diseño no publica una sobremuestra por encima de la muestra" },
     ];
   }
 

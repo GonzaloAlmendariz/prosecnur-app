@@ -104,7 +104,7 @@ function ccss(): MonitoreoAulasDashboard {
 }
 
 describe("construirResumenAulas", () => {
-  it("la cifra protagonista de HSVG: 3,327 de 2,500, muestra cumplida y la meta operativa", () => {
+  it("la cifra protagonista de HSVG: 3,327 de 2,500, muestra cumplida y la sobremuestra", () => {
     const m = construirResumenAulas(hsvg());
     expect(m.estado).toBe("listo");
     expect(m.protagonista.cuentan).toBe(3327);
@@ -113,9 +113,21 @@ describe("construirResumenAulas", () => {
     expect(m.protagonista.proporcion).toBe(1);
     expect(m.protagonista.chip).toEqual({ tono: "ok", texto: "Muestra cumplida" });
     expect(m.protagonista.secundarios).toEqual([
-      { rotulo: "Meta operativa de 3,750", valor: "88.7 %" },
+      // Decisión del 8/9 y ADR 0126: es la sobremuestra, la segunda meta (la cifra no cambia).
+      { rotulo: "Sobremuestra de 3,750", valor: "88.7 %" },
       { rotulo: "Faltan para cumplirla", valor: "423" },
     ]);
+  });
+
+  it("la sobremuestra sale del nivel que publica el motor cuando viaja (ADR 0126)", () => {
+    const d = hsvg() as unknown as { avance_cuota: Record<string, unknown> };
+    d.avance_cuota.meta_operativa = null;
+    d.avance_cuota.niveles = [
+      { nivel: "muestra", meta: 2500, caracter: "meta", compensa: false, estado_cuota: "cumple" },
+      { nivel: "sobremuestra", meta: 3750, caracter: "meta", compensa: true, estado_cuota: "falta" },
+    ];
+    const m = construirResumenAulas(d as unknown as MonitoreoAulasDashboard);
+    expect(m.protagonista.secundarios[0]).toEqual({ rotulo: "Sobremuestra de 3,750", valor: "88.7 %" });
   });
 
   it("CCSS: la falta de UNA celda se nombra con su nivel aunque el total pase de 100 %", () => {

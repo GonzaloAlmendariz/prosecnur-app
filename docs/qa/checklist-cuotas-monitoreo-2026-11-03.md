@@ -92,7 +92,7 @@ D1, D2 y D3 se toman como propuestas, revisables por Gonzalo (Meta B). Contrato 
 | Aulas | ☑ hecho (ver 1d, 2d y 3d); queda el Resumen contra la meta operativa | `monitoreo_aulas_avance_cuota.R`, `monitoreo_aulas_composicion_referencial.R`, `profiles/aulas/avance/*`, `navegacion/direccionAulas.ts` | Nada técnico. El Resumen que mide contra la meta operativa (1d) cambia una cifra visible: pasa por `revisor-metodologico` y se le muestra a Gonzalo antes |
 | Territorial | ☑ hecho (ver 1c y 2c); revisión de `guardian-contratos` aprobada con cambios, aplicados | `hojas_ruta_envio_cuotas.R`, `hojas_ruta_envio.R`, `hojas_ruta_integrada_normalize_config` (congelado: un punto de llamada), UI de Hojas; `profiles/territorial/avance/*` | Autorizado por coordinación (Meta B, 3/11), con revisión de `guardian-contratos` |
 
-## Decisión que espera a Gonzalo: el Resumen de aulas (1d)
+## Resumen de aulas (1d) — ☑ opción A, elegida por Gonzalo el 3/11
 
 Revisada con `revisor-metodologico` (3/11). **La premisa estaba a medias**: el anillo y el % principal del Resumen ya
 se miden contra la cuota del diseño (`resumenAulasModelo.ts:204-206`, `total.cuota`; cumple el ADR 0079). Lo único que
@@ -110,7 +110,11 @@ Lo leen además `kpisDeAulas.ts:1015`, `AulasPestanaRendimiento.tsx:210`, el lib
 (`AulasAvanceParaCliente.tsx:167`) y `carga_aulas_libro_avance_*.R`; con A no cambia ninguno. No se pudo medir el
 numerador en hsvg2026: el proyecto de referencia no trae monitoreo.
 
-**Defecto encontrado y corregido** (este commit): `avance_cuota$niveles` juzgaba la sobremuestra contra el excedente
+**Implementada A** (3/11, Gonzalo: «Resumen de aulas»): el dato secundario lee el nivel `sobremuestra` de
+`avance_cuota$niveles` (respaldo: `meta_operativa`) y se rotula «Sobremuestra de 3,750»; la cifra (88.7 % en el
+fixture HSVG) no cambia. Test nuevo en `resumenAulasModelo.test.ts` con `niveles` y sin `meta_operativa`.
+
+**Defecto encontrado y corregido** (f46bbc07f): `avance_cuota$niveles` juzgaba la sobremuestra contra el excedente
 (1.250) y no contra el total (3.750); el test usaba 3.750 a mano y lo tapaba.
 
 ## Pedidos de Gonzalo durante la ronda
