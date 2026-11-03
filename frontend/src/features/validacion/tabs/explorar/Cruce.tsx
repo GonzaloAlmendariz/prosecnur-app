@@ -2,7 +2,7 @@ import type { ExploradorCruce } from "../../../../api/validacionExplorar";
 import CruceCajas, { diferenciaEnCifras, DiferenciaEnCifras } from "./CruceCajas";
 import CruceEnfrentados, { enfrentados } from "./CruceEnfrentados";
 import CruceRecodificacion, { recodificacion } from "./CruceRecodificacion";
-import CruceDispersion, { AvisoImposible, negativosImposibles, noPuedeSerNegativa } from "./CruceDispersion";
+import CruceDispersion, { AvisoRestriccion, NUBE_CHICA } from "./CruceDispersion";
 import CruceLista from "./CruceLista";
 import CruceSerie from "./CruceSerie";
 import GraficoTarjeta from "./GraficoTarjeta";
@@ -100,25 +100,21 @@ export default function Cruce({
     );
   }
   if (cruce.forma === "dispersion" && cruce.dispersion) {
-    const { puntos } = cruce.dispersion;
-    // Los dos ejes: una duración imposible puede estar en x o en y.
-    const noNegativaX = noPuedeSerNegativa(x.name, rotuloX);
-    const noNegativaY = noPuedeSerNegativa(y.name, rotuloY);
-    const imposiblesX = negativosImposibles(puntos, noNegativaX, 0);
-    const imposiblesY = negativosImposibles(puntos, noNegativaY);
-    const aviso =
-      imposiblesY > 0 ? <AvisoImposible imposibles={imposiblesY} dibujados={puntos.length} n={cruce.dispersion.n} rotulo={rotuloY} />
-      : imposiblesX > 0 ? <AvisoImposible imposibles={imposiblesX} dibujados={puntos.length} n={cruce.dispersion.n} rotulo={rotuloX} />
-      : null;
+    // E8h: el «dato imposible» sale de la restricción que declara el XLSForm, contada por el motor sobre toda la base.
+    const { restriccion_x, restriccion_y, tendencia, n_tendencia } = cruce.dispersion;
+    const items = [
+      restriccion_y && restriccion_y.fuera > 0 ? { eje: "y" as const, rotulo: rotuloY, r: restriccion_y } : null,
+      restriccion_x && restriccion_x.fuera > 0 ? { eje: "x" as const, rotulo: rotuloX, r: restriccion_x } : null,
+    ].filter((v): v is { eje: "x" | "y"; rotulo: string; r: NonNullable<typeof restriccion_x> } => v !== null);
     return (
       <GraficoTarjeta
         tipo="num"
         titulo={titulo}
         etiqueta={etiqueta}
         bajada={respuestas}
-        aviso={aviso}
+        aviso={items.length ? <AvisoRestriccion items={items} sinTendencia={!tendencia && n_tendencia < NUBE_CHICA} /> : null}
       >
-        <CruceDispersion {...cruce.dispersion} rotuloX={rotuloX} rotuloY={rotuloY} noNegativaY={noNegativaY} noNegativaX={noNegativaX} />
+        <CruceDispersion {...cruce.dispersion} rotuloX={rotuloX} rotuloY={rotuloY} />
       </GraficoTarjeta>
     );
   }

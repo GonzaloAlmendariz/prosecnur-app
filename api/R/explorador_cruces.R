@@ -18,7 +18,10 @@
 #     Cada punto lleva `n`: los casos de la base de ese día (el denominador del %; un día de 1 caso salta 0 ↔ 100).
 #     fecha × num es la misma mediana por día que num × fecha: los dos sentidos del par muestran lo mismo (maqueta v4).
 #   - dispersion: num × num; hasta 3000 puntos muestreados con semilla fija (sin tocar el RNG de la sesión); la
-#     tendencia por mínimos cuadrados usa TODOS los casos de la base.
+#     tendencia por mínimos cuadrados usa los casos de la base dentro de las cotas que declara el XLSForm y sin códigos
+#     especiales (`n_tendencia`); con menos de 30, no se publica. `restriccion_x` / `restriccion_y`: la cota declarada
+#     (`explorador_restriccion.R`), cuántos casos de la base la incumplen (por cota y en total) y cuántos especiales
+#     quedan aparte; null si no hay una evaluable.
 #   - lista: la abierta agrupada por las categorías de una única; hasta 20 grupos y 15 respuestas por grupo, textos
 #     iguales agrupados al normalizar minúsculas y tildes.
 # Una abierta sólo se cruza con una única (decisión de Gonzalo, 2026-11-03): con una múltiple una respuesta se repite
@@ -117,19 +120,30 @@
   sort(sample.int(n, max_n))
 }
 
-.explorador_cruce_dispersion <- function(lx, ly, ok) {
+.EXPLORADOR_TENDENCIA_MIN <- 30L
+
+.explorador_cruce_dispersion <- function(lx, ly, ok, instrumento = NULL, df = NULL) {
   x <- as.numeric(lx$valor)
   y <- as.numeric(ly$valor)
   x <- x[ok]; y <- y[ok]
   n <- length(x)
+  esp_x <- if (is.null(df)) numeric(0) else .explorador_especiales_declarados(df[[lx$var]])
+  esp_y <- if (is.null(df)) numeric(0) else .explorador_especiales_declarados(df[[ly$var]])
+  cot_x <- if (is.null(instrumento)) NULL else .explorador_cotas_de(instrumento, lx$var)
+  cot_y <- if (is.null(instrumento)) NULL else .explorador_cotas_de(instrumento, ly$var)
+  # La tendencia no la arrastran los valores que el formulario no permite ni los códigos especiales (S4).
+  en_tend <- .explorador_dentro(cot_x, x, esp_x) & .explorador_dentro(cot_y, y, esp_y)
+  xt <- x[en_tend]; yt <- y[en_tend]
   tendencia <- NA
-  if (n >= 2L && stats::var(x) > 0) {
-    pendiente <- sum((x - mean(x)) * (y - mean(y))) / sum((x - mean(x))^2)
-    tendencia <- list(pendiente = pendiente, intercepto = mean(y) - pendiente * mean(x))
+  if (length(xt) >= .EXPLORADOR_TENDENCIA_MIN && stats::var(xt) > 0) {
+    pendiente <- sum((xt - mean(xt)) * (yt - mean(yt))) / sum((xt - mean(xt))^2)
+    tendencia <- list(pendiente = pendiente, intercepto = mean(yt) - pendiente * mean(xt))
   }
   idx <- .explorador_muestra_indices(n)
   puntos <- matrix(c(x[idx], y[idx]), ncol = 2L)
-  list(dispersion = list(puntos = puntos, tendencia = tendencia, n = as.integer(n)))
+  list(dispersion = list(puntos = puntos, tendencia = tendencia, n = as.integer(n), n_tendencia = as.integer(sum(en_tend)),
+                         restriccion_x = .explorador_restriccion(cot_x, x, esp_x),
+                         restriccion_y = .explorador_restriccion(cot_y, y, esp_y)))
 }
 
 # --- serie --------------------------------------------------------------------
@@ -201,7 +215,7 @@ explorador_cruce <- function(df, var_x, var_y, instrumento) {
     spec$forma,
     tabla = .explorador_cruce_tabla(lx, ly, ok),
     cajas = .explorador_cruce_cajas(lx, ly, ok),
-    dispersion = .explorador_cruce_dispersion(lx, ly, ok),
+    dispersion = .explorador_cruce_dispersion(lx, ly, ok, instrumento, df),
     # La serie lee la variable de valor contra la fecha; en fecha × num la fecha viene primero.
     serie = if (identical(lx$tipo, "fecha")) .explorador_cruce_serie(ly, lx, ok) else .explorador_cruce_serie(lx, ly, ok),
     lista = .explorador_cruce_lista(lx, ly, ok)

@@ -298,3 +298,71 @@ test_that("POST /explorar/bivariado rechaza cruzar una variable consigo misma", 
   expect_identical(as.integer(r$status), 400L)
   expect_identical(j$code %||% j$error$code, "E_EXPLORAR_CRUCE_MISMA_VARIABLE")
 })
+
+test_that("restricción del XLSForm: sólo cotas simples unidas con and; lo demás no se evalúa (E8h)", {
+  expect_identical(.explorador_texto_cotas(.explorador_limites_restriccion(". >= 18 and . <= 99")), "≥ 18 y ≤ 99")
+  expect_identical(.explorador_limites_restriccion("0 <= .")[[1]], list(op = ">=", valor = 0))
+  expect_identical(.explorador_limites_restriccion(".>0")[[1]], list(op = ">", valor = 0))
+  expect_null(.explorador_limites_restriccion(". >= 0 or . = -9"))
+  expect_null(.explorador_limites_restriccion(". <= ${edad}"))
+  expect_null(.explorador_limites_restriccion("regex(., '^[0-9]+$')"))
+  expect_null(.explorador_limites_restriccion(NA_character_))
+  expect_identical(.explorador_fuera_de_cotas(c(10, 18, 99, 150, NA), .explorador_limites_restriccion(". >= 18 and . <= 99")),
+                   c(TRUE, FALSE, FALSE, TRUE, FALSE))
+})
+
+test_that("la dispersión cuenta, sobre toda la base, los casos fuera de la restricción declarada; sin restricción, null", {
+  datos <- .ecr_data(); inst <- .ecr_inst()
+  datos$duracion <- seq_len(nrow(datos)) * -10
+  inst$survey <- rbind(inst$survey, transform(inst$survey[6, ], name = "duracion", label = "Duración", constraint = NA))
+  cr <- explorador_cruce(datos, "edad", "duracion", inst)
+  r <- cr$dispersion$restriccion_x
+  expect_identical(r$regla, ". >= 18 and . <= 99")
+  expect_identical(r$fuera, 1L)                              # la fila con 150
+  expect_identical(vapply(r$cotas, `[[`, 1L, "fuera"), c(0L, 1L))   # sólo se incumple el máximo
+  expect_identical(r$especiales, 0L)
+  expect_identical(r$n, cr$dispersion$n)
+  expect_null(cr$dispersion$restriccion_y)   # la duración no declara restricción: no se inventa
+})
+
+test_that("un código especial declarado no cuenta como fuera de la restricción; sin declararlo, sí (revisión metodológica)", {
+  datos <- .ecr_data(); inst <- .ecr_inst()
+  datos$edad2 <- datos$edad
+  inst$survey <- rbind(inst$survey, transform(inst$survey[6, ], name = "edad2", label = "Edad otra vez", constraint = NA))
+  sin <- explorador_cruce(datos, "edad", "edad2", inst)$dispersion$restriccion_x
+  expect_identical(c(sin$fuera, sin$especiales), c(1L, 0L))
+  attr(datos$edad, "labels") <- c("No sabe" = 150)
+  con <- explorador_cruce(datos, "edad", "edad2", inst)$dispersion$restriccion_x
+  expect_identical(c(con$fuera, con$especiales), c(0L, 1L))
+})
+
+test_that("los saltados no entran a la base; una base vacía no rompe; con filtro se cuenta sobre la base filtrada", {
+  datos <- .ecr_data(); inst <- .ecr_inst()
+  datos$edad2 <- datos$edad
+  inst$survey <- rbind(inst$survey, transform(inst$survey[6, ], name = "edad2", label = "Edad otra vez", constraint = NA))
+  r <- explorador_cruce(datos, "edad", "edad2", inst)$dispersion$restriccion_x
+  expect_identical(r$n, as.integer(sum(!is.na(datos$edad))))   # la fila 10 (NA) no entra
+  vacia <- datos; vacia$edad2 <- NA_real_
+  rv <- explorador_cruce(vacia, "edad", "edad2", inst)$dispersion$restriccion_x
+  expect_identical(c(rv$fuera, rv$n), c(0L, 0L))
+  filtrada <- explorador_cruce(datos[datos$sexo %in% "2", ], "edad", "edad2", inst)$dispersion$restriccion_x
+  expect_identical(filtrada$fuera, 0L)   # el 150 es de un hombre
+})
+
+test_that("la tendencia usa sólo los casos dentro de la restricción y no se publica con menos de 30", {
+  n <- 200L
+  datos <- data.frame(edad = c(seq(20, 80, length.out = n), 500), edad2 = c(2 * seq(20, 80, length.out = n) + 5, -9000))
+  inst <- .ecr_inst()
+  inst$survey <- rbind(inst$survey, transform(inst$survey[6, ], name = "edad2", label = "Doble", constraint = NA))
+  d <- explorador_cruce(datos, "edad", "edad2", inst)$dispersion
+  expect_identical(d$n_tendencia, n)          # el 500 queda fuera de la cota (≤ 99) y no arrastra la recta
+  expect_equal(d$tendencia$pendiente, 2)
+  pocos <- explorador_cruce(datos[c(1:20, 201), ], "edad", "edad2", inst)$dispersion
+  expect_true(identical(pocos$tendencia, NA) || is.null(pocos$tendencia))
+})
+
+test_that("restricciones que no son una conjunción de cotas simples no se evalúan", {
+  expect_null(.explorador_limites_restriccion(". >= 0 and . <= 9 or . = 99"))
+  expect_null(.explorador_limites_restriccion(". >= 0 and"))
+  expect_null(.explorador_limites_restriccion(". >= 1e3"))
+})

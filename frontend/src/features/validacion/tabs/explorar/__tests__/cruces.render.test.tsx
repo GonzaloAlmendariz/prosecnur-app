@@ -5,7 +5,7 @@ import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import CruceCajas, { diferenciaEnCifras } from "../CruceCajas";
-import CruceDispersion, { AvisoImposible, negativosImposibles, noPuedeSerNegativa } from "../CruceDispersion";
+import CruceDispersion, { AvisoRestriccion } from "../CruceDispersion";
 import CruceEnfrentados, { enfrentados } from "../CruceEnfrentados";
 import CruceLista from "../CruceLista";
 import CruceRecodificacion, { recodificacion } from "../CruceRecodificacion";
@@ -134,36 +134,45 @@ describe("cajas y fechas (E8e, E8f, E8g)", () => {
   });
 });
 
-describe("dispersión y dato imposible (E8h)", () => {
-  it("reconoce por nombre o rótulo lo que no puede ser negativo, sin inventar en lo demás", () => {
-    expect(noPuedeSerNegativa("duracion_total")).toBe(true);
-    expect(noPuedeSerNegativa("E1_age", "¿Cuál es su edad?")).toBe(true);
-    expect(noPuedeSerNegativa("saldo", "Saldo de la cuenta")).toBe(false);
-    expect(noPuedeSerNegativa("p12", "¿Cómo ve la sociedad peruana?")).toBe(false);
-    expect(noPuedeSerNegativa("p3", "Puntaje en la segunda medición")).toBe(false);
-    expect(noPuedeSerNegativa("dif_tiempo", "Cambio en el tiempo de espera")).toBe(false);
-    expect(negativosImposibles([[1, -3], [2, 4]], true)).toBe(1);
-    expect(negativosImposibles([[1, -3]], false)).toBe(0);
-    expect(negativosImposibles([[-5, 3], [2, 4]], true, 0)).toBe(1);
-  });
+describe("dispersión y la restricción del formulario (E8h)", () => {
+  const edad = { regla: ". >= 18 and . <= 95", texto: "≥ 18 y ≤ 95", cotas: [{ op: ">=" as const, valor: 18, fuera: 0 }, { op: "<=" as const, valor: 95, fuera: 2 }], fuera: 2, especiales: 0, n: 1283 };
+  const cero = { regla: ". >= 0", texto: "≥ 0", cotas: [{ op: ">=" as const, valor: 0, fuera: 3 }], fuera: 3, especiales: 0, n: 3 };
 
-  it("con muestra, el aviso habla de los valores dibujados y no de «los N valores»", () => {
-    act(() => root.render(<AvisoImposible imposibles={3000} dibujados={3000} n={5200} rotulo="duracion_total" />));
-    expect(host.textContent).toContain("3,000 de los 3,000 valores dibujados");
-    act(() => root.render(<AvisoImposible imposibles={37} dibujados={37} n={37} rotulo="duracion_total" />));
-    expect(host.textContent).toContain("los 37 valores de duracion_total");
-  });
-
-  it("una duración imposible en el eje horizontal también apaga la tendencia", () => {
-    act(() => root.render(<CruceDispersion puntos={[[-200, 20], [-250, 30], [-100, 40]]} tendencia={{ pendiente: 1, intercepto: 0 }} n={3} rotuloX="duracion_total" rotuloY="Edad" noNegativaX />));
-    expect(host.querySelector(".vx-svg-tendencia")).toBeNull();
-  });
-
-  it("con valores imposibles sombrea bajo 0 y no dibuja la tendencia", () => {
-    act(() => root.render(<CruceDispersion puntos={[[20, -200], [30, -250], [40, -100]]} tendencia={{ pendiente: 1, intercepto: 0 }} n={3} rotuloX="Edad" rotuloY="duracion_total" noNegativaY />));
-    expect(host.querySelector(".vx-svg-imposible")).toBeTruthy();
-    expect(host.querySelector(".vx-svg-tendencia")).toBeNull();
+  it("sin restricción declarada no se marca nada, aunque haya negativos", () => {
+    act(() => root.render(<CruceDispersion puntos={[[20, -200], [30, -250], [40, -100]]} tendencia={{ pendiente: 1, intercepto: 0 }} n={3} rotuloX="Edad" rotuloY="duracion_total" />));
+    expect(host.querySelector(".vx-svg-imposible")).toBeNull();
+    expect(host.querySelector(".vx-svg-tendencia")).toBeTruthy();
     expect(host.textContent).toContain("Base chica: 3 casos.");
+  });
+
+  it("con la restricción incumplida se sombrea sólo el lado que se incumple, en su eje", () => {
+    act(() => root.render(<CruceDispersion puntos={[[20, -200], [30, -250], [40, -100]]} tendencia={null} n={3} rotuloX="Edad" rotuloY="Duración" restriccion_y={cero} />));
+    expect(host.querySelectorAll(".vx-svg-imposible")).toHaveLength(1);
+    expect(host.querySelector(".vx-svg-tendencia")).toBeNull();
+    act(() => root.render(<CruceDispersion puntos={[[20, 1], [150, 2], [40, 3]]} tendencia={null} n={3} rotuloX="Edad" rotuloY="Otra" restriccion_x={edad} />));
+    expect(host.querySelectorAll(".vx-svg-imposible")).toHaveLength(1);   // sólo sobre 95, no bajo 18
+  });
+
+  it("la tendencia del motor se dibuja y dice con cuántos casos dentro de la restricción se ajustó", () => {
+    act(() => root.render(<CruceDispersion puntos={[[20, 1], [150, 2], [40, 3]]} tendencia={{ pendiente: 1, intercepto: 0 }} n={1283} n_tendencia={1281} rotuloX="Edad" rotuloY="Otra" restriccion_x={edad} />));
+    expect(host.querySelector(".vx-svg-tendencia")).toBeTruthy();
+    expect(host.textContent).toContain("Tendencia sobre los 1,281 casos dentro de la restricción del formulario");
+  });
+
+  it("con atípicos lejanos fuera del encuadre, la tendencia (que los incluye) no se dibuja y la nota lo dice", () => {
+    const nube: [number, number][] = Array.from({ length: 30 }, (_, i) => [20 + i, -200 - (i % 5) * 20]);
+    act(() => root.render(<CruceDispersion puntos={[...nube, [40, -63148]]} tendencia={{ pendiente: 10, intercepto: -800 }} n={31} rotuloX="Edad" rotuloY="Duración" />));
+    expect(host.querySelector(".vx-svg-tendencia")).toBeNull();
+    expect(host.textContent).toContain("1 caso queda fuera del encuadre por atípico lejano; la tendencia no se dibuja porque la arrastran.");
+  });
+
+  it("el aviso cita la restricción y cuenta sobre toda la base, no sobre la muestra; los especiales, aparte", () => {
+    act(() => root.render(<AvisoRestriccion items={[{ eje: "x", rotulo: "Edad", r: { ...edad, fuera: 4100, especiales: 12, n: 5200 } }]} sinTendencia={false} />));
+    expect(host.textContent).toBe("4,100 de 5,200 valores de Edad están fuera de la restricción del formulario (≥ 18 y ≤ 95); 12 códigos especiales no cuentan.");
+    act(() => root.render(<AvisoRestriccion items={[{ eje: "y", rotulo: "Duración", r: cero }, { eje: "x", rotulo: "Duración", r: cero }]} sinTendencia />));
+    expect(host.querySelectorAll(".vx-aviso p")).toHaveLength(3);
+    expect(host.textContent).toContain("Los 3 valores de Duración están fuera de la restricción del formulario (≥ 0).");
+    expect(host.textContent).toContain("menos de 30 casos dentro de la restricción");
   });
 });
 

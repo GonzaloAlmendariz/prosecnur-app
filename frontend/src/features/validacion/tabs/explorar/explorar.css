@@ -1171,6 +1171,8 @@
 .vx-svg .vx-svg-imposible-borde { stroke: var(--pulso-warn-fg); stroke-width: 1.5; }
 .vx-svg text.vx-svg-imposible-texto { fill: var(--pulso-warn-fg); font-size: var(--pulso-type-caption-size); font-weight: var(--pulso-weight-semibold); }
 .vx-leyenda i.vx-muestra.is-tendencia { height: 0; border-top: 2px dashed var(--pulso-text); border-radius: 0; }
+.vx-aviso p { margin: 0; }
+.vx-aviso p + p { margin-top: 2px; }
 .vx-aviso {
   padding: 10px 12px;
   border: 1px solid var(--pulso-warn-border);

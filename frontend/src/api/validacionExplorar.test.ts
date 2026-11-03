@@ -154,6 +154,15 @@ describe("normalizeExploradorCruce", () => {
     expect(c?.dispersion?.puntos).toEqual([[1, 2], [4, 5]]);
     expect(c?.dispersion?.tendencia).toEqual({ pendiente: 1, intercepto: 0 });
     expect(c?.dispersion?.origen).toBeNull();
+    expect(c?.dispersion?.restriccion_y).toBeNull();
+  });
+
+  it("la restricción del formulario llega con sus cotas; una cota sin operador conocido se descarta", () => {
+    const c = normalizeExploradorCruce({
+      tipo_x: "num", tipo_y: "num", forma: "dispersion",
+      dispersion: { puntos: [[20, 1]], n: 1, restriccion_x: { regla: ". >= 18", texto: "≥ 18", cotas: [{ op: ">=", valor: [18] }, { op: "==", valor: 3 }], fuera: [2], n: 1283 } },
+    });
+    expect(c?.dispersion?.restriccion_x).toEqual({ regla: ". >= 18", texto: "≥ 18", cotas: [{ op: ">=", valor: 18, fuera: 0 }], fuera: 2, especiales: 0, n: 1283 });
   });
 
   it("con una fecha, el día cero del eje y los casos de cada día", () => {

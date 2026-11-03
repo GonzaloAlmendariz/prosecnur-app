@@ -236,6 +236,32 @@ export type ExploradorCrucePunto = {
   n: number | null;
 };
 
+/** La restricción numérica que declara el XLSForm y cuántos casos de la base la incumplen (E8h). */
+export type ExploradorRestriccion = {
+  regla: string;
+  /** «≥ 18 y ≤ 95» */
+  texto: string;
+  /** Cada cota con sus propios incumplimientos: se sombrea sólo el lado que se incumple. */
+  cotas: { op: ">=" | ">" | "<=" | "<"; valor: number; fuera: number }[];
+  fuera: number;
+  /** Códigos especiales declarados (98 «No sabe»…): no son datos imposibles y no cuentan en `fuera`. */
+  especiales: number;
+  n: number;
+};
+
+const OPS = [">=", ">", "<=", "<"] as const;
+
+function restriccion(value: unknown): ExploradorRestriccion | null {
+  const r = registro(value);
+  const regla = texto(r.regla);
+  if (!regla) return null;
+  const cotas = lista(r.cotas)
+    .map((c) => ({ op: texto(c.op) as ExploradorRestriccion["cotas"][number]["op"], valor: numeroONulo(c.valor), fuera: entero(c.fuera) }))
+    .filter((c): c is ExploradorRestriccion["cotas"][number] => (OPS as readonly string[]).includes(c.op) && c.valor !== null);
+  if (!cotas.length) return null;
+  return { regla, texto: texto(r.texto), cotas, fuera: entero(r.fuera), especiales: entero(r.especiales), n: entero(r.n) };
+}
+
 export type ExploradorCruce = {
   tipo_x: ExploradorTipo;
   tipo_y: ExploradorTipo;
@@ -253,6 +279,10 @@ export type ExploradorCruce = {
     tendencia: { pendiente: number; intercepto: number } | null;
     n: number;
     origen: string | null;
+    /** Casos con que se ajusta la tendencia: dentro de las cotas declaradas y sin especiales. */
+    n_tendencia: number;
+    restriccion_x: ExploradorRestriccion | null;
+    restriccion_y: ExploradorRestriccion | null;
   };
   serie?: { puntos: ExploradorCrucePunto[] };
   lista?: { grupos: { etiqueta: string; respuestas: { texto: string; n: number }[] }[] };
@@ -344,6 +374,9 @@ export function normalizeExploradorCruce(raw: unknown): ExploradorCruce | null {
       tendencia: pendiente !== null && intercepto !== null ? { pendiente, intercepto } : null,
       n: enteroONulo(disp.n) ?? puntos.length,
       origen: fechaIso(disp.origen),
+      n_tendencia: enteroONulo(disp.n_tendencia) ?? enteroONulo(disp.n) ?? puntos.length,
+      restriccion_x: restriccion(disp.restriccion_x),
+      restriccion_y: restriccion(disp.restriccion_y),
     };
   }
   const serie = registro(r.serie);
