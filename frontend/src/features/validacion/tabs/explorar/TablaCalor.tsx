@@ -81,8 +81,8 @@ export default function TablaCalor({
     <div className="vx-calor-caja" role="region" tabIndex={0} aria-label="Tabla del cruce (se desplaza a los lados si no cabe)">
       <div className="vx-calor" role="table" aria-label={modelo.titulo} style={estilo}>
         <div className="vx-calor-fila" role="row">
-          <div className="vx-calor-cabeza is-rotulo" role="columnheader">
-            <span>{rotuloFilas}</span>
+          <div className="vx-calor-cabeza is-rotulo" role="columnheader" aria-label={rotuloFilas}>
+            <span className="vx-calor-lectura">{modelo.titulo}</span>
           </div>
           {modelo.columnas.map((col, c) => (
             <div key={`${col.etiqueta}-${c}`} className="vx-calor-cabeza" role="columnheader">

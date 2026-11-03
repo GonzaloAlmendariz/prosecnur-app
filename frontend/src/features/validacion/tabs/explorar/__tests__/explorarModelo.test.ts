@@ -139,6 +139,8 @@ describe("escala divergente", () => {
     expect(d.baja.pct).toBe(22);
     expect(d.centro?.pct).toBe(14);
     expect(d.alta.pct).toBe(64);
+    // Cada lado lleva el nombre de su opción más cercana al centro, que nombra al grupo y es corto.
+    expect([d.baja.etiqueta, d.centro?.etiqueta, d.alta.etiqueta]).toEqual(["En desacuerdo", "Ni uno ni otro", "De acuerdo"]);
     expect(d.segmentos.map((s) => s.lado)).toEqual(["baja", "baja", "centro", "alta", "alta"]);
     expect(d.segmentos[0].intensidad).toBeGreaterThan(d.segmentos[1].intensidad);
   });

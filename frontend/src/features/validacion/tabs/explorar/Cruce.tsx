@@ -5,33 +5,40 @@ import CruceLista from "./CruceLista";
 import CruceSerie from "./CruceSerie";
 import GraficoTarjeta from "./GraficoTarjeta";
 import TablaCalor, { LecturaCalorSelector } from "./TablaCalor";
+import TituloCruce, { rotuloDe, textoTituloCruce, type VariableTitulo } from "./TituloCruce";
 import { fraseCruceBase, type LecturaCalor, type ModeloCalor } from "./explorarModelo";
-import { bajadaDeSerie, modoDeSerie } from "./serieModelo";
+import { modoDeSerie } from "./serieModelo";
 
 /**
  * E8 — el cruce dibujado por su forma (`biv.cruce.forma`). La tabla recibe el
  * modelo ya calculado porque el panel «Lo que se aparta del total» lee el mismo.
+ * Todas las tarjetas se titulan con el cruce (D1) y dicen su base.
  */
 export default function Cruce({
   cruce,
   modelo,
   lectura,
   onLectura,
-  rotuloX,
-  rotuloY,
+  x,
+  y,
 }: {
   cruce: ExploradorCruce;
   modelo: ModeloCalor | null;
   lectura: LecturaCalor;
   onLectura: (l: LecturaCalor) => void;
-  rotuloX: string;
-  rotuloY: string;
+  x: VariableTitulo;
+  y: VariableTitulo;
 }) {
   const respuestas = fraseCruceBase(cruce);
+  const rotuloX = rotuloDe(x);
+  const rotuloY = rotuloDe(y);
+  const titulo = <TituloCruce x={x} y={y} />;
+  const etiqueta = textoTituloCruce(x, y);
   if (cruce.forma === "tabla" && modelo) {
     return (
       <GraficoTarjeta
-        titulo={modelo.titulo}
+        titulo={titulo}
+        etiqueta={etiqueta}
         bajada={respuestas}
         acciones={<LecturaCalorSelector valor={lectura} onCambio={onLectura} />}
       >
@@ -39,17 +46,16 @@ export default function Cruce({
       </GraficoTarjeta>
     );
   }
-  const titulo = cruce.grafico || "Cruce";
   if (cruce.forma === "cajas" && cruce.cajas) {
     return (
-      <GraficoTarjeta tipo="num" titulo={titulo} bajada={respuestas}>
+      <GraficoTarjeta tipo="num" titulo={titulo} etiqueta={etiqueta} bajada={respuestas}>
         <CruceCajas grupos={cruce.cajas.grupos} />
       </GraficoTarjeta>
     );
   }
   if (cruce.forma === "dispersion" && cruce.dispersion) {
     return (
-      <GraficoTarjeta tipo="num" titulo={titulo} bajada={respuestas}>
+      <GraficoTarjeta tipo="num" titulo={titulo} etiqueta={etiqueta} bajada={respuestas}>
         <CruceDispersion {...cruce.dispersion} rotuloX={rotuloX} rotuloY={rotuloY} />
       </GraficoTarjeta>
     );
@@ -57,14 +63,14 @@ export default function Cruce({
   if (cruce.forma === "serie" && cruce.serie) {
     const modo = modoDeSerie(cruce.tipo_x);
     return (
-      <GraficoTarjeta tipo="fecha" titulo={titulo} bajada={`${respuestas} · ${bajadaDeSerie(modo)}`}>
+      <GraficoTarjeta tipo="fecha" titulo={titulo} etiqueta={etiqueta} bajada={respuestas}>
         <CruceSerie puntos={cruce.serie.puntos} modo={modo} />
       </GraficoTarjeta>
     );
   }
   if (cruce.forma === "lista" && cruce.lista) {
     return (
-      <GraficoTarjeta tipo="texto" titulo={titulo} bajada={respuestas}>
+      <GraficoTarjeta tipo="texto" titulo={titulo} etiqueta={etiqueta} bajada={respuestas}>
         <CruceLista grupos={cruce.lista.grupos} />
       </GraficoTarjeta>
     );

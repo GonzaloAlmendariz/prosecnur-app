@@ -488,8 +488,8 @@ export default function ExplorarTab({
         modelo={modelo}
         lectura={lecturaCalor}
         onLectura={setLecturaCalor}
-        rotuloX={selected.label || selected.name}
-        rotuloY={crossVar.label || crossVar.name}
+        x={selected}
+        y={crossVar}
       />
     ) : (
       <GraficoTarjeta titulo={`${selected.name} × ${crossVar.name}${sufijoRepeat}`}>
@@ -497,7 +497,7 @@ export default function ExplorarTab({
       </GraficoTarjeta>
     )
   ) : crossVar ? null : dist ? (
-    <Distribucion dist={dist} sinRespuesta={base?.sinRespuesta ?? null} declarados={declarados} />
+    <Distribucion dist={dist} titulo={selected.label || selected.name} sinRespuesta={base?.sinRespuesta ?? null} declarados={declarados} />
   ) : (
     <GraficoTarjeta titulo={`Distribución${sufijoRepeat}`} tipo={uniVigente.tipo}>
       {uniVigente.chart.kind === "table" && uniVigente.chart.text_rows ? (

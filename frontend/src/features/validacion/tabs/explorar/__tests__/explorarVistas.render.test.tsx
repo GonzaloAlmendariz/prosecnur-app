@@ -8,6 +8,7 @@ import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import CrossBar from "../../../components/CrossBar";
 import type { ExploradorSeccion } from "../../../types";
 import TablaCalor from "../TablaCalor";
+import TituloCruce, { textoTituloCruce } from "../TituloCruce";
 import PanelDatos from "../PanelDatos";
 import { modeloCalor } from "../explorarModelo";
 import { normalizeExploradorFicha } from "../../../../../api/validacionExplorar";
@@ -75,6 +76,15 @@ test("con una abierta, sólo las únicas se eligen; las demás quedan atenuadas 
   expect(onChange).not.toHaveBeenCalled();
   expect(panel.querySelector(".crossbar-limite")?.textContent).toBe("Una abierta se cruza sólo con una pregunta de selección única.");
   expect(panel.textContent).not.toMatch(/codific/i);
+});
+
+test("el título de un cruce es el cruce; con rótulos iguales, cada uno lleva su nombre (D1)", () => {
+  act(() => root.render(<TituloCruce x={{ name: "sexo", label: "Sexo" }} y={{ name: "medios", label: "Medios" }} />));
+  expect(host.textContent).toBe("Sexo × Medios");
+  act(() => root.render(<TituloCruce x={{ name: "d1", label: "¿Dónde?" }} y={{ name: "d1_recod", label: "¿Dónde?" }} />));
+  expect(host.textContent).toBe("¿Dónde?d1 × ¿Dónde?d1_recod");
+  expect(host.querySelectorAll(".vx-titulo-nombre")).toHaveLength(2);
+  expect(textoTituloCruce({ name: "a", label: null }, { name: "b", label: "B" })).toBe("a × B");
 });
 
 test("la tabla de calor marca las celdas a 5 puntos del total y deja el Total aparte", () => {

@@ -12,6 +12,7 @@ import type {
   ExploradorFicha,
 } from "../../../../api/validacionExplorar";
 import type { ViewDescriptor } from "../../types";
+import { fechaCorta } from "./escalas";
 
 // --- Formatos -----------------------------------------------------------------
 // Propios y no `toLocaleString`: es-PE escribe «1,234.5» y el Node de los tests
@@ -99,7 +100,9 @@ export function fraseBase(base: BaseLectura): { destacado: string; resto: string
 
 // --- Orden de las categorías (E6) ---------------------------------------------
 
-const RESIDUAL = /^(otr[oa]s?)\b|no sabe|no responde|ns\s*\/\s*nr|no precisa|prefiere no/;
+// Respuestas que no son parte de la escala ni compiten por el primer puesto. «Sin información» y «No aplica» se
+// colaban como un punto más de la escala y le quitaban su centro (visto al probar una de 7 puntos, 3/11).
+const RESIDUAL = /^(otr[oa]s?)\b|no sabe|no responde|no contesta|no recuerda|ns\s*\/\s*nr|no precisa|prefiere no|sin informacion|no aplica|no corresponde/;
 
 function sinTildes(s: string): string {
   return s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().trim();
@@ -176,11 +179,17 @@ export function divergente(filas: readonly ExploradorDistFila[]): Divergente | n
   });
   const suma = (lado: LadoDivergente) =>
     segmentos.filter((s) => s.lado === lado).reduce((t, s) => t + s.fila.pct, 0);
+  // Cada lado se nombra con su opción más cercana al centro («En desacuerdo», «De acuerdo»): es el nombre del
+  // grupo entero, no del extremo («Totalmente…»), y es corto. Si las opciones son números (una escala de 0 a 10),
+  // el lado se nombra por su rango: «4» no dice nada, «0 a 4» sí.
+  const numerica = escala.every((f) => /^-?\d+([.,]\d+)?$/.test(f.etiqueta.trim()));
+  const lado = (desde: number, hasta: number, cerca: number) =>
+    numerica && desde !== hasta ? `${escala[desde].etiqueta} a ${escala[hasta].etiqueta}` : escala[cerca].etiqueta;
   return {
     segmentos,
-    baja: { pct: suma("baja"), etiqueta: escala[0].etiqueta },
+    baja: { pct: suma("baja"), etiqueta: lado(0, mitad - 1, mitad - 1) },
     centro: centroIdx >= 0 ? { pct: suma("centro"), etiqueta: escala[centroIdx].etiqueta } : null,
-    alta: { pct: suma("alta"), etiqueta: escala[k - 1].etiqueta },
+    alta: { pct: suma("alta"), etiqueta: lado(k - mitad, k - 1, k - mitad) },
   };
 }
 
@@ -256,13 +265,13 @@ export function cifrasClave(
     cifras.push({
       rotulo: "Día con más casos",
       valor: pico ? fmtN(pico.n) : "—",
-      nota: pico ? pico.fecha : "sin fechas",
+      nota: pico ? fechaCorta(pico.fecha) : "sin fechas",
     });
     const conCasos = dias.filter((d) => d.n > 0);
     cifras.push({
       rotulo: "Días con casos",
       valor: fmtN(conCasos.length),
-      nota: conCasos.length ? `del ${conCasos[0].fecha} al ${conCasos[conCasos.length - 1].fecha}` : "sin fechas",
+      nota: conCasos.length ? `del ${fechaCorta(conCasos[0].fecha)} al ${fechaCorta(conCasos[conCasos.length - 1].fecha)}` : "sin fechas",
     });
   } else if (dist.tipo === "texto" && dist.texto) {
     const grupos = dist.texto.grupos;
