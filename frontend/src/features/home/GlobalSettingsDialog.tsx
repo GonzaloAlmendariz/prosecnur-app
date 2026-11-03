@@ -342,7 +342,7 @@ function activeConnectionDetail(meta: ProviderMeta, state: ConnectionTokenState,
   }
   if (meta.provider === "google_sheets") parts.push("Autorización local guardada");
   if (state.ephemeral) parts.push("No se guardó para el próximo inicio");
-  return parts.join(" · ");
+  return parts.join(", ");
 }
 
 function profileDetail(profile: ConnectionProfileState, isKobo: boolean): string {
@@ -350,7 +350,7 @@ function profileDetail(profile: ConnectionProfileState, isKobo: boolean): string
   if (isKobo && profile.server_label) parts.push(profile.server_label);
   if (isKobo && profile.base_url && !profile.server_label) parts.push(profile.base_url);
   if (profile.masked_token) parts.push(`Referencia ${profile.masked_token}`);
-  return parts.join(" · ");
+  return parts.join(", ");
 }
 
 export function GlobalSettingsDialog({ open, notes, pulsoName, onClose, seccionInicial }: GlobalSettingsDialogProps) {
@@ -692,7 +692,7 @@ export function GlobalSettingsDialog({ open, notes, pulsoName, onClose, seccionI
         hf_token: hfToken.trim() || undefined,
       });
       if (result.ok) {
-        const orgs = result.org_count ? ` · ${result.org_count} organizaciones visibles` : "";
+        const orgs = result.org_count ? `, ${result.org_count} organizaciones visibles` : "";
         if (result.name) setHfUsername((current) => current || result.name);
         setHfMessage({ kind: "ok", text: `Hugging Face responde${result.name ? ` como ${result.name}` : ""}${orgs}.` });
       } else {
@@ -904,7 +904,7 @@ export function GlobalSettingsDialog({ open, notes, pulsoName, onClose, seccionI
               </div>
               <div className="home-layout-preset-current">
                 <span>Activo</span>
-                <strong>{layoutMeta.label} · {layoutMeta.size}</strong>
+                <strong>{layoutMeta.label}, {layoutMeta.size}</strong>
               </div>
             </div>
           )}
@@ -1109,8 +1109,8 @@ function HuggingFaceConnectionCard({
             <span>Credencial local</span>
             <strong>{selected.name || selected.hf_username || "Token HF"}</strong>
             <small>
-              {selected.hf_username ? `Cuenta/alias ${selected.hf_username}` : "Cuenta HF no verificada"} · {selected.masked_token || "••••"}
-              {selected.requires_reauth ? " · vuelve a autenticar" : ""}
+              {selected.hf_username ? `Cuenta/alias ${selected.hf_username}` : "Cuenta HF no verificada"}, {selected.masked_token || "••••"}
+              {selected.requires_reauth ? ", vuelve a autenticar" : ""}
             </small>
           </div>
         ) : (
@@ -1136,7 +1136,7 @@ function HuggingFaceConnectionCard({
       <details className="home-connection-details" open={detailsOpen} onToggle={(event) => setDetailsOpen(event.currentTarget.open)}>
         <summary>
           <span>Configurar publicación</span>
-          <small>{hasTokens ? `${savedTokens.length} ${savedTokens.length === 1 ? "token" : "tokens"}` : "Token requerido"} · {effectiveDefaultNamespace || "sin namespace"}</small>
+          <small>{hasTokens ? `${savedTokens.length} ${savedTokens.length === 1 ? "token" : "tokens"}` : "Token requerido"}, {effectiveDefaultNamespace || "sin namespace"}</small>
         </summary>
 
         {savedTokens.length > 0 && (
@@ -1151,8 +1151,8 @@ function HuggingFaceConnectionCard({
                   <div className="home-connection-profile-copy">
                     <strong>{saved.name || "Token HF"}</strong>
                     <small>
-                      {saved.hf_username ? `Cuenta/alias ${saved.hf_username}` : "Cuenta HF no verificada"} · {saved.masked_token || "••••"}
-                      {saved.requires_reauth ? " · almacenamiento anterior no seguro" : ""}
+                      {saved.hf_username ? `Cuenta/alias ${saved.hf_username}` : "Cuenta HF no verificada"}, {saved.masked_token || "••••"}
+                      {saved.requires_reauth ? ", almacenamiento anterior no seguro" : ""}
                     </small>
                   </div>
                   <div className="home-connection-profile-actions">
@@ -1185,7 +1185,7 @@ function HuggingFaceConnectionCard({
                 <div key={destination.id} className={`home-connection-profile ${destination.namespace === effectiveDefaultNamespace ? "is-default" : ""}`}>
                   <div className="home-connection-profile-copy">
                     <strong>{hfDestinationLabel(destination)}</strong>
-                    <small>{destination.private ? "Privado" : "No marcado privado"}{destination.audience ? ` · ${destination.audience}` : ""}</small>
+                    <small>{destination.private ? "Privado" : "No marcado privado"}{destination.audience ? `, ${destination.audience}` : ""}</small>
                   </div>
                   <div className="home-connection-profile-actions">
                     <button type="button" onClick={() => onDefaultNamespaceChange(destination.namespace)} disabled={busy != null || !destination.namespace}>
@@ -1382,7 +1382,7 @@ function ConnectionCard({
         <span className={`home-connection-status ${!state.has_token ? "" : verificacion === "probada" || isOAuth ? "is-ready" : verificacion === "rechazada" ? "is-error" : "is-pending"}`}>
           {state.has_token && verificacion !== "rechazada" ? <ShieldCheck size={13} /> : <AlertTriangle size={13} />}
           {connectionStatusLabel(meta, state)}
-          {state.has_token && !isOAuth ? (verificacion === "probada" ? " · verificada" : verificacion === "rechazada" ? " · no responde" : " · sin verificar") : null}
+          {state.has_token && !isOAuth ? (verificacion === "probada" ? ", verificada" : verificacion === "rechazada" ? ", no responde" : ", sin verificar") : null}
         </span>
       </div>
 

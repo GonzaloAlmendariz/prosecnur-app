@@ -181,8 +181,8 @@ function HomeFooter({
   return (
     <footer className="home-footer">
       <div className="home-footer-attr">
-        <span>Prosecnur{version && version !== "…" ? ` · ${version}` : ""}</span>
-        <span aria-hidden="true">·</span>
+        <span>Prosecnur{version && version !== "…" ? ` ${version}` : ""}</span>
+        <span className="home-footer-sep" aria-hidden="true" />
         <span>Hecho para el {PULSO_FULL_NAME}</span>
         <div style={{ flex: 1 }} />
         <button type="button" className="home-footer-notes" onClick={onOpenEstudio}>
