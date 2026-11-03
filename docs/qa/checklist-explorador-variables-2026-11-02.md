@@ -40,7 +40,7 @@ Las 16 familias suman los 25 pares.
 | E8e | so × num, num × so, sm × num, num × sm | Cajas por categoría / por opción marcada | `CruceCajas`: una caja por grupo en la misma escala | Lo mismo; con múltiple, avisar que un caso entra en cada opción que marca | `CruceCajas` | ☑ cajas en escala común con rejilla, mediana rotulada, n junto a la caja, grupo < 30 atenuado; con múltiple, la nota (82d8bd285) |
 | E8f | fecha × so, fecha × sm | Días por categoría / por opción marcada | `CruceCajas` sobre «días desde la fecha mínima»: el eje dice 0…N, no fechas | Cajas con el eje en fechas (fecha mínima + días). El motor no publica la fecha de origen | motor (`origen` en `cajas`) + `CruceCajas` | ☑ eje de fechas de dos líneas de Monitoreo sobre `origen` (3933c3b38, 82d8bd285) |
 | E8g | fecha × fecha | Diferencia en días | `CruceCajas` con una sola caja, sin unidad | Una caja de la diferencia en días, con la unidad en el eje y el signo explicado («y menos x») | `CruceCajas` | ☑ si casi todo coincide, en cifras (% coinciden, casos con otro día, mediana); si no, caja en días; el signo dicho (82d8bd285) |
-| E8h | num × num | Dispersión con tendencia | `CruceDispersion` con recta de mínimos cuadrados | Lo mismo | `CruceDispersion` | ☑ encuadre de Tukey con los atípicos contados; dato imposible (duración/edad, por nombre con palabra entera, en los dos ejes) con aviso, zona sombreada y sin tendencia (82d8bd285) |
+| E8h | num × num | Dispersión con tendencia | `CruceDispersion` con recta de mínimos cuadrados | Lo mismo | `CruceDispersion` | ☑ encuadre de Tukey con los atípicos contados (y sin tendencia si la arrastran); el «dato imposible» sale del `constraint` del XLSForm: cotas simples contadas sobre toda la base, especiales declarados aparte, zona sombreada sólo en el lado incumplido, tendencia ajustada dentro de las cotas (82d8bd285, 2adca2dd9) |
 | E8i | fecha × num | Fecha frente a la numérica | `CruceDispersion` con x en días desde la mínima: el eje horizontal no dice fechas | Dispersión con el eje horizontal en fechas | motor (`origen` en `dispersion`) + `CruceDispersion` | ☑ es la misma mediana por día que E8l: el motor la sirve como serie (7faaa7cfd) |
 | E8j | so × fecha | Casos por día, apilados | `CruceSerie`: una línea por categoría, no apiladas. El título promete otra cosa | Barras apiladas por día (casos), o el título dice «líneas» | `CruceSerie` | ☑ barras apiladas con el eje de Monitoreo, día mayor rotulado, días sin casos como hueco (7faaa7cfd) |
 | E8k | sm × fecha | % que marca, por día | `CruceSerie`: líneas por opción; el eje no dice que es % | Líneas con el eje en % | `CruceSerie` | ☑ un panel por opción con su tope, % del periodo ponderado por casos (revisor), días < 30 marcados (7faaa7cfd) |
@@ -71,8 +71,10 @@ la implementación espera su visto bueno de la v4.
   escrito y el «% del periodo», que es la parte de la base que marca la opción (no el promedio de los % diarios).
 - E8b/E8c: el total incluye a los grupos que no se dibujan por chicos; la brecha de 5 puntos es un realce, no
   significancia.
-- E8h: «dato imposible» sólo para duraciones y edades reconocidas por nombre o rótulo (palabra entera); con muestra
-  (> 3000 casos) el aviso habla de los valores dibujados. Pendiente: leerlo del `constraint` del XLSForm.
+- E8h: el «dato imposible» sale sólo del `constraint` del XLSForm (conjunción de cotas simples; lo demás no se
+  evalúa). Sin restricción declarada no se marca nada: el revisor rechazó el aviso genérico de duraciones negativas
+  (un `calculate` no lleva constraint; un error de fórmula se atrapa con una regla declarada en Validación). La
+  restricción es la del instrumento actual; sin etiquetas de valor, todo valor fuera de las cotas se cuenta.
 
 ## Contrato congelado (front ↔ motor)
 
