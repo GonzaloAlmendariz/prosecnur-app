@@ -1,6 +1,6 @@
 # ADR 0128: Una regla de diferencias por estudio
 
-Estado: Aceptado (Gonzalo, 2026-11-03, decisiones D1 a D9 de la propuesta de significancia)
+Estado: Aceptado (Gonzalo, 2026-11-03: decisiones D1 a D9 del diseño de significancia, y unificación con el 0127: «Sí, unifica con D1–D3»)
 
 Implementación: rama `claude/significancia-diseno` (sesión S1 del trabajo paralelo del 2026-11-03).
 
@@ -164,3 +164,20 @@ Códigos nuevos: `E_SIG_SIN_CONGLOMERADO` (422: se pidió Rao-Scott y la columna
 - La prueba de tendencia (D6) queda declarada en la regla y apagada; su cálculo no se implementa todavía.
 - Los filtros de lámina no entran en la familia: una lámina filtrada interpola su p ajustado sobre la familia del
   estudio.
+
+## Cumplimiento
+
+- Motor: `api/R/graficos_significancia_*.R` (regla, diseño, indicadores, veredicto, BH, familia, textos, render,
+  informe y jobs) y `api/R/cruces_significancia.R` + `api/R/reporte_cruces_significancia.R` para las tablas.
+- Router: `api/R/router_graficos_diferencias.R`, montado en `plumber_app.R`.
+- UI: `frontend/src/features/graficos/laminas/diferencias/` y `frontend/src/features/analitica/panes/CrucesReglaEstudio.tsx`.
+- Tests: `test-graficos-significancia-diseno.R` (contra `survey`), `test-graficos-significancia-regla.R`,
+  `test-reporte-cruces-significancia-regla.R` (paridad lámina–tabla) y `test-cruces-significancia-diseno.R` (del 0127).
+- Verificado en CCSS 2026-II: familia de 8.596 comparaciones y 482 de 482 celdas iguales entre lámina y tabla.
+
+## Notas
+
+- Las medias de dimensiones se corrigen dentro de la fila: no entran a la familia de BH del informe.
+- Las series por niveles y la armonizada aún no usan la regla: con el estudio en diseño se abstienen y lo dicen.
+- La cápsula ▲A dibujada (fondo y contorno) queda pendiente en los graficadores; hoy la marca va como texto tras la cifra.
+

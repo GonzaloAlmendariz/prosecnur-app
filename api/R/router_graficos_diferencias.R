@@ -22,6 +22,7 @@
     propuesta <- .sig_regla_propuesta(f$data)
     cfg$significancia <- .sig_regla_normalizar(regla, base = propuesta)
   }
+  # Sin config de Analítica (estudio sin esa fase) la familia se arma solo con las láminas: no es un error del pedido.
   ac <- tryCatch(.analitica_get_config(sid), error = function(e) list())
   if (is.list(cfg$significancia)) .sig_regla_validar_base(.sig_regla_normalizar(cfg$significancia), f$data)
   ctx <- .sig_contexto_estudio(f$data, f$inst, cfg, ac)
@@ -47,9 +48,17 @@
 #' @keywords internal
 .sig_respuesta_regla <- function(sc) {
   ctx <- sc$ctx
+  # El aviso de celdas es informativo: si falla, la regla igual se muestra y se guarda. Al cliente va un error_id; el
+  # mensaje crudo de R queda solo en stderr.
   cambios <- tryCatch(.sig_cambios_tablas(sc$fuente, ctx$regla, ctx$familia, sc$analitica),
-                      error = function(e) list(celdas_total = 0L, celdas_cambian = 0L, ganan_marca = 0L,
-                                               pierden_marca = 0L, cambian_letras = 0L, error = conditionMessage(e)))
+                      error = function(e) {
+                        error_id <- substr(digest::digest(list(Sys.time(), conditionMessage(e)), algo = "xxhash32"), 1, 8)
+                        message(sprintf("[E_SIG_PRUEBA_FALLO] error_id=%s cambios de tablas: %s", error_id, conditionMessage(e)))
+                        list(celdas_total = 0L, celdas_cambian = 0L, ganan_marca = 0L, pierden_marca = 0L,
+                             cambian_letras = 0L,
+                             error = list(code = "E_SIG_PRUEBA_FALLO", error_id = error_id,
+                                          message = "No se pudo calcular cuántas celdas cambian."))
+                      })
   list(ok = TRUE, regla = .sig_regla_json(ctx$regla), origen = ctx$origen, cambios_tablas = cambios,
        nota = .sig_texto_linea_marcas(ctx$regla, hay_fragiles = identical(ctx$regla$fragiles, "contorno")),
        familia = as.integer(ctx$m %||% 0L))

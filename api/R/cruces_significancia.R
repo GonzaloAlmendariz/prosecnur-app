@@ -103,7 +103,9 @@
                                     min_conglomerados = 8L, proporcion = TRUE) {
   K <- length(niveles)
   w <- diseno$w; psu <- diseno$psu; est <- diseno$estrato
-  en_diseno <- !is.na(psu) & !is.na(est) & is.finite(w) & w > 0
+  # Como en las láminas (`.sig_conglomerado_ultimo`): un caso sin conglomerado es su propio conglomerado y no se
+  # descarta, para que la tabla y la lámina prueben sobre los mismos casos.
+  en_diseno <- is.finite(w) & w > 0
   yy <- ifelse(en_diseno & !is.na(dom) & dom %in% niveles, y, NA_real_)
   r <- .sig_contrastes(cbind(y = yy[en_diseno]), dom[en_diseno], niveles, cluster = psu[en_diseno],
                        estrato = est[en_diseno], w = w[en_diseno], prueba = "rao_scott")
