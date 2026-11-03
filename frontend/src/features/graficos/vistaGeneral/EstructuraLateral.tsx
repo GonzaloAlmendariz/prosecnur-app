@@ -4,6 +4,7 @@
 
 import type { EstadoTarjeta } from "./estadoTarjetas";
 import type { FilaVistaGeneral } from "./modeloVistaGeneral";
+import { formatoConteo } from "../../../lib/formatoNumero";
 
 type Props = {
   filas: readonly FilaVistaGeneral[];
@@ -19,10 +20,10 @@ export function EstructuraLateral({ filas, estados, onIr }: Props) {
         const atencion = f.ids.filter((id) => (estados.get(id)?.clave ?? "lista") !== "lista").length;
         return (
           <button key={f.id} type="button" className={`pulso-f6-vg-ol is-${f.clase}`} onClick={() => onIr(f.id)}
-            aria-label={`${f.rotulo}: ${f.ids.length} láminas${atencion ? `, ${atencion} ${atencion === 1 ? "pide" : "piden"} atención` : ""}`}>
+            aria-label={`${f.rotulo}: ${formatoConteo(f.ids.length)} láminas${atencion ? `, ${atencion} ${atencion === 1 ? "pide" : "piden"} atención` : ""}`}>
             {f.clase === "capitulo" && f.numero ? <span className="pulso-f6-vg-ol-n">{f.numero}</span> : null}
             <span className="pulso-f6-vg-ol-t">{f.titulo}</span>
-            <span className="pulso-f6-vg-ol-c">{f.ids.length}</span>
+            <span className="pulso-f6-vg-ol-c">{formatoConteo(f.ids.length)}</span>
             {atencion > 0 && <i className="pulso-f6-vg-ol-punto" aria-hidden="true" />}
           </button>
         );

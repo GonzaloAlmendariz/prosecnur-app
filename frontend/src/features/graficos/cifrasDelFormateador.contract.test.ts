@@ -27,47 +27,8 @@ const rel = (f: string) => path.relative(aqui, f).split(path.sep).join("/");
 const sinComentarios = (s: string) => s.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
 const LENGTH_CRUDO = /(?<![=\w])\{[\w.!?]+\.length\}|\$\{[\w.!?]+\.length\}/g;
 
-/** Foto del 2 nov 2026. Sólo baja. */
-const SNAPSHOT_LENGTH_CRUDO: Record<string, number> = {
-  "ArgField.tsx": 7,
-  "GraficadorPicker.tsx": 1,
-  "GraficosHeader.tsx": 4,
-  "IconosEditor.tsx": 1,
-  "MultibaseReportMenu.tsx": 1,
-  "PlanCoverageBadge.tsx": 2,
-  "PlanHealthBadge.tsx": 5,
-  "SuggestedPlanButton.tsx": 1,
-  "avisosPlan.ts": 1,
-  "compartir/accionesCompartir.ts": 1,
-  "estilo/ColoresRespuestas.tsx": 6,
-  "estiloInforme/SeccionCalculos.tsx": 1,
-  "indice/EditorIndice.tsx": 2,
-  "laminas/DatosGrafico.tsx": 2,
-  "laminas/EstructuraInforme.tsx": 1,
-  "laminas/InspectorLamina.tsx": 2,
-  "laminas/OrdenCategoriasGrafico.tsx": 1,
-  "laminas/PanelAvisos.tsx": 2,
-  "laminas/TiraMiniaturas.tsx": 2,
-  "laminas/VisorLamina.tsx": 1,
-  "laminas/citas/CitasAprobadas.tsx": 2,
-  "laminas/contenidoEspecial/ActoresObjetivo.tsx": 2,
-  "laminas/contenidoEspecial/FilasFichaTecnica.tsx": 1,
-  "laminas/maqueta/fichaModelo.ts": 1,
-  "laminas/maqueta/geometriaFicha.ts": 1,
-  "laminas/miniaturas/anuncioTira.ts": 1,
-  "laminas/selectores/SelectorTipoGrafico.tsx": 1,
-  "laminas/selectores/SelectorTipoLamina.tsx": 1,
-  "multiApiladasScale.ts": 1,
-  "multiapiladas/TemasPorPublico.tsx": 1,
-  "temasEquivalentes/temasEquivalentesModel.ts": 1,
-  "usePlanValidator.ts": 1,
-  "v2/inspector/FiltersPanel.tsx": 2,
-  "v2/timeline/SlidePicker.tsx": 1,
-  "vistaGeneral/EstructuraLateral.tsx": 2,
-  "vistaGeneral/modeloVistaGeneral.ts": 1,
-  "word/DetalleGraficos.tsx": 1,
-  "word/PestanaWord.tsx": 1,
-};
+/** Meta 0 desde el 3 nov 2026: todo conteo visible pasa por formatoConteo. */
+const SNAPSHOT_LENGTH_CRUDO: Record<string, number> = {};
 
 describe("cifras de Gráficos por el formateador compartido · P4", () => {
   const conteo: Record<string, number> = {};
@@ -85,6 +46,7 @@ describe("cifras de Gráficos por el formateador compartido · P4", () => {
   });
 
   it("el snapshot no guarda conteos que ya bajaron", () => {
+    expect(archivos(aqui).length).toBeGreaterThan(300);
     const viejos = Object.entries(SNAPSHOT_LENGTH_CRUDO)
       .filter(([f, n]) => (conteo[f] ?? 0) < n)
       .map(([f, n]) => `${f}: ${n} → ${conteo[f] ?? 0}`);

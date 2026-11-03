@@ -11,6 +11,7 @@ import { destacadasDe } from "../DestacarRespuestas";
 import { GRAFICOS_CON_RESALTE, resaltaMayor } from "../ResaltarGrafico";
 import type { OpcionMaqueta, RanuraMaqueta } from "../modeloMaqueta";
 import { categoriasQueSalen, type ConteoCategoria } from "./categoriasQueSalen";
+import { formatoConteo } from "../../../../lib/formatoNumero";
 
 /** Aviso de la ficha cuando el Top Two Box está encendido sin sus respuestas (el PowerPoint sale sin la columna). */
 export const TTB_SIN_RESPUESTAS = "Top Two Box sin respuestas elegidas";
@@ -310,7 +311,7 @@ export function fichaDeRanura(r: RanuraMaqueta, nombreTipo: string | null, conte
   if (conTtb) ajustes.push(conTtb === salen.length ? "Top Two Box" : "Top Two Box en un bloque");
   const btb = conTtb > 0 && r.twoBox.btb && !ttbSinRespuestas;
   if (btb) ajustes.push("Bottom Two Box");
-  if (salen.length > 1) ajustes.push(`${salen.length} bloques`);
+  if (salen.length > 1) ajustes.push(`${formatoConteo(salen.length)} bloques`);
   if (cruce) ajustes.push(`Por grupos: ${cruce}`);
   ajustes.push(...ajustesComunes(r.args));
   const eje = ejeDe(r.args);

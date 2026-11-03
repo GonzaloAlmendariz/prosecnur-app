@@ -68,6 +68,7 @@ import { argsATemas, codigosComunes, patchModoRadar } from "../temasEquivalentes
 import { useVariables } from "../useVariables";
 import { NumeroAcotado, tieneRango } from "./NumeroAcotado";
 import "./datosGrafico.css";
+import { formatoConteo } from "../../../lib/formatoNumero";
 
 type Props = { slideId: string; slot: string; valor: GraficadorRef };
 
@@ -142,7 +143,7 @@ export function DatosGrafico({ slideId, slot, valor }: Props) {
   const aplicarTodos = () => {
     if (!tipo || !propios.length) return;
     aplicarAlTipo(tipo, Object.fromEntries(propios.map((c) => [c.arg.name, args[c.arg.name]])));
-    toast.exito(`${propios.length === 1 ? "Un cambio aplicado" : `${propios.length} cambios aplicados`} a los gráficos de ${nombreTipo}`, {
+    toast.exito(`${propios.length === 1 ? "Un cambio aplicado" : `${formatoConteo(propios.length)} cambios aplicados`} a los gráficos de ${nombreTipo}`, {
       accion: { label: "Deshacer", onSelect: () => undo() },
     });
   };
@@ -242,7 +243,7 @@ export function DatosGrafico({ slideId, slot, valor }: Props) {
       {propios.length > 0 && (
         <div className="pulso-f6-dato pulso-f6-alcance-pie" data-qa="ajustes-del-tipo">
           <span className="pulso-f6-dato-rotulo">
-            {propios.length === 1 ? "Un ajuste es sólo de este gráfico" : `${propios.length} ajustes son sólo de este gráfico`}
+            {propios.length === 1 ? "Un ajuste es sólo de este gráfico" : `${formatoConteo(propios.length)} ajustes son sólo de este gráfico`}
           </span>
           <button type="button" className="pulso-f6-boton pulso-f6-dato-accion" onClick={aplicarTodos}>
             Aplicar a {nTipo > 1 ? `los ${nTipo} gráficos` : "todos los gráficos"} de {nombreTipo}

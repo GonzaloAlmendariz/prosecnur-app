@@ -21,6 +21,7 @@ import {
   type FilaCalculo,
   type NotaRedondeo,
 } from "./modeloEstiloInforme";
+import { formatoConteo } from "../../../lib/formatoNumero";
 
 export type AccionesCalculos = {
   onMetodo: (fila: FilaCalculo, metodo: string) => void;
@@ -162,7 +163,7 @@ function NotaAlPie({ nota, metodo, decimales, acciones }: { nota: { modo: ModoNo
               <span className="pulso-sr-only">Texto propio de la nota del redondeo</span>
               <textarea value={borrador} rows={3} maxLength={300} onChange={(e) => setBorrador(e.target.value)}
                 onBlur={() => { if (borrador !== nota.texto) acciones.onTextoNota(borrador); }} />
-              <small>{borrador.length}/300. Si la lámina ya trae una nota, esta va después.</small>
+              <small>{formatoConteo(borrador.length)}/300. Si la lámina ya trae una nota, esta va después.</small>
             </label>
           ) : (
             <p className="pulso-f6-nota-auto"><b>Va a decir:</b> “{automatico}” <span>Cambia sola con el método y los decimales.</span></p>

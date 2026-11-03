@@ -13,6 +13,7 @@ import { parseVarRef } from "../useVariables";
 import { buscar, conRef, nombrePublico, refDePublico, otraEscala, type TemaPublicos } from "./temasPublicos";
 import { cabeOtroTema, MAX_BARRAS_MULTIAPILADAS, MOTIVO_TOPE } from "./topeBarras";
 import { aplicablesEnLote, SIN_MATRIZ, sugerenciasDeTema, type FuentesMatriz, type SugerenciaPublico } from "./sugerenciasMatriz";
+import { formatoConteo } from "../../../lib/formatoNumero";
 
 export { conRef, nombrePublico, otraEscala, refDePublico, type TemaPublicos };
 
@@ -81,7 +82,7 @@ export function TemasPorPublico({ temas, publicos, variables, onChange, nuevoTem
               {lote.length > 0 && (
                 <button type="button" className="pulso-f6-boton pulso-mapi-completar" onClick={() => aplicar(lote)}
                         disabled={!loteCabe} title={loteCabe ? undefined : MOTIVO_TOPE}
-                        aria-label={`Completar con la matriz ${lote.length === 1 ? "el público vacío" : `los ${lote.length} públicos vacíos`} de ${tema.title.trim() || "este tema"}`}>
+                        aria-label={`Completar con la matriz ${lote.length === 1 ? "el público vacío" : `los ${formatoConteo(lote.length)} públicos vacíos`} de ${tema.title.trim() || "este tema"}`}>
                   <Link2 size={12} aria-hidden="true" /> Completar con la matriz
                 </button>
               )}

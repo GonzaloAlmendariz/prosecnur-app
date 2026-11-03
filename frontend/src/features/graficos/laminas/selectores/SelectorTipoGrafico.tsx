@@ -24,6 +24,7 @@ import { TarjetaTipoGrafico } from "./TarjetaTipoGrafico";
 import { encajeEnRanura, FAMILIAS_GRAFICO, familiaInicial, graficosDeFamilia, salidaDe } from "./tiposGrafico";
 import { EstadoVacio } from "../../../../components/EstadoVacio";
 import { CargaDeBloque } from "../../../../components/CargaDeBloque";
+import { formatoConteo } from "../../../../lib/formatoNumero";
 
 type Props = {
   slide: Slide | null;
@@ -134,7 +135,7 @@ export function SelectorTipoGrafico({ slide, posicion, ranura, cerrar }: Props) 
         <section aria-labelledby={`${grupo}-galeria`}>
           <div className="pulso-f6-galeria-cabeza">
             <h3 id={`${grupo}-galeria`}>{FAMILIAS_GRAFICO.find((f) => f.id === familia)?.label}</h3>
-            <span>{lista.length} {lista.length === 1 ? "gráfico" : "gráficos"}</span>
+            <span>{formatoConteo(lista.length)} {lista.length === 1 ? "gráfico" : "gráficos"}</span>
           </div>
           {vacio ? (
             loading && !registry

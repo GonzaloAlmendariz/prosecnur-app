@@ -32,6 +32,7 @@ import { useLaminasUi, type SeccionInspector } from "./laminasStore";
 import { useSeccion } from "../../../lib/navegacion/useDireccion";
 import "./inspectorLamina.css";
 import { EstadoVacio } from "../../../components/EstadoVacio";
+import { formatoConteo } from "../../../lib/formatoNumero";
 
 // G14 (Gonzalo, 2026-10-13): dos pestañas, cada una con una función: «Lámina» (qué es, su composición y sus textos en el
 // orden en que salen) y «Gráfico» (un gráfico a la vez). La lámina de estructura no tiene «Gráfico». «Revisión» se quitó
@@ -113,7 +114,7 @@ export function InspectorLamina({
       </header>
 
       {avisos.length > 0 && (
-        <div className="pulso-f6-inspector-avisos" role="status" aria-label={`${avisos.length} ${avisos.length === 1 ? "aviso" : "avisos"} en esta lámina`}>
+        <div className="pulso-f6-inspector-avisos" role="status" aria-label={`${formatoConteo(avisos.length)} ${avisos.length === 1 ? "aviso" : "avisos"} en esta lámina`}>
           <AlertTriangle size={14} aria-hidden="true" />
           <ul>{avisos.map((a) => <li key={a}>{a}</li>)}</ul>
         </div>
@@ -398,7 +399,7 @@ function SalidaDelGrafico({ slide, visor }: { slide: Slide; visor: LaminaVisor |
       )}
       {visor && visor.partes.length > 1 && (
         <p className="pulso-f6-ayuda">
-          Sale en {visor.partes.length} láminas: {visor.partes.map((p) => `${p.indice}${p.continuacion ? " (cont.)" : ""}`).join(", ")}.
+          Sale en {formatoConteo(visor.partes.length)} láminas: {visor.partes.map((p) => `${p.indice}${p.continuacion ? " (cont.)" : ""}`).join(", ")}.
         </p>
       )}
     </div>

@@ -22,6 +22,7 @@ import {
 } from "./modeloPaletasConNombre";
 import "./coloresRespuestas.css";
 import { EstadoChip } from "../../../components/EstadoChip";
+import { formatoConteo } from "../../../lib/formatoNumero";
 
 type Filtro = "todos" | "faltan" | "listos";
 type Mapas = { paletas: Record<string, Record<string, string>>; vinculos: Record<string, string> };
@@ -144,7 +145,7 @@ function Agrupar({ fila, filas, onAgrupar }: { fila: FilaPaleta; filas: readonly
             <span className="pulso-cr-mini-tira" aria-hidden="true">{f.opciones.map((o) => <span key={o} style={f.colores[o] ? { background: f.colores[o] } : undefined} />)}</span>
             <span className="pulso-cr-agrupar-texto">
               <strong>{f.nombre}</strong>
-              <span>Comparten {comun} de {fila.opciones.length} respuestas</span>
+              <span>Comparten {comun} de {formatoConteo(fila.opciones.length)} respuestas</span>
             </span>
             <PulsoButton variant="ghost" size="sm" onClick={() => onAgrupar(f)}>Agrupar</PulsoButton>
           </li>
@@ -176,10 +177,10 @@ function FilaColores(props: {
             {fila.clave ? <span className="pulso-cr-sello">Paleta con nombre</span> : null}
           </span>
           <span className="pulso-cr-fila-resumen">
-            {fila.preguntas.length === 1 ? "1 pregunta" : `${fila.preguntas.length} preguntas`}
-            {fila.bases.length > 1 ? ` en ${fila.bases.length} bases` : fila.bases.length === 1 ? ` de ${fila.bases[0]}` : ""}
+            {fila.preguntas.length === 1 ? "1 pregunta" : `${formatoConteo(fila.preguntas.length)} preguntas`}
+            {fila.bases.length > 1 ? ` en ${formatoConteo(fila.bases.length)} bases` : fila.bases.length === 1 ? ` de ${fila.bases[0]}` : ""}
           </span>
-          {fila.grupos.length > 1 ? <span className="pulso-cr-fila-resumen">Reúne {fila.grupos.length} grupos de respuestas</span> : null}
+          {fila.grupos.length > 1 ? <span className="pulso-cr-fila-resumen">Reúne {formatoConteo(fila.grupos.length)} grupos de respuestas</span> : null}
         </span>
         <span className="pulso-cr-vista">
           <span className="pulso-cr-barra" aria-label={`Respuestas: ${fila.opciones.join(", ")}`}>
@@ -214,7 +215,7 @@ function FilaColores(props: {
                     <li key={g.id} className="pulso-cr-agrupar-fila">
                       <span className="pulso-cr-agrupar-texto">
                         <strong>{g.opciones.join(" / ")}</strong>
-                        <span>{g.preguntas.length === 1 ? "1 pregunta" : `${g.preguntas.length} preguntas`}</span>
+                        <span>{g.preguntas.length === 1 ? "1 pregunta" : `${formatoConteo(g.preguntas.length)} preguntas`}</span>
                       </span>
                       <PulsoButton variant="ghost" size="sm" onClick={() => props.onSeparar(g.id)}>Separar</PulsoButton>
                     </li>
@@ -226,7 +227,7 @@ function FilaColores(props: {
           <div className="pulso-cr-editor-col is-ancha">
             <Pintor fila={fila} onPintar={props.onPintar} />
             <details className="pulso-cr-preguntas">
-              <summary>Ver las preguntas que la usan ({fila.preguntas.length})</summary>
+              <summary>Ver las preguntas que la usan ({formatoConteo(fila.preguntas.length)})</summary>
               <ul>{fila.preguntas.map((p) => <li key={p.ref}>{p.texto}{p.base ? <span className="pulso-cr-base-tag">{p.base}</span> : null}</li>)}</ul>
             </details>
             <div className="pulso-cr-editor-pie">

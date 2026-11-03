@@ -21,6 +21,7 @@ import {
 } from "./modeloActoresObjetivo";
 import "../../indice/editorIndice.css";
 import "./contenidoEspecial.css";
+import { formatoConteo } from "../../../../lib/formatoNumero";
 
 /** Qué actor eligió ícono (la biblioteca es `panel=icono-actor`; el actor no es una dimensión de la dirección). */
 const useActorIcono = create<{ actor: number | null; elegir: (i: number | null) => void }>((set) => ({
@@ -99,7 +100,7 @@ function ListaActores({ actores, onCambio }: { actores: Actor[]; onCambio: (acto
       data-qa-geometry-group="graficos/f6-actores" data-qa-geometry-contract="intrinsic">
       <div className="pulso-f6-especial-cabeza">
         <h3 id={idTitulo} className="pulso-f6-subtitulo">Actores consultados</h3>
-        <span className="pulso-f6-ayuda">{actores.length === 0 ? "Ninguno" : `${actores.length} de ${MAX_ACTORES}`}</span>
+        <span className="pulso-f6-ayuda">{actores.length === 0 ? "Ninguno" : `${formatoConteo(actores.length)} de ${MAX_ACTORES}`}</span>
       </div>
       <span id={idAyuda} className="pulso-f6-ayuda">Cada uno sale con su ícono bajo el objetivo; sin actores, la lámina va sin esa fila.</span>
       {actores.length > 0 && (
@@ -185,7 +186,7 @@ function ListaDimensiones({ dimensiones, onCambio }: { dimensiones: string[]; on
       data-qa-geometry-group="graficos/f6-dimensiones" data-qa-geometry-contract="intrinsic">
       <div className="pulso-f6-especial-cabeza">
         <h3 id={idTitulo} className="pulso-f6-subtitulo">Dimensiones</h3>
-        <span className="pulso-f6-ayuda">{dimensiones.length === 0 ? "Ninguna" : `${dimensiones.length} de ${MAX_DIMENSIONES}`}</span>
+        <span className="pulso-f6-ayuda">{dimensiones.length === 0 ? "Ninguna" : `${formatoConteo(dimensiones.length)} de ${MAX_DIMENSIONES}`}</span>
       </div>
       <span className="pulso-f6-ayuda">Van en tarjetas bajo Conocer la percepción sobre.</span>
       {dimensiones.length > 0 && (

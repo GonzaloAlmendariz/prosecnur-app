@@ -18,6 +18,7 @@ import { ID_BUSQUEDA_ESTRUCTURA } from "./useAtajosLaminas";
 import { rolDeEstructura } from "./rolEstructura";
 import "./estructuraInforme.css";
 import { EstadoVacio } from "../../../components/EstadoVacio";
+import { formatoConteo } from "../../../lib/formatoNumero";
 
 export type MarcaValidacion = "error" | "warning";
 
@@ -70,7 +71,7 @@ export function EstructuraInforme({ onCerrar, acciones, estructura, posicionActi
     <aside className="pulso-f6-estructura" aria-label="Estructura del informe">
       <header className="pulso-f6-col-head">
         <h2>Estructura</h2>
-        <span className="pulso-f6-col-meta">{estructura.laminas.length} láminas</span>
+        <span className="pulso-f6-col-meta">{formatoConteo(estructura.laminas.length)} láminas</span>
         <span className="pulso-f6-col-sp" />
         <button
           type="button"

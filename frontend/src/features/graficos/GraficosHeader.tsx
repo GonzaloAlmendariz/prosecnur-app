@@ -18,6 +18,7 @@ import { PlanPortatilContenido } from "./compartir/PlanPortatilContenido";
 import { SeccionesJsonContenido } from "./compartir/SeccionesJsonContenido";
 import { useCompartirPlan } from "./compartir/useCompartirPlan";
 import { useVaciarPlan } from "./compartir/useVaciarPlan";
+import { formatoConteo } from "../../lib/formatoNumero";
 
 const jsonIoStyles: Record<string, CSSProperties> = {
   wrap: {
@@ -756,8 +757,8 @@ function ConstructorViewControls({ issueCount }: { issueCount: number }) {
   const currentSlideLabel = slides.length === 0
     ? "Plan nuevo"
     : selectedIndex >= 0
-      ? `Lámina ${selectedIndex + 1}/${slides.length}`
-      : `${slides.length} ${slides.length === 1 ? "lámina" : "láminas"}`;
+      ? `Lámina ${selectedIndex + 1}/${formatoConteo(slides.length)}`
+      : `${formatoConteo(slides.length)} ${slides.length === 1 ? "lámina" : "láminas"}`;
   const densityLabel = density === "compact" ? "Compacto" : "Cómodo";
 
   return (
@@ -1001,7 +1002,7 @@ function UndoRedoButtons() {
         className="pulso-gv2-icon-button"
         title={past.length === 0
           ? "Nada que deshacer"
-          : `Deshacer (${mod}+Z) — ${past.length} ${past.length === 1 ? "acción disponible" : "acciones disponibles"}`}
+          : `Deshacer (${mod}+Z) — ${formatoConteo(past.length)} ${past.length === 1 ? "acción disponible" : "acciones disponibles"}`}
         aria-label="Deshacer"
       >
         <Undo2 size={13} />
@@ -1013,7 +1014,7 @@ function UndoRedoButtons() {
         className="pulso-gv2-icon-button"
         title={future.length === 0
           ? "Nada que rehacer"
-          : `Rehacer (${mod}+Shift+Z) — ${future.length} ${future.length === 1 ? "acción disponible" : "acciones disponibles"}`}
+          : `Rehacer (${mod}+Shift+Z) — ${formatoConteo(future.length)} ${future.length === 1 ? "acción disponible" : "acciones disponibles"}`}
         aria-label="Rehacer"
       >
         <Redo2 size={13} />

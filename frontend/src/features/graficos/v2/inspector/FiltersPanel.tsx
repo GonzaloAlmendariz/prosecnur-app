@@ -3,6 +3,7 @@ import { Filter as FilterIcon, Plus, X, ChevronDown } from "lucide-react";
 import { GraficadorRef, Slide, VarInfo } from "../../../../api/client";
 import { usePlanStore } from "../../store";
 import { EstadoVacio } from "../../../../components/EstadoVacio";
+import { formatoConteo } from "../../../../lib/formatoNumero";
 
 // Tab de Filtros. Diseño:
 //
@@ -103,7 +104,7 @@ export function FiltersPanel({ slide, variables, slotNames }: FiltersPanelProps)
   function removeRule(id: string) { commit(rules.filter((r) => r.id !== id)); }
   function clearAll() {
     if (rules.length === 0) return;
-    if (!window.confirm(`¿Eliminar los ${rules.length} filtro(s) activos de este slide?`)) return;
+    if (!window.confirm(`¿Eliminar los ${formatoConteo(rules.length)} filtro(s) activos de este slide?`)) return;
     commit([]);
   }
 
@@ -116,7 +117,7 @@ export function FiltersPanel({ slide, variables, slotNames }: FiltersPanelProps)
             <FilterIcon size={14} /> Motor de filtros
           </span>
           <span className="pulso-gv2-filters-count">
-            {rules.length === 0 ? "Sin filtros" : `${rules.length} filtro${rules.length === 1 ? "" : "s"} activo${rules.length === 1 ? "" : "s"}`}
+            {rules.length === 0 ? "Sin filtros" : `${formatoConteo(rules.length)} filtro${rules.length === 1 ? "" : "s"} activo${rules.length === 1 ? "" : "s"}`}
           </span>
           {rules.length > 0 && (
             <button type="button" className="pulso-gv2-filters-clear" onClick={clearAll}>

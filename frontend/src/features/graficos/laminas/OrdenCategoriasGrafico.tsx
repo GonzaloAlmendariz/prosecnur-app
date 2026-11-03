@@ -29,6 +29,7 @@ import {
 import { useCategoriasGrafico } from "./useCategoriasGrafico";
 import "./ordenCategorias.css";
 import { CargaDeBloque } from "../../../components/CargaDeBloque";
+import { formatoConteo } from "../../../lib/formatoNumero";
 
 type Props = {
   /** Calificada `base$var` (`varCalificada`). */
@@ -155,7 +156,7 @@ function ListaOrden({ datos, lista, invertido, onLista }: { datos: GraficosCateg
     if (hasta < 0 || hasta >= lista.length || desde === hasta) return;
     const codigo = lista[desde];
     onLista(mover(lista, desde, hasta));
-    setAnuncio(`“${etiqueta.get(codigo) ?? codigo}” en la posición ${hasta + 1} de ${lista.length}.`);
+    setAnuncio(`“${etiqueta.get(codigo) ?? codigo}” en la posición ${hasta + 1} de ${formatoConteo(lista.length)}.`);
     if (!enfocar) return;
     requestAnimationFrame(() => {
       const item = items.current.get(codigo);

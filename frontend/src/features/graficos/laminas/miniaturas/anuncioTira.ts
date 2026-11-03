@@ -5,6 +5,7 @@
 //   desaparece del store al terminar, así que el anuncio recuerda los ids del último lote para contar sobre las entradas.
 
 import type { Entradas, LoteVigente } from "./loteMiniaturas";
+import { formatoConteo } from "../../../../lib/formatoNumero";
 
 export type AnuncioTira = {
   /** Ids del lote que se está anunciando; null cuando no hay ninguno en curso. */
@@ -32,7 +33,7 @@ export function siguienteAnuncio(previo: AnuncioTira, vigente: LoteVigente | nul
     }).length;
     const texto = listas >= ids.length
       ? textoFinalLote(ids, entradas)
-      : ids.length === 1 ? "Dibujando 1 miniatura" : `Dibujando ${ids.length} miniaturas`;
+      : ids.length === 1 ? "Dibujando 1 miniatura" : `Dibujando ${formatoConteo(ids.length)} miniaturas`;
     return texto === previo.texto && previo.ids?.length === ids.length ? previo : { ids, texto };
   }
   if (previo.ids) return { ids: null, texto: textoFinalLote(previo.ids, entradas) };

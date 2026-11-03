@@ -16,6 +16,7 @@ import {
   sharedReportPendingRequirements,
   type SharedReportPreflightStatus,
 } from "./multibaseReportMenuModel";
+import { formatoConteo } from "../../lib/formatoNumero";
 
 type ExportResult = {
   ok: true;
@@ -62,7 +63,7 @@ export function AvisosPaqueteBases({ avisos }: { avisos: readonly string[] }) {
     <div className="pulso-multibase-reports-preflight" data-tone="blocked" role="status">
       <span aria-hidden="true"><AlertTriangle size={14} /></span>
       <div>
-        <strong>{avisos.length === 1 ? "1 aviso del paquete" : `${avisos.length} avisos del paquete`}</strong>
+        <strong>{avisos.length === 1 ? "1 aviso del paquete" : `${formatoConteo(avisos.length)} avisos del paquete`}</strong>
         <ul className="pulso-multibase-reports-blockers">
           {avisos.map((aviso, indice) => <li key={`${indice}-${aviso}`}>{aviso}</li>)}
         </ul>

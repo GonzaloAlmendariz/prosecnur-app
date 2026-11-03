@@ -8,6 +8,7 @@ import type { ArgMetadata } from "../../../../api/graficos";
 import { normalizeTechnicalRows, type TechnicalRow } from "../../technicalRows";
 import "./contenidoEspecial.css";
 import { EstadoVacio } from "../../../../components/EstadoVacio";
+import { formatoConteo } from "../../../../lib/formatoNumero";
 
 type Props = {
   arg: ArgMetadata;
@@ -61,7 +62,7 @@ export function FilasFichaTecnica({ arg, valor, onCambio }: Props) {
       data-qa-geometry-group="graficos/f6-ficha-tecnica" data-qa-geometry-contract="intrinsic">
       <div className="pulso-f6-especial-cabeza">
         <h3 id={idTitulo} className="pulso-f6-subtitulo">{arg.label || "Filas"}</h3>
-        <span className="pulso-f6-ayuda">{filas.length === 0 ? "Ninguna" : `${filas.length} ${filas.length === 1 ? "fila" : "filas"}`}</span>
+        <span className="pulso-f6-ayuda">{filas.length === 0 ? "Ninguna" : `${formatoConteo(filas.length)} ${filas.length === 1 ? "fila" : "filas"}`}</span>
       </div>
       <span id={idAyuda} className="pulso-f6-ayuda">
         {arg.descripcion || "Cada fila lleva un criterio y su detalle."}

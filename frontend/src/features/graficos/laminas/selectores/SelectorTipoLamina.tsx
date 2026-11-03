@@ -24,6 +24,7 @@ import { useSelectoresUi } from "./selectoresStore";
 import { TarjetaTipoLamina } from "./TarjetaTipoLamina";
 import { conVariante, INTENCIONES, intencionDe, rotuloRanuras, varianteDe, variantesDe, type IntencionLamina } from "./tiposLamina";
 import { EstadoVacio } from "../../../../components/EstadoVacio";
+import { formatoConteo } from "../../../../lib/formatoNumero";
 
 const FUERA_DEL_CATALOGO = new Set(CATALOGO_LAMINAS.filter((s) => !s.en_selector).map((s) => s.name));
 
@@ -162,7 +163,7 @@ export function SelectorTipoLamina({ slide, posicion, cerrar }: Props) {
                 onChange={() => ui.elegirIntencion(i.id)}
               />
               <strong>{i.label}</strong>
-              <span className="pulso-f6-opcion-cuenta">{i.tipos.length}</span>
+              <span className="pulso-f6-opcion-cuenta">{formatoConteo(i.tipos.length)}</span>
               <span>{i.descripcion}</span>
             </label>
           ))}

@@ -25,6 +25,7 @@ import {
 import { normalizeTechnicalRows, type TechnicalRow } from "./technicalRows";
 import { EstadoVacio } from "../../components/EstadoVacio";
 import { CargaDeBloque } from "../../components/CargaDeBloque";
+import { formatoConteo } from "../../lib/formatoNumero";
 
 const DEFAULT_ARG_HINT = "Este ajuste define cómo se ve o se interpreta este bloque del gráfico en el slide.";
 
@@ -919,7 +920,7 @@ function buildTextSourceMeta(draft: string, placeholder: string | undefined, arg
     return {
       state: "manual",
       label: "Ajustes adicionales",
-      detail: `${trimmed.length} caracteres`,
+      detail: `${formatoConteo(trimmed.length)} caracteres`,
     };
   }
   return {
@@ -2590,8 +2591,8 @@ function CategoriasEscalaField({
     <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
       <p style={{ margin: 0, fontSize: "var(--pulso-type-caption-size)", color: "var(--pulso-text-soft)" }}>
         {cubiertas > 0
-          ? `${cubiertas} de ${listas.length} listas cubiertas, ${grupos.length} escalas distintas`
-          : `Marca las categorías. ${grupos.length} escalas distintas en ${listas.length} listas.`}
+          ? `${cubiertas} de ${formatoConteo(listas.length)} listas cubiertas, ${formatoConteo(grupos.length)} escalas distintas`
+          : `Marca las categorías. ${formatoConteo(grupos.length)} escalas distintas en ${formatoConteo(listas.length)} listas.`}
       </p>
       {/* Acotado y con scroll propio: sin esto ocupaba ~6.570 px y enterraba
           el resto de los ajustes del panel. */}
@@ -2632,7 +2633,7 @@ function CategoriasEscalaField({
                 })}
               </div>
               <span style={{ fontSize: "var(--pulso-type-micro-size)", color: "var(--pulso-text-soft)" }} title={g.listas.join(", ")}>
-                {g.listas.length === 1 ? g.listas[0] : `${g.listas.length} listas`}
+                {g.listas.length === 1 ? g.listas[0] : `${formatoConteo(g.listas.length)} listas`}
                 {fuentes.length ? `: ${fuentes.join(", ")}` : ""}
               </span>
             </div>
@@ -2840,7 +2841,7 @@ function IconoSelect({
         </span>
         <span style={{ minWidth: 0, display: "grid", gap: 2 }}>
           <strong style={iconPickerTitleStyle}>{selected ? safeText(selected.nombre, "Icono") : "Sin icono"}</strong>
-          <small style={iconPickerSubtitleStyle}>{iconos.length} recurso{iconos.length === 1 ? "" : "s"} disponible{iconos.length === 1 ? "" : "s"}</small>
+          <small style={iconPickerSubtitleStyle}>{formatoConteo(iconos.length)} recurso{iconos.length === 1 ? "" : "s"} disponible{iconos.length === 1 ? "" : "s"}</small>
         </span>
         <ChevronDown size={14} style={{ color: "var(--pulso-text-soft)" }} />
       </button>
