@@ -45,8 +45,10 @@ export type SeccionSustento = {
   id: string;
   titulo: string;
   origen: OrigenSeccion;
-  /** De dónde sale, literal, para que el que mantenga esto no lo adivine. */
+  /** De dónde sale, en lenguaje llano: es lo que se lee en pantalla. */
   fuente: string;
+  /** El campo literal del estado, para que quien mantenga esto no lo adivine. Va al `title`. */
+  campo: string;
   disponible: boolean;
   /** Por qué no se puede escribir todavía. Vacío cuando sí se puede. */
   falta: string;
@@ -87,44 +89,44 @@ export function seccionesSustento(ctx: Contexto): SeccionSustento[] {
 
   const s = (
     numero: number, id: string, titulo: string, origen: OrigenSeccion,
-    fuente: string, disponible: boolean, falta: string,
-  ): SeccionSustento => ({ numero, id, titulo, origen, fuente, disponible, falta });
+    [fuente, campo]: readonly [string, string], disponible: boolean, falta: string,
+  ): SeccionSustento => ({ numero, id, titulo, origen, fuente, campo, disponible, falta });
 
   return [
     s(1, "quienes-entran", "Quiénes entran al estudio", "estudio",
-      "El embudo de criterios del marco (`aulas.frame.audit`)",
+      ["El embudo de criterios del marco, paso por paso", "aulas.frame.audit"],
       Boolean(marco), "Todavía no se construyó el marco."),
     s(2, "que-aulas", "Qué aulas pueden usarse", "estudio",
-      "Los criterios de aula del marco y su recuento por paso",
+      ["Los criterios de aula del marco y su recuento por paso", "aulas.frame.audit (criterios de aula)"],
       Boolean(marco), "Todavía no se construyó el marco."),
     s(3, "cuantas-encuestas", "Cuántas encuestas necesita el estudio", "estudio",
-      "La fórmula del diseño y sus parámetros (`componente.parametros`)",
+      ["La fórmula del diseño y sus parámetros", "componente.parametros"],
       porFacultad > 0, "Falta calcular la propuesta."),
     s(4, "tau", "τ: cuántas encuestas produce un aula", "estudio",
-      "`aulas_por_estrato[].tau`, con su descomposición en `rendimiento_mix × factor_residual`",
+      ["La tasa τ de cada facultad, descompuesta en rendimiento por tamaño y factor propio", "aulas_por_estrato[].tau = rendimiento_mix × factor_residual"],
       hayTau(ctx), "Las tasas de efectividad por facultad todavía no se calcularon."),
     s(5, "cuantas-aulas", "Cuántas aulas hacen falta", "estudio",
-      "La cadena `cuota / (divisor × τ)` por facultad",
+      ["La cadena cuota ÷ (divisor × τ) de cada facultad", "aulas_por_estrato: cuota / (divisor × tau)"],
       porFacultad > 0, "Falta calcular la propuesta."),
     s(6, "cuales-aulas", "Cuáles aulas, y por qué esas", "seleccion",
-      "`selection.methodology` más el motor, la semilla y el hash del marco",
+      ["La metodología de la selección, con el motor, la semilla y la huella del marco", "selection.methodology, selector_engine, seed, frame_hash"],
       haySeleccion, "Todavía no hay una selección."),
     s(7, "cuotas-sexo", "Las cuotas por sexo", "seleccion",
-      "`selection.sexo_por_facultad`: marco, titulares y brecha por facultad",
+      ["El balance por sexo de cada facultad: marco, titulares y brecha", "selection.sexo_por_facultad"],
       sexo, "La selección no publicó el balance por sexo."),
     s(8, "reemplazos", "Qué hacer cuando un aula no puede aplicarse", "seleccion",
-      "Las cadenas de reemplazo y su profundidad por facultad",
+      ["Las cadenas de reemplazo y su profundidad por facultad", "replacement_simulation"],
       reemplazos || haySeleccion, "Todavía no hay cadenas de reemplazo."),
     // El único externo. Se declara, no se omite ni se rellena.
     s(9, "campo-monitoreo", "Criterios para el campo y su monitoreo", "externo",
-      "Monitoreo, perfil de aulas (`AulasCriterioDeAula`, `alcanceDelBanco`, `agendamiento`)",
+      ["Monitoreo, perfil de aulas: criterio de aula, alcance del banco y agendamiento", "AulasCriterioDeAula, alcanceDelBanco, agendamiento"],
       false,
       "Este capítulo vive en Monitoreo, que hoy lo muestra en pantalla pero no lo publica como dato. El documento puede citarlo pero no reconstruirlo."),
     s(10, "vs-propuesta", "Contraste con la propuesta técnica", "estudio",
-      "La comparación de métodos y el contraste por facultad",
+      ["La comparación de métodos y el contraste por facultad", "method_comparison"],
       comparacion, "Todavía no se comparó contra la propuesta."),
     s(11, "reproducir", "Cómo reproducir esta selección", "seleccion",
-      "`selection_run_id`, `frame_hash`, semilla y motor usado",
+      ["El identificador de la corrida, la huella del marco, la semilla y el motor usado", "selection_run_id, frame_hash, seed, selector_engine_used"],
       haySeleccion, "Todavía no hay una corrida que reproducir."),
   ];
 }

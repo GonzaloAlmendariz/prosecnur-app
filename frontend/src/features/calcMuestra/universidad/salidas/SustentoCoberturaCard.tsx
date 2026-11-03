@@ -47,9 +47,10 @@ export function SustentoCoberturaCard({
             <span className="cmv2-sustento-titulo">
               <b>{s.numero}.</b> {s.titulo}
             </span>
-            {/* La fuente literal, para que quien lo mantenga no la adivine, y el
-                motivo cuando falta: un «no disponible» sin razón no sirve. */}
-            <small className="cmv2-sustento-detalle">
+            {/* De dónde sale, en lenguaje llano (el campo literal va en title,
+                para quien lo mantenga), y el motivo cuando falta: un «no
+                disponible» sin razón no sirve. */}
+            <small className="cmv2-sustento-detalle" title={s.disponible ? s.campo : undefined}>
               {s.disponible ? s.fuente : s.falta}
             </small>
           </li>
