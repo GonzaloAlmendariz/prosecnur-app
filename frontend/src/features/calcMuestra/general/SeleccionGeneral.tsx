@@ -35,6 +35,7 @@ import { useColumnasDelMarco } from "./useColumnasDelMarco";
 import { guardarEstudioPendiente, useIrASeccionGeneral, useMuestraGeneral } from "./useMuestraGeneral";
 import "./general.css";
 import { CargaDeBloque } from "../../../components/CargaDeBloque";
+import { Panel } from "../../../components/Panel";
 
 /** Pestañas de Selección (E15 · P1): una pregunta cada una. */
 export type PestanaSeleccion = "seleccion-sorteo" | "seleccion-corrida" | "seleccion-unidades";
@@ -158,12 +159,12 @@ export function SeleccionGeneralVista({
       ) : errorCarga && !marco ? (
         <ErrorBlock label="No se pudo leer el estado de la selección" detail={errorCarga} />
       ) : !componente || !marco ? (
-        <section className="cmv2-panel cmg-sorteo-vacio" aria-labelledby="cmg-sorteo-titulo" data-qa-geometry-member>
-          <div className="cmv2-panel-head">
-            <div>
-              <h3 className="cmg-panel-titulo" id="cmg-sorteo-titulo">Método, semilla y reemplazos</h3>
-            </div>
-          </div>
+        <Panel
+          className="cmg-sorteo-vacio"
+          aria-labelledby="cmg-sorteo-titulo"
+          data-qa-geometry-member
+          title={<span id="cmg-sorteo-titulo">Método, semilla y reemplazos</span>}
+        >
           {enActor ? (
             <EmptyState
               variant="inline"
@@ -188,15 +189,15 @@ export function SeleccionGeneralVista({
               )}
             />
           )}
-        </section>
+        </Panel>
       ) : pestana === "seleccion-sorteo" ? (
         <>
-          <section className="cmv2-panel cmg-sorteo" aria-labelledby="cmg-sorteo-titulo" data-qa-geometry-member>
-            <div className="cmv2-panel-head">
-              <div>
-                <h3 className="cmg-panel-titulo" id="cmg-sorteo-titulo">{esCenso ? "Orden de contacto" : "Método, semilla y reemplazos"}</h3>
-              </div>
-            </div>
+          <Panel
+            className="cmg-sorteo"
+            aria-labelledby="cmg-sorteo-titulo"
+            data-qa-geometry-member
+            title={<span id="cmg-sorteo-titulo">{esCenso ? "Orden de contacto" : "Método, semilla y reemplazos"}</span>}
+          >
 
             {esCenso ? (
               <p className="cmg-nota cmg-censo">{TEXTO_COBERTURA_CENSAL}</p>
@@ -338,7 +339,7 @@ export function SeleccionGeneralVista({
                 </span>
               )}
             </div>
-          </section>
+          </Panel>
 
         </>
       ) : pestana === "seleccion-corrida" ? (
