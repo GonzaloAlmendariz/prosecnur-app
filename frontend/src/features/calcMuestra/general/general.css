@@ -230,6 +230,10 @@
 
 /* Semilla, RNG y huellas: metadatos de la corrida, en la letra del sistema con
    cifras tabulares (P8). El valor completo de una huella va en su title. */
+.cmg-traza-sin-corte {
+  white-space: nowrap;
+}
+
 .cmg-traza dd.cmg-traza-tecnico {
   color: var(--pulso-text-soft);
   font-weight: var(--pulso-weight-semibold);
