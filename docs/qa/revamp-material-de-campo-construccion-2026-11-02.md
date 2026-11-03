@@ -180,3 +180,55 @@ Cada fila pasó `make gate-front AREA=recopiladores`; las que tienen copia D1, u
 
 Datos que el backend aún no entrega: el desfase de ruteo y consolidados cuando cambia la asignación, la fecha en que se
 generó cada pieza territorial y el porcentaje del ZIP. Sin ellos, Paquetes no pinta esos estados.
+
+## Pasada de elegancia (2 nov 2026, noche)
+
+Gonzalo: «Hay [vistas] que aún se ven bastante feas, les falta formato y elegancia». La vara sale de su
+ejemplo, la cabecera de la tabla del plan de aulas: metadatos en la letra del sistema y en una línea, sin
+redundancias, cifras con separador de miles y contadores subordinados al título.
+
+Recorrido: 26 capturas a 1280×800 sobre las copias D1 (UMP, cuotas, aulas con plan sembrado y
+telefónico), 26 md5 distintos. Se juzga la estética, no la geometría.
+
+### Ranking, de la más fea a la menos fea
+
+| # | Vista | Por qué | Estado |
+|---|---|---|---|
+| 1 | Aulas › Accesos (Vinculación y Canales) | El vacío de Vinculación parte «30 aulas» en una columna propia; Canales es un vacío de 18 px que explica tres cosas; «profile-… (sin credenciales)» se lee como depuración; los dos botones de la cabecera, apagados y sin primario | pendiente |
+| 2 | Territorial › Entrega (UMP y cuotas) | Formulario sin marco: párrafo largo, caja «Encuestadores» vacía de 90 px, el rótulo «Plan de campo» flotando, inputs y dos botones chicos; en cuotas el formulario entero queda apagado con una disculpa al pie | pendiente |
+| 3 | Aulas › Entrega › Traspaso | Dos vacíos apilados de texto grande que dicen lo mismo, cuatro filas de «—» y un primario apagado a todo el ancho | pendiente |
+| 4 | Aulas › Paquetes | Tres botones apagados sin jerarquía, el colector de prueba con monoespaciada y rayas, «pendiente» y «sin preparar» en minúscula, desglose con puntos medios | pendiente |
+| 5 | Aulas › Entrega › Plantillas | Los nombres de cada plantilla (17 px) pesan más que el título de la tarjeta; los «Excel» son botones apagados mínimos; al lado, una tarjeta con sólo «Leyendo la entrega…» | pendiente |
+| 6 | Territorial › Catálogo (Zonas, Ruteo, Consolidados, Códigos) | Una tarjeta delgada arriba y 450 px de vacío debajo; el selector de UMP a todo el ancho con puntos medios; Códigos se queda en «Leyendo los códigos…» | pendiente |
+| 7 | Telefónica › Entrega | Dos tarjetas de texto en letra de 12 px y el resto vacío; correcta pero pobre | pendiente |
+| 8 | Telefónica › Casos | Inputs en «0» crudos y «Sin cambios.» suelto al pie | pendiente |
+| 9 | Aulas › Unidades › Origen | Títulos y metadatos cosidos con puntos medios («Selección de cursos-horario · Cálculo de muestra», «a3e1…c8 · sorteo») | pendiente |
+| 10 | Territorial › Paquetes | Chips «UMP 13 · no alcanza» con punto medio y un botón apagado a todo el ancho que sólo pide elegir | pendiente |
+| 11 | Aulas › Unidades › Lista | La cabecera que marcó Gonzalo; queda «sin docente» en minúscula repetido por fila | **hecho (L14)** |
+| 12 | Registro de campañas | «Campo real · enviada el 02/11»; la cabecera de la tarjeta es un ícono grande sobre vacío | pendiente |
+| 13 | Telefónica › Barrido | «Sin Sheets:» como etiqueta suelta con el enlace del Excel al pie | pendiente |
+| 14 | Territorial › Unidades y Cuotas › Zonas | Tablas limpias; «Hombre 96 · Mujer 104» con punto medio | pendiente |
+| 15 | Territorial › Catálogo › Fichas | Bien; la maqueta repite puntos medios («ATE · Zona 00300 · Manzana 0140») | pendiente |
+| 16 | Aulas › Catálogo (Tipos y Editor) | Las mejor resueltas del módulo | — |
+
+### Patrones que se repiten
+
+- **Punto medio como separador**: unos doce sitios. Se cambia por coma, «y» o una segunda línea.
+- **Vacíos con texto de 17–18 px centrado** que pesan más que el título de su tarjeta (Accesos, Traspaso,
+  Paquetes). El vacío va en la letra del cuerpo y subordinado.
+- **Estados en minúscula** dentro de rótulos («pendiente», «sin preparar», «accesos sin preparar»).
+- **Filas de botones apagados sin un primario**: la acción que toca no se distingue de las que aún no.
+- **Tarjeta delgada arriba de un panel vacío** (Catálogo territorial, Entrega telefónica).
+- **«Leyendo…» que se queda** en la captura (Códigos, Encuestadores, Traspaso): falta comprobar si es
+  carga lenta o un vacío sin clasificar.
+
+### L14, cabecera del plan de aulas (hecho)
+
+- La meta de la tabla queda en una sola línea y en la letra del sistema, sólo con el instrumento
+  («Sin instrumento fijado» o «Instrumento rev-1»); los cursos-horario y el banco ya los dice el resumen
+  de al lado y el chip de entrada.
+- «Página 1 de 1» con los dos botones apagados ya no se pinta: la paginación aparece con dos páginas o más.
+- El origen dice «Cálculo de muestra, sorteo del…» en vez de «calc-muestra · sorteo del…»
+  (`nombreDelModulo` reconoce también `calc-muestra-aulas`).
+- Composición: «10 facultades, 977 alumnos elegibles y 11 reservas por aula», sin «11.0».
+- El chip de estado de la barra va con mayúscula inicial («Accesos sin preparar»).
