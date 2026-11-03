@@ -441,7 +441,7 @@ function cifraMargen(comp: CalcMuestraComponente): CifraBanda {
     value: m.alcanzado,
     detalle: comp.naturaleza === "no_prob"
       ? "no aplica sin π"
-      : m.pedido ? `pedido ${m.pedido}${noAlcanza ? " · no se alcanza" : ""}` : undefined,
+      : m.pedido ? `pedido ${m.pedido}${noAlcanza ? "; no se alcanza" : ""}` : undefined,
     // El sello «cifra validada» se lee como «cumple»: con un margen que no
     // alcanza el pedido se omite y la tarjeta queda en alerta (L4).
     origen: comp.resultado && !noAlcanza ? "motor" : undefined,
@@ -492,7 +492,7 @@ export function cifrasDisenoGeneral(args: {
       label: "Tamaño del marco (N)",
       value: N > 0 ? fmtInt(N) : "—",
       detalle: marco
-        ? `${marco.hoja ? `${marco.hoja} · ` : ""}huella ${hashCorto(marco.marco_hash, 8)}`
+        ? `${marco.hoja ? `${marco.hoja}, ` : ""}huella ${hashCorto(marco.marco_hash, 8)}`
         : N > 0 ? "sin archivo declarado" : "sin declarar",
     },
     {
@@ -514,7 +514,7 @@ export function cifrasDisenoGeneral(args: {
       label: "Muestra a contactar",
       value: calculado ? fmtInt(r?.n_operativo) : "—",
       detalle: calculado && Number.isFinite(tasa)
-        ? `respuesta ${fmtPct(tasa)}${sobre > 0 ? ` · +${fmtPct(sobre)}` : ""}`
+        ? `respuesta ${fmtPct(tasa)}${sobre > 0 ? `, +${fmtPct(sobre)}` : ""}`
         : calculado ? "casos a abordar" : "sin calcular",
       origen: calculado ? "motor" : undefined,
     },
@@ -526,7 +526,7 @@ export function cifrasDisenoGeneral(args: {
       label: "Técnica",
       // El «·» va pegado a la técnica (espacio duro): suelto, en la banda
       // compacta de 1024 px caía solo en una línea y la cifra ocupaba tres.
-      value: tecnicaCalculadaLabel(comp).replace(" · ", "\u00a0· "),
+      value: tecnicaCalculadaLabel(comp),
       detalle: productoLabel(tecnicaProducto(comp)),
     });
   }
@@ -670,7 +670,7 @@ export function cifrasDisenoAcreditacion(args: {
       clave: "actores",
       label: "Actores",
       value: fmtInt(componentes.length),
-      detalle: `${fmtInt(conN.length)} con N · ${fmtInt(calculados.length)} calculados`,
+      detalle: `${fmtInt(conN.length)} con N, ${fmtInt(calculados.length)} calculados`,
     },
     {
       clave: "N",
@@ -712,7 +712,7 @@ export function cifrasDisenoAcreditacion(args: {
     const resumen = fase === "sin-n"
       ? "sin N"
       : fase === "sin-calculo"
-        ? `N ${fmtInt(N)} · por calcular`
+        ? `N ${fmtInt(N)}, por calcular`
         : `n ${fmtInt(c.resultado?.n_objetivo)} de ${fmtInt(N)}`;
     return { id: c.id, nombre: nombreActor(c), tecnica: tecnicaCalculadaLabel(c), fase, resumen };
   });
@@ -839,7 +839,7 @@ function veredictoGeneral(componentes: readonly CalcMuestraComponente[]): Veredi
   if (calculados.length === 0) return null;
   const suma = (campo: "n_objetivo" | "n_operativo") =>
     calculados.reduce((acc, c) => acc + safeNumber(c.resultado?.[campo], 0), 0);
-  const nTexto = `${fmtInt(suma("n_objetivo"))} completas · ${fmtInt(suma("n_operativo"))} a contactar`;
+  const nTexto = `${fmtInt(suma("n_objetivo"))} completas, ${fmtInt(suma("n_operativo"))} a contactar`;
   const sinCalcular = componentes.filter((c) => !hayResultado([c]));
 
   if (componentes.length === 1) {
@@ -849,14 +849,14 @@ function veredictoGeneral(componentes: readonly CalcMuestraComponente[]): Veredi
       return {
         tono: "neutral",
         titulo: "n calculado",
-        detalle: comp.naturaleza === "no_prob" ? `${nTexto} · sin π no hay margen` : nTexto,
+        detalle: comp.naturaleza === "no_prob" ? `${nTexto}; sin π no hay margen` : nTexto,
         falta: null,
       };
     }
     return {
       tono: m.cumple ? "ok" : "alerta",
       titulo: m.cumple ? "El n cumple el margen pedido" : "El n no alcanza el margen pedido",
-      detalle: `${nTexto} · margen ${m.alcanzado} frente a ${m.pedido ?? "—"} pedido`,
+      detalle: `${nTexto}; margen ${m.alcanzado} frente a ${m.pedido ?? "—"} pedido`,
       falta: null,
     };
   }
@@ -908,7 +908,7 @@ function veredictoAcreditacion(args: {
     : leyendo
       ? "leyendo los sorteos…"
       : `${fmtInt(sorteos.vigentes)} de ${fmtInt(sorteos.sorteables)} seleccionados`;
-  const detalle = `${fmtInt(calculados.length)} de ${fmtInt(total)} calculados · ${sorteoTexto}`;
+  const detalle = `${fmtInt(calculados.length)} de ${fmtInt(total)} calculados; ${sorteoTexto}`;
 
   if (sinCalcular.length > 0) {
     return {

@@ -21,7 +21,7 @@ export function ResumenMarcoDeclarado({ marco }: { marco: CalcMuestraGeneralMarc
           value={conEstrato ? fmtInt(marco.estratos.length) : "Sin estrato"}
           detalle={conEstrato ? `columna ${marco.columnas.estrato}` : "un solo grupo"}
         />
-        <CifraMotor label="Columnas" value={columnas} detalle="id · estrato · tamaño" monospace />
+        <CifraMotor label="Columnas" value={columnas} detalle="id, estrato y tamaño" monospace />
         <CifraMotor
           label="Declarado"
           value={formatearFechaLocal(marco.declarado_at)}

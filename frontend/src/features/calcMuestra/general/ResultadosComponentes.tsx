@@ -200,7 +200,7 @@ function SalidasAnidadas({ modo, componentes }: { modo: ModoMesa; componentes: C
         return (
           <RepartoEstratosGrafico
             key={comp.id}
-            titulo={componentes.length > 1 ? `${base} · ${comp.actor}` : base}
+            titulo={componentes.length > 1 ? `${base}: ${comp.actor}` : base}
             filas={filasDesdeResultado(comp.resultado?.distribucion_estratos ?? [])}
             origen="resultado"
           />
@@ -212,8 +212,8 @@ function SalidasAnidadas({ modo, componentes }: { modo: ModoMesa; componentes: C
           <div className="cmv2-mini-table">
             {cuotas.map(({ comp, row }, i) => (
               <span key={`${comp.id}-cuota-${i}`}>
-                <strong>{row.territorio} · {row.servicio}</strong>
-                <em>N {fmtInt(row.N)} · n {fmtInt(row.n)}</em>
+                <strong>{row.territorio}, {row.servicio}</strong>
+                <em>N {fmtInt(row.N)}, n {fmtInt(row.n)}</em>
               </span>
             ))}
           </div>

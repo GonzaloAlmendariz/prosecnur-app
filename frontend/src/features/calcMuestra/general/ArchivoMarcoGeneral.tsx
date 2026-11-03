@@ -182,7 +182,7 @@ export function ArchivoMarcoGeneral({ componente }: { componente: CalcMuestraCom
                     <div key={rol} className="cmg-campo" data-qa-geometry-member>
                       <label htmlFor={`cmg-columna-${rol}`}>
                         {label}
-                        {vacio === null && <em className="cmg-requerido"> · obligatorio</em>}
+                        {vacio === null && <em className="cmg-requerido"> (obligatorio)</em>}
                       </label>
                       <select
                         id={`cmg-columna-${rol}`}
