@@ -15,7 +15,12 @@ import {
   Plus,
   Route,
   Search,
+  Inbox,
+  PieChart,
+  SearchX,
+  Target,
 } from "lucide-react";
+import { EstadoVacio } from "../../../../components/EstadoVacio";
 import { apiMonitoreoTerritorialMap } from "../../../../api/client";
 import type {
   HojasRutaContextMapFeature,
@@ -219,7 +224,7 @@ function TerritorialAdvanceWorkbenchImpl({
     return (
       <div className="mon-stage mon-stage--avance">
         <section className="mon-territorial-panel mon-territorial-review-panel">
-          <div className="mon-territorial-audit-empty">Sin avance territorial hidratado para este corte.</div>
+          <EstadoVacio tamano="normal" icono={<Inbox size={18} />} titulo="Sin avance territorial hidratado para este corte." />
         </section>
       </div>
     );
@@ -548,7 +553,7 @@ function TerritorialExecutiveDistrictBoard({
             </button>
           );
         })}
-        {!ordered.length ? <p className="mon-territorial-audit-empty">Sin distritos en el corte de avance.</p> : null}
+        {!ordered.length ? <EstadoVacio icono={<MapPin size={15} />} titulo="Sin distritos en el corte de avance." /> : null}
       </div>
     </section>
   );
@@ -690,7 +695,7 @@ function DemographicDistrictPanel({ rows }: { rows: DemographicQuotaDistrict[] }
             </footer>
           </article>
         )) : (
-          <span className="mon-territorial-audit-empty">Sin cuotas distritales disponibles.</span>
+          <EstadoVacio icono={<Target size={15} />} titulo="Sin cuotas distritales disponibles." />
         )}
       </div>
     </article>
@@ -721,10 +726,11 @@ function DistributionPanel({ title, items, mode }: { title: string; items: Distr
       ) : items.length ? (
         <DistributionList items={items} bars />
       ) : (
-        <div className="mon-territorial-exec-empty">
-          <strong>Sin distribución disponible</strong>
-          <span>La distribución aparecerá cuando existan respuestas válidas con sexo/edad.</span>
-        </div>
+        <EstadoVacio
+          icono={<PieChart size={15} />}
+          titulo="Sin distribución disponible"
+          descripcion="La distribución aparecerá cuando existan respuestas válidas con sexo/edad."
+        />
       )}
     </article>
   );
@@ -785,7 +791,7 @@ function TerritorialExecutivePriorities({
                   <i><small style={{ width: `${Math.max(4, item.progressPct)}%` }} /></i>
                 </button>
               )) : (
-                <span className="mon-territorial-exec-priority-empty">{group.emptyLabel}</span>
+                <EstadoVacio icono={<CheckCircle2 size={15} />} titulo={group.emptyLabel} />
               )}
               {group.total > group.items.length ? (
                 <span className="mon-territorial-exec-priority-corte">
@@ -1178,7 +1184,7 @@ function TerritorialAdvanceUmpSection({
               />
             </>
           ) : (
-            <div className="mon-territorial-audit-empty">Sin manzanas con esos filtros.</div>
+            <EstadoVacio icono={<SearchX size={15} />} titulo="Sin manzanas con esos filtros." />
           )}
         </section>
       </div>

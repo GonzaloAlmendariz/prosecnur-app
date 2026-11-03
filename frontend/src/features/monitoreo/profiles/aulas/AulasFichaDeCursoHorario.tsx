@@ -47,7 +47,7 @@ const NOMBRE: Record<EstadoDeCursoHorario, string> = {
 function Valor({ children }: { children: React.ReactNode }) {
   const vacio = children == null || children === "" || children === false;
   return vacio
-    ? <span className="aulas-ficha-valor aulas-ficha-vacio">sin dato</span>
+    ? <span className="aulas-ficha-valor aulas-ficha-valor--vacio">sin dato</span>
     : <span className="aulas-ficha-valor">{children}</span>;
 }
 

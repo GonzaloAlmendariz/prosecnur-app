@@ -122,7 +122,7 @@ export function CriterioAnclaHistorica({
           </dl>
           <p role="note">{avisoComun}</p>
           <p className="cmv2-i18b-anchor-facultades">
-            {anchors.map((anchor) => anchor.faculty_label).join(" · ")}
+            {anchors.map((anchor) => anchor.faculty_label).join(", ")}
           </p>
         </article>
       </div>

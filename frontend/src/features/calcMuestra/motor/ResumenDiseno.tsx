@@ -482,7 +482,7 @@ export function ResumenDiseno({
           <span className="rec-resumen-item-icon" aria-hidden="true"><Sigma size={16} aria-hidden="true" /></span>
           <span className="rec-resumen-item-copy">
             <small>Sin cifra todavía</small>
-            <strong>{indicadores.vacios.map((metric) => metric.label).join(" · ")}</strong>
+            <strong>{indicadores.vacios.map((metric) => metric.label).join(", ")}</strong>
             <span>{notaResultado}</span>
           </span>
         </div>

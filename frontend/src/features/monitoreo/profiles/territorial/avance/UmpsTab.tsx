@@ -1,5 +1,6 @@
 import { memo, useMemo, useState } from "react";
 import { Download, Search, Target } from "lucide-react";
+import { EstadoVacio } from "../../../../../components/EstadoVacio";
 import type { MonitoreoTerritorialDashboard } from "../../../../../api/client";
 import { useFocoMonitoreo } from "../../../useMonitoreoDireccion";
 import { fmt } from "../rotulos";
@@ -62,14 +63,19 @@ function UmpsTabImpl({
   if (!modelo.filas.length) {
     return (
       <section className="mon-umps mon-umps--vacio" data-audit-ready="vacio:sin-cuota" aria-label="UMP">
-        <div className="mon-umps-panel mon-umps-vacio">
+        <div className="mon-umps-panel">
           <RotuloDePestana />
-          <Target size={20} aria-hidden="true" />
-          <strong>Sin UMP en la cuota del corte</strong>
-          <span>Las UMP salen de la muestra de Hojas de ruta declarada en Modelo › Cuotas.</span>
-          <button type="button" className="mon-umps-boton" onClick={() => escribirFoco(null, { seccion: "modelo", pestana: "cuotas", panel: null })}>
-            Abrir Modelo › Cuotas
-          </button>
+          <EstadoVacio
+            tamano="normal"
+            icono={<Target size={18} />}
+            titulo="Sin UMP en la cuota del corte"
+            descripcion="Las UMP salen de la muestra de Hojas de ruta declarada en Modelo › Cuotas."
+            accion={
+              <button type="button" className="mon-umps-boton" onClick={() => escribirFoco(null, { seccion: "modelo", pestana: "cuotas", panel: null })}>
+                Abrir Modelo › Cuotas
+              </button>
+            }
+          />
         </div>
       </section>
     );
@@ -198,7 +204,7 @@ function UmpsTabImpl({
 
 /** B3: a quién le asignó Material la UMP y si coincide con quien respondió. */
 function CeldaDePlanificado({ celda }: { celda: CeldaPlanificada | undefined }) {
-  if (!celda) return <td className="mon-umps-planificado"><span className="mon-umps-planificado-vacio">Sin asignar</span></td>;
+  if (!celda) return <td className="mon-umps-planificado"><span className="mon-umps-planificado--vacio">Sin asignar</span></td>;
   const chip = celda.tono === "falta" ? "is-falta" : celda.tono === "ok" ? "is-ok" : "is-info";
   return (
     <td className="mon-umps-planificado" title={celda.detalle}>
@@ -211,7 +217,7 @@ function CeldaDePlanificado({ celda }: { celda: CeldaPlanificada | undefined }) 
 /** C7: el Estado que declara campo; si contradice a Kobo, en ámbar con la causa. */
 function CeldaDeclarada({ celda }: { celda: CeldaPlanificada | undefined }) {
   const d = celda?.declarado;
-  if (!d) return <td className="mon-umps-planificado"><span className="mon-umps-planificado-vacio">Sin declarar</span></td>;
+  if (!d) return <td className="mon-umps-planificado"><span className="mon-umps-planificado--vacio">Sin declarar</span></td>;
   return (
     <td className="mon-umps-planificado" title={[d.fechas, d.contraste].filter(Boolean).join(". ") || undefined}>
       {d.estado ? <span className={`mon-ter-chip ${d.contraste ? "is-falta" : "is-info"}`}>{d.estado}</span> : null}

@@ -17,8 +17,6 @@
   min-width: 0;
 }
 
-.aulas-repr-vacio { margin: 6px 0 0; }
-
 .aulas-repr-cabeza {
   display: flex;
   flex-direction: column;

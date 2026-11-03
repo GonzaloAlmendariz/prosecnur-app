@@ -421,19 +421,6 @@
   grid-template-columns: minmax(0, 1fr);
 }
 
-.mon-ban-vacio {
-  align-items: center;
-  justify-content: center;
-  height: 100%;
-  text-align: center;
-  color: var(--pulso-text-soft);
-}
-
-.mon-ban-vacio strong {
-  color: var(--pulso-text);
-  font-size: 15px;
-}
-
 /* 1024 de ancho: el inspector toma el lugar de los filtros. */
 @media (max-width: 1180px) {
   .mon-ban.con-inspector {

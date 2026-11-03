@@ -139,7 +139,7 @@ export function ReferenciaAsistenciaCard({
               <span>
                 {[referencia.estudio.periodo, referencia.estudio.fuente]
                   .filter(Boolean)
-                  .join(" · ")}
+                  .join(", ")}
               </span>
             </div>
             <div>

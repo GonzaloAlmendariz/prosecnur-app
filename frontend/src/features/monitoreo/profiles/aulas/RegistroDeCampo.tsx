@@ -17,6 +17,7 @@ import { useEffect, useMemo, useState } from "react";
 
 import { contar } from "../../fuentes/vocabulario";
 import { ArrowRightLeft, ClipboardCheck, ClipboardList, ExternalLink, FileCheck2, Link2Off, Loader2, Search, TriangleAlert } from "../../../../vendor/lucide-react";
+import { EstadoVacio } from "../../../../components/EstadoVacio";
 import { AulasPopoverReemplazo } from "./AulasPopoverReemplazo";
 import { brechaDeLaFacultad } from "./brechaDeLaFacultad";
 import { fichaEscaneadaDelParte } from "./fichaEscaneada";
@@ -528,10 +529,12 @@ export function RegistroDeCampo({
       </div>
 
       {filas.length === 0 ? (
-        <p className="registro-campo-vacio">
-          No hay agenda de cursos-horario. Importa el plan desde el cálculo de muestra
-          para registrar lo que pasa en cada curso-horario.
-        </p>
+        <EstadoVacio
+          tamano="normal"
+          icono={<ClipboardList size={18} />}
+          titulo="No hay agenda de cursos-horario."
+          descripcion="Importa el plan desde el cálculo de muestra para registrar lo que pasa en cada curso-horario."
+        />
       ) : (
         <div className="registro-campo-cuerpo">
           {/* Filtro y lista son UNA celda del grid. Sueltos, el filtro se comía
@@ -619,15 +622,15 @@ export function RegistroDeCampo({
               // vista no cargó. Lleva además cuántas faltan por registrar, que
               // es lo que quien abre esta pestaña viene a saber y ya está en la
               // misma lista que tiene al lado.
-              <div className="registro-campo-vacio">
-                <ClipboardList size={22} aria-hidden="true" />
-                <strong>Elige un curso-horario de la lista</strong>
-                <p>
-                  Aquí se registra cómo fue su aplicación: asistentes, rechazos,
-                  duplicados y encuestas aplicadas.
-                </p>
+              <div className="registro-campo-sin-eleccion">
+                <EstadoVacio
+                  tamano="normal"
+                  icono={<ClipboardList size={18} />}
+                  titulo="Elige un curso-horario de la lista"
+                  descripcion="Aquí se registra cómo fue su aplicación: asistentes, rechazos, duplicados y encuestas aplicadas."
+                />
                 {porRegistrar ? (
-                  <p className="registro-campo-vacio-cifra">
+                  <p className="registro-campo-por-registrar">
                     <strong>{porRegistrar}</strong> de {filas.length - reemplazadas} todavía sin registrar
                     {/* El denominador son las REGISTRABLES, y la diferencia con
                         la lista de al lado se dice: si la lista tiene 196 filas

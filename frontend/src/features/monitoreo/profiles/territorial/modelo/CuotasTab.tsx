@@ -1,5 +1,6 @@
 import { memo, useMemo } from "react";
 import { Target } from "lucide-react";
+import { EstadoVacio } from "../../../../../components/EstadoVacio";
 import type { MonitoreoState, MonitoreoTerritorialDashboard } from "../../../../../api/client";
 import { useFocoMonitoreo } from "../../../useMonitoreoDireccion";
 import { fmt } from "../rotulos";
@@ -39,12 +40,17 @@ function CuotasTabImpl({
   if (!modelo.disponible) {
     return (
       <section className="mon-mod mon-mod--vacio" data-audit-ready="vacio:sin-cuota" aria-label="Cuotas">
-        <div className="mon-mod-panel mon-mod-vacio">
+        <div className="mon-mod-panel">
           <RotuloDePestana />
-          <Target size={20} aria-hidden="true" />
-          <strong>Sin cuota territorial configurada</strong>
-          <span>La cuota por UMP sale de la muestra de Hojas de ruta.</span>
-          <button type="button" className="mon-mod-boton" onClick={() => escribirFoco(null, { seccion: "insumos", pestana: "mapeo", panel: null })}>Revisar el mapeo de variables</button>
+          <EstadoVacio
+            tamano="normal"
+            icono={<Target size={18} />}
+            titulo="Sin cuota territorial configurada"
+            descripcion="La cuota por UMP sale de la muestra de Hojas de ruta."
+            accion={
+              <button type="button" className="mon-mod-boton" onClick={() => escribirFoco(null, { seccion: "insumos", pestana: "mapeo", panel: null })}>Revisar el mapeo de variables</button>
+            }
+          />
         </div>
       </section>
     );

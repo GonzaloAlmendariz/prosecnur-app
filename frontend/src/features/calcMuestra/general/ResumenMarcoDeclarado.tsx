@@ -11,7 +11,7 @@ export function ResumenMarcoDeclarado({ marco }: { marco: CalcMuestraGeneralMarc
   const conEstrato = Boolean(marco.columnas.estrato);
   const visibles = marco.estratos.slice(0, ESTRATOS_VISIBLES);
   const resto = marco.estratos.slice(ESTRATOS_VISIBLES);
-  const columnas = [marco.columnas.id, marco.columnas.estrato, marco.columnas.tamano].filter(Boolean).join(" · ");
+  const columnas = [marco.columnas.id, marco.columnas.estrato, marco.columnas.tamano].filter(Boolean).join(", ");
   return (
     <div className="cmg-resumen-marco">
       <CifraFila>

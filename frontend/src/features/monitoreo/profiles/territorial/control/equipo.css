@@ -344,19 +344,6 @@
   outline-offset: 2px;
 }
 
-.mon-eq-vacio {
-  align-items: center;
-  justify-content: center;
-  height: 100%;
-  text-align: center;
-  color: var(--pulso-text-soft);
-}
-
-.mon-eq-vacio strong {
-  color: var(--pulso-text);
-  font-size: 15px;
-}
-
 /* Ronda 3: la última columna lleva el mismo aire que la primera (16 px) y no
  * queda pegada al borde de la tarjeta. */
 .mon-eq-tabla th:last-child,

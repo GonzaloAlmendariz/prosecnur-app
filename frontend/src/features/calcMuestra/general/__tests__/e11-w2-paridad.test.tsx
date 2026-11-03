@@ -111,7 +111,7 @@ describe("Acreditación › Actores", () => {
     const html = tabla([docentesMas()]);
     expect(html).toContain('aria-label="Respuesta esperada de Docentes"');
     expect(html).toContain('value="60"');
-    expect(html).toContain("Respuesta esperada · margen ±5.0%");
+    expect(html).toContain("Respuesta esperada, margen ±5.0%");
     expect(html).not.toContain("Sobremuestra");
     expect(html).not.toContain("0.0%");
   });

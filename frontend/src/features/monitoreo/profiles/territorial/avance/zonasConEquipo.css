@@ -176,7 +176,6 @@
 .mon-zeq-lista .mon-zeq-obs { color: var(--pulso-text-soft); }
 .mon-zeq-lista .mon-zeq-obs.is-alta { justify-self: end; padding: 0 6px; border-radius: 6px; background: var(--pulso-warn-bg); color: var(--pulso-warn-fg); font-weight: var(--pulso-weight-semibold); }
 
-.mon-zeq-vacio,
 .mon-zeq-pie { margin: 0; color: var(--pulso-text-soft); font-size: var(--pulso-type-caption-size); }
 
 /* Pantalla baja: la rejilla no cambia; cada tarjeta desplaza su equipo. */

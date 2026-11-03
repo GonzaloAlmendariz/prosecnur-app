@@ -23,8 +23,6 @@
   color: var(--pulso-text-soft);
 }
 
-.aulas-tav-vacio { margin: 6px 0 0; }
-
 .aulas-tav-bloque {
   display: flex;
   flex-direction: column;

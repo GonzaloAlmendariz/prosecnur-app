@@ -1,5 +1,6 @@
 import { memo, useEffect, useMemo, useRef, useState } from "react";
-import { Maximize2, Minus, Plus } from "lucide-react";
+import { Maximize2, Minus, Plus, MapPin } from "lucide-react";
+import { EstadoVacio } from "../../../../../components/EstadoVacio";
 import type { MonitoreoTerritorialDashboard } from "../../../../../api/client";
 import { normalizeRouteBlockCode } from "../../../routeCoverageModel";
 import { useFocoMonitoreo } from "../../../useMonitoreoDireccion";
@@ -330,11 +331,13 @@ function MapaTabImpl({
 
         <div className="mon-mapa-lienzo" aria-busy={esperaCalles || undefined}>
           {sinGeometria ? (
-            <p className="mon-mapa-vacio">
-              {cartografia.incompleta
+            <EstadoVacio
+              tamano="normal"
+              icono={<MapPin size={18} />}
+              titulo={cartografia.incompleta
                 ? "No se pudo cargar la cartografía de Hojas de ruta para estos distritos."
                 : "Las manzanas de la ruta no tienen cartografía en Hojas de ruta."}
-            </p>
+            />
           ) : (
             <svg
               ref={svgRef}

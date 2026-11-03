@@ -253,7 +253,7 @@ export function ControlFlat({
                     <span
                       className="cmv2-crit-item-agrupa"
                       data-agrupa={etiquetaAgrupada(cat.label).agrupadas.length}
-                      title={etiquetaAgrupada(cat.label).agrupadas.join(" · ")}
+                      title={etiquetaAgrupada(cat.label).agrupadas.join(", ")}
                     >
                       agrupa {etiquetaAgrupada(cat.label).agrupadas.length}
                     </span>
@@ -262,7 +262,7 @@ export function ControlFlat({
               </div>
               {etiquetaAgrupada(cat.label).agrupadas.length ? (
                 <span className="cmv2-crit-item-agrupadas">
-                  {etiquetaAgrupada(cat.label).agrupadas.join(" · ")}
+                  {etiquetaAgrupada(cat.label).agrupadas.join(", ")}
                 </span>
               ) : null}
               <span className="cmv2-crit-item-count">
@@ -284,8 +284,8 @@ export function ControlFlat({
                 );
               })()}
               {variantes.length ? (
-                <span className="cmv2-crit-item-variants" title={variantes.join(" · ")}>
-                  {variantes.join(" · ")}
+                <span className="cmv2-crit-item-variants" title={variantes.join(", ")}>
+                  {variantes.join(", ")}
                 </span>
               ) : null}
             </li>

@@ -96,7 +96,7 @@ describe("V15 · el pie de la meta baja por piezas, no por palabras", () => {
     expect(campo.tipo).toBe("respuesta");
     if (campo.tipo !== "respuesta") return;
     expect(campo.piezas).toEqual(["Respuesta", "margen ±5.0%"]);
-    expect(campo.detalle).toBe("Respuesta esperada · margen ±5.0%");
+    expect(campo.detalle).toBe("Respuesta esperada, margen ±5.0%");
     for (const pieza of campo.piezas) expect(pieza.length).toBeLessThanOrEqual(14);
   });
 
@@ -104,7 +104,7 @@ describe("V15 · el pie de la meta baja por piezas, no por palabras", () => {
     const campo = campoMetaDelActor(docentes({ oversample_pct: 0.5 }));
     if (campo.tipo !== "respuesta") throw new Error("esperaba respuesta");
     expect(campo.piezas).toEqual(["Respuesta", "±5.0% · +50.0%"]);
-    expect(campo.detalle).toBe("Respuesta esperada · margen ±5.0% · sobremuestra 50.0%");
+    expect(campo.detalle).toBe("Respuesta esperada, margen ±5.0%, sobremuestra 50.0%");
   });
 
   it("conglomerados, conveniencia y cuota también en piezas cortas", () => {
@@ -118,8 +118,8 @@ describe("V15 · el pie de la meta baja por piezas, no por palabras", () => {
 
   it("la tabla pinta piezas sin partir y deja la frase entera en título y texto accesible", () => {
     const html = actores([docentes({ oversample_pct: 0.5 })]);
-    expect(html).toContain('<small class="cmg-meta-pie" title="Respuesta esperada · margen ±5.0% · sobremuestra 50.0%">');
-    expect(html).toContain('<span class="cmg-sr-only">Respuesta esperada · margen ±5.0% · sobremuestra 50.0%</span>');
+    expect(html).toContain('<small class="cmg-meta-pie" title="Respuesta esperada, margen ±5.0%, sobremuestra 50.0%">');
+    expect(html).toContain('<span class="cmg-sr-only">Respuesta esperada, margen ±5.0%, sobremuestra 50.0%</span>');
     expect(html).toContain('<span class="cmg-meta-pieza" aria-hidden="true">Respuesta</span>');
     expect(html).toContain('<span class="cmg-meta-pieza" aria-hidden="true">±5.0% · +50.0%</span>');
     expect(css).toMatch(/\.cmg-tabla-actores \.cmg-meta-pieza \{\s*white-space: nowrap;/);

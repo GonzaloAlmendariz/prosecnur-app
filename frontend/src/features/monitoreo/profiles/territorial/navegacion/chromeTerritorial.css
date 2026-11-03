@@ -313,15 +313,9 @@
   margin-inline-end: 0;
 }
 
-/* En un estado vacío el rótulo va arriba a la izquierda, como en la pestaña
- * llena, y el mensaje queda centrado en el resto de la tarjeta. */
-[class*="-vacio"] > .mon-ter-rotulo {
-  align-self: flex-start;
-  justify-self: start;
-  margin-bottom: auto;
-  text-align: left;
-}
-
-[class*="-vacio"]:has(> .mon-ter-rotulo) > :last-child {
-  margin-bottom: auto;
+/* P5: la pestaña vacía es su tarjeta con el rótulo arriba y el EstadoVacio del
+ * kit debajo. La tarjeta mide lo que contiene (C3): no se estira hasta el pie
+ * de la vista para centrar el mensaje en una superficie en blanco. */
+[class*="--vacio"] > :has(> .mon-ter-rotulo + .pulso-estado-vacio) {
+  align-self: start;
 }

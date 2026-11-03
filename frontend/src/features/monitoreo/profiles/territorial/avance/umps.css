@@ -563,20 +563,6 @@
   background: var(--pulso-danger-fg);
 }
 
-/* Vacío del modo. */
-.mon-umps-vacio {
-  align-items: center;
-  justify-content: center;
-  height: 100%;
-  text-align: center;
-  color: var(--pulso-text-soft);
-}
-
-.mon-umps-vacio strong {
-  color: var(--pulso-text);
-  font-size: 15px;
-}
-
 @media (max-width: 1180px) {
   .mon-umps-buscar input {
     width: 160px;
@@ -616,7 +602,7 @@
   font-variant-numeric: tabular-nums;
 }
 
-.mon-umps-planificado-vacio {
+.mon-umps-planificado--vacio {
   color: var(--pulso-text-faint);
 }
 

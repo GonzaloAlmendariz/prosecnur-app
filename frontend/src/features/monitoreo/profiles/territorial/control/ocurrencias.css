@@ -472,19 +472,6 @@
   grid-template-rows: minmax(0, 1fr);
 }
 
-.mon-ocu-vacio {
-  align-items: center;
-  justify-content: center;
-  height: 100%;
-  text-align: center;
-  color: var(--pulso-text-soft);
-}
-
-.mon-ocu-vacio strong {
-  color: var(--pulso-text);
-  font-size: 15px;
-}
-
 @media (max-width: 1180px) {
   .mon-ocu-cuerpo {
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);

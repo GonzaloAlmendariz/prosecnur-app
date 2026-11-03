@@ -529,19 +529,6 @@
   grid-template-columns: minmax(0, 1fr);
 }
 
-.mon-res-vacio {
-  align-items: center;
-  justify-content: center;
-  height: 100%;
-  text-align: center;
-  color: var(--pulso-text-soft);
-}
-
-.mon-res-vacio strong {
-  color: var(--pulso-text);
-  font-size: 15px;
-}
-
 .mon-res-boton {
   display: inline-flex;
   align-items: center;

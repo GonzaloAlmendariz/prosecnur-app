@@ -1,7 +1,8 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import type { PointerEvent as ReactPointerEvent, WheelEvent as ReactWheelEvent } from "react";
-import { ArrowRight, CheckCircle2, ChevronDown, ClipboardCheck, Loader2, MapPin, Maximize2, Minus, Plus, Route, Save, Trash2, XCircle } from "lucide-react";
+import { ArrowRight, CheckCircle2, ChevronDown, ClipboardCheck, Loader2, MapPin, Maximize2, Minus, Plus, Route, Save, Trash2, XCircle, Inbox } from "lucide-react";
+import { EstadoVacio } from "../../../../components/EstadoVacio";
 import {
   apiHojasRutaBlockMap,
   apiHojasRutaZoneMap,
@@ -704,7 +705,7 @@ function TerritorialSpatialReconciliationBatchDialog({
               {change.error ? <p>{change.error}</p> : null}
             </article>
           )) : (
-            <div className="mon-territorial-reconciliation-confirm-empty">No hay cambios pendientes.</div>
+            <EstadoVacio icono={<CheckCircle2 size={15} />} titulo="No hay cambios pendientes." />
           )}
         </div>
         <footer>
@@ -763,13 +764,11 @@ function TerritorialSpatialReconciliationPanel({
         </div>
       </header>
       {!hasCandidates ? (
-        <div className="mon-territorial-spatial-empty">
-          <CheckCircle2 size={18} />
-          <div>
-            <strong>No hay casos para reconciliar en este corte.</strong>
-            <span>{summary?.reason ? `Motor: ${summary.reason}` : "Las UMP declaradas y la evidencia espacial no generan sugerencias pendientes."}</span>
-          </div>
-        </div>
+        <EstadoVacio
+          icono={<CheckCircle2 size={15} />}
+          titulo="No hay casos para reconciliar en este corte."
+          descripcion={summary?.reason ? `Motor: ${summary.reason}` : "Las UMP declaradas y la evidencia espacial no generan sugerencias pendientes."}
+        />
       ) : (
         <>
           {patterns.length ? (
@@ -1706,7 +1705,7 @@ function TerritorialGeoCaseList({
             );
           })}
         </div>
-        {!groups.length ? <div className="mon-territorial-source-empty">Sin casos para agrupar por UMP declarada.</div> : null}
+        {!groups.length ? <EstadoVacio icono={<Inbox size={15} />} titulo="Sin casos para agrupar por UMP declarada." /> : null}
         {groups.length ? <div className="mon-territorial-geo-scroll-end">Fin de casos</div> : null}
       </div>
     </section>

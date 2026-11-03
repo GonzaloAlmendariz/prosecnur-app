@@ -470,7 +470,7 @@ export function classroomSexCompositionRowsFromAulas(
       const level = rowCategoryLabel(row, ["level", "nivel", "nivel_del_curso", "ciclo"], "level", workspace);
       const classroomId = classroomRowText(row, ["classroom_id", "course_schedule_id", "nrc", "codigo_aula"]);
       const label = classroomRowText(row, ["course_name", "curso", "label", "classroom_label", "aula", "classroom_id"]) || `Curso-horario ${index + 1}`;
-      const detail = [faculty, program, level ? `ciclo ${level}` : "", classroomId && classroomId !== label ? classroomId : ""].filter(Boolean).join(" · ");
+      const detail = [faculty, program, level ? `ciclo ${level}` : "", classroomId && classroomId !== label ? classroomId : ""].filter(Boolean).join(", ");
       const segments = sortedSexColumns(Array.from(counts.keys()))
         .map((label) => {
           const kind: ClassroomSexCompositionRow["segments"][number]["kind"] = sexLabelKind(label) ?? (label === "Sin dato" ? "missing" : "other");

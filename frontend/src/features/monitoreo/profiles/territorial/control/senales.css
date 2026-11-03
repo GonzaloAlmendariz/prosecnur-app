@@ -214,19 +214,6 @@
   grid-template-rows: minmax(0, 1fr);
 }
 
-.mon-sen-vacio {
-  align-items: center;
-  justify-content: center;
-  height: 100%;
-  text-align: center;
-  color: var(--pulso-text-soft);
-}
-
-.mon-sen-vacio strong {
-  color: var(--pulso-text);
-  font-size: 15px;
-}
-
 @media (max-width: 900px) {
   .mon-sen-histogramas {
     grid-template-columns: minmax(0, 1fr);

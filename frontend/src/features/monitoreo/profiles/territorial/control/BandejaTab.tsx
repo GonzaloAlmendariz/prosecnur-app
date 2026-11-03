@@ -1,5 +1,6 @@
 import { memo, useMemo, useState, type CSSProperties } from "react";
 import { Ban, Inbox, X } from "lucide-react";
+import { EstadoVacio } from "../../../../../components/EstadoVacio";
 import type { MonitoreoState, MonitoreoTerritorialDashboard, MonitoreoTerritorialPhase } from "../../../../../api/client";
 import { usePanelDireccionable } from "../../../../../lib/navegacion/paneles";
 import { useFocoMonitoreo } from "../../../useMonitoreoDireccion";
@@ -58,11 +59,14 @@ function BandejaTabImpl({
   if (!modelo.disponible) {
     return (
       <section className="mon-ban mon-ban--vacio" data-audit-ready="vacio:sin-bandeja" aria-label="Bandeja">
-        <div className="mon-ban-panel mon-ban-vacio">
+        <div className="mon-ban-panel">
           <RotuloDePestana />
-          <Inbox size={20} aria-hidden="true" />
-          <strong>La bandeja se está preparando</strong>
-          <span>Los casos por revisar llegan con el corte de Consultas.</span>
+          <EstadoVacio
+            tamano="normal"
+            icono={<Inbox size={18} />}
+            titulo="La bandeja se está preparando"
+            descripcion="Los casos por revisar llegan con el corte de Consultas."
+          />
         </div>
       </section>
     );

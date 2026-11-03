@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { SearchX } from "../../../../vendor/lucide-react";
+import { EstadoVacio } from "../../../../components/EstadoVacio";
 import { createPortal } from "react-dom";
 
 import type { MonitoreoAulasPlanRow } from "../../../../api/monitoreo";
@@ -560,12 +562,13 @@ export function ContenidoDeReemplazo({
       ) : (
         // Nunca «no hay reemplazo» a secas: se dice qué grupo está vacío y a
         // cuál ir. Los otros dos siguen a un click.
-        <p className="aulas-reemplazo-vacio">
-          Aquí no queda ninguna.{" "}
-          {GRUPOS.filter((g) => g.id !== activo && candidatos[g.id].disponibles).length
+        <EstadoVacio
+          icono={<SearchX size={15} />}
+          titulo="Aquí no queda ninguna."
+          descripcion={GRUPOS.filter((g) => g.id !== activo && candidatos[g.id].disponibles).length
             ? <>Sí hay en {GRUPOS.filter((g) => g.id !== activo && candidatos[g.id].disponibles).map((g) => g.titulo).join(" y ")}.</>
             : <>Tampoco en los otros dos grupos: hay que pedir aulas nuevas.</>}
-        </p>
+        />
       )}
     </div>
   );

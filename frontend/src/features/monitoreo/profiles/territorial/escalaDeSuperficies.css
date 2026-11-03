@@ -168,10 +168,6 @@
   border-radius: var(--pulso-radius);
 }
 
-.mon-territorial-spatial-empty {
-  border-radius: var(--pulso-radius-card);
-}
-
 /* ── Validación › Duración de tiempo ───────────────────────────────────────
  * Cuatro escalas y once recortes. Los recortes son de esta superficie: se
  * miden aparte porque conviven con cuatro contenedores de scroll. */

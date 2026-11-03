@@ -1,5 +1,6 @@
 import { memo, useEffect, useMemo, useRef, useState } from "react";
 import { Maximize2, Minus, Plus, Route as RouteIcon } from "lucide-react";
+import { EstadoVacio } from "../../../../../components/EstadoVacio";
 import type { MonitoreoTerritorialDashboard, TerritorialBlockProgress } from "../../../../../api/client";
 import { fmt } from "../rotulos";
 import {
@@ -142,11 +143,14 @@ function RecorridoTabImpl({
   if (!modelo.disponible || !aplicador || !jornada || !resumen) {
     return (
       <section className="mon-rec mon-rec--vacio" data-audit-ready="vacio:sin-respuestas" aria-label="Recorrido">
-        <div className="mon-rec-panel mon-rec-vacio">
+        <div className="mon-rec-panel">
           <RotuloDePestana />
-          <RouteIcon size={20} aria-hidden="true" />
-          <strong>Sin formularios en el corte</strong>
-          <span>El recorrido aparece cuando la fuente de Kobo trae respuestas con fecha de la fase activa.</span>
+          <EstadoVacio
+            tamano="normal"
+            icono={<RouteIcon size={18} />}
+            titulo="Sin formularios en el corte"
+            descripcion="El recorrido aparece cuando la fuente de Kobo trae respuestas con fecha de la fase activa."
+          />
         </div>
       </section>
     );

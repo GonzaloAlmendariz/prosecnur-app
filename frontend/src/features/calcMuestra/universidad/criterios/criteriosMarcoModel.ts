@@ -47,7 +47,7 @@ function describeCategorias(crit: Record<string, unknown> | undefined): string {
     if (String(e.op) === "replace") return `${etiqueta}: sólo ${suyas}`;
     return `${etiqueta}: además ${suyas}`;
   });
-  return base ? `${base} · ${partes.join(" · ")}` : partes.join(" · ");
+  return base ? `${base}, ${partes.join(", ")}` : partes.join(", ");
 }
 
 /** Rangos de nivel por facultad, resumidos sin enumerar las quince. */
@@ -72,7 +72,7 @@ function describeNivel(ranges: unknown): string {
   }
   const base = tramos.size ? `niveles ${[...tramos].join(", ")}` : "";
   const ex = exentas.length ? `${exentas.length} facultad${exentas.length === 1 ? "" : "es"} exenta${exentas.length === 1 ? "" : "s"}` : "";
-  return [base, ex].filter(Boolean).join(" · ");
+  return [base, ex].filter(Boolean).join(", ");
 }
 
 /** Mínimo por aula: umbral general y cuántas facultades tienen el suyo. */

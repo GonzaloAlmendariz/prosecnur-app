@@ -100,7 +100,7 @@ export function EnsamblajeBalanceado({
         )}
         <RelatoCifra
           label="Variables de balance declaradas"
-          valor={balance.declaradas.length ? balance.declaradas.join(" · ") : "—"}
+          valor={balance.declaradas.length ? balance.declaradas.join(", ") : "—"}
         />
       </div>
       <p className="cmv2-relato-nota">

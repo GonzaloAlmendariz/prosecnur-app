@@ -1,6 +1,7 @@
 import { memo, type ReactNode } from "react";
 import { Link } from "react-router-dom";
-import { Info } from "lucide-react";
+import { Info, Target } from "lucide-react";
+import { EstadoVacio } from "../../../../../components/EstadoVacio";
 
 import type { MonitoreoAulasDashboard } from "../../../../../api/monitoreo";
 import { fmt } from "../kpisDeAulas";
@@ -28,9 +29,14 @@ function MetasAulasImpl({ dashboard, cargando, vacioSinTablero }: {
   if (modelo.estado === "sin-diseno") {
     return (
       <section className="aulas-ins aulas-ins--una" aria-label="Metas" data-audit-ready={readiness}>
-        <section className="aulas-ins-panel">
-          <p className="aulas-ins-nota" data-qa-geometry-empty="legitimo">{modelo.causa} <Link to={RUTA_DISENO}>Abrir el diseño</Link></p>
-        </section>
+        <div data-qa-geometry-empty="legitimo">
+          <EstadoVacio
+            tamano="normal"
+            icono={<Target size={18} />}
+            titulo={modelo.causa}
+            accion={<Link to={RUTA_DISENO}>Abrir el diseño</Link>}
+          />
+        </div>
       </section>
     );
   }

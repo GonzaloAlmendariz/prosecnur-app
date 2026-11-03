@@ -1,3 +1,5 @@
+import { Users } from "lucide-react";
+import { EstadoVacio } from "../../../../../components/EstadoVacio";
 import { Popover } from "../../../../../components/Popover";
 import { fmt, nombreDeDistrito } from "../rotulos";
 import { RotuloDePestana } from "../navegacion/RotuloDePestana";
@@ -95,7 +97,7 @@ function TarjetaDeZona({ zona, max }: { zona: Zona; max: number }) {
             {visibles.map((p) => <Persona key={p.codigo} p={p} max={max} zona={zona} />)}
           </ul>
         </>
-      ) : <p className="mon-zeq-vacio">Ningún caso de esta zona trae un código de la lista.</p>}
+      ) : <EstadoVacio icono={<Users size={15} />} titulo="Ningún caso de esta zona trae un código de la lista." />}
       {pie ? <p className="mon-zeq-pie">{pie.charAt(0).toUpperCase() + pie.slice(1)}</p> : null}
     </article>
   );

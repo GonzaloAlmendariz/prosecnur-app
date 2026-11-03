@@ -1,5 +1,6 @@
 import { memo, useMemo, useState } from "react";
 import { Loader2, ShieldCheck } from "lucide-react";
+import { EstadoVacio } from "../../../../../components/EstadoVacio";
 import {
   apiMonitoreoTerritorialProductionAnnulmentRevert,
   type MonitoreoState,
@@ -34,12 +35,15 @@ function AnulacionesTabImpl({
   if (!modelo.activas.length && !modelo.casosFuera) {
     return (
       <section className="mon-anu mon-anu--vacio" data-audit-ready="vacio:sin-anulaciones" aria-label="Anulaciones">
-        <div className="mon-anu-panel mon-anu-vacio">
+        <div className="mon-anu-panel">
           <RotuloDePestana />
-          <ShieldCheck size={20} aria-hidden="true" />
-          <strong>Ningún caso anulado en esta fase</strong>
-          <span>Un caso o la producción de un aplicador se anulan desde Control › Bandeja o Control › Equipo.</span>
-          {modelo.revertidas ? <span>{fmt(modelo.revertidas)} anulaciones revertidas.</span> : null}
+          <EstadoVacio
+            tamano="normal"
+            icono={<ShieldCheck size={18} />}
+            titulo="Ningún caso anulado en esta fase"
+            descripcion="Un caso o la producción de un aplicador se anulan desde Control › Bandeja o Control › Equipo."
+          />
+          {modelo.revertidas ? <p className="mon-anu-revertidas">{fmt(modelo.revertidas)} anulaciones revertidas.</p> : null}
         </div>
       </section>
     );

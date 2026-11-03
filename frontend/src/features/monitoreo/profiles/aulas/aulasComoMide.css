@@ -24,8 +24,6 @@
   color: var(--pulso-text-faint);
 }
 
-.aulas-como-mide-vacio { font-style: normal; font-size: 12px; color: var(--pulso-text-faint); }
-
 .aulas-como-mide-chips { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
 
 /* El chip hereda de `.aulas-sexo-chip`; aquí sólo lo que es propio de esta

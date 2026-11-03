@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { Check, GraduationCap, Wand2 } from "../../../../vendor/lucide-react";
+import { EstadoVacio } from "../../../../components/EstadoVacio";
 import { contar } from "../../fuentes/vocabulario";
 import {
   codigosOrdenados, codigosSinMapear, etiquetasGuardables, propuestaPorOrden,
@@ -144,10 +145,10 @@ export default function AulasFacultadDeclarada({
         </>
       ) : null}
       {variable && !codigos.length ? (
-        <p className="aulas-facultad-vacio">
-          <GraduationCap size={14} aria-hidden="true" />
-          Esa variable no trae valores en la base sincronizada, así que no hay códigos que emparejar.
-        </p>
+        <EstadoVacio
+          icono={<GraduationCap size={15} />}
+          titulo="Esa variable no trae valores en la base sincronizada, así que no hay códigos que emparejar."
+        />
       ) : null}
     </div>
   );

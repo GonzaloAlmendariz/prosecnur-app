@@ -1,4 +1,6 @@
 import type { ReactNode } from "react";
+import { Target } from "../../../../vendor/lucide-react";
+import { EstadoVacio } from "../../../../components/EstadoVacio";
 
 import { barrasPorFacultad, type FilaDeFacultad } from "./barrasPorFacultad";
 import type { FocoDeCuota } from "./AulasCuotasResumen";
@@ -33,10 +35,11 @@ export function AulasBarrasPorFacultad({
     // El vacío se declara y dice qué falta para llenarlo (C3 del contrato de
     // superficie): un panel en blanco se lee como avería.
     return (
-      <p className="mon-profile-muted aulas-bpf-vacio">
-        Todavía no hay metas por facultad y sexo que mostrar. Aparecen cuando el
-        estudio declara su cuota del diseño.
-      </p>
+      <EstadoVacio
+        icono={<Target size={15} />}
+        titulo="Todavía no hay metas por facultad y sexo que mostrar."
+        descripcion="Aparecen cuando el estudio declara su cuota del diseño."
+      />
     );
   }
   const total = totalizar(facultades);

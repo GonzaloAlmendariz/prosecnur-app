@@ -411,19 +411,6 @@
   grid-template-columns: minmax(0, 1fr);
 }
 
-.mon-mod-vacio {
-  align-items: center;
-  justify-content: center;
-  height: 100%;
-  text-align: center;
-  color: var(--pulso-text-soft);
-}
-
-.mon-mod-vacio strong {
-  color: var(--pulso-text);
-  font-size: 15px;
-}
-
 @media (max-width: 1180px) {
   .mon-mod-plantilla {
     grid-template-columns: repeat(3, minmax(0, 1fr));

@@ -90,7 +90,7 @@ export function aulasSupervivientesFacultad(
       const classroomId = rowStr(r, "classroom_id");
       const curso = rowStr(r, "course_name") || rowStr(r, "label") || classroomId;
       const seccion = rowStr(r, "section");
-      const detalle = [rowStr(r, "schedule"), rowStr(r, "teacher")].filter(Boolean).join(" · ");
+      const detalle = [rowStr(r, "schedule"), rowStr(r, "teacher")].filter(Boolean).join(", ");
       return {
         classroomId,
         classroomKey: textKey(classroomId),

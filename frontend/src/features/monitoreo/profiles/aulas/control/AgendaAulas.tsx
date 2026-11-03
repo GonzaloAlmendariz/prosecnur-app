@@ -1,5 +1,6 @@
 import { memo, useMemo, useState, type ReactNode } from "react";
 import { ChevronLeft, ChevronRight, Info } from "lucide-react";
+import { EstadoVacio } from "../../../../../components/EstadoVacio";
 
 import type { MonitoreoAulasDashboard } from "../../../../../api/monitoreo";
 import { Link } from "react-router-dom";
@@ -79,10 +80,9 @@ function AgendaAulasImpl({ dashboard, cargando, vacioSinTablero, hoy = hoyLocal(
 
 function Nota({ vacio }: { vacio: Vacio }) {
   return (
-    <p className="aulas-ag-nota" data-qa-geometry-empty={vacio.clase}>
-      <Info size={14} aria-hidden="true" />
-      <span>{vacio.causa}</span>
-    </p>
+    <div data-qa-geometry-empty={vacio.clase}>
+      <EstadoVacio icono={<Info size={15} />} titulo={vacio.causa} />
+    </div>
   );
 }
 
@@ -144,7 +144,7 @@ function Semana({ modelo, sinHora, onSemana }: {
   const id = "aulas-ag-semana-titulo";
   if ("vacio" in modelo) {
     return (
-      <section className="aulas-ag-panel aulas-ag-semana" aria-labelledby={id}>
+      <section className="aulas-ag-panel aulas-ag-semana" aria-labelledby={id} data-vacia="">
         <header className="aulas-ag-cabecera"><h3 id={id} className="aulas-ag-titulo">Semana</h3></header>
         <Nota vacio={modelo.vacio} />
       </section>

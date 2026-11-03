@@ -1,5 +1,6 @@
 import { memo, useMemo } from "react";
 import { Check, Info, Target } from "lucide-react";
+import { EstadoVacio } from "../../../../../components/EstadoVacio";
 import type { MonitoreoTerritorialDashboard } from "../../../../../api/client";
 import { useFocoMonitoreo } from "../../../useMonitoreoDireccion";
 import { fmt, fmtConSigno } from "../rotulos";
@@ -23,14 +24,19 @@ function ResumenImpl({ reports }: { reports: MonitoreoTerritorialDashboard | nul
   if (!modelo.configurado) {
     return (
       <section className="mon-res mon-res--vacio" data-audit-ready="vacio:sin-avance" aria-label="Resumen del avance">
-        <div className="mon-res-panel mon-res-vacio" data-qa-geometry-empty="legitimo">
+        <div className="mon-res-panel" data-qa-geometry-empty="legitimo">
           <RotuloDePestana />
-          <Target size={20} aria-hidden="true" />
-          <strong>Todavía no hay avance que resumir</strong>
-          <span>El avance se calcula cuando la fuente de Kobo tiene respuestas de la fase activa.</span>
-          <button type="button" className="mon-res-boton" onClick={() => escribirFoco(null, { seccion: "insumos", pestana: "conexiones", panel: null })}>
-            Abrir Insumos › Conexiones
-          </button>
+          <EstadoVacio
+            tamano="normal"
+            icono={<Target size={18} />}
+            titulo="Todavía no hay avance que resumir"
+            descripcion="El avance se calcula cuando la fuente de Kobo tiene respuestas de la fase activa."
+            accion={
+              <button type="button" className="mon-res-boton" onClick={() => escribirFoco(null, { seccion: "insumos", pestana: "conexiones", panel: null })}>
+                Abrir Insumos › Conexiones
+              </button>
+            }
+          />
         </div>
       </section>
     );

@@ -21,7 +21,9 @@ import {
   UploadCloud,
   X,
   XCircle,
+  SearchX,
 } from "lucide-react";
+import { EstadoVacio } from "../../../../components/EstadoVacio";
 import {
   apiConnectionsList,
   apiMonitoreoKoboAssets,
@@ -1546,7 +1548,7 @@ function OccurrenceRegisterWorkspace({ rows }: { rows: OccurrenceRouteUmpRow[] }
             </article>
           ))}
           {!filteredRows.length ? (
-            <p className="mon-field-occurrences-register-empty">Sin UMP para estos filtros.</p>
+            <EstadoVacio icono={<SearchX size={15} />} titulo="Sin UMP para estos filtros." />
           ) : null}
         </div>
       </div>

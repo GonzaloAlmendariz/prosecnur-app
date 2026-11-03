@@ -276,7 +276,7 @@ export function AlumnosPorChMarcoTab({
           {missing.length > 0 ? (
             <span className="cmv2-alumnos-ch-bloqueo" role="status">
               Falta el estadístico en {missing.length} {missing.length === 1 ? "facultad" : "facultades"}:{" "}
-              {missing.slice(0, 3).join(" · ")}{missing.length > 3 ? ` y ${missing.length - 3} más` : ""}
+              {missing.slice(0, 3).join(", ")}{missing.length > 3 ? ` y ${missing.length - 3} más` : ""}
             </span>
           ) : null}
           <button

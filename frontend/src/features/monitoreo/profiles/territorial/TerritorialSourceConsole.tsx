@@ -19,7 +19,13 @@ import {
   Table2,
   Upload,
   XCircle,
+  FileSpreadsheet,
+  History,
+  SearchX,
 } from "lucide-react";
+import { CargaDeBloque } from "../../../recopiladores/CargaDeBloque";
+import { EstadoVacio } from "../../../../components/EstadoVacio";
+import { LoadingBlock } from "../../../../components/States";
 import {
   apiMonitoreoKoboAssets,
   apiMonitoreoSheetsSource,
@@ -651,10 +657,7 @@ function TerritorialSourceConsoleImpl({
 
   if (!config) {
     return (
-      <div className="mon-territorial-source-empty">
-        <Loader2 size={16} className="pulso-spin" />
-        Preparando configuración territorial...
-      </div>
+      <LoadingBlock label="Preparando configuración territorial…" />
     );
   }
 
@@ -1138,15 +1141,22 @@ function TerritorialSourceConsoleImpl({
                   </article>
                 );
               }) : (
-                <div className="mon-territorial-source-empty">
-                  {assetsLoading ? "Leyendo formularios Kobo..." : !assetsLoaded ? "Carga el listado de formularios Kobo para elegir una fuente." : "No hay formularios para esta búsqueda."}
-                  {!assetsLoading && !assetsLoaded ? (
-                    <button type="button" onClick={() => { void loadAssets(); }} disabled={saving || busy}>
-                      <RefreshCw size={13} />
-                      <span>Cargar listado</span>
-                    </button>
-                  ) : null}
-                </div>
+                assetsLoading ? (
+                  <CargaDeBloque label="Leyendo formularios Kobo…" />
+                ) : !assetsLoaded ? (
+                  <EstadoVacio
+                    icono={<FileSpreadsheet size={15} />}
+                    titulo="Carga el listado de formularios Kobo para elegir una fuente."
+                    accion={
+                      <button type="button" onClick={() => { void loadAssets(); }} disabled={saving || busy}>
+                        <RefreshCw size={13} />
+                        <span>Cargar listado</span>
+                      </button>
+                    }
+                  />
+                ) : (
+                  <EstadoVacio icono={<SearchX size={15} />} titulo="No hay formularios para esta búsqueda." />
+                )
               )}
             </div>
             {pendingAsset ? (
@@ -1427,11 +1437,14 @@ function TerritorialSourceConsoleImpl({
                     </table>
                   </>
                 ) : (
-                  <div className="mon-territorial-enumerator-empty">
-                    <Upload size={22} />
-                    <strong>Roster pendiente</strong>
-                    <em>Sube un Excel con apellidos y nombres para generar códigos aleatorios PXXX.</em>
-                    <div>
+                  <div className="mon-territorial-enumerator-pendiente">
+                    <EstadoVacio
+                      tamano="normal"
+                      icono={<Upload size={18} />}
+                      titulo="Roster pendiente"
+                      descripcion="Sube un Excel con apellidos y nombres para generar códigos aleatorios PXXX."
+                    />
+                    <div className="mon-territorial-enumerator-columnas">
                       <span>AP PATERNO</span>
                       <span>AP MATERNO</span>
                       <span>NOMBRES</span>
@@ -1591,7 +1604,7 @@ function TerritorialSourceConsoleImpl({
                     </button>
                     );
                   }) : (
-                    <div className="mon-territorial-source-empty">{normalizedCodeReviewSearch ? "Sin coincidencias para este filtro." : "Sin códigos en este lente."}</div>
+                    <EstadoVacio icono={<SearchX size={15} />} titulo={normalizedCodeReviewSearch ? "Sin coincidencias para este filtro." : "Sin códigos en este lente."} />
                   )}
                 </div>
               </section>
@@ -1684,7 +1697,7 @@ function TerritorialSourceConsoleImpl({
                     </button>
                     );
                   }) : (
-                    <div className="mon-territorial-source-empty">{normalizedUmpReviewSearch ? "Sin coincidencias para este filtro." : "Sin UMP pendientes."}</div>
+                    <EstadoVacio icono={<SearchX size={15} />} titulo={normalizedUmpReviewSearch ? "Sin coincidencias para este filtro." : "Sin UMP pendientes."} />
                   )}
                 </div>
                 <aside className="mon-territorial-reconciliation-queue" aria-label="Bandeja de revisión de UMP">
@@ -1779,7 +1792,7 @@ function TerritorialSourceConsoleImpl({
                 </span>
               </article>
             )) : (
-              <div className="mon-territorial-source-empty">Todavía no hay inspecciones ni sincronizaciones registradas.</div>
+              <EstadoVacio icono={<History size={15} />} titulo="Todavía no hay inspecciones ni sincronizaciones registradas." />
             )}
           </div>
         </section>

@@ -114,11 +114,3 @@
 .mon-profile-page.is-aulas-flow .aulas-facultad-veredicto.es-atencion {
   color: var(--pulso-danger-fg);
 }
-.mon-profile-page.is-aulas-flow .aulas-facultad-vacio {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin: 0;
-  font-size: 11px;
-  color: var(--pulso-text-soft);
-}

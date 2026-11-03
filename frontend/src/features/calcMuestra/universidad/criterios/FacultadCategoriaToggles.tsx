@@ -213,7 +213,7 @@ export function FacultadCategoriaToggles({
           {fila.tipos
             .filter((t) => !relevantes.some((r) => r.key === t.key))
             .map((t) => t.label)
-            .join(" · ")}
+            .join(", ")}
         </p>
       ) : null}
       {fila.decision === "propia" ? (

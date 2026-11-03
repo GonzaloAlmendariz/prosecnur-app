@@ -1,4 +1,5 @@
 import { ArrowRightLeft, X } from "lucide-react";
+import { LoadingBlock } from "../../../../../components/States";
 import { fmt, fmtConSigno } from "../rotulos";
 import type { FichaDeUmp as Ficha } from "./fichaUmpModel";
 import { SiluetaDeDistrito } from "./SiluetaDeDistrito";
@@ -69,7 +70,7 @@ export function FichaDeUmp({
       <section aria-labelledby="mon-ump-ficha-casos" className="mon-ump-casos-marco">
         <h4 id="mon-ump-ficha-casos" className="mon-ump-subtitulo">Casos de la UMP</h4>
         {ficha.casos === null ? (
-          <p className="mon-ump-base" title="Los casos llegan con el corte de Validación" aria-busy="true">Preparando el corte de Validación…</p>
+          <div title="Los casos llegan con el corte de Validación"><LoadingBlock label="Preparando el corte de Validación…" variant="inline" /></div>
         ) : ficha.casos.length ? (
           <ol className="mon-ump-casos" data-qa-geometry-capacity="owned" data-qa-geometry-group="territorial-ump-casos" data-qa-geometry-contract="intrinsic">
             {ficha.casos.map((caso) => (

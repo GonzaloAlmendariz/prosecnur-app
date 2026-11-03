@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import type { MonitoreoAulasSincronizacion, MonitoreoAulasTramo } from "../../../../api/monitoreo";
 
-import { AlertTriangle, Check, CheckCircle2, Copy, Info, Pin, Shuffle } from "../../../../vendor/lucide-react";
+import { AlertTriangle, Check, CheckCircle2, Copy, Info, Pin, Shuffle, Users } from "../../../../vendor/lucide-react";
+import { EstadoVacio } from "../../../../components/EstadoVacio";
 import {
   avisoDistribucion, enlaceDeDistribucion,
   type DistribucionSheetsRecordada, type DistribucionVigente,
@@ -275,11 +276,14 @@ export function AulasAsignacionDeAplicadores({
 
   if (!reparto) {
     return (
-      <p className="aulas-carga-vacio" data-qa-geometry-member="true" data-qa-geometry-capacity="owned">
-        El reparto sale de la disponibilidad de los aplicadores, que este estudio todavía no
-        tiene cargada. Con el libro de disponibilidad del equipo (Excel) en la sesión, cada cita
-        pactada recibe su aplicador: parejo, sin solapes y repetible con cada Recargar.
-      </p>
+      <div data-qa-geometry-member="true" data-qa-geometry-capacity="owned">
+        <EstadoVacio
+          tamano="normal"
+          icono={<Users size={18} />}
+          titulo="El reparto sale de la disponibilidad de los aplicadores, que este estudio todavía no tiene cargada."
+          descripcion="Con el libro de disponibilidad del equipo (Excel) en la sesión, cada cita pactada recibe su aplicador: parejo, sin solapes y repetible con cada Recargar."
+        />
+      </div>
     );
   }
 

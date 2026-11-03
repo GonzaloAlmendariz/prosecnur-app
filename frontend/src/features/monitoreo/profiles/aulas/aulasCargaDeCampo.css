@@ -281,7 +281,6 @@ span.aulas-carga-celda.es-deficit { background: color-mix(in srgb, var(--pulso-d
   border-radius: 10px;
   background: color-mix(in srgb, var(--pulso-surface-2) 45%, #fff);
 }
-.aulas-carga-detalle-vacio { margin: 0; color: var(--pulso-text-faint); font-size: 12.5px; }
 .aulas-carga-detalle-titulo { margin: 0; color: var(--pulso-text); font-size: 13px; font-variant-numeric: tabular-nums; }
 .aulas-carga-detalle-titulo em { color: var(--pulso-text-faint); font-size: 11.5px; font-style: normal; }
 .aulas-carga-detalle-grupo h4 {
@@ -338,12 +337,11 @@ span.aulas-carga-celda.es-deficit { background: color-mix(in srgb, var(--pulso-d
   display: inline-flex; align-items: center; gap: 4px;
   color: var(--pulso-text); font-variant-numeric: tabular-nums;
 }
-.aulas-carga-aviso, .aulas-carga-vacio {
+.aulas-carga-aviso {
   margin: 0; padding: 12px 14px; border-radius: 8px;
   background: var(--pulso-warn-bg); border: 1px solid var(--pulso-warn-border);
   color: var(--pulso-warn-fg); font-size: 12.5px;
 }
-.aulas-carga-vacio { max-width: 64ch; }
 
 @media (max-width: 900px) {
   .aulas-carga-kpis { margin-left: 0; width: 100%; }
@@ -682,7 +680,6 @@ span.aulas-carga-celda.es-deficit { background: color-mix(in srgb, var(--pulso-d
 
 /* B74 — importar la disponibilidad desde la app (también en los vacíos, que
    es donde más muerde su ausencia). Label-botón sobrio con nota tenue. */
-.aulas-dispo-vacio { display: flex; flex-direction: column; gap: 10px; align-items: flex-start; }
 .aulas-dispo-importar {
   display: inline-flex;
   flex-direction: column;

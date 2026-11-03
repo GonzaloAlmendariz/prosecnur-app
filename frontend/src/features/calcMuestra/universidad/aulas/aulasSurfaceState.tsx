@@ -58,7 +58,7 @@ function storedSelectionSummary(model: ClassroomLabModel) {
     rows.length > titularCount && titularCount > 0 ? `${fmtInt(rows.length)} filas del plan` : "",
     runId ? `corrida ${runId}` : "corrida sin identificador publicable",
   ].filter(Boolean);
-  return parts.join(" · ");
+  return parts.join(", ");
 }
 
 /**

@@ -1,3 +1,5 @@
+import { Users } from "lucide-react";
+import { EstadoVacio } from "../../../../../components/EstadoVacio";
 import type { TerritorialQuotaProgressBlock } from "../../../../../api/client";
 import type { UmpPlanificada } from "../../../../../api/monitoreoAsignacionPlanificada";
 import { diaYMes, fmt, fmtConSigno, rotuloDeCelda } from "../rotulos";
@@ -117,7 +119,7 @@ export function DetalleDeUmp({ fila, coordinacion = null }: {
             </tbody>
           </table>
         ) : (
-          <p className="mon-falt-detalle-vacio">La manzana en uso no tiene casos con consentimiento.</p>
+          <EstadoVacio icono={<Users size={15} />} titulo="La manzana en uso no tiene casos con consentimiento." />
         )}
       </section>
 

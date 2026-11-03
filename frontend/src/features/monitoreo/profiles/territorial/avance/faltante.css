@@ -716,27 +716,6 @@
   color: var(--pulso-text);
 }
 
-.mon-falt-detalle-vacio,
-.mon-falt-vacio-tabla {
-  margin: 0;
-  padding: var(--pulso-space-4);
-  color: var(--pulso-text-soft);
-  font-size: 13px;
-}
-
-.mon-falt-vacio {
-  align-items: center;
-  justify-content: center;
-  height: 100%;
-  text-align: center;
-  color: var(--pulso-text-soft);
-}
-
-.mon-falt-vacio strong {
-  color: var(--pulso-text);
-  font-size: 15px;
-}
-
 /* 1024 × 600: los dos paneles de arriba se apilan y la página desplaza; la
  * tabla conserva un mínimo útil para no quedar en una franja. */
 @media (max-width: 1180px) {

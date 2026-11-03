@@ -245,8 +245,6 @@
    semibold, donde 3,71 con peso si se sostiene. */
 .aulas-reemplazo-concesiones span { color: #8a570d; font-weight: var(--pulso-weight-semibold); }
 
-.aulas-reemplazo-vacio { margin: 0; padding: 10px; border-radius: 9px; background: var(--pulso-surface-muted); color: var(--pulso-text-soft); font-size: var(--aulas-min); }
-
 /* El reparto por sexo, en dos lecturas: a cuanta gente se entra (elegibles) y
    cuantas encuestas salen (esperadas). Van en tabla y no en prosa porque se
    comparan entre candidatos: la columna alinea, la frase no. */

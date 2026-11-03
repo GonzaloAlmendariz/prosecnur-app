@@ -234,7 +234,7 @@ export function ParticularidadesPanel({
                     titulo={row.curso}
                     meta={
                       row.facultades.length
-                        ? `${fmtInt(row.n_facultades)} facultades · ${row.facultades.join(" · ")}`
+                        ? `${fmtInt(row.n_facultades)} facultades: ${row.facultades.join(", ")}`
                         : `${fmtInt(row.n_facultades)} facultades`
                     }
                     decisiones={decisiones}

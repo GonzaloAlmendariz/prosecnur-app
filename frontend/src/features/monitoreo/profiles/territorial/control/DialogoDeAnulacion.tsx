@@ -1,5 +1,6 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { Loader2, TriangleAlert } from "lucide-react";
+import { CargaDeBloque } from "../../../../recopiladores/CargaDeBloque";
 import {
   apiMonitoreoTerritorialProductionAnnulmentApply,
   apiMonitoreoTerritorialProductionAnnulmentPreview,
@@ -99,7 +100,7 @@ export function DialogoDeAnulacion({
 
         <section className="mon-dlg-impacto" aria-label="Qué cambia">
           {paso.tipo === "calculando" ? (
-            <p className="mon-dlg-base"><Loader2 size={14} className="pulso-spin" aria-hidden="true" /> Calculando qué cambia…</p>
+            <CargaDeBloque label="Calculando qué cambia…" />
           ) : lineas.length ? (
             <ul>
               {lineas.map((linea) => <li key={linea.clave}>{linea.texto}</li>)}

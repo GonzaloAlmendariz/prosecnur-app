@@ -141,14 +141,6 @@
   height: 100%;
 }
 
-.mon-exp-vacio {
-  margin: auto;
-  padding: var(--pulso-space-4);
-  color: var(--pulso-text-soft);
-  font-size: 13px;
-  text-align: center;
-}
-
 .mon-exp-calles path {
   fill: none;
   stroke: var(--pulso-border);

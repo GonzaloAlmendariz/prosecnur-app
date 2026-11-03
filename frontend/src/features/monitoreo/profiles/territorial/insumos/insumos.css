@@ -381,19 +381,6 @@
   outline-offset: 2px;
 }
 
-.mon-ins--vacio .mon-ins-vacio,
-.mon-ins-vacio {
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  color: var(--pulso-text-soft);
-}
-
-.mon-ins-vacio strong {
-  color: var(--pulso-text);
-  font-size: 15px;
-}
-
 .mon-ins.mon-ins--vacio:not(.mon-ins-padron) {
   grid-template-columns: minmax(0, 1fr);
 }

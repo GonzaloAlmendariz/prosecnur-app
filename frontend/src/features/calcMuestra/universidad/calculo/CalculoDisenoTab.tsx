@@ -419,7 +419,7 @@ export function CalculoDisenoTab({
                 ...cambiosTotal.map((k) => `${k} (universidad)`),
                 ...cambiosFaculty.map((k) => `${k} (facultades)`),
                 ...(cambiosP.length ? [`p por facultad ×${cambiosP.length}`] : []),
-              ].join(" · ")}
+              ].join(", ")}
             </span>
           </div>
           <div className="cmv2-inline-actions">

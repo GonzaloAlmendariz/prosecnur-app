@@ -15,7 +15,7 @@ import { etiquetaDeValor } from "../exploradorBasesValores";
 describe("etiquetaDeValor · motivo de exclusión", () => {
   it("traduce cada motivo y los une como lista, no con la barra del motor", () => {
     expect(etiquetaDeValor("exclude_reason", "min_eligible_per_class|modality|min_eligible"))
-      .toBe("Mínimo por aula (filtro base) · Modalidad · Mínimo de alumnos elegibles");
+      .toBe("Mínimo por aula (filtro base), Modalidad y Mínimo de alumnos elegibles");
   });
 
   it("un motivo suelto se lee igual de bien", () => {

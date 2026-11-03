@@ -345,19 +345,6 @@
   grid-template-columns: minmax(0, 1fr);
 }
 
-.mon-sub-vacio {
-  align-items: center;
-  justify-content: center;
-  height: 100%;
-  text-align: center;
-  color: var(--pulso-text-soft);
-}
-
-.mon-sub-vacio strong {
-  color: var(--pulso-text);
-  font-size: 15px;
-}
-
 
 /* Tercera columna: el mapa de movimientos llena el alto y las subsanaciones
  * aplicadas van debajo con lo que traen (antes, media columna vacía). */

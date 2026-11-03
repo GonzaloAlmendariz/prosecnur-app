@@ -248,7 +248,7 @@ export function TipoSesionRadiografia({
           {filasVacias.length ? (
             <p className="cmv2-tsr-vacias" role="note">
               <strong>Sin cursos-horario en esta facultad ({filasVacias.length}):</strong>{" "}
-              {filasVacias.map((f) => f.categoria_label).join(" · ")}
+              {filasVacias.map((f) => f.categoria_label).join(", ")}
             </p>
           ) : null}
           {filasConDato.length ? (

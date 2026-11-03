@@ -13,7 +13,9 @@ import {
   Search,
   Table2,
   Target,
+  SearchX,
 } from "lucide-react";
+import { EstadoVacio } from "../../../../components/EstadoVacio";
 import {
   type MonitoreoConfig,
   type MonitoreoSource,
@@ -613,14 +615,14 @@ function RouteBlockTable({
                         </button>
                       );
                     })}
-                    {!replacements.length ? <p className="mon-territorial-route-replacement-empty">Esta titular no tiene reemplazos asociados.</p> : null}
+                    {!replacements.length ? <EstadoVacio icono={<Route size={15} />} titulo="Esta titular no tiene reemplazos asociados." /> : null}
                   </div>
                 </div>
               ) : null}
             </article>
           );
         })}
-        {!filtered.length ? <div className="mon-territorial-route-accordion-empty">Sin titulares para los filtros seleccionados.</div> : null}
+        {!filtered.length ? <EstadoVacio icono={<SearchX size={15} />} titulo="Sin titulares para los filtros seleccionados." /> : null}
       </div>
     </section>
   );

@@ -97,7 +97,7 @@ function ReserveDepthHeader({
             // Un tono sólo se puede leer si se sabe contra qué se mide, y este
             // objetivo es configurable: callarlo deja el color sin referencia.
             prof?.objetivoExplicito ? `objetivo declarado: ${fmtRatio(objetivo)} por titular` : null,
-          ].filter(Boolean).join(" · ")}
+          ].filter(Boolean).join(", ")}
           origen="motor"
           tono={prof?.tono}
           hero

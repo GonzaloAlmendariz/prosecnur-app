@@ -1,5 +1,7 @@
 import { useMemo, useState } from "react";
 import { ArrowLeft } from "lucide-react";
+import { CargaDeBloque } from "../../../../recopiladores/CargaDeBloque";
+import { ErrorBlock } from "../../../../../components/States";
 import type { MonitoreoTerritorialDashboard } from "../../../../../api/client";
 import type { CasoDeUmpConGps } from "../../../../../api/monitoreoCasosUmp";
 import { celdaEnFrase, diaYMes, enumerar, fmt } from "../rotulos";
@@ -151,9 +153,9 @@ export function ExploracionUmp({
           </header>
           <div className="mon-exp-lienzo">
             {estado.tipo === "error" ? (
-              <p className="mon-exp-vacio">No se pudieron traer los casos de la UMP: {estado.mensaje}</p>
+              <ErrorBlock label="No se pudieron traer los casos de la UMP" detail={estado.mensaje} />
             ) : estado.tipo !== "listo" ? (
-              <p className="mon-exp-vacio">Trayendo los formularios de la UMP con su GPS…</p>
+              <CargaDeBloque label="Trayendo los formularios de la UMP con su GPS…" />
             ) : (
               <svg
                 className="mon-exp-svg"

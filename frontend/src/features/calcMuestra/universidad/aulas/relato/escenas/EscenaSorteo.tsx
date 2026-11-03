@@ -275,8 +275,8 @@ export function EscenaSorteo({ escena }: { escena: RelatoEscenaSorteo }) {
                     (paso.yaCubiertos ?? 0) > 0 ? `${fmtInt(paso.yaCubiertos)} ya cubiertos` : "",
                   ]
                     .filter(Boolean)
-                    .join(" · ")
-                : [unidad.bola!.etiqueta, unidad.bola!.facultad, cifra].filter(Boolean).join(" · ");
+                    .join(", ")
+                : [unidad.bola!.etiqueta, unidad.bola!.facultad, cifra].filter(Boolean).join(", ");
               return (
                 <g
                   key={`${unidad.clave}${esReciente ? "-enciende" : ""}`}

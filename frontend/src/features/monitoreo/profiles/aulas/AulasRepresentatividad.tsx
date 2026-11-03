@@ -1,4 +1,6 @@
 import type { ReactNode } from "react";
+import { Scale } from "../../../../vendor/lucide-react";
+import { EstadoVacio } from "../../../../components/EstadoVacio";
 import { pctPerfil } from "./kpisDeAulas";
 
 import { representatividadEfectiva } from "./representatividadEfectiva";
@@ -35,7 +37,7 @@ export function AulasRepresentatividad({ bloque }: {
     // El vacío se clasifica y nombra su causa (C3). Cuando el motor tiene la
     // suya —«Sin datos suficientes para distancia efectiva»— se repite la suya,
     // no se redacta otra.
-    return <p data-qa-geometry-capacity="owned" data-qa-geometry-member="true" className="mon-profile-muted aulas-repr-vacio">{vista.vacio}</p>;
+    return <div data-qa-geometry-capacity="owned" data-qa-geometry-member="true"><EstadoVacio icono={<Scale size={15} />} titulo={vista.vacio} /></div>;
   }
 
   // La escala del carril es el desvío MÁS GRANDE, no un tope fijo: con desvíos

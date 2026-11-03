@@ -1,6 +1,8 @@
 import { memo, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { ExternalLink, Map as MapIcon } from "lucide-react";
+import { EstadoVacio } from "../../../../../components/EstadoVacio";
+import { LoadingBlock } from "../../../../../components/States";
 import type { MonitoreoState, MonitoreoTerritorialDashboard, MonitoreoTerritorialPhase } from "../../../../../api/client";
 import { opcionesDeFase } from "../navegacion/fase";
 import { fmt } from "../rotulos";
@@ -38,10 +40,9 @@ function MetasTabImpl({
   if (!reports) {
     return (
       <section className="mon-mod mon-mod--vacio" aria-label="Metas y muestra" aria-busy="true">
-        <div className="mon-mod-panel mon-mod-vacio">
+        <div className="mon-mod-panel">
           <RotuloDePestana />
-          <MapIcon size={20} aria-hidden="true" />
-          <strong>Leyendo la muestra de Hojas de ruta…</strong>
+          <LoadingBlock label="Leyendo la muestra de Hojas de ruta…" />
         </div>
       </section>
     );
@@ -50,12 +51,17 @@ function MetasTabImpl({
   if (!modelo.disponible) {
     return (
       <section className="mon-mod mon-mod--vacio" data-audit-ready="vacio:sin-muestra" aria-label="Metas y muestra">
-        <div className="mon-mod-panel mon-mod-vacio">
+        <div className="mon-mod-panel">
           <RotuloDePestana />
-          <MapIcon size={20} aria-hidden="true" />
-          <strong>Sin muestra de Hojas de ruta</strong>
-          <span>La meta y las UMP salen de la muestra que se arma en Hojas de ruta.</span>
-          <button type="button" className="mon-mod-boton" onClick={abrirHojasDeRuta}>Abrir Hojas de ruta</button>
+          <EstadoVacio
+            tamano="normal"
+            icono={<MapIcon size={18} />}
+            titulo="Sin muestra de Hojas de ruta"
+            descripcion="La meta y las UMP salen de la muestra que se arma en Hojas de ruta."
+            accion={
+              <button type="button" className="mon-mod-boton" onClick={abrirHojasDeRuta}>Abrir Hojas de ruta</button>
+            }
+          />
         </div>
       </section>
     );

@@ -92,7 +92,7 @@ function CurvaCerteza({ fila }: { fila: CertezaFilaVista }) {
     .join(" ");
   const titulo = plana
     ? `El rendimiento no crece al sumar aulas (${puntos[0]!.aulas} → ${puntos[puntos.length - 1]!.aulas}): la corrida no está evaluando el número que declara.`
-    : puntos.map((p) => `${p.aulas} aulas: ${Math.round(p.rendimiento_medio)}`).join(" · ");
+    : puntos.map((p) => `${p.aulas} aulas: ${Math.round(p.rendimiento_medio)}`).join(", ");
   return (
     <td className="cmv2-certeza-curva" data-plana={plana ? "" : undefined}>
       <svg viewBox="0 0 46 16" role="img" aria-label={titulo}>

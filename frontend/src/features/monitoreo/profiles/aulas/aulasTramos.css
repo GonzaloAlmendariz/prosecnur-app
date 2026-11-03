@@ -97,12 +97,6 @@
   color: var(--pulso-accent-steel);
 }
 
-.mon-profile-page.is-aulas-flow .aulas-tramos-vacio {
-  padding: 14px 0;
-  color: var(--pulso-text-soft);
-  font-size: 12px;
-}
-
 .mon-profile-page.is-aulas-flow .aulas-tramos-acciones {
   display: flex;
   align-items: center;

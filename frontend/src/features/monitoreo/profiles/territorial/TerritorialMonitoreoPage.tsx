@@ -28,6 +28,7 @@ import {
   Target,
   Trash2,
 } from "lucide-react";
+import { EstadoVacio } from "../../../../components/EstadoVacio";
 import {
   apiMonitoreoState,
   apiMonitoreoTerritorialOperationalAdjustmentApply,
@@ -335,11 +336,7 @@ function StatTile({ label, value, tone = "neutral" }: { label: string; value: st
 
 function EmptyPanel({ icon: Icon, title, detail }: { icon: typeof Route; title: string; detail: string }) {
   return (
-    <div className="ter-empty">
-      <span className="ter-empty__icon"><Icon size={18} /></span>
-      <strong>{title}</strong>
-      <p>{detail}</p>
-    </div>
+    <EstadoVacio tamano="normal" icono={<Icon size={18} />} titulo={title} descripcion={detail} />
   );
 }
 

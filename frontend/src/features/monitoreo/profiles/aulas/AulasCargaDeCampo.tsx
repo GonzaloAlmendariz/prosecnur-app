@@ -1,7 +1,8 @@
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import type { MonitoreoAulasSincronizacion, MonitoreoAulasTramo } from "../../../../api/monitoreo";
 
-import { Check, Pencil } from "../../../../vendor/lucide-react";
+import { Check, Pencil, CalendarClock, MousePointer2 } from "../../../../vendor/lucide-react";
+import { EstadoVacio } from "../../../../components/EstadoVacio";
 
 import type {
   MonitoreoAulasDisponibilidad,
@@ -364,10 +365,13 @@ export function AulasCargaDeCampo({
         {/* La rama vacía declara lo mismo que la de datos: es donde el grupo
             se quedaba sin contenedor declarado y el `header` entraba en la
             medida con sus 4 px. */}
-        <p className="aulas-carga-vacio" data-qa-geometry-capacity="owned" data-qa-geometry-member="true">
-          El plan no trae el horario de los cursos-horario. Se completa al construir el marco desde el catálogo
-          de Cursos-Horarios, que es de donde sale el rango de cada sesión.
-        </p>
+        <div data-qa-geometry-capacity="owned" data-qa-geometry-member="true">
+          <EstadoVacio
+            icono={<CalendarClock size={15} />}
+            titulo="El plan no trae el horario de los cursos-horario."
+            descripcion="Se completa al construir el marco desde el catálogo de Cursos-Horarios, que es de donde sale el rango de cada sesión."
+          />
+        </div>
       </section>
     );
   }
@@ -516,10 +520,13 @@ export function AulasCargaDeCampo({
         // El mismo vacío declarado del atajo compacto, dentro del marco
         // completo: la demanda no tiene malla, pero la oferta cargada sigue a
         // un click en su botón.
-        <p className="aulas-carga-vacio" data-qa-geometry-capacity="owned" data-qa-geometry-member="true">
-          El plan no trae el horario de los cursos-horario. Se completa al construir el marco
-          desde el catálogo de Cursos-Horarios, que es de donde sale el rango de cada sesión.
-        </p>
+        <div data-qa-geometry-capacity="owned" data-qa-geometry-member="true">
+          <EstadoVacio
+            icono={<CalendarClock size={15} />}
+            titulo="El plan no trae el horario de los cursos-horario."
+            descripcion="Se completa al construir el marco desde el catálogo de Cursos-Horarios, que es de donde sale el rango de cada sesión."
+          />
+        </div>
       ) : null}
       {esDemanda && hayMalla ? (<>
       <div className="aulas-carga-controles" data-qa-geometry-capacity="owned" data-qa-geometry-member="true">
@@ -906,11 +913,11 @@ export function AulasCargaDeCampo({
           // «La malla» y no «una celda»: el guard del perfil reserva esa
           // palabra para la hoja de cálculo del equipo.
           return (
-            <p className="aulas-carga-detalle-vacio">
-              Pasa el puntero o el foco por la malla para ver qué cursos-horario caen en cada
-              franja de 30 minutos; un click deja la franja fijada. Click en una fecha deja su
-              día completo.
-            </p>
+            <EstadoVacio
+              icono={<MousePointer2 size={15} />}
+              titulo="Pasa el puntero o el foco por la malla para ver qué cursos-horario caen en cada franja de 30 minutos."
+              descripcion="Un click deja la franja fijada. Click en una fecha deja su día completo."
+            />
           );
         })()}
       </div>

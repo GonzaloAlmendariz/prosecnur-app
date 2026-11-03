@@ -1,4 +1,5 @@
 import { memo, useEffect, useMemo, useState } from "react";
+import { LoadingBlock } from "../../../../../components/States";
 import {
   apiMonitoreoTerritorialMapeo,
   type MonitoreoState,
@@ -79,7 +80,7 @@ function MapeoTabImpl({
             </table>
           </div>
         ) : (
-          <p className="mon-ins-base">Leyendo las columnas de la base…</p>
+          <LoadingBlock label="Leyendo las columnas de la base…" variant="inline" />
         )}
       </section>
 

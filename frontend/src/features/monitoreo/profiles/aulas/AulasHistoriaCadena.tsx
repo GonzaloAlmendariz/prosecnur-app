@@ -1,4 +1,6 @@
 import { useMemo, useState, type ReactNode } from "react";
+import { CheckCircle2 } from "../../../../vendor/lucide-react";
+import { EstadoVacio } from "../../../../components/EstadoVacio";
 
 import type { MonitoreoAulasPlanRow } from "../../../../api/monitoreo";
 import { facultadCorta } from "./facultadEnPalabras";
@@ -233,14 +235,14 @@ export function AulasHistoriaCadena({ filas, onRelevo }: {
       ) : null}
 
       {piden.length === 0 && !todas ? (
-        <p className="aulas-cadenas-vacio">
-          Ninguna cadena requiere gestión: no hay rechazos y ningún
-          curso-horario aplicado se quedó por debajo de su meta.
-          {intactas ? (
-            <>{" "}{intactas === 1 ? "La" : "Las"} <strong>{fmt(intactas)}</strong>{" "}
+        <EstadoVacio
+          icono={<CheckCircle2 size={15} />}
+          titulo="Ninguna cadena requiere gestión: no hay rechazos y ningún curso-horario aplicado se quedó por debajo de su meta."
+          descripcion={intactas ? (
+            <>{intactas === 1 ? "La" : "Las"} <strong>{fmt(intactas)}</strong>{" "}
               {intactas === 1 ? "que sigue intacta espera" : "que siguen intactas esperan"} a su titular.</>
-          ) : null}
-        </p>
+          ) : undefined}
+        />
       ) : null}
 
       <div

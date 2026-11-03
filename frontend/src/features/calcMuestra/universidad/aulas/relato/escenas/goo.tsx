@@ -241,7 +241,7 @@ export function BolaGoo({
     etiquetaExtra ?? "",
   ]
     .filter(Boolean)
-    .join(" · ");
+    .join(", ");
   const bobbing = bobbingDeBola(index);
   return (
     // Posición y animación viven en grupos DISTINTOS: un transform de CSS

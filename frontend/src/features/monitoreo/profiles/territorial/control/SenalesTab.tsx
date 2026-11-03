@@ -1,5 +1,6 @@
 import { memo, useMemo, type ReactNode } from "react";
 import { Activity } from "lucide-react";
+import { EstadoVacio } from "../../../../../components/EstadoVacio";
 import type { MonitoreoTerritorialDashboard } from "../../../../../api/client";
 import { fmt } from "../rotulos";
 import { construirSenales, type FilaDeSenales, type Histograma } from "./senalesModel";
@@ -18,11 +19,14 @@ function SenalesTabImpl({ reports }: { reports: MonitoreoTerritorialDashboard | 
   if (!modelo.disponible) {
     return (
       <section className="mon-sen mon-sen--vacio" data-audit-ready="vacio:sin-respuestas" aria-label="Señales">
-        <div className="mon-sen-panel mon-sen-vacio">
+        <div className="mon-sen-panel">
           <RotuloDePestana />
-          <Activity size={20} aria-hidden="true" />
-          <strong>Sin respuestas en el corte</strong>
-          <span>Las señales de GPS y duración aparecen cuando la fuente de Kobo trae respuestas de la fase activa.</span>
+          <EstadoVacio
+            tamano="normal"
+            icono={<Activity size={18} />}
+            titulo="Sin respuestas en el corte"
+            descripcion="Las señales de GPS y duración aparecen cuando la fuente de Kobo trae respuestas de la fase activa."
+          />
         </div>
       </section>
     );

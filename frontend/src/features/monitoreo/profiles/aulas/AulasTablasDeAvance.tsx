@@ -1,4 +1,7 @@
 import { useEffect, useState, type ReactNode } from "react";
+import { Table2 } from "../../../../vendor/lucide-react";
+import { EstadoVacio } from "../../../../components/EstadoVacio";
+import { LoadingBlock, ErrorBlock } from "../../../../components/States";
 import { pctPerfil } from "./kpisDeAulas";
 
 import {
@@ -60,9 +63,9 @@ export function AulasTablasDeAvance(): ReactNode {
     // El fallo se dice con su causa, no con un panel vacío: sin esto la vista
     // se leería como «este estudio no tiene tablas», que es otra cosa.
     return (
-      <p className="mon-profile-muted aulas-tav-vacio" data-qa-geometry-capacity="owned" data-qa-geometry-member="true">
-        No se pudieron leer las tablas de avance: {error}
-      </p>
+      <div data-qa-geometry-capacity="owned" data-qa-geometry-member="true">
+        <ErrorBlock label="No se pudieron leer las tablas de avance" detail={error} />
+      </div>
     );
   }
   if (!tablas) {
@@ -72,18 +75,21 @@ export function AulasTablasDeAvance(): ReactNode {
     // tablas de avance...» como si fuera la pestaña. Con las tablas, su vacío o
     // su error, la marca desaparece y manda la de la página.
     return (
-      <p className="mon-profile-muted aulas-tav-vacio" aria-busy="true" data-qa-geometry-capacity="owned" data-qa-geometry-member="true">
-        <span hidden data-audit-ready="false" />
-        Leyendo las tablas de avance...
-      </p>
+      <div data-audit-ready="false" data-qa-geometry-capacity="owned" data-qa-geometry-member="true">
+        <LoadingBlock label="Leyendo las tablas de avance…" variant="inline" />
+      </div>
     );
   }
   if (!tablas.length) {
     return (
-      <p className="mon-profile-muted aulas-tav-vacio" data-qa-geometry-capacity="owned" data-qa-geometry-member="true">
-        Todavía no hay tablas de avance. Aparecen cuando el estudio declara su
-        plan de cursos-horario y llegan las primeras respuestas.
-      </p>
+      <div data-qa-geometry-capacity="owned" data-qa-geometry-member="true">
+        <EstadoVacio
+          tamano="normal"
+          icono={<Table2 size={18} />}
+          titulo="Todavía no hay tablas de avance."
+          descripcion="Aparecen cuando el estudio declara su plan de cursos-horario y llegan las primeras respuestas."
+        />
+      </div>
     );
   }
 
@@ -115,9 +121,9 @@ function Tabla({ tabla }: { tabla: MonitoreoAulasAvanceTabla }): ReactNode {
       {!filas.length ? (
         // El vacío lo redacta el motor, con su causa. No se inventa aquí uno
         // nuevo: la hoja y la pantalla dirían cosas distintas del mismo hueco.
-        <p className="mon-profile-muted aulas-tav-vacio" data-qa-geometry-capacity="owned" data-qa-geometry-member="true">
-          {tabla.vacio || "Sin filas que mostrar todavía."}
-        </p>
+        <div data-qa-geometry-capacity="owned" data-qa-geometry-member="true">
+          <EstadoVacio icono={<Table2 size={15} />} titulo={tabla.vacio || "Sin filas que mostrar todavía."} />
+        </div>
       ) : (
         <div className="aulas-tav-marco">
           <table className="aulas-tav-tabla">

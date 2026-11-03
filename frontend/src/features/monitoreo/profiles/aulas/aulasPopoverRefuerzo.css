@@ -191,16 +191,6 @@
 }
 .aulas-refuerzo-resto b { font-weight: 600; color: var(--pulso-text-soft); }
 
-.aulas-refuerzo-vacio {
-  margin: 0;
-  padding: 12px;
-  border-radius: 10px;
-  background: var(--pulso-surface-2);
-  color: var(--pulso-text-soft);
-  font-size: 12.5px;
-  line-height: 1.5;
-}
-
 @media (max-width: 640px) {
   .aulas-refuerzo-fila { grid-template-columns: 26px minmax(0, 1fr); }
 }

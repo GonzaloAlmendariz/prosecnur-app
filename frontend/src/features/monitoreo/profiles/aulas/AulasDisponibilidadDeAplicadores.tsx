@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { CalendarClock, MousePointer2, Users } from "../../../../vendor/lucide-react";
+import { EstadoVacio } from "../../../../components/EstadoVacio";
 
 import { anchoMinimoDeMalla, comoHora } from "./cargaDeCampo";
 import { ChipDato, ChipHora } from "./AulasSistemaPabellon";
@@ -146,14 +148,14 @@ export function AulasDisponibilidadDeAplicadores({
 
   if (!oferta) {
     return (
-      <div className="aulas-dispo-vacio" data-qa-geometry-member="true" data-qa-geometry-capacity="owned">
-        <p className="aulas-carga-vacio">
-          Este estudio todavía no tiene cargada la disponibilidad de los aplicadores. Sale del
-          libro de disponibilidad del equipo (Excel): al cargarlo aquí, esta malla enseña
-          quién puede estar en campo en cada franja de 30 minutos y la pestaña de Asignación
-          reparte las citas pactadas.
-        </p>
-        <AccionesDeDisponibilidad onImportar={onImportar} onPlantilla={onPlantilla} />
+      <div data-qa-geometry-member="true" data-qa-geometry-capacity="owned">
+        <EstadoVacio
+          tamano="normal"
+          icono={<Users size={18} />}
+          titulo="Este estudio todavía no tiene cargada la disponibilidad de los aplicadores."
+          descripcion="Sale del libro de disponibilidad del equipo (Excel): al cargarlo aquí, esta malla enseña quién puede estar en campo en cada franja de 30 minutos y la pestaña de Asignación reparte las citas pactadas."
+          accion={<AccionesDeDisponibilidad onImportar={onImportar} onPlantilla={onPlantilla} />}
+        />
       </div>
     );
   }
@@ -161,12 +163,14 @@ export function AulasDisponibilidadDeAplicadores({
   const hayOferta = oferta.disponibles.some((fila) => fila.some((n) => n > 0));
   if (!hayOferta) {
     return (
-      <div className="aulas-dispo-vacio" data-qa-geometry-member="true" data-qa-geometry-capacity="owned">
-        <p className="aulas-carga-aviso">
-          La disponibilidad está cargada, pero nadie declaró horas todavía: no hay oferta que
-          pintar. Es distinto de no haberla cargado — el marco existe y se llenará con el equipo.
-        </p>
-        <AccionesDeDisponibilidad onImportar={onImportar} onPlantilla={onPlantilla} />
+      <div data-qa-geometry-member="true" data-qa-geometry-capacity="owned">
+        <EstadoVacio
+          tamano="normal"
+          icono={<CalendarClock size={18} />}
+          titulo="La disponibilidad está cargada, pero nadie declaró horas todavía: no hay oferta que pintar."
+          descripcion="Es distinto de no haberla cargado — el marco existe y se llenará con el equipo."
+          accion={<AccionesDeDisponibilidad onImportar={onImportar} onPlantilla={onPlantilla} />}
+        />
       </div>
     );
   }
@@ -467,10 +471,11 @@ export function AulasDisponibilidadDeAplicadores({
             </div>
           </>
         ) : (
-          <p className="aulas-carga-detalle-vacio">
-            Pasa el puntero o el foco por la malla para ver quién está disponible en cada franja
-            de 30 minutos; un click deja la franja fijada.
-          </p>
+          <EstadoVacio
+            icono={<MousePointer2 size={15} />}
+            titulo="Pasa el puntero o el foco por la malla para ver quién está disponible en cada franja de 30 minutos."
+            descripcion="Un click deja la franja fijada."
+          />
         )}
       </div>
 

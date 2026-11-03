@@ -555,7 +555,7 @@ export function cifrasDisenoGeneral(args: {
           ? [
               c?.modalidad === "censo" ? null : "principales + reemplazos",
               vigencia.estado === "desactualizado" ? "desactualizado" : formatearFechaLocal(corrida.sorteado_at),
-            ].filter(Boolean).join(" · ")
+            ].filter(Boolean).join(", ")
           : "sin selección",
         tono: vigencia.estado === "desactualizado" ? "alerta" : undefined,
       },

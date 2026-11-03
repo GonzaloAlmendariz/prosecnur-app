@@ -1,6 +1,7 @@
 import { memo, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { PlugZap } from "lucide-react";
+import { EstadoVacio } from "../../../../../components/EstadoVacio";
 import type { MonitoreoState, MonitoreoTerritorialDashboard, MonitoreoTerritorialPhase } from "../../../../../api/client";
 import { construirConexiones, type TarjetaDeFuente } from "./conexionesModel";
 import { RotuloDePestana } from "../navegacion/RotuloDePestana";
@@ -43,12 +44,17 @@ function ConexionesTabImpl({
   if (!modelo.conFuenteDeCampo) {
     return (
       <section className="mon-ins mon-ins--vacio" data-audit-ready="vacio:sin-fuente" aria-label="Conexiones">
-        <div className="mon-ins-panel mon-ins-vacio">
+        <div className="mon-ins-panel">
           <RotuloDePestana />
-          <PlugZap size={20} aria-hidden="true" />
-          <strong>Sin formulario de Kobo para la fase Campo</strong>
-          <span>Conecta el formulario de Kobo de la fase para leer sus respuestas.</span>
-          <button type="button" className="mon-ins-boton is-primario" onClick={onAdministrar}>Conectar Kobo</button>
+          <EstadoVacio
+            tamano="normal"
+            icono={<PlugZap size={18} />}
+            titulo="Sin formulario de Kobo para la fase Campo"
+            descripcion="Conecta el formulario de Kobo de la fase para leer sus respuestas."
+            accion={
+              <button type="button" className="mon-ins-boton is-primario" onClick={onAdministrar}>Conectar Kobo</button>
+            }
+          />
         </div>
       </section>
     );

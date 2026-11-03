@@ -28,7 +28,7 @@ function classroomExpectedSexLabel(row: Record<string, unknown>, workspace?: Cal
   ]
     .filter(([label, value]) => String(label ?? "").trim() && safeNumber(value, 0) > 0)
     .map(([label, value]) => `${workspaceCategoryLabel(workspace, "sex", String(label ?? ""))}: ${fmtInt(safeNumber(value, 0))}`);
-  return parts.length ? parts.join(" · ") : "sexo esperado pendiente";
+  return parts.length ? parts.join(", ") : "sexo esperado pendiente";
 }
 
 function classroomSelectionReason(row: Record<string, unknown>) {

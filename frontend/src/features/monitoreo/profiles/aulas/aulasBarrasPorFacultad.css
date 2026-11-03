@@ -28,8 +28,6 @@
   --aulas-bpf-alto: 14px;
 }
 
-.aulas-bpf-vacio { margin: 8px 0 0; }
-
 .aulas-bpf-cabecera {
   display: flex;
   align-items: baseline;

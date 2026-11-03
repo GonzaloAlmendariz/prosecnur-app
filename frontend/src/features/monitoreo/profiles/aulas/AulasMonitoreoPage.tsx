@@ -10,7 +10,8 @@ import type { CSSProperties, ReactNode } from "react";
 // Por el shim, que es la regla de la casa: los imports directos de
 // `lucide-react` arrastran el barrel entero al bundle. Este archivo se lo
 // saltaba desde antes; se corrige al pasar por aquí.
-import { AlertCircle, CalendarRange, CheckCircle2, Info } from "../../../../vendor/lucide-react";
+import { AlertCircle, CheckCircle2, Info } from "../../../../vendor/lucide-react";
+import { LoadingBlock } from "../../../../components/States";
 import {
   apiMonitoreoAulasGenerarLibro,
   apiMonitoreoAulasDisponibilidad,
@@ -503,16 +504,6 @@ export function DataTable({
       {avisos.length ? (
         <p className="mon-profile-table-recorte">{avisos.join(" · ")}</p>
       ) : null}
-    </div>
-  );
-}
-
-function EmptyPanel({ title, detail }: { title: string; detail: string }) {
-  return (
-    <div className="mon-profile-empty">
-      <span className="mon-profile-empty__icon"><CalendarRange size={18} /></span>
-      <strong>{title}</strong>
-      <p>{detail}</p>
     </div>
   );
 }
@@ -1246,7 +1237,7 @@ export default function AulasMonitoreoPage() {
    * Relee el estado del proyecto.
    *
    * `silencioso` NO toca `loading`, y eso no es un detalle de parpadeo: la vista
-   * se pinta como `{loading ? <EmptyPanel/> : <RegistroDeCampo/>}`, así que
+   * se pinta como `{loading ? <LoadingBlock/> : <RegistroDeCampo/>}`, así que
    * cualquier recarga DESMONTA el registro de campo y se lleva por delante su
    * estado —la selección, el formulario y el mensaje de la acción que acaba de
    * ocurrir—. Medido: al activar un reemplazo, el motor devuelve «CH 3 pasa a
@@ -2340,7 +2331,7 @@ export default function AulasMonitoreoPage() {
               </div>
             ) : null}
             {loading ? (
-              resumenPropio ?? <EmptyPanel title="Preparando vista" detail="Leyendo cache local del proyecto..." />
+              resumenPropio ?? <LoadingBlock label="Leyendo cache local del proyecto…" />
             ) : resumenPropio ? resumenPropio : seccionActiva === "avance" && pestanaActiva === "salidas" ? (
               // Salidas se muestra aunque no haya dashboard: el workbench declara
               // por qué está bloqueada (sin corte, sin válidas) en vez de dejar la

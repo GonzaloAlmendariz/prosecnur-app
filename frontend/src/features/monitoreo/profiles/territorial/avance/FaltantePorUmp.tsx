@@ -1,5 +1,6 @@
 import { Fragment, memo, useEffect, useMemo, useRef, useState } from "react";
-import { ArrowRightLeft, ChevronDown, ChevronRight, Info, Map as MapIcon, Target } from "lucide-react";
+import { ArrowRightLeft, ChevronDown, ChevronRight, Info, Map as MapIcon, Target, SearchX } from "lucide-react";
+import { EstadoVacio } from "../../../../../components/EstadoVacio";
 import type { MonitoreoTerritorialDashboard } from "../../../../../api/client";
 import { Switch } from "../../../../../components/Switch";
 import { useFocoMonitoreo } from "../../../useMonitoreoDireccion";
@@ -55,14 +56,19 @@ function FaltantePorUmpImpl({ reports }: { reports: MonitoreoTerritorialDashboar
   if (!modelo.configurado) {
     return (
       <section className="mon-falt mon-falt--vacio" data-audit-ready="vacio:sin-cuota" aria-label="Faltante por UMP">
-        <div className="mon-falt-panel mon-falt-vacio" data-qa-geometry-empty="legitimo">
+        <div className="mon-falt-panel" data-qa-geometry-empty="legitimo">
           <RotuloDePestana />
-          <Target size={20} aria-hidden="true" />
-          <strong>Sin cuota territorial configurada</strong>
-          <span>La cuota por UMP se declara en Modelo › Cuotas desde la muestra de Hojas de ruta.</span>
-          <button type="button" className="mon-falt-boton" onClick={() => escribirFoco(null, { seccion: "modelo", pestana: "cuotas", panel: null })}>
-            Abrir Modelo › Cuotas
-          </button>
+          <EstadoVacio
+            tamano="normal"
+            icono={<Target size={18} />}
+            titulo="Sin cuota territorial configurada"
+            descripcion="La cuota por UMP se declara en Modelo › Cuotas desde la muestra de Hojas de ruta."
+            accion={
+              <button type="button" className="mon-falt-boton" onClick={() => escribirFoco(null, { seccion: "modelo", pestana: "cuotas", panel: null })}>
+                Abrir Modelo › Cuotas
+              </button>
+            }
+          />
         </div>
       </section>
     );
@@ -292,8 +298,8 @@ function TablaDeCuotas({
 
   if (!filas.length) {
     return (
-      <div className="mon-falt-vacio-tabla" data-qa-geometry-empty="legitimo">
-        Ninguna UMP con ese filtro.
+      <div data-qa-geometry-empty="legitimo">
+        <EstadoVacio icono={<SearchX size={15} />} titulo="Ninguna UMP con ese filtro." />
       </div>
     );
   }

@@ -1,7 +1,8 @@
 import { useState } from "react";
 
 import { fmt } from "./kpisDeAulas";
-import { Check } from "../../../../vendor/lucide-react";
+import { Check, Layers } from "../../../../vendor/lucide-react";
+import { EstadoVacio } from "../../../../components/EstadoVacio";
 
 import "./aulasComoMide.css";
 
@@ -102,9 +103,7 @@ export function AulasComoMideElEstudio({
         </p>
         <div className="aulas-como-mide-chips">
           {dimensiones.length === 0 ? (
-            <em className="aulas-como-mide-vacio">
-              El motor todavía no publica las dimensiones disponibles.
-            </em>
+            <EstadoVacio icono={<Layers size={15} />} titulo="El motor todavía no publica las dimensiones disponibles." />
           ) : dimensiones.map((d) => {
             const puesta = d.clave === ejeActual;
             const veto = bloqueada(d);

@@ -1,5 +1,6 @@
 import { memo, useMemo, useState } from "react";
 import { CalendarRange, Clock, ContactRound, ListChecks, Search, Table2, Target, XCircle } from "lucide-react";
+import { EstadoVacio } from "../../../../components/EstadoVacio";
 import { Switch } from "../../../../components/Switch";
 import type {
   MonitoreoTerritorialDashboard,
@@ -151,11 +152,12 @@ function TerritorialQuotaConsistencyPanelImpl({ reports }: { reports: MonitoreoT
           ))}
         </div>
       ) : (
-        <div className="mon-territorial-quota-empty">
-          <Target size={18} />
-          <strong>{quota?.configured ? "Sin manzanas con esos filtros" : "Sin cuota territorial configurada"}</strong>
-          <span>{quota?.configured ? "Prueba otro distrito, UMP o estado de cuota." : "Cuando Hojas de Ruta tenga sexo y rangos de edad, Monitoreo evaluará los márgenes por manzana."}</span>
-        </div>
+        <EstadoVacio
+          tamano="normal"
+          icono={<Target size={18} />}
+          titulo={quota?.configured ? "Sin manzanas con esos filtros" : "Sin cuota territorial configurada"}
+          descripcion={quota?.configured ? "Prueba otro distrito, UMP o estado de cuota." : "Cuando Hojas de Ruta tenga sexo y rangos de edad, Monitoreo evaluará los márgenes por manzana."}
+        />
       )}
     </section>
   );
@@ -298,7 +300,7 @@ function TerritorialQuotaObservedCrossMatrix({ block }: { block: TerritorialQuot
           </table>
         </div>
       ) : (
-        <p className="mon-territorial-quota-observed-empty">Sin registros consentidos asociados a esta UMP.</p>
+        <EstadoVacio icono={<Table2 size={15} />} titulo="Sin registros consentidos asociados a esta UMP." />
       )}
       <p>La matriz separa lo levantado por encuestadores y los ajustes operativos; la falta real se calcula después de aplicarlos.</p>
     </section>

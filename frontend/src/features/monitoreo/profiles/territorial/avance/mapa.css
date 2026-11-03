@@ -145,14 +145,6 @@
   height: 100%;
 }
 
-.mon-mapa-vacio {
-  margin: auto;
-  padding: var(--pulso-space-4);
-  color: var(--pulso-text-soft);
-  font-size: 13px;
-  text-align: center;
-}
-
 /* Contorno de distritos (PlanMet): relleno de superficie alterna y trazo
  * marcado, para que el territorio se lea antes que los puntos. */
 .mon-mapa-distritos path {

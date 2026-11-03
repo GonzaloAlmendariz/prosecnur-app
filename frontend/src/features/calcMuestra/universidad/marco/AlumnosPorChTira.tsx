@@ -70,7 +70,7 @@ export function AlumnosPorChTira({
     `mediana ${fmt(p50)}`,
     `media ${fmt(media)}`,
     `escala compartida ${fmt(dominio.low)}–${fmt(dominio.high)}`,
-  ].join(" · ");
+  ].join(", ");
 
   return (
     <div className="cmv2-alumnos-ch-tira">

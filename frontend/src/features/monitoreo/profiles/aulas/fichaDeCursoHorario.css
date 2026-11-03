@@ -71,12 +71,12 @@
   line-height: 1.25;
 }
 /* La ausencia se dice, no se deja en blanco: un hueco se lee como un cero. */
-.aulas-ficha-vacio { color: var(--pulso-text-faint); font-style: italic; }
+.aulas-ficha-valor--vacio { color: var(--pulso-text-faint); font-style: italic; }
 /* **Pero se dice en voz baja.** Heredando el tamaño de cifra, un «sin dato» en
  * cursiva de 1,25 rem pesaba MÁS que los números de al lado: la ficha de un
  * curso-horario sin aplicar gritaba sus tres ausencias y susurraba sus dos
  * datos. Presente, no protagonista. */
-.aulas-ficha-par.es-cifra .aulas-ficha-valor.aulas-ficha-vacio {
+.aulas-ficha-par.es-cifra .aulas-ficha-valor--vacio {
   font-size: 0.95rem; font-weight: 400;
 }
 

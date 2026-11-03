@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
+import { MapPin } from "lucide-react";
+import { EstadoVacio } from "../../../../../components/EstadoVacio";
 
 import type { MonitoreoTerritorialDashboard } from "../../../../../api/client";
 import type { HojasRutaStreetMapFeature } from "../../../../../api/hojasRuta";
@@ -148,7 +150,7 @@ export function MapaDeCasos({ cuotas, validacion }: { cuotas: AvancePorZona; val
                 <text x={8 + trazos.km * 5} y={21} className="is-fin">5 km</text>
               </g>
             </svg>
-          ) : <p className="mon-mapa-vacio">Las zonas del envío no están en la cartografía de distritos.</p>}
+          ) : <EstadoVacio tamano="normal" icono={<MapPin size={18} />} titulo="Las zonas del envío no están en la cartografía de distritos." />}
         </div>
         <footer className="mon-mapa-pie">
           <span className="mon-mc-capas" role="group" aria-label="Mostrar u ocultar casos por estado">

@@ -1,5 +1,6 @@
 import { memo, useMemo } from "react";
 import { Users } from "lucide-react";
+import { EstadoVacio } from "../../../../../components/EstadoVacio";
 import type { MonitoreoState, MonitoreoTerritorialDashboard } from "../../../../../api/client";
 import { useFocoMonitoreo } from "../../../useMonitoreoDireccion";
 import { fmt } from "../rotulos";
@@ -81,12 +82,17 @@ function PadronTabImpl({
           </div>
         </section>
       ) : (
-        <section className="mon-ins-panel mon-ins-vacio" aria-label="Sin padrón">
+        <section className="mon-ins-panel" aria-label="Sin padrón">
           <RotuloDePestana />
-          <Users size={20} aria-hidden="true" />
-          <strong>Sin padrón de aplicadores</strong>
-          <span>Con el padrón, cada código de la base se lee con su nombre.</span>
-          <button type="button" className="mon-ins-boton is-primario" onClick={onReemplazar}>Subir padrón</button>
+          <EstadoVacio
+            tamano="normal"
+            icono={<Users size={18} />}
+            titulo="Sin padrón de aplicadores"
+            descripcion="Con el padrón, cada código de la base se lee con su nombre."
+            accion={
+              <button type="button" className="mon-ins-boton is-primario" onClick={onReemplazar}>Subir padrón</button>
+            }
+          />
         </section>
       )}
 

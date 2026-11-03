@@ -1,3 +1,5 @@
+import { ClipboardList } from "lucide-react";
+import { EstadoVacio } from "../../../../../components/EstadoVacio";
 import { fmt, fmtConSigno, rotuloDeCelda } from "../rotulos";
 import type { CruceConCoordinacion as Modelo } from "./cruceConCoordinacionModelo";
 import "./cruceConCoordinacion.css";
@@ -6,9 +8,9 @@ import "./cruceConCoordinacion.css";
 export function CruceConCoordinacion({ modelo, ump }: { modelo: Modelo; ump: string }) {
   if (modelo.estado === "sin-registro") {
     return (
-      <p className="mon-falt-detalle-vacio" data-qa-geometry-empty="legitimo">
-        Coordinación todavía no anotó efectivas por celda para esta UMP en el Excel de asignación.
-      </p>
+      <div data-qa-geometry-empty="legitimo">
+        <EstadoVacio icono={<ClipboardList size={15} />} titulo="Coordinación todavía no anotó efectivas por celda para esta UMP en el Excel de asignación." />
+      </div>
     );
   }
   return (

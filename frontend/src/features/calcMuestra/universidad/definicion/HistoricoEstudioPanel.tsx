@@ -967,7 +967,7 @@ export function HistoricoEstudioPanel({
           <p>
             {[estudio.periodo, `${fmtInt(cobertura.aplicados)} aulas aplicadas`]
               .filter(Boolean)
-              .join(" · ")}
+              .join(", ")}
           </p>
         </div>
         {meta && logradas ? (
@@ -1493,7 +1493,7 @@ export function HistoricoEstudioPanel({
                   diseno.margen_error !== null ? `±${pct(diseno.margen_error, 2)}` : null,
                   diseno.proporcion_esperada !== null ? `p = ${diseno.proporcion_esperada}` : null,
                   diseno.deff !== null ? `efecto de diseño ${diseno.deff}` : null,
-                ].filter(Boolean).join(" · ")}
+                ].filter(Boolean).join(", ")}
               </span>
             </li>
             {diseno.sobremuestra !== null ? (
@@ -1595,7 +1595,7 @@ export function HistoricoEstudioPanel({
                         const valor = lado === "hombres" ? f.cumplimiento_hombres : f.cumplimiento_mujeres;
                         return `${f.facultad} (${lado}, ${pct(valor, 0)})`;
                       })
-                      .join(" · ")}
+                      .join(", ")}
                     . Es lo que obliga a ponderar: sin peso, esas personas
                     quedarían subrepresentadas en el análisis.
                   </p>

@@ -1,6 +1,7 @@
 import { memo, useEffect, useMemo, useRef, useState } from "react";
 import type { CSSProperties } from "react";
 import { CalendarRange, Clock, ContactRound, MapPin, ShieldAlert } from "lucide-react";
+import { EstadoVacio } from "../../../../components/EstadoVacio";
 import type {
   MonitoreoTerritorialConfig,
   MonitoreoTerritorialDashboard,
@@ -388,7 +389,7 @@ function TerritorialDurationReviewTable({
                     <td>
                       {durationBand.hasDuration
                         ? <span className={`mon-territorial-band ${durationBand.className}`}><Clock size={13} /> {durationBand.label}</span>
-                        : <span className="mon-territorial-duration-empty">No registrada</span>}
+                        : <span className="mon-territorial-duration--vacio">No registrada</span>}
                       <small>{formatDurationLabel(row.duration_seconds)}</small>
                     </td>
                     <td>
@@ -403,7 +404,7 @@ function TerritorialDurationReviewTable({
           </table>
         </div>
       ) : (
-        <div className="mon-territorial-audit-empty">Sin entrevistas cortas o muy cortas en este corte.</div>
+        <EstadoVacio icono={<Clock size={15} />} titulo="Sin entrevistas cortas o muy cortas en este corte." />
       )}
     </section>
   );

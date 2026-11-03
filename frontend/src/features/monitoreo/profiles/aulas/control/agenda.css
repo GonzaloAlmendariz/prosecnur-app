@@ -136,6 +136,12 @@
   min-height: 0;
 }
 
+/* Una semana sin citas es su nota: el panel mide la nota y no se estira hasta
+ * el pie de la vista (C3), igual que la lista vacía de al lado. */
+.aulas-ag-semana[data-vacia] {
+  align-self: start;
+}
+
 .aulas-ag-cabecera {
   display: flex;
   flex-wrap: wrap;
@@ -162,15 +168,6 @@
 
 .aulas-ag-tenue {
   color: var(--pulso-text-faint);
-  font-size: var(--pulso-type-caption-size);
-}
-
-.aulas-ag-nota {
-  display: flex;
-  align-items: flex-start;
-  gap: var(--pulso-space-2);
-  margin: 0;
-  color: var(--pulso-text-soft);
   font-size: var(--pulso-type-caption-size);
 }
 

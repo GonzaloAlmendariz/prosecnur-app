@@ -1,3 +1,5 @@
+import { enumerar } from "../../../../lib/enumerar";
+
 /**
  * Cómo se leen los VALORES de las columnas que calcula el marco.
  *
@@ -88,7 +90,7 @@ export function etiquetaDeValor(columna: string, valor: string): string | null {
     const traducidas = piezas.map((pieza) => MOTIVOS[pieza] ?? humanizarClave(pieza) ?? pieza);
     // Con varios motivos el separador es un punto medio: el `|` del motor se
     // lee como parte del código, no como «y además».
-    return traducidas.join(" · ");
+    return enumerar(traducidas);
   }
 
   const tabla = POR_COLUMNA[columna];

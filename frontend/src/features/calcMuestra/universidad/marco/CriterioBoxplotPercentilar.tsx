@@ -84,7 +84,7 @@ export function CriterioBoxplotPercentilar({
     `P90 ${fmt(p90 as number)}`,
     `Media ${fmt(media as number)}`,
     domain ? `escala compartida ${fmt(low)}–${fmt(high)}` : "escala propia",
-  ].join(" · ");
+  ].join(", ");
 
   return (
     <figure className="cmv2-i18b-boxplot" data-scale={domain ? "compartida" : "propia"}>

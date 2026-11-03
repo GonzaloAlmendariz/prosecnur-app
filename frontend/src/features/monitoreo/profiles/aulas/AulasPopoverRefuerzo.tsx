@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useRef, type ReactNode } from "react";
+import { SearchX } from "../../../../vendor/lucide-react";
+import { EstadoVacio } from "../../../../components/EstadoVacio";
 import { createPortal } from "react-dom";
 
 import type { MonitoreoAulasPlanRow } from "../../../../api/monitoreo";
@@ -280,11 +282,11 @@ export function ContenidoDeRefuerzo({ facultad: facultadCruda, filas, deuda, cuo
           </ol>
         </>
       ) : (
-        <p className="aulas-refuerzo-vacio">
-          {facultad} no tiene ningún curso-horario libre. Sus reservas siguen
-          comprometidas con una cadena que aún no se resolvió, o ya se usaron.
-          Un refuerzo aquí exige ampliar el marco.
-        </p>
+        <EstadoVacio
+          icono={<SearchX size={15} />}
+          titulo={<>{facultad} no tiene ningún curso-horario libre.</>}
+          descripcion="Sus reservas siguen comprometidas con una cadena que aún no se resolvió, o ya se usaron. Un refuerzo aquí exige ampliar el marco."
+        />
       )}
     </div>
   );

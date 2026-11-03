@@ -7,7 +7,10 @@ import {
   MapPin,
   Search,
   XCircle,
+  Inbox,
+  SearchX,
 } from "lucide-react";
+import { EstadoVacio } from "../../../../components/EstadoVacio";
 import type {
   MonitoreoTerritorialConfig,
   MonitoreoTerritorialDashboard,
@@ -158,7 +161,7 @@ function TerritorialReviewCasesWorkbenchImpl({
     return (
       <div className="mon-stage mon-stage--consultas">
         <section className="mon-territorial-panel mon-territorial-review-panel">
-          <div className="mon-territorial-audit-empty">Sin consultas territoriales hidratadas para este corte.</div>
+          <EstadoVacio tamano="normal" icono={<Inbox size={18} />} titulo="Sin consultas territoriales hidratadas para este corte." />
         </section>
       </div>
     );
@@ -327,7 +330,7 @@ function TerritorialReviewCasesWorkbenchImpl({
                     </table>
                   </div>
                 ) : (
-                  <div className="mon-territorial-audit-empty">Sin registros con esos filtros.</div>
+                  <EstadoVacio icono={<SearchX size={15} />} titulo="Sin registros con esos filtros." />
                 )}
               </section>
             </div>

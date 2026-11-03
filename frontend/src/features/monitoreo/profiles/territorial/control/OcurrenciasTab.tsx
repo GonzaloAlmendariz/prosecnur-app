@@ -1,5 +1,6 @@
 import { memo, useMemo } from "react";
 import { ClipboardList } from "lucide-react";
+import { EstadoVacio } from "../../../../../components/EstadoVacio";
 import type { MonitoreoTerritorialDashboard } from "../../../../../api/client";
 import { fmt, pct } from "../rotulos";
 import { construirOcurrencias, motivosDeLaBarra, rotuloCortoDeMotivo, type ModeloOcurrencias } from "./ocurrenciasModel";
@@ -18,11 +19,14 @@ function OcurrenciasTabImpl({ reports }: { reports: MonitoreoTerritorialDashboar
   if (!modelo.conPartes) {
     return (
       <section className="mon-ocu mon-ocu--vacio" data-audit-ready="vacio:sin-partes" aria-label="Ocurrencias">
-        <div className="mon-ocu-panel mon-ocu-vacio">
+        <div className="mon-ocu-panel">
           <RotuloDePestana />
-          <ClipboardList size={20} aria-hidden="true" />
-          <strong>Sin partes de ocurrencias</strong>
-          <span title="Los partes llegan del formulario de ocurrencias de campo">«Actualizar» trae los partes nuevos</span>
+          <EstadoVacio
+            tamano="normal"
+            icono={<ClipboardList size={18} />}
+            titulo="Sin partes de ocurrencias"
+            descripcion={<span title="Los partes llegan del formulario de ocurrencias de campo">«Actualizar» trae los partes nuevos</span>}
+          />
         </div>
       </section>
     );

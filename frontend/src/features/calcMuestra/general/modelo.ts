@@ -570,7 +570,7 @@ export function campoMetaDelActor(comp: Pick<CalcMuestraComponente, "tecnica" | 
         "Respuesta esperada",
         margen ? `margen ±${margen}` : "",
         extra ? `sobremuestra ${extra}` : "",
-      ].filter(Boolean).join(" · "),
+      ].filter(Boolean).join(", "),
       piezas: ["Respuesta", cifras].filter(Boolean),
     };
   }

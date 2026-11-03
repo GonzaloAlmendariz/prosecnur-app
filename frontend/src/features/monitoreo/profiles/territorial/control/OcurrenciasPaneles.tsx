@@ -1,5 +1,6 @@
 import { memo, useMemo } from "react";
 import { ClipboardList } from "lucide-react";
+import { EstadoVacio } from "../../../../../components/EstadoVacio";
 import type { MonitoreoTerritorialDashboard } from "../../../../../api/client";
 import { fmt } from "../rotulos";
 import { RotuloDePestana } from "../navegacion/RotuloDePestana";
@@ -23,11 +24,14 @@ import "./ocurrenciasPaneles.css";
 function SinPartes({ etiqueta }: { etiqueta: string }) {
   return (
     <section className="mon-ocu mon-ocu--vacio" data-audit-ready="vacio:sin-partes" aria-label={etiqueta}>
-      <div className="mon-ocu-panel mon-ocu-vacio" data-qa-geometry-empty="legitimo">
+      <div className="mon-ocu-panel" data-qa-geometry-empty="legitimo">
         <RotuloDePestana />
-        <ClipboardList size={20} aria-hidden="true" />
-        <strong>Sin partes de ocurrencias</strong>
-        <span title="Los partes llegan del formulario de ocurrencias de campo">«Actualizar» trae los partes nuevos</span>
+        <EstadoVacio
+          tamano="normal"
+          icono={<ClipboardList size={18} />}
+          titulo="Sin partes de ocurrencias"
+          descripcion={<span title="Los partes llegan del formulario de ocurrencias de campo">«Actualizar» trae los partes nuevos</span>}
+        />
       </div>
     </section>
   );
