@@ -712,6 +712,25 @@
     if (length(matched_dates)) max(matched_dates, na.rm = TRUE) else "Sin fecha"
   }, character(1))
   if (length(phone_platform_dates) != nrow(phone)) phone_platform_dates <- rep("Sin fecha", nrow(phone))
+  # Un solo numerador para cuotas, su serie y las series diarias del avance (checklist de cuotas 1b): con
+  # respuestas de plataforma, la efectiva de Kobo con su fecha; sin ellas, «Completa» de la hoja con la suya.
+  # Las completas de Kobo cuya llave no está en la base no tienen caso ni celda de cuota, pero son efectivas:
+  # el diario las suma (diario = Σ cuotas + fuera de la base) y Ritmo las declara «sin categoría».
+  numerador_kobo <- nrow(responses) > 0L
+  numerador_mask <- if (numerador_kobo) phone_platform_complete else states == "Completa"
+  numerador_dates <- if (numerador_kobo) phone_platform_dates else dates
+  # Base inferida de las propias respuestas (acreditación sin barrido): la fila YA es la respuesta y su estado es
+  # el de la plataforma; no hay llave que cruzar. Antes de 0f5db3359 esta rama contaba así por la condición
+  # `!phone_from_population`; quitarla la dejó en 0 (test-monitoreo-engine.R, «cuotas telefonicas desde poblacion»).
+  fila_es_respuesta <- isTRUE(phone_from_population) & .monitoreo_report_role_mask(phone, "respuestas")
+  if (length(fila_es_respuesta) == nrow(phone) && any(fila_es_respuesta)) {
+    propia <- fila_es_respuesta & states == "Completa" & !numerador_mask
+    numerador_mask <- numerador_mask | propia
+    numerador_dates[propia] <- dates[propia]
+  }
+  # Con la base hecha de respuestas, toda respuesta del operativo ya es un caso: no hay «fuera de la base» (contarlas
+  # también ahí las duplicaba, 214 de 107 en MEDVID), y las que el filtro de contacto dejó fuera no son telefónicas.
+  suma_fuera <- numerador_kobo && !any(fila_es_respuesta)
   efectivo_mask <- states == "Completa"
   parcial_mask <- states == "Parcial"
   rechazo_mask <- states == "Rechazo"
@@ -731,8 +750,15 @@
   if (!length(dates_sorted)) dates_sorted <- "Sin fecha"
   efectivo_dia <- data.frame(
     Fecha = dates_sorted,
-    Efectivas = as.integer(vapply(dates_sorted, function(day) sum(platform_effective_dates == day, na.rm = TRUE), integer(1))),
+    Efectivas = as.integer(vapply(dates_sorted, function(day) {
+      sum(numerador_mask & numerador_dates == day, na.rm = TRUE) +
+        if (suma_fuera) sum(response_outside_phone_complete & response_dates == day, na.rm = TRUE) else 0L
+    }, integer(1))),
     `Efectivas Kobo` = as.integer(vapply(dates_sorted, function(day) sum(platform_effective_dates == day, na.rm = TRUE), integer(1))),
+    # Las completas de Kobo sin caso en la base, a la vista: diario = Σ cuotas + esta columna.
+    `Fuera de la base` = as.integer(vapply(dates_sorted, function(day) {
+      if (suma_fuera) sum(response_outside_phone_complete & response_dates == day, na.rm = TRUE) else 0L
+    }, integer(1))),
     `Efectivas telefónicas` = as.integer(vapply(dates_sorted, function(day) sum(efectivo_mask & dates == day, na.rm = TRUE), integer(1))),
     Parciales = as.integer(vapply(dates_sorted, function(day) sum(parcial_mask & dates == day, na.rm = TRUE), integer(1))),
     Rechazos = as.integer(vapply(dates_sorted, function(day) sum(rechazo_mask & dates == day, na.rm = TRUE), integer(1))),
@@ -771,8 +797,10 @@
       data.frame(
         Actor = actor,
         Fecha = day,
-        Efectivas = as.integer(platform_actor_day),
+        Efectivas = as.integer(sum(numerador_mask & actor_mask & numerador_dates == day, na.rm = TRUE) +
+          if (suma_fuera) sum(outside_actor_mask & response_dates == day, na.rm = TRUE) else 0L),
         `Efectivas Kobo` = as.integer(platform_actor_day),
+        `Fuera de la base` = as.integer(if (suma_fuera) sum(outside_actor_mask & response_dates == day, na.rm = TRUE) else 0L),
         `Efectivas telefónicas` = as.integer(sum(efectivo_mask & mask, na.rm = TRUE)),
         Parciales = as.integer(sum(parcial_mask & mask, na.rm = TRUE)),
         Rechazos = as.integer(sum(rechazo_mask & mask, na.rm = TRUE)),
@@ -908,9 +936,9 @@
   # Un solo numerador para el total por cuota y su serie diaria (checklist de cuotas 1b): con respuestas de
   # plataforma, la efectiva de Kobo; sin ellas, «Completa» de la hoja. Antes la base inferida de la población
   # contaba 0 en el total con la serie en Kobo, y sin plataforma el total contaba la hoja con la serie vacía.
-  quota_effective_mask <- if (nrow(responses)) phone_platform_complete else NULL
-  quota_day_mask <- if (is.null(quota_effective_mask)) states == "Completa" else phone_platform_complete
-  quota_day_dates <- if (is.null(quota_effective_mask)) dates else platform_dates
+  quota_effective_mask <- if (numerador_kobo) numerador_mask else NULL
+  quota_day_mask <- numerador_mask
+  quota_day_dates <- numerador_dates
   quotas <- .monitoreo_report_phone_quota_df(phone, profile, cfg, effective_mask = quota_effective_mask)
   quota_variables <- unique(as.character(quotas$Variable %||% character(0)))
   quota_variables <- quota_variables[nzchar(quota_variables) & !is.na(quota_variables)]

@@ -56,3 +56,86 @@ test_that("cada fila de cuota publica de dónde sale su numerador: «kobo» o «
   expect_identical(origen(esc$datos), "kobo")
   expect_identical(origen(esc$datos[esc$datos$.source_role != "respuestas", , drop = FALSE]), "hoja")
 })
+
+num_bloques <- function(datos, cfg) {
+  b <- .monitoreo_report_phone_blocks(datos, cfg$monitoreo_profile, cfg)
+  b <- stats::setNames(b, vapply(b, function(x) x$id, ""))
+  lapply(b, function(x) {
+    r <- x$rows
+    if (is.data.frame(r)) return(r)
+    if (!length(r)) return(data.frame())
+    do.call(rbind, lapply(r, function(y) as.data.frame(y, check.names = FALSE, stringsAsFactors = FALSE)))
+  })
+}
+
+test_that("las series diarias del avance usan el mismo numerador: diario = Σ cuotas + completas de Kobo fuera de la base (reparo 3)", {
+  esc <- rms_escenario()  # trae 1 respuesta huérfana: su llave no está en la hoja
+  b <- num_bloques(esc$datos, esc$cfg)
+  cuotas <- b$cuotas_variable[b$cuotas_variable$Valor != "Sin dato", ]
+  fuera <- sum(as.integer(b$avance_efectivo_dia$`Efectivas Kobo`)) - sum(as.integer(cuotas$Efectivas))
+  expect_identical(fuera, 1L)
+  expect_identical(sum(as.integer(b$avance_efectivo_dia$Efectivas)), sum(as.integer(cuotas$Efectivas)) + fuera)
+})
+
+test_that("sin respuestas de plataforma, el diario y el diario por actor cuentan lo mismo que las cuotas, no 0 (reparo 3)", {
+  esc <- rms_escenario()
+  b <- num_bloques(esc$datos[esc$datos$.source_role != "respuestas", , drop = FALSE], esc$cfg)
+  cuotas <- b$cuotas_variable[b$cuotas_variable$Valor != "Sin dato", ]
+  expect_gt(sum(as.integer(cuotas$Efectivas)), 0L)
+  expect_identical(sum(as.integer(b$avance_efectivo_dia$Efectivas)), sum(as.integer(cuotas$Efectivas)))
+  por_actor <- tapply(as.integer(b$avance_efectivo_actor_dia$Efectivas), b$avance_efectivo_actor_dia$Actor, sum)
+  por_cuota <- tapply(as.integer(cuotas$Efectivas), cuotas$Valor, sum)
+  expect_identical(as.integer(por_actor[names(por_cuota)]), as.integer(por_cuota))
+})
+
+test_that("el PDF telefónico sin plataforma dibuja la serie de la hoja, no 0 frente a las cuotas (reparo 3)", {
+  esc <- rms_escenario()
+  sin_kobo <- esc$datos[esc$datos$.source_role != "respuestas", , drop = FALSE]
+  b <- num_bloques(sin_kobo, esc$cfg)
+  cuotas <- b$cuotas_variable[b$cuotas_variable$Valor != "Sin dato", ]
+  hechos <- .mtpdf_report_facts(build_monitoreo_telefonico_report_model(list(data = sin_kobo), esc$cfg, include_targets = TRUE))
+  expect_gt(length(hechos$daily_values), 0L)
+  expect_identical(as.integer(sum(hechos$daily_values)), sum(as.integer(cuotas$Efectivas)))
+})
+
+test_that("el diario publica las completas de Kobo fuera de la base en su propia columna (reparo 3)", {
+  esc <- rms_escenario()
+  b <- num_bloques(esc$datos, esc$cfg)
+  expect_identical(sum(as.integer(b$avance_efectivo_dia$`Fuera de la base`)), 1L)
+  expect_identical(sum(as.integer(b$avance_efectivo_actor_dia$`Fuera de la base`)), 1L)
+  sin_kobo <- num_bloques(esc$datos[esc$datos$.source_role != "respuestas", , drop = FALSE], esc$cfg)
+  expect_identical(sum(as.integer(sin_kobo$avance_efectivo_dia$`Fuera de la base`)), 0L)
+})
+
+test_that("con la base hecha de las propias respuestas, cada completa cuenta una vez: ni 0 ni doble (reparo 3)", {
+  # Fixture de test-monitoreo-engine.R («cuotas telefonicas desde poblacion del actor»): acreditación sin barrido.
+  data <- data.frame(
+    response_id = paste0("R", 1:6),
+    response_status = c("completed", "partial", "disqualified", "not_responded", "completed", "partial"),
+    dim_actor = c("Egresados", "Egresados", "Egresados", "Egresados", "Docentes", "Docentes"),
+    Distrito = c("Lima", "Lima", "Callao", "Lima", "Centro", "Centro"),
+    telefono_contacto = c("999111111", "999222222", "999333333", "999444444", "999555555", "999666666"),
+    dim_canal = c(rep("Telefonico", 4), rep("Correo", 2)),
+    .source_role = rep("respuestas", 6),
+    .source_id = c(rep("src_egresados_tel", 4), rep("src_docentes_correo", 2)),
+    .source_label = c(rep("Egresados telefono asistido", 4), rep("Docentes correo", 2)),
+    stringsAsFactors = FALSE, check.names = FALSE
+  )
+  cfg <- monitoreo_normalize_config(list(
+    monitoreo_profile = list(family = "acreditacion", variant = "multi_actor", units = list(
+      list(id = "Egresados", actor = "Egresados", label = "Egresados", phone = list(enabled = TRUE, role = "target")),
+      list(id = "Docentes", actor = "Docentes", label = "Docentes", phone = list(enabled = FALSE, role = "none")))),
+    operational_model = list(link_collectors = list(list(source_id = "src_egresados_tel", actor = "Egresados",
+      channel = "Telefónico", operational_use = "telefono_asistido", roster_required = TRUE))),
+    control_vars = c("Distrito"),
+    goals = list(list(filters = list(Actor = "Egresados", Distrito = "Lima"), meta = 3L))
+  ), data)
+  reports <- monitoreo_acreditacion_reportes(data, cfg, report_scope = "phone_summary")
+  blocks <- stats::setNames(reports$sheets[[1]]$blocks, vapply(reports$sheets[[1]]$blocks, `[[`, character(1), "id"))
+  cuotas <- .monitoreo_internal_records_to_df(blocks$cuotas_variable$rows)
+  diario <- .monitoreo_internal_records_to_df(blocks$avance_efectivo_dia$rows)
+  cuotas <- cuotas[cuotas$Variable == "Distrito", ]
+  expect_identical(sum(as.integer(cuotas$Efectivas)), 1L)       # la única completa telefónica (R1)
+  expect_identical(sum(as.integer(diario$Efectivas)), 1L)       # ni 2 (doble) ni la de correo
+  expect_identical(sum(as.integer(diario$`Fuera de la base`)), 0L)
+})

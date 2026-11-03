@@ -500,7 +500,9 @@ build_monitoreo_telefonico_report_model <- function(snapshot, cfg, include_targe
   quota_pct <- if (is.finite(quota_target) && quota_target > 0 && is.finite(quota_actual)) 100 * quota_actual / quota_target else NA_real_
 
   daily <- .mtpdf_df(model$daily %||% data.frame())
-  daily_col <- intersect(c("Efectivas Kobo", "Efectivas", "Válidas", "Validas"), names(daily))[1]
+  # `Efectivas` es el numerador común (Kobo con plataforma; si no, la hoja): con Kobo vale lo mismo que
+  # `Efectivas Kobo`, y sin plataforma la serie ya no queda en 0 frente a las cuotas (checklist de cuotas 1b).
+  daily_col <- intersect(c("Efectivas", "Efectivas Kobo", "Válidas", "Validas"), names(daily))[1]
   daily_values <- if (!is.na(daily_col)) .mtpdf_num(daily[[daily_col]]) else numeric(0)
   daily_dates <- if ("Fecha" %in% names(daily)) suppressWarnings(as.Date(as.character(daily$Fecha))) else as.Date(character(0))
   keep_daily <- is.finite(daily_values) & daily_values >= 0 & !is.na(daily_dates)
