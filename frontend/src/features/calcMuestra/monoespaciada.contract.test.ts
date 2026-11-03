@@ -59,7 +59,7 @@ function hojas(dir: string): string[] {
   });
 }
 
-describe("monoespaciada sólo para código · P8", () => {
+describe("monoespaciada sólo para código (P8)", () => {
   it("ninguna hoja suma reglas monoespaciadas (los códigos de curso-horario, huellas y archivos van en la letra del sistema)", () => {
     const fuentes = hojas(aqui);
     expect(fuentes.length).toBeGreaterThan(40);

@@ -50,7 +50,7 @@ function hojas(dir: string): string[] {
   });
 }
 
-describe("monoespaciada sólo para código · P8", () => {
+describe("monoespaciada sólo para código (P8)", () => {
   it("ninguna hoja suma reglas monoespaciadas", () => {
     const fuentes = hojas(aqui);
     expect(fuentes.length).toBeGreaterThan(40);

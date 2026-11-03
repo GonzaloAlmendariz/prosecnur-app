@@ -75,7 +75,7 @@ const SNAPSHOT: Record<string, number> = {
   "word/word.css": 2,
 };
 
-describe("cajas propias · P2", () => {
+describe("cajas propias (P2)", () => {
   const conteo: Record<string, number> = {};
   for (const f of hojas(aqui)) {
     const n = cajasDeLaHoja(readFileSync(f, "utf8"));

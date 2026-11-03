@@ -95,7 +95,7 @@ const SNAPSHOT: Record<string, number> = {
   "vistaPreviaTipo.css": 3,
 };
 
-describe("cajas propias · P2", () => {
+describe("cajas propias (P2)", () => {
   const conteo: Record<string, number> = {};
   for (const f of hojas(aqui)) {
     const n = cajasDeLaHoja(readFileSync(f, "utf8"));

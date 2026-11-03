@@ -33,7 +33,7 @@ const SNAPSHOT: Record<string, number> = {
   "universidad/salidas/HistorialCorridas.tsx": 1,
 };
 
-describe("estados por EstadoChip · P6", () => {
+describe("estados por EstadoChip (P6)", () => {
   const conteo: Record<string, number> = {};
   for (const f of componentes(aqui)) {
     const n = readFileSync(f, "utf8").match(/cmv2-pill-soft/g)?.length ?? 0;

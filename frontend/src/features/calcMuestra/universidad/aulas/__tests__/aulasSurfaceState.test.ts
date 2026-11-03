@@ -128,10 +128,10 @@ describe("el aviso de comparación no vigente dice la causa", () => {
       comparisonReady: false,
       hasStoredComparison: true,
       simulationRows: [],
-      comparisonConfigDiff: ["n_aulas (corrida 202 · vigente 203)"],
+      comparisonConfigDiff: ["n_aulas (corrida 202, vigente 203)"],
     }), "metodo");
     expect(notice?.kind).toBe("missing-comparison");
-    expect(notice?.detail).toContain("n_aulas (corrida 202 · vigente 203)");
+    expect(notice?.detail).toContain("n_aulas (corrida 202, vigente 203)");
   });
 
   it("sin diff (difiere el marco, no la config) conserva el texto genérico veraz", () => {

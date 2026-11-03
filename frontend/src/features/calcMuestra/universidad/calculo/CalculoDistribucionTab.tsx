@@ -266,7 +266,7 @@ function Sensitivity({ data }: { data: CalcMuestraDistribucionUniversitariaPaylo
       <header className="cmv2-dist-section-head">
         <div>
           <span className="cmv2-dist-eyebrow">Sensibilidad</span>
-          <h3>Una variable a la vez · OFAT</h3>
+          <h3>Una variable a la vez (OFAT)</h3>
           <p>Cada eje parte del n de fórmula y cambia un solo parámetro. La meta planificada se informa aparte y conserva el divisor Alumnos por CH firmado.</p>
         </div>
         <dl className="cmv2-dist-baseline" aria-label="Línea base de sensibilidad">

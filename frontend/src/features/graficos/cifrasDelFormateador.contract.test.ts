@@ -30,7 +30,7 @@ const LENGTH_CRUDO = /(?<![=\w])\{[\w.!?]+\.length\}|\$\{[\w.!?]+\.length\}/g;
 /** Meta 0 desde el 3 nov 2026: todo conteo visible pasa por formatoConteo. */
 const SNAPSHOT_LENGTH_CRUDO: Record<string, number> = {};
 
-describe("cifras de Gráficos por el formateador compartido · P4", () => {
+describe("cifras de Gráficos por el formateador compartido (P4)", () => {
   const conteo: Record<string, number> = {};
   for (const f of archivos(aqui)) {
     const n = sinComentarios(readFileSync(f, "utf8")).match(LENGTH_CRUDO)?.length ?? 0;

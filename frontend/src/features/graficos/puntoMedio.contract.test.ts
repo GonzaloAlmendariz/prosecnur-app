@@ -49,7 +49,7 @@ const DECLARADAS: Record<string, number> = {
   "laminas/selectores/RepartoGraficos.tsx": 1,
 };
 
-describe("punto medio en Gráficos · P3", () => {
+describe("punto medio en Gráficos (P3)", () => {
   it("ningún archivo usa « · » como separador fuera de los declarados", () => {
     const fuentes = archivos(aqui);
     expect(fuentes.length).toBeGreaterThan(300);

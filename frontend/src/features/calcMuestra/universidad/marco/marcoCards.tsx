@@ -627,7 +627,7 @@ export function MarcoAulasHistograma({
           const max = marcoSizeGroupMax(group.max);
           return (
             <span key={group.id} data-grupo={group.id} onMouseEnter={() => setGrupoResaltado(group.id)}>
-              <i />{group.label}, {fmtInt(safeNumber(group.min, 0))}{Number.isFinite(max) ? `–${fmtInt(max)}` : "+"} {group.descripcion ? `· ${courseScheduleGroupDescription(group.descripcion)}` : ""}
+              <i />{group.label}, {fmtInt(safeNumber(group.min, 0))}{Number.isFinite(max) ? `–${fmtInt(max)}` : "+"} {group.descripcion ? `(${courseScheduleGroupDescription(group.descripcion)})` : ""}
             </span>
           );
         })}

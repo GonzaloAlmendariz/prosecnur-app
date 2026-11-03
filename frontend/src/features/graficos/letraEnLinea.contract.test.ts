@@ -26,7 +26,7 @@ function archivos(dir: string): string[] {
 
 const LITERAL = /fontSize\s*:\s*\d/;
 
-describe("letra en línea de Gráficos por rol · P1b", () => {
+describe("letra en línea de Gráficos por rol (P1b)", () => {
   it("ningún estilo en línea escribe fontSize con un número", () => {
     const fuentes = archivos(aqui);
     expect(fuentes.length).toBeGreaterThan(300);

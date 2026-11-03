@@ -39,21 +39,16 @@ function lineasConPunto(fuente: string): number {
 
 /** Foto del 2 nov 2026, después de pasar los `join(" · ")` a coma. Sólo baja. */
 const SNAPSHOT: Record<string, number> = {
-  "didactica/didacticaCharts.ts": 1,
   "didactica/referencia/corpus.ts": 4,
   "general/memoriaLatex.ts": 9,
-  "universidad/aulas/classroomHandoff.ts": 2,
   "universidad/calculo/CadenaAfijacion.tsx": 2,
   "universidad/calculo/CalculoDisenoTab.tsx": 2,
-  "universidad/calculo/CalculoDistribucionTab.tsx": 1,
-  "universidad/definicion/RankingDesempenoCard.tsx": 3,
   "universidad/marco/MatrizCascadaCriterios.tsx": 1,
   "universidad/marco/MatrizEmbudoCriterios.tsx": 1,
   "universidad/marco/PanoramaCursosHorario.tsx": 4,
-  "universidad/marco/marcoCards.tsx": 1,
 };
 
-describe("punto medio en Cálculo de muestra · P3", () => {
+describe("punto medio en Cálculo de muestra (P3)", () => {
   const conteo: Record<string, number> = {};
   for (const f of archivos(aqui)) {
     const n = lineasConPunto(readFileSync(f, "utf8"));
