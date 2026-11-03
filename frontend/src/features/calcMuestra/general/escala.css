@@ -96,6 +96,12 @@
   gap: var(--pulso-space-4);
 }
 
+/* Las técnicas declaran alto igual (`calc-muestra/general-tecnicas`, equal): a 1024 cada fila tomaba
+ * el alto de su descripción más larga y las tres filas diferían 20 px (P2, captura de Método › Técnica). */
+.cmg-mesa .cmv2-method-grid {
+  grid-auto-rows: 1fr;
+}
+
 .cmg-mesa :is(.cmv2-shape, .cmv2-method) {
   gap: var(--pulso-space-2);
   min-height: 128px;

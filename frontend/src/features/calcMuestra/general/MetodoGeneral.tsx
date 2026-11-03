@@ -2,6 +2,7 @@ import { Layers3, Settings2 } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 
 import type { CalcMuestraComponente } from "../../../api/calcMuestra";
+import { Panel } from "../../../components/Panel";
 import { EmptyState } from "../../../components/States";
 import { searchConNivel } from "../../../lib/navegacion/useDireccion";
 import { MatrizServiciosTable } from "../ComponenteTablas";
@@ -90,12 +91,7 @@ export function MetodoGeneralVista({
       data-qa-geometry-contract="intrinsic"
     >
       {pestana === "metodo-tecnica" && (
-        <section className="cmv2-panel" aria-labelledby="cmg-tecnica-titulo">
-          <div className="cmv2-panel-head">
-            <div>
-              <h3 className="cmg-panel-titulo" id="cmg-tecnica-titulo">Tipo de cálculo</h3>
-            </div>
-          </div>
+        <Panel aria-labelledby="cmg-tecnica-titulo" title={<span id="cmg-tecnica-titulo">Tipo de cálculo</span>}>
           <div className="cmv2-method-grid" role="group" aria-label="Técnica de muestreo" data-qa-geometry-group="calc-muestra/general-tecnicas" data-qa-geometry-contract="equal">
             {METODOS_CLASICOS.map((metodo) => (
               <button
@@ -111,7 +107,7 @@ export function MetodoGeneralVista({
               </button>
             ))}
           </div>
-        </section>
+        </Panel>
       )}
       {pestana === "metodo-parametros" && (
         <section className="cmv2-panel" aria-labelledby="cmg-parametros-titulo">

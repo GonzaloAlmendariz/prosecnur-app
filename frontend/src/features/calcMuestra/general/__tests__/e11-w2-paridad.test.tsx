@@ -199,7 +199,7 @@ describe("V3 · Método es una región, no un tabpanel huérfano", () => {
     const html = metodo({ fase: "listo", catalogo: CATALOGO });
     expect(html).toMatch(/^<section id="cmv2-section-general-metodo"[^>]*aria-labelledby="cmg-seccion-titulo"/);
     expect(html).not.toContain('role="tabpanel"');
-    expect(html).toContain('<h3 class="cmg-panel-titulo" id="cmg-tecnica-titulo">');
+    expect(html).toContain('<h3 class="pulso-panel-title"><span id="cmg-tecnica-titulo">');
   });
 
   it("V13 · readiness: false mientras el catálogo o el marco se leen", () => {
