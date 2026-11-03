@@ -69,7 +69,7 @@ export function ZonasDeCuotas({ campaignId, unidades }: Props) {
           <Printer size={14} aria-hidden /> {ocupado === "__todas" ? "Generando…" : "Hojas de conteo de todas"}
         </PulsoButton>
       </header>
-      <div data-qa-geometry-group="material-campo/territorial/zonas" data-qa-geometry-contract="owned">
+      <div data-qa-geometry-group="material-campo/territorial/zonas" data-qa-geometry-contract="intrinsic" data-qa-geometry-capacity="owned">
         <PulsoTable
           columnas={columnas}
           filas={unidades.zonas}
