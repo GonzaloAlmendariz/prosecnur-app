@@ -74,7 +74,7 @@ const containerStyle: CSSProperties = {
 
 const headingStyle: CSSProperties = {
   color: "var(--pulso-text)",
-  fontSize: 10,
+  fontSize: "var(--pulso-type-micro-size)",
   fontWeight: 800,
   lineHeight: 1.2,
 };
@@ -98,7 +98,7 @@ const chipStyle: CSSProperties = {
   borderRadius: 999,
   background: "var(--pulso-surface)",
   color: "var(--pulso-text-soft)",
-  fontSize: 10,
+  fontSize: "var(--pulso-type-micro-size)",
   fontWeight: 600,
   lineHeight: 1.25,
 };
@@ -115,7 +115,7 @@ const sourceStyle: CSSProperties = {
 
 const noteStyle: CSSProperties = {
   color: "var(--pulso-text-soft)",
-  fontSize: 10,
+  fontSize: "var(--pulso-type-micro-size)",
   fontWeight: 600,
   lineHeight: 1.25,
 };

@@ -469,7 +469,7 @@ function FieldControl({
 
 const inputStyle: React.CSSProperties = {
   padding: "6px 8px",
-  fontSize: 12,
+  fontSize: "var(--pulso-type-body-size)",
   border: "1px solid var(--pulso-border)",
   borderRadius: 5,
   background: "white",
@@ -591,7 +591,7 @@ const iconPickerTitleStyle: React.CSSProperties = {
   overflow: "hidden",
   textOverflow: "ellipsis",
   whiteSpace: "nowrap",
-  fontSize: 12,
+  fontSize: "var(--pulso-type-body-size)",
   lineHeight: 1.15,
   color: "var(--pulso-text)",
   letterSpacing: 0,
@@ -602,7 +602,7 @@ const iconPickerSubtitleStyle: React.CSSProperties = {
   overflow: "hidden",
   textOverflow: "ellipsis",
   whiteSpace: "nowrap",
-  fontSize: 10.5,
+  fontSize: "var(--pulso-type-micro-size)",
   lineHeight: 1.15,
   color: "var(--pulso-text-soft)",
   letterSpacing: 0,
@@ -684,7 +684,7 @@ const iconPickerOptionNameStyle: React.CSSProperties = {
   textOverflow: "ellipsis",
   whiteSpace: "nowrap",
   textAlign: "center",
-  fontSize: 11,
+  fontSize: "var(--pulso-type-caption-size)",
   lineHeight: 1.2,
   fontWeight: 800,
   color: "var(--pulso-text)",
@@ -1909,7 +1909,7 @@ const stepButtonStyle: React.CSSProperties = {
   borderRadius: 5,
   background: "white",
   color: "var(--pulso-text)",
-  fontSize: 14,
+  fontSize: "var(--pulso-type-subtitle-size)",
   fontWeight: 700,
   cursor: "pointer",
   lineHeight: 1,
@@ -1929,7 +1929,7 @@ function BoolToggle({ value, onChange }: { value: boolean; onChange: (v: boolean
         border: `1px solid ${value ? "var(--pulso-primary)" : "var(--pulso-border)"}`,
         background: value ? "var(--pulso-primary-soft)" : "white",
         color: value ? "var(--pulso-primary)" : "var(--pulso-text-soft)",
-        fontSize: 11, fontWeight: 600, cursor: "pointer",
+        fontSize: "var(--pulso-type-caption-size)", fontWeight: 600, cursor: "pointer",
         alignSelf: "flex-start",
         transition: "background 120ms ease, border-color 120ms ease",
       }}
@@ -1987,7 +1987,7 @@ function ChoicePills({
               border: `1px solid ${active ? "var(--pulso-primary)" : "var(--pulso-border)"}`,
               background: active ? "var(--pulso-primary-soft)" : "white",
               color: active ? "var(--pulso-primary)" : "var(--pulso-text)",
-              fontSize: 11, fontWeight: active ? 600 : 500,
+              fontSize: "var(--pulso-type-caption-size)", fontWeight: active ? 600 : 500,
               cursor: "pointer",
               transition: "background 120ms ease, border-color 120ms ease, color 120ms ease",
             }}
@@ -2433,7 +2433,7 @@ function OrdenCategoriasField({
     const sembrar = (l: PaletaSugeridaEntry) => onChange(l.choices.map((c) => c.label));
     return (
       <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-        <p style={{ margin: 0, fontSize: 11, color: "var(--pulso-text-soft)" }}>
+        <p style={{ margin: 0, fontSize: "var(--pulso-type-caption-size)", color: "var(--pulso-text-soft)" }}>
           {alternativas.length
             ? "No reconozco la escala de esta variable. Elige cuál es."
             : "Elige la variable del gráfico para poder ordenar sus categorías."}
@@ -2460,14 +2460,14 @@ function OrdenCategoriasField({
         <div key={`${cat}-${i}`} style={{ display: "flex", alignItems: "center", gap: 6 }}>
           <span
             style={{
-              width: 20, height: 20, borderRadius: 6, flex: "0 0 20px", fontSize: 10, fontWeight: 600,
+              width: 20, height: 20, borderRadius: 6, flex: "0 0 20px", fontSize: "var(--pulso-type-micro-size)", fontWeight: 600,
               display: "inline-flex", alignItems: "center", justifyContent: "center",
               border: "1px solid var(--pulso-border)", background: "var(--pulso-surface-2)",
             }}
           >
             {i + 1}
           </span>
-          <span style={{ flex: 1, minWidth: 0, fontSize: 12, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+          <span style={{ flex: 1, minWidth: 0, fontSize: "var(--pulso-type-body-size)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
             {cat}
           </span>
           <button type="button" title="Subir" disabled={i === 0} onClick={() => mover(i, -1)} style={ordenBtn}>↑</button>
@@ -2482,7 +2482,7 @@ function OrdenCategoriasField({
           type="button"
           onClick={() => onChange(null)}
           style={{
-            alignSelf: "flex-start", marginTop: 2, padding: "3px 8px", borderRadius: 7, fontSize: 11,
+            alignSelf: "flex-start", marginTop: 2, padding: "3px 8px", borderRadius: 7, fontSize: "var(--pulso-type-caption-size)",
             border: "1px solid var(--pulso-border)", background: "transparent", cursor: "pointer",
             color: "var(--pulso-text-soft)",
           }}
@@ -2496,14 +2496,14 @@ function OrdenCategoriasField({
 
 const escalaBtn: React.CSSProperties = {
   textAlign: "left", padding: "6px 9px", borderRadius: 8, cursor: "pointer",
-  border: "1px solid var(--pulso-border)", background: "transparent", fontSize: 11,
+  border: "1px solid var(--pulso-border)", background: "transparent", fontSize: "var(--pulso-type-caption-size)",
   color: "var(--pulso-text)",
 };
 
 const ordenBtn: React.CSSProperties = {
   width: 22, height: 22, borderRadius: 6, flex: "0 0 22px", cursor: "pointer",
   border: "1px solid var(--pulso-border)", background: "transparent",
-  color: "var(--pulso-text-soft)", fontSize: 11, lineHeight: 1, padding: 0,
+  color: "var(--pulso-text-soft)", fontSize: "var(--pulso-type-caption-size)", lineHeight: 1, padding: 0,
 };
 
 /** Elige las categorías de un indicador MARCÁNDOLAS sobre las escalas reales
@@ -2588,7 +2588,7 @@ function CategoriasEscalaField({
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-      <p style={{ margin: 0, fontSize: 11, color: "var(--pulso-text-soft)" }}>
+      <p style={{ margin: 0, fontSize: "var(--pulso-type-caption-size)", color: "var(--pulso-text-soft)" }}>
         {cubiertas > 0
           ? `${cubiertas} de ${listas.length} listas cubiertas, ${grupos.length} escalas distintas`
           : `Marca las categorías. ${grupos.length} escalas distintas en ${listas.length} listas.`}
@@ -2619,7 +2619,7 @@ function CategoriasEscalaField({
                       onClick={() => alternar(c.label)}
                       title={`código ${c.name}`}
                       style={{
-                        padding: "3px 9px", borderRadius: 999, cursor: "pointer", fontSize: 11,
+                        padding: "3px 9px", borderRadius: 999, cursor: "pointer", fontSize: "var(--pulso-type-caption-size)",
                         fontWeight: on ? 600 : 500,
                         border: `1px solid ${on ? "var(--pulso-primary)" : "var(--pulso-border)"}`,
                         background: on ? "var(--pulso-primary-soft)" : "transparent",
@@ -2631,7 +2631,7 @@ function CategoriasEscalaField({
                   );
                 })}
               </div>
-              <span style={{ fontSize: 10.5, color: "var(--pulso-text-soft)" }} title={g.listas.join(", ")}>
+              <span style={{ fontSize: "var(--pulso-type-micro-size)", color: "var(--pulso-text-soft)" }} title={g.listas.join(", ")}>
                 {g.listas.length === 1 ? g.listas[0] : `${g.listas.length} listas`}
                 {fuentes.length ? `: ${fuentes.join(", ")}` : ""}
               </span>
@@ -2711,7 +2711,7 @@ function RanurasField({
     // texto libre donde el analista tendría que adivinar el orden.
     if (meta.ranuras_desde === "secciones_indice") {
       return (
-        <p style={{ margin: 0, fontSize: 12, color: "var(--pulso-text-soft)" }}>
+        <p style={{ margin: 0, fontSize: "var(--pulso-type-body-size)", color: "var(--pulso-text-soft)" }}>
           Todavía no hay secciones. Créalas en <strong>Contenido → Agregar sección</strong>;
           cada una tendrá aquí su propio foco.
         </p>
@@ -2727,7 +2727,7 @@ function RanurasField({
           <span
             style={{
               flex: "0 0 118px",
-              fontSize: 12,
+              fontSize: "var(--pulso-type-body-size)",
               color: "var(--pulso-text-soft)",
             }}
           >
@@ -2781,7 +2781,7 @@ function IconoSelect({
           padding: "8px 10px", borderRadius: 6,
           border: "1px dashed var(--pulso-border)",
           background: "var(--pulso-surface)",
-          fontSize: 11, color: "var(--pulso-text-soft)",
+          fontSize: "var(--pulso-type-caption-size)", color: "var(--pulso-text-soft)",
         }}
       >
         <ImageIcon size={12} style={{ display: "inline", marginRight: 4, verticalAlign: "-2px" }} />
@@ -3257,7 +3257,7 @@ function ColorField({
             width: "100%",
             minWidth: 0,
             fontFamily: "ui-monospace, monospace",
-            fontSize: 11,
+            fontSize: "var(--pulso-type-caption-size)",
             borderColor: valid ? "var(--pulso-border)" : "#f59f9f",
             background: valid ? "white" : "#fef7f7",
           }}
@@ -3295,7 +3295,7 @@ function ColorField({
               <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                 {paletasEntries.map((p) => (
                   <div key={p.name} style={{ display: "flex", flexDirection: "column", gap: 3 }}>
-                    <span style={{ fontSize: 10, color: "var(--pulso-text-soft)" }}>{p.name}</span>
+                    <span style={{ fontSize: "var(--pulso-type-micro-size)", color: "var(--pulso-text-soft)" }}>{p.name}</span>
                     <SwatchRow
                       colors={p.colores.map((c) => ({ value: c, label: c }))}
                       active={previewColor}

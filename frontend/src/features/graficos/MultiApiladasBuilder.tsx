@@ -485,7 +485,7 @@ function BlockEditor({
   return (
     <div style={blockStyle}>
       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-        <strong style={{ fontSize: 12 }}>Bloque {index + 1}</strong>
+        <strong style={{ fontSize: "var(--pulso-type-body-size)" }}>Bloque {index + 1}</strong>
         <div style={blockIntentSwitcherStyle} aria-label="Tipo de bloque">
           {INTENTS.filter((item) => BLOQUE_SIN_GRUPOS.has(item.key) || item.key === blockIntent).map((item) => {
             const active = item.key === blockIntent;
@@ -598,9 +598,9 @@ function BuilderSection({ title, hint, children }: { title: string; hint: string
     <section style={panelStyle}>
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
         <ListPlus size={14} color="var(--pulso-primary)" />
-        <strong style={{ fontSize: 13 }}>{title}</strong>
+        <strong style={{ fontSize: "var(--pulso-type-body-size)" }}>{title}</strong>
       </div>
-      <div style={{ fontSize: 11, color: "var(--pulso-text-soft)", lineHeight: 1.45, marginBottom: 10 }}>{hint}</div>
+      <div style={{ fontSize: "var(--pulso-type-caption-size)", color: "var(--pulso-text-soft)", lineHeight: 1.45, marginBottom: 10 }}>{hint}</div>
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>{children}</div>
     </section>
   );
@@ -610,7 +610,7 @@ function FieldLabel({ label, help, compact, children }: { label: string; help?: 
   return (
     <label style={{ display: "flex", flexDirection: "column", gap: compact ? 3 : 5 }}>
       <span style={{ fontSize: compact ? 10 : 11, fontWeight: 700, color: "var(--pulso-text)" }}>{label}</span>
-      {help && <span style={{ fontSize: 10, color: "var(--pulso-text-soft)", lineHeight: 1.35 }}>{help}</span>}
+      {help && <span style={{ fontSize: "var(--pulso-type-micro-size)", color: "var(--pulso-text-soft)", lineHeight: 1.35 }}>{help}</span>}
       {children}
     </label>
   );
@@ -952,7 +952,7 @@ function TitlesEditor({
   if (!keys.length) return null;
   return (
     <details style={{ border: "1px solid var(--pulso-border)", borderRadius: 7, padding: "7px 9px", background: "var(--pulso-surface)" }}>
-      <summary style={{ cursor: "pointer", fontSize: 11, fontWeight: 700 }}>Títulos de los bloques</summary>
+      <summary style={{ cursor: "pointer", fontSize: "var(--pulso-type-caption-size)", fontWeight: 700 }}>Títulos de los bloques</summary>
       <div style={{ display: "flex", flexDirection: "column", gap: 7, marginTop: 8 }}>
         {keys.map((key) => {
           const info = findVar(key, variables, multi);
@@ -998,10 +998,10 @@ function ScaleInline({ refs, variables, multi }: { refs: string[]; variables: Va
 function RequirementPanel({ title, text }: { title: string; text: string }) {
   return (
     <div style={{ ...panelStyle, borderColor: "var(--pulso-warn-border)", background: "#fff9eb" }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 8, fontWeight: 700, fontSize: 13 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, fontWeight: 700, fontSize: "var(--pulso-type-subtitle-size)" }}>
         <AlertCircle size={14} /> {title}
       </div>
-      <div style={{ fontSize: 12, color: "var(--pulso-text-soft)", lineHeight: 1.45, marginTop: 6 }}>{text}</div>
+      <div style={{ fontSize: "var(--pulso-type-subtitle-size)", color: "var(--pulso-text-soft)", lineHeight: 1.45, marginTop: 6 }}>{text}</div>
     </div>
   );
 }
@@ -1250,7 +1250,7 @@ const inputStyle: React.CSSProperties = {
   border: "1px solid var(--pulso-border)",
   borderRadius: 5,
   padding: "6px 8px",
-  fontSize: 12,
+  fontSize: "var(--pulso-type-body-size)",
   background: "white",
   color: "var(--pulso-text)",
 };
@@ -1264,7 +1264,7 @@ const secondaryButtonStyle: React.CSSProperties = {
   borderRadius: 6,
   background: "white",
   padding: "7px 10px",
-  fontSize: 12,
+  fontSize: "var(--pulso-type-body-size)",
   cursor: "pointer",
 };
 
@@ -1277,7 +1277,7 @@ const chipStyle: React.CSSProperties = {
   color: "var(--pulso-primary)",
   borderRadius: 6,
   padding: "3px 5px",
-  fontSize: 11,
+  fontSize: "var(--pulso-type-caption-size)",
 };
 
 const chipLabelStyle: React.CSSProperties = {
@@ -1297,7 +1297,7 @@ const chipCodeStyle: React.CSSProperties = {
   background: "rgba(255, 255, 255, 0.72)",
   color: "var(--pulso-text-soft)",
   fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
-  fontSize: 10,
+  fontSize: "var(--pulso-type-micro-size)",
   fontWeight: 800,
   overflow: "hidden",
   textOverflow: "ellipsis",
@@ -1325,7 +1325,7 @@ const blockIntentButtonStyle: React.CSSProperties = {
   borderRadius: 999,
   background: "rgba(255, 255, 255, 0.76)",
   color: "var(--pulso-text-soft)",
-  fontSize: 10.4,
+  fontSize: "var(--pulso-type-micro-size)",
   fontWeight: 700,
   cursor: "pointer",
 };
@@ -1342,7 +1342,7 @@ const blockIntentButtonDisabledStyle: React.CSSProperties = {
 };
 
 const hintStyle: React.CSSProperties = {
-  fontSize: 11,
+  fontSize: "var(--pulso-type-caption-size)",
   color: "var(--pulso-text-soft)",
   fontStyle: "italic",
 };
@@ -1354,7 +1354,7 @@ const inlineStatusStyle: React.CSSProperties = {
   border: "1px solid",
   borderRadius: 7,
   padding: "7px 9px",
-  fontSize: 11,
+  fontSize: "var(--pulso-type-caption-size)",
   background: "white",
 };
 
@@ -1367,7 +1367,7 @@ const detailsStyle: React.CSSProperties = {
 
 const summaryStyle: React.CSSProperties = {
   cursor: "pointer",
-  fontSize: 11,
+  fontSize: "var(--pulso-type-caption-size)",
   fontWeight: 700,
 };
 
@@ -1375,7 +1375,7 @@ const toggleStyle: React.CSSProperties = {
   display: "inline-flex",
   alignItems: "center",
   gap: 7,
-  fontSize: 12,
+  fontSize: "var(--pulso-type-subtitle-size)",
   fontWeight: 600,
 };
 

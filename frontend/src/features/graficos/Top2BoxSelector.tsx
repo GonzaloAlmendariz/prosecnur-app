@@ -55,14 +55,14 @@ export function Top2BoxSelector({ categorias, seleccion, onChange, nombre = "Top
 const cajaStyle: React.CSSProperties = { display: "flex", flexDirection: "column", gap: "var(--pulso-space-2)" };
 const chipsStyle: React.CSSProperties = { display: "flex", flexWrap: "wrap", gap: "var(--pulso-space-2)" };
 const chipStyle: React.CSSProperties = {
-  border: "1px solid var(--pulso-border)", borderRadius: "var(--pulso-radius-chip)", padding: "var(--pulso-space-1) var(--pulso-space-3)", fontSize: 11, lineHeight: 1.35,
+  border: "1px solid var(--pulso-border)", borderRadius: "var(--pulso-radius-chip)", padding: "var(--pulso-space-1) var(--pulso-space-3)", fontSize: "var(--pulso-type-caption-size)", lineHeight: 1.35,
   background: "var(--pulso-surface)", color: "var(--pulso-text)", cursor: "pointer", textAlign: "left", whiteSpace: "normal",
 };
 const chipElegidaStyle: React.CSSProperties = {
   ...chipStyle, border: "1px solid var(--pulso-primary-border)", background: "var(--pulso-primary-soft)", color: "var(--pulso-primary)", fontWeight: 700,
 };
 const chipBloqueadaStyle: React.CSSProperties = { ...chipStyle, color: "var(--pulso-text-soft)", cursor: "not-allowed", opacity: 0.6 };
-const mensajeStyle: React.CSSProperties = { fontSize: 11 };
+const mensajeStyle: React.CSSProperties = { fontSize: "var(--pulso-type-caption-size)" };
 const vacioStyle: React.CSSProperties = {
-  border: "1px dashed var(--pulso-border)", borderRadius: "var(--pulso-radius)", padding: "var(--pulso-space-2) var(--pulso-space-3)", fontSize: 11, color: "var(--pulso-text-soft)",
+  border: "1px dashed var(--pulso-border)", borderRadius: "var(--pulso-radius)", padding: "var(--pulso-space-2) var(--pulso-space-3)", fontSize: "var(--pulso-type-caption-size)", color: "var(--pulso-text-soft)",
 };

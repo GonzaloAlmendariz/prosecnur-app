@@ -377,7 +377,7 @@ export default function GraficosPage() {
               <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                 <strong>{error.message}</strong>
                 {error.hint && (
-                  <div style={{ fontSize: 12, fontWeight: 400, lineHeight: 1.5 }}>
+                  <div style={{ fontSize: "var(--pulso-type-body-size)", fontWeight: 400, lineHeight: 1.5 }}>
                     {error.hint}
                   </div>
                 )}
