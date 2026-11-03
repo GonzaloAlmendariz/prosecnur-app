@@ -185,7 +185,11 @@
 }
 
 @media (max-width: 1180px) {
-  .mon-zeq { height: auto; grid-template-rows: none; }
+  /* Apiladas, las zonas miden lo que traen y desplaza la pestaña: encogidas al
+   * alto de la ventana, cada tarjeta quedaba en su cabecera y su equipo fuera
+   * de alcance (1024 × 600). */
+  .mon-zeq { flex: none; height: auto; min-height: auto; grid-template-rows: none; }
+  .mon-zeq-tarjeta { overflow: visible; }
   .mon-zeq-banda { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .mon-zeq-rejilla { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-auto-rows: auto; }
 }

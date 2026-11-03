@@ -24,6 +24,7 @@ import { useAsignacionPlanificada } from "./useAsignacionPlanificada";
 import { SiluetaDeDistrito } from "./SiluetaDeDistrito";
 import { tonoDeCalor } from "./tonoDeCalor";
 import { RotuloDePestana } from "../navegacion/RotuloDePestana";
+import { useQuedanMasAbajo } from "../../../core/useQuedanMasAbajo";
 import "./faltante.css";
 
 /**
@@ -150,6 +151,7 @@ function PanelDePendientes({
   onMapa: (ump: string) => void;
 }) {
   const completas = modelo.totalUmp - modelo.pendientes.length;
+  const { ref: listaRef, quedan } = useQuedanMasAbajo<HTMLDivElement>(modelo.pendientes);
   return (
     <section className="mon-falt-panel mon-falt-pendientes" aria-labelledby="mon-falt-pendientes-titulo" data-qa-geometry-member="pendientes">
       <header className="mon-falt-cabecera">
@@ -163,7 +165,7 @@ function PanelDePendientes({
           </span>
         ) : null}
       </header>
-      <div className="mon-falt-tarjetas" data-qa-geometry-group="territorial-faltante-tarjetas" data-qa-geometry-contract="intrinsic">
+      <div ref={listaRef} className={`mon-falt-tarjetas${quedan ? " quedan-mas" : ""}`} data-qa-geometry-group="territorial-faltante-tarjetas" data-qa-geometry-contract="intrinsic">
         {modelo.pendientes.map((fila) => (
           <article key={fila.ump} className={`mon-falt-tarjeta${fila.cubre?.tipo === "sugerencia" ? " is-con-sugerencia" : ""}`}>
             <SiluetaDeDistrito distrito={fila.distrito} tono="falta" />
@@ -240,7 +242,7 @@ function MapaDeCalor({ modelo }: { modelo: ModeloFaltante }) {
                       style={{ background: tono.fondo }}
                       title={`${fila.distrito}, ${celda.rotulo}: ${fmt(celda.logrado)} de ${fmt(celda.meta)}`}
                     >
-                      <b>{fmt(celda.logrado)}</b> de {fmt(celda.meta)}
+                      <b>{fmt(celda.logrado)}</b>{" "}<small>de {fmt(celda.meta)}</small>
                     </span>
                   </td>
                 );

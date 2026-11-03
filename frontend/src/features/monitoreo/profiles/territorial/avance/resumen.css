@@ -368,7 +368,7 @@
 
 /* 1181–1365: la columna UMP quedaba 60 px fuera del marco (medido a 1280 en
  * acnur_acg). La tira de UMP se acorta y el relleno se aprieta. */
-@media (min-width: 1181px) and (max-width: 1365px) {
+@media (max-width: 1365px) {
   .mon-res-tabla :is(thead th, tbody th, tbody td, tfoot th, tfoot td) {
     padding-inline: 6px;
   }
@@ -535,9 +535,31 @@
   background: var(--pulso-surface-3);
 }
 
+/* 1024: en dos columnas la de la derecha medía ~550 px y la tabla de distritos
+ * escondía «No cuentan», «Celdas» y «Por día» (250 px tras el desplazamiento).
+ * Se apila: la cifra y el embudo lado a lado, los motivos debajo, y el ritmo y
+ * los distritos a todo el ancho. La pestaña desplaza entera (regla de abajo). */
 @media (max-width: 1180px) {
+  /* Sin encogerse al alto de la ventana: encogida, la cifra quedaba bajo el
+   * ritmo y los motivos fuera de la vista. */
   .mon-res {
-    grid-template-columns: minmax(300px, 360px) minmax(0, 1fr);
+    flex: none;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .mon-res-izquierda,
+  .mon-res-derecha {
+    min-height: auto;
+  }
+
+  .mon-res-izquierda {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
+  }
+
+  .mon-res-izquierda > :last-child:nth-child(odd) {
+    grid-column: 1 / -1;
   }
 
   .mon-res-embudo li {

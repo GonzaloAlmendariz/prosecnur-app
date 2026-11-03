@@ -132,9 +132,11 @@
   flex: 0 0 auto;
 }
 
-.mon-pz-cabecera > .mon-falt-base { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* Sin elipsis: el título no cede y el subtítulo pasa a dos líneas (1280). */
+.mon-pz-cabecera > .mon-falt-base { min-width: 0; text-align: right; }
 
 .mon-pz-cabecera h3 {
+  flex: none;
   margin: 0;
   white-space: nowrap;
   color: var(--pulso-text);
@@ -340,7 +342,10 @@
 
 /* Pantalla angosta: la matriz va a lo ancho y lo que falta debajo, en dos columnas. */
 @media (max-width: 1180px) {
-  .mon-pz { height: auto; grid-template-rows: none; }
+  /* Sin encogerse al alto de la ventana (el contenedor es flex en columna):
+   * encogida, el mapa y las celdas se salían de su panel por abajo. */
+  .mon-pz { flex: none; height: auto; min-height: auto; grid-template-rows: none; }
+  .mon-pz > *, .mon-pz-lateral > * { min-height: auto; }
   .mon-pz-banda { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .mon-pz-cuerpo { grid-template-columns: minmax(0, 1fr); }
   .mon-pz-matriz { min-height: 560px; }

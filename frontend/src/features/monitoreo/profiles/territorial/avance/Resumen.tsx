@@ -224,7 +224,8 @@ function Ritmo({ modelo }: { modelo: ModeloResumen }) {
         </svg>
         {/* Las fechas van en HTML, como el eje Y: dentro del SVG estirado con
          * preserveAspectRatio="none" el texto se ensanchaba con el panel. */}
-        <span className="mon-res-eje-x" aria-hidden="true" ref={pista}>
+        <span className="mon-res-eje-x" aria-hidden="true" ref={pista}
+          data-qa-geometry-group="territorial-resumen-eje-x" data-qa-geometry-contract="intrinsic">
           {rotulos.map((rotulo) => (
             <span key={dias[rotulo.indice].fecha} className="mon-eje-fecha-html" style={{ left: `${(x(rotulo.indice) / ancho) * 100}%` }}>
               {rotulo.dia}

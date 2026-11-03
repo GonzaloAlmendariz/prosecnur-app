@@ -58,12 +58,17 @@
   margin-left: auto;
 }
 
-/* El alto de la fila lo pone el mapa de calor: el panel de pendientes no
- * aporta alto propio (alto 0, mínimo 100 %) y desplaza sus tarjetas dentro.
- * Con 29 pendientes empujaba la cuota de cada UMP fuera de la vista. */
+/* Las pendientes miden lo que traen. Atadas al alto del mapa de calor (alto 0,
+ * mínimo 100 %) cortaban la tercera tarjeta a la mitad, que se leía como render
+ * roto (formato, vista 5). Con muchas —29 en un estudio— las tarjetas desplazan
+ * bajo un tope de unas tres y se desvanecen al pie mientras quede algo
+ * abajo; así la cuota de cada UMP no sale de la vista. */
 .mon-falt-pendientes {
-  height: 0;
-  min-height: 100%;
+  min-height: 0;
+}
+
+.mon-falt-pendientes .mon-falt-aviso {
+  margin-top: auto;
 }
 
 /* Tarjetas de las UMP con falta en la manzana en uso. */
@@ -71,13 +76,20 @@
   display: grid;
   gap: var(--pulso-space-2);
   align-content: start;
-  flex: 1 1 auto;
+  flex: 0 1 auto;
   min-height: 0;
+  max-height: 300px;
   margin-right: calc(-1 * var(--pulso-space-2));
   padding-right: var(--pulso-space-2);
   overflow: auto;
+  overscroll-behavior: contain;
   scrollbar-width: thin;
   scrollbar-color: var(--pulso-border-strong) transparent;
+}
+
+/* El pie se desvanece sólo mientras queda algo abajo (`useQuedanMasAbajo`). */
+.mon-falt-tarjetas.quedan-mas {
+  mask-image: linear-gradient(to bottom, black calc(100% - 40px), transparent);
 }
 
 /* Tarjeta de UMP (§2a-bis): contorno del distrito como sello a la izquierda,
@@ -127,6 +139,15 @@
   align-items: center;
   gap: var(--pulso-space-2) var(--pulso-space-3);
   min-width: 0;
+}
+
+/* Un chip largo («Sugerencia desde la UMP 2 sobrantes, a 3.56 km») parte en
+ * dos líneas dentro de su tarjeta en vez de salirse por la derecha (1280). */
+.mon-falt-tarjeta-linea > .pulso-estado-chip {
+  max-width: 100%;
+  height: auto;
+  white-space: normal;
+  text-align: left;
 }
 
 .mon-falt-tarjeta-linea > strong {
@@ -280,13 +301,28 @@
   padding: 0;
 }
 
+/* Cada celda en dos pisos: lo logrado manda y «de N» va debajo, en chico. En
+ * una línea («103 de 96») seis columnas no cabían a 1440 y la última quedaba
+ * pegada al borde de la tarjeta. */
 .mon-falt-calor-celda {
-  display: block;
-  padding: 7px 4px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 5px 4px 4px;
   border-radius: 6px;
-  font-size: var(--pulso-type-body-size);
+  line-height: 1.15;
   text-align: center;
   white-space: nowrap;
+}
+
+.mon-falt-calor-celda b {
+  font-size: var(--pulso-type-subtitle-size);
+  font-weight: var(--pulso-weight-bold);
+}
+
+.mon-falt-calor-celda small {
+  font-size: var(--pulso-type-caption-size);
+  opacity: 0.82;
 }
 
 .mon-falt-calor-celda.is-clara {
@@ -729,12 +765,11 @@
     grid-template-columns: minmax(0, 1fr);
   }
 
-  /* Apiladas, las pendientes ya no toman el alto del mapa de calor (que va
-   * debajo): miden lo que traen, hasta 380 px, y desplazan sus tarjetas. */
+  /* Apiladas, las pendientes miden lo que traen (el tope de sus tarjetas
+   * está arriba) y el mapa de calor va debajo. */
   .mon-falt-pendientes {
     height: auto;
     min-height: 0;
-    max-height: 380px;
   }
 
   .mon-falt-cuotas {
@@ -756,8 +791,8 @@
   }
 }
 
-/* La fila de arriba mide al menos 380 px para que las pendientes muestren dos
- * tarjetas y media; el mapa de calor reparte ese alto entre sus filas. */
+/* La fila de arriba mide al menos 380 px; el mapa de calor reparte ese alto
+ * entre sus filas y las pendientes ponen el suyo si traen más. */
 @media (min-width: 1181px) {
   .mon-falt-arriba {
     min-height: 380px;
@@ -900,6 +935,9 @@
 
   .mon-falt-calor-celda {
     padding-inline: 2px;
-    font-size: var(--pulso-type-caption-size);
+  }
+
+  .mon-falt-calor-celda b {
+    font-size: var(--pulso-type-body-size);
   }
 }
