@@ -1,4 +1,4 @@
-// Lecturas de los endpoints de diferencias (ADR 0126 §5) con su caché efímera en el store del feature.
+// Lecturas de los endpoints de diferencias (ADR 0128 §5) con su caché efímera en el store del feature.
 //
 // El backend calcula sobre el plan GUARDADO: lo que se pide con cambios sin guardar se marca `sucio` y se vuelve a pedir
 // cuando el autosave deja el plan limpio. Mientras tanto se sigue mostrando lo último que llegó para esa misma clave.

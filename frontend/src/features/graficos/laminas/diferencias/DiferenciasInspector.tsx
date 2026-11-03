@@ -1,4 +1,4 @@
-// U2 · «Diferencias entre grupos» en la tarjeta del gráfico (ADR 0126; propuesta de significancia §3.5). Reemplaza la
+// U2 · «Diferencias entre grupos» en la tarjeta del gráfico (ADR 0128; propuesta de significancia §3.5). Reemplaza la
 // fila «Nivel de significancia» de Cifras: el nivel ya no es de cada lámina sino de la regla del estudio. El interruptor
 // es el `mostrar_significancia` del gráfico; el resumen sale de GET /api/graficos/diferencias?slide=<id>.
 //

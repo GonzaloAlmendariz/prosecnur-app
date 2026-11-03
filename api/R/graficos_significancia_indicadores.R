@@ -1,4 +1,4 @@
-# Indicadores por caso para la prueba de diseño (ADR 0126 §2)
+# Indicadores por caso para la prueba de diseño (ADR 0128 §2)
 # ===========================================================
 #
 # La prueba z de siempre trabajaba con conteos agregados: el render ya sabía cuántos marcaron cada opción en cada

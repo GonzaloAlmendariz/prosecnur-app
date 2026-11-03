@@ -1,6 +1,6 @@
 source("setup-load-all.R")
 
-# ADR 0126 (D1): con la regla del estudio vigente, la tabla de cruces marca con la misma evaluación que la lámina.
+# ADR 0128 (D1): con la regla del estudio vigente, la tabla de cruces marca con la misma evaluación que la lámina.
 # Fixture sintético: 400 casos en 40 aulas, dos áreas con 30 puntos de diferencia en «Sí» y un tercer grupo chico.
 
 .fixture_tabla <- function() {

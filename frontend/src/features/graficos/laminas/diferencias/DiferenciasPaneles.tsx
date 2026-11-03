@@ -1,4 +1,4 @@
-// Los tres paneles de «Diferencias entre grupos» de la pestaña Láminas (ADR 0126): la regla del estudio (diálogo), el
+// Los tres paneles de «Diferencias entre grupos» de la pestaña Láminas (ADR 0128): la regla del estudio (diálogo), el
 // «Por qué» de la lámina a la vista (capa anclada) y la revisión del informe (sideover no modal, como Avisos). Se montan
 // una vez en LaminasWorkbench; cada uno se abre con su `?panel=`.
 

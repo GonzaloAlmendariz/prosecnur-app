@@ -1,4 +1,4 @@
-# La regla y la familia llegan al render: export, Word y vista previa (ADR 0126 «Consecuencias»)
+# La regla y la familia llegan al render: export, Word y vista previa (ADR 0128 «Consecuencias»)
 # =============================================================================================
 #
 # El render no recibe la regla por argumentos (`reporte_plan_ppt.R` está congelado). La lee de la opción

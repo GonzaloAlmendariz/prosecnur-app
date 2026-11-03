@@ -1,5 +1,5 @@
 // Grupos de la tarjeta del gráfico (O7b del rediseño, 2026-10-15; aprobado por Gonzalo): Datos, Categorías y orden,
-// Cifras, Diferencias entre grupos (ADR 0126), Colores y En el Word. Cada campo de la lista blanca cae en uno; lo no listado es Datos. Un grupo sin nada para
+// Cifras, Diferencias entre grupos (ADR 0128), Colores y En el Word. Cada campo de la lista blanca cae en uno; lo no listado es Datos. Un grupo sin nada para
 // ese tipo de gráfico no se muestra (CSS), así cada tipo enseña su propio juego de ajustes.
 
 export type GrupoTarjeta = "datos" | "orden" | "cifras";
@@ -8,7 +8,7 @@ export const TITULO_GRUPO: Readonly<Record<GrupoTarjeta | "diferencias" | "color
   datos: "Datos",
   orden: "Categorías y orden",
   cifras: "Cifras",
-  // ADR 0126: el interruptor y el resumen de las marcas; reemplaza al «Nivel de significancia» de Cifras.
+  // ADR 0128: el interruptor y el resumen de las marcas; reemplaza al «Nivel de significancia» de Cifras.
   diferencias: "Diferencias entre grupos",
   colores: "Colores",
   word: "En el Word",

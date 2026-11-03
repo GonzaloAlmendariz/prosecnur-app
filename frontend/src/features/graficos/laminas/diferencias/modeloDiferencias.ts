@@ -1,4 +1,4 @@
-// Modelo puro de «Diferencias entre grupos» (ADR 0126; propuesta de significancia §3.5, §4.4): opciones cerradas de la
+// Modelo puro de «Diferencias entre grupos» (ADR 0128; propuesta de significancia §3.5, §4.4): opciones cerradas de la
 // regla, su resumen en una línea, el estado del inspector, los conteos de una lámina, la frase de un par y las
 // condiciones con ✓/✗, la nota partida en cápsula + texto y la revisión en lote (filtro y CSV). Sin React.
 
@@ -292,7 +292,7 @@ export function csvRevision(filas: readonly FilaRevision[]): string {
 type SlotConArgs = { graficador?: unknown; args?: unknown } | null | undefined;
 
 /**
- * Huella de lo que decide las diferencias de una lámina (ADR 0126 §5 es por lámina, no por gráfico): pregunta, cruce e
+ * Huella de lo que decide las diferencias de una lámina (ADR 0128 §5 es por lámina, no por gráfico): pregunta, cruce e
  * interruptor de cada ranura. El inspector y «Por qué» la comparten para no pedir dos veces lo mismo.
  */
 export function claveDiferencias(slots: readonly SlotConArgs[]): string {

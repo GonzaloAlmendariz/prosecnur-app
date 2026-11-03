@@ -242,7 +242,7 @@ const LISTA_BLANCA: Record<string, Entrada> = {
   sm_omit_na: { rotulo: "Omitir sin respuesta", soloEn: TABLA, defecto: true },
   umbral_rojo_pct: { rotulo: "Resaltar en rojo bajo (%)", ayuda: "0 desactiva el resaltado.", soloEn: TABLA },
   // `mostrar_significancia` y `significancia_alpha` salen de la lista: los lleva la sección «Diferencias entre grupos»
-  // (diferencias/DiferenciasInspector.tsx; ADR 0126). El nivel ya no es de cada lámina sino de la regla del estudio.
+  // (diferencias/DiferenciasInspector.tsx; ADR 0128). El nivel ya no es de cada lámina sino de la regla del estudio.
   // Pregunta filtro y subpregunta (recetario p192–p194): las preguntas y lo que habilita van en su tarjeta.
   grafico_sub: { rotulo: "Gráfico de la subpregunta", soloEn: ["p_filtro_subpregunta"] },
   disposicion: { rotulo: "Disposición", soloEn: ["p_filtro_subpregunta"], cuando: (v) => v.grafico_filtro !== "torta" && v.grafico_filtro !== "dona" },

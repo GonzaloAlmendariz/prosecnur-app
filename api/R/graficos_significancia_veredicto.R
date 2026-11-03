@@ -1,4 +1,4 @@
-# Cuándo se marca una diferencia (propuesta §4.1, ADR 0126 §4)
+# Cuándo se marca una diferencia (propuesta §4.1, ADR 0128 §4)
 # ============================================================
 #
 # La prueba (graficos_significancia_diseno.R) da un p por par. Este archivo decide qué filas se prueban, qué grupos

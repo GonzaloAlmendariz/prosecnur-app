@@ -1,4 +1,4 @@
-# Diferencias por lámina y del informe, para la UI (ADR 0126 §5)
+# Diferencias por lámina y del informe, para la UI (ADR 0128 §5)
 # ==============================================================
 #
 # Lo que el inspector, la capa «Por qué» y la revisión en lote leen. Usa la misma evaluación que el render y la tabla

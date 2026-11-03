@@ -20,7 +20,7 @@ export type OpcionesGlifo = {
   mayor?: boolean;
   /** Dividido por un cruce: dos series lado a lado con su leyenda. */
   grupos?: boolean;
-  /** Diferencias entre grupos (ADR 0126): la cápsula ▲ de la lámina junto a las barras que difieren, no un punto rojo. */
+  /** Diferencias entre grupos (ADR 0128): la cápsula ▲ de la lámina junto a las barras que difieren, no un punto rojo. */
   significancia?: boolean;
   /** Ranking en barras: las marcas 0–100 % bajo las barras, con sus guías. */
   marcas?: boolean;

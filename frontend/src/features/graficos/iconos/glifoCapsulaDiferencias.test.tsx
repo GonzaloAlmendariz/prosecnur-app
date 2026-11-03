@@ -1,4 +1,4 @@
-// Mata (C1, ADR 0126): la maqueta prometiendo puntos rojos que la lámina no dibuja, o la cápsula sin cruce.
+// Mata (C1, ADR 0128): la maqueta prometiendo puntos rojos que la lámina no dibuja, o la cápsula sin cruce.
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { ajustesDelGlifo } from "../laminas/maqueta/fichaModelo";

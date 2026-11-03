@@ -1,4 +1,4 @@
-# Tablas de cruces con la regla de diferencias del estudio (ADR 0126 §1, decisión D1)
+# Tablas de cruces con la regla de diferencias del estudio (ADR 0128 §1, decisión D1)
 # ==================================================================================
 #
 # Las tablas marcaban con la z de muestreo aleatorio simple y Bonferroni por fila mientras las láminas del mismo estudio

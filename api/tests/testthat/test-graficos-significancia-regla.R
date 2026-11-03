@@ -1,6 +1,6 @@
 source("setup-load-all.R")
 
-# ADR 0126: regla del estudio, BH del informe, umbral, base mínima, complementos, «No sé» fuera de la prueba y frágiles.
+# ADR 0128: regla del estudio, BH del informe, umbral, base mínima, complementos, «No sé» fuera de la prueba y frágiles.
 
 # La nota envuelve sus líneas para el caption del Word; para comparar el texto se aplana.
 .nota_plana <- function(ev, regla) gsub("\\s+", " ", .sig_nota_de_evaluacion(ev, regla))

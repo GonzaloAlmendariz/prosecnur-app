@@ -19,7 +19,7 @@ describe("camposDeDatos", () => {
       "var", "cruces", "orden_barras", "max_categorias", "agrupar_resto_en_otros", "mostrar_ceros", "excluir_opciones",
     ]);
   });
-  it("ADR 0126: ni el interruptor ni el nivel de significancia son filas genéricas (los lleva «Diferencias entre grupos»)", () => {
+  it("ADR 0128: ni el interruptor ni el nivel de significancia son filas genéricas (los lleva «Diferencias entre grupos»)", () => {
     const nombres = camposDeDatos(agrupadas, { mostrar_significancia: true, significancia_alpha: 0.05 }).map((c) => c.arg.name);
     expect(nombres).not.toContain("significancia_alpha");
     expect(nombres).not.toContain("mostrar_significancia");

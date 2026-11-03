@@ -65,7 +65,7 @@
   --pulso-mapa-viv-6: #7c2d12;
 }
 
-/* Diferencias entre grupos (ADR 0126; propuesta de significancia §4.3): la cápsula ▲A de la lámina, en los mismos
+/* Diferencias entre grupos (ADR 0128; propuesta de significancia §4.3): la cápsula ▲A de la lámina, en los mismos
  * colores en la UI para que se reconozca. Fondo `banda_clara` y texto `azul` (12.45:1); la frágil en el azul medio
  * de contorno punteado (≈5.3:1); el grupo chico, la trama de #8E9DBD. */
 :root {

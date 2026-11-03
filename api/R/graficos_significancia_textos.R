@@ -1,4 +1,4 @@
-# Fuente única de los textos de diferencias (propuesta §4.4, ADR 0126 §4)
+# Fuente única de los textos de diferencias (propuesta §4.4, ADR 0128 §4)
 # =======================================================================
 #
 # El PPT, el Word, la lámina «Cómo leer», las tablas de cruces y la UI dicen lo mismo con las mismas palabras. Antes el

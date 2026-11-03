@@ -1,6 +1,6 @@
 source("setup-load-all.R")
 
-# ADR 0126 (D2): la prueba de diseño se implementa en R base y se contrasta contra `survey` (solo en Suggests).
+# ADR 0128 (D2): la prueba de diseño se implementa en R base y se contrasta contra `survey` (solo en Suggests).
 # Fixture sintético: 40 aulas en tres estratos (uno con un solo aula), pesos desiguales, faltantes y un efecto de aula
 # fuerte, para que la varianza de diseño se aparte de la de muestreo aleatorio simple.
 

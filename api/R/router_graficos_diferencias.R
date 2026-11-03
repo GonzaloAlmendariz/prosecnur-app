@@ -1,4 +1,4 @@
-# Router de Diferencias entre grupos (ADR 0126 §5)
+# Router de Diferencias entre grupos (ADR 0128 §5)
 #
 # Delgado: valida, llama al motor (graficos_significancia_informe.R y compañía) y serializa. La regla del estudio se
 # guarda en `graficos_config$significancia` de la base activa.

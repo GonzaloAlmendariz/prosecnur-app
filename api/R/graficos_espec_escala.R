@@ -166,7 +166,7 @@ preparar_escala <- function(data, var_categoria, var_n, cols_porcentaje, etiquet
       top2box = caja("top2box", top2box_labels, 3L, .PPT_ROTULO_TOP_TWO_BOX),
       top3box = caja("top3box", top3box_labels, 4L, "Top 3 Box"),
       bottom2box = caja("bottom2box", bottom2box_labels, 3L, "Bottom Two Box"))
-    box$cifras <- .sig_sufijos_en_box(box$cifras, box$preset, filas$id, sufijos_etiqueta, var_categoria)   # ADR 0126
+    box$cifras <- .sig_sufijos_en_box(box$cifras, box$preset, filas$id, sufijos_etiqueta, var_categoria)   # ADR 0128
     if (identical(barra_extra_preset, "top2box") && isTRUE(columna_bottom2box) && length(box$cols)) {
       box2 <- caja("bottom2box", bottom2box_labels, 3L, "Bottom Two Box")
     }

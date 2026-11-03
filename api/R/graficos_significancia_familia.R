@@ -1,4 +1,4 @@
-# Comparaciones del estudio: la familia de BH y la lámina vista desde el plan (ADR 0126 §3 y §5)
+# Comparaciones del estudio: la familia de BH y la lámina vista desde el plan (ADR 0128 §3 y §5)
 # =============================================================================================
 #
 # La primera pasada del cálculo en dos pasadas. Recorre todas las comparaciones del estudio —cada pregunta de las

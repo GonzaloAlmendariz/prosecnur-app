@@ -136,7 +136,7 @@ const DESTACADO: Readonly<Record<string, string>> = {
  */
 export function ajustesDelGlifo(graficador: string, args: Readonly<Record<string, unknown>>, grupos: boolean): { glifo: OpcionesGlifo; ajustes: string[] } {
   const v = lectorArgs(args);
-  // ADR 0126: sólo con un cruce hay grupos que comparar; sin él el motor no marca nada y la maqueta tampoco (C1).
+  // ADR 0128: sólo con un cruce hay grupos que comparar; sin él el motor no marca nada y la maqueta tampoco (C1).
   const glifo: OpcionesGlifo = { grupos, significancia: grupos && v("mostrar_significancia") === true };
   const ajustes: string[] = [];
   if (GRAFICOS_CON_RESALTE.has(graficador)) {

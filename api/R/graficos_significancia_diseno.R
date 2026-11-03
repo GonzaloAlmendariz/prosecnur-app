@@ -1,4 +1,4 @@
-# Prueba bajo diseño para la diferencia de dos proporciones (ADR 0126 §2, decisión D2)
+# Prueba bajo diseño para la diferencia de dos proporciones (ADR 0128 §2, decisión D2)
 # ===================================================================================
 #
 # Las láminas y las tablas de cruces comparaban grupos con una prueba z de muestreo aleatorio simple. En un estudio

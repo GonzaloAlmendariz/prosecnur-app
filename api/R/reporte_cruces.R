@@ -1600,7 +1600,7 @@ exportar_cruces_multi <- function(data,
               alpha = alpha
             )
           } else {
-            # ADR 0126: la regla del estudio si el worker la fijó (reporte_cruces_significancia.R)
+            # ADR 0128: la regla del estudio si el worker la fijó (reporte_cruces_significancia.R)
             .cruces_comparar_con_regla(data, var, opciones, codes_row, estr_codes, s, tp, weight_col, nn, alpha)
           }
 

@@ -1,4 +1,4 @@
-# La regla de diferencias del estudio (ADR 0126 §1, decisiones D1 y D5)
+# La regla de diferencias del estudio (ADR 0128 §1, decisiones D1 y D5)
 # =====================================================================
 #
 # Una sola regla por estudio, guardada en `graficos_config$significancia`, gobierna las láminas, el Word y las tablas
@@ -106,7 +106,7 @@
 
 #' Regla del estudio: la guardada en `graficos_config$significancia` o, si no hay, la propuesta por el diseño
 #'
-#' Migración (ADR 0126 §1): si el estudio no tiene regla y alguna lámina trae `significancia_alpha`, ese nivel siembra
+#' Migración (ADR 0128 §1): si el estudio no tiene regla y alguna lámina trae `significancia_alpha`, ese nivel siembra
 #' `alfa`. El campo por lámina se lee y nunca se escribe.
 #' @return `list(regla, origen)` con origen `"estudio"` o `"propuesta"`.
 #' @keywords internal

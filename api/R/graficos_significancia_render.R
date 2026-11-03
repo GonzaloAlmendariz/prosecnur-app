@@ -1,4 +1,4 @@
-# La regla del estudio dentro del render de una lámina (ADR 0126 §4)
+# La regla del estudio dentro del render de una lámina (ADR 0128 §4)
 # ==================================================================
 #
 # `reporte_plan_ppt.R` está congelado a crecimiento: sus dos llamadas a `.graficos_sig_aplicar*` no pueden recibir

@@ -1,4 +1,4 @@
-// graficosDiferencias.ts — la regla de diferencias del estudio y su resultado por lámina (ADR 0126 §5).
+// graficosDiferencias.ts — la regla de diferencias del estudio y su resultado por lámina (ADR 0128 §5).
 //
 // Contrato congelado: `router_graficos_diferencias.R`. Todo campo es opcional para el normalizador: un payload vacío,
 // un campo que falta o un valor que esta versión no conoce cae a un valor seguro (nunca a «marcada»). Patrón de
@@ -28,7 +28,7 @@ export type ReglaDiferencias = {
   max_letras: number;
 };
 
-/** Los valores por defecto de la regla (ADR 0126 §1) sin diseño declarado: la prueba z con Bonferroni por fila. */
+/** Los valores por defecto de la regla (ADR 0128 §1) sin diseño declarado: la prueba z con Bonferroni por fila. */
 export const REGLA_DIFERENCIAS_POR_DEFECTO: ReglaDiferencias = {
   version: 1,
   prueba: "z",

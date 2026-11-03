@@ -1,4 +1,4 @@
-// U1 · «Ajustes del informe › Diferencias entre grupos» (`?panel=diferencias-regla`; ADR 0126 §1 y §5). Una sola regla
+// U1 · «Ajustes del informe › Diferencias entre grupos» (`?panel=diferencias-regla`; ADR 0128 §1 y §5). Una sola regla
 // para láminas, Word y tablas de cruces. Cada cambio pide la vista previa (sin guardar): cuántas celdas de las tablas
 // cambian de letra y la nota que leerá el cliente. Nivel, umbral, base mínima y frágiles son opciones cerradas: no hay
 // paso a paso libre. «Aplicar al informe» guarda la regla en el proyecto.

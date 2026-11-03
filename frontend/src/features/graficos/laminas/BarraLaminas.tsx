@@ -213,7 +213,7 @@ function MenuMas({ undo, redo, compartir, vaciar, onIrEstilo, onDiferencias, dis
   vaciar: ItemVaciarMenu & { abrir: () => void };
   /** La pestaña «Estilo del cliente» de Procesamiento > Gráficos. */
   onIrEstilo: () => void;
-  /** «Diferencias del informe» (ADR 0126): la revisión en lote de las láminas con cruce, `?panel=diferencias`. */
+  /** «Diferencias del informe» (ADR 0128): la revisión en lote de las láminas con cruce, `?panel=diferencias`. */
   onDiferencias: () => void;
   disparadorRef: RefObject<HTMLButtonElement>;
 }) {

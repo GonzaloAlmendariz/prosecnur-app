@@ -1587,7 +1587,7 @@
   if (is.null(rev) || identical(rev, "")) rev <- (if (.graficos_is_obj(src$`_unknown`)) src$`_unknown`$equivalencias_revision) %||% rev
   cfg$equivalencias_revision <- if (is.character(rev) && length(rev) == 1L && !is.na(rev)) rev else ""
 
-  # Regla de diferencias del estudio (ADR 0126): sólo si viene; la normaliza el motor de significancia.
+  # Regla de diferencias del estudio (ADR 0128): sólo si viene; la normaliza el motor de significancia.
   significancia <- .graficos_pick_alias(src, "significancia")
   if (.graficos_is_obj(significancia)) cfg$significancia <- .sig_regla_normalizar(significancia)
 
@@ -3150,7 +3150,7 @@ mount_graficos <- function(pr) {
           template_pptx = template_pptx_arg,
           template_id = delivery$template_id,
           auto_otros_slides = auto_otros_slides_arg
-        ) |> c(.graficos_estilo_cliente_arg(sid, cfg, "ppt"), .sig_arg_job(sid, cfg, plan)),   # D5 y ADR 0126 (regla de diferencias)
+        ) |> c(.graficos_estilo_cliente_arg(sid, cfg, "ppt"), .sig_arg_job(sid, cfg, plan)),   # D5 y ADR 0128 (regla de diferencias)
         result_filename = .graficos_export_filename(sid, "reporte_ppt", "pptx"),
         on_complete = function(j) {
           meta <- .register_output_file(j$sid, "reporte_ppt", j$result_path)
@@ -3356,7 +3356,7 @@ mount_graficos <- function(pr) {
       if (length(estilo_cliente)) args_word$estilo_cliente <- estilo_cliente
       # Decisión 21: la tabla «Otros» del recetario Word sigue la misma opción del proyecto que el PPT; sólo viaja encendida.
       if (isTRUE(.graficos_delivery_options(cfg)$auto_otros_slides)) args_word$auto_otros_slides <- TRUE
-      args_word <- c(args_word, .sig_arg_job(sid, cfg, plan))   # ADR 0126: regla de diferencias del estudio
+      args_word <- c(args_word, .sig_arg_job(sid, cfg, plan))   # ADR 0128: regla de diferencias del estudio
 
       job_id <- job_submit(
         sid = sid,

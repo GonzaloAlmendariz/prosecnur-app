@@ -175,7 +175,7 @@ export function DatosGrafico({ slideId, slot, valor }: Props) {
   );
   const delGrupo = (g: GrupoTarjeta) => campos.filter((c) => grupoDeCampo(c.arg.name) === g).map(filaDe);
 
-  // ADR 0126: «Diferencias entre grupos» reemplaza al nivel de significancia de Cifras. El interruptor es el
+  // ADR 0128: «Diferencias entre grupos» reemplaza al nivel de significancia de Cifras. El interruptor es el
   // `mostrar_significancia` del gráfico (guardado, del tipo o el default del registro); el nivel es de la regla del estudio.
   const tarjetaRef = useRef<HTMLDivElement>(null);
   const argSig = (meta?.args ?? []).find((a) => a.name === "mostrar_significancia");

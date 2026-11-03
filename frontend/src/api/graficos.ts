@@ -10,7 +10,7 @@ import type { JobStart } from "./jobs";
 import type { WordFijado } from "./graficosWordFijado";
 
 export type { WordFijado, WordFijadoValor } from "./graficosWordFijado";
-// Diferencias entre grupos (ADR 0126 §5): la regla del estudio y el resultado por lámina viven en su propio módulo.
+// Diferencias entre grupos (ADR 0128 §5): la regla del estudio y el resultado por lámina viven en su propio módulo.
 export * from "./graficosDiferencias";
 
 // ---------- Gráficos (PPT/Word) ----------

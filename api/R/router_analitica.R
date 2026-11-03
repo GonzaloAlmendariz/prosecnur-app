@@ -4471,7 +4471,7 @@ mount_analitica <- function(pr) {
           base_names <- names(data_sources)
 
           run_one <- function(nombre, out_path) {
-            # ADR 0126: la regla de diferencias del estudio y su familia de BH, calculadas sobre esta base.
+            # ADR 0128: la regla de diferencias del estudio y su familia de BH, calculadas sobre esta base.
             sig_previa <- .sig_informe_preparar(significancia, data_sources, inst_sources, nombre)
             on.exit(options(sig_previa), add = TRUE)
             args <- list(
@@ -4581,7 +4581,7 @@ mount_analitica <- function(pr) {
           orden_cruces = orden_cruces,
           ordinal_lists_by_base = ordinal_lists_by_base,
           notas = .notas_pie_normalizar(cfg$notas),
-          significancia = .sig_arg_job(sid, .graficos_config_get(sid))$significancia,   # ADR 0126
+          significancia = .sig_arg_job(sid, .graficos_config_get(sid))$significancia,   # ADR 0128
           api_path = api_path
         ),
         result_filename = if (length(data_sources_filt) > 1L) {

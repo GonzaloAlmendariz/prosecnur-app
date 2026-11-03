@@ -1,4 +1,4 @@
-# ADR 0126: Una regla de diferencias por estudio
+# ADR 0128: Una regla de diferencias por estudio
 
 Estado: Aceptado (Gonzalo, 2026-11-03, decisiones D1 a D9 de la propuesta de significancia)
 

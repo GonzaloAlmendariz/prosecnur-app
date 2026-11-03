@@ -168,7 +168,7 @@ graficos_job_worker_ppt <- function(rp_data_path, rp_inst_path, plan, presets, p
   ec <- .graficos_estilo_cliente_iniciar(estilo_cliente, "ppt", template_pptx)   # graficos_estilo_cliente_worker.R
   on.exit(options(ec$previas), add = TRUE)
   report("loading", percent = 4, message = "Calculando diferencias del informe...")
-  sig_previa <- .sig_informe_preparar(significancia, rp_data_path, rp_inst_path, active_base)   # ADR 0126
+  sig_previa <- .sig_informe_preparar(significancia, rp_data_path, rp_inst_path, active_base)   # ADR 0128
   on.exit(options(sig_previa), add = TRUE)
   palette_env <- .graficos_palette_env(paletas, parent = parent.frame())
   plan <- .graficos_calificar_refs_plan(plan, active_base)
@@ -303,7 +303,7 @@ graficos_job_worker_word <- function(rp_data_path, rp_inst_path, plan, presets, 
   ec <- .graficos_estilo_cliente_iniciar(estilo_cliente, "word")   # graficos_estilo_cliente_worker.R
   on.exit(options(ec$previas), add = TRUE)
   if (length(ec$logos)) opciones_documento$logos <- ec$logos
-  sig_previa <- .sig_informe_preparar(significancia, rp_data_path, rp_inst_path, active_base)   # ADR 0126
+  sig_previa <- .sig_informe_preparar(significancia, rp_data_path, rp_inst_path, active_base)   # ADR 0128
   on.exit(options(sig_previa), add = TRUE)
   palette_env <- .graficos_palette_env(paletas, parent = parent.frame())
   plan <- .graficos_calificar_refs_plan(plan, active_base)

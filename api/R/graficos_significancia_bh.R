@@ -1,4 +1,4 @@
-# La familia de Benjamini-Hochberg del informe (ADR 0126 §3, decisión D3)
+# La familia de Benjamini-Hochberg del informe (ADR 0128 §3, decisión D3)
 # =======================================================================
 #
 # Con `correccion = "bh_informe"`, el p de cada comparación se ajusta contra TODAS las comparaciones del estudio, no
@@ -8,7 +8,7 @@
 # La familia se guarda como su vector ordenado de p y el q de BH de cada uno. Con eso, el q de cualquier p se lee sin
 # recalcular: es el q del mayor p de la familia que no lo supera. Para un p que está en la familia, es exactamente
 # `p.adjust(familia, "BH")` (lo prueba test-graficos-significancia-bh.R); para uno que no está (una lámina con
-# filtros, ADR 0126 «Fuera de alcance»), es la interpolación monótona que daría si se agregara al final de su rango.
+# filtros, ADR 0128 «Fuera de alcance»), es la interpolación monótona que daría si se agregara al final de su rango.
 
 #' Tabla de BH de una familia de p
 #' @keywords internal

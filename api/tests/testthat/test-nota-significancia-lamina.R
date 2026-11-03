@@ -36,7 +36,7 @@ source("setup-load-all.R")
   }))
 }
 
-test_that(".lam_nota_sig_de conserva el salto lógico entre contexto y marcas (ADR 0126)", {
+test_that(".lam_nota_sig_de conserva el salto lógico entre contexto y marcas (ADR 0128)", {
   p <- structure(list(), pulso_sig_nota = paste0("Con trama: X, con menos de 30\ncasos.", .SIG_NOTA_SALTO, "▲A  Mayor."))
   expect_identical(.lam_nota_sig_de(p), "Con trama: X, con menos de 30 casos.\n▲A  Mayor.")
 })
@@ -54,7 +54,7 @@ test_that("la apilada con cruces y significancia escribe la nota que explica las
   nota <- cajas[cajas$nombre == "Nota significancia", ]
   base <- cajas[cajas$nombre == "Base lamina", ]
   expect_equal(nrow(nota), 1L, info = paste(cajas$nombre, collapse = " | "))
-  # ADR 0126: fuente única de textos y sin el mapa «A = …» en la nota: la letra va con el grupo, en su rótulo.
+  # ADR 0128: fuente única de textos y sin el mapa «A = …» en la nota: la letra va con el grupo, en su rótulo.
   expect_match(nota$texto, "Mayor que el grupo de esa letra")
   expect_match(nota$texto, "Bonferroni")
   expect_true(any(grepl("(A) Hasta secundaria completa", cajas$texto, fixed = TRUE)), info = paste(cajas$texto, collapse = " | "))

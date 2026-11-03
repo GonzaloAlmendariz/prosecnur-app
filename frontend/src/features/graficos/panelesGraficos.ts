@@ -85,7 +85,7 @@ export const PANEL_ATAJOS_GRAFICOS: PanelDeclarado = {
 };
 
 /**
- * Diferencias entre grupos (ADR 0126). La regla del estudio, una para láminas, Word y tablas de cruces:
+ * Diferencias entre grupos (ADR 0128). La regla del estudio, una para láminas, Word y tablas de cruces:
  * `?panel=diferencias-regla` (diálogo, desde el inspector o la revisión).
  */
 export const PANEL_DIFERENCIAS_REGLA: PanelDeclarado = {
