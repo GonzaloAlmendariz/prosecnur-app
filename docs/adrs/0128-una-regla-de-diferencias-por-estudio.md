@@ -9,6 +9,8 @@ Fecha: 2026-11-03
 Reemplaza: la prueba z con Bonferroni por fila como única vara de las láminas (`graficos_significancia.R`) y de las
 tablas de cruces (`comparar_columnas_sig`, `reporte_cruces.R`).
 
+Unifica: el [ADR 0127](0127-las-letras-de-los-cruces-se-prueban-bajo-el-diseno-muestral.md) (letras de los cruces bajo el diseño). Ver su sección «Unificación con el ADR 0128».
+
 Extiende: la propuesta `docs/qa/maqueta-significancia-2026-11-03/propuesta.md` (§3, §4 y §6) y el dictamen
 metodológico del estudio CCSS 2026-II (§4, §8 y §10; vive en la carpeta del estudio, no en el repositorio).
 
@@ -101,6 +103,17 @@ La marca deja de viajar como texto pegado a la cifra. El motor devuelve una estr
 `veredicto`, `dif`, `p_ajustado`) y el graficador dibuja la cápsula ▲A. La nota sale de una sola fuente de textos
 (`graficos_significancia_textos.R`) para el PPT, el Word, la lámina «Cómo leer» y la UI, a 9 pt (D8).
 
+### 4 bis. Lo que se toma del ADR 0127
+
+- **Estrato anidado.** El estrato es un atributo del conglomerado. Si varía dentro de alguno, no se reasigna: la tabla y
+  la lámina no marcan y dicen por qué, la familia no recibe esas pruebas y guardar la regla responde
+  `E_SIG_ESTRATO_NO_ANIDADO`.
+- **`.b` en las tablas.** La columna que en una fila no se compara por base o conglomerados insuficientes lleva `.b`.
+- **Siembra desde Analítica.** Un estudio sin regla guardada que declaró el diseño en Analítica › Cruces arranca con
+  esa declaración.
+- **Medias y bases repeat.** Las medias de dimensiones se prueban con la misma linealización (corrección dentro de la
+  fila), y una base repeat sin la columna de conglomerado sigue con el contraste por persona.
+
 ### 5. Contrato hacia la UI
 
 Router delgado en `router_graficos_diferencias.R`:
@@ -132,7 +145,9 @@ Forma de una lámina:
 `resumen` trae `cruces`, `marcadas`, `fragiles`, `ninguna`, `bases_chicas`, `sin_prueba` y `familia` (número de
 comparaciones de la familia de BH). `error` es `{ code, message, error_id }` cuando el estado es `error`.
 
-Códigos nuevos: `E_SIG_SIN_CONGLOMERADO` (422: se pidió Rao-Scott y la columna no existe en la base) y
+Códigos nuevos: `E_SIG_SIN_CONGLOMERADO` (422: se pidió Rao-Scott y la columna no existe en la base),
+`E_SIG_ESTRATO_NO_ANIDADO` (422: el estrato varía dentro de algún conglomerado; viene del ADR 0127), `E_SIG_SIN_LAMINA`
+(404: la lámina no existe en el plan) y
 `E_SIG_PRUEBA_FALLO` (la prueba no pudo correr; viaja dentro de la lámina con su `error_id`, sin tumbar el informe).
 
 ## Consecuencias

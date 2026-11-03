@@ -62,3 +62,36 @@ test_that("sin regla vigente la tabla sigue con la prueba z de siempre", {
   h <- .letras_hoja(out)
   expect_true(any(grepl("prueba z de diferencia de proporciones", h$todo, fixed = TRUE)))
 })
+
+# ADR 0128 unifica el 0127: sus validaciones valen para la regla del estudio.
+test_that("con la regla del estudio, la columna chica lleva .b y un estrato no anidado deja la tabla sin letras", {
+  f <- .fixture_tabla()
+  regla <- .sig_regla_normalizar(list(prueba = "rao_scott", correccion = "bonferroni_fila", conglomerado = "aula"))
+  codes <- c("s", "n")
+  r <- .cruces_comparar_con_regla(f$data, "p1", c("Sí", "No"), codes, c("1", "2", "3"), "area", "so", "peso", regla)
+  expect_true(all(r$letras[, "3"] == ".b"))
+  expect_true(any(r$letras[, "1"] == "B"))
+
+  # Estrato que varía dentro del aula: no se reasigna; no hay letras y se dice por qué.
+  f$data$estrato <- ifelse(seq_len(nrow(f$data)) %% 3 == 0, "e1", "e2")
+  regla$estrato <- "estrato"
+  r2 <- .cruces_comparar_con_regla(f$data, "p1", c("Sí", "No"), codes, c("1", "2", "3"), "area", "so", "peso", regla)
+  expect_identical(r2$method, "descriptivo")
+  expect_match(r2$reason, "no anidados")
+  expect_match(.cruces_nota_regla(regla, r2$reason), "Sin letras en parte de la tabla")
+  expect_error(.sig_regla_validar_base(regla, f$data), class = "api_error")
+})
+
+test_that("lo declarado en Analítica › Cruces (ADR 0127) siembra la regla del estudio cuando aún no hay una", {
+  ac <- list(cruces = list(significancia = list(metodo = "diseno", conglomerado = "aula_id", estrato = "nivel_curso",
+                                                base_minima = 50L)))
+  rr <- .sig_regla_del_estudio(list(), data.frame(x = 1), ac)
+  expect_identical(rr$origen, "propuesta")
+  expect_identical(rr$regla$prueba, "rao_scott")
+  expect_identical(rr$regla$conglomerado, "aula_id")
+  expect_identical(rr$regla$estrato, "nivel_curso")
+  expect_equal(rr$regla$base_minima, 50)
+  # La regla guardada del estudio manda sobre la de Analítica (D1).
+  rr2 <- .sig_regla_del_estudio(list(significancia = list(prueba = "z")), data.frame(x = 1), ac)
+  expect_identical(rr2$regla$prueba, "z")
+})

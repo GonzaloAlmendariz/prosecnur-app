@@ -153,6 +153,7 @@ graficos_consolidado_draft_set <- function(sid, config, expected_revision) {
   src <- .graficos_apply_orden_categorias_sources(sid, src)
   # Mismo orden de dummies que la vista de Analítica y que el PPT por base.
   src <- tryCatch(.graficos_order_sm_dummy_sources(src), error = function(e) src)
+  src <- .graficos_sig_adjuntar_config(sid, src)   # ADR 0127: misma prueba que la tabla
   common <- intersect(names(src$data_sources), names(src$inst_sources))
   if (!is.null(source_order)) common <- source_order[source_order %in% common]
   list(data_sources = src$data_sources[common], inst_sources = src$inst_sources[common])

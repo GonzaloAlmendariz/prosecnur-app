@@ -49,6 +49,7 @@
 #' @param solo_principal En una dicotómica se prueba solo la opción principal.
 #' @keywords internal
 .sig_evaluar_pregunta <- function(fuente, var, cruce, regla, top2box = NULL, solo_principal = TRUE) {
+  if (!is.null(.sig_diseno_invalido(fuente$data, regla))) return(NULL)   # ADR 0127 §1: no entra a la familia
   var <- .sig_var_local(var); cruce <- .sig_var_local(cruce)
   gr <- .sig_grupos_cruce(fuente, cruce)
   if (is.null(gr) || length(gr$grupos) < 2L) return(NULL)
@@ -164,7 +165,7 @@
 #' @keywords internal
 .sig_contexto_estudio <- function(data, inst, graficos_config = NULL, analitica_config = NULL) {
   fuente <- .sig_fuente(data, inst)
-  rr <- .sig_regla_del_estudio(graficos_config, fuente$data)
+  rr <- .sig_regla_del_estudio(graficos_config, fuente$data, analitica_config)
   regla <- rr$regla
   familia <- NULL
   if (identical(regla$correccion, "bh_informe")) {

@@ -880,6 +880,7 @@
     # la fuente analítica/adaptada haya stripeado, para que la apertura por
     # servicio (filtros = list(current_code = ...)) no reviente el render.
     src <- tryCatch(.graficos_reanchor_repeat_service_cols(sid, src), error = function(e) src)
+    src <- .graficos_sig_adjuntar_config(sid, src)   # ADR 0127: misma prueba que la tabla (falla hacia la abstención)
     .txt_dic_adjuntar_fuentes(sid, src)   # TXT-6/7: el diccionario de cada pregunta viaja con el instrumento de su base (también al worker)
   }
 

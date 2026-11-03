@@ -110,15 +110,33 @@
 #' `alfa`. El campo por lámina se lee y nunca se escribe.
 #' @return `list(regla, origen)` con origen `"estudio"` o `"propuesta"`.
 #' @keywords internal
-.sig_regla_del_estudio <- function(graficos_config = NULL, data = NULL) {
+.sig_regla_del_estudio <- function(graficos_config = NULL, data = NULL, analitica_config = NULL) {
   guardada <- if (is.list(graficos_config)) graficos_config$significancia else NULL
   propuesta <- .sig_regla_propuesta(data)
+  # Migración del ADR 0127: lo declarado en Analítica › Cruces siembra la regla del estudio si aún no hay una.
+  previa <- .sig_regla_desde_spec_cruces((analitica_config$cruces %||% list())$significancia, propuesta)
+  if (!is.null(previa)) propuesta <- previa
   if (is.list(guardada) && length(guardada)) {
     return(list(regla = .sig_regla_normalizar(guardada, base = propuesta), origen = "estudio"))
   }
   alfa_viejo <- .sig_alfa_heredado(graficos_config$plan %||% NULL)
   if (!is.null(alfa_viejo)) propuesta$alfa <- .sig_opcion(alfa_viejo, .SIG_OPCIONES$alfa, propuesta$alfa)
   list(regla = propuesta, origen = "propuesta")
+}
+
+#' Regla sembrada desde `analitica_config$cruces$significancia` (ADR 0127), o NULL si no declara nada
+#' @keywords internal
+.sig_regla_desde_spec_cruces <- function(spec, base) {
+  if (!is.list(spec) || !length(spec)) return(NULL)
+  sp <- .cruces_significancia_normalizar(spec)
+  if (identical(sp, .cruces_significancia_normalizar(NULL))) return(NULL)
+  r <- base
+  r$prueba <- if (identical(sp$metodo, "diseno")) "rao_scott" else "z"
+  if (!is.null(sp$conglomerado)) r$conglomerado <- sp$conglomerado
+  if (!is.null(sp$estrato)) r$estrato <- sp$estrato
+  r$base_minima <- .sig_opcion(sp$base_minima, .SIG_OPCIONES$base_minima, r$base_minima)
+  r$conglomerados_minimos <- sp$min_conglomerados
+  .sig_regla_normalizar(r, base = r)
 }
 
 #' Primer `significancia_alpha` declarado en las láminas del plan (migración)
@@ -146,6 +164,9 @@
              sprintf("La prueba de diseño necesita la columna de conglomerado «%s» y la base no la trae.",
                      if (nzchar(cl)) cl else "(sin declarar)"))
   }
+  # ADR 0127 §1: el estrato es un atributo del conglomerado; si varía dentro de alguno, no se reasigna: se rechaza.
+  motivo <- .sig_diseno_invalido(data, regla)
+  if (!is.null(motivo)) stop_api(422, "E_SIG_ESTRATO_NO_ANIDADO", motivo)
   invisible(TRUE)
 }
 

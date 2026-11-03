@@ -80,6 +80,8 @@
   d <- as.data.frame(fuente$data, stringsAsFactors = FALSE)
   ctx <- .sig_contexto_render(d)
   regla <- ctx$regla
+  motivo <- .sig_diseno_invalido(d, regla)   # ADR 0127 §1: estrato no anidado en el conglomerado
+  if (!is.null(motivo)) return(list(abstencion = paste("No se marcan diferencias:", motivo), regla = regla))
   ind <- tryCatch(.sig_indicadores(d, fuente$var, survey = fuente$survey, orders_list = fuente$orders_list),
                   error = function(e) NULL)
   if (is.null(ind)) return(NULL)
@@ -145,6 +147,7 @@
   n_render[!is.finite(n_render)] <- 0
   ev <- .sig_evaluar_render(fuente, n_render, codigos, unname(etiquetas_series[cols_porcentaje]))
   if (is.null(ev)) return(NULL)
+  if (!is.null(ev$abstencion)) return(list(sufijos = NULL, nota = ev$abstencion, ev = ev))
   list(sufijos = .sig_marcas_a_sufijos(ev, stats::setNames(cols_porcentaje, codigos), var_categoria),
        nota = .sig_nota_de_evaluacion(ev, ev$regla), ev = ev)
 }
@@ -174,6 +177,7 @@
   n_render[!is.finite(n_render)] <- 0
   ev <- .sig_evaluar_render(fuente, n_render, codigos, etiquetas, top2box = top2box)
   if (is.null(ev)) return(NULL)
+  if (!is.null(ev$abstencion)) return(list(sufijos = NULL, nota = ev$abstencion, ev = ev))
   # La marca del top two box no tiene segmento propio: la lleva la columna del indicador (`top2box`).
   col_de_opcion <- stats::setNames(as.character(cols_porcentaje), opciones)
   m <- ev$marcas

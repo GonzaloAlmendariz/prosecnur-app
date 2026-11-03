@@ -39,13 +39,15 @@
 #' Devuelve el porcentaje, las letras y, por par, la diferencia en puntos con su intervalo
 #' ajustado y si es significativa. Un par sin base o con una proporción en 0 o 1 en los dos lados queda sin prueba (NA).
 #' @keywords internal
-.sigpub_calcular <- function(x, n, alpha = 0.05) {
-  K <- ncol(x); pares <- utils::combn(K, 2); npar <- ncol(pares)
+.sigpub_calcular <- function(x, n, alpha = 0.05, base_minima = 30L) {
+  K <- ncol(x); pares <- utils::combn(K, 2); npar <- ncol(pares); excluidos <- FALSE
   p <- ifelse(n > 0, x / n, NA_real_)
   d <- lo <- hi <- pv <- matrix(NA_real_, nrow(x), npar)
   for (i in seq_len(nrow(x))) for (k in seq_len(npar)) {
     a <- pares[1, k]; b <- pares[2, k]
     if (!(n[i, a] > 0 && n[i, b] > 0)) next
+    # Base mínima (ADR 0127): un público con menos casos no se compara.
+    if (n[i, a] < base_minima || n[i, b] < base_minima) { excluidos <- TRUE; next }
     d[i, k] <- 100 * (p[i, a] - p[i, b])
     pv[i, k] <- .sigpub_z(x[i, a], n[i, a], x[i, b], n[i, b])
     ci <- .sigpub_newcombe(x[i, a], n[i, a], x[i, b], n[i, b], 1 - alpha / npar)
@@ -60,7 +62,8 @@
     a <- pares[1, k]; b <- pares[2, k]
     if (p[i, a] > p[i, b]) letras[i, a] <- paste0(letras[i, a], LETTERS[b]) else letras[i, b] <- paste0(letras[i, b], LETTERS[a])
   }
-  list(p = 100 * p, letras = letras, pares = pares, d = d, lo = lo, hi = hi, sig = sig, padj = padj)
+  list(p = 100 * p, letras = letras, pares = pares, d = d, lo = lo, hi = hi, sig = sig, padj = padj,
+       excluidos = excluidos, base_minima = base_minima)
 }
 
 #' Diferencias significativas entre públicos
@@ -124,6 +127,7 @@ p_significancia_publicos <- function(vars, corte, alpha = 0.05, titulo = NULL, o
     ggplot2::facet_wrap(~par) + ggplot2::labs(x = "Diferencia en puntos", y = NULL) + ggplot2::theme_minimal()
   attr(p, "pulso_espec") <- list(version = "significancia/1", tipo = "significancia", temas = temas, publicos = publicos, letras_publico = letra,
                                  p = r$p, letras = r$letras, par_etiqueta = par_et, par_publicos = par_sub,
-                                 d = r$d, lo = r$lo, hi = r$hi, sig = r$sig, n = n, alpha = el$alpha)
+                                 d = r$d, lo = r$lo, hi = r$hi, sig = r$sig, n = n, alpha = el$alpha,
+                                 excluidos = r$excluidos, base_minima = r$base_minima)
   p
 }

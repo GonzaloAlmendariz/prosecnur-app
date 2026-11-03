@@ -33,7 +33,7 @@
   cx <- .graficos_consolidado_ref_context(.serie_cruce_ref(cruce, sources), sources)
   inst <- (sources$inst_sources %||% list())[[cx$source]]
   sufijo <- rep("", nrow(datos))
-  motivo <- NULL; hay <- FALSE
+  motivo <- NULL; hay <- FALSE; corr <- "bonferroni"; excl <- 0L; base_min <- 30L
   for (tema in levels(datos$eje)) {
     filas <- which(as.character(datos$eje) == tema)
     d <- datos[filas, , drop = FALSE]
@@ -43,15 +43,19 @@
     n_mat <- matrix(x, nrow = 1, dimnames = list(tema, niveles))
     ref <- .serie_cruce_ref(as.character(unlist(temas[[tema]]))[1], sources, cx$source)
     var <- .graficos_consolidado_ref_context(ref, sources)$resolved_variable
-    res <- .graficos_sig_calcular(n_mat, stats::setNames(N, niveles), alpha = alpha, diseno = .graficos_sig_diseno_de_fuente(inst, var))
+    casos <- if ("n_casos" %in% names(d)) ifelse(is.na(pos), 0, d$n_casos[pos]) else NULL
+    res <- .graficos_sig_calcular(n_mat, stats::setNames(N, niveles), alpha = alpha,
+                                  diseno = .graficos_sig_diseno_de_letras(inst, var), n_casos = casos)
     if (!is.null(res$motivo)) { motivo <- motivo %||% res$motivo; next }
+    corr <- res$correccion %||% corr; excl <- excl + (res$excluidas %||% 0L); base_min <- res$base_minima %||% base_min
     suf <- .graficos_sig_sufijos(res$letras)
     if (is.null(suf) || !nrow(suf)) next
     hay <- TRUE
     k <- match(suf$.col_pct, as.character(d$grupo))
     sufijo[filas[k[!is.na(k)]]] <- suf$.sufijo[!is.na(k)]
   }
-  nota <- .graficos_sig_nota(niveles, alpha = alpha, motivo = if (!hay) motivo else NULL, hay_letras = hay)
+  nota <- .graficos_sig_nota(niveles, alpha = alpha, motivo = if (!hay) motivo else NULL, hay_letras = hay,
+                             correccion = corr, excluidas = excl, base_minima = base_min)
   list(sufijo = sufijo, nota = nota)
 }
 

@@ -76,6 +76,14 @@
     base$nota <- base$motivo
     return(base)
   }
+  motivo_diseno <- .sig_diseno_invalido(fuente$data, ctx$regla)   # ADR 0127 §1
+  if (!is.null(motivo_diseno)) {
+    base$estado <- "abstencion"
+    base$motivo <- paste("No se marcan diferencias:", motivo_diseno)
+    base$nota <- base$motivo
+    base$revisar <- list("sin_prueba")
+    return(base)
+  }
   clave <- paste(l$var, l$cruce, paste(l$top2box, collapse = "+"), sep = "\r")
   ev <- ctx$familia_completa$evaluaciones[[clave]]
   res <- tryCatch({
