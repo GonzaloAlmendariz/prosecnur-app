@@ -116,6 +116,11 @@ captura.
 - Hallazgos de paso: `toLocaleString("es")` con coma decimal en Medidas del estándar (Gráficos, `0296c711f`) y 23
   `toFixed(n).replace(".", ",")` en los dos módulos (`34ed84890`). Decisión reversible: las guías (cm) y la letra (pt)
   de Gráficos tenían la coma afirmada en un test; se siguió la convención de `lib/formatoNumero`.
+- 07:00 h: Cálculo › Diseño y Propuestas también sobre `Panel` (captura `calc2-*`, sin hallazgos). Gonzalo reclamó
+  el «·» del antetítulo (lo componía el kit; coordinación lo cambió en `ea39b404a`). Revisadas con grep todas las
+  líneas añadidas esta noche: ninguna visible con «·»; se limpiaron cinco previas de Cálculo y los nombres de los
+  tests. Quedan fórmulas (producto) y el rótulo «Lámina N · “título”» de Gráficos, que copia el formato del motor
+  de exportación (`api/R`): es del loop del motor.
 - 06:40 h: Entrega pasa sus ocho bloques a `Panel` (`5eb4cedc9`). El pendiente de coordinación sobre `.cmg-metodos` y
   `.cmv2-aulas-modalidad` (indicadorDelKit) ya estaba saldado en `866036a52`, antes de esta noche.
 - 00:15 h: capturas finales (`tmp/visual-qa/calc/final-*`, `gid-*`): Identidad de Gráficos `ok=true` a 1280 y 1440;
