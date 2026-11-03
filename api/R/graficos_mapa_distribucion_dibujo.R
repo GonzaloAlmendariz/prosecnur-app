@@ -246,7 +246,12 @@
     lay <- .mapa_dist_rotulos_columna(rot, alto, x_txt, pt$rotulo, tierra = tierra)
     it <- lay$items
     g <- g +
-      ggplot2::geom_path(data = lay$guia, ggplot2::aes(.data$x, .data$y, group = .data$g), colour = M$guia, linewidth = .mapa_dist_lw(0.68)) +
+      # La guía va del color de su punto, con halo blanco debajo: gris oscura y fina desaparecía sobre los distritos
+      # azul oscuro (Gonzalo, 2026-11-03: «el color de la flecha hace que no se vea bien»).
+      ggplot2::geom_path(data = lay$guia, ggplot2::aes(.data$x, .data$y, group = .data$g), colour = "#FFFFFF",
+                         linewidth = .mapa_dist_lw(2.6), lineend = "round", linejoin = "round") +
+      ggplot2::geom_path(data = transform(lay$guia, col = it$punto[lay$guia$g]), ggplot2::aes(.data$x, .data$y, group = .data$g, colour = .data$col),
+                         linewidth = .mapa_dist_lw(1), lineend = "round", linejoin = "round") +
       ggplot2::geom_point(data = it, ggplot2::aes(.data$x, .data$y), shape = 21, size = 1.45, stroke = 0.35, colour = "#FFFFFF", fill = it$punto) +
       ggplot2::geom_text(data = it, ggplot2::aes(x_txt, .data$y_txt, label = .data$texto), hjust = 1, vjust = 0.5,
                          size = pt$rotulo / ggplot2::.pt, fontface = "bold", colour = it$color, family = fuente)

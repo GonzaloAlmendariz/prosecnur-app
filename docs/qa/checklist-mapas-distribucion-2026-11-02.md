@@ -52,3 +52,4 @@ Estados: pendiente · en curso · hecho (a revisar) · bloqueado. Sólo Gonzalo 
 | 22 | «etc.»: más ajustes de acabado | por definir en la próxima revisión | pendiente |
 | 23 | La guía de la PUCP cruzaba distritos: «¿por qué no baja un poco en diagonal?» | `.mapa_dist_bajada()`: la guía baja a 45° lo mínimo para que el tramo recto vaya entero sobre el mar | hecho (a revisar) |
 | 24 | «No es necesario que los países vecinos tengan nombre» | se quitó el rótulo; la tierra de contexto se mantiene | hecho (a revisar) |
+| 25 | «El color de la flecha hace que no se vea bien» | la guía va del color de su punto (rojo PUCP), de 1 pt, con halo blanco debajo | hecho (a revisar) |
