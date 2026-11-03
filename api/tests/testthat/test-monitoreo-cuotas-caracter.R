@@ -151,3 +151,14 @@ test_that("aulas: muestra se juzga por celda sin compensar; sobremuestra compara
   expect_identical(.monitoreo_aulas_niveles_de_meta(2500, 3750, list(respuestas_validas = 3800, brecha = 0))[[2]]$estado_cuota, "cumple")
   expect_length(.monitoreo_aulas_niveles_de_meta(NA, NA, list()), 0L)
 })
+
+test_that("avance_cuota juzga la sobremuestra contra su total, no contra el excedente (revisión 3/11)", {
+  # Diseño real de HSVG: meta 2.500, excedente 1.250, operativo 3.750. Con 1.300
+  # válidas la sobremuestra NO se cumple (antes salía cumplida contra 1.250).
+  n <- .monitoreo_aulas_niveles_de_meta(2500, 3750, list(respuestas_validas = 1300, brecha = 1200))
+  expect_identical(n[[2]]$meta, 3750)
+  expect_identical(n[[2]]$estado_cuota, "falta")
+  src <- paste(deparse(body(.monitoreo_aulas_avance_cuota)), collapse = "\n")
+  expect_match(src, "vig$dt$meta_operativa", fixed = TRUE)
+  expect_false(grepl("niveles_de_meta\\([^)]*vig\\$dt\\$sobremuestra", src))
+})

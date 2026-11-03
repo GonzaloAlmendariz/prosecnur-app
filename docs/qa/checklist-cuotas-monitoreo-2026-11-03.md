@@ -92,6 +92,27 @@ D1, D2 y D3 se toman como propuestas, revisables por Gonzalo (Meta B). Contrato 
 | Aulas | ☑ hecho (ver 1d, 2d y 3d); queda el Resumen contra la meta operativa | `monitoreo_aulas_avance_cuota.R`, `monitoreo_aulas_composicion_referencial.R`, `profiles/aulas/avance/*`, `navegacion/direccionAulas.ts` | Nada técnico. El Resumen que mide contra la meta operativa (1d) cambia una cifra visible: pasa por `revisor-metodologico` y se le muestra a Gonzalo antes |
 | Territorial | ☑ hecho (ver 1c y 2c); revisión de `guardian-contratos` aprobada con cambios, aplicados | `hojas_ruta_envio_cuotas.R`, `hojas_ruta_envio.R`, `hojas_ruta_integrada_normalize_config` (congelado: un punto de llamada), UI de Hojas; `profiles/territorial/avance/*` | Autorizado por coordinación (Meta B, 3/11), con revisión de `guardian-contratos` |
 
+## Decisión que espera a Gonzalo: el Resumen de aulas (1d)
+
+Revisada con `revisor-metodologico` (3/11). **La premisa estaba a medias**: el anillo y el % principal del Resumen ya
+se miden contra la cuota del diseño (`resumenAulasModelo.ts:204-206`, `total.cuota`; cumple el ADR 0079). Lo único que
+usa la «meta operativa» es el dato secundario (`:231-241`), y esa cifra es la sobremuestra TOTAL del diseño (en HSVG,
+2.500 + 1.250 = 3.750), que Gonzalo fijó el 8/9 como la segunda meta del estudio. El ADR 0079 sacó del cumplimiento
+otra cosa que comparte la palabra: la suma de `expected_valid` por aula (~3.227, inflada por p25 y τ).
+
+| Opción | Qué cambia | Cifra visible |
+|---|---|---|
+| **A (recomendada)** | El dato secundario lee `avance_cuota$niveles` y se rotula «Muestra» / «Sobremuestra de 3.750»; «meta operativa» queda sólo para la suma por aula | Ninguna; cambia un rótulo |
+| B | Sólo el rótulo del dato secundario | Ninguna |
+| C | Se quita la sobremuestra del Resumen (queda en Rendimiento y en el libro) | Desaparece un dato; contradice el 8/9 |
+
+Lo leen además `kpisDeAulas.ts:1015`, `AulasPestanaRendimiento.tsx:210`, el libro del cliente
+(`AulasAvanceParaCliente.tsx:167`) y `carga_aulas_libro_avance_*.R`; con A no cambia ninguno. No se pudo medir el
+numerador en hsvg2026: el proyecto de referencia no trae monitoreo.
+
+**Defecto encontrado y corregido** (este commit): `avance_cuota$niveles` juzgaba la sobremuestra contra el excedente
+(1.250) y no contra el total (3.750); el test usaba 3.750 a mano y lo tapaba.
+
 ## Pedidos de Gonzalo durante la ronda
 
 | Pedido | Dónde vive | Estado |
@@ -100,9 +121,8 @@ D1, D2 y D3 se toman como propuestas, revisables por Gonzalo (Meta B). Contrato 
 
 ## Pendiente de otro módulo
 
-- **Material (hoja de conteo territorial)**: `collection_territorial_papel_conteo.R` (~:63) sigue imprimiendo la cuota de
-  cada celda y «deje de entrevistar» cuando se llena. Con el sexo o la edad referencial, el campo cumpliría celdas que
-  Monitoreo ya no exige. Es de la sesión de Material: leer `zonas[].caracter` del envío (guardian-contratos, 3/11).
+- ~~**Material (hoja de conteo territorial)**~~: ☑ 1e306db5d (autorizado por Meta B): la hoja lee `caracter` de la
+  zona y sólo ordena cortar lo que se exige.
 
 ## Observado al capturar (no tocado)
 

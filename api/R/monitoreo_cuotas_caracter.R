@@ -184,6 +184,8 @@
 #' brecha. `sobremuestra` sólo existe como total: su veredicto compara el total
 #' y lo declara con `compensa = TRUE`.
 #' @keywords internal
+#' @param sobremuestra la sobremuestra TOTAL (meta + excedente; `meta_operativa`
+#'   del diseño), no el excedente.
 .monitoreo_aulas_niveles_de_meta <- function(meta_diseno, sobremuestra, total) {
   validas <- .monitoreo_num(total$respuestas_validas, 0)
   brecha <- .monitoreo_num(total$brecha, NA_real_)
