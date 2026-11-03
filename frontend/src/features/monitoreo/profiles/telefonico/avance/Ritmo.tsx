@@ -190,7 +190,7 @@ export function Ritmo({
 
       <div className="mon-cadencia-lateral">
         <section className="mon-ctl-panel mon-insumos-tarjeta" aria-label="Promedio">
-          <span className="mon-ctl-antetitulo">Promedio</span>
+          <header className="mon-ctl-panel-cabecera"><b>Promedio</b></header>
           <p className="mon-cadencia-grande"><strong>{resumen.promedio == null ? "—" : decimal(resumen.promedio)}</strong> efectivas por día</p>
           <p
             title={[

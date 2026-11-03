@@ -1,4 +1,5 @@
 import { useMemo, type ReactNode } from "react";
+import { EstadoChip } from "../../../../../components/EstadoChip";
 import { CheckCircle2, ListChecks } from "../../../../../vendor/lucide-react";
 import { EstadoVacio } from "../../../../../components/EstadoVacio";
 import { NotaDelModo } from "../../../core/NotaDelModo";
@@ -96,7 +97,7 @@ export function LlaveYFiltros({
           {conRevision && hayRotulo ? <header className="mon-tel-rotulo-de-tarjeta"><RotuloDePestana /></header> : null}
           <div className="mon-insumos-fila">
             <strong>Llave de cruce</strong>
-            <span className="mon-insumos-estado">{llave.automatica ? "Detección automática" : "Declarada en el proyecto"}</span>
+            <EstadoChip label={llave.automatica ? "Detección automática" : "Declarada en el proyecto"} tone="neutral" />
           </div>
           <div className="mon-llave-pares">
             <Columnas titulo="Columna en la base" columnas={llave.base} />

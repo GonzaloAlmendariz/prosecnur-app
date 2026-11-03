@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { EstadoChip } from "../../../../../components/EstadoChip";
 import { Loader2, Save } from "../../../../../vendor/lucide-react";
 import { apiMonitoreoSource } from "../../../../../api/monitoreo";
 import type { MonitoreoSource, MonitoreoState } from "../../../../../api/client";
@@ -59,7 +60,7 @@ export function CodigoDeLaPersona({
     <section className="mon-ctl-panel mon-codigo-persona" aria-label={`Pregunta con el código de la persona en ${fuente.label || fuente.id}`}>
       <header className="mon-insumos-cabecera">
         <strong>Pregunta con el código de la persona</strong>
-        {ROTULO_DE_ORIGEN[estado.origen] ? <span className={`mon-insumos-estado${estado.origen === "declarada" ? " is-encendido" : ""}`}>{ROTULO_DE_ORIGEN[estado.origen]}</span> : null}
+        {ROTULO_DE_ORIGEN[estado.origen] ? <EstadoChip label={ROTULO_DE_ORIGEN[estado.origen]} tone={estado.origen === "declarada" ? "success" : "neutral"} /> : null}
         <button
           type="button"
           className="mon-insumos-boton is-primario"

@@ -43,17 +43,9 @@
   font-size: var(--pulso-type-body-size);
 }
 
-.mon-ctl-sin-regla {
+/* «Sin regla» es `EstadoChip` (P6); junto al status que califica lleva el mismo aire que «por regla». */
+.mon-barrido-status-lista li > span > .pulso-estado-chip {
   margin-left: 6px;
-  padding: 0 6px;
-  border: 1px solid var(--pulso-warn-border);
-  border-radius: var(--pulso-radius-chip);
-  background: var(--pulso-warn-bg);
-  color: var(--pulso-warn-fg);
-  font-size: var(--pulso-type-micro-size);
-  font-style: normal;
-  font-weight: var(--pulso-weight-bold);
-  white-space: nowrap;
 }
 
 .mon-ctl-por-regla {
@@ -851,7 +843,14 @@
   gap: var(--pulso-space-2);
 }
 
-.mon-equipo-bloque-cabecera small {
+/* La cabecera de bloque (`mon-ctl-panel-cabecera`, P2) dentro de una tarjeta que ya tiene su relleno: no se lo suma. */
+.mon-equipo-bloque > .mon-ctl-panel-cabecera,
+.mon-avisos-destinos > .mon-ctl-panel-cabecera,
+.mon-cola-telefonos > .mon-ctl-panel-cabecera {
+  padding: 0;
+}
+
+.mon-equipo-bloque-cabecera > span {
   color: var(--pulso-text-faint);
   font-size: var(--pulso-type-caption-size);
   font-variant-numeric: tabular-nums;

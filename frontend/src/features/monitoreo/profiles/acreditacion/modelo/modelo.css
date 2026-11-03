@@ -352,18 +352,6 @@
   font-size: var(--pulso-type-title-size);
 }
 
-.acr-mo-estado.is-cumplida {
-  border-color: color-mix(in srgb, var(--pulso-success-fg) 35%, var(--pulso-surface));
-  background: color-mix(in srgb, var(--pulso-success-fg) 10%, var(--pulso-surface));
-  color: var(--pulso-success-fg);
-}
-
-.acr-mo-estado.is-en-curso {
-  border-color: color-mix(in srgb, var(--pulso-warn-fg) 35%, var(--pulso-surface));
-  background: color-mix(in srgb, var(--pulso-warn-fg) 10%, var(--pulso-surface));
-  color: var(--pulso-warn-fg);
-}
-
 .acr-mo-teselas {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));

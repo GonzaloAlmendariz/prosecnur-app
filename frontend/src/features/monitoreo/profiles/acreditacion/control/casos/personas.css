@@ -155,7 +155,7 @@
   padding: 0 var(--pulso-space-2);
 }
 
-.acr-rs-total > .acr-av-chip {
+.acr-rs-total > .pulso-estado-chip {
   align-self: flex-start;
   margin-top: 4px;
 }

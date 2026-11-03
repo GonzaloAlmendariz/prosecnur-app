@@ -344,24 +344,6 @@
   white-space: nowrap;
 }
 
-.mon-cuotas-chip.es-cumplida {
-  border-color: var(--pulso-success-border);
-  background: var(--pulso-success-bg);
-  color: var(--pulso-success-fg);
-}
-
-.mon-cuotas-chip.es-en_curso {
-  border-color: var(--pulso-module-monitoring-border);
-  background: var(--pulso-module-monitoring-soft);
-  color: color-mix(in srgb, var(--pulso-module-monitoring) 70%, var(--pulso-text));
-}
-
-.mon-cuotas-chip.es-sin_avance {
-  border-color: var(--pulso-warn-border);
-  background: var(--pulso-warn-bg);
-  color: var(--pulso-warn-fg);
-}
-
 .mon-cuotas-orden-rotulo {
   margin-right: 4px;
   color: var(--pulso-text-faint);

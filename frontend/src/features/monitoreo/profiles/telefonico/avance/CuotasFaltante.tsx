@@ -1,4 +1,5 @@
 import type { CSSProperties } from "react";
+import { EstadoChip } from "../../../../../components/EstadoChip";
 import { Target } from "../../../../../vendor/lucide-react";
 import { EstadoVacio } from "../../../../../components/EstadoVacio";
 import { fmt } from "../formato";
@@ -14,6 +15,12 @@ const ESTADO: Record<FilaDeCuota["estado"], string> = {
   cumple: "Cumple",
   "en-curso": "En curso",
   "sin-meta": "Sin meta",
+};
+
+const TONO: Record<FilaDeCuota["estado"], "success" | "warn" | "neutral"> = {
+  cumple: "success",
+  "en-curso": "warn",
+  "sin-meta": "neutral",
 };
 
 function decimal(valor: number) {
@@ -78,7 +85,7 @@ function FilaDeLaTabla({ fila, conCumplio }: { fila: FilaDeCuota; conCumplio: bo
     <div className="mon-tel-cuotas-fila" role="row">
       <span role="rowheader" className="mon-tel-cuotas-categoria">
         <b>{fila.nombre}</b>
-        <span className={`mon-tel-cuotas-estado is-${fila.estado}`}>{ESTADO[fila.estado]}</span>
+        <EstadoChip label={ESTADO[fila.estado]} tone={TONO[fila.estado]} />
       </span>
       <span role="cell" className={`mon-tel-cuotas-faltan is-num${fila.faltan ? " is-falta" : fila.faltan === 0 ? " is-cumple" : ""}`}>
         {fila.faltan == null ? "—" : fmt(fila.faltan)}
@@ -136,7 +143,7 @@ export function CuotasFaltante({ modelo, cadena }: { modelo: Modelo; cadena: Cad
   if (!filas.length) {
     return (
       <section className="mon-ctl-panel is-vacio" aria-label="Cuotas">
-        <header className="mon-ctl-panel-cabecera">{hayRotulo ? <RotuloDePestana /> : <span className="mon-tel-cuotas-antetitulo">Avance por cuota</span>}</header>
+        <header className="mon-ctl-panel-cabecera">{hayRotulo ? <RotuloDePestana /> : <b>Avance por cuota</b>}</header>
         <EstadoVacio
           tamano="normal"
           icono={<Target size={18} />}
@@ -208,7 +215,7 @@ export function CuotasFaltante({ modelo, cadena }: { modelo: Modelo; cadena: Cad
 
       <div className="mon-tel-cuotas-lado">
         <section className="mon-tel-cuotas-panel mon-tel-cuotas-meta" aria-label="Faltan para la meta">
-          <span className="mon-tel-cuotas-antetitulo">{sinMetas ? "Efectivas" : "Faltan para la meta"}</span>
+          <header className="mon-ctl-panel-cabecera"><b>{sinMetas ? "Efectivas" : "Faltan para la meta"}</b></header>
           {sinMetas ? (
             <strong className="mon-tel-cuotas-grande is-num">{fmt(total.efectivas)}</strong>
           ) : (
@@ -280,7 +287,7 @@ export function CuotasFaltante({ modelo, cadena }: { modelo: Modelo; cadena: Cad
         </section>
 
         <section className="mon-tel-cuotas-panel mon-tel-cuotas-cadena" aria-label="De dónde sale la cifra">
-          <span className="mon-tel-cuotas-antetitulo">De dónde sale la cifra</span>
+          <header className="mon-ctl-panel-cabecera"><b>De dónde sale la cifra</b></header>
           {cadena.map((paso) => (
             <div key={paso.nombre} className="mon-tel-cuotas-cadena-paso is-num">
               <span>

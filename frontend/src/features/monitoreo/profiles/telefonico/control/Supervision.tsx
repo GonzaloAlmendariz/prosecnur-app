@@ -162,7 +162,7 @@ export function Supervision({
           {/* Sin hoja, la explicación vive una sola vez, en la tarjeta de casos. */}
           {modelo.hojaConectada ? (
           <section className="mon-ctl-panel mon-insumos-tarjeta" aria-label="Resultados de la rellamada">
-            <span className="mon-ctl-antetitulo">Resultados de la rellamada</span>
+            <header className="mon-ctl-panel-cabecera"><b>Resultados de la rellamada</b></header>
               <dl className="mon-sup-sorteo">
                 {modelo.enHoja != null ? <div><dt>En la hoja</dt><dd className="is-num">{n(modelo.enHoja)} de {n(modelo.casos)}</dd></div> : null}
               <div><dt>Coinciden con Kobo</dt><dd className="is-num">{n(modelo.resultados.coinciden)}</dd></div>

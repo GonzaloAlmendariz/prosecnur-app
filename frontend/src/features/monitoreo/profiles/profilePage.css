@@ -3181,58 +3181,6 @@
   font-weight: var(--pulso-weight-bold);
 }
 
-.mon-acr-status-pill,
-.mon-acr-cross-pill {
-  width: fit-content;
-  max-width: 100%;
-  display: inline-flex;
-  align-items: center;
-  border: 1px solid var(--pulso-border);
-  border-radius: 999px;
-  font-size: var(--pulso-type-micro-size);
-  font-weight: var(--pulso-weight-black);
-  line-height: 1;
-  padding: 5px 8px;
-}
-
-.mon-acr-status-pill.is-complete {
-  border-color: var(--pulso-success-border);
-  background: var(--pulso-success-bg);
-  color: var(--pulso-success-fg);
-}
-
-.mon-acr-status-pill.is-partial {
-  border-color: var(--pulso-warn-border);
-  background: var(--pulso-warn-bg);
-  color: var(--pulso-warn-fg);
-}
-
-.mon-acr-status-pill.is-refusal {
-  border-color: var(--pulso-danger-border);
-  background: var(--pulso-danger-bg);
-  color: var(--pulso-danger-fg);
-}
-
-.mon-acr-status-pill.is-pending {
-  border-color: #d8dee8;
-  background: #f3f5f9;
-  color: #667085;
-}
-
-.mon-acr-cross-pill {
-  border-color: color-mix(in srgb, var(--pulso-module-monitoring) 18%, var(--pulso-border));
-  background: color-mix(in srgb, var(--pulso-module-monitoring) 7%, #fff);
-  color: var(--pulso-module-monitoring);
-}
-
-.mon-acr-cross-pill.is-sin_cruce,
-.mon-acr-cross-pill.is-sin_llave,
-.mon-acr-cross-pill.is-sin_base {
-  border-color: var(--pulso-warn-border);
-  background: color-mix(in srgb, var(--pulso-warn-bg) 62%, #fff);
-  color: var(--pulso-warn-fg);
-}
-
 .mon-acr-case-note {
   margin: -2px 0 0;
   border: 1px solid var(--pulso-info-border);
@@ -3362,30 +3310,6 @@
   justify-self: end;
   overflow: hidden;
   text-overflow: ellipsis;
-}
-
-.mon-acr-count-pill {
-  min-height: 22px;
-  display: inline-flex;
-  align-items: center;
-  border: 1px solid var(--pulso-border);
-  border-radius: 999px;
-  padding: 2px 8px;
-  font-size: var(--pulso-type-micro-size);
-  font-weight: var(--pulso-weight-black);
-}
-
-.mon-acr-count-pill.is-yes {
-  border-color: var(--pulso-success-border);
-  background: var(--pulso-success-bg);
-  color: var(--pulso-success-fg);
-}
-
-.mon-acr-count-pill.is-no,
-.mon-acr-count-pill.is-review {
-  border-color: var(--pulso-warn-border);
-  background: var(--pulso-warn-bg);
-  color: var(--pulso-warn-fg);
 }
 
 .mon-acr-model-action-status {
@@ -10673,13 +10597,6 @@
 .mon-acr-base-clear-pill:disabled {
   cursor: not-allowed;
   opacity: 0.46;
-}
-
-.mon-stage--consultas .mon-acr-cross-pill.is-cruzo_llave,
-.mon-stage--consultas .mon-acr-cross-pill.is-cruzo_correo {
-  border-color: var(--pulso-success-border);
-  background: var(--pulso-success-bg);
-  color: var(--pulso-success-fg);
 }
 
 .mon-acr-platform-table {
@@ -18504,49 +18421,6 @@ button.mon-acr-requirement-metric:active {
   line-height: 1.15;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-.mon-query-badge {
-  width: max-content;
-  max-width: 170px;
-  border: 1px solid color-mix(in srgb, #7a8796 24%, var(--pulso-border));
-  border-radius: 999px;
-  background: color-mix(in srgb, #7a8796 8%, #fff);
-  color: #536476;
-  font-size: var(--pulso-type-micro-size);
-  font-weight: var(--pulso-weight-heavy);
-  line-height: 1;
-  padding: 5px 7px;
-}
-
-.mon-query-badge.is-effective {
-  border-color: rgba(37, 122, 85, 0.25);
-  background: rgba(37, 122, 85, 0.08);
-  color: #1d6a49;
-}
-
-.mon-query-badge.is-partial {
-  border-color: rgba(183, 121, 31, 0.28);
-  background: rgba(183, 121, 31, 0.09);
-  color: #8a5a19;
-}
-
-.mon-query-badge.is-refusal {
-  border-color: rgba(178, 59, 59, 0.25);
-  background: rgba(178, 59, 59, 0.08);
-  color: #923239;
-}
-
-.mon-query-badge.is-warning {
-  border-color: rgba(159, 107, 30, 0.28);
-  background: rgba(159, 107, 30, 0.09);
-  color: #7b531d;
-}
-
-.mon-query-badge.is-muted {
-  border-color: rgba(122, 135, 150, 0.24);
-  background: rgba(122, 135, 150, 0.08);
-  color: #536476;
 }
 
 .mon-query-table-more {

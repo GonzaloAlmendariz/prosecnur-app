@@ -156,6 +156,11 @@
   vertical-align: middle;
 }
 
+/* «Sin base» es `EstadoChip` (P6): va pegado al valor de la categoría. */
+.mon-metas-tabla tbody th > .pulso-estado-chip {
+  margin-left: 6px;
+}
+
 /* El campo de meta es el del kit (`PulsoInput numeric`, 88 px): aquí sólo
  * se alinea a la derecha de su celda. */
 .mon-metas-meta .pulso-input {

@@ -114,12 +114,6 @@
   color: var(--pulso-warn-fg);
 }
 
-.acr-av-chip.is-avance {
-  border-color: color-mix(in srgb, var(--acr-efectiva) 24%, var(--pulso-surface));
-  background: color-mix(in srgb, var(--acr-efectiva) 8%, var(--pulso-surface));
-  color: var(--acr-efectiva);
-}
-
 .acr-av-boton {
   display: inline-flex;
   align-items: center;
@@ -513,7 +507,7 @@
   white-space: nowrap;
 }
 
-.acr-res-kpi-linea > .acr-av-chip {
+.acr-res-kpi-linea > .pulso-estado-chip {
   flex: none;
 }
 

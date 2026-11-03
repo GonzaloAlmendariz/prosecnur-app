@@ -118,29 +118,9 @@
   font-size: var(--pulso-type-body-size);
 }
 
-.mon-ensayo-pildora {
+/* El estado de la pestaña es `EstadoChip` (P6): no cede ancho al nombre. */
+.mon-ensayo-pestana__cabeza > .pulso-estado-chip {
   flex: none;
-  padding: 2px 10px;
-  border: 1px solid var(--pulso-border);
-  border-radius: 999px;
-  font-size: var(--pulso-type-caption-size);
-  font-weight: 600;
-  white-space: nowrap;
-  color: var(--pulso-text-soft);
-  background: var(--pulso-surface-2);
-}
-
-.mon-ensayo-pildora.is-destructiva {
-  border-color: var(--pulso-danger-border);
-  background: var(--pulso-danger-bg);
-  color: var(--pulso-danger-fg);
-}
-
-.mon-ensayo-pildora.is-se-crea,
-.mon-ensayo-pildora.is-cambia {
-  border-color: var(--pulso-success-border);
-  background: var(--pulso-success-bg);
-  color: var(--pulso-success-fg);
 }
 
 .mon-ensayo-detalle summary {

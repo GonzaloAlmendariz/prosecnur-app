@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { EstadoChip } from "../../../../../components/EstadoChip";
 import { usePanelDireccionable, type PanelDeclarado } from "../../../../../lib/navegacion/paneles";
 import { pctConEspacio } from "../../../core/formatoComun";
 import { useFocoMonitoreo } from "../../../useMonitoreoDireccion";
@@ -20,7 +21,7 @@ function porcentaje(valor: number, total: number) {
 }
 
 function BarraDeAvance({ tarjeta }: { tarjeta: AcreditacionAdvanceCard }) {
-  if (!tieneMeta(tarjeta)) return <span className="acr-av-chip">Sin meta</span>;
+  if (!tieneMeta(tarjeta)) return <EstadoChip label="Sin meta" tone="neutral" />;
   const avance = tarjeta.effective / (tarjeta.meta as number);
   return (
     <span className="acr-pub-avance">

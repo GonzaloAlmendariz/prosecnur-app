@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { EstadoChip } from "../../../../../components/EstadoChip";
 import { CheckCircle2, Clipboard } from "../../../../../vendor/lucide-react";
 import type { MonitoreoAcreditacionReports, MonitoreoState } from "../../../../../api/client";
 import { EstadoVacio } from "../../../../../components/EstadoVacio";
@@ -33,9 +34,16 @@ const ROTULO_DE_SEVERIDAD: Record<Severidad, string> = {
   "sin-dato": "Sin fecha",
 };
 
+const TONO_DE_SEVERIDAD: Record<Severidad, "danger" | "warn" | "neutral"> = {
+  grave: "danger",
+  aviso: "warn",
+  reciente: "neutral",
+  "sin-dato": "neutral",
+};
+
 /** Chip de severidad: el estado va en el chip, nunca en el color del texto suelto. */
 export function ChipDeSeveridad({ severidad }: { severidad: Severidad }) {
-  return <span className={`mon-nb-chip is-${severidad}`}>{ROTULO_DE_SEVERIDAD[severidad]}</span>;
+  return <EstadoChip label={ROTULO_DE_SEVERIDAD[severidad]} tone={TONO_DE_SEVERIDAD[severidad]} />;
 }
 
 type Copia = { tono: "exito" | "error"; texto: string } | null;

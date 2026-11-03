@@ -109,7 +109,7 @@ export function Respuestas({
           </div>
         </section>
         <section className="mon-ctl-panel mon-respuestas-reglas" aria-label="Qué cuenta">
-          <header className="mon-ctl-panel-cabecera"><span className="mon-ctl-antetitulo">Qué cuenta</span></header>
+          <header className="mon-ctl-panel-cabecera"><b>Qué cuenta</b></header>
           <ul>
             {reglas.map((regla) => (
               <li key={regla.texto}>

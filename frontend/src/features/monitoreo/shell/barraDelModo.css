@@ -101,37 +101,10 @@
   border-right: 0;
 }
 
+/* La región viva del estado: el chip es `EstadoChip` (P6) y el tono lo pone él. */
 .mon-modo-estado {
   display: inline-flex;
   align-items: center;
-  min-height: 26px;
-  padding: 0 10px;
-  border: 1px solid var(--pulso-border);
-  border-radius: var(--pulso-radius-chip);
-  background: var(--pulso-surface);
-  color: var(--pulso-text);
-  font-size: var(--pulso-type-subtitle-size);
-  font-weight: var(--pulso-weight-semibold);
-  white-space: nowrap;
-}
-
-.mon-modo-estado.is-al-dia {
-  border-color: var(--pulso-success-border);
-  background: var(--pulso-success-bg);
-  color: var(--pulso-success-fg);
-}
-
-.mon-modo-estado.is-actualizando,
-.mon-modo-estado.is-preparando {
-  border-color: var(--pulso-primary-border);
-  background: var(--pulso-info-bg);
-  color: var(--pulso-brand-navy);
-}
-
-.mon-modo-estado.is-fallo {
-  border-color: var(--pulso-danger-border);
-  background: var(--pulso-danger-bg);
-  color: var(--pulso-danger-fg);
 }
 
 .mon-commandbar.is-barra-comun .mon-modo-actualizar {

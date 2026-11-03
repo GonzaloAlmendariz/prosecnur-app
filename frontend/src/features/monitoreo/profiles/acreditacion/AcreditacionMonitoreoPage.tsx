@@ -1,4 +1,6 @@
 import { Fragment, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { EstadoChip } from "../../../../components/EstadoChip";
+import { tonoDeConteo, tonoDeCruce, tonoDeLectura, tonoDeRespuesta } from "../../core/tonosDeCaso";
 import type { CSSProperties, ReactNode } from "react";
 import { AlertCircle, BarChart3, BarChartBig, CalendarRange, CheckCircle2, ChevronDown, ClipboardCheck, ContactRound, Download, Eye, FileCheck2, Filter, KeyRound, Layers3, Link2, ListChecks, Loader2, Mail, PhoneCall, PlugZap, Plus, QrCode, RefreshCw, Route, Save, Search, ShieldAlert, SlidersHorizontal, Table2, Target, XCircle } from "lucide-react";
 import { PageFrame } from "../../../../components/PageFrame";
@@ -9874,19 +9876,11 @@ function AcreditacionCaseFilterChips({
 }
 
 function CaseStatusPill({ value }: { value: string }) {
-  return (
-    <span className={`mon-acr-status-pill is-${value}`}>
-      {internalCaseResponseStateLabel(value)}
-    </span>
-  );
+  return <EstadoChip label={internalCaseResponseStateLabel(value)} tone={tonoDeRespuesta(value)} />;
 }
 
 function CaseCrossingPill({ value }: { value: string }) {
-  return (
-    <span className={`mon-acr-cross-pill is-${value}`}>
-      {internalCaseCrossingLabel(value)}
-    </span>
-  );
+  return <EstadoChip label={internalCaseCrossingLabel(value)} tone={tonoDeCruce(value)} />;
 }
 
 function AcreditacionCaseDonut({ summary }: { summary: ReturnType<typeof summarizeInternalCases> }) {
@@ -10106,9 +10100,7 @@ function AcreditacionReconciliacionView({
                           <small>{item.actor || "Sin actor"} · {item.case_key || "sin llave"} · {item.response_id || "sin response_id"}</small>
                         </td>
                         <td>
-                          <span className={`mon-acr-count-pill ${counts === true ? "is-yes" : counts === false ? "is-no" : "is-review"}`}>
-                            {caseCountsLabel(item)}
-                          </span>
+                          <EstadoChip label={caseCountsLabel(item)} tone={tonoDeConteo(counts)} />
                           <small>{item.decision || advancementLabel(item.advancement)}</small>
                         </td>
                         <td>
@@ -10749,11 +10741,11 @@ function AcreditacionCasesTable({
                   </button>
                 </td>
                 <td>
-                  <span className={`mon-query-badge is-${platformToneValue(item)}`}>{internalCaseResponseStateLabel(responseValue)}</span>
+                  <EstadoChip label={internalCaseResponseStateLabel(responseValue)} tone={tonoDeLectura(platformToneValue(item))} />
                   <small>Avance: {advancementLabel(item.advancement)}</small>
                 </td>
                 <td>
-                  <span className={`mon-query-badge is-${crossingToneValue(item)}`}>{internalCaseCrossingLabel(crossingValue)}</span>
+                  <EstadoChip label={internalCaseCrossingLabel(crossingValue)} tone={tonoDeLectura(crossingToneValue(item))} />
                   <small>{item.base_record || item.base_source || item.base_result || "Sin base"}</small>
                 </td>
                 <td>

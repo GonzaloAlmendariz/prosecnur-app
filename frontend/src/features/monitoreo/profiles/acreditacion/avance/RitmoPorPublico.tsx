@@ -1,4 +1,5 @@
 import { fmt } from "../formato";
+import { EstadoChip } from "../../../../../components/EstadoChip";
 import { Minibarras } from "./graficosDeAvance";
 import type { RitmoDePublico } from "./ritmoPorPublicoModelo";
 import { rotuloDeDiasALaMeta } from "./avanceModelo";
@@ -13,10 +14,10 @@ function ventana(item: RitmoDePublico) {
 }
 
 function Proyeccion({ item }: { item: RitmoDePublico }) {
-  if (item.meta == null) return <span className="acr-av-chip">Sin meta</span>;
-  if (item.faltan === 0) return <span className="acr-av-chip is-cumple">Meta cumplida</span>;
-  if (item.diasALaMeta == null) return <span className="acr-av-chip is-falta" title="Sin efectivas en los últimos siete días">Sin ritmo</span>;
-  return <span className="acr-av-chip" title={`Al ritmo de ${UNA_DECIMAL(item.promedio7)} efectivas diarias de ${ventana(item)}: ≈ ${fmt(item.diasALaMeta)} días`}>{rotuloDeDiasALaMeta(item.diasALaMeta)}</span>;
+  if (item.meta == null) return <EstadoChip label="Sin meta" tone="neutral" />;
+  if (item.faltan === 0) return <EstadoChip label="Meta cumplida" tone="success" />;
+  if (item.diasALaMeta == null) return <EstadoChip label="Sin ritmo" tone="warn" detail="Sin efectivas en los últimos siete días" />;
+  return <EstadoChip label={rotuloDeDiasALaMeta(item.diasALaMeta)} tone="neutral" detail={`Al ritmo de ${UNA_DECIMAL(item.promedio7)} efectivas diarias de ${ventana(item)}: ≈ ${fmt(item.diasALaMeta)} días`} />;
 }
 
 /**

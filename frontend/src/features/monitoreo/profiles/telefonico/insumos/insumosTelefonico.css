@@ -106,6 +106,11 @@
   padding: var(--pulso-space-4);
 }
 
+/* La cabecera de bloque (`mon-ctl-panel-cabecera`, P2) dentro de una tarjeta que ya tiene su relleno: no se lo suma. */
+.mon-insumos-tarjeta > .mon-ctl-panel-cabecera {
+  padding: 0;
+}
+
 .mon-insumos-tarjeta p {
   margin: 0;
   color: var(--pulso-text-soft);
@@ -128,12 +133,6 @@
   font-size: var(--pulso-type-caption-size);
   font-weight: var(--pulso-weight-bold);
   white-space: nowrap;
-}
-
-.mon-insumos-estado.is-encendido {
-  border-color: var(--pulso-success-border);
-  background: var(--pulso-success-bg);
-  color: var(--pulso-success-fg);
 }
 
 .mon-insumos-aviso {

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { EstadoChip } from "../../../../../components/EstadoChip";
 import { Check, Loader2 } from "lucide-react";
 import { Alert } from "../../../../../components/Alert";
 import { apiMonitoreoConfig, type MonitoreoState } from "../../../../../api/client";
@@ -136,9 +137,10 @@ export function Metas({
                   <span className="acr-av-antetitulo">Público</span>
                   <strong><i className="mon-publico-punto" aria-hidden="true" />{fila.publico}</strong>
                 </span>
-                <span className={`acr-av-chip acr-mo-estado is-${estado}`}>
-                  {cambiada ? "Sin guardar" : estado === "cumplida" ? "Meta cumplida" : estado === "en-curso" ? `${pctConEspacio(((efectivas ?? 0) / (meta ?? 1)) * 100)} de la meta` : estado === "sin-meta" ? "Sin meta" : "Meta declarada"}
-                </span>
+                <EstadoChip
+                  label={cambiada ? "Sin guardar" : estado === "cumplida" ? "Meta cumplida" : estado === "en-curso" ? `${pctConEspacio(((efectivas ?? 0) / (meta ?? 1)) * 100)} de la meta` : estado === "sin-meta" ? "Sin meta" : "Meta declarada"}
+                  tone={estado === "cumplida" ? "success" : estado === "en-curso" ? "warn" : "neutral"}
+                />
               </header>
               <div className="acr-mo-teselas">
                 <div className="acr-mo-tesela">

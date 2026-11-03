@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { EstadoChip } from "../../../../../components/EstadoChip";
 import { Loader2, Save, Table2 } from "../../../../../vendor/lucide-react";
 import { EstadoVacio } from "../../../../../components/EstadoVacio";
 import { apiMonitoreoConfig } from "../../../../../api/monitoreo";
@@ -101,7 +102,7 @@ export function OrigenDeLaMuestra({
       <header className="mon-insumos-cabecera">
         <strong>Origen de la muestra</strong>
         {inicial.declarado || inicial.sugerido ? (
-          <span className="mon-insumos-estado">{inicial.declarado ? "Declarado" : "Sugerido por el nombre"}</span>
+          <EstadoChip label={inicial.declarado ? "Declarado" : "Sugerido por el nombre"} tone="neutral" />
         ) : null}
         <button
           type="button"

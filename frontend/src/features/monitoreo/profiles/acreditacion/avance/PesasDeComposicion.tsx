@@ -1,4 +1,5 @@
 import { Plus } from "lucide-react";
+import { EstadoChip } from "../../../../../components/EstadoChip";
 import { fmt } from "../formato";
 import { marcasDeEje } from "./avanceModelo";
 import type { VariableDeControl } from "./composicionModelo";
@@ -28,7 +29,7 @@ export function PesasDeComposicion({ variable, onDefinirCuota }: { variable: Var
             <small className="acr-av-antetitulo">{variable.actor}</small>
             <span>{variable.variable}</span>
           </span>
-          <span className="acr-av-chip">Sin meta</span>
+          <EstadoChip label="Sin meta" tone="neutral" />
           <span className="acr-av-tenue" title="Mayor diferencia entre el % de las efectivas y el % del universo">{`Máx. ${pp(variable.maxDelta)}`}</span>
         </h3>
         <button type="button" className="acr-av-boton" onClick={onDefinirCuota}><Plus size={14} aria-hidden="true" /> Definir cuota en Modelo</button>

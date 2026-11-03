@@ -522,7 +522,7 @@ function MapaTabImpl({
             Fuentes: {enumerar(["distritos PlanMet", "manzanas INEI 2017", acercada?.calles.length ? "calles OpenStreetMap" : ""])}
           </span>
           {cartografia.incompleta ? <EstadoChip label="Cartografía incompleta" tone="warn" /> : null}
-          {esperaCalles ? <span role="status"><EstadoChip label="Cargando calles" tone="info" /></span> : null}
+          {esperaCalles ? <EstadoChip label="Cargando calles" tone="info" /> : null}
         </footer>
       </div>
 

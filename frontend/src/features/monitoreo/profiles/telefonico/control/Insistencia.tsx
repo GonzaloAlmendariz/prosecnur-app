@@ -21,8 +21,8 @@ function TelefonosPorCaso({ casos }: { casos: readonly CasoDeCola[] }) {
   const maximo = Math.max(...reparto.map((item) => item.casos));
   return (
     <section className="mon-cola-panel mon-cola-telefonos" aria-label="Teléfonos por caso">
-      <header className="mon-cola-panel-cabecera">
-        <span className="mon-cola-antetitulo">Teléfonos por caso</span>
+      <header className="mon-ctl-panel-cabecera mon-cola-panel-cabecera">
+        <b>Teléfonos por caso</b>
         <span className="mon-cola-condicional">Condicional</span>
       </header>
       <ul>

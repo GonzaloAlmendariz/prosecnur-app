@@ -307,7 +307,7 @@ function RecorridoTabImpl({
           </span>
           <span className="mon-rec-fuente">Fuentes: GPS de Kobo, manzanas INEI 2017{geometria?.calles.length ? " y calles OpenStreetMap" : ""}</span>
           {resumen.formularios > resumen.conGps ? <EstadoChip label={`${fmt(resumen.formularios - resumen.conGps)} sin GPS`} tone="warn" /> : null}
-          {esperando ? <span role="status"><EstadoChip label="Cargando cartografía" tone="info" /></span> : null}
+          {esperando ? <EstadoChip label="Cargando cartografía" tone="info" /> : null}
         </footer>
       </div>
 

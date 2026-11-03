@@ -223,7 +223,7 @@ export function Calendario({
 
       <aside className="mon-calendario-lateral">
         <section className="mon-ctl-panel mon-insumos-tarjeta mon-calendario-ritmo" aria-label="Ritmo observado">
-          <span className="mon-ctl-antetitulo">Ritmo observado</span>
+          <header className="mon-ctl-panel-cabecera"><b>Ritmo observado</b></header>
           {campo.promedio != null ? (
             <>
               <p className="mon-calendario-cifra">

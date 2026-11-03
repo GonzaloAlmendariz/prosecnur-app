@@ -147,31 +147,6 @@
   outline-offset: 2px;
 }
 
-.mon-nb-chip {
-  display: inline-flex;
-  align-items: center;
-  padding: 2px 8px;
-  border: 1px solid var(--pulso-border);
-  border-radius: var(--pulso-radius-chip);
-  background: var(--pulso-surface-2);
-  color: var(--pulso-text-soft);
-  font-size: var(--pulso-type-caption-size);
-  font-weight: var(--pulso-weight-bold);
-  white-space: nowrap;
-}
-
-.mon-nb-chip.is-grave {
-  border-color: var(--pulso-danger-border);
-  background: var(--pulso-danger-bg);
-  color: var(--pulso-danger-fg);
-}
-
-.mon-nb-chip.is-aviso {
-  border-color: var(--pulso-warn-border);
-  background: var(--pulso-warn-bg);
-  color: var(--pulso-warn-fg);
-}
-
 /* ---------- Botones ---------- */
 
 .mon-nb-boton {

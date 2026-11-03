@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { EstadoChip } from "../../../../../components/EstadoChip";
 import { usePanelDireccionable, type PanelDeclarado } from "../../../../../lib/navegacion/paneles";
 import { AlertTriangle, CalendarClock, CheckCircle2, Plus, Target, XCircle } from "../../../../../vendor/lucide-react";
 import { EstadoVacio } from "../../../../../components/EstadoVacio";
@@ -178,7 +179,7 @@ export function Cuotas({
                   const marca = fila.proporcional != null && fila.universe ? ((fila.proporcional / fila.universe) / maximoSobre) * 100 : null;
                   return (
                     <tr key={fila.value}>
-                      <th scope="row">{fila.value}{fila.universe <= 0 && !universoPendiente ? <em className="mon-ctl-sin-regla">sin base</em> : null}</th>
+                      <th scope="row">{fila.value}{fila.universe <= 0 && !universoPendiente ? <EstadoChip label="sin base" tone="warn" /> : null}</th>
                       <td className="is-num">{n(fila.universe)}</td>
                       <td className="is-num mon-metas-meta">
                         <MetaCuotaInput value={fila.meta} ariaLabel={`Meta de ${fila.value}`} onCommit={(meta) => onMeta(fila.value, meta)} />
@@ -271,7 +272,7 @@ export function Cuotas({
 
       <div className="mon-metas-modelo-lateral">
         <section className="mon-ctl-panel mon-insumos-tarjeta" aria-label="Validación">
-          <span className="mon-ctl-antetitulo">Validación</span>
+          <header className="mon-ctl-panel-cabecera"><b>Validación</b></header>
           <ul className="mon-metas-validacion">
             {validaciones.map((item) => (
               <li key={item.texto} className={`is-${item.tono}`}>
@@ -283,14 +284,14 @@ export function Cuotas({
         </section>
 
         <section className="mon-ctl-panel mon-insumos-tarjeta" aria-label="Qué cuenta para la meta">
-          <span className="mon-ctl-antetitulo">Qué cuenta para la meta</span>
+          <header className="mon-ctl-panel-cabecera"><b>Qué cuenta para la meta</b></header>
           <p>{filtro ? `Efectivas de Kobo con ${filtro}, una por CodPulso` : "Efectivas de Kobo, una por CodPulso"}</p>
           {filtro ? null : <p>Filtro de efectiva sin declarar</p>}
           <p title="No hay metas por enumerador">Metas por {nombreDeCategoria}</p>
         </section>
 
         <section className="mon-ctl-panel mon-insumos-tarjeta mon-metas-calendario" aria-label="Calendario">
-          <span className="mon-ctl-antetitulo">Calendario</span>
+          <header className="mon-ctl-panel-cabecera"><b>Calendario</b></header>
           <dl>
             <div><dt>Ventana de campo</dt><dd>{calendario.ventana}</dd></div>
             <div><dt>Reporte de avance</dt><dd>{calendario.reporte}</dd></div>

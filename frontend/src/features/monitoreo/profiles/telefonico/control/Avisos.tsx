@@ -50,7 +50,7 @@ export function Avisos({
   if (!modelo.avisos.length && !modelo.sinAsignar) {
     return (
       <section className="mon-ctl-panel is-vacio" aria-label="Avisos">
-        <header className="mon-ctl-panel-cabecera">{hayRotulo ? <RotuloDePestana /> : <span className="mon-ctl-antetitulo">Avisos</span>}</header>
+        <header className="mon-ctl-panel-cabecera">{hayRotulo ? <RotuloDePestana /> : <b>Avisos</b>}</header>
         <EstadoVacio
           tamano="normal"
           icono={<CheckCircle2 size={18} />}
@@ -119,7 +119,7 @@ export function Avisos({
       </section>
       {destinos.length ? (
         <section className="mon-ctl-panel mon-avisos-destinos" aria-label="Por dónde se corrige">
-          <span className="mon-ctl-antetitulo">Por dónde se corrige</span>
+          <header className="mon-ctl-panel-cabecera"><b>Por dónde se corrige</b></header>
           <ul>
             {destinos.map((destino) => (
               <li key={destino.etiqueta}>
@@ -153,8 +153,8 @@ export function Avisos({
       {/* Con hasta ocho casos la tarjeta mide sus filas (sin hueco al pie);
         * con más crece hasta el pie y desplaza dentro. */}
       <section className={`mon-ctl-panel mon-avisos-por-revisar${porRevisar.length <= 8 ? " is-pocos" : ""}`} aria-label="Casos por revisar" data-qa-geometry-capacity="owned">
-        <header className="mon-avisos-por-revisar-cabecera">
-          <span className="mon-ctl-antetitulo">Casos por revisar</span>
+        <header className="mon-ctl-panel-cabecera mon-avisos-por-revisar-cabecera">
+          <b>Casos por revisar</b>
           <span>{porRevisar.length ? `${n(porRevisar.length)} ${porRevisar.length === 1 ? "caso nombrado" : "casos nombrados"} por los avisos` : ""}</span>
         </header>
         {porRevisar.length ? (

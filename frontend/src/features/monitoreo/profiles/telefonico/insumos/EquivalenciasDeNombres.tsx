@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { EstadoChip } from "../../../../../components/EstadoChip";
 import { Loader2, Save } from "../../../../../vendor/lucide-react";
 import { apiMonitoreoConfig } from "../../../../../api/monitoreo";
 import type { MonitoreoAcreditacionReports, MonitoreoState } from "../../../../../api/client";
@@ -94,7 +95,7 @@ export function EquivalenciasDeNombres({
                   </select>
                 </td>
                 <td>
-                  <span className={`mon-insumos-estado${fila.estado === "confirmada" ? " is-encendido" : ""}`} title={fila.criterio || undefined}>{ROTULO[fila.estado]}</span>
+                  <EstadoChip label={ROTULO[fila.estado]} tone={fila.estado === "confirmada" ? "success" : "neutral"} detail={fila.criterio || undefined} />
                 </td>
               </tr>
             ))}

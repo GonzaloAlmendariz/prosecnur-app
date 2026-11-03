@@ -159,9 +159,9 @@ function FichaDelOperador({ operador, modelo, sinBarrer, sinBarrerDisponible }: 
       <SinBarrer sinBarrer={sinBarrer} disponible={sinBarrerDisponible} />
       {familias.length ? (
         <section className="mon-equipo-bloque" aria-label="Casos asignados por familia">
-          <header className="mon-equipo-bloque-cabecera">
-            <span className="mon-ctl-antetitulo">Casos por familia</span>
-            <small>{n(total)} casos</small>
+          <header className="mon-ctl-panel-cabecera mon-equipo-bloque-cabecera">
+            <b>Casos por familia</b>
+            <span>{n(total)} casos</span>
           </header>
           <span className="mon-equipo-familias-barra" aria-hidden="true">
             {ordenadas.map((item) => (
@@ -179,8 +179,8 @@ function FichaDelOperador({ operador, modelo, sinBarrer, sinBarrerDisponible }: 
         </section>
       ) : null}
       <section className="mon-equipo-bloque" aria-label="Insistencia y registro">
-        <header className="mon-equipo-bloque-cabecera">
-          <span className="mon-ctl-antetitulo">Insistencia y registro</span>
+        <header className="mon-ctl-panel-cabecera mon-equipo-bloque-cabecera">
+          <b>Insistencia y registro</b>
         </header>
         <dl className="mon-equipo-datos">
           <div><dt>Casos que se pueden reintentar</dt><dd>{n(operador.reintentables)}</dd></div>
@@ -191,9 +191,9 @@ function FichaDelOperador({ operador, modelo, sinBarrer, sinBarrerDisponible }: 
         </dl>
       </section>
       <section className="mon-equipo-bloque mon-equipo-status" aria-label="Status en la hoja">
-        <header className="mon-equipo-bloque-cabecera">
-          <span className="mon-ctl-antetitulo">Status en la hoja</span>
-          <small>{n(casosEnStatus)} casos</small>
+        <header className="mon-ctl-panel-cabecera mon-equipo-bloque-cabecera">
+          <b>Status en la hoja</b>
+          <span>{n(casosEnStatus)} casos</span>
         </header>
         <ul>
           {estados.map((item) => (

@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { EstadoChip } from "../../../../../components/EstadoChip";
 import { ArrowRight, CalendarDays } from "lucide-react";
 import type { MonitoreoCorte } from "../../../corte/corteContract";
 import { pctConEspacio } from "../../../core/formatoComun";
@@ -40,19 +41,19 @@ function porcentajeEntero(valor: number, total: number) {
 
 function ChipDeProyeccion({ serie, totales }: { serie: ReturnType<typeof serieDiaria>; totales: TotalesDeAvance }) {
   const lectura = proyeccion(serie, totales);
-  if (lectura.tipo === "sin-meta") return <span className="acr-av-chip">Sin meta declarada</span>;
+  if (lectura.tipo === "sin-meta") return <EstadoChip label="Sin meta declarada" tone="neutral" />;
   if (lectura.tipo === "cumplida") {
-    return <span className="acr-av-chip is-cumple">{lectura.fecha ? `Meta cumplida el ${fechaCorta(lectura.fecha)}` : "Meta cumplida"}</span>;
+    return <EstadoChip label={lectura.fecha ? `Meta cumplida el ${fechaCorta(lectura.fecha)}` : "Meta cumplida"} tone="success" />;
   }
   // El chip dice la cifra; el cálculo que la sostiene va en el tooltip.
   const ritmo = lectura.ritmo.toLocaleString("es-PE", { maximumFractionDigits: 1 });
   return (
     <span className="acr-res-chips-proyeccion">
-      <span className="acr-av-chip is-falta">{`Faltan ${fmt(lectura.faltan)}`}</span>
+      <EstadoChip label={`Faltan ${fmt(lectura.faltan)}`} tone="warn" />
       {lectura.dias != null ? (
-        <span className="acr-av-chip" title={`Al ritmo de ${ritmo} efectivas diarias: ≈ ${fmt(lectura.dias)} días`}>{rotuloDeDiasALaMeta(lectura.dias)}</span>
+        <EstadoChip label={rotuloDeDiasALaMeta(lectura.dias)} tone="neutral" detail={`Al ritmo de ${ritmo} efectivas diarias: ≈ ${fmt(lectura.dias)} días`} />
       ) : (
-        <span className="acr-av-chip" title="Sin efectivas en los últimos siete días">Sin ritmo</span>
+        <EstadoChip label="Sin ritmo" tone="neutral" detail="Sin efectivas en los últimos siete días" />
       )}
     </span>
   );
@@ -228,7 +229,7 @@ export function ResumenVista({
               <span className="acr-res-kpi-linea">
                 <b className="acr-res-kpi-grande acr-av-num">{fmt(totales.efectivas)}</b>
                 {totales.meta > 0 ? <span className="acr-res-kpi-meta">de {fmt(totales.meta)} meta</span> : null}
-                {avance != null ? <span className={`acr-av-chip ${avance >= 1 ? "is-cumple" : "is-avance"}`}>{pctConEspacio(avance * 100)}</span> : null}
+                {avance != null ? <EstadoChip label={pctConEspacio(avance * 100)} tone={avance >= 1 ? "success" : "info"} /> : null}
               </span>
               <span className="acr-av-pista is-gruesa"><i style={{ width: `${Math.min(100, (avance ?? 0) * 100)}%` }} /></span>
             </div>

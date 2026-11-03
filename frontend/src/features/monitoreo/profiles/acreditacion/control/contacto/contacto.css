@@ -414,7 +414,6 @@
   outline-offset: 2px;
 }
 
-.acr-co-ritmo,
 .acr-co-chip {
   display: inline-flex;
   align-items: center;
@@ -429,25 +428,10 @@
   white-space: nowrap;
 }
 
-.acr-co-ritmo.is-ready,
-.acr-co-chip.is-ok {
-  border-color: color-mix(in srgb, var(--pulso-success-fg) 35%, var(--pulso-surface));
-  background: color-mix(in srgb, var(--pulso-success-fg) 10%, var(--pulso-surface));
-  color: var(--pulso-success-fg);
-}
-
-.acr-co-ritmo.is-warning,
 .acr-co-chip.is-warning {
   border-color: color-mix(in srgb, var(--pulso-warn-fg) 35%, var(--pulso-surface));
   background: color-mix(in srgb, var(--pulso-warn-fg) 10%, var(--pulso-surface));
   color: var(--pulso-warn-fg);
-}
-
-.acr-co-ritmo.is-danger,
-.acr-co-chip.is-danger {
-  border-color: color-mix(in srgb, var(--pulso-danger-fg) 35%, var(--pulso-surface));
-  background: color-mix(in srgb, var(--pulso-danger-fg) 10%, var(--pulso-surface));
-  color: var(--pulso-danger-fg);
 }
 
 .acr-co-chips {

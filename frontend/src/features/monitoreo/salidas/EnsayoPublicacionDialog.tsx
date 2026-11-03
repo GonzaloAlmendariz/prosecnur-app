@@ -5,6 +5,7 @@
 import { AlertTriangle, ExternalLink, ListChecks, Loader2 } from "lucide-react";
 import type { EnsayoPestana, EnsayoPublicacion } from "../../../api/monitoreoPublicarEnsayo";
 import { Dialog } from "../../../components/Dialog";
+import { EstadoChip } from "../../../components/EstadoChip";
 import { PulsoButton } from "../../../components/PulsoButton";
 import { LoadingBlock } from "../../../components/States";
 import { PANEL_REVISAR_PUBLICACION } from "../../../lib/navegacion/manifiesto";
@@ -95,7 +96,7 @@ function FilaPestana({ p }: { p: EnsayoPestana }) {
     <li className={`mon-ensayo-pestana is-${estado}`}>
       <div className="mon-ensayo-pestana__cabeza">
         <b>{p.pestana}</b>
-        <span className={`mon-ensayo-pildora is-${estado}`}>{ROTULO_ESTADO[estado]}</span>
+        <EstadoChip label={ROTULO_ESTADO[estado]} tone={estado === "destructiva" ? "danger" : estado === "sin-cambios" ? "neutral" : "success"} />
       </div>
       <p className="mon-ensayo-pestana__linea">{lineaPestana(p)}</p>
       {clave ? <p className="mon-ensayo-pestana__clave">{clave}</p> : null}

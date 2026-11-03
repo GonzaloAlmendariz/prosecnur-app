@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { EstadoChip } from "../../../../../../components/EstadoChip";
 import { CheckCircle2, SearchX } from "lucide-react";
 import type { MonitoreoInternalQueries } from "../../../../../../api/client";
 import { usePanelDireccionable, type PanelDeclarado } from "../../../../../../lib/navegacion/paneles";
@@ -184,10 +185,10 @@ export function PorResolver({
                       </td>
                       <td>
                         {fila.decision
-                          ? <span className={`acr-av-chip${fila.decision === "asignada" ? " is-cumple" : ""}`}>{ROTULO_DE_DECISION[fila.decision]}</span>
+                          ? <EstadoChip label={ROTULO_DE_DECISION[fila.decision]} tone={fila.decision === "asignada" ? "success" : "neutral"} />
                           : fila.grupo === "espera"
-                            ? <span className="acr-av-chip is-falta">Espera</span>
-                            : <span className="acr-av-chip">Por regla</span>}
+                            ? <EstadoChip label="Espera" tone="warn" />
+                            : <EstadoChip label="Por regla" tone="neutral" />}
                       </td>
                     </tr>
                   );

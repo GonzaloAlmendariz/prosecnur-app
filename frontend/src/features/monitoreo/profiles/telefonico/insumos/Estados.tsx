@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { EstadoChip } from "../../../../../components/EstadoChip";
 import { NotaDelModo } from "../../../core/NotaDelModo";
 import { ListChecks, Loader2, Save } from "../../../../../vendor/lucide-react";
 import { EstadoVacio } from "../../../../../components/EstadoVacio";
@@ -61,7 +62,7 @@ export function Estados({
   if (!entradas.length) {
     return (
       <section className="mon-ctl-panel is-vacio" aria-label="Estados">
-        <header className="mon-ctl-panel-cabecera">{hayRotulo ? <RotuloDePestana /> : <span className="mon-ctl-antetitulo">Estados</span>}</header>
+        <header className="mon-ctl-panel-cabecera">{hayRotulo ? <RotuloDePestana /> : <b>Estados</b>}</header>
         <EstadoVacio
           tamano="normal"
           icono={<ListChecks size={18} />}
@@ -146,7 +147,7 @@ export function Estados({
                           {fila.difiere ? <em>difiere</em> : null}
                         </span>
                       ) : (
-                        <span className="mon-ctl-sin-regla">sin regla</span>
+                        <EstadoChip label="sin regla" tone="warn" />
                       )}
                     </td>
                   </tr>
@@ -159,10 +160,10 @@ export function Estados({
 
       <div className="mon-insumos-lateral" data-qa-geometry-group="telefonico-insumos-estados-lateral" data-qa-geometry-contract="intrinsic">
         <section className="mon-ctl-panel mon-insumos-tarjeta" aria-label="Status por reglas">
-          <span className="mon-ctl-antetitulo">Status por reglas</span>
+          <header className="mon-ctl-panel-cabecera"><b>Status por reglas</b></header>
           <div className="mon-insumos-fila">
             <strong>Contar con el vocabulario del proyecto</strong>
-            <span className={`mon-insumos-estado${encendidas ? " is-encendido" : ""}`}>{encendidas ? "Encendido" : "Apagado"}</span>
+            <EstadoChip label={encendidas ? "Encendido" : "Apagado"} tone={encendidas ? "success" : "neutral"} />
           </div>
           <p title={encendidas ? undefined : "Se enciende por proyecto"}>{encendidas ? "Cada status con su regla" : "Vocabulario fijo del motor"}</p>
           {sinRegla.valores ? (
@@ -174,7 +175,7 @@ export function Estados({
         </section>
 
         <section className="mon-ctl-panel mon-insumos-tarjeta" aria-label="Intentos que registra la hoja">
-          <span className="mon-ctl-antetitulo">Intentos que registra la hoja</span>
+          <header className="mon-ctl-panel-cabecera"><b>Intentos que registra la hoja</b></header>
           {enCola ? (
             <>
               <p title="Según la columna Intentos de la hoja, que es el total acumulado">{n(enCola)} casos en la cola</p>
@@ -198,7 +199,7 @@ export function Estados({
         </section>
 
         <section className="mon-ctl-panel mon-insumos-tarjeta" aria-label="Color de cada familia">
-          <span className="mon-ctl-antetitulo">Color de cada familia</span>
+          <header className="mon-ctl-panel-cabecera"><b>Color de cada familia</b></header>
           <PaletaDeFamilias colorDe={declaracion.colorDe} colorear={declaracion.colorear} />
         </section>
 

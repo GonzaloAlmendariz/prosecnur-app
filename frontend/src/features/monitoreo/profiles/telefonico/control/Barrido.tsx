@@ -1,4 +1,5 @@
 import type { CSSProperties } from "react";
+import { EstadoChip } from "../../../../../components/EstadoChip";
 import { PhoneCall, Target } from "../../../../../vendor/lucide-react";
 import { EstadoVacio } from "../../../../../components/EstadoVacio";
 import { NotaDelModo } from "../../../core/NotaDelModo";
@@ -199,7 +200,7 @@ export function Barrido({ modelo, segmento }: { modelo: Modelo; segmento: string
       <section className="mon-ctl-panel mon-barrido-status" aria-label="Status del cliente">
         {/* La explicación va una sola vez, en el subtítulo (y entera en su tooltip). */}
         <header className="mon-ctl-panel-cabecera" title="La hoja guarda un status por caso, el del último intento: no guarda cada llamada, su hora ni el número marcado.">
-          <span className="mon-ctl-antetitulo">Status del cliente</span>
+          <b>Status del cliente</b>
           <span>del último intento</span>
         </header>
         <div className="mon-barrido-status-lista">
@@ -218,7 +219,7 @@ export function Barrido({ modelo, segmento }: { modelo: Modelo; segmento: string
                   <li key={item.status}>
                     <span>
                       {item.status}
-                      {item.conRegla ? null : <em className="mon-ctl-sin-regla" title="El vocabulario del proyecto no declara este status">sin regla</em>}
+                      {item.conRegla ? null : <EstadoChip label="sin regla" tone="warn" detail="El vocabulario del proyecto no declara este status" />}
                       {item.porRegla ? <em className="mon-ctl-por-regla">{rotuloDeRegla(grupo.familia)}</em> : null}
                     </span>
                     <i aria-hidden="true"><b style={{ width: `${(item.casos / modelo.maximoStatus) * 100}%` }} /></i>
