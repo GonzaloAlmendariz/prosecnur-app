@@ -85,8 +85,8 @@
   out
 }
 
-#' ¿«Lima» a secas es la región Lima? Sí cuando su lista no tiene ninguna opción propia para Lima Metropolitana ni para
-#' Lima provincias (una lista de departamentos); sin la lista, como antes, es Lima Metropolitana
+#' ¿«Lima» a secas es el departamento de Lima? Sí cuando su lista no tiene ninguna opción propia para Lima Metropolitana
+#' ni para Lima provincias (una lista de departamentos); sin la lista, como antes, es Lima Metropolitana
 #' @keywords internal
 .mapa_lima_es_region <- function(etiquetas) {
   if (!length(etiquetas)) return(FALSE)
@@ -115,13 +115,15 @@
       NA_character_
     }, "", USE.NAMES = FALSE)
   } else ifelse(grepl("^[0-9]{5,6}$", cod), sprintf("%06d", suppressWarnings(as.integer(cod))), NA_character_)
-  filas$nombre_area <- NA_character_
+  filas$nombre_area <- rep(NA_character_, nrow(filas)); filas$lima_entera <- rep(FALSE, nrow(filas))   # también sin filas (base 0)
   if (identical(area, "peru") && .mapa_lima_es_region(attr(filas, "etiquetas_lista", exact = TRUE))) {
-    # En una lista de departamentos sin Lima Metropolitana ni Lima provincias («¿en qué otra región del Perú?»), «Lima» es
-    # la región Lima: quien estudió en Lima Metropolitana respondió antes otra opción del filtro (CCSS 2026, M11: el mapa
-    # la anotaba como «Lima Metropolitana 2 (2%)»). Va al área de Lima provincias y se rotula «Región Lima».
-    es_region <- nombre == "lima"
-    nombre[es_region] <- "lima provincias"; filas$nombre_area[es_region] <- "Región Lima"
+    # En una lista de departamentos sin Lima Metropolitana ni Lima provincias (lugar de nacimiento de madres y padres,
+    # «¿en qué otra región del Perú?»), «Lima» es el DEPARTAMENTO entero: se cuenta en Lima Metropolitana, Lima provincias
+    # se pinta igual y la lista dice «Lima» (especificación aprobada, Gonzalo, 2026-11-03). Antes se rotulaba «Región Lima»
+    # en Lima provincias (M11). Si Lima es una respuesta de otra rama del filtro (`otra_respuesta`), va a «otros».
+    entera <- nombre == "lima"
+    # «Lima (departamento)»: la lista no separa Lima Metropolitana de Lima provincias, y el rótulo no debe sugerirlo.
+    filas$nombre_area[entera] <- "Lima (departamento)"; filas$lima_entera[entera] <- TRUE
   }
   if (identical(area, "peru")) {
     nombre[nombre %in% c("lima metropolitana", "provincia de lima", "lima", "lima metropolitana y callao")] <- "lima metropolitana"
@@ -129,6 +131,9 @@
     nombre[nombre %in% c("provincia constitucional del callao", "region callao")] <- "callao"
     nombre <- sub("^departamento de ", "", nombre)
   }
+  # El nombre oficial del distrito es «Carmen de la Legua Reynoso»; la cartografía lo trae como «Carmen de la Legua»
+  # (CCSS 2026: A10_2 y A6_2 quedaban fuera del mapa).
+  if (identical(area, "lima_callao")) nombre[nombre == "carmen de la legua reynoso"] <- "carmen de la legua"
   por_nombre <- claves[match(nombre, clave_txt(carto$areas$nombre))]
   # El NOMBRE manda: el código de la lista no siempre es un UBIGEO. En el Perfil CCSS 2026 «16 = Lima provincias» se leía
   # como el departamento 16 (Loreto) y sus 6 casos se sumaban a Loreto; Lima provincias salía en 0. El código sólo decide

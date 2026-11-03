@@ -1,142 +1,181 @@
 # =============================================================================
-# lamina_mapa_distribucion.R — la lámina del mapa de distribución (diseño aprobado, lienzo «Maqueta de mapas», tableros 2–4)
+# lamina_mapa_distribucion.R — la lámina del mapa de distribución (especificación aprobada, Gonzalo, 2026-11-03)
 # =============================================================================
 #
-# A la izquierda, una tarjeta blanca con el mapa (el panel de graficos_mapa_distribucion_dibujo.R, vectorial) y, en su
-# propia franja debajo, la leyenda escalonada: bloques iguales con su rango debajo, «Sin encuestados» aparte con borde y,
-# si lo hay, lo que va fuera de escala; centrada y a todo el ancho, sin tapar nunca el mapa. A la derecha, la tarjeta del
-# ranking, del mismo alto: título, subtítulo, encabezado de columnas, filas repartidas en todo el alto con la barra del
-# color de su clase y la cifra alineada a la derecha, y una nota al pie (lo que no entra, lo que queda fuera del mapa).
-# Medidas en px del lienzo (1/96 in), como la maqueta.
+# «Especificación aprobada para el motor» (Maqueta de mapas dependientes, CCSS 2026): encima de cada tarjeta va sólo la
+# pregunta, en una línea; la tarjeta usa el alto de la lámina. El mapa ocupa la parte izquierda de su tarjeta, con la
+# leyenda debajo (bloques de clase, «Sin encuestados» y, si hay, el rayado de otra respuesta). La lista lleva por fila el
+# nombre a la izquierda y «N (%)» en negrita a la derecha; debajo, una barra de 11 px del color de su clase sobre una pista
+# del 100 %. Las filas se reparten en el alto (54 px como máximo) y la última, «Otros distritos (n)» u «Otras regiones (n)»,
+# va en gris; si queda un solo elemento fuera, se muestra él. Sin título de ranking, sin notas grises y la base al pie.
+# Medidas en px del lienzo de la maqueta (1600 × 900 para 13.333 × 7.5 in).
 
-.LAM_MAPA_DIST <- list(aire = 28, h_ley = 74, pad = 20, pad_x = 24, col_nombre = 140, col_valor = 92)
+.LAM_MAPA_PX <- 13.333 / 1600
 
-#' Cómo se reparte la leyenda escalonada en un ancho: bloques de clase iguales y, si no caben en la misma fila, los
-#' extras («fuera de escala», «Sin encuestados») en una segunda fila
-#' @return `list(filas, paso, extras, colores_extra, ancho_extra, alto)` (in).
+#' Geometría vertical de las tarjetas del mapa (in): dónde va la pregunta y de dónde a dónde la tarjeta
 #' @keywords internal
-.lam_mapa_dist_leyenda_reparto <- function(espec, w, pt = 8.25) {
-  P <- .MAPA_DIST_PX; M <- .MAPA_DIST; cl <- espec$clases
-  extras <- c(if (!is.null(espec$fuera)) paste(espec$fuera$nombre, "(fuera de escala)"), "Sin encuestados")
-  cols_extra <- c(if (!is.null(espec$fuera)) rep(M$fuera, nrow(espec$fuera)), M$vacio)
-  ancho_extra <- vapply(extras, function(t) max(0.9, .lam_ancho_tinta(t, pt) * 1.08 + 0.3), 0)
-  n <- length(cl$colores); util <- w - 48 * P
-  paso_min <- max(.lam_ancho_tinta(cl$rotulos, pt)) * 1.08 + 0.3   # cada rango cabe en una línea bajo su bloque
-  una <- n * paso_min + sum(ancho_extra) + length(extras) * 14 * P <= util
-  paso <- if (una) (util - sum(ancho_extra) - length(extras) * 14 * P) / n else util / n
-  list(filas = if (una) 1L else 2L, paso = paso, extras = extras, colores_extra = cols_extra, ancho_extra = ancho_extra,
-       alto = if (una) 74 * P else 112 * P)
+.lam_mapa_franja <- function() {
+  y0 <- .std_geom("zona_datos_y0") - 0.03; y1 <- .std_geom("contenido_y1") + 0.02
+  list(y_preg = y0 - 0.3, y0 = y0, y1 = y1)
 }
 
-#' Leyenda escalonada bajo el mapa
+#' La pregunta encima de una tarjeta: en una línea, en negrita
+#' @keywords internal
+.lam_mapa_pregunta <- function(lz, texto, x, y, w) {
+  if (is.null(texto) || !nzchar(texto)) return(invisible(lz))
+  .lam_txt(lz, texto, x - 0.1, y, w + 0.2, 0.3, 11, .std_color("azul"), bold = TRUE, nombre = "mapa:pregunta")
+}
+
+#' ¿La leyenda va en dos filas? Cuando los bloques de clase no tienen al menos 0.5 in con los extras en la misma fila
+#' @keywords internal
+.lam_mapa_dist_leyenda_filas <- function(espec, w, pt = 8) {
+  ex <- espec$leyenda_extras %||% data.frame(texto = "Sin encuestados", tipo = "vacio", stringsAsFactors = FALSE)
+  w_ex <- pmax(0.75, .lam_ancho_tinta(ex$texto, pt) * 1.08 + 0.2)
+  paso <- (w - sum(w_ex) - nrow(ex) * 10 * .LAM_MAPA_PX) / max(1L, length(espec$clases$colores))
+  if (paso >= 0.5) 1L else 2L
+}
+
+#' Leyenda bajo el mapa: título, bloques de clase con su rango y los extras («Sin encuestados» y el rayado de cada otra
+#' respuesta). Si los bloques no caben con los extras, los extras van en una segunda fila, centrados.
 #' @param x,y,w Franja de la leyenda (in). @keywords internal
-.lam_mapa_dist_leyenda <- function(lz, espec, x, y, w) {
-  P <- .MAPA_DIST_PX; M <- .MAPA_DIST
-  r <- .lam_mapa_dist_leyenda_reparto(espec, w)
-  .lam_caja(lz, x, y, w, 0.008, "#E3E6EB", nombre = "mapa:leyenda_filete")
-  .lam_txt(lz, espec$leyenda_titulo, x, y + 8 * P, w, 0.24, 8.25, "#3C4658", bold = TRUE, align = "center", nombre = "mapa:leyenda_titulo")
-  cl <- espec$clases; n <- length(cl$colores); paso <- r$paso
-  x0 <- x + 24 * P; yb <- y + 30 * P
+.lam_mapa_dist_leyenda <- function(lz, espec, x, y, w, pt = 8) {
+  M <- .MAPA_DIST; P <- .LAM_MAPA_PX; cl <- espec$clases
+  ex <- espec$leyenda_extras %||% data.frame(texto = "Sin encuestados", tipo = "vacio", stringsAsFactors = FALSE)
+  if (is.null(ex$grupo)) ex$grupo <- NA_integer_
+  .lam_txt(lz, espec$leyenda_titulo, x, y, w, 0.24, pt, "#3C4658", bold = TRUE, align = "center", nombre = "mapa:leyenda_titulo")
+  n <- length(cl$colores)
+  w_ex <- pmax(0.75, .lam_ancho_tinta(ex$texto, pt) * 1.08 + 0.2)
+  hueco <- 10 * P
+  dos <- .lam_mapa_dist_leyenda_filas(espec, w, pt) == 2L
+  paso <- if (dos) w / n else (w - sum(w_ex) - nrow(ex) * hueco) / n
+  yb <- y + 0.25; hb <- 0.16
   for (j in seq_len(n)) {
-    xj <- x0 + (j - 1) * paso
-    .lam_caja(lz, xj + P, yb, paso - 2 * P, 12 * P, cl$colores[j], nombre = "leyenda:clase")
-    .lam_txt(lz, cl$rotulos[j], xj - 0.05, yb + 14 * P, paso + 0.1, 0.24, 8.25, "#3C4658", align = "center", nombre = "leyenda:rango")
+    xj <- x + (j - 1) * paso
+    .lam_caja(lz, xj, yb, paso - 0.01, hb, cl$colores[j], nombre = "leyenda:clase")
+    .lam_txt(lz, cl$rotulos[j], xj - 0.05, yb + hb + 0.02, paso + 0.1, 0.22, pt - 0.5, "#3C4658", align = "center", nombre = "leyenda:rango")
   }
-  # En una fila, los extras siguen a los bloques; en dos, van centrados debajo.
-  if (r$filas == 1L) { xe <- x0 + n * paso; ye <- yb } else {
-    xe <- x + (w - sum(r$ancho_extra) - length(r$extras) * 14 * P) / 2; ye <- yb + 38 * P
-  }
-  for (j in seq_along(r$extras)) {
-    xe <- xe + 14 * P
-    vacio <- identical(r$colores_extra[j], M$vacio)
-    .lam_caja(lz, xe, ye, r$ancho_extra[j], 12 * P, r$colores_extra[j], nombre = "leyenda:extra",
-              borde = if (vacio) M$vacio_borde else r$colores_extra[j], borde_pt = 0.75)
-    .lam_txt(lz, r$extras[j], xe - 0.05, ye + 14 * P, r$ancho_extra[j] + 0.1, 0.24, 8.25, "#3C4658", align = "center", nombre = "leyenda:texto")
-    xe <- xe + r$ancho_extra[j]
+  if (dos) { xe <- x + (w - sum(w_ex) - (nrow(ex) - 1) * hueco) / 2 - hueco; yb <- yb + hb + 0.27 } else xe <- x + n * paso
+  for (j in seq_len(nrow(ex))) {
+    xe <- xe + hueco
+    otra <- identical(ex$tipo[j], "otra")
+    .lam_caja(lz, xe, yb, w_ex[j], hb, if (otra) M$otra else M$vacio, nombre = if (otra) "leyenda:otra" else "leyenda:extra",
+              borde = if (otra) M$otra else M$vacio_borde, borde_pt = 0.75)
+    if (otra) .lam_mapa_dist_rayas_caja(lz, xe, yb, w_ex[j], hb, sentido = if (is.na(ex$grupo[j]) || ex$grupo[j] %% 2) 1 else -1)
+    .lam_txt(lz, ex$texto[j], xe - 0.05, yb + hb + 0.02, w_ex[j] + 0.1, 0.22, pt - 0.5, "#3C4658", align = "center", nombre = "leyenda:texto")
+    xe <- xe + w_ex[j]
   }
   invisible(lz)
 }
 
-#' Tarjeta del ranking: filas repartidas en todo el alto, barras del color de su clase, cifras a la derecha
+#' Rayas a 45° dentro de una caja de la leyenda (la muestra del rayado de otra respuesta)
 #' @keywords internal
-.lam_mapa_dist_ranking <- function(lz, espec, x, y, w, h) {
-  P <- .MAPA_DIST_PX; R <- .LAM_MAPA_DIST; azul <- .MAPA_DIST$texto
-  .lam_caja(lz, x, y, w, h, "#FFFFFF", nombre = "mapa:ranking_tarjeta", borde = "#DDE1E7", borde_pt = 0.75)
-  xi <- x + R$pad_x * P; wi <- w - 2 * R$pad_x * P; yi <- y + R$pad * P
-  .lam_txt(lz, espec$ranking_titulo, xi - 0.06, yi, wi, 0.3, 11.25, azul, bold = TRUE, nombre = "mapa:ranking_titulo")
-  .lam_txt(lz, espec$ranking_sub, xi - 0.06, yi + 0.27, wi, 0.26, 9, .MAPA_DIST$gris, nombre = "mapa:ranking_sub")
-  rk <- espec$ranking
-  pt_val <- 9.4
-  # Cada caja de texto pierde 0.1 in por lado (sus márgenes internos): sin sumarlos, «(16%)» se partía en dos líneas.
-  w_det <- max(c(0, .lam_ancho_tinta(rk$detalle, pt_val))) * 1.08 + 0.22
-  w_val <- max(c(0.3, .lam_ancho_tinta(rk$valor, pt_val, TRUE))) * 1.08 + 0.2
-  col_valor <- max(R$col_valor * P, w_det + w_val + 0.1)
-  col_nombre <- min(max(R$col_nombre * P, max(c(0, .lam_ancho_tinta(rk$nombre, pt_val))) * 1.08 + 0.25), wi * 0.45)
-  yh <- yi + 0.62
-  .lam_txt(lz, toupper(espec$ranking_columnas[1]), xi - 0.06, yh, col_nombre + 0.06, 0.24, 7.9, "#8A93A3", bold = TRUE, align = "right",
-           nombre = "mapa:ranking_columna")
-  .lam_txt(lz, toupper(espec$ranking_columnas[2]), xi + wi - col_valor, yh, col_valor + 0.06, 0.24, 7.9, "#8A93A3", bold = TRUE, align = "right",
-           nombre = "mapa:ranking_columna")
-  .lam_caja(lz, xi, yh + 0.26, wi, 0.008, "#D5D9E0", nombre = "mapa:ranking_filete")
-  h_nota <- if (length(espec$notas)) 0.22 * length(espec$notas) + 0.12 else 0
-  y0 <- yh + 0.32; y1 <- y + h - R$pad * P * 0.8 - h_nota
-  n <- nrow(rk)
-  if (!n) {
-    .lam_txt(lz, "Ningún área tiene encuestados.", xi, y0, wi, 0.3, 10, azul, nombre = "mapa:vacio")
+.lam_mapa_dist_rayas_caja <- function(lz, x, y, w, h, paso = 0.06, sentido = 1) {
+  for (c0 in seq(x - h, x + w, by = paso)) {
+    # La raya sube 45° desde el borde inferior («/») o baja («\\»); se recorta a la caja.
+    x1 <- max(x, c0); x2 <- min(x + w, c0 + h)
+    if (x2 - x1 < 0.005) next
+    if (sentido > 0) .lam_linea(lz, x1, y + h - (x1 - c0), x2, y + h - (x2 - c0), .MAPA_DIST$otra_raya, pt = 0.5, nombre = "leyenda:raya")
+    else .lam_linea(lz, x1, y + (x1 - c0), x2, y + (x2 - c0), .MAPA_DIST$otra_raya, pt = 0.5, nombre = "leyenda:raya")
   }
-  fila <- if (n) (y1 - y0) / n else 0
-  x_bar <- xi + col_nombre + 12 * P; w_bar <- wi - col_nombre - col_valor - 24 * P
-  for (k in seq_len(n)) {
-    yk <- y0 + (k - 1) * fila; yc <- yk + fila / 2
-    .lam_txt(lz, rk$nombre[k], xi - 0.06, yc - 0.13, col_nombre + 0.06, 0.26, pt_val, "#2A3448", align = "right", nombre = "mapa:distrito")
-    hb <- min(16 * P, fila * 0.62)
-    .lam_caja(lz, x_bar, yc - hb / 2, w_bar, hb, "#F1F3F6", nombre = "mapa:barra_fondo")
-    if (rk$barra[k] > 0) .lam_caja(lz, x_bar, yc - hb / 2, max(0.01, w_bar * rk$barra[k]), hb, rk$color[k], nombre = "mapa:barra")
-    .lam_txt(lz, rk$detalle[k], xi + wi - w_det + 0.06, yc - 0.13, w_det, 0.26, pt_val, .MAPA_DIST$gris, align = "right", nombre = "mapa:detalle")
-    .lam_txt(lz, rk$valor[k], xi + wi - w_det - w_val + 0.16, yc - 0.13, w_val, 0.26, pt_val, azul, bold = TRUE, align = "right",
-             nombre = "mapa:valor")
-    if (k < n) .lam_caja(lz, xi, yk + fila, wi, 0.006, "#F0F2F5", nombre = "mapa:ranking_linea")
-  }
-  if (length(espec$notas)) .lam_txt(lz, paste(espec$notas, collapse = "\n"), xi - 0.06, y1 + 0.08, wi, h_nota, 8.6, .MAPA_DIST$gris,
-                                    nombre = "mapa:ranking_nota")
   invisible(lz)
 }
 
-#' El mapa de distribución en una caja de la lámina: la tarjeta del mapa con su leyenda y, al lado, la del ranking
+#' Las filas que caben en la lista y la fila «otros»: si queda una sola fuera, va ella; lo que no casa con el mapa y lo de
+#' otra respuesta siempre van a «otros»
+#' @return data.frame `nombre`, `cifra` («N (%)»), `frac` (largo de la barra sobre el 100 %), `color`, `otros` (lógico).
+#' @keywords internal
+.lam_mapa_dist_filas <- function(espec, cupo) {
+  M <- .MAPA_DIST; li <- espec$lista; ex <- espec$extra %||% data.frame(nombre = character(0), n = integer(0))
+  base <- max(1, espec$base)
+  hay_extra <- nrow(ex) > 0
+  cupo <- max(1L, cupo - (if (hay_extra) 1L else 0L))
+  if (nrow(li) == cupo + 1L && !hay_extra) cupo <- cupo + 1L
+  top <- utils::head(li, cupo); resto <- li[-seq_len(min(nrow(li), cupo)), , drop = FALSE]
+  # `paste0` con un vector vacío devuelve « ()»: sin filas, la tabla sale vacía (un mapa sin encuestados).
+  out <- data.frame(nombre = top$nombre, cifra = if (nrow(top)) paste0(top$valor, " (", top$pct, ")") else character(0),
+                    frac = top$n / base, color = top$color, otros = rep(FALSE, nrow(top)), stringsAsFactors = FALSE)
+  n_otros <- sum(resto$n) + sum(ex$n); k <- nrow(resto) + nrow(ex)
+  if (k > 0) {
+    out <- rbind(out, data.frame(nombre = sprintf("%s (%d)", espec$otros_rotulo %||% "Otros", k),
+                                 cifra = paste0(n_otros, " (", .mapa_dist_pct(n_otros, base), ")"), frac = n_otros / base,
+                                 color = M$otros_barra, otros = TRUE, stringsAsFactors = FALSE))
+  }
+  out
+}
+
+#' La lista del mapa: nombre y «N (%)» en una línea y, debajo, la barra sobre su pista
+#' @keywords internal
+.lam_mapa_dist_lista <- function(lz, espec, x, y, w, h, pt = 8.5) {
+  M <- .MAPA_DIST; P <- .LAM_MAPA_PX
+  cupo <- max(1L, floor(h / (44 * P)))
+  f <- .lam_mapa_dist_filas(espec, cupo)
+  # La letra se ajusta al ancho para que nombre y cifra quepan en una línea (lista angosta de dos mapas), hasta 7 pt.
+  pide <- max(.lam_ancho_tinta(f$nombre, 1) + .lam_ancho_tinta(f$cifra, 1, TRUE) * 1.05)
+  if (is.finite(pide) && pide > 0) pt <- max(7, min(pt, (w - 0.42) / pide))
+  if (!nrow(f)) { .lam_txt(lz, "Ningún área tiene encuestados.", x, y, w, 0.3, pt, M$texto, nombre = "mapa:vacio"); return(invisible(lz)) }
+  fila <- min(54 * P, h / nrow(f)); hb <- 11 * P
+  for (k in seq_len(nrow(f))) {
+    yk <- y + (k - 1) * fila
+    col_t <- if (f$otros[k]) M$otros_texto else M$texto
+    wc <- .lam_ancho_tinta(f$cifra[k], pt, TRUE) * 1.05 + 0.26   # con los 0.2 in de márgenes de la caja: no se parte
+    .lam_txt(lz, f$nombre[k], x - 0.1, yk, w - wc + 0.15, 0.24, pt, col_t, nombre = if (f$otros[k]) "mapa:otros" else "mapa:distrito")
+    .lam_txt(lz, f$cifra[k], x + w - wc + 0.1, yk, wc, 0.24, pt, col_t, bold = TRUE, align = "right", nombre = "mapa:valor")
+    .lam_caja(lz, x, yk + 0.235, w, hb, M$pista, nombre = "mapa:barra_fondo")
+    .lam_caja(lz, x, yk + 0.235, max(1.5 * P, w * min(1, f$frac[k])), hb, f$color[k], nombre = "mapa:barra")
+  }
+  invisible(lz)
+}
+
+#' El mapa de distribución en una tarjeta: el mapa a la izquierda, la leyenda debajo y la lista a la derecha
 #'
-#' Lo usan la lámina del mapa (a todo el ancho) y la del filtro con su mapa dependiente (lamina_filtro_mapa.R).
-#' @param x,y,w,h La caja (in).
-#' @return `doc` con el mapa y sus dos tarjetas.
+#' `modo = "ancho"` (un mapa junto a su filtro): la leyenda va bajo el mapa y la lista usa todo el alto. `modo = "angosto"`
+#' (dos mapas): la leyenda cruza la tarjeta y la lista termina encima de ella. Lo usan la lámina del filtro con sus mapas
+#' (lamina_filtro_mapa.R) y, con `modo = "solo"`, la del mapa suelto (mapa y lista en tarjetas separadas).
+#' @param x,y,w,h La tarjeta (in). @return `doc` con la tarjeta, el mapa, la leyenda y la lista.
 #' @keywords internal
-.lam_mapa_dist_en_caja <- function(doc, espec, x, y, w, h) {
-  P <- .MAPA_DIST_PX; R <- .LAM_MAPA_DIST
-  # La tarjeta del mapa mide lo que su contenido pide (entre el 40 % y el 62 % del ancho): un ancho fijo dejaba franjas de
-  # mar vacías a los lados («se ve raro el encuadre», Gonzalo, 2026-11-02). La leyenda decide su alto con ese ancho.
-  wm <- min(0.62 * w, max(0.4 * w, .mapa_dist_ancho_natural(espec, h - R$h_ley * P - P, .mapa_dist_pt("lamina")) + 2 * P))
-  h_ley <- .lam_mapa_dist_leyenda_reparto(espec, wm)$alto; h_map <- h - h_ley
+.lam_mapa_dist_en_caja <- function(doc, espec, x, y, w, h, modo = c("ancho", "angosto", "solo"), w_lista = NULL) {
+  modo <- match.arg(modo); P <- .LAM_MAPA_PX
+  if (identical(modo, "solo")) {
+    wm <- w; xl <- x + w + 20 * P; wl <- w_lista %||% 4
+  } else {
+    wm <- w * (if (identical(modo, "ancho")) 600 / 1090 else 290 / 534); xl <- x + wm + (if (identical(modo, "ancho")) 30 else 17) * P
+    wl <- x + w - xl - (if (identical(modo, "ancho")) 30 else 16) * P
+  }
+  ley_w <- if (identical(modo, "angosto")) w - 30 * P else wm - 30 * P
+  h_ley <- if (.lam_mapa_dist_leyenda_filas(espec, ley_w) == 2L) 132 * P else 92 * P   # dos filas de leyenda: el mapa cede ese alto
+  h_map <- h - h_ley
   lz <- .lam_lienzo()
-  .lam_caja(lz, x, y, wm, h, "#FFFFFF", nombre = "mapa:tarjeta", borde = "#DDE1E7", borde_pt = 0.75)
+  .lam_caja(lz, x, y, w, h, "#FFFFFF", nombre = "mapa:tarjeta", borde = "#DDE1E7", borde_pt = 0.75)
+  if (identical(modo, "solo")) .lam_caja(lz, xl, y, wl, h, "#FFFFFF", nombre = "mapa:lista_tarjeta", borde = "#DDE1E7", borde_pt = 0.75)
   doc <- .lam_agrupar(doc, lz, nombre = "prosecnur:grafico:mapa:fondo")
   panel <- .mapa_dist_panel_gg(espec, wm - 2 * P, h_map - P, .mapa_dist_pt("lamina"))
   doc <- officer::ph_with(doc, rvg::dml(ggobj = panel, bg = "transparent", fonts = list(sans = .std_pt("fuente"))),
                           location = officer::ph_location(left = x + P, top = y + P, width = wm - 2 * P, height = h_map - P,
                                                           newlabel = "prosecnur:grafico:mapa"))
   lz <- .lam_lienzo()
-  .lam_mapa_dist_leyenda(lz, espec, x, y + h_map, wm)
-  .lam_mapa_dist_ranking(lz, espec, x + wm + R$aire * P, y, w - wm - R$aire * P, h)
+  .lam_mapa_dist_leyenda(lz, espec, x + 15 * P, y + h_map + 10 * P, ley_w)
+  y_l <- y + 18 * P
+  h_l <- if (identical(modo, "angosto")) h_map - 30 * P else h - 42 * P
+  if (identical(modo, "solo")) .lam_mapa_dist_lista(lz, espec, xl + 24 * P, y_l, wl - 48 * P, h_l)
+  else .lam_mapa_dist_lista(lz, espec, xl, y_l, wl, h_l)
   .lam_agrupar(doc, lz, nombre = "prosecnur:grafico:mapa:panel")
 }
 
-#' Lámina del mapa de distribución
+#' Lámina del mapa de distribución (V5 de la especificación): la pregunta, el mapa con su leyenda y, al lado, la lista
 #' @keywords internal
 .lam_laminas_mapa_distribucion <- function(doc, espec, titulo, ante = NULL, base = NULL, folio = NULL, sub = NULL,
                                            layout = "Graficos2", master = "Office Theme", por_lamina = function(doc) doc) {
   force(folio)
-  g_ <- .std_geom
-  ml <- g_("margen_izq"); ancho <- g_("ancho") - ml - g_("margen_der"); yt <- g_("zona_datos_y0") - 0.1; yf <- g_("contenido_y1")
+  g_ <- .std_geom; P <- .LAM_MAPA_PX
+  ml <- g_("margen_izq"); ancho <- g_("ancho") - ml - g_("margen_der"); fr <- .lam_mapa_franja()
   doc <- officer::add_slide(doc, layout = layout, master = master)
   doc <- .lam_titulo(doc, titulo, ante = ante, sub = sub)
-  doc <- .lam_mapa_dist_en_caja(doc, espec, ml, yt, ancho, yf - yt)
+  wm <- ancho * 860 / 1490
+  if (!is.null(espec$pregunta) && nzchar(espec$pregunta)) {
+    lz <- .lam_lienzo(); .lam_mapa_pregunta(lz, espec$pregunta, ml, fr$y_preg, ancho)
+    doc <- .lam_agrupar(doc, lz, nombre = "prosecnur:grafico:mapa:pregunta")
+  }
+  doc <- .lam_mapa_dist_en_caja(doc, espec, ml, fr$y0, wm, fr$y1 - fr$y0, modo = "solo", w_lista = ancho - wm - 20 * P)
   base <- paste(c(if (!is.null(base) && nzchar(base)) sub("\\.?\\s*$", ".", base), espec$nota_pie), collapse = " ")
   doc <- .lam_pie(doc, base, folio)
   list(doc = por_lamina(doc), partes = 1L)

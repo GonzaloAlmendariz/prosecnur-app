@@ -1795,12 +1795,19 @@
       list(name = "encuadre", label = "Encuadre", tipo_input = "choice", grupo = "estilo", default = "datos",
            choices = list(list(value = "datos", label = "Acercar a las áreas con datos"),
                            list(value = "completo", label = "Todo el territorio"))),
-      list(name = "zona_lima", label = "Recuadro de la zona de Lima (Perú)", tipo_input = "bool", grupo = "estilo",
-           descripcion = "Vacío: sale sólo si Lima Metropolitana, el Callao y Lima provincias suman al menos el 5 % de la base."),
+      # Especificación aprobada de los mapas (Gonzalo, 2026-11-03; contrato docs/qa/contrato-ui-mapas-dependientes-2026-11-03.md).
+      list(name = "juntar", label = "Juntar con", tipo_input = "variables_list", grupo = "datos",
+           descripcion = "Otras preguntas de área de la misma base cuyos conteos se suman (ej. el distrito del Callao con el de Lima)."),
+      list(name = "unidad", label = "Se cuentan", tipo_input = "choice", grupo = "datos", default = "estudiantes",
+           choices = list(list(value = "estudiantes", label = "Estudiantes"), list(value = "personas", label = "Personas (ej. madres y padres)")),
+           descripcion = "Personas: leyenda «Personas por…» y clases 1–5, 6–10, 11–20, 21–50 y 51 o más."),
       list(name = "excluir_opciones", label = "Excluir del total", tipo_input = "codigos_list", grupo = "filtro"),
+      list(name = "otra_respuesta", label = "Áreas de otra respuesta", tipo_input = "codigos_list", grupo = "filtro",
+           descripcion = "Áreas que pertenecen a otra respuesta del filtro (ej. Lima y Callao): van en gris con rayado y lo que caiga en ellas va a la fila «otros»."),
+      list(name = "otra_respuesta_rotulo", label = "Rótulo en la leyenda", tipo_input = "string", grupo = "textos",
+           descripcion = "Vacío: «Lima y Callao»."),
       list(name = "cortes", label = "Dónde empieza cada clase", tipo_input = "codigos_list", grupo = "estilo",
-           descripcion = "Desde la segunda clase, en la unidad de la medida. Vacío usa 3, 6, 11 y 21 encuestados (Perú: 3, 6 y 11) o 0,5, 1, 2 y 3 por 10 000."),
-      list(name = "rotulo", label = "Título del ranking", tipo_input = "string", grupo = "textos"),
+           descripcion = "Desde la segunda clase, en la unidad de la medida. Vacío usa 3, 6, 11 y 21 encuestados (Perú: 3, 6 y 11), 6, 11, 21 y 51 personas o 0.5, 1, 2 y 3 por 10 000."),
       list(name = "puntos", label = "Puntos de referencia", tipo_input = "textarea", grupo = "textos",
            descripcion = "Uno por línea: Etiqueta | latitud, longitud o enlace de Google Maps | color opcional. Ej.: PUCP | -12.0693, -77.0794")
     ), .args_graf_comunes())
