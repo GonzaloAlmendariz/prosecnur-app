@@ -241,7 +241,8 @@ const LISTA_BLANCA: Record<string, Entrada> = {
   // `top_n` y `sm_omit_codes` siguen sin control: recortan antes del denominador (C40, D1).
   sm_omit_na: { rotulo: "Omitir sin respuesta", soloEn: TABLA, defecto: true },
   umbral_rojo_pct: { rotulo: "Resaltar en rojo bajo (%)", ayuda: "0 desactiva el resaltado.", soloEn: TABLA },
-  mostrar_significancia: { rotulo: "Marcar diferencias significativas" },
+  // `mostrar_significancia` y `significancia_alpha` salen de la lista: los lleva la sección «Diferencias entre grupos»
+  // (diferencias/DiferenciasInspector.tsx; ADR 0126). El nivel ya no es de cada lámina sino de la regla del estudio.
   // Pregunta filtro y subpregunta (recetario p192–p194): las preguntas y lo que habilita van en su tarjeta.
   grafico_sub: { rotulo: "Gráfico de la subpregunta", soloEn: ["p_filtro_subpregunta"] },
   disposicion: { rotulo: "Disposición", soloEn: ["p_filtro_subpregunta"], cuando: (v) => v.grafico_filtro !== "torta" && v.grafico_filtro !== "dona" },
@@ -249,7 +250,6 @@ const LISTA_BLANCA: Record<string, Entrada> = {
   alpha: { rotulo: "Nivel de significancia", soloEn: ["p_significancia_publicos"] },
   // Inventario de configuraciones, ítem 3 (recetario p74–p75): formal de p_barras_agrupadas() → overrides.
   marcas_eje: { rotulo: "Marcas del eje", ayuda: "0, 25, 50, 75 y 100 % bajo las barras.", soloEn: ["p_barras_agrupadas"] },
-  significancia_alpha: { rotulo: "Nivel de significancia", siActivo: "mostrar_significancia" },
   mostrar_brecha: { rotulo: "Mostrar la brecha", ayuda: AYUDA_BRECHA, soloEn: ["p_dumbbell"] },
   // Formal de p_dumbbell (e93c51d): sólo se escribe junto a la brecha, así que sin brecha no hay qué rotular.
   etiqueta_brecha: { rotulo: "Unidad de la brecha", placeholder: "pts", siActivo: "mostrar_brecha", soloEn: ["p_dumbbell"] },

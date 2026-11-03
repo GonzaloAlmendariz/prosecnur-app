@@ -20,7 +20,7 @@ export type OpcionesGlifo = {
   mayor?: boolean;
   /** Dividido por un cruce: dos series lado a lado con su leyenda. */
   grupos?: boolean;
-  /** Letras de diferencias significativas sobre las barras. */
+  /** Diferencias entre grupos (ADR 0126): la cápsula ▲ de la lámina junto a las barras que difieren, no un punto rojo. */
   significancia?: boolean;
   /** Ranking en barras: las marcas 0–100 % bajo las barras, con sus guías. */
   marcas?: boolean;
@@ -91,6 +91,21 @@ function Trazo({ d, t = "a", ancho = 2 }: { d: string; t?: Tono; ancho?: number 
 function Punto({ cx, cy, r = 3.5, t = "a" }: { cx: number; cy: number; r?: number; t?: Tono }) {
   const g = { cx: r2(cx), cy: r2(cy), r };
   return <circle {...g} style={g} className={`pulso-glifo__${t}`} />;
+}
+
+/** Filas que llevan la cápsula en el dibujo: sólo las que difieren, como en la lámina (no todas). */
+const FILAS_CON_DIFERENCIA: ReadonlySet<number> = new Set([0, 2]);
+
+/** La cápsula ▲A de la lámina en miniatura: banda clara con el triángulo en azul (tokens --pulso-sig-*). */
+function CapsulaGlifo({ x, y }: { x: number; y: number }) {
+  const g = geom(x, y, 12, 5.6);
+  return (
+    <g className="pulso-glifo__sig">
+      <rect {...g} style={g} rx={2.8} className="pulso-glifo__sig-capsula" />
+      <path d={`M${r2(x + 2)} ${r2(y + 4.3)}L${r2(x + 3.9)} ${r2(y + 1.3)}L${r2(x + 5.8)} ${r2(y + 4.3)}Z`} className="pulso-glifo__sig-tri" />
+      <rect x={r2(x + 7)} y={r2(y + 1.6)} width={3} height={2.4} rx={0.6} className="pulso-glifo__sig-tri" />
+    </g>
+  );
 }
 
 function Cifra({ x, y, tam, texto, anclaje = "middle" }: { x: number; y: number; tam: number; texto: string; anclaje?: "start" | "middle" }) {
@@ -173,7 +188,7 @@ const GLIFOS: Readonly<Record<string, DibujoGlifo>> = {
               <Barra x={x} y={84 - h} w={g ? 9 : 18} h={h} t={g ? "p" : o?.resaltar ? (i === 2 ? "p" : "n") : i === 0 && (o?.mayor ?? true) ? "p" : "a"} />
               {g && <Barra x={x + 9.6} y={84 - h2} w={8.4} h={h2} t="a" />}
               {!g && <Valor x={x + 3} y={84 - h - 7} w={12} />}
-              {o?.significancia && <Punto cx={x + 4.5} cy={84 - h - 5} r={1.8} t="r" />}
+              {o?.significancia && FILAS_CON_DIFERENCIA.has(i) && <CapsulaGlifo x={x - 1.5} y={84 - h - 8} />}
               <Rotulo x={x + 2} y={88} w={14} />
             </g>
           );
@@ -211,7 +226,7 @@ const GLIFOS: Readonly<Record<string, DibujoGlifo>> = {
               <Barra x={42} y={y} w={w} h={g ? 4.6 : 9} t={otros ? "n" : g ? "p" : o?.resaltar ? (i === 2 ? "p" : "n") : i === 0 && (o?.mayor ?? true) ? "p" : "a"} />
               {g && <Barra x={42} y={y + 5.2} w={segundo[i]} h={4.6} t="a" />}
               <Valor x={46 + Math.max(w, g ? segundo[i] : 0)} y={y + 2.75} />
-              {o?.significancia && <Punto cx={42 + w + 18} cy={y + 4.5} r={1.8} t="r" />}
+              {o?.significancia && FILAS_CON_DIFERENCIA.has(i) && <CapsulaGlifo x={46 + Math.max(w, g ? segundo[i] : 0) + 13} y={y + 1.7} />}
             </g>
           );
         })}

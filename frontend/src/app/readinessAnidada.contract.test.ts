@@ -160,6 +160,14 @@ const FALSE_TRANSITORIO: Record<string, string> = {
     "vista previa pedida («Previsualizar») mientras el motor dibuja; lista o en error (también desactualizada) publica true",
   "features/graficos/estiloInforme/PestanaEstiloInforme.tsx": "`cargando` de la lectura del estilo del informe",
   "features/graficos/indice/BibliotecaIconos.tsx": "listo al llegar los nombres de íconos o su error",
+  "features/graficos/laminas/diferencias/DiferenciasInspector.tsx":
+    "«calculando» mientras GET /api/graficos/diferencias?slide= responde; con la lámina o su error publica graficos-diferencias",
+  "features/graficos/laminas/diferencias/ReglaDiferenciasDialog.tsx":
+    "lectura de GET /api/graficos/diferencias/regla al abrir el diálogo; con la regla o su error publica graficos-diferencias-regla",
+  "features/graficos/laminas/diferencias/PorQuePopover.tsx":
+    "lectura de las diferencias de la lámina; con la lámina o su error publica graficos-diferencias-lamina",
+  "features/graficos/laminas/diferencias/RevisionDiferenciasPanel.tsx":
+    "lectura de GET /api/graficos/diferencias/informe; con el informe o su error publica graficos-diferencias-informe",
   "features/calcMuestra/CalcMuestraPage.tsx":
     "`calc-muestra-hidratando`: la rehidratación del estado del proyecto",
   "features/calcMuestra/general/ArchivoMarcoGeneral.tsx":

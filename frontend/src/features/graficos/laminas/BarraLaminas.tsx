@@ -8,14 +8,14 @@
 import { teclaMod } from "../../../lib/teclado";
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent, type RefObject } from "react";
 import { useLocation } from "react-router-dom";
-import { AlertTriangle, Archive, FileJson, Layers3, MoreHorizontal, Palette, Redo2, RotateCcw, Undo2 } from "../../../vendor/lucide-react";
+import { AlertTriangle, Archive, FileJson, Layers3, MoreHorizontal, Palette, Redo2, RotateCcw, Scale, Undo2 } from "../../../vendor/lucide-react";
 import { SaveStatusIndicator } from "../../../components/SaveStatusIndicator";
 import { useSession } from "../../../lib/SessionContext";
 import { usePanelDireccionable } from "../../../lib/navegacion/paneles";
 import { useSeccion } from "../../../lib/navegacion/useDireccion";
 import { ExportarInformeMenu, type ExportarInformeMenuProps } from "../ExportarInformeMenu";
 import { modoMultibaseDelPlan } from "../modoMultibase";
-import { PANEL_AVISOS_INFORME, PANEL_PLAN_PORTATIL, PANEL_SECCIONES_JSON } from "../panelesGraficos";
+import { PANEL_AVISOS_INFORME, PANEL_DIFERENCIAS_INFORME, PANEL_PLAN_PORTATIL, PANEL_SECCIONES_JSON } from "../panelesGraficos";
 import { DialogoCompartir } from "../compartir/DialogoCompartir";
 import { itemsCompartirMenu, type ItemCompartirMenu } from "../compartir/menuCompartir";
 import { PlanPortatilContenido } from "../compartir/PlanPortatilContenido";
@@ -61,6 +61,7 @@ export function BarraLaminas({ canExport, onIrEditorAnterior: _sinUso, ...export
   const avisosPanel = usePanelDireccionable(PANEL_AVISOS_INFORME);
   const planPortatilPanel = usePanelDireccionable(PANEL_PLAN_PORTATIL);
   const seccionesJsonPanel = usePanelDireccionable(PANEL_SECCIONES_JSON);
+  const diferenciasPanel = usePanelDireccionable(PANEL_DIFERENCIAS_INFORME);
   const compartir = useCompartirPlan(reportScope);
   const vaciar = useVaciarPlan(reportScope);
   const { irA } = useSeccion("procesamiento");
@@ -150,6 +151,7 @@ export function BarraLaminas({ canExport, onIrEditorAnterior: _sinUso, ...export
           }))}
           vaciar={{ ...itemVaciarMenu(vaciar.disponibilidad), abrir: vaciar.pedir }}
           onIrEstilo={() => irA("pestana", "identidad")}
+          onDiferencias={diferenciasPanel.abrir}
           disparadorRef={masRef}
         />
       </div>
@@ -202,7 +204,7 @@ export function indiceMenuTrasTecla(tecla: string, actual: number, total: number
   }
 }
 
-function MenuMas({ undo, redo, compartir, vaciar, onIrEstilo, disparadorRef }: {
+function MenuMas({ undo, redo, compartir, vaciar, onIrEstilo, onDiferencias, disparadorRef }: {
   undo: { disabled: boolean; run: () => void };
   redo: { disabled: boolean; run: () => void };
   /** Plan portátil (C11) y secciones JSON (C12), cada uno con su panel. */
@@ -211,6 +213,8 @@ function MenuMas({ undo, redo, compartir, vaciar, onIrEstilo, disparadorRef }: {
   vaciar: ItemVaciarMenu & { abrir: () => void };
   /** La pestaña «Estilo del cliente» de Procesamiento > Gráficos. */
   onIrEstilo: () => void;
+  /** «Diferencias del informe» (ADR 0126): la revisión en lote de las láminas con cruce, `?panel=diferencias`. */
+  onDiferencias: () => void;
   disparadorRef: RefObject<HTMLButtonElement>;
 }) {
   const [abierto, setAbierto] = useState(false);
@@ -265,6 +269,10 @@ function MenuMas({ undo, redo, compartir, vaciar, onIrEstilo, disparadorRef }: {
           <button type="button" role="menuitem" onClick={item(onIrEstilo)}>
             <Palette size={14} aria-hidden="true" />
             <span>Identidad<small>Su pestaña: logos, letra e íconos</small></span>
+          </button>
+          <button type="button" role="menuitem" data-pulso-abre-panel={PANEL_DIFERENCIAS_INFORME.id} onClick={item(onDiferencias)}>
+            <Scale size={14} aria-hidden="true" />
+            <span>Diferencias del informe<small>Revisa las marcas de las láminas con cruce</small></span>
           </button>
           {compartir.map((accion) => (
             <button key={accion.clave} type="button" role="menuitem" data-pulso-abre-panel={accion.panel.id} {...itemCompartir(accion)}>

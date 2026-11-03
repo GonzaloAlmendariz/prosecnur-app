@@ -1,13 +1,15 @@
 // Grupos de la tarjeta del gráfico (O7b del rediseño, 2026-10-15; aprobado por Gonzalo): Datos, Categorías y orden,
-// Cifras, Colores y En el Word. Cada campo de la lista blanca cae en uno; lo no listado es Datos. Un grupo sin nada para
+// Cifras, Diferencias entre grupos (ADR 0126), Colores y En el Word. Cada campo de la lista blanca cae en uno; lo no listado es Datos. Un grupo sin nada para
 // ese tipo de gráfico no se muestra (CSS), así cada tipo enseña su propio juego de ajustes.
 
 export type GrupoTarjeta = "datos" | "orden" | "cifras";
 
-export const TITULO_GRUPO: Readonly<Record<GrupoTarjeta | "colores" | "word", string>> = {
+export const TITULO_GRUPO: Readonly<Record<GrupoTarjeta | "diferencias" | "colores" | "word", string>> = {
   datos: "Datos",
   orden: "Categorías y orden",
   cifras: "Cifras",
+  // ADR 0126: el interruptor y el resumen de las marcas; reemplaza al «Nivel de significancia» de Cifras.
+  diferencias: "Diferencias entre grupos",
   colores: "Colores",
   word: "En el Word",
 };
@@ -19,7 +21,7 @@ const ORDEN: ReadonlySet<string> = new Set([
 ]);
 
 const CIFRAS: ReadonlySet<string> = new Set([
-  "marcas_eje", "mostrar_significancia", "significancia_alpha", "alpha", "mostrar_brecha", "etiqueta_brecha", "decimales_promedio",
+  "marcas_eje", "alpha", "mostrar_brecha", "etiqueta_brecha", "decimales_promedio",
   "tipo_rango", "mostrar_valores", "max_series_con_cifras", "valores_decimales", "umbral_rojo_pct", "cortes_chip", "min_n", "cortes",
   "decimales", "mostrar_leyenda",
 ]);

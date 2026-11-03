@@ -17,11 +17,12 @@ describe("camposDeDatos", () => {
   it("sólo la lista blanca, en su orden, sin estilo ggplot", () => {
     expect(camposDeDatos(agrupadas, {}).map((c) => c.arg.name)).toEqual([
       "var", "cruces", "orden_barras", "max_categorias", "agrupar_resto_en_otros", "mostrar_ceros", "excluir_opciones",
-      "mostrar_significancia",
     ]);
   });
-  it("el nivel de significancia aparece sólo con la marca encendida", () => {
-    expect(camposDeDatos(agrupadas, { mostrar_significancia: true }).map((c) => c.arg.name)).toContain("significancia_alpha");
+  it("ADR 0126: ni el interruptor ni el nivel de significancia son filas genéricas (los lleva «Diferencias entre grupos»)", () => {
+    const nombres = camposDeDatos(agrupadas, { mostrar_significancia: true, significancia_alpha: 0.05 }).map((c) => c.arg.name);
+    expect(nombres).not.toContain("significancia_alpha");
+    expect(nombres).not.toContain("mostrar_significancia");
   });
   it("rótulos cortos y la descripción larga queda como detalle", () => {
     const [p, d] = camposDeDatos(agrupadas, {});

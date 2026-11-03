@@ -24,6 +24,7 @@ import { PanelAvisos } from "./PanelAvisos";
 import { useColoresPendientes } from "../estilo/ColoresPendientesAviso";
 import { useFijarBase } from "../useFijarBase";
 import { EditorAmplio } from "./EditorAmplio";
+import { DiferenciasPaneles } from "./diferencias/DiferenciasPaneles";
 import { agruparAvisos } from "./resumenInforme";
 import { construirEstructura } from "./modeloEstructura";
 import { tituloQueSale } from "./tituloQueSale";
@@ -379,6 +380,7 @@ export function LaminasWorkbench({ onIrEditorAnterior }: Props) {
       </div>
       <EditorAmplio />
       {avisos.abierto && <PanelAvisos panel={avisos} grupos={grupos} estructura={estructura} onIr={irA} enfocarAlAbrir={inspectorModal} coloresPendientes={coloresPendientes} baseImplicita={baseImplicita} />}
+      <DiferenciasPaneles slideId={slide.id} estructura={estructura} onIr={irA} />
       {inspectorModal && (
         <button type="button" className="pulso-f6-velo pulso-f6-solo-compacto" aria-label="Cerrar ajustes" tabIndex={-1} onClick={cerrarInspectorConFoco} />
       )}

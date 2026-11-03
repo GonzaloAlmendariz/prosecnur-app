@@ -4,7 +4,7 @@
 // (bloques de multiapiladas, filtros) se edita en un panel ancho. Cierran la tarjeta el Top/Bottom Two Box de las
 // escalas y «En el Word» (F6.2, F-d; tarjetaGrafico/).
 
-import { Fragment, useId, type ReactNode } from "react";
+import { Fragment, useId, useRef, type ReactNode } from "react";
 import { useLocation } from "react-router-dom";
 import { Filter, Rows3 } from "../../../vendor/lucide-react";
 import { AyudaGlobo } from "./AyudaGlobo";
@@ -67,6 +67,8 @@ import { EditorTemasEquivalentes } from "../temasEquivalentes/EditorTemasEquival
 import { argsATemas, codigosComunes, patchModoRadar } from "../temasEquivalentes/temasEquivalentesModel";
 import { useVariables } from "../useVariables";
 import { NumeroAcotado, tieneRango } from "./NumeroAcotado";
+import { DiferenciasInspector } from "./diferencias/DiferenciasInspector";
+import { argDeCruce, valorDeCruce } from "./diferencias/modeloDiferencias";
 import "./datosGrafico.css";
 
 type Props = { slideId: string; slot: string; valor: GraficadorRef };
@@ -173,9 +175,29 @@ export function DatosGrafico({ slideId, slot, valor }: Props) {
   );
   const delGrupo = (g: GrupoTarjeta) => campos.filter((c) => grupoDeCampo(c.arg.name) === g).map(filaDe);
 
+  // ADR 0126: «Diferencias entre grupos» reemplaza al nivel de significancia de Cifras. El interruptor es el
+  // `mostrar_significancia` del gráfico (guardado, del tipo o el default del registro); el nivel es de la regla del estudio.
+  const tarjetaRef = useRef<HTMLDivElement>(null);
+  const argSig = (meta?.args ?? []).find((a) => a.name === "mostrar_significancia");
+  const argCruce = argDeCruce((meta?.args ?? []).map((a) => a.name));
+  const cruce = argCruce ? valorDeCruce(args[argCruce]) : "";
+  const nombreCruce = cruce.includes("$") ? cruce.slice(cruce.lastIndexOf("$") + 1) : cruce;
+  const etiquetaCruce = cruce ? variables.find((v) => v.name === nombreCruce || `${v.source}$${v.name}` === cruce)?.label ?? null : null;
+  const sigGuardada = args.mostrar_significancia ?? (tipo ? presets[tipo]?.mostrar_significancia : undefined);
+  const agregarCruce = () => {
+    const campo = argCruce ? tarjetaRef.current?.querySelector<HTMLElement>(`[data-campo="${argCruce}"]`) : null;
+    const control = campo?.querySelector<HTMLElement>("button, input, [tabindex]");
+    if (!campo || !control) {
+      toast.info("Elige la pregunta que divide en «Dividir por», en Datos.");
+      return;
+    }
+    campo.scrollIntoView({ block: "nearest" });
+    control.focus({ preventScroll: true });
+  };
+
   // O7b: la tarjeta en grupos; cada uno se oculta si ese tipo no tiene nada en él (`.pulso-f6-grupo:not(:has(...))`).
   return (
-    <div className="pulso-f6-datos" data-qa-geometry-group="graficos/f6-datos" data-qa-geometry-contract="intrinsic">
+    <div className="pulso-f6-datos" ref={tarjetaRef} data-qa-geometry-group="graficos/f6-datos" data-qa-geometry-contract="intrinsic">
       <GrupoDeTarjeta titulo={TITULO_GRUPO.datos}>
         {esMulti && (
           <div className="pulso-f6-dato">
@@ -234,6 +256,19 @@ export function DatosGrafico({ slideId, slot, valor }: Props) {
         <RedondeoDelGrafico graficador={valor.graficador} args={args} onCambio={(ov) => set({ overrides: ov })} />
         <DonaCentro slideId={slideId} slot={slot} valor={valor} />
       </GrupoDeTarjeta>
+      {argSig && argCruce && (
+        <GrupoDeTarjeta titulo={TITULO_GRUPO.diferencias}>
+          <DiferenciasInspector
+            slideId={slideId}
+            encendido={interruptorEncendido(argSig, sigGuardada)}
+            cruce={cruce}
+            etiquetaCruce={etiquetaCruce}
+            onAlternar={(v) => set({ mostrar_significancia: v })}
+            onAgregarCruce={agregarCruce}
+            onQuitarCruce={() => set({ [argCruce]: null })}
+          />
+        </GrupoDeTarjeta>
+      )}
       <GrupoDeTarjeta titulo={TITULO_GRUPO.colores}>
         <ColoresGrafico slideId={slideId} slot={slot} valor={valor} argsDelRegistro={meta?.args ?? []} />
         <PaletaDelGrafico valor={valor} />
@@ -292,7 +327,7 @@ function Fila({ campo, graficador, valor, onCambio, sello, categorias }: {
   );
   if (control === "variable" || control === "variable_opcional") {
     return (
-      <div className="pulso-f6-dato is-apilado">
+      <div className="pulso-f6-dato is-apilado" data-campo={arg.name}>
         {etiqueta}
         <div id={id} className="pulso-f6-dato-control">
           <VariablePicker
