@@ -90,6 +90,12 @@ export type HojasRutaIntegratedConfig = {
   row_var: "departamento" | "provincia" | "distrito" | "ubigeo" | "zona";
   col_var: "rango_edad";
   subquota_var: "sexo" | "ninguna";
+  /**
+   * ADR 0126: qué dimensión de la cuota se exige (meta) y cuál sólo se describe
+   * (referencial). El total de la zona es siempre meta. Sin declarar, las dos
+   * son meta; opcional por snapshots viejos.
+   */
+  caracter_cuotas?: { sexo?: "meta" | "referencial"; edad?: "meta" | "referencial" };
   measure_var: "viviendas" | "poblacion";
   sampling_method: SamplingMethod;
   seed: number;

@@ -347,3 +347,206 @@
   .mon-pz-lateral { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-rows: none; }
   .mon-pz-mapa-cuerpo { min-height: 280px; }
 }
+
+/* ADR 0126: celda referencial (se describe, no se exige) y los bloques Metas /
+ * Referenciales cuando una dimensión de la cuota es referencial. */
+.mon-pz-celda.is-referencial {
+  border: 1px dashed var(--pulso-border-strong);
+  background: var(--pulso-surface);
+  color: var(--pulso-text-soft);
+}
+
+/* Con los bloques Metas y Referenciales la vista crece y desplaza la pestaña:
+ * repartir el alto entre cuatro filas aplastaba la matriz y el mapa. */
+.mon-pz.con-referencial {
+  flex: none; /* el contenedor de la pestaña es flex en columna: sin esto la encogía a su alto */
+  grid-template-rows: auto minmax(440px, auto) auto auto;
+  height: auto;
+  min-height: 100%;
+}
+
+/* La cabecera del bloque Metas y referenciales: el subtítulo es una frase y
+ * puede ir en dos líneas; la leyenda queda arriba a la derecha. */
+.mon-pz-cabecera.is-amplia > span:first-child {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.mon-pz-cabecera.is-amplia .mon-falt-base {
+  white-space: normal;
+}
+
+/* Total de una columna referencial: efectivas sobre su referencia, sin barra. */
+.mon-pz-total.is-referencial {
+  color: var(--pulso-text-soft);
+}
+
+.mon-pz-caracter {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-3);
+}
+
+.mon-pz-zonas {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+  gap: var(--pulso-space-3);
+  align-items: start;
+}
+
+.mon-pz-zcard {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-2);
+  min-width: 0;
+  padding: var(--pulso-space-3) var(--pulso-space-4);
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-panel);
+  background: var(--pulso-surface);
+}
+
+.mon-pz-zcard-cabeza {
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr) auto;
+  gap: var(--pulso-space-3);
+  align-items: center;
+}
+
+.mon-pz-zcard-cabeza > span:nth-child(2) {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.mon-pz-zcard-cabeza small {
+  color: var(--pulso-text-faint);
+  font-size: var(--pulso-type-caption-size);
+}
+
+.mon-pz-zcard-estado {
+  padding: 3px 8px;
+  border-radius: 8px;
+  font-size: var(--pulso-type-caption-size);
+  font-weight: var(--pulso-weight-semibold);
+  white-space: nowrap;
+}
+
+.mon-pz-zcard-estado.is-falta {
+  border: 1px solid var(--pulso-module-monitoring-border);
+  background: var(--pulso-module-monitoring-soft);
+  color: var(--pulso-module-monitoring);
+}
+
+.mon-pz-zcard-estado.is-ok {
+  border: 1px solid var(--pulso-success-border);
+  background: var(--pulso-success-bg);
+  color: var(--pulso-success-fg);
+}
+
+.mon-pz-zcard-sub {
+  margin: var(--pulso-space-1) 0 0;
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-micro-size);
+  font-weight: var(--pulso-weight-bold);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.mon-pz-metas {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.mon-pz-metas > li {
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr) 76px 40px;
+  gap: var(--pulso-space-2);
+  align-items: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.mon-pz-metas-barra {
+  position: relative;
+  height: 10px;
+  border-radius: 999px;
+  background: var(--pulso-surface-3);
+}
+
+.mon-pz-metas-barra > i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--pulso-brand-navy);
+}
+
+.mon-pz-metas > li.is-falta .mon-pz-metas-barra > i {
+  background: var(--pulso-module-monitoring);
+}
+
+.mon-pz-metas-barra > b {
+  position: absolute;
+  top: -3px;
+  width: 2px;
+  height: 16px;
+  border-radius: 1px;
+  background: var(--pulso-text);
+  transform: translateX(-1px);
+}
+
+/* Leyenda de las tarjetas: la misma marca y las mismas barras que dibujan. */
+.mon-pz-leyenda i.mon-pz-meta-muestra {
+  width: 2px;
+  height: 12px;
+  border-radius: 1px;
+  background: var(--pulso-text);
+}
+
+.mon-pz-leyenda i.mon-pz-leyenda-referencial {
+  border: 1px dashed var(--pulso-border-strong);
+  background: var(--pulso-surface);
+}
+
+.mon-pz-leyenda i.mon-pz-leyenda-barra {
+  width: 14px;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--pulso-brand-navy);
+}
+
+.mon-pz-leyenda i.mon-pz-leyenda-barra.is-falta {
+  background: var(--pulso-module-monitoring);
+}
+
+.mon-pz-metas-cifra {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.mon-pz-metas-cifra small {
+  color: var(--pulso-text-faint);
+}
+
+.mon-pz-metas-falta {
+  color: var(--pulso-success-fg);
+  font-weight: var(--pulso-weight-bold);
+  text-align: right;
+}
+
+.mon-pz-metas > li.is-falta .mon-pz-metas-falta {
+  color: var(--pulso-module-monitoring);
+}
+
+/* En la tarjeta las pesas van compactas. */
+.mon-pz-zcard .mon-pesas-fila {
+  grid-template-columns: 64px minmax(80px, 1fr) auto 64px;
+}
+
+@media (max-width: 1180px) {
+  .mon-pz-zonas {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

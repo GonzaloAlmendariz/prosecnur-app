@@ -7,7 +7,9 @@
 # Contrato (contratos-material-por-tipo-2026-11-02.md §1, aceptado por coordinación):
 #   runs[[fase]]$envio = list(kind = "cuotas", zonas, config, sample_fingerprint, enviado_at, n_zonas,
 #                              n_entrevistas)
-#   zonas = list(list(id_zona, ubigeo, nombre, n, cuotas = list(list(sexo, rango_id, rango_edad, n))))
+#   zonas = list(list(id_zona, ubigeo, nombre, n, cuotas = list(list(sexo, rango_id, rango_edad, n)),
+#                     caracter = list(sexo, edad)  # sólo si se declaró (ADR 0126)
+#   ))
 # La huella es de las zonas: si cambia una cuota, Material ve el envío desactualizado.
 #
 # No pasa por `hojas_ruta_quota_preview_integrado()`: esa vista previa exige que el N sea múltiplo de las
@@ -19,7 +21,7 @@ HOJAS_RUTA_ENVIO_KINDS <- c("ump", "cuotas")
 #' @param cells data.frame de `.hojas_ruta_quota_cells()` (ubigeo, territorio, rango_id, rango_edad, sexo, cuota).
 #' @param territorios filas de `.hojas_ruta_territories()` (ubigeo, distrito), para el nombre.
 #' @keywords internal
-.hojas_ruta_zonas_de_cuotas <- function(cells, territorios = list()) {
+.hojas_ruta_zonas_de_cuotas <- function(cells, territorios = list(), caracter = list()) {
   if (!is.data.frame(cells) || !nrow(cells)) return(list())
   nombres <- stats::setNames(
     vapply(territorios, function(t) .hojas_ruta_envio_chr(t$distrito), ""),
@@ -38,7 +40,11 @@ HOJAS_RUTA_ENVIO_KINDS <- c("ump", "cuotas")
       n = as.integer(filas$cuota[[i]])
     ))
     nombre <- if (!is.na(nombres[u]) && nzchar(nombres[u])) nombres[[u]] else as.character(filas$territorio[[1]] %||% u)
-    list(id_zona = u, ubigeo = u, nombre = nombre, n = as.integer(sum(filas$cuota, na.rm = TRUE)), cuotas = cuotas)
+    zona <- list(id_zona = u, ubigeo = u, nombre = nombre, n = as.integer(sum(filas$cuota, na.rm = TRUE)), cuotas = cuotas)
+    # ADR 0126: meta o referencial por dimensión, sólo si se declaró. Va dentro de la zona para que cambie
+    # la huella (cambia lo que el campo debe cumplir) y, omitido, deje igual la de los envíos existentes.
+    if (length(caracter)) zona$caracter <- caracter
+    zona
   })
 }
 
@@ -58,7 +64,7 @@ HOJAS_RUTA_ENVIO_KINDS <- c("ump", "cuotas")
   frame <- hojas_ruta_inei_frame(cfg$frame_source)
   frame <- frame[frame$ubigeo %in% ubigeos, , drop = FALSE]
   if (!nrow(frame)) return(list())
-  .hojas_ruta_zonas_de_cuotas(.hojas_ruta_quota_cells(frame, cfg), .hojas_ruta_territories(frame))
+  .hojas_ruta_zonas_de_cuotas(.hojas_ruta_quota_cells(frame, cfg), .hojas_ruta_territories(frame), cfg$caracter_cuotas %||% list())
 }
 
 #' Envía a Material las zonas y cuotas de una fase (POST /api/hojas-ruta/envio con kind = "cuotas").

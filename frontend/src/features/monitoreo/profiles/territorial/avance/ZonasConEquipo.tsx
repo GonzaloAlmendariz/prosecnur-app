@@ -66,7 +66,8 @@ function TarjetaDeZona({ zona, max }: { zona: Zona; max: number }) {
   const visibles = zona.equipo.slice(0, VISIBLES);
   const resto = zona.equipo.slice(VISIBLES);
   const restoEfectivas = resto.reduce((s, p) => s + p.efectivas, 0);
-  const celdasAbiertas = zona.celdas.length - zona.celdasCompletas;
+  // ADR 0126: lo que se exige, sean celdas o metas marginales.
+  const celdasAbiertas = zona.unidades - zona.unidadesCompletas;
   const pie = [
     resto.length ? `${fmt(resto.length)} ${resto.length === 1 ? "encuestador" : "encuestadores"} más, con ${fmt(restoEfectivas)} ${restoEfectivas === 1 ? "efectiva" : "efectivas"}` : "",
     zona.sinCodigo ? `${fmt(zona.sinCodigo)} ${zona.sinCodigo === 1 ? "caso" : "casos"} con código no reconocido` : "",
@@ -86,7 +87,7 @@ function TarjetaDeZona({ zona, max }: { zona: Zona; max: number }) {
       </header>
       <span className="mon-zeq-barra is-meta" aria-hidden="true"><i style={{ width: `${Math.min(100, avance)}%` }} /></span>
       <span className="mon-zeq-fichas">
-        <span className={celdasAbiertas ? "is-falta" : "is-ok"}>{fmt(zona.celdasCompletas)} de {fmt(zona.celdas.length)} celdas</span>
+        <span className={celdasAbiertas ? "is-falta" : "is-ok"}>{fmt(zona.unidadesCompletas)} de {fmt(zona.unidades)} {zona.marginales.length ? "metas" : "celdas"}</span>
         <span>{fmt(zona.enObservacion)} en observación</span>
         {zona.duracionMedianaMin != null ? <span>mediana {fmt(zona.duracionMedianaMin)} min</span> : null}
       </span>
@@ -111,7 +112,7 @@ function TarjetaDeZona({ zona, max }: { zona: Zona; max: number }) {
 export function ZonasConEquipo({ cuotas: crudo }: { cuotas: AvancePorZona }) {
   const cuotas = { ...crudo, zonas: crudo.zonas.map((z) => ({ ...z, nombre: nombreDeDistrito(z.nombre) })) };
   const zonasEnMeta = cuotas.zonas.filter((z) => z.meta > 0 && z.efectivas >= z.meta).length;
-  const zonasCerradas = cuotas.zonas.filter((z) => z.celdas.length && z.celdasCompletas === z.celdas.length).length;
+  const zonasCerradas = cuotas.zonas.filter((z) => z.unidades && z.unidadesCompletas === z.unidades).length;
   const codigos = new Set(cuotas.zonas.flatMap((z) => z.equipo.map((p) => p.codigo)));
   const sinCodigo = cuotas.zonas.reduce((s, z) => s + z.sinCodigo, 0);
   const concentrada = observacionConcentrada(cuotas.zonas);

@@ -3,8 +3,8 @@ import { chipsDeFase, type ChipDeFase } from "../chrome/chipsDeFase";
 import { ReglaPiloto } from "./manzanas/ReglaPiloto";
 import { ParecidoAlMarco } from "./manzanas/ParecidoAlMarco";
 import { muestraV1 } from "./manzanas/sorteoV1";
-import { BookOpenText, Send } from "../../../vendor/lucide-react";
-import { apiHojasRutaBitacora } from "../../../api/hojasRuta";
+import { Backpack } from "../../../vendor/lucide-react";
+import { AvisosDeLaBarra } from "../chrome/AvisosDeLaBarra";
 import { codigoDeUmp } from "../seleccion/revisionMarco";
 import { conSelectorDeCapa, leyendaLienzo, migaLienzo, SelectorCapa, type SeccionLienzo } from "./lienzo/flotantes";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -189,6 +189,24 @@ export default function HojasRutaMapaPage() {
       }
     },
     [estado, fase, atlas, confirmados, enEstudio, setBorrador, setFoco],
+  );
+
+  // ADR 0126: meta o referencial por dimensión. No cambia la población: guardado
+  // ligero, sin recalcular ni descartar tamaño, cuotas ni sorteo.
+  const guardarCaracterCuotas = useCallback(
+    async (caracter: NonNullable<HojasRutaIntegratedConfig["caracter_cuotas"]>) => {
+      if (!estado) return;
+      setGuardando(true);
+      try {
+        const r = await apiHojasRutaGuardarConfig({ ...estado.integrated_config, caracter_cuotas: caracter }, fase);
+        setEstado((prev) => (prev ? { ...prev, integrated_config: r.integrated_config } : prev));
+      } catch (e: unknown) {
+        setError(e instanceof Error ? e.message : "No se pudo guardar qué se exige de la cuota");
+      } finally {
+        setGuardando(false);
+      }
+    },
+    [estado, fase],
   );
 
   // Población: guardar los cambios de configuración y recalcular la matriz.
@@ -699,16 +717,6 @@ export default function HojasRutaMapaPage() {
     const s = q.toString();
     navegar(`${location.pathname}${s ? `?${s}` : ""}`, { replace: true });
   }, [modoDelEstudio, nav.modo, location.pathname, location.search, navegar]);
-  const [entradasBitacora, setEntradasBitacora] = useState<number | null>(null);
-  useEffect(() => {
-    let vivo = true;
-    apiHojasRutaBitacora()
-      .then((e) => vivo && setEntradasBitacora(e.length))
-      .catch(() => vivo && setEntradasBitacora(null));
-    return () => {
-      vivo = false;
-    };
-  }, [estado]);
   const porRevisarTotal = [...estados.values()].filter((e) => e === "error" || e === "aviso").length;
   const evitaPiloto = fase === "field" && Boolean(estado?.runs?.pilot) && estado?.runs?.field?.pilot_exclusion_mode !== "ignore";
   const chipsEstado = [
@@ -736,20 +744,12 @@ export default function HojasRutaMapaPage() {
   ];
   const barraAngosta = useBarraAngosta();
   const accionesChrome = [
-    {
-      id: "bitacora",
-      label: entradasBitacora ? `Bitácora (${entradasBitacora})` : "Bitácora",
-      shortLabel: "Bitácora",
-      icon: BookOpenText,
-      kind: "ghost" as const,
-      rank: 1 as const,
-      title: "Decisiones registradas del diseño muestral",
-      onSelect: () => navegar(`${location.pathname}?seccion=seleccion&panel=salidas`),
-    },
+    // Gonzalo, 3/11: la Bitácora sale de la barra; sigue en Selección › Salidas (BitacoraSeccion).
     {
       id: "material",
       label: envio ? (envio.desactualizado ? "Reenviar a Material" : "En Material") : "Enviar a Material",
-      icon: Send,
+      // La mochila es el ícono de Material de campo; el verde del botón lo da marco.css.
+      icon: Backpack,
       kind: "secondary" as const,
       rank: 2 as const,
       disabled: enCuotas ? !confirmados.length : !salidas?.sample,
@@ -775,7 +775,8 @@ export default function HojasRutaMapaPage() {
         </ChromeIndicatorGroup>
       }
       acciones={accionesChrome}
-      estado={chipsEstado}
+      // Gonzalo, 3/11: los avisos van recogidos en un solo botón.
+      herramientas={<AvisosDeLaBarra chips={chipsEstado} />}
       secciones={
         <SectionPillbar
           modulo="hojas-ruta"
@@ -976,6 +977,7 @@ export default function HojasRutaMapaPage() {
               hayMuestra={Boolean(salidas?.sample_size_preview || salidas?.sample)}
               avisos={salidas?.population?.alerts}
               onGuardarYCalcular={(c) => void guardarYCalcularPoblacion(c)}
+              onGuardarCaracter={(c) => void guardarCaracterCuotas(c)}
             />
           ) : enAtlas && estado ? (
             <AtlasInspector

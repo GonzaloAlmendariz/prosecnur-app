@@ -69,11 +69,13 @@ function ResumenImpl({ reports }: { reports: MonitoreoTerritorialDashboard | nul
 function AvisoDeCuotas({ cuotas, superaLaMeta, onFaltante }: { cuotas: AvancePorZona; superaLaMeta: boolean; onFaltante: () => void }) {
   const falta = cuotas.zonas.reduce((s, z) => s + faltaDeZona(z), 0);
   if (!falta) return null;
-  const celdas = cuotas.celdas - cuotas.celdasCompletas;
+  // ADR 0126: lo que se exige (celdas, o metas marginales si una dimensión es referencial).
+  const celdas = cuotas.unidades - cuotas.unidadesCompletas;
+  const marginal = cuotas.zonas.some((z) => z.marginales.length > 0);
   return (
     <button type="button" className="mon-res-aviso-cuotas" onClick={onFaltante}>
       <span>
-        <b>Faltan {fmt(falta)} entrevistas en {fmt(celdas)} {celdas === 1 ? "celda" : "celdas"}</b>
+        <b>Faltan {fmt(falta)} entrevistas en {fmt(celdas)} {marginal ? (celdas === 1 ? "meta" : "metas") : celdas === 1 ? "celda" : "celdas"}</b>
         {superaLaMeta ? " aunque el total supera la meta" : ""}
       </span>
       <span>Ver Faltante</span>
@@ -299,7 +301,7 @@ function Distritos({ modelo, cuotas }: { modelo: ModeloResumen; cuotas: AvancePo
               <th scope="col" className="is-num">No cuentan</th>
               {cuotas ? (
                 <>
-                  <th scope="col" className="is-num">Celdas</th>
+                  <th scope="col" className="is-num">{cuotas.zonas.some((z) => z.marginales.length > 0) ? "Metas" : "Celdas"}</th>
                   <th scope="col" title={`Efectivas por día, del ${modelo.ritmo[0]?.rotulo ?? ""} al ${modelo.ritmo.at(-1)?.rotulo ?? ""}`}>Por día</th>
                 </>
               ) : <th scope="col">UMP</th>}
@@ -322,8 +324,8 @@ function Distritos({ modelo, cuotas }: { modelo: ModeloResumen; cuotas: AvancePo
                 <td className="is-num">{fmt(fila.noCuentan)}</td>
                 {cuotas ? (
                   <>
-                    <td className={`is-num${(zonas.get(fila.ubigeo)?.celdasCompletas ?? 0) < (zonas.get(fila.ubigeo)?.celdas.length ?? 0) ? " is-falta" : ""}`}>
-                      {zonas.get(fila.ubigeo) ? `${fmt(zonas.get(fila.ubigeo)?.celdasCompletas ?? 0)} de ${fmt(zonas.get(fila.ubigeo)?.celdas.length ?? 0)}` : "—"}
+                    <td className={`is-num${(zonas.get(fila.ubigeo)?.unidadesCompletas ?? 0) < (zonas.get(fila.ubigeo)?.unidades ?? 0) ? " is-falta" : ""}`}>
+                      {zonas.get(fila.ubigeo) ? `${fmt(zonas.get(fila.ubigeo)?.unidadesCompletas ?? 0)} de ${fmt(zonas.get(fila.ubigeo)?.unidades ?? 0)}` : "—"}
                     </td>
                     <td><CalorDiario dias={modelo.ritmo} porFecha={diarios.get(fila.ubigeo) ?? new Map()} max={maxDia} /></td>
                   </>
@@ -343,7 +345,7 @@ function Distritos({ modelo, cuotas }: { modelo: ModeloResumen; cuotas: AvancePo
               </td>
               {cuotas ? (
                 <>
-                  <td className={`is-num${cuotas.celdasCompletas < cuotas.celdas ? " is-falta" : ""}`}>{fmt(cuotas.celdasCompletas)} de {fmt(cuotas.celdas)}</td>
+                  <td className={`is-num${cuotas.unidadesCompletas < cuotas.unidades ? " is-falta" : ""}`}>{fmt(cuotas.unidadesCompletas)} de {fmt(cuotas.unidades)}</td>
                   <td />
                 </>
               ) : <td>{fmt(modelo.total.umpsCompletas)} de {fmt(modelo.total.umps)} completas</td>}

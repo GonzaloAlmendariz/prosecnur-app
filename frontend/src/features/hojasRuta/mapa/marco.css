@@ -43,3 +43,22 @@
     grid-column: 1 / span 2;
   }
 }
+
+/* «Enviar / Reenviar a Material» con un verde fino del módulo de Material de
+ * campo (Gonzalo, 3/11): la acción lleva la muestra a ese módulo y se nombra
+ * con su color y su mochila. Es la única acción de la barra. */
+.hojas-ruta-commandbar > .pulso-command-bar-zone[data-zone="acciones"] > .pulso-button--secondary:not(.hr-avisos-boton) {
+  border-color: var(--pulso-module-fieldkit-border);
+  background: var(--pulso-module-fieldkit-soft);
+  color: var(--pulso-module-fieldkit);
+}
+
+.hojas-ruta-commandbar > .pulso-command-bar-zone[data-zone="acciones"] > .pulso-button--secondary:not(.hr-avisos-boton):hover:not(:disabled) {
+  border-color: var(--pulso-module-fieldkit);
+  background: color-mix(in srgb, var(--pulso-module-fieldkit) 18%, var(--pulso-surface));
+}
+
+.hojas-ruta-commandbar > .pulso-command-bar-zone[data-zone="acciones"] > .pulso-button--secondary:not(.hr-avisos-boton):focus-visible {
+  outline: 2px solid var(--pulso-module-fieldkit);
+  outline-offset: 2px;
+}

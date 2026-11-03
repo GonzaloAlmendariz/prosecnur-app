@@ -202,3 +202,93 @@
   }
   niveles
 }
+
+# ---- Territorial por cuotas: celdas, marginales y composición por zona -------
+
+#' Aplica a una zona del avance por cuotas el carácter que declaró Hojas de ruta.
+#'
+#' La matriz de una zona es sexo × rango de edad. Sin declaración (o todo meta)
+#' cada celda es una meta, como siempre. Si una dimensión es referencial:
+#' - sus celdas dejan de exigirse: la cifra pasa a `referencia`, `meta` y
+#'   `falta` a 0;
+#' - lo que se exige es la MARGINAL de la dimensión que queda meta (edad si el
+#'   sexo es referencial y al revés), sin compensar entre sus categorías; con
+#'   las dos referenciales, sólo el total de la zona;
+#' - la dimensión referencial se describe en `composicion`: lo obtenido frente a
+#'   su parte en el reparto de Hojas de ruta (no un universo observado), con su
+#'   n y `celda_vacia`.
+#' `unidades` y `unidades_completas` cuentan lo que se exige, sean celdas o
+#' marginales.
+#' @param contar `function(dimension, categoria)` que cuenta las efectivas de la
+#'   zona sobre los casos (sexo o edad legibles por separado); sin ella se suman
+#'   las celdas, que dejan fuera a un caso con la OTRA dimensión ilegible.
+#' @keywords internal
+.monitoreo_cuotas_marcar_zona <- function(zona, caracter = list(), contar = NULL) {
+  celdas <- zona$celdas %||% list()
+  ref <- intersect(names(Filter(function(v) identical(v, "referencial"), caracter %||% list())), c("sexo", "edad"))
+  clave <- function(c, dim) if (dim == "sexo") .monitoreo_scalar(c$sexo, "") else .monitoreo_scalar(c$rango_edad, "")
+  if (!length(ref)) {
+    zona$celdas <- lapply(celdas, function(c) {
+      c$caracter <- "meta"
+      c$estado_cuota <- if (c$efectivas >= c$meta) "cumple" else "falta"
+      c
+    })
+    zona$marginales <- list()
+    zona$composicion <- list()
+    zona$unidades <- length(celdas)
+    zona$unidades_completas <- as.integer(sum(vapply(celdas, function(c) c$falta == 0L, logical(1))))
+    return(zona)
+  }
+  n_celdas <- vapply(celdas, function(c) as.numeric(c$meta), numeric(1))
+  ef_celdas <- vapply(celdas, function(c) as.numeric(c$efectivas), numeric(1))
+  agrupar <- function(dim) {
+    cats <- unique(vapply(celdas, clave, "", dim = dim))
+    lapply(cats, function(k) {
+      en <- vapply(celdas, clave, "", dim = dim) == k
+      ef <- if (is.function(contar)) contar(dim, k) else sum(ef_celdas[en])
+      list(dimension = dim, categoria = k, n = sum(n_celdas[en]), efectivas = ef)
+    })
+  }
+  meta_dims <- setdiff(c("sexo", "edad"), ref)
+  # Con las dos referenciales sólo se exige el total: sus efectivas son las de
+  # la zona (las mismas de `zona$efectivas`), no la suma de celdas.
+  marginales <- if (length(meta_dims)) agrupar(meta_dims[[1]]) else
+    list(list(dimension = "zona", categoria = .monitoreo_scalar(zona$nombre, ""), n = sum(n_celdas),
+              efectivas = if (is.function(contar)) contar("zona", "") else .monitoreo_num(zona$efectivas, sum(ef_celdas))))
+  marginales <- lapply(marginales, function(g) {
+    meta <- as.integer(g$n)
+    list(dimension = g$dimension, categoria = g$categoria, meta = meta, efectivas = as.integer(g$efectivas),
+         falta = as.integer(max(0L, meta - g$efectivas)), caracter = "meta",
+         estado_cuota = if (g$efectivas >= meta) "cumple" else "falta")
+  })
+  tot_n <- sum(n_celdas)
+  composicion <- unlist(lapply(ref, function(dim) {
+    grupos <- agrupar(dim)
+    # Lo obtenido sobre los casos con categoría CONOCIDA en esta dimensión.
+    tot_ef <- sum(vapply(grupos, function(g) as.numeric(g$efectivas), numeric(1)))
+    lapply(grupos, function(g) {
+    obtenida <- if (tot_ef > 0) 100 * g$efectivas / tot_ef else NA_real_
+    esperada <- if (tot_n > 0) 100 * g$n / tot_n else NA_real_
+    list(dimension = dim, categoria = g$categoria, efectivas = as.integer(g$efectivas), referencia = as.integer(g$n),
+         obtenida_pct = obtenida, esperada_pct = esperada,
+         diferencia_pp = if (is.finite(obtenida) && is.finite(esperada)) obtenida - esperada else NA_real_,
+         celda_vacia = g$n > 0 && g$efectivas <= 0, caracter = "referencial",
+         estado_cuota = if (tot_n > 0) "referencial" else "sin_comparador")
+    })
+  }), recursive = FALSE)
+  zona$celdas <- lapply(celdas, function(c) {
+    c$caracter <- "referencial"
+    c$referencia <- c$meta
+    c$meta <- 0L
+    c$falta <- 0L
+    c$estado_cuota <- if (tot_n > 0) "referencial" else "sin_comparador"
+    c
+  })
+  zona$celdas_completas <- 0L
+  zona$marginales <- marginales
+  zona$composicion <- composicion
+  zona$unidades <- length(marginales)
+  zona$unidades_completas <- as.integer(sum(vapply(marginales, function(g) g$falta == 0L, logical(1))))
+  zona$caracter <- caracter
+  zona
+}

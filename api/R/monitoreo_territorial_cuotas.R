@@ -146,6 +146,21 @@ monitoreo_territorial_avance_cuotas <- function(envio, audit, asignacion = list(
       celdas_completas = as.integer(sum(vapply(celdas, function(c) c$falta == 0L, logical(1))))
     )
   })
+  # ADR 0126: el carácter que declaró Hojas de ruta por dimensión (meta por defecto).
+  # Las marginales y la composición se cuentan sobre los CASOS, no sumando celdas:
+  # con el sexo referencial, un caso de edad válida y sexo ilegible sí cuenta
+  # para la meta de edad, que es la que se exige.
+  salida <- Map(function(zs, z) {
+    u <- trimws(.monitoreo_scalar(z$ubigeo %||% z$id_zona, ""))
+    ef <- ubigeo == u & m$efectiva
+    contar <- function(dim, cat) {
+      if (dim == "zona") return(sum(ef))
+      if (dim == "sexo") return(sum(ef & sexo == .mtcu_sexo(cat)))
+      lim <- .mtcu_rango(cat)
+      sum(ef & is.finite(edad) & edad >= lim[[1]] & edad <= lim[[2]])
+    }
+    .monitoreo_cuotas_marcar_zona(zs, z$caracter %||% list(), contar)
+  }, salida, zonas)
   efectivas_total <- as.integer(sum(vapply(salida, function(z) z$efectivas, integer(1))))
   # Una zona es un distrito: dos zonas con el mismo ubigeo contarían dos veces
   # los mismos casos. Se avisa en lugar de sumar de más en silencio.
@@ -158,7 +173,10 @@ monitoreo_territorial_avance_cuotas <- function(envio, audit, asignacion = list(
       meta = as.integer(sum(vapply(salida, function(z) z$meta, integer(1)))),
       efectivas = efectivas_total,
       celdas = as.integer(sum(vapply(salida, function(z) length(z$celdas), integer(1)))),
-      celdas_completas = as.integer(sum(vapply(salida, function(z) z$celdas_completas, integer(1))))
+      celdas_completas = as.integer(sum(vapply(salida, function(z) z$celdas_completas, integer(1)))),
+      # Lo que se exige (celdas, o marginales si una dimensión es referencial).
+      unidades = as.integer(sum(vapply(salida, function(z) z$unidades, integer(1)))),
+      unidades_completas = as.integer(sum(vapply(salida, function(z) z$unidades_completas, integer(1))))
     ),
     # Lo que no cae en ninguna zona del envío, o cae en su zona sin celda (sin
     # sexo o edad legibles, o fuera de los rangos): se declara, no se pierde.
