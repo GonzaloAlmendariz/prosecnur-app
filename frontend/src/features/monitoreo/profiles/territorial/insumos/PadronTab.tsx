@@ -1,6 +1,7 @@
 import { memo, useMemo } from "react";
 import { Users } from "lucide-react";
 import { EstadoVacio } from "../../../../../components/EstadoVacio";
+import { EstadoChip } from "../../../../../components/EstadoChip";
 import type { MonitoreoState, MonitoreoTerritorialDashboard } from "../../../../../api/client";
 import { useFocoMonitoreo } from "../../../useMonitoreoDireccion";
 import { fmt } from "../rotulos";
@@ -72,7 +73,7 @@ function PadronTabImpl({
                     <td>{fila.ultimo || "—"}</td>
                     <td>
                       {modelo.conCasos ? (
-                        <span className={`mon-ter-chip ${fila.estado === "con-casos" ? "is-ok" : fila.estado === "anulado" ? "is-error" : ""}`}>{ROTULO_DE_ESTADO[fila.estado]}</span>
+                        <EstadoChip label={ROTULO_DE_ESTADO[fila.estado]} tone={fila.estado === "con-casos" ? "success" : fila.estado === "anulado" ? "danger" : "neutral"} />
                       ) : "—"}
                     </td>
                   </tr>

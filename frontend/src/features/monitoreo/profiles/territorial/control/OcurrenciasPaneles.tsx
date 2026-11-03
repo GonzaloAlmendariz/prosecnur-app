@@ -1,6 +1,8 @@
 import { memo, useMemo } from "react";
 import { ClipboardList } from "lucide-react";
 import { EstadoVacio } from "../../../../../components/EstadoVacio";
+import { EstadoChip } from "../../../../../components/EstadoChip";
+import type { ChromeStatusTone } from "../../../../../components/ModuleCommandBar";
 import type { MonitoreoTerritorialDashboard } from "../../../../../api/client";
 import { fmt } from "../rotulos";
 import { RotuloDePestana } from "../navegacion/RotuloDePestana";
@@ -186,7 +188,7 @@ function PorDia({ modelo }: { modelo: ModeloRitmoDePartes }) {
   );
 }
 
-const TONO_DEL_CHIP = { ok: "is-ok", aviso: "is-aviso", error: "is-error", info: "is-info" } as const;
+const TONO_DEL_CHIP = { ok: "success", aviso: "warn", error: "danger", info: "info" } as const satisfies Record<string, ChromeStatusTone>;
 
 function Lecturas({ modelo }: { modelo: ModeloRitmoDePartes }) {
   return (
@@ -200,7 +202,7 @@ function Lecturas({ modelo }: { modelo: ModeloRitmoDePartes }) {
           {modelo.lecturas.map((lectura) => (
             <li key={lectura.id} data-qa-geometry-member={lectura.id}>
               <strong>{lectura.tipo}</strong>
-              <span className={`mon-ter-chip ${TONO_DEL_CHIP[lectura.tono]}`}>{lectura.estado}</span>
+              <EstadoChip label={lectura.estado} tone={TONO_DEL_CHIP[lectura.tono]} />
               <span className="mon-ocu-lectura-cuando">{lectura.cuando}</span>
               <span className="mon-ocu-lectura-registros">{fmt(lectura.registros)} {lectura.registros === 1 ? "parte" : "partes"}</span>
               {lectura.mensaje ? <small>{lectura.mensaje}</small> : null}

@@ -4,6 +4,10 @@ import { fmt, fmtConSigno } from "../rotulos";
 import type { FichaDeUmp as Ficha } from "./fichaUmpModel";
 import { SiluetaDeDistrito } from "./SiluetaDeDistrito";
 import { CuotaPorVariable } from "./CuotaPorVariable";
+import { EstadoChip } from "../../../../../components/EstadoChip";
+import type { ChromeStatusTone } from "../../../../../components/ModuleCommandBar";
+
+const TONO_DE_ESTADO = { pendiente: "warn", subsanada: "info", completa: "success" } as const satisfies Record<string, ChromeStatusTone>;
 
 const TONO_DE_SILUETA = { pendiente: "falta", subsanada: "info", completa: "ok" } as const;
 
@@ -35,7 +39,7 @@ export function FichaDeUmp({
         </button>
       </header>
 
-      <span className={`mon-ump-estado is-${ficha.estado}`}>{ficha.rotuloDeEstado}</span>
+      <EstadoChip label={ficha.rotuloDeEstado} tone={TONO_DE_ESTADO[ficha.estado]} />
 
       <dl className="mon-ump-cifras">
         <div>

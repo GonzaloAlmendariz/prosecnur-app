@@ -103,20 +103,6 @@
 
 .aulas-bpf-nombre:hover { text-decoration: underline; }
 
-.aulas-bpf-chip {
-  font-size: var(--pulso-type-caption-size);
-  padding: 1px 7px;
-  border-radius: 999px;
-  border: 1px solid var(--pulso-border);
-  color: var(--pulso-text-soft);
-}
-
-.aulas-bpf-chip[data-estado="cumplida"] {
-  background: var(--pulso-success-bg);
-  border-color: var(--pulso-success-border);
-  color: var(--pulso-success-fg);
-}
-
 .aulas-bpf-carriles {
   display: flex;
   flex-direction: column;

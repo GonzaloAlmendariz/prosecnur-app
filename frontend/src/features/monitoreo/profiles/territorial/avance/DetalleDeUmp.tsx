@@ -1,5 +1,7 @@
 import { Users } from "lucide-react";
 import { EstadoVacio } from "../../../../../components/EstadoVacio";
+import { EstadoChip } from "../../../../../components/EstadoChip";
+import type { ChromeStatusTone } from "../../../../../components/ModuleCommandBar";
 import type { TerritorialQuotaProgressBlock } from "../../../../../api/client";
 import type { UmpPlanificada } from "../../../../../api/monitoreoAsignacionPlanificada";
 import { diaYMes, fmt, fmtConSigno, rotuloDeCelda } from "../rotulos";
@@ -18,7 +20,7 @@ import { SiluetaDeDistrito } from "./SiluetaDeDistrito";
  * otras manzanas de la UMP.
  */
 const ROTULO_DE_ESTADO = { pendiente: "Cuota pendiente", subsanada: "Completa con subsanación", completa: "Completa" } as const;
-const TONO_DE_ESTADO = { pendiente: "is-falta", subsanada: "is-info", completa: "is-ok" } as const;
+const TONO_DE_ESTADO = { pendiente: "warn", subsanada: "info", completa: "success" } as const satisfies Record<string, ChromeStatusTone>;
 
 export function DetalleDeUmp({ fila, coordinacion = null }: {
   fila: FilaDeUmp;
@@ -46,7 +48,7 @@ export function DetalleDeUmp({ fila, coordinacion = null }: {
           <small>{ubicacion}</small>
           <strong>UMP {fila.ump}</strong>
         </span>
-        <span className={`mon-ter-chip ${TONO_DE_ESTADO[fila.estado]}`}>{ROTULO_DE_ESTADO[fila.estado]}</span>
+        <EstadoChip label={ROTULO_DE_ESTADO[fila.estado]} tone={TONO_DE_ESTADO[fila.estado]} />
       </header>
 
       <dl className="mon-falt-detalle-meta">

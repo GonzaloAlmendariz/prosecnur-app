@@ -4,6 +4,7 @@ import { Download, Upload } from "lucide-react";
 import type { MonitoreoAulasDashboard } from "../../../../../api/monitoreo";
 import { fmt } from "../kpisDeAulas";
 import type { ContextoDeInsumos } from "./contextoDeInsumos";
+import { EstadoChip } from "../../../../../components/EstadoChip";
 import {
   construirAplicadores,
   readinessDeAplicadores,
@@ -139,7 +140,7 @@ function AplicadoresAulasImpl({ dashboard, cargando, vacioSinTablero, contexto }
                 {modelo.filas.map((f) => (
                   <tr key={f.nombre}>
                     <th scope="row">{f.nombre}</th>
-                    <td>{f.sinDisponibilidad ? <span className="aulas-ins-chip" data-tono="aviso">Sin disponibilidad declarada</span> : <Semana semana={f.semana} />}</td>
+                    <td>{f.sinDisponibilidad ? <EstadoChip label="Sin disponibilidad declarada" tone="warn" /> : <Semana semana={f.semana} />}</td>
                     <td className="is-num">{f.horas ? fmt(Math.round(f.horas)) : "—"}</td>
                     <td className="is-num">{modelo.fueraDelReparto ? "—" : fmt(f.citas)}</td>
                     <td className="is-num">{f.fijadas ? fmt(f.fijadas) : "—"}</td>
@@ -161,9 +162,10 @@ function AplicadoresAulasImpl({ dashboard, cargando, vacioSinTablero, contexto }
         <section className="aulas-ins-panel" aria-labelledby="aulas-ins-dist-titulo" data-qa-geometry-member="distribucion">
           <header className="aulas-ins-cabecera">
             <h3 id="aulas-ins-dist-titulo">Distribución que ven los aplicadores</h3>
-            <span className="aulas-ins-chip" data-tono={modelo.distribucion.estado === "al-dia" ? "ok" : modelo.distribucion.estado === "desactualizada" ? "aviso" : "neutro"}>
-              {modelo.distribucion.estado === "al-dia" ? "Al día" : modelo.distribucion.estado === "desactualizada" ? "Por actualizar" : "Sin Sheets"}
-            </span>
+            <EstadoChip
+              label={modelo.distribucion.estado === "al-dia" ? "Al día" : modelo.distribucion.estado === "desactualizada" ? "Por actualizar" : "Sin Sheets"}
+              tone={modelo.distribucion.estado === "al-dia" ? "success" : modelo.distribucion.estado === "desactualizada" ? "warn" : "neutral"}
+            />
           </header>
           <p className="aulas-ins-texto">{modelo.distribucion.texto}</p>
           <ol className="aulas-ins-mecanismo">

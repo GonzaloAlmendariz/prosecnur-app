@@ -8,6 +8,16 @@ import type { FocoDeCuota } from "./AulasCuotasResumen";
 import { fmt } from "./kpisDeAulas";
 import { AulasGestionesPorAula } from "./AulasGestionesPorAula";
 import { agendamiento } from "./agendamiento";
+import { EstadoChip } from "../../../../components/EstadoChip";
+import type { ChromeStatusTone } from "../../../../components/ModuleCommandBar";
+
+/** El tono de cada estado de la cola, por el color que ya pintaba (P6). */
+const TONO_DE_LA_COLA: Record<string, ChromeStatusTone> = {
+  "es-sin-empezar": "neutral",
+  "es-insistiendo": "warn",
+  "es-citada": "success",
+  "es-aplicada": "success",
+};
 
 /**
  * A quién llamar hoy, y cuánto ha costado agendar.
@@ -152,9 +162,7 @@ export function AulasColaDeContacto({ filas, conReservas, facultadEnFoco, onFoco
       {desglosa ? (
         <p className="aulas-cola-resumen">
           {resumen.map(({ clase, etiqueta, n }) => (
-            <span key={clase} className={`aulas-cola-estado ${clase}`}>
-              {fmt(n)} {etiqueta.toLowerCase()}
-            </span>
+            <EstadoChip key={clase} label={`${fmt(n)} ${etiqueta.toLowerCase()}`} tone={TONO_DE_LA_COLA[clase]} />
           ))}
         </p>
       ) : null}
@@ -216,9 +224,7 @@ export function AulasColaDeContacto({ filas, conReservas, facultadEnFoco, onFoco
                     {c.intentos > 0 ? <strong>{fmt(c.intentos)}</strong> : <span className="es-vacio">—</span>}
                   </td>
                   <td>
-                    <span className={`aulas-cola-estado ${c.aplicada ? "es-aplicada" : "es-citada"}`}>
-                      {c.aplicada ? "Aplicado" : "Agendado"}
-                    </span>
+                    <EstadoChip label={c.aplicada ? "Aplicado" : "Agendado"} tone="success" />
                   </td>
                 </tr>
               ))}
@@ -274,9 +280,7 @@ export function AulasColaDeContacto({ filas, conReservas, facultadEnFoco, onFoco
                         Y cuando el libro dice POR QUÉ («No contesta»,
                         «Apagado»…), mandan las palabras del equipo — el
                         genérico «Insistiendo» es el fallback, no el titular. */}
-                    <span className={`aulas-cola-estado ${p.intentos > 0 ? "es-insistiendo" : "es-sin-empezar"}`}>
-                      {p.estadoLlamada || (p.intentos > 0 ? "Insistiendo" : "Sin contactar")}
-                    </span>
+                    <EstadoChip label={p.estadoLlamada || (p.intentos > 0 ? "Insistiendo" : "Sin contactar")} tone={p.intentos > 0 ? "warn" : "neutral"} />
                   </td>
                 </tr>
               ))}

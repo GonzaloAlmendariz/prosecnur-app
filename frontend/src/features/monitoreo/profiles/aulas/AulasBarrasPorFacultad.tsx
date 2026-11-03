@@ -6,6 +6,7 @@ import { barrasPorFacultad, type FilaDeFacultad } from "./barrasPorFacultad";
 import type { FocoDeCuota } from "./AulasCuotasResumen";
 import { fmt, pctPerfil } from "./kpisDeAulas";
 import type { MonitoreoRow } from "../../../../api/monitoreo";
+import { EstadoChip } from "../../../../components/EstadoChip";
 import "./aulasBarrasPorFacultad.css";
 
 /**
@@ -88,9 +89,7 @@ export function AulasBarrasPorFacultad({
               {/* El chip sólo cuando algo cambia: quince chips iguales no
                   informan de nada. */}
               {fila.chip ? (
-                <span className="aulas-bpf-chip" data-estado={fila.chip}>
-                  {fila.chip === "cumplida" ? "Meta cumplida" : "Le falta poco"}
-                </span>
+                <EstadoChip label={fila.chip === "cumplida" ? "Meta cumplida" : "Le falta poco"} tone={fila.chip === "cumplida" ? "success" : "neutral"} />
               ) : null}
             </div>
             <div className="aulas-bpf-carriles">

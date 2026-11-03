@@ -1,5 +1,5 @@
 import { memo, useMemo } from "react";
-import { Check, Info, Target } from "lucide-react";
+import { Info, Target } from "lucide-react";
 import { EstadoVacio } from "../../../../../components/EstadoVacio";
 import type { MonitoreoTerritorialDashboard } from "../../../../../api/client";
 import { useFocoMonitoreo } from "../../../useMonitoreoDireccion";
@@ -9,6 +9,7 @@ import { avancePorZona, faltaDeZona, type AvancePorZona } from "./porZonaModelo"
 import { RotuloDePestana } from "../navegacion/RotuloDePestana";
 import { SiluetaDeDistrito } from "./SiluetaDeDistrito";
 import "./resumen.css";
+import { EstadoChip } from "../../../../../components/EstadoChip";
 
 /**
  * Avance › Resumen (territorial.md §3.14). Izquierda: la cifra que cuenta para
@@ -102,15 +103,13 @@ function CifraConBase({ modelo, cuotas, onFaltante }: { modelo: ModeloResumen; c
         <p className="mon-res-cifra-numero"><b>{fmt(modelo.cuentan)}</b> / {fmt(modelo.meta)}</p>
         <p className="mon-res-base" title="Casos que cuentan para la meta, sobre la meta de la fase">Cuentan para la meta</p>
         {modelo.metaAlcanzada ? (
-          <span
-            className="mon-res-chip is-ok"
-            title={modelo.metaAlcanzada.excedente > 0 ? `${fmt(modelo.metaAlcanzada.excedente)} por encima de la meta` : undefined}
-          >
-            <Check size={13} aria-hidden="true" />
-            Meta alcanzada el {modelo.metaAlcanzada.fecha}
-          </span>
+          <EstadoChip
+            label={`Meta alcanzada el ${modelo.metaAlcanzada.fecha}`}
+            tone="success"
+            detail={modelo.metaAlcanzada.excedente > 0 ? `${fmt(modelo.metaAlcanzada.excedente)} por encima de la meta` : undefined}
+          />
         ) : (
-          <span className="mon-res-chip">Faltan {fmt(Math.max(0, modelo.meta - modelo.cuentan))} para la meta</span>
+          <EstadoChip label={`Faltan ${fmt(Math.max(0, modelo.meta - modelo.cuentan))} para la meta`} tone="warn" />
         )}
       </div>
       </div>

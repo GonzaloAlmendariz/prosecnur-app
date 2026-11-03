@@ -2,6 +2,7 @@ import { memo, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { ExternalLink, Map as MapIcon } from "lucide-react";
 import { EstadoVacio } from "../../../../../components/EstadoVacio";
+import { EstadoChip } from "../../../../../components/EstadoChip";
 import { LoadingBlock } from "../../../../../components/States";
 import type { MonitoreoState, MonitoreoTerritorialDashboard, MonitoreoTerritorialPhase } from "../../../../../api/client";
 import { opcionesDeFase } from "../navegacion/fase";
@@ -132,7 +133,7 @@ function MetasTabImpl({
         <ul className="mon-mod-fases" data-qa-geometry-group="territorial-modelo-fases" data-qa-geometry-contract="equal">
           {fases.map((fase) => (
             <li key={fase.fase} className={`mon-mod-panel mon-mod-fase${fase.activa ? " is-activa" : ""}`}>
-              <strong>{fase.nombre}{fase.activa ? <span className="mon-ter-chip is-ok">Activa</span> : null}</strong>
+              <strong>{fase.nombre}{fase.activa ? <EstadoChip label="Activa" tone="success" /> : null}</strong>
               {fase.cifras.length ? (
                 <dl className="mon-mod-parametros mon-mod-fase-cifras" data-qa-geometry-group={`territorial-modelo-fase-${fase.fase}`} data-qa-geometry-contract="equal">
                   {fase.cifras.map((cifra) => (

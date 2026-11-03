@@ -1,6 +1,7 @@
 import { memo, useEffect, useMemo, useRef, useState } from "react";
 import { Maximize2, Minus, Plus, MapPin } from "lucide-react";
 import { EstadoVacio } from "../../../../../components/EstadoVacio";
+import { EstadoChip } from "../../../../../components/EstadoChip";
 import type { MonitoreoTerritorialDashboard } from "../../../../../api/client";
 import { normalizeRouteBlockCode } from "../../../routeCoverageModel";
 import { useFocoMonitoreo } from "../../../useMonitoreoDireccion";
@@ -520,8 +521,8 @@ function MapaTabImpl({
           <span className="mon-mapa-fuente">
             Fuentes: {enumerar(["distritos PlanMet", "manzanas INEI 2017", acercada?.calles.length ? "calles OpenStreetMap" : ""])}
           </span>
-          {cartografia.incompleta ? <span className="mon-ter-chip is-aviso">Cartografía incompleta</span> : null}
-          {esperaCalles ? <span className="mon-ter-chip is-info" role="status">Cargando calles</span> : null}
+          {cartografia.incompleta ? <EstadoChip label="Cartografía incompleta" tone="warn" /> : null}
+          {esperaCalles ? <span role="status"><EstadoChip label="Cargando calles" tone="info" /></span> : null}
         </footer>
       </div>
 

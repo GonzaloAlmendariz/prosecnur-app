@@ -6,7 +6,9 @@ import type { ContextoDeInsumos } from "./contextoDeInsumos";
 import { fmt } from "../kpisDeAulas";
 import { EntregaDeMaterial } from "./EntregaDeMaterial";
 import { TablasDeMaterial } from "./TablasDeMaterial";
-import { construirFuentes, readinessDeFuentes, type FilaDeFuente, type Tono } from "./fuentesModelo";
+import { construirFuentes, readinessDeFuentes, type FilaDeFuente } from "./fuentesModelo";
+import { EstadoChip } from "../../../../../components/EstadoChip";
+import { tonoDeEstadoChip } from "../tonoDeEstadoChip";
 import "./insumos.css";
 
 const ICONO: Record<string, typeof Database> = {
@@ -15,9 +17,6 @@ const ICONO: Record<string, typeof Database> = {
   padron: Users,
 };
 
-function Chip({ texto, tono }: { texto: string; tono: Tono }) {
-  return <span className="aulas-ins-chip" data-tono={tono}>{texto}</span>;
-}
 
 function Fila({ f }: { f: FilaDeFuente }) {
   const Icono = ICONO[f.clave] ?? Database;
@@ -36,7 +35,7 @@ function Fila({ f }: { f: FilaDeFuente }) {
       <td className="is-trae">{f.trae}</td>
       <td className="is-num">{f.volumen}</td>
       <td className="is-num">{f.lectura || "—"}</td>
-      <td><Chip texto={f.estado.texto} tono={f.estado.tono} /></td>
+      <td><EstadoChip label={f.estado.texto} tone={tonoDeEstadoChip(f.estado.tono)} /></td>
     </tr>
   );
 }
@@ -137,7 +136,7 @@ function FuentesAulasImpl({ dashboard, cargando, contexto }: {
               {m.recibo.comprobaciones.map((c) => (
                 <div key={c.clave} data-qa-geometry-member={c.clave} title={c.detalle || undefined}>
                   <dt>{c.rotulo}</dt>
-                  <dd><Chip texto={c.resultado} tono={c.tono} /></dd>
+                  <dd><EstadoChip label={c.resultado} tone={tonoDeEstadoChip(c.tono)} /></dd>
                 </div>
               ))}
             </dl>

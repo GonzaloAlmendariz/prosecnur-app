@@ -169,33 +169,6 @@
   font-weight: var(--pulso-weight-bold);
 }
 
-.aulas-res-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  max-width: 100%;
-  padding: 3px 9px;
-  border: 1px solid var(--pulso-border);
-  border-radius: var(--pulso-radius-chip);
-  background: var(--pulso-surface-3);
-  color: var(--pulso-text-soft);
-  font-size: var(--pulso-type-caption-size);
-  font-weight: var(--pulso-weight-semibold);
-  font-variant-numeric: tabular-nums;
-}
-
-.aulas-res-chip[data-tono="ok"] {
-  border-color: var(--pulso-success-border);
-  background: var(--pulso-success-bg);
-  color: var(--pulso-success-fg);
-}
-
-.aulas-res-chip[data-tono="aviso"] {
-  border-color: var(--pulso-warn-border);
-  background: var(--pulso-warn-bg);
-  color: var(--pulso-warn-fg);
-}
-
 .aulas-res-secundarios {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));

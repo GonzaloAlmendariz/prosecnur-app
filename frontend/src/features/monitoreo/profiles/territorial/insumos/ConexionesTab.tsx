@@ -3,11 +3,15 @@ import { useNavigate } from "react-router-dom";
 import { PlugZap } from "lucide-react";
 import { EstadoVacio } from "../../../../../components/EstadoVacio";
 import type { MonitoreoState, MonitoreoTerritorialDashboard, MonitoreoTerritorialPhase } from "../../../../../api/client";
-import { construirConexiones, type TarjetaDeFuente } from "./conexionesModel";
+import { construirConexiones, type TarjetaDeFuente, type TonoDeFuente } from "./conexionesModel";
 import { RotuloDePestana } from "../navegacion/RotuloDePestana";
 import { AvisoDeMuestraEnviada } from "./AvisoDeMuestraEnviada";
 import { useMuestraEnviada } from "./useMuestraEnviada";
 import "./insumos.css";
+import { EstadoChip } from "../../../../../components/EstadoChip";
+import type { ChromeStatusTone } from "../../../../../components/ModuleCommandBar";
+
+const TONO_DE_FUENTE: Record<TonoDeFuente, ChromeStatusTone> = { ok: "success", aviso: "warn", error: "danger", inactiva: "neutral" };
 
 /**
  * Insumos › Conexiones (territorial.md §3.1): una tarjeta por fuente con su
@@ -123,7 +127,7 @@ function Fuente({
           <h3 id={`mon-ins-fuente-${tarjeta.clave}`}>{tarjeta.titulo}</h3>
           <span className="mon-ins-base">{tarjeta.formulario}</span>
         </div>
-        <span className={`mon-ins-estado is-${tarjeta.tono}`}>{tarjeta.estado}</span>
+        <EstadoChip label={tarjeta.estado} tone={TONO_DE_FUENTE[tarjeta.tono]} />
       </header>
       <dl className="mon-ins-cifras is-fila">
         {tarjeta.cifras.map((cifra) => <div key={cifra.rotulo}><dt>{cifra.rotulo}</dt><dd>{cifra.valor}</dd></div>)}

@@ -1,6 +1,7 @@
 import { Fragment, memo, useEffect, useMemo, useRef, useState } from "react";
 import { ArrowRightLeft, ChevronDown, ChevronRight, Info, Map as MapIcon, Target, SearchX } from "lucide-react";
 import { EstadoVacio } from "../../../../../components/EstadoVacio";
+import { EstadoChip } from "../../../../../components/EstadoChip";
 import type { MonitoreoTerritorialDashboard } from "../../../../../api/client";
 import { Switch } from "../../../../../components/Switch";
 import { useFocoMonitoreo } from "../../../useMonitoreoDireccion";
@@ -172,10 +173,10 @@ function PanelDePendientes({
             </div>
             <div className="mon-falt-tarjeta-linea is-falta">
               {fila.faltantes.map((item) => (
-                <span key={item.texto} className="mon-falt-chip is-falta">Falta {fmt(item.falta)}: {item.texto}</span>
+                <EstadoChip key={item.texto} label={`Falta ${fmt(item.falta)}: ${item.texto}`} tone="warn" />
               ))}
               {fila.cubre?.tipo === "sugerencia" ? (
-                <span className="mon-falt-chip is-sugerencia">Sugerencia desde la {textoDeQuienCubre(fila.cubre)}</span>
+                <EstadoChip label={`Sugerencia desde la ${textoDeQuienCubre(fila.cubre)}`} tone="info" />
               ) : (
                 <span className="mon-falt-sin">Sin excedente compatible cerca</span>
               )}

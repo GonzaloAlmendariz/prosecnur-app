@@ -9,6 +9,8 @@ import type { FocoDeCuota } from "./AulasCuotasResumen";
 import { fmt, pctPerfil } from "./kpisDeAulas";
 import { cuandoPedirAulaAdicional } from "./cuandoPedirAulaAdicional";
 import { filaDeLaFacultad } from "./resumenDeEfectividad";
+import { EstadoChip } from "../../../../components/EstadoChip";
+import { tonoDeEstadoChip } from "./tonoDeEstadoChip";
 import "./efectividadSeguimiento.css";
 
 /**
@@ -655,7 +657,7 @@ export function AulasEfectividadSeguimiento({
                         llamaba desde ningún sitio: estaba escrita, probada por
                         nadie y muerta. Va en la insignia, que es donde se mira
                         cuando la palabra sola no basta. */}
-                    <span className={`aulas-tau-chip es-${v.tono}`} title={lectura(f, bloque.eje?.etiqueta)}>{v.texto}</span>
+                    <EstadoChip label={v.texto} tone={tonoDeEstadoChip(v.tono)} detail={lectura(f, bloque.eje?.etiqueta)} />
                     <NombreDeFacultad facultad={f.facultad} className="aulas-tau-nombre"
                       enFoco={enFoco}>
                       {f.facultad}

@@ -1,6 +1,7 @@
 import { memo, useEffect, useMemo, useRef, useState } from "react";
 import { Maximize2, Minus, Plus, Route as RouteIcon } from "lucide-react";
 import { EstadoVacio } from "../../../../../components/EstadoVacio";
+import { EstadoChip } from "../../../../../components/EstadoChip";
 import type { MonitoreoTerritorialDashboard, TerritorialBlockProgress } from "../../../../../api/client";
 import { fmt } from "../rotulos";
 import {
@@ -305,8 +306,8 @@ function RecorridoTabImpl({
             {TRAMOS.map((tramo) => <span key={tramo} className={`is-${tramo}`}>{ROTULO_DE_TRAMO[tramo]} de su manzana</span>)}
           </span>
           <span className="mon-rec-fuente">Fuentes: GPS de Kobo, manzanas INEI 2017{geometria?.calles.length ? " y calles OpenStreetMap" : ""}</span>
-          {resumen.formularios > resumen.conGps ? <span className="mon-ter-chip is-aviso">{fmt(resumen.formularios - resumen.conGps)} sin GPS</span> : null}
-          {esperando ? <span className="mon-ter-chip is-info" role="status">Cargando cartografía</span> : null}
+          {resumen.formularios > resumen.conGps ? <EstadoChip label={`${fmt(resumen.formularios - resumen.conGps)} sin GPS`} tone="warn" /> : null}
+          {esperando ? <span role="status"><EstadoChip label="Cargando cartografía" tone="info" /></span> : null}
         </footer>
       </div>
 

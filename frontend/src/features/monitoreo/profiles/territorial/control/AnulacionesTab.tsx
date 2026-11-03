@@ -8,9 +8,13 @@ import {
   type MonitoreoTerritorialPhase,
 } from "../../../../../api/client";
 import { fmt } from "../rotulos";
-import { construirAnulaciones, type TarjetaDeAnulacion } from "./anulacionesModel";
+import { construirAnulaciones, type TarjetaDeAnulacion, type TonoDeEstado } from "./anulacionesModel";
 import { RotuloDePestana } from "../navegacion/RotuloDePestana";
 import "./anulaciones.css";
+import { EstadoChip } from "../../../../../components/EstadoChip";
+import type { ChromeStatusTone } from "../../../../../components/ModuleCommandBar";
+
+const TONO_DE_ESTADO: Record<TonoDeEstado, ChromeStatusTone> = { ok: "success", info: "info", alerta: "warn", neutro: "neutral" };
 
 /**
  * Control › Anulaciones (territorial.md §3.12): lo que quedó fuera del conteo
@@ -154,7 +158,7 @@ function AnulacionesTabImpl({
                   <td>{item.distrito}</td>
                   <td className="is-num">{fmt(item.anuladas)}</td>
                   <td className="is-num">{fmt(item.validasAnuladas)}</td>
-                  <td><span className={`mon-anu-estado is-${item.tono}`}>{item.estadoActual}</span></td>
+                  <td><EstadoChip label={item.estadoActual} tone={TONO_DE_ESTADO[item.tono]} /></td>
                 </tr>
               ))}
             </tbody>

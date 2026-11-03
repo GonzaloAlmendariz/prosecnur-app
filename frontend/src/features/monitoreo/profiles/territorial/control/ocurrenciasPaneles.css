@@ -299,10 +299,6 @@
   border-top: 0;
 }
 
-.mon-ocu-lecturas-lista li > .mon-ter-chip {
-  font-size: var(--pulso-type-caption-size);
-}
-
 .mon-ocu-lectura-cuando,
 .mon-ocu-lectura-registros {
   color: var(--pulso-text-soft);

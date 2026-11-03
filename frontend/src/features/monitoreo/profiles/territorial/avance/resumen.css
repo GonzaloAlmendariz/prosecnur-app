@@ -147,26 +147,6 @@
   font-weight: var(--pulso-weight-bold);
 }
 
-.mon-res-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 2px 9px;
-  border: 1px solid var(--pulso-warn-border);
-  border-radius: var(--pulso-radius-chip);
-  background: var(--pulso-warn-bg);
-  color: var(--pulso-warn-fg);
-  font-size: var(--pulso-type-subtitle-size);
-  font-weight: var(--pulso-weight-semibold);
-  font-variant-numeric: tabular-nums;
-}
-
-.mon-res-chip.is-ok {
-  border-color: var(--pulso-success-border);
-  background: var(--pulso-success-bg);
-  color: var(--pulso-success-fg);
-}
-
 /* Embudo del corte. */
 .mon-res-embudo {
   display: grid;

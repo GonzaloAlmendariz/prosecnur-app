@@ -2,8 +2,9 @@ import { useMemo, useState } from "react";
 import { ArrowLeft } from "lucide-react";
 import { CargaDeBloque } from "../../../../../components/CargaDeBloque";
 import { ErrorBlock } from "../../../../../components/States";
+import { EstadoChip } from "../../../../../components/EstadoChip";
 import type { MonitoreoTerritorialDashboard } from "../../../../../api/client";
-import type { CasoDeUmpConGps } from "../../../../../api/monitoreoCasosUmp";
+import type { CasoDeUmpConGps, EstadoDeCasoUmp } from "../../../../../api/monitoreoCasosUmp";
 import { celdaEnFrase, diaYMes, enumerar, fmt } from "../rotulos";
 import {
   LIMA_MAP_HEIGHT,
@@ -38,6 +39,15 @@ import { useCartografiaDelMapa } from "./useCartografiaDelMapa";
 import { useCasosDeUmp } from "./useCasosDeUmp";
 import { RotuloDePestana } from "../navegacion/RotuloDePestana";
 import "./exploracion.css";
+import type { ChromeStatusTone } from "../../../../../components/ModuleCommandBar";
+
+const TONO_DE_CASO: Record<EstadoDeCasoUmp, ChromeStatusTone> = {
+  cuenta: "success",
+  observacion: "warn",
+  no_cuenta: "danger",
+  anulado_efectiva: "danger",
+  anulado_sin_consentimiento: "danger",
+};
 
 const ROTULO_DE_VISTA: Record<VistaDeManzana, string> = { titular: "Titular", reemplazo: "Reemplazo", ambas: "Ambas" };
 const ROTULO_DE_CAPA: Record<CapaDeExploracion, string> = { recorrido: "Recorrido", estado: "Estado", cuota: "Cuota" };
@@ -221,7 +231,7 @@ export function ExploracionUmp({
               Fuentes: {enumerar(["manzanas INEI 2017", geometria.calles.length ? "calles OpenStreetMap" : "", "GPS de Kobo"])}
             </span>
             {estado.tipo === "listo" && estado.datos.resumen.total > estado.datos.resumen.conGps
-              ? <span className="mon-ter-chip is-aviso">{fmt(estado.datos.resumen.total - estado.datos.resumen.conGps)} sin GPS</span>
+              ? <EstadoChip label={`${fmt(estado.datos.resumen.total - estado.datos.resumen.conGps)} sin GPS`} tone="warn" />
               : null}
           </footer>
         </section>
@@ -286,7 +296,7 @@ function TarjetaDeCaso({ caso, casos }: { caso: CasoDeUmpConGps; casos: readonly
     <section className="mon-exp-panel mon-exp-caso" aria-labelledby="mon-exp-caso-titulo">
       <header>
         <h4 id="mon-exp-caso-titulo">Caso {caso.orden}</h4>
-        <span className={`mon-exp-estado is-${caso.estado}`}>{ROTULO_DE_ESTADO_DE_CASO[caso.estado]}</span>
+        <EstadoChip label={ROTULO_DE_ESTADO_DE_CASO[caso.estado]} tone={TONO_DE_CASO[caso.estado]} />
       </header>
       <dl>
         <div><dt>Cuándo</dt><dd>{diaYMes(caso.fechaIso) || "Sin fecha"}{caso.hora ? `, ${caso.hora.slice(0, 5)}` : ""}</dd></div>

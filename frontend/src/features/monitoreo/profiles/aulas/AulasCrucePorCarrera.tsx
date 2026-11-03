@@ -3,6 +3,8 @@ import { useMemo, useState } from "react";
 import { fmt } from "./kpisDeAulas";
 import { claseDeFacultad } from "./tonoDeFacultad";
 import { Search, XCircle } from "../../../../vendor/lucide-react";
+import { EstadoChip } from "../../../../components/EstadoChip";
+import { tonoDeEstadoChip, type TonoDeAulas } from "./tonoDeEstadoChip";
 
 import "./aulasCrucePorCarrera.css";
 
@@ -85,7 +87,7 @@ export type BloqueDeCruce = {
  * identificar. Meterlas en la misma bolsa mandaría a revisar el código de quien
  * lo escribió bien.
  */
-const ESTADOS: Array<{ clave: string; texto: string; tono: string }> = [
+const ESTADOS: Array<{ clave: string; texto: string; tono: TonoDeAulas }> = [
   { clave: "identificado", texto: "Identificado", tono: "ok" },
   { clave: "repetida", texto: "Ya había respondido", tono: "aviso" },
   { clave: "sin_identificar", texto: "Sin identificar", tono: "falla" },
@@ -102,7 +104,7 @@ const ESTADOS: Array<{ clave: string; texto: string; tono: string }> = [
  * es efectiva y no tiene curso-horario. «Efectiva» va en voz baja porque es la
  * mayoría de las filas y gritarla taparía a las que piden algo.
  */
-const RESPUESTAS: Array<{ clave: string; texto: string; tono: string }> = [
+const RESPUESTAS: Array<{ clave: string; texto: string; tono: TonoDeAulas }> = [
   { clave: "efectiva", texto: "Efectiva", tono: "neutro" },
   { clave: "huerfana", texto: "Sin curso-horario del plan", tono: "aviso" },
   { clave: "rechaza", texto: "Rechazó participar", tono: "falla" },
@@ -425,17 +427,13 @@ export function AulasCrucePorCarrera({ bloque }: { bloque: BloqueDeCruce | null 
                             const texto = a.respuesta_etiqueta || r?.texto || "";
                             if (!texto) return <span className="aulas-cxc-debil">—</span>;
                             return (
-                              <span className="aulas-cxc-pill" data-tono={r?.tono ?? "neutro"}>
-                                {texto}
-                              </span>
+                              <EstadoChip label={texto} tone={tonoDeEstadoChip(r?.tono ?? "neutro")} />
                             );
                           })()}
                         </td>
                         <td>
                           {a.estado ? (
-                            <span className="aulas-cxc-pill" data-tono={e?.tono ?? "neutro"}>
-                              {e?.texto ?? a.estado}
-                            </span>
+                            <EstadoChip label={e?.texto ?? a.estado} tone={tonoDeEstadoChip(e?.tono ?? "neutro")} />
                           ) : (
                             // De una que no cuenta no se afirma el cruce: nunca
                             // iba a contar y «sin identificar» se leería como un

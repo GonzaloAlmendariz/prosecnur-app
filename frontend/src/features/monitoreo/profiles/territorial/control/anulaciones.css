@@ -331,37 +331,6 @@
   gap: 2px;
 }
 
-.mon-anu-estado {
-  display: inline-flex;
-  align-items: center;
-  height: 22px;
-  padding: 0 var(--pulso-space-2);
-  border: 1px solid var(--pulso-border);
-  border-radius: 999px;
-  background: var(--pulso-surface-3);
-  color: var(--pulso-text-soft);
-  font-size: var(--pulso-type-subtitle-size);
-  font-weight: var(--pulso-weight-semibold);
-}
-
-.mon-anu-estado.is-ok {
-  border-color: var(--pulso-success-border);
-  background: var(--pulso-success-bg);
-  color: var(--pulso-success-fg);
-}
-
-.mon-anu-estado.is-info {
-  border-color: var(--pulso-info-border);
-  background: var(--pulso-info-bg);
-  color: var(--pulso-info-fg);
-}
-
-.mon-anu-estado.is-alerta {
-  border-color: var(--pulso-warn-border);
-  background: var(--pulso-warn-bg);
-  color: var(--pulso-warn-fg);
-}
-
 .mon-anu-boton:focus-visible,
 .mon-anu-tabla-marco:focus-visible {
   outline: 2px solid var(--pulso-brand-navy);

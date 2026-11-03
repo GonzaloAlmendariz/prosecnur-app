@@ -152,31 +152,6 @@
   font-weight: var(--pulso-weight-bold);
 }
 
-.mon-ins-estado {
-  flex: 0 0 auto;
-  padding: 2px 9px;
-  border-radius: var(--pulso-radius-chip);
-  background: var(--pulso-surface-3);
-  color: var(--pulso-text-soft);
-  font-size: var(--pulso-type-subtitle-size);
-  font-weight: var(--pulso-weight-semibold);
-}
-
-.mon-ins-estado.is-ok {
-  background: var(--pulso-success-bg);
-  color: var(--pulso-success-fg);
-}
-
-.mon-ins-estado.is-aviso {
-  background: var(--pulso-warn-bg);
-  color: var(--pulso-warn-fg);
-}
-
-.mon-ins-estado.is-error {
-  background: var(--pulso-danger-bg);
-  color: var(--pulso-danger-fg);
-}
-
 .mon-ins-cifras {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));

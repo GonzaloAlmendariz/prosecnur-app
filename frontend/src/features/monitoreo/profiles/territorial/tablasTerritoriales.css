@@ -73,7 +73,8 @@
   background: var(--pulso-surface-2);
 }
 
-/* El estado de una fila va en chip, no en texto suelto de color. */
+/* Etiqueta de dato en chip (una categoría, un motivo, una mediana). El ESTADO de
+   una fila ya no va aquí: es un `EstadoChip` del kit (P6 de la pasada de formato). */
 .mon-ter-chip {
   display: inline-flex;
   align-items: center;
@@ -88,31 +89,6 @@
   font-variant-numeric: tabular-nums;
   line-height: 1.4;
   white-space: nowrap;
-}
-
-.mon-ter-chip.is-falta,
-.mon-ter-chip.is-aviso {
-  border-color: var(--pulso-warn-border);
-  background: var(--pulso-warn-bg);
-  color: var(--pulso-warn-fg);
-}
-
-.mon-ter-chip.is-ok {
-  border-color: var(--pulso-success-border);
-  background: var(--pulso-success-bg);
-  color: var(--pulso-success-fg);
-}
-
-.mon-ter-chip.is-error {
-  border-color: var(--pulso-danger-border);
-  background: var(--pulso-danger-bg);
-  color: var(--pulso-danger-fg);
-}
-
-.mon-ter-chip.is-info {
-  border-color: var(--pulso-primary-border);
-  background: var(--pulso-info-bg);
-  color: var(--pulso-brand-navy);
 }
 
 /* Contorno del distrito como sello de la tarjeta de UMP (Gonzalo 2026-10-24:
@@ -240,10 +216,8 @@
   font-variant-numeric: tabular-nums;
 }
 
-.mon-ter-variable li > .mon-ter-chip {
+.mon-ter-variable li > .pulso-estado-chip {
   grid-area: chip;
-  padding: 0 7px;
-  font-size: var(--pulso-type-caption-size);
 }
 
 .mon-ter-variable-barra {

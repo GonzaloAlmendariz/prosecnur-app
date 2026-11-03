@@ -1,10 +1,12 @@
 import { memo, useEffect, useMemo, useState, type ReactNode } from "react";
-import { Check, Info } from "lucide-react";
+import { Info } from "lucide-react";
 
 import type { MonitoreoAulasDashboard } from "../../../../../api/monitoreo";
 import { useFocoMonitoreo } from "../../../useMonitoreoDireccion";
 import { esFocoDelEje, focoDesdeTexto } from "../AulasCuotasResumen";
 import { fmt } from "../kpisDeAulas";
+import { EstadoChip } from "../../../../../components/EstadoChip";
+import { tonoDeEstadoChip } from "../tonoDeEstadoChip";
 import {
   construirResumenAulas,
   readinessDelResumen,
@@ -122,10 +124,7 @@ function Cifra({ protagonista }: { protagonista: Protagonista }) {
             <b>{cuentan == null ? "—" : fmt(cuentan)}</b>
             <span>de {muestra == null ? "—" : fmt(muestra)}</span>
           </p>
-          <span className="aulas-res-chip" data-tono={chip.tono}>
-            {chip.tono === "ok" ? <Check size={13} aria-hidden="true" /> : null}
-            {chip.texto}
-          </span>
+          <EstadoChip label={chip.texto} tone={tonoDeEstadoChip(chip.tono)} />
         </div>
       </div>
       {protagonista.causa ? (

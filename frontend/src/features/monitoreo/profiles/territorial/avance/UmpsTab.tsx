@@ -1,6 +1,7 @@
 import { memo, useMemo, useState } from "react";
 import { Download, Search, Target } from "lucide-react";
 import { EstadoVacio } from "../../../../../components/EstadoVacio";
+import { EstadoChip } from "../../../../../components/EstadoChip";
 import type { MonitoreoTerritorialDashboard } from "../../../../../api/client";
 import { useFocoMonitoreo } from "../../../useMonitoreoDireccion";
 import { fmt } from "../rotulos";
@@ -183,7 +184,7 @@ function UmpsTabImpl({
                       </span>
                     </td>
                     <td className="is-num">{fmt(fila.observacion)}</td>
-                    <td><span className={`mon-ter-chip ${fila.estado === "pendiente" ? "is-falta" : fila.estado === "subsanada" ? "is-info" : "is-ok"}`}>{fila.cuota}</span></td>
+                    <td><EstadoChip label={fila.cuota} tone={fila.estado === "pendiente" ? "warn" : fila.estado === "subsanada" ? "info" : "success"} /></td>
                     {modelo.conOcurrencias ? <td className="is-num">{fila.parte ? `${fmt(fila.parte.efectivas)} / ${fmt(fila.parte.intentos)}` : "Sin parte"}</td> : null}
                     {modelo.conOcurrencias ? <td className="is-num">{fila.parte?.tasa ?? "—"}</td> : null}
                   </tr>
@@ -205,11 +206,11 @@ function UmpsTabImpl({
 /** B3: a quién le asignó Material la UMP y si coincide con quien respondió. */
 function CeldaDePlanificado({ celda }: { celda: CeldaPlanificada | undefined }) {
   if (!celda) return <td className="mon-umps-planificado"><span className="mon-umps-planificado--vacio">Sin asignar</span></td>;
-  const chip = celda.tono === "falta" ? "is-falta" : celda.tono === "ok" ? "is-ok" : "is-info";
+  const tono = celda.tono === "falta" ? "warn" : celda.tono === "ok" ? "success" : "info";
   return (
     <td className="mon-umps-planificado" title={celda.detalle}>
       <span className="mon-umps-planificado-codigo">{celda.rotulo}</span>
-      <span className={`mon-ter-chip ${chip}`}>{celda.texto}</span>
+      <EstadoChip label={celda.texto} tone={tono} />
     </td>
   );
 }
@@ -220,7 +221,7 @@ function CeldaDeclarada({ celda }: { celda: CeldaPlanificada | undefined }) {
   if (!d) return <td className="mon-umps-planificado"><span className="mon-umps-planificado--vacio">Sin declarar</span></td>;
   return (
     <td className="mon-umps-planificado" title={[d.fechas, d.contraste].filter(Boolean).join(". ") || undefined}>
-      {d.estado ? <span className={`mon-ter-chip ${d.contraste ? "is-falta" : "is-info"}`}>{d.estado}</span> : null}
+      {d.estado ? <EstadoChip label={d.estado} tone={d.contraste ? "warn" : "info"} /> : null}
       {d.conteo ? (
         <span className={`mon-umps-conteo${d.conteo.distinto ? " is-distinto" : ""}`} title="Efectivas que campo transcribe del consolidado, contra las válidas que llegaron a Kobo">
           {d.conteo.texto}

@@ -5,6 +5,7 @@ import type { MonitoreoAulasConfig, MonitoreoAulasDashboard, MonitoreoAulasSincr
 import { PulsoSwitch } from "../../../../../components/PulsoSwitch";
 import { ChipLugar } from "../AulasSistemaPabellon";
 import { fmt } from "../kpisDeAulas";
+import { EstadoChip } from "../../../../../components/EstadoChip";
 import {
   construirDistribucion,
   HORA_FIN,
@@ -137,9 +138,10 @@ function DistribucionAulasImpl({ dashboard, cargando, vacioSinTablero, contexto 
         <section className="aulas-ins-panel" aria-labelledby="aulas-dist-hoja" data-qa-geometry-member="hoja">
           <header className="aulas-ins-cabecera">
             <h3 id="aulas-dist-hoja">Hoja de los aplicadores</h3>
-            <span className="aulas-ins-chip" data-tono={!modelo.hoja.conectada ? "neutro" : modelo.hoja.desactualizada ? "aviso" : "ok"}>
-              {!modelo.hoja.conectada ? "Sin hoja" : modelo.hoja.desactualizada ? "Por actualizar" : "Al día"}
-            </span>
+            <EstadoChip
+              label={!modelo.hoja.conectada ? "Sin hoja" : modelo.hoja.desactualizada ? "Por actualizar" : "Al día"}
+              tone={!modelo.hoja.conectada ? "neutral" : modelo.hoja.desactualizada ? "warn" : "success"}
+            />
           </header>
           <p className="aulas-ins-texto">{modelo.hoja.texto}</p>
           <ol className="aulas-ins-mecanismo">

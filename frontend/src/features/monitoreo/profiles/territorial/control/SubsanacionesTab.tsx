@@ -1,6 +1,7 @@
 import { memo, useMemo, useState } from "react";
 import { ArrowRight, Loader2, Scale, Undo2 } from "lucide-react";
 import { EstadoVacio } from "../../../../../components/EstadoVacio";
+import { EstadoChip } from "../../../../../components/EstadoChip";
 import type { MonitoreoTerritorialDashboard, MonitoreoTerritorialOperationalAdjustment, MonitoreoTerritorialPhase } from "../../../../../api/client";
 import { useFocoMonitoreo } from "../../../useMonitoreoDireccion";
 import { diaYMes, fmt } from "../rotulos";
@@ -130,7 +131,7 @@ function SubsanacionesTabImpl({
                   <span>{item.distrito}{item.manzana ? `, manzana ${item.manzana}` : ""}</span>
                 </div>
                 <span className="mon-sub-chips">
-                  <span className={`mon-ter-chip ${item.elegible ? "is-info" : "is-aviso"}`}>{item.elegible ? "Con excedente compatible" : "Bloqueada"}</span>
+                  <EstadoChip label={item.elegible ? "Con excedente compatible" : "Bloqueada"} tone={item.elegible ? "info" : "warn"} />
                   {item.celdas.map((celda) => <span key={celda.texto} className="mon-sub-chip">Falta {fmt(celda.falta)}: {celda.texto}</span>)}
                 </span>
               </li>

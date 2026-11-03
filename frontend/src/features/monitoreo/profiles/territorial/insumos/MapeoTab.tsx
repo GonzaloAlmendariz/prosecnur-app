@@ -1,5 +1,6 @@
 import { memo, useEffect, useMemo, useState } from "react";
 import { LoadingBlock } from "../../../../../components/States";
+import { EstadoChip } from "../../../../../components/EstadoChip";
 import {
   apiMonitoreoTerritorialMapeo,
   type MonitoreoState,
@@ -73,7 +74,7 @@ function MapeoTabImpl({
                   <tr key={rol.campo} className={rol.estado === "encontrada" ? "" : "is-falta"}>
                     <th scope="row">{rol.rol}</th>
                     <td>{rol.columna ? <code>{rol.columna}</code> : "—"}</td>
-                    <td><span className={`mon-ter-chip ${rol.estado === "encontrada" ? "is-ok" : "is-falta"}`}>{rol.rotuloDeEstado}</span></td>
+                    <td><EstadoChip label={rol.rotuloDeEstado} tone={rol.estado === "encontrada" ? "success" : "warn"} /></td>
                   </tr>
                 ))}
               </tbody>
@@ -121,7 +122,7 @@ function MapeoTabImpl({
                   <span><code>{fila.codigo}</code> {fila.etiqueta}</span>
                   {fila.ok
                     ? <span className="mon-ins-distrito-destino">{fila.distrito} <code>{fila.ubigeo}</code></span>
-                    : <span className="mon-ter-chip is-falta">Sin ubigeo</span>}
+                    : <EstadoChip label="Sin ubigeo" tone="warn" />}
                 </li>
               ))}
             </ul>

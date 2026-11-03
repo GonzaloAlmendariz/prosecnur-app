@@ -282,27 +282,9 @@
   cursor: pointer;
 }
 
-.mon-ump-estado {
+/* El estado de la UMP es un EstadoChip del kit (P6): mide su rótulo, no el ancho de la ficha. */
+.mon-ump-ficha > .pulso-estado-chip {
   align-self: flex-start;
-  padding: 2px 9px;
-  border: 1px solid var(--pulso-success-border);
-  border-radius: var(--pulso-radius-chip);
-  background: var(--pulso-success-bg);
-  color: var(--pulso-success-fg);
-  font-size: var(--pulso-type-subtitle-size);
-  font-weight: var(--pulso-weight-semibold);
-}
-
-.mon-ump-estado.is-pendiente {
-  border-color: var(--pulso-warn-border);
-  background: var(--pulso-warn-bg);
-  color: var(--pulso-warn-fg);
-}
-
-.mon-ump-estado.is-subsanada {
-  border-color: var(--pulso-module-monitoring-border);
-  background: var(--pulso-module-monitoring-soft);
-  color: var(--pulso-text);
 }
 
 .mon-ump-cifras {

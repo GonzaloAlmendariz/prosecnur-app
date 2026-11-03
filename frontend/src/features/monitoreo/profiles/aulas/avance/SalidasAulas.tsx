@@ -9,6 +9,8 @@ import { PANEL_REVISAR_LIBRO } from "../../../../../lib/navegacion/manifiesto";
 import { usePanelDireccionable } from "../../../../../lib/navegacion/paneles";
 import { useTablasDeAvance } from "../useTablasDeAvance";
 import type { Vacio } from "./porFacultadModelo";
+import { EstadoChip } from "../../../../../components/EstadoChip";
+import { tonoDeEstadoChip } from "../tonoDeEstadoChip";
 import {
   construirSalidas,
   readinessDeSalidas,
@@ -155,7 +157,7 @@ function FilaDeSalida({ salida, ocupado, hrefHerramientas, onAccion }: {
       <div className="aulas-sl-texto">
         <div className="aulas-sl-nombre">
           <b>{salida.titulo}</b>
-          <span className="aulas-sl-chip" data-tono={salida.tono}>{salida.estado}</span>
+          <EstadoChip label={salida.estado} tone={tonoDeEstadoChip(salida.tono)} />
         </div>
         <p>{salida.detalle}</p>
       </div>

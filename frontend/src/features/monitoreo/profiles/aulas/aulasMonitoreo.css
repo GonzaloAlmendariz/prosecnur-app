@@ -5339,38 +5339,6 @@
   font-style: normal;
 }
 
-/* El chip de estado: cuatro estados con su tono, ninguno inventado —salen de
-   lo que la fila declara: gestiones, cita y aplicación—. */
-.mon-profile-page.is-aulas-flow .aulas-cola-estado {
-  display: inline-block;
-  padding: 2px 8px;
-  border: 1px solid var(--pulso-border);
-  border-radius: 999px;
-  background: var(--pulso-surface-2);
-  color: var(--pulso-text-soft);
-  font-size: var(--pulso-type-micro-size);
-  font-weight: 600;
-  white-space: nowrap;
-}
-
-.mon-profile-page.is-aulas-flow .aulas-cola-estado.es-insistiendo {
-  border-color: var(--pulso-warn-border);
-  background: var(--pulso-warn-bg);
-  color: var(--pulso-warn-fg);
-}
-
-.mon-profile-page.is-aulas-flow .aulas-cola-estado.es-citada {
-  border-color: var(--pulso-success-border);
-  background: var(--pulso-success-bg);
-  color: var(--pulso-success-fg);
-}
-
-.mon-profile-page.is-aulas-flow .aulas-cola-estado.es-aplicada {
-  border-color: var(--pulso-success-border);
-  background: var(--pulso-success-bg);
-  color: var(--pulso-success-fg);
-}
-
 /* El reparto por estado, encima de la tabla. Fila de chips y no una lista:
    se lee de un vistazo y no compite con el detalle que viene debajo. */
 .mon-profile-page.is-aulas-flow .aulas-cola-resumen {

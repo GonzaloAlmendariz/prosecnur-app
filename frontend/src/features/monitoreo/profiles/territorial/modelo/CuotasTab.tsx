@@ -1,6 +1,8 @@
 import { memo, useMemo } from "react";
 import { Target } from "lucide-react";
 import { EstadoVacio } from "../../../../../components/EstadoVacio";
+import { EstadoChip } from "../../../../../components/EstadoChip";
+import type { ChromeStatusTone } from "../../../../../components/ModuleCommandBar";
 import type { MonitoreoState, MonitoreoTerritorialDashboard } from "../../../../../api/client";
 import { useFocoMonitoreo } from "../../../useMonitoreoDireccion";
 import { fmt } from "../rotulos";
@@ -14,9 +16,9 @@ function textoDeRegla(valor: boolean | null): string {
   return valor ? "Sí" : "No";
 }
 
-function claseDeRegla(valor: boolean | null): string {
-  if (valor == null) return "";
-  return valor ? "is-ok" : "is-aviso";
+function tonoDeRegla(valor: boolean | null): ChromeStatusTone {
+  if (valor == null) return "neutral";
+  return valor ? "success" : "warn";
 }
 
 /**
@@ -92,8 +94,8 @@ function CuotasTabImpl({
         <section className="mon-mod-panel" aria-labelledby="mon-mod-reglas">
           <h3 id="mon-mod-reglas" className="mon-mod-titulo">Reglas para cubrir una celda</h3>
           <dl className="mon-mod-reglas">
-            <div><dt>El sexo puede cambiar al subsanar</dt><dd><span className={`mon-ter-chip ${claseDeRegla(modelo.reglas.sexoFlexible)}`}>{textoDeRegla(modelo.reglas.sexoFlexible)}</span></dd></div>
-            <div><dt>La edad puede cambiar al subsanar</dt><dd><span className={`mon-ter-chip ${claseDeRegla(modelo.reglas.edadFlexible)}`}>{textoDeRegla(modelo.reglas.edadFlexible)}</span></dd></div>
+            <div><dt>El sexo puede cambiar al subsanar</dt><dd><EstadoChip label={textoDeRegla(modelo.reglas.sexoFlexible)} tone={tonoDeRegla(modelo.reglas.sexoFlexible)} /></dd></div>
+            <div><dt>La edad puede cambiar al subsanar</dt><dd><EstadoChip label={textoDeRegla(modelo.reglas.edadFlexible)} tone={tonoDeRegla(modelo.reglas.edadFlexible)} /></dd></div>
           </dl>
         </section>
       </div>
