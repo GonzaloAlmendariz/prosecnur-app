@@ -28,8 +28,6 @@ const rel = (f: string) => path.relative(aqui, f).split(path.sep).join("/");
 /** `cmv2-pill-soft` por archivo al 2 nov 2026, después de pasar los estados a EstadoChip. Sólo baja. */
 const SNAPSHOT: Record<string, number> = {
   "general/MemoriaCalculoGeneral.tsx": 1,
-  "universidad/calculo/CalculoDisenoTab.tsx": 2,
-  "universidad/calculo/CalculoPropuestasTab.tsx": 1,
   "universidad/salidas/HistorialCorridas.tsx": 1,
 };
 

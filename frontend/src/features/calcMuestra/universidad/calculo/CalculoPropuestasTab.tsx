@@ -33,6 +33,7 @@ import { resumenTasaEfectividad } from "./estadisticoAula";
 import "../../didactica/didactica.css";
 import "./calculo.css";
 import { EstadoChip } from "../../../../components/EstadoChip";
+import { Panel } from "../../../../components/Panel";
 
 function etapasEscenario(comp: CalcMuestraComponente): FlujoEtapa[] {
   const r = comp.resultado;
@@ -323,23 +324,23 @@ export function CalculoPropuestasTab({
       data-qa-geometry-group="calc-muestra/calculo-propuestas"
       data-qa-geometry-contract="intrinsic"
     >
-      <section className="cmv2-panel cmv2-calc-escenarios-panel" data-qa-geometry-member>
-        <div className="cmv2-panel-head">
-          <strong>Propuestas de muestra</strong>
-          {/* Estado y acción en su sitio (P6): el estado es un EstadoChip y va
-              antes, separado del botón; antes era una píldora pegada a él. */}
-          <div className="cmv2-panel-head-actions">
-            <EstadoChip
-              tone={hasCalculation ? "success" : marcoReady ? "info" : "warn"}
-              label={hasCalculation ? "cifras de la calculadora" : marcoReady ? "lista para calcular" : "requiere marco"}
-            />
-            <span className="cmv2-panel-head-separador" aria-hidden="true" />
-            <button type="button" className="cmv2-primary" onClick={onCalcular} disabled={!marcoReady || calculando}>
-              {calculando ? <Loader2 size={14} className="pulso-spin" /> : <Calculator size={14} />}
-              {hasCalculation ? "Recalcular muestra" : "Calcular muestra"}
-            </button>
-          </div>
-        </div>
+      <Panel className="cmv2-calc-escenarios-panel" data-qa-geometry-member title="Propuestas de muestra" actions={
+          <>
+            {/* Estado y acción en su sitio (P6): el estado es un EstadoChip y va
+                antes, separado del botón; antes era una píldora pegada a él. */}
+            <div className="cmv2-panel-head-actions">
+              <EstadoChip
+                tone={hasCalculation ? "success" : marcoReady ? "info" : "warn"}
+                label={hasCalculation ? "cifras de la calculadora" : marcoReady ? "lista para calcular" : "requiere marco"}
+              />
+              <span className="cmv2-panel-head-separador" aria-hidden="true" />
+              <button type="button" className="cmv2-primary" onClick={onCalcular} disabled={!marcoReady || calculando}>
+                {calculando ? <Loader2 size={14} className="pulso-spin" /> : <Calculator size={14} />}
+                {hasCalculation ? "Recalcular muestra" : "Calcular muestra"}
+              </button>
+            </div>
+          </>
+        }>
         <div className="cmv2-calc-params-elegidos" aria-label="Parámetros elegidos en Diseño">
           <span className="cmv2-calc-params-eyebrow">Parámetros del diseño</span>
           {paramsElegidos.map((param) => (
@@ -403,14 +404,10 @@ export function CalculoPropuestasTab({
             })}
           </div>
         )}
-      </section>
+      </Panel>
 
       {cuotasRows.length > 0 && (
-        <section className="cmv2-panel cmv2-calc-cuotas-panel">
-          <div className="cmv2-panel-head">
-            <strong>Cuotas por facultad, P2</strong>
-            <span className="cmv2-pill-soft">Propuesta 2, {fmtInt(totalCuotas)} entrevistas asignadas</span>
-          </div>
+        <Panel className="cmv2-calc-cuotas-panel" title="Cuotas por facultad, P2" hint="Propuesta 2, {fmtInt(totalCuotas)} entrevistas asignadas">
           {cuotasComp && <CadenaAfijacion comp={cuotasComp} rows={cuotasRows} />}
           <FormulaLatex
             expression={String.raw`n_h = n \cdot \tfrac{N_h}{N}`}
@@ -448,7 +445,7 @@ export function CalculoPropuestasTab({
           <p className="cmv2-calc-cuotas-nota">
             Los cursos-horario requeridos se confirman en su pestaña. La composición P1/P2 completa vive en «Distribución».
           </p>
-        </section>
+        </Panel>
       )}
     </div>
   );

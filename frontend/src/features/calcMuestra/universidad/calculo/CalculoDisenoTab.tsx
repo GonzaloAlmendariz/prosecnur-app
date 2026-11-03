@@ -33,6 +33,7 @@ import {
 } from "./parametrosVisuales";
 import "../../didactica/didactica.css";
 import "./calculo.css";
+import { Panel } from "../../../../components/Panel";
 
 type ParamPatch = Partial<CalcMuestraParametros>;
 
@@ -164,13 +165,12 @@ export function CalculoDisenoTab({
       data-qa-geometry-group="calc-muestra/calculo-diseno"
       data-qa-geometry-contract="intrinsic"
     >
-      <section className="cmv2-panel cmv2-calc-diseno-panel" data-qa-geometry-member>
-        <div className="cmv2-panel-head">
-          <strong>La fórmula del diseño</strong>
-          <span className="cmv2-pill-soft">
-            {N > 0 ? `N = ${fmtInt(N)} del marco` : "requiere marco validado"}
-          </span>
-        </div>
+      <Panel
+        className="cmv2-calc-diseno-panel"
+        data-qa-geometry-member
+        title="La fórmula del diseño"
+        hint={N > 0 ? `N = ${fmtInt(N)} del marco.` : "Requiere el marco validado."}
+      >
         <SwapValor firma={`f:${N}:${zT}:${pT}:${deffT}`} className="cmv2-calc-diseno-formula">
           <FormulaLatex
             expression={formula}
@@ -192,7 +192,7 @@ export function CalculoDisenoTab({
           <Sigma size={13} aria-hidden="true" />
           Aquí se regulan los parámetros; la cifra se ejecuta en <strong>Propuestas</strong>.
         </p>
-      </section>
+      </Panel>
 
       <section className="cmv2-calc-supuestos-panel">
         {/* C1 (E12 · A5): los cuatro supuestos se apilan con alto propio. */}
@@ -335,11 +335,7 @@ export function CalculoDisenoTab({
       </section>
 
       {estratos.length > 0 && (
-        <section className="cmv2-panel cmv2-calc-pfacultad-panel">
-          <div className="cmv2-panel-head">
-            <strong>Parámetros por facultad</strong>
-            <span className="cmv2-pill-soft">la Propuesta 2 calcula p por facultad</span>
-          </div>
+        <Panel className="cmv2-calc-pfacultad-panel" title="Parámetros por facultad" hint="La Propuesta 2 calcula p por facultad.">
           {/* **La nota decía que vacío usa la p global, y no es cierto.**
               `study.ts:457` rellena `p_facultad` desde `UNIVERSITY_REFERENCE_SUCCESS_RATE`
               —la prevalencia por facultad medida en el estudio de referencia— y sólo cae a la
@@ -391,7 +387,7 @@ export function CalculoDisenoTab({
               </tbody>
             </table>
           </div>
-        </section>
+        </Panel>
       )}
 
       {desactualizado && !sucio && (
