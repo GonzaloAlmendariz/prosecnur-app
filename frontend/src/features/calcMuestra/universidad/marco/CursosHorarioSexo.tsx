@@ -18,6 +18,7 @@ import {
   type CursoHorarioSexOrder,
 } from "./cursosHorarioModel";
 import { DescriptiveEmptyNotice, descriptiveMissingState } from "./marcoCharts";
+import { Panel } from "../../../../components/Panel";
 
 type MarcoFrame = CalcMuestraAulasState["frame"] | null;
 
@@ -67,10 +68,7 @@ export function CursosHorarioSexo({
 
   if (!rows.length) {
     return (
-      <section className="cmv2-panel cmv2-ch-sexo">
-        <div className="cmv2-panel-head">
-          <strong>Sexo por curso-horario</strong>
-        </div>
+      <Panel className="cmv2-ch-sexo" title="Sexo por curso-horario">
         <DescriptiveEmptyNotice
           state={descriptiveMissingState(workspace, {
             role: "sex",
@@ -81,7 +79,7 @@ export function CursosHorarioSexo({
             next: "Revisa Definición > Variables y vincula la columna Sexo o género.",
           })}
         />
-      </section>
+      </Panel>
     );
   }
 
