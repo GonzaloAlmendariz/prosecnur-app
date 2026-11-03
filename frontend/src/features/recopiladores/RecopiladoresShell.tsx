@@ -32,6 +32,9 @@ import { TIPO_DE_UNIDAD } from "./tipoDeUnidad";
 import { useProjectModules } from "../project/ProjectModulesContext";
 import "./styles/recopiladores-shell.css";
 
+// Rótulo de estado con mayúscula inicial: deploymentStatusLabel lo da en minúscula para usarlo dentro de una frase.
+const conMayuscula = (t: string) => (t ? t.charAt(0).toLocaleUpperCase("es-PE") + t.slice(1) : t);
+
 const MODULE = PROSECNUR_MODULES.find((item) => item.slug === "material-campo")!;
 /** El juego de secciones del modo aulas (ADR 0111 §3): la campaña de aulas abierta. */
 const SECCIONES_AULAS = MODULE.modos?.find((modo) => modo.id === "aulas")?.sections ?? [];
@@ -365,7 +368,7 @@ export function RecopiladoresShell({ cabecera = null }: Props = {}) {
           }]}
           estado={[{
             id: "deployment-status",
-            label: status === "handed_off" ? "Entregada a Monitoreo" : deploymentStatusLabel(status),
+            label: status === "handed_off" ? "Entregada a Monitoreo" : conMayuscula(deploymentStatusLabel(status)),
             tone: status === "handed_off" ? "success" : status === "stale" ? "danger" : "neutral",
             detail: "Lo que Monitoreo lee de esta campaña: la entrega de aulas, en Insumos › Fuentes",
           }]}

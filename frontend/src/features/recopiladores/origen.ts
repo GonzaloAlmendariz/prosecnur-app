@@ -69,7 +69,8 @@ const ORIGEN: Readonly<Record<string, string>> = {
 };
 
 export function nombreDelModulo(slug: string): string {
-  return MODULO[slug] ?? slug;
+  // `calc-muestra-aulas` y demás variantes del adaptador siguen siendo Cálculo de muestra.
+  return MODULO[slug] ?? (slug.startsWith("calc-muestra") ? MODULO["calc-muestra"] : slug);
 }
 
 /** «Selección de cursos-horario · Cálculo de muestra». */

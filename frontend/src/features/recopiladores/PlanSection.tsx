@@ -22,7 +22,7 @@ import { codigoOperativoDe } from "./codigoOperativo";
 import { formaDelOperativo, type FormaDelOperativo } from "./formaDelOperativo";
 import { nombreCortoDeFacultad } from "./nombreDeFacultad";
 import { fechaDeCorrida } from "./fechaDeCorrida";
-import { avisoDeLaLista, planVigente } from "./origen";
+import { avisoDeLaLista, nombreDelModulo, planVigente } from "./origen";
 import { useOrigen } from "./useOrigen";
 
 type Props = {
@@ -145,8 +145,8 @@ function unitChainLabel(unit: Pick<CollectionUnit, "role" | "group" | "dimension
 // cualquiera; un revision_id real (hash o id del XLSForm) sí es informativo
 // y se muestra igual que antes.
 function instrumentRevisionLabel(revisionId: string): string {
-  if (revisionId === "legacy-instrument-unpinned") return "sin instrumento fijado";
-  return revisionId;
+  if (revisionId === "legacy-instrument-unpinned") return "Sin instrumento fijado";
+  return `Instrumento ${revisionId}`;
 }
 
 const PLAN_PAGE_SIZE = 50;
@@ -333,9 +333,9 @@ export function PlanSection({ payload, onState, origen, onIr, onCargando }: Prop
           <div>
             <dt>Origen</dt>
             <dd>
-              {plan.source_ref.module}
+              {nombreDelModulo(plan.source_ref.module)}
               {fechaDeCorrida(plan.source_ref.run_id) ? (
-                <> · sorteo del <b>{fechaDeCorrida(plan.source_ref.run_id)}</b></>
+                <>, sorteo del <b>{fechaDeCorrida(plan.source_ref.run_id)}</b></>
               ) : null}
             </dd>
           </div>
@@ -361,18 +361,12 @@ export function PlanSection({ payload, onState, origen, onIr, onCargando }: Prop
         eyebrow="Plan congelado"
         title="Unidades que entran a recolección"
         actions={(
-          <div className="rec-plan-data-meta">
-            <code title={plan.instrument_ref.sha256}>instrumento {instrumentRevisionLabel(plan.instrument_ref.revision_id)}</code>
-            {operativo.cadenas.length ? (
-              <span>{pagination.start + 1}–{pagination.end} de {operativo.cadenas.length}</span>
-            ) : null}
-            {/* Lo que NO es una visita se dice al lado, sin ocupar la lista. */}
-            {operativo.banco.length ? (
-              <span title="Reserva de capacidad: no son visitas del plan">
-                +{operativo.banco.length} en banco
-              </span>
-            ) : null}
-          </div>
+          // Pasada de elegancia: los cursos-horario y el banco ya los dice el resumen de al lado, y el
+          // rango, la paginación del pie. Aquí queda sólo lo que la tabla no dice: con qué instrumento
+          // se congeló, en la letra del sistema.
+          <p className="rec-plan-data-meta" title={plan.instrument_ref.sha256}>
+            {instrumentRevisionLabel(plan.instrument_ref.revision_id)}
+          </p>
         )}
       >
         {plan.units.length ? (
@@ -476,7 +470,8 @@ export function PlanSection({ payload, onState, origen, onIr, onCargando }: Prop
                 </tbody>
               </table>
             </TableScroll>
-            <nav className="rec-plan-pagination" aria-label="Páginas del plan">
+            {/* Una sola página no se pagina: «Página 1 de 1» con dos botones apagados es ruido. */}
+            {pagination.totalPages > 1 ? <nav className="rec-plan-pagination" aria-label="Páginas del plan">
               <span aria-live="polite">Página {pagination.page + 1} de {pagination.totalPages}</span>
               <div>
                 <PulsoButton
@@ -498,7 +493,7 @@ export function PlanSection({ payload, onState, origen, onIr, onCargando }: Prop
                   <ChevronRight size={14} aria-hidden />
                 </PulsoButton>
               </div>
-            </nav>
+            </nav> : null}
           </>
         ) : (
           <div className="rec-contained-empty" data-qa-geometry-capacity="owned">

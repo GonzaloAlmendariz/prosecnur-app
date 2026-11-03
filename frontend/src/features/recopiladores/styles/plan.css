@@ -61,10 +61,9 @@
 }
 
 .rec-plan-data-meta {
-  align-items: flex-end;
-  display: grid;
-  gap: 4px;
-  justify-items: end;
+  margin: 0;
+  font-size: var(--pulso-type-caption-size);
+  color: var(--pulso-text-faint);
 }
 
 .rec-data-card .rec-table-scroll {
@@ -98,10 +97,6 @@
 @media (max-width: 900px) {
   .rec-plan-layout {
     grid-template-columns: 1fr;
-  }
-
-  .rec-plan-data-meta {
-    justify-items: start;
   }
 }
 

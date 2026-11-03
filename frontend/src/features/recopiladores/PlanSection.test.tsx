@@ -158,7 +158,7 @@ describe("revisión del instrumento en la cabecera del plan", () => {
     const markup = renderToStaticMarkup(
       <MemoryRouter><PlanSection payload={payloadWithPlan(plan)} onState={() => undefined} /></MemoryRouter>,
     );
-    expect(markup).toContain("sin instrumento fijado");
+    expect(markup).toContain("Sin instrumento fijado");
     expect(markup).not.toContain("legacy-instrument-unpinned");
   });
 
