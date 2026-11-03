@@ -206,11 +206,12 @@ export function AvanceCuotasPanel({
             </div>
 
             {seguimiento ? (
-              <p className="mon-cuotas-panel-vacio">
-                {yaSeguida
+              <EstadoVacio
+                icono={<Target size={16} />}
+                titulo={yaSeguida
                   ? "Esta variable ya está en seguimiento. Su comparación está en Avance › Variables de control; para ponerle metas elige «Con metas»."
                   : borrador.variable ? "Se verá en Avance › Variables de control: universo frente a efectivas, categoría por categoría." : "Elige la variable que quieres seguir."}
-              </p>
+              />
             ) : borrador.filas.length ? (
               <>
                 <p className="mon-cuotas-suma" role="status">

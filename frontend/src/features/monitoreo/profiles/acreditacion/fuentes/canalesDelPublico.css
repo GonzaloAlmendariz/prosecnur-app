@@ -55,12 +55,6 @@
   outline-offset: 1px;
 }
 
-.mon-acr-canales-vacio {
-  margin: 0;
-  color: var(--pulso-text-soft);
-  font-size: var(--pulso-type-caption-size);
-}
-
 .mon-acr-canales-sumar {
   display: flex;
   flex-wrap: wrap;

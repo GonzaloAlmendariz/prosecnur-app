@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { ArrowLeft } from "lucide-react";
-import { CargaDeBloque } from "../../../../recopiladores/CargaDeBloque";
+import { CargaDeBloque } from "../../../../../components/CargaDeBloque";
 import { ErrorBlock } from "../../../../../components/States";
 import type { MonitoreoTerritorialDashboard } from "../../../../../api/client";
 import type { CasoDeUmpConGps } from "../../../../../api/monitoreoCasosUmp";

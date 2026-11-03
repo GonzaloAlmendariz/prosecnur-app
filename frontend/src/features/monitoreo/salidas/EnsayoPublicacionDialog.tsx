@@ -6,6 +6,7 @@ import { AlertTriangle, ExternalLink, ListChecks, Loader2 } from "lucide-react";
 import type { EnsayoPestana, EnsayoPublicacion } from "../../../api/monitoreoPublicarEnsayo";
 import { Dialog } from "../../../components/Dialog";
 import { PulsoButton } from "../../../components/PulsoButton";
+import { LoadingBlock } from "../../../components/States";
 import { PANEL_REVISAR_PUBLICACION } from "../../../lib/navegacion/manifiesto";
 import {
   ROTULO_ESTADO,
@@ -143,10 +144,7 @@ export function EnsayoPublicacionDialog({ destino, estado, aplicando, onAplicar,
       }
     >
       {estado.kind === "cargando" ? (
-        <div className="mon-ensayo-estado" role="status">
-          <Loader2 size={18} className="pulso-spin" />
-          <span>Leyendo el libro destino para compararlo…</span>
-        </div>
+        <LoadingBlock label="Leyendo el libro destino para compararlo…" variant="inline" />
       ) : estado.kind === "bloqueado" ? (
         <div className="mon-ensayo-estado is-bloqueado" role="status">
           <AlertTriangle size={18} />

@@ -23,7 +23,7 @@ import {
   History,
   SearchX,
 } from "lucide-react";
-import { CargaDeBloque } from "../../../recopiladores/CargaDeBloque";
+import { CargaDeBloque } from "../../../../components/CargaDeBloque";
 import { EstadoVacio } from "../../../../components/EstadoVacio";
 import { LoadingBlock } from "../../../../components/States";
 import {

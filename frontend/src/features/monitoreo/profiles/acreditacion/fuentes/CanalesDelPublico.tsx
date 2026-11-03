@@ -1,5 +1,7 @@
 import { useState } from "react";
-import { Plus, X } from "lucide-react";
+import { Mail, Plus, X } from "lucide-react";
+
+import { EstadoVacio } from "../../../../../components/EstadoVacio";
 
 import { PulsoSelect } from "../../../../../components/PulsoSelect";
 import {
@@ -47,7 +49,7 @@ export function CanalesDelPublico({ publico, canales, onCambio, deshabilitado = 
           ))}
         </ol>
       ) : (
-        <p className="mon-acr-canales-vacio">Sin canales declarados: Material abre sólo correo.</p>
+        <EstadoVacio icono={<Mail size={16} />} titulo="Sin canales declarados" descripcion="Material abre sólo correo." />
       )}
       <div className="mon-acr-canales-sumar">
         <PulsoSelect

@@ -1,6 +1,6 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { Loader2, TriangleAlert } from "lucide-react";
-import { CargaDeBloque } from "../../../../recopiladores/CargaDeBloque";
+import { CargaDeBloque } from "../../../../../components/CargaDeBloque";
 import {
   apiMonitoreoTerritorialProductionAnnulmentApply,
   apiMonitoreoTerritorialProductionAnnulmentPreview,

@@ -346,9 +346,7 @@
   gap: 12px;
 }
 
-/* Panel/section directa (fuentes, calidad, consultas) tambien llena */
-.mon-profile-page.is-aulas-flow .aulas-mon-view > .mon-profile-panel,
-.mon-profile-page.is-aulas-flow .aulas-mon-view > .mon-profile-empty {
+.mon-profile-page.is-aulas-flow .aulas-mon-view > .mon-profile-panel {
   min-height: 0;
 }
 

@@ -200,10 +200,6 @@
   max-height: 320px;
 }
 
-.mon-profile-canonical-shell .mon-phone-supervision-sample-body .mon-profile-empty {
-  min-height: 132px;
-}
-
 .mon-profile-canonical-shell .mon-phone-meta,
 .mon-profile-canonical-shell .mon-advance-meta {
   gap: 4px;
@@ -215,16 +211,6 @@
   border-radius: 7px;
   font-size: 10px;
   padding: 0 7px;
-}
-
-.mon-profile-canonical-shell .mon-profile-empty {
-  min-height: clamp(148px, 26vh, 220px);
-  border: 1px dashed color-mix(in srgb, var(--pulso-module-monitoring) 18%, var(--pulso-border));
-  border-radius: 12px;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.82), rgba(248, 250, 253, 0.74)),
-    var(--pulso-surface);
-  padding: 18px;
 }
 
 .mon-profile-canonical-shell .mon-acr-loading-card {
@@ -653,11 +639,6 @@
   .mon-profile-canonical-shell.is-acreditacion-profile .mon-phone-overview-grid > .mon-phone-quota-panel.is-empty {
     grid-template-rows: minmax(0, 1fr);
     align-content: stretch;
-  }
-
-  .mon-profile-canonical-shell.is-acreditacion-profile .mon-phone-overview-grid > .mon-phone-quota-panel.is-empty .mon-phone-quota-empty,
-  .mon-profile-canonical-shell.is-acreditacion-profile .mon-phone-overview-grid > .mon-phone-quota-panel.is-empty .mon-profile-empty {
-    height: 100%;
   }
 }
 
@@ -1271,8 +1252,7 @@
 }
 
 .mon-profile-head p,
-.mon-profile-muted,
-.mon-profile-empty p {
+.mon-profile-muted {
   margin: 0;
   color: var(--pulso-text-soft);
   font-size: 12px;
@@ -3767,27 +3747,6 @@
   font-weight: var(--pulso-weight-heavy);
 }
 
-.mon-profile-empty {
-  min-height: 320px;
-  display: grid;
-  place-content: center;
-  justify-items: center;
-  gap: 8px;
-  text-align: center;
-}
-
-.mon-profile-empty__icon {
-  width: 42px;
-  height: 42px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid var(--pulso-border);
-  border-radius: 14px;
-  background: var(--pulso-surface-2);
-  color: var(--pulso-module-monitoring);
-}
-
 .mon-profile-error {
   display: flex;
   align-items: center;
@@ -4810,7 +4769,6 @@
   background: color-mix(in srgb, var(--pulso-success-bg) 24%, #fff);
 }
 
-.mon-acr-empty-state,
 .mon-acr-metadata-missing {
   min-height: 84px;
   display: grid;
@@ -4825,13 +4783,11 @@
   text-align: center;
 }
 
-.mon-acr-empty-state strong,
 .mon-acr-metadata-missing strong {
   color: var(--pulso-text);
   font-size: 12.5px;
 }
 
-.mon-acr-empty-state span,
 .mon-acr-metadata-missing span,
 .mon-acr-active-hero p {
   margin: 0;
@@ -5843,10 +5799,6 @@
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(285px, 1fr));
   gap: 8px;
-}
-
-.mon-phone-quota-rhythm-grid > .mon-profile-empty {
-  grid-column: 1 / -1;
 }
 
 .mon-phone-quota-rhythm-grid article {
@@ -7817,7 +7769,6 @@
   opacity: 0.86;
 }
 
-.mon-calendar-timeline-empty,
 .mon-calendar-timeline-note {
   margin: 0;
   color: var(--pulso-text-soft);
@@ -8077,13 +8028,6 @@
 .mon-calendar-report-preview small {
   color: var(--pulso-text-soft);
   font-size: 10px;
-}
-
-.mon-calendar-report-empty {
-  margin: 0;
-  color: var(--pulso-text-soft);
-  font-size: 11px;
-  line-height: 1.35;
 }
 
 .mon-calendar-report-exceptions {
@@ -8398,11 +8342,6 @@
     inset 0 1px 0 rgba(255, 255, 255, 0.9),
     0 10px 22px rgba(15, 23, 42, 0.04);
   padding: 12px;
-}
-
-.mon-phone-quota-empty {
-  min-width: 0;
-  display: grid;
 }
 
 .mon-phone-quota-panel.is-empty {
@@ -10328,10 +10267,6 @@
 
 .mon-query-cases-workspace--no-detail {
   grid-template-columns: minmax(0, 1fr);
-}
-
-.mon-query-flow-panel.is-empty-flow .mon-profile-empty {
-  min-height: 190px;
 }
 
 .mon-acr-subsanacion-coach {
@@ -12833,16 +12768,6 @@
     linear-gradient(90deg, #168a55 var(--mechanism-pct), color-mix(in srgb, var(--pulso-border) 72%, #fff 28%) var(--mechanism-pct));
 }
 
-.mon-actor-mechanism-empty {
-  border: 1px dashed var(--pulso-border);
-  border-radius: 9px;
-  background: color-mix(in srgb, var(--pulso-surface-2) 60%, #fff 40%);
-  color: var(--pulso-text-soft);
-  font-size: 11px;
-  font-weight: var(--pulso-weight-semibold);
-  padding: 10px;
-}
-
 /* Una sola fila, como `.mon-stage--sources`.
  *
  * `.mon-stage` declara `auto minmax(0, 1fr)` para dos hijos, pero Modelo solo
@@ -14444,19 +14369,6 @@ button.mon-acr-requirement-metric:active {
   white-space: normal;
 }
 
-.mon-collector-loading {
-  min-height: 46px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  border: 1px dashed var(--pulso-border);
-  border-radius: 9px;
-  color: var(--pulso-text-soft);
-  font-size: 12px;
-  font-weight: var(--pulso-weight-bold);
-}
-
 .mon-collector-body {
   min-width: 0;
   min-height: 0;
@@ -14997,18 +14909,6 @@ button.mon-acr-requirement-metric:active {
   color: #a33636;
   font-size: 12px;
   padding: 7px 9px;
-}
-
-.mon-sm-empty {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 42px;
-  border: 1px dashed var(--pulso-border);
-  border-radius: 7px;
-  color: var(--pulso-text-soft);
-  font-size: 12px;
-  background: color-mix(in srgb, #fff 70%, var(--pulso-surface-2) 30%);
 }
 
 .mon-source-picker-note {
@@ -18349,15 +18249,6 @@ button.mon-acr-requirement-metric:active {
   padding: 10px;
 }
 
-.mon-query-breakdown-empty {
-  min-height: 220px;
-  display: grid;
-  place-items: center;
-  border: 1px solid color-mix(in srgb, var(--pulso-border) 86%, #fff);
-  border-radius: 12px;
-  background: var(--pulso-surface-2);
-}
-
 .mon-query-donut {
   --query-donut-bg: conic-gradient(#dbe2ec 0deg 360deg);
   align-self: start;
@@ -20250,7 +20141,6 @@ button.mon-acr-requirement-metric:active {
   font-weight: 600;
   color: var(--pulso-state-partial-fg);
 }
-
 
 /* El control de seccion en la cabecera: a la derecha del titulo y antes de las
    pastillas, con su propio hueco para que no se pegue a ninguno de los dos.
