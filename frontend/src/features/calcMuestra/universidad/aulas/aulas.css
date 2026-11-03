@@ -994,7 +994,7 @@
   border-radius: 6px;
   background: color-mix(in srgb, var(--cmv2-accent-soft) 70%, #fff);
   color: var(--cmv2-accent-fg);
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-variant-numeric: tabular-nums;
   font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-black);
   white-space: nowrap;
@@ -1493,7 +1493,7 @@
 /* Evidencia reproducible declarada por significado: semilla, firmas del marco
    y corrida de selección se leen carácter por carácter. */
 .cmv2-aulas-repro .cmv2-uni-cifra[data-monospace="true"] .cmv2-uni-cifra-valor {
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-variant-numeric: tabular-nums;
   font-size: var(--pulso-type-title-size);
   font-weight: var(--pulso-weight-bold);
   letter-spacing: 0;

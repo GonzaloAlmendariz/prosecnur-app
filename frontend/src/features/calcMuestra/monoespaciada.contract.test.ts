@@ -40,7 +40,36 @@ const SNAPSHOT: Record<string, number> = {
   "universidad/ui/FormulaLatex.tsx": 1,
 };
 
+/** Reglas CSS con font-family monoespaciada por hoja, al 2 nov 2026 (campos, fórmulas, el área donde se pegan códigos). Sólo baja. */
+const SNAPSHOT_CSS: Record<string, number> = {
+  "general/general.css": 2,
+  "general/mesa.css": 1,
+  "universidad/definicion/definicion.css": 1,
+  "universidad/marco/excluirEnBloque.css": 1,
+  "universidad/shared/aviso.css": 1,
+  "universidad/ui/ui.css": 1,
+  "universidad/universidad-base.css": 1,
+};
+
+function hojas(dir: string): string[] {
+  return readdirSync(dir, { withFileTypes: true }).flatMap((e) => {
+    const completo = path.join(dir, e.name);
+    if (e.isDirectory()) return hojas(completo);
+    return e.name.endsWith(".css") ? [completo] : [];
+  });
+}
+
 describe("monoespaciada sólo para código · P8", () => {
+  it("ninguna hoja suma reglas monoespaciadas (los códigos de curso-horario, huellas y archivos van en la letra del sistema)", () => {
+    const fuentes = hojas(aqui);
+    expect(fuentes.length).toBeGreaterThan(40);
+    const regresiones = fuentes
+      .map((f) => [rel(f), readFileSync(f, "utf8").replace(/\/\*[\s\S]*?\*\//g, "").match(/font-family\s*:[^;}]*mono/g)?.length ?? 0] as const)
+      .filter(([f, n]) => n > (SNAPSHOT_CSS[f] ?? 0))
+      .map(([f, n]) => `${f}: ${SNAPSHOT_CSS[f] ?? 0} → ${n}`);
+    expect(regresiones).toEqual([]);
+  });
+
   const conteo: Record<string, number> = {};
   for (const f of archivos(aqui)) {
     const n = sinComentarios(readFileSync(f, "utf8")).match(/<code\b/g)?.length ?? 0;

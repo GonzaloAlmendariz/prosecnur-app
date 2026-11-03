@@ -886,7 +886,7 @@
     linear-gradient(180deg, rgba(255, 255, 255, 0.84), transparent),
     color-mix(in srgb, var(--cmv2-accent-soft) 72%, #fff);
   color: var(--cmv2-accent-fg);
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-variant-numeric: tabular-nums;
   font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-bold);
   letter-spacing: 0.05em;
@@ -955,7 +955,7 @@
   border-radius: var(--pulso-radius-chip);
   background: var(--pulso-surface-2);
   color: var(--pulso-text-soft);
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-variant-numeric: tabular-nums;
   font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-bold);
   letter-spacing: 0.05em;

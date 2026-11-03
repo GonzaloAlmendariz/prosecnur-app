@@ -189,7 +189,7 @@
   width: fit-content;
   padding: 1px 7px;
   border-radius: 999px;
-  font-family: var(--pulso-font-mono, ui-monospace, "SF Mono", Menlo, monospace);
+  font-variant-numeric: tabular-nums;
   font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-bold);
   color: var(--cmv2-accent);
