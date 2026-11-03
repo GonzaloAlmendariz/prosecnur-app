@@ -178,3 +178,16 @@ test_that("la PUCP va sólo en el mapa distrital y la tarjeta del mapa mide lo q
   expect_identical(.lam_mapa_dist_leyenda_reparto(e, 4.5)$filas, 2L)
   expect_identical(.lam_mapa_dist_leyenda_reparto(l, 9)$filas, 1L)
 })
+
+test_that("la guía del punto baja en diagonal hasta el mar y los países vecinos van sin nombre", {
+  fx <- .md_fx()
+  e <- .md_espec(fx, "dist", "lima_callao", puntos = "PUCP | -12.0693, -77.0794")
+  g <- .mapa_dist_panel_gg(e, 6.3, 4.3)
+  it <- attr(g, "pulso_rotulos")
+  expect_identical(it$texto, "PUCP")
+  expect_gt(it$baja, 0)   # la PUCP está tierra adentro: su guía baja antes de ir a la columna
+  expect_lt(it$y_txt, it$y)
+  p <- .md_espec(fx, "dep", "peru", excl = "No sabe")
+  labs <- unlist(lapply(ggplot2::ggplot_build(.mapa_dist_panel_gg(p, 6.3, 4.3))$data, function(d) d$label))
+  expect_false(any(c("BRASIL", "ECUADOR", "COLOMBIA") %in% labs))
+})

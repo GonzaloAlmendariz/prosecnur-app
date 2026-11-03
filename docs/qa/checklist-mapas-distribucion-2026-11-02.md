@@ -50,3 +50,5 @@ Estados: pendiente · en curso · hecho (a revisar) · bloqueado. Sólo Gonzalo 
 | 20 | «El mapa del Perú o de Lima tiene mucho ancho y se ve raro el encuadre» | la tarjeta del mapa mide lo que pide su contenido (`.mapa_dist_ancho_natural`, entre 40 % y 62 % de la lámina); Word: alto natural a 16 cm; la leyenda baja sus extras a una 2.ª fila si no cabe | hecho (a revisar) |
 | 21 | «No se distinguen los distritos» | Gonzalo eligió (2026-11-03) borde gris oscuro #5A6478 de 0,5 pt: `.MAPA_DIST$borde` | hecho (a revisar) |
 | 22 | «etc.»: más ajustes de acabado | por definir en la próxima revisión | pendiente |
+| 23 | La guía de la PUCP cruzaba distritos: «¿por qué no baja un poco en diagonal?» | `.mapa_dist_bajada()`: la guía baja a 45° lo mínimo para que el tramo recto vaya entero sobre el mar | hecho (a revisar) |
+| 24 | «No es necesario que los países vecinos tengan nombre» | se quitó el rótulo; la tierra de contexto se mantiene | hecho (a revisar) |

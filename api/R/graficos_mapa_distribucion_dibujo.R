@@ -18,8 +18,8 @@
 #' @keywords internal
 .mapa_dist_pt <- function(destino = c("lamina", "word")) {
   destino <- match.arg(destino)
-  if (identical(destino, "word")) list(rotulo = 10.5, leyenda = 9, escala = 9, oceano = 9.75, pais = 9, zona = 9)
-  else list(rotulo = 9, leyenda = 8.25, escala = 8.25, oceano = 9.75, pais = 8.25, zona = 8.25)
+  if (identical(destino, "word")) list(rotulo = 10.5, leyenda = 9, escala = 9, oceano = 9.75, zona = 9)
+  else list(rotulo = 9, leyenda = 8.25, escala = 8.25, oceano = 9.75, zona = 8.25)
 }
 
 #' Grosor en puntos a `linewidth` de ggplot (mm): 1 mm de linewidth son ~2,13 pt
@@ -134,27 +134,6 @@
   do.call(rbind, piezas)
 }
 
-#' Dónde va el nombre de cada país vecino: su punto del archivo si queda dentro del recuadro con aire; si no, un punto
-#' de su parte visible, siempre que ésta mida al menos 0,25 in² (un borde que apenas asoma no se rotula)
-#' @keywords internal
-.mapa_dist_rotulos_vecinos <- function(vec, pr, caja, pt) {
-  margen <- 0.3
-  out <- lapply(seq_len(nrow(vec)), function(i) {
-    p <- .mapa_dist_xy(pr, vec$rot_x[i], vec$rot_y[i])
-    w <- .lam_ancho_tinta(vec$nombre[i], pt$pais, TRUE) / 2 + 0.05
-    if (is.finite(p$x) && p$x - w > caja[1] + 0.05 && p$x + w < caja[2] - 0.05 && p$y > caja[3] + 0.15 && p$y < caja[4] - 0.15) {
-      return(data.frame(x = p$x, y = p$y, t = vec$nombre[i]))
-    }
-    pol <- .mapa_dist_sf(vec[i, ], pr, c(caja[1] + margen, caja[2] - margen, caja[3] + 0.15, caja[4] - 0.15))[[1]]
-    if (is.null(pol) || sum(as.numeric(sf::st_area(pol))) < 0.25) return(NULL)
-    pol <- sf::st_cast(pol, "POLYGON"); pol <- pol[which.max(as.numeric(sf::st_area(pol)))]
-    c0 <- sf::st_coordinates(suppressWarnings(sf::st_point_on_surface(pol)))
-    data.frame(x = c0[1, "X"], y = c0[1, "Y"], t = vec$nombre[i])
-  })
-  out <- Filter(Negate(is.null), out)
-  if (!length(out)) data.frame(x = numeric(0), y = numeric(0), t = character(0)) else do.call(rbind, out)
-}
-
 #' Coloca los rótulos en una columna sobre el mar, sin chocar, con su guía horizontal y luego diagonal
 #'
 #' Maqueta (tablero 3): cada rótulo baja hasta la altura de su lugar (o lo justo para no pisar al anterior, 21 px a
@@ -163,13 +142,17 @@
 #' @param items data.frame `texto`, `x`, `y` (lugar, pulgadas desde abajo), `prioridad` (mayor = se queda).
 #' @return `items` (los que caben) con `y_txt` y la guía `gx`, `gy` (3 vértices por rótulo, en `guia`).
 #' @keywords internal
-.mapa_dist_rotulos_columna <- function(items, alto, x_txt, pt, arriba = 44 * .MAPA_DIST_PX) {
+.mapa_dist_rotulos_columna <- function(items, alto, x_txt, pt, arriba = 44 * .MAPA_DIST_PX, tierra = NULL) {
   P <- .MAPA_DIST_PX
   if (!nrow(items)) return(list(items = items, guia = data.frame(g = integer(0), x = numeric(0), y = numeric(0))))
   paso <- 21 * P * pt / 9; abajo <- 14 * P
   cupo <- max(1L, floor((alto - arriba - abajo) / paso) + 1L)
   if (nrow(items) > cupo) items <- items[order(-items$prioridad), , drop = FALSE][seq_len(cupo), , drop = FALSE]
-  items$yd <- alto - items$y                       # hacia abajo, como el lienzo
+  # Gonzalo, 2026-11-03: «¿por qué no baja un poco en diagonal para no tapar ningún distrito?». Con `tierra`, cada guía baja
+  # en diagonal (45°) desde su lugar lo mínimo para que el tramo recto hacia el rótulo vaya entero sobre el mar.
+  items$baja <- if (is.null(tierra)) 0 else vapply(seq_len(nrow(items)), function(i)
+    .mapa_dist_bajada(items$x[i], items$y[i], x_txt + 4 * P, tierra, max_baja = items$y[i] - abajo), 0)
+  items$yd <- alto - (items$y - items$baja)        # hacia abajo, como el lienzo
   items <- items[order(items$yd), , drop = FALSE]
   prev <- -Inf; y_txt <- numeric(nrow(items))
   for (i in seq_len(nrow(items))) { y_txt[i] <- max(items$yd[i], prev + paso, arriba); prev <- y_txt[i] }
@@ -178,10 +161,35 @@
   items$y_txt <- alto - y_txt
   guia <- do.call(rbind, lapply(seq_len(nrow(items)), function(i) {
     yl <- items$y_txt[i]; tx <- items$x[i]; ty <- items$y[i]
-    xe <- max(x_txt + 8 * P, tx - min(28 * P, abs(ty - yl) + 10 * P))
+    # El codo: a 45° desde el lugar hasta la altura del rótulo; con poca diferencia de altura, un quiebre corto.
+    xe <- if (items$baja[i] > 0) max(x_txt + 8 * P, tx - abs(ty - yl)) else max(x_txt + 8 * P, tx - min(28 * P, abs(ty - yl) + 10 * P))
     data.frame(g = i, x = c(x_txt + 4 * P, xe, tx), y = c(yl, yl, ty))
   }))
   list(items = items, guia = guia)
+}
+
+#' La tierra del panel como una geometría (pulgadas): la unión de los anillos dibujados
+#' @keywords internal
+.mapa_dist_tierra <- function(d) {
+  if (!nrow(d)) return(NULL)
+  polys <- lapply(split(d, d$grupo), function(a) { m <- as.matrix(a[c("x", "y")]); sf::st_polygon(list(rbind(m, m[1, ]))) })
+  sf::st_union(sf::st_make_valid(sf::st_sfc(polys)))
+}
+
+#' Cuánto baja la guía de un punto (in) para que su tramo recto hacia la columna no cruce tierra
+#'
+#' Prueba bajadas de 0,05 in en 0,05 in: el codo queda a 45° del punto, abajo a la izquierda, y el tramo de ahí a la columna
+#' tiene que ir entero sobre el mar (sin tocar `tierra`, la unión de áreas y contexto en pulgadas). Si ninguna sirve, 0.
+#' @keywords internal
+.mapa_dist_bajada <- function(x, y, x_col, tierra, max_baja = 1.5) {
+  if (is.null(tierra) || !is.finite(x) || !is.finite(y)) return(0)
+  for (b in seq(0, max(0, min(1.5, max_baja)), by = 0.05)) {
+    xe <- x - b; ye <- y - b
+    if (xe <= x_col) break
+    tramo <- sf::st_sfc(sf::st_linestring(rbind(c(x_col, ye), c(xe - 0.03, ye))))
+    if (!any(sf::st_intersects(tramo, tierra, sparse = FALSE))) return(b)
+  }
+  0
 }
 
 #' Ancho de la columna de rótulos (pulgadas): el rótulo más ancho y su aire, hasta el 36 % del recuadro; sin puntos de
@@ -214,14 +222,7 @@
     ggplot2::annotate("rect", xmin = 0, xmax = ancho, ymin = 0, ymax = alto, fill = M$mar) +
     ggplot2::geom_polygon(data = ctx, ggplot2::aes(.data$x, .data$y, group = .data$grupo),
                           fill = M$tierra, colour = M$tierra_borde, linewidth = .mapa_dist_lw(0.75), linejoin = "round")
-  # Los nombres de los países vecinos (Perú), en mayúsculas grises sobre su tierra.
-  # El rótulo va sobre la parte VISIBLE de cada país (su punto del archivo si cae dentro; si no, un punto de lo recortado).
-  vec <- espec$carto$contexto
-  if (!is.null(vec) && any(is.finite(vec$rot_x))) {
-    dv <- .mapa_dist_rotulos_vecinos(vec, pr, caja, pt)
-    if (nrow(dv)) g <- g + ggplot2::geom_text(data = dv, ggplot2::aes(.data$x, .data$y, label = .data$t), size = pt$pais / ggplot2::.pt,
-                                              fontface = "bold", colour = M$pais, family = fuente)
-  }
+  # Los países vecinos van sin nombre (Gonzalo, 2026-11-03: «no es necesario que los países vecinos tengan nombre»).
   g <- g +
     ggplot2::geom_polygon(data = poly, ggplot2::aes(.data$x, .data$y, group = .data$grupo),
                           fill = NA, colour = M$contorno, linewidth = .mapa_dist_lw(2.4), linejoin = "round") +
@@ -240,7 +241,9 @@
   } else if (NROW(rot)) {
     x_txt <- col - 18 * P
     rot$prioridad <- seq(nrow(rot), 1)
-    lay <- .mapa_dist_rotulos_columna(rot, alto, x_txt, pt$rotulo)
+    # La tierra en pulgadas (áreas y contexto) para que las guías bajen hasta el mar antes de ir a la columna.
+    tierra <- tryCatch(.mapa_dist_tierra(rbind(poly[c("x", "y", "grupo")], ctx[c("x", "y", "grupo")])), error = function(e) NULL)
+    lay <- .mapa_dist_rotulos_columna(rot, alto, x_txt, pt$rotulo, tierra = tierra)
     it <- lay$items
     g <- g +
       ggplot2::geom_path(data = lay$guia, ggplot2::aes(.data$x, .data$y, group = .data$g), colour = M$guia, linewidth = .mapa_dist_lw(0.68)) +
