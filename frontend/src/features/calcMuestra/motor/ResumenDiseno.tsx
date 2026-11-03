@@ -15,6 +15,7 @@ import {
   normalizeCalcMuestraDistribucionI19,
   type CalcMuestraDistribucionI19State,
 } from "../../../api/calcMuestraDistribucionI19";
+import { enumerar } from "../../../lib/enumerar";
 import { fmtInt } from "../sharedCore";
 import { calculoDistribucionScenarioMeta } from "../universidad/calculo/calculoDistribucionModel";
 import { estadisticoDelReparto, nombreEstadistico } from "../universidad/calculo/estadisticoAula";
@@ -208,9 +209,9 @@ export function ResumenDiseno({
   const procedenciaDesconocida =
     hayMarco && correspondeALasFuentes === null && (fuentesActuales?.length ?? 0) > 0;
   const notaDeFuentes = fuentesCambiaron
-    ? "otras bases cargadas · reconstruye"
+    ? "otras bases cargadas; reconstrúyelo"
     : procedenciaDesconocida
-      ? "no consta de qué bases salió · reconstruye"
+      ? "no consta de qué bases salió; reconstrúyelo"
       : null;
 
   // Metas operativas: el mismo selector P1/P2 y el mismo normalizador de la
@@ -344,14 +345,14 @@ export function ResumenDiseno({
     {
       label: "Estudiantes elegibles",
       value: estudiantesElegibles,
-      note: notaIntegridad ?? (estudiantesDesactualizados ? "criterios cambiados · reconstruye" : notaDeFuentes ? "del marco actual" : "marco vigente"),
+      note: notaIntegridad ?? (estudiantesDesactualizados ? "criterios cambiados; reconstruye el marco" : notaDeFuentes ? "del marco actual" : "marco vigente"),
       icon: <ClipboardCheck size={16} aria-hidden="true" />,
       tone: fuentesCambiaron || procedenciaDesconocida || estudiantesDesactualizados || !marcoPublicable ? "estimated" : "confirmed",
     },
     {
       label: "Cursos-horario elegibles",
       value: cursosHorarioElegibles,
-      note: notaIntegridad ?? (cursosDesactualizados ? "criterios cambiados · reconstruye" : notaDeFuentes ? "del marco actual" : "marco vigente"),
+      note: notaIntegridad ?? (cursosDesactualizados ? "criterios cambiados; reconstruye el marco" : notaDeFuentes ? "del marco actual" : "marco vigente"),
       icon: <BookOpenCheck size={16} aria-hidden="true" />,
       tone: fuentesCambiaron || procedenciaDesconocida || cursosDesactualizados || !marcoPublicable ? "estimated" : "confirmed",
     },
@@ -482,7 +483,7 @@ export function ResumenDiseno({
           <span className="rec-resumen-item-icon" aria-hidden="true"><Sigma size={16} aria-hidden="true" /></span>
           <span className="rec-resumen-item-copy">
             <small>Sin cifra todavía</small>
-            <strong>{indicadores.vacios.map((metric) => metric.label).join(", ")}</strong>
+            <strong>{enumerar(indicadores.vacios.map((metric) => metric.label))}</strong>
             <span>{notaResultado}</span>
           </span>
         </div>

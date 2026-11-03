@@ -164,6 +164,15 @@
   white-space: normal;
 }
 
+/* Una sola línea: «Sin cifra todavía» y los nombres en la misma fila, como
+   rótulo y valor. Eran dos renglones y la franja crecía 16 px en cada vista. */
+.rec-resumen-item.rec-resumen-vacios .rec-resumen-item-copy {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  column-gap: var(--pulso-space-2);
+}
+
 .rec-resumen-item-icon {
   display: inline-flex;
   align-items: center;

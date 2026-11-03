@@ -58,7 +58,7 @@ const SNAPSHOT: Record<string, number> = {
   "general/modelo.ts": 3,
   "general/modeloParametros.ts": 3,
   "general/tituloCorrida.ts": 4,
-  "motor/ResumenDiseno.tsx": 13,
+  "motor/ResumenDiseno.tsx": 9,
   "universidad/UniversidadDesk.tsx": 4,
   "universidad/aulas/AulaInspectorPanel.tsx": 4,
   "universidad/aulas/AulasObjetivoTab.tsx": 1,
@@ -77,7 +77,6 @@ const SNAPSHOT: Record<string, number> = {
   "universidad/aulas/SeleccionPorFacultadCard.tsx": 3,
   "universidad/aulas/SexoPorFacultadCard.tsx": 1,
   "universidad/aulas/SustentoDimensionamientoCard.tsx": 1,
-  "universidad/aulas/aulasSurfaceState.tsx": 1,
   "universidad/aulas/classroomHandoff.ts": 2,
   "universidad/aulas/relato/RelatoTab.tsx": 3,
   "universidad/aulas/relato/escenas/EnsamblajeBalanceado.tsx": 1,
@@ -144,7 +143,7 @@ const SNAPSHOT: Record<string, number> = {
   "universidad/salidas/SalidasMonitoreoTab.tsx": 1,
   "universidad/salidas/SeleccionComparadaCard.tsx": 1,
   "universidad/salidas/sustentoSecciones.ts": 1,
-  "universidad/shared/frameIntegrity.ts": 3,
+  "universidad/shared/frameIntegrity.ts": 1,
   "universidad/ui/CifraMotor.tsx": 1,
 };
 
