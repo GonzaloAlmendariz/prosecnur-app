@@ -159,11 +159,15 @@
   sobra <- prev - (alto - abajo)
   if (sobra > 0) y_txt <- y_txt - sobra
   items$y_txt <- alto - y_txt
-  guia <- do.call(rbind, lapply(seq_len(nrow(items)), function(i) {
+  # El rótulo se queda cerca de su codo, sobre el mar, en vez de irse al borde de la columna (Gonzalo, 2026-11-03: «no
+  # irse tan a la izquierda»): su borde derecho a 0,45 in del codo, nunca más a la izquierda que la columna.
+  items$xe <- vapply(seq_len(nrow(items)), function(i) {
     yl <- items$y_txt[i]; tx <- items$x[i]; ty <- items$y[i]
-    # El codo: a 45° desde el lugar hasta la altura del rótulo; con poca diferencia de altura, un quiebre corto.
-    xe <- if (items$baja[i] > 0) max(x_txt + 8 * P, tx - abs(ty - yl)) else max(x_txt + 8 * P, tx - min(28 * P, abs(ty - yl) + 10 * P))
-    data.frame(g = i, x = c(x_txt + 4 * P, xe, tx), y = c(yl, yl, ty))
+    if (items$baja[i] > 0) max(x_txt + 8 * P, tx - abs(ty - yl)) else max(x_txt + 8 * P, tx - min(28 * P, abs(ty - yl) + 10 * P))
+  }, 0)
+  items$x_lab <- if (is.null(tierra)) rep(x_txt, nrow(items)) else pmax(x_txt, items$xe - 0.45)
+  guia <- do.call(rbind, lapply(seq_len(nrow(items)), function(i) {
+    data.frame(g = i, x = c(items$x_lab[i] + 4 * P, items$xe[i], items$x[i]), y = c(items$y_txt[i], items$y_txt[i], items$y[i]))
   }))
   list(items = items, guia = guia)
 }
@@ -181,13 +185,21 @@
 #' Prueba bajadas de 0,05 in en 0,05 in: el codo queda a 45° del punto, abajo a la izquierda, y el tramo de ahí a la columna
 #' tiene que ir entero sobre el mar (sin tocar `tierra`, la unión de áreas y contexto en pulgadas). Si ninguna sirve, 0.
 #' @keywords internal
-.mapa_dist_bajada <- function(x, y, x_col, tierra, max_baja = 1.5) {
+.mapa_dist_bajada <- function(x, y, x_col, tierra, max_baja = 1.5, extra = 0.15) {
   if (is.null(tierra) || !is.finite(x) || !is.finite(y)) return(0)
   for (b in seq(0, max(0, min(1.5, max_baja)), by = 0.05)) {
     xe <- x - b; ye <- y - b
     if (xe <= x_col) break
     tramo <- sf::st_sfc(sf::st_linestring(rbind(c(x_col, ye), c(xe - 0.03, ye))))
-    if (!any(sf::st_intersects(tramo, tierra, sparse = FALSE))) return(b)
+    if (!any(sf::st_intersects(tramo, tierra, sparse = FALSE))) {
+      # Un poco más de bajada que la mínima, si el tramo sigue sobre el mar (Gonzalo, 2026-11-03: «puede bajar un poco más»).
+      b2 <- b + extra; xe2 <- x - b2; ye2 <- y - b2
+      if (b2 <= max_baja && xe2 > x_col) {
+        t2 <- sf::st_sfc(sf::st_linestring(rbind(c(x_col, ye2), c(xe2 - 0.03, ye2))))
+        if (!any(sf::st_intersects(t2, tierra, sparse = FALSE))) return(b2)
+      }
+      return(b)
+    }
   }
   0
 }
@@ -253,7 +265,7 @@
       ggplot2::geom_path(data = transform(lay$guia, col = it$punto[lay$guia$g]), ggplot2::aes(.data$x, .data$y, group = .data$g, colour = .data$col),
                          linewidth = .mapa_dist_lw(1), lineend = "round", linejoin = "round") +
       ggplot2::geom_point(data = it, ggplot2::aes(.data$x, .data$y), shape = 21, size = 1.45, stroke = 0.35, colour = "#FFFFFF", fill = it$punto) +
-      ggplot2::geom_text(data = it, ggplot2::aes(x_txt, .data$y_txt, label = .data$texto), hjust = 1, vjust = 0.5,
+      ggplot2::geom_text(data = it, ggplot2::aes(.data$x_lab, .data$y_txt, label = .data$texto), hjust = 1, vjust = 0.5,
                          size = pt$rotulo / ggplot2::.pt, fontface = "bold", colour = it$color, family = fuente)
     attr(g, "pulso_rotulos") <- it
   }
