@@ -23,8 +23,8 @@ export function migaLienzo(seccion: SeccionLienzo, distritos: number, foco: { di
   const icono = <MapPinned size={14} aria-hidden="true" />;
   const donde = nombreDelTerritorio(ciudades);
   if (seccion === "seleccion" && foco) return <>{icono} <b>{foco.distrito}</b>, {foco.ump}</>;
-  if (seccion === "territorio") return <>{icono} <b>{donde}</b><span className="hr-lienzo-miga-ayuda">, clic en un distrito para ver su ficha</span></>;
-  return <>{icono} <b>{donde}</b><span className="hr-lienzo-miga-ayuda">, {distritos ? `${distritos} distrito${distritos === 1 ? "" : "s"}` : "sin distritos confirmados"}</span></>;
+  if (seccion === "territorio") return <>{icono} <b>{donde}</b><span className="hr-lienzo-miga-ayuda">(clic en un distrito para ver su ficha)</span></>;
+  return <>{icono} <b>{donde}</b><span className="hr-lienzo-miga-ayuda">({distritos ? `${distritos} distrito${distritos === 1 ? "" : "s"}` : "sin distritos confirmados"})</span></>;
 }
 
 const muestra = (fondo: string, borde?: string, punteado = false) => (
