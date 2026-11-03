@@ -171,5 +171,12 @@ Cada fila pasó `make gate-front AREA=recopiladores`; las que tienen copia D1, u
 | Registro por público y ronda | 2d3cac005 | Hecho: un bloque por público en orden de ronda, procedencia en cada tarjeta |
 | Correo en el chrome común | | **Excepción declarada** (Gonzalo, 2 nov 2026: «Sin banda, como el 20/10»). El correo no lleva banda de módulo: la miga vive en la barra de cada pestaña para que el cuerpo gane alto. No se aplica el chrome común ni el chip de entrada |
 
+| Movimiento | b922d1e7d | Hecho: menú desde su disparador, fundido de 4 px al cambiar de sección, movimiento reducido = fundido. El press ya lo daba el kit |
+| Aulas › Unidades | 8b63429f2 | Hecho: «Coincide con la selección vigente» sólo con los dos veredictos del backend; origen, desfase y facultades ya existían |
+| Territorial › Catálogo › Fichas | f83b43045 | Hecho: escenario con la ficha y panel de acciones; PDF de prueba como bloque secundario |
+| Telefónica › Casos | ce6dfd06f | Hecho: bloques pares (C2) y ✓ en la opción elegida (D18) |
+| Correo › Contactos | | Ya existía: cuatro cifras y «Fuera del envío» con su motivo (sin correo, inválido, repetido), que el backend ya clasifica. La nota «requiere dato» del diseño era incorrecta |
+| Densidad a 1440 y Nueva campaña | | Ya existían: inspector de 400 px a 1440 y la ronda del Modelo con su «Viene de» |
+
 Datos que el backend aún no entrega: el desfase de ruteo y consolidados cuando cambia la asignación, la fecha en que se
 generó cada pieza territorial y el porcentaje del ZIP. Sin ellos, Paquetes no pinta esos estados.
