@@ -564,7 +564,7 @@ function SerieCampo({
       })}
       {totalEfectivas !== null ? (
         <p className="cmv2-hist-nota-grupo">
-          El campo duró {filas.length} semanas y acumuló {num(totalEfectivas)} encuestas completas.
+          El campo duró {fmtInt(filas.length)} semanas y acumuló {num(totalEfectivas)} encuestas completas.
           Las encuestas por aula caen de {num(filas[0]?.efectivas_por_aula)} a{" "}
           {num(filas[filas.length - 1]?.efectivas_por_aula)} entre la primera semana y la última.
           {/* G53 · La efectividad no cae en línea recta y decirlo evita la

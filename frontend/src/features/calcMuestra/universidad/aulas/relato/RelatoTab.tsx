@@ -30,6 +30,7 @@ import { EscenaProbabilidades } from "./escenas/EscenaProbabilidades";
 import { EscenaSorteo } from "./escenas/EscenaSorteo";
 import { EscenaTitulares } from "./escenas/EscenaTitulares";
 import "./relato.css";
+import { fmtInt } from "../../../sharedCore";
 
 /**
  * Presupuesto de autoplay ≤ 60 s por facultad: 5 escenas × 5.5 s + el
@@ -194,7 +195,7 @@ export function RelatoTab({
               value={focoVigente ? focoDeFacultad(focoVigente) : ""}
               onChange={(event) => publicarFoco(event.currentTarget.value || null)}
             >
-              <option value="">Estudio completo, {relato.facultades.length} facultades</option>
+              <option value="">Estudio completo, {fmtInt(relato.facultades.length)} facultades</option>
               {relato.facultades.map((facultad) => (
                 <option key={facultad} value={focoDeFacultad(facultad)}>
                   {facultad}

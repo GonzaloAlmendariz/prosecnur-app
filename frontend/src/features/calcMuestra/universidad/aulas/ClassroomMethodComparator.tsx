@@ -5,7 +5,7 @@ import type {
   CalcMuestraWorkspaceAulasConfig,
 } from "../../../../api/client";
 import { ComparadorMetodosVisual } from "../../didactica/ComparadorMetodosVisual";
-import { fmtPct } from "../../sharedCore";
+import { fmtInt, fmtPct } from "../../sharedCore";
 import { ClassroomBalanceTable } from "./ClassroomMethodPanels";
 import { classroomMethodLabel, classroomScore } from "./classroomLabels";
 import { EstadoVacio } from "../../../../components/EstadoVacio";
@@ -47,7 +47,7 @@ export function ClassroomMethodComparator({
         <strong>Qué dio cada método con este marco</strong>
         {ready ? (
           <span>
-            {methods.length} {methods.length === 1 ? "método evaluado" : "métodos evaluados"} sobre
+            {fmtInt(methods.length)} {methods.length === 1 ? "método evaluado" : "métodos evaluados"} sobre
             las mismas aulas
           </span>
         ) : null}

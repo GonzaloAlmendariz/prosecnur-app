@@ -14,8 +14,9 @@ import { describe, expect, it } from "vitest";
  *
  * Y un conteo pegado crudo en el JSX (`{filas.length}`) no lleva separador de
  * millares: «1234 filas» al lado de «1,234» en la tarjeta vecina. Los que pueden
- * pasar de 999 (filas, columnas, cursos-horario, excluidos) ya van por `fmtInt`;
- * el resto cuenta facultades o métodos, y este ratchet sólo los deja bajar.
+ * pasar de 999 (filas, columnas, cursos-horario, excluidos) fueron primero; el
+ * 3 nov 2026 pasaron también los que cuentan facultades o métodos, para que no
+ * haya dos maneras de escribir un conteo. Meta 0, salvo dos que no se muestran.
  */
 
 const aqui = path.dirname(fileURLToPath(import.meta.url));
@@ -35,34 +36,11 @@ const sinComentarios = (s: string) =>
 /** `toLocaleString` vive sólo en el formateador del módulo y en la cifra con decimales fijos. */
 const TO_LOCALE_PERMITIDO = new Set(["sharedCore.ts", "universidad/criterios/criteriosGeneralesModel.ts"]);
 
-/** `{x.length}` o `${x.length}` mostrados sin formatear, por archivo, al 2 nov 2026. Sólo baja. */
+/** `{x.length}` o `${x.length}` sin formatear. Meta 0 desde el 3 nov 2026, salvo los dos que no se muestran. */
 const SNAPSHOT_LENGTH_CRUDO: Record<string, number> = {
-  "CalcMuestraPage.tsx": 3,
-  "general/ContextoReporte.tsx": 1,
-  "general/MemoriaCalculoGeneral.tsx": 1,
-  "modeloVistaPreviaTipo.ts": 1,
-  "universidad/aulas/ClassroomMethodComparator.tsx": 1,
-  "universidad/aulas/ClassroomMethodPanels.tsx": 1,
-  "universidad/aulas/DocenteUnicoAviso.tsx": 1,
+  // No son texto: la clave de una fila virtual y el número de columnas de un grid CSS.
   "universidad/aulas/classroomSelectionMapModel.ts": 1,
-  "universidad/aulas/relato/RelatoTab.tsx": 1,
-  "universidad/aulas/relato/relatoModel.ts": 1,
-  "universidad/calculo/CalculoDisenoTab.tsx": 1,
-  "universidad/criterios/TipoSesionPorFacultad.tsx": 1,
-  "universidad/criterios/criteriosMarcoModel.ts": 1,
-  "universidad/criterios/facultades.tsx": 3,
-  "universidad/definicion/DefBasesTab.tsx": 6,
-  "universidad/definicion/HistoricoEstudioPanel.tsx": 1,
-  "universidad/marco/AlumnosPorChMarcoTab.tsx": 2,
-  "universidad/marco/CriterioAnclaHistorica.tsx": 1,
-  "universidad/marco/CriteriosRadiografiaCardDetalle.tsx": 1,
-  "universidad/marco/CriteriosRadiografiaConsola.tsx": 3,
-  "universidad/marco/CursosHorarioMarcoTab.tsx": 1,
-  "universidad/marco/CursosHorarioSexo.tsx": 1,
-  "universidad/marco/PanoramaCursosHorario.tsx": 1,
-  "universidad/marco/TipoSesionRadiografia.tsx": 1,
   "universidad/marco/marcoCharts.tsx": 1,
-  "universidad/salidas/SustentoCoberturaCard.tsx": 2,
 };
 
 // Un conteo crudo en el texto: `{x.length}` entre etiquetas o `${x.length}` en

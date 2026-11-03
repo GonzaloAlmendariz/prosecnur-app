@@ -275,7 +275,7 @@ export function AlumnosPorChMarcoTab({
               propuesta aún no está confirmada», que es el estado, no la causa. */}
           {missing.length > 0 ? (
             <span className="cmv2-alumnos-ch-bloqueo" role="status">
-              Falta el estadístico en {missing.length} {missing.length === 1 ? "facultad" : "facultades"}:{" "}
+              Falta el estadístico en {fmtInt(missing.length)} {missing.length === 1 ? "facultad" : "facultades"}:{" "}
               {missing.slice(0, 3).join(", ")}{missing.length > 3 ? ` y ${missing.length - 3} más` : ""}
             </span>
           ) : null}
@@ -284,7 +284,7 @@ export function AlumnosPorChMarcoTab({
             className="cmv2-primary"
             disabled={missing.length > 0 || (current && !motorPideRefirmar)}
             title={missing.length > 0
-              ? `Sin estadístico resoluble en ${missing.length} facultades`
+              ? `Sin estadístico resoluble en ${fmtInt(missing.length)} facultades`
               : motorPideRefirmar
                 ? "La comparación la rechazó por caducada: vuelve a firmarla para desbloquearla"
                 : current

@@ -10,6 +10,7 @@ import { esTecnicaDeElementos } from "./modelo";
 import { lineaDeAsignacion } from "./modeloParametros";
 import "./general.css";
 import "./mesa.css";
+import { fmtInt } from "../sharedCore";
 
 /**
  * Método › Memoria de cálculo: la cadena que va de Cochran al n a campo y al
@@ -49,7 +50,7 @@ export function MemoriaCalculoGeneral({
           <span className="cmv2-eyebrow">Memoria de cálculo</span>
           <h3 id="cmg-memoria-titulo" className="cmg-panel-titulo">Cómo se calcula el n</h3>
         </div>
-        {pasos.length > 0 && <span className="cmv2-pill-soft">{pasos.length} pasos</span>}
+        {pasos.length > 0 && <span className="cmv2-pill-soft">{fmtInt(pasos.length)} pasos</span>}
       </div>
       {asignacion && <p className="cmg-nota">{asignacion}</p>}
       {pasos.length === 0 ? (

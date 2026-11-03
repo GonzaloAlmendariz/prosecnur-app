@@ -67,7 +67,7 @@ import { setMinimoFacultad, setTasaAsistencia, tasaAsistencia } from "../criteri
 import { senalAgrupamientoDti } from "../criterios/tipoSesionModel";
 import { MANUAL_EXCLUDED_ID, reactivarTodas, setAulaExcluida } from "../criterios/aulasFinalesModel";
 import { ExcluirEnBloqueCard } from "./ExcluirEnBloqueCard";
-import { rowsFrom } from "../../sharedCore";
+import { fmtInt, rowsFrom } from "../../sharedCore";
 import { CursosHorarioBaseGlobal } from "./CursosHorarioBaseGlobal";
 import { FacultadDecisionBloque, type RepartoCriterio } from "./FacultadDecisionBloque";
 import { facultadesBloque, resumenDecisionFacultad, slugFacultad } from "./facultadDecisionModel";
@@ -1177,7 +1177,7 @@ export function CursosHorarioMarcoTab({
                         </option>
                       ))}
                     </select>
-                    <small>{bloques.length} facultades, se muestra una a la vez con todo su detalle</small>
+                    <small>{fmtInt(bloques.length)} facultades, se muestra una a la vez con todo su detalle</small>
                   </label>
                   {(bloqueFoco ? [bloqueFoco] : []).map((bloque) => (
                     <FacultadDecisionBloque

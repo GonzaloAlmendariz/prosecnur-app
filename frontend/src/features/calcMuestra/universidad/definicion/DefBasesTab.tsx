@@ -117,7 +117,7 @@ function RequisitosReferencia() {
   // title de cada nombre para no convertir la tarjeta en un muro.
   return (
     <div className="cmv2-defi-requisitos">
-      <span>Columnas que debe traer ({requisitos.length})</span>
+      <span>Columnas que debe traer ({fmtInt(requisitos.length)})</span>
       <p>
         {requisitos.map((req, i) => (
           <span key={req.campo}>
@@ -479,7 +479,7 @@ export function DefBasesTab({
     {
       id: "archivo",
       label: "Archivo",
-      valor: `${loadedCount}/${frameBindings.length}`,
+      valor: `${loadedCount}/${fmtInt(frameBindings.length)}`,
       detalle: loadedCount ? "Excel cargados" : "sube el Excel institucional",
       estado: loadedCount === frameBindings.length && loadedCount > 0 ? "ready" : loadedCount > 0 ? "working" : "pending",
     },
@@ -614,8 +614,8 @@ export function DefBasesTab({
       {showCompat && (
         <AvisoModulo tone={compatOk ? "success" : "warn"} role="status" compact>
           {compatOk
-            ? `Compatible, ${detectedRequired.length}/${requiredVariables.length} variables requeridas detectadas, confírmalas en la pestaña Variables`
-            : `Por revisar, ${detectedRequired.length}/${requiredVariables.length} variables requeridas detectadas, faltan: ${missingRequired
+            ? `Compatible, ${fmtInt(detectedRequired.length)}/${fmtInt(requiredVariables.length)} variables requeridas detectadas, confírmalas en la pestaña Variables`
+            : `Por revisar, ${fmtInt(detectedRequired.length)}/${fmtInt(requiredVariables.length)} variables requeridas detectadas, faltan: ${missingRequired
                 .map((row) => REQUIRED_SHORT_LABEL[row.role] ?? row.label.toLowerCase())
                 .join(", ")} — mapéalas en la pestaña Variables`}
         </AvisoModulo>

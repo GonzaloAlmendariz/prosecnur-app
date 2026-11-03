@@ -18,6 +18,7 @@ import {
 } from "../../dominio";
 import { ControlRango } from "./ControlRango";
 import { Switch } from "../../../../components/Switch";
+import { fmtInt } from "../../sharedCore";
 
 export type FacultadRef = { key: string; label: string };
 
@@ -175,8 +176,8 @@ export function ExcepcionesFacultad({
         <strong>Decisión por facultad</strong>
         <small>
           {entradas.length
-            ? `${entradas.length} de ${facultades.length} con criterio propio`
-            : `las ${facultades.length} aplican el criterio general`}
+            ? `${fmtInt(entradas.length)} de ${fmtInt(facultades.length)} con criterio propio`
+            : `las ${fmtInt(facultades.length)} aplican el criterio general`}
         </small>
       </div>
       <ul className="cmv2-crit-exc-list">

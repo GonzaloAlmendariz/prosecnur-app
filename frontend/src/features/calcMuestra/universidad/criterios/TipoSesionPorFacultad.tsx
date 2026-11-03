@@ -53,7 +53,7 @@ function listar(items: string[]): string {
 function etiquetaCorta(label: string): string {
   const { base, agrupadas } = analizarEtiquetaCategoria(label);
   if (!base) return label;
-  return agrupadas.length > 1 ? `${base}, agrupa ${agrupadas.length}` : base;
+  return agrupadas.length > 1 ? `${base}, agrupa ${fmtInt(agrupadas.length)}` : base;
 }
 
 /** Mini-distribución de tipos de una facultad: barra apilada proporcional al CH. */

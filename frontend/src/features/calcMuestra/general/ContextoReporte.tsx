@@ -6,6 +6,7 @@ import { useSeccion } from "../../../lib/navegacion/useDireccion";
 import { BarraTasa } from "../universidad/shared/graficos/PrimitivasGrafico";
 import { requisitosReporteAcreditacion } from "./bandaDisenoModelo";
 import "./mesa.css";
+import { fmtInt } from "../sharedCore";
 
 /**
  * Acreditación › Contexto: lo que el reporte necesita y cuánto de eso ya está.
@@ -41,7 +42,7 @@ export function ContextoReporte({
       </div>
       <BarraTasa
         label="Listo"
-        detalle={`${listos} de ${requisitos.length}`}
+        detalle={`${listos} de ${fmtInt(requisitos.length)}`}
         valor={requisitos.length > 0 ? listos / requisitos.length : null}
         tono="meta"
       />

@@ -18,6 +18,7 @@
  * afirmación útil, porque dice dónde no hay con qué comparar.
  */
 import type { CriterioGeneralFila } from "./CriteriosGeneralesCard";
+import { fmtInt } from "../../sharedCore";
 
 const ETIQUETA_FACULTAD: Record<string, string> = {};
 
@@ -71,7 +72,7 @@ function describeNivel(ranges: unknown): string {
     }
   }
   const base = tramos.size ? `niveles ${[...tramos].join(", ")}` : "";
-  const ex = exentas.length ? `${exentas.length} facultad${exentas.length === 1 ? "" : "es"} exenta${exentas.length === 1 ? "" : "s"}` : "";
+  const ex = exentas.length ? `${fmtInt(exentas.length)} facultad${exentas.length === 1 ? "" : "es"} exenta${exentas.length === 1 ? "" : "s"}` : "";
   return [base, ex].filter(Boolean).join(", ");
 }
 

@@ -418,7 +418,7 @@ export function CalculoDisenoTab({
               {[
                 ...cambiosTotal.map((k) => `${k} (universidad)`),
                 ...cambiosFaculty.map((k) => `${k} (facultades)`),
-                ...(cambiosP.length ? [`p por facultad ×${cambiosP.length}`] : []),
+                ...(cambiosP.length ? [`p por facultad ×${fmtInt(cambiosP.length)}`] : []),
               ].join(", ")}
             </span>
           </div>

@@ -121,7 +121,7 @@ export function CursosHorarioSexo({
       <div
         className="cmv2-ch-sexo-scroll"
         role="img"
-        aria-label={`Hombres y mujeres por curso-horario en ${activeFaculty || "todas las facultades"}, ${visible.length} cursos-horario`}
+        aria-label={`Hombres y mujeres por curso-horario en ${activeFaculty || "todas las facultades"}, ${fmtInt(visible.length)} cursos-horario`}
       >
         {filas.map((row) => (
           <div key={row.id} className="cmv2-ch-sexo-row">

@@ -60,6 +60,7 @@ import { CriteriosEmbudoVivo } from "./CriteriosEmbudoVivo";
 import "./criteriosRadiografia.css";
 import { rotuloSegmento } from "./segmentoRotulo";
 import { EstadoVacio } from "../../../../components/EstadoVacio";
+import { fmtInt } from "../../sharedCore";
 
 /**
  * F108 · Rótulo vigente por `segment_key`; el `segment_label` del payload sólo
@@ -387,7 +388,7 @@ function V2Distribution({
           data-qa-geometry-capacity="owned"
           aria-label={`Radiografía en ${group.label}`}
         >
-          <header><strong>{group.label}</strong><span>{group.rows.length} segmentos</span></header>
+          <header><strong>{group.label}</strong><span>{fmtInt(group.rows.length)} segmentos</span></header>
           <div
             className="cmv2-crc-segments"
             data-qa-geometry-group="calc-muestra/criterios-radiografia-segmentos"

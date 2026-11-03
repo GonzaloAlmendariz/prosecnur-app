@@ -2,6 +2,7 @@ import { History } from "lucide-react";
 import type { CalcMuestraCriteriosAnchorRow } from "../../../../api/calcMuestraCriteriosI18b";
 import "./criteriosI18b.css";
 import { EstadoVacio } from "../../../../components/EstadoVacio";
+import { fmtInt } from "../../sharedCore";
 
 const INTEGER = new Intl.NumberFormat("es-PE", { maximumFractionDigits: 0 });
 const PERCENT = new Intl.NumberFormat("en-US", {
@@ -110,7 +111,7 @@ export function CriterioAnclaHistorica({
         >
           <header>
             <div>
-              <strong>Sin coincidencia publicable en {anchors.length} {anchors.length === 1 ? "facultad" : "facultades"}</strong>
+              <strong>Sin coincidencia publicable en {fmtInt(anchors.length)} {anchors.length === 1 ? "facultad" : "facultades"}</strong>
               <span>{primera.requested_label ?? primera.requested_dimension ?? "Criterio sin característica histórica"}</span>
             </div>
             <span className="cmv2-i18b-anchor-level">{niveles.size === 1 ? primera.match_level : "mixto"}</span>

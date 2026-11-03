@@ -467,7 +467,7 @@ export function ClassroomBalanceTable({ rows, methodId }: { rows?: Array<Record<
       </table>
       {delMetodo.length > visible.length && (
         <p className="cmv2-classroom-table-pie">
-          Se muestran las <b>{visible.length} categorías con mayor diferencia</b> de las{" "}
+          Se muestran las <b>{fmtInt(visible.length)} categorías con mayor diferencia</b> de las{" "}
           {fmtInt(delMetodo.length)} que se comparan, repartidas en {dimensiones.size}{" "}
           {dimensiones.size === 1 ? "variable" : "variables"}. El detalle completo está en
           Auditoría.

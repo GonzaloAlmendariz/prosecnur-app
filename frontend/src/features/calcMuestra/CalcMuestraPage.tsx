@@ -495,7 +495,7 @@ export function chromeTokensForDesk({
     const withChannel = componentes.filter((comp) => comp.canal_recojo !== "sin_definir").length;
     return [
       { label: "Tipo", value: "Metas por grupo", tone: "path" },
-      { label: "Actores", value: componentes.length ? `${componentes.length} componentes` : "sin actores", tone: componentes.length ? "ready" : "working" },
+      { label: "Actores", value: componentes.length ? `${fmtInt(componentes.length)} componentes` : "sin actores", tone: componentes.length ? "ready" : "working" },
       { label: "Canales", value: `${withChannel}/${componentes.length || 0} definidos`, tone: componentes.length > 0 && withChannel === componentes.length ? "ready" : "working" },
       { label: "Salida", value: hasResult ? "metas listas" : productText, tone: hasResult ? "ready" : "neutral" },
     ];
@@ -514,7 +514,7 @@ export function chromeTokensForDesk({
     return [
       { label: "Tipo", value: "Sesión anterior", tone: "path" },
       { label: "Compatibilidad", value: "solo lectura", tone: "working" },
-      { label: "Componentes", value: `${componentes.length}`, tone: componentes.length ? "ready" : "neutral" },
+      { label: "Componentes", value: `${fmtInt(componentes.length)}`, tone: componentes.length ? "ready" : "neutral" },
       { label: "Salida", value: hasResult ? "conservada" : "migrar", tone: hasResult ? "ready" : "working" },
     ];
   }
@@ -615,7 +615,7 @@ function contextChecksForDesk({
   if (desk === "acreditacion") {
     const withChannel = componentes.filter((comp) => comp.canal_recojo !== "sin_definir").length;
     return [
-      { label: "Actores", value: componentes.length ? `${componentes.length} componentes` : "sin actores", ready: componentes.length > 0, icon: ClipboardList },
+      { label: "Actores", value: componentes.length ? `${fmtInt(componentes.length)} componentes` : "sin actores", ready: componentes.length > 0, icon: ClipboardList },
       { label: "Canales", value: `${withChannel}/${componentes.length || 0} definidos`, ready: componentes.length > 0 && withChannel === componentes.length, icon: Users },
       { label: "Contexto", value: hasSource ? "documentado" : "pendiente", ready: hasSource, icon: Database },
       { label: "Metas", value: hasResult ? "calculadas" : "por calcular", ready: hasResult, icon: BarChart3 },
