@@ -135,6 +135,15 @@
   overflow-y: auto;
   scrollbar-width: thin;
   scrollbar-color: var(--pulso-border-strong) transparent;
+  /* Al soltar el desplazamiento, la fila que asoma queda entera bajo la
+   * cabecera pegajosa (~34 px), como en las demás tablas de la casa: a 1280 × 720
+   * la cabecera tapaba media fila de «San Martín de Porres». */
+  scroll-padding-top: 36px;
+  scroll-snap-type: y proximity;
+}
+
+.mon-metas-tabla tbody > tr {
+  scroll-snap-align: start;
 }
 
 .mon-metas-tabla thead th {

@@ -383,6 +383,16 @@
     white-space: normal;
     line-height: 1.25;
   }
+  /* Con envío por cuotas la última columna es «Por día» y quedaba 34 px detrás
+   * del desplazamiento a 1280 (D14). La barra de «Cuentan / meta» se acorta y
+   * las cabeceras numéricas largas pasan a dos líneas. */
+  .mon-res-tabla .mon-res-avance-barra {
+    width: 48px;
+  }
+  .mon-res-tabla thead th.is-num {
+    white-space: normal;
+    line-height: 1.2;
+  }
 }
 
 .mon-res-tabla-marco::-webkit-scrollbar,

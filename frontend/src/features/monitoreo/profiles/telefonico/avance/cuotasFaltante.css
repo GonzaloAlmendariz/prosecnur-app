@@ -722,3 +722,22 @@
 .mon-tel-cuotas.has-diario .mon-tel-cuotas-reparto {
   flex: 1 0 auto;
 }
+
+/* Sin faltante diario pasa lo mismo a 1280 × 720: la columna derecha repartía
+ * su alto y las tres tarjetas se recortaban («Sin llamar / Sin asignar» y
+ * «Únicas por CodPulso» partidos, «Las que cuentan para la cuota» 18 px fuera).
+ * Ninguna tarjeta se encoge por debajo de su contenido; si no cabe, la vista
+ * crece y desplaza el contenedor de la pestaña. */
+.mon-tel-cuotas:not(.has-diario) {
+  height: auto;
+  min-height: 100%;
+}
+
+.mon-tel-cuotas:not(.has-diario) > .mon-tel-cuotas-lado {
+  max-height: none;
+}
+
+.mon-tel-cuotas:not(.has-diario) .mon-tel-cuotas-lado > * {
+  flex: none;
+  overflow: visible;
+}

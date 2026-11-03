@@ -193,6 +193,16 @@
   margin: var(--pulso-space-1) 0;
 }
 
+/* El rótulo de la cifra de una fase va en caja normal: en versalitas,
+ * «RESPUESTAS» no cabía en un tercio de la tarjeta de Piloto a 1280 (se salía
+ * 5 px). */
+.mon-mod-parametros.mon-mod-fase-cifras dt {
+  font-size: var(--pulso-type-caption-size);
+  font-weight: var(--pulso-weight-medium);
+  letter-spacing: 0;
+  text-transform: none;
+}
+
 .mon-mod-parametros.mon-mod-fase-cifras > div {
   padding: var(--pulso-space-2);
 }
