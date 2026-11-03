@@ -33,6 +33,8 @@ type Entrada = {
   excepto?: readonly string[];
   /** Condición extra sobre los valores actuales (p. ej. cuántas mediciones tiene la serie). */
   cuando?: (valores: Valores) => boolean;
+  /** Rótulo, ayuda y texto vacío propios de un graficador: el mismo arg se lee distinto ahí (con los valores actuales). */
+  textosEn?: Readonly<Record<string, (valores: Valores) => Pick<Entrada, "rotulo" | "ayuda" | "placeholder">>>;
   /** Guarda propia de un graficador: reemplaza `siActivo` y `cuando` ahí (el mismo arg se activa con otro control). */
   porGraficador?: Readonly<Record<string, Pick<Entrada, "siActivo" | "cuando" | "defecto">>>;
   /**
@@ -126,6 +128,21 @@ const OTROS_POR_TOP_K = { siActivo: undefined, cuando: conTopK };
 export const tieneVars = (v: Valores) =>
   (Array.isArray(v.vars) && v.vars.length > 0) || (!!v.vars && typeof v.vars === "object" && Object.keys(v.vars as object).length > 0);
 
+/**
+ * Los cortes del mapa de distribución con la escala que el motor usa si quedan vacíos (graficos_mapa_distribucion_plan.R,
+ * `.MAPA_DIST$cortes_conteo`; personas: contrato del 2026-11-03).
+ */
+export function cortesDistribucion(v: Valores): Pick<Entrada, "rotulo" | "ayuda" | "placeholder"> {
+  if (v.medida === "tasa") return { rotulo: "Dónde empieza cada clase (por 10 000)", ayuda: "Desde la segunda clase.", placeholder: "0.5, 1, 2, 3" };
+  const personas = v.unidad === "personas";
+  const placeholder = personas ? "6, 11, 21, 51" : v.area === "peru" ? "3, 6, 11" : "3, 6, 11, 21";
+  return {
+    rotulo: `Dónde empieza cada clase (${personas ? "personas" : "estudiantes"})`,
+    ayuda: "Desde la segunda clase. Ninguna área queda fuera de la escala.",
+    placeholder,
+  };
+}
+
 const LISTA_BLANCA: Record<string, Entrada> = {
   // La pregunta filtro de «Filtro y subpregunta» se elige en su tarjeta, junto con lo que habilita.
   var: { rotulo: "Pregunta", cuando: (v) => !tieneVars(v), excepto: ["p_filtro_subpregunta"] },
@@ -143,6 +160,33 @@ const LISTA_BLANCA: Record<string, Entrada> = {
   },
   unit: { rotulo: "Unidad", soloEn: ["p_mapa_cobertura_territorial"] },
   coverage_mode: { rotulo: "Cobertura", soloEn: ["p_mapa_cobertura_territorial"] },
+  // Mapa de distribución (lámina aprobada por Gonzalo el 2026-11-03; contrato en
+  // docs/qa/contrato-ui-mapas-dependientes-2026-11-03.md). `juntar`, `unidad` y `otra_respuesta` sólo salen cuando el
+  // registro los declara: la tarjeta no promete lo que el motor todavía no dibuja.
+  area: { rotulo: "Mapa", soloEn: ["p_mapa_distribucion"] },
+  juntar: {
+    rotulo: "Juntar con",
+    ayuda: "Suma sus respuestas en el mismo mapa, como el distrito del Callao al de Lima.",
+    soloEn: ["p_mapa_distribucion"],
+  },
+  medida: { rotulo: "Qué se pinta", soloEn: ["p_mapa_distribucion"] },
+  unidad: { rotulo: "Se cuentan", soloEn: ["p_mapa_distribucion"] },
+  otra_respuesta: {
+    rotulo: "Áreas de otra respuesta",
+    ayuda: "Van en gris rayado, porque las cubre otra respuesta de la pregunta filtro.",
+    placeholder: "Lima Metropolitana, Callao, Lima provincias",
+    soloEn: ["p_mapa_distribucion"],
+    // Guardada como grupos con nombre ({"Lima provincias": [...]}) se edita en el plan: el campo de texto la borraría.
+    cuando: (v) => !v.otra_respuesta || Array.isArray(v.otra_respuesta) || typeof v.otra_respuesta === "string",
+  },
+  otra_respuesta_rotulo: {
+    rotulo: "Rótulo en la leyenda",
+    placeholder: "Lima y Callao",
+    soloEn: ["p_mapa_distribucion"],
+    cuando: (v) => Array.isArray(v.otra_respuesta) ? v.otra_respuesta.length > 0 : typeof v.otra_respuesta === "string" && v.otra_respuesta.trim() !== "",
+  },
+  encuadre: { rotulo: "Encuadre", soloEn: ["p_mapa_distribucion"] },
+  puntos: { rotulo: "Puntos de referencia", control: "texto", placeholder: "PUCP | -12.0693, -77.0794", soloEn: ["p_mapa_distribucion"] },
   // G12 (2026-10-13): en multiapiladas el grupo se elige dentro de su modo («Una pregunta por grupos»…); un «Dividir por»
   // suelto en la tarjeta era un segundo camino a lo mismo.
   cruces: { rotulo: "Dividir por", ayuda: "Sin dividir, el gráfico muestra una sola serie.", excepto: ["p_barras_multiapiladas"] },
@@ -231,7 +275,12 @@ const LISTA_BLANCA: Record<string, Entrada> = {
   // G15 (Gonzalo, 2026-10-13): el reparto de ancho por lámina, en tres pasos. Lo dibuja la lámina que compara públicos.
   // Sólo donde hace algo: la lámina que compara públicos (Gonzalo, 2026-10-13: «que sus opciones tengan sentido»).
   ancho_tema: { rotulo: "Ancho de los temas", soloEn: ["p_barras_multiapiladas"], cuando: comparaPublicos },
-  excluir_opciones: { rotulo: "Excluir respuestas", ayuda: "Escribe los códigos separados por comas, por ejemplo 88, 99." },
+  excluir_opciones: {
+    rotulo: "Excluir respuestas",
+    ayuda: "Escribe los códigos separados por comas, por ejemplo 88, 99.",
+    // En el mapa no es un ajuste de categorías: define a quién retrata (nacidos fuera de Lima Metropolitana y el Callao).
+    textosEn: { p_mapa_distribucion: () => ({ rotulo: "Quitar del mapa", ayuda: "Salen del mapa y de su base." }) },
+  },
   // Histograma por grupos: la tarjeta no tenía dónde elegir la pregunta que divide, y «Excluir grupos» pedía elegirla
   // (pasada final 2026-10-15). Sin grupo elegido no hay grupos que excluir.
   // `grupo` salió de RETIRADOS: el histograma por grupos tiene su dibujo (c440f928b) y es el único que lo declara.
@@ -282,7 +331,11 @@ const LISTA_BLANCA: Record<string, Entrada> = {
     cuando: serieEnMarco,
   },
   min_n: { rotulo: "Casos mínimos por distrito", ayuda: AYUDA_MIN_N, soloEn: ["p_mapa_resultado_distrital"] },
-  cortes: { rotulo: "Cortes de las clases (%)", ayuda: AYUDA_CORTES, placeholder: "55, 65, 75", soloEn: ["p_mapa_resultado_distrital", "p_mapa_distribucion"] },
+  cortes: {
+    rotulo: "Cortes de las clases (%)", ayuda: AYUDA_CORTES, placeholder: "55, 65, 75", soloEn: ["p_mapa_resultado_distrital", "p_mapa_distribucion"],
+    // En el mapa de distribución las clases se cuentan en estudiantes o personas, no en %: la ayuda anterior decía «55, 65 y 75».
+    textosEn: { p_mapa_distribucion: cortesDistribucion },
+  },
   // I-c: en la serie temporal los decimales son decisión del informe (Estilo del informe › Cálculos); sólo el radar.
   valores_decimales: { rotulo: "Decimales", soloEn: ["p_radar"] },
 };
@@ -382,9 +435,10 @@ export function camposDeDatos(args: readonly ArgMetadata[], valores: Valores, gr
     const retiradas = e.opcionesRetiradas ?? {};
     const opciones = (arg.choices ?? []).filter((o) => !Object.hasOwn(retiradas, o.value) || o.value === guardado);
     const aviso = typeof guardado === "string" && Object.hasOwn(retiradas, guardado) ? retiradas[guardado] : null;
+    const t = { ...e, ...((graficador && e.textosEn?.[graficador]?.(valores)) || {}) };
     salida.push({
-      arg: conDefecto, rotulo: e.rotulo, ayuda: e.ayuda ?? null, detalle: arg.descripcion ?? "", control,
-      placeholder: e.placeholder ?? null, opciones, aviso,
+      arg: conDefecto, rotulo: t.rotulo, ayuda: t.ayuda ?? null, detalle: arg.descripcion ?? "", control,
+      placeholder: t.placeholder ?? null, opciones, aviso,
     });
   }
   return salida;

@@ -30,8 +30,11 @@ export type SlideMeta = {
   metodo?: "estandar" | "resto_mayor" | "ambos";
   /** `false` pide la ruta anterior para esta lámina. */
   motor_nativo?: boolean;
-  /** Láminas de dos gráficos: el de `de` habilita al otro con esas respuestas (DependenciaLamina, graficos_dependencia.R). */
-  dependencia?: { de: string; habilita: string[]; frase?: string };
+  /**
+   * Láminas de dos gráficos: el de `de` habilita al otro con esas respuestas (DependenciaLamina, graficos_dependencia.R).
+   * En la de tres gráficos en fila, `habilita` va por ranura dependiente (dependenciaTres.ts).
+   */
+  dependencia?: { de: string; habilita: string[] | Record<string, string[]>; frase?: string };
 };
 
 const esObjeto = (v: unknown): v is Record<string, unknown> => !!v && typeof v === "object" && !Array.isArray(v);
