@@ -260,21 +260,6 @@
 
 .pulso-cr-fila.is-abierta .pulso-cr-chevron { transform: rotate(180deg); }
 
-.pulso-cr-estado {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 2px 8px;
-  border-radius: 999px;
-  font-size: var(--pulso-type-caption-size);
-  font-weight: var(--pulso-weight-medium);
-  white-space: nowrap;
-}
-
-.pulso-cr-estado.is-completo { background: var(--pulso-success-bg); color: var(--pulso-success-fg); }
-.pulso-cr-estado.is-faltan { background: var(--pulso-warn-bg); color: var(--pulso-warn-fg); box-shadow: inset 0 0 0 1px var(--pulso-warn-border); }
-.pulso-cr-estado.is-vacio { background: var(--pulso-surface-2); color: var(--pulso-text-muted); }
-
 .pulso-cr-punto {
   flex: none;
   width: 12px;

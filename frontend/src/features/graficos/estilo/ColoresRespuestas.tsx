@@ -21,6 +21,7 @@ import {
   type FilaPaleta,
 } from "./modeloPaletasConNombre";
 import "./coloresRespuestas.css";
+import { EstadoChip } from "../../../components/EstadoChip";
 
 type Filtro = "todos" | "faltan" | "listos";
 type Mapas = { paletas: Record<string, Record<string, string>>; vinculos: Record<string, string> };
@@ -31,10 +32,11 @@ function Punto({ color }: { color?: string }) {
   return <span className={color ? "pulso-cr-punto" : "pulso-cr-punto is-vacio"} style={color ? { background: color } : undefined} aria-hidden="true" />;
 }
 
+// El estado de la fila es el EstadoChip del kit (P6): tono y rótulo, sin clase propia.
 function Estado({ fila }: { fila: FilaPaleta }) {
-  if (lleno(fila)) return <span className="pulso-cr-estado is-completo"><Check size={12} aria-hidden="true" />Lista</span>;
-  if (fila.faltan < fila.opciones.length) return <span className="pulso-cr-estado is-faltan">Faltan {fila.faltan} {fila.faltan === 1 ? "color" : "colores"}</span>;
-  return <span className="pulso-cr-estado is-vacio">Sin colores</span>;
+  if (lleno(fila)) return <EstadoChip tone="success" label="Lista" />;
+  if (fila.faltan < fila.opciones.length) return <EstadoChip tone="warn" label={`Faltan ${fila.faltan} ${fila.faltan === 1 ? "color" : "colores"}`} />;
+  return <EstadoChip tone="neutral" label="Sin colores" />;
 }
 
 function CampoNombre({ fila, error, onGuardar }: { fila: FilaPaleta; error: (n: string) => string | null; onGuardar: (n: string) => void }) {
