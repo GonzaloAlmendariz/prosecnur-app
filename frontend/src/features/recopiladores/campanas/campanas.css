@@ -471,6 +471,22 @@
   outline-offset: 1px;
 }
 
+/* A 1024 la barra de la campaña desbordaba sus secciones y «Entrega» quedaba a medias (C4, D16/D17):
+   en ancho compacto «Campañas» queda en la flecha, como en la barra fina de Correos, y el enlace
+   conserva su nombre accesible. Mismo quiebre que useDensidadDelChrome (ANCHO_COMPACTO). */
+@media (max-width: 1120px) {
+  .rec-campana-volver .rec-campana-volver-rotulo {
+    border: 0;
+    clip: rect(0 0 0 0);
+    height: 1px;
+    margin: -1px;
+    overflow: hidden;
+    position: absolute;
+    white-space: nowrap;
+    width: 1px;
+  }
+}
+
 .rec-campana-cabecera-sep {
   color: var(--pulso-text-faint);
   flex: none;
