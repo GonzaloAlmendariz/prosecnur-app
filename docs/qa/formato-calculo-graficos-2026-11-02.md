@@ -115,32 +115,52 @@ propias en la cabecera; van uno por commit, empezando por la primera pestaña de
 `cajasPropias` cuenta reglas CSS: baja cuando se migra el último usuario de una regla y esa regla se borra (la de
 `cmv2-panel` es compartida y sólo cae al final).
 
-- `ComponenteTablas.tsx:48`
-- `ComponenteTablas.tsx:145`
-- `general/TablaUnidades.tsx:53`
-- `general/EstratosGeneral.tsx:61`
-- `general/SeleccionActores.tsx:133`
-- `general/SelectorActor.tsx:47`
-- `general/VariablesControl.tsx:26`
-- `general/MemoriaCalculoGeneral.tsx:48`
-- `general/FichaEstudio.tsx:39`
-- `general/FichaCorrida.tsx:72`
-- `general/ResultadosComponentes.tsx:58`
-- `general/ArchivoMarcoGeneral.tsx:99`
-- `general/SeleccionGeneral.tsx:162`
-- `general/SeleccionGeneral.tsx:195`
-- `general/SeleccionGeneral.tsx:348`
-- `general/MetodoGeneral.tsx:94`
-- `general/MetodoGeneral.tsx:118`
-- `general/MetodoGeneral.tsx:144`
-- `general/MetodoGeneral.tsx:180`
-- `general/PropuestaTraspaso.tsx:31`
-- `general/ContextoReporte.tsx:37`
-- `universidad/calculo/CalculoCursosHorarioFacultadTab.tsx:173`
-- `universidad/calculo/CertezaCoberturaPanel.tsx:234`
+- `ComponenteTablas.tsx:48` ☑ `905c4d57f` — `EstratosTable`: ninguna vista lo monta hoy; se pasó igual, sin captura posible
+- `ComponenteTablas.tsx:145` ☑ `905c4d57f` — Método › Estratos con matriz de servicios
+- `general/TablaUnidades.tsx:53` ☑ `efe464415` — Selección › Unidades
+- `general/EstratosGeneral.tsx:61` ☑ `905c4d57f` — Método › Estratos
+- `general/SeleccionActores.tsx:133` ☑ `00c2cebb4` — Acreditación › Selección sin actores
+- `general/SelectorActor.tsx:47` ☑ `00c2cebb4` — Acreditación › Selección
+- `general/VariablesControl.tsx:26` ☑ `8f2ad2263` — Marco › Ficha
+- `general/MemoriaCalculoGeneral.tsx:48` ☑ `8e281776b` — Método › Memoria
+- `general/FichaEstudio.tsx:39` ☑ `8f2ad2263` — Marco › Ficha (y Acreditación › Contexto)
+- `general/FichaCorrida.tsx:72` ☑ `5cde9e2ee` — Selección › Corrida; de paso, los tres rótulos partidos de la traza
+- `general/ResultadosComponentes.tsx:58` ☑ `385b187f9` — Resultados (los dos modos)
+- `general/ArchivoMarcoGeneral.tsx:99` ☑ `1813972c0` — Marco › Archivo (y el archivo del actor en Acreditación)
+- `general/SeleccionGeneral.tsx:162` ☑ `169e2af1a` — Selección sin marco
+- `general/SeleccionGeneral.tsx:195` ☑ `169e2af1a` — Selección › Sorteo
+- `general/SeleccionGeneral.tsx:348` ☑ `efe464415` — Selección › Unidades sin sorteo
+- `general/MetodoGeneral.tsx:94` ☑ `fade2c2cf` — Método › Técnica; de paso, las tarjetas con el mismo alto a 1024
+- `general/MetodoGeneral.tsx:118` ☑ `3ba459857` — Método › Parámetros
+- `general/MetodoGeneral.tsx:144` ☑ `8e281776b` — Método › Memoria
+- `general/MetodoGeneral.tsx:180` ☑ `905c4d57f` — Método › Estratos con técnica sin estratos
+- `general/PropuestaTraspaso.tsx:31` ☑ `385b187f9` — Resultados de Muestra general
+- `general/ContextoReporte.tsx:37` ☑ `58d2c5613` — Acreditación › Contexto
+- `universidad/calculo/CalculoCursosHorarioFacultadTab.tsx:173` ☑ `d95379c70` — Cálculo › Cursos-horario requeridos
+- `universidad/calculo/CertezaCoberturaPanel.tsx:234` ☑ `3005f78ac` — Cálculo › ¿Alcanza?
+
+Cerrado el 3 nov 2026 (sesión «Material de campo · D15 a D18», segunda tanda): los 23 en 15 commits, uno por pestaña,
+cada uno con `make gate-front AREA=calcMuestra` (311 archivos, 3013–3014 tests) y `tsc` en verde. Dos commits más:
+`f651e779d` (el `margin-bottom: 14px` del Panel se sumaba al `gap` de la mesa: 26 px entre paneles y un
+`capacity-drift` de 14 px en Resultados; ahora `.cmv2-main .pulso-panel` va sin margen) y `ed9c60cdb` (reglas de
+`.cmg-panel-titulo`, que ya no usa nadie).
+
+- **Ratchet `cajasPropias`: no bajó** (calcMuestra.css 34, general.css 8, mesa.css 5, antes y después). Los 23 bloques
+  usaban `.cmv2-panel`, cuya caja está repartida en varias reglas y el ratchet no la cuenta. `.cmv2-panel` sigue con 43
+  usos en `universidad/` y `didactica/`: cae cuando esos pasen al kit.
+- **Capturas** (1440×1000 y 1024×600, no versionadas): copias de trabajo sembradas por la API, fuera del repo. Muestra
+  general ya tiene `.pulso`: perfil telefónico con `diseno = calc-muestra` (abre `marco-disponible`), un marco sintético de
+  1.500 hogares en 3 distritos, cálculo Neyman y sorteo. También una copia sin marco (vacíos) y otra con matriz de servicios.
+  Acreditación con la copia de la sesión de Gráficos. 46 capturas antes y 46 después, todas distintas; con datos pasa de
+  `ok=false` (3 rótulos partidos en la traza de la corrida y tarjetas de técnica con 20 px de desfase a 1024) a `ok=true`.
+  Queda `columnasOcultas=1` en Acreditación › Actores a 1024: ya estaba antes, es alcanzable y el bloque no es de esta lista.
+- **Sin captura**: `EstratosTable` (ningún componente lo monta) y los dos de `universidad/calculo/`. Ninguna copia llega a
+  pintarlos: HSVG2026, `aulas.pulso` y `d1_aulas_datos` traen la propuesta sin calcular. Calculada por la API, Cálculo
+  sigue pidiendo confirmar Alumnos por CH, y eso exige el marco ejecutado. Verificados por tests y `tsc`.
 
 ## Bitácora
 
+- 3 nov, mañana: P2 cerrado — los 23 bloques en Panel (ver arriba), margen del kit en la mesa y reglas muertas.
 - 23 h: medición inicial y doc.
 - 23–00 h: P5, P1, P4 y P3 en los dos módulos, con sus guards; capturas antes y después de Cálculo.
 - `lib/enumerar` y `lib/formatoNumero` ya existían (Material y Analítica): P3 y P4 dejaron de esperar.
