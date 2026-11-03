@@ -36,6 +36,11 @@ source("setup-load-all.R")
   }))
 }
 
+test_that(".lam_nota_sig_de conserva el salto lógico entre contexto y marcas (ADR 0126)", {
+  p <- structure(list(), pulso_sig_nota = paste0("Con trama: X, con menos de 30\ncasos.", .SIG_NOTA_SALTO, "▲A  Mayor."))
+  expect_identical(.lam_nota_sig_de(p), "Con trama: X, con menos de 30 casos.\n▲A  Mayor.")
+})
+
 test_that(".lam_nota_sig_de junta las líneas del caption en un solo párrafo", {
   p <- structure(list(), pulso_sig_nota = "Las letras marcan al grupo.\nA = uno  |  B = dos")
   expect_identical(.lam_nota_sig_de(p), "Las letras marcan al grupo. A = uno  |  B = dos")
@@ -49,9 +54,10 @@ test_that("la apilada con cruces y significancia escribe la nota que explica las
   nota <- cajas[cajas$nombre == "Nota significancia", ]
   base <- cajas[cajas$nombre == "Base lamina", ]
   expect_equal(nrow(nota), 1L, info = paste(cajas$nombre, collapse = " | "))
-  expect_match(nota$texto, "Las letras marcan al grupo superado")
+  # ADR 0126: fuente única de textos y sin el mapa «A = …» en la nota: la letra va con el grupo, en su rótulo.
+  expect_match(nota$texto, "Mayor que el grupo de esa letra")
   expect_match(nota$texto, "Bonferroni")
-  expect_match(nota$texto, "A = Hasta secundaria completa")
+  expect_true(any(grepl("(A) Hasta secundaria completa", cajas$texto, fixed = TRUE)), info = paste(cajas$texto, collapse = " | "))
   # La nota termina donde empieza «Base:» (no la pisa) y nada de la lámina baja más que su borde superior.
   expect_lte(nota$y + nota$h, base$y + 1e-6)
   otras <- cajas[!cajas$nombre %in% c("Nota significancia", "Base lamina", "Folio lamina") & cajas$y > 2, ]
@@ -68,7 +74,8 @@ test_that("una nota larga ocupa dos líneas y reserva más espacio", {
   cajas <- .ns_cajas(x)
   nota <- cajas[cajas$nombre == "Nota significancia", ]
   expect_equal(nrow(nota), 1L)
-  expect_gt(nota$h, 0.3)   # dos líneas de 9 pt
+  # Reserva lo que mide su texto (una o dos líneas de 9 pt según el largo).
+  expect_equal(nota$h, .lam_nota_sig_alto(nota$texto), tolerance = 0.02)
   base <- cajas[cajas$nombre == "Base lamina", ]
   expect_lte(nota$y + nota$h, base$y + 1e-6)
   otras <- cajas[!cajas$nombre %in% c("Nota significancia", "Base lamina", "Folio lamina") & cajas$y > 2, ]

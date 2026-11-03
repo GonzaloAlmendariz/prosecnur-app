@@ -33,8 +33,11 @@
   x <- attr(p, "pulso_sig_nota", exact = TRUE)
   x <- trimws(as.character(x %||% "")[1])
   if (is.na(x) || !nzchar(x)) return(NULL)
-  # El graficador la parte a 72 caracteres para su caption; la lámina tiene todo el ancho y la compone sola.
-  gsub("\\s*\n\\s*", " ", x)
+  # El graficador la parte a 72 caracteres para su caption; la lámina tiene todo el ancho y la compone sola. El salto
+  # LÓGICO entre el contexto y las marcas (ADR 0126, `.SIG_NOTA_SALTO`) sí se conserva.
+  x <- gsub("\n\u200b", "\r", x, fixed = TRUE)
+  x <- gsub("\\s*\n\\s*", " ", x)
+  gsub("\\s*\r\\s*", "\n", x)
 }
 
 #' Tamaño en puntos de la nota de significancia (más chica que la base, que va en 10 pt)

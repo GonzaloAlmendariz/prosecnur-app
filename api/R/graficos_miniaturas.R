@@ -114,7 +114,7 @@
     huella_fuentes = .mini_huella_fuentes(fuentes$data_sources, fuentes$inst_sources),
     huella_estandar = .mini_huella_estandar(),
     version_paquete = .mini_version_paquete(),
-    opciones_motor = .mini_opciones_motor(),
+    opciones_motor = .sig_opciones_preview(sid, .mini_opciones_motor()),   # ADR 0126: la regla de diferencias entra a la huella
     # Presets con canvas y SIN las guías heredadas: las del visor son una capa aparte (ver cabecera).
     presets_json = .enriquecer_presets(cfg$presets %||% list(), NULL),
     paletas = cfg$paletas %||% list(),
@@ -284,6 +284,7 @@
 #' @keywords internal
 .mini_render_pptx <- function(ctx, out_path) {
   presets <- if (length(ctx$presets_json)) .build_presets(ctx$presets_json) else NULL
+  sig_previa <- .sig_informe_activar(ctx$opciones_motor[["prosecnur.sig_informe"]]); on.exit(options(sig_previa), add = TRUE)   # ADR 0126
   palette_env <- .graficos_palette_env(ctx$paletas %||% list(), parent = environment())
   conteo <- new.env(parent = emptyenv())
   slide_r <- .mini_rebuild_slide(ctx$slide, icon_registry = ctx$icon_registry, conteo = conteo,

@@ -117,7 +117,7 @@ preparar_escala <- function(data, var_categoria, var_n, cols_porcentaje, etiquet
       i <- match(as.character(sufijos_etiqueta[[var_categoria]][k]), filas$id)
       j <- match(sufijos_etiqueta$.col_pct[k], cols_seg)
       suf <- as.character(sufijos_etiqueta$.sufijo[k])
-      if (!is.na(i) && !is.na(j) && unidades[i, j] > 0 && nzchar(suf)) cifras[i, j] <- paste(cifras[i, j], suf)
+      if (!is.na(i) && !is.na(j) && unidades[i, j] > 0 && nzchar(suf)) cifras[i, j] <- paste(cifras[i, j], trimws(suf))
     }
   }
   # Categorías en cero (C40 D2): el sustantivo sin casos recibe su piso; una especial (SIN INF, 90-99) en cero no se
@@ -166,6 +166,7 @@ preparar_escala <- function(data, var_categoria, var_n, cols_porcentaje, etiquet
       top2box = caja("top2box", top2box_labels, 3L, .PPT_ROTULO_TOP_TWO_BOX),
       top3box = caja("top3box", top3box_labels, 4L, "Top 3 Box"),
       bottom2box = caja("bottom2box", bottom2box_labels, 3L, "Bottom Two Box"))
+    box$cifras <- .sig_sufijos_en_box(box$cifras, box$preset, filas$id, sufijos_etiqueta, var_categoria)   # ADR 0126
     if (identical(barra_extra_preset, "top2box") && isTRUE(columna_bottom2box) && length(box$cols)) {
       box2 <- caja("bottom2box", bottom2box_labels, 3L, "Bottom Two Box")
     }

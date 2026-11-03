@@ -352,6 +352,17 @@
                                   var_categoria = "categoria") {
   if (!isTRUE(activo)) return(base_args)
 
+  # ADR 0126: con microdatos del render (`.sig_fuente_render`), la regla del estudio; si no, la prueba de siempre.
+  if (is.null(.graficos_sig_motivo_abstencion(.sig_diseno_texto(diseno), length(cols_porcentaje), 2L))) {
+    con_regla <- .sig_aplicar_regla_agrupadas(diseno, df_long, cols_n, cols_porcentaje, etiquetas_series, var_categoria)
+    if (!is.null(con_regla)) {
+      base_args$sufijos_etiqueta <- con_regla$sufijos
+      base_args$nota_pie_significancia <- con_regla$nota
+      return(.sig_letras_en_leyenda(base_args, con_regla, cols_porcentaje))
+    }
+  }
+  diseno <- .sig_diseno_texto(diseno)
+
   alpha <- suppressWarnings(as.numeric(alpha)[1])
   if (!is.finite(alpha) || alpha <= 0 || alpha >= 1) alpha <- 0.05
 
@@ -428,6 +439,9 @@
     character(0)
   }
 
+  fuente <- diseno
+  diseno <- .sig_diseno_texto(diseno)
+
   # Antes de mirar los datos: si el diseño no admite el contraste, se dice y se
   # sale. Calcular para despues descartar seria gastar y arriesgar una letra.
   motivo_previo <- .graficos_sig_motivo_abstencion(
@@ -440,6 +454,15 @@
       etiquetas_series = grupos, alpha = alpha, motivo = motivo_previo
     )
     return(base_args)
+  }
+
+  # ADR 0126: la regla del estudio sobre los microdatos del render (el top two box, si la lámina lo muestra).
+  con_regla <- .sig_aplicar_regla_transpuesto(fuente, df_block, cols_n, cols_porcentaje, etiquetas_opciones,
+                                              top2box = fuente$top2box, var_categoria = var_categoria, var_n = var_n)
+  if (!is.null(con_regla)) {
+    base_args$sufijos_etiqueta <- con_regla$sufijos
+    base_args$nota_pie_significancia <- con_regla$nota
+    return(.sig_letras_en_filas(base_args, con_regla, var_categoria))
   }
 
   mats <- .graficos_sig_matrices_transpuesto(

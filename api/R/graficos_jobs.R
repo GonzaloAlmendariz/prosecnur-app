@@ -158,7 +158,7 @@ graficos_job_worker_ppt <- function(rp_data_path, rp_inst_path, plan, presets, p
                                     slide_registry, graficador_registry,
                                     icon_registry, active_base,
                                     template_pptx, template_id, auto_otros_slides,
-                                    result_path, progress_path = NULL, estilo_cliente = list()) {
+                                    result_path, progress_path = NULL, estilo_cliente = list(), significancia = NULL) {
   report <- job_progress_writer(progress_path)
   inicio <- Sys.time()
   ms_desde <- function(t) as.integer(round(as.numeric(difftime(Sys.time(), t, units = "secs")) * 1000))
@@ -167,6 +167,9 @@ graficos_job_worker_ppt <- function(rp_data_path, rp_inst_path, plan, presets, p
   report("loading", percent = 2, message = "Cargando datos y plantilla...")
   ec <- .graficos_estilo_cliente_iniciar(estilo_cliente, "ppt", template_pptx)   # graficos_estilo_cliente_worker.R
   on.exit(options(ec$previas), add = TRUE)
+  report("loading", percent = 4, message = "Calculando diferencias del informe...")
+  sig_previa <- .sig_informe_preparar(significancia, rp_data_path, rp_inst_path, active_base)   # ADR 0126
+  on.exit(options(sig_previa), add = TRUE)
   palette_env <- .graficos_palette_env(paletas, parent = parent.frame())
   plan <- .graficos_calificar_refs_plan(plan, active_base)
   slides_r <- .graficos_job_rebuild_slides(
@@ -289,7 +292,7 @@ graficos_job_worker_word <- function(rp_data_path, rp_inst_path, plan, presets, 
                                      paletas, slide_registry, graficador_registry,
                                      icon_registry, active_base,
                                      result_path, progress_path = NULL, opciones_documento = list(),
-                                     estilo_cliente = list(), auto_otros_slides = FALSE) {
+                                     estilo_cliente = list(), auto_otros_slides = FALSE, significancia = NULL) {
   report <- job_progress_writer(progress_path)
   base_error <- .graficos_job_base_error(active_base)
   report("loading", percent = 2, message = "Cargando datos y plantilla...")
@@ -300,6 +303,8 @@ graficos_job_worker_word <- function(rp_data_path, rp_inst_path, plan, presets, 
   ec <- .graficos_estilo_cliente_iniciar(estilo_cliente, "word")   # graficos_estilo_cliente_worker.R
   on.exit(options(ec$previas), add = TRUE)
   if (length(ec$logos)) opciones_documento$logos <- ec$logos
+  sig_previa <- .sig_informe_preparar(significancia, rp_data_path, rp_inst_path, active_base)   # ADR 0126
+  on.exit(options(sig_previa), add = TRUE)
   palette_env <- .graficos_palette_env(paletas, parent = parent.frame())
   plan <- .graficos_calificar_refs_plan(plan, active_base)
   slides_r <- .graficos_job_rebuild_slides(

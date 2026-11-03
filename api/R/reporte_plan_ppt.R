@@ -4865,7 +4865,7 @@ reporte_ppt_plan <- function(
         alpha             = overrides$significancia_alpha %||%
                             preset_args_multi$significancia_alpha %||%
                             preset_args_single$significancia_alpha %||% 0.05,
-        diseno            = .graficos_sig_diseno_de_fuente(ctx_var$instrumento, var)
+        diseno            = .sig_fuente_render(ctx_var, environment())   # ADR 0126: microdatos del render (graficos_significancia_render.R)
       )
       nota_sig <- base_args$nota_pie_significancia
       base_args$nota_pie_significancia <- NULL
@@ -5543,7 +5543,7 @@ reporte_ppt_plan <- function(
       etiquetas_series = etiquetas_series,
       activo           = isTRUE(overrides$mostrar_significancia %||% preset_args$mostrar_significancia),
       alpha            = overrides$significancia_alpha %||% preset_args$significancia_alpha %||% 0.05,
-      diseno           = .graficos_sig_diseno_de_fuente(ctx_var$instrumento, ctx_var$var)
+      diseno           = .sig_fuente_render(ctx_var, environment())   # ADR 0126: microdatos del render (graficos_significancia_render.R)
     )
     nota_significancia <- base_args$nota_pie_significancia
     base_args$nota_pie_significancia <- NULL
