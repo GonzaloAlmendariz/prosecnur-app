@@ -1,0 +1,86 @@
+# Cuotas en Monitoreo: metas frente a referenciales y vistas de avance (3 nov 2026)
+
+Tipo: Checklist vivo (gate 5 de `CLAUDE.md`)
+Estado: Diagnóstico hecho; esperando las decisiones D1–D3 antes de tocar código
+Autoridad: dictado de Gonzalo, 3 nov 2026; coordinación con Meta B (plan conjunto)
+
+> Gonzalo, textual: «El avance de cuotas en todos los monitoreos aún le falta bastante pulido, mezcla conceptos y no
+> deja claro o permite que el modelo distinga claramente cuotas establecidas como metas de cuotas referenciales, y las
+> vistas de seguimiento de avance de cuotas mezclan vistas y aún le falta mucho pulido; esto aplica a todos los tipos
+> de monitoreo».
+
+Límite de módulos (Meta B): que una cuota sea meta o referencial se declara **donde nace la cuota**. Monitoreo lo lee y
+lo muestra; no lo decide donde no es el dueño. Toda escritura fuera de Monitoreo se propone a coordinación antes.
+
+## Diagnóstico (3 nov)
+
+Ningún perfil puede declarar hoy, cuota por cuota, si es **meta** (se exige: tiene faltante, cumple o no) o
+**referencial** (se describe: composición frente al universo, sin faltante ni alarma). Hay cuatro piezas sueltas que
+se le parecen:
+
+- **Aulas** lo resuelve por estructura (ADR 0086 §7, ADR 0121): el eje y las celdas de `representatividad` son la
+  meta; `quotas$category_profiles` es la composición referencial (`monitoreo_aulas_composicion_referencial.R`).
+- **Acreditación** guarda «sólo seguimiento» en `operational_model$interest_variables`, aparte de las cuotas con meta
+  (`s$monitoreo_cuotas`).
+- **Telefónico y acreditación** tienen `goals[].objetivo ∈ {barrido, minimo}`, que dice si el actor se barre entero; no
+  es la marca meta/referencial. Además `objetivo` también se lee como respaldo numérico de la meta
+  (`monitoreo_engine.R:3826`), un choque de nombre. No encontramos ningún editor que lo escriba.
+- **Cálculo de muestra** publica `meta.tipo ∈ {objetivo, cuota, cobertura, contractual}` (`calc_muestra_engine.R:1192`).
+  Monitoreo lo copia (`monitoreo_engine.R:1722`) y nadie lo lee.
+
+Los cinco motores de avance (acreditación, telefónico, territorial UMP, territorial por cuotas y aulas) no comparten
+ninguna función.
+
+### Dónde nace cada cuota y quién escribiría la marca
+
+| Perfil | Dónde nace la cuota | Dónde se guarda | Quién escribe «meta / referencial» |
+|---|---|---|---|
+| Acreditación | Monitoreo › Modelo › Cuotas (ADR 0125) | `s$monitoreo_cuotas.cuotas[]` (`router_monitoreo_cuotas.R`); «sólo seguimiento» en `interest_variables` | Monitoreo |
+| Telefónico | Monitoreo › Modelo › Cuotas y calendario (ADR 0125, línea 116) | `config$goals[]` (lista blanca `monitoreo_engine.R:3813-3845`) | Monitoreo |
+| Territorial UMP | Hojas de ruta | `route_quota_progress` / plantilla de cuota | Hojas de ruta (**propuesta a coordinación**) |
+| Territorial por cuotas | Hojas de ruta (envío `kind="cuotas"`) | `runs[[fase]]$envio.zonas[].cuotas` | Hojas de ruta (**propuesta a coordinación**) |
+| Aulas | Cálculo de muestra + representatividad (ADR 0121) | `design_targets`, `representatividad.variables[]`, `quotas$category_profiles` | Ya existe por estructura; falta publicarlo con el mismo nombre que los demás |
+
+## Checklist
+
+Estados: ☐ pendiente · ◐ en curso · ☑ hecho · ⛔ bloqueado (espera una decisión).
+
+| # | Indicación de Gonzalo | Perfil | Qué se ve hoy (evidencia) | Dónde vive | Estado |
+|---|---|---|---|---|---|
+| 1a | «mezcla conceptos» | Acreditación | Avance › Por cuota (`PorCuota.tsx:145-150`) pone en una lista las cuotas con meta (efectivas del rollup) y las variables sin meta con su Δ pp (de `client_report.controls`): dos motores y dos denominadores (meta frente a universo) | `profiles/acreditacion/avance/PorCuota.tsx`, `monitoreo_acreditacion_cuotas.R:73-80`, `monitoreo_engine.R:17084` | ⛔ D1 |
+| 1b | «mezcla conceptos» | Telefónico | Modelo pinta «Avance de cada meta» con efectivas junto a «meta frente al reparto proporcional» (`modelo/Cuotas.tsx:138,172,216-228`); el total por cuota usa plataforma si hay respuestas y si no «Completa» de la hoja, pero la serie diaria siempre usa plataforma (`monitoreo_telefonico.R:463-465,905,923`); sin `goals` la meta sale de una columna de la base (`:411,505`); `metaDelProyecto.ts:12-15` suma también las metas por actor (posible doble conteo, sin verificar con datos) | `profiles/telefonico/modelo/Cuotas.tsx`, `monitoreo_telefonico.R`, `metaDelProyecto.ts` | ⛔ D1, D3 |
+| 1c | «mezcla conceptos» | Territorial | Celdas cruzadas frente a marginales sin resolver (pregunta 6 de `revamp-monitoreo/territorial.md`); la regla «sexo/edad flexible» se deduce de los déficits, no se declara (`monitoreo_engine.R:11502,11512`); cuota por UMP con respaldo fijo de 8 y 9 nombres de campo (`:23925-23952`) | `monitoreo_engine.R` (congelado), `territorial/avance/FaltantePorUmp.tsx` | ⛔ D1, D2 |
+| 1d | «mezcla conceptos» | Cursos-horario (aulas) | «Muestra», «meta», «meta operativa», sobremuestra, techo y comprometido conviven; el Resumen mide contra la meta operativa aunque el ADR 0079 dice que el cumplimiento va contra la cuota (`resumenAulasModelo.ts:16-17,231-241`); la sobremuestra es «referencia» en `AulasSerieDeRendimiento.tsx:207-209,1444` y «una de las dos metas» en `:1316-1319` y `AulasAvanceParaCliente.tsx:314-319` | `profiles/aulas/avance/*`, `corte/corteContract.ts:46-59` | ⛔ D1 |
+| 2a | «no permite que el modelo distinga cuotas establecidas como metas de cuotas referenciales» | Acreditación | Sin marca por cuota; «sólo seguimiento» vive en otro sitio (`interest_variables`) | `router_monitoreo_cuotas.R:62` (normalizador), `useConfiguracionDeCuotas.tsx:152-188` | ⛔ D1, D2 |
+| 2b | ídem | Telefónico | Sin marca por cuota en `goals[]`; `objetivo` (barrido/mínimo) es otra cosa y choca de nombre | `monitoreo_engine.R:3813-3845`, `modelo/Cuotas.tsx` | ⛔ D1, D2 |
+| 2c | ídem | Territorial | Sin marca; Modelo › Cuotas es de sólo lectura y `FaltantePorUmp.tsx:66` dice «se declara en Modelo › Cuotas» | Hojas de ruta (dueño); Monitoreo sólo lee | ⛔ D1, D2 (escritura fuera de Monitoreo) |
+| 2d | ídem | Cursos-horario | Existe por estructura (eje = meta; `category_profiles` = referencial, ADR 0086 §7); el sexo es meta en HSVG y referencial en CCSS según el eje | `monitoreo_aulas_representatividad_declarada.R:20-35`, `monitoreo_aulas_composicion_referencial.R` | ☐ publicarlo con el nombre común de D1 |
+| 3a | «las vistas de seguimiento de avance de cuotas mezclan vistas» | Acreditación | `AvanceCuotasEditorMetas` (editar desde Avance) sigue montado en una rama probablemente inalcanzable (`AcreditacionMonitoreoPage.tsx:14586`), mientras `PorCuota` dice «aquí no se crea ni se edita» | `profiles/acreditacion/avance/AvanceCuotasPanel.tsx:226` | ☐ verificar alcance y retirar (doble confirmación de borrado) |
+| 3b | ídem | Telefónico | Avance dentro de Modelo (1b); Avance › Cuotas vive en la clave interna `actores` y reusa `buildAcreditacionPhoneQuotaEditorRows` | `TelefonicoMonitoreoPage.tsx:2533,17178` (congelado) | ⛔ D3 |
+| 3c | ídem | Territorial | `modelo/cuotas` y `avance/faltante` llevan a la misma vista interna `calidad/cuotas` (`navegacion/direccionTerritorial.ts:96,125`); una pestaña sirve a dos unidades (UMP o zona, `FaltantePorUmp.tsx:51-54`) | `navegacion/direccionTerritorial.ts`, `territorial/avance/FaltantePorUmp.tsx` | ⛔ D3 |
+| 3d | ídem | Cursos-horario | `modelo/metas` y `avance/porfacultad` llevan a la misma vista (`avance/cuotas`); lo mismo `modelo/metas&panel=efectividad` y `avance/rendimiento&panel=efectividad` (`navegacion/direccionAulas.ts:97-98,142,161`); Por facultad cambia de bloque según el eje (`porFacultadModelo.ts:20-25,221`) | `navegacion/direccionAulas.ts`, `aulas/avance/porFacultadModelo.ts` | ⛔ D3 |
+| 4 | «aplica a todos los tipos de monitoreo» | Los cuatro | Cinco motores de avance sin función compartida; el vocabulario y el estado (cumple / falta / referencial) se escriben distinto en cada perfil | `monitoreo_acreditacion_cuotas.R`, `monitoreo_telefonico.R:455`, `monitoreo_engine.R:10049`, `monitoreo_territorial_cuotas.R:85`, `monitoreo_aulas_avance_cuota.R:241` | ⛔ D1 (contrato común antes de tocar motores) |
+
+## Decisiones que esperan a Gonzalo
+
+| # | Pregunta | Propuesta (reversible) | Qué cambia con cada respuesta |
+|---|---|---|---|
+| D1 | ¿Qué distingue una meta de una referencial? | Generalizar el ADR 0086 §7 a los cuatro perfiles. **Meta**: tiene número que se exige; Avance muestra faltante, ritmo y cumple / no cumple, con tono. **Referencial**: no tiene faltante; Avance muestra composición obtenida frente al universo, sin umbral ni alarma. Un campo por cuota `caracter: "meta" \| "referencial"`; sin declarar, se queda como hoy (meta si tiene número) | Sí → contrato común (un ADR) y cada perfil lo publica igual. Otro criterio (p. ej. referencial con tolerancia) → se añade al contrato |
+| D2 | ¿Dónde se declara? | Donde nace la cuota: telefónico y acreditación en Monitoreo › Modelo; territorial en Hojas de ruta (propuesta a coordinación); aulas ya lo trae de Cálculo y representatividad | Si territorial debe declararse en Monitoreo, cambia el dueño del dato (ADR 0125) |
+| D3 | ¿Qué vista contesta qué? | **Modelo** declara (qué cuotas, cuáles son meta, cuáles referenciales); nunca muestra avance. **Avance › Cuotas** es una sola vista por perfil con dos bloques fijos: «Metas» (faltante) y «Referenciales» (composición). Las pestañas que hoy llevan a la misma vista interna se separan o se retira una | Sí → se quita el avance de Modelo telefónico y se separan las direcciones dobles de territorial y aulas |
+
+## Orden propuesto (al tener D1–D3)
+
+1. ADR del contrato común (D1–D3), revisado por `guardian-contratos` y `revisor-metodologico`.
+2. Campo `caracter` en las listas blancas de Monitoreo (telefónico `goals[]`, acreditación `monitoreo_cuotas`), con test
+   de ida y vuelta del `.pulso`. Territorial: propuesta a coordinación para Hojas de ruta.
+3. Un bloque de avance común en el front (Metas / Referenciales) que cada perfil alimenta con su motor; perfil por
+   perfil, un commit y una captura cada uno.
+4. Modelo deja de pintar avance (telefónico) y se separan las direcciones dobles (territorial, aulas).
+5. Lo que cambia qué cifra se presenta como avance contra meta (1b, 1d) pasa por `revisor-metodologico`.
+
+## Aprendido
+
+- Una sola palabra, «objetivo», nombra dos cosas en `goals[]`: el enum barrido / mínimo y el respaldo numérico de la
+  meta (`monitoreo_engine.R:3826`, `monitoreo_telefonico.R:547`). El campo nuevo no debe reusar ninguno de los dos
+  nombres.
