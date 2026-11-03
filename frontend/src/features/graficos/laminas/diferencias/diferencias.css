@@ -107,16 +107,13 @@
   color: var(--pulso-danger-fg);
 }
 
+/* Una fila de acciones del kit, alineadas a la izquierda y a la misma altura (PulsoButton sm). */
 .pulso-sig-acciones {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
   gap: var(--pulso-space-2);
-}
-
-.pulso-sig-accion {
-  justify-self: start;
 }
 
 .pulso-sig-chips {
@@ -200,6 +197,10 @@
 }
 
 .pulso-sig-regla-linea {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--pulso-space-1) var(--pulso-space-2);
   margin: 0;
   font-size: 12px;
   line-height: 1.45;
@@ -555,10 +556,6 @@
   flex-wrap: wrap;
   align-items: center;
   gap: var(--pulso-space-2);
-}
-
-.pulso-sig-revision-barra .pulso-f6-texto-boton {
-  font-size: 12px;
 }
 
 @media (prefers-reduced-motion: reduce) {

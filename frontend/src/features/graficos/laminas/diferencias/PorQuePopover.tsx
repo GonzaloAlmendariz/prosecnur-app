@@ -10,6 +10,7 @@ import { createPortal } from "react-dom";
 import { Check, ChevronLeft, ChevronRight, Copy, X } from "../../../../vendor/lucide-react";
 import type { LaminaDiferencias, ParDiferencias, ReglaDiferencias } from "../../../../api/graficosDiferencias";
 import { PulsoTable, type PulsoTableColumna } from "../../../../components/PulsoTable";
+import { PulsoButton } from "../../../../components/PulsoButton";
 import { toast } from "../../../../components/toasterStore";
 import { usePanelDireccionable } from "../../../../lib/navegacion/paneles";
 import { copiarTexto } from "../../../../lib/portapapeles";
@@ -147,9 +148,9 @@ function CapaPorQue({ slideId, cerrarPanel, panelProps }: { slideId: string; cer
       <header className="pulso-sig-porque-cabeza" data-qa-geometry-member="">
         <h2>Diferencias de esta lámina</h2>
         <span className="pulso-sig-espacio" />
-        <button type="button" className="pulso-f6-icono-boton" aria-label="Cerrar «Por qué»" onClick={cerrar}>
+        <PulsoButton variant="icon" size="sm" aria-label="Cerrar «Por qué»" onClick={cerrar}>
           <X size={16} aria-hidden="true" />
-        </button>
+        </PulsoButton>
       </header>
       <div className="pulso-sig-porque-cuerpo" data-qa-geometry-member="">
         {carga?.estado === "error" ? (
@@ -189,12 +190,12 @@ function DetallePar({ lamina, regla, par, indice, total, onMover }: {
         <strong>{par.fila}</strong>
         <span className="pulso-sig-espacio" />
         <span className="pulso-sig-texto">{indice + 1} de {total}</span>
-        <button type="button" className="pulso-f6-icono-boton" aria-label="Par anterior" onClick={() => onMover(-1)} disabled={total < 2}>
+        <PulsoButton variant="icon" size="sm" aria-label="Par anterior" onClick={() => onMover(-1)} disabled={total < 2}>
           <ChevronLeft size={14} aria-hidden="true" />
-        </button>
-        <button type="button" className="pulso-f6-icono-boton" aria-label="Par siguiente" onClick={() => onMover(1)} disabled={total < 2}>
+        </PulsoButton>
+        <PulsoButton variant="icon" size="sm" aria-label="Par siguiente" onClick={() => onMover(1)} disabled={total < 2}>
           <ChevronRight size={14} aria-hidden="true" />
-        </button>
+        </PulsoButton>
       </div>
       <p className="pulso-sig-frase">{frasePar(par, lamina.grupos)}</p>
       <dl className="pulso-sig-datos">
@@ -216,7 +217,9 @@ function DetallePar({ lamina, regla, par, indice, total, onMover }: {
         <p className="pulso-sig-caja is-aviso pulso-sig-texto">Frágil: p ajustado entre 0.01 y {regla.alfa.toFixed(2)}. Redáctala con prudencia y no la lleves a conclusiones.</p>
       )}
       {par.redaccion && (
-        <button type="button" className="pulso-f6-texto-boton" onClick={copiar}><Copy size={12} aria-hidden="true" /> Copiar redacción</button>
+        <div className="pulso-sig-acciones">
+          <PulsoButton variant="secondary" size="sm" onClick={copiar}><Copy size={14} aria-hidden="true" /> Copiar redacción</PulsoButton>
+        </div>
       )}
     </article>
   );
@@ -227,13 +230,14 @@ type FilaPar = { par: ParDiferencias; i: number };
 function TablaPares({ lamina, indice, onElegir }: { lamina: LaminaDiferencias; indice: number; onElegir: (i: number) => void }) {
   const filas: FilaPar[] = lamina.pares.map((par, i) => ({ par, i }));
   const columnas: PulsoTableColumna<FilaPar>[] = [
-    { id: "fila", encabezado: "Fila", ancho: 118, celda: ({ par }) => par.fila, valor: ({ par }) => par.fila },
-    { id: "par", encabezado: "Par", ancho: 58, celda: ({ par }) => `${par.a} > ${par.b}` },
-    { id: "dif", encabezado: "Dif.", ancho: 52, tipo: "cifra", celda: ({ par }) => formatoPuntos(par.dif) },
-    { id: "p", encabezado: "p aj.", ancho: 64, tipo: "cifra", celda: ({ par }) => formatoP(par.p_ajustado) },
+    // La capa mide 640 px y la tabla vive en su columna derecha (~300 px): 4 columnas, 276 px, sin scroll horizontal (C4).
+    // El par (B > A) lo dice la cápsula; el veredicto sin marca va abreviado y entero en el `title`.
+    { id: "fila", encabezado: "Fila", ancho: 108, celda: ({ par }) => par.fila, valor: ({ par }) => par.fila },
+    { id: "dif", encabezado: "Dif.", ancho: 46, tipo: "cifra", celda: ({ par }) => formatoPuntos(par.dif) },
+    { id: "p", encabezado: "p aj.", ancho: 62, tipo: "cifra", celda: ({ par }) => formatoP(par.p_ajustado) },
     {
-      id: "marca", encabezado: "Marca", ancho: 62,
-      celda: ({ par }) => (esMarcado(par) ? <Capsula letras={par.a === "resto" ? "" : par.b} menor={par.a === "resto"} fragil={par.veredicto === "fragil"} /> : <span className="pulso-sig-texto">{ROTULO_VEREDICTO[par.veredicto]}</span>),
+      id: "marca", encabezado: "Marca", ancho: 60, valor: ({ par }) => `${par.a} > ${par.b}: ${ROTULO_VEREDICTO[par.veredicto]}`,
+      celda: ({ par }) => (esMarcado(par) ? <Capsula letras={par.a === "resto" ? "" : par.b} menor={par.a === "resto"} fragil={par.veredicto === "fragil"} /> : <span className="pulso-sig-texto">{ABREVIADO[par.veredicto]}</span>),
     },
   ];
   const redaccion = redaccionLamina(lamina.pares);
@@ -251,6 +255,10 @@ function TablaPares({ lamina, indice, onElegir }: { lamina: LaminaDiferencias; i
     </div>
   );
 }
+
+const ABREVIADO: Readonly<Record<ParDiferencias["veredicto"], string>> = {
+  marcada: "▲", fragil: "△", bajo_umbral: "< umbral", no_significativa: "n. s.", no_comparable: "n. c.",
+};
 
 const ROTULO_VEREDICTO: Readonly<Record<ParDiferencias["veredicto"], string>> = {
   marcada: "Marcada",

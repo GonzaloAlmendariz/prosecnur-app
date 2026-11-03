@@ -186,9 +186,9 @@ function FormularioRegla({ respuesta, borrador, previa, onCambiar, onRestablecer
           <p className="pulso-sig-texto">El estudio todavía no tiene una regla guardada: se propone la que corresponde a su diseño.</p>
         )}
         <span className="pulso-sig-espacio" />
-        <button type="button" className="pulso-f6-texto-boton" onClick={onRestablecer} disabled={mismaRegla(borrador, propuesta)}>
+        <PulsoButton variant="link" size="sm" onClick={onRestablecer} disabled={mismaRegla(borrador, propuesta)}>
           Restablecer a la recomendada
-        </button>
+        </PulsoButton>
       </div>
 
       <AvisoCambios previa={previa} conglomerado={borrador.conglomerado} />

@@ -5,10 +5,11 @@
 // arma el CSV en el cliente.
 
 import { useCallback, useEffect, useMemo, useRef } from "react";
-import { Download, X } from "../../../../vendor/lucide-react";
+import { Download, RotateCcw, X } from "../../../../vendor/lucide-react";
 import type { ControlPanel } from "../../../../lib/navegacion/paneles";
 import type { LaminaDiferencias } from "../../../../api/graficosDiferencias";
 import { PulsoTable, type PulsoTableColumna } from "../../../../components/PulsoTable";
+import { PulsoButton } from "../../../../components/PulsoButton";
 import { Skeleton } from "../../../../components/Skeleton";
 import { formatoConteo } from "../../../../lib/formatoNumero";
 import { usePanelDireccionable } from "../../../../lib/navegacion/paneles";
@@ -89,19 +90,21 @@ export function RevisionDiferenciasPanel({ panel, estructura, slideIdActual, onI
       <header className="pulso-f6-col-head" data-qa-geometry-member="">
         <h2>Diferencias del informe</h2>
         <span className="pulso-f6-col-sp" />
-        <button type="button" className="pulso-f6-boton" onClick={exportar} disabled={!datos || datos.laminas.length === 0}>
+        <PulsoButton variant="secondary" size="sm" onClick={exportar} disabled={!datos || datos.laminas.length === 0}>
           <Download size={14} aria-hidden="true" /> Exportar revisión
-        </button>
-        <button type="button" className="pulso-f6-icono-boton" aria-label="Cerrar diferencias del informe" onClick={cerrar}>
+        </PulsoButton>
+        <PulsoButton variant="icon" size="sm" aria-label="Cerrar diferencias del informe" onClick={cerrar}>
           <X size={16} aria-hidden="true" />
-        </button>
+        </PulsoButton>
       </header>
       <div className="pulso-sig-revision-cuerpo" data-qa-geometry-member="" data-qa-scroll-owner="diferencias-informe">
         {carga?.estado === "error" ? (
           <div className="pulso-sig-caja is-peligro" role="alert">
             <strong className="pulso-sig-titulo">No se pudo revisar el informe</strong>
             <p className="pulso-sig-texto">{carga.message}{carga.code ? <> · <code>{carga.code}</code></> : null}{carga.error_id ? <> · id <code>{carga.error_id}</code></> : null}</p>
-            <button type="button" className="pulso-f6-boton" onClick={reintentar}>Reintentar</button>
+            <div className="pulso-sig-acciones">
+              <PulsoButton variant="secondary" size="sm" onClick={reintentar}><RotateCcw size={14} aria-hidden="true" /> Reintentar</PulsoButton>
+            </div>
           </div>
         ) : !datos || !r ? (
           <div className="pulso-sig-chips" role="status" aria-label="Revisando las láminas con cruce">
@@ -122,10 +125,10 @@ export function RevisionDiferenciasPanel({ panel, estructura, slideIdActual, onI
             <div className="pulso-sig-revision-barra">
               <Segmentado<FiltroRevision> etiqueta="Qué láminas mostrar" valor={filtro} opciones={OPCIONES_FILTRO} onCambiar={setFiltro} />
               <span className="pulso-sig-espacio" />
-              <button type="button" className="pulso-f6-texto-boton" data-pulso-abre-panel={PANEL_DIFERENCIAS_REGLA.id} onClick={regla.abrir}
+              <PulsoButton variant="link" size="sm" data-pulso-abre-panel={PANEL_DIFERENCIAS_REGLA.id} onClick={regla.abrir}
                 title={`${resumenRegla(datos.regla)}${r.familia ? ` · familia de ${formatoConteo(r.familia)} comparaciones` : ""}`}>
                 {resumenRegla(datos.regla)}
-              </button>
+              </PulsoButton>
             </div>
             <TablaRevision filas={filas} filtro={filtro} slideIdActual={slideIdActual} onIr={onIr} />
           </>

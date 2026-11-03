@@ -6,9 +6,10 @@
 // abstención · error. Apagado es el séptimo, sin pedir nada. La marca de readiness sólo vale `false` mientras calcula.
 
 import { useId } from "react";
-import { AlertTriangle, Plus, RotateCcw } from "../../../../vendor/lucide-react";
+import { AlertTriangle, Copy, Plus, RotateCcw } from "../../../../vendor/lucide-react";
 import type { LaminaDiferencias, ReglaDiferencias } from "../../../../api/graficosDiferencias";
 import { Switch } from "../../../../components/Switch";
+import { PulsoButton } from "../../../../components/PulsoButton";
 import { Skeleton } from "../../../../components/Skeleton";
 import { usePanelDireccionable } from "../../../../lib/navegacion/paneles";
 import { copiarTexto } from "../../../../lib/portapapeles";
@@ -112,12 +113,12 @@ export function DiferenciasInspectorVista(props: VistaProps) {
       <div className="pulso-sig-cuerpo" data-qa-geometry-member="" aria-live="polite" aria-busy={estado === "calculando"}>
         <CuerpoPorEstado {...props} />
       </div>
-      <p className="pulso-sig-regla-linea" data-qa-geometry-member="">
-        <span>{regla ? `Regla del informe: ${resumenRegla(regla)}.` : "Una sola regla para láminas, Word y tablas de cruces."}</span>{" "}
-        <button type="button" className="pulso-f6-texto-boton" data-pulso-abre-panel={PANEL_DIFERENCIAS_REGLA.id} onClick={onAbrirRegla}>
+      <div className="pulso-sig-regla-linea" data-qa-geometry-member="">
+        <span>{regla ? `Regla del informe: ${resumenRegla(regla)}.` : "Una sola regla para láminas, Word y tablas de cruces."}</span>
+        <PulsoButton variant="link" size="sm" data-pulso-abre-panel={PANEL_DIFERENCIAS_REGLA.id} onClick={onAbrirRegla}>
           Regla del estudio…
-        </button>
-      </p>
+        </PulsoButton>
+      </div>
     </div>
   );
 }
@@ -130,9 +131,11 @@ function CuerpoPorEstado({ estado, lamina, errorCarga, etiquetaCruce, onAgregarC
       return (
         <div className="pulso-sig-caja">
           <p className="pulso-sig-texto">Las diferencias se calculan entre los grupos de un cruce, y este gráfico no tiene cruce.</p>
-          <button type="button" className="pulso-f6-boton pulso-sig-accion" onClick={onAgregarCruce}>
-            <Plus size={14} aria-hidden="true" /> Agregar cruce
-          </button>
+          <div className="pulso-sig-acciones">
+            <PulsoButton variant="secondary" size="sm" onClick={onAgregarCruce}>
+              <Plus size={14} aria-hidden="true" /> Agregar cruce
+            </PulsoButton>
+          </div>
         </div>
       );
     case "calculando":
@@ -160,8 +163,8 @@ function CuerpoPorEstado({ estado, lamina, errorCarga, etiquetaCruce, onAgregarC
             </p>
           )}
           <div className="pulso-sig-acciones">
-            <button type="button" className="pulso-f6-boton" onClick={onReintentar}><RotateCcw size={14} aria-hidden="true" /> Reintentar</button>
-            <button type="button" className="pulso-f6-texto-boton" onClick={onAbrirRegla}>Revisar la regla</button>
+            <PulsoButton variant="secondary" size="sm" onClick={onReintentar}><RotateCcw size={14} aria-hidden="true" /> Reintentar</PulsoButton>
+            <PulsoButton variant="ghost" size="sm" onClick={onAbrirRegla}>Revisar la regla</PulsoButton>
           </div>
         </div>
       );
@@ -201,10 +204,10 @@ function Resumen({ lamina, estado, etiquetaCruce, onQuitarCruce, onVerPorQue }: 
       {chicos.length > 0 && <p className="pulso-sig-texto is-trama">Con trama: {chicos.join(" · ")}.</p>}
       {estado === "con_marcas" ? (
         <div className="pulso-sig-acciones">
-          <button type="button" className="pulso-f6-texto-boton" data-pulso-abre-panel={PANEL_DIFERENCIAS_LAMINA.id} data-sig-ancla="" onClick={onVerPorQue}>
+          <PulsoButton variant="secondary" size="sm" data-pulso-abre-panel={PANEL_DIFERENCIAS_LAMINA.id} data-sig-ancla="" onClick={onVerPorQue}>
             Ver por qué
-          </button>
-          {redaccion && <button type="button" className="pulso-f6-texto-boton" onClick={copiar}>Copiar redacción</button>}
+          </PulsoButton>
+          {redaccion && <PulsoButton variant="ghost" size="sm" onClick={copiar}><Copy size={14} aria-hidden="true" /> Copiar redacción</PulsoButton>}
         </div>
       ) : (
         <div className="pulso-sig-caja is-sugerencia">
@@ -212,12 +215,12 @@ function Resumen({ lamina, estado, etiquetaCruce, onQuitarCruce, onVerPorQue }: 
             Este cruce no muestra diferencias. Si el informe sólo lleva cruces con diferencias relevantes, puedes quitarlo.
           </p>
           <div className="pulso-sig-acciones">
-            <button type="button" className="pulso-f6-texto-boton" onClick={onQuitarCruce}>Quitar el cruce</button>
             {lamina.pares.length > 0 && (
-              <button type="button" className="pulso-f6-texto-boton" data-pulso-abre-panel={PANEL_DIFERENCIAS_LAMINA.id} data-sig-ancla="" onClick={onVerPorQue}>
+              <PulsoButton variant="secondary" size="sm" data-pulso-abre-panel={PANEL_DIFERENCIAS_LAMINA.id} data-sig-ancla="" onClick={onVerPorQue}>
                 Ver por qué
-              </button>
+              </PulsoButton>
             )}
+            <PulsoButton variant="ghost" size="sm" onClick={onQuitarCruce}>Quitar el cruce</PulsoButton>
           </div>
         </div>
       )}
