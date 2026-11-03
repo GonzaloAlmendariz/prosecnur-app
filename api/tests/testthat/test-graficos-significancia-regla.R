@@ -152,3 +152,22 @@ test_that("la cápsula ▲A es una capa aparte de la cifra, con contorno en la f
   # Sin marcas, el gráfico queda igual.
   expect_identical(.sig_capa_capsula(p, transform(df_lab, .sig_txt = ""), "categoria", 0.8, FALSE, 1, rep(0.06, 4), 4), p)
 })
+
+test_that("«Cómo leer las diferencias» se escribe desde la regla del estudio y cambia con ella", {
+  rs <- .regla_test(correccion = "bh_informe")
+  slide <- list(id = "s5", tipo = "p_slide_texto",
+                payload = list(titulo = "Cómo leer las diferencias entre grupos", texto = "prueba z con Bonferroni, 95%"))
+  vieja <- .sig_informe_activar(list(regla = rs, familia = NULL)); on.exit(options(vieja), add = TRUE)
+  nuevo <- .sig_plan_como_leer(list(slides = list(slide, list(id = "s6", payload = list(titulo = "Otra", texto = "x")))))
+  t5 <- nuevo$slides[[1]]$payload$texto
+  expect_match(t5, "Rao-Scott")
+  expect_match(t5, "Benjamini-Hochberg")
+  expect_match(t5, "al menos 10 puntos")
+  expect_false(grepl("prueba z", t5))
+  expect_identical(nuevo$slides[[2]]$payload$texto, "x")      # las demás láminas no se tocan
+  tz <- .sig_texto_como_leer(.regla_test(prueba = "z", fragiles = "ocultar"))
+  expect_match(tz, "prueba z")
+  expect_false(grepl("Frágil|frágil", tz))
+  options(prosecnur.sig_informe = NULL)
+  expect_identical(.sig_plan_como_leer(list(slides = list(slide)))$slides[[1]], slide)   # sin regla vigente, intacta
+})

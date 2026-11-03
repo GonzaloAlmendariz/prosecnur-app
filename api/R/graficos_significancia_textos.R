@@ -129,3 +129,74 @@
             grupo_a, fila, grupo_b, .sig_pct(p_a), .sig_pct(p_b))
   }
 }
+
+# --- Lámina «Cómo leer las diferencias» (propuesta §3.4) ----------------------------------------------------------
+#
+# El texto de esa lámina explicaba una prueba que el informe ya no usa («prueba z… Bonferroni… 95%»). Ahora se genera
+# desde la regla del estudio en cada exportación: si cambia la regla, cambia la explicación. Solo se dice lo que el
+# motor dibuja (la trama de los grupos chicos aún no se dibuja, así que no se promete).
+
+.SIG_COMO_LEER_RX <- "c[oó]mo\\s+leer\\s+las\\s+diferencias"
+
+#' Texto de «Cómo leer las diferencias entre grupos» desde la regla
+#' @keywords internal
+.sig_texto_como_leer <- function(regla) {
+  umbral <- regla$umbral_puntos %||% 0
+  magnitud <- if (umbral > 0) sprintf(" y de al menos %s puntos", .sig_num(umbral)) else ""
+  base_min <- if (identical(regla$prueba, "rao_scott")) {
+    sprintf("menos de %s casos o de %s %ss", .sig_num(regla$base_minima), regla$conglomerados_minimos,
+            .sig_nombre_conglomerado(regla$conglomerado))
+  } else {
+    sprintf("menos de %s casos", .sig_num(regla$base_minima))
+  }
+  prueba <- if (identical(regla$prueba, "rao_scott")) {
+    sprintf(paste0("la prueba de Rao-Scott, que considera que las personas fueron encuestadas por %s y que quienes ",
+                   "comparten %s tienden a responder de forma parecida"),
+            .sig_nombre_conglomerado(regla$conglomerado), .sig_nombre_conglomerado(regla$conglomerado))
+  } else {
+    "una prueba z de diferencia de proporciones"
+  }
+  correccion <- if (identical(regla$correccion, "bh_informe")) {
+    "la corrección de Benjamini-Hochberg sobre todas las comparaciones del informe"
+  } else {
+    "la corrección de Bonferroni dentro de cada fila"
+  }
+  lineas <- c(
+    "Cada grupo lleva una letra (A, B, C…) junto a su nombre, en la leyenda o en el rótulo de su fila.",
+    sprintf("▲A junto a un porcentaje indica que ese valor es mayor que el del grupo A: la diferencia es significativa%s.",
+            magnitud),
+    "Un porcentaje sin marca no se distingue de los de los demás grupos con esta muestra.",
+    if (!identical(regla$fragiles, "ocultar")) sprintf(paste0(
+      "△A, con contorno punteado, indica una diferencia frágil: cumple las dos condiciones por un margen estrecho ",
+      "(p ajustado entre 0.01 y %s) y se lee con prudencia."), .sig_num(regla$alfa %||% 0.05)),
+    sprintf("Los grupos con %s no se comparan; la nota del gráfico los nombra.", base_min),
+    sprintf("Cómo se decide: las diferencias se evalúan con %s, y con %s (p < %s).", prueba, correccion,
+            .sig_num(regla$alfa %||% 0.05))
+  )
+  paste(lineas[!is.na(lineas) & nzchar(lineas)], collapse = "\n\n")
+}
+
+#' El plan con el texto de «Cómo leer las diferencias» generado desde la regla vigente
+#'
+#' Reconoce la lámina por su título. Sin regla vigente, el plan queda igual.
+#' @keywords internal
+.sig_plan_como_leer <- function(plan) {
+  ctx <- .sig_informe_vigente()
+  if (is.null(ctx) || !is.list(plan)) return(plan)
+  slides <- plan$slides %||% NULL
+  if (!is.list(slides)) return(plan)
+  plan$slides <- lapply(slides, .sig_slide_como_leer, regla = ctx$regla)
+  plan
+}
+
+#' Una lámina con el texto de «Cómo leer las diferencias» desde la regla (sin regla, la lámina tal cual)
+#' @keywords internal
+.sig_slide_como_leer <- function(slide, regla = (.sig_informe_vigente() %||% list())$regla) {
+  if (!is.list(slide) || !is.list(regla)) return(slide)
+  titulo <- as.character(slide$payload$titulo %||% "")[1]
+  if (is.na(titulo) || !grepl(.SIG_COMO_LEER_RX, titulo, ignore.case = TRUE, perl = TRUE)) return(slide)
+  if (is.null(slide$payload$texto) && is.null(slide$payload$bullets)) return(slide)
+  slide$payload$texto <- .sig_texto_como_leer(regla)
+  slide$payload$bullets <- NULL
+  slide
+}
