@@ -196,6 +196,7 @@ export function CampanaTerritorialShell({ campana, cabecera = null }: Props) {
             rank: 2,
             busy: cargando,
           }]}
+          slotDeEstado
           estado={unidades && recorrido.total ? [{
             id: "territorial-entrega",
             label: `${unidades.kind === "cuotas" ? "Zonas cubiertas" : "Asignadas"} ${recorrido.asignadas.toLocaleString("es-PE")} de ${recorrido.total.toLocaleString("es-PE")}`,

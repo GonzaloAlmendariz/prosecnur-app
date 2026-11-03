@@ -86,6 +86,7 @@ export function CampanaSupervisionShell({ campana, cabecera = null }: Props) {
             />
           )}
           acciones={[{ id: "refresh", label: "Actualizar", icon: RefreshCw, onSelect: () => { void recargar(); }, kind: "ghost", rank: 2, busy: cargando }]}
+          slotDeEstado
           estado={estado?.sin_lote ? [{ id: "supervision-lote", label: "Sin lote", tone: "warn" }] : []}
           ariaLabel="Controles de la supervisión"
         />

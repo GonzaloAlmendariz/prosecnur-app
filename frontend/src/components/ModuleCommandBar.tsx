@@ -35,6 +35,7 @@ import { PulsoButton } from "./PulsoButton";
 import type { ProsecnurModuleSlug } from "../lib/modules";
 import type { LucideIcon } from "../vendor/lucide-react";
 import "./chrome.css";
+import { EstadoChip } from "./EstadoChip";
 
 /** Cuánto sobrevive una acción cuando el ancho aprieta. */
 export type ChromeActionRank = 1 | 2 | 3;
@@ -88,6 +89,13 @@ export type ModuleCommandBarProps = {
   /** Chips de estado. Se compactan o se recogen, nunca se pierden. */
   estado?: readonly ChromeStatusChip[];
   /**
+   * P6 (2 nov 2026): los chips de estado van en su propio grupo, separados de las
+   * acciones por una línea y pintados con `EstadoChip` (punto de tono y mayúscula
+   * inicial). Opcional y compatible: sin él, la barra pinta como siempre, y cada
+   * módulo lo adopta cuando quiere.
+   */
+  slotDeEstado?: boolean;
+  /**
    * `none` quita material y borde. Variante DECLARADA para el canvas de
    * Gráficos, que necesita no poner un cristal encima del gráfico. Reemplaza a
    * los tres `!important` que hoy consiguen lo mismo a la fuerza.
@@ -120,6 +128,7 @@ export function ModuleCommandBar({
   acciones = [],
   herramientas,
   estado = [],
+  slotDeEstado = false,
   material = "glass",
   densidad = "normal",
   ariaLabel,
@@ -172,7 +181,13 @@ export function ModuleCommandBar({
       <div className="pulso-command-bar-zone" data-zone="acciones">
         {herramientas}
 
-        {!chipsRecogidos &&
+        {!chipsRecogidos && slotDeEstado && estado.length ? (
+          <div className="pulso-command-bar-estado" role="status" aria-label="Estado">
+            {estado.map((chip) => <EstadoChip key={chip.id} label={chip.label} tone={chip.tone} detail={chip.detail} onSelect={chip.onSelect} />)}
+          </div>
+        ) : null}
+
+        {!chipsRecogidos && !slotDeEstado &&
           estado.map((chip) => (
             <button
               key={chip.id}

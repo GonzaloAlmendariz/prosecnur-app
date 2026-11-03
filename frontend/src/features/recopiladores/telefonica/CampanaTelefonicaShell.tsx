@@ -138,6 +138,7 @@ export function CampanaTelefonicaShell({ campana, cabecera = null }: Props) {
             rank: 2,
             busy: cargando,
           }]}
+          slotDeEstado
           estado={config ? [{
             id: "telefonica-entrega",
             label: config.barrido.conectado_en_monitoreo ? "Conectado en Monitoreo" : config.barrido.construido ? "Sin conectar en Monitoreo" : "Sin Sheets del barrido",
