@@ -327,3 +327,14 @@ rediseña una vista entera al nivel del Sistema Pabellón para fijar la vara ant
 | Barra de avance | **Nueva en `components/BarraDeAvance.tsx`** | Tampoco había: `JobProgress` es la de un job y Home, Monitoreo y Correo pintan la suya con `role="progressbar"`. Usa `--module-accent`, así sirve a cualquier módulo. Anima con scaleX (contrato de movimiento L37). |
 | Reparto por distrito, equipo con avatares | Propio de Territorial (`TableroDeEntrega.tsx`, `tableroEntrega.css`) | Es contenido de la vista, no una primitiva. Los tonos copian el patrón del Sistema Pabellón sin importarlo, porque su módulo es de Monitoreo. |
 | Chequeos del origen, aulas que esperan enlace | Propio de Accesos (`AccesosTablero.tsx`) | Ídem. |
+
+### Extensión de la vara (Gonzalo, 2 nov 2026: «Sí, extiéndelo»)
+
+Regla de cada vista: contenedor = `Panel`; cifras = `CifrasEnTarjeta`; avance = `BarraDeAvance`; lo propio de la vista
+en su archivo. Captura antes y después, gate-front verde y un commit por vista.
+
+| Vista | Qué cambió | Commit |
+|---|---|---|
+| Territorial › Entrega (faro) | cifras, reparto por distrito con fichas por encuestador, equipo con avatares | bc82383b9, f162c3aab |
+| Aulas › Accesos | cifras del acceso, tres chequeos como lista, aulas como fichas que esperan enlace | 24b87e8a6 |
+| Aulas › Entrega › Traspaso | cifras de la entrega; recorrido de cuatro pasos con estado y acción en vez de cuatro «—»; recibo pendiente que enseña sus campos; material generado con su rótulo | (este) |
