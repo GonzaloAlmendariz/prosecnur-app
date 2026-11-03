@@ -8,6 +8,7 @@ import { FaltanteDiario } from "./FaltanteDiario";
 import type { CadenaDeLaCifra, CuotasFaltante as Modelo, FilaDeCuota, FilaReferencial, PuntoAcumulado } from "./cuotasFaltanteModel";
 import { llevaFaltanteDiario } from "./cuotasFaltanteModel";
 import { RotuloDePestana, useHayRotulo } from "../navegacion/RotuloDePestana";
+import { PesasReferenciales } from "../../../core/PesasReferenciales";
 import "../control/controlTelefonico.css";
 import "./cuotasFaltante.css";
 
@@ -103,13 +104,6 @@ function FilaDeLaTabla({ fila, conCumplio }: { fila: FilaDeCuota; conCumplio: bo
   );
 }
 
-/** «+3.2 pts» / «−1.0 pts»: la diferencia de composición, sin tono. */
-function puntos(valor: number | null) {
-  if (valor == null) return "—";
-  const signo = valor > 0 ? "+" : valor < 0 ? "−" : "";
-  return `${signo}${decimal(Math.abs(valor))} pts`;
-}
-
 /**
  * Referenciales (ADR 0126): lo obtenido frente al listado, con su `n`. No hay
  * faltante, ni veredicto, ni color de alarma: una diferencia se enseña, no se
@@ -117,33 +111,28 @@ function puntos(valor: number | null) {
  */
 function BloqueReferencial({ filas, segmento }: { filas: FilaReferencial[]; segmento: string }) {
   return (
-    <section className="mon-tel-cuotas-referenciales" aria-label="Cuotas referenciales">
-      <header className="mon-tel-cuotas-tabla-cabecera">
+    <section className="mon-tel-cuotas-panel mon-tel-cuotas-referenciales" aria-label="Cuotas referenciales"
+      data-qa-geometry-member="referenciales">
+      <header className="mon-ctl-panel-cabecera">
         <b>Referenciales</b>
         <span>Se describen frente al listado; no tienen faltante ni se cumplen</span>
       </header>
       {filas.length ? (
-        <div role="table" aria-label={`Composición por ${segmento}`} className="mon-tel-cuotas-ref-tabla">
-          <div role="row" className="mon-tel-cuotas-ref-fila is-cabecera">
-            <span role="columnheader">{segmento}</span>
-            <span role="columnheader" className="is-num">Efectivas</span>
-            <span role="columnheader" className="is-num">De las efectivas</span>
-            <span role="columnheader" className="is-num">Del listado</span>
-            <span role="columnheader" className="is-num">Diferencia</span>
-          </div>
-          {filas.map((fila) => (
-            <div key={fila.clave} role="row" className="mon-tel-cuotas-ref-fila">
-              <span role="rowheader" className="mon-tel-cuotas-categoria">
-                <b>{fila.nombre}</b>
-                {fila.celdaVacia ? <EstadoChip label="sin efectivas" tone="neutral" /> : null}
-                {fila.referencia != null ? <span className="mon-tel-cuotas-ref-nota">referencia {fmt(fila.referencia)}</span> : null}
-              </span>
-              <span role="cell" className="is-num">{fmt(fila.efectivas)}</span>
-              <span role="cell" className="is-num">{porcentaje(fila.obtenida)}</span>
-              <span role="cell" className="is-num">{fila.estadoCuota === "sin_comparador" ? "sin listado" : porcentaje(fila.esperada)}</span>
-              <span role="cell" className="is-num">{puntos(fila.diferencia)}</span>
-            </div>
-          ))}
+        <div className="mon-tel-cuotas-ref-cuerpo">
+          <PesasReferenciales
+            titulo={`Composición por ${segmento}`}
+            referencia="listado"
+            grupo="telefonico-referenciales-pesas"
+            filas={filas.map((fila) => ({
+              clave: fila.clave,
+              nombre: fila.nombre,
+              n: fila.efectivas,
+              obtenida: fila.obtenida,
+              esperada: fila.estadoCuota === "sin_comparador" ? null : fila.esperada,
+              referencia: fila.referencia,
+              celdaVacia: fila.celdaVacia,
+            }))}
+          />
         </div>
       ) : (
         <EstadoVacio tamano="compacto" icono={<Target size={15} />} titulo={`Ninguna categoría de ${segmento} es referencial: todas se exigen como meta.`} />
@@ -219,6 +208,9 @@ export function CuotasFaltante({ modelo, cadena }: { modelo: Modelo; cadena: Cad
       data-qa-geometry-contract="intrinsic"
       style={{ "--mon-tel-cuotas-filas": filas.length } as CSSProperties}
     >
+      {/* ADR 0126: dos bloques fijos, cada uno en su tarjeta. Metas arriba
+          (faltante, ritmo, veredicto); Referenciales debajo (composición). */}
+      <div className="mon-tel-cuotas-principal">
       <section className="mon-tel-cuotas-tabla-panel" aria-label={`Cuánto falta por ${segmentoMinuscula}`}>
         {/* §2a-bis: el rótulo de la pestaña encabeza su primera tarjeta. */}
         {hayRotulo ? (
@@ -269,8 +261,9 @@ export function CuotasFaltante({ modelo, cadena }: { modelo: Modelo; cadena: Cad
           />
         )}
         {conDiario ? <FaltanteDiario modelo={modelo} /> : null}
-        <BloqueReferencial filas={modelo.referenciales} segmento={segmentoMinuscula} />
       </section>
+      <BloqueReferencial filas={modelo.referenciales} segmento={segmentoMinuscula} />
+      </div>
 
       <div className="mon-tel-cuotas-lado">
         <section className="mon-tel-cuotas-panel mon-tel-cuotas-meta" aria-label="Faltan para la meta">

@@ -1476,27 +1476,6 @@ ul.acr-sa-puntos:not(.acr-sa-cuerpo) {
   font-size: var(--pulso-type-title-size);
 }
 
-.acr-pc-leyenda {
-  display: flex;
-  gap: var(--pulso-space-4);
-  margin: 0;
-  padding: var(--pulso-space-2) var(--pulso-space-4) 0;
-  list-style: none;
-  font-size: var(--pulso-type-body-size);
-}
-
-.acr-pc-leyenda li {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.acr-pc-leyenda .acr-pc-anillo,
-.acr-pc-leyenda .acr-pc-punto {
-  position: static;
-  transform: none;
-}
-
 .acr-pc-pesas {
   display: flex;
   flex-direction: column;
@@ -1509,10 +1488,6 @@ ul.acr-sa-puntos:not(.acr-sa-cuerpo) {
 .acr-pc-derecha > .acr-pc-detalle {
   flex: 0 1 auto;
   min-height: 0;
-}
-
-.acr-pc-detalle > .acr-pc-leyenda {
-  padding: var(--pulso-space-2) var(--pulso-space-4) var(--pulso-space-4);
 }
 
 .acr-pc-fila {
@@ -1533,60 +1508,10 @@ ul.acr-sa-puntos:not(.acr-sa-cuerpo) {
   font-size: var(--pulso-type-caption-size);
 }
 
-.acr-pc-escala {
-  position: relative;
-  height: 28px;
-}
-
-/* Centrado sobre la escala: en la esquina izquierda quedaba montado sobre el «0». */
-.acr-pc-eje-titulo {
-  position: absolute;
-  top: 0;
-  left: 50%;
-  transform: translateX(-50%);
-  font-weight: var(--pulso-weight-bold);
-  white-space: nowrap;
-}
-
-.acr-pc-marca {
-  position: absolute;
-  bottom: 0;
-  transform: translateX(-50%);
-  white-space: nowrap;
-  font-variant-numeric: tabular-nums;
-}
-
 .acr-pc-pista {
   position: relative;
   height: 14px;
   border-bottom: 1px solid var(--pulso-border);
-}
-
-.acr-pc-tramo {
-  position: absolute;
-  top: 6px;
-  height: 2px;
-  background: var(--acr-serie-suave);
-}
-
-.acr-pc-anillo,
-.acr-pc-punto {
-  position: absolute;
-  top: 1px;
-  display: inline-block;
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  transform: translateX(-50%);
-}
-
-.acr-pc-anillo {
-  border: 2px solid var(--pulso-accent-steel);
-  background: var(--pulso-surface);
-}
-
-.acr-pc-punto {
-  background: var(--acr-efectiva);
 }
 
 .acr-pc-fila b.is-marcada {
@@ -1748,8 +1673,7 @@ ul.acr-sa-puntos:not(.acr-sa-cuerpo) {
   padding: var(--pulso-space-2) var(--pulso-space-4) var(--pulso-space-4);
 }
 
-.acr-ri-leyenda,
-.acr-pc-leyenda {
+.acr-ri-leyenda {
   justify-content: center;
 }
 
@@ -2216,4 +2140,10 @@ ul.acr-sa-puntos:not(.acr-sa-cuerpo) {
   display: inline-flex;
   flex-direction: column;
   gap: 1px;
+}
+
+/* ADR 0126: las pesas de composición son la pieza común del núcleo
+ * (core/PesasReferenciales); aquí sólo se les da la serie de efectivas del modo. */
+.acr-pc-detalle {
+  --mon-pesas-obtenida: var(--acr-efectiva);
 }

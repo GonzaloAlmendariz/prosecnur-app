@@ -52,7 +52,9 @@ describe("Avance › Por cuota", () => {
       <PorCuotaVista publicos={publicos} cuotas={[cuota]} controles={variables} foco={variables[0].id} onElegir={() => {}} onEditarEnModelo={() => {}} onDefinirEnModelo={() => {}} />,
     );
     expect(html).toContain("% del universo");
-    expect(html).toContain("% del público");
+    // ADR 0126: la pieza común escribe la referencia en su columna.
+    expect(html).toContain("Del universo");
+    expect(html).toContain("70.0 %");
     expect(html).toContain("+2.4 pp");
     expect(html).toContain("Definir cuota en Modelo");
   });
