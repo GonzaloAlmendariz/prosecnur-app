@@ -191,3 +191,19 @@ test_that("la guía del punto baja en diagonal hasta el mar y los países vecino
   labs <- unlist(lapply(ggplot2::ggplot_build(.mapa_dist_panel_gg(p, 6.3, 4.3))$data, function(d) d$label))
   expect_false(any(c("BRASIL", "ECUADOR", "COLOMBIA") %in% labs))
 })
+
+test_that("regla de Gonzalo (2026-11-03): las áreas no llevan rótulo ni guía; sólo los puntos GPS llevan guía y nombre", {
+  fx <- .md_fx(600)
+  e <- .md_espec(fx, "dist", "lima_callao", puntos = "PUCP | -12.0693, -77.0794")
+  g <- .mapa_dist_panel_gg(e, 6.3, 4.3)
+  b <- ggplot2::ggplot_build(g)$data
+  textos <- unlist(lapply(b, function(d) d$label))
+  expect_false(any(e$areas$nombre[e$areas$n > 0] %in% textos))         # ningún distrito rotulado
+  expect_false(any(grepl(paste(e$areas$nombre[e$areas$n > 0], collapse = "|"), textos)))
+  expect_true("PUCP" %in% textos)
+  guias <- Filter(function(d) "group" %in% names(d) && nrow(d) == 3L * nrow(attr(g, "pulso_rotulos")) && all(c("x", "y") %in% names(d)), b)
+  expect_gte(length(guias), 1L)                                         # la guía existe y es sólo la del punto (3 vértices)
+  sin <- .md_espec(fx, "dist", "lima_callao")
+  expect_identical(nrow(sin$rotulos), 0L)                               # sin puntos, ningún rótulo ni guía
+  expect_null(attr(.mapa_dist_panel_gg(sin, 6.3, 4.3), "pulso_rotulos"))
+})

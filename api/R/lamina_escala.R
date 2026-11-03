@@ -306,10 +306,13 @@
   # si es larga, en el bloque de premisas (láminas 221/222), como la batería (decisión «2c»).
   if (isTRUE(solo) && length(premisas) == 1L && length(premisas[[1]]$filas) == 1L && is.null(espec$box2$unidades)) {
     p <- premisas[[1]]; fl <- p$filas[[1]]; g <- 0.72
-    wt <- W - ML - MR - 0.4; ht <- .lam_alto_txt(p$texto, wt, 20, TRUE)
+    # Si la pregunta ya es el título de la lámina, no se repite como encabezado (CCSS 2026: calidad de la educación en
+    # escala de 7, multiapilada `var` de una sola pregunta). lamina_escala_mismo_texto.R
+    repite <- .lam_mismo_texto(p$texto, titulo_lamina)
+    wt <- W - ML - MR - 0.4; ht <- if (repite) 0 else .lam_alto_txt(p$texto, wt, 20, TRUE)
     alto_grupo <- ht + 1.15 + g + 1.0
     yt <- Y_DATOS + max(0.3, (Y_BASE - 0.2 - Y_DATOS - alto_grupo) / 2)
-    .lam_txt(lz, p$texto, L$x_premisa, yt, wt, ht, 20, azul, bold = TRUE, nombre = "pregunta")
+    if (!repite) .lam_txt(lz, p$texto, L$x_premisa, yt, wt, ht, 20, azul, bold = TRUE, nombre = "pregunta")
     yb <- yt + ht + 1.15; xb <- L$x_premisa + 1.75; wb <- L$x_top_two_box - xb - 0.1   # sin Bottom Two Box: la barra termina antes de la columna del box
     if (nzchar(fl$actor)) .lam_txt(lz, fl$actor, L$x_premisa, yb + g / 2 - (if (con_n) 0.18 else 0.15), 1.6, 0.3, .std_pt("actor"), azul, bold = TRUE, nombre = "actor")
     if (con_n) .lam_txt(lz, respuestas(fl$valid), L$x_premisa, yb + g / 2 + 0.08, 1.7, 0.26, .std_pt("n"), .std_color("texto_tenue"), nombre = "respuestas")
@@ -425,7 +428,7 @@
     p <- premisas[[i]]; a <- altos[i]; wpp <- .lam_premisa_ancho_de(p, wp); hp <- .lam_alto_premisa_txt(p$texto, wpp); hn <- .lam_premisa_alto(p, wp); fila <- ta$filas[i]
     if (i > 1 && con_filete && filete_temas) .lam_caja(lz, ML, y - ta$gaps[i - 1L] / 2, W - ML - MR, 0.008, .std_color("filete"), nombre = "filete")
     if (un_tema) {
-      if (nzchar(p$texto %||% "") && !identical(trimws(p$texto), trimws(titulo_lamina %||% "")))
+      if (nzchar(p$texto %||% "") && !.lam_mismo_texto(p$texto, titulo_lamina))
         .lam_txt(lz, p$texto, L$x_premisa, y - (rotulo_sobre %||% .std_comp("escala", "rotulo_box_sobre")), L$x_top_two_box - L$x_premisa - 0.2, 0.3, .std_pt("pregunta"), azul,
                  bold = negrita, nombre = "premisa")
     } else {
