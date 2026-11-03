@@ -4,6 +4,7 @@ import { FileSpreadsheet, Loader2, RefreshCw, Upload } from "lucide-react";
 import { apiCalcMuestraMarcoInspeccionarArchivo, type CalcMuestraComponente } from "../../../api/calcMuestra";
 import { apiCalcMuestraGeneralDeclararMarco } from "../../../api/calcMuestraGeneral";
 import { apiUpload } from "../../../api/estudio";
+import { Panel } from "../../../components/Panel";
 import { EmptyState } from "../../../components/States";
 import { useCalcMuestraStore } from "../store";
 import { ErrorDelMotor } from "./ErrorDelMotor";
@@ -91,23 +92,17 @@ export function ArchivoMarcoGeneral({ componente }: { componente: CalcMuestraCom
   }
 
   return (
-    <section
-      className="cmv2-panel cmg-archivo"
+    <Panel
+      className="cmg-archivo"
       aria-labelledby="cmg-archivo-titulo"
       data-audit-ready={cargado ? "true" : "false"}
+      title={<span id="cmg-archivo-titulo">{marco ? "Marco declarado" : "Declara el listado de unidades"}</span>}
+      actions={marco && !estado.editando ? (
+        <button type="button" className="cmv2-ghost" onClick={() => dispatch({ tipo: "editar" })}>
+          <RefreshCw size={14} aria-hidden="true" /> Cambiar archivo o columnas
+        </button>
+      ) : undefined}
     >
-      <div className="cmv2-panel-head">
-        <div>
-          <h3 className="cmg-panel-titulo" id="cmg-archivo-titulo">{marco ? "Marco declarado" : "Declara el listado de unidades"}</h3>
-        </div>
-        {marco && !estado.editando && (
-          <div className="cmv2-panel-head-actions">
-            <button type="button" className="cmv2-ghost" onClick={() => dispatch({ tipo: "editar" })}>
-              <RefreshCw size={14} aria-hidden="true" /> Cambiar archivo o columnas
-            </button>
-          </div>
-        )}
-      </div>
 
       {!componente ? (
         <EmptyState
@@ -229,6 +224,6 @@ export function ArchivoMarcoGeneral({ componente }: { componente: CalcMuestraCom
           )}
         </>
       )}
-    </section>
+    </Panel>
   );
 }
