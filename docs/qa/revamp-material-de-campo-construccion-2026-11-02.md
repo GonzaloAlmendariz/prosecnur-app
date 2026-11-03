@@ -296,3 +296,24 @@ cada bloque avisa a su shell que está cargando, y si el fetch falla cuenta como
   lo dice, con su test (`telefonica/EntregaTelefonica.test.tsx`).
 - Guard: `vaciosYCargasDelKit.contract.test.ts` exige que toda carga en línea pase por `CargaDeBloque`.
 - Recaptura: Códigos, Entrega UMP, Entrega cuotas, Plantillas y Entrega telefónica muestran el dato (ok=true).
+
+### P1, letra por rol (hecho)
+
+- Los 440 `font-size` en px de 50 hojas pasan a `var(--pulso-type-<rol>-size)` con la regla de Analítica y Carga:
+  ≥18 px → kpi; 15–17 → title; 12–14.5 → subtitle si la regla es seminegrita y body si no; 10.6–11.5 → eyebrow si
+  va en mayúsculas y caption si no; ≤10.5 → micro. El reemplazo es línea por línea, así que ninguna hoja crece.
+- Guard: `features/recopiladores` entra en `MODULOS` de `app/letraPorRol.contract.test.ts` con meta 0.
+- Capturas: `p1-*` (26 vistas, textosFuera 0). No hay recortes; el cambio es sutil, como se esperaba.
+
+### Vista faro: Territorial › Entrega (2 nov 2026, noche)
+
+Gonzalo, tras P5 y P1: «en verdad se ve mal diseñado, se ven con fondos grandes, ausencia de contenedores, ausencia
+de elementos UI sofisticados… todavía faltan kilómetros de años luz». Ordenar el código no responde a eso. Se
+rediseña una vista entera al nivel del Sistema Pabellón para fijar la vara antes de extenderla:
+
+- Cuatro cifras en tarjetas (UMP titulares, equipo, asignadas con barra, sin encuestador en tono de aviso).
+- Reparto por distrito: una tarjeta por distrito con su barra y cada UMP como ficha teñida del color de su
+  encuestador (gris punteado si no tiene).
+- Equipo: las 26 personas con avatar de color determinista, código y barra de carga, sin techo.
+- Asignación y Plan de campo en tarjetas con cabecera. En cuotas ya no se pinta el formulario apagado del plan.
+- Modelo puro `territorial/modeloTablero.ts` con 5 tests. Capturas `faro-ump` (1280 y 1440) y `faro-cuotas`.

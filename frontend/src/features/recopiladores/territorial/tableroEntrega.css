@@ -1,0 +1,253 @@
+/* Territorial › Entrega, vista faro (TableroDeEntrega.tsx). Cifras arriba, reparto
+   por distrito y equipo lado a lado, cada bloque en su tarjeta. Tonos de identidad
+   copiados del Sistema Pabellón: fondo pálido del tono y texto mezclado con
+   --pulso-text para que pase AA incluso en los tonos claros. */
+
+.rec-tab {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-4);
+}
+
+/* —— Cifras —— */
+.rec-tab-cifras {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--pulso-space-3);
+  margin: 0;
+}
+@media (max-width: 1100px) {
+  .rec-tab-cifras { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+.rec-tab-cifra {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-1);
+  padding: var(--pulso-space-4);
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-card);
+  background: var(--pulso-surface);
+  box-shadow: var(--pulso-shadow-soft);
+}
+.rec-tab-cifra dt {
+  font-size: var(--pulso-type-eyebrow-size);
+  font-weight: var(--pulso-type-eyebrow-weight);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--pulso-text-soft);
+}
+.rec-tab-cifra dd {
+  margin: 0;
+  font-size: var(--pulso-type-kpi-size);
+  font-weight: var(--pulso-type-kpi-weight);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+  color: var(--pulso-text);
+}
+.rec-tab-cifra dd small {
+  font-size: var(--pulso-type-body-size);
+  font-weight: var(--pulso-type-body-weight);
+  color: var(--pulso-text-soft);
+}
+.rec-tab-cifra > span {
+  font-size: var(--pulso-type-caption-size);
+  color: var(--pulso-text-soft);
+}
+.rec-tab-cifra--avance .rec-tab-barra { margin-top: var(--pulso-space-1); }
+.rec-tab-cifra[data-tono="aviso"] {
+  border-color: var(--pulso-warn-border);
+  background: color-mix(in srgb, var(--pulso-warn-bg) 55%, var(--pulso-surface));
+}
+.rec-tab-cifra[data-tono="aviso"] dd { color: var(--pulso-warn-fg); }
+.rec-tab-cifra[data-tono="listo"] dd { color: var(--pulso-success-fg); }
+
+/* —— Barra de avance —— */
+.rec-tab-barra {
+  position: relative;
+  height: 6px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--pulso-surface-3);
+}
+/* El avance se dibuja con scaleX y no con width: animar el ancho reflowea (contrato de movimiento L37). */
+.rec-tab-barra > span {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--pulso-module-fieldkit);
+  transform: scaleX(var(--rec-tab-avance, 0));
+  transform-origin: left center;
+  transition: transform var(--motion-dur-panel) var(--motion-ease-out);
+}
+@media (prefers-reduced-motion: reduce) {
+  .rec-tab-barra > span { transition: none; }
+}
+
+/* —— Bloques —— */
+.rec-tab-cuerpo {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 340px);
+  gap: var(--pulso-space-4);
+  align-items: start;
+}
+@media (max-width: 1100px) {
+  .rec-tab-cuerpo { grid-template-columns: minmax(0, 1fr); }
+}
+.rec-tab-bloque {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-3);
+  padding: var(--pulso-space-4);
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-card);
+  background: var(--pulso-surface);
+  box-shadow: var(--pulso-shadow-soft);
+}
+.rec-tab-bloque-cabeza h3 {
+  display: flex;
+  align-items: center;
+  gap: var(--pulso-space-2);
+  margin: 0;
+  font-size: var(--pulso-type-title-size);
+  font-weight: var(--pulso-type-title-weight);
+  color: var(--pulso-text);
+}
+.rec-tab-bloque-cabeza h3 svg { color: var(--pulso-module-fieldkit); }
+.rec-tab-bloque-cabeza p,
+.rec-tab-nota {
+  margin: var(--pulso-space-1) 0 0;
+  font-size: var(--pulso-type-caption-size);
+  color: var(--pulso-text-soft);
+}
+
+/* —— Distritos —— */
+.rec-tab-distritos {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: var(--pulso-space-3);
+}
+.rec-tab-distrito {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-2);
+  padding: var(--pulso-space-3);
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-panel);
+  background: var(--pulso-surface-2);
+}
+.rec-tab-distrito header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--pulso-space-2);
+}
+.rec-tab-distrito h4 {
+  margin: 0;
+  font-size: var(--pulso-type-subtitle-size);
+  font-weight: var(--pulso-type-subtitle-weight);
+  color: var(--pulso-text);
+  text-transform: capitalize;
+}
+.rec-tab-distrito-cuenta {
+  font-size: var(--pulso-type-caption-size);
+  font-variant-numeric: tabular-nums;
+  color: var(--pulso-text-soft);
+  white-space: nowrap;
+}
+.rec-tab-umps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.rec-tab-ump {
+  --chip-tono: var(--pulso-text-faint);
+  min-width: 34px;
+  padding: 2px 6px;
+  border: 1px dashed var(--pulso-border-strong);
+  border-radius: 6px;
+  background: var(--pulso-surface);
+  font-size: var(--pulso-type-caption-size);
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+  color: var(--pulso-text-soft);
+}
+.rec-tab-ump[class*="es-tono-"] {
+  border-style: solid;
+  border-color: color-mix(in srgb, var(--chip-tono) 34%, var(--pulso-surface));
+  background: color-mix(in srgb, var(--chip-tono) 13%, var(--pulso-surface));
+  color: color-mix(in srgb, var(--chip-tono) 58%, var(--pulso-text));
+  font-weight: var(--pulso-weight-semibold);
+}
+
+/* —— Equipo —— */
+.rec-tab-equipo {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.rec-tab-persona {
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr) 92px;
+  align-items: center;
+  gap: var(--pulso-space-3);
+  padding: var(--pulso-space-2) 0;
+  border-top: 1px solid var(--pulso-border);
+}
+.rec-tab-persona:first-child { border-top: 0; }
+.rec-tab-avatar {
+  --chip-tono: var(--pulso-text-faint);
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--chip-tono) 18%, var(--pulso-surface));
+  color: color-mix(in srgb, var(--chip-tono) 62%, var(--pulso-text));
+  font-size: var(--pulso-type-micro-size);
+  font-weight: var(--pulso-type-micro-weight);
+}
+.rec-tab-persona-texto {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.rec-tab-persona-texto strong {
+  overflow: hidden;
+  font-size: var(--pulso-type-body-size);
+  font-weight: var(--pulso-weight-semibold);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--pulso-text);
+}
+.rec-tab-persona-texto small {
+  font-size: var(--pulso-type-caption-size);
+  font-variant-numeric: tabular-nums;
+  color: var(--pulso-text-faint);
+}
+.rec-tab-persona-carga {
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr);
+  align-items: center;
+  gap: var(--pulso-space-2);
+}
+.rec-tab-persona-carga b {
+  font-size: var(--pulso-type-body-size);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  color: var(--pulso-text);
+}
+
+/* —— Tonos de identidad (8, como el Sistema Pabellón) —— */
+.rec-tab .es-tono-0 { --chip-tono: var(--pulso-accent-steel); }
+.rec-tab .es-tono-1 { --chip-tono: var(--pulso-accent-green); }
+.rec-tab .es-tono-2 { --chip-tono: var(--pulso-accent-rose); }
+.rec-tab .es-tono-3 { --chip-tono: var(--pulso-accent-amber); }
+.rec-tab .es-tono-4 { --chip-tono: var(--pulso-accent-violet); }
+.rec-tab .es-tono-5 { --chip-tono: var(--pulso-accent-cyan); }
+.rec-tab .es-tono-6 { --chip-tono: var(--pulso-module-monitoring); }
+.rec-tab .es-tono-7 { --chip-tono: var(--pulso-module-processing); }
