@@ -135,7 +135,7 @@
   # L10-9: letras de significancia entre niveles, con la prueba de las tablas de cruces (graficos_serie_significancia.R).
   sig <- .serie_sig_config(args_usuario)
   args_usuario$mostrar_significancia <- NULL; args_usuario$significancia_alpha <- NULL
-  letras <- if (sig$activo) .serie_sig_letras(datos, el$vars, sources, el$cruce, alpha = sig$alpha) else NULL
+  letras <- if (sig$activo) .serie_sig_letras(datos, el$vars, sources, el$cruce, alpha = sig$alpha, el = el) else NULL
   if (!is.null(letras)) {
     datos$sufijo <- letras$sufijo
     if (is.null(args_usuario$nota_pie)) args_usuario$nota_pie <- .sig_nota_pie_del_grafico(letras$nota)
