@@ -1,6 +1,7 @@
 import { ChevronLeft, ChevronRight, Table2 } from "lucide-react";
 
 import type { CalcMuestraGeneralUnidad } from "../../../api/calcMuestraGeneral";
+import { Panel } from "../../../components/Panel";
 import { GlidingRadioGroup } from "../../../components/GlidingRadioGroup";
 import { fmtInt } from "../sharedCore";
 import "../universidad/shared/tablas.css";
@@ -49,12 +50,13 @@ export function TablaUnidades({
   };
 
   return (
-    <section className="cmv2-panel cmg-unidades" aria-labelledby="cmg-unidades-titulo" data-qa-geometry-member>
-      <div className="cmv2-panel-head">
-        <div>
-          <span className="cmv2-eyebrow">Listado</span>
-          <h3 className="cmg-panel-titulo" id="cmg-unidades-titulo">Unidades seleccionadas</h3>
-        </div>
+    <Panel
+      className="cmg-unidades"
+      aria-labelledby="cmg-unidades-titulo"
+      data-qa-geometry-member
+      eyebrow="Listado"
+      title={<span id="cmg-unidades-titulo">Unidades seleccionadas</span>}
+      actions={(
         <GlidingRadioGroup<(typeof FILTROS)[number], FiltroUnidades>
           value={filtro}
           options={FILTROS}
@@ -66,7 +68,8 @@ export function TablaUnidades({
         >
           {(f) => <>{f.label} <span className="cmg-filtro-n">{fmtInt(conteo[f.id])}</span></>}
         </GlidingRadioGroup>
-      </div>
+      )}
+    >
 
       {filtradas.length === 0 ? (
         <EstadoVacio
@@ -147,6 +150,6 @@ export function TablaUnidades({
           </div>
         </>
       )}
-    </section>
+    </Panel>
   );
 }

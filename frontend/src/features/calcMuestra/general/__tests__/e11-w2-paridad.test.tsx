@@ -305,7 +305,7 @@ describe("V9 · tablas con la gramática de aulas", () => {
     expect(html).toContain('<th scope="row"><code>U-1</code></th>');
     expect(html).toContain('<th scope="col" class="cmv2-num">Peso base</th>');
     expect(html).toContain('class="cmv2-table-wrap cmg-tabla-desplazable"');
-    expect(html).toContain('<h3 class="cmg-panel-titulo" id="cmg-unidades-titulo">');
+    expect(html).toContain('<h3 class="pulso-panel-title"><span id="cmg-unidades-titulo">');
   });
 
   it("estratos: caption, estrato como rótulo de fila y N_h con nombre accesible", () => {

@@ -254,11 +254,6 @@
   line-height: 1.4;
 }
 
-.cmg-ficha .cmv2-panel-head,
-.cmg-unidades .cmv2-panel-head {
-  flex-wrap: wrap;
-}
-
 .cmg-exportar {
   flex-direction: column;
   align-items: flex-end;

@@ -345,12 +345,11 @@ export function SeleccionGeneralVista({
       ) : pestana === "seleccion-corrida" ? (
         <FichaCorrida corrida={corrida} componente={componente} />
       ) : !corrida ? (
-        <section className="cmv2-panel" aria-labelledby="cmg-unidades-vacio-titulo" data-qa-geometry-member>
-          <div className="cmv2-panel-head">
-            <div>
-              <h3 className="cmg-panel-titulo" id="cmg-unidades-vacio-titulo">Listado de la selección</h3>
-            </div>
-          </div>
+        <Panel
+          aria-labelledby="cmg-unidades-vacio-titulo"
+          data-qa-geometry-member
+          title={<span id="cmg-unidades-vacio-titulo">Listado de la selección</span>}
+        >
           <EmptyState
             variant="inline"
             icon={<ListOrdered size={18} aria-hidden="true" />}
@@ -362,7 +361,7 @@ export function SeleccionGeneralVista({
               </Link>
             )}
           />
-        </section>
+        </Panel>
       ) : corrida.unidades === null ? (
         <section className="cmv2-panel" data-qa-geometry-member>
           <CargaDeBloque label="Cargando el listado de unidades…" />
