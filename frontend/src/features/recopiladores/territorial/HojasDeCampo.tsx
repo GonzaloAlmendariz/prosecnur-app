@@ -28,6 +28,7 @@ import { Hash, ListOrdered, Printer, Table2 } from "../../../vendor/lucide-react
 import { CargaDeBloque } from "../../../components/CargaDeBloque";
 import { MaquetaDeConsolidados, MaquetaDeRuteo } from "./MaquetaDeHoja";
 import "./ficha.css";
+import { Panel } from "../../../components/Panel";
 
 const ROTULO_MAX = 60;
 const CRITERIO_MAX = 40;
@@ -297,12 +298,12 @@ export function HojasDelPaquete({ campaignId, unidades }: ConCampana) {
       .finally(() => setOcupado(""));
   };
   return (
-    <article className="rec-terr-tarjeta" data-qa-geometry-member aria-label="Hojas de campo">
-      <h3><ListOrdered size={15} aria-hidden /> Hojas de ruteo y de consolidados</h3>
-      <p className="rec-terr-nota">
-        Una de cada por UMP, con su encuestador y los códigos del estudio. Los reemplazos se imprimen cuando se activan; inclúyelos si
-        quieres llevarlos de reserva.
-      </p>
+    <Panel
+      data-qa-geometry-member
+      aria-label="Hojas de campo"
+      title={<><ListOrdered size={16} aria-hidden /> Hojas de ruteo y de consolidados</>}
+      hint="Una de cada por UMP, con su encuestador y los códigos del estudio. Los reemplazos se imprimen cuando se activan; inclúyelos si quieres llevarlos de reserva."
+    >
       <PulsoSwitch size="sm" label={`Incluir los reemplazos (${reemplazos.toLocaleString("es-PE")} UMP más)`} checked={conReemplazos} disabled={ocupado !== ""} onCheckedChange={setConReemplazos} />
       <div className="rec-terr-fila">
         <PulsoButton variant="secondary" size="sm" disabled={!total || ocupado !== "" || unidades.stale} onClick={() => generar("ruteo")}>
@@ -313,6 +314,6 @@ export function HojasDelPaquete({ campaignId, unidades }: ConCampana) {
         </PulsoButton>
       </div>
       {error ? <p className="rec-terr-error" role="alert">{error}</p> : null}
-    </article>
+    </Panel>
   );
 }
