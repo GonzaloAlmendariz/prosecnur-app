@@ -228,11 +228,11 @@ function fila(
       relleno: 0, estado, cumplida: false,
       cifra: null,
       lectura: "sin cuota del diseño",
-      subtexto: [`${fmt(validas)} recogidas`, ...notas].join(" · "),
+      subtexto: [`${fmt(validas)} recogidas`, ...notas].join(", "),
       titulo: [
         "Facultad del plan sin cuota en el diseño: no hay denominador contra el que medirla.",
         ...notas,
-      ].join(" · "),
+      ].join(" "),
       aria: `${facultad}: sin cuota del diseño`,
     };
   }
@@ -242,7 +242,7 @@ function fila(
     // Sólo el ANCHO se capa a 100; la cifra sigue diciendo la verdad.
     relleno: Math.max(0, Math.min(100, avance ?? 0)),
     estado,
-    subtexto: [`${fmt(validas)} de ${fmt(cuota ?? 0)}`, ...notas].join(" · "),
+    subtexto: [`${fmt(validas)} de ${fmt(cuota ?? 0)}`, ...notas].join(", "),
   };
 
   if (estado === "sin_aulas_en_plan") {
@@ -255,7 +255,7 @@ function fila(
       titulo: [
         "El sorteo no le asignó aulas: su cuota no puede salir del plan actual. Es un hueco del diseño de campo, no retraso del equipo.",
         ...notas,
-      ].join(" · "),
+      ].join(" "),
       aria: `${facultad}: sin cursos-horario sorteados para su cuota`,
     };
   }
@@ -276,13 +276,13 @@ function fila(
   const fraccion = `${fmt(validas)} de ${fmt(cuota ?? 0)}`;
   return {
     ...base,
-    subtexto: notas.join(" · "),
+    subtexto: notas.join(", "),
     cumplida,
     cifra: cumplida ? null : fmt(brecha),
     lectura: cumplida
-      ? `cuota cumplida · ${pctPerfil(avance ?? 0)} (${fraccion})`
-      : `faltan · ${pctPerfil(avance ?? 0)} (${fraccion})`,
-    titulo: notas.join(" · "),
+      ? `cuota cumplida, ${pctPerfil(avance ?? 0)} (${fraccion})`
+      : `faltan, ${pctPerfil(avance ?? 0)} (${fraccion})`,
+    titulo: notas.join(", "),
     aria: `${facultad}: ${pctPerfil(avance ?? 0)} de su cuota del diseño, ${fraccion}`,
   };
 }
@@ -309,7 +309,7 @@ export function avanceCuota(bloque?: MonitoreoAulasAvanceCuota | null): VistaDeA
   const degradada = vigencia === "obsoleta" || vigencia === "sin_diseno" || fuente === "plan_expected";
   const chipBase = degradada
     ? "contra la meta del plan"
-    : `cuota del diseño · ${tasaDeEfectividadTexto(numeroONulo(bloque.tasa_esperada))}`;
+    : `cuota del diseño, ${tasaDeEfectividadTexto(numeroONulo(bloque.tasa_esperada))}`;
   const procedencia: ProcedenciaDeCuota = {
     chip: vigencia === "no_verificable" ? `${chipBase} (sello sin verificar)` : chipBase,
     detalle: motivo,
@@ -427,7 +427,7 @@ export function avanceCuota(bloque?: MonitoreoAulasAvanceCuota | null): VistaDeA
       // La procedencia entra en el aria porque quien no ve la pantalla no ve el
       // chip que la declara, y sin ella «de la cuota del estudio» suena igual
       // con el denominador del diseño que con el del plan degradado.
-      aria: `${pctPerfil(avanceTotal)} de la ${etiqueta.toLowerCase()} · ${procedencia.chip}`,
+      aria: `${pctPerfil(avanceTotal)} de la ${etiqueta.toLowerCase()}, ${procedencia.chip}`,
       notas: notasTotal,
       fueraDeCelda: fueraTotal + huerfanas + sinEje + duplicadas + sinCelda,
       descuadre,

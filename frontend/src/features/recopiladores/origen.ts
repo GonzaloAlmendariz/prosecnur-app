@@ -14,6 +14,7 @@ import type {
   CollectionOrigenUnidad,
 } from "../../api/recopiladores";
 import { fechaDeCorrida } from "./fechaDeCorrida";
+import { enumerar } from "../../lib/enumerar";
 
 export const DIRECCION_ORIGEN = "/material-campo?modo=aulas&seccion=unidades&pestana=origen";
 export const DIRECCION_LISTA = "/material-campo?modo=aulas&seccion=unidades&pestana=lista";
@@ -73,22 +74,22 @@ export function nombreDelModulo(slug: string): string {
   return MODULO[slug] ?? (slug.startsWith("calc-muestra") ? MODULO["calc-muestra"] : slug);
 }
 
-/** «Selección de cursos-horario · Cálculo de muestra». */
+/** «Selección de cursos-horario, de Cálculo de muestra». */
 export function tituloDeLaFuente(origen: CollectionOrigen): string {
   const que = ORIGEN[origen.fuente.origen] ?? "";
   const modulo = origen.fuente.modulo ? nombreDelModulo(origen.fuente.modulo) : "";
-  if (que && modulo) return `${que} · ${modulo}`;
+  if (que && modulo) return `${que}, de ${modulo}`;
   return que || modulo || "Sin fuente";
 }
 
-/** «2.616 unidades · sorteo del 21/8/2026 · la lista no se edita aquí». */
+/** «2,616 unidades, sorteo del 21/8/2026 y la lista no se edita aquí». */
 export function detalleDeLaFuente(origen: CollectionOrigen): string {
   const partes: string[] = [];
   if (origen.fuente.unidades !== null) partes.push(plural(origen.fuente.unidades, "unidad", "unidades"));
   const fecha = fechaDelSorteo(origen.fuente.fecha || origen.fuente.run_id);
   if (fecha) partes.push(`sorteo del ${fecha}`);
   partes.push("la lista no se edita aquí");
-  return partes.join(" · ");
+  return enumerar(partes);
 }
 
 /** Adónde lleva «Abrir en …» y «Abrir la selección», según quién manda. */
@@ -335,7 +336,7 @@ function deUnidad(u: CollectionOrigenUnidad, tipo: "alta" | "baja"): FilaDeDifer
     tipo,
     rotulo: tipo === "alta" ? "Entra" : "Sale",
     codigo: u.codigo || u.clave,
-    que: [rol, u.curso, u.facultad].filter(Boolean).join(" · "),
+    que: [rol, u.curso, u.facultad].filter(Boolean).join(", "),
     antes: "",
     despues: "",
   };

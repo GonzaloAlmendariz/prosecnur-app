@@ -353,7 +353,7 @@ export function AulasRendimientoYEfectividad({ bloque, fila, facultad = "" }: {
             y con tres cursos-horario aplicados no lo es — por eso viaja su
             intervalo de confianza. */}
         Sobre {fmt(lectura.aulas)} {lectura.aulas === 1 ? "curso-horario aplicado" : "cursos-horario aplicados"}
-        {" · "}{fmt(lectura.efectivas)} efectivas de {fmt(lectura.elegibles)} elegibles
+        {", "}{fmt(lectura.efectivas)} efectivas de {fmt(lectura.elegibles)} elegibles
       </p>
       {riesgo ? (
         <p className={`aulas-rye-cierre ${riesgo.facultadesEnRiesgo ? "es-alerta" : "es-ok"}`}>

@@ -10,6 +10,7 @@
  * entregue (`submission_count`, `last_submission_time`).
  */
 import type { MonitoreoKoboAssetItem } from "../../../api/monitoreo";
+import { formatoConteo } from "../../../lib/formatoNumero";
 
 export type EncuestaDelCatalogo = {
   id: string;
@@ -75,11 +76,11 @@ export function fechaDelCatalogo(fecha: string | null) {
   return t.toLocaleDateString("es-PE", { day: "2-digit", month: "2-digit", year: "numeric" });
 }
 
-/** La línea de detalle: «aBcD123 · 412 envíos · modificada 23/10/2026 · Desplegado». */
+/** La línea de detalle: «aBcD123, 412 envíos, modificada 23/10/2026, Desplegado». */
 export function detalleDelCatalogo(item: EncuestaDelCatalogo) {
   const partes = [item.id];
-  if (item.envios != null) partes.push(`${item.envios.toLocaleString("es-PE")} ${item.envios === 1 ? "envío" : "envíos"}`);
+  if (item.envios != null) partes.push(`${formatoConteo(item.envios)} ${item.envios === 1 ? "envío" : "envíos"}`);
   if (item.fecha) partes.push(`${item.queFecha === "envio" ? "último envío" : "modificada"} ${fechaDelCatalogo(item.fecha)}`);
   if (item.estado) partes.push(item.estado);
-  return partes.join(" · ");
+  return partes.join(", ");
 }

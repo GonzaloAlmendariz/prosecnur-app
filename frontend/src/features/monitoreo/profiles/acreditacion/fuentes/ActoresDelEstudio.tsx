@@ -21,11 +21,13 @@ import {
   Trash2,
   Users,
 } from "../../../../../vendor/lucide-react";
+import { EstadoVacio } from "../../../../../components/EstadoVacio";
 import type { MonitoreoActorUnit, MonitoreoSource, MonitoreoState } from "../../../../../api/client";
 import { ACTORES_SEMILLA, claveDeActor, faltantesDelActor } from "../../../fuentes/rosterDeActores";
 import { CanalesDelPublico } from "./CanalesDelPublico";
 import { useElencoDeActores } from "./useElencoDeActores";
 import { actorInitialLabel } from "../formato";
+import { enumerar } from "../../../../../lib/enumerar";
 import "./actoresDelEstudio.css";
 import { Switch } from "../../../../../components/Switch";
 
@@ -174,7 +176,7 @@ export function ActoresDelEstudio({
                         Al guardar, «{fila.guardadoComo}» pasa a llamarse así en {conFuentes === 1 ? "su única fuente" : `sus ${conFuentes} fuentes`}.
                       </span>
                     ) : faltan.length ? (
-                      <span className="is-missing">{faltan.join(" · ")}</span>
+                      <span className="is-missing">{enumerar(faltan)}</span>
                     ) : (
                       <span className="is-ready">Listo para medir avance</span>
                     )}
@@ -184,11 +186,11 @@ export function ActoresDelEstudio({
             })}
           </div>
         ) : (
-          <div className="mon-acr-empty-state">
-            <Users size={18} />
-            <strong>Este estudio todavía no declara sus actores</strong>
-            <span>Un actor es cada grupo que responde por separado y se mide contra su propia cuota. Empieza por los habituales y ajústalos.</span>
-          </div>
+          <EstadoVacio
+            icono={<Users size={15} />}
+            titulo="Este estudio todavía no declara sus actores"
+            descripcion="Un actor es cada grupo que responde por separado y se mide contra su propia cuota. Empieza por los habituales y ajústalos."
+          />
         )}
 
         <div className="mon-acr-actores-agregar">

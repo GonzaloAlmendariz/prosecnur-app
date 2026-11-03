@@ -39,11 +39,11 @@ export function ActualizarAbierto({ fuentes, onActualizar, onRecalcular, onCerra
         {PASOS.map((p, i) => (
           <li key={p.clave}>
             <span className="aulas-actualizar-n" aria-hidden="true">{i + 1}</span>
-            <span><b>{p.rotulo}</b> · {detalleDelPaso(p.clave, fuentes)}</span>
+            <span><b>{p.rotulo}</b>, {detalleDelPaso(p.clave, fuentes)}</span>
           </li>
         ))}
       </ol>
-      <p className="aulas-recibo-notoca">{NO_TOCA.join(" · ")}.</p>
+      <p className="aulas-recibo-notoca">{NO_TOCA.join(", ")}.</p>
       <div className="aulas-actualizar-acciones">
         <button type="button" className="pulso-button pulso-button--secondary pulso-button--sm" onClick={onRecalcular}>
           Recalcular sin leer
@@ -67,7 +67,7 @@ export function ActualizarCorriendo({ paso, segundos, fuentes, leyendo }: {
   return (
     <section className="aulas-recibo aulas-actualizar" role="status" aria-live="polite" aria-label="Actualizando">
       <header>
-        <b>Actualizando · lleva {fmt(Math.floor(segundos))} s</b>
+        <b>Actualizando, lleva {fmt(Math.floor(segundos))} s</b>
       </header>
       <ol className="aulas-recibo-pasos aulas-actualizar-pasos">
         {PASOS.map((p, i) => {
@@ -78,7 +78,7 @@ export function ActualizarCorriendo({ paso, segundos, fuentes, leyendo }: {
               {enCurso
                 ? <Loader2 size={14} className="aulas-actualizar-giro" aria-hidden="true" />
                 : hecho ? <CheckCircle2 size={14} aria-hidden="true" /> : <Circle size={14} aria-hidden="true" />}
-              <span><b>{p.rotulo}</b> · {detalleDelPaso(p.clave, fuentes, leyendo)}</span>
+              <span><b>{p.rotulo}</b>, {detalleDelPaso(p.clave, fuentes, leyendo)}</span>
             </li>
           );
         })}

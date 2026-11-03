@@ -88,7 +88,7 @@
 .acr-ps-chips .acr-av-chip {
   cursor: pointer;
   font: inherit;
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   font-weight: var(--pulso-weight-semibold);
 }
 
@@ -155,7 +155,7 @@
   padding: 0 var(--pulso-space-2);
 }
 
-.acr-rs-total > .acr-av-chip {
+.acr-rs-total > .pulso-estado-chip {
   align-self: flex-start;
   margin-top: 4px;
 }

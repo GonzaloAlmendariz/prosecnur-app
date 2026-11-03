@@ -59,9 +59,9 @@ export function AulasPerfilPorFacultad({ filas, resumen, facultadEnFoco, onFoco 
     <div className="aulas-facultades">
       <p className="aulas-facultades-lectura">
         <strong>{fmt(facultades.length)}</strong>{" "}
-        {facultades.length === 1 ? "facultad" : "facultades"} ·{" "}
+        {facultades.length === 1 ? "facultad" : "facultades"},{" "}
         <strong>{fmt(cumplidas)}</strong> con su {vara === "cuota del estudio" ? "cuota" : "meta"} cumplida
-        {sinFacultad ? <> · {fmt(sinFacultad)} cursos-horario sin facultad declarada</> : null}
+        {sinFacultad ? <>, {fmt(sinFacultad)} cursos-horario sin facultad declarada</> : null}
       </p>
       {/* El envoltorio lleva el scroll; la rejilla conserva su `1fr`, que es lo
           que iguala las filas. Ponerlo en la propia rejilla las descuadra. */}
@@ -118,7 +118,7 @@ export function AulasPerfilPorFacultad({ filas, resumen, facultadEnFoco, onFoco 
                       «falta el 20 %», cuando es lo CONSEGUIDO. Y con el formato
                       de la casa —un decimal y espacio antes del «%»—, que es el
                       que usa la tabla del cliente para este mismo cociente. */}
-                  <em>{" "}respuestas faltan · {pctPerfil(f.avance)} conseguido</em>
+                  <em>{" "}respuestas faltan, {pctPerfil(f.avance)} conseguido</em>
                 </>
               ) : (
                 <em className="es-cumplida">{vara === "cuota del estudio" ? "cuota" : "meta"} cumplida</em>

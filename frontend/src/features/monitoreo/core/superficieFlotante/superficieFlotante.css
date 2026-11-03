@@ -55,13 +55,13 @@
 
 .mon-flotante-cabeza h2 {
   margin: 0;
-  font-size: 16px;
+  font-size: var(--pulso-type-title-size);
   font-weight: var(--pulso-weight-bold);
 }
 
 .mon-flotante-antetitulo {
   color: var(--pulso-text-faint);
-  font-size: 10.5px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-heavy);
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -123,5 +123,5 @@
 
 /* El cuerpo lee al tamaño de la app, no al del documento. */
 .mon-flotante {
-  font-size: 14px;
+  font-size: var(--pulso-type-body-size);
 }

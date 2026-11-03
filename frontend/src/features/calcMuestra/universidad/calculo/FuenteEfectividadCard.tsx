@@ -17,7 +17,7 @@ import {
 } from "../shared/efectividadFuente";
 import "./fuenteEfectividad.css";
 
-const pct = (v: number) => `${(v * 100).toFixed(1).replace(".", ",")} %`;
+const pct = (v: number) => `${(v * 100).toFixed(1)} %`;
 
 export function FuenteEfectividadCard({
   efectividad,
@@ -67,7 +67,7 @@ export function FuenteEfectividadCard({
           {declarada.tipo === "tau_global"
             ? "tasa única declarada por el estudio"
             : declarada.tipo === "historico"
-              ? `histórico propio del estudio${declarada.periodo ? ` · ${declarada.periodo}` : ""}`
+              ? `histórico propio del estudio${declarada.periodo ? `, ${declarada.periodo}` : ""}`
               : "calibración de un estudio anterior"}
         </span>
       </header>

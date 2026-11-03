@@ -41,13 +41,13 @@
 }
 .aulas-carga-cab h3 {
   margin: 0 0 4px;
-  font-size: 16px;
+  font-size: var(--pulso-type-title-size);
   font-weight: 600;
   color: var(--pulso-text);
 }
 .aulas-carga-cab p {
   margin: 0;
-  font-size: 13px;
+  font-size: var(--pulso-type-body-size);
   color: var(--pulso-text-soft);
   max-width: 62ch;
 }
@@ -58,7 +58,7 @@
   color: var(--pulso-text);
   border-radius: 8px;
   padding: 7px 14px;
-  font-size: 13px;
+  font-size: var(--pulso-type-body-size);
   font-weight: 500;
   cursor: pointer;
 }
@@ -85,7 +85,7 @@
   background: transparent;
   color: var(--pulso-text-soft);
   padding: 7px 16px;
-  font-size: 12.5px;
+  font-size: var(--pulso-type-body-size);
   font-weight: 500;
   letter-spacing: 0.01em;
   cursor: pointer;
@@ -112,8 +112,8 @@
   border-radius: 10px;
   background: var(--pulso-surface);
 }
-.aulas-carga-controles > label { display: flex; flex-direction: column; gap: 4px; font-size: 12.5px; color: var(--pulso-text-soft); }
-.aulas-carga-controles > label em { display: block; font-style: normal; font-size: 11px; color: var(--pulso-text-faint); }
+.aulas-carga-controles > label { display: flex; flex-direction: column; gap: 4px; font-size: var(--pulso-type-body-size); color: var(--pulso-text-soft); }
+.aulas-carga-controles > label em { display: block; font-style: normal; font-size: var(--pulso-type-caption-size); color: var(--pulso-text-faint); }
 .aulas-carga-controles strong { color: var(--pulso-module-monitoring); font-variant-numeric: tabular-nums; }
 .aulas-carga-controles input[type="range"] { width: 210px; accent-color: var(--pulso-module-monitoring); }
 
@@ -126,7 +126,7 @@
   border: 1px solid var(--pulso-border);
   border-radius: 999px;
   background: var(--pulso-surface);
-  font: inherit; font-size: 11px; color: var(--pulso-text-soft);
+  font: inherit; font-size: var(--pulso-type-caption-size); color: var(--pulso-text-soft);
   cursor: pointer;
 }
 .aulas-carga-duracion-boton:hover { color: var(--pulso-module-monitoring); border-color: var(--pulso-module-monitoring); }
@@ -139,13 +139,13 @@
    hairline entre columnas los vuelve UN marcador —el mismo lenguaje de
    divisores del panel de mandos de E1— y el ojo los recorre como serie. */
 .aulas-carga-kpis div + div { border-left: 1px solid var(--pulso-border); padding-left: 26px; }
-.aulas-carga-kpis dt { font-size: 11px; color: var(--pulso-text-faint); order: 2; max-width: 15ch; line-height: 1.3; }
+.aulas-carga-kpis dt { font-size: var(--pulso-type-caption-size); color: var(--pulso-text-faint); order: 2; max-width: 15ch; line-height: 1.3; }
 .aulas-carga-kpis dd {
   margin: 0 0 3px; order: 1;
   font-size: 26px; font-weight: 600; line-height: 1;
   color: var(--pulso-module-monitoring); font-variant-numeric: tabular-nums;
 }
-.aulas-carga-kpis dd.es-texto { font-size: 15px; padding-top: 8px; }
+.aulas-carga-kpis dd.es-texto { font-size: var(--pulso-type-title-size); padding-top: 8px; }
 
 /* El scroll horizontal vive aquí y sólo aquí: la malla no cabe en 1024 y el
    cuerpo de la página nunca debe desplazarse de lado (C4). */
@@ -157,7 +157,7 @@
    `vivas` sale de `aulas`, que no depende de la duración. */
 .aulas-carga-malla { border-collapse: separate; border-spacing: 2px; width: 100%; min-width: 960px; table-layout: fixed; }
 .aulas-carga-malla th {
-  font-size: 10.5px; font-weight: 600; color: var(--pulso-text-faint);
+  font-size: var(--pulso-type-micro-size); font-weight: 600; color: var(--pulso-text-faint);
   text-transform: uppercase; letter-spacing: 0.06em; padding: 0 0 6px; white-space: nowrap;
 }
 .aulas-carga-malla thead th:first-child { width: 112px; }
@@ -166,7 +166,7 @@
 .aulas-carga-malla td.aulas-carga-total {
   padding-left: 8px;
   color: var(--pulso-text-soft);
-  font-size: 13px;
+  font-size: var(--pulso-type-body-size);
   font-variant-numeric: tabular-nums;
   text-align: right;
 }
@@ -198,7 +198,7 @@
 .aulas-carga-malla tbody tr.abre-semana td .aulas-carga-celda { margin-top: 5px; }
 .aulas-carga-malla tbody th {
   text-align: right; padding-right: 10px; text-transform: none; letter-spacing: 0;
-  font-size: 13px; color: var(--pulso-text-soft); white-space: nowrap;
+  font-size: var(--pulso-type-body-size); color: var(--pulso-text-soft); white-space: nowrap;
 }
 /* B37: la fecha es un control — click y el detalle cuenta el día entero. */
 .aulas-carga-dia {
@@ -217,13 +217,13 @@
   display: flex; align-items: center; justify-content: center;
   width: 100%; height: var(--aulas-carga-celda); min-width: var(--aulas-carga-ancho); border-radius: 4px;
   /* La cifra es EL dato de la celda: legible de un vistazo (retune 2026-09-02). */
-  font-size: 14px; font-variant-numeric: tabular-nums; font-weight: 600;
+  font-size: var(--pulso-type-subtitle-size); font-variant-numeric: tabular-nums; font-weight: 600;
 }
 
 /* La celda ocupada es un botón: hover/foco asoman su detalle y el click lo
    fija — el equivalente accesible del hover. Reset del botón nativo; el color
    viene del estilo en línea de las dos capas. */
-button.aulas-carga-celda { padding: 0; border: 0; font: inherit; font-size: 14px; font-weight: 600; font-variant-numeric: tabular-nums; cursor: pointer; }
+button.aulas-carga-celda { padding: 0; border: 0; font: inherit; font-size: var(--pulso-type-subtitle-size); font-weight: 600; font-variant-numeric: tabular-nums; cursor: pointer; }
 /* B39 segunda ronda: el «+N» dentro del verde quedó revocado por veredicto
    («no se ve… francamente mal») — la celda con confirmados dice SOLO el
    confirmado y el techo vive en hover/detalle. */
@@ -233,7 +233,7 @@ button.aulas-carga-celda:focus-visible { outline: 2px solid var(--pulso-module-m
    la banda rosa cubre casi toda la malla — el mismo 600/14px en ambas capas
    hacía competir el «puede ser» con el «ya es». El techo por-agendar habla un
    punto más bajo; el verde confirmado conserva 14px/600 y lleva la melodía. */
-button.aulas-carga-celda.es-plausible { font-weight: 500; font-size: 13px; }
+button.aulas-carga-celda.es-plausible { font-weight: 500; font-size: var(--pulso-type-body-size); }
 
 /* El pico del operativo, marcado EN la malla. `outline` y no `box-shadow`: el
    estilo en línea de la capa plausible ya usa box-shadow y lo taparía.
@@ -257,14 +257,14 @@ span.aulas-carga-celda.es-deficit { background: color-mix(in srgb, var(--pulso-d
 /* El pager por semana del calendario. */
 .aulas-carga-semana {
   display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
-  color: var(--pulso-text-soft); font-size: 13px;
+  color: var(--pulso-text-soft); font-size: var(--pulso-type-body-size);
 }
 .aulas-carga-semana strong { color: var(--pulso-text); font-variant-numeric: tabular-nums; }
 .aulas-carga-semana button {
   height: 26px; min-width: 26px; padding: 0 10px;
   border: 1px solid var(--pulso-border); border-radius: 8px;
   background: var(--pulso-surface); color: var(--pulso-text);
-  font-size: 12.5px; cursor: pointer;
+  font-size: var(--pulso-type-body-size); cursor: pointer;
 }
 .aulas-carga-semana button:hover { border-color: var(--pulso-border-strong); }
 .aulas-carga-semana button:focus-visible { outline: 2px solid var(--pulso-module-monitoring); outline-offset: 1px; }
@@ -281,12 +281,11 @@ span.aulas-carga-celda.es-deficit { background: color-mix(in srgb, var(--pulso-d
   border-radius: 10px;
   background: color-mix(in srgb, var(--pulso-surface-2) 45%, #fff);
 }
-.aulas-carga-detalle-vacio { margin: 0; color: var(--pulso-text-faint); font-size: 12.5px; }
-.aulas-carga-detalle-titulo { margin: 0; color: var(--pulso-text); font-size: 13px; font-variant-numeric: tabular-nums; }
-.aulas-carga-detalle-titulo em { color: var(--pulso-text-faint); font-size: 11.5px; font-style: normal; }
+.aulas-carga-detalle-titulo { margin: 0; color: var(--pulso-text); font-size: var(--pulso-type-body-size); font-variant-numeric: tabular-nums; }
+.aulas-carga-detalle-titulo em { color: var(--pulso-text-faint); font-size: var(--pulso-type-caption-size); font-style: normal; }
 .aulas-carga-detalle-grupo h4 {
   margin: 0 0 4px; color: var(--pulso-text-faint);
-  font-size: 11px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase;
+  font-size: var(--pulso-type-eyebrow-size); font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase;
 }
 /* Cada cita es una TARJETA compacta en una rejilla, no una línea corrida de
    puntos medios (dictado 2026-09-02: «una lista más jerarquizada y ordenada»).
@@ -307,10 +306,10 @@ span.aulas-carga-celda.es-deficit { background: color-mix(in srgb, var(--pulso-d
   min-width: 0;
 }
 .aulas-carga-cita-cab { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; min-width: 0; }
-.aulas-carga-cita-codigo { color: var(--pulso-text); font-size: 12.5px; }
-.aulas-carga-cita-docente { color: var(--pulso-text-soft); font-size: 12px; overflow-wrap: anywhere; }
+.aulas-carga-cita-codigo { color: var(--pulso-text); font-size: var(--pulso-type-body-size); }
+.aulas-carga-cita-docente { color: var(--pulso-text-soft); font-size: var(--pulso-type-body-size); overflow-wrap: anywhere; }
 .aulas-carga-cita-chips { display: flex; flex-wrap: wrap; gap: 4px; }
-.aulas-carga-detalle-mas { margin: 4px 0 0; color: var(--pulso-text-faint); font-size: 11.5px; }
+.aulas-carga-detalle-mas { margin: 4px 0 0; color: var(--pulso-text-faint); font-size: var(--pulso-type-caption-size); }
 
 /* Los nombres del detalle de la oferta: chips en línea, no tarjetas — una
    persona no tiene señas que jerarquizar, solo su nombre. El selector repite
@@ -327,23 +326,22 @@ span.aulas-carga-celda.es-deficit { background: color-mix(in srgb, var(--pulso-d
    (B33). Aquí quedan sólo las clases propias de Carga. */
 
 .aulas-carga-pie { display: flex; justify-content: space-between; gap: 18px; flex-wrap: wrap; align-items: center; }
-.aulas-carga-leyenda { display: flex; gap: 14px; flex-wrap: wrap; list-style: none; margin: 0; padding: 0; font-size: 12px; color: var(--pulso-text-faint); }
+.aulas-carga-leyenda { display: flex; gap: 14px; flex-wrap: wrap; list-style: none; margin: 0; padding: 0; font-size: var(--pulso-type-body-size); color: var(--pulso-text-faint); }
 .aulas-carga-leyenda li { display: inline-flex; align-items: center; gap: 5px; }
 .aulas-carga-leyenda i { width: 14px; height: 14px; border-radius: 3px; display: inline-block; }
 .aulas-carga-pabellones {
-  margin: 0; font-size: 12.5px; color: var(--pulso-text-soft);
+  margin: 0; font-size: var(--pulso-type-body-size); color: var(--pulso-text-soft);
   display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px;
 }
 .aulas-carga-pabellon {
   display: inline-flex; align-items: center; gap: 4px;
   color: var(--pulso-text); font-variant-numeric: tabular-nums;
 }
-.aulas-carga-aviso, .aulas-carga-vacio {
+.aulas-carga-aviso {
   margin: 0; padding: 12px 14px; border-radius: 8px;
   background: var(--pulso-warn-bg); border: 1px solid var(--pulso-warn-border);
-  color: var(--pulso-warn-fg); font-size: 12.5px;
+  color: var(--pulso-warn-fg); font-size: var(--pulso-type-body-size);
 }
-.aulas-carga-vacio { max-width: 64ch; }
 
 @media (max-width: 900px) {
   .aulas-carga-kpis { margin-left: 0; width: 100%; }
@@ -372,7 +370,7 @@ span.aulas-carga-celda.es-deficit { background: color-mix(in srgb, var(--pulso-d
    aplicación—, y así las dos barras pesan lo mismo al conmutar (C2). */
 .aulas-carga-oferta-lead {
   margin: 0;
-  font-size: 12.5px;
+  font-size: var(--pulso-type-body-size);
   color: var(--pulso-text-soft);
   max-width: 46ch;
 }
@@ -391,7 +389,7 @@ span.aulas-carga-celda.es-deficit { background: color-mix(in srgb, var(--pulso-d
 }
 .aulas-asigna-vigencia-que {
   margin: 0;
-  font-size: 12.5px;
+  font-size: var(--pulso-type-body-size);
   line-height: 1.5;
   color: var(--pulso-text-soft);
 }
@@ -400,7 +398,7 @@ span.aulas-carga-celda.es-deficit { background: color-mix(in srgb, var(--pulso-d
   margin: 0;
   display: flex; flex-wrap: wrap; align-items: baseline;
   gap: 2px 10px;
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   color: var(--pulso-text-faint);
 }
 .aulas-asigna-protocolo > span { display: inline-flex; align-items: baseline; gap: 4px; }
@@ -421,7 +419,7 @@ span.aulas-carga-celda.es-deficit { background: color-mix(in srgb, var(--pulso-d
 /* El KPI de citas descubiertas se enciende solo cuando hay: un cero en rojo
    gritaría un problema que no existe. */
 .aulas-carga-kpis dd.es-descubierto { color: var(--pulso-danger-fg); }
-.aulas-asigna-de { font-size: 14px; font-weight: 500; color: var(--pulso-text-faint); }
+.aulas-asigna-de { font-size: var(--pulso-type-body-size); font-weight: 500; color: var(--pulso-text-faint); }
 
 /* Días a la izquierda, cargas a la derecha: la lista se lee con el rail al
    lado, que es como se pregunta «¿y a Ana cuánto le tocó?». */
@@ -439,7 +437,7 @@ span.aulas-carga-celda.es-deficit { background: color-mix(in srgb, var(--pulso-d
   border: 1px dashed var(--pulso-border);
   border-radius: 10px;
   color: var(--pulso-text-soft);
-  font-size: 12.5px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .aulas-asigna-dia {
@@ -453,7 +451,7 @@ span.aulas-carga-celda.es-deficit { background: color-mix(in srgb, var(--pulso-d
 }
 .aulas-asigna-dia h4 {
   margin: 0;
-  font-size: 13.5px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: 600;
   color: var(--pulso-text);
 }
@@ -461,7 +459,7 @@ span.aulas-carga-celda.es-deficit { background: color-mix(in srgb, var(--pulso-d
    alcanzaba (y le ganaba por especificidad) al sello de la salida — el pill
    rojo quedó con texto gris de 12px, ilegible; medido en la captura del
    dictado 2026-09-03. */
-.aulas-asigna-dia h4 .aulas-asigna-conteo { font-weight: 400; font-size: 12px; color: var(--pulso-text-faint); }
+.aulas-asigna-dia h4 .aulas-asigna-conteo { font-weight: 400; font-size: var(--pulso-type-body-size); color: var(--pulso-text-faint); }
 
 /* Lo descubierto, DESTACADO y arriba de su día: es lo que hay que resolver
    antes de esa fecha, no un pie de página. */
@@ -478,7 +476,7 @@ span.aulas-carga-celda.es-deficit { background: color-mix(in srgb, var(--pulso-d
   border: 1px solid var(--pulso-danger-border);
   background: var(--pulso-danger-bg);
   color: var(--pulso-danger-fg);
-  font-size: 12.5px;
+  font-size: var(--pulso-type-body-size);
 }
 .aulas-asigna-descubiertos svg { flex: none; align-self: center; }
 .aulas-asigna-descubiertos strong { font-weight: 600; }
@@ -499,7 +497,7 @@ span.aulas-carga-celda.es-deficit { background: color-mix(in srgb, var(--pulso-d
 .aulas-asigna-resolver-item { display: inline-flex; align-items: center; gap: 4px; }
 .aulas-asigna-quien { display: inline-flex; align-items: center; gap: 7px; flex-wrap: wrap; }
 .aulas-asigna-selector {
-  font: inherit; font-size: 12px;
+  font: inherit; font-size: var(--pulso-type-body-size);
   color: var(--pulso-text);
   border: 1px solid var(--pulso-border);
   border-radius: 7px;
@@ -513,7 +511,7 @@ span.aulas-carga-celda.es-deficit { background: color-mix(in srgb, var(--pulso-d
 .aulas-asigna-selector:focus-visible { outline: 2px solid var(--pulso-module-monitoring); outline-offset: 1px; }
 .aulas-asigna-advertencia {
   display: inline-flex; align-items: center; gap: 3px;
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   color: var(--pulso-danger-fg);
 }
 .aulas-asigna-huerfanas .aulas-asigna-resolver-item { margin: 0 6px 0 2px; }
@@ -545,7 +543,7 @@ span.aulas-carga-celda.es-deficit { background: color-mix(in srgb, var(--pulso-d
   flex-basis: 100%;
   min-height: 0;
   margin: 0 0 1px;
-  font-size: 10px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase;
+  font-size: var(--pulso-type-micro-size); font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase;
   color: var(--pulso-text-faint);
 }
 .aulas-asigna-resorteo { display: inline-flex; align-items: center; gap: 8px; }
@@ -569,17 +567,17 @@ span.aulas-carga-celda.es-deficit { background: color-mix(in srgb, var(--pulso-d
   line-height: 1.3;
 }
 .aulas-asigna-concentrar-texto strong {
-  font-size: 12px; font-weight: 600;
+  font-size: var(--pulso-type-subtitle-size); font-weight: 600;
   color: var(--pulso-text);
 }
 .aulas-asigna-concentrar-texto em {
   font-style: normal;
-  font-size: 10.5px;
+  font-size: var(--pulso-type-micro-size);
   color: var(--pulso-text-faint);
 }
 
 .aulas-asigna-resorteo em {
-  font-style: normal; font-size: 11px; font-weight: 600;
+  font-style: normal; font-size: var(--pulso-type-caption-size); font-weight: 600;
   color: var(--pulso-text-soft);
   padding: 1px 9px;
   border: 1px solid var(--pulso-border);
@@ -593,11 +591,11 @@ span.aulas-carga-celda.es-deficit { background: color-mix(in srgb, var(--pulso-d
    Asignación; aplicar re-particiona y lo de fuera queda declarado. */
 .aulas-asigna-rango {
   display: flex; flex-wrap: wrap; align-items: center; gap: 6px;
-  font-size: 12px; color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-body-size); color: var(--pulso-text-soft);
 }
 .aulas-asigna-rango-rotulo { font-weight: 500; }
 .aulas-asigna-rango input[type="date"] {
-  font: inherit; font-size: 12px;
+  font: inherit; font-size: var(--pulso-type-body-size);
   color: var(--pulso-text);
   border: 1px solid var(--pulso-border);
   border-radius: 7px;
@@ -611,7 +609,7 @@ span.aulas-carga-celda.es-deficit { background: color-mix(in srgb, var(--pulso-d
   color: var(--pulso-text);
   border-radius: 999px;
   padding: 2px 11px;
-  font: inherit; font-size: 11.5px; font-weight: 600;
+  font: inherit; font-size: var(--pulso-type-caption-size); font-weight: 600;
   cursor: pointer;
 }
 .aulas-asigna-rango-boton:hover:not(:disabled) { color: var(--pulso-module-monitoring); border-color: var(--pulso-module-monitoring); }
@@ -623,7 +621,7 @@ span.aulas-carga-celda.es-deficit { background: color-mix(in srgb, var(--pulso-d
    es el estado en el que está. */
 .aulas-asigna-rango-sin {
   font-style: normal;
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   color: var(--pulso-text-faint);
   white-space: nowrap;
 }
@@ -646,7 +644,7 @@ span.aulas-carga-celda.es-deficit { background: color-mix(in srgb, var(--pulso-d
   border-radius: 999px;
   background: var(--pulso-module-monitoring);
   color: var(--pulso-surface);
-  font-size: 11px;
+  font-size: var(--pulso-type-eyebrow-size);
   font-weight: 700;
   letter-spacing: 0.02em;
   text-transform: uppercase;
@@ -662,14 +660,14 @@ span.aulas-carga-celda.es-deficit { background: color-mix(in srgb, var(--pulso-d
   gap: 4px;
   justify-self: start;
 }
-.aulas-asigna-ya-paso { font-style: normal; color: var(--pulso-text-faint); font-size: 12px; }
+.aulas-asigna-ya-paso { font-style: normal; color: var(--pulso-text-faint); font-size: var(--pulso-type-body-size); }
 .aulas-asigna-soltar {
   border: 1px solid var(--pulso-border);
   background: var(--pulso-surface);
   color: var(--pulso-text-soft);
   border-radius: 999px;
   padding: 1px 8px;
-  font: inherit; font-size: 11px;
+  font: inherit; font-size: var(--pulso-type-caption-size);
   cursor: pointer;
 }
 .aulas-asigna-soltar:hover { color: var(--pulso-module-monitoring); border-color: var(--pulso-module-monitoring); }
@@ -682,7 +680,6 @@ span.aulas-carga-celda.es-deficit { background: color-mix(in srgb, var(--pulso-d
 
 /* B74 — importar la disponibilidad desde la app (también en los vacíos, que
    es donde más muerde su ausencia). Label-botón sobrio con nota tenue. */
-.aulas-dispo-vacio { display: flex; flex-direction: column; gap: 10px; align-items: flex-start; }
 .aulas-dispo-importar {
   display: inline-flex;
   flex-direction: column;
@@ -691,7 +688,7 @@ span.aulas-carga-celda.es-deficit { background: color-mix(in srgb, var(--pulso-d
   border: 1px solid var(--pulso-border-strong);
   border-radius: 9px;
   background: var(--pulso-surface);
-  font-size: 12px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: 600;
   color: var(--pulso-text);
   cursor: pointer;
@@ -701,16 +698,16 @@ span.aulas-carga-celda.es-deficit { background: color-mix(in srgb, var(--pulso-d
 .aulas-dispo-importar:focus-within { outline: 2px solid var(--pulso-module-monitoring); outline-offset: 1px; }
 .aulas-dispo-importar em {
   font-style: normal; font-weight: 400;
-  font-size: 11px; color: var(--pulso-text-faint);
+  font-size: var(--pulso-type-caption-size); color: var(--pulso-text-faint);
 }
 
 /* B76 — la lente por aplicador: el desplegable y la semana de la persona. */
 .aulas-dispo-persona {
   display: inline-flex; align-items: center; gap: 9px;
-  font-size: 12px; font-weight: 500; color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-body-size); font-weight: 500; color: var(--pulso-text-soft);
 }
 .aulas-dispo-persona select {
-  font: inherit; font-size: 12px;
+  font: inherit; font-size: var(--pulso-type-body-size);
   color: var(--pulso-text);
   border: 1px solid var(--pulso-border);
   border-radius: 7px;
@@ -721,7 +718,7 @@ span.aulas-carga-celda.es-deficit { background: color-mix(in srgb, var(--pulso-d
 .aulas-dispo-persona select:focus-visible { outline: 2px solid var(--pulso-module-monitoring); outline-offset: 1px; }
 .aulas-dispo-semana {
   margin: 0;
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   color: var(--pulso-text-soft);
   display: flex; flex-wrap: wrap; gap: 5px 18px; align-items: baseline;
   max-width: 100ch;
@@ -744,16 +741,16 @@ span.aulas-carga-celda.es-deficit { background: color-mix(in srgb, var(--pulso-d
 .aulas-asigna-tabla { border-collapse: collapse; width: 100%; }
 .aulas-asigna-tabla th, .aulas-asigna-tabla td { text-align: left; padding: 5px 12px 5px 0; }
 .aulas-asigna-tabla thead th {
-  font-size: 10.5px; font-weight: 600; color: var(--pulso-text-faint);
+  font-size: var(--pulso-type-micro-size); font-weight: 600; color: var(--pulso-text-faint);
   text-transform: uppercase; letter-spacing: 0.06em;
   border-bottom: 1px solid var(--pulso-border);
 }
 .aulas-asigna-tabla tbody th {
-  font-size: 12.5px; font-weight: 600; color: var(--pulso-text);
+  font-size: var(--pulso-type-subtitle-size); font-weight: 600; color: var(--pulso-text);
   font-variant-numeric: tabular-nums; white-space: nowrap;
 }
 .aulas-asigna-tabla tbody td {
-  font-size: 12.5px; color: var(--pulso-text-soft); font-variant-numeric: tabular-nums;
+  font-size: var(--pulso-type-body-size); color: var(--pulso-text-soft); font-variant-numeric: tabular-nums;
 }
 .aulas-asigna-tabla tbody tr + tr > * { border-top: 1px solid color-mix(in srgb, var(--pulso-border) 55%, transparent); }
 
@@ -764,7 +761,7 @@ span.aulas-carga-celda.es-deficit { background: color-mix(in srgb, var(--pulso-d
 }
 .aulas-asigna-tabla tbody tr.es-apagada > * { opacity: 0.42; }
 
-.aulas-asigna-pendientes { margin: 0; font-size: 12px; color: var(--pulso-text-faint); }
+.aulas-asigna-pendientes { margin: 0; font-size: var(--pulso-type-body-size); color: var(--pulso-text-faint); }
 
 .aulas-asigna-equidad {
   border: 1px solid var(--pulso-border);
@@ -778,10 +775,10 @@ span.aulas-carga-celda.es-deficit { background: color-mix(in srgb, var(--pulso-d
 }
 .aulas-asigna-equidad h4 {
   margin: 0;
-  font-size: 11px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase;
+  font-size: var(--pulso-type-eyebrow-size); font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase;
   color: var(--pulso-text-faint);
 }
-.aulas-asigna-nota { margin: 0; font-size: 11.5px; color: var(--pulso-text-faint); }
+.aulas-asigna-nota { margin: 0; font-size: var(--pulso-type-caption-size); color: var(--pulso-text-faint); }
 /* B66 — el veredicto de equidad, dicho arriba de las barras: parejo habla en
    verde de la casa; el desbalance en el tono neutro-fuerte, no en rojo (no es
    un error: sus causas van declaradas en la misma línea). */
@@ -789,7 +786,7 @@ span.aulas-carga-celda.es-deficit { background: color-mix(in srgb, var(--pulso-d
   margin: 0 0 6px;
   padding: 6px 9px;
   border-radius: 8px;
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   line-height: 1.45;
 }
 .aulas-asigna-veredicto.es-parejo {
@@ -829,7 +826,7 @@ span.aulas-carga-celda.es-deficit { background: color-mix(in srgb, var(--pulso-d
    techo de contenido que el dictado 2026-09-02 revocó — un nombre largo toma
    dos líneas y la fila crece. */
 .aulas-asigna-nombre {
-  font-size: 12.5px; color: var(--pulso-text);
+  font-size: var(--pulso-type-body-size); color: var(--pulso-text);
   overflow-wrap: anywhere;
   /* Un <button> computa `white-space: nowrap` por defecto del navegador, así
      que `overflow-wrap` no alcanzaba: el nombre largo se salía de su columna y
@@ -857,7 +854,7 @@ span.aulas-carga-celda.es-deficit { background: color-mix(in srgb, var(--pulso-d
    la universidad o cuatro. Un solo día no se anota — es la meta cumplida. */
 .aulas-asigna-ndias {
   font-style: normal;
-  font-size: 10.5px; font-weight: 600;
+  font-size: var(--pulso-type-micro-size); font-weight: 600;
   letter-spacing: 0.02em;
   color: var(--pulso-text-faint);
   white-space: nowrap;
@@ -872,7 +869,7 @@ span.aulas-carga-celda.es-deficit { background: color-mix(in srgb, var(--pulso-d
   margin-top: 3px;
   padding-left: 9px;
   border-left: 2px solid color-mix(in srgb, var(--pulso-module-monitoring) 35%, var(--pulso-surface));
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   color: var(--pulso-text-soft);
   font-variant-numeric: tabular-nums;
 }
@@ -892,7 +889,7 @@ span.aulas-carga-celda.es-deficit { background: color-mix(in srgb, var(--pulso-d
   border-radius: 999px;
   border: 1px solid var(--pulso-border);
   background: var(--pulso-surface);
-  font: inherit; font-size: 10.5px; font-weight: 500;
+  font: inherit; font-size: var(--pulso-type-micro-size); font-weight: 500;
   letter-spacing: 0.01em;
   white-space: nowrap;
 }
@@ -912,7 +909,7 @@ span.aulas-carga-celda.es-deficit { background: color-mix(in srgb, var(--pulso-d
   outline: 2px solid var(--pulso-module-monitoring); outline-offset: 1px;
 }
 /* La hora que no existe se nombra en vez de dejar un guion mudo. */
-.aulas-asigna-sin-hora { font-size: 11.5px; color: var(--pulso-text-faint); }
+.aulas-asigna-sin-hora { font-size: var(--pulso-type-caption-size); color: var(--pulso-text-faint); }
 
 .aulas-asigna-barra {
   position: absolute;
@@ -938,14 +935,14 @@ span.aulas-carga-celda.es-deficit { background: color-mix(in srgb, var(--pulso-d
   border: 1px solid var(--pulso-border);
   border-radius: 999px;
   background: var(--pulso-surface);
-  font: inherit; font-size: 11px; font-weight: 500;
+  font: inherit; font-size: var(--pulso-type-caption-size); font-weight: 500;
   color: var(--pulso-text-soft);
   cursor: pointer;
 }
 .aulas-asigna-copiar:hover { color: var(--pulso-module-monitoring); border-color: var(--pulso-module-monitoring); }
 .aulas-asigna-copiar:focus-visible { outline: 2px solid var(--pulso-module-monitoring); outline-offset: 1px; }
 .aulas-asigna-revelado { margin: 8px 0 4px; }
-.aulas-asigna-revelado p { margin: 0 0 4px; font-size: 12px; color: var(--pulso-text-soft); }
+.aulas-asigna-revelado p { margin: 0 0 4px; font-size: var(--pulso-type-body-size); color: var(--pulso-text-soft); }
 .aulas-asigna-revelado textarea {
   width: 100%;
   font: 12px ui-monospace, "SF Mono", Menlo, monospace;
@@ -969,7 +966,7 @@ span.aulas-carga-celda.es-deficit { background: color-mix(in srgb, var(--pulso-d
   border-radius: 999px;
   background: var(--pulso-module-monitoring);
   color: var(--pulso-surface);
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.04em;
@@ -983,20 +980,20 @@ span.aulas-carga-celda.es-deficit { background: color-mix(in srgb, var(--pulso-d
   display: block;
   margin: 2px 0 1px auto;
   width: fit-content;
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   padding: 0 6px;
 }
 .aulas-carga-malla tbody tr.es-pasado { opacity: 0.55; }
 /* Los edificios del parte del día: letra coloreada + cuenta, en el título. */
 .aulas-carga-detalle-pabellon { display: inline-flex; align-items: center; gap: 2px; margin-left: 7px; }
-.aulas-carga-detalle-pabellon em { font-style: normal; font-size: 11px; color: var(--pulso-text-soft); }
+.aulas-carga-detalle-pabellon em { font-style: normal; font-size: var(--pulso-type-caption-size); color: var(--pulso-text-soft); }
 
 /* Dictado 2026-09-04: «los avisos [tienen que] permitirnos hacer algo». La
    causa de una cita descubierta va DEBAJO de su código y su selector, en línea
    propia y en tono de nota: es la frase que dice a quién soltar para abrirla. */
 .aulas-asigna-causa {
   flex-basis: 100%;
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   line-height: 1.45;
   color: var(--pulso-text-soft);
   padding-left: 2px;
@@ -1006,7 +1003,7 @@ span.aulas-carga-celda.es-deficit { background: color-mix(in srgb, var(--pulso-d
    teclado llegue sin estado suelto. */
 .aulas-asigna-libres { margin: 0 0 2px; }
 .aulas-asigna-libres > summary {
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   color: var(--pulso-text-soft);
   cursor: pointer;
   padding: 2px 0;
@@ -1022,7 +1019,7 @@ span.aulas-carga-celda.es-deficit { background: color-mix(in srgb, var(--pulso-d
   display: flex; flex-direction: column; gap: 4px;
   list-style: none;
   border-left: 2px solid var(--pulso-border-strong);
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   line-height: 1.45;
   color: var(--pulso-text-soft);
 }
@@ -1102,7 +1099,7 @@ span.aulas-carga-celda.es-deficit { background: color-mix(in srgb, var(--pulso-d
    muestra la facultad»). Va en tono secundario y envuelve: es el corte al que
    pertenece la cita, no su identidad, y algunos nombres son largos. */
 .aulas-asigna-facultad {
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   color: var(--pulso-text-soft);
   overflow-wrap: anywhere;
   max-width: 18ch;
@@ -1137,7 +1134,7 @@ span.aulas-carga-celda.es-deficit { background: color-mix(in srgb, var(--pulso-d
 .aulas-asigna-agenda-dia { display: flex; flex-direction: column; gap: 1px; }
 .aulas-asigna-agenda-jornada {
   font-style: normal;
-  font-size: 10.5px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: 600;
   letter-spacing: 0.01em;
   color: var(--pulso-module-monitoring);
@@ -1156,10 +1153,10 @@ span.aulas-carga-celda.es-deficit { background: color-mix(in srgb, var(--pulso-d
 }
 .aulas-efectiva-sexo label {
   display: inline-flex; align-items: center; gap: 7px;
-  font-size: 12px; color: var(--pulso-text);
+  font-size: var(--pulso-type-body-size); color: var(--pulso-text);
 }
 .aulas-efectiva-sexo select {
-  font: inherit; font-size: 12px;
+  font: inherit; font-size: var(--pulso-type-body-size);
   color: var(--pulso-text);
   border: 1px solid var(--pulso-border);
   border-radius: 7px;
@@ -1170,7 +1167,7 @@ span.aulas-carga-celda.es-deficit { background: color-mix(in srgb, var(--pulso-d
 .aulas-efectiva-sexo select:focus-visible { outline: 2px solid var(--pulso-module-monitoring); outline-offset: 1px; }
 .aulas-efectiva-sexo em {
   font-style: normal;
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   color: var(--pulso-text-faint);
   flex: 1 1 22ch;
 }
@@ -1189,7 +1186,7 @@ span.aulas-carga-celda.es-deficit { background: color-mix(in srgb, var(--pulso-d
    piden mover la agenda o conseguir gente. */
 .aulas-asigna-solitarios { margin: 0 0 2px; }
 .aulas-asigna-solitarios > summary {
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   color: var(--pulso-text-soft);
   cursor: pointer;
   padding: 2px 0;
@@ -1220,7 +1217,7 @@ span.aulas-carga-celda.es-deficit { background: color-mix(in srgb, var(--pulso-d
   row-gap: 5px;
   list-style: none;
   border-left: 2px solid var(--pulso-border-strong);
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   line-height: 1.5;
   color: var(--pulso-text-soft);
 }
@@ -1247,7 +1244,7 @@ span.aulas-carga-celda.es-deficit { background: color-mix(in srgb, var(--pulso-d
 }
 .aulas-asigna-solitarios-nota {
   margin: 0 0 4px;
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   line-height: 1.4;
   color: var(--pulso-text-faint);
 }
@@ -1286,7 +1283,7 @@ span.aulas-carga-celda.es-deficit { background: color-mix(in srgb, var(--pulso-d
 }
 .aulas-asigna-sheets-enlace {
   color: var(--pulso-module-monitoring);
-  font-size: 13px;
+  font-size: var(--pulso-type-body-size);
   text-decoration: underline;
 }
 
@@ -1306,7 +1303,7 @@ span.aulas-carga-celda.es-deficit { background: color-mix(in srgb, var(--pulso-d
 }
 .aulas-dos-sheets-rotulo {
   margin: 0 0 8px;
-  font-size: 11px;
+  font-size: var(--pulso-type-eyebrow-size);
   font-weight: 650;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -1334,20 +1331,20 @@ span.aulas-carga-celda.es-deficit { background: color-mix(in srgb, var(--pulso-d
 }
 .aulas-dos-sheets li.is-conectado { border-left-color: var(--pulso-button-accent); }
 .aulas-dos-sheets li.is-pendiente { border-left-color: var(--pulso-warn-accent); }
-.aulas-dos-sheets-titulo { grid-area: titulo; font-size: 12.5px; font-weight: 620; }
+.aulas-dos-sheets-titulo { grid-area: titulo; font-size: var(--pulso-type-subtitle-size); font-weight: 620; }
 .aulas-dos-sheets-titulo a { color: inherit; }
-.aulas-dos-sheets-que { grid-area: que; font-size: 11.5px; color: var(--pulso-text-soft); }
+.aulas-dos-sheets-que { grid-area: que; font-size: var(--pulso-type-caption-size); color: var(--pulso-text-soft); }
 .aulas-dos-sheets-cuando {
   grid-area: cuando;
   align-self: center;
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   color: var(--pulso-text-soft);
   white-space: nowrap;
 }
 .aulas-dos-sheets-siguiente {
   grid-area: siguiente;
   margin-top: 4px;
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   color: var(--pulso-text-soft);
 }
 
@@ -1363,7 +1360,7 @@ span.aulas-carga-celda.es-deficit { background: color-mix(in srgb, var(--pulso-d
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   color: var(--pulso-text-soft);
 }
 .mon-profile-page.is-aulas-flow .aulas-ops-sello.es-atrasado,
@@ -1393,7 +1390,7 @@ button.aulas-dispo-importar {
 }
 .aulas-sincita > summary {
   cursor: pointer;
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   color: var(--pulso-text-soft);
   display: flex;
   flex-wrap: wrap;
@@ -1403,7 +1400,7 @@ button.aulas-dispo-importar {
 .aulas-sincita > summary strong { color: var(--pulso-text); }
 .aulas-sincita > summary em {
   font-style: normal;
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   color: var(--pulso-text-faint);
   flex-basis: 100%;
 }
@@ -1411,7 +1408,7 @@ button.aulas-dispo-importar {
   width: 100%;
   margin-top: 8px;
   border-collapse: collapse;
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   table-layout: auto;
 }
 .aulas-sincita-tabla th,
@@ -1424,7 +1421,7 @@ button.aulas-dispo-importar {
 }
 .aulas-sincita-tabla thead th {
   border-top: 0;
-  font-size: 11px;
+  font-size: var(--pulso-type-eyebrow-size);
   text-transform: uppercase;
   letter-spacing: 0.04em;
   color: var(--pulso-text-faint);
@@ -1443,7 +1440,7 @@ button.aulas-dispo-importar {
 .aulas-sincita-curso em {
   display: block;
   font-style: normal;
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   color: var(--pulso-text-faint);
 }
 .aulas-sincita-aula[data-incierta="1"] { color: var(--pulso-warn-fg); }

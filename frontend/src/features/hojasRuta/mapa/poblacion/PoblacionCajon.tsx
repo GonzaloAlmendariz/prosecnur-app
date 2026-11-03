@@ -55,19 +55,19 @@ export function PoblacionCajon({ matriz, rangos, sexo, zonas, config }: Props) {
     setErrorExcel("");
     apiHojasRutaPopulationExport(config)
       .then((r) => window.open(downloadUrl(r.file_id), "_blank", "noopener,noreferrer"))
-      .catch((e: unknown) => setErrorExcel(e instanceof Error ? e.message.replace(/ · E_[A-Z_]+$/, "") : "No se pudo armar el Excel."))
+      .catch((e: unknown) => setErrorExcel(e instanceof Error ? e.message.replace(/, E_[A-Z_]+$/, "") : "No se pudo armar el Excel."))
       .finally(() => setExportando(false));
   };
   if (!vista || !matriz.vigente) return null;
   const filas = agruparFilas(matriz.filas, por, zonas);
-  const nombre = (f: FilaMatriz) => (por === "distrito" ? nombreDistrito(f.territorio) : por === "ubigeo" ? `${f.ubigeo} · ${nombreDistrito(f.territorio)}` : f.territorio);
+  const nombre = (f: FilaMatriz) => (por === "distrito" ? nombreDistrito(f.territorio) : por === "ubigeo" ? `${f.ubigeo}, ${nombreDistrito(f.territorio)}` : f.territorio);
   const columnasRango = rangos.flatMap((r, i) =>
     vista === "pct"
       ? [{ id: `r${i}`, encabezado: r.label, ancho: 88, tipo: "cifra" as const, celda: (f: FilaMatriz) => pct(enRango(f, i), f.total), valor: (f: FilaMatriz) => (f.total ? enRango(f, i) / f.total : 0) }]
       : sexo
       ? [
-          { id: `r${i}h`, encabezado: `${r.label} · H`, ancho: 92, tipo: "cifra" as const, celda: (f: FilaMatriz) => fmt(f.porRango[i]?.H ?? 0), valor: (f: FilaMatriz) => f.porRango[i]?.H ?? 0 },
-          { id: `r${i}m`, encabezado: `${r.label} · M`, ancho: 92, tipo: "cifra" as const, celda: (f: FilaMatriz) => fmt(f.porRango[i]?.M ?? 0), valor: (f: FilaMatriz) => f.porRango[i]?.M ?? 0 },
+          { id: `r${i}h`, encabezado: `${r.label}, H`, ancho: 92, tipo: "cifra" as const, celda: (f: FilaMatriz) => fmt(f.porRango[i]?.H ?? 0), valor: (f: FilaMatriz) => f.porRango[i]?.H ?? 0 },
+          { id: `r${i}m`, encabezado: `${r.label}, M`, ancho: 92, tipo: "cifra" as const, celda: (f: FilaMatriz) => fmt(f.porRango[i]?.M ?? 0), valor: (f: FilaMatriz) => f.porRango[i]?.M ?? 0 },
         ]
       : [{ id: `r${i}`, encabezado: r.label, ancho: 88, tipo: "cifra" as const, celda: (f: FilaMatriz) => fmt(enRango(f, i)), valor: (f: FilaMatriz) => enRango(f, i) }],
   );

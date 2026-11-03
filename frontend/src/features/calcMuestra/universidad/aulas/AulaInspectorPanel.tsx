@@ -50,8 +50,8 @@ export function AulaInspectorPanel({
 
   const identidad = [
     { label: "Facultad", value: model.faculty },
-    { label: "Programa", value: model.level ? `${model.program} · nivel ${model.level}` : model.program },
-    { label: "Horario", value: model.modality ? `${model.schedule} · ${model.modality}` : model.schedule },
+    { label: "Programa", value: model.level ? `${model.program}, nivel ${model.level}` : model.program },
+    { label: "Horario", value: model.modality ? `${model.schedule}, ${model.modality}` : model.schedule },
     ...(model.teacher ? [{ label: "Docente", value: model.teacher }] : []),
   ];
 
@@ -65,7 +65,7 @@ export function AulaInspectorPanel({
         <div className="cmv2-aulas-inspector-titulo">
           <span className="cmv2-aulas-inspector-rol" data-rol={model.rol}>{model.rolLabel}</span>
           <strong>{model.courseName}</strong>
-          <code>{model.code} · {model.id}</code>
+          <small className="cmv2-aulas-inspector-codigo">{model.code}, {model.id}</small>
         </div>
         <button
           type="button"
@@ -100,7 +100,7 @@ export function AulaInspectorPanel({
           <DatoFila label="Método" value={model.metodoLabel} />
           {model.rol === "reemplazo" && (
             <>
-              <DatoFila label="Reemplaza a" value={model.titular ? `${model.titular.code} · ${model.titular.label}` : DASH} />
+              <DatoFila label="Reemplaza a" value={model.titular ? `${model.titular.code}, ${model.titular.label}` : DASH} />
               <DatoFila label="Equivalencia" value={model.equivalenciaLabel} />
             </>
           )}
@@ -139,7 +139,7 @@ export function AulaInspectorPanel({
                   >
                     <b>{eslabon.code}</b>
                     <span>{eslabon.label}</span>
-                    <small>{eslabon.equivalencia}{eslabon.activo ? " · este curso-horario" : ""}</small>
+                    <small>{eslabon.equivalencia}{eslabon.activo ? ", este curso-horario" : ""}</small>
                   </button>
                 </li>
               ))}

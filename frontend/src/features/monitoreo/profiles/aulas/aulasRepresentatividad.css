@@ -17,8 +17,6 @@
   min-width: 0;
 }
 
-.aulas-repr-vacio { margin: 6px 0 0; }
-
 .aulas-repr-cabeza {
   display: flex;
   flex-direction: column;
@@ -41,13 +39,13 @@
 }
 
 .aulas-repr-puntaje span {
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   color: var(--pulso-text-soft);
 }
 
 .aulas-repr-lectura {
   margin: 0;
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   line-height: 1.5;
   color: var(--pulso-text-soft);
 }
@@ -61,7 +59,7 @@
 
 .aulas-repr-aviso {
   margin: 2px 0 0;
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   line-height: 1.45;
   color: var(--pulso-warning-text, var(--pulso-text));
 }
@@ -87,7 +85,7 @@
 }
 
 .aulas-repr-rotulo {
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   color: var(--pulso-text-soft);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -147,7 +145,7 @@
 }
 
 .aulas-repr-cifra {
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   text-align: right;
   font-variant-numeric: tabular-nums;
   color: var(--pulso-text-soft);
@@ -155,7 +153,7 @@
 
 .aulas-repr-pie {
   margin: 0;
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   color: var(--pulso-text-soft);
 }
 

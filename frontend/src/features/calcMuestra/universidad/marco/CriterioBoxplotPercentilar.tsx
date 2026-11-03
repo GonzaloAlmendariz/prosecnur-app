@@ -1,5 +1,7 @@
+import { BarChart3 } from "lucide-react";
 import type { CalcMuestraAulasCriterioRadiografiaV2Distribution } from "../../../../api/calcMuestraCriteriosRadiografia";
 import "./criteriosI18b.css";
+import { EstadoVacio } from "../../../../components/EstadoVacio";
 
 const NUMBER = new Intl.NumberFormat("es-PE", { maximumFractionDigits: 1 });
 
@@ -51,8 +53,11 @@ export function CriterioBoxplotPercentilar({
   const { media, p10, p25, p50, p75, p90 } = distribution;
   if ([media, p10, p25, p50, p75, p90].some((value) => value === null)) {
     return (
-      <div className="cmv2-i18b-boxplot-empty" role="status" data-state="sin_distribucion">
-        Sin distribución percentilar publicable
+      <div role="status" data-state="sin_distribucion">
+        <EstadoVacio
+          icono={<BarChart3 size={16} aria-hidden="true" />}
+          titulo="Sin distribución percentilar publicable"
+        />
       </div>
     );
   }
@@ -79,7 +84,7 @@ export function CriterioBoxplotPercentilar({
     `P90 ${fmt(p90 as number)}`,
     `Media ${fmt(media as number)}`,
     domain ? `escala compartida ${fmt(low)}–${fmt(high)}` : "escala propia",
-  ].join(" · ");
+  ].join(", ");
 
   return (
     <figure className="cmv2-i18b-boxplot" data-scale={domain ? "compartida" : "propia"}>

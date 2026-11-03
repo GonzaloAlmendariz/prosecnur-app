@@ -7,6 +7,8 @@ import {
   type VistaPreviaDeRepresentatividad,
 } from "../../../../api/calcMuestraRepresentatividad";
 import { construirDeclaracion } from "./declaracionRepresentatividadModelo";
+import { CargaDeBloque } from "../../../../components/CargaDeBloque";
+import { Panel } from "../../../../components/Panel";
 
 /**
  * Panel «Representatividad del estudio» en Salida › Pase a Monitoreo (ADR 0121;
@@ -55,19 +57,17 @@ export function DeclararRepresentatividad({ inicial }: {
   }
 
   return (
-    <section
-      className="cmv2-panel cmv2-sal-panel cmv2-sal-rep"
+    <Panel
+      className="cmv2-sal-panel cmv2-sal-rep"
       aria-label="Representatividad del estudio"
       aria-busy={cargando || undefined}
       data-qa-geometry-member="representatividad"
       data-audit-ready={cargando ? "false" : modelo.estado === "sin-diseno" ? "vacio:sin-metas" : "calc-muestra-representatividad"}
+      title="Representatividad del estudio"
+      hint="Viaja con el plan a Material y Monitoreo."
     >
-      <div className="cmv2-panel-head">
-        <strong>Representatividad del estudio</strong>
-        <span className="cmv2-pill-soft">viaja con el plan</span>
-      </div>
       {cargando ? (
-        <p className="cmv2-sal-nota">Leyendo el escenario…</p>
+        <CargaDeBloque label="Leyendo el escenario…" />
       ) : modelo.estado === "sin-diseno" ? (
         <p className="cmv2-sal-nota" data-qa-geometry-empty="legitimo">
           El escenario todavía no fija metas: cuando las tenga, aquí se guardan su universo y sus variables de cuota.
@@ -99,6 +99,6 @@ export function DeclararRepresentatividad({ inicial }: {
         </>
       )}
       {mensaje ? <p className="cmv2-sal-nota" role="status">{mensaje}</p> : null}
-    </section>
+    </Panel>
   );
 }

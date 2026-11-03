@@ -1,3 +1,4 @@
+import { formatoConteo } from "../../../../lib/formatoNumero";
 import { useMemo } from "react";
 
 import type {
@@ -30,7 +31,7 @@ const pct = (n: number | null) => (n == null ? "—" : pctPerfil(n * 100));
 const personas = (n: number | null, esFaltante = false) => {
   if (n == null) return "—";
   const v = esFaltante ? Math.ceil(n) : Math.floor(n);
-  return v.toLocaleString("es-PE");
+  return formatoConteo(v);
 };
 
 /**

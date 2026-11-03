@@ -142,7 +142,7 @@ export function AulasCuotasResumen({ filas }: { filas: ReadonlyArray<MonitoreoRo
       <p className="aulas-cuota-lectura">
         <strong>{general.celdasCumplidas}</strong> de{" "}
         <strong>{general.celdas}</strong> grupos con su cuota cumplida
-        {sinMeta ? ` · ${sinMeta} sin objetivo declarado` : ""}
+        {sinMeta ? `, ${sinMeta} sin objetivo declarado` : ""}
       </p>
 
       {/* La lista «Por facultad» se retiró: decía exactamente lo que la pirámide

@@ -269,7 +269,7 @@ export function AulasMetasBarras({ filas , eje}: {
                         className="aulas-metas-barra-logro" data-sexo={tono}
                       >
                         <title>
-                          {`${etiquetaDeValorEnGrafico(f.facultad, eje)} · ${tono === "hombres" ? "Hombres" : tono === "mujeres" ? "Mujeres" : "Total"}: `}
+                          {`${etiquetaDeValorEnGrafico(f.facultad, eje)}, ${tono === "hombres" ? "Hombres" : tono === "mujeres" ? "Mujeres" : "Total"}: `}
                           {fmt(Math.round(obtenidas))} de {fmt(Math.round(meta))}
                         </title>
                       </rect>

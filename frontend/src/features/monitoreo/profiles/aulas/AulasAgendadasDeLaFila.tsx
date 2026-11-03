@@ -111,7 +111,7 @@ export function DetalleDeAgendadas({ total, agendadas, nivel }: {
           </p>
           <p className="aulas-agendadas-sub">
             todavía sin aplicar: son lo proyectado de la barra
-            {vencidas ? <> · <b>{fmt(vencidas)} con la fecha ya pasada</b></> : null}
+            {vencidas ? <>, <b>{fmt(vencidas)} con la fecha ya pasada</b></> : null}
           </p>
         </div>
         {modoNivel ? (
@@ -154,7 +154,7 @@ export function DetalleDeAgendadas({ total, agendadas, nivel }: {
                 </td>
                 <td className="es-curso">
                   <span className="aulas-agendadas-codigo">{a.codigo}</span>
-                  <b>{[a.curso, a.seccion].filter(Boolean).join(" · ") || "—"}</b>
+                  <b>{[a.curso, a.seccion].filter(Boolean).join(", ") || "—"}</b>
                   {a.lugar ? <span className="es-lugar">{a.lugar}</span> : null}
                   {vencida ? <em>Fecha pasada y sin respuestas: confirmar si se aplicó</em> : null}
                 </td>

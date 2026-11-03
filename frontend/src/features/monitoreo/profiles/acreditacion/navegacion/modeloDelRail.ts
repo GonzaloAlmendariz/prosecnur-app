@@ -28,7 +28,7 @@ export function grupoDeControl(pestana: string): "Contacto" | "Casos" {
 /** Antetítulo de la cabecera: «Sección» o, en Control, «Sección · Grupo» (G1). */
 export function antetituloDePestana(seccion: SeccionAcreditacion, pestana: string): string {
   return seccion === "control"
-    ? `${NOMBRE_DE_SECCION[seccion]} · ${grupoDeControl(pestana)}`
+    ? `${NOMBRE_DE_SECCION[seccion]} › ${grupoDeControl(pestana)}`
     : NOMBRE_DE_SECCION[seccion];
 }
 
@@ -79,7 +79,7 @@ export function pestanasDelRail(
       const fuente = vista ? deSeccion(vista).find((item) => item.key === vista.pestana) : undefined;
       return {
         key: tab.key,
-        label: seccion === "control" ? `${grupoDeControl(tab.key)} · ${tab.label}` : tab.label,
+        label: seccion === "control" ? `${grupoDeControl(tab.key)} › ${tab.label}` : tab.label,
         detail: tab.detail,
         icon: tab.icon,
         badge: fuente?.badge,

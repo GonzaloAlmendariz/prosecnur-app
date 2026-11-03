@@ -113,7 +113,7 @@ export function SustentoDimensionamientoCard({
                   <strong>{fmtInt(fila.aulasBase)}</strong>
                   {fila.ajustadaAMano ? (
                     <small className="cmv2-sustento-ajuste">
-                      {" "}fijada a mano · fórmula: {fila.aulasFormula == null ? "—" : fmtInt(fila.aulasFormula)}
+                      {" "}fijada a mano, fórmula: {fila.aulasFormula == null ? "—" : fmtInt(fila.aulasFormula)}
                     </small>
                   ) : null}
                 </td>

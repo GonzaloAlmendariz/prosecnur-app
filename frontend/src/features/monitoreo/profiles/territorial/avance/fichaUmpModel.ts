@@ -1,3 +1,4 @@
+import { formatoDecimal } from "../../../../../lib/formatoNumero";
 import type { MonitoreoTerritorialDashboard, TerritorialResponseAuditRow } from "../../../../../api/client";
 import { diaYMes, fmt, numeroDeUmp, rotuloDeAplicador, rotuloDeCelda } from "../rotulos";
 import { construirFaltante, textoDeQuienCubre, type CeldaDeCuota, type EstadoDeUmp, type VariableDeCuota } from "./faltanteModel";
@@ -74,7 +75,7 @@ function distancia(fila: TerritorialResponseAuditRow): string {
   const crudo = fila.gps_effective_distance_m ?? fila.distance_m;
   const metros = Number(crudo);
   if (crudo == null || !Number.isFinite(metros)) return "Sin GPS";
-  return metros >= 1000 ? `${(metros / 1000).toLocaleString("es-PE", { maximumFractionDigits: 1 })} km` : `${fmt(Math.round(metros))} m`;
+  return metros >= 1000 ? `${formatoDecimal(metros / 1000, 1)} km` : `${fmt(Math.round(metros))} m`;
 }
 
 /**

@@ -1,4 +1,7 @@
+import { enumerar } from "../../../../lib/enumerar";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { SearchX } from "../../../../vendor/lucide-react";
+import { EstadoVacio } from "../../../../components/EstadoVacio";
 import { createPortal } from "react-dom";
 
 import type { MonitoreoAulasPlanRow } from "../../../../api/monitoreo";
@@ -187,7 +190,7 @@ function Candidato({
             {f.course_name || f.label || "Curso sin nombre"}
             {/* El docente en su peso de texto, no dentro de un chip de color:
                 no se decide por él, pero es a quien hay que llamar. */}
-            {f.teacher ? <em> · {f.teacher}</em> : null}
+            {f.teacher ? <em>, {f.teacher}</em> : null}
           </span>
           <span className="aulas-chips-fila">
             {/* **La facultad primero** (canon B34). Es la frontera dura del
@@ -286,7 +289,7 @@ function Candidato({
               no hay nada que advertir y rellenarlo sería ruido. */}
           {c.concesiones.length ? (
             <span className="aulas-reemplazo-concesiones">
-              Concede: {c.concesiones.join(" · ")}
+              Concede: {enumerar(c.concesiones)}
             </span>
           ) : (
             <span className="aulas-reemplazo-concesiones es-limpia">Mismo grupo: sin concesiones.</span>
@@ -324,7 +327,7 @@ function Candidato({
             <span className="aulas-reemplazo-resto">
               {queda.total
                 ? <>a {facultadCorta(String(f.faculty)) || "la facultad"} le quedarían <b>{fmt(queda.total)}</b>
-                    {queda.m && queda.h ? <> ({fmt(queda.m)} M · {fmt(queda.h)} H)</>
+                    {queda.m && queda.h ? <> ({fmt(queda.m)} M, {fmt(queda.h)} H)</>
                       : queda.m ? <> mujeres</> : <> hombres</>}</>
                 : <>con éste la facultad cierra su cuota</>}
             </span>
@@ -438,7 +441,7 @@ export function ContenidoDeReemplazo({
         <div>
           <p className="aulas-reemplazo-titulo">Reemplazar {caido.operational_code || caido.classroom_id}</p>
           <p className="aulas-reemplazo-sub">
-            {caido.course_name || caido.label} · {caido.stratum} · {caido.eligible_n} elegibles
+            {caido.course_name || caido.label}, {caido.stratum}, {caido.eligible_n} elegibles
           </p>
           {/* **Contra qué se elige, antes de con qué.** Sin esto, las dos varas
               de cada candidato son dos números y «el que más ayuda» no dice a
@@ -560,12 +563,13 @@ export function ContenidoDeReemplazo({
       ) : (
         // Nunca «no hay reemplazo» a secas: se dice qué grupo está vacío y a
         // cuál ir. Los otros dos siguen a un click.
-        <p className="aulas-reemplazo-vacio">
-          Aquí no queda ninguna.{" "}
-          {GRUPOS.filter((g) => g.id !== activo && candidatos[g.id].disponibles).length
+        <EstadoVacio
+          icono={<SearchX size={15} />}
+          titulo="Aquí no queda ninguna."
+          descripcion={GRUPOS.filter((g) => g.id !== activo && candidatos[g.id].disponibles).length
             ? <>Sí hay en {GRUPOS.filter((g) => g.id !== activo && candidatos[g.id].disponibles).map((g) => g.titulo).join(" y ")}.</>
             : <>Tampoco en los otros dos grupos: hay que pedir aulas nuevas.</>}
-        </p>
+        />
       )}
     </div>
   );

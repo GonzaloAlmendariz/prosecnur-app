@@ -35,6 +35,7 @@ import { useGraficosRegistry } from "./useGraficosRegistry";
 import { useLibraryDialogA11y } from "./useLibraryDialogA11y";
 import "./graficadorPicker.css";
 import { enSelector } from "./enSelector";
+import { formatoConteo } from "../../lib/formatoNumero";
 
 type GraficadorFamily =
   | "all"
@@ -369,7 +370,7 @@ export default function GraficadorPicker({
                   aria-live={libraryState === "ready" ? "polite" : undefined}
                   aria-atomic={libraryState === "ready" ? "true" : undefined}
                 >
-                  {filteredGraficadores.length}{" "}
+                  {formatoConteo(filteredGraficadores.length)}{" "}
                   {filteredGraficadores.length === 1 ? "modelo visible" : "modelos visibles"}
                 </span>
               </div>

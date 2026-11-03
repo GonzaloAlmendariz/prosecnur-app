@@ -247,7 +247,7 @@ describe("Territorial: ninguna clave llega a la pantalla sin rótulo", () => {
 
   it("el padrón se ofrece sin DNI", () => {
     const html = pintar(<ConciliacionTab reports={CORRECCIONES} state={ESTADO_CON_PADRON} phase="field" onEspacial={() => undefined} />, "/monitoreo");
-    expect(html).toContain("P109 · Aplicador Tres");
+    expect(html).toContain("P109, Aplicador Tres");
     expect(html).not.toContain("00000000");
   });
 

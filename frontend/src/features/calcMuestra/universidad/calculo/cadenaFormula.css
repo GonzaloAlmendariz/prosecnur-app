@@ -55,7 +55,7 @@
 }
 
 .cmv2-cadfor-pieza b {
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   line-height: 1.2;
   color: var(--pulso-text);
 }
@@ -97,12 +97,12 @@
 .cmv2-cadfor-parentesis {
   display: flex;
   align-items: center;
-  font-size: 13px;
+  font-size: var(--pulso-type-body-size);
   color: var(--pulso-text-muted);
 }
 
 .cmv2-cadfor-parentesis {
-  font-size: 20px;
+  font-size: var(--pulso-type-kpi-size);
   font-weight: 300;
   opacity: 0.5;
 }
@@ -121,7 +121,7 @@
 
 .cmv2-cadfor-nota {
   margin: 8px 0 0;
-  font-size: 10.5px;
+  font-size: var(--pulso-type-micro-size);
   line-height: 1.45;
   color: var(--pulso-text-muted);
 }

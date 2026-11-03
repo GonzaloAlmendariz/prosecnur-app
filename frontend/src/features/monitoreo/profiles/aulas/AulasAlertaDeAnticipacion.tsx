@@ -170,18 +170,18 @@ export function AulasAlertaDeAnticipacion({ partes, agenda = [], cuotas = [], ba
         <strong>{fmt(conBrecha.length)}</strong>{" "}
         {conBrecha.length === 1 ? "facultad necesita" : "facultades necesitan"} cursos-horario nuevos
         {dimensionadas.length
-          ? <> · hay que pedir <strong>{fmt(aulasTotales)}</strong> en total</>
+          ? <>, hay que pedir <strong>{fmt(aulasTotales)}</strong> en total</>
           : null}
         {sinDimensionar
-          ? <> · <strong>{fmt(sinDimensionar)}</strong> sin dimensionar todavía: hace falta
+          ? <>, <strong>{fmt(sinDimensionar)}</strong> sin dimensionar todavía: hace falta
               el primer curso-horario aplicado para saber cuánto rinde uno</>
           : null}
         {/* Las paradas van en la lectura y no sólo en la tabla: son las que
             tienen días de campo perdiéndose ahora mismo. */}
         {paradas > 0
-          ? <> · <strong>{fmt(paradas)}</strong> ya {paradas === 1 ? "está" : "están"} sin agenda</>
+          ? <>, <strong>{fmt(paradas)}</strong> ya {paradas === 1 ? "está" : "están"} sin agenda</>
           : null}
-        {cuandos.size === 1 ? ` · todas: ${[...cuandos][0]}` : ""}
+        {cuandos.size === 1 ? `, todas: ${[...cuandos][0]}` : ""}
       </p>
 
       {/* El supuesto, comparado con lo que va pasando. Va ARRIBA de la lista
@@ -191,7 +191,7 @@ export function AulasAlertaDeAnticipacion({ partes, agenda = [], cuotas = [], ba
           <span>
             Se cae <strong>{pctCorto(caida.tasa)}</strong> de los titulares
             {" "}({fmt(caida.caidas)} de {fmt(caida.decididos)} ya resueltos)
-            {" · "}en 2025 fue <strong>{pctCorto(TASA_DE_CAIDA)}</strong>
+            {", "}en 2025 fue <strong>{pctCorto(TASA_DE_CAIDA)}</strong>
           </span>
           {caida.direccion ? (
             <em>
@@ -295,12 +295,12 @@ export function AulasAlertaDeAnticipacion({ partes, agenda = [], cuotas = [], ba
                 que el pedido también. */}
             <span role="cell" className="aulas-anticipacion-faltan" title={
               f.faltanPorSexo.length
-                ? f.faltanPorSexo.map((x) => `${fmt(x.faltan)} ${etiquetaDeSexo(x.sexo)}`).join(" · ")
+                ? f.faltanPorSexo.map((x) => `${fmt(x.faltan)} ${etiquetaDeSexo(x.sexo)}`).join(", ")
                 : undefined
             }>
               {fmt(f.faltan)}
               {f.faltanPorSexo.length > 1 && f.faltanPorSexo[0].faltan >= f.faltan * CARGA_QUE_MANDA ? (
-                <em> · {fmt(f.faltanPorSexo[0].faltan)} {etiquetaDeSexo(f.faltanPorSexo[0].sexo)}</em>
+                <em>, {fmt(f.faltanPorSexo[0].faltan)} {etiquetaDeSexo(f.faltanPorSexo[0].sexo)}</em>
               ) : null}
             </span>
             {cuandos.size > 1 ? (

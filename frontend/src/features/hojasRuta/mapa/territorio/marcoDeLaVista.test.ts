@@ -10,7 +10,7 @@ const TERR = [t("080101", 1319, 20000, 90000), t("080108", 496, 11000, 34000), t
 describe("el Marco territorial habla de lo que se mira", () => {
   it("con una ciudad abierta, sus distritos, sus cifras y su cartografía; sin la comparación de Lima", () => {
     const f = marcoDeLaVista(META, TERR, { nombre: "Cusco", ubigeos: ["080101", "080108"] });
-    expect(f.cobertura).toBe("Cusco · 2 distritos");
+    expect(f.cobertura).toBe("Cusco, 2 distritos");
     expect([f.manzanas, f.viviendas, f.poblacion]).toEqual([1815, 31000, 124000]);
     expect(f.ubigeosCartografia).toEqual(["080101"]);
     expect(f.conComparacion).toBe(false);
@@ -26,7 +26,7 @@ describe("el Marco territorial habla de lo que se mira", () => {
     const f = marcoDeLaVista(META, TERR, null);
     expect(f.rotuloCobertura).toBe("Catálogo");
     expect(f.rotuloCifras).toBe("En el catálogo");
-    expect(f.cobertura).toBe("Lima Metropolitana, Callao y ciudades principales · 164 distritos");
+    expect(f.cobertura).toBe("Lima Metropolitana, Callao y ciudades principales, 164 distritos");
     expect(f.ubigeosCartografia).toEqual([]);
   });
 

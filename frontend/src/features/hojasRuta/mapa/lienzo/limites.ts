@@ -98,6 +98,6 @@ export function dibujarNombresDepartamento(ctx: CanvasRenderingContext2D, u: Uti
   ctx.font = "500 9.5px -apple-system, system-ui, sans-serif";
   ctx.textAlign = "right";
   ctx.globalAlpha = 0.7;
-  ctx.fillText("Límites: IGN vía OCHA · CC BY 3.0 IGO", u.tamano.w - 12, u.tamano.h - 54);
+  ctx.fillText("Límites: IGN vía OCHA, CC BY 3.0 IGO", u.tamano.w - 12, u.tamano.h - 54);
   ctx.restore();
 }

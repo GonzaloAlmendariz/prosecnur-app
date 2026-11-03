@@ -1,5 +1,6 @@
 import type { MonitoreoTerritorialDashboard } from "../../../../../api/client";
-import { diaYMes, enumerar, fmt, nombreDeDistrito, numeroDeUmp, rotuloDeAplicador } from "../rotulos";
+import { enumerar } from "../../../../../lib/enumerar";
+import { diaYMes, fmt, nombreDeDistrito, numeroDeUmp, rotuloDeAplicador } from "../rotulos";
 
 /**
  * Control › Anulaciones (territorial.md §3.12): qué quedó fuera del conteo por

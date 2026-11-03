@@ -18,6 +18,7 @@
 
 import type { MonitoreoAcreditacionReports } from "../../../../../api/client";
 import { filasDeBloque } from "../navegacion/bloques";
+import { formatoConteo } from "../../../../../lib/formatoNumero";
 
 type Fila = Record<string, unknown>;
 
@@ -225,7 +226,7 @@ export function duracionLegible(segundos: number | null) {
 }
 
 function plural(cantidad: number, uno: string, varios: string) {
-  return `${cantidad.toLocaleString("es-PE")} ${cantidad === 1 ? uno : varios}`;
+  return `${formatoConteo(cantidad)} ${cantidad === 1 ? uno : varios}`;
 }
 
 /**

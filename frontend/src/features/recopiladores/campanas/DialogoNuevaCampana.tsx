@@ -38,6 +38,7 @@ import { ICONO_DEL_TIPO } from "./TarjetaDeCampana";
 import type { FuenteDelRegistro } from "./useRegistroDeCampanas";
 import "../correos/correosCampanas.css";
 import "./campanas.css";
+import { CargaDeBloque } from "../../../components/CargaDeBloque";
 
 export type Resultado = { ok: true } | { ok: false; mensaje: string };
 
@@ -276,7 +277,7 @@ export function DialogoNuevaCampana({ panel, registro, fuente, presets, miniatur
                         <label key={r.id} className={`rec-nueva-plataforma${rondaElegida === r.id ? " is-on" : ""}`}>
                           <input type="radio" name={`${ids}-ronda`} value={r.id} checked={rondaElegida === r.id} onChange={() => setRondaElegida(r.id)} />
                           <span>
-                            <b>{r.etiqueta} · ronda {r.ronda}</b>
+                            <b>{r.etiqueta}, ronda {r.ronda}</b>
                             <small>{r.viene_de ? `Viene de «${registro?.campaigns.find((c) => c.id === r.viene_de)?.name ?? r.viene_de}»` : r.ronda > 1 ? "La ronda anterior no es telefónica" : "Primera ronda"}</small>
                           </span>
                         </label>
@@ -311,7 +312,7 @@ export function DialogoNuevaCampana({ panel, registro, fuente, presets, miniatur
                       <label key={l.lote_id} className={`rec-nueva-plataforma${lote === l.lote_id ? " is-on" : ""}`}>
                         <input type="radio" name={`${ids}-lote`} value={l.lote_id} checked={lote === l.lote_id} onChange={() => elegirLote(l.lote_id)} />
                         <span>
-                          <b>{l.lote_id.replace(/^ronda-/, "Ronda ")} · {l.casos.toLocaleString("es-PE")} {l.casos === 1 ? "caso" : "casos"}</b>
+                          <b>{l.lote_id.replace(/^ronda-/, "Ronda ")}, {l.casos.toLocaleString("es-PE")} {l.casos === 1 ? "caso" : "casos"}</b>
                           <small>{l.criterio}</small>
                         </span>
                       </label>
@@ -349,7 +350,7 @@ export function DialogoNuevaCampana({ panel, registro, fuente, presets, miniatur
                   />
                 </label>
                 {homonima ? <AvisoDeNombreRepetido id={`${ids}-repetido`} campana={homonima} href={homonima.archived ? null : hrefDeCampana(homonima)} /> : null}
-                {envios.cargando ? <p className="rec-nueva-pie-nota">Leyendo qué muestra envió Hojas de ruta…</p> : null}
+                {envios.cargando ? <CargaDeBloque label="Leyendo qué muestra envió Hojas de ruta…" /> : null}
                 {envios.error ? <p className="rec-nueva-pie-nota" role="alert">{envios.error}</p> : null}
                 {eleccion.tipo === "elegir" && envios.envios ? (
                   <fieldset className="rec-nueva-plataformas">
@@ -364,8 +365,8 @@ export function DialogoNuevaCampana({ panel, registro, fuente, presets, miniatur
                             <span>
                               <b>{ROTULO_DE_FASE[f]}</b>
                               <small>
-                                {meta ? `${meta.n_titulares.toLocaleString("es-PE")} titulares · ${meta.n_reemplazos.toLocaleString("es-PE")} reemplazos` : ""}
-                                {cuando ? ` · enviada el ${cuando}` : ""}
+                                {meta ? `${meta.n_titulares.toLocaleString("es-PE")} titulares y ${meta.n_reemplazos.toLocaleString("es-PE")} reemplazos` : ""}
+                                {cuando ? `, enviada el ${cuando}` : ""}
                               </small>
                             </span>
                           </label>
@@ -431,7 +432,7 @@ export function DialogoNuevaCampana({ panel, registro, fuente, presets, miniatur
                         <button type="button" className="rec-nueva-origen" aria-pressed={origen === p.preset_id} onClick={() => setOrigen(p.preset_id)}>
                           <Miniatura html={miniaturas[p.preset_id]} titulo={p.title} />
                           <b>{p.title}</b>
-                          {origenDePreset(p.preset_id) ? <small>Plantilla real · {origenDePreset(p.preset_id)}</small> : null}
+                          {origenDePreset(p.preset_id) ? <small>Plantilla real de {origenDePreset(p.preset_id)}</small> : null}
                         </button>
                       </li>
                     ))}

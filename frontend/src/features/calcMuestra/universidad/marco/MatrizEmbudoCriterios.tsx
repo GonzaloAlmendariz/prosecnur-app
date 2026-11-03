@@ -183,7 +183,7 @@ export function MatrizEmbudoCriterios({
         </table>
       </div>
       <footer className="cmv2-matriz-embudo-foot">
-        Unidad: curso-horario único · Facultad efectiva del curso-horario · Firma {matriz.frame_hash.slice(0, 10)}
+        Unidad: curso-horario único, Facultad efectiva del curso-horario, Firma {matriz.frame_hash.slice(0, 10)}
       </footer>
     </section>
   );

@@ -132,3 +132,96 @@ test_that("dos zonas con el mismo ubigeo se avisan", {
   expect_match(out$avisos[[1]], "150101")
   expect_length(monitoreo_territorial_avance_cuotas(envio_cuotas(), audit_cuotas())$avisos, 0L)
 })
+
+test_that("el equipo trae el nombre de la lista y no nombra a nadie si la lista va por DNI", {
+  audit <- audit_cuotas()
+  audit$pulso_code_normalized <- c("P101", "P102", "P101", "P101", "P103", "P101", "P102")
+  audit$pulso_code_recognized <- TRUE
+  audit$enumerator_assigned <- c("Ana Prueba", "Beto Ficticio", "Ana Prueba", "", "", "Ana Prueba", "Beto Ficticio")
+  lima <- monitoreo_territorial_avance_cuotas(envio_cuotas(), audit)$zonas[[1]]
+  expect_identical(vapply(lima$equipo$personas, function(p) p$nombre, ""), c("Ana Prueba", "Beto Ficticio"))
+  dni <- monitoreo_territorial_avance_cuotas(envio_cuotas(), audit, sin_nombres = TRUE)$zonas[[1]]
+  expect_length(dni$equipo$personas, 0L)
+  expect_identical(dni$equipo$sin_codigo, dni$efectivas)
+})
+
+# ADR 0126: una zona de 4 celdas (sexo × dos rangos), 5 cada una; 3 efectivas:
+# hombre de 20, mujer de 22 y mujer de 35.
+.mtcu_envio <- function() {
+  list(kind = "cuotas", sample_fingerprint = "sha256:x", n_zonas = 1L, n_entrevistas = 20L, zonas = list(
+    list(id_zona = "150101", ubigeo = "150101", nombre = "Lima", n = 20L, cuotas = list(
+      list(sexo = "Hombre", rango_id = "r1", rango_edad = "18 a 29", n = 5L),
+      list(sexo = "Hombre", rango_id = "r2", rango_edad = "30 a 44", n = 5L),
+      list(sexo = "Mujer", rango_id = "r1", rango_edad = "18 a 29", n = 5L),
+      list(sexo = "Mujer", rango_id = "r2", rango_edad = "30 a 44", n = 5L)
+    ))
+  ))
+}
+
+.mtcu_audit <- function() {
+  data.frame(ubigeo = "150101", sex = c("hombre", "mujer", "mujer"), age = c(20, 22, 35),
+             advance_valid = TRUE, observation_status = "sin_observacion", stringsAsFactors = FALSE)
+}
+
+test_that("sin carácter declarado, cada celda es una meta y las unidades son las celdas (ADR 0126)", {
+  out <- monitoreo_territorial_avance_cuotas(.mtcu_envio(), .mtcu_audit())
+  z <- out$zonas[[1]]
+  expect_identical(vapply(z$celdas, function(c) c$caracter, ""), rep("meta", 4L))
+  expect_identical(z$unidades, 4L)
+  expect_identical(z$unidades_completas, z$celdas_completas)
+  expect_length(z$marginales, 0L)
+  expect_identical(out$total$unidades, out$total$celdas)
+})
+
+test_that("con el sexo referencial, se exige la marginal de edad y el sexo se describe (ADR 0126)", {
+  envio <- .mtcu_envio()
+  envio$zonas[[1]]$caracter <- list(sexo = "referencial")
+  out <- monitoreo_territorial_avance_cuotas(envio, .mtcu_audit())
+  z <- out$zonas[[1]]
+  # Celdas: ya no se exigen; su cifra pasa a referencia.
+  expect_true(all(vapply(z$celdas, function(c) c$caracter == "referencial" && c$falta == 0L, logical(1))))
+  expect_identical(vapply(z$celdas, function(c) c$referencia, 0L), c(5L, 5L, 5L, 5L))
+  # Marginales por edad: 10 cada rango; 18-29 lleva 2 efectivas (una de cada sexo), 30-44 lleva 1.
+  m <- stats::setNames(z$marginales, vapply(z$marginales, function(g) g$categoria, ""))
+  expect_identical(m[["18 a 29"]]$meta, 10L)
+  expect_identical(m[["18 a 29"]]$efectivas, 2L)
+  expect_identical(m[["18 a 29"]]$falta, 8L)
+  expect_identical(m[["30 a 44"]]$efectivas, 1L)
+  expect_identical(z$unidades, 2L)
+  # Composición por sexo frente al reparto de Hojas (mitad y mitad).
+  comp <- stats::setNames(z$composicion, vapply(z$composicion, function(g) g$categoria, ""))
+  expect_equal(comp[["Mujer"]]$esperada_pct, 50)
+  expect_equal(comp[["Mujer"]]$obtenida_pct, 100 * 2 / 3)
+  expect_identical(comp[["Mujer"]]$estado_cuota, "referencial")
+  # Lo que falta de la zona sale de las marginales, no de las celdas.
+  expect_identical(sum(vapply(z$marginales, function(g) g$falta, 0L)), 17L)
+})
+
+test_that("con las dos dimensiones referenciales sólo se exige el total de la zona", {
+  envio <- .mtcu_envio()
+  envio$zonas[[1]]$caracter <- list(sexo = "referencial", edad = "referencial")
+  z <- monitoreo_territorial_avance_cuotas(envio, .mtcu_audit())$zonas[[1]]
+  expect_length(z$marginales, 1L)
+  expect_identical(z$marginales[[1]]$dimension, "zona")
+  expect_identical(z$marginales[[1]]$meta, 20L)
+  expect_identical(z$marginales[[1]]$efectivas, 3L)
+  expect_setequal(vapply(z$composicion, function(g) g$dimension, ""), c("sexo", "sexo", "edad", "edad"))
+})
+
+test_that("la marginal exigida se cuenta sobre los casos: un sexo ilegible sí suma a la meta de edad (ADR 0126)", {
+  envio <- .mtcu_envio()
+  envio$zonas[[1]]$caracter <- list(sexo = "referencial")
+  audit <- rbind(.mtcu_audit(), data.frame(ubigeo = "150101", sex = "", age = c(25, 99), advance_valid = TRUE,
+                                           observation_status = "sin_observacion", stringsAsFactors = FALSE))
+  z <- monitoreo_territorial_avance_cuotas(envio, audit)$zonas[[1]]
+  m <- stats::setNames(z$marginales, vapply(z$marginales, function(g) g$categoria, ""))
+  # El de 25 sin sexo cuenta para 18 a 29; el de 99 no cae en ningún rango.
+  expect_identical(as.integer(m[["18 a 29"]]$efectivas), 3L)
+  # La composición por sexo sólo mira a quien tiene sexo legible (3).
+  comp <- stats::setNames(z$composicion, vapply(z$composicion, function(g) g$categoria, ""))
+  expect_equal(comp[["Mujer"]]$obtenida_pct, 100 * 2 / 3)
+  # Con las dos referenciales, el total exigido es el de la zona: el mismo número.
+  envio$zonas[[1]]$caracter <- list(sexo = "referencial", edad = "referencial")
+  z2 <- monitoreo_territorial_avance_cuotas(envio, audit)$zonas[[1]]
+  expect_identical(as.integer(z2$marginales[[1]]$efectivas), z2$efectivas)
+})

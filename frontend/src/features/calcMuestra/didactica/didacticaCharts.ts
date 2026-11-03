@@ -173,6 +173,6 @@ export function buildStackedBars(
     y: categorias,
     x: serie.valores,
     marker: { color: serie.color ?? palette[i], line: { color: tokens.surface, width: 1 } },
-    hovertemplate: `%{y} · ${serie.nombre}: %{x:,d}<extra></extra>`,
+    hovertemplate: `%{y}, ${serie.nombre}: %{x:,d}<extra></extra>`,
   }));
 }

@@ -13,6 +13,7 @@ import { BookOpen, Check, Circle, ExternalLink } from "../../../../vendor/lucide
 import { resumenSustento, seccionesSustento } from "./sustentoSecciones";
 import type { CalcMuestraAulasState, CalcMuestraEstudio, CalcMuestraWorkspace } from "../../../../api/client";
 import "./sustentoCobertura.css";
+import { fmtInt } from "../../sharedCore";
 
 export function SustentoCoberturaCard({
   estudio,
@@ -35,8 +36,8 @@ export function SustentoCoberturaCard({
       <p className="cmv2-sustento-resumen">
         <b>{r.disponibles} de {r.total}</b> capítulos se pueden escribir con lo que el
         estudio tiene ahora.
-        {r.pendientes.length > 0 && <> Faltan <b>{r.pendientes.length}</b> por trabajo del propio módulo.</>}
-        {r.externas.length > 0 && <> {r.externas.length === 1 ? "Uno depende" : `${r.externas.length} dependen`} de otro módulo y no se resuelve{r.externas.length === 1 ? "" : "n"} trabajando acá.</>}
+        {r.pendientes.length > 0 && <> Faltan <b>{fmtInt(r.pendientes.length)}</b> por trabajo del propio módulo.</>}
+        {r.externas.length > 0 && <> {r.externas.length === 1 ? "Uno depende" : `${fmtInt(r.externas.length)} dependen`} de otro módulo y no se resuelve{r.externas.length === 1 ? "" : "n"} trabajando acá.</>}
       </p>
       <ol className="cmv2-sustento-lista">
         {secciones.map((s) => (
@@ -47,9 +48,10 @@ export function SustentoCoberturaCard({
             <span className="cmv2-sustento-titulo">
               <b>{s.numero}.</b> {s.titulo}
             </span>
-            {/* La fuente literal, para que quien lo mantenga no la adivine, y el
-                motivo cuando falta: un «no disponible» sin razón no sirve. */}
-            <small className="cmv2-sustento-detalle">
+            {/* De dónde sale, en lenguaje llano (el campo literal va en title,
+                para quien lo mantenga), y el motivo cuando falta: un «no
+                disponible» sin razón no sirve. */}
+            <small className="cmv2-sustento-detalle" title={s.disponible ? s.campo : undefined}>
               {s.disponible ? s.fuente : s.falta}
             </small>
           </li>

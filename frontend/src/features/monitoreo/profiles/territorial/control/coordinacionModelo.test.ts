@@ -45,7 +45,7 @@ describe("controlDeCoordinacion", () => {
   it("en UMP la diferencia por manzana se marca cuando no cuadra", () => {
     const col = columnaPlanificada(normalizeAsignacionPlanificada(crudo));
     if (col.tipo !== "columna") throw new Error("esperaba columna");
-    expect(col.porManzana.get("M2")?.declarado?.coordinacion).toEqual({ texto: "Coordinación 3 · Kobo 1", distinto: true });
+    expect(col.porManzana.get("M2")?.declarado?.coordinacion).toEqual({ texto: "Coordinación 3, Kobo 1", distinto: true });
     expect(col.porManzana.get("M1")?.declarado?.coordinacion?.distinto).toBe(false);
     expect(col.resumen).toContain("Coordinación declara 2 UMP; 1 no cuadra con Kobo.");
   });

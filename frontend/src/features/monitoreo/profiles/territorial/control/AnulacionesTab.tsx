@@ -1,5 +1,6 @@
 import { memo, useMemo, useState } from "react";
 import { Loader2, ShieldCheck } from "lucide-react";
+import { EstadoVacio } from "../../../../../components/EstadoVacio";
 import {
   apiMonitoreoTerritorialProductionAnnulmentRevert,
   type MonitoreoState,
@@ -7,9 +8,13 @@ import {
   type MonitoreoTerritorialPhase,
 } from "../../../../../api/client";
 import { fmt } from "../rotulos";
-import { construirAnulaciones, type TarjetaDeAnulacion } from "./anulacionesModel";
+import { construirAnulaciones, type TarjetaDeAnulacion, type TonoDeEstado } from "./anulacionesModel";
 import { RotuloDePestana } from "../navegacion/RotuloDePestana";
 import "./anulaciones.css";
+import { EstadoChip } from "../../../../../components/EstadoChip";
+import type { ChromeStatusTone } from "../../../../../components/ModuleCommandBar";
+
+const TONO_DE_ESTADO: Record<TonoDeEstado, ChromeStatusTone> = { ok: "success", info: "info", alerta: "warn", neutro: "neutral" };
 
 /**
  * Control › Anulaciones (territorial.md §3.12): lo que quedó fuera del conteo
@@ -34,12 +39,15 @@ function AnulacionesTabImpl({
   if (!modelo.activas.length && !modelo.casosFuera) {
     return (
       <section className="mon-anu mon-anu--vacio" data-audit-ready="vacio:sin-anulaciones" aria-label="Anulaciones">
-        <div className="mon-anu-panel mon-anu-vacio">
+        <div className="mon-anu-panel">
           <RotuloDePestana />
-          <ShieldCheck size={20} aria-hidden="true" />
-          <strong>Ningún caso anulado en esta fase</strong>
-          <span>Un caso o la producción de un aplicador se anulan desde Control › Bandeja o Control › Equipo.</span>
-          {modelo.revertidas ? <span>{fmt(modelo.revertidas)} anulaciones revertidas.</span> : null}
+          <EstadoVacio
+            tamano="normal"
+            icono={<ShieldCheck size={18} />}
+            titulo="Ningún caso anulado en esta fase"
+            descripcion="Un caso o la producción de un aplicador se anulan desde Control › Bandeja o Control › Equipo."
+          />
+          {modelo.revertidas ? <p className="mon-anu-revertidas">{fmt(modelo.revertidas)} anulaciones revertidas.</p> : null}
         </div>
       </section>
     );
@@ -150,7 +158,7 @@ function AnulacionesTabImpl({
                   <td>{item.distrito}</td>
                   <td className="is-num">{fmt(item.anuladas)}</td>
                   <td className="is-num">{fmt(item.validasAnuladas)}</td>
-                  <td><span className={`mon-anu-estado is-${item.tono}`}>{item.estadoActual}</span></td>
+                  <td><EstadoChip label={item.estadoActual} tone={TONO_DE_ESTADO[item.tono]} /></td>
                 </tr>
               ))}
             </tbody>

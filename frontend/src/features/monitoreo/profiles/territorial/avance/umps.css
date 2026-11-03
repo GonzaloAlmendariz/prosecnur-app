@@ -35,7 +35,7 @@
 .mon-umps-cabecera h3 {
   margin: 0;
   color: var(--pulso-text);
-  font-size: 14px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-bold);
 }
 
@@ -58,7 +58,7 @@
   background: transparent;
   color: var(--pulso-text-soft);
   font: inherit;
-  font-size: 13px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-semibold);
   cursor: pointer;
 }
@@ -93,7 +93,7 @@
   background: transparent;
   color: var(--pulso-text);
   font: inherit;
-  font-size: 13px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .mon-umps-buscar:focus-within,
@@ -119,7 +119,7 @@
   background: var(--pulso-surface);
   color: var(--pulso-text);
   font: inherit;
-  font-size: 13px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-semibold);
   cursor: pointer;
 }
@@ -157,7 +157,7 @@
 .mon-umps-tabla {
   width: 100%;
   border-collapse: collapse;
-  font-size: 13px;
+  font-size: var(--pulso-type-body-size);
   font-variant-numeric: tabular-nums;
 }
 
@@ -169,7 +169,7 @@
   border-bottom: 1px solid var(--pulso-border);
   background: var(--pulso-surface);
   color: var(--pulso-text-soft);
-  font-size: 10.5px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-bold);
   letter-spacing: 0.06em;
   text-align: left;
@@ -259,14 +259,14 @@
 .mon-ump-ficha-cabecera h3 {
   margin: 0;
   color: var(--pulso-text);
-  font-size: 16px;
+  font-size: var(--pulso-type-title-size);
   font-weight: var(--pulso-weight-bold);
 }
 
 .mon-ump-base {
   margin: 0;
   color: var(--pulso-text-soft);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   font-variant-numeric: tabular-nums;
 }
 
@@ -282,27 +282,9 @@
   cursor: pointer;
 }
 
-.mon-ump-estado {
+/* El estado de la UMP es un EstadoChip del kit (P6): mide su rótulo, no el ancho de la ficha. */
+.mon-ump-ficha > .pulso-estado-chip {
   align-self: flex-start;
-  padding: 2px 9px;
-  border: 1px solid var(--pulso-success-border);
-  border-radius: var(--pulso-radius-chip);
-  background: var(--pulso-success-bg);
-  color: var(--pulso-success-fg);
-  font-size: 12px;
-  font-weight: var(--pulso-weight-semibold);
-}
-
-.mon-ump-estado.is-pendiente {
-  border-color: var(--pulso-warn-border);
-  background: var(--pulso-warn-bg);
-  color: var(--pulso-warn-fg);
-}
-
-.mon-ump-estado.is-subsanada {
-  border-color: var(--pulso-module-monitoring-border);
-  background: var(--pulso-module-monitoring-soft);
-  color: var(--pulso-text);
 }
 
 .mon-ump-cifras {
@@ -316,7 +298,7 @@
 .mon-ump-subtitulo {
   margin: 0;
   color: var(--pulso-text-faint);
-  font-size: 10.5px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-bold);
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -325,13 +307,13 @@
 .mon-ump-cifras dd {
   margin: 2px 0 0;
   color: var(--pulso-text-soft);
-  font-size: 13px;
+  font-size: var(--pulso-type-body-size);
   font-variant-numeric: tabular-nums;
 }
 
 .mon-ump-cifras dd b {
   color: var(--pulso-text);
-  font-size: 20px;
+  font-size: var(--pulso-type-kpi-size);
   font-weight: var(--pulso-weight-bold);
 }
 
@@ -346,7 +328,7 @@
   gap: var(--pulso-space-2);
   margin: 0;
   color: var(--pulso-text-soft);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .mon-ump-enlace {
@@ -384,7 +366,7 @@
   align-items: center;
   padding: 6px 0;
   border-bottom: 1px solid var(--pulso-surface-3);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   font-variant-numeric: tabular-nums;
 }
 
@@ -445,7 +427,12 @@
 
 .mon-ump-curva-eje {
   fill: var(--pulso-text-soft);
-  font-size: 10.5px;
+  font-size: var(--pulso-type-micro-size);
+}
+
+/* El mes del eje de dos líneas (core/ejeDeFechas), sólo donde empieza. */
+.mon-ump-curva-eje.is-mes {
+  font-weight: var(--pulso-weight-bold);
 }
 
 .mon-ump-curva-hito circle {
@@ -456,7 +443,7 @@
 
 .mon-ump-curva-hito text {
   fill: var(--pulso-brand-navy);
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-bold);
 }
 
@@ -490,7 +477,7 @@
   background: var(--pulso-surface);
   color: var(--pulso-text);
   font: inherit;
-  font-size: 13px;
+  font-size: var(--pulso-type-body-size);
   text-align: left;
   cursor: pointer;
 }
@@ -510,7 +497,7 @@
   border-radius: 50%;
   background: var(--pulso-brand-navy);
   color: var(--pulso-surface);
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   font-weight: var(--pulso-weight-bold);
 }
 
@@ -525,7 +512,7 @@
 
 .mon-ump-capitulo-texto small {
   color: var(--pulso-text-soft);
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   font-variant-numeric: tabular-nums;
 }
 
@@ -561,20 +548,6 @@
 
 .mon-ump-tira > span.is-anulado-efectiva {
   background: var(--pulso-danger-fg);
-}
-
-/* Vacío del modo. */
-.mon-umps-vacio {
-  align-items: center;
-  justify-content: center;
-  height: 100%;
-  text-align: center;
-  color: var(--pulso-text-soft);
-}
-
-.mon-umps-vacio strong {
-  color: var(--pulso-text);
-  font-size: 15px;
 }
 
 @media (max-width: 1180px) {
@@ -616,7 +589,7 @@
   font-variant-numeric: tabular-nums;
 }
 
-.mon-umps-planificado-vacio {
+.mon-umps-planificado--vacio {
   color: var(--pulso-text-faint);
 }
 

@@ -14,6 +14,7 @@
  */
 
 import { rotuloDeVariable } from "./modelo/variablesDeCuota";
+import { formatoConteo } from "../../../../lib/formatoNumero";
 
 /**
  * Cómo se muestra el segmento. `nombreDelSegmento` devuelve la clave tal como
@@ -54,6 +55,38 @@ export function nombreDelSegmento(
   return ganadora;
 }
 
+/** Los nombres que, si el estudio los declara, son el eje de sus cuotas. */
+const VARIABLES_DE_EJE = ["sede", "distrito", "grupo", "segmento", "actor"];
+
+function claveDeVariable(valor: string) {
+  return valor.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+}
+
+/**
+ * LA variable de cuota del corte, una sola para toda la pantalla: Avance ›
+ * Cuotas pinta sus tarjetas con ella, Ritmo dibuja su serie y la barra la
+ * nombra. Antes Cuotas elegía la primera con meta (con prioridad a sede,
+ * distrito, grupo, segmento o actor) y Ritmo la más frecuente de todas: con
+ * metas por sexo y un listado por sede, Cuotas mostraba sexo y Ritmo sede, dos
+ * cortes de la misma cuota en la misma pantalla.
+ *
+ * Regla: entre las variables con alguna meta (todas, si ninguna la tiene), la
+ * de nombre de eje si la hay; si no, la más frecuente; ante empate, la primera
+ * en el orden del motor, que es el de `control_vars`.
+ */
+export function variableDeCuotas(
+  filas: ReadonlyArray<{ variable: unknown; meta?: unknown }>,
+  porDefecto = "Cuota",
+): string {
+  const conMeta = filas.filter((fila) => {
+    const meta = Number(fila.meta);
+    return fila.meta != null && fila.meta !== "" && Number.isFinite(meta) && meta > 0;
+  });
+  const candidatas = (conMeta.length ? conMeta : filas).map((fila) => String(fila.variable ?? "").trim()).filter(Boolean);
+  const deEje = candidatas.find((variable) => VARIABLES_DE_EJE.includes(claveDeVariable(variable)));
+  return deEje ?? nombreDelSegmento(candidatas, porDefecto);
+}
+
 /**
  * El plural del segmento, para los recuentos («2 actores», «2 sedes»).
  *
@@ -76,5 +109,5 @@ export function pluralDelSegmento(nombre: string): string {
 /** «2 actores», «1 sede». */
 export function contarSegmentos(cantidad: number, nombre: string): string {
   const etiqueta = cantidad === 1 ? nombre : pluralDelSegmento(nombre);
-  return `${cantidad.toLocaleString("es-PE")} ${etiqueta.toLocaleLowerCase("es")}`;
+  return `${formatoConteo(cantidad)} ${etiqueta.toLocaleLowerCase("es")}`;
 }

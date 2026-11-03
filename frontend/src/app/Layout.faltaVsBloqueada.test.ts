@@ -42,6 +42,9 @@ describe("el riel de Procesamiento separa faltar de estar bloqueada", () => {
     expect(layout).toMatch(/nota: it\.faltaReason \?\?/);
     const pillbar = fs.readFileSync(path.join(aqui, "../components/SectionPillbar.tsx"), "utf8");
     expect(pillbar).toMatch(/title=\{item\.lockedReason \?\? item\.nota \?\? item\.label\}/);
-    expect(pillbar).toMatch(/item\.lockedReason \?\? item\.nota\}/);
+    // Desde 706d0c130 el motivo entra al aria-label de la píldora junto con su marca
+    // (pendientes o lista), en vez de un span sólo para lector de pantalla.
+    expect(pillbar).toMatch(/\[item\.lockedReason \?\? item\.nota, marca\]/);
+    expect(pillbar).toMatch(/aria-label=\{detalle \? `\$\{item\.label\}\. \$\{detalle\}` : undefined\}/);
   });
 });

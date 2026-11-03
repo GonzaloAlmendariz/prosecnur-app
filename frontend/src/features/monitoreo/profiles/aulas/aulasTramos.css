@@ -28,7 +28,7 @@
 }
 .mon-profile-page.is-aulas-flow .aulas-tramos-cabecera h4 {
   margin: 0;
-  font-size: 13px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: 600;
   color: var(--pulso-text);
 }
@@ -36,7 +36,7 @@
 .mon-profile-page.is-aulas-flow .aulas-tramos-cabecera p {
   grid-column: 1 / -1;
   margin: 0;
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   line-height: 1.45;
   color: var(--pulso-text-soft);
 }
@@ -47,7 +47,7 @@
 .mon-profile-page.is-aulas-flow .aulas-tramos-tabla {
   width: 100%;
   border-collapse: collapse;
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
 }
 .mon-profile-page.is-aulas-flow .aulas-tramos-tabla th {
   text-align: left;
@@ -79,7 +79,7 @@
   border-radius: 6px;
   background: var(--pulso-surface-raised);
   color: var(--pulso-text);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
 }
 
 /* El tramo en curso se señala con un filete al costado, no con un relleno: el
@@ -90,17 +90,11 @@
 .mon-profile-page.is-aulas-flow .aulas-tramos-marca {
   display: inline-block;
   margin-left: 6px;
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: 600;
   letter-spacing: 0.04em;
   text-transform: uppercase;
   color: var(--pulso-accent-steel);
-}
-
-.mon-profile-page.is-aulas-flow .aulas-tramos-vacio {
-  padding: 14px 0;
-  color: var(--pulso-text-soft);
-  font-size: 12px;
 }
 
 .mon-profile-page.is-aulas-flow .aulas-tramos-acciones {
@@ -118,7 +112,7 @@
   border-radius: 7px;
   background: var(--pulso-surface-raised);
   color: var(--pulso-text);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   cursor: pointer;
 }
 .mon-profile-page.is-aulas-flow .aulas-tramos-acciones button:disabled {
@@ -136,7 +130,7 @@
   color: var(--pulso-danger-fg);
 }
 .mon-profile-page.is-aulas-flow .aulas-tramos-nota {
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   color: var(--pulso-text-soft);
 }
 

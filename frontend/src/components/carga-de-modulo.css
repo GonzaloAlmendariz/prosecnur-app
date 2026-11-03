@@ -1,0 +1,17 @@
+/* CargaDeModulo.tsx — rótulo y barra indeterminada en el color del módulo, centrados en
+   el hueco que deja la vista que todavía no llega. */
+.pulso-carga-modulo {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--pulso-space-3);
+  min-height: 260px;
+  padding: var(--pulso-space-5);
+}
+.pulso-carga-modulo-rotulo {
+  font-size: var(--pulso-type-subtitle-size);
+  font-weight: var(--pulso-type-subtitle-weight);
+  color: var(--pulso-text-soft);
+}
+.pulso-carga-modulo .pulso-barra-avance { width: min(240px, 60%); }

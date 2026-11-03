@@ -16,7 +16,7 @@
 .mon-modo-stat small {
   display: block;
   color: var(--pulso-text-faint);
-  font-size: 9.5px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-bold);
   letter-spacing: 0.09em;
   line-height: 1.2;
@@ -27,7 +27,7 @@
 .mon-modo-stat b {
   display: block;
   color: var(--pulso-text);
-  font-size: 13px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-bold);
   line-height: 1.2;
   white-space: nowrap;
@@ -64,7 +64,7 @@
   border-radius: var(--pulso-radius-chip);
   background: var(--pulso-border);
   color: var(--pulso-text);
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   font-style: normal;
   font-weight: var(--pulso-weight-bold);
   font-variant-numeric: tabular-nums;
@@ -101,37 +101,10 @@
   border-right: 0;
 }
 
+/* La región viva del estado: el chip es `EstadoChip` (P6) y el tono lo pone él. */
 .mon-modo-estado {
   display: inline-flex;
   align-items: center;
-  min-height: 26px;
-  padding: 0 10px;
-  border: 1px solid var(--pulso-border);
-  border-radius: var(--pulso-radius-chip);
-  background: var(--pulso-surface);
-  color: var(--pulso-text);
-  font-size: 12px;
-  font-weight: var(--pulso-weight-semibold);
-  white-space: nowrap;
-}
-
-.mon-modo-estado.is-al-dia {
-  border-color: var(--pulso-success-border);
-  background: var(--pulso-success-bg);
-  color: var(--pulso-success-fg);
-}
-
-.mon-modo-estado.is-actualizando,
-.mon-modo-estado.is-preparando {
-  border-color: var(--pulso-primary-border);
-  background: var(--pulso-info-bg);
-  color: var(--pulso-brand-navy);
-}
-
-.mon-modo-estado.is-fallo {
-  border-color: var(--pulso-danger-border);
-  background: var(--pulso-danger-bg);
-  color: var(--pulso-danger-fg);
 }
 
 .mon-commandbar.is-barra-comun .mon-modo-actualizar {
@@ -151,7 +124,7 @@
   background: var(--pulso-module-monitoring);
   color: var(--pulso-surface);
   font: inherit;
-  font-size: 13px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-bold);
   cursor: pointer;
 }
@@ -226,7 +199,7 @@
 
 .mon-commandbar.is-barra-comun .mon-modo-actualizar-lista button small {
   color: var(--pulso-text-soft);
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   font-weight: var(--pulso-weight-medium);
 }
 
@@ -257,7 +230,7 @@
 .mon-modo-actualizar-rotulo {
   padding: var(--pulso-space-2) var(--pulso-space-3) var(--pulso-space-1);
   color: var(--pulso-text-faint);
-  font-size: 9.5px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-bold);
   letter-spacing: 0.09em;
   text-transform: uppercase;

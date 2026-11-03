@@ -17,16 +17,6 @@
   min-width: 0;
 }
 
-.pulso-f6-especial-vacio {
-  margin: 0;
-  padding: var(--pulso-space-2) var(--pulso-space-3);
-  border: 1px dashed var(--pulso-border);
-  border-radius: var(--pulso-radius);
-  font-size: 11px;
-  line-height: 1.45;
-  color: var(--pulso-text-soft);
-}
-
 .pulso-f6-filas {
   display: grid;
   gap: var(--pulso-space-2);
@@ -125,7 +115,7 @@
   max-width: 100%;
   overflow: hidden;
   color: var(--pulso-text-soft);
-  font-size: 10.5px;
+  font-size: var(--pulso-type-micro-size);
   line-height: 1.25;
   text-align: center;
   text-overflow: ellipsis;

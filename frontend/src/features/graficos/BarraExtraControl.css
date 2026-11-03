@@ -18,14 +18,14 @@
 }
 
 .pulso-barra-extra-rotulo {
-  font-size: 12px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: 700;
   color: var(--pulso-text);
 }
 
 .pulso-barra-extra-ayuda {
   grid-column: 1 / -1;
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   line-height: 1.4;
   color: var(--pulso-text-faint);
   overflow-wrap: anywhere;
@@ -44,7 +44,7 @@
   padding: var(--pulso-space-1) var(--pulso-space-3);
   background: var(--pulso-surface);
   color: var(--pulso-text);
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   line-height: 1.35;
   cursor: pointer;
   white-space: normal;
@@ -72,7 +72,7 @@
 .pulso-barra-extra-nota,
 .pulso-barra-extra-estado {
   margin: 0;
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   line-height: 1.4;
   color: var(--pulso-text-faint);
   overflow-wrap: anywhere;

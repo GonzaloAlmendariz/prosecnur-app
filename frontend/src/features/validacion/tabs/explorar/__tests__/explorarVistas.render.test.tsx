@@ -8,6 +8,7 @@ import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import CrossBar from "../../../components/CrossBar";
 import type { ExploradorSeccion } from "../../../types";
 import TablaCalor from "../TablaCalor";
+import TituloCruce, { textoTituloCruce } from "../TituloCruce";
 import PanelDatos from "../PanelDatos";
 import { modeloCalor } from "../explorarModelo";
 import { normalizeExploradorFicha } from "../../../../../api/validacionExplorar";
@@ -59,12 +60,39 @@ test("el selector de cruce lista fecha y abierta y anticipa el gráfico del par"
   expect(opciones[0]).toContain("p14_otro");
 });
 
+test("con una abierta, sólo las únicas se eligen; las demás quedan atenuadas y el pie dice la limitación", () => {
+  const onChange = vi.fn();
+  act(() => root.render(
+    <CrossBar secciones={SECCIONES} selfVar="p14_otro" selfSeccion="General" cruzar={null} onChange={onChange} />,
+  ));
+  act(() => host.querySelector<HTMLButtonElement>("button[aria-haspopup='dialog']")!.click());
+  const panel = document.querySelector<HTMLElement>(".pulso-popover.pulso-crossbar-popover")!;
+  const opciones = Array.from(panel.querySelectorAll<HTMLButtonElement>(".crossbar-opcion"));
+  const por = (codigo: string) => opciones.find((b) => b.textContent?.includes(codigo))!;
+  expect(por("sexo").disabled).toBe(false);
+  expect(por("fecha_ent").disabled).toBe(true);
+  expect(por("edad").disabled).toBe(true);
+  act(() => por("edad").click());
+  expect(onChange).not.toHaveBeenCalled();
+  expect(panel.querySelector(".crossbar-limite")?.textContent).toBe("Una abierta se cruza sólo con una pregunta de selección única.");
+  expect(panel.textContent).not.toMatch(/codific/i);
+});
+
+test("el título de un cruce es el cruce; con rótulos iguales, cada uno lleva su nombre (D1)", () => {
+  act(() => root.render(<TituloCruce x={{ name: "sexo", label: "Sexo" }} y={{ name: "medios", label: "Medios" }} />));
+  expect(host.textContent).toBe("Sexo × Medios");
+  act(() => root.render(<TituloCruce x={{ name: "d1", label: "¿Dónde?" }} y={{ name: "d1_recod", label: "¿Dónde?" }} />));
+  expect(host.textContent).toBe("¿Dónde?d1 × ¿Dónde?d1_recod");
+  expect(host.querySelectorAll(".vx-titulo-nombre")).toHaveLength(2);
+  expect(textoTituloCruce({ name: "a", label: null }, { name: "b", label: "B" })).toBe("a × B");
+});
+
 test("la tabla de calor marca las celdas a 5 puntos del total y deja el Total aparte", () => {
   const modelo = modeloCalor({
-    filas: [{ codigo: "1", etiqueta: "Hombre" }, { codigo: "2", etiqueta: "Mujer" }],
-    columnas: [{ codigo: "a", etiqueta: "Ate", n: 10 }, { codigo: "b", etiqueta: "Breña", n: 10 }],
-    n: [[7, 3], [3, 7]],
-  }, "columna");
+    filas: [{ codigo: "1", etiqueta: "Hombre", n: 100 }, { codigo: "2", etiqueta: "Mujer", n: 100 }],
+    columnas: [{ codigo: "a", etiqueta: "Ate", n: 100 }, { codigo: "b", etiqueta: "Breña", n: 100 }],
+    n: [[70, 30], [30, 70]],
+  }, "columna", 200);
   act(() => root.render(<TablaCalor modelo={modelo} rotuloFilas="Sexo" />));
   expect(host.querySelector("[role='table']")).toBeTruthy();
   expect(host.querySelectorAll("[role='columnheader']")).toHaveLength(4);

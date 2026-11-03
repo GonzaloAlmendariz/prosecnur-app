@@ -19,12 +19,14 @@
  * switch encendido) y el pie ofrece «Ninguna | Todas» como acciones de texto
  * fuera de la prosa, con su altura de control (≥24 px).
  */
+import { Building2 } from "lucide-react";
 import { useMemo } from "react";
 import { PulsoButton } from "../../../../components/PulsoButton";
 import { PulsoSwitch } from "../../../../components/PulsoSwitch";
 import type { CalcMuestraWorkspaceAulasConfig } from "../../../../api/calcMuestra";
 import type { FacultadRef } from "./facultades";
 import { fmtInt } from "../../sharedCore";
+import { EstadoVacio } from "../../../../components/EstadoVacio";
 
 export type FacultadesExcluidasCardProps = {
   config: CalcMuestraWorkspaceAulasConfig;
@@ -87,10 +89,11 @@ export function FacultadesExcluidasCard({
       </div>
 
       {filas.length === 0 ? (
-        <p className="cmv2-facultades-excluidas-vacio">
-          El marco todavía no declara facultades. Construye la base para elegir cuáles
-          quedan fuera.
-        </p>
+        <EstadoVacio
+          icono={<Building2 size={16} aria-hidden="true" />}
+          titulo="El marco todavía no declara facultades"
+          descripcion="Construye la base para elegir cuáles quedan fuera."
+        />
       ) : (
         <>
           <ul

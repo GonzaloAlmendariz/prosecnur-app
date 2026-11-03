@@ -208,7 +208,8 @@ export function normalizeExploradorDist(raw: unknown): ExploradorDist | null {
 export type ExploradorCruceForma = "tabla" | "cajas" | "dispersion" | "serie" | "lista";
 
 export type ExploradorCruceTabla = {
-  filas: { codigo: string; etiqueta: string }[];
+  /** `n`: casos de la base en la fila (no la suma de sus celdas: con una múltiple, un caso está en varias); null en un payload viejo. */
+  filas: { codigo: string; etiqueta: string; n: number | null }[];
   columnas: { codigo: string; etiqueta: string; n: number }[];
   /** n[fila][columna] */
   n: number[][];
@@ -231,7 +232,35 @@ export type ExploradorCrucePunto = {
   baja: number | null;
   alta: number | null;
   serie: string | null;
+  /** Casos de la base ese día (el denominador del % en una múltiple); null en un payload viejo. */
+  n: number | null;
 };
+
+/** La restricción numérica que declara el XLSForm y cuántos casos de la base la incumplen (E8h). */
+export type ExploradorRestriccion = {
+  regla: string;
+  /** «≥ 18 y ≤ 95» */
+  texto: string;
+  /** Cada cota con sus propios incumplimientos: se sombrea sólo el lado que se incumple. */
+  cotas: { op: ">=" | ">" | "<=" | "<"; valor: number; fuera: number }[];
+  fuera: number;
+  /** Códigos especiales declarados (98 «No sabe»…): no son datos imposibles y no cuentan en `fuera`. */
+  especiales: number;
+  n: number;
+};
+
+const OPS = [">=", ">", "<=", "<"] as const;
+
+function restriccion(value: unknown): ExploradorRestriccion | null {
+  const r = registro(value);
+  const regla = texto(r.regla);
+  if (!regla) return null;
+  const cotas = lista(r.cotas)
+    .map((c) => ({ op: texto(c.op) as ExploradorRestriccion["cotas"][number]["op"], valor: numeroONulo(c.valor), fuera: entero(c.fuera) }))
+    .filter((c): c is ExploradorRestriccion["cotas"][number] => (OPS as readonly string[]).includes(c.op) && c.valor !== null);
+  if (!cotas.length) return null;
+  return { regla, texto: texto(r.texto), cotas, fuera: entero(r.fuera), especiales: entero(r.especiales), n: entero(r.n) };
+}
 
 export type ExploradorCruce = {
   tipo_x: ExploradorTipo;
@@ -239,12 +268,21 @@ export type ExploradorCruce = {
   grafico: string;
   forma: ExploradorCruceForma;
   base_n: number;
+  /** Casos que responden cada variable con los mismos filtros; null en un payload viejo. */
+  n_x: number | null;
+  n_y: number | null;
   tabla?: ExploradorCruceTabla;
-  cajas?: { grupos: ExploradorCruceCaja[] };
+  /** `origen`: con una fecha, el día cero ("AAAA-MM-DD") de los «días desde la mínima»; null si no hay fecha. */
+  cajas?: { grupos: ExploradorCruceCaja[]; origen: string | null };
   dispersion?: {
     puntos: [number, number][];
     tendencia: { pendiente: number; intercepto: number } | null;
     n: number;
+    origen: string | null;
+    /** Casos con que se ajusta la tendencia: dentro de las cotas declaradas y sin especiales. */
+    n_tendencia: number;
+    restriccion_x: ExploradorRestriccion | null;
+    restriccion_y: ExploradorRestriccion | null;
   };
   serie?: { puntos: ExploradorCrucePunto[] };
   lista?: { grupos: { etiqueta: string; respuestas: { texto: string; n: number }[] }[] };
@@ -262,7 +300,11 @@ function matriz(value: unknown, nFilas: number, nCols: number): number[][] | nul
 
 function tablaCruce(value: unknown): ExploradorCruceTabla | undefined {
   const t = registro(value);
-  const filas = lista(t.filas).map((f) => ({ codigo: codigo(f.codigo), etiqueta: texto(f.etiqueta) || codigo(f.codigo) }));
+  const filas = lista(t.filas).map((f) => ({
+    codigo: codigo(f.codigo),
+    etiqueta: texto(f.etiqueta) || codigo(f.codigo),
+    n: enteroONulo(f.n),
+  }));
   const columnas = lista(t.columnas).map((c) => ({
     codigo: codigo(c.codigo),
     etiqueta: texto(c.etiqueta) || codigo(c.codigo),
@@ -271,6 +313,12 @@ function tablaCruce(value: unknown): ExploradorCruceTabla | undefined {
   if (!filas.length || !columnas.length) return undefined;
   const n = matriz(t.n, filas.length, columnas.length);
   return n ? { filas, columnas, n } : undefined;
+}
+
+/** Una fecha "AAAA-MM-DD"; cualquier otra cosa (NA, {}, texto suelto) es null y el eje cae a números. */
+function fechaIso(value: unknown): string | null {
+  const t = texto(value);
+  return /^\d{4}-\d{2}-\d{2}$/.test(t) ? t : null;
 }
 
 function punto(value: unknown): [number, number] | null {
@@ -292,6 +340,8 @@ export function normalizeExploradorCruce(raw: unknown): ExploradorCruce | null {
     grafico: texto(r.grafico),
     forma,
     base_n: entero(r.base_n),
+    n_x: enteroONulo(r.n_x),
+    n_y: enteroONulo(r.n_y),
   };
   const tabla = tablaCruce(r.tabla);
   if (tabla) out.tabla = tabla;
@@ -308,6 +358,7 @@ export function normalizeExploradorCruce(raw: unknown): ExploradorCruce | null {
         max: numero(g.max),
         n_atipicos: entero(g.n_atipicos),
       })),
+      origen: fechaIso(cajas.origen),
     };
   }
   const disp = registro(r.dispersion);
@@ -322,6 +373,10 @@ export function normalizeExploradorCruce(raw: unknown): ExploradorCruce | null {
       puntos,
       tendencia: pendiente !== null && intercepto !== null ? { pendiente, intercepto } : null,
       n: enteroONulo(disp.n) ?? puntos.length,
+      origen: fechaIso(disp.origen),
+      n_tendencia: enteroONulo(disp.n_tendencia) ?? enteroONulo(disp.n) ?? puntos.length,
+      restriccion_x: restriccion(disp.restriccion_x),
+      restriccion_y: restriccion(disp.restriccion_y),
     };
   }
   const serie = registro(r.serie);
@@ -334,6 +389,7 @@ export function normalizeExploradorCruce(raw: unknown): ExploradorCruce | null {
           baja: numeroONulo(p.baja),
           alta: numeroONulo(p.alta),
           serie: textoONulo(p.serie),
+          n: enteroONulo(p.n),
         }))
         .filter((p): p is ExploradorCrucePunto => !!p.fecha && p.valor !== null),
     };

@@ -67,15 +67,16 @@ export function reciboDeSync(resultado: unknown, recalculo: { ok: true } | { ok:
     ...errores.map((error) => `${error.etiqueta}: falló`),
   ];
   if (!filas.length && errores.length) {
-    return { tono: "error", mensaje: "No se pudo actualizar", detalle: partes.join(" · ") };
+    return { tono: "error", mensaje: "No se pudo actualizar", detalle: partes.join(", ") };
   }
   if (!recalculo.ok) {
-    return { tono: "error", mensaje: "Se trajo, pero falló el recálculo", detalle: [...partes, recalculo.mensaje].filter(Boolean).join(" · ") };
+    return { tono: "error", mensaje: "Se trajo, pero falló el recálculo", detalle: [partes.join(", "), recalculo.mensaje].filter(Boolean).join(". ") };
   }
-  partes.push("Recalculado");
+  // Lo leído es una lista; el recálculo es otro dato y va en su propia frase.
+  const detalle = [partes.join(", "), "Recalculado"].filter(Boolean).join(". ");
   return errores.length
-    ? { tono: "aviso", mensaje: "Actualizado en parte", detalle: partes.join(" · ") }
-    : { tono: "exito", mensaje: "Actualizado", detalle: partes.join(" · ") };
+    ? { tono: "aviso", mensaje: "Actualizado en parte", detalle }
+    : { tono: "exito", mensaje: "Actualizado", detalle };
 }
 
 /** Recibo del job de hojas (`/api/monitoreo/sheets/sync`), que sólo devuelve el total. */
@@ -85,9 +86,9 @@ export function reciboDeHojas(resultado: unknown, cuantas: number, recalculo: { 
   const hojas = cuantas === 1 ? "1 hoja de Sheets" : `${cuantas} hojas de Sheets`;
   const leidas = Number.isFinite(filas) ? `${hojas}: ${miles(filas)} registros` : hojas;
   if (!recalculo.ok) {
-    return { tono: "error", mensaje: "Se trajo, pero falló el recálculo", detalle: [leidas, recalculo.mensaje].filter(Boolean).join(" · ") };
+    return { tono: "error", mensaje: "Se trajo, pero falló el recálculo", detalle: [leidas, recalculo.mensaje].filter(Boolean).join(". ") };
   }
-  return { tono: "exito", mensaje: "Actualizado", detalle: `${leidas} · Recalculado` };
+  return { tono: "exito", mensaje: "Actualizado", detalle: `${leidas}. Recalculado` };
 }
 
 export function reciboDeRecalcular(recalculo: { ok: true } | { ok: false; mensaje: string }): ReciboDelSync {

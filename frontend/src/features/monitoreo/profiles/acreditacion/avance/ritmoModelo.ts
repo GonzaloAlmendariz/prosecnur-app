@@ -67,6 +67,23 @@ export function seriesApiladas(
   return { fechas, capas: finales, totales };
 }
 
+/**
+ * Lo que se dibuja: el calendario hasta el último día con efectivas. La serie
+ * llega hasta el corte para que el ritmo de la última semana sepa que el campo
+ * se detuvo, pero en el gráfico esa cola en cero sólo alargaba el eje con días
+ * vacíos (Gonzalo, 3/11). Los días sin efectivas entre medio sí se quedan. Puro.
+ */
+export function serieDelGrafico(serie: SerieApilada): SerieApilada {
+  let fin = serie.totales.length;
+  while (fin > 1 && !serie.totales[fin - 1]) fin -= 1;
+  if (fin === serie.totales.length) return serie;
+  return {
+    fechas: serie.fechas.slice(0, fin),
+    totales: serie.totales.slice(0, fin),
+    capas: serie.capas.map((capa) => ({ ...capa, valores: capa.valores.slice(0, fin) })),
+  };
+}
+
 /** Los nombres del público como los dice el corte, por clave normalizada. */
 export function nombresDePublicos(actores: ReadonlyArray<Record<string, unknown>>): Map<string, string> {
   return new Map(actores.map((fila) => {

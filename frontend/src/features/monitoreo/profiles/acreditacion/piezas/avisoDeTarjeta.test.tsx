@@ -8,12 +8,12 @@ import { RotuloDePestanaContexto } from "../navegacion/rotuloDePestana";
 describe("avisos, trabas y vacíos del perfil", () => {
   it("la pestaña sin contenido es una tarjeta con su rótulo y el motivo dentro (C3)", () => {
     const html = renderToStaticMarkup(
-      <RotuloDePestanaContexto.Provider value={{ antetitulo: "Control · Casos · Respuestas", chips: [] }}>
+      <RotuloDePestanaContexto.Provider value={{ antetitulo: "Control › Casos › Respuestas", chips: [] }}>
         <PestanaSinContenido titulo="Respuestas recibidas" icono={null} motivo="El corte todavía no trae respuestas." descripcion="Llegan al actualizar." />
       </RotuloDePestanaContexto.Provider>,
     );
     expect(html).toContain("acr-av-panel");
-    expect(html).toContain("Control · Casos · Respuestas");
+    expect(html).toContain("Control › Casos › Respuestas");
     expect(html).toContain("pulso-estado-vacio");
     expect(html).toContain('data-vacio="legitimo"');
   });

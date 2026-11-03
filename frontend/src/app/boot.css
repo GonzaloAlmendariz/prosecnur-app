@@ -823,9 +823,15 @@ input {
   white-space: nowrap;
 }
 
+/* Separador del pie: una línea fina, no un punto medio (Gonzalo, 3 nov 2026). */
 .boot-footer-dot {
-  margin: 0 6px;
-  opacity: 0.55;
+  display: inline-block;
+  width: 1px;
+  height: 0.9em;
+  margin: 0 8px;
+  vertical-align: -0.1em;
+  background: currentColor;
+  opacity: 0.35;
 }
 
 .boot-footer-actions {

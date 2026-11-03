@@ -40,7 +40,7 @@ export function DescuentoSecuencialNarrativa({
       <p className="cmv2-discount-step-count">
         <strong>{fmtInt(narrative.steps.length)}</strong>{" "}
         {narrative.steps.length === 1 ? "paso registrado" : "pasos registrados"}
-        {narrative.steps.length > 8 ? <span> · la lista se desplaza</span> : null}
+        {narrative.steps.length > 8 ? <span>, la lista se desplaza</span> : null}
       </p>
       <ol
           className="cmv2-discount-step-list"
@@ -52,7 +52,7 @@ export function DescuentoSecuencialNarrativa({
             <li key={`${step.code}-${step.step}`} data-qa-geometry-member>
               <div>
                 <small>{sequential ? `Paso ${fmtInt(step.step)} del sorteo` : `Auditoría ${fmtInt(step.step)} post hoc`}</small>
-                <strong>{step.code} · {step.label}</strong>
+                <strong>{step.code}, {step.label}</strong>
                 {step.faculty && <span>{step.faculty}</span>}
               </div>
               <div className="cmv2-discount-step-equation" aria-label={`${valueText(step.bruto)} elegibles brutos, ${valueText(step.yaCubiertos)} ya cubiertos, ${valueText(step.neto)} elegibles netos, ${valueText(step.aporteNeto)} de aporte neto`}>

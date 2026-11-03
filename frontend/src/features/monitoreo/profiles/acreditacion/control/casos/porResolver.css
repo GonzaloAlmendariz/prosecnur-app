@@ -13,7 +13,7 @@
   height: 100%;
   min-height: 0;
   color: var(--pulso-text);
-  font-size: 13px;
+  font-size: var(--pulso-type-body-size);
   line-height: 1.35;
 }
 
@@ -190,7 +190,7 @@
 
 .acr-pr-dato dt {
   color: var(--pulso-text-soft);
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   font-weight: var(--pulso-weight-semibold);
 }
 
@@ -234,7 +234,7 @@
 }
 
 .acr-pr-linea b {
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .acr-pr-linea span {
@@ -296,18 +296,6 @@
   font-variant-numeric: tabular-nums;
 }
 
-.acr-av-chip.is-exact {
-  border-color: var(--pulso-success-border);
-  background: var(--pulso-success-bg);
-  color: var(--pulso-success-fg);
-}
-
-.acr-av-chip.is-possible {
-  border-color: var(--pulso-warn-border);
-  background: var(--pulso-warn-bg);
-  color: var(--pulso-warn-fg);
-}
-
 .acr-pr-buscador {
   display: flex;
   align-items: center;
@@ -351,7 +339,7 @@
 
 .acr-pr-nota span {
   color: var(--pulso-text-soft);
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   font-weight: var(--pulso-weight-semibold);
 }
 
@@ -478,6 +466,6 @@
 .acr-pr-motivo {
   flex: 1 1 100%;
   color: var(--pulso-text-soft);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   text-align: right;
 }

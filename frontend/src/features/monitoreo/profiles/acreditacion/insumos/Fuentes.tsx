@@ -71,7 +71,7 @@ export function FuentesVista({ sources, borrador, totales, foco, onElegir, onInc
   const conRecopiladores = elegida?.fuente.kind === "surveymonkey";
   if (!todas.length) {
     return (
-      <div className="acr-in-fuentes acr-in-fuentes-vacio" data-vacio="legitimo">
+      <div className="acr-in-fuentes" data-vacio="legitimo">
         <section className="acr-av-panel" aria-label="Fuentes del estudio">
           <header className="acr-av-panel-cabecera"><h3>Fuentes</h3></header>
           <VacioDeBloque icono={<Database size={15} />} titulo="El estudio todavía no tiene fuentes conectadas." descripcion="Cada encuesta se declara abajo; el padrón y el barrido, con «Conectar fuente»." />

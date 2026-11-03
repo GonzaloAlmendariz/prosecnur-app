@@ -14,7 +14,7 @@ import type {
   CalcMuestraWorkspace,
 } from "../../../../api/client";
 import { Popover } from "../../../../components/Popover";
-import { EmptyState } from "../../../../components/States";
+import { EstadoVacio } from "../../../../components/EstadoVacio";
 import { calcEPreview } from "../../didactica/motorPreview";
 import { fmtInt, fmtPct, fmtSignedInt, roundUpTo, safeNumber } from "../../sharedCore";
 import { ESCENARIOS_OPINION, UNIVERSITY_FACULTY_COMPONENT_ID } from "../shared/constants";
@@ -32,6 +32,8 @@ import { SwapValor, fmtNum } from "./calculoUi";
 import { resumenTasaEfectividad } from "./estadisticoAula";
 import "../../didactica/didactica.css";
 import "./calculo.css";
+import { EstadoChip } from "../../../../components/EstadoChip";
+import { Panel } from "../../../../components/Panel";
 
 function etapasEscenario(comp: CalcMuestraComponente): FlujoEtapa[] {
   const r = comp.resultado;
@@ -244,7 +246,7 @@ export function EscenarioCard({
             // que no cambia nada no lo detecta ningún test—.
             : precision == null
               ? `Ajuste sobre la fórmula: ${fmtSignedInt(extra)}.`
-              : `Ajuste sobre la fórmula: ${fmtSignedInt(extra)} · precisión estimada con este n: ${fmtPct(precision)}.`}
+              : `Ajuste sobre la fórmula: ${fmtSignedInt(extra)}, precisión estimada con este n: ${fmtPct(precision)}.`}
       </div>
     </article>
   );
@@ -322,19 +324,23 @@ export function CalculoPropuestasTab({
       data-qa-geometry-group="calc-muestra/calculo-propuestas"
       data-qa-geometry-contract="intrinsic"
     >
-      <section className="cmv2-panel cmv2-calc-escenarios-panel" data-qa-geometry-member>
-        <div className="cmv2-panel-head">
-          <strong>Propuestas de muestra</strong>
-          <div className="cmv2-panel-head-actions">
-            <button type="button" className="cmv2-primary" onClick={onCalcular} disabled={!marcoReady || calculando}>
-              {calculando ? <Loader2 size={14} className="pulso-spin" /> : <Calculator size={14} />}
-              {hasCalculation ? "Recalcular muestra" : "Calcular muestra"}
-            </button>
-            <span className="cmv2-pill-soft">
-              {hasCalculation ? "cifras de la calculadora" : marcoReady ? "lista para calcular" : "requiere marco"}
-            </span>
-          </div>
-        </div>
+      <Panel className="cmv2-calc-escenarios-panel" data-qa-geometry-member title="Propuestas de muestra" actions={
+          <>
+            {/* Estado y acción en su sitio (P6): el estado es un EstadoChip y va
+                antes, separado del botón; antes era una píldora pegada a él. */}
+            <div className="cmv2-panel-head-actions">
+              <EstadoChip
+                tone={hasCalculation ? "success" : marcoReady ? "info" : "warn"}
+                label={hasCalculation ? "cifras de la calculadora" : marcoReady ? "lista para calcular" : "requiere marco"}
+              />
+              <span className="cmv2-panel-head-separador" aria-hidden="true" />
+              <button type="button" className="cmv2-primary" onClick={onCalcular} disabled={!marcoReady || calculando}>
+                {calculando ? <Loader2 size={14} className="pulso-spin" /> : <Calculator size={14} />}
+                {hasCalculation ? "Recalcular muestra" : "Calcular muestra"}
+              </button>
+            </div>
+          </>
+        }>
         <div className="cmv2-calc-params-elegidos" aria-label="Parámetros elegidos en Diseño">
           <span className="cmv2-calc-params-eyebrow">Parámetros del diseño</span>
           {paramsElegidos.map((param) => (
@@ -346,13 +352,37 @@ export function CalculoPropuestasTab({
           <span className="cmv2-calc-param-nota">Ambas propuestas se ejecutan con estos valores (la Propuesta 2, con la p por facultad).</span>
         </div>
         {!hasCalculation ? (
-          <EmptyState
-            icon={<Calculator size={20} />}
-            title={marcoReady ? "Todavía no hay cálculo de muestra" : "Primero falta validar el marco"}
-            hint={marcoReady
-              ? "Al ejecutar Calcular muestra, cada escenario mostrará su flujo de n fórmula a cursos-horario, con cifras validadas de la calculadora."
-              : "Carga y valida la base institucional para que el cálculo no dependa de números escritos a mano."}
-          />
+          <div className="cmv2-calc-preflight">
+            <EstadoVacio
+              icono={<Calculator size={16} aria-hidden="true" />}
+              titulo={marcoReady ? "Todavía no hay cálculo de muestra" : "Primero falta validar el marco"}
+              descripcion={marcoReady
+                ? "Calcular muestra llena cada propuesta con su camino del n de fórmula a los cursos-horario, con cifras de la calculadora."
+                : "Carga y valida la base institucional para que el cálculo no dependa de números escritos a mano."}
+            />
+            {/* Las propuestas en esqueleto: el mismo camino de cuatro etapas que
+                pintará el cálculo, sin adelantar ninguna cifra (las etapas
+                llegan vacías porque no hay resultado). */}
+            {marcoReady && componentes.length > 0 ? (
+              <div className="cmv2-calc-escenarios" aria-label="Propuestas por calcular">
+                {componentes.map((comp) => (
+                  <article key={comp.id} className="cmv2-calc-escenario is-esqueleto">
+                    <div className="cmv2-calc-escenario-head">
+                      <div>
+                        <span className="cmv2-eyebrow">{proposalShortLabel(comp)}</span>
+                        <h3>{comp.actor}</h3>
+                      </div>
+                    </div>
+                    <FlujoVertical
+                      etapas={etapasEscenario(comp)}
+                      orientacion="horizontal"
+                      ariaLabel={`Del n de fórmula al plan operativo (${proposalShortLabel(comp)}), por calcular`}
+                    />
+                  </article>
+                ))}
+              </div>
+            ) : null}
+          </div>
         ) : (
           <div className="cmv2-calc-escenarios cmv2-uni-stagger">
             {componentes.map((comp) => {
@@ -374,14 +404,10 @@ export function CalculoPropuestasTab({
             })}
           </div>
         )}
-      </section>
+      </Panel>
 
       {cuotasRows.length > 0 && (
-        <section className="cmv2-panel cmv2-calc-cuotas-panel">
-          <div className="cmv2-panel-head">
-            <strong>Cuotas por facultad · P2</strong>
-            <span className="cmv2-pill-soft">Propuesta 2 · {fmtInt(totalCuotas)} entrevistas asignadas</span>
-          </div>
+        <Panel className="cmv2-calc-cuotas-panel" title="Cuotas por facultad, P2" hint="Propuesta 2, {fmtInt(totalCuotas)} entrevistas asignadas">
           {cuotasComp && <CadenaAfijacion comp={cuotasComp} rows={cuotasRows} />}
           <FormulaLatex
             expression={String.raw`n_h = n \cdot \tfrac{N_h}{N}`}
@@ -419,7 +445,7 @@ export function CalculoPropuestasTab({
           <p className="cmv2-calc-cuotas-nota">
             Los cursos-horario requeridos se confirman en su pestaña. La composición P1/P2 completa vive en «Distribución».
           </p>
-        </section>
+        </Panel>
       )}
     </div>
   );

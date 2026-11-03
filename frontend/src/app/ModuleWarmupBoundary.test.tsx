@@ -15,14 +15,17 @@ function fallback(path: string) {
 }
 
 describe("warm start de módulo (L23)", () => {
-  it("muestra tiempo y la silueta de la vista destino, no un porcentaje", () => {
+  it("muestra tiempo, la silueta de la vista destino y la barra en el color del módulo, no un porcentaje", () => {
     const html = fallback("/monitoreo?modo=territorial&seccion=avance");
     expect(html).toContain('class="pulso-module-warmup"');
     expect(html).toContain("Transcurrido");
     expect(html).toContain("0:00");
     expect(html).toContain('data-vista-skeleton="modulo"');
     expect(html).not.toMatch(/\d+%/);
-    expect(html).not.toContain('role="progressbar"');
+    // Gonzalo, 3 nov 2026: la carga lleva la barra animada en el color del módulo; sigue sin
+    // pintar un porcentaje. Sin avance medido (fallback) es indeterminada.
+    expect(html).toContain("pulso-barra-avance pulso-barra-avance--indeterminada");
+    expect(html).toContain('style="--module-accent:');
   });
 
   it("la silueta no es la vista: oculta a lectores y sin marca de readiness", () => {

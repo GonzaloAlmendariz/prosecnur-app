@@ -129,7 +129,7 @@ export function AulasOperationsPanel({
   const esperando = !hayPlan && origen?.selection_run_id
     ? Number(origen.unidades_disponibles) || 0
     : 0;
-  const sourceKinds = Array.from(new Set(activeSources.map((source) => source.kind).filter(Boolean))).join(" · ") || "sin fuentes";
+  const sourceKinds = Array.from(new Set(activeSources.map((source) => source.kind).filter(Boolean))).join(", ") || "sin fuentes";
   const cards = [
     {
       key: "seleccion",
@@ -153,7 +153,7 @@ export function AulasOperationsPanel({
       hint: config?.selection_run_id
         ? aulasOpsShortId(config.selection_run_id)
         : hayPlan
-          ? `${filasDelPlan} del libro · sin corrida de cálculo`
+          ? `${filasDelPlan} del libro, sin corrida de cálculo`
           : esperando
             ? `${fmt(esperando)} cursos-horario sorteados sin traer`
             : "el cálculo de muestra todavía no sorteó aulas",
@@ -395,7 +395,7 @@ export function AulasOperationsPanel({
         />
         {/* El plural iba fijo, y con una sola fuente —el caso corriente de un
             estudio de aulas— la barra decía «1 fuentes activas». */}
-        <em>{activeSources.length ? `${contar(activeSources.length, "fuente activa", "fuentes activas")} · ${sourceKinds}` : "Sin fuentes activas conectadas"}</em>
+        <em>{activeSources.length ? `${contar(activeSources.length, "fuente activa", "fuentes activas")}, ${sourceKinds}` : "Sin fuentes activas conectadas"}</em>
       </div>
       {/* El destino de las dos acciones de Sheets: se pega UNA vez y queda
           recordado en el proyecto (decisión textual de Gonzalo). Va después de

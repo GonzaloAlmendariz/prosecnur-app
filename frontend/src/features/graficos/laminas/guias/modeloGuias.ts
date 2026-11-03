@@ -62,12 +62,12 @@ export const rotuloDeRol = (rol: string): string => (esRol(rol) ? ROTULO_ROL[rol
 
 export const aCm = (pulgadas: number): number => pulgadas * CM_POR_PULGADA;
 
-const decimal = (v: number, decimales: number): string => v.toFixed(decimales).replace(".", ",");
+const decimal = (v: number, decimales: number): string => v.toFixed(decimales);
 
-/** «0,46 cm». */
+/** «0.46 cm» (es-PE: punto decimal, como el resto de la app). */
 export const formatoCm = (pulgadas: number): string => `${decimal(aCm(pulgadas), 2)} cm`;
 
-/** «24 pt», «10,5 pt». */
+/** «24 pt», «10.5 pt». */
 export const formatoPt = (pt: number): string => `${Number.isInteger(pt) ? String(pt) : decimal(pt, 1)} pt`;
 
 /** La caja de una forma, o `null` si alguna medida falta o no tiene superficie. */

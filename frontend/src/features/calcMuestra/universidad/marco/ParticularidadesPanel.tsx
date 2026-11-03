@@ -22,6 +22,7 @@ import {
   setNotaParticularidad,
   type ParticularidadDecisionValor,
 } from "./particularidadesModel";
+import { EstadoVacio } from "../../../../components/EstadoVacio";
 
 type Decisiones = Record<string, CalcMuestraParticularidadDecision>;
 
@@ -126,9 +127,9 @@ function SeccionHead({
       <strong>{titulo}</strong>
       <span className="cmv2-partic-summary-counts">
         {fmtInt(countTotal)} {countTotal === 1 ? "detectado" : "detectados"}
-        {resumen.excluir > 0 ? ` · ${fmtInt(resumen.excluir)} a excluir` : ""}
+        {resumen.excluir > 0 ? `, ${fmtInt(resumen.excluir)} a excluir` : ""}
         {resumen.pendientes > 0 && resumen.pendientes < resumen.total
-          ? ` · ${fmtInt(resumen.pendientes)} sin decidir`
+          ? `, ${fmtInt(resumen.pendientes)} sin decidir`
           : ""}
       </span>
     </header>
@@ -174,21 +175,17 @@ export function ParticularidadesPanel({
       </header>
 
       {!particularidades ? (
-        <div className="cmv2-partic-empty">
-          <Radar size={18} aria-hidden="true" />
-          <p>
-            El marco vigente no trae el análisis de particularidades (se construyó con una versión
-            anterior del motor). Reconstruye el marco para detectarlas.
-          </p>
-        </div>
+        <EstadoVacio
+          icono={<Radar size={16} aria-hidden="true" />}
+          titulo="Este marco no trae el análisis de particularidades"
+          descripcion="Se construyó con una versión anterior del motor. Reconstruye el marco para detectarlas."
+        />
       ) : !haySenales ? (
-        <div className="cmv2-partic-empty">
-          <Radar size={18} aria-hidden="true" />
-          <p>
-            Sin señales detectadas en este marco: ningún curso multi-facultad, código Z ni nombre de
-            tesis, y el tipo de curso no muestra agrupamiento.
-          </p>
-        </div>
+        <EstadoVacio
+          icono={<Radar size={16} aria-hidden="true" />}
+          titulo="Sin señales detectadas en este marco"
+          descripcion="Ningún curso multi-facultad, código Z ni nombre de tesis, y el tipo de curso no muestra agrupamiento."
+        />
       ) : (
         <div className="cmv2-partic-sections">
           {dominante ? (
@@ -237,7 +234,7 @@ export function ParticularidadesPanel({
                     titulo={row.curso}
                     meta={
                       row.facultades.length
-                        ? `${fmtInt(row.n_facultades)} facultades · ${row.facultades.join(" · ")}`
+                        ? `${fmtInt(row.n_facultades)} facultades: ${row.facultades.join(", ")}`
                         : `${fmtInt(row.n_facultades)} facultades`
                     }
                     decisiones={decisiones}

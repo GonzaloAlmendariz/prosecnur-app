@@ -66,7 +66,7 @@ export function PresetCanonicoButton({
             <ul className="cmv2-crit-preset-list">
               {restrictivos.map((item) => (
                 <li key={item.variableId}>
-                  <strong>{item.label}</strong> · {item.detalle}
+                  <strong>{item.label}</strong>, {item.detalle}
                 </li>
               ))}
             </ul>

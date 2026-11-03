@@ -82,14 +82,17 @@ export function celdaEnFrase(raw: unknown): string {
 }
 
 /**
- * El aplicador como lo muestra hoy la app: código y nombre («P132 · Nombre»).
- * Mostrar sólo el código queda como pregunta abierta para Gonzalo (plan T2).
+ * El aplicador como lo muestra hoy la app: código y nombre («P132, Nombre»).
+ * El motor lo publica pegado con punto medio («P132 · Nombre»); en pantalla
+ * se une con coma (P3 de la pasada de formato). Mostrar sólo el código queda
+ * como pregunta abierta para Gonzalo (plan T2).
  */
 export function rotuloDeAplicador(raw: unknown): string {
   const texto = String(raw ?? "").trim();
   if (!texto) return "—";
-  if (/^(sin responsable|sin asignar|no asignado)$/i.test(texto.split(/\s*·\s*/)[0]?.trim() ?? "")) return "Sin asignar";
-  return texto;
+  const partes = texto.split(/\s*·\s*/).map((parte) => parte.trim()).filter(Boolean);
+  if (/^(sin responsable|sin asignar|no asignado)$/i.test(partes[0] ?? "")) return "Sin asignar";
+  return partes.join(", ");
 }
 
 /** «UMP 143» o «143» → «143». */
@@ -142,14 +145,4 @@ export function fechaYHoraDeLima(raw: unknown): string {
   const lima = new Date(fecha.getTime() - 5 * 3_600_000);
   const dos = (valor: number) => String(valor).padStart(2, "0");
   return `${dos(lima.getUTCDate())}/${dos(lima.getUTCMonth() + 1)} ${dos(lima.getUTCHours())}:${dos(lima.getUTCMinutes())}`;
-}
-
-/**
- * «a, b y c»: une datos en una frase en vez de pegarlos con «·» (estándar §2,
- * escritura profesional). Ignora los vacíos.
- */
-export function enumerar(partes: ReadonlyArray<string | null | undefined | false>): string {
-  const limpias = partes.map((parte) => (parte ? String(parte).trim() : "")).filter(Boolean);
-  if (limpias.length <= 1) return limpias[0] ?? "";
-  return `${limpias.slice(0, -1).join(", ")} y ${limpias.at(-1)}`;
 }

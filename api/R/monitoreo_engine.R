@@ -3833,14 +3833,8 @@ monitoreo_normalize_config <- function(config = list(), data = NULL, previous_co
       if (is.finite(meta_pct) && meta_pct >= 0) {
         goal$meta_pct <- as.numeric(meta_pct)
       }
-      # `objetivo` declara si el actor se barre entero o si el minimo ES el
-      # acuerdo. La meta siempre fue un PISO interno, no el objetivo: sin este
-      # campo la UI daba por cerrado a un actor con universo por trabajar.
-      # Campo nuevo => whitelist explicita, o no sobrevive el round-trip .pulso.
-      objetivo <- .monitoreo_scalar(g$objetivo %||% g$objective %||% "", "")
-      if (objetivo %in% c("barrido", "minimo")) {
-        goal$objetivo <- objetivo
-      }
+      # `objetivo` y `caracter` (ADR 0126): whitelist en monitoreo_cuotas_caracter.R.
+      goal <- .monitoreo_goal_declarado(goal, g)
       goals[[length(goals) + 1L]] <- goal
     }
   }
@@ -15048,7 +15042,7 @@ monitoreo_territorial_reportes <- function(data, cfg, hojas_ruta_context = NULL,
     advance = advance,
     # Por cuotas el avance es por zona y celda, no por UMP (monitoreo_territorial_cuotas.R).
     cuotas = if (identical(context$envio_kind %||% "", "cuotas")) monitoreo_territorial_avance_cuotas(
-      list(kind = "cuotas", zonas = context$zonas %||% list()), audit, context$asignacion_zonas %||% list()) else NULL,
+      list(kind = "cuotas", zonas = context$zonas %||% list()), audit, context$asignacion_zonas %||% list(), sin_nombres = identical(.monitoreo_territorial_code_format(tcfg$enumerator_roster$code_format %||% "PXXX"), "DNI")) else NULL,
     source_coherence = list(
       asset_uid = .monitoreo_scalar(kobo_schema$asset_uid %||% tcfg$asset_uid, ""),
       asset_name = .monitoreo_scalar(kobo_schema$name %||% tcfg$kobo_asset_name, ""),

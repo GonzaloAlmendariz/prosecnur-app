@@ -10,6 +10,7 @@ import {
   type SelectionMapChain,
   type SelectionMapNode,
 } from "./classroomSelectionMapModel";
+import { Panel } from "../../../../components/Panel";
 import "./classroomSelectionMap.css";
 
 import { EQUIVALENCIA_ETIQUETAS, GLOSA_ESTRATO } from "./equivalenciaEtiquetas";
@@ -122,14 +123,14 @@ export function ClassroomSelectionMapWorkspace({
       data-qa-geometry-group="aulas-mapa-inspector"
       data-qa-geometry-contract="intrinsic"
     >
-      <section className="cmv2-panel cmv2-aulas-panel cmv2-selection-map-panel" data-qa-geometry-member>
-        <div className="cmv2-subhead">
-          <div>
-            <strong>Mapa completo de la muestra</strong>
-            <small>Cada CH conserva toda su ruta R n.1 → R n.2 → …; selecciona cualquier nodo para inspeccionarlo.</small>
-          </div>
-          <Map size={18} aria-hidden="true" />
-        </div>
+      <Panel
+        className="cmv2-aulas-panel cmv2-selection-map-panel"
+        aria-labelledby="cmv2-selection-map-titulo"
+        title={<span id="cmv2-selection-map-titulo">Mapa completo de la muestra</span>}
+        hint="Cada CH conserva toda su ruta R n.1 → R n.2 → …; selecciona cualquier nodo para inspeccionarlo."
+        actions={<Map size={18} aria-hidden="true" />}
+        data-qa-geometry-member
+      >
         <div
           className="cmv2-selection-map-summary"
           data-qa-geometry-group="aulas-mapa-resumen"
@@ -182,7 +183,7 @@ export function ClassroomSelectionMapWorkspace({
                   {item.kind === "group" ? (
                     <div className="cmv2-selection-map-faculty">
                       <strong>{item.group.faculty}</strong>
-                      <span>{fmtInt(item.group.chains.length)} CH · {fmtInt(item.group.chains.reduce((total, chain) => total + chain.reserves.length, 0) + item.group.unlinkedReserves.length)} reemplazos</span>
+                      <span>{fmtInt(item.group.chains.length)} CH, {fmtInt(item.group.chains.reduce((total, chain) => total + chain.reserves.length, 0) + item.group.unlinkedReserves.length)} reemplazos</span>
                     </div>
                   ) : item.kind === "chain" ? (
                     <MapChainRow chain={item.chain} selectedRow={selectedRow} onInspect={onInspect} />
@@ -198,7 +199,7 @@ export function ClassroomSelectionMapWorkspace({
             })}
           </div>
         </div>
-      </section>
+      </Panel>
       {selectedRow && (
         <div className="cmv2-selection-map-inspector" data-qa-geometry-member>
           <AulaInspectorPanel

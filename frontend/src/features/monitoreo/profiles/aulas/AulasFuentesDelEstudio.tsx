@@ -50,11 +50,11 @@ function Fuente({ source, filas, columnas }: {
           <span>{activa ? "activa" : "apagada"}</span>
         </p>
         <p className="aulas-fuente-servicio">
-          {servicioDeFuente(source)} · {papel}
+          {servicioDeFuente(source)}, {papel}
           {filas ? (
             <span className="aulas-fuente-volumen">
               {new Intl.NumberFormat("es-PE").format(filas)} filas
-              {columnas ? ` · ${contar(columnas, "columna", "columnas")}` : ""}
+              {columnas ? `, ${contar(columnas, "columna", "columnas")}` : ""}
             </span>
           ) : null}
         </p>
@@ -211,7 +211,7 @@ function LibroDelOperativo({ recibo }: { recibo: ReciboDelLibro }) {
           {recibo.control_sin_nombre ? (
             // Ya hay un control en Validación que lo avisa; aquí va el número
             // porque es una propiedad del libro, no del estudio.
-            <em> · {recibo.control_sin_nombre} columnas sin nombre en la hoja</em>
+            <em>, {recibo.control_sin_nombre} columnas sin nombre en la hoja</em>
           ) : null}
         </p>
         {/* Se nombran los campos, no se cuentan: «falta el teléfono del

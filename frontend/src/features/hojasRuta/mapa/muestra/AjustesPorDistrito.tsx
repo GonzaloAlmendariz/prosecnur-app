@@ -68,7 +68,7 @@ export function AjustesPorDistrito({ config, filas, bloqueado }: { config: Hojas
   return (
     <details className="hr-muestra-ajustes" open={ajustados > 0 || undefined}>
       <summary>
-        Ajustes por distrito{ajustados ? ` · ${ajustados}` : ""} <small>(opcional)</small>
+        Ajustes por distrito{ajustados ? ` (${ajustados})` : ""} <small>(opcional)</small>
       </summary>
       <p className="hr-mapa-nota">
         Si un distrito necesita menor margen o tiene otro diseño de campo, ajústalo aquí. En blanco vale el general: ±

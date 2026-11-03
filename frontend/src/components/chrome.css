@@ -278,7 +278,9 @@
   opacity: 1;
 }
 
-.pulso-chrome-status-chip:not(:disabled):hover {
+/* Sólo el chip que es botón reacciona al puntero: el de estado (`<span>`, EstadoChip sin
+   onSelect) conserva su tono. */
+button.pulso-chrome-status-chip:not(:disabled):hover {
   border-color: var(--pulso-border-strong);
   background: var(--pulso-surface);
 }

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
-import { anchoPorDia, ANCHO_DE_ROTULO_DE_FECHA, DIAS_DE_LA_VENTANA, Minibarras, PASO_MAXIMO_POR_DIA, rotulosDeFecha } from "./graficosDeAvance";
+import { anchoPorDia, ANCHO_DEL_DIA, ejeDeFechas, DIAS_DE_LA_VENTANA, Minibarras, PASO_MAXIMO_POR_DIA, rotulosDeFecha } from "./graficosDeAvance";
 
 describe("Avance › una barra es un día", () => {
   it("el primer día de campo no ocupa la ventana de 14 días entera", () => {
@@ -22,22 +22,31 @@ describe("Avance › una barra es un día", () => {
 });
 
 describe("Avance › rótulos de fecha que no se montan", () => {
-  it("dos días con barras de tope llevan rótulo centrado y no se pisan", () => {
-    const rotulos = rotulosDeFecha(2, PASO_MAXIMO_POR_DIA, false);
-    // 44 px por día alcanzan para «29 oct» y «30 oct» centrados bajo su barra.
-    expect(rotulos).toEqual([{ indice: 0, anclaje: "middle" }, { indice: 1, anclaje: "middle" }]);
+  it("dos días con barras de tope llevan rótulo y no se pisan", () => {
+    expect(rotulosDeFecha(2, PASO_MAXIMO_POR_DIA)).toEqual([{ indice: 0 }, { indice: 1 }]);
   });
 
-  it("con días anchos rotula todos, y si llenan el ancho ancla los extremos", () => {
-    expect(rotulosDeFecha(3, 120, true)).toEqual([
-      { indice: 0, anclaje: "start" }, { indice: 1, anclaje: "middle" }, { indice: 2, anclaje: "end" },
+  it("con días anchos rotula todos", () => {
+    expect(rotulosDeFecha(3, 120)).toEqual([{ indice: 0 }, { indice: 1 }, { indice: 2 }]);
+  });
+
+  it("el eje lleva el día en cada barra y el mes sólo donde empieza", () => {
+    const fechas = ["2026-10-29", "2026-10-30", "2026-10-31", "2026-11-01", "2026-11-02"];
+    expect(ejeDeFechas(fechas, PASO_MAXIMO_POR_DIA)).toEqual([
+      { indice: 0, dia: "29", mes: "oct" }, { indice: 1, dia: "30", mes: null }, { indice: 2, dia: "31", mes: null },
+      { indice: 3, dia: "1", mes: "nov" }, { indice: 4, dia: "2", mes: null },
     ]);
   });
 
+  it("dos meses demasiado juntos dejan sólo el más nuevo", () => {
+    const rotulos = ejeDeFechas(["2026-10-31", "2026-11-01", "2026-11-02"], 20);
+    expect(rotulos.map((rotulo) => rotulo.mes)).toEqual([null, "nov", null]);
+  });
+
   it("muchos días angostos: un rótulo cada tanto, nunca más cerca que su ancho", () => {
-    const rotulos = rotulosDeFecha(60, 10, true);
+    const rotulos = rotulosDeFecha(60, 10);
     const xs = rotulos.map((rotulo) => rotulo.indice * 10);
-    for (let i = 1; i < xs.length; i += 1) expect(xs[i] - xs[i - 1]).toBeGreaterThanOrEqual(ANCHO_DE_ROTULO_DE_FECHA);
+    for (let i = 1; i < xs.length; i += 1) expect(xs[i] - xs[i - 1]).toBeGreaterThanOrEqual(ANCHO_DEL_DIA);
     expect(rotulos[0].indice).toBe(0);
   });
 });

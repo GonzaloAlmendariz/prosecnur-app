@@ -7,9 +7,10 @@ import type { AcreditacionPhoneSourceContract } from "../TelefonicoSourcesModel"
 import { columnasQueSeLeen, filasDeFuentes } from "./fuentesModel";
 import "../control/controlTelefonico.css";
 import "./insumosTelefonico.css";
+import { formatoConteo } from "../../../../../lib/formatoNumero";
 
 function n(valor: number) {
-  return valor.toLocaleString("es-PE");
+  return formatoConteo(valor);
 }
 
 /**
@@ -159,7 +160,7 @@ export function Fuentes({
                 <tr key={`${columna.pieza}-${columna.dato}`}>
                   <th scope="row">{columna.pieza}</th>
                   <td>{columna.rotulo}</td>
-                  <td>{columna.declarada ? <code>{columna.columna}</code> : <span className="mon-fuentes-por-nombre">se busca por nombre</span>}</td>
+                  <td>{columna.declarada ? <data value={columna.columna}>{columna.columna}</data> : <span className="mon-fuentes-por-nombre">se busca por nombre</span>}</td>
                 </tr>
               ))}
             </tbody>

@@ -287,6 +287,17 @@ describe("V4 · avisos en región viva", () => {
   });
 });
 
+describe("ficha de la corrida: los metadatos técnicos se parten donde se leen (P2)", () => {
+  it("la barra cierra su tramo y la fecha de R no se parte en el guion", () => {
+    const c = corrida();
+    c.corrida.r_version = "R version 4.5.1 (2025-06-13)";
+    const html = renderToStaticMarkup(<FichaCorrida corrida={c} componente={CALCULADO} />);
+    expect(html).toContain("<span>Mersenne-Twister/<wbr/></span><span>Inversion/<wbr/></span><span>Rejection</span>");
+    expect(html).toContain('R version 4.5.1 <span class="cmg-traza-sin-corte">(2025-06-13)</span>');
+    expect(html).toContain('<h3 class="pulso-panel-title"><span id="cmg-ficha-titulo" class="cmv2-uni-swap">');
+  });
+});
+
 describe("V14/V17 · CSS de la mesa", () => {
   const css = fs.readFileSync(path.join(__dirname, "..", "mesa.css"), "utf8");
 

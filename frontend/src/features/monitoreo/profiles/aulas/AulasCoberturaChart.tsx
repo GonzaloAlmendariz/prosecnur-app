@@ -183,7 +183,7 @@ export function AulasCoberturaChart({
   // El balance en personas: lo de hoy y lo que da la agenda. Sobre las MISMAS
   // filas que el resto del panel, así que con una facultad en foco es la suya.
   const balance = balanceDeLaCobertura(filas, cuota ?? null);
-  const detalle = tramos.map((t) => `${t.etiqueta}: ${fmt(t.aulas)}`).join(" · ");
+  const detalle = tramos.map((t) => `${t.etiqueta}: ${fmt(t.aulas)}`).join(", ");
 
   return (
     // C1: quién posee el espacio interior del panel (ver AulasEstadoChart).
@@ -257,7 +257,7 @@ export function AulasCoberturaChart({
             /* No se calla la ausencia ni se rellena con la prevista: con dos
                aulas aplicadas no hay tasa observada, y decir cuál es el umbral
                es lo que evita que el hueco se lea como un fallo. */
-            <>{" "}· todavía sin tasa propia: hacen falta al menos{" "}
+            <>,{" "}todavía sin tasa propia: hacen falta al menos{" "}
             {fmt(MINIMO_PARA_COMPARAR)} cursos-horario aplicados y hay {fmt(tasas.aulas)}</>
           )}
         </p>
@@ -310,7 +310,7 @@ export function AulasCoberturaChart({
                   (balance.conAgendaObservado ?? balance.conAgendaPrevisto) >= balance.cuota
                     ? "es-sobra" : "es-corto"
                 }>
-                  {" "}· la cuota es {fmt(balance.cuota)}
+                  ,{" "}la cuota es {fmt(balance.cuota)}
                   {(balance.conAgendaObservado ?? balance.conAgendaPrevisto) >= balance.cuota
                     ? ": se cierra"
                     : `: faltarían ${fmt(balance.cuota - (balance.conAgendaObservado ?? balance.conAgendaPrevisto))}`}

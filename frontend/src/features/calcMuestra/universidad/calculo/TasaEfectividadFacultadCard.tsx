@@ -18,8 +18,8 @@ import { CurvaRendimientoDiagrama } from "./CurvaRendimientoDiagrama";
 import { estadisticoDelReparto, fraseEstadistico, nombreEstadistico } from "./estadisticoAula";
 import "./tasaFacultad.css";
 
-const pctTasa = (v: number) => `${(v * 100).toFixed(1).replace(".", ",")} %`;
-const coma = (v: number, dec = 2) => v.toFixed(dec).replace(".", ",");
+const pctTasa = (v: number) => `${(v * 100).toFixed(1)} %`;
+const decimalFijo = (v: number, dec = 2) => v.toFixed(dec);
 
 export function TasaEfectividadFacultadCard({
   tasasRaw,
@@ -133,7 +133,7 @@ export function TasaEfectividadFacultadCard({
                   data-origen="historico"
                   title={`Su composición por tamaño (la mezcla de aulas que tiene en el marco) y además su razón observado/esperado: en 2025 aplicó ${f.k != null ? fmtInt(f.k) : "—"} aulas, suficientes para medir si rinde por encima o por debajo de lo que su tamaño predice.`}
                 >
-                  composición × razón O/E 2025 · k={f.k != null ? fmtInt(f.k) : "—"}
+                  composición × razón O/E 2025, k={f.k != null ? fmtInt(f.k) : "—"}
                 </span>
               ) : origen === "general" ? (
                 /* Sin histórico la tasa no se deriva de nada: es la de
@@ -152,7 +152,7 @@ export function TasaEfectividadFacultadCard({
                   data-origen="mix"
                   title="Aplicó menos de 12 aulas en 2025, así que no se le estima una razón observado/esperado propia (sobre tan pocos casos sería ruido) y se fija en 1: rinde lo que su tamaño predice. La función de efectividad según tamaño sí sale del histórico; lo propio de esta facultad es su composición por tamaño."
                 >
-                  composición por tamaño · sin razón propia
+                  composición por tamaño, sin razón propia
                 </span>
               )}
             </div>
@@ -168,11 +168,11 @@ export function TasaEfectividadFacultadCard({
               // efectivas, y la cuota se divide entre eso.
               <div
                 className="cmv2-tasafac-cuenta"
-                title={`El aula típica de la facultad —${nombreDivisor}— rinde ${Number.isInteger(f.p25) ? fmtInt(f.p25) : coma(f.p25, 1)} alumnos × ${pctTasa(f.tasa)} ≈ ${coma(f.p25 * f.tasa, 1)} efectivas; la cuota se divide entre eso.`}
+                title={`El aula típica de la facultad —${nombreDivisor}— rinde ${Number.isInteger(f.p25) ? fmtInt(f.p25) : decimalFijo(f.p25, 1)} alumnos × ${pctTasa(f.tasa)} ≈ ${decimalFijo(f.p25 * f.tasa, 1)} efectivas; la cuota se divide entre eso.`}
               >
                 <span className="cmv2-tasafac-num"><b>{fmtInt(f.cuota)}</b><small>cuota</small></span>
                 <span className="cmv2-tasafac-op">÷</span>
-                <span className="cmv2-tasafac-num"><b>{coma(f.p25 * f.tasa, 1)}</b><small>efectivas por aula típica</small></span>
+                <span className="cmv2-tasafac-num"><b>{decimalFijo(f.p25 * f.tasa, 1)}</b><small>efectivas por aula típica</small></span>
                 <span className="cmv2-tasafac-op">→</span>
                 <span className="cmv2-tasafac-num cmv2-tasafac-res"><b>{fmtInt(f.cupos)}</b><small>{f.cupos === 1 ? "titular" : "titulares"}</small></span>
               </div>
@@ -195,7 +195,7 @@ export function TasaEfectividadFacultadCard({
                   <>
                     <span className="cmv2-tasafac-op">×</span>
                     <span className="cmv2-tasafac-factor">
-                      <b>{coma(f.residual, 2)}</b>
+                      <b>{decimalFijo(f.residual, 2)}</b>
                       <small>
                         {f.residual > 1 ? "rindió más que su tamaño" : "rindió menos que su tamaño"} en {f.k != null ? `${fmtInt(f.k)} aulas de` : ""} el histórico
                       </small>

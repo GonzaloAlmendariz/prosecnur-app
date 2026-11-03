@@ -63,10 +63,10 @@ describe("el parte de campo", () => {
 
   it("dice cuántos hay y cuántos fallan", () => {
     const todos = parteDeCampo([parte("CH 1"), parte("CH 2")]);
-    expect(todos.label).toBe("2 partes · todos cuadran");
+    expect(todos.label).toBe("2 partes, todos cuadran");
 
     const conFallo = parteDeCampo([parte("CH 1"), parte("CH 31", { cuadra: false })]);
-    expect(conFallo.label).toBe("2 partes · 1 sin cuadrar");
+    expect(conFallo.label).toBe("2 partes, 1 sin cuadrar");
   });
 
   it("sin partes lo dice y no inventa filas", () => {

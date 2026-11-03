@@ -66,7 +66,8 @@ describe("TabHeading — render", () => {
     const ambos = renderToStaticMarkup(
       <TabHeading eyebrow="Carga" titulo="Fuentes" icono={PlugZap} pestanaN={2} pestanaDe={5} />,
     );
-    expect(ambos).toContain("Carga · pestaña 2 de 5");
+    expect(ambos).toContain("Carga, pestaña 2 de 5");
+    expect(ambos).not.toContain("·");
     const soloN = renderToStaticMarkup(<TabHeading eyebrow="Carga" titulo="Fuentes" icono={PlugZap} pestanaN={2} />);
     expect(soloN).not.toContain("pestaña");
     const soloDe = renderToStaticMarkup(<TabHeading eyebrow="Carga" titulo="Fuentes" icono={PlugZap} pestanaDe={5} />);
@@ -168,7 +169,7 @@ describe("TabHeading — lógica pura", () => {
   });
 
   test("textoEyebrow rechaza numeraciones incoherentes", () => {
-    expect(textoEyebrow("Carga", 2, 5)).toBe("Carga · pestaña 2 de 5");
+    expect(textoEyebrow("Carga", 2, 5)).toBe("Carga, pestaña 2 de 5");
     expect(textoEyebrow("Carga", 6, 5)).toBe("Carga");
     expect(textoEyebrow("Carga", 0, 5)).toBe("Carga");
     expect(textoEyebrow("", 1, 3)).toBe("Pestaña 1 de 3");

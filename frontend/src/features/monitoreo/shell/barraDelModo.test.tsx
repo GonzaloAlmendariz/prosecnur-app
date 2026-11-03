@@ -40,7 +40,10 @@ describe("la píldora usa los cuatro estados del estándar", () => {
 
   it("no repite la fecha del corte en la píldora", () => {
     const html = renderToStaticMarkup(<HerramientasDelModo barra={barra({ clave: "al-dia" })} ocupado={false} />);
-    expect(html).toMatch(/role="status"[^>]*>Al día</);
+    // Sin onSelect, EstadoChip es un span de estado (ccb72d437) y lleva su propia
+    // región viva: el envoltorio ya no la repite.
+    expect(html).toMatch(/<span[^>]*role="status"[^>]*data-tone="success"[^>]*>(?:<span[^>]*><\/span>)?Al día</);
+    expect((html.match(/role="status"/g) ?? []).length).toBe(1);
   });
 });
 

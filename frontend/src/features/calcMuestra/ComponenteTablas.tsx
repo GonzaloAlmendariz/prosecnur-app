@@ -14,6 +14,7 @@ import type {
   CalcMuestraEstrato,
   CalcMuestraMatrizOperativaCelda,
 } from "../../api/client";
+import { Panel } from "../../components/Panel";
 import { safeNumber, uid, type ComponentePatch } from "./sharedCore";
 import { universityFacultyConfidence, universityFacultyError } from "./universidad/shared/study";
 import { NumberCell } from "./universidad/aulas";
@@ -44,11 +45,7 @@ export function EstratosTable({
     onComponente(comp.id, { marco: { estratos: next, marco_validado: total, universo_bruto: total, marco_contactable: total } });
   }
   return (
-    <section className="cmv2-panel">
-      <div className="cmv2-panel-head">
-        <span className="cmv2-eyebrow">Tabla editable</span>
-        <strong>{title}</strong>
-      </div>
+    <Panel eyebrow="Tabla editable" title={title}>
       <div className="cmv2-table-wrap">
         <table className="cmv2-table">
           <thead>
@@ -123,7 +120,7 @@ export function EstratosTable({
           <Plus size={14} /> {addLabel}
         </button>
       </div>
-    </section>
+    </Panel>
   );
 }
 
@@ -141,11 +138,7 @@ export function MatrizServiciosTable({
     onComponente(comp.id, { marco: { matriz_operativa: next, marco_validado: total, universo_bruto: total, marco_contactable: total } });
   }
   return (
-    <section className="cmv2-panel">
-      <div className="cmv2-panel-head">
-        <span className="cmv2-eyebrow">Tabla editable</span>
-        <strong>Volumen por celda</strong>
-      </div>
+    <Panel eyebrow="Tabla editable" title="Volumen por celda">
       <div className="cmv2-table-wrap">
         <table className="cmv2-table">
           <thead>
@@ -203,7 +196,7 @@ export function MatrizServiciosTable({
           <Wand2 size={14} /> Cargar ejemplo
         </button>
       </div>
-    </section>
+    </Panel>
   );
 }
 

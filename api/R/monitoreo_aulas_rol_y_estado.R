@@ -30,11 +30,15 @@
 #' @param df data.frame del plan seguido, con `sample_role`,
 #'   `application_state`, `sample_status`, `operational_status`,
 #'   `titular_operational_code` y `operational_code`.
-#' @param hoy el dia del corte: una fecha agendada anterior sin aplicar esta
-#'   vencida.
+#' @param hoy el dia de la consulta.
+#' @param corte sello(s) de la ultima descarga de respuestas (`last_sync_at` de
+#'   las fuentes activas). Una cita es vencida si su fecha es anterior a
+#'   `min(hoy, dia del corte mas viejo)`; las que caen entre el corte y hoy no
+#'   se juzgan. Un sello con offset (`-05:00`) se lee como UTC: el error es de un
+#'   dia hacia atras, en la direccion conservadora.
 #' @return lista con un elemento por rol; cada uno con sus estados y su total.
 #' @export
-monitoreo_aulas_rol_y_estado <- function(df, hoy = Sys.Date()) {
+monitoreo_aulas_rol_y_estado <- function(df, hoy = Sys.Date(), corte = NULL) {
   vacio <- list(
     titulares = list(total = 0L, aplicado = 0L, agendado = 0L, sin_agendar = 0L,
                      rechazado = 0L, reemplazado = 0L),
@@ -84,8 +88,17 @@ monitoreo_aulas_rol_y_estado <- function(df, hoy = Sys.Date()) {
   # **Agendadas con la fecha ya pasada y sin una respuesta**: la cita existio y
   # nadie la cumplio, o se cumplio y no llego nada. En los dos casos hay que
   # preguntar hoy, que es lo contrario de «tiene fecha, esperar».
+  #
+  # **Contra la ultima sincronizacion, no contra hoy** (pendiente 2g, 2026-11-03).
+  # «Sin respuesta» solo se sabe hasta el dia en que se trajeron las respuestas:
+  # si «Traer respuestas» no corrio desde el 18/09, una cita del 28/09 no esta
+  # vencida, esta SIN DATOS DESDE EL CORTE. Se cuenta aparte para que la vista
+  # pida sincronizar en vez de mandar a reagendar algo que quiza se aplico.
   fecha <- suppressWarnings(as.Date(substr(fecha_txt, 1L, 10L)))
-  vencido <- agendado & !is.na(fecha) & fecha < as.Date(hoy)
+  limite <- .marye_limite_de_vencida(hoy, corte)
+  agendado_fechado <- agendado & !is.na(fecha) & fecha < as.Date(hoy)
+  vencido <- agendado_fechado & fecha < limite
+  tras_corte <- agendado_fechado & !vencido
   codigos <- function(m) {
     x <- unique(cod[m & nzchar(cod)])
     x[order(suppressWarnings(as.numeric(gsub("[^0-9.]", "", x))), x)]
@@ -94,12 +107,16 @@ monitoreo_aulas_rol_y_estado <- function(df, hoy = Sys.Date()) {
   con_relevo <- cadena %in% unique(cadena[es_reserva & (aplicado | agendado)])
 
   list(
+    # El dia contra el que se juzgo «vencida», solo cuando no es hoy: la vista
+    # lo dice para que «fecha pasada» no se lea como «al dia de hoy».
+    vencida_al = if (hay_fecha && limite < as.Date(hoy)) as.character(limite) else NULL,
     # Los codigos de lo que PIDE una accion, para que la vista pueda nombrarlos
     # en vez de decir «6». Son titulares y relevos, nunca cientos: el banco no
     # entra.
     acciones = list(
       aplicado_sin_agenda = si_fecha(codigos(sin_agenda & !es_banco)),
       agendado_vencido = si_fecha(codigos(vencido & !es_banco)),
+      agendado_tras_corte = si_fecha(codigos(tras_corte & !es_banco)),
       sin_agendar = codigos(es_titular & !aplicado & !reemplazado & !rechazado & !agendado),
       # Solo los que NADIE cubre todavia: un rechazado cuya reserva ya esta
       # agendada o aplicada no pide nada hoy.
@@ -110,6 +127,7 @@ monitoreo_aulas_rol_y_estado <- function(df, hoy = Sys.Date()) {
       # Subconjuntos, no tramos: `aplicado` y `agendado` siguen sumando el total.
       aplicado_sin_agenda = si_fecha(as.integer(sum(es_titular & sin_agenda))),
       agendado_vencido = si_fecha(as.integer(sum(es_titular & !aplicado & !reemplazado & agendado & vencido))),
+      agendado_tras_corte = si_fecha(as.integer(sum(es_titular & !aplicado & !reemplazado & agendado & tras_corte))),
       aplicado = as.integer(sum(es_titular & aplicado)),
       # El orden importa: un titular reemplazado o rechazado ya no esta
       # «agendado» ni «sin agendar», aunque su fila conserve la fecha.
@@ -135,4 +153,28 @@ monitoreo_aulas_rol_y_estado <- function(df, hoy = Sys.Date()) {
       disponible = as.integer(sum(es_banco & !(aplicado | agendado)))
     )
   )
+}
+
+# El dia contra el que se juzga una cita vencida: el menor entre hoy y el dia de
+# la descarga mas vieja de las fuentes. El sello va en UTC; se lee en hora de
+# Lima, porque uno de las 02:00 UTC es todavia la vispera (mismo criterio que
+# `.marp_corte_legible`). Sin sello legible, hoy. Lo comparten el reparto por
+# rol y el seguimiento de efectividad, para que «Fecha pasada» y «Vencidos»
+# de la misma pantalla cuenten lo mismo.
+.marye_limite_de_vencida <- function(hoy, corte = NULL) {
+  hoy <- as.Date(hoy)
+  txt <- trimws(as.character(unlist(corte %||% character(0))))
+  txt <- txt[!is.na(txt) & nzchar(txt)]
+  if (!length(txt)) return(hoy)
+  dias <- vapply(txt, function(x) {
+    ts <- suppressWarnings(as.POSIXct(sub("Z$", "", x), format = "%Y-%m-%dT%H:%M:%S", tz = "UTC"))
+    d <- if (!is.na(ts)) {
+      as.Date(format(ts, tz = "America/Lima", usetz = FALSE))
+    } else {
+      suppressWarnings(as.Date(substr(x, 1L, 10L), optional = TRUE))
+    }
+    as.numeric(d)
+  }, numeric(1), USE.NAMES = FALSE)
+  dias <- dias[!is.na(dias)]
+  if (!length(dias)) hoy else min(hoy, as.Date(min(dias), origin = "1970-01-01"))
 }

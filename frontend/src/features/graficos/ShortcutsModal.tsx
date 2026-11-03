@@ -93,7 +93,7 @@ export function ShortcutsModal({ onClose }: { onClose: () => void }) {
           }}
         >
           <Keyboard size={16} color="var(--pulso-primary)" />
-          <h2 style={{ margin: 0, fontSize: 14, flex: 1 }}>Atajos de teclado</h2>
+          <h2 style={{ margin: 0, fontSize: "var(--pulso-type-body-size)", flex: 1 }}>Atajos de teclado</h2>
           <button
             type="button"
             onClick={onClose}
@@ -107,7 +107,7 @@ export function ShortcutsModal({ onClose }: { onClose: () => void }) {
           {Array.from(new Set(shortcuts.map((s) => s.group))).map((group) => (
             <section key={group} style={{ marginBottom: 14 }}>
               <div style={{
-                fontSize: 10, fontWeight: 700, textTransform: "uppercase",
+                fontSize: "var(--pulso-type-micro-size)", fontWeight: 700, textTransform: "uppercase",
                 letterSpacing: 0.5, color: "var(--pulso-text-soft)",
                 marginBottom: 6, paddingBottom: 4,
                 borderBottom: "1px solid var(--pulso-border)",
@@ -120,7 +120,7 @@ export function ShortcutsModal({ onClose }: { onClose: () => void }) {
                     key={i}
                     style={{
                       display: "flex", alignItems: "center", gap: 10,
-                      fontSize: 12,
+                      fontSize: "var(--pulso-type-body-size)",
                     }}
                   >
                     <div style={{ display: "inline-flex", gap: 3, minWidth: 110 }}>
@@ -129,7 +129,7 @@ export function ShortcutsModal({ onClose }: { onClose: () => void }) {
                           key={j}
                           style={{
                             fontFamily: "ui-monospace, monospace",
-                            fontSize: 11, fontWeight: 600,
+                            fontSize: "var(--pulso-type-caption-size)", fontWeight: 600,
                             padding: "3px 7px",
                             border: "1px solid var(--pulso-border)",
                             borderBottomWidth: 2,
@@ -152,7 +152,7 @@ export function ShortcutsModal({ onClose }: { onClose: () => void }) {
           <p
             style={{
               margin: "14px 0 0",
-              fontSize: 11, color: "var(--pulso-text-soft)",
+              fontSize: "var(--pulso-type-caption-size)", color: "var(--pulso-text-soft)",
               lineHeight: 1.5,
             }}
           >

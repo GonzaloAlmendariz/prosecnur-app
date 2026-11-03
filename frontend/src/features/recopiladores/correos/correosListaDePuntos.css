@@ -26,7 +26,7 @@
 
 .rec-mail-puntos-marca {
   color: var(--pulso-module-fieldkit);
-  font-size: 13px;
+  font-size: var(--pulso-type-subtitle-size);
   font-variant-numeric: tabular-nums;
   font-weight: var(--pulso-weight-semibold);
   line-height: 34px;
@@ -34,7 +34,7 @@
 }
 
 .rec-mail-puntos-lista:not(.is-numerada) .rec-mail-puntos-marca {
-  font-size: 15px;
+  font-size: var(--pulso-type-title-size);
 }
 
 /* El campo de cada punto: el rótulo «Punto N» queda para el lector de

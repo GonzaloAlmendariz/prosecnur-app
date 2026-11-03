@@ -1,3 +1,4 @@
+import { formatoConteo } from "../../../../lib/formatoNumero";
 import { useMemo } from "react";
 
 import type { MonitoreoRow } from "../../../../api/monitoreo";
@@ -142,7 +143,7 @@ export function AulasSexoPorFacultadChart({ celdas, sinFecha = 0 }: {
         {sinFecha > 0 ? (
           <>
             {" "}Cuenta <strong>todos</strong> los cursos-horario del plan que siguen en
-            juego, tengan fecha o no: hoy <strong>{sinFecha.toLocaleString("es-PE")}</strong>{" "}
+            juego, tengan fecha o no: hoy <strong>{formatoConteo(sinFecha)}</strong>{" "}
             {sinFecha === 1 ? "no la tiene" : "no la tienen"} todavía.
           </>
         ) : null}
@@ -161,9 +162,9 @@ export function AulasSexoPorFacultadChart({ celdas, sinFecha = 0 }: {
       <ul className="aulas-sexfac-filas">
         {planas.map((p) => {
           const total = p.logrado + p.pendiente + p.deficit;
-          const detalle = `${p.facultad} · ${p.sexo}: ${fmt(p.logrado)} recogidas · `
-            + `${fmt(p.pendiente)} efectivas previstas de los cursos-horario que faltan aplicar · `
-            + `faltarían ${fmt(p.deficit)} aun así · meta ${fmt(p.cuota)}`;
+          const detalle = `${p.facultad}, ${p.sexo}: ${fmt(p.logrado)} recogidas, `
+            + `${fmt(p.pendiente)} efectivas previstas de los cursos-horario que faltan aplicar, `
+            + `faltarían ${fmt(p.deficit)} aun así, meta ${fmt(p.cuota)}`;
           return (
             <li key={`${p.facultad}·${p.sexo}`} className="aulas-sexfac-fila">
               <span className="aulas-sexfac-quien">
@@ -185,9 +186,9 @@ export function AulasSexoPorFacultadChart({ celdas, sinFecha = 0 }: {
                 {p.cuota > 0 && <i className="aulas-sexfac-cuota" style={{ left: pct(p.cuota) }} title={`Meta ${fmt(p.cuota)}`} />}
                 <em className="aulas-sexfac-cifras" aria-hidden="true">
                   {fmt(p.logrado)} recogidas
-                  {p.pendiente > 0 ? <> · <strong className="es-pendiente">+{fmt(p.pendiente)}</strong> previstas</> : null}
-                  {p.deficit > 0 ? <> · <strong className="es-deficit">faltarían {fmt(p.deficit)}</strong></> : null}
-                  {" "}· meta {fmt(p.cuota)}
+                  {p.pendiente > 0 ? <>, <strong className="es-pendiente">+{fmt(p.pendiente)}</strong> previstas</> : null}
+                  {p.deficit > 0 ? <>, <strong className="es-deficit">faltarían {fmt(p.deficit)}</strong></> : null}
+                  ,{" "}meta {fmt(p.cuota)}
                 </em>
               </span>
               {/* El déficit a la vista SIN hover, como el «textposition:

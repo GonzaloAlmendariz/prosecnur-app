@@ -173,14 +173,14 @@ export function DefEstudioTab({
       id: "poblacion",
       label: "Población",
       valor: poblacion > 0 ? fmtInt(poblacion) : undefined,
-      detalle: poblacion > 0 ? "N · estudiantes únicos" : "N · estudiantes únicos por representar",
+      detalle: poblacion > 0 ? "N, estudiantes únicos" : "N, estudiantes únicos por representar",
       estado: poblacion > 0 ? "ready" : "pending",
     },
     {
       id: "muestra",
       label: "Muestra",
       valor: muestra > 0 ? fmtInt(muestra) : undefined,
-      detalle: muestra > 0 ? "n · objetivo calculado" : "n · se calcula en Cálculo",
+      detalle: muestra > 0 ? "n, objetivo calculado" : "n, se calcula en Cálculo",
       estado: muestra > 0 ? "ready" : "pending",
     },
     {

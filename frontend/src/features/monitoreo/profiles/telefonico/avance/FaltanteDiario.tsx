@@ -2,6 +2,7 @@ import { useLayoutEffect, useRef, useState } from "react";
 import type { CuotasFaltante } from "./cuotasFaltanteModel";
 import { fechaCorta } from "./cuotasFaltanteModel";
 import { fmt } from "../formato";
+import { ejeDeFechas } from "../../../core/ejeDeFechas";
 
 const MAX_SERIES = 4;
 
@@ -49,10 +50,15 @@ export function FaltanteDiario({ modelo }: { modelo: CuotasFaltante }) {
   const tope = Math.ceil(maximo / paso) * paso;
   const lienzo = useRef<HTMLDivElement>(null);
   const [altoPx, setAltoPx] = useState(300);
+  const [anchoPx, setAnchoPx] = useState(600);
   useLayoutEffect(() => {
     const nodo = lienzo.current;
     if (!nodo) return undefined;
-    const medir = () => setAltoPx(nodo.getBoundingClientRect().height || 300);
+    const medir = () => {
+      const caja = nodo.getBoundingClientRect();
+      setAltoPx(caja.height || 300);
+      setAnchoPx(caja.width || 600);
+    };
     medir();
     if (typeof ResizeObserver === "undefined") return undefined;
     const observador = new ResizeObserver(medir);
@@ -63,6 +69,10 @@ export function FaltanteDiario({ modelo }: { modelo: CuotasFaltante }) {
   const marcas = Array.from({ length: Math.round(tope / paso) + 1 }, (_, i) => i * paso);
   const x = (i: number) => (fechas.length === 1 ? 50 : 4 + (i / (fechas.length - 1)) * 92);
   const y = (valor: number) => 100 - (valor / tope) * 100;
+  // El eje común de Monitoreo (día bajo su punto, mes donde empieza): el paso
+  // en px es el 92 % del lienzo repartido entre los días.
+  const pasoPx = fechas.length > 1 ? (anchoPx * 0.92) / (fechas.length - 1) : anchoPx;
+  const rotulos = ejeDeFechas(fechas, pasoPx);
 
   return (
     <section className="mon-tel-cuotas-diario" aria-label={`Faltante al cierre de cada día por ${modelo.segmento.toLocaleLowerCase("es")}`}>
@@ -99,8 +109,10 @@ export function FaltanteDiario({ modelo }: { modelo: CuotasFaltante }) {
             {i === fechas.length - 1 ? (conCifraFinal.has(indice) ? <b>{fmt(valor)}</b> : null) : visibles.length <= 2 ? <b>{fmt(valor)}</b> : null}
           </span>
         )))}
-        {fechas.map((fecha, i) => (
-          <span key={fecha} className="mon-tel-cuotas-diario-fecha" style={{ left: `${x(i)}%` }}>{fechaCorta(fecha)}</span>
+        {rotulos.map((rotulo) => (
+          <span key={fechas[rotulo.indice]} className="mon-tel-cuotas-diario-fecha" style={{ left: `${x(rotulo.indice)}%` }}>
+            <span className="mon-eje-fecha-html">{rotulo.dia}{rotulo.mes ? <b>{rotulo.mes}</b> : null}</span>
+          </span>
         ))}
       </div>
       {/* Leyenda centrada en la tarjeta; con una sola serie, el título ya la nombra. */}

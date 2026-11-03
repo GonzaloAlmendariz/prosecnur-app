@@ -5,7 +5,7 @@
 
 .mon-ctl-antetitulo {
   color: var(--pulso-text-faint);
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-bold);
   letter-spacing: 0.09em;
   text-transform: uppercase;
@@ -27,7 +27,7 @@
 
 .mon-ctl-panel-cabecera > span {
   color: var(--pulso-text-faint);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .mon-barrido .is-num,
@@ -40,20 +40,12 @@
   margin: 0;
   padding: 0 var(--pulso-space-4) var(--pulso-space-3);
   color: var(--pulso-text-soft);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
 }
 
-.mon-ctl-sin-regla {
+/* «Sin regla» es `EstadoChip` (P6); junto al status que califica lleva el mismo aire que «por regla». */
+.mon-barrido-status-lista li > span > .pulso-estado-chip {
   margin-left: 6px;
-  padding: 0 6px;
-  border: 1px solid var(--pulso-warn-border);
-  border-radius: var(--pulso-radius-chip);
-  background: var(--pulso-warn-bg);
-  color: var(--pulso-warn-fg);
-  font-size: 10.5px;
-  font-style: normal;
-  font-weight: var(--pulso-weight-bold);
-  white-space: nowrap;
 }
 
 .mon-ctl-por-regla {
@@ -63,24 +55,36 @@
   border-radius: var(--pulso-radius-chip);
   background: var(--pulso-surface-2);
   color: var(--pulso-text-soft);
-  font-size: 10.5px;
+  font-size: var(--pulso-type-micro-size);
   font-style: normal;
   font-weight: var(--pulso-weight-semibold);
   white-space: nowrap;
 }
 
-/* Un barrido que no empezó (RMS): cada panel dice su vacío en el sitio que
- * ocuparían sus datos, centrado en el alto que ese panel ya tiene. */
-.mon-barrido-vacio {
-  display: grid;
-  flex: 1 1 auto;
-  place-items: center;
-  min-height: 80px;
-  margin: 0;
-  padding: var(--pulso-space-3) var(--pulso-space-4);
-  color: var(--pulso-text-muted);
-  font-size: 12px;
-  text-align: center;
+/* Un vacío del kit (`EstadoVacio`) dentro de una tarjeta: la tarjeta no tiene
+ * relleno propio, así que el aire se lo da ella. Un barrido que no empezó
+ * (RMS) dice así su vacío en el sitio que ocuparían sus datos. */
+.mon-ctl-panel > .pulso-estado-vacio {
+  margin: var(--pulso-space-3) var(--pulso-space-4);
+}
+
+/* Una tarjeta cuyo cuerpo entero es el vacío (C3: el vacío es de la
+ * tarjeta): el rótulo arriba y el vacío al centro del resto. */
+.mon-ctl-panel.is-vacio {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  padding-bottom: var(--pulso-space-4);
+}
+
+.mon-ctl-panel.is-vacio:not(:has(> header)) {
+  padding-top: var(--pulso-space-4);
+}
+
+.mon-ctl-panel.is-vacio > :last-child {
+  margin: auto;
+  max-width: calc(100% - 2 * var(--pulso-space-4));
 }
 
 
@@ -111,7 +115,7 @@
 .mon-ctl-tabla {
   width: 100%;
   border-collapse: collapse;
-  font-size: 12.5px;
+  font-size: var(--pulso-type-body-size);
   font-variant-numeric: tabular-nums;
 }
 
@@ -134,7 +138,7 @@
   border-top: 0;
   background: var(--pulso-header-row);
   color: var(--pulso-text-soft);
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-bold);
   letter-spacing: 0.05em;
   text-transform: uppercase;
@@ -182,7 +186,7 @@
   height: 100%;
   min-height: 0;
   color: var(--pulso-text);
-  font-size: 13px;
+  font-size: var(--pulso-type-body-size);
   line-height: 1.35;
 }
 
@@ -249,7 +253,7 @@
 
 .mon-barrido-tarjeta-nota {
   color: var(--pulso-text-soft);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
 }
 
 /* El listado por segmento mide lo que sus filas: con `flex-shrink` y
@@ -327,7 +331,7 @@
 }
 
 .mon-barrido-columnas b {
-  font-size: 13px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .mon-barrido-columnas i {
@@ -345,7 +349,7 @@
 
 .mon-barrido-columnas em {
   color: var(--pulso-text-faint);
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   font-style: normal;
   white-space: nowrap;
 }
@@ -407,7 +411,7 @@
 }
 
 .mon-barrido-reparto b {
-  font-size: 16px;
+  font-size: var(--pulso-type-title-size);
   text-align: left;
 }
 
@@ -526,7 +530,7 @@
   height: 100%;
   min-height: 0;
   color: var(--pulso-text);
-  font-size: 13px;
+  font-size: var(--pulso-type-body-size);
   line-height: 1.35;
 }
 
@@ -655,7 +659,7 @@
 
 .mon-equipo-matriz td small {
   color: var(--pulso-text-faint);
-  font-size: 10.5px;
+  font-size: var(--pulso-type-micro-size);
 }
 
 .mon-equipo-matriz td.is-alta {
@@ -698,7 +702,7 @@
   padding: var(--pulso-space-2) var(--pulso-space-4);
   border-top: 1px solid var(--pulso-border);
   color: var(--pulso-text-soft);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .mon-equipo-leyenda i {
@@ -751,7 +755,7 @@
 
 .mon-equipo-ficha-titulo b {
   overflow-wrap: anywhere;
-  font-size: 17px;
+  font-size: var(--pulso-type-title-size);
   line-height: 1.2;
 }
 
@@ -765,7 +769,7 @@
   border-radius: 50%;
   background: var(--pulso-info-bg);
   color: var(--pulso-primary);
-  font-size: 14px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-heavy);
   letter-spacing: 0.02em;
 }
@@ -794,7 +798,7 @@
 }
 
 .mon-equipo-baldosa .mon-ctl-antetitulo {
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   letter-spacing: 0.04em;
   white-space: nowrap;
 }
@@ -810,14 +814,14 @@
 }
 
 .mon-equipo-cifras b {
-  font-size: 22px;
+  font-size: var(--pulso-type-kpi-size);
   font-weight: var(--pulso-weight-heavy);
   line-height: 1.15;
 }
 
 .mon-equipo-cifras small {
   color: var(--pulso-text-faint);
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   line-height: 1.3;
 }
 
@@ -839,9 +843,16 @@
   gap: var(--pulso-space-2);
 }
 
-.mon-equipo-bloque-cabecera small {
+/* La cabecera de bloque (`mon-ctl-panel-cabecera`, P2) dentro de una tarjeta que ya tiene su relleno: no se lo suma. */
+.mon-equipo-bloque > .mon-ctl-panel-cabecera,
+.mon-avisos-destinos > .mon-ctl-panel-cabecera,
+.mon-cola-telefonos > .mon-ctl-panel-cabecera {
+  padding: 0;
+}
+
+.mon-equipo-bloque-cabecera > span {
   color: var(--pulso-text-faint);
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
@@ -1035,7 +1046,7 @@
   height: 100%;
   min-height: 0;
   color: var(--pulso-text);
-  font-size: 13px;
+  font-size: var(--pulso-type-body-size);
   line-height: 1.35;
 }
 
@@ -1081,12 +1092,12 @@
 
 .mon-respuestas-paso > span:not(.mon-ctl-antetitulo) {
   color: var(--pulso-text-soft);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .mon-respuestas-paso em {
   color: var(--pulso-warn-fg);
-  font-size: 12px;
+  font-size: var(--pulso-type-subtitle-size);
   font-style: normal;
   font-weight: var(--pulso-weight-bold);
 }
@@ -1157,7 +1168,7 @@
   border: 1px solid var(--pulso-border);
   border-radius: var(--pulso-radius-chip);
   color: var(--pulso-text-soft);
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   font-style: normal;
   font-weight: var(--pulso-weight-semibold);
 }
@@ -1184,7 +1195,7 @@
   padding: var(--pulso-space-2) var(--pulso-space-4);
   border-top: 1px solid var(--pulso-border);
   color: var(--pulso-text-faint);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   font-variant-numeric: tabular-nums;
 }
 
@@ -1210,7 +1221,7 @@
   background: var(--pulso-surface);
   color: var(--pulso-text);
   font: inherit;
-  font-size: 12.5px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-semibold);
   white-space: nowrap;
   cursor: pointer;
@@ -1258,7 +1269,7 @@
   box-shadow: none;
   color: var(--pulso-text);
   font: inherit;
-  font-size: 12.5px;
+  font-size: var(--pulso-type-body-size);
   outline: none;
   appearance: none;
 }
@@ -1326,7 +1337,7 @@
   padding: 0 8px;
   border: 1px solid var(--pulso-border);
   border-radius: var(--pulso-radius-chip);
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   font-weight: var(--pulso-weight-semibold);
   white-space: nowrap;
 }
@@ -1389,7 +1400,7 @@
   height: 100%;
   min-height: 0;
   color: var(--pulso-text);
-  font-size: 13px;
+  font-size: var(--pulso-type-body-size);
   line-height: 1.35;
 }
 
@@ -1423,7 +1434,7 @@
 
 .mon-avisos-por-revisar-cabecera > span:last-child {
   color: var(--pulso-text-faint);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
 }
 
 /* Con pocos casos, la tarjeta mide sus filas (sin hueco al pie). */
@@ -1528,7 +1539,7 @@
 .mon-avisos-destinos small,
 .mon-avisos-destinos em {
   color: var(--pulso-text-faint);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   font-style: normal;
 }
 
@@ -1613,7 +1624,7 @@
   display: block;
   margin-top: 2px;
   color: var(--pulso-text-soft);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   font-weight: var(--pulso-weight-regular);
 }
 
@@ -1628,7 +1639,7 @@
 }
 
 .mon-avisos-casos {
-  font-size: 16px;
+  font-size: var(--pulso-type-title-size);
   font-weight: var(--pulso-weight-heavy);
 }
 
@@ -1637,7 +1648,7 @@
   padding: 0 8px;
   border: 1px solid var(--pulso-border);
   border-radius: var(--pulso-radius-chip);
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   font-style: normal;
   font-weight: var(--pulso-weight-bold);
   vertical-align: 1px;
@@ -1681,7 +1692,7 @@
 
 .mon-avisos-ficha-cabecera > span {
   color: var(--pulso-text-soft);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .mon-avisos-afectados {
@@ -1736,7 +1747,7 @@
 .mon-avisos-lista-casos li small {
   grid-column: 1 / -1;
   color: var(--pulso-text-faint);
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
 }
 
 .mon-avisos-lista-casos li small:empty {
@@ -1756,7 +1767,7 @@
 
 .mon-avisos-ficha h3 {
   margin: 0;
-  font-size: 17px;
+  font-size: var(--pulso-type-title-size);
 }
 
 .mon-avisos-ficha-cifra {
@@ -1768,7 +1779,7 @@
 
 .mon-avisos-ficha-cifra span {
   color: var(--pulso-text-faint);
-  font-size: 14px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-semibold);
   letter-spacing: 0;
 }
@@ -1803,13 +1814,6 @@
 .mon-avisos-ir:focus-visible {
   outline: 2px solid var(--pulso-brand-navy);
   outline-offset: 2px;
-}
-
-.mon-avisos-vacio {
-  display: flex;
-  flex-direction: column;
-  gap: var(--pulso-space-2);
-  padding: var(--pulso-space-6);
 }
 
 @media (max-width: 1400px) {
@@ -1899,7 +1903,7 @@
   height: 100%;
   min-height: 0;
   color: var(--pulso-text);
-  font-size: 13px;
+  font-size: var(--pulso-type-body-size);
   line-height: 1.35;
 }
 

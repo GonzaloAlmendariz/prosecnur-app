@@ -46,15 +46,15 @@ export function AvanceCorreoDetalleEnvio({
       <header>
         <span className="mon-correo-detalle-tipo">
           <i className={`mon-correo-nodo-forma es-${nodo.tipo}`} aria-hidden />
-          {nodo.rotulo} · {nodo.publico}
+          {nodo.rotulo}, {nodo.publico}
         </span>
         <strong>{nodo.envio.titulo || nodo.envio.campaign_id}</strong>
-        <small>{nodo.envio.enviado_at ? fechaCompleta(nodo.envio.enviado_at) : "Sin fecha"}{nodo.envio.asunto ? ` · ${nodo.envio.asunto}` : ""}</small>
+        <small>{nodo.envio.enviado_at ? fechaCompleta(nodo.envio.enviado_at) : "Sin fecha"}{nodo.envio.asunto ? `, ${nodo.envio.asunto}` : ""}</small>
       </header>
       <div className="mon-correo-detalle-entrega">
         <span className="mon-correo-versalita">Entregados</span>
         <strong>{cifra(c.entregados)}</strong>
-        <small>de {cifra(c.enviados)} enviados · {cifra(rebotes)} {rebotes === 1 ? "rebote" : "rebotes"}</small>
+        <small>de {cifra(c.enviados)} enviados, {cifra(rebotes)} {rebotes === 1 ? "rebote" : "rebotes"}</small>
       </div>
       <dl
         className="mon-correo-detalle-filas"
@@ -72,7 +72,7 @@ export function AvanceCorreoDetalleEnvio({
         ))}
       </dl>
       {nodo.parcial ? (
-        <p className="mon-correo-tenue">Parte de un envío a {cifra(nodo.envio.por_actor.length)} públicos · {cifra(nodo.envio.entregados)} entregados en total.</p>
+        <p className="mon-correo-tenue">Parte de un envío a {cifra(nodo.envio.por_actor.length)} públicos, {cifra(nodo.envio.entregados)} entregados en total.</p>
       ) : null}
     </aside>
   );

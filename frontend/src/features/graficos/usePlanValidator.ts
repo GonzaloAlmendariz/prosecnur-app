@@ -16,6 +16,7 @@ import { avisaTtbSinRespuestas } from "./laminas/ttbSinRespuestas";
 import { laBase, type RelacionBases } from "./relacionBases";
 import { baseImplicitaDe, basesPorNombre } from "./fijarBase";
 import { conteoBarrasMultiapiladas, excedeTope, laminasNecesarias, MAX_BARRAS_MULTIAPILADAS } from "./multiapiladas/topeBarras";
+import { formatoConteo } from "../../lib/formatoNumero";
 
 // Validador del plan 100% client-side: deriva warnings/errores de lo
 // que ya vive en el store + registry + variables del instrumento. Sin
@@ -532,7 +533,7 @@ function frasePreguntasEnBase(etiquetas: string[], base: string): string {
   const vistas = etiquetas.slice(0, 2).map((e) => `«${e}»`);
   const resto = etiquetas.length - vistas.length;
   const lista = resto ? `${vistas.join(", ")} y ${resto === 1 ? "1 más" : `${resto} más`}` : vistas.join(" y ");
-  return `${etiquetas.length} preguntas (${lista}) se leen de ${laBase(base)}.`;
+  return `${formatoConteo(etiquetas.length)} preguntas (${lista}) se leen de ${laBase(base)}.`;
 }
 
 /** El texto visible de la pregunta en esa base, sin HTML y acotado; nunca su nombre interno salvo que no tenga texto. */

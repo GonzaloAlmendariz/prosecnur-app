@@ -1,3 +1,4 @@
+import { enumerar } from "../../../../lib/enumerar";
 import { aulasFieldLabel, escalaDeProporciones, presentAulasRow } from "./aulasPresentation";
 import { AulasMatrizUmbrales } from "./AulasMatrizUmbrales";
 import { contrasteDeValidadores, type CriterioDelEstudio } from "./criterioDelEstudio";
@@ -99,7 +100,7 @@ function Veredicto({ v, aulas }: { v: VeredictoDeControl; aulas: number }) {
         ) : (
           <><strong>{v.efectivas}</strong> de {evaluadas} grupos de curso-horario y sexo</>
         )}
-        {pct !== null ? <span> · {pct} %</span> : null}
+        {pct !== null ? <span>, {pct} %</span> : null}
       </p>
       <p className="mon-profile-muted">
         Alcanzaron el 70 % contra los dos denominadores: asistentes elegibles y alumnos elegibles.
@@ -116,13 +117,13 @@ function Veredicto({ v, aulas }: { v: VeredictoDeControl; aulas: number }) {
             {v.solo_asistentes ? (
               <li>
                 <strong>{v.solo_asistentes}</strong> llegaron al 70 % de los asistentes y no al de los matriculados
-                <span className="mon-profile-muted"> · fue poca gente a clase; volver a esa sesión no la trae</span>
+                <span className="mon-profile-muted">, fue poca gente a clase; volver a esa sesión no la trae</span>
               </li>
             ) : null}
             {v.solo_poblacion ? (
               <li>
                 <strong>{v.solo_poblacion}</strong> llegaron al 70 % de los matriculados y no al de los asistentes
-                <span className="mon-profile-muted"> · había más presentes que elegibles y parte no respondió</span>
+                <span className="mon-profile-muted">, había más presentes que elegibles y parte no respondió</span>
               </li>
             ) : null}
           </>
@@ -541,14 +542,14 @@ export function AulasControlDelLibro({
           <strong>{aulas}</strong> {aulas === 1 ? "fila" : "filas"} en la hoja
           {conDato.map((g) => (
             <span key={g.clave}>
-              {" · "}
+              {", "}
               {nombreDeGrupo(g)} <strong>{g.aulas_con_dato}</strong>
             </span>
           ))}
         </p>
         {vacios.length ? (
           <p className="mon-profile-muted">
-            Sin llenar en el libro: {vacios.map(nombreDeGrupo).join(" · ")}.
+            Sin llenar en el libro: {enumerar(vacios.map(nombreDeGrupo))}.
           </p>
         ) : null}
       </div>
@@ -584,13 +585,13 @@ export function AulasControlDelLibro({
           <span className="aulas-perdida-cifras">
             De <strong>{fmt(perdida.enviadas)}</strong> que la hoja da por enviado,
             la plataforma da por efectivas <strong>{fmt(perdida.validas)}</strong>
-            {perdida.pierde > 0 ? <> · se pierden {fmt(perdida.pierde)}</> : null}
+            {perdida.pierde > 0 ? <>, se pierden {fmt(perdida.pierde)}</> : null}
             {" "}({Math.round(perdida.pasa * 100)} % pasa)
             {/* Las filas sin efectiva de plataforma NO son pérdida: decirlo
                 evita leer el porcentaje como si el libro estuviera completo. */}
             {perdida.sinRevisar > 0 ? (
               <small>
-                {" "}· {fmt(perdida.sinRevisar)} {perdida.sinRevisar === 1 ? "fila" : "filas"} aún
+                ,{" "}{fmt(perdida.sinRevisar)} {perdida.sinRevisar === 1 ? "fila" : "filas"} aún
                 sin efectiva de plataforma, fuera de la comparación
               </small>
             ) : null}

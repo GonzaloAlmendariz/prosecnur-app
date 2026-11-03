@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { EstadoChip } from "../../../../../../components/EstadoChip";
 import { CheckCircle2, Loader2, Search, X, XCircle } from "lucide-react";
 import { Alert } from "../../../../../../components/Alert";
 import { Switch } from "../../../../../../components/Switch";
@@ -22,6 +23,9 @@ function Dato({ etiqueta, valor }: { etiqueta: string; valor: string }) {
     </div>
   );
 }
+
+/** El tono de la evidencia (lo pintaban `.acr-av-chip.is-exact / .is-possible`); «manual» va sin color. */
+const TONO_DE_EVIDENCIA = { exact: "success", possible: "warn", manual: "neutral" } as const;
 
 function nombreDe(candidato: { person_label?: string; base_record?: string }) {
   return candidato.person_label || candidato.base_record || "Persona del padrón";
@@ -83,7 +87,7 @@ export function PanelCaso({
       <header className="acr-av-panel-cabecera">
         <h3><span className="acr-av-antetitulo">Caso</span> <span className="acr-av-num">{fila.responseId || fila.llave}</span></h3>
         <span className="acr-pr-cabecera-derecha">
-          <span className={`acr-av-chip${fila.grupo === "espera" && !fila.decision ? " is-falta" : ""}`}>{fila.etiquetaDeTipo}</span>
+          <EstadoChip label={fila.etiquetaDeTipo} tone={fila.grupo === "espera" && !fila.decision ? "warn" : "neutral"} />
           {elegido ? (
             <button type="button" className="acr-av-icono" onClick={onCerrar} aria-label="Cerrar el caso">
               <X size={16} aria-hidden="true" />
@@ -153,7 +157,7 @@ export function PanelCaso({
                       <b>{nombreDe(candidato)}</b>
                       <small>{candidato.case_key || "Sin código"}</small>
                     </span>
-                    <span className={`acr-av-chip is-${assistedCandidateEvidenceLevel(candidato)}`}>{assistedCandidateEvidenceLabel(candidato)}</span>
+                    <EstadoChip label={assistedCandidateEvidenceLabel(candidato)} tone={TONO_DE_EVIDENCIA[assistedCandidateEvidenceLevel(candidato)]} />
                   </li>
                 ))}
               </ul>
@@ -198,7 +202,7 @@ export function PanelCaso({
                           <b>{nombreDe(candidato)}</b>
                           <small>{[candidato.case_key || "Sin código", candidato.current_status || candidato.base_status].filter(Boolean).join(", ")}</small>
                         </span>
-                        <span className={`acr-av-chip is-${assistedCandidateEvidenceLevel(candidato)}`}>{assistedCandidateEvidenceLabel(candidato)}</span>
+                        <EstadoChip label={assistedCandidateEvidenceLabel(candidato)} tone={TONO_DE_EVIDENCIA[assistedCandidateEvidenceLevel(candidato)]} />
                       </button>
                     </li>
                   );

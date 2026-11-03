@@ -1,3 +1,4 @@
+import { formatoDecimal } from "../../../../lib/formatoNumero";
 import { useMemo } from "react";
 
 import { COLOR_RESULTADO } from "../../coloresDeResultado";
@@ -148,12 +149,11 @@ export function AulasAvanceProyectado({ celdas }: { celdas?: ReadonlyArray<Celda
           <li key={f.clave} className="aulas-avance-fila" data-estado={f.estado}
               data-grupo={abreGrupo ? "inicio" : "sigue"}>
             <span className="aulas-avance-celda">
-              {/* El sexo viaja pegado a su separador: suelto, el `·` se quedaba
-                  huérfano al final de la línea cuando el nombre de la facultad
-                  ocupaba las dos. */}
+              {/* La coma viaja pegada a la facultad: al partir la línea, el sexo
+                  empieza la siguiente y la coma no queda huérfana al inicio. */}
               {abreGrupo ? <strong>{f.facultad}</strong> : null}
-              {abreGrupo ? " " : null}
-              <span className="aulas-avance-sexo">{abreGrupo ? "· " : ""}{f.sexo}</span>
+              {abreGrupo ? ", " : null}
+              <span className="aulas-avance-sexo">{f.sexo}</span>
             </span>
             <span className="aulas-avance-pista" role="img"
                   aria-label={`${f.facultad} ${f.sexo}: ${f.etiqueta}`}>
@@ -178,7 +178,7 @@ export function AulasAvanceProyectado({ celdas }: { celdas?: ReadonlyArray<Celda
                   data-nivel={f.probabilidad >= 0.9 ? "alta" : f.probabilidad >= 0.6 ? "media" : "baja"}
                   title={f.dispersion
                     ? `Corregida por la dispersión medida en este estudio: los cursos-horario ya aplicados `
-                      + `varían ×${f.dispersion.toFixed(1)} más de lo que supondría la independencia `
+                      + `varían ×${formatoDecimal(f.dispersion, 1)} más de lo que supondría la independencia `
                       + `entre respuestas, medido sobre ${fmtCuenta(f.dispersionN)} cursos-horario con campo.`
                     : "Sin dispersión medida no se publica probabilidad."}
                 >

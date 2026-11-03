@@ -50,7 +50,7 @@ describe("Insumos › Historial", () => {
     expect(modelo.otras.map((item) => [item.cuando, item.texto])).toEqual([
       ["03/07 20:22", "2 subsanaciones aplicadas"],
       ["03/07 20:21", "1 subsanación revertida"],
-      ["26/06 16:51", "Anulación de la producción de P702 · Aplicador"],
+      ["26/06 16:51", "Anulación de la producción de P702, Aplicador"],
     ]);
   });
 });

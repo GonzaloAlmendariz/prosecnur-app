@@ -24,7 +24,7 @@ import type {
   CalcMuestraAulasSelection,
   CalcMuestraEstrato,
 } from "../../../../../api/client";
-import { safeNumber } from "../../../sharedCore";
+import { fmtInt, safeNumber } from "../../../sharedCore";
 import { frameAuditNumber } from "../../shared/frame";
 import {
   classroomRowNumber,
@@ -657,7 +657,7 @@ function escenaProbabilidades(
   const huecos: string[] = [];
   const sinPi = aulas.filter((aula) => aula.pi == null).length;
   if (sinPi > 0) {
-    huecos.push(`${sinPi} de ${aulas.length} cursos-horario no traen π publicada en esta corrida.`);
+    huecos.push(`${sinPi} de ${fmtInt(aulas.length)} cursos-horario no traen π publicada en esta corrida.`);
   }
   const bombo = bomboDelSorteo(fuente, titulares, aulas, foco);
   return {

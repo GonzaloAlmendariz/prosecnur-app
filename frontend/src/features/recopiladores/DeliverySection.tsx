@@ -10,7 +10,7 @@ import { downloadUrl } from "../../api/core";
 import { Panel } from "../../components/Panel";
 import { PulsoButton } from "../../components/PulsoButton";
 import { serializarDireccion } from "../../lib/navegacion/direccion";
-import { CheckCircle2, Download, FileCheck2, FileWarning, Loader2, Send, ShieldCheck } from "../../vendor/lucide-react";
+import { Archive, CheckCircle2, Download, FileCheck2, FileWarning, Loader2, Send, ShieldCheck } from "../../vendor/lucide-react";
 import { handoffReadiness, type HandoffReadiness } from "./handoffModel";
 import { juzgarMaterialesDelPlan } from "./materialesDelPlanVigente";
 import { providerLabel } from "./providerRules";
@@ -18,6 +18,10 @@ import { VacioSinPlanCard } from "./VacioSinPlanCard";
 import { vacioSinPlan } from "./vacioSinPlan";
 import { ConstruirTablasEnSheets } from "./ConstruirTablasEnSheets";
 import "./styles/delivery.css";
+import { CifrasEnTarjeta } from "../../components/CifrasEnTarjeta";
+import { EstadoVacio } from "../../components/EstadoVacio";
+import { RecorridoDelTraspaso, ReciboPendiente } from "./TraspasoTablero";
+import { enumerar } from "../../lib/enumerar";
 
 type Props = {
   payload: CollectionStatePayload | null;
@@ -78,6 +82,12 @@ export function DeliverySection({ payload, latestArtifact, onState, onIr, onIrAA
     [artifacts, payload?.state.plan?.input_fingerprint],
   );
   const desfasados = juzgados.filter((x) => x.desfasado).length;
+  // Pasada de diseño (2 nov 2026): lo que antes eran cuatro filas de «—» se lee como cifras y recorrido.
+  const plan = payload?.state.plan ?? null;
+  const conAcceso = deployment?.coverage.units_with_access ?? 0;
+  const totalAcceso = deployment?.coverage.units_total ?? 0;
+  const accesosListos = deployment?.status === "prepared" || deployment?.status === "handed_off";
+  const sinAccesos = !deployment;
 
   const handoff = async () => {
     if (!payload || !readiness.ready || !readiness.fingerprint) return;
@@ -111,6 +121,28 @@ export function DeliverySection({ payload, latestArtifact, onState, onIr, onIrAA
         {onIr ? <PulsoButton variant="secondary" size="sm" onClick={() => onIr(A_PAQUETES)}>Regenerar en Paquetes</PulsoButton> : null}
       </div>
     ) : null}
+    <CifrasEnTarjeta
+      cifras={[
+        {
+          id: "entrega", rotulo: "Entrega",
+          valor: readiness.delivered ? "Registrada" : readiness.ready ? "Lista" : "Bloqueada",
+          nota: readiness.delivered ? "Monitoreo ya puede traerla" : readiness.ready ? "falta pulsar «Entregar»" : "falta un paso del recorrido",
+          tono: readiness.delivered || readiness.ready ? "listo" : "aviso",
+        },
+        deployment
+          ? {
+            id: "cobertura", rotulo: "Cobertura", valor: conAcceso.toLocaleString("es-PE"), de: totalAcceso,
+            avance: { valor: conAcceso, total: totalAcceso, etiqueta: "Aulas con enlace" },
+          }
+          : { id: "cobertura", rotulo: "Cobertura", valor: "—", nota: "sin accesos preparados" },
+        { id: "plataforma", rotulo: "Plataforma", valor: deployment ? providerLabel(deployment.target.provider) : "—", nota: "donde se responde" },
+        {
+          id: "material", rotulo: "Material generado", valor: artifacts.length.toLocaleString("es-PE"),
+          nota: desfasados ? "de un plan anterior: regenerar" : artifacts.length ? "al día con el plan" : "todavía ninguno",
+          tono: desfasados ? "aviso" : undefined,
+        },
+      ]}
+    />
     <div className="rec-delivery-layout">
       {/* La columna de lo que hace Material: entregar y, con lo entregado, armar las tablas (R13). */}
       <div className="rec-delivery-columna">
@@ -118,26 +150,41 @@ export function DeliverySection({ payload, latestArtifact, onState, onIr, onIrAA
         className="rec-handoff-card"
         eyebrow="Entrega"
         title={<><Send size={18} aria-hidden /> Lo que se entrega a Monitoreo</>}
+        hint="El registro que campo llena al inicio. Las metas salen de Cálculo de muestra y el seguimiento lo hace Monitoreo."
       >
-        {/* R6: el subtítulo de la sección es sólo para lector de pantalla (headerMode sr-only); esto sí se ve. */}
-        <p className="rec-policy-note">El registro que campo llena al inicio. Las metas salen de Cálculo de muestra y el seguimiento lo hace Monitoreo.</p>
-        <div className={`rec-handoff-status${readiness.delivered ? " is-delivered" : readiness.ready ? " is-ready" : " is-blocked"}`}>
-          {readiness.delivered ? <CheckCircle2 size={22} /> : <ShieldCheck size={22} />}
-          <div>
-            <strong>{readiness.delivered ? "Entrega registrada" : readiness.ready ? "Listo para entregar" : "Entrega bloqueada"}</strong>
-            <p>{readiness.reason}</p>
-            {/* Revisión con ojo de usuario (2 nov 2026): «Falta preparar los accesos» no llevaba a ningún lado. */}
-            {!deployment && onIrAAccesos ? (
-              <PulsoButton variant="secondary" size="sm" onClick={onIrAAccesos}>Ir a Accesos</PulsoButton>
-            ) : null}
-          </div>
-        </div>
-        <dl>
-          <div><dt>Accesos</dt><dd title={deployment?.deployment_id ?? undefined}>{shortFingerprint(deployment?.deployment_id)}</dd></div>
-          <div><dt>Cobertura</dt><dd>{deployment ? `${deployment.coverage.units_with_access}/${deployment.coverage.units_total}` : "—"}</dd></div>
-          <div><dt>Plataforma</dt><dd>{deployment ? providerLabel(deployment.target.provider) : "—"}</dd></div>
-          <div><dt>Huella</dt><dd title={readiness.fingerprint}>{shortFingerprint(readiness.fingerprint)}</dd></div>
-        </dl>
+        <RecorridoDelTraspaso
+          pasos={[
+            {
+              id: "plan", titulo: "Plan congelado", hecho: Boolean(plan),
+              detalle: plan ? `${plan.units.length.toLocaleString("es-PE")} unidades, con sus reservas y el banco` : "Falta sembrar el plan en Unidades.",
+            },
+            {
+              id: "accesos", titulo: "Accesos preparados", hecho: accesosListos,
+              detalle: deployment
+                ? <span title={deployment.deployment_id}>{`${conAcceso.toLocaleString("es-PE")} de ${totalAcceso.toLocaleString("es-PE")} aulas con enlace`}</span>
+                : "Falta preparar los accesos.",
+              // Revisión con ojo de usuario (2 nov 2026): «Falta preparar los accesos» no llevaba a ningún lado.
+              accion: sinAccesos && onIrAAccesos
+                ? <PulsoButton variant="secondary" size="sm" onClick={onIrAAccesos}>Ir a Accesos</PulsoButton>
+                : undefined,
+            },
+            {
+              id: "material", titulo: "Material generado", hecho: artifacts.length > 0 && !desfasados,
+              detalle: !artifacts.length
+                ? "Opcional. Todavía no se genera ninguna ficha."
+                : desfasados
+                  ? `${desfasados.toLocaleString("es-PE")} de ${artifacts.length.toLocaleString("es-PE")} salieron de un plan anterior.`
+                  : `${artifacts.length.toLocaleString("es-PE")} ${artifacts.length === 1 ? "archivo" : "archivos"} al día con el plan.`,
+            },
+            {
+              id: "entrega", titulo: "Entregado a Monitoreo", hecho: readiness.delivered,
+              // Regla P9: el motivo del bloqueo ya lo dicen el paso de accesos y el recibo.
+              detalle: <span title={readiness.fingerprint}>{readiness.delivered
+                ? "Monitoreo ya puede traerla desde Insumos › Fuentes."
+                : readiness.ready ? "Lista: falta pulsar «Entregar a Monitoreo»." : "Se habilita cuando los pasos anteriores están hechos."}</span>,
+            },
+          ]}
+        />
         <PulsoButton variant="primary" onClick={() => { void handoff(); }} disabled={!readiness.ready || readiness.delivered || busy}>
           {busy ? <Loader2 size={15} className="pulso-spin" /> : <Send size={15} />}
           {readiness.delivered ? "Entregado" : "Entregar a Monitoreo"}
@@ -170,12 +217,10 @@ export function DeliverySection({ payload, latestArtifact, onState, onIr, onIrAA
             </p>
           </article>
         ) : (
-          <div className="rec-contained-empty rec-receipt-empty" data-qa-geometry-capacity="owned" role="status">
-            <strong>Aún no se entrega a Monitoreo</strong>
-            <span>{faltaParaElRecibo(readiness)}</span>
-          </div>
+          <ReciboPendiente motivo={faltaParaElRecibo(readiness)} />
         )}
 
+        <h4 className="rec-tras-materiales-titulo">Material generado</h4>
         <div className="rec-artifact-list" data-qa-geometry-group="material-campo/artefactos" data-qa-geometry-contract="intrinsic">
           {/* El aviso va ARRIBA de la lista: se descarga desde cada fila, así que
               enterarse después de haber bajado el archivo no sirve de nada. */}
@@ -197,8 +242,8 @@ export function DeliverySection({ payload, latestArtifact, onState, onIr, onIrAA
                 <div>
                   <strong>{artifact.filename}</strong>
                   <span>
-                    {artifact.media_type} · {paginas(artifact.page_count)} · {artifact.size_bytes.toLocaleString("es-PE")} bytes
-                    {desfasado ? <em className="rec-artifact-stale"> · de un plan anterior</em> : null}
+                    {enumerar([artifact.media_type, paginas(artifact.page_count), `${artifact.size_bytes.toLocaleString("es-PE")} bytes`])}
+                    {desfasado ? <em className="rec-artifact-stale">, de un plan anterior</em> : null}
                   </span>
                   {disponible ? null : (
                     <span className="rec-artifact-no-disponible">
@@ -223,9 +268,7 @@ export function DeliverySection({ payload, latestArtifact, onState, onIr, onIrAA
             );
           })}
           {!artifacts.length ? (
-            <div className="rec-contained-empty" data-qa-geometry-capacity="owned">
-              Todavía no se ha generado ningún material en esta sesión.
-            </div>
+            <EstadoVacio icono={<Archive size={16} aria-hidden />} titulo="Todavía no se ha generado material en esta sesión" />
           ) : null}
         </div>
       </Panel>

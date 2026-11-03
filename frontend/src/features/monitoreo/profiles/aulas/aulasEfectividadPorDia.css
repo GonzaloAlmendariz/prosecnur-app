@@ -58,14 +58,14 @@
   border-radius: 3px;
   background: var(--pulso-success-fg);
   color: var(--pulso-on-accent, #fff);
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   font-style: normal;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
 .aulas-efdia-pie {
   margin: 4px 0 0;
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   line-height: 1.5;
   max-width: 92ch;
 }
@@ -76,7 +76,7 @@
   display: block;
   margin-top: 3px;
   font-style: normal;
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   color: var(--pulso-success-fg);
 }
 .aulas-dt-relevo.es-sin { color: var(--pulso-text-faint); }

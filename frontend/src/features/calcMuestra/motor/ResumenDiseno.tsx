@@ -15,6 +15,7 @@ import {
   normalizeCalcMuestraDistribucionI19,
   type CalcMuestraDistribucionI19State,
 } from "../../../api/calcMuestraDistribucionI19";
+import { enumerar } from "../../../lib/enumerar";
 import { fmtInt } from "../sharedCore";
 import { calculoDistribucionScenarioMeta } from "../universidad/calculo/calculoDistribucionModel";
 import { estadisticoDelReparto, nombreEstadistico } from "../universidad/calculo/estadisticoAula";
@@ -208,9 +209,9 @@ export function ResumenDiseno({
   const procedenciaDesconocida =
     hayMarco && correspondeALasFuentes === null && (fuentesActuales?.length ?? 0) > 0;
   const notaDeFuentes = fuentesCambiaron
-    ? "otras bases cargadas · reconstruye"
+    ? "otras bases cargadas; reconstrúyelo"
     : procedenciaDesconocida
-      ? "no consta de qué bases salió · reconstruye"
+      ? "no consta de qué bases salió; reconstrúyelo"
       : null;
 
   // Metas operativas: el mismo selector P1/P2 y el mismo normalizador de la
@@ -293,7 +294,7 @@ export function ResumenDiseno({
   // mientras el sorteo llevaba 174: la elección nunca se hizo y la pantalla no
   // tenía cómo decirlo. El aviso nombra la causa, no sólo el hecho.
   const notaEscenario = vigor.discrepa && vigor.delSorteo
-    ? `el sorteo ejecutado dimensionó con ${calculoDistribucionScenarioMeta(vigor.delSorteo).shortLabel} · revisa`
+    ? `el sorteo ejecutado dimensionó con ${calculoDistribucionScenarioMeta(vigor.delSorteo).shortLabel}, revisa`
     : vigor.origen === "sorteo"
       ? "escenario tomado del sorteo ejecutado; nadie lo eligió"
       : null;
@@ -301,20 +302,20 @@ export function ResumenDiseno({
   // una interfaz en español— y «contrato anterior», que no le dice a nadie qué
   // hacer. Los estados que piden acción la nombran: «recalcula».
   const resultNote = resultReady
-    ? `${resultModel.selection.shortLabel} · R · marco vigente`
+    ? `${resultModel.selection.shortLabel}, R, marco vigente`
     : resultModel.state.kind === "stale"
-      ? `${resultModel.selection.shortLabel} · R · marco anterior · recalcula`
+      ? `${resultModel.selection.shortLabel}, R, marco anterior, recalcula`
       : resultModel.state.kind === "invalid"
         // Con la razón que R publicó, no sólo «inválido». El motor explica por
         // qué —«La suma de facultades no coincide con el marco validado del
         // diseño», con los dos números— y esa explicación llegaba al front y
         // se quedaba sin mostrar: la cabecera decía «resultado inválido» y el
         // usuario no tenía forma de saber qué revisar.
-        ? `${resultModel.selection.shortLabel} · R · ${primeraRazonInvalida(resultModel.state) ?? "resultado inválido"}`
+        ? `${resultModel.selection.shortLabel}, R, ${primeraRazonInvalida(resultModel.state) ?? "resultado inválido"}`
         : resultModel.state.kind === "legacy"
-          ? `${resultModel.selection.shortLabel} · calculado con una versión anterior · recalcula`
-          : `${resultModel.selection.shortLabel} · falta calcular`;
-  const notaResultado = notaEscenario ? `${resultNote} · ${notaEscenario}` : resultNote;
+          ? `${resultModel.selection.shortLabel}, calculado con una versión anterior, recalcula`
+          : `${resultModel.selection.shortLabel}, falta calcular`;
+  const notaResultado = notaEscenario ? `${resultNote}, ${notaEscenario}` : resultNote;
 
   const metrics: SummaryMetric[] = [
     {
@@ -335,8 +336,8 @@ export function ResumenDiseno({
       // deja ver el error sin abrir ningún archivo.
       note: (periodoMarco
         ? periodoCuadra === false
-          ? `base ${periodoMarco} · el estudio es ${anio(perfil.nombre)}`
-          : `base ${periodoMarco} · unidades únicas`
+          ? `base ${periodoMarco}, el estudio es ${anio(perfil.nombre)}`
+          : `base ${periodoMarco}, unidades únicas`
         : "unidades únicas"),
       icon: <BookOpenCheck size={16} aria-hidden="true" />,
       tone: fuentesCambiaron || procedenciaDesconocida || periodoCuadra === false ? "estimated" : "universe",
@@ -344,14 +345,14 @@ export function ResumenDiseno({
     {
       label: "Estudiantes elegibles",
       value: estudiantesElegibles,
-      note: notaIntegridad ?? (estudiantesDesactualizados ? "criterios cambiados · reconstruye" : notaDeFuentes ? "del marco actual" : "marco vigente"),
+      note: notaIntegridad ?? (estudiantesDesactualizados ? "criterios cambiados; reconstruye el marco" : notaDeFuentes ? "del marco actual" : "marco vigente"),
       icon: <ClipboardCheck size={16} aria-hidden="true" />,
       tone: fuentesCambiaron || procedenciaDesconocida || estudiantesDesactualizados || !marcoPublicable ? "estimated" : "confirmed",
     },
     {
       label: "Cursos-horario elegibles",
       value: cursosHorarioElegibles,
-      note: notaIntegridad ?? (cursosDesactualizados ? "criterios cambiados · reconstruye" : notaDeFuentes ? "del marco actual" : "marco vigente"),
+      note: notaIntegridad ?? (cursosDesactualizados ? "criterios cambiados; reconstruye el marco" : notaDeFuentes ? "del marco actual" : "marco vigente"),
       icon: <BookOpenCheck size={16} aria-hidden="true" />,
       tone: fuentesCambiaron || procedenciaDesconocida || cursosDesactualizados || !marcoPublicable ? "estimated" : "confirmed",
     },
@@ -482,7 +483,7 @@ export function ResumenDiseno({
           <span className="rec-resumen-item-icon" aria-hidden="true"><Sigma size={16} aria-hidden="true" /></span>
           <span className="rec-resumen-item-copy">
             <small>Sin cifra todavía</small>
-            <strong>{indicadores.vacios.map((metric) => metric.label).join(" · ")}</strong>
+            <strong>{enumerar(indicadores.vacios.map((metric) => metric.label))}</strong>
             <span>{notaResultado}</span>
           </span>
         </div>

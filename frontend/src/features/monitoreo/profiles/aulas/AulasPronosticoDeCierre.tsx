@@ -1,3 +1,4 @@
+import { formatoDecimal } from "../../../../lib/formatoNumero";
 import { useMemo } from "react";
 
 import type { MonitoreoRow } from "../../../../api/monitoreo";
@@ -102,8 +103,8 @@ export function AulasPronosticoDeCierre({ partes, plan }: {
     // equivocado que salió en cinco paneles del perfil.
     <div className="aulas-pronostico" data-qa-geometry-capacity="owned" data-qa-geometry-member>
       <p className="aulas-pronostico-lectura">
-        <strong>{fmt(p.aplicadas)}</strong> de <strong>{fmt(p.universo)}</strong> cursos-horario aplicados ·
-        faltan <strong>{fmt(p.faltan)}</strong> · al ritmo de estos{" "}
+        <strong>{fmt(p.aplicadas)}</strong> de <strong>{fmt(p.universo)}</strong> cursos-horario aplicados,
+        faltan <strong>{fmt(p.faltan)}</strong>, al ritmo de estos{" "}
         {fmt(p.diasConCampo)} días cierra hacia el <strong>{dm(fin)}</strong>
       </p>
       <div className="aulas-pronostico-plot">
@@ -163,7 +164,7 @@ export function AulasPronosticoDeCierre({ partes, plan }: {
         {/* «último con campo», no «hoy»: es la fecha del último parte, que
             sobre este corte es el 21/08 mientras el corte es del 18. Llamarlo
             «hoy» convierte un dato en una afirmación falsa sobre el calendario. */}
-        <span>último con campo · {dm(p.ultimaFecha)}</span>
+        <span>último con campo, {dm(p.ultimaFecha)}</span>
         <span>{sinVariacion ? dm(fin) : dm(tarde)}</span>
       </p>
       {/* Los SUPUESTOS, que es lo que separa una proyección de una promesa.
@@ -191,7 +192,7 @@ export function AulasPronosticoDeCierre({ partes, plan }: {
           </>
         ) : (
           <>
-            Proyectado al ritmo observado de <strong>{p.ritmo?.toLocaleString("es-PE")}</strong>{" "}
+            Proyectado al ritmo observado de <strong>{formatoDecimal(p.ritmo, 3)}</strong>{" "}
             cursos-horario por día de campo (entre {fmt(p.ritmoLento ?? 0)} y{" "}
             {fmt(p.ritmoRapido ?? 0)} según el
             día), contando todos los días menos el domingo. Con un día flojo

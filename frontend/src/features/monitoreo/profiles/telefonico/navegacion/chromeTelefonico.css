@@ -52,7 +52,7 @@
   border-radius: var(--pulso-radius-chip);
   background: var(--pulso-surface);
   color: var(--pulso-text);
-  font-size: 12px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-semibold);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
@@ -76,7 +76,7 @@
   background: transparent;
   color: var(--pulso-text-soft);
   font: inherit;
-  font-size: 12.5px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-semibold);
   cursor: pointer;
 }
@@ -108,16 +108,17 @@
 .is-telefonico-profile .pulso-context-tab-rail-meta > span > span {
   display: block;
   color: var(--pulso-text-faint);
-  font-size: 9px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-semibold);
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  /* En caja normal: en versalitas, a 10 px (el piso) «CORTE» no cabía en los
+     40 px de la cápsula y se partía «Cort/e» (P1 de la pasada de formato). */
+  white-space: nowrap;
 }
 
 .is-telefonico-profile .pulso-context-tab-rail-meta strong,
 .is-telefonico-profile .pulso-context-tab-rail-meta .mon-rail-sync-time {
   color: var(--pulso-text-soft);
-  font-size: 10.5px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-bold);
 }
 
@@ -153,7 +154,7 @@
   min-width: 0;
   margin-inline-end: auto;
   color: var(--pulso-text);
-  font-size: 13px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .mon-tel-rotulo-copia {
@@ -164,7 +165,7 @@
 
 .mon-tel-rotulo-copia small {
   color: var(--pulso-text-faint);
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-bold);
   letter-spacing: 0.09em;
   line-height: 1.2;
@@ -175,7 +176,7 @@
 .mon-tel-rotulo-copia h2 {
   margin: 0;
   color: var(--pulso-text);
-  font-size: 17px;
+  font-size: var(--pulso-type-title-size);
   font-weight: var(--pulso-weight-bold);
   letter-spacing: -0.01em;
   line-height: 1.2;
@@ -202,7 +203,7 @@ header:has(> .mon-tel-rotulo) {
   padding-left: var(--pulso-space-3);
   border-left: 1px solid var(--pulso-border);
   color: var(--pulso-text);
-  font-size: 13px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-semibold);
 }
 
@@ -222,18 +223,6 @@ header:has(> .mon-tel-rotulo + :is(b, strong)) > .mon-tel-rotulo {
   padding-bottom: var(--pulso-space-3);
   margin-bottom: var(--pulso-space-1);
   border-bottom: 1px solid var(--pulso-border);
-}
-
-/* Una tarjeta vacía que lleva el rótulo: el rótulo arriba, el vacío al centro
- * del resto (C3: el vacío es de la tarjeta). */
-.mon-tel-vacio:has(> header > .mon-tel-rotulo) {
-  display: flex;
-  flex-direction: column;
-  place-items: stretch;
-}
-
-.mon-tel-vacio:has(> header > .mon-tel-rotulo) > :last-child {
-  margin: auto;
 }
 
 /* Línea de rótulo propia dentro de la tarjeta, cuando su cabecera ya trae

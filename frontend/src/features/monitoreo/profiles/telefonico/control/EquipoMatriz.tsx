@@ -1,5 +1,6 @@
 import { pctConEspacio } from "../../../core/formatoComun";
 import type { TelefonicoStatusMatrix } from "../telefonicoTeamModel";
+import { formatoConteo, formatoDecimal } from "../../../../../lib/formatoNumero";
 
 /**
  * Status por operador en porcentaje y casos, con la fila del equipo arriba.
@@ -30,11 +31,11 @@ export function EquipoMatriz({
           <tbody>
             <tr className="is-equipo">
               <th scope="row">Equipo</th>
-              <td className="is-num">{matriz.total.toLocaleString("es-PE")}</td>
+              <td className="is-num">{formatoConteo(matriz.total)}</td>
               {matriz.general.map((celda) => (
                 <td key={celda.estado}>
                   <span>{pctConEspacio(celda.pct)}</span>
-                  <small>{celda.casos.toLocaleString("es-PE")} casos</small>
+                  <small>{formatoConteo(celda.casos)} casos</small>
                 </td>
               ))}
             </tr>
@@ -45,15 +46,15 @@ export function EquipoMatriz({
                   <th scope="row">
                     <button type="button" onClick={() => onElegir(fila.responsable)}>{fila.responsable}</button>
                   </th>
-                  <td className="is-num">{fila.total.toLocaleString("es-PE")}</td>
+                  <td className="is-num">{formatoConteo(fila.total)}</td>
                   {fila.celdas.map((celda) => (
                     <td
                       key={celda.estado}
                       className={celda.senal === "normal" ? undefined : `is-${celda.senal}`}
-                      title={celda.desviacion == null ? undefined : `${celda.desviacion > 0 ? "+" : ""}${celda.desviacion.toLocaleString("es-PE", { maximumFractionDigits: 1 })} puntos frente a la mediana`}
+                      title={celda.desviacion == null ? undefined : `${celda.desviacion > 0 ? "+" : ""}${formatoDecimal(celda.desviacion, 1)} puntos frente a la mediana`}
                     >
                       <span>{pctConEspacio(celda.pct)}</span>
-                      <small>{celda.casos.toLocaleString("es-PE")}</small>
+                      <small>{formatoConteo(celda.casos)}</small>
                     </td>
                   ))}
                 </tr>

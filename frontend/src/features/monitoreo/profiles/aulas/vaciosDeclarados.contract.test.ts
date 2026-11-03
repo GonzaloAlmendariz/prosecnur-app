@@ -36,7 +36,14 @@ function vaciosSinDeclarar(fuente: string): number {
   // libro», que es el síntoma que no se parece a su causa. Un guard que exige la
   // clase a secas deja fuera a quien añade una suya, que es lo normal.
   const re = /return \(?\s*(?:\{?\s*\/\*[\s\S]*?\*\/\s*\}?\s*)*<p className="mon-profile-muted[^"]*"(?![^>]*data-qa-geometry-member)/g;
-  return (fuente.match(re) ?? []).length;
+  // **El vacío del kit tampoco escapa** (P5 de la pasada de formato). Desde que
+  // el vacío va por `EstadoVacio`, la rama vacía ya no es un `<p>`: y como el
+  // componente no acepta atributos `data-*`, devolverlo SIN envoltorio deja la
+  // rama sin declarar aunque nadie escriba la clase vieja. Sólo cuenta el
+  // retorno de un componente (sangría de 2 a 4): una pista dentro de un bloque
+  // —el detalle de la malla, en una IIFE— no es miembro de ningún grupo.
+  const kit = /^ {2,4}return \(?\s*(?:\{?\s*\/\*[\s\S]*?\*\/\s*\}?\s*)*<EstadoVacio\b/gm;
+  return (fuente.match(re) ?? []).length + (fuente.match(kit) ?? []).length;
 }
 
 describe("el vacío de un panel declara lo mismo que su rama con datos", () => {
@@ -65,5 +72,10 @@ describe("el vacío de un panel declara lo mismo que su rama con datos", () => {
     const bueno = 'return (\n      <p className="mon-profile-muted" data-qa-geometry-member="true">\n        nada\n      </p>';
     expect(vaciosSinDeclarar(malo)).toBe(1);
     expect(vaciosSinDeclarar(bueno)).toBe(0);
+    const kitSuelto = "    return (\n      <EstadoVacio icono={null} titulo=\"nada\" />";
+    const kitEnvuelto = "    return (\n      <div data-qa-geometry-member=\"true\">\n        <EstadoVacio icono={null} titulo=\"nada\" />";
+    expect(vaciosSinDeclarar(kitSuelto)).toBe(1);
+    expect(vaciosSinDeclarar(kitEnvuelto)).toBe(0);
+    expect(vaciosSinDeclarar("          return (\n            <EstadoVacio icono={null} titulo=\"pista\" />")).toBe(0);
   });
 });

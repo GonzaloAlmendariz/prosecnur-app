@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 
 import { fmt } from "./kpisDeAulas";
 import { ejeDeDias, serieSobreElEje } from "./ejeDeDias";
-import { mesCortoDe } from "../../mesesEnPalabras";
+import { ejeDeFechas } from "../../core/ejeDeFechas";
 import type { DiaDeRitmo } from "./AulasRitmoDiario";
 import "./aulasAvanceDiario.css";
 
@@ -168,25 +168,23 @@ export function AulasAvanceDiario({ dias, hasta }: {
               <text x={cx(i)} y={yBarra(d.validas) - 5} textAnchor="middle"
                 className="aulas-avdia-valor">{fmt(d.validas)}</text>
             ) : null}
-            {/* **TODOS los días, contraídos y sin diagonal.** Dos instrucciones
-                suyas seguidas: «se siguen salteando días, cuando todos deberían
-                estar allí desde el primer día de aplicación hasta el último día
-                agendado» y «las etiquetas del eje x pueden tener wrap y tener
-                mayor contracción para que no estén dispuestas de forma
-                diagonal».
-
-                «07/09» ocupa unas 32 unidades del `viewBox` y con veinticinco
-                días hay 34 por día: se pisan, y por eso se raleaba —perdiendo la
-                fecha de barras que sí existen—. El día solo ocupa 14 y cabe de
-                sobra; el mes, repetido veinticinco veces, era ruido, así que se
-                escribe donde informa: al empezar y en cada cambio. */}
-            <text x={cx(i)} y={ALTO - PAD.abajo + 15} textAnchor="middle"
-              className={`aulas-avdia-fecha${d.esDeCampo ? "" : " es-sin-campo"}`}>
-              {d.fecha.slice(8, 10)}
+          </g>
+        ))}
+        {/* El eje de fechas común de Monitoreo (core/ejeDeFechas): el día bajo
+            su barra y el mes debajo, sólo donde empieza. Dos instrucciones
+            suyas: «todos deberían estar allí desde el primer día de aplicación
+            hasta el último día agendado» y «sin diagonal». Con el ancho de este
+            dibujo caben todos hasta ~55 días; con más, se ralea sin montarse.
+            El día sin campo conserva su tono apagado. */}
+        {ejeDeFechas(puntos.map((d) => d.fecha), util.x / puntos.length).map((rotulo) => (
+          <g key={`eje-${puntos[rotulo.indice].fecha}`}>
+            <text x={cx(rotulo.indice)} y={ALTO - PAD.abajo + 15} textAnchor="middle"
+              className={`aulas-avdia-fecha${puntos[rotulo.indice].esDeCampo ? "" : " es-sin-campo"}`}>
+              {rotulo.dia}
             </text>
-            {i === 0 || d.fecha.slice(5, 7) !== puntos[i - 1].fecha.slice(5, 7) ? (
-              <text x={cx(i)} y={ALTO - PAD.abajo + 28} textAnchor="middle"
-                className="aulas-avdia-mes">{mesCortoDe(d.fecha)}</text>
+            {rotulo.mes ? (
+              <text x={cx(rotulo.indice)} y={ALTO - PAD.abajo + 28} textAnchor="middle"
+                className="aulas-avdia-mes">{rotulo.mes}</text>
             ) : null}
           </g>
         ))}

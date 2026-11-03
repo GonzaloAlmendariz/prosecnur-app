@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { EstadoChip } from "../../../../../../components/EstadoChip";
 import { CheckCircle2 } from "lucide-react";
 import type { MonitoreoAcreditacionReports, MonitoreoState } from "../../../../../../api/client";
 import { fmt } from "../../formato";
@@ -69,7 +70,7 @@ export function CalidadVista({ duraciones, minimo, maximo, senales, union = "uni
                     <td>{item.publico ? <span className={`acr-celda-publico ${clasePublico(paleta, item.publico)}`}><i className="mon-publico-punto" aria-hidden="true" />{item.publico}</span> : <span className="acr-av-tenue">{sinDato}</span>}</td>
                     <td>{item.estado || <span className="acr-av-tenue">{sinDato}</span>}</td>
                     <td className="is-num">{duracionLegible(item.segundos)}</td>
-                    <td><span className="acr-av-chip is-falta">Muy corta</span></td>
+                    <td><EstadoChip label="Muy corta" tone="warn" /></td>
                   </tr>
                 ))}
               </tbody>

@@ -136,3 +136,43 @@ test_that("una columna donde cada persona tiene su propio valor es un identifica
   chico <- data.frame(Facultad = c("Letras", "Ciencias", "Derecho"), stringsAsFactors = FALSE)
   expect_identical(vapply(prosecnurapp:::.mcu_variables(chico), `[[`, character(1), "variable"), "Facultad")
 })
+
+test_that("una cuota declarada referencial no se exige: su número es referencia y publica composición (ADR 0126)", {
+  u <- monitoreo_cuotas_universo(.mcut_data(), list("Token"))
+  efectivos <- c(sprintf("d%05d", 1:30), sprintf("d%05d", 1940:1949))  # 30 TPA y 10 DTC
+  base <- list(id = "q", actor = "Docentes Campus", variable = "Dedicación",
+               metas = list(TPA = 605L, DTC = 197L, TPC20 = 10L))
+  meta <- monitoreo_cuotas_modelo(u, .mcut_rollup(efectivos), list(base))$cuotas[[1]]
+  ref <- monitoreo_cuotas_modelo(u, .mcut_rollup(efectivos), list(c(base, caracter = "referencial")))$cuotas[[1]]
+  # Sin declarar, con números, sigue siendo meta y nada cambia.
+  expect_identical(meta$caracter, "meta")
+  expect_identical(meta$meta, 812L)
+  expect_identical(meta$categorias[[1]]$estado_cuota, "falta")
+  # Declarada referencial: sin meta, sin avance, la referencia aparte.
+  expect_identical(ref$caracter, "referencial")
+  expect_identical(ref$meta, 0L)
+  expect_true(is.na(ref$avance))
+  expect_identical(ref$categorias_total, 0L)
+  tpa <- Filter(function(c) c$categoria == "TPA", ref$categorias)[[1]]
+  expect_identical(tpa$referencia, 605L)
+  expect_identical(tpa$estado_cuota, "referencial")
+  expect_equal(tpa$pct_efectivas, 30 / 40)
+  expect_equal(tpa$pct_universo, 1939 / 2599)
+  tpc <- Filter(function(c) c$categoria == "TPC20", ref$categorias)[[1]]
+  expect_true(tpc$celda_vacia)
+  # «Sin dato» no entra a la composición: va aparte.
+  sd <- Filter(function(c) c$categoria == "Sin dato", ref$categorias)[[1]]
+  expect_true(is.na(sd$pct_universo))
+  expect_identical(ref$sin_dato_efectivas, 0L)
+})
+
+test_that("`caracter` sobrevive la entrada de cuotas; sin declarar no se escribe", {
+  q <- .mcu_cuotas_entrada(list(
+    list(actor = "A", variable = "V", metas = list(x = 3L), caracter = "referencial"),
+    list(actor = "A", variable = "W", metas = list(x = 3L), caracter = "cualquiera"),
+    list(actor = "A", variable = "Z", metas = list(x = 3L))
+  ))
+  expect_identical(q[[1]]$caracter, "referencial")
+  expect_null(q[[2]]$caracter)
+  expect_false("caracter" %in% names(q[[3]]))
+})

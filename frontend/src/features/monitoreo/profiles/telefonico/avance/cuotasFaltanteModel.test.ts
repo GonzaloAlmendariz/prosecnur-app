@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { seriesConCifraFinal } from "./FaltanteDiario";
 import { cadenaDeLaCifra, construirCuotasFaltante, llevaFaltanteDiario, type CuotaDeEntrada } from "./cuotasFaltanteModel";
-import { sinAsignarDesdeBloque } from "./entradaDeCuotas";
+import { conCaracter, sinAsignarDesdeBloque } from "./entradaDeCuotas";
 
 function cuota(id: string, meta: number | null, efectivas: number, serie: Array<[string, number]>, extra: Partial<CuotaDeEntrada> = {}): CuotaDeEntrada {
   return {
@@ -111,5 +111,93 @@ describe("seriesConCifraFinal", () => {
     // Verificador, 2026-10-27: a 1440 el lienzo mide ~130 px y el 11 se montaba sobre el punto del 23.
     expect([...seriesConCifraFinal([23, 11, 5, 1], 100, 330)].sort()).toEqual([0, 1]);
     expect([...seriesConCifraFinal([23, 11, 5, 1], 100, 130)].sort()).toEqual([0]);
+  });
+});
+
+describe("Avance › Cuotas: metas y referenciales separadas (ADR 0126)", () => {
+  // Tres sedes: dos metas y una referencial declarada con número de referencia.
+  const sjl = cuota("SJL", 50, 30, [], { universe: 200, pending: 20 });
+  const smp = cuota("SMP", 40, 40, [], { universe: 150, pending: 10 });
+  const pl = cuota("PL", 25, 10, [], { universe: 50, pending: 5, caracter: "referencial" });
+
+  it("la referencial no entra a la tabla de metas ni a su total", () => {
+    const modelo = construirCuotasFaltante({ cuotas: [sjl, smp, pl], segmento: "Sede", sinAsignar: null });
+    expect(modelo.filas.map((fila) => fila.clave)).toEqual(["SJL", "SMP"]);
+    expect(modelo.total.meta).toBe(90);
+    expect(modelo.total.faltan).toBe(20);
+    // El % de la meta se mide con las efectivas de las metas, no con las de PL.
+    expect(modelo.total.efectivasDeMetas).toBe(70);
+    expect(modelo.total.pct).toBeCloseTo((70 / 90) * 100, 5);
+    // «De dónde sale la cifra» y el listado siguen contando todo.
+    expect(modelo.total.efectivas).toBe(80);
+    expect(modelo.todas).toHaveLength(3);
+    expect(modelo.total.universo).toBe(400);
+  });
+
+  it("la referencial se describe frente al listado, con su n y sin faltante", () => {
+    const modelo = construirCuotasFaltante({ cuotas: [sjl, smp, pl], segmento: "Sede", sinAsignar: null });
+    expect(modelo.referenciales).toHaveLength(1);
+    const ref = modelo.referenciales[0];
+    expect(ref.efectivas).toBe(10);
+    expect(ref.obtenida).toBeCloseTo(12.5, 5); // 10 de 80
+    expect(ref.esperada).toBeCloseTo(12.5, 5); // 50 de 400
+    expect(ref.diferencia).toBeCloseTo(0, 5);
+    expect(ref.referencia).toBe(25);
+    expect(ref.estadoCuota).toBe("referencial");
+    expect(modelo.todas.find((fila) => fila.clave === "PL")?.meta).toBeNull();
+  });
+
+  it("sin declarar nada, una categoría sin número es referencial y una con número es meta", () => {
+    const modelo = construirCuotasFaltante({
+      cuotas: [cuota("A", 10, 4, []), cuota("B", null, 6, [])],
+      segmento: "Sede",
+      sinAsignar: null,
+    });
+    expect(modelo.filas.map((fila) => fila.clave)).toEqual(["A"]);
+    expect(modelo.referenciales.map((fila) => fila.clave)).toEqual(["B"]);
+    expect(modelo.filas[0].estadoCuota).toBe("falta");
+  });
+
+  it("una referencial con listado y ninguna efectiva es celda vacía; sin listado no hay comparador", () => {
+    const modelo = construirCuotasFaltante({
+      cuotas: [
+        cuota("A", 10, 10, []),
+        cuota("B", null, 0, [], { universe: 30 }),
+        cuota("C", null, 2, [], { universe: 0 }),
+      ],
+      segmento: "Sede",
+      sinAsignar: null,
+    });
+    const [b, c] = modelo.referenciales;
+    expect(b.celdaVacia).toBe(true);
+    expect(c.celdaVacia).toBe(false);
+    expect(c.estadoCuota).toBe("sin_comparador");
+  });
+});
+
+describe("Avance › Cuotas: el total no compensa entre celdas (ADR 0079 y 0126)", () => {
+  it("el exceso de una cuota no cubre el faltante de otra", () => {
+    const modelo = construirCuotasFaltante({
+      cuotas: [cuota("A", 5, 10, []), cuota("B", 5, 0, []), cuota("C", 0, 3, [])],
+      segmento: "Sede",
+      sinAsignar: null,
+    });
+    expect(modelo.total.meta).toBe(10);
+    expect(modelo.total.faltan).toBe(5);
+    expect(modelo.total.pct).toBeCloseTo(50, 5);
+    // La meta 0 sin declarar sigue siendo meta, pero no entra a la suma con número.
+    expect(modelo.filas.map((fila) => fila.clave)).toEqual(["A", "B", "C"]);
+    expect(modelo.total.efectivasDeMetas).toBe(10);
+  });
+
+  it("el carácter se cruza por variable y valor: un «Sí» de otra variable no es el mismo", () => {
+    const filas = [
+      { Actor: "Total", Variable: "Sede", Valor: "Sí", Caracter: "meta", estado_cuota: "falta" },
+      { Actor: "Total", Variable: "Acepta", Valor: "Sí", Caracter: "referencial", Referencia: 30, estado_cuota: "referencial" },
+    ];
+    const [sede] = conCaracter([cuota("phone-quota-sede-si", 10, 2, [], { actor: "Sí" })], filas);
+    expect(sede.caracter).toBe("meta");
+    const [acepta] = conCaracter([cuota("phone-quota-acepta-si", null, 2, [], { actor: "Sí" })], filas);
+    expect(acepta).toMatchObject({ caracter: "referencial", referencia: 30 });
   });
 });

@@ -16,6 +16,7 @@ import { PulsoSelect } from "../../../components/PulsoSelect";
 import { AlertTriangle } from "../../../vendor/lucide-react";
 import { ExcelDeAsignacion } from "./ExcelDeAsignacion";
 import { asignarColumna, borradorDe, codigoDeColumna, cuerpoDelBorrador, hayCambios, motivoDeBloqueo, type Borrador } from "./modeloAsignacion";
+import { CargaDeBloque } from "../../../components/CargaDeBloque";
 
 const SIN_ASIGNAR = "__sin_asignar";
 
@@ -86,7 +87,7 @@ export function useAsignacionEquipo(campaignId: string | null) {
         disabled={!umps.length || estado === "guardando"}
         options={[
           { value: SIN_ASIGNAR, label: "Sin asignar" },
-          ...datos.equipo.map((e) => ({ value: e.codigo, label: e.nombre ? `${e.codigo} · ${e.nombre}` : e.codigo, textValue: `${e.codigo} ${e.nombre}` })),
+          ...datos.equipo.map((e) => ({ value: e.codigo, label: e.nombre ? `${e.nombre} (${e.codigo})` : e.codigo, textValue: `${e.codigo} ${e.nombre}` })),
         ]}
         onValueChange={(v) => {
           setBorrador((b) => asignarColumna(b, umps, v === SIN_ASIGNAR ? "" : v));
@@ -115,11 +116,9 @@ export function BarraAsignacion({ campaignId, datos, bloqueo, estado, error, gua
     return campaignId ? (
       <div className="rec-asig" aria-label="Asignación de encuestadores" aria-busy="true">
         <div className="rec-asig-cab">
-          <span>
-            <strong>Encuestadores</strong>
-            <small>Leyendo la lista de Monitoreo…</small>
-          </span>
+          <strong>Encuestadores</strong>
         </div>
+        <CargaDeBloque label="Leyendo la lista de Monitoreo…" />
       </div>
     ) : null;
   }
@@ -134,7 +133,7 @@ export function BarraAsignacion({ campaignId, datos, bloqueo, estado, error, gua
               ? "Se eligen de la lista de Monitoreo."
               : unidad === "zona"
                 ? `${datos.equipo.length} en la lista de Monitoreo, ${asignadas} ${ROTULO_UNIDAD.zona[asignadas === 1 ? 0 : 1]}. Campo asigna en el Excel, una fila por encuestador y zona con su parte de la cuota.`
-                : `${datos.equipo.length} en la lista de Monitoreo · ${asignadas} ${ROTULO_UNIDAD.ump[asignadas === 1 ? 0 : 1]}. Campo asigna en el Excel; también puedes elegir por columna del calendario.`}
+                : `${datos.equipo.length} en la lista de Monitoreo y ${asignadas} ${ROTULO_UNIDAD.ump[asignadas === 1 ? 0 : 1]}. Campo asigna en el Excel; también puedes elegir por columna del calendario.`}
           </small>
         </span>
         {!bloqueo ? (

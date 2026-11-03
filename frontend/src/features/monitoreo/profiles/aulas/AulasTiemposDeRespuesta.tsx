@@ -1,3 +1,4 @@
+import { formatoDecimal } from "../../../../lib/formatoNumero";
 import { useMemo } from "react";
 
 import { Clock, TriangleAlert } from "../../../../vendor/lucide-react";
@@ -23,7 +24,7 @@ import { fmt } from "./kpisDeAulas";
 // treinta archivos del perfil, y hacía otra cosa: aquí SÍ hay decimal, porque
 // «2,4 días de respuesta» es el dato. Dos comportamientos bajo el mismo nombre
 // obligan a abrir el archivo para saber cuál manda.
-const fmtUnDecimal = (n: number) => n.toLocaleString("es-PE", { maximumFractionDigits: 1 });
+const fmtUnDecimal = (n: number) => formatoDecimal(n, 1);
 const min = (n: number | null) => (n === null ? "—" : `${fmtUnDecimal(n)} min`);
 
 export function AulasTiemposDeRespuesta({ tiempos, onDeclararUmbral }: {
@@ -132,7 +133,7 @@ export function AulasTiemposDeRespuesta({ tiempos, onDeclararUmbral }: {
                   )}
                 </span>
                 <span className="aulas-tiempos-resto">
-                  resto {min(a.medianaResto)} · {fmtUnDecimal(a.n)} resp.
+                  resto {min(a.medianaResto)}, {fmtUnDecimal(a.n)} resp.
                 </span>
               </li>
             ))}

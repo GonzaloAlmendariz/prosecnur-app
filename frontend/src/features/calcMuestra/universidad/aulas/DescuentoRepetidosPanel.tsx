@@ -20,6 +20,7 @@ import {
 } from "./descuentoRepetidosModel";
 import { DescuentoSecuencialNarrativa } from "./DescuentoSecuencialNarrativa";
 import "./aulas.css";
+import { Panel } from "../../../../components/Panel";
 
 export function DescuentoRepetidosPanel({
   selection,
@@ -37,10 +38,7 @@ export function DescuentoRepetidosPanel({
   const engineUsed = String(selection?.selector_engine_used ?? selection?.selector_engine ?? "");
   if (!mode && !sinIds && !resumen) return null;
   return (
-    <section className="cmv2-panel cmv2-aulas-panel cmv2-aulas-descuento-panel" aria-label="Descuento de estudiantes repetidos">
-      <div className="cmv2-subhead">
-        <strong>Descuento de repetidos</strong>
-      </div>
+    <Panel aria-labelledby="cmv2-aulas-descuento-titulo" title={<span id="cmv2-aulas-descuento-titulo">Descuento de repetidos</span>} className="cmv2-aulas-panel cmv2-aulas-descuento-panel">
       {sinIds && (
         <AvisoModulo tone="warn" title="Esta selección corrió sin descuento de repetidos.">
           {sinIds.message}
@@ -100,6 +98,6 @@ export function DescuentoRepetidosPanel({
           </p>
         </>
       )}
-    </section>
+    </Panel>
   );
 }

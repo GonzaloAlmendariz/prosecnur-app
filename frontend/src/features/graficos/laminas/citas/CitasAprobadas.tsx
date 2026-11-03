@@ -21,6 +21,7 @@ import {
 } from "./modeloCitas";
 import { useCitasCandidatas } from "./useCitasCandidatas";
 import "./citasAprobadas.css";
+import { formatoConteo } from "../../../../lib/formatoNumero";
 
 type Props = {
   args: Record<string, unknown>;
@@ -47,7 +48,7 @@ export function CitasAprobadas({ args, variable, onCambio }: Props) {
     <section className="pulso-f6-citas" aria-labelledby={idTitulo} data-qa-geometry-group="graficos/f6-citas" data-qa-geometry-contract="intrinsic">
       <header className="pulso-f6-citas-head">
         <h5 id={idTitulo} className="pulso-f6-dato-rotulo">Citas aprobadas</h5>
-        <span className="pulso-f6-citas-n">{aprobadas.length} de {TOPE_CITAS}</span>
+        <span className="pulso-f6-citas-n">{formatoConteo(aprobadas.length)} de {TOPE_CITAS}</span>
       </header>
       {estado.fase === "sin_pregunta" && <p className="pulso-f6-dato-ayuda">Elige primero la pregunta abierta.</p>}
       {estado.fase === "cargando" && <p className="pulso-f6-dato-ayuda" role="status">Leyendo los comentarios</p>}
@@ -70,7 +71,7 @@ export function CitasAprobadas({ args, variable, onCambio }: Props) {
           )}
           <div className="pulso-f6-citas-sub">
             <span className="pulso-f6-dato-rotulo">Comentarios para elegir</span>
-            <span className="pulso-f6-citas-n">{libres.length}</span>
+            <span className="pulso-f6-citas-n">{formatoConteo(libres.length)}</span>
           </div>
           {libres.length === 0 ? (
             <p className="pulso-f6-dato-ayuda">

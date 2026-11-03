@@ -52,8 +52,8 @@ describe("RegistroAulas", () => {
     const html = renderToStaticMarkup(<RegistroAulas dashboard={tablero} cargando={false} vacioSinTablero={null} />);
     expect(html).toContain('data-audit-ready="monitoreo-aulas-control-registro"');
     expect(html).not.toContain("<input");
-    expect(html).toContain("B · complemento");
-    expect(html).toContain("C · refuerzo");
+    expect(html).toContain("B (complemento)");
+    expect(html).toContain("C (refuerzo)");
     expect(html).toContain("se corrige allí");
   });
   it("la fecha del parte se dice como el resto de la app", () => {

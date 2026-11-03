@@ -1,13 +1,18 @@
 import { memo, useState, type ReactNode } from "react";
 
 import type { MonitoreoAulasDashboard } from "../../../../../api/monitoreo";
+import { EstadoChip } from "../../../../../components/EstadoChip";
+import type { ChromeStatusTone } from "../../../../../components/ModuleCommandBar";
 import { fmt } from "../kpisDeAulas";
 import { useMarcarRefuerzo } from "../useMarcarRefuerzo";
-import { construirRegistro, readinessDeRegistro, type FiltroDePartes } from "./registroModelo";
+import { construirRegistro, readinessDeRegistro, type FiltroDePartes, type ItemDeParte } from "./registroModelo";
 import "../insumos/insumos.css";
 import "./registro.css";
 
 const FILTROS: Array<[FiltroDePartes, string]> = [["todos", "Todos"], ["sin", "Sin parte"], ["con", "Con parte"]];
+
+/** El tono que pintaba `.aulas-ins-chip[data-tono]` en la fila de la lista (insumos.css). */
+const TONO_DE_LECTURA: Record<ItemDeParte["tono"], ChromeStatusTone> = { ok: "success", aviso: "warn", riesgo: "danger", neutro: "neutral" };
 
 /**
  * Control › Registro de campo (ficha Ctl4). Izquierda, los partes; al centro,
@@ -43,7 +48,7 @@ function RegistroAulasImpl({ dashboard, cargando, vacioSinTablero, onGuardado }:
         <div className="aulas-ins-tramos-selector" role="group" aria-label="Filtro">
           {FILTROS.map(([k, r]) => (
             <button key={k} type="button" className={filtro === k ? "is-activo" : undefined} aria-pressed={filtro === k} onClick={() => setFiltro(k)}>
-              {r} · {fmt(modelo.cuentas[k])}
+              {r} ({fmt(modelo.cuentas[k])})
             </button>
           ))}
         </div>
@@ -53,7 +58,7 @@ function RegistroAulasImpl({ dashboard, cargando, vacioSinTablero, onGuardado }:
               <button type="button" className={p?.codigo === i.codigo ? "is-elegido" : undefined} aria-pressed={p?.codigo === i.codigo} onClick={() => setCodigo(i.codigo)}>
                 <b>{i.codigo}</b>
                 <span className="aulas-ins-sub">{i.facultad}</span>
-                <span className="aulas-ins-chip" data-tono={i.tono}>{i.lectura}</span>
+                <EstadoChip label={i.lectura} tone={TONO_DE_LECTURA[i.tono]} />
               </button>
             </li>
           ))}
@@ -63,7 +68,7 @@ function RegistroAulasImpl({ dashboard, cargando, vacioSinTablero, onGuardado }:
       <section className="aulas-ins-panel" aria-labelledby="aulas-reg-parte" data-qa-geometry-member="parte">
         <header className="aulas-ins-cabecera">
           <h3 id="aulas-reg-parte">{p ? `Parte de ${p.codigo}` : "Parte del curso-horario"}</h3>
-          {p ? <span className="aulas-ins-sub">{[p.facultad, p.curso].filter(Boolean).join(" · ")}</span> : null}
+          {p ? <span className="aulas-ins-sub">{[p.facultad, p.curso].filter(Boolean).join(", ")}</span> : null}
         </header>
         {p ? (
           <>
@@ -92,7 +97,7 @@ function RegistroAulasImpl({ dashboard, cargando, vacioSinTablero, onGuardado }:
           <ul className="aulas-reg-casos">
             {modelo.sinCaso.map((r) => (
               <li key={r.codigo}>
-                <span><b>{r.codigo}</b> <span className="aulas-ins-sub">{r.facultad} · {r.estado}</span></span>
+                <span><b>{r.codigo}</b> <span className="aulas-ins-sub">{r.facultad}, {r.estado}</span></span>
                 <span className="aulas-ins-acciones">
                   <button
                     type="button"
@@ -101,7 +106,7 @@ function RegistroAulasImpl({ dashboard, cargando, vacioSinTablero, onGuardado }:
                     title={r.titular ? `Complemento (B) de ${r.titular}` : "Sin titular en la cadena: no puede ser B"}
                     onClick={() => { void marca.marcar(r.codigo, "complemento", r.titular); }}
                   >
-                    B · complemento
+                    B (complemento)
                   </button>
                   <button
                     type="button"
@@ -110,7 +115,7 @@ function RegistroAulasImpl({ dashboard, cargando, vacioSinTablero, onGuardado }:
                     title={`Refuerzo (C) de ${r.facultad}`}
                     onClick={() => { void marca.marcar(r.codigo, "refuerzo", r.facultad); }}
                   >
-                    C · refuerzo
+                    C (refuerzo)
                   </button>
                 </span>
               </li>

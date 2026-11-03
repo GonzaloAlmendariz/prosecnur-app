@@ -1,3 +1,4 @@
+import { formatoDecimal } from "../../../../../lib/formatoNumero";
 import type { MonitoreoTerritorialDashboard, TerritorialInternalReviewCase } from "../../../../../api/client";
 import { territorialDurationOperationalStatusFromValues } from "../../../territorialDuration";
 import { diaYMes, fmt, nombreDeDistrito, numeroDeUmp, rotuloDeAplicador } from "../rotulos";
@@ -97,7 +98,7 @@ export function minutosYSegundos(segundos: unknown): string {
 
 export function textoDeMetros(metros: number | null): string {
   if (metros == null) return "Sin GPS";
-  return metros >= 1000 ? `${(metros / 1000).toLocaleString("es-PE", { maximumFractionDigits: 1 })} km` : `${fmt(Math.round(metros))} m`;
+  return metros >= 1000 ? `${formatoDecimal(metros / 1000, 1)} km` : `${fmt(Math.round(metros))} m`;
 }
 
 export function construirBandeja(consultas: MonitoreoTerritorialDashboard | null | undefined): ModeloBandeja {

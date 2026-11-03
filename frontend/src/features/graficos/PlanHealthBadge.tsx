@@ -3,6 +3,7 @@ import type { LucideIcon } from "lucide-react";
 import { ChevronRight, CircleAlert, ShieldCheck, TriangleAlert } from "lucide-react";
 import { usePlanStore } from "./store";
 import { ValidationIssue, usePlanValidator } from "./usePlanValidator";
+import { formatoConteo } from "../../lib/formatoNumero";
 
 type HealthTone = "success" | "warn" | "danger";
 
@@ -43,9 +44,9 @@ export function PlanHealthBadge() {
   const tone: HealthTone = errors.length > 0 ? "danger" : warnings.length > 0 ? "warn" : "success";
   const Icon: LucideIcon = errors.length > 0 ? CircleAlert : warnings.length > 0 ? TriangleAlert : ShieldCheck;
   const label = errors.length > 0
-    ? `${errors.length} error${errors.length === 1 ? "" : "es"}`
+    ? `${formatoConteo(errors.length)} error${errors.length === 1 ? "" : "es"}`
     : warnings.length > 0
-      ? `${warnings.length} aviso${warnings.length === 1 ? "" : "s"}`
+      ? `${formatoConteo(warnings.length)} aviso${warnings.length === 1 ? "" : "s"}`
       : "Informe listo";
   const headline = errors.length > 0
     ? "Exportación bloqueada"
@@ -126,7 +127,7 @@ export function PlanHealthBadge() {
             <div className="pulso-gv2-health-issues">
               {errors.length > 0 && (
                 <IssueGroup
-                  title={`Errores (${errors.length})`}
+                  title={`Errores (${formatoConteo(errors.length)})`}
                   hint="Impiden exportar. Abre la lámina indicada y corrige lo que falta."
                   issues={errors}
                   severity="error"
@@ -135,7 +136,7 @@ export function PlanHealthBadge() {
               )}
               {warnings.length > 0 && (
                 <IssueGroup
-                  title={`Avisos (${warnings.length})`}
+                  title={`Avisos (${formatoConteo(warnings.length)})`}
                   hint="No impiden exportar, pero conviene revisarlos."
                   issues={warnings}
                   severity="warning"
@@ -163,7 +164,7 @@ function IssueGroup({
     <section className={`pulso-gv2-health-group is-${severity}`} aria-label={title}>
       <div className="pulso-gv2-health-group-head">
         <strong>{title}</strong>
-        <span>{issues.length}</span>
+        <span>{formatoConteo(issues.length)}</span>
       </div>
       <p>{hint}</p>
       <ul className="pulso-gv2-health-list">

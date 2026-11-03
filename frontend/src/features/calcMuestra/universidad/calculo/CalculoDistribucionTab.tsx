@@ -123,7 +123,7 @@ function AuditHeader({
           <h3>{selection.longLabel}</h3>
           <p>Cuotas objetivo planificadas; no son respuestas recolectadas ni avance de campo.</p>
         </div>
-        <span className="cmv2-dist-owner"><Database size={14} aria-hidden="true" /> owner · engine_r</span>
+        <span className="cmv2-dist-owner"><Database size={14} aria-hidden="true" /> calculado por el motor R</span>
       </header>
       <dl
         className="cmv2-dist-kpis"
@@ -185,7 +185,7 @@ function CompositionTable({ data }: { data: CalcMuestraDistribucionUniversitaria
                   <th scope="rowgroup" rowSpan={faculty.cells.length}>
                     <strong>{faculty.faculty_label}</strong>
                     <small>
-                      N diseño {fmtInt(faculty.population_design_n)} · cuota {fmtInt(faculty.sample_n)}
+                      N diseño {fmtInt(faculty.population_design_n)}, cuota {fmtInt(faculty.sample_n)}
                     </small>
                   </th>
                 )}
@@ -266,7 +266,7 @@ function Sensitivity({ data }: { data: CalcMuestraDistribucionUniversitariaPaylo
       <header className="cmv2-dist-section-head">
         <div>
           <span className="cmv2-dist-eyebrow">Sensibilidad</span>
-          <h3>Una variable a la vez · OFAT</h3>
+          <h3>Una variable a la vez (OFAT)</h3>
           <p>Cada eje parte del n de fórmula y cambia un solo parámetro. La meta planificada se informa aparte y conserva el divisor Alumnos por CH firmado.</p>
         </div>
         <dl className="cmv2-dist-baseline" aria-label="Línea base de sensibilidad">
@@ -337,7 +337,7 @@ export function CalculoDistribucionTab({
       <header className="cmv2-dist-toolbar">
         <div>
           <strong>Distribución universitaria</strong>
-          <span>{model.selection.shortLabel} · resultado vigente</span>
+          <span>{model.selection.shortLabel}, resultado vigente</span>
         </div>
       </header>
       {model.state.kind !== "ready" ? (

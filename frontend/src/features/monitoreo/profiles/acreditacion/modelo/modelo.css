@@ -200,14 +200,14 @@
   align-items: center;
   padding: 0 var(--pulso-space-3);
   color: var(--pulso-text-soft);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .acr-mo-eje-texto {
   position: absolute;
   top: 0;
   color: var(--pulso-text-faint);
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   font-variant-numeric: tabular-nums;
 }
 
@@ -246,7 +246,7 @@
   flex-direction: column;
   gap: var(--pulso-space-4);
   color: var(--pulso-text);
-  font-size: 13px;
+  font-size: var(--pulso-type-body-size);
   line-height: 1.35;
 }
 
@@ -275,7 +275,7 @@
   margin: 0;
   padding: 0 var(--pulso-space-5) var(--pulso-space-4);
   list-style: none;
-  font-size: 12.5px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .acr-mo-reparto-leyenda li {
@@ -349,19 +349,7 @@
 }
 
 .acr-mo-tarjeta-cabecera strong {
-  font-size: 17px;
-}
-
-.acr-mo-estado.is-cumplida {
-  border-color: color-mix(in srgb, var(--pulso-success-fg) 35%, var(--pulso-surface));
-  background: color-mix(in srgb, var(--pulso-success-fg) 10%, var(--pulso-surface));
-  color: var(--pulso-success-fg);
-}
-
-.acr-mo-estado.is-en-curso {
-  border-color: color-mix(in srgb, var(--pulso-warn-fg) 35%, var(--pulso-surface));
-  background: color-mix(in srgb, var(--pulso-warn-fg) 10%, var(--pulso-surface));
-  color: var(--pulso-warn-fg);
+  font-size: var(--pulso-type-title-size);
 }
 
 .acr-mo-teselas {
@@ -395,14 +383,14 @@
 
 .acr-mo-tesela small {
   color: var(--pulso-text-faint);
-  font-size: 10.5px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-bold);
   letter-spacing: 0.06em;
   text-transform: uppercase;
 }
 
 .acr-mo-tesela b {
-  font-size: 20px;
+  font-size: var(--pulso-type-kpi-size);
   font-weight: var(--pulso-weight-bold);
 }
 
@@ -410,7 +398,7 @@
   width: 100%;
   min-width: 0;
   height: 32px;
-  font-size: 16px;
+  font-size: var(--pulso-type-title-size);
   font-weight: var(--pulso-weight-bold);
   background: var(--pulso-surface);
 }
@@ -423,7 +411,7 @@
   display: flex;
   flex-direction: column;
   gap: 6px;
-  font-size: 12.5px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .acr-mo-tarjeta-pie .acr-av-pista {

@@ -2,10 +2,12 @@ import { CheckCircle2, CircleDot } from "lucide-react";
 import { Link } from "react-router-dom";
 
 import type { CalcMuestraComponente, CalcMuestraEstudio, CalcMuestraWorkspace } from "../../../api/calcMuestra";
+import { Panel } from "../../../components/Panel";
 import { useSeccion } from "../../../lib/navegacion/useDireccion";
 import { BarraTasa } from "../universidad/shared/graficos/PrimitivasGrafico";
 import { requisitosReporteAcreditacion } from "./bandaDisenoModelo";
 import "./mesa.css";
+import { fmtInt } from "../sharedCore";
 
 /**
  * Acreditación › Contexto: lo que el reporte necesita y cuánto de eso ya está.
@@ -32,16 +34,16 @@ export function ContextoReporte({
   const listos = requisitos.filter((r) => r.listo).length;
 
   return (
-    <section className="cmv2-panel cmg-contexto-reporte" aria-labelledby="cmg-contexto-reporte-titulo" data-qa-geometry-member>
-      <div className="cmv2-panel-head">
-        <div>
-          <span className="cmv2-eyebrow">Reporte</span>
-          <h3 id="cmg-contexto-reporte-titulo" className="cmg-panel-titulo">Lo que el reporte necesita</h3>
-        </div>
-      </div>
+    <Panel
+      className="cmg-contexto-reporte"
+      aria-labelledby="cmg-contexto-reporte-titulo"
+      data-qa-geometry-member
+      eyebrow="Reporte"
+      title={<span id="cmg-contexto-reporte-titulo">Lo que el reporte necesita</span>}
+    >
       <BarraTasa
         label="Listo"
-        detalle={`${listos} de ${requisitos.length}`}
+        detalle={`${listos} de ${fmtInt(requisitos.length)}`}
         valor={requisitos.length > 0 ? listos / requisitos.length : null}
         tono="meta"
       />
@@ -66,6 +68,6 @@ export function ContextoReporte({
           );
         })}
       </ul>
-    </section>
+    </Panel>
   );
 }

@@ -13,6 +13,9 @@
  */
 
 import { useMemo } from "react";
+import { Database, RefreshCw } from "lucide-react";
+
+import { EstadoVacio } from "../../../../../components/EstadoVacio";
 
 import type {
   MonitoreoInterestVariable,
@@ -29,6 +32,7 @@ import {
 
 import "./distribucionPorActor.css";
 import { Switch } from "../../../../../components/Switch";
+import { formatoConteo } from "../../../../../lib/formatoNumero";
 
 export type ActorConCatalogo = {
   actor: string;
@@ -64,7 +68,7 @@ export function declaracionesDeActor(
 function Barra({ valor, total, maximo }: { valor: number; total: number; maximo: number }) {
   const pct = total > 0 ? Math.round((valor / total) * 100) : 0;
   return (
-    <span className="mon-dist-barra" title={`${valor} de ${total} · ${pct}%`}>
+    <span className="mon-dist-barra" title={`${valor} de ${total}, ${pct}%`}>
       <i style={{ width: `${Math.max(2, (valor / Math.max(1, maximo)) * 100)}%` }} />
     </span>
   );
@@ -85,15 +89,15 @@ function Reparto({ columna, normalizacion }: { columna: VariableCandidata; norma
           <li key={item.value}>
             <span className="mon-dist-etiqueta" title={item.value}>{item.value}</span>
             <Barra valor={item.count} total={total} maximo={maximo} />
-            <b>{item.count.toLocaleString("es-PE")}</b>
+            <b>{formatoConteo(item.count)}</b>
           </li>
         ))}
       </ul>
       {/* El recorte se declara: un top que aparenta ser el total miente. */}
       {columna.otrasCategorias > 0 ? (
         <p className="mon-dist-resto">
-          y {columna.otrasCategorias.toLocaleString("es-PE")} categorías más,
-          con {columna.otrosCasos.toLocaleString("es-PE")} casos
+          y {formatoConteo(columna.otrasCategorias)} categorías más,
+          con {formatoConteo(columna.otrosCasos)} casos
         </p>
       ) : null}
     </div>
@@ -125,9 +129,10 @@ function TarjetaDeActor({
     return (
       <article className="mon-dist-actor is-vacia" data-qa-geometry-member>
         <header><strong>{item.actor}</strong></header>
-        <p className="mon-dist-vacio">
-          La base de este actor todavía no se ha sincronizado, así que no hay columnas que ofrecer.
-        </p>
+        <EstadoVacio
+          icono={<RefreshCw size={15} />}
+          titulo="La base de este actor todavía no se ha sincronizado, así que no hay columnas que ofrecer."
+        />
       </article>
     );
   }
@@ -139,7 +144,7 @@ function TarjetaDeActor({
         <em>
           {declaradas.length
             ? `${declaradas.length} ${declaradas.length === 1 ? "variable declarada" : "variables declaradas"}`
-            : `${elegibles.length} de ${item.columnas.length} columnas elegibles`}
+            : `${formatoConteo(elegibles.length)} de ${formatoConteo(item.columnas.length)} columnas elegibles`}
         </em>
       </header>
 
@@ -178,7 +183,7 @@ function TarjetaDeActor({
               </div>
             ) : null}
             {columna.motivoNoSegmenta === "sin-analizar" ? (
-              <p className="mon-dist-vacio">Su reparto aparece al actualizar esta fuente.</p>
+              <EstadoVacio icono={<RefreshCw size={15} />} titulo="Su reparto aparece al actualizar esta fuente." />
             ) : (
               <Reparto columna={columna} normalizacion={declarada.normalization} />
             )}
@@ -214,7 +219,7 @@ function TarjetaDeActor({
               {columna.label}
               {columna.motivoNoSegmenta
                 ? ` — ${EXPLICACION_NO_SEGMENTA[columna.motivoNoSegmenta]}`
-                : ` · ${columna.cobertura}% · ${columna.categorias} categorías`}
+                : `, ${columna.cobertura}%, ${columna.categorias} categorías`}
             </option>
           ))}
         </select>
@@ -244,9 +249,12 @@ export function DistribucionPorActor({
 
   if (!actores.length) {
     return (
-      <div className="mon-dist-vacio-panel" data-qa-geometry-capacity="owned">
-        <strong>Sin bases de universo conectadas</strong>
-        <p>Las variables de interés salen de las columnas de esas hojas. Conéctalas en Fuentes.</p>
+      <div data-qa-geometry-capacity="owned">
+        <EstadoVacio
+          icono={<Database size={15} />}
+          titulo="Sin bases de universo conectadas"
+          descripcion="Las variables de interés salen de las columnas de esas hojas. Conéctalas en Fuentes."
+        />
       </div>
     );
   }

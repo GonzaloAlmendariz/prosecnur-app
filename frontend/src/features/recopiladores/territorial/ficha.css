@@ -31,7 +31,7 @@
   box-shadow: var(--pulso-shadow-soft);
 }
 .rec-terr-ficha-escenario figcaption {
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   color: var(--pulso-text-faint);
 }
 .rec-terr-ficha-panel {
@@ -44,6 +44,9 @@
   background: var(--pulso-surface);
 }
 .rec-terr-ficha-panel h2 {
+  display: flex;
+  align-items: center;
+  gap: var(--pulso-space-2);
   margin: 0;
   font-size: var(--pulso-type-title-size);
   font-weight: var(--pulso-type-title-weight);
@@ -75,3 +78,4 @@
 /* En el panel el campo no se estira: las acciones van pegadas al selector de UMP. */
 .rec-terr-ficha-panel .rec-terr-campo { flex: none; min-width: 0; }
 .rec-terr-ficha-prueba .rec-terr-opciones.pulso-gliding-tab-list { width: 100%; }
+.rec-terr-ficha-panel h2 svg { flex: none; color: var(--pulso-module-fieldkit); }

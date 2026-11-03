@@ -1,6 +1,7 @@
 import type { CSSProperties } from "react";
 import type { MonitoreoCorte } from "../../corte/corteContract";
 import { pctDecimal } from "../../core/formatoComun";
+import { formatoDecimal } from "../../../../lib/formatoNumero";
 import type { TelefonicoCumplimiento } from "./telefonicoGoalModel";
 
 // Espina dorsal de la portada telefónica: una sola forma para los tres estados
@@ -21,7 +22,7 @@ function pctLabel(value: number | null | undefined) {
 
 function decimalLabel(value: number | null | undefined) {
   if (value == null || !Number.isFinite(value)) return "—";
-  return value.toFixed(1).replace(/\.0$/, "");
+  return formatoDecimal(value, 1);
 }
 
 // «snapshot» describe cómo la app guarda lo que trajo la sincronización, no lo
@@ -57,7 +58,7 @@ export function TelefonicoEmbudo({ corte }: { corte: MonitoreoCorte }) {
             <li key={paso.clave}>
               {salto ? (
                 <span className="mon-tel-funnel-drop" title={salto.regla}>
-                  −{metric(salto.descartados)} · {salto.regla}
+                  −{metric(salto.descartados)}, {salto.regla}
                 </span>
               ) : null}
               <div className="mon-tel-funnel-step">

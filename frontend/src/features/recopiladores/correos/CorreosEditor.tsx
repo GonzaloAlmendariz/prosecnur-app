@@ -83,6 +83,7 @@ import "./correosEnvios.css";
 import "./correosGuia.css";
 import "./correosInspector.css";
 import "./correosIconos.css";
+import { LoadingBlock } from "../../../components/States";
 
 type Props = {
   /** Avisa al shell mientras el correo o su vista previa no han llegado. */
@@ -527,9 +528,7 @@ export function CorreosEditor({ onCargando, onStateRefresh, campanasAcc, cabecer
   if (!template) {
     return (
       <>
-        <div className="rec-loading" data-qa-geometry-capacity="owned">
-          {st.campanasCarga === "lista" ? "Leyendo el correo…" : "Leyendo las campañas de correo…"}
-        </div>
+        <LoadingBlock label={st.campanasCarga === "lista" ? "Leyendo el correo…" : "Leyendo las campañas de correo…"} />
         {dialogos}
       </>
     );

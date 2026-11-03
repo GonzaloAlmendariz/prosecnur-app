@@ -124,8 +124,8 @@ export function PlanCampo({ guardados, deshabilitado, onGuardar, conCostos = tru
                         <span>{nombreDistrito(j.distrito)}</span>
                       </span>
                       <small>
-                        {j.rutas.length === 1 ? "1 UMP" : `${j.rutas.length} UMP`} · {fmt(j.visitas)} visitas
-                        {j.excede_jornada ? ` · ${j.jornadas_equivalentes} días seguidos` : ` · ${fmt(j.km, 1)} km`}
+                        {j.rutas.length === 1 ? "1 UMP" : `${j.rutas.length} UMP`}, {fmt(j.visitas)} visitas
+                        {j.excede_jornada ? `, ${j.jornadas_equivalentes} días seguidos` : `, ${fmt(j.km, 1)} km`}
                       </small>
                       {corta ? <em>Jornada corta: una sola ruta</em> : null}
                       <button

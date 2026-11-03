@@ -192,10 +192,10 @@ export function AulasPestanaCuotas({
               {/* Con una facultad puesta, «1 de 1 facultades llegan» es una
                   cuenta correcta y una frase inútil: se dice de ella. */}
               {alcance && facultadEnFoco
-                ? `${alcance.noLlegan ? "no llega" : "llega"} con lo que ya tiene agendado · `
+                ? `${alcance.noLlegan ? "no llega" : "llega"} con lo que ya tiene agendado, `
                 : null}
               {alcance && !facultadEnFoco
-                ? `${fmt(alcance.total - alcance.noLlegan)} de ${fmt(alcance.total)} ${gruposDeMetas} llegan con lo que ya tienen agendado · `
+                ? `${fmt(alcance.total - alcance.noLlegan)} de ${fmt(alcance.total)} ${gruposDeMetas} llegan con lo que ya tienen agendado, `
                 : null}
               {cuotaDiseno.procedencia.chip}
             </span>
@@ -424,7 +424,7 @@ export function AulasPestanaCuotas({
           <span title={!hayPanelDeSexo ? (cuotaDiseno.procedencia.detalle || undefined) : undefined}>
             lo recogido, lo que traerá lo agendado y el techo de todo el plan
             {!hayPanelDeSexo && cuotaDiseno.procedencia.chip
-              ? ` · ${cuotaDiseno.procedencia.chip}`
+              ? `, ${cuotaDiseno.procedencia.chip}`
               : ""}
           </span>
         </div>

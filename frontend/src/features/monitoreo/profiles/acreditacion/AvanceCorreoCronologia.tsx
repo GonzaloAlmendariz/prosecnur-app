@@ -41,13 +41,13 @@ export function AvanceCorreoCronologia({
           <h3 id={`${ids}-t`}>Cronología de envíos</h3>
           <p className="mon-correo-bloque-meta">
             {cifra(envios.length)} {envios.length === 1 ? "envío" : "envíos"}
-            {fechas.length > 1 ? ` · del ${fechas[0].rotulo} al ${fechas[fechas.length - 1].rotulo}` : fechas.length ? ` · ${fechas[0].rotulo}` : ""}
+            {fechas.length > 1 ? `, del ${fechas[0].rotulo} al ${fechas[fechas.length - 1].rotulo}` : fechas.length ? `, ${fechas[0].rotulo}` : ""}
           </p>
         </div>
         <span className="mon-correo-crono-leyenda" aria-hidden>
           <i className="mon-correo-nodo-forma es-invitacion" /> Invitación
           <i className="mon-correo-nodo-forma es-recordatorio" /> Recordatorio
-          <span className="mon-correo-tenue">· tamaño = respuestas</span>
+          <span className="mon-correo-tenue">Tamaño según respuestas</span>
         </span>
       </header>
       {crono.carriles.length ? (

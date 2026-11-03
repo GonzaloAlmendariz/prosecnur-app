@@ -69,7 +69,7 @@ export function SexoPorFacultadCard({
               <th scope="col">{etiquetaReferencia(balance.referencia)}</th>
               <th scope="col">Sus aulas ofrecen</th>
               <th scope="col" className="cmv2-sexo-th-barras">
-                % mujeres: <i data-serie="pide" /> pide · <i data-serie="ofrece" /> ofrece
+                % mujeres: <i data-serie="pide" /> pide, <i data-serie="ofrece" /> ofrece
               </th>
               <th scope="col">Diferencia</th>
             </tr>

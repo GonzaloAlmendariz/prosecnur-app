@@ -73,7 +73,7 @@ export function AulasPartesQueNoCuadran({ filas }: {
               {rechazos ? <> − <b>{fmt(rechazos)}</b> {rechazos === 1 ? "rechazo" : "rechazos"}</> : null}
               {duplicados ? <> − <b>{fmt(duplicados)}</b> {duplicados === 1 ? "duplicado" : "duplicados"}</> : null}
               {esperado == null ? null : <> = <b>{fmt(esperado)}</b></>}
-              {" · declaró "}<b>{declaradas == null ? "—" : fmt(declaradas)}</b>
+              {", declaró "}<b>{declaradas == null ? "—" : fmt(declaradas)}</b>
             </p>
 
             <span className={`aulas-descuadre-saldo${faltan ? " es-falta" : " es-sobra"}`}>

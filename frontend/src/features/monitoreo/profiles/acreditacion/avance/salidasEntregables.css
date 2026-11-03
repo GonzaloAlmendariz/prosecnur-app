@@ -14,7 +14,7 @@
   padding: 6px 14px;
   border-radius: 8px;
   box-shadow: none;
-  font-size: 13px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-semibold);
 }
 
@@ -68,13 +68,13 @@
 }
 
 .acr-sa .mon-outputs-audience-tabs button span {
-  font-size: 10.5px;
+  font-size: var(--pulso-type-micro-size);
   letter-spacing: 0.06em;
   text-transform: uppercase;
 }
 
 .acr-sa .mon-outputs-audience-tabs button strong {
-  font-size: 13px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .acr-sa .mon-outputs-audience-tabs button:focus-visible {

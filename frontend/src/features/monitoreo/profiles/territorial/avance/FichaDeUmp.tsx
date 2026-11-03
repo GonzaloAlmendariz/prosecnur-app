@@ -1,8 +1,13 @@
 import { ArrowRightLeft, X } from "lucide-react";
+import { LoadingBlock } from "../../../../../components/States";
 import { fmt, fmtConSigno } from "../rotulos";
 import type { FichaDeUmp as Ficha } from "./fichaUmpModel";
 import { SiluetaDeDistrito } from "./SiluetaDeDistrito";
 import { CuotaPorVariable } from "./CuotaPorVariable";
+import { EstadoChip } from "../../../../../components/EstadoChip";
+import type { ChromeStatusTone } from "../../../../../components/ModuleCommandBar";
+
+const TONO_DE_ESTADO = { pendiente: "warn", subsanada: "info", completa: "success" } as const satisfies Record<string, ChromeStatusTone>;
 
 const TONO_DE_SILUETA = { pendiente: "falta", subsanada: "info", completa: "ok" } as const;
 
@@ -34,7 +39,7 @@ export function FichaDeUmp({
         </button>
       </header>
 
-      <span className={`mon-ump-estado is-${ficha.estado}`}>{ficha.rotuloDeEstado}</span>
+      <EstadoChip label={ficha.rotuloDeEstado} tone={TONO_DE_ESTADO[ficha.estado]} />
 
       <dl className="mon-ump-cifras">
         <div>
@@ -69,7 +74,7 @@ export function FichaDeUmp({
       <section aria-labelledby="mon-ump-ficha-casos" className="mon-ump-casos-marco">
         <h4 id="mon-ump-ficha-casos" className="mon-ump-subtitulo">Casos de la UMP</h4>
         {ficha.casos === null ? (
-          <p className="mon-ump-base" title="Los casos llegan con el corte de Validación" aria-busy="true">Preparando el corte de Validación…</p>
+          <div title="Los casos llegan con el corte de Validación"><LoadingBlock label="Preparando el corte de Validación…" variant="inline" /></div>
         ) : ficha.casos.length ? (
           <ol className="mon-ump-casos" data-qa-geometry-capacity="owned" data-qa-geometry-group="territorial-ump-casos" data-qa-geometry-contract="intrinsic">
             {ficha.casos.map((caso) => (

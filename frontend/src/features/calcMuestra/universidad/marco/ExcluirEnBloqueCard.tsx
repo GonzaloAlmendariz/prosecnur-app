@@ -17,6 +17,7 @@ import { ClipboardList } from "../../../../vendor/lucide-react";
 import type { CriteriosSeleccionMarco } from "../../../../api/client";
 import { excluirEnBloque, type ExclusionEnBloque } from "../criterios/aulasFinalesModel";
 import "./excluirEnBloque.css";
+import { fmtInt } from "../../sharedCore";
 
 export function ExcluirEnBloqueCard({
   seleccion,
@@ -71,17 +72,17 @@ export function ExcluirEnBloqueCard({
         <p className="cmv2-exbloque-saldo" role="status">
           {resultado.excluidas.length > 0 && (
             <span data-parte="ok">
-              <b>{resultado.excluidas.length}</b> apagados
+              <b>{fmtInt(resultado.excluidas.length)}</b> apagados
             </span>
           )}
           {resultado.yaEstaban.length > 0 && (
             <span data-parte="repe">
-              <b>{resultado.yaEstaban.length}</b> ya lo estaban
+              <b>{fmtInt(resultado.yaEstaban.length)}</b> ya lo estaban
             </span>
           )}
           {resultado.desconocidas.length > 0 && (
             <span data-parte="ojo">
-              <b>{resultado.desconocidas.length}</b> sin correspondencia en el marco:{" "}
+              <b>{fmtInt(resultado.desconocidas.length)}</b> sin correspondencia en el marco:{" "}
               {resultado.desconocidas.slice(0, 4).join(", ")}
               {resultado.desconocidas.length > 4 && ` y ${resultado.desconocidas.length - 4} más`}
             </span>

@@ -177,7 +177,7 @@ export function JobProgress<T = unknown>({ label, jobId, onDone, onError, onCanc
           <span className="job-progress-message">{messageTxt || "Trabajando…"}</span>
           <span className="job-progress-percent">
             {percent != null ? `${Math.round(percent)}%` : "…"}
-            {counterTxt ? <em> · {counterTxt}</em> : null}
+            {counterTxt ? <em>, {counterTxt}</em> : null}
           </span>
         </div>
       </div>

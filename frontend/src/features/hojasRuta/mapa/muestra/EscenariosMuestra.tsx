@@ -31,7 +31,7 @@ export function EscenariosMuestra({ config, resultado, bloqueado }: { config: Ho
               <span>
                 <strong>{e.nombre}</strong>
                 <small>
-                  N {fmt(e.n)} · {pct(e.margen)} · peor {pct(e.peor)} · {fmt(e.contactos)} contactos
+                  N {fmt(e.n)}, {pct(e.margen)}, peor {pct(e.peor)}, {fmt(e.contactos)} contactos
                 </small>
               </span>
               {e.firma === actual ? (

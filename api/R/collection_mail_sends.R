@@ -253,10 +253,17 @@
   if (!is.null(opening)) {
     blocks <- t$blocks %||% list()
     types <- vapply(blocks, function(b) as.character(b$type %||% ""), "")
-    first_par <- which(types == "paragraph")[1]
+    # Un párrafo que solo trae un campo (el nombre bajo el saludo, Acreditación
+    # 2026) es parte del vocativo: la apertura va después y no copia su alineación.
+    solo_campo <- vapply(blocks, function(b) {
+      identical(b$type, "paragraph") && !nzchar(trimws(gsub("[*_]", "", gsub(.CMAIL_TOKEN_RE, "", .cmail_one(b$text) %||% "", perl = TRUE)))) &&
+        grepl(.CMAIL_TOKEN_RE, .cmail_one(b$text) %||% "", perl = TRUE)
+    }, NA)
+    first_par <- which(types == "paragraph" & !solo_campo)[1]
     align <- if (!is.na(first_par)) .cmail_one(blocks[[first_par]]$align) else NULL
     block <- .cmc_drop_nulls_deep(list(block_id = .CMAIL_OPENING_ID, type = "paragraph", text = opening, align = align))
     at <- which(types == "greeting")[1]
+    if (!is.na(at)) while (at < length(blocks) && isTRUE(solo_campo[[at + 1L]])) at <- at + 1L
     t$blocks <- append(blocks, list(block), after = if (is.na(at)) 0L else at)
   }
   .cmail_constants_apply(t)

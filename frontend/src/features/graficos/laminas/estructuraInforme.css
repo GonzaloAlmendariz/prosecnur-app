@@ -40,7 +40,7 @@
   outline: 0;
   background: transparent;
   color: var(--pulso-text);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .pulso-f6-estructura-cuerpo {
@@ -104,12 +104,12 @@
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
-  font-size: 12px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-semibold);
 }
 
 .pulso-f6-nodo.is-bloque > .pulso-f6-nodo-cabeza .pulso-f6-nodo-titulo {
-  font-size: 11px;
+  font-size: var(--pulso-type-eyebrow-size);
   font-weight: var(--pulso-weight-bold);
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -119,14 +119,14 @@
 .pulso-f6-num {
   flex: none;
   min-width: 18px;
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   font-variant-numeric: tabular-nums;
   color: var(--pulso-text-faint);
 }
 
 .pulso-f6-nodo-cuenta {
   flex: none;
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   font-variant-numeric: tabular-nums;
   color: var(--pulso-text-faint);
 }
@@ -210,7 +210,7 @@
 }
 
 .pulso-f6-lamina-pos {
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   font-variant-numeric: tabular-nums;
   color: var(--pulso-text-faint);
   text-align: right;
@@ -243,17 +243,17 @@
 }
 
 .pulso-f6-lamina-titulo {
-  font-size: 12px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-semibold);
 }
 
 .pulso-f6-lamina-detalle {
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   color: var(--pulso-text-faint);
 }
 
 .pulso-f6-lamina-partes {
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   font-variant-numeric: tabular-nums;
   padding: 0 var(--pulso-space-1);
   border: 1px solid var(--pulso-border);
@@ -305,7 +305,7 @@
 .pulso-f6-acciones-rotulo {
   flex: 1;
   min-width: 0;
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   font-weight: var(--pulso-weight-semibold);
   color: var(--pulso-text-faint);
   white-space: nowrap;

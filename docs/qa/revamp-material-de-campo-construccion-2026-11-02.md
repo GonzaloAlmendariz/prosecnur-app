@@ -254,3 +254,101 @@ vuelva. Las vistas citadas salen de las 26 capturas a 1280.
 
 Las tablas ya tienen guard propio (`tablasDelKit`, cinco tablas a mano de Material en su foto), así que
 no entran como causa nueva.
+
+### Gramática corta (aprobada por coordinación el 2 nov 2026)
+
+Toda vista de Material se arma con estas piezas. Nadie las reinventa por pantalla.
+
+1. **Cabecera de bloque**: rótulo opcional, título, línea de metadatos y acciones a la derecha, todo en una
+   misma fila. Un bloque sin cabecera no lleva marco propio.
+2. **Línea de metadatos**: una sola línea, en la letra del sistema (`caption`, `text-faint`), subordinada al
+   título. No va en monoespaciada (el valor técnico se guarda en `title`). Sus partes se unen con coma o «y»,
+   nunca con punto medio.
+3. **Contador**: subordinado al título que cuenta. Pesa menos que el título y lleva separador de miles (es-PE:
+   «1,234.5»).
+4. **Estado frente a acción**: un estado es un `EstadoChip` (tono más rótulo con mayúscula inicial) y vive en
+   su propio slot. Una acción es un botón. Nunca comparten fila sin separación.
+5. **Una primaria por bloque (P7)**: si un bloque tiene acciones, exactamente una va como primaria (la que
+   toca) y las demás como secundarias, aunque estén apagadas. Se controla en la revisión de captura.
+6. **Cada cifra en un solo sitio (P9)**: antes de pintar una cifra, mirar si ya la dicen el chip de entrada, el
+   resumen o la tarjeta vecina. Se controla en la revisión de captura.
+7. **Vacío y carga**: el vacío es `EstadoVacio` (ícono, título y UNA línea) y la carga es `LoadingBlock`.
+   Ninguna espera va escrita como texto suelto. Lo vigila `vaciosYCargasDelKit.contract.test.ts`.
+8. **Letra por rol**: `var(--pulso-type-<rol>-size)`, nunca en px. Lo vigila `letraPorRol.contract.test.ts`.
+
+### P5, vacíos y cargas (hecho)
+
+- 8 `.rec-loading`, 8 `.rec-contained-empty` y 12 «Leyendo…» sueltos pasan a `LoadingBlock` (20 usos) y `EstadoVacio`.
+  Se borran las reglas CSS de las clases viejas, incluida la fila `1fr` de Accesos que estiraba el vacío.
+- Guard: `vaciosYCargasDelKit.contract.test.ts`, con meta 0 y centinelas (306 fuentes, 20 `LoadingBlock`).
+- Capturas: antes en `est-*` y después en `p5-*` (26 vistas, 26 md5 distintos, textosFuera 0). Cuotas sale `ok=false`
+  antes y después por el mismo `geometryCoverageMisses: 1`, que ya existía.
+
+### P5b, readiness que espera a sus bloques (hecho)
+
+Tres vistas se declaran listas antes de que termine el fetch de un bloque, así que la captura mide una pantalla a medio
+cargar: Territorial › Catálogo › Códigos (`CodigosDeResultado`), Territorial › Entrega (`AsignacionEquipo`) y
+Aulas › Entrega › Plantillas («Traspaso a Monitoreo», `PlantillasDelEquipo`). Se arreglan con el patrón readinessAnidada:
+cada bloque avisa a su shell que está cargando, y si el fetch falla cuenta como listo con su error, sin un false terminal.
+- Arreglo en la fuente: `CargaDeBloque` (un `LoadingBlock` en línea dentro de `data-audit-ready="false"`) reemplaza las
+  12 cargas en línea de Material, no sólo las tres. Queda declarado en `FALSE_TRANSITORIO` de `readinessAnidada`.
+- De paso: Telefónica › Entrega decía «Leyendo la campaña…» para siempre si la campaña no declaraba columnas. Ahora
+  lo dice, con su test (`telefonica/EntregaTelefonica.test.tsx`).
+- Guard: `vaciosYCargasDelKit.contract.test.ts` exige que toda carga en línea pase por `CargaDeBloque`.
+- Recaptura: Códigos, Entrega UMP, Entrega cuotas, Plantillas y Entrega telefónica muestran el dato (ok=true).
+
+### P1, letra por rol (hecho)
+
+- Los 440 `font-size` en px de 50 hojas pasan a `var(--pulso-type-<rol>-size)` con la regla de Analítica y Carga:
+  ≥18 px → kpi; 15–17 → title; 12–14.5 → subtitle si la regla es seminegrita y body si no; 10.6–11.5 → eyebrow si
+  va en mayúsculas y caption si no; ≤10.5 → micro. El reemplazo es línea por línea, así que ninguna hoja crece.
+- Guard: `features/recopiladores` entra en `MODULOS` de `app/letraPorRol.contract.test.ts` con meta 0.
+- Capturas: `p1-*` (26 vistas, textosFuera 0). No hay recortes; el cambio es sutil, como se esperaba.
+
+### Vista faro: Territorial › Entrega (2 nov 2026, noche)
+
+Gonzalo, tras P5 y P1: «en verdad se ve mal diseñado, se ven con fondos grandes, ausencia de contenedores, ausencia
+de elementos UI sofisticados… todavía faltan kilómetros de años luz». Ordenar el código no responde a eso. Se
+rediseña una vista entera al nivel del Sistema Pabellón para fijar la vara antes de extenderla:
+
+- Cuatro cifras en tarjetas (UMP titulares, equipo, asignadas con barra, sin encuestador en tono de aviso).
+- Reparto por distrito: una tarjeta por distrito con su barra y cada UMP como ficha teñida del color de su
+  encuestador (gris punteado si no tiene).
+- Equipo: las 26 personas con avatar de color determinista, código y barra de carga, sin techo.
+- Asignación y Plan de campo en tarjetas con cabecera. En cuotas ya no se pinta el formulario apagado del plan.
+- Modelo puro `territorial/modeloTablero.ts` con 5 tests. Capturas `faro-ump` (1280 y 1440) y `faro-cuotas`.
+
+### Qué se reusa y qué es nuevo (pedido de coordinación, para no abrir una tercera gramática)
+
+| Pieza | Decisión | Por qué |
+|---|---|---|
+| Bloque con cabecera | **Se reusa `components/Panel.tsx`** (título con ícono, `hint` como línea, `actions`) | Ya existía; el `BloqueDeTablero` local lo duplicaba y se borró antes de commitearse. P2 sigue siendo una sola gramática: `Panel`. |
+| Cifras en tarjeta | **Nueva en `components/CifrasEnTarjeta.tsx`** | No había una compartida: cada módulo tiene la suya (`KpiCard` en Dashboard, `CifraMotor` en Cálculo de muestra, `Metric` en aulas). `CifrasPestana` de Analítica es otra cosa (chips de cabecera de pestaña) y se queda. Las otras pueden converger aquí cuando se toquen. |
+| Barra de avance | **Nueva en `components/BarraDeAvance.tsx`** | Tampoco había: `JobProgress` es la de un job y Home, Monitoreo y Correo pintan la suya con `role="progressbar"`. Usa `--module-accent`, así sirve a cualquier módulo. Anima con scaleX (contrato de movimiento L37). |
+| Reparto por distrito, equipo con avatares | Propio de Territorial (`TableroDeEntrega.tsx`, `tableroEntrega.css`) | Es contenido de la vista, no una primitiva. Los tonos copian el patrón del Sistema Pabellón sin importarlo, porque su módulo es de Monitoreo. |
+| Chequeos del origen, aulas que esperan enlace | Propio de Accesos (`AccesosTablero.tsx`) | Ídem. |
+
+### Extensión de la vara (Gonzalo, 2 nov 2026: «Sí, extiéndelo»)
+
+Regla de cada vista: contenedor = `Panel`; cifras = `CifrasEnTarjeta`; avance = `BarraDeAvance`; lo propio de la vista
+en su archivo. Captura antes y después, gate-front verde y un commit por vista.
+
+| Vista | Qué cambió | Commit |
+|---|---|---|
+| Territorial › Entrega (faro) | cifras, reparto por distrito con fichas por encuestador, equipo con avatares | bc82383b9, f162c3aab |
+| Aulas › Accesos | cifras del acceso, tres chequeos como lista, aulas como fichas que esperan enlace | 24b87e8a6 |
+| Aulas › Entrega › Traspaso | cifras de la entrega; recorrido de cuatro pasos con estado y acción en vez de cuatro «—»; recibo pendiente que enseña sus campos; material generado con su rótulo | 194f5e036 |
+| Aulas › Paquetes | cifras del lote (fichas con barra, titulares, reemplazos, banco); el motivo del bloqueo una vez arriba con «Ir a Accesos»; los tres formatos como tarjetas con descripción y el PDF como principal; ficha de prueba sin rayas ni monoespaciada | 3a7c1cd42 |
+| Aulas › Entrega › Plantillas | las tres planillas como tarjetas de salida (la pieza de Paquetes) dentro de un Panel; el traspaso en su Panel, con «Todavía no hay entrega» como estado y el sello en el `title` | 62a0e9f64 |
+| Territorial › Catálogo (Zonas, Ruteo, Consolidados) | el esquema de Fichas en las tres: la hoja de la UMP o zona elegida en maqueta legible (`MaquetaDeHoja.tsx`: columnas de ruteo, códigos y registro numerado, plano con rutas y «R») y el panel de acciones al lado | 4ceb29037 |
+| Territorial › Paquetes | cifras del paquete (titulares, reemplazos, zonas, piezas listas con barra); «Para campo», hojas y reemplazos puntuales en Panel; fichas sugeridas con código y motivo, sin «·» y sin techo | 09c5130a0 |
+| Telefónica (Casos, Barrido, Entrega) | cifras del barrido en el shell (casos, backup, teléfonos, documento); las siete tarjetas en Panel; Entrega con recorrido de tres pasos (la pieza del Traspaso); la clase de cada status como EstadoChip con tono | 715a6faa1 |
+| Registro de campañas | sin «·» en la tarjeta (enumerar y comas); avance con BarraDeAvance y «x de y»; envíos con el nombre en negrita; tarjeta punteada «Nueva campaña» al final de la grilla; franja teñida por tipo | 7fe8b4ad2 |
+
+### Pasada final (3 nov 2026)
+
+- Kit y ratchets de Material: P3 `puntoMedio.contract.test.ts` («·» 116 → 61, casi todo en el correo; 5c27aaa7e),
+  P4 `conteosConMiles.contract.test.ts` (83119d2c3), P5 `vaciosYCargasDelKit`, P1 `letraPorRol` (meta 0).
+- 26 vistas a 1280 (`final-*`), 26 md5 distintos, textosFuera 0. Cuotas › Zonas arrastraba un contrato de geometría
+  `owned` inválido desde antes del rediseño: corregido en 253a6ad52. Con eso las 26 salen ok=true.
+- Queda abierto: los «·» del correo (61, bajo ratchet) y Códigos de resultado, que sigue como formulario.

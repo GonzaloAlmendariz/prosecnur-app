@@ -2,6 +2,7 @@ import { Layers3, Settings2 } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 
 import type { CalcMuestraComponente } from "../../../api/calcMuestra";
+import { Panel } from "../../../components/Panel";
 import { EmptyState } from "../../../components/States";
 import { searchConNivel } from "../../../lib/navegacion/useDireccion";
 import { MatrizServiciosTable } from "../ComponenteTablas";
@@ -90,13 +91,7 @@ export function MetodoGeneralVista({
       data-qa-geometry-contract="intrinsic"
     >
       {pestana === "metodo-tecnica" && (
-        <section className="cmv2-panel" aria-labelledby="cmg-tecnica-titulo">
-          <div className="cmv2-panel-head">
-            <div>
-              <span className="cmv2-eyebrow">Técnica</span>
-              <h3 className="cmg-panel-titulo" id="cmg-tecnica-titulo">Tipo de cálculo</h3>
-            </div>
-          </div>
+        <Panel aria-labelledby="cmg-tecnica-titulo" title={<span id="cmg-tecnica-titulo">Tipo de cálculo</span>}>
           <div className="cmv2-method-grid" role="group" aria-label="Técnica de muestreo" data-qa-geometry-group="calc-muestra/general-tecnicas" data-qa-geometry-contract="equal">
             {METODOS_CLASICOS.map((metodo) => (
               <button
@@ -112,16 +107,10 @@ export function MetodoGeneralVista({
               </button>
             ))}
           </div>
-        </section>
+        </Panel>
       )}
       {pestana === "metodo-parametros" && (
-        <section className="cmv2-panel" aria-labelledby="cmg-parametros-titulo">
-          <div className="cmv2-panel-head">
-            <div>
-              <span className="cmv2-eyebrow">Parámetros</span>
-              <h3 className="cmg-panel-titulo" id="cmg-parametros-titulo">Los que usa esta técnica</h3>
-            </div>
-          </div>
+        <Panel aria-labelledby="cmg-parametros-titulo" title={<span id="cmg-parametros-titulo">Los que usa esta técnica</span>}>
           <ParametrosTecnicaVista
             comp={comp}
             estado={catalogo}
@@ -138,19 +127,18 @@ export function MetodoGeneralVista({
             nota="Calcula el n con estos parámetros; cambiar uno borra el resultado anterior."
             motivo={marcoN === 0 ? "Declara primero el N del marco en Marco." : null}
           />
-        </section>
+        </Panel>
       )}
       {pestana === "metodo-memoria" && (
         <>
-          <section className="cmv2-panel cmg-cadena-n" aria-labelledby="cmg-cadena-titulo">
-            <div className="cmv2-panel-head">
-              <div>
-                <span className="cmv2-eyebrow">Cadena</span>
-                <h3 className="cmg-panel-titulo" id="cmg-cadena-titulo">Del marco a la muestra a contactar</h3>
-              </div>
-            </div>
+          <Panel
+            className="cmg-cadena-n"
+            aria-labelledby="cmg-cadena-titulo"
+            eyebrow="Cadena"
+            title={<span id="cmg-cadena-titulo">Del marco a la muestra a contactar</span>}
+          >
             <FlujoVertical etapas={cadenaDelN(comp, marcoN ?? 0)} orientacion="horizontal" ariaLabel="Del marco a la muestra a contactar" geometryGroup="calc-muestra/general-cadena-del-n" />
-          </section>
+          </Panel>
           {esTecnicaDeElementos(comp.tecnica) ? (
             <MemoriaCalculoGeneral comp={comp} calculando={calculando} onCalcular={onCalcular} />
           ) : (
@@ -178,13 +166,7 @@ export function MetodoGeneralVista({
 function EstratosNoAplican() {
   const location = useLocation();
   return (
-    <section className="cmv2-panel" aria-labelledby="cmg-estratos-vacio-titulo">
-      <div className="cmv2-panel-head">
-        <div>
-          <span className="cmv2-eyebrow">Estratos</span>
-          <h3 className="cmg-panel-titulo" id="cmg-estratos-vacio-titulo">Reparto entre estratos</h3>
-        </div>
-      </div>
+    <Panel aria-labelledby="cmg-estratos-vacio-titulo" title={<span id="cmg-estratos-vacio-titulo">Reparto entre estratos</span>}>
       <EmptyState
         variant="inline"
         icon={<Layers3 size={18} aria-hidden="true" />}
@@ -196,6 +178,6 @@ function EstratosNoAplican() {
           </Link>
         )}
       />
-    </section>
+    </Panel>
   );
 }

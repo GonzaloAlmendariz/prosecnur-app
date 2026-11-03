@@ -6,6 +6,7 @@ import { nombreDelSegmento, rotuloDelSegmento } from "../segmentoDeCuotas";
 import { estadoDeInsistencia, repartoDelEquipo } from "./insistenciaModel";
 import { RotuloDePestana, useHayRotulo } from "../navegacion/RotuloDePestana";
 import "./controlTelefonico.css";
+import { formatoConteo } from "../../../../../lib/formatoNumero";
 
 function corteCorto(valor: string | null | undefined) {
   const fecha = new Date(String(valor ?? ""));
@@ -21,16 +22,16 @@ function TelefonosPorCaso({ casos }: { casos: readonly CasoDeCola[] }) {
   const maximo = Math.max(...reparto.map((item) => item.casos));
   return (
     <section className="mon-cola-panel mon-cola-telefonos" aria-label="Teléfonos por caso">
-      <header className="mon-cola-panel-cabecera">
-        <span className="mon-cola-antetitulo">Teléfonos por caso</span>
+      <header className="mon-ctl-panel-cabecera mon-cola-panel-cabecera">
+        <b>Teléfonos por caso</b>
         <span className="mon-cola-condicional">Condicional</span>
       </header>
       <ul>
         {reparto.map((item) => (
           <li key={item.telefonos}>
-            <span>{item.telefonos.toLocaleString("es-PE")} {item.telefonos === 1 ? "número" : "números"}</span>
+            <span>{formatoConteo(item.telefonos)} {item.telefonos === 1 ? "número" : "números"}</span>
             <i aria-hidden="true"><b style={{ width: `${(item.casos / maximo) * 100}%` }} /></i>
-            <strong className="is-num">{item.casos.toLocaleString("es-PE")}</strong>
+            <strong className="is-num">{formatoConteo(item.casos)}</strong>
           </li>
         ))}
       </ul>

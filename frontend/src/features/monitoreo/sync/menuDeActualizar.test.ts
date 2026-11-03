@@ -26,7 +26,7 @@ describe("el control único Actualizar", () => {
     const plan = planDeActualizar({ fuentes: telefonico, familia: "telefonico" });
     expect(plan.menu.find((e) => e.clave === "fuente:Universo")?.peticion).toEqual({ tipo: "hojas", fuentes: ["Universo"] });
     expect(plan.menu.find((e) => e.clave === "fuente:PDM Kobo")?.peticion).toEqual({ tipo: "sync", modo: "full", fuentes: ["PDM Kobo"] });
-    expect(plan.menu.find((e) => e.clave === "fuente:Universo")?.detalle).toBe("Google Sheets · universo");
+    expect(plan.menu.find((e) => e.clave === "fuente:Universo")?.detalle).toBe("Google Sheets, universo");
   });
 
   it("no queda ningún segundo «Todo»", () => {

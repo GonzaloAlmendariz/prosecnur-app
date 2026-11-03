@@ -28,7 +28,7 @@
 
 .rec-template-revision {
   color: var(--pulso-text-faint);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
 }
 
 /* Mismo recipe glass que .pulso-panel (theme.css) — ver access.css. */
@@ -57,7 +57,7 @@
 .rec-outline header span,
 .rec-inspector header span {
   color: var(--pulso-text-faint);
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-semibold);
   letter-spacing: .07em;
   text-transform: uppercase;
@@ -143,7 +143,7 @@
 
 .rec-outline-select > .rec-outline-num {
   color: var(--pulso-text-muted);
-  font-size: 12px;
+  font-size: var(--pulso-type-subtitle-size);
   font-variant-numeric: tabular-nums;
   font-weight: var(--pulso-weight-semibold);
 }
@@ -197,7 +197,7 @@
 
 .rec-material-canvas > p {
   color: var(--pulso-text-faint);
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   margin: 0;
   max-width: 560px;
   text-align: center;
@@ -213,7 +213,7 @@
    croquis): se lee, no se edita aquí. */
 .rec-inspector-resumen {
   color: var(--pulso-text-muted);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   line-height: 1.4;
   margin: 0;
 }
@@ -229,7 +229,7 @@
 
 .rec-inspector legend {
   color: var(--pulso-text-faint);
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   padding: 0 4px;
 }
 
@@ -277,7 +277,7 @@
 .rec-render-result span,
 .rec-render-result code {
   color: var(--pulso-text-soft);
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   overflow-wrap: anywhere;
 }
 
@@ -286,7 +286,7 @@
   border-radius: var(--pulso-radius-chip);
   color: var(--pulso-primary-strong);
   display: inline-flex;
-  font-size: 13px;
+  font-size: var(--pulso-type-body-size);
   gap: 6px;
   padding: 4px 8px;
   margin: -4px -8px;
@@ -337,29 +337,16 @@
   display: block;
   margin-top: 2px;
   color: var(--pulso-text-muted);
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   line-height: 1.35;
 }
 
 /* El vacío del panel de render cuando explica un bloqueo: dos lecturas —qué
    pasa y qué hacer— y por eso van en bloques, no en una línea corrida. */
-/* El vacío del panel de render explica un bloqueo: son dos lecturas —qué pasa
-   y qué hacer— y `.rec-contained-empty` es `display:flex; row`, así que sin
-   cambiar la dirección salían lado a lado como dos columnas. */
-.rec-render-card .rec-contained-empty {
-  flex-direction: column;
-  gap: 6px;
-  padding: 18px 20px;
-  text-align: center;
-}
-.rec-render-card .rec-contained-empty strong {
-  display: block;
-  margin-bottom: 6px;
-  color: var(--pulso-text);
-  font-weight: 600;
-}
-.rec-render-card .rec-contained-empty span {
-  display: block;
-  max-width: 46ch;
-  margin: 0 auto;
+
+/* Nota del panel de render cuando ya hay accesos: una línea, subordinada a los botones. */
+.rec-render-nota {
+  margin: 0;
+  font-size: var(--pulso-type-caption-size);
+  color: var(--pulso-text-soft);
 }

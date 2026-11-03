@@ -71,9 +71,9 @@ describe("AulasAgendaPorDia", () => {
   });
 
   it("el separador está en el texto, no sólo en la vista", () => {
-    // `renderToStaticMarkup` no aplica CSS: si el punto viviera en un
+    // `renderToStaticMarkup` no aplica CSS: si la coma viviera en un
     // `::before`, aquí no habría ninguno.
-    expect(plano).toContain(" · ");
+    expect(plano).toContain(", ");
   });
 });
 

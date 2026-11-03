@@ -32,15 +32,18 @@
 }
 
 #' Quién levantó la zona: efectivas, días con campo y en observación por código,
-#' de más a menos. Los códigos que no casan con la lista no se nombran (pueden
-#' ser un DNI tecleado): se cuentan aparte en `sin_codigo`.
+#' de más a menos, con el nombre que trae la lista de códigos. Los códigos que
+#' no casan con la lista no se nombran (pueden ser un DNI tecleado): se cuentan
+#' aparte en `sin_codigo`. Con la lista en DNI (`sin_nombres`) no sale nadie.
 #' @keywords internal
-.mtcu_equipo <- function(codigo, reconocido, fecha, observacion) {
-  ok <- reconocido & nzchar(codigo)
+.mtcu_equipo <- function(codigo, reconocido, fecha, observacion, nombre = rep("", length(codigo)), sin_nombres = FALSE) {
+  ok <- reconocido & nzchar(codigo) & !sin_nombres
   cods <- unique(codigo[ok])
   personas <- lapply(cods, function(cod) {
     suyo <- ok & codigo == cod
-    list(codigo = cod, efectivas = as.integer(sum(suyo)),
+    nombres <- unique(trimws(nombre[suyo]))
+    nombres <- nombres[nzchar(nombres) & toupper(nombres) != toupper(cod)]
+    list(codigo = cod, nombre = if (length(nombres)) nombres[[1]] else "", efectivas = as.integer(sum(suyo)),
          dias = as.integer(length(unique(fecha[suyo & nzchar(fecha)]))),
          en_observacion = as.integer(sum(suyo & observacion)))
   })
@@ -71,6 +74,7 @@
 #' @param envio la foto `runs[[fase]]$envio` de Hojas de ruta.
 #' @param audit el audit territorial (ubigeo, sex, age, advance_valid,
 #'   observation_status), ya sin anuladas.
+#' @param sin_nombres TRUE si la lista de códigos va por DNI: el equipo no nombra a nadie.
 #' @param asignacion filas de la asignación por zona que arma Material
 #'   (`GET /api/recopiladores/campaigns/territorial/asignacion`, 2d6b8d6d1):
 #'   `{id_zona, codigo, parte}`, con un `id_zona` que puede repetirse cuando dos
@@ -78,7 +82,7 @@
 #' @return `NULL` si el envío no es por cuotas; si no, `list(kind, zonas, total,
 #'   sin_zona, sin_celda)`; cada zona trae `personas` con su parte y sus efectivas.
 #' @keywords internal
-monitoreo_territorial_avance_cuotas <- function(envio, audit, asignacion = list()) {
+monitoreo_territorial_avance_cuotas <- function(envio, audit, asignacion = list(), sin_nombres = FALSE) {
   if (!is.list(envio) || !identical(.monitoreo_scalar(envio$kind, ""), "cuotas")) return(NULL)
   zonas <- Filter(is.list, envio$zonas %||% list())
   n <- if (is.data.frame(audit)) nrow(audit) else 0L
@@ -94,6 +98,7 @@ monitoreo_territorial_avance_cuotas <- function(envio, audit, asignacion = list(
   reconocido <- if (n && !is.null(audit$pulso_code_recognized)) audit$pulso_code_recognized %in% TRUE else rep(FALSE, n)
   fecha <- if (n) trimws(as.character(audit$submission_date_iso %||% rep("", n))) else character(0)
   duracion <- if (n) suppressWarnings(as.numeric(audit$duration_seconds %||% rep(NA, n))) else numeric(0)
+  nombre <- if (n) as.character(audit$enumerator_assigned %||% rep("", n)) else character(0)
   filas_asig <- Filter(function(a) is.list(a) && nzchar(.monitoreo_scalar(a$id_zona %||% a$id_manzana, "")),
                        asignacion %||% list())
 
@@ -131,7 +136,8 @@ monitoreo_territorial_avance_cuotas <- function(envio, audit, asignacion = list(
       id_zona = id_z, ubigeo = u, nombre = .monitoreo_scalar(z$nombre, ""),
       meta = meta,
       personas = personas,
-      equipo = .mtcu_equipo(codigo[efectiva_aqui], reconocido[efectiva_aqui], fecha[efectiva_aqui], m$observacion[efectiva_aqui]),
+      equipo = .mtcu_equipo(codigo[efectiva_aqui], reconocido[efectiva_aqui], fecha[efectiva_aqui], m$observacion[efectiva_aqui],
+                            nombre[efectiva_aqui], sin_nombres),
       diario = .mtcu_diario(fecha[efectiva_aqui]),
       duracion_mediana_min = .mtcu_mediana_min(duracion[efectiva_aqui]),
       efectivas = as.integer(sum(de_la_zona & m$efectiva)),
@@ -140,6 +146,21 @@ monitoreo_territorial_avance_cuotas <- function(envio, audit, asignacion = list(
       celdas_completas = as.integer(sum(vapply(celdas, function(c) c$falta == 0L, logical(1))))
     )
   })
+  # ADR 0126: el carácter que declaró Hojas de ruta por dimensión (meta por defecto).
+  # Las marginales y la composición se cuentan sobre los CASOS, no sumando celdas:
+  # con el sexo referencial, un caso de edad válida y sexo ilegible sí cuenta
+  # para la meta de edad, que es la que se exige.
+  salida <- Map(function(zs, z) {
+    u <- trimws(.monitoreo_scalar(z$ubigeo %||% z$id_zona, ""))
+    ef <- ubigeo == u & m$efectiva
+    contar <- function(dim, cat) {
+      if (dim == "zona") return(sum(ef))
+      if (dim == "sexo") return(sum(ef & sexo == .mtcu_sexo(cat)))
+      lim <- .mtcu_rango(cat)
+      sum(ef & is.finite(edad) & edad >= lim[[1]] & edad <= lim[[2]])
+    }
+    .monitoreo_cuotas_marcar_zona(zs, z$caracter %||% list(), contar)
+  }, salida, zonas)
   efectivas_total <- as.integer(sum(vapply(salida, function(z) z$efectivas, integer(1))))
   # Una zona es un distrito: dos zonas con el mismo ubigeo contarían dos veces
   # los mismos casos. Se avisa en lugar de sumar de más en silencio.
@@ -152,7 +173,10 @@ monitoreo_territorial_avance_cuotas <- function(envio, audit, asignacion = list(
       meta = as.integer(sum(vapply(salida, function(z) z$meta, integer(1)))),
       efectivas = efectivas_total,
       celdas = as.integer(sum(vapply(salida, function(z) length(z$celdas), integer(1)))),
-      celdas_completas = as.integer(sum(vapply(salida, function(z) z$celdas_completas, integer(1))))
+      celdas_completas = as.integer(sum(vapply(salida, function(z) z$celdas_completas, integer(1)))),
+      # Lo que se exige (celdas, o marginales si una dimensión es referencial).
+      unidades = as.integer(sum(vapply(salida, function(z) z$unidades, integer(1)))),
+      unidades_completas = as.integer(sum(vapply(salida, function(z) z$unidades_completas, integer(1))))
     ),
     # Lo que no cae en ninguna zona del envío, o cae en su zona sin celda (sin
     # sexo o edad legibles, o fuera de los rangos): se declara, no se pierde.

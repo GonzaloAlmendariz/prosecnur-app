@@ -57,7 +57,7 @@
   border-radius: 999px;
   background: var(--pulso-surface);
   color: var(--pulso-text-muted);
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-semibold);
   line-height: 16px;
   text-align: center;
@@ -74,7 +74,7 @@
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
-  font-size: 11px;
+  font-size: var(--pulso-type-eyebrow-size);
   font-weight: var(--pulso-weight-bold);
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -146,7 +146,7 @@
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   line-height: 1.2;
   color: var(--pulso-text-soft);
 }
@@ -159,7 +159,7 @@
   border-radius: calc(var(--pulso-radius) / 3);
   background: color-mix(in srgb, var(--pulso-text) 75%, transparent);
   color: var(--pulso-nav-selected-fg);
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   line-height: 1.3;
   font-variant-numeric: tabular-nums;
 }
@@ -225,7 +225,7 @@
   border-radius: calc(var(--pulso-radius) / 3);
   background: var(--pulso-warn-bg);
   color: var(--pulso-warn-fg);
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-bold);
   line-height: 1.4;
 }
@@ -241,7 +241,7 @@
   border-radius: calc(var(--pulso-radius) / 3);
   background: var(--pulso-warn-bg);
   color: var(--pulso-warn-fg);
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   line-height: 1.4;
   white-space: nowrap;
   text-overflow: ellipsis;
@@ -260,7 +260,7 @@
   height: 100%;
   padding: 2px 6px 0;
   color: var(--pulso-danger-fg);
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   line-height: 1.15;
   text-align: left;
   white-space: normal;

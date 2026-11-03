@@ -12,12 +12,12 @@ describe("el recibo dice qué se trajo de cada fuente", () => {
       },
       errors: [],
     }, ok);
-    expect(recibo).toEqual({ tono: "exito", mensaje: "Actualizado", detalle: "PDM Kobo: 41 nuevas · Universo: 1,009 leídas · Recalculado" });
+    expect(recibo).toEqual({ tono: "exito", mensaje: "Actualizado", detalle: "PDM Kobo: 41 nuevas, Universo: 1,009 leídas. Recalculado" });
   });
 
   it("una incremental sin nada nuevo lo dice", () => {
     expect(reciboDeSync({ sync_summary: [{ source_label: "Kobo", mode: "incremental", rows: 0 }] }, ok).detalle)
-      .toBe("Kobo: sin nuevas · Recalculado");
+      .toBe("Kobo: sin nuevas. Recalculado");
   });
 
   it("una fuente que falla vuelve el recibo un aviso", () => {
@@ -38,11 +38,11 @@ describe("el recibo dice qué se trajo de cada fuente", () => {
   it("si se trajo pero no se pudo releer el estado, lo dice", () => {
     const recibo = reciboDeSync({ sync_summary: { a: { source_label: "Kobo", mode: "incremental", rows: 3 } } }, { ok: false, mensaje: "Timeout" });
     expect(recibo.tono).toBe("error");
-    expect(recibo.detalle).toBe("Kobo: 3 nuevas · Timeout");
+    expect(recibo.detalle).toBe("Kobo: 3 nuevas. Timeout");
   });
 
   it("hojas, recalcular y fallo", () => {
-    expect(reciboDeHojas({ n_rows: 2296 }, 2, ok).detalle).toBe("2 hojas de Sheets: 2,296 registros · Recalculado");
+    expect(reciboDeHojas({ n_rows: 2296 }, 2, ok).detalle).toBe("2 hojas de Sheets: 2,296 registros. Recalculado");
     expect(reciboDeRecalcular(ok)).toEqual({ tono: "exito", mensaje: "Tablero recalculado", detalle: "Sin traer nada" });
     expect(reciboDeRecalcular({ ok: false, mensaje: "E" }).tono).toBe("error");
     expect(reciboDeFallo("Sin token").tono).toBe("error");

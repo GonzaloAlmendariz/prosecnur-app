@@ -41,21 +41,21 @@ describe("Insumos › Conexiones", () => {
     const campo = modelo.tarjetas[0];
     expect(campo).toMatchObject({ titulo: "Kobo de Campo", activa: true, estado: "Al día", tono: "ok", formulario: "ACNUR Campo", serie: [216, 1697] });
     expect(campo.cifras).toEqual([
-      { rotulo: "Respuestas", valor: "1,697" },
-      { rotulo: "Preguntas", valor: "79" },
-      { rotulo: "Opciones", valor: "61" },
-      { rotulo: "Última lectura", valor: "09/07 07:24" },
-      { rotulo: "Ficha leída", valor: "18/06 15:53" },
-      { rotulo: "Fase desde", valor: "12/06 05:00" },
+      { id: "respuestas", rotulo: "Respuestas", valor: "1,697" },
+      { id: "preguntas", rotulo: "Preguntas", valor: "79" },
+      { id: "opciones", rotulo: "Opciones", valor: "61" },
+      { id: "ultima-lectura", rotulo: "Última lectura", valor: "09/07 07:24" },
+      { id: "ficha-leida", rotulo: "Ficha leída", valor: "18/06 15:53" },
+      { id: "fase-desde", rotulo: "Fase desde", valor: "12/06 05:00" },
     ]);
   });
 
   it("si hay respuestas enviadas antes del inicio de la fase, dice cuántas entran a la fase", () => {
     const conPrevias = { ...REPORTS, source_validity: { total_responses: 1693 } } as unknown as MonitoreoTerritorialDashboard;
     const campo = construirConexiones(STATE, conPrevias, "field").tarjetas[0];
-    expect(campo.cifras[1]).toEqual({ rotulo: "En la fase · 4 antes", valor: "1,693" });
+    expect(campo.cifras[1]).toEqual({ id: "en-fase", rotulo: "En la fase", valor: "1,693", nota: "4 antes del inicio" });
     const iguales = { ...REPORTS, source_validity: { total_responses: 1697 } } as unknown as MonitoreoTerritorialDashboard;
-    expect(construirConexiones(STATE, iguales, "field").tarjetas[0].cifras.map((c) => c.rotulo).some((r) => r.startsWith("En la fase"))).toBe(false);
+    expect(construirConexiones(STATE, iguales, "field").tarjetas[0].cifras.map((c) => c.id)).not.toContain("en-fase");
   });
 
   it("la fase no activa se atenúa y no muestra la ficha de la activa", () => {
@@ -66,10 +66,9 @@ describe("Insumos › Conexiones", () => {
 
   it("la hoja de ruta de Sheets aparece si el proyecto la declara, y la muestra viene de Hojas de ruta", () => {
     expect(modelo.tarjetas.find((t) => t.clave === "hoja")).toMatchObject({ estado: "Sin conectar", tono: "inactiva" });
-    expect(modelo.muestra).toEqual([
+    expect(modelo.muestra.map(({ rotulo, valor }) => ({ rotulo, valor }))).toEqual([
       { rotulo: "Meta", valor: "1,200" }, { rotulo: "Distritos", valor: "6" }, { rotulo: "UMP titulares", valor: "150" }, { rotulo: "Reemplazos", valor: "150" },
     ]);
-    expect(modelo.ventanas).toEqual([{ fase: "Campo", desde: "12/06 05:00" }]);
     expect(modelo.conFuenteDeCampo).toBe(true);
   });
 

@@ -371,12 +371,6 @@
   white-space: nowrap;
 }
 
-.aulas-pf-chip[data-tono="ok"] {
-  border-color: var(--pulso-success-border);
-  background: var(--pulso-success-bg);
-  color: var(--pulso-success-fg);
-}
-
 .aulas-pf-chip[data-tono="aviso"] {
   border-color: var(--pulso-warn-border);
   background: var(--pulso-warn-bg);

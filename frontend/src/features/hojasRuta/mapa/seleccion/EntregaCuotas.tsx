@@ -49,7 +49,7 @@ export function EntregaCuotas({ envio: envioDelEstado, distritos, nObjetivo, fas
       setOcupado(false);
       await onCambio?.();
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message.replace(/ · E_[A-Z_]+$/, "") : "No se pudo enviar");
+      setError(err instanceof Error ? err.message.replace(/, E_[A-Z_]+$/, "") : "No se pudo enviar");
     } finally {
       setOcupado(false);
     }

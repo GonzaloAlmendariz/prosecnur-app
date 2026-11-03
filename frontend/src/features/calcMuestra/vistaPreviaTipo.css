@@ -37,14 +37,14 @@
 
 .cmv2-vista-previa-head small {
   color: var(--pulso-text-soft);
-  font-size: 12px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-bold);
 }
 
 .cmv2-vista-previa-head h3 {
   margin: 2px 0 4px;
   color: var(--pulso-text);
-  font-size: 18px;
+  font-size: var(--pulso-type-kpi-size);
   font-weight: var(--pulso-weight-heavy);
 }
 
@@ -52,7 +52,7 @@
   margin: 0;
   max-width: 72ch;
   color: var(--pulso-text-soft);
-  font-size: 13px;
+  font-size: var(--pulso-type-body-size);
   line-height: 1.45;
 }
 
@@ -78,7 +78,7 @@
   align-items: center;
   gap: 8px;
   color: var(--pulso-text);
-  font-size: 14px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-heavy);
 }
 
@@ -91,7 +91,7 @@
   border-radius: 999px;
   background: var(--cmv2-accent-soft);
   color: var(--cmv2-accent-fg);
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
 }
 
 .cmv2-vista-previa-secciones ul {
@@ -100,7 +100,7 @@
   margin: 8px 0 0;
   padding: 0 0 0 28px;
   color: var(--pulso-text-soft);
-  font-size: 12.5px;
+  font-size: var(--pulso-type-body-size);
   line-height: 1.35;
 }
 
@@ -130,7 +130,7 @@
 
 .cmv2-vista-previa-confirmar strong {
   color: var(--pulso-danger-fg);
-  font-size: 14px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-heavy);
 }
 
@@ -138,7 +138,7 @@
 .cmv2-vista-previa-confirmar ul {
   margin: 4px 0 0;
   color: var(--pulso-text);
-  font-size: 13px;
+  font-size: var(--pulso-type-body-size);
   line-height: 1.45;
 }
 

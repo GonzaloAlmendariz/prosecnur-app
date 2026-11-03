@@ -2809,7 +2809,7 @@ monitoreo_client_report_pdf_job_runner <- function(model_path,
     monitoreo_territorial_advance_report_pdf(model, result_path, include_targets = include_targets)
   } else if (identical(report_kind, "telefonico_advance_pdf") || identical(family, "telefonico")) {
     report("render", percent = 55, message = "Renderizando avance telefónico...")
-    monitoreo_telefonico_advance_report_pdf(model, result_path, include_targets = include_targets)
+    monitoreo_telefonico_advance_report_pdf(model, result_path, include_targets = include_targets, portada = portada)
   } else if (identical(report_kind, "aulas_advance_pdf") || identical(family, "aulas_universitarias")) {
     report("render", percent = 55, message = "Renderizando avance de cursos-horario...")
     monitoreo_aulas_advance_report_pdf(model, result_path, include_targets = include_targets,

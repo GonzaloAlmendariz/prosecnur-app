@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import { MemoryRouter } from "react-router-dom";
-import { calendario, fasesConFechas, nombresDePublicos, pulsoDelCampo, seriesApiladas } from "./ritmoModelo";
+import { calendario, fasesConFechas, nombresDePublicos, pulsoDelCampo, serieDelGrafico, seriesApiladas } from "./ritmoModelo";
 import { lunesDe, mapaPorSemana } from "./mapaDeCalor";
 import { RitmoVista } from "./Ritmo";
 import { acumulado } from "./DiarioYAcumulado";
@@ -45,6 +45,16 @@ describe("Avance › Ritmo", () => {
     expect(serie.capas).toHaveLength(9);
     expect(serie.capas.some((capa) => capa.publico.startsWith("Otros"))).toBe(false);
     expect(serie.totales[0]).toBe(45);
+  });
+
+  it("el gráfico termina en el último día con efectivas; la serie sigue hasta el corte", () => {
+    const serie = seriesApiladas(diarioPorPublico, [], nombresDePublicos(actores), "2026-06-05");
+    expect(serie.fechas.at(-1)).toBe("2026-06-05");
+    const grafico = serieDelGrafico(serie);
+    expect(grafico.fechas.at(-1)).toBe("2026-05-29");
+    // Los días vacíos de en medio se quedan.
+    expect(grafico.totales).toEqual([10, 3, 0, 0, 4]);
+    expect(grafico.capas.every((capa) => capa.valores.length === 5)).toBe(true);
   });
 
   it("sin desglose por público usa la serie general", () => {

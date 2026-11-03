@@ -145,3 +145,18 @@ describe("la serie diaria de efectivas es una sola", () => {
     expect(deLaSerie).toEqual(diarioDeCuotas);
   });
 });
+
+describe("Ritmo dice por qué unas completas de Kobo no suman (reparo 2 del numerador)", () => {
+  it("muestra la nota que el motor pone en `avance_efectivo_dia`", () => {
+    const nota = "4 completas de Kobo sin caso en la base no se suman a Efectivas: Pandemia cuenta la hoja porque ninguno de sus casos cruza con Kobo. Revisa sus llaves.";
+    const conNota = {
+      ...REPORTS,
+      sheets: REPORTS.sheets.map((hoja) => ({
+        ...hoja,
+        blocks: hoja.blocks.map((bloque) => (bloque.id === "avance_efectivo_dia" ? { ...bloque, note: nota } : bloque)),
+      })),
+    } as MonitoreoAcreditacionReports;
+    expect(renderToStaticMarkup(<Ritmo reports={conNota} state={STATE} />)).toContain("no se suman a Efectivas: Pandemia cuenta la hoja");
+    expect(renderToStaticMarkup(<Ritmo reports={REPORTS} state={STATE} />)).not.toContain("no se suman a Efectivas");
+  });
+});

@@ -68,7 +68,7 @@
   border-radius: 999px;
   background: color-mix(in srgb, var(--ruta-accent) 14%, var(--pulso-surface));
   color: var(--ruta-accent);
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   font-style: normal;
   font-weight: var(--pulso-weight-black);
 }
@@ -82,14 +82,14 @@
 }
 
 .mon-acr-ruta-paso strong {
-  font-size: 12px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-semibold);
   color: var(--pulso-text);
 }
 
 .mon-acr-ruta-paso small {
   min-width: 0;
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   color: var(--pulso-text-soft);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -97,7 +97,7 @@
 }
 
 .mon-acr-ruta-paso b {
-  font-size: 13px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-black);
   color: var(--ruta-accent);
   font-variant-numeric: tabular-nums;
@@ -114,7 +114,7 @@
   border-radius: 999px;
   background: transparent;
   color: var(--pulso-text-soft);
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   cursor: pointer;
 }
 
@@ -151,7 +151,7 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   font-weight: var(--pulso-weight-semibold);
   color: var(--pulso-text);
 }
@@ -187,7 +187,7 @@
 }
 
 .mon-acr-crossing-group th strong {
-  font-size: 11px;
+  font-size: var(--pulso-type-eyebrow-size);
   font-weight: var(--pulso-weight-black);
   letter-spacing: 0.05em;
   text-transform: uppercase;
@@ -200,14 +200,14 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 10.5px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-semibold);
   color: var(--pulso-text-faint);
 }
 
 .mon-acr-crossing-group th em {
   font-style: normal;
-  font-size: 12px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-black);
   color: var(--grupo-accent);
   font-variant-numeric: tabular-nums;
@@ -217,7 +217,7 @@
 .mon-acr-subsanacion-list section > span small {
   margin-left: 6px;
   color: var(--pulso-text-faint);
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-semibold);
   letter-spacing: 0;
   text-transform: none;

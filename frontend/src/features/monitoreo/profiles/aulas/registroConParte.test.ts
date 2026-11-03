@@ -36,6 +36,9 @@ describe("la fila enseña el hecho que el contador ya publica", () => {
     // `operational_status` con un estado derivado sería inventar un dato
     // operativo que nadie declaró.
     expect(fuente).toContain('const estado = String(row.operational_status ?? "planificada");');
-    expect(fuente).toMatch(/registro-campo-parte[\s\S]{0,400}registro-campo-estado is-\$\{estado\}/);
+    // El chip de estado (P6b: `EstadoEnCelda` o `EstadoChip`, ya sin el envoltorio
+    // `registro-campo-estado`) se pinta con el rótulo del estado declarado.
+    expect(fuente).toContain("const rotulo = rotuloDeEstado(estado);");
+    expect(fuente).toMatch(/registro-campo-parte[\s\S]{0,600}<EstadoEnCelda valor=\{rotulo\} \/>/);
   });
 });

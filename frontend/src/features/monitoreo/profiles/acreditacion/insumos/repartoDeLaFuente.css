@@ -16,7 +16,7 @@
   gap: 6px;
   margin: 0;
   color: var(--pulso-text-soft);
-  font-size: 12.5px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .acr-rp-campos {
@@ -30,7 +30,7 @@
   flex-direction: column;
   gap: 4px;
   min-width: 0;
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   color: var(--pulso-text-soft);
 }
 
@@ -51,7 +51,7 @@
   background: var(--pulso-surface);
   box-shadow: none;
   color: var(--pulso-text-soft);
-  font-size: 12.5px;
+  font-size: var(--pulso-type-body-size);
   transform: none;
 }
 
@@ -88,7 +88,7 @@
 .acr-rp-mensaje {
   margin: 0;
   color: var(--pulso-text-soft);
-  font-size: 12.5px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .acr-rp-mensaje.is-error {

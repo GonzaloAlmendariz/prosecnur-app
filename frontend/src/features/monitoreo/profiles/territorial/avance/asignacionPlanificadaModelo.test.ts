@@ -19,7 +19,7 @@ describe("columna Planificado (B3)", () => {
   it("normaliza la lista de uno y arma la celda con su lectura", () => {
     const c = columnaPlanificada(comparable);
     if (c.tipo !== "columna") throw new Error("sin columna");
-    expect(c.porManzana.get("M1")).toMatchObject({ rotulo: "P844 · Ana Ruiz", texto: "Coincide", tono: "ok" });
+    expect(c.porManzana.get("M1")).toMatchObject({ rotulo: "P844, Ana Ruiz", texto: "Coincide", tono: "ok" });
     expect(c.porManzana.get("M1")?.detalle).toBe("Llegaron: P844 (2)");
     expect(c.porManzana.get("M3")).toMatchObject({ rotulo: "P101", texto: "Otro encuestador", tono: "falta" });
     expect(c.porManzana.get("M3")?.detalle).toBe("Llegaron: P320 (1). Código heredado del titular.");
@@ -57,7 +57,7 @@ describe("C7: estado declarado por campo", () => {
 });
 
 describe("P2: efectivas del consolidado contra Kobo", () => {
-  it("pone «Campo X · Kobo Y» en la celda y lo cuenta en el resumen", () => {
+  it("pone «Campo X, Kobo Y» en la celda y lo cuenta en el resumen", () => {
     const a = normalizeAsignacionPlanificada({
       estado: "comparable",
       resumen: { asignadas: 1, con_conteos: 1, conteos_distintos: 1 },
@@ -66,7 +66,7 @@ describe("P2: efectivas del consolidado contra Kobo", () => {
     });
     const c = columnaPlanificada(a);
     if (c.tipo !== "columna") throw new Error("sin columna");
-    expect(c.porManzana.get("M2")?.declarado?.conteo).toEqual({ texto: "Campo 5 · Kobo 1", distinto: true });
+    expect(c.porManzana.get("M2")?.declarado?.conteo).toEqual({ texto: "Campo 5, Kobo 1", distinto: true });
     expect(c.resumen).toContain("Efectivas del consolidado en 1; 1 distinta de Kobo.");
   });
 });

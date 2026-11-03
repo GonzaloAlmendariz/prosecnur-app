@@ -14,23 +14,32 @@ const A_CODIFICACION = (() => {
 
 /**
  * E6 — abierta: las respuestas iguales agrupadas (sin mayúsculas ni tildes,
- * lo hace el motor) con cuántas veces aparecen, y el paso a Codificación.
+ * lo hace el motor) con cuántas veces aparecen y una barra en esa escala; la
+ * más repetida en navy. Si ninguna se repite, no hay barras: una barra llena
+ * para cada «1» no dice nada. Y el paso a Codificación.
  */
 export default function DistribucionTexto({ grupos }: { grupos: readonly { texto: string; n: number }[] }) {
   const [todas, setTodas] = useState(false);
   const navigate = useNavigate();
   const ordenados = [...grupos].sort((a, b) => b.n - a.n);
   const visibles = todas ? ordenados : ordenados.slice(0, VISIBLES);
+  const max = ordenados[0]?.n ?? 0;
+  const conBarras = max > 1;
   return (
     <div className="vx-barras">
       {ordenados.length === 0 ? (
         <p className="vx-pie">No hay respuestas abiertas no vacías para esta variable.</p>
       ) : (
-        <ul className="vx-textos">
-          {visibles.map((g) => (
-            <li key={g.texto}>
+        <ul className={`vx-textos${conBarras ? " con-barras" : ""}`}>
+          {visibles.map((g, i) => (
+            <li key={g.texto} className={conBarras && i === 0 ? "is-mayor" : undefined}>
               <span>{g.texto}</span>
               <span>× {fmtN(g.n)}</span>
+              {conBarras && (
+                <span className="vx-texto-barra" aria-hidden>
+                  <i style={{ width: `${(100 * g.n) / max}%` }} />
+                </span>
+              )}
             </li>
           ))}
         </ul>

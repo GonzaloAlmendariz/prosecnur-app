@@ -78,7 +78,7 @@ describe("Control › Discrepancias", () => {
     const grupos = porResponsable(casosDeDiscrepancia(CORTE, null));
     expect(grupos.map((grupo) => [grupo.responsable, grupo.casos.length])).toEqual([["Op-01", 2], ["Op-02", 1], [SIN_RESPONSABLE, 1]]);
     const texto = textoParaElEquipo(grupos);
-    expect(texto).toContain("Op-01 (2)\n- PDM1001 · proGres XYZ-26-900001: Kobo tiene la efectiva y la hoja no la marca «Efectivo» (dice «No contesta»)");
+    expect(texto).toContain("Op-01 (2)\n- PDM1001, proGres XYZ-26-900001: Kobo tiene la efectiva y la hoja no la marca «Efectivo» (dice «No contesta»)");
     expect(texto).toContain("Op-02 (1)\n- PDM1114: La hoja dice «Efectivo» y Kobo no tiene envío");
     const csv = csvParaElEquipo(grupos.flatMap((grupo) => grupo.casos)).split("\n");
     expect(csv[0]).toBe("Responsable,CodPulso,proGres,Qué pasa,La hoja dice,Fecha hoja,Envío en Kobo,Enumerador Kobo,Decisión");

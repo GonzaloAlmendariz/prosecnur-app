@@ -78,7 +78,7 @@ export default function AulasViajesSolitarios({
           >
             <strong>{nombreDeAplicador(v.aplicador)}</strong>{" "}
             <span className="aulas-asigna-solitarios-cita">
-              {v.etiqueta} · {v.codigo} · {v.desdeRecojo} a {v.hasta}
+              {v.etiqueta}, {v.codigo}, {v.desdeRecojo} a {v.hasta}
             </span>
             <span className="aulas-asigna-solitarios-motivo">{motivoDelViaje(v)}</span>
           </li>

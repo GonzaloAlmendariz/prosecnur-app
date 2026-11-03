@@ -4,15 +4,16 @@
 // Sin cruce: un chip «Elegir variable» que abre el selector. Con cruce: el
 // chip lleno con la variable cruzada, «Cambiar» y × para quitarlo.
 //
-// El selector lista TODAS las variables (cualquier tipo se cruza con
-// cualquier otro; el motor elige el gráfico por el par), buscable por texto o
-// código, filtrable por tipo, agrupado por sección —la de la pregunta primero—
-// y cada fila anticipa el gráfico que resulta (`graficoDelPar`).
+// El selector lista TODAS las variables (el motor elige el gráfico por el
+// par), buscable por texto o código, filtrable por tipo, agrupado por sección
+// —la de la pregunta primero— y cada fila anticipa el gráfico que resulta
+// (`graficoDelPar`). Una abierta sólo se cruza con una única: las demás quedan
+// a la vista, atenuadas, y el pie dice la limitación (`LIMITE_ABIERTA`).
 // =============================================================================
 
 import type { CSSProperties, ReactElement } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ArrowRight, ChevronDown, X as XIcon } from "../../../vendor/lucide-react";
+import { ArrowRight, ChevronDown, Info, X as XIcon } from "../../../vendor/lucide-react";
 import { Popover } from "../../../components/Popover";
 import { PulsoButton } from "../../../components/PulsoButton";
 import { PulsoInput } from "../../../components/PulsoInput";
@@ -20,7 +21,7 @@ import "./crossBar.css";
 import type { ExploradorSeccion, ExploradorVariable } from "../types";
 import ChipsTipo from "../tabs/explorar/ChipsTipo";
 import InsigniaTipo from "../tabs/explorar/InsigniaTipo";
-import { graficoDelPar } from "../tabs/explorar/graficoDelPar";
+import { abiertaSinCruce, graficoDelPar, LIMITE_ABIERTA } from "../tabs/explorar/graficoDelPar";
 import { coincide, conteoPorFamilia, enFamilia, type FamiliaTipo } from "../tabs/explorar/tiposVariable";
 
 export type CrossBarProps = {
@@ -164,6 +165,8 @@ function CrossPanel({
   useEffect(() => {
     searchRef.current?.focus();
   }, []);
+  const sinCruce = (v: Candidata) => !!selfTipo && abiertaSinCruce(selfTipo, v.tipo);
+  const hayLimite = grupos.some((g) => g.vars.some(sinCruce));
 
   return (
     <div className="crossbar-panel">
@@ -188,12 +191,15 @@ function CrossPanel({
               <span className="vx-eyebrow">{g.nombre}</span>
               {g.vars.map((v) => {
                 const grafico = selfTipo ? graficoDelPar(selfTipo, v.tipo) : null;
+                const bloqueada = sinCruce(v);
                 return (
                   <button
                     key={v.name}
                     type="button"
-                    className="crossbar-opcion"
+                    className={`crossbar-opcion${bloqueada ? " is-sin-cruce" : ""}`}
                     aria-current={v.name === cruzar ? "true" : undefined}
+                    disabled={bloqueada}
+                    title={bloqueada ? LIMITE_ABIERTA : undefined}
                     onClick={() => onPick(v.name)}
                   >
                     <InsigniaTipo tipo={v.tipo} />
@@ -214,6 +220,12 @@ function CrossPanel({
           ))
         )}
       </div>
+      {hayLimite && (
+        <p className="crossbar-limite">
+          <Info size={14} aria-hidden />
+          <span>{LIMITE_ABIERTA}</span>
+        </p>
+      )}
     </div>
   );
 }

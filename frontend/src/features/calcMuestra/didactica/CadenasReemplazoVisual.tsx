@@ -15,6 +15,7 @@ import type {
 import { BadgeMotor, TerminoGlosario } from "./PasoDidactico";
 import { rowsFrom, rowText, safeNum } from "./didacticaData";
 import { canonicalClassroomOperationalCode } from "../universidad/aulas/classroomOperationalCode";
+import { fmtInt } from "../sharedCore";
 
 const MAX_CADENAS_VISIBLES = 8;
 const MAX_RESERVAS_POR_CADENA = 2;
@@ -236,7 +237,7 @@ export function CadenasReemplazoVisual({
               onClick={() => setLimite(MAX_CADENAS_VISIBLES + BLOQUE_CADENAS)}
             >
               <Route size={12} aria-hidden="true" />
-              Ver todas las cadenas ({cadenas.length.toLocaleString("es-PE")})
+              Ver todas las cadenas ({fmtInt(cadenas.length)})
               <ChevronDown size={12} aria-hidden="true" />
             </button>
           )}
@@ -247,8 +248,8 @@ export function CadenasReemplazoVisual({
               onClick={() => setLimite((prev) => prev + BLOQUE_CADENAS)}
             >
               <ChevronDown size={12} aria-hidden="true" />
-              Mostrar {Math.min(BLOQUE_CADENAS, restantes).toLocaleString("es-PE")} más
-              <em>quedan {restantes.toLocaleString("es-PE")} de {cadenas.length.toLocaleString("es-PE")}</em>
+              Mostrar {fmtInt(Math.min(BLOQUE_CADENAS, restantes))} más
+              <em>quedan {fmtInt(restantes)} de {fmtInt(cadenas.length)}</em>
             </button>
           )}
           {expandida && (

@@ -274,7 +274,7 @@ function planKpi(dashboard: MonitoreoAulasDashboard | null): AulasKpi {
     pista: [
       reservas ? `+${fmt(reservas)} reservas` : "titulares y sus reservas encadenadas",
       corrida ? `sorteo del ${corrida}` : "",
-    ].filter(Boolean).join(" · "),
+    ].filter(Boolean).join(", "),
     tone: total ? "neutral" : "warn",
   };
 }
@@ -312,7 +312,7 @@ function respuestasKpi(kpis: CifrasDeRespuestas | null | undefined): AulasKpi {
     label: "Respuestas leídas",
     icono: Table2,
     value: fmt(m.recibidas),
-    pista: `${fmt(m.fueraDelOperativo)} fuera del operativo · ${fmt(m.noPasanElCriterio)} no pasan el criterio · ${fmt(m.efectivas)} efectivas`,
+    pista: `${fmt(m.fueraDelOperativo)} fuera del operativo, ${fmt(m.noPasanElCriterio)} no pasan el criterio, ${fmt(m.efectivas)} efectivas`,
   };
 }
 
@@ -700,10 +700,10 @@ export function aulasKpis(
         icono: AlertCircle,
         value: fmt(estado.sinSalirACampo),
         pista: !agendadasConFecha ? "todavía sin fecha: hay que agendarlas"
-          : sinFecha ? `${fmt(sinFecha)} sin fecha · ${fmt(agendadasConFecha)} agendadas`
-            : sinCita ? `${fmt(conCita)} con cita · ${fmt(sinCita)} sin contactar todavía`
+          : sinFecha ? `${fmt(sinFecha)} sin fecha, ${fmt(agendadasConFecha)} agendadas`
+            : sinCita ? `${fmt(conCita)} con cita, ${fmt(sinCita)} sin contactar todavía`
               : muestraDesfasada
-                ? `${fmt(conCita)} con cita · ${fmt(muestraDesfasada)} sin actualizar en la muestra`
+                ? `${fmt(conCita)} con cita, ${fmt(muestraDesfasada)} sin actualizar en la muestra`
                 : "agendados, todavía sin salir a campo",
         tone: estado.sinSalirACampo ? "warn" : "neutral",
       },
@@ -746,7 +746,7 @@ export function aulasKpis(
         // no lo es, que es la peor clase de duda porque lleva a «arreglar» lo
         // que está bien.
         pista: alertas.sinComprobar
-          ? `reglas evaluadas · ${alertas.sinComprobar} sin comprobar`
+          ? `reglas evaluadas, ${alertas.sinComprobar} sin comprobar`
           : "reglas evaluadas sobre este corte",
       },
       {
@@ -797,10 +797,10 @@ export function aulasKpis(
         pista: cadenas.sinRespuestaAlguna >= cadenas.abiertas
           ? "todavía sin una sola respuesta"
           : cadenas.sinRespuestaAlguna > 0
-            ? `${fmt(cadenas.sinRespuestaAlguna)} sin una sola respuesta · el resto no llegó a su meta`
+            ? `${fmt(cadenas.sinRespuestaAlguna)} sin una sola respuesta, el resto no llegó a su meta`
             : "ningún eslabón llegó a su meta",
         tone: cadenas.abiertas ? "warn" : "neutral",
-        detalle: `${fmt(cadenas.cerraronEnTitular)} cerraron con el titular · ${fmt(cadenas.cerraronEnReemplazo)} con un reemplazo · ${fmt(cadenas.sinReserva)} sin reserva asignada`,
+        detalle: `${fmt(cadenas.cerraronEnTitular)} cerraron con el titular, ${fmt(cadenas.cerraronEnReemplazo)} con un reemplazo, ${fmt(cadenas.sinReserva)} sin reserva asignada`,
         destino: "reemplazos",
         },
       brechasKpi(dashboard),

@@ -8,6 +8,8 @@
 
 import type { AsignacionTerritorial, ZonaDeCuotas } from "../../../api/materialTerritorial";
 import { PulsoTable, type PulsoTableColumna } from "../../../components/PulsoTable";
+import { MapPinned } from "../../../vendor/lucide-react";
+import { Panel } from "../../../components/Panel";
 
 type Fila = { zona: ZonaDeCuotas; encuestadores: string[] };
 
@@ -41,14 +43,15 @@ export function ZonasAsignadas({ zonas, asignacion }: { zonas: readonly ZonaDeCu
   const filas = filasDeZonas(zonas, asignacion);
   const sinEncuestador = filas.filter((f) => !f.encuestadores.length).length;
   return (
-    <section className="rec-terr-zonas-asignadas" aria-labelledby="rec-terr-zonas-titulo" data-qa-geometry-group="material-campo/territorial/zonas-asignadas" data-qa-geometry-contract="intrinsic">
-      <header className="rec-terr-cabeza">
-        <span>
-          <h2 id="rec-terr-zonas-titulo">Quién cubre cada zona</h2>
-          <p>{sinEncuestador ? `${sinEncuestador.toLocaleString("es-PE")} de ${filas.length.toLocaleString("es-PE")} zonas sin encuestador` : `Las ${filas.length.toLocaleString("es-PE")} zonas tienen encuestador`}</p>
-        </span>
-      </header>
+    // Vista faro (2 nov 2026): la tabla vive en su tarjeta con cabecera, como el resto de la Entrega.
+    <Panel
+      className="rec-terr-zonas-asignadas"
+      data-qa-geometry-group="material-campo/territorial/zonas-asignadas"
+      data-qa-geometry-contract="intrinsic"
+      title={<><MapPinned size={16} aria-hidden /> Quién cubre cada zona</>}
+      hint={sinEncuestador ? `${sinEncuestador.toLocaleString("es-PE")} de ${filas.length.toLocaleString("es-PE")} zonas sin encuestador` : `Las ${filas.length.toLocaleString("es-PE")} zonas tienen encuestador`}
+    >
       <PulsoTable columnas={COLUMNAS} filas={filas} idDeFila={(f) => f.zona.id_zona} ariaLabel="Encuestadores por zona" densidad="compacta" altoMaximo={100000} />
-    </section>
+    </Panel>
   );
 }

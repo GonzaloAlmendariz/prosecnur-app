@@ -5,6 +5,7 @@ import type { MonitoreoAulasConfig, MonitoreoAulasDashboard, MonitoreoAulasSincr
 import { PulsoSwitch } from "../../../../../components/PulsoSwitch";
 import { ChipLugar } from "../AulasSistemaPabellon";
 import { fmt } from "../kpisDeAulas";
+import { EstadoChip } from "../../../../../components/EstadoChip";
 import {
   construirDistribucion,
   HORA_FIN,
@@ -91,7 +92,7 @@ function DistribucionAulasImpl({ dashboard, cargando, vacioSinTablero, contexto 
         <div className="aulas-ins-tramos-selector" role="group" aria-label="Día">
           {modelo.dias.map((d) => (
             <button key={d.fecha} type="button" className={d.fecha === modelo.elegido ? "is-activo" : undefined} aria-pressed={d.fecha === modelo.elegido} onClick={() => setDia(d.fecha)}>
-              {d.rotulo} · {d.citas}
+              {d.rotulo} ({d.citas})
             </button>
           ))}
         </div>
@@ -116,7 +117,7 @@ function DistribucionAulasImpl({ dashboard, cargando, vacioSinTablero, contexto 
                     <span
                       className={`aulas-dist-cita${c.fijada ? " is-fijada" : ""}`}
                       style={{ left: `${c.izquierda}%` }}
-                      title={[c.fijada ? "Fijada desde la hoja" : "", c.advertencia].filter(Boolean).join(" · ") || undefined}
+                      title={[c.fijada ? "Fijada desde la hoja" : "", c.advertencia].filter(Boolean).join(", ") || undefined}
                     >
                       <b>{c.codigo}</b> {c.inicio}
                       {lugarDe.get(c.codigo) ? <ChipLugar lugar={lugarDe.get(c.codigo)!} /> : null}
@@ -137,9 +138,10 @@ function DistribucionAulasImpl({ dashboard, cargando, vacioSinTablero, contexto 
         <section className="aulas-ins-panel" aria-labelledby="aulas-dist-hoja" data-qa-geometry-member="hoja">
           <header className="aulas-ins-cabecera">
             <h3 id="aulas-dist-hoja">Hoja de los aplicadores</h3>
-            <span className="aulas-ins-chip" data-tono={!modelo.hoja.conectada ? "neutro" : modelo.hoja.desactualizada ? "aviso" : "ok"}>
-              {!modelo.hoja.conectada ? "Sin hoja" : modelo.hoja.desactualizada ? "Por actualizar" : "Al día"}
-            </span>
+            <EstadoChip
+              label={!modelo.hoja.conectada ? "Sin hoja" : modelo.hoja.desactualizada ? "Por actualizar" : "Al día"}
+              tone={!modelo.hoja.conectada ? "neutral" : modelo.hoja.desactualizada ? "warn" : "success"}
+            />
           </header>
           <p className="aulas-ins-texto">{modelo.hoja.texto}</p>
           <ol className="aulas-ins-mecanismo">

@@ -30,7 +30,7 @@ export function CabeceraDeCampana({ campana, acciones, onAccion, subtitulo = "" 
       </Link>
       <span className="rec-campana-cabecera-sep" aria-hidden>/</span>
       <Icono size={14} aria-hidden />
-      <span className="rec-campana-cabecera-nombre" title={`${ROTULO_DEL_TIPO[campana.tipo]} · ${campana.name}`}>
+      <span className="rec-campana-cabecera-nombre" title={`${campana.name}, ${ROTULO_DEL_TIPO[campana.tipo].toLocaleLowerCase("es-PE")}`}>
         {campana.name}
       </span>
       {subtitulo ? <span className="rec-campana-cabecera-sub" title={subtitulo}>{subtitulo}</span> : null}

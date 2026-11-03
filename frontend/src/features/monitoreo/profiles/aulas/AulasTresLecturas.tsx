@@ -70,7 +70,7 @@ export function AulasTresLecturas({ celdas, eje }: {
         <strong>{fmt(filas.length)}</strong> de {fmt(todas.length)} grupos no llegan a su cuota
         con lo que ya tiene fecha
         {deAgenda > 0 ? (
-          <> · en <strong>{fmt(deAgenda)}</strong> el plan alcanza y lo que falta es agendar</>
+          <>, en <strong>{fmt(deAgenda)}</strong> el plan alcanza y lo que falta es agendar</>
         ) : null}
       </p>
       <p className="aulas-tres-leyenda">
@@ -116,7 +116,7 @@ export function AulasTresLecturas({ celdas, eje }: {
                 <b>faltan {fmt(f.faltaComprometido)}</b>
                 {fmt(Math.round(f.comprometido))} de {fmt(f.cuota)}
                 {f.factorDeCampo != null && Math.abs(f.factorDeCampo - 1) >= 0.01 ? (
-                  <> · el campo va al {pctPerfil(f.factorDeCampo * 100)} de lo previsto</>
+                  <>, el campo va al {pctPerfil(f.factorDeCampo * 100)} de lo previsto</>
                 ) : null}
                 <br />
                 <span className={`aulas-tres-remedio ${f.esFaltaDeAgenda ? "es-agenda" : "es-banco"}`}>

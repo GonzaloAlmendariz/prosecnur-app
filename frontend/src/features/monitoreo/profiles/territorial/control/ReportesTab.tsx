@@ -1,5 +1,6 @@
 import { memo, useMemo } from "react";
 import { ClipboardList, TriangleAlert } from "lucide-react";
+import { EstadoVacio } from "../../../../../components/EstadoVacio";
 import type { MonitoreoTerritorialDashboard } from "../../../../../api/client";
 import { useFocoMonitoreo } from "../../../useMonitoreoDireccion";
 import { fmt } from "../rotulos";
@@ -30,11 +31,14 @@ function ReportesTabImpl({
   if (!modelo.disponible) {
     return (
       <section className="mon-rep mon-rep--vacio" data-audit-ready="vacio:sin-partes" aria-label="Reportes UMP">
-        <div className="mon-ocu-panel mon-ocu-vacio">
+        <div className="mon-ocu-panel">
           <RotuloDePestana />
-          <ClipboardList size={20} aria-hidden="true" />
-          <strong>Sin partes por UMP en el corte</strong>
-          <span title="Los partes llegan del formulario de ocurrencias de campo">«Actualizar» trae los partes nuevos</span>
+          <EstadoVacio
+            tamano="normal"
+            icono={<ClipboardList size={18} />}
+            titulo="Sin partes por UMP en el corte"
+            descripcion={<span title="Los partes llegan del formulario de ocurrencias de campo">«Actualizar» trae los partes nuevos</span>}
+          />
         </div>
       </section>
     );

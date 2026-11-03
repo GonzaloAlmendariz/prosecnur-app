@@ -103,7 +103,7 @@
 
 .cmv2-defi-hero-title {
   margin: 0;
-  font-size: 17px;
+  font-size: var(--pulso-type-title-size);
   font-weight: var(--pulso-weight-heavy);
   letter-spacing: -0.2px;
   line-height: 1.2;
@@ -112,7 +112,7 @@
 
 .cmv2-defi-hero-lead {
   margin: 0;
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   line-height: 1.55;
   color: var(--pulso-text-muted);
   max-width: 68ch;
@@ -122,7 +122,7 @@
    columna puede venir de cualquiera de las dos hojas. */
 .cmv2-defi-var-sheet-note {
   margin: 6px 0 0;
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   line-height: 1.45;
   color: var(--pulso-text-muted);
 }
@@ -204,14 +204,14 @@
 }
 
 .cmv2-defi-hero-card > strong {
-  font-size: 13px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-bold);
   letter-spacing: -0.1px;
   color: var(--pulso-text);
 }
 
 .cmv2-defi-hero-card > span {
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   line-height: 1.5;
   color: var(--pulso-text-muted);
 }
@@ -222,7 +222,7 @@
   align-items: center;
   gap: 7px;
   margin: 0;
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   line-height: 1.5;
   color: var(--pulso-text-muted);
 }
@@ -270,7 +270,7 @@
 
 .cmv2-defi-hero-guide p {
   margin: 0;
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   line-height: 1.5;
   color: var(--pulso-text-muted);
   max-width: 78ch;
@@ -404,7 +404,7 @@
   border: none;
   background: none;
   padding: 0 2px;
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   font-weight: var(--pulso-weight-semibold);
   color: var(--cmv2-accent-fg);
   cursor: help;
@@ -432,13 +432,13 @@
 }
 
 .cmv2-defi-when-pop strong {
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   color: var(--cmv2-accent);
 }
 
 .cmv2-defi-when-pop p {
   margin: 0;
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   line-height: 1.5;
 }
 
@@ -447,7 +447,7 @@
   padding-left: 16px;
   display: grid;
   gap: 2px;
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   color: var(--pulso-text-muted);
 }
 
@@ -463,7 +463,7 @@
   border: 1px solid var(--cmv2-border);
   background: var(--cmv2-surface);
   color: var(--pulso-text-muted);
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-heavy);
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -549,7 +549,7 @@
   border: 1px solid var(--cmv2-accent-border);
   background: var(--cmv2-accent-soft);
   color: var(--cmv2-accent-fg);
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   font-weight: var(--pulso-weight-heavy);
   font-variant-numeric: tabular-nums;
 }
@@ -567,7 +567,7 @@
 }
 
 .cmv2-defi-upload-copy small {
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-bold);
   letter-spacing: 0.05em;
   text-transform: uppercase;
@@ -575,7 +575,7 @@
 }
 
 .cmv2-defi-upload-copy strong {
-  font-size: 13px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-bold);
   letter-spacing: -0.1px;
   color: var(--pulso-text);
@@ -584,7 +584,7 @@
 /* Qué ES este archivo (y qué pasa si falta) — el concepto antes de la acción. */
 .cmv2-defi-upload-whatis {
   margin: 0;
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   line-height: 1.55;
   color: var(--pulso-text-muted);
   max-width: 78ch;
@@ -694,7 +694,7 @@
 }
 
 .cmv2-defi-dropzone-title {
-  font-size: 12px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-bold);
   color: var(--pulso-text);
 }
@@ -704,7 +704,7 @@
 }
 
 .cmv2-defi-dropzone-formats {
-  font-size: 10.5px;
+  font-size: var(--pulso-type-micro-size);
   color: var(--pulso-text-muted);
 }
 
@@ -741,7 +741,7 @@
 }
 
 .cmv2-defi-upload-stat > span {
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-bold);
   letter-spacing: 0.05em;
   text-transform: uppercase;
@@ -749,7 +749,7 @@
 }
 
 .cmv2-defi-upload-stat > strong {
-  font-size: 12px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-bold);
   font-variant-numeric: tabular-nums;
   color: var(--pulso-text);
@@ -761,12 +761,12 @@
    en esta superficie y aquí sería el propio defecto con otra forma. */
 .cmv2-defi-requisitos {
   margin: 0 0 2px;
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   color: var(--pulso-text-muted);
 }
 
 .cmv2-defi-requisitos > span {
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-bold);
   letter-spacing: 0.05em;
   text-transform: uppercase;
@@ -778,14 +778,14 @@
 }
 
 .cmv2-defi-requisitos code {
-  font-size: 10.5px;
+  font-size: var(--pulso-type-micro-size);
   color: var(--pulso-text);
   cursor: help;
 }
 
 /* Por qué la cifra de la vista previa es pequeña y dónde saldrá el total. */
 .cmv2-defi-upload-stat > small {
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   line-height: 1.35;
   color: var(--pulso-text-muted);
 }
@@ -800,7 +800,7 @@
  */
 .cmv2-defi-upload-cols-head {
   margin: 0;
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   color: var(--pulso-text-muted);
 }
 .cmv2-defi-upload-cols-head strong {
@@ -827,7 +827,7 @@
   border-radius: 999px;
   border: 1px solid var(--cmv2-border);
   background: var(--cmv2-control-bg);
-  font-size: 10.5px;
+  font-size: var(--pulso-type-micro-size);
   color: var(--pulso-text);
   overflow-wrap: anywhere;
 }
@@ -844,7 +844,7 @@
 
 .cmv2-defi-build-hint {
   margin: 0;
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   line-height: 1.5;
   color: var(--pulso-text-muted);
   max-width: 62ch;
@@ -864,7 +864,7 @@
   align-items: center;
   gap: 8px;
   flex-wrap: wrap;
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   font-weight: var(--pulso-weight-semibold);
   color: var(--pulso-text-muted);
 }
@@ -885,13 +885,13 @@
 }
 
 .cmv2-defi-var-group-head small {
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   color: var(--pulso-text-muted);
 }
 
 .cmv2-defi-var-group-hint {
   margin: 0;
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   line-height: 1.35;
   color: var(--pulso-text-muted);
 }
@@ -1047,7 +1047,7 @@
 
 .cmv2-defi-var-card-head strong {
   min-width: 0;
-  font-size: 12.5px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-semibold);
   line-height: 1.3;
   /* Alineación óptica con el ícono/chip (1px de padding + borde). */
@@ -1063,7 +1063,7 @@
   border-radius: 999px;
   border: 1px solid var(--cmv2-border);
   background: var(--cmv2-control-bg);
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-bold);
   letter-spacing: 0.05em;
   text-transform: uppercase;
@@ -1096,7 +1096,7 @@
   border-radius: 999px;
   border: 1px solid var(--cmv2-border);
   background: var(--cmv2-control-bg);
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-bold);
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -1143,13 +1143,13 @@
 }
 
 .cmv2-defi-why-pop strong {
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   color: var(--cmv2-accent);
 }
 
 .cmv2-defi-why-pop p {
   margin: 0;
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   line-height: 1.5;
 }
 
@@ -1161,7 +1161,7 @@
   border: 1px solid var(--cmv2-border-strong);
   border-radius: 9px;
   background: var(--cmv2-surface);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   color: var(--pulso-text);
 }
 
@@ -1187,7 +1187,7 @@
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   font-weight: var(--pulso-weight-semibold);
   color: var(--pulso-success-fg);
 }
@@ -1201,7 +1201,7 @@
   border: 1px solid var(--cmv2-accent-border);
   border-radius: 8px;
   background: var(--cmv2-accent-soft);
-  font-size: 12px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-semibold);
   color: var(--cmv2-accent-fg);
   cursor: pointer;
@@ -1228,7 +1228,7 @@
   border: 1px solid var(--cmv2-border);
   border-radius: 7px;
   background: none;
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   color: var(--pulso-text-muted);
   cursor: pointer;
   transition: border-color 150ms ease, color 150ms ease;
@@ -1245,7 +1245,7 @@
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  font-size: 10.5px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-semibold);
   letter-spacing: 0.02em;
   text-transform: uppercase;
@@ -1253,7 +1253,7 @@
 }
 
 .cmv2-defi-var-pending {
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   color: var(--pulso-text-muted);
 }
 
@@ -1274,7 +1274,7 @@
 
 .cmv2-defi-var-detail-note {
   margin: 0;
-  font-size: 10.5px;
+  font-size: var(--pulso-type-micro-size);
   line-height: 1.45;
   color: var(--pulso-text-muted);
 }
@@ -1298,7 +1298,7 @@
   border-radius: 999px;
   border: 1px solid color-mix(in srgb, var(--cmv2-accent-border) 55%, var(--cmv2-border));
   background: color-mix(in srgb, var(--cmv2-accent-soft) 60%, var(--cmv2-control-bg));
-  font-size: 10.5px;
+  font-size: var(--pulso-type-micro-size);
   color: var(--pulso-text);
 }
 
@@ -1344,7 +1344,7 @@
 }
 
 .cmv2-defi-var-numeric small {
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-semibold);
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -1352,7 +1352,7 @@
 }
 
 .cmv2-defi-var-numeric b {
-  font-size: 13px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-semibold);
   font-variant-numeric: tabular-nums;
   color: var(--pulso-info-fg);
@@ -1376,7 +1376,7 @@
 
 .cmv2-defi-var-head-copy p {
   margin: 0;
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   line-height: 1.45;
   color: var(--pulso-text-muted);
 }
@@ -1438,7 +1438,7 @@
   border: 1px solid var(--cmv2-accent-border);
   border-radius: 9px;
   background: var(--cmv2-accent-soft);
-  font-size: 12px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-semibold);
   color: var(--cmv2-accent-fg);
   cursor: pointer;
@@ -1470,7 +1470,7 @@
   border-radius: var(--pulso-radius-chip);
   background: transparent;
   color: var(--pulso-text-muted);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   font-weight: var(--pulso-weight-medium);
   cursor: pointer;
 }
@@ -1509,7 +1509,7 @@
   border-radius: var(--pulso-radius-chip);
   background: var(--pulso-surface);
   color: var(--cmv2-accent-fg);
-  font-size: 13px;
+  font-size: var(--pulso-type-body-size);
   font-weight: var(--pulso-weight-medium);
   white-space: nowrap;
   cursor: pointer;
@@ -1522,14 +1522,14 @@
 .cmv2-defi-dti-hint {
   flex: 1 1 260px;
   min-width: 0;
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   line-height: 1.45;
   color: var(--pulso-text-muted);
 }
 
 .cmv2-defi-dti-error {
   flex-basis: 100%;
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   color: var(--pulso-danger-fg, var(--pulso-warn-fg));
 }
 
@@ -1556,7 +1556,7 @@
 
 .cmv2-defi-filtros-head h4 {
   margin: 2px 0 0;
-  font-size: 13px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: 600;
   color: var(--pulso-text);
 }
@@ -1564,7 +1564,7 @@
 .cmv2-defi-filtros-head p {
   margin: 4px 0 0;
   max-width: 62ch;
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   color: var(--pulso-text-muted);
 }
 
@@ -1578,7 +1578,7 @@
   border-radius: 6px;
   background: var(--pulso-surface-2);
   color: var(--pulso-text);
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   font-weight: 500;
   cursor: pointer;
 }
@@ -1588,7 +1588,7 @@
   padding: var(--pulso-space-3);
   border: 1px dashed var(--pulso-border-soft);
   border-radius: 6px;
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   color: var(--pulso-text-muted);
 }
 
@@ -1609,7 +1609,7 @@
   height: 18px;
   border-radius: 999px;
   background: var(--pulso-surface-3);
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   font-variant-numeric: tabular-nums;
   color: var(--pulso-text-muted);
 }
@@ -1725,7 +1725,7 @@
   border-radius: 6px;
   background: var(--pulso-surface-2);
   color: var(--pulso-text);
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
 }
 
 .cmv2-defi-filtro-confirm {
@@ -1736,7 +1736,7 @@
 }
 
 .cmv2-defi-filtro-ok {
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   font-weight: 600;
   color: var(--pulso-success-fg);
 }
@@ -1747,7 +1747,7 @@
   border-radius: 6px;
   background: var(--pulso-surface-2);
   color: var(--pulso-text);
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   cursor: pointer;
 }
 
@@ -1770,7 +1770,7 @@
 }
 
 .cmv2-defi-filtros-grid small {
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: 600;
   letter-spacing: 0.02em;
   text-transform: uppercase;
@@ -1779,7 +1779,7 @@
 
 .cmv2-defi-filtros-meaning {
   margin: 0;
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   color: var(--pulso-text-muted);
 }
 
@@ -1796,7 +1796,7 @@
 .cmv2-source-optional-head p {
   margin: 4px 0 0;
   max-width: 74ch;
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   color: var(--pulso-text-muted);
 }
 
@@ -1811,7 +1811,7 @@
 }
 
 .cmv2-defi-var-motor-copy {
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   color: var(--pulso-text-soft);
   white-space: nowrap;
   overflow: hidden;
@@ -1822,5 +1822,5 @@
   color: var(--pulso-text);
   font-weight: var(--pulso-weight-semibold);
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
 }

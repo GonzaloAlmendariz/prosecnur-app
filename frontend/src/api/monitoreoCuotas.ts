@@ -39,12 +39,22 @@ export type MonitoreoCuotaCategoria = {
   /** efectivas / universo de la categoría. */
   tasa: number | null;
   estado: MonitoreoCuotaEstadoCategoria;
+  /** ADR 0126 (aditivo): cumple, falta, sin_base, referencial o sin_comparador. */
+  estado_cuota: string | null;
+  /** El número de una cuota referencial: una referencia, nunca un piso. */
+  referencia: number | null;
+  /** Parte de las efectivas y del universo con categoría conocida, de 0 a 1. */
+  pct_efectivas: number | null;
+  pct_universo: number | null;
+  celda_vacia: boolean;
 };
 
 export type MonitoreoCuota = {
   id: string;
   actor: string;
   variable: string;
+  /** ADR 0126: `meta` se exige; `referencial` se describe frente al universo. */
+  caracter: "meta" | "referencial";
   /** Proporción 0–1, o `null` si las metas se escribieron a mano. */
   cobertura: number | null;
   universo: number | null;
@@ -55,6 +65,8 @@ export type MonitoreoCuota = {
   categorias_cumplidas: number | null;
   categorias_total: number | null;
   sin_dato: number | null;
+  /** Efectivas sin categoría conocida: van aparte de la composición. */
+  sin_dato_efectivas: number | null;
   categorias: MonitoreoCuotaCategoria[];
 };
 
@@ -80,6 +92,7 @@ export type MonitoreoCuotaEntrada = {
   variable: string;
   cobertura?: number | null;
   metas: Record<string, number>;
+  caracter?: "meta" | "referencial";
 };
 
 // ---------- Normalizadores ----------
@@ -117,6 +130,11 @@ function categoria(r: Record<string, unknown>): MonitoreoCuotaCategoria {
     avance: numeroONulo(r.avance),
     tasa: numeroONulo(r.tasa),
     estado: estadoCategoria(r.estado, meta, efectivas),
+    estado_cuota: texto(r.estado_cuota) || null,
+    referencia: numeroONulo(r.referencia),
+    pct_efectivas: numeroONulo(r.pct_efectivas),
+    pct_universo: numeroONulo(r.pct_universo),
+    celda_vacia: booleano(r.celda_vacia),
   };
 }
 
@@ -137,6 +155,8 @@ function cuota(r: Record<string, unknown>): MonitoreoCuota {
     id: texto(r.id),
     actor: texto(r.actor),
     variable: texto(r.variable),
+    // Sin el campo (un motor anterior), la regla del ADR 0126: meta si hay número.
+    caracter: texto(r.caracter) === "referencial" || (!texto(r.caracter) && !(Number(numeroONulo(r.meta)) > 0)) ? "referencial" : "meta",
     cobertura: numeroONulo(r.cobertura),
     universo: numeroONulo(r.universo),
     meta: numeroONulo(r.meta),
@@ -145,6 +165,7 @@ function cuota(r: Record<string, unknown>): MonitoreoCuota {
     categorias_cumplidas: numeroONulo(r.categorias_cumplidas),
     categorias_total: numeroONulo(r.categorias_total),
     sin_dato: numeroONulo(r.sin_dato),
+    sin_dato_efectivas: numeroONulo(r.sin_dato_efectivas),
     categorias: lista(r.categorias).map(categoria),
   };
 }
@@ -193,6 +214,7 @@ export function cuerpoGuardarCuotas(cuotas: readonly MonitoreoCuotaEntrada[]) {
         variable: q.variable,
         cobertura,
         metas,
+        ...(q.caracter ? { caracter: q.caracter } : {}),
       };
     }),
   };

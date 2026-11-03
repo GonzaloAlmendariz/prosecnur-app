@@ -12,6 +12,7 @@ import { usePresetsMetadata } from "../usePresetsMetadata";
 import { decisionesSinFijados } from "../wordFijado";
 import { conModoInforme, esModoInforme, leerModoInforme, MODOS_MULTI_INFORME } from "./modeloMultiWord";
 import { AJUSTES_WORD, ROTULOS_TIPO_PROPIOS, ajustesSobrantes, sinSobrantes, tiposDelInforme, type AjusteWord } from "./ajustesWord";
+import { formatoConteo } from "../../../lib/formatoNumero";
 
 const registro = (v: unknown): Record<string, Record<string, unknown>> =>
   v && typeof v === "object" && !Array.isArray(v) ? (v as Record<string, Record<string, unknown>>) : {};
@@ -91,7 +92,7 @@ export function DetalleGraficos() {
 
       {sobrantes.length > 0 && (
         <section className="pulso-f6-informe-seccion pulso-f6-w-aviso" aria-label="Ajustes del Word que ya no se usan" data-qa-geometry-member data-seccion="word-sobrantes" role="status">
-          <h3 className="pulso-f6-w-titulo">{sobrantes.length === 1 ? "Un ajuste del Word ya no se usa" : `${sobrantes.length} ajustes del Word ya no se usan`}</h3>
+          <h3 className="pulso-f6-w-titulo">{sobrantes.length === 1 ? "Un ajuste del Word ya no se usa" : `${formatoConteo(sobrantes.length)} ajustes del Word ya no se usan`}</h3>
           <p className="pulso-f6-informe-ayuda">
             Quedaron guardados de la versión anterior de esta pestaña. Algunos no cambian el documento y otros lo apartan de la lámina, como los decimales, que deben venir de Reglas.
           </p>

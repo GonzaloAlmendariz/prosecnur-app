@@ -35,7 +35,7 @@ export function etiquetaProvincia(t: Pick<HojasRutaTerritory, "provincia" | "dep
   const codigoCiudad = t.ubigeo ? ciudadDeUbigeo(t.ubigeo) : null;
   const ciudad = codigoCiudad && codigoCiudad !== LIMA ? CIUDADES.find((c) => c.codigo === codigoCiudad)?.nombre : undefined;
   const prov = ciudad ?? titulo(t.provincia);
-  return t.departamento && t.departamento !== t.provincia ? `${prov} · ${titulo(t.departamento)}` : prov;
+  return t.departamento && t.departamento !== t.provincia ? `${prov}, ${titulo(t.departamento)}` : prov;
 }
 
 export function gruposPorProvincia(filas: readonly HojasRutaTerritory[]): GrupoProvincia[] {

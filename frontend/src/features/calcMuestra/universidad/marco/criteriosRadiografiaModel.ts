@@ -145,7 +145,7 @@ function stateForV2(
     return { state: "invalido", issue: "La familia del gate no coincide con el kind del catálogo." };
   }
   if (entries.some((entry) => entry.status === "invalido")) {
-    return { state: "invalido", issue: "El engine publicó una fila o metadato inválido." };
+    return { state: "invalido", issue: "El motor publicó una fila o un metadato inválido." };
   }
   if (entries.every((entry) => entry.status === "sin_senal")) return { state: "sin_dato" };
   if (entries.every((entry) => entry.status === "no_aplica")) return { state: "no_aplica" };

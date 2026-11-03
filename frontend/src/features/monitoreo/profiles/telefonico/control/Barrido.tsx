@@ -1,13 +1,17 @@
 import type { CSSProperties } from "react";
+import { EstadoChip } from "../../../../../components/EstadoChip";
+import { PhoneCall, Target } from "../../../../../vendor/lucide-react";
+import { EstadoVacio } from "../../../../../components/EstadoVacio";
 import { NotaDelModo } from "../../../core/NotaDelModo";
 import { pctConEspacio } from "../../../core/formatoComun";
 import { FAMILIAS_DEL_CLIENTE, rotuloDeRegla } from "./familiasDelCliente";
 import type { Barrido as Modelo, FilaDeCategoria } from "./barridoModel";
 import { RotuloDePestana, useHayRotulo } from "../navegacion/RotuloDePestana";
 import "./controlTelefonico.css";
+import { formatoConteo } from "../../../../../lib/formatoNumero";
 
 function n(valor: number | null | undefined) {
-  return valor == null ? "—" : valor.toLocaleString("es-PE");
+  return valor == null ? "—" : formatoConteo(valor);
 }
 
 function porcentaje(valor: number | null) {
@@ -165,7 +169,7 @@ export function Barrido({ modelo, segmento }: { modelo: Modelo; segmento: string
               ))}
             </div>
             ) : (
-              <p className="mon-barrido-vacio">Ningún caso llamado todavía.</p>
+              <EstadoVacio icono={<PhoneCall size={15} />} titulo="Ningún caso llamado todavía." />
             )}
           </section>
           <section className="mon-ctl-panel mon-barrido-sin-llamar" aria-label="Sin llamar">
@@ -184,7 +188,7 @@ export function Barrido({ modelo, segmento }: { modelo: Modelo; segmento: string
               ))}
             </ul>
             ) : (
-              <p className="mon-barrido-vacio">Sin eje de cuota, lo que falta llamar no se reparte por categoría.</p>
+              <EstadoVacio icono={<Target size={15} />} titulo="Sin eje de cuota, lo que falta llamar no se reparte por categoría." />
             )}
             <footer className="mon-barrido-reparto">
               <span><span className="mon-ctl-antetitulo">Asignados</span><b className="is-num">{n(modelo.porLlamarAsignados)}</b></span>
@@ -197,12 +201,12 @@ export function Barrido({ modelo, segmento }: { modelo: Modelo; segmento: string
       <section className="mon-ctl-panel mon-barrido-status" aria-label="Status del cliente">
         {/* La explicación va una sola vez, en el subtítulo (y entera en su tooltip). */}
         <header className="mon-ctl-panel-cabecera" title="La hoja guarda un status por caso, el del último intento: no guarda cada llamada, su hora ni el número marcado.">
-          <span className="mon-ctl-antetitulo">Status del cliente</span>
+          <b>Status del cliente</b>
           <span>del último intento</span>
         </header>
         <div className="mon-barrido-status-lista">
           {modelo.status.length ? null : (
-            <p className="mon-barrido-vacio">Ningún caso llamado: los {n(modelo.sinLlamar)} del listado siguen sin barrer.</p>
+            <EstadoVacio icono={<PhoneCall size={15} />} titulo={`Ningún caso llamado: los ${n(modelo.sinLlamar)} del listado siguen sin barrer.`} />
           )}
           {modelo.status.map((grupo) => (
             <div key={grupo.familia} className={`mon-barrido-familia is-${grupo.familia}`}>
@@ -216,7 +220,7 @@ export function Barrido({ modelo, segmento }: { modelo: Modelo; segmento: string
                   <li key={item.status}>
                     <span>
                       {item.status}
-                      {item.conRegla ? null : <em className="mon-ctl-sin-regla" title="El vocabulario del proyecto no declara este status">sin regla</em>}
+                      {item.conRegla ? null : <EstadoChip label="sin regla" tone="warn" detail="El vocabulario del proyecto no declara este status" />}
                       {item.porRegla ? <em className="mon-ctl-por-regla">{rotuloDeRegla(grupo.familia)}</em> : null}
                     </span>
                     <i aria-hidden="true"><b style={{ width: `${(item.casos / modelo.maximoStatus) * 100}%` }} /></i>

@@ -102,7 +102,7 @@ describe("AulasMapaDeHoras", () => {
         }}
       />,
     );
-    expect(muchos).toContain("Por confirmar · 40:");
+    expect(muchos).toContain("Por confirmar (40):");
     expect(muchos).toContain("CH 40");
     expect(muchos).not.toContain("más (la lista completa está en la tabla de la agenda)");
   });

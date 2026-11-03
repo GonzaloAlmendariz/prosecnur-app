@@ -248,11 +248,11 @@ export function construirAplicadores(
   const pie = fueraDelReparto ? [
     `${fmt(declaradas.size)} con disponibilidad declarada`,
     cubre ? `el reparto vigente cubre ${cubre}; este tramo queda fuera y sus asignaciones no se conocen aquí` : "todavía no hay reparto",
-  ].join(" · ") : [
+  ].join(", ") : [
     `${fmt(declaradas.size)} con disponibilidad declarada`,
     sinCitas ? `${fmt(sinCitas)} sin citas en este tramo` : null,
     filas.some((f) => f.sinDisponibilidad) ? `${fmt(filas.filter((f) => f.sinDisponibilidad).length)} con citas pero sin disponibilidad declarada` : null,
-  ].filter(Boolean).join(" · ");
+  ].filter(Boolean).join(", ");
 
   return { estado: "listo", tramos, elegido, filas, distribucion: estadoDeDistribucion(dashboard, config), pie, fueraDelReparto };
 }

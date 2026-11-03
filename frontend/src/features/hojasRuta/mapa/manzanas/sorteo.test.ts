@@ -77,7 +77,7 @@ describe("historial de ruteos", () => {
       { ubigeo: "150103", distrito: "ATE", n: 16, manzanas: 2, reemplazos: 0 },
       { ubigeo: "150108", distrito: "CHORRILLOS", n: 8, manzanas: 1, reemplazos: 1 },
     ]);
-    expect(s.label).toContain("N 24 · 3 manzanas");
+    expect(s.label).toContain("N 24, 3 manzanas");
   });
 
   it("el historial no duplica el mismo sorteo y respeta el tope", () => {

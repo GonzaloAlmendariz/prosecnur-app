@@ -695,8 +695,17 @@
     meta_diseno = if (length(vig$facultades)) .monitoreo_num(vig$dt$meta_diseno, NA_real_) else NA_real_,
     sobremuestra = if (length(vig$facultades)) .monitoreo_num(vig$dt$sobremuestra, NA_real_) else NA_real_,
     meta_operativa = if (length(vig$facultades)) .monitoreo_num(vig$dt$meta_operativa, NA_real_) else NA_real_,
+    # ADR 0126 (aditivo): la meta de aulas tiene dos niveles con nombre, la
+    # muestra (`meta_diseno`, 2.500 en HSVG) y la sobremuestra TOTAL (3.750). El
+    # campo `sobremuestra` del diseño es el EXCEDENTE (1.250): el nivel se juzga
+    # contra `meta_operativa` = meta + excedente (`.monitoreo_aulas_sobremuestra_diseno`).
+    niveles = .monitoreo_aulas_niveles_de_meta(
+      if (length(vig$facultades)) .monitoreo_num(vig$dt$meta_diseno, NA_real_) else NA_real_,
+      if (length(vig$facultades)) .monitoreo_num(vig$dt$meta_operativa, NA_real_) else NA_real_,
+      total
+    ),
     total = total,
-    facultades = filas
+    facultades = .monitoreo_cuotas_marcar_aulas(filas)
   )
 }
 

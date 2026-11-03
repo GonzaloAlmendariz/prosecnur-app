@@ -29,21 +29,21 @@ const marcoSano = frame({
 describe("notaEstadoDelMarco", () => {
   it("un proyecto recién creado no pide reconstruir nada", () => {
     // EL caso medido. `{}` es como llega un marco ausente desde el backend.
-    expect(notaEstadoDelMarco(frame({}))).toBe("sin construir · calcula elegibles");
-    expect(notaEstadoDelMarco(null)).toBe("sin construir · calcula elegibles");
-    expect(notaEstadoDelMarco(undefined)).toBe("sin construir · calcula elegibles");
+    expect(notaEstadoDelMarco(frame({}))).toBe("sin construir, calcula elegibles");
+    expect(notaEstadoDelMarco(null)).toBe("sin construir, calcula elegibles");
+    expect(notaEstadoDelMarco(undefined)).toBe("sin construir, calcula elegibles");
 
     // Y lo que hace falso al mensaje viejo: sin marco, la integridad dice
     // «unverifiable», que es de donde salía el «reconstruye».
     expect(frameIntegrity(frame({})).status).toBe("unverifiable");
-    expect(notaEstadoDelMarco(frame({}))).not.toContain("reconstruye");
+    expect(notaEstadoDelMarco(frame({}))).not.toContain("reconstr");
   });
 
   it("un marco construido que no se puede verificar sí pide reconstruirlo", () => {
     // Hay hash —hubo construcción real— pero faltan proyecciones que contrastar.
     const sinProyecciones = frame({ frame_hash: "e9ca263081", perfil: { marco_aulas: 2 } });
     expect(frameIntegrity(sinProyecciones).status).toBe("unverifiable");
-    expect(notaEstadoDelMarco(sinProyecciones)).toBe("frame no verificable · reconstruye");
+    expect(notaEstadoDelMarco(sinProyecciones)).toBe("marco no verificable; reconstrúyelo");
   });
 
   it("un marco cuyas proyecciones se contradicen se nombra incoherente", () => {
@@ -54,7 +54,7 @@ describe("notaEstadoDelMarco", () => {
       exploracion: { totales: { ch_elegibles: 7 } },
     });
     expect(frameIntegrity(incoherente).status).toBe("inconsistent");
-    expect(notaEstadoDelMarco(incoherente)).toBe("frame incoherente · reconstruye");
+    expect(notaEstadoDelMarco(incoherente)).toBe("marco incoherente; reconstrúyelo");
   });
 
   it("un marco sano no advierte nada", () => {
@@ -82,8 +82,8 @@ describe("notaEstadoDelMarco", () => {
 
   it("un hash vacío cuenta como no construido, no como marco roto", () => {
     // Un frame a medio serializar no acredita una construcción.
-    expect(notaEstadoDelMarco(frame({ frame_hash: "" }))).toBe("sin construir · calcula elegibles");
-    expect(notaEstadoDelMarco(frame({ frame_hash: "   " }))).toBe("sin construir · calcula elegibles");
-    expect(notaEstadoDelMarco(frame({ aula_frame: [], perfil: {} }))).toBe("sin construir · calcula elegibles");
+    expect(notaEstadoDelMarco(frame({ frame_hash: "" }))).toBe("sin construir, calcula elegibles");
+    expect(notaEstadoDelMarco(frame({ frame_hash: "   " }))).toBe("sin construir, calcula elegibles");
+    expect(notaEstadoDelMarco(frame({ aula_frame: [], perfil: {} }))).toBe("sin construir, calcula elegibles");
   });
 });

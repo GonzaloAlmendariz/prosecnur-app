@@ -1,3 +1,4 @@
+import { formatoConteo } from "../../../../lib/formatoNumero";
 import type { MonitoreoRow } from "../../../../api/monitoreo";
 
 /**
@@ -82,12 +83,12 @@ export function parteDeCampo(
 /** Lo que dice el subtítulo del panel: cuántos partes hay y cuántos fallan. */
 function etiqueta(total: number, descuadrados: number, sinComprobar: number) {
   if (!total) return "sin partes";
-  const partes = total === 1 ? "1 parte" : `${total.toLocaleString("es-PE")} partes`;
+  const partes = total === 1 ? "1 parte" : `${formatoConteo(total)} partes`;
   const trozos = [partes];
   if (descuadrados) trozos.push(`${descuadrados} sin cuadrar`);
   // No es lo mismo «cuadran todos» que «no se pudo comprobar»: un parte sin
   // asistentes ni efectivas no falla, es que no declara lo suficiente.
   if (sinComprobar) trozos.push(`${sinComprobar} sin comprobar`);
   if (!descuadrados && !sinComprobar) trozos.push("todos cuadran");
-  return trozos.join(" · ");
+  return trozos.join(", ");
 }

@@ -198,7 +198,7 @@ export function AulasFinalesCard({
                   cosa. */}
               {filtradas.length === total
                 ? `${total} cursos-horario`
-                : `${filtradas.length} de ${total}`}
+                : `${fmtInt(filtradas.length)} de ${fmtInt(total)}`}
               {propia ? (
                 <button
                   type="button"
@@ -262,7 +262,7 @@ export function AulasFinalesCard({
             <p className="cmv2-aulas-finales-depth">
               <span>
                 {recortada
-                  ? `Mostrando ${TOPE_FILAS} de ${fmtInt(filtradas.length)} · usa el buscador para llegar a uno concreto`
+                  ? `Mostrando ${TOPE_FILAS} de ${fmtInt(filtradas.length)}, usa el buscador para llegar a uno concreto`
                   : `Mostrando los ${fmtInt(filtradas.length)}`}
               </span>
               <button type="button" onClick={() => setVerTodas((v) => !v)}>

@@ -1,3 +1,4 @@
+import { enumerar } from "../../../../lib/enumerar";
 import type { MonitoreoAulasLibroConversacion } from "../../../../api/monitoreo";
 import type { TonoAviso } from "./avisoLibroImportado";
 import { fraseDeHoja } from "./avisoLibroPublicado";
@@ -97,7 +98,7 @@ export function avisoConversacion(
   const hojas = res.publicado?.hojas ?? [];
   if (hojas.length) mitades.push(...hojas.map(fraseDeHoja));
 
-  const frases: string[] = [`Libro conversado con el Sheets: ${mitades.join(" · ")}.`];
+  const frases: string[] = [`Libro conversado con el Sheets: ${enumerar(mitades)}.`];
   const ausentes = res.leido?.hojas_ausentes ?? [];
   if (ausentes.length) {
     // La causa, no solo el hecho: «sin partes nuevas» con la hoja ausente

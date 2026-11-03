@@ -12,6 +12,7 @@ import { useMemo, useState, type CSSProperties } from "react";
 import { RotateCcw, Wand2 } from "lucide-react";
 import type { CalcMuestraParametros } from "../../../api/client";
 import { zFromConfidence } from "./motorPreview";
+import { formatoDecimal } from "../../../lib/formatoNumero";
 
 const CONFIANZAS = [0.9, 0.95, 0.99] as const;
 
@@ -133,21 +134,21 @@ export function ParametrosSliders({
       <label className="cmv2-did-slider">
         <div className="cmv2-did-slider-head">
           <span>Proporción esperada (p)</span>
-          <output>{activa.p.toLocaleString("es-PE", { maximumFractionDigits: 2 })}</output>
+          <output>{formatoDecimal(activa.p, 2)}</output>
         </div>
         <RangoConPista min={0.1} max={0.9} step={0.05} value={activa.p} onChange={(p) => onSet({ p })} />
       </label>
       <label className="cmv2-did-slider">
         <div className="cmv2-did-slider-head">
           <span>Margen de error (e)</span>
-          <output>±{(activa.e * 100).toLocaleString("es-PE", { maximumFractionDigits: 1 })}%</output>
+          <output>±{formatoDecimal(activa.e * 100, 1)}%</output>
         </div>
         <RangoConPista min={0.01} max={0.1} step={0.005} value={activa.e} onChange={(e) => onSet({ e })} />
       </label>
       <label className="cmv2-did-slider">
         <div className="cmv2-did-slider-head">
           <span>Efecto de diseño (deff)</span>
-          <output>{activa.deff.toLocaleString("es-PE", { maximumFractionDigits: 2 })}</output>
+          <output>{formatoDecimal(activa.deff, 2)}</output>
         </div>
         <RangoConPista min={1} max={3} step={0.1} value={activa.deff} onChange={(deff) => onSet({ deff })} />
       </label>

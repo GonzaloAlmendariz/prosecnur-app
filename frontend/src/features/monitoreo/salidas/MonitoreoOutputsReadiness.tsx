@@ -6,10 +6,11 @@ import {
   type MonitoreoCorte,
   type MonitoreoSalidaReadiness,
 } from "../corte/corteContract";
+import { formatoConteo } from "../../../lib/formatoNumero";
 
 function fmt(value: number | null, ausente = "S/D") {
   if (value == null) return ausente;
-  return value.toLocaleString("es-PE");
+  return formatoConteo(value);
 }
 
 /**

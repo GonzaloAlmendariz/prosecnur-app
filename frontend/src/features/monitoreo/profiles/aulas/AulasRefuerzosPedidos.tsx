@@ -152,7 +152,7 @@ export function AulasRefuerzosPedidos({ plan, onGuardado }: {
             <span className={`aulas-pedidos-paso es-${p.paso}`}>{RÓTULO[p.paso]}</span>
             <span className="aulas-pedidos-quien">
               <b>{p.codigo}</b>
-              <em>{facultadCorta(p.facultad)}{p.docente ? ` · ${p.docente}` : ""}</em>
+              <em>{facultadCorta(p.facultad)}{p.docente ? `, ${p.docente}` : ""}</em>
             </span>
             <span className="aulas-pedidos-para">
               {p.origen === "complemento"

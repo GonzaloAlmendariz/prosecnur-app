@@ -51,7 +51,7 @@ export function controlDeCoordinacion(asig: AsignacionPlanificada | null): Contr
   }
   return {
     porCodigo,
-    resumen: `${partes.join(" · ")}. El avance oficial es Kobo validado; lo declarado no se suma.`,
+    resumen: `${partes.join(", ")}. El avance oficial es Kobo validado; lo declarado no se suma.`,
     hayAlerta: r.coordinacionDistinta > 0,
   };
 }

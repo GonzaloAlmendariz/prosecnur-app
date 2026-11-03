@@ -72,7 +72,12 @@ export function PestanasMesa({
         {/* La cabecera de la pestaña queda FUERA del grupo medido, como en
             aulas: dentro, su padding contaba como capacidad ociosa (2.36 px
             sobre 2 de tolerancia en las 18 pestañas; QA E15). */}
-        <UniversityTabHeader tab={{ id: meta.id, label: meta.label, detail: meta.detail, icon: meta.icon, status: "ready" }} />
+        <UniversityTabHeader
+          tab={{ id: meta.id, label: meta.label, detail: meta.detail, icon: meta.icon, status: "ready" }}
+          seccion={tituloSeccion}
+          pestanaN={pestanas.indexOf(meta) + 1}
+          pestanaDe={pestanas.length}
+        />
         <div
           className="cmg-pestana-cuerpo"
           data-qa-geometry-group={`calc-muestra/${grupo}-pestana-${meta.id}`}

@@ -59,7 +59,7 @@ export function PlanPortatilContenido({ control }: { control: ControlCompartir }
         <>
           <div className="pulso-gv2-share-inspect-summary">
             <span>
-              {plan.summary.n_compatible}/{plan.summary.n_bases} bases compatibles · {plan.manifest.n_slides} slides · {plan.summary.n_warnings} advertencias
+              {plan.summary.n_compatible}/{plan.summary.n_bases} bases compatibles, {plan.manifest.n_slides} slides y {plan.summary.n_warnings} advertencias
             </span>
             <span>{plan.filename}</span>
           </div>
@@ -106,8 +106,8 @@ export function PlanPortatilContenido({ control }: { control: ControlCompartir }
                       <small className="pulso-gv2-share-cell-muted">Todas las variables del plan están disponibles.</small>
                     ) : (
                       <small className="pulso-gv2-share-warning">
-                        {missing.slice(0, 4).map((v) => `${v.code}: ${v.label}`).join(" · ")}
-                        {missing.length > 4 ? ` · +${missing.length - 4}` : ""}
+                        {missing.slice(0, 4).map((v) => `${v.code}: ${v.label}`).join(", ")}
+                        {missing.length > 4 ? ` y ${missing.length - 4} más` : ""}
                       </small>
                     )}
                   </span>

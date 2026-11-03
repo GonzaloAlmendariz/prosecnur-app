@@ -61,7 +61,7 @@ function FilaDeFuente({ source }: { source: MonitoreoSource }) {
   // Administrativos, con el enlace rotulado «Administrativos» decía la misma
   // palabra tres veces. El subtítulo omite el actor cuando ya está en el
   // título, y el enlace cae a un rótulo genérico cuando repetiría el nombre.
-  const subtitulo = [servicioDeFuente(source), actor === nombre ? "" : actor].filter(Boolean).join(" · ");
+  const subtitulo = [servicioDeFuente(source), actor === nombre ? "" : actor].filter(Boolean).join(", ");
   return (
     <article className="fuentes-resumen-fila">
       <div className="fuentes-resumen-fila-titulo">
@@ -193,7 +193,7 @@ function MapaDeCobertura({ actores, sources }: { actores: string[]; sources: Mon
               <span
                 key={papel.key}
                 className={tono}
-                title={`${actor} · ${papel.titulo}: ${contar(total, "fuente", "fuentes")}`}
+                title={`${actor}, ${papel.titulo}: ${contar(total, "fuente", "fuentes")}`}
               >
                 {total || "—"}
               </span>

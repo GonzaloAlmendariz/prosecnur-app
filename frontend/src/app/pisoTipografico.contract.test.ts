@@ -10,22 +10,22 @@ import { describe, expect, test } from "vitest";
  * ratchet cuenta los `font-size` literales menores de 10 px por archivo CSS y
  * sólo deja que bajen: un archivo nuevo o uno que suma falla. Al subir uno al
  * piso (o pasarlo a `var(--pulso-type-micro-size)`) se baja su conteo aquí.
- * Foto del 2026-10-28: 36 archivos, 90 declaraciones. Monitoreo fuera
- * mientras lo trabaja su sesión.
+ * Foto del 2026-10-28: 36 archivos, 90 declaraciones. Monitoreo entra el
+ * 2026-11-02 con P1 de su pasada de formato: quedan cuatro rótulos de SVG con
+ * `viewBox` escalado (el donut de validación y las calles del mapa), cuyos
+ * «px» son unidades de usuario y no píxeles de pantalla.
  */
 
 const SRC = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const FUERA_DE_ALCANCE = ["features/monitoreo/"];
+const FUERA_DE_ALCANCE: string[] = [];
 const BAJO_EL_PISO = /font-size\s*:\s*(\d+(?:\.\d+)?)px/g;
 
 const SNAPSHOT_BAJO_10PX: Record<string, number> = {
-  "features/calcMuestra/universidad/aulas/relato/relato.css": 3,
-  "features/calcMuestra/universidad/definicion/historicoEstudio.css": 8,
-  "features/calcMuestra/universidad/universidad-base.css": 1,
   "features/graficos/estilo/estilo.css": 1,
-  "features/graficos/graficadorPicker.css": 9,
+  "features/graficos/graficadorPicker.css": 2,
   "features/graficos/v2/styles/editor-v2.css": 2,
-  "features/graficos/v2/timeline/slidePicker.css": 6,
+  "features/monitoreo/monitoreo.css": 2,
+  "features/monitoreo/profiles/territorial/territorialProfile.css": 2,
 };
 
 function archivos(dir: string): string[] {

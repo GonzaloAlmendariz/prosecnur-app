@@ -81,7 +81,7 @@ export function AulasPeorRendimiento({ bloque, porSexo, plan, facultadEnFoco }: 
                 cuanto un complemento o un refuerzo rinde; sin decirlo, esa
                 mejora parece espontánea. */}
             {f.apoyosAplicados ? (
-              <> · con {fmt(f.apoyosAplicados)}{" "}
+              <>, con {fmt(f.apoyosAplicados)}{" "}
                 {f.apoyosAplicados === 1 ? "apoyo aplicado" : "apoyos aplicados"}</>
             ) : null}
           </em>

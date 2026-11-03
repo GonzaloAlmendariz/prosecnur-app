@@ -148,35 +148,6 @@
   font-size: var(--pulso-type-caption-size);
 }
 
-.aulas-sl-chip {
-  padding: 1px var(--pulso-space-2);
-  border: 1px solid var(--pulso-border);
-  border-radius: 999px;
-  background: var(--pulso-surface-2);
-  color: var(--pulso-text-soft);
-  font-size: var(--pulso-type-micro-size);
-  font-weight: var(--pulso-weight-semibold);
-  white-space: nowrap;
-}
-
-.aulas-sl-chip[data-tono="ok"] {
-  border-color: var(--pulso-success-border);
-  background: var(--pulso-success-bg);
-  color: var(--pulso-success-fg);
-}
-
-.aulas-sl-chip[data-tono="aviso"] {
-  border-color: var(--pulso-warn-border);
-  background: var(--pulso-warn-bg);
-  color: var(--pulso-warn-fg);
-}
-
-.aulas-sl-chip[data-tono="info"] {
-  border-color: var(--pulso-info-border);
-  background: var(--pulso-info-bg);
-  color: var(--pulso-info-fg);
-}
-
 .aulas-sl-acciones {
   display: flex;
   flex-wrap: wrap;

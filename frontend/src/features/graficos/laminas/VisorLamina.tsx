@@ -42,6 +42,7 @@ import { GuiasSobreLamina } from "./guias/GuiasSobreLamina";
 import { useGuiasUi } from "./guias/guiasStore";
 import { construirGuias, rolesPresentes } from "./guias/modeloGuias";
 import "./visorLamina.css";
+import { formatoConteo } from "../../../lib/formatoNumero";
 
 type Props = {
   slide: Slide;
@@ -190,7 +191,7 @@ export function VisorLamina({
         {l && l.avisos.length > 0 && (
           <button type="button" className="pulso-f6-boton pulso-f6-visor-avisos" onClick={onVerAvisos}>
             <AlertTriangle size={14} aria-hidden="true" />
-            {l.avisos.length}
+            {formatoConteo(l.avisos.length)}
             <span className="pulso-f6-rotulo-medio">{l.avisos.length === 1 ? " aviso" : " avisos"}</span>
           </button>
         )}

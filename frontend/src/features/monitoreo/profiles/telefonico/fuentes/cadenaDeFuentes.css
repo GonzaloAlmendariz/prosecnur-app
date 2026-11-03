@@ -88,7 +88,7 @@
   border-radius: 999px;
   background: color-mix(in srgb, var(--pulso-text) 8%, transparent);
   color: var(--pulso-text-soft);
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   font-weight: var(--pulso-weight-black);
 }
 
@@ -99,7 +99,7 @@
 }
 
 .mon-tel-cadena-titulo strong {
-  font-size: 13px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-heavy);
   line-height: 1.18;
   color: var(--pulso-text);
@@ -109,7 +109,7 @@
    hace que un subtítulo acompañe sin competir. */
 .mon-tel-cadena-titulo em {
   font-style: normal;
-  font-size: 10.75px;
+  font-size: var(--pulso-type-caption-size);
   font-weight: var(--pulso-weight-medium);
   line-height: 1.38;
   color: var(--pulso-text-soft);
@@ -125,11 +125,11 @@
   align-items: center;
   min-height: 23px;
   color: var(--pulso-text-faint);
-  font-size: 12.5px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .mon-tel-cadena-cifra strong {
-  font-size: 22px;
+  font-size: var(--pulso-type-kpi-size);
   line-height: 1.05;
   font-weight: var(--pulso-weight-black);
   color: var(--pulso-text);
@@ -139,7 +139,7 @@
 /* Conectada pero sin filas: el hueco de la cifra dice qué pasó en vez de
    quedarse en blanco, y no se disfraza de número. */
 .mon-tel-cadena-cifra strong.is-vacia {
-  font-size: 13px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-heavy);
   color: var(--pulso-warn-fg);
 }
@@ -148,7 +148,7 @@
   min-width: 0;
   display: grid;
   gap: 1px;
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
 }
 
 /* El nombre del documento manda; el identificador viaja en el `title`.
@@ -201,7 +201,7 @@
   border-radius: 999px;
   background: var(--pulso-warn-bg);
   padding: 5px 11px;
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   font-weight: var(--pulso-weight-heavy);
   color: var(--pulso-warn-fg);
   cursor: pointer;

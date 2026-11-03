@@ -131,7 +131,7 @@ export function AulasReservaDirigida(
         <span>
           {orden.length === 1 ? "1 grupo" : `${fmtCuenta(orden.length)} grupos`} con déficit proyectado
           {porDebajoHoy && porDebajoHoy > orden.length
-            ? ` · ${fmtCuenta(porDebajoHoy)} están hoy por debajo de su cuota`
+            ? `, ${fmtCuenta(porDebajoHoy)} están hoy por debajo de su cuota`
             : ""}
         </span>
       </header>
@@ -201,7 +201,7 @@ export function AulasReservaDirigida(
               <p className="aulas-reserva-dirigida-etiqueta">
                 {celda.etiqueta}
                 {ningunoMedible ? (
-                  <em className="aulas-reserva-dirigida-estimado"> · solape estimado en todas</em>
+                  <em className="aulas-reserva-dirigida-estimado">, solape estimado en todas</em>
                 ) : null}
               </p>
 
@@ -209,7 +209,7 @@ export function AulasReservaDirigida(
                 <ul className="aulas-reserva-dirigida-candidatos">
                   {celda.candidatos.map((cand) => (
                     <li key={`${clave}‧${cand.classroom_id}`}>
-                      <code>{cand.classroom_id}</code>
+                      <span className="aulas-reserva-dirigida-aula">{cand.classroom_id}</span>
                       <span title={cand.motivo}>
                         {motivoSinLaCuota(cand.motivo)}
                       </span>

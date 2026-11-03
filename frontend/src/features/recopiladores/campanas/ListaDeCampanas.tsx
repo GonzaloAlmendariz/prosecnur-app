@@ -27,6 +27,7 @@ import { TarjetaDeCampana } from "./TarjetaDeCampana";
 import type { FuenteDelRegistro } from "./useRegistroDeCampanas";
 import "./campanas.css";
 import "../correos/correosIconos.css";
+import { LoadingBlock } from "../../../components/States";
 
 export type AvisoDeLaLista = { tono: "ok" | "error"; texto: string; enlace?: { href: string; texto: string } };
 
@@ -55,11 +56,23 @@ export function listoDeLaLista(registro: RegistroDeCampanas | null, carga: Props
   return campanasVisibles(registro).length ? "material-campo/campanas" : "vacio:sin-campanas";
 }
 
-function Grilla({ campanas, grupo, children }: { campanas: readonly CampanaMaterial[]; grupo: string; children: (c: CampanaMaterial) => ReactNode }) {
+function Grilla({ campanas, grupo, children, extra = null }: { campanas: readonly CampanaMaterial[]; grupo: string; children: (c: CampanaMaterial) => ReactNode; extra?: ReactNode }) {
   return (
     <ul className="rec-campanas-grilla" data-qa-geometry-group={grupo} data-qa-geometry-contract="equal" aria-label="Campañas">
       {campanas.map((c) => <li key={c.id}>{children(c)}</li>)}
+      {extra ? <li>{extra}</li> : null}
     </ul>
+  );
+}
+
+/** Al final de la grilla: empezar otra campaña sin subir al botón de la cabecera. */
+function TarjetaNueva({ onNueva }: { onNueva: () => void }) {
+  return (
+    <button type="button" className="rec-campana-nueva" onClick={onNueva}>
+      <span className="rec-campana-nueva-icono" aria-hidden><Plus size={18} /></span>
+      <strong>Nueva campaña</strong>
+      <small>Aulas, territorial, telefónica, correo o supervisión</small>
+    </button>
   );
 }
 
@@ -125,7 +138,7 @@ export function ListaDeCampanas({
             />
           </div>
         ) : !registro ? (
-          <div className="rec-loading" data-qa-geometry-capacity="owned">Leyendo las campañas…</div>
+          <LoadingBlock label="Leyendo las campañas…" />
         ) : visibles.length && porPublico.grupos.length ? (
           <>
             {porPublico.grupos.map((g) => (
@@ -134,10 +147,10 @@ export function ListaDeCampanas({
                 <Grilla campanas={g.campanas} grupo={`material-campo/campanas/${g.publico}`}>{tarjeta}</Grilla>
               </section>
             ))}
-            {porPublico.sueltas.length ? <Grilla campanas={porPublico.sueltas} grupo="material-campo/campanas">{tarjeta}</Grilla> : null}
+            <Grilla campanas={porPublico.sueltas} grupo="material-campo/campanas" extra={<TarjetaNueva onNueva={onNueva} />}>{tarjeta}</Grilla>
           </>
         ) : visibles.length ? (
-          <Grilla campanas={visibles} grupo="material-campo/campanas">{tarjeta}</Grilla>
+          <Grilla campanas={visibles} grupo="material-campo/campanas" extra={<TarjetaNueva onNueva={onNueva} />}>{tarjeta}</Grilla>
         ) : (
           <div className="rec-campanas-vacio" data-qa-geometry-capacity="owned">
             <EstadoVacio

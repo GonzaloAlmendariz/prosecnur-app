@@ -18,6 +18,7 @@ import {
   type CursoHorarioSexOrder,
 } from "./cursosHorarioModel";
 import { DescriptiveEmptyNotice, descriptiveMissingState } from "./marcoCharts";
+import { Panel } from "../../../../components/Panel";
 
 type MarcoFrame = CalcMuestraAulasState["frame"] | null;
 
@@ -67,10 +68,7 @@ export function CursosHorarioSexo({
 
   if (!rows.length) {
     return (
-      <section className="cmv2-panel cmv2-ch-sexo">
-        <div className="cmv2-panel-head">
-          <strong>Sexo por curso-horario</strong>
-        </div>
+      <Panel className="cmv2-ch-sexo" title="Sexo por curso-horario">
         <DescriptiveEmptyNotice
           state={descriptiveMissingState(workspace, {
             role: "sex",
@@ -81,7 +79,7 @@ export function CursosHorarioSexo({
             next: "Revisa Definición > Variables y vincula la columna Sexo o género.",
           })}
         />
-      </section>
+      </Panel>
     );
   }
 
@@ -121,7 +119,7 @@ export function CursosHorarioSexo({
       <div
         className="cmv2-ch-sexo-scroll"
         role="img"
-        aria-label={`Hombres y mujeres por curso-horario en ${activeFaculty || "todas las facultades"}, ${visible.length} cursos-horario`}
+        aria-label={`Hombres y mujeres por curso-horario en ${activeFaculty || "todas las facultades"}, ${fmtInt(visible.length)} cursos-horario`}
       >
         {filas.map((row) => (
           <div key={row.id} className="cmv2-ch-sexo-row">
@@ -152,7 +150,7 @@ export function CursosHorarioSexo({
         <p className="cmv2-ch-sexo-depth">
           <span>
             {recortada
-              ? `Mostrando los ${TOPE} de mayor tamaño · ${fmtInt(visible.length)} cursos-horario en ${activeFaculty || "el marco"}`
+              ? `Mostrando los ${TOPE} de mayor tamaño, ${fmtInt(visible.length)} cursos-horario en ${activeFaculty || "el marco"}`
               : `Mostrando los ${fmtInt(visible.length)} cursos-horario de ${activeFaculty || "el marco"}`}
           </span>
           <button type="button" onClick={() => setVerTodos((v) => !v)}>

@@ -306,7 +306,7 @@
   background: transparent;
   color: var(--pulso-text);
   font: inherit;
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   font-weight: var(--pulso-weight-heavy);
 }
 
@@ -337,7 +337,7 @@
 
 .mon-profile-page.is-aulas-flow .aulas-dt-buscador > span {
   color: var(--pulso-text-soft);
-  font-size: 10.5px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-heavy);
   letter-spacing: 0.02em;
   white-space: nowrap;

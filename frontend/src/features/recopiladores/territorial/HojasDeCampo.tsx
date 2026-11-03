@@ -25,6 +25,10 @@ import { PulsoInput } from "../../../components/PulsoInput";
 import { PulsoSelect } from "../../../components/PulsoSelect";
 import { PulsoSwitch } from "../../../components/PulsoSwitch";
 import { Hash, ListOrdered, Printer, Table2 } from "../../../vendor/lucide-react";
+import { CargaDeBloque } from "../../../components/CargaDeBloque";
+import { MaquetaDeConsolidados, MaquetaDeRuteo } from "./MaquetaDeHoja";
+import "./ficha.css";
+import { Panel } from "../../../components/Panel";
 
 const ROTULO_MAX = 60;
 const CRITERIO_MAX = 40;
@@ -85,7 +89,7 @@ export function CodigosDeResultado({ campaignId }: { campaignId: string }) {
     return (
       <article className="rec-terr-tarjeta" data-qa-geometry-member>
         <h3><Hash size={15} aria-hidden /> Códigos de resultado</h3>
-        <p className={error ? "rec-terr-error" : "rec-terr-nota"} role={error ? "alert" : "status"}>{error || "Leyendo los códigos…"}</p>
+        {error ? <p className="rec-terr-error" role="alert">{error}</p> : <CargaDeBloque label="Leyendo los códigos…" />}
       </article>
     );
   }
@@ -224,24 +228,37 @@ export function HojaDePapel({ pieza, campaignId, unidades }: ConCampana & { piez
       .catch((e: unknown) => setError(mensaje(e, "No se pudo generar la hoja.")))
       .finally(() => setOcupado(false));
   };
+  const unidad = unidades.units.find((u) => u.unit_id === elegida) ?? unidades.units[0] ?? null;
+  // Pasada de diseño (2 nov 2026): el esquema de Fichas —la hoja en maqueta a la izquierda y las
+  // acciones al lado— en vez de una tarjeta delgada sobre 450 px vacíos.
   return (
-    <article className="rec-terr-tarjeta" data-qa-geometry-member>
-      <h3><Icono size={15} aria-hidden /> {p.titulo}</h3>
-      <p className="rec-terr-nota">{p.texto}</p>
-      {pieza === "ruteo" ? (
-        <GlidingRadioGroup
-          value={formatos?.caras_ruteo ?? 2}
-          options={CARAS}
-          getOptionValue={(o) => o[0]}
-          onValueChange={(v) => void guardar({ caras_ruteo: v })}
-          className="rec-terr-opciones"
-          aria-label="Caras de la hoja de ruteo"
-          getOptionProps={() => ({ disabled: !formatos || guardando })}
-        >
-          {(o) => <span>{o[1]}</span>}
-        </GlidingRadioGroup>
-      ) : null}
-      <div className="rec-terr-fila">
+    <div className="rec-terr-ficha" data-qa-geometry-member>
+      <figure className="rec-terr-ficha-escenario" data-qa-geometry-capacity="owned">
+        {unidad ? (
+          pieza === "ruteo"
+            ? <MaquetaDeRuteo unidad={unidad} caras={formatos?.caras_ruteo ?? 2} />
+            : <MaquetaDeConsolidados unidad={unidad} />
+        ) : null}
+        <figcaption>{unidad ? `${unidad.label}, estructura de la ${p.titulo.toLocaleLowerCase("es-PE")}` : ""}</figcaption>
+      </figure>
+      <aside className="rec-terr-ficha-panel" aria-labelledby={`rec-terr-hoja-${pieza}`}>
+        <div>
+          <h2 id={`rec-terr-hoja-${pieza}`}><Icono size={18} aria-hidden /> {p.titulo}</h2>
+          <p className="rec-terr-nota">{p.texto}</p>
+        </div>
+        {pieza === "ruteo" ? (
+          <GlidingRadioGroup
+            value={formatos?.caras_ruteo ?? 2}
+            options={CARAS}
+            getOptionValue={(o) => o[0]}
+            onValueChange={(v) => void guardar({ caras_ruteo: v })}
+            className="rec-terr-opciones"
+            aria-label="Caras de la hoja de ruteo"
+            getOptionProps={() => ({ disabled: !formatos || guardando })}
+          >
+            {(o) => <span>{o[1]}</span>}
+          </GlidingRadioGroup>
+        ) : null}
         <div className="rec-terr-campo">
           <span aria-hidden>UMP</span>
           <PulsoSelect
@@ -249,16 +266,18 @@ export function HojaDePapel({ pieza, campaignId, unidades }: ConCampana & { piez
             ariaLabel={`UMP de la ${p.titulo.toLocaleLowerCase("es-PE")}`}
             value={elegida || undefined}
             onValueChange={setElegida}
-            options={unidades.units.map((u) => ({ value: u.unit_id, label: `${u.label} · ${u.distrito}${u.zona ? ` · zona ${u.zona}` : ""}` }))}
+            options={unidades.units.map((u) => ({ value: u.unit_id, label: `${u.label}, ${u.distrito}${u.zona ? `, zona ${u.zona}` : ""}` }))}
           />
         </div>
-        <PulsoButton variant="primary" size="sm" disabled={!elegida || ocupado || unidades.stale} onClick={generar}>
-          <Printer size={14} aria-hidden /> {ocupado ? "Generando…" : "Abrir el PDF"}
-        </PulsoButton>
-      </div>
-      <p className="rec-terr-nota">Para todas las UMP a la vez, en Paquetes.</p>
-      {error || errorFormatos ? <p className="rec-terr-error" role="alert">{error || errorFormatos}</p> : null}
-    </article>
+        <div className="rec-terr-ficha-acciones">
+          <PulsoButton variant="primary" disabled={!elegida || ocupado || unidades.stale} onClick={generar}>
+            <Printer size={14} aria-hidden /> {ocupado ? "Generando…" : "Abrir el PDF"}
+          </PulsoButton>
+        </div>
+        <p className="rec-terr-nota">Para todas las UMP a la vez, en Paquetes.</p>
+        {error || errorFormatos ? <p className="rec-terr-error" role="alert">{error || errorFormatos}</p> : null}
+      </aside>
+    </div>
   );
 }
 
@@ -279,12 +298,12 @@ export function HojasDelPaquete({ campaignId, unidades }: ConCampana) {
       .finally(() => setOcupado(""));
   };
   return (
-    <article className="rec-terr-tarjeta" data-qa-geometry-member aria-label="Hojas de campo">
-      <h3><ListOrdered size={15} aria-hidden /> Hojas de ruteo y de consolidados</h3>
-      <p className="rec-terr-nota">
-        Una de cada por UMP, con su encuestador y los códigos del estudio. Los reemplazos se imprimen cuando se activan; inclúyelos si
-        quieres llevarlos de reserva.
-      </p>
+    <Panel
+      data-qa-geometry-member
+      aria-label="Hojas de campo"
+      title={<><ListOrdered size={16} aria-hidden /> Hojas de ruteo y de consolidados</>}
+      hint="Una de cada por UMP, con su encuestador y los códigos del estudio. Los reemplazos se imprimen cuando se activan; inclúyelos si quieres llevarlos de reserva."
+    >
       <PulsoSwitch size="sm" label={`Incluir los reemplazos (${reemplazos.toLocaleString("es-PE")} UMP más)`} checked={conReemplazos} disabled={ocupado !== ""} onCheckedChange={setConReemplazos} />
       <div className="rec-terr-fila">
         <PulsoButton variant="secondary" size="sm" disabled={!total || ocupado !== "" || unidades.stale} onClick={() => generar("ruteo")}>
@@ -295,6 +314,6 @@ export function HojasDelPaquete({ campaignId, unidades }: ConCampana) {
         </PulsoButton>
       </div>
       {error ? <p className="rec-terr-error" role="alert">{error}</p> : null}
-    </article>
+    </Panel>
   );
 }

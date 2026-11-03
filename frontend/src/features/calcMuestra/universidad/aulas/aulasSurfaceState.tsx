@@ -1,13 +1,17 @@
 import {
   BarChart3,
   Calculator,
+  Check,
   Database,
   FileText,
   RefreshCw,
   Table2,
   type LucideIcon,
 } from "lucide-react";
-import { rowsFrom } from "../../sharedCore";
+import { PulsoButton } from "../../../../components/PulsoButton";
+import { fmtInt, rowsFrom } from "../../sharedCore";
+import { promesaDeLaPestana, recorridoDeLaCausa } from "./recorridoEtapa";
+import "./recorridoEtapa.css";
 import { classroomRowNumber, classroomRowText } from "../shared/format";
 import type { ClassroomLabModel } from "./classroomLabModel";
 import { classroomMethodLabel } from "./classroomLabels";
@@ -41,6 +45,10 @@ export type AulasStageNoticeModel = {
   actionLabel: string;
   destination?: { section: string; tab: string };
   localAction?: "compare" | "select" | "replace";
+  /** La pestaña que pinta el aviso: con ella el aviso dice qué se verá ahí. */
+  etapa?: AulasSurfaceStage;
+  /** Referencia técnica (el id de una corrida guardada): va aparte, no dentro de la frase. */
+  referencia?: string;
 };
 
 function storedSelectionSummary(model: ClassroomLabModel) {
@@ -52,13 +60,14 @@ function storedSelectionSummary(model: ClassroomLabModel) {
     const wave = classroomRowText(row, ["wave"]);
     return role === "titular" || wave === "M1";
   }).length;
-  const runId = String(stored.selection_run_id ?? "").trim();
-  const parts = [
-    titularCount ? `${titularCount} titulares` : rows.length ? `${rows.length} filas almacenadas` : "filas almacenadas",
-    rows.length > titularCount && titularCount > 0 ? `${rows.length} filas del plan` : "",
-    runId ? `corrida ${runId}` : "corrida sin identificador publicable",
-  ].filter(Boolean);
-  return parts.join(" · ");
+  if (titularCount && rows.length > titularCount) return `${fmtInt(titularCount)} titulares de ${fmtInt(rows.length)} filas del plan`;
+  if (titularCount) return `${fmtInt(titularCount)} titulares`;
+  return rows.length ? `${fmtInt(rows.length)} filas` : "sin filas legibles";
+}
+
+function storedSelectionRunId(model: ClassroomLabModel): string {
+  const runId = String(model.storedSelection?.selection_run_id ?? "").trim();
+  return runId ? `Corrida guardada ${runId}` : "Corrida guardada sin identificador publicable";
 }
 
 /**
@@ -67,6 +76,14 @@ function storedSelectionSummary(model: ClassroomLabModel) {
  * explicar el estado, pero nunca salta los guards de vigencia del modelo.
  */
 export function resolveAulasStageNotice(
+  model: ClassroomLabModel,
+  stage: AulasSurfaceStage,
+): AulasStageNoticeModel | null {
+  const notice = resolverCausa(model, stage);
+  return notice ? { ...notice, etapa: stage } : null;
+}
+
+function resolverCausa(
   model: ClassroomLabModel,
   stage: AulasSurfaceStage,
 ): AulasStageNoticeModel | null {
@@ -79,8 +96,8 @@ export function resolveAulasStageNotice(
         ? "El marco de cursos-horario necesita reconstruirse"
         : "Falta el marco de cursos-horario",
       detail: model.marcoDesactualizado
-        ? "Los criterios cambiaron después de construir el marco. Reconstrúyelo en Marco → Cursos-horario antes de acreditar cálculos o corridas."
-        : "Construye el marco en Marco → Cursos-horario. Sin esa base no hay unidades elegibles que comparar ni seleccionar.",
+        ? "Los criterios cambiaron después de construir el marco. Reconstrúyelo en Marco › Cursos-horario antes de acreditar cálculos o corridas."
+        : "Constrúyelo en Marco › Cursos-horario. Sin esa base no hay unidades elegibles que comparar ni seleccionar.",
       actionLabel: "Ir a Marco",
       destination: { section: "marco", tab: "marco-aulas" },
     };
@@ -97,7 +114,8 @@ export function resolveAulasStageNotice(
         icon: Calculator,
         eyebrow: "Cálculo",
         title: "La selección existe; falta acreditar el objetivo",
-        detail: `Se conserva ${summary}, pero no se publica como vigente porque ${scenario} no tiene un objetivo de cursos-horario materializado. Calcula esa propuesta; la corrida almacenada no se borra ni sustituye.`,
+        detail: `Hay una selección guardada (${summary}), pero no se publica como vigente: ${scenario} todavía no tiene un objetivo de cursos-horario. Calcula esa propuesta; la selección guardada no se borra ni se sustituye.`,
+        referencia: storedSelectionRunId(model),
         actionLabel: "Ir a Cálculo",
         destination: { section: "calculo", tab: "calculo-propuestas" },
       };
@@ -107,7 +125,7 @@ export function resolveAulasStageNotice(
       icon: Calculator,
       eyebrow: "Cálculo",
       title: "Falta calcular el objetivo de cursos-horario",
-      detail: `${scenario} todavía no entrega n objetivo, n operativo y cursos-horario titulares. Completa Cálculo → Propuestas para continuar.`,
+      detail: `${scenario} todavía no entrega el n objetivo, el n operativo ni los cursos-horario titulares. Complétala en Cálculo › Propuestas.`,
       actionLabel: "Ir a Cálculo",
       destination: { section: "calculo", tab: "calculo-propuestas" },
     };
@@ -275,38 +293,63 @@ export function AulasStageNotice({
 }) {
   const Icon = notice.icon ?? FileText;
   const canAct = Boolean(notice.destination ? onNavigate : onAction);
+  const recorrido = recorridoDeLaCausa(notice.kind);
+  const promesa = promesaDeLaPestana(notice.etapa);
   return (
     <section
       className={`cmv2-aulas-stage-notice is-${notice.kind}`}
       data-aulas-blocker={notice.kind}
       aria-live="polite"
     >
-      <span className="cmv2-aulas-stage-icon" aria-hidden="true"><Icon size={18} /></span>
-      <div className="cmv2-aulas-stage-copy">
-        <small>{notice.eyebrow} · siguiente condición</small>
-        <strong>{notice.title}</strong>
-        <p>{notice.detail}</p>
-        {disabled && disabledReason ? (
-          <p className="cmv2-aulas-stage-blocked">{disabledReason}</p>
-        ) : null}
+      {/* El camino completo, con la causa en su sitio: lo anterior hecho, esto
+          falta, lo demás espera (recorridoEtapa.ts). */}
+      <ol className="cmv2-aulas-recorrido" aria-label="Recorrido de la selección">
+        {recorrido.map((paso, i) => (
+          <li key={paso.id} data-estado={paso.estado} aria-current={paso.estado === "falta" ? "step" : undefined}>
+            <span className="cmv2-aulas-recorrido-marca" aria-hidden="true">
+              {paso.estado === "hecho" ? <Check size={12} strokeWidth={2.5} /> : i + 1}
+            </span>
+            <span className="cmv2-aulas-recorrido-rotulo">{paso.label}</span>
+            <span className="pulso-sr-only">
+              {paso.estado === "hecho" ? ", hecho" : paso.estado === "falta" ? ", falta" : ", espera"}
+            </span>
+          </li>
+        ))}
+      </ol>
+      <div className="cmv2-aulas-stage-cuerpo">
+        <span className="cmv2-aulas-stage-icon" aria-hidden="true"><Icon size={18} /></span>
+        <div className="cmv2-aulas-stage-copy">
+          <small>Siguiente condición: {notice.eyebrow}</small>
+          <strong>{notice.title}</strong>
+          <p>{notice.detail}</p>
+          {notice.referencia ? <p className="cmv2-aulas-stage-referencia">{notice.referencia}</p> : null}
+          {disabled && disabledReason ? (
+            <p className="cmv2-aulas-stage-blocked">{disabledReason}</p>
+          ) : null}
+        </div>
+        {canAct && (
+          <PulsoButton
+            variant="primary"
+            nav={Boolean(notice.destination)}
+            disabled={disabled}
+            title={disabled ? disabledReason : undefined}
+            onClick={() => {
+              if (notice.destination) {
+                onNavigate?.(notice.destination.section, notice.destination.tab);
+              } else {
+                onAction?.();
+              }
+            }}
+          >
+            {notice.actionLabel}
+          </PulsoButton>
+        )}
       </div>
-      {canAct && (
-        <button
-          type="button"
-          className="cmv2-primary"
-          disabled={disabled}
-          title={disabled ? disabledReason : undefined}
-          onClick={() => {
-            if (notice.destination) {
-              onNavigate?.(notice.destination.section, notice.destination.tab);
-            } else {
-              onAction?.();
-            }
-          }}
-        >
-          {notice.actionLabel}
-        </button>
-      )}
+      {promesa ? (
+        <p className="cmv2-aulas-stage-promesa">
+          <span>Cuando esté listo, aquí verás</span> {promesa.charAt(0).toLowerCase()}{promesa.slice(1)}
+        </p>
+      ) : null}
     </section>
   );
 }

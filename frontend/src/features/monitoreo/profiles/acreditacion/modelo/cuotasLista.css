@@ -23,13 +23,13 @@
 
 .acr-cu-publico-cabecera strong {
   min-width: 0;
-  font-size: 13.5px;
+  font-size: var(--pulso-type-body-size);
   overflow-wrap: anywhere;
 }
 
 .acr-cu-publico-cabecera > span {
   margin-left: auto;
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   white-space: nowrap;
 }
 
@@ -43,13 +43,13 @@
 .acr-cu-sin {
   margin: 0;
   padding: 4px var(--pulso-space-2);
-  font-size: 12.5px;
+  font-size: var(--pulso-type-body-size);
 }
 
 /* Las variables sin cuota se leen como acción: el + y el texto en el color suave. */
 .acr-cu-publico button.is-libre {
   color: var(--pulso-text-soft);
-  font-size: 12.5px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .acr-cu-publico button.is-libre > svg {
@@ -91,4 +91,12 @@
 
 .acr-cu-publico button.is-seguida > svg {
   color: var(--pulso-module-monitoring);
+}
+
+/* Cuota referencial (ADR 0126): su referencia es el peso en el universo. */
+.acr-cu-peso {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--pulso-space-2);
+  align-items: center;
 }

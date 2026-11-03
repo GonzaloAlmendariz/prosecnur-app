@@ -97,3 +97,23 @@ describe("Ritmo sin serie", () => {
     );
   });
 });
+
+describe("serieKobo: el origen de la serie por variable (checklist de cuotas 1b)", () => {
+  it("sin Kobo, la serie es la de la hoja y lee `Efectivas`, no la columna de Kobo en 0", () => {
+    const serie = serieKobo(reportes({
+      avance_efectivo_variable_dia: [
+        { Variable: "Actor", Valor: "Homologación", Fecha: "2026-08-04", "Efectivas Kobo": 0, Efectivas: 12 },
+        { Variable: "Actor", Valor: "Homologación", Fecha: "2026-08-05", "Efectivas Kobo": 0, Efectivas: 9 },
+      ],
+    }), "Actor");
+    expect(serie.total).toBe(21);
+    expect(serie.origen).toBe("hoja");
+  });
+
+  it("con Kobo, el origen es Kobo", () => {
+    const serie = serieKobo(reportes({
+      avance_efectivo_variable_dia: [{ Variable: "Actor", Valor: "Vinculación", Fecha: "2026-08-04", "Efectivas Kobo": 4, Efectivas: 4 }],
+    }), "Actor");
+    expect(serie.origen).toBe("kobo");
+  });
+});

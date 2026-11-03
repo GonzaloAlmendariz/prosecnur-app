@@ -1,6 +1,7 @@
 import { BarChart3, Calculator, Loader2 } from "lucide-react";
 
 import type { CalcMuestraComponente, CalcMuestraWorkspaceProducto } from "../../../api/calcMuestra";
+import { Panel } from "../../../components/Panel";
 import { EmptyState } from "../../../components/States";
 import { presentResultadoPrecision } from "../resultadoPrecision";
 import { fmtInt } from "../sharedCore";
@@ -54,13 +55,14 @@ export function ResultadosComponentes({
   const veredicto = vacio ? null : veredictoResultados({ modo, componentes, corridas, marcos, cargado });
 
   return (
-    <section className="cmv2-panel cmv2-output cmg-resultados" aria-labelledby="cmg-resultados-titulo" data-vacio={vacio ? "true" : undefined} data-qa-geometry-member>
-      <div className="cmv2-panel-head">
-        <div>
-          <span className="cmv2-eyebrow">Tabla de salida</span>
-          <h3 id="cmg-resultados-titulo" className="cmg-panel-titulo">{titulo}</h3>
-        </div>
-      </div>
+    <Panel
+      className="cmg-resultados"
+      aria-labelledby="cmg-resultados-titulo"
+      data-vacio={vacio ? "true" : undefined}
+      data-qa-geometry-member
+      eyebrow="Tabla de salida"
+      title={<span id="cmg-resultados-titulo">{titulo}</span>}
+    >
       {veredicto && <VeredictoFranja veredicto={veredicto} />}
       {/* Región viva persistente: los avisos que llegan con un cálculo nuevo
           se anuncian sin robar el foco. */}
@@ -155,7 +157,7 @@ export function ResultadosComponentes({
           <SalidasAnidadas modo={modo} componentes={componentes} />
         </>
       )}
-    </section>
+    </Panel>
   );
 }
 
@@ -200,7 +202,7 @@ function SalidasAnidadas({ modo, componentes }: { modo: ModoMesa; componentes: C
         return (
           <RepartoEstratosGrafico
             key={comp.id}
-            titulo={componentes.length > 1 ? `${base} · ${comp.actor}` : base}
+            titulo={componentes.length > 1 ? `${base}: ${comp.actor}` : base}
             filas={filasDesdeResultado(comp.resultado?.distribucion_estratos ?? [])}
             origen="resultado"
           />
@@ -212,8 +214,8 @@ function SalidasAnidadas({ modo, componentes }: { modo: ModoMesa; componentes: C
           <div className="cmv2-mini-table">
             {cuotas.map(({ comp, row }, i) => (
               <span key={`${comp.id}-cuota-${i}`}>
-                <strong>{row.territorio} · {row.servicio}</strong>
-                <em>N {fmtInt(row.N)} · n {fmtInt(row.n)}</em>
+                <strong>{row.territorio}, {row.servicio}</strong>
+                <em>N {fmtInt(row.N)}, n {fmtInt(row.n)}</em>
               </span>
             ))}
           </div>

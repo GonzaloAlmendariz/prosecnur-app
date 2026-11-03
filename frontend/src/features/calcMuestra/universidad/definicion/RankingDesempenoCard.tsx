@@ -30,7 +30,7 @@ function parSexo(mujeres: number | null, hombres: number | null): string {
   if (mujeres == null && hombres == null) return "—";
   const m = mujeres == null ? "—" : fmtInt(mujeres);
   const h = hombres == null ? "—" : fmtInt(hombres);
-  return `${m} · ${h}`;
+  return `${m}, ${h}`;
 }
 
 export function RankingDesempenoCard({
@@ -82,7 +82,7 @@ export function RankingDesempenoCard({
           {fmtInt(cobertura.conSemana)} traen semana de campo y{" "}
           {fmtInt(cobertura.conJoin)} existen en el catálogo vigente — de ahí
           salen tipo, ciclo y los elegibles por sexo; un guion es un curso que
-          ya no se dicta. <strong>M·H</strong>: quiénes respondieron en el
+          ya no se dicta. <strong>M/H</strong>: quiénes respondieron en el
           estudio anterior y quiénes son elegibles HOY — la base anterior no
           trae elegibles por sexo por aula, así que la previsión por sexo que
           se puede decir con verdad es la del marco vigente.
@@ -103,8 +103,8 @@ export function RankingDesempenoCard({
                   <th scope="col" className="cmv2-num">Ciclo</th>
                   <th scope="col" className="cmv2-num">Alumnos</th>
                   <th scope="col" className="cmv2-num">Asistencia</th>
-                  <th scope="col" className="cmv2-num">Resp. M·H</th>
-                  <th scope="col" className="cmv2-num">Eleg. hoy M·H</th>
+                  <th scope="col" className="cmv2-num">Resp. M/H</th>
+                  <th scope="col" className="cmv2-num">Eleg. hoy M/H</th>
                   <th scope="col" className="cmv2-num">Semana</th>
                 </tr>
               </thead>
@@ -115,7 +115,7 @@ export function RankingDesempenoCard({
                       <span className="cmv2-rankdes-curso">{fila.nombreCurso || fila.cursoHorario}</span>
                       <small>
                         {fila.cursoHorario}
-                        {fila.rol.toLowerCase() === "titular" ? "" : ` · ${fila.rol.toLowerCase()}`}
+                        {fila.rol.toLowerCase() === "titular" ? "" : `, ${fila.rol.toLowerCase()}`}
                       </small>
                     </th>
                     <td>{fila.tipo ? fila.tipo.toLowerCase() : "—"}</td>

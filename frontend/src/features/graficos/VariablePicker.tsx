@@ -5,6 +5,8 @@ import { Check, ChevronDown, Database, Search, X } from "lucide-react";
 import { useVariables, parseVarRef, formatVarRef } from "./useVariables";
 import { safeText } from "./safeText";
 import { getDerivedReportVariable } from "./derivedReportVariables";
+import { formatoConteo } from "../../lib/formatoNumero";
+import { CargaDeBloque } from "../../components/CargaDeBloque";
 
 type Props = {
   value: string | null | undefined;
@@ -92,7 +94,7 @@ export default function VariablePicker({
     if (open) requestAnimationFrame(() => searchRef.current?.focus());
   }, [open]);
 
-  if (loading) return <span className="pulso-gv2-variable-status">Cargando variables…</span>;
+  if (loading) return <CargaDeBloque label="Cargando variables…" />;
   if (error) {
     const isSessionLost = error.includes("E_NO_SESSION");
     return (
@@ -218,7 +220,7 @@ export default function VariablePicker({
           <small>
             {selectedVar
               ? selectedCode
-              : `${eligible.length} pregunta${eligible.length === 1 ? "" : "s"} disponible${eligible.length === 1 ? "" : "s"}`}
+              : `${formatoConteo(eligible.length)} pregunta${eligible.length === 1 ? "" : "s"} disponible${eligible.length === 1 ? "" : "s"}`}
           </small>
         </span>
         {refSinBase ? (
@@ -256,7 +258,7 @@ export default function VariablePicker({
             <span aria-hidden="true"><Database size={15} /></span>
             <div>
               <strong>Elegir variable</strong>
-              <small>{source?.name ?? "Base activa"} · {eligible.length} disponibles</small>
+              <small>{source?.name ?? "Base activa"}, {formatoConteo(eligible.length)} disponibles</small>
             </div>
           </div>
 
@@ -270,7 +272,7 @@ export default function VariablePicker({
                   onClick={() => handleSourceChange(s.name)}
                 >
                   <span>{s.name}</span>
-                  <b>{s.variables.length}</b>
+                  <b>{formatoConteo(s.variables.length)}</b>
                 </button>
               ))}
             </div>
@@ -352,7 +354,7 @@ export default function VariablePicker({
 
             {filtered.length > visibleVars.length && (
               <div className="pulso-gv2-variable-more">
-                Mostrando {visibleVars.length} de {filtered.length}. Afina la búsqueda para ver resultados más precisos.
+                Mostrando {formatoConteo(visibleVars.length)} de {formatoConteo(filtered.length)}. Afina la búsqueda para ver resultados más precisos.
               </div>
             )}
           </div>

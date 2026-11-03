@@ -3,6 +3,7 @@
 // filtradas por una búsqueda sin acentos.
 
 import type { UnidadTerritorial } from "../../../api/materialTerritorial";
+import type { EstadoUnidad } from "./revisionUnidades";
 
 export type TitularConReemplazos = {
   titular: UnidadTerritorial;
@@ -114,6 +115,17 @@ export function contarVistas(units: readonly UnidadTerritorial[], rutasPorRevisa
   };
 }
 
+/** La observación que pinta la tabla: sólo lo que no está en orden. */
+export function observacionDe(estado: EstadoUnidad | undefined): EstadoUnidad | null {
+  return estado && estado.tono !== "ok" ? estado : null;
+}
+
+/** D15 (C5): la columna Observación se muestra sólo si alguna UMP de la campaña trae una; vacía en todas las filas no informa. */
+export function hayObservaciones(porUnidad: ReadonlyMap<string, EstadoUnidad>): boolean {
+  for (const e of porUnidad.values()) if (observacionDe(e)) return true;
+  return false;
+}
+
 /** La unidad de un `foco` (`id_manzana`), o `null`. */
 export function unidadDelFoco(units: readonly UnidadTerritorial[], foco: string | null | undefined): UnidadTerritorial | null {
   if (!foco) return null;
@@ -130,12 +142,12 @@ export function fechaDelEnvio(iso: string | null | undefined): string | null {
 }
 
 /**
- * «encuestas 1–12 · 120 viv.». El rango son los números de ENCUESTA de la ruta
+ * «encuestas 1–12, 120 viv.». El rango son los números de ENCUESTA de la ruta
  * (rango_inicio/rango_fin), no viviendas; las viviendas son las de la manzana en el censo.
  */
 export function rangoDeLaUmp(u: Pick<UnidadTerritorial, "rango_inicio" | "rango_fin" | "viviendas">): string {
   const partes: string[] = [];
   if (u.rango_inicio !== null && u.rango_fin !== null) partes.push(`encuestas ${u.rango_inicio}–${u.rango_fin}`);
   if (u.viviendas !== null) partes.push(`${u.viviendas.toLocaleString("es-PE")} viv.`);
-  return partes.join(" · ");
+  return partes.join(", ");
 }

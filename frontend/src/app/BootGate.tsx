@@ -54,6 +54,8 @@ import {
   WARMUP_MODULES,
   type WarmupModuleProgress,
 } from "./warmupRegistry";
+import { BarraDeAvance } from "../components/BarraDeAvance";
+import "./boot-destino.css";
 
 type AppSuiteModule = {
   default: ComponentType;
@@ -1523,8 +1525,19 @@ function WarmupView({
   steps: WarmupDisplayStep[];
 }) {
   const clampedPercent = Math.min(100, progressPercent);
+  // 3 nov 2026 (Gonzalo): la preparación toma el color del módulo de destino y suma la barra
+  // del kit; en el Home o sin módulo queda el azul de marca.
+  const destino = useMemo(
+    () => (typeof window === "undefined" ? null : destinoWarmup(window.location.pathname)),
+    [],
+  );
   return (
-    <div className="boot-warmup" data-boot-message={message}>
+    <div
+      className="boot-warmup"
+      data-boot-message={message}
+      data-modulo-destino={destino?.slug}
+      style={destino ? moduleChromeVars(destino) : undefined}
+    >
       <div className="boot-warmup-summary">
         <div className="boot-warmup-mark">Prosecnur</div>
         <div
@@ -1546,6 +1559,7 @@ function WarmupView({
           <p className="boot-project-name" title={projectPath ?? undefined}>{projectName(projectPath)}</p>
           <h1>{message}</h1>
           <WarmupReloj className="boot-warmup-reloj" transcurridoMs={transcurridoMs} estimacion={estimacion} />
+          <BarraDeAvance valor={clampedPercent} total={100} etiqueta="Avance de preparación del proyecto" />
         </div>
       </div>
       <div className="boot-warmup-steps" aria-label="Fases de preparación" aria-live="off">

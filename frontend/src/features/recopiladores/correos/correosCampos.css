@@ -12,7 +12,7 @@
 
 .rec-mail-campo-aviso {
   color: var(--pulso-danger-fg);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   line-height: 1.4;
   margin: 0;
 }

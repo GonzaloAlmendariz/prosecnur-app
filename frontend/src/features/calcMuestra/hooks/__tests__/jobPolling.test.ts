@@ -453,7 +453,7 @@ describe("el tiempo restante no crece mientras el motor no avanza", () => {
     const ultimo = textos[textos.length - 1];
     expect(leerEta(ultimo)).toBeNull();
     expect(ultimo).toContain("Leyendo la base institucional");
-    expect(ultimo).toMatch(/· \d\d:\d\d$/);
+    expect(ultimo).toMatch(/, \d\d:\d\d$/);
   });
 });
 

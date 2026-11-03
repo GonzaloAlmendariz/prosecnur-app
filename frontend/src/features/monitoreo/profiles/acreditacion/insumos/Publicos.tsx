@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { EstadoChip } from "../../../../../components/EstadoChip";
 import { Check, Loader2, Plus, Trash2, X } from "lucide-react";
 import { Alert } from "../../../../../components/Alert";
 import { Switch } from "../../../../../components/Switch";
@@ -203,14 +204,14 @@ export function Publicos({
                               </span>
                             ))}
                           </span>
-                        ) : <span className="acr-av-chip is-falta">Sin padrón</span>}
+                        ) : <EstadoChip label="Sin padrón" tone="warn" />}
                       </td>
                       <td className="is-num">{fila?.personas == null ? "—" : fmt(fila.personas)}</td>
                       <td>
                         <span className="acr-in-canales">
                           <b className="acr-av-num">{fmt(fila?.encuestas.length ?? 0)}</b>
                           {(fila?.canales ?? []).map((canal) => <span key={canal} className="acr-av-chip">{canal}</span>)}
-                          {fila?.barridos.length ? <span className="acr-av-chip is-avance">Barrido</span> : null}
+                          {fila?.barridos.length ? <EstadoChip label="Barrido" tone="info" /> : null}
                         </span>
                       </td>
                       <td>

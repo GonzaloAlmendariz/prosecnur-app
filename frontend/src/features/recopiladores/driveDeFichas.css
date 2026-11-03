@@ -19,7 +19,7 @@
   background: var(--pulso-surface);
   color: var(--pulso-text);
   font: inherit;
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   cursor: pointer;
 }
 
@@ -33,6 +33,6 @@
 }
 
 .rec-drive-listo {
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   color: var(--pulso-text-soft);
 }

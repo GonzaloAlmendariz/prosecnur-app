@@ -42,7 +42,9 @@ import PanelFormulario from "./explorar/PanelFormulario";
 import RielVariables from "./explorar/RielVariables";
 import TextResponsesView from "./explorar/TextResponsesView";
 import TiraCifras from "./explorar/TiraCifras";
-import { cifrasClave, fraseBase, modeloCalor, resolverBase, type LecturaCalor } from "./explorar/explorarModelo";
+import { enfrentados } from "./explorar/CruceEnfrentados";
+import { recodificacion } from "./explorar/CruceRecodificacion";
+import { cifrasClave, fraseBase, lecturaInicial, modeloCalor, resolverBase, type LecturaCalor } from "./explorar/explorarModelo";
 import { graficoDelPar } from "./explorar/graficoDelPar";
 import { findSeccionOf, pickInitialVariable } from "./explorar/seleccionInicial";
 import "./explorar/explorar.css";
@@ -95,7 +97,8 @@ export default function ExplorarTab({
   // Ficha de la pregunta, con la variable y la fuente para las que se pidió:
   // así la readiness sabe si la que está en pantalla es la de la selección.
   const [fichaEstado, setFichaEstado] = useState<{ var: string; fuente: ExplorarFuente; ficha: ExploradorFicha | null } | null>(null);
-  const [lecturaCalor, setLecturaCalor] = useState<LecturaCalor>("columna");
+  // La lectura que eligió la persona, para el par en que la eligió; otro par abre en la suya (`lecturaInicial`).
+  const [lecturaElegida, setLecturaElegida] = useState<{ par: string; lectura: LecturaCalor } | null>(null);
   // Con cruce la lista va plegada; «lista» o «buscar» la despliegan a pedido.
   const [listaAbierta, setListaAbierta] = useState<null | "lista" | "buscar">(null);
 
@@ -356,8 +359,18 @@ export default function ExplorarTab({
     [ficha],
   );
   const cruce = cruzar && biv ? biv.cruce ?? null : null;
+  const parCruce = selected && cruzar ? `${selected.name}×${cruzar}` : "";
+  const lecturaCalor =
+    lecturaElegida && lecturaElegida.par === parCruce
+      ? lecturaElegida.lectura
+      : lecturaInicial(cruce?.tipo_x ?? "so", cruce?.tipo_y ?? "so");
+  const setLecturaCalor = useCallback((lectura: LecturaCalor) => setLecturaElegida({ par: parCruce, lectura }), [parCruce]);
   const modelo = useMemo(
-    () => (cruce?.forma === "tabla" && cruce.tabla ? modeloCalor(cruce.tabla, lecturaCalor, cruce.base_n) : null),
+    () =>
+      // Con puntos enfrentados (única × múltiple, 2 o 3 grupos) no hay tabla, ni panel de lo que se aparta del total.
+      cruce?.forma === "tabla" && cruce.tabla && !enfrentados(cruce.tabla, cruce.tipo_x, cruce.tipo_y, cruce.base_n)
+        ? modeloCalor(cruce.tabla, lecturaCalor, cruce.base_n, cruce.tipo_x, cruce.tipo_y)
+        : null,
     [cruce, lecturaCalor],
   );
 
@@ -448,8 +461,10 @@ export default function ExplorarTab({
   const sufijoRepeat = selectedRepeatOption ? ` · ${selectedRepeatOption.label}` : "";
   const frase = base ? fraseBase(base) : null;
 
+  // Con una recodificación (E8d), lo que «se aparta del total» es la diagonal: el panel no aporta.
+  const esRecodificacion = !!(cruce?.tabla && cruce.tipo_x === "sm" && cruce.tipo_y === "sm" && recodificacion(cruce.tabla));
   const lateral =
-    crossVar && modelo ? (
+    crossVar && modelo && !esRecodificacion ? (
       <aside className="vx-lateral" aria-label="Lectura del cruce">
         <PanelApartaTotal modelo={modelo} />
       </aside>
@@ -478,8 +493,8 @@ export default function ExplorarTab({
         modelo={modelo}
         lectura={lecturaCalor}
         onLectura={setLecturaCalor}
-        rotuloX={selected.label || selected.name}
-        rotuloY={crossVar.label || crossVar.name}
+        x={selected}
+        y={crossVar}
       />
     ) : (
       <GraficoTarjeta titulo={`${selected.name} × ${crossVar.name}${sufijoRepeat}`}>
@@ -487,7 +502,7 @@ export default function ExplorarTab({
       </GraficoTarjeta>
     )
   ) : crossVar ? null : dist ? (
-    <Distribucion dist={dist} sinRespuesta={base?.sinRespuesta ?? null} declarados={declarados} />
+    <Distribucion dist={dist} titulo={selected.label || selected.name} sinRespuesta={base?.sinRespuesta ?? null} declarados={declarados} />
   ) : (
     <GraficoTarjeta titulo={`Distribución${sufijoRepeat}`} tipo={uniVigente.tipo}>
       {uniVigente.chart.kind === "table" && uniVigente.chart.text_rows ? (

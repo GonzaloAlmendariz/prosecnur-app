@@ -55,14 +55,14 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-size: 11px;
+  font-size: var(--pulso-type-eyebrow-size);
   font-weight: var(--pulso-weight-semibold);
   letter-spacing: 0.03em;
   text-transform: uppercase;
 }
 
 .mon-query-answer.is-compacta > strong {
-  font-size: 12.5px;
+  font-size: var(--pulso-type-body-size);
   font-weight: var(--pulso-weight-medium);
   color: var(--pulso-text-soft);
 }

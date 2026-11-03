@@ -59,11 +59,11 @@ describe("la lista de campañas (ADR 0111 §2)", () => {
     const html = lista(LLENO);
     expect(html.match(/class="rec-campana-tarjeta is-/g)?.length).toBe(2);
     expect(html).toContain("Campo en aulas");
-    expect(html).toContain("120/175 titulares con enlace");
+    expect(html).toContain("120 de 175 titulares con enlace");
     // Cifras grandes de aulas y cada envío en su línea con su punto de estado.
     expect(html).toContain('<dt>titulares</dt><dd>175</dd>');
-    expect(html).toContain("Invitación · exportado 02/09");
-    expect(html).toContain("Recordatorio 1 · pendiente");
+    expect(html).toContain("<b>Invitación</b> exportado 02/09");
+    expect(html).toContain("<b>Recordatorio 1</b> pendiente");
     expect(html).toContain('href="/material-campo?modo=aulas&amp;campana=aulas.principal&amp;seccion=unidades&amp;pestana=lista"');
     expect(lista(conCorreos(12)).match(/data-qa-geometry-member/g)).toHaveLength(12);
   });

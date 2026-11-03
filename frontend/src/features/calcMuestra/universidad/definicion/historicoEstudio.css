@@ -30,7 +30,7 @@
 
 .cmv2-hist-hero-id h4 {
   margin: 2px 0 0;
-  font-size: 16px;
+  font-size: var(--pulso-type-title-size);
   font-weight: 600;
   letter-spacing: -0.01em;
   color: var(--pulso-text);
@@ -38,7 +38,7 @@
 
 .cmv2-hist-hero-id p {
   margin: 4px 0 0;
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   color: var(--pulso-text-muted);
 }
 
@@ -52,7 +52,7 @@
 .cmv2-hist-hero-cifras span { display: flex; flex-direction: column; gap: 1px; }
 
 .cmv2-hist-hero-cifras small {
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: 600;
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -60,7 +60,7 @@
 }
 
 .cmv2-hist-hero-cifras strong {
-  font-size: 22px;
+  font-size: var(--pulso-type-kpi-size);
   font-weight: 600;
   font-variant-numeric: tabular-nums;
   line-height: 1.1;
@@ -98,7 +98,7 @@
 
 .cmv2-hist-hero-lectura {
   margin: 6px 0 0;
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   color: var(--pulso-text-muted);
 }
 
@@ -119,7 +119,7 @@
 
 .cmv2-hist-bloque-head h4 {
   margin: 2px 0 0;
-  font-size: 13px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: 600;
   letter-spacing: -0.01em;
   color: var(--pulso-text);
@@ -127,7 +127,7 @@
 
 .cmv2-hist-bloque-head p {
   margin: 4px 0 0;
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   color: var(--pulso-text-muted);
 }
 
@@ -169,7 +169,7 @@
   /* La etiqueta envuelve en vez de truncarse: la columna es fija para que las
      barras compartan origen, y una etiqueta cortada («A quienes tocaba encu…»)
      deja al peldaño sin decir qué grupo mide. */
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   font-weight: 500;
   line-height: 1.25;
   text-wrap: pretty;
@@ -184,7 +184,7 @@
 }
 
 .cmv2-hist-paso-cifra {
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   font-weight: 600;
   font-variant-numeric: tabular-nums;
   text-align: right;
@@ -223,7 +223,7 @@
 .cmv2-hist-paso-merma[data-ultima] { border-radius: 0 4px 4px 0; }
 
 .cmv2-hist-paso-pct {
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   font-variant-numeric: tabular-nums;
   text-align: right;
   color: var(--pulso-text-muted);
@@ -236,7 +236,7 @@
   box-sizing: border-box;
   min-width: 0;
   margin-bottom: 10px;
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   line-height: 1.35;
   text-align: right;
   color: var(--pulso-text-muted);
@@ -266,7 +266,7 @@
 .cmv2-hist-tasas span { display: flex; flex-direction: column; gap: 1px; }
 
 .cmv2-hist-tasas small {
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: 600;
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -274,13 +274,13 @@
 }
 
 .cmv2-hist-tasas strong {
-  font-size: 18px;
+  font-size: var(--pulso-type-kpi-size);
   font-weight: 600;
   font-variant-numeric: tabular-nums;
   color: var(--pulso-text);
 }
 
-.cmv2-hist-tasas em { font-style: normal; font-size: 10px; color: var(--pulso-text-muted); }
+.cmv2-hist-tasas em { font-style: normal; font-size: var(--pulso-type-micro-size); color: var(--pulso-text-muted); }
 
 /* H1/ADR 0060 · La asistencia es un rango, no un punto. Dos porcentajes y un
    guion ocupan casi el doble que una cifra sola: sin nowrap el chip parte el
@@ -299,7 +299,7 @@
 }
 
 .cmv2-hist-tasas span[data-fuerte="si"] strong {
-  font-size: 24px;
+  font-size: var(--pulso-type-kpi-size);
   color: var(--cmv2-accent-fg);
 }
 
@@ -329,7 +329,7 @@
 .cmv2-hist-metricas li[data-tono="clave"] { border-left-color: var(--cmv2-accent); }
 
 .cmv2-hist-metricas strong {
-  font-size: 22px;
+  font-size: var(--pulso-type-kpi-size);
   font-weight: 600;
   font-variant-numeric: tabular-nums;
   line-height: 1.1;
@@ -337,14 +337,14 @@
 }
 
 .cmv2-hist-metricas span {
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   font-weight: 500;
   color: var(--pulso-text);
 }
 
 .cmv2-hist-metricas em {
   font-style: normal;
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   line-height: 1.35;
   color: var(--pulso-text-muted);
 }
@@ -374,14 +374,14 @@
    («TEORICO(TEORICO-PRACTICO,TEORICO-LABORATORIO)») y cortada deja de nombrar lo
    que la barra mide. */
 .cmv2-hist-fila-nombre {
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   line-height: 1.25;
   text-wrap: pretty;
   color: var(--pulso-text);
 }
 
 .cmv2-hist-fila-k {
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   font-variant-numeric: tabular-nums;
   text-align: right;
   color: var(--pulso-text-muted);
@@ -433,7 +433,7 @@
 }
 
 .cmv2-hist-fila-tasa {
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   font-weight: 600;
   font-variant-numeric: tabular-nums;
   text-align: right;
@@ -444,7 +444,7 @@
   margin: var(--cmv2-space-2) 0 0;
   padding-top: var(--cmv2-space-2);
   border-top: 1px dashed var(--cmv2-border);
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   line-height: 1.4;
   color: var(--pulso-text-muted);
 }
@@ -469,7 +469,7 @@
   border: 1px solid var(--cmv2-border);
   border-radius: 6px;
   background: var(--cmv2-surface);
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
 }
 
 .cmv2-hist-filtro-orden {
@@ -480,7 +480,7 @@
   height: 18px;
   border-radius: 999px;
   background: color-mix(in srgb, var(--pulso-text-muted) 12%, transparent);
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   font-variant-numeric: tabular-nums;
   color: var(--pulso-text-muted);
 }
@@ -492,7 +492,7 @@
   color: var(--pulso-text);
 }
 
-.cmv2-hist-filtro-efecto { font-size: 10px; color: var(--pulso-text-muted); }
+.cmv2-hist-filtro-efecto { font-size: var(--pulso-type-micro-size); color: var(--pulso-text-muted); }
 
 .cmv2-hist-filtros li[data-en-denominador="si"] .cmv2-hist-filtro-efecto {
   color: var(--pulso-warn-fg);
@@ -506,7 +506,7 @@
   padding: var(--cmv2-space-3);
   border: 1px dashed var(--cmv2-border);
   border-radius: var(--pulso-radius-md);
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   color: var(--pulso-text-muted);
 }
 
@@ -527,7 +527,7 @@
   display: flex;
   flex-wrap: wrap;
   gap: var(--cmv2-space-3);
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   color: var(--pulso-text-muted);
 }
 
@@ -607,14 +607,14 @@
 }
 
 .cmv2-hist-apilado-nombre {
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   line-height: 1.25;
   text-wrap: pretty;
   color: var(--pulso-text);
 }
 
 .cmv2-hist-apilado-k {
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   font-variant-numeric: tabular-nums;
   text-align: right;
   color: var(--pulso-text-muted);
@@ -642,7 +642,7 @@
 }
 
 .cmv2-hist-apilado-cifra {
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   font-weight: 600;
   font-variant-numeric: tabular-nums;
   text-align: right;
@@ -679,7 +679,7 @@
   border: 1px solid transparent;
   border-radius: 8px;
   background: transparent;
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   font-weight: 500;
   color: var(--pulso-text-muted);
   cursor: pointer;
@@ -725,7 +725,7 @@
 
 .cmv2-hist-semana h5 {
   margin: 0;
-  font-size: 13px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: 600;
   color: var(--pulso-text);
 }
@@ -744,7 +744,7 @@
 }
 
 .cmv2-hist-semana-aulas em {
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   font-style: normal;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
@@ -764,14 +764,14 @@
 .cmv2-hist-semana-flujo > li { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
 
 .cmv2-hist-semana-flujo strong {
-  font-size: 15px;
+  font-size: var(--pulso-type-title-size);
   font-weight: 600;
   font-variant-numeric: tabular-nums;
   line-height: 1.1;
   color: var(--pulso-text);
 }
 
-.cmv2-hist-semana-flujo span { font-size: 10px; line-height: 1.3; color: var(--pulso-text-muted); }
+.cmv2-hist-semana-flujo span { font-size: var(--pulso-type-micro-size); line-height: 1.3; color: var(--pulso-text-muted); }
 .cmv2-hist-semana-flujo > li[data-merma="si"] strong { color: var(--pulso-warn-fg); }
 .cmv2-hist-semana-flujo > li[data-tono="meta"] strong { color: var(--pulso-success-fg); }
 
@@ -788,12 +788,12 @@
   flex-wrap: wrap;
   gap: var(--cmv2-space-4);
   align-items: center;
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   color: var(--pulso-text-muted);
 }
 
 .cmv2-hist-semana-pie strong {
-  font-size: 12px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: 600;
   font-variant-numeric: tabular-nums;
   color: var(--pulso-text);
@@ -849,7 +849,7 @@
   padding: 6px 8px;
   border-bottom: 1px solid var(--cmv2-border);
   background: var(--cmv2-surface);
-  font-size: 9px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: 600;
   letter-spacing: 0.03em;
   text-transform: uppercase;
@@ -869,7 +869,7 @@
   padding: 8px;
   border-bottom: 1px solid var(--cmv2-border);
   background: var(--cmv2-accent-soft);
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: 600;
   letter-spacing: 0.02em;
   text-transform: uppercase;
@@ -877,7 +877,7 @@
 }
 
 .cmv2-hist-matriz-grupo em {
-  font-size: 9px;
+  font-size: var(--pulso-type-micro-size);
   font-style: normal;
   font-weight: 500;
   letter-spacing: 0;
@@ -888,7 +888,7 @@
 .cmv2-hist-matriz-fila > * {
   padding: 3px 8px;
   border-bottom: 1px solid color-mix(in srgb, var(--cmv2-border) 55%, transparent);
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   line-height: 1.4;
 }
 
@@ -905,7 +905,7 @@
 
 .cmv2-hist-matriz-titular b {
   overflow: hidden;
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: 600;
   font-variant-numeric: tabular-nums;
   text-overflow: ellipsis;
@@ -923,7 +923,7 @@
 }
 
 .cmv2-hist-matriz-titular small {
-  font-size: 9px;
+  font-size: var(--pulso-type-micro-size);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
   color: var(--pulso-text-muted);
@@ -944,7 +944,7 @@
   display: inline-flex;
   align-items: baseline;
   gap: 4px;
-  font-size: 9px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: 600;
   font-variant-numeric: tabular-nums;
 }
@@ -953,7 +953,7 @@
 .cmv2-hist-matriz-cuota b[data-sexo="hombre"] { color: var(--cmv2-sex-hombre); }
 
 .cmv2-hist-matriz-cuota i {
-  font-size: 9px;
+  font-size: var(--pulso-type-micro-size);
   font-style: normal;
   font-weight: 700;
 }
@@ -976,14 +976,14 @@
 }
 
 .cmv2-hist-matriz-casilla b {
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: 600;
   font-variant-numeric: tabular-nums;
   line-height: 1.15;
 }
 
 .cmv2-hist-matriz-casilla i {
-  font-size: 8px;
+  font-size: var(--pulso-type-micro-size);
   font-style: normal;
   font-variant-numeric: tabular-nums;
   line-height: 1.15;
@@ -1000,7 +1000,7 @@
   color: var(--pulso-warn-fg);
 }
 
-.cmv2-hist-matriz-fila .cmv2-hist-matriz-casilla[data-estado="cayo"] b { font-size: 11px; }
+.cmv2-hist-matriz-fila .cmv2-hist-matriz-casilla[data-estado="cayo"] b { font-size: var(--pulso-type-caption-size); }
 
 .cmv2-hist-matriz-fila .cmv2-hist-matriz-casilla[data-estado="reserva"] {
   background: color-mix(in srgb, var(--pulso-text-muted) 8%, transparent);
@@ -1014,14 +1014,14 @@
 }
 
 .cmv2-hist-matriz-total b {
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   font-weight: 600;
   font-variant-numeric: tabular-nums;
   line-height: 1.15;
 }
 
 .cmv2-hist-matriz-total i {
-  font-size: 8px;
+  font-size: var(--pulso-type-micro-size);
   font-style: normal;
   font-variant-numeric: tabular-nums;
   color: var(--pulso-text-muted);
@@ -1047,7 +1047,7 @@
   place-items: center;
   border-radius: 4px;
   background: color-mix(in srgb, var(--pulso-warn-fg) 30%, transparent);
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: 600;
   color: var(--pulso-warn-fg);
 }
@@ -1055,7 +1055,7 @@
 .cmv2-hist-codigos span {
   flex: 1 1 auto;
   overflow: hidden;
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   text-overflow: ellipsis;
   white-space: nowrap;
   color: var(--pulso-text-muted);
@@ -1063,7 +1063,7 @@
 
 .cmv2-hist-codigos em {
   flex: none;
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   font-style: normal;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
@@ -1103,7 +1103,7 @@
 .cmv2-hist-escalera > li[data-tono="real"]::before { background: var(--pulso-success-fg); }
 
 .cmv2-hist-escalera-cifra {
-  font-size: 20px;
+  font-size: var(--pulso-type-kpi-size);
   font-weight: 600;
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.015em;
@@ -1115,7 +1115,7 @@
 .cmv2-hist-escalera > li[data-tono="real"] .cmv2-hist-escalera-cifra { color: var(--pulso-success-fg); }
 
 .cmv2-hist-escalera-que {
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   font-weight: 500;
   line-height: 1.3;
   text-wrap: pretty;
@@ -1123,7 +1123,7 @@
 }
 
 .cmv2-hist-escalera-como {
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   line-height: 1.4;
   text-wrap: pretty;
   color: var(--pulso-text-muted);
@@ -1142,7 +1142,7 @@
 .cmv2-hist-decisiones > div { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 
 .cmv2-hist-decisiones dt {
-  font-size: 9px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: 600;
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -1151,7 +1151,7 @@
 
 .cmv2-hist-decisiones dd {
   margin: 0;
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   line-height: 1.35;
   text-wrap: pretty;
   color: var(--pulso-text);
@@ -1181,7 +1181,7 @@
   border-left: 2px solid color-mix(in srgb, var(--cmv2-accent) 45%, transparent);
   border-radius: 0 6px 6px 0;
   background: var(--cmv2-accent-soft);
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   line-height: 1.5;
   text-wrap: pretty;
   color: var(--pulso-text-muted);
@@ -1251,7 +1251,7 @@
 
 .cmv2-hist-dispersion p {
   margin: 0;
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   line-height: 1.45;
   text-wrap: pretty;
   color: var(--pulso-text-muted);
@@ -1314,7 +1314,7 @@
 }
 
 .cmv2-hist-cuando-par small {
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: 600;
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -1322,7 +1322,7 @@
 }
 
 .cmv2-hist-cuando-par strong {
-  font-size: 18px;
+  font-size: var(--pulso-type-kpi-size);
   font-weight: 600;
   font-variant-numeric: tabular-nums;
   color: var(--pulso-text);
@@ -1330,14 +1330,14 @@
 
 .cmv2-hist-cuando-par em {
   font-style: normal;
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   font-variant-numeric: tabular-nums;
   color: var(--pulso-text-muted);
 }
 
 .cmv2-hist-cuando > p {
   margin: 0;
-  font-size: 10.5px;
+  font-size: var(--pulso-type-micro-size);
   line-height: 1.5;
   text-wrap: pretty;
   color: var(--pulso-text-muted);
@@ -1371,7 +1371,7 @@
 .cmv2-hist-cuota-lectura li { display: flex; flex-direction: column; gap: 1px; }
 
 .cmv2-hist-cuota-lectura strong {
-  font-size: 19px;
+  font-size: var(--pulso-type-kpi-size);
   font-weight: 600;
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.015em;
@@ -1381,11 +1381,11 @@
 .cmv2-hist-cuota-lectura li[data-sexo="mujer"] strong { color: var(--cmv2-sex-mujer); }
 .cmv2-hist-cuota-lectura li[data-sexo="hombre"] strong { color: var(--cmv2-sex-hombre); }
 
-.cmv2-hist-cuota-lectura span { font-size: 10px; color: var(--pulso-text-muted); }
+.cmv2-hist-cuota-lectura span { font-size: var(--pulso-type-micro-size); color: var(--pulso-text-muted); }
 
 .cmv2-hist-cuota-lectura p {
   margin: 0;
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   line-height: 1.45;
   text-wrap: pretty;
   color: var(--pulso-text-muted);

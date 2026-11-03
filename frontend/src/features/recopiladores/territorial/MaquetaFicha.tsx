@@ -16,7 +16,7 @@ export function MaquetaFicha({ unidad }: { unidad: UnidadTerritorial }) {
         <header className="rec-maqueta-cab">
           <span>
             <strong>{unidad.role === "reemplazo" ? "Ficha de reemplazo" : "Ficha de trabajo de campo"}</strong>
-            <small>{unidad.distrito} · Zona {unidad.zona || "—"} · Manzana {unidad.manzana || "—"}</small>
+            <small>{unidad.distrito}, zona {unidad.zona || "—"}, manzana {unidad.manzana || "—"}</small>
           </span>
           <span className="rec-maqueta-codigo">
             <b>{unidad.label}</b>
@@ -42,7 +42,7 @@ export function MaquetaFicha({ unidad }: { unidad: UnidadTerritorial }) {
             <p>Esquema del recorrido: la manzana, sus aledañas numeradas y la esquina de entrada.</p>
           </div>
           <div>
-            <h4>Esquina · sentido · hogar de inicio · salto</h4>
+            <h4>Esquina, sentido, hogar de inicio y salto</h4>
             <p>Cómo se elige cada vivienda.</p>
           </div>
         </section>

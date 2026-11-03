@@ -15,6 +15,7 @@ import type {
   TipoDeCampana,
 } from "../../../api/materialCampanas";
 import { NOMBRE_DE_PLATAFORMA } from "../correos/dialectos";
+import { enumerar } from "../../../lib/enumerar";
 
 /** La única campaña de aulas mientras `collection_state` sea singular (ADR 0111 §6). */
 export const ID_CAMPANA_AULAS = "aulas.principal";
@@ -288,17 +289,16 @@ const ESTADO_DE_LOS_ACCESOS: Readonly<Record<string, string>> = {
 };
 
 /**
- * «Invitación exportada 02/09 · Recordatorio 1 pendiente» (ADR 0111 §8): cada
+ * «Invitación exportada 02/09 y Recordatorio 1 pendiente» (ADR 0111 §8): cada
  * envío dice si ya salió de la app. Sin detalle por envío no se inventa nada.
  */
 export function lineaDeEnvios(estado: Pick<EstadoCampanaCorreo, "envios_detalle">): string | null {
   if (!estado.envios_detalle.length) return null;
-  return estado.envios_detalle
-    .map((e) => {
-      const cuando = e.last_export_at ? fechaCorta(e.last_export_at) : null;
-      return cuando ? `${e.label} exportada ${cuando}` : `${e.label} pendiente`;
-    })
-    .join(" · ");
+  // Pasada de formato (P3): la frase se une con comas y «y», no con «·».
+  return enumerar(estado.envios_detalle.map((e) => {
+    const cuando = e.last_export_at ? fechaCorta(e.last_export_at) : null;
+    return cuando ? `${e.label} exportada ${cuando}` : `${e.label} pendiente`;
+  }));
 }
 
 export function resumenDeTarjeta(campana: CampanaMaterial): ResumenDeTarjeta {
@@ -339,7 +339,7 @@ export function resumenDeTarjeta(campana: CampanaMaterial): ResumenDeTarjeta {
     const exportados = estado.envios_detalle.filter((e) => e.last_export_at).length;
     const todos = estado.envios_detalle.length > 0 && exportados === estado.envios_detalle.length;
     // Los envíos van uno por línea con su estado; aquí, la salida y el tamaño.
-    const hechos = [`Sale por ${NOMBRE_DE_PLATAFORMA[estado.platform]} · ${estado.bloques} ${estado.bloques === 1 ? "bloque" : "bloques"}`];
+    const hechos = [`Sale por ${NOMBRE_DE_PLATAFORMA[estado.platform]}, con ${estado.bloques} ${estado.bloques === 1 ? "bloque" : "bloques"}`];
     const envios = estado.envios_detalle.map((e) => {
       const cuando = e.last_export_at ? fechaCorta(e.last_export_at) : null;
       return { label: e.label, exportado: Boolean(cuando), texto: cuando ? `exportado ${cuando}` : "pendiente" };
@@ -372,7 +372,7 @@ export function resumenDeTarjeta(campana: CampanaMaterial): ResumenDeTarjeta {
       ],
       envios: [],
       hechos: [
-        `${ROTULO_DE_FASE[estado.fase]} · enviada el ${cuando}`,
+        `${ROTULO_DE_FASE[estado.fase]}, enviada el ${cuando}`,
         ...(estado.stale ? ["La muestra cambió en Hojas de ruta: reenvíala"] : []),
       ],
     };
@@ -403,7 +403,7 @@ export function resumenDeTarjeta(campana: CampanaMaterial): ResumenDeTarjeta {
       avance: null,
       cifras: [{ valor: estado.casos, rotulo: estado.casos === 1 ? "caso" : "casos" }],
       envios: [],
-      hechos: [`Lote ${estado.lote_id}${estado.criterio ? ` · ${estado.criterio}` : ""}`],
+      hechos: [`Lote ${estado.lote_id}${estado.criterio ? `, ${estado.criterio}` : ""}`],
     };
   }
   return { estado: "No disponible", tono: "neutral", avance: null, hechos: [], cifras: [], envios: [] };

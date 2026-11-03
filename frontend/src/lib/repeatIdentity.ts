@@ -8,6 +8,8 @@
 // solo presenten y para que la misma semántica sea consistente en Carga,
 // Analítica y cualquier otra superficie donde aparezca un repeat.
 
+import { enumerar } from "./enumerar";
+
 /**
  * Grano de una base hija repeat. El backend lo emite en
  * `/api/analitica/variables` (campo `grain`) desde
@@ -84,13 +86,13 @@ export function isRepeatChildBase(base: RepeatBaseLike | null | undefined): bool
 }
 
 /**
- * Etiqueta del badge de identidad repeat: "Repetible · <grupo>" cuando hay
+ * Etiqueta del badge de identidad repeat: "Repetible: <grupo>" cuando hay
  * grupo, o "Repetible" a secas. El texto es siempre estable para que el
  * naranja lea igual en toda la app.
  */
 export function repeatBadgeLabel(repeatGroup?: string | null): string {
   const group = String(repeatGroup ?? "").trim();
-  return group ? `Repetible · ${group}` : "Repetible";
+  return group ? `Repetible: ${group}` : "Repetible";
 }
 
 /**
@@ -149,5 +151,5 @@ export function formatRepeatGrain(grain: RepeatGrain | null | undefined): Repeat
     parts.push(formatCount(nPers, "persona", "personas"));
   }
   const caveat = grain.nota.trim() ? REPEAT_GRAIN_CAVEAT : "";
-  return { headline: parts.join(" · "), caveat };
+  return { headline: enumerar(parts), caveat };
 }

@@ -99,7 +99,7 @@ describe("lámina de cuatro gráficos con 87 cajas chicas", () => {
     expect(rs.every((r) => r.tipo === "caja")).toBe(true);
   });
 
-  // Mutante que mata: dejar caer la regla de umbral (un rótulo por pieza de 0,7 × 0,3 in a 1024 = 34 × 14 px).
+  // Mutante que mata: dejar caer la regla de umbral (un rótulo por pieza de 0.7 × 0.3 in a 1024 = 34 × 14 px).
   it("una caja por debajo del umbral no rotula en línea, pero su dato sigue al pasar el mouse", () => {
     const rs = colocarRotulos(modelo, HOJA_1024);
     const piezas = modelo.elementos.filter((e) => e.nombre.startsWith("pieza"));
@@ -130,7 +130,7 @@ describe("un rótulo por caja", () => {
   it("Tipografía y Medidas sobre la misma caja dan un solo rótulo combinado", () => {
     const rs = colocarRotulos(construirGuias(datos, 1, capas({ tipografia: true, medidas: true }), []), HOJA_1440);
     expect(rs).toHaveLength(1);
-    expect(rs[0].texto).toBe("24 pt, 30,48 × 2,29 cm");
+    expect(rs[0].texto).toBe("24 pt, 30.48 × 2.29 cm");
     expect(clasesDeRotulo(rs[0]).split(" ")).toEqual(expect.arrayContaining(["is-caja", "is-pt", "is-fuera", "is-medida"]));
   });
 

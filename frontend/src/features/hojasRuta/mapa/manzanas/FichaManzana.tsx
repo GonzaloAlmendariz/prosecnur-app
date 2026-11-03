@@ -31,8 +31,8 @@ export function FichaManzana({ manzana, distrito, enMuestra, minimo, onCerrar }:
     <>
       <InspectorCabecera
         icono={Grid3x3}
-        sobre={`Manzana · ${distrito ? nombreDistrito(distrito) : manzana.ubigeo}`}
-        titulo={`Zona ${manzana.zona} · Manzana ${String(manzana.id).slice(-4)}`}
+        sobre={`Manzana en ${distrito ? nombreDistrito(distrito) : manzana.ubigeo}`}
+        titulo={`Zona ${manzana.zona}, Manzana ${String(manzana.id).slice(-4)}`}
         derecha={<PulsoButton variant="icon" size="sm" aria-label="Cerrar la ficha" onClick={onCerrar}><X size={14} /></PulsoButton>}
       />
       <div className="hr-mapa-ins-cuerpo">
@@ -43,7 +43,7 @@ export function FichaManzana({ manzana, distrito, enMuestra, minimo, onCerrar }:
         <dl className="hr-mapa-filas">
           <div><dt>Manzana</dt><dd>{manzana.id}</dd></div>
           <div><dt>Zona</dt><dd>{manzana.zona}</dd></div>
-          <div><dt>En la muestra</dt><dd>{enMuestra ? `${enMuestra.rol === "titular" ? "Titular" : "Reemplazo"} · ${enMuestra.ump}` : "No salió"}</dd></div>
+          <div><dt>En la muestra</dt><dd>{enMuestra ? `${enMuestra.rol === "titular" ? "Titular" : "Reemplazo"}, ${enMuestra.ump}` : "No salió"}</dd></div>
           {minimo !== null ? <div><dt>Marco elegible</dt><dd>{fuera ? `Queda fuera: menos de ${fmt(minimo)} viviendas` : "Entra"}</dd></div> : null}
         </dl>
         {manzana.viviendas === 0 ? <p className="hr-mapa-aviso">El censo no registra viviendas en esta manzana.</p> : null}

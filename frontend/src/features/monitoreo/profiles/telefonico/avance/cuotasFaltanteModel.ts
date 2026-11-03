@@ -14,6 +14,7 @@
  * parciales, sin llamar) sobre el listado completo de cada categoría.
  */
 
+import { caracterEfectivo, estadoDeCuota, type CaracterDeCuota, type EstadoDeCuota } from "../../../core/caracterDeCuota";
 import { buildTelefonicoCumplimiento } from "../telefonicoGoalModel";
 import { parseAcreditacionDailyDate } from "./ritmoDiario";
 
@@ -27,6 +28,12 @@ export type CuotaDeEntrada = {
   pending: number;
   meta: number | null;
   dailyPoints: ReadonlyArray<{ date: string; effective: number; total?: number }>;
+  /** ADR 0126: lo que publica el motor (`Caracter`); sin él, meta si hay número. */
+  caracter?: CaracterDeCuota | null;
+  /** `estado_cuota` del motor, si viaja. */
+  estadoCuota?: EstadoDeCuota | null;
+  /** El número de una referencial declarada (`Referencia` del motor): nunca un piso. */
+  referencia?: number | null;
 };
 
 export type PuntoAcumulado = { fecha: string; valor: number };
@@ -35,7 +42,11 @@ export type FilaDeCuota = {
   clave: string;
   nombre: string;
   estado: "cumple" | "en-curso" | "sin-meta";
+  /** ADR 0126. Una referencial no tiene meta: su número viaja en `referencia`. */
+  caracter: CaracterDeCuota;
+  estadoCuota: EstadoDeCuota;
   meta: number | null;
+  referencia: number | null;
   efectivas: number;
   faltan: number | null;
   pct: number | null;
@@ -50,14 +61,46 @@ export type FilaDeCuota = {
   llamadoSinEfectiva: number;
 };
 
+/**
+ * Una cuota referencial (ADR 0126 §4): lo obtenido frente al listado, en
+ * puntos y con su `n`, sin faltante ni veredicto. El comparador es la hoja de
+ * barrido: el marco, no la población.
+ */
+export type FilaReferencial = {
+  clave: string;
+  nombre: string;
+  efectivas: number;
+  universo: number;
+  /** Parte de las efectivas de la variable, de 0 a 100; null sin efectivas. */
+  obtenida: number | null;
+  /** Parte del listado de la variable, de 0 a 100; null sin listado. */
+  esperada: number | null;
+  /** obtenida − esperada, en puntos. */
+  diferencia: number | null;
+  /** El número declarado, si lo trae: una referencia, nunca un piso. */
+  referencia: number | null;
+  /** Con listado y ninguna efectiva: impide posestratificar. Un hecho, no una alarma. */
+  celdaVacia: boolean;
+  estadoCuota: EstadoDeCuota;
+};
+
 export type CadenaDeLaCifra = Array<{ nombre: string; detalle: string; valor: number }>;
 
 export type CuotasFaltante = {
   segmento: string;
+  /** De dónde salen las efectivas (`origenDeEfectivas.ts`); sin dato, Kobo. */
+  origen?: import("./origenDeEfectivas").OrigenDeEfectivas;
+  /** Sólo las metas (ADR 0126): lo que se exige. */
   filas: FilaDeCuota[];
+  /** Todas las categorías, para el listado: el barrido no distingue carácter. */
+  todas: FilaDeCuota[];
+  referenciales: FilaReferencial[];
   total: {
     meta: number | null;
+    /** Todas las efectivas de la variable (la cifra de «De dónde sale»). */
     efectivas: number;
+    /** Sólo las de las metas con número; el % de la meta no compensa entre celdas. */
+    efectivasDeMetas: number;
     faltan: number | null;
     pct: number | null;
     desde: string | null;
@@ -125,16 +168,21 @@ export function construirCuotasFaltante({
   const series = cuotas.map((cuota) => serieDiaria(cuota.dailyPoints));
   const fechas = [...new Set(series.flatMap((serie) => [...serie.keys()]))].sort();
 
-  const filas: FilaDeCuota[] = cuotas.map((cuota, indice) => {
+  const todas: FilaDeCuota[] = cuotas.map((cuota, indice) => {
     const acumuladoDia = acumular(fechas, series[indice]);
-    const meta = cuota.meta != null && cuota.meta > 0 ? cuota.meta : null;
+    const caracter = cuota.caracter ?? caracterEfectivo(null, cuota.meta);
+    const meta = caracter === "meta" && cuota.meta != null && cuota.meta > 0 ? cuota.meta : null;
     const faltan = meta != null ? Math.max(0, meta - cuota.effective) : null;
     const rechazoOParcial = Math.max(0, cuota.partial) + Math.max(0, cuota.refusals);
     return {
       clave: cuota.id,
       nombre: cuota.actor,
       estado: meta == null ? "sin-meta" : faltan === 0 ? "cumple" : "en-curso",
+      caracter,
+      estadoCuota: cuota.estadoCuota ?? estadoDeCuota(caracter, caracter === "meta" ? cuota.meta : null, cuota.effective, cuota.universe),
       meta,
+      referencia: caracter !== "referencial" ? null
+        : cuota.referencia ?? (cuota.meta != null && cuota.meta > 0 ? cuota.meta : null),
       efectivas: cuota.effective,
       faltan,
       pct: meta != null ? (cuota.effective / meta) * 100 : null,
@@ -149,11 +197,12 @@ export function construirCuotasFaltante({
   });
 
   const cumplimiento = buildTelefonicoCumplimiento({
-    categorias: cuotas.map((cuota) => ({
+    categorias: cuotas.map((cuota, indice) => ({
       clave: cuota.id,
       etiqueta: cuota.actor,
       universo: cuota.universe,
-      minimo: cuota.meta,
+      // Una referencial no aporta mínimo: su número es referencia (ADR 0126).
+      minimo: todas[indice].meta,
       logrado: cuota.effective,
     })),
     logradoTotal: cuotas.reduce((suma, cuota) => suma + cuota.effective, 0),
@@ -164,17 +213,45 @@ export function construirCuotasFaltante({
     serieDiaria: fechas.map((fecha) => series.reduce((suma, serie) => suma + (serie.get(fecha) ?? 0), 0)),
   });
 
+  // Metas y referenciales no se suman entre sí (ADR 0126): el total de metas
+  // cuenta las efectivas de las metas, no las de una categoría que no se exige.
+  const filas = todas.filter((fila) => fila.caracter === "meta");
   const conMeta = filas.filter((fila) => fila.meta != null);
   const metaTotal = conMeta.length ? conMeta.reduce((suma, fila) => suma + (fila.meta ?? 0), 0) : null;
-  const efectivasTotal = filas.reduce((suma, fila) => suma + fila.efectivas, 0);
+  const efectivasTotal = todas.reduce((suma, fila) => suma + fila.efectivas, 0);
+  const efectivasDeMetas = conMeta.reduce((suma, fila) => suma + fila.efectivas, 0);
+  const faltanTotal = conMeta.length ? conMeta.reduce((suma, fila) => suma + (fila.faltan ?? 0), 0) : null;
+  const universoTotal = todas.reduce((suma, fila) => suma + fila.universo, 0);
+  const parte = (valor: number, total: number) => (total > 0 ? (valor / total) * 100 : null);
+  const referenciales: FilaReferencial[] = todas.filter((fila) => fila.caracter === "referencial").map((fila) => {
+    const obtenida = parte(fila.efectivas, efectivasTotal);
+    const esperada = parte(fila.universo, universoTotal);
+    return {
+      clave: fila.clave,
+      nombre: fila.nombre,
+      efectivas: fila.efectivas,
+      universo: fila.universo,
+      obtenida,
+      esperada,
+      diferencia: obtenida != null && esperada != null ? obtenida - esperada : null,
+      referencia: fila.referencia,
+      celdaVacia: fila.universo > 0 && fila.efectivas <= 0,
+      estadoCuota: fila.estadoCuota,
+    };
+  });
   return {
     segmento,
     filas,
+    todas,
+    referenciales,
     total: {
       meta: metaTotal,
       efectivas: efectivasTotal,
-      faltan: conMeta.length ? conMeta.reduce((suma, fila) => suma + (fila.faltan ?? 0), 0) : null,
-      pct: metaTotal ? (efectivasTotal / metaTotal) * 100 : null,
+      efectivasDeMetas,
+      faltan: faltanTotal,
+      // Sin compensar entre celdas (ADR 0079): el exceso de una no cubre el
+      // faltante de otra, así que el % es lo cubierto de la meta, no Σ efectivas.
+      pct: metaTotal ? ((metaTotal - (faltanTotal ?? 0)) / metaTotal) * 100 : null,
       desde: fechaCorta(fechas[0] ?? null),
       hasta: fechaCorta(fechas.at(-1) ?? null),
       // Con cuotas, el total se cumple cuando se cumple la última de ellas:
@@ -182,8 +259,8 @@ export function construirCuotasFaltante({
       cumplio: conMeta.length && conMeta.every((fila) => fila.cumplio)
         ? fechaCorta([...conMeta.map((fila) => fila.cumplioClave ?? "")].sort().at(-1) ?? null)
         : null,
-      sinLlamar: filas.reduce((suma, fila) => suma + fila.sinLlamar, 0),
-      universo: filas.reduce((suma, fila) => suma + fila.universo, 0),
+      sinLlamar: todas.reduce((suma, fila) => suma + fila.sinLlamar, 0),
+      universo: universoTotal,
     },
     ritmo: cumplimiento.ritmo ? { porDia: cumplimiento.ritmo.porDia, dias: cumplimiento.ritmo.diasConDatos } : null,
     rendimiento: cumplimiento.reserva?.costoPorEfectiva ?? null,

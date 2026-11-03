@@ -114,7 +114,7 @@ export function AulasParteContraPlataforma({ partes, agenda }: {
         <strong>{fmt(r.descuadran)}</strong> de {fmt(r.comparables)} cursos-horario
         comparables no cuadran con plataforma
         {r.conVariosPartes ? (
-          <> · {fmt(r.conVariosPartes)} suman varios partes</>
+          <>, {fmt(r.conVariosPartes)} suman varios partes</>
         ) : null}
       </p>
       {/* El descuento, dicho antes de la lista (B8): lo que el filtro explica
@@ -149,8 +149,8 @@ export function AulasParteContraPlataforma({ partes, agenda }: {
             <span className="aulas-cruce-por">
               {/* Los dos números, siempre: la diferencia sola no dice si son 20
                   contra 18 o 2 contra 0. */}
-              parte {fmt(c.declaradas)} · plataforma {fmt(c.enPlataforma)}
-              {c.facultad ? ` · ${c.facultad}` : ""}
+              parte {fmt(c.declaradas)}, plataforma {fmt(c.enPlataforma)}
+              {c.facultad ? `, ${c.facultad}` : ""}
             </span>
           </li>
         ))}

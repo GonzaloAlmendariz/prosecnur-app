@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Table2 } from "lucide-react";
+import { EstadoChip } from "../../../../../components/EstadoChip";
+import { tonoDeEstadoChip, type TonoDeAulas } from "../tonoDeEstadoChip";
 
 import {
   apiMonitoreoAulasTablasConstruidas,
@@ -11,7 +13,7 @@ import {
 /** Material › Entrega, donde se construyen el libro y la distribución. */
 export const RUTA_ENTREGA_DE_MATERIAL = "/material-campo?modo=aulas&campana=aulas.principal&seccion=entrega&pestana=traspaso";
 
-type Lectura = { estado: string; tono: string; nota: string; falta: boolean };
+type Lectura = { estado: string; tono: TonoDeAulas; nota: string; falta: boolean };
 
 /** Qué dice la fila de una tabla de Material, sin red: se prueba aparte. */
 export function lecturaDeTabla(t: TablaDeMaterial, faltan: string[] = []): Lectura {
@@ -49,7 +51,7 @@ function Fila({ nombre, trae, volumen, t, lectura }: {
             Construir en Material
           </Link>
         ) : (
-          <span className="aulas-ins-chip" data-tono={lectura.tono}>{lectura.estado}</span>
+          <EstadoChip label={lectura.estado} tone={tonoDeEstadoChip(lectura.tono)} />
         )}
       </td>
     </tr>

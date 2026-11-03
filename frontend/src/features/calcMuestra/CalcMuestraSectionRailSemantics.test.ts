@@ -47,7 +47,7 @@ describe("CalcMuestra section rail semantics", () => {
       "utf8",
     );
 
-    expect(pageSource).toContain('description: `${tab.detail} · ${guidedStatusLabel(tab.status)}`');
+    expect(pageSource).toContain('description: `${tab.detail}, ${guidedStatusLabel(tab.status)}`');
     expect(pageSource).not.toContain("disabled: tab.status");
     expect(deskSource).toContain("const activeContextTabId = universityContextTabId(selectedSection, activeContextTabKey)");
     expect(deskSource.match(/aria-labelledby=\{activeContextTabId\}/g)).toHaveLength(5);

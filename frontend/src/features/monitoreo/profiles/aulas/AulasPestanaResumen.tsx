@@ -336,7 +336,7 @@ export function AulasPestanaResumen({
                       en las dos columnas de cifras. El rótulo dice lo que hay. */}
                   <span>
                     efectivas y cursos-horario aplicados de cada{" "}
-                    {grupoSingular.toLocaleLowerCase("es")} · ordenadas por efectivas
+                    {grupoSingular.toLocaleLowerCase("es")}, ordenadas por efectivas
                   </span>
                 </div>
                 <AulasResumenPorFacultad
@@ -455,8 +455,8 @@ export function AulasPestanaResumen({
                   // se retiró, pero el rótulo hace falta igual: quien compara este
                   // ritmo con un ranking tiene que saber que no son la misma unidad.
                   const base = `${fmt(dias.length)} ${dias.length === 1 ? "día" : "días"}`;
-                  const cuenta = conCampo && conCampo !== dias.length ? `${base} · ${fmt(conCampo)} con campo` : base;
-                  return `${cuenta} · válidas de plataforma`;
+                  const cuenta = conCampo && conCampo !== dias.length ? `${base}, ${fmt(conCampo)} con campo` : base;
+                  return `${cuenta}, válidas de plataforma`;
                 })()}</span>
               </div>
               {/* **El horizonte lo calcula la pestaña, que es quien ve los dos
@@ -683,7 +683,7 @@ export function AulasPestanaResumen({
                     universo es el de ELLA, no el del estudio. */}
                 <span>{contadorDelReparto(facultadEnFoco
                   ? delMapaPorFacultad(dashboard.course_status_cobertura_por_facultad, facultadEnFoco)?.cobertura
-                  : dashboard.course_status_cobertura)} ya aplicados · cuánto lleva
+                  : dashboard.course_status_cobertura)} ya aplicados, cuánto lleva
                   recogido cada uno de su propia meta</span>
               </div>
               <AulasCoberturaChart

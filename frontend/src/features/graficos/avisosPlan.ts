@@ -12,6 +12,7 @@ import { create } from "zustand";
 import { getSession } from "../../api/core";
 import { fijarSumideroAvisosConfig } from "../../api/graficosAvisosConfig";
 import { toast, useToasterStore } from "../../components/toasterStore";
+import { formatoConteo } from "../../lib/formatoNumero";
 
 export const CLAVE_AVISOS_PLAN = "pulso.graficos.avisosPlan.v1";
 
@@ -101,7 +102,7 @@ export const DURACION_TOAST_AVISOS_PLAN = 10_000;
 /** Título y opciones del toast; puro para fijar en test que se cierra solo y que remite al panel de Avisos. */
 export function toastAvisosPlan(avisos: readonly string[]): { mensaje: string; detalle: string; duracion: number } {
   return {
-    mensaje: avisos.length === 1 ? "El plan de gráficos cambió al abrirlo" : `El plan de gráficos cambió al abrirlo (${avisos.length} avisos)`,
+    mensaje: avisos.length === 1 ? "El plan de gráficos cambió al abrirlo" : `El plan de gráficos cambió al abrirlo (${formatoConteo(avisos.length)} avisos)`,
     detalle: `${avisos[0]}${avisos.length > 1 ? " …" : ""} Detalle en Láminas › Avisos.`,
     duracion: DURACION_TOAST_AVISOS_PLAN,
   };

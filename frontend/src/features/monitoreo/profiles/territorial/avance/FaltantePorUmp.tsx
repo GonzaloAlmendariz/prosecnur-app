@@ -1,5 +1,7 @@
 import { Fragment, memo, useEffect, useMemo, useRef, useState } from "react";
-import { ArrowRightLeft, ChevronDown, ChevronRight, Info, Map as MapIcon, Target } from "lucide-react";
+import { ArrowRightLeft, ChevronDown, ChevronRight, Info, Map as MapIcon, Target, SearchX } from "lucide-react";
+import { EstadoVacio } from "../../../../../components/EstadoVacio";
+import { EstadoChip } from "../../../../../components/EstadoChip";
 import type { MonitoreoTerritorialDashboard } from "../../../../../api/client";
 import { Switch } from "../../../../../components/Switch";
 import { useFocoMonitoreo } from "../../../useMonitoreoDireccion";
@@ -20,7 +22,9 @@ import { avancePorZona } from "./porZonaModelo";
 import type { UmpPlanificada } from "../../../../../api/monitoreoAsignacionPlanificada";
 import { useAsignacionPlanificada } from "./useAsignacionPlanificada";
 import { SiluetaDeDistrito } from "./SiluetaDeDistrito";
+import { tonoDeCalor } from "./tonoDeCalor";
 import { RotuloDePestana } from "../navegacion/RotuloDePestana";
+import { useQuedanMasAbajo } from "../../../core/useQuedanMasAbajo";
 import "./faltante.css";
 
 /**
@@ -46,19 +50,27 @@ function FaltantePorUmpImpl({ reports }: { reports: MonitoreoTerritorialDashboar
 
   // ADR 0125 A1: con envío por cuotas no hay UMP; el avance va por zona y celda.
   const porZona = avancePorZona(reports?.cuotas);
-  if (porZona) return <AvancePorZona modelo={porZona} />;
+  if (porZona) {
+    const nombres = new Map((reports?.advance?.district_progress ?? []).map((d) => [String(d.ubigeo ?? ""), String(d.distrito ?? "")] as const));
+    return <AvancePorZona modelo={porZona} nombres={nombres} />;
+  }
 
   if (!modelo.configurado) {
     return (
       <section className="mon-falt mon-falt--vacio" data-audit-ready="vacio:sin-cuota" aria-label="Faltante por UMP">
-        <div className="mon-falt-panel mon-falt-vacio" data-qa-geometry-empty="legitimo">
+        <div className="mon-falt-panel" data-qa-geometry-empty="legitimo">
           <RotuloDePestana />
-          <Target size={20} aria-hidden="true" />
-          <strong>Sin cuota territorial configurada</strong>
-          <span>La cuota por UMP se declara en Modelo › Cuotas desde la muestra de Hojas de ruta.</span>
-          <button type="button" className="mon-falt-boton" onClick={() => escribirFoco(null, { seccion: "modelo", pestana: "cuotas", panel: null })}>
-            Abrir Modelo › Cuotas
-          </button>
+          <EstadoVacio
+            tamano="normal"
+            icono={<Target size={18} />}
+            titulo="Sin cuota territorial configurada"
+            descripcion="La cuota por UMP se declara en Modelo › Cuotas desde la muestra de Hojas de ruta."
+            accion={
+              <button type="button" className="mon-falt-boton" onClick={() => escribirFoco(null, { seccion: "modelo", pestana: "cuotas", panel: null })}>
+                Abrir Modelo › Cuotas
+              </button>
+            }
+          />
         </div>
       </section>
     );
@@ -139,6 +151,7 @@ function PanelDePendientes({
   onMapa: (ump: string) => void;
 }) {
   const completas = modelo.totalUmp - modelo.pendientes.length;
+  const { ref: listaRef, quedan } = useQuedanMasAbajo<HTMLDivElement>(modelo.pendientes);
   return (
     <section className="mon-falt-panel mon-falt-pendientes" aria-labelledby="mon-falt-pendientes-titulo" data-qa-geometry-member="pendientes">
       <header className="mon-falt-cabecera">
@@ -152,7 +165,7 @@ function PanelDePendientes({
           </span>
         ) : null}
       </header>
-      <div className="mon-falt-tarjetas" data-qa-geometry-group="territorial-faltante-tarjetas" data-qa-geometry-contract="intrinsic">
+      <div ref={listaRef} className={`mon-falt-tarjetas${quedan ? " quedan-mas" : ""}`} data-qa-geometry-group="territorial-faltante-tarjetas" data-qa-geometry-contract="intrinsic">
         {modelo.pendientes.map((fila) => (
           <article key={fila.ump} className={`mon-falt-tarjeta${fila.cubre?.tipo === "sugerencia" ? " is-con-sugerencia" : ""}`}>
             <SiluetaDeDistrito distrito={fila.distrito} tono="falta" />
@@ -162,10 +175,10 @@ function PanelDePendientes({
             </div>
             <div className="mon-falt-tarjeta-linea is-falta">
               {fila.faltantes.map((item) => (
-                <span key={item.texto} className="mon-falt-chip is-falta">Falta {fmt(item.falta)}: {item.texto}</span>
+                <EstadoChip key={item.texto} label={`Falta ${fmt(item.falta)}: ${item.texto}`} tone="warn" />
               ))}
               {fila.cubre?.tipo === "sugerencia" ? (
-                <span className="mon-falt-chip is-sugerencia">Sugerencia desde la {textoDeQuienCubre(fila.cubre)}</span>
+                <EstadoChip label={`Sugerencia desde la ${textoDeQuienCubre(fila.cubre)}`} tone="info" />
               ) : (
                 <span className="mon-falt-sin">Sin excedente compatible cerca</span>
               )}
@@ -200,17 +213,6 @@ function PanelDePendientes({
   );
 }
 
-function tonoDeCalor(logrado: number, meta: number): { fondo: string; tinta: "clara" | "oscura" } {
-  if (!(meta > 0)) return { fondo: "var(--pulso-surface-3)", tinta: "oscura" };
-  const razon = logrado / meta;
-  if (razon < 1) return { fondo: "var(--pulso-warn-bg)", tinta: "oscura" };
-  // De 100 % a 125 % o más, del azul más suave al marino.
-  const intensidad = Math.round(28 + Math.min(1, (razon - 1) / 0.25) * 52);
-  return {
-    fondo: `color-mix(in srgb, var(--pulso-brand-navy) ${intensidad}%, var(--pulso-surface))`,
-    tinta: intensidad >= 50 ? "clara" : "oscura",
-  };
-}
 
 function MapaDeCalor({ modelo }: { modelo: ModeloFaltante }) {
   const columnas = modelo.distritos[0]?.celdas ?? [];
@@ -240,7 +242,7 @@ function MapaDeCalor({ modelo }: { modelo: ModeloFaltante }) {
                       style={{ background: tono.fondo }}
                       title={`${fila.distrito}, ${celda.rotulo}: ${fmt(celda.logrado)} de ${fmt(celda.meta)}`}
                     >
-                      <b>{fmt(celda.logrado)}</b> de {fmt(celda.meta)}
+                      <b>{fmt(celda.logrado)}</b>{" "}<small>de {fmt(celda.meta)}</small>
                     </span>
                   </td>
                 );
@@ -299,8 +301,8 @@ function TablaDeCuotas({
 
   if (!filas.length) {
     return (
-      <div className="mon-falt-vacio-tabla" data-qa-geometry-empty="legitimo">
-        Ninguna UMP con ese filtro.
+      <div data-qa-geometry-empty="legitimo">
+        <EstadoVacio icono={<SearchX size={15} />} titulo="Ninguna UMP con ese filtro." />
       </div>
     );
   }

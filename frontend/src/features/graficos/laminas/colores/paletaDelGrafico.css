@@ -34,7 +34,7 @@
   border-radius: var(--pulso-radius);
   background: var(--pulso-surface-2);
   color: var(--pulso-text-soft);
-  font-size: 12.5px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .pulso-pg-elegir {
@@ -43,7 +43,7 @@
   align-items: center;
   gap: var(--pulso-space-2);
   color: var(--pulso-text-soft);
-  font-size: 12.5px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .pulso-pg-elegir select {
@@ -55,7 +55,7 @@
   background: var(--pulso-surface);
   color: var(--pulso-text);
   font: inherit;
-  font-size: 13px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .pulso-pg-enlace {
@@ -92,7 +92,7 @@
   padding: 0;
   list-style: none;
   color: var(--pulso-text);
-  font-size: 12.5px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .pulso-pg-leyenda li {

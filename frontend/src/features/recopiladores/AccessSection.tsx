@@ -38,6 +38,8 @@ import { VacioSinPlanCard } from "./VacioSinPlanCard";
 import { vacioSinPlan } from "./vacioSinPlan";
 import { mapaDeCodigosDelPlan, titularesDelPlan } from "./codigoOperativo";
 import "./styles/access.css";
+import { EstadoVacio } from "../../components/EstadoVacio";
+import { AulasSinAcceso, ChequeosDelOrigen, CifrasDeAccesos } from "./AccesosTablero";
 
 type Props = {
   payload: CollectionStatePayload | null;
@@ -244,6 +246,10 @@ export function AccessSection({ payload, activeTab, onState, onIr, onVerVinculac
     [payload?.state.plan],
   );
   const aulasDelPlan = titularesDelPlan(payload?.state.plan);
+  // Pasada de diseño (2 nov 2026): las aulas titulares, por su código, para las cifras y las fichas.
+  const titulares = (plan?.units ?? []).filter((u) => (u.role ?? "").toLowerCase().replace(/[ -]+/g, "_") === "titular");
+  const conEnlace = new Set((candidate?.bindings ?? []).map((b) => b.unit_id));
+  const conAcceso = titulares.filter((u) => conEnlace.has(u.unit_id)).length;
   const backendBlocking = preflight?.blocking ?? [];
   const blocked = localBlocking.length > 0 || backendBlocking.length > 0;
 
@@ -345,6 +351,13 @@ export function AccessSection({ payload, activeTab, onState, onIr, onVerVinculac
   }
 
   return (
+    <div className="rec-access-pagina">
+    <CifrasDeAccesos
+      aulas={aulasDelPlan}
+      conAcceso={conAcceso}
+      canal={COLLECTION_ADAPTER_LABELS[adapterId] ?? adapterId}
+      estado={currentDeployment?.status ?? null}
+    />
     <div className="rec-access-layout">
       <Panel
         className="rec-target-panel"
@@ -475,7 +488,7 @@ export function AccessSection({ payload, activeTab, onState, onIr, onVerVinculac
                     <small>
                       {(capability.implementation ? IMPLEMENTATION_LABELS[capability.implementation] : null)
                         ?? policyLabel(capability.source)
-                        ?? "Sin implementación"} · {policyLabel(capability.policy) ?? "Sin política"}
+                        ?? "Sin implementación"}, {policyLabel(capability.policy) ?? "Sin política"}
                     </small>
                   </article>
                 ))}
@@ -484,11 +497,7 @@ export function AccessSection({ payload, activeTab, onState, onIr, onVerVinculac
               // El texto anterior era exacto y aun así ilegible: los tres ejes
               // que separa el preflight son de verdad tres —`supported`,
               // `available` y la política de la versión— y se dicen así.
-              <div className="rec-contained-empty">
-                Comprueba el formulario antes de usarlo. Son tres cosas distintas:
-                si la plataforma lo permite, si Pulso ya sabe hacerlo, y si esta
-                versión lo autoriza.
-              </div>
+              <ChequeosDelOrigen ocupado={Boolean(busy)} onComprobar={() => { void runPreflight(); }} />
             )}
           </>
         ) : (
@@ -513,11 +522,11 @@ export function AccessSection({ payload, activeTab, onState, onIr, onVerVinculac
               // El vacío decía «la vista previa no produjo enlaces», que es
               // cierto y no ubica: no dice cuántas aulas esperan acceso ni
               // cuántas llevan. El plan tiene ese número desde que se sembró.
-              <div className="rec-contained-empty">
-                {aulasDelPlan > 0
-                  ? <>{"Ninguna de las "}<b>{aulasDelPlan.toLocaleString("es-PE")} aulas</b>{" del plan tiene acceso todavía. Los enlaces aparecen aquí cuando llegan de la plataforma."}</>
-                  : <>Todavía no hay plan del que colgar accesos.</>}
-              </div>
+              aulasDelPlan > 0 ? (
+                <AulasSinAcceso codigos={titulares.map((u) => codigosDeUnidad.get(u.unit_id) || u.label)} />
+              ) : (
+                <EstadoVacio icono={<Link2 size={16} aria-hidden />} titulo="Todavía no hay plan del que colgar accesos" />
+              )
             )}
           </>
         )}
@@ -530,6 +539,7 @@ export function AccessSection({ payload, activeTab, onState, onIr, onVerVinculac
         ) : null}
         {error ? <p className="rec-inline-error" role="alert">{error}</p> : null}
       </Panel>
+    </div>
     </div>
   );
 }

@@ -1,3 +1,4 @@
+import { formatoConteo } from "../../lib/formatoNumero";
 // Compatibilidad de escalas de multi-apiladas, compartida entre el
 // constructor (que avisa mientras editas) y el validador del plan (que
 // bloquea el export).
@@ -46,7 +47,7 @@ export function describeScale(v: ScaleVar | undefined): string {
     .filter((label) => label.length > 0);
   if (!labels.length) return "escala sin categorías declaradas";
   if (labels.length <= 3) return labels.join(" / ");
-  return `${labels[0]} … ${labels[labels.length - 1]} (${labels.length} categorías)`;
+  return `${labels[0]} … ${labels[labels.length - 1]} (${formatoConteo(labels.length)} categorías)`;
 }
 
 /**

@@ -36,9 +36,9 @@ describe("plan del «Actualizar ▾» territorial", () => {
     const porClave = Object.fromEntries(plan.menu.map((e) => [e.clave, e]));
     expect(porClave.todo.peticion).toEqual({ tipo: "sync", modo: "full", fuentes: ["kobo_campo", "occ"] });
     expect(porClave.recalcular).toMatchObject({ etiqueta: "Recalcular", detalle: "Hay cambios sin recalcular", peticion: { tipo: "recalcular" } });
-    expect(porClave["fuente:kobo_campo"]).toMatchObject({ detalle: "Kobo · campo, fase activa", grupo: "fuentes", peticion: { tipo: "sync", modo: "full", fuentes: ["kobo_campo"] } });
-    expect(porClave["fuente:kobo_piloto"]).toMatchObject({ detalle: "Kobo · piloto", peticion: { tipo: "sync", modo: "full", fuentes: ["kobo_piloto"] } });
-    expect(porClave["fuente:occ"]).toMatchObject({ detalle: "Kobo · ocurrencias de campo", peticion: { tipo: "sync", modo: "full", fuentes: ["occ"] } });
+    expect(porClave["fuente:kobo_campo"]).toMatchObject({ detalle: "Kobo, campo, fase activa", grupo: "fuentes", peticion: { tipo: "sync", modo: "full", fuentes: ["kobo_campo"] } });
+    expect(porClave["fuente:kobo_piloto"]).toMatchObject({ detalle: "Kobo, piloto", peticion: { tipo: "sync", modo: "full", fuentes: ["kobo_piloto"] } });
+    expect(porClave["fuente:occ"]).toMatchObject({ detalle: "Kobo, ocurrencias de campo", peticion: { tipo: "sync", modo: "full", fuentes: ["occ"] } });
     expect(plan.menu.some((e) => e.etiqueta === "Solo recalcular")).toBe(false);
   });
 
@@ -47,14 +47,14 @@ describe("plan del «Actualizar ▾» territorial", () => {
     const plan = planTerritorialDeActualizar({ sources: SOURCES.slice(1, 2), config, fase: "pilot" });
     const kobo = plan.menu.filter((e) => e.grupo === "fuentes");
     expect(kobo).toHaveLength(1);
-    expect(kobo[0].detalle).toBe("Kobo · piloto y campo");
+    expect(kobo[0].detalle).toBe("Kobo, piloto y campo");
     expect(plan.principal.peticion).toEqual({ tipo: "sync", modo: "advance", fuentes: ["kobo_campo"] });
   });
 
   it("la hoja de ruta de Sheets entra al menú por el camino de las hojas", () => {
     const hoja = fuente({ id: "ruta", kind: "google_sheets", role: "hoja_ruta", label: "Hojas de ruta" });
     const plan = planTerritorialDeActualizar({ sources: [...SOURCES, hoja], config: CONFIG, fase: "field" });
-    expect(plan.menu.find((e) => e.clave === "fuente:ruta")).toMatchObject({ detalle: "Google Sheets · hoja de ruta", peticion: { tipo: "hojas", fuentes: ["ruta"] } });
+    expect(plan.menu.find((e) => e.clave === "fuente:ruta")).toMatchObject({ detalle: "Google Sheets, hoja de ruta", peticion: { tipo: "hojas", fuentes: ["ruta"] } });
   });
 
   it("sin Kobo, el cuerpo se apaga y dice por qué", () => {

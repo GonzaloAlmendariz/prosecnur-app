@@ -47,6 +47,10 @@ type PropsDeVista = {
 
 export function CuotasVista({ publicos, cuotas, foco, onElegir, onEditar, onNueva, avisos = [], colorDe, seguidas }: PropsDeVista & { colorDe?: (actor: string) => ReactNode; seguidas?: ReadonlySet<string> }) {
   const elegida = cuotas.find((cuota) => cuota.id === foco) ?? cuotas[0] ?? null;
+  const referencial = elegida?.caracter === "referencial";
+  const totalEscrito = !elegida ? null : referencial
+    ? elegida.categorias.reduce((suma, categoria) => suma + (categoria.referencia ?? 0), 0)
+    : elegida.meta;
   const sinCuota = variablesSinCuota(publicos, cuotas);
   const metaDelPublico = (actor: string) => publicos.find((publico) => publico.actor === actor)?.meta ?? null;
   const paleta = paletaDePublicos(publicos.map((publico) => publico.actor));
@@ -138,7 +142,9 @@ export function CuotasVista({ publicos, cuotas, foco, onElegir, onEditar, onNuev
                 <span>{elegida.variable}</span>
               </span>
               <span className="acr-av-tenue">
-                {elegida.cobertura == null ? "Metas escritas a mano" : `Cobertura de ${pctConEspacio(elegida.cobertura * 100)}`}
+                {elegida.caracter === "referencial"
+                  ? "Referencial: se describe frente al universo, sin faltante"
+                  : elegida.cobertura == null ? "Metas escritas a mano" : `Cobertura de ${pctConEspacio(elegida.cobertura * 100)}`}
               </span>
             </h3>
             <button type="button" className="acr-av-boton is-primario" onClick={() => onEditar(elegida.id)}>
@@ -147,7 +153,7 @@ export function CuotasVista({ publicos, cuotas, foco, onElegir, onEditar, onNuev
           </header>
           {(() => {
             const metaPublico = metaDelPublico(elegida.actor);
-            const diferencia = metaPublico != null && elegida.meta != null ? elegida.meta - metaPublico : null;
+            const diferencia = !referencial && metaPublico != null && elegida.meta != null ? elegida.meta - metaPublico : null;
             return (
               <AvisosDeTarjeta avisos={[
                 ...avisos.map((texto) => ({ texto })),
@@ -161,29 +167,43 @@ export function CuotasVista({ publicos, cuotas, foco, onElegir, onEditar, onNuev
                 <tr>
                   <th scope="col">Categoría</th>
                   <th scope="col" className="is-num">Personas</th>
-                  <th scope="col" className="is-num">Meta</th>
-                  <th scope="col">La meta dentro de la categoría</th>
+                  <th scope="col" className="is-num">{referencial ? "Referencia" : "Meta"}</th>
+                  <th scope="col">{referencial ? "Del universo" : "La meta dentro de la categoría"}</th>
                 </tr>
               </thead>
               <tbody>
-                {elegida.categorias.map((categoria) => (
-                  <tr key={categoria.categoria}>
-                    <th scope="row">{categoria.categoria}</th>
-                    <td className="is-num">{categoria.universo == null ? "—" : fmt(categoria.universo)}</td>
-                    <td className="is-num">{categoria.meta == null ? "—" : fmt(categoria.meta)}</td>
-                    <td>
-                      <span className="acr-av-pista is-gruesa">
-                        <i style={{ width: `${categoria.universo && categoria.meta != null ? Math.min(100, (categoria.meta / categoria.universo) * 100) : 0}%` }} />
-                      </span>
-                    </td>
-                  </tr>
-                ))}
+                {elegida.categorias.map((categoria) => {
+                  // ADR 0126: en una referencial el número escrito viaja en `referencia`.
+                  const numero = referencial ? categoria.referencia : categoria.meta;
+                  return (
+                    <tr key={categoria.categoria}>
+                      <th scope="row">{categoria.categoria}</th>
+                      <td className="is-num">{categoria.universo == null ? "—" : fmt(categoria.universo)}</td>
+                      <td className="is-num">{numero == null ? "—" : fmt(numero)}</td>
+                      <td>
+                        {referencial ? (
+                          // La referencia de una referencial es su peso en el universo (sin «Sin dato»).
+                          <span className="acr-cu-peso">
+                            <span className="acr-av-pista is-gruesa">
+                              <i style={{ width: `${Math.min(100, (categoria.pct_universo ?? 0) * 100)}%` }} />
+                            </span>
+                            <span className="acr-av-num">{categoria.pct_universo == null ? "—" : pctConEspacio(categoria.pct_universo * 100)}</span>
+                          </span>
+                        ) : (
+                          <span className="acr-av-pista is-gruesa">
+                            <i style={{ width: `${categoria.universo && numero != null ? Math.min(100, (numero / categoria.universo) * 100) : 0}%` }} />
+                          </span>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
               <tfoot>
                 <tr>
                   <th scope="row">Total</th>
                   <td className="is-num">{elegida.universo == null ? "—" : fmt(elegida.universo)}</td>
-                  <td className="is-num">{elegida.meta == null ? "—" : fmt(elegida.meta)}</td>
+                  <td className="is-num">{totalEscrito == null ? "—" : fmt(totalEscrito)}</td>
                   <td />
                 </tr>
               </tfoot>

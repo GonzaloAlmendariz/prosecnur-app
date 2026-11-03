@@ -33,13 +33,13 @@
 .mon-dlg-cabecera h2 {
   margin: 0;
   color: var(--pulso-text);
-  font-size: 16px;
+  font-size: var(--pulso-type-title-size);
   font-weight: var(--pulso-weight-bold);
 }
 
 .mon-dlg-sujeto {
   margin: 0;
-  font-size: 14px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-semibold);
 }
 
@@ -55,7 +55,7 @@
   gap: var(--pulso-space-1);
   margin: 0;
   padding-left: var(--pulso-space-4);
-  font-size: 13px;
+  font-size: var(--pulso-type-body-size);
   font-variant-numeric: tabular-nums;
 }
 
@@ -65,13 +65,13 @@
   gap: var(--pulso-space-2);
   margin: 0;
   color: var(--pulso-text-soft);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .mon-dlg-motivo {
   display: grid;
   gap: var(--pulso-space-1);
-  font-size: 13px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-semibold);
 }
 
@@ -82,7 +82,7 @@
   background: var(--pulso-surface);
   color: var(--pulso-text);
   font: inherit;
-  font-size: 13px;
+  font-size: var(--pulso-type-body-size);
   font-weight: var(--pulso-weight-regular);
   resize: vertical;
 }
@@ -93,7 +93,7 @@
   border-radius: 8px;
   background: var(--pulso-danger-bg);
   color: var(--pulso-danger-fg);
-  font-size: 13px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .mon-dlg-pie {
@@ -113,7 +113,7 @@
   background: var(--pulso-surface);
   color: var(--pulso-text);
   font: inherit;
-  font-size: 13px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-semibold);
   cursor: pointer;
 }

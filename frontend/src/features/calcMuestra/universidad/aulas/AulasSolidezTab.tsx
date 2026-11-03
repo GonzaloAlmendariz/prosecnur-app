@@ -35,6 +35,7 @@ import {
 } from "./aulasParts";
 import "../../didactica/didactica.css";
 import "./aulas.css";
+import { Panel } from "../../../../components/Panel";
 
 export function AulasSolidezTab({
   workspace,
@@ -83,10 +84,7 @@ export function AulasSolidezTab({
         data-qa-geometry-group="calc-muestra/aulas-solidez"
         data-qa-geometry-contract="intrinsic"
       >
-        <section className="cmv2-panel cmv2-aulas-panel" data-qa-geometry-member>
-          <div className="cmv2-subhead">
-            <strong>Solidez de la selección</strong>
-          </div>
+        <Panel className="cmv2-aulas-panel" data-qa-geometry-member>
           <EmptyState
             icon={<ShieldCheck size={22} aria-hidden="true" />}
             title="Todavía no hay una selección corrida"
@@ -97,7 +95,7 @@ export function AulasSolidezTab({
             </button>
           ) : undefined}
           />
-        </section>
+        </Panel>
       </div>
     );
   }
@@ -113,19 +111,19 @@ export function AulasSolidezTab({
           Cursos-horario requeridos: la estructura que vivía en comentarios
           pasa a la vista del lector. */}
       <div className="cmv2-solidez-acto" data-acto="1">
-        <span className="cmv2-solidez-kicker">Paso 1 · Qué promete cada aula: la radiografía del esperado</span>
+        <span className="cmv2-solidez-kicker">Paso 1. Qué promete cada aula: la radiografía del esperado</span>
         <EfectividadExplicadaCard filas={selectionRows} titulares={m1Rows} />
         <DocenteUnicoAviso registro={selection?.diagnostics?.docente_unico} />
       </div>
 
       <div className="cmv2-solidez-acto" data-acto="2">
-        <span className="cmv2-solidez-kicker">Paso 2 · Qué se pidió: el margen y el sustento del dimensionamiento</span>
+        <span className="cmv2-solidez-kicker">Paso 2. Qué se pidió: el margen y el sustento del dimensionamiento</span>
         <MargenPorFacultadCard filas={margenFilas} />
         <SustentoDimensionamientoCard filas={margenFilas} referencia={referencia ?? null} />
       </div>
 
       <div className="cmv2-solidez-acto" data-acto="3">
-        <span className="cmv2-solidez-kicker">Paso 3 · Contra qué se compara: el estudio anterior y el balance de sexo</span>
+        <span className="cmv2-solidez-kicker">Paso 3. Contra qué se compara: el estudio anterior y el balance de sexo</span>
         {fichas && fichas.length ? (
           <EmbudoComparadoFacultades fichas={fichas} periodo={periodoAnterior} pasoInicial={7} />
         ) : null}
@@ -133,7 +131,7 @@ export function AulasSolidezTab({
       </div>
 
       <div className="cmv2-solidez-acto" data-acto="4">
-        <span className="cmv2-solidez-kicker">Paso 4 · Cómo se sorteó: la mecánica y el aporte de cada titular</span>
+        <span className="cmv2-solidez-kicker">Paso 4. Cómo se sorteó: la mecánica y el aporte de cada titular</span>
         {/* El visual lee tokens del DOM al montar: solo existe con selección real. */}
         {selection ? (
           <SeleccionAulasVisual
@@ -146,7 +144,7 @@ export function AulasSolidezTab({
       </div>
 
       <div className="cmv2-solidez-acto" data-acto="5">
-        <span className="cmv2-solidez-kicker">Paso 5 · Qué tan limpia es: solapes, repetidos y ajuste al marco</span>
+        <span className="cmv2-solidez-kicker">Paso 5. Qué tan limpia es: solapes, repetidos y ajuste al marco</span>
       <div className="cmv2-classroom-lab-grid">
         <div className="cmv2-classroom-lab-main">
           <div className="cmv2-subhead">

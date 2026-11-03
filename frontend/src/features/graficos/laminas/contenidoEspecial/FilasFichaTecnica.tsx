@@ -3,10 +3,12 @@
 // no se reescribe hasta que el analista edita: el plan guardado viaja intacto mientras nadie lo toca.
 
 import { useId, useRef, useState } from "react";
-import { Plus, Trash2 } from "../../../../vendor/lucide-react";
+import { Plus, Table2, Trash2 } from "../../../../vendor/lucide-react";
 import type { ArgMetadata } from "../../../../api/graficos";
 import { normalizeTechnicalRows, type TechnicalRow } from "../../technicalRows";
 import "./contenidoEspecial.css";
+import { EstadoVacio } from "../../../../components/EstadoVacio";
+import { formatoConteo } from "../../../../lib/formatoNumero";
 
 type Props = {
   arg: ArgMetadata;
@@ -60,14 +62,18 @@ export function FilasFichaTecnica({ arg, valor, onCambio }: Props) {
       data-qa-geometry-group="graficos/f6-ficha-tecnica" data-qa-geometry-contract="intrinsic">
       <div className="pulso-f6-especial-cabeza">
         <h3 id={idTitulo} className="pulso-f6-subtitulo">{arg.label || "Filas"}</h3>
-        <span className="pulso-f6-ayuda">{filas.length === 0 ? "Ninguna" : `${filas.length} ${filas.length === 1 ? "fila" : "filas"}`}</span>
+        <span className="pulso-f6-ayuda">{filas.length === 0 ? "Ninguna" : `${formatoConteo(filas.length)} ${filas.length === 1 ? "fila" : "filas"}`}</span>
       </div>
       <span id={idAyuda} className="pulso-f6-ayuda">
         {arg.descripcion || "Cada fila lleva un criterio y su detalle."}
         {textoViejo ? " El texto guardado se separó en filas; se reescribe sólo cuando lo edites." : ""}
       </span>
       {filas.length === 0 ? (
-        <p className="pulso-f6-especial-vacio">La ficha no tiene filas: sin ellas, la tabla sale vacía. Añade la primera.</p>
+        <EstadoVacio
+          icono={<Table2 size={16} aria-hidden="true" />}
+          titulo="La ficha no tiene filas"
+          descripcion="Sin ellas, la tabla sale vacía. Añade la primera."
+        />
       ) : (
         <ol ref={lista} className="pulso-f6-filas" data-qa-geometry-group="graficos/f6-ficha-tecnica-filas" data-qa-geometry-contract="intrinsic">
           {filas.map((f, i) => (

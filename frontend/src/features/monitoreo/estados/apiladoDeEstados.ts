@@ -28,6 +28,7 @@ import {
   type AcreditacionDeclaracionEstado,
   type AcreditacionFamiliaLlamada,
 } from "./familiasDeLlamada";
+import { formatoConteo } from "../../../lib/formatoNumero";
 
 export type SegmentoApilado = {
   familia: AcreditacionFamiliaLlamada;
@@ -140,28 +141,28 @@ export function construirApiladoDeEstados(
  * finas miden 4 px. Con el foco puesto en el día entero, apuntar es fácil y el
  * texto aparece siempre en el mismo sitio.
  */
-/** La fecha y su volumen: «15 junio · 75 casos». El reparto lo pone la leyenda. */
+/** La fecha y su volumen: «15 junio, 75 casos». El reparto lo pone la leyenda. */
 export function tituloDelDia(dia: DiaApilado): string {
-  return `${dia.etiqueta} · ${contar(dia.total, "caso", "casos")}`;
+  return `${dia.etiqueta}, ${contar(dia.total, "caso", "casos")}`;
 }
 
 /** Lo mismo con el reparto detrás. Para lectores de pantalla, que no ven la leyenda. */
 export function resumenDelDia(dia: DiaApilado): string {
   const reparto = dia.segmentos
-    .map((segmento) => `${segmento.etiqueta} ${segmento.casos.toLocaleString("es-PE")}`)
-    .join(" · ");
+    .map((segmento) => `${segmento.etiqueta} ${formatoConteo(segmento.casos)}`)
+    .join(", ");
   // `contar` y no una plantilla propia: un día de un solo caso decía «1 casos».
   const cabeza = tituloDelDia(dia);
-  return reparto ? `${cabeza} · ${reparto}` : cabeza;
+  return reparto ? `${cabeza}: ${reparto}` : cabeza;
 }
 
 /** Texto del hover de un segmento: qué familia, cuántos casos y de qué estados. */
 export function detalleDeSegmento(dia: DiaApilado, segmento: SegmentoApilado): string {
-  const parte = `${segmento.etiqueta}: ${segmento.casos.toLocaleString("es-PE")} de ${dia.total.toLocaleString("es-PE")}`;
+  const parte = `${segmento.etiqueta}: ${formatoConteo(segmento.casos)} de ${formatoConteo(dia.total)}`;
   // Un crudo que se llama igual que su familia no aporta nada entre paréntesis.
   const detalle = segmento.crudos.filter(
     (crudo) => crudo.trim().toLocaleLowerCase("es") !== segmento.etiqueta.toLocaleLowerCase("es"),
   );
-  if (!detalle.length) return `${dia.etiqueta} · ${parte}`;
-  return `${dia.etiqueta} · ${parte} (${detalle.join(", ")})`;
+  if (!detalle.length) return `${dia.etiqueta}, ${parte}`;
+  return `${dia.etiqueta}, ${parte} (${detalle.join(", ")})`;
 }

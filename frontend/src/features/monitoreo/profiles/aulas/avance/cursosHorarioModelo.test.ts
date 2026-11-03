@@ -201,6 +201,19 @@ describe("construirCursosHorario — titulares y cobertura", () => {
     expect(m.titulares.cifras.find((c) => c.clave === "agendado")?.valor).toBe("14");
   });
 
+  it("titulares: las citas posteriores al corte van en «Agendados» y las cifras siguen sumando el total (2g)", () => {
+    const d = hsvg();
+    const t = d.course_status_rol_y_estado!.titulares! as Record<string, unknown>;
+    // 3 de los 7 agendados con fecha por delante pasaron después de la última descarga.
+    t.agendado_tras_corte = 3;
+    const m = construirCursosHorario(d);
+    if (m.titulares.tipo !== "reparto") throw new Error("esperaba reparto");
+    expect(m.titulares.cifras.reduce((s, c) => s + c.aulas, 0)).toBe(174);
+    const agendado = m.titulares.cifras.find((c) => c.clave === "agendado");
+    expect(agendado?.valor).toBe("7");
+    expect(agendado?.titulo).toContain("3 con la fecha pasada después de la última sincronización");
+  });
+
   it("titulares: con foco usa el reparto de la facultad; sin banco lo dice", () => {
     const m = construirCursosHorario(hsvg(), "Derecho");
     if (m.titulares.tipo !== "reparto") throw new Error("esperaba reparto");

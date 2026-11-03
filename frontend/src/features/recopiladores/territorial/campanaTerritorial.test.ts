@@ -54,7 +54,7 @@ describe("la campaña territorial (ADR 0118)", () => {
     const r = resumenDeTarjeta(TERRITORIAL);
     expect(r.estado).toBe("Muestra recibida");
     expect(r.cifras).toEqual([{ valor: 2, rotulo: "titulares" }, { valor: 1, rotulo: "reemplazos" }]);
-    expect(r.hechos[0]).toBe("Piloto · enviada el 29/10");
+    expect(r.hechos[0]).toBe("Piloto, enviada el 29/10");
     const vieja = normalizarCampana({ ...CRUDA, estado: { ...CRUDA.estado, stale: true } })!;
     expect(resumenDeTarjeta(vieja)).toMatchObject({ estado: "Desactualizada", tono: "aviso" });
     const sinFoto = normalizarCampana({ ...CRUDA, estado: { titulares: 0, reemplazos: 0, stale: true, enviado_at: null } })!;

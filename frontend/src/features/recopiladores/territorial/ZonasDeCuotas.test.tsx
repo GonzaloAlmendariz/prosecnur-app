@@ -15,13 +15,13 @@ const UNIDADES = normalizarUnidadesTerritoriales({
 
 describe("ZonasDeCuotas", () => {
   it("resume la cuota por sexo en el orden en que llega", () => {
-    expect(cuotaPorSexo(UNIDADES.zonas[0])).toBe("Hombre 2 · Mujer 3");
+    expect(cuotaPorSexo(UNIDADES.zonas[0])).toBe("Hombre 2, Mujer 3");
   });
 
   it("lista cada zona con su hoja de conteo y la cabecera dice zonas y entrevistas", () => {
     const html = renderToStaticMarkup(<ZonasDeCuotas campaignId="territorial.principal" unidades={UNIDADES} />);
     for (const t of ["Zonas de la muestra por cuotas", "2 zonas y 9 entrevistas", "Hoja de conteo de ATE",
-      "Hoja de conteo de SAN JUAN DE LURIGANCHO", "Hojas de conteo de todas", "Hombre 2 · Mujer 3"]) {
+      "Hoja de conteo de SAN JUAN DE LURIGANCHO", "Hojas de conteo de todas", "Hombre 2, Mujer 3"]) {
       expect(html).toContain(t);
     }
   });

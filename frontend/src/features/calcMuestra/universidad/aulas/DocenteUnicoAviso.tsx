@@ -13,6 +13,7 @@ import {
   normalizeCalcMuestraDocenteUnico,
 } from "../../../../api/calcMuestra";
 import "./docenteUnico.css";
+import { fmtInt } from "../../sharedCore";
 
 export function DocenteUnicoAviso({ registro }: { registro: unknown }) {
   const datos = normalizeCalcMuestraDocenteUnico(registro);
@@ -22,7 +23,7 @@ export function DocenteUnicoAviso({ registro }: { registro: unknown }) {
     <section className="cmv2-docente-unico" aria-label="Ajustes por docente único">
       <header>
         <RefreshCw size={14} aria-hidden="true" />
-        <strong>Docente único: {datos.ajustes.length} intercambio{datos.ajustes.length === 1 ? "" : "s"} registrado{datos.ajustes.length === 1 ? "" : "s"}</strong>
+        <strong>Docente único: {fmtInt(datos.ajustes.length)} intercambio{datos.ajustes.length === 1 ? "" : "s"} registrado{datos.ajustes.length === 1 ? "" : "s"}</strong>
         <span>
           un docente no se selecciona repetido entre titulares; el ajuste es en la misma celda y se declara aquí
         </span>
@@ -34,7 +35,7 @@ export function DocenteUnicoAviso({ registro }: { registro: unknown }) {
             <span className="cmv2-docente-unico-celda">{a.stratum}</span>
             <span className="cmv2-docente-unico-swap">
               {a.saliente} → {a.entrante}
-              {a.intercambiado_con_ola ? <i title="el aula saliente pasó a la ola de reserva; nada se pierde"> · con ola</i> : null}
+              {a.intercambiado_con_ola ? <i title="el aula saliente pasó a la ola de reserva; nada se pierde">, con ola</i> : null}
             </span>
           </li>
         ))}

@@ -32,6 +32,7 @@ import {
 } from "../aulas/aulasSurfaceState";
 import { ROTULO_RESERVAS_TOTALES } from "../aulas/rotulosReservas";
 import { DeclararRepresentatividad } from "./DeclararRepresentatividad";
+import { Panel } from "../../../../components/Panel";
 
 export function SalidasMonitoreoTab({
   model,
@@ -105,11 +106,7 @@ export function SalidasMonitoreoTab({
       data-qa-geometry-group="calc-muestra/salidas-monitoreo"
       data-qa-geometry-contract="intrinsic"
     >
-      <section className="cmv2-panel cmv2-sal-panel" aria-label="Qué recibe Monitoreo">
-        <div className="cmv2-panel-head">
-          <strong>Pase a Monitoreo</strong>
-          <span className="cmv2-pill-soft">Monitoreo no rediseña la muestra</span>
-        </div>
+      <Panel className="cmv2-sal-panel" aria-label="Qué recibe Monitoreo" title="Qué recibe Monitoreo" hint="Monitoreo no rediseña la muestra: la recibe cerrada.">
         <FlujoVertical
           etapas={etapas}
           orientacion="horizontal"
@@ -140,7 +137,7 @@ export function SalidasMonitoreoTab({
             origen={replacementReady ? "motor" : undefined}
           />
         </CifraFila>
-      </section>
+      </Panel>
 
       {/* ADR 0121 F4: universo y variables de cuota se declaran en el Planner. */}
       <DeclararRepresentatividad />
@@ -185,11 +182,7 @@ export function SalidasMonitoreoTab({
         )
       )}
 
-      <section className="cmv2-panel cmv2-sal-panel" aria-label="Reservas listas para campo">
-        <div className="cmv2-panel-head">
-          <strong>Reservas listas para campo</strong>
-          <span className="cmv2-pill-soft">solo lectura · se gestiona en Selección</span>
-        </div>
+      <Panel className="cmv2-sal-panel" aria-label="Reservas listas para campo" title="Reservas listas para campo" hint="Solo lectura: se gestiona en Selección.">
         {reserveDepthRows.length > 0 && (() => {
           // Celdas más ajustadas primero; las holgadas se resumen en un conteo.
           const ordenadas = [...reserveDepthRows].sort(
@@ -236,7 +229,7 @@ export function SalidasMonitoreoTab({
             />
           )
         )}
-      </section>
+      </Panel>
 
       {selectionReady && (
         <div className="pulso-continue-cta cmv2-sal-cierre-cta" aria-label="Cierre del diseño muestral">

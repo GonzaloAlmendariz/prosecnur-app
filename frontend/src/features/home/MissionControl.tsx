@@ -91,7 +91,7 @@ export function MissionControl({
           explícita: la identidad va en el chrome de la app, no en una fila
           introductoria que consume el primer viewport. Queda el h1 para
           lectores de pantalla, que sí necesitan encabezado. */}
-      <h1 className="pulso-sr-only">{[overview.project.name, ...metaLine].join(" · ")}</h1>
+      <h1 className="pulso-sr-only">{[overview.project.name, ...metaLine].join(", ")}</h1>
 
       {/* L31: lo que cambió desde la última apertura en este equipo, en el
           hueco que dejaba el centrado sobre las tarjetas. */}

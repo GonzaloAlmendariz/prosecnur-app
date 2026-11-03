@@ -1,4 +1,5 @@
 import { X } from "lucide-react";
+import { EstadoChip } from "../../../../../components/EstadoChip";
 import { Alert } from "../../../../../components/Alert";
 import { fmt, normalizeSourceMatch } from "../formato";
 import { casosDelCorte } from "../control/casos/tiposDeCaso";
@@ -67,8 +68,8 @@ export function PanelPublico({
           <b className="acr-av-num">{fmt(tarjeta.effective)}</b>
           <span className="acr-av-tenue">{conMeta ? `de ${fmt(meta)} meta` : `de ${fmt(tarjeta.universe)} personas`}</span>
           {avance != null
-            ? <span className={`acr-av-chip ${avance >= 100 ? "is-cumple" : "is-falta"}`}>{fmt(avance)} % de la meta</span>
-            : <span className="acr-av-chip">Sin meta</span>}
+            ? <EstadoChip label={`${fmt(avance)} % de la meta`} tone={avance >= 100 ? "success" : "warn"} />
+            : <EstadoChip label="Sin meta" tone="neutral" />}
         </p>
         <div className="acr-pub-bloque">
           <span className="acr-av-antetitulo">Del universo a la efectiva</span>

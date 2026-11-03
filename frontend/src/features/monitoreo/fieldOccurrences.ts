@@ -260,8 +260,8 @@ function routeLabelFromBlock(row: MonitoreoRow, blocks: MonitoreoRow[]) {
     manzana ? `Mz ${manzana}` : "",
     zona ? `Zona ${zona}` : "",
     distrito,
-  ].filter(Boolean).join(" · ");
-  const extra = blocks.length > 1 ? ` · ${blocks.length} manzanas` : "";
+  ].filter(Boolean).join(", ");
+  const extra = blocks.length > 1 ? `, ${blocks.length} manzanas` : "";
   return base || (ump ? `UMP ${ump}${extra}` : "UMP sin etiqueta");
 }
 
@@ -370,7 +370,7 @@ function windowLabel(records: MonitoreoFieldOccurrenceRecord[], fallback = "") {
   const withWindow = records.find((record) => text(record.hora_label));
   if (withWindow) {
     const date = text(withWindow.date_label || withWindow.date);
-    return [date, text(withWindow.hora_label)].filter(Boolean).join(" · ");
+    return [date, text(withWindow.hora_label)].filter(Boolean).join(", ");
   }
   const start = records.find((record) => text(record.datetime_label || record.date_label || record.hora_inicio));
   if (start) return text(start.datetime_label || start.date_label || start.hora_inicio);

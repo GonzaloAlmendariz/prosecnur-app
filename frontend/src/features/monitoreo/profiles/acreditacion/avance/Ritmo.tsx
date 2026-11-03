@@ -9,7 +9,7 @@ import { BarrasApiladas, fechaCorta } from "./graficosDeAvance";
 import { DiarioYAcumulado } from "./DiarioYAcumulado";
 import { SelectorDeSubvistas } from "../../../core/selectorDeSubvistas/SelectorDeSubvistas";
 import { mapaPorSemana } from "./mapaDeCalor";
-import { fasesConFechas, nombresDePublicos, pulsoDelCampo, seriesApiladas } from "./ritmoModelo";
+import { fasesConFechas, nombresDePublicos, pulsoDelCampo, serieDelGrafico, seriesApiladas } from "./ritmoModelo";
 import { ritmoPorPublico } from "./ritmoPorPublicoModelo";
 import { RitmoPorPublico } from "./RitmoPorPublico";
 import { useResumenDelCorte } from "../navegacion/resumenDelCorte";
@@ -19,6 +19,7 @@ import { AvisoDeTarjeta, PestanaSinContenido } from "../piezas/AvisoDeTarjeta";
 import { clasePublico, paletaDePublicos } from "../paletaPublicos";
 import "../paletaPublicos.css";
 import { useSubvistaEnFoco } from "../../../core/subvistaEnFoco";
+import { formatoDecimal } from "../../../../../lib/formatoNumero";
 
 const GRAFICOS_DE_RITMO = ["publico", "acumulado"] as const;
 
@@ -28,7 +29,7 @@ const DIAS_PARA_LEER_LA_SEMANA = 14;
 /** El desglose por fuente y recopilador: `panel=fuentes`. */
 export const PANEL_FUENTES: PanelDeclarado = { id: "fuentes", label: "Por fuente y recopilador", clase: "sideover" };
 
-const UNA_DECIMAL = (valor: number) => valor.toLocaleString("es-PE", { maximumFractionDigits: 1 });
+const UNA_DECIMAL = (valor: number) => formatoDecimal(valor, 1);
 
 type PropsDeVista = {
   actores: ReadonlyArray<Record<string, unknown>>;
@@ -59,18 +60,21 @@ export function RitmoVista({ actores, diarioGeneral, diarioPorPublico, fuentes, 
   // Un público a la vez (Gonzalo, 30/10: «seleccionar un actor en específico y que
   // muestre sólo ese»): un clic en la leyenda lo aísla en los dos gráficos.
   const [solo, setSolo] = useState<string | null>(null);
+  // El gráfico termina en el último día con efectivas; el ritmo y el pulso usan la serie hasta el corte.
+  const dibujada = useMemo(() => serieDelGrafico(serie), [serie]);
   const capaSola = solo ? serie.capas.find((capa) => capa.publico === solo) ?? null : null;
+  const capaSolaDibujada = capaSola ? dibujada.capas[serie.capas.indexOf(capaSola)] : null;
   const metaDelEstudio = capaSola
     ? porPublico.find((item) => item.publico === capaSola.publico)?.meta ?? null
     : porPublico.reduce((suma, item) => suma + (item.meta ?? 0), 0) || null;
-  const totalesVisibles = capaSola ? capaSola.valores : serie.totales;
+  const totalesVisibles = capaSolaDibujada ? capaSolaDibujada.valores : dibujada.totales;
   const fechasUltimas = new Set(pulso.ultimaPorPublico.map((item) => item.fecha ?? ""));
   const ultimaComun = pulso.ultimaPorPublico.length > 1 && fechasUltimas.size === 1 ? [...fechasUltimas][0] || null : null;
   // Cada público con el color que tiene en Resumen, Correo y Por cuota.
   const paleta = useMemo(() => paletaDePublicos([...nombresDePublicos(actores).values(), ...serie.capas.map((capa) => capa.publico)]), [actores, serie]);
   const clasesDeCapa = serie.capas.map((capa) => `con-publico ${clasePublico(paleta, capa.publico)}`);
   const indiceSolo = capaSola ? serie.capas.indexOf(capaSola) : -1;
-  const capasVisibles = capaSola ? [capaSola] : serie.capas;
+  const capasVisibles = capaSolaDibujada ? [capaSolaDibujada] : dibujada.capas;
   const clasesVisibles = capaSola ? [clasesDeCapa[indiceSolo]] : clasesDeCapa;
   if (!serie.fechas.length) {
     return <PestanaSinContenido titulo="Efectivas por día" icono={<CalendarRange size={18} />} motivo="El corte todavía no trae efectivas con fecha." descripcion="Las efectivas por día aparecen cuando las encuestas conectadas devuelven respuestas completas." />;
@@ -80,7 +84,7 @@ export function RitmoVista({ actores, diarioGeneral, diarioPorPublico, fuentes, 
       <div className="acr-ri-izquierda">
         <section className="acr-av-panel acr-ri-diario" aria-label="Efectivas por día">
           <CabeceraDeTarjeta primera>
-            <h3>Efectivas por día <span className="acr-av-tenue">{`${serie.fechas.length === 1 ? fechaCorta(serie.fechas[0]) : `${fechaCorta(serie.fechas[0])} a ${fechaCorta(serie.fechas.at(-1) as string)}`}${capaSola ? `, ${capaSola.publico}` : grafico === "publico" ? ", por público" : ", con el acumulado"}`}</span></h3>
+            <h3>Efectivas por día <span className="acr-av-tenue">{`${dibujada.fechas.length === 1 ? fechaCorta(dibujada.fechas[0]) : `${fechaCorta(dibujada.fechas[0])} a ${fechaCorta(dibujada.fechas.at(-1) as string)}`}${capaSola ? `, ${capaSola.publico}` : grafico === "publico" ? ", por público" : ", con el acumulado"}`}</span></h3>
             <span className="acr-ri-acciones">
               <SelectorDeSubvistas
                 opciones={[{ clave: "publico", etiqueta: "Por público", valor: "publico" as const }, { clave: "acumulado", etiqueta: "Diario y acumulado", valor: "acumulado" as const }]}
@@ -101,11 +105,11 @@ export function RitmoVista({ actores, diarioGeneral, diarioPorPublico, fuentes, 
           )}
           {grafico === "publico" ? (
             <>
-              <BarrasApiladas fechas={serie.fechas} capas={capasVisibles} totales={totalesVisibles} fases={plan} etiqueta={`Efectivas por día de ${fmt(serie.fechas.length)} días, ${capaSola ? capaSola.publico : "por público"}`} clasesDeCapa={clasesVisibles} />
+              <BarrasApiladas fechas={dibujada.fechas} capas={capasVisibles} totales={totalesVisibles} fases={plan} etiqueta={`Efectivas por día de ${fmt(dibujada.fechas.length)} días, ${capaSola ? capaSola.publico : "por público"}`} clasesDeCapa={clasesVisibles} />
             </>
           ) : (
             <>
-              <DiarioYAcumulado fechas={serie.fechas} totales={totalesVisibles} meta={metaDelEstudio} etiqueta={`Efectivas por día y acumuladas de ${fmt(serie.fechas.length)} días`} />
+              <DiarioYAcumulado fechas={dibujada.fechas} totales={totalesVisibles} meta={metaDelEstudio} etiqueta={`Efectivas por día y acumuladas de ${fmt(dibujada.fechas.length)} días`} />
               <ul className="acr-ri-leyenda" aria-label="Series">
                 <li><i className="acr-av-capa-muestra is-dia" aria-hidden="true" />Efectivas del día</li>
                 <li><i className="acr-av-capa-muestra is-acumulado" aria-hidden="true" />Acumulado <b className="acr-av-num">{fmt(totalesVisibles.reduce((a, b) => a + b, 0))}</b></li>

@@ -5,12 +5,14 @@
 
 import type { ExplorarUnivariadoResult } from "../../../../api/validacion";
 import type {
+  ExploradorCruce,
   ExploradorCruceTabla,
   ExploradorDist,
   ExploradorDistFila,
   ExploradorFicha,
 } from "../../../../api/validacionExplorar";
 import type { ViewDescriptor } from "../../types";
+import { fechaCorta } from "./escalas";
 
 // --- Formatos -----------------------------------------------------------------
 // Propios y no `toLocaleString`: es-PE escribe «1,234.5» y el Node de los tests
@@ -98,7 +100,9 @@ export function fraseBase(base: BaseLectura): { destacado: string; resto: string
 
 // --- Orden de las categorías (E6) ---------------------------------------------
 
-const RESIDUAL = /^(otr[oa]s?)\b|no sabe|no responde|ns\s*\/\s*nr|no precisa|prefiere no/;
+// Respuestas que no son parte de la escala ni compiten por el primer puesto. «Sin información» y «No aplica» se
+// colaban como un punto más de la escala y le quitaban su centro (visto al probar una de 7 puntos, 3/11).
+const RESIDUAL = /^(otr[oa]s?)\b|no sabe|no responde|no contesta|no recuerda|ns\s*\/\s*nr|no precisa|prefiere no|sin informacion|no aplica|no corresponde/;
 
 function sinTildes(s: string): string {
   return s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().trim();
@@ -175,11 +179,17 @@ export function divergente(filas: readonly ExploradorDistFila[]): Divergente | n
   });
   const suma = (lado: LadoDivergente) =>
     segmentos.filter((s) => s.lado === lado).reduce((t, s) => t + s.fila.pct, 0);
+  // Cada lado se nombra con su opción más cercana al centro («En desacuerdo», «De acuerdo»): es el nombre del
+  // grupo entero, no del extremo («Totalmente…»), y es corto. Si las opciones son números (una escala de 0 a 10),
+  // el lado se nombra por su rango: «4» no dice nada, «0 a 4» sí.
+  const numerica = escala.every((f) => /^-?\d+([.,]\d+)?$/.test(f.etiqueta.trim()));
+  const lado = (desde: number, hasta: number, cerca: number) =>
+    numerica && desde !== hasta ? `${escala[desde].etiqueta} a ${escala[hasta].etiqueta}` : escala[cerca].etiqueta;
   return {
     segmentos,
-    baja: { pct: suma("baja"), etiqueta: escala[0].etiqueta },
+    baja: { pct: suma("baja"), etiqueta: lado(0, mitad - 1, mitad - 1) },
     centro: centroIdx >= 0 ? { pct: suma("centro"), etiqueta: escala[centroIdx].etiqueta } : null,
-    alta: { pct: suma("alta"), etiqueta: escala[k - 1].etiqueta },
+    alta: { pct: suma("alta"), etiqueta: lado(k - mitad, k - 1, k - mitad) },
   };
 }
 
@@ -255,13 +265,13 @@ export function cifrasClave(
     cifras.push({
       rotulo: "Día con más casos",
       valor: pico ? fmtN(pico.n) : "—",
-      nota: pico ? pico.fecha : "sin fechas",
+      nota: pico ? fechaCorta(pico.fecha) : "sin fechas",
     });
     const conCasos = dias.filter((d) => d.n > 0);
     cifras.push({
       rotulo: "Días con casos",
       valor: fmtN(conCasos.length),
-      nota: conCasos.length ? `del ${conCasos[0].fecha} al ${conCasos[conCasos.length - 1].fecha}` : "sin fechas",
+      nota: conCasos.length ? `del ${fechaCorta(conCasos[0].fecha)} al ${fechaCorta(conCasos[conCasos.length - 1].fecha)}` : "sin fechas",
     });
   } else if (dist.tipo === "texto" && dist.texto) {
     const grupos = dist.texto.grupos;
@@ -295,17 +305,41 @@ export type CeldaCalor = {
   /** Puntos frente al total (sólo en lectura por columna o por fila). */
   dif: number | null;
   marca: "arriba" | "abajo" | null;
+  /** Su denominador tiene menos de 30 casos: se atenúa y no lleva flecha. */
+  chica?: boolean;
 };
+
+/** Bajo este número de casos, el denominador de una celda es chico: un 100 % de 1 caso no compite con uno de 300. */
+export const BASE_CHICA = 30;
+
+/**
+ * El tono de una celda (maqueta v4). En porcentajes dice cuánto se aparta del total y hacia dónde, no el valor: así
+ * una tabla sin diferencias se ve pareja. Tramos de 2, 5 y 10 puntos; la flecha va desde 5. En n, el tono es el
+ * conteo en cinco tramos. Una base chica queda neutra.
+ */
+export function tonoDeCelda(c: CeldaCalor, lectura: LecturaCalor): string {
+  if (lectura === "n") return `is-n${Math.max(1, Math.min(5, Math.ceil(c.peso * 5)))}`;
+  if (c.chica || c.dif === null) return "is-parejo";
+  const a = Math.abs(c.dif);
+  const k = a < 2 ? 0 : a < UMBRAL_PUNTOS ? 1 : a < 10 ? 2 : 3;
+  return k === 0 ? "is-parejo" : `is-${c.dif > 0 ? "sobre" : "bajo"}${k}`;
+}
 
 export type ModeloCalor = {
   lectura: LecturaCalor;
+  /** Cómo se lee la lectura activa: va en la esquina de la tabla, no como título del gráfico (D1). */
   titulo: string;
   columnas: { etiqueta: string; n: number }[];
-  filas: { etiqueta: string; celdas: CeldaCalor[]; total: CeldaCalor | null }[];
+  /** `n`: casos de la fila (null si un payload viejo no lo trae y no se puede deducir). */
+  filas: { etiqueta: string; n: number | null; celdas: CeldaCalor[]; total: CeldaCalor | null }[];
   /** Fila de totales: en lectura por fila (contra ella se compara) y en n. */
   filaTotal: CeldaCalor[] | null;
-  /** Celda de la esquina total × total, en n. */
+  /** Esquina total × total: 100 si la lectura suma 100; si no, los casos de la base. */
+  esquina: CeldaCalor;
+  /** Casos de la base del cruce (responden las dos). */
   totalGeneral: number;
+  /** Una línea, sólo con una múltiple: por qué una diferencia puede no ser una asociación. */
+  nota: string | null;
 };
 
 export type Desviacion = {
@@ -315,45 +349,75 @@ export type Desviacion = {
   dif: number;
 };
 
-function celda(n: number, valor: number, esPct: boolean, total: number | null): CeldaCalor {
+function celda(n: number, valor: number, esPct: boolean, total: number | null, chica = false): CeldaCalor {
   const dif = total === null ? null : valor - total;
-  const marca = dif === null || Math.abs(dif) < UMBRAL_PUNTOS ? null : dif > 0 ? "arriba" : "abajo";
-  return { n, valor, texto: esPct ? fmtDecimal(valor, 1) : fmtN(valor), peso: 0, dif, marca };
+  const marca = chica || dif === null || Math.abs(dif) < UMBRAL_PUNTOS ? null : dif > 0 ? "arriba" : "abajo";
+  return { n, valor, texto: esPct ? fmtDecimal(valor, 1) : fmtN(valor), peso: 0, dif, marca, chica };
+}
+
+/** Una celda que no se puede calcular sin mezclar menciones: se dice «—» y no compite. */
+function celdaSinDato(n: number): CeldaCalor {
+  return { n, valor: 0, texto: "—", peso: 0, dif: null, marca: null };
+}
+
+/** Tipo de la variable para la tabla: «so» o «sm» (lo demás no llega a una tabla). */
+export type TipoTabla = "so" | "sm" | string;
+
+/** Lectura con la que abre la tabla (revisión metodológica): única × múltiple se lee por fila, «% que marca, por categoría». */
+export function lecturaInicial(tipoX: TipoTabla, tipoY: TipoTabla): LecturaCalor {
+  return tipoX === "so" && tipoY === "sm" ? "fila" : "columna";
 }
 
 /**
- * Lectura por columna: cada columna suma 100 (denominador = n de la columna,
- * que en una múltiple no es la suma de sus filas) y se compara con la columna
- * Total. Por fila: cada fila suma 100 y se compara con la fila Total. En n no
- * hay comparación.
+ * La tabla de calor, con los denominadores en CASOS (revisión metodológica, 2026-11-03): con una múltiple un caso
+ * está en varias celdas, así que ningún total sale de sumar celdas.
+ *
+ * - Por columna: celda = n / casos de la columna; Total de la fila = casos de la fila / base.
+ * - Por fila: celda = n / casos de la fila; fila Total = casos de la columna / base.
+ * - En n: totales = casos de fila y de columna; esquina = base.
+ *
+ * El signo de cada diferencia es el mismo en las dos lecturas (P(A|B) > P(A) ⇔ P(B|A) > P(B)). Sin `filas[].n`
+ * (payload viejo) sólo se deduce cuando las dos variables son únicas; si no, sin Total ni flechas. Con base 0,
+ * tampoco: nunca se vuelve a menciones.
  */
-export function modeloCalor(tabla: ExploradorCruceTabla, lectura: LecturaCalor, baseN = 0): ModeloCalor {
+export function modeloCalor(
+  tabla: ExploradorCruceTabla,
+  lectura: LecturaCalor,
+  baseN = 0,
+  tipoX: TipoTabla = "so",
+  tipoY: TipoTabla = "so",
+): ModeloCalor {
   const nf = tabla.filas.length;
-  const nc = tabla.columnas.length;
   const sumaFila = tabla.n.map((fila) => fila.reduce((t, x) => t + x, 0));
-  const sumaCol = tabla.columnas.map((_, c) => tabla.n.reduce((t, fila) => t + (fila[c] ?? 0), 0));
-  const denCol = tabla.columnas.map((col, c) => (col.n > 0 ? col.n : sumaCol[c]));
-  const totalDen = baseN > 0 ? baseN : denCol.reduce((t, x) => t + x, 0);
-  const totalFilas = sumaFila.reduce((t, x) => t + x, 0);
+  const ambasUnicas = tipoX === "so" && tipoY === "so";
+  const nFila = tabla.filas.map((f, r) => f.n ?? (ambasUnicas ? sumaFila[r] : null));
+  const nCol = tabla.columnas.map((col) => col.n);
+  const base = baseN > 0 ? baseN : null;
+  const pctDe = (parte: number | null) => (parte === null || base === null ? null : porcentaje(parte, base));
+  const conMultiple = tipoX === "sm" || tipoY === "sm";
 
   const filas: ModeloCalor["filas"] = [];
   for (let r = 0; r < nf; r += 1) {
     let celdas: CeldaCalor[];
     let total: CeldaCalor | null;
+    const casos = nFila[r];
     if (lectura === "columna") {
-      const pctTotal = porcentaje(sumaFila[r], totalDen);
-      celdas = tabla.n[r].map((x, c) => celda(x, porcentaje(x, denCol[c]), true, pctTotal));
-      total = celda(sumaFila[r], pctTotal, true, null);
+      const pctTotal = pctDe(casos);
+      celdas = tabla.n[r].map((x, c) =>
+        nCol[c] > 0 ? celda(x, porcentaje(x, nCol[c]), true, pctTotal, nCol[c] < BASE_CHICA) : celdaSinDato(x),
+      );
+      total = pctTotal === null || casos === null ? null : celda(casos, pctTotal, true, null);
     } else if (lectura === "fila") {
       celdas = tabla.n[r].map((x, c) =>
-        celda(x, porcentaje(x, sumaFila[r]), true, porcentaje(sumaCol[c], totalFilas)),
+        casos !== null && casos > 0 ? celda(x, porcentaje(x, casos), true, pctDe(nCol[c]), casos < BASE_CHICA) : celdaSinDato(x),
       );
-      total = celda(sumaFila[r], sumaFila[r] > 0 ? 100 : 0, true, null);
+      // La fila suma 100 sólo si la columna es única; con una múltiple, el Total dice sus casos.
+      total = casos === null ? null : tipoY === "so" ? celda(casos, casos > 0 ? 100 : 0, true, null) : celda(casos, casos, false, null);
     } else {
       celdas = tabla.n[r].map((x) => celda(x, x, false, null));
-      total = celda(sumaFila[r], sumaFila[r], false, null);
+      total = casos === null ? null : celda(casos, casos, false, null);
     }
-    filas.push({ etiqueta: tabla.filas[r].etiqueta, celdas, total });
+    filas.push({ etiqueta: tabla.filas[r].etiqueta, n: casos, celdas, total });
   }
 
   const max = Math.max(0, ...filas.flatMap((f) => f.celdas.map((x) => x.valor)));
@@ -361,19 +425,38 @@ export function modeloCalor(tabla: ExploradorCruceTabla, lectura: LecturaCalor, 
 
   const filaTotal =
     lectura === "fila"
-      ? sumaCol.map((x) => celda(x, porcentaje(x, totalFilas), true, null))
+      ? nCol.map((x) => {
+          const p = pctDe(x);
+          return p === null ? celdaSinDato(x) : celda(x, p, true, null);
+        })
       : lectura === "n"
-        ? sumaCol.map((x) => celda(x, x, false, null))
+        ? nCol.map((x) => celda(x, x, false, null))
         : null;
+  const totalGeneral = base ?? 0;
+  const sumaCien = (lectura === "columna" && tipoX === "so") || (lectura === "fila" && tipoY === "so");
+  const esquina = sumaCien && base !== null ? celda(totalGeneral, 100, true, null) : celda(totalGeneral, totalGeneral, false, null);
+
+  const titulo =
+    lectura === "columna"
+      ? tipoX === "so" ? "Cada columna suma 100%" : "% de cada columna que marca la opción de la fila"
+      : lectura === "fila"
+        ? tipoY === "so" ? "Cada fila suma 100%" : "% de cada fila que marca la opción de la columna"
+        : "Casos en cada celda";
+  const nota = !conMultiple
+    ? null
+    : lectura === "n"
+      ? "Los totales cuentan casos: un caso que marca varias opciones está en varias celdas."
+      : "Quien marca más opciones entra en más celdas: una diferencia puede ser volumen de marcas y no una asociación.";
 
   return {
     lectura,
-    titulo:
-      lectura === "columna" ? "Cada columna suma 100%" : lectura === "fila" ? "Cada fila suma 100%" : "Casos en cada celda",
-    columnas: tabla.columnas.map((col, c) => ({ etiqueta: col.etiqueta, n: denCol[c] })),
+    titulo,
+    columnas: tabla.columnas.map((col) => ({ etiqueta: col.etiqueta, n: col.n })),
     filas,
     filaTotal,
-    totalGeneral: lectura === "n" ? totalFilas : totalDen,
+    esquina,
+    totalGeneral,
+    nota,
   };
 }
 
@@ -403,11 +486,25 @@ export function desviaciones(modelo: ModeloCalor, limite = 3): Desviacion[] {
   return todas.sort((a, b) => Math.abs(b.dif) - Math.abs(a.dif)).slice(0, limite);
 }
 
-/** «Cada X tiene entre 95 y 108 respuestas»: el tamaño que acota cuánto pesa una diferencia. */
-export function rangoColumnas(modelo: ModeloCalor): { min: number; max: number } | null {
-  const ns = modelo.columnas.map((c) => c.n).filter((n) => n > 0);
+/**
+ * «Cada columna tiene entre 95 y 108 casos»: el tamaño del denominador de la lectura activa, que acota cuánto pesa
+ * una diferencia. Por fila, el de las filas.
+ */
+export function rangoColumnas(modelo: ModeloCalor): { min: number; max: number; de: "columna" | "fila" } | null {
+  const de = modelo.lectura === "fila" ? "fila" : "columna";
+  const ns = (de === "fila" ? modelo.filas.map((f) => f.n ?? 0) : modelo.columnas.map((c) => c.n)).filter((n) => n > 0);
   if (!ns.length) return null;
-  return { min: Math.min(...ns), max: Math.max(...ns) };
+  return { min: Math.min(...ns), max: Math.max(...ns), de };
+}
+
+/**
+ * La base de un cruce en una frase: «560 casos responden las dos (de 1,283)», con el «de» sólo si una de las dos
+ * variables tiene más casos que el cruce. Sin ponderar: el explorador cuenta casos.
+ */
+export function fraseCruceBase(cruce: Pick<ExploradorCruce, "base_n" | "n_x" | "n_y">): string {
+  const de = [cruce.n_x, cruce.n_y].find((n): n is number => n !== null && n > cruce.base_n);
+  const casos = `${fmtN(cruce.base_n)} ${cruce.base_n === 1 ? "caso responde" : "casos responden"} las dos`;
+  return `${casos}${de !== undefined ? ` (de ${fmtN(de)})` : ""} · sin ponderar`;
 }
 
 // --- Escalas -------------------------------------------------------------------

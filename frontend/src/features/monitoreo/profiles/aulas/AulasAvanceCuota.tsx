@@ -66,20 +66,20 @@ export function AulasAvanceCuota({ vista }: { vista: VistaDeAvanceCuota }) {
         </span>
       </div>
       <p className="aulas-cuota-lectura">
-        <strong>{fmt(total.validas)}</strong> de <strong>{fmt(total.cuota)}</strong> personas ·{" "}
+        <strong>{fmt(total.validas)}</strong> de <strong>{fmt(total.cuota)}</strong> personas,{" "}
         {/* SIN cap: pasarse de 100 es información, no un error de la barra. */}
         {total.avanceTexto}
         {/* Las mermas no se ocultan: fuera de universo y sin aula del plan son
             respuestas que existieron y no cuentan aquí, y callarlas haría que
             esta cifra y la de Procesamiento parecieran contradecirse. */}
-        {total.notas.length ? <em> · {total.notas.join(" · ")}</em> : null}
+        {total.notas.length ? <em>, {total.notas.join(", ")}</em> : null}
         {/* **El descuadre se pinta al revés que las notas: callado si cuadra.**
             Un «las partes suman» permanente es ruido; un bloque cuyas partes NO
             suman su total no se puede leer, y ninguna otra pantalla lo dice.
             Va con `role="status"` y no como una nota más porque es lo único de
             esta cabecera que pide una acción. */}
         {total.descuadre ? (
-          <strong className="aulas-cuota-descuadre" role="status"> · {total.descuadre}</strong>
+          <strong className="aulas-cuota-descuadre" role="status">, {total.descuadre}</strong>
         ) : null}
       </p>
       {/* **Por qué conviven un 106.7 % y un «170 por recoger».**
@@ -101,9 +101,9 @@ export function AulasAvanceCuota({ vista }: { vista: VistaDeAvanceCuota }) {
       <div className="aulas-facultades">
         <p className="aulas-facultades-lectura">
           <strong>{fmt(filas.length)}</strong>{" "}
-          {filas.length === 1 ? "facultad" : "facultades"} ·{" "}
+          {filas.length === 1 ? "facultad" : "facultades"},{" "}
           <strong>{fmt(vista.cumplidas)}</strong> con su cuota cumplida
-          {vista.sinCuota ? <> · {fmt(vista.sinCuota)} sin cuota del diseño</> : null}
+          {vista.sinCuota ? <>, {fmt(vista.sinCuota)} sin cuota del diseño</> : null}
         </p>
         <ol className="aulas-facultades-lista" data-qa-geometry-capacity="owned" data-qa-geometry-member>
           {filas.map((f) => (

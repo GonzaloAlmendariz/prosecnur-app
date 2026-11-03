@@ -8,7 +8,7 @@
      el ALTO y dejaba 62 px en blanco recortando la miniatura (QA e15). */
   flex: 0 0 auto;
   width: 100%;
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   gap: 5px;
   line-height: 1.4;
   margin: 0;

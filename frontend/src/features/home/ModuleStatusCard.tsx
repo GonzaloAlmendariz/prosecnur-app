@@ -245,10 +245,12 @@ export const ModuleStatusCard = forwardRef<
               </span>
               {/* El avance va primero: el nombre de la encuesta suele ser largo y es lo que se trunca. */}
               <span className="home-mc-import-texto" title={`Importando ${enCurso.etiqueta}`}>
-                Importando · {enCurso.fase}
-                {enCurso.percent != null ? ` · ${enCurso.percent} %` : ""}
-                {enCurso.otros > 0 ? ` · y ${enCurso.otros} más` : ""}
-                {` · ${enCurso.etiqueta}`}
+                {[
+                  `Importando: ${enCurso.fase}`,
+                  enCurso.percent != null ? `${enCurso.percent} %` : null,
+                  enCurso.otros > 0 ? `${enCurso.otros} más` : null,
+                  enCurso.etiqueta,
+                ].filter(Boolean).join(", ")}
               </span>
             </>
           ) : accionVisible(view.action) && (
@@ -263,7 +265,7 @@ export const ModuleStatusCard = forwardRef<
           <span className="home-mc-foot" aria-label={`Datos de ${cardTitle}`}>
             {view.facts.slice(0, 4).map((fact, index) => (
               <span className="home-mc-fact" key={fact.label}>
-                {index > 0 && <span className="home-mc-fact-dot" aria-hidden="true">·</span>}
+                {index > 0 && <span className="home-mc-fact-dot" aria-hidden="true" />}
                 <strong>{fact.value}</strong>
                 <span>{fact.label}</span>
               </span>

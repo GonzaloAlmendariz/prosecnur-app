@@ -64,7 +64,7 @@ export function TerritorioEstructura({ territorios, confirmados, zonas, bloquead
         </div>
         <input className="hr-mapa-buscar" type="search" aria-label="Buscar distrito" placeholder="Buscar distrito o ubigeo" value={busquedaDistrito} onChange={(e) => setBusquedaDistrito(e.target.value)} />
         <GlidingRadioGroup value={soloElegidos ? "elegidos" : "todos"} options={FILTRO} getOptionValue={(o) => o[0]} onValueChange={(v) => setSoloElegidos(v === "elegidos")} className="hr-muestra-opciones" aria-label="Qué distritos ver">
-          {(o) => <span>{o[0] === "elegidos" ? `${o[1]} · ${enLista}` : `${o[1]} · ${territorios.length}`}</span>}
+          {(o) => <span>{o[0] === "elegidos" ? `${o[1]} (${enLista})` : `${o[1]} (${territorios.length})`}</span>}
         </GlidingRadioGroup>
         {zonas.length ? (
         <>
@@ -124,9 +124,9 @@ export function TerritorioEstructura({ territorios, confirmados, zonas, bloquead
                       <span className="hr-mapa-catalogo-copia" role="button" tabIndex={0} title="Ver su ficha" onClick={() => setDistritoEnfocado(distritoEnfocado === t.ubigeo ? null : t.ubigeo)} onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && (e.preventDefault(), setDistritoEnfocado(distritoEnfocado === t.ubigeo ? null : t.ubigeo))}>
                         <strong>{nombreDistrito(t.distrito)}</strong>
                         <small>
-                          {cambio ? <em>{cambio} · </em> : null}
-                          {enMiles(t.poblacion)} hab. · {fmt(t.manzanas)} <span className="hr-largo">manzanas</span><span className="hr-corto" aria-hidden="true">mz</span>
-                          {capta ? <span title="Población 2017 en manzanas del marco frente a la censada en 2025" data-baja={capta.baja || undefined} style={{ whiteSpace: "nowrap" }}> · {capta.texto}</span> : null}
+                          {cambio ? <em>{cambio}, </em> : null}
+                          {enMiles(t.poblacion)} hab., {fmt(t.manzanas)} <span className="hr-largo">manzanas</span><span className="hr-corto" aria-hidden="true">mz</span>
+                          {capta ? <span title="Población 2017 en manzanas del marco frente a la censada en 2025" data-baja={capta.baja || undefined} style={{ whiteSpace: "nowrap" }}>, {capta.texto}</span> : null}
                         </small>
                       </span>
                       <PulsoSwitch
@@ -211,7 +211,7 @@ export function TerritorioInspector({ territorios, confirmados, bloqueado, guard
             <header className="hr-ter-ficha-cab">
               <div>
                 <strong>{nombreDistrito(enfocado.distrito)}</strong>
-                <small>{etiquetaProvincia(enfocado)} · {enfocado.ubigeo} · {borrador.includes(enfocado.ubigeo) ? "en el estudio" : "fuera del estudio"}</small>
+                <small>{etiquetaProvincia(enfocado)}, {enfocado.ubigeo}, {borrador.includes(enfocado.ubigeo) ? "en el estudio" : "fuera del estudio"}</small>
               </div>
               <button type="button" className="hr-ter-cerrar" aria-label="Cerrar la ficha" onClick={() => setDistritoEnfocado(null)}><X size={14} /></button>
             </header>
@@ -225,7 +225,7 @@ export function TerritorioInspector({ territorios, confirmados, bloqueado, guard
                 const marcoEnfocado = marcoDeProvincias(territorios, [enfocado]);
                 return marcoEnfocado ? `${((enfocado.poblacion / marcoEnfocado) * 100).toLocaleString("es-PE", { maximumFractionDigits: 1 })} % del marco ${nombreDelMarco([enfocado])}` : null;
               })()}
-              {enfocado.manzanas ? ` · ${(enfocado.viviendas / enfocado.manzanas).toLocaleString("es-PE", { maximumFractionDigits: 1 })} viviendas por manzana` : null}
+              {enfocado.manzanas ? `, ${(enfocado.viviendas / enfocado.manzanas).toLocaleString("es-PE", { maximumFractionDigits: 1 })} viviendas por manzana` : null}
             </p>
             {captacionDe(enfocado) ? (
               <p className="hr-ter-ficha-nota">
@@ -296,7 +296,7 @@ function MarcoTerritorial({ meta, territorios, ciudad = null }: { meta: Territor
   const delPaquete = (["lima", "callao"] as const)
     .map((k) => (fuentes[k]?.year ? `${k === "lima" ? "Lima" : "Callao"} ${fuentes[k].year}` : ""))
     .filter(Boolean)
-    .join(" · ");
+    .join(", ");
   return (
     <section className="hr-muestra-grupo" aria-label="Marco territorial">
       <h3>Marco territorial</h3>
@@ -304,7 +304,7 @@ function MarcoTerritorial({ meta, territorios, ciudad = null }: { meta: Territor
         <div><dt>{filas.rotuloCobertura}</dt><dd>{filas.cobertura}</dd></div>
         <div><dt>Manzanas</dt><dd>INEI {meta.year || "—"}</dd></div>
         <div><dt>Cartografía</dt><dd>{(clave ? deLaVista : delPaquete ? `Lima y Callao: ${delPaquete}; las demás ciudades, INEI ${meta.year || 2017}` : "") || "—"}</dd></div>
-        <div><dt>{filas.rotuloCifras}</dt><dd>{miles(filas.manzanas)} manzanas · {miles(filas.viviendas)} viviendas · {miles(filas.poblacion)} hab.</dd></div>
+        <div><dt>{filas.rotuloCifras}</dt><dd>{miles(filas.manzanas)} manzanas, {miles(filas.viviendas)} viviendas, {miles(filas.poblacion)} hab.</dd></div>
         {/* P6: la comparación con la cartografía oficial INEI es del paquete de Lima y Callao; la nota completa va en el title. */}
         {cartografiaMarco && !cartografiaMarco.piloto ? (
           <div title={cartografiaMarco.detalle} data-audit-marco-cartografia><dt>Frente a la oficial</dt><dd>{cartografiaMarco.resumen}</dd></div>

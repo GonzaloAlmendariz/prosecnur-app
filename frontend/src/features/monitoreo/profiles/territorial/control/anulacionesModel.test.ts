@@ -31,7 +31,7 @@ describe("Control › Anulaciones", () => {
 
   it("una tarjeta por anulación activa, con su impacto y su motivo", () => {
     expect(modelo.activas.map((item) => [item.titulo, item.alcance, item.cuando])).toEqual([
-      ["P702 · Aplicador, producción completa", "produccion", "26/06 16:51"],
+      ["P702, Aplicador, producción completa", "produccion", "26/06 16:51"],
       ["Caso dcb2051a-123", "caso", "29/06"],
     ]);
     expect(resumenDeTarjeta(modelo.activas[0])).toBe("311 casos, 88 con consentimiento y 13 UMP");

@@ -1,3 +1,4 @@
+import { formatoDecimal } from "../../../../../lib/formatoNumero";
 import type {
   MonitoreoTerritorialDashboard,
   MonitoreoTerritorialOperationalAdjustmentDeficit,
@@ -278,7 +279,7 @@ export function textoDeQuienCubre(cubre: QuienCubre): string {
   if (!cubre) return "—";
   if (cubre.tipo === "sin-excedente") return "Sin excedente compatible cerca";
   const distancia = cubre.km != null
-    ? `, a ${cubre.km.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} km`
+    ? `, a ${formatoDecimal(cubre.km, 2)} km`
     : "";
   return `UMP ${cubre.ump}${distancia}`;
 }

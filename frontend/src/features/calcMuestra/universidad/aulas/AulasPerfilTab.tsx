@@ -289,7 +289,7 @@ Aulas y estudiantes elegibles no van juntos: una facultad puede tener pocas aula
           </ul>
           <p className="cmv2-perfil-pie">
             Del estudio {referencia.estudio.label || "anterior"}
-            {referencia.estudio.periodo ? ` · ${referencia.estudio.periodo}` : ""}. El detalle
+            {referencia.estudio.periodo ? `, ${referencia.estudio.periodo}` : ""}. El detalle
             completo vive en Datos › Histórico.
           </p>
         </div>

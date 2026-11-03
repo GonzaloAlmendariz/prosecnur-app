@@ -1,12 +1,17 @@
 import { memo, useMemo } from "react";
-import { Check, Info, Target } from "lucide-react";
+import { Info, Target } from "lucide-react";
+import { EstadoVacio } from "../../../../../components/EstadoVacio";
 import type { MonitoreoTerritorialDashboard } from "../../../../../api/client";
 import { useFocoMonitoreo } from "../../../useMonitoreoDireccion";
+import { ejeDeFechas } from "../../../core/ejeDeFechas";
+import { useAnchoMedido } from "../../../core/useAnchoMedido";
 import { fmt, fmtConSigno } from "../rotulos";
 import { construirResumen, type DiaDelRitmo, type ModeloResumen, type TirasDeUmp } from "./resumenModel";
+import { avancePorZona, faltaDeZona, type AvancePorZona } from "./porZonaModelo";
 import { RotuloDePestana } from "../navegacion/RotuloDePestana";
 import { SiluetaDeDistrito } from "./SiluetaDeDistrito";
 import "./resumen.css";
+import { EstadoChip } from "../../../../../components/EstadoChip";
 
 /**
  * Avance › Resumen (territorial.md §3.14). Izquierda: la cifra que cuenta para
@@ -15,19 +20,26 @@ import "./resumen.css";
  */
 function ResumenImpl({ reports }: { reports: MonitoreoTerritorialDashboard | null }) {
   const modelo = useMemo(() => construirResumen(reports), [reports]);
+  // ADR 0125 A1: con envío por cuotas, el total puede pasar la meta sin cerrar las celdas.
+  const cuotas = useMemo(() => avancePorZona(reports?.cuotas), [reports]);
   const [, escribirFoco] = useFocoMonitoreo();
 
   if (!modelo.configurado) {
     return (
       <section className="mon-res mon-res--vacio" data-audit-ready="vacio:sin-avance" aria-label="Resumen del avance">
-        <div className="mon-res-panel mon-res-vacio" data-qa-geometry-empty="legitimo">
+        <div className="mon-res-panel" data-qa-geometry-empty="legitimo">
           <RotuloDePestana />
-          <Target size={20} aria-hidden="true" />
-          <strong>Todavía no hay avance que resumir</strong>
-          <span>El avance se calcula cuando la fuente de Kobo tiene respuestas de la fase activa.</span>
-          <button type="button" className="mon-res-boton" onClick={() => escribirFoco(null, { seccion: "insumos", pestana: "conexiones", panel: null })}>
-            Abrir Insumos › Conexiones
-          </button>
+          <EstadoVacio
+            tamano="normal"
+            icono={<Target size={18} />}
+            titulo="Todavía no hay avance que resumir"
+            descripcion="El avance se calcula cuando la fuente de Kobo tiene respuestas de la fase activa."
+            accion={
+              <button type="button" className="mon-res-boton" onClick={() => escribirFoco(null, { seccion: "insumos", pestana: "conexiones", panel: null })}>
+                Abrir Insumos › Conexiones
+              </button>
+            }
+          />
         </div>
       </section>
     );
@@ -42,19 +54,36 @@ function ResumenImpl({ reports }: { reports: MonitoreoTerritorialDashboard | nul
       data-qa-geometry-contract="intrinsic"
     >
       <div className="mon-res-izquierda" data-qa-geometry-member="izquierda" data-qa-geometry-group="territorial-resumen-izquierda" data-qa-geometry-contract="intrinsic">
-        <CifraConBase modelo={modelo} />
+        <CifraConBase modelo={modelo} cuotas={cuotas} onFaltante={() => escribirFoco(null, { seccion: "avance", pestana: "faltante", panel: null })} />
         <Embudo modelo={modelo} />
         <Motivos modelo={modelo} onSenales={() => escribirFoco(null, { seccion: "control", pestana: "senales", panel: null })} />
       </div>
       <div className="mon-res-derecha" data-qa-geometry-member="derecha">
         <Ritmo modelo={modelo} />
-        <Distritos modelo={modelo} />
+        <Distritos modelo={modelo} cuotas={cuotas} />
       </div>
     </section>
   );
 }
 
-function CifraConBase({ modelo }: { modelo: ModeloResumen }) {
+function AvisoDeCuotas({ cuotas, superaLaMeta, onFaltante }: { cuotas: AvancePorZona; superaLaMeta: boolean; onFaltante: () => void }) {
+  const falta = cuotas.zonas.reduce((s, z) => s + faltaDeZona(z), 0);
+  if (!falta) return null;
+  // ADR 0126: lo que se exige (celdas, o metas marginales si una dimensión es referencial).
+  const celdas = cuotas.unidades - cuotas.unidadesCompletas;
+  const marginal = cuotas.zonas.some((z) => z.marginales.length > 0);
+  return (
+    <button type="button" className="mon-res-aviso-cuotas" onClick={onFaltante}>
+      <span>
+        <b>Faltan {fmt(falta)} entrevistas en {fmt(celdas)} {marginal ? (celdas === 1 ? "meta" : "metas") : celdas === 1 ? "celda" : "celdas"}</b>
+        {superaLaMeta ? " aunque el total supera la meta" : ""}
+      </span>
+      <span>Ver Faltante</span>
+    </button>
+  );
+}
+
+function CifraConBase({ modelo, cuotas, onFaltante }: { modelo: ModeloResumen; cuotas: AvancePorZona | null; onFaltante: () => void }) {
   const radio = 34;
   const circunferencia = 2 * Math.PI * radio;
   return (
@@ -78,18 +107,17 @@ function CifraConBase({ modelo }: { modelo: ModeloResumen }) {
         <p className="mon-res-cifra-numero"><b>{fmt(modelo.cuentan)}</b> / {fmt(modelo.meta)}</p>
         <p className="mon-res-base" title="Casos que cuentan para la meta, sobre la meta de la fase">Cuentan para la meta</p>
         {modelo.metaAlcanzada ? (
-          <span
-            className="mon-res-chip is-ok"
-            title={modelo.metaAlcanzada.excedente > 0 ? `${fmt(modelo.metaAlcanzada.excedente)} por encima de la meta` : undefined}
-          >
-            <Check size={13} aria-hidden="true" />
-            Meta alcanzada el {modelo.metaAlcanzada.fecha}
-          </span>
+          <EstadoChip
+            label={`Meta alcanzada el ${modelo.metaAlcanzada.fecha}`}
+            tone="success"
+            detail={modelo.metaAlcanzada.excedente > 0 ? `${fmt(modelo.metaAlcanzada.excedente)} por encima de la meta` : undefined}
+          />
         ) : (
-          <span className="mon-res-chip">Faltan {fmt(Math.max(0, modelo.meta - modelo.cuentan))} para la meta</span>
+          <EstadoChip label={`Faltan ${fmt(Math.max(0, modelo.meta - modelo.cuentan))} para la meta`} tone="warn" />
         )}
       </div>
       </div>
+      {cuotas ? <AvisoDeCuotas cuotas={cuotas} superaLaMeta={modelo.cuentan >= modelo.meta} onFaltante={onFaltante} /> : null}
     </section>
   );
 }
@@ -124,7 +152,7 @@ function Motivos({ modelo, onSenales }: { modelo: ModeloResumen; onSenales: () =
   const enObservacion = modelo.embudo.find((paso) => paso.clave === "observacion")?.valor ?? 0;
   return (
     <section className="mon-res-panel" aria-labelledby="mon-res-motivos-titulo">
-      <h3 id="mon-res-motivos-titulo" className="mon-res-titulo" title="Un caso puede tener dos motivos">Por qué {fmt(enObservacion)} están en observación</h3>
+      <h3 id="mon-res-motivos-titulo" className="mon-res-titulo" title="Un caso puede tener dos motivos">Motivos de observación ({fmt(enObservacion)} {enObservacion === 1 ? "caso" : "casos"})</h3>
       {modelo.motivos === null ? (
         <p className="mon-res-nota" data-qa-geometry-empty="desconexion">
           <Info size={14} aria-hidden="true" />
@@ -166,7 +194,10 @@ function Ritmo({ modelo }: { modelo: ModeloResumen }) {
   const x = (indice: number) => margen.izquierda + paso * indice + paso / 2;
   const linea = dias.map((dia, indice) => `${indice ? "L" : "M"}${x(indice).toFixed(1)},${y(dia.acumulado).toFixed(1)}`).join(" ");
   const base = alto - margen.abajo;
-  const cada = Math.max(1, Math.ceil(dias.length / 8));
+  // El eje de fechas de dos líneas (core/ejeDeFechas): cuántos días caben lo
+  // decide el paso en px reales del SVG estirado; hasta medirlo, el del viewBox.
+  const [pista, anchoDePista] = useAnchoMedido<HTMLSpanElement>();
+  const rotulos = ejeDeFechas(dias.map((dia) => dia.fecha), paso * ((anchoDePista || ancho) / ancho));
   return (
     <section className="mon-res-panel mon-res-ritmo" aria-labelledby="mon-res-ritmo-titulo" data-qa-geometry-member="ritmo">
       <header className="mon-res-cabecera">
@@ -193,10 +224,14 @@ function Ritmo({ modelo }: { modelo: ModeloResumen }) {
         </svg>
         {/* Las fechas van en HTML, como el eje Y: dentro del SVG estirado con
          * preserveAspectRatio="none" el texto se ensanchaba con el panel. */}
-        <span className="mon-res-eje-x" aria-hidden="true">
-          {dias.map((dia, indice) => (indice % cada === 0 ? (
-            <b key={dia.fecha} style={{ left: `${(x(indice) / ancho) * 100}%` }}>{dia.rotulo}</b>
-          ) : null))}
+        <span className="mon-res-eje-x" aria-hidden="true" ref={pista}
+          data-qa-geometry-group="territorial-resumen-eje-x" data-qa-geometry-contract="intrinsic">
+          {rotulos.map((rotulo) => (
+            <span key={dias[rotulo.indice].fecha} className="mon-eje-fecha-html" style={{ left: `${(x(rotulo.indice) / ancho) * 100}%` }}>
+              {rotulo.dia}
+              {rotulo.mes ? <b>{rotulo.mes}</b> : null}
+            </span>
+          ))}
         </span>
         </div>
         </div>
@@ -233,7 +268,26 @@ function Tiras({ umps }: { umps: TirasDeUmp }) {
   );
 }
 
-function Distritos({ modelo }: { modelo: ModeloResumen }) {
+const tonoDelDia = (v: number, max: number) => (v <= 0
+  ? "var(--pulso-surface-3)"
+  : `color-mix(in srgb, var(--pulso-brand-navy) ${Math.round(18 + (v / Math.max(1, max)) * 82)}%, var(--pulso-surface))`);
+
+/** El calor diario de una zona, alineado a los días del ritmo. */
+function CalorDiario({ dias, porFecha, max }: { dias: readonly DiaDelRitmo[]; porFecha: ReadonlyMap<string, number>; max: number }) {
+  return (
+    <span className="mon-res-calor" style={{ gridTemplateColumns: `repeat(${Math.max(1, dias.length)}, minmax(0, 1fr))` }}>
+      {dias.map((d) => {
+        const v = porFecha.get(d.fecha) ?? 0;
+        return <i key={d.fecha} title={`${d.rotulo}: ${fmt(v)}`} style={{ background: tonoDelDia(v, max) }} />;
+      })}
+    </span>
+  );
+}
+
+function Distritos({ modelo, cuotas }: { modelo: ModeloResumen; cuotas: AvancePorZona | null }) {
+  const zonas = new Map((cuotas?.zonas ?? []).map((z) => [z.idZona, z]));
+  const diarios = new Map([...zonas].map(([u, z]) => [u, new Map(z.diario.map((d) => [d.fecha, d.efectivas]))]));
+  const maxDia = Math.max(1, ...[...diarios.values()].flatMap((m) => [...m.values()]));
   return (
     <section className="mon-res-panel mon-res-distritos" aria-labelledby="mon-res-distritos-titulo" data-qa-geometry-member="distritos">
       <h3 id="mon-res-distritos-titulo" className="mon-res-titulo">Distritos</h3>
@@ -246,7 +300,12 @@ function Distritos({ modelo }: { modelo: ModeloResumen }) {
               <th scope="col" className="is-num">Avance</th>
               <th scope="col" className="is-num">En observación</th>
               <th scope="col" className="is-num">No cuentan</th>
-              <th scope="col">UMP</th>
+              {cuotas ? (
+                <>
+                  <th scope="col" className="is-num">{cuotas.zonas.some((z) => z.marginales.length > 0) ? "Metas" : "Celdas"}</th>
+                  <th scope="col" title={`Efectivas por día, del ${modelo.ritmo[0]?.rotulo ?? ""} al ${modelo.ritmo.at(-1)?.rotulo ?? ""}`}>Por día</th>
+                </>
+              ) : <th scope="col">UMP</th>}
             </tr>
           </thead>
           <tbody>
@@ -264,7 +323,14 @@ function Distritos({ modelo }: { modelo: ModeloResumen }) {
                 <td className="is-num">{fila.avance}</td>
                 <td className="is-num">{fmt(fila.observacion)}</td>
                 <td className="is-num">{fmt(fila.noCuentan)}</td>
-                <td><Tiras umps={fila.umps} /></td>
+                {cuotas ? (
+                  <>
+                    <td className={`is-num${(zonas.get(fila.ubigeo)?.unidadesCompletas ?? 0) < (zonas.get(fila.ubigeo)?.unidades ?? 0) ? " is-falta" : ""}`}>
+                      {zonas.get(fila.ubigeo) ? `${fmt(zonas.get(fila.ubigeo)?.unidadesCompletas ?? 0)} de ${fmt(zonas.get(fila.ubigeo)?.unidades ?? 0)}` : "—"}
+                    </td>
+                    <td><CalorDiario dias={modelo.ritmo} porFecha={diarios.get(fila.ubigeo) ?? new Map()} max={maxDia} /></td>
+                  </>
+                ) : <td><Tiras umps={fila.umps} /></td>}
               </tr>
             ))}
           </tbody>
@@ -278,7 +344,12 @@ function Distritos({ modelo }: { modelo: ModeloResumen }) {
                 {fmt(modelo.total.noCuentan)}
                 {modelo.total.sinDistrito ? <small> ({fmt(modelo.total.sinDistrito)} sin distrito)</small> : null}
               </td>
-              <td>{fmt(modelo.total.umpsCompletas)} de {fmt(modelo.total.umps)} completas</td>
+              {cuotas ? (
+                <>
+                  <td className={`is-num${cuotas.unidadesCompletas < cuotas.unidades ? " is-falta" : ""}`}>{fmt(cuotas.unidadesCompletas)} de {fmt(cuotas.unidades)}</td>
+                  <td />
+                </>
+              ) : <td>{fmt(modelo.total.umpsCompletas)} de {fmt(modelo.total.umps)} completas</td>}
             </tr>
           </tfoot>
         </table>

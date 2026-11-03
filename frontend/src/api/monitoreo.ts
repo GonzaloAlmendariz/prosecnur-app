@@ -140,6 +140,8 @@ export type MonitoreoGoal = {
   meta: number;
   meta_pct?: number | null;
   objetivo?: MonitoreoGoalObjetivo | null;
+  /** ADR 0126: `meta` se exige; `referencial` se describe. Sin declarar, meta si hay número. */
+  caracter?: "meta" | "referencial" | null;
 };
 
 export type MonitoreoReportWeekday = "lunes" | "martes" | "miercoles" | "jueves" | "viernes" | "sabado" | "domingo";
@@ -1020,6 +1022,10 @@ export type MonitoreoAulasAvanceCuotaFacultad = {
   estado: "ok" | "sin_aulas_en_plan" | "sin_cuota" | "fuera_del_diseno";
   fuera_universo: number;
   respuestas_sin_sexo: number;
+  /** ADR 0126 (aditivo; ausente en «fuera del diseño», que es residual). */
+  caracter?: "meta" | "referencial";
+  fuente?: "declarada" | "respaldo" | "";
+  estado_cuota?: "cumple" | "falta" | "sin_base" | "referencial" | "sin_comparador";
 };
 
 /**
@@ -1107,6 +1113,11 @@ export type MonitoreoAulasAvanceCuota = {
   meta_diseno?: number | null;
   sobremuestra?: number | null;
   meta_operativa?: number | null;
+  /**
+   * ADR 0126: los dos niveles de la meta (muestra y sobremuestra). `compensa`
+   * dice que el veredicto compara el total: la sobremuestra no tiene celdas.
+   */
+  niveles?: Array<{ nivel: "muestra" | "sobremuestra"; meta: number; caracter: "meta"; compensa: boolean; estado_cuota: string }>;
   total: MonitoreoAulasAvanceCuotaTotal;
   facultades: MonitoreoAulasAvanceCuotaFacultad[];
 };

@@ -2,6 +2,7 @@ import type { DisenoEstudioSourceState, ProjectOverview } from "../../api/client
 import type { ProsecnurModuleMeta } from "../../lib/modules";
 import { resumenDelInicio } from "../recopiladores/campanas/resumenDelInicio";
 import { baseDelAvance, estaRegenerando, lineaDelAvance, rezagado, type HechosDeMonitoreo } from "./lecturaDeMonitoreo";
+import { enumerar } from "../../lib/enumerar";
 
 export type ModuleStatusState = DisenoEstudioSourceState;
 
@@ -269,7 +270,7 @@ export function buildModuleCardView(
             { label: "variables", value: formatCount(metrics.variables_count) },
           ];
       if (outputParts.length > 0) {
-        cardFacts.push({ label: "salidas", value: outputParts.join(" · ") });
+        cardFacts.push({ label: "salidas", value: enumerar(outputParts) });
       }
       return {
         state,

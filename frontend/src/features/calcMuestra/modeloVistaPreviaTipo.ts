@@ -15,6 +15,7 @@ import type { CalcMuestraComponente } from "../../api/calcMuestra";
 import { PROSECNUR_MODULES } from "../../lib/modules";
 import { modoDeDesk } from "./navegacion";
 import type { ActiveDesk } from "./sharedCore";
+import { fmtInt } from "./sharedCore";
 
 export type PasoDelTipo = { id: string; label: string; detalle: string | null };
 export type SeccionDelTipo = { id: string; label: string; pasos: PasoDelTipo[] };
@@ -61,7 +62,7 @@ export function loQueSePierde({
   if (nombre) items.push(`La ficha del estudio «${nombre}»`);
   const conMarco = componentes.filter((c) => (c.marco?.marco_validado ?? 0) > 0).length;
   if (componentes.length > 0) {
-    const grupos = componentes.length === 1 ? "1 grupo" : `${componentes.length} grupos`;
+    const grupos = componentes.length === 1 ? "1 grupo" : `${fmtInt(componentes.length)} grupos`;
     items.push(
       conMarco > 0
         ? `${grupos} con su marco, técnica y parámetros (${conMarco} con N declarado)`

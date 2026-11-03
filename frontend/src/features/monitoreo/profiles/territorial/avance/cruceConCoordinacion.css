@@ -17,7 +17,7 @@
 .mon-falt-coord h5 {
   margin: 0;
   color: var(--pulso-text-faint);
-  font-size: 10.5px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-bold);
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -38,5 +38,5 @@
 .mon-falt-coord-pie {
   margin: 0;
   color: var(--pulso-text-faint);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
 }
