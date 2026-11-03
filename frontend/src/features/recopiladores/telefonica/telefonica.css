@@ -75,3 +75,13 @@
   font-size: var(--pulso-type-body-size);
   font-weight: var(--pulso-weight-medium);
 }
+
+/* Revamp v5: los bloques de Casos son pares y comparten alto (C2); el vacío queda dentro de cada uno. */
+.rec-tel-pares { align-items: stretch; }
+
+/* D18: la opción elegida del segmentado lleva ✓, no sólo un cambio de tono. */
+.rec-tel-tarjeta .rec-terr-opciones.pulso-gliding-tab-list > button[aria-checked="true"]::before {
+  content: "✓";
+  margin-right: var(--pulso-space-1);
+  font-weight: 700;
+}

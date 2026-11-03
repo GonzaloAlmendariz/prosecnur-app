@@ -68,7 +68,12 @@ export function CampanaTelefonicaShell({ campana, cabecera = null }: Props) {
       aria-busy={cargando}
     >
       <div className="rec-terr-seccion">
-        <div className="rec-terr-tarjetas" data-qa-geometry-group={`material-campo/telefonica/${seccion}`} data-qa-geometry-contract="intrinsic">
+        {/* Revamp v5: en Casos los bloques son pares y comparten alto (C2); el resto son secciones independientes. */}
+        <div
+          className={`rec-terr-tarjetas${seccion === "casos" ? " rec-tel-pares" : ""}`}
+          data-qa-geometry-group={`material-campo/telefonica/${seccion}`}
+          data-qa-geometry-contract={seccion === "casos" ? "equal" : "intrinsic"}
+        >
           {seccion === "casos" ? <CasosTelefonicos datos={datos} /> : null}
           {seccion === "barrido" ? <BarridoTelefonico datos={datos} pestana={pestana} campaignId={campana.id} hrefCasos={hrefDe("casos", PESTANAS_TELEFONICAS.casos[0])} /> : null}
           {seccion === "entrega" ? <EntregaTelefonica config={config} /> : null}
