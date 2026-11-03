@@ -165,3 +165,16 @@ test_that("el recuadro de la zona de Lima sale sólo si Lima pesa al menos el 5 
   # Sin recuadro, el panel no reserva su franja: el país usa el ancho.
   expect_lt(.mapa_dist_col(e, 6.3, .mapa_dist_pt()), 200 / 96)
 })
+
+test_that("la PUCP va sólo en el mapa distrital y la tarjeta del mapa mide lo que pide su contenido", {
+  fx <- .md_fx()
+  e <- .md_espec(fx, "dep", "peru", puntos = "PUCP | -12.0693, -77.0794", excl = "No sabe")
+  expect_null(e$puntos); expect_identical(nrow(e$rotulos), 0L)
+  l <- .md_espec(fx, "dist", "lima_callao", puntos = "PUCP | -12.0693, -77.0794")
+  expect_identical(l$rotulos$texto, "PUCP")
+  # Ancho natural: menor que el 62 % de la lámina para Lima y el Perú (el ancho fijo dejaba mar vacío a los lados).
+  for (x in list(l, e)) expect_lt(.mapa_dist_ancho_natural(x, 4.3, .mapa_dist_pt()), 0.62 * 12.3)
+  # En una tarjeta angosta la leyenda baja los extras a una segunda fila en vez de salirse.
+  expect_identical(.lam_mapa_dist_leyenda_reparto(e, 4.5)$filas, 2L)
+  expect_identical(.lam_mapa_dist_leyenda_reparto(l, 9)$filas, 1L)
+})

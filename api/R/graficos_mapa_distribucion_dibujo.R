@@ -33,17 +33,8 @@
 #' @return `list(k, s, tx, ty, lon0, lat0)`: x = ((lon − lon0)·k)·s + tx, y = lat·s + ty.
 #' @keywords internal
 .mapa_dist_proyeccion <- function(espec, ancho, alto, col) {
-  a <- espec$areas; m <- 16 * .MAPA_DIST_PX
-  if (identical(espec$area, "peru") || identical(espec$encuadre, "completo")) {
-    bb <- sf::st_bbox(espec$carto$areas)
-    lon <- bb[c("xmin", "xmax")]; lat <- bb[c("ymin", "ymax")]
-  } else {
-    sel <- a[a$n > 0, , drop = FALSE]
-    if (!nrow(sel)) sel <- a
-    lon <- range(c(sel$cx, espec$puntos$lon)); lat <- range(c(sel$cy, espec$puntos$lat))
-    pad <- max(0.025, 0.18 * max(diff(lon), diff(lat)))
-    lon <- lon + c(-pad, pad); lat <- lat + c(-pad, pad)
-  }
+  m <- 16 * .MAPA_DIST_PX
+  v <- .mapa_dist_ventana(espec); lon <- v$lon; lat <- v$lat
   lat0 <- mean(lat); k <- cos(lat0 * pi / 180); lon0 <- lon[[1]]
   dx <- (lon[[2]] - lon[[1]]) * k; dy <- lat[[2]] - lat[[1]]
   util_w <- ancho - col - m; util_h <- alto - 2 * m
@@ -52,6 +43,43 @@
   tx <- if (identical(espec$area, "peru") && is.null(espec$zona)) (ancho - dx * s) / 2 else ancho - m - dx * s
   ty <- (alto - dy * s) / 2 - lat[[1]] * s
   list(k = k, s = s, tx = tx, ty = ty, lon0 = lon0, lat0 = lat0)
+}
+
+#' La ventana del mapa en lon/lat: todo el país (Perú, o encuadre «completo») o las áreas con encuestados y los puntos,
+#' con aire
+#' @keywords internal
+.mapa_dist_ventana <- function(espec) {
+  a <- espec$areas
+  if (identical(espec$area, "peru") || identical(espec$encuadre, "completo")) {
+    bb <- sf::st_bbox(espec$carto$areas)
+    return(list(lon = unname(bb[c("xmin", "xmax")]), lat = unname(bb[c("ymin", "ymax")])))
+  }
+  sel <- a[a$n > 0, , drop = FALSE]
+  if (!nrow(sel)) sel <- a
+  lon <- range(c(sel$cx, espec$puntos$lon)); lat <- range(c(sel$cy, espec$puntos$lat))
+  pad <- max(0.025, 0.18 * max(diff(lon), diff(lat)))
+  list(lon = lon + c(-pad, pad), lat = lat + c(-pad, pad))
+}
+
+#' Ancho (in) que pide el panel para un alto dado: la columna de la izquierda, el mapa a su escala y el margen
+#'
+#' Gonzalo, 2026-11-02: «el mapa tiene mucho ancho y se ve raro el encuadre». La tarjeta del mapa mide lo que su
+#' contenido pide en vez de una fracción fija de la lámina; lo que sobra va a la tarjeta del ranking.
+#' @keywords internal
+.mapa_dist_ancho_natural <- function(espec, alto, pt) {
+  m <- 16 * .MAPA_DIST_PX; v <- .mapa_dist_ventana(espec)
+  k <- cos(mean(v$lat) * pi / 180)
+  s <- (alto - 2 * m) / diff(v$lat) * (if (identical(espec$area, "peru")) 0.94 else 1)
+  .mapa_dist_col(espec, 99, pt) + diff(v$lon) * k * s + 2 * m
+}
+
+#' Alto (in) que pide el panel para un ancho dado (Word: el mapa va al ancho de texto)
+#' @keywords internal
+.mapa_dist_alto_natural <- function(espec, ancho, pt) {
+  m <- 16 * .MAPA_DIST_PX; v <- .mapa_dist_ventana(espec)
+  k <- cos(mean(v$lat) * pi / 180)
+  s <- (ancho - .mapa_dist_col(espec, ancho, pt) - 2 * m) / (diff(v$lon) * k)
+  diff(v$lat) * s / (if (identical(espec$area, "peru")) 0.94 else 1) + 2 * m
 }
 
 #' Proyecta lon/lat a pulgadas con la proyección del panel

@@ -147,6 +147,9 @@ p_mapa_distribucion <- function(var, area = c("lima_callao", "peru"), medida = c
                                      rotulo = NULL, zona_lima = NULL) {
   if (is.null(carto)) return(NULL)
   M <- .MAPA_DIST
+  # Los puntos de referencia (la PUCP) van sólo en el mapa distrital: en el nacional no se ven a esa escala (Gonzalo,
+  # 2026-11-02: «la PUCP sólo va en distrital, no en nacional, por definición propia»).
+  if (identical(area, "peru")) puntos <- NULL
   base <- sum(filas$n)
   a <- as.data.frame(carto$areas)[, c("clave", "nombre", "pob", "cx", "cy")]
   ok <- filas[!is.na(filas$clave), , drop = FALSE]

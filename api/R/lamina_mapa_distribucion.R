@@ -9,34 +9,50 @@
 # color de su clase y la cifra alineada a la derecha, y una nota al pie (lo que no entra, lo que queda fuera del mapa).
 # Medidas en px del lienzo (1/96 in), como la maqueta.
 
-.LAM_MAPA_DIST <- list(frac_mapa = 700 / 1184, aire = 28, h_ley = 74, pad = 20, pad_x = 24, col_nombre = 140, col_valor = 92)
+.LAM_MAPA_DIST <- list(aire = 28, h_ley = 74, pad = 20, pad_x = 24, col_nombre = 140, col_valor = 92)
+
+#' Cómo se reparte la leyenda escalonada en un ancho: bloques de clase iguales y, si no caben en la misma fila, los
+#' extras («fuera de escala», «Sin encuestados») en una segunda fila
+#' @return `list(filas, paso, extras, colores_extra, ancho_extra, alto)` (in).
+#' @keywords internal
+.lam_mapa_dist_leyenda_reparto <- function(espec, w, pt = 8.25) {
+  P <- .MAPA_DIST_PX; M <- .MAPA_DIST; cl <- espec$clases
+  extras <- c(if (!is.null(espec$fuera)) paste(espec$fuera$nombre, "(fuera de escala)"), "Sin encuestados")
+  cols_extra <- c(if (!is.null(espec$fuera)) rep(M$fuera, nrow(espec$fuera)), M$vacio)
+  ancho_extra <- vapply(extras, function(t) max(0.9, .lam_ancho_tinta(t, pt) * 1.08 + 0.3), 0)
+  n <- length(cl$colores); util <- w - 48 * P
+  paso_min <- max(.lam_ancho_tinta(cl$rotulos, pt)) * 1.08 + 0.3   # cada rango cabe en una línea bajo su bloque
+  una <- n * paso_min + sum(ancho_extra) + length(extras) * 14 * P <= util
+  paso <- if (una) (util - sum(ancho_extra) - length(extras) * 14 * P) / n else util / n
+  list(filas = if (una) 1L else 2L, paso = paso, extras = extras, colores_extra = cols_extra, ancho_extra = ancho_extra,
+       alto = if (una) 74 * P else 112 * P)
+}
 
 #' Leyenda escalonada bajo el mapa
 #' @param x,y,w Franja de la leyenda (in). @keywords internal
 .lam_mapa_dist_leyenda <- function(lz, espec, x, y, w) {
   P <- .MAPA_DIST_PX; M <- .MAPA_DIST
+  r <- .lam_mapa_dist_leyenda_reparto(espec, w)
   .lam_caja(lz, x, y, w, 0.008, "#E3E6EB", nombre = "mapa:leyenda_filete")
   .lam_txt(lz, espec$leyenda_titulo, x, y + 8 * P, w, 0.24, 8.25, "#3C4658", bold = TRUE, align = "center", nombre = "mapa:leyenda_titulo")
-  cl <- espec$clases
-  extras <- c(if (!is.null(espec$fuera)) paste(espec$fuera$nombre, "(fuera de escala)"), "Sin encuestados")
-  cols_extra <- c(if (!is.null(espec$fuera)) rep(M$fuera, nrow(espec$fuera)), M$vacio)
-  n <- length(cl$colores); ne <- length(extras)
-  ancho_extra <- vapply(extras, function(t) max(1.0, .lam_ancho_tinta(t, 8.25) * 1.08 + 0.3), 0)
-  x0 <- x + 24 * P; util <- w - 48 * P - sum(ancho_extra) - ne * 14 * P
-  paso <- max(0.45, util / n); yb <- y + 30 * P
+  cl <- espec$clases; n <- length(cl$colores); paso <- r$paso
+  x0 <- x + 24 * P; yb <- y + 30 * P
   for (j in seq_len(n)) {
     xj <- x0 + (j - 1) * paso
     .lam_caja(lz, xj + P, yb, paso - 2 * P, 12 * P, cl$colores[j], nombre = "leyenda:clase")
     .lam_txt(lz, cl$rotulos[j], xj - 0.05, yb + 14 * P, paso + 0.1, 0.24, 8.25, "#3C4658", align = "center", nombre = "leyenda:rango")
   }
-  xe <- x0 + n * paso
-  for (j in seq_len(ne)) {
+  # En una fila, los extras siguen a los bloques; en dos, van centrados debajo.
+  if (r$filas == 1L) { xe <- x0 + n * paso; ye <- yb } else {
+    xe <- x + (w - sum(r$ancho_extra) - length(r$extras) * 14 * P) / 2; ye <- yb + 38 * P
+  }
+  for (j in seq_along(r$extras)) {
     xe <- xe + 14 * P
-    vacio <- identical(cols_extra[j], M$vacio)
-    .lam_caja(lz, xe, yb, ancho_extra[j], 12 * P, cols_extra[j], nombre = "leyenda:extra", borde = if (vacio) M$vacio_borde else cols_extra[j],
-              borde_pt = 0.75)
-    .lam_txt(lz, extras[j], xe - 0.05, yb + 14 * P, ancho_extra[j] + 0.1, 0.24, 8.25, "#3C4658", align = "center", nombre = "leyenda:texto")
-    xe <- xe + ancho_extra[j]
+    vacio <- identical(r$colores_extra[j], M$vacio)
+    .lam_caja(lz, xe, ye, r$ancho_extra[j], 12 * P, r$colores_extra[j], nombre = "leyenda:extra",
+              borde = if (vacio) M$vacio_borde else r$colores_extra[j], borde_pt = 0.75)
+    .lam_txt(lz, r$extras[j], xe - 0.05, ye + 14 * P, r$ancho_extra[j] + 0.1, 0.24, 8.25, "#3C4658", align = "center", nombre = "leyenda:texto")
+    xe <- xe + r$ancho_extra[j]
   }
   invisible(lz)
 }
@@ -93,7 +109,11 @@
   force(folio)
   P <- .MAPA_DIST_PX; R <- .LAM_MAPA_DIST; g_ <- .std_geom
   ml <- g_("margen_izq"); ancho <- g_("ancho") - ml - g_("margen_der"); yt <- g_("zona_datos_y0") - 0.1; yf <- g_("contenido_y1")
-  wm <- ancho * R$frac_mapa; h <- yf - yt; h_ley <- R$h_ley * P; h_map <- h - h_ley
+  h <- yf - yt
+  # La tarjeta del mapa mide lo que su contenido pide (entre el 40 % y el 62 % del ancho): un ancho fijo dejaba franjas de
+  # mar vacías a los lados («se ve raro el encuadre», Gonzalo, 2026-11-02). La leyenda decide su alto con ese ancho.
+  wm <- min(0.62 * ancho, max(0.4 * ancho, .mapa_dist_ancho_natural(espec, h - R$h_ley * P - P, .mapa_dist_pt("lamina")) + 2 * P))
+  h_ley <- .lam_mapa_dist_leyenda_reparto(espec, wm)$alto; h_map <- h - h_ley
   doc <- officer::add_slide(doc, layout = layout, master = master)
   doc <- .lam_titulo(doc, titulo, ante = ante, sub = sub)
   lz <- .lam_lienzo()

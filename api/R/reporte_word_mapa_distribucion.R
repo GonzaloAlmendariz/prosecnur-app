@@ -86,7 +86,7 @@
 .word_g_mapa_distribucion <- function(espec) {
   pt <- .mapa_dist_pt("word")
   w <- min(16 / 2.54, .std_word("pagina", "ancho_util"))
-  h_map <- w * 430 / 603; h_ley <- 0.62
+  h_map <- min(w * 0.85, max(w * 0.5, .mapa_dist_alto_natural(espec, w, pt))); h_ley <- 0.62   # el alto que pide el mapa a 16 cm
   panel <- .mapa_dist_panel_gg(espec, w, h_map, pt)
   rk <- .word_mapa_dist_ranking(espec, w, pt$leyenda)
   h_rk <- attr(rk, "alto")

@@ -41,3 +41,12 @@ Estados: pendiente · en curso · hecho (a revisar) · bloqueado. Sólo Gonzalo 
 | 16 | Rótulos de distritos (≥ 12 casos; en tasa, los 6 primeros) en la columna sobre el mar | **Contradice la indicación directa de Gonzalo** («la línea hacia afuera es sólo para los puntos de Google Maps; los distritos se colorean con leyenda y gráfico de barras al lado»). Hoy sólo los puntos llevan rótulo | bloqueado: lo decide Gonzalo |
 | 17 | El recuadro «Zona de Lima» salía en subpreguntas sin Lima | sólo si Lima Metropolitana + Callao + Lima provincias ≥ 5 % de la base, o `zona_lima = TRUE/FALSE`; sin recuadro, el Perú se centra | hecho (a revisar), con prueba |
 | 18 | El recuadro mal encuadrado (costa vacía, Callao casi invisible) | `.mapa_dist_zona_lima()`: caja de Lima Metropolitana + Callao con 30 % de aire; el recuadro crece con su letra en el Word | hecho (a revisar) |
+
+## Correcciones de Gonzalo (2026-11-02, tercera ronda)
+
+| # | Indicación | Dónde vive | Estado |
+|---|---|---|---|
+| 19 | La PUCP sólo va en el mapa distrital, no en el nacional («por definición propia») | `.espec_mapa_distribucion()`: en el Perú los puntos se descartan | hecho (a revisar), con prueba |
+| 20 | «El mapa del Perú o de Lima tiene mucho ancho y se ve raro el encuadre» | la tarjeta del mapa mide lo que pide su contenido (`.mapa_dist_ancho_natural`, entre 40 % y 62 % de la lámina); Word: alto natural a 16 cm; la leyenda baja sus extras a una 2.ª fila si no cabe | hecho (a revisar) |
+| 21 | «No se distinguen los distritos» | bordes blancos de 0,75 pt de la maqueta aprobada; antes se pidieron negros. Falta decidir con Gonzalo | bloqueado: lo decide Gonzalo |
+| 22 | «etc.»: más ajustes de acabado | por definir en la próxima revisión | pendiente |
