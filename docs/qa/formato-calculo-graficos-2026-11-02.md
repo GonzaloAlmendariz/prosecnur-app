@@ -107,6 +107,40 @@ Límite de la medición: `marco-disponible` no tiene un `.pulso` de referencia; 
 la dirección aterriza muda en otra vista. Sus cambios (P3 en `general/`, P5, P1) quedan verificados por tests, no por
 captura.
 
+## P2: bloques que faltan pasar a `Panel` (25, al 3 nov 2026)
+
+Hechos: Entrega (8), Cálculo › Diseño y Propuestas (4), Marco › Sexo por curso-horario (1). Los que siguen tienen
+antetítulo y un `h3` con `id` al que apunta `aria-labelledby` (se pasa `title={<span id="…">…</span>}`), o piezas
+propias en la cabecera; van uno por commit, empezando por la primera pestaña de cada modo. El ratchet
+`cajasPropias` cuenta reglas CSS: baja cuando se migra el último usuario de una regla y esa regla se borra (la de
+`cmv2-panel` es compartida y sólo cae al final).
+
+- `ComponenteTablas.tsx:48`
+- `ComponenteTablas.tsx:145`
+- `general/TablaUnidades.tsx:53`
+- `general/MarcoShapeSelector.tsx:24`
+- `general/EstratosGeneral.tsx:61`
+- `general/SeleccionActores.tsx:133`
+- `general/ActoresAcreditacion.tsx:43`
+- `general/SelectorActor.tsx:47`
+- `general/VariablesControl.tsx:26`
+- `general/MemoriaCalculoGeneral.tsx:48`
+- `general/FichaEstudio.tsx:39`
+- `general/FichaCorrida.tsx:72`
+- `general/ResultadosComponentes.tsx:58`
+- `general/ArchivoMarcoGeneral.tsx:99`
+- `general/SeleccionGeneral.tsx:162`
+- `general/SeleccionGeneral.tsx:195`
+- `general/SeleccionGeneral.tsx:348`
+- `general/MetodoGeneral.tsx:94`
+- `general/MetodoGeneral.tsx:118`
+- `general/MetodoGeneral.tsx:144`
+- `general/MetodoGeneral.tsx:180`
+- `general/PropuestaTraspaso.tsx:31`
+- `general/ContextoReporte.tsx:37`
+- `universidad/calculo/CalculoCursosHorarioFacultadTab.tsx:173`
+- `universidad/calculo/CertezaCoberturaPanel.tsx:234`
+
 ## Bitácora
 
 - 23 h: medición inicial y doc.
