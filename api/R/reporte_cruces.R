@@ -1600,7 +1600,8 @@ exportar_cruces_multi <- function(data,
               alpha = alpha
             )
           } else {
-            comparar_columnas_sig(nn$n_mat, nn$N_vec, alpha = alpha)
+            # ADR 0126: la regla del estudio si el worker la fijó (reporte_cruces_significancia.R)
+            .cruces_comparar_con_regla(data, var, opciones, codes_row, estr_codes, s, tp, weight_col, nn, alpha)
           }
 
           bloques_sig[[s]] <- list(
@@ -1610,7 +1611,8 @@ exportar_cruces_multi <- function(data,
             letras      = cmp$letras,
             sig         = cmp$sig,
             method      = cmp$method %||% "z_legacy",
-            reason      = cmp$reason %||% ""
+            reason      = cmp$reason %||% "",
+            regla       = cmp$regla
           )
         }
 
@@ -1720,6 +1722,8 @@ exportar_cruces_multi <- function(data,
               "No se ejecuta inferencia ni se asignan letras: ",
               paste(razones_repeat, collapse = " "), "."
             )
+          } else if (is.list(bloques_sig[[1]]$regla)) {
+            .cruces_nota_regla(bloques_sig[[1]]$regla)
           } else {
             .notas_pie_significancia("z", alpha)
           }

@@ -4449,7 +4449,7 @@ mount_analitica <- function(pr) {
                         brecha_filas, brecha_cols,
                         aplicar_sem, sem_modo, sem_cortes, sem_colores,
                         orden_cruces, ordinal_lists_by_base,
-                        notas = NULL,
+                        notas = NULL, significancia = NULL,
                         api_path, result_path, progress_path = NULL) {
           if (requireNamespace("pkgload", quietly = TRUE)) {
             pkgload::load_all(api_path, quiet = TRUE)
@@ -4471,6 +4471,9 @@ mount_analitica <- function(pr) {
           base_names <- names(data_sources)
 
           run_one <- function(nombre, out_path) {
+            # ADR 0126: la regla de diferencias del estudio y su familia de BH, calculadas sobre esta base.
+            sig_previa <- .sig_informe_preparar(significancia, data_sources, inst_sources, nombre)
+            on.exit(options(sig_previa), add = TRUE)
             args <- list(
               data = data_sources[[nombre]],
               instrumento = inst_sources[[nombre]],
@@ -4578,6 +4581,7 @@ mount_analitica <- function(pr) {
           orden_cruces = orden_cruces,
           ordinal_lists_by_base = ordinal_lists_by_base,
           notas = .notas_pie_normalizar(cfg$notas),
+          significancia = .sig_arg_job(sid, .graficos_config_get(sid))$significancia,   # ADR 0126
           api_path = api_path
         ),
         result_filename = if (length(data_sources_filt) > 1L) {
