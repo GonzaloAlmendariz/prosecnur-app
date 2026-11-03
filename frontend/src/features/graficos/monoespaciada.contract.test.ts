@@ -37,7 +37,30 @@ const SNAPSHOT: Record<string, number> = {
   "multiapiladas/TemasPorPublico.tsx": 1,
 };
 
+/** Reglas CSS con font-family monoespaciada por hoja, al 2 nov 2026: nombres de variable, hex, atajos y el editor de composición. Sólo baja. */
+const SNAPSHOT_CSS: Record<string, number> = {
+  "v2/styles/editor-v2.css": 28,
+};
+
+function hojas(dir: string): string[] {
+  return readdirSync(dir, { withFileTypes: true }).flatMap((e) => {
+    const completo = path.join(dir, e.name);
+    if (e.isDirectory()) return hojas(completo);
+    return e.name.endsWith(".css") ? [completo] : [];
+  });
+}
+
 describe("monoespaciada sólo para código · P8", () => {
+  it("ninguna hoja suma reglas monoespaciadas", () => {
+    const fuentes = hojas(aqui);
+    expect(fuentes.length).toBeGreaterThan(40);
+    const regresiones = fuentes
+      .map((f) => [rel(f), readFileSync(f, "utf8").replace(/\/\*[\s\S]*?\*\//g, "").match(/font-family\s*:[^;}]*mono/g)?.length ?? 0] as const)
+      .filter(([f, n]) => n > (SNAPSHOT_CSS[f] ?? 0))
+      .map(([f, n]) => `${f}: ${SNAPSHOT_CSS[f] ?? 0} → ${n}`);
+    expect(regresiones).toEqual([]);
+  });
+
   const conteo: Record<string, number> = {};
   for (const f of archivos(aqui)) {
     const n = sinComentarios(readFileSync(f, "utf8")).match(/<code\b/g)?.length ?? 0;
