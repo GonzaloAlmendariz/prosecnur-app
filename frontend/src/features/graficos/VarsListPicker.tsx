@@ -4,6 +4,7 @@ import { createPortal } from "react-dom";
 import { Check, Database, Plus, Search, X } from "lucide-react";
 import { useVariables, parseVarRef, formatVarRef, type VarWithSource } from "./useVariables";
 import { safeText } from "./safeText";
+import { LoadingBlock } from "../../components/States";
 
 type Props = {
   value: string[] | null | undefined;
@@ -71,7 +72,7 @@ export default function VarsListPicker({ value, onChange }: Props) {
   const visibleOptions = options.slice(0, 160);
   const selectedVars = vals.map((ref) => selectedInfo(ref, variables, multi));
 
-  if (loading) return <span className="pulso-gv2-variable-status">Cargando variables…</span>;
+  if (loading) return <LoadingBlock variant="inline" minHeight={32} label="Cargando variables…" />;
 
   function toggleOpen() {
     if (open) {

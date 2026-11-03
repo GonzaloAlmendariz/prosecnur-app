@@ -4221,7 +4221,6 @@
   }
 }
 
-.pulso-gv2-inline-empty,
 .pulso-gv2-dedicated-notice {
   border: 1px dashed color-mix(in srgb, var(--pulso-primary-border) 60%, var(--pulso-border));
   border-radius: 12px;
@@ -4231,10 +4230,6 @@
   color: var(--pulso-text-soft);
   font-size: 11px;
   line-height: 1.4;
-}
-
-.pulso-gv2-inline-empty {
-  padding: 10px;
 }
 
 .pulso-gv2-series-list,
@@ -5721,21 +5716,6 @@
   margin-bottom: 10px;
 }
 .pulso-gv2-filters-hint strong { color: var(--pulso-text); font-weight: var(--pulso-weight-bold); }
-
-.pulso-gv2-filters-empty {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-  padding: 24px 16px;
-  background: var(--pulso-surface-2);
-  border: 1px dashed var(--pulso-border);
-  border-radius: 8px;
-  color: var(--pulso-text-soft);
-  gap: 8px;
-}
-.pulso-gv2-filters-empty-text { font-size: 12px; line-height: 1.5; max-width: 300px; }
-.pulso-gv2-filters-empty-text strong { color: var(--pulso-text); font-weight: var(--pulso-weight-bold); }
 .pulso-gv2-filters-add-cta {
   display: inline-flex;
   align-items: center;

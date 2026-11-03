@@ -79,18 +79,6 @@
   font-weight: var(--pulso-weight-medium);
 }
 
-.pulso-f6-indice-vacio {
-  margin: 0;
-  padding: var(--pulso-space-4) var(--pulso-space-3);
-  border: 1px dashed var(--pulso-border-strong);
-  border-radius: var(--pulso-radius);
-  background: var(--pulso-surface-3);
-  color: var(--pulso-text-soft);
-  font-size: 12px;
-  line-height: 1.45;
-  text-align: center;
-}
-
 .pulso-f6-indice-lista {
   display: grid;
   gap: var(--pulso-space-2);

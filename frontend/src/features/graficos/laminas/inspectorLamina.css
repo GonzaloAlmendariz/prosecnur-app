@@ -355,7 +355,6 @@ textarea.pulso-f6-input {
 
 /* El cuerpo de la tarjeta entra con fundido y 4 px; no se anima la altura (M17). */
 .pulso-f6-ranura-cuerpo-datos,
-.pulso-f6-ranura > .pulso-f6-vacio-col,
 .pulso-f6-ranura-cambiar {
   transition:
     opacity var(--motion-dur-fast) var(--motion-ease-out),
@@ -363,8 +362,7 @@ textarea.pulso-f6-input {
 }
 
 @starting-style {
-  .pulso-f6-ranura-cuerpo-datos,
-  .pulso-f6-ranura > .pulso-f6-vacio-col {
+  .pulso-f6-ranura-cuerpo-datos {
     opacity: 0;
     transform: translateY(-4px);
   }
@@ -380,8 +378,7 @@ textarea.pulso-f6-input {
     transition: none;
   }
 
-  .pulso-f6-ranura-cuerpo-datos,
-  .pulso-f6-ranura > .pulso-f6-vacio-col {
+  .pulso-f6-ranura-cuerpo-datos {
     transform: none;
   }
 }

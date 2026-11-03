@@ -3,6 +3,7 @@
 // derecha, el detalle y el botón. Dos modos: cambiar el tipo de la lámina del foco (conserva sus gráficos y avisa los
 // que no caben) o insertar una lámina nueva detrás de ella.
 
+import { LayoutTemplate, MousePointer2 } from "lucide-react";
 import { useEffect, useId, useMemo, useRef } from "react";
 import type { GraficadorRef, Slide, SlideType } from "../../../../api/graficos";
 import { toast } from "../../../../components/toasterStore";
@@ -22,6 +23,7 @@ import { PANEL_TIPO_LAMINA } from "./panelesSelectores";
 import { useSelectoresUi } from "./selectoresStore";
 import { TarjetaTipoLamina } from "./TarjetaTipoLamina";
 import { conVariante, INTENCIONES, intencionDe, rotuloRanuras, varianteDe, variantesDe, type IntencionLamina } from "./tiposLamina";
+import { EstadoVacio } from "../../../../components/EstadoVacio";
 
 const FUERA_DEL_CATALOGO = new Set(CATALOGO_LAMINAS.filter((s) => !s.en_selector).map((s) => s.name));
 
@@ -173,7 +175,7 @@ export function SelectorTipoLamina({ slide, posicion, cerrar }: Props) {
             <span>{conGraficos ? `${rotuloCuenta(tipos.length)}, con los gráficos de esta lámina` : rotuloCuenta(tipos.length)}</span>
           </div>
           {tipos.length === 0 ? (
-            <p className="pulso-f6-selector-vacio" data-qa-geometry-capacity="owned">Este backend todavía no ofrece láminas de este grupo.</p>
+            <EstadoVacio icono={<LayoutTemplate size={16} aria-hidden="true" />} titulo="Todavía no hay láminas de este grupo" />
           ) : (
             <ul
               className="pulso-f6-tarjetas is-laminas"
@@ -225,7 +227,7 @@ export function SelectorTipoLamina({ slide, posicion, cerrar }: Props) {
           onVolver={() => ui.setConfirmando(false)}
         />
       ) : (
-        <p className="pulso-f6-selector-vacio" data-qa-geometry-capacity="owned">Elige una composición para ver su detalle.</p>
+        <EstadoVacio icono={<MousePointer2 size={16} aria-hidden="true" />} titulo="Elige una composición para ver su detalle" />
       )}
     />
   );

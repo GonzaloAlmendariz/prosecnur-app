@@ -30,9 +30,3 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-
-.pulso-gv2-base-labels-empty {
-  font-size: 12px;
-  line-height: 1.45;
-  color: var(--pulso-text-faint);
-}

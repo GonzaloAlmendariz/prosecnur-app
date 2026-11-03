@@ -1,7 +1,7 @@
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import BaseLabelsField from "./BaseLabelsField";
 import { createPortal } from "react-dom";
-import { Check, ChevronDown, Info, Image as ImageIcon, Palette, Pipette, X as XIcon, RotateCcw, Plus, Trash2, Sparkles } from "lucide-react";
+import { Check, ChevronDown, Image as ImageIcon, Info, ListChecks, Palette, Pipette, Plus, RotateCcw, Sparkles, Trash2, X as XIcon } from "lucide-react";
 import { ArgMetadata, VarInfo } from "../../api/client";
 import { usePlanStore } from "./store";
 import { apiGraficosPaletasSugeridas, type PaletaChoiceItem, type PaletaSugeridaEntry } from "../../api/client";
@@ -23,6 +23,8 @@ import {
   isPartialNumberInput,
 } from "./argFieldNumberUtils";
 import { normalizeTechnicalRows, type TechnicalRow } from "./technicalRows";
+import { EstadoVacio } from "../../components/EstadoVacio";
+import { LoadingBlock } from "../../components/States";
 
 const DEFAULT_ARG_HINT = "Este ajuste define cómo se ve o se interpreta este bloque del gráfico en el slide.";
 
@@ -2115,9 +2117,11 @@ function SeriesColorsField({
   return (
     <div className="pulso-gv2-series-colors">
       {visibleRows.length === 0 ? (
-        <div className="pulso-gv2-inline-empty">
-          Sin colores personalizados. Se usará la paleta del gráfico.
-        </div>
+        <EstadoVacio
+          icono={<Palette size={16} aria-hidden="true" />}
+          titulo="Sin colores personalizados"
+          descripcion="Se usará la paleta del gráfico."
+        />
       ) : (
         <div className="pulso-gv2-series-list">
           {showingInherited && (
@@ -2276,9 +2280,11 @@ function CriteriaConfigField({
   return (
     <div className="pulso-gv2-criteria-config">
       {items.length === 0 ? (
-        <div className="pulso-gv2-inline-empty">
-          Agrega criterios y asigna variables a cada uno.
-        </div>
+        <EstadoVacio
+          icono={<ListChecks size={16} aria-hidden="true" />}
+          titulo="Sin criterios"
+          descripcion="Agrega criterios y asigna variables a cada uno."
+        />
       ) : (
         items.map((item, index) => (
           <div
@@ -2568,7 +2574,7 @@ function CategoriasEscalaField({
   }
 
   if (estado === "cargando") {
-    return <p style={{ margin: 0, fontSize: 12, color: "var(--pulso-text-soft)" }}>Leyendo las escalas del estudio…</p>;
+    return <LoadingBlock variant="inline" minHeight={32} label="Leyendo las escalas del estudio…" />;
   }
   if (estado === "error" || !listas.length) {
     // Sin catálogo no se inventa una lista: se cae al texto libre, que al menos

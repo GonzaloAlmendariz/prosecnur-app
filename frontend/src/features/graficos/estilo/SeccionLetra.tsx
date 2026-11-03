@@ -7,6 +7,7 @@ import { RotateCcw } from "../../../vendor/lucide-react";
 import { PulsoButton } from "../../../components/PulsoButton";
 import { ETIQUETA_PASO, ETIQUETA_ROL, tamanosRol, type Procedencia } from "./modeloEstilo";
 import { MarcaModificado, SelloProcedencia } from "./SelloProcedencia";
+import { LoadingBlock } from "../../../components/States";
 
 const HEREDA = "";
 
@@ -118,7 +119,9 @@ export function SeccionLetra({
                         <small>{t.texto}</small>
                       </span>
                     ))
-                  : <span className="pulso-f6-estilo-tenue">{opciones ? "Sin tamaños declarados en el Word." : "Cargando los tamaños…"}</span>}
+                  : opciones
+                    ? <span className="pulso-f6-estilo-tenue">Sin tamaños declarados en el Word.</span>
+                    : <LoadingBlock variant="inline" minHeight={32} label="Cargando los tamaños…" />}
               </p>
             </li>
           );

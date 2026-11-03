@@ -10,9 +10,12 @@
 // como etiqueta y el nombre técnico como placeholder — así se ve de un vistazo
 // qué se está renombrando y qué queda como está.
 
+import { Database } from "lucide-react";
 import { useMemo } from "react";
 import { useVariables } from "./useVariables";
 import "./baseLabelsField.css";
+import { EstadoVacio } from "../../components/EstadoVacio";
+import { LoadingBlock } from "../../components/States";
 
 export type BaseLabelsFieldProps = {
   value: unknown;
@@ -47,15 +50,17 @@ export function BaseLabelsField({ value, onChange }: BaseLabelsFieldProps) {
   const mapa = useMemo(() => parseBaseLabels(value), [value]);
 
   if (loading) {
-    return <div className="pulso-gv2-base-labels-empty">Leyendo las bases del estudio…</div>;
+    return <LoadingBlock variant="inline" minHeight={32} label="Leyendo las bases del estudio…" />;
   }
   if (!bases.length) {
     // Sin bases declaradas no hay columnas que renombrar. Se dice, en vez de
     // mostrar un editor vacío que parece roto.
     return (
-      <div className="pulso-gv2-base-labels-empty">
-        Este estudio no tiene bases separadas, así que la tabla no tiene columnas por público.
-      </div>
+      <EstadoVacio
+        icono={<Database size={16} aria-hidden="true" />}
+        titulo="Este estudio no tiene bases separadas"
+        descripcion="Así que la tabla no tiene columnas por público."
+      />
     );
   }
 

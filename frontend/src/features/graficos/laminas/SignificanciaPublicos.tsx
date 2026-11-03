@@ -6,6 +6,7 @@
 import { useEffect, useId, useState } from "react";
 import { getEquivalencias, type EquivalenciaFila } from "../../../api/equivalencias";
 import { parseVarRef, useVariables } from "../useVariables";
+import { LoadingBlock } from "../../../components/States";
 
 type Props = { args: Record<string, unknown>; onCambio: (patch: Record<string, unknown>) => void };
 
@@ -74,7 +75,7 @@ export function SignificanciaPublicos({ args, onCambio }: Props) {
           </div>
         )}
         {error ? <span className="pulso-f6-dato-ayuda" role="note">No se pudo leer la matriz de equivalencias.</span>
-          : filas === null ? <span className="pulso-f6-dato-ayuda">Leyendo la matriz de equivalencias…</span>
+          : filas === null ? <LoadingBlock variant="inline" minHeight={32} label="Leyendo la matriz de equivalencias…" />
           : filas.length === 0 ? <span className="pulso-f6-dato-ayuda" role="note">La matriz de equivalencias no tiene temas confirmados en dos públicos; se declaran en Carga › Equivalencias.</span>
           : null}
         {publicos.size > 3 && <span className="pulso-f6-dato-ayuda" role="note">La lámina compara hasta tres públicos; con más, sale como dibujo de respaldo.</span>}

@@ -28,6 +28,7 @@ import {
 } from "./ordenCategorias";
 import { useCategoriasGrafico } from "./useCategoriasGrafico";
 import "./ordenCategorias.css";
+import { LoadingBlock } from "../../../components/States";
 
 type Props = {
   /** Calificada `base$var` (`varCalificada`). */
@@ -121,11 +122,7 @@ function NotaAviso({ nota, id }: { nota: NotaOrden; id?: string }) {
 
 function EstadoDatos({ estado }: { estado: ReturnType<typeof useCategoriasGrafico> }) {
   if (estado.fase === "cargando") {
-    return (
-      <span className="pulso-f6-orden-estado" role="status">
-        <Loader2 size={13} className="pulso-spin" aria-hidden="true" /> Leyendo las categorías de la pregunta…
-      </span>
-    );
+    return <LoadingBlock variant="inline" minHeight={32} label="Leyendo las categorías de la pregunta…" />;
   }
   if (estado.fase === "sin_lista") {
     return <span className="pulso-f6-orden-estado" role="status">Esta pregunta no tiene lista de opciones: no hay categorías que ordenar.</span>;

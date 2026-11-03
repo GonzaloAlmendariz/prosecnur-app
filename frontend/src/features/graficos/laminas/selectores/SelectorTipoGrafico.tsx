@@ -2,6 +2,7 @@
 // (`foco=<slide.id>:g2`). Izquierda, las siete familias; centro, los gráficos de la familia con su glifo; derecha, el
 // detalle. Usar un gráfico conserva los argumentos compatibles del anterior (`compatibleGraficadorRef`).
 
+import { BarChart3, MousePointer2 } from "lucide-react";
 import { useId, useMemo, useRef } from "react";
 import type { GraficadorMetadata, GraficadorRef, Slide } from "../../../../api/graficos";
 import { toast } from "../../../../components/toasterStore";
@@ -21,6 +22,8 @@ import { PANEL_TIPO_GRAFICO } from "./panelesSelectores";
 import { useSelectoresUi } from "./selectoresStore";
 import { TarjetaTipoGrafico } from "./TarjetaTipoGrafico";
 import { encajeEnRanura, FAMILIAS_GRAFICO, familiaInicial, graficosDeFamilia, salidaDe } from "./tiposGrafico";
+import { EstadoVacio } from "../../../../components/EstadoVacio";
+import { LoadingBlock } from "../../../../components/States";
 
 type Props = {
   slide: Slide | null;
@@ -85,7 +88,7 @@ export function SelectorTipoGrafico({ slide, posicion, ranura, cerrar }: Props) 
   const sinRanura = !slide || !slot;
   const vacio = sinRanura
     ? "Esta lámina no lleva gráficos: elige otra composición en ¿Qué lámina?."
-    : loading && !registry ? "Cargando los gráficos del estudio…"
+    : loading && !registry ? "cargando"
     : error && !registry ? "No se pudo leer el catálogo de gráficos. Cierra y vuelve a intentarlo."
     : lista.length === 0 ? "Esta familia no tiene gráficos en este estudio."
     : null;
@@ -134,7 +137,9 @@ export function SelectorTipoGrafico({ slide, posicion, ranura, cerrar }: Props) 
             <span>{lista.length} {lista.length === 1 ? "gráfico" : "gráficos"}</span>
           </div>
           {vacio ? (
-            <p className="pulso-f6-selector-vacio" data-qa-geometry-capacity="owned">{vacio}</p>
+            loading && !registry
+              ? <LoadingBlock variant="inline" label="Cargando los gráficos del estudio…" />
+              : <EstadoVacio icono={<BarChart3 size={16} aria-hidden="true" />} titulo={vacio} />
           ) : (
             <ul
               className="pulso-f6-tarjetas is-graficos"
@@ -175,9 +180,10 @@ export function SelectorTipoGrafico({ slide, posicion, ranura, cerrar }: Props) 
           onAplicar={() => aplicar(candidato)}
         />
       ) : (
-        <p className="pulso-f6-selector-vacio" data-qa-geometry-capacity="owned">
-          {sinRanura ? "Sin ranura de gráfico." : "Elige un gráfico para ver qué pide y cómo sale."}
-        </p>
+        <EstadoVacio
+          icono={<MousePointer2 size={16} aria-hidden="true" />}
+          titulo={sinRanura ? "Sin ranura de gráfico" : "Elige un gráfico para ver qué pide y cómo sale"}
+        />
       )}
     />
   );

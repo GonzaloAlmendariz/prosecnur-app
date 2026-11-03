@@ -3,6 +3,7 @@
 // lee y se reescribe al id). `foco` es la fuente de verdad de la lámina
 // seleccionada; se refleja en `usePlanStore.select` para que el Editor anterior abra en la misma lámina.
 
+import { Presentation } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useSession } from "../../../lib/SessionContext";
@@ -50,6 +51,7 @@ import { useGraficosRegistry } from "../useGraficosRegistry";
 import type { GraficadorRef } from "../../../api/graficos";
 import "./movimiento.css";
 import "./laminasWorkbench.css";
+import { EstadoVacio } from "../../../components/EstadoVacio";
 
 const panelDe = (l: Lateral) => (l === "estructura" ? PANEL_ESTRUCTURA_LAMINAS : PANEL_INSPECTOR_LAMINA);
 
@@ -269,13 +271,19 @@ export function LaminasWorkbench({ onIrEditorAnterior }: Props) {
       <div className="pulso-f6-laminas-host">
       <div className="pulso-f6-laminas is-vacia" data-qa-surface="graficos/f6-laminas">
         <EstructuraInforme onCerrar={() => undefined} estructura={estructura} posicionActiva={null} onSeleccionar={irA} validacion={validacion} />
-        <div className="pulso-f6-vacio-informe" role="status">
-          <strong>El informe todavía no tiene láminas</strong>
-          <p>Inserta la primera lámina o arma el informe desde un plan sugerido; aquí verás cada lámina tal como sale.</p>
-          <div className="pulso-f6-vacio-acciones">
-            <button type="button" className="pulso-f6-boton" onClick={() => abrirSelectorLamina("insertar")}>Insertar la primera lámina</button>
-            <BotonArmarDesdeVacio />
-          </div>
+        <div className="pulso-f6-laminas-vacio" role="status">
+          <EstadoVacio
+            tamano="normal"
+            icono={<Presentation size={18} aria-hidden="true" />}
+            titulo="El informe todavía no tiene láminas"
+            descripcion="Inserta la primera lámina o arma el informe desde un plan sugerido; aquí verás cada lámina tal como sale."
+            accion={
+              <div className="pulso-f6-vacio-acciones">
+                <button type="button" className="pulso-f6-boton" onClick={() => abrirSelectorLamina("insertar")}>Insertar la primera lámina</button>
+                <BotonArmarDesdeVacio />
+              </div>
+            }
+          />
         </div>
       </div>
       {avisos.abierto && <PanelAvisos panel={avisos} grupos={grupos} estructura={estructura} onIr={irA} coloresPendientes={coloresPendientes} baseImplicita={baseImplicita} />}

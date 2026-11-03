@@ -5,6 +5,7 @@ import { Check, ChevronDown, Database, Search, X } from "lucide-react";
 import { useVariables, parseVarRef, formatVarRef } from "./useVariables";
 import { safeText } from "./safeText";
 import { getDerivedReportVariable } from "./derivedReportVariables";
+import { LoadingBlock } from "../../components/States";
 
 type Props = {
   value: string | null | undefined;
@@ -92,7 +93,7 @@ export default function VariablePicker({
     if (open) requestAnimationFrame(() => searchRef.current?.focus());
   }, [open]);
 
-  if (loading) return <span className="pulso-gv2-variable-status">Cargando variables…</span>;
+  if (loading) return <LoadingBlock variant="inline" minHeight={32} label="Cargando variables…" />;
   if (error) {
     const isSessionLost = error.includes("E_NO_SESSION");
     return (

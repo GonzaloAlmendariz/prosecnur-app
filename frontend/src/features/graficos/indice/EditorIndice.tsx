@@ -32,6 +32,7 @@ import {
 import { useIconosRecetario } from "./useIconosRecetario";
 import "./editorIndice.css";
 import { SubcapitulosEditor } from "./SubcapitulosEditor";
+import { EstadoVacio } from "../../../components/EstadoVacio";
 
 export function EditorIndice({ slide }: { slide: Slide }) {
   const updatePayload = usePlanStore((s) => s.updateSlidePayload);
@@ -166,11 +167,13 @@ export function EditorIndiceVista({ indice, estructura, onAplicar: aplicar, onAb
       )}
 
       {n === 0 ? (
-        <p className="pulso-f6-indice-vacio">
-          {capitulosInforme > 0
-            ? "Sin capítulos propios: el índice sale con los capítulos del informe. Tómalos para editarlos."
-            : "Ni el índice ni el informe tienen capítulos todavía: agrega separadores de capítulo al informe o escribe aquí los del índice."}
-        </p>
+        <EstadoVacio
+          icono={<ListOrdered size={16} aria-hidden="true" />}
+          titulo={capitulosInforme > 0 ? "Sin capítulos propios" : "Ni el índice ni el informe tienen capítulos"}
+          descripcion={capitulosInforme > 0
+            ? "El índice sale con los capítulos del informe. Tómalos para editarlos."
+            : "Agrega separadores de capítulo al informe o escribe aquí los del índice."}
+        />
       ) : (
         <>
           <span className="pulso-f6-ayuda" id={idAyuda}>Usa Alt + ↑/↓ sobre un capítulo para moverlo.</span>

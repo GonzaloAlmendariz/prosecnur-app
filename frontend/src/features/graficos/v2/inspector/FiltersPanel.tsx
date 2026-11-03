@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { Filter as FilterIcon, Plus, X, ChevronDown } from "lucide-react";
 import { GraficadorRef, Slide, VarInfo } from "../../../../api/client";
 import { usePlanStore } from "../../store";
+import { EstadoVacio } from "../../../../components/EstadoVacio";
 
 // Tab de Filtros. Diseño:
 //
@@ -129,15 +130,16 @@ export function FiltersPanel({ slide, variables, slotNames }: FiltersPanelProps)
         </div>
 
         {rules.length === 0 ? (
-          <div className="pulso-gv2-filters-empty">
-            <FilterIcon size={20} />
-            <div className="pulso-gv2-filters-empty-text">
-              Sin filtros. El slide usa <strong>todas las respuestas</strong> de la base.
-            </div>
-            <button type="button" className="pulso-gv2-filters-add-cta" onClick={addRule}>
-              <Plus size={12} /> Añadir primer filtro
-            </button>
-          </div>
+          <EstadoVacio
+            icono={<FilterIcon size={16} aria-hidden="true" />}
+            titulo="Sin filtros"
+            descripcion={<>El slide usa <strong>todas las respuestas</strong> de la base.</>}
+            accion={
+              <button type="button" className="pulso-gv2-filters-add-cta" onClick={addRule}>
+                <Plus size={12} /> Añadir primer filtro
+              </button>
+            }
+          />
         ) : (
           <div className="pulso-gv2-filters-list">
             {rules.map((rule, i) => (

@@ -362,18 +362,6 @@
   color: var(--pulso-warn-fg);
 }
 
-.pulso-f6-selector-vacio {
-  display: grid;
-  place-items: center;
-  min-height: 180px;
-  padding: var(--pulso-space-5);
-  border: 1px dashed var(--pulso-border-strong);
-  border-radius: var(--pulso-radius-card);
-  color: var(--pulso-text-soft);
-  font-size: 12.5px;
-  text-align: center;
-}
-
 /* ---- Detalle ---- */
 
 .pulso-f6-detalle-lienzo {
