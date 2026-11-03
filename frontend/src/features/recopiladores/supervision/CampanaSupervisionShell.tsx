@@ -91,7 +91,7 @@ export function CampanaSupervisionShell({ campana, cabecera = null }: Props) {
       )}
     >
       <div className="rec-workbench">
-        <section className="rec-tab-panel rec-terr" aria-busy={cargando}>
+        <section key={seccion} className="rec-tab-panel rec-terr" aria-busy={cargando}>
           <div className="rec-terr-seccion">
             {error ? <p className="rec-terr-error" role="alert">{error}</p> : null}
             <div className="rec-terr-tarjetas" data-qa-geometry-group={`material-campo/supervision/${seccion}`} data-qa-geometry-contract="intrinsic">

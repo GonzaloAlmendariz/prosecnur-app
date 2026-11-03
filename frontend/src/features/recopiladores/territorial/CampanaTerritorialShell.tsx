@@ -98,6 +98,7 @@ export function CampanaTerritorialShell({ campana, cabecera = null }: Props) {
 
   const panel = (
     <section
+      key={seccion}
       id={conRail ? `rec-terr-panel-${pestana}` : undefined}
       className="rec-tab-panel rec-terr"
       role={conRail ? "tabpanel" : undefined}

@@ -60,6 +60,7 @@ export function CampanaTelefonicaShell({ campana, cabecera = null }: Props) {
 
   const panel = (
     <section
+      key={seccion}
       id={conRail ? `rec-tel-panel-${pestana}` : undefined}
       className="rec-tab-panel rec-terr"
       role={conRail ? "tabpanel" : undefined}

@@ -38,6 +38,7 @@ import { ListaDeCampanas, type AvisoDeLaLista } from "./ListaDeCampanas";
 import { useMiniaturasDeCorreo } from "./miniaturaDeCorreo";
 import { ID_CAMPANA_AULAS, campanaPorId, exportadosDe, idDeCorreo, refDeCorreo } from "./modeloRegistro";
 import { subtituloDeCampana } from "./nombreUnico";
+import "./movimiento.css";
 
 /** Donde Monitoreo calcula y sigue los lotes de supervisión (ADR 0125 A3). */
 const A_MONITOREO_SUPERVISION = serializarDireccion({ modulo: "monitoreo", modo: "telefonico", seccion: "control", pestana: "supervision" });

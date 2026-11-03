@@ -255,6 +255,7 @@ export function RecopiladoresShell({ cabecera = null }: Props = {}) {
 
   const panel = (
     <section
+      key={direction.seccion}
       id={tabs.length > 1 ? `rec-tab-panel-${direction.pestana}` : undefined}
       className="rec-tab-panel"
       role={tabs.length > 1 ? "tabpanel" : undefined}
