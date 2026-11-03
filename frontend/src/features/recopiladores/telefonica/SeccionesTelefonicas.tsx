@@ -20,7 +20,7 @@ import { DocumentoDelBarrido } from "./DocumentoDelBarrido";
 import { partirLista } from "./modeloTelefonico";
 import { serializarDireccion } from "../../../lib/navegacion/direccion";
 import type { useConfigTelefonica } from "./useConfigTelefonica";
-import { CargaDeBloque } from "../CargaDeBloque";
+import { CargaDeBloque } from "../../../components/CargaDeBloque";
 
 /** Donde Monitoreo telefónico conecta el Sheets del barrido. */
 const A_MONITOREO_FUENTES_TELEFONICO = serializarDireccion({ modulo: "monitoreo", modo: "telefonico", seccion: "insumos", pestana: "fuentes" });

@@ -11,7 +11,7 @@ import { IMAGEN_DECORATIVA, IMAGEN_Y_TEXTO, PIEZAS_GRAFICAS, type TipoInsertable
 import { useMisSecciones } from "./misSeccionesStore";
 import { useCabezaSinLugar } from "./topeDeLaBarra";
 import "./correosBiblioteca.css";
-import { CargaDeBloque } from "../CargaDeBloque";
+import { CargaDeBloque } from "../../../components/CargaDeBloque";
 
 /** Tipo MIME del arrastre: lo lee la capa para saber qué bloque se suelta. */
 export const ARRASTRE_DE_BLOQUE = "application/x-pulso-bloque";

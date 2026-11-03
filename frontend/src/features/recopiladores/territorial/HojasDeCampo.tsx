@@ -25,7 +25,7 @@ import { PulsoInput } from "../../../components/PulsoInput";
 import { PulsoSelect } from "../../../components/PulsoSelect";
 import { PulsoSwitch } from "../../../components/PulsoSwitch";
 import { Hash, ListOrdered, Printer, Table2 } from "../../../vendor/lucide-react";
-import { CargaDeBloque } from "../CargaDeBloque";
+import { CargaDeBloque } from "../../../components/CargaDeBloque";
 
 const ROTULO_MAX = 60;
 const CRITERIO_MAX = 40;

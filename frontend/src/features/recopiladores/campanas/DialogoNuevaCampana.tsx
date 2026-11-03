@@ -38,7 +38,7 @@ import { ICONO_DEL_TIPO } from "./TarjetaDeCampana";
 import type { FuenteDelRegistro } from "./useRegistroDeCampanas";
 import "../correos/correosCampanas.css";
 import "./campanas.css";
-import { CargaDeBloque } from "../CargaDeBloque";
+import { CargaDeBloque } from "../../../components/CargaDeBloque";
 
 export type Resultado = { ok: true } | { ok: false; mensaje: string };
 

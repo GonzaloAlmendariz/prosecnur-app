@@ -71,9 +71,9 @@ describe("vacíos y cargas de Material", () => {
 
   // P5b: una carga dentro de una vista ya lista publica su propio «todavía no»
   // (data-audit-ready="false"), o la captura mide la pantalla a medio cargar.
-  // Por eso la carga en línea pasa siempre por CargaDeBloque, que lleva la marca.
+  // Por eso la carga en línea pasa siempre por CargaDeBloque (components/), que lleva la marca.
   it("toda carga de bloque lleva su marca de readiness (CargaDeBloque)", () => {
-    const componentes = archivos(aqui, /\.tsx$/).filter((f) => !f.endsWith("CargaDeBloque.tsx"));
+    const componentes = archivos(aqui, /\.tsx$/);
     expect(componentes.length).toBeGreaterThan(100);
     const hallazgos = componentes.flatMap((f) =>
       lineasDeCodigo(readFileSync(f, "utf8"))
@@ -81,7 +81,7 @@ describe("vacíos y cargas de Material", () => {
         .filter((x): x is string => x !== null),
     );
     expect(hallazgos).toEqual([]);
-    const propia = readFileSync(path.join(aqui, "CargaDeBloque.tsx"), "utf8");
+    const propia = readFileSync(path.join(aqui, "../../components/CargaDeBloque.tsx"), "utf8");
     expect(propia).toContain('data-audit-ready="false"');
   });
 

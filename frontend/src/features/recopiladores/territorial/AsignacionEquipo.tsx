@@ -16,7 +16,7 @@ import { PulsoSelect } from "../../../components/PulsoSelect";
 import { AlertTriangle } from "../../../vendor/lucide-react";
 import { ExcelDeAsignacion } from "./ExcelDeAsignacion";
 import { asignarColumna, borradorDe, codigoDeColumna, cuerpoDelBorrador, hayCambios, motivoDeBloqueo, type Borrador } from "./modeloAsignacion";
-import { CargaDeBloque } from "../CargaDeBloque";
+import { CargaDeBloque } from "../../../components/CargaDeBloque";
 
 const SIN_ASIGNAR = "__sin_asignar";
 

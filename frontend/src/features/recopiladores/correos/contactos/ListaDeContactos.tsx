@@ -16,7 +16,7 @@ import { ArrowRight, ChevronLeft, ChevronRight, Search, Users } from "../../../.
 import { TableScroll } from "../../TableScroll";
 import { ETIQUETA_DE_ESTADO, cifraDeLaLista, columnasDeLaLista, paginas, rangoDePagina } from "./modeloContactos";
 import { useContactosStore } from "./store";
-import { CargaDeBloque } from "../../CargaDeBloque";
+import { CargaDeBloque } from "../../../../components/CargaDeBloque";
 
 type Props = {
   lista: PaginaDeContactos | null;

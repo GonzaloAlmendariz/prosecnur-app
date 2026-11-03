@@ -12,7 +12,7 @@ import { DistribucionDeVariable } from "./DistribucionDeVariable";
 import { FiltrosActivos } from "./FiltrosActivos";
 import type { VacioDelPerfil } from "./modeloContactos";
 import type { Carga } from "./store";
-import { CargaDeBloque } from "../../CargaDeBloque";
+import { CargaDeBloque } from "../../../../components/CargaDeBloque";
 
 type Props = {
   perfil: PerfilDeContactos | null;

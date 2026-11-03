@@ -18,7 +18,7 @@ import { PulsoButton } from "../../components/PulsoButton";
 import { serializarDireccion } from "../../lib/navegacion/direccion";
 import { CalendarDays, Download, FileSpreadsheet } from "../../vendor/lucide-react";
 import "./styles/plantillas-equipo.css";
-import { CargaDeBloque } from "./CargaDeBloque";
+import { CargaDeBloque } from "../../components/CargaDeBloque";
 import { FormatoDeSalida, FormatosDeSalida } from "./PaquetesAulasTablero";
 
 const PIEZAS: readonly { pieza: PiezaDelEquipo; titulo: string; llena: string; requiereEntrega: boolean }[] = [

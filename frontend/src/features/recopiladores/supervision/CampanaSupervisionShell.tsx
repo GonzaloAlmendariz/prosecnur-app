@@ -22,7 +22,7 @@ import { useColumnasSupervision } from "./useColumnasSupervision";
 import "../styles/recopiladores-shell.css";
 import "../territorial/territorial.css";
 import "../telefonica/telefonica.css";
-import { CargaDeBloque } from "../CargaDeBloque";
+import { CargaDeBloque } from "../../../components/CargaDeBloque";
 
 const COPIA: Record<SeccionSupervision, { title: string; lead: string }> = {
   columnas: { title: "Columnas", lead: "Qué lleva la base: del barrido, de los resultados y las tres de la supervisión." },

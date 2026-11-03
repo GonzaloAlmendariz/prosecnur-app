@@ -12,7 +12,7 @@ import { TableScroll } from "../../TableScroll";
 import { formatoPorcentaje, intensidadesDelCruce, proporcion, totalesDelCruce } from "./modeloContactos";
 import { useContactosStore, type VistaDelCruce } from "./store";
 import { EstadoVacio } from "../../../../components/EstadoVacio";
-import { CargaDeBloque } from "../../CargaDeBloque";
+import { CargaDeBloque } from "../../../../components/CargaDeBloque";
 
 type Props = {
   control: readonly string[];
