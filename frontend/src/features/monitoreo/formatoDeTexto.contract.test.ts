@@ -132,7 +132,6 @@ const SNAPSHOT_LENGTH_CRUDO: Record<string, number> = {
   "profiles/territorial/avance/AvancePorZona.tsx": 1,
   "profiles/territorial/avance/MapaDeCasos.tsx": 1,
   "profiles/territorial/control/ocurrenciasModel.ts": 1,
-  "profiles/territorial/insumos/ConexionesTab.tsx": 2,
   "salidas/MonitoreoOutputsWorkbench.tsx": 3,
   "shell/MonitoreoModuleChrome.tsx": 1,
   "shell/MonitoreoPathContext.tsx": 1,
