@@ -115,7 +115,7 @@
   max-width: 100%;
   overflow: hidden;
   color: var(--pulso-text-soft);
-  font-size: 10.5px;
+  font-size: var(--pulso-type-micro-size);
   line-height: 1.25;
   text-align: center;
   text-overflow: ellipsis;

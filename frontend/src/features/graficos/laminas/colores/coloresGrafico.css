@@ -55,7 +55,7 @@
 .pulso-f6-colores-nombre {
   grid-area: nombre;
   min-width: 0;
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   color: var(--pulso-text);
   overflow-wrap: anywhere;
 }
@@ -63,7 +63,7 @@
 .pulso-f6-colores-valor {
   grid-area: valor;
   min-width: 0;
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   color: var(--pulso-text-faint);
   overflow-wrap: anywhere;
 }

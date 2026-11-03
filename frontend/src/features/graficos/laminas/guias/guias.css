@@ -19,7 +19,7 @@
   border-radius: var(--pulso-radius-chip);
   background: var(--module-accent);
   color: var(--pulso-nav-selected-fg);
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-semibold);
   font-variant-numeric: tabular-nums;
   line-height: 1;
@@ -32,7 +32,7 @@
   inset: 0;
   z-index: 1;
   pointer-events: none;
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   line-height: 1.3;
   font-variant-numeric: tabular-nums;
 }
@@ -205,7 +205,7 @@
 
 .pulso-f6-guia-nombre strong {
   overflow-wrap: anywhere;
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   font-weight: var(--pulso-weight-semibold);
 }
 
@@ -231,7 +231,7 @@
   background: var(--pulso-surface);
   box-shadow: var(--pulso-shadow-popover);
   color: var(--pulso-text);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   line-height: 1.45;
   transform-origin: top right;
   transition:
@@ -265,7 +265,7 @@
 .pulso-f6-guias-panel-cabeza h2 {
   flex: 1;
   margin: 0;
-  font-size: 13px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-semibold);
 }
 
@@ -322,7 +322,7 @@
 }
 
 .pulso-f6-guias-capa-texto span {
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   color: var(--pulso-text-soft);
 }
 
@@ -338,7 +338,7 @@
 .pulso-f6-guias-roles legend {
   margin-bottom: var(--pulso-space-1);
   padding: 0;
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   font-weight: var(--pulso-weight-semibold);
   color: var(--pulso-text-faint);
 }
@@ -360,7 +360,7 @@
   background: var(--pulso-surface);
   color: var(--pulso-text-soft);
   font: inherit;
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   cursor: pointer;
   transition:
     background-color var(--motion-dur-hover) var(--motion-ease-out),
@@ -399,7 +399,7 @@
   border-radius: var(--pulso-radius);
   background: var(--pulso-surface-2);
   color: var(--pulso-text-soft);
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
 }
 
 .pulso-f6-guias-estado p {
@@ -407,7 +407,7 @@
 }
 
 .pulso-f6-guias-elementos summary {
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   font-weight: var(--pulso-weight-semibold);
   color: var(--pulso-text-soft);
   cursor: pointer;
@@ -445,7 +445,7 @@
 }
 
 .pulso-f6-guias-elemento-dato {
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   color: var(--pulso-text-soft);
   font-variant-numeric: tabular-nums;
 }

@@ -56,7 +56,7 @@
 .pulso-f6-selector-antetitulo,
 .pulso-f6-selector-leyenda {
   color: var(--pulso-text-faint);
-  font-size: 11px;
+  font-size: var(--pulso-type-eyebrow-size);
   font-weight: var(--pulso-weight-semibold);
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -64,14 +64,14 @@
 
 .pulso-f6-selector-titulo {
   margin: 0;
-  font-size: 15px;
+  font-size: var(--pulso-type-title-size);
   font-weight: var(--pulso-weight-semibold);
 }
 
 .pulso-f6-selector-descripcion {
   margin: 0;
   color: var(--pulso-text-soft);
-  font-size: 12.5px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .pulso-f6-selector-cuerpo {
@@ -145,21 +145,21 @@
 }
 
 .pulso-f6-opcion strong {
-  font-size: 13px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-semibold);
 }
 
 .pulso-f6-opcion > span:last-child {
   grid-column: 1 / -1;
   color: var(--pulso-text-faint);
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   line-height: 1.35;
 }
 
 .pulso-f6-opcion-cuenta {
   align-self: center;
   color: var(--pulso-text-faint);
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   font-variant-numeric: tabular-nums;
 }
 
@@ -196,13 +196,13 @@
 
 .pulso-f6-galeria-cabeza h3 {
   margin: 0;
-  font-size: 13px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-semibold);
 }
 
 .pulso-f6-galeria-cabeza span {
   color: var(--pulso-text-faint);
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
 }
 
 .pulso-f6-tarjetas {
@@ -278,7 +278,7 @@
 
 .pulso-f6-tarjeta-nombre {
   overflow: hidden;
-  font-size: 13px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-semibold);
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -294,7 +294,7 @@
 .pulso-f6-tarjeta-meta {
   overflow: hidden;
   color: var(--pulso-text-faint);
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -315,7 +315,7 @@
 
 .pulso-f6-tarjeta-uso {
   color: var(--pulso-text-soft);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   line-height: 1.4;
 }
 
@@ -323,7 +323,7 @@
   margin-top: auto;
   padding-top: var(--pulso-space-1);
   color: var(--pulso-text-faint);
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   font-variant-numeric: tabular-nums;
 }
 
@@ -345,7 +345,7 @@
   border-radius: var(--pulso-radius-chip);
   background: var(--pulso-surface);
   color: var(--pulso-text-soft);
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   font-weight: var(--pulso-weight-semibold);
   white-space: nowrap;
 }
@@ -413,7 +413,7 @@
   border-radius: 50%;
   background: var(--module-accent-soft);
   color: var(--module-accent);
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   font-weight: var(--pulso-weight-semibold);
   font-variant-numeric: tabular-nums;
 }
@@ -425,13 +425,13 @@
 }
 
 .pulso-f6-reparto-grafico {
-  font-size: 12.5px;
+  font-size: var(--pulso-type-body-size);
   overflow-wrap: anywhere;
 }
 
 .pulso-f6-reparto-ranura {
   color: var(--pulso-text-faint);
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
 }
 
 .pulso-f6-detalle-texto {
@@ -441,14 +441,14 @@
 
 .pulso-f6-detalle h3 {
   margin: 0;
-  font-size: 15px;
+  font-size: var(--pulso-type-title-size);
   font-weight: var(--pulso-weight-semibold);
 }
 
 .pulso-f6-detalle p {
   margin: 0;
   color: var(--pulso-text-soft);
-  font-size: 12.5px;
+  font-size: var(--pulso-type-body-size);
   line-height: 1.45;
 }
 
@@ -464,12 +464,12 @@
   grid-template-columns: max-content minmax(0, 1fr);
   gap: var(--pulso-space-1) var(--pulso-space-3);
   margin: 0;
-  font-size: 12.5px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .pulso-f6-ficha dt {
   color: var(--pulso-text-faint);
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
 }
 
 .pulso-f6-ficha dd {
@@ -502,7 +502,7 @@
   border-radius: var(--pulso-radius);
   background: var(--pulso-surface);
   cursor: pointer;
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .pulso-f6-variante .pulso-composicion {
@@ -518,7 +518,7 @@
 
 .pulso-f6-variante > small {
   color: var(--pulso-text-faint);
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   line-height: 1.35;
   overflow-wrap: anywhere;
 }
@@ -536,7 +536,7 @@
   border-radius: var(--pulso-radius);
   background: var(--pulso-warn-bg);
   color: var(--pulso-warn-fg);
-  font-size: 12.5px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .pulso-f6-aviso-cambio strong {
@@ -553,12 +553,12 @@
   gap: var(--pulso-space-2);
   align-items: flex-start;
   color: var(--pulso-text-soft);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .pulso-f6-medidas summary {
   cursor: pointer;
-  font-size: 12.5px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-semibold);
 }
 
@@ -575,7 +575,7 @@
   width: 100%;
   margin-top: var(--pulso-space-2);
   border-collapse: collapse;
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   font-variant-numeric: tabular-nums;
 }
 

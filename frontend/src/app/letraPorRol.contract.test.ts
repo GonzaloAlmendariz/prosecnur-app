@@ -22,11 +22,15 @@ import { describe, expect, test } from "vitest";
  * Material de campo (recopiladores) entra el 2026-11-02 con meta 0: 440 → 0 en
  * 50 hojas, por la misma regla (P1 de la pasada de formato de Material).
  * Cálculo de muestra entra el mismo día con meta 0: 1165 → 0 en 77 hojas (P1 de
- * `docs/qa/formato-calculo-graficos-2026-11-02.md`).
+ * `docs/qa/formato-calculo-graficos-2026-11-02.md`). Gráficos entra igual: 1094 → 9
+ * en 51 hojas. Las nueve que quedan dibujan el medio, no la interfaz: los planos
+ * de gráfico de la biblioteca (`blueprint`: la cifra, la nube de palabras y los
+ * cuadrantes a escala de lámina), la muestra de leyenda del Estilo y dos
+ * métricas de 6 px dentro de los marcos miniatura del editor de composición.
  */
 
 const SRC = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const MODULOS = ["features/home", "features/dashboard", "features/xlsformEditor", "features/analitica", "features/carga", "features/procesamiento", "features/recopiladores", "features/calcMuestra"];
+const MODULOS = ["features/home", "features/dashboard", "features/xlsformEditor", "features/analitica", "features/carga", "features/procesamiento", "features/recopiladores", "features/calcMuestra", "features/graficos"];
 const LITERAL = /font-size\s*:\s*\d+(?:\.\d+)?px/g;
 
 const SNAPSHOT_LITERALES: Record<string, number> = {
@@ -39,6 +43,9 @@ const SNAPSHOT_LITERALES: Record<string, number> = {
   "features/dashboard/tabs/DimensionesTab/matriz_unidades.css": 9,
   "features/dashboard/tabs/RelacionTab/relacion.css": 7,
   "features/dashboard/theme/tokens.css": 78,
+  "features/graficos/estilo/estilo.css": 2,
+  "features/graficos/graficadorPicker.css": 5,
+  "features/graficos/v2/styles/editor-v2.css": 2,
   "features/home/home-v2.css": 2,
   "features/xlsformEditor/impreso/impreso.css": 17,
   "features/xlsformEditor/kit/riel.css": 1,

@@ -67,7 +67,7 @@
   display: block;
   margin-bottom: var(--pulso-space-1);
   color: var(--pulso-graficador-library-accent);
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-bold);
   letter-spacing: 0.1em;
   line-height: 1;
@@ -77,7 +77,7 @@
 .pulso-graficador-library-title {
   margin: 0;
   color: var(--pulso-text);
-  font-size: 20px;
+  font-size: var(--pulso-type-kpi-size);
   font-weight: var(--pulso-weight-bold);
   line-height: 1.2;
 }
@@ -85,7 +85,7 @@
 .pulso-graficador-library-description {
   margin: var(--pulso-space-1) 0 0;
   color: var(--pulso-text-soft);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   line-height: 1.4;
 }
 
@@ -118,7 +118,7 @@
   display: block;
   margin: 0 var(--pulso-space-2) var(--pulso-space-3);
   color: var(--pulso-text-faint);
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-bold);
   letter-spacing: 0.1em;
   text-transform: uppercase;
@@ -185,7 +185,7 @@
   display: block;
   min-width: 0;
   max-width: 100%;
-  font-size: 12px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-semibold);
   line-height: 1.15;
   overflow-wrap: normal;
@@ -198,7 +198,7 @@
   min-width: 0;
   max-width: 100%;
   color: var(--pulso-text-faint);
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   line-height: 1.15;
   overflow-wrap: normal;
   word-break: normal;
@@ -208,7 +208,7 @@
 .pulso-graficador-library-filter-count {
   min-width: var(--pulso-space-5);
   color: var(--pulso-text-faint);
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-semibold);
   text-align: right;
 }
@@ -266,7 +266,7 @@
 
 .pulso-graficador-library-gallery-heading h3 {
   color: var(--pulso-text);
-  font-size: 14px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-bold);
   line-height: 1.2;
 }
@@ -274,14 +274,14 @@
 .pulso-graficador-library-gallery-heading p {
   margin-top: var(--pulso-space-1);
   color: var(--pulso-text-faint);
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   line-height: 1.2;
 }
 
 .pulso-graficador-library-visible-count {
   flex: 0 0 auto;
   color: var(--pulso-text-soft);
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   font-weight: var(--pulso-weight-medium);
 }
 
@@ -306,7 +306,7 @@
   padding: 0;
   color: var(--pulso-text);
   font: inherit;
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   background: transparent;
   border: 0;
   outline: 0;
@@ -321,7 +321,7 @@
   align-items: center;
   gap: var(--pulso-space-1);
   color: var(--pulso-text-faint);
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   white-space: nowrap;
 }
 
@@ -389,7 +389,7 @@
   min-width: 0;
   max-width: 100%;
   color: var(--pulso-text-faint);
-  font-size: 9px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-semibold);
   letter-spacing: 0.04em;
   line-height: 1.2;
@@ -428,7 +428,7 @@
   min-width: 0;
   max-width: 100%;
   color: var(--pulso-text);
-  font-size: 13px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-bold);
   line-height: 1.25;
   overflow-wrap: anywhere;
@@ -440,7 +440,7 @@
   min-width: 0;
   max-width: 100%;
   color: var(--pulso-text-soft);
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   line-height: 1.45;
   overflow-wrap: anywhere;
   white-space: normal;
@@ -454,7 +454,7 @@
   min-width: 0;
   max-width: 100%;
   color: var(--pulso-text-faint);
-  font-size: 9px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-medium);
   flex-wrap: wrap;
   overflow-wrap: anywhere;
@@ -497,13 +497,13 @@
 
 .pulso-graficador-library-state strong {
   color: var(--pulso-text);
-  font-size: 13px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-bold);
 }
 
 .pulso-graficador-library-state span {
   max-width: 42ch;
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   line-height: 1.45;
 }
 
@@ -554,7 +554,7 @@
 
 .pulso-graficador-library-inspector-heading small {
   color: var(--pulso-text-faint);
-  font-size: 9px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-bold);
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -562,7 +562,7 @@
 
 .pulso-graficador-library-inspector-heading strong {
   color: var(--pulso-text);
-  font-size: 12px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-semibold);
 }
 
@@ -574,7 +574,7 @@
   display: block;
   margin-bottom: var(--pulso-space-1);
   color: var(--pulso-graficador-library-accent);
-  font-size: 9px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-bold);
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -593,7 +593,7 @@
 
 .pulso-graficador-library-inspector-copy h3 {
   color: var(--pulso-text);
-  font-size: 17px;
+  font-size: var(--pulso-type-title-size);
   font-weight: var(--pulso-weight-bold);
   line-height: 1.2;
 }
@@ -601,7 +601,7 @@
 .pulso-graficador-library-inspector-copy p {
   margin-top: var(--pulso-space-2);
   color: var(--pulso-text-soft);
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   line-height: 1.5;
 }
 
@@ -616,7 +616,7 @@
 .pulso-graficador-library-requirement h4,
 .pulso-graficador-library-next-step h4 {
   color: var(--pulso-text);
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   font-weight: var(--pulso-weight-bold);
   line-height: 1.2;
 }
@@ -625,7 +625,7 @@
 .pulso-graficador-library-requirement p,
 .pulso-graficador-library-next-step p {
   color: var(--pulso-text-soft);
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   line-height: 1.45;
 }
 
@@ -644,13 +644,13 @@
 
 .pulso-graficador-library-facts dt {
   color: var(--pulso-text-faint);
-  font-size: 9px;
+  font-size: var(--pulso-type-micro-size);
 }
 
 .pulso-graficador-library-facts dd {
   margin: 0;
   color: var(--pulso-text);
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-semibold);
   text-align: right;
 }
@@ -680,7 +680,7 @@
   gap: var(--pulso-space-1);
   margin-top: var(--pulso-space-1);
   color: var(--pulso-graficador-library-accent);
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-semibold);
   text-decoration: none;
 }
@@ -706,13 +706,13 @@
 
 .pulso-graficador-library-arg-list strong {
   color: var(--pulso-text);
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-semibold);
 }
 
 .pulso-graficador-library-arg-list span {
   color: var(--pulso-text-soft);
-  font-size: 9px;
+  font-size: var(--pulso-type-micro-size);
   line-height: 1.4;
 }
 
@@ -730,7 +730,7 @@
 
 .pulso-graficador-library-insert-hint {
   color: var(--pulso-text-faint);
-  font-size: 9px;
+  font-size: var(--pulso-type-micro-size);
   line-height: 1.35;
   text-align: center;
 }
@@ -747,13 +747,13 @@
 
 .pulso-graficador-library-inspector-empty strong {
   color: var(--pulso-text);
-  font-size: 13px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-bold);
 }
 
 .pulso-graficador-library-inspector-empty span {
   max-width: 25ch;
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   line-height: 1.45;
 }
 
@@ -996,7 +996,7 @@
   }
 
   .pulso-graficador-library-filter-copy strong {
-    font-size: 11px;
+    font-size: var(--pulso-type-caption-size);
   }
 
   .pulso-graficador-library-filter-copy small {

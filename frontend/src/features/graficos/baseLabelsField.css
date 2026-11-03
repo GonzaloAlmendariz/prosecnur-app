@@ -22,7 +22,7 @@
 }
 
 .pulso-gv2-base-labels-key {
-  font-size: 12px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: 600;
   color: var(--pulso-text-soft);
   /* Un nombre de base largo no puede empujar la caja fuera del panel. */

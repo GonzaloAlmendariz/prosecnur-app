@@ -20,9 +20,8 @@ const BAJO_EL_PISO = /font-size\s*:\s*(\d+(?:\.\d+)?)px/g;
 
 const SNAPSHOT_BAJO_10PX: Record<string, number> = {
   "features/graficos/estilo/estilo.css": 1,
-  "features/graficos/graficadorPicker.css": 9,
+  "features/graficos/graficadorPicker.css": 2,
   "features/graficos/v2/styles/editor-v2.css": 2,
-  "features/graficos/v2/timeline/slidePicker.css": 6,
 };
 
 function archivos(dir: string): string[] {

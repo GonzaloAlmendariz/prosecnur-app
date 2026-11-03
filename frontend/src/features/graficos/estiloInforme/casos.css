@@ -15,7 +15,7 @@
   border-radius: 999px;
   background: var(--pulso-surface);
   color: var(--pulso-text);
-  font-size: 13px;
+  font-size: var(--pulso-type-body-size);
   cursor: pointer;
 }
 
@@ -36,7 +36,7 @@
   align-items: center;
   gap: var(--pulso-space-1);
   color: var(--pulso-text-muted);
-  font-size: 13px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .pulso-f6-informe-umbral .pulso-f6-input {
