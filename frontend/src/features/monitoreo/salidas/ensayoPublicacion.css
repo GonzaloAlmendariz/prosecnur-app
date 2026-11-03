@@ -51,14 +51,14 @@
 }
 
 .mon-ensayo-cifra b {
-  font-size: 22px;
+  font-size: var(--pulso-type-kpi-size);
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   color: var(--pulso-text);
 }
 
 .mon-ensayo-cifra span {
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   color: var(--pulso-text-muted);
   white-space: nowrap;
 }
@@ -102,20 +102,20 @@
 }
 
 .mon-ensayo-pestana__cabeza b {
-  font-size: 14px;
+  font-size: var(--pulso-type-body-size);
   overflow-wrap: anywhere;
 }
 
 .mon-ensayo-pestana__linea,
 .mon-ensayo-pestana__clave {
   margin: 0;
-  font-size: 13px;
+  font-size: var(--pulso-type-body-size);
   line-height: 1.45;
 }
 
 .mon-ensayo-pestana__clave {
   color: var(--pulso-text-muted);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .mon-ensayo-pildora {
@@ -123,7 +123,7 @@
   padding: 2px 10px;
   border: 1px solid var(--pulso-border);
   border-radius: 999px;
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   font-weight: 600;
   white-space: nowrap;
   color: var(--pulso-text-soft);
@@ -145,7 +145,7 @@
 
 .mon-ensayo-detalle summary {
   cursor: pointer;
-  font-size: 12.5px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: 600;
   color: var(--pulso-text-soft);
 }
@@ -158,7 +158,7 @@
 
 .mon-ensayo-detalle__cuerpo h5 {
   margin: 0 0 4px;
-  font-size: 11px;
+  font-size: var(--pulso-type-eyebrow-size);
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -171,7 +171,7 @@
   margin: 0;
   padding: 0;
   list-style: none;
-  font-size: 12.5px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .mon-ensayo-detalle__cuerpo li {
@@ -191,7 +191,7 @@
 
 .mon-ensayo-detalle__nota {
   margin: 0;
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   color: var(--pulso-text-muted);
 }
 
@@ -201,7 +201,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 8px 16px;
-  font-size: 12.5px;
+  font-size: var(--pulso-type-body-size);
   color: var(--pulso-text-muted);
 }
 
@@ -215,7 +215,7 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-size: 12.5px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .mon-ensayo-aviso.is-peligro {

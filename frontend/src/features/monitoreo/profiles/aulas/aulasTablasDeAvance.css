@@ -19,7 +19,7 @@
 
 .aulas-tav-corte {
   margin: 0;
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   color: var(--pulso-text-soft);
 }
 
@@ -32,7 +32,7 @@
 
 .aulas-tav-head h4 {
   margin: 0;
-  font-size: 13px;
+  font-size: var(--pulso-type-body-size);
   letter-spacing: 0.02em;
   color: var(--pulso-text);
 }
@@ -40,7 +40,7 @@
 .aulas-tav-nota,
 .aulas-tav-pie {
   margin: 0;
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   line-height: 1.4;
   color: var(--pulso-text-faint);
 }
@@ -55,7 +55,7 @@
 .aulas-tav-tabla {
   width: 100%;
   border-collapse: collapse;
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   font-variant-numeric: tabular-nums;
 }
 

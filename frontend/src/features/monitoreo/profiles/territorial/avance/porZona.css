@@ -48,7 +48,7 @@
   line-height: 1.1;
 }
 
-.mon-pz-tile strong.is-texto { font-size: 16px; font-weight: var(--pulso-weight-semibold); }
+.mon-pz-tile strong.is-texto { font-size: var(--pulso-type-title-size); font-weight: var(--pulso-weight-semibold); }
 
 .mon-pz-tile strong span {
   color: var(--pulso-text-soft);
@@ -138,7 +138,7 @@
   margin: 0;
   white-space: nowrap;
   color: var(--pulso-text);
-  font-size: 14px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-semibold);
 }
 
@@ -230,9 +230,9 @@
 
 .mon-pz-celda.is-clara { color: var(--pulso-surface); }
 .mon-pz-celda.is-falta { border-color: var(--pulso-module-monitoring-border); background: var(--pulso-module-monitoring-soft); color: var(--pulso-module-monitoring); }
-.mon-pz-celda b { font-size: 16px; font-weight: var(--pulso-weight-semibold); letter-spacing: -0.01em; }
-.mon-pz-celda small { font-size: 10.5px; opacity: 0.75; }
-.mon-pz-celda em { margin-top: 2px; font-size: 10.5px; font-style: normal; font-weight: var(--pulso-weight-semibold); white-space: nowrap; }
+.mon-pz-celda b { font-size: var(--pulso-type-title-size); font-weight: var(--pulso-weight-semibold); letter-spacing: -0.01em; }
+.mon-pz-celda small { font-size: var(--pulso-type-micro-size); opacity: 0.75; }
+.mon-pz-celda em { margin-top: 2px; font-size: var(--pulso-type-micro-size); font-style: normal; font-weight: var(--pulso-weight-semibold); white-space: nowrap; }
 
 .mon-pz-vacia { color: var(--pulso-text-soft); font-size: var(--pulso-type-caption-size); text-align: center; }
 
@@ -252,7 +252,7 @@
 .mon-pz-total .mon-pz-barra { align-self: stretch; }
 .mon-pz-total b { color: var(--pulso-text); font-variant-numeric: tabular-nums; white-space: nowrap; }
 .mon-pz-total.is-falta b { color: var(--pulso-module-monitoring); }
-.mon-pz-total small { color: var(--pulso-text-soft); font-size: 11px; white-space: nowrap; }
+.mon-pz-total small { color: var(--pulso-text-soft); font-size: var(--pulso-type-caption-size); white-space: nowrap; }
 
 /* ---------- Faltante por zona ---------- */
 .mon-pz-mapa-cuerpo {
@@ -267,7 +267,7 @@
 .mon-pz-distrito { stroke: var(--pulso-surface); stroke-width: 1.6; stroke-linejoin: round; }
 .mon-pz-rotulo-mapa {
   fill: var(--pulso-module-monitoring);
-  font-size: 17px;
+  font-size: var(--pulso-type-title-size);
   font-weight: 700;
   text-anchor: middle;
   paint-order: stroke;
@@ -324,9 +324,9 @@
 /* Ancho medio (1280): las celdas son angostas; la cuota baja a su propia línea. */
 @media (max-width: 1360px) {
   .mon-pz-tabla th.mon-pz-zona-col { width: 168px; }
-  .mon-pz-celda b { font-size: 15px; }
-  .mon-pz-celda em { font-size: 10px; }
-  .mon-pz-total small { font-size: 10px; }
+  .mon-pz-celda b { font-size: var(--pulso-type-title-size); }
+  .mon-pz-celda em { font-size: var(--pulso-type-micro-size); }
+  .mon-pz-total small { font-size: var(--pulso-type-micro-size); }
 }
 
 /* Pantalla baja: el marco no cambia; las celdas se compactan y la matriz

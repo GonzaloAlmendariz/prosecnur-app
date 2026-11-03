@@ -79,7 +79,7 @@
   border-radius: var(--pulso-radius-chip);
   background: var(--pulso-primary-soft);
   color: var(--pulso-primary);
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   letter-spacing: 0.02em;
   font-weight: var(--pulso-weight-semibold);
 }
@@ -92,7 +92,7 @@
 }
 
 .mon-acr-actor-card-name > span {
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-semibold);
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -106,7 +106,7 @@
   border-radius: var(--pulso-radius-chip);
   background: var(--pulso-bg);
   color: var(--pulso-text);
-  font-size: 13px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-semibold);
 }
 
@@ -149,7 +149,7 @@
 .mon-acr-actor-card-fuentes > span {
   padding: 3px 8px;
   border-radius: 999px;
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   font-weight: var(--pulso-weight-medium);
 }
 
@@ -164,7 +164,7 @@
 }
 
 .mon-acr-actor-card-nota {
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   line-height: 1.35;
 }
 
@@ -199,7 +199,7 @@
   border-radius: var(--pulso-radius-chip);
   background: var(--pulso-surface);
   color: var(--pulso-text);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   font-weight: var(--pulso-weight-medium);
   cursor: pointer;
 }
@@ -220,12 +220,12 @@
 }
 
 .mon-acr-actores-sugeridos > span {
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   color: var(--pulso-text-faint);
 }
 
 .mon-acr-actores-sugeridos button {
   padding: 4px 8px;
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   color: var(--pulso-text-soft);
 }

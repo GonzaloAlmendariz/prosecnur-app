@@ -21,14 +21,14 @@
 }
 
 .mon-aulas-refuerzos-sin-guardar strong {
-  font-size: 13px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-heavy);
   color: var(--pulso-text);
 }
 
 .mon-aulas-refuerzos-sin-guardar em {
   font-style: normal;
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   line-height: 1.45;
   color: var(--pulso-text-soft);
 }
@@ -46,7 +46,7 @@
   border-radius: var(--pulso-radius-chip);
   background: var(--pulso-surface);
   color: var(--pulso-text);
-  font-size: 12.5px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-heavy);
   cursor: pointer;
 }
@@ -62,7 +62,7 @@
 
 .mon-aulas-refuerzos-sin-guardar-accion span,
 .mon-aulas-refuerzos-guardado {
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   color: var(--pulso-text-soft);
 }
 

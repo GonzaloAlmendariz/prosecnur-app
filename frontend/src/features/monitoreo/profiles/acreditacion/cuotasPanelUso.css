@@ -14,7 +14,7 @@
   flex-wrap: wrap;
   gap: 4px 14px;
   color: var(--pulso-text-soft);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .mon-cuotas-datos b {

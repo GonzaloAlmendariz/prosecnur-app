@@ -39,14 +39,14 @@
 .mon-anu-titulo {
   margin: 0;
   color: var(--pulso-text);
-  font-size: 14px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-bold);
 }
 
 .mon-anu-base {
   margin: 0;
   color: var(--pulso-text-soft);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   font-variant-numeric: tabular-nums;
 }
 
@@ -68,7 +68,7 @@
 }
 
 .mon-anu-cifra span {
-  font-size: 14px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-semibold);
 }
 
@@ -81,7 +81,7 @@
 
 .mon-anu-subtitulo {
   color: var(--pulso-text-faint);
-  font-size: 10.5px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-bold);
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -100,7 +100,7 @@
   grid-template-columns: 150px minmax(0, 1fr) 48px;
   align-items: center;
   gap: var(--pulso-space-2);
-  font-size: 13px;
+  font-size: var(--pulso-type-body-size);
   font-variant-numeric: tabular-nums;
 }
 
@@ -143,7 +143,7 @@
   justify-content: space-between;
   align-items: flex-start;
   gap: var(--pulso-space-2);
-  font-size: 13.5px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .mon-anu-quien {
@@ -154,7 +154,7 @@
 
 .mon-anu-alcance {
   color: var(--pulso-danger-fg);
-  font-size: 10.5px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-bold);
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -163,7 +163,7 @@
 .mon-anu-tarjeta header small {
   flex: 0 0 auto;
   color: var(--pulso-text-soft);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
@@ -185,13 +185,13 @@
 
 .mon-anu-impacto dt {
   color: var(--pulso-text-soft);
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
 }
 
 .mon-anu-impacto dd {
   margin: 0;
   color: var(--pulso-text);
-  font-size: 17px;
+  font-size: var(--pulso-type-title-size);
   font-weight: var(--pulso-weight-bold);
   font-variant-numeric: tabular-nums;
 }
@@ -202,12 +202,12 @@
   gap: var(--pulso-space-2);
   margin: 0;
   color: var(--pulso-text);
-  font-size: 12.5px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .mon-anu-motivo span {
   color: var(--pulso-text-soft);
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   font-weight: var(--pulso-weight-semibold);
 }
 
@@ -230,7 +230,7 @@
   background: var(--pulso-surface);
   color: var(--pulso-text);
   font: inherit;
-  font-size: 13px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-semibold);
   cursor: pointer;
 }
@@ -252,7 +252,7 @@
   border-radius: 8px;
   background: var(--pulso-danger-bg);
   color: var(--pulso-danger-fg);
-  font-size: 13px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .mon-anu-tabla-marco {
@@ -280,7 +280,7 @@
 .mon-anu-tabla {
   width: 100%;
   border-collapse: collapse;
-  font-size: 13px;
+  font-size: var(--pulso-type-body-size);
   font-variant-numeric: tabular-nums;
 }
 
@@ -292,7 +292,7 @@
   border-bottom: 1px solid var(--pulso-border);
   background: var(--pulso-surface);
   color: var(--pulso-text-soft);
-  font-size: 10.5px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-bold);
   letter-spacing: 0.06em;
   text-align: left;
@@ -340,7 +340,7 @@
   border-radius: 999px;
   background: var(--pulso-surface-3);
   color: var(--pulso-text-soft);
-  font-size: 12px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-semibold);
 }
 

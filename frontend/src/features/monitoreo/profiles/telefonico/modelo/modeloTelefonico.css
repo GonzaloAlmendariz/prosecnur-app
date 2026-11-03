@@ -11,7 +11,7 @@
   height: 100%;
   min-height: 0;
   color: var(--pulso-text);
-  font-size: 13px;
+  font-size: var(--pulso-type-body-size);
   line-height: 1.35;
 }
 
@@ -48,12 +48,12 @@
 }
 
 .mon-metas-eje header > strong {
-  font-size: 14px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .mon-metas-eje header > span {
   color: var(--pulso-text-faint);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .mon-metas-eje header > button {
@@ -83,7 +83,7 @@
 
 .mon-metas-candidatas button em {
   color: var(--pulso-text-soft);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   font-style: normal;
 }
 
@@ -111,7 +111,7 @@
   gap: var(--pulso-space-2);
   margin-left: auto;
   color: var(--pulso-text-soft);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .mon-metas-confirmar {
@@ -280,7 +280,7 @@
 
 .mon-metas-avance-nombre {
   min-height: 2.6em;
-  font-size: 12px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-semibold);
   line-height: 1.3;
   overflow-wrap: anywhere;
@@ -288,7 +288,7 @@
 
 .mon-metas-avance-faltan {
   color: var(--pulso-module-monitoring);
-  font-size: 12px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-bold);
   text-align: center;
 }
@@ -320,7 +320,7 @@
 
 .mon-metas-total dt {
   color: var(--pulso-text-faint);
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-bold);
   letter-spacing: 0.09em;
   text-transform: uppercase;
@@ -328,7 +328,7 @@
 
 .mon-metas-total dd {
   margin: 0;
-  font-size: 15px;
+  font-size: var(--pulso-type-title-size);
   font-weight: var(--pulso-weight-heavy);
   text-align: left;
 }
@@ -466,7 +466,7 @@
 }
 
 .mon-metas-dia-columna > strong {
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .mon-metas-dia-columna > i {
@@ -480,7 +480,7 @@
 
 .mon-metas-dias li > span {
   color: var(--pulso-text-soft);
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   white-space: nowrap;
 }
 
@@ -561,7 +561,7 @@
   height: 100%;
   min-height: 0;
   color: var(--pulso-text);
-  font-size: 13px;
+  font-size: var(--pulso-type-body-size);
   line-height: 1.35;
 }
 
@@ -652,7 +652,7 @@
 
 .mon-calendario-lectura dt {
   color: var(--pulso-text-faint);
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-bold);
   letter-spacing: 0.09em;
   text-transform: uppercase;
@@ -660,13 +660,13 @@
 
 .mon-calendario-lectura dd {
   margin: 0;
-  font-size: 16px;
+  font-size: var(--pulso-type-title-size);
   font-weight: var(--pulso-weight-bold);
 }
 
 .mon-calendario-lectura > div > span {
   color: var(--pulso-text-soft);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .mon-calendario .is-tenue {

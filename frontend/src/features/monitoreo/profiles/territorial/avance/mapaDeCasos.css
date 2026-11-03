@@ -28,19 +28,19 @@
   stroke-width: 4px;
   stroke-linejoin: round;
   text-anchor: middle;
-  font-size: 10.5px;
+  font-size: var(--pulso-type-micro-size);
 }
 
 .mon-mc-rotulos .is-nombre { fill: var(--pulso-brand-navy); font-weight: 700; letter-spacing: 0.08em; }
 .mon-mc-rotulos .is-avance { fill: var(--pulso-text-soft); }
 
 .mon-mc-norte path { fill: var(--pulso-brand-navy); }
-.mon-mc-norte text { fill: var(--pulso-brand-navy); font-size: 10px; font-weight: 700; text-anchor: middle; }
+.mon-mc-norte text { fill: var(--pulso-brand-navy); font-size: var(--pulso-type-micro-size); font-weight: 700; text-anchor: middle; }
 
 .mon-mc-escala .is-caja { fill: var(--pulso-surface); fill-opacity: 0.94; stroke: var(--pulso-border); }
 .mon-mc-escala .is-lleno { fill: var(--pulso-text); }
 .mon-mc-escala .is-vacio { fill: var(--pulso-surface); stroke: var(--pulso-text); stroke-width: 0.8; }
-.mon-mc-escala text { fill: var(--pulso-text-soft); font-size: 9px; }
+.mon-mc-escala text { fill: var(--pulso-text-soft); font-size: var(--pulso-type-micro-size); }
 .mon-mc-escala .is-fin { text-anchor: end; }
 
 .mon-mc-capas { display: inline-flex; flex-wrap: wrap; gap: var(--pulso-space-2); }

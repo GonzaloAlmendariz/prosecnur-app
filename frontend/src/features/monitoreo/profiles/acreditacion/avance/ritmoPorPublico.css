@@ -34,7 +34,7 @@
   align-items: center;
   gap: 6px;
   min-width: 0;
-  font-size: 13px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-semibold);
 }
 
@@ -45,7 +45,7 @@
 }
 
 .acr-rp-cifra b {
-  font-size: 20px;
+  font-size: var(--pulso-type-kpi-size);
   font-weight: var(--pulso-weight-bold);
 }
 

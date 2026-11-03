@@ -245,7 +245,7 @@
 
 .mon-stage--acr-model.is-accreditation-schedule .mon-field-schedule-observado__label {
   color: var(--pulso-text-soft);
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-heavy);
   text-transform: uppercase;
 }
@@ -253,7 +253,7 @@
 .mon-stage--acr-model.is-accreditation-schedule .mon-field-schedule-observado strong {
   justify-self: end;
   color: var(--pulso-success-fg);
-  font-size: 13px;
+  font-size: var(--pulso-type-body-size);
   text-transform: none;
 }
 

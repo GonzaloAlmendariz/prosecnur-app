@@ -176,7 +176,7 @@
 }
 
 .aulas-reemplazo-head { display: flex; align-items: start; justify-content: space-between; gap: 10px; }
-.aulas-reemplazo-titulo { margin: 0; font-size: 14px; font-weight: var(--pulso-weight-semibold); }
+.aulas-reemplazo-titulo { margin: 0; font-size: var(--pulso-type-subtitle-size); font-weight: var(--pulso-weight-semibold); }
 .aulas-reemplazo-sub { margin: 2px 0 0; color: var(--pulso-text-soft); font-size: var(--aulas-min); }
 /* El bloque de titulo cede, la × no.
  *
@@ -191,7 +191,7 @@
 .aulas-reemplazo-cerrar {
   flex: 0 0 auto;
   border: 0; background: none; cursor: pointer; padding: 0 4px;
-  color: var(--pulso-text-soft); font-size: 18px; line-height: 1;
+  color: var(--pulso-text-soft); font-size: var(--pulso-type-kpi-size); line-height: 1;
 }
 
 .aulas-reemplazo-solapas { display: flex; gap: 4px; border-bottom: 1px solid var(--pulso-border); }
@@ -286,18 +286,18 @@
   border: 1px solid var(--pulso-border);
   border-radius: 8px;
   background: var(--pulso-surface);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   color: var(--pulso-text-soft);
 }
 .aulas-reemplazo-deuda span.es-debe {
   border-color: color-mix(in srgb, var(--pulso-danger-fg) 34%, var(--pulso-border));
   background: color-mix(in srgb, var(--pulso-danger-fg) 8%, transparent);
 }
-.aulas-reemplazo-deuda b { font-size: 14px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.aulas-reemplazo-deuda b { font-size: var(--pulso-type-subtitle-size); font-weight: 700; font-variant-numeric: tabular-nums; }
 .aulas-reemplazo-deuda span.es-debe b { color: var(--pulso-danger-fg); }
 .aulas-reemplazo-deuda em {
   font-style: normal;
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   color: var(--pulso-text-faint);
 }
 
@@ -323,8 +323,8 @@
   border-bottom: 1px solid var(--pulso-border);
   background: var(--pulso-surface);
 }
-.aulas-reemplazo-duelo-titulo h4 { margin: 0; font-size: 12.5px; font-weight: 600; }
-.aulas-reemplazo-duelo-titulo span { font-size: 11.5px; color: var(--pulso-text-faint); }
+.aulas-reemplazo-duelo-titulo h4 { margin: 0; font-size: var(--pulso-type-subtitle-size); font-weight: 600; }
+.aulas-reemplazo-duelo-titulo span { font-size: var(--pulso-type-caption-size); color: var(--pulso-text-faint); }
 
 .aulas-reemplazo-duelo-lados { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
 .aulas-reemplazo-duelo-lados > div {
@@ -335,16 +335,16 @@
 }
 .aulas-reemplazo-duelo-lados > div + div { border-left: 1px solid var(--pulso-border); }
 .aulas-reemplazo-duelo-lados .vara {
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: 600;
   letter-spacing: 0.07em;
   text-transform: uppercase;
 }
 .aulas-reemplazo-duelo-lados .es-parecido .vara { color: var(--pulso-primary); }
 .aulas-reemplazo-duelo-lados .es-ayuda .vara { color: var(--module-accent, var(--pulso-primary)); }
-.aulas-reemplazo-duelo-lados b { font-size: 14px; font-weight: 600; font-variant-numeric: tabular-nums; }
-.aulas-reemplazo-duelo-lados .gana { font-size: 12px; color: var(--pulso-text); line-height: 1.45; }
-.aulas-reemplazo-duelo-lados .concede { font-size: 11.5px; color: var(--pulso-text-faint); line-height: 1.4; }
+.aulas-reemplazo-duelo-lados b { font-size: var(--pulso-type-subtitle-size); font-weight: 600; font-variant-numeric: tabular-nums; }
+.aulas-reemplazo-duelo-lados .gana { font-size: var(--pulso-type-body-size); color: var(--pulso-text); line-height: 1.45; }
+.aulas-reemplazo-duelo-lados .concede { font-size: var(--pulso-type-caption-size); color: var(--pulso-text-faint); line-height: 1.4; }
 .aulas-reemplazo-duelo-lados strong { font-variant-numeric: tabular-nums; }
 
 .aulas-reemplazo-duelo-o {
@@ -360,7 +360,7 @@
   border: 1px solid var(--pulso-border-strong);
   background: var(--pulso-surface);
   color: var(--pulso-text-faint);
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   font-weight: 600;
 }
 
@@ -393,7 +393,7 @@
   border-radius: 8px;
   background: var(--pulso-surface-3);
   color: var(--pulso-text-soft);
-  font-size: 12.5px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: 700;
   font-variant-numeric: tabular-nums;
 }
@@ -408,7 +408,7 @@
   display: flex;
   align-items: baseline;
   gap: 8px;
-  font-size: 14px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: 600;
   font-variant-numeric: tabular-nums;
 }
@@ -417,7 +417,7 @@
   border-radius: 999px;
   background: color-mix(in srgb, var(--module-accent, var(--pulso-primary)) 12%, transparent);
   color: var(--module-accent, var(--pulso-primary));
-  font-size: 10.5px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: 600;
   letter-spacing: 0.03em;
   text-transform: uppercase;
@@ -425,7 +425,7 @@
 
 .aulas-reemplazo-curso {
   margin: 0;
-  font-size: 12.5px;
+  font-size: var(--pulso-type-body-size);
   color: var(--pulso-text-soft);
   line-height: 1.35;
 }
@@ -437,7 +437,7 @@
 
 .aulas-reemplazo-concesiones {
   margin: 0;
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   color: var(--pulso-warn-fg);
   line-height: 1.4;
 }
@@ -460,7 +460,7 @@
 }
 .aulas-reemplazo-vara em {
   font-style: normal;
-  font-size: 10.5px;
+  font-size: var(--pulso-type-micro-size);
   color: var(--pulso-text-faint);
 }
 .aulas-reemplazo-vara i {
@@ -474,7 +474,7 @@
 .aulas-reemplazo-vara.es-parecido i b { background: var(--pulso-primary); }
 .aulas-reemplazo-vara.es-ayuda i b { background: var(--module-accent, var(--pulso-primary)); }
 .aulas-reemplazo-vara strong {
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   font-weight: 600;
   text-align: right;
   font-variant-numeric: tabular-nums;
@@ -491,7 +491,7 @@
   background: var(--module-accent, var(--pulso-primary));
   color: var(--pulso-surface);
   font: inherit;
-  font-size: 12.5px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: 600;
   cursor: pointer;
 }
@@ -506,7 +506,7 @@
    se toma este candidato. Va en el mismo carril que las medidas porque es su
    consecuencia, no un dato más de identidad. */
 .aulas-reemplazo-resto {
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   color: var(--pulso-text-faint);
   line-height: 1.4;
 }

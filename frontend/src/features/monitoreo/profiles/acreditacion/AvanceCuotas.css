@@ -33,7 +33,7 @@
   align-items: center;
   gap: 6px;
   color: var(--pulso-text-faint);
-  font-size: 10.5px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-heavy);
   letter-spacing: 0.06em;
   line-height: 1.2;
@@ -69,7 +69,7 @@
 .mon-cuotas-cabecera-titulo h2 {
   margin: 0;
   color: var(--pulso-text);
-  font-size: 16px;
+  font-size: var(--pulso-type-title-size);
   font-weight: var(--pulso-weight-heavy);
   line-height: 1.15;
 }
@@ -89,7 +89,7 @@
   padding-left: 20px;
   border-left: 1px solid var(--pulso-border);
   color: var(--pulso-text-soft);
-  font-size: 12.5px;
+  font-size: var(--pulso-type-body-size);
   font-variant-numeric: tabular-nums;
 }
 
@@ -100,7 +100,7 @@
 .mon-cuotas-confirmacion {
   margin: 10px 0 0;
   color: var(--pulso-success-fg);
-  font-size: 12.5px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .mon-cuotas-avisos {
@@ -226,7 +226,7 @@
 
 .mon-cuotas-anillo > span {
   color: var(--pulso-text);
-  font-size: 14px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-heavy);
   font-variant-numeric: tabular-nums;
 }
@@ -243,7 +243,7 @@
   align-items: center;
   gap: 6px;
   color: var(--publico-texto);
-  font-size: 11px;
+  font-size: var(--pulso-type-eyebrow-size);
   font-weight: var(--pulso-weight-heavy);
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -258,7 +258,7 @@
 .mon-cuotas-indicador-texto > strong {
   overflow: hidden;
   color: var(--pulso-text);
-  font-size: 14px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-bold);
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -271,17 +271,17 @@
 
 .mon-cuotas-indicador-cifra b {
   color: var(--pulso-text);
-  font-size: 20px;
+  font-size: var(--pulso-type-kpi-size);
   font-weight: var(--pulso-weight-heavy);
 }
 
 .mon-cuotas-indicador-cifra small {
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .mon-cuotas-indicador-texto > small {
   color: var(--pulso-text-faint);
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
 }
 
 /* ---- Detalle de la cuota ---- */
@@ -315,7 +315,7 @@
 .mon-cuotas-detalle-titulo h3 {
   margin: 0;
   color: var(--pulso-text);
-  font-size: 18px;
+  font-size: var(--pulso-type-kpi-size);
   font-weight: var(--pulso-weight-heavy);
 }
 
@@ -326,7 +326,7 @@
   gap: 6px 8px;
   margin: 4px 0 0;
   color: var(--pulso-text-soft);
-  font-size: 12.5px;
+  font-size: var(--pulso-type-body-size);
   font-variant-numeric: tabular-nums;
 }
 
@@ -339,7 +339,7 @@
   border-radius: var(--pulso-radius-chip);
   background: var(--pulso-surface-3);
   color: var(--pulso-text-soft);
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   font-weight: var(--pulso-weight-semibold);
   white-space: nowrap;
 }
@@ -365,7 +365,7 @@
 .mon-cuotas-orden-rotulo {
   margin-right: 4px;
   color: var(--pulso-text-faint);
-  font-size: 12px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-semibold);
 }
 
@@ -402,7 +402,7 @@
   background: none;
   color: var(--pulso-text);
   font: inherit;
-  font-size: 12.5px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .mon-cuotas-buscar input:focus-visible {
@@ -428,7 +428,7 @@
   color: var(--pulso-text-soft);
   cursor: pointer;
   font: inherit;
-  font-size: 12px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-semibold);
 }
 
@@ -448,7 +448,7 @@
   padding: 10px 0 4px;
   list-style: none;
   color: var(--pulso-text-soft);
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
 }
 
 .mon-cuotas-leyenda li {
@@ -477,7 +477,7 @@
 .mon-cuotas-cuenta {
   margin-left: auto;
   color: var(--pulso-text-faint);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   font-variant-numeric: tabular-nums;
 }
 
@@ -512,7 +512,7 @@
   min-width: 0;
   overflow: hidden;
   color: var(--pulso-text);
-  font-size: 13px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-semibold);
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -570,19 +570,19 @@
 
 .mon-cuotas-categoria-fraccion {
   color: var(--pulso-text-faint);
-  font-size: 12.5px;
+  font-size: var(--pulso-type-body-size);
   white-space: nowrap;
 }
 
 .mon-cuotas-categoria-fraccion strong {
   color: var(--pulso-text);
-  font-size: 15px;
+  font-size: var(--pulso-type-title-size);
   font-weight: var(--pulso-weight-heavy);
 }
 
 .mon-cuotas-resto {
   color: var(--pulso-text-soft);
-  font-size: 12px;
+  font-size: var(--pulso-type-subtitle-size);
   font-style: normal;
   font-weight: var(--pulso-weight-semibold);
   text-align: right;
@@ -601,7 +601,7 @@
   min-width: 0;
   overflow: hidden;
   color: var(--pulso-text-faint);
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   /* Una sola línea en toda fila: si parte en unas y no en otras, la lista
      deja de ser pareja (contrato `equal` de las categorías). */
   text-overflow: ellipsis;
@@ -612,7 +612,7 @@
   margin: 0;
   padding: 18px 0;
   color: var(--pulso-text-soft);
-  font-size: 12.5px;
+  font-size: var(--pulso-type-body-size);
 }
 
 /* ---- Panel de configuración (sideover, en portal al body) ---- */
@@ -665,7 +665,7 @@
 .mon-cuotas-panel-cabeza h2 {
   margin: 0;
   color: var(--pulso-text);
-  font-size: 16px;
+  font-size: var(--pulso-type-title-size);
   font-weight: var(--pulso-weight-heavy);
 }
 
@@ -705,13 +705,13 @@
   background: var(--pulso-surface);
   color: var(--pulso-text);
   font: inherit;
-  font-size: 13px;
+  font-size: var(--pulso-type-body-size);
   padding: 0 8px;
 }
 
 .mon-cuotas-campo small {
   color: var(--pulso-text-faint);
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   font-variant-numeric: tabular-nums;
 }
 
@@ -743,13 +743,13 @@
   border-radius: 8px;
   background: var(--pulso-surface-2);
   color: var(--pulso-text-soft);
-  font-size: 12.5px;
+  font-size: var(--pulso-type-body-size);
   font-variant-numeric: tabular-nums;
 }
 
 .mon-cuotas-suma strong {
   color: var(--pulso-text);
-  font-size: 15px;
+  font-size: var(--pulso-type-title-size);
 }
 
 .mon-cuotas-suma .es-sobre,
@@ -770,7 +770,7 @@
 .mon-cuotas-editor-tabla {
   width: 100%;
   border-collapse: collapse;
-  font-size: 12.5px;
+  font-size: var(--pulso-type-body-size);
   font-variant-numeric: tabular-nums;
 }
 
@@ -789,7 +789,7 @@
   border-bottom-color: var(--pulso-border-strong);
   background: var(--pulso-surface);
   color: var(--pulso-text-faint);
-  font-size: 10.5px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-heavy);
   letter-spacing: 0.05em;
   text-transform: uppercase;
@@ -836,7 +836,7 @@
 }
 
 .mon-cuotas-panel-acciones small {
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
 }
 
 .mon-cuotas-quitar {

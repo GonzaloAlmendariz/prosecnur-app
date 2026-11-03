@@ -72,7 +72,7 @@
 .is-territorial-profile .pulso-context-tab-rail-meta > span > span {
   display: block;
   color: var(--pulso-text-faint);
-  font-size: 9px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-semibold);
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -81,7 +81,7 @@
 .is-territorial-profile .pulso-context-tab-rail-meta strong,
 .is-territorial-profile .pulso-context-tab-rail-meta .mon-rail-sync-time {
   color: var(--pulso-text-soft);
-  font-size: 10.5px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-bold);
 }
 
@@ -109,7 +109,7 @@
 
 .mon-ter-fase-boton small {
   color: var(--pulso-text-faint);
-  font-size: 9.5px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-bold);
   letter-spacing: 0.09em;
   text-transform: uppercase;
@@ -119,7 +119,7 @@
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  font-size: 13px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-bold);
 }
 
@@ -160,7 +160,7 @@
   padding: var(--pulso-space-3) var(--pulso-space-4) var(--pulso-space-2);
   border-bottom: 1px solid var(--pulso-border);
   color: var(--pulso-text-faint);
-  font-size: 9.5px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-bold);
   letter-spacing: 0.09em;
   text-transform: uppercase;
@@ -202,14 +202,14 @@
 }
 
 .mon-ter-fase-copia strong {
-  font-size: 13px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-bold);
 }
 
 .mon-ter-fase-copia small,
 .mon-ter-fase-fecha {
   color: var(--pulso-text-soft);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   font-variant-numeric: tabular-nums;
 }
 
@@ -217,7 +217,7 @@
   padding: var(--pulso-space-2) var(--pulso-space-4) var(--pulso-space-3);
   border-top: 1px solid var(--pulso-border);
   color: var(--pulso-text-soft);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
 }
 
 /* Pestañas rediseñadas (§2a-bis): sin fila de cabecera; el rótulo vive en la
@@ -247,7 +247,7 @@
 
 .mon-ter-rotulo-copia small {
   color: var(--pulso-text-faint);
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-bold);
   letter-spacing: 0.09em;
   text-transform: uppercase;
@@ -257,7 +257,7 @@
 .mon-ter-rotulo-copia h2 {
   margin: 0;
   color: var(--pulso-text);
-  font-size: 17px;
+  font-size: var(--pulso-type-title-size);
   font-weight: var(--pulso-weight-bold);
   line-height: 1.2;
   white-space: nowrap;
@@ -279,7 +279,7 @@
   background: transparent;
   color: var(--pulso-text-soft);
   font: inherit;
-  font-size: 12.5px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-semibold);
   cursor: pointer;
 }

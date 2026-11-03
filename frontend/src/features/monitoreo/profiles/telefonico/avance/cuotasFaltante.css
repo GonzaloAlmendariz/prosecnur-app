@@ -19,7 +19,7 @@
   height: 100%;
   min-height: 0;
   color: var(--pulso-text);
-  font-size: 13px;
+  font-size: var(--pulso-type-body-size);
   line-height: 1.35;
 }
 
@@ -29,7 +29,7 @@
 
 .mon-tel-cuotas-antetitulo {
   color: var(--pulso-text-faint);
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-bold);
   letter-spacing: 0.09em;
   text-transform: uppercase;
@@ -108,7 +108,7 @@
   border-bottom-color: var(--pulso-border);
   background: var(--pulso-surface-2);
   color: var(--pulso-text-faint);
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-bold);
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -133,7 +133,7 @@
 }
 
 .mon-tel-cuotas-categoria b {
-  font-size: 13.5px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .mon-tel-cuotas-estado {
@@ -142,7 +142,7 @@
   padding: 3px 10px;
   border: 1px solid var(--pulso-border);
   border-radius: var(--pulso-radius-chip);
-  font-size: 12px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-semibold);
 }
 
@@ -216,14 +216,14 @@
   line-height: 1;
   transform: translateX(-50%);
   color: var(--pulso-module-monitoring);
-  font-size: 10.5px;
+  font-size: var(--pulso-type-micro-size);
   font-style: normal;
   white-space: nowrap;
   font-weight: var(--pulso-weight-bold);
 }
 
 .mon-tel-cuotas-sobre {
-  font-size: 15px;
+  font-size: var(--pulso-type-title-size);
   white-space: nowrap;
 }
 
@@ -247,7 +247,7 @@
 .mon-tel-cuotas-rango,
 .mon-tel-cuotas-sin-serie {
   color: var(--pulso-text-faint);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   white-space: nowrap;
 }
 
@@ -308,7 +308,7 @@
   align-items: center;
   gap: 6px;
   color: var(--pulso-text-soft);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .mon-tel-cuotas-diario-leyenda i {
@@ -368,7 +368,7 @@
   width: 22px;
   transform: translateY(-50%);
   color: var(--pulso-text-faint);
-  font-size: 10.5px;
+  font-size: var(--pulso-type-micro-size);
   font-variant-numeric: tabular-nums;
   text-align: right;
 }
@@ -388,7 +388,7 @@
   left: 50%;
   transform: translateX(-50%);
   color: var(--pulso-text);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
@@ -399,7 +399,7 @@
   transform: translate(-50%, 6px);
   white-space: nowrap;
   color: var(--pulso-text-faint);
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   font-variant-numeric: tabular-nums;
 }
 
@@ -429,7 +429,7 @@
 
 .mon-tel-cuotas-grande span {
   color: var(--pulso-text-faint);
-  font-size: 16px;
+  font-size: var(--pulso-type-title-size);
   font-weight: var(--pulso-weight-semibold);
   letter-spacing: 0;
 }
@@ -455,12 +455,12 @@
 }
 
 .mon-tel-cuotas-indicador b {
-  font-size: 16px;
+  font-size: var(--pulso-type-title-size);
 }
 
 .mon-tel-cuotas-indicador > span:last-child {
   color: var(--pulso-text-faint);
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
 }
 
 .mon-tel-cuotas-reparto {
@@ -473,7 +473,7 @@
   align-items: baseline;
   gap: var(--pulso-space-2);
   color: var(--pulso-text-faint);
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
 }
 
 /* Columnas alineadas arriba: la lista arranca bajo su título y la leyenda la
@@ -500,7 +500,7 @@
   display: flex;
   align-items: baseline;
   gap: var(--pulso-space-2);
-  font-size: 12.5px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .mon-tel-cuotas-reparto-rotulo > b {
@@ -522,7 +522,7 @@
 
 .mon-tel-cuotas-reparto-detalle {
   color: var(--pulso-text-soft);
-  font-size: 12.5px;
+  font-size: var(--pulso-type-body-size);
   line-height: 1.45;
 }
 
@@ -563,7 +563,7 @@
   justify-content: center;
   gap: var(--pulso-space-1) var(--pulso-space-4);
   color: var(--pulso-text-soft);
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
 }
 
 .mon-tel-cuotas-leyenda > span {
@@ -597,11 +597,11 @@
 
 .mon-tel-cuotas-cadena-paso > span > span {
   color: var(--pulso-text-faint);
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
 }
 
 .mon-tel-cuotas-cadena-paso strong {
-  font-size: 15px;
+  font-size: var(--pulso-type-title-size);
   text-align: right;
 }
 

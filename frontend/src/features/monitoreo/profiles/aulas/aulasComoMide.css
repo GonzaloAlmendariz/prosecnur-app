@@ -12,14 +12,14 @@
 .aulas-como-mide-campo { display: grid; gap: 6px; }
 
 .aulas-como-mide-rotulo {
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   font-weight: var(--pulso-weight-heavy, 600);
   color: var(--pulso-text);
 }
 
 .aulas-como-mide-nota {
   margin: 0;
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   line-height: 1.45;
   color: var(--pulso-text-faint);
 }
@@ -34,14 +34,14 @@
 .aulas-como-mide-chip:disabled[aria-pressed="false"] { opacity: 0.55; }
 .aulas-como-mide-chip em {
   font-style: normal;
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   color: var(--pulso-text-faint);
   margin-left: 2px;
 }
 
 .aulas-como-mide-motivo {
   margin: 0;
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   line-height: 1.45;
   color: var(--pulso-text-soft);
   border-left: 2px solid var(--pulso-border);
@@ -60,7 +60,7 @@
   border: 1px solid var(--pulso-border);
   border-radius: 6px;
   background: var(--pulso-surface-2);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   line-height: 1.45;
   color: var(--pulso-text-soft);
 }
@@ -75,7 +75,7 @@
 .aulas-como-mide-fecha { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 .aulas-como-mide-fecha input {
   font: inherit;
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   padding: 3px 8px;
   border-radius: 6px;
   border: 1px solid var(--pulso-border);

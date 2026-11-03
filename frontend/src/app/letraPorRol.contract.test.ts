@@ -27,10 +27,16 @@ import { describe, expect, test } from "vitest";
  * de gráfico de la biblioteca (`blueprint`: la cifra, la nube de palabras y los
  * cuadrantes a escala de lámina), la muestra de leyenda del Estilo y dos
  * métricas de 6 px dentro de los marcos miniatura del editor de composición.
+ * Monitoreo entra también ese día: 3930 → 69 en 20 hojas, misma regla (P1 de
+ * `docs/qa/formato-monitoreo-2026-11-02.md`). Quedan declaradas: los rótulos de
+ * un SVG con `viewBox` escalado (3–8 «px» que son unidades de usuario), las
+ * cifras héroe de 24–44 px que el rol `kpi` (21) achicaría, y
+ * `public/monitoreoPublic.css` entero, que es el informe que ve el cliente
+ * (mismo criterio que Dashboard).
  */
 
 const SRC = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const MODULOS = ["features/home", "features/dashboard", "features/xlsformEditor", "features/analitica", "features/carga", "features/procesamiento", "features/recopiladores", "features/calcMuestra", "features/graficos"];
+const MODULOS = ["features/home", "features/dashboard", "features/xlsformEditor", "features/analitica", "features/carga", "features/procesamiento", "features/recopiladores", "features/calcMuestra", "features/graficos", "features/monitoreo"];
 const LITERAL = /font-size\s*:\s*\d+(?:\.\d+)?px/g;
 
 const SNAPSHOT_LITERALES: Record<string, number> = {
@@ -53,6 +59,27 @@ const SNAPSHOT_LITERALES: Record<string, number> = {
   "features/xlsformEditor/styles/xf-home/01-xf-home-css-hub-biblioteca-d.css": 1,
   "features/xlsformEditor/styles/xf-preview-inputs.css": 9,
   "features/xlsformEditor/styles/xf-simulator.css": 17,
+  "features/monitoreo/monitoreo.css": 3,
+  "features/monitoreo/profiles/acreditacion/AvanceCorreo.css": 3,
+  "features/monitoreo/profiles/acreditacion/avance/avance.css": 3,
+  "features/monitoreo/profiles/acreditacion/control/casos/personas.css": 1,
+  "features/monitoreo/profiles/acreditacion/control/contacto/contacto.css": 1,
+  "features/monitoreo/profiles/aulas/aulasCargaDeCampo.css": 1,
+  "features/monitoreo/profiles/aulas/aulasCroquisDeCampus.css": 3,
+  "features/monitoreo/profiles/aulas/aulasRepresentatividad.css": 1,
+  "features/monitoreo/profiles/aulas/avance/resumenAulas.css": 1,
+  "features/monitoreo/profiles/telefonico/avance/cuotasFaltante.css": 2,
+  "features/monitoreo/profiles/telefonico/avance/ritmoTelefonico.css": 1,
+  "features/monitoreo/profiles/telefonico/control/controlTelefonico.css": 3,
+  "features/monitoreo/profiles/telefonico/control/noBarridos.css": 1,
+  "features/monitoreo/profiles/telefonico/insumos/insumosTelefonico.css": 1,
+  "features/monitoreo/profiles/telefonico/modelo/modeloTelefonico.css": 1,
+  "features/monitoreo/profiles/telefonico/telefonicoProfile.css": 1,
+  "features/monitoreo/profiles/territorial/avance/resumen.css": 1,
+  "features/monitoreo/profiles/territorial/control/anulaciones.css": 1,
+  "features/monitoreo/profiles/territorial/territorialProfile.css": 2,
+  "features/monitoreo/public/monitoreoPublic.css": 1,
+  "features/monitoreo/public/monitoreoPublic.css": 38,
 };
 
 function hojas(dir: string): string[] {

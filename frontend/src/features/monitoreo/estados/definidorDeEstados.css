@@ -33,7 +33,7 @@
 }
 
 .tel-estados-cabecera span {
-  font-size: 11px;
+  font-size: var(--pulso-type-eyebrow-size);
   font-weight: var(--pulso-weight-semibold);
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -41,13 +41,13 @@
 }
 
 .tel-estados-cabecera strong {
-  font-size: 17px;
+  font-size: var(--pulso-type-title-size);
   font-weight: var(--pulso-weight-semibold);
   color: var(--pulso-text);
 }
 
 .tel-estados-cabecera em {
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   font-style: normal;
   line-height: 1.45;
   color: var(--pulso-text-soft);
@@ -63,7 +63,7 @@
   border-radius: var(--pulso-radius-card);
   background: var(--pulso-danger-bg);
   color: var(--pulso-danger-fg);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
 }
 
 /* ── Paleta ────────────────────────────────────────────────────────────── */
@@ -110,13 +110,13 @@
 }
 
 .tel-estados-crudo strong {
-  font-size: 12.5px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-semibold);
   color: var(--pulso-text);
 }
 
 .tel-estados-crudo em {
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   font-style: normal;
   color: var(--pulso-text-faint);
 }
@@ -129,7 +129,7 @@
   border-radius: var(--pulso-radius-chip);
   border: 1px solid var(--pulso-border);
   background: var(--pulso-bg);
-  font-size: 10.5px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-medium);
   color: var(--pulso-text-faint);
   white-space: nowrap;
@@ -152,7 +152,7 @@
   border-left-style: solid;
   border-radius: var(--pulso-radius);
   background: var(--pulso-surface);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   color: var(--pulso-text);
 }
 

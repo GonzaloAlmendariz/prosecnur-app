@@ -133,7 +133,7 @@
 
 .aulas-res-anillo text {
   fill: var(--pulso-text);
-  font-size: 21px;
+  font-size: var(--pulso-type-kpi-size);
   font-variant-numeric: tabular-nums;
   font-weight: var(--pulso-weight-heavy);
 }
@@ -165,7 +165,7 @@
 
 .aulas-res-cifra-numero span {
   color: var(--pulso-text-faint);
-  font-size: 20px;
+  font-size: var(--pulso-type-kpi-size);
   font-weight: var(--pulso-weight-bold);
 }
 

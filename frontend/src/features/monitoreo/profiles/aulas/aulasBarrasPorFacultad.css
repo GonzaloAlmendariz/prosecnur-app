@@ -34,7 +34,7 @@
   justify-content: space-between;
   gap: 16px;
   flex-wrap: wrap;
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   color: var(--pulso-text-soft);
 }
 
@@ -93,7 +93,7 @@
   border: 0;
   padding: 0;
   font: inherit;
-  font-size: 12px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: 600;
   letter-spacing: 0.02em;
   color: var(--pulso-text);
@@ -104,7 +104,7 @@
 .aulas-bpf-nombre:hover { text-decoration: underline; }
 
 .aulas-bpf-chip {
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   padding: 1px 7px;
   border-radius: 999px;
   border: 1px solid var(--pulso-border);
@@ -131,7 +131,7 @@
 }
 
 .aulas-bpf-carril-sexo {
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   color: var(--pulso-text-soft);
 }
 
@@ -166,13 +166,13 @@
   display: flex;
   align-items: baseline;
   gap: 6px;
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   color: var(--pulso-text-soft);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
 
-.aulas-bpf-cifras strong { color: var(--pulso-text); font-size: 13px; }
+.aulas-bpf-cifras strong { color: var(--pulso-text); font-size: var(--pulso-type-body-size); }
 .aulas-bpf-de { color: var(--pulso-text-faint); }
 .aulas-bpf-pct { margin-left: 2px; color: var(--pulso-text); font-weight: 600; }
 .aulas-bpf-resto { color: var(--pulso-text-faint); }
