@@ -4,13 +4,12 @@
 #
 # Dos mapas (diseño aprobado por Gonzalo, 2026-11-02, lienzo «Maqueta de mapas territoriales»):
 #   - `lima_callao`: los 50 distritos de Lima Metropolitana y el Callao (`hojas_ruta/cartografia/lima_district_coverage.json`,
-#     con su población del Censo 2017 para la tasa); de contexto, el departamento de Lima y el Callao de
-#     `cartografia/peru_departamentos.geojson`.
+#     con su población del Censo 2017 para la tasa); de contexto, Lima provincias de `cartografia/lima_zona.geojson`.
 #   - `peru`: los departamentos (`cartografia/peru_departamentos.geojson`) con Lima partida en TRES áreas, porque así las
-#     separa la pregunta (A5: «Lima Metropolitana», «Callao» y «Lima provincias»): Lima Metropolitana y el Callao son la
-#     unión de sus distritos (proyectados en el mapa del Perú) y Lima provincias es el departamento menos Lima
-#     Metropolitana. De contexto, los países vecinos (`cartografia/peru_vecinos.geojson`).
-# Se arma con `sf` (Imports) una vez por sesión de R.
+#     separa la pregunta (A5: «Lima Metropolitana», «Callao» y «Lima provincias»), recortadas de la misma forma para que
+#     encajen (`cartografia/lima_zona.geojson`, precalculada por `build_lima_zona.R`). De contexto, los países vecinos
+#     (`cartografia/peru_vecinos.geojson`).
+# Se lee con `sf` (Imports) una vez por sesión de R.
 
 .MAPA_DIST_CARTO <- new.env(parent = emptyenv())
 
@@ -59,25 +58,23 @@
 .mapa_distribucion_cartografia_armar <- function(area) {
   dist <- .mapa_dist_leer("hojas_ruta", "cartografia", "lima_district_coverage.json")
   dep <- .mapa_dist_leer("cartografia", "peru_departamentos.geojson")
-  if (is.null(dist) || is.null(dep)) return(NULL)
+  zona <- .mapa_dist_leer("cartografia", "lima_zona.geojson")   # precalculada por build_lima_zona.R
+  if (is.null(dist) || is.null(dep) || is.null(zona)) return(NULL)
   dist$ubigeo <- vapply(dist$ubigeo, .graficos_ubigeo6, "")
   lima <- dist[startsWith(dist$ubigeo, "1501") | startsWith(dist$ubigeo, "0701"), ]
+  prov <- zona[zona$clave == "15P", ]
   out <- if (identical(area, "lima_callao")) {
     a <- sf::st_sf(clave = lima$ubigeo, nombre = .mapa_nombre_distrito(lima$distrito),
                    pob = suppressWarnings(as.numeric(lima$poblacion_2017)), geometry = sf::st_geometry(lima))
-    ctx <- dep[dep$ubigeo %in% c("15", "07"), ]
+    # La tierra de contexto es Lima provincias recortada a la costa de los distritos: el departamento de Natural Earth
+    # sobresalía de esa costa (Gonzalo, 2026-11-02: «que se recorten de la misma forma para que encajen bien»).
     list(areas = cbind(a, .mapa_dist_centro(a)),
-         contexto = sf::st_sf(nombre = rep("", nrow(ctx)), rot_x = NA_real_, rot_y = NA_real_, geometry = sf::st_geometry(ctx)),
+         contexto = sf::st_sf(nombre = "", rot_x = NA_real_, rot_y = NA_real_, geometry = sf::st_geometry(prov)),
          unidad = "distrito", unidad_plural = "distritos", zona = NULL)
   } else {
-    metro <- sf::st_union(sf::st_geometry(lima[startsWith(lima$ubigeo, "1501"), ]))
-    callao <- sf::st_union(sf::st_geometry(lima[startsWith(lima$ubigeo, "0701"), ]))
-    lp <- suppressWarnings(sf::st_difference(sf::st_union(sf::st_geometry(dep[dep$ubigeo == "15", ])), metro))
     resto <- dep[!dep$ubigeo %in% c("15", "07"), ]
-    geoms <- c(sf::st_geometry(resto), lp, metro, callao)
-    a <- sf::st_sf(clave = c(resto$ubigeo, "15P", "15M", "07"),
-                   nombre = c(as.character(resto$departamento), "Lima provincias", "Lima Metropolitana", "Callao"),
-                   pob = NA_real_, geometry = sf::st_make_valid(geoms))
+    a <- sf::st_sf(clave = c(resto$ubigeo, zona$clave), nombre = c(as.character(resto$departamento), as.character(zona$nombre)),
+                   pob = NA_real_, geometry = c(sf::st_geometry(resto), sf::st_geometry(zona)))
     vec <- .mapa_dist_leer("cartografia", "peru_vecinos.geojson")
     ctx <- if (is.null(vec)) NULL else sf::st_sf(nombre = toupper(as.character(vec$pais)), rot_x = vec$rotulo_lon, rot_y = vec$rotulo_lat,
                                                 geometry = sf::st_geometry(vec))

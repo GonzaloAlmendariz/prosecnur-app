@@ -125,3 +125,18 @@ test_that("el plan JSON de la API acepta el mapa de distribución con su medida"
   expect_identical(slide$slots$plot$medida, "tasa")
   expect_identical(slide$slots$plot$excluir_opciones, "No sabe")
 })
+
+test_that("la zona de Lima viene precalculada: tres áreas que encajan y Lima provincias de una sola pieza real", {
+  dir <- system.file("cartografia", package = "prosecnurapp")
+  if (!nzchar(dir)) dir <- testthat::test_path("..", "..", "inst", "cartografia")
+  z <- suppressMessages(sf::st_read(file.path(dir, "lima_zona.geojson"), quiet = TRUE))
+  expect_identical(sort(z$clave), c("07", "15M", "15P"))
+  prov <- sf::st_cast(sf::st_geometry(z[z$clave == "15P", ]), "POLYGON")
+  expect_length(prov, 1L)   # sin astillas costeras
+  old <- suppressMessages(sf::sf_use_s2(FALSE)); on.exit(suppressMessages(sf::sf_use_s2(old)))
+  zu <- sf::st_transform(z, 32718)   # medir en metros (UTM 18S): en lon/lat sin s2, st_area pide lwgeom
+  solape <- suppressMessages(sf::st_area(sf::st_intersection(sf::st_geometry(zu[zu$clave == "15P", ]), sf::st_geometry(zu[zu$clave == "15M", ]))))
+  expect_lt(if (length(solape)) as.numeric(sum(solape)) / 1e6 else 0, 1)   # Lima provincias no se monta sobre Lima Met. (< 1 km²)
+  lima <- .mapa_distribucion_cartografia("lima_callao")
+  expect_identical(nrow(lima$contexto), 1L)   # el contexto de Lima es Lima provincias recortada, no el departamento entero
+})

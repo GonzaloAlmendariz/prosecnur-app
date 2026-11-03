@@ -28,3 +28,15 @@ de su rótulo.
 - **Licencia:** dominio público (la misma declaración de Natural Earth citada arriba).
 - **Transformación:** `build_peru_vecinos.R` (en esta carpeta): recorte a la caja, simplificación a ~1 km (UTM 18S) y
   4 decimales. Descargado y construido el 2026-11-02.
+
+# Zona de Lima recortada para encajar
+
+`lima_zona.geojson` — Lima Metropolitana, el Callao y Lima provincias recortados de la misma forma, para el mapa del
+Perú (tres áreas separadas, como en la pregunta) y como tierra de contexto del mapa de Lima.
+
+- **Fuentes:** los distritos de `../hojas_ruta/cartografia/lima_district_coverage.json` (IMP, PlanMet 2040) y el
+  departamento de Lima de `peru_departamentos.geojson` (Natural Earth, dominio público).
+- **Transformación:** `build_lima_zona.R` (en esta carpeta, sin descargas): Lima Metropolitana y el Callao son la unión de
+  sus distritos; Lima provincias es el departamento menos esa unión, con sólo las piezas de más de 20 km² (la costa de
+  Natural Earth y la del IMP no coinciden y la diferencia deja ~390 astillas; sólo una pieza es real). Simplificado a 60 m
+  (UTM 18S), 5 decimales. Construido el 2026-11-02.
