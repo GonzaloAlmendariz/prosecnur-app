@@ -207,8 +207,10 @@ export const MONITOREO_PESTANAS = {
       pestana("territorial", "control", "conciliacion", "Conciliación", "Códigos y UMP corregidos", Link2),
     ],
     avance: [
-      pestana("territorial", "avance", "faltante", "Faltante por UMP", "Qué celdas faltan y quién las cubre", Target),
+      // Resumen primero (Gonzalo, 2026-11-02: «resumen siempre va primero y
+      // cuotas después»); Faltante sirve a UMP y a cuotas (por zona).
       pestana("territorial", "avance", "resumen", "Resumen", "Cuánto cuenta y a qué ritmo", BarChart3),
+      pestana("territorial", "avance", "faltante", "Faltante", "Qué celdas faltan y dónde", Target),
       pestana("territorial", "avance", "mapa", "Mapa", "Dónde está el campo", MapPinned),
       pestana("territorial", "avance", "umps", "UMP", "Qué UMP están completas", Route),
       pestana("territorial", "avance", "salidas", "Salidas", "Qué se entrega", Download),

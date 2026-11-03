@@ -1,0 +1,98 @@
+/* Avance › Mapa con envío por cuotas (ADR 0125 A1): casos sobre las zonas.
+ * Reusa el marco del Mapa por UMP (mapa.css); aquí sólo lo propio. */
+
+.mon-mc-base { color: var(--pulso-text-soft); font-size: var(--pulso-type-caption-size); }
+
+.mon-mc-svg { display: block; width: 100%; height: 100%; }
+.mon-mc-vecinos { fill: var(--pulso-surface-3); stroke: var(--pulso-surface); stroke-width: 1.6; stroke-linejoin: round; }
+.mon-mc-zona { fill: var(--pulso-surface); }
+.mon-mc-via { fill: none; stroke-linecap: round; stroke-linejoin: round; }
+.mon-mc-via.is-menor { stroke: var(--pulso-border); stroke-width: 0.7; }
+.mon-mc-via.is-media { stroke: var(--pulso-border-strong); stroke-width: 1.1; opacity: 0.8; }
+.mon-mc-via.is-mayor { stroke: var(--pulso-border-strong); stroke-width: 2.2; }
+.mon-mc-borde { fill: none; stroke: var(--pulso-brand-navy); stroke-width: 1.6; stroke-linejoin: round; }
+
+.mon-mc-halo,
+.mon-mc-punto { fill: none; stroke-linecap: round; }
+.mon-mc-halo { stroke: var(--pulso-surface); }
+.mon-mc-halo.is-cuenta { stroke-width: 4.4; }
+.mon-mc-halo.is-observacion { stroke-width: 7; }
+.mon-mc-halo.is-no-cuenta { stroke-width: 5; }
+.mon-mc-punto.is-cuenta { stroke: var(--pulso-brand-navy); stroke-width: 2.9; opacity: 0.85; }
+.mon-mc-punto.is-observacion { stroke: var(--pulso-warn-accent); stroke-width: 5; }
+.mon-mc-punto.is-no-cuenta { stroke: var(--pulso-text-soft); stroke-width: 3.4; opacity: 0.55; }
+
+.mon-mc-rotulos text {
+  paint-order: stroke;
+  stroke: var(--pulso-surface);
+  stroke-width: 4px;
+  stroke-linejoin: round;
+  text-anchor: middle;
+  font-size: 10.5px;
+}
+
+.mon-mc-rotulos .is-nombre { fill: var(--pulso-brand-navy); font-weight: 700; letter-spacing: 0.08em; }
+.mon-mc-rotulos .is-avance { fill: var(--pulso-text-soft); }
+
+.mon-mc-norte path { fill: var(--pulso-brand-navy); }
+.mon-mc-norte text { fill: var(--pulso-brand-navy); font-size: 10px; font-weight: 700; text-anchor: middle; }
+
+.mon-mc-escala .is-caja { fill: var(--pulso-surface); fill-opacity: 0.94; stroke: var(--pulso-border); }
+.mon-mc-escala .is-lleno { fill: var(--pulso-text); }
+.mon-mc-escala .is-vacio { fill: var(--pulso-surface); stroke: var(--pulso-text); stroke-width: 0.8; }
+.mon-mc-escala text { fill: var(--pulso-text-soft); font-size: 9px; }
+.mon-mc-escala .is-fin { text-anchor: end; }
+
+.mon-mc-capas { display: inline-flex; flex-wrap: wrap; gap: var(--pulso-space-2); }
+
+.mon-mc-capa {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 30px;
+  padding: 0 var(--pulso-space-3);
+  border: 1px solid var(--pulso-border-strong);
+  border-radius: 999px;
+  background: var(--pulso-surface);
+  color: var(--pulso-text);
+  font: inherit;
+  cursor: pointer;
+}
+
+.mon-mc-capa[aria-pressed="false"] { opacity: 0.45; }
+.mon-mc-capa i { width: 9px; height: 9px; border-radius: 50%; background: var(--pulso-brand-navy); }
+.mon-mc-capa.is-observacion { border-color: var(--pulso-warn-border); background: var(--pulso-warn-bg); color: var(--pulso-warn-fg); }
+.mon-mc-capa.is-observacion i { background: var(--pulso-warn-accent); }
+.mon-mc-capa.is-no-cuenta i { background: var(--pulso-text-soft); }
+
+.mon-mc-gps { display: flex; flex-direction: column; gap: 6px; }
+.mon-mc-linea { display: flex; justify-content: space-between; color: var(--pulso-text-soft); }
+.mon-mc-linea b { color: var(--pulso-text); }
+
+.mon-mc-barra { display: flex; gap: 1px; height: 6px; overflow: hidden; border-radius: 999px; background: var(--pulso-surface-3); }
+.mon-mc-barra > i { display: block; background: var(--pulso-brand-navy); }
+.mon-mc-barra > i.is-sin { background: var(--pulso-warn-border); }
+.mon-mc-barra > i.is-obs { background: var(--pulso-warn-accent); }
+
+.mon-mc-zonas {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.mon-mc-zonas li {
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr) 40px 32px;
+  align-items: center;
+  gap: var(--pulso-space-2);
+  padding: var(--pulso-space-2) 0;
+  border-top: 1px solid var(--pulso-border);
+}
+
+.mon-mc-zona-texto { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.mon-mc-zona-texto > span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mon-mc-zonas b { text-align: right; font-variant-numeric: tabular-nums; }
+.mon-mc-zonas li > span:last-child { color: var(--pulso-text-soft); text-align: right; font-variant-numeric: tabular-nums; }
+.mon-mc-zonas li > span.is-obs { color: var(--pulso-warn-fg); font-weight: var(--pulso-weight-semibold); }

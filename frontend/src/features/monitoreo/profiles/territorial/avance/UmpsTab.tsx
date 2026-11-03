@@ -10,6 +10,8 @@ import { construirUmps, csvDeUmps, filtrarUmps, type FiltroDeUmps } from "./umps
 import { columnaPlanificada, type CeldaPlanificada } from "./asignacionPlanificadaModelo";
 import { useAsignacionPlanificada } from "./useAsignacionPlanificada";
 import { RotuloDePestana } from "../navegacion/RotuloDePestana";
+import { avancePorZona } from "./porZonaModelo";
+import { ZonasConEquipo } from "./ZonasConEquipo";
 import "./umps.css";
 
 const ROTULO_DE_FILTRO: Record<FiltroDeUmps, string> = {
@@ -227,4 +229,12 @@ function CeldaDeclarada({ celda }: { celda: CeldaPlanificada | undefined }) {
   );
 }
 
-export const UmpsTab = memo(UmpsTabImpl);
+type PropsDeUmps = { avance: MonitoreoTerritorialDashboard | null; validacion: MonitoreoTerritorialDashboard | null };
+
+/** ADR 0125 A1: con envío por cuotas cada zona hace de UMP. */
+function UmpsSegunEnvio({ avance, validacion }: PropsDeUmps) {
+  const cuotas = useMemo(() => avancePorZona(avance?.cuotas), [avance]);
+  return cuotas ? <ZonasConEquipo cuotas={cuotas} /> : <UmpsTabImpl avance={avance} validacion={validacion} />;
+}
+
+export const UmpsTab = memo(UmpsSegunEnvio);

@@ -20,6 +20,7 @@ import { avancePorZona } from "./porZonaModelo";
 import type { UmpPlanificada } from "../../../../../api/monitoreoAsignacionPlanificada";
 import { useAsignacionPlanificada } from "./useAsignacionPlanificada";
 import { SiluetaDeDistrito } from "./SiluetaDeDistrito";
+import { tonoDeCalor } from "./tonoDeCalor";
 import { RotuloDePestana } from "../navegacion/RotuloDePestana";
 import "./faltante.css";
 
@@ -46,7 +47,10 @@ function FaltantePorUmpImpl({ reports }: { reports: MonitoreoTerritorialDashboar
 
   // ADR 0125 A1: con envío por cuotas no hay UMP; el avance va por zona y celda.
   const porZona = avancePorZona(reports?.cuotas);
-  if (porZona) return <AvancePorZona modelo={porZona} />;
+  if (porZona) {
+    const nombres = new Map((reports?.advance?.district_progress ?? []).map((d) => [String(d.ubigeo ?? ""), String(d.distrito ?? "")] as const));
+    return <AvancePorZona modelo={porZona} nombres={nombres} />;
+  }
 
   if (!modelo.configurado) {
     return (
@@ -200,17 +204,6 @@ function PanelDePendientes({
   );
 }
 
-function tonoDeCalor(logrado: number, meta: number): { fondo: string; tinta: "clara" | "oscura" } {
-  if (!(meta > 0)) return { fondo: "var(--pulso-surface-3)", tinta: "oscura" };
-  const razon = logrado / meta;
-  if (razon < 1) return { fondo: "var(--pulso-warn-bg)", tinta: "oscura" };
-  // De 100 % a 125 % o más, del azul más suave al marino.
-  const intensidad = Math.round(28 + Math.min(1, (razon - 1) / 0.25) * 52);
-  return {
-    fondo: `color-mix(in srgb, var(--pulso-brand-navy) ${intensidad}%, var(--pulso-surface))`,
-    tinta: intensidad >= 50 ? "clara" : "oscura",
-  };
-}
 
 function MapaDeCalor({ modelo }: { modelo: ModeloFaltante }) {
   const columnas = modelo.distritos[0]?.celdas ?? [];

@@ -23,6 +23,8 @@ import { RotuloDePestana } from "../navegacion/RotuloDePestana";
 import { construirUmps } from "./umpsModel";
 import { TooltipDelMapa, type ContenidoDeTooltip } from "./TooltipDelMapa";
 import { useZoomDelMapa } from "./useZoomDelMapa";
+import { MapaDeCasos } from "./MapaDeCasos";
+import { avancePorZona } from "./porZonaModelo";
 import "./mapa.css";
 
 type Capa = "avance" | "ocurrencias";
@@ -623,4 +625,12 @@ function PorDistrito({ modelo }: { modelo: ReturnType<typeof construirMapa> }) {
   );
 }
 
-export const MapaTab = memo(MapaTabImpl);
+type PropsDelMapa = { avance: MonitoreoTerritorialDashboard | null; validacion: MonitoreoTerritorialDashboard | null };
+
+/** ADR 0125 A1: con envío por cuotas no hay manzanas que pintar; el mapa va por casos y zonas. */
+function MapaSegunEnvio({ avance, validacion }: PropsDelMapa) {
+  const cuotas = useMemo(() => avancePorZona(avance?.cuotas), [avance]);
+  return cuotas ? <MapaDeCasos cuotas={cuotas} validacion={validacion} /> : <MapaTabImpl avance={avance} validacion={validacion} />;
+}
+
+export const MapaTab = memo(MapaSegunEnvio);
