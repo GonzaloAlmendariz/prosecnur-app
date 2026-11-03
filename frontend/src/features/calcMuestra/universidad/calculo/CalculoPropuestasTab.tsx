@@ -14,7 +14,7 @@ import type {
   CalcMuestraWorkspace,
 } from "../../../../api/client";
 import { Popover } from "../../../../components/Popover";
-import { EmptyState } from "../../../../components/States";
+import { EstadoVacio } from "../../../../components/EstadoVacio";
 import { calcEPreview } from "../../didactica/motorPreview";
 import { fmtInt, fmtPct, fmtSignedInt, roundUpTo, safeNumber } from "../../sharedCore";
 import { ESCENARIOS_OPINION, UNIVERSITY_FACULTY_COMPONENT_ID } from "../shared/constants";
@@ -346,13 +346,37 @@ export function CalculoPropuestasTab({
           <span className="cmv2-calc-param-nota">Ambas propuestas se ejecutan con estos valores (la Propuesta 2, con la p por facultad).</span>
         </div>
         {!hasCalculation ? (
-          <EmptyState
-            icon={<Calculator size={20} />}
-            title={marcoReady ? "Todavía no hay cálculo de muestra" : "Primero falta validar el marco"}
-            hint={marcoReady
-              ? "Al ejecutar Calcular muestra, cada escenario mostrará su flujo de n fórmula a cursos-horario, con cifras validadas de la calculadora."
-              : "Carga y valida la base institucional para que el cálculo no dependa de números escritos a mano."}
-          />
+          <div className="cmv2-calc-preflight">
+            <EstadoVacio
+              icono={<Calculator size={16} aria-hidden="true" />}
+              titulo={marcoReady ? "Todavía no hay cálculo de muestra" : "Primero falta validar el marco"}
+              descripcion={marcoReady
+                ? "Calcular muestra llena cada propuesta con su camino del n de fórmula a los cursos-horario, con cifras de la calculadora."
+                : "Carga y valida la base institucional para que el cálculo no dependa de números escritos a mano."}
+            />
+            {/* Las propuestas en esqueleto: el mismo camino de cuatro etapas que
+                pintará el cálculo, sin adelantar ninguna cifra (las etapas
+                llegan vacías porque no hay resultado). */}
+            {marcoReady && componentes.length > 0 ? (
+              <div className="cmv2-calc-escenarios" aria-label="Propuestas por calcular">
+                {componentes.map((comp) => (
+                  <article key={comp.id} className="cmv2-calc-escenario is-esqueleto">
+                    <div className="cmv2-calc-escenario-head">
+                      <div>
+                        <span className="cmv2-eyebrow">{proposalShortLabel(comp)}</span>
+                        <h3>{comp.actor}</h3>
+                      </div>
+                    </div>
+                    <FlujoVertical
+                      etapas={etapasEscenario(comp)}
+                      orientacion="horizontal"
+                      ariaLabel={`Del n de fórmula al plan operativo (${proposalShortLabel(comp)}), por calcular`}
+                    />
+                  </article>
+                ))}
+              </div>
+            ) : null}
+          </div>
         ) : (
           <div className="cmv2-calc-escenarios cmv2-uni-stagger">
             {componentes.map((comp) => {

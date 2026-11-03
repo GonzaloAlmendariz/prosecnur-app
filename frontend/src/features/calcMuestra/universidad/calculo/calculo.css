@@ -740,28 +740,18 @@
   }
 }
 
-/* El vacío es un preflight compacto, no un lienzo de resultados ficticio. */
-.cmv2-calc-escenarios-panel > .pulso-empty-state--panel {
+/* Antes del cálculo: el vacío del kit y las propuestas en esqueleto, con su
+   camino de etapas sin cifras. Atenuadas para que no se lean como resultado. */
+.cmv2-calc-preflight {
   display: grid;
-  grid-template-columns: 36px minmax(180px, auto) minmax(280px, 1fr);
-  justify-content: start;
-  min-height: 0;
-  padding: 20px 16px;
-  gap: 4px 12px;
-  text-align: left;
+  gap: var(--pulso-space-3);
 }
 
-.cmv2-calc-escenarios-panel > .pulso-empty-state--panel .pulso-empty-state-icon {
-  grid-row: 1 / span 2;
-  width: 34px;
-  height: 34px;
-  align-self: center;
-}
-
-.cmv2-calc-escenarios-panel > .pulso-empty-state--panel .pulso-empty-state-title,
-.cmv2-calc-escenarios-panel > .pulso-empty-state--panel .pulso-empty-state-hint {
-  max-width: none;
-  align-self: center;
+.cmv2-calc-escenario.is-esqueleto {
+  border-style: dashed;
+  background: transparent;
+  box-shadow: none;
+  opacity: 0.86;
 }
 
 /* Ayuda contextual anclada al concepto que explica. */
