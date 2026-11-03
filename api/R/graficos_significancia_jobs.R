@@ -32,7 +32,10 @@
 #' @keywords internal
 .sig_informe_preparar <- function(significancia, data_sources, inst_sources, base = "") {
   previa <- list(prosecnur.sig_informe = getOption("prosecnur.sig_informe"))
-  if (!is.list(significancia)) return(previa)
+  if (!is.list(significancia)) {
+    message("[diferencias] el worker no recibió la regla del estudio: cada entregable usa la prueba de siempre.")
+    return(previa)
+  }
   ds <- if (is.character(data_sources)) readRDS(data_sources) else data_sources
   is <- if (is.character(inst_sources)) readRDS(inst_sources) else inst_sources
   if (is.data.frame(ds)) { ds <- list(default = ds); is <- list(default = is) }
@@ -40,6 +43,7 @@
   ctx <- tryCatch(
     .sig_contexto_estudio(ds[[nombre]], is[[nombre]], significancia$graficos_config, significancia$analitica_config),
     error = function(e) {
+      message("[diferencias] no se pudo calcular la familia: ", conditionMessage(e))
       if (exists(".pulso_aviso", mode = "function")) {
         .pulso_aviso(sprintf("Diferencias: no se pudo calcular la familia del informe (%s); cada lámina se corrige sola.",
                              conditionMessage(e)))
@@ -47,6 +51,10 @@
       NULL
     }
   )
+  if (!is.null(ctx)) {
+    message(sprintf("[diferencias] base %s: %s con %s, familia de %d comparaciones.", nombre, ctx$regla$prueba,
+                    ctx$regla$correccion, as.integer(ctx$m %||% 0L)))
+  }
   .sig_informe_activar(.sig_contexto_liviano(ctx))
   previa
 }

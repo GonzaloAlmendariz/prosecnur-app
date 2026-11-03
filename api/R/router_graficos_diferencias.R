@@ -70,18 +70,18 @@
 
 mount_graficos_diferencias <- function(pr) {
   pr |>
-    plumber::pr_get("/api/graficos/diferencias/regla", wrap_endpoint(function(req, res) {
+    plumber::pr_get("/api/graficos/diferencias/regla", wrap_endpoint(function(req, res, ...) {
       sid <- session_header(req)
       sc <- .sig_contexto_sesion(sid)
       list(ok = TRUE, regla = .sig_regla_json(sc$ctx$regla), origen = sc$ctx$origen,
            propuesta = .sig_regla_json(.sig_regla_propuesta(sc$data)),
            columnas = .sig_columnas_candidatas(sc$data), familia = as.integer(sc$ctx$m %||% 0L))
     })) |>
-    plumber::pr_post("/api/graficos/diferencias/regla/vista-previa", wrap_endpoint(function(req, res) {
+    plumber::pr_post("/api/graficos/diferencias/regla/vista-previa", wrap_endpoint(function(req, res, ...) {
       sid <- session_header(req)
       .sig_respuesta_regla(.sig_contexto_sesion(sid, .sig_leer_regla_body(req)))
     })) |>
-    plumber::pr_post("/api/graficos/diferencias/regla", wrap_endpoint(function(req, res) {
+    plumber::pr_post("/api/graficos/diferencias/regla", wrap_endpoint(function(req, res, ...) {
       sid <- session_header(req)
       sc <- .sig_contexto_sesion(sid, .sig_leer_regla_body(req))
       cfg <- .graficos_config_get(sid)
@@ -89,12 +89,12 @@ mount_graficos_diferencias <- function(pr) {
       .graficos_config_set(sid, cfg)
       c(.sig_respuesta_regla(sc), list(saved_at = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC")))
     })) |>
-    plumber::pr_get("/api/graficos/diferencias/informe", wrap_endpoint(function(req, res) {
+    plumber::pr_get("/api/graficos/diferencias/informe", wrap_endpoint(function(req, res, ...) {
       sid <- session_header(req)
       sc <- .sig_contexto_sesion(sid)
       c(list(ok = TRUE, regla = .sig_regla_json(sc$ctx$regla)), .sig_informe_json(sc$cfg$plan, sc$fuente, sc$ctx))
     })) |>
-    plumber::pr_get("/api/graficos/diferencias", wrap_endpoint(function(req, res, slide = "") {
+    plumber::pr_get("/api/graficos/diferencias", wrap_endpoint(function(req, res, slide = "", ...) {
       sid <- session_header(req)
       slide <- as.character(slide %||% "")[1]
       if (is.na(slide) || !nzchar(slide)) stop_api(400, "E_SIG_SIN_LAMINA", "Falta `slide`.")
