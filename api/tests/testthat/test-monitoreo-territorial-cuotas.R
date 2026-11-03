@@ -132,3 +132,15 @@ test_that("dos zonas con el mismo ubigeo se avisan", {
   expect_match(out$avisos[[1]], "150101")
   expect_length(monitoreo_territorial_avance_cuotas(envio_cuotas(), audit_cuotas())$avisos, 0L)
 })
+
+test_that("el equipo trae el nombre de la lista y no nombra a nadie si la lista va por DNI", {
+  audit <- audit_cuotas()
+  audit$pulso_code_normalized <- c("P101", "P102", "P101", "P101", "P103", "P101", "P102")
+  audit$pulso_code_recognized <- TRUE
+  audit$enumerator_assigned <- c("Ana Prueba", "Beto Ficticio", "Ana Prueba", "", "", "Ana Prueba", "Beto Ficticio")
+  lima <- monitoreo_territorial_avance_cuotas(envio_cuotas(), audit)$zonas[[1]]
+  expect_identical(vapply(lima$equipo$personas, function(p) p$nombre, ""), c("Ana Prueba", "Beto Ficticio"))
+  dni <- monitoreo_territorial_avance_cuotas(envio_cuotas(), audit, sin_nombres = TRUE)$zonas[[1]]
+  expect_length(dni$equipo$personas, 0L)
+  expect_identical(dni$equipo$sin_codigo, dni$efectivas)
+})
