@@ -130,12 +130,12 @@ export function fechaDelEnvio(iso: string | null | undefined): string | null {
 }
 
 /**
- * «encuestas 1–12 · 120 viv.». El rango son los números de ENCUESTA de la ruta
+ * «encuestas 1–12, 120 viv.». El rango son los números de ENCUESTA de la ruta
  * (rango_inicio/rango_fin), no viviendas; las viviendas son las de la manzana en el censo.
  */
 export function rangoDeLaUmp(u: Pick<UnidadTerritorial, "rango_inicio" | "rango_fin" | "viviendas">): string {
   const partes: string[] = [];
   if (u.rango_inicio !== null && u.rango_fin !== null) partes.push(`encuestas ${u.rango_inicio}–${u.rango_fin}`);
   if (u.viviendas !== null) partes.push(`${u.viviendas.toLocaleString("es-PE")} viv.`);
-  return partes.join(" · ");
+  return partes.join(", ");
 }

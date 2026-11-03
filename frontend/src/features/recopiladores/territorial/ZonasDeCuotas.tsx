@@ -19,11 +19,11 @@ import { MapPinned, Printer } from "../../../vendor/lucide-react";
 import { AvisoDesactualizada } from "./UnidadesTerritoriales";
 import { fechaDelEnvio } from "./modeloUnidades";
 
-/** «Hombre 34 · Mujer 38»: la cuota de la zona sumada por sexo, en el orden en que llega. */
+/** «Hombre 34, Mujer 38»: la cuota de la zona sumada por sexo, en el orden en que llega. */
 export function cuotaPorSexo(zona: Pick<ZonaDeCuotas, "cuotas">): string {
   const suma = new Map<string, number>();
   for (const c of zona.cuotas) suma.set(c.sexo, (suma.get(c.sexo) ?? 0) + c.n);
-  return [...suma].map(([sexo, n]) => `${sexo} ${n.toLocaleString("es-PE")}`).join(" · ");
+  return [...suma].map(([sexo, n]) => `${sexo} ${n.toLocaleString("es-PE")}`).join(", ");
 }
 
 type Props = { campaignId: string; unidades: UnidadesTerritoriales };
@@ -61,8 +61,8 @@ export function ZonasDeCuotas({ campaignId, unidades }: Props) {
           <h2>Zonas de la muestra por cuotas</h2>
           <p>
             {unidades.n_zonas.toLocaleString("es-PE")} {unidades.n_zonas === 1 ? "zona" : "zonas"} y {unidades.n_entrevistas.toLocaleString("es-PE")} entrevistas
-            {` · ${ROTULO_DE_FASE[unidades.fase]}`}
-            {cuando ? ` · enviada el ${cuando}` : ""}
+            {`, ${ROTULO_DE_FASE[unidades.fase].toLocaleLowerCase("es-PE")}`}
+            {cuando ? `, enviada el ${cuando}` : ""}
           </p>
         </span>
         <PulsoButton variant="secondary" size="sm" disabled={!unidades.zonas.length || ocupado !== "" || unidades.stale} onClick={() => imprimir()}>

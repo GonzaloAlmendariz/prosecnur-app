@@ -36,6 +36,7 @@ import { Alert } from "../../components/Alert";
 import { CifrasEnTarjeta } from "../../components/CifrasEnTarjeta";
 import { serializarDireccion } from "../../lib/navegacion/direccion";
 import { FormatoDeSalida, FormatosDeSalida } from "./PaquetesAulasTablero";
+import { enumerar } from "../../lib/enumerar";
 
 type Props = {
   payload: CollectionStatePayload | null;
@@ -381,7 +382,7 @@ export function MaterialsSection({ payload, activeTab, onStateRefresh, onArtifac
               {renderResult.media_type === "image/png" ? (
                 <img src={downloadUrl(renderResult.file_id)} alt="La ficha tal como la genera Pulso" />
               ) : null}
-              <div><strong>{renderResult.filename}</strong><span>{renderResult.media_type} · {renderResult.page_count} páginas · {renderResult.size_bytes} bytes</span><code>{renderResult.sha256}</code></div>
+              <div><strong>{renderResult.filename}</strong><span>{enumerar([renderResult.media_type, `${renderResult.page_count} páginas`, `${renderResult.size_bytes.toLocaleString("es-PE")} bytes`])}</span><code>{renderResult.sha256}</code></div>
               <a href={downloadUrl(renderResult.file_id)}><Download size={14} /> Descargar la ficha</a>
               <div className="rec-drive">
                 <button type="button" onClick={() => { void enviarAlDrive(); }} disabled={driveBusy}>

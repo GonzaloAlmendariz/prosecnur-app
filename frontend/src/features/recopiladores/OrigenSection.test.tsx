@@ -39,7 +39,7 @@ describe("Origen con la fuente cambiada", () => {
 
   it("dice de dónde salen y que la lista no se edita aquí", () => {
     expect(html).toContain("De dónde salen");
-    expect(html).toContain("Selección de cursos-horario · Cálculo de muestra");
+    expect(html).toContain("Selección de cursos-horario, de Cálculo de muestra");
     expect(html).toContain("la lista no se edita aquí");
     expect(html).toContain("Abrir en Cálculo de muestra");
   });

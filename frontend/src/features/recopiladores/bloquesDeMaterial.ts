@@ -84,7 +84,7 @@ export function resumenDelBloque(block: Pick<CollectionMaterialBlock, "type"> & 
   if (block.type === "brand_strip") {
     const logos = Array.isArray(block.assets) ? block.assets.length : 0;
     const align = typeof block.align === "string" ? ALINEACION[block.align] : undefined;
-    return [cuenta(logos, "logo", "logos"), align].filter(Boolean).join(" · ");
+    return [cuenta(logos, "logo", "logos"), align].filter(Boolean).join(", ");
   }
   if (block.type === "form_lines") {
     const rows = Array.isArray(block.rows) ? block.rows.length : 0;

@@ -488,7 +488,7 @@ export function AccessSection({ payload, activeTab, onState, onIr, onVerVinculac
                     <small>
                       {(capability.implementation ? IMPLEMENTATION_LABELS[capability.implementation] : null)
                         ?? policyLabel(capability.source)
-                        ?? "Sin implementación"} · {policyLabel(capability.policy) ?? "Sin política"}
+                        ?? "Sin implementación"}, {policyLabel(capability.policy) ?? "Sin política"}
                     </small>
                   </article>
                 ))}

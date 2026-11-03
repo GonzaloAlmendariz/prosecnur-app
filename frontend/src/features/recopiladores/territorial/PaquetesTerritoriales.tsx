@@ -284,7 +284,7 @@ export function PaquetesTerritoriales({ campaignId, unidades, hojas, onRecargar,
                 <li key={f.id}>
                   <span>
                     <strong>{f.codigo}</strong>
-                    <small>{nombreDistrito(f.distrito)} · zona {f.zona}</small>
+                    <small>{nombreDistrito(f.distrito)}, zona {f.zona}</small>
                   </span>
                   <PulsoSwitch size="sm" ariaLabel={`${f.elegida ? "Quitar" : "Pedir reemplazos para"} ${f.codigo}`} checked={f.elegida} disabled={corriendo} onCheckedChange={() => setElegidas((l) => alternarId(l, f.id))} />
                 </li>

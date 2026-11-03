@@ -78,7 +78,7 @@ describe("InspectorDeTipo", () => {
     expect(html).toContain("Frente");
     expect(html).toContain("Dorso");
     for (const rotulo of ["Formato", "Cuántos", "Lee de", "Impresión"]) expect(html).toContain(rotulo);
-    expect(html).toContain("A4 · vertical");
+    expect(html).toContain("A4 vertical");
     expect(html).toContain("Cursos-horario");
     expect(html).toContain("Frente y dorso");
     expect(html).toContain("Usar este tipo");

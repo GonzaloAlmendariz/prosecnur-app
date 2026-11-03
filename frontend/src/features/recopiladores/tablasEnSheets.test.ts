@@ -31,8 +31,8 @@ describe("construir las tablas en Sheets desde Material (R13)", () => {
   });
 
   it("cada hoja dice qué le pasó, y la del equipo que no se tocó", () => {
-    expect(rotuloDeHoja({ hoja: "Base de control", accion: "actualizada", filas: 193 })).toBe("Base de control · actualizada (193 filas)");
-    expect(rotuloDeHoja({ hoja: "Aulas Aplicadas (Campo)", accion: "respetada", filas: 1 })).toBe("Aulas Aplicadas (Campo) · del equipo, sin tocar (1 fila)");
+    expect(rotuloDeHoja({ hoja: "Base de control", accion: "actualizada", filas: 193 })).toBe("Base de control, actualizada (193 filas)");
+    expect(rotuloDeHoja({ hoja: "Aulas Aplicadas (Campo)", accion: "respetada", filas: 1 })).toBe("Aulas Aplicadas (Campo), del equipo, sin tocar (1 fila)");
   });
 });
 

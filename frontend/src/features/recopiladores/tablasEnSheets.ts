@@ -40,10 +40,10 @@ const ACCION: Record<string, string> = {
   respetada: "del equipo, sin tocar",
 };
 
-/** «Base de control · actualizada (193 filas)». */
+/** «Base de control, actualizada (193 filas)». */
 export function rotuloDeHoja(h: MonitoreoAulasHojaPublicada): string {
   const accion = ACCION[h.accion] ?? h.accion;
-  return `${h.hoja} · ${accion} (${h.filas.toLocaleString("es-PE")} ${h.filas === 1 ? "fila" : "filas"})`;
+  return `${h.hoja}, ${accion} (${h.filas.toLocaleString("es-PE")} ${h.filas === 1 ? "fila" : "filas"})`;
 }
 
 /**

@@ -21,6 +21,7 @@ import "./styles/delivery.css";
 import { CifrasEnTarjeta } from "../../components/CifrasEnTarjeta";
 import { EstadoVacio } from "../../components/EstadoVacio";
 import { RecorridoDelTraspaso, ReciboPendiente } from "./TraspasoTablero";
+import { enumerar } from "../../lib/enumerar";
 
 type Props = {
   payload: CollectionStatePayload | null;
@@ -241,8 +242,8 @@ export function DeliverySection({ payload, latestArtifact, onState, onIr, onIrAA
                 <div>
                   <strong>{artifact.filename}</strong>
                   <span>
-                    {artifact.media_type} · {paginas(artifact.page_count)} · {artifact.size_bytes.toLocaleString("es-PE")} bytes
-                    {desfasado ? <em className="rec-artifact-stale"> · de un plan anterior</em> : null}
+                    {enumerar([artifact.media_type, paginas(artifact.page_count), `${artifact.size_bytes.toLocaleString("es-PE")} bytes`])}
+                    {desfasado ? <em className="rec-artifact-stale">, de un plan anterior</em> : null}
                   </span>
                   {disponible ? null : (
                     <span className="rec-artifact-no-disponible">
