@@ -385,3 +385,19 @@
   font-weight: 600;
   color: var(--pulso-success-fg);
 }
+
+/* La cabecera pegajosa del plan no corta la primera fila que asoma al desplazar (captura con datos,
+   revamp v5): alto fijo de la cabecera y el mismo relleno de encaje, como las tablas de Monitoreo. */
+.rec-data-card .rec-table-scroll {
+  --rec-plan-cabecera-alto: 40px;
+  scroll-padding-top: var(--rec-plan-cabecera-alto);
+  scroll-snap-type: y proximity;
+}
+.rec-data-card .rec-table-scroll thead th {
+  height: var(--rec-plan-cabecera-alto);
+  padding-block: 0;
+  vertical-align: middle;
+}
+.rec-data-card .rec-table-scroll tbody > tr {
+  scroll-snap-align: start;
+}
