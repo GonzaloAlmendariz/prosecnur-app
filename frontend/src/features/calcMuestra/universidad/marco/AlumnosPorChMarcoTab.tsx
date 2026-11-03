@@ -91,7 +91,7 @@ export function AlumnosPorChMarcoTab({
       >
         <header className="cmv2-alumnos-ch-head">
           <span aria-hidden="true"><BarChart3 size={18} /></span>
-          <div><small>Decisión del marco</small><h3 id="cmv2-alumnos-ch-title">Alumnos por CH</h3></div>
+          <div><small>Decisión del marco</small><h3 id="cmv2-alumnos-ch-title">Estadístico por facultad</h3></div>
         </header>
         {rawSnapshot ? (
           <AvisoModulo tone="warn" role="status">
@@ -156,7 +156,7 @@ export function AlumnosPorChMarcoTab({
           <span aria-hidden="true"><BarChart3 size={18} /></span>
           <div>
             <small>Decisión del marco</small>
-            <h3 id="cmv2-alumnos-ch-title">Alumnos por CH</h3>
+            <h3 id="cmv2-alumnos-ch-title">Estadístico por facultad</h3>
             {/* S3: la tabla ya rotula «marco elegible» y «contraste», y la
                 procedencia R vive en el aviso de estado. La intro solo
                 parafraseaba lo que la propia superficie muestra. */}
