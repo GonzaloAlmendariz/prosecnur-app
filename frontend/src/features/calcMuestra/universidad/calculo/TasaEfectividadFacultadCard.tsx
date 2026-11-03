@@ -19,7 +19,7 @@ import { estadisticoDelReparto, fraseEstadistico, nombreEstadistico } from "./es
 import "./tasaFacultad.css";
 
 const pctTasa = (v: number) => `${(v * 100).toFixed(1)} %`;
-const coma = (v: number, dec = 2) => v.toFixed(dec);
+const decimalFijo = (v: number, dec = 2) => v.toFixed(dec);
 
 export function TasaEfectividadFacultadCard({
   tasasRaw,
@@ -168,11 +168,11 @@ export function TasaEfectividadFacultadCard({
               // efectivas, y la cuota se divide entre eso.
               <div
                 className="cmv2-tasafac-cuenta"
-                title={`El aula típica de la facultad —${nombreDivisor}— rinde ${Number.isInteger(f.p25) ? fmtInt(f.p25) : coma(f.p25, 1)} alumnos × ${pctTasa(f.tasa)} ≈ ${coma(f.p25 * f.tasa, 1)} efectivas; la cuota se divide entre eso.`}
+                title={`El aula típica de la facultad —${nombreDivisor}— rinde ${Number.isInteger(f.p25) ? fmtInt(f.p25) : decimalFijo(f.p25, 1)} alumnos × ${pctTasa(f.tasa)} ≈ ${decimalFijo(f.p25 * f.tasa, 1)} efectivas; la cuota se divide entre eso.`}
               >
                 <span className="cmv2-tasafac-num"><b>{fmtInt(f.cuota)}</b><small>cuota</small></span>
                 <span className="cmv2-tasafac-op">÷</span>
-                <span className="cmv2-tasafac-num"><b>{coma(f.p25 * f.tasa, 1)}</b><small>efectivas por aula típica</small></span>
+                <span className="cmv2-tasafac-num"><b>{decimalFijo(f.p25 * f.tasa, 1)}</b><small>efectivas por aula típica</small></span>
                 <span className="cmv2-tasafac-op">→</span>
                 <span className="cmv2-tasafac-num cmv2-tasafac-res"><b>{fmtInt(f.cupos)}</b><small>{f.cupos === 1 ? "titular" : "titulares"}</small></span>
               </div>
@@ -195,7 +195,7 @@ export function TasaEfectividadFacultadCard({
                   <>
                     <span className="cmv2-tasafac-op">×</span>
                     <span className="cmv2-tasafac-factor">
-                      <b>{coma(f.residual, 2)}</b>
+                      <b>{decimalFijo(f.residual, 2)}</b>
                       <small>
                         {f.residual > 1 ? "rindió más que su tamaño" : "rindió menos que su tamaño"} en {f.k != null ? `${fmtInt(f.k)} aulas de` : ""} el histórico
                       </small>

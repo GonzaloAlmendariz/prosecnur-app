@@ -27,7 +27,7 @@ import "./efectividadExplicada.css";
 type Fila = Record<string, unknown>;
 
 const pct = (v: number) => `${Math.round(v * 100)} %`;
-const coma = (v: number, dec: number) => v.toFixed(dec);
+const decimalFijo = (v: number, dec: number) => v.toFixed(dec);
 const texto = (v: unknown): string => String(v ?? "").trim();
 
 function rolCorto(fila: Fila): string {
@@ -109,7 +109,7 @@ export function EfectividadExplicadaCard({
         <strong>De dónde sale el esperado de cada aula</strong>
         <span>
           {fuente.tipo === "tau_global"
-            ? `la misma regla para los ${fmtInt(conCuenta.length)} cursos-horario del plan: elegibles × la tasa global declarada (${coma((fuente.tau ?? 0) * 100, 1)} %)`
+            ? `la misma regla para los ${fmtInt(conCuenta.length)} cursos-horario del plan: elegibles × la tasa global declarada (${decimalFijo((fuente.tau ?? 0) * 100, 1)} %)`
             : `la misma cuenta para los ${fmtInt(conCuenta.length)} cursos-horario del plan (titulares y reemplazos), con tasas derivadas del ${refTexto}`}
         </span>
       </header>
@@ -167,7 +167,7 @@ export function EfectividadExplicadaCard({
                     <i className="cmv2-efexp-divbar" data-dir={a.factor >= 1 ? "up" : "down"} aria-hidden="true">
                       <b style={{ width: `${Math.min(50, (Math.abs(a.factor - 1) / 0.15) * 50)}%` }} />
                     </i>
-                    <span>× {coma(a.factor, 2)}</span>
+                    <span>× {decimalFijo(a.factor, 2)}</span>
                   </td>
                   <td>{a.k != null ? fmtInt(a.k) : "—"}</td>
                 </tr>
@@ -304,7 +304,7 @@ export function EfectividadExplicadaCard({
             </li>
             {ajusteActivo && (
               <li>
-                <b>× {coma(radio.factorFacultad, 2)}</b>
+                <b>× {decimalFijo(radio.factorFacultad, 2)}</b>
                 <div>
                   <strong>ajuste de su facultad</strong>
                   <span>
@@ -316,14 +316,14 @@ export function EfectividadExplicadaCard({
               </li>
             )}
             <li data-resultado="true">
-              <b>= {coma(radio.esperadas, 1)}</b>
+              <b>= {decimalFijo(radio.esperadas, 1)}</b>
               <div>
                 <strong>efectivas esperadas — el valor de validez</strong>
                 <span>
-                  {fmtInt(radio.elegibles)} × {coma(radio.rendimiento, 2)}
-                  {ajusteActivo ? ` × ${coma(radio.factorFacultad, 2)}` : ""} ={" "}
-                  {coma(radio.productoExacto, 2)}, que el motor guarda como{" "}
-                  {coma(radio.esperadas, 1)}. Es la cuenta CONDICIONAL: lo que esta aula debe
+                  {fmtInt(radio.elegibles)} × {decimalFijo(radio.rendimiento, 2)}
+                  {ajusteActivo ? ` × ${decimalFijo(radio.factorFacultad, 2)}` : ""} ={" "}
+                  {decimalFijo(radio.productoExacto, 2)}, que el motor guarda como{" "}
+                  {decimalFijo(radio.esperadas, 1)}. Es la cuenta CONDICIONAL: lo que esta aula debe
                   rendir si entra a campo — con este número Monitoreo la juzga; si se cae, su
                   reemplazo se juzga contra el suyo propio.
                 </span>
@@ -365,7 +365,7 @@ export function EfectividadExplicadaCard({
               </div>
             </li>
             <li>
-              <b>× {coma(radioTau.tau * 100, 1)} %</b>
+              <b>× {decimalFijo(radioTau.tau * 100, 1)} %</b>
               <div>
                 <strong>tasa global declarada en el diseño</strong>
                 <span>
@@ -375,13 +375,13 @@ export function EfectividadExplicadaCard({
               </div>
             </li>
             <li data-resultado="true">
-              <b>= {coma(radioTau.esperadas, 1)}</b>
+              <b>= {decimalFijo(radioTau.esperadas, 1)}</b>
               <div>
                 <strong>efectivas esperadas — el valor de validez</strong>
                 <span>
-                  {fmtInt(radioTau.elegibles)} × {coma(radioTau.tau, 2)} ={" "}
-                  {coma(radioTau.productoExacto, 2)}, que el motor guarda como{" "}
-                  {coma(radioTau.esperadas, 1)}. Con este número Monitoreo juzga esta aula
+                  {fmtInt(radioTau.elegibles)} × {decimalFijo(radioTau.tau, 2)} ={" "}
+                  {decimalFijo(radioTau.productoExacto, 2)}, que el motor guarda como{" "}
+                  {decimalFijo(radioTau.esperadas, 1)}. Con este número Monitoreo juzga esta aula
                   en campo; cada curso-horario lleva el suyo.
                 </span>
               </div>

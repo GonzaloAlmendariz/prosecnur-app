@@ -39,7 +39,7 @@ const LAMINA: PreviewFormas = {
 
 describe("conversión de pulgadas a % del lienzo", () => {
   // Mutante que mata: dividir x por el alto (o y por el ancho) — 0.495/7.5 da 6.6 % en vez de 3.71 %.
-  it("x y ancho van contra el ancho de 13,333 in; y y alto, contra los 7.5 in", () => {
+  it("x y ancho van contra el ancho de 13.333 in; y y alto, contra los 7.5 in", () => {
     const p = aPorcentaje({ x: 0.495, y: 1.65, w: 12.523, h: 4.6 });
     expect(p.left).toBeCloseTo(3.7126, 3);
     expect(p.top).toBeCloseTo(22, 3);
