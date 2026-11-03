@@ -18,8 +18,8 @@ import { CurvaRendimientoDiagrama } from "./CurvaRendimientoDiagrama";
 import { estadisticoDelReparto, fraseEstadistico, nombreEstadistico } from "./estadisticoAula";
 import "./tasaFacultad.css";
 
-const pctTasa = (v: number) => `${(v * 100).toFixed(1).replace(".", ",")} %`;
-const coma = (v: number, dec = 2) => v.toFixed(dec).replace(".", ",");
+const pctTasa = (v: number) => `${(v * 100).toFixed(1)} %`;
+const coma = (v: number, dec = 2) => v.toFixed(dec);
 
 export function TasaEfectividadFacultadCard({
   tasasRaw,

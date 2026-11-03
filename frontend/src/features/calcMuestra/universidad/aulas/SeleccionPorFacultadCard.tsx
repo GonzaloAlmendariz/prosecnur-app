@@ -53,12 +53,12 @@ function FilaAula({
             { label: "Elegibles en lista", valor: fmtInt(el) },
             { label: `Tasa de su tramo (aula de ${fmtInt(el)})`, valor: `${Math.round(r * 100)} %` },
             ...(factor !== 1
-              ? [{ label: "Ajuste de su facultad", valor: `× ${factor.toFixed(2).replace(".", ",")}` }]
+              ? [{ label: "Ajuste de su facultad", valor: `× ${factor.toFixed(2)}` }]
               : []),
             { label: "Efectivas esperadas", valor: fmtInt(Math.round(esperadas)) },
           ],
-          nota: `${fmtInt(el)} × ${r.toFixed(2).replace(".", ",")}${
-            factor !== 1 ? ` × ${factor.toFixed(2).replace(".", ",")}` : ""
+          nota: `${fmtInt(el)} × ${r.toFixed(2)}${
+            factor !== 1 ? ` × ${factor.toFixed(2)}` : ""
           } → ${fmtInt(Math.round(esperadas))} — el valor de validez si el aula entra a campo${
             p != null
               ? `; su docente aplica el ${Math.round(p * 100)} % (operativo: anticipa cadena)`

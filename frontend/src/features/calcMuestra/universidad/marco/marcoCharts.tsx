@@ -121,7 +121,7 @@ export function fmtStackPct(value: number | null | undefined) {
 
 function fmtComparisonPct(value: number) {
   if (!Number.isFinite(value)) return "—";
-  return `${(value * 100).toFixed(1).replace(".", ",")}%`;
+  return `${(value * 100).toFixed(1)}%`;
 }
 
 export function safeShare(value: number, total: number) {

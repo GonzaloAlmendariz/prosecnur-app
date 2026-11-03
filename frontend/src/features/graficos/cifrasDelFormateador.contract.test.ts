@@ -97,4 +97,17 @@ describe("cifras de Gráficos por el formateador compartido · P4", () => {
       .map(rel);
     expect(hallazgos).toEqual([]);
   });
+
+  // es-PE escribe punto decimal («0.72», «12.5 %»). Había 23 `toFixed(n).replace(".", ",")`
+  // que escribían coma decimal al lado de cifras con coma de millares («1,234»): la
+  // misma coma con dos sentidos en una pantalla. Meta 0.
+  it("ninguna cifra cambia el punto decimal por coma", () => {
+    const fuentes = archivos(aqui);
+    expect(fuentes.length).toBeGreaterThan(300);
+    const hallazgos = fuentes
+      .filter((f) => /\.replace\(\s*["'`]\.["'`]\s*,\s*["'`],["'`]\s*\)/.test(sinComentarios(readFileSync(f, "utf8"))))
+      .map(rel);
+    expect(hallazgos).toEqual([]);
+    expect(/\.replace\(\s*["'`]\.["'`]\s*,\s*["'`],["'`]\s*\)/.test('x.toFixed(1).replace(".", ",")')).toBe(true);
+  });
 });

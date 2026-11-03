@@ -24,7 +24,7 @@ export type EstratoDimension = {
   estadistico_usado?: unknown;
 };
 
-const coma1 = (v: number) => (Number.isInteger(v) ? String(v) : v.toFixed(1).replace(".", ","));
+const coma1 = (v: number) => (Number.isInteger(v) ? String(v) : v.toFixed(1));
 
 export function DistribucionElegiblesCard({
   aulaFrame,
@@ -103,7 +103,7 @@ export function DistribucionElegiblesCard({
             ],
             // La aritmética viva del motor: la fórmula deja de ser abstracta.
             nota: dim
-              ? `cuota ${fmtInt(dim.cuota)} ÷ (${Number.isFinite(dim.divisor) ? coma1(dim.divisor) : fmtInt(Math.round(f.p25))}${Number.isFinite(dim.tau) ? ` × tasa ${dim.tau.toFixed(2).replace(".", ",")}` : ""}) → ${fmtInt(dim.aulas)} titulares`
+              ? `cuota ${fmtInt(dim.cuota)} ÷ (${Number.isFinite(dim.divisor) ? coma1(dim.divisor) : fmtInt(Math.round(f.p25))}${Number.isFinite(dim.tau) ? ` × tasa ${dim.tau.toFixed(2)}` : ""}) → ${fmtInt(dim.aulas)} titulares`
               : `${fmtInt(f.nAulas)} ${f.nAulas === 1 ? "aula" : "aulas"} en el marco`,
             tono: "efectiva",
           };

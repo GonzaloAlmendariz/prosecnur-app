@@ -208,7 +208,7 @@ export function CalculoCursosHorarioFacultadTab({
                   <td>{fmtDec(fila.alumnos_por_ch!.valor, 1)}</td>
                   <td>{(() => {
                     const t = Number((fila as Record<string, unknown>).tau);
-                    return Number.isFinite(t) && t > 0 ? `${(t * 100).toFixed(1).replace(".", ",")} %` : "—";
+                    return Number.isFinite(t) && t > 0 ? `${(t * 100).toFixed(1)} %` : "—";
                   })()}</td>
                   <td>
                     {onAjustarAula ? (

@@ -27,7 +27,7 @@ import "./efectividadExplicada.css";
 type Fila = Record<string, unknown>;
 
 const pct = (v: number) => `${Math.round(v * 100)} %`;
-const coma = (v: number, dec: number) => v.toFixed(dec).replace(".", ",");
+const coma = (v: number, dec: number) => v.toFixed(dec);
 const texto = (v: unknown): string => String(v ?? "").trim();
 
 function rolCorto(fila: Fila): string {

@@ -17,7 +17,7 @@ import {
 } from "../shared/efectividadFuente";
 import "./fuenteEfectividad.css";
 
-const pct = (v: number) => `${(v * 100).toFixed(1).replace(".", ",")} %`;
+const pct = (v: number) => `${(v * 100).toFixed(1)} %`;
 
 export function FuenteEfectividadCard({
   efectividad,
