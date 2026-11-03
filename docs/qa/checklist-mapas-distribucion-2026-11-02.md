@@ -32,3 +32,12 @@ Estados: pendiente · en curso · hecho (a revisar) · bloqueado. Sólo Gonzalo 
   físicas (1 px de la maqueta = 1/96 in).
 - `system.file()` con varias partes debe ir por `do.call`: con un vector como segundo argumento devuelve la carpeta.
 - Hay que llamar a `sf::sf_use_s2(FALSE)` y silenciar sus mensajes: las uniones de distritos son planas.
+
+## Correcciones tras generar el mazo CCSS (2026-11-02, segunda ronda)
+
+| # | Indicación | Dónde vive | Estado |
+|---|---|---|---|
+| 15 | «Lima provincias» contaba 0 con 6 casos | `.mapa_distribucion_casar()`: el código de la lista «16» se leía como UBIGEO 16 (Loreto); ahora manda el nombre y el código sólo decide si la etiqueta no nombra un área | hecho (a revisar), con prueba |
+| 16 | Rótulos de distritos (≥ 12 casos; en tasa, los 6 primeros) en la columna sobre el mar | **Contradice la indicación directa de Gonzalo** («la línea hacia afuera es sólo para los puntos de Google Maps; los distritos se colorean con leyenda y gráfico de barras al lado»). Hoy sólo los puntos llevan rótulo | bloqueado: lo decide Gonzalo |
+| 17 | El recuadro «Zona de Lima» salía en subpreguntas sin Lima | sólo si Lima Metropolitana + Callao + Lima provincias ≥ 5 % de la base, o `zona_lima = TRUE/FALSE`; sin recuadro, el Perú se centra | hecho (a revisar), con prueba |
+| 18 | El recuadro mal encuadrado (costa vacía, Callao casi invisible) | `.mapa_dist_zona_lima()`: caja de Lima Metropolitana + Callao con 30 % de aire; el recuadro crece con su letra en el Word | hecho (a revisar) |

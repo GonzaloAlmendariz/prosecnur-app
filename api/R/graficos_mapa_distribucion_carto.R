@@ -85,7 +85,7 @@
   out
 }
 
-#' Casa cada respuesta con su área: por UBIGEO o por nombre sin tildes
+#' Casa cada respuesta con su área: por nombre sin tildes y, si la etiqueta no nombra un área, por UBIGEO
 #'
 #' En el Perú, «Lima Metropolitana» (también «Provincia de Lima» y «Lima» a secas), «Callao» y «Lima provincias» son tres
 #' áreas: el UBIGEO 1501… y el 15 de dos dígitos van a Lima Metropolitana, el resto del 15… a Lima provincias.
@@ -112,6 +112,9 @@
     nombre <- sub("^departamento de ", "", nombre)
   }
   por_nombre <- claves[match(nombre, clave_txt(carto$areas$nombre))]
-  filas$clave <- ifelse(!is.na(por_cod) & por_cod %in% claves, por_cod, por_nombre)
+  # El NOMBRE manda: el código de la lista no siempre es un UBIGEO. En el Perfil CCSS 2026 «16 = Lima provincias» se leía
+  # como el departamento 16 (Loreto) y sus 6 casos se sumaban a Loreto; Lima provincias salía en 0. El código sólo decide
+  # cuando la etiqueta no nombra ningún área.
+  filas$clave <- ifelse(!is.na(por_nombre), por_nombre, ifelse(!is.na(por_cod) & por_cod %in% claves, por_cod, NA_character_))
   filas
 }

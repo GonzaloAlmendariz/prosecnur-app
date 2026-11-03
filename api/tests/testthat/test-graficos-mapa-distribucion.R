@@ -140,3 +140,28 @@ test_that("la zona de Lima viene precalculada: tres áreas que encajan y Lima pr
   lima <- .mapa_distribucion_cartografia("lima_callao")
   expect_identical(nrow(lima$contexto), 1L)   # el contexto de Lima es Lima provincias recortada, no el departamento entero
 })
+
+test_that("regresión CCSS: «16 = Lima provincias» de la lista no se lee como el UBIGEO 16 (Loreto)", {
+  peru <- .mapa_distribucion_cartografia("peru")
+  f <- data.frame(codigo = c("15", "16", "4", "040101"), etiqueta = c("Lima Metropolitana", "Lima provincias", "Arequipa", "Otra cosa"),
+                  n = c(254L, 6L, 3L, 1L), porcentaje = 1)
+  expect_identical(.mapa_distribucion_casar(f, peru, "peru")$clave, c("15M", "15P", "04", "04"))   # el nombre manda; el código, sólo si no casa
+  e <- .espec_mapa_distribucion(.mapa_distribucion_casar(f, peru, "peru"), peru, "peru")
+  expect_identical(e$areas$n[e$areas$clave == "15P"], 6L)
+  expect_identical(e$areas$n[e$areas$clave == "16"], 0L)
+  expect_identical(e$zona$cifra[e$zona$clave == "15P"], "6 (2%)")
+})
+
+test_that("el recuadro de la zona de Lima sale sólo si Lima pesa al menos el 5 % de la base o si se pide", {
+  peru <- .mapa_distribucion_cartografia("peru")
+  otra <- data.frame(codigo = c("a", "b", "c", "d"), etiqueta = c("Arequipa", "Cusco", "Piura", "Lima provincias"), n = c(40L, 30L, 20L, 2L), porcentaje = 1)
+  e <- .espec_mapa_distribucion(.mapa_distribucion_casar(otra, peru, "peru"), peru, "peru")
+  expect_null(e$zona)   # 2 de 92: una subpregunta «¿en qué otra región?» no lleva recuadro
+  expect_false(is.null(.espec_mapa_distribucion(.mapa_distribucion_casar(otra, peru, "peru"), peru, "peru", zona_lima = TRUE)$zona))
+  con <- rbind(otra, data.frame(codigo = "e", etiqueta = "Lima Metropolitana", n = 10L, porcentaje = 1))
+  expect_false(is.null(.espec_mapa_distribucion(.mapa_distribucion_casar(con, peru, "peru"), peru, "peru")$zona))
+  expect_null(.espec_mapa_distribucion(.mapa_distribucion_casar(con, peru, "peru"), peru, "peru", zona_lima = FALSE)$zona)
+  expect_false(p_mapa_distribucion("dep", area = "peru", zona_lima = FALSE)$zona_lima)
+  # Sin recuadro, el panel no reserva su franja: el país usa el ancho.
+  expect_lt(.mapa_dist_col(e, 6.3, .mapa_dist_pt()), 200 / 96)
+})

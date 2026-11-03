@@ -1795,6 +1795,8 @@
       list(name = "encuadre", label = "Encuadre", tipo_input = "choice", grupo = "estilo", default = "datos",
            choices = list(list(value = "datos", label = "Acercar a las áreas con datos"),
                            list(value = "completo", label = "Todo el territorio"))),
+      list(name = "zona_lima", label = "Recuadro de la zona de Lima (Perú)", tipo_input = "bool", grupo = "estilo",
+           descripcion = "Vacío: sale sólo si Lima Metropolitana, el Callao y Lima provincias suman al menos el 5 % de la base."),
       list(name = "excluir_opciones", label = "Excluir del total", tipo_input = "codigos_list", grupo = "filtro"),
       list(name = "cortes", label = "Dónde empieza cada clase", tipo_input = "codigos_list", grupo = "estilo",
            descripcion = "Desde la segunda clase, en la unidad de la medida. Vacío usa 3, 6, 11 y 21 encuestados (Perú: 3, 6 y 11) o 0,5, 1, 2 y 3 por 10 000."),

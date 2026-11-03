@@ -42,10 +42,13 @@
 #' @param rotulo Título de la tarjeta del ranking; vacío lo arma el motor.
 #' @param encuadre `"datos"` acerca el mapa a las áreas con encuestados; `"completo"` muestra todo el territorio.
 #' @param puntos Lugares de referencia con su rótulo: coordenadas o enlace largo de Google Maps (graficos_mapa_puntos.R).
+#' @param zona_lima Perú: `TRUE` o `FALSE` fuerza el recuadro «Zona de Lima, ampliada»; `NULL` lo muestra sólo si Lima
+#'   Metropolitana, el Callao y Lima provincias suman al menos el 5 % de la base (una subpregunta «¿en qué otra región?»
+#'   no lo necesita).
 #' @export
 p_mapa_distribucion <- function(var, area = c("lima_callao", "peru"), medida = c("conteo", "tasa"), titulo = NULL, filtros = list(),
                                 excluir_opciones = NULL, cortes = NULL, rotulo = NULL, encuadre = c("datos", "completo"), puntos = NULL,
-                                overrides = list(), base = list()) {
+                                zona_lima = NULL, overrides = list(), base = list()) {
   var <- .puntos_comparativos_ref(var, "var")
   area <- match.arg(as.character(unlist(area %||% "lima_callao"))[1], .MAPA_DISTRIBUCION_AREAS)
   medida <- match.arg(as.character(unlist(medida %||% "conteo"))[1], c("conteo", "tasa"))
@@ -62,7 +65,9 @@ p_mapa_distribucion <- function(var, area = c("lima_callao", "peru"), medida = c
              filtros = .ppt_norm_filters(filtros),
              excluir_opciones = if (length(excluir_opciones)) .puntos_comparativos_codigos(excluir_opciones, "excluir_opciones") else NULL,
              cortes = cortes, rotulo = .ppt_norm_text1(rotulo, blank = NULL), encuadre = encuadre,
-             puntos = .mapa_puntos_normalizar(puntos), overrides = overrides, base = base)
+             puntos = .mapa_puntos_normalizar(puntos),
+             zona_lima = if (is.null(zona_lima) || !length(zona_lima)) NULL else isTRUE(as.logical(unlist(zona_lima))[1]),
+             overrides = overrides, base = base)
   class(el) <- c("ppt_element", "list")
   el
 }
@@ -139,7 +144,7 @@ p_mapa_distribucion <- function(var, area = c("lima_callao", "peru"), medida = c
 #'   ranking; la zona de Lima (Perú) y los textos.
 #' @keywords internal
 .espec_mapa_distribucion <- function(filas, carto, area, medida = "conteo", cortes = NULL, encuadre = "datos", puntos = NULL,
-                                     rotulo = NULL) {
+                                     rotulo = NULL, zona_lima = NULL) {
   if (is.null(carto)) return(NULL)
   M <- .MAPA_DIST
   base <- sum(filas$n)
@@ -182,7 +187,11 @@ p_mapa_distribucion <- function(var, area = c("lima_callao", "peru"), medida = c
                              if (sum(resto$n) == 1) "encuestado" else "encuestados", pct_txt(100 * sum(resto$n) / max(1, base))),
     if (nrow(sin_casar)) sprintf("Fuera del mapa: %s.", paste(sprintf("%s %d", sin_casar$etiqueta, sin_casar$n), collapse = ", ")))
   uni <- carto$unidad
-  zona <- if (!is.null(carto$zona)) {
+  # El recuadro de la zona de Lima: pedido explícito, o Lima con al menos el 5 % de la base (Perfil CCSS 2026: en
+  # «¿en qué otra región del Perú?» salía con ceros y ocupaba espacio).
+  peso_zona <- if (!is.null(carto$zona) && base > 0) sum(a$n[a$clave %in% carto$zona]) / base else 0
+  ver_zona <- !is.null(carto$zona) && (if (is.null(zona_lima)) peso_zona >= 0.05 else isTRUE(zona_lima))
+  zona <- if (ver_zona) {
     z <- a[match(carto$zona, a$clave), , drop = FALSE]
     data.frame(clave = z$clave, nombre = z$nombre, color = z$color, cifra = paste0(z$n, " (", pct_txt(z$pct), ")"), stringsAsFactors = FALSE)
   }
@@ -227,7 +236,7 @@ graficar_mapa_distribucion <- function(espec) {
   carto <- .mapa_distribucion_cartografia(area)
   if (is.null(carto)) return(.plan_canvas_render_nulo("mapa_distribucion: el paquete no trae la cartografía de esta área."))
   espec <- .espec_mapa_distribucion(.mapa_distribucion_casar(filas, carto, area), carto, area, el$medida %||% "conteo", el$cortes,
-                                    el$encuadre %||% "datos", el$puntos, el$rotulo)
+                                    el$encuadre %||% "datos", el$puntos, el$rotulo, el$zona_lima)
   # Lo que no casa con la cartografía sigue en el total y se dice con su nombre: nunca se descarta en silencio.
   if (length(espec$sin_casar)) message("[PULSO-AVISO] Mapa de distribución: fuera del mapa (cuentan en el total): ",
                                        paste(espec$sin_casar, collapse = ", "), ".")

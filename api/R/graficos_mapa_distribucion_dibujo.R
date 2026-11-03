@@ -48,7 +48,8 @@
   dx <- (lon[[2]] - lon[[1]]) * k; dy <- lat[[2]] - lat[[1]]
   util_w <- ancho - col - m; util_h <- alto - 2 * m
   s <- min(util_w / dx, util_h / dy) * (if (identical(espec$area, "peru")) 0.94 else 1)
-  tx <- ancho - m - dx * s
+  # Sin recuadro de la zona de Lima ni rótulos que pidan columna, el Perú se centra; si no, va a la derecha.
+  tx <- if (identical(espec$area, "peru") && is.null(espec$zona)) (ancho - dx * s) / 2 else ancho - m - dx * s
   ty <- (alto - dy * s) / 2 - lat[[1]] * s
   list(k = k, s = s, tx = tx, ty = ty, lon0 = lon0, lat0 = lat0)
 }
@@ -158,7 +159,7 @@
 #' referencia, una franja mínima de mar
 #' @keywords internal
 .mapa_dist_col <- function(espec, ancho, pt) {
-  if (identical(espec$area, "peru")) return(200 * .MAPA_DIST_PX)   # el recuadro de la zona de Lima ocupa la franja
+  if (identical(espec$area, "peru") && !is.null(espec$zona)) return(.mapa_dist_zona_ancho(espec, pt) + 16 * .MAPA_DIST_PX)   # la franja del recuadro
   tinta <- max(c(0, .lam_ancho_tinta(espec$rotulos$texto, pt$rotulo, TRUE)))
   min(0.36 * ancho, max(0.5, tinta * 1.08 + 0.45))
 }
@@ -205,7 +206,7 @@
     rot$x <- xy$x; rot$y <- xy$y
     rot <- rot[rot$x >= 0 & rot$x <= ancho & rot$y >= 0 & rot$y <= alto, , drop = FALSE]
   }
-  if (NROW(rot) && identical(espec$area, "peru")) {
+  if (NROW(rot) && identical(espec$area, "peru") && !is.null(espec$zona)) {
     rot <- rot[0, , drop = FALSE]   # en el Perú los puntos de referencia van en el recuadro de la zona de Lima
   } else if (NROW(rot)) {
     x_txt <- col - 18 * P
@@ -242,23 +243,32 @@
   g
 }
 
+#' Ancho (in) del recuadro de la zona de Lima: 184 px a la letra de la lámina, y crece con su letra y sus filas (a 9 pt,
+#' en el Word, «Lima Metropolitana 286 (72%)» no cabía en 184 px)
+#' @keywords internal
+.mapa_dist_zona_ancho <- function(espec, pt) {
+  tinta <- max(.lam_ancho_tinta(paste(espec$zona$nombre, espec$zona$cifra), pt$zona, TRUE)) * 1.1
+  max(184 * .MAPA_DIST_PX * pt$zona / 8.25, tinta + 40 * .MAPA_DIST_PX)
+}
+
 #' Recuadro «Zona de Lima, ampliada» del mapa del Perú: Lima Metropolitana, el Callao y Lima provincias con sus cifras,
 #' unido por una línea al lugar en el mapa
 #' @keywords internal
 .mapa_dist_zona_lima <- function(g, espec, pr, alto, pt) {
   M <- .MAPA_DIST; P <- .MAPA_DIST_PX; fuente <- .std_pt("fuente")
-  x0 <- 12 * P; w <- 184 * P; top <- alto - 112 * P
-  h_map <- 170 * P; h_cab <- 21 * P; h_filas <- 3 * 16 * P + 12 * P
+  f <- pt$zona / 8.25
+  x0 <- 12 * P; w <- .mapa_dist_zona_ancho(espec, pt); top <- alto - 112 * P
+  h_map <- 170 * P; h_cab <- 21 * P * f; h_filas <- 3 * 16 * P * f + 12 * P
   y_bot <- top - h_cab - h_map - h_filas
   if (y_bot < 0.5) { top <- top + (0.5 - y_bot); y_bot <- 0.5 }
   areas <- espec$carto$areas; z <- espec$zona
-  lm <- areas[areas$clave == "15M", ]
-  bb <- sf::st_bbox(lm)
+  # Encuadre: la caja de Lima Metropolitana más el Callao con un 30 % de aire por lado (centrada solo en Lima
+  # Metropolitana, el Callao quedaba casi fuera y sobraba costa vacía).
+  bb <- sf::st_bbox(areas[areas$clave %in% c("15M", "07"), ])
   cxl <- mean(bb[c("xmin", "xmax")]); cyl <- mean(bb[c("ymin", "ymax")])
   k <- pr$k
-  ancho_z <- (bb[["xmax"]] - bb[["xmin"]]) * k * 2.6
-  sz <- (w - 2 * P) / ancho_z
   mx0 <- x0 + P; mx1 <- x0 + w - P; my1 <- top - h_cab; my0 <- my1 - h_map
+  sz <- min((mx1 - mx0) / ((bb[["xmax"]] - bb[["xmin"]]) * k * 1.6), (my1 - my0) / ((bb[["ymax"]] - bb[["ymin"]]) * 1.6))
   prz <- list(k = k, s = sz, lon0 = cxl, tx = (mx0 + mx1) / 2, ty = (my0 + my1) / 2 - cyl * sz)
   datos <- espec$areas[match(areas$clave, espec$areas$clave), ]
   orden <- order(areas$clave %in% c("15M", "07"))   # todas las áreas, recortadas al recuadro; Lima Met. y el Callao encima
@@ -285,7 +295,7 @@
       ggplot2::geom_text(data = dp, ggplot2::aes(.data$x + 5 * P, .data$y, label = .data$t), hjust = 0, size = pt$zona / ggplot2::.pt,
                          fontface = "bold", colour = dp$col, family = fuente)
   }
-  filas <- data.frame(y = my0 - 6 * P - (seq_len(nrow(z)) - 0.5) * 16 * P, nombre = z$nombre, cifra = z$cifra, color = z$color)
+  filas <- data.frame(y = my0 - 6 * P - (seq_len(nrow(z)) - 0.5) * 16 * P * f, nombre = z$nombre, cifra = z$cifra, color = z$color)
   g + ggplot2::annotate("segment", x = x0, xend = x0 + w, y = my0, yend = my0, colour = "#E3E6EB", linewidth = .mapa_dist_lw(0.75)) +
     ggplot2::geom_tile(data = filas, ggplot2::aes(x0 + 15 * P, .data$y, fill = .data$color), width = 12 * P, height = 10 * P) +
     ggplot2::geom_text(data = filas, ggplot2::aes(x0 + 27 * P, .data$y, label = .data$nombre), hjust = 0, size = pt$zona / ggplot2::.pt,
