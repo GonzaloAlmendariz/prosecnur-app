@@ -64,10 +64,11 @@ de código son el blanco real de P3.
 | P5 | Vacíos y cargas a mano | Cálculo: 18 clases propias de vacío de bloque (27 sitios) y 4 esperas sueltas; la fuente eran `ClassroomEmptyState` y `DescriptiveEmptyNotice`. Gráficos: 13 esperas escritas a mano y 15 vacíos con clase propia | Vacío de bloque por `EstadoVacio`; espera por `LoadingBlock`. Las dos primitivas locales de Cálculo envuelven `EstadoVacio`; se borran sus reglas CSS | `calcMuestra/` y `graficos/vaciosYCargasDelKit.contract.test.ts`, meta 0 | **hecho** — `74cea55a9`, `6b041df24` |
 | P1 | Letra en px | 1,165 y 1,094 declaraciones | Regla de Material: ≥18 kpi; 15–17 title; 12–14.5 subtitle (seminegrita) o body; 10.6–11.5 eyebrow (mayúsculas) o caption; ≤10.5 micro | `features/calcMuestra` y `features/graficos` en `MODULOS` de `letraPorRol`. Cálculo en meta 0; Gráficos con 9 excepciones que dibujan el medio (planos `blueprint`, muestra de leyenda, métricas de 6 px en los marcos miniatura) | **hecho** — `1e4739397`, `aecedbc9c` |
 | P4 | Cifras sin miles o con formateador propio | Cálculo: `fmtInt` local más dos copias, `enumerar` propio y 20 `toLocaleString`. Gráficos: conteos de variables crudos y un `toLocaleString("es")` con coma decimal en Medidas del estándar | `fmtInt` delega en `lib/formatoNumero`; decimales con `formatoDecimal` y los mismos dígitos (ninguna cifra cambia de valor) | `cifrasDelFormateador.contract.test.ts` en los dos: `toLocaleString` suelto en meta 0 y `{x.length}` crudo como ratchet (39 en Cálculo, 66 en Gráficos) | **hecho** — `f727e832c`, `0296c711f` |
-| P3 | Punto medio como separador | Cálculo: 348 líneas, 38 de ellas `join(" · ")`. Gráficos: 38 líneas | Lista con coma o `lib/enumerar`; avisos con punto y coma; precisión entre paréntesis | `puntoMedio.contract.test.ts`: Gráficos en meta 0 salvo 8 líneas que leen el formato del backend («… · E_X»); Cálculo con `join(" · ")` en meta 0 y ratchet de 310 líneas en 107 archivos | Gráficos **hecho** (`84a0b8f98`); Cálculo **en curso** (`e9c25e1e3`, baja con cada vista rediseñada) |
-| P2 | Cajas propias en vez de `Panel` | 326 / 401 reglas con borde, radio y padding; 0 `Panel` en ambos | Cabecera de bloque por `components/Panel`, cifras por `CifrasEnTarjeta`, avance por `BarraDeAvance` | — | pendiente (va con las vistas rediseñadas) |
+| P3 | Punto medio como separador | Cálculo: 348 líneas, 38 de ellas `join(" · ")`. Gráficos: 38 líneas | Lista con coma o `lib/enumerar`; avisos con punto y coma; precisión entre paréntesis | `puntoMedio.contract.test.ts`: Gráficos en meta 0 salvo 8 líneas que leen el formato del backend («… · E_X»); Cálculo con `join(" · ")` en meta 0 y ratchet por archivo | **hecho** — Gráficos `84a0b8f98`; Cálculo `e9c25e1e3`, `70ad50374`, `bdc01dd6e`: de 107 archivos a 12, los que quedan son fórmulas (`p·(1−p)`, `memoriaLatex`) o el corpus de referencia |
+| P2 | Cajas propias en vez de `Panel` | 326 / 401 reglas con borde, radio y padding; 0 `Panel` en ambos | Cabecera de bloque por `components/Panel`, cifras por `CifrasEnTarjeta`, avance por `BarraDeAvance` | `cajasPropias.contract.test.ts` en los dos, ratchet por hoja (`f7d95f96c`) | **línea base** — baja con cada vista que pase al kit |
 | P6 | Estado mezclado con acción | 63 / 45 clases de chip o estado | `EstadoChip` del kit | — | espera al kit (Material) |
-| P8 | Monoespaciada para metadatos | 20 / 8 `<code>`, 38 / 56 reglas mono | Letra del sistema; el valor técnico en `title` | — | pendiente |
+| P8 | Monoespaciada para metadatos | 20 / 8 `<code>`, 38 / 56 reglas mono | Letra del sistema con cifras tabulares; el valor técnico en `title`. Monoespaciada sólo para columnas, variables, fórmulas y símbolos | `monoespaciada.contract.test.ts` en los dos, ratchet de `<code>` por archivo | **hecho** para `<code>` (`a591265b5`, y la línea de reproducibilidad de la Ficha en `05bda1e54`); reglas CSS mono pendientes |
+| P1b | Letra en línea (JSX) | Gráficos: 68 `fontSize` numéricos | Misma regla que las hojas | `graficos/letraEnLinea.contract.test.ts`, meta 0 | **hecho** — `7919d9ab5` |
 
 ### Verificación de P5 + P1 + P4 + P3a en Cálculo (capturas)
 
@@ -79,6 +80,28 @@ Datos › Variables y nombre del archivo en Datos › Fuentes). Arreglados en `f
 Hallazgo de método: con HSVG2026 los modos `marco-disponible` y `acreditacion` aterrizan mudos en la vista del
 estudio (11 capturas byte a byte iguales). Para esos modos se usa otro `.pulso` (acreditación: el de las corridas de
 Gráficos; muestra general: un proyecto vacío).
+
+## Vistas de Cálculo, de la peor a la menos fea (estado con selección guardada, 1280×720)
+
+Proyecto: `tmp/qa-campanas-0111/aulas.pulso` (selección corrida, propuesta sin calcular). Capturas antes en
+`tmp/visual-qa/calc/uni-antes-*` y después en `rec-desp-*`.
+
+| # | Vista | Qué estaba mal | Qué se hizo | Commit |
+|---|---|---|---|---|
+| 1 | Selección › Simulación (y las demás pestañas bloqueadas) | Un párrafo de aviso y un panel en blanco; prosa con «Se conserva 30 titulares, …, corrida sel_…» | Aviso de etapa con el recorrido Marco → Cálculo → Método → Selección → Reemplazos (hecho, falta, espera), la causa con su acción y lo que la pestaña entregará; el id de la corrida en su propia línea | `32a875b0e` |
+| 2 | Entrega › Cierre (Ficha ejecutiva) | Cinco «pendiente» a 21 px; reproducibilidad en monoespaciada | `CifraMotor` (53 usos) pinta la ausencia como rótulo apagado; la línea de reproducibilidad en la letra del sistema | `05bda1e54` |
+| 3 | Selección › Objetivo | Tres «pendiente» gigantes, «P1 · universidad», «engine» | Lo mismo por `CifraMotor`; «P1, universidad»; «motor» | `05bda1e54`, `831a1337f` |
+| 4 | Cálculo › Propuestas sin calcular | Un vacío aplastado en una fila y el panel en blanco | `EstadoVacio` y las dos propuestas en esqueleto con su camino de etapas, sin adelantar cifras | `2e09f72ad` |
+| 5 | Franja «Diseño vigente» (todas las vistas universitarias) | «Sin cifra todavía» en dos renglones; «· reconstruye»; «frame no verificable» | Una línea, lista con «y», «reconstrúyelo», «marco no verificable» | `2e9cb8c15` |
+| 6 | Selección › Titulares sin selección | La nota de preparación repetía el recorrido | Se va la nota; quedan las cuatro cifras | `9e9398751` |
+
+Pendiente conocido del encargo: Selección › Simulación «Falta comparar los métodos» con método elegido ya estaba
+resuelto en `b17f9b193` (antes de esta noche); con la selección guardada sin objetivo, la causa es Cálculo y el
+recorrido lo dice.
+
+Límite de la medición: `marco-disponible` no tiene un `.pulso` de referencia; con HSVG2026 y con un proyecto vacío
+la dirección aterriza muda en otra vista. Sus cambios (P3 en `general/`, P5, P1) quedan verificados por tests, no por
+captura.
 
 ## Bitácora
 
