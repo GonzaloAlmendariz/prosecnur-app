@@ -10,11 +10,11 @@ test_that("la nota de significancia no se monta sobre la leyenda ni sobre «Base
   c <- .bt_cajas(.bt_render(.bt_agrupada()))
   nota <- c[c$nombre == "Nota significancia", ]; base <- c[c$nombre == "Base lamina", ]
   expect_equal(nrow(nota), 1L, info = paste(c$nombre, collapse = " | "))
-  expect_match(nota$texto, "Las letras marcan al grupo superado")
+  expect_match(nota$texto, "Mayor que el grupo de esa letra")   # ADR 0128: fuente única de textos
   expect_lte(nota$y + nota$h, base$y + 1e-6)
   graf <- c[grepl("^tx[0-9]+$", c$nombre) & nzchar(c$texto), ]
   expect_gt(nrow(graf), 0)
   expect_true(all(graf$y + graf$h <= nota$y + 0.03), info = paste(graf$texto[graf$y + graf$h > nota$y + 0.03], collapse = ", "))
   # y la nota no se repite en el marcador del pie
-  expect_equal(sum(grepl("Las letras marcan", c$texto)), 1L)
+  expect_equal(sum(grepl("Mayor que el grupo de esa letra", c$texto)), 1L)
 })
