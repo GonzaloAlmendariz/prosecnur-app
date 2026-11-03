@@ -38,7 +38,7 @@ export const GRAFICO_DEL_PAR: Readonly<Record<TipoCruzable, Readonly<Record<Tipo
   fecha: {
     so: "Días por categoría",
     sm: "Días por opción marcada",
-    num: "Fecha frente a la numérica",
+    num: "Mediana por día",
     fecha: "Diferencia en días",
     texto: null,
   },

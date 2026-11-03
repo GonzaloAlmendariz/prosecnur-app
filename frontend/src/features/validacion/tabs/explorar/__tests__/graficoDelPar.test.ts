@@ -22,7 +22,7 @@ const CONTRATO: [string, string, string | null][] = [
   ["num", "texto", null],
   ["fecha", "so", "Días por categoría"],
   ["fecha", "sm", "Días por opción marcada"],
-  ["fecha", "num", "Fecha frente a la numérica"],
+  ["fecha", "num", "Mediana por día"],
   ["fecha", "fecha", "Diferencia en días"],
   ["fecha", "texto", null],
   ["texto", "so", "Respuestas por categoría"],

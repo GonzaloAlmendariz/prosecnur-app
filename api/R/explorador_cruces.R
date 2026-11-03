@@ -16,8 +16,9 @@
 #   - serie: so × fecha cuenta casos por día y categoría (grilla completa, con ceros); sm × fecha da el % (0–100) de
 #     quienes responden ese día que marcan la opción; num × fecha da la mediana del día con baja/alta = p25/p75.
 #     Cada punto lleva `n`: los casos de la base de ese día (el denominador del %; un día de 1 caso salta 0 ↔ 100).
-#   - dispersion: hasta 3000 puntos muestreados con semilla fija (sin tocar el RNG de la sesión); la tendencia por
-#     mínimos cuadrados usa TODOS los casos de la base. Con x fecha, x son días desde `origen`.
+#     fecha × num es la misma mediana por día que num × fecha: los dos sentidos del par muestran lo mismo (maqueta v4).
+#   - dispersion: num × num; hasta 3000 puntos muestreados con semilla fija (sin tocar el RNG de la sesión); la
+#     tendencia por mínimos cuadrados usa TODOS los casos de la base.
 #   - lista: la abierta agrupada por las categorías de una única; hasta 20 grupos y 15 respuestas por grupo, textos
 #     iguales agrupados al normalizar minúsculas y tildes.
 # Una abierta sólo se cruza con una única (decisión de Gonzalo, 2026-11-03): con una múltiple una respuesta se repite
@@ -49,7 +50,7 @@
     num_fecha = par("Mediana por día", "serie"),
     fecha_so = par("Días por categoría", "cajas"),
     fecha_sm = par("Días por opción marcada", "cajas"),
-    fecha_num = par("Fecha frente a la numérica", "dispersion"),
+    fecha_num = par("Mediana por día", "serie"),
     fecha_fecha = par("Diferencia en días", "cajas"),
     texto_so = par("Respuestas por categoría", "lista")
   )
@@ -117,9 +118,7 @@
 }
 
 .explorador_cruce_dispersion <- function(lx, ly, ok) {
-  x_fecha <- identical(lx$tipo, "fecha")
-  origen <- if (x_fecha) .explorador_origen(lx$valor, ok) else NULL
-  x <- if (x_fecha) .explorador_dias_desde_min(lx$valor, ok) else as.numeric(lx$valor)
+  x <- as.numeric(lx$valor)
   y <- as.numeric(ly$valor)
   x <- x[ok]; y <- y[ok]
   n <- length(x)
@@ -130,9 +129,7 @@
   }
   idx <- .explorador_muestra_indices(n)
   puntos <- matrix(c(x[idx], y[idx]), ncol = 2L)
-  dispersion <- list(puntos = puntos, tendencia = tendencia, n = as.integer(n))
-  if (x_fecha) dispersion$origen <- origen
-  list(dispersion = dispersion)
+  list(dispersion = list(puntos = puntos, tendencia = tendencia, n = as.integer(n)))
 }
 
 # --- serie --------------------------------------------------------------------
@@ -205,7 +202,8 @@ explorador_cruce <- function(df, var_x, var_y, instrumento) {
     tabla = .explorador_cruce_tabla(lx, ly, ok),
     cajas = .explorador_cruce_cajas(lx, ly, ok),
     dispersion = .explorador_cruce_dispersion(lx, ly, ok),
-    serie = .explorador_cruce_serie(lx, ly, ok),
+    # La serie lee la variable de valor contra la fecha; en fecha × num la fecha viene primero.
+    serie = if (identical(lx$tipo, "fecha")) .explorador_cruce_serie(ly, lx, ok) else .explorador_cruce_serie(lx, ly, ok),
     lista = .explorador_cruce_lista(lx, ly, ok)
   )
   c(list(tipo_x = lx$tipo, tipo_y = ly$tipo, grafico = spec$grafico, forma = spec$forma,

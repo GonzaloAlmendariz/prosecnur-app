@@ -58,7 +58,7 @@
   num_so = c("Cajas por categoría", "cajas"), num_sm = c("Cajas por opción marcada", "cajas"),
   num_num = c("Dispersión con tendencia", "dispersion"), num_fecha = c("Mediana por día", "serie"),
   fecha_so = c("Días por categoría", "cajas"), fecha_sm = c("Días por opción marcada", "cajas"),
-  fecha_num = c("Fecha frente a la numérica", "dispersion"), fecha_fecha = c("Diferencia en días", "cajas"),
+  fecha_num = c("Mediana por día", "serie"), fecha_fecha = c("Diferencia en días", "cajas"),
   texto_so = c("Respuestas por categoría", "lista")
 )
 
@@ -162,9 +162,6 @@ test_that("dispersión: tendencia por mínimos cuadrados con todos los casos y a
   expect_equal(cr$dispersion$tendencia$pendiente, 2)
   expect_equal(cr$dispersion$tendencia$intercepto, 5)
   expect_identical(explorador_cruce(datos, "edad", "edad2", inst)$dispersion$puntos, cr$dispersion$puntos)
-  fx <- explorador_cruce(.ecr_data(), "fecha", "edad", .ecr_inst())
-  expect_identical(min(fx$dispersion$puntos[, 1]), 0)
-  expect_match(fx$dispersion$origen, "^\\d{4}-\\d{2}-\\d{2}$")
   expect_null(cr$dispersion$origen)
 })
 
@@ -179,6 +176,7 @@ test_that("serie: casos por día apilados suman la base; % que marca por día; m
   expect_equal(tv1$valor, 50)   # el 1/10 responden dos y uno marca tv
   expect_identical(tv1$n, 2L)   # …y esos dos son el denominador del día
   md <- explorador_cruce(.ecr_data(), "edad", "fecha", .ecr_inst())
+  expect_identical(explorador_cruce(.ecr_data(), "fecha", "edad", .ecr_inst())$serie, md$serie)   # los dos sentidos, lo mismo
   d1 <- md$serie$puntos[[1]]
   expect_identical(d1$fecha, "2026-10-01")
   expect_equal(d1$valor, 28)
