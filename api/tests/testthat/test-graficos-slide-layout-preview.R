@@ -105,11 +105,15 @@ test_that("el pie derecho de slide_1 se clasifica como nota, no como grafico", {
   expect_identical(roles[[which(keys == "plot")[[1]]]], "chart")
 })
 
-test_that("el subtitulo del separador declara que solo aplica a Word", {
+test_that("el subtitulo del separador sale en el PPT y en el Word, y la intro sigue siendo sólo del Word", {
+  # 3dfe77605 (2026-10-29): el separador nativo del PPT dibuja el subtítulo, así que ya no se rotula «solo Word».
   meta <- .SLIDES_META[["p_slide_seccion"]]
   args <- meta$args
   nombres <- vapply(args, function(a) a$name, character(1))
   sub <- args[[which(nombres == "subtitulo")[[1]]]]
-  expect_match(sub$label, "Word")
+  expect_false(grepl("Word", sub$label, fixed = TRUE))
+  expect_match(sub$descripcion, "PPT")
   expect_match(sub$descripcion, "Word")
+  intro <- args[[which(nombres == "introduccion_word")[[1]]]]
+  expect_match(intro$label, "solo Word")
 })

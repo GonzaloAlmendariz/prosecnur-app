@@ -1393,7 +1393,10 @@ test_that("barras de PPT pueden mostrar porcentaje con frecuencia", {
     mostrar_valores = TRUE,
     umbral_posicion = 0.40,
     umbral_etiqueta = 0,
-    decimales = 0
+    decimales = 0,
+    # Con una sola serie la cifra va fuera salvo `cifras_dentro = TRUE` (003f07c34, CCSS 2026: dentro y grande o fuera y
+    # chica según la ruta). Aquí se pide dentro para probar el umbral de posición; el defecto se prueba abajo.
+    cifras_dentro = TRUE
   )
 
   labs_agrupadas <- unlist(lapply(
@@ -1414,6 +1417,12 @@ test_that("barras de PPT pueden mostrar porcentaje con frecuencia", {
   inside_agrupadas <- layer_agrupadas[layer_agrupadas$inside, , drop = FALSE]
   expect_equal(inside_agrupadas$valor_label, inside_agrupadas$.valor_plot / 2, tolerance = 1e-8)
   expect_equal(inside_agrupadas$hjust_label, rep(0.5, nrow(inside_agrupadas)))
+  # Sin `cifras_dentro`, la agrupada de una serie pone todas sus cifras fuera, también las de las barras largas.
+  p_fuera <- graficar_barras_agrupadas(data = df_agrupadas, var_categoria = "categoria", var_n = "N", cols_porcentaje = "pct",
+                                       etiquetas_series = c(pct = "Porcentaje"), cols_n = c(pct = "n"), mostrar_n_en_etiquetas = TRUE,
+                                       mostrar_valores = TRUE, umbral_posicion = 0.40, umbral_etiqueta = 0, decimales = 0)
+  layer_fuera <- Filter(function(layer) inherits(layer$geom, "GeomText"), p_fuera$layers)[[1]]$data
+  expect_false(any(layer_fuera$inside))
 
   p_agrupadas_100 <- graficar_barras_agrupadas(
     data = data.frame(
