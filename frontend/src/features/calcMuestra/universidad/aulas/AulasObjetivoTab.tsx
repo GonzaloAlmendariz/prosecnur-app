@@ -129,7 +129,7 @@ export function AulasObjetivoTab({
             <CifraMotor
               label="n operativo"
               value={resultReady ? fmtInt(result?.n_operativo) : "pendiente"}
-              detalle="incluye la cobertura prevista por el engine"
+              detalle="incluye la cobertura prevista por el motor"
               origen={resultReady ? "motor" : undefined}
             />
             <CifraMotor

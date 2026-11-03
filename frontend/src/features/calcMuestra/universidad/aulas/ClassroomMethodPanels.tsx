@@ -396,7 +396,7 @@ export function ClassroomRecommendation({
       <div className="cmv2-classroom-reco-panel">
         <small>Método configurado</small>
         <strong>{fallbackMethod}</strong>
-        <span>No es una recomendación del engine. Corre el comparador para acreditarla con métricas del marco vigente.</span>
+        <span>No es una recomendación del motor. Corre el comparador para acreditarla con métricas del marco vigente.</span>
       </div>
     );
   }
