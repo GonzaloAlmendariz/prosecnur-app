@@ -20,6 +20,13 @@ export function fechaCorta(iso: string): string {
   return `${dia} ${MESES[mes - 1]}`;
 }
 
+/** «03/04»: la fecha del eje, corta y del mismo ancho en todos los días. */
+export function fechaEje(iso: string): string {
+  const [, mes, dia] = iso.slice(0, 10).split("-");
+  if (!mes || !dia) return iso;
+  return `${dia}/${mes}`;
+}
+
 export function useTamano<T extends HTMLElement>() {
   const ref = useRef<T | null>(null);
   const [tamano, setTamano] = useState({ ancho: 0, alto: 0 });
@@ -63,24 +70,21 @@ export function anchoPorDia(ancho: number, dias: number, { ranuras = 1, tope = I
 }
 
 /**
- * Qué días se rotulan bajo barras de `paso` px y con qué anclaje. Cada rótulo
- * («30 oct», ~32 px) pide 44 px con su aire: con barras angostas (pocos días con tope de ancho)
- * dos rótulos anclados a los bordes se montaban («2930octct»). Se rotula un
- * día cada `ceil(44 / paso)`, centrado bajo su barra; sólo si las barras llenan
- * el ancho, el primero y el último se anclan al borde para no salirse.
+ * Qué días se rotulan bajo barras de `paso` px. Cada rótulo pide 44 px con su
+ * aire: con barras angostas dos rótulos vecinos se montaban («2930octct»). Se
+ * rotula un día cada `ceil(44 / paso)`, siempre centrado bajo su barra: anclar
+ * el primero y el último al borde los corría fuera de su barra (Gonzalo, 2/11).
  */
 export const ANCHO_DE_ROTULO_DE_FECHA = 44;
-export function rotulosDeFecha(n: number, paso: number, llenaElAncho: boolean): Array<{ indice: number; anclaje: "start" | "middle" | "end" }> {
+
+export function rotulosDeFecha(n: number, paso: number): Array<{ indice: number }> {
   if (n <= 0 || !(paso > 0)) return [];
   const cada = Math.max(1, Math.ceil(ANCHO_DE_ROTULO_DE_FECHA / paso));
   const indices: number[] = [];
   for (let indice = 0; indice < n; indice += cada) indices.push(indice);
   const ultimo = indices[indices.length - 1];
   if (ultimo !== n - 1 && (n - 1 - ultimo) * paso >= ANCHO_DE_ROTULO_DE_FECHA) indices.push(n - 1);
-  return indices.map((indice) => ({
-    indice,
-    anclaje: llenaElAncho && indice === 0 ? "start" : llenaElAncho && indice === n - 1 ? "end" : "middle",
-  }));
+  return indices.map((indice) => ({ indice }));
 }
 
 /** Días que abarca el eje: el campo, su proyección hasta la meta y nunca menos de dos semanas. */
@@ -159,7 +163,7 @@ export function CurvaAcumulada({
   const listo = ancho > 0 && alto > 0 && n > 0;
   const finProyeccion = tramo ? n - 1 + tramo.visibles : null;
   const metaAbajo = Math.abs(yAcum(final) - yAcum(meta)) < 22 && yAcum(meta) + 18 < arriba + h;
-  const rotulos = rotulosDeFecha(n, paso, false);
+  const rotulos = rotulosDeFecha(n, paso);
   return (
     <div ref={ref} className="acr-av-grafico" role="img" aria-label={`Efectivas acumuladas: ${fmt(final)}${meta > 0 ? ` de una meta de ${fmt(meta)}` : ""}${tramo?.alcanzaLaMeta ? `; al ritmo actual la meta llega en ${fmt(tramo.dias)} días` : ""}`}>
       {listo ? (
@@ -218,9 +222,9 @@ export function CurvaAcumulada({
           ) : null}
           <circle className="acr-av-final" cx={x(n - 1)} cy={yAcum(final)} r={4} />
           <text className="acr-av-final-texto" x={x(n - 1)} y={yAcum(final) - 10} textAnchor="middle">{fmt(final)}</text>
-          {rotulos.map(({ indice, anclaje }) => (
-            <text key={serie[indice].fecha} className="acr-av-eje" x={x(indice)} y={alto - 6} textAnchor={anclaje}>
-              {fechaCorta(serie[indice].fecha)}
+          {rotulos.map(({ indice }) => (
+            <text key={serie[indice].fecha} className="acr-av-eje" x={x(indice)} y={alto - 6} textAnchor="middle">
+              {fechaEje(serie[indice].fecha)}
             </text>
           ))}
         </svg>
@@ -482,9 +486,9 @@ export function BarrasApiladas({
               </g>
             );
           })}
-          {rotulosDeFecha(n, paso, paso < PASO_MAXIMO_POR_DIA).map(({ indice, anclaje }) => (
-            <text key={fechas[indice]} className="acr-av-eje" x={izquierda + indice * paso + paso / 2} y={alto - 6} textAnchor={anclaje}>
-              {fechaCorta(fechas[indice])}
+          {rotulosDeFecha(n, paso).map(({ indice }) => (
+            <text key={fechas[indice]} className="acr-av-eje" x={izquierda + indice * paso + paso / 2} y={alto - 6} textAnchor="middle">
+              {fechaEje(fechas[indice])}
             </text>
           ))}
         </svg>

@@ -1,6 +1,6 @@
 import { fmt } from "../formato";
 import { marcasDeEje } from "./avanceModelo";
-import { anchoPorDia, fechaCorta, PASO_MAXIMO_POR_DIA, rotulosDeFecha, useTamano } from "./graficosDeAvance";
+import { anchoPorDia, fechaCorta, fechaEje, PASO_MAXIMO_POR_DIA, rotulosDeFecha, useTamano } from "./graficosDeAvance";
 
 /** El acumulado día a día de una serie de totales diarios. */
 export function acumulado(totales: readonly number[]): number[] {
@@ -78,8 +78,8 @@ export function DiarioYAcumulado({
             <circle key={`p${fechas[indice]}`} className="acr-av-final is-acumulado" cx={x(indice)} cy={yAcum(valor)} r={indice === n - 1 ? 4 : 2.5} />
           ))}
           <text className="acr-av-final-texto is-acumulado" x={x(n - 1) + 8} y={yAcum(final) - 8}>{fmt(final)}</text>
-          {rotulosDeFecha(n, paso, paso < PASO_MAXIMO_POR_DIA).map(({ indice, anclaje }) => (
-            <text key={`f${fechas[indice]}`} className="acr-av-eje" x={x(indice)} y={alto - 6} textAnchor={anclaje}>{fechaCorta(fechas[indice])}</text>
+          {rotulosDeFecha(n, paso).map(({ indice }) => (
+            <text key={`f${fechas[indice]}`} className="acr-av-eje" x={x(indice)} y={alto - 6} textAnchor="middle">{fechaEje(fechas[indice])}</text>
           ))}
         </svg>
       ) : null}
