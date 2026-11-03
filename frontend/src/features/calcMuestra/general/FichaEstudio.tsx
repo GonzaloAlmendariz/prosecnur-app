@@ -1,5 +1,6 @@
 import type { CalcMuestraEstudio, CalcMuestraWorkspace } from "../../../api/calcMuestra";
 
+import { Panel } from "../../../components/Panel";
 import { CambiarTipoEstudio } from "./CambiarTipoEstudio";
 import { EnlaceFichaDelEstudio } from "../../estudio/EnlaceFichaDelEstudio";
 import { usePlannerIdentidad } from "../usePlannerIdentidad";
@@ -35,13 +36,12 @@ export function FichaEstudio({
   // Nombre y cliente los declara el Planner; aquí se leen (ADR 0122).
   const identidad = usePlannerIdentidad();
   return (
-    <section className="cmv2-panel cmv2-basics" aria-labelledby="cmg-ficha-estudio-titulo">
-      <div className="cmv2-panel-head">
-        <div>
-          <h3 className="cmg-panel-titulo" id="cmg-ficha-estudio-titulo">{acreditacion ? "Proceso de acreditación" : "Contexto y marco"}</h3>
-        </div>
-        {onCambiarTipo && <CambiarTipoEstudio onCambiarTipo={onCambiarTipo} />}
-      </div>
+    <Panel
+      className="cmv2-basics"
+      aria-labelledby="cmg-ficha-estudio-titulo"
+      title={<span id="cmg-ficha-estudio-titulo">{acreditacion ? "Proceso de acreditación" : "Contexto y marco"}</span>}
+      actions={onCambiarTipo ? <CambiarTipoEstudio onCambiarTipo={onCambiarTipo} /> : undefined}
+    >
       <div className="cmv2-form-grid">
         <div className="cmg-ficha-identidad">
           <span>Título</span>
@@ -103,6 +103,6 @@ export function FichaEstudio({
         )}
       </div>
       {acreditacion && <p className="cmg-nota">El marco y la unidad de cada actor se declaran en Actores y Selección.</p>}
-    </section>
+    </Panel>
   );
 }

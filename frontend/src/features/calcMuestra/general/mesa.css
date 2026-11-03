@@ -502,7 +502,7 @@
   min-width: 0;
 }
 
-.cmg-contexto-ficha > .cmv2-panel {
+.cmg-contexto-ficha > :is(.cmv2-panel, .pulso-panel) {
   flex: 1 1 auto;
 }
 
