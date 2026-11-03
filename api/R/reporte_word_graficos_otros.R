@@ -146,6 +146,7 @@
 #' @param alto Alto de la figura en pulgadas (el recetario usa 4).
 #' @keywords internal
 .word_g_mapa <- function(espec, alto = 4) {
+  if (identical(espec$forma, "distribucion")) return(.word_g_mapa_distribucion(espec))   # reporte_word_mapa_distribucion.R
   navy <- .std_word("colores", "titulos"); T <- .WORD_TINTA
   ley_rot <- c(vapply(espec$grupos %||% list(), function(g) as.character(g$titulo), ""), as.character(espec$leyenda$rotulos %||% character(0)))
   ley_col <- c(vapply(espec$grupos %||% list(), function(g) as.character(g$color), ""), as.character(espec$leyenda$colores %||% character(0)))
@@ -164,7 +165,5 @@
   ley_w <- 0.35 + max(nchar(c(titulo, ley_rot))) * (8.5 + .word_desplazo("leyenda")) * 0.5 / 72
   attr(g, "alto") <- alto - 0.22
   attr(g, "ancho") <- min(.std_word("pagina", "ancho_util"), (alto - 0.35) / asp + ley_w + 0.25)
-  # La distribución de encuestados lleva sus cifras al lado del mapa (reporte_word_mapa_distribucion.R).
-  if (!is.null(espec$ranking$cifra) && NROW(espec$ranking)) return(.word_g_mapa_con_ranking(espec, g))
   g
 }

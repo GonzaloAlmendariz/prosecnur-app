@@ -15,3 +15,16 @@ el Callao aparte), para el mapa de distribución de encuestados (`p_mapa_distrib
   Descargado y construido el 2026-11-02.
 - **Límites:** cartografía de escala pequeña, útil para pintar una distribución por departamento; no es cartografía
   oficial ni sirve para medir. Natural Earth sigue la representación de facto de los límites.
+
+# Países vecinos del Perú
+
+`peru_vecinos.geojson` — Ecuador, Colombia, Brasil, Bolivia y Chile recortados a una caja alrededor del Perú
+(lon −83.5 a −66, lat −20.5 a 2), como tierra de contexto del mapa de departamentos, con el nombre en español y el punto
+de su rótulo.
+
+- **Fuente:** Natural Earth, *Admin 0 – Countries*, escala 1:50m, versión 5.1.2 (`ne_50m_admin_0_countries.geojson`,
+  repositorio `nvkelso/natural-earth-vector`, etiqueta `v5.1.2`). SHA-256 del archivo descargado:
+  `3e458fc036ad0a66411f2c1e6cac49c5d7bfb81cb1123bc513b22511a2b7fdeb`.
+- **Licencia:** dominio público (la misma declaración de Natural Earth citada arriba).
+- **Transformación:** `build_peru_vecinos.R` (en esta carpeta): recorte a la caja, simplificación a ~1 km (UTM 18S) y
+  4 decimales. Descargado y construido el 2026-11-02.

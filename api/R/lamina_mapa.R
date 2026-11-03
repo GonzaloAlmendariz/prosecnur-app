@@ -26,8 +26,6 @@
                             colour = capa$borde, linewidth = capa$grosor)
     }
   }
-  # Puntos de referencia (la PUCP, una sede): graficos_mapa_puntos.R. Sin puntos no añade nada.
-  for (capa in .mapa_puntos_capas(espec$puntos, cj)) g <- g + capa
   g + ggplot2::scale_fill_identity() +
     ggplot2::coord_quickmap(xlim = cj[c("xmin", "xmax")], ylim = cj[c("ymin", "ymax")], expand = FALSE) +
     ggplot2::theme_void() +
@@ -94,6 +92,7 @@
                               layout = "Graficos2", master = "Office Theme", por_lamina = function(doc) doc) {
   force(folio)
   if (identical(espec$forma, "resultado")) return(.lam_laminas_mapa_resultado(doc, espec, titulo, ante, base, folio, sub, layout, master, por_lamina))
+  if (identical(espec$forma, "distribucion")) return(.lam_laminas_mapa_distribucion(doc, espec, titulo, ante, base, folio, sub, layout, master, por_lamina))
   R <- .LAM_MAPA; G <- .lam_mapa_geo(espec, texto); azul <- .std_color("azul"); suave <- .std_color("texto_suave")
   fin <- .std_geom("ancho") - .std_geom("margen_der")
   doc <- officer::add_slide(doc, layout = layout, master = master)
@@ -148,6 +147,7 @@
 #' ¿El mapa cabe en la lámina del recetario? El panel (cifra o lista) y la narrativa terminan antes de la leyenda
 #' @keywords internal
 .lam_mapa_cabe <- function(espec, texto = NULL) {
+  if (!is.null(espec) && identical(espec$forma, "distribucion")) return(is.null(texto) || !nzchar(texto))   # lamina_mapa_distribucion.R
   if (is.null(espec) || !length(espec$capas) || !all(is.finite(espec$caja))) return(FALSE)
   if (identical(espec$forma, "resultado")) return((is.null(texto) || !nzchar(texto)) && .lam_mapa_resultado_cabe(espec))   # la 104 no lleva narrativa
   G <- .lam_mapa_geo(espec, texto)

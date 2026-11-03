@@ -1,51 +1,64 @@
 # =============================================================================
-# graficos_mapa_distribucion_plan.R — dónde están los encuestados: conteo y porcentaje por distrito o departamento
+# graficos_mapa_distribucion_plan.R — dónde están los encuestados: número o tasa por distrito de Lima o departamento del Perú
 # =============================================================================
 #
-# CCSS Perfil 2026 (láminas 12, 14, 18 y 23: lugar de nacimiento, distrito de residencia en Lima, región de la familia,
-# distrito o región del colegio). El mapa de resultado (graficos_mapa_resultado_plan.R) pinta un INDICADOR por distrito;
-# aquí se pinta la DISTRIBUCIÓN de una sola pregunta: cuántos encuestados hay en cada área y qué parte del total son.
-# Comparte la espec `mapa/1` (forma «resultado»), la lámina 104 (lamina_mapa_resultado.R) y su ruta ggplot, que es la
-# que usa el Word; sólo cambian el cálculo, la cartografía y la cifra del ranking («103 (26%)»).
-#
-# Dos cartografías:
-#   - `lima_callao`: los 50 distritos de Lima Metropolitana y el Callao del paquete (`lima_district_coverage.json`);
-#   - `peru`: los 25 departamentos del Perú (`inst/cartografia/peru_departamentos.geojson`, ver su LEEME).
-# El área se reconoce por UBIGEO (6 dígitos el distrito, 2 el departamento) o por nombre sin tildes. Lo que no casa con
-# el mapa (p. ej. «Extranjero») sigue en el total y se avisa por su nombre: el porcentaje es sobre todos los válidos.
+# CCSS Perfil 2026 (lugar de nacimiento, distrito de residencia en Lima, región de la familia y del colegio). El mapa de
+# resultado (graficos_mapa_resultado_plan.R) pinta un INDICADOR por distrito; aquí se pinta la DISTRIBUCIÓN de una sola
+# pregunta. El diseño es el que aprobó Gonzalo el 2026-11-02 (lienzo «Maqueta de mapas territoriales», tableros 2 a 7):
+#   - clases en ESTUDIANTES, no en porcentaje (1–2, 3–5, 6–10, 11–20, 21 o más; en el Perú hasta «11 o más»), o la TASA
+#     por 10 000 habitantes del Censo 2017 (sólo en Lima: menos de 0,5 · 0,5–1 · 1–2 · 2–3 · 3 o más);
+#   - paleta ColorBrewer Blues; lo que pasa de la mitad de la base va fuera de escala, en azul marino y con su cifra;
+#   - mar, tierra de contexto, contorno gris debajo de las áreas, escala gráfica; sólo los puntos de referencia (Google
+#     Maps) llevan rótulo, en una columna sobre el mar con su guía: las áreas se leen por color, leyenda y ranking;
+#   - leyenda escalonada bajo el mapa y ranking en tarjeta al costado (lámina) o debajo (Word).
+# La cartografía vive en graficos_mapa_distribucion_carto.R, el dibujo en graficos_mapa_distribucion_dibujo.R, la lámina
+# en lamina_mapa_distribucion.R y el Word en reporte_word_mapa_distribucion.R.
+# Lo que no casa con el mapa (p. ej. «Extranjero») sigue en el total y se avisa por su nombre.
 
 .MAPA_DISTRIBUCION_AREAS <- c("lima_callao", "peru")
 
-# Gonzalo, 2026-11-02: con la rampa del mapa de resultado las clases «no se distinguen» y la primera se confundía con
-# «Sin encuestados» (#C9D5EA contra #E2E6EC). Aquí cada clase da un salto claro de luminosidad (de celeste a navy) y lo
-# vacío va en un gris neutro, sin tinte azul, para que no se lea como una clase más.
-.MAPA_DISTRIBUCION_PALETA <- c("#BFD7EF", "#6FA3D6", "#2F64A8", "#081F5C")
-.MAPA_DISTRIBUCION_VACIO <- "#EBEBEB"   # más tenue que el primero (#D9D9D9): lo vacío no compite con las clases
-# Bordes negros finos entre áreas (Gonzalo, 2026-11-02): separan vecinos de la misma clase y dibujan el contorno sobre el gris tenue.
-.MAPA_DISTRIBUCION_BORDE <- "#1A1A1A"
+#' Colores y cortes del diseño aprobado
+#' @keywords internal
+.MAPA_DIST <- list(
+  blues5 = c("#C6DBEF", "#9ECAE1", "#6BAED6", "#3182BD", "#08519C"),
+  blues4 = c("#C6DBEF", "#9ECAE1", "#4292C6", "#08519C"),
+  vacio = "#FAF9F6", vacio_borde = "#C9CED6", fuera = "#14213D", punto = "#C8463D",
+  borde = "#FFFFFF", contorno = "#8E98A8", mar = "#E6EEF5", oceano = "#7A8AA0",
+  tierra = "#EEECE7", tierra_borde = "#D9D5CD", pais = "#A39E94", texto = "#14213D", gris = "#5A6478", guia = "#3C4658",
+  cortes_conteo = list(lima_callao = c(3, 6, 11, 21), peru = c(3, 6, 11)),
+  cortes_tasa = c(0.5, 1, 2, 3),
+  fuera_desde = 0.5
+)
 
 #' Mapa de la distribución de los encuestados por distrito de Lima y Callao o por departamento del Perú
 #'
 #' @param var Pregunta con el área de cada encuestado (códigos UBIGEO o nombres de distrito o departamento).
-#' @param area `"lima_callao"` (distritos) o `"peru"` (departamentos).
+#' @param area `"lima_callao"` (distritos) o `"peru"` (departamentos, con Lima Metropolitana, el Callao y Lima provincias
+#'   separados).
+#' @param medida `"conteo"` (número de encuestados) o `"tasa"` (por 10 000 habitantes, Censo 2017; sólo Lima y Callao).
 #' @param excluir_opciones Códigos o etiquetas que salen del total (p. ej. «No sabe»).
-#' @param cortes Límites de las clases en puntos porcentuales; vacío los toma de los cuartiles de la distribución.
-#' @param rotulo Título del panel del ranking; vacío dice «Encuestados por distrito» o «por departamento».
-#' @param encuadre `"datos"` acerca el mapa a las áreas con encuestados (las vecinas quedan de contexto, recortadas);
-#'   `"completo"` muestra todo el territorio.
+#' @param cortes Dónde empieza cada clase desde la segunda, en la unidad de la medida (p. ej. `c(3, 6, 11, 21)`
+#'   estudiantes o `c(0.5, 1, 2, 3)` por 10 000); vacío usa los del diseño.
+#' @param rotulo Título de la tarjeta del ranking; vacío lo arma el motor.
+#' @param encuadre `"datos"` acerca el mapa a las áreas con encuestados; `"completo"` muestra todo el territorio.
 #' @param puntos Lugares de referencia con su rótulo: coordenadas o enlace largo de Google Maps (graficos_mapa_puntos.R).
 #' @export
-p_mapa_distribucion <- function(var, area = c("lima_callao", "peru"), titulo = NULL, filtros = list(), excluir_opciones = NULL,
-                                cortes = NULL, rotulo = NULL, encuadre = c("datos", "completo"), puntos = NULL, overrides = list(), base = list()) {
+p_mapa_distribucion <- function(var, area = c("lima_callao", "peru"), medida = c("conteo", "tasa"), titulo = NULL, filtros = list(),
+                                excluir_opciones = NULL, cortes = NULL, rotulo = NULL, encuadre = c("datos", "completo"), puntos = NULL,
+                                overrides = list(), base = list()) {
   var <- .puntos_comparativos_ref(var, "var")
   area <- match.arg(as.character(unlist(area %||% "lima_callao"))[1], .MAPA_DISTRIBUCION_AREAS)
+  medida <- match.arg(as.character(unlist(medida %||% "conteo"))[1], c("conteo", "tasa"))
+  if (identical(medida, "tasa") && !identical(area, "lima_callao")) {
+    .plan_spec_abort("p_mapa_distribucion(): la tasa por habitantes sólo está disponible en Lima y Callao (población del Censo 2017 por distrito).")
+  }
   encuadre <- match.arg(as.character(unlist(encuadre %||% "datos"))[1], c("datos", "completo"))
-  cortes <- if (length(cortes)) sort(suppressWarnings(as.numeric(unlist(cortes)))) else NULL
-  if (length(cortes) && (any(!is.finite(cortes)) || any(cortes <= 0 | cortes >= 100))) {
-    .plan_spec_abort("p_mapa_distribucion(): `cortes` deben ser porcentajes entre 0 y 100.")
+  cortes <- if (length(cortes)) sort(unique(suppressWarnings(as.numeric(unlist(cortes))))) else NULL
+  if (length(cortes) && (any(!is.finite(cortes)) || any(cortes <= 0))) {
+    .plan_spec_abort("p_mapa_distribucion(): `cortes` deben ser números positivos (dónde empieza cada clase desde la segunda).")
   }
   if (!is.list(overrides)) .plan_spec_abort("`overrides` debe ser lista.")
-  el <- list(.element_type = "mapa_distribucion", var = var, area = area, title_slide = .ppt_norm_text1(titulo, blank = NULL),
+  el <- list(.element_type = "mapa_distribucion", var = var, area = area, medida = medida, title_slide = .ppt_norm_text1(titulo, blank = NULL),
              filtros = .ppt_norm_filters(filtros),
              excluir_opciones = if (length(excluir_opciones)) .puntos_comparativos_codigos(excluir_opciones, "excluir_opciones") else NULL,
              cortes = cortes, rotulo = .ppt_norm_text1(rotulo, blank = NULL), encuadre = encuadre,
@@ -88,158 +101,114 @@ p_mapa_distribucion <- function(var, area = c("lima_callao", "peru"), titulo = N
   }))
 }
 
-#' Departamentos del Perú del paquete (`inst/cartografia/peru_departamentos.geojson`) como zonas de mapa
+#' Número con coma decimal, como lo escribe el diseño aprobado («0,5», «1,2»)
 #' @keywords internal
-.mapa_peru_departamentos <- function() {
-  candidatos <- c(system.file("cartografia", "peru_departamentos.geojson", package = "prosecnurapp"),
-                  file.path(.app_api_dir(), "inst", "cartografia", "peru_departamentos.geojson"),
-                  file.path(getwd(), "api", "inst", "cartografia", "peru_departamentos.geojson"),
-                  file.path(getwd(), "inst", "cartografia", "peru_departamentos.geojson"))
-  path <- candidatos[nzchar(candidatos) & file.exists(candidatos)][1]
-  if (is.na(path)) return(list())
-  geo <- tryCatch(.hojas_ruta_read_json_any(path), error = function(e) NULL)
-  zonas <- lapply((geo %||% list())$features %||% list(), function(f) {
-    p <- f$properties %||% list(); rings <- .graficos_geojson_rings_payload(f$geometry)
-    if (!length(rings)) return(NULL)
-    list(ubigeo = .graficos_scalar_chr(p$ubigeo, ""), distrito = .graficos_scalar_chr(p$departamento, ""), rings = rings)
-  })
-  Filter(Negate(is.null), zonas)
+.mapa_dist_num <- function(x, dec = 1) {
+  s <- formatC(x, format = "f", digits = dec, big.mark = "")
+  sub(".", ",", s, fixed = TRUE)
 }
 
-#' La cartografía de un área: polígonos (`x`, `y`, `group`, `ubigeo`) y nombres para mostrar y casar
-#' @return `list(poligonos, nombres = data.frame(ubigeo, nombre), unidad)` o `NULL` sin cartografía.
-#' @keywords internal
-.mapa_distribucion_cartografia <- function(area) {
-  zonas <- if (identical(area, "peru")) .mapa_peru_departamentos() else .graficos_lima_district_context(incluir_callao = TRUE)
-  if (!length(zonas)) return(NULL)
-  ub <- vapply(zonas, function(z) z$ubigeo, ""); nm <- vapply(zonas, function(z) z$distrito, "")
-  list(poligonos = .mapa_collection_polygons(zonas),
-       nombres = data.frame(ubigeo = ub, nombre = if (identical(area, "peru")) nm else .mapa_nombre_distrito(nm), stringsAsFactors = FALSE),
-       unidad = if (identical(area, "peru")) "departamento" else "distrito")
-}
-
-#' Casa cada respuesta con un área del mapa: por UBIGEO (los dos primeros dígitos en departamentos) o por nombre
-#' @keywords internal
-.mapa_distribucion_casar <- function(filas, carto, area) {
-  clave <- function(x) trimws(gsub("\\s+", " ", gsub("[^a-z ]", " ", .lam_clave(x))))
-  cod <- as.character(filas$codigo)
-  num <- grepl("^[0-9]{2}$|^[0-9]{4}$|^[0-9]{5,6}$", cod)
-  por_cod <- if (identical(area, "peru")) ifelse(num, substr(sprintf("%06s", cod), 1, 2), NA_character_) else
-    ifelse(num & nchar(cod) >= 5, sprintf("%06d", suppressWarnings(as.integer(cod))), NA_character_)
-  por_cod <- gsub(" ", "0", por_cod)
-  nombre <- clave(filas$etiqueta)
-  if (identical(area, "peru")) {   # las formas usuales de Lima y el Callao en una pregunta de región
-    nombre <- sub("^(lima metropolitana|lima provincias|provincia de lima|region lima|departamento de lima)$", "lima", nombre)
-    nombre <- sub("^(provincia constitucional del callao|region callao)$", "callao", nombre)
-    nombre <- sub("^departamento de ", "", nombre)
-  }
-  claves_mapa <- clave(carto$nombres$nombre)
-  filas$ubigeo <- ifelse(!is.na(por_cod) & por_cod %in% carto$nombres$ubigeo, por_cod, carto$nombres$ubigeo[match(nombre, claves_mapa)])
-  filas
-}
-
-#' Cortes de las clases desde la distribución: los cuartiles de las áreas pintadas, en puntos enteros y sin repetir
-#' @keywords internal
-.mapa_distribucion_cortes <- function(pct) {
-  pct <- pct[is.finite(pct) & pct > 0]
-  if (length(pct) < 2L) return(c(10, 25))
-  q <- unique(pmax(1, round(stats::quantile(pct, c(0.25, 0.5, 0.75), names = FALSE))))
-  q <- q[q > 0 & q < 100]
-  if (!length(q)) c(10, 25) else q
-}
-
-#' Caja del mapa: todo el territorio, o las áreas con encuestados más un margen (encuadre «datos»)
+#' Clases de la medida: colores y rótulos para la leyenda, y la clase de cada valor
 #'
-#' Lima y Callao tienen distritos enormes y casi vacíos en los extremos (Ancón, Carabayllo, Pucusana) y el Perú tiene la
-#' Amazonía: con todos los encuestados en pocos distritos, el mapa completo dejaba lo que tiene datos en una mancha
-#' pequeña. La caja se ajusta a los polígonos con datos, con un 12 % de aire por lado y sin salir del territorio; los
-#' vecinos se dibujan igual, recortados en el borde, para que el lector se ubique.
+#' `cortes` dice dónde empieza cada clase desde la segunda. En conteo las clases son enteras («1–2», «3–5», «21 o más»);
+#' en tasa, «menos de 0,5», «0,5–1», «3 o más». Cinco clases usan Blues de 5; cuatro, el Blues de 4 del Perú.
+#' @return `list(cortes, colores, rotulos, clase = function(valor))`.
 #' @keywords internal
-.mapa_distribucion_caja <- function(poly, con_datos, encuadre = "datos", puntos = NULL) {
-  total <- c(xmin = min(poly$x), xmax = max(poly$x), ymin = min(poly$y), ymax = max(poly$y))
-  sel <- poly[poly$ubigeo %in% con_datos, , drop = FALSE]
-  if (!identical(encuadre, "datos") || !nrow(sel)) return(total)
-  # Los puntos de referencia dentro del territorio también entran al encuadre: la PUCP no se recorta.
-  pin <- if (NROW(puntos)) puntos[puntos$lon >= total[["xmin"]] & puntos$lon <= total[["xmax"]] & puntos$lat >= total[["ymin"]] & puntos$lat <= total[["ymax"]], ]
-  bb <- c(xmin = min(sel$x, pin$lon), xmax = max(sel$x, pin$lon), ymin = min(sel$y, pin$lat), ymax = max(sel$y, pin$lat))
-  # Un aire mínimo del 8 % del territorio: un solo distrito con datos no se vuelve todo el mapa.
-  ax <- max(0.12 * (bb[["xmax"]] - bb[["xmin"]]), 0.08 * (total[["xmax"]] - total[["xmin"]]))
-  ay <- max(0.12 * (bb[["ymax"]] - bb[["ymin"]]), 0.08 * (total[["ymax"]] - total[["ymin"]]))
-  cj <- c(xmin = max(total[["xmin"]], bb[["xmin"]] - ax), xmax = min(total[["xmax"]], bb[["xmax"]] + ax),
-          ymin = max(total[["ymin"]], bb[["ymin"]] - ay), ymax = min(total[["ymax"]], bb[["ymax"]] + ay))
-  .mapa_puntos_caja_con_mar(cj, pin)
-}
-
-#' Recorta los polígonos a la caja con geometría de verdad (`sf`): lo de fuera se corta en el borde y se descarta
-#'
-#' El dispositivo vectorial del PPT (rvg) se cae (segfault) al dibujar polígonos que salen del recorte de
-#' `coord_quickmap`. Acotar los vértices al borde lo evitaba, pero dejaba anillos aplastados contra el borde cuyo contorno
-#' blanco se veía como líneas sueltas («se ve de baja calidad», Gonzalo, 2026-11-02). La intersección con la caja corta
-#' cada anillo donde toca el borde. Sin `sf`, queda el acotado de antes.
-#' @keywords internal
-.mapa_distribucion_recortar <- function(poly, bb) {
-  dentro <- poly$x >= bb[["xmin"]] & poly$x <= bb[["xmax"]] & poly$y >= bb[["ymin"]] & poly$y <= bb[["ymax"]]
-  if (all(dentro)) return(poly)
-  if (!requireNamespace("sf", quietly = TRUE)) {
-    poly <- poly[poly$group %in% unique(poly$group[dentro]), , drop = FALSE]
-    poly$x <- pmin(pmax(poly$x, bb[["xmin"]]), bb[["xmax"]]); poly$y <- pmin(pmax(poly$y, bb[["ymin"]]), bb[["ymax"]])
-    return(poly)
-  }
-  caja <- sf::st_sfc(sf::st_polygon(list(rbind(c(bb[["xmin"]], bb[["ymin"]]), c(bb[["xmax"]], bb[["ymin"]]), c(bb[["xmax"]], bb[["ymax"]]),
-                                                c(bb[["xmin"]], bb[["ymax"]]), c(bb[["xmin"]], bb[["ymin"]])))))   # sin CRS: plano (GEOS)
-  attrs <- setdiff(names(poly), c("x", "y", "group"))
-  piezas <- lapply(split(poly, factor(poly$group, levels = unique(poly$group))), function(d) {
-    if (max(d$x) < bb[["xmin"]] || min(d$x) > bb[["xmax"]] || max(d$y) < bb[["ymin"]] || min(d$y) > bb[["ymax"]]) return(NULL)
-    if (all(d$x >= bb[["xmin"]] & d$x <= bb[["xmax"]] & d$y >= bb[["ymin"]] & d$y <= bb[["ymax"]])) return(d)
-    m <- as.matrix(d[c("x", "y")]); if (any(m[1, ] != m[nrow(m), ])) m <- rbind(m, m[1, ])
-    if (nrow(m) < 4L) return(NULL)
-    r <- tryCatch(sf::st_intersection(sf::st_make_valid(sf::st_sfc(sf::st_polygon(list(m)))), caja), error = function(e) NULL)
-    if (is.null(r) || !length(r) || all(sf::st_is_empty(r))) return(NULL)
-    r <- sf::st_collection_extract(r, "POLYGON")
-    if (!length(r)) return(NULL)
-    xy <- as.data.frame(sf::st_coordinates(r))
-    anillo <- interaction(xy[intersect(c("L1", "L2", "L3"), names(xy))], drop = TRUE)
-    out <- data.frame(x = xy$X, y = xy$Y, group = paste(d$group[1], as.integer(anillo), sep = "~"), stringsAsFactors = FALSE)
-    for (a in attrs) out[[a]] <- d[[a]][1]
-    out
-  })
-  piezas <- Filter(Negate(is.null), piezas)
-  if (!length(piezas)) return(poly[0, , drop = FALSE])
-  do.call(rbind, lapply(piezas, function(d) d[c("x", "y", "group", attrs)]))
-}
-
-#' Especificación del mapa de distribución (forma «resultado» de mapa/1, con la cifra «conteo (porcentaje)»)
-#' @keywords internal
-.espec_mapa_distribucion <- function(filas, carto, cortes = NULL, encuadre = "datos", puntos = NULL) {
-  if (is.null(carto)) return(NULL)
-  ok <- filas[!is.na(filas$ubigeo), , drop = FALSE]
-  if (nrow(ok)) ok <- do.call(rbind, lapply(split(ok, ok$ubigeo), function(d) {   # dos respuestas que caen en la misma área se suman
-    data.frame(ubigeo = d$ubigeo[1], n = sum(d$n), porcentaje = sum(d$porcentaje), stringsAsFactors = FALSE)
-  }))
-  cortes <- if (length(cortes)) cortes else .mapa_distribucion_cortes(ok$porcentaje)
+.mapa_distribucion_clases <- function(medida, area, cortes = NULL) {
+  M <- .MAPA_DIST
+  cortes <- cortes %||% (if (identical(medida, "tasa")) M$cortes_tasa else M$cortes_conteo[[area]])
   k <- length(cortes) + 1L
-  pal <- if (k == 4L) .MAPA_DISTRIBUCION_PALETA else
-    grDevices::colorRampPalette(.MAPA_DISTRIBUCION_PALETA[c(1, 4)], space = "Lab")(k)   # extremos fijos, saltos parejos
-  clase <- findInterval(.pulso_round_half_up(ok$porcentaje), cortes) + 1L   # la clase del número que se lee
-  poly <- carto$poligonos
-  fill_de <- stats::setNames(pal[clase], ok$ubigeo)
-  poly$fill <- ifelse(poly$ubigeo %in% names(fill_de), fill_de[poly$ubigeo], .MAPA_DISTRIBUCION_VACIO)
-  o <- order(-ok$porcentaje, carto$nombres$nombre[match(ok$ubigeo, carto$nombres$ubigeo)])
-  nombre <- carto$nombres$nombre[match(ok$ubigeo, carto$nombres$ubigeo)]
-  valor <- .pulso_round_half_up(ok$porcentaje)
-  cifra <- sprintf("%s (%s%%)", format(ok$n, big.mark = ",", trim = TRUE), valor)
-  bb <- .mapa_distribucion_caja(poly, ok$ubigeo, encuadre, puntos)
-  recortado <- bb[["xmin"]] > min(poly$x) + 1e-9 || bb[["xmax"]] < max(poly$x) - 1e-9 ||
-    bb[["ymin"]] > min(poly$y) + 1e-9 || bb[["ymax"]] < max(poly$y) - 1e-9
-  poly <- .mapa_distribucion_recortar(poly, bb)
-  list(version = "mapa/1", tipo = "mapa", forma = "resultado",
-       capas = list(list(datos = poly, borde = .MAPA_DISTRIBUCION_BORDE, grosor = 0.2)), caja = bb,
-       leyenda = list(titulo = paste("Porcentaje de encuestados por", carto$unidad), rotulos = c(.mapa_clases_rotulos(cortes, pal), "Sin encuestados"),
-                      colores = c(pal, .MAPA_DISTRIBUCION_VACIO), cortes = cortes, borde = .MAPA_DISTRIBUCION_BORDE),
-       ranking = data.frame(distrito = nombre[o], valor = valor[o], n = ok$n[o], color = pal[clase][o], cifra = cifra[o], stringsAsFactors = FALSE),
-       escala_max = max(c(1, ok$porcentaje)),
-       panel = list(titulo = paste("Encuestados por", carto$unidad), sub = "Número y porcentaje, de mayor a menor"),
-       leyenda_abajo = TRUE, recortado = recortado, puntos = puntos, sin_casar = filas$etiqueta[is.na(filas$ubigeo)], pocos_casos = character(0))
+  colores <- if (k == 5L) M$blues5 else if (k == 4L) M$blues4 else grDevices::colorRampPalette(M$blues5[c(1, 5)], space = "Lab")(k)
+  rotulos <- if (identical(medida, "tasa")) {
+    b <- c(0, cortes)
+    vapply(seq_len(k), function(j) if (j == 1L) paste("menos de", .mapa_dist_num(b[2], if (b[2] %% 1) 1 else 0)) else
+      if (j == k) paste(.mapa_dist_num(b[j], if (b[j] %% 1) 1 else 0), "o más") else
+        paste0(.mapa_dist_num(b[j], if (b[j] %% 1) 1 else 0), "–", .mapa_dist_num(b[j + 1], if (b[j + 1] %% 1) 1 else 0)), "")
+  } else {
+    b <- c(1, cortes)
+    vapply(seq_len(k), function(j) if (j == k) paste(b[j], "o más") else if (b[j + 1] - 1 == b[j]) as.character(b[j]) else
+      paste0(b[j], "–", b[j + 1] - 1), "")
+  }
+  list(cortes = cortes, colores = colores, rotulos = rotulos, clase = function(v) findInterval(v, cortes) + 1L)
+}
+
+#' Especificación del mapa de distribución (forma «distribucion» de mapa/1)
+#'
+#' @param filas Salida de `.mapa_distribucion_casar()`. @param carto Cartografía. @param puntos Puntos normalizados.
+#' @return Lista con las áreas y su valor, clase y color; el contexto; las clases; los rótulos que pide el mapa; el
+#'   ranking; la zona de Lima (Perú) y los textos.
+#' @keywords internal
+.espec_mapa_distribucion <- function(filas, carto, area, medida = "conteo", cortes = NULL, encuadre = "datos", puntos = NULL,
+                                     rotulo = NULL) {
+  if (is.null(carto)) return(NULL)
+  M <- .MAPA_DIST
+  base <- sum(filas$n)
+  a <- as.data.frame(carto$areas)[, c("clave", "nombre", "pob", "cx", "cy")]
+  ok <- filas[!is.na(filas$clave), , drop = FALSE]
+  n_de <- tapply(ok$n, ok$clave, sum)
+  a$n <- as.integer(ifelse(a$clave %in% names(n_de), n_de[a$clave], 0L))
+  a$pct <- if (base > 0) 100 * a$n / base else 0
+  a$tasa <- ifelse(is.finite(a$pob) & a$pob > 0, 1e4 * a$n / a$pob, NA_real_)
+  a$valor <- if (identical(medida, "tasa")) a$tasa else a$n
+  cl <- .mapa_distribucion_clases(medida, area, cortes)
+  # Lo que pasa de la mitad de la base va fuera de escala: en azul marino, con su cifra, y no entra en los cortes.
+  a$fuera <- base > 0 & a$n > M$fuera_desde * base & identical(medida, "conteo")
+  a$clase <- ifelse(a$n > 0 & !a$fuera & is.finite(a$valor), cl$clase(a$valor), NA_integer_)
+  a$color <- ifelse(a$fuera, M$fuera, ifelse(is.na(a$clase), M$vacio, cl$colores[pmax(1L, a$clase)]))
+  pct_txt <- function(p) ifelse(p > 0 & p < 1, "<1%", paste0(.pulso_round_half_up(p), "%"))
+  a$cifra <- if (identical(medida, "tasa")) .mapa_dist_num(a$tasa) else as.character(a$n)
+  con <- a[a$n > 0, , drop = FALSE]
+  con <- con[order(-con$valor, -con$n, con$nombre), , drop = FALSE]
+  # Gonzalo, 2026-11-02: «la línea hacia afuera es sólo para los puntos de Google Maps; los distritos se colorean con
+  # leyenda y gráfico de barras al lado». Las áreas no llevan rótulo en el mapa: sólo los puntos de referencia.
+  rotulos <- if (NROW(puntos)) data.frame(texto = puntos$etiqueta, lon = puntos$lon, lat = puntos$lat,
+                                          color = ifelse(puntos$color == .std_color("coral"), M$punto, puntos$color),
+                                          punto = ifelse(puntos$color == .std_color("coral"), M$punto, puntos$color),
+                                          stringsAsFactors = FALSE) else
+    data.frame(texto = character(0), lon = numeric(0), lat = numeric(0), color = character(0), punto = character(0))
+  # El ranking: lo que entra en la escala, de mayor a menor; lo fuera de escala se anota aparte.
+  rk <- con[!con$fuera, , drop = FALSE]
+  max_filas <- 14L
+  resto <- rk[-seq_len(min(nrow(rk), max_filas)), , drop = FALSE]
+  rk <- utils::head(rk, max_filas)
+  ranking <- data.frame(nombre = rk$nombre, barra = rk$valor / max(c(1e-9, rk$valor)), color = rk$color,
+                        valor = if (identical(medida, "tasa")) .mapa_dist_num(rk$tasa) else as.character(rk$n),
+                        detalle = if (identical(medida, "tasa")) paste0("(", rk$n, ")") else paste0("(", pct_txt(rk$pct), ")"),
+                        stringsAsFactors = FALSE)
+  fuera <- a[a$fuera, , drop = FALSE]
+  sin_casar <- filas[is.na(filas$clave), , drop = FALSE]
+  notas <- c(
+    if (nrow(resto)) sprintf("%d %s más suman %d %s (%s).", nrow(resto), carto$unidad_plural, sum(resto$n),
+                             if (sum(resto$n) == 1) "encuestado" else "encuestados", pct_txt(100 * sum(resto$n) / max(1, base))),
+    if (nrow(sin_casar)) sprintf("Fuera del mapa: %s.", paste(sprintf("%s %d", sin_casar$etiqueta, sin_casar$n), collapse = ", ")))
+  uni <- carto$unidad
+  zona <- if (!is.null(carto$zona)) {
+    z <- a[match(carto$zona, a$clave), , drop = FALSE]
+    data.frame(clave = z$clave, nombre = z$nombre, color = z$color, cifra = paste0(z$n, " (", pct_txt(z$pct), ")"), stringsAsFactors = FALSE)
+  }
+  list(version = "mapa/1", tipo = "mapa", forma = "distribucion", area = area, medida = medida, encuadre = encuadre,
+       areas = a, carto = carto, base = base,
+       clases = list(colores = cl$colores, rotulos = cl$rotulos, cortes = cl$cortes),
+       fuera = if (nrow(fuera)) data.frame(nombre = fuera$nombre, cifra = paste0(fuera$n, " (", pct_txt(fuera$pct), ")"), stringsAsFactors = FALSE),
+       leyenda_titulo = if (identical(medida, "tasa")) paste("Encuestados por cada 10 000 habitantes del", uni) else
+         paste("Encuestados por", uni),
+       rotulos = rotulos, puntos = puntos, zona = zona, ranking = ranking, notas = notas,
+       ranking_titulo = rotulo %||% (if (nrow(fuera)) paste("Fuera de", paste(fuera$nombre, collapse = " y ")) else
+         paste(tools::toTitleCase(carto$unidad_plural), "con más encuestados")),
+       ranking_sub = if (identical(medida, "tasa")) "Encuestados por cada 10 000 habitantes; entre paréntesis, el número" else
+         "Número de encuestados y porcentaje sobre el total",
+       ranking_columnas = c(tools::toTitleCase(uni), if (identical(medida, "tasa")) "Tasa (n)" else "n (%)"),
+       nota_pie = if (identical(medida, "tasa")) "Población: INEI, Censo 2017." else NULL,
+       sin_casar = sin_casar$etiqueta)
+}
+
+#' Mapa de distribución (ggplot de respaldo con la espec adjunta): el panel con su leyenda
+#' @keywords internal
+graficar_mapa_distribucion <- function(espec) {
+  if (is.null(espec)) return(.plan_canvas_render_nulo("mapa_distribucion: el paquete no trae la cartografía de esta área."))
+  p <- .mapa_dist_panel_gg(espec, ancho = 7, alto = 4.8, pt = .mapa_dist_pt("lamina"))
+  attr(p, "pulso_espec") <- espec
+  p
 }
 
 #' @keywords internal
@@ -252,19 +221,15 @@ p_mapa_distribucion <- function(var, area = c("lima_callao", "peru"), titulo = N
     stop("mapa_distribucion: la pregunta requiere prefijo `fuente$` cuando hay varias bases.", call. = FALSE)
   ctx <- .graficos_consolidado_ref_context(paste0(fuente, "$", part$name), list(data_sources = data_sources, inst_sources = instrument_sources))
   if (!isTRUE(ctx$exists)) stop("mapa_distribucion: `", el$var, "` no existe completa en data e instrumento.", call. = FALSE)
+  area <- el$area %||% "lima_callao"
   filas <- .mapa_distribucion_calcular(data_sources[[fuente]], instrument_sources[[fuente]], ctx$resolved_variable,
                                        el$filtros %||% list(), el$excluir_opciones)
-  carto <- .mapa_distribucion_cartografia(el$area %||% "lima_callao")
+  carto <- .mapa_distribucion_cartografia(area)
   if (is.null(carto)) return(.plan_canvas_render_nulo("mapa_distribucion: el paquete no trae la cartografía de esta área."))
-  espec <- .espec_mapa_distribucion(.mapa_distribucion_casar(filas, carto, el$area %||% "lima_callao"), carto, el$cortes, el$encuadre %||% "datos", el$puntos)
-  if (!is.null(el$rotulo)) espec$panel$titulo <- el$rotulo
-  cj <- espec$caja; pt <- el$puntos
-  fuera <- if (NROW(pt)) pt$etiqueta[!(pt$lon >= cj[["xmin"]] & pt$lon <= cj[["xmax"]] & pt$lat >= cj[["ymin"]] & pt$lat <= cj[["ymax"]])]
-  if (length(fuera)) message("[PULSO-AVISO] Mapa de distribución: puntos fuera del mapa, no se dibujan: ", paste(fuera, collapse = ", "), ".")
+  espec <- .espec_mapa_distribucion(.mapa_distribucion_casar(filas, carto, area), carto, area, el$medida %||% "conteo", el$cortes,
+                                    el$encuadre %||% "datos", el$puntos, el$rotulo)
   # Lo que no casa con la cartografía sigue en el total y se dice con su nombre: nunca se descarta en silencio.
   if (length(espec$sin_casar)) message("[PULSO-AVISO] Mapa de distribución: fuera del mapa (cuentan en el total): ",
                                        paste(espec$sin_casar, collapse = ", "), ".")
-  if (!.lam_mapa_resultado_cabe(espec)) message("[PULSO-AVISO] Mapa de distribución: el ranking no cabe en la lámina; ",
-                                                 "sale el mapa con su leyenda, sin las cifras.")
-  graficar_mapa_resultado_distrital(espec)
+  graficar_mapa_distribucion(espec)
 }
