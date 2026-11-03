@@ -53,7 +53,6 @@ const SNAPSHOT: Record<string, number> = {
   "motor/ResumenDiseno.tsx": 9,
   "universidad/UniversidadDesk.tsx": 4,
   "universidad/aulas/AulaInspectorPanel.tsx": 4,
-  "universidad/aulas/AulasObjetivoTab.tsx": 1,
   "universidad/aulas/AulasPerfilTab.tsx": 1,
   "universidad/aulas/AulasReemplazosTab.tsx": 1,
   "universidad/aulas/AulasSolidezTab.tsx": 5,
@@ -136,7 +135,6 @@ const SNAPSHOT: Record<string, number> = {
   "universidad/salidas/SeleccionComparadaCard.tsx": 1,
   "universidad/salidas/sustentoSecciones.ts": 1,
   "universidad/shared/frameIntegrity.ts": 1,
-  "universidad/ui/CifraMotor.tsx": 1,
 };
 
 describe("punto medio en Cálculo de muestra · P3", () => {

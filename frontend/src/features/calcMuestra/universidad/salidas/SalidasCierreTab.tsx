@@ -272,7 +272,7 @@ export function SalidasCierreTab({
                 ? String(frame.frame_hash).slice(0, 10)
                 : "pendiente"}
           </span>
-          <em>Con estos datos el sorteo se reconstruye exacto; el detalle completo vive en Selección → Sustento técnico.</em>
+          <em>Con estos datos el sorteo se reconstruye exacto; el detalle completo vive en Selección › Sustento técnico.</em>
         </div>
 
         {/*

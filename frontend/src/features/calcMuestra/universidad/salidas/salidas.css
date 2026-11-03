@@ -363,8 +363,9 @@
   color: var(--pulso-text-muted);
 }
 
-/* Dentro de la ficha, la reproducibilidad se lee como sello: valores en mono
-   con tracking, etiquetas más comprimidas y borde discontinuo discreto. */
+/* Dentro de la ficha, la reproducibilidad se lee como sello: borde discontinuo
+   discreto y etiquetas comprimidas. Los valores van en la letra del sistema con
+   cifras tabulares (P8): método, semilla y firma son metadatos, no código. */
 .cmv2-sal-ficha .cmv2-sal-meta {
   border-style: dashed;
   border-color: var(--cmv2-border-strong);
@@ -372,19 +373,12 @@
 }
 
 .cmv2-sal-ficha .cmv2-sal-meta span {
-  font-family: var(--pulso-font-mono, ui-monospace, "SF Mono", Menlo, monospace);
   font-size: var(--pulso-type-caption-size);
-  letter-spacing: 0.02em;
 }
 
 .cmv2-sal-ficha .cmv2-sal-meta b {
   font-size: var(--pulso-type-micro-size);
   letter-spacing: 0.09em;
-}
-
-.cmv2-sal-ficha .cmv2-sal-meta em {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
-  letter-spacing: normal;
 }
 
 /* --- Entregables: política PII -----------------------------------------------

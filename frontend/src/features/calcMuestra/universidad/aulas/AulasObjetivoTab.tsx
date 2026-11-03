@@ -117,7 +117,7 @@ export function AulasObjetivoTab({
           <CifraFila>
             <CifraMotor
               label="Escenario"
-              value={model.aulasScenario === "e2" ? "P2 · por facultad" : "P1 · universidad"}
+              value={model.aulasScenario === "e2" ? "P2, por facultad" : "P1, universidad"}
               detalle="componente que manda en cursos‑horario"
             />
             <CifraMotor

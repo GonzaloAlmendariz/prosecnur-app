@@ -726,8 +726,28 @@ button.cmv2-uni-flujo-etapa:focus-visible {
 }
 
 .cmv2-uni-cifra-detalle {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px var(--pulso-space-2);
   font-size: var(--pulso-type-micro-size);
   color: var(--pulso-text-muted);
+}
+
+/* Sin cifra todavía: rótulo apagado en la letra del cuerpo, no un valor de 21 px
+   que compite con las cifras reales de la fila. La tarjeta pierde el acento. */
+.cmv2-uni-cifra[data-sin-cifra="true"] .cmv2-uni-cifra-valor,
+.cmv2-uni-cifra[data-sin-cifra="true"][data-hero="true"] .cmv2-uni-cifra-valor {
+  padding-block: 4px;
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-body-size);
+  font-weight: var(--pulso-weight-semibold);
+  letter-spacing: 0;
+}
+
+.cmv2-uni-cifra[data-sin-cifra="true"][data-hero="true"] {
+  border-color: var(--cmv2-border);
+  background: var(--cmv2-surface);
 }
 
 .cmv2-uni-cifra-fila {
