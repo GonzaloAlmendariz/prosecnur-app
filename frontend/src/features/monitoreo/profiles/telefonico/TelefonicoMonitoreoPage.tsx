@@ -2,6 +2,8 @@ import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "rea
 import type { CSSProperties, ReactNode } from "react";
 import { AlertCircle, BarChart3, CalendarRange, CheckCircle2, ChevronDown, ClipboardCheck, Clock3, ContactRound, Download, Eye, FileCheck2, Filter, KeyRound, Layers3, Link2, Loader2, Mail, PhoneCall, PlugZap, Plus, ListChecks, QrCode, RefreshCw, Route, Save, Search, ShieldAlert, SlidersHorizontal, Table2, Target, X, XCircle } from "lucide-react";
 import { PageFrame } from "../../../../components/PageFrame";
+import { LoadingBlock } from "../../../../components/States";
+import { EstadoVacio } from "../../../../components/EstadoVacio";
 import { pctDecimal } from "../../core/formatoComun";
 import { GlidingTabList } from "../../../../components/GlidingTabList";
 import {
@@ -2218,7 +2220,7 @@ function AcreditacionFieldCalendarTimeline({ phases }: { phases: MonitoreoStrate
           </div>
         </div>
       ) : (
-        <p className="mon-calendar-timeline-empty">Las fases existen, pero ninguna tiene fecha de campo definida.</p>
+        <EstadoVacio icono={<CalendarRange size={15} />} titulo="Las fases existen, pero ninguna tiene fecha de campo definida." />
       )}
       {timeline.missingDates > 0 ? (
         <p className="mon-calendar-timeline-note">{fmt(timeline.missingDates)} fase{timeline.missingDates === 1 ? "" : "s"} sin fecha completa todavía.</p>
@@ -3058,7 +3060,7 @@ function AcreditacionModelConfigWorkbench({
                           {reportRows.length > 6 ? <span><strong>+{fmt(reportRows.length - 6)}</strong><em>más</em><small>reporte</small></span> : null}
                         </div>
                       ) : (
-                        <p className="mon-calendar-report-empty">Define un día semanal o una excepción para programar reportes al cliente.</p>
+                        <EstadoVacio icono={<CalendarRange size={15} />} titulo="Define un día semanal o una excepción para programar reportes al cliente." />
                       )}
                       {reportExceptions.length ? (
                         <div className="mon-calendar-report-exceptions" aria-label={`Excepciones de reporte al cliente para ${phase.stratum || `fase ${index + 1}`}`}>
@@ -3380,7 +3382,7 @@ function AcreditacionSweepBaseWorkbench({
                       {dimensions.map(([key, value]) => <span key={`${channel.key}-${key}`}>{dimensionLabel(key)}: {value}</span>)}
                     </div>
                   ) : (
-                    <div className="mon-sm-empty">Registra una hoja de barrido arriba para asociarla a este canal.</div>
+                    <EstadoVacio icono={<Table2 size={15} />} titulo="Registra una hoja de barrido arriba para asociarla a este canal." />
                   )}
                 </article>
               );
@@ -7014,23 +7016,20 @@ function AcreditacionChannelSelectorMatrix({
               );
             })}
             {!surveySources.length ? (
-              <div className="mon-sm-empty">Conecta una fuente SurveyMonkey para clasificar canales y recopiladores.</div>
+              <EstadoVacio icono={<PlugZap size={15} />} titulo="Conecta una fuente SurveyMonkey para clasificar canales y recopiladores." />
             ) : null}
           </div>
         </div>
 
         <div className="mon-collector-body mon-collector-body--matrix" aria-label="Canal por recopilador">
           {loading ? (
-            <div className="mon-collector-loading">
-              <Loader2 size={16} className="pulso-spin" />
-              <span>Leyendo recopiladores locales...</span>
-            </div>
+            <LoadingBlock variant="inline" label="Leyendo recopiladores locales..." />
           ) : null}
           {!loading && sourceIds.length > 0 && !mergedItems.length ? (
-            <div className="mon-sm-empty">Sin recopiladores detectados. Revisa el snapshot local o lee SurveyMonkey de forma explícita.</div>
+            <EstadoVacio icono={<ListChecks size={15} />} titulo="Sin recopiladores detectados" descripcion="Revisa el snapshot local o lee SurveyMonkey de forma explícita." />
           ) : null}
           {!sourceIds.length ? (
-            <div className="mon-sm-empty">No hay encuestas SurveyMonkey activas para descubrir recopiladores.</div>
+            <EstadoVacio icono={<ListChecks size={15} />} titulo="No hay encuestas SurveyMonkey activas para descubrir recopiladores." />
           ) : null}
           <div className="mon-collector-list">
             {mergedItems.map((item) => {
@@ -8316,10 +8315,7 @@ function AcreditacionSurveyInspectionCard({
   if (!inspection) return null;
   if (inspection.loading && !inspection.data) {
     return (
-      <div className="mon-sm-inspection">
-        <Loader2 size={14} className="pulso-spin" />
-        <span>Cargando estructura y respuestas...</span>
-      </div>
+      <LoadingBlock variant="inline" label="Cargando estructura y respuestas..." />
     );
   }
   if (inspection.error && !inspection.data) {
@@ -8629,11 +8625,7 @@ function AcreditacionPlatformSurveySourcesView({
             );
           })}
           {!platformSources.length ? (
-            <div className="mon-acr-empty-state">
-              <ListChecks size={18} />
-              <strong>Sin encuestas conectadas</strong>
-              <span>Agrega SurveyMonkey o selecciona una encuesta Kobo de plataforma y después asigna cada una al actor correcto.</span>
-            </div>
+            <EstadoVacio icono={<ListChecks size={15} />} titulo="Sin encuestas conectadas" descripcion="Agrega SurveyMonkey o selecciona una encuesta Kobo de plataforma y después asigna cada una al actor correcto." />
           ) : null}
         </div>
       </section>
@@ -8790,7 +8782,7 @@ function AcreditacionSheetsByActorView({
               );
             })}
             {!actorOptions.length ? (
-              <div className="mon-sm-empty">Configura actores en Encuestas en plataforma o agrega uno manualmente.</div>
+              <EstadoVacio icono={<ContactRound size={15} />} titulo="Configura actores en Encuestas en plataforma o agrega uno manualmente." />
             ) : null}
           </div>
           <div className="mon-acr-actor-sheet-editor">
@@ -8972,7 +8964,7 @@ function AcreditacionCollectorsSourceView({
               </button>
             );
           })}
-          {!surveySources.length ? <div className="mon-sm-empty">No hay encuestas SurveyMonkey activas.</div> : null}
+          {!surveySources.length ? <EstadoVacio icono={<ListChecks size={15} />} titulo="No hay encuestas SurveyMonkey activas." /> : null}
         </div>
         {selectedSource && !selectedHasMetadata ? (
           <div className="mon-acr-metadata-missing">
@@ -9045,7 +9037,7 @@ function AcreditacionCollectorsSourceView({
             );
           })}
           {selectedHasMetadata && !collectorRows.length ? (
-            <div className="mon-sm-empty">Esta encuesta no tiene recopiladores persistidos.</div>
+            <EstadoVacio icono={<ListChecks size={15} />} titulo="Esta encuesta no tiene recopiladores persistidos." />
           ) : null}
         </div>
       </section>
@@ -9134,7 +9126,7 @@ function AcreditacionActiveSourcesView({
                   <em>{sourceSyncLabel(source)}</em>
                 </article>
               ))}
-              {!phoneSheetSources.length ? <div className="mon-sm-empty">Sin Sheets telefónicas activas.</div> : null}
+              {!phoneSheetSources.length ? <EstadoVacio icono={<Table2 size={15} />} titulo="Sin Sheets telefónicas activas." /> : null}
             </div>
           </section>
           <section className="mon-acr-object-surface">
@@ -9153,7 +9145,7 @@ function AcreditacionActiveSourcesView({
                   <em>{fmt(acreditacionSourceResponseCount(source))} respuestas</em>
                 </article>
               ))}
-              {!koboSources.length ? <div className="mon-sm-empty">Sin Kobo activo.</div> : null}
+              {!koboSources.length ? <EstadoVacio icono={<PlugZap size={15} />} titulo="Sin Kobo activo." /> : null}
             </div>
           </section>
         </div>
@@ -9225,7 +9217,7 @@ function AcreditacionActiveSourcesView({
                 </article>
               );
             })}
-            {!summary.actorsWithSurvey.length ? <div className="mon-sm-empty">Sin actores activos desde encuestas.</div> : null}
+            {!summary.actorsWithSurvey.length ? <EstadoVacio icono={<ContactRound size={15} />} titulo="Sin actores activos desde encuestas." /> : null}
           </div>
         </section>
         <section className="mon-acr-object-surface">
@@ -9247,7 +9239,7 @@ function AcreditacionActiveSourcesView({
                 </article>
               );
             })}
-            {!surveySources.length ? <div className="mon-sm-empty">Sin encuestas activas.</div> : null}
+            {!surveySources.length ? <EstadoVacio icono={<ListChecks size={15} />} titulo="Sin encuestas activas." /> : null}
           </div>
         </section>
         <section className="mon-acr-object-surface">
@@ -9266,7 +9258,7 @@ function AcreditacionActiveSourcesView({
                 <em>{sourceSyncLabel(source)}</em>
               </article>
             ))}
-            {!sheetSources.length ? <div className="mon-sm-empty">Sin bases Sheets activas.</div> : null}
+            {!sheetSources.length ? <EstadoVacio icono={<Table2 size={15} />} titulo="Sin bases Sheets activas." /> : null}
           </div>
         </section>
       </div>
@@ -9424,7 +9416,7 @@ function AcreditacionConfiguredSourcesList({
             </div>
           );
         })}
-        {!sources.length ? <div className="mon-sm-empty">Aún no hay fuentes configuradas</div> : null}
+        {!sources.length ? <EstadoVacio icono={<PlugZap size={15} />} titulo="Aún no hay fuentes configuradas" /> : null}
       </div>
     </aside>
   );
@@ -10893,7 +10885,7 @@ function AcreditacionAssistedReviewBlock({
               {assignmentQuery && !visibleAssignmentOptions.length ? <small>No hay personas pendientes que coincidan con la búsqueda.</small> : null}
             </div>
           ) : (
-            <p className="mon-assisted-review-empty">No hay personas pendientes disponibles en el universo de este actor.</p>
+            <EstadoVacio icono={<ContactRound size={15} />} titulo="No hay personas pendientes disponibles en el universo de este actor." />
           )}
         </div>
       ) : null}
@@ -12117,9 +12109,7 @@ function AcreditacionQueryBreakdownCard({
     return (
       <section className="mon-query-chart-card">
         <header><span>{icon}{title}</span></header>
-        <div className="mon-query-breakdown-empty">
-          <EmptyPanel title="Sin casos para este filtro" detail="El filtro actual no devuelve casos. Ajusta los criterios para ampliar la lectura." />
-        </div>
+        <EmptyPanel title="Sin casos para este filtro" detail="El filtro actual no devuelve casos. Ajusta los criterios para ampliar la lectura." />
       </section>
     );
   }
@@ -15358,7 +15348,7 @@ function AcreditacionActorProgressCardView({
           {baseMechanisms.length ? baseMechanisms.map((item) => (
             <AcreditacionActorMechanismRow key={item.id} item={item} universe={card.universe} />
           )) : (
-            <div className="mon-actor-mechanism-empty">Sin base registrada para esta unidad.</div>
+            <EstadoVacio icono={<Table2 size={15} />} titulo="Sin base registrada para esta unidad." />
           )}
         </AcreditacionActorMechanismGroup>
         <AcreditacionActorMechanismGroup
@@ -15370,7 +15360,7 @@ function AcreditacionActorProgressCardView({
           {responseMechanisms.length ? responseMechanisms.map((item) => (
             <AcreditacionActorMechanismRow key={item.id} item={item} universe={card.universe} />
           )) : (
-            <div className="mon-actor-mechanism-empty">Sin respuestas conectadas para este actor.</div>
+            <EstadoVacio icono={<PlugZap size={15} />} titulo="Sin respuestas conectadas para este actor." />
           )}
         </AcreditacionActorMechanismGroup>
       </div>

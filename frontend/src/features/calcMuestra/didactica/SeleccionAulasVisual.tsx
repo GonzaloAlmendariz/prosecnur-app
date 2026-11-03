@@ -12,7 +12,8 @@ import { useMemo } from "react";
 import { GraduationCap, Landmark, Repeat, School } from "lucide-react";
 import type { CalcMuestraAulasSelection } from "../../../api/client";
 import { PlotlyChart } from "../../../lib/PlotlyChart";
-import { fmtPct } from "../sharedCore";
+import { formatoDecimal } from "../../../lib/formatoNumero";
+import { fmtInt, fmtPct } from "../sharedCore";
 import { BadgeMotor, TerminoGlosario } from "./PasoDidactico";
 import { colorWithAlpha, didPlotLayout, DID_PLOT_CONFIG, useDidTokens } from "./didacticaCharts";
 import { rowsFrom, rowText, safeNum } from "./didacticaData";
@@ -167,22 +168,22 @@ export function SeleccionAulasVisual({
       <dl className="cmv2-did-kpis">
         <div className="cmv2-did-kpi" data-hero="true">
           <dt>Cursos-horario titulares</dt>
-          <dd>{modelo.titulares.toLocaleString("es-PE")}</dd>
+          <dd>{fmtInt(modelo.titulares)}</dd>
           <span className="cmv2-did-kpi-hint">se visitan primero (M1)</span>
         </div>
         <div className="cmv2-did-kpi">
           <dt>Cursos-horario de reserva</dt>
-          <dd>{modelo.reservas.toLocaleString("es-PE")}</dd>
+          <dd>{fmtInt(modelo.reservas)}</dd>
           <span className="cmv2-did-kpi-hint">entran solo si un curso-horario titular cae</span>
         </div>
         <div className="cmv2-did-kpi" data-tono={brechaEsperados ? "warn" : undefined}>
           <dt>Estudiantes esperados</dt>
-          <dd>{modelo.esperados > 0 ? modelo.esperados.toLocaleString("es-PE") : "—"}</dd>
+          <dd>{modelo.esperados > 0 ? formatoDecimal(modelo.esperados, 3) : "—"}</dd>
           <span className="cmv2-did-kpi-hint" data-tono={brechaEsperados ? "warn" : undefined}>
             {objetivo
               ? brechaEsperados && coberturaEsperados != null
-                ? `objetivo del cálculo: ${objetivo.toLocaleString("es-PE")} · cubre ${fmtPct(coberturaEsperados)}`
-                : `objetivo del cálculo: ${objetivo.toLocaleString("es-PE")}`
+                ? `objetivo del cálculo: ${formatoDecimal(objetivo, 3)} · cubre ${fmtPct(coberturaEsperados)}`
+                : `objetivo del cálculo: ${formatoDecimal(objetivo, 3)}`
               : "según los cursos-horario titulares"}
           </span>
         </div>
@@ -191,13 +192,13 @@ export function SeleccionAulasVisual({
           <dd>
             {modelo.facultades > 0
               ? totalFac != null
-                ? `${modelo.facultades.toLocaleString("es-PE")} de ${totalFac.toLocaleString("es-PE")}`
-                : modelo.facultades.toLocaleString("es-PE")
+                ? `${fmtInt(modelo.facultades)} de ${fmtInt(totalFac)}`
+                : fmtInt(modelo.facultades)
               : "—"}
           </dd>
           <span className="cmv2-did-kpi-hint" data-tono={facultadesIncompletas ? "warn" : undefined}>
             {facultadesIncompletas
-              ? `${((totalFac ?? 0) - modelo.facultades).toLocaleString("es-PE")} sin curso-horario titular`
+              ? `${fmtInt((totalFac ?? 0) - modelo.facultades)} sin curso-horario titular`
               : "con al menos un curso-horario titular"}
           </span>
         </div>

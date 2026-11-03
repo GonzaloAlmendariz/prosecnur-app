@@ -199,19 +199,6 @@
   font-size: 12px;
 }
 
-.mon-insumos-vacio {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: var(--pulso-space-2);
-  padding: var(--pulso-space-6);
-}
-
-.mon-insumos-vacio p {
-  margin: 0;
-  color: var(--pulso-text-soft);
-}
-
 /* ---------- Estados ---------- */
 
 /* El vocabulario es dueño del alto: con un solo status (RMS, barrido sin
@@ -948,12 +935,6 @@
 .mon-origen-roles button.is-activo.is-reserva {
   box-shadow: 0 0 0 1px var(--pulso-warn-border);
   color: var(--pulso-warn-fg);
-}
-
-.mon-origen-vacio {
-  margin: 0;
-  color: var(--pulso-text-muted);
-  font-size: 12px;
 }
 
 .mon-origen-lectura {

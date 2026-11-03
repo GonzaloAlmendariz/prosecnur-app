@@ -30,7 +30,8 @@
 // sin que nadie lo usara desde la UI: `outcome_values` son los crudos asignados
 // y `final_state` la familia. El `color` se añadió a la whitelist de R.
 
-import { AlertTriangle, CheckCircle2, Loader2, Save } from "../../../vendor/lucide-react";
+import { AlertTriangle, CheckCircle2, ListChecks, Loader2, Save } from "../../../vendor/lucide-react";
+import { EstadoVacio } from "../../../components/EstadoVacio";
 import type { MonitoreoConfig, MonitoreoState } from "../../../api/client";
 import { contar } from "../fuentes/vocabulario";
 import { ACREDITACION_ORDEN_FAMILIAS, acreditacionEtiquetaDeFamilia } from "./familiasDeLlamada";
@@ -55,9 +56,11 @@ export function DefinidorDeEstados({
 
   if (!entradas.length) {
     return (
-      <p className="tel-estados-vacio">
-        El corte todavía no trae estados de la base de barrido. Sincroniza la hoja para confirmarlos.
-      </p>
+      <EstadoVacio
+        icono={<ListChecks size={15} />}
+        titulo="El corte todavía no trae estados de la base de barrido"
+        descripcion="Sincroniza la hoja para confirmarlos."
+      />
     );
   }
 

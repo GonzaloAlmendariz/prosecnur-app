@@ -3,9 +3,10 @@ import { createPortal } from "react-dom";
 
 import type { MonitoreoCuota, MonitoreoCuotaPublico } from "../../../../api/monitoreoCuotas";
 import { Alert } from "../../../../components/Alert";
+import { EstadoVacio } from "../../../../components/EstadoVacio";
 import { PulsoButton } from "../../../../components/PulsoButton";
 import type { PanelDeclarado } from "../../../../lib/navegacion/paneles";
-import { Eye, Loader2, Trash2, Wand2, X } from "../../../../vendor/lucide-react";
+import { Eye, Loader2, Target, Trash2, Wand2, X } from "../../../../vendor/lucide-react";
 import { SelectorDeSubvistas } from "../../core/selectorDeSubvistas/SelectorDeSubvistas";
 import { claveDeSeguida } from "./seguidas";
 import { AvanceCuotasEditorMetas } from "./AvanceCuotasEditorMetas";
@@ -228,9 +229,10 @@ export function AvanceCuotasPanel({
                 />
               </>
             ) : (
-              <p className="mon-cuotas-panel-vacio">
-                {borrador.variable ? "Propón las metas para llenar la tabla por categoría." : "Elige la variable de la cuota."}
-              </p>
+              <EstadoVacio
+                icono={<Target size={15} />}
+                titulo={borrador.variable ? "Propón las metas para llenar la tabla por categoría." : "Elige la variable de la cuota."}
+              />
             )}
             {error ? <Alert kind="error">{error}</Alert> : null}
           </div>

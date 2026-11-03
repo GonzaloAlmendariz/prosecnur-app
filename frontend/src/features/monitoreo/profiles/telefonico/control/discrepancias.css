@@ -347,12 +347,6 @@
   resize: vertical;
 }
 
-.mon-dsc-vacio {
-  display: grid;
-  height: 100%;
-  place-items: center;
-}
-
 @media (max-width: 1280px) {
   .mon-dsc {
     grid-template-columns: 240px minmax(0, 1fr) 280px;

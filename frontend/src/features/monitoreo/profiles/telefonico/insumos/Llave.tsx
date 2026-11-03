@@ -1,4 +1,6 @@
 import { useMemo, type ReactNode } from "react";
+import { CheckCircle2, ListChecks } from "../../../../../vendor/lucide-react";
+import { EstadoVacio } from "../../../../../components/EstadoVacio";
 import { NotaDelModo } from "../../../core/NotaDelModo";
 import type { MonitoreoAcreditacionReports, MonitoreoState } from "../../../../../api/client";
 import { pctConEspacio } from "../../../core/formatoComun";
@@ -191,7 +193,7 @@ export function LlaveYFiltros({
               </table>
             </div>
           ) : (
-            <NotaDelModo tono="neutro" className="mon-llave-vacio">Sin efectivas en el corte.</NotaDelModo>
+            <EstadoVacio icono={<ListChecks size={15} />} titulo="Sin efectivas en el corte." />
           )}
         </section>
       </div>
@@ -217,9 +219,9 @@ export function LlaveYFiltros({
                 ))}
               </ul>
             ) : cruce.total ? (
-              <NotaDelModo tono="exito" className="mon-llave-vacio">Todas las efectivas cruzan tal cual con la hoja.</NotaDelModo>
+              <EstadoVacio icono={<CheckCircle2 size={15} />} titulo="Todas las efectivas cruzan tal cual con la hoja." />
             ) : (
-              <NotaDelModo tono="neutro" className="mon-llave-vacio">Sin efectivas, no hay cruces que revisar.</NotaDelModo>
+              <EstadoVacio icono={<ListChecks size={15} />} titulo="Sin efectivas, no hay cruces que revisar." />
             )}
           </section>
         </div>

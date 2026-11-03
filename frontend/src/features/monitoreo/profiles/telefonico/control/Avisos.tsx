@@ -1,4 +1,6 @@
 import { useMemo } from "react";
+import { CheckCircle2 } from "../../../../../vendor/lucide-react";
+import { EstadoVacio } from "../../../../../components/EstadoVacio";
 import { NotaDelModo } from "../../../core/NotaDelModo";
 import type { MonitoreoAcreditacionReports } from "../../../../../api/client";
 import { useFocoMonitoreo } from "../../../useMonitoreoDireccion";
@@ -47,10 +49,14 @@ export function Avisos({
 
   if (!modelo.avisos.length && !modelo.sinAsignar) {
     return (
-      <section className="mon-ctl-panel mon-avisos-vacio" aria-label="Avisos">
-        {hayRotulo ? <RotuloDePestana /> : <span className="mon-ctl-antetitulo">Avisos</span>}
-        <strong>Sin avisos activos</strong>
-        <p>La hoja de barrido y las respuestas no muestran nada que corregir en este corte.</p>
+      <section className="mon-ctl-panel is-vacio" aria-label="Avisos">
+        <header className="mon-ctl-panel-cabecera">{hayRotulo ? <RotuloDePestana /> : <span className="mon-ctl-antetitulo">Avisos</span>}</header>
+        <EstadoVacio
+          tamano="normal"
+          icono={<CheckCircle2 size={18} />}
+          titulo="Sin avisos activos"
+          descripcion="La hoja de barrido y las respuestas no muestran nada que corregir en este corte."
+        />
       </section>
     );
   }

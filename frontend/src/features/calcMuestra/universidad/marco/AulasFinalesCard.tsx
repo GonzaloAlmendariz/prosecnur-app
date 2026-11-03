@@ -198,7 +198,7 @@ export function AulasFinalesCard({
                   cosa. */}
               {filtradas.length === total
                 ? `${total} cursos-horario`
-                : `${filtradas.length} de ${total}`}
+                : `${fmtInt(filtradas.length)} de ${fmtInt(total)}`}
               {propia ? (
                 <button
                   type="button"

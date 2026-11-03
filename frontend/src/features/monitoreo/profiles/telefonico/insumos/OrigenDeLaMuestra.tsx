@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import { Loader2, Save } from "../../../../../vendor/lucide-react";
+import { Loader2, Save, Table2 } from "../../../../../vendor/lucide-react";
+import { EstadoVacio } from "../../../../../components/EstadoVacio";
 import { apiMonitoreoConfig } from "../../../../../api/monitoreo";
 import type { MonitoreoAcreditacionReports, MonitoreoState } from "../../../../../api/client";
 import { NotaDelModo } from "../../../core/NotaDelModo";
@@ -158,7 +159,7 @@ export function OrigenDeLaMuestra({
               </tbody>
             </table>
           ) : (
-            borrador.origen.columna ? <p className="mon-origen-vacio">La columna no trae valores en este corte.</p> : null
+            borrador.origen.columna ? <EstadoVacio icono={<Table2 size={15} />} titulo="La columna no trae valores en este corte." /> : null
           )}
         </div>
 
@@ -198,7 +199,7 @@ export function OrigenDeLaMuestra({
               </tbody>
             </table>
           ) : (
-            borrador.marca.columna ? <p className="mon-origen-vacio">La columna no trae valores en este corte.</p> : null
+            borrador.marca.columna ? <EstadoVacio icono={<Table2 size={15} />} titulo="La columna no trae valores en este corte." /> : null
           )}
         </div>
       </div>

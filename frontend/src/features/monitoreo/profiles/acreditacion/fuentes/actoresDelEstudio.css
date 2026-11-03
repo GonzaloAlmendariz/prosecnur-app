@@ -1,7 +1,7 @@
 /* Bloque «Actores del estudio» — el paso 0 de Fuentes.
  *
  * Reusa la superficie y la tipografía de las otras vistas de Fuentes
- * (`mon-acr-object-surface`, `mon-acr-empty-state`, `mon-switch-line`) para que
+ * (`mon-acr-object-surface`, `mon-switch-line`) para que
  * el bloque nuevo no se lea como una pantalla ajena pegada al lado. Lo único
  * propio de aquí es la rejilla de tarjetas y sus tres estados de lectura:
  * lista, le falta algo, o el nombre choca. */

@@ -283,16 +283,21 @@
 
 /* Sin serie, el panel de la serie ocupa la columna entera y centra el aviso;
  * la tarjeta lateral también llega al pie para que ambas columnas terminen juntas. */
-.mon-cadencia-vacio {
-  display: grid;
+/* La tarjeta sin serie: el rótulo arriba y el cuerpo al centro del resto. */
+.mon-cadencia-sin-serie {
+  display: flex;
+  flex-direction: column;
   height: 100%;
   min-height: 0;
-  place-items: center;
   padding: var(--pulso-space-6);
 }
 
+.mon-cadencia-sin-serie > :last-child {
+  margin: auto;
+}
+
 /* El cuerpo mide lo que el aviso: la lista de estados se alinea a su ancho. */
-.mon-cadencia-vacio-cuerpo {
+.mon-cadencia-sin-serie-cuerpo {
   display: flex;
   flex-direction: column;
   align-items: stretch;
@@ -301,7 +306,7 @@
   max-width: 100%;
 }
 
-.mon-cadencia-vacio-cuerpo > p {
+.mon-cadencia-sin-serie-cuerpo > p {
   text-align: center;
 }
 

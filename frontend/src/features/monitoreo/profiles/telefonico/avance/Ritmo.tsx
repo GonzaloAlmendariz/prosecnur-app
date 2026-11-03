@@ -287,9 +287,9 @@ function RitmoSinSerie({
   // Un solo panel: con dos líneas de estado, una tarjeta lateral estirada al
   // alto de la columna era un vacío dentro de una tarjeta (chequeo f).
   return (
-    <section className="mon-ctl-panel mon-cadencia-vacio mon-tel-vacio" aria-label="Efectivas y llamados por día" data-qa-geometry-capacity="owned">
+    <section className="mon-ctl-panel mon-cadencia-sin-serie" aria-label="Efectivas y llamados por día" data-qa-geometry-capacity="owned">
       <RotuloDeTarjeta />
-      <div className="mon-cadencia-vacio-cuerpo">
+      <div className="mon-cadencia-sin-serie-cuerpo">
         <EstadoVacio
           tamano="normal"
           icono={<CalendarClock size={22} />}
@@ -297,7 +297,7 @@ function RitmoSinSerie({
           descripcion={motivoSinSerie(hoja, sinFecha)}
         />
         {hoja.estados.length ? (
-          <ul className="mon-cadencia-formatos mon-cadencia-vacio-estados" aria-label="Estado de la hoja de barrido">
+          <ul className="mon-cadencia-formatos" aria-label="Estado de la hoja de barrido">
             {hoja.estados.map((item) => (
               <li key={item.estado}>
                 <i className="mon-cadencia-punto" aria-hidden="true" />

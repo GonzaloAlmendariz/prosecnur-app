@@ -63,7 +63,7 @@ export function CadenaAfijacion({
     {
       id: "facultad",
       label: "③ Afijación facultad",
-      valor: `${rows.length} unidades`,
+      valor: `${fmtInt(rows.length)} unidades`,
       detalle: "n · N_fac / N, mayor resto",
       estado: rows.length > 0 ? "ready" : "pending",
     },

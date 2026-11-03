@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { NotaDelModo } from "../../../core/NotaDelModo";
-import { Loader2, Save } from "../../../../../vendor/lucide-react";
+import { ListChecks, Loader2, Save } from "../../../../../vendor/lucide-react";
+import { EstadoVacio } from "../../../../../components/EstadoVacio";
 import type { MonitoreoAcreditacionReports, MonitoreoState } from "../../../../../api/client";
 import { ACREDITACION_ORDEN_FAMILIAS, acreditacionEtiquetaDeFamilia } from "../../../estados/familiasDeLlamada";
 import type { AcreditacionFamiliaLlamada } from "../../../estados/familiasDeLlamada";
@@ -59,11 +60,15 @@ export function Estados({
 
   if (!entradas.length) {
     return (
-      <section className="mon-ctl-panel mon-insumos-vacio" aria-label="Estados">
-        {hayRotulo ? <RotuloDePestana /> : <span className="mon-ctl-antetitulo">Estados</span>}
-        <strong>Sin status que leer</strong>
-        <p>Conecta la hoja de barrido en Insumos, Fuentes, o actualiza el corte.</p>
-        <button type="button" className="mon-insumos-boton" onClick={() => onIrA("insumos", "fuentes")}>Ir a Fuentes</button>
+      <section className="mon-ctl-panel is-vacio" aria-label="Estados">
+        <header className="mon-ctl-panel-cabecera">{hayRotulo ? <RotuloDePestana /> : <span className="mon-ctl-antetitulo">Estados</span>}</header>
+        <EstadoVacio
+          tamano="normal"
+          icono={<ListChecks size={18} />}
+          titulo="Sin status que leer"
+          descripcion="Conecta la hoja de barrido en Insumos, Fuentes, o actualiza el corte."
+          accion={<button type="button" className="mon-insumos-boton" onClick={() => onIrA("insumos", "fuentes")}>Ir a Fuentes</button>}
+        />
       </section>
     );
   }

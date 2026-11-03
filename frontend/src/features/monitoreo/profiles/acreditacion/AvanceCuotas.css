@@ -103,25 +103,9 @@
   font-size: 12.5px;
 }
 
-.mon-cuotas-cargando {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin: 14px 0 0;
-  color: var(--pulso-text-soft);
-  font-size: 12.5px;
-}
-
 .mon-cuotas-avisos {
   margin: 0;
   padding-left: 16px;
-}
-
-.mon-fill-panel.mon-cuotas > .mon-cuotas-vacio {
-  flex: 1 1 auto;
-  min-height: 260px;
-  display: grid;
-  place-items: center;
 }
 
 .mon-cuotas-cuerpo {
@@ -772,16 +756,6 @@
 .mon-cuotas-suma .es-bajo {
   color: var(--pulso-warn-fg);
   font-weight: var(--pulso-weight-semibold);
-}
-
-.mon-cuotas-panel-vacio {
-  margin: 0;
-  padding: 28px 12px;
-  border: 1px dashed var(--pulso-border-strong);
-  border-radius: 8px;
-  color: var(--pulso-text-soft);
-  font-size: 12.5px;
-  text-align: center;
 }
 
 .mon-cuotas-editor {

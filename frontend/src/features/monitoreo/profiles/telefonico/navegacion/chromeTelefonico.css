@@ -224,18 +224,6 @@ header:has(> .mon-tel-rotulo + :is(b, strong)) > .mon-tel-rotulo {
   border-bottom: 1px solid var(--pulso-border);
 }
 
-/* Una tarjeta vacía que lleva el rótulo: el rótulo arriba, el vacío al centro
- * del resto (C3: el vacío es de la tarjeta). */
-.mon-tel-vacio:has(> header > .mon-tel-rotulo) {
-  display: flex;
-  flex-direction: column;
-  place-items: stretch;
-}
-
-.mon-tel-vacio:has(> header > .mon-tel-rotulo) > :last-child {
-  margin: auto;
-}
-
 /* Línea de rótulo propia dentro de la tarjeta, cuando su cabecera ya trae
  * título, detalle y selector: el rótulo arriba, con filete, y la cabecera de
  * siempre debajo. */

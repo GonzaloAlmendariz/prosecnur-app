@@ -153,7 +153,7 @@ export function NoBarridos({
 
   if (modelo.clave !== "lista") {
     return (
-      <section className="mon-ctl-panel mon-nb-vacio" aria-label="No barridos" data-qa-geometry-capacity="owned">
+      <section className="mon-ctl-panel is-vacio" aria-label="No barridos" data-qa-geometry-capacity="owned">
         {rotulo}
         <EstadoVacio
           tamano="normal"
@@ -167,7 +167,7 @@ export function NoBarridos({
 
   if (!modelo.casos.length) {
     return (
-      <section className="mon-ctl-panel mon-nb-vacio" aria-label="No barridos" data-qa-geometry-capacity="owned">
+      <section className="mon-ctl-panel is-vacio" aria-label="No barridos" data-qa-geometry-capacity="owned">
         {rotulo}
         <EstadoVacio
           tamano="normal"

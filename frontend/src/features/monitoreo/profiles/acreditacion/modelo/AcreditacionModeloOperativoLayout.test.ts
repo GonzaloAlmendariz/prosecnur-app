@@ -84,7 +84,8 @@ describe("Acreditación > Modelo operativo", () => {
     expect(actorCard).not.toContain('"S/M"');
     expect(actorCard).toContain('"Pendiente"');
     expect(actorCard).toContain('"Guardar meta"');
-    expect(actorCard).toContain("Sin fuentes vinculadas. Asígnalas en Fuentes.");
+    // El vacío va por EstadoVacio: el título dice qué falta y la descripción cómo se llena.
+    expect(actorCard).toContain('<EstadoVacio icono={<PlugZap size={15} />} titulo="Sin fuentes vinculadas" descripcion="Asígnalas en Fuentes." />');
     expect(workbench).toContain('metaTotal ? fmt(metaTotal) : "Pendiente"');
     expect(workbench).not.toContain("Fuentes todavía no declara actores activos.");
   });

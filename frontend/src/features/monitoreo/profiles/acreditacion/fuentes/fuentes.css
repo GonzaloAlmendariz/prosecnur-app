@@ -847,7 +847,7 @@
 .fuentes-encuestas-stack .mon-acr-source-object-main strong,
 .fuentes-encuestas-stack .mon-acr-collector-picker button strong,
 .fuentes-encuestas-stack .mon-collector-title strong,
-.fuentes-encuestas-stack :is(.mon-acr-empty-state, .mon-acr-metadata-missing) strong {
+.fuentes-encuestas-stack .mon-acr-metadata-missing strong {
   font-size: 13px;
   font-weight: var(--pulso-weight-heavy);
   line-height: 1.18;
@@ -868,10 +868,8 @@
   .mon-acr-actor-field label > span,
   .mon-acr-collector-controls label > span,
   .mon-acr-channel-declare-field > span,
-  .mon-acr-empty-state span,
   .mon-acr-metadata-missing span,
-  .mon-acr-metadata-missing em,
-  .mon-sm-empty
+  .mon-acr-metadata-missing em
 ) {
   font-size: 10.75px;
   font-weight: var(--pulso-weight-medium);

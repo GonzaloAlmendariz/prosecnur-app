@@ -86,7 +86,7 @@ export function Discrepancias({
 
   if (!vigentes.length) {
     return (
-      <section className="mon-ctl-panel mon-dsc-vacio mon-tel-vacio" aria-label="Discrepancias" data-qa-geometry-capacity="owned">
+      <section className="mon-ctl-panel is-vacio" aria-label="Discrepancias" data-qa-geometry-capacity="owned">
         {hayRotulo ? <header className="mon-ctl-panel-cabecera"><RotuloDePestana /></header> : null}
         <EstadoVacio
           tamano="normal"

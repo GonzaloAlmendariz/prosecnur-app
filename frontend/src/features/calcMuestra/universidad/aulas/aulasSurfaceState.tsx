@@ -7,7 +7,7 @@ import {
   Table2,
   type LucideIcon,
 } from "lucide-react";
-import { rowsFrom } from "../../sharedCore";
+import { fmtInt, rowsFrom } from "../../sharedCore";
 import { classroomRowNumber, classroomRowText } from "../shared/format";
 import type { ClassroomLabModel } from "./classroomLabModel";
 import { classroomMethodLabel } from "./classroomLabels";
@@ -54,8 +54,8 @@ function storedSelectionSummary(model: ClassroomLabModel) {
   }).length;
   const runId = String(stored.selection_run_id ?? "").trim();
   const parts = [
-    titularCount ? `${titularCount} titulares` : rows.length ? `${rows.length} filas almacenadas` : "filas almacenadas",
-    rows.length > titularCount && titularCount > 0 ? `${rows.length} filas del plan` : "",
+    titularCount ? `${fmtInt(titularCount)} titulares` : rows.length ? `${fmtInt(rows.length)} filas almacenadas` : "filas almacenadas",
+    rows.length > titularCount && titularCount > 0 ? `${fmtInt(rows.length)} filas del plan` : "",
     runId ? `corrida ${runId}` : "corrida sin identificador publicable",
   ].filter(Boolean);
   return parts.join(" · ");

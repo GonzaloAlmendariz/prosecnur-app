@@ -15,6 +15,7 @@
 import { PulsoSwitch } from "../../../../components/PulsoSwitch";
 import { variablesDeBalance } from "./variablesBalance";
 import "./variablesBalance.css";
+import { fmtInt } from "../../sharedCore";
 
 /** Por encima de esto, el aterrizaje del cubo deja de ser instantáneo. */
 const NIVELES_RIESGO = 16;
@@ -55,7 +56,7 @@ export function VariablesBalanceControl({
               }
             />
             <span className="cmv2-vbal-niveles">
-              {v.niveles.toLocaleString("es-PE")} {v.niveles === 1 ? "nivel" : "niveles"}
+              {fmtInt(v.niveles)} {v.niveles === 1 ? "nivel" : "niveles"}
             </span>
             {v.constante && <em title="Sin variación en el marco: no aporta equilibrio.">constante</em>}
             {v.niveles > NIVELES_RIESGO && !v.constante && (

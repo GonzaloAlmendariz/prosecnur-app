@@ -354,7 +354,7 @@ export function BaseUploadCard({
           {columnas.length > 0 && (
             <div className="cmv2-defi-upload-cols">
               <p className="cmv2-defi-upload-cols-head">
-                <strong>{columnas.length}</strong>{" "}
+                <strong>{fmtInt(columnas.length)}</strong>{" "}
                 {columnas.length === 1 ? "columna detectada" : "columnas detectadas"}
               </p>
               <div className="cmv2-defi-upload-cols-list">

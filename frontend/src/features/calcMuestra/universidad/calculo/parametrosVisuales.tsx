@@ -10,6 +10,7 @@ import type { ReactNode } from "react";
 import { CircleHelp } from "lucide-react";
 import { Popover } from "../../../../components/Popover";
 import { zFromConfidence } from "../../didactica/motorPreview";
+import { formatoDecimal } from "../../../../lib/formatoNumero";
 
 /** Confianza bilateral desde z, invirtiendo la MISMA réplica qnorm del motor. */
 export function confianzaDesdeZExacta(z: number) {
@@ -38,7 +39,7 @@ export function fmtDecimal(value: number | null | undefined, digits = 3) {
   // `ltxNum`/`fmtNum` existen para expresiones KaTeX, donde el separador de
   // miles NO debe aparecer: reusarlos en prosa dejaba «21362.55» sin agrupar
   // mientras `fmtInt` sí escribía «21,362» dos líneas más arriba.
-  return value.toLocaleString("es-PE", { maximumFractionDigits: digits });
+  return formatoDecimal(value, digits);
 }
 
 export function AmbitosSupuesto({

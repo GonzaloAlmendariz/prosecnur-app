@@ -182,34 +182,6 @@
   color: var(--pulso-text-faint);
 }
 
-.mon-dist-vacio {
-  margin: 0;
-  font-size: 11.5px;
-  line-height: 1.45;
-  color: var(--pulso-text-soft);
-}
-
-.mon-dist-vacio-panel {
-  display: grid;
-  gap: 4px;
-  justify-items: start;
-  border: 1px dashed var(--pulso-border-strong);
-  border-radius: var(--pulso-radius-card);
-  padding: 16px;
-}
-
-.mon-dist-vacio-panel strong {
-  font-size: 13px;
-  font-weight: var(--pulso-weight-black);
-  color: var(--pulso-text);
-}
-
-.mon-dist-vacio-panel p {
-  margin: 0;
-  font-size: 11.5px;
-  color: var(--pulso-text-soft);
-}
-
 /* La variable declarada es contenido de la tarjeta, no otra tarjeta anidada. */
 .mon-dist-declarada {
   min-width: 0;

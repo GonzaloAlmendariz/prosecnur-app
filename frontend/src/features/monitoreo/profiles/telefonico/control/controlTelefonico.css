@@ -69,18 +69,30 @@
   white-space: nowrap;
 }
 
-/* Un barrido que no empezó (RMS): cada panel dice su vacío en el sitio que
- * ocuparían sus datos, centrado en el alto que ese panel ya tiene. */
-.mon-barrido-vacio {
-  display: grid;
-  flex: 1 1 auto;
-  place-items: center;
-  min-height: 80px;
-  margin: 0;
-  padding: var(--pulso-space-3) var(--pulso-space-4);
-  color: var(--pulso-text-muted);
-  font-size: 12px;
-  text-align: center;
+/* Un vacío del kit (`EstadoVacio`) dentro de una tarjeta: la tarjeta no tiene
+ * relleno propio, así que el aire se lo da ella. Un barrido que no empezó
+ * (RMS) dice así su vacío en el sitio que ocuparían sus datos. */
+.mon-ctl-panel > .pulso-estado-vacio {
+  margin: var(--pulso-space-3) var(--pulso-space-4);
+}
+
+/* Una tarjeta cuyo cuerpo entero es el vacío (C3: el vacío es de la
+ * tarjeta): el rótulo arriba y el vacío al centro del resto. */
+.mon-ctl-panel.is-vacio {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  padding-bottom: var(--pulso-space-4);
+}
+
+.mon-ctl-panel.is-vacio:not(:has(> header)) {
+  padding-top: var(--pulso-space-4);
+}
+
+.mon-ctl-panel.is-vacio > :last-child {
+  margin: auto;
+  max-width: calc(100% - 2 * var(--pulso-space-4));
 }
 
 
@@ -1803,13 +1815,6 @@
 .mon-avisos-ir:focus-visible {
   outline: 2px solid var(--pulso-brand-navy);
   outline-offset: 2px;
-}
-
-.mon-avisos-vacio {
-  display: flex;
-  flex-direction: column;
-  gap: var(--pulso-space-2);
-  padding: var(--pulso-space-6);
 }
 
 @media (max-width: 1400px) {

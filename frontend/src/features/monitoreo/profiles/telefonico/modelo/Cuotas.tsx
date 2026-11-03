@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { usePanelDireccionable, type PanelDeclarado } from "../../../../../lib/navegacion/paneles";
-import { AlertTriangle, CheckCircle2, Plus, XCircle } from "../../../../../vendor/lucide-react";
+import { AlertTriangle, CalendarClock, CheckCircle2, Plus, Target, XCircle } from "../../../../../vendor/lucide-react";
+import { EstadoVacio } from "../../../../../components/EstadoVacio";
 import { pctConEspacio } from "../../../core/formatoComun";
 import { MetaCuotaInput } from "../MetaCuotaInput";
 import { PulsoInput } from "../../../../../components/PulsoInput";
@@ -235,9 +236,10 @@ export function Cuotas({
               })}
             </div>
             ) : (
-              <p className="mon-metas-avance-vacio">
-                {conPendientes.length ? "Sin metas ni efectivas todavía: escribe la meta de cada categoría en la tabla." : "Sin categorías, no hay metas que seguir."}
-              </p>
+              <EstadoVacio
+                icono={<Target size={15} />}
+                titulo={conPendientes.length ? "Sin metas ni efectivas todavía: escribe la meta de cada categoría en la tabla." : "Sin categorías, no hay metas que seguir."}
+              />
             )}
           </section>
           <footer className="mon-metas-pie">
@@ -311,7 +313,7 @@ export function Cuotas({
               {calendario.nota ? <NotaDelModo tono="aviso">{calendario.nota}.</NotaDelModo> : null}
             </>
           ) : (
-            <p className="mon-metas-dias-vacio">Ningún día con efectivas de Kobo todavía.</p>
+            <EstadoVacio icono={<CalendarClock size={15} />} titulo="Ningún día con efectivas de Kobo todavía." />
           )}
           <button
             type="button"

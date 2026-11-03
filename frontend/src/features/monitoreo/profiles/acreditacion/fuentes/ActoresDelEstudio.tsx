@@ -21,6 +21,7 @@ import {
   Trash2,
   Users,
 } from "../../../../../vendor/lucide-react";
+import { EstadoVacio } from "../../../../../components/EstadoVacio";
 import type { MonitoreoActorUnit, MonitoreoSource, MonitoreoState } from "../../../../../api/client";
 import { ACTORES_SEMILLA, claveDeActor, faltantesDelActor } from "../../../fuentes/rosterDeActores";
 import { CanalesDelPublico } from "./CanalesDelPublico";
@@ -184,11 +185,11 @@ export function ActoresDelEstudio({
             })}
           </div>
         ) : (
-          <div className="mon-acr-empty-state">
-            <Users size={18} />
-            <strong>Este estudio todavía no declara sus actores</strong>
-            <span>Un actor es cada grupo que responde por separado y se mide contra su propia cuota. Empieza por los habituales y ajústalos.</span>
-          </div>
+          <EstadoVacio
+            icono={<Users size={15} />}
+            titulo="Este estudio todavía no declara sus actores"
+            descripcion="Un actor es cada grupo que responde por separado y se mide contra su propia cuota. Empieza por los habituales y ajústalos."
+          />
         )}
 
         <div className="mon-acr-actores-agregar">

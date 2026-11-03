@@ -77,7 +77,7 @@ export function Supervision({
 
   if (!modelo || !modelo.base) {
     return (
-      <section className="mon-ctl-panel mon-sup-vacio mon-tel-vacio" aria-label="Supervisión" data-qa-geometry-capacity="owned">
+      <section className="mon-ctl-panel is-vacio" aria-label="Supervisión" data-qa-geometry-capacity="owned">
         {hayRotulo ? <header className="mon-ctl-panel-cabecera"><RotuloDePestana /></header> : null}
         <EstadoVacio
           tamano="normal"

@@ -3,7 +3,8 @@ import { useId, useMemo } from "react";
 import { Alert } from "../../../../components/Alert";
 import { EstadoVacio } from "../../../../components/EstadoVacio";
 import { PulsoButton } from "../../../../components/PulsoButton";
-import { Loader2, Mail, PlugZap, RefreshCw } from "../../../../vendor/lucide-react";
+import { LoadingBlock } from "../../../../components/States";
+import { Mail, PlugZap, RefreshCw } from "../../../../vendor/lucide-react";
 import { AvanceCorreoCabecera } from "./AvanceCorreoCabecera";
 import { AvanceCorreoCronologia } from "./AvanceCorreoCronologia";
 import { AvanceCorreoEmbudo } from "./AvanceCorreoEmbudo";
@@ -98,10 +99,10 @@ export function AvanceCorreoVista({
       ) : null}
 
       {fase === "cargando" ? (
-        <p className="mon-correo-cargando" role="status"><Loader2 size={14} className="pulso-spin" aria-hidden /> Leyendo el estado de Mailchimp…</p>
+        <LoadingBlock label="Leyendo el estado de Mailchimp…" />
       ) : null}
       {fase === "error" ? (
-        <div className="mon-correo-vacio" data-qa-geometry-capacity="owned">
+        <div data-qa-geometry-capacity="owned">
           <EstadoVacio
             tamano="normal"
             icono={<Mail size={18} />}
@@ -112,7 +113,7 @@ export function AvanceCorreoVista({
         </div>
       ) : null}
       {fase === "sin-conexion" ? (
-        <div className="mon-correo-vacio" data-qa-geometry-capacity="owned">
+        <div data-qa-geometry-capacity="owned">
           <EstadoVacio
             tamano="normal"
             icono={<PlugZap size={18} />}
@@ -122,7 +123,7 @@ export function AvanceCorreoVista({
         </div>
       ) : null}
       {fase === "sin-audiencia" ? (
-        <div className="mon-correo-vacio" data-qa-geometry-capacity="owned">
+        <div data-qa-geometry-capacity="owned">
           <EstadoVacio
             tamano="normal"
             icono={<Mail size={18} />}
@@ -132,7 +133,7 @@ export function AvanceCorreoVista({
         </div>
       ) : null}
       {fase === "preparando" ? (
-        <div className="mon-correo-vacio" data-qa-geometry-capacity="owned">
+        <div data-qa-geometry-capacity="owned">
           <EstadoVacio
             tamano="normal"
             icono={<RefreshCw size={18} />}
@@ -142,7 +143,7 @@ export function AvanceCorreoVista({
         </div>
       ) : null}
       {fase === "sin-lecturas" ? (
-        <div className="mon-correo-vacio" data-qa-geometry-capacity="owned">
+        <div data-qa-geometry-capacity="owned">
           <EstadoVacio
             tamano="normal"
             icono={<RefreshCw size={18} />}

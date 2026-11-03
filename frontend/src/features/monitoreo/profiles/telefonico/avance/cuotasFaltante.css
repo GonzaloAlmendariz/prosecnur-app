@@ -605,26 +605,6 @@
   text-align: right;
 }
 
-.mon-tel-cuotas-vacio {
-  display: flex;
-  flex-direction: column;
-  gap: var(--pulso-space-2);
-  height: 100%;
-  padding: var(--pulso-space-6);
-  border: 1px dashed var(--pulso-border-strong);
-  border-radius: var(--pulso-radius-panel);
-  background: var(--pulso-surface);
-}
-
-.mon-tel-cuotas-vacio strong {
-  font-size: 18px;
-}
-
-.mon-tel-cuotas-vacio p {
-  margin: 0;
-  color: var(--pulso-text-soft);
-}
-
 /* Sin vacío al pie (QA final, Avance › Cuotas): sin faltante diario, la
  * tabla y la columna derecha miden lo que traen —110 px quedaban bajo
  * «Total» y 70 bajo la leyenda del listado—. Con más filas que alto llegan

@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { NotaDelModo } from "../../../core/NotaDelModo";
 import type { CSSProperties } from "react";
 import { Search } from "../../../../../vendor/lucide-react";
+import { EstadoVacio } from "../../../../../components/EstadoVacio";
 import {
   DOS_HORAS,
   ETIQUETA_DE_MARCA,
@@ -182,7 +183,7 @@ export function Respuestas({
               ))}
             </tbody>
           </table>
-          {!visibles.length ? <NotaDelModo tono="neutro" className="mon-respuestas-vacio">Ninguna efectiva cumple el filtro.</NotaDelModo> : null}
+          {!visibles.length ? <EstadoVacio icono={<Search size={15} />} titulo="Ninguna efectiva cumple el filtro." /> : null}
         </div>
         {/* Que marcar no excluye ya lo dice «Qué cuenta» (Aviso, no excluye): el pie sólo cuenta. */}
         <footer className="mon-respuestas-pie">

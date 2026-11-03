@@ -3,6 +3,7 @@ import { fmtInt } from "../../sharedCore";
 import type { AporteCategoria } from "./controles";
 import { DistribucionCategoria, dominioRedondeado } from "./DistribucionCategoria";
 import "./categoriaEvidencia.css";
+import { formatoDecimal } from "../../../../lib/formatoNumero";
 
 /**
  * ADR 0057 · La evidencia de una categoría, en el mismo contenedor que decide.
@@ -124,7 +125,7 @@ function plural(n: number | null | undefined, singular: string, plural_: string)
 
 const fmt = (v: number | null | undefined) =>
   typeof v === "number" && Number.isFinite(v)
-    ? v.toLocaleString("es-PE", { maximumFractionDigits: 1 })
+    ? formatoDecimal(v, 1)
     : "—";
 
 /**

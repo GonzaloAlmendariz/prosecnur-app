@@ -3823,112 +3823,6 @@
   line-height: 1.35;
 }
 
-.is-telefonico-profile .mon-phone-caveats-empty-icon {
-  display: inline-grid;
-  place-items: center;
-  width: 36px;
-  height: 36px;
-  border: 1px solid color-mix(in srgb, #168a55 22%, var(--pulso-border));
-  border-radius: var(--pulso-radius);
-  background: color-mix(in srgb, #e9f8f0 76%, #fff);
-  color: #136f46;
-}
-
-.is-telefonico-profile .mon-phone-caveats-empty-metrics {
-  width: min(560px, 100%);
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 8px;
-  margin-top: 4px;
-}
-
-.is-telefonico-profile .mon-phone-caveats-empty-metrics span {
-  min-width: 0;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 8px;
-  border: 1px solid color-mix(in srgb, #168a55 18%, var(--pulso-border));
-  border-radius: var(--pulso-radius);
-  background: color-mix(in srgb, #e9f8f0 54%, #fff);
-  padding: 7px 9px;
-  text-align: left;
-}
-
-.is-telefonico-profile .mon-phone-caveats-empty-metrics em,
-.is-telefonico-profile .mon-phone-caveats-empty-metrics strong {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.is-telefonico-profile .mon-phone-caveats-empty-metrics em {
-  color: var(--pulso-text-soft);
-  font-size: 10px;
-  font-style: normal;
-  font-weight: var(--pulso-weight-heavy);
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-}
-
-.is-telefonico-profile .mon-phone-caveats-empty-metrics strong {
-  color: var(--pulso-text);
-  font-size: 14px;
-  font-weight: var(--pulso-weight-black);
-}
-
-.is-telefonico-profile .mon-phone-caveats-empty-guide {
-  width: min(760px, 100%);
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 8px;
-  margin-top: 2px;
-}
-
-.is-telefonico-profile .mon-phone-caveats-empty-guide span {
-  min-width: 0;
-  display: grid;
-  gap: 2px;
-  border: 1px solid color-mix(in srgb, #0a6b8f 16%, var(--pulso-border));
-  border-radius: var(--pulso-radius);
-  background: color-mix(in srgb, #e7f8fb 34%, #fff);
-  padding: 8px 9px;
-  text-align: left;
-}
-
-.is-telefonico-profile .mon-phone-caveats-empty-guide em,
-.is-telefonico-profile .mon-phone-caveats-empty-guide strong,
-.is-telefonico-profile .mon-phone-caveats-empty-guide small {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.is-telefonico-profile .mon-phone-caveats-empty-guide em {
-  color: #0f6f77;
-  font-size: 10px;
-  font-style: normal;
-  font-weight: var(--pulso-weight-black);
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-}
-
-.is-telefonico-profile .mon-phone-caveats-empty-guide strong {
-  color: var(--pulso-text);
-  font-size: 12px;
-  font-weight: var(--pulso-weight-black);
-  line-height: 1.12;
-}
-
-.is-telefonico-profile .mon-phone-caveats-empty-guide small {
-  color: var(--pulso-text-soft);
-  font-size: 10.5px;
-  font-weight: var(--pulso-weight-bold);
-  line-height: 1.1;
-}
-
 .is-telefonico-profile .mon-phone-caveats-list {
   min-height: 0;
   display: grid;
@@ -4023,7 +3917,6 @@
 
   .is-telefonico-profile .mon-phone-model-reading-slots,
   .is-telefonico-profile .mon-phone-model-decision-grid,
-  .is-telefonico-profile .mon-phone-caveats-empty-guide,
   .is-telefonico-profile .mon-field-schedule-cards {
     grid-template-columns: minmax(0, 1fr);
   }
@@ -4317,27 +4210,6 @@
    Consumen bloques que el engine R ya producía y solo viajaban al PDF. */
 
 .is-telefonico-profile {
-.mon-team-empty {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding: 18px 20px;
-  border: 1px dashed var(--pulso-border);
-  border-radius: var(--pulso-radius-md);
-  background: var(--pulso-surface-soft, var(--pulso-surface));
-}
-
-.mon-team-empty strong {
-  font-size: 13px;
-  font-weight: var(--pulso-weight-bold);
-  color: var(--pulso-text);
-}
-
-.mon-team-empty span {
-  font-size: 12px;
-  color: var(--pulso-text-soft);
-}
-
 .mon-team-matrix,
 .mon-team-gap {
   display: flex;
@@ -5290,7 +5162,6 @@
   overflow: visible;
 }
 
-.is-telefonico-profile .mon-profile-empty,
 .is-telefonico-profile .mon-phone-quota-panel.is-empty,
 .is-telefonico-profile .mon-phone-caveats-panel.is-empty {
   width: 100%;
@@ -5832,37 +5703,6 @@
  * `mon-outputs-processing-hint` sí se queda, que es de este perfil. */
 .is-telefonico-profile .mon-outputs-processing-hint {
   border-radius: var(--pulso-radius-card);
-}
-
-/* ── Consultas › Salvedades: la versalita vuelve a encabezar ───────────────
- *
- * Pestaña que el registro daba por inexistente y que sí se monta —se llama
- * «Salvedades» y su clave es `subsanacion`—, así que nunca se había auditado.
- *
- * En su estado vacío, las tres fichas de guía salían **enteras en versalitas**:
- * antetítulo, valor y descripción. El texto viene bien escrito en el origen
- * («Completa + filtro», «Pruebas quedan fuera.») y era el CSS quien lo
- * mayusculizaba en los tres niveles por herencia. Con todo en versalita nada
- * encabeza nada, que es justo lo que la versalita tiene que hacer: el
- * antetítulo la conserva y los otros dos la pierden.
- *
- * Medido con el criterio corregido —la propiedad **y** que el texto tenga
- * minúsculas que de verdad se transformen—: nueve elementos, no tres. */
-.is-telefonico-profile .mon-phone-caveats-empty-guide strong,
-.is-telefonico-profile .mon-phone-caveats-empty-guide small {
-  text-transform: none;
-  letter-spacing: normal;
-}
-
-/* «Efectivas revisadas» pedía 130 px y tenía 126: cuatro píxeles de elipsis en
- * el rótulo de una métrica. No está en tabla, así que envolver no redistribuye
- * ninguna columna. */
-.is-telefonico-profile .mon-phone-caveats-empty-metrics em {
-  min-width: 0;
-  overflow: visible;
-  white-space: normal;
-  text-overflow: clip;
-  overflow-wrap: anywhere;
 }
 
 /* El arreglo de «Casos impactados» que vivía aquí se movió a `profilePage.css`.

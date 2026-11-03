@@ -220,12 +220,6 @@
   font-weight: var(--pulso-weight-semibold);
 }
 
-.mon-sup-vacio {
-  display: grid;
-  height: 100%;
-  place-items: center;
-}
-
 @media (max-width: 1180px) {
   /* Una columna que crece con su contenido: el contenedor de la pestaña
    * desplaza (C4). Sin `flex: none`, el contenedor la encogía a su alto y las
@@ -426,13 +420,6 @@
 
 .mon-sup-lista-rondas li > .mon-insumos-boton {
   align-self: flex-start;
-}
-
-.mon-sup-rondas-vacio {
-  margin: 0;
-  padding: 0 var(--pulso-space-4) var(--pulso-space-3);
-  color: var(--pulso-text-soft);
-  font-size: 12px;
 }
 
 /* Diálogos de ronda (portal al body). */

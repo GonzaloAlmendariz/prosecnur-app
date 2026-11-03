@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import { Loader2, Save } from "../../../../../vendor/lucide-react";
+import { CalendarClock, Loader2, Save } from "../../../../../vendor/lucide-react";
+import { EstadoVacio } from "../../../../../components/EstadoVacio";
 import type { MonitoreoAcreditacionReports, MonitoreoReportWeekday, MonitoreoState } from "../../../../../api/client";
 import { apiMonitoreoConfig } from "../../../../../api/monitoreo";
 import { NotaDelModo } from "../../../core/NotaDelModo";
@@ -210,10 +211,11 @@ export function Calendario({
             </div>
           ) : (
             // C3: el vacío es de esta tarjeta y dice por qué.
-            <p className="mon-calendario-vacio">
-              El corte no trae efectivas de Kobo con fecha ni llamados fechados en la hoja de barrido: los días aparecen al actualizar
-              con el campo en marcha.
-            </p>
+            <EstadoVacio
+              icono={<CalendarClock size={15} />}
+              titulo="El corte no trae efectivas de Kobo con fecha ni llamados fechados en la hoja de barrido"
+              descripcion="Los días aparecen al actualizar con el campo en marcha."
+            />
           )}
           {nota ? <NotaDelModo tono="aviso" className="mon-calendario-estado">{nota}.</NotaDelModo> : null}
         </section>

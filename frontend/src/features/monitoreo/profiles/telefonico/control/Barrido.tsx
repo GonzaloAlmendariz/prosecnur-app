@@ -1,4 +1,6 @@
 import type { CSSProperties } from "react";
+import { PhoneCall, Target } from "../../../../../vendor/lucide-react";
+import { EstadoVacio } from "../../../../../components/EstadoVacio";
 import { NotaDelModo } from "../../../core/NotaDelModo";
 import { pctConEspacio } from "../../../core/formatoComun";
 import { FAMILIAS_DEL_CLIENTE, rotuloDeRegla } from "./familiasDelCliente";
@@ -165,7 +167,7 @@ export function Barrido({ modelo, segmento }: { modelo: Modelo; segmento: string
               ))}
             </div>
             ) : (
-              <p className="mon-barrido-vacio">Ningún caso llamado todavía.</p>
+              <EstadoVacio icono={<PhoneCall size={15} />} titulo="Ningún caso llamado todavía." />
             )}
           </section>
           <section className="mon-ctl-panel mon-barrido-sin-llamar" aria-label="Sin llamar">
@@ -184,7 +186,7 @@ export function Barrido({ modelo, segmento }: { modelo: Modelo; segmento: string
               ))}
             </ul>
             ) : (
-              <p className="mon-barrido-vacio">Sin eje de cuota, lo que falta llamar no se reparte por categoría.</p>
+              <EstadoVacio icono={<Target size={15} />} titulo="Sin eje de cuota, lo que falta llamar no se reparte por categoría." />
             )}
             <footer className="mon-barrido-reparto">
               <span><span className="mon-ctl-antetitulo">Asignados</span><b className="is-num">{n(modelo.porLlamarAsignados)}</b></span>
@@ -202,7 +204,7 @@ export function Barrido({ modelo, segmento }: { modelo: Modelo; segmento: string
         </header>
         <div className="mon-barrido-status-lista">
           {modelo.status.length ? null : (
-            <p className="mon-barrido-vacio">Ningún caso llamado: los {n(modelo.sinLlamar)} del listado siguen sin barrer.</p>
+            <EstadoVacio icono={<PhoneCall size={15} />} titulo={`Ningún caso llamado: los ${n(modelo.sinLlamar)} del listado siguen sin barrer.`} />
           )}
           {modelo.status.map((grupo) => (
             <div key={grupo.familia} className={`mon-barrido-familia is-${grupo.familia}`}>

@@ -47,7 +47,7 @@ export function ResumenMarcoDeclarado({ marco }: { marco: CalcMuestraGeneralMarc
           </table>
           {resto.length > 0 && (
             <details className="cmg-mas">
-              <summary>Ver {resto.length} estratos más</summary>
+              <summary>Ver {fmtInt(resto.length)} estratos más</summary>
               <table className="cmg-tabla cmg-tabla--compacta">
                 <caption className="cmg-sr-only">N por estrato del marco (continuación)</caption>
                 <tbody>

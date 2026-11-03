@@ -417,7 +417,7 @@ export function ExploradorBasesTab({
                 <span>
                   {filtro.valores.length === 1
                     ? rotuloValor(filtro.columna, filtro.valores[0]!)
-                    : `${filtro.valores.length} valores`}
+                    : `${fmtInt(filtro.valores.length)} valores`}
                 </span>
               </button>
               <button

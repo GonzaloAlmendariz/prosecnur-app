@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { ExternalLink, Loader2, Plus, RefreshCw, Save } from "../../../../../vendor/lucide-react";
+import { ExternalLink, Loader2, Plus, RefreshCw, Save, Upload } from "../../../../../vendor/lucide-react";
+import { EstadoVacio } from "../../../../../components/EstadoVacio";
 import { apiSupervisionLeerResultados, apiSupervisionNuevaRonda, type RondaDeSupervisionApi } from "../../../../../api/monitoreoTelefonico";
 import type { MonitoreoState } from "../../../../../api/client";
 import type { PanelDeclarado } from "../../../../../lib/navegacion/paneles";
@@ -179,7 +180,7 @@ export function RondasDeSupervision({
           ))}
         </ul>
       ) : (
-        <p className="mon-sup-rondas-vacio">Todavía no hay rondas. La primera sale de todas las efectivas; la Ronda {n(proxima)} se genera con «Nueva ronda».</p>
+        <EstadoVacio icono={<RefreshCw size={15} />} titulo="Todavía no hay rondas" descripcion={`La primera sale de todas las efectivas; la Ronda ${n(proxima)} se genera con «Nueva ronda».`} />
       )}
     </section>
   );

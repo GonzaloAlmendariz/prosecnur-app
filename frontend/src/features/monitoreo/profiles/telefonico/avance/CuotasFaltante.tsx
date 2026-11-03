@@ -1,10 +1,13 @@
 import type { CSSProperties } from "react";
+import { Target } from "../../../../../vendor/lucide-react";
+import { EstadoVacio } from "../../../../../components/EstadoVacio";
 import { fmt } from "../formato";
 import { pctConEspacio } from "../../../core/formatoComun";
 import { FaltanteDiario } from "./FaltanteDiario";
 import type { CadenaDeLaCifra, CuotasFaltante as Modelo, FilaDeCuota, PuntoAcumulado } from "./cuotasFaltanteModel";
 import { llevaFaltanteDiario } from "./cuotasFaltanteModel";
 import { RotuloDePestana, useHayRotulo } from "../navegacion/RotuloDePestana";
+import "../control/controlTelefonico.css";
 import "./cuotasFaltante.css";
 
 const ESTADO: Record<FilaDeCuota["estado"], string> = {
@@ -132,10 +135,14 @@ export function CuotasFaltante({ modelo, cadena }: { modelo: Modelo; cadena: Cad
   const hayRotulo = useHayRotulo();
   if (!filas.length) {
     return (
-      <section className="mon-tel-cuotas-vacio" aria-label="Cuotas">
-        {hayRotulo ? <RotuloDePestana /> : <span className="mon-tel-cuotas-antetitulo">Avance por cuota</span>}
-        <strong>Sin cuotas declaradas</strong>
-        <p>Declara la variable de cuota y sus metas en Modelo, Cuotas y calendario.</p>
+      <section className="mon-ctl-panel is-vacio" aria-label="Cuotas">
+        <header className="mon-ctl-panel-cabecera">{hayRotulo ? <RotuloDePestana /> : <span className="mon-tel-cuotas-antetitulo">Avance por cuota</span>}</header>
+        <EstadoVacio
+          tamano="normal"
+          icono={<Target size={18} />}
+          titulo="Sin cuotas declaradas"
+          descripcion="Declara la variable de cuota y sus metas en Modelo, Cuotas y calendario."
+        />
       </section>
     );
   }

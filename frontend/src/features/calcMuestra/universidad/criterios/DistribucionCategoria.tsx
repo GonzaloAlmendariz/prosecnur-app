@@ -2,6 +2,8 @@ import { useMemo } from "react";
 
 import type { CalcMuestraAulasCriterioRadiografiaV2Distribution } from "../../../../api/calcMuestraCriteriosRadiografia";
 import "./distribucionCategoria.css";
+import { fmtInt } from "../../sharedCore";
+import { formatoDecimal } from "../../../../lib/formatoNumero";
 
 /**
  * F111 · Las tres lecturas de una categoría sobre un solo eje.
@@ -31,11 +33,9 @@ export type VistaDistribucion = {
 
 const fmt = (v: number | null | undefined, dec = 1) =>
   typeof v === "number" && Number.isFinite(v)
-    ? v.toLocaleString("es-PE", { maximumFractionDigits: dec })
+    ? formatoDecimal(v, dec)
     : "—";
 
-const fmtInt = (v: number | null | undefined) =>
-  typeof v === "number" && Number.isFinite(v) ? Math.round(v).toLocaleString("es-PE") : "—";
 
 /**
  * Posición porcentual de un valor en la escala común.

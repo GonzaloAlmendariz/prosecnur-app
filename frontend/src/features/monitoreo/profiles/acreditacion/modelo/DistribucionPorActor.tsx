@@ -13,6 +13,9 @@
  */
 
 import { useMemo } from "react";
+import { Database, RefreshCw } from "lucide-react";
+
+import { EstadoVacio } from "../../../../../components/EstadoVacio";
 
 import type {
   MonitoreoInterestVariable,
@@ -125,9 +128,10 @@ function TarjetaDeActor({
     return (
       <article className="mon-dist-actor is-vacia" data-qa-geometry-member>
         <header><strong>{item.actor}</strong></header>
-        <p className="mon-dist-vacio">
-          La base de este actor todavía no se ha sincronizado, así que no hay columnas que ofrecer.
-        </p>
+        <EstadoVacio
+          icono={<RefreshCw size={15} />}
+          titulo="La base de este actor todavía no se ha sincronizado, así que no hay columnas que ofrecer."
+        />
       </article>
     );
   }
@@ -178,7 +182,7 @@ function TarjetaDeActor({
               </div>
             ) : null}
             {columna.motivoNoSegmenta === "sin-analizar" ? (
-              <p className="mon-dist-vacio">Su reparto aparece al actualizar esta fuente.</p>
+              <EstadoVacio icono={<RefreshCw size={15} />} titulo="Su reparto aparece al actualizar esta fuente." />
             ) : (
               <Reparto columna={columna} normalizacion={declarada.normalization} />
             )}
@@ -244,9 +248,12 @@ export function DistribucionPorActor({
 
   if (!actores.length) {
     return (
-      <div className="mon-dist-vacio-panel" data-qa-geometry-capacity="owned">
-        <strong>Sin bases de universo conectadas</strong>
-        <p>Las variables de interés salen de las columnas de esas hojas. Conéctalas en Fuentes.</p>
+      <div data-qa-geometry-capacity="owned">
+        <EstadoVacio
+          icono={<Database size={15} />}
+          titulo="Sin bases de universo conectadas"
+          descripcion="Las variables de interés salen de las columnas de esas hojas. Conéctalas en Fuentes."
+        />
       </div>
     );
   }

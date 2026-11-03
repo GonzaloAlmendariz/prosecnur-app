@@ -14,6 +14,8 @@
 
 import { AlertTriangle, MessageSquare, PhoneCall, ShieldAlert, Users } from "lucide-react";
 
+import { EstadoVacio } from "../../../components/EstadoVacio";
+
 import type {
   MonitoreoCalidadCampo,
   MonitoreoCalidadCampoAlerta,
@@ -214,9 +216,8 @@ export default function CalidadDeCampo({
       {vacio ? (
         // C3 del Contrato de Superficie: la superficie contiene su propio vacío
         // y dice cuál de los vacíos es.
-        <div className="mon-calidad-vacio" role="note">
-          <strong>{vacio.titulo}</strong>
-          <span>{vacio.detalle}</span>
+        <div role="note">
+          <EstadoVacio icono={<Users size={15} />} titulo={vacio.titulo} descripcion={vacio.detalle} />
         </div>
       ) : (
         <ul className="mon-calidad-lista" aria-live="polite">

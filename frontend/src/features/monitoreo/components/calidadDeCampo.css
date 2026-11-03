@@ -60,29 +60,6 @@
   background: color-mix(in srgb, var(--pulso-danger-fg) 8%, var(--pulso-surface));
 }
 
-/* --- El vacío, que también es información ---------------------------------- */
-
-.mon-calidad-vacio {
-  display: grid;
-  gap: 3px;
-  padding: 10px 11px;
-  border: 1px dashed var(--pulso-border);
-  border-radius: 10px;
-  background: var(--pulso-surface-2);
-}
-
-.mon-calidad-vacio strong {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--pulso-text);
-}
-
-.mon-calidad-vacio span {
-  font-size: 11.5px;
-  line-height: 1.45;
-  color: var(--pulso-text-muted);
-}
-
 /* --- Los avisos ------------------------------------------------------------ */
 
 .mon-calidad-lista {
