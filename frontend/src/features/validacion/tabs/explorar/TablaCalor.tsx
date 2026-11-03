@@ -75,8 +75,9 @@ export default function TablaCalor({
     "--vx-calor-cols": columnas,
     "--vx-calor-min": `${ANCHO_ROTULO + (nc + (conColTotal ? 1 : 0)) * ANCHO_CELDA}px`,
   });
-  const totalTexto = modelo.lectura === "n" ? fmtN(modelo.totalGeneral) : `n = ${fmtN(modelo.totalGeneral)}`;
+  const totalTexto = `n = ${fmtN(modelo.totalGeneral)}`;
   return (
+    <>
     <div className="vx-calor-caja" role="region" tabIndex={0} aria-label="Tabla del cruce (se desplaza a los lados si no cabe)">
       <div className="vx-calor" role="table" aria-label={modelo.titulo} style={estilo}>
         <div className="vx-calor-fila" role="row">
@@ -98,7 +99,10 @@ export default function TablaCalor({
         </div>
         {modelo.filas.map((f, r) => (
           <div key={`${f.etiqueta}-${r}`} className="vx-calor-fila" role="row">
-            <div className="vx-calor-rotulo" role="rowheader">{f.etiqueta}</div>
+            <div className="vx-calor-rotulo" role="rowheader">
+              <span>{f.etiqueta}</span>
+              {f.n !== null && <small>n = {fmtN(f.n)}</small>}
+            </div>
             {f.celdas.map((c, i) => (
               <Celda key={i} c={c} columna={modelo.columnas[i].etiqueta} fila={f.etiqueta} />
             ))}
@@ -115,10 +119,12 @@ export default function TablaCalor({
             {modelo.filaTotal.map((c, i) => (
               <Celda key={i} c={c} total columna={modelo.columnas[i].etiqueta} fila="Total" />
             ))}
-            {conColTotal && <div className="is-col-total" role="presentation"><Celda c={{ n: modelo.totalGeneral, valor: modelo.totalGeneral, texto: modelo.lectura === "n" ? fmtN(modelo.totalGeneral) : "100.0", peso: 0, dif: null, marca: null }} total columna="Total" fila="Total" /></div>}
+            {conColTotal && <div className="is-col-total" role="presentation"><Celda c={modelo.esquina} total columna="Total" fila="Total" /></div>}
           </div>
         )}
       </div>
     </div>
+    {modelo.nota && <p className="vx-pie vx-calor-nota">{modelo.nota}</p>}
+    </>
   );
 }

@@ -810,13 +810,25 @@
 }
 .vx-calor-rotulo {
   display: flex;
-  align-items: center;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 1px;
   min-width: 0;
   padding: 0 var(--pulso-space-2);
   color: var(--pulso-text);
   font-weight: var(--pulso-weight-medium);
   line-height: 1.25;
   overflow-wrap: anywhere;
+}
+.vx-calor-rotulo > small {
+  color: var(--pulso-text-faint);
+  font-size: var(--pulso-type-caption-size);
+  font-weight: var(--pulso-weight-regular);
+  font-variant-numeric: tabular-nums;
+}
+.vx-calor-nota {
+  margin-top: var(--pulso-space-2);
 }
 .vx-calor-cabeza {
   display: flex;

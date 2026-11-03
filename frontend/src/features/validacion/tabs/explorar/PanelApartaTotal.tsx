@@ -29,8 +29,8 @@ export default function PanelApartaTotal({ modelo }: { modelo: ModeloCalor }) {
           <h4>Antes de leerlo</h4>
           <p>
             {rango.min === rango.max
-              ? `Cada columna tiene ${fmtN(rango.min)} respuestas.`
-              : `Cada columna tiene entre ${fmtN(rango.min)} y ${fmtN(rango.max)} respuestas.`}{" "}
+              ? `Cada ${rango.de} tiene ${fmtN(rango.min)} ${rango.min === 1 ? "caso" : "casos"}.`
+              : `Cada ${rango.de} tiene entre ${fmtN(rango.min)} y ${fmtN(rango.max)} casos.`}{" "}
             Con ese tamaño, una diferencia de {UMBRAL_PUNTOS} puntos es una pista para revisar, no una conclusión.
           </p>
         </section>

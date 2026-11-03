@@ -5,7 +5,7 @@ import CruceLista from "./CruceLista";
 import CruceSerie from "./CruceSerie";
 import GraficoTarjeta from "./GraficoTarjeta";
 import TablaCalor, { LecturaCalorSelector } from "./TablaCalor";
-import { fmtN, type LecturaCalor, type ModeloCalor } from "./explorarModelo";
+import { fraseCruceBase, type LecturaCalor, type ModeloCalor } from "./explorarModelo";
 import { bajadaDeSerie, modoDeSerie } from "./serieModelo";
 
 /**
@@ -27,16 +27,12 @@ export default function Cruce({
   rotuloX: string;
   rotuloY: string;
 }) {
-  const respuestas = `${fmtN(cruce.base_n)} ${cruce.base_n === 1 ? "respuesta" : "respuestas"}`;
+  const respuestas = fraseCruceBase(cruce);
   if (cruce.forma === "tabla" && modelo) {
     return (
       <GraficoTarjeta
         titulo={modelo.titulo}
-        bajada={
-          lectura === "n"
-            ? `${respuestas} · el tono marca el peso de la celda`
-            : `${respuestas} · el tono marca el peso de la celda; la flecha, una diferencia de 5 puntos o más frente al total`
-        }
+        bajada={respuestas}
         acciones={<LecturaCalorSelector valor={lectura} onCambio={onLectura} />}
       >
         <TablaCalor modelo={modelo} rotuloFilas={rotuloX} />
@@ -46,7 +42,7 @@ export default function Cruce({
   const titulo = cruce.grafico || "Cruce";
   if (cruce.forma === "cajas" && cruce.cajas) {
     return (
-      <GraficoTarjeta tipo="num" titulo={titulo} bajada={`${respuestas} · misma escala para todos los grupos`}>
+      <GraficoTarjeta tipo="num" titulo={titulo} bajada={respuestas}>
         <CruceCajas grupos={cruce.cajas.grupos} />
       </GraficoTarjeta>
     );

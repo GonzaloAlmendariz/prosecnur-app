@@ -116,6 +116,22 @@ describe("normalizeExploradorCruce", () => {
       },
     });
     expect(c?.tabla?.n).toEqual([[4, 1], [2, 3]]);
+    // Un payload viejo no trae filas[].n ni n_x/n_y: llegan en null, no en 0.
+    expect(c?.tabla?.filas[0].n).toBeNull();
+    expect(c?.n_x).toBeNull();
+  });
+
+  it("los casos de cada fila y de cada variable (revisión metodológica)", () => {
+    const c = normalizeExploradorCruce({
+      tipo_x: "so", tipo_y: "sm", forma: "tabla", base_n: [560], n_x: [1283], n_y: 560,
+      tabla: {
+        filas: [{ codigo: "1", etiqueta: "Hombre", n: [258] }, { codigo: "2", etiqueta: "Mujer", n: 301 }],
+        columnas: [{ codigo: "a", etiqueta: "Redes", n: 355 }],
+        n: [[164], [190]],
+      },
+    });
+    expect(c?.tabla?.filas.map((f) => f.n)).toEqual([258, 301]);
+    expect([c?.n_x, c?.n_y]).toEqual([1283, 560]);
   });
 
   it("una matriz que no cuadra con filas × columnas no se dibuja", () => {

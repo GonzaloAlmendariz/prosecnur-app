@@ -61,10 +61,10 @@ test("el selector de cruce lista fecha y abierta y anticipa el gráfico del par"
 
 test("la tabla de calor marca las celdas a 5 puntos del total y deja el Total aparte", () => {
   const modelo = modeloCalor({
-    filas: [{ codigo: "1", etiqueta: "Hombre" }, { codigo: "2", etiqueta: "Mujer" }],
+    filas: [{ codigo: "1", etiqueta: "Hombre", n: 10 }, { codigo: "2", etiqueta: "Mujer", n: 10 }],
     columnas: [{ codigo: "a", etiqueta: "Ate", n: 10 }, { codigo: "b", etiqueta: "Breña", n: 10 }],
     n: [[7, 3], [3, 7]],
-  }, "columna");
+  }, "columna", 20);
   act(() => root.render(<TablaCalor modelo={modelo} rotuloFilas="Sexo" />));
   expect(host.querySelector("[role='table']")).toBeTruthy();
   expect(host.querySelectorAll("[role='columnheader']")).toHaveLength(4);

@@ -42,7 +42,7 @@ import PanelFormulario from "./explorar/PanelFormulario";
 import RielVariables from "./explorar/RielVariables";
 import TextResponsesView from "./explorar/TextResponsesView";
 import TiraCifras from "./explorar/TiraCifras";
-import { cifrasClave, fraseBase, modeloCalor, resolverBase, type LecturaCalor } from "./explorar/explorarModelo";
+import { cifrasClave, fraseBase, lecturaInicial, modeloCalor, resolverBase, type LecturaCalor } from "./explorar/explorarModelo";
 import { graficoDelPar } from "./explorar/graficoDelPar";
 import { findSeccionOf, pickInitialVariable } from "./explorar/seleccionInicial";
 import "./explorar/explorar.css";
@@ -95,7 +95,8 @@ export default function ExplorarTab({
   // Ficha de la pregunta, con la variable y la fuente para las que se pidió:
   // así la readiness sabe si la que está en pantalla es la de la selección.
   const [fichaEstado, setFichaEstado] = useState<{ var: string; fuente: ExplorarFuente; ficha: ExploradorFicha | null } | null>(null);
-  const [lecturaCalor, setLecturaCalor] = useState<LecturaCalor>("columna");
+  // La lectura que eligió la persona, para el par en que la eligió; otro par abre en la suya (`lecturaInicial`).
+  const [lecturaElegida, setLecturaElegida] = useState<{ par: string; lectura: LecturaCalor } | null>(null);
   // Con cruce la lista va plegada; «lista» o «buscar» la despliegan a pedido.
   const [listaAbierta, setListaAbierta] = useState<null | "lista" | "buscar">(null);
 
@@ -356,8 +357,17 @@ export default function ExplorarTab({
     [ficha],
   );
   const cruce = cruzar && biv ? biv.cruce ?? null : null;
+  const parCruce = selected && cruzar ? `${selected.name}×${cruzar}` : "";
+  const lecturaCalor =
+    lecturaElegida && lecturaElegida.par === parCruce
+      ? lecturaElegida.lectura
+      : lecturaInicial(cruce?.tipo_x ?? "so", cruce?.tipo_y ?? "so");
+  const setLecturaCalor = useCallback((lectura: LecturaCalor) => setLecturaElegida({ par: parCruce, lectura }), [parCruce]);
   const modelo = useMemo(
-    () => (cruce?.forma === "tabla" && cruce.tabla ? modeloCalor(cruce.tabla, lecturaCalor, cruce.base_n) : null),
+    () =>
+      cruce?.forma === "tabla" && cruce.tabla
+        ? modeloCalor(cruce.tabla, lecturaCalor, cruce.base_n, cruce.tipo_x, cruce.tipo_y)
+        : null,
     [cruce, lecturaCalor],
   );
 

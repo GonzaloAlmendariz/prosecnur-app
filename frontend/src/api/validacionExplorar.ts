@@ -208,7 +208,8 @@ export function normalizeExploradorDist(raw: unknown): ExploradorDist | null {
 export type ExploradorCruceForma = "tabla" | "cajas" | "dispersion" | "serie" | "lista";
 
 export type ExploradorCruceTabla = {
-  filas: { codigo: string; etiqueta: string }[];
+  /** `n`: casos de la base en la fila (no la suma de sus celdas: con una múltiple, un caso está en varias); null en un payload viejo. */
+  filas: { codigo: string; etiqueta: string; n: number | null }[];
   columnas: { codigo: string; etiqueta: string; n: number }[];
   /** n[fila][columna] */
   n: number[][];
@@ -239,6 +240,9 @@ export type ExploradorCruce = {
   grafico: string;
   forma: ExploradorCruceForma;
   base_n: number;
+  /** Casos que responden cada variable con los mismos filtros; null en un payload viejo. */
+  n_x: number | null;
+  n_y: number | null;
   tabla?: ExploradorCruceTabla;
   cajas?: { grupos: ExploradorCruceCaja[] };
   dispersion?: {
@@ -262,7 +266,11 @@ function matriz(value: unknown, nFilas: number, nCols: number): number[][] | nul
 
 function tablaCruce(value: unknown): ExploradorCruceTabla | undefined {
   const t = registro(value);
-  const filas = lista(t.filas).map((f) => ({ codigo: codigo(f.codigo), etiqueta: texto(f.etiqueta) || codigo(f.codigo) }));
+  const filas = lista(t.filas).map((f) => ({
+    codigo: codigo(f.codigo),
+    etiqueta: texto(f.etiqueta) || codigo(f.codigo),
+    n: enteroONulo(f.n),
+  }));
   const columnas = lista(t.columnas).map((c) => ({
     codigo: codigo(c.codigo),
     etiqueta: texto(c.etiqueta) || codigo(c.codigo),
@@ -292,6 +300,8 @@ export function normalizeExploradorCruce(raw: unknown): ExploradorCruce | null {
     grafico: texto(r.grafico),
     forma,
     base_n: entero(r.base_n),
+    n_x: enteroONulo(r.n_x),
+    n_y: enteroONulo(r.n_y),
   };
   const tabla = tablaCruce(r.tabla);
   if (tabla) out.tabla = tabla;
