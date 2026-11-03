@@ -1,7 +1,7 @@
 /* Eje de fechas de dos líneas de los gráficos diarios de Monitoreo (core/ejeDeFechas.tsx). */
 .mon-eje-fecha {
   fill: var(--pulso-text-faint);
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   font-variant-numeric: tabular-nums;
 }
 
@@ -17,7 +17,7 @@
   align-items: center;
   line-height: 1.25;
   color: var(--pulso-text-faint);
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   font-variant-numeric: tabular-nums;
 }
 
