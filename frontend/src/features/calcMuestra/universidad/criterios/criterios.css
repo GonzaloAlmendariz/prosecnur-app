@@ -2384,8 +2384,10 @@
    cabecera y su cuerpo; ésta no tiene ninguno de los dos, así que su contenido
    quedaba pegado al borde. Con la tarjeta fuera del botón de recalcular pasó a
    verse entera y el descuido quedó a la vista. */
+/* Sin tope de ancho: con max-width 1040 la tarjeta terminaba 115 px antes que
+   los bloques de abajo y el borde derecho de la pestaña quedaba en dos sitios
+   (C2). La lista ya reparte sus columnas con auto-fit. */
 .cmv2-crit-card[data-criterio="facultades-excluidas"] {
-  max-width: 1040px;
   padding: 12px 14px 13px;
 }
 
