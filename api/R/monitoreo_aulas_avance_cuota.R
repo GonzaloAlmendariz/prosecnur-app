@@ -695,8 +695,15 @@
     meta_diseno = if (length(vig$facultades)) .monitoreo_num(vig$dt$meta_diseno, NA_real_) else NA_real_,
     sobremuestra = if (length(vig$facultades)) .monitoreo_num(vig$dt$sobremuestra, NA_real_) else NA_real_,
     meta_operativa = if (length(vig$facultades)) .monitoreo_num(vig$dt$meta_operativa, NA_real_) else NA_real_,
+    # ADR 0126 (aditivo): la meta de aulas tiene dos niveles con nombre. La meta
+    # operativa no es un nivel: es una cifra de gestión, no una cuota (ADR 0079).
+    niveles = .monitoreo_aulas_niveles_de_meta(
+      if (length(vig$facultades)) .monitoreo_num(vig$dt$meta_diseno, NA_real_) else NA_real_,
+      if (length(vig$facultades)) .monitoreo_num(vig$dt$sobremuestra, NA_real_) else NA_real_,
+      total
+    ),
     total = total,
-    facultades = filas
+    facultades = .monitoreo_cuotas_marcar_aulas(filas)
   )
 }
 

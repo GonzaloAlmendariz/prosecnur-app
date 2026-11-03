@@ -122,3 +122,32 @@ test_that("la fila de un actor lee la meta de ESE actor, aunque una global refer
   expect_identical(.monitoreo_cuota_goal_de_fila(goals, "Total", "Sede", "SJL")$caracter, "referencial")
   expect_null(.monitoreo_cuota_goal_de_fila(goals, "Docentes", "Sede", "SJL"))
 })
+
+test_that("aulas: cada fila de avance_cuota publica carácter, fuente y estado común; fuera del diseño no", {
+  filas <- .monitoreo_cuotas_marcar_aulas(list(
+    list(facultad = "A", cuota = 10, respuestas_validas = 12, estado = "ok", fuente_fila = "diseno"),
+    list(facultad = "B", cuota = 10, respuestas_validas = 4, estado = "ok", fuente_fila = "plan"),
+    list(facultad = "C", cuota = 10, respuestas_validas = 0, estado = "sin_aulas_en_plan", fuente_fila = "diseno"),
+    list(facultad = "D", cuota = NA, respuestas_validas = 3, estado = "sin_cuota", fuente_fila = "sin_cuota"),
+    list(facultad = "E", cuota = NA, respuestas_validas = 2, estado = "fuera_del_diseno", fuente_fila = "fuera_del_diseno")
+  ))
+  expect_identical(vapply(filas[1:4], function(f) f$estado_cuota, ""), c("cumple", "falta", "sin_base", "sin_comparador"))
+  expect_identical(vapply(filas[1:4], function(f) f$caracter, ""), c("meta", "meta", "meta", "referencial"))
+  expect_identical(filas[[1]]$fuente, "declarada")
+  expect_identical(filas[[2]]$fuente, "respaldo")
+  expect_null(filas[[5]]$caracter)
+  # El estado de siempre no cambia.
+  expect_identical(filas[[3]]$estado, "sin_aulas_en_plan")
+})
+
+test_that("aulas: muestra se juzga por celda sin compensar; sobremuestra compara el total y lo declara", {
+  # Total 2 600 sobre 2 500, pero una celda con brecha: la muestra NO se cumple.
+  n <- .monitoreo_aulas_niveles_de_meta(2500, 3750, list(respuestas_validas = 2600, brecha = 40))
+  expect_identical(vapply(n, function(x) x$nivel, ""), c("muestra", "sobremuestra"))
+  expect_identical(n[[1]]$estado_cuota, "falta")
+  expect_false(n[[1]]$compensa)
+  expect_identical(n[[2]]$estado_cuota, "falta")
+  expect_true(n[[2]]$compensa)
+  expect_identical(.monitoreo_aulas_niveles_de_meta(2500, 3750, list(respuestas_validas = 3800, brecha = 0))[[2]]$estado_cuota, "cumple")
+  expect_length(.monitoreo_aulas_niveles_de_meta(NA, NA, list()), 0L)
+})

@@ -147,3 +147,58 @@
   out$estado_cuota <- .monitoreo_cuota_estado(caracter, out$Meta, out$Efectivas, out$Universo)
   out
 }
+
+# ---- Aulas: las filas de `avance_cuota` y sus niveles ------------------------
+
+#' Marca las filas de `avance_cuota` con el contrato del ADR 0126 (aditivo).
+#'
+#' Una fila con cuota del diseño es `meta` (fuente `declarada`; con la vigencia
+#' degradada la cuota sale del plan y es `respaldo`). `sin_aulas_en_plan` es una
+#' meta `sin_base`. `sin_cuota` no se exige: es `referencial` y, sin cuota con
+#' que compararla, `sin_comparador`. `fuera_del_diseno` no es una cuota: es el
+#' residual `sin_celda` y no lleva carácter.
+#' @keywords internal
+.monitoreo_cuotas_marcar_aulas <- function(filas) {
+  lapply(filas, function(f) {
+    if (!is.list(f)) return(f)
+    estado <- .monitoreo_scalar(f$estado, "")
+    if (identical(estado, "fuera_del_diseno")) return(f)
+    cuota <- .monitoreo_num(f$cuota, NA_real_)
+    validas <- .monitoreo_num(f$respuestas_validas, 0)
+    if (identical(estado, "sin_cuota") || !is.finite(cuota)) {
+      f$caracter <- "referencial"
+      f$fuente <- ""
+      f$estado_cuota <- "sin_comparador"
+      return(f)
+    }
+    f$caracter <- "meta"
+    f$fuente <- if (identical(.monitoreo_scalar(f$fuente_fila, ""), "diseno")) "declarada" else "respaldo"
+    f$estado_cuota <- if (validas >= cuota) "cumple" else if (identical(estado, "sin_aulas_en_plan")) "sin_base" else "falta"
+    f
+  })
+}
+
+#' Los dos niveles de la meta de aulas (Gonzalo, 2026-09-08: muestra y
+#' sobremuestra son las dos metas del estudio). `muestra` se juzga por celda,
+#' sin compensar (ADR 0079): se cumple cuando ninguna celda con cuota tiene
+#' brecha. `sobremuestra` sólo existe como total: su veredicto compara el total
+#' y lo declara con `compensa = TRUE`.
+#' @keywords internal
+.monitoreo_aulas_niveles_de_meta <- function(meta_diseno, sobremuestra, total) {
+  validas <- .monitoreo_num(total$respuestas_validas, 0)
+  brecha <- .monitoreo_num(total$brecha, NA_real_)
+  niveles <- list()
+  if (is.finite(.monitoreo_num(meta_diseno, NA_real_))) {
+    niveles[[length(niveles) + 1L]] <- list(
+      nivel = "muestra", meta = meta_diseno, caracter = "meta", compensa = FALSE,
+      estado_cuota = if (is.finite(brecha)) (if (brecha <= 0) "cumple" else "falta") else "sin_base"
+    )
+  }
+  if (is.finite(.monitoreo_num(sobremuestra, NA_real_))) {
+    niveles[[length(niveles) + 1L]] <- list(
+      nivel = "sobremuestra", meta = sobremuestra, caracter = "meta", compensa = TRUE,
+      estado_cuota = if (validas >= sobremuestra) "cumple" else "falta"
+    )
+  }
+  niveles
+}

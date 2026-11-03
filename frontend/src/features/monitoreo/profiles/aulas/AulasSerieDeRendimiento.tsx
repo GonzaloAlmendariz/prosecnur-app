@@ -204,9 +204,10 @@ type PropsDeLaSerie = {
    * el enlace a la corrida, y ninguna cifra de diseño. Hasta que viaje, esto
    * llega en `null` y la pantalla lo dice en vez de suponerlo.
    *
-   * Y cuando llegue, se lee como lo que es: **la meta manda y la sobremuestra es
-   * referencia**. Gonzalo: «sobrellegar a la muestra no es una necesidad [...]
-   * la sobremuestra podría servir como un valor referencial».
+   * Y cuando llegue, se lee como lo que es: **el segundo nivel de la meta**
+   * (Gonzalo, 2026-09-08: muestra y sobremuestra son las dos metas del estudio
+   * y se miden igual; ADR 0126 §1, niveles con nombre). Antes este comentario
+   * la llamaba «referencia», que es la doctrina que el 08/09 reemplazó.
    */
   sobremuestra?: number | null;
   /**
@@ -1440,9 +1441,9 @@ function SerieConDatos({ partes, agenda = [], cuotas = [], plan = [], control = 
                   stroke="var(--pulso-border)" strokeWidth="1"
                   vectorEffect="non-scaling-stroke" opacity={m === 0 ? 1 : 0.55} />
               ))}
-              {/* La SOBREMUESTRA, si el estudio la declara: por encima de la meta
-                  y con trazo propio. No es una obligación —la meta manda— y por
-                  eso va más tenue y punteada más fina. */}
+              {/* La SOBREMUESTRA, si el estudio la declara: el segundo nivel de la
+                  meta, por encima de la muestra y con trazo propio para que no se
+                  confundan las dos líneas (ADR 0126 §1). */}
               {sobremuestra && sobremuestra > acumulado.muestra ? (
                 <line x1={MARGEN} y1={acumulado.y(sobremuestra)} x2={100 - MARGEN}
                   y2={acumulado.y(sobremuestra)}

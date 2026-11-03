@@ -95,7 +95,9 @@ const TABLA: readonly Entrada[] = [
   // M1 Metas: contenido propio (`modelo/MetasAulas.tsx`), leído de la
   // representatividad declarada (F5 del ADR 0121).
   entrada("modelo", "metas", null, v("avance", "cuotas"), { vista: "Metas", regreso: false, propia: true }),
-  entrada("modelo", "metas", "efectividad", v("avance", "efectividad"), { vista: "Tasa del diseño", regreso: false }),
+  // «Tasa del diseño» colgaba también de aquí y era la MISMA vista que Avance ›
+  // Rendimiento › Efectividad, que mide el campo contra el diseño. Modelo
+  // declara y nunca muestra avance (ADR 0126 §5): la vista vive sólo en Avance.
   // M2 Muestra: la cadena de reemplazos y el alcance del banco de extras.
   // M2 Muestra: contenido propio (`modelo/MuestraAulas.tsx`); «Banco de
   // extras» queda como sub-vista heredada con el detalle.
