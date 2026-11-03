@@ -166,12 +166,7 @@ export function MetodoGeneralVista({
 function EstratosNoAplican() {
   const location = useLocation();
   return (
-    <section className="cmv2-panel" aria-labelledby="cmg-estratos-vacio-titulo">
-      <div className="cmv2-panel-head">
-        <div>
-          <h3 className="cmg-panel-titulo" id="cmg-estratos-vacio-titulo">Reparto entre estratos</h3>
-        </div>
-      </div>
+    <Panel aria-labelledby="cmg-estratos-vacio-titulo" title={<span id="cmg-estratos-vacio-titulo">Reparto entre estratos</span>}>
       <EmptyState
         variant="inline"
         icon={<Layers3 size={18} aria-hidden="true" />}
@@ -183,6 +178,6 @@ function EstratosNoAplican() {
           </Link>
         )}
       />
-    </section>
+    </Panel>
   );
 }

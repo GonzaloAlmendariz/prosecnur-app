@@ -3,6 +3,7 @@ import { Plus, Trash2 } from "lucide-react";
 
 import type { CalcMuestraComponente, CalcMuestraEstrato } from "../../../api/calcMuestra";
 import { fmtInt, type ComponentePatch } from "../sharedCore";
+import { Panel } from "../../../components/Panel";
 import { NumberCell } from "../universidad/aulas";
 import {
   esProporcionValida,
@@ -57,13 +58,12 @@ export function EstratosGeneralVista({
   };
 
   return (
-    <section className="cmv2-panel cmg-estratos-general" aria-labelledby="cmg-estratos-titulo">
-      <div className="cmv2-panel-head">
-        <div>
-          <span className="cmv2-eyebrow">{marcoDeclarado ? "Del archivo del marco" : "Tabla editable"}</span>
-          <h3 className="cmg-panel-titulo" id="cmg-estratos-titulo">Estratos del marco</h3>
-        </div>
-      </div>
+    <Panel
+      className="cmg-estratos-general"
+      aria-labelledby="cmg-estratos-titulo"
+      eyebrow={marcoDeclarado ? "Del archivo del marco" : "Tabla editable"}
+      title={<span id="cmg-estratos-titulo">Estratos del marco</span>}
+    >
       {conP && (
         <p className="cmg-nota" id="cmg-estratos-ayuda">
           Con la proporción de cada estrato el n se calcula por estrato y Neyman puede repartir mejor.
@@ -162,7 +162,7 @@ export function EstratosGeneralVista({
           </button>
         </div>
       )}
-    </section>
+    </Panel>
   );
 }
 
