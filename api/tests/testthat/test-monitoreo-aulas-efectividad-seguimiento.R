@@ -1169,3 +1169,31 @@ test_that("con el eje en el AULA la efectividad por sexo no cambia, aun con un a
   expect_identical(f$efectivas, g$efectivas)
   expect_identical(f$elegibles, g$elegibles)
 })
+
+test_that("«Vencidos» del seguimiento y «Fecha pasada» del reparto por rol se juzgan al mismo corte (2g)", {
+  # Revisión metodológica 2026-11-03: en la misma pantalla, «Vencidos: N» por
+  # facultad y «Fecha pasada: M» del reparto por rol deben contar lo mismo.
+  plan <- list(
+    .efs_aula("A1", "Derecho", eligible = 20, orden = 1, aplicada = TRUE),
+    .efs_aula("A2", "Derecho", eligible = 20, orden = 2, aplicada = FALSE,
+              status = "agendada", op_status = "planificada", fecha = .efs_fecha_pasada(10)),
+    .efs_aula("A3", "Derecho", eligible = 30, orden = 3, aplicada = FALSE,
+              status = "agendada", op_status = "planificada", fecha = .efs_fecha_pasada(2))
+  )
+  cfg <- monitoreo_aulas_normalize_config(list(
+    enabled = TRUE, selection_run_id = "run_1", frame_hash = "hash_1", plan = plan,
+    design_targets = .efs_dt(list(.efs_fac("Derecho", cuota = 40)))
+  ))
+  corte <- format(as.POSIXct(Sys.Date() - 5) + 15 * 3600, "%Y-%m-%dT%H:%M:%SZ", tz = "UTC")
+  d <- monitoreo_aulas_dashboard(cfg$plan, .efs_resp(rep("A1", 10)), cfg, corte = corte)
+  f <- .efs_fila(d$efectividad_seguimiento, "Derecho")
+  rol <- d$course_status_rol_y_estado
+  # Sólo la de hace 10 días es vencida; la de hace 2 cae después del corte.
+  expect_identical(f$cursos_vencidos, 1L)
+  expect_identical(rol$titulares$agendado_vencido, 1L)
+  expect_identical(rol$titulares$agendado_tras_corte, 1L)
+  # Sin corte, las dos son vencidas en los dos bloques.
+  sin <- monitoreo_aulas_dashboard(cfg$plan, .efs_resp(rep("A1", 10)), cfg)
+  expect_identical(.efs_fila(sin$efectividad_seguimiento, "Derecho")$cursos_vencidos, 2L)
+  expect_identical(sin$course_status_rol_y_estado$titulares$agendado_vencido, 2L)
+})

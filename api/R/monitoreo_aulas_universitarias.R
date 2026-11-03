@@ -1585,7 +1585,8 @@ monitoreo_aulas_from_calc <- function(estudio = NULL, selection = NULL, frame = 
   tapply(fecha[ok], aulas[ok], min, simplify = TRUE)
 }
 
-.monitoreo_aulas_course_status <- function(plan_df, responses, cfg, valid_response, response_classroom) {
+.monitoreo_aulas_course_status <- function(plan_df, responses, cfg, valid_response, response_classroom,
+                                          hoy = Sys.Date(), corte = NULL) {
   if (!is.data.frame(plan_df) || !nrow(plan_df)) return(list())
   total_counts <- .monitoreo_aulas_named_counts(response_classroom)
   valid_counts <- .monitoreo_aulas_named_counts(response_classroom, valid_response)
@@ -1905,7 +1906,7 @@ monitoreo_aulas_from_calc <- function(estudio = NULL, selection = NULL, frame = 
   # Aplicadas (Campo)» va por bloques —TITULAR, REEMPLAZO 1…11— con su propio
   # `STATUS DE APLICACION`. Se calcula sobre `out`, que ya tiene el
   # `application_state` derivado y el estado operativo cruzado con los partes.
-  attr(recortado, "rol_y_estado") <- monitoreo_aulas_rol_y_estado(out)
+  attr(recortado, "rol_y_estado") <- monitoreo_aulas_rol_y_estado(out, hoy = hoy, corte = corte)
   # **Y el mismo reparto POR FACULTAD.** Gonzalo, 2026-09-10: «el selector de
   # facultad que está en el encabezado no hace que los gráficos actualicen…
   # cuando yo selecciono una facultad, debería mostrarme sólo la de esa
@@ -1918,7 +1919,7 @@ monitoreo_aulas_from_calc <- function(estudio = NULL, selection = NULL, frame = 
   fac_cs <- trimws(as.character(out$faculty %||% rep("", nrow(out))))
   attr(recortado, "rol_y_estado_por_facultad") <- stats::setNames(
     lapply(sort(unique(fac_cs[nzchar(fac_cs)])), function(f)
-      monitoreo_aulas_rol_y_estado(out[fac_cs == f, , drop = FALSE])),
+      monitoreo_aulas_rol_y_estado(out[fac_cs == f, , drop = FALSE], hoy = hoy, corte = corte)),
     sort(unique(fac_cs[nzchar(fac_cs)]))
   )
   # **La efectividad al grano de FACULTAD x SEXO**, aqui y no fuera por la misma
@@ -2225,7 +2226,11 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
                                       # Corte de «cita vencida»: la hoja de riesgo
                                       # pasa el suyo para que conteos y fechas
                                       # hablen del mismo día.
-                                      hoy = Sys.Date()) {
+                                      hoy = Sys.Date(),
+                                      # Sellos de la última descarga de las
+                                      # fuentes: una cita posterior no se juzga
+                                      # vencida (2g).
+                                      corte = NULL) {
   cfg <- monitoreo_aulas_normalize_config(config)
   # **El plan se normaliza UNA vez, no dos.**
   #
@@ -2271,7 +2276,7 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
         plan_df, plan_df, responses, cfg,
         .monitoreo_aulas_valid_response(responses, cfg),
         .monitoreo_aulas_response_classroom(responses, cfg),
-        hoy = hoy
+        hoy = .marye_limite_de_vencida(hoy, corte)
       ),
       # Y las dos tasas por AULA tambien (C2): sin plan viaja vacio y con su
       # criterio declarado. La logica vive en monitoreo_aulas_dos_tasas.R.
@@ -2392,7 +2397,8 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
   if (!nrow(seguidas)) seguidas <- plan_df
   tracked_df <- seguidas[monitoreo_aulas_en_juego(seguidas), , drop = FALSE]
   if (!nrow(tracked_df)) tracked_df <- seguidas
-  course_status <- .monitoreo_aulas_course_status(plan_df, responses, cfg, valid_response, response_classroom)
+  course_status <- .monitoreo_aulas_course_status(plan_df, responses, cfg, valid_response, response_classroom,
+                                                  hoy = hoy, corte = corte)
   # Los TARGETS sobre `tracked_df`, no sobre el plan entero: la cuota cuenta las
   # PERSONAS que hay que recoger, y las del banco no se van a recoger —son
   # respaldo del estrato—. Con el plan entero, la tarjeta «Cuota por recoger»
@@ -2451,7 +2457,8 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
   # mismo numerador con el que se mide el cumplimiento.
   efectividad_seguimiento <- .monitoreo_aulas_efectividad_seguimiento(
     plan_df, tracked_df, responses, cfg, valid_response, response_classroom,
-    avance_cuota = avance_cuota, hoy = hoy
+    # `hoy` aquí sólo decide qué cita está vencida: se juzga al corte (2g).
+    avance_cuota = avance_cuota, hoy = .marye_limite_de_vencida(hoy, corte)
   )
 
   # **Los refuerzos y el techo** (dictado 2026-09-18), calculados UNA vez.
