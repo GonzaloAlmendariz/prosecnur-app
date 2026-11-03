@@ -270,8 +270,9 @@
     attr(g, "pulso_rotulos") <- it
   }
   # «Océano Pacífico».
-  # En el Perú, a la derecha del recuadro de la zona de Lima, sobre el mar del sur.
-  x_oc <- if (identical(espec$area, "peru")) 212 * P else 16 * P
+  # En el Perú, a la derecha del recuadro de la zona de Lima, sobre el mar del sur. Sin recuadro, en la esquina del mar:
+  # a 212 px caía sobre Tacna cuando el mapa va angosto junto a su filtro (CCSS 2026, lámina del filtro con su mapa).
+  x_oc <- if (identical(espec$area, "peru") && !is.null(espec$zona)) 212 * P else 16 * P
   y_oc <- if (identical(espec$area, "peru")) 0.45 else alto - 26 * P
   g <- g + ggplot2::annotate("text", x = x_oc, y = y_oc, label = "Océano Pacífico", hjust = 0, vjust = 0.5, size = pt$oceano / ggplot2::.pt,
                              fontface = "italic", colour = M$oceano, family = fuente)

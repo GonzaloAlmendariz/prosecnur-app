@@ -6,7 +6,7 @@
 # resultado (graficos_mapa_resultado_plan.R) pinta un INDICADOR por distrito; aquí se pinta la DISTRIBUCIÓN de una sola
 # pregunta. El diseño es el que aprobó Gonzalo el 2026-11-02 (lienzo «Maqueta de mapas territoriales», tableros 2 a 7):
 #   - clases en ESTUDIANTES, no en porcentaje (1–2, 3–5, 6–10, 11–20, 21 o más; en el Perú hasta «11 o más»), o la TASA
-#     por 10 000 habitantes del Censo 2017 (sólo en Lima: menos de 0,5 · 0,5–1 · 1–2 · 2–3 · 3 o más);
+#     por 10 000 habitantes del Censo 2017 (sólo en Lima: menos de 0.5 · 0.5–1 · 1–2 · 2–3 · 3 o más);
 #   - paleta ColorBrewer Blues; lo que pasa de la mitad de la base va fuera de escala, en azul marino y con su cifra;
 #   - mar, tierra de contexto, contorno gris debajo de las áreas, escala gráfica; sólo los puntos de referencia (Google
 #     Maps) llevan rótulo, en una columna sobre el mar con su guía: las áreas se leen por color, leyenda y ranking;
@@ -97,27 +97,31 @@ p_mapa_distribucion <- function(var, area = c("lima_callao", "peru"), medida = c
   excl <- as.character(unlist(excluir_opciones %||% character(0)))
   valida <- !is.na(v) & nzchar(v) & !(cod %in% excl) & !(etq %in% excl) & is.finite(pesos) & pesos > 0
   if (!any(valida)) {
-    return(data.frame(codigo = character(0), etiqueta = character(0), n = integer(0), porcentaje = numeric(0), stringsAsFactors = FALSE))
+    vacia <- data.frame(codigo = character(0), etiqueta = character(0), n = integer(0), porcentaje = numeric(0), stringsAsFactors = FALSE)
+    return(structure(vacia, etiquetas_lista = labs))
   }
   orden <- unique(c(cods[cods %in% cod[valida]], cod[valida]))
   tot <- sum(pesos[valida])
-  do.call(rbind, lapply(orden, function(k) {
+  out <- do.call(rbind, lapply(orden, function(k) {
     en <- valida & cod == k
     data.frame(codigo = k, etiqueta = etq[en][1], n = sum(en), porcentaje = 100 * sum(pesos[en]) / tot, stringsAsFactors = FALSE)
   }))
+  # La lista entera viaja con las filas: decide qué quiere decir «Lima» a secas (`.mapa_distribucion_casar`).
+  structure(out, etiquetas_lista = labs)
 }
 
-#' Número con coma decimal, como lo escribe el diseño aprobado («0,5», «1,2»)
+#' Número con punto decimal, como se escribe en es-PE («0.5», «1.2»)
+#'
+#' La maqueta aprobada usaba coma; el informe es para el Perú y ahí el decimal es punto (CCSS 2026, B17).
 #' @keywords internal
 .mapa_dist_num <- function(x, dec = 1) {
-  s <- formatC(x, format = "f", digits = dec, big.mark = "")
-  sub(".", ",", s, fixed = TRUE)
+  formatC(x, format = "f", digits = dec, big.mark = "")
 }
 
 #' Clases de la medida: colores y rótulos para la leyenda, y la clase de cada valor
 #'
 #' `cortes` dice dónde empieza cada clase desde la segunda. En conteo las clases son enteras («1–2», «3–5», «21 o más»);
-#' en tasa, «menos de 0,5», «0,5–1», «3 o más». Cinco clases usan Blues de 5; cuatro, el Blues de 4 del Perú.
+#' en tasa, «menos de 0.5», «0.5–1», «3 o más». Cinco clases usan Blues de 5; cuatro, el Blues de 4 del Perú.
 #' @return `list(cortes, colores, rotulos, clase = function(valor))`.
 #' @keywords internal
 .mapa_distribucion_clases <- function(medida, area, cortes = NULL) {
@@ -154,6 +158,8 @@ p_mapa_distribucion <- function(var, area = c("lima_callao", "peru"), medida = c
   base <- sum(filas$n)
   a <- as.data.frame(carto$areas)[, c("clave", "nombre", "pob", "cx", "cy")]
   ok <- filas[!is.na(filas$clave), , drop = FALSE]
+  # El nombre con que la pregunta llama a un área manda sobre el de la cartografía («Región Lima», `.mapa_distribucion_casar`).
+  if ("nombre_area" %in% names(ok)) for (i in which(!is.na(ok$nombre_area))) a$nombre[a$clave == ok$clave[i]] <- ok$nombre_area[i]
   n_de <- tapply(ok$n, ok$clave, sum)
   a$n <- as.integer(ifelse(a$clave %in% names(n_de), n_de[a$clave], 0L))
   a$pct <- if (base > 0) 100 * a$n / base else 0

@@ -21,7 +21,7 @@
   .espec_mapa_distribucion(.mapa_distribucion_casar(f, carto, area), carto, area, medida, puntos = .mapa_puntos_normalizar(puntos))
 }
 
-test_that("las clases van en estudiantes (Lima 1–2 … 21 o más; Perú hasta 11 o más) o en tasa con coma decimal", {
+test_that("las clases van en estudiantes (Lima 1–2 … 21 o más; Perú hasta 11 o más) o en tasa con punto decimal (es-PE)", {
   l <- .mapa_distribucion_clases("conteo", "lima_callao")
   expect_identical(l$rotulos, c("1–2", "3–5", "6–10", "11–20", "21 o más"))
   expect_identical(l$colores, c("#C6DBEF", "#9ECAE1", "#6BAED6", "#3182BD", "#08519C"))
@@ -30,7 +30,7 @@ test_that("las clases van en estudiantes (Lima 1–2 … 21 o más; Perú hasta 
   expect_identical(p$rotulos, c("1–2", "3–5", "6–10", "11 o más"))
   expect_identical(p$colores, c("#C6DBEF", "#9ECAE1", "#4292C6", "#08519C"))
   t <- .mapa_distribucion_clases("tasa", "lima_callao")
-  expect_identical(t$rotulos, c("menos de 0,5", "0,5–1", "1–2", "2–3", "3 o más"))
+  expect_identical(t$rotulos, c("menos de 0.5", "0.5–1", "1–2", "2–3", "3 o más"))
   expect_identical(t$clase(c(0.2, 0.5, 0.99, 1, 2.5, 3)), c(1L, 2L, 2L, 3L, 4L, 5L))
 })
 
