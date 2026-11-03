@@ -2,6 +2,7 @@ import { useLayoutEffect, useRef, useState } from "react";
 import { flushSync } from "react-dom";
 import { fmt } from "../formato";
 import { marcasDeEje, type DiaDeAvance } from "./avanceModelo";
+import { ALTO_DEL_EJE_DE_FECHAS, EjeDeFechas as EjeDeFechasComun } from "../../../core/ejeDeFechas";
 
 /**
  * Gráficos de Avance dibujados en SVG con los datos del corte. Todos llevan
@@ -65,67 +66,11 @@ export function anchoPorDia(ancho: number, dias: number, { ranuras = 1, tope = I
 /** Ancho que pide un rótulo de una línea («30 oct») con su aire. */
 export const ANCHO_DE_ROTULO_DE_FECHA = 44;
 
-/**
- * El eje de fechas va en dos líneas (Gonzalo, 3/11): el número del día bajo su
- * barra y el mes debajo, sólo donde empieza. Un día pide ~18 px, así que con
- * barras de 18 px o más se rotulan todos; con menos, uno cada `ceil(18 / paso)`.
- * Siempre centrado bajo su barra: anclar los extremos al borde los corría.
- */
-export const ANCHO_DEL_DIA = 18;
-/** Distancia mínima entre dos meses («oct», «nov») para que no se monten. */
-const ANCHO_DEL_MES = 30;
+// El eje de fechas de dos líneas vive en core/ejeDeFechas: lo comparten todos los gráficos diarios de Monitoreo.
+export { ALTO_DEL_EJE_DE_FECHAS, ANCHO_DEL_DIA, ejeDeFechas, rotulosDeFecha, type RotuloDeDia } from "../../../core/ejeDeFechas";
 
-export function rotulosDeFecha(n: number, paso: number): Array<{ indice: number }> {
-  if (n <= 0 || !(paso > 0)) return [];
-  const cada = Math.max(1, Math.ceil(ANCHO_DEL_DIA / paso));
-  const indices: number[] = [];
-  for (let indice = 0; indice < n; indice += cada) indices.push(indice);
-  const ultimo = indices[indices.length - 1];
-  if (ultimo !== n - 1 && (n - 1 - ultimo) * paso >= ANCHO_DEL_DIA) indices.push(n - 1);
-  return indices.map((indice) => ({ indice }));
-}
-
-export type RotuloDeDia = { indice: number; dia: string; mes: string | null };
-
-/**
- * Los rótulos del eje: el día en cada uno y el mes en el primero de cada mes.
- * Si dos meses quedan más cerca que su ancho (el campo empieza el 31 y sigue
- * el 1), se queda el más nuevo: es el que dice a qué mes pertenecen los días
- * que siguen. Puro.
- */
-export function ejeDeFechas(fechas: readonly string[], paso: number): RotuloDeDia[] {
-  const rotulos: RotuloDeDia[] = [];
-  let mesAnterior = "";
-  let ultimoConMes = -1;
-  for (const { indice } of rotulosDeFecha(fechas.length, paso)) {
-    const [, mes, dia] = String(fechas[indice] ?? "").slice(0, 10).split("-").map(Number);
-    if (!mes || !dia) continue;
-    const rotulo: RotuloDeDia = { indice, dia: String(dia), mes: null };
-    if (`${mes}` !== mesAnterior) {
-      mesAnterior = `${mes}`;
-      if (ultimoConMes >= 0 && (indice - rotulos[ultimoConMes].indice) * paso < ANCHO_DEL_MES) rotulos[ultimoConMes].mes = null;
-      rotulo.mes = MESES[mes - 1];
-      ultimoConMes = rotulos.length;
-    }
-    rotulos.push(rotulo);
-  }
-  return rotulos;
-}
-
-/** El eje de dos líneas: necesita 34 px bajo el área del gráfico. */
-export const ALTO_DEL_EJE_DE_FECHAS = 34;
-
-export function EjeDeFechas({ fechas, paso, x, alto }: { fechas: readonly string[]; paso: number; x: (indice: number) => number; alto: number }) {
-  return (
-    <g>
-      {ejeDeFechas(fechas, paso).map((rotulo) => (
-        <g key={fechas[rotulo.indice]}>
-          <text className="acr-av-eje" x={x(rotulo.indice)} y={alto - 19} textAnchor="middle">{rotulo.dia}</text>
-          {rotulo.mes ? <text className="acr-av-eje is-mes" x={x(rotulo.indice)} y={alto - 5} textAnchor="middle">{rotulo.mes}</text> : null}
-        </g>
-      ))}
-    </g>
-  );
+export function EjeDeFechas(props: { fechas: readonly string[]; paso: number; x: (indice: number) => number; alto: number }) {
+  return <EjeDeFechasComun {...props} clase="acr-av-eje" />;
 }
 
 /** Días que abarca el eje: el campo, su proyección hasta la meta y nunca menos de dos semanas. */
