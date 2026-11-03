@@ -45,10 +45,23 @@ Las 16 familias suman los 25 pares.
 | E8j | so × fecha | Casos por día, apilados | `CruceSerie`: una línea por categoría, no apiladas. El título promete otra cosa | Barras apiladas por día (casos), o el título dice «líneas» | `CruceSerie` | ☐ |
 | E8k | sm × fecha | % que marca, por día | `CruceSerie`: líneas por opción; el eje no dice que es % | Líneas con el eje en % | `CruceSerie` | ☐ |
 | E8l | num × fecha | Mediana por día | `CruceSerie` con banda p25–p75 | Lo mismo, con la banda nombrada en la bajada | `CruceSerie` | ◐ revisar en vivo |
-| E8m | so × texto, texto × so, sm × texto, texto × sm | Respuestas por categoría / por opción marcada | `CruceLista`: hasta 8 respuestas por grupo | Lo mismo | `CruceLista` | ◐ revisar en vivo |
-| E8n | num × texto, texto × num | Respuestas ordenadas por valor / por tramos | El motor hace lo mismo en los dos (tramos por cuartil): «ordenadas por valor» no es lo que se ve | Los dos por tramos, con el mismo nombre, o num × texto ordena de verdad | motor + `graficoDelPar.ts` | ☐ |
-| E8o | fecha × texto, texto × fecha | Respuestas por día | `CruceLista` por día (hasta 20 días con más respuestas) | Lo mismo, con la fecha legible | `CruceLista` | ◐ revisar en vivo |
-| E8p | texto × texto | Dos abiertas lado a lado | `CruceLista`: respuestas de x agrupadas por cada respuesta de y | Lo mismo; el nombre promete «lado a lado» | `CruceLista` + nombre | ☐ |
+| E8m | so × texto, texto × so (sm × texto y texto × sm salen: decisión D2) | Respuestas por categoría | `CruceLista`: hasta 8 respuestas por grupo | Lo mismo, con la barra de repeticiones en una escala común a los grupos | `CruceLista` | ◐ revisar en vivo |
+| E8n | num × texto, texto × num | Respuestas ordenadas por valor / por tramos | El motor hace lo mismo en los dos (tramos por cuartil): «ordenadas por valor» no es lo que se ve | No se ofrece (decisión D2): el selector lo muestra atenuado con «Codifícala primero» | motor (catálogo) + `CrossBar.tsx` + `graficoDelPar.ts` | ☐ decidido, sin implementar |
+| E8o | fecha × texto, texto × fecha | Respuestas por día | `CruceLista` por día (hasta 20 días con más respuestas) | No se ofrece (decisión D2), como E8n | motor (catálogo) + `CrossBar.tsx` + `graficoDelPar.ts` | ☐ decidido, sin implementar |
+| E8p | texto × texto | Dos abiertas lado a lado | `CruceLista`: respuestas de x agrupadas por cada respuesta de y | No se ofrece (decisión D2), como E8n | motor (catálogo) + `CrossBar.tsx` + `graficoDelPar.ts` | ☐ decidido, sin implementar |
+
+### Decisiones de Gonzalo sobre los gráficos (2026-11-03)
+
+Tomadas sobre la maqueta https://claude.ai/artifact/SphPECSNSUaJ5KCVpWk1gN (versión 4; copia y fuente en
+`Documents/Pulso/04_Herramientas/prosecnur/artefactos/validacion-explorador/`). Rigen para la app y para la maqueta;
+la implementación espera su visto bueno de la v4.
+
+| # | Decisión | Qué cambia | Estado |
+|---|---|---|---|
+| D1 | «Los títulos deben ser más generales y solo poner el cruce de las variables». | El título de cada gráfico es «rótulo de A × rótulo de B» (con una sola variable, la variable). Si los dos rótulos coinciden, se distingue con el nombre de la variable. Fuera la pregunta como título y la respuesta calculada debajo: lo relevante lo marca el gráfico (la mayor en navy, base chica atenuada, aviso de dato imposible como las 37 duraciones negativas de E8h). | ☐ maqueta v4, sin código |
+| D2 | «Los campos abiertos solo cruzarlos por respuestas de selección única». | Se ofrecen so × texto y texto × so (E8m). Salen sm × texto, texto × sm, num × texto, texto × num, fecha × texto, texto × fecha y texto × texto: 7 de los 25 pares. El selector los deja a la vista, atenuados, con «Codifícala primero» y el enlace a Codificación. No cambia ninguna base. | ☐ maqueta v3, sin código |
+| D3 | «Algunos gráficos les falta aprovechar su altura». | El gráfico llena el alto que le deja su tarjeta cuando la vecina de la fila es más alta; los paneles pequeños de E8k usan la escala de cada opción con su tope escrito, para que la línea no quede pegada al piso. | ☐ maqueta v3, sin código |
+| D4 | «Leyendas centradas adecuadamente». | La leyenda va centrada al ancho de la tarjeta, debajo del gráfico (como en las láminas: centrada al panel, no a las barras); los controles de lectura quedan arriba a la derecha. | ☐ maqueta v3, sin código |
 
 ## Contrato congelado (front ↔ motor)
 
