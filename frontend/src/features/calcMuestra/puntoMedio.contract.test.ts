@@ -49,7 +49,7 @@ const SNAPSHOT: Record<string, number> = {
   "universidad/definicion/RankingDesempenoCard.tsx": 3,
   "universidad/marco/MatrizCascadaCriterios.tsx": 1,
   "universidad/marco/MatrizEmbudoCriterios.tsx": 1,
-  "universidad/marco/PanoramaCursosHorario.tsx": 5,
+  "universidad/marco/PanoramaCursosHorario.tsx": 4,
   "universidad/marco/marcoCards.tsx": 1,
 };
 
