@@ -101,7 +101,7 @@ este doc; ninguna línea añadida esta noche escribe « · » visible; sin halla
 
 | Pendiente | Por qué sigue abierto |
 |---|---|
-| Captura final de acr, telefónico, cuotas y UMP (4 secciones × 1440/1280, con `--post-click-wait-selector ".js-plotly-plot"` en Avance) después de 707b8fa1e, c54c8f1d0, 2ba4267f6 y 98a9df7c6 | El checkout compartido no compila por el trabajo sin commitear de otra sesión (eje de fechas y resumen de aulas, 7 errores de tsc), y quedaba ~4 % del límite semanal. 98a9df7c6 cambia todo PulsoButton dentro de un Panel: sólo hay captura de aulas y UMP › Insumos |
+| Captura final de acr, telefónico, cuotas y UMP | ☑ 3 nov, ~08:00 (`cap/final-*`, 4 secciones × 1440/1280, sobre HEAD 6e5dbbb04 con el árbol compilando): 32 capturas, 32 md5 distintos. acr ok=true; cuotas ok=true; UMP ok=true con `columnasOcultas=1` (Modelo, «Población», de la línea base); telefónico `cabecerasQueTapan=1` (Modelo › Cuotas, de la línea base). Ningún hallazgo nuevo frente a `antes-*` |
 | `columnasOcultas=1` en Territorial › Modelo a 1280 (`mon-mod-tabla`, «Población» 6 px detrás del desplazamiento, alcanzable) | Ya estaba en la línea base |
 | `cabecerasQueTapan=1` en Telefónico › Modelo › Cuotas a 1280 | Ya estaba en la línea base; el `scroll-padding` de 11fae58b9 no lo resuelve (ver ranking, fila 6) |
 | P2 en territorial, aulas y acreditación | No se alcanzó; el antetítulo como sub-rótulo dentro de una tarjeta con título sí es correcto |
