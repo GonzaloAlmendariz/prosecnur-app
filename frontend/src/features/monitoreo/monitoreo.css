@@ -17029,7 +17029,7 @@ button.mon-territorial-ump-audit-scrim {
 .mon-commandbar button,
 .mon-download-link,
 .mon-inline-action,
-.mon-page .pulso-panel button {
+.mon-page .pulso-panel button:not(.pulso-button) {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -17054,7 +17054,7 @@ button.mon-territorial-ump-audit-scrim {
 .mon-commandbar button:hover,
 .mon-download-link:hover,
 .mon-inline-action:hover,
-.mon-page .pulso-panel button:hover {
+.mon-page .pulso-panel button:not(.pulso-button):hover {
   border-color: var(--pulso-primary-border);
   color: var(--pulso-primary);
 }
@@ -17062,7 +17062,7 @@ button.mon-territorial-ump-audit-scrim {
 .mon-toolbar button:disabled,
 .mon-commandbar button:disabled,
 .mon-inline-action:disabled,
-.mon-page .pulso-panel button:disabled {
+.mon-page .pulso-panel button:not(.pulso-button):disabled {
   opacity: 0.55;
   cursor: not-allowed;
 }
