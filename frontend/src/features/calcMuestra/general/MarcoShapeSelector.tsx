@@ -2,6 +2,7 @@ import { BarChart3, Database, Grid3X3, Layers3, Table2, Target } from "lucide-re
 
 import { marcoOcasionalCoincide, type MarcoOcasional } from "./marcoOcasional";
 import "./general.css";
+import { Panel } from "../../../components/Panel";
 
 /** Forma del marco (Muestra general › Marco). Extraída tal cual de la página. */
 export function MarcoShapeSelector({
@@ -20,12 +21,7 @@ export function MarcoShapeSelector({
     { id: "cobertura", label: "Censo o cobertura total", copy: "Quiero cubrir o contactar todas las unidades del marco, sin muestrearlas.", icon: BarChart3 },
   ];
   return (
-    <section className="cmv2-panel" aria-labelledby="cmg-forma-marco-titulo">
-      <div className="cmv2-panel-head">
-        <div>
-          <h3 className="cmg-panel-titulo" id="cmg-forma-marco-titulo">Qué elementos contiene</h3>
-        </div>
-      </div>
+    <Panel aria-labelledby="cmg-forma-marco-titulo" title={<span id="cmg-forma-marco-titulo">Qué elementos contiene</span>}>
       <div className="cmv2-shape-grid" role="group" aria-labelledby="cmg-forma-marco-titulo">
         {shapes.map((shape) => {
           const Icon = shape.icon;
@@ -45,6 +41,6 @@ export function MarcoShapeSelector({
           );
         })}
       </div>
-    </section>
+    </Panel>
   );
 }
