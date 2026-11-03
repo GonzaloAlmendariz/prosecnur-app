@@ -85,8 +85,8 @@ describe("isRepeatChildBase", () => {
 
 describe("repeatBadgeLabel", () => {
   test("incluye el grupo cuando existe", () => {
-    expect(repeatBadgeLabel("rep_servicios")).toBe("Repetible · rep_servicios");
-    expect(repeatBadgeLabel("  rep_hijos  ")).toBe("Repetible · rep_hijos");
+    expect(repeatBadgeLabel("rep_servicios")).toBe("Repetible: rep_servicios");
+    expect(repeatBadgeLabel("  rep_hijos  ")).toBe("Repetible: rep_hijos");
   });
 
   test("cae a 'Repetible' cuando no hay grupo", () => {
@@ -150,7 +150,7 @@ describe("formatRepeatGrain", () => {
       nota: "Ignora el clustering por persona.",
     });
     expect(display).toEqual({
-      headline: "668 filas repetidas · 427 personas",
+      headline: "668 filas repetidas y 427 personas",
       caveat: REPEAT_GRAIN_CAVEAT,
     });
   });
@@ -165,7 +165,7 @@ describe("formatRepeatGrain", () => {
       nota: "",
     });
     expect(display).toEqual({
-      headline: "1 fila repetida · 1 persona",
+      headline: "1 fila repetida y 1 persona",
       caveat: "",
     });
   });

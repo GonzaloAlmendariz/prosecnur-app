@@ -57,6 +57,7 @@ export function basesDesdeEstudio(estudio: EstudioPayload): BaseResumen[] {
   }));
 }
 import "./bases-inspector.css";
+import { enumerar } from "../lib/enumerar";
 
 function formatearFilas(n: number | null | undefined): string {
   if (n == null) return "—";
@@ -109,7 +110,7 @@ export const BaseSelectorTrigger = forwardRef<
       ref={ref}
       type="button"
       className="pulso-bases-inspector-trigger is-selector"
-      title={cambiando ?? `${etiqueta} · ${total} bases en el estudio`}
+      title={cambiando ?? `${etiqueta}, de ${total} bases en el estudio`}
       aria-busy={cambiando ? true : undefined}
       data-cambiando={cambiando ? "" : undefined}
       {...resto}
@@ -265,9 +266,12 @@ export function BasesInspectorMenu({
                     </dl>
 
                     <p className="pulso-bases-inspector-meta">
-                      {formatearFilas(base.filas)} filas · {formatearFilas(base.columnas)} columnas
-                      {base.ext ? ` · ${base.ext}` : ""}
-                      {base.repeat ? ` · repeat ${base.repeat}` : ""}
+                      {enumerar([
+                        `${formatearFilas(base.filas)} filas`,
+                        `${formatearFilas(base.columnas)} columnas`,
+                        base.ext || null,
+                        base.repeat ? `repeat ${base.repeat}` : null,
+                      ])}
                     </p>
                   </>
                 ) : null}

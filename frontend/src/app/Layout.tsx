@@ -482,7 +482,7 @@ function SiblingWorkbenchSelector({
       <div
         className={`pulso-sibling-switcher ${inRow ? "is-row" : "is-compact"} is-progress-${done}${open ? " is-open" : ""}`}
         aria-label="Base activa"
-        title={`Base activa: ${activeBaseLabel} · ${progressLabel}`}
+        title={`Base activa: ${activeBaseLabel}, ${progressLabel}`}
         data-progress={`${done}/${steps.length}`}
       >
         <div className="pulso-sibling-switcher-top">

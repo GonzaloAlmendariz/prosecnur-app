@@ -27,8 +27,8 @@ export function ChooserChrome({
   return (
     <footer className="boot-footer">
       <span className="boot-footer-attr">
-        Prosecnur{version ? ` · ${version}` : ""}
-        <span className="boot-footer-dot" aria-hidden="true">·</span>
+        Prosecnur{version ? ` ${version}` : ""}
+        <span className="boot-footer-dot" aria-hidden="true" />
         Hecho para el {PULSO_SHORT}
       </span>
       <div className="boot-footer-actions">

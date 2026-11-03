@@ -98,10 +98,10 @@ export default function LogsPanel() {
       onOpenChange={setOpen}
       module={null}
       size="lg"
-      title={`Registro de la sesión · ${filtered.length} de ${entries.length}`}
+      title={`Registro de la sesión, ${filtered.length} de ${entries.length}`}
       stepper={<FilterChips current={filter} onPick={setFilter} entries={entries} />}
       flush
-      footerHint={<span>{nombreDeAtajo("⇧L")} abre y cierra · Esc cierra</span>}
+      footerHint={<span>{nombreDeAtajo("⇧L")} abre y cierra, Esc cierra</span>}
       footer={(
         <>
           <PulsoButton variant="secondary" size="md" onClick={handleClear}>
