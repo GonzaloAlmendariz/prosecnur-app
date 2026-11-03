@@ -38,14 +38,14 @@
 .rec-inspector-fields > label {
   color: var(--pulso-text-soft);
   display: grid;
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   font-weight: var(--pulso-weight-medium);
   gap: 5px;
 }
 
 .rec-target-panel label > small {
   color: var(--pulso-text-faint);
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   font-weight: var(--pulso-weight-regular);
   margin-top: -2px;
 }
@@ -62,7 +62,7 @@
   border-radius: var(--pulso-radius-chip);
   color: var(--pulso-text);
   font: inherit;
-  font-size: 13px;
+  font-size: var(--pulso-type-body-size);
   min-height: var(--pulso-control-height-md);
   padding: 6px 8px;
   transition:
@@ -92,7 +92,7 @@
 .rec-target-panel .rec-field-group-heading {
   border-top: 1px solid var(--pulso-border);
   color: var(--pulso-text-faint);
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-semibold);
   letter-spacing: .07em;
   margin-top: 5px;
@@ -180,7 +180,7 @@
 .rec-capability-grid article span,
 .rec-capability-grid article small {
   color: var(--pulso-text-soft);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .rec-blockers {
@@ -188,7 +188,7 @@
   border: 1px solid var(--pulso-warn-border);
   border-radius: var(--pulso-radius-panel);
   color: var(--pulso-warn-fg);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   padding: 11px 13px;
 }
 
@@ -200,7 +200,7 @@
 .rec-state {
   border-radius: var(--pulso-radius-chip);
   display: inline-flex;
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   padding: 3px 7px;
 }
 
@@ -241,7 +241,7 @@
 
 .rec-prueba-historico h4 {
   color: var(--pulso-text-muted);
-  font-size: 11px;
+  font-size: var(--pulso-type-eyebrow-size);
   font-weight: 600;
   letter-spacing: 0.04em;
   margin: 0 0 6px;
@@ -292,7 +292,7 @@
 
 .rec-prueba-codigo small {
   color: var(--pulso-text-muted);
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
 }
 
 .rec-prueba-acciones {
@@ -311,7 +311,7 @@
   cursor: pointer;
   display: inline-flex;
   font: inherit;
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   gap: 4px;
   padding: 3px 7px;
   text-decoration: none;

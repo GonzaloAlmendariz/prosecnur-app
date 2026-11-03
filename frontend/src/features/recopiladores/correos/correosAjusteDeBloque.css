@@ -11,7 +11,7 @@
 
 .rec-ajuste-rotulo {
   color: var(--pulso-text-soft);
-  font-size: 12.5px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .rec-ajuste-opciones {
@@ -35,7 +35,7 @@
   display: flex;
   flex-direction: column;
   font: inherit;
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   gap: 3px;
   justify-content: center;
   min-height: 46px;
@@ -85,7 +85,7 @@
 /* Herencia: una línea gris, sólo cuando el bloque sigue la alineación de Identidad. */
 .rec-ajuste-aviso {
   color: var(--pulso-text-muted);
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;

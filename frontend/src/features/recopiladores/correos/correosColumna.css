@@ -50,7 +50,7 @@
 .rec-mail-plegable-resumen {
   color: var(--pulso-text-soft);
   flex: 1 1 auto;
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;

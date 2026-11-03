@@ -35,13 +35,13 @@
 .rec-equipo-nota {
   margin: 0;
   color: var(--pulso-text-soft);
-  font-size: 12.5px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .rec-equipo-error {
   margin: 0;
   color: var(--pulso-danger-fg);
-  font-size: 12.5px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .rec-equipo-piezas {

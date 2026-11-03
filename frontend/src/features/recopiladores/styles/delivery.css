@@ -40,7 +40,7 @@
 }
 
 .rec-handoff-status p {
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   margin-top: 3px;
 }
 
@@ -61,7 +61,7 @@
 
 .rec-receipt > strong {
   font-family: ui-monospace, monospace;
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .rec-receipt dl {
@@ -77,12 +77,12 @@
 
 .rec-receipt dt {
   color: var(--pulso-text-faint);
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   text-transform: uppercase;
 }
 
 .rec-receipt dd {
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   margin: 2px 0 0;
   overflow-wrap: anywhere;
 }
@@ -101,7 +101,7 @@
   border-radius: var(--pulso-radius-panel);
   background: var(--pulso-warn-bg);
   color: var(--pulso-warn-fg);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   line-height: 1.45;
 }
 
@@ -143,7 +143,7 @@
 .rec-artifact-list article span,
 .rec-artifact-list article code {
   color: var(--pulso-text-soft);
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   overflow-wrap: anywhere;
 }
 
@@ -169,7 +169,7 @@
   background: var(--pulso-bg);
   color: var(--pulso-text);
   padding: 2px 9px;
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   font-variant-numeric: tabular-nums;
   cursor: pointer;
   transition: border-color var(--motion-dur-fast) ease, background var(--motion-dur-fast) ease;
@@ -189,7 +189,7 @@
    esa aula cae hay que ir al banco. */
 .rec-plan-sin-reservas {
   color: var(--pulso-text-soft);
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
 }
 
 /* Las reservas desplegadas van sangradas y en tono menor: cuelgan de la fila de

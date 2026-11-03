@@ -14,7 +14,7 @@
   cursor: pointer;
   display: inline-flex;
   font: inherit;
-  font-size: 12.5px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-semibold);
   gap: 5px;
   height: 32px;
@@ -112,14 +112,14 @@
 .rec-exp-salida-titulo {
   align-items: center;
   display: flex;
-  font-size: 13px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-semibold);
   gap: 6px;
 }
 
 .rec-exp-salida-para {
   color: var(--pulso-text-soft);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   line-height: 1.4;
   padding-left: 20px;
 }
@@ -128,7 +128,7 @@
   background: var(--pulso-module-fieldkit-soft);
   border-radius: var(--pulso-radius-chip);
   color: var(--pulso-module-fieldkit);
-  font-size: 10.5px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-semibold);
   margin-left: 4px;
   padding: 0 5px;
@@ -136,7 +136,7 @@
 
 .rec-exp-bloqueo {
   color: var(--pulso-text-soft);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   margin: 0;
 }
 
@@ -148,7 +148,7 @@
 
 .rec-exp-respaldo-html {
   display: grid;
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   gap: 4px;
   width: 100%;
 }
@@ -157,7 +157,7 @@
   border: 1px solid var(--pulso-border);
   border-radius: var(--pulso-radius);
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   padding: 6px 8px;
   resize: vertical;
   width: 100%;
@@ -180,7 +180,7 @@
   padding-left: 20px;
   display: grid;
   gap: 4px;
-  font-size: 12.5px;
+  font-size: var(--pulso-type-body-size);
   line-height: 1.45;
   color: var(--pulso-text-muted);
 }
@@ -212,14 +212,14 @@
 .rec-exp-revision-titulo {
   align-items: center;
   display: flex;
-  font-size: 13px;
+  font-size: var(--pulso-type-body-size);
   gap: 6px;
   margin: 0;
 }
 
 .rec-exp-revision-ayuda {
   color: var(--pulso-text-soft);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   margin: 0;
 }
 
@@ -245,7 +245,7 @@
 
 .rec-exp-revision-envio legend {
   color: var(--pulso-text-soft);
-  font-size: 12px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: 600;
   margin-bottom: 4px;
   padding: 0;
@@ -254,7 +254,7 @@
 .rec-exp-revision-envio label {
   align-items: center;
   display: flex;
-  font-size: 13px;
+  font-size: var(--pulso-type-body-size);
   gap: 6px;
 }
 
@@ -266,6 +266,6 @@
 
 .rec-exp-revision-error {
   color: var(--pulso-danger-fg);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   margin: 0;
 }

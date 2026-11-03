@@ -31,7 +31,7 @@
   box-shadow: var(--pulso-shadow-soft);
 }
 .rec-terr-ficha-escenario figcaption {
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   color: var(--pulso-text-faint);
 }
 .rec-terr-ficha-panel {

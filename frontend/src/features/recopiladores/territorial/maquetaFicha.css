@@ -21,7 +21,7 @@
   position: absolute;
   top: 6px;
   left: var(--pulso-space-3);
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -36,8 +36,8 @@
   border-bottom: 2px solid var(--pulso-text);
 }
 
-.rec-maqueta-cab strong { display: block; font-size: 15px; color: var(--pulso-text); }
-.rec-maqueta-cab small { display: block; font-size: 11.5px; color: var(--pulso-text-soft); }
+.rec-maqueta-cab strong { display: block; font-size: var(--pulso-type-title-size); color: var(--pulso-text); }
+.rec-maqueta-cab small { display: block; font-size: var(--pulso-type-caption-size); color: var(--pulso-text-soft); }
 
 .rec-maqueta-codigo {
   flex: none;
@@ -47,7 +47,7 @@
   text-align: center;
 }
 
-.rec-maqueta-codigo b { display: block; font-size: 14px; color: var(--pulso-text); }
+.rec-maqueta-codigo b { display: block; font-size: var(--pulso-type-body-size); color: var(--pulso-text); }
 
 .rec-maqueta-bloque {
   padding: var(--pulso-space-2);
@@ -57,14 +57,14 @@
 
 .rec-maqueta-bloque h4 {
   margin: 0 0 2px;
-  font-size: 12px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: 700;
   color: var(--pulso-text);
 }
 
 .rec-maqueta-bloque p {
   margin: 0;
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   line-height: 1.4;
   color: var(--pulso-text-soft);
 }
@@ -76,8 +76,8 @@
   margin: 4px 0 0;
 }
 
-.rec-maqueta-bloque dt { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--pulso-text-soft); }
-.rec-maqueta-bloque dd { margin: 0; font-size: 13px; font-weight: 600; color: var(--pulso-text); font-variant-numeric: tabular-nums; }
+.rec-maqueta-bloque dt { font-size: var(--pulso-type-micro-size); font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--pulso-text-soft); }
+.rec-maqueta-bloque dd { margin: 0; font-size: var(--pulso-type-subtitle-size); font-weight: 600; color: var(--pulso-text); font-variant-numeric: tabular-nums; }
 .rec-maqueta-bloque dd.is-mano { font-weight: 400; font-style: italic; color: var(--pulso-text-soft); }
 
 .rec-maqueta-dos {

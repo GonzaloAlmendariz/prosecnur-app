@@ -19,10 +19,12 @@ import { describe, expect, test } from "vitest";
  * simulador y la vista previa de campos— y cuatro excepciones declaradas).
  * Dashboard (208) queda fuera de forma definitiva (decisión de Gonzalo,
  * 2026-11-01): su tema es el del tablero publicado que ve el cliente.
+ * Material de campo (recopiladores) entra el 2026-11-02 con meta 0: 440 → 0 en
+ * 50 hojas, por la misma regla (P1 de la pasada de formato de Material).
  */
 
 const SRC = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const MODULOS = ["features/home", "features/dashboard", "features/xlsformEditor", "features/analitica", "features/carga", "features/procesamiento"];
+const MODULOS = ["features/home", "features/dashboard", "features/xlsformEditor", "features/analitica", "features/carga", "features/procesamiento", "features/recopiladores"];
 const LITERAL = /font-size\s*:\s*\d+(?:\.\d+)?px/g;
 
 const SNAPSHOT_LITERALES: Record<string, number> = {

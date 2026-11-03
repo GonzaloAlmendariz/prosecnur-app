@@ -76,7 +76,7 @@
   border-bottom: 1px solid var(--pulso-border);
 }
 .rec-terr-inspector-cabeza small {
-  font-size: 11px;
+  font-size: var(--pulso-type-eyebrow-size);
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -87,7 +87,7 @@
   align-items: center;
   gap: var(--pulso-space-2);
   margin: var(--pulso-space-1) 0 0;
-  font-size: 17px;
+  font-size: var(--pulso-type-title-size);
   color: var(--pulso-text);
 }
 .rec-terr-inspector-cerrar {
@@ -134,7 +134,7 @@
   border-radius: var(--pulso-radius);
 }
 .rec-terr-inspector-reemplazo small {
-  font-size: 11px;
+  font-size: var(--pulso-type-eyebrow-size);
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;

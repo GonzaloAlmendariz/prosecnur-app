@@ -11,7 +11,7 @@
   border-radius: var(--pulso-radius);
   color: var(--pulso-text);
   display: flex;
-  font-size: 12.5px;
+  font-size: var(--pulso-type-body-size);
   gap: var(--pulso-space-2);
   grid-area: aviso;
   margin: 0;
@@ -39,7 +39,7 @@
   box-shadow: none;
   color: var(--pulso-module-fieldkit);
   flex: none;
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   gap: 4px;
   min-height: 26px;
   padding: 0 8px;
@@ -55,7 +55,7 @@
   box-shadow: var(--pulso-shadow-high);
   color: var(--pulso-surface);
   display: flex;
-  font-size: 13px;
+  font-size: var(--pulso-type-body-size);
   gap: var(--pulso-space-2);
   left: 50%;
   padding: 6px 6px 6px 14px;
@@ -71,7 +71,7 @@
   border: 0;
   box-shadow: none;
   color: var(--pulso-surface);
-  font-size: 13px;
+  font-size: var(--pulso-type-body-size);
   gap: 4px;
   min-height: 28px;
   padding: 0 8px;
@@ -120,13 +120,13 @@
 
 .rec-mail-chk-arreglo {
   color: var(--pulso-text-soft);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .rec-mail-chk-ir {
   align-items: center;
   display: inline-flex;
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   gap: 3px;
 }
 
@@ -137,7 +137,7 @@
   border-radius: var(--pulso-radius-chip);
   color: var(--pulso-text-soft);
   flex: none;
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   font-weight: var(--pulso-weight-medium);
   line-height: 1.6;
   padding: 0 7px;
@@ -159,7 +159,7 @@
   align-items: center;
   color: var(--pulso-text-soft);
   display: flex;
-  font-size: 12.5px;
+  font-size: var(--pulso-type-body-size);
   gap: var(--pulso-space-2);
 }
 

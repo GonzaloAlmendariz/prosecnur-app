@@ -12,7 +12,7 @@
   border: 1px solid var(--pulso-border);
   background: var(--pulso-surface-2);
   color: var(--pulso-text);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .rec-tel-col.is-campo {
@@ -34,7 +34,7 @@
   flex-direction: column;
   gap: var(--pulso-space-1);
   color: var(--pulso-text);
-  font-size: 12.5px;
+  font-size: var(--pulso-type-body-size);
 }
 
 /* Los campos no crecen en la tarjeta en columna: `.rec-terr-campo` trae flex-basis

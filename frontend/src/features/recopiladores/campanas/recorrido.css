@@ -9,7 +9,7 @@
   border-radius: var(--pulso-radius);
   background: var(--pulso-surface-2);
   color: var(--pulso-text-soft);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   white-space: nowrap;
   flex: none;
 }
