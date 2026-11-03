@@ -28,6 +28,7 @@ import { profundidadReserva } from "../aulas/profundidadReservaModel";
 import { rendimientoNeto } from "./rendimientoNetoModel";
 import { ROTULO_RESERVAS_TOTALES, detalleReservasTotales } from "../aulas/rotulosReservas";
 import { EstadoChip } from "../../../../components/EstadoChip";
+import { Panel } from "../../../../components/Panel";
 
 export function SalidasCierreTab({
   model,
@@ -191,14 +192,14 @@ export function SalidasCierreTab({
       data-qa-geometry-group="calc-muestra/salidas-cierre"
       data-qa-geometry-contract="intrinsic"
     >
-      <section className="cmv2-panel cmv2-sal-panel cmv2-sal-ficha" aria-label="Ficha ejecutiva del diseño muestral">
-        <div className="cmv2-panel-head">
-          <strong>Ficha ejecutiva</strong>
-          <EstadoChip
-            tone={estadoFicha === "cerrado" ? "success" : estadoFicha === "riesgos" ? "danger" : estadoFicha === "observaciones" ? "warn" : "neutral"}
-            label={estadoFichaLabel}
-          />
-        </div>
+      <Panel className="cmv2-sal-panel cmv2-sal-ficha" aria-label="Ficha ejecutiva del diseño muestral" title="Ficha ejecutiva" actions={
+          <>
+            <EstadoChip
+              tone={estadoFicha === "cerrado" ? "success" : estadoFicha === "riesgos" ? "danger" : estadoFicha === "observaciones" ? "warn" : "neutral"}
+              label={estadoFichaLabel}
+            />
+          </>
+        }>
 
         <FlujoVertical
           etapas={etapas}
@@ -377,7 +378,7 @@ export function SalidasCierreTab({
             ))}
           </ul>
         )}
-      </section>
+      </Panel>
 
       <HistorialCorridas workspace={workspace} />
     </div>

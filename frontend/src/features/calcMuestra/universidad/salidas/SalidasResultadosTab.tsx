@@ -24,6 +24,7 @@ import {
 import "../../didactica/didactica.css";
 import "./salidas.css";
 import { EstadoVacio } from "../../../../components/EstadoVacio";
+import { Panel } from "../../../../components/Panel";
 
 export function salidasChartComponent(
   componentes: readonly CalcMuestraComponente[],
@@ -61,10 +62,7 @@ export function SalidasResultadosTab({
     >
       {chartComp && <DistribucionFacultadSexo resultado={chartComp.resultado} />}
 
-      <section className="cmv2-panel cmv2-sal-panel cmv2-university-results" aria-label="Tablas de cierre por componente">
-        <div className="cmv2-panel-head">
-          <strong>Tablas de salida</strong>
-        </div>
+      <Panel className="cmv2-sal-panel cmv2-university-results" aria-label="Tablas de cierre por componente" title="Tablas de salida">
         <div className="cmv2-results-stack">
           {componentes.map((comp) => {
             const scenario = scenarios.find((e) => e.component_id === comp.id);
@@ -144,7 +142,7 @@ export function SalidasResultadosTab({
             );
           })}
         </div>
-      </section>
+      </Panel>
     </div>
   );
 }

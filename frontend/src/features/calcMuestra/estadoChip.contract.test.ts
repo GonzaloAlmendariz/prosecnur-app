@@ -30,9 +30,7 @@ const SNAPSHOT: Record<string, number> = {
   "general/MemoriaCalculoGeneral.tsx": 1,
   "universidad/calculo/CalculoDisenoTab.tsx": 2,
   "universidad/calculo/CalculoPropuestasTab.tsx": 1,
-  "universidad/salidas/DeclararRepresentatividad.tsx": 1,
   "universidad/salidas/HistorialCorridas.tsx": 1,
-  "universidad/salidas/SalidasMonitoreoTab.tsx": 2,
 };
 
 describe("estados por EstadoChip · P6", () => {
