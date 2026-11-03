@@ -177,7 +177,9 @@ describe("RelatoTab — vacío gobernado (gate 5)", () => {
     const html = render(modeloConSeleccion());
     expect(html).toContain('data-qa-geometry-group="aulas-relato"');
     expect(html).toContain('data-qa-geometry-contract="intrinsic"');
-    expect(html).toContain("Relato de la corrida run-777");
+    // La corrida se nombra en la nota del Panel, bajo el título (P2).
+    expect(html).toContain('aria-labelledby="cmv2-relato-titulo"');
+    expect(html).toContain("Corrida run-777");
   });
 
   it("un foco inválido cae al estudio completo sin romper la superficie", () => {

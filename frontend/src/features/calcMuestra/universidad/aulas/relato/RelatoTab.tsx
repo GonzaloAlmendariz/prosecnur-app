@@ -31,6 +31,7 @@ import { EscenaSorteo } from "./escenas/EscenaSorteo";
 import { EscenaTitulares } from "./escenas/EscenaTitulares";
 import "./relato.css";
 import { fmtInt } from "../../../sharedCore";
+import { Panel } from "../../../../../components/Panel";
 
 /**
  * Presupuesto de autoplay ≤ 60 s por facultad: 5 escenas × 5.5 s + el
@@ -155,12 +156,9 @@ export function RelatoTab({
         {stageNotice ? (
           <AulasStageNotice notice={stageNotice} onNavigate={onNavigate} />
         ) : (
-          <section className="cmv2-panel cmv2-aulas-panel" aria-live="polite">
-            <div className="cmv2-subhead">
-              <strong>Relato de la selección</strong>
-              <small>la corrida vigente no publica filas narrables</small>
-            </div>
-          </section>
+          <Panel className="cmv2-aulas-panel" aria-labelledby="cmv2-relato-vacio-titulo" title={<span id="cmv2-relato-vacio-titulo">Relato de la selección</span>} hint="La corrida vigente no publica filas narrables" aria-live="polite">
+            {null}
+          </Panel>
         )}
       </div>
     );
@@ -177,18 +175,12 @@ export function RelatoTab({
       data-qa-geometry-group="aulas-relato"
       data-qa-geometry-contract="intrinsic"
     >
-      <section
-        className="cmv2-panel cmv2-relato-escenario-panel"
-        aria-label={`Relato de la corrida ${relato.runId || "sin identificador"}`}
-      >
-        <header className="cmv2-relato-cabecera">
-          <div className="cmv2-subhead">
-            <strong>Relato de la selección</strong>
-            <small>
-              corrida {relato.runId || "sin identificador"}
-              {relato.semilla ? `, semilla ${relato.semilla}` : ", sin semilla publicada"}
-            </small>
-          </div>
+      <Panel
+        className="cmv2-relato-escenario-panel"
+        aria-labelledby="cmv2-relato-titulo"
+        title={<span id="cmv2-relato-titulo">Relato de la selección</span>}
+        hint={`Corrida ${relato.runId || "sin identificador"}${relato.semilla ? `, semilla ${relato.semilla}` : ", sin semilla publicada"}`}
+        actions={
           <label className="cmv2-compact-field cmv2-relato-foco">
             <span>Lente</span>
             <select
@@ -203,7 +195,8 @@ export function RelatoTab({
               ))}
             </select>
           </label>
-        </header>
+        }
+      >
 
         {movimientoReducido ? (
           /* Modo estático de primera clase: mismas escenas, mismos datos, sin
@@ -307,7 +300,7 @@ export function RelatoTab({
             </div>
           </>
         )}
-      </section>
+      </Panel>
     </div>
   );
 }

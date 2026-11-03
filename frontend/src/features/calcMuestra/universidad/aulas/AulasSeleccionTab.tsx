@@ -47,6 +47,7 @@ import "./aulas.css";
 import { avisoDuracionSorteo } from "./duracionComparacion";
 import { AvisoModulo } from "../shared/AvisoModulo";
 import { ROTULO_REEMPLAZOS_EN_CADENA, detalleReemplazosEnCadena } from "./rotulosReservas";
+import { Panel } from "../../../../components/Panel";
 
 export function AulasSeleccionTab({
   model,
@@ -151,10 +152,7 @@ export function AulasSeleccionTab({
         />
       )}
       {!selectionReady ? (
-        <section className="cmv2-panel cmv2-aulas-panel">
-          <div className="cmv2-subhead">
-            <strong>Preparación de la selección</strong>
-          </div>
+        <Panel className="cmv2-aulas-panel" aria-labelledby="cmv2-aulas-preparacion-titulo" title={<span id="cmv2-aulas-preparacion-titulo">Preparación de la selección</span>}>
           <ClassroomSelectionPreparationPanel
             frameReady={model.frameReady}
             comparisonReady={comparisonReady}
@@ -166,7 +164,7 @@ export function AulasSeleccionTab({
             targetForDisplay={targetForDisplay}
             m1ForDisplay={m1ForDisplay}
           />
-        </section>
+        </Panel>
       ) : (
         <>
           <CoberturaObjetivoStrip
@@ -182,11 +180,7 @@ export function AulasSeleccionTab({
             })}
           />
 
-          <section className="cmv2-panel cmv2-aulas-panel cmv2-aulas-hero-panel">
-            <div className="cmv2-subhead">
-              <strong>Selección vigente</strong>
-              <small>resultado acreditado por objetivo y firma del marco</small>
-            </div>
+          <Panel className="cmv2-aulas-panel cmv2-aulas-hero-panel" aria-labelledby="cmv2-aulas-seleccion-vigente-titulo" title={<span id="cmv2-aulas-seleccion-vigente-titulo">Selección vigente</span>} hint="Resultado acreditado por objetivo y firma del marco">
             <div>
               <CifraFila>
                 <CifraMotor
@@ -216,7 +210,7 @@ export function AulasSeleccionTab({
                 />
               </CifraFila>
             </div>
-          </section>
+          </Panel>
 
           {/* La comparación avisa de su coste; el sorteo no avisaba de
               ninguno, y «Optimizar repetidos» hace `candidate_pool_size`

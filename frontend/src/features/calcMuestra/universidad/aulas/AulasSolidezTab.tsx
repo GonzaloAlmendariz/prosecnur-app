@@ -35,6 +35,7 @@ import {
 } from "./aulasParts";
 import "../../didactica/didactica.css";
 import "./aulas.css";
+import { Panel } from "../../../../components/Panel";
 
 export function AulasSolidezTab({
   workspace,
@@ -83,7 +84,7 @@ export function AulasSolidezTab({
         data-qa-geometry-group="calc-muestra/aulas-solidez"
         data-qa-geometry-contract="intrinsic"
       >
-        <section className="cmv2-panel cmv2-aulas-panel" data-qa-geometry-member>
+        <Panel className="cmv2-aulas-panel" data-qa-geometry-member>
           <EmptyState
             icon={<ShieldCheck size={22} aria-hidden="true" />}
             title="Todavía no hay una selección corrida"
@@ -94,7 +95,7 @@ export function AulasSolidezTab({
             </button>
           ) : undefined}
           />
-        </section>
+        </Panel>
       </div>
     );
   }

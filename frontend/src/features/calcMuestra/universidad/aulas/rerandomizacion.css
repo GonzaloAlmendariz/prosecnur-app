@@ -27,6 +27,6 @@
    del panel —medido, 9 y 13 px— y el gate de geometría lo reporta como
    capacidad sin usar. Es la diferencia entre una superficie que parece acabada
    y una que no. */
-.cmv2-panel > .cmv2-aviso:last-child,
-.cmv2-panel > .cmv2-rr-cifras:last-child,
-.cmv2-panel > .cmv2-rr-nota:last-child { margin-bottom: 0; }
+:is(.cmv2-panel, .pulso-panel) > .cmv2-aviso:last-child,
+:is(.cmv2-panel, .pulso-panel) > .cmv2-rr-cifras:last-child,
+:is(.cmv2-panel, .pulso-panel) > .cmv2-rr-nota:last-child { margin-bottom: 0; }

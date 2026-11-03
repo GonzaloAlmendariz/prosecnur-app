@@ -22,6 +22,7 @@ import { AvisoModulo } from "../shared/AvisoModulo";
 import { ExplicacionBloque, ExplicacionPlegable } from "../ui";
 import { veredictoRerandomizacion } from "./rerandomizacionVeredicto";
 import "./rerandomizacion.css";
+import { Panel } from "../../../../components/Panel";
 
 const pct = (v: number | null | undefined, d = 1) =>
   typeof v === "number" && Number.isFinite(v) ? `${(v * 100).toFixed(d)} %` : "—";
@@ -54,11 +55,7 @@ export function AulasRerandomizacionTab({
       data-qa-geometry-group="calc-muestra/aulas-rerandomizacion"
       data-qa-geometry-contract="intrinsic"
     >
-      <section className="cmv2-panel cmv2-rr-veredicto" data-qa-geometry-member>
-        <div className="cmv2-subhead">
-          <strong>Qué pasó en la última corrida</strong>
-          <small>la evidencia, no sólo el resultado</small>
-        </div>
+      <Panel aria-labelledby="cmv2-rr-veredicto-titulo" title={<span id="cmv2-rr-veredicto-titulo">Qué pasó en la última corrida</span>} hint="La evidencia, no sólo el resultado" className="cmv2-rr-veredicto" data-qa-geometry-member>
         {/* El ADR lo hace obligatorio: entregar el mejor fingiendo que pasó es
             lo que convierte esto en optimización disfrazada. Por eso el
             agotamiento es el veredicto, no una nota al pie. */}
@@ -100,22 +97,18 @@ export function AulasRerandomizacionTab({
             tasa de aceptación que reportar.
           </small>
         ) : null}
-      </section>
+      </Panel>
 
       {!criterio ? (
-        <section className="cmv2-panel" data-qa-geometry-member>
+        <Panel data-qa-geometry-member>
           <AvisoModulo tone="warn" role="status">
             Todavía no hay criterio que aplicar. Se arma solo con la cuota y la tasa de
             efectividad de cada facultad más el reparto por sexo del marco: completa el
             cálculo por facultad y vuelve.
           </AvisoModulo>
-        </section>
+        </Panel>
       ) : (
-        <section className="cmv2-panel" data-qa-geometry-member>
-          <div className="cmv2-subhead">
-            <strong>El criterio</strong>
-            <small>declarado antes de sortear, y guardado con el proyecto</small>
-          </div>
+        <Panel aria-labelledby="cmv2-rr-criterio-titulo" title={<span id="cmv2-rr-criterio-titulo">El criterio</span>} hint="Declarado antes de sortear, y guardado con el proyecto" data-qa-geometry-member>
           <p className="cmv2-rr-criterio">
             Toda celda facultad × sexo alcanza al menos el{" "}
             <b>{pct(criterio.umbral, 0)}</b> de su cuota.{" "}
@@ -147,7 +140,7 @@ export function AulasRerandomizacionTab({
             y no se rechaza ninguno. Encenderlo cambia el diseño, y por eso es una decisión
             y no un ajuste.
           </small>
-        </section>
+        </Panel>
       )}
 
 

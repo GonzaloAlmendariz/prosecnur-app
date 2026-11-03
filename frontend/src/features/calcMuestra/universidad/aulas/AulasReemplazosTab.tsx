@@ -38,6 +38,7 @@ import { MetodoRecomendadoLinea } from "./MetodoRecomendadoLinea";
 import { ProbarReemplazosBoton } from "./ProbarReemplazosBoton";
 import "../../didactica/didactica.css";
 import "./aulas.css";
+import { Panel } from "../../../../components/Panel";
 
 /**
  * Cabecera de reservas: profundidad mínima por celda con semáforo.
@@ -75,15 +76,10 @@ function ReserveDepthHeader({
     referencia?.cobertura.aplicados,
   );
   return (
-    <section
-      className="cmv2-panel cmv2-aulas-panel"
-      aria-label="Profundidad de reservas por celda"
+    <Panel className="cmv2-aulas-panel" aria-labelledby="cmv2-aulas-profundidad-titulo" title={<span id="cmv2-aulas-profundidad-titulo">Profundidad de reemplazos por celda</span>}
       data-qa-geometry-group="aulas-reemplazos-profundidad"
       data-qa-geometry-contract="intrinsic"
     >
-      <div className="cmv2-subhead">
-        <strong>Profundidad de reemplazos por celda</strong>
-      </div>
       <CifraFila>
         <CifraMotor
           label="Profundidad mínima"
@@ -120,7 +116,7 @@ function ReserveDepthHeader({
           origen="motor"
         />
       </CifraFila>
-    </section>
+    </Panel>
   );
 }
 
@@ -211,20 +207,15 @@ export function AulasReemplazosTab({
       />
 
       {!selectionReady ? (
-        <section
-          className="cmv2-panel cmv2-aulas-panel"
+        <Panel className="cmv2-aulas-panel" aria-labelledby="cmv2-aulas-ruta-ilustrativa-titulo" title={<span id="cmv2-aulas-ruta-ilustrativa-titulo">Ruta ilustrativa, todavía no operativa</span>} hint="La cadena real aparecerá solo con una selección acreditada"
         >
-          <div className="cmv2-subhead">
-            <strong>Ruta ilustrativa, todavía no operativa</strong>
-            <small>la cadena real aparecerá solo con una selección acreditada</small>
-          </div>
           <ClassroomReplacementBlueprintPanel
             depth={config.bolsas_reemplazo}
             titularCount={0}
             reserveCount={0}
             extraReserveCount={0}
           />
-        </section>
+        </Panel>
       ) : (
         <>
           <CadenasReemplazoVisual seleccion={selection} simulacion={replacementSimulation} />
