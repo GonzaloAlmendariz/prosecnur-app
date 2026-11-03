@@ -7893,7 +7893,9 @@ monitoreo_enrich_kobo_datetime_columns <- function(data) {
   approved <- rep(FALSE, nrow(audit))
 
   district_progress <- lapply(seq_len(nrow(district_goals)), function(i) {
-    district_key <- if ("advance_block_ubigeo" %in% names(audit) && any(nzchar(trimws(as.character(audit$advance_block_ubigeo %||% ""))), na.rm = TRUE)) {
+    # Sin manzanas enviadas (envío por cuotas) no hay manzana declarada que mande:
+    # el distrito sale del caso.
+    district_key <- if (is.data.frame(blocks) && nrow(blocks) && "advance_block_ubigeo" %in% names(audit) && any(nzchar(trimws(as.character(audit$advance_block_ubigeo %||% ""))), na.rm = TRUE)) {
       trimws(as.character(audit$advance_block_ubigeo %||% ""))
     } else {
       trimws(as.character(audit$ubigeo %||% ""))
@@ -14535,7 +14537,17 @@ monitoreo_territorial_reportes <- function(data, cfg, hojas_ruta_context = NULL,
     rep(TRUE, n)
   }
   advance_valid <- base_advance_valid & route_assignment_ok
-  observation_reasons <- .monitoreo_territorial_observation_reasons(geo$geo_estado, duration_status)
+  # Por cuotas no hay manzanas enviadas: el cruce del GPS con la ruta (sin cruce,
+  # lejos o en revisión) no tiene contra qué medirse y no es motivo de
+  # observación; «sin GPS» y la duración siguen siéndolo (ADR 0125 A1).
+  # Se apaga por la falta de manzanas, no por el tipo de envío: si un envío por
+  # cuotas trajera manzanas, su cruce real sigue contando.
+  sin_manzanas_cuotas <- identical(context$envio_kind %||% "", "cuotas") && !(is.data.frame(blocks) && nrow(blocks))
+  geo_para_observar <- geo$geo_estado
+  if (sin_manzanas_cuotas) {
+    geo_para_observar[geo_para_observar %in% c("geo_sin_cruce", "geo_revision", "geo_no_defendible")] <- ""
+  }
+  observation_reasons <- .monitoreo_territorial_observation_reasons(geo_para_observar, duration_status)
   has_observation <- advance_valid & (lengths(observation_reasons) > 0L)
   approval_reason <- rep("", n)
   approval_at <- rep("", n)
@@ -14558,7 +14570,8 @@ monitoreo_territorial_reportes <- function(data, cfg, hojas_ruta_context = NULL,
   add_issue(duplicated_id, "id_duplicado")
   add_issue(geo$geo_estado == "geo_no_defendible", "gps_no_defendible")
   add_issue(geo$geo_estado == "geo_sin_gps", "gps_sin_gps")
-  add_issue(geo$geo_estado == "geo_sin_cruce", "gps_sin_cruce")
+  # Sin manzanas con las que cruzar, «sin cruce» tampoco es incidencia del caso.
+  add_issue(geo$geo_estado == "geo_sin_cruce" & !sin_manzanas_cuotas, "gps_sin_cruce")
   add_issue(geo$geo_estado == "geo_revision", "gps_revision")
   add_issue(duration_review, "duracion_revision")
   add_issue(age_review, "edad_revision")
@@ -14682,6 +14695,9 @@ monitoreo_territorial_reportes <- function(data, cfg, hojas_ruta_context = NULL,
   audit <- audit_all[!annulled_mask, , drop = FALSE]
 
   target_total <- if (nrow(blocks)) sum(suppressWarnings(as.integer(blocks$entrevistas)), na.rm = TRUE) else cfg$objetivo_total
+  # ADR 0125 A1: por cuotas no hay manzanas; la meta es la suma de las zonas.
+  zonas_cuotas <- if (identical(context$envio_kind %||% "", "cuotas")) Filter(is.list, context$zonas %||% list()) else list()
+  if (length(zonas_cuotas)) target_total <- sum(vapply(zonas_cuotas, function(z) .monitoreo_int(z$n, 0L), integer(1)))
   if (!is.finite(target_total)) target_total <- NA_integer_
   gps_crossable <- audit$gps_parseable & nzchar(audit$ubigeo) & !audit$geo_estado %in% c("geo_sin_cruce")
   geo_counts <- table(factor(audit$geo_estado, levels = c("geo_ok", "geo_cerca", "geo_revision", "geo_no_defendible", "geo_sin_cruce", "geo_sin_gps")))
@@ -14745,6 +14761,18 @@ monitoreo_territorial_reportes <- function(data, cfg, hojas_ruta_context = NULL,
     data.frame(ubigeo = crosswalk$ubigeo, distrito = crosswalk$distrito, entrevistas = NA_integer_)
   }
   names(district_goals)[names(district_goals) == "entrevistas"] <- "meta"
+  # Por cuotas, la meta de cada distrito es la N de su zona: así Resumen,
+  # Distritos y Ritmo tienen su porcentaje y su silueta como con UMP.
+  if (length(zonas_cuotas)) {
+    u_z <- vapply(zonas_cuotas, function(z) .monitoreo_scalar(z$ubigeo %||% z$id_zona, ""), character(1))
+    nombre_xw <- crosswalk$distrito[match(u_z, crosswalk$ubigeo)]
+    district_goals <- data.frame(
+      ubigeo = u_z,
+      distrito = ifelse(is.na(nombre_xw) | !nzchar(nombre_xw), vapply(zonas_cuotas, function(z) .monitoreo_scalar(z$nombre, ""), character(1)), nombre_xw),
+      meta = vapply(zonas_cuotas, function(z) .monitoreo_int(z$n, 0L), integer(1)),
+      stringsAsFactors = FALSE
+    )
+  }
   advance <- .monitoreo_territorial_advance_progress(
     district_goals = district_goals,
     blocks = blocks,

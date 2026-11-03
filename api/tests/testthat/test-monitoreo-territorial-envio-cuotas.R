@@ -53,6 +53,13 @@ test_that("con un envío por cuotas el reporte territorial publica el avance por
   expect_identical(cu$zonas[[1]]$celdas[[1]]$efectivas + cu$zonas[[1]]$celdas[[2]]$efectivas + cu$sin_celda + cu$sin_zona,
                    report$kpis$validas)
   expect_length(cu$zonas[[1]]$personas, 1L)
+  # La meta del avance es la suma de las zonas, y el distrito trae la de su zona.
+  expect_identical(as.integer(report$advance$meta), 4L)
+  sjm <- Filter(function(d) identical(d$ubigeo, "150133"), report$advance$district_progress)
+  expect_length(sjm, 1L)
+  expect_identical(as.integer(sjm[[1]]$meta), 4L)
+  # Sin manzanas con las que cruzar, «sin cruce» no pone el caso en observación.
+  expect_identical(as.integer(report$advance$observacion), 0L)
   # Con envío por UMP no se publica.
   expect_null(monitoreo_territorial_reportes(data, cfg, list(phase = "pilot", blocks = list()), report_scope = "advance_summary")$cuotas)
 })

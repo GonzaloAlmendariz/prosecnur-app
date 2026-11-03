@@ -31,6 +31,41 @@
   c(nums[[1]], nums[[2]])
 }
 
+#' Quién levantó la zona: efectivas, días con campo y en observación por código,
+#' de más a menos. Los códigos que no casan con la lista no se nombran (pueden
+#' ser un DNI tecleado): se cuentan aparte en `sin_codigo`.
+#' @keywords internal
+.mtcu_equipo <- function(codigo, reconocido, fecha, observacion) {
+  ok <- reconocido & nzchar(codigo)
+  cods <- unique(codigo[ok])
+  personas <- lapply(cods, function(cod) {
+    suyo <- ok & codigo == cod
+    list(codigo = cod, efectivas = as.integer(sum(suyo)),
+         dias = as.integer(length(unique(fecha[suyo & nzchar(fecha)]))),
+         en_observacion = as.integer(sum(suyo & observacion)))
+  })
+  if (length(personas)) personas <- personas[order(-vapply(personas, function(p) p$efectivas, integer(1)), cods)]
+  list(personas = personas, sin_codigo = as.integer(sum(!ok)))
+}
+
+#' Efectivas por día de envío, en orden de fecha, y las que no traen fecha.
+#' @keywords internal
+.mtcu_diario <- function(fecha) {
+  con_fecha <- fecha[nzchar(fecha)]
+  t <- table(con_fecha)
+  dias <- lapply(sort(names(t)), function(f) list(fecha = f, efectivas = as.integer(t[[f]])))
+  # Sin fecha legible no se pierde: va aparte para que la suma cuadre con las efectivas.
+  list(dias = dias, sin_fecha = as.integer(length(fecha) - length(con_fecha)))
+}
+
+#' Mediana de la duración en minutos, o NA sin duraciones legibles.
+#' @keywords internal
+.mtcu_mediana_min <- function(segundos) {
+  segundos <- segundos[is.finite(segundos) & segundos > 0]
+  if (!length(segundos)) return(NA_real_)
+  round(stats::median(segundos) / 60, 1)
+}
+
 #' Avance por zona y celda de un envío por cuotas.
 #'
 #' @param envio la foto `runs[[fase]]$envio` de Hojas de ruta.
@@ -53,6 +88,12 @@ monitoreo_territorial_avance_cuotas <- function(envio, audit, asignacion = list(
   edad <- if (n) suppressWarnings(as.numeric(audit$age %||% rep(NA, n))) else numeric(0)
   # Quién levantó cada caso: el código Pulso normalizado, el mismo de la lista de códigos.
   codigo <- if (n) toupper(trimws(as.character(audit$pulso_code_normalized %||% audit$pulso_code %||% rep("", n)))) else character(0)
+  # Para el equipo y el ritmo de cada zona: si el código casa con la lista de
+  # códigos, el día de envío y la duración.
+  # Sin la marca de reconocido no se nombra a nadie: un DNI tecleado no sale.
+  reconocido <- if (n && !is.null(audit$pulso_code_recognized)) audit$pulso_code_recognized %in% TRUE else rep(FALSE, n)
+  fecha <- if (n) trimws(as.character(audit$submission_date_iso %||% rep("", n))) else character(0)
+  duracion <- if (n) suppressWarnings(as.numeric(audit$duration_seconds %||% rep(NA, n))) else numeric(0)
   filas_asig <- Filter(function(a) is.list(a) && nzchar(.monitoreo_scalar(a$id_zona %||% a$id_manzana, "")),
                        asignacion %||% list())
 
@@ -85,10 +126,14 @@ monitoreo_territorial_avance_cuotas <- function(envio, audit, asignacion = list(
       list(codigo = .monitoreo_scalar(a$codigo, ""), parte = if (is.na(parte)) NA_integer_ else parte,
            efectivas = ef, falta = if (is.na(parte)) NA_integer_ else as.integer(max(0L, parte - ef)))
     })
+    efectiva_aqui <- de_la_zona & m$efectiva
     list(
       id_zona = id_z, ubigeo = u, nombre = .monitoreo_scalar(z$nombre, ""),
       meta = meta,
       personas = personas,
+      equipo = .mtcu_equipo(codigo[efectiva_aqui], reconocido[efectiva_aqui], fecha[efectiva_aqui], m$observacion[efectiva_aqui]),
+      diario = .mtcu_diario(fecha[efectiva_aqui]),
+      duracion_mediana_min = .mtcu_mediana_min(duracion[efectiva_aqui]),
       efectivas = as.integer(sum(de_la_zona & m$efectiva)),
       en_observacion = as.integer(sum(de_la_zona & m$observacion)),
       celdas = celdas,
@@ -96,6 +141,10 @@ monitoreo_territorial_avance_cuotas <- function(envio, audit, asignacion = list(
     )
   })
   efectivas_total <- as.integer(sum(vapply(salida, function(z) z$efectivas, integer(1))))
+  # Una zona es un distrito: dos zonas con el mismo ubigeo contarían dos veces
+  # los mismos casos. Se avisa en lugar de sumar de más en silencio.
+  repetidos <- unique(ubigeos[duplicated(ubigeos) & nzchar(ubigeos)])
+  avisos <- if (length(repetidos)) sprintf("Hay zonas que comparten ubigeo (%s): sus efectivas se cuentan en cada una.", paste(repetidos, collapse = ", ")) else character(0)
   list(
     kind = "cuotas",
     zonas = salida,
@@ -108,6 +157,7 @@ monitoreo_territorial_avance_cuotas <- function(envio, audit, asignacion = list(
     # Lo que no cae en ninguna zona del envío, o cae en su zona sin celda (sin
     # sexo o edad legibles, o fuera de los rangos): se declara, no se pierde.
     sin_zona = as.integer(sum(m$efectiva & !(ubigeo %in% ubigeos))),
-    sin_celda = as.integer(sum(m$efectiva & ubigeo %in% ubigeos & !en_alguna_celda))
+    sin_celda = as.integer(sum(m$efectiva & ubigeo %in% ubigeos & !en_alguna_celda)),
+    avisos = as.list(avisos)
   )
 }

@@ -86,3 +86,49 @@ test_that("el sexo con código de Kobo (1, 2) casa con las celdas Hombre y Mujer
   expect_identical(lima$celdas[[2]]$efectivas, 1L)   # mujer 60 o más
   expect_identical(out$sin_celda, 1L)                # el código 3 no es una celda
 })
+
+test_that("cada zona trae su equipo, su ritmo diario y la mediana de duración", {
+  audit <- audit_cuotas()
+  audit$pulso_code_normalized <- c("P101", "P102", "P101", "P101", "P103", "P101", "12345678")
+  audit$pulso_code_recognized <- c(TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, FALSE)
+  audit$submission_date_iso <- c("2026-06-13", "2026-06-13", "2026-06-14", "2026-06-15", "2026-06-13", "2026-06-13", "2026-06-15")
+  audit$duration_seconds <- c(600, 900, 1200, 300, 600, 600, NA)
+  lima <- monitoreo_territorial_avance_cuotas(envio_cuotas(), audit)$zonas[[1]]
+  eq <- lima$equipo
+  expect_identical(vapply(eq$personas, function(p) p$codigo, ""), c("P101", "P102"))
+  expect_identical(eq$personas[[1]]$efectivas, 3L)
+  expect_identical(eq$personas[[1]]$dias, 3L)
+  expect_identical(eq$personas[[2]]$en_observacion, 1L)
+  # El código que no casa con la lista no se nombra: se cuenta.
+  expect_identical(eq$sin_codigo, 1L)
+  expect_false(any(grepl("12345678", unlist(eq))))
+  expect_identical(vapply(lima$diario$dias, function(d) d$fecha, ""), c("2026-06-13", "2026-06-14", "2026-06-15"))
+  expect_identical(vapply(lima$diario$dias, function(d) d$efectivas, 1L), c(2L, 1L, 2L))
+  expect_identical(lima$diario$sin_fecha, 0L)
+  expect_identical(lima$duracion_mediana_min, 12.5)   # 300, 600, 900 y 1200 s; la sin duración no entra
+})
+
+test_that("el equipo, el ritmo y la duración no pierden ni inventan casos", {
+  audit <- audit_cuotas()
+  audit$pulso_code_normalized <- c("P101", "P102", "P101", "P101", "P103", "P101", "P102")
+  audit$submission_date_iso <- c("2026-06-13", "", "2026-06-14", "2026-06-15", "2026-06-13", "2026-06-13", "2026-06-15")
+  audit$duration_seconds <- c(0, -5, 600, 1200, 600, 600, NA)
+  lima <- monitoreo_territorial_avance_cuotas(envio_cuotas(), audit)$zonas[[1]]
+  # Sin la marca de código reconocido no se nombra a nadie.
+  expect_length(lima$equipo$personas, 0L)
+  expect_identical(lima$equipo$sin_codigo, lima$efectivas)
+  # La fecha vacía va aparte y la suma cuadra con las efectivas.
+  expect_identical(lima$diario$sin_fecha, 1L)
+  expect_identical(sum(vapply(lima$diario$dias, function(d) d$efectivas, 1L)) + lima$diario$sin_fecha, lima$efectivas)
+  # Duraciones de 0 o negativas no entran en la mediana.
+  expect_identical(lima$duracion_mediana_min, 15)
+})
+
+test_that("dos zonas con el mismo ubigeo se avisan", {
+  envio <- envio_cuotas()
+  envio$zonas[[2]]$ubigeo <- "150101"
+  out <- monitoreo_territorial_avance_cuotas(envio, audit_cuotas())
+  expect_length(out$avisos, 1L)
+  expect_match(out$avisos[[1]], "150101")
+  expect_length(monitoreo_territorial_avance_cuotas(envio_cuotas(), audit_cuotas())$avisos, 0L)
+})
