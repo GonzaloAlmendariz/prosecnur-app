@@ -229,13 +229,10 @@
   min-height: 0;
 }
 
-/* El contenido del panel toma el alto sobrante: sin esto el grid del Panel da
-   `auto` a esa fila, el vacío se queda en sus 180px pegado al encabezado y la
-   tarjeta enseña 600px en blanco por dentro. Las filas de más —los bloqueos, el
-   error— siguen entrando como filas implícitas `auto` debajo. */
-.rec-access-layout > .rec-access-result {
-  grid-template-rows: auto minmax(0, 1fr);
-}
+/* El contenido del panel conserva su alto propio (P5 de la pasada de formato): la
+   fila `1fr` existía para estirar el vacío viejo de 180 px; con `EstadoVacio` esa
+   fila lo inflaba a todo el alto del panel. El panel sigue lleno (height: 100%) y
+   su contenido arranca arriba (`align-content: start`). */
 
 /* El histórico de fichas de prueba: cuáles se hicieron y con qué enlace. */
 .rec-prueba-historico {

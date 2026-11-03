@@ -27,6 +27,7 @@ import { TarjetaDeCampana } from "./TarjetaDeCampana";
 import type { FuenteDelRegistro } from "./useRegistroDeCampanas";
 import "./campanas.css";
 import "../correos/correosIconos.css";
+import { LoadingBlock } from "../../../components/States";
 
 export type AvisoDeLaLista = { tono: "ok" | "error"; texto: string; enlace?: { href: string; texto: string } };
 
@@ -125,7 +126,7 @@ export function ListaDeCampanas({
             />
           </div>
         ) : !registro ? (
-          <div className="rec-loading" data-qa-geometry-capacity="owned">Leyendo las campañas…</div>
+          <LoadingBlock label="Leyendo las campañas…" />
         ) : visibles.length && porPublico.grupos.length ? (
           <>
             {porPublico.grupos.map((g) => (

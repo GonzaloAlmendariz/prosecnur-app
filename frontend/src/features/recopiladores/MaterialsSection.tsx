@@ -21,16 +21,7 @@ import { FichasPruebaHistorico } from "./FichasPruebaHistorico";
 import { JobProgress } from "../../components/JobProgress";
 import { Panel } from "../../components/Panel";
 import { PulsoButton } from "../../components/PulsoButton";
-import {
-  Archive,
-  CheckCircle2,
-  Download,
-  UploadCloud,
-  FileText,
-  Image,
-  Layers,
-  Loader2,
-} from "../../vendor/lucide-react";
+import { Archive, CheckCircle2, Download, FileText, Image, Layers, Loader2, QrCode, UploadCloud } from "../../vendor/lucide-react";
 import type { RecopiladoresPestana } from "./navegacion";
 import { deploymentStatusLabel } from "./providerRules";
 import { VacioSinPlanCard } from "./VacioSinPlanCard";
@@ -40,6 +31,8 @@ import "./driveDeFichas.css";
 import { composicionDelPlan, unidadesDelPlan } from "./codigoOperativo";
 import { fichasAlDia, fichasHechasDelEstado, instanciaReutilizable } from "./fichasDelEstado";
 import { nombreDeReceta } from "./editor/modeloEditor";
+import { LoadingBlock } from "../../components/States";
+import { EstadoVacio } from "../../components/EstadoVacio";
 
 type Props = {
   payload: CollectionStatePayload | null;
@@ -280,7 +273,7 @@ export function MaterialsSection({ payload, activeTab, onStateRefresh, onArtifac
     return <VacioSinPlanCard vacio={vacioSinPlan("paquetes")} icono={<Archive size={18} />} onIr={onIr} />;
   }
 
-  if (loading) return <div className="rec-loading">Leyendo la plantilla de la ficha…</div>;
+  if (loading) return <LoadingBlock label="Leyendo la plantilla de la ficha…" />;
 
   if (activeTab === "armado") {
     return (
@@ -397,20 +390,15 @@ export function MaterialsSection({ payload, activeTab, onStateRefresh, onArtifac
                se pueden generar: informacion correcta contestando otra
                pregunta. Con accesos listos vuelve a ser esa nota, que ahi si es
                lo unico que queda por decir. */
-            <div className="rec-contained-empty">
-              {motivoBloqueo ? (
-                <>
-                  <strong>{motivoBloqueo}</strong>
-                  <span>
-                    Los accesos se preparan en la sección Accesos: cada
-                    curso-horario recibe su enlace y ese enlace es lo que va
-                    dentro del QR de su ficha.
-                  </span>
-                </>
-              ) : (
-                "El archivo y su vista previa los genera Pulso, y no se guardan dentro del proyecto."
-              )}
-            </div>
+            motivoBloqueo ? (
+              <EstadoVacio
+                icono={<QrCode size={16} aria-hidden />}
+                titulo={motivoBloqueo}
+                descripcion="Los accesos se preparan en la sección Accesos: cada curso-horario recibe ahí el enlace que va en su QR."
+              />
+            ) : (
+              <p className="rec-render-nota">El archivo y su vista previa los genera Pulso, y no se guardan dentro del proyecto.</p>
+            )
           )}
           {error ? <p className="rec-inline-error" role="alert">{error}</p> : null}
         </Panel>

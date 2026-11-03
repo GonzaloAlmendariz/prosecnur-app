@@ -31,6 +31,7 @@ import { origenDelPlan } from "./vacioSinPlan";
 import { TIPO_DE_UNIDAD } from "./tipoDeUnidad";
 import { useProjectModules } from "../project/ProjectModulesContext";
 import "./styles/recopiladores-shell.css";
+import { LoadingBlock } from "../../components/States";
 
 // Rótulo de estado con mayúscula inicial: deploymentStatusLabel lo da en minúscula para usarlo dentro de una frase.
 const conMayuscula = (t: string) => (t ? t.charAt(0).toLocaleUpperCase("es-PE") + t.slice(1) : t);
@@ -267,9 +268,7 @@ export function RecopiladoresShell({ cabecera = null }: Props = {}) {
       data-qa-geometry-contract="intrinsic"
     >
       {loading && !state ? (
-        <div className="rec-loading" data-qa-geometry-capacity="owned">
-          Leyendo el estado del despliegue…
-        </div>
+        <LoadingBlock label="Leyendo el estado del despliegue…" />
       ) : null}
       {sinCambios ? (
         <div

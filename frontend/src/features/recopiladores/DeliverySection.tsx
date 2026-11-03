@@ -10,7 +10,7 @@ import { downloadUrl } from "../../api/core";
 import { Panel } from "../../components/Panel";
 import { PulsoButton } from "../../components/PulsoButton";
 import { serializarDireccion } from "../../lib/navegacion/direccion";
-import { CheckCircle2, Download, FileCheck2, FileWarning, Loader2, Send, ShieldCheck } from "../../vendor/lucide-react";
+import { Archive, CheckCircle2, Download, FileCheck2, FileWarning, Loader2, Send, ShieldCheck } from "../../vendor/lucide-react";
 import { handoffReadiness, type HandoffReadiness } from "./handoffModel";
 import { juzgarMaterialesDelPlan } from "./materialesDelPlanVigente";
 import { providerLabel } from "./providerRules";
@@ -18,6 +18,7 @@ import { VacioSinPlanCard } from "./VacioSinPlanCard";
 import { vacioSinPlan } from "./vacioSinPlan";
 import { ConstruirTablasEnSheets } from "./ConstruirTablasEnSheets";
 import "./styles/delivery.css";
+import { EstadoVacio } from "../../components/EstadoVacio";
 
 type Props = {
   payload: CollectionStatePayload | null;
@@ -170,10 +171,7 @@ export function DeliverySection({ payload, latestArtifact, onState, onIr, onIrAA
             </p>
           </article>
         ) : (
-          <div className="rec-contained-empty rec-receipt-empty" data-qa-geometry-capacity="owned" role="status">
-            <strong>Aún no se entrega a Monitoreo</strong>
-            <span>{faltaParaElRecibo(readiness)}</span>
-          </div>
+          <EstadoVacio icono={<Send size={16} aria-hidden />} titulo="Aún no se entrega a Monitoreo" descripcion={faltaParaElRecibo(readiness)} />
         )}
 
         <div className="rec-artifact-list" data-qa-geometry-group="material-campo/artefactos" data-qa-geometry-contract="intrinsic">
@@ -223,9 +221,7 @@ export function DeliverySection({ payload, latestArtifact, onState, onIr, onIrAA
             );
           })}
           {!artifacts.length ? (
-            <div className="rec-contained-empty" data-qa-geometry-capacity="owned">
-              Todavía no se ha generado ningún material en esta sesión.
-            </div>
+            <EstadoVacio icono={<Archive size={16} aria-hidden />} titulo="Todavía no se ha generado material en esta sesión" />
           ) : null}
         </div>
       </Panel>

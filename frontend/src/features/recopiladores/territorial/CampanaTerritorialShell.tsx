@@ -36,6 +36,7 @@ import { ZonasDeCuotas } from "./ZonasDeCuotas";
 import { useCampanaTerritorial } from "./useCampanaTerritorial";
 import "../styles/recopiladores-shell.css";
 import "./territorial.css";
+import { LoadingBlock } from "../../../components/States";
 
 const COPIA: Record<SeccionTerritorial, { title: string; lead: string }> = {
   unidades: { title: "Unidades", lead: "Las UMP titulares y sus reemplazos, tal como las envió Hojas de ruta." },
@@ -108,7 +109,7 @@ export function CampanaTerritorialShell({ campana, cabecera = null }: Props) {
       data-qa-geometry-contract="intrinsic"
     >
       {cargando && !hojas ? (
-        <div className="rec-loading" data-qa-geometry-capacity="owned">Leyendo la muestra enviada…</div>
+        <LoadingBlock label="Leyendo la muestra enviada…" />
       ) : null}
       {!cargando && seccion === "unidades" && unidades?.kind === "cuotas" ? (
         <ZonasDeCuotas campaignId={campana.id} unidades={unidades} />

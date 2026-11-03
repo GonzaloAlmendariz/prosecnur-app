@@ -11,6 +11,7 @@ import { IMAGEN_DECORATIVA, IMAGEN_Y_TEXTO, PIEZAS_GRAFICAS, type TipoInsertable
 import { useMisSecciones } from "./misSeccionesStore";
 import { useCabezaSinLugar } from "./topeDeLaBarra";
 import "./correosBiblioteca.css";
+import { LoadingBlock } from "../../../components/States";
 
 /** Tipo MIME del arrastre: lo lee la capa para saber qué bloque se suelta. */
 export const ARRASTRE_DE_BLOQUE = "application/x-pulso-bloque";
@@ -369,7 +370,7 @@ export function ListaDeMisSecciones({ secciones, cargando, error, onElegir, onBo
         />
       ) : null}
       {resumen ? <p className="rec-bib-importado" role="status">{resumen}</p> : null}
-      {cargando && !secciones.length ? <p className="rec-bib-vacio">Leyendo las secciones del estudio…</p> : null}
+      {cargando && !secciones.length ? <LoadingBlock label="Leyendo las secciones del estudio…" variant="inline" /> : null}
       {!cargando && !secciones.length ? (
         <p className="rec-bib-vacio">Aún no hay. Elige una sección del correo y usa «Guardar» en su barra: queda aquí para los otros correos de este estudio.</p>
       ) : null}

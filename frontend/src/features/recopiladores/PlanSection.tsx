@@ -5,13 +5,7 @@ import { apiRecopiladoresSeed, type CollectionStatePayload, type CollectionUnit 
 import { agruparEnCadenas, ordenarPorCadenaOperativa } from "../../lib/cadenaOperativa";
 import { Panel } from "../../components/Panel";
 import { PulsoButton } from "../../components/PulsoButton";
-import {
-  ChevronLeft,
-  ChevronRight,
-  ClipboardList,
-  DatabaseZap,
-  Loader2,
-} from "../../vendor/lucide-react";
+import { ChevronLeft, ChevronRight, ClipboardList, DatabaseZap, Loader2 } from "../../vendor/lucide-react";
 import { TableScroll } from "./TableScroll";
 import "./styles/plan.css";
 import { ComposicionPorFacultad } from "./ComposicionPorFacultad";
@@ -24,6 +18,7 @@ import { nombreCortoDeFacultad } from "./nombreDeFacultad";
 import { fechaDeCorrida } from "./fechaDeCorrida";
 import { avisoDeLaLista, nombreDelModulo, planVigente } from "./origen";
 import { useOrigen } from "./useOrigen";
+import { EstadoVacio } from "../../components/EstadoVacio";
 
 type Props = {
   payload: CollectionStatePayload | null;
@@ -496,9 +491,11 @@ export function PlanSection({ payload, onState, origen, onIr, onCargando }: Prop
             </nav> : null}
           </>
         ) : (
-          <div className="rec-contained-empty" data-qa-geometry-capacity="owned">
-            El plan es válido, pero su selección no contiene unidades. Regresa al módulo de origen para decidirlas.
-          </div>
+          <EstadoVacio
+            icono={<ClipboardList size={16} aria-hidden />}
+            titulo="La selección no contiene unidades"
+            descripcion="El plan es válido; las unidades se deciden en el módulo de origen."
+          />
         )}
       </Panel>
     </div>

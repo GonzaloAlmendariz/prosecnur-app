@@ -17,6 +17,7 @@ import { PulsoButton } from "../../components/PulsoButton";
 import { serializarDireccion } from "../../lib/navegacion/direccion";
 import { CalendarDays, FileSpreadsheet } from "../../vendor/lucide-react";
 import "./styles/plantillas-equipo.css";
+import { LoadingBlock } from "../../components/States";
 
 const PIEZAS: readonly { pieza: PiezaDelEquipo; titulo: string; llena: string; requiereEntrega: boolean }[] = [
   { pieza: "libro", titulo: "Libro del equipo", llena: "Aulas Agendadas (fecha, hora y aplicador de cada aula) y Aulas Aplicadas (el parte)", requiereEntrega: true },
@@ -87,7 +88,7 @@ export function PlantillasDelEquipo() {
 
       <article className="rec-equipo-tarjeta" data-qa-geometry-member>
         <h3><CalendarDays size={15} aria-hidden /> Traspaso a Monitoreo</h3>
-        {entrega === null && !error ? <p className="rec-equipo-nota" role="status">Leyendo la entrega…</p> : null}
+        {entrega === null && !error ? <LoadingBlock label="Leyendo la entrega…" variant="inline" /> : null}
         {entrega && !entregada ? (
           <p className="rec-equipo-nota">Todavía no hay entrega. Al entregar, Monitoreo la trae desde Insumos › Fuentes con «Traer la entrega».</p>
         ) : null}

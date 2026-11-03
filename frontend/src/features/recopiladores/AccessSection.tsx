@@ -38,6 +38,7 @@ import { VacioSinPlanCard } from "./VacioSinPlanCard";
 import { vacioSinPlan } from "./vacioSinPlan";
 import { mapaDeCodigosDelPlan, titularesDelPlan } from "./codigoOperativo";
 import "./styles/access.css";
+import { EstadoVacio } from "../../components/EstadoVacio";
 
 type Props = {
   payload: CollectionStatePayload | null;
@@ -484,11 +485,11 @@ export function AccessSection({ payload, activeTab, onState, onIr, onVerVinculac
               // El texto anterior era exacto y aun así ilegible: los tres ejes
               // que separa el preflight son de verdad tres —`supported`,
               // `available` y la política de la versión— y se dicen así.
-              <div className="rec-contained-empty">
-                Comprueba el formulario antes de usarlo. Son tres cosas distintas:
-                si la plataforma lo permite, si Pulso ya sabe hacerlo, y si esta
-                versión lo autoriza.
-              </div>
+              <EstadoVacio
+                icono={<ShieldCheck size={16} aria-hidden />}
+                titulo="Comprueba el formulario antes de usarlo"
+                descripcion="Revisa si la plataforma lo permite, si Pulso ya sabe hacerlo y si esta versión lo autoriza."
+              />
             )}
           </>
         ) : (
@@ -513,11 +514,13 @@ export function AccessSection({ payload, activeTab, onState, onIr, onVerVinculac
               // El vacío decía «la vista previa no produjo enlaces», que es
               // cierto y no ubica: no dice cuántas aulas esperan acceso ni
               // cuántas llevan. El plan tiene ese número desde que se sembró.
-              <div className="rec-contained-empty">
-                {aulasDelPlan > 0
-                  ? <>{"Ninguna de las "}<b>{aulasDelPlan.toLocaleString("es-PE")} aulas</b>{" del plan tiene acceso todavía. Los enlaces aparecen aquí cuando llegan de la plataforma."}</>
-                  : <>Todavía no hay plan del que colgar accesos.</>}
-              </div>
+              <EstadoVacio
+                icono={<Link2 size={16} aria-hidden />}
+                titulo={aulasDelPlan > 0
+                  ? `Ninguna de las ${aulasDelPlan.toLocaleString("es-PE")} aulas del plan tiene acceso todavía`
+                  : "Todavía no hay plan del que colgar accesos"}
+                descripcion={aulasDelPlan > 0 ? "Los enlaces aparecen aquí cuando llegan de la plataforma." : undefined}
+              />
             )}
           </>
         )}

@@ -110,7 +110,9 @@ describe("CatalogoTipos", () => {
     const html = renderToStaticMarkup(
       <CatalogoTipos payload={null} onStateRefresh={async () => {}} />,
     );
+    // La carga es la del kit (LoadingBlock): caja propia con su alto y role=status.
     expect(html).toContain("Leyendo el catálogo…");
-    expect(html).toContain('data-qa-geometry-capacity="owned"');
+    expect(html).toContain('class="pulso-loading-block');
+    expect(html).toContain('role="status"');
   });
 });

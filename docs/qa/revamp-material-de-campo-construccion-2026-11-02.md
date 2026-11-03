@@ -254,3 +254,39 @@ vuelva. Las vistas citadas salen de las 26 capturas a 1280.
 
 Las tablas ya tienen guard propio (`tablasDelKit`, cinco tablas a mano de Material en su foto), así que
 no entran como causa nueva.
+
+### Gramática corta (aprobada por coordinación el 2 nov 2026)
+
+Toda vista de Material se arma con estas piezas. Nadie las reinventa por pantalla.
+
+1. **Cabecera de bloque**: rótulo opcional, título, línea de metadatos y acciones a la derecha, todo en una
+   misma fila. Un bloque sin cabecera no lleva marco propio.
+2. **Línea de metadatos**: una sola línea, en la letra del sistema (`caption`, `text-faint`), subordinada al
+   título. No va en monoespaciada (el valor técnico se guarda en `title`). Sus partes se unen con coma o «y»,
+   nunca con punto medio.
+3. **Contador**: subordinado al título que cuenta. Pesa menos que el título y lleva separador de miles (es-PE:
+   «1,234.5»).
+4. **Estado frente a acción**: un estado es un `EstadoChip` (tono más rótulo con mayúscula inicial) y vive en
+   su propio slot. Una acción es un botón. Nunca comparten fila sin separación.
+5. **Una primaria por bloque (P7)**: si un bloque tiene acciones, exactamente una va como primaria (la que
+   toca) y las demás como secundarias, aunque estén apagadas. Se controla en la revisión de captura.
+6. **Cada cifra en un solo sitio (P9)**: antes de pintar una cifra, mirar si ya la dicen el chip de entrada, el
+   resumen o la tarjeta vecina. Se controla en la revisión de captura.
+7. **Vacío y carga**: el vacío es `EstadoVacio` (ícono, título y UNA línea) y la carga es `LoadingBlock`.
+   Ninguna espera va escrita como texto suelto. Lo vigila `vaciosYCargasDelKit.contract.test.ts`.
+8. **Letra por rol**: `var(--pulso-type-<rol>-size)`, nunca en px. Lo vigila `letraPorRol.contract.test.ts`.
+
+### P5, vacíos y cargas (hecho)
+
+- 8 `.rec-loading`, 8 `.rec-contained-empty` y 12 «Leyendo…» sueltos pasan a `LoadingBlock` (20 usos) y `EstadoVacio`.
+  Se borran las reglas CSS de las clases viejas, incluida la fila `1fr` de Accesos que estiraba el vacío.
+- Guard: `vaciosYCargasDelKit.contract.test.ts`, con meta 0 y centinelas (306 fuentes, 20 `LoadingBlock`).
+- Capturas: antes en `est-*` y después en `p5-*` (26 vistas, 26 md5 distintos, textosFuera 0). Cuotas sale `ok=false`
+  antes y después por el mismo `geometryCoverageMisses: 1`, que ya existía.
+
+### P5b, readiness que espera a sus bloques (siguiente)
+
+Tres vistas se declaran listas antes de que termine el fetch de un bloque, así que la captura mide una pantalla a medio
+cargar: Territorial › Catálogo › Códigos (`CodigosDeResultado`), Territorial › Entrega (`AsignacionEquipo`) y
+Aulas › Entrega › Plantillas («Traspaso a Monitoreo», `PlantillasDelEquipo`). Se arreglan con el patrón readinessAnidada:
+cada bloque avisa a su shell que está cargando, y si el fetch falla cuenta como listo con su error, sin un false terminal.

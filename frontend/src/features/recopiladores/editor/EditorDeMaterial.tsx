@@ -42,6 +42,7 @@ import { SelectorDeUnidad } from "./SelectorDeUnidad";
 import { useRecetaDelEditor } from "./useRecetaDelEditor";
 import { useVistaDelPliego } from "./useVistaDelPliego";
 import "./editor.css";
+import { LoadingBlock } from "../../../components/States";
 
 export const DIRECCION_DE_TIPOS = "/material-campo?modo=aulas&seccion=catalogo&pestana=tipos";
 export const DIRECCION_DE_UNIDADES = "/material-campo?modo=aulas&seccion=unidades&pestana=lista";
@@ -161,7 +162,7 @@ export function EditorDeMaterial({ payload, onStateRefresh, onCargando, onIr }: 
   }
 
   if (!borrador || !cara) {
-    return <div className="rec-loading" data-qa-geometry-capacity="owned">Leyendo la receta…</div>;
+    return <LoadingBlock label="Leyendo la receta…" />;
   }
 
   const editarCara = (cambiar: (blocks: CollectionMaterialBlock[]) => CollectionMaterialBlock[]) => {

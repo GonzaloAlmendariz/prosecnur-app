@@ -38,6 +38,7 @@ import { ICONO_DEL_TIPO } from "./TarjetaDeCampana";
 import type { FuenteDelRegistro } from "./useRegistroDeCampanas";
 import "../correos/correosCampanas.css";
 import "./campanas.css";
+import { LoadingBlock } from "../../../components/States";
 
 export type Resultado = { ok: true } | { ok: false; mensaje: string };
 
@@ -349,7 +350,7 @@ export function DialogoNuevaCampana({ panel, registro, fuente, presets, miniatur
                   />
                 </label>
                 {homonima ? <AvisoDeNombreRepetido id={`${ids}-repetido`} campana={homonima} href={homonima.archived ? null : hrefDeCampana(homonima)} /> : null}
-                {envios.cargando ? <p className="rec-nueva-pie-nota">Leyendo qué muestra envió Hojas de ruta…</p> : null}
+                {envios.cargando ? <LoadingBlock label="Leyendo qué muestra envió Hojas de ruta…" variant="inline" /> : null}
                 {envios.error ? <p className="rec-nueva-pie-nota" role="alert">{envios.error}</p> : null}
                 {eleccion.tipo === "elegir" && envios.envios ? (
                   <fieldset className="rec-nueva-plataformas">
