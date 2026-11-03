@@ -23,7 +23,7 @@ import { useSelectoresUi } from "./selectoresStore";
 import { TarjetaTipoGrafico } from "./TarjetaTipoGrafico";
 import { encajeEnRanura, FAMILIAS_GRAFICO, familiaInicial, graficosDeFamilia, salidaDe } from "./tiposGrafico";
 import { EstadoVacio } from "../../../../components/EstadoVacio";
-import { LoadingBlock } from "../../../../components/States";
+import { CargaDeBloque } from "../../../../components/CargaDeBloque";
 
 type Props = {
   slide: Slide | null;
@@ -138,7 +138,7 @@ export function SelectorTipoGrafico({ slide, posicion, ranura, cerrar }: Props) 
           </div>
           {vacio ? (
             loading && !registry
-              ? <LoadingBlock variant="inline" label="Cargando los gráficos del estudio…" />
+              ? <CargaDeBloque label="Cargando los gráficos del estudio…" />
               : <EstadoVacio icono={<BarChart3 size={16} aria-hidden="true" />} titulo={vacio} />
           ) : (
             <ul

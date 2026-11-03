@@ -15,7 +15,7 @@ import { ICONO_AUTOMATICO, iconoEnBiblioteca, SIN_ICONO, type IndiceEditable } f
 import { useIconosRecetario } from "./useIconosRecetario";
 import "../laminas/selectores/selectores.css";
 import "./editorIndice.css";
-import { LoadingBlock } from "../../../components/States";
+import { CargaDeBloque } from "../../../components/CargaDeBloque";
 
 type Props = {
   indice: IndiceEditable;
@@ -189,7 +189,7 @@ export function ContenidoBiblioteca({ panelProps, numero, titulo, actual, onCerr
               </button>
             </p>
           ) : iconos.nombres === null ? (
-            <LoadingBlock variant="inline" label="Cargando íconos…" />
+            <CargaDeBloque label="Cargando íconos…" />
           ) : filtrados.length === 0 ? (
             <p className="pulso-f6-iconos-estado" role="status">Ningún ícono se llama así. Prueba con otra palabra.</p>
           ) : (

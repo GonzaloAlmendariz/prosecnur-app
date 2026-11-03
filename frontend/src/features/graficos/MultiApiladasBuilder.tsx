@@ -41,8 +41,8 @@ import { guardarLectura, recuperarLectura } from "./multiapiladas/memoriaLectura
 import { conteoBarrasMultiapiladas, cupoBarras, MOTIVO_TOPE, type ConteoBarras } from "./multiapiladas/topeBarras";
 import { ConteoBarrasMultiapiladas } from "./multiapiladas/ConteoBarras";
 import "./multiapiladas/multiapiladas.css";
-import { LoadingBlock } from "../../components/States";
 import { formatoConteo } from "../../lib/formatoNumero";
+import { CargaDeBloque } from "../../components/CargaDeBloque";
 
 type Props = {
   graf: GraficadorRef;
@@ -252,7 +252,7 @@ export default function MultiApiladasBuilder({ graf, onArgs, memoriaKey }: Props
   }
 
   if (loading) {
-    return <LoadingBlock variant="inline" minHeight={32} label="Cargando variables del estudio…" />;
+    return <CargaDeBloque label="Cargando variables del estudio…" />;
   }
 
   return (

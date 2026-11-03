@@ -9,7 +9,7 @@ import {
   type CalcMuestraGeneralMarco,
 } from "../../../api/calcMuestraGeneral";
 import { GlidingRadioGroup } from "../../../components/GlidingRadioGroup";
-import { EmptyState, ErrorBlock, LoadingBlock } from "../../../components/States";
+import { EmptyState, ErrorBlock } from "../../../components/States";
 import { fmtInt } from "../sharedCore";
 import { searchConNivel } from "../../../lib/navegacion/useDireccion";
 import { ErrorDelMotor } from "./ErrorDelMotor";
@@ -34,6 +34,7 @@ import { useMuestraGeneralStore } from "./store";
 import { useColumnasDelMarco } from "./useColumnasDelMarco";
 import { guardarEstudioPendiente, useIrASeccionGeneral, useMuestraGeneral } from "./useMuestraGeneral";
 import "./general.css";
+import { CargaDeBloque } from "../../../components/CargaDeBloque";
 
 /** Pestañas de Selección (E15 · P1): una pregunta cada una. */
 export type PestanaSeleccion = "seleccion-sorteo" | "seleccion-corrida" | "seleccion-unidades";
@@ -153,7 +154,7 @@ export function SeleccionGeneralVista({
       data-qa-geometry-contract="intrinsic"
     >
       {!cargado ? (
-        <LoadingBlock variant="inline" label="Leyendo el marco y la última selección…" />
+        <CargaDeBloque label="Leyendo el marco y la última selección…" />
       ) : errorCarga && !marco ? (
         <ErrorBlock label="No se pudo leer el estado de la selección" detail={errorCarga} />
       ) : !componente || !marco ? (
@@ -366,7 +367,7 @@ export function SeleccionGeneralVista({
         </section>
       ) : corrida.unidades === null ? (
         <section className="cmv2-panel" data-qa-geometry-member>
-          <LoadingBlock variant="inline" label="Cargando el listado de unidades…" />
+          <CargaDeBloque label="Cargando el listado de unidades…" />
         </section>
       ) : (
         <TablaUnidades

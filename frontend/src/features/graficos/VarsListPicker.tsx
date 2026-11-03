@@ -4,8 +4,8 @@ import { createPortal } from "react-dom";
 import { Check, Database, Plus, Search, X } from "lucide-react";
 import { useVariables, parseVarRef, formatVarRef, type VarWithSource } from "./useVariables";
 import { safeText } from "./safeText";
-import { LoadingBlock } from "../../components/States";
 import { formatoConteo } from "../../lib/formatoNumero";
+import { CargaDeBloque } from "../../components/CargaDeBloque";
 
 type Props = {
   value: string[] | null | undefined;
@@ -73,7 +73,7 @@ export default function VarsListPicker({ value, onChange }: Props) {
   const visibleOptions = options.slice(0, 160);
   const selectedVars = vals.map((ref) => selectedInfo(ref, variables, multi));
 
-  if (loading) return <LoadingBlock variant="inline" minHeight={32} label="Cargando variables…" />;
+  if (loading) return <CargaDeBloque label="Cargando variables…" />;
 
   function toggleOpen() {
     if (open) {

@@ -14,7 +14,7 @@ import { DialogoLinea } from "./DialogoLinea";
 import { cambiosSobreLinea, diferencias, estiloDesdeHuella, huellaPlan, lineaDesdePlan, type PlanParaLinea } from "./modeloLineaPropia";
 import { PulsoButton } from "../../../components/PulsoButton";
 import { useLineasPropias } from "./lineasPropiasStore";
-import { LoadingBlock } from "../../../components/States";
+import { CargaDeBloque } from "../../../components/CargaDeBloque";
 
 /** Lo que trae una línea, en palabras: cuántas bases de gráfico, paletas y estilos guardados. */
 export function queTrae(perfil: Pick<PptStyleProfileMeta, "presets" | "paletas" | "overrides_reusables">): string {
@@ -123,7 +123,7 @@ export function BibliotecaLineas() {
       </div>
       <section className="pulso-f6-lv-grupo" aria-labelledby="f6-lv-recetario" data-qa-geometry-member>
         <h4 id="f6-lv-recetario" className="pulso-f6-lv-grupo-titulo">Del recetario <small>se aplican tal cual; para cambiarlas, guarda una propia</small></h4>
-        {loading ? <LoadingBlock variant="inline" label="Cargando las líneas del recetario…" />
+        {loading ? <CargaDeBloque label="Cargando las líneas del recetario…" />
           : error ? <p className="pulso-f6-lv-estado is-error" role="alert">No se pudieron cargar: {error}</p>
           : (
             <div className="pulso-f6-lv-lista" data-qa-geometry-group="graficos/f6-lv-recetario" data-qa-geometry-contract="equal">
@@ -133,7 +133,7 @@ export function BibliotecaLineas() {
       </section>
       <section className="pulso-f6-lv-grupo" aria-labelledby="f6-lv-propias" data-qa-geometry-member>
         <h4 id="f6-lv-propias" className="pulso-f6-lv-grupo-titulo">Tus líneas <small>guardadas en la app, para todos los estudios</small></h4>
-        {!cargadas ? <LoadingBlock variant="inline" label="Cargando tus líneas…" />
+        {!cargadas ? <CargaDeBloque label="Cargando tus líneas…" />
           : errorPropias ? <p className="pulso-f6-lv-estado is-error" role="alert">{errorPropias}</p>
           : propias.length === 0 ? (
             <p className="pulso-f6-lv-estado">Todavía no guardaste líneas. Guardar como línea nueva parte de lo que tienes ahora.</p>

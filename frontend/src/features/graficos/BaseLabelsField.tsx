@@ -15,7 +15,7 @@ import { useMemo } from "react";
 import { useVariables } from "./useVariables";
 import "./baseLabelsField.css";
 import { EstadoVacio } from "../../components/EstadoVacio";
-import { LoadingBlock } from "../../components/States";
+import { CargaDeBloque } from "../../components/CargaDeBloque";
 
 export type BaseLabelsFieldProps = {
   value: unknown;
@@ -50,7 +50,7 @@ export function BaseLabelsField({ value, onChange }: BaseLabelsFieldProps) {
   const mapa = useMemo(() => parseBaseLabels(value), [value]);
 
   if (loading) {
-    return <LoadingBlock variant="inline" minHeight={32} label="Leyendo las bases del estudio…" />;
+    return <CargaDeBloque label="Leyendo las bases del estudio…" />;
   }
   if (!bases.length) {
     // Sin bases declaradas no hay columnas que renombrar. Se dice, en vez de

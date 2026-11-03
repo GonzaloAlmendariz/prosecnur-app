@@ -72,7 +72,7 @@ describe("vacíos y cargas de Gráficos", () => {
 
   it("una espera va por LoadingBlock, no como texto suelto", () => {
     const componentes = archivos(aqui, /\.tsx$/);
-    const usos = componentes.reduce((n, f) => n + (readFileSync(f, "utf8").match(/<LoadingBlock\b/g)?.length ?? 0), 0);
+    const usos = componentes.reduce((n, f) => n + (readFileSync(f, "utf8").match(/<(LoadingBlock|CargaDeBloque)\b/g)?.length ?? 0), 0);
     // Centinela: el barrido ve las cargas migradas (19 al 2 nov 2026).
     expect(usos).toBeGreaterThan(15);
     const hallazgos = componentes.flatMap((f) =>
@@ -82,6 +82,22 @@ describe("vacíos y cargas de Gráficos", () => {
             ? `${rel(f)}:${i + 1}: ${l.trim()}`
             : null,
         )
+        .filter((x): x is string => x !== null),
+    );
+    expect(hallazgos).toEqual([]);
+  });
+
+  // P5b: una carga dentro de una vista ya lista publica su propio «todavía no»
+  // (data-audit-ready="false"), o la captura mide la pantalla a medio cargar. Por
+  // eso la carga en línea pasa por CargaDeBloque del kit, que lleva la marca.
+  it("toda carga de bloque lleva su marca de readiness (CargaDeBloque)", () => {
+    const componentes = archivos(aqui, /\.tsx$/);
+    expect(componentes.length).toBeGreaterThan(100);
+    const usos = componentes.reduce((n, f) => n + (readFileSync(f, "utf8").match(/<CargaDeBloque\b/g)?.length ?? 0), 0);
+    expect(usos).toBeGreaterThan(2);
+    const hallazgos = componentes.flatMap((f) =>
+      lineasDeCodigo(readFileSync(f, "utf8"))
+        .map((l, i) => (/<LoadingBlock\b[^>]*variant="inline"/.test(l) ? `${rel(f)}:${i + 1}` : null))
         .filter((x): x is string => x !== null),
     );
     expect(hallazgos).toEqual([]);

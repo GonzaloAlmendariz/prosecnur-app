@@ -22,7 +22,7 @@ import {
 } from "./barraExtra";
 import { Top2BoxSelector } from "./Top2BoxSelector";
 import "./BarraExtraControl.css";
-import { LoadingBlock } from "../../components/States";
+import { CargaDeBloque } from "../../components/CargaDeBloque";
 
 /** De dónde salen las categorías de los boxes, o por qué no hay. */
 export type EscalaBarraExtra =
@@ -149,7 +149,7 @@ function CategoriasDeBox({ caja, escala, etiquetas, delInforme, onChange }: {
   ) : null;
 
   if (escala.fase === "cargando") {
-    return <LoadingBlock variant="inline" minHeight={32} label="Leyendo la escala de la pregunta…" />;
+    return <CargaDeBloque label="Leyendo la escala de la pregunta…" />;
   }
   if (escala.fase === "error") {
     return (

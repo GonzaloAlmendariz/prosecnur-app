@@ -24,7 +24,7 @@ import {
 } from "./argFieldNumberUtils";
 import { normalizeTechnicalRows, type TechnicalRow } from "./technicalRows";
 import { EstadoVacio } from "../../components/EstadoVacio";
-import { LoadingBlock } from "../../components/States";
+import { CargaDeBloque } from "../../components/CargaDeBloque";
 
 const DEFAULT_ARG_HINT = "Este ajuste define cómo se ve o se interpreta este bloque del gráfico en el slide.";
 
@@ -2574,7 +2574,7 @@ function CategoriasEscalaField({
   }
 
   if (estado === "cargando") {
-    return <LoadingBlock variant="inline" minHeight={32} label="Leyendo las escalas del estudio…" />;
+    return <CargaDeBloque label="Leyendo las escalas del estudio…" />;
   }
   if (estado === "error" || !listas.length) {
     // Sin catálogo no se inventa una lista: se cae al texto libre, que al menos
