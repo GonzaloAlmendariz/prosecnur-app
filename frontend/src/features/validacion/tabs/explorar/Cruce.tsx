@@ -6,6 +6,7 @@ import CruceSerie from "./CruceSerie";
 import GraficoTarjeta from "./GraficoTarjeta";
 import TablaCalor, { LecturaCalorSelector } from "./TablaCalor";
 import { fmtN, type LecturaCalor, type ModeloCalor } from "./explorarModelo";
+import { bajadaDeSerie, modoDeSerie } from "./serieModelo";
 
 /**
  * E8 — el cruce dibujado por su forma (`biv.cruce.forma`). La tabla recibe el
@@ -58,9 +59,10 @@ export default function Cruce({
     );
   }
   if (cruce.forma === "serie" && cruce.serie) {
+    const modo = modoDeSerie(cruce.tipo_x);
     return (
-      <GraficoTarjeta tipo="fecha" titulo={titulo} bajada={respuestas}>
-        <CruceSerie puntos={cruce.serie.puntos} />
+      <GraficoTarjeta tipo="fecha" titulo={titulo} bajada={`${respuestas} · ${bajadaDeSerie(modo)}`}>
+        <CruceSerie puntos={cruce.serie.puntos} modo={modo} />
       </GraficoTarjeta>
     );
   }

@@ -954,6 +954,11 @@
   stroke: none;
   fill-opacity: 0.14;
 }
+/* E8j: casos por día apilados por categoría; el borde blanco separa los tramos. */
+.vx-svg .vx-svg-barra {
+  stroke: var(--pulso-surface);
+  stroke-width: 0.5;
+}
 .vx-svg text {
   fill: var(--pulso-text-faint);
   font-size: var(--pulso-type-micro-size);
