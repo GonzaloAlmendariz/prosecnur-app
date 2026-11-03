@@ -1,0 +1,124 @@
+/* Recorrido de Selección dentro del aviso de etapa (recorridoEtapa.ts).
+   Cinco pasos en fila unidos por un filete: hecho (check en verde), falta (el
+   tono del aviso, en relieve) y espera (número en gris). */
+
+.cmv2-aulas-recorrido {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  margin: 0;
+  padding: 0 0 var(--pulso-space-4);
+  border-bottom: 1px solid color-mix(in srgb, var(--pulso-border) 70%, transparent);
+  list-style: none;
+  counter-reset: none;
+}
+
+.cmv2-aulas-recorrido li {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--pulso-space-1);
+  min-width: 0;
+  text-align: center;
+}
+
+/* El filete que une cada paso con el anterior, por detrás de las marcas. */
+.cmv2-aulas-recorrido li + li::before {
+  content: "";
+  position: absolute;
+  top: 12px;
+  right: calc(50% + 16px);
+  left: calc(-50% + 16px);
+  height: 2px;
+  border-radius: 1px;
+  background: var(--pulso-border);
+}
+
+.cmv2-aulas-recorrido li[data-estado="hecho"] + li::before {
+  background: color-mix(in srgb, var(--pulso-success-fg) 55%, var(--pulso-border));
+}
+
+.cmv2-aulas-recorrido-marca {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 999px;
+  background: var(--pulso-surface);
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+  font-weight: var(--pulso-weight-bold);
+  font-variant-numeric: tabular-nums;
+}
+
+.cmv2-aulas-recorrido li[data-estado="hecho"] .cmv2-aulas-recorrido-marca {
+  border-color: var(--pulso-success-border);
+  background: var(--pulso-success-bg);
+  color: var(--pulso-success-fg);
+}
+
+.cmv2-aulas-recorrido li[data-estado="falta"] .cmv2-aulas-recorrido-marca {
+  border-color: var(--cmv2-accent-border);
+  background: var(--cmv2-accent);
+  color: var(--pulso-surface);
+  box-shadow: 0 0 0 4px var(--cmv2-accent-soft);
+}
+
+.cmv2-aulas-stage-notice.is-stored-unaccredited .cmv2-aulas-recorrido li[data-estado="falta"] .cmv2-aulas-recorrido-marca,
+.cmv2-aulas-stage-notice.is-missing-frame .cmv2-aulas-recorrido li[data-estado="falta"] .cmv2-aulas-recorrido-marca,
+.cmv2-aulas-stage-notice.is-missing-objective .cmv2-aulas-recorrido li[data-estado="falta"] .cmv2-aulas-recorrido-marca {
+  border-color: var(--pulso-warn-border);
+  background: var(--pulso-warn-fg);
+  box-shadow: 0 0 0 4px var(--pulso-warn-bg);
+}
+
+.cmv2-aulas-recorrido-rotulo {
+  max-width: 100%;
+  overflow: hidden;
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+  font-weight: var(--pulso-weight-semibold);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cmv2-aulas-recorrido li[data-estado="falta"] .cmv2-aulas-recorrido-rotulo {
+  color: var(--pulso-text);
+  font-weight: var(--pulso-weight-bold);
+}
+
+.cmv2-aulas-recorrido li[data-estado="hecho"] .cmv2-aulas-recorrido-rotulo {
+  color: var(--pulso-text-muted);
+}
+
+/* La referencia técnica (la corrida guardada) va en su línea, apagada. */
+.cmv2-aulas-stage-referencia {
+  margin: 2px 0 0;
+  color: var(--pulso-text-faint);
+  font-size: var(--pulso-type-caption-size);
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+/* Lo que la pestaña entregará: el vacío dice qué se va a ver, no sólo qué falta. */
+.cmv2-aulas-stage-promesa {
+  margin: 0;
+  padding-top: var(--pulso-space-3);
+  border-top: 1px dashed color-mix(in srgb, var(--pulso-border) 80%, transparent);
+  color: var(--pulso-text-muted);
+  font-size: var(--pulso-type-caption-size);
+  line-height: 1.45;
+}
+
+.cmv2-aulas-stage-promesa span {
+  color: var(--pulso-text-soft);
+  font-weight: var(--pulso-weight-semibold);
+}
+
+@media (max-width: 640px) {
+  .cmv2-aulas-recorrido-rotulo {
+    display: none;
+  }
+}

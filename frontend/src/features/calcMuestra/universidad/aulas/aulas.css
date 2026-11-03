@@ -1567,13 +1567,14 @@
     var(--cmv2-surface);
 }
 
+/* El aviso de etapa: recorrido arriba, causa con su acción en medio y lo que
+   la pestaña entregará abajo (recorridoEtapa.css). */
 .cmv2-aulas-stage-notice {
   display: grid;
-  grid-template-columns: 38px minmax(0, 1fr) auto;
-  gap: 12px;
-  align-items: center;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--pulso-space-4);
   min-width: 0;
-  padding: 13px 14px;
+  padding: var(--pulso-space-4) var(--pulso-space-5);
   border: 1px solid var(--cmv2-accent-border);
   border-radius: var(--pulso-radius-card);
   background: var(--cmv2-surface);
@@ -1636,7 +1637,15 @@
   line-height: 1.45;
 }
 
-.cmv2-aulas-stage-notice > button {
+.cmv2-aulas-stage-cuerpo {
+  display: grid;
+  grid-template-columns: 38px minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  min-width: 0;
+}
+
+.cmv2-aulas-stage-cuerpo > button {
   min-width: 132px;
   white-space: nowrap;
 }
@@ -1662,12 +1671,12 @@
 }
 
 @media (max-width: 900px) {
-  .cmv2-aulas-stage-notice {
+  .cmv2-aulas-stage-cuerpo {
     grid-template-columns: 38px minmax(0, 1fr);
     align-items: start;
   }
 
-  .cmv2-aulas-stage-notice > button {
+  .cmv2-aulas-stage-cuerpo > button {
     grid-column: 2;
     justify-self: start;
     min-width: 0;
@@ -1676,11 +1685,11 @@
 }
 
 @media (max-width: 640px) {
-  .cmv2-aulas-stage-notice {
+  .cmv2-aulas-stage-cuerpo {
     grid-template-columns: minmax(0, 1fr);
   }
 
-  .cmv2-aulas-stage-notice > button {
+  .cmv2-aulas-stage-cuerpo > button {
     grid-column: 1;
     width: 100%;
   }
