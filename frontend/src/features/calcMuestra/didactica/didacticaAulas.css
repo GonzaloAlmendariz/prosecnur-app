@@ -30,7 +30,7 @@
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  font-size: 10.5px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-semibold);
   letter-spacing: 0.05em;
   text-transform: uppercase;
@@ -42,7 +42,7 @@
 }
 
 .cmv2-did-aulas-fuente span {
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   line-height: 1.45;
   color: var(--pulso-text);
 }
@@ -79,7 +79,7 @@
 }
 
 .cmv2-did-aulas-method-head strong {
-  font-size: 12.5px;
+  font-size: var(--pulso-type-body-size);
   line-height: 1.35;
   color: var(--pulso-text);
 }
@@ -95,7 +95,7 @@
   gap: 4px;
   padding: 2px 8px;
   border-radius: 999px;
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-bold);
   letter-spacing: 0.03em;
   border: 1px solid var(--pulso-success-border, var(--cmv2-accent-border));
@@ -122,7 +122,7 @@
 
 .cmv2-did-aulas-method-metric dt {
   margin: 0;
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-semibold);
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -131,7 +131,7 @@
 
 .cmv2-did-aulas-method-metric dd {
   margin: 0;
-  font-size: 14px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-bold);
   font-variant-numeric: tabular-nums;
   color: var(--pulso-text);
@@ -139,7 +139,7 @@
 
 .cmv2-did-aulas-method-frase {
   margin: 0;
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   line-height: 1.5;
   color: var(--pulso-text-muted);
 }
@@ -190,7 +190,7 @@
   padding: 1px 7px;
   border-radius: 999px;
   font-family: var(--pulso-font-mono, ui-monospace, "SF Mono", Menlo, monospace);
-  font-size: 10.5px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-bold);
   color: var(--cmv2-accent);
   background: var(--cmv2-accent-soft);
@@ -199,7 +199,7 @@
 }
 
 .cmv2-did-chain-label {
-  font-size: 12px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-semibold);
   color: var(--pulso-text);
   overflow: hidden;
@@ -208,7 +208,7 @@
 }
 
 .cmv2-did-chain-fac {
-  font-size: 10.5px;
+  font-size: var(--pulso-type-micro-size);
   color: var(--pulso-text-muted);
 }
 
@@ -221,7 +221,7 @@
 }
 
 .cmv2-did-chain-empty {
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   font-style: italic;
   color: var(--pulso-text-muted);
 }
@@ -234,7 +234,7 @@
   border: 1px solid var(--cmv2-border);
   border-radius: 10px;
   background: var(--cmv2-control-bg);
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   color: var(--pulso-text);
 }
 
@@ -273,14 +273,14 @@
 }
 
 .cmv2-did-chain-nivel {
-  font-size: 10.5px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-semibold);
   color: var(--pulso-text-muted);
   white-space: nowrap;
 }
 
 .cmv2-did-chain-delta {
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-bold);
   font-variant-numeric: tabular-nums;
   padding: 1px 6px;
@@ -301,7 +301,7 @@
 }
 
 .cmv2-did-chain-warning {
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-bold);
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -318,7 +318,7 @@
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   color: var(--pulso-text-muted);
 }
 

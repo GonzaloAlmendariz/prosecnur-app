@@ -16,7 +16,7 @@
   display: flex;
   flex-direction: column;
   gap: 1px;
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   color: var(--pulso-text);
 }
 .cmv2-graf-tasa-label em {
@@ -76,7 +76,7 @@
   background: color-mix(in srgb, var(--pulso-success-fg) 68%, transparent);
 }
 .cmv2-graf-tasa-cifra {
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   font-weight: 600;
   font-variant-numeric: tabular-nums;
   text-align: right;
@@ -97,7 +97,7 @@
   gap: 5px;
   padding-left: 14px;
   position: relative;
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   color: var(--pulso-text-muted);
 }
 .cmv2-graf-comp-leyenda > li::before {
@@ -111,13 +111,13 @@
   background: var(--cmv2-graf-tono, var(--pulso-text-muted));
 }
 .cmv2-graf-comp-leyenda b {
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   font-weight: 600;
   font-variant-numeric: tabular-nums;
   color: var(--pulso-text);
 }
 .cmv2-graf-comp-leyenda em {
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   font-style: normal;
   font-variant-numeric: tabular-nums;
   color: var(--pulso-text-muted);
@@ -131,13 +131,13 @@
 }
 .cmv2-graf-comp-nombre {
   overflow: hidden;
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   text-overflow: ellipsis;
   white-space: nowrap;
   color: var(--pulso-text);
 }
 .cmv2-graf-comp-k {
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   font-variant-numeric: tabular-nums;
   text-align: right;
   color: var(--pulso-text-muted);
@@ -181,7 +181,7 @@
   align-items: center;
   gap: 6px;
   margin: 0;
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   font-weight: 600;
   line-height: 1.3;
   text-wrap: pretty;
@@ -202,13 +202,13 @@
 }
 .cmv2-graf-tip-filas > div { display: contents; }
 .cmv2-graf-tip-filas dt {
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   line-height: 1.35;
   color: var(--pulso-text-muted);
 }
 .cmv2-graf-tip-filas dd {
   margin: 0;
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: 600;
   font-variant-numeric: tabular-nums;
   line-height: 1.35;
@@ -220,7 +220,7 @@
   margin: 7px 0 0;
   padding-top: 6px;
   border-top: 1px solid color-mix(in srgb, var(--cmv2-border) 70%, transparent);
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   line-height: 1.4;
   text-wrap: pretty;
   color: var(--pulso-text-muted);

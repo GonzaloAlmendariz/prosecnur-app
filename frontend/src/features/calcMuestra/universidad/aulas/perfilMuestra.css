@@ -35,7 +35,7 @@
 
 .cmv2-perfil-head h4 {
   margin: 2px 0 0;
-  font-size: 13px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: 600;
   letter-spacing: -0.01em;
   color: var(--pulso-text);
@@ -43,7 +43,7 @@
 
 .cmv2-perfil-head p {
   margin: 4px 0 0;
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   line-height: 1.45;
   text-wrap: pretty;
   color: var(--pulso-text-muted);
@@ -71,7 +71,7 @@
 
 .cmv2-perfil-facultad-nombre {
   overflow: hidden;
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   text-overflow: ellipsis;
   white-space: nowrap;
   color: var(--pulso-text);
@@ -94,7 +94,7 @@
 
 .cmv2-perfil-facultad-n,
 .cmv2-perfil-facultad-eleg {
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   font-variant-numeric: tabular-nums;
   text-align: right;
 }
@@ -106,14 +106,14 @@
   margin: 0;
   padding-top: var(--cmv2-space-2);
   border-top: 1px solid var(--cmv2-border);
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   line-height: 1.45;
   text-wrap: pretty;
   color: var(--pulso-text-muted);
 }
 
 .cmv2-perfil-pie strong {
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   font-weight: 600;
   font-variant-numeric: tabular-nums;
   color: var(--pulso-text);
@@ -137,7 +137,7 @@
 }
 
 .cmv2-perfil-referencia strong {
-  font-size: 19px;
+  font-size: var(--pulso-type-kpi-size);
   font-weight: 600;
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.015em;
@@ -146,7 +146,7 @@
 }
 
 .cmv2-perfil-referencia span {
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   line-height: 1.35;
   text-wrap: pretty;
   color: var(--pulso-text-muted);

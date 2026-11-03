@@ -222,7 +222,7 @@
 
 .cmv2-alumnos-ch-tira-cifras {
   color: var(--pulso-text-muted);
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
@@ -231,7 +231,7 @@
 
 .cmv2-alumnos-ch-tira-vacia {
   color: var(--pulso-text-muted);
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
 }
 
 /* Leyenda del bloque: una sola vez, nunca por fila. */
@@ -241,7 +241,7 @@
   gap: 4px 12px;
   margin: 0;
   color: var(--pulso-text-muted);
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
 }
 
 .cmv2-alumnos-ch-tira-leyenda-escala {
@@ -254,5 +254,5 @@
    dejaba al usuario sin saber qué pieza falta. */
 .cmv2-alumnos-ch-bloqueo {
   color: var(--pulso-danger-text, var(--pulso-text-muted));
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
 }

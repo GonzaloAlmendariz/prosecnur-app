@@ -33,7 +33,7 @@
 }
 
 .cmv2-did-sal-file {
-  font-size: 10.5px;
+  font-size: var(--pulso-type-micro-size);
   font-family: var(--pulso-font-mono, ui-monospace, "SF Mono", Menlo, monospace);
   color: var(--pulso-text-muted);
   overflow-wrap: anywhere;

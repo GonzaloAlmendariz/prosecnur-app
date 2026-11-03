@@ -21,10 +21,12 @@ import { describe, expect, test } from "vitest";
  * 2026-11-01): su tema es el del tablero publicado que ve el cliente.
  * Material de campo (recopiladores) entra el 2026-11-02 con meta 0: 440 → 0 en
  * 50 hojas, por la misma regla (P1 de la pasada de formato de Material).
+ * Cálculo de muestra entra el mismo día con meta 0: 1165 → 0 en 77 hojas (P1 de
+ * `docs/qa/formato-calculo-graficos-2026-11-02.md`).
  */
 
 const SRC = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const MODULOS = ["features/home", "features/dashboard", "features/xlsformEditor", "features/analitica", "features/carga", "features/procesamiento", "features/recopiladores"];
+const MODULOS = ["features/home", "features/dashboard", "features/xlsformEditor", "features/analitica", "features/carga", "features/procesamiento", "features/recopiladores", "features/calcMuestra"];
 const LITERAL = /font-size\s*:\s*\d+(?:\.\d+)?px/g;
 
 const SNAPSHOT_LITERALES: Record<string, number> = {

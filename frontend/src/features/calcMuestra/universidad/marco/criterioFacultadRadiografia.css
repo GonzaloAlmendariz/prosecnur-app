@@ -40,7 +40,7 @@
 .cmv2-crc-compact-head strong {
   overflow: hidden;
   color: var(--pulso-text);
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -109,7 +109,7 @@
 .cmv2-crc-compact-segment > header strong {
   overflow: hidden;
   color: var(--pulso-text);
-  font-size: 10.5px;
+  font-size: var(--pulso-type-micro-size);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -165,7 +165,7 @@
 .cmv2-crc-compact-segment dd {
   margin: 0;
   color: var(--pulso-text);
-  font-size: 10.5px;
+  font-size: var(--pulso-type-micro-size);
   font-variant-numeric: tabular-nums;
 }
 

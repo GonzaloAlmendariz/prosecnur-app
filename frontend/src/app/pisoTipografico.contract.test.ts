@@ -19,9 +19,6 @@ const FUERA_DE_ALCANCE = ["features/monitoreo/"];
 const BAJO_EL_PISO = /font-size\s*:\s*(\d+(?:\.\d+)?)px/g;
 
 const SNAPSHOT_BAJO_10PX: Record<string, number> = {
-  "features/calcMuestra/universidad/aulas/relato/relato.css": 3,
-  "features/calcMuestra/universidad/definicion/historicoEstudio.css": 8,
-  "features/calcMuestra/universidad/universidad-base.css": 1,
   "features/graficos/estilo/estilo.css": 1,
   "features/graficos/graficadorPicker.css": 9,
   "features/graficos/v2/styles/editor-v2.css": 2,

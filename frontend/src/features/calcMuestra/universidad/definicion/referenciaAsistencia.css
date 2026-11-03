@@ -27,12 +27,12 @@
 
 .cmv2-ref-asist-head h3 {
   color: var(--pulso-text);
-  font-size: 17px;
+  font-size: var(--pulso-type-title-size);
 }
 
 .cmv2-ref-asist-head p {
   color: var(--pulso-text-muted);
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   line-height: 1.5;
 }
 
@@ -75,14 +75,14 @@
 .cmv2-ref-asist-provenance strong,
 .cmv2-ref-asist-chain strong {
   color: var(--pulso-text);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .cmv2-ref-asist-provenance span,
 .cmv2-ref-asist-chain span {
   overflow-wrap: anywhere;
   color: var(--pulso-text-muted);
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
 }
 
 .cmv2-ref-asist-coverage {
@@ -98,13 +98,13 @@
 
 .cmv2-ref-asist-coverage strong {
   color: var(--pulso-text);
-  font-size: 18px;
+  font-size: var(--pulso-type-kpi-size);
   font-variant-numeric: tabular-nums;
 }
 
 .cmv2-ref-asist-coverage span {
   color: var(--pulso-text-muted);
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
 }
 
 .cmv2-ref-asist-chain {
@@ -132,7 +132,7 @@
 
 .cmv2-ref-asist-product strong {
   color: var(--pulso-accent);
-  font-size: 18px;
+  font-size: var(--pulso-type-kpi-size);
   font-variant-numeric: tabular-nums;
 }
 
@@ -143,7 +143,7 @@
 }
 
 .cmv2-ref-asist-chain-link strong {
-  font-size: 16px;
+  font-size: var(--pulso-type-title-size);
   font-variant-numeric: tabular-nums;
 }
 
@@ -175,7 +175,7 @@
 .cmv2-ref-asist-gradient > header strong,
 .cmv2-ref-asist-degraded > header strong {
   color: var(--pulso-text);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .cmv2-ref-asist-gradient-grid {
@@ -203,13 +203,13 @@
 .cmv2-ref-asist-gradient-grid strong {
   min-height: 2.6em;
   color: var(--pulso-text);
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   line-height: 1.3;
 }
 
 .cmv2-ref-asist-gradient-grid b {
   color: var(--pulso-accent);
-  font-size: 17px;
+  font-size: var(--pulso-type-title-size);
   font-variant-numeric: tabular-nums;
 }
 
@@ -247,14 +247,14 @@
 .cmv2-ref-asist-degraded-grid strong,
 .cmv2-ref-asist-degraded-grid b {
   color: var(--pulso-text);
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
 }
 
 .cmv2-ref-asist-degraded-grid span,
 .cmv2-ref-asist-degraded-grid em,
 .cmv2-ref-asist-warnings {
   color: var(--pulso-text-muted);
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
 }
 
 .cmv2-ref-asist-degraded-grid em {
@@ -289,11 +289,11 @@
 }
 
 .cmv2-ref-asist-identity strong {
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
 }
 
 .cmv2-ref-asist-identity span {
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
 }
 
 @media (max-width: 900px) {
@@ -335,7 +335,7 @@
    ellos, y va en su tipografía para no competir con las cifras que resume. */
 .cmv2-ref-asist-rendimiento {
   margin: 8px 0 0;
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   line-height: 1.45;
   color: var(--pulso-text-muted);
 }

@@ -27,7 +27,7 @@
 .cmg-archivo-nombre {
   min-width: 0;
   color: var(--pulso-text-soft);
-  font-size: 12px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-bold);
   overflow-wrap: anywhere;
 }
@@ -55,7 +55,7 @@
 
 .cmg-campo > label {
   color: var(--pulso-text);
-  font-size: 12px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-heavy);
 }
 
@@ -67,7 +67,7 @@
 
 .cmg-campo small {
   color: var(--pulso-text-soft);
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   font-weight: var(--pulso-weight-bold);
   line-height: 1.35;
 }
@@ -82,7 +82,7 @@
   border-radius: var(--pulso-radius);
   background: var(--cmv2-surface);
   color: var(--pulso-text);
-  font-size: 12px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-bold);
   outline: none;
 }
@@ -179,7 +179,7 @@
 
 .cmg-metrica dt {
   color: var(--pulso-text-soft);
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-heavy);
   line-height: 1.1;
   text-transform: uppercase;
@@ -188,7 +188,7 @@
 .cmg-metrica dd {
   margin: 3px 0 0;
   color: var(--pulso-text);
-  font-size: 15px;
+  font-size: var(--pulso-type-title-size);
   font-weight: var(--pulso-weight-heavy);
   line-height: 1.2;
   font-variant-numeric: tabular-nums;
@@ -196,7 +196,7 @@
 }
 
 .cmg-metrica dd.cmg-columnas-declaradas {
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .cmg-traza {
@@ -215,7 +215,7 @@
 
 .cmg-traza dt {
   color: var(--pulso-text-soft);
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-heavy);
   text-transform: uppercase;
 }
@@ -223,7 +223,7 @@
 .cmg-traza dd {
   margin: 0;
   color: var(--pulso-text);
-  font-size: 12px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-bold);
   overflow-wrap: break-word;
 }
@@ -237,7 +237,7 @@
 .cmg-nota {
   margin: 0;
   color: var(--pulso-text-soft);
-  font-size: 12px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-bold);
   line-height: 1.4;
 }
@@ -255,7 +255,7 @@
 
 .cmg-exportar small {
   color: var(--pulso-text-soft);
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   font-weight: var(--pulso-weight-bold);
   text-align: right;
 }
@@ -299,7 +299,7 @@
   padding: 7px 10px;
   border-bottom: 1px solid var(--cmv2-border);
   color: var(--pulso-text);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   line-height: 1.3;
   text-align: left;
   vertical-align: middle;
@@ -308,7 +308,7 @@
 .cmg-tabla th {
   background: var(--pulso-surface-2);
   color: var(--pulso-text-soft);
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-heavy);
   text-transform: uppercase;
   white-space: nowrap;
@@ -317,7 +317,7 @@
 /* N_h, n_h y π no se pasan a mayúsculas: «NH» y «Π» dicen otra cosa. */
 .cmg-tabla th.cmg-simbolo {
   color: var(--pulso-text);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   text-transform: none;
 }
 
@@ -342,7 +342,7 @@
 
 .cmg-mas summary {
   color: var(--cmv2-accent-fg);
-  font-size: 12px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-heavy);
   cursor: pointer;
 }
@@ -365,7 +365,7 @@
   padding: 2px 8px;
   border: 1px solid var(--cmv2-border);
   border-radius: var(--pulso-radius-chip);
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   font-weight: var(--pulso-weight-heavy);
   white-space: nowrap;
 }
@@ -403,7 +403,7 @@
   border-radius: var(--pulso-radius-chip);
   background: transparent;
   color: var(--pulso-text-soft);
-  font-size: 12px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-heavy);
   cursor: pointer;
 }
@@ -428,7 +428,7 @@
   gap: var(--cmv2-space-3);
   margin-top: var(--cmv2-space-3);
   color: var(--pulso-text-soft);
-  font-size: 12px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-bold);
   font-variant-numeric: tabular-nums;
 }
@@ -444,7 +444,7 @@
   flex-wrap: wrap;
   align-items: baseline;
   gap: 6px;
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .cmg-error-lista span {
@@ -545,14 +545,14 @@
 
 .cmg-actor-nombre {
   min-width: 0;
-  font-size: 13px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-heavy);
   overflow-wrap: anywhere;
 }
 
 .cmg-actor-tecnica {
   color: var(--cmv2-accent-fg);
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   font-weight: var(--pulso-weight-heavy);
 }
 
@@ -583,7 +583,7 @@
   /* El gris de «sin definir» mide 4.1–4.4:1 sobre su propio tinte a 11 px:
      se oscurece hacia el texto hasta pasar 4.5:1 (V17). */
   color: color-mix(in srgb, var(--pulso-state-unset-fg) 60%, var(--pulso-text));
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   font-weight: var(--pulso-weight-heavy);
   font-variant-numeric: tabular-nums;
 }
@@ -618,7 +618,7 @@
 
 .cmg-actor-cifra {
   color: var(--pulso-text-soft);
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   font-weight: var(--pulso-weight-heavy);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
@@ -673,7 +673,7 @@
   border-radius: var(--pulso-radius);
   background: var(--pulso-warn-bg);
   color: var(--pulso-warn-fg);
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   font-weight: var(--pulso-weight-bold);
   line-height: 1.35;
 }
@@ -703,7 +703,7 @@
 .cmg-memoria-tabla tbody th {
   background: transparent;
   color: var(--pulso-text);
-  font-size: 12px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-heavy);
   text-transform: none;
   white-space: normal;
@@ -711,7 +711,7 @@
 
 .cmg-memoria-tabla code {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   white-space: nowrap;
 }
 
@@ -730,7 +730,7 @@
 
 .cmg-motivo {
   color: var(--pulso-text-soft);
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   font-weight: var(--pulso-weight-bold);
 }
 
@@ -810,7 +810,7 @@
 
 .cmg-error-p {
   color: var(--pulso-danger-fg);
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   font-weight: var(--pulso-weight-bold);
 }
 
@@ -831,14 +831,14 @@
   display: block;
   margin: 0;
   color: var(--pulso-text);
-  font-size: 15px;
+  font-size: var(--pulso-type-title-size);
   font-weight: var(--pulso-weight-bold);
   line-height: 1.25;
   letter-spacing: 0;
 }
 
 .cmv2-side .cmv2-panel-head .cmg-panel-titulo {
-  font-size: 16px;
+  font-size: var(--pulso-type-title-size);
   line-height: 1.15;
 }
 
@@ -876,7 +876,7 @@
   z-index: auto;
   background: transparent;
   color: var(--pulso-text);
-  font-size: 12px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-bold);
   text-transform: none;
   vertical-align: middle;
@@ -910,12 +910,12 @@
 /* Listado de unidades: gramática `cmv2-tabla`; π y N_h no van en mayúsculas. */
 .cmg-tabla-unidades th.cmg-simbolo {
   color: var(--pulso-text);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   text-transform: none;
 }
 
 .cmg-tabla-unidades tbody th[scope="row"] code {
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
 }
 
 /* --- Acreditación › Actores (V11, V15, V16) --------------------------------- */

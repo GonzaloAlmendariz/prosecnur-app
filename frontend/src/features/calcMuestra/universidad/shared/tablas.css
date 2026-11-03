@@ -19,7 +19,7 @@
 .cmv2-tabla {
   width: 100%;
   border-collapse: collapse;
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
 }
 
 .cmv2-tabla th,
@@ -33,7 +33,7 @@
 .cmv2-tabla thead th {
   /* Calibrado al patrón que margen/fichas/certificación ya usaban: la
      gramática codifica lo mejor de la casa, no inventa otro estilo. */
-  font-size: 10.5px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-semibold);
   letter-spacing: 0.03em;
   text-transform: uppercase;
