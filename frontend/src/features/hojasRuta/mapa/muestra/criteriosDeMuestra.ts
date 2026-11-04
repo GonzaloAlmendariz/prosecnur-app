@@ -1,3 +1,4 @@
+import { formatoDecimal } from "../../../../lib/formatoNumero";
 /**
  * P7 de la paridad con la página clásica: la recomendación de DEFF según la concentración por manzana
  * («Lectura de Prosecnur») y la guía rápida de decisión (semáforos por supuesto). Los umbrales y los
@@ -16,7 +17,7 @@ export function recomendacionDeff(entrevistasPorManzana: number): RecomendacionD
   return { titulo: "Usa un escenario conservador salvo evidencia contraria", texto: "La muestra concentra bastante carga por manzana. Sin ICC previo, conviene planificar con 1.5–2.0 y documentar el supuesto.", deff: 2.0 };
 }
 
-const pct = (x: number) => `${(x * 100).toLocaleString("es-PE", { maximumFractionDigits: 1 })} %`;
+const pct = (x: number) => `${formatoDecimal(x * 100, 1)} %`;
 
 export function consejosDeMuestra(s: { margenTotal: number; p: number; deff: number; respuesta: number }): Consejo[] {
   return [
@@ -37,7 +38,7 @@ export function consejosDeMuestra(s: { margenTotal: number; p: number; deff: num
     {
       id: "deff",
       etiqueta: "Diseño de campo",
-      valor: `DEFF ${s.deff.toLocaleString("es-PE", { maximumFractionDigits: 2 })}`,
+      valor: `DEFF ${formatoDecimal(s.deff, 2)}`,
       tono: s.deff < 1 ? "aviso" : "ok",
       texto: s.deff < 1 ? "Optimista para campo territorial. Déjalo así con razón clara." : s.deff < 1.3 ? "Cerca de muestra simple; razonable para selección dispersa." : s.deff < 1.8 ? "Conservador moderado, apropiado para PPS." : "Más conservador; protege cuando la muestra se concentra por manzanas.",
     },

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { PulsoButton } from "../../../../components/PulsoButton";
 import { apiHojasRutaCompararSemillas, type HojasRutaIntegratedConfig, type HojasRutaSemillaComparada } from "../../../../api/hojasRuta";
 
+import { formatoDecimal } from "../../../../lib/formatoNumero";
 /**
  * Comparar semillas (U13): sorteos en seco con otras semillas, sin guardar nada.
  * Todas son sorteos válidos del mismo marco; elegir una no cambia el diseño, sólo
@@ -9,8 +10,8 @@ import { apiHojasRutaCompararSemillas, type HojasRutaIntegratedConfig, type Hoja
  * borrador del sorteo: sortear sigue siendo un paso explícito.
  */
 
-const fmt = (n: number | null, d = 0) => (n == null ? "—" : n.toLocaleString("es-PE", { maximumFractionDigits: d }));
-const pct = (n: number | null) => (n == null ? "—" : `${(n * 100).toLocaleString("es-PE", { maximumFractionDigits: 0 })} %`);
+const fmt = (n: number | null, d = 0) => (n == null ? "—" : formatoDecimal(n, d));
+const pct = (n: number | null) => (n == null ? "—" : `${formatoDecimal(n * 100, 0)} %`);
 
 export function CompararSemillas({ config, deshabilitado, onUsar }: { config: HojasRutaIntegratedConfig; deshabilitado: boolean; onUsar: (semilla: number) => void }) {
   const [filas, setFilas] = useState<HojasRutaSemillaComparada[] | null>(null);

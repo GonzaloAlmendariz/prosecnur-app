@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { PulsoButton } from "../../../../components/PulsoButton";
 import { apiHojasRutaIcc, apiHojasRutaIccAplicar, type HojasRutaIccAplicable, type HojasRutaIccEntrada, type HojasRutaIntegratedConfig, type HojasRutaSampleSizeConfig } from "../../../../api/hojasRuta";
 
+import { formatoDecimal } from "../../../../lib/formatoNumero";
+import { LoadingBlock } from "../../../../components/States";
 /**
  * «Desde un estudio previo» (U12d, ADR 0116 §2): la biblioteca local de ICC. Solo se
  * aplica un ICC medido con la ruta como conglomerado y sobre una proporción; el DEFF
@@ -10,7 +12,7 @@ import { apiHojasRutaIcc, apiHojasRutaIccAplicar, type HojasRutaIccAplicable, ty
  */
 
 type Entrada = HojasRutaIccEntrada & { aplicable: HojasRutaIccAplicable };
-const num = (n: number | undefined, d = 3) => (n == null || !Number.isFinite(n) ? "—" : n.toLocaleString("es-PE", { maximumFractionDigits: d }));
+const num = (n: number | undefined, d = 3) => (n == null || !Number.isFinite(n) ? "—" : formatoDecimal(n, d));
 
 export function IccPanel({ config, deshabilitado, onAplicar }: { config: HojasRutaIntegratedConfig; deshabilitado: boolean; onAplicar: (ss: HojasRutaSampleSizeConfig) => void }) {
   const [entradas, setEntradas] = useState<Entrada[] | null>(null);
@@ -35,7 +37,7 @@ export function IccPanel({ config, deshabilitado, onAplicar }: { config: HojasRu
         <small>ICC medidos en estudios anteriores</small>
       </div>
       {error ? <p className="hr-mapa-aviso">{error}</p> : null}
-      {entradas == null && !error ? <p className="hr-mapa-nota">Leyendo la biblioteca…</p> : null}
+      {entradas == null && !error ? <LoadingBlock variant="inline" label="Leyendo la biblioteca…" /> : null}
       {entradas && !entradas.length ? <p className="hr-mapa-nota">La biblioteca está vacía. Cuando un estudio cierre su campo, su ICC por ruta se puede guardar aquí.</p> : null}
       <ul className="hr-icc-lista">
         {(entradas ?? []).map((e) => (

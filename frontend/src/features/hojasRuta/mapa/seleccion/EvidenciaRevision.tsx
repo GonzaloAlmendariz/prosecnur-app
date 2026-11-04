@@ -2,6 +2,8 @@ import { PulsoTable, type PulsoTableColumna } from "../../../../components/Pulso
 import type { DistritoRevision, RevisionMarco } from "../../seleccion/revisionMarco";
 import "./evidenciaRevision.css";
 
+import { formatoConteo } from "../../../../lib/formatoNumero";
+import { EstadoChip } from "../../../../components/EstadoChip";
 /**
  * P8 de la paridad con la página clásica: la evidencia de la Revisión contra el marco. La lista del
  * inspector dice qué hacer; la tira de viviendas (escala logarítmica, titular arriba, reemplazo abajo)
@@ -9,7 +11,7 @@ import "./evidenciaRevision.css";
  * `seleccion/RevisionContraMarco.tsx` (2c641554b^).
  */
 
-const formato = (n: number) => n.toLocaleString("es-PE");
+const formato = (n: number) => formatoConteo(n);
 
 const COLUMNAS_DISTRITO: readonly PulsoTableColumna<DistritoRevision>[] = [
   { id: "distrito", encabezado: "Distrito", ancho: 96, celda: (d) => d.distrito, valor: (d) => d.distrito },
@@ -20,9 +22,10 @@ const COLUMNAS_DISTRITO: readonly PulsoTableColumna<DistritoRevision>[] = [
     encabezado: "Revisión",
     ancho: 104,
     celda: (d) => (
-      <span className="hr-revision-estado" data-tono={d.errores ? "error" : d.observaciones ? "aviso" : "ok"}>
-        {d.errores ? `${formato(d.errores)} a corregir` : d.observaciones ? `${formato(d.observaciones)} a revisar` : "Sin obs."}
-      </span>
+      <EstadoChip
+        label={d.errores ? `${formato(d.errores)} a corregir` : d.observaciones ? `${formato(d.observaciones)} a revisar` : "Sin obs."}
+        tone={d.errores ? "danger" : d.observaciones ? "warn" : "success"}
+      />
     ),
     valor: (d) => d.errores * 1000 + d.observaciones,
   },

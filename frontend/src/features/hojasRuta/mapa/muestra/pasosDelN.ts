@@ -1,3 +1,4 @@
+import { formatoConteo, formatoDecimal } from "../../../../lib/formatoNumero";
 /**
  * P7 de la paridad con la página clásica: «¿De dónde sale este N?» paso a paso, con los supuestos
  * del estudio. Usa las mismas fórmulas que `motorTamano.ts` (espejo del engine de R) para el N total;
@@ -19,8 +20,8 @@ export type SupuestosN = {
   sumaMinimos: number;
 };
 
-const num = (x: number, d = 1) => x.toLocaleString("es-PE", { maximumFractionDigits: d });
-const ent = (x: number) => Math.round(x).toLocaleString("es-PE");
+const num = (x: number, d = 1) => formatoDecimal(x, d);
+const ent = (x: number) => formatoConteo(x);
 
 export function pasosDelN(s: SupuestosN): { pasos: Paso[]; n: number } {
   const pq = s.p * (1 - s.p);

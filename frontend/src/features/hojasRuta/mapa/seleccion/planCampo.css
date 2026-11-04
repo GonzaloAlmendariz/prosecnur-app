@@ -17,14 +17,14 @@
   align-items: center;
   gap: 6px;
   padding: 2px 4px;
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   font-weight: 700;
   color: var(--pulso-text-soft);
 }
 .hr-plan-dia-num {
   display: flex;
   align-items: center;
-  font-size: 12px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: 700;
   color: var(--pulso-text);
   font-variant-numeric: tabular-nums;
@@ -36,7 +36,7 @@
   border: 1px dashed var(--pulso-border);
   border-radius: 8px;
   color: var(--pulso-text-soft);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
 }
 .hr-plan-jornada {
   display: flex;
@@ -59,15 +59,15 @@
   gap: 6px;
   min-width: 0;
 }
-.hr-plan-jornada-cab strong { font-size: 12px; font-variant-numeric: tabular-nums; color: var(--pulso-text); }
-.hr-plan-jornada-cab span { font-size: 12px; font-weight: 600; color: var(--pulso-text); overflow-wrap: anywhere; text-align: right; }
-.hr-plan-jornada small { font-size: 11px; color: var(--pulso-text-soft); font-variant-numeric: tabular-nums; }
-.hr-plan-jornada em { font-size: 11px; font-style: normal; font-weight: 700; color: var(--pulso-warn-fg); }
+.hr-plan-jornada-cab strong { font-size: var(--pulso-type-body-size); font-variant-numeric: tabular-nums; color: var(--pulso-text); }
+.hr-plan-jornada-cab span { font-size: var(--pulso-type-subtitle-size); font-weight: 600; color: var(--pulso-text); overflow-wrap: anywhere; text-align: right; }
+.hr-plan-jornada small { font-size: var(--pulso-type-caption-size); color: var(--pulso-text-soft); font-variant-numeric: tabular-nums; }
+.hr-plan-jornada em { font-size: var(--pulso-type-caption-size); font-style: normal; font-weight: 700; color: var(--pulso-warn-fg); }
 .hr-plan-jornada .hr-plan-hoja {
   all: unset;
   align-self: flex-start;
   margin-top: 2px;
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   font-weight: 700;
   color: var(--pulso-primary);
   cursor: pointer;

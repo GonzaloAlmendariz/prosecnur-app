@@ -1,6 +1,7 @@
 import type { HojasRutaWorkspaceOutputs, SelectedBlock } from "../../../../api/hojasRuta";
 import { codigoDeUmp } from "../../seleccion/revisionMarco";
 
+import { formatoDecimal } from "../../../../lib/formatoNumero";
 /**
  * Salidas de Selección en la página del lienzo (U10): qué falta para entregar,
  * qué titulares se ofrecen para reemplazos puntuales y cómo se rotula un archivo.
@@ -44,7 +45,7 @@ export const alternarId = (lista: readonly string[], id: string) => (lista.inclu
 export function pesoLegible(bytes: number): string {
   if (!(bytes > 0)) return "";
   if (bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024))} KB`;
-  return `${(bytes / (1024 * 1024)).toLocaleString("es-PE", { maximumFractionDigits: 1 })} MB`;
+  return `${formatoDecimal(bytes / (1024 * 1024), 1)} MB`;
 }
 
 /** Lo que trae el paquete antes de generarlo (brecha B22), contado sobre la muestra. */

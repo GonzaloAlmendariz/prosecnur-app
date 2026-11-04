@@ -6,13 +6,14 @@ import { downloadUrl } from "../../../../api/core";
 import { apiHojasRutaHojaDia, apiHojasRutaPlanCampo, normalizarPlanSupuestos, PLAN_SUPUESTOS_POR_DEFECTO, type HojasRutaJornada, type HojasRutaPlanCampo, type HojasRutaPlanSupuestos } from "../../../../api/hojasRuta";
 import { nombreDistrito } from "../nombres";
 
+import { formatoDecimal } from "../../../../lib/formatoNumero";
 /**
  * Plan de campo y costo (U14) dentro de las salidas de Selección: jornadas por
  * cercanía con capacidad en visitas (ADR 0116), días según encuestadores y costo.
  * Calcular no guarda nada; «Guardar supuestos» los deja en el proyecto.
  */
 
-const fmt = (n: number, d = 0) => n.toLocaleString("es-PE", { maximumFractionDigits: d });
+const fmt = (n: number, d = 0) => formatoDecimal(n, d);
 
 /** Las jornadas agrupadas por el día en que empiezan, en orden de encuestador. */
 export function porDia(jornadas: readonly HojasRutaJornada[]): [number, HojasRutaJornada[]][] {

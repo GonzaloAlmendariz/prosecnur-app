@@ -12,6 +12,7 @@ import type { ResumenMatriz } from "./matriz";
 import { agregarRango, CORTES, editarRango, firmaRangos, PRESETS_EDAD, problemasDeRangos, rangosLimpios } from "./rangos";
 import { GlidingRadioGroup } from "../../../../components/GlidingRadioGroup";
 
+import { formatoDecimal } from "../../../../lib/formatoNumero";
 /**
  * Población en la página del lienzo (U6). La estructura edita los rangos de
  * edad y muestra cuánto pesa cada uno en la población objetivo; el inspector
@@ -20,7 +21,7 @@ import { GlidingRadioGroup } from "../../../../components/GlidingRadioGroup";
  */
 
 const fmt = (n: number) => new Intl.NumberFormat("es-PE").format(Math.round(n));
-const pct = (n: number, d: number) => (d ? `${((n / d) * 100).toLocaleString("es-PE", { maximumFractionDigits: 1 })} %` : "—");
+const pct = (n: number, d: number) => (d ? `${formatoDecimal((n / d) * 100, 1)} %` : "—");
 
 type EstructuraProps = { rangosConfig: readonly HojasRutaAgeRange[]; config: HojasRutaIntegratedConfig; matriz: ResumenMatriz; bloqueado: boolean };
 
@@ -244,7 +245,7 @@ export function PoblacionInspector({ config, rangosConfig, matriz, poblacionDist
       <div className="hr-mapa-ins-cuerpo">
         <h3 className="hr-mapa-subtitulo">Resultado</h3>
         <div className="hr-mapa-cifras">
-          <div><small>Objetivo</small><strong>{matriz.vigente ? `${(matriz.total / 1e6).toLocaleString("es-PE", { maximumFractionDigits: 2 })} M` : "—"}</strong></div>
+          <div><small>Objetivo</small><strong>{matriz.vigente ? `${formatoDecimal(matriz.total / 1e6, 2)} M` : "—"}</strong></div>
           <div title="Parte de la población de los distritos elegidos que entra en los rangos de edad"><small>Del total</small><strong>{matriz.vigente ? pct(matriz.total, poblacionDistritos) : "—"}</strong></div>
           <div><small>Celdas</small><strong>{config.territorios.length * rangos.length * (sexo ? 2 : 1)}</strong></div>
         </div>

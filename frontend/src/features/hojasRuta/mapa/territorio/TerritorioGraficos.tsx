@@ -2,6 +2,7 @@ import type { HojasRutaTerritory } from "../../../../api/hojasRuta";
 import { tonoCss } from "../lienzo/tonos";
 import { nombreDistrito } from "../nombres";
 
+import { formatoDecimal } from "../../../../lib/formatoNumero";
 /**
  * Gráficas preliminares de la selección en el inspector de Territorio (pedido de
  * Gonzalo: aprovechar el espacio). Barras CSS, sin Plotly: el peso de cada distrito
@@ -19,7 +20,7 @@ export const NSE: [number, string, string][] = [
 ];
 
 export const pct = (x: number) =>
-  x > 0 && x < 0.001 ? "<0.1 %" : `${(x * 100).toLocaleString("es-PE", { maximumFractionDigits: x < 0.1 ? 1 : 0 })} %`;
+  x > 0 && x < 0.001 ? "<0.1 %" : `${formatoDecimal(x * 100, x < 0.1 ? 1 : 0)} %`;
 const fmt = (n: number) => new Intl.NumberFormat("es-PE").format(Math.round(n));
 
 type Props = {

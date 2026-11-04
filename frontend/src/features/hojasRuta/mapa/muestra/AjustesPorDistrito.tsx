@@ -5,6 +5,7 @@ import { useLienzoHojasRuta } from "../store";
 import { conAjuste, deffAcotado, margenDesdePct, normalizarAjustes } from "./mapaDeAjustes";
 import "./ajustesPorDistrito.css";
 
+import { formatoDecimal } from "../../../../lib/formatoNumero";
 type Fila = { ubigeo: string; distrito: string };
 
 /**
@@ -72,7 +73,7 @@ export function AjustesPorDistrito({ config, filas, bloqueado }: { config: Hojas
       </summary>
       <p className="hr-mapa-nota">
         Si un distrito necesita menor margen o tiene otro diseño de campo, ajústalo aquí. En blanco vale el general: ±
-        {(s.margin_district * 100).toLocaleString("es-PE", { maximumFractionDigits: 1 })} % y DEFF {s.design_effect.toLocaleString("es-PE", { maximumFractionDigits: 2 })}.
+        {formatoDecimal(s.margin_district * 100, 1)} % y DEFF {formatoDecimal(s.design_effect, 2)}.
       </p>
       <PulsoTable
         columnas={columnas}

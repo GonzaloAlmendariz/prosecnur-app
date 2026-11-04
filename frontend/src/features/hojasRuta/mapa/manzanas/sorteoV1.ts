@@ -1,5 +1,6 @@
 import type { HojasRutaAlert } from "../../../../api/hojasRuta";
 
+import { formatoDecimal } from "../../../../lib/formatoNumero";
 /**
  * Muestra sorteada con el reparto por zonas v1 (ADR 0117; checklist del flujo del analista F11–F13).
  * El backend la reconoce y adjunta un aviso `W_SAMPLE_DRAWN_WITH_V1` por distrito afectado, con el
@@ -30,6 +31,6 @@ export function muestraV1(alerts: readonly HojasRutaAlert[] | undefined | null):
 /** El resumen que lee el analista: cuántos distritos y el peor caso. */
 export function resumenV1(v1: MuestraV1): string {
   const n = v1.distritos.length;
-  const peor = v1.peor && v1.peor.pct !== null ? ` En ${v1.peor.distrito}, el ${v1.peor.pct.toLocaleString("es-PE", { maximumFractionDigits: 1 })} % de las viviendas del marco no tenía cómo salir.` : "";
+  const peor = v1.peor && v1.peor.pct !== null ? ` En ${v1.peor.distrito}, el ${formatoDecimal(v1.peor.pct, 1)} % de las viviendas del marco no tenía cómo salir.` : "";
   return `Se sorteó con el reparto por zonas anterior, que dejó manzanas sin probabilidad de salir en ${n} distrito${n === 1 ? "" : "s"}.${peor}`;
 }

@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { Calculator, Shuffle } from "../../../../vendor/lucide-react";
+import { Calculator, Shuffle, Inbox } from "../../../../vendor/lucide-react";
 import { AjustesPorDistrito } from "./AjustesPorDistrito";
 import { GuiaDeMuestra } from "./GuiaDeMuestra";
 import { pasosDelN } from "./pasosDelN";
@@ -20,6 +20,8 @@ import type { ResultadoTamano } from "./motorTamano";
 import { visitasCap, visitasPorRuta } from "../../seleccion/visitas";
 import { IccPanel } from "./IccPanel";
 
+import { formatoDecimal } from "../../../../lib/formatoNumero";
+import { EstadoVacio } from "../../../../components/EstadoVacio";
 /**
  * Muestra en la página del lienzo (U7b). El motor completo vive en el
  * inspector y responde al instante con el espejo de R (motorTamano.ts); al
@@ -202,14 +204,14 @@ export function MuestraInspector({ config, resultado: r, bloqueado, guardando, h
               {DEFF_TIPICOS.map(([v, rotulo]) => (
                 <button key={v} type="button" className="hr-mapa-zona" aria-pressed={s.design_effect === v} data-estado={s.design_effect === v ? "todo" : undefined} disabled={ed} onClick={() => cambiarS({ design_effect: v, design_effect_fuente: "manual", icc_aplicado: null })}>
                   <span>{rotulo}</span>
-                  <b>{String(v.toFixed(1)).replace(".", ",")}</b>
+                  <b>{v.toFixed(1)}</b>
                 </button>
               ))}
             </div>
           </div>
           <p className="hr-mapa-nota">
             {s.design_effect_fuente === "icc_biblioteca" && s.icc_aplicado
-              ? `Desde un estudio previo: ICC ${String(s.icc_aplicado.icc).replace(".", ",")} de ${s.icc_aplicado.estudio || s.icc_aplicado.id} con ${ruta} por ruta.`
+              ? `Desde un estudio previo: ICC ${formatoDecimal(s.icc_aplicado.icc, 3)} de ${s.icc_aplicado.estudio || s.icc_aplicado.id} con ${ruta} por ruta.`
               : s.design_effect_fuente === "manual"
                 ? "Escrito a mano."
                 : s.design_effect_fuente === "legado"
@@ -222,7 +224,7 @@ export function MuestraInspector({ config, resultado: r, bloqueado, guardando, h
             <div className="hr-mapa-chips">
               {[0.02, 0.05, 0.1].map((icc) => (
                 <button key={icc} type="button" className="hr-mapa-zona" disabled={ed} onClick={() => cambiarS({ design_effect: deffPorIcc(ruta, icc), design_effect_fuente: "manual", icc_aplicado: null })}>
-                  <span>ICC {String(icc).replace(".", ",")} → {String(deffPorIcc(ruta, icc)).replace(".", ",")}</span>
+                  <span>ICC {formatoDecimal(icc, 3)} → {formatoDecimal(deffPorIcc(ruta, icc), 3)}</span>
                 </button>
               ))}
             </div>
@@ -352,7 +354,7 @@ export function MuestraEstructura({ config, resultado: r, bloqueado }: Estructur
           </div>
         ) : null}
       </div>
-      {!r.filas.length ? <p className="hr-mapa-vacio">Sin distritos confirmados: elígelos en Territorio y calcula la población para repartir la muestra.</p> : null}
+      {!r.filas.length ? <EstadoVacio icono={<Inbox size={16} />} titulo="Sin distritos confirmados" descripcion="Elígelos en Territorio y calcula la población para repartir la muestra." /> : null}
       <ul className="hr-muestra-reparto">
         {r.filas.map((f) => (
           <li key={f.ubigeo}>
