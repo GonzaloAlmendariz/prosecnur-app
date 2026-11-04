@@ -15,8 +15,11 @@ import { describe, expect, it } from "vitest";
  *   (`minimumFractionDigits`: «±3.0 %», «DEFF 1.5»), que el formateador no ofrece, y las
  *   fechas. La coma decimal escrita a mano (`.replace(".", ",")`) no vuelve: es-PE usa punto.
  * - P5: el vacío es `EstadoVacio`, la carga `LoadingBlock` y el error `ErrorBlock`.
- * - P6: un estado con tono es `EstadoChip` (el de la ruta en el inspector y la columna
- *   Revisión de la evidencia).
+ * - P6: un estado con tono es `EstadoChip` (el de la ruta en el inspector, la columna
+ *   Revisión de la evidencia y, desde el 4 nov a mediodía, el del envío a Material de campo).
+ * - P2: los cajones inferiores de Población, Muestra y Selección son `Panel` del kit. Los grupos
+ *   del inspector (`hr-muestra-grupo`) son divisiones de una columna, no cajas, y el lienzo con
+ *   sus controles flotantes es banco de trabajo propio (ver el doc).
  */
 
 const aqui = path.dirname(fileURLToPath(import.meta.url));
@@ -53,7 +56,9 @@ const PX_DECLARADO = /\.hr-muestra-resultado > strong/;
 const CIFRA_A_MANO = /toLocaleString\("es-PE"(?:, \{ maximumFractionDigits: [^}]+\})?\)/g;
 const COMA_DECIMAL = /\.replace\("\.", ","\)/g;
 const RECETA = /(?<!-)\bhr-[a-z0-9]+(?:-[a-z0-9]+)*-(?:empty|vacio|loading|cargando)(?:(?:-|__)[a-z0-9]+)*\b/g;
-const PILDORA = /\bhr-(?:sel-estado|revision-estado)\b/g;
+const PILDORA = /\bhr-(?:sel-estado|revision-estado)\b|<strong>\{estado === "desactualizado" \?/g;
+/** P2: un cajón inferior de sección (`hr-sel-cajon`) se monta con `Panel`, no con un `<section>` propio. */
+const CAJON_PROPIO = /<section className="hr-sel-cajon"/g;
 
 describe("formato de Hojas de ruta", () => {
   it("el barrido ve el feature (centinela)", () => {
@@ -77,6 +82,10 @@ describe("formato de Hojas de ruta", () => {
     expect(hallazgos(/\.(tsx|css)$/, todas(PILDORA))).toEqual([]);
   });
 
+  it("P2: los cajones de sección son Panel del kit", () => {
+    expect(hallazgos(/\.tsx$/, todas(CAJON_PROPIO)), "Usa components/Panel con className=\"hr-sel-cajon\".").toEqual([]);
+  });
+
   it("los detectores reconocen lo que prohíben (no son guards que no guardan)", () => {
     expect(todas(PX)(".a { font-size: 12.5px; }")).toHaveLength(1);
     expect(todas(CIFRA_A_MANO)('n.toLocaleString("es-PE", { maximumFractionDigits: 1 })')).toHaveLength(1);
@@ -85,5 +94,9 @@ describe("formato de Hojas de ruta", () => {
     expect(todas(COMA_DECIMAL)('String(v).replace(".", ",")')).toHaveLength(1);
     expect(todas(RECETA)('<p className="hr-mapa-vacio">')).toEqual(["hr-mapa-vacio"]);
     expect(todas(RECETA)("color: var(--hr-texto-vacio)")).toEqual([]);
+    expect(todas(PILDORA)('<strong>{estado === "desactualizado" ? "Cambió" : "Enviada"}</strong>')).toHaveLength(1);
+    expect(todas(PILDORA)('{estado === "desactualizado" ? <strong>Cambió.</strong> : null}')).toHaveLength(0);
+    expect(todas(CAJON_PROPIO)('<section className="hr-sel-cajon" aria-label="x">')).toHaveLength(1);
+    expect(todas(CAJON_PROPIO)('<Panel className="hr-sel-cajon" title="x">')).toHaveLength(0);
   });
 });

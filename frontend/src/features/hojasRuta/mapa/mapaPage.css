@@ -329,10 +329,23 @@
 .hr-sel-grupo small { font-size: var(--pulso-type-caption-size); color: var(--pulso-text-soft); }
 .hr-sel-grupo[data-estado="aviso"] > strong { color: var(--pulso-warn-fg); }
 .hr-sel-grupo[data-estado="error"] > strong { color: var(--pulso-danger-fg); }
-.hr-sel-cajon { grid-column: 2; grid-row: 1; align-self: end; z-index: 3; margin: 0 12px 12px; height: 46%; min-height: 0; box-sizing: border-box; display: flex; flex-direction: column; gap: 8px; padding: 10px; border: 1px solid var(--pulso-border); border-radius: 14px; background: var(--pulso-surface); box-shadow: 0 10px 30px color-mix(in srgb, var(--pulso-text) 14%, transparent); }
-.hr-sel-cajon > header { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-.hr-sel-cajon > header .hr-muestra-opciones { width: min(360px, 100%); }
-.hr-sel-cajon-acciones { display: inline-flex; align-items: center; gap: 6px; }
+/* P2: el cajón inferior de una sección es un Panel del kit (marco, título y acciones); aquí sólo se posa sobre el
+   lienzo, flota con su sombra y deja la tabla al resto del alto. */
+.pulso-panel.hr-sel-cajon { grid-column: 2; grid-row: 1; align-self: end; z-index: 3; margin: 0 12px 12px; height: 46%; min-height: 0; box-sizing: border-box; display: flex; flex-direction: column; gap: 8px; padding: 10px; }
+.pulso-panel.hr-sel-cajon, .pulso-panel.hr-sel-cajon:hover { box-shadow: 0 10px 30px color-mix(in srgb, var(--pulso-text) 14%, transparent); }
+.hr-sel-cajon > .pulso-panel-header { align-items: center; margin-bottom: 0; gap: 8px; }
+/* El título cede ancho a las acciones (el Panel le reserva 320 px): en el centro del lienzo no caben los dos. */
+.hr-sel-cajon > .pulso-panel-header > .pulso-panel-heading { flex: 1 1 0; min-width: 0; }
+.hr-sel-cajon > .pulso-panel-header > .pulso-panel-actions { flex: 0 1 auto; }
+/* Cajón angosto (el centro del lienzo a 1024 y a 1366 con el inspector abierto): el título cedería un renglón entero a
+   la tabla, que ya vive en 46 % del alto. Ahí lo declaran el `aria-label` del cajón y el botón que lo abrió, y los
+   controles ocupan la fila como antes de ser Panel. */
+.pulso-panel.hr-sel-cajon { container: hr-cajon / inline-size; }
+@container hr-cajon (max-width: 620px) {
+  .hr-sel-cajon > .pulso-panel-header > .pulso-panel-heading { display: none; }
+  .hr-sel-cajon > .pulso-panel-header > .pulso-panel-actions { flex: 1 1 auto; justify-content: space-between; }
+}
+.hr-sel-cajon .pulso-panel-actions .hr-muestra-opciones { width: min(360px, 100%); }
 .hr-sel-cajon .hr-mapa-tabla-caja { min-height: 0; flex: 1; overflow: auto; }
 .hr-sel-cajon tbody tr { cursor: pointer; }
 .hr-sel-cajon tbody tr:hover { background: var(--pulso-surface-2); }
@@ -516,11 +529,9 @@ div.hr-mapa-aviso { display: flex; flex-direction: column; align-items: flex-sta
 .hr-me-atajos button:hover:not(:disabled) { background: var(--pulso-surface-2); }
 .hr-me-atajos button[aria-pressed="true"] { background: var(--pulso-module-routes-soft); border-color: transparent; color: var(--pulso-module-routes); }
 .hr-me-atajos button:disabled { opacity: 0.5; cursor: default; }
-.hr-sel-cajon-titulo { font-size: var(--pulso-type-subtitle-size); font-weight: 700; color: var(--pulso-text); }
-.hr-sel-cajon > header { flex-wrap: wrap; }
-.hr-sel-cajon > header .hr-cajon-agrupar { width: 352px; max-width: 100%; flex: none; } /* cuatro opciones desde que se sumó «Ubigeo» (P9) */
-/* A ancho angosto las acciones del cajón bajan de línea en vez de salirse (revisión de usuario, 1 nov). */
-.hr-sel-cajon > header .hr-sel-cajon-acciones { flex-wrap: wrap; max-width: 100%; }
+.hr-sel-cajon .pulso-panel-actions .hr-cajon-agrupar { width: 352px; max-width: 100%; flex: none; } /* cuatro opciones desde que se sumó «Ubigeo» (P9) */
+/* A ancho angosto las acciones del cajón bajan de línea en vez de salirse (revisión de usuario, 1 nov): lo hace el
+   `flex-wrap` de las acciones del Panel. */
 .hr-edad-lista li.is-fija { grid-template-columns: 10px minmax(0, 1fr) auto; }
 .hr-edad-lista li.is-fija > b { font-size: var(--pulso-type-subtitle-size); font-weight: 700; }
 .hr-mapa-cab--pila .hr-mapa-cab-titulo { flex-wrap: wrap; row-gap: 2px; }

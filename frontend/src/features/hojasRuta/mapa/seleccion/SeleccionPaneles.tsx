@@ -5,6 +5,7 @@ import { cuotasDescuadradas } from "../filtroDeAvisos";
 import { ChevronUp, ChevronDown, X, ListChecks, Inbox, Search } from "../../../../vendor/lucide-react";
 import { InspectorCabecera } from "../InspectorCabecera";
 import { GlidingRadioGroup } from "../../../../components/GlidingRadioGroup";
+import { Panel } from "../../../../components/Panel";
 import { PulsoButton } from "../../../../components/PulsoButton";
 import { PulsoTable, type PulsoTableColumna } from "../../../../components/PulsoTable";
 import type { QuotaPlan, SelectedBlock } from "../../../../api/hojasRuta";
@@ -309,15 +310,21 @@ export function SeleccionCajon({ titulares, reemplazos, cuotas }: CajonProps) {
   if (!cajon) return null;
   const titularDe = new Map(reemplazos.map((r) => [r.id_manzana, r.titular_id_manzana ?? null]));
   return (
-    <section className="hr-sel-cajon" aria-label="Tablas de la selección">
-      <header>
-        <GlidingRadioGroup value={cajon} options={PESTANAS} getOptionValue={(o) => o[0]} onValueChange={setCajon} className="hr-muestra-opciones" aria-label="Tabla">
-          {(o) => <span>{o[1]}</span>}
-        </GlidingRadioGroup>
-        <PulsoButton variant="icon" size="sm" aria-label="Cerrar las tablas" onClick={() => setCajon(null)}>
-          <X size={14} aria-hidden />
-        </PulsoButton>
-      </header>
+    <Panel
+      className="hr-sel-cajon"
+      aria-label="Tablas de la selección"
+      title="Tablas de la selección"
+      actions={
+        <>
+          <GlidingRadioGroup value={cajon} options={PESTANAS} getOptionValue={(o) => o[0]} onValueChange={setCajon} className="hr-muestra-opciones" aria-label="Tabla">
+            {(o) => <span>{o[1]}</span>}
+          </GlidingRadioGroup>
+          <PulsoButton variant="icon" size="sm" aria-label="Cerrar las tablas" onClick={() => setCajon(null)}>
+            <X size={14} aria-hidden />
+          </PulsoButton>
+        </>
+      }
+    >
       {cajon === "cuotas" ? (
         <PulsoTable ariaLabel="Cuotas" densidad="compacta" altoMaximo={280} columnas={COLUMNAS_CUOTA} filas={(cuotas?.cells ?? []).map((c, _i) => ({ ...c, _i }))} idDeFila={(c) => String(c._i)} vacio="Sin cuotas calculadas." />
       ) : (
@@ -333,7 +340,7 @@ export function SeleccionCajon({ titulares, reemplazos, cuotas }: CajonProps) {
           vacio={cajon === "reemplazos" && titulares.length ? "Este sorteo no tiene reemplazos: se sorteó con 0 por titular." : "Todavía no hay sorteo."}
         />
       )}
-    </section>
+    </Panel>
   );
 }
 

@@ -1,3 +1,4 @@
+import { Panel } from "../../../../components/Panel";
 import { PulsoButton } from "../../../../components/PulsoButton";
 import { PulsoTable } from "../../../../components/PulsoTable";
 import { X } from "../../../../vendor/lucide-react";
@@ -47,13 +48,16 @@ export function MuestraCajon({ cuotas, onCalcular, calculando = false }: { cuota
   if (!cajonMuestra) return null;
   const { rangos, sexos, filas } = pivotarCuotas(cuotas);
   return (
-    <section className="hr-sel-cajon" aria-label="Cuotas de la muestra">
-      <header>
-        <strong className="hr-sel-cajon-titulo">Cuotas por distrito, totales por edad y por sexo</strong>
+    <Panel
+      className="hr-sel-cajon"
+      aria-label="Cuotas de la muestra"
+      title="Cuotas por distrito, totales por edad y por sexo"
+      actions={
         <PulsoButton variant="icon" size="sm" aria-label="Cerrar las cuotas" onClick={() => setCajonMuestra(false)}>
           <X size={14} aria-hidden />
         </PulsoButton>
-      </header>
+      }
+    >
       {ofreceCalcularCuotas(cuotas, onCalcular) ? (
         <div className="hr-mapa-acciones">
           <PulsoButton variant="primary" size="sm" disabled={calculando} onClick={onCalcular}>
@@ -76,6 +80,6 @@ export function MuestraCajon({ cuotas, onCalcular, calculando = false }: { cuota
         idDeFila={(f) => f.territorio}
         vacio="Sin cuotas calculadas: guarda y calcula el tamaño."
       />
-    </section>
+    </Panel>
   );
 }

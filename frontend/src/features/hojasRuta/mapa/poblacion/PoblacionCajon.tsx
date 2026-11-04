@@ -2,6 +2,7 @@ import { useState } from "react";
 import { downloadUrl } from "../../../../api/core";
 import { apiHojasRutaPopulationExport, type HojasRutaIntegratedConfig } from "../../../../api/hojasRuta";
 import { GlidingRadioGroup } from "../../../../components/GlidingRadioGroup";
+import { Panel } from "../../../../components/Panel";
 import { PulsoButton } from "../../../../components/PulsoButton";
 import { PulsoTable } from "../../../../components/PulsoTable";
 import { Download, FileSpreadsheet, X } from "../../../../vendor/lucide-react";
@@ -73,12 +74,15 @@ export function PoblacionCajon({ matriz, rangos, sexo, zonas, config }: Props) {
       : [{ id: `r${i}`, encabezado: r.label, ancho: 88, tipo: "cifra" as const, celda: (f: FilaMatriz) => fmt(enRango(f, i)), valor: (f: FilaMatriz) => enRango(f, i) }],
   );
   return (
-    <section className="hr-sel-cajon" aria-label="Matriz poblacional">
-      <header>
-        <GlidingRadioGroup value={vista} options={PESTANAS} getOptionValue={(o) => o[0]} onValueChange={setCajonPoblacion} className="hr-muestra-opciones" aria-label="Lectura de la matriz">
-          {(o) => <span>{o[1]}</span>}
-        </GlidingRadioGroup>
-        <span className="hr-sel-cajon-acciones">
+    <Panel
+      className="hr-sel-cajon"
+      aria-label="Matriz poblacional"
+      title="Matriz poblacional"
+      actions={
+        <>
+          <GlidingRadioGroup value={vista} options={PESTANAS} getOptionValue={(o) => o[0]} onValueChange={setCajonPoblacion} className="hr-muestra-opciones" aria-label="Lectura de la matriz">
+            {(o) => <span>{o[1]}</span>}
+          </GlidingRadioGroup>
           <GlidingRadioGroup value={por} options={AGRUPAR} getOptionValue={(o) => o[0]} onValueChange={setPor} className="hr-muestra-opciones hr-cajon-agrupar" aria-label="Agrupar filas por">
             {(o) => <span>{o[1]}</span>}
           </GlidingRadioGroup>
@@ -91,8 +95,9 @@ export function PoblacionCajon({ matriz, rangos, sexo, zonas, config }: Props) {
           <PulsoButton variant="icon" size="sm" aria-label="Cerrar la matriz" onClick={() => setCajonPoblacion(null)}>
             <X size={14} aria-hidden />
           </PulsoButton>
-        </span>
-      </header>
+        </>
+      }
+    >
       {errorExcel ? <p className="hr-mapa-aviso" role="alert">{errorExcel}</p> : null}
       <PulsoTable
         ariaLabel={vista === "pct" ? "Distribución por edad de cada distrito" : "Personas por distrito y rango de edad"}
@@ -106,6 +111,6 @@ export function PoblacionCajon({ matriz, rangos, sexo, zonas, config }: Props) {
         filas={filas}
         idDeFila={(f) => f.ubigeo}
       />
-    </section>
+    </Panel>
   );
 }
