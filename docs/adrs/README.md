@@ -206,5 +206,6 @@ identidad; no debe usarse como precedente para IDs nuevos.
 | [0127](0127-las-letras-de-los-cruces-se-prueban-bajo-el-diseno-muestral.md) | Reemplazado por 0128 | 2026-11-03 | Las letras de los cruces se prueban bajo el diseño muestral (conglomerado, estrato anidado, sin fpc, base mínima `.b`); sus validaciones pasan al 0128 |
 | [0128](0128-una-regla-de-diferencias-por-estudio.md) | Aceptado | 2026-11-03 | Una regla de diferencias por estudio en `graficos_config$significancia` para láminas, Word y tablas: Rao-Scott por aula en R base, BH sobre el informe, umbral de 10 puntos, base mínima de 30 casos y 8 conglomerados, frágiles con contorno; reemplaza 0127 |
 | [0129](0129-tarjetas-de-diferencias-junto-al-total.md) | Aceptado | 2026-11-04 | Tarjetas de diferencias junto al gráfico del total (propuesta P08): opción `meta.tarjetas_diferencias` de la lámina, cada grupo frente al resto con la regla del 0128, dos niveles solo por p, tope de 6, PPT nativo y Word A4, lectura una sola vez |
+| [0130](0130-una-serie-un-color.md) | Aceptado | 2026-11-04 | Una serie, un color: la agrupada de una sola serie va monocroma aunque la lista tenga paleta; `colorear_por_opcion` la recupera; acota el 0097 |
 
 Ver tambien la [guia arquitectonica canonica](../arquitectura-prosecnur.md).

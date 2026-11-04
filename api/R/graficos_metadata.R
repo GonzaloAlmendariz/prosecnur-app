@@ -1128,6 +1128,10 @@
       list(name = "residuales_gris", label = "Residuales en gris", tipo_input = "bool", grupo = "estilo",
            default = FALSE,
            descripcion = "Pinta de gris “Prefiero no responder”, “No sabe”, “Otros”…; apagado por defecto. Siguen al final de la lista, con o sin gris."),
+      # ADR 0130 (Gonzalo, 2026-11-04: «no entiendo por qué usamos paleta de colores y es barras agrupadas»).
+      list(name = "colorear_por_opcion", label = "Un color por opción", tipo_input = "bool", grupo = "estilo",
+           default = FALSE,
+           descripcion = "Con una sola serie, pinta cada barra con el color que la paleta del estudio da a su opción. Apagado, todas van en un color."),
       list(name = "invertir_barras", label = "Invertir el orden de las barras", tipo_input = "bool", grupo = "filtro",
            default = TRUE, descripcion = "Dibuja las barras en el orden contrario."),   # O7c: formal del constructor desde 383c1fe2b
       list(name = "excluir_opciones", label = "Opciones a ocultar", tipo_input = "codigos_list", grupo = "filtro",
