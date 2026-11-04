@@ -3,7 +3,7 @@
 Estado: Propuesto. Espera la decisión de Gonzalo. Revisión metodológica previa de `revisor-metodologico` (aprobado
 con supuestos, incorporados aquí); falta la revisión de `guardian-contratos` sobre el texto final.
 
-Implementación: no iniciada; postergada por Gonzalo el 4/11 («el cálculo de la muestra puede ir después»). Estado vivo
+Implementación: paso 1 (reparto con la base 2025 y g_d) en backend desde el 2026-11-04, apagado por defecto; el resto, no iniciado. Estado vivo
 en `docs/qa/checklist-muestra-urbana-multiciudad-2026-11-04.md`.
 
 **Decisión de Gonzalo, 4/11, que corrige el §4:** la persona dentro de la vivienda se elige por **cuotas de sexo ×

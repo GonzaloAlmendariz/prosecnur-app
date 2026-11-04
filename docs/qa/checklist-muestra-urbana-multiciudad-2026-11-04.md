@@ -19,12 +19,14 @@ Contexto que ya se verificó (no reinvestigar):
 
 | # | Indicación | Dónde vive | Estado |
 |---|---|---|---|
-| 1 | Repartir la muestra con la población 2025, no con los conteos 2017 | ADR 0131 §1–§2 · `hojas_ruta_engine.R:3912-3918` y `:4313` (congelado) + archivo nuevo · `territorios.json` | **postergado**: Gonzalo, 4/11: «el cálculo de la muestra puede ir después» |
+| 1 | Repartir la muestra con la población 2025, no con los conteos 2017 | ADR 0131 §2 · `api/R/hojas_ruta_reparto_base.R` (nuevo) · enganches en `hojas_ruta_engine.R` (`.hojas_ruta_finalize_quota_cells` y `hojas_ruta_sample_size_preview`, +2 líneas netas), `hojas_ruta_sorteo_pps.R` (`.hojas_ruta_sorteo_medida`) y `hojas_ruta_tamano_extras.R` · `territorios.json` | **hecho en backend** (2026-11-04, aprobado por Gonzalo el 4/11): opción `sample_size$base_reparto = "cpv2025_adultos_urbanos"`, apagada por defecto (`cpv2017`). Evidencia: `test-hojas-ruta-reparto-base.R` (rojo antes del enganche, verde después) y salida apagada idéntica a la previa al cambio en 4 escenarios. UI hecha (commit `2bb73fe15`): interruptor «Repartir con la población 2025» en Tamaño y reparto, con fuente, supuestos y captación por distrito; la memoria de cálculo rotula y declara la fuente. QA visual en acnur_acg a 1440×1000 y 1024×600: `ok=true`, 0 issues, 0 columnas ocultas |
 | 2 | Selección probabilística de la persona en el hogar | ADR 0131 §4 | **descartado**: Gonzalo, 4/11: cuotas sólo de sexo y grupos de edad validados por el INEI. El motor ya trabaja así |
-| 3 | Peso final por persona (manzana × vivienda) y calibración a 2025 | ADR 0131 §3, §5–§6 · `hojas_ruta_sorteo_pps.R:197-218`, `hojas_ruta_marco_elegible.R:540-623`, `ponderacion_engine.R`, `ponderacion_analitica.R` | **postergado** con el ítem 1 |
+| 3 | Peso final por persona (manzana × vivienda) y calibración a 2025 | ADR 0131 §3, §5–§6 · `hojas_ruta_pi_muestra.R` (nuevo), `ponderacion_engine.R` | **parcial**: π de titulares y reemplazos publicada en la muestra (paso 3 del ADR, 2026-11-04). Falta la probabilidad de vivienda (§3) y el peso con calibración (paso 5, `ponderacion_*`, otra sesión) |
 | 4 | Verificar si REDATAM CPV 2025 da sexo × edad × nivel educativo por provincia o distrito | fuente externa (`redatamcpv2025.inei.gob.pe`) | pendiente: probar desde el navegador |
 | 5 | Decisión de cobertura urbana anotada en el brief interno de la propuesta | doc fuera del repo | hecho |
 | 6 | Variante nacional urbana: repartir n por departamento con población urbana 2025 y sortear en la(s) ciudad(es) principal(es) de cada uno; hace falta marco de manzanas en los 6 departamentos sin ciudad (Amazonas, Apurímac, Huancavelica, Madre de Dios, Moquegua, Pasco) | `build_inei2017_ciudades.R` (`HOJAS_RUTA_CIUDADES_PROVINCIAS`) + ADR 0119 §1 (umbrales) + capa GeoPeru | **bloqueado**: exige descargar la capa GeoPeru (externo) y decidir si se aceptan ciudades bajo los umbrales del ADR 0119 |
+| 7 | Estrato explícito provincia, mínimo 2 rutas, distrito y zona implícitos (ADR 0131 paso 2) | `api/R/hojas_ruta_estrato.R` (nuevo) · `sample_size$estrato` | **hecho en backend** (commit `ace1e979e`): `provincia` y `provincia_lima_areas` (Lima en 5 áreas, Callao aparte). Tests: Σ n_h = rutas, n_h ≥ 2, Σπ = n_h por estrato, π > 0 en toda manzana con medida, Monte Carlo (6.000 réplicas) contra π, vista previa = cuota. **Pendiente:** el control en la UI |
+| 8 | Publicar π de titulares y reemplazos en la muestra (ADR 0131 paso 3) | `api/R/hojas_ruta_pi_muestra.R` (nuevo) · payload `blocks` / `replacement_blocks` | **hecho**: `estrato`, `pi`, `pi_regla` en titulares; `estrato`, `pi`, `pi_fuente` en reemplazos. El pareado de la misma zona hereda; el de otra zona queda sin π y avisa (`W_REPLACEMENT_PI_OTRA_ZONA`). **Decisión pendiente:** la política por defecto del motor es `alternate_zone_same_district` (otra zona), al revés de lo que supone el ADR §5 |
 
 ## Aprendido en el camino
 
@@ -70,3 +72,51 @@ Contexto que ya se verificó (no reinvestigar):
   - Con reparto proporcional, un departamento chico recibe muy pocas entrevistas. La ciudad principal pasa a
     representar todo el urbano de su departamento, y eso es un supuesto: no lo vuelve probabilístico para ese
     departamento salvo que las ciudades se sorteen por PPS.
+
+- **Ítem 1 (2026-11-04), cómo quedó:**
+  - Con la base activa, P̂25_d = pob25 · u17 · a17 (u17 = pob17_en_capa / pob17_redatam; a17 = 18+ / total en la
+    edad simple 2017). La vista previa reparte y calcula márgenes con P̂25; la cuota que se sortea usa la misma
+    función, con el mismo piso por distrito. Vista previa = cuota por distrito (probado con n = 240 y 600, con y
+    sin piso).
+  - Las celdas sexo × edad 2017 se escalan por P̂25_d / pob18_17_d: la estructura de la cuota no cambia, cambia el
+    peso entre distritos.
+  - MOS_i = M_i · g_d en `pps` y `pps_tope` (el tope sobre M y luego g_d, que es lo mismo porque g_d es constante en
+    el distrito). En `sistematico` (igual probabilidad) no aplica. **Mientras el estrato sea el distrito, g_d se
+    cancela y la π no cambia**: empieza a pesar con el estrato provincia (ítem/paso 2).
+  - La vista previa del tamaño publica `base_reparto` (código, fuente «CPV 2025 (supuestos u17, a17 de 2017)»,
+    fórmula, supuestos y u17/a17/P̂25/g por distrito). Con la base apagada la clave no aparece.
+  - Falta un dato → `E_HOJAS_RUTA_BASE_2025_INCOMPLETA` (422) con el ubigeo y el campo; nunca un factor 1. Los 164
+    distritos del registro tienen los tres datos y edad simple: g_d finito y > 0 en todos.
+  - **Divergencia que sigue con la base apagada:** la vista previa reparte con población total y piso; la cuota,
+    con 18+ y sin piso. No se cerró ahí porque el encargo exige que la salida apagada sea idéntica a la de hoy
+    (estudios y envíos existentes). Cerrarla en el modo 2017 cambia cuotas ya publicadas: es decisión de Gonzalo.
+  - **UI, no hecha (exige más que un toggle):** `motorTamano.ts` es espejo en TS de la vista previa y recibe la
+    población por distrito del marco 2017. Para mostrar la base 2025 hay que traer P̂25 del backend al espejo,
+    regenerar `tamanoMuestra.golden.json` con un caso 2025 y añadir el control en `MuestraPaneles.tsx`. Mientras
+    tanto la opción se fija en `sample_size` y el front la conserva al guardar (`desdeConfig.ts` esparce
+    `config.sample_size`).
+
+- **Pasos 2 y 3 (2026-11-04), cómo quedó:**
+  - El estrato provincia no corre un sistemático único sobre todo el estrato: reparte primero n_h entre sus distritos
+    con e_d = n_h·MOS_d/MOS_h y un redondeo sistemático aleatorio (⌊e_d⌋ o ⌈e_d⌉, E = e_d), y después corre el PPS
+    por distrito de siempre. Es equivalente en π (la mezcla exacta de las dos ramas, que sin certezas da
+    n_h·MOS_i/MOS_h) y deja intactos la cuota sexo × edad por distrito, la vista previa y el envío.
+  - En modo estrato, `row_var = "zona"` da `E_HOJAS_RUTA_ESTRATO_CUOTA_ZONA`: la cuota por zona reparte con otra
+    medida y la π dejaría de ser exacta.
+  - Con cuota por zona (modo distrito) la π publicada es condicional a las rutas de la zona (`pi_regla` lo dice).
+  - La π va en el payload de la muestra; el libro de campo (`Hojas_de_ruta`) no la lleva porque es para el equipo.
+  - `hojas_ruta_engine.R` (congelado) creció 4 líneas netas en los tres pasos; la línea base del manifiesto
+    (10.224) sigue holgada.
+- **Verificador (2026-11-04):**
+  - Paso 1: aprobado en el motor. El commit `91ddaaac2` aislado tiene en rojo el test de la memoria de cálculo, porque depende de `reporte_muestra_territorial_marco.R`, que entró en `2bb73fe15`. La rama está verde desde `2bb73fe15`.
+  - UI y pasos 2–3: aprobado con pendientes.
+- **Pendientes del paso 2 que deciden el diseño (para Gonzalo):**
+  - **Medida del reparto entre distritos.** La MOS_d con que se reparten las rutas sale del marco INEI completo; el sorteo y la π, del marco elegible.
+    - La π publicada sigue siendo exacta y Σπ = n_h.
+    - Con `minimo_viviendas` > 1 o con áreas excluidas, el estrato deja de ser autoponderado. En la sonda del verificador, con mínimo 60, 070106 pasa de 4,7 a 0,8 rutas esperadas.
+    - Hay dos salidas: repartir con la medida elegible o dejarlo declarado. Hoy está declarado en la regla publicada.
+  - **Asignación en `hojas_ruta_pi_muestra`.** Se recalcula con `cfg$territorios`, mientras la cuota usa los ubigeos de las celdas.
+    - Si un distrito confirmado se queda sin celdas, los dos conjuntos difieren.
+    - Es un caso de borde, sin test.
+  - **Aviso de reemplazos fuera de la zona.** `W_REPLACEMENT_PI_OTRA_ZONA` sale en toda muestra con la política por defecto (otra zona). Hay que decidir el valor por defecto de `replacement_policy`, o bajar el aviso a `info`.
+  - **Estrato en la UI.** No hay control: hoy `sample_size$estrato` sólo se fija en la configuración.
