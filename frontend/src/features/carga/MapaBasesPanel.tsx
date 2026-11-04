@@ -257,15 +257,22 @@ function ResumenBases({
   onVariables?: (base: string) => void;
 }) {
   return (
-    <ul className="pulso-mapa-resumen" aria-label="Resumen por base" data-qa-geometry-member>
+    // El contrato «equal» iguala las TARJETAS entre sí: va en la lista y no en cada tarjeta, donde comparaba el
+    // nombre con los totales y los botones (equal-frame-drift con datos, 4 nov 2026). La lista es además miembro del
+    // grupo de afuera, y un elemento no puede ser las dos cosas: la envuelve un div que hace de miembro.
+    <div data-qa-geometry-member>
+    <ul
+      className="pulso-mapa-resumen"
+      aria-label="Resumen por base"
+      data-qa-geometry-group="carga-mapa-bases-base"
+      data-qa-geometry-contract="equal"
+    >
       {resumen.map((r) => {
         const esActiva = r.base === activa;
         return (
           <li
             key={r.base}
             className={esActiva ? "is-activa" : undefined}
-            data-qa-geometry-group="carga-mapa-bases-base"
-            data-qa-geometry-contract="equal"
           >
             <strong>{r.base}</strong>
             <span className="pulso-mapa-resumen-total">
@@ -299,6 +306,7 @@ function ResumenBases({
         );
       })}
     </ul>
+    </div>
   );
 }
 
