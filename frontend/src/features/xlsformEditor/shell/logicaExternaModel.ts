@@ -53,13 +53,13 @@ export const CONSECUENCIA_DESHACER_LOGICA_EXTERNA =
 
 /** «Fuera de Prosecnur · SPSS» (o sin programa si no se dijo). */
 export function detalleLogicaExterna(info: LogicaExterna): string {
-  return info.herramienta ? `Fuera de Prosecnur · ${info.herramienta}` : "Fuera de Prosecnur";
+  return info.herramienta ? `Fuera de Prosecnur (${info.herramienta})` : "Fuera de Prosecnur";
 }
 
 /** «Lógica: fuera de Prosecnur · SPSS»: la línea neutra de tarjeta y cabecera. */
 export function rotuloLogicaExterna(info: LogicaExterna): string {
   return info.herramienta
-    ? `Lógica: fuera de Prosecnur · ${info.herramienta}`
+    ? `Lógica: fuera de Prosecnur (${info.herramienta})`
     : "Lógica: fuera de Prosecnur";
 }
 

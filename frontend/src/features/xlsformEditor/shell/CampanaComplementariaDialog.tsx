@@ -72,7 +72,7 @@ export function CampanaComplementariaDialog({
               {encuestaPrincipal ? (
                 <span className="pulso-xf-campana-contexto-principal">
                   Principal: {encuestaPrincipalTitulo && encuestaPrincipalTitulo !== formName
-                    ? `${encuestaPrincipalTitulo} · `
+                    ? `${encuestaPrincipalTitulo}, `
                     : ""}
                   <CopiarId id={encuestaPrincipal} />
                 </span>

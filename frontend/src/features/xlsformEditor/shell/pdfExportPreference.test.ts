@@ -328,9 +328,9 @@ describe("exportWarningDetail", () => {
     expect(exportWarningDetail([])).toBe("");
     expect(exportWarningDetail(undefined)).toBe("");
     expect(exportWarningDetail(["La pregunta `p5` tiene 30 opciones."])).toBe(
-      " · La pregunta `p5` tiene 30 opciones.",
+      ": La pregunta `p5` tiene 30 opciones.",
     );
-    expect(exportWarningDetail(["uno", " ", "dos", "tres"])).toBe(" · uno (+2 más)");
+    expect(exportWarningDetail(["uno", " ", "dos", "tres"])).toBe(": uno (+2 más)");
   });
 });
 

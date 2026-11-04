@@ -49,8 +49,8 @@ const id = () => `r${++n}`;
 
 describe("conteo único (U8)", () => {
   test("dice preguntas y campos con su plural", () => {
-    expect(textoConteoSm(26, 74)).toBe("26 preguntas · 74 campos");
-    expect(textoConteoSm(1, 1)).toBe("1 pregunta · 1 campo");
+    expect(textoConteoSm(26, 74)).toBe("26 preguntas, 74 campos");
+    expect(textoConteoSm(1, 1)).toBe("1 pregunta, 1 campo");
   });
 });
 

@@ -138,7 +138,7 @@ export function CampanaVistaPreviaResumen({
         </div>
         {mostrarEncuesta ? (
           <p className="pulso-xf-campana-encuesta-elegida">
-            {vista.titulo || "Encuesta sin título"} · ID {vista.survey_id}
+            {vista.titulo || "Encuesta sin título"} (ID {vista.survey_id})
           </p>
         ) : null}
       </div>

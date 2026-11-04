@@ -30,15 +30,6 @@
   padding: 6px;
 }
 
-.pulso-diagnostics-popover-empty {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 24px 16px;
-  text-align: center;
-}
-
 .pulso-diagnostics-popover-item.is-clickable {
   cursor: pointer;
 }

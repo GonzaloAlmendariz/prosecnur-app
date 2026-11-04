@@ -79,7 +79,7 @@ export function EditorCommandBar(props: EditorCommandBarProps) {
   const listsLabel = plural(metrics.readyCatalogs, "lista", "listas");
   const listasSinOpciones = metrics.catalogs - metrics.readyCatalogs;
   const listsTitle = listasSinOpciones > 0
-    ? `${listsLabel} · ${plural(listasSinOpciones, "referida sin opciones", "referidas sin opciones")}`
+    ? `${listsLabel}, ${plural(listasSinOpciones, "referida sin opciones", "referidas sin opciones")}`
     : listsLabel;
 
   return (
@@ -95,12 +95,10 @@ export function EditorCommandBar(props: EditorCommandBarProps) {
             aria-label="Resumen del formulario"
             data-qa-geometry-group="xlsform/banda-metricas"
             data-qa-geometry-contract="intrinsic"
-            title={`${plural(metrics.fields, "pregunta", "preguntas")} · ${plural(metrics.sections, "sección", "secciones")} · ${listsTitle}`}
+            title={`${plural(metrics.fields, "pregunta", "preguntas")}, ${plural(metrics.sections, "sección", "secciones")}, ${listsTitle}`}
           >
-            <span><strong>{metrics.fields}</strong> {metrics.fields === 1 ? "pregunta" : "preguntas"}</span>
-            <span aria-hidden="true">·</span>
-            <span><strong>{metrics.sections}</strong> {metrics.sections === 1 ? "sección" : "secciones"}</span>
-            <span className="pulso-xf-cmd-secondary" aria-hidden="true">·</span>
+            <span><strong>{metrics.fields}</strong> {metrics.fields === 1 ? "pregunta" : "preguntas"},</span>
+            <span><strong>{metrics.sections}</strong> {metrics.sections === 1 ? "sección" : "secciones"}<span className="pulso-xf-cmd-secondary">,</span></span>
             <span className="pulso-xf-cmd-secondary">{listsLabel}</span>
           </span>
           <span className="pulso-xf-cmd-state" aria-label="Estado del formulario">

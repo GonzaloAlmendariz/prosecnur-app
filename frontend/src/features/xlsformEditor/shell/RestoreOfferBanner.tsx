@@ -82,7 +82,7 @@ export function RestoreOfferBanner({
                 quedado como objeto en algún caso edge. Solo lo mostramos
                 si es string no vacío. */}
             {typeof snapshot.sourceName === "string" && snapshot.sourceName
-              ? `Archivo: ${snapshot.sourceName} · `
+              ? `Archivo: ${snapshot.sourceName}. `
               : ""}
             Guardado automáticamente {formatRelativeTime(snapshot.savedAt)}.
           </span>

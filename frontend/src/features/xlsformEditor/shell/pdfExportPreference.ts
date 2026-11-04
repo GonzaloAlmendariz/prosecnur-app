@@ -397,5 +397,5 @@ export function exportWarningDetail(warnings: readonly string[] | null | undefin
   const list = (warnings ?? []).map((w) => w.trim()).filter(Boolean);
   if (!list.length) return "";
   const more = list.length > 1 ? ` (+${list.length - 1} más)` : "";
-  return ` · ${list[0]}${more}`;
+  return `: ${list[0]}${more}`;
 }

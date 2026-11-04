@@ -69,7 +69,7 @@ export function getFormPublicationView(
   if (status === "published") {
     return {
       status,
-      label: `Disponible · revisión ${publication.latest_revision?.revision_no ?? "—"}`,
+      label: `Disponible, revisión ${publication.latest_revision?.revision_no ?? "—"}`,
       tone: "success",
       actionLabel: null,
       actionDisabled: true,

@@ -292,13 +292,6 @@
   transform-origin: top left;
 }
 
-.pulso-xlsform-frame .pulso-xf-form-switcher-empty {
-  display: block;
-  padding: 6px 10px 8px;
-  font-size: var(--pulso-type-body-size);
-  color: var(--pulso-text-muted);
-}
-
 /* Los items del conmutador llevan un dato del usuario —el nombre del
    formulario— y un nombre largo sin espacios desbordaba el popover por el
    borde derecho. `.pulso-more-views-item` hereda `white-space: nowrap`, así

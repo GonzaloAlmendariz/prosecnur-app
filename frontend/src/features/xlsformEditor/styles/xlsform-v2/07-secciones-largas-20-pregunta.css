@@ -50,19 +50,6 @@
   color: #9a3412;
 }
 
-.pulso-questionnaire-section-empty {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  padding: 10px;
-  border: 1px dashed color-mix(in srgb, var(--pulso-border) 84%, #fff 16%);
-  border-radius: 8px;
-  background: color-mix(in srgb, var(--pulso-surface-2) 72%, #fff 28%);
-  color: var(--pulso-text-soft);
-  font-size: var(--pulso-type-caption-size);
-  line-height: 1.4;
-}
-
 .pulso-questionnaire-question-list {
   display: grid;
   /* `max-content` es imprescindible: sin él, cuando la lista topa el

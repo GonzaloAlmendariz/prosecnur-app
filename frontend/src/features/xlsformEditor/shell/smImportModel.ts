@@ -20,7 +20,7 @@ function plural(n: number, singular: string, varios: string): string {
 
 /** «26 preguntas · 74 campos». */
 export function textoConteoSm(preguntas: number, campos: number): string {
-  return `${plural(preguntas, "pregunta", "preguntas")} · ${plural(campos, "campo", "campos")}`;
+  return `${plural(preguntas, "pregunta", "preguntas")}, ${plural(campos, "campo", "campos")}`;
 }
 
 export const AYUDA_CONTEO_SM =
