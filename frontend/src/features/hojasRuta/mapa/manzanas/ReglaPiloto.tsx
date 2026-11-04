@@ -33,6 +33,7 @@ export function ReglaPiloto({ modo, titularesPiloto, excluidasEnLaMuestra, desha
         options={OPCIONES}
         getOptionValue={(o) => o.id}
         onValueChange={onCambiar}
+        className="hr-sorteo-metodos hr-regla-piloto"
         aria-label="Regla para usar la corrida piloto en Campo real"
         getOptionProps={() => ({ disabled: deshabilitado })}
       >

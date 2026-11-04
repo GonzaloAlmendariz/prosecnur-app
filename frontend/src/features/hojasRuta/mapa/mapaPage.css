@@ -283,6 +283,9 @@
 .hr-sorteo-metodos { display: grid; grid-template-columns: 1fr; gap: 6px; }
 .hr-sorteo-metodos button { display: grid; grid-template-columns: 64px minmax(0, 1fr); grid-template-rows: auto auto; column-gap: 10px; row-gap: 1px; align-items: center; text-align: left; padding: 8px 10px; }
 .hr-sorteo-metodos svg { grid-row: 1 / span 2; width: 64px; height: 22px; }
+/* La regla del piloto usa la misma tarjeta apilada, sin diagrama: título y explicación
+   en dos renglones (antes iban en un botón de 28 px y la explicación se salía 120–160 px). */
+.hr-regla-piloto button { grid-template-columns: minmax(0, 1fr); }
 .hr-sorteo-metodos svg circle, .hr-sorteo-metodos svg rect { fill: var(--pulso-surface-2); stroke: var(--pulso-border-strong); stroke-width: 1.2; }
 .hr-sorteo-metodos svg line { stroke: var(--pulso-border-strong); stroke-width: 1.6; }
 .hr-sorteo-metodos svg [data-activo] { fill: var(--pulso-module-routes); stroke: var(--pulso-module-routes); }

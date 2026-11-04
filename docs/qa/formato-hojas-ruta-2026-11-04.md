@@ -24,9 +24,15 @@ decimal), P5, P6, con el caso que prueba cada detector.
 
 ## Vistas (capturas «después», `acnur_acg`, 1440×1000 y 1024×600)
 
+Corrida «después» (`cap/hr-despues`): 10 capturas, 10 md5 distintos. Territorio, Población y Muestra sin hallazgos.
+
 | # | Vista | Qué se ve | Estado |
 |---|---|---|---|
-| | | (se llena con la corrida «después») | |
+| 1 | Manzanas › Piloto | «Evita las del piloto / No las evita» con su explicación dentro de un botón segmentado de 28 px: la explicación se salía 120–164 px (defecto previo a esta pasada) | ☑ la regla usa la tarjeta apilada de los métodos de sorteo (`hr-sorteo-metodos`), sin diagrama |
+| 2 | Manzanas a 1024 | «Sortear de nuevo con el método vigente» se salía 5 px de su botón | ☑ «Sortear con el método vigente» |
+| 3 | Selección a 1024 | El placeholder «Buscar UMP, zona o manzana» no cabía (179 de 165 px) | ☑ «UMP, zona o manzana» (la lupa ya dice buscar) |
+
+Tras el arreglo, Manzanas y Selección a 1440 y 1024: `ok=true`, `issues=0` (`cap/hr-2`).
 
 ## Estado
 
@@ -35,5 +41,5 @@ decimal), P5, P6, con el caso que prueba cada detector.
 | Medición | ☑ | (este doc) | |
 | P1, P4, P5, P6 | ☑ | | |
 | P2 | línea base | — | |
-| Capturas después | en curso | | Se commitea antes de la captura (pedido de coordinación); lo que muestre va en el commit siguiente |
+| Capturas después | ☑ | | Ver «Vistas»; los tres arreglos van en el commit siguiente |
 | Gate | ☑ | | `tsc` 0; `make gate-front AREA=hojasRuta` 68 suites, 874 tests |

@@ -136,7 +136,7 @@ export function ManzanasInspector({ guardada, config, muestra, viviendas, manzan
               </p>
             ) : null}
             <PulsoButton variant="primary" size="sm" disabled={ed || !listoParaSortear || confirmando} onClick={pedirSorteo}>
-              {guardando ? "Sorteando…" : "Sortear de nuevo con el método vigente"}
+              {guardando ? "Sorteando…" : "Sortear con el método vigente"}
             </PulsoButton>
           </section>
         ) : null}

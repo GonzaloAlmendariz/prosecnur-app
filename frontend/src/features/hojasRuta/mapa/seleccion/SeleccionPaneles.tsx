@@ -52,7 +52,7 @@ export function SeleccionEstructura({ grupos, total, observadas, confirmados = [
           <h2>Rutas</h2>
           <small>{visibles === total ? `${fmt(total)} titulares` : `${fmt(visibles)} de ${fmt(total)}`}</small>
         </div>
-        <input className="hr-mapa-buscar" type="search" aria-label="Buscar ruta" placeholder="Buscar UMP, zona o manzana" value={busquedaUmp} onChange={(e) => setBusquedaUmp(e.target.value)} />
+        <input className="hr-mapa-buscar" type="search" aria-label="Buscar ruta" placeholder="UMP, zona o manzana" value={busquedaUmp} onChange={(e) => setBusquedaUmp(e.target.value)} />
         <GlidingRadioGroup value={soloPorRevisar ? "revisar" : "todas"} options={FILTRO_RUTAS} getOptionValue={(o) => o[0]} onValueChange={(v) => setSoloPorRevisar(v === "revisar")} className="hr-muestra-opciones" aria-label="Qué rutas ver">
           {(o) => <span>{o[0] === "revisar" ? `${o[1]}, ${fmt(observadas)}` : `${o[1]}, ${fmt(total)}`}</span>}
         </GlidingRadioGroup>
