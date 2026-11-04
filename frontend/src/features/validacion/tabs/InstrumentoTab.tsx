@@ -72,6 +72,9 @@ import {
   normalizeOperationalConfig,
   validateOperationalConfig,
 } from "../operationalControlsModel";
+import { formatoConteo } from "../../../lib/formatoNumero";
+import { VacioListo } from "../components/VacioListo";
+import { PasoDeValidacion } from "../components/PasoDeValidacion";
 
 // =============================================================================
 // InstrumentoTab — Sprint 2
@@ -520,33 +523,34 @@ export default function InstrumentoTab() {
   if (loading) return <LoadingBlock label="Cargando estado…" />;
   if (!estado) {
     return (
-      <EmptyState
-        icon={<AlertTriangle size={20} />}
-        title="Sin estado"
-        hint="Carga una base primero."
-      />
+      <VacioListo marca="validacion-instrumento">
+        <EmptyState
+          icon={<AlertTriangle size={20} />}
+          title="Sin estado"
+          hint="Carga una base primero."
+        />
+      </VacioListo>
     );
   }
 
   const panelContent = (
     <>
       {/* --- Paso 1: Construir plan --- */}
-      <section
-        className={`pulso-instrumento-step pulso-instrumento-step--plan${estado.plan_construido ? "" : " is-setup"}`}
+      <PasoDeValidacion
+        className={`pulso-instrumento-step--plan${estado.plan_construido ? "" : " is-setup"}`}
+        paso={1}
+        de={3}
+        titulo="Plan de reglas"
+        detalle={
+          <>
+            Obligatorias, saltos, rangos, cálculos y filtros declarados en el formulario{" "}
+            <span className="pulso-vv2-tech">XLSForm</span>.
+          </>
+        }
+        listo={estado.plan_construido}
+        conteo={estado.plan_construido ? estado.n_reglas : null}
+        rotuloConteo="reglas"
       >
-        <StepHeader
-          idx={1}
-          title="Plan de reglas"
-          subtitle={
-            <>
-              Obligatorias, saltos, rangos, cálculos y filtros declarados en el formulario{" "}
-              <span className="pulso-vv2-tech">XLSForm</span>.
-            </>
-          }
-          done={estado.plan_construido}
-          count={estado.plan_construido ? estado.n_reglas : null}
-          countLabel="reglas"
-        />
         {!estado.plan_construido && (
           <div className="pulso-instrumento-setup-grid" aria-label="Secuencia de validación del instrumento">
             <div className="pulso-instrumento-setup-card is-active">
@@ -670,28 +674,17 @@ export default function InstrumentoTab() {
             </a>
           </div>
         )}
-      </section>
+      </PasoDeValidacion>
 
       {/* --- Paso 2: Ejecutar auditoría --- */}
       {estado.plan_construido && (
-        <section
-          style={{
-            padding: "18px 20px",
-            borderRadius: 12,
-            background: "white",
-            border: "1px solid var(--pulso-border)",
-            boxShadow: "var(--pulso-shadow-low)",
-            display: "flex",
-            flexDirection: "column",
-            gap: 12,
-          }}
+        <PasoDeValidacion
+          paso={2}
+          de={3}
+          titulo="Auditoría"
+          detalle="Corre el plan contra la data y encuentra casos inconsistentes."
+          listo={estado.auditoria_corrida}
         >
-          <StepHeader
-            idx={2}
-            title="Auditoría"
-            subtitle="Corre el plan contra la data y encuentra casos inconsistentes."
-            done={estado.auditoria_corrida}
-          />
           <VariableExclusionsPanel
             options={variableExclusionOptions}
             excluded={excludedVariableSet}
@@ -710,7 +703,7 @@ export default function InstrumentoTab() {
                 display: "inline-flex",
                 alignItems: "center",
                 gap: 6,
-                fontSize: 12,
+                fontSize: "var(--pulso-type-body-size)",
                 padding: "8px 14px",
               }}
             >
@@ -735,19 +728,12 @@ export default function InstrumentoTab() {
               onCancelled={() => setJobId(null)}
             />
           )}
-        </section>
+        </PasoDeValidacion>
       )}
 
       {/* --- Paso 3: Dashboard de resultado --- */}
       {estado.auditoria_corrida && resultado && (
-        <section
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            gap: 16,
-          }}
-        >
-          <StepHeader idx={3} title="Resultados" done={true} />
+        <PasoDeValidacion paso={3} de={3} titulo="Resultados" listo className="pulso-validacion-paso--resultados">
 
           {/* KPIs */}
           <div
@@ -782,7 +768,7 @@ export default function InstrumentoTab() {
             selectedRuleId={selectedRuleId}
             onSelect={onSelectRule}
           />
-        </section>
+        </PasoDeValidacion>
       )}
 
       <ContextLens
@@ -922,7 +908,7 @@ const linkButtonStyle: CSSProperties = {
   border: "none",
   background: "none",
   color: "var(--pulso-text-soft)",
-  fontSize: 11,
+  fontSize: "var(--pulso-type-caption-size)",
   fontWeight: 700,
   cursor: "pointer",
   textDecoration: "underline",
@@ -989,10 +975,10 @@ function VariableExclusionsPanel({
             <SlidersHorizontal size={14} />
           </span>
           <div style={{ minWidth: 0 }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: "var(--pulso-text)" }}>
+            <div style={{ fontSize: "var(--pulso-type-subtitle-size)", fontWeight: 700, color: "var(--pulso-text)" }}>
               Variables fuera de auditoría
             </div>
-            <div style={{ fontSize: 11, color: "var(--pulso-text-soft)", lineHeight: 1.45, marginTop: 2 }}>
+            <div style={{ fontSize: "var(--pulso-type-caption-size)", color: "var(--pulso-text-soft)", lineHeight: 1.45, marginTop: 2 }}>
               Filtra reglas cuyo objetivo sea una variable marcada. La data no se modifica.
             </div>
           </div>
@@ -1004,7 +990,7 @@ function VariableExclusionsPanel({
             gap: 6,
             flexWrap: "wrap",
             justifyContent: "flex-end",
-            fontSize: 11,
+            fontSize: "var(--pulso-type-caption-size)",
             color: "var(--pulso-text-soft)",
           }}
         >
@@ -1012,7 +998,7 @@ function VariableExclusionsPanel({
             {selectedCount} excluidas
           </span>
           <span style={variableExclusionBadgeStyle("white", "var(--pulso-text-soft)")}>
-            {options.length} visibles
+            {formatoConteo(options.length)} visibles
           </span>
           {totalCases > 0 && (
             <span style={variableExclusionBadgeStyle("var(--pulso-warn-bg)", "var(--pulso-warn-fg)")}>
@@ -1035,7 +1021,7 @@ function VariableExclusionsPanel({
           background: disabled ? "var(--pulso-surface-3)" : "white",
           color: "var(--pulso-text)",
           padding: "7px 10px",
-          fontSize: 12,
+          fontSize: "var(--pulso-type-body-size)",
           outline: "none",
         }}
       />
@@ -1046,7 +1032,7 @@ function VariableExclusionsPanel({
             borderRadius: 8,
             background: "white",
             color: "var(--pulso-text-soft)",
-            fontSize: 12,
+            fontSize: "var(--pulso-type-body-size)",
             padding: "10px 12px",
           }}
         >
@@ -1115,7 +1101,7 @@ function VariableExclusionsPanel({
                     <strong
                       style={{
                         fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
-                        fontSize: 12,
+                        fontSize: "var(--pulso-type-body-size)",
                         color: "var(--pulso-text)",
                         overflow: "hidden",
                         textOverflow: "ellipsis",
@@ -1124,14 +1110,14 @@ function VariableExclusionsPanel({
                     >
                       {option.variable}
                     </strong>
-                    <span style={{ fontSize: 10, color: "var(--pulso-text-soft)", whiteSpace: "nowrap" }}>
+                    <span style={{ fontSize: "var(--pulso-type-micro-size)", color: "var(--pulso-text-soft)", whiteSpace: "nowrap" }}>
                       {option.n_reglas} reglas
                     </span>
                   </span>
                   <span
                     title={option.label}
                     style={{
-                      fontSize: 11,
+                      fontSize: "var(--pulso-type-caption-size)",
                       color: "var(--pulso-text-soft)",
                       lineHeight: 1.35,
                       display: "-webkit-box",
@@ -1161,7 +1147,7 @@ function VariableExclusionsPanel({
                         placeholder={`Por qué se deja «${option.variable}» fuera`}
                         aria-label={`Motivo para excluir ${option.variable}`}
                         style={{
-                          minWidth: 200, padding: "4px 8px", borderRadius: 6, fontSize: 11,
+                          minWidth: 200, padding: "4px 8px", borderRadius: 6, fontSize: "var(--pulso-type-caption-size)",
                           border: "1px solid var(--pulso-border)",
                           background: "var(--pulso-surface)", color: "var(--pulso-text)",
                         }}
@@ -1185,7 +1171,7 @@ function VariableExclusionsPanel({
                       alignItems: "center",
                       gap: 6,
                       flexWrap: "wrap",
-                      fontSize: 10,
+                      fontSize: "var(--pulso-type-micro-size)",
                       color: "var(--pulso-text-soft)",
                     }}
                   >
@@ -1198,92 +1184,6 @@ function VariableExclusionsPanel({
           })}
         </div>
       )}
-    </div>
-  );
-}
-
-function StepHeader({
-  idx,
-  title,
-  subtitle,
-  done,
-  count,
-  countLabel,
-}: {
-  idx: number;
-  title: string;
-  subtitle?: ReactNode;
-  done: boolean;
-  count?: number | null;
-  countLabel?: string;
-}) {
-  return (
-    <div
-      style={{
-        display: "flex",
-        alignItems: "flex-start",
-        gap: 10,
-      }}
-    >
-      <span
-        aria-hidden="true"
-        style={{
-          flexShrink: 0,
-          width: 24,
-          height: 24,
-          borderRadius: "50%",
-          background: done ? "var(--pulso-success-fg)" : "var(--pulso-text-soft)",
-          color: "white",
-          display: "inline-flex",
-          alignItems: "center",
-          justifyContent: "center",
-          fontSize: 11,
-          fontWeight: 700,
-        }}
-      >
-        {idx}
-      </span>
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div
-          style={{
-            fontSize: 14,
-            fontWeight: 700,
-            color: "var(--pulso-text)",
-            display: "inline-flex",
-            alignItems: "center",
-            gap: 8,
-          }}
-        >
-          {title}
-          {count != null && (
-            <span
-              style={{
-                fontSize: 11,
-                fontWeight: 600,
-                padding: "2px 8px",
-                borderRadius: 999,
-                background: "var(--pulso-primary-soft)",
-                color: "var(--pulso-primary)",
-                fontFamily: "ui-monospace, monospace",
-              }}
-            >
-              {count} {countLabel}
-            </span>
-          )}
-        </div>
-        {subtitle && (
-          <div
-            style={{
-              fontSize: 11,
-              color: "var(--pulso-text-soft)",
-              marginTop: 2,
-              lineHeight: 1.4,
-            }}
-          >
-            {subtitle}
-          </div>
-        )}
-      </div>
     </div>
   );
 }
@@ -1542,13 +1442,9 @@ function RuleGroupsSection({
   onSelect: (id: string) => void;
 }) {
   return (
+    // Vive dentro del paso 3 (un Panel): sin caja propia, para no anidar una tarjeta en otra.
     <section
       style={{
-        padding: "16px 20px 20px",
-        background: "white",
-        border: "1px solid var(--pulso-border)",
-        borderRadius: 10,
-        boxShadow: "var(--pulso-shadow-low)",
         display: "flex",
         flexDirection: "column",
         gap: 18,
@@ -1673,7 +1569,7 @@ function RuleSubGroup({
   const countBadge = (
     <span
       style={{
-        fontSize: 11,
+        fontSize: "var(--pulso-type-caption-size)",
         fontWeight: 600,
         padding: "2px 8px",
         borderRadius: 999,
@@ -1694,7 +1590,7 @@ function RuleSubGroup({
         display: "inline-flex",
         alignItems: "center",
         gap: 8,
-        fontSize: 13,
+        fontSize: "var(--pulso-type-subtitle-size)",
         fontWeight: 700,
         color: headerColor,
         background: "none",
@@ -1713,7 +1609,7 @@ function RuleSubGroup({
         display: "inline-flex",
         alignItems: "center",
         gap: 8,
-        fontSize: 13,
+        fontSize: "var(--pulso-type-subtitle-size)",
         fontWeight: 700,
         color: headerColor,
       }}
@@ -1728,7 +1624,7 @@ function RuleSubGroup({
         {titleRow}
         <div
           style={{
-            fontSize: 11,
+            fontSize: "var(--pulso-type-caption-size)",
             color: "var(--pulso-text-soft)",
             marginTop: 2,
             lineHeight: 1.5,
@@ -1741,7 +1637,7 @@ function RuleSubGroup({
       {collapsed ? null : rows.length === 0 ? (
         <div
           style={{
-            fontSize: 12,
+            fontSize: "var(--pulso-type-body-size)",
             color: "var(--pulso-text-soft)",
             padding: "10px 12px",
             background: "var(--pulso-surface)",
@@ -1839,7 +1735,7 @@ function UnevaluableRuleCard({
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
         <span
           style={{
-            fontSize: 10,
+            fontSize: "var(--pulso-type-micro-size)",
             fontWeight: 700,
             padding: "2px 8px",
             borderRadius: 999,
@@ -1854,7 +1750,7 @@ function UnevaluableRuleCard({
         {showTipoTag && (
           <span
             style={{
-              fontSize: 10,
+              fontSize: "var(--pulso-type-micro-size)",
               color: "var(--pulso-text-soft)",
               textTransform: "uppercase",
               letterSpacing: 0.4,
@@ -1864,10 +1760,10 @@ function UnevaluableRuleCard({
           </span>
         )}
       </div>
-      <div style={{ fontSize: 13, color: "var(--pulso-text)", lineHeight: 1.4 }}>
+      <div style={{ fontSize: "var(--pulso-type-body-size)", color: "var(--pulso-text)", lineHeight: 1.4 }}>
         {row.displayName}
       </div>
-      <div style={{ fontSize: 11, color: "var(--pulso-text-soft)", lineHeight: 1.4 }}>
+      <div style={{ fontSize: "var(--pulso-type-caption-size)", color: "var(--pulso-text-soft)", lineHeight: 1.4 }}>
         {reason.explanation}
       </div>
     </div>

@@ -474,35 +474,6 @@
   color: color-mix(in srgb, var(--pulso-success-fg) 78%, var(--pulso-primary));
 }
 
-.pulso-add-element-menu-empty {
-  grid-column: 1 / -1;
-  min-height: 150px;
-  display: grid;
-  place-items: center;
-  align-content: center;
-  gap: 6px;
-  padding: 18px;
-  border: 1px dashed color-mix(in srgb, var(--xls-border) 80%, transparent);
-  border-radius: 14px;
-  background: color-mix(in srgb, var(--xls-content-soft) 86%, #ffffff);
-  color: var(--pulso-text-soft);
-  text-align: center;
-}
-
-.pulso-add-element-menu-empty strong {
-  color: var(--pulso-text);
-  font-size: var(--pulso-type-subtitle-size);
-  font-weight: var(--pulso-weight-heavy);
-}
-
-.pulso-add-element-menu-empty span {
-  max-width: 360px;
-  color: var(--pulso-text-soft);
-  font-size: var(--pulso-type-caption-size);
-  font-weight: var(--pulso-weight-semibold);
-  line-height: 1.4;
-}
-
 .pulso-add-element-menu-footer {
   display: flex;
   flex-wrap: wrap;
@@ -572,3 +543,8 @@
 /* Resguardo: el dibujo nunca sale de su recuadro, aunque otra regla cambie la columna. */
 .pulso-add-element-menu-maqueta { overflow: hidden; }
 .pulso-add-element-menu-maqueta .xfk-maqueta { max-width: 100%; max-height: 100%; }
+
+/* El vacío del menú de piezas (`EstadoVacio`) cruza todas las columnas de la grilla. */
+.pulso-add-element-menu-ancho {
+  grid-column: 1 / -1;
+}

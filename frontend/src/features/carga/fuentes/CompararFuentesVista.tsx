@@ -5,7 +5,7 @@
 
 import type { ComparacionFuentes, FuenteComparada } from "../../../api/cargaArmonizacion";
 import { formatoConteo, formatoConteoDe } from "../../../lib/formatoNumero";
-import { AlertTriangle, ChevronDown, Loader2 } from "../../../vendor/lucide-react";
+import { AlertTriangle, ChevronDown, Loader2, Inbox } from "../../../vendor/lucide-react";
 import {
   avisosPerdidas,
   nombresDeLados,
@@ -18,6 +18,8 @@ import {
 import { VariableComparadaTarjeta } from "./VariableComparadaTarjeta";
 import "./compararFuentes.css";
 
+import { EstadoVacio } from "../../../components/EstadoVacio";
+import { LoadingBlock, ErrorBlock } from "../../../components/States";
 export type CargaComparacion =
   | { tipo: "cargando" }
   | { tipo: "listo"; datos: ComparacionFuentes }
@@ -46,17 +48,15 @@ function TarjetaFuente({ fuente, lado }: { fuente: FuenteComparada; lado: "a" | 
 export function CompararFuentesVista({ carga }: { carga: CargaComparacion }) {
   if (carga.tipo === "cargando") {
     return (
-      <div className="pulso-plf-estado" role="status" data-qa-geometry-capacity="owned">
-        <Loader2 size={16} aria-hidden="true" className="pulso-bfp-giro" />
-        <p>Comparando las dos fuentes…</p>
+      <div data-qa-geometry-capacity="owned">
+        <LoadingBlock variant="inline" label="Comparando las dos fuentes…" />
       </div>
     );
   }
   if (carga.tipo === "error") {
     return (
-      <div className="pulso-plf-estado is-error" role="alert" data-qa-geometry-capacity="owned">
-        <strong>No se pudo comparar</strong>
-        <p>{carga.mensaje}</p>
+      <div data-qa-geometry-capacity="owned">
+        <ErrorBlock label="No se pudo comparar" detail={carga.mensaje} />
       </div>
     );
   }
@@ -81,7 +81,7 @@ export function CompararFuentesVista({ carga }: { carga: CargaComparacion }) {
         </div>
         {casos || filas ? (
           <p className="pulso-cf-casos">
-            {casos ? <span>{casos}{comp.casos ? <small> · cruzadas por «{comp.casos.clave}»</small> : null}</span> : null}
+            {casos ? <span>{casos}{comp.casos ? <small>, cruzadas por «{comp.casos.clave}»</small> : null}</span> : null}
             {!casos && filas ? <span>{filas}</span> : null}
           </p>
         ) : null}
@@ -130,13 +130,10 @@ export function CompararFuentesVista({ carga }: { carga: CargaComparacion }) {
         </section>
       ) : (
         // C5: vacío legítimo. Ninguna variable difiere entre las dos fuentes.
-        <div className="pulso-plf-estado" role="status" data-qa-geometry-capacity="owned">
-          <strong>Las dos fuentes coinciden</strong>
-          <p>
-            {comp.variables.length
+        <div data-qa-geometry-capacity="owned">
+          <EstadoVacio icono={<Inbox size={16} />} titulo="Las dos fuentes coinciden" descripcion={comp.variables.length
               ? "Todas las variables tienen la misma distribución en las dos bases."
-              : "La revisión no tiene variables con datos en estas bases para comparar."}
-          </p>
+              : "La revisión no tiene variables con datos en estas bases para comparar."} />
         </div>
       )}
 
@@ -151,7 +148,7 @@ export function CompararFuentesVista({ carga }: { carga: CargaComparacion }) {
               <li key={v.variable}>
                 <span className="pulso-cf-var-codigo">{v.variable}</span>
                 <span className="pulso-cf-iguales-etiqueta">{v.etiqueta || "Sin etiqueta"}</span>
-                <span className="pulso-cf-validos">Válidos {formatoConteo(v.n_validos_a)} · {formatoConteo(v.n_validos_b)}</span>
+                <span className="pulso-cf-validos">Válidos {formatoConteo(v.n_validos_a)} frente a {formatoConteo(v.n_validos_b)}</span>
               </li>
             ))}
           </ul>

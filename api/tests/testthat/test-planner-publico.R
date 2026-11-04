@@ -29,6 +29,9 @@ test_that("el Planner sólo se monta fuera del modo público", {
 })
 
 test_that("al publicar, del Planner sólo viaja la identidad", {
+  # Publica una sesión sin fuente de tablero: aquí se mide otra cosa. El guard
+  # de la fuente tiene su suite (test-dashboard-publish-fuente.R).
+  local_mocked_bindings(.publicacion_exigir_fuente_dashboard = function(s) invisible(TRUE))
   sid <- session_create()
   withr::defer(session_delete(sid))
   .planner_declarar(sid, "estudio", list(nombre = "Estudio de prueba", codigo = "EP26", cliente = "Cliente"), 0L)

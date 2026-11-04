@@ -153,8 +153,6 @@
 .xfa-btn--primario:hover:not(:disabled) { border-color: var(--pulso-primary); filter: brightness(1.05); }
 
 .xfa :is(button, input, select, summary):focus-visible { outline: 2px solid var(--pulso-primary-focus); outline-offset: 1px; }
-
-.xfa-vacio { margin: 0; padding: var(--pulso-space-2); font-size: var(--pulso-type-body-size); color: var(--pulso-text-muted); }
 .xfa-agregar { position: relative; justify-self: start; }
 .xfa-menu {
   position: absolute;

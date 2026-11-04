@@ -636,7 +636,7 @@ function QuestionControl({
       typeof value === "string" && value.trim() !== "" ? value.trim().split(/\s+/) : [];
     return (
       <div className="pulso-xfsim-options" role="group" aria-label={nombre}>
-        <span className="pulso-xfsim-rank-help">Toca en orden de prioridad · vuelve a tocar para quitar</span>
+        <span className="pulso-xfsim-rank-help">Toca en orden de prioridad; vuelve a tocar para quitar</span>
         {items.map((item) => {
           const position = order.indexOf(item.name);
           const isSelected = position >= 0;

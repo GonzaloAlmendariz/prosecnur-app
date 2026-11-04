@@ -452,6 +452,9 @@ export function ResumenDiseno({
           comparten franja. La rejilla los reparte en `repeat(6, minmax(0, 1fr))`,
           así que ninguno puede ensancharse ni crecer por su cuenta según el
           largo de su nombre o de su cifra. */}
+      {/* Sin ninguna cifra (un estudio que aún no calcula) la rejilla no se monta:
+          vacía y visible era un grupo `equal` sin miembros (auditoría, 4 nov). */}
+      {indicadores.conValor.length > 0 && (
       <div
         className="rec-resumen"
         role="status"
@@ -475,6 +478,7 @@ export function ResumenDiseno({
           </div>
         ))}
       </div>
+      )}
       {/* Fuera de la rejilla (D3): con la franja corta a 1280×720 la rejilla pasa
           a una sola fila y esta línea, metida en ella, se apretaba en una
           columna; afuera mide lo mismo en todos los anchos. */}

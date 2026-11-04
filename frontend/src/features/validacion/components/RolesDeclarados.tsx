@@ -121,7 +121,7 @@ export default function RolesDeclarados({ value, onChange, baseNombre, disabled 
             titulo="Candidatas por perfil"
             items={sug.identidad.agentes.map((a) => ({
               clave: a.variable,
-              etiqueta: `${a.variable} · ${a.distintos} valores`,
+              etiqueta: `${a.variable}, ${a.distintos} valores`,
               porque: a.porque,
               yaEsta: identidad.agent_variable === a.variable,
             }))}
@@ -172,8 +172,8 @@ export default function RolesDeclarados({ value, onChange, baseNombre, disabled 
               // base —un teléfono no tiene letras—, así que el riesgo se dice
               // antes del clic, no después.
               aviso: a.probable_operativa
-                ? `Parece captura operativa · alertaría en los ${a.n_respuestas} casos`
-                : `${a.n_respuestas} respuestas · ${a.palabras_promedio} palabras en promedio`,
+                ? `Parece captura operativa; alertaría en los ${a.n_respuestas} casos`
+                : `${a.n_respuestas} respuestas, ${a.palabras_promedio} palabras en promedio`,
               tono: a.probable_operativa ? ("warn" as const) : ("ok" as const),
               yaEsta: abiertas.variables.includes(a.variable),
             }))}

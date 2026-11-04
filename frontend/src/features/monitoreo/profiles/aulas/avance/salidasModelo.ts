@@ -72,6 +72,8 @@ export type EntradaDeSalidas = {
   /** `null` mientras se piden las tablas; `[]` si no llegaron. */
   tablas: MonitoreoAulasAvanceTabla[] | null;
   errorTablas: string;
+  /** Sin plan de aulas: la causa que da el motor. Vacío legítimo, no un error. */
+  sinPlanTablas?: string;
 };
 
 function texto(valor: unknown): string {
@@ -239,13 +241,11 @@ const COLUMNAS_DE_LA_VISTA = [
   "Aulas planificadas originalmente", "Aulas aplicadas", "Muestra", "Efectivas", "Avance muestra",
 ];
 
-function vistaPreviaDe(tablas: EntradaDeSalidas["tablas"], error: string): VistaPrevia {
+function vistaPreviaDe(tablas: EntradaDeSalidas["tablas"], error: string, sinPlan = ""): VistaPrevia {
   if (tablas == null) return { tipo: "cargando" };
   // Sin plan no hay nada que previsualizar: es un vacío legítimo con su salida,
-  // no una falla (el mensaje crudo de la API arrastraba «· E_AULAS_LIBRO_SIN_PLAN»).
-  if (error.includes("E_AULAS_LIBRO_SIN_PLAN")) {
-    return { tipo: "vacio", vacio: { clase: "legitimo", causa: "Todavía no hay plan de aulas: se importa de Cálculo de muestra en Insumos › Fuentes." } };
-  }
+  // no una falla. El motor lo dice con `sin_plan` y su causa (antes, con un 409).
+  if (sinPlan) return { tipo: "vacio", vacio: { clase: "legitimo", causa: sinPlan } };
   if (error) return { tipo: "vacio", vacio: { clase: "desconexion", causa: `No se pudo armar la vista previa: ${error}` } };
   const tabla = tablas.find((t) => t.clave === "facultad");
   if (!tabla) return { tipo: "vacio", vacio: { clase: "desconexion", causa: "El corte no trae la tabla por facultad de «Avance de campo»." } };
@@ -278,7 +278,7 @@ export function construirSalidas(entrada: EntradaDeSalidas): ModeloSalidas {
   return {
     salidas: [salidaDelLibro(entrada.config, entrada.corte), SALIDA_PDF, salidaDelCliente(entrada.clientSheets), SALIDA_EXCEL],
     queToca: queTocaDe(entrada.config),
-    vistaPrevia: vistaPreviaDe(entrada.tablas, entrada.errorTablas),
+    vistaPrevia: vistaPreviaDe(entrada.tablas, entrada.errorTablas, entrada.sinPlanTablas ?? ""),
   };
 }
 

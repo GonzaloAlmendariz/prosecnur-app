@@ -43,7 +43,7 @@ export function GrupoListasCard({
           Esta escala se repite en {n} {n === 1 ? "pregunta" : "preguntas"}
         </h3>
         <p title={grupo.listas.join(", ")}>
-          {grupo.listas.length} listas idénticas · {grupo.opciones.length} opciones
+          {grupo.listas.length} listas idénticas, {grupo.opciones.length} opciones
         </p>
       </header>
       <OpcionesChips opciones={grupo.opciones} />

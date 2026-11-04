@@ -115,7 +115,7 @@ export default function CruceDispersion({
           )}
           {dentro.map(([a, b], i) => (
             <circle key={i} className="vx-svg-punto" cx={xDe(marco, a, x)} cy={yDe(marco, b, y)} r={4.5}>
-              <title>{`${rotuloX}: ${fmtValor(a)} · ${rotuloY}: ${fmtValor(b)}`}</title>
+              <title>{`${rotuloX}: ${fmtValor(a)}; ${rotuloY}: ${fmtValor(b)}`}</title>
             </circle>
           ))}
           {dibujaTendencia && tendencia && (

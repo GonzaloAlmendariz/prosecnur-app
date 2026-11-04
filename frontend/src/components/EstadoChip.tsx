@@ -24,10 +24,13 @@ export type EstadoChipProps = {
 
 export function EstadoChip({ label, tone, detail, onSelect }: EstadoChipProps) {
   const rotulo = conMayusculaInicial(label);
+  // El rótulo va en su propio elemento: la auditoría de geometría mide los hijos elemento de una
+  // caja y, con el texto suelto, tomaba el punto de 7 px como todo el contenido del chip
+  // (capacity-drift de 5.3 px en los grupos intrínsecos; Validación lo rodeaba envolviendo cada chip).
   const contenido = (
     <>
       <span className="pulso-estado-chip-punto" aria-hidden />
-      {rotulo}
+      <span className="pulso-estado-chip-rotulo">{rotulo}</span>
     </>
   );
   // Sin `onSelect` no es un control: un `<span role="status">` con el mismo material. Un

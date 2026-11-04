@@ -32,6 +32,7 @@ import { PANELES_CARGA } from "../../features/carga/panelesCarga";
 import { PANELES_VALIDACION } from "../../features/validacion/panelesValidacion";
 import { PANELES_ANALITICA } from "../../features/analitica/panelesAnalitica";
 import { PANELES_CODIFICACION } from "../../features/codificacion/panelesCodificacion";
+import { PANELES_DASHBOARD } from "../../features/dashboard/panelesDashboard";
 import { PANELES_CORREOS } from "../../features/recopiladores/correos/panelesCorreos";
 import { PANEL_REHACER_PLAN } from "../../features/recopiladores/resembrado";
 import { PANELES_CAMPANAS } from "../../features/recopiladores/campanas/panelesCampanas";
@@ -240,6 +241,10 @@ export const PANELES_POR_MODULO: Readonly<
   // Aulas › Catálogo › Editor: el inspector del bloque, siempre abierto; lo elige `foco` (E1b).
   // Selección › salidas: `?seccion=seleccion&panel=salidas`. Sideover bajo 1280 px en la página clásica;
   // en el lienzo (ADR 0114) siempre sideover, disparado desde el pie del inspector.
+  // `?panel=personalizar`: el editor de marca, color, vistas y pestañas del dashboard; `?panel=paletas`: las
+  // paletas por lista; `?panel=publicar`: el despliegue (abrirlo no publica); `?panel=fuente`: «Datos», la fuente
+  // del tablero, que lo reemplaza en la página.
+  dashboard: [...PANELES_DASHBOARD],
   "hojas-ruta": [PANEL_SALIDAS_SELECCION],
   "material-campo": [
     ...PANELES_CAMPANAS,

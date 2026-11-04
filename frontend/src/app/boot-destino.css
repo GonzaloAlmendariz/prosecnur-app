@@ -1,30 +1,10 @@
 /* La preparación del proyecto en el color del módulo de destino (3 nov 2026, Gonzalo:
    «la barra profesional animada con el color del módulo»). Sólo cuando la ruta tiene
-   módulo (`data-modulo-destino`); en el Home queda el azul de marca de boot.css. El
-   porcentaje mezcla el acento con --pulso-text para no bajar de AA. */
+   módulo (`data-modulo-destino`); en el Home queda el azul de marca de boot.css. El rótulo
+   de destino y el paso en curso mezclan el acento con --pulso-text para no bajar de AA
+   (boot-ecualizador.css). */
 
-.boot-warmup[data-modulo-destino] .boot-ring-arc {
-  background: conic-gradient(
-    from 0deg,
-    var(--module-accent) 0,
-    color-mix(in srgb, var(--module-accent) 72%, var(--pulso-text)) calc(var(--boot-ring-p) * 1%),
-    color-mix(in srgb, var(--module-accent) 12%, transparent) calc(var(--boot-ring-p) * 1%),
-    color-mix(in srgb, var(--module-accent) 12%, transparent) 100%
-  );
-}
-.boot-warmup[data-modulo-destino] .boot-ring-orbit {
-  background: conic-gradient(
-    from 90deg,
-    transparent,
-    color-mix(in srgb, var(--module-accent) 30%, transparent),
-    transparent
-  );
-}
-.boot-warmup[data-modulo-destino] .boot-progress-percent {
-  color: color-mix(in srgb, var(--module-accent) 70%, var(--pulso-text));
-}
-
-/* La barra del kit bajo el reloj: el mismo avance que el anillo, en línea. */
+/* La barra del kit: la única lectura del avance (el anillo se retiró el 4 nov 2026). */
 .boot-progress .pulso-barra-avance {
   width: min(240px, 100%);
   margin-top: var(--pulso-space-3);

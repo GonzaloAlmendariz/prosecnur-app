@@ -134,10 +134,10 @@ export function AdaptarAplicacionVista({
     <>
       {!salida && (
         <div className="pulso-codificacion-adaptar-actions">
-          <button type="button" className="pulso-cv2-pill" onClick={onBackToCodificar} style={{ fontSize: 13, display: "inline-flex", alignItems: "center", gap: 6 }}>
+          <button type="button" className="pulso-cv2-pill" onClick={onBackToCodificar} style={{ fontSize: "var(--pulso-type-body-size)", display: "inline-flex", alignItems: "center", gap: 6 }}>
             <ArrowLeft size={13} /> Volver a codificar
           </button>
-          <button type="button" className="pulso-cv2-pill" onClick={onBackToMatrices} style={{ fontSize: 13, display: "inline-flex", alignItems: "center", gap: 6 }}>
+          <button type="button" className="pulso-cv2-pill" onClick={onBackToMatrices} style={{ fontSize: "var(--pulso-type-body-size)", display: "inline-flex", alignItems: "center", gap: 6 }}>
             <FileSpreadsheet size={13} /> Revisar matrices
           </button>
           <div style={{ flex: 1 }} />
@@ -163,7 +163,7 @@ export function AdaptarAplicacionVista({
             aria-busy={aplicando || undefined}
             aria-describedby={motivoDeshabilitado ? "codificacion-adaptar-disabled-reason" : undefined}
             data-testid="codificacion-adaptar-boton"
-            style={{ fontSize: 14, display: "inline-flex", alignItems: "center", gap: 6 }}
+            style={{ fontSize: "var(--pulso-type-body-size)", display: "inline-flex", alignItems: "center", gap: 6 }}
           >
             {aplicando ? (
               <>
@@ -217,20 +217,20 @@ export function AdaptarAplicacionVista({
 
       {salida && (
         <Panel eyebrow="Resultado" title="Archivos adaptados listos para descargar">
-          <div style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 13, color: "var(--pulso-success-fg)", marginBottom: 10 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, fontSize: "var(--pulso-type-body-size)", color: "var(--pulso-success-fg)", marginBottom: 10 }}>
             <CheckCircle2 size={16} /> La adaptación terminó correctamente.
           </div>
           <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
             <a
               href={downloadUrl(salida.data)}
               className="pulso-primary"
-              style={{ fontSize: 13, padding: "8px 14px", display: "inline-flex", alignItems: "center", gap: 6, textDecoration: "none" }}
+              style={{ fontSize: "var(--pulso-type-body-size)", padding: "8px 14px", display: "inline-flex", alignItems: "center", gap: 6, textDecoration: "none" }}
             >
               <Download size={14} /> data_adaptada.xlsx
             </a>
             <a
               href={downloadUrl(salida.inst)}
-              style={{ fontSize: 13, padding: "8px 14px", display: "inline-flex", alignItems: "center", gap: 6 }}
+              style={{ fontSize: "var(--pulso-type-body-size)", padding: "8px 14px", display: "inline-flex", alignItems: "center", gap: 6 }}
             >
               <Download size={14} /> instrumento_adaptado.xlsx
             </a>

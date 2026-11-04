@@ -7,7 +7,7 @@ import type { EntradaTamano, ModoAsignacion } from "./motorTamano";
  * es siempre la configuración con el borrador encima.
  */
 
-export type BorradorMuestra = Partial<Pick<HojasRutaIntegratedConfig, "sample_size_mode" | "n_objetivo" | "n_por_distrito" | "entrevistas_por_manzana">> & {
+export type BorradorMuestra = Partial<Pick<HojasRutaIntegratedConfig, "sample_size_mode" | "n_objetivo" | "n_por_distrito" | "entrevistas_por_manzana" | "replacement_policy">> & {
   sample_size?: Partial<HojasRutaSampleSizeConfig>;
 };
 
@@ -44,7 +44,7 @@ export function entradaDesdeConfig(config: HojasRutaIntegratedConfig, territorio
   const s = config.sample_size;
   const confirmados = territorios.filter((t) => config.territorios.includes(t.ubigeo));
   return {
-    distritos: confirmados.map((t) => ({ ubigeo: t.ubigeo, distrito: t.distrito, poblacion: t.poblacion })),
+    distritos: confirmados.map((t) => ({ ubigeo: t.ubigeo, distrito: t.distrito, poblacion: poblacionDeReparto(t, usaBase2025(s)) })),
     modo: config.sample_size_mode,
     nTotal: config.n_objetivo,
     nPorDistrito: config.n_por_distrito ?? {},
@@ -64,6 +64,17 @@ export function entradaDesdeConfig(config: HojasRutaIntegratedConfig, territorio
     },
   };
 }
+
+/** ADR 0131 §2: ¿el reparto usa los adultos urbanos estimados 2025? */
+export const usaBase2025 = (s: Pick<HojasRutaSampleSizeConfig, "base_reparto"> | undefined) => s?.base_reparto === "cpv2025_adultos_urbanos";
+
+/**
+ * Población con que el espejo reparte: P̂25 con la base 2025, la del marco 2017 si no.
+ * Si a un distrito le falta P̂25 se queda con la 2017; el backend, en cambio, da error
+ * al guardar (E_HOJAS_RUTA_BASE_2025_INCOMPLETA) y el panel lo avisa antes.
+ */
+export const poblacionDeReparto = (t: Pick<HojasRutaTerritory, "poblacion" | "p25">, base2025: boolean) =>
+  base2025 && typeof t.p25 === "number" && Number.isFinite(t.p25) && t.p25 > 0 ? t.p25 : t.poblacion;
 
 /** DEFF ≈ 1 + (m − 1) · ICC, con m entrevistas por manzana. */
 export const deffPorIcc = (porRuta: number, icc: number) => Math.round((1 + (porRuta - 1) * icc) * 100) / 100;

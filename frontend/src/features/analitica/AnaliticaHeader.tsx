@@ -150,7 +150,7 @@ export function AnaliticaHeader({ prepBusy, prepError, variant = "bar" }: Analit
   const activeData = activeFirst?.data?.filename ?? "Base de datos no resuelta";
   const activeAvailableCount = activeBases?.filter((b) => b.available).length ?? 0;
   const sourceFilesSummary = activeAvailableCount > 1
-    ? `${activeAvailableCount} bases disponibles · instrumento y datos vinculados`
+    ? `${activeAvailableCount} bases disponibles, instrumento y datos vinculados`
     : "Instrumento y datos vinculados";
   const sourceTitle = panelVariant
     ? prepBusy
@@ -191,7 +191,7 @@ export function AnaliticaHeader({ prepBusy, prepError, variant = "bar" }: Analit
           )}{" "}
           <span>{guidance}</span>
           {!panelVariant && (
-            <div className="pulso-analitica-source-files" title={`Formulario: ${activeXls} · Base de datos: ${activeData}`}>
+            <div className="pulso-analitica-source-files" title={`Formulario: ${activeXls}, Base de datos: ${activeData}`}>
               {sourceFilesSummary}
             </div>
           )}

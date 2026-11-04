@@ -299,7 +299,7 @@ export const UNIVERSITY_REQUIRED_VARIABLES: CalcMuestraWorkspaceVariableMapping[
   { role: "course_name", label: "Nombre del curso", required: false, source_role: "catalogo_curso_horario", description: "Etiqueta legible del curso-horario." },
   { role: "course_level", label: "Nivel del curso", required: false, source_role: "catalogo_curso_horario", description: "Nivel o ciclo del curso (no del estudiante); habilita el rango de nivel por unidad académica." },
   { role: "classroom", label: "Salón o sección", required: false, source_role: "catalogo_curso_horario", description: "Salón físico o grupo operativo; no identifica por sí solo el curso-horario." },
-  { role: "teacher", label: "Docente/contacto", required: false, source_role: "catalogo_curso_horario", description: "Útil para agenda y autorización." },
+  { role: "teacher", label: "Docente / contacto", required: false, source_role: "catalogo_curso_horario", description: "Útil para agenda y autorización." },
   { role: "teacher_type", label: "Tipo de docente", required: false, source_role: "catalogo_curso_horario", description: "Categoría del docente (contratado, ordinario…); habilita el criterio de docente estable." },
   { role: "schedule", label: "Horario", required: true, source_role: "catalogo_curso_horario", description: "Balance y planificación de campo." },
   { role: "modality", label: "Modalidad", required: false, source_role: "catalogo_curso_horario", description: "Presencial, virtual o mixta." },

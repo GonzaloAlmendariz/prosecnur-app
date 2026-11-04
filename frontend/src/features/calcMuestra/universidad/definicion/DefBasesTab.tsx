@@ -47,6 +47,7 @@ import { useValorSwap } from "../ui/useValorSwap";
 import { SolicitudDtiButton } from "./SolicitudDtiButton";
 import { ReferenciaAsistenciaCard } from "./ReferenciaAsistenciaCard";
 import "./definicion.css";
+import { Panel } from "../../../../components/Panel";
 
 const MODE_BADGES: Record<CalcMuestraWorkspaceSourceMode, string> = {
   base_madre: "Recomendado",
@@ -500,8 +501,8 @@ export function DefBasesTab({
   ];
 
   return (
-    <section
-      className="cmv2-panel cmv2-university-sources"
+    <Panel
+      className="cmv2-university-sources"
       // Marcaba `member` sin que ningún grupo lo contuviera: un miembro
       // huérfano no lo audita nadie. Ahora la sección declara su grupo y sus
       // bloques internos son los miembros.
@@ -659,6 +660,6 @@ export function DefBasesTab({
           </div>
         </>
       )}
-    </section>
+    </Panel>
   );
 }

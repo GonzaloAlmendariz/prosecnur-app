@@ -90,7 +90,7 @@
 # Args compartidos por TODOS los graficadores.
 .args_graf_comunes <- function() list(
   list(name = "titulo",     label = "Título del gráfico", tipo_input = "string",      grupo = "textos",
-       descripcion = "Título que aparece sobre el gráfico. Si lo dejas vacío, se usa la etiqueta de la variable."),
+       descripcion = "Rótulo sobre el gráfico en las láminas de varios gráficos y en las barras agrupadas. En las apiladas de un solo gráfico no se dibuja, porque el título es el de la lámina. Si lo dejas vacío, se usa la etiqueta de la variable."),
   list(name = "overrides",  label = "Overrides de estilo",tipo_input = "overrides",   grupo = "estilo",
        descripcion = "Ajustes visuales sólo para este gráfico (tamaños, colores, márgenes); mandan sobre el estilo del informe."),
   list(name = "filtros",    label = "Filtros",            tipo_input = "filtros",     grupo = "filtro",
@@ -1057,6 +1057,43 @@
            ),
            descripcion = "Qué parte de estandar_pulso.json dibuja la lámina.")
     )
+  ),
+
+  # Láminas de diferencias (especificación CCSS del 2026-11-04): el resumen por capítulo y los hallazgos clave. Las dos
+  # son nativas y se componen como un `slide_1` (graficos_resumen_diferencias.R, graficos_hallazgos.R). Sus listas
+  # (`capitulos`, `cifras`) se escriben en el plan; todavía no tienen inspector, así que no se ofrecen en el selector.
+  p_slide_resumen_diferencias = list(
+    titulo_humano = "Resumen de diferencias",
+    descripcion   = "Tabla por capítulo con los puntos de diferencia de cada grupo frente al resto, con la prueba del informe.",
+    icono_ui      = "Table",
+    categoria     = "1grafico",
+    render_key    = "resumen_diferencias",
+    en_selector   = FALSE,
+    blueprint     = list(kind = "single", ppt_layout = "Graficos2", structure_label = "Resumen de diferencias"),
+    slot_specs    = list(),
+    args = c(.args_slide_titulos_base(c("titulo", "etiqueta", "base")), list(
+      list(name = "seleccion", label = "Selección de filas", tipo_input = "choice", grupo = "textos", default = "manual",
+           choices = list(list(value = "manual", label = "Las filas escritas en el plan"),
+                          list(value = "auto", label = "Las filas del plan con diferencias")),
+           descripcion = "Con «auto», el motor propone las filas con diferencias: primero las del 99%, luego las más grandes, hasta 4 por capítulo y 18 en total.")
+    ))
+  ),
+
+  p_slide_hallazgos = list(
+    titulo_humano = "Hallazgos clave",
+    descripcion   = "Cifras destacadas con su intervalo de 95% calculado con el diseño y su diferencia frente al resto; con o sin gráfico de apoyo.",
+    icono_ui      = "LayoutGrid",
+    categoria     = "1grafico",
+    render_key    = "hallazgos",
+    en_selector   = FALSE,
+    blueprint     = list(kind = "single", ppt_layout = "Graficos2", structure_label = "Hallazgos clave"),
+    slot_specs    = list(),
+    args = c(.args_slide_titulos_base(c("titulo", "etiqueta", "base")), list(
+      list(name = "modo", label = "Modo", tipo_input = "choice", grupo = "textos", default = "cifras",
+           choices = list(list(value = "cifras", label = "Hasta seis cifras"),
+                          list(value = "cifras_con_graficos", label = "Hasta tres cifras con su gráfico")),
+           descripcion = "Las cifras solas, para abrir o cerrar el informe, o con su gráfico de apoyo, para abrir un capítulo.")
+    ))
   )
 )
 
@@ -1128,6 +1165,10 @@
       list(name = "residuales_gris", label = "Residuales en gris", tipo_input = "bool", grupo = "estilo",
            default = FALSE,
            descripcion = "Pinta de gris “Prefiero no responder”, “No sabe”, “Otros”…; apagado por defecto. Siguen al final de la lista, con o sin gris."),
+      # ADR 0130 (Gonzalo, 2026-11-04: «no entiendo por qué usamos paleta de colores y es barras agrupadas»).
+      list(name = "colorear_por_opcion", label = "Un color por opción", tipo_input = "bool", grupo = "estilo",
+           default = FALSE,
+           descripcion = "Con una sola serie, pinta cada barra con el color que la paleta del estudio da a su opción. Apagado, todas van en un color."),
       list(name = "invertir_barras", label = "Invertir el orden de las barras", tipo_input = "bool", grupo = "filtro",
            default = TRUE, descripcion = "Dibuja las barras en el orden contrario."),   # O7c: formal del constructor desde 383c1fe2b
       list(name = "excluir_opciones", label = "Opciones a ocultar", tipo_input = "codigos_list", grupo = "filtro",
@@ -1515,7 +1556,7 @@
       list(name = "var", label = "Variable", tipo_input = "variable", grupo = "datos"),
       # Recetario p70: la respuesta del centro y su frase. La pestaña Gráfico los edita con su tarjeta (DonaCentro).
       list(name = "al_centro", label = "Al centro", tipo_input = "string", grupo = "valores",
-           descripcion = "La respuesta cuya cifra va al centro de la dona y abre la lectura. Vacío: la primera."),
+           descripcion = "La respuesta cuya cifra va al centro de la dona y abre la lectura. Vacío: en lámina completa, la primera; en un panel, ninguna (cada cifra va en su porción)."),
       list(name = "frase_centro", label = "Frase del centro", tipo_input = "string", grupo = "textos",
            descripcion = "Lo que se lee bajo la cifra del centro («conoce la misión»). Vacío: el nombre de la respuesta."),
       list(name = "top_k", label = "Top K + Otros", tipo_input = "number", grupo = "filtro",
@@ -1809,7 +1850,9 @@
       list(name = "cortes", label = "Dónde empieza cada clase", tipo_input = "codigos_list", grupo = "estilo",
            descripcion = "Desde la segunda clase, en la unidad de la medida. Vacío usa 3, 6, 11 y 21 encuestados (Perú: 3, 6 y 11), 6, 11, 21 y 51 personas o 0.5, 1, 2 y 3 por 10 000."),
       list(name = "puntos", label = "Puntos de referencia", tipo_input = "textarea", grupo = "textos",
-           descripcion = "Uno por línea: Etiqueta | latitud, longitud o enlace de Google Maps | color opcional. Ej.: PUCP | -12.0693, -77.0794")
+           descripcion = "Uno por línea: Etiqueta | latitud, longitud o enlace de Google Maps | color opcional. Ej.: PUCP | -12.0693, -77.0794"),
+      list(name = "ancho_mapa", label = "Ancho del mapa", tipo_input = "number", grupo = "estilo", min = 0.25, max = 0.8, step = 0.05,
+           descripcion = "Fracción de la tarjeta que toma el mapa (0.25 a 0.8); el resto es de la lista. Vacío: automático, el mapa toma el ancho que su alto pide.")
     ), .args_graf_comunes())
   ),
 
@@ -2394,6 +2437,42 @@
            ),
            descripcion = "Si un criterio no es una pregunta de escala, se usa el índice lineal en todos.")
     ), .args_graf_comunes())
+  ),
+
+  # Lámina «total arriba y protagonista abajo», variante 05 (Gonzalo, 2026-11-04): graficos_lineas_nivel.R,
+  # lamina_total_y_cruce.R y lamina_lineas_nivel.R.
+  p_lineas_nivel = list(
+    titulo_humano = "Total y línea por nivel",
+    descripcion   = "Arriba, el total de la pregunta en una franja. Abajo, una línea por serie con un punto por nivel (nivel curricular, ciclo, grupo de edad). Cada nivel que se aparta del resto lleva su marca, y cada serie que crece o baja con el nivel lleva su aviso, con la regla de diferencias del estudio.",
+    icono_ui      = "TrendingUp",
+    categoria     = "comparison",
+    blueprint     = "line-series",
+    args = c(list(
+      list(name = "var", label = "Pregunta", tipo_input = "variable", grupo = "datos",
+           descripcion = "La pregunta que se muestra en el total y en las líneas."),
+      list(name = "cruce", label = "Niveles del eje", tipo_input = "variable", grupo = "datos",
+           descripcion = "Pregunta con niveles ordenados (ej. nivel curricular). Un punto por nivel, de menor a mayor."),
+      list(name = "series", label = "Líneas", tipo_input = "meta", grupo = "datos",
+           descripcion = "Una lista de líneas, hasta tres. Cada una tiene su rótulo y las respuestas de la pregunta que cuentan. Una línea puede sumar una segunda pregunta (ej. «trabaja y lo hace medio tiempo o más»). Todas se calculan sobre todos los casos de cada nivel."),
+      list(name = "total_arriba", label = "Total arriba", tipo_input = "bool", grupo = "datos", default = TRUE,
+           descripcion = "Muestra arriba la franja con el total de la pregunta."),
+      list(name = "segmentos_total", label = "Partes del total", tipo_input = "meta", grupo = "datos",
+           descripcion = "Cómo se parte la franja del total, con la misma forma que las líneas. Vacío: si las líneas van una dentro de otra, la interior, lo que falta para la exterior y el resto; si no, una parte por respuesta."),
+      list(name = "mostrar_significancia", label = "Marcar diferencias", tipo_input = "bool", grupo = "datos", default = TRUE,
+           descripcion = "Marca el nivel que se aparta del resto y avisa si la línea crece o baja con el nivel, con la regla de diferencias del estudio."),
+      list(name = "grupos", label = "Niveles que se muestran", tipo_input = "codigos_list", grupo = "datos",
+           descripcion = "Opcional. Los códigos de los niveles que entran al eje; vacío, todos los que tienen casos."),
+      list(name = "titulo_seccion", label = "Título de las líneas", tipo_input = "string", grupo = "textos",
+           descripcion = "Texto sobre las líneas. Ej. «Según nivel curricular»."),
+      list(name = "rotulo_total", label = "Título del total", tipo_input = "string", grupo = "textos",
+           descripcion = "Texto sobre la franja del total. Ej. «Total de estudiantes»."),
+      list(name = "publico", label = "Cómo se llaman los casos", tipo_input = "string", grupo = "textos",
+           descripcion = "Va bajo cada nivel con su número. Ej. «estudiantes» escribe «119 estudiantes»."),
+      list(name = "nombre_nivel", label = "Qué crece", tipo_input = "string", grupo = "textos",
+           descripcion = "La palabra del aviso de cada línea. Ej. «nivel» escribe «Crece con el nivel»."),
+      list(name = "lectura", label = "Lectura al margen", tipo_input = "textarea", grupo = "textos",
+           descripcion = "Texto en gris a la derecha, sin marcas. Sirve para un análisis complementario.")
+    ), .args_graf_comunes())
   )
 )
 
@@ -2438,7 +2517,8 @@
   # Fuera del selector (Gonzalo, 2026-10-10: «sí, sácalo»): no está en el recetario. Sigue registrado y renderizable
   # para los planes que ya lo usan.
   p_dim_foda = list("dimensiones", "ruta_anterior", motivo = "No hay pieza propia para la matriz FODA.", en_selector = FALSE),
-  p_dim_heatmap_criterios = list("dimensiones", "nativa", condicion = "Si no cabe en la lámina, sale por la ruta anterior.")
+  p_dim_heatmap_criterios = list("dimensiones", "nativa", condicion = "Si no cabe en la lámina, sale por la ruta anterior."),
+  p_lineas_nivel = list("comparar", "nativa", condicion = "Con dos niveles o más; en el Word sale como figura.")
 )
 stopifnot(setequal(names(.GRAFICOS_SALIDA_EDITOR), names(.GRAFICADORES_META)))
 .GRAFICADORES_META <- Map(function(meta, s) {
@@ -2486,7 +2566,8 @@ stopifnot(setequal(names(.GRAFICOS_SALIDA_EDITOR), names(.GRAFICADORES_META)))
   p_dim_heatmap = "dim_heatmap",
   p_dim_comparativo_radarbar = "",
   p_dim_foda = "dim_foda",
-  p_dim_heatmap_criterios = "dim_heatmap_criterios"
+  p_dim_heatmap_criterios = "dim_heatmap_criterios",
+  p_lineas_nivel = ""
 )
 
 .graf_operational_contract <- function(name, meta) {

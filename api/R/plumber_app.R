@@ -113,6 +113,7 @@ build_plumber_app <- function(static_dir = system.file("www", package = "prosecn
     pr <- mount_analitica(pr)
     pr <- mount_armonizada(pr)
     pr <- mount_ponderacion_bases(pr)
+    pr <- mount_ponderacion_metas_cpv2025(pr)  # ADR 0131 paso 5: metas de calibración del CPV 2025
     pr <- mount_analitica_codigos_especiales(pr)
     pr <- mount_analitica_universo(pr)
     pr <- mount_label_overrides(pr)

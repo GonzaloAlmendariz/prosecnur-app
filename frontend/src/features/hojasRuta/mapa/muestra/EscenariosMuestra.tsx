@@ -5,6 +5,7 @@ import { useLienzoHojasRuta } from "../store";
 import type { ResultadoTamano } from "./motorTamano";
 import { escenarioDe, firmaEscenario } from "./repartos";
 
+import { formatoDecimal } from "../../../../lib/formatoNumero";
 /**
  * Escenarios de tamaño (brecha B32): se guarda lo que hoy se ve —N, margen,
  * peor distrito, contactos— para compararlo con otros antes de decidir.
@@ -12,7 +13,7 @@ import { escenarioDe, firmaEscenario } from "./repartos";
  */
 
 const fmt = (n: number) => new Intl.NumberFormat("es-PE").format(Math.round(n));
-const pct = (v: number | null) => (v == null ? "—" : `±${(v * 100).toLocaleString("es-PE", { maximumFractionDigits: 1 })} %`);
+const pct = (v: number | null) => (v == null ? "—" : `±${formatoDecimal(v * 100, 1)} %`);
 
 export function EscenariosMuestra({ config, resultado, bloqueado }: { config: HojasRutaIntegratedConfig; resultado: ResultadoTamano; bloqueado: boolean }) {
   const { escenariosMuestra: escenarios, setEscenariosMuestra, setMuestraBorrador } = useLienzoHojasRuta();

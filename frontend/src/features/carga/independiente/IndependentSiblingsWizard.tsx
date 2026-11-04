@@ -19,6 +19,7 @@ import { SM_DEFAULT_BASE_URL, independentSiblingsCapacity, independentSiblingsCa
 import type { SmLogicPreviewEntry, SmLogicPreviewRow, SmSourceSummary } from "../surveymonkey/smBasesModel";
 import { SmDecisionSuite } from "./SmDecisionSuite";
 import { FilePicker } from "../BasesFilePicker";
+import { EstadoVacio } from "../../../components/EstadoVacio";
 
 type SmCanonicalOption = {
   fileId: string;
@@ -95,7 +96,7 @@ function SmConsentSelect({
           <option value="">Sin definir</option>
           {options.map((option) => (
             <option key={option.name} value={option.name}>
-              {option.name}{option.label ? ` · ${smShortQuestionLabel(option.label)}` : ""}
+              {option.name}{option.label ? `: ${smShortQuestionLabel(option.label)}` : ""}
             </option>
           ))}
         </select>
@@ -107,7 +108,7 @@ function SmConsentSelect({
           <em>
             {filter.value
               ? `Aprueba: ${filter.approved.map((choice) => (
-                choice.name && choice.label ? `${choice.name} · ${choice.label}` : choice.label || choice.name
+                choice.name && choice.label ? `${choice.name}: ${choice.label}` : choice.label || choice.name
               )).join(", ")}`
               : "Selecciona una variable select_one"}
           </em>
@@ -137,7 +138,7 @@ function SmSourceSummaryBlock({ sources }: { sources: SmSourceSummary[] }) {
             <strong title={source.title}>{source.title}</strong>
             <small>
               {source.surveyId ? `Survey ID ${source.surveyId}` : "SurveyMonkey"}
-              {source.consentVar ? ` · filtro ${source.consentVar}` : ""}
+              {source.consentVar ? `, filtro ${source.consentVar}` : ""}
             </small>
           </div>
           <span>{source.channel ? <SmChannelBadge channel={source.channel} /> : "S/D"}</span>
@@ -237,7 +238,7 @@ function MonitoringProcessingSuggestionsCard({
               <div className={`pulso-monitoring-suggestion-row${canImport || canImportKobo ? "" : " is-muted"}`} role="listitem" key={group.id}>
                 <div className="pulso-monitoring-suggestion-actor">
                   <strong>{group.actor}</strong>
-                  <small>{group.platform === "surveymonkey" ? "SurveyMonkey" : "Kobo"} · {group.source_count} fuente{group.source_count === 1 ? "" : "s"}</small>
+                  <small>{group.platform === "surveymonkey" ? "SurveyMonkey" : "Kobo"}, {group.source_count} fuente{group.source_count === 1 ? "" : "s"}</small>
                 </div>
                 <div className="pulso-monitoring-suggestion-meta">
                   <span>{smSuggestionResponseLabel(group.response_count)}</span>
@@ -461,7 +462,7 @@ function SmCollectorPicker({
               />
               <span>
                 <strong>{smCollectorDisplayName(collector)}</strong>
-                <small>{smCollectorTypeLabel(collector.type)} · {smCollectorResponseLabel(collector.response_count)} · ID {collectorId}</small>
+                <small>{smCollectorTypeLabel(collector.type)}, {smCollectorResponseLabel(collector.response_count)}, ID {collectorId}</small>
               </span>
             </label>
           );
@@ -1499,7 +1500,7 @@ export function IndependentSiblingsSurveyMonkeyWizard({
               <span>
                 {hasSharedSurveyMonkeyLogic
                   ? `${surveyMonkeyLogicRuleLines.length} ${surveyMonkeyLogicRuleLines.length === 1 ? "regla lista" : "reglas listas"} para validar`
-                  : "Opcional · cuando SurveyMonkey trae saltos o cierres directos"}
+                  : "Opcional: cuando SurveyMonkey trae saltos o cierres directos"}
               </span>
             </div>
             <div className="pulso-sm-logic-reference-rules-actions">
@@ -1554,7 +1555,7 @@ export function IndependentSiblingsSurveyMonkeyWizard({
                 {surveyMonkeyLogicPreviewErrors
                   ? `${surveyMonkeyLogicPreviewErrors} regla${surveyMonkeyLogicPreviewErrors === 1 ? "" : "s"} requieren revisión`
                   : `${surveyMonkeyLogicPreview.length} regla${surveyMonkeyLogicPreview.length === 1 ? "" : "s"} interpretada${surveyMonkeyLogicPreview.length === 1 ? "" : "s"}`}
-                {surveyMonkeyLogicPreviewWarnings ? ` · ${surveyMonkeyLogicPreviewWarnings} advertencia${surveyMonkeyLogicPreviewWarnings === 1 ? "" : "s"}` : ""}
+                {surveyMonkeyLogicPreviewWarnings ? `, ${surveyMonkeyLogicPreviewWarnings} advertencia${surveyMonkeyLogicPreviewWarnings === 1 ? "" : "s"}` : ""}
               </strong>
               <div className="pulso-sm-logic-preview-list">
                 {surveyMonkeyLogicPreview.map((row, index) => (
@@ -1646,7 +1647,7 @@ export function IndependentSiblingsSurveyMonkeyWizard({
               </strong>
               <span>
                 {canonicalRepairResult.n_updated_bases}/{canonicalRepairResult.n_targets} bases actualizadas
-                {canonicalRepairChangedCells > 0 ? ` · ${canonicalRepairChangedCells} reglas ajustadas` : ""}.
+                {canonicalRepairChangedCells > 0 ? `, ${canonicalRepairChangedCells} reglas ajustadas` : ""}.
               </span>
             </div>
           </div>
@@ -1661,7 +1662,7 @@ export function IndependentSiblingsSurveyMonkeyWizard({
         <div className="pulso-sm-family-config">
           <div className="pulso-sm-family-config-head">
             <strong>Familia cargada</strong>
-            <span>{independentSiblingsCapacityLabel(estudio.n_bases, independentMaxBases)} · listas para procesar por base activa</span>
+            <span>{independentSiblingsCapacityLabel(estudio.n_bases, independentMaxBases)}, listas para procesar por base activa</span>
           </div>
           <div className="pulso-sm-workbook-import is-workbook" aria-label="Importar Excel exportado por SurveyMonkey">
             <div className="pulso-sm-family-config-head">
@@ -1710,9 +1711,9 @@ export function IndependentSiblingsSurveyMonkeyWizard({
                     <small>
                       {smWorkbookInspectionWarningCount(workbookInspection)} advertencias
                       {smWorkbookInspectionCellErrorCount(workbookInspection) > 0
-                        ? ` · ${smWorkbookInspectionCellErrorCount(workbookInspection)} errores Excel`
+                        ? `, ${smWorkbookInspectionCellErrorCount(workbookInspection)} errores Excel`
                         : ""}
-                      {" · "}
+                      {", "}
                       {workbookInspection.filename}
                     </small>
                   </>
@@ -1742,7 +1743,7 @@ export function IndependentSiblingsSurveyMonkeyWizard({
                     <div className={`pulso-sm-family-row is-workbook-row${sheet.blocking ? " is-invalid" : ""}`} role="row" key={sheet.sheet_name}>
                       <div className="pulso-sm-family-origin-cell">
                         <strong>{sheet.sheet_name}</strong>
-                        <small>{sheet.n_rows} filas · {sheet.n_columns} columnas de origen</small>
+                        <small>{sheet.n_rows} filas, {sheet.n_columns} columnas de origen</small>
                       </div>
                       <div className="pulso-sm-family-origin-cell">
                         <strong>{sheet.base_name || "Sin match"}</strong>
@@ -1760,7 +1761,7 @@ export function IndependentSiblingsSurveyMonkeyWizard({
                           <CheckCircle2 size={12} />
                           {sheet.recognized_headers} reconocidos
                         </span>
-                        <small>{sheet.unknown_headers.length} dudosos · {sheet.ambiguous_headers.length} ambiguos</small>
+                        <small>{sheet.unknown_headers.length} dudosos, {sheet.ambiguous_headers.length} ambiguos</small>
                       </div>
                       <div className="pulso-sm-family-data-cell">
                         <span className={`pulso-sm-family-status${sheetHasIssues ? " is-warning" : " is-neutral"}`}>
@@ -1861,15 +1862,15 @@ export function IndependentSiblingsSurveyMonkeyWizard({
                   </div>
                   <div className="pulso-sm-family-origin-cell">
                     <strong title={title}>{title}</strong>
-                    <small>{sourceKind}{base.survey_id ? ` · Survey ID ${base.survey_id}` : ""} · {importedAt}</small>
-                    <small>{sourceCount} fuente{sourceCount === 1 ? "" : "s"} · {sourceDetail}</small>
+                    <small>{sourceKind}{base.survey_id ? `, Survey ID ${base.survey_id}` : ""}, {importedAt}</small>
+                    <small>{sourceCount} fuente{sourceCount === 1 ? "" : "s"}, {sourceDetail}</small>
                   </div>
                   <div className="pulso-sm-family-data-cell">
                     <span className="pulso-sm-family-status">
                       <Database size={12} />
                       {base.n_filas ?? 0} registros válidos
                     </span>
-                    <small>{base.n_columnas ?? 0} columnas · completos + consentimiento aprobado</small>
+                    <small>{base.n_columnas ?? 0} columnas, completos + consentimiento aprobado</small>
                   </div>
                   <div className="pulso-sm-family-data-cell">
                     <span className="pulso-sm-family-status is-neutral">
@@ -1951,9 +1952,9 @@ export function IndependentSiblingsSurveyMonkeyWizard({
                 <span>
                   {(refreshPlan.bases ?? []).filter((row) => row.updateable).length}/{refreshPlan.bases?.length ?? 0} bases procesables
                   {(refreshPlan.bases ?? []).filter((row) => smRefreshAction(row) === "noop_structure_warning").length
-                    ? ` · ${(refreshPlan.bases ?? []).filter((row) => smRefreshAction(row) === "noop_structure_warning").length} sin nuevas con alerta estructural`
+                    ? `, ${(refreshPlan.bases ?? []).filter((row) => smRefreshAction(row) === "noop_structure_warning").length} sin nuevas con alerta estructural`
                     : ""}
-                  {refreshPlan.catalog?.cache_status ? ` · catálogo ${refreshPlan.catalog.cache_status}` : ""}
+                  {refreshPlan.catalog?.cache_status ? `, catálogo ${refreshPlan.catalog.cache_status}` : ""}
                 </span>
               </div>
               <div className="pulso-sm-refresh-explain">
@@ -1981,7 +1982,7 @@ export function IndependentSiblingsSurveyMonkeyWizard({
                       <div className="pulso-sm-family-origin-cell">
                         <strong>{row.source_alias || row.base_name}</strong>
                         <small>
-                          <code>{row.base_name}</code> · Survey ID {row.survey_id || "S/D"} · {row.source_count ?? 1} fuente{(row.source_count ?? 1) === 1 ? "" : "s"} actual{(row.source_count ?? 1) === 1 ? "" : "es"}
+                          <code>{row.base_name}</code>, Survey ID {row.survey_id || "S/D"}, {row.source_count ?? 1} fuente{(row.source_count ?? 1) === 1 ? "" : "s"} actual{(row.source_count ?? 1) === 1 ? "" : "es"}
                         </small>
                         {refreshSourcesText && <small title={refreshSourcesText}>Actualiza base completa: {refreshSourcesText}</small>}
                         {collectorSummary && <small>{collectorSummary}</small>}
@@ -1991,7 +1992,7 @@ export function IndependentSiblingsSurveyMonkeyWizard({
                           <Database size={12} />
                           {row.new_rows ?? "S/D"} nuevas
                         </span>
-                        <small>{row.current_rows ?? "S/D"} actuales · {row.edited_rows ?? 0} editadas reportadas</small>
+                        <small>{row.current_rows ?? "S/D"} actuales, {row.edited_rows ?? 0} editadas reportadas</small>
                       </div>
                       <div className="pulso-sm-family-data-cell">
                         <span className={`pulso-sm-family-status${blocking ? " is-warning" : " is-neutral"}`}>
@@ -2036,9 +2037,9 @@ export function IndependentSiblingsSurveyMonkeyWizard({
                   <CheckCircle2 size={15} />
                   <div className="pulso-sm-refresh-result-copy">
                     <span>
-                      Actualizadas {refreshResult.results.filter((row) => row.ok && !row.skipped).length} bases · {" "}
-                      {refreshResult.results.filter((row) => row.ok && row.noop).length} sin cambios · {" "}
-                      {refreshResult.results.reduce((sum, row) => sum + Number(row.n_new ?? 0), 0)} registros válidos nuevos · {" "}
+                      Actualizadas {refreshResult.results.filter((row) => row.ok && !row.skipped).length} bases, {" "}
+                      {refreshResult.results.filter((row) => row.ok && row.noop).length} sin cambios, {" "}
+                      {refreshResult.results.reduce((sum, row) => sum + Number(row.n_new ?? 0), 0)} registros válidos nuevos, {" "}
                       {(refreshResult.codificacion_jobs ?? []).filter((job) => job.ok && job.job_id).length} jobs de recodificación lanzados.
                     </span>
                     {refreshResult.results.map((row) => {
@@ -2059,7 +2060,7 @@ export function IndependentSiblingsSurveyMonkeyWizard({
                 </span>
                 {koboRefreshResult.results.map((row) => (
                   <small key={row.base_name}>
-                    {row.base_name}: {row.rows_before} {"->"} {row.rows_after} registros · {row.total_remote} remotos
+                    {row.base_name}: {row.rows_before} {"->"} {row.rows_after} registros, {row.total_remote} remotos
                   </small>
                 ))}
               </div>
@@ -2163,10 +2164,10 @@ export function IndependentSiblingsSurveyMonkeyWizard({
         {surveys && (
           <>
             <div className="pulso-sm-list-caption">
-              {visibleSurveys.length} disponibles de {surveyMeta?.totalRecent ?? surveys.length} encuestas modificadas en los últimos {surveyMeta?.months ?? 6} meses · {selectedInputs.length} bases nuevas · {selectedMergeCampaignCount} campañas/canales · {plannedRemaining} por agregar según el plan
-              {hiddenDuplicateSurveys.length ? ` · ${hiddenDuplicateSurveys.length} ocultas por repetidas` : ""}
+              {visibleSurveys.length} disponibles de {surveyMeta?.totalRecent ?? surveys.length} encuestas modificadas en los últimos {surveyMeta?.months ?? 6} meses, {selectedInputs.length} bases nuevas, {selectedMergeCampaignCount} campañas/canales, {plannedRemaining} por agregar según el plan
+              {hiddenDuplicateSurveys.length ? `, ${hiddenDuplicateSurveys.length} ocultas por repetidas` : ""}
               {surveyMeta && (
-                <> · {surveyMeta.cacheStatus === "stale_fallback" ? "refresco falló; usando catálogo local" : surveyMeta.fromCache ? "catálogo local" : "catálogo actualizado"} {smCatalogDateLabel(surveyMeta.fetchedAt)}</>
+                <>, {surveyMeta.cacheStatus === "stale_fallback" ? "refresco falló; usando catálogo local" : surveyMeta.fromCache ? "catálogo local" : "catálogo actualizado"} {smCatalogDateLabel(surveyMeta.fetchedAt)}</>
               )}
             </div>
             {duplicateSurveyAlert && (
@@ -2197,7 +2198,7 @@ export function IndependentSiblingsSurveyMonkeyWizard({
                       <strong>{title}</strong>
                       <small>
                         {aliasPreview}
-                        {suggestedTarget ? ` · sugerido: agregar a ${smExistingBaseTargetLabel(suggestedTarget)}` : ""}
+                        {suggestedTarget ? `, sugerido: agregar a ${smExistingBaseTargetLabel(suggestedTarget)}` : ""}
                       </small>
                       <span className="pulso-sm-survey-card-meta">
                         <b><Database size={11} /> {responses}</b>
@@ -2210,11 +2211,12 @@ export function IndependentSiblingsSurveyMonkeyWizard({
                 );
               })}
               {!visibleSurveys.length && (
-                <div className="pulso-sm-empty">
-                  {hiddenDuplicateSurveys.length
-                    ? "Todas las coincidencias ya están cargadas o seleccionadas."
-                    : "No hay coincidencias con el filtro actual."}
-                </div>
+                <EstadoVacio
+                  icono={<Search size={16} />}
+                  titulo={hiddenDuplicateSurveys.length
+                    ? "Todas las coincidencias ya están cargadas o seleccionadas"
+                    : "No hay coincidencias con el filtro actual"}
+                />
               )}
             </div>
           </>
@@ -2226,7 +2228,7 @@ export function IndependentSiblingsSurveyMonkeyWizard({
               <strong>Selección SurveyMonkey</strong>
               <span>
                 {selectedTotal}/{independentMaxBases} bases configuradas
-                {selectedMergeCampaignCount ? ` · ${selectedMergeCampaignCount} campaña${selectedMergeCampaignCount === 1 ? "" : "s"} a bases existentes` : ""}
+                {selectedMergeCampaignCount ? `, ${selectedMergeCampaignCount} campaña${selectedMergeCampaignCount === 1 ? "" : "s"} a bases existentes` : ""}
               </span>
             </div>
             <div className="pulso-sm-family-table" role="table" aria-label="Bases hermanas independientes seleccionadas">
@@ -2310,7 +2312,7 @@ export function IndependentSiblingsSurveyMonkeyWizard({
                     <div className="pulso-sm-family-origin-cell">
                       <strong title={smSurveyTitle(item)}>{smSurveyTitle(item)}</strong>
                       <small>
-                        SurveyMonkey · {smDateLabel(item.date_modified)} · {smSurveyResponseLabel(item)} · ID {item.id}
+                        SurveyMonkey, {smDateLabel(item.date_modified)}, {smSurveyResponseLabel(item)}, ID {item.id}
                       </small>
                     </div>
                     <div className="pulso-sm-family-data-cell">
@@ -2318,7 +2320,7 @@ export function IndependentSiblingsSurveyMonkeyWizard({
                         <Database size={12} />
                         {nSources} fuente{nSources === 1 ? "" : "s"}
                       </span>
-                      <small>{smSourceCountLabel(totalSourceResponses)} · {smScopeSummary(scope, nSources)}</small>
+                      <small>{smSourceCountLabel(totalSourceResponses)}, {smScopeSummary(scope, nSources)}</small>
                       {scope.channel && <SmChannelBadge channel={scope.channel} />}
                     </div>
                     <details className="pulso-sm-scope-popover">
@@ -2435,7 +2437,7 @@ export function IndependentSiblingsSurveyMonkeyWizard({
                                       <Database size={13} />
                                       <span>
                                         <strong>{smSurveyTitle(pickedSurvey)}</strong>
-                                        <small>{smSurveyResponseLabel(pickedSurvey)} · {smDateLabel(pickedSurvey.date_modified)} · ID {pickedSurvey.id}</small>
+                                        <small>{smSurveyResponseLabel(pickedSurvey)}, {smDateLabel(pickedSurvey.date_modified)}, ID {pickedSurvey.id}</small>
                                       </span>
                                     </div>
                                   )}
@@ -2448,12 +2450,12 @@ export function IndependentSiblingsSurveyMonkeyWizard({
                                     >
                                       <span className="pulso-sm-extra-result-copy">
                                         <strong>{smSurveyTitle(candidate)}</strong>
-                                        <small>{smSurveyDefaultAlias(candidate)} · {smDateLabel(candidate.date_modified)} · ID {candidate.id}</small>
+                                        <small>{smSurveyDefaultAlias(candidate)}, {smDateLabel(candidate.date_modified)}, ID {candidate.id}</small>
                                       </span>
                                       <em>{smSurveyResponseLabel(candidate)}</em>
                                     </button>
                                   )) : (
-                                    <small className="pulso-sm-extra-empty">Sin coincidencias en el catálogo local. Puedes pegar un ID manualmente.</small>
+                                    <EstadoVacio icono={<Search size={16} />} titulo="Sin coincidencias en el catálogo local" descripcion="Puedes pegar un ID manualmente." />
                                   )}
                                 </div>
                                 <div className="pulso-sm-extra-advanced">
@@ -2566,7 +2568,7 @@ export function IndependentSiblingsSurveyMonkeyWizard({
             {logicSync.ok === false ? <AlertTriangle size={15} /> : <CheckCircle2 size={15} />}
             <strong>{logicSync.ok === false ? "Importación hecha; reglas pendientes" : "Reglas sincronizadas"}</strong>
             <span>
-              Referencia <code>{logicSync.template_base}</code> · {logicSync.n_updated_bases ?? 0}/{logicSync.n_targets ?? 0} bases actualizadas
+              Referencia <code>{logicSync.template_base}</code>, {logicSync.n_updated_bases ?? 0}/{logicSync.n_targets ?? 0} bases actualizadas
             </span>
           </div>
           {logicSync.error && <p>{logicSync.error}</p>}
@@ -2575,12 +2577,12 @@ export function IndependentSiblingsSurveyMonkeyWizard({
               {logicSync.results.slice(0, 6).map((row) => (
                 <div key={row.base} className="pulso-sm-logic-sync-row">
                   <strong>{row.base}</strong>
-                  <span>{row.n_applied_variables} variables · {row.changed_cells} celdas</span>
+                  <span>{row.n_applied_variables} variables, {row.changed_cells} celdas</span>
                   <small>
                     {row.n_skipped_missing_variables
                       ? `${row.n_skipped_missing_variables} variables no existen en esta base`
                       : "Sin variables faltantes"}
-                    {row.n_missing_references ? ` · ${row.n_missing_references} referencias huérfanas` : ""}
+                    {row.n_missing_references ? `, ${row.n_missing_references} referencias huérfanas` : ""}
                   </small>
                 </div>
               ))}
@@ -2600,7 +2602,7 @@ export function IndependentSiblingsSurveyMonkeyWizard({
               <CheckCircle2 size={16} />
               <strong>Familia auditada</strong>
               <span>
-                {audit.surveys.length} bases · guía: {refLabel}
+                {audit.surveys.length} bases, guía: {refLabel}
               </span>
             </div>
             <div className="pulso-sm-family-evidence" aria-label="Puntos comunes de la familia">
@@ -2616,7 +2618,7 @@ export function IndependentSiblingsSurveyMonkeyWizard({
                   <span>
                     <strong title={survey.title}>{smSurveyAuditLabel(survey.survey_id, audit, selectedInputs)}</strong>
                     <span>
-                      {survey.n_responses ?? 0} respuestas · {survey.n_pages} páginas · {survey.n_questions} preguntas
+                      {survey.n_responses ?? 0} respuestas, {survey.n_pages} páginas, {survey.n_questions} preguntas
                     </span>
                   </span>
                 </div>
@@ -2627,20 +2629,20 @@ export function IndependentSiblingsSurveyMonkeyWizard({
                 <div key={`${diff.survey_id}-${diff.pos}-${index}`} className={`pulso-integrated-diff is-${diff.severity}`}>
                   <div>
                     <strong>
-                      <span>{smDiffKindLabel(diff.kind)} · {smSurveyAuditLabel(diff.survey_id, audit, selectedInputs)}</span>
+                      <span>{smDiffKindLabel(diff.kind)}, {smSurveyAuditLabel(diff.survey_id, audit, selectedInputs)}</span>
                       <em>{smDiffSeverityLabel(diff.severity, diff.kind)}</em>
                     </strong>
                     <span>{diff.message}</span>
                     <SmEstructuraFuenteAccion diffs={[diff]} estudio={estudio} />
                     <small>
                       <code>{diff.variable}</code>
-                      {diff.ref && ` · guía: ${diff.ref}`}
-                      {diff.current && ` · base: ${diff.current}`}
+                      {diff.ref && `, guía: ${diff.ref}`}
+                      {diff.current && `, base: ${diff.current}`}
                     </small>
                   </div>
                 </div>
               ))}
-              {!audit.diffs.length && <div className="pulso-sm-empty">La auditoría no encontró diferencias relevantes entre las encuestas seleccionadas.</div>}
+              {!audit.diffs.length && <EstadoVacio icono={<Search size={16} />} titulo="La auditoría no encontró diferencias relevantes entre las encuestas seleccionadas" />}
             </div>
           </div>
         );

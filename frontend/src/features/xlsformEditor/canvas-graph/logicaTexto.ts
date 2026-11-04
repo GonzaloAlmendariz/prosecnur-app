@@ -165,7 +165,7 @@ export function parseOptionCondition(
 export function nameToRef(name: string): string | null {
   const m = /^p(?:regunta)?_?0*(\d+)(?:_(.+))?$/i.exec(name.trim());
   if (!m) return null;
-  return `P${m[1]}${m[2] ? `·${m[2]}` : ""}`;
+  return `P${m[1]}${m[2] ? `.${m[2]}` : ""}`;
 }
 /** Versión completa que resuelve códigos `'1'` a labels (`'Sí'`).
  *

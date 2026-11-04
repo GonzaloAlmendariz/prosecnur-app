@@ -102,7 +102,7 @@ export function PairingDialog({ pregunta, preselectedChild, onConfirm, onCancel 
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
           <Link2 size={16} color="var(--pulso-primary)" />
           <Dialog.Title asChild>
-            <h2 style={{ margin: 0, fontSize: 16, fontWeight: 700 }}>
+            <h2 style={{ margin: 0, fontSize: "var(--pulso-type-title-size)", fontWeight: 700 }}>
               Emparejar pregunta
             </h2>
           </Dialog.Title>
@@ -113,14 +113,14 @@ export function PairingDialog({ pregunta, preselectedChild, onConfirm, onCancel 
             </button>
           </Dialog.Close>
         </div>
-        <Dialog.Description id="pairing-description" style={{ fontSize: 13, color: "var(--pulso-text-soft)", marginBottom: 16 }}>
-          <code style={{ fontFamily: "monospace", color: "var(--pulso-primary)" }}>{pregunta.parent}</code> · {pregunta.parent_label}
+        <Dialog.Description id="pairing-description" style={{ fontSize: "var(--pulso-type-body-size)", color: "var(--pulso-text-soft)", marginBottom: 16 }}>
+          <code style={{ fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace", color: "var(--pulso-primary)" }}>{pregunta.parent}</code> {pregunta.parent_label}
         </Dialog.Description>
 
         {/* Paso 1: columna hija */}
         <div style={{ marginBottom: 16 }}>
-          <div className="pulso-section-eyebrow" style={{ marginBottom: 6 }}>Paso 1 · Columna "Otros, especifique"</div>
-          <div style={{ fontSize: 12, color: "var(--pulso-text-soft)", marginBottom: 10 }}>
+          <div className="pulso-section-eyebrow" style={{ marginBottom: 6 }}>Paso 1: columna «Otros, especifique»</div>
+          <div style={{ fontSize: "var(--pulso-type-body-size)", color: "var(--pulso-text-soft)", marginBottom: 10 }}>
             ¿Dónde está el texto abierto de esta pregunta?
           </div>
 
@@ -133,7 +133,7 @@ export function PairingDialog({ pregunta, preselectedChild, onConfirm, onCancel 
                     checked={childCol === c.col}
                     onChange={() => setChildCol(c.col)}
                   />
-                  <code style={{ fontFamily: "monospace", fontSize: 13, fontWeight: 600 }}>{c.col}</code>
+                  <code style={{ fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace", fontSize: "var(--pulso-type-subtitle-size)", fontWeight: 600 }}>{c.col}</code>
                   <div style={{ flex: 1 }} />
                   <ConfLabel conf={c.confianza} />
                 </label>
@@ -141,7 +141,7 @@ export function PairingDialog({ pregunta, preselectedChild, onConfirm, onCancel 
               <button
                 type="button"
                 onClick={() => setShowAllCols(true)}
-                style={{ fontSize: 11, padding: "4px 8px", marginTop: 4, alignSelf: "flex-start" }}
+                style={{ fontSize: "var(--pulso-type-caption-size)", padding: "4px 8px", marginTop: 4, alignSelf: "flex-start" }}
               >
                 No está acá — buscar en todas las columnas
               </button>
@@ -155,7 +155,7 @@ export function PairingDialog({ pregunta, preselectedChild, onConfirm, onCancel 
                 value={childCol}
                 onChange={(e) => setChildCol(e.target.value)}
                 placeholder="nombre de columna"
-                style={{ width: "100%", fontSize: 13, fontFamily: "monospace", padding: "6px 10px" }}
+                style={{ width: "100%", fontSize: "var(--pulso-type-body-size)", fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace", padding: "6px 10px" }}
                 autoFocus
               />
               <datalist id="all-cols">
@@ -165,7 +165,7 @@ export function PairingDialog({ pregunta, preselectedChild, onConfirm, onCancel 
                 <button
                   type="button"
                   onClick={() => setShowAllCols(false)}
-                  style={{ fontSize: 11, padding: "4px 8px", marginTop: 6 }}
+                  style={{ fontSize: "var(--pulso-type-caption-size)", padding: "4px 8px", marginTop: 6 }}
                 >
                   ← Volver a candidatos sugeridos
                 </button>
@@ -177,8 +177,8 @@ export function PairingDialog({ pregunta, preselectedChild, onConfirm, onCancel 
         {/* Paso 2 SO: qué codificar */}
         {isSO && childCol && (
           <div style={{ marginBottom: 16 }}>
-            <div className="pulso-section-eyebrow" style={{ marginBottom: 6 }}>Paso 2 · ¿Qué vas a codificar?</div>
-            <div style={{ fontSize: 12, color: "var(--pulso-text-soft)", marginBottom: 10 }}>
+            <div className="pulso-section-eyebrow" style={{ marginBottom: 6 }}>Paso 2: ¿qué vas a codificar?</div>
+            <div style={{ fontSize: "var(--pulso-type-body-size)", color: "var(--pulso-text-soft)", marginBottom: 10 }}>
               Una pregunta de opción única con "Otros, especifique" tiene dos datos: las opciones originales (1, 2, 3…) y el texto libre de quienes marcaron "Otros". Elige qué vas a agrupar y codificar.
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
@@ -203,10 +203,10 @@ export function PairingDialog({ pregunta, preselectedChild, onConfirm, onCancel 
         {/* Paso 2 SM: dummy col — SM no tiene modo padre/hijo, solo dummy */}
         {isSM && childCol && (
           <div style={{ marginBottom: 16 }}>
-            <div className="pulso-section-eyebrow" style={{ marginBottom: 6 }}>Paso 2 · ¿Cuál opción es "Otros, especifique"?</div>
-            <div style={{ fontSize: 12, color: "var(--pulso-text-soft)", marginBottom: 10, lineHeight: 1.5 }}>
+            <div className="pulso-section-eyebrow" style={{ marginBottom: 6 }}>Paso 2: ¿cuál opción es «Otros, especifique»?</div>
+            <div style={{ fontSize: "var(--pulso-type-body-size)", color: "var(--pulso-text-soft)", marginBottom: 10, lineHeight: 1.5 }}>
               A diferencia de opción única, en preguntas múltiples solo vas a codificar el texto libre
-              (<code style={{ fontFamily: "monospace" }}>{childCol}</code>). Pero primero indícanos cuál de las
+              (<code style={{ fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace" }}>{childCol}</code>). Pero primero indícanos cuál de las
               opciones de {pregunta.parent} corresponde a "Otros, especifique". La app solo considera los
               registros donde esa opción fue marcada — el resto no tiene texto para codificar.
             </div>
@@ -215,15 +215,15 @@ export function PairingDialog({ pregunta, preselectedChild, onConfirm, onCancel 
               value={dummyCol}
               onChange={(e) => setDummyCol(e.target.value)}
               placeholder={`ej. ${pregunta.parent}/99`}
-              style={{ width: "100%", fontSize: 13, fontFamily: "monospace", padding: "6px 10px" }}
+              style={{ width: "100%", fontSize: "var(--pulso-type-body-size)", fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace", padding: "6px 10px" }}
             />
             <datalist id="dummy-cols">
               {dummyCandidates.map((c) => <option key={c} value={c} />)}
               {columnas.map((c) => <option key={c + "-all"} value={c} />)}
             </datalist>
             {dummyCandidates.length > 0 && (
-              <div style={{ fontSize: 10, color: "var(--pulso-text-soft)", marginTop: 4 }}>
-                Sugeridas por la app: {dummyCandidates.slice(0, 4).join(" · ")}
+              <div style={{ fontSize: "var(--pulso-type-micro-size)", color: "var(--pulso-text-soft)", marginTop: 4 }}>
+                Sugeridas por la app: {dummyCandidates.slice(0, 4).join(", ")}
               </div>
             )}
           </div>
@@ -263,17 +263,17 @@ function ModoOption({ value, current, onChange, title, description }: { value: "
     >
       <input type="radio" checked={active} onChange={() => onChange(value)} style={{ marginTop: 3 }} />
       <div>
-        <div style={{ fontWeight: 600, fontSize: 13, color: active ? "var(--pulso-primary)" : "var(--pulso-text)" }}>{title}</div>
-        <div style={{ fontSize: 12, color: "var(--pulso-text-soft)", marginTop: 2, lineHeight: 1.4 }}>{description}</div>
+        <div style={{ fontWeight: 600, fontSize: "var(--pulso-type-subtitle-size)", color: active ? "var(--pulso-primary)" : "var(--pulso-text)" }}>{title}</div>
+        <div style={{ fontSize: "var(--pulso-type-body-size)", color: "var(--pulso-text-soft)", marginTop: 2, lineHeight: 1.4 }}>{description}</div>
       </div>
     </label>
   );
 }
 
 function ConfLabel({ conf }: { conf: number }) {
-  if (conf >= 1.0) return <span style={{ fontSize: 10, fontWeight: 700, color: "var(--pulso-success-fg)", letterSpacing: 0.3, textTransform: "uppercase" }}>Match fuerte</span>;
-  if (conf >= 0.6) return <span style={{ fontSize: 10, fontWeight: 700, color: "var(--pulso-warn-fg)", letterSpacing: 0.3, textTransform: "uppercase" }}>Prefijo</span>;
-  return <span style={{ fontSize: 10, fontWeight: 600, color: "var(--pulso-status-empty)", letterSpacing: 0.3, textTransform: "uppercase" }}>Misma sección</span>;
+  if (conf >= 1.0) return <span style={{ fontSize: "var(--pulso-type-micro-size)", fontWeight: 700, color: "var(--pulso-success-fg)", letterSpacing: 0.3, textTransform: "uppercase" }}>Match fuerte</span>;
+  if (conf >= 0.6) return <span style={{ fontSize: "var(--pulso-type-micro-size)", fontWeight: 700, color: "var(--pulso-warn-fg)", letterSpacing: 0.3, textTransform: "uppercase" }}>Prefijo</span>;
+  return <span style={{ fontSize: "var(--pulso-type-micro-size)", fontWeight: 600, color: "var(--pulso-status-empty)", letterSpacing: 0.3, textTransform: "uppercase" }}>Misma sección</span>;
 }
 
 function escapeRegex(s: string): string {

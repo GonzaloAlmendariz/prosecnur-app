@@ -1,68 +1,90 @@
-import { useEffect, type ReactNode } from "react";
-import { ExternalLink, FileCheck2 } from "lucide-react";
-import { Alert } from "../../../../../components/Alert";
+import { useEffect } from "react";
+import { FileCheck2 } from "lucide-react";
 import type { MonitoreoAcreditacion, MonitoreoLastSheetsPublication } from "../../../../../api/client";
+import { formatoConteo } from "../../../../../lib/formatoNumero";
 import { usePanelDireccionable, type PanelDeclarado } from "../../../../../lib/navegacion/paneles";
+import { PulsoButton } from "../../../../../components/PulsoButton";
 import { corteCorto } from "../../../core/barraComun";
+import { pctConEspacio } from "../../../core/formatoComun";
+import { HojaDelCliente, type TablaDelCliente } from "../../../salidas/estandar/HojaDelCliente";
+import { SalidasDeMonitoreo } from "../../../salidas/estandar/SalidasDeMonitoreo";
+import type { MonitoreoOutputsWorkbenchProps } from "../../../salidas/MonitoreoOutputsWorkbench";
 import { useResumenDelCorte } from "../navegacion/resumenDelCorte";
+import { RotuloEnBarra } from "../navegacion/rotuloDePestana";
+import type { AcreditacionAdvanceCard } from "./tarjetasDeAvance";
 import { DialogoCerrarCampo } from "./DialogoCerrarCampo";
-import { estadoDelCierre, publicacionesFrenteAlCorte, type EstadoDelCierre, type PublicacionFrenteAlCorte } from "./salidasModelo";
+import { estadoDelCierre, publicacionesFrenteAlCorte, type EstadoDelCierre } from "./salidasModelo";
 import "./avance.css";
 import "./salidasEntregables.css";
 import "../insumos/insumos.css";
 import "../insumos/reglas/reglas.css";
-import { CabeceraDeTarjeta } from "../navegacion/rotuloDePestana";
 
 /** El cierre del campo es un diálogo direccionable: `panel=cerrar-campo`. */
 export const PANEL_CERRAR_CAMPO: PanelDeclarado = { id: "cerrar-campo", label: "Cerrar campo", clase: "dialogo" };
 
-type PropsDeVista = {
-  corte: string | null;
-  publicaciones: readonly PublicacionFrenteAlCorte[];
-  cierre: EstadoDelCierre;
-  onAbrirCierre?: () => void;
-  /** Las tarjetas de salida de siempre (Sheets, PDF, entrega a Procesamiento). */
-  salidas?: ReactNode;
-};
-
-export function SalidasVista({ corte, publicaciones, cierre, onAbrirCierre, salidas }: PropsDeVista) {
-  return (
-    <div className="acr-sa">
-      {/* Una sola franja arriba (Gonzalo, 29/10): «Publicaciones frente al corte» repetía el
-          estado de Sheets que ya dicen el cierre y la tarjeta de Google Sheets de abajo. */}
-      <section className="acr-av-panel" aria-label="Cierre del campo">
-        <CabeceraDeTarjeta primera>
-          <h3>Cierre del campo <span className="acr-av-tenue">{corte ? `Corte ${corteCorto(corte)}` : "Sin corte"}</span></h3>
-          {cierre.cerrado ? null : (
-            <button type="button" className="acr-av-boton is-primario" onClick={onAbrirCierre} disabled={!onAbrirCierre}>
-              <FileCheck2 size={14} aria-hidden="true" /> Cerrar campo
-            </button>
-          )}
-        </CabeceraDeTarjeta>
-        <div className="acr-sa-cuerpo">
-          {cierre.cerrado ? <Alert kind="info">{`Campo cerrado${cierre.cierreAt ? ` el ${corteCorto(cierre.cierreAt)}` : ""}.`}</Alert> : null}
-          <ul className="acr-sa-puntos is-franja" data-qa-geometry-group="acreditacion-avance-salidas" data-qa-geometry-contract="equal">
-            {cierre.puntos.map((punto) => {
-              const enlace = punto.rotulo === "Sheets del cliente" ? publicaciones.find((item) => item.salida === "Sheets del cliente")?.enlace : null;
-              return (
-                <li key={punto.rotulo} className={punto.estado === "ok" ? "is-ok" : "is-pendiente"} data-qa-geometry-member>
-                  <span>{enlace ? <a href={enlace} target="_blank" rel="noreferrer" className="acr-in-enlace">{punto.rotulo} <ExternalLink size={12} aria-hidden="true" /></a> : punto.rotulo}</span>
-                  <b>{punto.valor}</b>
-                </li>
-              );
-            })}
-          </ul>
-        </div>
-      </section>
-      {salidas}
-    </div>
-  );
+/** La fila propia de acreditación en «Salidas del corte»: el cierre del campo, con lo que falta para cerrarlo. */
+export function filaDelCierre(cierre: EstadoDelCierre) {
+  const pendientes = cierre.puntos.filter((p) => p.estado !== "ok");
+  return {
+    clave: "cierre",
+    titulo: "Cierre del campo",
+    estado: cierre.cerrado ? `Cerrado${cierre.cierreAt ? ` el ${corteCorto(cierre.cierreAt)}` : ""}` : pendientes.length ? `${formatoConteo(pendientes.length)} ${pendientes.length === 1 ? "pendiente" : "pendientes"}` : "Listo para cerrar",
+    tono: cierre.cerrado ? "success" as const : pendientes.length ? "warn" as const : "info" as const,
+    detalle: cierre.puntos.map((p) => `${p.rotulo}: ${p.valor}`).join(", "),
+  };
 }
 
 /**
- * Avance › Salidas (ficha A5): las publicaciones frente al corte y el cierre
- * del campo arriba; debajo, las tarjetas de salida de siempre. «Cerrar campo»
- * abre un diálogo con confirmación en vez del «Marcar cierre» suelto.
+ * La tabla de la hoja del cliente, con el vocabulario y las columnas del PDF de acreditación
+ * (`monitoreo_acreditacion_avance_pdf.R`): el avance manda sobre el UNIVERSO de cada público, y el mínimo esperado
+ * va al lado, como referencia, sólo si algún público lo declara. «Faltan para el mínimo» del total suma lo que
+ * falta en cada público (lo que sobra en uno no cubre lo que falta en otro) y el cumplimiento total cuenta sólo
+ * los públicos con mínimo (revisión metodológica del 4 nov 2026).
+ */
+export function tablaDeAcreditacionDelCliente(tarjetas: readonly AcreditacionAdvanceCard[]): TablaDelCliente | null {
+  if (!tarjetas.length) return null;
+  const n = (v: number | null | undefined) => (v == null ? "—" : formatoConteo(v));
+  const pct = (parte: number, total: number) => (total > 0 ? pctConEspacio((parte / total) * 100) : "—");
+  const conMinimo = tarjetas.filter((c) => c.meta != null && c.meta > 0);
+  const faltan = (c: AcreditacionAdvanceCard) => (c.meta == null || c.meta <= 0 ? null : Math.max(0, c.meta - c.effective));
+  const universo = tarjetas.reduce((t, c) => t + c.universe, 0);
+  const completas = tarjetas.reduce((t, c) => t + c.effective, 0);
+  const base = {
+    cabecera: ["Público", "Universo", "Completas", "Avance sobre el universo"],
+    numericas: [false, true, true, true],
+  };
+  if (!conMinimo.length) {
+    return {
+      ...base,
+      filas: tarjetas.map((c) => ({ clave: c.id, celdas: [c.actor, n(c.universe), <b key="c">{n(c.effective)}</b>, pct(c.effective, c.universe)] })),
+      total: ["Total", n(universo), n(completas), pct(completas, universo)],
+    };
+  }
+  const minimos = conMinimo.reduce((t, c) => t + (c.meta ?? 0), 0);
+  // Lo cubierto no compensa entre públicos: cada uno aporta a lo sumo su mínimo,
+  // igual que el total del PDF (monitoreo_avance_sin_compensar.R).
+  const completasConMinimo = conMinimo.reduce((t, c) => t + Math.min(c.effective, c.meta ?? 0), 0);
+  return {
+    cabecera: [...base.cabecera, "Mínimo esperado", "Cumplimiento del mínimo", "Faltan para el mínimo"],
+    numericas: [...base.numericas, true, true, true],
+    filas: tarjetas.map((c) => ({
+      clave: c.id,
+      celdas: [
+        c.actor, n(c.universe), <b key="c">{n(c.effective)}</b>, pct(c.effective, c.universe),
+        c.meta && c.meta > 0 ? n(c.meta) : "—", c.meta && c.meta > 0 ? pct(c.effective, c.meta) : "—", n(faltan(c)),
+      ],
+    })),
+    total: [
+      "Total", n(universo), n(completas), pct(completas, universo),
+      n(minimos), pct(completasConMinimo, minimos), n(conMinimo.reduce((t, c) => t + (faltan(c) ?? 0), 0)),
+    ],
+  };
+}
+
+/**
+ * Avance › Salidas de acreditación sobre el estándar de Salidas (4 nov 2026): el cierre del campo es la primera
+ * fila de la lista, con su diálogo (`panel=cerrar-campo`); la hoja del cliente lleva el avance por público y el
+ * motor completo queda en «PDF y cliente».
  */
 export function Salidas({
   corte,
@@ -72,7 +94,8 @@ export function Salidas({
   guardando,
   error,
   onCerrarCampo,
-  salidas,
+  motor,
+  encabezado,
 }: {
   corte: string | null;
   clienteSheets: MonitoreoLastSheetsPublication | null | undefined;
@@ -81,7 +104,9 @@ export function Salidas({
   guardando: boolean;
   error?: string | null;
   onCerrarCampo?: (planDeRefuerzo: string, aprobacion: boolean) => Promise<void>;
-  salidas?: ReactNode;
+  motor: MonitoreoOutputsWorkbenchProps;
+  /** El nombre del estudio en la hoja del cliente. */
+  encabezado: string;
 }) {
   const avance = useResumenDelCorte((estado) => estado.avance);
   const casos = useResumenDelCorte((estado) => estado.casos);
@@ -93,9 +118,25 @@ export function Salidas({
   useEffect(() => {
     if (cierre.cerrado && abierto) cerrar();
   }, [cierre.cerrado, abierto, cerrar]);
+  const accionDeCierre = cierre.cerrado || !onCerrarCampo ? undefined : (
+    <PulsoButton variant="primary" size="sm" onClick={panel.abrir}><FileCheck2 size={14} aria-hidden="true" /> Cerrar campo</PulsoButton>
+  );
   return (
     <>
-      <SalidasVista corte={corte} publicaciones={publicaciones} cierre={cierre} onAbrirCierre={onCerrarCampo ? panel.abrir : undefined} salidas={salidas} />
+      <SalidasDeMonitoreo
+        {...motor}
+        rotulo={<RotuloEnBarra />}
+        filasPropias={[{ ...filaDelCierre(cierre), accion: accionDeCierre }]}
+        vistaPrevia={(
+          <HojaDelCliente
+            encabezado={encabezado}
+            corte={corte ? corteCorto(corte) : ""}
+            titulo="Avance por público"
+            tabla={tablaDeAcreditacionDelCliente(avance?.tarjetas ?? [])}
+            vacio="El corte todavía no trae el avance por público."
+          />
+        )}
+      />
       {panel.abierto && onCerrarCampo && !cierre.cerrado ? (
         <DialogoCerrarCampo
           cierre={cierre}

@@ -17,7 +17,8 @@ import {
 } from "./ritmoModel";
 import { metaDelProyecto } from "./metaDelProyecto";
 import { origenDeEfectivas } from "./origenDeEfectivas";
-import { filasDeBloque, notaDeBloque } from "../navegacion/bloques";
+import { useVariableDeCuotasElegida } from "./variableElegida";
+import { avisosDelNumerador, filasDeBloque } from "../navegacion/bloques";
 import { TrazadoDeBarras } from "./TrazadoDeBarras";
 import { NotaDelModo } from "../../../core/NotaDelModo";
 import { RotuloDePestana, useHayRotulo } from "../navegacion/RotuloDePestana";
@@ -67,10 +68,11 @@ export function Ritmo({
 }) {
   const reglas = state?.config?.operational_model?.state_rules;
   // La misma serie que leen el calendario de Cuotas, la vista del PDF y los chips.
-  const { segmento, serie: kobo, sinCategoria, fueraDeCuota, sinFecha } = useMemo(() => serieDiariaDelCorte(reports), [reports]);
+  const { elegida } = useVariableDeCuotasElegida();
+  const { segmento, serie: kobo, sinCategoria, fueraDeCuota, sinFecha } = useMemo(() => serieDiariaDelCorte(reports, elegida), [reports, elegida]);
   const notaDeSerie = notaSinCategoria(sinCategoria, rotuloDelSegmento(segmento), fueraDeCuota, sinFecha);
-  // Completas de Kobo sin caso que no se suman porque algún actor cuenta su hoja: el motor dice la causa.
-  const notaDeFueraDeLaBase = useMemo(() => notaDeBloque(reports, "avance_efectivo_dia"), [reports]);
+  // Lo que el conteo no suma o no asigna (llaves repetidas, completas sin caso), con la causa que da el motor.
+  const avisos = useMemo(() => avisosDelNumerador(reports), [reports]);
   const hoja = useMemo(() => serieHoja(reports, reglas ?? []), [reports, reglas]);
   const fechasDeLaHoja = useMemo(() => formatosDeFecha(reports), [reports]);
   const meta = metaDelProyecto(state);
@@ -209,7 +211,7 @@ export function Ritmo({
             {n(kobo.total)} en {n(resumen.dias)} {resumen.dias === 1 ? "día" : "días"}
           </p>
           {notaDeSerie ? <NotaDelModo tono="aviso">{notaDeSerie}.</NotaDelModo> : null}
-          {notaDeFueraDeLaBase ? <NotaDelModo tono="aviso">{notaDeFueraDeLaBase}</NotaDelModo> : null}
+          {avisos.map((aviso) => <NotaDelModo key={aviso} tono="aviso">{aviso}</NotaDelModo>)}
         </section>
 
         <section className="mon-ctl-panel mon-cadencia-dia-a-dia" aria-label="Día a día" data-qa-geometry-capacity="owned">

@@ -66,6 +66,9 @@ test_that("en un repo git, además, sólo lo versionado: un borrador local no vi
 })
 
 test_that("armar el Space de punta a punta no copia nada de la basura", {
+  # Publica una sesión sin fuente de tablero: aquí se mide otra cosa. El guard
+  # de la fuente tiene su suite (test-dashboard-publish-fuente.R).
+  local_mocked_bindings(.publicacion_exigir_fuente_dashboard = function(s) invisible(TRUE))
   root <- .dps_arbol()
   plantilla <- testthat::test_path("..", "..", "..", "deploy", "hf-space-README.md.template")
   testthat::skip_if_not(file.exists(plantilla), "sin deploy/hf-space-README.md.template")
@@ -87,6 +90,9 @@ test_that("armar el Space de punta a punta no copia nada de la basura", {
 # --- El runtime público sólo sirve un .pulso preparado -----------------------
 
 test_that("el .pulso de una publicación lleva la marca y el del proyecto no", {
+  # Publica una sesión sin fuente de tablero: aquí se mide otra cosa. El guard
+  # de la fuente tiene su suite (test-dashboard-publish-fuente.R).
+  local_mocked_bindings(.publicacion_exigir_fuente_dashboard = function(s) invisible(TRUE))
   sid <- session_create()
   withr::defer(session_delete(sid))
   expect_false(.publicacion_preparada(session_get(sid)))
@@ -106,20 +112,119 @@ test_that("launch_server.R se niega a servir un .pulso sin la marca", {
   expect_lt(chequeo, grep("PULSO_BOOTSTRAP_SID = bs$session_id", fuente, fixed = TRUE)[[1]])
 })
 
-test_that("el script del deploy manual prepara el .pulso por la misma ruta", {
-  testthat::skip_on_cran()
+# El deploy manual corre el script de verdad: es el único test que ejecuta ese camino.
+.dps_correr_script <- function(proyecto, salida) {
   script <- testthat::test_path("..", "..", "scripts", "publicacion_preparar.R")
-  skip_if_not(file.exists(script))
+  testthat::skip_if_not(file.exists(script))
+  log <- tempfile(fileext = ".log")
+  status <- system2(file.path(R.home("bin"), "Rscript"),
+                    c(shQuote(normalizePath(script)), "--project", shQuote(proyecto), "--out", shQuote(salida)),
+                    stdout = log, stderr = log)
+  list(status = status, log = paste(readLines(log, warn = FALSE), collapse = "\n"))
+}
+
+test_that("el script del deploy manual prepara el .pulso por la misma ruta", {
+  # Sin skip_on_cran: gate-area y las corridas locales no fijan NOT_CRAN (el CI sí, vía setup-r) y el test
+  # quedaba fuera del gate que se corre al cerrar un cambio.
+  ref <- system.file("reference_projects", "acnur_pdm", "acnur_pdm.pulso", package = "prosecnurapp")
+  if (!nzchar(ref)) ref <- testthat::test_path("..", "..", "inst", "reference_projects", "acnur_pdm", "acnur_pdm.pulso")
+  skip_if_not(file.exists(ref), "sin el proyecto de referencia acnur_pdm")
+  dir <- withr::local_tempdir()
+  copia <- file.path(dir, "ref.pulso")
+  file.copy(ref, copia)
+  Sys.chmod(copia, "644")
+  ld <- suppressMessages(load_pulso(copia))
+  withr::defer(session_delete(ld$session_id))
+  # Un proyecto con base elegida para el tablero (instrumento y base de acnur_pdm).
+  invisible(.dashboard_import_source(ld$session_id, list(
+    xlsform_file_id = "8f166bcd-01f1-4c73-a70c-6ccba88b1795",
+    data_file_id = "2a1c6390-b530-428e-b1ce-eff82b32e48a"
+  )))
+  proyecto <- file.path(dir, "proyecto.pulso")
+  build_pulso(ld$session_id, proyecto, project_name = "proyecto", allow_empty_overwrite = TRUE)
+  salida <- file.path(dir, "data", "proyecto.pulso")
+  r <- .dps_correr_script(proyecto, salida)
+  expect_equal(r$status, 0L, info = r$log)
+  pub <- suppressMessages(load_pulso(salida))
+  withr::defer(session_delete(pub$session_id))
+  s_pub <- session_get(pub$session_id)
+  expect_true(.publicacion_preparada(s_pub))
+  expect_true(.publicacion_exigir_fuente_dashboard(s_pub))
+})
+
+test_that("el script del deploy manual se niega a preparar un tablero sin fuente", {
+  # Sin skip_on_cran: gate-area y las corridas locales no fijan NOT_CRAN (el CI sí, vía setup-r) y el test
+  # quedaba fuera del gate que se corre al cerrar un cambio.
   sid <- session_create()
   withr::defer(session_delete(sid))
   dir <- withr::local_tempdir()
   proyecto <- file.path(dir, "proyecto.pulso")
   build_pulso(sid, proyecto, project_name = "proyecto", allow_empty_overwrite = TRUE)
   salida <- file.path(dir, "data", "proyecto.pulso")
-  status <- system2(file.path(R.home("bin"), "Rscript"), c(shQuote(normalizePath(script)), "--project", shQuote(proyecto), "--out", shQuote(salida)),
-                    stdout = FALSE, stderr = FALSE)
-  expect_equal(status, 0L)
-  ld <- suppressMessages(load_pulso(salida))
-  withr::defer(session_delete(ld$session_id))
-  expect_true(.publicacion_preparada(session_get(ld$session_id)))
+  r <- .dps_correr_script(proyecto, salida)
+  expect_equal(r$status, 1L)
+  expect_match(r$log, "El tablero no tiene base elegida", fixed = TRUE)
+  expect_false(file.exists(salida))
+})
+
+test_that("launch_server.R se niega a servir un tablero preparado sin fuente", {
+  # Defensa ante un .pulso preparado antes del guard (marca sí, fuente no).
+  fuente <- readLines(testthat::test_path("..", "..", "..", "launcher", "launch_server.R"), warn = FALSE)
+  chequeo <- grep(".publicacion_exigir_fuente_dashboard", fuente, fixed = TRUE)
+  expect_length(chequeo, 1L)
+  expect_lt(chequeo, grep("PULSO_BOOTSTRAP_SID = bs$session_id", fuente, fixed = TRUE)[[1]])
+})
+
+# El bloque real del launcher, ejecutado: buscar la llamada en el texto no ve un
+# bloque que dejó de hacer su trabajo. Se toma de `launch_server.R` tal cual (de
+# `.bs_estado <-` hasta antes de exponer la sesión) y se evalúa contra estados
+# preparados a mano. `prosecnurapp:::` resuelve contra el paquete cargado.
+.dps_bloque_launcher <- function() {
+  src <- readLines(testthat::test_path("..", "..", "..", "launcher", "launch_server.R"), warn = FALSE)
+  i <- grep("^\\.bs_estado <-", src)
+  j <- grep("^Sys.setenv\\(PULSO_BOOTSTRAP_SID", src)
+  expect_length(i, 1L)
+  expect_length(j, 1L)
+  parse(text = src[i:(j - 1L)])
+}
+
+.dps_arranca <- function(bloque, estado, envir = parent.frame()) {
+  sid <- session_create()
+  withr::defer(session_delete(sid), envir = envir)
+  s <- session_get(sid)
+  for (k in names(estado)) s[[k]] <- estado[[k]]
+  .session_env[[sid]] <- s
+  bs <- list(session_id = sid)
+  tryCatch({
+    for (e in bloque) eval(e, envir = environment())
+    "sirve"
+  }, error = function(e) conditionMessage(e))
+}
+
+test_that("el bloque del launcher niega un tablero sin fuente y sirve lo demás", {
+  bloque <- .dps_bloque_launcher()
+  tablero <- .publicacion_marca("dashboard")
+  fuente <- list(xlsform_file_id = "f-inst", data_file_id = "f-base")
+  expect_identical(
+    .dps_arranca(bloque, list(publicacion_preparada = tablero)),
+    "[launch_server] El tablero no tiene base elegida: elígela en Dashboard › Fuente antes de publicar."
+  )
+  expect_match(
+    .dps_arranca(bloque, list(publicacion_preparada = tablero, dashboard_source = fuente)),
+    "^\\[launch_server\\] La base o el instrumento elegidos para el tablero ya no están en el proyecto"
+  )
+  expect_identical(
+    .dps_arranca(bloque, list(publicacion_preparada = tablero, dashboard_source = fuente,
+                              files = list(`f-inst` = list(), `f-base` = list()))),
+    "sirve"
+  )
+  # El monitoreo público no tiene fuente de tablero que exigir.
+  expect_identical(.dps_arranca(bloque, list(publicacion_preparada = .publicacion_marca("monitoreo"))), "sirve")
+})
+
+test_that("el bloque del launcher no disfraza un error que no es del guard", {
+  bloque <- .dps_bloque_launcher()
+  local_mocked_bindings(.publicacion_exigir_fuente_dashboard = function(s) stop("paquete viejo"))
+  r <- .dps_arranca(bloque, list(publicacion_preparada = .publicacion_marca("dashboard")))
+  expect_identical(r, "paquete viejo")
 })

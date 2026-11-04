@@ -505,7 +505,7 @@ export function DataReviewPane() {
               </div>
               <div className="pulso-data-review-structure-actions">
                 <span className="pulso-data-review-structure-count">
-                  {formatoConteo(groups.length)} {groups.length === 1 ? "sección" : "secciones"} · {formatoConteo(variables.length)} {variables.length === 1 ? "variable" : "variables"}
+                  {formatoConteo(groups.length)} {groups.length === 1 ? "sección" : "secciones"}, {formatoConteo(variables.length)} {variables.length === 1 ? "variable" : "variables"}
                 </span>
                 {/* La lectura automática se anuncia aquí, discreta, y no
                     bloquea el botón. Si falla o vence el plazo, lo dice. */}
@@ -689,7 +689,7 @@ function DataReviewSection({
             {group.synthetic ? <span className="pulso-data-review-pill">sin secciones del formulario</span> : null}
           </div>
           <div className="pulso-data-review-section-meta">
-            {formatoConteo(includedInSection)}/{formatoConteo(group.variables.length)} incluidas · {group.hidden ? "sección oculta en agrupadores" : "sección visible en agrupadores"}
+            {formatoConteo(includedInSection)}/{formatoConteo(group.variables.length)} incluidas, {group.hidden ? "sección oculta en agrupadores" : "sección visible en agrupadores"}
           </div>
         </div>
 

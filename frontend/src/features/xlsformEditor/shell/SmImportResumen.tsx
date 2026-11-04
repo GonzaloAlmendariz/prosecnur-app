@@ -89,7 +89,7 @@ export function FinalImportReviewModal({
             </strong>
             {totalRules > 0 && advancedRuleCount > 0 ? (
               <small>
-                {visualRuleCount} desde la lógica visual · {advancedRuleCount} traducidos de reglas pegadas
+                {visualRuleCount} desde la lógica visual y {advancedRuleCount} traducidos de reglas pegadas
               </small>
             ) : null}
           </dd>

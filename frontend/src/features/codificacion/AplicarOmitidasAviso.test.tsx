@@ -67,7 +67,7 @@ describe("AplicarOmitidasAviso", () => {
     const html = renderToStaticMarkup(<AplicarOmitidasAviso omitidas={[]} textosSinCodigo={[P4]} />);
     const t = texto(html);
     expect(t).toContain("1 pregunta tiene textos que quedarán en «Otro»");
-    expect(t).toContain("1 caso · 1 texto distinto en P4_otro");
+    expect(t).toContain("1 caso, 1 texto distinto en P4_otro");
     expect(t).toContain("«Hombre»");
     expect(t).not.toContain("más");
     expect(t).not.toContain("no se aplic");
@@ -85,7 +85,7 @@ describe("AplicarOmitidasAviso", () => {
       />,
     );
     const t = texto(html);
-    expect(t).toContain("12 casos · 8 textos distintos");
+    expect(t).toContain("12 casos, 8 textos distintos");
     // Columna igual a la pregunta: no se repite.
     expect(t).not.toContain(" en P60");
     // Los ejemplos se cuentan en su lista: «Otro» también lleva comillas.

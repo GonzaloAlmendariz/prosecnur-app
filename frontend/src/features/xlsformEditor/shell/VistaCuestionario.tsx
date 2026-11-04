@@ -17,7 +17,7 @@
 
 import { TituloSeccion } from "./TituloSeccion";
 import { createContext, useContext, useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
-import { AlertTriangle, ArrowRight, Repeat } from "../../../vendor/lucide-react";
+import { AlertTriangle, ArrowRight, FileText, Repeat } from "../../../vendor/lucide-react";
 import type { BuilderStructure, XlsformEditorWorkbook } from "../types";
 import { buildCatalogs } from "../parsing/buildIndex";
 import { detectMatrixCandidates } from "../parsing/detectMatrixCandidates";
@@ -39,6 +39,7 @@ import { alternarFicha } from "./detalleEnSitio";
 import { TypeIcon } from "../kit";
 import { typeLabel } from "../parsing/parseType";
 import "../cuestionario/cuestionario.css";
+import { EstadoVacio } from "../../../components/EstadoVacio";
 
 export type VistaCuestionarioProps = {
   workbook: XlsformEditorWorkbook;
@@ -238,8 +239,8 @@ function Seccion({ seccion, marcarOpcionales: opcionales, fichas, registrar, onT
             : <Markdown texto={seccion.rotulo} />}
         </h2>
         <span>
-          {seccion.repite ? "Se repite · " : ""}{plural(seccion.preguntas, "pregunta", "preguntas")}
-          {seccion.preguntas ? ` · ${duracion(seccion.segundos)}` : ""}
+          {seccion.repite ? "Se repite, " : ""}{plural(seccion.preguntas, "pregunta", "preguntas")}
+          {seccion.preguntas ? `, ${duracion(seccion.segundos)}` : ""}
         </span>
       </header>
       <div className="pulso-xf-cue-bloques" data-qa-geometry-group={`xlsform/cuestionario-${seccion.clave}`} data-qa-geometry-contract="intrinsic">
@@ -356,9 +357,9 @@ export function VistaCuestionario({ workbook, structure, logicaPendiente, onRevi
           <div className="pulso-graph-header-title">
             <strong>Vista del cuestionario</strong>
             <span>
-              {plural(resumen.preguntas, "pregunta", "preguntas")} · {plural(resumen.secciones, "sección", "secciones")}
-              {resumen.preguntas ? ` · ≈ ${minutos(resumen.segundos)} min` : ""}
-              {sinTitulo > 0 && onTitular ? ` · ${plural(sinTitulo, "sección sin título", "secciones sin título")}` : ""}
+              {plural(resumen.preguntas, "pregunta", "preguntas")}, {plural(resumen.secciones, "sección", "secciones")}
+              {resumen.preguntas ? `, ≈ ${minutos(resumen.segundos)} min` : ""}
+              {sinTitulo > 0 && onTitular ? `, ${plural(sinTitulo, "sección sin título", "secciones sin título")}` : ""}
             </span>
           </div>
         </div>
@@ -366,7 +367,12 @@ export function VistaCuestionario({ workbook, structure, logicaPendiente, onRevi
 
       <div className="pulso-xf-cue" ref={documento} data-qa-scroll-owner="cuestionario">
         {secciones.length === 0 ? (
-          <p className="pulso-xf-cue-vacio">El cuestionario todavía no tiene preguntas: agrega la primera en el Constructor.</p>
+          <EstadoVacio
+            tamano="normal"
+            icono={<FileText size={18} />}
+            titulo="El cuestionario todavía no tiene preguntas"
+            descripcion="Agrega la primera en el Constructor."
+          />
         ) : (
           <div className="pulso-xf-cue-rejilla">
             <IndiceCuestionario secciones={secciones} actual={actual} onSeccion={irASeccion} onPregunta={irAPregunta} />

@@ -1,6 +1,6 @@
 import { memo, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { BookOpenCheck, FileSpreadsheet, FileText, Info, ListChecks, Loader2, Send } from "lucide-react";
+import { BookOpenCheck, FileSpreadsheet, FileText, Info, ListChecks, Send } from "lucide-react";
 
 import type { MonitoreoAulasConfig, MonitoreoLastSheetsPublication } from "../../../../../api/monitoreo";
 import { Dialog } from "../../../../../components/Dialog";
@@ -9,7 +9,6 @@ import { PANEL_REVISAR_LIBRO } from "../../../../../lib/navegacion/manifiesto";
 import { usePanelDireccionable } from "../../../../../lib/navegacion/paneles";
 import { useTablasDeAvance } from "../useTablasDeAvance";
 import type { Vacio } from "./porFacultadModelo";
-import { EstadoChip } from "../../../../../components/EstadoChip";
 import { tonoDeEstadoChip } from "../tonoDeEstadoChip";
 import {
   construirSalidas,
@@ -20,6 +19,10 @@ import {
   type Salida,
   type VistaPrevia,
 } from "./salidasModelo";
+import { corteCorto } from "../../../core/barraComun";
+import { BloqueDeMonitoreo } from "../../../core/BloqueDeMonitoreo";
+import { HojaDelCliente, type TablaDelCliente } from "../../../salidas/estandar/HojaDelCliente";
+import { PortadaDeSalidas } from "../../../salidas/estandar/SalidasDeMonitoreo";
 import "./salidas.css";
 
 /** Lo que Salidas necesita de la página: el estado del corte y sus acciones. */
@@ -52,7 +55,7 @@ const ICONOS: Record<Salida["clave"], typeof FileText> = {
  * libro, hoja por hoja. «Revisar cambios» no escribe: las tablas se construyen en Material (R13).
  */
 function SalidasAulasImpl({ contexto }: { contexto: ContextoDeSalidas }) {
-  const { tablas, error } = useTablasDeAvance();
+  const { tablas, error, sinPlan } = useTablasDeAvance();
   const modelo = useMemo(
     () => construirSalidas({
       config: contexto.config,
@@ -60,8 +63,9 @@ function SalidasAulasImpl({ contexto }: { contexto: ContextoDeSalidas }) {
       clientSheets: contexto.clientSheets,
       tablas,
       errorTablas: error,
+      sinPlanTablas: sinPlan,
     }),
-    [contexto.config, contexto.corte, contexto.clientSheets, tablas, error],
+    [contexto.config, contexto.corte, contexto.clientSheets, tablas, error, sinPlan],
   );
   const revisar = usePanelDireccionable(PANEL_REVISAR_LIBRO);
   const libro = modelo.salidas.find((s) => s.clave === "libro");
@@ -71,36 +75,47 @@ function SalidasAulasImpl({ contexto }: { contexto: ContextoDeSalidas }) {
     else if (accion === "excel") void contexto.generarLibro();
   };
 
+  const navegar = useNavigate();
+  const accionesDe = (salida: Salida) => (
+    <>
+      {salida.acciones.map((a) => (a.accion === "pdf" || a.accion === "conectar" ? (
+        <PulsoButton key={a.accion} variant="secondary" size="sm" onClick={() => navegar(contexto.hrefHerramientas)}>
+          {a.rotulo}
+        </PulsoButton>
+      ) : (
+        <PulsoButton
+          key={a.accion}
+          variant={a.principal ? "primary" : "secondary"}
+          size="sm"
+          disabled={contexto.ocupado || (a.accion !== "revisar" && Boolean(a.deshabilitada))}
+          title={a.deshabilitada}
+          onClick={() => ejecutar(a.accion)}
+        >
+          {a.rotulo}
+        </PulsoButton>
+      )))}
+    </>
+  );
+
+  // Estándar de Salidas (4 nov 2026): la misma portada que los otros tres modos, con las salidas propias de
+  // cursos-horario (el libro y el Excel) y «Qué toca Publicar» bajo la lista.
   return (
-    <section
-      className="aulas-sl"
-      aria-label="Salidas"
-      data-audit-ready={readinessDeSalidas(modelo)}
-      data-qa-geometry-group="aulas-salidas"
-      data-qa-geometry-contract="intrinsic"
-    >
-      <div className="aulas-sl-izquierda" data-qa-geometry-member="salidas">
-        <section className="aulas-sl-panel" aria-labelledby="aulas-sl-salidas-titulo">
-          <header className="aulas-sl-cabecera">
-            <h3 id="aulas-sl-salidas-titulo" className="aulas-sl-titulo">Salidas del corte</h3>
-          </header>
-          <ul className="aulas-sl-lista" data-qa-geometry-group="aulas-salidas-lista" data-qa-geometry-contract="intrinsic">
-            {modelo.salidas.map((s) => (
-              <FilaDeSalida
-                key={s.clave}
-                salida={s}
-                ocupado={contexto.ocupado}
-                hrefHerramientas={contexto.hrefHerramientas}
-                onAccion={ejecutar}
-              />
-            ))}
-          </ul>
-        </section>
-        <VistaPreviaDelAvance vista={modelo.vistaPrevia} />
-      </div>
-      <div className="aulas-sl-derecha" data-qa-geometry-member="hojas">
-        <QueTocaPublicarPanel queToca={modelo.queToca} />
-      </div>
+    <>
+      <PortadaDeSalidas
+        readiness={readinessDeSalidas(modelo)}
+        acciones={<PulsoButton variant="secondary" size="sm" nav onClick={() => navegar(contexto.hrefHerramientas)}>PDF y cliente</PulsoButton>}
+        filas={modelo.salidas.map((salida) => ({
+          clave: salida.clave,
+          titulo: salida.titulo,
+          estado: salida.estado,
+          tono: tonoDeEstadoChip(salida.tono),
+          detalle: salida.detalle,
+          icono: ICONOS[salida.clave],
+          accion: accionesDe(salida),
+        }))}
+        despues={<QueTocaPublicarPanel queToca={modelo.queToca} />}
+        vistaPrevia={<VistaPreviaDelAvance vista={modelo.vistaPrevia} corte={contexto.corte} />}
+      />
       <Dialog
         panel={PANEL_REVISAR_LIBRO}
         size="md"
@@ -130,7 +145,7 @@ function SalidasAulasImpl({ contexto }: { contexto: ContextoDeSalidas }) {
           </p>
         </div>
       </Dialog>
-    </section>
+    </>
   );
 }
 
@@ -143,86 +158,20 @@ function Nota({ vacio }: { vacio: Vacio }) {
   );
 }
 
-function FilaDeSalida({ salida, ocupado, hrefHerramientas, onAccion }: {
-  salida: Salida;
-  ocupado: boolean;
-  hrefHerramientas: string;
-  onAccion: (accion: AccionDeSalida) => void;
-}) {
-  const navegar = useNavigate();
-  const Icono = ICONOS[salida.clave];
+function VistaPreviaDelAvance({ vista, corte }: { vista: VistaPrevia; corte: string }) {
+  const tabla: TablaDelCliente | null = vista.tipo === "tabla"
+    ? {
+      cabecera: vista.cabecera,
+      numericas: vista.numericas,
+      filas: vista.filas.map((fila) => ({ clave: fila[0], celdas: fila })),
+      total: vista.total ?? undefined,
+    }
+    : null;
+  const vacio = vista.tipo === "cargando" ? "Armando la vista previa…" : vista.tipo === "vacio" ? vista.vacio.causa : "";
   return (
-    <li className="aulas-sl-salida" data-qa-geometry-member>
-      <span className="aulas-sl-icono" aria-hidden="true"><Icono size={18} /></span>
-      <div className="aulas-sl-texto">
-        <div className="aulas-sl-nombre">
-          <b>{salida.titulo}</b>
-          <EstadoChip label={salida.estado} tone={tonoDeEstadoChip(salida.tono)} />
-        </div>
-        <p>{salida.detalle}</p>
-      </div>
-      <div className="aulas-sl-acciones">
-        {salida.acciones.map((a) => (a.accion === "pdf" || a.accion === "conectar" ? (
-          <PulsoButton key={a.accion} variant="secondary" size="sm" onClick={() => navegar(hrefHerramientas)}>
-            {a.rotulo}
-          </PulsoButton>
-        ) : (
-          <PulsoButton
-            key={a.accion}
-            variant={a.principal ? "primary" : "secondary"}
-            size="sm"
-            disabled={ocupado || (a.accion !== "revisar" && Boolean(a.deshabilitada))}
-            title={a.deshabilitada}
-            onClick={() => onAccion(a.accion)}
-          >
-            {a.rotulo}
-          </PulsoButton>
-        )))}
-      </div>
-    </li>
-  );
-}
-
-function VistaPreviaDelAvance({ vista }: { vista: VistaPrevia }) {
-  const id = "aulas-sl-vista-titulo";
-  return (
-    <section className="aulas-sl-panel aulas-sl-vista" aria-labelledby={id}>
-      <header className="aulas-sl-cabecera">
-        <h3 id={id} className="aulas-sl-titulo">Así se verá «Avance de campo»</h3>
-        {vista.tipo === "tabla" ? <span className="aulas-sl-sub">{vista.sub}</span> : null}
-      </header>
-      {vista.tipo === "cargando" ? (
-        <p className="aulas-sl-nota" role="status"><Loader2 size={14} className="pulso-spin" aria-hidden="true" /> Armando la vista previa…</p>
-      ) : vista.tipo === "vacio" ? <Nota vacio={vista.vacio} /> : (
-        <div className="aulas-sl-tabla-marco" data-qa-geometry-capacity="owned" tabIndex={0} aria-label="Vista previa de Avance de campo, con desplazamiento">
-          <table className="aulas-sl-tabla" aria-labelledby={id}>
-            <thead>
-              <tr>
-                {vista.cabecera.map((c, i) => <th key={c} scope="col" className={vista.numericas[i] ? "is-num" : undefined}>{c}</th>)}
-              </tr>
-            </thead>
-            <tbody>
-              {vista.filas.map((fila) => (
-                <tr key={fila[0]}>
-                  {fila.map((v, i) => (i === 0
-                    ? <th key={i} scope="row">{v}</th>
-                    : <td key={i} className={vista.numericas[i] ? "is-num" : undefined}>{v}</td>))}
-                </tr>
-              ))}
-            </tbody>
-            {vista.total ? (
-              <tfoot>
-                <tr>
-                  {vista.total.map((v, i) => (i === 0
-                    ? <th key={i} scope="row">{v}</th>
-                    : <td key={i} className={vista.numericas[i] ? "is-num" : undefined}>{v}</td>))}
-                </tr>
-              </tfoot>
-            ) : null}
-          </table>
-        </div>
-      )}
-    </section>
+    <HojaDelCliente encabezado="Monitoreo de cursos-horario" corte={corte ? corteCorto(corte) : ""} titulo="Avance de campo" tabla={tabla} vacio={vacio}>
+      {vista.tipo === "tabla" && vista.sub ? <p className="aulas-sl-nota">{vista.sub}</p> : null}
+    </HojaDelCliente>
   );
 }
 
@@ -250,15 +199,17 @@ function ListaDeHojas({ queToca }: { queToca: QueTocaPublicar }) {
 }
 
 function QueTocaPublicarPanel({ queToca }: { queToca: QueTocaPublicar }) {
-  const id = "aulas-sl-hojas-titulo";
   return (
-    <section className="aulas-sl-panel aulas-sl-que-toca" aria-labelledby={id} data-qa-geometry-group="aulas-salidas-que-toca" data-qa-geometry-contract="intrinsic">
-      <header className="aulas-sl-cabecera">
-        <h3 id={id} className="aulas-sl-titulo">Qué toca Publicar en el libro</h3>
-        {queToca.tipo === "hojas" ? <span className="aulas-sl-sub">{queToca.sub}</span> : null}
-      </header>
+    <BloqueDeMonitoreo
+      marco="kit"
+      className="aulas-sl-que-toca"
+      titulo="Qué toca Publicar en el libro"
+      lectura={queToca.tipo === "hojas" ? queToca.sub : undefined}
+      data-qa-geometry-group="aulas-salidas-que-toca"
+      data-qa-geometry-contract="intrinsic"
+    >
       <ListaDeHojas queToca={queToca} />
-    </section>
+    </BloqueDeMonitoreo>
   );
 }
 

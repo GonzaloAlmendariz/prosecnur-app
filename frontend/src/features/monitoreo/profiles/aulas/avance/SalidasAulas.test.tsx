@@ -31,11 +31,13 @@ describe("SalidasAulas", () => {
     const html = pintar();
     // En el primer render la vista previa todavía se pide: la marca espera.
     expect(html).toContain('data-audit-ready="false"');
-    expect(html).toContain('data-qa-geometry-group="aulas-salidas"');
+    // Estándar de Salidas (4 nov 2026): la portada común, con las salidas propias de cursos-horario.
+    expect(html).toContain('data-qa-geometry-group="monitoreo-salidas"');
     expect(html).toContain('data-qa-geometry-member="salidas"');
-    expect(html).toContain('data-qa-geometry-member="hojas"');
+    expect(html).toContain('data-qa-geometry-member="vista"');
+    expect(html).toContain('data-qa-geometry-group="aulas-salidas-que-toca"');
     for (const texto of ["Salidas del corte", "Libro del operativo", "Al día con el corte", "PDF de avance", "Sheets del cliente",
-      "Libro en Excel", "Así se verá «Avance de campo»", "Qué toca Publicar en el libro", "Nunca se escribe", "Se reescribe"]) {
+      "Libro en Excel", "Así se verá", "Avance de campo", "Qué toca Publicar en el libro", "Nunca se escribe", "Se reescribe"]) {
       expect(html).toContain(texto);
     }
     expect(html).toContain("Generar PDF");

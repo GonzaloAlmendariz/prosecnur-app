@@ -84,7 +84,7 @@ export function PreviewQuestionCard({ node, choices, position }: PreviewQuestion
         ) : (
           <h3 className="pulso-canvas-card-label">
             <em style={{ color: "var(--pulso-warn-fg)" }}>
-              (sin texto · agrégalo en el inspector)
+              (sin texto: agrégalo en el inspector)
             </em>
           </h3>
         )}

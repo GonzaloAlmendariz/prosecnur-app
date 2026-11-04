@@ -55,9 +55,12 @@ const SNAPSHOT: Record<"layout" | "infinitas" | "retardo", Record<string, number
     "features/xlsformEditor/styles/xlsform-v2/07-secciones-largas-20-pregunta.css": 1,
   },
   infinitas: {
-    "app/boot.css": 5,
+    // 4 nov 2026: el anillo del warm start (su órbita giraba sin fin) se retiró; el isotipo que lo
+    // reemplaza late mientras se prepara el proyecto: es el indicador de espera, como un spinner.
+    "app/boot-ecualizador.css": 1,
+    "app/boot.css": 4,
     "app/module-warmup.css": 1,
-    "app/theme.css": 7,
+    "app/theme.css": 6,
     "components/bases-inspector.css": 1,
     // Barra indeterminada del kit (3 nov 2026): es un indicador de carga, como el spinner.
     "components/barra-de-avance.css": 2,
@@ -85,7 +88,6 @@ const SNAPSHOT: Record<"layout" | "infinitas" | "retardo", Record<string, number
     "features/graficos/v2/styles/editor-v2.css": 1,
     "features/procesamiento/processingSheetViewer.css": 1,
     "features/xlsformEditor/impreso/impreso.css": 1,
-    "features/xlsformEditor/listas/listas.css": 1,
     "features/xlsformEditor/styles/xf-campana/01-campana-complementaria-adr-0.css": 1,
     "features/xlsformEditor/styles/xf-graph/02-mini-map.css": 1,
     "features/xlsformEditor/styles/xf-home/01-xf-home-css-hub-biblioteca-d.css": 1,
@@ -93,7 +95,6 @@ const SNAPSHOT: Record<"layout" | "infinitas" | "retardo", Record<string, number
   },
   retardo: {
     "app/boot.css": 5,
-    "app/theme.css": 2,
     "components/recent-project-card.css": 3,
     "features/analitica/analitica-v2.css": 2,
     "features/calcMuestra/calcMuestra.css": 3,

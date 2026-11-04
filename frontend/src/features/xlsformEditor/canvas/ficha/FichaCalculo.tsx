@@ -22,7 +22,7 @@ export function FichaCalculo({ datos }: { datos: DatosFicha }) {
   const irCalculos = () => acciones.irPestana("calculos", node.name || null);
   return (
     <section className="xfh-caja" data-qa-geometry-group="xlsform/ficha-bloques" data-qa-geometry-contract="intrinsic">
-      <CabeceraDesdeDatos datos={datos} posicion={`No lo ve el encuestado · ${dondeEsta(node, structure)}`} conTipo />
+      <CabeceraDesdeDatos datos={datos} posicion={`No lo ve el encuestado, ${dondeEsta(node, structure)}`} conTipo />
       <AvisosFicha avisos={avisos} />
       <BloqueFicha titulo="Fórmula">
         {lectura ? (

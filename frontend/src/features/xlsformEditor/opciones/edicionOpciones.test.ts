@@ -44,7 +44,7 @@ describe("ediciones de la pestaña Listas de opciones", () => {
     expect(nombreUnificadoCorto(grupo, {})).toBe("yes_no_a");
   });
   it("el contador cuenta como la cabecera y dice aparte las listas sin opciones", () => {
-    expect(totalListas([{ items: [1] }, { items: [] }])).toBe("1 lista · 1 sin opciones");
+    expect(totalListas([{ items: [1] }, { items: [] }])).toBe("1 lista, 1 sin opciones");
     expect(totalListas([{ items: [1] }, { items: [1] }])).toBe("2 listas");
   });
 });

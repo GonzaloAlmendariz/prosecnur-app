@@ -199,6 +199,8 @@ const PANELES_SUPERPUESTOS: Record<string, readonly string[]> = {
   "control/bandeja": ["anular"],
   "control/equipo": ["codigo", "anular"],
   "avance/umps": ["ump"],
+  // Estándar de Salidas (4 nov 2026): el motor completo («PDF y cliente») sobre la portada.
+  "avance/salidas": ["herramientas"],
 };
 const SIN_PANELES: readonly string[] = [];
 

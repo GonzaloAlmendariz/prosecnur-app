@@ -16,6 +16,7 @@ import { DashboardCustomizeDialog } from "./customize/DashboardCustomizeDialog";
 import "./customize/customize.css";
 import { DashboardPalettesDialog } from "./palettes/DashboardPalettesDialog";
 import { DashboardPublishDialog } from "./publish/DashboardPublishDialog";
+import { accionPublicar } from "./publish/accionPublicar";
 import { EmptyState } from "./shared/EmptyState";
 import { DashboardSourceGate } from "./source/DashboardSourceGate";
 import { ResumenTab } from "./tabs/ResumenTab";
@@ -32,6 +33,7 @@ import { GlidingTabList } from "../../components/GlidingTabList";
 import { ChromeIndicator, ChromeIndicatorGroup } from "../../components/ChromeIndicator";
 import { ModuleCommandBar } from "../../components/ModuleCommandBar";
 import { DASHBOARD_PESTANAS } from "../../lib/navegacion/catalogos/dashboard";
+import { usePanelConRespaldo, type ControlDePanel } from "./panelConRespaldo";
 
 type DashboardVisibleTab = typeof DASHBOARD_PESTANAS[number] & {
   available: boolean;
@@ -63,6 +65,10 @@ export default function DashboardPage({
   publicMode: publicModeProp,
   pestana: pestanaProp,
   onPestana,
+  personalizar: personalizarProp,
+  paletas: paletasProp,
+  publicar: publicarProp,
+  fuente: fuenteProp,
 }: {
   publicMode?: boolean;
   /**
@@ -72,6 +78,18 @@ export default function DashboardPage({
    */
   pestana?: DashboardTabId;
   onPestana?: (id: DashboardTabId) => void;
+  /**
+   * El editor de personalización direccionable (`?panel=personalizar`). Lo da `DashboardRuta`, que vive dentro del
+   * Router: la publicación monta esta página fuera de él y un hook de router aquí la tumbaría. Sin esta prop (la
+   * publicación), el editor usa un estado propio.
+   */
+  personalizar?: ControlDePanel;
+  /** Las paletas por lista (`?panel=paletas`), con el mismo reparto que `personalizar`. */
+  paletas?: ControlDePanel;
+  /** El diálogo de publicación (`?panel=publicar`). Abrirlo no publica: eso sigue pidiendo su clic. */
+  publicar?: ControlDePanel;
+  /** La fuente del tablero, «Datos» (`?panel=fuente`): reemplaza el tablero mientras está abierta. */
+  fuente?: ControlDePanel;
 } = {}) {
   // Modo público (deploy a HF/Fly): backend real, pero UI sin shell admin.
   // Misma desactivación de autosave (el .pulso del server es read-only;
@@ -89,10 +107,15 @@ export default function DashboardPage({
   const tabActiva = pestanaProp ?? tabActivaStore;
   const setTabActiva = onPestana ?? setTabActivaStore;
   const setSeccionActiva = useDashboardStore((s) => s.setSeccionActiva);
-  const [sourceOpen, setSourceOpen] = useState(false);
-  const [palettesOpen, setPalettesOpen] = useState(false);
-  const [customizeOpen, setCustomizeOpen] = useState(false);
-  const [publishOpen, setPublishOpen] = useState(false);
+  const fuente = usePanelConRespaldo(fuenteProp);
+  const sourceOpen = fuente.abierto;
+  // En admin, `?panel=…` (lo da DashboardRuta); en la publicación, un estado propio (`usePanelConRespaldo`).
+  const paletas = usePanelConRespaldo(paletasProp);
+  const palettesOpen = paletas.abierto;
+  const personalizar = usePanelConRespaldo(personalizarProp);
+  const customizeOpen = personalizar.abierto;
+  const publicar = usePanelConRespaldo(publicarProp);
+  const publishOpen = publicar.abierto;
   // Modo "Vista previa": oculta el admin toolbar y los controles de
   // edición para que el editor pueda ver cómo se verá el dashboard
   // publicado. Solo de sesión, no se persiste.
@@ -102,10 +125,10 @@ export default function DashboardPage({
   // parte del producto final que vería el lector.
   useEffect(() => {
     if (previewMode) {
-      setSourceOpen(false);
-      setPalettesOpen(false);
-      setCustomizeOpen(false);
-      setPublishOpen(false);
+      if (fuente.abierto) fuente.cerrar();
+      if (paletas.abierto) paletas.cerrar();
+      if (personalizar.abierto) personalizar.cerrar();
+      if (publicar.abierto) publicar.cerrar();
     }
   }, [previewMode]);
 
@@ -242,15 +265,11 @@ export default function DashboardPage({
             acciones={[
               {
                 id: "deploy",
-                label: config.last_deploy ? "Re-publicar" : "Publicar",
+                ...accionPublicar({ tieneFuente: hasDashboardSource, lastDeploy: config.last_deploy }),
                 icon: Rocket,
                 rank: 1,
                 kind: "primary",
-                onSelect: () => setPublishOpen(true),
-                disabled: !hasDashboardSource,
-                title: config.last_deploy
-                  ? `Re-publicar a ${config.last_deploy.repo_id}`
-                  : "Publicar el dashboard como Hugging Face Space",
+                onSelect: () => publicar.abrir(),
               },
               {
                 id: "vista-previa",
@@ -266,7 +285,7 @@ export default function DashboardPage({
                 label: "Personalizar",
                 icon: Settings,
                 rank: 2,
-                onSelect: () => setCustomizeOpen(true),
+                onSelect: () => personalizar.abrir(),
                 disabled: !hasDashboardSource,
                 title: "Personalizar marca, pestañas y vistas",
               },
@@ -275,7 +294,7 @@ export default function DashboardPage({
                 label: "Datos",
                 icon: UploadCloud,
                 rank: 3,
-                onSelect: () => setSourceOpen((v) => !v),
+                onSelect: () => (fuente.abierto ? fuente.cerrar() : fuente.abrir()),
                 disabled: !manifest,
                 title: "Cambiar XLSForm y data del dashboard",
               },
@@ -284,7 +303,7 @@ export default function DashboardPage({
                 label: "Paletas",
                 icon: Palette,
                 rank: 3,
-                onSelect: () => setPalettesOpen(true),
+                onSelect: () => paletas.abrir(),
                 disabled: !hasDashboardSource,
                 title: "Paletas de colores por lista",
               },
@@ -331,10 +350,10 @@ export default function DashboardPage({
       {manifest && (!manifest.estado.tiene_data || sourceOpen) && !adminHidden && (
         <DashboardSourceGate
           compact={manifest.estado.tiene_data}
-          onCancel={manifest.estado.tiene_data ? () => setSourceOpen(false) : undefined}
+          onCancel={manifest.estado.tiene_data ? () => fuente.cerrar() : undefined}
           recodVars={recodVarsState.vars}
           onImported={() => {
-            setSourceOpen(false);
+            if (fuente.abierto) fuente.cerrar();
             setSeccionActiva(null);
             refresh();
             recodVarsState.refresh();
@@ -409,13 +428,13 @@ export default function DashboardPage({
 
       {palettesOpen && (
         <DashboardPalettesDialog
-          onClose={() => setPalettesOpen(false)}
+          onClose={() => paletas.cerrar()}
           returnFocusTo={DISPARADOR_MAS_ACCIONES}
         />
       )}
       {customizeOpen && (
         <DashboardCustomizeDialog
-          onClose={() => setCustomizeOpen(false)}
+          onClose={() => personalizar.cerrar()}
           returnFocusTo={DISPARADOR_MAS_ACCIONES}
         />
       )}
@@ -423,7 +442,7 @@ export default function DashboardPage({
         <DashboardPublishDialog
           defaultTitle={config.titulo || "pulso-dashboard"}
           lastDeploy={config.last_deploy}
-          onClose={() => setPublishOpen(false)}
+          onClose={() => publicar.cerrar()}
         />
       )}
     </ThemeProvider>

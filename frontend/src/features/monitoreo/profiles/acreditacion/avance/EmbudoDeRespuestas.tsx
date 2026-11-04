@@ -41,11 +41,11 @@ export function EmbudoDeRespuestas() {
   // (Gonzalo, 30/10: el embudo «podría verse mejor»).
   const tramos = [
     [
-      { clave: "sin-llave", valor: embudo.sinLlave, regla: "sin llave (pruebas o enlace sin id)", direccion: "seccion=control&pestana=respuestas" },
-      { clave: "sin-cruce", valor: embudo.sinCruce, regla: "con llave fuera de las bases", direccion: "seccion=control&pestana=resolver" },
+      { clave: "sin-llave", valor: embudo.sinLlave, regla: "sin llave", detalle: "Sin llave: pruebas o enlaces sin id", direccion: "seccion=control&pestana=respuestas" },
+      { clave: "sin-cruce", valor: embudo.sinCruce, regla: "fuera de las bases", detalle: "Con llave, pero fuera de las bases de envío", direccion: "seccion=control&pestana=resolver" },
     ],
     [
-      { clave: "no-cuentan", valor: embudo.noCuentan, regla: "parciales, rechazos o repetidas", direccion: "seccion=control&pestana=respuestas" },
+      { clave: "no-cuentan", valor: embudo.noCuentan, regla: "no cuentan", detalle: "Parciales, rechazos o repetidas", direccion: "seccion=control&pestana=respuestas" },
     ],
   ].map((mermas) => mermas.filter((merma) => merma.valor > 0));
 
@@ -66,11 +66,19 @@ export function EmbudoDeRespuestas() {
               <div className="acr-emb-tramo" aria-label={`Se pierden ${fmt(perdidas)} entre ${paso.label} y ${pasos[index + 1].label}`}>
                 <span className="acr-emb-flecha" aria-hidden="true" />
                 {perdidas > 0 ? <b className="acr-av-num">&minus;{fmt(perdidas)}</b> : <span className="acr-av-tenue">sin pérdidas</span>}
-                {mermas.map((merma) => (
-                  <button key={merma.clave} type="button" className="acr-emb-merma" onClick={() => irA(merma.direccion)} title="Ver estas respuestas">
-                    <span className="acr-av-num">{fmt(merma.valor)}</span> {merma.regla}
-                  </button>
-                ))}
+                {mermas.length ? (
+                  // Un libro de mermas: la cifra en su columna y el motivo en un renglón; el detalle
+                  // del motivo va en el título (formato de Monitoreo, vista 4: eran tres renglones
+                  // apretados en 150 px).
+                  <span className="acr-emb-mermas">
+                    {mermas.map((merma) => (
+                      <button key={merma.clave} type="button" className="acr-emb-merma" onClick={() => irA(merma.direccion)} title={`${merma.detalle}. Ver estas respuestas`}>
+                        <span className="acr-av-num">{fmt(merma.valor)}</span>
+                        <span className="acr-emb-merma-regla">{merma.regla}</span>
+                      </button>
+                    ))}
+                  </span>
+                ) : null}
               </div>
             ) : null}
           </Fragment>

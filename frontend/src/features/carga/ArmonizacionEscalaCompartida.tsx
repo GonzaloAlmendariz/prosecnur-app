@@ -73,7 +73,7 @@ export function EscalaCompartidaLista({
               <span className="pulso-armon-compartida-texto">
                 <span className="pulso-armon-compartida-nombre">{c.etiqueta || "Pregunta sin nombre"}</span>
                 <small>
-                  {c.variables.map((x) => `${x.base} ${x.variable}`).join(" · ")}
+                  {c.variables.map((x) => `${x.base} ${x.variable}`).join(", ")}
                 </small>
               </span>
               {c.reemplaza && (

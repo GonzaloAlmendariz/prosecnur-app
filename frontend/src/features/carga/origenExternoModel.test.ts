@@ -130,7 +130,7 @@ describe("origenExternoModel", () => {
     expect(rotuloEstado("vigente")).toBe("Declarada");
     expect(rotuloEstado("otra_base")).toBe("Otra base");
     expect(rotuloEstado("")).toBe("Sin declarar");
-    expect(procedenciaScript(DECLARADA)).toBe("limpieza.R · versión v3");
+    expect(procedenciaScript(DECLARADA)).toBe("limpieza.R, versión v3");
   });
 });
 

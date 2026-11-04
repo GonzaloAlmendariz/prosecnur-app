@@ -16,6 +16,7 @@ import {
 import type { LucideIcon } from "lucide-react";
 import type { ReglaInstrumento } from "../../../api/client";
 import DrilldownTable, { formatDisplayValue } from "./DrilldownTable";
+import { formatoConteo } from "../../../lib/formatoNumero";
 
 type Props = {
   regla: ReglaInstrumento;
@@ -358,7 +359,7 @@ export default function ReglaDrillPanel({
             background: white;
             color: var(--pulso-text);
             box-shadow: var(--pulso-shadow-low);
-            font-size: 11px;
+            font-size: var(--pulso-type-caption-size);
             font-weight: var(--pulso-weight-medium);
             line-height: 1.45;
             opacity: 0;
@@ -433,7 +434,7 @@ export default function ReglaDrillPanel({
                   background: "var(--pulso-surface-2)",
                   color: "var(--pulso-text-soft)",
                   fontFamily: "ui-monospace, monospace",
-                  fontSize: 11,
+                  fontSize: "var(--pulso-type-caption-size)",
                   fontWeight: 700,
                 }}
               >
@@ -443,7 +444,7 @@ export default function ReglaDrillPanel({
                 <span
                   style={{
                     display: "inline-block",
-                    fontSize: 10,
+                    fontSize: "var(--pulso-type-micro-size)",
                     fontWeight: 700,
                     padding: "2px 7px",
                     borderRadius: 999,
@@ -461,7 +462,7 @@ export default function ReglaDrillPanel({
             <div style={{ marginTop: 10 }}>
               <div
                 style={{
-                  fontSize: 18,
+                  fontSize: "var(--pulso-type-kpi-size)",
                   fontWeight: 700,
                   color: "var(--pulso-text)",
                   lineHeight: 1.28,
@@ -475,7 +476,7 @@ export default function ReglaDrillPanel({
               <div
                 style={{
                   marginTop: 6,
-                  fontSize: 11,
+                  fontSize: "var(--pulso-type-caption-size)",
                   color: "var(--pulso-text-soft)",
                   display: "inline-flex",
                   alignItems: "center",
@@ -511,7 +512,7 @@ export default function ReglaDrillPanel({
                     placeholder="Por qué se ignora esta regla"
                     aria-label="Motivo por el que se ignora la regla"
                     style={{
-                      minWidth: 190, padding: "5px 9px", borderRadius: 8, fontSize: 12,
+                      minWidth: 190, padding: "5px 9px", borderRadius: 8, fontSize: "var(--pulso-type-body-size)",
                       border: "1px solid var(--pulso-border)",
                       background: "var(--pulso-surface)", color: "var(--pulso-text)",
                     }}
@@ -564,7 +565,7 @@ export default function ReglaDrillPanel({
             style={{
               marginTop: 14,
               padding: "9px 12px",
-              fontSize: 11,
+              fontSize: "var(--pulso-type-caption-size)",
               color: "var(--pulso-warn-fg)",
               background: "var(--pulso-warn-bg)",
               border: "1px solid var(--pulso-warn-border)",
@@ -586,7 +587,7 @@ export default function ReglaDrillPanel({
         <div style={{ display: "grid", gap: 12 }}>
           <div
             style={{
-              fontSize: 16,
+              fontSize: "var(--pulso-type-title-size)",
               fontWeight: 700,
               color: "var(--pulso-text)",
               lineHeight: 1.4,
@@ -723,7 +724,7 @@ export default function ReglaDrillPanel({
                   background: "#0f172a",
                   color: "#e2e8f0",
                   borderRadius: 8,
-                  fontSize: 11,
+                  fontSize: "var(--pulso-type-caption-size)",
                   fontFamily: "ui-monospace, monospace",
                   overflow: "auto",
                   lineHeight: 1.55,
@@ -748,11 +749,11 @@ export default function ReglaDrillPanel({
           }}
         >
           <Hash size={13} color="var(--pulso-text-soft)" />
-          <span style={{ fontSize: 13, fontWeight: 700, color: "var(--pulso-text)" }}>
-            Casos detectados {isFiltered ? `(${filteredCasos.length} de ${casos.length})` : `(${casos.length})`}
+          <span style={{ fontSize: "var(--pulso-type-subtitle-size)", fontWeight: 700, color: "var(--pulso-text)" }}>
+            Casos detectados {isFiltered ? `(${formatoConteo(filteredCasos.length)} de ${formatoConteo(casos.length)})` : `(${formatoConteo(casos.length)})`}
           </span>
           {uuidCol && (
-            <span style={{ fontSize: 10, color: "var(--pulso-text-soft)", fontFamily: "ui-monospace, monospace" }}>
+            <span style={{ fontSize: "var(--pulso-type-micro-size)", color: "var(--pulso-text-soft)", fontFamily: "ui-monospace, monospace" }}>
               UUID: {uuidCol}
             </span>
           )}
@@ -763,7 +764,7 @@ export default function ReglaDrillPanel({
               onClick={() => setFiltersOpen((open) => !open)}
               style={{
                 marginLeft: "auto",
-                fontSize: 11,
+                fontSize: "var(--pulso-type-caption-size)",
                 padding: "5px 10px",
                 borderRadius: 8,
                 border: `1px solid ${nActiveFilters > 0 ? "var(--pulso-primary)" : "var(--pulso-border)"}`,
@@ -784,7 +785,7 @@ export default function ReglaDrillPanel({
                     color: "white",
                     borderRadius: 999,
                     padding: "0 6px",
-                    fontSize: 10,
+                    fontSize: "var(--pulso-type-micro-size)",
                     fontWeight: 700,
                   }}
                 >
@@ -813,7 +814,7 @@ export default function ReglaDrillPanel({
               gap: 8,
             }}
           >
-            <div style={{ fontSize: 11, color: "var(--pulso-text-soft)", lineHeight: 1.45 }}>
+            <div style={{ fontSize: "var(--pulso-type-caption-size)", color: "var(--pulso-text-soft)", lineHeight: 1.45 }}>
               Sugerencia rapida para <code style={codeTextStyle}>{focusedVariable}</code>: toca un valor y dejamos la tabla enfocada en esa variable.
             </div>
             <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
@@ -826,7 +827,7 @@ export default function ReglaDrillPanel({
                     type="button"
                     onClick={() => selectOnlyFilterValue(focusedVariable, value)}
                     style={{
-                      fontSize: 10,
+                      fontSize: "var(--pulso-type-micro-size)",
                       padding: "4px 8px",
                       borderRadius: 999,
                       border: `1px solid ${selected ? "var(--pulso-primary)" : "var(--pulso-border)"}`,
@@ -842,7 +843,7 @@ export default function ReglaDrillPanel({
                 );
               })}
               {selectedQuickValues.length > 10 && (
-                <span style={{ fontSize: 10, color: "var(--pulso-text-soft)", alignSelf: "center" }}>
+                <span style={{ fontSize: "var(--pulso-type-micro-size)", color: "var(--pulso-text-soft)", alignSelf: "center" }}>
                   +{selectedQuickValues.length - 10} valores mas
                 </span>
               )}
@@ -889,12 +890,12 @@ export default function ReglaDrillPanel({
                       flexWrap: "wrap",
                     }}
                   >
-                    <span style={{ fontSize: 11, fontWeight: 700, color: "var(--pulso-text)" }}>
+                    <span style={{ fontSize: "var(--pulso-type-caption-size)", fontWeight: 700, color: "var(--pulso-text)" }}>
                       {col}
                     </span>
-                    {label && <span style={{ fontSize: 11, color: "var(--pulso-text-soft)" }}>{label}</span>}
-                    <span style={{ fontSize: 10, color: "var(--pulso-text-soft)" }}>
-                      {distinct.length} {distinct.length === 1 ? "valor" : "valores"}
+                    {label && <span style={{ fontSize: "var(--pulso-type-caption-size)", color: "var(--pulso-text-soft)" }}>{label}</span>}
+                    <span style={{ fontSize: "var(--pulso-type-micro-size)", color: "var(--pulso-text-soft)" }}>
+                      {formatoConteo(distinct.length)} {distinct.length === 1 ? "valor" : "valores"}
                     </span>
                     {!allShown && (
                       <button type="button" onClick={() => clearFilterCol(col)} style={tinyGhostButtonStyle}>
@@ -912,7 +913,7 @@ export default function ReglaDrillPanel({
                           type="button"
                           onClick={() => toggleFilterValue(col, value)}
                           style={{
-                            fontSize: 10,
+                            fontSize: "var(--pulso-type-micro-size)",
                             padding: "4px 8px",
                             borderRadius: 999,
                             border: `1px solid ${included ? "var(--pulso-primary)" : "var(--pulso-border)"}`,
@@ -956,7 +957,7 @@ const bandStyle: React.CSSProperties = {
 };
 
 const sectionMiniTitleStyle: React.CSSProperties = {
-  fontSize: 10,
+  fontSize: "var(--pulso-type-micro-size)",
   fontWeight: 700,
   textTransform: "uppercase",
   letterSpacing: 0.4,
@@ -967,7 +968,7 @@ const ghostButtonStyle: React.CSSProperties = {
   display: "inline-flex",
   alignItems: "center",
   gap: 6,
-  fontSize: 12,
+  fontSize: "var(--pulso-type-body-size)",
   padding: "8px 11px",
   border: "1px solid var(--pulso-border)",
   background: "white",
@@ -978,7 +979,7 @@ const ghostButtonStyle: React.CSSProperties = {
 
 const tinyGhostButtonStyle: React.CSSProperties = {
   marginLeft: "auto",
-  fontSize: 10,
+  fontSize: "var(--pulso-type-micro-size)",
   padding: "2px 6px",
   borderRadius: 6,
   border: "1px solid var(--pulso-border)",
@@ -988,7 +989,7 @@ const tinyGhostButtonStyle: React.CSSProperties = {
 };
 
 const clearFiltersButtonStyle: React.CSSProperties = {
-  fontSize: 11,
+  fontSize: "var(--pulso-type-caption-size)",
   padding: "5px 8px",
   borderRadius: 8,
   border: "1px solid var(--pulso-border)",
@@ -1005,17 +1006,17 @@ const sectionToggleStyle: React.CSSProperties = {
   border: "none",
   background: "transparent",
   cursor: "pointer",
-  fontSize: 13,
+  fontSize: "var(--pulso-type-subtitle-size)",
   fontWeight: 700,
 };
 
 const codeTextStyle: React.CSSProperties = {
   fontFamily: "ui-monospace, monospace",
-  fontSize: 11,
+  fontSize: "var(--pulso-type-caption-size)",
 };
 
 const techVariableChipStyle: React.CSSProperties = {
-  fontSize: 11,
+  fontSize: "var(--pulso-type-caption-size)",
   padding: "4px 8px",
   borderRadius: 999,
   border: "1px solid var(--pulso-border)",
@@ -1034,7 +1035,7 @@ const logicPillStyle: React.CSSProperties = {
   border: "1px solid var(--pulso-border)",
   background: "white",
   color: "var(--pulso-text)",
-  fontSize: 11,
+  fontSize: "var(--pulso-type-caption-size)",
   lineHeight: 1.3,
   overflowWrap: "anywhere",
   whiteSpace: "normal",
@@ -1045,7 +1046,7 @@ const logicStepHeadingStyle: React.CSSProperties = {
   alignItems: "center",
   gap: 8,
   minWidth: 0,
-  fontSize: 11,
+  fontSize: "var(--pulso-type-eyebrow-size)",
   fontWeight: 800,
   color: "var(--pulso-text)",
   textTransform: "uppercase",
@@ -1062,7 +1063,7 @@ const logicStepNumberStyle: React.CSSProperties = {
   background: "white",
   color: "var(--pulso-primary)",
   border: "1px solid var(--pulso-border)",
-  fontSize: 11,
+  fontSize: "var(--pulso-type-caption-size)",
   fontWeight: 800,
 };
 
@@ -1080,7 +1081,7 @@ const logicCardStyle: React.CSSProperties = {
 
 const logicCodeStyle: React.CSSProperties = {
   fontFamily: "ui-monospace, monospace",
-  fontSize: 11,
+  fontSize: "var(--pulso-type-caption-size)",
   fontWeight: 800,
   color: "var(--pulso-primary)",
   paddingTop: 1,
@@ -1088,7 +1089,7 @@ const logicCodeStyle: React.CSSProperties = {
 
 const logicQuestionStyle: React.CSSProperties = {
   minWidth: 0,
-  fontSize: 12,
+  fontSize: "var(--pulso-type-subtitle-size)",
   fontWeight: 700,
   color: "var(--pulso-text)",
   lineHeight: 1.35,
@@ -1098,7 +1099,7 @@ const logicQuestionStyle: React.CSSProperties = {
 const logicMutedStyle: React.CSSProperties = {
   marginTop: 3,
   minWidth: 0,
-  fontSize: 11,
+  fontSize: "var(--pulso-type-caption-size)",
   color: "var(--pulso-text-soft)",
   lineHeight: 1.35,
   overflowWrap: "anywhere",
@@ -1108,7 +1109,7 @@ function SectionHeading({ title, subtitle }: { title: string; subtitle: string }
   return (
     <div style={{ marginBottom: 12 }}>
       <div style={sectionMiniTitleStyle}>{title}</div>
-      <div style={{ marginTop: 4, fontSize: 12, color: "var(--pulso-text-soft)", lineHeight: 1.5 }}>
+      <div style={{ marginTop: 4, fontSize: "var(--pulso-type-body-size)", color: "var(--pulso-text-soft)", lineHeight: 1.5 }}>
         {subtitle}
       </div>
     </div>
@@ -1160,7 +1161,7 @@ function PlainRuleSteps({ reading }: { reading: PlainRuleReading }) {
                 justifyContent: "center",
                 background: "var(--pulso-primary-soft)",
                 color: "var(--pulso-primary)",
-                fontSize: 11,
+                fontSize: "var(--pulso-type-caption-size)",
                 fontWeight: 800,
               }}
             >
@@ -1168,7 +1169,7 @@ function PlainRuleSteps({ reading }: { reading: PlainRuleReading }) {
             </span>
             <span style={sectionMiniTitleStyle}>{step.title}</span>
           </div>
-          <div style={{ fontSize: 13, lineHeight: 1.55, color: "var(--pulso-text)" }}>
+          <div style={{ fontSize: "var(--pulso-type-body-size)", lineHeight: 1.55, color: "var(--pulso-text)" }}>
             {step.body}
           </div>
         </div>
@@ -1237,7 +1238,7 @@ function CaseLogicSummary({
         <GitBranch size={14} color="var(--pulso-warn-fg)" />
         <span style={sectionMiniTitleStyle}>Ruta lógica del salto</span>
       </div>
-      <div style={{ fontSize: 12, lineHeight: 1.5, color: "var(--pulso-text)" }}>{routeIntro}</div>
+      <div style={{ fontSize: "var(--pulso-type-body-size)", lineHeight: 1.5, color: "var(--pulso-text)" }}>{routeIntro}</div>
 
       {routeComparisons.length > 0 && (
         <div style={{ display: "grid", gap: 8 }}>
@@ -1261,7 +1262,7 @@ function CaseLogicSummary({
           <span style={logicStepNumberStyle}>2</span>
           <span>Qué ocurrió en los casos detectados</span>
         </div>
-        <div style={{ fontSize: 12, color: "var(--pulso-text-soft)", lineHeight: 1.45 }}>
+        <div style={{ fontSize: "var(--pulso-type-body-size)", color: "var(--pulso-text-soft)", lineHeight: 1.45 }}>
           Se detectaron {nText} con esta combinación de respuestas.
         </div>
         {routeComparisons.length > 0 ? (
@@ -1291,7 +1292,7 @@ function CaseLogicSummary({
             ))}
           </div>
         ) : (
-          <div style={{ fontSize: 12, color: "var(--pulso-text-soft)" }}>
+          <div style={{ fontSize: "var(--pulso-type-body-size)", color: "var(--pulso-text-soft)" }}>
             No se pudo reconstruir la condición legible desde la expresión técnica.
           </div>
         )}
@@ -1308,7 +1309,7 @@ function CaseLogicSummary({
             borderRadius: 8,
             background: "white",
             border: "1px solid var(--pulso-warn-border)",
-            fontSize: 12,
+            fontSize: "var(--pulso-type-subtitle-size)",
             lineHeight: 1.5,
             color: "var(--pulso-text)",
             fontWeight: 600,
@@ -1467,13 +1468,13 @@ function RolePanel({
       <div style={{ display: "grid", gap: 6, minWidth: 0 }}>
         <div style={{ display: "inline-flex", alignItems: "center", gap: 7, flexWrap: "wrap" }}>
           <Icon size={13} color={colors.fg} />
-          <span style={{ fontSize: 11, fontWeight: 700, color: "var(--pulso-text)" }}>{section.title}</span>
+          <span style={{ fontSize: "var(--pulso-type-caption-size)", fontWeight: 700, color: "var(--pulso-text)" }}>{section.title}</span>
           <InfoHint text={section.hint} />
         </div>
         <div
           style={{
             minWidth: 0,
-            fontSize: 11,
+            fontSize: "var(--pulso-type-caption-size)",
             color: "var(--pulso-text-soft)",
             lineHeight: 1.5,
             overflowWrap: "anywhere",
@@ -1548,7 +1549,7 @@ function VariableBlock({
           display: "block",
           width: "100%",
           fontFamily: "ui-monospace, monospace",
-          fontSize: 11,
+          fontSize: "var(--pulso-type-caption-size)",
           color: colors.fg,
           overflowWrap: "anywhere",
           whiteSpace: "normal",
@@ -1562,7 +1563,7 @@ function VariableBlock({
             minWidth: 0,
             display: "block",
             width: "100%",
-            fontSize: 11,
+            fontSize: "var(--pulso-type-caption-size)",
             lineHeight: 1.38,
             color: "var(--pulso-text-soft)",
             overflowWrap: "anywhere",
@@ -1580,7 +1581,7 @@ function VariableBlock({
             minWidth: 0,
             display: "block",
             width: "100%",
-            fontSize: 10,
+            fontSize: "var(--pulso-type-micro-size)",
             color: "var(--pulso-text-soft)",
             overflowWrap: "anywhere",
             whiteSpace: "normal",
@@ -1606,7 +1607,7 @@ function TechField({ label, children }: { label: string; children: React.ReactNo
   return (
     <div style={{ display: "grid", gap: 4 }}>
       <div style={sectionMiniTitleStyle}>{label}</div>
-      <div style={{ fontSize: 12, color: "var(--pulso-text)", lineHeight: 1.55 }}>{children}</div>
+      <div style={{ fontSize: "var(--pulso-type-body-size)", color: "var(--pulso-text)", lineHeight: 1.55 }}>{children}</div>
     </div>
   );
 }
@@ -1634,7 +1635,7 @@ function Chip({
         display: "inline-flex",
         alignItems: "center",
         gap: 4,
-        fontSize: 10,
+        fontSize: "var(--pulso-type-micro-size)",
         fontWeight: 700,
         padding: "4px 8px",
         borderRadius: 999,

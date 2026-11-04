@@ -17,6 +17,7 @@ import {
   type ModeloFaltante,
 } from "./faltanteModel";
 import { DetalleDeUmp } from "./DetalleDeUmp";
+import { aplicadorCorto, hayAlgunSaldo, quienCubreCorto } from "./celdasDeCuotaUmp";
 import { AvancePorZona } from "./AvancePorZona";
 import { avancePorZona } from "./porZonaModelo";
 import type { UmpPlanificada } from "../../../../../api/monitoreoAsignacionPlanificada";
@@ -26,6 +27,7 @@ import { tonoDeCalor } from "./tonoDeCalor";
 import { RotuloDePestana } from "../navegacion/RotuloDePestana";
 import { useQuedanMasAbajo } from "../../../core/useQuedanMasAbajo";
 import "./faltante.css";
+import { BloqueDeMonitoreo } from "../../../core/BloqueDeMonitoreo";
 
 /**
  * Avance › Faltante por UMP, pantalla de llegada del modo (§3.17).
@@ -99,36 +101,40 @@ function FaltantePorUmpImpl({ reports }: { reports: MonitoreoTerritorialDashboar
         <MapaDeCalor modelo={modelo} />
       </div>
 
-      <section className="mon-falt-panel mon-falt-cuotas" aria-labelledby="mon-falt-cuotas-titulo" data-qa-geometry-member="cuotas">
-        <header className="mon-falt-cabecera">
-          <h3 id="mon-falt-cuotas-titulo">Cuota de cada UMP</h3>
-          <span className="mon-falt-base" title="El signo indica subsanaciones recibidas o cedidas">Manzana en uso</span>
-          <span className="mon-falt-controles">
-            <span className="mon-falt-segmentado" role="group" aria-label="Qué UMP mostrar">
-              {(["pendientes", "subsanadas", "todas"] as const).map((clave) => (
-                <button
-                  key={clave}
-                  type="button"
-                  aria-pressed={filtro === clave}
-                  className={filtro === clave ? "is-active" : ""}
-                  onClick={() => setFiltro(clave)}
-                >
-                  {clave === "pendientes" ? "Con celda pendiente" : clave === "subsanadas" ? "Subsanadas" : "Todas"}
-                  <b>{fmt(conteos[clave])}</b>
-                </button>
-              ))}
-            </span>
-            <span className="mon-falt-switch">
-              <Switch
-                checked={conReemplazos}
-                onToggle={() => setConReemplazos((valor) => !valor)}
-                ariaLabel="Incluir UMP que trabajan en su manzana de reemplazo"
-                className="mon-falt-switch-piel"
-              />
-              <span aria-hidden="true">Incluir reemplazos</span>
-            </span>
+      <BloqueDeMonitoreo
+        marco="kit"
+        className="mon-falt-panel mon-falt-cuotas"
+        aria-labelledby="mon-falt-cuotas-titulo"
+        data-qa-geometry-member="cuotas"
+        titulo="Cuota de cada UMP"
+        tituloId="mon-falt-cuotas-titulo"
+        bajada={<span title="El signo indica subsanaciones recibidas o cedidas">Manzana en uso</span>}
+        acciones={<span className="mon-falt-controles">
+          <span className="mon-falt-segmentado" role="group" aria-label="Qué UMP mostrar">
+            {(["pendientes", "subsanadas", "todas"] as const).map((clave) => (
+              <button
+                key={clave}
+                type="button"
+                aria-pressed={filtro === clave}
+                className={filtro === clave ? "is-active" : ""}
+                onClick={() => setFiltro(clave)}
+              >
+                {clave === "pendientes" ? "Con celda pendiente" : clave === "subsanadas" ? "Subsanadas" : "Todas"}
+                <b>{fmt(conteos[clave])}</b>
+              </button>
+            ))}
           </span>
-        </header>
+          <span className="mon-falt-switch">
+            <Switch
+              checked={conReemplazos}
+              onToggle={() => setConReemplazos((valor) => !valor)}
+              ariaLabel="Incluir UMP que trabajan en su manzana de reemplazo"
+              className="mon-falt-switch-piel"
+            />
+            <span aria-hidden="true">Incluir reemplazos</span>
+          </span>
+        </span>}
+      >
         <TablaDeCuotas
           filas={filas}
           columnas={modelo.columnas}
@@ -136,7 +142,7 @@ function FaltantePorUmpImpl({ reports }: { reports: MonitoreoTerritorialDashboar
           onFoco={(ump) => escribirFoco(foco === ump ? null : ump)}
           coordinacionDe={coordinacionDe}
         />
-      </section>
+      </BloqueDeMonitoreo>
     </section>
   );
 }
@@ -153,18 +159,20 @@ function PanelDePendientes({
   const completas = modelo.totalUmp - modelo.pendientes.length;
   const { ref: listaRef, quedan } = useQuedanMasAbajo<HTMLDivElement>(modelo.pendientes);
   return (
-    <section className="mon-falt-panel mon-falt-pendientes" aria-labelledby="mon-falt-pendientes-titulo" data-qa-geometry-member="pendientes">
-      <header className="mon-falt-cabecera">
-        <RotuloDePestana />
-        <h3 id="mon-falt-pendientes-titulo">Falta en la manzana en uso</h3>
-        {modelo.celdasFueraDeUso > 0 ? (
-          <span className="mon-falt-base">
-            {modelo.celdasFueraDeUso === 1
-              ? "1 celda más en una manzana sin usar"
-              : `${fmt(modelo.celdasFueraDeUso)} celdas más en manzanas sin usar`}
-          </span>
-        ) : null}
-      </header>
+    <BloqueDeMonitoreo
+      marco="kit"
+      className="mon-falt-panel mon-falt-pendientes"
+      aria-labelledby="mon-falt-pendientes-titulo"
+      data-qa-geometry-member="pendientes"
+      antetitulo={<RotuloDePestana />}
+      titulo="Falta en la manzana en uso"
+      tituloId="mon-falt-pendientes-titulo"
+      bajada={modelo.celdasFueraDeUso > 0
+        ? (modelo.celdasFueraDeUso === 1
+          ? "1 celda más en una manzana sin usar"
+          : `${fmt(modelo.celdasFueraDeUso)} celdas más en manzanas sin usar`)
+        : undefined}
+    >
       <div ref={listaRef} className={`mon-falt-tarjetas${quedan ? " quedan-mas" : ""}`} data-qa-geometry-group="territorial-faltante-tarjetas" data-qa-geometry-contract="intrinsic">
         {modelo.pendientes.map((fila) => (
           <article key={fila.ump} className={`mon-falt-tarjeta${fila.cubre?.tipo === "sugerencia" ? " is-con-sugerencia" : ""}`}>
@@ -209,7 +217,7 @@ function PanelDePendientes({
           {modelo.subsanadas ? `, ${fmt(modelo.subsanadas)} de ellas con subsanación.` : "."}
         </span>
       </p>
-    </section>
+    </BloqueDeMonitoreo>
   );
 }
 
@@ -217,11 +225,15 @@ function PanelDePendientes({
 function MapaDeCalor({ modelo }: { modelo: ModeloFaltante }) {
   const columnas = modelo.distritos[0]?.celdas ?? [];
   return (
-    <section className="mon-falt-panel mon-falt-calor" aria-labelledby="mon-falt-calor-titulo" data-qa-geometry-member="calor">
-      <header className="mon-falt-cabecera">
-        <h3 id="mon-falt-calor-titulo">Logrado frente a la cuota, por distrito</h3>
-        <span className="mon-falt-base">{fmt(modelo.casosConSexoYEdad)} casos con sexo y edad</span>
-      </header>
+    <BloqueDeMonitoreo
+      marco="kit"
+      className="mon-falt-panel mon-falt-calor"
+      aria-labelledby="mon-falt-calor-titulo"
+      data-qa-geometry-member="calor"
+      titulo="Logrado frente a la cuota, por distrito"
+      tituloId="mon-falt-calor-titulo"
+      bajada={<>{fmt(modelo.casosConSexoYEdad)} casos con sexo y edad</>}
+    >
       <table className="mon-falt-calor-tabla">
         <thead>
           <tr>
@@ -251,7 +263,7 @@ function MapaDeCalor({ modelo }: { modelo: ModeloFaltante }) {
           ))}
         </tbody>
       </table>
-    </section>
+    </BloqueDeMonitoreo>
   );
 }
 
@@ -281,6 +293,7 @@ function TablaDeCuotas({
   const filaAbierta = useRef<HTMLTableRowElement | null>(null);
   const abiertaPorClick = useRef<string | null>(null);
   const hayFilaEnFoco = foco != null && filas.some((fila) => fila.ump === foco);
+  const conSaldo = hayAlgunSaldo(filas);
   // `foco` llega por la dirección (`&foco=7`): la fila se despliega y se lleva
   // a la vista, también a 1024, donde la tabla queda bajo el pliegue (C4). Un
   // click sobre una fila visible no desplaza. Espera dos cuadros porque el
@@ -317,7 +330,7 @@ function TablaDeCuotas({
             <th scope="col" className="is-aplicador">Aplicador</th>
             {columnas.map((columna) => <th key={columna.clave} scope="col" className="is-celda">{columna.rotulo}</th>)}
             <th scope="col" className="is-num">Falta</th>
-            <th scope="col" className="is-num" title="Saldo de subsanaciones recibidas o cedidas">Saldo</th>
+            {conSaldo ? <th scope="col" className="is-num" title="Saldo de subsanaciones recibidas o cedidas">Saldo</th> : null}
             <th scope="col" className="is-cubre" title="Quién cubre la falta">Cubre</th>
           </tr>
         </thead>
@@ -344,21 +357,26 @@ function TablaDeCuotas({
                   </th>
                   <td className="is-distrito">{fila.distrito}</td>
                   <td className="is-manzana">{`${fila.reemplazo ? "Reemplazo" : "Titular"} ${fila.manzana}`}</td>
-                  <td className="is-aplicador">{fila.aplicador}</td>
+                  <td className="is-aplicador" title={fila.aplicador}>
+                    {(() => {
+                      const aplicador = aplicadorCorto(fila.aplicador);
+                      return <>{aplicador.codigo ? <span className="mon-falt-codigo">{aplicador.codigo}</span> : null}{aplicador.nombre}</>;
+                    })()}
+                  </td>
                   {fila.celdas.map((celda) => (
                     <td key={celda.clave} className="is-celda"><CeldaDeTabla celda={celda} /></td>
                   ))}
                   <td className={`is-num${fila.falta > 0 ? " is-falta" : ""}`}>{fmt(fila.falta)}</td>
-                  <td className="is-num">{saldoDeSubsanaciones(fila)}</td>
-                  <td className="is-cubre">
+                  {conSaldo ? <td className="is-num">{saldoDeSubsanaciones(fila)}</td> : null}
+                  <td className="is-cubre" title={fila.falta > 0 ? quienCubreCorto(fila.cubre).titulo : undefined}>
                     {fila.cubre?.tipo === "sugerencia" ? (
                       <span className="mon-falt-chip is-sugerencia">{textoDeQuienCubre(fila.cubre)}</span>
-                    ) : fila.falta > 0 ? textoDeQuienCubre(fila.cubre) : "—"}
+                    ) : fila.falta > 0 ? quienCubreCorto(fila.cubre).texto : "—"}
                   </td>
                 </tr>
                 {abierta ? (
                   <tr className="mon-falt-detalle-fila" id={`mon-falt-detalle-${fila.ump}`}>
-                    <td colSpan={columnas.length + 7}>
+                    <td colSpan={columnas.length + (conSaldo ? 7 : 6)}>
                       <DetalleDeUmp fila={fila} coordinacion={coordinacionDe.get(fila.bloque.id_manzana) ?? null} />
                     </td>
                   </tr>

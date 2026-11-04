@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import { apiHojasRutaEnviarCuotas } from "../../../../api/hojasRuta";
 import type { EnvioMeta } from "../../../../api/materialTerritorial";
 import { PulsoButton } from "../../../../components/PulsoButton";
+import { EstadoChip } from "../../../../components/EstadoChip";
 import { useProjectModules } from "../../../project/ProjectModulesContext";
 import { Send } from "../../../../vendor/lucide-react";
 import { asegurarCampanaTerritorial } from "./campanaTerritorial";
@@ -67,7 +68,8 @@ export function EntregaCuotas({ envio: envioDelEstado, distritos, nObjetivo, fas
           </p>
         ) : (
           <div className="hr-entrega-estado">
-            <strong>{estado === "desactualizado" ? "Las cuotas cambiaron desde el envío" : "Enviada"}</strong>
+            <EstadoChip label={estado === "desactualizado" ? "Desactualizado" : "Al día"} tone={estado === "desactualizado" ? "warn" : "success"} />
+              {estado === "desactualizado" ? <strong>Las cuotas cambiaron desde el envío.</strong> : null}
             <span>
               {fmt(deCuotas?.n_zonas ?? 0)} {deCuotas?.n_zonas === 1 ? "zona" : "zonas"} y {fmt(deCuotas?.n_entrevistas ?? 0)} entrevistas
             </span>

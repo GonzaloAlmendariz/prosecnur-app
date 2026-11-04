@@ -180,14 +180,16 @@ preparar_escala <- function(data, var_categoria, var_n, cols_porcentaje, etiquet
   grupos <- filas$grupo_id[!is.na(filas$grupo_id)]
   un_publico <- !length(grupos) || all(table(grupos) <= 1L)
   por_box <- !is.null(box$unidades) && (identical(orden, "top_two_box") || (identical(orden, "auto") && un_publico))
-  aplicado <- if (por_box) .espec_orden_por_box(origen, filas$es_total, box$unidades) else origen
+  invertir <- isTRUE(invertir_barras)
+  aplicado <- if (por_box) .espec_orden_por_box(origen, filas$es_total, box$unidades, invertir) else origen
 
   espec <- list(
     version = .ESPEC_ESCALA_VERSION, tipo = "escala",
     categorias = categorias, leyenda = leyenda, filas = filas,
     unidades = unidades, cifras = cifras, anchos = anchos, dibujar = dibujar,
     box = box, box2 = box2,
-    orden = list(criterio = if (por_box) "top_two_box" else "declarado", origen = origen, aplicado = aplicado),
+    orden = list(criterio = if (por_box) "top_two_box" else "declarado", origen = origen, aplicado = aplicado,
+                 invertir = invertir),
     redondeo = list(metodo = metodo, decimales = dec)
   )
   # ADR 0097: con una paleta del usuario la espec dice el color de cada rótulo; la dicotomía en que cae una escala de
@@ -198,11 +200,14 @@ preparar_escala <- function(data, var_categoria, var_n, cols_porcentaje, etiquet
 
 #' Orden por Top Two Box de mayor a menor (lámina 221 del recetario)
 #'
-#' La fila Total va primera; los empates conservan el orden de origen.
+#' La fila Total va primera; los empates conservan el orden de origen. Con `invertir` (el mando «Invertir el orden
+#' de las barras») el Top Two Box va de menor a mayor: sin esto el mando quedaba mudo en toda batería por variable,
+#' porque el compositor reordena después de que la espec invierte el origen (CCSS 2026-11-04, lámina 061).
 #' @keywords internal
-.espec_orden_por_box <- function(origen, es_total, unidades) {
+.espec_orden_por_box <- function(origen, es_total, unidades, invertir = FALSE) {
   resto <- origen[!es_total[origen]]
-  resto <- resto[order(-unidades[resto], match(resto, origen))]
+  clave <- if (isTRUE(invertir)) unidades[resto] else -unidades[resto]
+  resto <- resto[order(clave, match(resto, origen))]
   c(origen[es_total[origen]], resto)
 }
 
@@ -214,7 +219,8 @@ preparar_escala <- function(data, var_categoria, var_n, cols_porcentaje, etiquet
 #' @keywords internal
 .espec_ordenar_por_box <- function(espec) {
   if (is.null(espec$box$unidades)) return(espec)
-  espec$orden$aplicado <- .espec_orden_por_box(espec$orden$origen, espec$filas$es_total, espec$box$unidades)
+  espec$orden$aplicado <- .espec_orden_por_box(espec$orden$origen, espec$filas$es_total, espec$box$unidades,
+                                               isTRUE(espec$orden$invertir))
   espec$orden$criterio <- "top_two_box"
   espec
 }

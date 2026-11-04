@@ -110,6 +110,16 @@
   border-radius: 0;
 }
 
+/* Alto por contenido (`alto="contenido"`): el cajón mide lo que trae, hasta la ventana, y el cuerpo desplaza el
+   resto. Cuelga de la esquina superior derecha, así que cierra abajo con borde y radio. */
+.pulso-sideover.pulso-sideover--contenido {
+  bottom: auto;
+  max-height: 100dvh;
+  border-width: 0 0 1px 1px;
+  border-bottom-left-radius: var(--pulso-radius-panel);
+  overflow: clip;
+}
+
 .pulso-sideover[data-state="open"] {
   animation: pulso-sideover-in var(--motion-dur-panel) var(--motion-ease-drawer);
 }

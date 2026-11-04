@@ -1235,6 +1235,15 @@
 .dashboard-scope .dash-source.is-compact {
   margin-bottom: 16px;
 }
+/* Dentro del marco del editor (alto de ventana, sin scroll propio) la fuente desplaza su contenido: más alta que el
+   marco, su pie («Cargar fuente», «Subir y cargar») quedaba fuera de alcance a 1024 (C4, visto al abrirla por
+   `?panel=fuente`). */
+.pulso-main--viewport .dashboard-scope > .dash-source {
+  flex: 0 1 auto;
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+}
 .dashboard-scope .dash-source-current {
   align-items: center;
   background: var(--dash-superficie-2);
@@ -1643,11 +1652,6 @@
 }
 .dashboard-scope .dash-palette-search input::placeholder {
   color: var(--dash-texto-suave);
-}
-.dashboard-scope .dash-palette-list-empty {
-  color: var(--dash-texto-suave);
-  font-size: 12px;
-  padding: 10px 8px;
 }
 .dashboard-scope .dash-palette-list-item {
   align-items: center;

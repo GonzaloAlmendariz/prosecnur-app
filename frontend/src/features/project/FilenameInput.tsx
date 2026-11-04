@@ -115,7 +115,7 @@ export default function FilenameInput({
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
       {label && (
-        <label style={{ fontSize: 12, fontWeight: 700, color: "var(--pulso-text)" }}>
+        <label style={{ fontSize: "var(--pulso-type-subtitle-size)", fontWeight: 700, color: "var(--pulso-text)" }}>
           {label}
         </label>
       )}
@@ -139,14 +139,14 @@ export default function FilenameInput({
             border: "none",
             outline: "none",
             padding: "8px 0",
-            fontSize: 13,
+            fontSize: "var(--pulso-type-body-size)",
             fontFamily: "ui-monospace, SFMono-Regular, monospace",
             background: "transparent",
             color: "var(--pulso-text)",
           }}
         />
         <span style={{
-          fontSize: 11,
+          fontSize: "var(--pulso-type-caption-size)",
           color: "var(--pulso-text-soft)",
           fontFamily: "ui-monospace, SFMono-Regular, monospace",
         }}>
@@ -156,17 +156,17 @@ export default function FilenameInput({
         {showError && <AlertCircle size={14} color="var(--pulso-danger-fg)" />}
       </div>
       {hint && !showError && (
-        <span style={{ fontSize: 11, color: "var(--pulso-text-soft)", lineHeight: 1.4 }}>
+        <span style={{ fontSize: "var(--pulso-type-caption-size)", color: "var(--pulso-text-soft)", lineHeight: 1.4 }}>
           {hint}
         </span>
       )}
       {showError && (
-        <span style={{ fontSize: 11, color: "var(--pulso-danger-fg)", lineHeight: 1.4 }}>
+        <span style={{ fontSize: "var(--pulso-type-caption-size)", color: "var(--pulso-danger-fg)", lineHeight: 1.4 }}>
           {validation.errorMsg}
         </span>
       )}
       {showOk && validation.finalName && (
-        <span style={{ fontSize: 11, color: "var(--pulso-text-soft)", lineHeight: 1.4 }}>
+        <span style={{ fontSize: "var(--pulso-type-caption-size)", color: "var(--pulso-text-soft)", lineHeight: 1.4 }}>
           Se guardará como{" "}
           <code style={{
             fontFamily: "ui-monospace, monospace",

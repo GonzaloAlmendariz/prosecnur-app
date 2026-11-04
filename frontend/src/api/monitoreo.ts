@@ -6881,6 +6881,9 @@ export async function apiMonitoreoAulasAvanceTablas() {
     actualizado?: string;
     titular?: string;
     tablas: MonitoreoAulasAvanceTabla[];
+    /** El estudio todavía no tiene plan de aulas: `vacio` dice por qué y adónde ir. */
+    sin_plan?: boolean;
+    vacio?: string;
   }>(
     await apiFetch("/api/monitoreo/aulas/avance-tablas", { headers: headers() }),
   );

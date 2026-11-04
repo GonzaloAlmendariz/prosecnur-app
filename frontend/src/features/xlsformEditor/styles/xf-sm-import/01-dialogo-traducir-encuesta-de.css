@@ -138,8 +138,7 @@
   line-height: 1.45;
 }
 
-.pulso-xf-smi-nota,
-.pulso-xf-smi-vacio {
+.pulso-xf-smi-nota {
   margin: 0;
   color: var(--pulso-text-soft);
   font-size: var(--pulso-type-body-size);

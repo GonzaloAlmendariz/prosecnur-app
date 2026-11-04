@@ -68,7 +68,7 @@ export function CursosHorarioSexo({
 
   if (!rows.length) {
     return (
-      <Panel className="cmv2-ch-sexo" title="Sexo por curso-horario">
+      <Panel className="cmv2-ch-sexo" aria-labelledby="cmv2-ch-sexo-titulo" title={<span id="cmv2-ch-sexo-titulo">Sexo por curso-horario</span>}>
         <DescriptiveEmptyNotice
           state={descriptiveMissingState(workspace, {
             role: "sex",
@@ -84,12 +84,12 @@ export function CursosHorarioSexo({
   }
 
   return (
-    <section className="cmv2-panel cmv2-ch-sexo">
-      <div className="cmv2-ch-sexo-head">
-        <div className="cmv2-ch-sexo-title">
-          <strong>Sexo por curso-horario</strong>
-          <span>hombres y mujeres esperados en cada curso-horario de la facultad elegida</span>
-        </div>
+    <Panel
+      className="cmv2-ch-sexo"
+      aria-labelledby="cmv2-ch-sexo-titulo"
+      title={<span id="cmv2-ch-sexo-titulo">Sexo por curso-horario</span>}
+      hint="Hombres y mujeres esperados en cada curso-horario de la facultad elegida"
+      actions={
         <div className="cmv2-ch-sexo-controls">
           <label className="cmv2-ch-sexo-select">
             <span>Facultad</span>
@@ -110,7 +110,8 @@ export function CursosHorarioSexo({
             {order === "desc" ? "Mayor tamaño" : "Menor tamaño"}
           </button>
         </div>
-      </div>
+      }
+    >
       <div className="cmv2-native-legend cmv2-ch-sexo-legend" aria-hidden="true">
         {SEX_SERIES.map((serie) => (
           <span key={serie.key}><i style={{ background: sexSeriesCssColorForKind(serie.kind) }} />{serie.label}</span>
@@ -158,6 +159,6 @@ export function CursosHorarioSexo({
           </button>
         </p>
       )}
-    </section>
+    </Panel>
   );
 }

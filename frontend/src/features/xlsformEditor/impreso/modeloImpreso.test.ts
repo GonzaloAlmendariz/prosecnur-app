@@ -63,15 +63,15 @@ describe("resúmenes de una línea", () => {
   const ctx = { candidatas: [], consentimiento: [{ name: "consent", label: "¿Acepta?" }], filasPapel: 3 };
 
   test("formato, lógica, contenido y papel dicen lo elegido", () => {
-    expect(resumenDeParte("formato", estado, ctx)).toBe("Dos columnas · con N.º");
+    expect(resumenDeParte("formato", estado, ctx)).toBe("Dos columnas, con N.º");
     expect(resumenDeParte("formato", { ...estado, columns: "auto", showQuestionnaireNumber: false }, ctx))
-      .toBe("Columnas automáticas · sin N.º");
-    expect(resumenDeParte("logica", estado, ctx)).toBe("Saltos · sin consentimiento");
+      .toBe("Columnas automáticas, sin N.º");
+    expect(resumenDeParte("logica", estado, ctx)).toBe("Saltos, sin consentimiento");
     expect(resumenDeParte("logica", { ...estado, logicLanguage: "condiciones", consentVar: "consent" }, ctx))
-      .toBe("Condiciones · con consentimiento");
+      .toBe("Condiciones, con consentimiento");
     // Una variable que ya no está entre las candidatas no cuenta como consentimiento.
-    expect(resumenDeParte("logica", { ...estado, consentVar: "ya_no_existe" }, ctx)).toBe("Saltos · sin consentimiento");
-    expect(resumenDeParte("contenido", estado, ctx)).toBe("Instrucciones · 18 opciones");
+    expect(resumenDeParte("logica", { ...estado, consentVar: "ya_no_existe" }, ctx)).toBe("Saltos, sin consentimiento");
+    expect(resumenDeParte("contenido", estado, ctx)).toBe("Instrucciones, 18 opciones");
     expect(resumenDeParte("papel", estado, ctx)).toBe("3 filas con ajustes");
     expect(resumenDeParte("papel", estado, { ...ctx, filasPapel: 1 })).toBe("1 fila con ajustes");
     expect(resumenDeParte("papel", estado, { ...ctx, filasPapel: 0 })).toBe("Ninguna fila con ajustes");
@@ -121,8 +121,8 @@ describe("cifras de la previa", () => {
 
   test("la cabecera no inventa cifras sin previa", () => {
     expect(resumenCabecera(null)).toBe("A4");
-    expect(resumenCabecera({ paginas: 12, preguntas: 87 })).toBe("A4 · 12 páginas · 87 preguntas");
-    expect(resumenCabecera({ paginas: null, preguntas: 1 })).toBe("A4 · 1 pregunta");
+    expect(resumenCabecera({ paginas: 12, preguntas: 87 })).toBe("A4, 12 páginas, 87 preguntas");
+    expect(resumenCabecera({ paginas: null, preguntas: 1 })).toBe("A4, 1 pregunta");
   });
 });
 

@@ -1,4 +1,5 @@
 import type { AcreditacionBatchEntry, AcreditacionBatchPreview } from "../../api/client";
+import { formatoConteo } from "../../lib/formatoNumero";
 
 export type AcreditacionBatchFailureView = {
   message: string;
@@ -40,7 +41,7 @@ export function acreditacionBatchEntryDetail(entry: AcreditacionBatchEntry): str
 }
 
 export function acreditacionBatchTotalLabel(preview: AcreditacionBatchPreview): string {
-  const selected = preview.totals.selected.toLocaleString("es-PE");
-  const excluded = preview.totals.excluded.toLocaleString("es-PE");
-  return `${selected} efectivas listas · ${excluded} fuera del informe de avance`;
+  const selected = formatoConteo(preview.totals.selected);
+  const excluded = formatoConteo(preview.totals.excluded);
+  return `${selected} efectivas listas, ${excluded} fuera del informe de avance`;
 }

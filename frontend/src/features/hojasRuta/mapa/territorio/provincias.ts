@@ -1,6 +1,7 @@
 import type { HojasRutaTerritory } from "../../../../api/hojasRuta";
 import { CIUDADES, LIMA, ciudadDeUbigeo } from "./ciudades";
 
+import { formatoDecimal } from "../../../../lib/formatoNumero";
 /**
  * Provincias del registro de territorios (ADR 0119). Lima y Callao van primero, como siempre;
  * las ciudades siguen por nombre. El marco contra el que se lee un porcentaje es el de las
@@ -71,7 +72,7 @@ export function nombreDelMarco(distritos: readonly HojasRutaTerritory[]): string
 export function captacionDe(t: Pick<HojasRutaTerritory, "captacion">): { texto: string; baja: boolean } | null {
   if (t.captacion === null || t.captacion === undefined || !Number.isFinite(t.captacion)) return null;
   return {
-    texto: `capta ${t.captacion.toLocaleString("es-PE", { maximumFractionDigits: 0 })} %`,
+    texto: `capta ${formatoDecimal(t.captacion, 0)} %`,
     baja: t.captacion < 55,
   };
 }

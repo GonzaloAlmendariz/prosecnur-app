@@ -52,7 +52,7 @@ describe("CompararFuentesVista", () => {
     expect(html).toContain("estudiantes_sm");
     expect(html).toContain("Base cruda");
     expect(html).toContain("Base depurada");
-    expect(html).toContain("279 en ambas · 10 solo en SurveyMonkey");
+    expect(html).toContain("279 en ambas, 10 solo en SurveyMonkey");
     expect(html).toContain("Con categorías propias");
   });
 

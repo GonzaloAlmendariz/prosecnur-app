@@ -22,10 +22,10 @@ const LECTURAS: ReadonlyArray<{ id: LecturaPrevia; rotulo: string }> = [
 function pasosDe(previa: Pick<EstadoPrevia, "fase" | "detalle" | "lectura">): Paso[] {
   const generando = previa.fase === "generando";
   if (previa.lectura === "word") {
-    return [{ clave: "word", rotulo: generando && previa.detalle ? `Armando las páginas del Word · ${previa.detalle}` : "Armando las páginas del Word", estado: "en-curso" }];
+    return [{ clave: "word", rotulo: generando && previa.detalle ? `Armando las páginas del Word: ${previa.detalle}` : "Armando las páginas del Word", estado: "en-curso" }];
   }
   return [
-    { clave: "pdf", rotulo: generando && previa.detalle ? `Generando el PDF · ${previa.detalle}` : "Generando el PDF", estado: generando ? "en-curso" : "hecho" },
+    { clave: "pdf", rotulo: generando && previa.detalle ? `Generando el PDF: ${previa.detalle}` : "Generando el PDF", estado: generando ? "en-curso" : "hecho" },
     { clave: "leer", rotulo: "Leyendo el archivo", estado: previa.fase === "descargando" ? "en-curso" : "pendiente" },
   ];
 }
@@ -132,7 +132,7 @@ export function PreviaImpreso({ previa, vieja, motivo, onGenerar, onLectura, est
                   value={undefined}
                   placeholder="Ir a la pregunta…"
                   ariaLabel="Ir a la página de una pregunta"
-                  options={ubicadas.map((m) => ({ value: m.numero, label: `${m.numero} · página ${m.pagina}` }))}
+                  options={ubicadas.map((m) => ({ value: m.numero, label: `${m.numero} (página ${m.pagina})` }))}
                   onValueChange={(numero) => {
                     const destino = ubicadas.find((m) => m.numero === numero)?.pagina;
                     if (destino) irAPagina(destino);
@@ -153,7 +153,7 @@ export function PreviaImpreso({ previa, vieja, motivo, onGenerar, onLectura, est
                         style={{ left: `${m.caja.x * 100}%`, top: `${m.caja.y * 100}%`, width: `${m.caja.ancho * 100}%`, height: `${m.caja.alto * 100}%` }}
                         aria-pressed={m.nombre === bloqueElegido}
                         aria-label={`Pregunta ${m.numero}: abrir sus ajustes de papel`}
-                        title={`Pregunta ${m.numero} · ${m.nombre}`}
+                        title={`Pregunta ${m.numero}: ${m.nombre}`}
                         onClick={() => onElegirBloque(m.nombre)}
                       />
                     ) : null))}

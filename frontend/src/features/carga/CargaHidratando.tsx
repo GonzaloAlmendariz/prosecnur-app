@@ -114,7 +114,7 @@ export function CargaHidratando({
                 <Loader2 size={14} className="pulso-spin" aria-hidden="true" />
                 <span className="pulso-sr-only">{`${texto}…`}</span>
                 <span aria-hidden="true">
-                  {texto} · <strong>{formatoTranscurrido(segundos)}</strong>
+                  {texto}, <strong>{formatoTranscurrido(segundos)}</strong>
                 </span>
               </div>
               {pestana === "fuentes" ? (

@@ -48,6 +48,7 @@ import { cifrasClave, fraseBase, lecturaInicial, modeloCalor, resolverBase, type
 import { graficoDelPar } from "./explorar/graficoDelPar";
 import { findSeccionOf, pickInitialVariable } from "./explorar/seleccionInicial";
 import "./explorar/explorar.css";
+import { VacioListo } from "../components/VacioListo";
 
 // =============================================================================
 // ExplorarTab — Sprint 3
@@ -423,24 +424,28 @@ export default function ExplorarTab({
   // codigo tecnico, y ninguno dice donde se resuelve. Un vacio esperado que
   // parece una averia hace que la gente busque el problema donde no esta.
   if (esEstadoInicial(errorCode) && !inv) {
-    return <EmptyState icon={<Compass size={20} />} {...vacioSinDatos("que explorar")} />;
+    return <VacioListo marca="validacion-explorar"><EmptyState icon={<Compass size={20} />} {...vacioSinDatos("que explorar")} /></VacioListo>;
   }
   if (error && !inv) {
     return (
+      <VacioListo marca="validacion-explorar">
       <EmptyState
         icon={<AlertTriangle size={20} />}
         title="No se pudo cargar el explorador"
         hint={error}
       />
+      </VacioListo>
     );
   }
   if (!inv) {
     return (
+      <VacioListo marca="validacion-explorar">
       <EmptyState
         icon={<Compass size={20} />}
         title="Sin preguntas o campos para explorar"
         hint="La base no tiene columnas reconocibles. Revisa la carga en la Fase 1."
       />
+      </VacioListo>
     );
   }
   if (inv.n_variables === 0) {
@@ -458,7 +463,7 @@ export default function ExplorarTab({
   const crossVar = cruzar ? flatVars.find((v) => v.name === cruzar) ?? null : null;
   const plegada = !!crossVar && listaAbierta === null;
   const titulo = selectedRepeatOption ? `Preguntas para ${selectedRepeatOption.label}` : "Variables";
-  const sufijoRepeat = selectedRepeatOption ? ` · ${selectedRepeatOption.label}` : "";
+  const sufijoRepeat = selectedRepeatOption ? ` (${selectedRepeatOption.label})` : "";
   const frase = base ? fraseBase(base) : null;
 
   // Con una recodificación (E8d), lo que «se aparta del total» es la diagonal: el panel no aporta.
@@ -480,7 +485,7 @@ export default function ExplorarTab({
               <PanelDatos ficha={ficha} filtrado={uniVigente.filtros_aplicados > 0} />
             </>
           ) : (
-            <p className="vx-ficha-cargando" role="status">Leyendo el formulario…</p>
+            <LoadingBlock variant="inline" minHeight={40} label="Leyendo el formulario…" />
           )}
         </div>
       </aside>
@@ -664,3 +669,4 @@ export default function ExplorarTab({
     </div>
   );
 }
+

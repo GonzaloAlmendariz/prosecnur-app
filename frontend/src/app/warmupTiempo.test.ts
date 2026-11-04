@@ -71,6 +71,11 @@ describe("restante", () => {
     expect(restanteMs(est, 240_000)).toBeNull();
     expect(relojWarmup(est, 240_000)).toEqual({ transcurrido: "4:00", restante: null, anterior: "3:50" });
   });
+
+  test("una apertura anterior de menos de un segundo no se publica como «0:00»", () => {
+    const breve = { totalMs: 420, at: null, fasesMs: {} };
+    expect(relojWarmup(breve, 7_000)).toEqual({ transcurrido: "0:07", restante: null, anterior: null });
+  });
 });
 
 describe("duracionFase", () => {

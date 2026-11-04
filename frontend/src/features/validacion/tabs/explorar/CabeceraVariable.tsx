@@ -4,6 +4,7 @@ import type { ExplorarUnivariadoResult } from "../../../../api/validacion";
 import type { ExploradorFicha } from "../../../../api/validacionExplorar";
 import type { ExploradorVariable } from "../../types";
 import InsigniaTipo from "./InsigniaTipo";
+import { fmtN } from "./explorarModelo";
 
 /**
  * E2 — la pregunta: sección y posición, el texto como título, el código, el
@@ -40,7 +41,7 @@ export default function CabeceraVariable({
   repeatInstances: number | null;
 }) {
   const titulo = ficha?.label || uni.label || uni.var;
-  const eyebrow = [seccion, posicion > 0 ? `Pregunta ${posicion} de ${total}` : null].filter(Boolean).join("  ·  ");
+  const eyebrow = [seccion, posicion > 0 ? `Pregunta ${posicion} de ${total}` : null].filter(Boolean).join(", ");
   return (
     <section className={`vx-tarjeta vx-cabecera vx-tipo-${uni.tipo}`} aria-label="Pregunta que se explora">
       <div className="vx-cabecera-texto">
@@ -63,7 +64,7 @@ export default function CabeceraVariable({
               {nOpciones !== null && nOpciones > 0 && <span>{nOpciones} {nOpciones === 1 ? "opción" : "opciones"}</span>}
               {ficha?.relevant && (
                 <>
-                  <span className="vx-sep-punto" aria-hidden>·</span>
+                  <span className="vx-sep-linea" aria-hidden />
                   <span>
                     Aplica si <span className="vx-mono">{ficha.relevant}</span>
                   </span>
@@ -73,8 +74,8 @@ export default function CabeceraVariable({
           )}
           {repeatLabel && (
             <span className="pulso-repeat-variable-context">
-              Servicio · {repeatLabel}
-              {repeatInstances != null && ` · ${repeatInstances.toLocaleString("es-PE")} instancias`}
+              Servicio: {repeatLabel}
+              {repeatInstances != null && ` (${fmtN(repeatInstances)} instancias)`}
             </span>
           )}
         </div>

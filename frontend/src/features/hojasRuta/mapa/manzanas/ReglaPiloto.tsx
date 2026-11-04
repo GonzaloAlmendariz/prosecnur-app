@@ -2,6 +2,7 @@ import type { HojasRutaPilotExclusionMode } from "../../../../api/hojasRuta";
 import { GlidingRadioGroup } from "../../../../components/GlidingRadioGroup";
 import { reglaPilotoDesfasada } from "./desfasePiloto";
 
+import { formatoConteo } from "../../../../lib/formatoNumero";
 type Props = {
   modo: HojasRutaPilotExclusionMode;
   /** Titulares que sorteó el piloto. */
@@ -32,6 +33,7 @@ export function ReglaPiloto({ modo, titularesPiloto, excluidasEnLaMuestra, desha
         options={OPCIONES}
         getOptionValue={(o) => o.id}
         onValueChange={onCambiar}
+        className="hr-sorteo-metodos hr-regla-piloto"
         aria-label="Regla para usar la corrida piloto en Campo real"
         getOptionProps={() => ({ disabled: deshabilitado })}
       >
@@ -43,7 +45,7 @@ export function ReglaPiloto({ modo, titularesPiloto, excluidasEnLaMuestra, desha
         )}
       </GlidingRadioGroup>
       <p className="hr-mapa-nota">
-        El piloto sorteó {titularesPiloto.toLocaleString("es-PE")} {titularesPiloto === 1 ? "titular" : "titulares"}.
+        El piloto sorteó {formatoConteo(titularesPiloto)} {titularesPiloto === 1 ? "titular" : "titulares"}.
         {modo === "exclude_titulars" ? " En el mapa se ven en gris, con trazo cortado." : ""}
       </p>
       {desfasada ? (

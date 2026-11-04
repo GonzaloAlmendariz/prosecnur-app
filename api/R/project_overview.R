@@ -185,7 +185,16 @@
     # cifra. Las en observacion siguen en la tarjeta como marca («N por revisar»).
     valid <- monitoreo_territorial_efectivas_de_kpis(k)
     target <- as.integer(.diseno_num(k$meta, 0))
+    # El porcentaje se deriva del MISMO par que la tarjeta escribe (efectivas
+    # sobre meta): `k$avance_pct` puede venir de otro numerador y la tarjeta
+    # decía «1,283 de 1,200, meta cumplida» con «86 % avance de meta»
+    # (auditoría visual 4 nov, hallazgo 9).
+    # Se respeta el del módulo si cuadra con ese par (±1 punto, su redondeo).
     avance <- .overview_pct(k$avance_pct)
+    if (target > 0L) {
+      derivado <- round(100 * valid / target, 1)
+      if (avance < 0 || abs(avance - derivado) > 1) avance <- derivado
+    }
     # Solo `revision`: es el subconjunto de las efectivas en observacion
     # (efectivas + no_defendibles particionan el total),
     # mientras que los `geo_*` son un eje ortogonal de geolocalizacion. Sumarlos

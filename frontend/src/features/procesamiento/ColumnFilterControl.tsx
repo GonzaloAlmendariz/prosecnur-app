@@ -3,6 +3,8 @@ import { Check, Filter, Search, X } from "lucide-react";
 import type { ProcessingSheetColumn, ProcessingSheetColumnFilter } from "../../api/client";
 import { Popover } from "../../components/Popover";
 
+import { EstadoVacio } from "../../components/EstadoVacio";
+import { formatoConteo, formatoDecimal } from "../../lib/formatoNumero";
 /** ¿El filtro tiene algún criterio activo? */
 export function columnFilterActive(f: ProcessingSheetColumnFilter | undefined): boolean {
   if (f == null) return false;
@@ -105,7 +107,7 @@ function CategoryPanel({
       ) : null}
       <div className="pulso-sheet-filter-options" role="group" aria-label={`Categorías de ${column.label || column.key}`}>
         {filtered.length === 0 ? (
-          <p className="pulso-sheet-filter-empty">Sin coincidencias</p>
+          <EstadoVacio icono={<Search size={14} />} titulo="Sin coincidencias" />
         ) : (
           filtered.map((cat) => {
             const on = selected.has(cat.code);
@@ -119,7 +121,7 @@ function CategoryPanel({
               >
                 <span className="pulso-sheet-filter-check" aria-hidden="true">{on ? <Check size={12} /> : null}</span>
                 <span className="pulso-sheet-filter-option-label" title={cat.label}>{cat.label}</span>
-                <span className="pulso-sheet-filter-count">{cat.count.toLocaleString("es-PE")}</span>
+                <span className="pulso-sheet-filter-count">{formatoConteo(cat.count)}</span>
               </button>
             );
           })
@@ -171,7 +173,7 @@ function RangePanel({
         </label>
       </div>
       {column.value_min != null && column.value_max != null ? (
-        <p className="pulso-sheet-filter-hint">Rango en la base: {column.value_min.toLocaleString("es-PE")}–{column.value_max.toLocaleString("es-PE")}</p>
+        <p className="pulso-sheet-filter-hint">Rango en la base: {formatoDecimal(column.value_min, 3)}–{formatoDecimal(column.value_max, 3)}</p>
       ) : null}
       <div className="pulso-sheet-filter-footer">
         <span />

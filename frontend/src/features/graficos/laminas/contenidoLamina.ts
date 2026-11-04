@@ -16,7 +16,17 @@ export type ContenidoLamina = {
 
 const GRUPOS_DE_CONTENIDO = new Set(["textos", "lectura", "datos"]);
 
-export function contenidoDeLamina(args: readonly ArgMetadata[], ranuras: readonly string[]): ContenidoLamina {
+/**
+ * Láminas cuyo contenido principal vive en el payload que escribe el plan y no es un argumento del registro: el motor las
+ * dibuja, pero Láminas todavía no tiene su inspector (`en_selector = FALSE`). Se nombra lo que falta, en vez de callarlo,
+ * junto a los argumentos sin control de una línea; el valor guardado no se toca (`updateSlidePayload` fusiona).
+ */
+export const CONTENIDO_SIN_INSPECTOR: Readonly<Record<string, readonly string[]>> = {
+  p_slide_resumen_diferencias: ["Filas por capítulo", "Selección de filas"],
+  p_slide_hallazgos: ["Cifras destacadas", "Modo"],
+};
+
+export function contenidoDeLamina(args: readonly ArgMetadata[], ranuras: readonly string[], tipo?: string): ContenidoLamina {
   const ranuraSet = new Set(ranuras);
   const campos: CampoTexto[] = [];
   const pendientes: string[] = [];
@@ -35,5 +45,6 @@ export function contenidoDeLamina(args: readonly ArgMetadata[], ranuras: readonl
   if (!campos.some((c) => c.name === "titulo")) {
     campos.unshift({ name: "titulo", label: "Título", multilinea: false, descripcion: "" });
   }
+  if (tipo) pendientes.unshift(...(CONTENIDO_SIN_INSPECTOR[tipo] ?? []));
   return { campos, pendientes: [...new Set(pendientes)] };
 }

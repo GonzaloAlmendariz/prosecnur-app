@@ -521,7 +521,7 @@ export function PreguntasLanding() {
             padding: "8px 12px", borderRadius: "var(--pulso-radius-panel)",
             border: "1px solid var(--pulso-warn-border)",
             background: "var(--pulso-warn-bg)",
-            color: "var(--pulso-text)", fontSize: 12,
+            color: "var(--pulso-text)", fontSize: "var(--pulso-type-body-size)",
           }}
         >
           <AlertTriangle size={14} style={{ color: "var(--pulso-warn-fg)", flex: "0 0 auto" }} />
@@ -705,8 +705,8 @@ function DragOverlayCard({ p }: { p: PreguntaAbierta }) {
         transform: "rotate(-2deg)",
       }}
     >
-      <div style={{ fontFamily: "monospace", fontSize: 12, fontWeight: 700, color: ts.fg }}>{p.parent}</div>
-      <div style={{ fontSize: 11, color: "var(--pulso-text-soft)" }}>{truncate(sinEnfasis(p.parent_label), 60)}</div>
+      <div style={{ fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace", fontSize: "var(--pulso-type-subtitle-size)", fontWeight: 700, color: ts.fg }}>{p.parent}</div>
+      <div style={{ fontSize: "var(--pulso-type-caption-size)", color: "var(--pulso-text-soft)" }}>{truncate(sinEnfasis(p.parent_label), 60)}</div>
     </div>
   );
 }
@@ -793,8 +793,8 @@ function SectionBlock({ id, label, preguntas, collapsed, onToggle, onPair, onUnp
         </span>
         <span className="pulso-codificacion-section-meta">
           {preguntas.length} {preguntas.length === 1 ? "pregunta" : "preguntas"}
-          {emparejadas > 0 && <> · <strong className="is-paired">{emparejadas} {emparejadas === 1 ? "emparejada" : "emparejadas"}</strong></>}
-          {codificadas > 0 && <> · <strong className="is-coded">{codificadas} {codificadas === 1 ? "codificada" : "codificadas"}</strong></>}
+          {emparejadas > 0 && <>, <strong className="is-paired">{emparejadas} {emparejadas === 1 ? "emparejada" : "emparejadas"}</strong></>}
+          {codificadas > 0 && <>{emparejadas > 0 ? " y " : ", "}<strong className="is-coded">{codificadas} {codificadas === 1 ? "codificada" : "codificadas"}</strong></>}
         </span>
       </button>
       {!collapsed && (
@@ -867,7 +867,7 @@ function MarcarFooter({ p, arq, busy, onToggleMarcada, onNoCategorizar }: { p: P
     return (
       <div style={{ marginTop: 8, padding: "6px 8px", borderTop: "1px solid var(--pulso-border)", display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
         <Check size={12} color="var(--pulso-success-fg)" />
-        <span style={{ fontSize: 11, color: "var(--pulso-success-fg)", fontWeight: 600 }}>En codificación automáticamente</span>
+        <span style={{ fontSize: "var(--pulso-type-caption-size)", color: "var(--pulso-success-fg)", fontWeight: 600 }}>En codificación automáticamente</span>
         {decidir}
       </div>
     );
@@ -886,7 +886,7 @@ function MarcarFooter({ p, arq, busy, onToggleMarcada, onNoCategorizar }: { p: P
         display: "flex", alignItems: "center", gap: 8,
       }}
     >
-      <label style={{ display: "inline-flex", alignItems: "center", gap: 8, cursor: busy ? "wait" : "pointer", fontSize: 11, fontWeight: 600, color: p.marcada ? "var(--pulso-text)" : "var(--pulso-text-soft)" }}>
+      <label style={{ display: "inline-flex", alignItems: "center", gap: 8, cursor: busy ? "wait" : "pointer", fontSize: "var(--pulso-type-caption-size)", fontWeight: 600, color: p.marcada ? "var(--pulso-text)" : "var(--pulso-text-soft)" }}>
         <Switch
           className="pulso-codificacion-switch"
           checked={p.marcada}
@@ -953,11 +953,10 @@ function PreguntaCard({ p, onPair, onUnpair, busy, dragActive, adoptedBy, recent
     display: "flex",
     flexDirection: "column",
     gap: 8,
-    // Cards con altura uniforme: min-height generoso + stretch vertical
-    // para que CSS Grid estire todas las cards de una fila al alto de la
-    // más alta. Combinado con el picker SM con scroll interno a 4 opciones
-    // (no 7), esto mantiene las cards con variación mínima.
-    minHeight: 210,
+    // Cards con altura uniforme POR FILA: el stretch de CSS Grid las lleva al
+    // alto de la más alta. Sin alto mínimo (4 nov 2026): los 210 px fabricaban
+    // capacidad y una tarjeta de «Opción única» quedaba con media altura en
+    // blanco (pasada de formato de Codificación).
     height: "100%",
     position: "relative",
     transition: "background 140ms ease-out, border-color 140ms ease-out, box-shadow 140ms ease-out, opacity 140ms ease-out, transform 140ms ease-out",
@@ -976,22 +975,22 @@ function PreguntaCard({ p, onPair, onUnpair, busy, dragActive, adoptedBy, recent
   // --- HEADER común ---
   const header = (
     <div style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
-      <div style={{ fontFamily: "monospace", fontSize: 13, fontWeight: 700, color: ts.fg }}>{p.parent}</div>
+      <div style={{ fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace", fontSize: "var(--pulso-type-subtitle-size)", fontWeight: 700, color: ts.fg }}>{p.parent}</div>
       <div style={{ flex: 1 }} />
       <ArquetipoBadge arq={arq} paired={paired} tipoStyle={ts} />
     </div>
   );
 
   const label = (
-    <div style={{ fontSize: 13, color: "var(--pulso-text)", lineHeight: 1.35 }} title={sinEnfasis(p.parent_label)}>
+    <div style={{ fontSize: "var(--pulso-type-body-size)", color: "var(--pulso-text)", lineHeight: 1.35 }} title={sinEnfasis(p.parent_label)}>
       {truncate(sinEnfasis(p.parent_label), 110)}
     </div>
   );
 
   const tipoRow = (
-    <div style={{ fontSize: 11, color: "var(--pulso-text-soft)", display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+    <div style={{ fontSize: "var(--pulso-type-caption-size)", color: "var(--pulso-text-soft)", display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
       <span style={{ padding: "2px 6px", borderRadius: 4, background: ts.bg, color: ts.fg, fontWeight: 600 }}>{ts.label}</span>
-      {p.col_efectiva && <span>Texto leído desde <code style={{ fontFamily: "monospace" }}>{p.col_efectiva}</code></span>}
+      {p.col_efectiva && <span>Texto leído desde <code style={{ fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace" }}>{p.col_efectiva}</code></span>}
     </div>
   );
 
@@ -1004,10 +1003,10 @@ function PreguntaCard({ p, onPair, onUnpair, busy, dragActive, adoptedBy, recent
   );
 
   const stats = (
-    <div style={{ fontSize: 12, color: "var(--pulso-text-soft)", display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+    <div style={{ fontSize: "var(--pulso-type-body-size)", color: "var(--pulso-text-soft)", display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
       {p.n_respuestas > 0 && (
         <span>
-          <strong style={{ color: "var(--pulso-text)" }}>{formatoConteo(p.n_respuestas)}</strong> respuestas · <strong style={{ color: "var(--pulso-text)" }}>{formatoConteo(p.n_unicas)}</strong> únicas
+          <strong style={{ color: "var(--pulso-text)" }}>{formatoConteo(p.n_respuestas)}</strong> respuestas, <strong style={{ color: "var(--pulso-text)" }}>{formatoConteo(p.n_unicas)}</strong> únicas
         </span>
       )}
       {decisionChip}
@@ -1015,7 +1014,7 @@ function PreguntaCard({ p, onPair, onUnpair, busy, dragActive, adoptedBy, recent
   );
 
   const preview = p.preview && p.preview.length > 0 ? (
-    <div style={{ fontSize: 11, color: "var(--pulso-text-soft)", fontStyle: "italic", borderLeft: "2px solid var(--pulso-border)", paddingLeft: 8 }}>
+    <div style={{ fontSize: "var(--pulso-type-caption-size)", color: "var(--pulso-text-soft)", fontStyle: "italic", borderLeft: "2px solid var(--pulso-border)", paddingLeft: 8 }}>
       {p.preview.slice(0, 2).map((pv, i) => <div key={i}>“{truncate(pv, 50)}”</div>)}
     </div>
   ) : null;
@@ -1043,9 +1042,9 @@ function PreguntaCard({ p, onPair, onUnpair, busy, dragActive, adoptedBy, recent
         }}
       >
         <div style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
-          <div style={{ fontFamily: "monospace", fontSize: 13, fontWeight: 700, color: "var(--adoptada-fg)" }}>{p.parent}</div>
+          <div style={{ fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace", fontSize: "var(--pulso-type-subtitle-size)", fontWeight: 700, color: "var(--adoptada-fg)" }}>{p.parent}</div>
           <div style={{ flex: 1 }} />
-          <span style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "2px 6px", borderRadius: 4, background: "white", color: "var(--adoptada-fg)", fontSize: 10, fontWeight: 700, letterSpacing: 0.5, textTransform: "uppercase", border: "1px solid var(--adoptada-border)" }}>
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "2px 6px", borderRadius: 4, background: "white", color: "var(--adoptada-fg)", fontSize: "var(--pulso-type-micro-size)", fontWeight: 700, letterSpacing: 0.5, textTransform: "uppercase", border: "1px solid var(--adoptada-border)" }}>
             <Check size={10} /> Texto conectado
           </span>
         </div>
@@ -1057,7 +1056,7 @@ function PreguntaCard({ p, onPair, onUnpair, busy, dragActive, adoptedBy, recent
           type="button"
           onClick={() => onScrollToPadre(padre?.parent)}
           style={{
-            fontSize: 11, color: "var(--pulso-primary)", background: "transparent",
+            fontSize: "var(--pulso-type-caption-size)", color: "var(--pulso-primary)", background: "transparent",
             border: "none", textAlign: "left", padding: 0, cursor: "pointer",
             display: "inline-flex", alignItems: "center", gap: 4, fontWeight: 600,
           }}
@@ -1080,7 +1079,7 @@ function PreguntaCard({ p, onPair, onUnpair, busy, dragActive, adoptedBy, recent
         <div style={{ flex: 1 }} />
         <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
           <IconAI size={12} color="var(--tipo-int-fg)" />
-          <span style={{ fontSize: 11, color: "var(--pulso-text-soft)" }}>
+          <span style={{ fontSize: "var(--pulso-type-caption-size)", color: "var(--pulso-text-soft)" }}>
             Autocodifica con su diccionario
           </span>
         </div>
@@ -1131,7 +1130,7 @@ function PreguntaCard({ p, onPair, onUnpair, busy, dragActive, adoptedBy, recent
         {stats}
         <div style={{ flex: 1 }} />
         <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-          <span style={{ fontSize: 11, color: "var(--pulso-text-soft)", display: "inline-flex", alignItems: "center", gap: 4 }}>
+          <span style={{ fontSize: "var(--pulso-type-caption-size)", color: "var(--pulso-text-soft)", display: "inline-flex", alignItems: "center", gap: 4 }}>
             <GripVertical size={11} /> Arrastra sobre la pregunta origen
           </span>
           <button
@@ -1161,7 +1160,7 @@ function PreguntaCard({ p, onPair, onUnpair, busy, dragActive, adoptedBy, recent
         {label}
         {tipoRow}
         <div style={{ flex: 1 }} />
-        <span style={{ fontSize: 11, color: "var(--pulso-text-soft)" }}>Desactivada</span>
+        <span style={{ fontSize: "var(--pulso-type-caption-size)", color: "var(--pulso-text-soft)" }}>Desactivada</span>
         {marcarFooter}
       </article>
     );
@@ -1186,7 +1185,7 @@ function PreguntaCard({ p, onPair, onUnpair, busy, dragActive, adoptedBy, recent
     return (
       <article ref={ref} {...listeners} {...attributes} className={cardClassName} data-parent={p.parent} style={common}>
         <div style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
-          <div style={{ fontFamily: "monospace", fontSize: 13, fontWeight: 700, color: ts.fg }}>{p.parent}</div>
+          <div style={{ fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace", fontSize: "var(--pulso-type-subtitle-size)", fontWeight: 700, color: ts.fg }}>{p.parent}</div>
           <div style={{ flex: 1 }} />
           <span
             className={fresh ? "pulso-badge-fresh" : undefined}
@@ -1195,7 +1194,7 @@ function PreguntaCard({ p, onPair, onUnpair, busy, dragActive, adoptedBy, recent
               padding: "2px 6px", borderRadius: 4,
               background: needsDummy ? "var(--pulso-warn-bg)" : "var(--pulso-success-bg)",
               color: needsDummy ? "var(--pulso-warn-fg)" : "var(--pulso-success-fg)",
-              fontSize: 10, fontWeight: 700, letterSpacing: 0.5,
+              fontSize: "var(--pulso-type-micro-size)", fontWeight: 700, letterSpacing: 0.5,
               textTransform: "uppercase", whiteSpace: "nowrap",
               border: needsDummy ? "1px solid #f0d799" : "none",
             }}
@@ -1262,17 +1261,17 @@ function PreguntaCard({ p, onPair, onUnpair, busy, dragActive, adoptedBy, recent
               display: "flex", alignItems: "center", gap: 8,
             }}>
               <Check size={14} color="var(--tipo-sm-fg)" />
-              <code style={{ fontFamily: "monospace", fontSize: 11 }}>{pareja.dummy_col}</code>
+              <code style={{ fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace", fontSize: "var(--pulso-type-caption-size)" }}>{pareja.dummy_col}</code>
             </div>
           );
         })()}
 
         <div style={{ flex: 1 }} />
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-          <button type="button" onClick={onPair} disabled={busy} style={{ fontSize: 11, padding: "3px 8px" }} title="Cambiar modo o cambiar hija">
+          <button type="button" onClick={onPair} disabled={busy} style={{ fontSize: "var(--pulso-type-caption-size)", padding: "3px 8px" }} title="Cambiar modo o cambiar hija">
             Cambiar
           </button>
-          <button type="button" onClick={onUnpair} disabled={busy} style={{ fontSize: 11, padding: "3px 8px", display: "inline-flex", alignItems: "center", gap: 4 }}>
+          <button type="button" onClick={onUnpair} disabled={busy} style={{ fontSize: "var(--pulso-type-caption-size)", padding: "3px 8px", display: "inline-flex", alignItems: "center", gap: 4 }}>
             <Link2Off size={11} /> Desemparejar
           </button>
         </div>
@@ -1299,7 +1298,7 @@ function PreguntaCard({ p, onPair, onUnpair, busy, dragActive, adoptedBy, recent
           onClick={onPair}
           disabled={busy}
           className={hasCands ? "pulso-primary" : undefined}
-          style={{ fontSize: 12, padding: "5px 10px", display: "inline-flex", alignItems: "center", gap: 4 }}
+          style={{ fontSize: "var(--pulso-type-body-size)", padding: "5px 10px", display: "inline-flex", alignItems: "center", gap: 4 }}
         >
           <Link2 size={12} /> Emparejar con…
         </button>
@@ -1349,7 +1348,7 @@ function ModoSoControl({ parent, childCol, current, busy, onChange }: {
               border: `1px solid ${active ? "var(--pulso-primary)" : "transparent"}`,
               background: active ? "white" : "transparent",
               color: active ? "var(--pulso-primary)" : "var(--pulso-text-soft)",
-              fontSize: 11,
+              fontSize: "var(--pulso-type-caption-size)",
               fontWeight: active ? 700 : 600,
               display: "inline-flex",
               alignItems: "center",
@@ -1385,13 +1384,13 @@ function SmDummyPicker({ padre, opciones, busy, selectedCol, onSelect }: {
       background: bg,
       border: `1px solid ${borderColor}`,
       borderRadius: 6,
-      fontSize: 12,
+      fontSize: "var(--pulso-type-body-size)",
     }}>
-      <div style={{ color: eyebrowColor, fontWeight: 700, marginBottom: 4, display: "flex", alignItems: "center", gap: 4, fontSize: 11, textTransform: "uppercase", letterSpacing: 0.3 }}>
+      <div style={{ color: eyebrowColor, fontWeight: 700, marginBottom: 4, display: "flex", alignItems: "center", gap: 4, fontSize: "var(--pulso-type-eyebrow-size)", textTransform: "uppercase", letterSpacing: 0.3 }}>
         {hasSelection ? <Check size={12} /> : <CircleAlert size={12} />}
         {hasSelection ? 'Opción "Otros, especifique"' : '¿Cuál opción es "Otros, especifique"?'}
       </div>
-      <div style={{ fontSize: 11, color: eyebrowColor, opacity: 0.85, marginBottom: 8, lineHeight: 1.4 }}>
+      <div style={{ fontSize: "var(--pulso-type-caption-size)", color: eyebrowColor, opacity: 0.85, marginBottom: 8, lineHeight: 1.4 }}>
         {hasSelection
           ? <>Los textos asociados se codifican cuando esta opción fue marcada. Haz click en la opción para quitar la selección.</>
           : <>Elige la opción que habilita el texto libre asociado.</>}
@@ -1442,13 +1441,13 @@ function SmDummyPicker({ padre, opciones, busy, selectedCol, onSelect }: {
                 borderRadius: 5,
                 cursor: disabled ? "not-allowed" : "pointer",
                 opacity: disabled && !o.col_dummy ? 0.5 : 1,
-                fontSize: 11,
+                fontSize: "var(--pulso-type-caption-size)",
               }}
             >
               <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 16, height: 16 }}>
                 {isSelected ? <Check size={12} color="var(--pulso-primary)" /> : null}
               </span>
-              <code style={{ fontFamily: "monospace", fontWeight: 700, color: isSelected ? "var(--pulso-primary)" : sugerida ? "var(--pulso-warn-fg)" : "var(--pulso-text-soft)" }}>{o.codigo}</code>
+              <code style={{ fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace", fontWeight: 700, color: isSelected ? "var(--pulso-primary)" : sugerida ? "var(--pulso-warn-fg)" : "var(--pulso-text-soft)" }}>{o.codigo}</code>
               {/* `minWidth: 0` + elipsis: la celda `1fr` se angosta con el panel
                   y sin esto la etiqueta se pintaba fuera de su pista, sacando
                   una barra de scroll horizontal al contenedor y cortando el
@@ -1467,12 +1466,12 @@ function SmDummyPicker({ padre, opciones, busy, selectedCol, onSelect }: {
                 {truncate(o.label, 70)}
               </span>
               {sugerida && !isSelected && (
-                <span style={{ fontSize: 10, fontWeight: 700, color: "var(--pulso-warn-fg)", textTransform: "uppercase", letterSpacing: 0.3, whiteSpace: "nowrap" }}>
+                <span style={{ fontSize: "var(--pulso-type-micro-size)", fontWeight: 700, color: "var(--pulso-warn-fg)", textTransform: "uppercase", letterSpacing: 0.3, whiteSpace: "nowrap" }}>
                   ← Probable
                 </span>
               )}
               {isSelected && (
-                <span style={{ fontSize: 10, fontWeight: 700, color: "var(--pulso-primary)", textTransform: "uppercase", letterSpacing: 0.3, whiteSpace: "nowrap" }}>
+                <span style={{ fontSize: "var(--pulso-type-micro-size)", fontWeight: 700, color: "var(--pulso-primary)", textTransform: "uppercase", letterSpacing: 0.3, whiteSpace: "nowrap" }}>
                   Seleccionada
                 </span>
               )}
@@ -1481,7 +1480,7 @@ function SmDummyPicker({ padre, opciones, busy, selectedCol, onSelect }: {
         })}
       </div>
       {!hasSelection && opciones.every((o) => !o.es_otros_sugerido) && (
-        <div style={{ fontSize: 10, color: "var(--pulso-warn-fg)", marginTop: 6, fontStyle: "italic" }}>
+        <div style={{ fontSize: "var(--pulso-type-micro-size)", color: "var(--pulso-warn-fg)", marginTop: 6, fontStyle: "italic" }}>
           No detecté una opción "Otros" en el instrumento. Elige la que corresponde según tu criterio.
         </div>
       )}
@@ -1500,8 +1499,8 @@ function PairedSide({ title, subtitle, tone }: { title: string; subtitle: string
         overflow: "hidden",
       }}
     >
-      <div style={{ fontFamily: "monospace", fontSize: 12, fontWeight: 600, color: tone === "primary" ? "var(--pulso-primary)" : "var(--pulso-text)", whiteSpace: "nowrap", textOverflow: "ellipsis", overflow: "hidden" }}>{title}</div>
-      <div style={{ fontSize: 10, color: "var(--pulso-text-soft)" }}>{subtitle}</div>
+      <div style={{ fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace", fontSize: "var(--pulso-type-subtitle-size)", fontWeight: 600, color: tone === "primary" ? "var(--pulso-primary)" : "var(--pulso-text)", whiteSpace: "nowrap", textOverflow: "ellipsis", overflow: "hidden" }}>{title}</div>
+      <div style={{ fontSize: "var(--pulso-type-micro-size)", color: "var(--pulso-text-soft)" }}>{subtitle}</div>
     </div>
   );
 }
@@ -1511,7 +1510,7 @@ function ArquetipoBadge({ arq, paired, tipoStyle }: { arq: Arquetipo; paired: bo
   if (!cfg) return null;
   const Icon = cfg.icon;
   return (
-    <span style={{ display: "inline-flex", alignItems: "center", gap: 3, padding: "2px 6px", borderRadius: 4, background: cfg.bg, color: cfg.fg, fontSize: 10, fontWeight: 700, letterSpacing: 0.5, textTransform: "uppercase", whiteSpace: "nowrap" }}>
+    <span style={{ display: "inline-flex", alignItems: "center", gap: 3, padding: "2px 6px", borderRadius: 4, background: cfg.bg, color: cfg.fg, fontSize: "var(--pulso-type-micro-size)", fontWeight: 700, letterSpacing: 0.5, textTransform: "uppercase", whiteSpace: "nowrap" }}>
       <Icon size={10} />
       {cfg.label}
     </span>

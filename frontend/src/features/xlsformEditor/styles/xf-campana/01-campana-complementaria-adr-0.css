@@ -372,20 +372,6 @@
   flex: 1 0 auto;
 }
 
-.pulso-xf-campana-vacio {
-  display: grid;
-  flex: 1 0 auto;
-  place-items: center;
-  min-height: 96px;
-  margin: 0;
-  padding: var(--pulso-space-4);
-  border: 1px dashed var(--pulso-border);
-  border-radius: var(--pulso-radius);
-  color: var(--pulso-text-faint);
-  font-size: var(--pulso-type-body-size);
-  text-align: center;
-}
-
 .pulso-xf-campana-cargando {
   display: flex;
   flex-direction: column;

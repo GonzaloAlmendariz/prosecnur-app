@@ -209,3 +209,56 @@ test_that("regla de Gonzalo (2026-11-03): las áreas no llevan rótulo ni guía;
   expect_false("PUCP" %in% unlist(lapply(b0, function(d) d$label)))
 })
 
+
+test_that("revisión v7 (láminas 11, 12 y 19): borde blanco sobre clases oscuras, base del subgrupo en la esquina, leyenda completa, Perú a ras", {
+  M <- .MAPA_DIST()
+  # Los colores del mapa son tokens ppt.colores.mapa_* del estándar (antes, 29 excepciones de hex).
+  expect_identical(M$blues5, vapply(paste0("mapa_clase_", 1:5), .std_color, "", USE.NAMES = FALSE))
+  expect_identical(M$borde_oscura, .std_color("mapa_borde_area_oscura"))
+  # Lámina 11: entre dos distritos del mismo azul oscuro el gris no se ve; sobre las dos clases oscuras el borde va blanco.
+  expect_identical(.mapa_dist_oscuro(M$blues5), c(FALSE, FALSE, FALSE, TRUE, TRUE))
+  expect_identical(.mapa_dist_oscuro(c(M$vacio, M$otra, NA)), c(FALSE, FALSE, FALSE))
+  fx <- .md_fx(600)
+  e <- .md_espec(fx, "dist", "lima_callao")
+  b <- ggplot2::ggplot_build(.mapa_dist_panel_gg(e, 6.3, 4.3))$data
+  areas <- Filter(function(d) "fill" %in% names(d) && any(d$fill %in% M$blues5[4:5]), b)[[1]]
+  expect_true(all(areas$colour[areas$fill %in% M$blues5[4:5]] == M$borde_oscura))
+  expect_true(all(areas$colour[areas$fill %in% M$blues5[1:2]] == M$borde))
+  # Lámina 12: si la base del mapa no es la del estudio, «Base: N» en la esquina inferior izquierda del panel.
+  expect_false(any(grepl("^Base:", unlist(lapply(b, function(d) d$label)))))
+  carto <- .mapa_distribucion_cartografia("lima_callao")
+  data_sources <- list(d = fx$data); instrument_sources <- list(d = fx$inst)
+  sub <- .render_mapa_distribucion(p_mapa_distribucion("dist", filtros = list(dep = "2")))
+  esp <- attr(sub, "pulso_espec")
+  expect_lt(esp$base, nrow(fx$data)); expect_identical(esp$base_rotulo, paste0("Base: ", esp$base))
+  t <- Filter(function(d) "label" %in% names(d) && any(d$label == esp$base_rotulo), ggplot2::ggplot_build(sub)$data)[[1]]
+  expect_lt(t$x[1], 0.3); expect_lt(t$y[1], 0.3)
+  todo <- attr(.render_mapa_distribucion(p_mapa_distribucion("dist")), "pulso_espec")
+  expect_null(todo$base_rotulo)
+  # Lámina 12: el alto de la leyenda alcanza para los rótulos de su segunda fila (antes 132 px los cortaba).
+  P <- .LAM_MAPA_PX
+  expect_gte(.lam_mapa_dist_leyenda_alto(2L), 10 * P + 0.25 + 0.16 + 0.25 + 0.16 + 0.02 + 0.22)
+  expect_gt(.lam_mapa_dist_leyenda_alto(2L), .lam_mapa_dist_leyenda_alto(1L))
+  # Lámina 19: el Perú va a ras del panel (5 px de aire, sin reducción) y la lista admite filas de 38 px.
+  p <- .md_espec(fx, "dep", "peru", excl = "No sabe")
+  pr <- .mapa_dist_proyeccion(p, 2.5, 4.4, 0)
+  v <- .mapa_dist_ventana(p)
+  ancho_mapa <- diff(v$lon) * pr$k * pr$s
+  expect_gt(ancho_mapa, 2.5 - 2 * 6 * .MAPA_DIST_PX)
+})
+
+test_that("el ancho del mapa es configurable y el Perú solo en su tarjeta toma lo que su alto pide (Gonzalo, 2026-11-04)", {
+  fx <- .md_fx()
+  p <- .md_espec(fx, "dep", "peru", excl = "No sabe")
+  l <- .md_espec(fx, "dist", "lima_callao")
+  def <- 9 * 600 / 1090
+  auto <- .lam_mapa_dist_ancho_mapa(p, def, 5.4, 9)
+  expect_lt(auto, def)                     # el Perú no necesita el ancho de la maqueta: lo gana la lista
+  expect_gte(auto, 9 * 0.3)
+  expect_lte(.lam_mapa_dist_ancho_mapa(l, def, 5.4, 9), def)   # Lima también: nunca más ancho que el que pide
+  p$ancho_mapa <- 0.45
+  expect_equal(.lam_mapa_dist_ancho_mapa(p, def, 5.4, 9), 9 * 0.45)
+  expect_equal(p_mapa_distribucion("dep", area = "peru", ancho_mapa = 0.4)$ancho_mapa, 0.4)
+  expect_null(p_mapa_distribucion("dep", area = "peru")$ancho_mapa)
+  expect_error(p_mapa_distribucion("dep", ancho_mapa = 0.95), "ancho_mapa")
+})

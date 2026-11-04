@@ -43,7 +43,7 @@ export function BarraFormula({ celda, valor, nodo, scope, pendiente = false, onC
   return (
     <div className="xfx-barra">
       <span className="xfx-barra__dir" title={ayuda?.detail}>
-        <span className="xfx-barra__hoja">{celda.hoja}</span> fila {celda.fila + 1} · <code>{celda.columna}</code>
+        <span className="xfx-barra__hoja">{celda.hoja}</span> fila {celda.fila + 1}, <code>{celda.columna}</code>
         {ayuda ? <span className="xfx-barra__ayuda">{ayuda.label}</span> : null}
       </span>
       <input

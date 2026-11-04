@@ -163,6 +163,12 @@
   pointer-events: none;
 }
 
+/* Rótulo largo partido en dos líneas dentro del nodo (`rotuloDeNodo.ts`). */
+.dashboard-scope .dash-assembly-dim-label.is-largo,
+.dashboard-scope .dash-assembly-index-label.is-largo {
+  font-size: var(--pulso-type-title-size);
+}
+
 .dashboard-scope .dash-assembly-dim-score {
   fill: #ffffff;
   font-size: 16px;

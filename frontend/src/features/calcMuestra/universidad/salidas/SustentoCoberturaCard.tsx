@@ -14,6 +14,7 @@ import { resumenSustento, seccionesSustento } from "./sustentoSecciones";
 import type { CalcMuestraAulasState, CalcMuestraEstudio, CalcMuestraWorkspace } from "../../../../api/client";
 import "./sustentoCobertura.css";
 import { fmtInt } from "../../sharedCore";
+import { Panel } from "../../../../components/Panel";
 
 export function SustentoCoberturaCard({
   estudio,
@@ -28,11 +29,12 @@ export function SustentoCoberturaCard({
   const r = resumenSustento(secciones);
 
   return (
-    <section className="cmv2-panel cmv2-sustento" aria-label="Cobertura del sustento metodológico">
-      <div className="cmv2-subhead">
-        <strong>El sustento metodológico, capítulo por capítulo</strong>
-        <small>qué se puede escribir hoy y qué no</small>
-      </div>
+    <Panel
+      className="cmv2-sustento"
+      aria-labelledby="cmv2-sustento-titulo"
+      title={<span id="cmv2-sustento-titulo">El sustento metodológico, capítulo por capítulo</span>}
+      hint="Qué se puede escribir hoy y qué no"
+    >
       <p className="cmv2-sustento-resumen">
         <b>{r.disponibles} de {r.total}</b> capítulos se pueden escribir con lo que el
         estudio tiene ahora.
@@ -62,6 +64,6 @@ export function SustentoCoberturaCard({
         recoge lo que ya calculan el sustento técnico, el relato, la bitácora del
         libro y el propio motor, y lo ordena en el registro de un informe.
       </small>
-    </section>
+    </Panel>
   );
 }

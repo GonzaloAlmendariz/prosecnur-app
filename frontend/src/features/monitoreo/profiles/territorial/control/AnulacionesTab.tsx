@@ -13,6 +13,7 @@ import { RotuloDePestana } from "../navegacion/RotuloDePestana";
 import "./anulaciones.css";
 import { EstadoChip } from "../../../../../components/EstadoChip";
 import type { ChromeStatusTone } from "../../../../../components/ModuleCommandBar";
+import { BloqueDeMonitoreo } from "../../../core/BloqueDeMonitoreo";
 
 const TONO_DE_ESTADO: Record<TonoDeEstado, ChromeStatusTone> = { ok: "success", info: "info", alerta: "warn", neutro: "neutral" };
 
@@ -133,11 +134,15 @@ function AnulacionesTabImpl({
         {modelo.revertidas ? <p className="mon-anu-base">{fmt(modelo.revertidas)} anulaciones revertidas antes.</p> : null}
       </div>
 
-      <section className="mon-anu-panel mon-anu-tabla-panel" aria-labelledby="mon-anu-umps" data-qa-geometry-member="umps">
-        <header className="mon-anu-tabla-cabecera">
-          <h3 id="mon-anu-umps" className="mon-anu-titulo">UMP afectadas</h3>
-          <span className="mon-anu-base">Cuántos casos perdió cada UMP y cómo queda su cuota sin ellos</span>
-        </header>
+      <BloqueDeMonitoreo
+        marco="kit"
+        className="mon-anu-panel mon-anu-tabla-panel"
+        aria-labelledby="mon-anu-umps"
+        data-qa-geometry-member="umps"
+        titulo="UMP afectadas"
+        tituloId="mon-anu-umps"
+        bajada="Cuántos casos perdió cada UMP y cómo queda su cuota sin ellos"
+      >
         <div className="mon-anu-tabla-marco" data-qa-geometry-capacity="owned" tabIndex={0} aria-label="UMP afectadas, con desplazamiento">
           <table className="mon-anu-tabla">
             <thead>
@@ -164,7 +169,7 @@ function AnulacionesTabImpl({
             </tbody>
           </table>
         </div>
-      </section>
+      </BloqueDeMonitoreo>
     </section>
   );
 }

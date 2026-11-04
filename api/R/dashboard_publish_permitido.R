@@ -59,6 +59,8 @@ PUBLICACION_SCHEMA <- "publicacion/v1"
 #' artefacto público lee (lista permitida). Lectura pura: devuelve una copia.
 #' @keywords internal
 .publicacion_estado_dashboard <- function(s) {
+  # Sin fuente no hay tablero que publicar: el cliente abriría una página vacía.
+  .publicacion_exigir_fuente_dashboard(s)
   claves <- intersect(c(.PUBLICACION_CLAVES_SESION, .PUBLICACION_CLAVES_DASHBOARD), names(s))
   out <- s[claves]
   out$files <- .publicacion_archivos_dashboard(s)

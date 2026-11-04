@@ -1987,6 +1987,9 @@ async function inspectDomCajas(page, { projectMode, geometryGroups, geometryTole
         "svg", "defs", "g",
         "[role='navigation']", "[role='tablist']", "[role='toolbar']",
         "[role='menu']", "[role='menubar']", "[role='listbox']",
+        // Maquetado interno de una librería que la app no compone (KaTeX en
+        // `components/Math.tsx`): el componente lo declara con su porqué.
+        "[data-qa-geometry-exento]",
       ].join(",");
       const interactiveGeometryMember = [
         "button", "a[href]", "input", "select", "textarea", "option",
@@ -2746,16 +2749,26 @@ async function main() {
   await fsp.mkdir(logDir, { recursive: true });
 
   const stack = await startStack(opts, logDir);
-  const cleanup = async () => {
-    if (opts.keepServers) return;
+  const stopStack = async () => {
     await stopProcess(stack.frontend);
     await stopProcess(stack.api);
   };
+  // --keep-servers deja la pila viva al TERMINAR de capturar, no al recibir una
+  // señal: quien manda SIGINT/SIGTERM quiere la pila abajo. Antes la señal
+  // también respetaba --keep-servers y el runner moría dejando la API y el
+  // vite huérfanos (ppid 1), que ningún prune veía.
+  const cleanup = async () => {
+    if (opts.keepServers) {
+      console.log(`[ui-quick-check] --keep-servers: la pila sigue viva (runner pid ${process.pid}). Ciérrala con \`kill ${process.pid}\` o \`make dev-prune\` al terminar.`);
+      return;
+    }
+    await stopStack();
+  };
   process.once("SIGINT", () => {
-    cleanup().finally(() => process.exit(130));
+    stopStack().finally(() => process.exit(130));
   });
   process.once("SIGTERM", () => {
-    cleanup().finally(() => process.exit(143));
+    stopStack().finally(() => process.exit(143));
   });
 
   try {

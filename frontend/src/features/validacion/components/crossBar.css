@@ -130,6 +130,7 @@
 .crossbar-opcion-texto {
   flex: 1 1 auto;
   min-width: 0;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
   gap: 2px;
@@ -161,15 +162,17 @@
   line-height: 1.3;
 }
 
+/* El texto del gráfico va en su propio elemento y se parte en dos líneas si no cabe. La opción
+   hereda `white-space: nowrap`, y por eso «% que marca, por categoría» medía 151 px dentro de 109:
+   la opción desbordaba de 17 a 106 px con rótulos largos (medido en vivo con acnur_acg). */
+.crossbar-grafico-texto {
+  min-width: 0;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
 .crossbar-grafico > svg {
   flex: none;
   color: var(--pulso-text-faint);
 }
 
-.crossbar-vacio {
-  margin: 0;
-  padding: 20px;
-  color: var(--pulso-text-soft);
-  font-size: var(--pulso-type-caption-size);
-  text-align: center;
-}

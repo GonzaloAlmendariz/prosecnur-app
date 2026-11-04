@@ -119,8 +119,8 @@ export default function PromocionBase({ promocion, busy = false, onRevertir }: P
           )}
         </span>
         <div style={{ display: "flex", flexDirection: "column", gap: 4, minWidth: 0 }}>
-          <div style={{ fontSize: 13, fontWeight: 800, color: "var(--pulso-text)" }}>{titulo}</div>
-          <div style={{ fontSize: 12, color: "var(--pulso-text)", lineHeight: 1.45 }}>
+          <div style={{ fontSize: "var(--pulso-type-subtitle-size)", fontWeight: 800, color: "var(--pulso-text)" }}>{titulo}</div>
+          <div style={{ fontSize: "var(--pulso-type-body-size)", color: "var(--pulso-text)", lineHeight: 1.45 }}>
             {sinRespaldo ? (
               <>
                 Al recargar el formulario se borraron el plan de validación y las decisiones de limpieza
@@ -157,7 +157,7 @@ export default function PromocionBase({ promocion, busy = false, onRevertir }: P
         <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
           {confirming ? (
             <>
-              <span style={{ fontSize: 11, color: "var(--pulso-text-soft)", maxWidth: 300, lineHeight: 1.35 }}>
+              <span style={{ fontSize: "var(--pulso-type-caption-size)", color: "var(--pulso-text-soft)", maxWidth: 300, lineHeight: 1.35 }}>
                 Vuelve a {formatCount(antes)} casos y obliga a rehacer codificación y analítica.
               </span>
               <button
@@ -224,7 +224,7 @@ const buttonBase: CSSProperties = {
   gap: 6,
   padding: "7px 12px",
   borderRadius: 8,
-  fontSize: 12,
+  fontSize: "var(--pulso-type-subtitle-size)",
   fontWeight: 700,
   cursor: "pointer",
   whiteSpace: "nowrap",

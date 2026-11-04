@@ -49,6 +49,16 @@ if (!isTRUE(prosecnurapp:::.publicacion_preparada(prosecnurapp:::session_get(bs$
   stop("[launch_server] el .pulso no está preparado para publicar: es el del proyecto, entero. ",
        "Prepáralo con el botón Deploy o con `Rscript api/scripts/publicacion_preparar.R --project <proyecto.pulso> --out data/proyecto.pulso`.")
 }
+# Un tablero sin fuente arranca y publica «Dashboard no disponible»: no se sirve.
+# Cubre los .pulso preparados antes de que el snapshot exigiera la fuente.
+.bs_estado <- prosecnurapp:::session_get(bs$session_id)
+if (identical(as.character(c(.bs_estado$publicacion_preparada$lista, "")[1]), "dashboard")) {
+  # Sólo el rechazo del guard se reescribe; cualquier otro error (p. ej. un paquete
+  # instalado viejo, sin la función) sale tal cual, con su causa.
+  tryCatch(prosecnurapp:::.publicacion_exigir_fuente_dashboard(.bs_estado), api_error = function(e) {
+    stop("[launch_server] ", conditionMessage(e), call. = FALSE)
+  })
+}
 Sys.setenv(PULSO_BOOTSTRAP_SID = bs$session_id)
 cat(sprintf("[launch_server] sesión SID=%s, escuchando en %s:%d\n",
             bs$session_id, host, port))

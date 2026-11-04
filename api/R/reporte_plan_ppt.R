@@ -3255,7 +3255,7 @@ reporte_ppt_plan <- function(
     # Apiladas, multiapiladas y agrupadas (G-17) ya NO imprimen caption
     # propio, asi que su base de slide vuelve. Los etypes que aun llevan
     # caption en el grafico (categoricas/pie/donut) siguen suprimidos.
-    if (etype %in% c("barras_categoricas", "pie", "donut")) return(NULL)
+    if (etype %in% c("barras_categoricas", "pie", "donut") && !(.base_es_para_word() && etype %in% c("pie", "donut"))) return(NULL)   # la dona del Word no trae la base en su imagen (graficos_base_word.R)
     excluir_base <- switch(
       etype,
       barras_multiapiladas = .reporte_plan_excluir_cascada(
@@ -3687,7 +3687,7 @@ reporte_ppt_plan <- function(
     p_word <- .word_publico_marcar(tryCatch(.render_element_impl(el_for_word), error = function(e) plot), el)   # R2: el público a la izquierda (reporte_word_publico_una_barra.R)
 
     base <- tryCatch(
-      .base_auto_from_element(el, sufijo_auto = suf, formato = fmt),
+      .base_para_word(.base_auto_from_element(el, sufijo_auto = suf, formato = fmt)),
       error = function(e) NULL
     )
 

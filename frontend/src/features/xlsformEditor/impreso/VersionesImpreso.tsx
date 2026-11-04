@@ -9,6 +9,8 @@ import { PulsoField } from "../../../components/PulsoField";
 import { PulsoInput } from "../../../components/PulsoInput";
 import { TarjetaImpreso } from "./TarjetaImpreso";
 import type { SincroniaImpreso } from "./useEstadoImpreso";
+import { EstadoVacio } from "../../../components/EstadoVacio";
+import { History } from "../../../vendor/lucide-react";
 
 export function momentoImpreso(iso: string): string {
   const fecha = new Date(iso);
@@ -22,7 +24,7 @@ export function textoSincronia(s: SincroniaImpreso): string {
     case "guardando": return "Guardando en el proyecto…";
     case "guardado": {
       const cuando = momentoImpreso(s.en);
-      return cuando ? `Guardadas en el proyecto · ${cuando}` : "Guardadas en el proyecto.";
+      return cuando ? `Guardadas en el proyecto (${cuando})` : "Guardadas en el proyecto.";
     }
     case "error": return `No se guardaron en el proyecto (${s.causa}); quedan en este equipo.`;
   }
@@ -72,7 +74,7 @@ export function VersionesImpreso({ sincronia, versiones, puedeGuardar, onGuardar
           ))}
         </ul>
       ) : (
-        <p className="pulso-xf-imp-versiones-vacio">Aún no hay versiones guardadas.</p>
+        <EstadoVacio icono={<History size={14} />} titulo="Aún no hay versiones guardadas" />
       )}
     </TarjetaImpreso>
   );

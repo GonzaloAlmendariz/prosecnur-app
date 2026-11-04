@@ -172,7 +172,7 @@ export function rotuloModulo(etiqueta: string): RotuloModulo {
   const crudo = m ? m[2].trim() : limpio;
   const nombre = crudo === crudo.toLocaleUpperCase("es") ? crudo.charAt(0) + crudo.slice(1).toLocaleLowerCase("es") : crudo;
   const letra = m ? m[1].toLocaleUpperCase("es") : "";
-  return { letra, nombre, corto: letra ? `${letra} · ${nombre}` : nombre, grupo: letra ? `${letra}. ${nombre}` : nombre };
+  return { letra, nombre, corto: letra ? `${letra}. ${nombre}` : nombre, grupo: letra ? `${letra}. ${nombre}` : nombre };
 }
 
 // TXT-17: rótulo corto de un subtema (módulo partido, TXT-11), cuya etiqueta es el enunciado entero de su batería. Regla
@@ -246,7 +246,7 @@ export function rotuloDePropuesta(p: { etiqueta: string; padreEtiqueta?: string 
   if (!p.padreEtiqueta) return { ...rotuloModulo(p.etiqueta), completo: p.etiqueta };
   const padre = rotuloModulo(p.padreEtiqueta);
   const nombre = sinPalabrasDelPadre(rotuloCortoSubtema(p.etiqueta), padre.nombre) || padre.nombre;
-  const corto = padre.letra ? `${padre.letra} · ${nombre}` : nombre;
+  const corto = padre.letra ? `${padre.letra}. ${nombre}` : nombre;
   // TXT-21: el grupo que crea «Confirmar» se llama como lo muestra la banda; es la etiqueta que después ven los gráficos.
   return {
     letra: padre.letra,

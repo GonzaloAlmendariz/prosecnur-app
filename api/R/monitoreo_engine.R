@@ -20528,12 +20528,12 @@ monitoreo_territorial_advance_report_pdf <- function(model, output_file, include
   if (one_num(validas) <= 0 && is.finite(total_design_surveys) && total_design_surveys > 0) {
     validas <- total_design_surveys
   }
-  if (one_num(validas) > 0) {
-    if (is.finite(total_target_surveys) && total_target_surveys > 0) meta_encuestas <- total_target_surveys
-    brecha_encuestas <- if (one_num(meta_encuestas) > 0) max(0, one_num(meta_encuestas) - one_num(validas)) else 0
-    avance_pct <- pct_from(validas, meta_encuestas)
-    ump_pct <- pct_from(ump_efectivas, meta_ump)
-  }
+  if (one_num(validas) > 0 && is.finite(total_target_surveys) && total_target_surveys > 0) meta_encuestas <- total_target_surveys
+  if (one_num(validas) > 0) ump_pct <- pct_from(ump_efectivas, meta_ump)
+  # Por distrito y sin compensar: lo que sobra en uno no cubre lo que falta en otro (monitoreo_avance_sin_compensar.R).
+  sin_comp <- .monitoreo_territorial_avance_sin_compensar(client_district_rows, district_observed_surveys, district_target_surveys, cell_value, validas, meta_encuestas)
+  if (one_num(validas) > 0 || sin_comp$minimo > 0) brecha_encuestas <- sin_comp$faltan
+  if (one_num(validas) > 0 || sin_comp$minimo > 0) avance_pct <- sin_comp$pct
   draw_client_district_progress <- function(df, x, y, w, h, title = "Avance por distrito") {
     rr(x, y, w, h, fill = "#ffffff", col = border, lwd = 1.05, r = 0.016)
     txt(title, x + 0.020, y + h - 0.030, size = 10.5, col = ink, face = "bold", just = c("left", "top"))
@@ -20625,7 +20625,7 @@ monitoreo_territorial_advance_report_pdf <- function(model, output_file, include
       caption_size = 4.9,
       stroke = 8.2
     )
-    main_metric <- if (one_num(meta_encuestas) > 0) paste0(fmt(validas), " / ", fmt(meta_encuestas)) else fmt(validas)
+    main_metric <- if (sin_comp$minimo > 0) paste0(fmt(sin_comp$cubierto), " / ", fmt(sin_comp$minimo)) else fmt(validas)
     # Escala el tamaño al ancho para no chocar con el anillo (p. ej. "1,283 / 1,200").
     main_nchar <- nchar(main_metric, type = "width")
     main_size <- if (main_nchar > 11L) 13.5 else if (main_nchar > 8L) 18.0 else 24.0

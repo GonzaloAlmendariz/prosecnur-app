@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { PulsoButton } from "../../../../components/PulsoButton";
 import { Sideover } from "../../../../components/Sideover";
+import { EstadoChip } from "../../../../components/EstadoChip";
 import { ApiError } from "../../../../api/core";
 import { useSeccion } from "../../../../lib/navegacion/useDireccion";
 import { asegurarCampanaTerritorial } from "./campanaTerritorial";
@@ -80,6 +81,7 @@ export function SalidasPanel({ salidas, envio: envioDelEstado, onCambio, fase = 
   return (
     <Sideover
       panel={PANEL_SALIDAS_SELECCION}
+      alto="contenido"
       title="Entrega"
       subtitle="Envía la muestra a Material de campo, que produce las fichas, las hojas de zona y el paquete"
       icon={<Send size={16} />}
@@ -120,7 +122,8 @@ export function SalidasPanel({ salidas, envio: envioDelEstado, onCambio, fase = 
             </p>
           ) : (
             <div className="hr-entrega-estado">
-              <strong>{estado === "desactualizado" ? "La muestra cambió desde el envío" : "Enviada"}</strong>
+              <EstadoChip label={estado === "desactualizado" ? "Desactualizado" : "Al día"} tone={estado === "desactualizado" ? "warn" : "success"} />
+              {estado === "desactualizado" ? <strong>La muestra cambió desde el envío.</strong> : null}
               <span>
                 {fmt(envio?.n_titulares ?? 0)} titulares y {fmt(envio?.n_reemplazos ?? 0)} reemplazos{envio?.enviado_at ? `, ${fecha(envio.enviado_at)}` : ""}
               </span>

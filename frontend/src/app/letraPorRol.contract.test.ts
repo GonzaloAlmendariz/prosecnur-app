@@ -33,10 +33,13 @@ import { describe, expect, test } from "vitest";
  * cifras héroe de 24–44 px que el rol `kpi` (21) achicaría, y
  * `public/monitoreoPublic.css` entero, que es el informe que ve el cliente
  * (mismo criterio que Dashboard).
+ * El 4 nov 2026 entran con meta 0 Codificación (107 → 0) y Hojas de ruta (174 → 2, la cifra héroe del
+ * resultado de Muestra, declarada abajo), que ya tenían su guard propio, y `aulasFlow` (9 → 0), `project` y
+ * `estudio`, que no tenían ninguno (`docs/qa/formato-*-2026-11-04.md`).
  */
 
 const SRC = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const MODULOS = ["features/home", "features/dashboard", "features/xlsformEditor", "features/analitica", "features/carga", "features/procesamiento", "features/recopiladores", "features/calcMuestra", "features/graficos", "features/monitoreo"];
+const MODULOS = ["features/home", "features/dashboard", "features/xlsformEditor", "features/analitica", "features/carga", "features/procesamiento", "features/recopiladores", "features/calcMuestra", "features/graficos", "features/monitoreo", "features/aulasFlow", "features/project", "features/estudio", "features/codificacion", "features/hojasRuta"];
 const LITERAL = /font-size\s*:\s*\d+(?:\.\d+)?px/g;
 
 const SNAPSHOT_LITERALES: Record<string, number> = {
@@ -48,17 +51,18 @@ const SNAPSHOT_LITERALES: Record<string, number> = {
   "features/dashboard/tabs/DimensionesTab/indicador-assembly.css": 8,
   "features/dashboard/tabs/DimensionesTab/matriz_unidades.css": 9,
   "features/dashboard/tabs/RelacionTab/relacion.css": 7,
-  "features/dashboard/theme/tokens.css": 78,
+  "features/dashboard/theme/tokens.css": 77,
   "features/graficos/estilo/estilo.css": 2,
   "features/graficos/graficadorPicker.css": 5,
   "features/graficos/v2/styles/editor-v2.css": 2,
   "features/home/home-v2.css": 2,
-  "features/xlsformEditor/impreso/impreso.css": 17,
+  "features/xlsformEditor/impreso/impreso.css": 16,
   "features/xlsformEditor/kit/riel.css": 1,
   "features/xlsformEditor/pestanas/armador/armador.css": 2,
   "features/xlsformEditor/styles/xf-home/01-xf-home-css-hub-biblioteca-d.css": 1,
   "features/xlsformEditor/styles/xf-preview-inputs.css": 9,
   "features/xlsformEditor/styles/xf-simulator.css": 17,
+  "features/hojasRuta/mapa/mapaPage.css": 2,
   "features/monitoreo/monitoreo.css": 3,
   "features/monitoreo/profiles/acreditacion/AvanceCorreo.css": 3,
   "features/monitoreo/profiles/acreditacion/avance/avance.css": 3,

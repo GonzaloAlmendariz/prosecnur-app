@@ -8,6 +8,7 @@ import { construirReportes, textoDeDiferencia, type BaldosaDeUmp } from "./repor
 import { RotuloDePestana } from "../navegacion/RotuloDePestana";
 import { SiluetaDeDistrito } from "../avance/SiluetaDeDistrito";
 import "./ocurrencias.css";
+import { BloqueDeMonitoreo } from "../../../core/BloqueDeMonitoreo";
 
 /**
  * Control › Reportes UMP (territorial.md §3.10): una retícula de baldosas por
@@ -52,19 +53,21 @@ function ReportesTabImpl({
       data-qa-geometry-group="territorial-reportes"
       data-qa-geometry-contract="intrinsic"
     >
-      <section className="mon-ocu-panel mon-rep-reticula-panel" aria-labelledby="mon-rep-titulo" data-qa-geometry-member="reticula">
-        <header className="mon-ocu-cabecera">
-          <RotuloDePestana />
-          <h3 id="mon-rep-titulo" className="mon-ocu-titulo">Partes por UMP</h3>
-          <span className="mon-ocu-base">
-            {fmt(modelo.conUnParte)} con un parte, {fmt(modelo.conDosOMas)} con dos o más y {fmt(modelo.sinParte.length)} sin parte
-            {modelo.noCuadran ? (
-              <span className="mon-ter-cuenta" title={`${fmt(modelo.noCuadran.conMenos)} con menos y ${fmt(modelo.noCuadran.conMas)} con más de lo recibido`}>
-                {fmt(modelo.noCuadran.total)} no cuadran
-              </span>
-            ) : null}
-          </span>
-        </header>
+      <BloqueDeMonitoreo
+        marco="kit"
+        className="mon-ocu-panel mon-rep-reticula-panel"
+        aria-labelledby="mon-rep-titulo"
+        data-qa-geometry-member="reticula"
+        antetitulo={<RotuloDePestana />}
+        titulo="Partes por UMP"
+        tituloId="mon-rep-titulo"
+        bajada={<>{fmt(modelo.conUnParte)} con un parte, {fmt(modelo.conDosOMas)} con dos o más y {fmt(modelo.sinParte.length)} sin parte
+          {modelo.noCuadran ? (
+            <span className="mon-ter-cuenta" title={`${fmt(modelo.noCuadran.conMenos)} con menos y ${fmt(modelo.noCuadran.conMas)} con más de lo recibido`}>
+              {fmt(modelo.noCuadran.total)} no cuadran
+            </span>
+          ) : null}</>}
+      >
         <div className="mon-rep-reticula" data-qa-geometry-capacity="owned" data-qa-geometry-group="territorial-reportes-distritos" data-qa-geometry-contract="equal">
           {modelo.distritos.map((bloque) => (
             <section key={bloque.distrito} className="mon-rep-distrito" aria-label={bloque.distrito}>
@@ -93,7 +96,7 @@ function ReportesTabImpl({
           <span className="is-dos-partes">Dos o más</span>
           <span className="is-no-cuadra">No cuadra con lo recibido</span>
         </span>
-      </section>
+      </BloqueDeMonitoreo>
 
       <aside className="mon-ocu-panel mon-rep-lateral" aria-label="UMP elegida y avisos" data-qa-geometry-member="lateral">
         {elegida ? (

@@ -9,6 +9,8 @@ import { Switch } from "../../../components/Switch";
 import { smCollectorFriendlyName, smConsentOptions, smDecisionAuditReady, smDecisionCaseDecisionLabel, smDecisionCaseRows, smDecisionCollectorIsTest, smDecisionCollectorOptions, smDecisionCollectorStateClass, smDecisionCollectorStateLabel, smDecisionCompareLabel, smDecisionCompareTone, smDecisionDownstreamLabels, smDecisionDuplicateEvidenceLine, smDecisionDuplicateOptionLabel, smDecisionDuplicateOptions, smDecisionInitialPolicy, smDecisionNumber, smDecisionOptionalNumber, smDecisionPercentLabel, smDecisionPolicyFingerprint, smDecisionPolicyForSurveyMonkeyCommit, smDecisionProgressWidth, smDecisionQuestionOptionLabel, smDecisionRowsDeltaLabel, smDecisionRowsDeltaTone, smDecisionRowsImpactText, smDecisionRowsLabel, smDecisionSourceName, smDecisionTextToValues, smDecisionValidCollectorIds, smDecisionValuesToText, smDecisionVariableOptions, smSourceSummariesFromBase, smTextShortcutGuard } from "../surveymonkey/smBasesModel";
 import type { SmDecisionCaseRow } from "../surveymonkey/smBasesModel";
 
+import { EstadoVacio } from "../../../components/EstadoVacio";
+import { EstadoChip } from "../../../components/EstadoChip";
 function SmDecisionMetric({ label, value, tone = "neutral" }: { label: string; value: number; tone?: "neutral" | "good" | "warn" | "danger" }) {
   return (
     <span className={`pulso-sm-decision-metric is-${tone}`}>
@@ -209,8 +211,8 @@ function SmDecisionCaseAudit({
         </span>
         <em>
           {observedTotal} observado{observedTotal === 1 ? "" : "s"}
-          {nearCompleteTotal > 0 ? ` · ${nearCompleteTotal} casi completa${nearCompleteTotal === 1 ? "" : "s"}` : ""}
-          {manualTotal > 0 ? ` · ${manualTotal} rescate${manualTotal === 1 ? "" : "s"}` : ""}
+          {nearCompleteTotal > 0 ? `, ${nearCompleteTotal} casi completa${nearCompleteTotal === 1 ? "" : "s"}` : ""}
+          {manualTotal > 0 ? `, ${manualTotal} rescate${manualTotal === 1 ? "" : "s"}` : ""}
         </em>
       </summary>
       <div className="pulso-sm-case-filters">
@@ -242,7 +244,7 @@ function SmDecisionCaseAudit({
           <option value="">Todos los recopiladores</option>
           {collectors.map((collector) => (
             <option key={collector.id} value={collector.id}>
-              {collector.label} · {collector.observed} obs. · {collector.total} casos
+              {collector.label}, {collector.observed} obs., {collector.total} casos
             </option>
           ))}
         </select>
@@ -326,7 +328,7 @@ function SmDecisionCaseAudit({
               </div>
               <div className={`pulso-sm-case-cell pulso-sm-case-review ${row.observado === true ? "is-observed" : "is-normal"}`} role="cell">
                 <div className="pulso-sm-case-review-main">
-                  {row.nearComplete && <span className="pulso-sm-case-badge is-near">Casi completa</span>}
+                  {row.nearComplete && <EstadoChip label="Casi completa" tone="info" />}
                   <span>{row.observado === true ? row.motivo || "Requiere revisión" : "Sin observación"}</span>
                 </div>
                 {smDecisionDuplicateEvidenceLine(row) && (
@@ -346,10 +348,7 @@ function SmDecisionCaseAudit({
           ))}
       </div>
       ) : (
-        <div className="pulso-sm-case-empty">
-          <Search size={13} />
-          <span>{emptyCopy}</span>
-        </div>
+        <EstadoVacio icono={<Search size={13} />} titulo={emptyCopy} />
       )}
       {smDecisionNumber(audit?.case_rows_omitted) > 0 && (
         <p>{smDecisionNumber(audit?.case_rows_omitted)} casos adicionales quedan fuera de esta vista rápida.</p>
@@ -560,10 +559,11 @@ export function SmDecisionSuite({
         <em>{hasRaw ? hasPendingPolicyChanges ? "cambios pendientes" : edited ? "configuración guardada" : "datos descargados" : "requiere descarga"}</em>
       </summary>
       {!hasRaw ? (
-        <div className="pulso-sm-decision-empty">
-          <AlertTriangle size={14} />
-          <span>Esta base no tiene respaldo de respuestas descargadas. Regenera desde SurveyMonkey para recalcular reglas.</span>
-          {onRegenerateRaw && (
+        <EstadoVacio
+          icono={<AlertTriangle size={14} />}
+          titulo="Esta base no tiene respaldo de respuestas descargadas"
+          descripcion="Regenera desde SurveyMonkey para recalcular reglas."
+          accion={onRegenerateRaw ? (
             <button
               type="button"
               className="pulso-sm-secondary"
@@ -573,14 +573,14 @@ export function SmDecisionSuite({
               {busy ? <Loader2 size={12} className="pulso-spin" /> : <RefreshCw size={12} />}
               Regenerar respaldo
             </button>
-          )}
-        </div>
+          ) : undefined}
+        />
       ) : (
         <div className="pulso-sm-decision-panel">
           <div className="pulso-sm-decision-context">
             <strong title={baseSurveyTitle}>{baseSurveyTitle || "Base SurveyMonkey"}</strong>
             <span>
-              {sourceCount || 1} campaña{(sourceCount || 1) === 1 ? "" : "s"} · {selectedCollectorIds.length} recopilador{selectedCollectorIds.length === 1 ? "" : "es"} entra{selectedCollectorIds.length === 1 ? "" : "n"} · {hasPendingPolicyChanges ? "cambios pendientes" : "configuración guardada"}
+              {sourceCount || 1} campaña{(sourceCount || 1) === 1 ? "" : "s"}, {selectedCollectorIds.length} recopilador{selectedCollectorIds.length === 1 ? "" : "es"} entra{selectedCollectorIds.length === 1 ? "" : "n"}, {hasPendingPolicyChanges ? "cambios pendientes" : "configuración guardada"}
             </span>
           </div>
           <SmDecisionSignature audit={auditReady ? audit : null} />
@@ -592,7 +592,7 @@ export function SmDecisionSuite({
                   <span>Fuentes que entran al conteo</span>
                   <em>
                     {selectedCollectorIds.length} entra{selectedCollectorIds.length === 1 ? "" : "n"}
-                    {testCollectorCount > 0 ? ` · ${testCollectorCount} prueba bloqueada${testCollectorCount === 1 ? "" : "s"}` : ""}
+                    {testCollectorCount > 0 ? `, ${testCollectorCount} prueba bloqueada${testCollectorCount === 1 ? "" : "s"}` : ""}
                   </em>
                   <small>Incluye las fuentes válidas disponibles. Los recopiladores de prueba quedan fuera.</small>
                 </div>
@@ -623,7 +623,7 @@ export function SmDecisionSuite({
                           <small>
                             {isTest
                               ? "Recopilador de prueba"
-                              : `${collector.count} respuestas descargadas${collector.source ? ` · ${collector.source}` : ""}${changedFromSaved ? " · cambio pendiente" : ""}`}
+                              : `${collector.count} respuestas descargadas${collector.source ? `, ${collector.source}` : ""}${changedFromSaved ? ", cambio pendiente" : ""}`}
                           </small>
                         </span>
                         <em className={smDecisionCollectorStateClass(stateLabel)}>{stateLabel}</em>

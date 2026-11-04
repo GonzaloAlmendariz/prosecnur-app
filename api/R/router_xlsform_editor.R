@@ -1164,8 +1164,12 @@ mount_xlsform_editor <- function(pr) {
       list(
         ok = TRUE,
         forms = .xlsform_forms_list(s),
-        active_form_id = s$xlsform_active_form_id %||% NULL
+        active_form_id = s$xlsform_active_form_id %||% NULL,
+        instrumento_del_estudio = .xlsform_instrumento_del_estudio(s)
       )
+    })) |>
+    plumber::pr_post("/api/xlsform-editor/import-instrumento-estudio", wrap_endpoint(function(req, res, ...) {
+      .xlsform_instrumento_estudio_workbook(session_get(session_header(req)))
     })) |>
     plumber::pr_get("/api/xlsform-editor/forms/<id>", wrap_endpoint(function(req, res, id = "", ...) {
       # Entrada completa (con workbook) de un formulario por id.

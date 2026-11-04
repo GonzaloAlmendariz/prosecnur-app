@@ -1060,18 +1060,6 @@
    ============================================================================= */
 
 /* §4.3.1: encabezado como un solo bloque narrativo (lead + banda de KPIs). */
-.cmv2-marco-aulas-lead {
-  display: grid;
-  gap: 2px;
-  margin-bottom: 10px;
-}
-
-.cmv2-marco-aulas-lead strong {
-  color: var(--pulso-text);
-  font-size: var(--pulso-type-subtitle-size);
-  font-weight: var(--pulso-weight-heavy);
-  line-height: 1.25;
-}
 
 /* §4.3.2: editor de grupos de tamaño (rangos por nº de elegibles). */
 .cmv2-ch-grupos {
@@ -1190,29 +1178,6 @@
 }
 
 /* §4.3.3: sexo por curso-horario con selector de facultad, orden y scroll. */
-.cmv2-ch-sexo-head {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 12px;
-  flex-wrap: wrap;
-}
-
-.cmv2-ch-sexo-title {
-  display: grid;
-  gap: 2px;
-}
-
-.cmv2-ch-sexo-title strong {
-  color: var(--pulso-text);
-  font-size: var(--pulso-type-subtitle-size);
-  font-weight: var(--pulso-weight-heavy);
-}
-
-.cmv2-ch-sexo-title span {
-  color: var(--pulso-text-muted);
-  font-size: var(--pulso-type-caption-size);
-}
 
 .cmv2-ch-sexo-controls {
   display: flex;
@@ -1445,43 +1410,6 @@
   gap: 16px;
 }
 
-.cmv2-inv-head {
-  display: grid;
-  grid-template-columns: 28px minmax(0, 1fr) auto;
-  gap: 12px;
-  align-items: start;
-}
-
-.cmv2-inv-head-icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  border-radius: var(--pulso-radius);
-  color: var(--cmv2-accent-fg);
-  background: var(--cmv2-accent-soft);
-  border: 1px solid var(--cmv2-accent-border);
-}
-
-.cmv2-inv-head > div {
-  display: grid;
-  gap: 3px;
-}
-
-.cmv2-inv-head strong {
-  color: var(--pulso-text);
-  font-size: var(--pulso-type-subtitle-size);
-  font-weight: var(--pulso-weight-bold);
-}
-
-.cmv2-inv-head small {
-  color: var(--pulso-text-muted);
-  font-size: var(--pulso-type-body-size);
-  line-height: 1.45;
-  max-width: 74ch;
-}
-
 .cmv2-inv-head-crudo {
   display: grid;
   justify-items: end;
@@ -1516,9 +1444,7 @@
     grid-template-columns: minmax(0, 1fr);
   }
 
-  .cmv2-inv-head {
-    grid-template-columns: 28px minmax(0, 1fr);
-  }
+
 
   .cmv2-inv-head-crudo {
     grid-column: 1 / -1;
@@ -1630,6 +1556,15 @@
   gap: 10px;
 }
 
+/* A 1024 cada pista mide ~425 px y la razón («filas por alumno (matriculado en
+ * varios cursos-horario)») quedaba en media columna de 193 px, partida en cuatro
+ * líneas: la merma y la razón se apilan. */
+@media (max-width: 1180px) {
+  .cmv2-inv-track-stats {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
 .cmv2-inv-merma,
 .cmv2-inv-razon {
   display: flex;
@@ -1699,11 +1634,6 @@
 .cmv2-partic {
   display: grid;
   gap: 12px;
-}
-
-.cmv2-partic-head {
-  display: grid;
-  gap: 6px;
 }
 
 .cmv2-partic-lead {

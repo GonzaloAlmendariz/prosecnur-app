@@ -11,6 +11,7 @@ import { MapaDeLaMuestra } from "./MapaDeLaMuestra";
 import { construirMetas } from "./metasModel";
 import { RotuloDePestana } from "../navegacion/RotuloDePestana";
 import "./modelo.css";
+import { BloqueDeMonitoreo } from "../../../core/BloqueDeMonitoreo";
 
 /**
  * Modelo › Metas y muestra (territorial.md §3.5): qué hay que lograr. Meta por
@@ -77,15 +78,18 @@ function MetasTabImpl({
       data-qa-geometry-contract="intrinsic"
     >
       <div className="mon-mod-izquierda" data-qa-geometry-member="metas" data-qa-geometry-group="territorial-modelo-metas-columna" data-qa-geometry-contract="intrinsic">
-        <section className="mon-mod-panel" aria-labelledby="mon-mod-meta">
-          <header className="mon-mod-cabecera">
-            <RotuloDePestana />
-            <h3 id="mon-mod-meta">Meta por distrito</h3>
-            <button type="button" className="mon-mod-boton" onClick={abrirHojasDeRuta}>
-              <ExternalLink size={14} aria-hidden="true" />
-              Editar en Hojas de ruta
-            </button>
-          </header>
+        <BloqueDeMonitoreo
+          marco="kit"
+          className="mon-mod-panel"
+          aria-labelledby="mon-mod-meta"
+          antetitulo={<RotuloDePestana />}
+          titulo="Meta por distrito"
+          tituloId="mon-mod-meta"
+          acciones={<button type="button" className="mon-mod-boton" onClick={abrirHojasDeRuta}>
+            <ExternalLink size={14} aria-hidden="true" />
+            Editar en Hojas de ruta
+          </button>}
+        >
           <div className="mon-mod-tabla-marco" tabIndex={0} aria-label="Meta por distrito, con desplazamiento">
             <table className="mon-mod-tabla">
               <thead>
@@ -128,7 +132,7 @@ function MetasTabImpl({
           <p className="mon-mod-base">
             <span title="La población 18+ del distrito, del Censo 2017, llega con el corte completo de Hojas de ruta">{conViviendas ? "Viviendas y población de las manzanas titulares" : "Sin población 18+ en este corte"}</span>
           </p>
-        </section>
+        </BloqueDeMonitoreo>
 
         <ul className="mon-mod-fases" data-qa-geometry-group="territorial-modelo-fases" data-qa-geometry-contract="equal">
           {fases.map((fase) => (
@@ -151,8 +155,13 @@ function MetasTabImpl({
           ))}
         </ul>
 
-        <section className="mon-mod-panel" aria-labelledby="mon-mod-arma">
-          <h3 id="mon-mod-arma" className="mon-mod-titulo">Cómo se arma la muestra</h3>
+        <BloqueDeMonitoreo
+          marco="kit"
+          className="mon-mod-panel"
+          aria-labelledby="mon-mod-arma"
+          titulo="Cómo se arma la muestra"
+          tituloId="mon-mod-arma"
+        >
           <dl className="mon-mod-parametros" data-qa-geometry-group="territorial-modelo-parametros" data-qa-geometry-contract="equal">
             {modelo.comoSeArma.map((item) => (
               <div key={item.clave} data-qa-geometry-member={item.clave}>
@@ -161,13 +170,19 @@ function MetasTabImpl({
               </div>
             ))}
           </dl>
-        </section>
+        </BloqueDeMonitoreo>
       </div>
 
-      <section className="mon-mod-panel mon-mod-mapa" aria-labelledby="mon-mod-mapa" data-qa-geometry-member="mapa">
-        <h3 id="mon-mod-mapa" className="mon-mod-titulo">Manzanas de la muestra</h3>
+      <BloqueDeMonitoreo
+        marco="kit"
+        className="mon-mod-panel mon-mod-mapa"
+        aria-labelledby="mon-mod-mapa"
+        data-qa-geometry-member="mapa"
+        titulo="Manzanas de la muestra"
+        tituloId="mon-mod-mapa"
+      >
         <MapaDeLaMuestra bloques={modelo.bloques} avance={avance} />
-      </section>
+      </BloqueDeMonitoreo>
     </section>
   );
 }

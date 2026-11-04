@@ -459,3 +459,17 @@
   line-height: 1.35;
 }
 
+
+/* Hallazgo 12: la oferta del instrumento del estudio, sobre las tarjetas. */
+.pulso-xf-home-instrumento p {
+  margin: 0;
+}
+
+.pulso-xf-home-instrumento-acciones {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--pulso-space-2);
+  margin-block-start: var(--pulso-space-2);
+  color: var(--pulso-text-soft);
+}

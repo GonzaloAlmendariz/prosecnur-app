@@ -61,6 +61,20 @@
   border-bottom: 1px solid var(--pulso-border);
 }
 
+/* R5 paso 2: qué variable de cuota ver, a la derecha del título (sólo con metas en más de una). */
+.mon-tel-cuotas-variable {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--pulso-space-2);
+  margin-left: auto;
+}
+
+.mon-tel-cuotas-variable > small {
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+  white-space: nowrap;
+}
+
 .mon-tel-cuotas-tabla {
   display: flex;
   flex: 1 1 auto;
@@ -642,6 +656,20 @@
   .mon-tel-cuotas-panel {
     min-height: max-content;
     overflow: visible;
+  }
+
+  /* Apilada, la vista mide lo que trae y desplaza la pestaña. Las reglas `.has-diario` y
+   * `:not(.has-diario)` de más abajo le devolvían `height: auto` y, como hija de un flex en columna, se
+   * encogía al alto de la ventana: dos filas de 214 px y la tabla pintada bajo las tarjetas (medido a
+   * 1024 × 600). `flex: none` y la especificidad de esas reglas lo impiden. */
+  .mon-tel-cuotas.has-diario,
+  .mon-tel-cuotas:not(.has-diario) {
+    flex: none;
+    height: max-content;
+  }
+
+  .mon-tel-cuotas .mon-tel-cuotas-principal {
+    min-height: max-content;
   }
 
   .mon-tel-cuotas-acumulado {

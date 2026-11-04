@@ -207,12 +207,6 @@ export function caseCountsLabel(item: MonitoreoInternalQueryCase) {
   return "Revisar";
 }
 
-export function caseDuplicateLabel(item: MonitoreoInternalQueryCase) {
-  const duplicateCount = Number(item.duplicate_count ?? item.duplicate_group_size ?? 0);
-  if (duplicateCount > 1) return item.duplicate_counting_status || `${fmt(duplicateCount)} respuestas`;
-  return item.duplicate_counting_status || "Sin duplicado";
-}
-
 export function cleanCaseKeyText(value: unknown) {
   return String(value ?? "").trim();
 }

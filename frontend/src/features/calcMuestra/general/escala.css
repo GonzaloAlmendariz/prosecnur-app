@@ -11,14 +11,6 @@
   --cmg-campo-h: calc(var(--pulso-control-height-lg) + var(--pulso-space-1));
 }
 
-.cmg-mesa .cmv2-panel {
-  padding: var(--pulso-space-5) var(--pulso-space-6);
-}
-
-.cmg-mesa .cmv2-panel-head {
-  margin-bottom: var(--pulso-space-4);
-}
-
 /* Ficha del estudio */
 .cmg-mesa .cmv2-form-grid {
   gap: var(--pulso-space-5) var(--pulso-space-6);
@@ -39,7 +31,7 @@
   font-size: var(--pulso-type-body-size);
 }
 
-.cmg-mesa :is(.cmv2-panel, .cmv2-form-grid, .cmg-propuesta-campo) textarea {
+.cmg-mesa :is(.pulso-panel, .cmv2-form-grid, .cmg-propuesta-campo) textarea {
   padding: var(--pulso-space-3);
   font-size: var(--pulso-type-body-size);
   line-height: 1.45;
@@ -123,7 +115,7 @@
 
 /* Acciones dentro de los paneles: del alto de los campos que acompañan. El
  * encabezado de la mesa conserva su escala compacta. */
-.cmg-mesa .cmv2-panel :is(.cmv2-primary, .cmv2-ghost) {
+.cmg-mesa .pulso-panel :is(.cmv2-primary, .cmv2-ghost) {
   min-height: var(--cmg-campo-h);
   padding-inline: var(--pulso-space-4);
   font-size: var(--pulso-type-body-size);
@@ -147,10 +139,6 @@
 }
 
 @media (max-width: 1100px) {
-  .cmg-mesa .cmv2-panel {
-    padding: var(--pulso-space-4) var(--pulso-space-5);
-  }
-
   .cmg-mesa .cmg-parametros {
     gap: var(--pulso-space-5) var(--pulso-space-5);
   }
@@ -166,14 +154,6 @@
  * antes que la acción principal. En Parámetros «Recalcular» quedaba 50 px
  * bajo el pliegue a 1470x956. */
 @media (max-height: 1000px) {
-  .cmg-mesa .cmv2-panel {
-    padding-block: var(--pulso-space-4);
-  }
-
-  .cmg-mesa .cmv2-panel-head {
-    margin-bottom: var(--pulso-space-3);
-  }
-
   .cmg-mesa .cmg-parametros {
     row-gap: var(--pulso-space-4);
   }

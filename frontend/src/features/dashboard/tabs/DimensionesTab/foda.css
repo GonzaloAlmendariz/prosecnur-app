@@ -116,9 +116,6 @@
   color: var(--dash-texto);
   font-weight: var(--pulso-weight-semibold);
 }
-.dashboard-scope .dash-foda-cortes-sep {
-  color: var(--dash-borde);
-}
 
 /* Conteo por cuadrante (chips horizontales). */
 .dashboard-scope .dash-foda-counts {

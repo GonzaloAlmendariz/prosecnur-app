@@ -24,6 +24,7 @@ import type { PreguntaDestino } from "./NuevoFiltroDialogo";
 import type { PreguntaElegible } from "./SelectorPreguntaFiltro";
 import "../kit/riel.css";
 import "../styles/xf-choice-filters.css";
+import { EstadoVacio } from "../../../components/EstadoVacio";
 
 const ID_DETALLE = "xf-xcf-detalle";
 
@@ -100,11 +101,12 @@ export function ChoiceFiltersView({
       </header>
 
       {!actual ? (
-        <div className="xcf-vacio">
-          <span className="xcf-vacio__icono" aria-hidden="true"><SlidersHorizontal size={26} /></span>
-          <strong>Ninguna pregunta filtra sus opciones.</strong>
-          {puedeEditar ? <p>Usa «Nuevo filtro» para crear el primero.</p> : null}
-        </div>
+        <EstadoVacio
+          tamano="normal"
+          icono={<SlidersHorizontal size={20} />}
+          titulo="Ninguna pregunta filtra sus opciones"
+          descripcion={puedeEditar ? "Usa «Nuevo filtro» para crear el primero." : undefined}
+        />
       ) : (
         <div className="xcf-gestion" data-qa-geometry-group="xlsform/filtros-gestion" data-qa-geometry-contract="intrinsic">
           <ListaFiltros filtros={filtros} frases={model!.frases} actual={actual.fila} idDetalle={ID_DETALLE}

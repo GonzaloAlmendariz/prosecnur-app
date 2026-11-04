@@ -14,7 +14,7 @@ import {
   X,
 } from "lucide-react";
 import { formatRelativeDate } from "../components/RecentProjectCard";
-import { PROSECNUR_ACTIVE_MODULES, PROSECNUR_PRIMARY_ACTIVE_MODULES, moduleChromeVars } from "../lib/modules";
+import { PROSECNUR_PRIMARY_ACTIVE_MODULES, moduleChromeVars } from "../lib/modules";
 import { VistaSkeleton } from "../components/VistaSkeleton";
 import { WarmupReloj, useAhora } from "./WarmupReloj";
 import {
@@ -55,6 +55,8 @@ import {
   type WarmupModuleProgress,
 } from "./warmupRegistry";
 import { BarraDeAvance } from "../components/BarraDeAvance";
+import { BootEcualizador } from "./BootEcualizador";
+import { destinoWarmup } from "./destinoWarmup";
 import "./boot-destino.css";
 
 type AppSuiteModule = {
@@ -1486,16 +1488,10 @@ function WarmupStepIcon({ status }: { status: WarmupDisplayStepStatus }) {
   return null;
 }
 
-/** Silueta de la vista a la que se va a entrar, detrás del indicador (L23). */
-function destinoWarmup(pathname: string) {
-  const path = pathname.replace(/\/+$/, "") || "/";
-  const module = PROSECNUR_ACTIVE_MODULES.find((item) => item.to !== "/" && (path === item.to || path.endsWith(item.to)));
-  return module ?? null;
-}
 
 function WarmupDestino() {
   const module = useMemo(
-    () => (typeof window === "undefined" ? null : destinoWarmup(window.location.pathname)),
+    () => (typeof window === "undefined" ? null : destinoWarmup(window.location.pathname)?.modulo ?? null),
     [],
   );
   return (
@@ -1535,31 +1531,24 @@ function WarmupView({
     <div
       className="boot-warmup"
       data-boot-message={message}
-      data-modulo-destino={destino?.slug}
-      style={destino ? moduleChromeVars(destino) : undefined}
+      data-modulo-destino={destino?.modulo.slug}
+      style={destino ? moduleChromeVars(destino.modulo) : undefined}
     >
       <div className="boot-warmup-summary">
-        <div className="boot-warmup-mark">Prosecnur</div>
-        <div
-          className="boot-ring"
-          style={{ "--boot-ring-p": clampedPercent } as CSSProperties}
-          role="progressbar"
-          aria-label="Avance de preparación"
-          aria-valuemin={0}
-          aria-valuemax={100}
-          aria-valuenow={clampedPercent}
-        >
-          <span className="boot-ring-orbit" aria-hidden="true" />
-          <span className="boot-ring-arc" aria-hidden="true" />
-          <span className="boot-ring-core">
-            <span className="boot-progress-percent">{progressPercent}%</span>
-          </span>
-        </div>
+        {/* 4 nov 2026: el isotipo hace de indicador y la cifra pasa a la barra (dirección A de la
+            maqueta «Pantalla de carga de proyecto», revisable por Gonzalo). */}
+        <BootEcualizador detenido={steps.some((step) => step.status === "error")} />
         <div className="boot-progress">
-          <p className="boot-project-name" title={projectPath ?? undefined}>{projectName(projectPath)}</p>
+          <div className="boot-warmup-cabeza">
+            <p className="boot-warmup-destino-rotulo">{destino ? `Abriendo ${destino.rotulo}` : "Abriendo el proyecto"}</p>
+            <p className="boot-project-name" title={projectPath ?? undefined}>{projectName(projectPath)}</p>
+          </div>
           <h1>{message}</h1>
-          <WarmupReloj className="boot-warmup-reloj" transcurridoMs={transcurridoMs} estimacion={estimacion} />
           <BarraDeAvance valor={clampedPercent} total={100} etiqueta="Avance de preparación del proyecto" />
+          <div className="boot-warmup-lectura">
+            <WarmupReloj className="boot-warmup-reloj" transcurridoMs={transcurridoMs} estimacion={estimacion} />
+            <span className="boot-warmup-cifra">{clampedPercent}%</span>
+          </div>
         </div>
       </div>
       <div className="boot-warmup-steps" aria-label="Fases de preparación" aria-live="off">

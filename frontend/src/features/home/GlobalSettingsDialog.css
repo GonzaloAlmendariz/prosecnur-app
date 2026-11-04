@@ -1,0 +1,49 @@
+/* Ajustes con el kit (4 nov 2026, revisable por Gonzalo): cada sección agrupa sus opciones en un
+   `Panel` con título (Disposición de pantalla; Fuentes de datos y Publicación; las tres de Créditos) y
+   el estado de cada credencial es un `EstadoChip`. Esta hoja sólo ajusta el encaje del kit dentro del
+   diálogo: el aire entre paneles lo pone el `gap` del cuerpo, no el margen del Panel. */
+
+.home-settings-dialog .home-settings-panel > .pulso-panel {
+  margin-bottom: 0;
+}
+
+/* Las tarjetas de conexión viven dentro de un grupo: dejan de ser objetos flotantes (sin sombra ni
+   degradado) y quedan como fichas del grupo. */
+.home-settings-grupo .home-connection-card {
+  background: var(--pulso-surface);
+  box-shadow: none;
+}
+
+/* Publicación tiene una sola tarjeta: ocupa el ancho del grupo en vez de quedar sola en media fila. */
+.home-settings-grupo .home-connection-list:has(> .home-connection-card--hf:only-child) {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+/* Cabecera de la tarjeta: ícono | nombre y para qué sirve; el estado va debajo, en la columna del
+   nombre, para que un estado largo no le quite ancho al título. */
+.home-settings-grupo .home-connection-top {
+  align-items: start;
+  row-gap: var(--pulso-space-2);
+}
+
+.home-settings-grupo .home-connection-top .pulso-estado-chip {
+  grid-column: 2;
+  justify-self: start;
+  max-width: 100%;
+  white-space: normal;
+}
+
+/* Créditos: el Panel ya separa cada sección; fuera la raya y el relleno inferior de antes. */
+.home-credits-body .home-credit-section {
+  padding-bottom: var(--pulso-space-4);
+  border-bottom: 1px solid color-mix(in srgb, var(--pulso-border) 76%, var(--pulso-border-strong));
+}
+
+.home-credits-body .pulso-panel.home-credit-section:last-child {
+  padding-bottom: var(--pulso-space-4);
+  border-bottom: 1px solid color-mix(in srgb, var(--pulso-border) 76%, var(--pulso-border-strong));
+}
+
+.home-credit-section .pulso-panel-header {
+  margin-bottom: var(--pulso-space-2);
+}

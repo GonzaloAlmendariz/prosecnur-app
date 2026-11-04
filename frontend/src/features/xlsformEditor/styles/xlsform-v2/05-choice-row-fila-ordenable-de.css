@@ -149,27 +149,6 @@
   transform: scale(1.05);
 }
 
-.pulso-logic-builder-empty {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 12px 14px;
-  border: 1px dashed var(--pulso-border);
-  border-radius: 10px;
-  background: var(--pulso-surface-2);
-  color: var(--pulso-text-soft);
-  font-size: var(--pulso-type-body-size);
-}
-
-.pulso-logic-builder-empty span {
-  flex: 1;
-}
-
-.pulso-logic-builder-empty svg {
-  color: var(--pulso-primary);
-  flex-shrink: 0;
-}
-
 .pulso-logic-builder-hint {
   margin: 0;
   font-size: var(--pulso-type-caption-size);
@@ -379,13 +358,6 @@
   margin: 0;
   padding: 4px;
   overflow-y: auto;
-}
-
-.pulso-logic-varpicker-empty {
-  padding: 12px;
-  text-align: center;
-  font-size: var(--pulso-type-caption-size);
-  color: var(--pulso-text-soft);
 }
 
 .pulso-logic-varpicker-item {

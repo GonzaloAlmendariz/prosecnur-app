@@ -553,6 +553,33 @@ const GLIFOS: Readonly<Record<string, DibujoGlifo>> = {
       </>
     );
   },
+  // Total y línea por nivel (CCSS 2026): arriba la franja del total partida en sus segmentos; abajo, una línea por serie
+  // con un punto por nivel del eje, la primera en el principal. Con `cifras`, un rótulo sobre cada punto de esa línea.
+  p_lineas_nivel: (o) => {
+    const xs = [28, 62, 96, 130];
+    const p = [70, 62, 52, 44];
+    const a = [80, 78, 74, 70];
+    const linea = (ys: readonly number[]) => xs.map((x, i) => `${i ? "L" : "M"}${x} ${ys[i]}`).join("");
+    return (
+      <>
+        <Rotulo x={16} y={10} w={36} />
+        <rect x={16} y={16} width={62} height={12} className="pulso-glifo__p" />
+        <rect x={78} y={16} width={36} height={12} className="pulso-glifo__a" />
+        <rect x={114} y={16} width={32} height={12} className="pulso-glifo__n" />
+        <Eje d="M16 88H146" />
+        <Trazo d={linea(a)} t="a" ancho={2} />
+        <Trazo d={linea(p)} t="p" ancho={2.5} />
+        {xs.map((x, i) => (
+          <g key={x}>
+            <Punto cx={x} cy={a[i]} r={2.5} t="a" />
+            <Punto cx={x} cy={p[i]} r={3} t="p" />
+            {o?.cifras && <Valor x={x - 5} y={p[i] - 9} w={10} />}
+            <Rotulo x={x - 6} y={92} w={12} />
+          </g>
+        ))}
+      </>
+    );
+  },
   // Serie: mediciones en el tiempo, la vigente en el principal (p91).
   // Con cifras (maqueta, por defecto), un rótulo sobre cada punto de la serie vigente.
   p_serie_temporal: (o) => {

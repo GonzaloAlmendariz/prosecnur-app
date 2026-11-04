@@ -267,6 +267,8 @@ export function pestanaDeEntrada<T extends string>(entrada: VistaInterna, seccio
  */
 const PANELES_SUPERPUESTOS: Record<string, readonly string[]> = {
   "control/insistencia": ["caso"],
+  // Estándar de Salidas (4 nov 2026): el motor completo («PDF y cliente») sobre la portada de Entregas.
+  "avance/entregas": ["herramientas"],
   // «Estados por operador» de Equipo: una vista con dirección, como la ficha.
   "control/equipo": ["estados"],
   // Supervisión: los diálogos de una ronda nueva y de publicar una ronda.

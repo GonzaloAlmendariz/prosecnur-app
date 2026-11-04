@@ -1712,7 +1712,7 @@ function InterpretationCard({
               Opciones disponibles ({choices.length})
               {hasOverride ? (
                 <span style={{ marginLeft: 8, color: "#15803d", fontSize: 11, fontWeight: 700 }}>
-                  · mapa confirmado
+                  (mapa confirmado)
                 </span>
               ) : null}
             </span>

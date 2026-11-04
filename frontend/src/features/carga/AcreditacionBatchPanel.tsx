@@ -20,6 +20,7 @@ import {
   acreditacionBatchFailureView,
   acreditacionBatchTotalLabel,
 } from "./acreditacionBatchModel";
+import { formatoConteo } from "../../lib/formatoNumero";
 
 type Props = {
   sessionId: string | null;
@@ -270,16 +271,16 @@ export function AcreditacionBatchPanel({ sessionId, refreshToken = 0, onPromoted
                   {entryStatusLabel(entry.status, ready)}
                 </span>
               </div>
-              <strong className="pulso-acreditacion-batch-count">{entry.selected.toLocaleString("es-PE")} encuestas efectivas</strong>
+              <strong className="pulso-acreditacion-batch-count">{formatoConteo(entry.selected)} encuestas efectivas</strong>
               <p>{detail}</p>
-              {entry.excluded > 0 ? <small>{entry.excluded.toLocaleString("es-PE")} respuestas quedan fuera del informe de avance.</small> : null}
+              {entry.excluded > 0 ? <small>{formatoConteo(entry.excluded)} respuestas quedan fuera del informe de avance.</small> : null}
               {entry.compatibility.missing_columns.length > 0 ? (
                 <small>Faltan: {entry.compatibility.missing_columns.join(", ")}</small>
               ) : null}
               {entry.extras.length > 0 ? (
                 <details>
                   <summary>Ver {entry.extras.length} variables extra excluidas</summary>
-                  <ul>{entry.extras.map((item) => <li key={item.name}>{item.name} · {item.fill_pct}% con datos</li>)}</ul>
+                  <ul>{entry.extras.map((item) => <li key={item.name}>{item.name}, {item.fill_pct}% con datos</li>)}</ul>
                 </details>
               ) : null}
             </article>

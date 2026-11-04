@@ -1,7 +1,7 @@
 import type { MonitoreoAcreditacionReports, MonitoreoState } from "../../../../../api/client";
 import { criteriosDesdeFiltro } from "../../../filtroEfectiva/criterios";
-import { filasDeBloque } from "../navegacion/bloques";
-import { rotuloDelSegmento, variableDeCuotas } from "../segmentoDeCuotas";
+import { avisosDelNumerador, filasDeBloque } from "../navegacion/bloques";
+import { rotuloDelSegmento, variableDeCuotas, variablesConMeta } from "../segmentoDeCuotas";
 import { origenDeEfectivas } from "./origenDeEfectivas";
 import { caracterDeclarado, estadoDeCuotaDesde } from "../../../core/caracterDeCuota";
 import { normalizeSourceMatch } from "../formato";
@@ -60,9 +60,13 @@ export function entradaDeCuotasFaltante(
   reports: MonitoreoAcreditacionReports,
   state: MonitoreoState | null | undefined,
   cuotas: readonly CuotaDeEntrada[],
+  /** La variable que eligió el usuario (R5 paso 2); sin ella, la regla de `variableDeCuotas`. */
+  elegida?: string | null,
 ) {
   const filasDeCuota = filasDeBloque(reports, ["cuotas_variable", "cuotas_telefonicas", "cuotas_por_variable"]);
-  const segmento = variableDeCuotas(filasDeCuota.map((fila) => ({ variable: fila.Variable, meta: fila.Meta })));
+  const segmento = variableDeCuotas(filasDeCuota.map((fila) => ({ variable: fila.Variable, meta: fila.Meta })), "Cuota", elegida);
+  const conMeta = variablesConMeta(filasDeCuota.map((fila) => ({ variable: fila.Variable, meta: fila.Meta })));
+  const porDefecto = variableDeCuotas(filasDeCuota.map((fila) => ({ variable: fila.Variable, meta: fila.Meta })), "Cuota");
   const modelo = {
     ...construirCuotasFaltante({
       cuotas: conCaracter(cuotas, filasDeCuota),
@@ -70,6 +74,19 @@ export function entradaDeCuotasFaltante(
       sinAsignar: sinAsignarDesdeBloque(filasDeBloque(reports, ["no_barridos_responsable"])),
     }),
     origen: origenDeEfectivas(filasDeCuota),
+    avisos: avisosDelNumerador(reports),
+    otrasConMeta: conMeta
+      .filter((otra) => otra.variable !== segmento)
+      .map((otra) => `${rotuloDelSegmento(otra.variable).toLocaleLowerCase("es")} (${otra.metas})`),
+    // R5 paso 2: con metas en más de una variable, se elige cuál ver; con una sola, no hay selector.
+    selector: conMeta.length > 1 ? {
+      actual: segmento,
+      porDefecto,
+      // La de siempre va primera: es la que se ve sin elegir.
+      opciones: [...conMeta]
+        .sort((a, b) => Number(b.variable === porDefecto) - Number(a.variable === porDefecto))
+        .map((opcion) => ({ clave: opcion.variable, rotulo: rotuloDelSegmento(opcion.variable), metas: opcion.metas })),
+    } : null,
   };
 
   const fuentesKobo = new Set((state?.sources ?? []).filter((fuente) => fuente.enabled && fuente.kind === "kobo").map((fuente) => fuente.id));

@@ -1,14 +1,13 @@
 /* Bitácora de decisiones (U17): se monta en el lienzo y en la mesa clásica, así que
    no depende de mapaPage.css. */
 .hr-bitacora-seccion { display: flex; flex-direction: column; gap: 10px; padding-top: 12px; border-top: 1px solid var(--pulso-border); }
-.hr-bitacora-seccion > h3 { margin: 0; font-size: 10.5px; font-weight: 800; letter-spacing: 0.07em; text-transform: uppercase; color: var(--pulso-text-soft); }
-.hr-bitacora-aviso { margin: 0; padding: 9px 11px; border: 1px solid var(--pulso-warn-border); border-radius: 11px; background: var(--pulso-warn-bg); color: var(--pulso-warn-fg); font-size: 12px; font-weight: 600; }
-.hr-bitacora-vacio { margin: 0; font-size: 11.5px; line-height: 1.4; color: var(--pulso-text-soft); }
+.hr-bitacora-seccion > h3 { margin: 0; font-size: var(--pulso-type-micro-size); font-weight: 800; letter-spacing: 0.07em; text-transform: uppercase; color: var(--pulso-text-soft); }
+.hr-bitacora-aviso { margin: 0; padding: 9px 11px; border: 1px solid var(--pulso-warn-border); border-radius: 11px; background: var(--pulso-warn-bg); color: var(--pulso-warn-fg); font-size: var(--pulso-type-subtitle-size); font-weight: 600; }
 .hr-bitacora { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; max-height: 260px; overflow: auto; }
 .hr-bitacora li { padding: 7px 9px; border-radius: 9px; background: var(--pulso-surface-2); }
 .hr-bitacora span { display: flex; justify-content: space-between; gap: 8px; }
-.hr-bitacora strong { font-size: 12px; }
-.hr-bitacora small { font-size: 11px; color: var(--pulso-text-soft); white-space: nowrap; }
-.hr-bitacora p { margin: 2px 0 0; font-size: 11.5px; color: var(--pulso-text); }
-.hr-bitacora-nota { width: 100%; box-sizing: border-box; padding: 8px 10px; border: 1px solid var(--pulso-border); border-radius: 9px; background: var(--pulso-surface); color: var(--pulso-text); font: inherit; font-size: 12px; resize: vertical; }
+.hr-bitacora strong { font-size: var(--pulso-type-body-size); }
+.hr-bitacora small { font-size: var(--pulso-type-caption-size); color: var(--pulso-text-soft); white-space: nowrap; }
+.hr-bitacora p { margin: 2px 0 0; font-size: var(--pulso-type-caption-size); color: var(--pulso-text); }
+.hr-bitacora-nota { width: 100%; box-sizing: border-box; padding: 8px 10px; border: 1px solid var(--pulso-border); border-radius: 9px; background: var(--pulso-surface); color: var(--pulso-text); font: inherit; font-size: var(--pulso-type-body-size); resize: vertical; }
 .hr-bitacora-nota:focus { outline: 2px solid var(--pulso-module-routes); outline-offset: 1px; }

@@ -37,7 +37,7 @@ export default function SeccionesPanel({ secciones }: { secciones: Seccion[] }) 
         const repeatExpr = s.is_repeat && s.repeat_count ? sustituir_refs(s.repeat_count) : null;
         const showRepeatDriver = s.is_repeat && (repeatVars.length > 0 || !!repeatExpr);
         return (
-          <div key={s.name} className="pulso-carga-section-row" title={`${s.label} · ${s.name}`}>
+          <div key={s.name} className="pulso-carga-section-row" title={`${s.label} (${s.name})`}>
             <span className="pulso-carga-section-prefix">
               {s.prefix || "—"}
             </span>

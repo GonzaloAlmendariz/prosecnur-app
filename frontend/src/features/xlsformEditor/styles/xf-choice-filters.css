@@ -139,12 +139,7 @@
   color: var(--pulso-text-soft);
   white-space: nowrap;
 }
-.xcf-chip__punto { width: 6px; height: 6px; border-radius: 50%; background: currentColor; flex: none; }
-.xcf-chip.is-ok { border-color: var(--pulso-success-border); background: var(--pulso-success-bg); color: var(--pulso-success-fg); }
 .xcf-chip.is-nunca { border-color: var(--pulso-warn-border); background: var(--pulso-warn-bg); color: var(--pulso-warn-fg); }
-.xcf-chip.is-vacia,
-.xcf-chip.is-conflicto { border-color: var(--pulso-danger-border); background: var(--pulso-danger-bg); color: var(--pulso-danger-fg); }
-.xcf-chip.is-sin-vista { color: var(--pulso-text-muted); }
 .xcf-chip.is-mini { padding: 0 6px; font-size: var(--pulso-type-micro-size); margin-left: 4px; }
 
 /* ── Detalle ──────────────────────────────────────────────────────────────── */
@@ -562,10 +557,6 @@
 
 
 /* ── Vacío ────────────────────────────────────────────────────────────────── */
-.xcf-vacio { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; flex: 1 1 auto; padding: 48px 24px; text-align: center; color: var(--pulso-text-muted); }
-.xcf-vacio strong { color: var(--pulso-text); font-weight: var(--pulso-weight-semibold); }
-.xcf-vacio p { margin: 0; font-size: var(--pulso-type-body-size); }
-.xcf-vacio__icono { display: grid; place-items: center; width: 52px; height: 52px; border-radius: 14px; background: var(--pulso-surface-2); color: var(--pulso-text-faint); }
 
 /* ── Viewports compactos ──────────────────────────────────────────────────── */
 @media (max-width: 1280px) {

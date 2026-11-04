@@ -91,6 +91,10 @@ import {
 import "./ArmonizacionFilaEditor.css";
 import { PulsoButton } from "../../components/PulsoButton";
 import { AvisoMalUbicados } from "./AvisoMalUbicados";
+import { EstadoVacio } from "../../components/EstadoVacio";
+import { LoadingBlock, ErrorBlock } from "../../components/States";
+import { Inbox } from "../../vendor/lucide-react";
+import { Panel } from "../../components/Panel";
 
 // ---- Abrir sobre una fila ---------------------------------------------------
 //
@@ -209,13 +213,13 @@ function PanelConDireccion({ estado, cargandoEstado, variablesPorBase, filasEdit
               {/* C5: vacío legítimo. El enlace nombra una fila que la
                   declaración guardada ya no tiene, o el estado todavía carga. */}
               <div className="pulso-armon-cuerpo">
-                <p className="pulso-armon-vacio">
-                  {estado
-                    ? "Esta fila no está en la declaración guardada. Ábrela desde la tabla de equivalencias."
-                    : cargandoEstado
-                      ? "Revisando la declaración del estudio…"
-                      : "No se pudo leer la declaración del estudio. Cierra el panel y revisa el aviso de Equivalencias."}
-                </p>
+                {estado ? (
+                  <EstadoVacio icono={<Inbox size={16} />} titulo="Esta fila no está en la declaración guardada" descripcion="Ábrela desde la tabla de equivalencias." />
+                ) : cargandoEstado ? (
+                  <LoadingBlock variant="inline" label="Revisando la declaración del estudio…" />
+                ) : (
+                  <ErrorBlock label="No se pudo leer la declaración del estudio" detail="Cierra el panel y revisa el aviso de Equivalencias." />
+                )}
               </div>
             </div>
           )}
@@ -661,15 +665,13 @@ function EscalaComun({
   despachar: (a: Parameters<typeof reducirArmonizacion>[1]) => void;
 }) {
   return (
-    <section className="pulso-armon-seccion" aria-labelledby="pulso-armon-escala" data-qa-geometry-member>
-      <div className="pulso-armon-seccion-head">
-        <div className="pulso-armon-seccion-titulo">
-          <h3 id="pulso-armon-escala" tabIndex={-1}>Escala común</h3>
-          <p className="pulso-armon-ayuda">
-            La lista de respuestas con la que se compara esta pregunta en {serie.todas}.
-          </p>
-        </div>
-        <PulsoButton
+    <Panel
+      className="pulso-armon-seccion"
+      aria-labelledby="pulso-armon-escala" data-qa-geometry-member
+      title={<span id="pulso-armon-escala" tabIndex={-1}>Escala común</span>}
+      hint={<>La lista de respuestas con la que se compara esta pregunta en {serie.todas}.</>}
+      actions={<>
+<PulsoButton
           variant="secondary"
           className="pulso-armon-btn"
           onClick={() => despachar({ tipo: "agregar" })}
@@ -677,12 +679,12 @@ function EscalaComun({
           <Plus size={14} aria-hidden="true" />
           Agregar categoría
         </PulsoButton>
-      </div>
+    </>}
+    >
+      
       {borrador.escala.length === 0 ? (
         // C3: el vacío es de esta sección y dice cómo se llena.
-        <p className="pulso-armon-vacio">
-          Todavía no hay escala. Agrega categorías o copia la lista de una base desde su tabla.
-        </p>
+        <EstadoVacio icono={<Inbox size={16} />} titulo="Todavía no hay escala" descripcion="Agrega categorías o copia la lista de una base desde su tabla." />
       ) : (
         <ol className="pulso-armon-escala">
           {borrador.escala.map((c, i) => (
@@ -731,7 +733,7 @@ function EscalaComun({
           ))}
         </ol>
       )}
-    </section>
+    </Panel>
   );
 }
 
@@ -893,9 +895,9 @@ function MapaDeBase({
           )}
 
           {vista.fuente === "cargando" ? (
-            <p className="pulso-armon-vacio">Contando casos en {base}…</p>
+            <LoadingBlock variant="inline" label={`Contando casos en ${base}…`} />
           ) : filas.length === 0 ? (
-            <p className="pulso-armon-vacio">{vista.vacio}</p>
+            <EstadoVacio icono={<Inbox size={16} />} titulo={<>{vista.vacio}</>} />
           ) : (
             <PlegableValorPorValor plegado={esMapaNumerico(codigos, escala)} n={filas.length} base={base}>
             {escala.length > 0 && (

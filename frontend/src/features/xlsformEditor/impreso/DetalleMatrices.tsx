@@ -8,6 +8,7 @@ import type { MatrixCandidate } from "../parsing/detectMatrixCandidates";
 import { matrixChoiceFor, type PdfDialogState, type PdfMatrixChoice } from "../shell/pdfExportPreference";
 import { separarCandidatas } from "./modeloImpreso";
 import { TarjetaImpreso } from "./TarjetaImpreso";
+import { EstadoVacio } from "../../../components/EstadoVacio";
 
 /** Etiqueta corta de las preguntas de una matriz: «primera» +N. */
 type Plano = (texto: string) => string;
@@ -65,8 +66,8 @@ function CandidataMatriz({ candidata, matrices, onCambiar, plano }: {
       >
         <span className="pulso-xf-pdf-matrix-badge" aria-hidden="true"><Grid3x3 size={16} /></span>
         <span className="pulso-xf-pdf-matrix-info">
-          <strong>{candidata.count} {candidata.count === 1 ? "pregunta" : "preguntas"} · lista {candidata.listName}</strong>
-          <em>{resumenPreguntas(candidata, plano)} · {candidata.sectionLabel}</em>
+          <strong>{candidata.count} {candidata.count === 1 ? "pregunta" : "preguntas"}, lista {candidata.listName}</strong>
+          <em>{resumenPreguntas(candidata, plano)} ({candidata.sectionLabel})</em>
         </span>
         <span className="pulso-xf-pdf-matrix-toggle-label">¿Va como matriz?</span>
         <span className={`pulso-xf-pdf-switch${eleccion.enabled ? " is-on" : ""}`} aria-hidden="true">
@@ -134,7 +135,7 @@ export function DetalleMatrices({ candidatas, matrices, onCambiar, plano }: {
         ayuda="Preguntas contiguas con la misma escala corta. Actívalas para imprimirlas como tabla."
       >
         {reales.length === 0 ? (
-          <p className="pulso-xf-imp-vacio">Ningún grupo de dos o más preguntas comparte escala.</p>
+          <EstadoVacio icono={<Grid3x3 size={14} />} titulo="Ningún grupo de dos o más preguntas comparte escala" />
         ) : (
           <div className="pulso-xf-pdf-matrix-list" data-qa-geometry-group="xlsform/impreso-matrices" data-qa-geometry-contract="intrinsic">
             {reales.map((c) => <CandidataMatriz key={c.id} candidata={c} matrices={matrices} onCambiar={onCambiar} plano={plano} />)}

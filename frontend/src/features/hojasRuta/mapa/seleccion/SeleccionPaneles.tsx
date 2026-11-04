@@ -2,9 +2,10 @@ import type { ReactNode } from "react";
 import { EvidenciaRevision } from "./EvidenciaRevision";
 import { AvisosDelMotor } from "../AvisosDelMotor";
 import { cuotasDescuadradas } from "../filtroDeAvisos";
-import { ChevronUp, ChevronDown, X, ListChecks } from "../../../../vendor/lucide-react";
+import { ChevronUp, ChevronDown, X, ListChecks, Inbox, Search } from "../../../../vendor/lucide-react";
 import { InspectorCabecera } from "../InspectorCabecera";
 import { GlidingRadioGroup } from "../../../../components/GlidingRadioGroup";
+import { Panel } from "../../../../components/Panel";
 import { PulsoButton } from "../../../../components/PulsoButton";
 import { PulsoTable, type PulsoTableColumna } from "../../../../components/PulsoTable";
 import type { QuotaPlan, SelectedBlock } from "../../../../api/hojasRuta";
@@ -18,6 +19,8 @@ import { accionDeObservacion, type AccionObservacion } from "./accionesRevision"
 import { HREF_CAMPANA_TERRITORIAL } from "./SalidasPanel";
 import { porRevisar, reemplazosDe, type EstadoRuta, type GrupoRutas } from "./rutas";
 
+import { EstadoVacio } from "../../../../components/EstadoVacio";
+import { EstadoChip } from "../../../../components/EstadoChip";
 /**
  * Selección en la página del lienzo (U9). La estructura son las rutas por
  * distrito con «por revisar»; el inspector es la ficha de la UMP enfocada con
@@ -50,7 +53,7 @@ export function SeleccionEstructura({ grupos, total, observadas, confirmados = [
           <h2>Rutas</h2>
           <small>{visibles === total ? `${fmt(total)} titulares` : `${fmt(visibles)} de ${fmt(total)}`}</small>
         </div>
-        <input className="hr-mapa-buscar" type="search" aria-label="Buscar ruta" placeholder="Buscar UMP, zona o manzana" value={busquedaUmp} onChange={(e) => setBusquedaUmp(e.target.value)} />
+        <input className="hr-mapa-buscar" type="search" aria-label="Buscar ruta" placeholder="UMP, zona o manzana" value={busquedaUmp} onChange={(e) => setBusquedaUmp(e.target.value)} />
         <GlidingRadioGroup value={soloPorRevisar ? "revisar" : "todas"} options={FILTRO_RUTAS} getOptionValue={(o) => o[0]} onValueChange={(v) => setSoloPorRevisar(v === "revisar")} className="hr-muestra-opciones" aria-label="Qué rutas ver">
           {(o) => <span>{o[0] === "revisar" ? `${o[1]}, ${fmt(observadas)}` : `${o[1]}, ${fmt(total)}`}</span>}
         </GlidingRadioGroup>
@@ -91,7 +94,13 @@ export function SeleccionEstructura({ grupos, total, observadas, confirmados = [
             </ul>
           </section>
         ))}
-        {!grupos.length ? <p className="hr-mapa-vacio">{total ? (soloPorRevisar ? "Ninguna ruta por revisar." : `Ninguna ruta coincide con «${busquedaUmp}».`) : "Todavía no hay sorteo. Sortea las manzanas en la sección Manzanas."}</p> : null}
+        {!grupos.length ? (
+          total ? (
+            <EstadoVacio icono={<Search size={16} />} titulo={soloPorRevisar ? "Ninguna ruta por revisar" : `Ninguna ruta coincide con «${busquedaUmp}»`} />
+          ) : (
+            <EstadoVacio icono={<Inbox size={16} />} titulo="Todavía no hay sorteo" descripcion="Sortea las manzanas en la sección Manzanas." />
+          )
+        ) : null}
       </div>
     </>
   );
@@ -140,7 +149,7 @@ export function SeleccionInspector({ titular, estado, reemplazos, revision, tota
           }
         />
         <div className="hr-mapa-ins-cuerpo">
-          <span className="hr-sel-estado" data-estado={estado}>{ETIQUETA[estado]}</span>
+          <EstadoChip label={ETIQUETA[estado]} tone={estado === "error" ? "danger" : estado === "aviso" ? "warn" : estado === "info" ? "info" : "success"} />
           <div className="hr-mapa-cifras">
             <div><small>Viviendas</small><strong data-tono={titular.viviendas === 0 ? "error" : titular.viviendas <= titular.entrevistas ? "aviso" : undefined}>{fmt(titular.viviendas)}</strong></div>
             <div><small>Entrevistas</small><strong>{fmt(titular.entrevistas)}</strong></div>
@@ -301,15 +310,21 @@ export function SeleccionCajon({ titulares, reemplazos, cuotas }: CajonProps) {
   if (!cajon) return null;
   const titularDe = new Map(reemplazos.map((r) => [r.id_manzana, r.titular_id_manzana ?? null]));
   return (
-    <section className="hr-sel-cajon" aria-label="Tablas de la selección">
-      <header>
-        <GlidingRadioGroup value={cajon} options={PESTANAS} getOptionValue={(o) => o[0]} onValueChange={setCajon} className="hr-muestra-opciones" aria-label="Tabla">
-          {(o) => <span>{o[1]}</span>}
-        </GlidingRadioGroup>
-        <PulsoButton variant="icon" size="sm" aria-label="Cerrar las tablas" onClick={() => setCajon(null)}>
-          <X size={14} aria-hidden />
-        </PulsoButton>
-      </header>
+    <Panel
+      className="hr-sel-cajon"
+      aria-label="Tablas de la selección"
+      title="Tablas de la selección"
+      actions={
+        <>
+          <GlidingRadioGroup value={cajon} options={PESTANAS} getOptionValue={(o) => o[0]} onValueChange={setCajon} className="hr-muestra-opciones" aria-label="Tabla">
+            {(o) => <span>{o[1]}</span>}
+          </GlidingRadioGroup>
+          <PulsoButton variant="icon" size="sm" aria-label="Cerrar las tablas" onClick={() => setCajon(null)}>
+            <X size={14} aria-hidden />
+          </PulsoButton>
+        </>
+      }
+    >
       {cajon === "cuotas" ? (
         <PulsoTable ariaLabel="Cuotas" densidad="compacta" altoMaximo={280} columnas={COLUMNAS_CUOTA} filas={(cuotas?.cells ?? []).map((c, _i) => ({ ...c, _i }))} idDeFila={(c) => String(c._i)} vacio="Sin cuotas calculadas." />
       ) : (
@@ -325,7 +340,7 @@ export function SeleccionCajon({ titulares, reemplazos, cuotas }: CajonProps) {
           vacio={cajon === "reemplazos" && titulares.length ? "Este sorteo no tiene reemplazos: se sorteó con 0 por titular." : "Todavía no hay sorteo."}
         />
       )}
-    </section>
+    </Panel>
   );
 }
 

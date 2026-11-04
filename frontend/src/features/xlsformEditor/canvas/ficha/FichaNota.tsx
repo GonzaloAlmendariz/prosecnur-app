@@ -14,7 +14,7 @@ export function FichaNota({ datos }: { datos: DatosFicha }) {
   return (
     <>
       <section className="xfh-caja" data-qa-geometry-group="xlsform/ficha-bloques" data-qa-geometry-contract="intrinsic">
-        <CabeceraDesdeDatos datos={datos} posicion={`Sin respuesta · ${donde}`} conTipo />
+        <CabeceraDesdeDatos datos={datos} posicion={`Sin respuesta, ${donde}`} conTipo />
         <AvisosFicha avisos={avisos} />
         <BloqueFicha titulo="Texto">
           <CampoTexto etiqueta="Texto de la nota" valor={node.label} onCambio={(v) => acciones.campo("label", v)} multilinea grande placeholder="Lo que se lee en pantalla" />

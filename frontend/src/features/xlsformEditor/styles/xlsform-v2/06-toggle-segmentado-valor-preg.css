@@ -208,13 +208,6 @@ button.pulso-focus-calculation-recipe {
   max-height: 40vh;
 }
 
-.pulso-logic-calc-varempty {
-  padding: 12px;
-  text-align: center;
-  font-size: var(--pulso-type-caption-size);
-  color: var(--pulso-text-soft);
-}
-
 /* ============================================================================
  * Questionnaire view — full-screen reading surface for the XLSForm editor
  * ========================================================================= */
@@ -261,43 +254,6 @@ button.pulso-focus-calculation-recipe {
   margin: 0 auto;
   display: grid;
   gap: 12px;
-}
-
-.pulso-questionnaire-empty {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  padding: 16px;
-  border: 1px dashed color-mix(in srgb, var(--pulso-primary) 26%, var(--pulso-border));
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.82);
-  color: var(--pulso-text-soft);
-  box-shadow: var(--pulso-shadow-soft);
-}
-
-.pulso-questionnaire-empty-icon {
-  width: 32px;
-  height: 32px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 8px;
-  background: color-mix(in srgb, var(--pulso-primary-soft) 68%, #fff 32%);
-  color: var(--pulso-primary);
-  flex-shrink: 0;
-}
-
-.pulso-questionnaire-empty strong {
-  display: block;
-  color: var(--pulso-text);
-  font-size: var(--pulso-type-body-size);
-  line-height: 1.35;
-}
-
-.pulso-questionnaire-empty p {
-  margin: 3px 0 0;
-  font-size: var(--pulso-type-body-size);
-  line-height: 1.45;
 }
 
 .pulso-questionnaire-overview {

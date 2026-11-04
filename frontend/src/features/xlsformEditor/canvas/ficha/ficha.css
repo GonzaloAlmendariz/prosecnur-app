@@ -368,12 +368,6 @@ button.xfh-regla__fila:focus-visible { outline: 2px solid var(--pulso-primary-fo
 .xfh-contenido { overflow: hidden; }
 .xfh-contenido .xfcs { border: 0; border-radius: 0; }
 .xfh-ajustes-calidad { padding: 16px 18px; }
-.xfh-vacia {
-  display: grid; justify-items: center; gap: 6px; padding: 48px 24px; text-align: center;
-  color: var(--pulso-text-faint); background: var(--pulso-surface); border: 1px dashed var(--pulso-border-strong); border-radius: var(--pulso-radius-card);
-}
-.xfh-vacia strong { color: var(--pulso-text); font-size: var(--pulso-type-body-size); }
-.xfh-vacia p { margin: 0 0 6px; font-size: var(--pulso-type-body-size); }
 
 @media (prefers-reduced-motion: reduce) {
   .xfh-pila, .xfh-menu, .xfh-regla__det, .xfh-elegir, .xfh-cab__aviso { animation: none; }

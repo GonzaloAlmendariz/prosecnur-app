@@ -15,8 +15,8 @@
 #' La tarjeta del filtro: por respuesta, rótulo y «N (%)» y una barra sobre el 100 %
 #' @param n_base Base del filtro (los porcentajes son sobre ella). @keywords internal
 .lam_filtro_mapa_tarjeta <- function(lz, f, n_base, x, y, w, h) {
-  M <- .MAPA_DIST; P <- .LAM_MAPA_PX; azul <- M$blues5[5]
-  .lam_caja(lz, x, y, w, h, "#FFFFFF", nombre = "filtro:tarjeta", borde = "#DDE1E7", borde_pt = 0.75)
+  M <- .MAPA_DIST(); P <- .LAM_MAPA_PX; azul <- M$blues5[5]
+  .lam_caja(lz, x, y, w, h, "#FFFFFF", nombre = "filtro:tarjeta", borde = .MAPA_DIST()$tarjeta_borde, borde_pt = 0.75)
   n <- suppressWarnings(as.numeric(.espec_casos(f))); n[!is.finite(n)] <- 0
   k <- length(f$rotulos); if (!k) return(invisible(lz))
   alto <- min(130 * P, (h - 60 * P) / k); bh <- (if (k >= 4) 14 else 18) * P
@@ -42,9 +42,11 @@
 .lam_laminas_filtro_mapa <- function(doc, espec, titulo, ante = NULL, base = NULL, folio = NULL, sub = NULL,
                                      layout = "Graficos2", master = "Office Theme", por_lamina = function(doc) doc) {
   g_ <- .std_geom; P <- .LAM_MAPA_PX
-  ml <- g_("margen_izq"); ancho <- g_("ancho") - ml - g_("margen_der"); fr <- .lam_mapa_franja(); h <- fr$y1 - fr$y0
-  wf <- ancho * 380 / 1490; xm <- ml + wf + 20 * P; wmz <- ml + ancho - xm
+  ml <- g_("margen_izq"); ancho <- g_("ancho") - ml - g_("margen_der"); fr <- .lam_mapa_franja(sub); h <- fr$y1 - fr$y0
   mapas <- Filter(Negate(is.null), list(espec$sub, if (.lam_filtro_sub_es_mapa(espec$sub2)) espec$sub2))
+  # Con dos mapas, la tarjeta del filtro cede 50 px a los mapas (revisión v7, lámina 19: «los mapas nacionales pueden tener
+  # algo más de zoom»): sus barras tienen aire de sobra y en la tarjeta angosta el Perú está limitado por el ancho.
+  wf <- ancho * (if (length(mapas) == 2L) 330 else 380) / 1490; xm <- ml + wf + 20 * P; wmz <- ml + ancho - xm
   preguntas <- c(espec$pregunta_sub %||% "", espec$pregunta_sub2 %||% "")
   doc <- officer::add_slide(doc, layout = layout, master = master)
   doc <- .lam_titulo(doc, titulo, ante = ante, sub = sub)

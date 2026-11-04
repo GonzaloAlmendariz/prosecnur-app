@@ -30,6 +30,9 @@ import { classroomM1RowsForState, frameAuditNumber } from "../shared/frame";
 import { FlujoVertical, MuestraFlowDiagram, type FlujoEtapa, type MuestraFlowNodeKey } from "../ui";
 import "../../didactica/didactica.css";
 import "./definicion.css";
+import { Panel } from "../../../../components/Panel";
+import { EnlaceFichaDelEstudio } from "../../../estudio/EnlaceFichaDelEstudio";
+import { usePlannerIdentidad } from "../../usePlannerIdentidad";
 
 export type MuestraRecorridoInputs = {
   tituloDefinido: boolean;
@@ -108,7 +111,6 @@ export function DefEstudioTab({
   workspace,
   totalComp,
   aulasState,
-  onTitulo,
   onContexto,
   onWorkspace,
   onNavigate,
@@ -123,6 +125,7 @@ export function DefEstudioTab({
   /** Contrato de navegación del desk: (seccion, pestana). */
   onNavigate?: (section: string, tab?: string) => void;
 }) {
+  const identidad = usePlannerIdentidad();
   const frame = aulasState?.frame ?? null;
   const universo = frameAuditNumber(frame, "input_rows");
   const elegibles = frameAuditNumber(frame, "eligible_student_rows");
@@ -208,27 +211,25 @@ export function DefEstudioTab({
         </div>
       )}
       <div className="cmv2-defi-estudio-layout">
-        <section className="cmv2-panel" aria-label="Identidad del estudio">
-          <div className="cmv2-defi-form-head">
-            <span className="cmv2-eyebrow">Identidad del estudio</span>
-          </div>
+        <Panel aria-labelledby="cmv2-defi-identidad-titulo" title={<span id="cmv2-defi-identidad-titulo">Identidad del estudio</span>}>
           <div className="cmv2-defi-form">
-            <label className="cmv2-compact-field">
+            {/* Nombre y cliente los declara la Ficha del estudio (ADR 0124); aquí se leen, y
+                Cálculo adopta su copia de ahí (usePlannerIdentidad). Antes eran dos campos propios
+                y la misma entidad tenía dos lecturas. */}
+            <div className="cmv2-compact-field cmv2-defi-identidad-leida">
               <span>Título</span>
-              <input
-                value={estudio.titulo}
-                placeholder="Encuesta a estudiantes"
-                onChange={(e) => onTitulo(e.currentTarget.value)}
-              />
-            </label>
-            <label className="cmv2-compact-field">
+              <b>{identidad?.nombre.trim() || estudio.titulo || "sin título"}</b>
+            </div>
+            <div className="cmv2-compact-field cmv2-defi-identidad-leida">
               <span>Cliente</span>
-              <input
-                value={estudio.contexto.cliente}
-                placeholder="Institución o área solicitante"
-                onChange={(e) => onContexto("cliente", e.currentTarget.value)}
-              />
-            </label>
+              <b>{identidad?.cliente.trim() || estudio.contexto.cliente || "sin declarar"}</b>
+            </div>
+            <p className="cmv2-defi-identidad-nota">
+              {identidad && !identidad.nombre.trim()
+                ? "El estudio todavía no declara su nombre en la ficha del estudio. "
+                : "Nombre y cliente se declaran una vez, en la ficha del estudio. "}
+              <EnlaceFichaDelEstudio>Editar la ficha</EnlaceFichaDelEstudio>
+            </p>
             <label className="cmv2-compact-field cmv2-compact-field--wide">
               <span>Alcance o nota del estudio</span>
               <textarea
@@ -268,14 +269,15 @@ export function DefEstudioTab({
               </em>
             </label>
           </div>
-        </section>
-        <aside className="cmv2-panel cmv2-defi-mapa cmv2-defi-stagger" aria-label="Mapa del recorrido muestral">
-          <div className="cmv2-defi-mapa-head">
-            <span className="cmv2-eyebrow">Mapa del recorrido</span>
-            {hayCifrasMotor && <BadgeMotor estado="validado" />}
-          </div>
+        </Panel>
+        <Panel
+          className="cmv2-defi-mapa cmv2-defi-stagger"
+          aria-labelledby="cmv2-defi-mapa-titulo"
+          title={<span id="cmv2-defi-mapa-titulo">Mapa del recorrido</span>}
+          actions={hayCifrasMotor ? <BadgeMotor estado="validado" /> : undefined}
+        >
           <FlujoVertical etapas={etapas} ariaLabel="Del universo a los cursos-horario titulares" />
-        </aside>
+        </Panel>
       </div>
       <EjemploTrabajado />
       <RespaldoMetodologico paso="definicion" />
@@ -339,13 +341,13 @@ function HeroPrimeraVez({
     : null;
 
   return (
-    <section className="cmv2-panel cmv2-defi-hero" aria-label="Por dónde empezar">
-      <span className="cmv2-eyebrow">Primer paso</span>
-      <h3 className="cmv2-defi-hero-title">¿Con qué insumo empiezas?</h3>
-      <p className="cmv2-defi-hero-lead">
-        Todo el recorrido nace de un Excel institucional. Elige el que tienes a la mano;
-        el resto — marco, cálculo y cursos-horario — se construye aquí.
-      </p>
+    <Panel
+      className="cmv2-defi-hero"
+      aria-labelledby="cmv2-defi-hero-titulo"
+      eyebrow="Primer paso"
+      title={<span id="cmv2-defi-hero-titulo">¿Con qué insumo empiezas?</span>}
+      hint="Todo el recorrido nace de un Excel institucional. Elige el que tienes a la mano; el resto — marco, cálculo y cursos-horario — se construye aquí."
+    >
       <div className="cmv2-defi-hero-cards cmv2-uni-stagger">
         {UNIVERSITY_SOURCE_MODE_OPTIONS.map((option) => {
           const Icon = HERO_ICONS[option.id];
@@ -401,7 +403,7 @@ function HeroPrimeraVez({
         </p>
         <MuestraFlowDiagram highlight="definir" />
       </div>
-    </section>
+    </Panel>
   );
 }
 

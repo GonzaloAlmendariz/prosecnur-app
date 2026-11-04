@@ -73,7 +73,7 @@ describe("Segmentos de cruce", () => {
     expect(html).toContain("desde cruce_1");
     expect(html).toContain("Faltan 37 casos por asignar");
     expect(html).toContain("Sin origen");
-    expect(html).toContain("1 segmento · 1 base con algo por resolver");
+    expect(html).toContain("1 segmento, 1 base con algo por resolver");
     const cabeceras = [...html.matchAll(/<th scope="col">([^<]+)<\/th>/g)].map((m) => m[1]);
     expect(cabeceras).toEqual(["Segmento", "2024", "2025", "2026"]);
     expect(html).toContain('aria-label="Editar cruce_edad"');
@@ -91,7 +91,7 @@ describe("Segmentos de cruce", () => {
     // Una sección por base, más el segmento y la escala.
     expect((html.match(/data-qa-geometry-member/g) ?? []).length).toBe(5);
     expect(html).toContain("Por completar");
-    expect(html).toContain("1 de 2 códigos asignados · 1 sin mapa");
+    expect(html).toContain("1 de 2 códigos asignados, 1 sin mapa");
     expect(html).toContain("Sin origen, el segmento queda vacío en 2026.");
     expect(html).toContain("Variables de la base de 2026");
     expect(html).toContain("Sin dato");
@@ -115,7 +115,7 @@ describe("Segmentos de cruce", () => {
 
   it("un `foco` que no existe lo dice y ofrece volver", () => {
     const html = cuerpo(listo([edad]), "sexo");
-    expect(html).toContain("El estudio no tiene un segmento «sexo».");
+    expect(html).toContain("El estudio no tiene un segmento «sexo»");
     expect(html).toContain("Ver todos los segmentos");
   });
 
@@ -123,7 +123,7 @@ describe("Segmentos de cruce", () => {
     expect(cuerpo({ lectura: { tipo: "listo", datos: { disponible: false, bases: [], segmentos: [] } } }))
       .toContain("Este estudio no tiene bases separadas");
     const html = cuerpo({ lectura: { tipo: "error", mensaje: "Sin conexión · E_INTERNAL" } });
-    expect(html).toContain("No se pudieron leer los segmentos de cruce.");
+    expect(html).toContain("No se pudieron leer los segmentos de cruce");
     expect(html).toContain("E_INTERNAL");
   });
 });
@@ -183,7 +183,7 @@ describe("una base del editor con los valores observados", () => {
     expect(html).toContain(">Casos<");
     expect(html).toContain(">12<");
     expect(html).toContain(">30<");
-    expect(html).toContain("1 de 3 códigos asignados · 2 sin mapa · Faltan 34 casos por asignar");
+    expect(html).toContain("1 de 3 códigos asignados, 2 sin mapa, Faltan 34 casos por asignar");
     expect(html).toContain("Sin dato: 5 casos");
     expect(html).toContain("Rangos");
     expect(html).not.toContain("Años transcurridos");
@@ -194,7 +194,7 @@ describe("una base del editor con los valores observados", () => {
       { tipo: "listo", datos: observados({ codigos: [{ codigo: "1", etiqueta: "18–20 años", n: 40 }, { codigo: "99", etiqueta: "No sé", n: 0 }] }) },
       { "1": "1" },
     );
-    expect(html).toContain("1 de 2 códigos asignados · 1 sin casos");
+    expect(html).toContain("1 de 2 códigos asignados, 1 sin casos");
     expect(html).not.toContain("is-sin-mapa");
     expect(html).not.toContain("Faltan");
     expect(html).toContain('class="is-sin-casos"');

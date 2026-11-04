@@ -16,6 +16,7 @@ import { FichaNota } from "./FichaNota";
 import { FichaPregunta } from "./FichaPregunta";
 import { FichaSeccion } from "./FichaSeccion";
 import type { AccionesFicha, DatosFicha } from "./tiposFicha";
+import { EstadoVacio } from "../../../../components/EstadoVacio";
 
 export type { AccionesFicha } from "./tiposFicha";
 
@@ -57,20 +58,17 @@ export function FichaConstructor({ workbook, structure, selection, node, setting
       : <FichaPregunta datos={datos} />;
   } else if (selection?.kind === "survey") {
     contenido = (
-      <div className="xfh-vacia">
-        <FolderMinus size={18} aria-hidden="true" />
-        <strong>Cierre de sección</strong>
-        <p>Esta fila marca dónde termina la sección.</p>
-        <BotonEliminarFicha className="xfh-boton is-peligro" texto="Eliminar el cierre" onEliminar={acciones.eliminar} />
-      </div>
+      <EstadoVacio
+        tamano="normal"
+        icono={<FolderMinus size={18} />}
+        titulo="Cierre de sección"
+        descripcion="Esta fila marca dónde termina la sección."
+        accion={<BotonEliminarFicha className="xfh-boton is-peligro" texto="Eliminar el cierre" onEliminar={acciones.eliminar} />}
+      />
     );
   } else {
     contenido = (
-      <div className="xfh-vacia">
-        <Layers3 size={18} aria-hidden="true" />
-        <strong>Elige una pregunta o sección</strong>
-        <p>Su ficha aparece aquí.</p>
-      </div>
+      <EstadoVacio tamano="normal" icono={<Layers3 size={18} />} titulo="Elige una pregunta o sección" descripcion="Su ficha aparece aquí." />
     );
   }
   const clave = selection?.kind === "survey" ? `f${selection.rowIndex}` : selection?.kind ?? "nada";

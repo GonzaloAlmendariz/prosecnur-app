@@ -3,16 +3,16 @@ import { chipsDeFase, type ChipDeFase } from "../chrome/chipsDeFase";
 import { ReglaPiloto } from "./manzanas/ReglaPiloto";
 import { ParecidoAlMarco } from "./manzanas/ParecidoAlMarco";
 import { muestraV1 } from "./manzanas/sorteoV1";
-import { Backpack } from "../../../vendor/lucide-react";
+import { Backpack, Inbox } from "../../../vendor/lucide-react";
 import { AvisosDeLaBarra } from "../chrome/AvisosDeLaBarra";
-import { codigoDeUmp } from "../seleccion/revisionMarco";
+import { codigoDeUmp, revisarSeleccion } from "../seleccion/revisionMarco";
 import { conSelectorDeCapa, leyendaLienzo, migaLienzo, SelectorCapa, type SeccionLienzo } from "./lienzo/flotantes";
 import { useLocation, useNavigate } from "react-router-dom";
 import { PageFrame } from "../../../components/PageFrame";
 import { ModuleCommandBar } from "../../../components/ModuleCommandBar";
 import { SectionPillbar } from "../../../components/SectionPillbar";
 import { ChromeIndicator, ChromeIndicatorGroup } from "../../../components/ChromeIndicator";
-import { apiHojasRutaCreateFieldFromPilot, apiHojasRutaGeometria, apiHojasRutaGuardarConfig, apiHojasRutaMarcoElegiblePreview, apiHojasRutaPersistWorkspace, apiHojasRutaPopulationPreview, apiHojasRutaQuotaPreview, apiHojasRutaSamplePreview, apiHojasRutaSampleSizePreview, apiHojasRutaSetPhase, apiHojasRutaState, type HojasRutaIntegratedConfig, type HojasRutaMarcoElegiblePreview, type HojasRutaPilotExclusionMode, type HojasRutaRouteSnapshot, type HojasRutaSamplePreview, type HojasRutaState } from "../../../api/hojasRuta";
+import { apiHojasRutaCreateFieldFromPilot, apiHojasRutaGeometria, apiHojasRutaGuardarConfig, apiHojasRutaMarcoElegiblePreview, apiHojasRutaPersistWorkspace, apiHojasRutaPopulationPreview, apiHojasRutaQuotaPreview, apiHojasRutaSamplePreview, apiHojasRutaSampleSizePreview, apiHojasRutaSetPhase, apiHojasRutaState, normalizeHojasRutaEstratoMuestral, type HojasRutaIntegratedConfig, type HojasRutaMarcoElegiblePreview, type HojasRutaPilotExclusionMode, type HojasRutaRouteSnapshot, type HojasRutaSamplePreview, type HojasRutaState } from "../../../api/hojasRuta";
 import { useSeccion } from "../../../lib/navegacion/useDireccion";
 import { usePlannerModos } from "../../estudio/usePlannerModos";
 import { EntregaCuotas } from "./seleccion/EntregaCuotas";
@@ -58,6 +58,7 @@ import { PoblacionEstructura, PoblacionInspector } from "./poblacion/PoblacionPa
 import { aplicarBorrador, entradaDesdeConfig } from "./muestra/desdeConfig";
 import { calcularTamano, margenTotalParaN } from "./muestra/motorTamano";
 import { MuestraEstructura, MuestraInspector } from "./muestra/MuestraPaneles";
+import { conRepartoDelEstrato, estratoDe } from "./muestra/EstratoMuestral";
 import { aplicarSorteo, conInstantanea, instantaneaDeSorteo, parametrosDeSorteo } from "./manzanas/sorteo";
 import { causaDeRuteo, type CausaRuteo } from "./manzanas/causaRuteo";
 import { ManzanasEstructura, ManzanasInspector } from "./manzanas/ManzanasPaneles";
@@ -65,7 +66,6 @@ import { MarcoElegiblePanel } from "./manzanas/MarcoElegiblePanel";
 import { cierraEnPrimero, MARCO_NUEVO } from "./manzanas/marcoElegible";
 import { proyectarLonLat } from "./lienzo/camara";
 import { cajaDelAtlas, departamentoEnPunto } from "./territorio/atlasFoco";
-import { revisarSeleccion } from "../seleccion/revisionMarco";
 import { estadosPorTitular, manzanaEnPunto, reemplazosDe, rutasPorDistrito, vecina } from "./seleccion/rutas";
 import { SeleccionCajon, SeleccionEstructura, SeleccionInspector } from "./seleccion/SeleccionPaneles";
 import { SalidasPanel } from "./seleccion/SalidasPanel";
@@ -74,6 +74,9 @@ import "./marco.css";
 import "./mapaPage.css";
 import "./angosto.css";
 
+import { formatoDecimal } from "../../../lib/formatoNumero";
+import { EstadoVacio } from "../../../components/EstadoVacio";
+import { LoadingBlock, ErrorBlock } from "../../../components/States";
 /**
  * Hojas de ruta con el mapa como lienzo (ADR 0114). Esqueleto de U4: barra del
  * documento en la top bar, estructura, lienzo e inspector, con lo que el
@@ -266,7 +269,12 @@ export default function HojasRutaMapaPage() {
   const matriz = useMemo(() => resumirMatriz(salidas?.population, rangosVista), [salidas, rangosVista]);
   const configMuestra = useMemo(() => (estado ? aplicarBorrador(estado.integrated_config, muestraBorrador) : null), [estado, muestraBorrador]);
   const entradaTamano = useMemo(() => (configMuestra && estado ? entradaDesdeConfig(configMuestra, estado.territories) : null), [configMuestra, estado]);
-  const tamano = useMemo(() => (entradaTamano ? calcularTamano(entradaTamano) : null), [entradaTamano]);
+  // ADR 0131 §1: con estrato provincia el reparto por distrito lo da R (EstratoMuestral.tsx).
+  const estratoServidor = useMemo(() => normalizeHojasRutaEstratoMuestral(salidas?.sample_size_preview?.estrato_muestral), [salidas]);
+  const tamano = useMemo(
+    () => (entradaTamano && configMuestra ? conRepartoDelEstrato(calcularTamano(entradaTamano), salidas?.sample_size_preview?.district_rows, estratoDe(configMuestra.sample_size), estratoServidor, Boolean(muestraBorrador)) : null),
+    [entradaTamano, configMuestra, salidas, estratoServidor, muestraBorrador],
+  );
 
   // Muestra: guardar los parámetros y recalcular el tamaño en R. La población
   // se conserva; tamaño, cuotas y muestra se recalculan.
@@ -690,7 +698,7 @@ export default function HojasRutaMapaPage() {
           visibles.map((c) => {
             const enB = borrador.includes(c.ubigeo), conf = confirmados.includes(c.ubigeo);
             const fila = enMuestra ? tamano?.filas.find((f) => f.ubigeo === c.ubigeo) : undefined;
-            const detalle = fila ? `${fmt(fila.nUsado)} entr., ±${((fila.margen ?? 0) * 100).toLocaleString("es-PE", { maximumFractionDigits: 1 })} %` : enTerritorio && enB !== conf ? (enB ? "Se agrega al confirmar" : "Se quita al confirmar") : enPoblacion && matriz.vigente && matriz.porUbigeo[c.ubigeo] ? `${fmt(matriz.porUbigeo[c.ubigeo])} en la población objetivo`
+            const detalle = fila ? `${fmt(fila.nUsado)} entr., ±${formatoDecimal((fila.margen ?? 0) * 100, 1)} %` : enTerritorio && enB !== conf ? (enB ? "Se agrega al confirmar" : "Se quita al confirmar") : enPoblacion && matriz.vigente && matriz.porUbigeo[c.ubigeo] ? `${fmt(matriz.porUbigeo[c.ubigeo])} en la población objetivo`
               : enTerritorio && habitantes.get(c.ubigeo) ? `${fmt(habitantes.get(c.ubigeo) ?? 0)} hab.` : undefined;
             return { ubigeo: c.ubigeo, nombre: nombreDistrito(c.nombre), detalle, x: c.rotulo[0], y: c.rotulo[1], tono: conf ? tonoDistrito(u, confirmados.indexOf(c.ubigeo)) : u.colores.acento };
           }),
@@ -825,7 +833,13 @@ export default function HojasRutaMapaPage() {
                 </small>
               </li>
             ))}
-            {!territorios.length ? <li className="hr-mapa-vacio">{error ?? (estado ? "Confirma los distritos del estudio en Territorio." : "Leyendo el estudio…")}</li> : null}
+            {!territorios.length ? (
+              <li>
+                {error ? <ErrorBlock label="No se pudo leer el estudio" detail={error} />
+                  : estado ? <EstadoVacio icono={<Inbox size={16} />} titulo="Todavía no hay distritos" descripcion="Confírmalos en Territorio." />
+                  : <LoadingBlock variant="inline" label="Leyendo el estudio…" />}
+              </li>
+            ) : null}
           </ul>
           </>
           )}
@@ -833,7 +847,7 @@ export default function HojasRutaMapaPage() {
         <LienzoMapa
           className="hr-mapa-lienzo"
           ariaLabel="Mapa del territorio del estudio"
-          miga={enAtlas ? <MigaAtlas total={atlas.length} departamento={departamentoEnfocado} ciudad={atlas.find((c) => c.codigo === ciudadEnfocada) ?? null} distritos={contornos.filter((c) => ciudadDeUbigeo(c.ubigeo) === ciudadEnfocada).length} cargando={regionesCargando.length > 0} enEstudio={Boolean(ciudadEnfocada && enEstudio.includes(ciudadEnfocada))} onPeru={() => { setCiudadEnfocada(null); setDepartamentoEnfocado(null); }} onDepartamento={(d) => { setCiudadEnfocada(null); setDepartamentoEnfocado(d); }} /> : enTerritorio && ciudadAbierta ? <><b>{atlas.find((c) => c.codigo === ciudadAbierta)?.nombre}</b>{regionesCargando.length ? "(cargando su mapa…)" : <span className="hr-lienzo-miga-ayuda">, clic en un distrito para ver su ficha</span>}</> : migaLienzo(nav.seccion as SeccionLienzo, confirmados.length, titularEnfocada ? { distrito: nombreDistrito(titularEnfocada.distrito), ump: codigoDeUmp(titularEnfocada) } : null, atlas.filter((c) => enEstudio.includes(c.codigo)).map((c) => c.nombre))}
+          miga={enAtlas ? <MigaAtlas total={atlas.length} departamento={departamentoEnfocado} ciudad={atlas.find((c) => c.codigo === ciudadEnfocada) ?? null} distritos={contornos.filter((c) => ciudadDeUbigeo(c.ubigeo) === ciudadEnfocada).length} cargando={regionesCargando.length > 0} enEstudio={Boolean(ciudadEnfocada && enEstudio.includes(ciudadEnfocada))} onPeru={() => { setCiudadEnfocada(null); setDepartamentoEnfocado(null); }} onDepartamento={(d) => { setCiudadEnfocada(null); setDepartamentoEnfocado(d); }} /> : enTerritorio && ciudadAbierta ? <><b>{atlas.find((c) => c.codigo === ciudadAbierta)?.nombre}</b>{regionesCargando.length ? "(cargando su mapa…)" : <span className="hr-lienzo-miga-ayuda">(clic en un distrito para ver su ficha)</span>}</> : migaLienzo(nav.seccion as SeccionLienzo, confirmados.length, titularEnfocada ? { distrito: nombreDistrito(titularEnfocada.distrito), ump: codigoDeUmp(titularEnfocada) } : null, atlas.filter((c) => enEstudio.includes(c.codigo)).map((c) => c.nombre))}
           leyenda={enAtlas ? <><span className="hr-atlas-punto" aria-hidden="true" /> Con cartografía <span className="hr-atlas-punto" data-en-estudio aria-hidden="true" /> En el estudio</> : leyendaLienzo(nav.seccion as SeccionLienzo, { zonasCortas: zonasCortas.size > 0, areas: (configSorteo?.marco_elegible?.areas_excluidas ?? []).length > 0, capa: capaMapa })}
           distritos={enPoblacion || enMuestra ? [] : distritos}
           capa={conSelectorDeCapa(nav.seccion as SeccionLienzo) ? capaMapa : "manzanas"}
@@ -965,7 +979,7 @@ export default function HojasRutaMapaPage() {
               onSortear={() => void sortear(configSorteo)}
             />
           ) : enMuestra && configMuestra && tamano ? (
-            <MuestraInspector config={configMuestra} resultado={tamano} bloqueado={bloqueado} guardando={guardando} hayMuestra={Boolean(salidas?.quota || salidas?.sample)} hayTamano={Boolean(salidas?.sample_size_preview)} avisosServidor={salidas?.sample_size_preview?.alerts ?? []} margenPara={entradaTamano ? (n) => margenTotalParaN(entradaTamano, n) : undefined} onGuardar={() => void guardarMuestra()} />
+            <MuestraInspector config={configMuestra} resultado={tamano} bloqueado={bloqueado} guardando={guardando} hayMuestra={Boolean(salidas?.quota || salidas?.sample)} hayTamano={Boolean(salidas?.sample_size_preview)} avisosServidor={salidas?.sample_size_preview?.alerts ?? []} margenPara={entradaTamano ? (n) => margenTotalParaN(entradaTamano, n) : undefined} territorios={territorios} estratoServidor={estratoServidor} onGuardar={() => void guardarMuestra()} />
           ) : enPoblacion && estado ? (
             <PoblacionInspector
               config={estado.integrated_config}

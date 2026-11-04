@@ -71,6 +71,14 @@ describe("resumen del formulario", () => {
     expect(r.filasSecciones.every((f) => f.pesada)).toBe(true);
   });
 
+  test("el rótulo de la sección llega sin el formato del XLSForm", () => {
+    const conFormato = { ...seccion("s1", "pag1", 1), label: '<span style="color:#002060">**PROTOCOLO** de  consentimiento</span>' };
+    const solo = resumirFormulario(estructura([nodo(2, "s1", "text")], [conFormato]), catalogos);
+    expect(solo.filasSecciones[0].rotulo).toBe("PROTOCOLO de consentimiento");
+    const vacia = { ...seccion("s1", "pag1", 1), label: '<span style="color:#002060"> </span>' };
+    expect(resumirFormulario(estructura([nodo(2, "s1", "text")], [vacia]), catalogos).filasSecciones[0].rotulo).toBe("pag1");
+  });
+
   test("detecta la pregunta de selección cuya lista no existe", () => {
     expect(r.sinLista).toEqual([{ rowIndex: 7, name: "p7" }]);
   });

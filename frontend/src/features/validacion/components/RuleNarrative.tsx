@@ -16,7 +16,7 @@
 
 import type { CSSProperties, ReactNode } from "react";
 import { useMemo } from "react";
-import { ChevronRight, AlertCircle, AlertTriangle, Info } from "lucide-react";
+import { ChevronRight } from "lucide-react";
 import { IconCustom } from "../../../lib/icons";
 import type { ReglaLike, RoleKey } from "../narrative";
 import {
@@ -29,6 +29,7 @@ import {
 } from "../narrative";
 import VariableChip from "./VariableChip";
 import type { VariableHoverData } from "./VariableChip";
+import { EstadoChip } from "../../../components/EstadoChip";
 
 // -----------------------------------------------------------------------------
 // Tipos públicos
@@ -205,7 +206,7 @@ export default function RuleNarrative({
               alignItems: "center",
               justifyContent: "space-between",
               gap: 8,
-              fontSize: 11,
+              fontSize: "var(--pulso-type-caption-size)",
               color: "var(--pulso-text-soft)",
             }}
           >
@@ -233,7 +234,7 @@ export default function RuleNarrative({
                   alignItems: "center",
                   gap: 3,
                   padding: "3px 10px",
-                  fontSize: 11,
+                  fontSize: "var(--pulso-type-caption-size)",
                   cursor: "pointer",
                 }}
                 aria-label="Ver detalle de la regla"
@@ -287,7 +288,7 @@ export default function RuleNarrative({
           <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
             <span
               style={{
-                fontSize: 10,
+                fontSize: "var(--pulso-type-micro-size)",
                 fontWeight: 800,
                 textTransform: "uppercase",
                 letterSpacing: 0.5,
@@ -299,7 +300,7 @@ export default function RuleNarrative({
             <code
               style={{
                 fontFamily: "ui-monospace, SFMono-Regular, Consolas, monospace",
-                fontSize: 13,
+                fontSize: "var(--pulso-type-subtitle-size)",
                 fontWeight: 700,
                 padding: "2px 8px",
                 borderRadius: 6,
@@ -317,7 +318,7 @@ export default function RuleNarrative({
       {/* Headline narrativo grande */}
       <div
         style={{
-          fontSize: 18,
+          fontSize: "var(--pulso-type-kpi-size)",
           lineHeight: 1.5,
           color: "var(--pulso-text)",
           fontWeight: 500,
@@ -329,7 +330,7 @@ export default function RuleNarrative({
 
       {/* Sub-frases: activación + comparación */}
       {(activation || compareText) && (
-        <div style={{ display: "flex", flexDirection: "column", gap: 4, fontSize: 13, lineHeight: 1.55, color: "var(--pulso-text-soft)" }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 4, fontSize: "var(--pulso-type-body-size)", lineHeight: 1.55, color: "var(--pulso-text-soft)" }}>
           {activation && (
             <div>
               <RoleTag role="drivers" />{" "}
@@ -443,7 +444,7 @@ function SourceBadge({ fuente, label }: { fuente: string; label?: string | null 
         background: isCustom ? "var(--pulso-primary-soft)" : "var(--pulso-surface-2)",
         color: isCustom ? "var(--pulso-primary)" : "var(--pulso-text-soft)",
         border: `1px solid ${isCustom ? "var(--pulso-primary-border)" : "var(--pulso-border)"}`,
-        fontSize: 10,
+        fontSize: "var(--pulso-type-micro-size)",
         fontWeight: 700,
         letterSpacing: 0.3,
         textTransform: "uppercase",
@@ -465,7 +466,7 @@ function CategoryBadge({ categoria_ux }: { categoria_ux: string | null }) {
         background: "var(--pulso-surface-2)",
         color: "var(--pulso-text-soft)",
         border: "1px solid var(--pulso-border)",
-        fontSize: 10,
+        fontSize: "var(--pulso-type-micro-size)",
         fontWeight: 700,
         letterSpacing: 0.3,
         textTransform: "uppercase",
@@ -495,7 +496,7 @@ function SeverityDot({ severidad }: { severidad: string }) {
         display: "inline-flex",
         alignItems: "center",
         gap: 4,
-        fontSize: 10,
+        fontSize: "var(--pulso-type-micro-size)",
         color: "var(--pulso-text-soft)",
         fontWeight: 600,
       }}
@@ -507,39 +508,14 @@ function SeverityDot({ severidad }: { severidad: string }) {
 }
 
 function SeverityBadge({ severidad }: { severidad: string }) {
+  // Un estado con tono: EstadoChip del kit (P6). La severidad se dice entera («Severidad alta»):
+  // «Alta» suelta, junto al conteo de casos, se leía como «alta cantidad».
   const meta = {
-    error: { icon: AlertCircle, bg: "var(--pulso-danger-bg)", fg: "var(--pulso-danger-fg)", border: "var(--pulso-danger-border)", label: "Alta" },
-    advertencia: { icon: AlertTriangle, bg: "var(--pulso-warn-bg)", fg: "var(--pulso-warn-fg)", border: "var(--pulso-warn-border)", label: "Media" },
-    info: { icon: Info, bg: "var(--pulso-info-bg)", fg: "var(--pulso-info-fg)", border: "var(--pulso-info-border)", label: "Baja" },
-  }[severidad as "error" | "advertencia" | "info"] ?? {
-    icon: Info,
-    bg: "var(--pulso-info-bg)",
-    fg: "var(--pulso-info-fg)",
-    border: "var(--pulso-info-border)",
-    label: severidad,
-  };
-  const Icon = meta.icon;
-  return (
-    <span
-      style={{
-        display: "inline-flex",
-        alignItems: "center",
-        gap: 4,
-        padding: "2px 8px",
-        borderRadius: "var(--pulso-radius-chip)",
-        background: meta.bg,
-        color: meta.fg,
-        border: `1px solid ${meta.border}`,
-        fontSize: 10,
-        fontWeight: 700,
-        letterSpacing: 0.3,
-        textTransform: "uppercase",
-      }}
-    >
-      <Icon size={10} />
-      {meta.label}
-    </span>
-  );
+    error: { tone: "danger" as const, label: "Severidad alta" },
+    advertencia: { tone: "warn" as const, label: "Severidad media" },
+    info: { tone: "info" as const, label: "Severidad baja" },
+  }[severidad as "error" | "advertencia" | "info"] ?? { tone: "info" as const, label: severidad };
+  return <EstadoChip tone={meta.tone} label={meta.label} />;
 }
 
 function CaseBadge({
@@ -552,7 +528,7 @@ function CaseBadge({
   highlight?: boolean;
 }) {
   const pct = porcentaje != null ? (Math.abs(porcentaje) > 1 ? porcentaje : porcentaje * 100) : null;
-  const pctStr = pct != null && Number.isFinite(pct) ? ` · ${pct.toFixed(1)}%` : "";
+  const pctStr = pct != null && Number.isFinite(pct) ? ` (${pct.toFixed(1)}%)` : "";
   return (
     <span
       style={{
@@ -561,7 +537,7 @@ function CaseBadge({
         background: highlight ? "var(--pulso-danger-bg)" : "var(--pulso-surface-2)",
         color: highlight ? "var(--pulso-danger-fg)" : "var(--pulso-text-soft)",
         border: `1px solid ${highlight ? "var(--pulso-danger-border)" : "var(--pulso-border)"}`,
-        fontSize: 11,
+        fontSize: "var(--pulso-type-caption-size)",
         fontWeight: 700,
         whiteSpace: "nowrap",
       }}
@@ -585,7 +561,7 @@ function RoleTag({ role }: { role: RoleKey }) {
         background: meta.tokenBg,
         color: meta.tokenFg,
         border: `1px solid ${meta.tokenBorder}`,
-        fontSize: 10,
+        fontSize: "var(--pulso-type-micro-size)",
         fontWeight: 800,
         letterSpacing: 0.4,
         textTransform: "uppercase",
@@ -634,7 +610,7 @@ function RoleChipsRow({
                 display: "flex",
                 alignItems: "center",
                 gap: 4,
-                fontSize: 10,
+                fontSize: "var(--pulso-type-micro-size)",
                 fontWeight: 800,
                 color: meta.tokenFg,
                 textTransform: "uppercase",

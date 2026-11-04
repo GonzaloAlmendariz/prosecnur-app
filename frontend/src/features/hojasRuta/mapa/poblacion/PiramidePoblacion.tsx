@@ -3,7 +3,8 @@ import type { FilaMatriz } from "./matriz";
 import { barrasDePiramide } from "./piramide";
 import "./piramide.css";
 
-const enMiles = (n: number) => (n >= 1e6 ? `${(n / 1e6).toLocaleString("es-PE", { maximumFractionDigits: 2 })} M` : `${Math.round(n / 1000).toLocaleString("es-PE")} mil`);
+import { formatoDecimal, formatoConteo } from "../../../../lib/formatoNumero";
+const enMiles = (n: number) => (n >= 1e6 ? `${formatoDecimal(n / 1e6, 2)} M` : `${formatoConteo(n / 1000)} mil`);
 
 /**
  * Pirámide de la población objetivo por sexo y edad (checklist F8), en el inspector de

@@ -8,6 +8,7 @@ import { Database, Mail, MessageCircle, PhoneCall, QrCode, Route } from "lucide-
 import type { EstudioBase, EstudioMultiIntegrated, EstudioPayload, EstudioProcessingSuggestionGroup, EstudioProcessingSuggestionSource, EstudioProcessingSuggestions, KoboIndependentAssetInput, SurveyMonkeyMultibaseSurveyInput, SurveyMonkeyMultibaseAudit, SurveyMonkeyMultibaseCollector, SurveyMonkeyDecisionAudit, SurveyMonkeyDecisionPolicy, SurveyMonkeyDecisionSourceAudit, SurveyMonkeyMultibaseListItem, SurveyMonkeyRefreshBasePlan, SurveyMonkeyRefreshResult, SurveyMonkeyWorkbookInspection, RuleInterpretation } from "../../../api/client";
 import { smRefreshAction } from "../smEstructuraFuente";
 import type { SmImportScopeDraft, SmImportScopeFields } from "../store";
+import { formatoConteo } from "../../../lib/formatoNumero";
 
 export function smNormalizeSearch(value: string) {
   return value
@@ -89,7 +90,7 @@ export function smDuplicateSurveyAlert(
     loaded ? `${loaded} ya ${loaded === 1 ? "está cargada" : "están cargadas"}` : "",
     selected ? `${selected} ya ${selected === 1 ? "está seleccionada" : "están seleccionadas"}` : "",
   ].filter(Boolean);
-  const examples = duplicates.slice(0, 3).map((item) => smSurveyTitle(item)).join(" · ");
+  const examples = duplicates.slice(0, 3).map((item) => smSurveyTitle(item)).join(", ");
   return `Se ocultaron ${duplicates.length} coincidencia${duplicates.length === 1 ? "" : "s"} repetida${duplicates.length === 1 ? "" : "s"} (${parts.join("; ")}). ${examples}`;
 }
 
@@ -241,10 +242,10 @@ export function smWorkbookSheetIssueTitle(sheet: SurveyMonkeyWorkbookInspection[
     const sample = (sheet.cell_errors ?? [])
       .slice(0, 3)
       .map((err) => `${err.source}${err.variable ? ` → ${err.variable}` : ""}: ${err.n_errors}`)
-      .join(" · ");
+      .join(", ");
     notes.push(`Errores Excel detectados${sample ? `: ${sample}` : ""}`);
   }
-  return notes.join(" · ");
+  return notes.join(", ");
 }
 
 export const INDEPENDENT_SIBLINGS_MAX_BASES = 10;
@@ -261,7 +262,7 @@ export function independentSiblingsCapacity(estudio: Pick<EstudioPayload, "max_b
 
 export function independentSiblingsCapacityLabel(activeBases: number, maxBases: number) {
   const activeLabel = activeBases === 1 ? "base activa" : "bases activas";
-  return `${activeBases} ${activeLabel} · capacidad máxima ${maxBases}`;
+  return `${activeBases} ${activeLabel}, capacidad máxima ${maxBases}`;
 }
 
 export function smDefaultScopeFields(): SmImportScopeFields {
@@ -393,7 +394,7 @@ export function smMonitoringSuggestionScope(
       surveyId: source.survey_id,
       label: [group.actor, smChannelLabel(source.channel) || source.channel]
         .filter(Boolean)
-        .join(" · ") || group.actor || source.label || source.title,
+        .join(", ") || group.actor || source.label || source.title,
       query: "",
       channel: smChannelLabel(source.channel) || source.channel,
       collectionStrategy: (source.collection_strategy || "campo") as SmImportScopeFields["collectionStrategy"],
@@ -508,7 +509,7 @@ export function smLogicPreviewRow(entry: SmLogicPreviewEntry, interpretation: Ru
   return {
     rule,
     ok: true,
-    summary: `${actionCount} acción${actionCount === 1 ? "" : "es"} · ${interpretation.regla_parseada.when_var}`,
+    summary: `${actionCount} acción${actionCount === 1 ? "" : "es"}, ${interpretation.regla_parseada.when_var}`,
     detail: interpretation.texto_humano || expr || "Regla interpretada.",
     warnings: interpretation.warnings ?? [],
     origin: entry.origin,
@@ -517,7 +518,7 @@ export function smLogicPreviewRow(entry: SmLogicPreviewEntry, interpretation: Ru
 
 export function smSuggestionResponseLabel(value: number | null | undefined) {
   if (typeof value !== "number" || !Number.isFinite(value) || value <= 0) return "sin conteo";
-  return `${value.toLocaleString("es-PE")} respuesta${value === 1 ? "" : "s"}`;
+  return `${formatoConteo(value)} respuesta${value === 1 ? "" : "s"}`;
 }
 
 export function smChannelKey(value: string) {
@@ -1014,7 +1015,7 @@ export function smIndependentTemplateBase(estudio: EstudioPayload, bases: Estudi
 }
 
 export function smSourceMetricLabel(value: number | null | undefined) {
-  return value == null || !Number.isFinite(value) ? "S/D" : value.toLocaleString("es-PE");
+  return value == null || !Number.isFinite(value) ? "S/D" : formatoConteo(value);
 }
 
 export function smSourceCollectorLabel(source: SmSourceSummary) {
@@ -1042,27 +1043,27 @@ export function smDecisionRowsImpactText(currentRows: number | null, previewRows
   if (currentRows == null || previewRows == null) {
     return "Cuando termine el recálculo se mostrará si el total sube, baja o queda igual.";
   }
-  const currentLabel = currentRows.toLocaleString("es-PE");
-  const previewLabel = previewRows.toLocaleString("es-PE");
+  const currentLabel = formatoConteo(currentRows);
+  const previewLabel = formatoConteo(previewRows);
   const delta = previewRows - currentRows;
   if (delta > 0) {
-    return `Si aplicas ahora, la base activa pasará de ${currentLabel} a ${previewLabel} casos: entrarán ${delta.toLocaleString("es-PE")} casos adicionales.`;
+    return `Si aplicas ahora, la base activa pasará de ${currentLabel} a ${previewLabel} casos: entrarán ${formatoConteo(delta)} casos adicionales.`;
   }
   if (delta < 0) {
-    return `Si aplicas ahora, la base activa pasará de ${currentLabel} a ${previewLabel} casos: saldrán ${Math.abs(delta).toLocaleString("es-PE")} casos que ya no cumplen estas reglas.`;
+    return `Si aplicas ahora, la base activa pasará de ${currentLabel} a ${previewLabel} casos: saldrán ${formatoConteo(Math.abs(delta))} casos que ya no cumplen estas reglas.`;
   }
   return `Si aplicas ahora, la base activa quedará con ${currentLabel} casos; no cambia el total, pero sí se reescribe con estas reglas.`;
 }
 
 export function smDecisionRowsLabel(value: number | null) {
-  return value == null ? "pendiente" : value.toLocaleString("es-PE");
+  return value == null ? "pendiente" : formatoConteo(value);
 }
 
 export function smDecisionRowsDeltaLabel(currentRows: number | null, previewRows: number | null) {
   if (currentRows == null || previewRows == null) return "por calcular";
   const delta = previewRows - currentRows;
-  if (delta > 0) return `+${delta.toLocaleString("es-PE")}`;
-  if (delta < 0) return `-${Math.abs(delta).toLocaleString("es-PE")}`;
+  if (delta > 0) return `+${formatoConteo(delta)}`;
+  if (delta < 0) return `-${formatoConteo(Math.abs(delta))}`;
   return "0";
 }
 
@@ -1188,7 +1189,7 @@ export function smDecisionCollectorOptions(audit: SurveyMonkeyDecisionAudit | nu
       } else {
         byId.set(id, {
           id,
-          label: name === id ? id : `${name} · ${id}`,
+          label: name === id ? id : `${name} (${id})`,
           count,
           source: sourceLabel,
         });
@@ -1252,7 +1253,7 @@ export function smCollectorFriendlyName(label: string, id: string) {
   const cleanLabel = String(label || "").trim();
   const cleanId = String(id || "").trim();
   if (!cleanLabel) return "Recopilador sin nombre";
-  const idSuffix = cleanId ? ` · ${cleanId}` : "";
+  const idSuffix = cleanId ? ` (${cleanId})` : "";
   const out = cleanLabel.endsWith(idSuffix) ? cleanLabel.slice(0, -idSuffix.length) : cleanLabel;
   return out && out !== cleanId ? out : "Recopilador sin nombre";
 }
@@ -1435,7 +1436,7 @@ export function smDecisionDuplicateEvidenceLine(row: SmDecisionCaseRow) {
     row.duplicateKeptResponseId ? `Se conserva: ${row.duplicateKeptResponseId}` : "",
     row.dateModified ? `Este caso: ${smDecisionShortDate(row.dateModified)}` : "",
   ].filter(Boolean);
-  return parts.join(" · ");
+  return parts.join(", ");
 }
 
 export function smChannelIcon(key: string) {
@@ -1483,7 +1484,7 @@ export function smCollectorTypeLabel(value: string) {
 
 export function smCollectorResponseLabel(count: number | null) {
   if (count == null || !Number.isFinite(count)) return "conteo S/D";
-  return `${count.toLocaleString("es-PE")} respuesta${count === 1 ? "" : "s"}`;
+  return `${formatoConteo(count)} respuesta${count === 1 ? "" : "s"}`;
 }
 
 export function smToggleCollectorId(current: string, collectorId: string, checked: boolean, orderedIds: string[]) {
@@ -1541,7 +1542,7 @@ export function smSurveyResponseCount(item: Pick<SurveyMonkeyMultibaseListItem, 
 export function smSurveyResponseLabel(item: Pick<SurveyMonkeyMultibaseListItem, "response_count">) {
   const count = smSurveyResponseCount(item);
   if (count == null) return "Conteo no disponible";
-  return `${count.toLocaleString("es-PE")} respuesta${count === 1 ? "" : "s"}`;
+  return `${formatoConteo(count)} respuesta${count === 1 ? "" : "s"}`;
 }
 
 export function smCatalogDateLabel(value?: string | null) {
@@ -1565,7 +1566,7 @@ export function smScopeSummary(scope: SmImportScopeFields, nSources: number) {
   const collectors = smSplitScopeList(scope.collectorIds);
   if (collectors.length) parts.push(`${collectors.length} recopilador${collectors.length === 1 ? "" : "es"}`);
   if (nSources > 1) parts.push(`${nSources} campañas`);
-  return parts.join(" · ");
+  return parts.join(", ");
 }
 
 export function smSpecCollectorSummary(spec?: SurveyMonkeyMultibaseSurveyInput | null) {
@@ -1580,7 +1581,7 @@ export function smSpecCollectorSummary(spec?: SurveyMonkeyMultibaseSurveyInput |
     })
     .filter(Boolean);
   if (!filtered.length) return "Recopiladores: todos incluidos";
-  return `Recopiladores filtrados · ${filtered.join(" · ")}`;
+  return `Recopiladores filtrados: ${filtered.join(", ")}`;
 }
 
 export function smSurveyById(surveys: SurveyMonkeyMultibaseListItem[] | null | undefined, id: string) {
@@ -1606,7 +1607,7 @@ export function smKnownSourceCount(
 
 export function smSourceCountLabel(count: number | null) {
   if (count == null) return "conteo parcial/no disponible";
-  return `${count.toLocaleString("es-PE")} respuesta${count === 1 ? "" : "s"}`;
+  return `${formatoConteo(count)} respuesta${count === 1 ? "" : "s"}`;
 }
 
 export function smExtraSourceCandidates(
@@ -1675,7 +1676,7 @@ export function smRefreshSourcesText(sources: SmSourceSummary[]) {
   if (!sources.length) return "";
   return sources
     .map((source) => `${source.title}${source.channel ? ` (${source.channel})` : ""}`)
-    .join(" · ");
+    .join(", ");
 }
 
 export function smRefreshResultSourcesText(row: SurveyMonkeyRefreshResult["results"][number]) {
@@ -1688,7 +1689,7 @@ export function smRefreshResultSourcesText(row: SurveyMonkeyRefreshResult["resul
       const status = String(source.status || "").replace(/_/g, " ");
       return `${title}${channel ? ` (${channel})` : ""}: ${status || (source.refreshed ? "actualizada" : "no actualizada")}`;
     })
-    .join(" · ");
+    .join(", ");
 }
 
 export function smSurveyAuditLabel(
@@ -1857,7 +1858,7 @@ export function responseFilterLabel(filter?: Record<string, unknown> | null) {
   const sourceCount = filter.source_count == null || Number.isNaN(Number(filter.source_count))
     ? null
     : Number(filter.source_count);
-  if (kind === "uploaded_data") return kept == null ? "Respuestas subidas" : `Respuestas subidas · ${kept} registros`;
+  if (kind === "uploaded_data") return kept == null ? "Respuestas subidas" : `Respuestas subidas, ${kept} registros`;
   const parts: string[] = [];
   if (sourceCount && sourceCount > 1) parts.push(`${sourceCount} fuentes`);
   if (kept != null) parts.push(`${kept} filtradas`);
@@ -1867,7 +1868,7 @@ export function responseFilterLabel(filter?: Record<string, unknown> | null) {
   if (collectors.length) parts.push(`recopilador ${collectors.join(", ")}`);
   const until = String(filter.date_modified_lte ?? "").trim();
   if (until && until !== "NA") parts.push(`hasta ${until.slice(0, 16).replace("T", " ")}`);
-  return parts.join(" · ");
+  return parts.join(", ");
 }
 
 export type HistoryRecord = Record<string, unknown>;
@@ -1913,7 +1914,7 @@ export function integratedLabelOverrideEntries(meta?: EstudioMultiIntegrated | n
     if (value && typeof value === "object" && !Array.isArray(value)) {
       for (const [nestedKey, nestedValue] of Object.entries(value as HistoryRecord)) {
         out.push({
-          key: `${key} · ${nestedKey}`,
+          key: `${key}/${nestedKey}`,
           value: String(nestedValue ?? ""),
           origin: key,
           variable: nestedKey,

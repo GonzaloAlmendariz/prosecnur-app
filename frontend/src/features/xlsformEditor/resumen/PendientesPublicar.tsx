@@ -4,6 +4,8 @@
 import { AlertCircle, AlertTriangle, ArrowRight, CheckCircle2, Info } from "../../../vendor/lucide-react";
 import { tareasPendientes, type AccionPendiente, type Pendiente } from "./modeloResumen";
 
+import { EstadoChip } from "../../../components/EstadoChip";
+import { Panel } from "../../../components/Panel";
 const ICONO = {
   listo: CheckCircle2,
   aviso: AlertTriangle,
@@ -17,14 +19,20 @@ export function PendientesPublicar({ items, onAccion }: {
 }) {
   const abiertos = tareasPendientes(items);
   return (
-    <section className="pulso-xf-res-panel pulso-xf-res-pendientes" aria-labelledby="xf-res-pendientes-titulo" data-qa-geometry-member=""
-      data-qa-geometry-capacity="owned">
-      <header className="pulso-xf-res-panel-cabeza">
-        <h3 id="xf-res-pendientes-titulo">Qué falta para publicar e imprimir</h3>
-        <span className={`pulso-xf-res-contador${abiertos ? " is-aviso" : " is-listo"}`}>
-          {abiertos ? `${abiertos} ${abiertos === 1 ? "tarea pendiente" : "tareas pendientes"}` : "Todo en orden"}
-        </span>
-      </header>
+    <Panel
+      className="pulso-xf-res-panel pulso-xf-res-pendientes"
+      noPadding
+      aria-labelledby="xf-res-pendientes-titulo"
+      data-qa-geometry-member=""
+      data-qa-geometry-capacity="owned"
+      title={<span id="xf-res-pendientes-titulo">Qué falta para publicar e imprimir</span>}
+      actions={
+        <EstadoChip
+          label={abiertos ? `${abiertos} ${abiertos === 1 ? "tarea pendiente" : "tareas pendientes"}` : "Todo en orden"}
+          tone={abiertos ? "warn" : "success"}
+        />
+      }
+    >
       <ul className="pulso-xf-res-pendientes-lista" data-qa-geometry-group="xlsform/resumen-pendientes" data-qa-geometry-contract="equal">
         {items.map((item) => {
           const Icono = ICONO[item.estado];
@@ -44,6 +52,6 @@ export function PendientesPublicar({ items, onAccion }: {
           );
         })}
       </ul>
-    </section>
+    </Panel>
   );
 }

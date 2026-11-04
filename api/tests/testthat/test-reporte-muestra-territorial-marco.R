@@ -209,7 +209,6 @@ test_that("el router calcula los insumos desde la sesión: bitácora, decisión 
 
 test_that("render real del HTML: las dos secciones salen en el archivo, en UTF-8 y sin códigos internos", {
   skip_if_not(nzchar(Sys.which("quarto")) && requireNamespace("quarto", quietly = TRUE), "sin quarto")
-  skip_on_cran()
   cr <- .u16_criterios()
   out <- file.path(withr::local_tempdir(), "reporte_muestra_territorial.html")
   reporte_muestra_territorial(

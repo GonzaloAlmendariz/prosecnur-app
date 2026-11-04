@@ -67,6 +67,17 @@
       "Repository": "CRAN",
       "Source": "Repository"
     },
+    "Matrix": {
+      "Package": "Matrix",
+      "Version": "1.7-6",
+      "Depends": "R (>= 4.4), methods",
+      "Imports": "grDevices, graphics, grid, lattice, stats, utils",
+      "License": "GPL (>= 2) | file LICENCE",
+      "MD5sum": "92502b5e17bc36390d9e52c0f2c2e0f0",
+      "NeedsCompilation": "yes",
+      "Repository": "CRAN",
+      "Source": "Repository"
+    },
     "R6": {
       "Package": "R6",
       "Version": "2.6.1",
@@ -992,6 +1003,17 @@
       "Repository": "CRAN",
       "Source": "Repository"
     },
+    "lattice": {
+      "Package": "lattice",
+      "Version": "0.23-1",
+      "Depends": "R (>= 4.0.0)",
+      "Imports": "grid, grDevices, graphics, stats, utils",
+      "License": "GPL (>= 2)",
+      "MD5sum": "e449ab6441f74836e93869dd34cdf3ba",
+      "NeedsCompilation": "yes",
+      "Repository": "CRAN",
+      "Source": "Repository"
+    },
     "lazyeval": {
       "Package": "lazyeval",
       "Version": "0.2.3",
@@ -1100,6 +1122,37 @@
       "Imports": "shiny (>= 0.13), htmltools (>= 0.3), utils",
       "License": "GPL-3",
       "MD5sum": "eead3afb282456fb30b591708799733d",
+      "NeedsCompilation": "no",
+      "Repository": "CRAN",
+      "Source": "Repository"
+    },
+    "minqa": {
+      "Package": "minqa",
+      "Version": "1.2.8",
+      "Imports": "Rcpp (>= 0.9.10)",
+      "LinkingTo": "Rcpp",
+      "License": "GPL-2",
+      "MD5sum": "220bfece6840be5600cce3cb24850cdf",
+      "NeedsCompilation": "yes",
+      "Repository": "CRAN",
+      "Source": "Repository"
+    },
+    "mitools": {
+      "Package": "mitools",
+      "Version": "2.7",
+      "Imports": "DBI, methods, stats",
+      "License": "GPL-2",
+      "MD5sum": "ec76d158c6b83c6ae049bf6724410c52",
+      "NeedsCompilation": "no",
+      "Repository": "CRAN",
+      "Source": "Repository"
+    },
+    "numDeriv": {
+      "Package": "numDeriv",
+      "Version": "2016.8-1.1",
+      "Depends": "R (>= 2.11.1)",
+      "License": "GPL-2",
+      "MD5sum": "f894081f6d73822a362f156e849c9657",
       "NeedsCompilation": "no",
       "Repository": "CRAN",
       "Source": "Repository"
@@ -1720,6 +1773,29 @@
       "License": "MIT + file LICENSE",
       "MD5sum": "e6d638f79f82b1c39fc88e7295ba1c9d",
       "NeedsCompilation": "no",
+      "Repository": "CRAN",
+      "Source": "Repository"
+    },
+    "survey": {
+      "Package": "survey",
+      "Version": "4.5",
+      "Depends": "R (>= 4.1.0), grid, methods, Matrix, survival",
+      "Imports": "stats, graphics, splines, lattice, minqa, numDeriv, mitools (>= 2.4), Rcpp (>= 0.12.8)",
+      "LinkingTo": "Rcpp, RcppArmadillo",
+      "License": "GPL-2 | GPL-3",
+      "MD5sum": "4d424593ffd252886cf6c9c81d4bcd26",
+      "NeedsCompilation": "yes",
+      "Repository": "CRAN",
+      "Source": "Repository"
+    },
+    "survival": {
+      "Package": "survival",
+      "Version": "3.8-12",
+      "Depends": "R (>= 4.1.0)",
+      "Imports": "graphics, Matrix, methods, splines, stats, utils",
+      "License": "LGPL (>= 2)",
+      "MD5sum": "3c59ccd42546b7d04d2e9804998ea7e8",
+      "NeedsCompilation": "yes",
       "Repository": "CRAN",
       "Source": "Repository"
     },

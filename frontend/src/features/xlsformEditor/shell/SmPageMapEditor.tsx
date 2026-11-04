@@ -14,6 +14,7 @@ import {
 } from "./smImportPages";
 import { textoSeccionesSm } from "./smImportModel";
 import "../styles/xfSmImport";
+import { EstadoVacio } from "../../../components/EstadoVacio";
 
 // Las páginas de SurveyMonkey que se crearán como secciones. Cada sección
 // muestra su conteo con el mismo par que el resto del diálogo (U8) y pliega su
@@ -84,7 +85,7 @@ function PreguntasDeSeccion({ page }: { page: PageEntry }) {
               <span className="pulso-xf-smi-fila">
                 <code>{displayQuestionRef(q.name)}</code>
                 <span className="pulso-xf-smi-fila-texto">{q.heading ?? ""}</span>
-                {esMatriz ? <span className="pulso-xf-smi-etiqueta">Matriz · {filas.length} filas</span> : null}
+                {esMatriz ? <span className="pulso-xf-smi-etiqueta">Matriz ({filas.length} filas)</span> : null}
               </span>
               {esMatriz ? (
                 <ul className="pulso-xf-smi-filas-matriz">
@@ -133,9 +134,7 @@ export function SmPageMapEditor({
       </header>
 
       {pages.length === 0 ? (
-        <p className="pulso-xf-smi-vacio">
-          Aún no hay secciones. Se llenan solas al elegir la encuesta arriba.
-        </p>
+        <EstadoVacio icono={<Plus size={14} />} titulo="Aún no hay secciones" descripcion="Se llenan solas al elegir la encuesta arriba." />
       ) : (
         <ol
           className="pulso-xf-smi-secciones"

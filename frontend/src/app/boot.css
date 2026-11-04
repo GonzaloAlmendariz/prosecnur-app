@@ -122,20 +122,14 @@ input {
   display: grid;
   place-items: center;
   padding: 28px;
-  background:
-    radial-gradient(1200px 680px at 50% -6%, rgba(0, 36, 87, 0.06), transparent 66%),
-    radial-gradient(900px 620px at 88% 108%, rgba(19, 119, 109, 0.045), transparent 72%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(243, 245, 249, 0.98)),
-    var(--pulso-bg);
+  /* Fondo liso (v3 retira los gradientes apilados del shell, 4 nov 2026). */
+  background: var(--pulso-bg);
 }
 
 .boot-shell.is-warmup {
   padding: 0;
-  background:
-    radial-gradient(1100px 620px at 50% 8%, rgba(0, 36, 87, 0.07), transparent 68%),
-    radial-gradient(760px 520px at 82% 92%, rgba(19, 119, 109, 0.05), transparent 70%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(246, 248, 250, 0.98)),
-    var(--pulso-bg);
+  /* Fondo liso (v3 retira los gradientes apilados del shell, 4 nov 2026). */
+  background: var(--pulso-bg);
 }
 
 .boot-panel {
@@ -915,75 +909,6 @@ input {
   display: contents;
 }
 
-.boot-warmup-mark {
-  color: var(--pulso-text-soft);
-  font-size: 13px;
-  font-weight: var(--pulso-weight-heavy);
-  letter-spacing: 0;
-  text-transform: uppercase;
-}
-
-.boot-ring {
-  --boot-ring-p: 0;
-  position: relative;
-  width: clamp(128px, 16vw, 188px);
-  aspect-ratio: 1;
-  display: grid;
-  place-items: center;
-}
-
-/* Arco de progreso: el conic-gradient avanza con --boot-ring-p. */
-.boot-ring-arc {
-  position: absolute;
-  inset: 0;
-  border-radius: 50%;
-  background: conic-gradient(
-    from 0deg,
-    var(--pulso-primary) 0,
-    #13776d calc(var(--boot-ring-p) * 1%),
-    rgba(0, 36, 87, 0.1) calc(var(--boot-ring-p) * 1%),
-    rgba(0, 36, 87, 0.1) 100%
-  );
-  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 10px), #000 calc(100% - 9px));
-  mask: radial-gradient(farthest-side, transparent calc(100% - 10px), #000 calc(100% - 9px));
-}
-
-/* Anillo secundario decorativo con rotación sutil. */
-.boot-ring-orbit {
-  position: absolute;
-  inset: -9%;
-  border-radius: 50%;
-  background: conic-gradient(
-    from 90deg,
-    rgba(0, 36, 87, 0),
-    rgba(0, 36, 87, 0.2),
-    rgba(19, 119, 109, 0.16),
-    rgba(0, 36, 87, 0)
-  );
-  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 2px));
-  mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 2px));
-  animation: boot-spin 4.2s linear infinite;
-}
-
-.boot-ring-core {
-  display: grid;
-  place-items: center;
-  width: 72%;
-  aspect-ratio: 1;
-  border-radius: 50%;
-  border: 1px solid rgba(0, 36, 87, 0.1);
-  background: color-mix(in srgb, var(--pulso-surface) 92%, transparent);
-  box-shadow: 0 14px 40px rgba(0, 36, 87, 0.12);
-}
-
-.boot-progress-percent {
-  color: var(--pulso-primary);
-  font-size: clamp(24px, 3vw, 34px);
-  font-weight: var(--pulso-weight-heavy);
-  font-variant-numeric: tabular-nums;
-  letter-spacing: -0.02em;
-}
-
 .boot-progress {
   width: min(620px, 100%);
   display: grid;
@@ -1182,10 +1107,6 @@ input {
     text-align: center;
   }
 
-  .boot-ring {
-    width: clamp(96px, 9vw, 140px);
-  }
-
   .boot-progress {
     width: 100%;
   }
@@ -1212,7 +1133,6 @@ input {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .boot-ring-orbit,
   .boot-step-spin {
     animation: none;
   }

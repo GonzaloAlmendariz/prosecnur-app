@@ -2,6 +2,7 @@ import { useState } from "react";
 import type { ExploradorDist, ExploradorDistFila } from "../../../../api/validacionExplorar";
 import { estiloConVariables } from "./estiloConVariables";
 import { divergente, esFueraDeLista, esResidual, fmtN, fmtPct, ordenarFilas, type Divergente } from "./explorarModelo";
+import { formatoConteo } from "../../../../lib/formatoNumero";
 
 const VISIBLES = 15;
 
@@ -50,7 +51,7 @@ export default function DistribucionBarras({
           className={`vx-barra-fila${f === top && gana ? " is-primera" : ""}${esResidual(f.etiqueta) || fuera(f) ? " is-residual" : ""}`}
         >
           <span className="vx-barra-etq">
-            {fuera(f) ? <><span className="vx-mono">{f.etiqueta}</span> · fuera de la lista</> : f.etiqueta}
+            {fuera(f) ? <><span className="vx-mono">{f.etiqueta}</span> (fuera de la lista)</> : f.etiqueta}
           </span>
           <span className="vx-pista" aria-hidden>
             <span className="vx-relleno" style={{ width: `${Math.max(f.n > 0 ? 0.6 : 0, Math.min(100, f.pct))}%` }} />
@@ -61,7 +62,7 @@ export default function DistribucionBarras({
       ))}
       {filas.length > VISIBLES && (
         <button type="button" className="vx-ver-mas" aria-expanded={todas} onClick={() => setTodas((t) => !t)}>
-          {todas ? "Ver menos" : `Ver las ${filas.length} opciones`}
+          {todas ? "Ver menos" : `Ver las ${formatoConteo(filas.length)} opciones`}
         </button>
       )}
       {sinRespuesta !== null && (
@@ -76,7 +77,7 @@ export default function DistribucionBarras({
         <div className="vx-cuantas" aria-label="Cuántas opciones marca cada caso">
           {dist.cuantas_marca.map((c) => (
             <span key={c.k}>
-              {c.k === "1" ? "1 opción" : c.k === "2" ? "2 opciones" : "3 o más"} · {fmtPct(c.pct)}
+              {c.k === "1" ? "1 opción" : c.k === "2" ? "2 opciones" : "3 o más"}: {fmtPct(c.pct)}
             </span>
           ))}
         </div>
@@ -98,7 +99,7 @@ function BarraDivergente({ div, aparte }: { div: Divergente; aparte: readonly Ex
           <span
             key={`${s.fila.codigo}-${s.fila.etiqueta}`}
             className={`vx-div-seg is-${s.lado}`}
-            title={`${s.fila.etiqueta} · ${fmtPct(s.fila.pct)} · ${fmtN(s.fila.n)} ${s.fila.n === 1 ? "caso" : "casos"}`}
+            title={`${s.fila.etiqueta}: ${fmtPct(s.fila.pct)}, ${fmtN(s.fila.n)} ${s.fila.n === 1 ? "caso" : "casos"}`}
             style={estiloConVariables({ "--vx-int": `${Math.round(35 + 60 * s.intensidad)}%` }, { flexBasis: `${s.fila.pct}%`, flexGrow: 0 })}
           >
             {s.fila.pct >= 6 ? `${Math.round(s.fila.pct)}%` : ""}
@@ -108,7 +109,7 @@ function BarraDivergente({ div, aparte }: { div: Divergente; aparte: readonly Ex
           <span
             key={`aparte-${f.codigo}-${f.etiqueta}`}
             className={`vx-div-seg is-aparte${i === 0 ? " is-corte" : ""}`}
-            title={`${f.etiqueta} · ${fmtPct(f.pct)} · ${fmtN(f.n)} ${f.n === 1 ? "caso" : "casos"}`}
+            title={`${f.etiqueta}: ${fmtPct(f.pct)}, ${fmtN(f.n)} ${f.n === 1 ? "caso" : "casos"}`}
             style={{ flexBasis: `${f.pct}%`, flexGrow: 0 }}
           >
             {f.pct >= 6 ? `${Math.round(f.pct)}%` : ""}

@@ -15,6 +15,7 @@
 // se invalidó codificación y analítica para rehacerlas idénticas.
 // =============================================================================
 
+import { enumerar } from "../../lib/enumerar";
 import type { LimpiezaBeforeAfterPreview, LimpiezaDecisionSummary } from "./types";
 
 export type ImpactoDecisiones = {
@@ -85,7 +86,7 @@ export function calcularImpacto(
     ? `${plural(casosExcluidos, "exclusión declarada", "exclusiones declaradas")} y la base no pierde ninguna fila`
     : nulo
       ? `${plural(listas, "decisión lista", "decisiones listas")} y ninguna cambia la base`
-      : partes.join(" · ");
+      : enumerar(partes);
 
   return {
     nulo,

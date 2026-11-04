@@ -1,5 +1,6 @@
 import { formatoDecimal } from "../../../../lib/formatoNumero";
 import { useEffect, useState, type ReactNode } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { Table2 } from "../../../../vendor/lucide-react";
 import { EstadoVacio } from "../../../../components/EstadoVacio";
 import { LoadingBlock, ErrorBlock } from "../../../../components/States";
@@ -38,6 +39,9 @@ export function AulasTablasDeAvance(): ReactNode {
   const [tablas, setTablas] = useState<MonitoreoAulasAvanceTabla[] | null>(null);
   const [error, setError] = useState("");
   const [corte, setCorte] = useState("");
+  const [sinPlan, setSinPlan] = useState("");
+  const navegar = useNavigate();
+  const ubicacion = useLocation();
 
   useEffect(() => {
     let vivo = true;
@@ -46,6 +50,7 @@ export function AulasTablasDeAvance(): ReactNode {
         const res = await apiMonitoreoAulasAvanceTablas();
         if (!vivo) return;
         setTablas(res.tablas ?? []);
+        setSinPlan(res.sin_plan ? (res.vacio || "Todavía no hay plan de cursos-horario.") : "");
         // **El CORTE primero, no el titular.** Se prefería el titular y salía la
         // misma frase dos veces con tres líneas de por medio: como línea de la
         // sección y como nota de «Avance general», que es de donde sale. Encima
@@ -78,6 +83,28 @@ export function AulasTablasDeAvance(): ReactNode {
     return (
       <div data-audit-ready="false" data-qa-geometry-capacity="owned" data-qa-geometry-member="true">
         <LoadingBlock label="Leyendo las tablas de avance…" variant="inline" />
+      </div>
+    );
+  }
+  if (sinPlan) {
+    // Sin plan no hay avance que tabular: es un estudio que todavía no importó su selección, no una
+    // falla. El motor lo dice con su causa y aquí va la salida (C3).
+    const irAFuentes = () => {
+      const params = new URLSearchParams(ubicacion.search);
+      params.set("seccion", "insumos");
+      params.set("pestana", "fuentes");
+      for (const clave of ["panel", "foco"]) params.delete(clave);
+      navegar({ pathname: ubicacion.pathname, search: `?${params.toString()}` });
+    };
+    return (
+      <div data-qa-geometry-capacity="owned" data-qa-geometry-member="true" data-qa-geometry-empty="legitimo">
+        <EstadoVacio
+          tamano="normal"
+          icono={<Table2 size={18} />}
+          titulo="Todavía no hay plan de cursos-horario."
+          descripcion={sinPlan}
+          accion={<button type="button" className="pulso-button pulso-button--secondary" onClick={irAFuentes}>Abrir Insumos › Fuentes</button>}
+        />
       </div>
     );
   }

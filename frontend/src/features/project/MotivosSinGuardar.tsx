@@ -19,7 +19,7 @@ export function MotivosSinGuardar({ motivos }: { motivos: readonly MotivoSinGuar
           <li key={motivo.motivo}>
             <span className="pulso-motivos-sin-guardar-area">{areaDeMotivo(motivo.motivo)}</span>
             <span className="pulso-motivos-sin-guardar-cuando">
-              {motivo.veces > 1 ? `${motivo.veces} veces · ` : ""}
+              {motivo.veces > 1 ? `${motivo.veces} veces, ` : ""}
               {projectRelTime(motivo.ultima)}
             </span>
             <code className="pulso-motivos-sin-guardar-clave" title={motivo.motivo}>{motivo.motivo}</code>

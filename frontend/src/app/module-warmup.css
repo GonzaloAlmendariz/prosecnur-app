@@ -1,14 +1,68 @@
 /* =============================================================================
    ModuleWarmupBoundary — warm start de un módulo con tiempo (Meta B, L23)
    =============================================================================
-   La raíz `.pulso-module-warmup` (fondo, centrado, marca y titular) vive en
-   theme.css, congelado a crecimiento; aquí va lo nuevo: la silueta de la vista
-   destino detrás, la lámina del indicador y las fases con su duración. */
+   Toda la carga por módulo vive aquí (4 nov 2026: la raíz salió de theme.css).
+   Habla el lenguaje de la carga del proyecto (boot-ecualizador.css): fondo liso,
+   el isotipo como indicador, la barra del kit en el color del módulo y una
+   lámina que lee rótulo, fase, barra, reloj y fases. */
 
 .pulso-module-warmup {
+  --module-accent: var(--pulso-primary);
+  --module-accent-soft: var(--pulso-primary-soft);
+  --module-accent-border: var(--pulso-primary-border);
   position: relative;
   overflow: hidden;
   isolation: isolate;
+  flex: 1 1 auto;
+  min-height: 100%;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 26px;
+  padding: clamp(36px, 8vh, 86px) clamp(28px, 7vw, 90px);
+  color: var(--pulso-text);
+  background: var(--pulso-bg);
+}
+
+.pulso-module-warmup-card .boot-eq svg {
+  width: 56px;
+  height: 56px;
+}
+
+.pulso-module-warmup-copy {
+  display: grid;
+  gap: 6px;
+  text-align: center;
+}
+
+.pulso-module-warmup-copy p {
+  margin: 0;
+  color: color-mix(in srgb, var(--module-accent) 70%, var(--pulso-text));
+  font-size: 12px;
+  font-weight: var(--pulso-weight-bold);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.pulso-module-warmup-copy h2 {
+  margin: 0;
+  color: var(--pulso-text);
+  font-size: clamp(22px, 2.6vw, 28px);
+  font-weight: var(--pulso-weight-heavy);
+  line-height: 1.15;
+  letter-spacing: 0;
+  text-wrap: balance;
+}
+
+.pulso-module-warmup small {
+  max-width: min(520px, 82vw);
+  color: var(--pulso-text-faint);
+  font-size: 11px;
+  text-align: center;
+}
+
+.pulso-module-warmup-card .pulso-barra-avance {
+  width: 100%;
 }
 
 .pulso-module-warmup > .pulso-module-warmup-destino {
@@ -27,8 +81,7 @@
   padding: clamp(20px, 3vw, 32px);
   border: 1px solid var(--pulso-border);
   border-radius: 20px;
-  background: color-mix(in srgb, var(--pulso-surface) 92%, transparent);
-  backdrop-filter: blur(10px) saturate(1.05);
+  background: var(--pulso-surface);
   box-shadow: var(--pulso-shadow-high);
 }
 

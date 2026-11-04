@@ -36,7 +36,6 @@ test_that("L26: el resumen del sorteo trae el método rotulado dentro de cada es
 
 test_that("L26: el reporte de un estudio sin aulas no publica métodos de aulas (Quarto real)", {
   skip_if_not(nzchar(Sys.which("quarto")) && requireNamespace("quarto", quietly = TRUE), "sin quarto")
-  skip_on_cran()
   x <- .rg_estudio()
   out <- tempfile(fileext = ".html")
   withr::defer(unlink(out))
@@ -51,7 +50,6 @@ test_that("L26: el reporte de un estudio sin aulas no publica métodos de aulas 
 
 test_that("L26: un estudio de aulas conserva su sustento y su sección de efectividad (Quarto real)", {
   skip_if_not(nzchar(Sys.which("quarto")) && requireNamespace("quarto", quietly = TRUE), "sin quarto")
-  skip_on_cran()
   comp <- calc_muestra_normalize_componente(list(id = "a1", actor = "Estudiantes", actor_id = "e",
     tecnica = "prob_conglomerado_multietapico",
     marco = list(universo_bruto = 5000L, marco_validado = 5000L, marco_contactable = 5000L, estado = "validado")))
@@ -68,7 +66,6 @@ test_that("L26: un estudio de aulas conserva su sustento y su sección de efecti
 
 test_that("L28: el reporte habla en palabras, no en claves internas (Quarto real)", {
   skip_if_not(nzchar(Sys.which("quarto")) && requireNamespace("quarto", quietly = TRUE), "sin quarto")
-  skip_on_cran()
   x <- .rg_estudio()
   out <- tempfile(fileext = ".html")
   withr::defer(unlink(out))

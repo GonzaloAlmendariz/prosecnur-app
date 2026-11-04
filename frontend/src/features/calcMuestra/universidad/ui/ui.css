@@ -330,6 +330,14 @@
   padding-bottom: 2px;
 }
 
+/* Una cadena horizontal declarada (C1) estira sus etapas a la más alta; el
+ * contenido de cada una llena ese alto (el detalle baja al pie) para que no
+ * quede interior sin usar. */
+.cmv2-uni-flujo[data-orientacion="horizontal"][data-qa-geometry-group] > .cmv2-uni-flujo-etapa > .cmv2-uni-flujo-copy {
+  align-self: stretch;
+  align-content: space-between;
+}
+
 /* Los flujos largos se leen como una secuencia compacta, no como una cinta
    horizontal ni como una columna interminable. En escritorio amplio ocupan
    una sola fila; el propio contenedor reduce la retícula antes de comprimir
@@ -503,6 +511,23 @@ button.cmv2-uni-flujo-etapa:focus-visible {
   text-transform: uppercase;
   color: var(--pulso-text-muted);
   white-space: nowrap;
+}
+
+/* A 1024 las etapas de un flujo horizontal miden ~110 px y una etiqueta como
+ * «② Redondeo de diseño» (141 px) se salía de su etapa: parte en dos líneas por
+ * palabras enteras, nunca a media palabra. */
+@media (max-width: 1180px) {
+  .cmv2-uni-flujo[data-orientacion="horizontal"] .cmv2-uni-flujo-label {
+    white-space: normal;
+    overflow-wrap: normal;
+    word-break: normal;
+    line-height: 1.25;
+  }
+
+  /* «⑤ Cuadratura» es una palabra sola: con 13 px de relleno se salía 5 px. */
+  .cmv2-uni-flujo[data-orientacion="horizontal"] > .cmv2-uni-flujo-etapa {
+    padding-inline: 9px;
+  }
 }
 
 .cmv2-uni-flujo[data-orientacion="adaptive"] .cmv2-uni-flujo-label {

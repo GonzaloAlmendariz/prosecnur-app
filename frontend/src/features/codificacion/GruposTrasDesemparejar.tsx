@@ -40,7 +40,7 @@ export function GruposTrasDesemparejar({
         display: "flex", alignItems: "center", flexWrap: "wrap", gap: 8,
         padding: "8px 12px", borderRadius: "var(--pulso-radius-panel)",
         border: "1px solid var(--pulso-warn-border)", background: "var(--pulso-warn-bg)",
-        color: "var(--pulso-text)", fontSize: 12,
+        color: "var(--pulso-text)", fontSize: "var(--pulso-type-body-size)",
       }}
     >
       <AlertTriangle size={14} style={{ color: "var(--pulso-warn-fg)", flex: "0 0 auto" }} />

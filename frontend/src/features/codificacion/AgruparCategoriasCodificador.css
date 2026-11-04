@@ -35,7 +35,7 @@
   background: transparent;
   color: var(--pulso-text-soft);
   font: inherit;
-  font-size: 12px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-semibold);
   cursor: pointer;
 }
@@ -72,7 +72,7 @@
 }
 
 .pulso-agrupar-toolbar svg,
-.pulso-agrupar-seccion-head svg {
+.pulso-agrupar-seccion .pulso-panel-actions svg {
   margin-right: var(--pulso-space-1);
   vertical-align: -2px;
 }
@@ -87,7 +87,7 @@
   border-radius: var(--pulso-radius);
   background: var(--pulso-danger-bg);
   color: var(--pulso-danger-fg);
-  font-size: 13px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .pulso-agrupar-aviso > span {
@@ -111,29 +111,18 @@
   min-width: 0;
 }
 
-.pulso-agrupar-seccion {
+/* P2 (4 nov 2026): cada sección es un Panel del kit, que pone la caja y la cabecera; aquí sólo
+   la columna con su aire entre bloques. */
+.pulso-panel.pulso-agrupar-seccion {
   display: flex;
   flex-direction: column;
   gap: var(--pulso-space-3);
   min-width: 0;
-  padding: var(--pulso-space-4);
-  border: 1px solid var(--pulso-border);
-  border-radius: var(--pulso-radius-card);
-  background: var(--pulso-surface);
+  margin-bottom: 0;
 }
 
-.pulso-agrupar-seccion-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--pulso-space-2);
-}
-
-.pulso-agrupar-titulo {
-  margin: 0;
-  color: var(--pulso-text);
-  font-size: 13px;
-  font-weight: var(--pulso-weight-bold);
+.pulso-panel.pulso-agrupar-seccion > .pulso-panel-header {
+  margin-bottom: 0;
 }
 
 .pulso-agrupar-lista {
@@ -146,7 +135,7 @@
   flex-direction: column;
   gap: var(--pulso-space-1);
   min-width: 0;
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   color: var(--pulso-text-soft);
 }
 
@@ -165,7 +154,7 @@
   background: var(--pulso-surface);
   color: var(--pulso-text);
   font: inherit;
-  font-size: 13px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .pulso-agrupar-campo input[aria-invalid="true"] {
@@ -175,7 +164,7 @@
 .pulso-agrupar-nota {
   margin: 0;
   color: var(--pulso-text-soft);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   line-height: 1.45;
 }
 
@@ -225,7 +214,7 @@
   background: transparent;
   color: var(--pulso-primary);
   font: inherit;
-  font-size: 12px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-semibold);
   cursor: pointer;
 }
@@ -256,7 +245,7 @@
   margin-bottom: var(--pulso-space-1);
   padding: 0;
   color: var(--pulso-text);
-  font-size: 12px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-semibold);
 }
 
@@ -269,7 +258,7 @@
   align-items: center;
   gap: var(--pulso-space-2);
   color: var(--pulso-text);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   line-height: 1.4;
   cursor: pointer;
 }
@@ -277,13 +266,13 @@
 .pulso-agrupar-tabla {
   width: 100%;
   border-collapse: collapse;
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .pulso-agrupar-tabla caption {
   padding-bottom: var(--pulso-space-2);
   color: var(--pulso-text-soft);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   text-align: left;
 }
 
@@ -291,7 +280,7 @@
   padding: var(--pulso-space-1) var(--pulso-space-2);
   border-bottom: 1px solid var(--pulso-border-strong);
   color: var(--pulso-text-soft);
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   font-weight: var(--pulso-weight-semibold);
   text-align: left;
   white-space: nowrap;
@@ -324,7 +313,7 @@
   display: block;
   margin-top: 2px;
   color: var(--pulso-text-soft);
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
 }
 
 .pulso-agrupar-errores {
@@ -334,7 +323,7 @@
   margin: 0;
   padding-left: var(--pulso-space-5);
   color: var(--pulso-warn-fg);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   line-height: 1.45;
 }
 
@@ -353,4 +342,10 @@
     grid-column: 1 / -1;
     justify-content: flex-end;
   }
+}
+
+/* Las columnas de Agrupar son angostas: el título del Panel no reserva 320 px, así la acción
+   («Agregar categoría») queda a su lado y no cae debajo. */
+.pulso-agrupar-seccion .pulso-panel-heading {
+  flex-basis: auto;
 }

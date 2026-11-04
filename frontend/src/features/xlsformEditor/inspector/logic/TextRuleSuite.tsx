@@ -270,7 +270,7 @@ export function TextRuleSuite({ active, onApply, onClear, variant = "block" }: T
           <span className="pulso-xftr-summary-title">
             {active.recipe.title(active.params)}
             {isDniEquivalent(active.recipe, active.params) && (
-              <small className="pulso-xftr-equiv"> · equivale a DNI</small>
+              <small className="pulso-xftr-equiv"> (equivale a DNI)</small>
             )}
           </span>
           <span className="pulso-xftr-summary-actions">

@@ -109,9 +109,9 @@ function conteo(n: number, singular: string, plural: string): string {
  * cuenta el resto. Así el paso no crece con el número de bases.
  */
 export function porBaseConTope(entradas: readonly string[]): string {
-  if (entradas.length <= 2) return entradas.join(" · ");
+  if (entradas.length <= 2) return entradas.join(", ");
   const resto = entradas.length - 1;
-  return `${entradas[0]} · y ${conteo(resto, "base más", "bases más")}`;
+  return `${entradas[0]} y ${conteo(resto, "base más", "bases más")}`;
 }
 
 // ---------------------------------------------------------------------------
@@ -128,7 +128,7 @@ function pasoBases(e: EntradaRecorrido): PasoRecorrido {
     return { ...base, estado: n === 0 ? "no-empezado" : "falta", detalle: n === 0 ? "Sin bases cargadas" : "1 base: la serie necesita 2" };
   }
   if (!e.ordenDeclarado && !e.ordenPorAnio) {
-    return { ...base, estado: "falta", detalle: `${conteo(n, "base", "bases")} · orden sin declarar` };
+    return { ...base, estado: "falta", detalle: `${conteo(n, "base", "bases")}, orden sin declarar` };
   }
   return { ...base, estado: "hecho", detalle: resumenOrdenSerie(e.bases, 3) };
 }
@@ -228,7 +228,7 @@ function pasoMatriz(e: EntradaRecorrido): PasoRecorrido {
     // Faltar en una base puede ser legítimo (no se preguntó ese año): se dice, no se exige.
     incompletas ? `${formatoConteo(incompletas)} ${incompletas === 1 ? "falta" : "faltan"} en alguna base` : "",
   ].filter(Boolean);
-  return { ...base, estado: pendientes ? "falta" : "hecho", detalle: partes.join(" · ") };
+  return { ...base, estado: pendientes ? "falta" : "hecho", detalle: partes.join(", ") };
 }
 
 function pasoPonderacion(e: EntradaRecorrido): PasoRecorrido {
@@ -253,7 +253,7 @@ function pasoPonderacion(e: EntradaRecorrido): PasoRecorrido {
     const resto = sinLeer.length === serie.length
       ? "Se ve base por base en Analítica"
       : `${conteo(sinLeer.length, "base", "bases")} sin leer aquí`;
-    return { ...base, estado: "sin-lectura", detalle: [textoLeidas, resto].filter(Boolean).join(" · ") };
+    return { ...base, estado: "sin-lectura", detalle: [textoLeidas, resto].filter(Boolean).join(", ") };
   }
   return { ...base, estado: "hecho", detalle: textoLeidas };
 }

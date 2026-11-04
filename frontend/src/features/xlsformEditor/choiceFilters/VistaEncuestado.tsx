@@ -15,7 +15,7 @@ type Props = {
 function Control({ e, valor, onCambio, compacto }: { e: Entrada; valor: string | string[] | undefined; onCambio: (v: string | string[]) => void; compacto: boolean }) {
   const id = `xcf-vista-${e.nombre}`;
   const rotulo = compacto
-    ? <label htmlFor={id} className="xcf-vista__rot" title={`${e.nombre} · ${e.etiqueta}`}><code>{e.nombre}</code></label>
+    ? <label htmlFor={id} className="xcf-vista__rot" title={`${e.nombre}: ${e.etiqueta}`}><code>{e.nombre}</code></label>
     : <label htmlFor={id} className="xcf-vista__rot"><span>{e.etiqueta}</span> <code>{e.nombre}</code></label>;
   if (!e.respuestas) {
     return <div className="xcf-vista__par" data-qa-geometry-member="">{rotulo}<input id={id} className="xcf-input" value={typeof valor === "string" ? valor : ""} placeholder="Valor de la respuesta" onChange={(x) => onCambio(x.target.value)} /></div>;

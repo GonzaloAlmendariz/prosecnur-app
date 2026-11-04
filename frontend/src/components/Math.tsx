@@ -50,6 +50,9 @@ export function Math({ expression, display = false, className }: Props) {
     <span
       ref={ref}
       className={`pulso-math ${display ? "pulso-math--display" : ""} ${className ?? ""}`}
+      // Las piezas que arma KaTeX (`vlist-t`, `vlist-r`…) son maquetado de la
+      // librería, no una colección de la app: no llevan contrato C1 propio.
+      data-qa-geometry-exento="maquetado de KaTeX"
     />
   );
 }

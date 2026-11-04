@@ -84,15 +84,17 @@ test_that("CCSS-14 divergentes: tres cifras chicas del lado del acuerdo sin cruz
   expect_true(all(centros - tinta / 2 >= xc + 0.05 - 1e-6))       # del lado del acuerdo, sin tocar la línea del centro
 })
 
-test_that("U5 panel circular: la leyenda no compacta escribe «<1%» con casos", {
+test_that("U5 panel circular: la figura escribe «<1%» con casos y la leyenda no lleva porcentajes", {
   e <- attr(suppressWarnings(graficar_pie(data.frame(c = c("Femenino", "Masculino", "No binario", "Prefiero no responder"),
                                                      p = c(209, 181, 6, 1) / 397, n = c(209, 181, 6, 1)), "c", "p", var_n = "n",
                                           tipo_pie = "donut")), "pulso_espec")
   geo <- .lam_panel_circular_geo(e, 0.5, 1.65, 6.01, 2.4, 0)
-  expect_false(isTRUE(geo$compacto))
+  expect_true(isTRUE(geo$cabe))
   lz <- .lam_lienzo(); .lam_panel_circular(lz, e, geo)
   doc <- .lam_agrupar(officer::add_slide(.ce_doc(), layout = "Graficos2", master = "Office Theme"), lz, nombre = "t")
   f <- .ce_formas(doc)
-  cif <- f$texto[f$nombre == "circular:cifra"]
+  # Revisión del v7: el porcentaje va sobre su porción o fuera con su guía, no en la leyenda.
+  cif <- f$texto[f$nombre %in% c("dona:cifra_aro", "dona:cifra_fuera")]
   expect_true("<1%" %in% cif); expect_false("0%" %in% cif)
+  expect_false(any(grepl("%", f$texto[f$nombre == "circular:rotulo"])))
 })

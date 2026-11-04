@@ -45,6 +45,16 @@ const TRANSVERSALES = [
   "src/components/estadosDelKit.contract.test.ts", // un vacío o un error dibujado a mano
   "src/components/indicadorDelKit.contract.test.ts", // un segmentado que empata con el indicador del kit
   "src/components/puntoMedioDelKit.contract.test.ts", // un «·» que el kit, lib/ o app/ pintan en todos los módulos
+  // En subcarpetas o con el helper `test/contractSourceScan`, y por eso fuera del barrido viejo de
+  // gateFrontTransversales (2026-11-04): `lectoresDeDireccion` se rompió sin que un gate lo viera.
+  "src/lib/navegacion/lectoresDeDireccion.contract.test.ts", // alguien nuevo lee la dirección a mano
+  "src/lib/navegacion/panelesDeclarados.contract.test.ts",   // un panel montado que no se declara
+  "src/lib/navegacion/aliasLegacyNoSeEscribe.contract.test.ts", // un alias viejo (tab, stage…) que se escribe
+  "src/lib/navegacion/direccionesRenombradasNoSeEscriben.contract.test.ts", // una dirección renombrada que vuelve
+  "src/components/GlidingTabList.contract.test.ts",           // un tablist fuera del GlidingTabList
+  // La publicación monta sin Router: un hook de router en lo que alcanza lanza al montarse (7453e06dc).
+  // Recorre el cierre de imports de PublicArtifactApp, así que se rompe desde cualquier componente que importe.
+  "src/app/publicModeSinRouter.contract.test.tsx",
 ];
 
 const area = process.argv[2] ?? "";

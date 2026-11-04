@@ -45,14 +45,18 @@
   gap: var(--pulso-space-3);
   min-width: 0;
   min-height: 0;
-  padding: var(--pulso-space-4);
   overflow: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--pulso-border-strong) transparent;
+}
+
+/* El material sólo para el panel que no es un bloque del kit (P2: el `Panel` pone el suyo). */
+.mon-con-panel:not(.mon-bloque) {
+  padding: var(--pulso-space-4);
   border: 1px solid var(--pulso-border);
   border-radius: var(--pulso-radius-panel);
   background: var(--pulso-surface);
   box-shadow: var(--pulso-shadow-low);
-  scrollbar-width: thin;
-  scrollbar-color: var(--pulso-border-strong) transparent;
 }
 
 .mon-con-panel > * {

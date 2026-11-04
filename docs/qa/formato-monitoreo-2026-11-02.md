@@ -87,11 +87,11 @@ en el mismo paso) y se commitea con `git commit -m "…" -- <rutas>`.**
 | 1 | Territorial › Insumos › Conexiones | Cada fuente Kobo es un formulario plano de 7 pares rótulo/valor («Fase desde» cae sola a una segunda fila a 1280); la serie de lecturas de Piloto son 7 bloques iguales de 220×55 px; tres botones sueltos; subtítulo en MAYÚSCULAS crudas del formulario; «Muestra de campo» con otra receta de mini tarjeta; vacío grande al pie | ☑ 0f00167ff (Panel por fuente, CifrasEnTarjeta, tira de lecturas de 28 px, una sola primaria, Piloto discreta al final; captura 1440/1280 ok=true) y 98a9df7c6: `.mon-page .pulso-panel button` pintaba de blanco TODO botón dentro de un Panel, así que ninguna primaria de Monitoreo se veía primaria (P7) |
 | 2 | Telefónico › Avance › Cuotas a 1280×720 | La columna derecha recortaba sus tres tarjetas | ☑ 11fae58b9 |
 | 3 | Aulas › Modelo › Metas y Avance › Por facultad sin plan | Una franja de una línea sobre una superficie en blanco; la Semana vacía de la Agenda estirada hasta el pie | ☑ P5 (EstadoVacio normal; la Semana mide su nota) y 8d758e801 (44 px a 1280) |
-| 4 | Acreditación › Avance › Resumen, cinta «Respuestas → Cruzan → Efectivas» | Las celdas de descuento (−276, −24) llevan tres líneas de texto apretadas en ~150 px («265 sin llave (pruebas o enlace sin id) / 11 con llave fuera de las bases») | ☐ |
+| 4 | Acreditación › Avance › Resumen, cinta «Respuestas → Cruzan → Efectivas» | Las celdas de descuento (−276, −24) llevan tres líneas de texto apretadas en ~150 px («265 sin llave (pruebas o enlace sin id) / 11 con llave fuera de las bases») | ☑ libro de mermas: cada motivo en un renglón con la cifra en su columna (alineada a la derecha) y un rótulo corto («sin llave», «fuera de las bases», «no cuentan»); el detalle del motivo va en el título del botón, y el tramo pasa de 150 a 176 px mínimo |
 | 5 | Territorial › Avance › Faltante por UMP (envío UMP) | La lista de tarjetas por UMP se corta a media tarjeta dentro de su caja («UMP 4» partida) antes de la nota «Las otras 50 UMP…» | ☑ (3/11): las pendientes miden lo que traen, con un tope de unas tres tarjetas, y el pie se desvanece sólo mientras queda algo abajo (`core/useQuedanMasAbajo`). El mapa de calor pasa a celdas de dos pisos («103» y debajo «de 96»), así que a 1440 ya no pega la columna «60 o más» al borde; el chip largo de sugerencia parte dentro de su tarjeta a 1280 (antes se salía 32 px). Captura d1_ump a 1440, 1280 y 1024: `ok=true` |
 | 6 | Telefónico › Modelo › Cuotas a 1280×720 | La tabla de metas muestra dos filas y desplaza por dentro, y su cabecera pegajosa tapa 34 px de la fila que asoma (`cabecerasQueTapan=1`, sale en unas corridas y en otras no); la tarjeta Calendario recorta su gráfico al pie | ☑ (3 nov, commit «Cuotas a pantalla baja»): el defecto era el desplazamiento anidado, no el relleno. En pantalla baja (≥1181 px de ancho y ≤820 px de alto) cada tarjeta toma su alto natural, la tabla deja de ser marco que desplaza (cabecera estática) y la vista crece y desplaza el contenedor de la pestaña, como Avance › Cuotas en 11fae58b9. Captura d1_telefonico 1280×720, 1366×768 y 1440×1000: `ok=true`, `cabecerasQueTapan=0`, cinco filas a la vista, 3 md5 distintos; la pestaña desplaza (scrollTop 211/284) |
-| 7 | Territorial › Avance › Cuota de cada UMP | El aplicador va en dos líneas («P884, Norma Flores / Bustamante») y «Sin excedente compatible cerca» también; «Saldo» es una columna entera de «—» | ☐ |
-| 8 | Telefónico › Control › Barrido | Ya tiene cabecera de bloque única (P2); queda la mezcla de dos gramáticas de mini cifra (franja de 4 con barra frente a «Asignados / Sin asignar» al pie de «Sin llamar») | ☐ |
+| 7 | Territorial › Avance › Cuota de cada UMP | El aplicador va en dos líneas («P884, Norma Flores / Bustamante») y «Sin excedente compatible cerca» también; «Saldo» es una columna entera de «—» | ☑ el aplicador va en un renglón con su código tenue y el nombre corto (nombre de pila y apellido paterno; el completo en el título); «cubre» dice «Sin excedente» con la frase entera en el título; «Saldo» sólo se pinta si alguna UMP recibió o cedió una subsanación (`celdasDeCuotaUmp.ts`, con test) |
+| 8 | Telefónico › Control › Barrido | Ya tiene cabecera de bloque única (P2); queda la mezcla de dos gramáticas de mini cifra (franja de 4 con barra frente a «Asignados / Sin asignar» al pie de «Sin llamar») | ☑ una sola gramática, la de la tarjeta del embudo: el pie «Asignados / Sin asignar» repetía la nota de la tarjeta «Sin llamar» con antetítulo sobre cifra; se va, y la barra de esa tarjeta se parte en asignados y sin asignar |
 
 ## Cierre (3 nov, ~07:30): veredicto del verificador
 
@@ -104,6 +104,101 @@ este doc; ninguna línea añadida esta noche escribe « · » visible; sin halla
 | Captura final de acr, telefónico, cuotas y UMP | ☑ 3 nov, ~08:00 (`cap/final-*`, 4 secciones × 1440/1280, sobre HEAD 6e5dbbb04 con el árbol compilando): 32 capturas, 32 md5 distintos. acr ok=true; cuotas ok=true; UMP ok=true con `columnasOcultas=1` (Modelo, «Población», de la línea base); telefónico `cabecerasQueTapan=1` (Modelo › Cuotas, de la línea base). Ningún hallazgo nuevo frente a `antes-*` |
 | `columnasOcultas=1` en Territorial › Modelo a 1280 (`mon-mod-tabla`, «Población» 6 px detrás del desplazamiento, alcanzable) | Ya estaba en la línea base |
 | ~~`cabecerasQueTapan=1` en Telefónico › Modelo › Cuotas a 1280~~ | ☑ 3 nov: cerrado (ver ranking, fila 6) |
-| P2 en territorial, aulas y acreditación | No se alcanzó; el antetítulo como sub-rótulo dentro de una tarjeta con título sí es correcto |
+| P2 en territorial, aulas y acreditación | ☑ 4 nov (noche): `core/BloqueDeMonitoreo.tsx` es el `Panel` del kit con título, bajada, lectura, antetítulo y acciones. Marco «perfil» (conserva `mon-profile-panel`, de la que cuelgan pilas y gráficos) y marco «kit» (territorial: el `Panel` pone el material; la clase de la vista, sólo su layout). Ratchet `cajasPropias.contract.test.ts`, por perfil, sólo baja: aulas 126→80 títulos sueltos y 57→12 cabeceras propias; acreditación 106→80 y 26→0; telefónico 44→18 y 26→0; territorial 94→59. Quedan: los sub-rótulos dentro de un bloque (correctos), las vistas nuevas de aulas con diseño propio (`avance/*`), las 12 cabeceras de aulas con comentarios dentro de la etiqueta y las vistas nuevas de acreditación. Commits b193865db, df108b32d, 4686b08bf, 14cc7c8b3, a934ed636, a212b7b58, 7a1411951, 64240946c, bf7696e4e, 2746b584b, 7350410d7 |
 | Guard de `content: "·"` en el CSS de Monitoreo y caso sintético en `letraPorRol` y `pisoTipografico` | Menores; hoy hay 0 y la mutación del verificador los respalda |
 | `.acr-av-chip.is-cumple` e `.is-falta` en `acreditacion/avance/avance.css` | Huérfanas; la hoja la estaba editando otra sesión |
+
+## Ramas de las páginas madre que ninguna dirección alcanza (4 nov, noche) — pendiente de Gonzalo
+
+Los 26 bloques convertidos a `BloqueDeMonitoreo` en cada página madre (P2) no se vieron en ninguna captura. Medición: una
+sola carga por perfil (`d1_acr`, `d1_telefonico`), navegación con `window.__pulsoNav.ir` por TODAS las direcciones
+canónicas, subvistas incluidas (`insumos/fuentes/recopiladores`, `modelo/cuotas/variables`, `control/barrido/ritmo`,
+`control/calidad/supervision`…), y conteo de `.mon-bloque` en el DOM: **cero en todas**. Las claves viejas de Fuentes
+(`fuentes/survey`, `collectors`…) se resuelven a las pestañas de hoy y no reabren estas ramas. Nada se borra sin la doble
+confirmación de Gonzalo (gate 3).
+
+Las dos páginas llevan las mismas funciones copiadas (`AcreditacionMonitoreoPage.tsx` y `TelefonicoMonitoreoPage.tsx`).
+Líneas de acreditación; en telefónico, entre paréntesis.
+
+| Función | Líneas | Bloques | Por qué no se alcanza | Se podría quitar |
+|---|---|---|---|---|
+| `AcreditacionCrucesView` | 9957–9985 (11113–11141) | 3 | Sin ningún uso: nadie la monta | 29 líneas por página |
+| `AcreditacionAuditoriaView` | 9986–10020 (11142–11176) | 2 | Sin ningún uso | 35 |
+| `AcreditacionReconciliacionView` | 10021–10123 (11177–11279) | 1 | Sin ningún uso | 103 |
+| `AcreditacionModelWorkbench`, pestañas internas `casos`, `enlaces`, `reglas` y `__legacy_estrategias__` | dentro de 1526–1906 (1449–1878) | 6 | La tabla de direcciones (`direccionAcreditacion.ts`) sólo lleva Modelo a `estructura`, `resumen`, `distribucion` y `estrategias`; las tres primeras van a las vistas nuevas antes de llegar aquí y `distribucion` cae en la rama que no tiene estos bloques | las cuatro ramas, ~150 líneas por página |
+| `AcreditacionModelConfigWorkbench`, pestañas `casos` y `enlaces` (incluye `AcreditacionSweepBaseWorkbench`, 3468–3670) | dentro de 2836–3467 (2554–3186) | 3 | Sólo se monta con `activeTab="reglas"` (Insumos › Reglas) | `casos` + `enlaces` + `SweepBase`, ~350 líneas por página |
+| `renderAcreditacionView`, retorno final | 14772–14792 (17287–17307) | 2 | Cada vista interna se despacha antes; el retorno final no lo alcanza ninguna | 21 |
+
+Alcanzables sólo con condiciones; no son código muerto y se quedan:
+
+- `AcreditacionEventsEditor` y `AcreditacionStateRulesEditor` (3803–3907; 2 bloques): dentro del plegable «Eventos de contacto y reglas de estado final» de Insumos › Reglas, en un estudio que no es telefónico. Medidos en `d1_acr` (que es de acreditación, no telefónico): se pintan al abrir el plegable; la primera medición no esperó a que la sección terminara de leer el corte.
+
+Corrección (misma noche): `AcreditacionActiveSourcesView` (8112–8372; 5 bloques; en telefónico 9047–9296) **no es condicional sino inalcanzable**. `AcreditacionSourcesWorkbench` devuelve la vista nueva (`<Fuentes>`) cuando el modelo de fuentes no es telefónico, y la monta sólo en la rama contraria del mismo ternario. Suma unas 260 líneas por página a la lista de arriba.
+
+Orden de magnitud: unas 950 líneas por página madre, ~1.900 entre las dos. **Pendiente de Gonzalo**: confirmar el borrado.
+Después del borrado, los bloques de las ramas condicionales se capturan con un `.pulso` de acreditación por correo.
+
+## Estándar de Salidas (4 nov, noche): decidido por coordinación a pedido de Gonzalo, revisable
+
+Pedido de Gonzalo: «¿Por qué todas las vistas de salidas de Monitoreo tienen diseños diferentes? ¿No se pueden
+estandarizar en el mejor?». Las cuatro corrían el mismo motor (`salidas/MonitoreoOutputsWorkbench`), pero cada modo le había
+puesto una portada distinta. Antes del cambio:
+
+| Modo | Portada |
+|---|---|
+| Acreditación | Franja «Cierre del campo» con cuatro cifras, barra «Entregables del corte» y el motor debajo |
+| Telefónico | Vista del PDF del cliente a la izquierda y el motor a la derecha |
+| Territorial | Sólo el motor |
+| Cursos-horario | Lista «Salidas del corte», vista previa del libro y «Qué toca Publicar»; el motor en la sub-vista «PDF y cliente» |
+
+El estándar (`salidas/estandar/`) toma lo mejor de dos: la lista de cursos-horario (una fila por entregable, con su estado y
+una sola acción) y la hoja del telefónico (lo que recibe el cliente).
+
+- Portada (`PortadaDeSalidas`): a la izquierda «Salidas del corte», con el estado del corte en una línea; a la derecha
+  «Así se verá», con la `HojaDelCliente` del modo.
+- Filas comunes (`filasDeSalidas.ts`): PDF del cliente, Producción, Sheets del cliente, Sheets interno y Base final. Se
+  derivan de lo mismo que lee el motor (corte, readiness y últimas publicaciones), sin recalcular nada.
+- Filas propias: el cierre del campo en acreditación (primera fila, con su diálogo `panel=cerrar-campo`), y en cursos-horario
+  el libro y el Excel con sus acciones.
+- El motor completo queda en «PDF y cliente» (`panel=herramientas`), un panel superpuesto con dirección y vuelta a la portada.
+
+| Modo | Commit | Hoja del cliente | Captura (1440 y 1024, portada y «PDF y cliente») |
+|---|---|---|---|
+| Núcleo | 4f5266da0, b66479aff | — | — |
+| Telefónico | f454611f3 | Avance por cuota y ritmo diario | `ok=true` |
+| Territorial | 03f164cbf | Avance por distrito | `ok=true` |
+| Acreditación | f04bc0cfd | Avance por público | `ok=true` |
+| Cursos-horario | 54ee4d1da | Avance de campo | `ok=true` |
+
+Pendiente de Gonzalo (borrado con doble confirmación): `profiles/telefonico/avance/Entregas.tsx` y su
+`entregasTelefonico.css` quedaron sin uso, reemplazados por `SalidasTelefonicas.tsx`.
+
+### Revisión metodológica de las hojas del cliente (4 nov, noche)
+
+La revisión (agente revisor-metodológico, sólo lectura) rechazó la primera versión: «Así se verá» promete reproducir el
+entregable, y en los tres modos el total, o la columna de avance, no coincidía con el PDF. Lo que se corrigió en el front:
+
+- **Acreditación:** el columnado y el vocabulario del PDF (`monitoreo_acreditacion_avance_pdf.R`).
+  - Columnas: Universo, Completas y Avance sobre el universo (el `progress` de la tarjeta, que es la cifra principal).
+  - Mínimo esperado, Cumplimiento del mínimo y Faltan para el mínimo, sólo si algún público declara mínimo.
+  - El cumplimiento total cuenta sólo los públicos con mínimo, y «Faltan» suma por público sin compensar.
+- **Territorial:** el avance del total sale de las mismas sumas de la tabla, y la tabla usa el vocabulario del PDF («Meta
+  encuestas», «Encuestas válidas»).
+
+Pendiente, revisable por Gonzalo (fuera del alcance del front):
+
+1. **Los PDF de acreditación y territorial compensan sobrantes en su total**. Acreditación lo hace en `pdf:318` y en la
+   fila Total (`pdf:371,400`); territorial en `monitoreo_engine.R:20533`. Pueden decir «0 por recoger» con públicos o
+   distritos todavía bajo su mínimo, y declarar el cierre antes de tiempo. **Es el riesgo más alto que salió de la
+   revisión.** La vista previa ya suma sin compensar, así que hoy no coincide con esos totales del PDF.
+2. **Territorial tiene tres «Faltan» para el mismo corte**: por UMP en el Sheets (`engine:26451`), por distrito en la
+   vista previa y global en el PDF. Hay que fijar un grano y alinear los tres.
+3. **Telefónico:** el total de la vista previa es lo cubierto de la meta, acotado. El PDF divide todas las válidas, sin
+   acotar y con las que no tienen grupo, entre las previstas (`monitoreo_telefonico_avance_pdf.R:197,207`). Hay que
+   elegir una de las dos definiciones.
+4. **La meta de la vista previa no sigue el interruptor «Incluir metas»** (`include_targets`), y el PDF sí.
+5. **Territorial:** un distrito con meta nula sale con «0», porque `resumenModel.ts:164` convierte NA en 0. Debería decir
+   «—» y quedar fuera del total.
+
+Pendiente de otra tanda (Meta B): las vistas de cursos-horario `avance/*` y las vistas propias de acreditación, contra
+el Sistema Pabellón y el kit.

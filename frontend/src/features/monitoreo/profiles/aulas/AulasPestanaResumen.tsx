@@ -39,6 +39,7 @@ import type { TablaDelPerfil } from "./tablaDelPerfil";
 import type {
   MonitoreoAulasDashboard, MonitoreoAulasPlanRow, MonitoreoAulasProyeccionFila, MonitoreoRow,
 } from "../../../../api/monitoreo";
+import { BloqueDeMonitoreo } from "../../core/BloqueDeMonitoreo";
 
 /**
  * La pestaña «Resumen» del perfil de aulas.
@@ -270,17 +271,14 @@ export function AulasPestanaResumen({
                 de abajo ya contestan lo mismo para las quince y éste sería una
                 decimosexta copia. */}
             {seguimiento ? (
-              <section
-                className="mon-profile-panel"
+              <BloqueDeMonitoreo
                 data-qa-geometry-group="monitoring-aulas-avance"
                 data-qa-geometry-contract="intrinsic"
+                titulo={<>Cómo va {seguimiento.facultad}</>}
+                bajada="sus cursos-horario, sus tres metas y qué le queda por activar"
               >
-                <div className="mon-profile-panel-head">
-                  <h3>Cómo va {seguimiento.facultad}</h3>
-                  <span>sus cursos-horario, sus tres metas y qué le queda por activar</span>
-                </div>
                 <AulasSeguimientoDeFacultad seguimiento={seguimiento} />
-              </section>
+              </BloqueDeMonitoreo>
             ) : null}
             {/* **Abre la pestaña porque es la pregunta anterior a todas.** Antes
                 de cuánto se ha cumplido: de lo que ha entrado, qué cuenta. Y las
@@ -289,15 +287,12 @@ export function AulasPestanaResumen({
                 son trabajo hecho que no suma. El bloque viene del boceto del
                 2026-09-09; el motor, de `monitoreo_aulas_respuestas_desglose.R`. */}
             {desglose?.total ? (
-              <section
-                className="mon-profile-panel"
+              <BloqueDeMonitoreo
                 data-qa-geometry-group="monitoring-aulas-avance"
                 data-qa-geometry-contract="intrinsic"
+                titulo="Respuestas"
+                bajada="cuáles cuentan, y por qué no cuentan las demás"
               >
-                <div className="mon-profile-panel-head">
-                  <h3>Respuestas</h3>
-                  <span>cuáles cuentan, y por qué no cuentan las demás</span>
-                </div>
                 {/* El filtro por facultad viene del selector de la CABECERA
                     —`foco=facultad:…`—, no de un mando propio del bloque. */}
                 <AulasResumenRespuestas
@@ -307,7 +302,7 @@ export function AulasPestanaResumen({
                   grupo={grupoSingular}
                   enLaMuestra={facultadEnFoco ? null : avanceCuota(dashboard.avance_cuota).total}
                 />
-              </section>
+              </BloqueDeMonitoreo>
             ) : null}
             {/* **Las quince facultades de un vistazo**, que es lo que él pide de
                 esta pestaña y no estaba: «quiero ver las respuestas efectivas de
@@ -317,42 +312,45 @@ export function AulasPestanaResumen({
                 pone todas. Cruza dos bloques que el motor ya emite, sin calcular
                 ninguna cifra nueva. */}
             {desglose?.facultades?.length ? (
-              <section
-                className="mon-profile-panel"
+              <BloqueDeMonitoreo
                 data-qa-geometry-group="monitoring-aulas-avance"
                 data-qa-geometry-contract="intrinsic"
+                titulo={<>Por {grupoSingular.toLocaleLowerCase("es")}</>}
+                bajada={<>efectivas y cursos-horario aplicados de cada{" "}
+                  {grupoSingular.toLocaleLowerCase("es")}, ordenadas por efectivas</>}
               >
-                <div className="mon-profile-panel-head">
-                  {/* **El rótulo sale de la declaración del bloque.** El motor
-                      agrupa por lo que el estudio declara —facultad por
-                      defecto, carrera en un estudio que vive dentro de UNA
-                      facultad— y el campo sigue llamándose `facultad` por
-                      contrato. Un título cableado diría «Por facultad» encima de
-                      una columna de carreras. */}
-                  <h3>Por {grupoSingular.toLocaleLowerCase("es")}</h3>
-                  {/* «Avance de los cursos-horario» describía la barra cuando la
-                      barra dibujaba aplicadas sobre planificadas; desde
-                      `94e378c0` la barra reparte las efectivas y ese avance vive
-                      en las dos columnas de cifras. El rótulo dice lo que hay. */}
-                  <span>
-                    efectivas y cursos-horario aplicados de cada{" "}
-                    {grupoSingular.toLocaleLowerCase("es")}, ordenadas por efectivas
-                  </span>
-                </div>
+                {/* **El rótulo sale de la declaración del bloque.** El motor
+                    agrupa por lo que el estudio declara —facultad por
+                    defecto, carrera en un estudio que vive dentro de UNA
+                    facultad— y el campo sigue llamándose `facultad` por
+                    contrato. Un título cableado diría «Por facultad» encima de
+                    una columna de carreras. */}
+                {/* «Avance de los cursos-horario» describía la barra cuando la
+                    barra dibujaba aplicadas sobre planificadas; desde
+                    `94e378c0` la barra reparte las efectivas y ese avance vive
+                    en las dos columnas de cifras. El rótulo dice lo que hay. */}
                 <AulasResumenPorFacultad
                   respuestas={desglose.facultades}
                   aulas={dashboard.aulas_por_facultad}
                   facultadEnFoco={facultadEnFoco}
                   grupo={grupoSingular}
                 />
-              </section>
+              </BloqueDeMonitoreo>
             ) : null}
-            <section
-              className="mon-profile-panel"
+            <BloqueDeMonitoreo
               data-qa-geometry-group="monitoring-aulas-avance"
               data-qa-geometry-contract="intrinsic"
+              titulo={<>Respuestas que pide el plan, curso{"\u2011"}horario a curso{"\u2011"}horario</>}
+              lectura={<>
+                  {fmtCuenta(
+                    (facultadEnFoco ? 0 : Number(dashboard?.cumplimiento_respuestas?.meta))
+                    || avanceEnRespuestas(aulaRows as unknown as MonitoreoAulasPlanRow[]).meta,
+                  )} respuestas: lo que se le pide a cada uno de los {fmt(aulaRows.length)}{" "}
+                  cursos-horario, sumado. Lo que sobra en uno no cubre lo que falta en otro,
+                  así que exige más que el «Avance a la muestra» de arriba
+              </>}
             >
-              <div className="mon-profile-panel-head es-con-lectura">
+
                 {/* Abre la sección porque es su primera pregunta —¿se está
                     cumpliendo?—. La unidad va en el TÍTULO y no en el contador: se
                     llamaba «Cumplimiento de la meta» y dos paneles más abajo estaba
@@ -379,7 +377,6 @@ export function AulasPestanaResumen({
                     cumplen meta, cuántas faltan». «Cumplimiento aula por aula»
                     promete un recuento de AULAS y la cifra grande cuenta
                     RESPUESTAS; el rótulo y el número no hablaban de lo mismo. */}
-                <h3>Respuestas que pide el plan, curso{"\u2011"}horario a curso{"\u2011"}horario</h3>
                 {/* La meta del MOTOR: sumarla acá la calculaba sobre un payload
                     recortado a 500 filas. */}
                 {/* Una meta de respuestas no puede ser fraccionaria: sale de
@@ -401,15 +398,6 @@ export function AulasPestanaResumen({
                     cada curso-horario se le pide una cantidad y lo que sobra en
                     uno no tapa lo que falta en otro — la misma regla de la
                     brecha por celda del ADR 0079, aplicada al aula. */}
-                <span>
-                  {fmtCuenta(
-                    (facultadEnFoco ? 0 : Number(dashboard?.cumplimiento_respuestas?.meta))
-                    || avanceEnRespuestas(aulaRows as unknown as MonitoreoAulasPlanRow[]).meta,
-                  )} respuestas: lo que se le pide a cada uno de los {fmt(aulaRows.length)}{" "}
-                  cursos-horario, sumado. Lo que sobra en uno no cubre lo que falta en otro,
-                  así que exige más que el «Avance a la muestra» de arriba
-                </span>
-              </div>
               <AulasAvanceEnRespuestas
                 filas={aulaRows as unknown as MonitoreoAulasPlanRow[]}
                 // **Con una facultad en foco el bloque del motor NO sirve**: lo
@@ -429,22 +417,15 @@ export function AulasPestanaResumen({
                     : Number(dashboard.kpis?.respuestas_validas ?? 0)) || 0
                 }
               />
-            </section>
+            </BloqueDeMonitoreo>
             {/* Va justo después del cumplimiento: primero CUÁNTO se lleva y en
                 seguida CÓMO se llegó. Separarlos con el estado de aplicación en medio
                 obligaba a recordar la cifra mientras se baja. */}
-            <section
-              className="mon-profile-panel"
+            <BloqueDeMonitoreo
               data-qa-geometry-group="monitoring-aulas-avance"
               data-qa-geometry-contract="intrinsic"
-            >
-              <div className="mon-profile-panel-head">
-                <h3>Ritmo de la recolección</h3>
-                {/* «12 días» a secas contradecía la lectura de dentro —«en 10 días
-                    de campo»— y el pie —«al ritmo de estos 10»—: el mismo panel daba
-                    dos cifras para la misma palabra. Los 12 son corridos y 2 son fin
-                    de semana sin campo; el contador lo dice en vez de elegir uno. */}
-                <span>{(() => {
+              titulo="Ritmo de la recolección"
+              bajada={<>{(() => {
                   const dias = (ritmoEnFoco?.dias ?? []) as Array<{ validas?: unknown }>;
                   const conCampo = dias.filter((d) => Number(d?.validas ?? 0) > 0).length;
                   // **Y el NUMERADOR.** Este panel cuenta válidas de PLATAFORMA;
@@ -457,8 +438,12 @@ export function AulasPestanaResumen({
                   const base = `${fmt(dias.length)} ${dias.length === 1 ? "día" : "días"}`;
                   const cuenta = conCampo && conCampo !== dias.length ? `${base}, ${fmt(conCampo)} con campo` : base;
                   return `${cuenta}, válidas de plataforma`;
-                })()}</span>
-              </div>
+                })()}</>}
+            >
+              {/* «12 días» a secas contradecía la lectura de dentro —«en 10 días
+                  de campo»— y el pie —«al ritmo de estos 10»—: el mismo panel daba
+                  dos cifras para la misma palabra. Los 12 son corridos y 2 son fin
+                  de semana sin campo; el contador lo dice en vez de elegir uno. */}
               {/* **El horizonte lo calcula la pestaña, que es quien ve los dos
                   gráficos.** Sin él, «Ritmo de la recolección» termina en la
                   última jornada con respuestas —tres, en el operativo— y
@@ -471,26 +456,23 @@ export function AulasPestanaResumen({
                 ritmo={ritmoEnFoco}
                 hasta={horizonteDelCierre}
               />
-            </section>
+            </BloqueDeMonitoreo>
             {/* **Cómo va la agendación, antes de a dónde lleva.** Gonzalo: «es
                 muy importante tener en Resumen cómo va la agendación de aulas,
                 porque es lo que nos permite decir a estas aulas vamos a ir a
                 aplicar». Va pegado al panel de abajo porque ése PROYECTA sobre
                 la agenda: leer primero a qué ritmo se llena y luego hasta dónde
                 llega es la misma secuencia con la que se decide. */}
-            <section
-              className="mon-profile-panel"
+            <BloqueDeMonitoreo
               data-qa-geometry-group="monitoring-aulas-avance"
               data-qa-geometry-contract="intrinsic"
+              titulo="Cómo va la agendación"
+              bajada="a qué ritmo se pone fecha, y en qué punto del circuito está cada uno"
             >
-              <div className="mon-profile-panel-head">
-                <h3>Cómo va la agendación</h3>
-                {/* La unidad y la fecha que se cuenta: `contact_date`, cuándo se
-                    habló con el docente, y no `scheduled_date`, cuándo se va al
-                    aula. Mezclarlas daría el calendario de visitas disfrazado de
-                    ritmo de trabajo. */}
-                <span>a qué ritmo se pone fecha, y en qué punto del circuito está cada uno</span>
-              </div>
+              {/* La unidad y la fecha que se cuenta: `contact_date`, cuándo se
+                  habló con el docente, y no `scheduled_date`, cuándo se va al
+                  aula. Mezclarlas daría el calendario de visitas disfrazado de
+                  ritmo de trabajo. */}
               <AulasAgendacion
                 agenda={agendaEnFoco}
                 // El día del corte, para que el eje llegue hasta hoy aunque hoy
@@ -556,30 +538,27 @@ export function AulasPestanaResumen({
                 dormidasMotor={dashboard.course_status_reservas_dormidas}
               />
               )}
-            </section>
-            <section
-              className="mon-profile-panel"
+            </BloqueDeMonitoreo>
+            <BloqueDeMonitoreo
               data-qa-geometry-group="monitoring-aulas-avance"
               data-qa-geometry-contract="intrinsic"
+              titulo="Hasta dónde llega lo agendado"
+              bajada="lo que suman los cursos-horario ya agendados, con qué rendimiento y qué tan cubiertos van"
             >
-              <div className="mon-profile-panel-head">
-                {/* **Vino de Rendimiento el 2026-09-08.** Allá desentonaba: esa
-                    pestaña contesta «qué rinde más» y esto es un pronóstico del
-                    operativo, que es lo que Resumen mide. Y aquí gana un vecino:
-                    va pegado a la agendación de arriba, porque proyecta sobre
-                    ella —cómo se llena la agenda, y hasta dónde llega—. */}
-                {/* **El título contestaba una pregunta que él no hacía.**
-                    Gonzalo, sobre el panel anterior: «¿estamos viendo cuándo se
-                    va a terminar de aplicar lo agendado, o cuándo vamos a llegar
-                    a la meta?» (ítem 19). Eran dos, el gráfico contestaba la
-                    primera y el título prometía las dos. Ahora contesta la que
-                    decide —¿alcanza lo agendado?— y lo dice desde el rótulo. */}
-                <h3>Hasta dónde llega lo agendado</h3>
-                {/* La unidad, y el modelo. El ritmo de arriba extrapola el
-                    pasado; esto NO extrapola: suma lo que se espera de cada
-                    curso-horario ya agendado, el día que le toca. */}
-                <span>lo que suman los cursos-horario ya agendados, con qué rendimiento y qué tan cubiertos van</span>
-              </div>
+              {/* **Vino de Rendimiento el 2026-09-08.** Allá desentonaba: esa
+                  pestaña contesta «qué rinde más» y esto es un pronóstico del
+                  operativo, que es lo que Resumen mide. Y aquí gana un vecino:
+                  va pegado a la agendación de arriba, porque proyecta sobre
+                  ella —cómo se llena la agenda, y hasta dónde llega—. */}
+              {/* **El título contestaba una pregunta que él no hacía.**
+                  Gonzalo, sobre el panel anterior: «¿estamos viendo cuándo se
+                  va a terminar de aplicar lo agendado, o cuándo vamos a llegar
+                  a la meta?» (ítem 19). Eran dos, el gráfico contestaba la
+                  primera y el título prometía las dos. Ahora contesta la que
+                  decide —¿alcanza lo agendado?— y lo dice desde el rótulo. */}
+              {/* La unidad, y el modelo. El ritmo de arriba extrapola el
+                  pasado; esto NO extrapola: suma lo que se espera de cada
+                  curso-horario ya agendado, el día que le toca. */}
               {/* **El pronóstico deja de ser lineal.** Gonzalo, tres veces: «no
                   es que tengamos un pronóstico lineal de que si hoy aplicamos
                   treinta, mañana treinta; depende del RITMO DE LA AGENDA… y de
@@ -714,7 +693,7 @@ export function AulasPestanaResumen({
                 reservaMotor={dashboard.course_status_banco}
                 dormidasMotor={dashboard.course_status_reservas_dormidas}
               />
-            </section>
+            </BloqueDeMonitoreo>
             {/* **«Cursos-horario vencidos sin aplicar» se retiró el
                 2026-09-10.** Gonzalo: «Cursos-horario vencidos sin aplicar se
                 va porque no es necesario». Lo que contaba —fecha pasada y sin
@@ -749,20 +728,17 @@ export function AulasPestanaResumen({
                 relacionados… finalmente van de la mano». Y es cierto: cobertura
                 dice qué aulas se quedaron cortas y ésta dice a quién hay que
                 pedirle más, que es la acción que sale de leer la primera. */}
-            <section
-              className="mon-profile-panel"
+            <BloqueDeMonitoreo
               data-qa-geometry-group="monitoring-aulas-avance"
               data-qa-geometry-contract="intrinsic"
+              titulo="A quién hay que agendar"
+              bajada="cursos-horario por pedir, con la anticipación del operativo de 2025"
             >
-              <div className="mon-profile-panel-head">
-                {/* **También vino de Rendimiento.** Es el único panel de toda la
-                    sección que pide una acción HOY, y estaba en la pestaña de los
-                    rankings. Aquí va pegado a «vencidos sin aplicar», que es su
-                    pareja natural: a quién hay que citar y a quién hay que ir a
-                    reclamar se leen juntos o no se leen. */}
-                <h3>A quién hay que agendar</h3>
-                <span>cursos-horario por pedir, con la anticipación del operativo de 2025</span>
-              </div>
+              {/* **También vino de Rendimiento.** Es el único panel de toda la
+                  sección que pide una acción HOY, y estaba en la pestaña de los
+                  rankings. Aquí va pegado a «vencidos sin aplicar», que es su
+                  pareja natural: a quién hay que citar y a quién hay que ir a
+                  reclamar se leen juntos o no se leen. */}
               <AulasAlertaDeAnticipacion
                 partes={partesConFacultad}
                 agenda={agendaEnFoco}
@@ -772,7 +748,7 @@ export function AulasPestanaResumen({
                 facultadEnFoco={facultadEnFoco}
                 onFoco={onFoco}
               />
-            </section>
+            </BloqueDeMonitoreo>
             {/* **«Dónde falta más» se retiró el 2026-09-08.** Medía cada facultad
                 contra LA CUOTA DEL ESTUDIO —«contra la cuota del estudio, por sexo»,
                 decía su propio subtítulo—, que es el denominador y la pregunta de

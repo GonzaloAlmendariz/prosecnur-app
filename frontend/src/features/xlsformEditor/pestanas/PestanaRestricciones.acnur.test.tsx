@@ -40,9 +40,9 @@ describe("S12: la regla se lee primero, una insignia y el código una vez", () =
     const html = pintar("IDP01");
     expect(html).not.toContain("Regla avanzada");
     expect(html).not.toContain("Regla técnica");
-    expect(html).toContain("xfp-insignia");
+    expect(html).toContain("pulso-estado-chip");
     expect(html).not.toContain("${countryname}</h2>");
-    expect(html.match(/xfp-insignia/g)?.length).toBe(1);
+    expect(html.match(/class="pulso-chrome-status-chip pulso-estado-chip"/g)?.length).toBe(1);
     expect(html).toContain("Editar la regla");
     // El código de la pregunta: en la ruta y en el nombre accesible de «Editar en Constructor», nada más.
     expect((html.match(/>IDP01</g) ?? []).length).toBeLessThanOrEqual(1);

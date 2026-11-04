@@ -1642,12 +1642,6 @@
   gap: 8px;
 }
 
-.analitica-orden-catalogo-empty {
-  padding: 12px;
-  font-size: var(--pulso-type-body-size);
-  text-align: center;
-  color: var(--pulso-text-soft);
-}
 
 .analitica-orden-lista-card {
   display: grid;
@@ -2149,52 +2143,9 @@
   font-weight: var(--pulso-weight-bold);
 }
 
-.analitica-empty {
-  min-height: 50px;
-  display: grid;
-  grid-template-columns: auto minmax(0, auto);
-  justify-content: center;
-  align-items: center;
-  gap: 2px 8px;
-  padding: 11px 14px;
-  border: 1px dashed var(--pulso-border);
-  border-radius: 8px;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.86), color-mix(in srgb, var(--pulso-surface-2) 78%, #fff));
-  text-align: center;
-  color: var(--pulso-text-soft);
-  font-size: var(--pulso-type-body-size);
-}
 
-.analitica-empty-icon {
-  grid-row: 1 / span 2;
-  width: 28px;
-  height: 28px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid color-mix(in srgb, var(--pulso-primary-border) 58%, var(--pulso-border));
-  border-radius: 8px;
-  background: #fff;
-  color: var(--pulso-primary);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.82);
-}
 
-.analitica-empty strong {
-  color: var(--pulso-text-soft);
-  font-size: var(--pulso-type-subtitle-size);
-  font-weight: var(--pulso-weight-heavy);
-  line-height: 1.2;
-  text-align: left;
-}
 
-.analitica-empty small {
-  color: var(--pulso-text-muted);
-  font-size: var(--pulso-type-micro-size);
-  font-weight: var(--pulso-weight-bold);
-  line-height: 1.2;
-  text-align: left;
-}
 
 .analitica-variable-picker {
   display: flex;
@@ -2254,17 +2205,7 @@
   transform: scale(0.98);
 }
 
-.analitica-panel-badge.is-ok {
-  border-color: var(--pulso-success-border);
-  background: var(--pulso-success-bg);
-  color: var(--pulso-success-fg);
-}
 
-.analitica-panel-badge.is-warn {
-  border-color: var(--pulso-warn-border);
-  background: var(--pulso-warn-bg);
-  color: var(--pulso-warn-fg);
-}
 
 .analitica-panel-contract-item.is-ok .analitica-panel-contract-icon {
   color: var(--pulso-success-fg);

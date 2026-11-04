@@ -65,7 +65,7 @@ export default function CruceCajas({
   const pasoDia = dias.length > 1 ? X(dias[1]) - X(dias[0]) : util;
   return (
     <div ref={ref} className="vx-svg-caja">
-      <svg className="vx-svg" width={W} height={H} viewBox={`0 0 ${W} ${H}`} role="img" aria-label={`Cajas de ${grupos.length} grupos en la misma escala`}>
+      <svg className="vx-svg" width={W} height={H} viewBox={`0 0 ${W} ${H}`} role="img" aria-label={`Cajas de ${fmtN(grupos.length)} grupos en la misma escala`}>
         {(origen ? [] : e.marcas).map((v) => (
           <g key={`m${v}`}>
             <line className="vx-svg-rejilla is-vertical" x1={X(v)} x2={X(v)} y1={arr - 8} y2={abajo} />
@@ -86,9 +86,9 @@ export default function CruceCajas({
               <title>
                 {[
                   g.etiqueta,
-                  `Mediana ${rotulo(g.mediana)} · mitad central ${rotulo(g.p25)} a ${rotulo(g.p75)}`,
-                  `Mínimo ${rotulo(g.min)} · máximo ${rotulo(g.max)}${g.n_atipicos ? ` · ${fmtN(g.n_atipicos)} atípicos` : ""}`,
-                  `${fmtN(g.n)} ${g.n === 1 ? "caso" : "casos"}${chico ? " · base chica" : ""}`,
+                  `Mediana ${rotulo(g.mediana)}, mitad central ${rotulo(g.p25)} a ${rotulo(g.p75)}`,
+                  `Mínimo ${rotulo(g.min)}, máximo ${rotulo(g.max)}${g.n_atipicos ? `; ${fmtN(g.n_atipicos)} atípicos` : ""}`,
+                  `${fmtN(g.n)} ${g.n === 1 ? "caso" : "casos"}${chico ? ", base chica" : ""}`,
                 ].join("\n")}
               </title>
               <text className="vx-svg-categoria" x={izq - 14} y={y + 4} textAnchor="end">{g.etiqueta}</text>

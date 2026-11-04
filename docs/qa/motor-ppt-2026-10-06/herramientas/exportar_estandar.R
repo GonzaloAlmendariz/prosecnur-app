@@ -35,7 +35,18 @@ colores <- list(coral = "#CA5651", azul = "#081F5C", tenue = "#8E9DBD", texto_su
                 # Tarjetas de diferencias (ADR 0129, propuesta P08): borde y fondo al 99 %, borde, fondo y barra al 95 %
                 # (punteado), la fila del total y el verde del encabezado del acuerdo.
                 tarjeta_borde = "#D9DEE8", tarjeta_fondo = "#FFFFFF", tarjeta_fondo_95 = "#F8F9FB", tarjeta_borde_95 = "#3A6591",
-                tarjeta_barra_95 = "#6F8FC4", tarjeta_total = "#B7BECC", tarjeta_barra_neutra = "#C3CFE2", verde_acuerdo = "#3B7A2A")
+                tarjeta_barra_95 = "#6F8FC4", tarjeta_total = "#B7BECC", tarjeta_barra_neutra = "#C3CFE2", verde_acuerdo = "#3B7A2A",
+                # Mapas de distribución (especificación aprobada de las láminas de variables geográficas, CCSS 2026-11-03;
+                # graficos_mapa_distribucion_*.R): clases ColorBrewer Blues (cinco; la de cuatro cambia la tercera), áreas sin
+                # casos, el borde entre áreas (gris oscuro, y blanco sobre las clases oscuras: revisión v7, lámina 11), mar,
+                # tierra de contexto, el punto de referencia, el rayado de otra respuesta del filtro y la lista con su pista.
+                mapa_clase_1 = "#C6DBEF", mapa_clase_2 = "#9ECAE1", mapa_clase_3 = "#6BAED6", mapa_clase_4 = "#3182BD",
+                mapa_clase_5 = "#08519C", mapa_clase4_3 = "#4292C6", mapa_vacio = "#FAF9F6", mapa_vacio_borde = "#C9CED6",
+                mapa_punto = "#C8463D", mapa_borde_area = "#5A6478", mapa_borde_area_oscura = "#FFFFFF", mapa_contorno = "#8E98A8",
+                mapa_mar = "#E6EEF5", mapa_oceano = "#7A8AA0", mapa_tierra = "#EEECE7", mapa_tierra_borde = "#D9D5CD",
+                mapa_pais = "#A39E94", mapa_texto = "#14213D", mapa_guia = "#3C4658", mapa_otra = "#E4E7EC",
+                mapa_otra_raya = "#B3BAC6", mapa_pista = "#EDEFF3", mapa_otros_barra = "#AEB5C1", mapa_otros_texto = "#6B7486",
+                mapa_tarjeta_borde = "#DDE1E7", mapa_zona_texto = "#2A3448", mapa_zona_filete = "#E3E6EB")
 # `uso` es la regla de cada paleta tal como la lee la lámina «Los colores y lo que significan» del catálogo
 # (lamina_estandar_paleta.R): la constitución dice el color y su regla en el mismo sitio (Gonzalo, 2026-10-27).
 paletas <- list(

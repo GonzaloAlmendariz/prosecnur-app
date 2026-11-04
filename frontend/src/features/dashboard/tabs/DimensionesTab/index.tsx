@@ -66,6 +66,7 @@ import { IndicadorAssembly } from "./IndicadorAssembly";
 import { MatrizUnidadesView } from "./MatrizUnidadesView";
 import { GlidingTabList } from "../../../../components/GlidingTabList";
 
+import { formatoConteo, formatoDecimal } from "../../../../lib/formatoNumero";
 // Tab Dimensiones — heatmap semáforo + barras / radar / FODA en un único
 // visualizador con segmented control. Sidebar consolidado a 2 cards
 // (Configuración con segmented Vista/Comparación/Iterar + Filtros).
@@ -1105,7 +1106,7 @@ function IterStepper({
         <span className="dash-iter-stepper-label">{current?.label ?? "—"}</span>
         <span className="dash-iter-stepper-meta">
           {idx + 1} / {valores.length}
-          {current?.base ? ` · n=${Math.round(current.base)}` : ""}
+          {current?.base ? ` (n = ${formatoConteo(Math.round(current.base))})` : ""}
         </span>
       </div>
       <button
@@ -1976,10 +1977,10 @@ const CUADRANTE_LABELS: Record<DashboardDimFodaCuadrante, string> = {
 };
 
 const CUADRANTE_DESC: Record<DashboardDimFodaCuadrante, string> = {
-  fortaleza: "Score alto · variabilidad baja",
-  oportunidad: "Score alto · variabilidad alta",
-  debilidad: "Score bajo · variabilidad baja",
-  amenaza: "Score bajo · variabilidad alta",
+  fortaleza: "Score alto, variabilidad baja",
+  oportunidad: "Score alto, variabilidad alta",
+  debilidad: "Score bajo, variabilidad baja",
+  amenaza: "Score bajo, variabilidad alta",
 };
 
 function FodaView({
@@ -2082,7 +2083,6 @@ function FodaView({
           <>
             <div className="dash-foda-cortes" aria-label="Cortes FODA">
               <span><strong>Corte score:</strong> {payload.cortes?.score ?? 80}</span>
-              <span className="dash-foda-cortes-sep">·</span>
               <span><strong>Corte SD:</strong> {payload.cortes?.sd ?? 0}</span>
             </div>
             {groupOptions.length > 1 && (
@@ -2988,12 +2988,12 @@ function colorToRgba(color: string, alpha: number): string {
 function formatFodaTick(v: number): string {
   if (!Number.isFinite(v)) return "0";
   if (v >= 10) return String(Math.round(v));
-  return v.toFixed(1).replace(/\.0$/, "");
+  return formatoDecimal(v, 1);
 }
 
 function formatFodaMetric(v: number): string {
   if (!Number.isFinite(v)) return "0";
-  return v.toFixed(1).replace(/\.0$/, "");
+  return formatoDecimal(v, 1);
 }
 
 // =============================================================================

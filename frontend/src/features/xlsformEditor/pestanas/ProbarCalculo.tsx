@@ -40,7 +40,7 @@ export function ProbarCalculo({ formula, usa, structure, opcionesDe }: {
         ) : resultado.estado === "ok" ? (
           <>
             <span className="xfk-over">Resultado</span> <b className="xfp-resultado">{resultado.valor === "" ? "(vacío)" : valorLegible(resultado.valor)}</b>
-            {dependeDelMomento(formula) ? <span className="xfp-nota"> · en el teléfono, el momento en que se abre la encuesta</span> : null}
+            {dependeDelMomento(formula) ? <span className="xfp-nota"> (en el teléfono, el momento en que se abre la encuesta)</span> : null}
           </>
         ) : (
           <><span className="xfk-over">Resultado</span> {textoEnTelefono(formula)}</>

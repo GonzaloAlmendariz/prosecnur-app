@@ -10,6 +10,9 @@ import { llevaFaltanteDiario } from "./cuotasFaltanteModel";
 import { RotuloDePestana, useHayRotulo } from "../navegacion/RotuloDePestana";
 import { PesasReferenciales } from "../../../core/PesasReferenciales";
 import { sufijoDeOrigen } from "./origenDeEfectivas";
+import { NotaDelModo } from "../../../core/NotaDelModo";
+import { enumerar } from "../../../../../lib/enumerar";
+import { GlidingRadioGroup } from "../../../../../components/GlidingRadioGroup";
 import "../control/controlTelefonico.css";
 import "./cuotasFaltante.css";
 
@@ -176,7 +179,16 @@ function detalleDelReparto(fila: FilaDeCuota) {
  * primero; al lado, el número grande con sus cuatro indicadores, la base por
  * categoría y de dónde sale la cifra.
  */
-export function CuotasFaltante({ modelo, cadena }: { modelo: Modelo; cadena: CadenaDeLaCifra }) {
+export function CuotasFaltante({
+  modelo,
+  cadena,
+  onElegirVariable,
+}: {
+  modelo: Modelo;
+  cadena: CadenaDeLaCifra;
+  /** Elegir qué variable de cuota ver (R5 paso 2); `null` vuelve a la regla de siempre. */
+  onElegirVariable?: (variable: string | null) => void;
+}) {
   const { total, filas, segmento } = modelo;
   const hayRotulo = useHayRotulo();
   if (!modelo.todas.length) {
@@ -201,6 +213,7 @@ export function CuotasFaltante({ modelo, cadena }: { modelo: Modelo; cadena: Cad
     ? `cumplida el ${total.cumplio}`
     : total.desde && total.hasta ? `del ${total.desde} al ${total.hasta}` : "sin serie diaria";
   const segmentoMinuscula = segmento.toLocaleLowerCase("es");
+  const selector = modelo.selector ?? null;
 
   return (
     <div
@@ -214,12 +227,32 @@ export function CuotasFaltante({ modelo, cadena }: { modelo: Modelo; cadena: Cad
       <div className="mon-tel-cuotas-principal">
       <section className="mon-tel-cuotas-tabla-panel" aria-label={`Cuánto falta por ${segmentoMinuscula}`}>
         {/* §2a-bis: el rótulo de la pestaña encabeza su primera tarjeta. */}
-        {hayRotulo ? (
-          <header className="mon-tel-cuotas-tabla-cabecera">
-            <RotuloDePestana />
-            <b>Metas: cuánto falta por {segmentoMinuscula}</b>
-          </header>
-        ) : <header className="mon-tel-cuotas-tabla-cabecera"><b>Metas: cuánto falta por {segmentoMinuscula}</b></header>}
+        <header className="mon-tel-cuotas-tabla-cabecera">
+          {hayRotulo ? <RotuloDePestana /> : null}
+          <b>Metas: cuánto falta por {segmentoMinuscula}</b>
+          {selector && onElegirVariable ? (
+            <span className="mon-tel-cuotas-variable">
+              <small id="mon-tel-cuotas-variable-rotulo">Metas por</small>
+              <GlidingRadioGroup
+                value={selector.actual}
+                options={selector.opciones}
+                getOptionValue={(opcion) => opcion.clave}
+                onValueChange={(variable) => onElegirVariable(variable === selector.porDefecto ? null : variable)}
+                className="mon-tel-cuotas-variable-opciones"
+                aria-labelledby="mon-tel-cuotas-variable-rotulo"
+                getOptionProps={(opcion) => ({ title: `${opcion.metas} ${opcion.metas === 1 ? "meta" : "metas"} por ${opcion.rotulo.toLocaleLowerCase("es")}` })}
+              >
+                {(opcion) => <span>{opcion.rotulo}</span>}
+              </GlidingRadioGroup>
+            </span>
+          ) : null}
+        </header>
+        {/* Lo que el conteo no suma o no asigna, con su causa: nunca en silencio. */}
+        {modelo.avisos?.map((aviso) => <NotaDelModo key={aviso} tono="aviso">{aviso}</NotaDelModo>)}
+        {/* R5: las metas de otra variable no se muestran ni se suman aquí, pero se dicen. */}
+        {modelo.otrasConMeta?.length && !(selector && onElegirVariable) ? (
+          <NotaDelModo>También hay metas por {enumerar(modelo.otrasConMeta)}: no se muestran aquí.</NotaDelModo>
+        ) : null}
         {filas.length ? (
         <div role="table" aria-label={`Cuotas por ${segmentoMinuscula}`} className="mon-tel-cuotas-tabla">
           <div role="row" className="mon-tel-cuotas-fila is-cabecera">

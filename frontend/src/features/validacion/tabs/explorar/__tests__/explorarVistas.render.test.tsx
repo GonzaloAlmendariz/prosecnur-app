@@ -109,6 +109,6 @@ test("el panel de datos dice que no hay reglas aplicadas y no pinta semáforos",
   })!;
   act(() => root.render(<PanelDatos ficha={ficha} filtrado={false} />));
   expect(host.textContent).toContain("Reglas de validación: aún no hay ninguna aplicada a esta pregunta.");
-  expect(host.textContent).toContain("10 · 10.0%");
+  expect(host.textContent).toContain("10 (10.0%)");
   expect(host.textContent).not.toContain("Textos en «Otro»");
 });

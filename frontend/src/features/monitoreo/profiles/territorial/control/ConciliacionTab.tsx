@@ -16,6 +16,7 @@ import {
 } from "./conciliacionModel";
 import { RotuloDePestana } from "../navegacion/RotuloDePestana";
 import "./conciliacion.css";
+import { BloqueDeMonitoreo } from "../../../core/BloqueDeMonitoreo";
 
 type Aviso = { tono: "ok" | "error"; texto: string } | null;
 
@@ -70,21 +71,27 @@ function ConciliacionTabImpl({
 
       <div className="mon-con-paneles" data-qa-geometry-group="territorial-conciliacion" data-qa-geometry-contract="equal">
 
-      <section className="mon-con-panel" aria-labelledby="mon-con-codigos" data-qa-geometry-member="codigos" data-qa-geometry-group="territorial-conciliacion-codigos" data-qa-geometry-contract="intrinsic">
-        <header className="mon-con-cabecera">
-          <RotuloDePestana />
-          <h3 id="mon-con-codigos">Códigos</h3>
-          {modelo.codigos.disponible ? (
-            <Cifras
-              items={[
-                ["En la base", modelo.codigos.enBase],
-                ["Reconocidos", modelo.codigos.reconocidos],
-                ["Conciliados", modelo.codigos.conciliados],
-                ["Sin reconocer", modelo.codigos.sinReconocer.length],
-              ]}
-            />
-          ) : null}
-        </header>
+      <BloqueDeMonitoreo
+        marco="kit"
+        className="mon-con-panel"
+        aria-labelledby="mon-con-codigos"
+        data-qa-geometry-member="codigos"
+        data-qa-geometry-group="territorial-conciliacion-codigos"
+        data-qa-geometry-contract="intrinsic"
+        antetitulo={<RotuloDePestana />}
+        titulo="Códigos"
+        tituloId="mon-con-codigos"
+        acciones={modelo.codigos.disponible ? (
+          <Cifras
+            items={[
+              ["En la base", modelo.codigos.enBase],
+              ["Reconocidos", modelo.codigos.reconocidos],
+              ["Conciliados", modelo.codigos.conciliados],
+              ["Sin reconocer", modelo.codigos.sinReconocer.length],
+            ]}
+          />
+        ) : null}
+      >
         {!modelo.codigos.disponible ? (
           <p className="mon-con-base">El corte no trae el cruce de códigos con el padrón.</p>
         ) : (
@@ -127,22 +134,28 @@ function ConciliacionTabImpl({
             <ListaDeConciliaciones titulo="Conciliados" conciliaciones={modelo.codigos.conciliaciones} />
           </>
         )}
-      </section>
+      </BloqueDeMonitoreo>
 
-      <section className="mon-con-panel" aria-labelledby="mon-con-umps" data-qa-geometry-member="umps" data-qa-geometry-group="territorial-conciliacion-umps" data-qa-geometry-contract="intrinsic">
-        <header className="mon-con-cabecera">
-          <h3 id="mon-con-umps">UMP declarada</h3>
-          {modelo.umps.disponible ? (
-            <Cifras
-              items={[
-                ["Valores", modelo.umps.valores],
-                ["Cruzan", modelo.umps.cruzan],
-                ["Conciliados", modelo.umps.conciliados],
-                ["Sin cruce", modelo.umps.sinCruce.length],
-              ]}
-            />
-          ) : null}
-        </header>
+      <BloqueDeMonitoreo
+        marco="kit"
+        className="mon-con-panel"
+        aria-labelledby="mon-con-umps"
+        data-qa-geometry-member="umps"
+        data-qa-geometry-group="territorial-conciliacion-umps"
+        data-qa-geometry-contract="intrinsic"
+        titulo="UMP declarada"
+        tituloId="mon-con-umps"
+        acciones={modelo.umps.disponible ? (
+          <Cifras
+            items={[
+              ["Valores", modelo.umps.valores],
+              ["Cruzan", modelo.umps.cruzan],
+              ["Conciliados", modelo.umps.conciliados],
+              ["Sin cruce", modelo.umps.sinCruce.length],
+            ]}
+          />
+        ) : null}
+      >
         {!modelo.umps.disponible ? (
           <p className="mon-con-base">El corte no trae la UMP declarada por las respuestas.</p>
         ) : (
@@ -184,7 +197,7 @@ function ConciliacionTabImpl({
             <ListaDeConciliaciones titulo="Conciliados" conciliaciones={modelo.umps.conciliaciones} />
           </>
         )}
-      </section>
+      </BloqueDeMonitoreo>
       </div>
 
       <footer className="mon-con-pie">
