@@ -1556,7 +1556,7 @@
       list(name = "var", label = "Variable", tipo_input = "variable", grupo = "datos"),
       # Recetario p70: la respuesta del centro y su frase. La pestaña Gráfico los edita con su tarjeta (DonaCentro).
       list(name = "al_centro", label = "Al centro", tipo_input = "string", grupo = "valores",
-           descripcion = "La respuesta cuya cifra va al centro de la dona y abre la lectura. Vacío: la primera."),
+           descripcion = "La respuesta cuya cifra va al centro de la dona y abre la lectura. Vacío: en lámina completa, la primera; en un panel, ninguna (cada cifra va en su porción)."),
       list(name = "frase_centro", label = "Frase del centro", tipo_input = "string", grupo = "textos",
            descripcion = "Lo que se lee bajo la cifra del centro («conoce la misión»). Vacío: el nombre de la respuesta."),
       list(name = "top_k", label = "Top K + Otros", tipo_input = "number", grupo = "filtro",
