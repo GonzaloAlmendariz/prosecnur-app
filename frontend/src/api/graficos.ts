@@ -193,6 +193,9 @@ export type Slide = {
 
 export type PlanJson = {
   slides: Slide[];
+  /** Rótulos cortos del estudio (rótulo completo → corto), aplicados en el job a datos, instrumento y plan. Las ediciones
+   * del editor conservan este y cualquier otro campo de la raíz del plan. */
+  rotulos_cortos?: Record<string, string>;
 };
 
 // Tipos de input que el editor reconoce. Cada `tipo_input` mapea a un
