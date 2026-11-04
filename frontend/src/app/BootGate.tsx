@@ -14,7 +14,7 @@ import {
   X,
 } from "lucide-react";
 import { formatRelativeDate } from "../components/RecentProjectCard";
-import { PROSECNUR_ACTIVE_MODULES, PROSECNUR_PRIMARY_ACTIVE_MODULES, moduleChromeVars } from "../lib/modules";
+import { PROSECNUR_PRIMARY_ACTIVE_MODULES, moduleChromeVars } from "../lib/modules";
 import { VistaSkeleton } from "../components/VistaSkeleton";
 import { WarmupReloj, useAhora } from "./WarmupReloj";
 import {
@@ -56,6 +56,7 @@ import {
 } from "./warmupRegistry";
 import { BarraDeAvance } from "../components/BarraDeAvance";
 import { BootEcualizador } from "./BootEcualizador";
+import { destinoWarmup } from "./destinoWarmup";
 import "./boot-destino.css";
 
 type AppSuiteModule = {
@@ -1487,16 +1488,10 @@ function WarmupStepIcon({ status }: { status: WarmupDisplayStepStatus }) {
   return null;
 }
 
-/** Silueta de la vista a la que se va a entrar, detrás del indicador (L23). */
-function destinoWarmup(pathname: string) {
-  const path = pathname.replace(/\/+$/, "") || "/";
-  const module = PROSECNUR_ACTIVE_MODULES.find((item) => item.to !== "/" && (path === item.to || path.endsWith(item.to)));
-  return module ?? null;
-}
 
 function WarmupDestino() {
   const module = useMemo(
-    () => (typeof window === "undefined" ? null : destinoWarmup(window.location.pathname)),
+    () => (typeof window === "undefined" ? null : destinoWarmup(window.location.pathname)?.modulo ?? null),
     [],
   );
   return (
@@ -1536,8 +1531,8 @@ function WarmupView({
     <div
       className="boot-warmup"
       data-boot-message={message}
-      data-modulo-destino={destino?.slug}
-      style={destino ? moduleChromeVars(destino) : undefined}
+      data-modulo-destino={destino?.modulo.slug}
+      style={destino ? moduleChromeVars(destino.modulo) : undefined}
     >
       <div className="boot-warmup-summary">
         {/* 4 nov 2026: el isotipo hace de indicador y la cifra pasa a la barra (dirección A de la
@@ -1545,7 +1540,7 @@ function WarmupView({
         <BootEcualizador detenido={steps.some((step) => step.status === "error")} />
         <div className="boot-progress">
           <div className="boot-warmup-cabeza">
-            <p className="boot-warmup-destino-rotulo">{destino ? `Abriendo ${destino.cardTitle ?? destino.shortLabel}` : "Abriendo el proyecto"}</p>
+            <p className="boot-warmup-destino-rotulo">{destino ? `Abriendo ${destino.rotulo}` : "Abriendo el proyecto"}</p>
             <p className="boot-project-name" title={projectPath ?? undefined}>{projectName(projectPath)}</p>
           </div>
           <h1>{message}</h1>
