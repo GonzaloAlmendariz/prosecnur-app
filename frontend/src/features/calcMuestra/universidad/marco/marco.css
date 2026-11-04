@@ -1556,6 +1556,15 @@
   gap: 10px;
 }
 
+/* A 1024 cada pista mide ~425 px y la razón («filas por alumno (matriculado en
+ * varios cursos-horario)») quedaba en media columna de 193 px, partida en cuatro
+ * líneas: la merma y la razón se apilan. */
+@media (max-width: 1180px) {
+  .cmv2-inv-track-stats {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
 .cmv2-inv-merma,
 .cmv2-inv-razon {
   display: flex;

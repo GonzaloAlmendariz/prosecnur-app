@@ -254,9 +254,12 @@
   gap: 12px;
 }
 
+/* La tabla de cuotas mide sus filas (una por facultad) y desplaza la página, no
+ * su marco: con 320 px de tope desplazaba por dentro y su cabecera fija tapaba
+ * 17 px de la fila que asomaba (detector, 1440 y 1024). */
 .cmv2-calc-cuotas-tabla {
-  max-height: 320px;
-  overflow: auto;
+  overflow-x: auto;
+  overflow-y: visible;
 }
 
 /* Columnas numéricas de las cuotas: alineadas a la derecha y tabulares
@@ -1070,6 +1073,10 @@
 
 .cmv2-ch-tabla-final {
   font-variant-numeric: tabular-nums;
+  /* El total de cursos-horario es la cifra de la fila: a 1024 la columna se
+   * achicaba a 9 px y «20» salía «2 | 0». Mide su cifra; si la tabla no cabe,
+   * desplaza en horizontal dentro de su marco. */
+  white-space: nowrap;
 }
 
 .cmv2-ch-tabla tr[data-incompleta] {

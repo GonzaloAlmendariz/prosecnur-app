@@ -113,7 +113,7 @@ export function InventarioUnicosPanel({
           unidadPlural="Alumnos"
           filasLeidas={filasLeidas}
           track={alumnos}
-          razonLeyenda="filas por alumno (matriculado en varios cursos-horario)"
+          razonLeyenda="filas por alumno (matriculado en varios cursos‑horario)"
           nota="Deduplicación por estudiante sobre todas las filas leídas, sin filtrar por elegibilidad."
         />
         <DedupTrackCard
@@ -123,7 +123,7 @@ export function InventarioUnicosPanel({
           unidadPlural="Cursos-horario"
           filasLeidas={filasLeidas}
           track={cursosHorario}
-          razonLeyenda="filas por curso-horario (repetido por docentes, carreras y alumnos matriculados)"
+          razonLeyenda="filas por curso‑horario (repetido por docentes, carreras y alumnos matriculados)"
           nota="Cada curso-horario se colapsa a UNA unidad, uniendo sus filas de docente y carrera."
         />
       </div>
