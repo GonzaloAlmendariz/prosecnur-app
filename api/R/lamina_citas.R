@@ -30,7 +30,7 @@
                                       titulo_de_var = NULL) {
   if (.lam_tarjetas_aplica(p, slide)) {
     return(.lam_tarjetas_slide_1(doc, p, slide, titulo, el_plot, presets, layout, master, antetitulo, base_auto, nota_de,
-                                 sin_base, sin_pie, por_lamina))
+                                 sin_base, sin_pie, por_lamina, motor = parent.frame()))
   }
   espec <- if (inherits(p, "ggplot")) attr(p, "pulso_espec") else NULL
   if (!identical(espec$tipo, "citas")) {
