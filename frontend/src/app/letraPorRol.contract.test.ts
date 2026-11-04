@@ -53,7 +53,7 @@ const SNAPSHOT_LITERALES: Record<string, number> = {
   "features/graficos/graficadorPicker.css": 5,
   "features/graficos/v2/styles/editor-v2.css": 2,
   "features/home/home-v2.css": 2,
-  "features/xlsformEditor/impreso/impreso.css": 17,
+  "features/xlsformEditor/impreso/impreso.css": 16,
   "features/xlsformEditor/kit/riel.css": 1,
   "features/xlsformEditor/pestanas/armador/armador.css": 2,
   "features/xlsformEditor/styles/xf-home/01-xf-home-css-hub-biblioteca-d.css": 1,

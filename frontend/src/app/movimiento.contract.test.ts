@@ -88,7 +88,6 @@ const SNAPSHOT: Record<"layout" | "infinitas" | "retardo", Record<string, number
     "features/graficos/v2/styles/editor-v2.css": 1,
     "features/procesamiento/processingSheetViewer.css": 1,
     "features/xlsformEditor/impreso/impreso.css": 1,
-    "features/xlsformEditor/listas/listas.css": 1,
     "features/xlsformEditor/styles/xf-campana/01-campana-complementaria-adr-0.css": 1,
     "features/xlsformEditor/styles/xf-graph/02-mini-map.css": 1,
     "features/xlsformEditor/styles/xf-home/01-xf-home-css-hub-biblioteca-d.css": 1,
