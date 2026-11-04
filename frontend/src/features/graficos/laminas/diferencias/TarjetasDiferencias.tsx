@@ -30,11 +30,13 @@ export function TarjetasDiferenciasVista({ activas, onAlternar, onAbrirRegla }: 
         <span className="pulso-f6-dato-rotulo">Tarjetas junto al total</span>
         <Switch checked={activas} ariaLabel="Tarjetas de diferencias junto al total" onToggle={() => onAlternar(!activas)} />
       </div>
-      <p className="pulso-sig-texto" data-qa-geometry-member="">
-        {activas
-          ? `Cada grupo frente al resto, en los cruces del estudio. Hasta ${TARJETAS_MAX} tarjetas; sin diferencias, la lámina va sin ellas.`
-          : "Muestra al lado del total los grupos que difieren del resto."}
-      </p>
+      <div className="pulso-sig-cuerpo" data-qa-geometry-member="">
+        <p className="pulso-sig-texto">
+          {activas
+            ? `Cada grupo frente al resto, en los cruces del estudio. Hasta ${TARJETAS_MAX} tarjetas; sin diferencias, la lámina va sin ellas.`
+            : "Muestra al lado del total los grupos que difieren del resto."}
+        </p>
+      </div>
       <div className="pulso-sig-regla-linea" data-qa-geometry-member="">
         <span>Una sola regla para láminas, Word y tablas de cruces.</span>
         <PulsoButton variant="link" size="sm" data-pulso-abre-panel={PANEL_DIFERENCIAS_REGLA.id} onClick={onAbrirRegla}>
