@@ -7,7 +7,7 @@ aquí solo va lo que pidió explícitamente.
 Fuente: `Arte_v1-12.pulso` (29-10-2026, multibase: administrativos, docentes,
 estudiantes). Se generó con los motores de la app sobre una copia, en un backend
 aparte (8871). Destino:
-`Documents/Pulso/01_Estudios/2026_PUCP_ArteACRD/Entrega de bases de datos y anexos de la encuesta/` (subcarpetas 1 Bases de datos, 2 Libros de códigos, 3 Anexos de frecuencias simples).
+`Documents/Pulso/01_Estudios/2026_PUCP_ArteACRD/Entrega de bases de datos y anexos de la encuesta/` (estructura del Drive del cliente: «1. Bases de datos y Libros de códigos» y «4. Anexos (Tablas de frecuencia simple)» con archivos; «2. Instrumentos» y «3. Informes consolidados» vacías, las llenan otros).
 
 | # | Ítem | Dónde vive | Estado |
 |---|---|---|---|
