@@ -1,3 +1,4 @@
+import { formatoDecimal } from "../../../../lib/formatoNumero";
 import { useMemo } from "react";
 
 import type { MonitoreoAulasPlanRow } from "../../../../api/monitoreo";
@@ -91,11 +92,11 @@ export function AulasConsumoDelBanco({ filas, diasDeCampo = 0, facultadEnFoco, o
       <p className="aulas-banco-consumo-lectura">
         <strong>{fmt(caidas)}</strong> {caidas === 1 ? "curso-horario reemplazado" : "cursos-horario reemplazados"}
         {secas ? (
-          <> · <strong>{fmt(secas)}</strong>{" "}
+          <>, <strong>{fmt(secas)}</strong>{" "}
             {(secas === 1 ? etiquetaDelEje(eje) : etiquetaPluralDelEje(eje)).toLocaleLowerCase("es")}
             {" sin reserva disponible"}</>
         ) : null}
-        {sinFecha ? <> · {fmt(sinFecha)} sin fecha de reemplazo, fuera del cálculo</> : null}
+        {sinFecha ? <>, {fmt(sinFecha)} sin fecha de reemplazo, fuera del cálculo</> : null}
       </p>
       <ul role="table"
         aria-label={`Consumo de la reserva por ${etiquetaDelEje(eje).toLocaleLowerCase("es")}`}
@@ -117,7 +118,7 @@ export function AulasConsumoDelBanco({ filas, diasDeCampo = 0, facultadEnFoco, o
             </NombreDeFacultad>
             <span role="cell" className="aulas-banco-consumo-cifra">
               {fmt(f.caidas)}
-              {f.ritmo ? <em> · {f.ritmo.toLocaleString("es-PE")}/día</em> : null}
+              {f.ritmo ? <em>, {formatoDecimal(f.ritmo, 3)}/día</em> : null}
             </span>
             <span role="cell" className="aulas-banco-consumo-cifra">{fmt(f.quedan)}</span>
             {/* En días de campo y no en una fecha: el ritmo de reemplazos es

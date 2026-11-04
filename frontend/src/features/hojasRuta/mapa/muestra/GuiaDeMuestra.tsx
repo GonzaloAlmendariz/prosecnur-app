@@ -21,7 +21,7 @@ export function GuiaDeMuestra({ entrevistasPorManzana, supuestos, deshabilitado,
     <details className="hr-muestra-decision">
       <summary>Guía de decisión</summary>
       <div className="hr-muestra-decision-rec">
-        <small>Lectura de Prosecnur · {entrevistasPorManzana} {entrevistasPorManzana === 1 ? "entrevista" : "entrevistas"} por manzana</small>
+        <small>Lectura de Prosecnur, {entrevistasPorManzana} {entrevistasPorManzana === 1 ? "entrevista" : "entrevistas"} por manzana</small>
         <strong>{rec.titulo}</strong>
         <p>{rec.texto}</p>
         <PulsoButton variant="secondary" size="sm" disabled={deshabilitado || usado} onClick={() => onUsarDeff(rec.deff)}>

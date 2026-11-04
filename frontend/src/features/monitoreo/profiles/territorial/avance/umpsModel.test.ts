@@ -58,7 +58,7 @@ describe("Avance › UMP", () => {
   it("el CSV lleva las columnas de la tabla y escapa lo que hace falta", () => {
     const csv = csvDeUmps(modelo.filas.slice(0, 1), true).split("\n");
     expect(csv[0]).toBe("UMP,Distrito,Manzana,Tipo,Aplicador,Cuentan,Meta,En observación,Cuota,Efectivas,Intentos,Tasa efectiva");
-    expect(csv[1]).toBe("143,San Martín de Porres,0590,Titular,P132 · Aplicadora de Prueba,8,8,2,Falta 1,8,20,40 %");
+    expect(csv[1]).toBe("143,San Martín de Porres,0590,Titular,\"P132, Aplicadora de Prueba\",8,8,2,Falta 1,8,20,40 %");
     expect(csvDeUmps(modelo.filas.slice(0, 1), false).split("\n")[0].endsWith("Cuota")).toBe(true);
   });
 });

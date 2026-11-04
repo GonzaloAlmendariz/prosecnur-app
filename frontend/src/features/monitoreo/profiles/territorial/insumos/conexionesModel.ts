@@ -1,3 +1,4 @@
+import { formatoDecimal } from "../../../../../lib/formatoNumero";
 import type {
   MonitoreoState,
   MonitoreoTerritorialDashboard,
@@ -15,6 +16,9 @@ import { fechaYHoraDeLima } from "../rotulos";
 
 export type TonoDeFuente = "ok" | "aviso" | "error" | "inactiva";
 
+/** `id` estable para que la vista separe las cifras de los metadatos sin leer el rótulo. */
+export type CifraDeFuente = { id: string; rotulo: string; valor: string; nota?: string };
+
 export type TarjetaDeFuente = {
   clave: string;
   titulo: string;
@@ -23,15 +27,14 @@ export type TarjetaDeFuente = {
   estado: string;
   tono: TonoDeFuente;
   formulario: string;
-  cifras: Array<{ rotulo: string; valor: string }>;
+  cifras: CifraDeFuente[];
   serie: number[];
 };
 
 export type ModeloConexiones = {
   conFuenteDeCampo: boolean;
   tarjetas: TarjetaDeFuente[];
-  muestra: Array<{ rotulo: string; valor: string }>;
-  ventanas: Array<{ fase: string; desde: string }>;
+  muestra: CifraDeFuente[];
 };
 
 const NOMBRE_DE_FASE: Record<MonitoreoTerritorialPhase, string> = { pilot: "Piloto", field: "Campo" };
@@ -52,7 +55,7 @@ function n(valor: unknown): number | null {
 }
 
 function texto(valor: number | null): string {
-  return valor == null ? "—" : valor.toLocaleString("es-PE");
+  return valor == null ? "—" : formatoDecimal(valor, 3);
 }
 
 function itemDeFase(state: MonitoreoState | null | undefined, fase: MonitoreoTerritorialPhase): MonitoreoTerritorialPhaseCoherenceItem | null {
@@ -85,19 +88,20 @@ export function construirConexiones(
     const ultimaFicha = [...lecturas].filter((entrada) => entrada.type === "inspect").sort((a, b) => String(b.created_at).localeCompare(String(a.created_at)))[0];
     const esActiva = fase === activa;
     const estado = ESTADO[String(item?.status ?? "source_not_applied")] ?? { texto: item?.message || "Estado sin rótulo", tono: "aviso" as const };
+    const respuestas = n(item?.local_rows);
     const cifras = [
-      { rotulo: "Respuestas", valor: texto(n(item?.local_rows)) },
+      { id: "respuestas", rotulo: "Respuestas", valor: texto(respuestas) },
       // Lo que se envió antes del inicio de la fase no entra al avance: si hay,
       // se dice aquí, para que «Recibidas en la fase» de Avance no parezca otra cifra.
-      esActiva && enLaFase != null && n(item?.local_rows) != null && enLaFase < (n(item?.local_rows) ?? 0)
-        ? { rotulo: `En la fase · ${texto((n(item?.local_rows) ?? 0) - enLaFase)} antes`, valor: texto(enLaFase) }
+      esActiva && enLaFase != null && respuestas != null && enLaFase < respuestas
+        ? { id: "en-fase", rotulo: "En la fase", valor: texto(enLaFase), nota: `${texto(respuestas - enLaFase)} antes del inicio` }
         : null,
-      esActiva ? { rotulo: "Preguntas", valor: texto(n(reports?.source_coherence?.survey_count)) } : null,
-      esActiva ? { rotulo: "Opciones", valor: texto(n(reports?.source_coherence?.choices_count)) } : null,
-      { rotulo: "Última lectura", valor: fechaYHoraDeLima(item?.last_sync_at || fuente?.last_sync_at) || "—" },
-      { rotulo: "Ficha leída", valor: fechaYHoraDeLima(ultimaFicha?.created_at) || "—" },
-      { rotulo: "Fase desde", valor: fechaYHoraDeLima(ventanas?.[fase]?.start_at) || "—" },
-    ].filter((cifra): cifra is { rotulo: string; valor: string } => cifra != null);
+      esActiva ? { id: "preguntas", rotulo: "Preguntas", valor: texto(n(reports?.source_coherence?.survey_count)) } : null,
+      esActiva ? { id: "opciones", rotulo: "Opciones", valor: texto(n(reports?.source_coherence?.choices_count)) } : null,
+      { id: "ultima-lectura", rotulo: "Última lectura", valor: fechaYHoraDeLima(item?.last_sync_at || fuente?.last_sync_at) || "—" },
+      { id: "ficha-leida", rotulo: "Ficha leída", valor: fechaYHoraDeLima(ultimaFicha?.created_at) || "—" },
+      { id: "fase-desde", rotulo: "Fase desde", valor: fechaYHoraDeLima(ventanas?.[fase]?.start_at) || "—" },
+    ].filter((cifra): cifra is CifraDeFuente => cifra != null);
     return {
       clave: fase,
       titulo: `Kobo de ${NOMBRE_DE_FASE[fase]}`,
@@ -125,9 +129,9 @@ export function construirConexiones(
       tono: tablero?.summary ? "ok" : "aviso",
       formulario: String(tablero?.config?.asset_name || tablero?.config?.form_title || "Formulario de ocurrencias"),
       cifras: [
-        { rotulo: "Partes", valor: texto(n(tablero?.summary?.total_records)) },
-        { rotulo: "UMP citadas", valor: texto(tablero?.by_ump ? tablero.by_ump.filter((item) => item.has_report ?? n(item.reportes)).length : null) },
-        { rotulo: "Última lectura", valor: fechaYHoraDeLima(tablero?.snapshot?.synced_at) || "—" },
+        { id: "partes", rotulo: "Partes", valor: texto(n(tablero?.summary?.total_records)) },
+        { id: "ump-citadas", rotulo: "UMP citadas", valor: texto(tablero?.by_ump ? tablero.by_ump.filter((item) => item.has_report ?? n(item.reportes)).length : null) },
+        { id: "ultima-lectura", rotulo: "Última lectura", valor: fechaYHoraDeLima(tablero?.snapshot?.synced_at) || "—" },
       ],
       serie: [],
     });
@@ -143,7 +147,7 @@ export function construirConexiones(
       estado: fuente.enabled ? "Conectada" : "Sin conectar",
       tono: fuente.enabled ? "ok" : "inactiva",
       formulario: fuente.label || "Hoja de ruta",
-      cifras: [{ rotulo: "Última lectura", valor: fechaYHoraDeLima(fuente.last_sync_at) || "—" }],
+      cifras: [{ id: "ultima-lectura", rotulo: "Última lectura", valor: fechaYHoraDeLima(fuente.last_sync_at) || "—" }],
       serie: [],
     });
   }
@@ -153,13 +157,10 @@ export function construirConexiones(
     conFuenteDeCampo: Boolean(itemDeFase(state, "field")?.source_applied || territorial?.phase_sources?.field?.source_id),
     tarjetas,
     muestra: [
-      { rotulo: "Meta", valor: texto(n(conMeta?.advance?.meta)) },
-      { rotulo: "Distritos", valor: texto(n(ruta?.district_count)) },
-      { rotulo: "UMP titulares", valor: texto(n(ruta?.route_count)) },
-      { rotulo: "Reemplazos", valor: texto(n(ruta?.replacement_count)) },
+      { id: "meta", rotulo: "Meta", valor: texto(n(conMeta?.advance?.meta)) },
+      { id: "distritos", rotulo: "Distritos", valor: texto(n(ruta?.district_count)) },
+      { id: "ump-titulares", rotulo: "UMP titulares", valor: texto(n(ruta?.route_count)) },
+      { id: "reemplazos", rotulo: "Reemplazos", valor: texto(n(ruta?.replacement_count)) },
     ],
-    ventanas: (["field", "pilot"] as const)
-      .map((fase) => ({ fase: NOMBRE_DE_FASE[fase], desde: fechaYHoraDeLima(ventanas?.[fase]?.start_at) }))
-      .filter((ventana) => ventana.desde),
   };
 }

@@ -157,7 +157,7 @@
 # Una zona del envío por cuotas como unidad: la cuota por celda viaja con ella (la ficha de conteo la pinta).
 .mcamp_territorial_unidad_zona <- function(zona) {
   chr <- function(x) { v <- .hojas_ruta_envio_chr(x); if (nzchar(v)) v else NA_character_ }
-  list(
+  u <- list(
     unit_id = .hojas_ruta_envio_chr(zona[["id_zona"]]),
     unit_type = .MCAMP_TERRITORIAL_UNIT_TYPE_ZONA,
     label = chr(zona[["nombre"]]) %||% .hojas_ruta_envio_chr(zona[["id_zona"]]),
@@ -178,6 +178,10 @@
       n = .hojas_ruta_envio_int(c[["n"]])
     ))
   )
+  # ADR 0126: qué dimensión es referencia (`list(sexo = "referencial")`). Sólo
+  # si Hojas de ruta la declaró; si no, la unidad es la de siempre.
+  if (length(zona[["caracter"]])) u$caracter <- as.list(zona[["caracter"]])
+  u
 }
 
 #' Unidades de la campaña territorial (`ump_territorial_v1`, ADR 0118 §3).

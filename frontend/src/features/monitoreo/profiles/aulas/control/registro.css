@@ -38,7 +38,7 @@
   cursor: pointer;
 }
 
-.aulas-reg-items button .aulas-ins-chip {
+.aulas-reg-items button .pulso-estado-chip {
   grid-column: 1 / -1;
   justify-self: start;
 }

@@ -3586,9 +3586,8 @@ hojas_ruta_integrada_normalize_config <- function(config = list()) {
     replacement_policy = replacement_policy,
     replacements_per_titular = replacements_per_titular,
     territorios = as.list(territorios),
-    row_var = row_var,
-    col_var = "rango_edad",
-    subquota_var = subquota_var,
+    row_var = row_var, col_var = "rango_edad", subquota_var = subquota_var,
+    caracter_cuotas = hojas_ruta_caracter_cuotas_normalizar(config$caracter_cuotas, subquota_var), # ADR 0126 (hojas_ruta_caracter_cuotas.R)
     measure_var = measure_var,
     sampling_method = method,
     seed = .hojas_ruta_int(config$seed, defaults$seed),

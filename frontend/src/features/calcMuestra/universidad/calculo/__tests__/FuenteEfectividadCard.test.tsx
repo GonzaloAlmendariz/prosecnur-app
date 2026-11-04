@@ -97,7 +97,7 @@ describe("FuenteEfectividadCard", () => {
     const html = renderToStaticMarkup(<FuenteEfectividadCard {...props()} />);
     expect(html).toContain("calibración de un estudio anterior");
     const [declarar] = botones(props());
-    expect(declarar.texto).toBe("Usar la tasa del Diseño (50,0 %) para todas");
+    expect(declarar.texto).toBe("Usar la tasa del Diseño (50.0 %) para todas");
   });
 
   it("declarar pasa la tasa del Diseño", () => {
@@ -109,7 +109,7 @@ describe("FuenteEfectividadCard", () => {
   it("declarada y aplicada: sin pendiente, sólo se puede volver a la calibración", () => {
     const p = props({ efectividad: declararTauGlobal(0.5, ""), aulaFrame: marcoTau50 });
     const html = renderToStaticMarkup(<FuenteEfectividadCard {...p} />);
-    expect(html).toContain("Todas las facultades usan <b>50,0 %</b>");
+    expect(html).toContain("Todas las facultades usan <b>50.0 %</b>");
     expect(html).not.toContain("Pendiente de aplicar");
     expect(botones(p).map((b) => b.texto)).toEqual(["Volver a la calibración"]);
     botones(p)[0].onClick();
@@ -126,8 +126,8 @@ describe("FuenteEfectividadCard", () => {
 
   it("si el Diseño cambió después, lo dice y ofrece igualarla", () => {
     const p = props({ efectividad: declararTauGlobal(0.5, ""), aulaFrame: marcoTau50, tauDiseno: 0.6 });
-    expect(renderToStaticMarkup(<FuenteEfectividadCard {...p} />)).toContain("El Diseño usa <b>60,0 %</b>");
-    expect(botones(p)[0].texto).toBe("Igualar a la tasa del Diseño (60,0 %)");
+    expect(renderToStaticMarkup(<FuenteEfectividadCard {...p} />)).toContain("El Diseño usa <b>60.0 %</b>");
+    expect(botones(p)[0].texto).toBe("Igualar a la tasa del Diseño (60.0 %)");
   });
 
   it("sin base para reconstruir los botones quedan apagados y se dice por qué", () => {
@@ -139,7 +139,7 @@ describe("FuenteEfectividadCard", () => {
   it("con estratos fijados a mano dice cuántos conservan su tasa", () => {
     const p = props({ efectividad: declararTauGlobal(0.5, ""), aulaFrame: marcoTau50, manuales: 3 });
     const html = renderToStaticMarkup(<FuenteEfectividadCard {...p} />);
-    expect(html).toContain("Las facultades sin tasa fijada a mano usan <b>50,0 %</b>.");
+    expect(html).toContain("Las facultades sin tasa fijada a mano usan <b>50.0 %</b>.");
     expect(html).toContain("3 la tienen fijada a mano y la conservan.");
     expect(html).not.toContain("Todas las facultades usan");
     const uno = renderToStaticMarkup(<FuenteEfectividadCard {...props({ ...p, manuales: 1 })} />);
@@ -148,7 +148,7 @@ describe("FuenteEfectividadCard", () => {
 
   it("sin manuales queda el texto de todas las facultades", () => {
     const p = props({ efectividad: declararTauGlobal(0.5, ""), aulaFrame: marcoTau50, manuales: 0 });
-    expect(renderToStaticMarkup(<FuenteEfectividadCard {...p} />)).toContain("Todas las facultades usan <b>50,0 %</b>");
+    expect(renderToStaticMarkup(<FuenteEfectividadCard {...p} />)).toContain("Todas las facultades usan <b>50.0 %</b>");
   });
 
   it("avisa las facultades que volvieron a la tasa del diseño", () => {
@@ -159,9 +159,9 @@ describe("FuenteEfectividadCard", () => {
     ]);
     expect(reseteados).toHaveLength(2);
     const html = renderToStaticMarkup(<FuenteEfectividadCard {...props({ reseteados })} />);
-    expect(html).toContain("2 facultades volvieron a la tasa del diseño (50,0 %)");
+    expect(html).toContain("2 facultades volvieron a la tasa del diseño (50.0 %)");
     expect(html).toContain("porque el marco ya no publica su tasa propia");
-    expect(html).toContain("DERECHO (antes 56,2 %)");
+    expect(html).toContain("DERECHO (antes 56.2 %)");
   });
 });
 

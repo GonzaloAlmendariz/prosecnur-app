@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 
 import { normalizarUnidadesTerritoriales, type UnidadTerritorial } from "../../../api/materialTerritorial";
-import { agruparUnidades, coincide, contarVistas, fechaDelEnvio, filtrarUnidades, rangoDeLaUmp, unidadDelFoco } from "./modeloUnidades";
+import { agruparUnidades, coincide, contarVistas, fechaDelEnvio, filtrarUnidades, hayObservaciones, observacionDe, rangoDeLaUmp, unidadDelFoco } from "./modeloUnidades";
+import type { EstadoUnidad } from "./revisionUnidades";
 
 function u(parcial: Partial<UnidadTerritorial> & Pick<UnidadTerritorial, "unit_id" | "role">): UnidadTerritorial {
   return {
@@ -124,5 +125,20 @@ describe("las vistas de Unidades (revamp v5)", () => {
 
   it("cuenta titulares por vista", () => {
     expect(contarVistas(UNIDADES, porRevisar, encuestador)).toEqual({ "por-revisar": 1, "sin-encuestador": 2, todas: 3 });
+  });
+});
+
+describe("la columna Observación (D15, C5)", () => {
+  const ok: EstadoUnidad = { tono: "ok", motivo: null };
+  const corta: EstadoUnidad = { tono: "aviso", motivo: "no alcanza" };
+  it("una UMP en orden no lleva observación", () => {
+    expect(observacionDe(ok)).toBeNull();
+    expect(observacionDe(undefined)).toBeNull();
+    expect(observacionDe(corta)).toEqual(corta);
+  });
+  it("se muestra sólo si alguna UMP de la campaña trae una", () => {
+    expect(hayObservaciones(new Map([["A1", ok], ["B1", ok]]))).toBe(false);
+    expect(hayObservaciones(new Map())).toBe(false);
+    expect(hayObservaciones(new Map([["A1", ok], ["RA1", corta]]))).toBe(true);
   });
 });

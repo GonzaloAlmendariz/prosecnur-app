@@ -32,6 +32,7 @@ import {
 } from "./aulasSurfaceState";
 import "../../didactica/didactica.css";
 import "./aulas.css";
+import { Panel } from "../../../../components/Panel";
 
 export function AulasObjetivoTab({
   workspace,
@@ -108,16 +109,12 @@ export function AulasObjetivoTab({
 
   return (
     <div className="cmv2-aulas-stack">
-      <section className="cmv2-panel cmv2-aulas-panel cmv2-aulas-hero-panel">
-        <div className="cmv2-subhead">
-          <strong>Objetivo vigente</strong>
-          <small>resultado acreditado del escenario activo</small>
-        </div>
+      <Panel className="cmv2-aulas-panel cmv2-aulas-hero-panel" aria-labelledby="cmv2-aulas-objetivo-titulo" title={<span id="cmv2-aulas-objetivo-titulo">Objetivo vigente</span>} hint="Resultado acreditado del escenario activo">
         <div>
           <CifraFila>
             <CifraMotor
               label="Escenario"
-              value={model.aulasScenario === "e2" ? "P2 · por facultad" : "P1 · universidad"}
+              value={model.aulasScenario === "e2" ? "P2, por facultad" : "P1, universidad"}
               detalle="componente que manda en cursos‑horario"
             />
             <CifraMotor
@@ -129,7 +126,7 @@ export function AulasObjetivoTab({
             <CifraMotor
               label="n operativo"
               value={resultReady ? fmtInt(result?.n_operativo) : "pendiente"}
-              detalle="incluye la cobertura prevista por el engine"
+              detalle="incluye la cobertura prevista por el motor"
               origen={resultReady ? "motor" : undefined}
             />
             <CifraMotor
@@ -141,16 +138,13 @@ export function AulasObjetivoTab({
             />
           </CifraFila>
         </div>
-      </section>
+      </Panel>
 
       {stageNotice && (
         <AulasStageNotice notice={stageNotice} onNavigate={onNavigate} />
       )}
 
-      <section className="cmv2-panel cmv2-aulas-panel">
-        <div className="cmv2-subhead">
-          <strong>Conversión de N a cursos-horario</strong>
-        </div>
+      <Panel className="cmv2-aulas-panel" aria-labelledby="cmv2-aulas-conversion-titulo" title={<span id="cmv2-aulas-conversion-titulo">Conversión de N a cursos-horario</span>}>
         {cuotaValidada && (
           <CadenaAulas
             rows={filasMotor}
@@ -204,14 +198,10 @@ export function AulasObjetivoTab({
             </div>
           )}
         </div>
-      </section>
+      </Panel>
 
-      <section className="cmv2-panel cmv2-aulas-panel">
-        <div className="cmv2-subhead">
-          {/* K2: «Criterios de selección» colisionaba con los criterios del
-              Marco; esto son los PESOS del sorteo. */}
-          <strong>Parámetros del sorteo</strong>
-        </div>
+      {/* K2: «Criterios de selección» colisionaba con los criterios del Marco; esto son los PESOS del sorteo. */}
+      <Panel className="cmv2-aulas-panel" aria-labelledby="cmv2-aulas-sorteo-titulo" title={<span id="cmv2-aulas-sorteo-titulo">Parámetros del sorteo</span>}>
         <div
           className="cmv2-classroom-control-grid"
           data-qa-geometry-group="aulas-objetivo-controles"
@@ -386,7 +376,7 @@ export function AulasObjetivoTab({
           </div>
           <ObjectiveWeightsPanel variables={objectiveVariables as Array<Record<string, unknown>>} />
         </PanelAvanzado>
-      </section>
+      </Panel>
     </div>
   );
 }

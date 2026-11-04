@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Info } from "lucide-react";
 import { fmt } from "../rotulos";
+import { ALTO_DEL_EJE_DE_FECHAS, EjeDeFechas } from "../../../core/ejeDeFechas";
 import type { Jornada } from "./exploracionModel";
 import type { CapituloDeUmp, HistoriaDeUmp, ResultadoDeFormulario } from "./historiaUmpModel";
 import { JornadaDeFormularios } from "./JornadaDeFormularios";
@@ -44,8 +45,10 @@ export function HistoriaUmp({
     );
   }
   const ancho = 520;
-  const alto = 132;
-  const margen = { arriba: 14, abajo: 22, lado: 12 };
+  // El eje de fechas de dos líneas (core/ejeDeFechas) pide 34 px al pie: el
+  // alto crece lo mismo que el margen y la curva conserva su altura.
+  const alto = 132 + ALTO_DEL_EJE_DE_FECHAS - 22;
+  const margen = { arriba: 14, abajo: ALTO_DEL_EJE_DE_FECHAS, lado: 12 };
   const tope = Math.max(meta, ...dias.map((dia) => dia.cuentan), 1);
   const paso = dias.length > 1 ? (ancho - margen.lado * 2) / (dias.length - 1) : 0;
   const x = (indice: number) => margen.lado + paso * indice;
@@ -55,7 +58,6 @@ export function HistoriaUmp({
     if (indice === 0) return;
     trazo += ` H${x(indice).toFixed(1)} V${y(dia.cuentan).toFixed(1)}`;
   });
-  const cada = Math.max(1, Math.ceil(dias.length / 6));
   const diaElegido = elegido ? capitulos.find((capitulo) => capitulo.numero === elegido)?.dia : null;
   const jornada = jornadas?.length ? jornadas.find((item) => item.dia === diaElegido) ?? jornadas[0] : null;
 
@@ -81,9 +83,6 @@ export function HistoriaUmp({
         {dias.map((dia, indice) => (
           <g key={dia.dia}>
             {dia.dia === diaElegido ? <line className="mon-ump-curva-dia" x1={x(indice)} x2={x(indice)} y1={margen.arriba} y2={alto - margen.abajo} /> : null}
-            {indice % cada === 0 || indice === dias.length - 1 ? (
-              <text className="mon-ump-curva-eje" x={x(indice)} y={alto - 6} textAnchor="middle">{dia.rotulo}</text>
-            ) : null}
             {dia.capitulo ? (
               <g className={`mon-ump-curva-hito${dia.capitulo === elegido ? " is-elegido" : ""}`}>
                 <circle cx={x(indice)} cy={y(dia.cuentan)} r={8} />
@@ -92,6 +91,8 @@ export function HistoriaUmp({
             ) : null}
           </g>
         ))}
+        {/* Un día por paso: con uno solo no hay paso y se le da el ancho entero. */}
+        <EjeDeFechas fechas={dias.map((dia) => dia.dia)} paso={paso || ancho} x={x} alto={alto} clase="mon-ump-curva-eje" />
       </svg>
       {!historia.cuadra ? (
         <p className="mon-ump-nota">

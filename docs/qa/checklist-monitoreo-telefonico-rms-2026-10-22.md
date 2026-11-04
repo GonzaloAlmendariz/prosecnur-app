@@ -76,7 +76,7 @@ Hallazgos de la prueba:
 |---|---|---|---|
 | 5.1 | Promover `rms_prueba.R` a contrato de pruebas con fixture sintético (800 hogares, 4 periodos, anomalías de Kobo inyectadas) | `api/tests/testthat/test-monitoreo-telefonico-rms.R` (nuevo) | hecho (sin commitear): `test-monitoreo-telefonico-rms.R`, 19 tests |
 | 5.2 | Prueba de no regresión: cifras de `acnur_pdm` iguales con la opción apagada | `api/inst/reference_projects/acnur_pdm` | hecho (sin commitear): `acnur_pdm` fijado con literales; verde antes y después |
-| 5.3 | Verificar los nombres reales de las columnas de Kobo del RMS con un envío de prueba | Kobo `pulsopucp` | pendiente: depende de un envío real |
+| 5.3 | Verificar los nombres reales de las columnas de Kobo del RMS con un envío de prueba | Kobo `perfilacnur_db1b8e16` (kobo.unhcr.org), formulario `aDQa3aijqSvjn87yhsBLEs` | hecho (2026-10-27) con la API real: `intro/Intro01`, `group_consent/Intro04` (el sí llega como `1`), `intro/test_real`, `intro/name_enumerator`; 150 respuestas, 146 cruzan con la llave declarada. La etiqueta de `Intro01` NO llega al snapshot real (5 etiquetas, ninguna de esa columna): la detección nativa por etiqueta (1.2) da 0 cruces sin declarar la llave |
 
 ### Fuera de alcance (anotado, no se toca)
 
@@ -151,3 +151,8 @@ El RMS es un proyecto en particular. El modo Telefónico atiende proyectos con n
 - **Prueba de no regresión obligatoria** para toda capacidad nueva: con ella apagada, las cifras de `acnur_pdm` y de Medios de Vida no cambian (5.2).
 
 Efecto en la segunda tanda: 3.1–3.6 se rediseñan como capacidad declarativa; 3.6 (la vista) solo se pinta si el perfil declara reserva. Esto reemplaza al contrato «propuesto» que se le envió a la sesión del revamp visual.
+
+## Hallazgo con datos reales (2026-10-27)
+
+- Con el `.pulso` tal cual (llave declarada `intro/Intro01`): 146 de 150 respuestas cruzan; efectivas por periodo 28 / 51 / 28 / 25 = 132 de 400. Con la llave sin declarar: 0 de 150 cruzan y `cruce_llave_bajo` sale en nivel Alta con el mensaje claro (el aviso cumple, la detección nativa por etiqueta no).
+- **Propuesta (no implementada):** reconocer la llave de las respuestas también por **solapamiento de valores** con la llave del barrido (una columna de texto de Kobo cuyos valores normalizados coinciden en ≥ 50 % con los del barrido), que no depende de la etiqueta. Entra como respaldo, igual que proGres, y no cambia proyectos que declaran su llave.

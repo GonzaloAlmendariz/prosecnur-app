@@ -79,7 +79,7 @@ export function MuestraOperativaCard({
         )}
         <li className="cmv2-muop-paso" data-tono="destino">
           <b>{fmtInt(m.nOperativo!)}</b>
-          <small>operativa · se sale a buscar</small>
+          <small>operativa, se sale a buscar</small>
         </li>
       </ol>
       <p className="cmv2-muop-pie">

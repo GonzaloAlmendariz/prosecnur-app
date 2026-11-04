@@ -1,4 +1,5 @@
 import { useEffect, useId, useRef, useState, type KeyboardEvent as ReactKeyboardEvent, type ReactNode, type Ref } from "react";
+import { EstadoChip } from "../../../components/EstadoChip";
 import { ChevronDown, Loader2, RefreshCw } from "lucide-react";
 import "./barraDelModo.css";
 
@@ -30,6 +31,14 @@ export type EstadoDelModo =
   | { clave: "actualizando"; paso?: number; pasos?: number }
   | { clave: "fallo"; detalle?: string }
   | { clave: "preparando"; detalle?: string };
+
+/** El tono que pintaba `.mon-modo-estado.is-*`: actualizar y preparar iban en azul. */
+const TONO_DE_ESTADO: Record<EstadoDelModo["clave"], "success" | "info" | "danger"> = {
+  "al-dia": "success",
+  actualizando: "info",
+  preparando: "info",
+  fallo: "danger",
+};
 
 export function etiquetaDeEstado(estado: EstadoDelModo): string {
   switch (estado.clave) {
@@ -239,12 +248,12 @@ export function HerramientasDelModo({
         <small>Corte</small>
         <b>{cargando && !barra.corte ? "Leyendo…" : barra.corte || "Sin corte"}</b>
       </span>
-      <span
-        className={`mon-modo-estado is-${estado.clave}`}
-        role="status"
-        title={(estado.clave === "fallo" || estado.clave === "preparando") && estado.detalle ? estado.detalle : undefined}
-      >
-        {etiquetaDeEstado(estado)}
+      <span className="mon-modo-estado">
+        <EstadoChip
+          label={etiquetaDeEstado(estado)}
+          tone={TONO_DE_ESTADO[estado.clave]}
+          detail={(estado.clave === "fallo" || estado.clave === "preparando") && estado.detalle ? estado.detalle : undefined}
+        />
       </span>
       <span className="mon-modo-actualizar" ref={raiz}>
         <button

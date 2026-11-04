@@ -27,7 +27,7 @@
   border-radius: var(--pulso-radius);
   background: var(--pulso-surface);
   color: var(--pulso-text);
-  font-size: 13px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .mon-profile-page.is-aulas-flow .aulas-libro-destino input:focus-visible {

@@ -64,7 +64,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
 
   const negotiateSession = useCallback(async (fresh = false) => {
     const h = await apiHealth();
-    setVersion(`app v${h.version} · prosecnur v${h.prosecnur_version}`);
+    setVersion(`app v${h.version}, prosecnur v${h.prosecnur_version}`);
     if (!fresh) {
       const bs = await apiSystemBootstrap().catch(() => ({ sid: null }));
       // jsonlite (R) serializa `NULL` dentro de un objeto como `{}`, no

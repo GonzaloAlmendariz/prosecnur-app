@@ -7,7 +7,7 @@ import { EmptyPanel } from "../EmptyPanel";
 import { COLOR_RESULTADO, COLOR_SEPARADOR_BARRA } from "../../../coloresDeResultado";
 import {
   calendarReportWeekdayFromDate,
-  compactAdvanceDateTickLabel,
+  advanceAxisDate,
   dailyCutsForChart,
   dailyEffectiveValue,
   dailyPointTotals,
@@ -17,13 +17,14 @@ import {
   mergeAcreditacionDailyPoints,
   normalizeCalendarReportWeekday,
   paddedAdvanceAxisMax,
-  shortAdvanceDateLabel,
   sortAcreditacionDailyPoints,
   sparseDailyChartRows,
   weeklyCutsForChart,
   type AcreditacionAdvanceDailyPoint,
   type AcreditacionDailyReportCut,
 } from "./ritmoDiario";
+import { formatoDecimal } from "../../../../../lib/formatoNumero";
+import { ANCHO_DEL_DIA, ejeDeFechas, type RotuloDeDia } from "../../../core/ejeDeFechas";
 
 // Ritmo diario del avance, extraído del page-file congelado
 // (AcreditacionMonitoreoPage.tsx) en la ola 2 del plan de performance (paso 4
@@ -75,7 +76,7 @@ export function AcreditacionAdvanceDailyMini({
         <div>
           <span>Avance diario</span>
           <strong>{title}</strong>
-          <em>{countText(signalDayCount, "día", "días")} con respuesta · {fmt(effectiveOnly ? totals.effective : totals.total)} {dailyLabel} · {averageLabel}/día</em>
+          <em>{countText(signalDayCount, "día", "días")} con respuesta, {fmt(effectiveOnly ? totals.effective : totals.total)} {dailyLabel}, {averageLabel}/día</em>
         </div>
         <div className="mon-advance-daily-mini-tools">
           <div className="mon-advance-daily-mini-kpis">
@@ -184,8 +185,7 @@ function buildAdvanceDailyMiniModel({
     return {
       ...point,
       x: 0,
-      axisLabel: compactAdvanceDateTickLabel(point.date),
-      displayLabel: shortAdvanceDateLabel(point.date),
+      axisDate: advanceAxisDate(point.date),
       dailyTotal,
       cumulative,
     };
@@ -218,9 +218,17 @@ function buildAdvanceDailyMiniModel({
   const cuts = datedCuts.length ? datedCuts : inferredWeeklyCuts.length ? inferredWeeklyCuts : dailyCutsForChart(chartRows, [], cutDate);
   const cutXSet = new Set(cuts.map((cut) => cut.x));
   const tickEvery = chartRows.length > 40 ? 7 : chartRows.length > 28 ? 5 : chartRows.length > 16 ? 3 : chartRows.length > 10 ? 2 : 1;
-  const tickRows = chartRows.filter((point, index) => (
-    index === 0 || index === chartRows.length - 1 || index % tickEvery === 0 || cutXSet.has(point.x)
-  ));
+  // Eje de fechas común de Monitoreo (`core/ejeDeFechas`): el día bajo su barra
+  // y el mes debajo sólo donde empieza. El gráfico no mide su ancho, así que el
+  // paso por barra se estima: en el compacto, el que ya decidía cada cuánto
+  // rotular (`tickEvery`); en el resto, el ancho típico de la tarjeta repartido
+  // entre los cortes, con los 28 px que garantiza el marco cuando desplaza.
+  const anchoEstimadoDelEje = variant === "general" ? 900 : 600;
+  const pasoDelEje = isCompactChart
+    ? ANCHO_DEL_DIA / tickEvery
+    : Math.max(chartRows.length > 45 ? 28 : 0, anchoEstimadoDelEje / Math.max(1, chartRows.length));
+  const rotulosDeFecha = ejeDeFechas(chartRows.map((point) => point.axisDate), pasoDelEje);
+  const textoDeFecha = (rotulo: RotuloDeDia) => (rotulo.mes ? `${rotulo.dia}<br><b>${rotulo.mes}</b>` : rotulo.dia);
   const cumulativeCandidates = Array.from(new Map([
     ...(chartRows.length <= 14 ? ([chartRows[0]].filter(Boolean) as typeof chartRows) : []),
     ...cuts.map((cut) => cut.point),
@@ -255,7 +263,7 @@ function buildAdvanceDailyMiniModel({
     // el detalle día a día.
     showDenseDailyLabels ? dailyLabelCandidates.length : variant === "general" ? 8 : 5,
   );
-  const dateLabelRows = isCompactChart ? [] : chartRows;
+  const dateLabelRows = isCompactChart ? [] : rotulosDeFecha;
   // Ancho mínimo por corte. Pasados los ~45 cortes el campo no cabe y la
   // columna central del marco se desplaza, con los ejes fuera de ella.
   const ANCHO_POR_CORTE = 28;
@@ -283,8 +291,8 @@ function buildAdvanceDailyMiniModel({
     ].join("<br>")
     : [
       "<b>%{customdata[0]}</b>",
-      "Efectivas %{customdata[1]} · Parciales %{customdata[2]} · Rechazos %{customdata[3]}",
-      "Total día <b>%{customdata[4]}</b> · Acumulado <b>%{customdata[5]}</b>",
+      "Efectivas %{customdata[1]}, parciales %{customdata[2]} y rechazos %{customdata[3]}",
+      "Total del día <b>%{customdata[4]}</b>, acumulado <b>%{customdata[5]}</b>",
       "<extra></extra>",
     ].join("<br>");
   const chartData = [
@@ -402,12 +410,12 @@ function buildAdvanceDailyMiniModel({
         yanchor: "middle" as const,
         font: { color: COLOR_RESULTADO.efectiva, size: 10, family: "Inter, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" },
       })),
-      ...dateLabelRows.map((point) => ({
-        x: point.x,
+      ...dateLabelRows.map((rotulo) => ({
+        x: rotulo.indice,
         y: -0.22,
         xref: "x" as const,
         yref: "paper" as const,
-        text: point.axisLabel,
+        text: textoDeFecha(rotulo),
         showarrow: false,
         xanchor: "center" as const,
         yanchor: "top" as const,
@@ -421,8 +429,8 @@ function buildAdvanceDailyMiniModel({
       zeroline: false,
       range: chartRows.length ? [-0.55, Math.max(0.55, chartRows.length - 0.45)] : undefined,
       tickangle: 0,
-      tickvals: tickRows.map((point) => point.x),
-      ticktext: tickRows.map((point) => (isCompactChart ? point.displayLabel : point.axisLabel)),
+      tickvals: rotulosDeFecha.map((rotulo) => rotulo.indice),
+      ticktext: rotulosDeFecha.map(textoDeFecha),
       showticklabels: isCompactChart,
       ticks: "",
       tickfont: { color: "#474f5b", size: isCompactChart ? 9 : 10 },
@@ -468,7 +476,7 @@ function buildAdvanceDailyMiniModel({
     .reduce((sum, point) => sum + (effectiveOnly ? dailyEffectiveValue(point) : dailyPointTotalValue(point)), 0);
   const signalDayCount = datedSignalPoints.length;
   const average = signalDayCount ? averageBase / signalDayCount : 0;
-  const averageLabel = average ? average.toLocaleString("es-PE", { maximumFractionDigits: 1 }) : "S/D";
+  const averageLabel = average ? formatoDecimal(average, 1) : "S/D";
   const chartHeight = isCompactChart ? 154 : variant === "general" ? 360 : 300;
   const hiddenLeadingDays = windowStart;
   return {

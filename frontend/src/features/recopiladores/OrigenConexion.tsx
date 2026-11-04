@@ -66,7 +66,7 @@ export function OrigenConexion({ origen, onActualizar, dialogoAbierto }: Props) 
             <h4 id="rec-origen-huella" className="rec-origen-k">Huella y vigencia</h4>
             <p className="rec-origen-huella-linea">
               {huella ? <span className="rec-origen-mono" title={origen.fingerprint_plan ?? undefined}>{huella}</span> : null}
-              {huella && cuando ? " · " : null}
+              {huella && cuando ? ", " : null}
               {cuando}
               {origen.stale && huellaFuente && huellaFuente !== huella ? (
                 <>

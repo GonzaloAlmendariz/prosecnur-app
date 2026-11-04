@@ -55,8 +55,8 @@ export function FichaPruebaControl({
         </PulsoButton>
       </span>
       <small>
-        Un colector aparte —<code>PRUEBA_2026</code>, <code>CAPACITACION</code>,{" "}
-        <code>prueba_interna</code>— con el mismo enlace del operativo. No entra al plan.
+        {/* Pasada de diseño (2 nov 2026): sin rayas ni monoespaciada; los códigos se leen como ejemplos. */}
+        Un colector aparte con el mismo enlace del operativo, como PRUEBA_2026, CAPACITACION o prueba_interna. No entra al plan.
       </small>
     </label>
   );

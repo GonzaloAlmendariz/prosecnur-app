@@ -51,7 +51,9 @@ describe("seccionesSustento", () => {
   it("cada capítulo declara su fuente literal", () => {
     // Para que quien lo mantenga no tenga que adivinar de dónde salía.
     expect(seccionesSustento(ctx()).every((x) => x.fuente.length > 15)).toBe(true);
-    expect(seccionesSustento(ctx()).find((x) => x.id === "tau")?.fuente).toContain("rendimiento_mix");
+    expect(seccionesSustento(ctx()).find((x) => x.id === "tau")?.campo).toContain("rendimiento_mix");
+    // Y lo que se lee en pantalla no lleva nombres de campo entre comillas invertidas.
+    expect(seccionesSustento(ctx()).every((x) => !x.fuente.includes("`"))).toBe(true);
   });
 
   it("τ exige tasas de verdad, no una fila cualquiera", () => {

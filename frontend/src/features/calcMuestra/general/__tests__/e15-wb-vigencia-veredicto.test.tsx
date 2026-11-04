@@ -101,7 +101,7 @@ describe("P7 · Resultados abre con su veredicto", () => {
   it("Muestra general: margen alcanzado frente al pedido, con tono y título", () => {
     const ok = veredictoResultados({ modo: "marco_disponible", componentes: [calculado("g", "General")] });
     expect(ok).toMatchObject({ tono: "ok", titulo: "El n cumple el margen pedido" });
-    expect(ok?.detalle).toBe("234 completas · 390 a contactar · margen ±5.0% frente a ±5.0% pedido");
+    expect(ok?.detalle).toBe("234 completas, 390 a contactar; margen ±5.0% frente a ±5.0% pedido");
     const corto = veredictoResultados({
       modo: "marco_disponible",
       componentes: [calculado("g", "General", {}, { precision_alcanzada: 0.07 })],
@@ -117,7 +117,7 @@ describe("P7 · Resultados abre con su veredicto", () => {
     const admin = calculado("adm", "Administrativos");
     const v1 = veredictoResultados({ modo: "acreditacion", componentes: [docentes, sinN], corridas: {}, cargado: true });
     expect(v1).toMatchObject({ tono: "alerta", titulo: "Falta 1 de 2 actores por calcular", falta: "Falta: Egresados (sin N)." });
-    expect(v1?.detalle).toBe("1 de 2 calculados · 0 de 1 seleccionados");
+    expect(v1?.detalle).toBe("1 de 2 calculados; 0 de 1 seleccionados");
     const v2 = veredictoResultados({
       modo: "acreditacion",
       componentes: [docentes, admin],

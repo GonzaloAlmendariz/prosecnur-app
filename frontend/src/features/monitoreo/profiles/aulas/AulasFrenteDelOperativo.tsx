@@ -94,13 +94,13 @@ export function AulasFrenteDelOperativo({ filas, partes, corte }: {
             parte en el libro
           </>
         )}
-        {f.porVenir ? <> · <strong>{fmt(f.porVenir)}</strong> aún por venir</> : null}
+        {f.porVenir ? <>, <strong>{fmt(f.porVenir)}</strong> aún por venir</> : null}
         {/* Sin fecha DECLARADO aparte: no están al día ni atrasados, y meterlos
             en cualquiera de los dos lados inventaría un diagnóstico. */}
-        {f.sinFecha ? <> · <strong>{fmt(f.sinFecha)}</strong> sin fecha en la agenda</> : null}
+        {f.sinFecha ? <>, <strong>{fmt(f.sinFecha)}</strong> sin fecha en la agenda</> : null}
         {/* Va en el flujo con el mismo separador que el resto del panel: es una
             calificación de todas las cifras de la frase, no un dato aparte. */}
-        {diaDelCorte ? <> · <span className="aulas-frente-corte">al {diaDelCorte}</span></> : null}
+        {diaDelCorte ? <>, <span className="aulas-frente-corte">al {diaDelCorte}</span></> : null}
       </p>
       {f.vencidas ? (
         <div className="aulas-frente-carril" role="img"

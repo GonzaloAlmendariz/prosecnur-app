@@ -39,7 +39,7 @@ function TiraDeViviendas({ revision }: { revision: RevisionMarco }) {
   const marcas = [0, 10, 100, 1000].filter((v) => v <= maximo);
   return (
     <figure className="hr-revision-tira" aria-label="Viviendas por manzana elegida, en escala logarítmica">
-      <figcaption>Viviendas por manzana elegida · escala logarítmica</figcaption>
+      <figcaption>Viviendas por manzana elegida, escala logarítmica</figcaption>
       <div className="hr-revision-tira-rejilla">
         <span />
         <div className="hr-revision-tira-pista is-referencia">

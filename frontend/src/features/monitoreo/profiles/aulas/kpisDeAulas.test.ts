@@ -356,7 +356,7 @@ describe("A2: la tarjeta de respuestas dice lo mismo que el embudo", () => {
     const tarjeta = aulasKpis(dashboard, "fuentes").find((k) => k.label === "Respuestas leídas");
     expect(tarjeta).toBeDefined();
     expect(tarjeta?.value).toBe("273");
-    expect(tarjeta?.pista).toBe("37 fuera del operativo · 24 no pasan el criterio · 212 efectivas");
+    expect(tarjeta?.pista).toBe("37 fuera del operativo, 24 no pasan el criterio, 212 efectivas");
   });
 
   it("los tres números salen de la misma regla que el embudo", async () => {

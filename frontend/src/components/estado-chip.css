@@ -1,0 +1,31 @@
+/* EstadoChip.tsx y el slot de estado de ModuleCommandBar (P6). Hereda el material
+   de `.pulso-chrome-status-chip` (chrome.css) y le suma el punto de tono; el slot
+   separa los estados de las acciones con una línea, para que un estado no se lea
+   como un botón más. */
+
+.pulso-estado-chip {
+  cursor: default;
+  font-size: var(--pulso-type-caption-size);
+  font-weight: var(--pulso-weight-semibold);
+}
+.pulso-estado-chip-punto {
+  flex: none;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.85;
+}
+.pulso-estado-chip[data-tone="neutral"] .pulso-estado-chip-punto {
+  background: var(--pulso-text-faint);
+}
+
+.pulso-command-bar-estado {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--pulso-space-2);
+  padding-right: var(--pulso-space-3);
+  margin-right: var(--pulso-space-1);
+  border-right: 1px solid var(--pulso-border);
+}
+button.pulso-estado-chip { cursor: pointer; }

@@ -41,6 +41,7 @@ import { apiMonitoreoPublicationSheetsRevisar } from "../../../api/monitoreoPubl
 import { GlidingTabList } from "../../../components/GlidingTabList";
 import { PANEL_REVISAR_PUBLICACION } from "../../../lib/navegacion/manifiesto";
 import { usePanelDireccionable } from "../../../lib/navegacion/paneles";
+import { formatoConteo, formatoDecimal } from "../../../lib/formatoNumero";
 import { EnsayoPublicacionDialog, type EstadoEnsayo } from "./EnsayoPublicacionDialog";
 import { Switch } from "../../../components/Switch";
 import { readinessDeSalidas, type MonitoreoCorte } from "../corte/corteContract";
@@ -179,9 +180,9 @@ function fmt(value: unknown, fallback = "0") {
 function formatBytes(value?: number) {
   if (!Number.isFinite(value)) return "";
   const n = Number(value);
-  if (n >= 1024 * 1024) return `${(n / (1024 * 1024)).toFixed(1)} MB`;
-  if (n >= 1024) return `${Math.round(n / 1024)} KB`;
-  return `${n} B`;
+  if (n >= 1024 * 1024) return `${formatoDecimal(n / (1024 * 1024), 1)} MB`;
+  if (n >= 1024) return `${formatoConteo(n / 1024)} KB`;
+  return `${formatoConteo(n)} B`;
 }
 
 function formatDate(value?: string) {
@@ -364,9 +365,9 @@ function preflightDetail(preflight?: MonitoreoDeliverablesPreflight | null) {
   const blocking = preflight.scorecard?.blocking_count ?? preflight.blocking_issues?.length ?? 0;
   const warnings = preflight.scorecard?.warning_count ?? preflight.warnings?.length ?? 0;
   if (preflightHasOnlyColdPerformanceWarnings(preflight)) {
-    return `${Math.round(Number(preflight.score) || 0)}/100 · sin bloqueos · la generación en frío tardó más de lo esperado`;
+    return `${Math.round(Number(preflight.score) || 0)}/100, sin bloqueos, la generación en frío tardó más de lo esperado`;
   }
-  return `${Math.round(Number(preflight.score) || 0)}/100 · ${blocking} bloqueos · ${warnings} advertencias`;
+  return `${Math.round(Number(preflight.score) || 0)}/100, ${blocking} bloqueos, ${warnings} advertencias`;
 }
 
 export function preflightHasOnlyColdPerformanceWarnings(preflight?: MonitoreoDeliverablesPreflight | null) {
@@ -461,7 +462,7 @@ export function monitoreoProcessingHandoffDetail(result?: MonitoreoProcessingHan
     `${fmt(counts.exported_rows ?? 0)} filas`,
     statusLabel ? `estatus ${statusLabel}` : "",
     formatBytes(result?.size),
-  ].filter(Boolean).join(" · ");
+  ].filter(Boolean).join(", ");
 }
 
 export function monitoreoProcessingHandoffFileLinks(result?: MonitoreoProcessingHandoffResult | null): ProcessingHandoffFileLink[] {
@@ -530,7 +531,7 @@ export function monitoreoOperationalPackageDetail(result?: MonitoreoTerritorialO
     `${fmt(incompleteRows)} filas incompletas`,
     applyBlockedRows > 0 ? `${fmt(applyBlockedRows)} filas sin payload aplicable` : "",
     payloadLabel,
-  ].filter(Boolean).join(" · ");
+  ].filter(Boolean).join(", ");
 }
 
 export function monitoreoOperationalPackageApplyBlocked(result: MonitoreoTerritorialOperationalPackageReviewResult) {
@@ -664,9 +665,10 @@ export function MonitoreoOutputsWorkbench({
   const ficha = variante === "ficha" || family !== "aulas";
   const pdfDeLaFamilia = PDF_POR_FAMILIA[family] ?? { client: true, production: true };
   const ofreceClientPdf = pdfSupport?.client ?? pdfDeLaFamilia.client;
-  // La portada existe sólo en el renderizador de aulas. Ofrecer sus campos en un
-  // perfil cuyo PDF no la dibuja sería prometer un control que no hace nada.
-  const ofrecePortada = ofreceClientPdf && family === "aulas";
+  // La portada existe en los renderizadores de aulas y telefónico
+  // (`monitoreo_telefonico_avance_pdf.R`). Ofrecer sus campos en un perfil cuyo
+  // PDF no la dibuja sería prometer un control que no hace nada.
+  const ofrecePortada = ofreceClientPdf && (family === "aulas" || family === "telefonico");
   // **«Incluir metas» no hace nada en cursos-horario.** Su reporte se define
   // contra la cuota del diseño —«1.390 de 2.500», «faltan 1.110»— y apagarla lo
   // dejaría sin objeto, así que el motor ignora el parámetro. Ofrecer la casilla
@@ -955,7 +957,7 @@ export function MonitoreoOutputsWorkbench({
           : statusKind === "warnings"
             ? "Soporte generado con advertencias."
             : "Soporte de publicación listo.",
-          detail: [result.filename, formatBytes(result.size)].filter(Boolean).join(" · "),
+          detail: [result.filename, formatBytes(result.size)].filter(Boolean).join(", "),
         },
       }));
     } catch (e) {
@@ -1704,7 +1706,7 @@ export function MonitoreoOutputsWorkbench({
                       <strong>Drift / referencia validada</strong>
                       <small>
                         {operationalDriftUpload
-                          ? [operationalDriftUpload.filename, formatBytes(operationalDriftUpload.size)].filter(Boolean).join(" · ")
+                          ? [operationalDriftUpload.filename, formatBytes(operationalDriftUpload.size)].filter(Boolean).join(", ")
                           : "CSV/XLSX requerido para contrastar el paquete."}
                       </small>
                     </div>
@@ -1731,7 +1733,7 @@ export function MonitoreoOutputsWorkbench({
                       <strong>Paquete operacional completado</strong>
                       <small>
                         {operationalPackageUpload
-                          ? [operationalPackageUpload.filename, formatBytes(operationalPackageUpload.size)].filter(Boolean).join(" · ")
+                          ? [operationalPackageUpload.filename, formatBytes(operationalPackageUpload.size)].filter(Boolean).join(", ")
                           : "CSV/XLSX para revisar contra el drift validado."}
                       </small>
                     </div>

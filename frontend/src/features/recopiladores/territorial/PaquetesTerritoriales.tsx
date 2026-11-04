@@ -35,6 +35,8 @@ import { PulsoButton } from "../../../components/PulsoButton";
 import { PulsoInput } from "../../../components/PulsoInput";
 import { PulsoSwitch } from "../../../components/PulsoSwitch";
 import { Archive, FileSpreadsheet, Shuffle } from "../../../vendor/lucide-react";
+import { CifrasEnTarjeta } from "../../../components/CifrasEnTarjeta";
+import { Panel } from "../../../components/Panel";
 import { PulsoTable, type PulsoTableColumna } from "../../../components/PulsoTable";
 import { revisarUnidades } from "./revisionUnidades";
 import {
@@ -148,10 +150,25 @@ export function PaquetesTerritoriales({ campaignId, unidades, hojas, onRecargar,
         </div>
       ) : null}
 
+      {/* Pasada de diseño (2 nov 2026): lo que lleva el paquete se lee arriba, en cifras, y cada parte vive en su Panel. */}
+      <CifrasEnTarjeta
+        cifras={[
+          { id: "titulares", rotulo: "Titulares", valor: fmt(paquete.titulares), nota: "una ficha y una hoja de ruteo cada una" },
+          { id: "reemplazos", rotulo: "Reemplazos", valor: fmt(paquete.reemplazos), nota: "por si una titular falla" },
+          { id: "zonas", rotulo: "Zonas", valor: fmt(paquete.zonas), nota: `en ${fmt(porDistrito.length)} ${porDistrito.length === 1 ? "distrito" : "distritos"}` },
+          {
+            id: "piezas", rotulo: "Piezas listas", valor: fmt(Number(Boolean(e.zip)) + Number(Boolean(e.excel))), de: 2,
+            avance: { valor: Number(Boolean(e.zip)) + Number(Boolean(e.excel)), total: 2, etiqueta: "Piezas para campo generadas" },
+          },
+        ]}
+      />
       <div className="rec-terr-paquetes" data-qa-geometry-group="material-campo/territorial/paquetes" data-qa-geometry-contract="intrinsic">
         <div className="rec-terr-paquetes-principal" data-qa-geometry-member>
-          <section className="rec-terr-piezas" aria-labelledby="rec-terr-piezas-titulo">
-            <h2 id="rec-terr-piezas-titulo">Para campo</h2>
+          <Panel
+            className="rec-terr-piezas"
+            title={<><Archive size={16} aria-hidden /> Para campo</>}
+            hint="Lo que se imprime y se reparte por distrito."
+          >
             {!listo ? (
               <p className="rec-terr-aviso" role="status">
                 Falta en Hojas de ruta: {pasos.filter((p) => !p.ok).map((p) => p.label.toLocaleLowerCase("es-PE")).join(", ")}. <Link to={HREF_REENVIO}>Ir a Hojas de ruta</Link>
@@ -231,27 +248,32 @@ export function PaquetesTerritoriales({ campaignId, unidades, hojas, onRecargar,
                 )}
               </li>
             </ul>
-          </section>
+          </Panel>
 
           <HojasDelPaquete campaignId={campaignId} unidades={unidades} />
         </div>
 
-        <article className="rec-terr-tarjeta rec-terr-paquetes-secundaria" data-qa-geometry-member aria-label="Reemplazos puntuales">
-          <h3><Shuffle size={15} aria-hidden /> Reemplazos puntuales</h3>
-          <p className="rec-terr-nota">Para las titulares que fallaron en campo: un PDF con reemplazos nuevos, sin tocar el sorteo.</p>
+        <Panel
+          className="rec-terr-paquetes-secundaria"
+          data-qa-geometry-member
+          aria-label="Reemplazos puntuales"
+          title={<><Shuffle size={16} aria-hidden /> Reemplazos puntuales</>}
+          hint="Para las titulares que fallaron en campo: un PDF con reemplazos nuevos, sin tocar el sorteo."
+        >
           {sugeridas.length ? (
             <div className="rec-terr-sugeridas">
               <small>Por revisar en la muestra: conviene mirarlas primero</small>
               <div className="rec-terr-chips">
-                {sugeridas.slice(0, 8).map((id) => {
+                {/* Sistema Pabellón: la lista va completa, sin «y N más». */}
+                {sugeridas.map((id) => {
                   const b = muestra?.blocks.find((x) => x.id_manzana === id);
                   return (
                     <button key={id} type="button" className="rec-terr-chip" aria-pressed={elegidas.includes(id)} disabled={corriendo} onClick={() => setElegidas((l) => alternarId(l, id))}>
-                      {b ? codigoDeUmp(b) : id}{revision.porUnidad.get(id)?.motivo ? ` · ${revision.porUnidad.get(id)?.motivo}` : ""}
+                      <b>{b ? codigoDeUmp(b) : id}</b>
+                      {revision.porUnidad.get(id)?.motivo ? <small>{revision.porUnidad.get(id)?.motivo}</small> : null}
                     </button>
                   );
                 })}
-                {sugeridas.length > 8 ? <span className="rec-terr-nota">y {fmt(sugeridas.length - 8)} más</span> : null}
               </div>
             </div>
           ) : null}
@@ -262,7 +284,7 @@ export function PaquetesTerritoriales({ campaignId, unidades, hojas, onRecargar,
                 <li key={f.id}>
                   <span>
                     <strong>{f.codigo}</strong>
-                    <small>{nombreDistrito(f.distrito)} · zona {f.zona}</small>
+                    <small>{nombreDistrito(f.distrito)}, zona {f.zona}</small>
                   </span>
                   <PulsoSwitch size="sm" ariaLabel={`${f.elegida ? "Quitar" : "Pedir reemplazos para"} ${f.codigo}`} checked={f.elegida} disabled={corriendo} onCheckedChange={() => setElegidas((l) => alternarId(l, f.id))} />
                 </li>
@@ -308,7 +330,7 @@ export function PaquetesTerritoriales({ campaignId, unidades, hojas, onRecargar,
               <small>{fmt(e.puntuales.n_replacement_blocks)} reemplazos para {fmt(e.puntuales.n_titulars)} titulares</small>
             </a>
           ) : null}
-        </article>
+        </Panel>
       </div>
     </div>
   );

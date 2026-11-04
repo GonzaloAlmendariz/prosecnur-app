@@ -34,6 +34,7 @@ import {
 import { enfocarSinDesplazar } from "./laminas/enfocarSinDesplazar";
 import "./armarDesde/armarDesde.css";
 import { contenidoPropuesto, tituloPropuesto } from "./armarDesde/vistaPreviaPropuesta";
+import { formatoConteo } from "../../lib/formatoNumero";
 
 function newSlideId(prefix = "sug") {
   return `${prefix}-${Math.random().toString(36).slice(2, 10)}`;
@@ -435,7 +436,7 @@ export function SuggestedPlanButton() {
             <>
               <div className="pulso-gv2-suggest-kpis">
                 <div>
-                  <strong>{result.plan.slides.length}</strong>
+                  <strong>{formatoConteo(result.plan.slides.length)}</strong>
                   <span>{result.plan.slides.length === 1 ? "lámina propuesta" : "láminas propuestas"}</span>
                 </div>
                 <div>
@@ -450,7 +451,7 @@ export function SuggestedPlanButton() {
 
               {result.warnings?.length ? (
                 <div className="pulso-gv2-suggest-warning">
-                  {result.warnings.join(" · ")}
+                  {result.warnings.join("; ")}
                 </div>
               ) : null}
 
@@ -477,7 +478,7 @@ export function SuggestedPlanButton() {
                       <dd>{result.report_inputs.profile?.available ? "Incluido" : "No incluido"}</dd>
                       <small>
                         {[result.report_inputs.profile?.sex_variable, result.report_inputs.profile?.age_variable]
-                          .filter(Boolean).join(" · ") || "Sin variables asignadas"}
+                          .filter(Boolean).join(", ") || "Sin variables asignadas"}
                       </small>
                     </div>
                     <div>

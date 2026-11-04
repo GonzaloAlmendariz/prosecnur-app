@@ -26,3 +26,13 @@ export function filasDeHoja(
     buscados.has(String(bloque.id).toLowerCase()) ? bloque.rows as Array<Record<string, unknown>> : []
   ));
 }
+
+/** La nota de un bloque del reporte telefónico: el motor la usa para declarar lo que no suma (p. ej. «no se suman a Efectivas»). */
+export function notaDeBloque(
+  reports: MonitoreoAcreditacionReports | null | undefined,
+  id: string,
+): string {
+  const hoja = reports?.sheets?.find((item) => item.id === "monitoreo_telefonico");
+  const bloque = hoja?.blocks.find((item) => String(item.id).toLowerCase() === id.toLowerCase()) as { note?: unknown } | undefined;
+  return typeof bloque?.note === "string" ? bloque.note.trim() : "";
+}

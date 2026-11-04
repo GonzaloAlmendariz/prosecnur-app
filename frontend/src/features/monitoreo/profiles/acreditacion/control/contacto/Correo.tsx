@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { EstadoChip } from "../../../../../../components/EstadoChip";
 import { Download, Loader2, Mail, RefreshCw } from "lucide-react";
 import type { MonitoreoMailchimpAudiencia, MonitoreoMailchimpEstado } from "../../../../../../api/monitoreoMailchimp";
 import { useFocoMonitoreo } from "../../../../useMonitoreoDireccion";
@@ -29,6 +30,9 @@ type PropsDeVista = {
   onLeer: () => void;
   onCambiarAudiencia: () => void;
 };
+
+/** El tono que pintaba `.acr-co-ritmo.is-*` (contacto.css); «Sin envíos» iba sin color. */
+const TONO_DE_RITMO = { ready: "success", warning: "warn", danger: "danger", neutral: "neutral" } as const;
 
 function Paso({ rotulo, valor, base, aviso }: { rotulo: string; valor: number | null; base: number | null; aviso?: string }) {
   const ancho = valor != null && base ? Math.min(100, (valor / base) * 100) : 0;
@@ -104,7 +108,7 @@ export function CorreoVista({ estado, audiencias, foco, lectura, aviso, error, o
                           ) : <span className="acr-co-celda is-vacia">Por enviar</span>}
                         </td>
                       ))}
-                      <td><span className={`acr-co-ritmo is-${ritmo.tono}`} title={fila.publico.ritmo_motivo}>{ritmo.etiqueta}</span></td>
+                      <td><EstadoChip label={ritmo.etiqueta} tone={TONO_DE_RITMO[ritmo.tono]} detail={fila.publico.ritmo_motivo || undefined} /></td>
                     </tr>
                   );
                 })}
@@ -118,7 +122,7 @@ export function CorreoVista({ estado, audiencias, foco, lectura, aviso, error, o
               <h3><i className="mon-publico-punto" aria-hidden="true" />{elegido.actor}</h3>
               <span className="acr-co-chips">
                 <span className="acr-co-chip">{`Base alcanzable de ${cifra(elegido.alcanzable)}`}</span>
-                {elegido.efectivas != null ? <span className="acr-co-chip is-ok">{`${cifra(elegido.efectivas)} efectivas, el ${porcentaje(elegido.tasa_alcanzable)}`}</span> : null}
+                {elegido.efectivas != null ? <EstadoChip label={`${cifra(elegido.efectivas)} efectivas, el ${porcentaje(elegido.tasa_alcanzable)}`} tone="success" /> : null}
               </span>
             </header>
             {tramos.length ? (
@@ -205,7 +209,7 @@ export function CorreoVista({ estado, audiencias, foco, lectura, aviso, error, o
         <section className="acr-av-panel" aria-label="Audiencia">
           <header className="acr-av-panel-cabecera">
             <h3>Audiencia</h3>
-            <span className="acr-co-chip is-ok">Conectada</span>
+            <EstadoChip label="Conectada" tone="success" />
           </header>
           <div className="acr-co-cuerpo">
             {/* Sin la lista de audiencias de la cuenta no hay nombre que mostrar: no se pone el identificador en su lugar. */}
@@ -229,10 +233,10 @@ export function CorreoVista({ estado, audiencias, foco, lectura, aviso, error, o
           <header className="acr-av-panel-cabecera"><h3>Umbrales de ritmo <span className="acr-av-tenue">Sobre el último envío</span></h3></header>
           <ul className="acr-co-cuerpo acr-co-umbrales">
             {/* Una fila por regla, con la acción en el chip: las quejas tienen dos umbrales y no se repite el rótulo. */}
-            <li><span>Bajas, para espaciar</span><span className="acr-co-chip is-warning">{`Desde ${porcentaje(u.baja_espaciar)}`}</span></li>
-            <li><span>Quejas, para espaciar</span><span className="acr-co-chip is-warning">{`Desde ${porcentaje(u.queja_espaciar)}`}</span></li>
-            <li><span>Quejas, para detener</span><span className="acr-co-chip is-danger">{`Desde ${porcentaje(u.queja_detener)}`}</span></li>
-            <li><span>Respuestas menores que bajas</span><span className="acr-co-chip is-warning">Espaciar</span></li>
+            <li><span>Bajas, para espaciar</span><EstadoChip label={`Desde ${porcentaje(u.baja_espaciar)}`} tone="warn" /></li>
+            <li><span>Quejas, para espaciar</span><EstadoChip label={`Desde ${porcentaje(u.queja_espaciar)}`} tone="warn" /></li>
+            <li><span>Quejas, para detener</span><EstadoChip label={`Desde ${porcentaje(u.queja_detener)}`} tone="danger" /></li>
+            <li><span>Respuestas menores que bajas</span><EstadoChip label="Espaciar" tone="warn" /></li>
           </ul>
         </section>
         <section className="acr-av-panel" aria-label="Tasa sobre la base alcanzable">

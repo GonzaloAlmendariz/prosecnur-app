@@ -25,7 +25,7 @@ export function resumenDeEquipo(nombres: string[]): {
   // Solo se nombran las asignaciones cuando aportan algo: si cada persona tiene
   // una, decir «4 responsables · 4 asignaciones» es ruido.
   const etiqueta = asignaciones > personas
-    ? `${plural(personas, "responsable", "responsables")} · ${plural(asignaciones, "asignación", "asignaciones")}`
+    ? `${plural(personas, "responsable", "responsables")}, ${plural(asignaciones, "asignación", "asignaciones")}`
     : plural(personas, "responsable", "responsables");
   return { personas, asignaciones, etiqueta };
 }

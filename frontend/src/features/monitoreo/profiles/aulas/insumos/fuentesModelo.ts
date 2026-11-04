@@ -98,7 +98,7 @@ function filaDeRespuestas(f: MonitoreoSource, leidas: number | null, unica: bool
   return {
     clave: `fuente-${f.id}`,
     fuente: f.label || f.survey_title || "Fuente de respuestas",
-    sub: [tipo, f.survey_title && f.survey_title !== f.label ? f.survey_title : ""].filter(Boolean).join(" · "),
+    sub: [tipo, f.survey_title && f.survey_title !== f.label ? f.survey_title : ""].filter(Boolean).join(", "),
     trae: "respuestas de los alumnos",
     // El total leído sólo es de esta fuente cuando es la única.
     volumen: unica && leidas != null ? `${fmt(leidas)} respuestas` : "—",

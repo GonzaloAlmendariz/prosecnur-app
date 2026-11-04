@@ -42,7 +42,7 @@
   border-radius: 999px;
   background: transparent;
   color: var(--pulso-text-muted);
-  font-size: 12.5px;
+  font-size: var(--pulso-type-body-size);
   font-weight: var(--pulso-weight-medium);
   cursor: pointer;
   transition: background var(--motion-dur-fast) var(--motion-ease-out),
@@ -50,7 +50,7 @@
 }
 .cmv2-expb-conmutador button em {
   font-style: normal;
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   color: var(--pulso-text-muted);
   font-variant-numeric: tabular-nums;
 }
@@ -78,7 +78,7 @@
   border-radius: 999px;
   background: transparent;
   color: var(--pulso-text-muted);
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   font-weight: var(--pulso-weight-medium);
   cursor: pointer;
 }
@@ -145,7 +145,7 @@
   border: 0;
   background: transparent;
   font-family: inherit;
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   color: var(--pulso-text);
   cursor: pointer;
 }
@@ -204,7 +204,7 @@
   border-radius: 999px;
   background: var(--pulso-surface);
   color: var(--pulso-text-muted);
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   font-weight: var(--pulso-weight-medium);
   cursor: pointer;
   transition: border-color var(--motion-dur-fast) var(--motion-ease-out),
@@ -223,6 +223,12 @@
   inset: 0;
   width: 100%;
   height: 100%;
+  /* Sin esto el select invisible conservaba su alto mínimo del sistema (28 px)
+     dentro de una píldora de 25 y el QA medía un desborde vertical. */
+  min-height: 0;
+  padding: 0;
+  appearance: none;
+  font: inherit;
   opacity: 0;
   border: 0;
   cursor: pointer;
@@ -233,7 +239,7 @@
   border: 0;
   background: transparent;
   padding: 4px 6px;
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   color: var(--pulso-text-muted);
   cursor: pointer;
   text-decoration: underline;
@@ -270,14 +276,14 @@
 }
 .cmv2-expb-valores header h4 {
   margin: 0;
-  font-size: 12.5px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-semibold);
   color: var(--pulso-text);
 }
 .cmv2-expb-valores header p {
   margin: 0;
   flex: 1;
-  font-size: 10.5px;
+  font-size: var(--pulso-type-micro-size);
   color: var(--pulso-text-muted);
   font-variant-numeric: tabular-nums;
 }
@@ -287,7 +293,7 @@
   border-radius: 999px;
   background: var(--pulso-surface-2);
   color: var(--pulso-text);
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   font-weight: var(--pulso-weight-medium);
   cursor: pointer;
 }
@@ -316,14 +322,14 @@
   background: var(--pulso-surface-2);
   color: var(--pulso-text);
   font-family: inherit;
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   cursor: pointer;
   transition: background var(--motion-dur-fast) var(--motion-ease-out),
     border-color var(--motion-dur-fast) var(--motion-ease-out);
 }
 .cmv2-expb-nube button em {
   font-style: normal;
-  font-size: 10.5px;
+  font-size: var(--pulso-type-micro-size);
   color: var(--pulso-text-muted);
   font-variant-numeric: tabular-nums;
 }
@@ -351,7 +357,7 @@
   flex: 1 0 100%;
   max-width: 92ch;
   text-align: left;
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   line-height: 1.5;
   color: var(--pulso-text-muted);
 }
@@ -404,7 +410,7 @@
   border: 0;
   background: transparent;
   color: var(--pulso-text);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   outline: none;
 }
 
@@ -475,7 +481,7 @@
   background: var(--cmv2-accent);
 }
 .cmv2-expb-var {
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   line-height: 1.35;
   color: var(--pulso-text);
   overflow: hidden;
@@ -486,7 +492,7 @@
   font-weight: var(--pulso-weight-semibold);
 }
 .cmv2-expb-meta {
-  font-size: 10.5px;
+  font-size: var(--pulso-type-micro-size);
   color: var(--pulso-text-muted);
   font-variant-numeric: tabular-nums;
 }
@@ -500,7 +506,7 @@
  * el hueco que ya existía y no dibuja una línea que nadie pidió.
  */
 .cmv2-expb-parcial {
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   font-variant-numeric: tabular-nums;
   padding: 1px 5px;
   border-radius: 999px;
@@ -510,7 +516,7 @@
 
 .cmv2-expb-sin-match {
   margin: 10px 8px;
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   color: var(--pulso-text-muted);
 }
 
@@ -549,7 +555,7 @@
 }
 .cmv2-expb-card-title h3 {
   margin: 0;
-  font-size: 16px;
+  font-size: var(--pulso-type-title-size);
   line-height: 1.25;
   font-weight: var(--pulso-weight-semibold);
   color: var(--pulso-text);
@@ -557,7 +563,7 @@
 }
 .cmv2-expb-card-title p {
   margin: 3px 0 0;
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   color: var(--pulso-text-muted);
 }
 
@@ -584,14 +590,14 @@
   display: flex;
   align-items: baseline;
   gap: 5px;
-  font-size: 14px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-semibold);
   color: var(--pulso-text);
   font-variant-numeric: tabular-nums;
 }
 .cmv2-expb-chips dd em {
   font-style: normal;
-  font-size: 10.5px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-medium);
   color: var(--pulso-text-muted);
 }
@@ -653,7 +659,7 @@
   display: flex;
   justify-content: space-between;
   margin-top: 6px;
-  font-size: 10.5px;
+  font-size: var(--pulso-type-micro-size);
   color: var(--pulso-text-muted);
   font-variant-numeric: tabular-nums;
 }
@@ -682,7 +688,7 @@
 }
 .cmv2-expb-cuantiles dd {
   margin: 2px 0 0;
-  font-size: 15px;
+  font-size: var(--pulso-type-title-size);
   font-weight: var(--pulso-weight-semibold);
   color: var(--pulso-text);
   font-variant-numeric: tabular-nums;
@@ -730,7 +736,7 @@
   background: transparent;
   text-align: left;
   font-family: inherit;
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   line-height: 1.35;
   color: var(--pulso-text);
   cursor: pointer;
@@ -770,7 +776,7 @@
 }
 .cmv2-expb-cat-n,
 .cmv2-expb-cat-pct {
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   font-variant-numeric: tabular-nums;
   text-align: right;
 }
@@ -816,7 +822,7 @@
   gap: 8px;
   break-inside: avoid;
   padding: 2px 0;
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
 }
 .cmv2-expb-cola li span {
   flex: 1;
@@ -840,7 +846,7 @@
 }
 .cmv2-expb-cola p {
   margin: 10px 0 0;
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   color: var(--pulso-text-muted);
 }
 
@@ -865,7 +871,7 @@
   border-radius: 999px;
   background: var(--cmv2-accent);
   color: #fff;
-  font-size: 12.5px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-semibold);
   cursor: pointer;
   transition: filter var(--motion-dur-fast) var(--motion-ease-out);

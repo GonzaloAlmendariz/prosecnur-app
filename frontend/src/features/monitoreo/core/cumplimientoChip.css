@@ -1,0 +1,19 @@
+/* El chip de cumplimiento dentro de la lista de actores y de la cabecera del detalle
+   (Modelo de Telefónico y Acreditación). La lista apila nombre y chip en una grilla
+   que estira a sus hijos: el chip conserva su ancho. Y la cabecera pinta todo `span`
+   descendiente en gris y con `overflow: auto` (`.mon-acr-model-detail header span`,
+   profilePage.css): el punto vuelve a tomar el color del tono. */
+.mon-acr-model-list button .pulso-estado-chip {
+  justify-self: start;
+  max-width: 100%;
+}
+
+.mon-acr-model-detail header .pulso-estado-chip {
+  flex: none;
+  overflow: visible;
+}
+
+.mon-acr-model-detail header .pulso-estado-chip-punto {
+  color: inherit;
+  overflow: visible;
+}

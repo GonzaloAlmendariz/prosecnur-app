@@ -111,7 +111,8 @@ describe("dirección pública del modo cursos-horario", () => {
     expect(vistaDeDireccion(d("control", "brechas", "refuerzos"))).toEqual({ seccion: "consultas", pestana: "refuerzos" });
     expect(vistaDeDireccion(d("control", "partes", "codigo"))).toEqual({ seccion: "consultas", pestana: "ficha" });
     expect(vistaDeDireccion(d("modelo", "muestra", "banco"))).toEqual({ seccion: "consultas", pestana: "extras" });
-    expect(vistaDeDireccion(d("modelo", "metas", "efectividad"))).toEqual({ seccion: "avance", pestana: "efectividad" });
+    // ADR 0126 §5: la Efectividad vive sólo en Avance; Modelo › Metas no la repite.
+    expect(subvistasDePestana("modelo", "metas").map((item) => item.panel)).not.toContain("efectividad");
     expect(vistaDeDireccion(d("avance", "rendimiento", "efectividad"))).toEqual({ seccion: "avance", pestana: "efectividad" });
     expect(vistaDeDireccion(d("insumos", "reglas", "criterio"))).toEqual({ seccion: "calidad", pestana: "controles" });
     expect(subvistasDePestana("control", "calidad").map((item) => item.panel)).toEqual([null, "base", "abiertas"]);

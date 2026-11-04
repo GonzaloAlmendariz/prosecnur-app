@@ -1,6 +1,7 @@
 import { useId, useMemo, useState } from "react";
 
 import type { MonitoreoCuota } from "../../../../api/monitoreoCuotas";
+import { EstadoChip } from "../../../../components/EstadoChip";
 import { PulsoButton } from "../../../../components/PulsoButton";
 import { Pencil, Search } from "../../../../vendor/lucide-react";
 import {
@@ -14,6 +15,7 @@ import {
   porcentaje,
   restoDeCategoria,
   resumenCuota,
+  type TonoCuota,
 } from "./avanceCuotasModelo";
 import { clasePublico, type PaletaDePublicos } from "./paletaPublicos";
 
@@ -25,6 +27,14 @@ import { clasePublico, type PaletaDePublicos } from "./paletaPublicos";
 // de herramientas queda fija arriba mientras se recorre.
 
 const UMBRAL_FILTRO = 8;
+
+/** El tono que pintaba `.mon-cuotas-chip.es-*`: en curso iba con el color del módulo; sin meta, sin color. */
+const TONO_DE_CUOTA: Record<TonoCuota, "success" | "info" | "warn" | "neutral"> = {
+  cumplida: "success",
+  en_curso: "info",
+  sin_avance: "warn",
+  sin_meta: "neutral",
+};
 
 export function AvanceCuotasDetalle({
   cuota,
@@ -51,7 +61,7 @@ export function AvanceCuotasDetalle({
           <h3 id={`${ids}-t`}>{cuota.variable}</h3>
           {/* Una cifra por pieza; cobertura y personas sin dato, en el tooltip. */}
           <p title={[r.cobertura, cuota.sin_dato ? `${cifra(cuota.sin_dato)} personas sin dato en la base` : ""].filter(Boolean).join(". ")}>
-            <span className={`mon-cuotas-chip es-${r.tono}`}>{r.meta > 0 ? porcentaje(r.avance) : "Sin metas"}</span>
+            <EstadoChip label={r.meta > 0 ? porcentaje(r.avance) : "Sin metas"} tone={TONO_DE_CUOTA[r.tono]} />
             {r.meta > 0 ? <span>{`${cifra(r.efectivas)} de ${cifra(r.meta)}`}</span> : null}
             <span className="mon-cuotas-chip">{r.cumplidas}</span>
           </p>

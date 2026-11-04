@@ -52,5 +52,5 @@ export function segmentoDeEstrato(segmento: string): string {
 export function etiquetaDeEstrato(clave: string): string {
   const partes = String(clave ?? "").split("/").map((p) => p.trim()).filter(Boolean);
   if (!partes.length) return String(clave ?? "");
-  return partes.map(segmentoDeEstrato).join(" · ");
+  return partes.map(segmentoDeEstrato).join(", ");
 }

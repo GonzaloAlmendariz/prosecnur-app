@@ -2,9 +2,11 @@ import { describe, expect, it } from "vitest";
 
 import type { MonitoreoAulasDashboard } from "../../../../../api/monitoreo";
 import {
+  ANCHO_ESTIMADO_DEL_TRAZADO,
   construirResumenAulas,
   fechaCorta,
   MARCA_RESUMEN_AULAS,
+  marcasDeFecha,
   readinessDelResumen,
   techoDelEje,
 } from "./resumenAulasModelo";
@@ -102,7 +104,7 @@ function ccss(): MonitoreoAulasDashboard {
 }
 
 describe("construirResumenAulas", () => {
-  it("la cifra protagonista de HSVG: 3,327 de 2,500, muestra cumplida y la meta operativa", () => {
+  it("la cifra protagonista de HSVG: 3,327 de 2,500, muestra cumplida y la sobremuestra", () => {
     const m = construirResumenAulas(hsvg());
     expect(m.estado).toBe("listo");
     expect(m.protagonista.cuentan).toBe(3327);
@@ -111,9 +113,21 @@ describe("construirResumenAulas", () => {
     expect(m.protagonista.proporcion).toBe(1);
     expect(m.protagonista.chip).toEqual({ tono: "ok", texto: "Muestra cumplida" });
     expect(m.protagonista.secundarios).toEqual([
-      { rotulo: "Meta operativa de 3,750", valor: "88.7 %" },
+      // Decisión del 8/9 y ADR 0126: es la sobremuestra, la segunda meta (la cifra no cambia).
+      { rotulo: "Sobremuestra de 3,750", valor: "88.7 %" },
       { rotulo: "Faltan para cumplirla", valor: "423" },
     ]);
+  });
+
+  it("la sobremuestra sale del nivel que publica el motor cuando viaja (ADR 0126)", () => {
+    const d = hsvg() as unknown as { avance_cuota: Record<string, unknown> };
+    d.avance_cuota.meta_operativa = null;
+    d.avance_cuota.niveles = [
+      { nivel: "muestra", meta: 2500, caracter: "meta", compensa: false, estado_cuota: "cumple" },
+      { nivel: "sobremuestra", meta: 3750, caracter: "meta", compensa: true, estado_cuota: "falta" },
+    ];
+    const m = construirResumenAulas(d as unknown as MonitoreoAulasDashboard);
+    expect(m.protagonista.secundarios[0]).toEqual({ rotulo: "Sobremuestra de 3,750", valor: "88.7 %" });
   });
 
   it("CCSS: la falta de UNA celda se nombra con su nivel aunque el total pase de 100 %", () => {
@@ -199,7 +213,7 @@ describe("construirResumenAulas", () => {
   it("las barras del día van en su banda, a escala propia, con su cifra y su fecha", () => {
     const m = construirResumenAulas(hsvg());
     if (m.ritmo.tipo !== "serie") throw new Error("se esperaba serie");
-    const { dias, bandaDia, marcasX } = m.ritmo;
+    const { dias, bandaDia } = m.ritmo;
     expect(dias.every((d) => d.yDia >= bandaDia && d.yDia <= 100)).toBe(true);
     // El día más alto llena casi toda la banda: su barra se lee, no es ruido al pie.
     const alto = dias.reduce((a, d) => (d.validas > a.validas ? d : a));
@@ -207,11 +221,19 @@ describe("construirResumenAulas", () => {
     expect(100 - alto.yDia).toBeGreaterThan((100 - bandaDia) * 0.6);
     expect(dias.find((d) => d.validas === 466)?.rotuloDia).toBe("466");
     expect(dias.filter((d) => d.validas === 0).every((d) => d.rotuloDia === "")).toBe(true);
-    // Fechas bajo las barras: la primera y la última siempre, sin pasar de 14.
-    expect(marcasX[0].texto).toBe("7 set");
-    expect(marcasX[marcasX.length - 1].texto).toBe("1 oct");
-    expect(marcasX.length).toBeLessThanOrEqual(14);
-    expect(marcasX.every((x, i) => i === 0 || x.x > marcasX[i - 1].x)).toBe(true);
+    // Eje de dos líneas (core/ejeDeFechas): el día bajo su barra y el mes sólo
+    // donde empieza. A 1280 caben todos; en un trazado angosto se ralea con la
+    // primera y la última siempre.
+    const marcas = marcasDeFecha(dias, ANCHO_ESTIMADO_DEL_TRAZADO);
+    expect(marcas[0]).toEqual({ x: dias[0].x, dia: "7", mes: "set" });
+    expect(marcas[marcas.length - 1].dia).toBe("1");
+    expect(marcas.find((x) => x.dia === "1")?.mes).toBe("oct");
+    expect(marcas.filter((x) => x.mes).map((x) => x.mes)).toEqual(["set", "oct"]);
+    const angosto = marcasDeFecha(dias, 10 * dias.length);
+    expect(angosto.length).toBeLessThan(dias.length);
+    expect(angosto[0].x).toBe(dias[0].x);
+    expect(angosto[angosto.length - 1].x).toBe(dias[dias.length - 1].x);
+    expect(angosto.every((x, i) => i === 0 || x.x > angosto[i - 1].x)).toBe(true);
     expect(m.ritmo.trazo.startsWith("M")).toBe(true);
   });
 

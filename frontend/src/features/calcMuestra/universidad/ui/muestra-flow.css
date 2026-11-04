@@ -114,7 +114,7 @@
   border-radius: 9px;
   background: var(--cmv2-accent);
   color: var(--cmv2-surface, var(--pulso-surface));
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-bold);
   letter-spacing: 0.02em;
   white-space: nowrap;
@@ -132,14 +132,14 @@
 }
 
 .cmv2-muestra-flow-label strong {
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   font-weight: var(--pulso-weight-bold);
   letter-spacing: -0.1px;
   color: var(--pulso-text);
 }
 
 .cmv2-muestra-flow-label small {
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   color: var(--pulso-text-muted);
 }
 
@@ -179,7 +179,7 @@
   bottom: calc(50% + 6px);
   left: 50%;
   transform: translateX(-50%);
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   font-style: italic;
   letter-spacing: 0.1px;
   color: var(--pulso-text-muted);
@@ -199,11 +199,11 @@
 }
 
 .cmv2-muestra-flow[data-compacto="true"] .cmv2-muestra-flow-label strong {
-  font-size: 10.5px;
+  font-size: var(--pulso-type-micro-size);
 }
 
 .cmv2-muestra-flow[data-compacto="true"] .cmv2-muestra-flow-label small {
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
 }
 
 /* --- Pantallas bajas (D6, 1280×720): el recorrido es un indicador de avance,

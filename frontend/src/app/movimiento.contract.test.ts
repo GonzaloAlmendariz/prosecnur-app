@@ -59,6 +59,8 @@ const SNAPSHOT: Record<"layout" | "infinitas" | "retardo", Record<string, number
     "app/module-warmup.css": 1,
     "app/theme.css": 7,
     "components/bases-inspector.css": 1,
+    // Barra indeterminada del kit (3 nov 2026): es un indicador de carga, como el spinner.
+    "components/barra-de-avance.css": 2,
     "components/kit-skeleton.css": 1,
     "components/recent-project-card.css": 1,
     "components/states.css": 1,

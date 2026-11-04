@@ -18,6 +18,7 @@ import {
 import { WarmupReloj, useAhora } from "./WarmupReloj";
 import { SIN_ESTIMACION, duracionFase } from "./warmupTiempo";
 import "./module-warmup.css";
+import { BarraDeAvance } from "../components/BarraDeAvance";
 
 type ModuleWarmupProfile = {
   key: string;
@@ -437,6 +438,7 @@ export default function ModuleWarmupBoundary({ children }: { children: ReactNode
       inicioMs={propio ? state.inicioMs : undefined}
       fases={propio ? state.fases : undefined}
       error={propio ? state.error : undefined}
+      percent={propio ? state.percent : undefined}
     />
   );
 }
@@ -454,9 +456,12 @@ function ModuleWarmupScreen({
   inicioMs,
   fases,
   error,
+  percent,
 }: {
   profile: ModuleWarmupProfile;
   message: string;
+  /** Avance medido por el boundary (0–100); sin él la barra es indeterminada. */
+  percent?: number;
   inicioMs?: number;
   fases?: ModuleWarmupFase[];
   error?: string;
@@ -488,6 +493,11 @@ function ModuleWarmupScreen({
           <p>{profile.title}</p>
           <h2>{message || "Preparando módulo"}</h2>
         </div>
+        {/* La barra en el color del módulo: determinada con el avance del boundary e
+            indeterminada mientras no hay uno (fallback de Suspense, o 0 %). */}
+        {percent !== undefined && percent > 0 && percent < 100
+          ? <BarraDeAvance valor={percent} total={100} etiqueta="Avance de la carga del módulo" />
+          : <BarraDeAvance indeterminada etiqueta="Cargando el módulo" />}
         <WarmupReloj transcurridoMs={Math.max(0, ahoraMs - desde)} estimacion={SIN_ESTIMACION} />
         {fases?.length ? (
           <ol className="pulso-module-warmup-fases" aria-label="Fases" aria-live="off">

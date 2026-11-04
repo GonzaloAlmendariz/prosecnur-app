@@ -131,7 +131,7 @@ describe("AulasComposicionReferencial: lo que NO hace", () => {
     expect(html).toContain('data-cero="si"');
     expect(html).toContain("sin ninguna");
     // Su segmento existe en población y no en lo recogido.
-    expect(html).toContain("ANTROPOLOGÍA · 2.9 % · 23");
+    expect(html).toContain("ANTROPOLOGÍA, 2.9 %, 23");
     expect(html).not.toContain("ANTROPOLOGÍA · 0.0 %");
   });
 
@@ -151,7 +151,7 @@ describe("AulasComposicionReferencial: lo que NO hace", () => {
 
   it("cada segmento lleva su cifra en el hover, y sale tambien con el teclado", () => {
     // Un dato que sólo existe bajo el ratón no existe para quien no lo usa.
-    expect(html).toContain('data-info="Mujeres · 63.8 % · 37"');
+    expect(html).toContain('data-info="Mujeres, 63.8 %, 37"');
     expect(html).toContain('tabindex="0"');
     // Y no queda el `title` del navegador: dos globos para el mismo dato.
     expect(html).not.toContain("title=");
@@ -165,7 +165,7 @@ describe("AulasComposicionReferencial: lo que NO hace", () => {
    * centímetros.
    */
   it("el segmento usa el porcentaje del modelo, no uno recalculado", () => {
-    expect(html).toContain("ECONOMÍA · 44.8 %");
+    expect(html).toContain("ECONOMÍA, 44.8 %");
     expect(html).not.toContain("ECONOMÍA · 94.0 %");
     expect(html).not.toContain("ECONOMÍA · 100.0 %");
   });

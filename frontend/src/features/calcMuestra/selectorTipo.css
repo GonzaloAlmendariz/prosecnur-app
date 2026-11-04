@@ -19,7 +19,7 @@
   .cmv2-route-hub .cmv2-frame-grid--routes .cmv2-path-tags span {
     min-height: 24px;
     padding: 0 var(--pulso-space-2);
-    font-size: 11px;
+    font-size: var(--pulso-type-caption-size);
   }
 
   .cmv2-route-hub .cmv2-card-answers {
@@ -39,22 +39,22 @@
   }
 
   .cmv2-route-hub .cmv2-card-answers b {
-    font-size: 11px;
+    font-size: var(--pulso-type-caption-size);
   }
 
   .cmv2-route-hub .cmv2-card-answers span {
-    font-size: 13px;
+    font-size: var(--pulso-type-body-size);
     line-height: 1.25;
   }
 
   .cmv2-route-hub .cmv2-card-answers small {
-    font-size: 12px;
+    font-size: var(--pulso-type-body-size);
     line-height: 1.35;
   }
 
   .cmv2-route-hub .cmv2-card-action {
     min-height: var(--pulso-control-height-lg);
-    font-size: 14px;
+    font-size: var(--pulso-type-body-size);
   }
 }
 
@@ -94,14 +94,14 @@
 .cmv2-plantillas-head h3 {
   margin: 0;
   color: var(--pulso-text);
-  font-size: 15px;
+  font-size: var(--pulso-type-title-size);
   font-weight: var(--pulso-weight-heavy);
 }
 
 .cmv2-plantillas-head p {
   margin: 0;
   color: var(--pulso-text-soft);
-  font-size: 13px;
+  font-size: var(--pulso-type-body-size);
   line-height: 1.4;
 }
 

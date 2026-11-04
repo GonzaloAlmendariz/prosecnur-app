@@ -69,7 +69,7 @@ export function AulasCadenaDeFiltros({ bloque }: { bloque: unknown }) {
             </span>
             <span className="aulas-cadena-var">
               {p.variable}
-              <small>{p.valores.join(" · ")}</small>
+              <small>{p.valores.join(", ")}</small>
             </span>
             <span className="aulas-cadena-flujo">
               {fmt(p.entran)} → <strong>{fmt(p.quedan)}</strong>

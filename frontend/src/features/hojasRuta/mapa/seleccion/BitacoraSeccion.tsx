@@ -68,7 +68,7 @@ export function BitacoraSeccion({ conDecisionesPrevias = false }: { conDecisione
             <li key={e.id}>
               <span>
                 <strong>{ACCION[e.accion] ?? e.accion}</strong>
-                <small>{cuando(e.fecha)} · {e.fase === "pilot" ? "Piloto" : "Campo real"}</small>
+                <small>{cuando(e.fecha)}, {e.fase === "pilot" ? "Piloto" : "Campo real"}</small>
               </span>
               <p>{e.resumen}</p>
             </li>

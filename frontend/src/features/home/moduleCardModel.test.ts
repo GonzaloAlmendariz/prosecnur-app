@@ -341,7 +341,7 @@ describe("moduleCardModel", () => {
     expect(card.sub).toBe("2 campañas: campo en aulas y 1 correo");
     expect(card.facts).toEqual([
       { label: "Campo en aulas", value: "Accesos en borrador" },
-      { label: "Egresados 2026", value: "Invitación exportada 20/10 · Recordatorio 1 pendiente" },
+      { label: "Egresados 2026", value: "Invitación exportada 20/10 y Recordatorio 1 pendiente" },
     ]);
   });
 

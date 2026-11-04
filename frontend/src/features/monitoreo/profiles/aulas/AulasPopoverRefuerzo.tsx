@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useRef, type ReactNode } from "react";
+import { SearchX } from "../../../../vendor/lucide-react";
+import { EstadoVacio } from "../../../../components/EstadoVacio";
 import { createPortal } from "react-dom";
 
 import type { MonitoreoAulasPlanRow } from "../../../../api/monitoreo";
@@ -161,13 +163,13 @@ export function ContenidoDeRefuerzo({ facultad: facultadCruda, filas, deuda, cuo
                     contradecir a la primera. */}
                 Para cerrar su cuota faltan <b>{fmt(debeM)}</b> mujeres y{" "}
                 <b>{fmt(debeH)}</b> hombres
-                {" · "}<strong>{fmt(debeM + debeH)}</strong> respuestas
+                {", "}<strong>{fmt(debeM + debeH)}</strong> respuestas
                 {/* **El reloj de la decisión.** Un refuerzo no se aplica el día
                     que se elige: hay que hablar con el docente y median siete
                     días de anticipación. Sin la fecha, la lista de abajo parece
                     que se puede mirar mañana igual. */}
                 {pedirAntesDe ? (
-                  <> · pídelo antes del <b>{etiquetaDeFecha(pedirAntesDe)}</b></>
+                  <>, pídelo antes del <b>{etiquetaDeFecha(pedirAntesDe)}</b></>
                 ) : null}
               </>
             ) : (
@@ -189,8 +191,8 @@ export function ContenidoDeRefuerzo({ facultad: facultadCruda, filas, deuda, cuo
             {deficit ? (
               <em className="aulas-refuerzo-plan">
                 El diseño le dio <b>{fmt(deficit.plan.delDiseno)}</b> cursos-horario:
-                {" "}<b>{fmt(deficit.plan.aplicados)}</b> aplicados ·{" "}
-                <b>{fmt(deficit.plan.agendados)}</b> agendados ·{" "}
+                {" "}<b>{fmt(deficit.plan.aplicados)}</b> aplicados,{" "}
+                <b>{fmt(deficit.plan.agendados)}</b> agendados,{" "}
                 <b>{fmt(deficit.plan.sinAgendar)}</b> sin agendar
               </em>
             ) : null}
@@ -219,7 +221,7 @@ export function ContenidoDeRefuerzo({ facultad: facultadCruda, filas, deuda, cuo
           <b>{fmt(deficit.enCamino.total)}</b> respuestas ya en camino, de{" "}
           <b>{fmt(deficit.cursosEnCamino)}</b>{" "}
           {deficit.cursosEnCamino === 1 ? "curso-horario agendado" : "cursos-horario agendados"}
-          {" "}({fmt(deficit.enCamino.mujeres)} mujeres · {fmt(deficit.enCamino.hombres)} hombres).
+          {" "}({fmt(deficit.enCamino.mujeres)} mujeres, {fmt(deficit.enCamino.hombres)} hombres).
           {deficit.loAgendadoAlcanza
             ? " Con eso la cuota queda cubierta: reforzar aquí gastaría una reserva que otra facultad va a necesitar."
             : ` Aun así quedarían ${fmt(deficit.quedaria.total)} sin cubrir` +
@@ -280,11 +282,11 @@ export function ContenidoDeRefuerzo({ facultad: facultadCruda, filas, deuda, cuo
           </ol>
         </>
       ) : (
-        <p className="aulas-refuerzo-vacio">
-          {facultad} no tiene ningún curso-horario libre. Sus reservas siguen
-          comprometidas con una cadena que aún no se resolvió, o ya se usaron.
-          Un refuerzo aquí exige ampliar el marco.
-        </p>
+        <EstadoVacio
+          icono={<SearchX size={15} />}
+          titulo={<>{facultad} no tiene ningún curso-horario libre.</>}
+          descripcion="Sus reservas siguen comprometidas con una cadena que aún no se resolvió, o ya se usaron. Un refuerzo aquí exige ampliar el marco."
+        />
       )}
     </div>
   );
@@ -315,7 +317,7 @@ function TarjetaDeRefuerzo({ c, puesto, deficit, onElegir }: {
           </span>
           <span className="aulas-refuerzo-curso">
             {f.course_name || f.label || "Curso sin nombre"}
-            {f.teacher ? <em> · {f.teacher}</em> : null}
+            {f.teacher ? <em>, {f.teacher}</em> : null}
           </span>
           <span className="aulas-chips-fila">
             {f.venue ? <ChipLugar lugar={f.venue} /> : null}

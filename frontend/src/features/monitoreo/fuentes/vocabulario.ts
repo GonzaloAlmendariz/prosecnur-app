@@ -14,14 +14,16 @@
 // Vive en un solo archivo a propósito: la deriva empieza cuando cada vista
 // inventa su propia forma de decir "última lectura de la plataforma".
 
+import { formatoConteo } from "../../../lib/formatoNumero";
+
 /** Cuántos recopiladores siguen el canal de su encuesta y cuántos no (A5). */
 export function textoDeHerencia(heredan: number, excepciones: number) {
   const base = heredan === 1
     ? "1 recopilador usa este canal"
     : `${heredan} recopiladores usan este canal`;
   if (!heredan && !excepciones) return "Sin recopiladores";
-  if (!excepciones) return `${base} · ninguno con excepción`;
-  return `${base} · ${excepciones === 1 ? "1 con excepción" : `${excepciones} con excepción`}`;
+  if (!excepciones) return `${base}, ninguno con excepción`;
+  return `${base}, ${excepciones === 1 ? "1 con excepción" : `${excepciones} con excepción`}`;
 }
 
 /** Canal que una encuesta impone por defecto a sus recopiladores. */
@@ -100,7 +102,7 @@ export function textoDeImportacion(fecha: string | null | undefined) {
 export function contar(total: number | string, singular: string, plural: string) {
   const n = typeof total === "string" ? Number.parseFloat(total.trim()) : total;
   if (!Number.isFinite(n) || n <= 0) return `Sin ${plural}`;
-  return n === 1 ? `1 ${singular}` : `${n.toLocaleString("es-PE")} ${plural}`;
+  return n === 1 ? `1 ${singular}` : `${formatoConteo(n)} ${plural}`;
 }
 
 /**

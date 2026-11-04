@@ -183,3 +183,65 @@ test_that("sin la columna de fecha no se afirma nada sobre la agenda", {
   expect_null(d$acciones$aplicado_sin_agenda)
   expect_identical(d$titulares$aplicado, 1L)
 })
+
+test_that("«vencida» se juzga contra la ultima sincronizacion, no contra hoy (2g)", {
+  # hsvg_trabajo, Ctl1: «Traer respuestas» no corria desde el 18/09 y una cita
+  # del 28/09 salia vencida sin que nadie supiera si se aplico.
+  df <- marco(list(
+    fila("CH 1", "titular", "lista", muestra = "agendada"),
+    fila("CH 2", "titular", "lista", muestra = "agendada"),
+    fila("CH 3", "titular", "lista", muestra = "agendada"),
+    fila("CH 4", "titular", "lista", muestra = "agendada")
+  ))
+  df$scheduled_date <- c("2026-09-15", "2026-09-18", "2026-09-28", "2026-10-05")
+  df$operational_status <- ""
+  hoy <- as.Date("2026-10-01")
+  # 03:00 UTC del 19/09 es todavia el 18/09 en Lima.
+  d <- monitoreo_aulas_rol_y_estado(df, hoy = hoy, corte = "2026-09-19T03:00:00Z")
+  expect_identical(d$vencida_al, "2026-09-18")
+  expect_identical(d$titulares$agendado_vencido, 1L)
+  expect_identical(d$acciones$agendado_vencido, "CH 1")
+  # La del dia del corte y la del 28/09 quedan SIN DATOS DESDE EL CORTE; la del
+  # 05/10 todavia no llega y no es ninguna de las dos.
+  expect_identical(d$titulares$agendado_tras_corte, 2L)
+  expect_identical(d$acciones$agendado_tras_corte, c("CH 2", "CH 3"))
+  expect_identical(d$titulares$agendado, 4L)
+
+  # Sin sello, o con uno posterior a hoy, manda hoy: lo de siempre.
+  sin <- monitoreo_aulas_rol_y_estado(df, hoy = hoy)
+  expect_null(sin$vencida_al)
+  expect_identical(sin$titulares$agendado_vencido, 3L)
+  expect_identical(sin$titulares$agendado_tras_corte, 0L)
+  futuro <- monitoreo_aulas_rol_y_estado(df, hoy = hoy, corte = "2026-10-03T12:00:00Z")
+  expect_identical(futuro$titulares$agendado_vencido, 3L)
+  expect_null(futuro$vencida_al)
+})
+
+test_that("con varias fuentes manda la descarga mas vieja; un sello ilegible no cuenta", {
+  hoy <- as.Date("2026-10-01")
+  expect_identical(.marye_limite_de_vencida(hoy, c("2026-09-25T15:00:00Z", "2026-09-18T15:00:00Z")),
+                   as.Date("2026-09-18"))
+  expect_identical(.marye_limite_de_vencida(hoy, "no es una fecha"), hoy)
+  expect_identical(.marye_limite_de_vencida(hoy, NULL), hoy)
+  expect_identical(.marye_limite_de_vencida(hoy, c("", "2026-09-20T15:00:00Z")), as.Date("2026-09-20"))
+})
+
+test_that("el corte sale de last_sync_at de las fuentes activas, no del snapshot (2g)", {
+  # `/aulas/sync` recalcula sin descargar y adelanta `snapshot$synced_at`; con
+  # Kobo caido cada pulsacion devolvia el corte a hoy. `last_sync_at` solo lo
+  # escribe una descarga que trajo algo.
+  fuentes <- list(
+    list(id = "kobo", enabled = TRUE, last_sync_at = "2026-09-18T15:00:00Z"),
+    list(id = "vieja", enabled = FALSE, last_sync_at = "2026-08-01T15:00:00Z"),
+    list(id = "nueva", enabled = TRUE, last_sync_at = "")
+  )
+  expect_identical(.mac_corte_de_fuentes(fuentes), "2026-09-18T15:00:00Z")
+  expect_null(.mac_corte_de_fuentes(list()))
+
+  sid <- session_create()
+  session_set(sid, "monitoreo_sources", fuentes)
+  session_set(sid, "monitoreo_snapshot", list(synced_at = "2026-10-01T15:00:00Z"))
+  on.exit(try(session_delete(sid), silent = TRUE), add = TRUE)
+  expect_identical(.mac_corte_sesion(sid), "2026-09-18T15:00:00Z")
+  expect_null(.mac_corte_sesion(""))
+})

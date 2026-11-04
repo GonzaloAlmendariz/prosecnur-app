@@ -56,7 +56,7 @@ export function AvanceCuotasResumen({
               type="button"
               className="mon-cuotas-indicador"
               aria-pressed={activa}
-              aria-label={`${r.actor} · ${r.variable}: ${r.avanceTexto}; ${r.cumplidas}`}
+              aria-label={`${r.actor}, ${r.variable}: ${r.avanceTexto}; ${r.cumplidas}`}
               onClick={() => onElegir(q.id)}
             >
               <Anillo relleno={r.relleno} texto={pct} />

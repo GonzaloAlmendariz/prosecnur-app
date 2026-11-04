@@ -42,6 +42,8 @@ import { useValorSwap } from "../ui/useValorSwap";
 import type { ClassroomLabModel } from "../aulas/aulasParts";
 import "../../didactica/didactica.css";
 import "./salidas.css";
+import { EstadoChip } from "../../../../components/EstadoChip";
+import { Panel } from "../../../../components/Panel";
 
 /** Props del reporte metodológico que el desk arma con su estado real. */
 export type SalidasReporteProps = {
@@ -102,20 +104,20 @@ function PaqueteDefensaPasoIcon({ status }: { status: PaqueteDefensaPaso["status
 function PaqueteDefensaCard({ paquete }: { paquete: SalidasPaqueteDefensaProps }) {
   const { puedeGenerar, hint, enCurso, pasos, onGenerar } = paquete;
   return (
-    <section className="cmv2-panel cmv2-sal-panel cmv2-sal-paquete" aria-label="Paquete de defensa del diseño">
-      <div className="cmv2-panel-head">
-        <strong>Paquete de defensa</strong>
-        <button
-          type="button"
-          className="cmv2-primary"
-          disabled={!puedeGenerar || enCurso}
-          title={!puedeGenerar && hint ? hint : undefined}
-          onClick={onGenerar}
-        >
-          {enCurso ? <Loader2 size={14} className="pulso-spin" aria-hidden="true" /> : <ShieldCheck size={14} aria-hidden="true" />}
-          {enCurso ? "Generando paquete…" : "Generar paquete de defensa"}
-        </button>
-      </div>
+    <Panel className="cmv2-sal-panel cmv2-sal-paquete" aria-label="Paquete de defensa del diseño" title="Paquete de defensa" actions={
+        <>
+          <button
+            type="button"
+            className="cmv2-primary"
+            disabled={!puedeGenerar || enCurso}
+            title={!puedeGenerar && hint ? hint : undefined}
+            onClick={onGenerar}
+          >
+            {enCurso ? <Loader2 size={14} className="pulso-spin" aria-hidden="true" /> : <ShieldCheck size={14} aria-hidden="true" />}
+            {enCurso ? "Generando paquete…" : "Generar paquete de defensa"}
+          </button>
+        </>
+      }>
       <p className="cmv2-sal-nota">
         Encadena el reporte metodológico, el anexo xlsx de la selección y una memoria JSON con semilla,
         firma del marco y decision log — lo que se presenta cuando piden justificar el diseño.
@@ -148,7 +150,7 @@ function PaqueteDefensaCard({ paquete }: { paquete: SalidasPaqueteDefensaProps }
           ))}
         </ol>
       )}
-    </section>
+    </Panel>
   );
 }
 
@@ -198,16 +200,6 @@ const WORKBOOK_TABLE_TOGGLES: Array<[keyof CalcMuestraWorkspacePublicationConfig
   ["include_classroom_selection", "Selección de cursos-horario"],
   ["include_replacements", "Reemplazos por curso-horario"],
 ];
-
-/** Texto que se funde (blur+opacity) cuando su contenido cambia. */
-function TextoSwap({ texto, className }: { texto: string; className: string }) {
-  const cambiando = useValorSwap(texto);
-  return (
-    <span className={`${className} cmv2-uni-swap`} data-cambiando={cambiando || undefined}>
-      {texto}
-    </span>
-  );
-}
 
 export function SalidasEntregablesTab({
   model,
@@ -282,9 +274,9 @@ export function SalidasEntregablesTab({
               <strong>Excel local</strong>
               <small>libro de trabajo auditable</small>
             </div>
-            <TextoSwap
-              className="cmv2-pill-soft"
-              texto={workbookOn ? (selectionReady ? "listo para exportar" : "configurado") : "desactivado"}
+            <EstadoChip
+              tone={workbookOn ? (selectionReady ? "success" : "info") : "neutral"}
+              label={workbookOn ? (selectionReady ? "listo para exportar" : "configurado") : "desactivado"}
             />
           </header>
           {/* K1 (L27): el destino se enciende con el switch del kit y cada tabla
@@ -327,9 +319,9 @@ export function SalidasEntregablesTab({
               <strong>Google Sheets</strong>
               <small>para compartir avance</small>
             </div>
-            <TextoSwap
-              className="cmv2-pill-soft"
-              texto={sheetsConfigured ? "configurado" : config.google_sheets_enabled ? "falta el enlace" : "opcional"}
+            <EstadoChip
+              tone={sheetsConfigured ? "success" : config.google_sheets_enabled ? "warn" : "neutral"}
+              label={sheetsConfigured ? "configurado" : config.google_sheets_enabled ? "falta el enlace" : "opcional"}
             />
           </header>
           <div className="cmv2-classroom-toggle">
@@ -404,42 +396,42 @@ export function SalidasEntregablesTab({
 
       {/* K2: la privacidad al pie — es una POLÍTICA transversal, no un paso
           entre el reporte y el Excel; interrumpía el flujo de generación. */}
-      <section className="cmv2-panel cmv2-sal-panel" aria-label="Política de privacidad de los entregables">
-        <div className="cmv2-panel-head">
-          <strong>Privacidad</strong>
-          <Popover
-            ariaLabel="Columnas que entran o salen según la política"
-            maxWidth={430}
-            trigger={
-              <button type="button" className="cmv2-ghost cmv2-sal-pii-help">
-                <CircleHelp size={13} /> ¿Qué columnas entran?
-              </button>
-            }
-          >
-            <div className="cmv2-sal-pii-pop">
-              <strong>Columnas por entregable según la política</strong>
-              <table>
-                <thead>
-                  <tr>
-                    <th>Entregable</th>
-                    <th data-activa={pii === "sin_pii_cliente" || undefined}>Cliente sin identificadores</th>
-                    <th data-activa={pii === "interno_trazabilidad" || undefined}>Trazabilidad interna</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {PII_MATRIX.map((row) => (
-                    <tr key={row.entregable}>
-                      <td>{row.entregable}</td>
-                      <td data-activa={pii === "sin_pii_cliente" || undefined}>{row.cliente}</td>
-                      <td data-activa={pii === "interno_trazabilidad" || undefined}>{row.interno}</td>
+      <Panel className="cmv2-sal-panel" aria-label="Política de privacidad de los entregables" title="Privacidad" actions={
+          <>
+            <Popover
+              ariaLabel="Columnas que entran o salen según la política"
+              maxWidth={430}
+              trigger={
+                <button type="button" className="cmv2-ghost cmv2-sal-pii-help">
+                  <CircleHelp size={13} /> ¿Qué columnas entran?
+                </button>
+              }
+            >
+              <div className="cmv2-sal-pii-pop">
+                <strong>Columnas por entregable según la política</strong>
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Entregable</th>
+                      <th data-activa={pii === "sin_pii_cliente" || undefined}>Cliente sin identificadores</th>
+                      <th data-activa={pii === "interno_trazabilidad" || undefined}>Trazabilidad interna</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-              <p>En ninguna política se publican nombres ni datos personales de estudiantes: los identificadores internos son códigos de curso-horario y de selección.</p>
-            </div>
-          </Popover>
-        </div>
+                  </thead>
+                  <tbody>
+                    {PII_MATRIX.map((row) => (
+                      <tr key={row.entregable}>
+                        <td>{row.entregable}</td>
+                        <td data-activa={pii === "sin_pii_cliente" || undefined}>{row.cliente}</td>
+                        <td data-activa={pii === "interno_trazabilidad" || undefined}>{row.interno}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                <p>En ninguna política se publican nombres ni datos personales de estudiantes: los identificadores internos son códigos de curso-horario y de selección.</p>
+              </div>
+            </Popover>
+          </>
+        }>
         <GlidingTabList
           activeKey={pii}
           mode="tabs"
@@ -478,7 +470,7 @@ export function SalidasEntregablesTab({
         <p className="cmv2-sal-nota cmv2-uni-swap" data-cambiando={notaPiiCambiando || undefined}>
           {PII_OPTIONS.find((option) => option.id === pii)?.detail}
         </p>
-      </section>
+      </Panel>
     </div>
   );
 }

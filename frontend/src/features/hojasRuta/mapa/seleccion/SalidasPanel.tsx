@@ -67,7 +67,7 @@ export function SalidasPanel({ salidas, envio: envioDelEstado, onCambio, fase = 
       await onCambio?.();
     } catch (err: unknown) {
       setCodigo(err instanceof ApiError ? err.code : "");
-      setError(err instanceof Error ? err.message.replace(/ · E_[A-Z_]+$/, "") : "No se pudo completar");
+      setError(err instanceof Error ? err.message.replace(/, E_[A-Z_]+$/, "") : "No se pudo completar");
     } finally {
       setOcupado("");
     }
@@ -122,7 +122,7 @@ export function SalidasPanel({ salidas, envio: envioDelEstado, onCambio, fase = 
             <div className="hr-entrega-estado">
               <strong>{estado === "desactualizado" ? "La muestra cambió desde el envío" : "Enviada"}</strong>
               <span>
-                {fmt(envio?.n_titulares ?? 0)} titulares y {fmt(envio?.n_reemplazos ?? 0)} reemplazos{envio?.enviado_at ? ` · ${fecha(envio.enviado_at)}` : ""}
+                {fmt(envio?.n_titulares ?? 0)} titulares y {fmt(envio?.n_reemplazos ?? 0)} reemplazos{envio?.enviado_at ? `, ${fecha(envio.enviado_at)}` : ""}
               </span>
               {estado === "desactualizado" ? <span>Material no genera material mientras no la reenvíes: saldría de una muestra distinta de la enviada.</span> : null}
             </div>

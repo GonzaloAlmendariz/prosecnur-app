@@ -7,7 +7,7 @@ describe("Avance › Faltante por UMP", () => {
 
   it("una fila por UMP, con su manzana en uso, y las pendientes primero", () => {
     expect(modelo.filas.map((fila) => fila.ump)).toEqual(["143", "7", "35"]);
-    expect(modelo.filas[0]).toMatchObject({ estado: "pendiente", manzana: "0590", reemplazo: false, falta: 1, aplicador: "P132 · Aplicadora de Prueba" });
+    expect(modelo.filas[0]).toMatchObject({ estado: "pendiente", manzana: "0590", reemplazo: false, falta: 1, aplicador: "P132, Aplicadora de Prueba" });
     expect(modelo.filas[1]).toMatchObject({ estado: "subsanada", reemplazo: true, distrito: "Ate" });
   });
 

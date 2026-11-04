@@ -92,7 +92,7 @@ export function OccurrenceSourceBar({
               <div>
                 <span>Fuente de ocurrencias</span>
                 <strong>{formulario}</strong>
-                <em>{estado} · {reportes} reportes · {ultimaSync}</em>
+                <em>{estado}, {reportes} reportes, {ultimaSync}</em>
               </div>
               <button type="button" onClick={panel.cerrar} aria-label="Cerrar panel de fuente">
                 <X size={15} />

@@ -212,13 +212,13 @@ export function textoDelDespliegue(
       const letra = lugar.trim()[0].toUpperCase();
       porEdificio.set(letra, (porEdificio.get(letra) ?? 0) + 1);
     }
-    const donde = lugar ? `${lugar} · ${a.codigo}` : a.codigo;
+    const donde = lugar ? `${a.codigo} en ${lugar}` : a.codigo;
     // B71: la hora del recojo viaja por cita — es la hora a la que ESA
     // persona debe estar en la base, y la dice el motor (no se re-parsea).
     const recojo = a.recojo ? ` (recojo ${a.recojo})` : "";
     // Dictado 2026-09-04: el aviso se pega en el chat del equipo, así que
     // el nombre va escrito como se escribe un nombre, y sin em dashes.
-    return `• ${a.inicio}${a.fin ? ` a ${a.fin}` : ""} ${donde} · ${nombreDeAplicador(a.aplicador)}${recojo}`;
+    return `• ${a.inicio}${a.fin ? ` a ${a.fin}` : ""} ${donde}: ${nombreDeAplicador(a.aplicador)}${recojo}`;
   });
   // En palabras del lector (dictado 2026-09-03: «no me gusta el A×3, debe
   // ser 3 aplicaciones en A»): la primera entrada completa, el resto corto.
@@ -227,7 +227,7 @@ export function textoDelDespliegue(
     .map(([letra, n], k) => k === 0
       ? `${n} ${n === 1 ? "aplicación" : "aplicaciones"} en ${letra}`
       : `${n} en ${letra}`)
-    .join(" · ");
+    .join(", ");
   const cola = dia.noCubiertos.length
     ? [`Sin nadie asignado: ${dia.noCubiertos.join(", ")}`]
     : [];
@@ -238,7 +238,7 @@ export function textoDelDespliegue(
     ? ["Materiales se recogen 30 min antes; salida al aula 15 min antes de la hora pactada."]
     : [];
   return [
-    `Despliegue ${dia.etiqueta}${edificios ? ` · ${edificios}` : ""}`,
+    `Despliegue ${dia.etiqueta}${edificios ? `, ${edificios}` : ""}`,
     ...protocolo,
     ...lineas,
     ...cola,
@@ -303,7 +303,7 @@ export function veredictoDeEquidad(r: RepartoVista): VeredictoDeEquidad | null {
       `${libres} ${libres === 1 ? "queda" : "quedan"} sin ninguna aplicación`,
     );
   }
-  return { parejo: dif <= 1, texto: colas.length ? `${base} · ${colas.join(" · ")}` : base };
+  return { parejo: dif <= 1, texto: colas.length ? `${base}, ${colas.join(", ")}` : base };
 }
 
 export function repartoDeAplicadores(

@@ -209,7 +209,7 @@ export function BasesPanel({
     .join("|");
   const canonicalOptionsRaw = [
     ...(hasSessionXlsform ? [{ fileId: "", label: "Formulario cargado en Carga/Editor" }] : []),
-    ...bases.map((base) => ({ fileId: base.xlsform_file_id, label: `${base.nombre} · formulario` })),
+    ...bases.map((base) => ({ fileId: base.xlsform_file_id, label: `${base.nombre}, formulario` })),
   ];
   const canonicalOptionKeys = new Set<string>();
   const canonicalOptions = canonicalOptionsRaw.filter((option) => {
@@ -929,9 +929,9 @@ function BaseRow({
           <span>
             <Database size={12} />
             {base.n_filas != null && base.n_columnas != null
-              ? `${base.n_filas} registros · ${base.n_columnas} columnas`
+              ? `${base.n_filas} registros y ${base.n_columnas} columnas`
               : "Respuestas cargadas"}
-            {base.data_ext && ` · .${base.data_ext}`}
+            {base.data_ext && `, .${base.data_ext}`}
           </span>
         </div>
       </div>
@@ -1098,7 +1098,7 @@ function AddBaseForm({
           icon={Database}
           title="Respuestas"
           accept=".xlsx,.xls,.csv,.sav,application/x-spss-sav,application/octet-stream"
-          acceptLabel=".xlsx · .csv · .sav"
+          acceptLabel=".xlsx, .csv o .sav"
           file={dataFile}
           onPick={setDataFile}
         />
@@ -1223,7 +1223,7 @@ function ReplaceFilesForm({
           icon={FileSpreadsheet}
           title="Nuevo formulario"
           accept=".xlsx,.xls"
-          acceptLabel="Excel (.xlsx) · opcional"
+          acceptLabel="Excel (.xlsx), opcional"
           file={xlsformFile}
           onPick={setXlsformFile}
         />
@@ -1231,7 +1231,7 @@ function ReplaceFilesForm({
           icon={Database}
           title="Nuevas respuestas"
           accept=".xlsx,.xls,.csv,.sav,application/x-spss-sav,application/octet-stream"
-          acceptLabel=".xlsx · .csv · .sav · opcional"
+          acceptLabel=".xlsx, .csv o .sav, opcional"
           file={dataFile}
           onPick={setDataFile}
         />

@@ -40,6 +40,8 @@ describe("normalizeMonitoreoCuotasEstado", () => {
     expect(e.cuotas[0]).toMatchObject({ id: "q1", cobertura: 0.312, meta: 812, categorias_total: 3 });
     expect(e.cuotas[0].categorias[0]).toEqual({
       categoria: "TPA", universo: 1939, meta: 605, efectivas: 350, falta: 255, avance: 0.578, tasa: 0.18, estado: "en_curso",
+      // ADR 0126, aditivos: sin publicarlos el motor, nulos y no cero.
+      estado_cuota: null, referencia: null, pct_efectivas: null, pct_universo: null, celda_vacia: false,
     });
   });
 

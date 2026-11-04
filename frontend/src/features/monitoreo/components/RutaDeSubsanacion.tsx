@@ -18,6 +18,7 @@ import {
 } from "../core/motivoDeNoCruce";
 
 import "./rutaDeSubsanacion.css";
+import { formatoConteo } from "../../../lib/formatoNumero";
 
 export type PasoDeSubsanacion = "todos" | "prioriza" | "comprueba" | "decide";
 
@@ -190,14 +191,14 @@ export function RutaDeSubsanacion({
               <strong>{item.titulo}</strong>
               <small>{item.detalle}</small>
             </span>
-            <b>{item.total.toLocaleString("es-PE")}</b>
+            <b>{formatoConteo(item.total)}</b>
           </button>
         );
       })}
       {paso === "todos" ? null : (
         <button type="button" className="mon-acr-ruta-todos" onClick={() => onPaso("todos")}>
           Ver todos
-          <b>{conteo.todos.toLocaleString("es-PE")}</b>
+          <b>{formatoConteo(conteo.todos)}</b>
         </button>
       )}
     </div>

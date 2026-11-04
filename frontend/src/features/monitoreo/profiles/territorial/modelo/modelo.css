@@ -60,14 +60,14 @@
 .mon-mod-titulo {
   margin: 0;
   color: var(--pulso-text);
-  font-size: 14px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-bold);
 }
 
 .mon-mod-subtitulo {
   margin: 0;
   color: var(--pulso-text-faint);
-  font-size: 10.5px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-bold);
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -76,7 +76,7 @@
 .mon-mod-base {
   margin: 0;
   color: var(--pulso-text-soft);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .mon-mod-boton {
@@ -90,7 +90,7 @@
   background: var(--pulso-surface);
   color: var(--pulso-text);
   font: inherit;
-  font-size: 13px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-semibold);
   cursor: pointer;
 }
@@ -111,7 +111,7 @@
 .mon-mod-tabla {
   width: 100%;
   border-collapse: collapse;
-  font-size: 13px;
+  font-size: var(--pulso-type-body-size);
   font-variant-numeric: tabular-nums;
 }
 
@@ -123,7 +123,7 @@
   border-bottom: 1px solid var(--pulso-border);
   background: var(--pulso-surface);
   color: var(--pulso-text-soft);
-  font-size: 10.5px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-bold);
   letter-spacing: 0.06em;
   text-align: left;
@@ -170,7 +170,7 @@
 
 .mon-mod-fase {
   gap: var(--pulso-space-1);
-  font-size: 13px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .mon-mod-fase > span,
@@ -193,6 +193,16 @@
   margin: var(--pulso-space-1) 0;
 }
 
+/* El rótulo de la cifra de una fase va en caja normal: en versalitas,
+ * «RESPUESTAS» no cabía en un tercio de la tarjeta de Piloto a 1280 (se salía
+ * 5 px). */
+.mon-mod-parametros.mon-mod-fase-cifras dt {
+  font-size: var(--pulso-type-caption-size);
+  font-weight: var(--pulso-weight-medium);
+  letter-spacing: 0;
+  text-transform: none;
+}
+
 .mon-mod-parametros.mon-mod-fase-cifras > div {
   padding: var(--pulso-space-2);
 }
@@ -206,7 +216,7 @@
   gap: var(--pulso-space-1);
   margin: 0;
   padding-left: var(--pulso-space-4);
-  font-size: 13px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .mon-mod-mapa {
@@ -262,7 +272,7 @@
   stroke: var(--pulso-surface);
   stroke-width: 4px;
   stroke-linejoin: round;
-  font-size: 22px;
+  font-size: var(--pulso-type-kpi-size);
   font-weight: var(--pulso-weight-semibold);
 }
 
@@ -283,7 +293,7 @@
   gap: var(--pulso-space-3);
   padding: var(--pulso-space-2) var(--pulso-space-3);
   color: var(--pulso-text-soft);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .mon-mod-mapa-pie .is-titular::before,
@@ -310,7 +320,7 @@
   display: grid;
   gap: var(--pulso-space-2);
   margin: 0;
-  font-size: 13px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .mon-mod-variables dt,
@@ -318,10 +328,10 @@
   font-weight: var(--pulso-weight-semibold);
 }
 
-.mon-mod-variables code {
+.mon-mod-variables .mon-mod-columna {
   margin-left: var(--pulso-space-1);
   color: var(--pulso-text-soft);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .mon-mod-variables dd,
@@ -388,7 +398,7 @@
   padding: var(--pulso-space-2);
   border: 1px solid var(--pulso-border);
   border-radius: 8px;
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   text-align: center;
 }
 
@@ -397,7 +407,7 @@
 }
 
 .mon-mod-plantilla b {
-  font-size: 16px;
+  font-size: var(--pulso-type-title-size);
   font-variant-numeric: tabular-nums;
 }
 
@@ -409,19 +419,6 @@
 
 .mon-mod--vacio {
   grid-template-columns: minmax(0, 1fr);
-}
-
-.mon-mod-vacio {
-  align-items: center;
-  justify-content: center;
-  height: 100%;
-  text-align: center;
-  color: var(--pulso-text-soft);
-}
-
-.mon-mod-vacio strong {
-  color: var(--pulso-text);
-  font-size: 15px;
 }
 
 @media (max-width: 1180px) {
@@ -527,7 +524,7 @@
 
 .mon-mod-parametros dt {
   color: var(--pulso-text-soft);
-  font-size: 10.5px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-bold);
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -536,7 +533,7 @@
 .mon-mod-parametros dd {
   margin: 0;
   color: var(--pulso-text);
-  font-size: 14px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-semibold);
   font-variant-numeric: tabular-nums;
 }

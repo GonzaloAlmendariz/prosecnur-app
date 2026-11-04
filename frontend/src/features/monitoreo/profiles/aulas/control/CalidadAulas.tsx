@@ -48,7 +48,7 @@ function CalidadAulasImpl({ dashboard, cargando, vacioSinTablero, onDeclararUmbr
         <section className="aulas-ins-panel" aria-labelledby="aulas-cal-senales" data-qa-geometry-member="senales">
           <header className="aulas-ins-cabecera">
             <h3 id="aulas-cal-senales">Señales del corte</h3>
-            <span className="aulas-ins-sub">{resumen.label} · lo que deriva la app</span>
+            <span className="aulas-ins-sub">{resumen.label}, lo que deriva la app</span>
           </header>
           <AulasControles filas={filas} plan={(dashboard.agenda ?? []) as Array<Record<string, unknown>>} />
         </section>

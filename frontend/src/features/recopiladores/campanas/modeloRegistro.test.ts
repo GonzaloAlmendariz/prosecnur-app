@@ -126,7 +126,7 @@ describe("la tarjeta dice lo que la campaña tiene", () => {
   it("correo: plataforma, envíos, bloques y qué envío ya salió (ADR 0111 §8)", () => {
     const r = resumenDeTarjeta(REGISTRO.campaigns[1]);
     expect(r.estado).toBe("Exportada en parte");
-    expect(r.hechos).toEqual(["Sale por Mailchimp · 7 bloques"]);
+    expect(r.hechos).toEqual(["Sale por Mailchimp, con 7 bloques"]);
     expect(r.envios).toEqual([
       { label: "Invitación", exportado: true, texto: "exportado 02/09" },
       { label: "Recordatorio 1", exportado: false, texto: "pendiente" },

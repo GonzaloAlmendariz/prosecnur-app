@@ -191,7 +191,7 @@ describe("AulasAsignacionDeAplicadores — el mecanismo de fijar (B36)", () => {
     // opción del automático es el NOMBRE, sin rótulo delante.
     expect(html).toMatch(/<option value=""[^>]*>Ana Prueba<\/option>/);
     expect(html).toContain("automática");
-    expect(html).toContain("Ana Prueba · 1");
+    expect(html).toContain("Ana Prueba (1)");
   });
 
   it("la puesta a mano se sella como manual, y ese sello es el camino de vuelta", () => {
@@ -245,7 +245,7 @@ describe("AulasAsignacionDeAplicadores — el día que toca", () => {
     // «el que toca» cayó en el mapa de jergas (dictado 2026-09-03): el
     // vocabulario del lector es «próxima salida».
     const html = pintaCon("2026-09-05");
-    expect(html).toMatch(/Lunes 07\/09 · próxima salida/);
+    expect(html).toMatch(/Lunes 07\/09, próxima salida/);
   });
 
   it("entre dos fechas futuras, la primera es la que toca y la otra queda neutra", () => {

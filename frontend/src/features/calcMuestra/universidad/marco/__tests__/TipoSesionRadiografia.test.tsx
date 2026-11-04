@@ -113,7 +113,7 @@ describe("TipoSesionRadiografia — contrato F1 completo", () => {
     expect(html).toContain("Media elegible");
     expect(html).toContain("27.5");
     expect(html).toContain("9 CH con dato");
-    expect(html).toContain("Media total · contraste");
+    expect(html).toContain("Media total, contraste");
     expect(html).toContain("30.2");
     expect(html).toContain("12 CH con dato");
     for (const cuantile of ["P10", "P25", "P50", "P75", "P90"]) expect(html).toContain(cuantile);
@@ -137,7 +137,7 @@ describe("TipoSesionRadiografia — contrato F1 completo", () => {
         contexto="editable"
       />,
     );
-    expect(html).toContain("Exploración previa · último marco ejecutado");
+    expect(html).toContain("Exploración previa, último marco ejecutado");
     expect(html).toContain("El borrador entra al recalcular");
   });
 
@@ -164,6 +164,6 @@ describe("TipoSesionRadiografia — contrato F1 completo", () => {
     expect(html).toContain("Distribución de PSICOLOGÍA por tipo de sesión");
     expect(html).toContain("Resumen legacy");
     expect(html).not.toContain("Radiografía F1 completa");
-    expect(html).not.toContain("Media total · contraste");
+    expect(html).not.toContain("Media total, contraste");
   });
 });

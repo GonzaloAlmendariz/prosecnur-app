@@ -607,7 +607,7 @@
 /* Mismo cuerpo e inset que el texto del input sm: fijos y editables se leen en una columna. */
 .rec-terr-codigo-rotulo {
   padding-left: 11px;
-  font-size: 12.5px;
+  font-size: var(--pulso-type-body-size);
   color: var(--pulso-text);
 }
 

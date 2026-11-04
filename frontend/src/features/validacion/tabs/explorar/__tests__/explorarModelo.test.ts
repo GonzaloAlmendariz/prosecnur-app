@@ -9,6 +9,8 @@ import {
   fmtDecimal,
   fmtN,
   fraseBase,
+  fraseCruceBase,
+  lecturaInicial,
   modeloCalor,
   ordenarFilas,
   rangoColumnas,
@@ -137,6 +139,8 @@ describe("escala divergente", () => {
     expect(d.baja.pct).toBe(22);
     expect(d.centro?.pct).toBe(14);
     expect(d.alta.pct).toBe(64);
+    // Cada lado lleva el nombre de su opción más cercana al centro, que nombra al grupo y es corto.
+    expect([d.baja.etiqueta, d.centro?.etiqueta, d.alta.etiqueta]).toEqual(["En desacuerdo", "Ni uno ni otro", "De acuerdo"]);
     expect(d.segmentos.map((s) => s.lado)).toEqual(["baja", "baja", "centro", "alta", "alta"]);
     expect(d.segmentos[0].intensidad).toBeGreaterThan(d.segmentos[1].intensidad);
   });
@@ -164,45 +168,147 @@ describe("tira de cifras (E5)", () => {
 
 describe("tabla de calor (E9)", () => {
   const tabla = {
-    filas: [{ codigo: "1", etiqueta: "Dependiente" }, { codigo: "2", etiqueta: "Independiente" }],
+    filas: [{ codigo: "1", etiqueta: "Dependiente", n: 100 }, { codigo: "2", etiqueta: "Independiente", n: 100 }],
     columnas: [{ codigo: "a", etiqueta: "Ate", n: 100 }, { codigo: "b", etiqueta: "Breña", n: 100 }],
     n: [[60, 40], [40, 60]],
   };
 
   it("por columna: cada columna suma 100, Total aparte, marca a 5 puntos", () => {
-    const m = modeloCalor(tabla, "columna");
+    const m = modeloCalor(tabla, "columna", 200);
     expect(m.filas[0].celdas.map((c) => c.valor)).toEqual([60, 40]);
     expect(m.filas[0].total?.valor).toBe(50);
     expect(m.filas[0].celdas.map((c) => c.marca)).toEqual(["arriba", "abajo"]);
     expect(m.filaTotal).toBeNull();
     expect(m.filas[0].celdas[0].peso).toBe(1);
+    expect(m.titulo).toBe("Cada columna suma 100%");
+    expect(m.nota).toBeNull();
   });
 
   it("por fila: compara con la fila Total", () => {
-    const m = modeloCalor({ ...tabla, n: [[52, 48], [48, 52]] }, "fila");
+    const m = modeloCalor({ ...tabla, n: [[52, 48], [48, 52]] }, "fila", 200);
     expect(m.filas[0].celdas[0].valor).toBe(52);
     expect(m.filaTotal?.map((c) => c.valor)).toEqual([50, 50]);
     expect(m.filas[0].celdas[0].marca).toBeNull();
+    expect(m.esquina.texto).toBe("100.0");
   });
 
-  it("en n no hay comparación ni marcas", () => {
-    const m = modeloCalor(tabla, "n");
+  it("en n no hay comparación ni marcas; la esquina es la base", () => {
+    const m = modeloCalor(tabla, "n", 200);
     expect(m.filas.flatMap((f) => f.celdas.map((c) => c.marca))).toEqual([null, null, null, null]);
     expect(m.totalGeneral).toBe(200);
+    expect(m.esquina.texto).toBe("200");
     expect(desviaciones(m)).toEqual([]);
   });
 
-  it("una múltiple en columnas divide por el n de la columna, no por la suma de sus filas", () => {
-    const sm = { ...tabla, columnas: [{ codigo: "a", etiqueta: "A", n: 80 }, { codigo: "b", etiqueta: "B", n: 100 }] };
-    expect(modeloCalor(sm, "columna").filas[0].celdas[0].valor).toBe(75);
+  it("so × so da lo mismo con y sin filas[].n (payload viejo: se deduce de las celdas)", () => {
+    const viejo = { ...tabla, filas: tabla.filas.map((f) => ({ ...f, n: null })) };
+    for (const l of ["columna", "fila", "n"] as const) {
+      expect(modeloCalor(viejo, l, 200)).toEqual(modeloCalor(tabla, l, 200));
+    }
   });
 
   it("las mayores diferencias, de mayor a menor, con su lectura", () => {
-    const d = desviaciones(modeloCalor(tabla, "columna"));
+    const d = desviaciones(modeloCalor(tabla, "columna", 200));
     expect(d).toHaveLength(3);
     expect(d[0].titulo).toBe("Ate: más «Dependiente»");
     expect(d[0].detalle).toBe("60.0% frente a 50.0% del total, 10.0 puntos por encima.");
-    expect(rangoColumnas(modeloCalor(tabla, "columna"))).toEqual({ min: 100, max: 100 });
+    expect(rangoColumnas(modeloCalor(tabla, "columna", 200))).toEqual({ min: 100, max: 100, de: "columna" });
+  });
+});
+
+// Revisión metodológica (2026-11-03): con una múltiple, un caso está en varias celdas; ningún total sale de sumarlas.
+describe("tabla de calor con una múltiple: denominadores en casos", () => {
+  // Réplica de E2_sex × d1_information en acnur_acg (dos opciones de nueve): 258 hombres y 301 mujeres responden
+  // la múltiple (559 de la base de 560 con «Otro»); las celdas suman más que la fila porque se marcan varias.
+  const soSm = {
+    filas: [
+      { codigo: "1", etiqueta: "Hombre", n: 258 },
+      { codigo: "2", etiqueta: "Mujer", n: 301 },
+      { codigo: "3", etiqueta: "Otro", n: 1 },
+    ],
+    columnas: [{ codigo: "a", etiqueta: "Redes sociales", n: 355 }, { codigo: "b", etiqueta: "Amigos o familiares", n: 101 }],
+    n: [[164, 34], [190, 67], [1, 0]],
+  };
+  const base = 560;
+
+  it("x única × y múltiple, por columna: el Total de «Mujer» es mujeres / base y los Totales suman 100", () => {
+    const m = modeloCalor(soSm, "columna", base, "so", "sm");
+    expect(m.filas[1].total?.valor).toBeCloseTo((100 * 301) / 560, 6);
+    expect(m.filas.reduce((t, f) => t + (f.total?.valor ?? 0), 0)).toBeCloseTo(100, 6);
+    expect(m.titulo).toBe("Cada columna suma 100%");
+  });
+
+  it("x única × y múltiple, por fila: ni el Total de la fila ni la esquina valen 100", () => {
+    const m = modeloCalor(soSm, "fila", base, "so", "sm");
+    expect(m.filas[1].celdas[0].valor).toBeCloseTo((100 * 190) / 301, 6);
+    expect(m.filas[1].total?.texto).toBe("301");
+    expect(m.esquina.texto).toBe("560");
+    expect(m.filaTotal?.[0].valor).toBeCloseTo((100 * 355) / 560, 6);
+    expect(m.titulo).toBe("% de cada fila que marca la opción de la columna");
+    expect(m.nota).toContain("volumen de marcas");
+  });
+
+  it("el signo de cada diferencia es el mismo por columna y por fila, en los cuatro pares", () => {
+    const smSo = {
+      filas: soSm.columnas.map((c) => ({ codigo: c.codigo, etiqueta: c.etiqueta, n: c.n })),
+      columnas: soSm.filas.map((f) => ({ codigo: f.codigo, etiqueta: f.etiqueta, n: f.n })),
+      n: soSm.columnas.map((_, c) => soSm.n.map((fila) => fila[c])),
+    };
+    const smSm = {
+      filas: [{ codigo: "a", etiqueta: "A", n: 50 }, { codigo: "b", etiqueta: "B", n: 40 }],
+      columnas: [{ codigo: "a", etiqueta: "A", n: 50 }, { codigo: "b", etiqueta: "B", n: 40 }],
+      n: [[50, 30], [30, 40]],
+    };
+    const soSo = { filas: [{ codigo: "1", etiqueta: "1", n: 60 }, { codigo: "2", etiqueta: "2", n: 40 }], columnas: [{ codigo: "a", etiqueta: "a", n: 50 }, { codigo: "b", etiqueta: "b", n: 50 }], n: [[40, 20], [10, 30]] };
+    const casos = [
+      [soSo, 100, "so", "so"],
+      [soSm, base, "so", "sm"],
+      [smSo, base, "sm", "so"],
+      [smSm, 70, "sm", "sm"],
+    ] as const;
+    for (const [t, b, tx, ty] of casos) {
+      const col = modeloCalor(t, "columna", b, tx, ty);
+      const fila = modeloCalor(t, "fila", b, tx, ty);
+      col.filas.forEach((f, r) =>
+        f.celdas.forEach((c, k) => expect(Math.sign(c.dif ?? 0)).toBe(Math.sign(fila.filas[r].celdas[k].dif ?? 0))),
+      );
+    }
+  });
+
+  it("un payload sin filas[].n con una múltiple no vuelve a menciones: sin Total ni flechas", () => {
+    const viejo = { ...soSm, filas: soSm.filas.map((f) => ({ ...f, n: null })) };
+    const col = modeloCalor(viejo, "columna", base, "so", "sm");
+    expect(col.filas.every((f) => f.total === null)).toBe(true);
+    expect(col.filas.flatMap((f) => f.celdas.map((c) => c.marca)).every((m) => m === null)).toBe(true);
+    const fila = modeloCalor(viejo, "fila", base, "so", "sm");
+    expect(fila.filas.flatMap((f) => f.celdas.map((c) => c.texto)).every((t) => t === "—")).toBe(true);
+  });
+
+  it("con base 0 no hay NaN ni flechas", () => {
+    for (const l of ["columna", "fila", "n"] as const) {
+      const m = modeloCalor(soSm, l, 0, "so", "sm");
+      const valores = m.filas.flatMap((f) => [...f.celdas, ...(f.total ? [f.total] : [])]).map((c) => c.valor);
+      expect(valores.every(Number.isFinite)).toBe(true);
+      expect(m.filas.flatMap((f) => f.celdas.map((c) => c.marca)).every((x) => x === null)).toBe(true);
+    }
+  });
+
+  it("«Antes de leerlo» acota con el denominador de la lectura activa", () => {
+    expect(rangoColumnas(modeloCalor(soSm, "columna", base, "so", "sm"))).toEqual({ min: 101, max: 355, de: "columna" });
+    expect(rangoColumnas(modeloCalor(soSm, "fila", base, "so", "sm"))).toEqual({ min: 1, max: 301, de: "fila" });
+  });
+
+  it("única × múltiple abre por fila; lo demás, por columna", () => {
+    expect(lecturaInicial("so", "sm")).toBe("fila");
+    expect(lecturaInicial("sm", "so")).toBe("columna");
+    expect(lecturaInicial("so", "so")).toBe("columna");
+    expect(lecturaInicial("sm", "sm")).toBe("columna");
+  });
+
+  it("la base del cruce en una frase, con el «de» sólo cuando hay más casos que el cruce", () => {
+    expect(fraseCruceBase({ base_n: 560, n_x: 1283, n_y: 560 })).toBe("560 casos responden las dos (de 1,283) · sin ponderar");
+    expect(fraseCruceBase({ base_n: 1283, n_x: 1283, n_y: 1283 })).toBe("1,283 casos responden las dos · sin ponderar");
+    expect(fraseCruceBase({ base_n: 1, n_x: null, n_y: null })).toBe("1 caso responde las dos · sin ponderar");
   });
 });
 

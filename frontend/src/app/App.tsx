@@ -8,11 +8,11 @@ import ProjectShell from "../features/project/ProjectShell";
 import { ProjectModulesProvider } from "../features/project/ProjectModulesContext";
 import { AppErrorBoundary } from "../components/AppErrorBoundary";
 import LogsPanel from "../components/LogsPanel";
-import { LoadingBlock } from "../components/States";
 import { install as installLogSink, note as logNote } from "../lib/logSink";
 import { lazyWithReload } from "../lib/lazyWithReload";
 import { isPublicMode } from "../lib/runtime";
 import { useApplyLayoutPreset } from "../lib/layoutPreference";
+import { CargaDeModulo } from "../components/CargaDeModulo";
 
 // Dashboard — code-split para no arrastrar plotly al bundle principal.
 // Su payload solo se carga cuando el usuario entra a /tablero. La ruta
@@ -112,7 +112,7 @@ export default function App() {
         <SessionProvider>
           <SessionLostBanner />
           <div className="pulso-public-shell">
-            <Suspense fallback={<LoadingBlock label="Cargando publicacion..." />}>
+            <Suspense fallback={<CargaDeModulo label="Cargando la publicación…" />}>
               <PublicArtifactApp />
             </Suspense>
             <footer className="pulso-public-footer">
@@ -134,7 +134,7 @@ export default function App() {
           <SessionLostBanner />
           <BrowserRouter basename={ROUTER_BASENAME}>
             <ProjectModulesProvider>
-            <Suspense fallback={<LoadingBlock label="Abriendo modulo..." />}>
+            <Suspense fallback={<CargaDeModulo label="Abriendo el módulo…" />}>
               <Routes>
                 <Route element={<Layout />}>
                   <Route path="/" element={<HomePage />} />

@@ -19,6 +19,7 @@ import type {
 } from "../../../../../api/client";
 import { normalizeCalendarReportWeekday } from "../avance/ritmoDiario";
 import { fechaCorta, resumenDeRitmo, serieDiariaDelCorte, serieHoja } from "../avance/ritmoModel";
+import { formatoConteo } from "../../../../../lib/formatoNumero";
 
 export type AcreditacionFieldScheduleDraft = {
   startWeek: number;
@@ -42,7 +43,7 @@ export function acreditacionPrimarySchedulePhase(phases: MonitoreoStrategyPhase[
 export function calendarWeekRangeLabel(startWeek: number | null | undefined, endWeek: number | null | undefined) {
   const start = Number(startWeek);
   const end = Number(endWeek ?? startWeek);
-  const fmt = (n: number) => n.toLocaleString("es-PE");
+  const fmt = (n: number) => formatoConteo(n);
   if (!Number.isFinite(start) || start <= 0) return "Sin semana";
   if (!Number.isFinite(end) || end <= 0 || end === start) return `Semana ${fmt(start)}`;
   return `Semanas ${fmt(start)}-${fmt(end)}`;
@@ -101,7 +102,7 @@ export function lecturaDelCronograma(draft: AcreditacionFieldScheduleDraft) {
       : null;
   return {
     ventana,
-    duracion: `${draft.durationWeeks.toLocaleString("es-PE")} ${draft.durationWeeks === 1 ? "semana" : "semanas"}`,
+    duracion: `${formatoConteo(draft.durationWeeks)} ${draft.durationWeeks === 1 ? "semana" : "semanas"}`,
     fechas,
   };
 }

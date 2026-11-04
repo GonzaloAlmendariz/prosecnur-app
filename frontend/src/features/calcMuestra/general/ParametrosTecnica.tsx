@@ -6,7 +6,7 @@ import type {
   CalcMuestraParametros,
 } from "../../../api/calcMuestra";
 import type { CalcMuestraParametroDeTecnica } from "../../../api/calcMuestraGeneral";
-import { ErrorBlock, LoadingBlock } from "../../../components/States";
+import { ErrorBlock } from "../../../components/States";
 import type { ComponentePatch } from "../sharedCore";
 import { AvisoModulo } from "../universidad/shared/AvisoModulo";
 import {
@@ -28,6 +28,7 @@ import {
 import { EntradaDecimal } from "./EntradaDecimal";
 import { useCatalogoParametros, type EstadoCatalogo } from "./useCatalogoParametros";
 import "./general.css";
+import { CargaDeBloque } from "../../../components/CargaDeBloque";
 
 /**
  * Método › Parámetros (G2): sólo los que la técnica del componente consume,
@@ -67,7 +68,7 @@ export function ParametrosTecnicaVista({
   onReintentar: () => void;
   onParametro: (clave: string, valor: number | string) => void;
 }) {
-  if (estado.fase === "cargando") return <LoadingBlock label="Leyendo los parámetros de la técnica…" variant="inline" />;
+  if (estado.fase === "cargando") return <CargaDeBloque label="Leyendo los parámetros de la técnica…" />;
   if (estado.fase === "error") {
     return (
       <div className="cmg-parametros-error">

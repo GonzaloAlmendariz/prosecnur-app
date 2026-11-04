@@ -87,6 +87,42 @@
   outline-offset: -2px;
 }
 
+.crossbar-opcion.is-sin-cruce {
+  cursor: default;
+}
+
+.crossbar-opcion.is-sin-cruce:hover {
+  background: transparent;
+}
+
+.crossbar-opcion.is-sin-cruce .crossbar-opcion-texto > span:first-child,
+.crossbar-opcion.is-sin-cruce .crossbar-opcion-texto > span:last-child {
+  color: var(--pulso-text-faint);
+}
+
+.crossbar-opcion.is-sin-cruce > :first-child {
+  opacity: 0.55;
+}
+
+.crossbar-limite {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 0;
+  padding: 10px 16px 12px;
+  border-top: 1px solid var(--pulso-border);
+  background: var(--pulso-surface-2);
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+  line-height: 1.4;
+}
+
+.crossbar-limite > svg {
+  flex: none;
+  margin-top: 1px;
+  color: var(--module-accent, var(--pulso-primary));
+}
+
 .crossbar-opcion[aria-current="true"] {
   background: color-mix(in srgb, var(--module-accent, var(--pulso-primary)) 11%, var(--pulso-surface));
 }

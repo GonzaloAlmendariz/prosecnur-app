@@ -191,9 +191,9 @@ export function neymanSinPPorEstrato(comp: Pick<CalcMuestraComponente, "parametr
 /** Cómo se repartió el n entre estratos, si el motor usó la fórmula por estrato. */
 export function lineaDeAsignacion(comp: Pick<CalcMuestraComponente, "resultado">): string | null {
   const formula = comp.resultado?.formula_n;
-  if (formula === "neyman") return "Reparto entre estratos: Neyman · n calculado por estrato.";
-  if (formula === "potencia") return "Reparto entre estratos: potencia (Bankier) · n calculado por estrato.";
-  if (formula === "proporcional_por_estrato") return "Reparto entre estratos: proporcional · n calculado con la p de cada estrato.";
+  if (formula === "neyman") return "Reparto entre estratos: Neyman, con n calculado por estrato.";
+  if (formula === "potencia") return "Reparto entre estratos: potencia (Bankier), con n calculado por estrato.";
+  if (formula === "proporcional_por_estrato") return "Reparto entre estratos: proporcional, con n calculado con la p de cada estrato.";
   return null;
 }
 

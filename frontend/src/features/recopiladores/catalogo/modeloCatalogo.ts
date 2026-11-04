@@ -80,11 +80,11 @@ export function textoDeOrientacion(orientation: MaterialCatalogPreset["orientati
   return orientation === "landscape" ? "apaisado" : "vertical";
 }
 
-/** «A4 · vertical»; sin papel declarado no se supone ninguno. */
+/** «A4 vertical»; sin papel declarado no se supone ninguno. */
 export function textoDeFormato(preset: Pick<MaterialCatalogPreset, "paper" | "orientation">): string {
   const orientacion = textoDeOrientacion(preset.orientation);
   if (!preset.paper) return orientacion.charAt(0).toUpperCase() + orientacion.slice(1);
-  return `${preset.paper} · ${orientacion}`;
+  return `${preset.paper} ${orientacion}`;
 }
 
 export function textoDeImpresion(faces: MaterialCatalogPreset["faces"]): string {
@@ -94,7 +94,7 @@ export function textoDeImpresion(faces: MaterialCatalogPreset["faces"]): string 
 /** De qué unidades lee sus datos el tipo. Una lista vacía no restringe. */
 export function textoDeLectura(unitTypes: readonly string[]): string {
   if (!unitTypes.length) return "Cualquier unidad";
-  return unitTypes.map(tipoDeUnidad).join(" · ");
+  return unitTypes.map(tipoDeUnidad).join(", ");
 }
 
 /** Chips de la tarjeta: papel (si se sabe), páginas y copias. */

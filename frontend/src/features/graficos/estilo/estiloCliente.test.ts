@@ -309,7 +309,7 @@ describe("Opciones y tamaños «16 pt = 14 + 2»", () => {
   it("muestra el tamaño final y su suma", () => {
     const o = normalizeEstiloOpciones(RAW);
     const t = tamanosRol(o.roles[0], "grande", o.pasos);
-    expect(t.map((x) => x.texto)).toEqual(["20 pt = 18 + 2", "14,5 pt = 12,5 + 2"]);
+    expect(t.map((x) => x.texto)).toEqual(["20 pt = 18 + 2", "14.5 pt = 12.5 + 2"]);
     expect(tamanosRol(o.roles[0], "estandar", o.pasos)[0].texto).toBe("18 pt");
     expect(tamanosRol(undefined, "grande", o.pasos)).toEqual([]);
   });

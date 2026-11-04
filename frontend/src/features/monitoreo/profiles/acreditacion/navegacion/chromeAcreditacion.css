@@ -75,16 +75,17 @@
 .is-acreditacion-profile .pulso-context-tab-rail-meta > span > span {
   display: block;
   color: var(--pulso-text-faint);
-  font-size: 9px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-semibold);
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  /* En caja normal: en versalitas, a 10 px (el piso) «CORTE» no cabía en los
+     40 px de la cápsula y se partía «Cort/e» (P1 de la pasada de formato). */
+  white-space: nowrap;
 }
 
 .is-acreditacion-profile .pulso-context-tab-rail-meta strong,
 .is-acreditacion-profile .pulso-context-tab-rail-meta .mon-rail-sync-time {
   color: var(--pulso-text-soft);
-  font-size: 10.5px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-bold);
 }
 
@@ -149,7 +150,7 @@
   border-radius: 999px;
   background: var(--pulso-surface);
   color: var(--pulso-text-soft);
-  font-size: 12px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-semibold);
   white-space: nowrap;
 }

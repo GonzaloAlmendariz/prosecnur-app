@@ -33,7 +33,7 @@ export function chipsDeFase(args: {
   const otra: HojasRutaPhase = fase === "pilot" ? "field" : "pilot";
   // La corrida de campo siempre existe; la piloto, sólo si se hizo.
   const hayOtra = otra === "pilot" ? hayPiloto : true;
-  const base = fase === "pilot" ? "La corrida piloto es histórica: se consulta, no se cambia." : evitaPiloto ? "Campo real · evita las titulares del piloto." : "Campo real.";
+  const base = fase === "pilot" ? "La corrida piloto es histórica: se consulta, no se cambia." : evitaPiloto ? "Campo real, evita las titulares del piloto." : "Campo real.";
   const chips: ChipDeFase[] = [
     {
       id: "fase",

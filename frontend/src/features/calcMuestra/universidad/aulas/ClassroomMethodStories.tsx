@@ -1,5 +1,7 @@
 import { classroomMethodLabel } from "./classroomLabels";
+import { useId } from "react";
 import { Link } from "react-router-dom";
+import { Panel } from "../../../../components/Panel";
 import { Award } from "../../../../vendor/lucide-react";
 import { CALC_MUESTRA_UNIVERSIDAD_PESTANAS } from "../../../../lib/navegacion/catalogos/calcMuestra";
 import { MetodoGooEsquema } from "../../didactica/MetodoGooEsquema";
@@ -17,21 +19,24 @@ const RELATO_TO =
 
 export function ClassroomMethodDecisionHero({ decision }: { decision: ClassroomMethodDecision }) {
   const recommended = decision.kind === "recommended";
+  const tituloId = useId();
   return (
-    <section
-      className={`cmv2-panel cmv2-aulas-panel cmv2-method-decision${recommended ? " is-recommended" : ""}`}
+    <Panel
+      className={`cmv2-aulas-panel cmv2-method-decision${recommended ? " is-recommended" : ""}`}
+      aria-labelledby={tituloId}
+      eyebrow={recommended ? "Recomendado por el comparador vigente" : "Método configurado"}
+      title={<span id={tituloId}>{decision.label}</span>}
+      hint={decision.reason}
+      actions={
+        <span className="cmv2-method-decision-sello" data-qa-geometry-member data-qa-geometry-capacity="owned">
+          {recommended ? <><Award size={16} aria-hidden="true" /> Recomendación acreditada</> : "Sin recomendación del comparador"}
+        </span>
+      }
       data-qa-geometry-group="aulas-metodo-decision"
       data-qa-geometry-contract="intrinsic"
     >
-      <div data-qa-geometry-member>
-        <small>{recommended ? "Recomendado por el comparador vigente" : "Método configurado"}</small>
-        <strong>{decision.label}</strong>
-        <p>{decision.reason}</p>
-      </div>
-      <span data-qa-geometry-member data-qa-geometry-capacity="owned">
-        {recommended ? <><Award size={16} aria-hidden="true" /> Recomendación acreditada</> : "Sin recomendación del comparador"}
-      </span>
-    </section>
+      {null}
+    </Panel>
   );
 }
 

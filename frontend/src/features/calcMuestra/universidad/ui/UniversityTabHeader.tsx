@@ -11,14 +11,27 @@ const ESTADO: Record<GuideStatus, TabHeadingEstado | undefined> = {
   pending: undefined,
 };
 
+/**
+ * El antetítulo dice dónde estás —la sección y la posición de la pestaña—, como
+ * en Carga y Validación. Decía «Cálculo de muestra» en todas: repetía el
+ * módulo que ya nombra el chip de arriba (P9, cada cosa en un solo sitio).
+ */
 export function UniversityTabHeader({
   tab,
+  seccion,
+  pestanaN,
+  pestanaDe,
 }: {
   tab: CalcMuestraSidebarTab;
+  seccion?: string;
+  pestanaN?: number;
+  pestanaDe?: number;
 }) {
   return (
     <TabHeading
-      eyebrow="Cálculo de muestra"
+      eyebrow={seccion ?? "Cálculo de muestra"}
+      pestanaN={pestanaN}
+      pestanaDe={pestanaDe}
       titulo={tab.label}
       icono={tab.icon}
       estado={ESTADO[tab.status]}

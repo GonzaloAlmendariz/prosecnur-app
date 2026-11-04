@@ -15,6 +15,36 @@
 .vx-tipo-texto { --vx-tono: var(--pulso-text-soft); --vx-dato: var(--pulso-text-soft); }
 .vx-tipo-mixto { --vx-tono: var(--pulso-text-faint); --vx-dato: var(--pulso-text-faint); }
 
+/* ── Paleta de los datos (maqueta v4 aprobada, 2026-11-03) ─────────────────
+ * La marca prohíbe el acento del módulo en una serie de datos: el dato que manda
+ * va en navy y el resto en un apoyo gris azulado (estándar del motor de Gráficos).
+ * Todo sale de tokens con color-mix; en oscuro el navy se aclara para leerse. */
+.vx-grafico {
+  --vx-mayor: var(--pulso-brand-navy);
+  --vx-resto: color-mix(in srgb, var(--pulso-brand-navy) 44%, var(--pulso-surface));
+  --vx-claro: color-mix(in srgb, var(--pulso-accent-steel) 28%, var(--pulso-surface));
+  --vx-resid: color-mix(in srgb, var(--pulso-text-faint) 57%, var(--pulso-surface));
+  --vx-g1: var(--vx-mayor);
+  --vx-g2: color-mix(in srgb, var(--pulso-accent-steel) 82%, var(--pulso-surface));
+  --vx-g3: var(--vx-resid);
+  --vx-traza: var(--pulso-accent-steel);
+  --vx-banda: color-mix(in srgb, var(--pulso-accent-steel) 15%, transparent);
+  --vx-anota: var(--pulso-text);
+  --vx-arriba: color-mix(in srgb, var(--pulso-accent-steel) 88%, var(--pulso-brand-navy));
+  --vx-abajo: color-mix(in srgb, var(--pulso-accent-amber) 82%, var(--pulso-text));
+}
+:root[data-theme="dark"] .vx-grafico {
+  --vx-mayor: color-mix(in srgb, var(--pulso-accent-steel) 52%, var(--pulso-text));
+  --vx-resto: color-mix(in srgb, var(--pulso-accent-steel) 48%, var(--pulso-surface));
+  --vx-claro: color-mix(in srgb, var(--pulso-accent-steel) 26%, var(--pulso-surface));
+  --vx-resid: color-mix(in srgb, var(--pulso-text-faint) 55%, var(--pulso-surface));
+  --vx-g2: color-mix(in srgb, var(--pulso-accent-steel) 78%, var(--pulso-surface));
+  --vx-traza: color-mix(in srgb, var(--pulso-accent-steel) 70%, var(--pulso-text));
+  --vx-banda: color-mix(in srgb, var(--pulso-accent-steel) 22%, transparent);
+  --vx-arriba: color-mix(in srgb, var(--pulso-accent-steel) 60%, var(--pulso-text));
+  --vx-abajo: color-mix(in srgb, var(--pulso-accent-amber) 70%, var(--pulso-text));
+}
+
 /* El tipo va con el sello del editor de formularios (xlsformEditor/kit/Sello). */
 .vx-insignia {
   display: inline-flex;
@@ -58,7 +88,7 @@
   container: vx-cuerpo / inline-size;
   display: flex;
   flex-wrap: wrap;
-  align-items: flex-start;
+  align-items: stretch;
   gap: var(--pulso-space-4);
   min-width: 0;
 }
@@ -526,6 +556,17 @@
   font-size: var(--pulso-type-caption-size);
   line-height: 1.45;
 }
+.vx-grafico-cab .vx-titulo-nombre {
+  margin-left: 6px;
+  color: var(--pulso-text-faint);
+  font-size: var(--pulso-type-caption-size);
+  font-weight: var(--pulso-weight-medium);
+}
+/* D4 — la leyenda va centrada al ancho de la tarjeta, bajo el gráfico (como en las láminas). */
+.vx-grafico .vx-leyenda {
+  margin-top: var(--pulso-space-2);
+  text-align: center;
+}
 
 /* ── E6 · Barras ───────────────────────────────────────────────────────── */
 .vx-barras {
@@ -565,14 +606,16 @@
   display: block;
   height: 100%;
   border-radius: 5px;
-  background: var(--vx-dato, var(--module-accent, var(--pulso-primary)));
-  opacity: 0.8;
+  background: var(--vx-resto);
 }
 .vx-barra-fila.is-primera .vx-relleno {
-  opacity: 1;
+  background: var(--vx-mayor);
+}
+.vx-barra-fila.is-primera .vx-barra-etq {
+  font-weight: var(--pulso-weight-bold);
 }
 .vx-barra-fila.is-residual .vx-relleno {
-  opacity: 0.45;
+  background: var(--vx-resid);
 }
 .vx-barra-pct {
   color: var(--pulso-text);
@@ -623,31 +666,59 @@
   gap: var(--pulso-space-2);
 }
 .vx-div-resumen {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: space-between;
-  gap: var(--pulso-space-2);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: end;
+  gap: var(--pulso-space-3);
   font-size: var(--pulso-type-caption-size);
   font-weight: var(--pulso-weight-semibold);
 }
-.vx-div-resumen .is-baja { color: var(--pulso-warn-fg); }
+.vx-div-resumen .is-baja { color: var(--vx-abajo); }
 .vx-div-resumen .is-centro { color: var(--pulso-text-soft); }
-.vx-div-resumen .is-alta { color: var(--module-accent, var(--pulso-primary)); }
+.vx-div-resumen .is-alta { color: color-mix(in srgb, var(--pulso-accent-green) 78%, var(--pulso-text)); }
+.vx-div-resumen .is-centro { text-align: center; }
+.vx-div-resumen > span {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  font-weight: var(--pulso-weight-medium);
+}
+.vx-div-resumen > span > b {
+  font-size: var(--pulso-type-kpi-size);
+  font-weight: var(--pulso-weight-bold);
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+.vx-div-resumen .is-centro { align-items: center; }
+.vx-div-resumen .is-alta { align-items: flex-end; }
+.vx-div .vx-leyenda i.vx-div-seg { display: inline-block; width: 10px; height: 10px; min-width: 0; border-radius: 3px; }
+.vx-div-resumen .is-alta { grid-column: 3; text-align: right; }
 .vx-div-barra {
   display: flex;
-  height: 26px;
+  height: 40px;
   overflow: hidden;
   border-radius: 6px;
   background: var(--pulso-surface-3);
 }
 .vx-div-seg {
-  display: block;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   height: 100%;
   min-width: 2px;
+  overflow: hidden;
+  color: var(--pulso-text);
+  font-size: var(--pulso-type-caption-size);
+  font-weight: var(--pulso-weight-semibold);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
+/* Una escala va de negativo a positivo: naranja hacia el desacuerdo, verde hacia el acuerdo (paleta likert del estándar). */
 .vx-div-seg.is-baja { background: color-mix(in srgb, var(--pulso-accent-amber) var(--vx-int), var(--pulso-surface)); }
 .vx-div-seg.is-centro { background: var(--pulso-border-strong); }
-.vx-div-seg.is-alta { background: color-mix(in srgb, var(--module-accent, var(--pulso-primary)) var(--vx-int), var(--pulso-surface)); }
+.vx-div-seg.is-alta { background: color-mix(in srgb, var(--pulso-accent-green) var(--vx-int), var(--pulso-surface)); }
+.vx-div-seg.is-aparte { background: var(--vx-resid); }
+.vx-div-barra > .vx-div-seg.is-corte { margin-left: 4px; }
 .vx-div-seg + .vx-div-seg {
   box-shadow: inset 1px 0 0 var(--pulso-surface);
 }
@@ -663,7 +734,7 @@
 .vx-cuantas > span {
   padding: 4px 10px;
   border-radius: 999px;
-  background: color-mix(in srgb, var(--vx-dato, var(--pulso-accent-violet)) 12%, var(--pulso-surface));
+  background: var(--pulso-surface-3);
   color: var(--pulso-text);
   font-size: var(--pulso-type-caption-size);
   font-weight: var(--pulso-weight-medium);
@@ -783,10 +854,31 @@
   color: var(--pulso-text);
   overflow-wrap: anywhere;
 }
-.vx-textos > li > span:last-child {
+.vx-textos > li > span:nth-child(2) {
   flex: none;
   color: var(--pulso-text-faint);
   font-variant-numeric: tabular-nums;
+}
+/* Con repeticiones, cada respuesta lleva su barra debajo, en la escala de la más repetida. */
+.vx-textos.con-barras > li {
+  flex-wrap: wrap;
+  row-gap: 4px;
+}
+.vx-texto-barra {
+  flex: 1 0 100%;
+  height: 3px;
+  overflow: hidden;
+  border-radius: 2px;
+  background: var(--pulso-surface-3);
+}
+.vx-texto-barra > i {
+  display: block;
+  height: 100%;
+  border-radius: 2px;
+  background: var(--vx-resto);
+}
+.vx-textos > li.is-mayor .vx-texto-barra > i {
+  background: var(--vx-mayor);
 }
 
 /* ── E9 · Tabla de calor ───────────────────────────────────────────────── */
@@ -810,13 +902,25 @@
 }
 .vx-calor-rotulo {
   display: flex;
-  align-items: center;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 1px;
   min-width: 0;
   padding: 0 var(--pulso-space-2);
   color: var(--pulso-text);
   font-weight: var(--pulso-weight-medium);
   line-height: 1.25;
   overflow-wrap: anywhere;
+}
+.vx-calor-rotulo > small {
+  color: var(--pulso-text-faint);
+  font-size: var(--pulso-type-caption-size);
+  font-weight: var(--pulso-weight-regular);
+  font-variant-numeric: tabular-nums;
+}
+.vx-calor-nota {
+  margin-top: var(--pulso-space-2);
 }
 .vx-calor-cabeza {
   display: flex;
@@ -844,6 +948,16 @@
   align-items: flex-start;
   text-align: left;
 }
+.vx-calor-cabeza > .vx-calor-lectura {
+  color: var(--pulso-text-faint);
+  font-size: var(--pulso-type-micro-size);
+  font-weight: var(--pulso-weight-semibold);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  line-height: 1.35;
+}
+/* E9 · Tonos de la tabla (maqueta v4): en % divergen del total —azul por encima, ámbar por debajo, en tramos de
+   2, 5 y 10 puntos—; en n, rampa navy del conteo. Nada en el acento del módulo: la marca lo prohíbe en datos. */
 .vx-calor-celda {
   display: flex;
   align-items: center;
@@ -851,33 +965,36 @@
   gap: 2px;
   min-height: 40px;
   border-radius: 6px;
-  background: color-mix(in srgb, var(--module-accent, var(--pulso-primary)) var(--vx-peso, 0%), var(--pulso-surface));
+  background: var(--pulso-surface-3);
   color: var(--pulso-text);
   font-weight: var(--pulso-weight-medium);
   font-variant-numeric: tabular-nums;
 }
-.vx-calor-celda.is-oscura {
-  color: var(--pulso-surface);
-}
+.vx-calor-celda.is-parejo { background: var(--pulso-surface-3); }
+.vx-calor-celda.is-sobre1 { background: color-mix(in srgb, var(--pulso-accent-steel) 16%, var(--pulso-surface)); }
+.vx-calor-celda.is-sobre2 { background: color-mix(in srgb, var(--pulso-accent-steel) 42%, var(--pulso-surface)); }
+.vx-calor-celda.is-sobre3 { background: color-mix(in srgb, var(--pulso-accent-steel) 88%, var(--pulso-brand-navy)); color: var(--pulso-surface); }
+.vx-calor-celda.is-bajo1 { background: color-mix(in srgb, var(--pulso-accent-amber) 14%, var(--pulso-surface)); }
+.vx-calor-celda.is-bajo2 { background: color-mix(in srgb, var(--pulso-accent-amber) 36%, var(--pulso-surface)); }
+.vx-calor-celda.is-bajo3 { background: color-mix(in srgb, var(--pulso-accent-amber) 80%, var(--pulso-text)); color: var(--pulso-surface); }
+.vx-calor-celda.is-n1 { background: color-mix(in srgb, var(--pulso-accent-steel) 10%, var(--pulso-surface)); }
+.vx-calor-celda.is-n2 { background: color-mix(in srgb, var(--pulso-accent-steel) 26%, var(--pulso-surface)); }
+.vx-calor-celda.is-n3 { background: color-mix(in srgb, var(--pulso-accent-steel) 50%, var(--pulso-surface)); }
+.vx-calor-celda.is-n4 { background: var(--pulso-accent-steel); color: var(--pulso-surface); }
+.vx-calor-celda.is-n5 { background: var(--pulso-brand-navy); color: var(--pulso-surface); }
+.vx-calor-celda.is-chica { opacity: 0.45; }
 .vx-calor-celda.is-arriba,
 .vx-calor-celda.is-abajo {
   font-weight: var(--pulso-weight-bold);
-}
-.vx-calor-celda.is-arriba {
-  outline: 2px solid var(--module-accent, var(--pulso-primary));
-  outline-offset: -2px;
-}
-.vx-calor-celda.is-abajo {
-  outline: 2px solid var(--pulso-warn-fg);
-  outline-offset: -2px;
 }
 .vx-calor-celda > i {
   font-size: var(--pulso-type-micro-size);
   font-style: normal;
 }
-.vx-calor-celda.is-arriba > i { color: var(--module-accent, var(--pulso-primary)); }
-.vx-calor-celda.is-abajo > i { color: var(--pulso-warn-fg); }
-.vx-calor-celda.is-oscura > i { color: var(--pulso-surface); }
+.vx-calor-leyenda { align-items: center; font-size: var(--pulso-type-caption-size); }
+.vx-calor-tiras { display: inline-flex; gap: 2px; }
+.vx-calor-tiras > i.vx-calor-celda { width: 22px; min-height: 10px; height: 10px; border-radius: 2px; }
+.vx-calor-tramos { color: var(--pulso-text-faint); }
 .vx-calor-celda.is-total {
   background: var(--pulso-surface-3);
   color: var(--pulso-text);
@@ -924,21 +1041,74 @@
   gap: var(--pulso-space-3);
 }
 
-/* Dispersión y serie (SVG) */
+/* Dispersión y serie (SVG). El SVG se dibuja al ancho real de su tarjeta (useAncho):
+   rejilla tenue en cada marca, rótulos en los dos ejes y el valor de cada dato en su title. */
+.vx-svg-caja {
+  width: 100%;
+  min-width: 0;
+}
+/* D3 — el gráfico llena su tarjeta: la tarjeta del centro se estira con la ficha de al lado y la caja del SVG
+   con ella; el SVG va posicionado para que su alto no empuje a la caja (medirla no se retroalimenta). */
+.vx-centro > .vx-grafico:last-child {
+  flex: 1 1 auto;
+}
+.vx-grafico > .vx-svg-caja.is-llena {
+  flex: 1 1 auto;
+  position: relative;
+}
+.vx-svg-caja.is-llena > .vx-svg {
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+.vx-centro > .vx-grafico:last-child > .vx-barras {
+  flex: 1 1 auto;
+}
+.vx-centro > .vx-grafico:last-child > .vx-barras > .vx-barra-fila {
+  flex: 1 1 auto;
+  max-height: 60px;
+}
 .vx-svg {
   display: block;
-  width: 100%;
-  height: auto;
-  max-height: 360px;
+  max-width: 100%;
   overflow: visible;
 }
 .vx-svg .vx-svg-eje {
   stroke: var(--pulso-border-strong);
   stroke-width: 1;
 }
+.vx-svg .vx-svg-rejilla {
+  stroke: var(--pulso-border);
+  stroke-width: 1;
+  stroke-dasharray: 2 3;
+}
+.vx-svg .vx-svg-rejilla.is-vertical {
+  stroke-dasharray: none;
+  opacity: 0.55;
+}
+.vx-svg text.vx-svg-marca {
+  fill: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+  font-variant-numeric: tabular-nums;
+}
+.vx-svg text.vx-svg-titulo-eje {
+  fill: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+  font-weight: var(--pulso-weight-semibold);
+}
+.vx-svg .vx-svg-nodo {
+  fill: var(--pulso-surface);
+  stroke-width: 1.5;
+}
+.vx-svg .vx-svg-dia:hover .vx-svg-barra,
+.vx-svg .vx-svg-nodo:hover {
+  filter: brightness(1.12);
+}
 .vx-svg .vx-svg-punto {
-  fill: var(--vx-dato, var(--pulso-accent-amber));
-  fill-opacity: 0.6;
+  fill: var(--vx-mayor);
+  fill-opacity: 0.72;
+  stroke: var(--pulso-surface);
+  stroke-width: 1;
 }
 .vx-svg .vx-svg-tendencia {
   stroke: var(--pulso-text);
@@ -954,6 +1124,144 @@
   stroke: none;
   fill-opacity: 0.14;
 }
+/* Columnas (histograma, días): el apoyo por defecto; la mayor en navy; los domingos, en el tono claro. */
+.vx-svg .vx-svg-columna { fill: var(--vx-resto); }
+.vx-svg .vx-svg-columna.is-mayor { fill: var(--vx-mayor); }
+.vx-svg .vx-svg-columna.is-claro { fill: var(--vx-claro); }
+.vx-svg .vx-svg-columna:hover { filter: brightness(1.1); }
+.vx-svg text.vx-svg-anota {
+  fill: var(--vx-anota);
+  font-size: var(--pulso-type-caption-size);
+  font-weight: var(--pulso-weight-semibold);
+  font-variant-numeric: tabular-nums;
+}
+.vx-svg .vx-svg-mediana {
+  stroke: var(--vx-anota);
+  stroke-width: 1.2;
+  stroke-dasharray: 3 3;
+}
+.vx-svg .vx-svg-bigote { stroke: var(--vx-resto); stroke-width: 1.5; }
+.vx-svg .vx-svg-cajita { fill: var(--vx-claro); stroke: var(--vx-mayor); stroke-width: 1.2; }
+.vx-svg .vx-svg-cajita-mediana { stroke: var(--vx-mayor); stroke-width: 2.5; }
+.vx-leyenda i.vx-muestra.is-claro { background: var(--vx-claro); }
+/* E8d — la múltiple contra su recodificación: lo que quedó igual y adónde fueron los casos que cambiaron. */
+.vx-recod { display: flex; flex-direction: column; gap: 22px; }
+.vx-recod > div { display: flex; flex-direction: column; gap: 10px; }
+.vx-fichas { display: flex; flex-wrap: wrap; gap: 6px; }
+.vx-fichas > span {
+  padding: 3px 10px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 999px;
+  background: var(--pulso-surface-2);
+  color: var(--pulso-text);
+  font-size: var(--pulso-type-caption-size);
+  font-variant-numeric: tabular-nums;
+}
+.vx-detalle > summary {
+  cursor: pointer;
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+  font-weight: var(--pulso-weight-semibold);
+}
+.vx-detalle-cuerpo { display: flex; flex-direction: column; align-items: flex-end; gap: var(--pulso-space-2); margin-top: var(--pulso-space-3); }
+.vx-detalle-cuerpo > :not(:first-child) { align-self: stretch; }
+
+/* E8h — dispersión: la zona imposible sombreada y el aviso antes del gráfico. */
+.vx-svg .vx-svg-imposible { fill: var(--pulso-warn-bg); fill-opacity: 0.7; }
+.vx-svg .vx-svg-imposible-borde { stroke: var(--pulso-warn-fg); stroke-width: 1.5; }
+.vx-svg text.vx-svg-imposible-texto { fill: var(--pulso-warn-fg); font-size: var(--pulso-type-caption-size); font-weight: var(--pulso-weight-semibold); }
+.vx-leyenda i.vx-muestra.is-tendencia { height: 0; border-top: 2px dashed var(--pulso-text); border-radius: 0; }
+.vx-aviso p { margin: 0; }
+.vx-aviso p + p { margin-top: 2px; }
+.vx-aviso {
+  padding: 10px 12px;
+  border: 1px solid var(--pulso-warn-border);
+  border-radius: 10px;
+  background: var(--pulso-warn-bg);
+  color: var(--pulso-warn-fg);
+  font-size: var(--pulso-type-body-size);
+  line-height: 1.45;
+}
+
+/* E8e, E8f — cajas por grupo. */
+.vx-svg text.vx-svg-categoria { fill: var(--pulso-text); font-size: var(--pulso-type-body-size); }
+.vx-svg text.vx-svg-valor { fill: var(--pulso-text); font-size: var(--pulso-type-caption-size); font-weight: var(--pulso-weight-semibold); font-variant-numeric: tabular-nums; }
+.vx-svg .vx-svg-grupo.is-chico { opacity: 0.45; }
+/* E8g — la diferencia de fechas en cifras. */
+.vx-cifras-grandes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--pulso-space-3) 40px;
+  padding: var(--pulso-space-2) 0;
+}
+.vx-cifras-grandes > div { display: grid; gap: 2px; }
+.vx-cifras-grandes b {
+  color: var(--pulso-text);
+  font-size: var(--pulso-type-kpi-size);
+  font-weight: var(--pulso-weight-bold);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+.vx-cifras-grandes small { color: var(--pulso-text-faint); font-size: var(--pulso-type-caption-size); }
+
+/* E8l / E8i — mediana del día con su mitad central; el día con pocos casos, hueco. */
+.vx-svg .vx-svg-banda-central { fill: var(--vx-banda); stroke: none; }
+.vx-svg .vx-svg-traza { fill: none; stroke: var(--vx-traza); stroke-width: 2.4; stroke-linejoin: round; }
+.vx-svg .vx-svg-nodo-mediana { fill: var(--vx-traza); stroke: var(--pulso-surface); stroke-width: 1.6; }
+.vx-svg .vx-svg-nodo-mediana.is-chico { fill: var(--pulso-surface); stroke: var(--vx-resto); }
+.vx-leyenda i.vx-muestra.is-traza { height: 3px; border-radius: 2px; background: var(--vx-traza); }
+.vx-leyenda i.vx-muestra.is-banda { background: var(--vx-banda); box-shadow: inset 0 0 0 1px var(--vx-claro); }
+.vx-leyenda i.vx-muestra.is-chico { border-radius: 50%; background: var(--pulso-surface); box-shadow: inset 0 0 0 1.5px var(--vx-resto); }
+.vx-leyenda i.vx-muestra.is-dia-chico { background: var(--pulso-surface-3); box-shadow: inset 0 0 0 1px var(--pulso-border); }
+
+/* E8k — un panel por opción, cada uno con su escala y su tope escrito. */
+.vx-multiples {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 210px), 1fr));
+  gap: 18px 24px;
+}
+@container vx-cuerpo (max-width: 560px) {
+  .vx-multiples { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px 14px; }
+}
+.vx-multiple {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 6px;
+}
+.vx-multiple-t {
+  color: var(--pulso-text);
+  font-size: var(--pulso-type-caption-size);
+  font-weight: var(--pulso-weight-semibold);
+  line-height: 1.3;
+}
+.vx-multiple-t > span {
+  display: block;
+  color: var(--pulso-text-faint);
+  font-weight: var(--pulso-weight-medium);
+  font-variant-numeric: tabular-nums;
+}
+.vx-svg .vx-svg-dia-chico { fill: var(--pulso-surface-3); fill-opacity: 0.6; }
+.vx-svg .vx-svg-area { fill: var(--pulso-border); fill-opacity: 0.35; stroke: none; }
+.vx-multiple-fechas {
+  display: flex;
+  justify-content: space-between;
+  color: var(--pulso-text-faint);
+  font-size: var(--pulso-type-micro-size);
+  font-variant-numeric: tabular-nums;
+}
+.vx-svg .vx-svg-chispa { fill: none; stroke: var(--vx-resto); stroke-width: 1.8; stroke-linejoin: round; }
+.vx-multiple.is-mayor .vx-svg-area { fill: var(--vx-banda); fill-opacity: 1; }
+.vx-multiple.is-mayor .vx-svg-chispa { stroke: var(--vx-mayor); }
+.vx-svg .vx-svg-toque { fill: transparent; }
+.vx-svg .vx-svg-toque:hover { fill: var(--vx-mayor); }
+
+/* E8j: casos por día apilados por categoría; el borde blanco separa los tramos. */
+.vx-svg .vx-svg-barra {
+  stroke: var(--pulso-surface);
+  stroke-width: 0.5;
+}
 .vx-svg text {
   fill: var(--pulso-text-faint);
   font-size: var(--pulso-type-micro-size);
@@ -961,7 +1269,8 @@
 .vx-leyenda {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px 14px;
+  justify-content: center;
+  gap: 6px 18px;
   color: var(--pulso-text-soft);
   font-size: var(--pulso-type-caption-size);
 }
@@ -984,16 +1293,36 @@
 }
 .vx-grupo {
   min-width: 0;
-  padding: var(--pulso-space-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-1);
+  padding: 14px 16px;
   border: 1px solid var(--pulso-border);
   border-radius: 10px;
+  background: var(--pulso-surface-2);
 }
 .vx-grupo h5 {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--pulso-space-2);
   margin: 0 0 var(--pulso-space-1);
   color: var(--pulso-text);
-  font-size: var(--pulso-type-subtitle-size);
-  font-weight: var(--pulso-weight-semibold);
+  font-size: var(--pulso-type-body-size);
+  font-weight: var(--pulso-weight-bold);
 }
+.vx-grupo h5 > span {
+  color: var(--pulso-text-faint);
+  font-size: var(--pulso-type-caption-size);
+  font-weight: var(--pulso-weight-medium);
+}
+.vx-svg .vx-svg-fila-destacada { fill: var(--pulso-surface-3); }
+.vx-svg text.vx-svg-categoria.is-fuerte { font-weight: var(--pulso-weight-bold); }
+.vx-svg .vx-svg-tramo { stroke: var(--vx-claro); stroke-width: 6; stroke-linecap: round; }
+.vx-svg .vx-svg-total { stroke: var(--pulso-text-faint); stroke-width: 1.5; }
+.vx-svg .vx-svg-punto-grupo { stroke: var(--pulso-surface); stroke-width: 2; }
+.vx-leyenda i.vx-muestra.is-punto { border-radius: 50%; }
+.vx-leyenda i.vx-muestra.is-total { width: 2px; height: 13px; border-radius: 0; background: var(--pulso-text-faint); }
 
 /* ── E10/E11 · Paneles laterales ───────────────────────────────────────── */
 .vx-panel {

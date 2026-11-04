@@ -9,7 +9,7 @@
   height: 100%;
   min-height: 0;
   color: var(--pulso-text);
-  font-size: 13px;
+  font-size: var(--pulso-type-body-size);
   line-height: 1.35;
 }
 
@@ -69,7 +69,7 @@
   gap: var(--pulso-space-2);
   padding: 0 var(--pulso-space-4);
   color: var(--pulso-text-faint);
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-bold);
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -129,7 +129,7 @@
   border-radius: var(--pulso-radius-chip);
   background: var(--pulso-warn-bg);
   color: var(--pulso-warn-fg);
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   font-style: normal;
   font-weight: var(--pulso-weight-bold);
 }
@@ -220,12 +220,6 @@
   font-weight: var(--pulso-weight-semibold);
 }
 
-.mon-sup-vacio {
-  display: grid;
-  height: 100%;
-  place-items: center;
-}
-
 @media (max-width: 1180px) {
   /* Una columna que crece con su contenido: el contenedor de la pestaña
    * desplaza (C4). Sin `flex: none`, el contenedor la encogía a su alto y las
@@ -285,7 +279,7 @@
 
 .mon-sup-rondas-titulo > b {
   color: var(--pulso-text);
-  font-size: 13px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .mon-sup-rondas-cabecera:has(> .mon-tel-rotulo) > .mon-sup-rondas-titulo {
@@ -359,7 +353,7 @@
 .mon-sup-ronda small {
   grid-column: 1 / -1;
   color: var(--pulso-text-soft);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
 }
 
 /* Datos de la ronda: se parten entre piezas, nunca dentro, y nunca fuera de
@@ -377,8 +371,15 @@
 }
 
 .mon-sup-ronda-datos > span + span::before {
+  /* Filete vertical, no un punto medio: separa a la vista sin un glifo que
+     se lea como puntuación (regla de la pasada de formato, 3 nov 2026). */
+  content: "";
+  display: inline-block;
+  width: 1px;
+  height: 0.9em;
+  vertical-align: -0.1em;
+  background: var(--pulso-border-strong);
   margin-right: 6px;
-  content: "·";
 }
 
 .mon-sup-ronda em {
@@ -388,7 +389,7 @@
   border: 1px solid var(--pulso-border);
   border-radius: var(--pulso-radius-chip);
   color: var(--pulso-text-soft);
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   font-style: normal;
   font-weight: var(--pulso-weight-bold);
   white-space: nowrap;
@@ -408,7 +409,7 @@
 
 .mon-sup-ronda-lectura {
   color: var(--pulso-text-faint);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .mon-sup-ronda em.is-pendiente {
@@ -426,13 +427,6 @@
 
 .mon-sup-lista-rondas li > .mon-insumos-boton {
   align-self: flex-start;
-}
-
-.mon-sup-rondas-vacio {
-  margin: 0;
-  padding: 0 var(--pulso-space-4) var(--pulso-space-3);
-  color: var(--pulso-text-soft);
-  font-size: 12px;
 }
 
 /* Diálogos de ronda (portal al body). */
@@ -456,7 +450,7 @@
   background: var(--pulso-surface);
   box-shadow: var(--pulso-shadow-low);
   color: var(--pulso-text);
-  font-size: 13px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .mon-sup-dialogo > header,
@@ -474,7 +468,7 @@
 .mon-sup-dialogo > header h2 {
   flex: 1 1 auto;
   margin: 0;
-  font-size: 16px;
+  font-size: var(--pulso-type-title-size);
 }
 
 .mon-sup-dialogo > footer {
@@ -573,7 +567,7 @@
 
 .mon-sup-dialogo-encontrados em {
   color: var(--pulso-text-faint);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   font-style: normal;
   white-space: nowrap;
 }
@@ -603,7 +597,7 @@
 .mon-sup-preguntas legend {
   padding: 0 4px;
   color: var(--pulso-text-soft);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .mon-sup-preguntas label {

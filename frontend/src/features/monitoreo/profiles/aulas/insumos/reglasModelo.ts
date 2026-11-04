@@ -1,3 +1,4 @@
+import { formatoDecimal } from "../../../../../lib/formatoNumero";
 import type { MonitoreoAulasDashboard } from "../../../../../api/monitoreo";
 import { fmt } from "../kpisDeAulas";
 import { tiemposDeRespuesta } from "../tiemposDeRespuesta";
@@ -50,8 +51,8 @@ export function construirReglas(dashboard: MonitoreoAulasDashboard | null): Mode
     ? tiempos.motivo || "Este estudio no trae la duración de cada respuesta."
     : [
       tiempos.marcadas ? `${fmt(tiempos.marcadas.n)} de ${fmt(tiempos.marcadas.de)} marcadas` : "sin umbral declarado",
-      tiempos.resumen?.mediana != null ? `mediana ${tiempos.resumen.mediana.toFixed(1)} min` : null,
-    ].filter(Boolean).join(" · ");
+      tiempos.resumen?.mediana != null ? `mediana ${formatoDecimal(tiempos.resumen.mediana, 1)} min` : null,
+    ].filter(Boolean).join(", ");
 
   return {
     noCuenta: total && filas.length ? { titulo: `Lo que no cuenta, por ${etiqueta}`, filas, total } : null,

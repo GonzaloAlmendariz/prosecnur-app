@@ -1,3 +1,4 @@
+import { formatoDecimal } from "../../../../../lib/formatoNumero";
 import type { MonitoreoTerritorialDashboard, TerritorialResponseAuditRow } from "../../../../../api/client";
 import {
   TERRITORIAL_DURATION_SHORT_SECONDS,
@@ -53,9 +54,9 @@ function mediana(valores: number[]): number | null {
 }
 
 function rotuloDeTramo(desde: number, hasta: number | null, unidad: string): string {
-  if (hasta == null) return `${desde.toLocaleString("es-PE")} ${unidad} o más`;
-  if (desde === 0) return `Menos de ${hasta.toLocaleString("es-PE")} ${unidad}`;
-  return `${desde.toLocaleString("es-PE")} a ${hasta.toLocaleString("es-PE")} ${unidad}`;
+  if (hasta == null) return `${formatoDecimal(desde, 3)} ${unidad} o más`;
+  if (desde === 0) return `Menos de ${formatoDecimal(hasta, 3)} ${unidad}`;
+  return `${formatoDecimal(desde, 3)} a ${formatoDecimal(hasta, 3)} ${unidad}`;
 }
 
 function histograma(valores: number[], cortes: readonly number[], unidad: string, marca: (desde: number) => Tramo["marca"]): Histograma {

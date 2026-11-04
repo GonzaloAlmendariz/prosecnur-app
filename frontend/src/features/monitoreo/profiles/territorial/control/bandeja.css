@@ -49,7 +49,7 @@
 .mon-ban-subtitulo {
   margin: 0;
   color: var(--pulso-text-faint);
-  font-size: 10.5px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-bold);
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -99,7 +99,7 @@
   background: transparent;
   color: var(--pulso-text);
   font: inherit;
-  font-size: 13px;
+  font-size: var(--pulso-type-body-size);
   text-align: left;
   cursor: pointer;
 }
@@ -152,7 +152,7 @@
   background: transparent;
   color: var(--pulso-text-soft);
   font: inherit;
-  font-size: 13px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-semibold);
   cursor: pointer;
 }
@@ -166,7 +166,7 @@
 .mon-ban-base {
   margin: 0;
   color: var(--pulso-text-soft);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   font-variant-numeric: tabular-nums;
 }
 
@@ -203,7 +203,7 @@
 .mon-ban-tabla {
   width: 100%;
   border-collapse: collapse;
-  font-size: 13px;
+  font-size: var(--pulso-type-body-size);
   font-variant-numeric: tabular-nums;
 }
 
@@ -215,7 +215,7 @@
   border-bottom: 1px solid var(--pulso-border);
   background: var(--pulso-surface);
   color: var(--pulso-text-soft);
-  font-size: 10.5px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-bold);
   letter-spacing: 0.06em;
   text-align: left;
@@ -307,7 +307,7 @@
   margin: 0;
   padding: var(--pulso-space-4);
   color: var(--pulso-text-soft);
-  font-size: 13px;
+  font-size: var(--pulso-type-body-size);
 }
 
 /* Inspector del caso. */
@@ -327,7 +327,7 @@
 .mon-ban-inspector-cabecera h3 {
   margin: 0;
   color: var(--pulso-text);
-  font-size: 15px;
+  font-size: var(--pulso-type-title-size);
   font-weight: var(--pulso-weight-bold);
 }
 
@@ -366,7 +366,7 @@
 
 .mon-ban-esquema text {
   fill: var(--pulso-text-soft);
-  font-size: 9px;
+  font-size: var(--pulso-type-micro-size);
 }
 
 .mon-ban-esquema-manzana {
@@ -381,7 +381,7 @@
 
 .mon-ban-senal {
   margin: var(--pulso-space-1) 0 0;
-  font-size: 13px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .mon-ban-pie {
@@ -399,7 +399,7 @@
   background: var(--pulso-surface);
   color: var(--pulso-text);
   font: inherit;
-  font-size: 13px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-semibold);
   cursor: pointer;
 }
@@ -419,19 +419,6 @@
  * primera columna con el resto vacío (C3). */
 .mon-ban.mon-ban--vacio {
   grid-template-columns: minmax(0, 1fr);
-}
-
-.mon-ban-vacio {
-  align-items: center;
-  justify-content: center;
-  height: 100%;
-  text-align: center;
-  color: var(--pulso-text-soft);
-}
-
-.mon-ban-vacio strong {
-  color: var(--pulso-text);
-  font-size: 15px;
 }
 
 /* 1024 de ancho: el inspector toma el lugar de los filtros. */

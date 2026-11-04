@@ -207,7 +207,7 @@ export function etiquetaToken(token: string): string {
 }
 
 function pt(n: number): string {
-  return Number.isInteger(n) ? String(n) : n.toFixed(1).replace(".", ",");
+  return Number.isInteger(n) ? String(n) : n.toFixed(1);
 }
 
 export type TamanoRol = { token: string; etiqueta: string; recetario: number; final: number; texto: string };

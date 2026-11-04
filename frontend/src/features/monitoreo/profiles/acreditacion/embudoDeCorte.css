@@ -42,17 +42,17 @@
 }
 
 .mon-acr-embudo.is-avance .mon-acr-embudo-pasos li strong {
-  font-size: 19px;
+  font-size: var(--pulso-type-kpi-size);
   line-height: 1.05;
 }
 
 .mon-acr-embudo.is-avance .mon-acr-embudo-pasos li em {
-  font-size: 10.5px;
+  font-size: var(--pulso-type-micro-size);
   letter-spacing: 0.04em;
 }
 
 .mon-acr-embudo.is-avance .mon-acr-embudo-pasos li small {
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   color: var(--pulso-text-faint);
 }
 

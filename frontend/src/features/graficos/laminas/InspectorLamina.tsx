@@ -5,7 +5,7 @@
 
 import { antetituloDelTipo, esLaminaFija } from "./antetituloDelTipo";
 import { useId, useMemo } from "react";
-import { AlertTriangle, History, Lock, X } from "../../../vendor/lucide-react";
+import { AlertTriangle, BarChart3, FileText, History, Lock, X } from "../../../vendor/lucide-react";
 import type { GraficadorRef, Slide } from "../../../api/graficos";
 import { GlidingTabList } from "../../../components/GlidingTabList";
 import { EditorIndice } from "../indice/EditorIndice";
@@ -31,6 +31,8 @@ import type { LaminaEnEstructura } from "./modeloEstructura";
 import { useLaminasUi, type SeccionInspector } from "./laminasStore";
 import { useSeccion } from "../../../lib/navegacion/useDireccion";
 import "./inspectorLamina.css";
+import { EstadoVacio } from "../../../components/EstadoVacio";
+import { formatoConteo } from "../../../lib/formatoNumero";
 
 // G14 (Gonzalo, 2026-10-13): dos pestañas, cada una con una función: «Lámina» (qué es, su composición y sus textos en el
 // orden en que salen) y «Gráfico» (un gráfico a la vez). La lámina de estructura no tiene «Gráfico». «Revisión» se quitó
@@ -112,7 +114,7 @@ export function InspectorLamina({
       </header>
 
       {avisos.length > 0 && (
-        <div className="pulso-f6-inspector-avisos" role="status" aria-label={`${avisos.length} ${avisos.length === 1 ? "aviso" : "avisos"} en esta lámina`}>
+        <div className="pulso-f6-inspector-avisos" role="status" aria-label={`${formatoConteo(avisos.length)} ${avisos.length === 1 ? "aviso" : "avisos"} en esta lámina`}>
           <AlertTriangle size={14} aria-hidden="true" />
           <ul>{avisos.map((a) => <li key={a}>{a}</li>)}</ul>
         </div>
@@ -293,7 +295,11 @@ function SeccionGraficos({ slide, slots, ranura, onRanura, onCambiarGrafico }: {
   const { irA } = useSeccion("procesamiento");
   if (slots.length === 0) {
     return (
-      <p className="pulso-f6-vacio-col">Esta lámina no lleva gráficos: su contenido se edita en la pestaña Lámina.</p>
+      <EstadoVacio
+        icono={<FileText size={16} aria-hidden="true" />}
+        titulo="Esta lámina no lleva gráficos"
+        descripcion="Su contenido se edita en la pestaña Lámina."
+      />
     );
   }
   const payload = slide.payload as Record<string, unknown>;
@@ -352,7 +358,11 @@ function SeccionGraficos({ slide, slots, ranura, onRanura, onCambiarGrafico }: {
                 </div>
               )}
               {abierta && !tecnico && (
-                <p className="pulso-f6-vacio-col">Esta ranura está vacía: elige el gráfico que va aquí.</p>
+                <EstadoVacio
+                  icono={<BarChart3 size={16} aria-hidden="true" />}
+                  titulo="Esta ranura está vacía"
+                  descripcion="Elige el gráfico que va aquí."
+                />
               )}
             </li>
           );
@@ -389,7 +399,7 @@ function SalidaDelGrafico({ slide, visor }: { slide: Slide; visor: LaminaVisor |
       )}
       {visor && visor.partes.length > 1 && (
         <p className="pulso-f6-ayuda">
-          Sale en {visor.partes.length} láminas: {visor.partes.map((p) => `${p.indice}${p.continuacion ? " (cont.)" : ""}`).join(", ")}.
+          Sale en {formatoConteo(visor.partes.length)} láminas: {visor.partes.map((p) => `${p.indice}${p.continuacion ? " (cont.)" : ""}`).join(", ")}.
         </p>
       )}
     </div>

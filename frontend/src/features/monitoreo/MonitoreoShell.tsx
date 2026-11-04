@@ -1,7 +1,6 @@
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import type { ComponentType, CSSProperties } from "react";
 import { AlertCircle } from "lucide-react";
-import { LoadingBlock } from "../../components/States";
 import { apiMonitoreoConfig, apiMonitoreoState, apiProjectOverview, type MonitoreoState } from "../../api/client";
 import { MODULE_TONES } from "../../lib/modules";
 import { marcarCargaExitosa, recargarSiElBuildCambio } from "../../lib/lazyWithReload";
@@ -14,6 +13,7 @@ import { decidirAterrizajeDeMonitoreo } from "./core/aterrizajeDeMonitoreo";
 import { usePlannerModos } from "../estudio/usePlannerModos";
 import { PerfilNoDeclarado } from "../estudio/PerfilNoDeclarado";
 import "./MonitoreoShell.css";
+import { CargaDeModulo } from "../../components/CargaDeModulo";
 
 function familyFromState(state: MonitoreoState | null): MonitoreoFamilyId {
   return normalizeMonitoreoFamily(
@@ -34,7 +34,7 @@ function routeSelectedFromState(state: MonitoreoState | null): boolean {
 function ShellFallback({ label = "Preparando monitoreo" }: { label?: string }) {
   return (
     <div className="mon-shell-fallback" style={MODULE_TONES.monitoreo as CSSProperties}>
-      <LoadingBlock label={label} />
+      <CargaDeModulo label={label} modulo="monitoreo" />
     </div>
   );
 }
@@ -212,7 +212,7 @@ export default function MonitoreoShell() {
   if (!Page) return <ShellFallback label={`Preparando ${label}`} />;
 
   return (
-    <Suspense fallback={<LoadingBlock label={`Abriendo ${label}...`} />}>
+    <Suspense fallback={<CargaDeModulo label={`Abriendo ${label}…`} modulo="monitoreo" />}>
       <Page />
     </Suspense>
   );

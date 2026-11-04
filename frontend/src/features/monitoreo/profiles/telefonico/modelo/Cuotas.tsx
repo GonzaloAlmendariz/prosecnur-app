@@ -1,6 +1,10 @@
 import { useMemo, useState } from "react";
+import { EstadoChip } from "../../../../../components/EstadoChip";
 import { usePanelDireccionable, type PanelDeclarado } from "../../../../../lib/navegacion/paneles";
-import { AlertTriangle, CheckCircle2, Plus, XCircle } from "../../../../../vendor/lucide-react";
+import { AlertTriangle, CalendarClock, CheckCircle2, Plus, XCircle } from "../../../../../vendor/lucide-react";
+import { GlidingRadioGroup } from "../../../../../components/GlidingRadioGroup";
+import { caracterEfectivo, ROTULO_DE_CARACTER, SENTIDO_DE_CARACTER, type CaracterDeCuota } from "../../../core/caracterDeCuota";
+import { EstadoVacio } from "../../../../../components/EstadoVacio";
 import { pctConEspacio } from "../../../core/formatoComun";
 import { MetaCuotaInput } from "../MetaCuotaInput";
 import { PulsoInput } from "../../../../../components/PulsoInput";
@@ -10,12 +14,13 @@ import { RotuloDePestana } from "../navegacion/RotuloDePestana";
 import "../control/controlTelefonico.css";
 import "../insumos/insumosTelefonico.css";
 import "./modeloTelefonico.css";
+import { formatoConteo } from "../../../../../lib/formatoNumero";
 
 /** La sub-vista Calendario de Modelo › Cuotas y calendario (`panel=calendario`, ver direccionTelefonica.ts). */
 export const PANEL_CALENDARIO: PanelDeclarado = { id: "calendario", label: "Calendario", clase: "inspector" };
 
 function n(valor: number) {
-  return valor.toLocaleString("es-PE");
+  return formatoConteo(valor);
 }
 
 /** Proporción de 0 a 1 como «17.4 %». */
@@ -25,12 +30,18 @@ function pct(valor: number | null) {
 
 export type CandidataDeEje = { name: string; label: string; categories: number; universe: number; meta: number; enUso: boolean };
 
+const CARACTERES: readonly CaracterDeCuota[] = ["meta", "referencial"];
+
 /**
  * Modelo › Cuotas y calendario: el eje de cuota y sus metas. Se edita lo
  * mismo que antes —la variable, las metas por categoría (con confirmación),
  * agregar o quitar categorías y el objetivo total—; lo nuevo es leer cada meta
  * frente al reparto proporcional al universo y la validación de lo declarado.
  * El calendario sigue en su sub-vista (`panel=calendario`).
+ *
+ * ADR 0126: Modelo DECLARA y nunca muestra avance. Cada categoría dice si es
+ * meta (se exige) o referencial (se describe); el avance de las dos vive en
+ * Avance › Cuotas.
  */
 export function Cuotas({
   variable,
@@ -53,6 +64,8 @@ export function Cuotas({
   filtro,
   calendario,
   estado,
+  caracteres = {},
+  onCaracter,
 }: {
   variable: string;
   etiquetaDeVariable: string;
@@ -75,24 +88,30 @@ export function Cuotas({
   filtro: string;
   calendario: { ventana: string; reporte: string; fases: number; dias: ReadonlyArray<{ fecha: string; casos: number }>; nota: string };
   estado: { tono: string; texto: string } | null;
+  /** Lo declarado por categoría (ADR 0126); sin declarar, meta si hay número. */
+  caracteres?: Record<string, CaracterDeCuota | null | undefined>;
+  onCaracter?: (categoria: string, caracter: CaracterDeCuota) => void;
 }) {
   const [nueva, setNueva] = useState("");
   const panelCalendario = usePanelDireccionable(PANEL_CALENDARIO);
   const conPendientes = useMemo(
-    () => filas.map((fila) => ({ ...fila, meta: pendientes[fila.value] ?? fila.meta })),
-    [filas, pendientes],
+    () => filas.map((fila) => {
+      const meta = pendientes[fila.value] ?? fila.meta;
+      return { ...fila, meta, caracter: caracterEfectivo(caracteres[fila.value], meta) };
+    }),
+    [filas, pendientes, caracteres],
   );
   const proporcion = useMemo(() => metasConProporcion(conPendientes), [conPendientes]);
   const validaciones = validarMetas({ filas: proporcion, variable: etiquetaDeVariable, objetivoTotal });
-  const totalUniverso = filas.reduce((suma, fila) => suma + fila.universe, 0);
-  const totalMeta = conPendientes.reduce((suma, fila) => suma + (fila.meta ?? 0), 0);
+  const deMeta = conPendientes.filter((fila) => fila.caracter === "meta");
+  const totalUniverso = deMeta.reduce((suma, fila) => suma + fila.universe, 0);
+  const totalMeta = deMeta.reduce((suma, fila) => suma + (fila.meta ?? 0), 0);
   const maximoSobre = Math.max(0.01, ...proporcion.map((fila) => Math.max(fila.sobreUniverso ?? 0, fila.proporcional != null && fila.universe ? fila.proporcional / fila.universe : 0)));
   const nombreDeCategoria = etiquetaDeVariable.toLocaleLowerCase("es");
   // El motor sólo publica el universo de la variable guardada: sin guardarla y
   // sin universo en ninguna categoría, el cero es «todavía no calculado».
   const universoPendiente = Boolean(variable && !variableGuardada && proporcion.length && proporcion.every((fila) => fila.universe <= 0));
   const maximoDia = Math.max(1, ...calendario.dias.map((dia) => dia.casos));
-  const topeDeAvance = Math.max(1, ...conPendientes.map((fila) => Math.max(fila.meta ?? 0, fila.effective)));
 
   return (
     <div className="mon-metas-modelo" data-qa-geometry-group="telefonico-modelo-cuotas" data-qa-geometry-contract="intrinsic">
@@ -168,6 +187,7 @@ export function Cuotas({
                   <th scope="col" className="is-num">Sobre el universo</th>
                   <th scope="col">Meta frente al reparto proporcional</th>
                   <th scope="col" className="is-num">Desvío</th>
+                  <th scope="col">Carácter</th>
                   <th scope="col"><span className="pulso-sr-only">Quitar</span></th>
                 </tr>
               </thead>
@@ -177,20 +197,43 @@ export function Cuotas({
                   const marca = fila.proporcional != null && fila.universe ? ((fila.proporcional / fila.universe) / maximoSobre) * 100 : null;
                   return (
                     <tr key={fila.value}>
-                      <th scope="row">{fila.value}{fila.universe <= 0 && !universoPendiente ? <em className="mon-ctl-sin-regla">sin base</em> : null}</th>
+                      <th scope="row">{fila.value}{fila.universe <= 0 && !universoPendiente ? <EstadoChip label="sin base" tone="warn" /> : null}</th>
                       <td className="is-num">{n(fila.universe)}</td>
                       <td className="is-num mon-metas-meta">
                         <MetaCuotaInput value={fila.meta} ariaLabel={`Meta de ${fila.value}`} onCommit={(meta) => onMeta(fila.value, meta)} />
                       </td>
                       <td className="is-num">{pct(fila.sobreUniverso)}</td>
                       <td>
-                        <i className="mon-metas-barra" aria-hidden="true">
-                          <i style={{ width: `${Math.min(100, ancho)}%` }} />
-                          {marca != null ? <b style={{ left: `${Math.min(100, marca)}%` }} /> : null}
-                        </i>
+                        {fila.caracter === "referencial" ? (
+                          // Una referencial no se reparte: su referencia es su peso en el universo.
+                          <span className="mon-metas-peso">
+                            <i className="mon-metas-barra" aria-hidden="true">
+                              <i style={{ width: `${Math.min(100, (fila.pesoEnUniverso ?? 0) * 100)}%` }} />
+                            </i>
+                            <span className="is-num">{pct(fila.pesoEnUniverso)} del universo</span>
+                          </span>
+                        ) : (
+                          <i className="mon-metas-barra" aria-hidden="true">
+                            <i style={{ width: `${Math.min(100, ancho)}%` }} />
+                            {marca != null ? <b style={{ left: `${Math.min(100, marca)}%` }} /> : null}
+                          </i>
+                        )}
                       </td>
                       <td className={`is-num mon-metas-desvio${fila.desvio != null && Math.abs(fila.desvio) >= 5 ? " is-aviso" : ""}`}>
                         {fila.desvio == null ? "—" : fila.desvio > 0 ? `+${n(fila.desvio)}` : n(fila.desvio)}
+                      </td>
+                      <td>
+                        <GlidingRadioGroup
+                          value={fila.caracter ?? "meta"}
+                          options={CARACTERES}
+                          getOptionValue={(opcion) => opcion}
+                          onValueChange={(caracter) => onCaracter?.(fila.value, caracter)}
+                          className="mon-metas-caracter"
+                          aria-label={`Carácter de ${fila.value}`}
+                          getOptionProps={(opcion) => ({ disabled: !onCaracter, title: SENTIDO_DE_CARACTER[opcion] })}
+                        >
+                          {(opcion) => <span>{ROTULO_DE_CARACTER[opcion]}</span>}
+                        </GlidingRadioGroup>
                       </td>
                       <td>
                         <button type="button" className="mon-metas-quitar" aria-label={`Quitar ${fila.value}`} onClick={() => onQuitar(fila.value)}>
@@ -210,36 +253,6 @@ export function Cuotas({
                 : "Elige un eje de cuota para repartir la meta."}
             </NotaDelModo>
           )}
-          {/* Debajo de la tabla, el avance de cada meta: con pocas categorías usa
-            * el alto que la tabla no pide; con muchas baja y la tabla desplaza. */}
-          <section className="mon-metas-avance" aria-label="Avance de cada meta" data-qa-geometry-capacity="owned">
-            <span className="mon-ctl-antetitulo">Avance de cada meta</span>
-            {conPendientes.some((fila) => (fila.meta ?? 0) > 0 || fila.effective > 0) ? (
-            <div className="mon-metas-avance-lienzo" style={{ gridTemplateColumns: `repeat(${Math.max(1, conPendientes.length)}, minmax(0, 1fr))` }}>
-              {conPendientes.map((fila) => {
-                const meta = fila.meta ?? 0;
-                const faltan = meta > 0 ? Math.max(0, meta - fila.effective) : null;
-                return (
-                  <div key={fila.value} className={`mon-metas-avance-columna${faltan === 0 ? " is-cumple" : ""}`} title={`${fila.value}: ${n(fila.effective)} de ${meta > 0 ? n(meta) : "sin meta"}`}>
-                    <span className="is-num mon-metas-avance-cifra">{n(fila.effective)} de {meta > 0 ? n(meta) : "—"}</span>
-                    <div className="mon-metas-avance-area">
-                      <i style={{ height: `${(fila.effective / topeDeAvance) * 100}%` }} />
-                      {meta > 0 ? <b style={{ bottom: `${(meta / topeDeAvance) * 100}%` }} /> : null}
-                    </div>
-                    <span className="mon-metas-avance-nombre">{fila.value}</span>
-                    <span className="is-num mon-metas-avance-faltan">
-                      {faltan == null ? "Sin meta" : faltan === 0 ? "Cumplida" : `Faltan ${n(faltan)}`}
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
-            ) : (
-              <p className="mon-metas-avance-vacio">
-                {conPendientes.length ? "Sin metas ni efectivas todavía: escribe la meta de cada categoría en la tabla." : "Sin categorías, no hay metas que seguir."}
-              </p>
-            )}
-          </section>
           <footer className="mon-metas-pie">
             <dl className="mon-metas-total">
               <div><dt>Universo</dt><dd className="is-num">{n(totalUniverso)}</dd></div>
@@ -269,7 +282,7 @@ export function Cuotas({
 
       <div className="mon-metas-modelo-lateral">
         <section className="mon-ctl-panel mon-insumos-tarjeta" aria-label="Validación">
-          <span className="mon-ctl-antetitulo">Validación</span>
+          <header className="mon-ctl-panel-cabecera"><b>Validación</b></header>
           <ul className="mon-metas-validacion">
             {validaciones.map((item) => (
               <li key={item.texto} className={`is-${item.tono}`}>
@@ -281,14 +294,14 @@ export function Cuotas({
         </section>
 
         <section className="mon-ctl-panel mon-insumos-tarjeta" aria-label="Qué cuenta para la meta">
-          <span className="mon-ctl-antetitulo">Qué cuenta para la meta</span>
+          <header className="mon-ctl-panel-cabecera"><b>Qué cuenta para la meta</b></header>
           <p>{filtro ? `Efectivas de Kobo con ${filtro}, una por CodPulso` : "Efectivas de Kobo, una por CodPulso"}</p>
           {filtro ? null : <p>Filtro de efectiva sin declarar</p>}
           <p title="No hay metas por enumerador">Metas por {nombreDeCategoria}</p>
         </section>
 
         <section className="mon-ctl-panel mon-insumos-tarjeta mon-metas-calendario" aria-label="Calendario">
-          <span className="mon-ctl-antetitulo">Calendario</span>
+          <header className="mon-ctl-panel-cabecera"><b>Calendario</b></header>
           <dl>
             <div><dt>Ventana de campo</dt><dd>{calendario.ventana}</dd></div>
             <div><dt>Reporte de avance</dt><dd>{calendario.reporte}</dd></div>
@@ -311,7 +324,7 @@ export function Cuotas({
               {calendario.nota ? <NotaDelModo tono="aviso">{calendario.nota}.</NotaDelModo> : null}
             </>
           ) : (
-            <p className="mon-metas-dias-vacio">Ningún día con efectivas de Kobo todavía.</p>
+            <EstadoVacio icono={<CalendarClock size={15} />} titulo="Ningún día con efectivas de Kobo todavía." />
           )}
           <button
             type="button"

@@ -1,3 +1,6 @@
+import { ClipboardList } from "lucide-react";
+import { EstadoVacio } from "../../../../../components/EstadoVacio";
+import { EstadoChip } from "../../../../../components/EstadoChip";
 import { fmt, fmtConSigno, rotuloDeCelda } from "../rotulos";
 import type { CruceConCoordinacion as Modelo } from "./cruceConCoordinacionModelo";
 import "./cruceConCoordinacion.css";
@@ -6,18 +9,19 @@ import "./cruceConCoordinacion.css";
 export function CruceConCoordinacion({ modelo, ump }: { modelo: Modelo; ump: string }) {
   if (modelo.estado === "sin-registro") {
     return (
-      <p className="mon-falt-detalle-vacio" data-qa-geometry-empty="legitimo">
-        Coordinación todavía no anotó efectivas por celda para esta UMP en el Excel de asignación.
-      </p>
+      <div data-qa-geometry-empty="legitimo">
+        <EstadoVacio icono={<ClipboardList size={15} />} titulo="Coordinación todavía no anotó efectivas por celda para esta UMP en el Excel de asignación." />
+      </div>
     );
   }
   return (
     <section className="mon-falt-coord" aria-label={`UMP ${ump}: declarado por coordinación contra Kobo`}>
       <header>
         <h5>Declarado por coordinación</h5>
-        <span className={`mon-ter-chip ${modelo.noCuadran ? "is-falta" : "is-ok"}`}>
-          {modelo.noCuadran ? `${fmt(modelo.noCuadran)} ${modelo.noCuadran === 1 ? "celda no cuadra" : "celdas no cuadran"}` : "Cuadra con Kobo"}
-        </span>
+        <EstadoChip
+          label={modelo.noCuadran ? `${fmt(modelo.noCuadran)} ${modelo.noCuadran === 1 ? "celda no cuadra" : "celdas no cuadran"}` : "Cuadra con Kobo"}
+          tone={modelo.noCuadran ? "warn" : "success"}
+        />
       </header>
       <div className="mon-falt-coord-marginales">
         {modelo.marginales.map((m) => (

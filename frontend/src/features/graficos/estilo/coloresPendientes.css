@@ -16,11 +16,11 @@
   flex-direction: column;
   gap: 2px;
   color: var(--pulso-warn-fg);
-  font-size: 12.5px;
+  font-size: var(--pulso-type-body-size);
   line-height: 1.4;
 }
 
-.pulso-cp-cabecera strong { font-size: 13px; }
+.pulso-cp-cabecera strong { font-size: var(--pulso-type-body-size); }
 
 .pulso-cp-lista {
   display: flex;
@@ -60,7 +60,7 @@
   flex-direction: column;
   min-width: 0;
   color: var(--pulso-text);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .pulso-cp-texto > span {
@@ -69,7 +69,7 @@
   white-space: nowrap;
 }
 
-.pulso-cp-texto small { color: var(--pulso-text-muted); font-size: 11px; }
+.pulso-cp-texto small { color: var(--pulso-text-muted); font-size: var(--pulso-type-caption-size); }
 
 .pulso-cp-ver {
   padding: 2px 8px;
@@ -78,7 +78,7 @@
   background: transparent;
   color: var(--pulso-primary);
   font: inherit;
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   font-weight: var(--pulso-weight-medium);
   cursor: pointer;
 }
@@ -88,5 +88,5 @@
 .pulso-cp-mas {
   margin: 0;
   color: var(--pulso-warn-fg);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
 }

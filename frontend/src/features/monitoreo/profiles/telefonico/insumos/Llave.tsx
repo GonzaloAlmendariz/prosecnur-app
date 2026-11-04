@@ -1,4 +1,7 @@
 import { useMemo, type ReactNode } from "react";
+import { EstadoChip } from "../../../../../components/EstadoChip";
+import { CheckCircle2, ListChecks } from "../../../../../vendor/lucide-react";
+import { EstadoVacio } from "../../../../../components/EstadoVacio";
 import { NotaDelModo } from "../../../core/NotaDelModo";
 import type { MonitoreoAcreditacionReports, MonitoreoState } from "../../../../../api/client";
 import { pctConEspacio } from "../../../core/formatoComun";
@@ -21,10 +24,11 @@ import { OrigenDeLaMuestra } from "./OrigenDeLaMuestra";
 import { RotuloDePestana, useHayRotulo } from "../navegacion/RotuloDePestana";
 import "../control/controlTelefonico.css";
 import "./insumosTelefonico.css";
+import { formatoConteo } from "../../../../../lib/formatoNumero";
 
 
 function n(valor: number) {
-  return valor.toLocaleString("es-PE");
+  return formatoConteo(valor);
 }
 
 function Columnas({ titulo, columnas }: { titulo: string; columnas: string[] }) {
@@ -33,7 +37,7 @@ function Columnas({ titulo, columnas }: { titulo: string; columnas: string[] }) 
       <span className="mon-ctl-antetitulo">{titulo}</span>
       {columnas.length ? (
         <p>
-          <code>{columnas[0]}</code>
+          <data value={columnas[0]}>{columnas[0]}</data>
           {columnas.length > 1 ? <span title={columnas.slice(1).join(", ")}> y {n(columnas.length - 1)} más si no la encuentra</span> : null}
         </p>
       ) : <p>Sin columna declarada</p>}
@@ -94,15 +98,15 @@ export function LlaveYFiltros({
           {conRevision && hayRotulo ? <header className="mon-tel-rotulo-de-tarjeta"><RotuloDePestana /></header> : null}
           <div className="mon-insumos-fila">
             <strong>Llave de cruce</strong>
-            <span className="mon-insumos-estado">{llave.automatica ? "Detección automática" : "Declarada en el proyecto"}</span>
+            <EstadoChip label={llave.automatica ? "Detección automática" : "Declarada en el proyecto"} tone="neutral" />
           </div>
           <div className="mon-llave-pares">
             <Columnas titulo="Columna en la base" columnas={llave.base} />
             <Columnas titulo="Columna en las respuestas" columnas={llave.respuestas} />
           </div>
           <dl className="mon-llave-ejemplos">
-            <div><dt>Ejemplo en la base</dt><dd><code>{ejemplos.base.join(", ") || "—"}</code></dd></div>
-            <div><dt>Ejemplo en las respuestas</dt><dd><code>{ejemplos.respuestas.join(", ") || "—"}</code></dd></div>
+            <div><dt>Ejemplo en la base</dt><dd><data value={ejemplos.base.join(", ")}>{ejemplos.base.join(", ") || "—"}</data></dd></div>
+            <div><dt>Ejemplo en las respuestas</dt><dd><data value={ejemplos.respuestas.join(", ")}>{ejemplos.respuestas.join(", ") || "—"}</data></dd></div>
             <div><dt>Distintos en la base</dt><dd className="is-num">{n(ejemplos.distintosEnLaBase)}</dd></div>
           </dl>
           {llaveSinIdentificador(ejemplos) ? (
@@ -180,9 +184,9 @@ export function LlaveYFiltros({
                 <tbody>
                   {envios.map((envio, i) => (
                     <tr key={`${envio.codigo}-${envio.responseId}-${i}`} className={`is-${envio.llave}`}>
-                      <th scope="row"><code>{envio.codigo}</code></th>
+                      <th scope="row"><data value={envio.codigo}>{envio.codigo}</data></th>
                       <td className="mon-llave-como">{ROTULO_DE_LLAVE[envio.llave]}</td>
-                      <td><code>{envio.codigoEnHoja || "—"}</code></td>
+                      <td><data value={envio.codigoEnHoja}>{envio.codigoEnHoja || "—"}</data></td>
                       <td>{envio.hojaDice || "—"}</td>
                       <td>{envio.responsable || "—"}</td>
                     </tr>
@@ -191,7 +195,7 @@ export function LlaveYFiltros({
               </table>
             </div>
           ) : (
-            <NotaDelModo tono="neutro" className="mon-llave-vacio">Sin efectivas en el corte.</NotaDelModo>
+            <EstadoVacio icono={<ListChecks size={15} />} titulo="Sin efectivas en el corte." />
           )}
         </section>
       </div>
@@ -210,16 +214,16 @@ export function LlaveYFiltros({
               <ul className="mon-llave-lista">
                 {porRevisar.map((item, i) => (
                   <li key={`${item.codigo}-${i}`} className={`is-${item.llave}`}>
-                    <code>{item.codigo}</code>
+                    <data value={item.codigo}>{item.codigo}</data>
                     <span>{ROTULO_DE_LLAVE[item.llave]}</span>
                     <small>{item.lectura}</small>
                   </li>
                 ))}
               </ul>
             ) : cruce.total ? (
-              <NotaDelModo tono="exito" className="mon-llave-vacio">Todas las efectivas cruzan tal cual con la hoja.</NotaDelModo>
+              <EstadoVacio icono={<CheckCircle2 size={15} />} titulo="Todas las efectivas cruzan tal cual con la hoja." />
             ) : (
-              <NotaDelModo tono="neutro" className="mon-llave-vacio">Sin efectivas, no hay cruces que revisar.</NotaDelModo>
+              <EstadoVacio icono={<ListChecks size={15} />} titulo="Sin efectivas, no hay cruces que revisar." />
             )}
           </section>
         </div>

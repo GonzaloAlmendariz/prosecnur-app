@@ -89,7 +89,7 @@
 }
 .mon-profile-page.is-aulas-flow .aulas-abc-cifra strong {
   color: var(--pulso-text);
-  font-size: 15px;
+  font-size: var(--pulso-type-title-size);
   font-weight: 600;
   font-variant-numeric: tabular-nums;
 }

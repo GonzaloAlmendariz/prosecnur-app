@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { EstadoChip } from "../../../../../../components/EstadoChip";
 import { Download, Inbox, Search, SearchX } from "lucide-react";
 import type { MonitoreoInternalQueries } from "../../../../../../api/client";
 import { fmt } from "../../formato";
@@ -47,7 +48,7 @@ export function Respuestas({ consultas }: { consultas: MonitoreoInternalQueries 
           <p className="acr-rs-total">
             <b className="acr-av-num">{fmt(respuestas.length)}</b>
             <span className="acr-av-tenue">respuestas</span>
-            <span className="acr-av-chip is-avance" title="Respuestas que cuentan en el avance">{`${fmt(cuentan)} cuentan`}</span>
+            <EstadoChip label={`${fmt(cuentan)} cuentan`} tone="info" detail="Respuestas que cuentan en el avance" />
           </p>
           {FACETAS.map(({ id, rotulo }) => (
             <section key={id} className="acr-pr-grupo">
@@ -116,7 +117,7 @@ export function Respuestas({ consultas }: { consultas: MonitoreoInternalQueries 
                     {variosCanales ? <td>{respuesta.canal}</td> : null}
                     <td>{respuesta.estado}</td>
                     <td>{respuesta.cruce}</td>
-                    <td><span className={`acr-av-chip${respuesta.cuenta ? " is-cumple" : ""}`}>{respuesta.cuenta ? "Cuenta" : "No cuenta"}</span></td>
+                    <td><EstadoChip label={respuesta.cuenta ? "Cuenta" : "No cuenta"} tone={respuesta.cuenta ? "success" : "neutral"} /></td>
                   </tr>
                 ))}
               </tbody>

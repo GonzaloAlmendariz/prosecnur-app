@@ -326,13 +326,18 @@ function titularesDe(dashboard: MonitoreoAulasDashboard, foco: string): Titulare
         : "Ya se visitaron; al curso-horario se va una sola vez.",
     },
     {
-      clave: "agendado", rotulo: "Agendados", aulas: aulasDe("agendado"), valor: fmt(aulasDe("agendado")),
-      titulo: "Tienen fecha por delante y todavía no se han visitado.",
+      // 2g: las citas que pasaron después de la última descarga siguen aquí,
+      // sin juzgar, para que las cifras sumen el total.
+      clave: "agendado", rotulo: "Agendados", aulas: aulasDe("agendado", "agendado_tras_corte"),
+      valor: fmt(aulasDe("agendado", "agendado_tras_corte")),
+      titulo: aulasDe("agendado_tras_corte") > 0
+        ? `Tienen fecha y todavía no se han visitado; ${fmt(aulasDe("agendado_tras_corte"))} con la fecha pasada después de la última sincronización: trae respuestas para saber si se aplicaron.`
+        : "Tienen fecha por delante y todavía no se han visitado.",
     },
     vencidoPublicado
       ? {
         clave: "vencido", rotulo: "Vencidos", aulas: aulasDe("agendado_vencido"), valor: fmt(aulasDe("agendado_vencido")),
-        titulo: "Su fecha ya pasó y no llegó ninguna respuesta.",
+        titulo: "Su fecha ya pasó y no llegó ninguna respuesta hasta la última sincronización.",
       }
       : {
         clave: "vencido", rotulo: "Vencidos", aulas: 0, valor: "—",

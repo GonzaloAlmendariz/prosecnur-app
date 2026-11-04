@@ -96,7 +96,6 @@
   gap: 8px;
 }
 
-.cmv2-classroom-tab-note,
 .cmv2-classroom-readiness-map article,
 .cmv2-classroom-readiness-columns article,
 .cmv2-classroom-objective-strip article,
@@ -108,46 +107,12 @@
   background: var(--cmv2-surface);
 }
 
-.cmv2-classroom-tab-note {
-  display: grid;
-  grid-template-columns: 34px minmax(0, 1fr);
-  gap: 10px;
-  align-items: start;
-  margin: 10px 0;
-  padding: 10px;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(249, 251, 255, 0.98)),
-    #fff;
-}
-
-.cmv2-classroom-tab-note > span {
-  display: inline-grid;
-  place-items: center;
-  width: 30px;
-  height: 30px;
-  border: 1px solid var(--cmv2-accent-border);
-  border-radius: var(--pulso-radius);
-  background: var(--cmv2-accent-soft);
-  color: var(--cmv2-accent-fg);
-}
-
-.cmv2-classroom-tab-note strong,
 .cmv2-classroom-readiness-columns strong {
   display: block;
   color: var(--pulso-text);
-  font-size: 12px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-heavy);
   line-height: 1.2;
-}
-
-.cmv2-classroom-tab-note em {
-  display: block;
-  margin-top: 3px;
-  color: var(--pulso-text-soft);
-  font-size: 11px;
-  font-style: normal;
-  font-weight: var(--pulso-weight-bold);
-  line-height: 1.35;
 }
 
 .cmv2-classroom-readiness-map,
@@ -185,7 +150,7 @@
 .cmv2-classroom-objective-columns small {
   display: block;
   color: var(--pulso-text-soft);
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-bold);
   letter-spacing: 0.05em;
   line-height: 1.1;
@@ -197,7 +162,7 @@
   display: block;
   margin-top: 5px;
   color: var(--pulso-text);
-  font-size: 14px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-heavy);
   line-height: 1.15;
 }
@@ -209,7 +174,7 @@
   display: block;
   margin-top: 5px;
   color: var(--pulso-text-soft);
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   font-weight: var(--pulso-weight-bold);
   line-height: 1.35;
 }
@@ -243,7 +208,7 @@
   border-radius: var(--pulso-radius);
   background: var(--pulso-surface-2);
   color: var(--pulso-text-soft);
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   font-weight: var(--pulso-weight-heavy);
 }
 
@@ -272,7 +237,6 @@
 .cmv2-classroom-method-card,
 .cmv2-classroom-quality-card,
 .cmv2-classroom-reco-panel,
-.cmv2-classroom-empty,
 .cmv2-classroom-overlap-graph,
 .cmv2-classroom-formula,
 .cmv2-classroom-source-grid div,
@@ -361,7 +325,7 @@
 .cmv2-classroom-risk-list small {
   display: block;
   color: var(--pulso-text-soft);
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-bold);
   letter-spacing: 0.05em;
   line-height: 1.1;
@@ -371,12 +335,11 @@
 .cmv2-classroom-method-card strong,
 .cmv2-classroom-quality-card strong,
 .cmv2-classroom-reco-panel strong,
-.cmv2-classroom-empty strong,
 .cmv2-classroom-risk-list strong {
   display: block;
   margin-top: 4px;
   color: var(--pulso-text);
-  font-size: 13px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-heavy);
   line-height: 1.2;
 }
@@ -386,7 +349,6 @@
 .cmv2-classroom-quality-card span,
 .cmv2-classroom-reco-panel span,
 .cmv2-classroom-reco-panel em,
-.cmv2-classroom-empty em,
 .cmv2-classroom-formula span,
 .cmv2-classroom-source-grid span,
 .cmv2-classroom-risk-list span,
@@ -394,7 +356,7 @@
   display: block;
   margin-top: 4px;
   color: var(--pulso-text-soft);
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   font-style: normal;
   font-weight: var(--pulso-weight-bold);
   line-height: 1.35;
@@ -438,13 +400,13 @@
   border: 1px solid var(--cmv2-border);
   border-radius: var(--pulso-radius);
   background: var(--pulso-surface-2);
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   text-align: center;
 }
 
 .cmv2-classroom-quality-metrics strong {
   margin: 0 0 2px;
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .cmv2-classroom-reco-panel {
@@ -460,7 +422,7 @@
   display: block;
   margin-top: 6px;
   color: var(--cmv2-accent-fg);
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   font-weight: var(--pulso-weight-heavy);
   line-height: 1.25;
 }
@@ -491,7 +453,7 @@
 .cmv2-objective-row em {
   min-width: 0;
   color: var(--pulso-text);
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   font-style: normal;
   font-weight: var(--pulso-weight-heavy);
   line-height: 1.2;
@@ -539,7 +501,7 @@
 .cmv2-coverage-panel small,
 .cmv2-simulation-grid small {
   color: var(--pulso-text-soft);
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-bold);
   letter-spacing: 0.05em;
   line-height: 1.1;
@@ -550,7 +512,7 @@
 .cmv2-coverage-panel strong,
 .cmv2-simulation-grid strong {
   color: var(--pulso-text);
-  font-size: 17px;
+  font-size: var(--pulso-type-title-size);
   font-weight: var(--pulso-weight-heavy);
   line-height: 1.1;
 }
@@ -560,7 +522,7 @@
 .cmv2-simulation-grid span,
 .cmv2-simulation-grid em {
   color: var(--pulso-text-soft);
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   font-style: normal;
   font-weight: var(--pulso-weight-bold);
   line-height: 1.35;
@@ -605,14 +567,14 @@
 
 .cmv2-profile-bars strong {
   color: var(--pulso-text);
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   font-weight: var(--pulso-weight-heavy);
 }
 
 .cmv2-profile-bars span,
 .cmv2-profile-bars em {
   color: var(--pulso-text-soft);
-  font-size: 10.5px;
+  font-size: var(--pulso-type-micro-size);
   font-style: normal;
   font-weight: var(--pulso-weight-bold);
 }
@@ -704,7 +666,7 @@
 /* Un recorte que no se declara se lee como el total. */
 .cmv2-classroom-table-pie {
   margin: 6px 0 0;
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   line-height: 1.5;
   color: var(--cmv2-text-soft, var(--pulso-text-muted));
 }
@@ -731,7 +693,7 @@
   display: block;
   max-width: 250px;
   color: var(--pulso-text);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   line-height: 1.25;
 }
 
@@ -749,7 +711,7 @@
 
 .cmv2-classroom-overlap-graph text {
   fill: var(--pulso-text);
-  font-size: 8px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-heavy);
 }
 
@@ -812,7 +774,7 @@
   border-radius: var(--pulso-radius-chip);
   background: var(--cmv2-surface);
   color: var(--pulso-text-soft);
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-heavy);
   line-height: 1;
   white-space: nowrap;
@@ -821,7 +783,7 @@
 .cmv2-backend-field-strip code {
   color: var(--cmv2-accent-fg);
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-black);
 }
 
@@ -837,7 +799,7 @@
 .cmv2-classroom-table td small {
   margin-top: 2px;
   color: var(--pulso-text-soft);
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-bold);
   line-height: 1.25;
 }
@@ -904,7 +866,7 @@
   border-radius: var(--pulso-radius-chip);
   background: var(--cmv2-accent-soft);
   color: var(--cmv2-accent-fg);
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-bold);
   letter-spacing: 0.05em;
   line-height: 1;
@@ -924,8 +886,8 @@
     linear-gradient(180deg, rgba(255, 255, 255, 0.84), transparent),
     color-mix(in srgb, var(--cmv2-accent-soft) 72%, #fff);
   color: var(--cmv2-accent-fg);
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-bold);
   letter-spacing: 0.05em;
   letter-spacing: 0;
@@ -938,7 +900,7 @@
   margin-bottom: 4px;
   min-height: 18px;
   padding: 2px 7px;
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
 }
 
 .cmv2-chain-slot {
@@ -993,8 +955,8 @@
   border-radius: var(--pulso-radius-chip);
   background: var(--pulso-surface-2);
   color: var(--pulso-text-soft);
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-bold);
   letter-spacing: 0.05em;
   letter-spacing: 0;
@@ -1042,14 +1004,14 @@
   border-radius: var(--pulso-radius);
   background: var(--pulso-surface-2);
   color: var(--pulso-text-soft);
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   font-weight: var(--pulso-weight-heavy);
   line-height: 1.2;
 }
 
 .cmv2-chain-empty-slot b {
   color: var(--pulso-text);
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-bold);
   letter-spacing: 0.05em;
 }
@@ -1076,7 +1038,7 @@
   border-radius: var(--pulso-radius-chip);
   background: var(--cmv2-accent-soft);
   color: var(--cmv2-accent-fg);
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-bold);
   letter-spacing: 0.05em;
 }
@@ -1090,7 +1052,7 @@
 
 .cmv2-handoff-map small {
   color: var(--pulso-text-soft);
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-bold);
   letter-spacing: 0.05em;
   line-height: 1.1;
@@ -1100,7 +1062,7 @@
 .cmv2-handoff-map strong {
   margin-top: 3px;
   color: var(--pulso-text);
-  font-size: 12px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-heavy);
   line-height: 1.2;
 }
@@ -1108,47 +1070,10 @@
 .cmv2-handoff-map em {
   margin-top: 3px;
   color: var(--pulso-text-soft);
-  font-size: 10.5px;
+  font-size: var(--pulso-type-micro-size);
   font-style: normal;
   font-weight: var(--pulso-weight-bold);
   line-height: 1.3;
-}
-
-.cmv2-classroom-empty {
-  display: grid;
-  grid-template-columns: 34px minmax(0, 1fr);
-  align-items: start;
-  /* `align-items: start` alinea el ícono con la PRIMERA LÍNEA de su fila;
-     `align-content` centra el BLOQUE de filas en la altura que `min-height`
-     reserva. Sin lo segundo, `normal` equivale a `stretch`: las filas auto
-     crecen y el sobrante se cuela como gaps inflados entre ícono y texto.
-     Medido: no cambia el sobrante inferior que audita el gate —eran 15,78 px
-     antes y después—, reparte el mismo espacio de forma legible. El sobrante
-     lo cierra que el vacío tenga contenido, no que el marco se estire. */
-  align-content: center;
-  gap: 10px;
-  min-height: 150px;
-  padding: 18px;
-}
-
-.cmv2-classroom-empty.is-compact {
-  min-height: 92px;
-}
-
-.cmv2-classroom-empty > span {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 34px;
-  height: 34px;
-  border: 1px solid var(--cmv2-accent-border);
-  border-radius: var(--pulso-radius);
-  background: var(--cmv2-accent-soft);
-  color: var(--cmv2-accent-fg);
-}
-
-.cmv2-classroom-empty .cmv2-ghost {
-  margin-top: 10px;
 }
 
 .cmv2-classroom-formula-grid,
@@ -1177,13 +1102,4 @@
   .cmv2-classroom-method-card:hover:not(:disabled):not(.is-active) {
     transform: none;
   }
-}
-
-/* El slot de 34x34 del vacío es para su icono. Cualquier otro hijo directo
-   heredaba ese ancho y desbordaba: medido, un `em` de 86 px dentro de una caja
-   de 34. Ocupa la fila entera y puede envolver. */
-.cmv2-classroom-empty > div {
-  grid-column: 1 / -1;
-  min-width: 0;
-  overflow-wrap: anywhere;
 }

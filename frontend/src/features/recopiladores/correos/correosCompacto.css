@@ -36,7 +36,7 @@
   cursor: pointer;
   display: inline-flex;
   font: inherit;
-  font-size: 12.5px;
+  font-size: var(--pulso-type-body-size);
   gap: 5px;
   height: 32px;
   min-height: 0;
@@ -61,7 +61,7 @@
   border: 1px solid var(--pulso-warn-border);
   border-radius: var(--pulso-radius-chip);
   color: var(--pulso-warn-fg);
-  font-size: 10.5px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-semibold);
   line-height: 1;
   padding: 2px 5px;

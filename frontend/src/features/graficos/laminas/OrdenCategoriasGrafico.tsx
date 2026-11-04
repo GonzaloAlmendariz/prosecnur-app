@@ -28,6 +28,8 @@ import {
 } from "./ordenCategorias";
 import { useCategoriasGrafico } from "./useCategoriasGrafico";
 import "./ordenCategorias.css";
+import { CargaDeBloque } from "../../../components/CargaDeBloque";
+import { formatoConteo } from "../../../lib/formatoNumero";
 
 type Props = {
   /** Calificada `base$var` (`varCalificada`). */
@@ -121,11 +123,7 @@ function NotaAviso({ nota, id }: { nota: NotaOrden; id?: string }) {
 
 function EstadoDatos({ estado }: { estado: ReturnType<typeof useCategoriasGrafico> }) {
   if (estado.fase === "cargando") {
-    return (
-      <span className="pulso-f6-orden-estado" role="status">
-        <Loader2 size={13} className="pulso-spin" aria-hidden="true" /> Leyendo las categorías de la pregunta…
-      </span>
-    );
+    return <CargaDeBloque label="Leyendo las categorías de la pregunta…" />;
   }
   if (estado.fase === "sin_lista") {
     return <span className="pulso-f6-orden-estado" role="status">Esta pregunta no tiene lista de opciones: no hay categorías que ordenar.</span>;
@@ -158,7 +156,7 @@ function ListaOrden({ datos, lista, invertido, onLista }: { datos: GraficosCateg
     if (hasta < 0 || hasta >= lista.length || desde === hasta) return;
     const codigo = lista[desde];
     onLista(mover(lista, desde, hasta));
-    setAnuncio(`“${etiqueta.get(codigo) ?? codigo}” en la posición ${hasta + 1} de ${lista.length}.`);
+    setAnuncio(`“${etiqueta.get(codigo) ?? codigo}” en la posición ${hasta + 1} de ${formatoConteo(lista.length)}.`);
     if (!enfocar) return;
     requestAnimationFrame(() => {
       const item = items.current.get(codigo);

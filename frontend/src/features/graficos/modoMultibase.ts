@@ -43,7 +43,7 @@ export function modoMultibaseDelPlan(
     return {
       visible: true,
       clave: "compartido",
-      etiqueta: `Informe compartido · ${bases} bases`,
+      etiqueta: `Informe compartido (${bases} bases)`,
       explicacion:
         `Este informe reúne las ${bases} bases en un solo PPTX con su propio plan. ` +
         "Lo que edites aquí no cambia el informe de ninguna base.",
@@ -54,7 +54,7 @@ export function modoMultibaseDelPlan(
     return {
       visible: true,
       clave: "por-base",
-      etiqueta: activa ? `Un informe por base · ${activa}` : "Un informe por base",
+      etiqueta: activa ? `Un informe por base (${activa})` : "Un informe por base",
       explicacion:
         `Cada una de las ${bases} bases tiene su propio plan y su propio informe. ` +
         "Lo que edites aquí pertenece a la base activa; el resto no cambia.",
@@ -63,7 +63,7 @@ export function modoMultibaseDelPlan(
   return {
     visible: true,
     clave: "conjunto",
-    etiqueta: `Un informe conjunto · ${bases} bases`,
+    etiqueta: `Un informe conjunto (${bases} bases)`,
     explicacion:
       `Este plan es uno solo para las ${bases} bases: cada gráfico declara de cuál ` +
       "sale su variable, así que puedes mezclarlas en el mismo informe.",

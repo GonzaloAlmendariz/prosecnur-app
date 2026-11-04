@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { ExternalLink, Loader2, Plus, RefreshCw, Save } from "../../../../../vendor/lucide-react";
+import { ExternalLink, Loader2, Plus, RefreshCw, Save, Upload } from "../../../../../vendor/lucide-react";
+import { EstadoVacio } from "../../../../../components/EstadoVacio";
 import { apiSupervisionLeerResultados, apiSupervisionNuevaRonda, type RondaDeSupervisionApi } from "../../../../../api/monitoreoTelefonico";
 import type { MonitoreoState } from "../../../../../api/client";
 import type { PanelDeclarado } from "../../../../../lib/navegacion/paneles";
@@ -8,12 +9,13 @@ import { NotaDelModo } from "../../../core/NotaDelModo";
 import { pctConEspacio } from "../../../core/formatoComun";
 import { RotuloDePestana } from "../navegacion/RotuloDePestana";
 import { mensajeDeError, type FilaDeRonda } from "./rondasModel";
+import { formatoConteo } from "../../../../../lib/formatoNumero";
 
 export const PANEL_NUEVA_RONDA: PanelDeclarado = { id: "nueva-ronda", label: "Nueva ronda", clase: "dialogo" };
 export const PANEL_PUBLICAR_RONDA: PanelDeclarado = { id: "publicar-ronda", label: "Publicar ronda", clase: "dialogo" };
 
 function n(valor: number) {
-  return valor.toLocaleString("es-PE");
+  return formatoConteo(valor);
 }
 
 function fecha(iso: string) {
@@ -179,7 +181,7 @@ export function RondasDeSupervision({
           ))}
         </ul>
       ) : (
-        <p className="mon-sup-rondas-vacio">Todavía no hay rondas. La primera sale de todas las efectivas; la Ronda {n(proxima)} se genera con «Nueva ronda».</p>
+        <EstadoVacio icono={<RefreshCw size={15} />} titulo="Todavía no hay rondas" descripcion={`La primera sale de todas las efectivas; la Ronda ${n(proxima)} se genera con «Nueva ronda».`} />
       )}
     </section>
   );

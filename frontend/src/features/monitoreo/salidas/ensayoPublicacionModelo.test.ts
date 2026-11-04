@@ -47,7 +47,7 @@ describe("ensayo de publicación", () => {
   it("una pestaña que borra filas es destructiva aunque también añada", () => {
     const p = pestana({ anadidas: 2, borradas: 1, destructiva: true, sinCambios: false });
     expect(estadoPestana(p)).toBe("destructiva");
-    expect(lineaPestana(p)).toBe("2 añadidas · 1 borrada.");
+    expect(lineaPestana(p)).toBe("2 añadidas y 1 borrada.");
   });
 
   it("encoger se dice con las filas de antes y después", () => {

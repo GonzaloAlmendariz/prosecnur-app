@@ -54,6 +54,7 @@ import {
 import { useLibraryDialogA11y } from "../../useLibraryDialogA11y";
 import "./slidePicker.css";
 import { enSelector } from "../../enSelector";
+import { formatoConteo } from "../../../../lib/formatoNumero";
 
 type SlideLibraryCategory = "estructural" | "1g" | "2g" | "grid" | "poblacion" | "otro";
 
@@ -417,7 +418,7 @@ export function SlidePicker({
                   aria-live={libraryState === "ready" ? "polite" : undefined}
                   aria-atomic={libraryState === "ready" ? "true" : undefined}
                 >
-                  {filteredModels.length} {filteredModels.length === 1 ? "modelo visible" : "modelos visibles"}
+                  {formatoConteo(filteredModels.length)} {filteredModels.length === 1 ? "modelo visible" : "modelos visibles"}
                 </span>
               </div>
 

@@ -490,7 +490,7 @@ describe("internalQueries", () => {
       sourceActor: "Docentes",
       sourceChannel: "WhatsApp",
       channel: "WhatsApp",
-    })).toBe("Docentes · WhatsApp");
+    })).toBe("Docentes, WhatsApp");
     expect(collectorSecondaryDisplayMeta({ collector_id: "439964780", collector_name: "Enlace 439964780" })).toBe("ID técnico 439964780");
   });
 

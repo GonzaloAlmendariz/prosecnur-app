@@ -1,9 +1,12 @@
 import { memo, useEffect, useMemo, useRef, useState } from "react";
-import { Maximize2, Minus, Plus } from "lucide-react";
+import { Maximize2, Minus, Plus, MapPin } from "lucide-react";
+import { EstadoVacio } from "../../../../../components/EstadoVacio";
+import { EstadoChip } from "../../../../../components/EstadoChip";
 import type { MonitoreoTerritorialDashboard } from "../../../../../api/client";
 import { normalizeRouteBlockCode } from "../../../routeCoverageModel";
 import { useFocoMonitoreo } from "../../../useMonitoreoDireccion";
-import { enumerar, fmt, nombreDeDistrito } from "../rotulos";
+import { enumerar } from "../../../../../lib/enumerar";
+import { fmt, nombreDeDistrito } from "../rotulos";
 import {
   LIMA_DISTRICT_FEATURES,
   LIMA_MAP_HEIGHT,
@@ -23,6 +26,8 @@ import { RotuloDePestana } from "../navegacion/RotuloDePestana";
 import { construirUmps } from "./umpsModel";
 import { TooltipDelMapa, type ContenidoDeTooltip } from "./TooltipDelMapa";
 import { useZoomDelMapa } from "./useZoomDelMapa";
+import { MapaDeCasos } from "./MapaDeCasos";
+import { avancePorZona } from "./porZonaModelo";
 import "./mapa.css";
 
 type Capa = "avance" | "ocurrencias";
@@ -270,7 +275,7 @@ function MapaTabImpl({
     return {
       x: punto.x,
       y: punto.y,
-      titulo: `UMP ${manzana.ump} · ${estado}`,
+      titulo: `UMP ${manzana.ump}, ${estado}`,
       lineas: [lugar || "Sin ubicación", cifras, manzana.estado === "sin-usar" ? "Ya no se usa en la ruta" : "Clic para ver su ficha"].filter(Boolean),
     };
   };
@@ -328,11 +333,13 @@ function MapaTabImpl({
 
         <div className="mon-mapa-lienzo" aria-busy={esperaCalles || undefined}>
           {sinGeometria ? (
-            <p className="mon-mapa-vacio">
-              {cartografia.incompleta
+            <EstadoVacio
+              tamano="normal"
+              icono={<MapPin size={18} />}
+              titulo={cartografia.incompleta
                 ? "No se pudo cargar la cartografía de Hojas de ruta para estos distritos."
                 : "Las manzanas de la ruta no tienen cartografía en Hojas de ruta."}
-            </p>
+            />
           ) : (
             <svg
               ref={svgRef}
@@ -515,8 +522,8 @@ function MapaTabImpl({
           <span className="mon-mapa-fuente">
             Fuentes: {enumerar(["distritos PlanMet", "manzanas INEI 2017", acercada?.calles.length ? "calles OpenStreetMap" : ""])}
           </span>
-          {cartografia.incompleta ? <span className="mon-ter-chip is-aviso">Cartografía incompleta</span> : null}
-          {esperaCalles ? <span className="mon-ter-chip is-info" role="status">Cargando calles</span> : null}
+          {cartografia.incompleta ? <EstadoChip label="Cartografía incompleta" tone="warn" /> : null}
+          {esperaCalles ? <EstadoChip label="Cargando calles" tone="info" /> : null}
         </footer>
       </div>
 
@@ -623,4 +630,12 @@ function PorDistrito({ modelo }: { modelo: ReturnType<typeof construirMapa> }) {
   );
 }
 
-export const MapaTab = memo(MapaTabImpl);
+type PropsDelMapa = { avance: MonitoreoTerritorialDashboard | null; validacion: MonitoreoTerritorialDashboard | null };
+
+/** ADR 0125 A1: con envío por cuotas no hay manzanas que pintar; el mapa va por casos y zonas. */
+function MapaSegunEnvio({ avance, validacion }: PropsDelMapa) {
+  const cuotas = useMemo(() => avancePorZona(avance?.cuotas), [avance]);
+  return cuotas ? <MapaDeCasos cuotas={cuotas} validacion={validacion} /> : <MapaTabImpl avance={avance} validacion={validacion} />;
+}
+
+export const MapaTab = memo(MapaSegunEnvio);

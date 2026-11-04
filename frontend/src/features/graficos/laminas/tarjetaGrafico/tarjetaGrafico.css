@@ -27,7 +27,7 @@
   gap: var(--pulso-space-1);
   margin: 0;
   padding: 0 0 var(--pulso-space-2);
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   line-height: 1.4;
   color: var(--pulso-text-faint);
   overflow-wrap: anywhere;
@@ -62,7 +62,7 @@
   align-items: center;
   gap: var(--pulso-space-1);
   margin: 0;
-  font-size: 12px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-semibold);
   color: var(--pulso-text);
 }

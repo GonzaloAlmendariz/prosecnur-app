@@ -69,7 +69,7 @@ describe("Actualizar con un job simulado", () => {
     expect(recargar).toHaveBeenCalledTimes(1);
     expect(store.eventos).toEqual(["start", "finish"]);
     const [recibo] = useToasterStore.getState().toasts;
-    expect(recibo).toMatchObject({ tono: "exito", mensaje: "Actualizado", detalle: "Universo: 12 leídas · Kobo: 4 nuevas · Recalculado" });
+    expect(recibo).toMatchObject({ tono: "exito", mensaje: "Actualizado", detalle: "Universo: 12 leídas, Kobo: 4 nuevas. Recalculado" });
   });
 
   it("un job que falla deja un recibo de error y avisa a la vista", async () => {
@@ -123,7 +123,7 @@ describe("Actualizar con un job simulado", () => {
     expect(monitoreo.apiMonitoreoSync).not.toHaveBeenCalled();
     expect(store.reportes.filter((r) => r.paso != null).map((r) => `${r.paso}/${r.pasos}`)).toEqual(["1/2", "2/2"]);
     expect(recargar).toHaveBeenCalledTimes(1);
-    expect(useToasterStore.getState().toasts[0]).toMatchObject({ tono: "exito", mensaje: "Actualizado", detalle: "Ocurrencias: 7 leídas · Recalculado" });
+    expect(useToasterStore.getState().toasts[0]).toMatchObject({ tono: "exito", mensaje: "Actualizado", detalle: "Ocurrencias: 7 leídas. Recalculado" });
   });
 
   it("Recalcular no pasa por el lanzamiento inyectado", async () => {

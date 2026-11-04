@@ -39,8 +39,8 @@ describe("aulasSupervivientesFacultad", () => {
   it("lista los supervivientes de la facultad, orden desc, con solo-manual y sin las de otras facultades ni las cortadas por criterio", () => {
     const r = aulasSupervivientesFacultad(frame, "Ingenieria"); // sin tilde: casa por text_key
     expect(r.map((a) => a.classroomId)).toEqual(["A2", "A1", "A4"]);
-    expect(r[0].label).toBe("Física · 02");
-    expect(r[1].label).toBe("Cálculo · 01");
+    expect(r[0].label).toBe("Física, 02");
+    expect(r[1].label).toBe("Cálculo, 01");
     expect(r[1].detalle).toContain("L 1");
     expect(r[1].detalle).toContain("Prof X");
     expect(r[2].label).toBe("Química"); // sin sección

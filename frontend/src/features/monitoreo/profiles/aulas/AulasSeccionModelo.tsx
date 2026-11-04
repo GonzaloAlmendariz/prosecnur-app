@@ -1,3 +1,4 @@
+import { formatoConteo } from "../../../../lib/formatoNumero";
 import { useState } from "react";
 import type { MonitoreoAulasSincronizacion, MonitoreoAulasTramo } from "../../../../api/monitoreo";
 import type { ReactNode } from "react";
@@ -296,7 +297,7 @@ export function AulasSeccionModelo({
                 agenda podrían enseñar cuentas distintas. */}
             <span>{(() => {
               const n = agendaRows(dashboard).length;
-              return n ? `${n.toLocaleString("es-PE")} cursos-horario` : "sin agenda";
+              return n ? `${formatoConteo(n)} cursos-horario` : "sin agenda";
             })()}</span>
           </div>
           <AulasAgendaPorFacultad
@@ -361,17 +362,17 @@ export function AulasSeccionModelo({
               {eslabon === 0 ? (
                 <>
                   {fmt(filasDeLaAgenda.length)} cursos-horario
-                  {facultadEnFoco ? ` · solo ${facultadEnFoco}` : ""}
+                  {facultadEnFoco ? `, solo ${facultadEnFoco}` : ""}
                   {agendaReservas(dashboard)
-                    ? ` · ${fmt(agendaReservas(dashboard))} reservas detrás`
+                    ? `, ${fmt(agendaReservas(dashboard))} reservas detrás`
                     : ""}
                 </>
               ) : (
                 <>
                   {fmt(filasDeLaAgenda.length)} cursos-horario en reemplazo {eslabon}
-                  {facultadEnFoco ? ` · solo ${facultadEnFoco}` : ""}
+                  {facultadEnFoco ? `, solo ${facultadEnFoco}` : ""}
                   {sinOrden
-                    ? ` · ${fmt(sinOrden)} reservas sin eslabón declarado`
+                    ? `, ${fmt(sinOrden)} reservas sin eslabón declarado`
                     : ""}
                 </>
               )}

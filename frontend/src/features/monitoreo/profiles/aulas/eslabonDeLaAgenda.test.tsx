@@ -148,8 +148,8 @@ describe("AulasSelectorDeEslabon", () => {
     const html = renderToStaticMarkup(
       <AulasSelectorDeEslabon opciones={opciones} valor={1} onCambio={() => {}} />,
     );
-    expect(html).toContain("Titulares · 2");
-    expect(html).toContain("Reemplazo 1 · 2");
+    expect(html).toContain("Titulares (2)");
+    expect(html).toContain("Reemplazo 1 (2)");
     // El valor elegido llega marcado al markup: el control dice dónde está.
     expect(html).toMatch(/<option[^>]*selected[^>]*>Reemplazo 1/);
   });

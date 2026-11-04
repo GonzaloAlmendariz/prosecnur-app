@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { CheckCircle2, Circle, CircleSlash2, FileSpreadsheet, History, Loader2 } from "lucide-react";
 
+import { Panel } from "../../../components/Panel";
 import { useValorSwap } from "../universidad/ui/useValorSwap";
 import type { EstadoDelActor, FaseDelActor, TecnicaDelActor } from "./actores";
 import "../universidad/ui/ui.css";
@@ -43,13 +44,13 @@ export function SelectorActor({
   onElegir: (id: string) => void;
 }) {
   return (
-    <section className="cmv2-panel cmg-actores" aria-labelledby="cmg-actores-titulo" data-qa-geometry-member>
-      <div className="cmv2-panel-head">
-        <div>
-          <span className="cmv2-eyebrow">Actores</span>
-          <h3 className="cmg-panel-titulo" id="cmg-actores-titulo">Marco y selección por actor</h3>
-        </div>
-      </div>
+    <Panel
+      className="cmg-actores"
+      aria-labelledby="cmg-actores-titulo"
+      data-qa-geometry-member
+      eyebrow="Actores"
+      title={<span id="cmg-actores-titulo">Marco y selección por actor</span>}
+    >
       <ul
         className="cmg-actores-lista"
         aria-label="Actores del estudio"
@@ -81,7 +82,7 @@ export function SelectorActor({
           );
         })}
       </ul>
-    </section>
+    </Panel>
   );
 }
 

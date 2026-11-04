@@ -7,6 +7,7 @@
 // - Las barras llevan clave para transitar (M8).
 
 import type { FichaInfo, FormaBarras, LeyendaFicha } from "./fichaModelo";
+import { formatoConteo } from "../../../../lib/formatoNumero";
 
 export type Caja = { x: number; y: number; w: number; h: number };
 export type TonoChip = "publico" | "ajuste" | "aviso";
@@ -167,7 +168,7 @@ function cuerpo(info: FichaInfo, x: number, y0: number, colW: number, fs: number
   }
   if (mas > 0) { piezas.push({ tipo: "texto", x, y: y + fs * 0.85, texto: `y ${mas} ${mas === 1 ? "pregunta" : "preguntas"} más`, fs: fs * 0.85, estilo: "suave" }); y += fs * 1.15; }
   if (pregs.length || mas) y += gap;
-  const pubs = nivel >= 8 ? [] : nivel >= 5 && info.publicos.length > 1 ? [`${info.publicos.length} públicos`] : info.publicos;
+  const pubs = nivel >= 8 ? [] : nivel >= 5 && info.publicos.length > 1 ? [`${formatoConteo(info.publicos.length)} públicos`] : info.publicos;
   if (pubs.length) { const c = chips(pubs, x, y, colW, fs, "publico"); piezas.push(...c.piezas); y += c.h + gap; }
   (nivel >= 7 ? [] : info.leyendas).forEach((ley, k) => {
     const modo = nivel >= 3 || (nivel >= 2 && k > 0) ? "linea" : "completa";

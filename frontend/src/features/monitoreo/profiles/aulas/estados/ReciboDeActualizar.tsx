@@ -1,3 +1,4 @@
+import { formatoDecimal } from "../../../../../lib/formatoNumero";
 import { CheckCircle2, Info, X } from "lucide-react";
 
 import { fmt } from "../kpisDeAulas";
@@ -16,14 +17,14 @@ export function ReciboDeActualizar({ recibo, onCerrar }: { recibo: Recibo; onCer
   return (
     <section className="aulas-recibo" role="status" aria-label="Recibo de Actualizar">
       <header>
-        <b>Actualizado en {recibo.segundos.toFixed(1)} s</b>
+        <b>Actualizado en {formatoDecimal(recibo.segundos, 1)} s</b>
         <button type="button" className="aulas-recibo-cerrar" aria-label="Cerrar el recibo" onClick={onCerrar}><X size={14} aria-hidden="true" /></button>
       </header>
       <ol className="aulas-recibo-pasos">
         {recibo.pasos.map((p) => (
           <li key={p.clave} data-tono={p.tono}>
             {p.tono === "ok" ? <CheckCircle2 size={14} aria-hidden="true" /> : <Info size={14} aria-hidden="true" />}
-            <span><b>{p.rotulo}</b> · {p.detalle}</span>
+            <span><b>{p.rotulo}</b>, {p.detalle}</span>
           </li>
         ))}
       </ol>
@@ -41,7 +42,7 @@ export function ReciboDeActualizar({ recibo, onCerrar }: { recibo: Recibo; onCer
           );
         })}
       </dl>
-      <p className="aulas-recibo-notoca">{NO_TOCA.join(" · ")}.</p>
+      <p className="aulas-recibo-notoca">{NO_TOCA.join(", ")}.</p>
     </section>
   );
 }

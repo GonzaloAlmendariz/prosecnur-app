@@ -1506,7 +1506,16 @@
   white-space: nowrap;
 }
 
-.home-mc-fact-dot { margin-right: 1px; color: var(--pulso-border-strong); }
+/* Separadores como línea fina, no como punto medio (Gonzalo, 3 nov 2026). */
+.home-mc-fact-dot,
+.home-footer-sep {
+  display: inline-block;
+  width: 1px;
+  height: 0.85em;
+  margin: 0 6px;
+  vertical-align: -0.08em;
+  background: var(--pulso-border-strong);
+}
 
 /* --- Diálogo de confirmación (quitar módulo) ------------------------- */
 .home-confirm-backdrop {

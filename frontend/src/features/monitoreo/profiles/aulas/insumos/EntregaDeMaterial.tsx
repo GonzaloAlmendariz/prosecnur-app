@@ -8,8 +8,10 @@ import {
 } from "../../../../../api/monitoreoAulasEntrega";
 import { fmt } from "../kpisDeAulas";
 import { fechaCorta } from "./fuentesModelo";
+import { EstadoChip } from "../../../../../components/EstadoChip";
+import { tonoDeEstadoChip, type TonoDeAulas } from "../tonoDeEstadoChip";
 
-const TEXTO: Record<Entrega["estado"], { estado: string; tono: string; nota: string }> = {
+const TEXTO: Record<Entrega["estado"], { estado: string; tono: TonoDeAulas; nota: string }> = {
   sin_entrega: { estado: "Sin entrega", tono: "neutro", nota: "Material todavía no entregó los cursos-horario a Monitoreo." },
   desactualizada: { estado: "Cambió", tono: "aviso", nota: "La entrega cambió después de su recibo: se vuelve a entregar desde Material." },
   por_traer: { estado: "Por traer", tono: "aviso", nota: "Hay una entrega nueva: traerla actualiza los accesos y agrega lo nuevo sin tocar lo operativo." },
@@ -67,7 +69,7 @@ export function EntregaDeMaterial({ ocupado, onTraida }: { ocupado: boolean; onT
             {trayendo ? "Trayendo…" : "Traer la entrega"}
           </button>
         ) : (
-          <span className="aulas-ins-chip" data-tono={t.tono}>{t.estado}</span>
+          <EstadoChip label={t.estado} tone={tonoDeEstadoChip(t.tono)} />
         )}
       </td>
     </tr>

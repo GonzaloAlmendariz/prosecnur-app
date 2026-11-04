@@ -1,3 +1,4 @@
+import { formatoDecimal } from "../../../../../lib/formatoNumero";
 import type { MonitoreoAulasDashboard, MonitoreoRow } from "../../../../../api/monitoreo";
 import { fmt } from "../kpisDeAulas";
 
@@ -112,7 +113,7 @@ export function construirRegistro(
     curso: texto(f?.course_name),
     franja: [
       { rotulo: "Elegibles", valor: cifra(f?.eligible_n) },
-      { rotulo: "Esperadas", valor: numero(f?.expected_valid) == null ? "—" : (numero(f?.expected_valid) as number).toFixed(1) },
+      { rotulo: "Esperadas", valor: numero(f?.expected_valid) == null ? "—" : formatoDecimal(numero(f?.expected_valid), 1) },
       { rotulo: "Efectivas en Kobo", valor: cifra(f?.respuestas_validas) },
     ],
     campos: p ? [

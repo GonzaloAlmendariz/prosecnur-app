@@ -621,13 +621,13 @@ export function MarcoAulasHistograma({
       </div>
       <div className="cmv2-marco-histo-legend" aria-hidden="true" onMouseLeave={() => setGrupoResaltado("")}>
         <span data-grupo="bajo" onMouseEnter={() => setGrupoResaltado("bajo")}>
-          <i />bajo el mínimo{underMin > 0 ? ` · ${fmtInt(underMin)} cursos-horario` : ""}
+          <i />bajo el mínimo{underMin > 0 ? `, ${fmtInt(underMin)} cursos-horario` : ""}
         </span>
         {groups.map((group) => {
           const max = marcoSizeGroupMax(group.max);
           return (
             <span key={group.id} data-grupo={group.id} onMouseEnter={() => setGrupoResaltado(group.id)}>
-              <i />{group.label} · {fmtInt(safeNumber(group.min, 0))}{Number.isFinite(max) ? `–${fmtInt(max)}` : "+"} {group.descripcion ? `· ${courseScheduleGroupDescription(group.descripcion)}` : ""}
+              <i />{group.label}, {fmtInt(safeNumber(group.min, 0))}{Number.isFinite(max) ? `–${fmtInt(max)}` : "+"} {group.descripcion ? `(${courseScheduleGroupDescription(group.descripcion)})` : ""}
             </span>
           );
         })}

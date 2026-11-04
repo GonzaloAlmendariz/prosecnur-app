@@ -94,9 +94,9 @@ export function AulasEleccionPorFacultad({ bloque, celdasDeCuota, plan, techo, o
                 debe {fmt(f.debe)}
                 {/* El verbo concuerda con el número: «1 pedidas» y «1 la cierran»
                     salían así con los 15 refuerzos reales dentro. */}
-                {f.elegidas ? ` · ${fmt(f.elegidas)} ${f.elegidas === 1 ? "pedida" : "pedidas"}` : ""}
-                {f.hacenFalta > 0 ? ` · ${fmt(f.hacenFalta)} la ${f.hacenFalta === 1 ? "cierra" : "cierran"}`
-                  : f.hacenFalta < 0 ? " · su inventario no alcanza" : ""}
+                {f.elegidas ? `, ${fmt(f.elegidas)} ${f.elegidas === 1 ? "pedida" : "pedidas"}` : ""}
+                {f.hacenFalta > 0 ? `, ${fmt(f.hacenFalta)} la ${f.hacenFalta === 1 ? "cierra" : "cierran"}`
+                  : f.hacenFalta < 0 ? ", su inventario no alcanza" : ""}
               </em>
             </button>
           </li>
@@ -142,7 +142,7 @@ export function AulasEleccionPorFacultad({ bloque, celdasDeCuota, plan, techo, o
               <span className="aulas-eleccion-puesto">{fmt(i + 1)}</span>
               <span className="aulas-eleccion-cand">
                 <b>{c.codigo}</b>
-                <em>{c.docente || "sin docente en el plan"}{c.curso ? ` · ${c.curso}` : ""}</em>
+                <em>{c.docente || "sin docente en el plan"}{c.curso ? `, ${c.curso}` : ""}</em>
               </span>
               <span className="aulas-eleccion-aporte">
                 <b>+{fmt(c.util)}</b>

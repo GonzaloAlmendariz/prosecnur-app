@@ -17,6 +17,8 @@
 // devuelve un número o `null` —el cálculo del cociente, no su presentación—.
 // Son dos funciones distintas con el mismo nombre. Esta es la de presentación.
 
+import { formatoDecimal } from "../../../lib/formatoNumero";
+
 /**
  * Porcentaje ya calculado, listo para leerse.
  *
@@ -48,7 +50,7 @@
 export function pctDecimal(value: unknown, sinDato = "S/D") {
   const n = value == null || value === "" ? NaN : Number(value);
   if (!Number.isFinite(n)) return sinDato;
-  return `${n.toLocaleString("es-PE", { maximumFractionDigits: 1 })}%`;
+  return `${formatoDecimal(n, 1)}%`;
 }
 
 /**

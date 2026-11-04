@@ -13,7 +13,7 @@
   border: 1px solid var(--cmv2-border);
   background: transparent;
   color: var(--pulso-text-muted);
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   line-height: 1;
   padding: 5px 8px;
   border-radius: 999px;
@@ -54,7 +54,7 @@
 }
 
 .cmv2-embcmp-nombre {
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   color: var(--pulso-text);
   white-space: nowrap;
   overflow: hidden;
@@ -112,11 +112,11 @@
   line-height: 1;
 }
 
-.cmv2-embcmp-cifras b { font-size: 11px; color: var(--pulso-text); }
-.cmv2-embcmp-cifras span { font-size: 10px; color: var(--pulso-text-muted); }
+.cmv2-embcmp-cifras b { font-size: var(--pulso-type-caption-size); color: var(--pulso-text); }
+.cmv2-embcmp-cifras span { font-size: var(--pulso-type-micro-size); color: var(--pulso-text-muted); }
 
 .cmv2-embcmp-delta {
-  font-size: 10.5px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: 600;
   font-variant-numeric: tabular-nums;
   text-align: right;

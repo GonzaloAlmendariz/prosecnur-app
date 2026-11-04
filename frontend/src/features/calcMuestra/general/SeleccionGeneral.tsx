@@ -9,7 +9,7 @@ import {
   type CalcMuestraGeneralMarco,
 } from "../../../api/calcMuestraGeneral";
 import { GlidingRadioGroup } from "../../../components/GlidingRadioGroup";
-import { EmptyState, ErrorBlock, LoadingBlock } from "../../../components/States";
+import { EmptyState, ErrorBlock } from "../../../components/States";
 import { fmtInt } from "../sharedCore";
 import { searchConNivel } from "../../../lib/navegacion/useDireccion";
 import { ErrorDelMotor } from "./ErrorDelMotor";
@@ -34,6 +34,8 @@ import { useMuestraGeneralStore } from "./store";
 import { useColumnasDelMarco } from "./useColumnasDelMarco";
 import { guardarEstudioPendiente, useIrASeccionGeneral, useMuestraGeneral } from "./useMuestraGeneral";
 import "./general.css";
+import { CargaDeBloque } from "../../../components/CargaDeBloque";
+import { Panel } from "../../../components/Panel";
 
 /** Pestañas de Selección (E15 · P1): una pregunta cada una. */
 export type PestanaSeleccion = "seleccion-sorteo" | "seleccion-corrida" | "seleccion-unidades";
@@ -153,17 +155,16 @@ export function SeleccionGeneralVista({
       data-qa-geometry-contract="intrinsic"
     >
       {!cargado ? (
-        <LoadingBlock variant="inline" label="Leyendo el marco y la última selección…" />
+        <CargaDeBloque label="Leyendo el marco y la última selección…" />
       ) : errorCarga && !marco ? (
         <ErrorBlock label="No se pudo leer el estado de la selección" detail={errorCarga} />
       ) : !componente || !marco ? (
-        <section className="cmv2-panel cmg-sorteo-vacio" aria-labelledby="cmg-sorteo-titulo" data-qa-geometry-member>
-          <div className="cmv2-panel-head">
-            <div>
-              <span className="cmv2-eyebrow">Selección aleatoria</span>
-              <h3 className="cmg-panel-titulo" id="cmg-sorteo-titulo">Método, semilla y reemplazos</h3>
-            </div>
-          </div>
+        <Panel
+          className="cmg-sorteo-vacio"
+          aria-labelledby="cmg-sorteo-titulo"
+          data-qa-geometry-member
+          title={<span id="cmg-sorteo-titulo">Método, semilla y reemplazos</span>}
+        >
           {enActor ? (
             <EmptyState
               variant="inline"
@@ -188,16 +189,15 @@ export function SeleccionGeneralVista({
               )}
             />
           )}
-        </section>
+        </Panel>
       ) : pestana === "seleccion-sorteo" ? (
         <>
-          <section className="cmv2-panel cmg-sorteo" aria-labelledby="cmg-sorteo-titulo" data-qa-geometry-member>
-            <div className="cmv2-panel-head">
-              <div>
-                <span className="cmv2-eyebrow">Selección aleatoria</span>
-                <h3 className="cmg-panel-titulo" id="cmg-sorteo-titulo">{esCenso ? "Orden de contacto" : "Método, semilla y reemplazos"}</h3>
-              </div>
-            </div>
+          <Panel
+            className="cmg-sorteo"
+            aria-labelledby="cmg-sorteo-titulo"
+            data-qa-geometry-member
+            title={<span id="cmg-sorteo-titulo">{esCenso ? "Orden de contacto" : "Método, semilla y reemplazos"}</span>}
+          >
 
             {esCenso ? (
               <p className="cmg-nota cmg-censo">{TEXTO_COBERTURA_CENSAL}</p>
@@ -339,19 +339,17 @@ export function SeleccionGeneralVista({
                 </span>
               )}
             </div>
-          </section>
+          </Panel>
 
         </>
       ) : pestana === "seleccion-corrida" ? (
         <FichaCorrida corrida={corrida} componente={componente} />
       ) : !corrida ? (
-        <section className="cmv2-panel" aria-labelledby="cmg-unidades-vacio-titulo" data-qa-geometry-member>
-          <div className="cmv2-panel-head">
-            <div>
-              <span className="cmv2-eyebrow">Unidades</span>
-              <h3 className="cmg-panel-titulo" id="cmg-unidades-vacio-titulo">Listado de la selección</h3>
-            </div>
-          </div>
+        <Panel
+          aria-labelledby="cmg-unidades-vacio-titulo"
+          data-qa-geometry-member
+          title={<span id="cmg-unidades-vacio-titulo">Listado de la selección</span>}
+        >
           <EmptyState
             variant="inline"
             icon={<ListOrdered size={18} aria-hidden="true" />}
@@ -363,10 +361,10 @@ export function SeleccionGeneralVista({
               </Link>
             )}
           />
-        </section>
+        </Panel>
       ) : corrida.unidades === null ? (
         <section className="cmv2-panel" data-qa-geometry-member>
-          <LoadingBlock variant="inline" label="Cargando el listado de unidades…" />
+          <CargaDeBloque label="Cargando el listado de unidades…" />
         </section>
       ) : (
         <TablaUnidades

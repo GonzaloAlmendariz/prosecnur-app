@@ -12,6 +12,7 @@ import { DistribucionDeVariable } from "./DistribucionDeVariable";
 import { FiltrosActivos } from "./FiltrosActivos";
 import type { VacioDelPerfil } from "./modeloContactos";
 import type { Carga } from "./store";
+import { CargaDeBloque } from "../../../../components/CargaDeBloque";
 
 type Props = {
   perfil: PerfilDeContactos | null;
@@ -82,9 +83,7 @@ export function TableroDePerfil(p: Props) {
           ))}
         </div>
       ) : (
-        <div className="rec-contactos-vacio-caja" data-qa-geometry-capacity="owned">
-          <p>Leyendo el perfil…</p>
-        </div>
+        <CargaDeBloque label="Leyendo el perfil…" />
       )}
     </section>
   );

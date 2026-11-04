@@ -10,7 +10,7 @@
   height: 100%;
   min-height: 0;
   color: var(--pulso-text);
-  font-size: 13px;
+  font-size: var(--pulso-type-body-size);
   line-height: 1.35;
 }
 
@@ -37,12 +37,12 @@
 }
 
 .mon-entregas-cabecera > strong {
-  font-size: 14px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .mon-entregas-cabecera > span {
   color: var(--pulso-text-faint);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
 }
 
 /* La hoja del PDF se centra en la mesa, con su sombra de papel; si es más
@@ -81,17 +81,17 @@
 
 .mon-entregas-hoja > header strong {
   color: var(--pulso-brand-navy);
-  font-size: 16px;
+  font-size: var(--pulso-type-title-size);
 }
 
 .mon-entregas-hoja > header span {
   color: var(--pulso-text-soft);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .mon-entregas-hoja h3 {
   margin: var(--pulso-space-2) 0 0;
-  font-size: 19px;
+  font-size: var(--pulso-type-kpi-size);
 }
 
 .mon-entregas-tabla {
@@ -108,7 +108,7 @@
 
 .mon-entregas-tabla thead th {
   color: var(--pulso-text-faint);
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-bold);
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -130,7 +130,7 @@
 
 .mon-entregas-ritmo h4 {
   margin: var(--pulso-space-3) 0 var(--pulso-space-2);
-  font-size: 15px;
+  font-size: var(--pulso-type-title-size);
 }
 
 .mon-entregas-ritmo ul {

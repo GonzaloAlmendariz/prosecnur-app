@@ -72,7 +72,7 @@
   bottom: 100%;
   color: var(--pulso-surface);
   display: flex;
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   gap: 6px;
   left: 0;
   line-height: 16px;
@@ -113,7 +113,7 @@
   border: 1px solid var(--pulso-info-border);
   border-radius: var(--pulso-radius-chip);
   color: var(--pulso-info-fg);
-  font-size: 10.5px;
+  font-size: var(--pulso-type-micro-size);
   padding: 0 6px;
   pointer-events: none;
   position: absolute;
@@ -142,7 +142,7 @@
   border-radius: 999px;
   box-shadow: var(--pulso-shadow-low);
   display: inline-flex;
-  font-size: 10.5px;
+  font-size: var(--pulso-type-micro-size);
   font-variant-numeric: tabular-nums;
   font-weight: var(--pulso-weight-bold);
   height: 20px;
@@ -179,7 +179,7 @@
   cursor: pointer;
   display: inline-flex;
   font: inherit;
-  font-size: 12px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-semibold);
   gap: 6px;
   left: 50%;
@@ -231,7 +231,7 @@
 
 .rec-capa-acciones-rotulo {
   color: var(--pulso-module-fieldkit);
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   font-weight: var(--pulso-weight-semibold);
   padding: 0 6px 0 6px;
   white-space: nowrap;
@@ -379,7 +379,7 @@
   background: var(--pulso-module-fieldkit);
   border-radius: 999px;
   color: var(--pulso-surface);
-  font-size: 10.5px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-semibold);
   left: 50%;
   padding: 2px 8px;
@@ -449,7 +449,7 @@
   border: 1px solid var(--pulso-warn-border);
   border-radius: 6px;
   color: var(--pulso-warn-fg);
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   left: 0;
   margin: 0;
   padding: 4px 8px;
@@ -470,7 +470,7 @@
   color: var(--pulso-text);
   display: flex;
   font-family: inherit;
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   gap: 2px;
   left: -6px;
   padding: 3px;
@@ -542,7 +542,7 @@
   align-items: center;
   color: var(--pulso-text-muted);
   display: inline-flex;
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   gap: 4px;
   padding: 0 6px;
 }
@@ -557,7 +557,7 @@
   display: flex;
   flex-direction: column;
   font-family: inherit;
-  font-size: 12.5px;
+  font-size: var(--pulso-type-body-size);
   gap: 8px;
   line-height: 1.4;
   padding: 10px;
@@ -572,7 +572,7 @@
   align-items: center;
   color: var(--pulso-module-fieldkit);
   display: flex;
-  font-size: 12px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-semibold);
   gap: 6px;
 }
@@ -599,7 +599,7 @@
 
 .rec-capa-pop-campo input.is-mono {
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .rec-capa-pop-buscar:focus,
@@ -621,14 +621,14 @@
 
 .rec-capa-pop-campo > span {
   color: var(--pulso-text-soft);
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   font-weight: var(--pulso-weight-medium);
 }
 
 .rec-capa-pop-ayuda,
 .rec-capa-pop-pie {
   color: var(--pulso-text-muted);
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   margin: 0;
 }
 
@@ -679,12 +679,12 @@
 .rec-capa-campo-clave {
   color: var(--pulso-module-fieldkit);
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
 }
 
 .rec-capa-campo-ejemplo {
   color: var(--pulso-text-muted);
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   grid-column: 2;
   justify-self: end;
   overflow: hidden;
@@ -694,7 +694,7 @@
 
 .rec-capa-campos-nada {
   color: var(--pulso-text-muted);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   padding: 6px 8px;
 }
 
@@ -713,7 +713,7 @@
 .rec-capa-explicaciones label {
   color: var(--pulso-text-soft);
   cursor: pointer;
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   user-select: none;
 }
 
@@ -784,7 +784,7 @@
   border: 1px solid;
   border-radius: 8px;
   display: flex;
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   gap: 8px;
   line-height: 1.4;
   padding: 7px 9px;
@@ -846,7 +846,7 @@
   color: var(--pulso-text-muted);
   display: flex;
   flex-direction: column;
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   gap: 6px;
   max-width: 28ch;
   text-align: center;
@@ -861,14 +861,14 @@
 
 .rec-capa-img-ayuda {
   color: var(--pulso-text-muted);
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   line-height: 1.4;
   margin: 0;
 }
 
 .rec-capa-img-ayuda code {
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
 }
 
 .rec-capa-img-sangre {
@@ -899,7 +899,7 @@
 
 .rec-capa-img-ancho-control output {
   color: var(--pulso-text-soft);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   font-variant-numeric: tabular-nums;
   min-width: 7ch;
 }

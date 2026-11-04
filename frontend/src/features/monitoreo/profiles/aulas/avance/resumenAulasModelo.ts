@@ -1,5 +1,6 @@
 import type { MonitoreoAulasDashboard } from "../../../../../api/monitoreo";
 import { facultadEnPalabras } from "../../../../../lib/nombresDeFacultad";
+import { ejeDeFechas } from "../../../core/ejeDeFechas";
 import { MES_CORTO } from "../../../mesesEnPalabras";
 import { avanceCuota, numeroONulo } from "../avanceCuota";
 import { fmt, pctPerfil } from "../kpisDeAulas";
@@ -91,8 +92,6 @@ export type Ritmo =
     metas: MetaDelGrafico[];
     /** Marcas del eje Y, de abajo arriba, con su altura en %. */
     marcasY: Array<{ valor: number; texto: string; y: number }>;
-    /** Fechas bajo las barras, raleadas para que quepan; la última siempre va. */
-    marcasX: Array<{ x: number; texto: string }>;
     /** Dónde arranca, en % del lienzo, la banda de las barras del día. */
     bandaDia: number;
     trazo: string;
@@ -229,14 +228,19 @@ function protagonistaDe(
     chip = { tono: "ok", texto: "Muestra cumplida" };
   }
 
-  const metaOperativa = numeroONulo(bloque.meta_operativa);
+  // ADR 0126 y decisión del 8/9: la segunda meta del estudio es la SOBREMUESTRA
+  // (muestra + excedente). Se lee del nivel que publica el motor; sin él (corte
+  // anterior), de `meta_operativa`, que es la misma cifra. «Meta operativa» queda
+  // para la suma de esperadas por aula, que es otra cosa (ADR 0079).
+  const nivelSobremuestra = (bloque.niveles ?? []).find((n) => n.nivel === "sobremuestra");
+  const metaOperativa = numeroONulo(nivelSobremuestra?.meta ?? bloque.meta_operativa);
   const efectivasTexto = efectivasDelEstudio == null ? "—" : fmt(efectivasDelEstudio);
   let secundarios: [DatoSecundario, DatoSecundario];
   if (metaOperativa != null && metaOperativa > 0 && (muestra == null || metaOperativa > muestra)) {
     const pct = cuentan == null ? null : (100 * cuentan) / metaOperativa;
     const falta = cuentan == null ? null : Math.max(0, metaOperativa - cuentan);
     secundarios = [
-      { rotulo: `Meta operativa de ${fmt(metaOperativa)}`, valor: pct == null ? "—" : pctPerfil(pct) },
+      { rotulo: `Sobremuestra de ${fmt(metaOperativa)}`, valor: pct == null ? "—" : pctPerfil(pct) },
       falta === 0
         ? { rotulo: "Faltan para cumplirla", valor: "Cumplida" }
         : { rotulo: "Faltan para cumplirla", valor: falta == null ? "—" : fmt(falta) },
@@ -248,7 +252,7 @@ function protagonistaDe(
         valor: efectivasTexto,
         titulo: "Incluye las que no caen en ninguna celda de la cuota",
       },
-      { rotulo: "Sobremuestra", valor: "Sin declarar", titulo: "El diseño no publica una meta operativa por encima de la muestra" },
+      { rotulo: "Sobremuestra", valor: "Sin declarar", titulo: "El diseño no publica una sobremuestra por encima de la muestra" },
     ];
   }
 
@@ -310,8 +314,28 @@ function invarianteDe(dashboard: MonitoreoAulasDashboard | null, eje: EjeDelResu
 /** La curva acumulada ocupa de 0 a este % del alto; la banda del día, de BANDA_DIA a 100. */
 const ZONA_ACUMULADO = 66;
 const BANDA_DIA = 74;
-/** Fechas que entran bajo el gráfico sin pisarse en el ancho más angosto (1280). */
-const FECHAS_QUE_CABEN = 14;
+/**
+ * El ancho del trazado cuando aún no se midió (o en un render sin DOM): el que
+ * deja la columna de 400 px a 1280, que es el más angosto de la matriz.
+ */
+export const ANCHO_ESTIMADO_DEL_TRAZADO = 640;
+
+export type MarcaDeFecha = { x: number; dia: string; mes: string | null };
+
+/**
+ * El eje de fechas común de Monitoreo (core/ejeDeFechas) sobre este gráfico:
+ * el día bajo su barra, en % del lienzo, y el mes debajo sólo donde empieza.
+ * `anchoPx` es el ancho real del trazado; con él se decide cuántos caben.
+ */
+export function marcasDeFecha(dias: ReadonlyArray<Pick<DiaDelGrafico, "fecha" | "x">>, anchoPx: number): MarcaDeFecha[] {
+  if (!dias.length) return [];
+  const paso = (anchoPx > 0 ? anchoPx : ANCHO_ESTIMADO_DEL_TRAZADO) / dias.length;
+  return ejeDeFechas(dias.map((d) => d.fecha), paso).map((rotulo) => ({
+    x: dias[rotulo.indice].x,
+    dia: rotulo.dia,
+    mes: rotulo.mes,
+  }));
+}
 
 function ritmoDe(dashboard: MonitoreoAulasDashboard | null, protagonista: Protagonista, metaOperativa: number | null): Ritmo {
   const ritmo = dashboard?.ritmo_diario ?? null;
@@ -361,10 +385,6 @@ function ritmoDe(dashboard: MonitoreoAulasDashboard | null, protagonista: Protag
     const valor = (techo * k) / 4;
     return { valor, texto: fmt(valor), y: y(valor) };
   });
-  const cada = Math.ceil(n / FECHAS_QUE_CABEN);
-  const marcasX = dias
-    .filter((_, i) => i === n - 1 || (i % cada === 0 && n - 1 - i >= cada))
-    .map((d) => ({ x: d.x, texto: d.etiqueta }));
 
   const diasConCampo = numeroONulo(ritmo.dias_con_campo) ?? brutos.filter((d) => d.validas > 0).length;
   const mejor = ritmo.mejor_dia && texto(ritmo.mejor_dia.fecha)
@@ -381,7 +401,6 @@ function ritmoDe(dashboard: MonitoreoAulasDashboard | null, protagonista: Protag
     dias,
     metas: metas.map((m) => ({ ...m, y: y(m.valor) })),
     marcasY,
-    marcasX,
     bandaDia: BANDA_DIA,
     trazo,
     aria: `Efectivas acumuladas por día: ${fmt(ultimo.acumulado)} al ${ultimo.etiqueta}, en ${dias1}` +

@@ -136,6 +136,12 @@
   min-height: 0;
 }
 
+/* Una semana sin citas es su nota: el panel mide la nota y no se estira hasta
+ * el pie de la vista (C3), igual que la lista vacía de al lado. */
+.aulas-ag-semana[data-vacia] {
+  align-self: start;
+}
+
 .aulas-ag-cabecera {
   display: flex;
   flex-wrap: wrap;
@@ -162,15 +168,6 @@
 
 .aulas-ag-tenue {
   color: var(--pulso-text-faint);
-  font-size: var(--pulso-type-caption-size);
-}
-
-.aulas-ag-nota {
-  display: flex;
-  align-items: flex-start;
-  gap: var(--pulso-space-2);
-  margin: 0;
-  color: var(--pulso-text-soft);
   font-size: var(--pulso-type-caption-size);
 }
 
@@ -399,8 +396,13 @@
     border-top: 1px solid var(--pulso-surface-3);
   }
 
+  /* En una columna el cuerpo mide lo que tiene: con `flex: 1` la rejilla
+     repartía el sobrante entre filas y, con la Semana vacía midiendo su nota,
+     dejaba 44 px muertos entre las listas y la Semana (C2). */
   .aulas-ag-cuerpo {
+    flex: 0 0 auto;
     grid-template-columns: minmax(0, 1fr);
+    align-content: start;
   }
 
   .aulas-ag-izquierda {

@@ -112,7 +112,7 @@ export function acreditacionTitularObjetivo(lectura: AcreditacionObjetivoLectura
   const pctMinimo = minimo > 0 ? Math.round((efectivas / minimo) * 100) : null;
   return lectura.faltan && lectura.faltan > 0
     ? `Faltan ${lectura.faltan} para el mínimo ${minimo}`
-    : `Mínimo ${minimo} · ${efectivas} logradas${pctMinimo != null ? ` (${pctMinimo}%)` : ""}`;
+    : `Mínimo ${minimo}, ${efectivas} logradas${pctMinimo != null ? ` (${pctMinimo}%)` : ""}`;
 }
 
 /** Encuentra el objetivo declarado para un actor dentro de las metas del estudio. */

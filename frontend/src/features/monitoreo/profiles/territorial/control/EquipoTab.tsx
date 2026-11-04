@@ -1,5 +1,6 @@
 import { memo, useMemo } from "react";
 import { Ban, Users, X } from "lucide-react";
+import { EstadoVacio } from "../../../../../components/EstadoVacio";
 import type { MonitoreoState, MonitoreoTerritorialDashboard, MonitoreoTerritorialPhase } from "../../../../../api/client";
 import { usePanelDireccionable } from "../../../../../lib/navegacion/paneles";
 import { useFocoMonitoreo } from "../../../useMonitoreoDireccion";
@@ -46,11 +47,14 @@ function EquipoTabImpl({
   if (!modelo.filas.length) {
     return (
       <section className="mon-eq mon-eq--vacio" data-audit-ready="vacio:sin-equipo" aria-label="Equipo">
-        <div className="mon-eq-panel mon-eq-vacio">
+        <div className="mon-eq-panel">
           <RotuloDePestana />
-          <Users size={20} aria-hidden="true" />
-          <strong>Sin códigos de aplicador en el corte</strong>
-          <span>Los códigos salen del padrón de Insumos y de las respuestas de Kobo.</span>
+          <EstadoVacio
+            tamano="normal"
+            icono={<Users size={18} />}
+            titulo="Sin códigos de aplicador en el corte"
+            descripcion="Los códigos salen del padrón de Insumos y de las respuestas de Kobo."
+          />
         </div>
       </section>
     );

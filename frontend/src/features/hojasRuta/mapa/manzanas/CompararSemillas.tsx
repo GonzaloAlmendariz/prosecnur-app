@@ -35,10 +35,10 @@ export function CompararSemillas({ config, deshabilitado, onUsar }: { config: Ho
                 <span>
                   <strong>
                     {f.semilla}
-                    {f.actual ? <em> · la actual</em> : null}
+                    {f.actual ? <em>, la actual</em> : null}
                   </strong>
                   <small>
-                    <b>{f.por_revisar}</b> por revisar · NSE {pct(f.nse_distancia)} del esperado · mediana {fmt(f.mediana_viviendas)} viv. · vecina a {fmt(f.cercania_km, 2)} km
+                    <b>{f.por_revisar}</b> por revisar, NSE {pct(f.nse_distancia)} del esperado, mediana {fmt(f.mediana_viviendas)} viv., vecina a {fmt(f.cercania_km, 2)} km
                   </small>
                 </span>
                 {f.actual ? null : (

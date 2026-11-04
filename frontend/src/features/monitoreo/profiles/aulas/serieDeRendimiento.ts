@@ -417,7 +417,7 @@ export function veredictoDeCeldaDeCuota(
   }
   return {
     clase: celda.alcanza ? "es-llega" : "es-corta",
-    texto: `no llega · faltarían ${fmtNumero(celda.faltanAlCerrarAgenda)}`,
+    texto: `no llega, faltarían ${fmtNumero(celda.faltanAlCerrarAgenda)}`,
     sinCuota: false,
   };
 }

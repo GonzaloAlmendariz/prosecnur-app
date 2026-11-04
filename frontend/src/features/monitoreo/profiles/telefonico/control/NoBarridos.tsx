@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { EstadoChip } from "../../../../../components/EstadoChip";
 import { CheckCircle2, Clipboard } from "../../../../../vendor/lucide-react";
 import type { MonitoreoAcreditacionReports, MonitoreoState } from "../../../../../api/client";
 import { EstadoVacio } from "../../../../../components/EstadoVacio";
@@ -21,9 +22,10 @@ import {
 } from "./noBarridosModel";
 import "./controlTelefonico.css";
 import "./noBarridos.css";
+import { formatoConteo } from "../../../../../lib/formatoNumero";
 
 function n(valor: number | null | undefined) {
-  return valor == null ? "—" : valor.toLocaleString("es-PE");
+  return valor == null ? "—" : formatoConteo(valor);
 }
 
 const ROTULO_DE_SEVERIDAD: Record<Severidad, string> = {
@@ -33,9 +35,16 @@ const ROTULO_DE_SEVERIDAD: Record<Severidad, string> = {
   "sin-dato": "Sin fecha",
 };
 
+const TONO_DE_SEVERIDAD: Record<Severidad, "danger" | "warn" | "neutral"> = {
+  grave: "danger",
+  aviso: "warn",
+  reciente: "neutral",
+  "sin-dato": "neutral",
+};
+
 /** Chip de severidad: el estado va en el chip, nunca en el color del texto suelto. */
 export function ChipDeSeveridad({ severidad }: { severidad: Severidad }) {
-  return <span className={`mon-nb-chip is-${severidad}`}>{ROTULO_DE_SEVERIDAD[severidad]}</span>;
+  return <EstadoChip label={ROTULO_DE_SEVERIDAD[severidad]} tone={TONO_DE_SEVERIDAD[severidad]} />;
 }
 
 type Copia = { tono: "exito" | "error"; texto: string } | null;
@@ -153,7 +162,7 @@ export function NoBarridos({
 
   if (modelo.clave !== "lista") {
     return (
-      <section className="mon-ctl-panel mon-nb-vacio" aria-label="No barridos" data-qa-geometry-capacity="owned">
+      <section className="mon-ctl-panel is-vacio" aria-label="No barridos" data-qa-geometry-capacity="owned">
         {rotulo}
         <EstadoVacio
           tamano="normal"
@@ -167,7 +176,7 @@ export function NoBarridos({
 
   if (!modelo.casos.length) {
     return (
-      <section className="mon-ctl-panel mon-nb-vacio" aria-label="No barridos" data-qa-geometry-capacity="owned">
+      <section className="mon-ctl-panel is-vacio" aria-label="No barridos" data-qa-geometry-capacity="owned">
         {rotulo}
         <EstadoVacio
           tamano="normal"

@@ -50,6 +50,6 @@ describe("el ritmo declara lo que su serie no alcanza", () => {
   it("un cero por campo ausente se muestra como S/D", () => {
     expect(codigo).toContain("const serieSinUmp = umpDeLaSerie === 0 && umpCompletasDelCorte > 0");
     expect(codigo).toContain('value={serieSinUmp ? "S/D" : formatMetric(umpDeLaSerie)}');
-    expect(codigo).toContain("la serie diaria no las trae · el corte declara");
+    expect(codigo).toContain("la serie diaria no las trae, el corte declara");
   });
 });

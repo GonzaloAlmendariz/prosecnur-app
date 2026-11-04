@@ -191,7 +191,7 @@ export function AulasSeccionConsultas({
           >
             <div className="mon-profile-panel-head">
               <h3>Buscar por código</h3>
-              <span>un curso-horario del plan · su estado, sus encuestas y su efectividad</span>
+              <span>un curso-horario del plan, su estado, sus encuestas y su efectividad</span>
             </div>
             {/* El PLAN entero y SIN el filtro de facultad en foco: quien busca un
                 código quiere encontrarlo, y no hallarlo por un filtro puesto en
@@ -242,7 +242,7 @@ export function AulasSeccionConsultas({
                 const n = cadenas.historias.length;
                 return n === 1 ? "1 cadena" : `${fmt(n)} cadenas`;
               })()}
-              {" · "}de aquí salen el reemplazo (A) y el complemento (B)
+              {", "}de aquí salen el reemplazo (A) y el complemento (B)
             </span>
           </div>
           {/* Primero CÓMO se llegó —titular, su reemplazo, cuál cerró—, que es
@@ -271,7 +271,7 @@ export function AulasSeccionConsultas({
         >
           <div className="mon-profile-panel-head">
             <h3>Qué pasó, y por dónde se sale</h3>
-            <span>el vocabulario del libro · reemplazo (A), complemento (B), refuerzo (C)</span>
+            <span>el vocabulario del libro, reemplazo (A), complemento (B), refuerzo (C)</span>
           </div>
           {/* Cierra el circuito de la pestaña: arriba se decide a quién meter,
               aquí se ve qué dio meterlo. Y con las dos varas separadas, que era
@@ -292,7 +292,7 @@ export function AulasSeccionConsultas({
         >
           <div className="mon-profile-panel-head">
             <h3>Deuda por sexo, facultad a facultad</h3>
-            <span>el mapa de la deuda · pulsa una facultad para ver qué la hundió</span>
+            <span>el mapa de la deuda, pulsa una facultad para ver qué la hundió</span>
           </div>
           {/* **El contexto va ANTES de la tabla, no después.**
 
@@ -337,7 +337,7 @@ export function AulasSeccionConsultas({
                 payload de 1.424. */}
             <span>
               {fmt(brechas.length)} cursos-horario
-              {" · "}el diagnóstico que decide si toca complemento (B) o refuerzo (C)
+              {", "}el diagnóstico que decide si toca complemento (B) o refuerzo (C)
             </span>
           </div>
           {/* **La tabla genérica se fue el 2026-09-10.** Enseñaba siete columnas
@@ -492,7 +492,7 @@ export function AulasSeccionConsultas({
             <h3>Cursos-horario extra disponibles</h3>
             <span>
               {fmt(dashboard.banco_extras?.total ?? 0)} extras
-              {" · "}de aquí sale el refuerzo (C)
+              {", "}de aquí sale el refuerzo (C)
             </span>
           </div>
           {/* **La frase dice la cuota que el estudio TIENE, no una fija.**
@@ -546,7 +546,7 @@ export function AulasSeccionConsultas({
           <div className="mon-profile-panel-head">
             <h3>Refuerzos dentro del techo</h3>
             <span>
-              cuántos cursos-horario más se pueden agendar · a qué facultad va cada uno
+              cuántos cursos-horario más se pueden agendar, a qué facultad va cada uno
             </span>
           </div>
           {/* **La continuación de Extras.** Allí está el inventario; aquí, qué

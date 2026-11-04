@@ -14,6 +14,7 @@
  */
 import type { MonitoreoAcreditacionReports, MonitoreoManualCaseReconciliation, MonitoreoProfile } from "../../../../../api/client";
 import { filasDeBloque } from "../navegacion/bloques";
+import { formatoConteo } from "../../../../../lib/formatoNumero";
 
 export type SentidoDeDiscrepancia = "kobo_sin_hoja" | "hoja_sin_kobo";
 
@@ -144,8 +145,8 @@ export function queDice(caso: Pick<CasoDeDiscrepancia, "sentido" | "hojaDice">) 
 /** Texto para pegar en el chat del equipo: un bloque por responsable, un caso por línea. */
 export function textoParaElEquipo(grupos: readonly GrupoPorResponsable[]) {
   return grupos.map((grupo) => [
-    `${grupo.responsable} (${grupo.casos.length.toLocaleString("es-PE")})`,
-    ...grupo.casos.map((caso) => `- ${caso.codigo}${caso.progres ? ` · proGres ${caso.progres}` : ""}: ${queDice(caso)}`),
+    `${grupo.responsable} (${formatoConteo(grupo.casos.length)})`,
+    ...grupo.casos.map((caso) => `- ${caso.codigo}${caso.progres ? `, proGres ${caso.progres}` : ""}: ${queDice(caso)}`),
   ].join("\n")).join("\n\n");
 }
 

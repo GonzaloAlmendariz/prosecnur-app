@@ -76,7 +76,7 @@ export function AulasSeccionCalidad({
           >
             <div className="mon-profile-panel-head">
               <h3>Quién respondió, por su código</h3>
-              <span>alumnos identificados contra el padrón · por la carrera a la que pertenecen</span>
+              <span>alumnos identificados contra el padrón, por la carrera a la que pertenecen</span>
             </div>
             {cruce?.aplica === false ? (
               <p className="mon-profile-muted" data-qa-geometry-capacity="owned" data-qa-geometry-member>
@@ -277,7 +277,7 @@ export function AulasSeccionCalidad({
               la otra»— pero eso vivía en el código y no en la pantalla. Aquí es
               lo que la app deriva; abajo, lo que el equipo calcula en su Excel.
               Son dos medidas distintas del mismo operativo. */}
-          <span>{summary.label} · lo que deriva la app</span>
+          <span>{summary.label}, lo que deriva la app</span>
         </div>
         {/* Avisos y no tabla: el detalle de un control es una frase entera y en
             una celda de tres columnas se lee mal. Es además el lenguaje que ya
@@ -312,7 +312,7 @@ export function AulasSeccionCalidad({
               hoja», se leia como el ancho de la HOJA, que son 39. */}
           <span>
             {control.length
-              ? `${contar(control.length, "fila de la hoja", "filas de la hoja")} · ${columnasDeLaTabla(controlResumen)} · lo que calcula el equipo`
+              ? `${contar(control.length, "fila de la hoja", "filas de la hoja")}, ${columnasDeLaTabla(controlResumen)}, lo que calcula el equipo`
               : dashboard.libro ? "Hoja de control sin filas" : "Libro sin importar"}
           </span>
         </div>

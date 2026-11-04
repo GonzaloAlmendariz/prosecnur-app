@@ -27,7 +27,7 @@ describe("describirMarcoCartografia", () => {
   it("pone en el chip la comparación contra la cartografía oficial", () => {
     const m = describirMarcoCartografia(frame())!;
     // El número va primero: el chip elide por la derecha.
-    expect(m.resumen).toBe("1,056 manzanas sólo en la cartografía oficial · 2 sólo en la activa");
+    expect(m.resumen).toBe("1,056 manzanas sólo en la cartografía oficial, 2 sólo en la activa");
     expect(m.resumen.indexOf("1,056")).toBe(0);
     // Las coincidencias van al detalle: sin ellas el 1 056 no tiene escala.
     expect(m.detalle).toContain("117,352 manzanas coinciden");

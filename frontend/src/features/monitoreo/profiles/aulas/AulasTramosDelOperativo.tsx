@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { CalendarRange, Check, Plus, Trash2 } from "../../../../vendor/lucide-react";
+import { EstadoVacio } from "../../../../components/EstadoVacio";
 import type { MonitoreoAulasTramo } from "../../../../api/monitoreo";
 import { estadoDelTramo, sinCambios, tramosGuardables, type TramoEditable } from "./tramosDelOperativo";
 import "./aulasTramos.css";
@@ -146,8 +147,12 @@ export default function AulasTramosDelOperativo({
           })}
           {borrador.length === 0 ? (
             <tr>
-              <td colSpan={7} className="aulas-tramos-vacio">
-                Sin tramos. Añade uno para decirle a la app qué rango es el que está en curso.
+              <td colSpan={7}>
+                <EstadoVacio
+                  icono={<CalendarRange size={15} />}
+                  titulo="Sin tramos."
+                  descripcion="Añade uno para decirle a la app qué rango es el que está en curso."
+                />
               </td>
             </tr>
           ) : null}

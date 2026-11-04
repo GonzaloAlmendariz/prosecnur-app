@@ -26,6 +26,7 @@ import "../estilo/estilo.css";
 import "../estiloInforme/estiloInforme.css";
 import "../vistaGeneral/vistaGeneral.css";
 import "./word.css";
+import { formatoConteo } from "../../../lib/formatoNumero";
 
 const ID_PANEL = "f6-w-detalle";
 // Sin `foco`, abre en Gráficos: es la parte que hoy tiene ajustes (useSubpestana toma la primera como defecto).
@@ -62,7 +63,7 @@ export default function PestanaWord() {
       <header className="pulso-f6-informe-barra">
         <h2 className="pulso-f6-informe-titulo">Word</h2>
         <p className="pulso-f6-informe-ayuda" role="note">
-          {paginasReales ? `A4, ${paginasReales} páginas en la última vista previa` : `A4, unas ${paginas.length} páginas`} y {nGraficos} {nGraficos === 1 ? "gráfico" : "gráficos"}
+          {paginasReales ? `A4, ${paginasReales} páginas en la última vista previa` : `A4, unas ${formatoConteo(paginas.length)} páginas`} y {nGraficos} {nGraficos === 1 ? "gráfico" : "gráficos"}
         </p>
         {/* W8: el Word real, con sus cifras. En el informe compartido el Word no sale. */}
         {!disponibilidad.motivoWord && <span className="pulso-f6-w-previa"><PreviaWord prepOk={!!sesion?.state?.analitica_prep_ok} /></span>}

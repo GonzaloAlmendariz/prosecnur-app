@@ -67,7 +67,7 @@ export function MarcoElegiblePanel({ marco, vista, cargando, deshabilitado, onCa
     excluidasMinimo ? `${fmt(excluidasMinimo)} por el mínimo` : "",
     sumar("manzanas", "excluida_area") ? `${fmt(sumar("manzanas", "excluida_area"))} por áreas` : "",
     piloto ? `${fmt(piloto)} del piloto` : "",
-  ].filter(Boolean).join(" · ") || "manzanas";
+  ].filter(Boolean).join(", ") || "manzanas";
   const cortas = (vista?.capacidad ?? []).filter((z) => z.falta);
   const decisiones = (vista?.por_distrito ?? []).filter((d) => tonoCobertura(d) === "decision");
   const vertices = dibujoArea ?? [];
@@ -125,9 +125,9 @@ export function MarcoElegiblePanel({ marco, vista, cargando, deshabilitado, onCa
           <PulsoButton variant="icon" size="sm" aria-label="Una vivienda más" disabled={deshabilitado} onClick={() => onCambiar({ ...me, minimo_viviendas: me.minimo_viviendas + 1 })}>+</PulsoButton>
         </span>
         <span className="hr-me-atajos" role="group" aria-label="Mínimos frecuentes">
-          <button type="button" aria-pressed={me.minimo_viviendas === 1} disabled={deshabilitado} onClick={() => onCambiar({ ...me, minimo_viviendas: 1 })}>1 · con viviendas</button>
+          <button type="button" aria-pressed={me.minimo_viviendas === 1} disabled={deshabilitado} onClick={() => onCambiar({ ...me, minimo_viviendas: 1 })}>1, con viviendas</button>
           {ruta > 1 ? (
-            <button type="button" aria-pressed={me.minimo_viviendas === ruta} disabled={deshabilitado} title={`Saca las manzanas con menos viviendas que las ${ruta} entrevistas de una ruta`} onClick={() => onCambiar({ ...me, minimo_viviendas: ruta })}>{ruta} · una ruta completa</button>
+            <button type="button" aria-pressed={me.minimo_viviendas === ruta} disabled={deshabilitado} title={`Saca las manzanas con menos viviendas que las ${ruta} entrevistas de una ruta`} onClick={() => onCambiar({ ...me, minimo_viviendas: ruta })}>{ruta}, una ruta completa</button>
           ) : null}
         </span>
         <span className="hr-mapa-nota">
@@ -194,7 +194,7 @@ export function MarcoElegiblePanel({ marco, vista, cargando, deshabilitado, onCa
           </p>
           <ul className="hr-me-zonas">
             {cortas.slice(0, 6).map((z) => (
-              <li key={`${z.ubigeo}-${z.zona}`}>{nombreDistrito(z.distrito)} · zona {z.zona}: {z.manzanas} de {z.necesita} manzanas</li>
+              <li key={`${z.ubigeo}-${z.zona}`}>{nombreDistrito(z.distrito)}, zona {z.zona}: {z.manzanas} de {z.necesita} manzanas</li>
             ))}
           </ul>
         </div>

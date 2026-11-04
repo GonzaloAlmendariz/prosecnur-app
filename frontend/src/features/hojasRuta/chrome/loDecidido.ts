@@ -36,7 +36,7 @@ const margen = (m: number) => `±${new Intl.NumberFormat("es-PE", { minimumFract
 
 export function indicadoresDecididos(e: EntradaLoDecidido): IndicadorDecidido[] {
   const distritos = e.distritos === 1 ? "1 distrito" : `${entero(e.distritos)} distritos`;
-  const muestra = e.n == null ? "Por definir" : e.margen == null ? `N ${entero(e.n)}` : `N ${entero(e.n)} · ${margen(e.margen)}`;
+  const muestra = e.n == null ? "Por definir" : e.margen == null ? `N ${entero(e.n)}` : `N ${entero(e.n)}, ${margen(e.margen)}`;
   const ump = e.titulares == null ? "Por sortear" : `${entero(e.titulares)} + ${entero(e.reemplazos ?? 0)} R`;
   const objetivo = e.poblacionObjetivo != null && e.poblacionObjetivo > 0;
   const poblacion = objetivo ? (e.poblacionObjetivo as number) : e.poblacion;

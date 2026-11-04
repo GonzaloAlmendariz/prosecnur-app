@@ -30,7 +30,7 @@
 .mon-ins-titulo {
   margin: 0;
   color: var(--pulso-text);
-  font-size: 14px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-bold);
 }
 
@@ -45,7 +45,7 @@
 .mon-ins-base {
   margin: 0;
   color: var(--pulso-text-soft);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   font-variant-numeric: tabular-nums;
 }
 
@@ -60,7 +60,7 @@
   background: var(--pulso-surface);
   color: var(--pulso-text);
   font: inherit;
-  font-size: 13px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-semibold);
   cursor: pointer;
 }
@@ -76,8 +76,7 @@
   opacity: 0.55;
 }
 
-.mon-ins-derecha,
-.mon-ins-fuentes {
+.mon-ins-derecha {
   display: flex;
   flex-direction: column;
   gap: var(--pulso-space-3);
@@ -90,8 +89,7 @@
   scrollbar-color: var(--pulso-border-strong) transparent;
 }
 
-.mon-ins-derecha > *,
-.mon-ins-fuentes > * {
+.mon-ins-derecha > * {
   flex: 0 0 auto;
 }
 
@@ -114,67 +112,19 @@
   display: inline-flex;
   align-items: center;
   gap: var(--pulso-space-1);
-  font-size: 13px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-bold);
 }
 
 .mon-ins-aviso-muestra p {
   margin: 0;
   color: var(--pulso-text);
-  font-size: 12.5px;
+  font-size: var(--pulso-type-body-size);
   line-height: 1.45;
 }
 
 .mon-ins-aviso-muestra .mon-ins-boton {
   justify-self: start;
-}
-
-/* Tarjeta de fuente. */
-.mon-ins-fuente.is-activa {
-  border-color: var(--pulso-module-monitoring-border);
-}
-
-.mon-ins-fuente.is-inactiva {
-  opacity: 0.8;
-}
-
-.mon-ins-fuente-cabecera {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: var(--pulso-space-3);
-}
-
-.mon-ins-fuente-cabecera h3 {
-  margin: 0;
-  color: var(--pulso-text);
-  font-size: 15px;
-  font-weight: var(--pulso-weight-bold);
-}
-
-.mon-ins-estado {
-  flex: 0 0 auto;
-  padding: 2px 9px;
-  border-radius: var(--pulso-radius-chip);
-  background: var(--pulso-surface-3);
-  color: var(--pulso-text-soft);
-  font-size: 12px;
-  font-weight: var(--pulso-weight-semibold);
-}
-
-.mon-ins-estado.is-ok {
-  background: var(--pulso-success-bg);
-  color: var(--pulso-success-fg);
-}
-
-.mon-ins-estado.is-aviso {
-  background: var(--pulso-warn-bg);
-  color: var(--pulso-warn-fg);
-}
-
-.mon-ins-estado.is-error {
-  background: var(--pulso-danger-bg);
-  color: var(--pulso-danger-fg);
 }
 
 .mon-ins-cifras {
@@ -184,49 +134,27 @@
   margin: 0;
 }
 
-.mon-ins-cifras.is-fila {
-  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
-}
-
 .mon-ins-cifras dt {
   color: var(--pulso-text-soft);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .mon-ins-cifras dd {
   margin: 2px 0 0;
   color: var(--pulso-text);
-  font-size: 15px;
+  font-size: var(--pulso-type-title-size);
   font-weight: var(--pulso-weight-bold);
   font-variant-numeric: tabular-nums;
 }
 
-.mon-ins-serie {
-  display: grid;
-  gap: var(--pulso-space-1);
-  margin: 0;
-}
-
-.mon-ins-serie svg,
 .mon-ins-serie-grande {
   display: block;
   width: 100%;
-  height: 56px;
-}
-
-.mon-ins-serie-grande {
   height: 120px;
 }
 
-.mon-ins-serie rect,
 .mon-ins-serie-grande rect {
   fill: var(--pulso-brand-navy);
-}
-
-.mon-ins-acciones {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--pulso-space-2);
 }
 
 /* Tablas. */
@@ -241,15 +169,13 @@
 }
 
 .mon-ins-tabla-marco::-webkit-scrollbar,
-.mon-ins-derecha::-webkit-scrollbar,
-.mon-ins-fuentes::-webkit-scrollbar {
+.mon-ins-derecha::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
 
 .mon-ins-tabla-marco::-webkit-scrollbar-thumb,
-.mon-ins-derecha::-webkit-scrollbar-thumb,
-.mon-ins-fuentes::-webkit-scrollbar-thumb {
+.mon-ins-derecha::-webkit-scrollbar-thumb {
   border-radius: 4px;
   background: var(--pulso-border-strong);
 }
@@ -257,7 +183,7 @@
 .mon-ins-tabla {
   width: 100%;
   border-collapse: collapse;
-  font-size: 13px;
+  font-size: var(--pulso-type-body-size);
   font-variant-numeric: tabular-nums;
 }
 
@@ -269,7 +195,7 @@
   border-bottom: 1px solid var(--pulso-border);
   background: var(--pulso-surface);
   color: var(--pulso-text-soft);
-  font-size: 10.5px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-bold);
   letter-spacing: 0.06em;
   text-align: left;
@@ -313,9 +239,9 @@
   color: var(--pulso-text-soft);
 }
 
-.mon-ins-tabla code,
-.mon-ins-lista code {
-  font-size: 12px;
+.mon-ins-tabla .mon-ins-clave,
+.mon-ins-lista .mon-ins-clave {
+  font-size: var(--pulso-type-body-size);
 }
 
 /* Listas de Insumos como tabla dentro de su caja: filas de 36 px con
@@ -328,7 +254,7 @@
   border: 1px solid var(--pulso-border);
   border-radius: 10px;
   list-style: none;
-  font-size: 13px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .mon-ins-lista > li {
@@ -381,19 +307,6 @@
   outline-offset: 2px;
 }
 
-.mon-ins--vacio .mon-ins-vacio,
-.mon-ins-vacio {
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  color: var(--pulso-text-soft);
-}
-
-.mon-ins-vacio strong {
-  color: var(--pulso-text);
-  font-size: 15px;
-}
-
 .mon-ins.mon-ins--vacio:not(.mon-ins-padron) {
   grid-template-columns: minmax(0, 1fr);
 }
@@ -417,14 +330,9 @@
     min-height: auto;
   }
 
-  .mon-ins-fuentes,
   .mon-ins-derecha,
   .mon-ins .mon-ins-lateral {
     overflow: visible;
-  }
-
-  .mon-ins-serie {
-    display: none;
   }
 }
 
@@ -443,62 +351,15 @@
   color: var(--pulso-text-soft);
 }
 
-/* Conexiones: el rótulo de la pestaña encabeza la primera tarjeta en su fila;
- * el nombre de la fuente y su estado van debajo. */
-.mon-ins-fuente-cabecera:has(> .mon-ter-rotulo) {
-  flex-wrap: wrap;
-}
-
-.mon-ins-fuente-cabecera > .mon-ter-rotulo {
-  flex: 1 0 100%;
-  margin-inline-end: 0;
-}
-
-.mon-ins-fuente-cabecera > div {
-  flex: 1 1 auto;
-  min-width: 0;
-}
-
-/* Columnas a la misma altura (§2a, 2): la última fuente toma el alto que
- * sobra; los laterales llegan al pie con su acción abajo. */
-.mon-ins-fuentes > :last-child {
-  flex-grow: 1;
-}
-
 /* Laterales cortas a su alto natural (ronda 2: una tarjeta no deja vacío
  * abajo): la acción va justo después del contenido, no empujada al pie. */
 .mon-ins .mon-ins-lateral {
   align-self: start;
 }
 
-/* Cifras de la muestra, cada una en su celda con aire. */
-.mon-ins-lateral .mon-ins-cifras {
-  gap: var(--pulso-space-2);
-}
-
-.mon-ins-lateral .mon-ins-cifras > div {
-  padding: var(--pulso-space-3);
-  border: 1px solid var(--pulso-border);
-  border-radius: 10px;
-  background: var(--pulso-surface-2);
-}
-
-.mon-ins-lateral .mon-ins-cifras dd {
-  font-size: 18px;
-}
-
 /* Mapeo: las filas de roles se reparten el alto de su tarjeta. */
 .mon-ins-mapeo .mon-ins-tabla {
   height: 100%;
-}
-
-.mon-ins-fuentes > li:last-child {
-  display: flex;
-  flex-direction: column;
-}
-
-.mon-ins-fuentes > li:last-child > .mon-ins-fuente {
-  flex: 1 1 auto;
 }
 
 /* Historial: la serie de lecturas toma el alto que sobra y «Otras acciones»
@@ -525,7 +386,7 @@
   grid-auto-rows: minmax(42px, 1fr);
 }
 
-.mon-ins-distrito-destino code {
+.mon-ins-distrito-destino .mon-ins-ubigeo {
   margin-left: var(--pulso-space-1);
   color: var(--pulso-text-faint);
 }
@@ -533,17 +394,6 @@
 .mon-ins-pregunta {
   margin: 0;
   color: var(--pulso-text);
-  font-size: 13px;
+  font-size: var(--pulso-type-body-size);
   line-height: 1.45;
-}
-
-/* Conexiones (ronda 2): la última fuente mide lo que trae; antes crecía
- * hasta el pie con 160 px vacíos bajo sus cifras. */
-.mon-ins-conexiones .mon-ins-fuentes > :last-child {
-  flex-grow: 0;
-}
-
-.mon-ins-conexiones .mon-ins-fuentes {
-  align-self: start;
-  max-height: 100%;
 }

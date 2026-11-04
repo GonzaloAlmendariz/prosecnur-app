@@ -82,15 +82,15 @@ export function AulasAgendacion({ agenda, corte = "" }: {
         <strong>{fmt(a.reparto.conFecha)}</strong> de {fmt(a.reparto.total)} titulares
         {" "}ya tienen fecha
         {a.reparto.enContacto ? (
-          <> · <strong>{fmt(a.reparto.enContacto)}</strong> en contacto sin respuesta todavía</>
+          <>, <strong>{fmt(a.reparto.enContacto)}</strong> en contacto sin respuesta todavía</>
         ) : null}
         {a.reparto.sinContactar ? (
-          <> · <strong>{fmt(a.reparto.sinContactar)}</strong> sin contactar aún</>
+          <>, <strong>{fmt(a.reparto.sinContactar)}</strong> sin contactar aún</>
         ) : null}
         {a.reparto.rechazos ? (
-          <> · <strong>{fmt(a.reparto.rechazos)}</strong> {a.reparto.rechazos === 1 ? "rechazó" : "rechazaron"}</>
+          <>, <strong>{fmt(a.reparto.rechazos)}</strong> {a.reparto.rechazos === 1 ? "rechazó" : "rechazaron"}</>
         ) : null}
-        {a.hasta ? <> · lo agendado llega hasta el {etiquetaDeFecha(a.hasta)}</> : null}
+        {a.hasta ? <>, lo agendado llega hasta el {etiquetaDeFecha(a.hasta)}</> : null}
       </p>
 
       {a.porDia.length ? (
@@ -155,11 +155,11 @@ export function AulasAgendacion({ agenda, corte = "" }: {
           <p className="aulas-agd-pie">
             cursos-horario a los que se les puso fecha cada día
             {a.reemplazos.total ? (
-              <> · <span className="aulas-agd-clave es-titular" /> titulares{" "}
+              <>, <span className="aulas-agd-clave es-titular" /> titulares{" "}
               <span className="aulas-agd-clave es-reemplazo" /> reemplazos</>
             ) : null}
             {a.sinDiaDeContacto ? (
-              <> · {fmt(a.sinDiaDeContacto)} agendados no traen fecha de contacto y no salen aquí</>
+              <>, {fmt(a.sinDiaDeContacto)} agendados no traen fecha de contacto y no salen aquí</>
             ) : null}
           </p>
         </>
@@ -182,21 +182,21 @@ export function AulasAgendacion({ agenda, corte = "" }: {
           {a.activados.aplicados
             ? <><strong>{fmt(a.activados.aplicados)}</strong> ya aplicados</>
             : <>ninguno aplicado todavía</>}
-          {a.reemplazos.conFecha ? <> · <strong>{fmt(a.reemplazos.conFecha)}</strong> con fecha</> : null}
-          {a.reemplazos.enContacto ? <> · <strong>{fmt(a.reemplazos.enContacto)}</strong> en contacto</> : null}
-          {a.reemplazos.sinContactar ? <> · <strong>{fmt(a.reemplazos.sinContactar)}</strong> sin contactar</> : null}
+          {a.reemplazos.conFecha ? <>, <strong>{fmt(a.reemplazos.conFecha)}</strong> con fecha</> : null}
+          {a.reemplazos.enContacto ? <>, <strong>{fmt(a.reemplazos.enContacto)}</strong> en contacto</> : null}
+          {a.reemplazos.sinContactar ? <>, <strong>{fmt(a.reemplazos.sinContactar)}</strong> sin contactar</> : null}
           {a.activados.porEquivalencia.length ? (
             <>
               {". "}
               {a.activados.porEquivalencia.map((e, i) => (
                 <span key={e.nivel}>
-                  {i ? " · " : ""}<strong>{fmt(e.aulas)}</strong> {e.palabras}
+                  {i ? ", " : ""}<strong>{fmt(e.aulas)}</strong> {e.palabras}
                 </span>
               ))}
             </>
           ) : null}
           {a.activados.cubren.length ? (
-            <> · cubren {a.activados.cubren.slice(0, 6).join(", ")}
+            <>, cubren {a.activados.cubren.slice(0, 6).join(", ")}
               {a.activados.cubren.length > 6 ? ` y ${fmt(a.activados.cubren.length - 6)} más` : ""}</>
           ) : null}
           {/* **El motivo no viene, y se dice.** `replacement_reason` va vacío en
@@ -204,7 +204,7 @@ export function AulasAgendacion({ agenda, corte = "" }: {
               en prosa. Callarlo dejaría que dentro de un mes nadie sepa por qué
               se activó esta reserva y no otra. */}
           {a.activados.sinMotivo ? (
-            <> · <strong>{fmt(a.activados.sinMotivo)}</strong> sin motivo declarado en el libro</>
+            <>, <strong>{fmt(a.activados.sinMotivo)}</strong> sin motivo declarado en el libro</>
           ) : null}
         </p>
       ) : null}
@@ -215,11 +215,11 @@ export function AulasAgendacion({ agenda, corte = "" }: {
           Sin fecha:{" "}
           {a.faltanPorFacultad.slice(0, 6).map((f, i) => (
             <span key={f.facultad}>
-              {i ? " · " : ""}<strong>{fmt(f.aulas)}</strong> {f.facultad}
+              {i ? ", " : ""}<strong>{fmt(f.aulas)}</strong> {f.facultad}
             </span>
           ))}
           {a.faltanPorFacultad.length > 6 ? (
-            <> · y {fmt(a.faltanPorFacultad.length - 6)} facultades más</>
+            <>, y {fmt(a.faltanPorFacultad.length - 6)} facultades más</>
           ) : null}
         </p>
       ) : null}

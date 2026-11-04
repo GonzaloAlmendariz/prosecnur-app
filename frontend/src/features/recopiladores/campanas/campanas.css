@@ -27,7 +27,7 @@
 
 .rec-campanas-titulo {
   color: var(--pulso-text);
-  font-size: 24px;
+  font-size: var(--pulso-type-kpi-size);
   font-weight: var(--pulso-weight-semibold);
   letter-spacing: -0.01em;
   line-height: 1.2;
@@ -36,13 +36,13 @@
 
 .rec-campanas-lead {
   color: var(--pulso-text-soft);
-  font-size: 14px;
+  font-size: var(--pulso-type-body-size);
   margin: 0;
 }
 
 .rec-campanas-nota {
   color: var(--pulso-text-soft);
-  font-size: 12.5px;
+  font-size: var(--pulso-type-body-size);
   margin: 0;
 }
 
@@ -53,7 +53,7 @@
   border-radius: var(--pulso-radius-card);
   color: var(--pulso-info-fg);
   display: flex;
-  font-size: 13px;
+  font-size: var(--pulso-type-body-size);
   gap: var(--pulso-space-3);
   justify-content: space-between;
   margin: 0;
@@ -182,14 +182,14 @@
   align-items: center;
   color: var(--pulso-text-soft);
   display: inline-flex;
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   gap: 5px;
 }
 
 /* #16: el nombre se lee entero (hasta 80 caracteres); con el estado y las
    cifras anclados al pie, una cabecera más alta no descuadra las tarjetas. */
 .rec-campana-nombre {
-  font-size: 15.5px;
+  font-size: var(--pulso-type-title-size);
   font-weight: var(--pulso-weight-semibold);
   line-height: 1.3;
   margin: 0;
@@ -216,7 +216,7 @@
 
 .rec-campana-actor {
   color: var(--pulso-text-soft);
-  font-size: 12.5px;
+  font-size: var(--pulso-type-body-size);
 }
 
 /* Cifras grandes del dato real. */
@@ -239,7 +239,7 @@
 
 .rec-campana-cifra dd {
   color: var(--pulso-text);
-  font-size: 20px;
+  font-size: var(--pulso-type-kpi-size);
   font-variant-numeric: tabular-nums;
   font-weight: var(--pulso-weight-semibold);
   line-height: 1.1;
@@ -248,7 +248,7 @@
 
 .rec-campana-cifra dt {
   color: var(--pulso-text-soft);
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
 }
 
 /* Cada envío en su línea, con su punto de estado. */
@@ -264,7 +264,7 @@
   align-items: center;
   color: var(--pulso-text-soft);
   display: flex;
-  font-size: 13px;
+  font-size: var(--pulso-type-body-size);
   gap: 8px;
 }
 
@@ -291,7 +291,7 @@
   border: 1px solid var(--pulso-border);
   border-radius: var(--pulso-radius-chip);
   color: var(--pulso-text-soft);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   padding: 1px 8px;
 }
 
@@ -318,24 +318,10 @@
   gap: 4px;
 }
 
-.rec-campana-avance-barra {
-  background: var(--pulso-surface-2);
-  border-radius: 999px;
-  height: 6px;
-  overflow: hidden;
-}
-
-.rec-campana-avance-barra > span {
-  background: var(--module-accent, var(--pulso-primary));
-  border-radius: inherit;
-  display: block;
-  height: 100%;
-}
-
 .rec-campana-avance-texto,
 .rec-campana-hechos {
   color: var(--pulso-text-soft);
-  font-size: 12.5px;
+  font-size: var(--pulso-type-body-size);
   font-variant-numeric: tabular-nums;
 }
 
@@ -402,7 +388,7 @@
 .rec-campanas-archivadas > summary {
   color: var(--pulso-text-soft);
   cursor: pointer;
-  font-size: 13px;
+  font-size: var(--pulso-type-body-size);
   margin-bottom: var(--pulso-space-3);
 }
 
@@ -427,7 +413,7 @@
   cursor: pointer;
   display: grid;
   font: inherit;
-  font-size: 13px;
+  font-size: var(--pulso-type-body-size);
   gap: 1px;
   justify-items: start;
   min-height: 32px;
@@ -452,7 +438,7 @@
 
 .rec-campana-menu-item small {
   color: var(--pulso-text-faint);
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
 }
 
 /* — Cabecera de la campaña abierta, en la zona de contexto de la barra — */
@@ -469,7 +455,7 @@
   color: var(--pulso-text-soft);
   display: inline-flex;
   flex: none;
-  font-size: 13px;
+  font-size: var(--pulso-type-body-size);
   gap: 4px;
   padding: 3px 6px;
   text-decoration: none;
@@ -485,13 +471,29 @@
   outline-offset: 1px;
 }
 
+/* A 1024 la barra de la campaña desbordaba sus secciones y «Entrega» quedaba a medias (C4, D16/D17):
+   en ancho compacto «Campañas» queda en la flecha, como en la barra fina de Correos, y el enlace
+   conserva su nombre accesible. Mismo quiebre que useDensidadDelChrome (ANCHO_COMPACTO). */
+@media (max-width: 1120px) {
+  .rec-campana-volver .rec-campana-volver-rotulo {
+    border: 0;
+    clip: rect(0 0 0 0);
+    height: 1px;
+    margin: -1px;
+    overflow: hidden;
+    position: absolute;
+    white-space: nowrap;
+    width: 1px;
+  }
+}
+
 .rec-campana-cabecera-sep {
   color: var(--pulso-text-faint);
   flex: none;
 }
 
 .rec-campana-cabecera-nombre {
-  font-size: 13px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-semibold);
   max-width: 420px;
   min-width: 0;
@@ -527,14 +529,14 @@
 }
 
 .rec-nueva-titulo {
-  font-size: 16px;
+  font-size: var(--pulso-type-title-size);
   font-weight: var(--pulso-weight-semibold);
   margin: 0;
 }
 
 .rec-nueva-desc {
   color: var(--pulso-text-soft);
-  font-size: 13px;
+  font-size: var(--pulso-type-body-size);
   margin: 2px 0 0;
 }
 
@@ -610,17 +612,17 @@
 }
 
 .rec-nueva-tipo b {
-  font-size: 14px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .rec-nueva-tipo small {
   color: var(--pulso-text-soft);
-  font-size: 12.5px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .rec-nueva-motivo {
   color: var(--pulso-warn-fg);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .rec-nueva-paso {
@@ -638,7 +640,7 @@
 
 .rec-nueva-campo {
   display: grid;
-  font-size: 12.5px;
+  font-size: var(--pulso-type-body-size);
   gap: 4px;
 }
 
@@ -648,7 +650,7 @@
 
 .rec-nueva-campo input {
   font: inherit;
-  font-size: 13.5px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .rec-nueva-plataformas,
@@ -664,7 +666,7 @@
 .rec-nueva-plataformas legend,
 .rec-nueva-origenes-marco legend {
   color: var(--pulso-text-soft);
-  font-size: 12.5px;
+  font-size: var(--pulso-type-body-size);
   margin-bottom: 4px;
   padding: 0;
 }
@@ -692,13 +694,13 @@
 
 .rec-nueva-plataforma span {
   display: grid;
-  font-size: 13px;
+  font-size: var(--pulso-type-body-size);
   gap: 1px;
 }
 
 .rec-nueva-plataforma small {
   color: var(--pulso-text-soft);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .rec-nueva-origenes {
@@ -749,12 +751,12 @@
 }
 
 .rec-nueva-origen b {
-  font-size: 13px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .rec-nueva-origen small {
   color: var(--pulso-text-soft);
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
 }
 
 .rec-nueva-mini {
@@ -791,13 +793,13 @@
 
 .rec-nueva-pie-nota {
   color: var(--pulso-text-soft);
-  font-size: 12.5px;
+  font-size: var(--pulso-type-body-size);
   margin-right: auto;
 }
 
 .rec-nueva-problema {
   color: var(--pulso-danger-fg);
-  font-size: 12.5px;
+  font-size: var(--pulso-type-body-size);
   margin-right: auto;
 }
 
@@ -853,7 +855,7 @@
 }
 
 /* Checklist F18: debajo de los tipos, el camino a Hojas de ruta cuando el territorial espera el envío. */
-.rec-nueva-ir-hojas { margin: var(--pulso-space-2) 0 0; font-size: 12.5px; }
+.rec-nueva-ir-hojas { margin: var(--pulso-space-2) 0 0; font-size: var(--pulso-type-body-size); }
 .rec-nueva-ir-hojas a { font-weight: 600; color: var(--pulso-module-routes); }
 
 /* Revamp v5: el registro por público y ronda (acreditación). */
@@ -867,21 +869,78 @@
   align-items: baseline;
   gap: var(--pulso-space-2);
   margin: 0;
-  font-size: 15px;
+  font-size: var(--pulso-type-title-size);
   font-weight: 650;
   color: var(--pulso-text);
   text-transform: capitalize;
 }
 .rec-campanas-publico-titulo small {
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   font-weight: 500;
   color: var(--pulso-text-faint);
   text-transform: none;
 }
 .rec-campana-procedencia {
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   color: var(--pulso-text-soft);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+/* Pasada de diseño (2 nov 2026): al final de la grilla, la tarjeta para empezar otra campaña.
+   Con una o dos campañas, el registro no queda como una tarjeta sola sobre el lienzo. */
+.rec-campana-nueva {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--pulso-space-2);
+  width: 100%;
+  height: 100%;
+  min-height: 220px;
+  padding: var(--pulso-space-5);
+  border: 1.5px dashed var(--pulso-border-strong);
+  border-radius: var(--pulso-radius-card);
+  background: transparent;
+  color: var(--pulso-text-soft);
+  font: inherit;
+  white-space: normal;
+  cursor: pointer;
+  transition: border-color var(--motion-dur-fast) var(--motion-ease-out), background-color var(--motion-dur-fast) var(--motion-ease-out);
+}
+.rec-campana-nueva:hover {
+  border-color: var(--pulso-module-fieldkit);
+  background: color-mix(in srgb, var(--pulso-module-fieldkit) 5%, transparent);
+  color: var(--pulso-text);
+}
+.rec-campana-nueva-icono {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--pulso-module-fieldkit) 12%, var(--pulso-surface));
+  color: var(--pulso-module-fieldkit);
+}
+.rec-campana-nueva strong {
+  font-size: var(--pulso-type-subtitle-size);
+  font-weight: var(--pulso-type-subtitle-weight);
+}
+.rec-campana-nueva small {
+  max-width: 28ch;
+  white-space: normal;
+  font-size: var(--pulso-type-caption-size);
+  text-align: center;
+}
+
+/* Pasada de diseño (2 nov 2026): la franja de cada tipo lleva su tono y el emblema el color de
+   donde viene su muestra (territorial: Hojas de ruta), en vez de un ícono gris sobre blanco. */
+.rec-campana-tarjeta.is-territorial .rec-campana-franja { background: color-mix(in srgb, var(--pulso-module-routes) 10%, var(--pulso-surface)); }
+.rec-campana-tarjeta.is-territorial .rec-campana-emblema { background: var(--pulso-surface); color: var(--pulso-module-routes); }
+.rec-campana-tarjeta.is-telefonica .rec-campana-franja { background: color-mix(in srgb, var(--pulso-accent-cyan) 10%, var(--pulso-surface)); }
+.rec-campana-tarjeta.is-telefonica .rec-campana-emblema { background: var(--pulso-surface); color: var(--pulso-accent-cyan); }
+.rec-campana-tarjeta.is-supervision .rec-campana-franja { background: color-mix(in srgb, var(--pulso-accent-violet) 10%, var(--pulso-surface)); }
+.rec-campana-tarjeta.is-supervision .rec-campana-emblema { background: var(--pulso-surface); color: var(--pulso-accent-violet); }
+.rec-campana-tarjeta.is-archivada .rec-campana-franja { background: var(--pulso-surface-2); }
+.rec-campana-tarjeta.is-archivada .rec-campana-emblema { background: var(--pulso-surface-2); color: var(--pulso-text-soft); }

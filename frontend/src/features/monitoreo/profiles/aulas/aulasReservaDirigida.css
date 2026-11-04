@@ -103,9 +103,9 @@
   color: var(--pulso-text-soft);
 }
 
-.aulas-reserva-dirigida-candidatos code {
+.aulas-reserva-dirigida-candidatos .aulas-reserva-dirigida-aula {
   flex: none;
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-variant-numeric: tabular-nums;
   color: var(--pulso-text);
 }
 
@@ -148,10 +148,10 @@
   border: 1px solid var(--pulso-border);
   border-radius: 999px;
   background: var(--pulso-surface-2);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .aulas-reserva-dirigida-faltas > li > strong {
-  font-size: 12.5px;
+  font-size: var(--pulso-type-body-size);
   color: var(--pulso-text);
 }

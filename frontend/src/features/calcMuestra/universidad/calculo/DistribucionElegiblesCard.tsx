@@ -24,7 +24,7 @@ export type EstratoDimension = {
   estadistico_usado?: unknown;
 };
 
-const coma1 = (v: number) => (Number.isInteger(v) ? String(v) : v.toFixed(1).replace(".", ","));
+const decimal1 = (v: number) => (Number.isInteger(v) ? String(v) : v.toFixed(1));
 
 export function DistribucionElegiblesCard({
   aulaFrame,
@@ -98,12 +98,12 @@ export function DistribucionElegiblesCard({
               { label: "P75", valor: fmtInt(Math.round(f.p75)) },
               { label: "Aula más grande", valor: fmtInt(f.max) },
               ...(dim && Number.isFinite(dim.divisor)
-                ? [{ label: `Divisor (${nombreDivisor})`, valor: coma1(dim.divisor) }]
+                ? [{ label: `Divisor (${nombreDivisor})`, valor: decimal1(dim.divisor) }]
                 : []),
             ],
             // La aritmética viva del motor: la fórmula deja de ser abstracta.
             nota: dim
-              ? `cuota ${fmtInt(dim.cuota)} ÷ (${Number.isFinite(dim.divisor) ? coma1(dim.divisor) : fmtInt(Math.round(f.p25))}${Number.isFinite(dim.tau) ? ` × tasa ${dim.tau.toFixed(2).replace(".", ",")}` : ""}) → ${fmtInt(dim.aulas)} titulares`
+              ? `cuota ${fmtInt(dim.cuota)} ÷ (${Number.isFinite(dim.divisor) ? decimal1(dim.divisor) : fmtInt(Math.round(f.p25))}${Number.isFinite(dim.tau) ? ` × tasa ${dim.tau.toFixed(2)}` : ""}) → ${fmtInt(dim.aulas)} titulares`
               : `${fmtInt(f.nAulas)} ${f.nAulas === 1 ? "aula" : "aulas"} en el marco`,
             tono: "efectiva",
           };
@@ -129,7 +129,7 @@ export function DistribucionElegiblesCard({
                 className="cmv2-distelig-valor"
                 style={{ left: x(dim && Number.isFinite(dim.divisor) ? dim.divisor : f.p25) }}
               >
-                {dim && Number.isFinite(dim.divisor) ? coma1(dim.divisor) : fmtInt(Math.round(f.p25))}
+                {dim && Number.isFinite(dim.divisor) ? decimal1(dim.divisor) : fmtInt(Math.round(f.p25))}
               </b>
             </span>
           </li>
@@ -138,9 +138,9 @@ export function DistribucionElegiblesCard({
       </ul>
       <p className="cmv2-distelig-leyenda">
         <i className="cmv2-distelig-leyenda-p25" />{" "}
-        {hayDivisorSellado ? `${nombreDivisor} (dimensiona)` : "P25"} ·{" "}
-        <i className="cmv2-distelig-leyenda-mediana" /> mediana ·{" "}
-        <i className="cmv2-distelig-leyenda-caja" /> del P25 al P75 ·{" "}
+        {hayDivisorSellado ? `${nombreDivisor} (dimensiona)` : "P25"},{" "}
+        <i className="cmv2-distelig-leyenda-mediana" /> mediana,{" "}
+        <i className="cmv2-distelig-leyenda-caja" /> del P25 al P75,{" "}
         <i className="cmv2-distelig-leyenda-rango" /> aula más chica → más grande. Referencial: el
         valor que rige es el sellado en cada estrato.
       </p>

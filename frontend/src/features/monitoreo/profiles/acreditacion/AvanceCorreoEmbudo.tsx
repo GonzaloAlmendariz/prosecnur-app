@@ -38,7 +38,7 @@ export function AvanceCorreoEmbudo({
         <div>
           <h3 id={`${ids}-t`}>Embudo del correo</h3>
           <p className="mon-correo-bloque-meta">
-            {publico ? <><i className="mon-publico-punto" aria-hidden /> {publico} · </> : null}
+            {publico ? <><i className="mon-publico-punto" aria-hidden /> {publico}, </> : null}
             {cifra(embudo.envios)} {embudo.envios === 1 ? "envío" : "envíos"}
           </p>
         </div>
@@ -81,7 +81,7 @@ export function AvanceCorreoEmbudo({
                       </span>
                       <small>
                         {paso.perdida ? <em>{cifra(paso.perdida.valor)} {paso.perdida.etiqueta}</em> : null}
-                        {paso.perdida ? " · " : null}
+                        {paso.perdida ? ", " : null}
                         {porcentaje(paso.sobreInicio)} de los enviados
                       </small>
                     </>

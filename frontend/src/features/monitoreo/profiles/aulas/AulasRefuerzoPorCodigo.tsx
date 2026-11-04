@@ -97,7 +97,7 @@ export function AulasRefuerzoPorCodigo({ plan, onGuardado }: {
           <>
             {v.puede ? <Check size={13} aria-hidden="true" />
               : <CircleAlert size={13} aria-hidden="true" />}
-            {v.curso ? <strong>{v.codigo} · {v.curso}</strong> : null}
+            {v.curso ? <strong>{v.codigo}, {v.curso}</strong> : null}
             {v.motivo}
             {v.docente ? <em>{v.docente}</em> : null}
           </>

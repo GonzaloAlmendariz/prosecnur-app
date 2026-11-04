@@ -20,7 +20,7 @@ describe("MuestraAulas", () => {
     expect(franjaDeMuestra(tablero).map((c) => [c.valor, c.sub])).toEqual([
       ["174", "152 aplicados"],
       ["1,173", "29 usadas"],
-      ["45", "7 usados · 38 disponibles"],
+      ["45", "7 usados, 38 disponibles"],
     ]);
   });
 

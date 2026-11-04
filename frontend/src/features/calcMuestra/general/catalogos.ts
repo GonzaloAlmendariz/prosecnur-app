@@ -57,10 +57,10 @@ export function tecnicaLabel(tecnica: CalcMuestraTecnica) {
 export function tecnicaCalculadaLabel(comp: Pick<CalcMuestraComponente, "tecnica" | "parametros" | "resultado">): string {
   const base = tecnicaLabel(comp.tecnica);
   if (comp.tecnica !== "prob_estratificado") return base;
-  return `${base} · ${ETIQUETA_ASIGNACION[asignacionEstratificada(comp)]}`;
+  return `${base} (${ETIQUETA_ASIGNACION[asignacionEstratificada(comp)]})`;
 }
 
-/** La asignación en el nombre de la técnica: «Estratificado · Neyman». */
+/** La asignación en el nombre de la técnica: «Estratificado (Neyman)». */
 export const ETIQUETA_ASIGNACION: Record<CalcMuestraAsignacion, string> = {
   proporcional: "proporcional",
   neyman: "Neyman",
@@ -131,13 +131,13 @@ export function primaryMetric(comp: CalcMuestraComponente) {
   const r = comp.resultado;
   if (!r || !(safeNumber(r.n_objetivo, 0) > 0)) return "Por calcular";
   if ((r.cuotas_matriz?.length ?? 0) > 0) {
-    return `${fmtInt(r.n_objetivo)} encuestas · ${r.cuotas_matriz?.length ?? 0} cuotas`;
+    return `${fmtInt(r.n_objetivo)} encuestas, ${r.cuotas_matriz?.length ?? 0} cuotas`;
   }
   if (comp.tecnica === "intencion_censal" || comp.tecnica === "barrido") {
-    return `${fmtInt(r.n_objetivo)} objetivo · ${fmtInt(r.n_operativo)} a cubrir`;
+    return `${fmtInt(r.n_objetivo)} objetivo, ${fmtInt(r.n_operativo)} a cubrir`;
   }
   if (r.unidades_operativas) {
-    return `${fmtInt(r.n_objetivo)} casos · ${fmtInt(r.unidades_operativas)} unidades`;
+    return `${fmtInt(r.n_objetivo)} casos, ${fmtInt(r.unidades_operativas)} unidades`;
   }
   return `${fmtInt(r.n_objetivo)} casos`;
 }

@@ -1,7 +1,10 @@
 import type { MonitoreoAcreditacionReports, MonitoreoState } from "../../../../../api/client";
 import { criteriosDesdeFiltro } from "../../../filtroEfectiva/criterios";
 import { filasDeBloque } from "../navegacion/bloques";
-import { nombreDelSegmento, rotuloDelSegmento } from "../segmentoDeCuotas";
+import { rotuloDelSegmento, variableDeCuotas } from "../segmentoDeCuotas";
+import { origenDeEfectivas } from "./origenDeEfectivas";
+import { caracterDeclarado, estadoDeCuotaDesde } from "../../../core/caracterDeCuota";
+import { normalizeSourceMatch } from "../formato";
 import { cadenaDeLaCifra, construirCuotasFaltante, type CuotaDeEntrada } from "./cuotasFaltanteModel";
 
 function numero(valor: unknown): number {
@@ -24,6 +27,34 @@ export function sinAsignarDesdeBloque(filas: ReadonlyArray<Record<string, unknow
     .reduce((suma, fila) => suma + numero(fila["No barridos"]), 0);
 }
 
+/**
+ * El carácter de cada cuota (ADR 0126) desde las filas del motor. Se cruza por
+ * VARIABLE y valor con la misma clave de la tarjeta (`phone-quota-<variable>-<valor>`):
+ * el bloque trae varias variables y un «Sí» de una no es el «Sí» de otra.
+ * Manda la fila «Total» (la meta global). Una referencial declarada trae su
+ * número en `Referencia`. Sin columna `Caracter` (un corte anterior), la cuota
+ * sigue la regla por defecto en el modelo.
+ */
+export function conCaracter(cuotas: readonly CuotaDeEntrada[], filas: ReadonlyArray<Record<string, unknown>>): CuotaDeEntrada[] {
+  const porClave = new Map<string, Record<string, unknown>>();
+  for (const fila of filas) {
+    const clave = `phone-quota-${normalizeSourceMatch(fila.Variable)}-${normalizeSourceMatch(fila.Valor)}`;
+    if (porClave.has(clave) && !["total", "todos"].includes(normal(fila.Actor))) continue;
+    porClave.set(clave, fila);
+  }
+  return cuotas.map((cuota) => {
+    const fila = porClave.get(cuota.id);
+    if (!fila) return cuota;
+    const referencia = Number(fila.Referencia);
+    return {
+      ...cuota,
+      caracter: caracterDeclarado(fila.Caracter),
+      estadoCuota: estadoDeCuotaDesde(fila.estado_cuota),
+      referencia: Number.isFinite(referencia) && referencia > 0 ? referencia : null,
+    };
+  });
+}
+
 /** Lo que Avance › Cuotas necesita del corte, armado desde los bloques que ya existen. */
 export function entradaDeCuotasFaltante(
   reports: MonitoreoAcreditacionReports,
@@ -31,12 +62,15 @@ export function entradaDeCuotasFaltante(
   cuotas: readonly CuotaDeEntrada[],
 ) {
   const filasDeCuota = filasDeBloque(reports, ["cuotas_variable", "cuotas_telefonicas", "cuotas_por_variable"]);
-  const segmento = nombreDelSegmento(filasDeCuota.map((fila) => String(fila.Variable ?? "")));
-  const modelo = construirCuotasFaltante({
-    cuotas,
-    segmento: rotuloDelSegmento(segmento),
-    sinAsignar: sinAsignarDesdeBloque(filasDeBloque(reports, ["no_barridos_responsable"])),
-  });
+  const segmento = variableDeCuotas(filasDeCuota.map((fila) => ({ variable: fila.Variable, meta: fila.Meta })));
+  const modelo = {
+    ...construirCuotasFaltante({
+      cuotas: conCaracter(cuotas, filasDeCuota),
+      segmento: rotuloDelSegmento(segmento),
+      sinAsignar: sinAsignarDesdeBloque(filasDeBloque(reports, ["no_barridos_responsable"])),
+    }),
+    origen: origenDeEfectivas(filasDeCuota),
+  };
 
   const fuentesKobo = new Set((state?.sources ?? []).filter((fuente) => fuente.enabled && fuente.kind === "kobo").map((fuente) => fuente.id));
   const encuestas = Object.values(state?.source_metadata?.surveys ?? {}).filter((encuesta) => fuentesKobo.has(encuesta.source_id));

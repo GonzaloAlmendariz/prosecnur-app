@@ -109,7 +109,7 @@ export function AulasPestanaEstratos({
                     (174): no es un error de cuenta, es que el estrato mide contra la
                     meta POR CURSO-HORARIO y la cuota mide contra la del estudio. Sin
                     decirlo, quien encuentra la diferencia desconfía de las dos. */}
-                <span>{fmt(estratoRows.length)} cortes del sorteo · lo que falta se mide contra la meta por curso-horario, no contra la cuota</span>
+                <span>{fmt(estratoRows.length)} cortes del sorteo, lo que falta se mide contra la meta por curso-horario, no contra la cuota</span>
               </div>
               {/* **Una tabla, y con razón.** Es la única forma de la sección que
                   se lee buscando UNA fila concreta entre decenas de estratos; un
@@ -145,7 +145,7 @@ export function AulasPestanaEstratos({
                     facultad puesta arriba, callarlo haría leer como suya una
                     composición que es de todos (C1). */}
                 <span>lo que se está aplicando contra lo que sorteó el diseño, estrato por estrato
-                  {facultadEnFoco ? " · del estudio completo: el motor no lo reparte por facultad" : ""}</span>
+                  {facultadEnFoco ? ", del estudio completo: el motor no lo reparte por facultad" : ""}</span>
               </div>
               <AulasRepresentatividad
                 bloque={dashboard.representativity as Record<string, unknown> | undefined}

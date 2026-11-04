@@ -5,6 +5,8 @@ import type { MonitoreoAulasDashboard } from "../../../../../api/monitoreo";
 import { useFocoMonitoreo } from "../../../useMonitoreoDireccion";
 import { esFocoDelEje, focoDesdeTexto } from "../AulasCuotasResumen";
 import { fmt, pctPerfil } from "../kpisDeAulas";
+import { EstadoChip } from "../../../../../components/EstadoChip";
+import { tonoDeEstadoChip } from "../tonoDeEstadoChip";
 import {
   claveDeGrupo,
   construirPorFacultad,
@@ -287,7 +289,7 @@ function Cuota({ cuota, etiquetaEje, procedencia, avisoDelEje, enFoco, onFoco }:
                     )}
                   </td>
                   <td className="is-num"><b>{f.avanceTexto}</b></td>
-                  <td><span className="aulas-pf-chip" data-tono={f.estado.tono}>{f.estado.texto}</span></td>
+                  <td><EstadoChip label={f.estado.texto} tone={tonoDeEstadoChip(f.estado.tono)} /></td>
                 </tr>
               );
             })}

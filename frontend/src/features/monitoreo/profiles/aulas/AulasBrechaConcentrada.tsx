@@ -50,13 +50,13 @@ Los {fmt(r.celdas)} grupos de facultad y sexo alcanzaron su cuota: no queda nada
   }
 
   const tope = Math.max(1, ...r.cabeza.map((c) => c.falta));
-  const detalle = r.cabeza.map((c) => `${c.etiqueta}: faltan ${fmt(c.falta)}`).join(" · ");
+  const detalle = r.cabeza.map((c) => `${c.etiqueta}: faltan ${fmt(c.falta)}`).join(", ");
 
   return (
     <div className="aulas-cobertura-chart aulas-cobertura-css" data-qa-geometry-capacity="owned" data-qa-geometry-member>
       <p className="aulas-rendimiento-lectura">
         Los <strong>{fmt(r.cabeza.length)}</strong> grupos con más por recoger concentran
-        el <strong>{r.concentracionPct} %</strong> de lo que falta ·{" "}
+        el <strong>{r.concentracionPct} %</strong> de lo que falta,{" "}
         {fmt(r.sinEmpezar)} de {fmt(r.celdas)} todavía sin ninguna respuesta
       </p>
       <ul

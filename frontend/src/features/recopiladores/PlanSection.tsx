@@ -5,13 +5,7 @@ import { apiRecopiladoresSeed, type CollectionStatePayload, type CollectionUnit 
 import { agruparEnCadenas, ordenarPorCadenaOperativa } from "../../lib/cadenaOperativa";
 import { Panel } from "../../components/Panel";
 import { PulsoButton } from "../../components/PulsoButton";
-import {
-  ChevronLeft,
-  ChevronRight,
-  ClipboardList,
-  DatabaseZap,
-  Loader2,
-} from "../../vendor/lucide-react";
+import { ChevronLeft, ChevronRight, ClipboardList, DatabaseZap, Loader2 } from "../../vendor/lucide-react";
 import { TableScroll } from "./TableScroll";
 import "./styles/plan.css";
 import { ComposicionPorFacultad } from "./ComposicionPorFacultad";
@@ -24,6 +18,8 @@ import { nombreCortoDeFacultad } from "./nombreDeFacultad";
 import { fechaDeCorrida } from "./fechaDeCorrida";
 import { avisoDeLaLista, nombreDelModulo, planVigente } from "./origen";
 import { useOrigen } from "./useOrigen";
+import { EstadoVacio } from "../../components/EstadoVacio";
+import { formatoConteo } from "../../lib/formatoNumero";
 
 type Props = {
   payload: CollectionStatePayload | null;
@@ -104,6 +100,11 @@ function texto(valor: unknown): string {
  * la pena la visita. Un 0 se pinta como tal —no como raya— porque un aula con
  * cero elegibles es un problema, no un dato ausente.
  */
+/** D17 (C5): la columna Docente sólo va si alguna unidad del plan lo trae; un «sin docente» en cada fila no informa. */
+export function planTraeDocente(units: readonly Pick<CollectionUnit, "dimensions">[]): boolean {
+  return units.some((unit) => texto(unit.dimensions?.teacher) !== "");
+}
+
 function elegibles(unit: Pick<CollectionUnit, "dimensions">): string {
   const bruto = unit.dimensions?.eligible_n;
   const n = typeof bruto === "number" ? bruto : Number(texto(bruto));
@@ -241,6 +242,7 @@ export function PlanSection({ payload, onState, origen, onIr, onCargando }: Prop
     [unidades],
   );
   const forma = useMemo(() => formaDelOperativo(unidades), [unidades]);
+  const conDocente = useMemo(() => planTraeDocente(unidades), [unidades]);
   // Qué cadenas están desplegadas. Colapsadas por defecto: la reserva importa
   // el día que su titular se cae, no antes.
   const [abiertas, setAbiertas] = useState<Set<string>>(() => new Set());
@@ -303,7 +305,7 @@ export function PlanSection({ payload, onState, origen, onIr, onCargando }: Prop
           // Los cursos-horario que hay que visitar, no el total de unidades. Con
           // 193 titulares y 507 reservas, «700 unidades» dice que hay 700 aulas
           // que atender; el resto son contingencias y el banco, capacidad.
-          <><ClipboardList size={18} aria-hidden /> {operativo.cadenas.length} cursos-horario</>
+          <><ClipboardList size={18} aria-hidden /> {formatoConteo(operativo.cadenas.length)} cursos-horario</>
         }
       >
         {/* **La forma del operativo, antes que sus metadatos.**
@@ -372,11 +374,11 @@ export function PlanSection({ payload, onState, origen, onIr, onCargando }: Prop
         {plan.units.length ? (
           <>
             <TableScroll data-qa-geometry-capacity="owned">
-              <table className="rec-plan-tabla">
+              <table className={`rec-plan-tabla${conDocente ? "" : " rec-plan-tabla--sin-docente"}`}>
                 <thead><tr>
                   <th>Curso-horario</th>
                   <th>Curso</th>
-                  <th>Docente</th>
+                  {conDocente ? <th>Docente</th> : null}
                   <th className="rec-plan-num">Elegibles</th>
                   <th>Reservas</th>
                 </tr></thead>
@@ -403,9 +405,11 @@ export function PlanSection({ payload, onState, origen, onIr, onCargando }: Prop
                         <strong>{capitalizarDelMarco(texto(unit.dimensions?.course_name))|| "—"}</strong>
                         <small>{nombreCortoDeFacultad(texto(unit.dimensions?.faculty))}</small>
                       </td>
-                      <td className="rec-plan-docente" title={texto(unit.dimensions?.teacher)}>
-                        {capitalizarDelMarco(texto(unit.dimensions?.teacher)) || <span className="rec-plan-sin-reservas">sin docente</span>}
-                      </td>
+                      {conDocente ? (
+                        <td className="rec-plan-docente" title={texto(unit.dimensions?.teacher)}>
+                          {capitalizarDelMarco(texto(unit.dimensions?.teacher)) || <span className="rec-plan-sin-reservas">sin docente</span>}
+                        </td>
+                      ) : null}
                       <td className="rec-plan-num">{elegibles(unit)}</td>
                       {/* El plan B, contado y no desplegado: «3 reservas» ocupa
                           una celda donde tres filas ocupaban tres renglones de
@@ -434,9 +438,11 @@ export function PlanSection({ payload, onState, origen, onIr, onCargando }: Prop
                           <strong>{capitalizarDelMarco(texto(reserva.dimensions?.course_name)) || "—"}</strong>
                           <small>{unitRoleLabel(reserva, unit)}</small>
                         </td>
-                        <td className="rec-plan-docente" title={texto(reserva.dimensions?.teacher)}>
-                          {capitalizarDelMarco(texto(reserva.dimensions?.teacher))}
-                        </td>
+                        {conDocente ? (
+                          <td className="rec-plan-docente" title={texto(reserva.dimensions?.teacher)}>
+                            {capitalizarDelMarco(texto(reserva.dimensions?.teacher))}
+                          </td>
+                        ) : null}
                         <td className="rec-plan-num">{elegibles(reserva)}</td>
                         <td />
                       </tr>
@@ -459,9 +465,11 @@ export function PlanSection({ payload, onState, origen, onIr, onCargando }: Prop
                           <strong>{capitalizarDelMarco(texto(unit.dimensions?.course_name)) || "—"}</strong>
                           <small>{unitRoleLabel(unit)}</small>
                         </td>
-                        <td className="rec-plan-docente" title={texto(unit.dimensions?.teacher)}>
-                          {capitalizarDelMarco(texto(unit.dimensions?.teacher))}
-                        </td>
+                        {conDocente ? (
+                          <td className="rec-plan-docente" title={texto(unit.dimensions?.teacher)}>
+                            {capitalizarDelMarco(texto(unit.dimensions?.teacher))}
+                          </td>
+                        ) : null}
                         <td className="rec-plan-num">{elegibles(unit)}</td>
                         <td><span className="rec-plan-sin-reservas">sin titular en el plan</span></td>
                       </tr>
@@ -496,9 +504,11 @@ export function PlanSection({ payload, onState, origen, onIr, onCargando }: Prop
             </nav> : null}
           </>
         ) : (
-          <div className="rec-contained-empty" data-qa-geometry-capacity="owned">
-            El plan es válido, pero su selección no contiene unidades. Regresa al módulo de origen para decidirlas.
-          </div>
+          <EstadoVacio
+            icono={<ClipboardList size={16} aria-hidden />}
+            titulo="La selección no contiene unidades"
+            descripcion="El plan es válido; las unidades se deciden en el módulo de origen."
+          />
         )}
       </Panel>
     </div>

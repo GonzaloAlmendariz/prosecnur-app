@@ -37,7 +37,7 @@
   justify-content: space-between;
   border-top: 1px solid var(--pulso-border);
   color: var(--pulso-text-soft);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .mon-rec-campo {
@@ -45,7 +45,7 @@
   align-items: center;
   gap: var(--pulso-space-2);
   color: var(--pulso-text-soft);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .mon-rec-campo select {
@@ -57,7 +57,7 @@
   background: var(--pulso-surface);
   color: var(--pulso-text);
   font: inherit;
-  font-size: 13px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .mon-rec-dias {
@@ -77,14 +77,14 @@
   background: var(--pulso-surface);
   color: var(--pulso-text-soft);
   font: inherit;
-  font-size: 12.5px;
+  font-size: var(--pulso-type-body-size);
   font-variant-numeric: tabular-nums;
   cursor: pointer;
 }
 
 .mon-rec-dias button small {
   color: var(--pulso-text-faint);
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
 }
 
 .mon-rec-dias button.is-active {
@@ -270,13 +270,13 @@
 .mon-rec-lateral-cabecera h3 {
   margin: 0;
   color: var(--pulso-text);
-  font-size: 15px;
+  font-size: var(--pulso-type-title-size);
   font-weight: var(--pulso-weight-bold);
 }
 
 .mon-rec-base {
   color: var(--pulso-text-soft);
-  font-size: 12.5px;
+  font-size: var(--pulso-type-body-size);
   font-variant-numeric: tabular-nums;
 }
 
@@ -302,13 +302,13 @@
 
 .mon-rec-cifras dt {
   color: var(--pulso-text-soft);
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
 }
 
 .mon-rec-cifras dd {
   margin: 0;
   color: var(--pulso-text);
-  font-size: 20px;
+  font-size: var(--pulso-type-kpi-size);
   font-weight: var(--pulso-weight-bold);
   font-variant-numeric: tabular-nums;
 }
@@ -316,7 +316,7 @@
 .mon-rec-subtitulo {
   margin: 0;
   color: var(--pulso-text-faint);
-  font-size: 10.5px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-bold);
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -348,7 +348,7 @@
   background: transparent;
   color: var(--pulso-text);
   font: inherit;
-  font-size: 12.5px;
+  font-size: var(--pulso-type-body-size);
   font-variant-numeric: tabular-nums;
   text-align: left;
   cursor: pointer;
@@ -366,7 +366,7 @@
   height: 22px;
   border-radius: 50%;
   color: var(--pulso-surface);
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   font-weight: var(--pulso-weight-bold);
 }
 
@@ -402,21 +402,6 @@
 
 .mon-rec.mon-rec--vacio {
   grid-template-columns: minmax(0, 1fr);
-}
-
-.mon-rec-vacio {
-  align-items: center;
-  justify-content: center;
-  gap: var(--pulso-space-2);
-  height: 100%;
-  padding: var(--pulso-space-4);
-  color: var(--pulso-text-soft);
-  text-align: center;
-}
-
-.mon-rec-vacio strong {
-  color: var(--pulso-text);
-  font-size: 15px;
 }
 
 @media (max-width: 1100px), (max-height: 700px) {

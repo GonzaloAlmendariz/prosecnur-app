@@ -25,6 +25,8 @@ export type TirasDeUmp = { completas: number; subsanadas: number; pendientes: nu
 
 export type FilaDeDistritoResumen = {
   distrito: string;
+  /** Para cruzar con la zona de un envío por cuotas. */
+  ubigeo: string;
   cuentan: number;
   meta: number;
   avance: string;
@@ -162,6 +164,7 @@ export function construirResumen(reports: MonitoreoTerritorialDashboard | null |
     const metaDistrito = Math.round(n(fila.meta));
     return {
       distrito: nombre,
+      ubigeo: String((fila as { ubigeo?: unknown }).ubigeo ?? "").trim(),
       cuentan: Math.round(n(fila.validas)),
       meta: metaDistrito,
       avance: pctEntero(n(fila.validas), metaDistrito),

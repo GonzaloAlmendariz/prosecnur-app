@@ -100,7 +100,7 @@ function PaletaDeComandos() {
       size="md"
       title="Ir a una vista"
       icon={<Search size={16} aria-hidden="true" />}
-      footerHint={<span>↑↓ elige · <CornerDownLeft size={11} aria-hidden="true" /> abre · Esc cierra · {nombreDeAtajo("K")} la abre desde cualquier pantalla</span>}
+      footerHint={<span>↑↓ elige, <CornerDownLeft size={11} aria-hidden="true" /> abre, Esc cierra y {nombreDeAtajo("K")} la abre desde cualquier pantalla</span>}
       className="pulso-paleta"
     >
       <input

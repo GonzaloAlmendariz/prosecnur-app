@@ -5,6 +5,7 @@ import type {
   CalcMuestraWorkspace,
 } from "../../../../../api/client";
 import { MarcoAulasTab } from "../MarcoAulasTab";
+import { sinCorteEnGuion } from "../../ui/sinCorteEnGuion";
 
 const workspace = {
   version: 2,
@@ -55,7 +56,7 @@ describe("MarcoAulasTab — embudo variable por proyecto", () => {
       <MarcoAulasTab workspace={workspace} aulasState={aulasState} onWorkspace={() => {}} />,
     );
 
-    expect(html).toContain("Cursos-horario detectados");
+    expect(html).toContain("Cursos‑horario detectados");
     expect(html).toContain("Virtuales con 10 o más elegibles");
     expect(html).toContain("−1 cursos-horario");
     expect(html).toContain('data-orientacion="horizontal"');
@@ -108,6 +109,6 @@ describe("MarcoAulasTab — embudo variable por proyecto", () => {
 
     expect(html).toContain('data-orientacion="adaptive"');
     expect(html).toContain('data-etapas="6"');
-    for (const label of labels) expect(html).toContain(label);
+    for (const label of labels) expect(html).toContain(sinCorteEnGuion(label));
   });
 });

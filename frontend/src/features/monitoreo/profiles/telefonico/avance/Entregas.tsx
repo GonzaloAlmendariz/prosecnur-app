@@ -6,9 +6,10 @@ import type { CuotasFaltante } from "./cuotasFaltanteModel";
 import { RotuloDePestana } from "../navegacion/RotuloDePestana";
 import "../control/controlTelefonico.css";
 import "./entregasTelefonico.css";
+import { formatoConteo } from "../../../../../lib/formatoNumero";
 
 function n(valor: number | null) {
-  return valor == null ? "—" : valor.toLocaleString("es-PE");
+  return valor == null ? "—" : formatoConteo(valor);
 }
 
 /**
@@ -79,7 +80,7 @@ export function Entregas({
                   <tr>
                     <th scope="row">Total</th>
                     <td className="is-num">{n(modelo.total.meta)}</td>
-                    <td className="is-num">{n(modelo.total.efectivas)}</td>
+                    <td className="is-num">{n(modelo.total.efectivasDeMetas)}</td>
                     <td className="is-num">{n(modelo.total.faltan)}</td>
                     <td className="is-num">{pctConEspacio(modelo.total.pct)}</td>
                   </tr>

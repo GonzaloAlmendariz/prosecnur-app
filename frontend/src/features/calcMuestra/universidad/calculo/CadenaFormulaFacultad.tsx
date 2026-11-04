@@ -43,7 +43,7 @@ export function CadenaFormulaFacultad({
           <span className="cmv2-cadfor-pieza" data-qa-geometry-capacity="owned" data-rol="factor">
             <b>{nombreDivisor.toLowerCase() === "aula típica" ? "aula típica" : nombreDivisor}</b>
             <small>
-              alumnos por curso-horario ·{" "}
+              alumnos por curso-horario,{" "}
               {onIrAAlumnosPorCh ? (
                 <button type="button" className="cmv2-cadfor-ir" onClick={onIrAAlumnosPorCh}>
                   lo eliges en Marco

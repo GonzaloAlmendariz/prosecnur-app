@@ -1,3 +1,4 @@
+import { formatoDecimal } from "../../../../../lib/formatoNumero";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import type { MonitoreoAulasDashboard } from "../../../../../api/monitoreo";
@@ -52,7 +53,7 @@ export function construirRecibo(antes: Cifras, despues: Cifras, segundos: number
             : avisoDescarga ? `La plataforma no respondió (${avisoDescarga}); se recalculó con lo que ya había.` : "Respuestas nuevas de la plataforma y el libro del operativo.",
         tono: avisoDescarga ? "aviso" : "ok",
       },
-      { clave: "recalcular", rotulo: "Recalcular", detalle: `Tablero de cursos-horario en ${segundos.toFixed(1)} s.`, tono: "ok" },
+      { clave: "recalcular", rotulo: "Recalcular", detalle: `Tablero de cursos-horario en ${formatoDecimal(segundos, 1)} s.`, tono: "ok" },
       { clave: "recibo", rotulo: "Dejar recibo", detalle: "Lo que cambió en este corte.", tono: "ok" },
     ],
     cambios: [

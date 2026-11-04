@@ -1,5 +1,7 @@
 import { memo, useMemo } from "react";
 import { Users } from "lucide-react";
+import { EstadoVacio } from "../../../../../components/EstadoVacio";
+import { EstadoChip } from "../../../../../components/EstadoChip";
 import type { MonitoreoState, MonitoreoTerritorialDashboard } from "../../../../../api/client";
 import { useFocoMonitoreo } from "../../../useMonitoreoDireccion";
 import { fmt } from "../rotulos";
@@ -71,7 +73,7 @@ function PadronTabImpl({
                     <td>{fila.ultimo || "—"}</td>
                     <td>
                       {modelo.conCasos ? (
-                        <span className={`mon-ter-chip ${fila.estado === "con-casos" ? "is-ok" : fila.estado === "anulado" ? "is-error" : ""}`}>{ROTULO_DE_ESTADO[fila.estado]}</span>
+                        <EstadoChip label={ROTULO_DE_ESTADO[fila.estado]} tone={fila.estado === "con-casos" ? "success" : fila.estado === "anulado" ? "danger" : "neutral"} />
                       ) : "—"}
                     </td>
                   </tr>
@@ -81,12 +83,17 @@ function PadronTabImpl({
           </div>
         </section>
       ) : (
-        <section className="mon-ins-panel mon-ins-vacio" aria-label="Sin padrón">
+        <section className="mon-ins-panel" aria-label="Sin padrón">
           <RotuloDePestana />
-          <Users size={20} aria-hidden="true" />
-          <strong>Sin padrón de aplicadores</strong>
-          <span>Con el padrón, cada código de la base se lee con su nombre.</span>
-          <button type="button" className="mon-ins-boton is-primario" onClick={onReemplazar}>Subir padrón</button>
+          <EstadoVacio
+            tamano="normal"
+            icono={<Users size={18} />}
+            titulo="Sin padrón de aplicadores"
+            descripcion="Con el padrón, cada código de la base se lee con su nombre."
+            accion={
+              <button type="button" className="mon-ins-boton is-primario" onClick={onReemplazar}>Subir padrón</button>
+            }
+          />
         </section>
       )}
 
@@ -94,7 +101,7 @@ function PadronTabImpl({
         <h3 id="mon-ins-fuera" className="mon-ins-titulo">Códigos fuera del padrón <span className="mon-ter-cuenta">{fmt(modelo.fueraDelPadron.length)}</span></h3>
         {modelo.fueraDelPadron.length ? (
           <ul className="mon-ins-lista">
-            {modelo.fueraDelPadron.map((item) => <li key={item.codigo}><code>{item.codigo}</code><span className="mon-ins-lista-cifra">{fmt(item.casos)} {item.casos === 1 ? "caso" : "casos"}</span></li>)}
+            {modelo.fueraDelPadron.map((item) => <li key={item.codigo}><span className="mon-ins-clave">{item.codigo}</span><span className="mon-ins-lista-cifra">{fmt(item.casos)} {item.casos === 1 ? "caso" : "casos"}</span></li>)}
           </ul>
         ) : (
           <p className="mon-ins-base">Todos los códigos de la base están en el padrón.</p>

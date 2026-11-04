@@ -37,7 +37,7 @@ export function AvisoDeLecturaFallida({ error, corte, onReintentar }: {
       <span>
         {e.mensaje}
         {e.codigo || e.errorId ? (
-          <small className="aulas-s3-codigo">{[e.codigo, e.errorId ? `error_id ${e.errorId}` : ""].filter(Boolean).join(" · ")}</small>
+          <small className="aulas-s3-codigo">{[e.codigo, e.errorId ? `error_id ${e.errorId}` : ""].filter(Boolean).join(", ")}</small>
         ) : null}
         {corte ? <small className="aulas-s3-vigente">El corte del {corteLegible(corte)} sigue vigente.</small> : null}
       </span>

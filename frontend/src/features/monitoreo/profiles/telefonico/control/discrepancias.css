@@ -9,7 +9,7 @@
   height: 100%;
   min-height: 0;
   color: var(--pulso-text);
-  font-size: 13px;
+  font-size: var(--pulso-type-body-size);
   line-height: 1.35;
 }
 
@@ -40,12 +40,12 @@
 
 .mon-dsc-cifras dt {
   color: var(--pulso-text-soft);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .mon-dsc-cifras dd {
   margin: 0;
-  font-size: 20px;
+  font-size: var(--pulso-type-kpi-size);
   font-weight: var(--pulso-weight-bold);
 }
 
@@ -159,7 +159,7 @@
 .mon-dsc-progres {
   display: block;
   color: var(--pulso-text-soft);
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   font-weight: var(--pulso-weight-regular);
   white-space: nowrap;
 }
@@ -177,7 +177,7 @@
 
 .mon-dsc-quien > small {
   color: var(--pulso-text-soft);
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
 }
 
 .mon-dsc-quien > small.mon-dsc-distinto {
@@ -216,7 +216,7 @@
   border-radius: var(--pulso-radius-chip);
   background: var(--pulso-surface-2);
   color: var(--pulso-text-soft);
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   font-weight: var(--pulso-weight-bold);
   line-height: 1.3;
 }
@@ -265,7 +265,7 @@
 }
 
 .mon-dsc-ficha-cabecera b {
-  font-size: 18px;
+  font-size: var(--pulso-type-kpi-size);
 }
 
 .mon-dsc-ficha-cabecera small,
@@ -273,7 +273,7 @@
 .mon-dsc-estado {
   margin: 0;
   color: var(--pulso-text-soft);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .mon-dsc-ficha-bloque dl {
@@ -307,7 +307,7 @@
 .mon-dsc-nota-guardada {
   margin: 0;
   color: var(--pulso-text);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .mon-dsc-opciones {
@@ -336,7 +336,7 @@
   display: flex;
   flex-direction: column;
   gap: 4px;
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .mon-dsc-nota textarea {
@@ -345,12 +345,6 @@
   border-radius: 10px;
   font: inherit;
   resize: vertical;
-}
-
-.mon-dsc-vacio {
-  display: grid;
-  height: 100%;
-  place-items: center;
 }
 
 @media (max-width: 1280px) {

@@ -116,6 +116,22 @@ describe("normalizeExploradorCruce", () => {
       },
     });
     expect(c?.tabla?.n).toEqual([[4, 1], [2, 3]]);
+    // Un payload viejo no trae filas[].n ni n_x/n_y: llegan en null, no en 0.
+    expect(c?.tabla?.filas[0].n).toBeNull();
+    expect(c?.n_x).toBeNull();
+  });
+
+  it("los casos de cada fila y de cada variable (revisión metodológica)", () => {
+    const c = normalizeExploradorCruce({
+      tipo_x: "so", tipo_y: "sm", forma: "tabla", base_n: [560], n_x: [1283], n_y: 560,
+      tabla: {
+        filas: [{ codigo: "1", etiqueta: "Hombre", n: [258] }, { codigo: "2", etiqueta: "Mujer", n: 301 }],
+        columnas: [{ codigo: "a", etiqueta: "Redes", n: 355 }],
+        n: [[164], [190]],
+      },
+    });
+    expect(c?.tabla?.filas.map((f) => f.n)).toEqual([258, 301]);
+    expect([c?.n_x, c?.n_y]).toEqual([1283, 560]);
   });
 
   it("una matriz que no cuadra con filas × columnas no se dibuja", () => {
@@ -137,6 +153,31 @@ describe("normalizeExploradorCruce", () => {
     });
     expect(c?.dispersion?.puntos).toEqual([[1, 2], [4, 5]]);
     expect(c?.dispersion?.tendencia).toEqual({ pendiente: 1, intercepto: 0 });
+    expect(c?.dispersion?.origen).toBeNull();
+    expect(c?.dispersion?.restriccion_y).toBeNull();
+  });
+
+  it("la restricción del formulario llega con sus cotas; una cota sin operador conocido se descarta", () => {
+    const c = normalizeExploradorCruce({
+      tipo_x: "num", tipo_y: "num", forma: "dispersion",
+      dispersion: { puntos: [[20, 1]], n: 1, restriccion_x: { regla: ". >= 18", texto: "≥ 18", cotas: [{ op: ">=", valor: [18] }, { op: "==", valor: 3 }], fuera: [2], n: 1283 } },
+    });
+    expect(c?.dispersion?.restriccion_x).toEqual({ regla: ". >= 18", texto: "≥ 18", cotas: [{ op: ">=", valor: 18, fuera: 0 }], fuera: 2, especiales: 0, n: 1283 });
+  });
+
+  it("con una fecha, el día cero del eje y los casos de cada día", () => {
+    const c = normalizeExploradorCruce({
+      tipo_x: "fecha", tipo_y: "so", forma: "cajas",
+      cajas: { grupos: [{ etiqueta: "Hombre", n: 3, min: 0, p25: 1, mediana: 2, p75: 3, max: 4, n_atipicos: 0 }], origen: ["2026-06-13"] },
+    });
+    expect(c?.cajas?.origen).toBe("2026-06-13");
+    const s = normalizeExploradorCruce({
+      tipo_x: "sm", tipo_y: "fecha", forma: "serie",
+      serie: { puntos: [{ fecha: "2026-06-13", valor: 50, baja: null, alta: null, serie: "Radio", n: [2] }, { fecha: "2026-06-14", valor: 0, serie: "Radio" }] },
+    });
+    expect(s?.serie?.puntos.map((p) => p.n)).toEqual([2, null]);
+    const viejo = normalizeExploradorCruce({ tipo_x: "fecha", tipo_y: "num", forma: "dispersion", dispersion: { puntos: [[0, 1]], origen: {} } });
+    expect(viejo?.dispersion?.origen).toBeNull();
   });
 
   it("forma desconocida o sin pieza → null", () => {

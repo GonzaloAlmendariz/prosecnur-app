@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import { Check, Grid3X3, RotateCcw } from "../../../../vendor/lucide-react";
 import type { CalcMuestraAulasCerteza, CalcMuestraComponente } from "../../../../api/client";
+import { Panel } from "../../../../components/Panel";
 import { EmptyState } from "../../../../components/States";
 import { fmtDec, fmtInt } from "../../sharedCore";
 import { useMotorStore } from "../../store";
@@ -169,20 +170,22 @@ export function CalculoCursosHorarioFacultadTab({
       {/* La vista se calcula UNA vez: la tabla de cupos y el panel de certeza
           tienen que decir lo mismo. Calcularla dos veces es cómo dos superficies
           empiezan a discrepar sin que nadie lo note. */}
-      <section className="cmv2-panel cmv2-ch-panel" data-qa-geometry-member>
-        <div className="cmv2-panel-head">
-          <div>
-            <strong>Cursos-horario requeridos, facultad por facultad</strong>
-            <CadenaFormulaFacultad
-              nombreDivisor={etiquetaAlumnosPorChMetodo(model.decision.estadistico_default) || "aula típica"}
-              onIrAAlumnosPorCh={onIrAAlumnosPorCh}
-            />
-          </div>
+      <Panel
+        className="cmv2-ch-panel"
+        aria-labelledby="cmv2-ch-titulo"
+        data-qa-geometry-member
+        title={<span id="cmv2-ch-titulo">Cursos-horario requeridos, facultad por facultad</span>}
+        actions={(
           <div className="cmv2-segment" role="radiogroup" aria-label="Propuesta que dimensiona las aulas">
-            <button type="button" role="radio" aria-checked={escenario !== "e2"} data-active={escenario !== "e2" || undefined} onClick={() => onEscenario("e1")}>P1 · Universidad</button>
-            <button type="button" role="radio" aria-checked={escenario === "e2"} data-active={escenario === "e2" || undefined} onClick={() => onEscenario("e2")}>P2 · Facultades</button>
+            <button type="button" role="radio" aria-checked={escenario !== "e2"} data-active={escenario !== "e2" || undefined} onClick={() => onEscenario("e1")}>P1, Universidad</button>
+            <button type="button" role="radio" aria-checked={escenario === "e2"} data-active={escenario === "e2" || undefined} onClick={() => onEscenario("e2")}>P2, Facultades</button>
           </div>
-        </div>
+        )}
+      >
+        <CadenaFormulaFacultad
+          nombreDivisor={etiquetaAlumnosPorChMetodo(model.decision.estadistico_default) || "aula típica"}
+          onIrAAlumnosPorCh={onIrAAlumnosPorCh}
+        />
 
         {/* UN solo total, y es el que viaja. El panel publicaba además un
             «cupo de reserva» y un «CH del plan» que NADIE consumía —ni la
@@ -208,7 +211,7 @@ export function CalculoCursosHorarioFacultadTab({
                   <td>{fmtDec(fila.alumnos_por_ch!.valor, 1)}</td>
                   <td>{(() => {
                     const t = Number((fila as Record<string, unknown>).tau);
-                    return Number.isFinite(t) && t > 0 ? `${(t * 100).toFixed(1).replace(".", ",")} %` : "—";
+                    return Number.isFinite(t) && t > 0 ? `${(t * 100).toFixed(1)} %` : "—";
                   })()}</td>
                   <td>
                     {onAjustarAula ? (
@@ -239,8 +242,8 @@ export function CalculoCursosHorarioFacultadTab({
             </tbody>
           </table>
         </div>
-        <small className="cmv2-calc-diseno-nota">Marco firmado: {model.decision.frame_hash.slice(0, 12)} · confirmación {model.decision.confirmado_at}</small>
-      </section>
+        <small className="cmv2-calc-diseno-nota">Marco firmado: {model.decision.frame_hash.slice(0, 12)}, confirmación {model.decision.confirmado_at}</small>
+      </Panel>
 
       {/* La certeza vivía aquí debajo. Se mudó a su pestaña propia al final de
           Cálculo (decisión de Gonzalo, 2026-08-27): contesta otra pregunta y con

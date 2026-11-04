@@ -9,6 +9,7 @@
 // - C1: `material-campo/territorial/inspector` (intrinsic) cuando hay foco.
 // - C3: sin foto o sin coincidencias, el vacío es de la lista (EstadoVacio).
 // - C4: el scroll es del panel de la sección; la tabla del kit (PulsoTable) no fija alto propio.
+// - C5: la columna Observación aparece sólo si alguna UMP trae una; vacía en todas las filas no dice nada (D15).
 
 import { useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
@@ -23,7 +24,7 @@ import { ROTULO_DE_FASE } from "../campanas/modeloRegistro";
 import { AlertTriangle, FileText, MapPinned, Search } from "../../../vendor/lucide-react";
 import { DialogoHojaUmp } from "./DialogoHojaUmp";
 import { InspectorUmp } from "./InspectorUmp";
-import { agruparUnidades, contarVistas, fechaDelEnvio, filtrarUnidades, unidadDelFoco, type VistaDeUnidades } from "./modeloUnidades";
+import { agruparUnidades, contarVistas, fechaDelEnvio, filtrarUnidades, hayObservaciones, observacionDe, unidadDelFoco, type VistaDeUnidades } from "./modeloUnidades";
 import { revisarUnidades, type EstadoUnidad } from "./revisionUnidades";
 import type { SupuestosVisitas } from "../../hojasRuta/seleccion/visitas";
 import "./unidades.css";
@@ -87,21 +88,25 @@ const fmt = (n: number | null) => (n === null ? "—" : n.toLocaleString("es-PE"
 
 type FilaTabla = { u: UnidadTerritorial; estado: EstadoUnidad | undefined; encuestador: string | null };
 
-function columnasDe(hrefDeHoja: (foco: string) => string): PulsoTableColumna<FilaTabla>[] {
-  return [
+function columnasDe(hrefDeHoja: (foco: string) => string, conObservacion: boolean): PulsoTableColumna<FilaTabla>[] {
+  const columnas: PulsoTableColumna<FilaTabla>[] = [
     { id: "ump", encabezado: "UMP", ancho: 110, celda: ({ u }) => <span className={`rec-terr-ump-codigo is-${u.role}`}>{u.label}</span> },
     { id: "zona", encabezado: "Zona", ancho: 90, celda: ({ u }) => u.zona || "—" },
     { id: "manzana", encabezado: "Manzana", ancho: 100, celda: ({ u }) => u.manzana || "—" },
     { id: "encuestas", encabezado: "Encuestas", ancho: 110, tipo: "cifra", celda: ({ u }) => (u.rango_inicio !== null && u.rango_fin !== null ? `${u.rango_inicio}–${u.rango_fin}` : "—") },
     { id: "viviendas", encabezado: "Viviendas", ancho: 100, tipo: "cifra", celda: ({ u }) => fmt(u.viviendas) },
     { id: "encuestador", encabezado: "Encuestador", ancho: 170, celda: ({ u, encuestador }) => (u.role === "titular" ? (encuestador ?? <span className="rec-terr-sin-asignar">Sin asignar</span>) : null) },
-    { id: "observacion", encabezado: "Observación", ancho: 140, celda: ({ estado }) => (estado && estado.tono !== "ok" ? <span className="rec-terr-estado" data-estado={estado.tono}>{estado.motivo}</span> : null) },
+    { id: "observacion", encabezado: "Observación", ancho: 140, celda: ({ estado }) => {
+      const obs = observacionDe(estado);
+      return obs ? <span className="rec-terr-estado" data-estado={obs.tono}>{obs.motivo}</span> : null;
+    } },
     { id: "hoja", encabezado: "Hoja", ancho: 90, celda: ({ u }) => (
       <Link className="rec-terr-ump-hoja" to={hrefDeHoja(u.unit_id)} aria-label={`Ver la hoja de ${u.label}`} onClick={(e) => e.stopPropagation()}>
         <FileText size={13} aria-hidden /> Hoja
       </Link>
     ) },
   ];
+  return conObservacion ? columnas : columnas.filter((c) => c.id !== "observacion");
 }
 
 export function UnidadesTerritoriales({ unidades, sinFuente, foco, hrefDeFoco, hrefDeHoja, hrefDeReemplazo, hrefSinFoco, supuestos, encuestadorDe = SIN_ENCUESTADOR }: Props) {
@@ -112,7 +117,8 @@ export function UnidadesTerritoriales({ unidades, sinFuente, foco, hrefDeFoco, h
   const conteo = useMemo(() => contarVistas(units, revision.rutasPorRevisar, encuestadorDe), [units, revision, encuestadorDe]);
   const enfocada = unidadDelFoco(units, foco);
   const navigate = useNavigate();
-  const columnas = useMemo(() => columnasDe(hrefDeHoja), [hrefDeHoja]);
+  const conObservacion = useMemo(() => hayObservaciones(revision.porUnidad), [revision]);
+  const columnas = useMemo(() => columnasDe(hrefDeHoja, conObservacion), [hrefDeHoja, conObservacion]);
   // M7: el orden de la lista (todas las UMP, titular y sus reemplazos) para pasar de hoja en hoja.
   const orden = useMemo(() => agruparUnidades(units).flatMap((g) => [...g.titulares.flatMap(({ titular, reemplazos }) => [titular, ...reemplazos]), ...g.sueltos].map((u) => u.unit_id)), [units]);
   const iFoco = foco ? orden.indexOf(foco) : -1;

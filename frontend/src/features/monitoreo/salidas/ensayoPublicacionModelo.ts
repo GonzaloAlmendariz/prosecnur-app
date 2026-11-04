@@ -3,8 +3,10 @@
 // Aplicar; el diálogo solo pinta lo que devuelve este módulo.
 
 import type { EnsayoPestana, EnsayoPublicacion } from "../../../api/monitoreoPublicarEnsayo";
+import { enumerar } from "../../../lib/enumerar";
+import { formatoConteo } from "../../../lib/formatoNumero";
 
-const fmt = (n: number) => n.toLocaleString("es-PE");
+const fmt = (n: number) => formatoConteo(n);
 
 const plural = (n: number, uno: string, varios: string) => `${fmt(n)} ${n === 1 ? uno : varios}`;
 
@@ -37,7 +39,7 @@ export function lineaPestana(p: EnsayoPestana): string {
   const columnas = p.columnasCambiadas.length
     ? ` ${plural(p.columnasCambiadas.length, "columna cambia", "columnas cambian")} de rótulo.`
     : "";
-  return `${partes.length ? partes.join(" · ") : "Solo cambia la cabecera"}.${encoge}${columnas}`;
+  return `${partes.length ? enumerar(partes) : "Solo cambia la cabecera"}.${encoge}${columnas}`;
 }
 
 /** Cómo se identificó cada fila: el lector tiene que saber qué es «cambiada». */

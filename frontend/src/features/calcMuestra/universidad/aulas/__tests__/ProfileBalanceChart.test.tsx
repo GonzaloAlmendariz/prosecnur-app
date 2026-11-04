@@ -56,7 +56,7 @@ describe("ProfileBalanceChart · la dimensión se dice una vez", () => {
     const html = renderToStaticMarkup(
       <ProfileBalanceChart rows={[fila("DERECHO", { frame_prop: 0.08, selected_prop: 0.11 })]} />,
     );
-    expect(html).toContain("marco 8.0% · muestra 11.0%");
+    expect(html).toContain("marco 8.0%, muestra 11.0%");
     expect(html).toContain("3.0% de brecha");
   });
 

@@ -93,7 +93,7 @@ export function instantaneaDeSorteo(sample: HojasRutaSamplePreview, config: Hoja
   for (const b of sample.replacement_blocks ?? []) fila(b.ubigeo, b.distrito).reemplazos += 1;
   return {
     id,
-    label: `${etiqueta} · N ${fmt(sample.total_entrevistas)} · ${fmt(sample.n_blocks)} manzanas`,
+    label: `${etiqueta}, N ${fmt(sample.total_entrevistas)}, ${fmt(sample.n_blocks)} manzanas`,
     created_at: ahora.toISOString(),
     seed: Number(sample.seed ?? config.seed ?? 0),
     method: sample.method,

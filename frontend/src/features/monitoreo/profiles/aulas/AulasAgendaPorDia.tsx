@@ -112,8 +112,8 @@ export function AulasAgendaPorDia({ filas, totalDelPlan = 0, recorte }: {
       <details className="aulas-agenda-detalle" open={!compacto}>
         <summary className="aulas-agenda-lectura">
           <strong>{diasDeCampo}</strong> {diasDeCampo === 1 ? "día de campo" : "días de campo"}
-          {desde ? <> · de {desde} a {hasta}</> : null}
-          {sinFecha ? <> · <strong>{sinFecha}</strong> sin fecha</> : null}
+          {desde ? <>, de {desde} a {hasta}</> : null}
+          {sinFecha ? <>, <strong>{sinFecha}</strong> sin fecha</> : null}
           {/* **El recorte del payload se declara donde se ven sus cifras.**
               `course_status` llega topeado a 500 filas, así que «sin fecha» y
               el reparto de la leyenda están contados sobre lo que cupo, no
@@ -124,7 +124,7 @@ export function AulasAgendaPorDia({ filas, totalDelPlan = 0, recorte }: {
               exactamente 500 − 145. Dos cifras para lo mismo, factor 12, sin
               que nada avisara de que una está recortada. */}
           {recorte && recorte.recibidas < recorte.total ? (
-            <> · <em className="aulas-agenda-recorte">
+            <>, <em className="aulas-agenda-recorte">
               contado sobre {fmt(recorte.recibidas)} de {fmt(recorte.total)} cursos-horario del plan
             </em></>
           ) : null}

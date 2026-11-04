@@ -22,6 +22,7 @@ import { useColumnasSupervision } from "./useColumnasSupervision";
 import "../styles/recopiladores-shell.css";
 import "../territorial/territorial.css";
 import "../telefonica/telefonica.css";
+import { CargaDeBloque } from "../../../components/CargaDeBloque";
 
 const COPIA: Record<SeccionSupervision, { title: string; lead: string }> = {
   columnas: { title: "Columnas", lead: "Qué lleva la base: del barrido, de los resultados y las tres de la supervisión." },
@@ -85,6 +86,7 @@ export function CampanaSupervisionShell({ campana, cabecera = null }: Props) {
             />
           )}
           acciones={[{ id: "refresh", label: "Actualizar", icon: RefreshCw, onSelect: () => { void recargar(); }, kind: "ghost", rank: 2, busy: cargando }]}
+          slotDeEstado
           estado={estado?.sin_lote ? [{ id: "supervision-lote", label: "Sin lote", tone: "warn" }] : []}
           ariaLabel="Controles de la supervisión"
         />
@@ -95,7 +97,7 @@ export function CampanaSupervisionShell({ campana, cabecera = null }: Props) {
           <div className="rec-terr-seccion">
             {error ? <p className="rec-terr-error" role="alert">{error}</p> : null}
             <div className="rec-terr-tarjetas" data-qa-geometry-group={`material-campo/supervision/${seccion}`} data-qa-geometry-contract="intrinsic">
-              {!columnas ? (cargando ? <p className="rec-terr-nota">Leyendo las columnas…</p> : null) : seccion === "columnas" ? (
+              {!columnas ? (cargando ? <CargaDeBloque label="Leyendo las columnas…" /> : null) : seccion === "columnas" ? (
                 <ColumnasSupervision columnas={columnas} guardando={guardando} onGuardar={(e) => void guardar(e)} />
               ) : (
                 <EntregaSupervision campaignId={campana.id} columnas={columnas} casos={casos} sinLote={Boolean(estado?.sin_lote)} loteId={estado?.lote_id ?? ""} />

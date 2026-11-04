@@ -145,7 +145,7 @@ export function ManzanasInspector({ guardada, config, muestra, viviendas, manzan
               <div><small>Reemplazos</small><strong>{fmt(muestra.n_replacement_blocks ?? 0)}</strong></div>
               <div><small>Entrevistas</small><strong>{fmt(muestra.total_entrevistas)}</strong></div>
             </div>
-            <p className="hr-mapa-nota">{metodoDe(muestra.method)} · semilla {muestra.seed}{sorteadaEl ? ` · sorteada el ${sorteadaEl}` : ""}{vigente ? "" : " · cambiaste parámetros: sortea de nuevo para verlos"}</p>
+            <p className="hr-mapa-nota">{metodoDe(muestra.method)}, semilla {muestra.seed}{sorteadaEl ? `, sorteada el ${sorteadaEl}` : ""}{vigente ? "" : ", cambiaste parámetros: sortea de nuevo para verlos"}</p>
           </section>
         ) : (
           <ol className="hr-mapa-pasos">
@@ -324,7 +324,7 @@ export function ManzanasEstructura({ muestra, historial, territorios, nFinal, co
                 <li key={h.id} data-vigente={vigente(h) || undefined}>
                   <span>
                     <strong>{h.label}</strong>
-                    <small>{metodoDe(h.method)} · semilla {h.seed} · {fmt(h.n_replacement_blocks)} reemplazos{nFinal != null && h.n_final !== nFinal ? ` · con N ${fmt(h.n_final)}` : ""}</small>
+                    <small>{metodoDe(h.method)}, semilla {h.seed}, {fmt(h.n_replacement_blocks)} reemplazos{nFinal != null && h.n_final !== nFinal ? `, con N ${fmt(h.n_final)}` : ""}</small>
                   </span>
                   {vigente(h) ? (
                     <em>En uso</em>
@@ -365,7 +365,7 @@ export function ManzanasEstructura({ muestra, historial, territorios, nFinal, co
                 <span className="hr-sorteo-dist-copia">
                   <strong>{nombreDistrito(f.distrito)}</strong>
                   <small>
-                    {fmt(f.entrevistas)} entrevistas{f.reemplazos ? ` · ${fmt(f.reemplazos)} reemplazo${f.reemplazos === 1 ? "" : "s"}` : ""}
+                    {fmt(f.entrevistas)} entrevistas{f.reemplazos ? `, ${fmt(f.reemplazos)} reemplazo${f.reemplazos === 1 ? "" : "s"}` : ""}
                   </small>
                 </span>
                 <span className="hr-sorteo-dist-cifra">

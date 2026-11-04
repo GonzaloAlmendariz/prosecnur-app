@@ -9,7 +9,7 @@
   border-radius: var(--pulso-radius);
   background: var(--pulso-surface-2);
   color: var(--pulso-text-soft);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   white-space: nowrap;
   flex: none;
 }
@@ -32,4 +32,11 @@
   background: var(--pulso-warn-bg);
   border-color: var(--pulso-warn-border);
   color: var(--pulso-warn-fg);
+}
+
+/* A 1024 la barra de la campaña territorial recortaba «Entrega» (C4, revisión de D16): en ancho
+   compacto el chip se queda con el punto del módulo y el dato; el rótulo sigue en el tooltip y en
+   el aria-label. Mismo quiebre que useDensidadDelChrome (ANCHO_COMPACTO). Sin dato no se toca. */
+@media (max-width: 1120px) {
+  .rec-entrada:has(> b) > span { display: none; }
 }

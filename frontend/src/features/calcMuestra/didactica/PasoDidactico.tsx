@@ -48,7 +48,7 @@ export function RespaldoMetodologico({ paso }: { paso: PasoId }) {
             {fuentes.map((f) => (
               <li key={f.id} title={f.descripcion}>
                 {f.titulo}
-                {f.secciones ? ` · ${f.secciones}` : ""}
+                {f.secciones ? `, ${f.secciones}` : ""}
               </li>
             ))}
           </ul>

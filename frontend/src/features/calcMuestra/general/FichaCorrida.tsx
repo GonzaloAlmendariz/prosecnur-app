@@ -4,6 +4,7 @@ import { Download, Loader2, Shuffle } from "lucide-react";
 import type { CalcMuestraComponente } from "../../../api/calcMuestra";
 import { apiCalcMuestraGeneralExportar, type CalcMuestraGeneralCorrida } from "../../../api/calcMuestraGeneral";
 import { downloadUrl } from "../../../api/core";
+import { Panel } from "../../../components/Panel";
 import { EmptyState } from "../../../components/States";
 import { fmtDec, fmtInt } from "../sharedCore";
 import { AvisoModulo } from "../universidad/shared/AvisoModulo";
@@ -68,14 +69,17 @@ export function FichaCorrida({
   }
 
   return (
-    <section className="cmv2-panel cmg-ficha" aria-labelledby="cmg-ficha-titulo" data-qa-geometry-member>
-      <div className="cmv2-panel-head">
-        <div>
-          <span className="cmv2-eyebrow">Selección vigente</span>
-          <h3 id="cmg-ficha-titulo" className="cmg-panel-titulo cmv2-uni-swap" data-cambiando={tituloCambiando || undefined}>
-            {nombre ? nombre.titulo : "Sin selección"}
-          </h3>
-        </div>
+    <Panel
+      className="cmg-ficha"
+      aria-labelledby="cmg-ficha-titulo"
+      data-qa-geometry-member
+      eyebrow="Selección vigente"
+      title={(
+        <span id="cmg-ficha-titulo" className="cmv2-uni-swap" data-cambiando={tituloCambiando || undefined}>
+          {nombre ? nombre.titulo : "Sin selección"}
+        </span>
+      )}
+      actions={(
         <div className="cmv2-panel-head-actions cmg-exportar">
           <button
             type="button"
@@ -97,7 +101,8 @@ export function FichaCorrida({
                 : "Selección, memoria de cálculo, estratos y listado."}
           </small>
         </div>
-      </div>
+      )}
+    >
 
       {exp.error && <ErrorDelMotor error={exp.error} label="No se pudo exportar el listado" />}
 
@@ -144,12 +149,12 @@ export function FichaCorrida({
 
           <dl className="cmg-traza">
             <div><dt>Modalidad</dt><dd>{nombre?.modalidad}</dd></div>
-            <div><dt>Semilla</dt><dd><code>{c.semilla}</code></dd></div>
-            <div><dt>RNG</dt><dd><code>{partirEnBarras(c.rng_kind)}</code></dd></div>
-            <div><dt>R</dt><dd>{c.r_version || "—"}</dd></div>
-            <div><dt>Identificador</dt><dd><code title={c.run_id}>{hashCorto(c.run_id, 12)}</code></dd></div>
-            <div><dt>Marco</dt><dd><code title={c.marco_hash}>{hashCorto(c.marco_hash)}</code></dd></div>
-            <div><dt>Configuración</dt><dd><code title={c.config_hash}>{hashCorto(c.config_hash)}</code></dd></div>
+            <div><dt>Semilla</dt><dd className="cmg-traza-tecnico">{c.semilla}</dd></div>
+            <div><dt>RNG</dt><dd className="cmg-traza-tecnico">{partirEnBarras(c.rng_kind)}</dd></div>
+            <div><dt>R</dt><dd>{partirVersionR(c.r_version)}</dd></div>
+            <div><dt>Identificador</dt><dd className="cmg-traza-tecnico" title={c.run_id}>{hashCorto(c.run_id, 12)}</dd></div>
+            <div><dt>Marco</dt><dd className="cmg-traza-tecnico" title={c.marco_hash}>{hashCorto(c.marco_hash)}</dd></div>
+            <div><dt>Configuración</dt><dd className="cmg-traza-tecnico" title={c.config_hash}>{hashCorto(c.config_hash)}</dd></div>
             <div><dt>Fecha</dt><dd title={corrida.sorteado_at}>{formatearFechaLocal(corrida.sorteado_at)}</dd></div>
           </dl>
 
@@ -195,14 +200,23 @@ export function FichaCorrida({
           </div>
         </>
       )}
-    </section>
+    </Panel>
   );
 }
 
 /** «Mersenne-Twister/Inversion/Rejection» se parte en las barras, no a mitad de palabra. */
 function partirEnBarras(texto: string) {
   if (!texto) return "—";
-  return texto.split("/").map((parte, i) => (
-    <span key={parte}>{i > 0 && <>/<wbr /></>}{parte}</span>
+  // La barra cierra el tramo anterior: el corte cae entre tramos, no dentro de «/Inversion».
+  const partes = texto.split("/");
+  return partes.map((parte, i) => (
+    <span key={parte}>{parte}{i < partes.length - 1 && <>/<wbr /></>}</span>
   ));
+}
+
+/** «R version 4.5.1 (2025-06-13)»: la fecha no se parte en su guion; el corte va antes del paréntesis. */
+function partirVersionR(texto: string) {
+  if (!texto) return "—";
+  const m = /^(.*?)\s*(\([^)]*\))$/.exec(texto);
+  return m ? <>{m[1]} <span className="cmg-traza-sin-corte">{m[2]}</span></> : texto;
 }

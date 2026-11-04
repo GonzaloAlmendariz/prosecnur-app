@@ -29,7 +29,7 @@ export function pasosDelN(s: SupuestosN): { pasos: Paso[]; n: number } {
   const pasos: Paso[] = [
     {
       titulo: "Muestra simple",
-      formula: "n = z² · p · q ÷ e²",
+      formula: "n = z², p, q ÷ e²",
       cuenta: `${num(s.z, 3)}² × ${num(s.p, 2)} × ${num(1 - s.p, 2)} ÷ ${num(s.margenTotal, 3)}² = ${num(nSimple)}`,
     },
     { titulo: "Diseño de campo (DEFF)", formula: "n × DEFF", cuenta: `${num(nSimple)} × ${num(s.deff, 2)} = ${num(nDiseno)}` },
@@ -38,7 +38,7 @@ export function pasosDelN(s: SupuestosN): { pasos: Paso[]; n: number } {
   if (s.fpc && s.poblacion > 0) {
     const nFpc = (s.poblacion * nDiseno) / (s.poblacion + nDiseno - 1);
     if (Math.ceil(nFpc) !== Math.ceil(nDiseno)) {
-      pasos.push({ titulo: "Población finita (FPC)", formula: "N · n ÷ (N + n − 1)", cuenta: `con N = ${ent(s.poblacion)}: ${num(nFpc)}` });
+      pasos.push({ titulo: "Población finita (FPC)", formula: "N, n ÷ (N + n − 1)", cuenta: `con N = ${ent(s.poblacion)}: ${num(nFpc)}` });
     }
     base = nFpc;
   }

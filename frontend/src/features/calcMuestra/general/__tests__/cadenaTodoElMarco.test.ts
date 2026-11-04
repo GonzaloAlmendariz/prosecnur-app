@@ -19,7 +19,7 @@ function comp(resultado: Partial<Resultado>): Pick<CalcMuestraComponente, "resul
 describe("cadenaDelN · n a campo", () => {
   it("con el marco entero dice «todo el marco» y cuántas completas vuelven", () => {
     const campo = cadenaDelN(comp({ n_objetivo: 1600, n_operativo: 2000, n_completas_esperadas: 1400 }), 2000)[2];
-    expect(campo.detalle).toBe("todo el marco · se esperan 1,400 completas");
+    expect(campo.detalle).toBe("todo el marco, se esperan 1,400 completas");
     expect(campo.detalle).not.toContain("÷ respuesta");
   });
 

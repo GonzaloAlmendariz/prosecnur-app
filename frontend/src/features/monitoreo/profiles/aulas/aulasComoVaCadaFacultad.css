@@ -81,7 +81,7 @@
 }
 .mon-profile-page.is-aulas-flow .aulas-cvf-deuda small {
   display: block;
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: 400;
   color: var(--pulso-text-faint);
   letter-spacing: 0.02em;
@@ -98,7 +98,7 @@
   gap: 7px;
 }
 .mon-profile-page.is-aulas-flow .aulas-cvf-letra {
-  font-size: 10.5px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: 600;
   color: var(--pulso-text-faint);
 }
@@ -135,7 +135,7 @@
   background: var(--pulso-success-fg);
 }
 .mon-profile-page.is-aulas-flow .aulas-cvf-barra b {
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   font-weight: 600;
   text-align: right;
   font-variant-numeric: tabular-nums;
@@ -154,12 +154,12 @@
 .mon-profile-page.is-aulas-flow .aulas-cvf-tasa b.es-bajo { color: var(--pulso-danger-fg); }
 .mon-profile-page.is-aulas-flow .aulas-cvf-tasa b.es-ok { color: var(--pulso-success-fg); }
 .mon-profile-page.is-aulas-flow .aulas-cvf-tasa > span {
-  font-size: 10.5px;
+  font-size: var(--pulso-type-micro-size);
   color: var(--pulso-text-faint);
 }
 
 .mon-profile-page.is-aulas-flow .aulas-cvf-veredicto {
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   font-weight: 600;
   padding: 3px 9px;
   border-radius: 999px;
@@ -235,7 +235,7 @@
   background: var(--module-accent, var(--pulso-primary));
   color: var(--pulso-surface);
   font: inherit;
-  font-size: 12.5px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: 600;
   cursor: pointer;
 }

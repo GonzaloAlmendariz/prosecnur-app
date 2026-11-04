@@ -17,7 +17,7 @@
 .cmv2-umbral-control[data-deshabilitado] { opacity: 0.55; }
 
 .cmv2-umbral-etiqueta {
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   text-transform: uppercase;
   letter-spacing: 0.06em;
   color: var(--pulso-text-muted);
@@ -105,7 +105,7 @@
   background: transparent;
   color: var(--pulso-text);
   font: inherit;
-  font-size: 13px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-semibold);
   font-variant-numeric: tabular-nums;
   text-align: right;
@@ -120,14 +120,14 @@
 .cmv2-umbral-campo:focus-within { border-color: var(--cmv2-accent); }
 .cmv2-umbral-campo em {
   font-style: normal;
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   color: var(--pulso-text-muted);
 }
 
 /* Qué pasa si el valor se queda aquí. Es lo único que justifica una línea más. */
 .cmv2-umbral-efecto {
   margin: 0;
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   line-height: 1.4;
   color: var(--pulso-warn-fg, var(--pulso-text-muted));
 }
@@ -276,7 +276,7 @@ input[type="range"].cmv2-rango-manija:focus-visible::-moz-range-thumb { outline:
 /* G17 · Sospecha de mapeo, no validación: se declara y se deja decidir. */
 .cmv2-umbral-sospecha {
   margin: 2px 0 0;
-  font-size: 10.5px;
+  font-size: var(--pulso-type-micro-size);
   line-height: 1.4;
   color: var(--pulso-warn-fg, var(--pulso-text-muted));
 }

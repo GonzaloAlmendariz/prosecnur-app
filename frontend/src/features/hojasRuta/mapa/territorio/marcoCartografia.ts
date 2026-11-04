@@ -76,7 +76,7 @@ export function describirMarcoCartografia(frame: FrameMeta | null | undefined): 
         ? `${conMiles(soloActiva)} sólo en la activa`
         : `${conMiles(soloActiva)} manzanas sólo en el marco activo`
       : "",
-  ].filter(Boolean).join(" · ");
+  ].filter(Boolean).join(", ");
 
   const resumen = diferencias;
   const detalle = [

@@ -118,8 +118,8 @@ export function AulasCierrePorAgenda({ plan, meta, corte = "", desde = "" }: {
         <strong>{fmt(Math.round(ultimo.acumuladoObservado))}</strong> respuestas
         {metaN != null ? (
           alcanzaObs
-            ? <> · la meta de {fmt(metaN)} <em className="es-sobra">se cubre</em></>
-            : <> · faltarían <em className="es-corto">{fmt(metaN - Math.round(ultimo.acumuladoObservado))}</em> para la meta de {fmt(metaN)}</>
+            ? <>, la meta de {fmt(metaN)} <em className="es-sobra">se cubre</em></>
+            : <>, faltarían <em className="es-corto">{fmt(metaN - Math.round(ultimo.acumuladoObservado))}</em> para la meta de {fmt(metaN)}</>
         ) : null}
       </p>
 

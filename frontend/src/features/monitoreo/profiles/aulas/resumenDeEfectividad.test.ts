@@ -178,7 +178,7 @@ describe("repartoDeSenales", () => {
     // Las quince de HSVG2026 tienen el punto por encima o por debajo, y el
     // motor declara «conforme» a casi todas porque la banda las contiene.
     const r = repartoDeSenales(con(["conforme", "conforme", "sobre", "bajo"]))!;
-    expect(r.frase).toBe("De 4 facultades: 2 como lo previsto · 1 por encima · 1 por debajo.");
+    expect(r.frase).toBe("De 4 facultades: 2 como lo previsto, 1 por encima y 1 por debajo.");
   });
 
   it("las que no tienen vara se cuentan aparte, no como conformes", () => {

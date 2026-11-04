@@ -206,7 +206,7 @@ export const METODO_GOO_ESQUEMAS: Record<MetodoGooId, MetodoGooEsquemaDef> = {
 };
 
 /** La declaración C1 de estos esquemas; visible siempre, también en estático. */
-export const METODO_GOO_DECLARACION = "esquema ilustrativo · no son aulas reales";
+export const METODO_GOO_DECLARACION = "esquema ilustrativo, no son aulas reales";
 
 /**
  * Qué representa cada elemento del dibujo.

@@ -81,7 +81,7 @@ describe("routeCoverageModel", () => {
       replacement_order: 1,
       titular_hoja_num: 50,
       ump: "50",
-    }))).toBe("UMP 50 · R1");
+    }))).toBe("UMP 50, R1");
   });
 
   it("builds coverage totals by district, zones, sex and age", () => {

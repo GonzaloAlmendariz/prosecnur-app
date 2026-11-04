@@ -9,7 +9,7 @@
 .mon-acr-sheet-aviso {
   display: block;
   margin-top: 4px;
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   line-height: 1.4;
   color: var(--pulso-warn-fg);
 }

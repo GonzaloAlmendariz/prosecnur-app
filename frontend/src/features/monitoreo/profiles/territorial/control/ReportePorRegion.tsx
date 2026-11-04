@@ -8,7 +8,7 @@ export function ReportePorRegion({ filas }: { filas: FilaDeRegion[] }) {
   return (
     <details className="mon-eq-region" open>
       <summary>
-        Por región · {fmt(filas.length)} regiones{conAlerta ? `, ${fmt(conAlerta)} con UMP que no cuadran` : ""}
+        Por región, {fmt(filas.length)} regiones{conAlerta ? `, ${fmt(conAlerta)} con UMP que no cuadran` : ""}
       </summary>
       <div className="mon-eq-tabla-marco" data-qa-geometry-capacity="owned" tabIndex={0} aria-label="Control por región, con desplazamiento">
         <table className="mon-eq-tabla">

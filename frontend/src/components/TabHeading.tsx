@@ -122,7 +122,7 @@ export function detalleUtil(titulo: string, detalle: string | undefined): string
   return normalizar(detalle) === normalizar(titulo) ? null : detalle;
 }
 
-/** «Carga · pestaña 2 de 5», o solo «Carga» si falta alguno de los dos números. */
+/** «Carga, pestaña 2 de 5», o solo «Carga» si falta alguno de los dos números. Sin «·»: Gonzalo no lo quiere como separador. */
 export function textoEyebrow(eyebrow: string, pestanaN?: number, pestanaDe?: number): string {
   const tieneNumeracion =
     typeof pestanaN === "number"
@@ -132,7 +132,7 @@ export function textoEyebrow(eyebrow: string, pestanaN?: number, pestanaDe?: num
     && pestanaN >= 1
     && pestanaDe >= pestanaN;
   if (!tieneNumeracion) return eyebrow;
-  return eyebrow ? `${eyebrow} · pestaña ${pestanaN} de ${pestanaDe}` : `Pestaña ${pestanaN} de ${pestanaDe}`;
+  return eyebrow ? `${eyebrow}, pestaña ${pestanaN} de ${pestanaDe}` : `Pestaña ${pestanaN} de ${pestanaDe}`;
 }
 
 /** Cuántos chips no-forzados se muestran sueltos, por densidad. */

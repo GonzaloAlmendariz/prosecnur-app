@@ -1,6 +1,7 @@
 import { PulsoButton } from "../../../../components/PulsoButton";
 import { PiramidePoblacion } from "./PiramidePoblacion";
-import { Info, Table2, Users } from "../../../../vendor/lucide-react";
+import { Info, Plus, Table2, Users, X } from "../../../../vendor/lucide-react";
+import "./rangosDeEdad.css";
 import { InspectorCabecera } from "../InspectorCabecera";
 import { PulsoSwitch } from "../../../../components/PulsoSwitch";
 import type { HojasRutaAgeRange, HojasRutaAgeRangeMode, HojasRutaAgeRangeScope, HojasRutaAlert, HojasRutaIntegratedConfig } from "../../../../api/hojasRuta";
@@ -43,6 +44,7 @@ export function PoblacionEstructura({ rangosConfig, config, matriz, bloqueado }:
   const enCortes = modo !== "manual";
   const rangos = rangosBorrador ?? [...rangosConfig];
   const problemas = problemasDeRangos(rangos);
+  const pesoMayor = Math.max(1, ...(matriz.vigente ? matriz.pesoPorRango : [1]));
   const editar = (i: number, campo: "min" | "max", texto: string) => {
     const n = Number(texto);
     if (texto === "" || !Number.isFinite(n)) return;
@@ -54,7 +56,7 @@ export function PoblacionEstructura({ rangosConfig, config, matriz, bloqueado }:
       <div className="hr-mapa-cab hr-mapa-cab--pila">
         <div className="hr-mapa-cab-titulo">
           <h2>Rangos de edad</h2>
-          <small>{rangos.length} rangos{matriz.vigente ? ` · ${fmt(matriz.total)} personas` : ""}</small>
+          <small>{rangos.length} rangos{matriz.vigente ? `, ${fmt(matriz.total)} personas` : ""}</small>
         </div>
         <GlidingRadioGroup
           value={enCortes ? "cortes" : "manual"}
@@ -142,43 +144,51 @@ export function PoblacionEstructura({ rangosConfig, config, matriz, bloqueado }:
         {problemas.map((p) => (
           <p key={p.texto} className="hr-mapa-aviso">{p.texto}</p>
         ))}
-        <ul className="hr-edad-lista">
-          {rangos.map((r, i) => (
-            <li key={`${i}-${r.id}`}>
-              <i data-tono={Math.min(5, Math.round((i / Math.max(1, rangos.length - 1)) * 5))} />
-              <span className="hr-edad-campos">
-                <input type="number" min={0} max={110} aria-label={`Desde, rango ${i + 1}`} value={r.min} disabled={bloqueado} onChange={(e) => editar(i, "min", e.target.value)} />
-                <span>a</span>
-                {r.max == null ? (
-                  <button type="button" className="hr-edad-abierto" disabled={bloqueado} title="Ponerle un tope" onClick={() => setRangosBorrador(editarRango(rangos, i, "max", r.min + 9))}>
-                    y más
-                  </button>
-                ) : (
-                  <input type="number" min={r.min} max={110} aria-label={`Hasta, rango ${i + 1}`} value={r.max} disabled={bloqueado} onChange={(e) => editar(i, "max", e.target.value)} />
-                )}
-              </span>
-              <span className="hr-edad-peso">
-                {matriz.vigente ? (
-                  <>
-                    <b>{fmt(matriz.pesoPorRango[i])}</b>
-                    <small>{pct(matriz.pesoPorRango[i], matriz.total)}</small>
-                  </>
-                ) : (
-                  <small>—</small>
-                )}
-              </span>
-              <PulsoButton variant="icon" intent="remove" size="sm" aria-label={`Quitar el rango ${r.label}`} disabled={bloqueado || rangos.length <= 1} onClick={() => setRangosBorrador(rangos.filter((_, k) => k !== i))}>
-                ×
-              </PulsoButton>
-            </li>
-          ))}
-        </ul>
-        <div className="hr-mapa-acciones">
-          <PulsoButton variant="secondary" size="sm" disabled={bloqueado} onClick={() => setRangosBorrador(agregarRango(rangos))}>
-            Agregar rango
+        {/* Cada rango: su tono, su edad y lo que pesa en la población objetivo,
+            escrito y dibujado (Gonzalo, 3/11: «a esta columna le falta formato»). */}
+        <div className="hr-rangos" role="table" aria-label="Rangos de edad y su población objetivo">
+          <div className="hr-rangos-cabeza" role="row">
+            <span role="columnheader">Edad</span>
+            <span role="columnheader" className="is-num">Población objetivo</span>
+          </div>
+          {rangos.map((r, i) => {
+            const peso = matriz.vigente ? matriz.pesoPorRango[i] : null;
+            const tono = Math.min(5, Math.round((i / Math.max(1, rangos.length - 1)) * 5));
+            return (
+              <div key={`${i}-${r.id}`} className="hr-rangos-fila" role="row" data-tono={tono}>
+                <span className="hr-rangos-edad" role="cell">
+                  <input type="number" min={0} max={110} aria-label={`Desde, rango ${i + 1}`} value={r.min} disabled={bloqueado} onChange={(e) => editar(i, "min", e.target.value)} />
+                  <span aria-hidden="true">–</span>
+                  {r.max == null ? (
+                    <button type="button" className="hr-rangos-abierto" disabled={bloqueado} title="Ponerle un tope" onClick={() => setRangosBorrador(editarRango(rangos, i, "max", r.min + 9))}>
+                      y más
+                    </button>
+                  ) : (
+                    <input type="number" min={r.min} max={110} aria-label={`Hasta, rango ${i + 1}`} value={r.max} disabled={bloqueado} onChange={(e) => editar(i, "max", e.target.value)} />
+                  )}
+                  <small>años</small>
+                </span>
+                <span className="hr-rangos-peso" role="cell">
+                  {peso != null ? (
+                    <>
+                      <span className="hr-rangos-cifras"><b>{fmt(peso)}</b><small>{pct(peso, matriz.total)}</small></span>
+                      <i className="hr-rangos-barra" aria-hidden="true"><i style={{ width: `${Math.min(100, (100 * peso) / pesoMayor)}%` }} /></i>
+                    </>
+                  ) : <small>sin calcular</small>}
+                </span>
+                <button type="button" className="hr-rangos-quitar" aria-label={`Quitar el rango ${r.label}`} title="Quitar el rango" disabled={bloqueado || rangos.length <= 1} onClick={() => setRangosBorrador(rangos.filter((_, k) => k !== i))}>
+                  <X size={14} aria-hidden />
+                </button>
+              </div>
+            );
+          })}
+        </div>
+        <div className="hr-rangos-acciones">
+          <PulsoButton variant="ghost" size="sm" disabled={bloqueado} onClick={() => setRangosBorrador(agregarRango(rangos))}>
+            <Plus size={14} aria-hidden /> Agregar rango
           </PulsoButton>
           {rangos[rangos.length - 1]?.max != null ? (
-            <PulsoButton variant="secondary" size="sm" disabled={bloqueado} onClick={() => setRangosBorrador(editarRango(rangos, rangos.length - 1, "max", null))}>
+            <PulsoButton variant="ghost" size="sm" disabled={bloqueado} onClick={() => setRangosBorrador(editarRango(rangos, rangos.length - 1, "max", null))}>
               Abrir el último
             </PulsoButton>
           ) : null}
@@ -208,17 +218,25 @@ type InspectorProps = {
   guardando: boolean;
   hayMuestra: boolean;
   onGuardarYCalcular: (cambios: Partial<HojasRutaIntegratedConfig>) => void;
+  /**
+   * ADR 0126: declara si sexo o edad se exigen o sólo se describen. Guardado
+   * liviano: no cambia la población, así que no recalcula ni descarta nada.
+   */
+  onGuardarCaracter?: (caracter: NonNullable<HojasRutaIntegratedConfig["caracter_cuotas"]>) => void;
   /** P5: los avisos que devolvió el cálculo de la matriz (`population.alerts`). */
   avisos?: readonly HojasRutaAlert[];
 };
 
-export function PoblacionInspector({ config, rangosConfig, matriz, poblacionDistritos, bloqueado, guardando, hayMuestra, avisos, onGuardarYCalcular }: InspectorProps) {
+export function PoblacionInspector({ config, rangosConfig, matriz, poblacionDistritos, bloqueado, guardando, hayMuestra, avisos, onGuardarYCalcular, onGuardarCaracter }: InspectorProps) {
   const { rangosBorrador, setRangosBorrador, cajonPoblacion, setCajonPoblacion } = useLienzoHojasRuta();
   const { modo, base, pendiente, deshacer } = useModoRangos(config);
   const rangos = rangosBorrador ?? rangosConfig;
   const cambiaron = pendiente || firmaRangos(rangos) !== firmaRangos(rangosConfig);
   const conProblemas = modo === "manual" && problemasDeRangos(rangos).length > 0;
   const sexo = config.subquota_var !== "ninguna";
+  const caracter = config.caracter_cuotas ?? {};
+  const declarar = (dim: "sexo" | "edad", referencial: boolean) =>
+    onGuardarCaracter?.({ ...caracter, [dim]: referencial ? "referencial" : "meta" });
 
   return (
     <>
@@ -239,10 +257,24 @@ export function PoblacionInspector({ config, rangosConfig, matriz, poblacionDist
         <PulsoSwitch label="Dividir por sexo" size="sm" checked={sexo} disabled={bloqueado || guardando} onCheckedChange={(v) => onGuardarYCalcular({ subquota_var: v ? "sexo" : "ninguna" })} />
         {matriz.vigente ? (
           <PulsoButton variant="secondary" onClick={() => setCajonPoblacion(cajonPoblacion ? null : "matriz")} aria-pressed={Boolean(cajonPoblacion)}>
-            <Table2 size={14} aria-hidden /> {cajonPoblacion ? "Ocultar la matriz" : `Ver la matriz · ${matriz.filas.length} distritos`}
+            <Table2 size={14} aria-hidden /> {cajonPoblacion ? "Ocultar la matriz" : `Ver la matriz, ${matriz.filas.length} distritos`}
           </PulsoButton>
         ) : null}
         {matriz.vigente && sexo && !cambiaron ? <PiramidePoblacion filas={matriz.filas} rangos={rangosConfig} /> : null}
+        {onGuardarCaracter ? (
+          <>
+            {/* ADR 0126: qué de la cuota se exige y qué sólo se describe. */}
+            <h3 className="hr-mapa-subtitulo">Qué se exige</h3>
+            {sexo ? (
+              <PulsoSwitch label="Sexo como referencia, sin exigirlo" size="sm" checked={caracter.sexo === "referencial"} disabled={bloqueado || guardando} onCheckedChange={(v) => declarar("sexo", v)} />
+            ) : null}
+            <PulsoSwitch label="Edad como referencia, sin exigirla" size="sm" checked={caracter.edad === "referencial"} disabled={bloqueado || guardando} onCheckedChange={(v) => declarar("edad", v)} />
+            <p className="hr-mapa-fuente">
+              <Info size={14} aria-hidden />
+              <span>El total de cada zona siempre se exige. Llega a Monitoreo con el próximo envío.</span>
+            </p>
+          </>
+        ) : null}
         {cambiaron || !matriz.vigente ? (
           hayMuestra ? <p className="hr-mapa-aviso">Calcular con estos rangos recalcula la población y descarta el tamaño, las cuotas y el sorteo actual.</p> : null
         ) : null}

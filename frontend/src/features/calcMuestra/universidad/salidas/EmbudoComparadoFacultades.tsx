@@ -110,7 +110,7 @@ export function EmbudoComparadoFacultades({
             disabled
             title={`${p.titulo}: sin histórico por diseño — no hay con qué comparar`}
           >
-            {p.n}. {p.titulo} · sin histórico
+            {p.n}. {p.titulo}, sin histórico
           </button>
         ))}
       </nav>

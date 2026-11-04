@@ -7,6 +7,7 @@
  */
 
 import type { MonitoreoConfig, MonitoreoProfile } from "../../../../../../api/client";
+import { formatoDecimal } from "../../../../../../lib/formatoNumero";
 
 export type ClaveDeAlerta = "no_answer_min_attempts" | "unassigned_cases_min" | "no_sweep_min_cases" | "no_sweep_pct" | "daily_effective_diff_min";
 
@@ -144,5 +145,5 @@ export function enMinutos(segundos: string): string {
   const n = numero(segundos);
   if (n == null) return "";
   const minutos = n / 60;
-  return `${minutos.toLocaleString("es-PE", { maximumFractionDigits: 1 })} min`;
+  return `${formatoDecimal(minutos, 1)} min`;
 }

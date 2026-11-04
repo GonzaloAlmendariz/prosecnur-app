@@ -62,7 +62,7 @@ function BarrasVariable({
                 </span>
               </span>
               <span className="cmv2-relato-balance-cifras">
-                marco {fmtPct(categoria.marcoPct)} · muestra{" "}
+                marco {fmtPct(categoria.marcoPct)}, muestra{" "}
                 {ensambladas >= serie.length
                   ? `${fmtPct(categoria.muestraPct)} (${fmtInt(categoria.muestraN)})`
                   : fmtPct(muestraParcialPct)}
@@ -100,7 +100,7 @@ export function EnsamblajeBalanceado({
         )}
         <RelatoCifra
           label="Variables de balance declaradas"
-          valor={balance.declaradas.length ? balance.declaradas.join(" · ") : "—"}
+          valor={balance.declaradas.length ? balance.declaradas.join(", ") : "—"}
         />
       </div>
       <p className="cmv2-relato-nota">

@@ -18,6 +18,7 @@
  * afirmación útil, porque dice dónde no hay con qué comparar.
  */
 import type { CriterioGeneralFila } from "./CriteriosGeneralesCard";
+import { fmtInt } from "../../sharedCore";
 
 const ETIQUETA_FACULTAD: Record<string, string> = {};
 
@@ -47,7 +48,7 @@ function describeCategorias(crit: Record<string, unknown> | undefined): string {
     if (String(e.op) === "replace") return `${etiqueta}: sólo ${suyas}`;
     return `${etiqueta}: además ${suyas}`;
   });
-  return base ? `${base} · ${partes.join(" · ")}` : partes.join(" · ");
+  return base ? `${base}, ${partes.join(", ")}` : partes.join(", ");
 }
 
 /** Rangos de nivel por facultad, resumidos sin enumerar las quince. */
@@ -71,8 +72,8 @@ function describeNivel(ranges: unknown): string {
     }
   }
   const base = tramos.size ? `niveles ${[...tramos].join(", ")}` : "";
-  const ex = exentas.length ? `${exentas.length} facultad${exentas.length === 1 ? "" : "es"} exenta${exentas.length === 1 ? "" : "s"}` : "";
-  return [base, ex].filter(Boolean).join(" · ");
+  const ex = exentas.length ? `${fmtInt(exentas.length)} facultad${exentas.length === 1 ? "" : "es"} exenta${exentas.length === 1 ? "" : "s"}` : "";
+  return [base, ex].filter(Boolean).join(", ");
 }
 
 /** Mínimo por aula: umbral general y cuántas facultades tienen el suyo. */
@@ -82,7 +83,7 @@ function describeMinimo(min: Record<string, unknown> | undefined): string {
   const by = (min.byFaculty ?? {}) as Record<string, unknown>;
   const n = Object.keys(by).length;
   if (!Number.isFinite(thr)) return "";
-  const propios = n ? ` · ${n} facultad${n === 1 ? "" : "es"} con mínimo propio` : "";
+  const propios = n ? `, ${n} facultad${n === 1 ? "" : "es"} con mínimo propio` : "";
   return `${thr} elegibles${propios}`;
 }
 

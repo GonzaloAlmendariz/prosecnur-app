@@ -38,7 +38,8 @@ describe("cruce de alumnos por carrera", () => {
     const t = texto(renderToStaticMarkup(<AulasCrucePorCarrera bloque={BLOQUE} />));
     expect(t).toContain("1 persona respondió dos veces");
     // Y en su fila: en el total sola no se puede ir a buscar.
-    expect(t).toContain("ECONOMÍA · 1 repetida");
+    // `texto()` cambia cada etiqueta por un espacio: en pantalla la coma va pegada.
+    expect(t).toMatch(/ECONOMÍA ?, 1 repetida/);
   });
 
   it("sin población del padrón pone un guion, no un cero", () => {
@@ -154,7 +155,7 @@ describe("el detalle: quién respondió, cuándo y desde dónde", () => {
     const t = texto(renderToStaticMarkup(<AulasCrucePorCarrera bloque={conDetalle} />));
     expect(t).toContain("20243380");
     expect(t).toContain("nivel 6");
-    expect(t).toContain("2026-09-22 · 11:40");
+    expect(t).toContain("2026-09-22, 11:40");
     expect(t).toContain("CH 7");
   });
 

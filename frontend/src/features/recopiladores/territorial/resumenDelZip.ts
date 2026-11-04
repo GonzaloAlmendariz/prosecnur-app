@@ -14,5 +14,5 @@ export function resumenDelZip(r: Pick<HojasRutaJobResult, "n_pdfs" | "n_zone_pdf
   partes.push(`${fmt(r.total_entrevistas)} entrevistas`);
   if (typeof r.frame_version === "string" && r.frame_version.trim() && r.frame_version !== "NA") partes.push(`marco ${r.frame_version.trim()}`);
   partes.push(peso);
-  return partes.join(" · ");
+  return partes.join(", ");
 }

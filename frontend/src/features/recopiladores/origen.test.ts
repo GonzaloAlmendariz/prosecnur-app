@@ -114,13 +114,13 @@ describe("normalizeCollectionOrigen", () => {
 describe("de dónde salen", () => {
   it("nombra la fuente en el idioma de quien la usa", () => {
     const o = origenDe();
-    expect(tituloDeLaFuente(o)).toBe("Selección de cursos-horario · Cálculo de muestra");
-    expect(detalleDeLaFuente(o)).toBe("2,616 unidades · sorteo del 21/8/2026 · la lista no se edita aquí".replace("2,616", (2616).toLocaleString("es-PE")));
+    expect(tituloDeLaFuente(o)).toBe("Selección de cursos-horario, de Cálculo de muestra");
+    expect(detalleDeLaFuente(o)).toBe("2,616 unidades, sorteo del 21/8/2026 y la lista no se edita aquí".replace("2,616", (2616).toLocaleString("es-PE")));
   });
 
   it("si manda Monitoreo, lleva a su agenda", () => {
     const o = origenDe({ fuente: { ...ORIGEN_CAMBIO_CRUDO.fuente, modulo: "monitoreo", origen: "monitoreo_aulas_plan" } });
-    expect(tituloDeLaFuente(o)).toBe("Agenda de cursos-horario · Monitoreo");
+    expect(tituloDeLaFuente(o)).toBe("Agenda de cursos-horario, de Monitoreo");
     expect(enlacesDeLaFuente(o).modulo?.to).toBe("/monitoreo?modo=aulas&seccion=control&pestana=agenda");
   });
 
@@ -190,7 +190,7 @@ describe("la lista de diferencias", () => {
   it("todas, en orden: altas, bajas, cambios, roles", () => {
     const filas = filasDeDiferencias(origenDe(), "todas");
     expect(filas.map((f) => f.rotulo)).toEqual(["Entra", "Entra", "Cambia", "Cambia", "Rol"]);
-    expect(filas[0]).toMatchObject({ codigo: "CH 191", que: "Banco · Cálculo I · Ingeniería" });
+    expect(filas[0]).toMatchObject({ codigo: "CH 191", que: "Banco, Cálculo I, Ingeniería" });
     expect(filas[2]).toMatchObject({ codigo: "CH 19", que: "Aula", antes: "H-105", despues: "H-110" });
   });
 
