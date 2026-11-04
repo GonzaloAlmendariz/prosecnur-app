@@ -173,7 +173,18 @@
     familia <- .sig_familia_estudio(fuente, regla, combos)
   }
   list(regla = regla, origen = rr$origen, familia = familia$tabla %||% NULL, m = familia$m %||% 0L,
-       familia_completa = familia)
+       familia_completa = familia, cruces = .sig_cruces_declarados(analitica_config))
+}
+
+#' Cruces que el estudio declara en Analítica (los de la raíz; si no hay, los de la tabla de cruces)
+#'
+#' Son los cruces de las tarjetas de diferencias (ADR 0129). La familia usa la unión de las dos listas.
+#' @keywords internal
+.sig_cruces_declarados <- function(analitica_config) {
+  nombres <- function(l) vapply(l %||% list(), function(x) as.character(if (is.list(x)) x$name %||% NA else x)[1], character(1))
+  raiz <- nombres(analitica_config$cruces_vars)
+  out <- if (length(raiz)) raiz else nombres(analitica_config$cruces$cruces_vars)
+  unique(out[!is.na(out) & nzchar(out)])
 }
 
 #' Variables de cruce de Analítica: las de la raíz y las que exporta la tabla de cruces (`cruces$cruces_vars`)

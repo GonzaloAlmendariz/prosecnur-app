@@ -27,7 +27,7 @@
 #' @keywords internal
 .sig_contexto_liviano <- function(ctx) {
   if (is.null(ctx)) return(NULL)
-  list(regla = ctx$regla, familia = ctx$familia, m = ctx$m)
+  list(regla = ctx$regla, familia = ctx$familia, m = ctx$m, cruces = ctx$cruces)
 }
 
 #' Fija la regla y la familia en el worker; devuelve las opciones previas para `on.exit(options(...))`
@@ -42,6 +42,7 @@
   is <- if (is.character(inst_sources)) readRDS(inst_sources) else inst_sources
   if (is.data.frame(ds)) { ds <- list(default = ds); is <- list(default = is) }
   nombre <- if (nzchar(base %||% "") && base %in% names(ds)) base else names(ds)[[1]]
+  .tarjetas_fuente_fijar(ds[[nombre]], is[[nombre]])   # ADR 0129: la tarjeta de ejemplo de la lectura
   ctx <- tryCatch(
     .sig_contexto_estudio(ds[[nombre]], is[[nombre]], significancia$graficos_config, significancia$analitica_config),
     error = function(e) {

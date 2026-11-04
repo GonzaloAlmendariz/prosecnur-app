@@ -17,6 +17,7 @@
 #' ¿La lámina se compone con piezas nativas? Las citas, siempre (salvo `meta$motor_nativo = FALSE`); lo demás, el compositor
 #' @keywords internal
 .lam_citas_aplica <- function(p, slide = NULL) {
+  if (.lam_tarjetas_aplica(p, slide)) return(TRUE)   # tarjetas de diferencias (lamina_tarjetas_diferencias.R)
   espec <- if (inherits(p, "ggplot")) attr(p, "pulso_espec") else NULL
   if (identical(espec$tipo, "citas")) return(!identical((slide$meta %||% list())$motor_nativo, FALSE))
   .lam_compositor_aplica(p, slide)
@@ -27,6 +28,10 @@
 .lam_citas_slide_1_nativa <- function(doc, p, slide, titulo, subtitulo, el_plot, presets, layout, master, antetitulo,
                                       base_auto, nota_de, sin_base = FALSE, sin_pie = FALSE, por_lamina = function(doc) doc,
                                       titulo_de_var = NULL) {
+  if (.lam_tarjetas_aplica(p, slide)) {
+    return(.lam_tarjetas_slide_1(doc, p, slide, titulo, el_plot, presets, layout, master, antetitulo, base_auto, nota_de,
+                                 sin_base, sin_pie, por_lamina))
+  }
   espec <- if (inherits(p, "ggplot")) attr(p, "pulso_espec") else NULL
   if (!identical(espec$tipo, "citas")) {
     return(.lam_slide_1_nativa(doc, p, slide, titulo, subtitulo, el_plot, presets, layout, master, antetitulo, base_auto,
