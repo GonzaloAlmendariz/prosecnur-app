@@ -176,6 +176,20 @@ test_that("el gráfico de ancho completo lleva el intervalo de cada opción y la
   expect_null(espec$kpis[[1]]$grafico)   # con gráfico ancho, las cifras van sin gráfico propio
 })
 
+test_that("el gráfico de apoyo sin cruce va en el orden del instrumento; mayor_menor lo ordena por frecuencia", {
+  # La base trae «e» con los códigos en otro orden: la escala no debe leerse desarmada (CCSS v7.6, hallazgos 2).
+  d <- .hz_base(); d$e[1:3] <- c("4", "3", "2")
+  apoyo <- function(ov = NULL) {
+    a <- list(var = "e"); if (!is.null(ov)) a$overrides <- ov
+    el <- p_slide_hallazgos(cifras = .hz_cifras()[1:2], modo = "cifras_con_graficos", rotulos = .hz_rot,
+                            grafico_ancho = list(graficador = "p_barras_agrupadas", args = a))$slots$plot
+    suppressMessages(.halla_modelo(el, .hz_fuente(d), .hz_sig()))$grafico_ancho$filas
+  }
+  expect_identical(apoyo()$rotulo, c("Nada", "Poco", "Bastante", "Mucho"))
+  f <- apoyo(list(orden_barras = "mayor_menor"))
+  expect_identical(f$p, sort(f$p, decreasing = TRUE))
+})
+
 # ---- Artefactos ------------------------------------------------------------------------------------------------------
 
 .hz_render <- function(slide) {

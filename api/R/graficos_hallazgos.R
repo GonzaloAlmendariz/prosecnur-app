@@ -172,6 +172,11 @@
       }
     }
   }
+  # Orden del instrumento por defecto: las columnas del indicador salen en el orden en que aparecen en la base, y una
+  # escala de apoyo («Pésima» … «Excelente») se leía desarmada (CCSS v7.6, hallazgos 2). `mayor_menor` lo cambia.
+  ol <- (fuente$orders_list %||% list())[[.reporte_plan_resolve_recod_var(var, fuente$data)]] %||% (fuente$orders_list %||% list())[[var]]
+  pos <- if (!is.null(ol$labels)) match(filas$rotulo, ol$labels) else suppressWarnings(as.numeric(unlist(ind$codigos[filas$rotulo])))
+  if (any(!is.na(pos))) filas <- filas[order(is.na(pos), pos), , drop = FALSE]
   if (orden_mayor) filas <- filas[order(-filas$p), , drop = FALSE]
   n <- sum(ind$en_base & w > 0)
   multiple <- identical(ind$tipo, "sm")
