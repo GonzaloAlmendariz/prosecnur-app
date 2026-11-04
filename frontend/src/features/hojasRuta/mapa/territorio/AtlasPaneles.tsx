@@ -202,7 +202,7 @@ export function MigaAtlas({ total, departamento, ciudad, distritos, cargando, en
   onDepartamento: (nombre: string) => void;
 }) {
   const dep = ciudad ? (ciudad.codigo === "lima" ? null : ciudad.departamento) : departamento;
-  if (!dep && !ciudad) return <><b>Perú</b><span className="hr-lienzo-miga-ayuda">, {total} ciudades con cartografía; el tamaño es su población</span></>;
+  if (!dep && !ciudad) return <><b>Perú</b><span className="hr-lienzo-miga-ayuda">({total} ciudades con cartografía; el tamaño es su población)</span></>;
   return (
     <>
       <button type="button" className="hr-miga-nivel" onClick={onPeru}>Perú</button>
@@ -210,7 +210,8 @@ export function MigaAtlas({ total, departamento, ciudad, distritos, cargando, en
       {ciudad ? <> › <b>{ciudad.nombre}</b></> : null}
       <span className="hr-lienzo-miga-ayuda">
         {/* Nombra el botón que de verdad está en la ficha: fuera del estudio es «Agregar al estudio». */}
-        {ciudad ? (cargando ? ", cargando sus distritos…" : `, ${distritos} distrito${distritos === 1 ? "" : "s"}${enEstudio ? "; «Elegir distritos» para trabajarlos" : "; agrégala al estudio para elegirlos"}`) : ", clic en una ciudad para ver su ficha"}
+        {/* Entre paréntesis: con el hueco del contenedor flex, una coma inicial quedaba suelta («Perú , 26…»). */}
+        {ciudad ? (cargando ? "(cargando sus distritos…)" : `(${distritos} distrito${distritos === 1 ? "" : "s"}${enEstudio ? "; «Elegir distritos» para trabajarlos" : "; agrégala al estudio para elegirlos"})`) : "(clic en una ciudad para ver su ficha)"}
       </span>
     </>
   );
