@@ -68,6 +68,7 @@ export default function DashboardPage({
   personalizar: personalizarProp,
   paletas: paletasProp,
   publicar: publicarProp,
+  fuente: fuenteProp,
 }: {
   publicMode?: boolean;
   /**
@@ -87,6 +88,8 @@ export default function DashboardPage({
   paletas?: ControlDePanel;
   /** El diálogo de publicación (`?panel=publicar`). Abrirlo no publica: eso sigue pidiendo su clic. */
   publicar?: ControlDePanel;
+  /** La fuente del tablero, «Datos» (`?panel=fuente`): reemplaza el tablero mientras está abierta. */
+  fuente?: ControlDePanel;
 } = {}) {
   // Modo público (deploy a HF/Fly): backend real, pero UI sin shell admin.
   // Misma desactivación de autosave (el .pulso del server es read-only;
@@ -104,7 +107,8 @@ export default function DashboardPage({
   const tabActiva = pestanaProp ?? tabActivaStore;
   const setTabActiva = onPestana ?? setTabActivaStore;
   const setSeccionActiva = useDashboardStore((s) => s.setSeccionActiva);
-  const [sourceOpen, setSourceOpen] = useState(false);
+  const fuente = usePanelConRespaldo(fuenteProp);
+  const sourceOpen = fuente.abierto;
   // En admin, `?panel=…` (lo da DashboardRuta); en la publicación, un estado propio (`usePanelConRespaldo`).
   const paletas = usePanelConRespaldo(paletasProp);
   const palettesOpen = paletas.abierto;
@@ -121,7 +125,7 @@ export default function DashboardPage({
   // parte del producto final que vería el lector.
   useEffect(() => {
     if (previewMode) {
-      setSourceOpen(false);
+      if (fuente.abierto) fuente.cerrar();
       if (paletas.abierto) paletas.cerrar();
       if (personalizar.abierto) personalizar.cerrar();
       if (publicar.abierto) publicar.cerrar();
@@ -290,7 +294,7 @@ export default function DashboardPage({
                 label: "Datos",
                 icon: UploadCloud,
                 rank: 3,
-                onSelect: () => setSourceOpen((v) => !v),
+                onSelect: () => (fuente.abierto ? fuente.cerrar() : fuente.abrir()),
                 disabled: !manifest,
                 title: "Cambiar XLSForm y data del dashboard",
               },
@@ -346,10 +350,10 @@ export default function DashboardPage({
       {manifest && (!manifest.estado.tiene_data || sourceOpen) && !adminHidden && (
         <DashboardSourceGate
           compact={manifest.estado.tiene_data}
-          onCancel={manifest.estado.tiene_data ? () => setSourceOpen(false) : undefined}
+          onCancel={manifest.estado.tiene_data ? () => fuente.cerrar() : undefined}
           recodVars={recodVarsState.vars}
           onImported={() => {
-            setSourceOpen(false);
+            if (fuente.abierto) fuente.cerrar();
             setSeccionActiva(null);
             refresh();
             recodVarsState.refresh();

@@ -26,4 +26,14 @@ export const PANEL_PUBLICAR: PanelDeclarado = {
   clase: "dialogo",
 };
 
-export const PANELES_DASHBOARD = [PANEL_PERSONALIZAR, PANEL_PALETAS, PANEL_PUBLICAR] as const satisfies readonly PanelDeclarado[];
+/**
+ * Dashboard › Datos: la fuente del tablero (XLSForm y data). `?panel=fuente`. No es un diálogo: reemplaza el tablero
+ * en la página mientras está abierta, por eso es `inspector`. Sin datos cargados se muestra siempre.
+ */
+export const PANEL_FUENTE: PanelDeclarado = {
+  id: "fuente",
+  label: "Fuente del dashboard",
+  clase: "inspector",
+};
+
+export const PANELES_DASHBOARD = [PANEL_PERSONALIZAR, PANEL_PALETAS, PANEL_PUBLICAR, PANEL_FUENTE] as const satisfies readonly PanelDeclarado[];
