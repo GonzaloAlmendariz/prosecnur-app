@@ -42,14 +42,16 @@ Cada diferencia de un grupo **frente al resto** se prueba con la misma evaluaci�
   - en una dicotómica, solo la opción principal;
   - en una nominal u ordinal, una por cruce con la categoría de mayor diferencia, y otra categoría solo si trae un grupo que aún no aparece.
 - **Grupos que se muestran.** Con dos grupos se muestran los dos con ▲ y ▼. Con más, solo los que difieren. La primera fila de la tarjeta es el total, en gris, con la cifra del gráfico.
-- **Orden y tope.** Primero las del 99% y después de mayor a menor diferencia. Se dibujan las 6 primeras y las demás no.
+- **Orden y tope.** Primero las del 99% y después de mayor a menor diferencia. Se dibujan las 4 primeras y las demás no. La maqueta decía 6; Gonzalo lo bajó en la revisión del PPT v7 porque, con el nombre del grupo sobre su barra, las tarjetas son más altas.
 
 ### 3. Salidas
 
-- **PPT.** Composición nativa propia (`lamina_tarjetas_diferencias.R`):
+- **PPT.** El total lo compone el motor nativo de siempre (`.lam_slide_1_nativa`), con su estándar, en el ancho que deja el panel: `prosecnur.lam_reserva_derecha` acota la geometría de `.std_geom` (revisión v7 RV: el total redibujado a mano no seguía los estándares). Después se agrega el panel (`lamina_tarjetas_diferencias.R`):
   - el título es la pregunta y no hay subtítulo;
-  - el total va a la izquierda, con rótulos de 11 pt y cifras de 12 pt;
-  - con 4 tarjetas o menos, el panel es una columna de 1/3 del ancho útil; con 5 o 6, dos columnas en la mitad;
+  - el panel ocupa el 20 % del ancho útil con una columna y el 30 % con dos; si las tarjetas no caben en alto, vuelven los anchos de la maqueta (1/3 y 1/2);
+  - el nombre del grupo, completo, va encima de su barra;
+  - en una batería, la tarjeta no repite la premisa: se ubica a la altura de su fila, con una línea guía desde el Top Two Box; si la escala se parte, cada tarjeta va en la lámina de su premisa;
+  - con panel, la escala acota su columna de premisas al 30 % (la barra, al menos al 45 %), conserva la distancia de la barra al Top Two Box y su leyenda corre a todo el ancho;
   - no hay nota de significancia: solo base y fuente;
   - sin diferencias, la lámina sigue su camino de siempre.
 - **Word.** Las tarjetas van bajo la imagen del total, dentro de la misma figura (`reporte_word_tarjetas.R`):
