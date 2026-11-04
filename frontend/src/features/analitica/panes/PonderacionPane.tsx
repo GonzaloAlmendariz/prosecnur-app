@@ -18,6 +18,9 @@ import { PesoPorColumna } from "./PesoPorColumna";
 import { PonderacionAjustes } from "./PonderacionAjustes";
 import { PonderacionEfecto } from "./PonderacionEfecto";
 import { PonderacionPesoBase } from "./PonderacionPesoBase";
+import { PoblacionDeReferencia } from "./PoblacionDeReferencia";
+import { poblacionVigente } from "./poblacionReferenciaModel";
+import { useProjectModules } from "../../project/ProjectModulesContext";
 import { useVariablesDeLaBase, variablesDeLectura } from "./variablesDeLaBase";
 import "./PonderacionPane.css";
 
@@ -43,6 +46,8 @@ export function PonderacionPane() {
   const baseActiva = useSession().state?.active_base ?? null;
   const margins = pond.rake?.margins ?? [];
   const origen = origenPesoBase(pond);
+  const { overview } = useProjectModules();
+  const poblacion = poblacionVigente(pond, overview);
 
   // F7: la lectura se repite al cambiar de base y distingue cargando de vacío.
   const lecturaVariables = useVariablesDeLaBase(baseActiva);
@@ -146,6 +151,13 @@ export function PonderacionPane() {
 
         {pond.enabled && !porColumna && (
           <>
+            <PoblacionDeReferencia
+              valor={poblacion.valor}
+              inferida={poblacion.inferida}
+              metasDelCenso={margins.filter((m) => m.fuente?.tipo === "cpv2025").length}
+              onCambio={(p) => setPonderacion({ poblacion: p })}
+            />
+
             <StepLabel n={1} text="Peso base" />
             <PonderacionPesoBase
               origen={origen}
@@ -177,7 +189,7 @@ export function PonderacionPane() {
             )}
 
             <StepLabel n={2} text="Metas" />
-            <MetasCpv2025
+            {poblacion.valor === "territorio" && <MetasCpv2025
               categoricas={categoricas}
               catCache={catCache}
               ensureCats={ensureCats}
@@ -185,7 +197,7 @@ export function PonderacionPane() {
               guardado={pond.metas_cpv2025}
               onAplicar={upsertMargin}
               onGuardarPedido={(metas_cpv2025) => setPonderacion({ metas_cpv2025 })}
-            />
+            />}
             {margins.map((m) => (
               <CategoryEditor
                 key={m.var}
