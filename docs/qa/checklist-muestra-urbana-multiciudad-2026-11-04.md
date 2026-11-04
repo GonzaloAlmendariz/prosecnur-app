@@ -19,12 +19,14 @@ Contexto que ya se verificó (no reinvestigar):
 
 | # | Indicación | Dónde vive | Estado |
 |---|---|---|---|
-| 1 | Repartir la muestra con la población 2025, no con los conteos 2017 | ADR 0131 §2 · `api/R/hojas_ruta_reparto_base.R` (nuevo) · enganches en `hojas_ruta_engine.R` (`.hojas_ruta_finalize_quota_cells` y `hojas_ruta_sample_size_preview`, +2 líneas netas), `hojas_ruta_sorteo_pps.R` (`.hojas_ruta_sorteo_medida`) y `hojas_ruta_tamano_extras.R` · `territorios.json` | **hecho en backend** (2026-11-04, aprobado por Gonzalo el 4/11): opción `sample_size$base_reparto = "cpv2025_adultos_urbanos"`, apagada por defecto (`cpv2017`). Evidencia: `test-hojas-ruta-reparto-base.R` (rojo antes del enganche, verde después) y salida apagada idéntica a la previa al cambio en 4 escenarios. **Pendiente:** el control en la UI (ver abajo) |
+| 1 | Repartir la muestra con la población 2025, no con los conteos 2017 | ADR 0131 §2 · `api/R/hojas_ruta_reparto_base.R` (nuevo) · enganches en `hojas_ruta_engine.R` (`.hojas_ruta_finalize_quota_cells` y `hojas_ruta_sample_size_preview`, +2 líneas netas), `hojas_ruta_sorteo_pps.R` (`.hojas_ruta_sorteo_medida`) y `hojas_ruta_tamano_extras.R` · `territorios.json` | **hecho en backend** (2026-11-04, aprobado por Gonzalo el 4/11): opción `sample_size$base_reparto = "cpv2025_adultos_urbanos"`, apagada por defecto (`cpv2017`). Evidencia: `test-hojas-ruta-reparto-base.R` (rojo antes del enganche, verde después) y salida apagada idéntica a la previa al cambio en 4 escenarios. UI hecha (commit `2bb73fe15`): interruptor «Repartir con la población 2025» en Tamaño y reparto, con fuente, supuestos y captación por distrito; la memoria de cálculo rotula y declara la fuente. QA visual en acnur_acg a 1440×1000 y 1024×600: `ok=true`, 0 issues, 0 columnas ocultas |
 | 2 | Selección probabilística de la persona en el hogar | ADR 0131 §4 | **descartado**: Gonzalo, 4/11: cuotas sólo de sexo y grupos de edad validados por el INEI. El motor ya trabaja así |
-| 3 | Peso final por persona (manzana × vivienda) y calibración a 2025 | ADR 0131 §3, §5–§6 · `hojas_ruta_sorteo_pps.R:197-218`, `hojas_ruta_marco_elegible.R:540-623`, `ponderacion_engine.R`, `ponderacion_analitica.R` | **postergado** (el ítem 1 ya está en backend; el peso es el paso 5 del ADR) |
+| 3 | Peso final por persona (manzana × vivienda) y calibración a 2025 | ADR 0131 §3, §5–§6 · `hojas_ruta_pi_muestra.R` (nuevo), `ponderacion_engine.R` | **parcial**: π de titulares y reemplazos publicada en la muestra (paso 3 del ADR, 2026-11-04). Falta la probabilidad de vivienda (§3) y el peso con calibración (paso 5, `ponderacion_*`, otra sesión) |
 | 4 | Verificar si REDATAM CPV 2025 da sexo × edad × nivel educativo por provincia o distrito | fuente externa (`redatamcpv2025.inei.gob.pe`) | pendiente: probar desde el navegador |
 | 5 | Decisión de cobertura urbana anotada en el brief interno de la propuesta | doc fuera del repo | hecho |
 | 6 | Variante nacional urbana: repartir n por departamento con población urbana 2025 y sortear en la(s) ciudad(es) principal(es) de cada uno; hace falta marco de manzanas en los 6 departamentos sin ciudad (Amazonas, Apurímac, Huancavelica, Madre de Dios, Moquegua, Pasco) | `build_inei2017_ciudades.R` (`HOJAS_RUTA_CIUDADES_PROVINCIAS`) + ADR 0119 §1 (umbrales) + capa GeoPeru | **bloqueado**: exige descargar la capa GeoPeru (externo) y decidir si se aceptan ciudades bajo los umbrales del ADR 0119 |
+| 7 | Estrato explícito provincia, mínimo 2 rutas, distrito y zona implícitos (ADR 0131 paso 2) | `api/R/hojas_ruta_estrato.R` (nuevo) · `sample_size$estrato` | **hecho en backend** (commit `ace1e979e`): `provincia` y `provincia_lima_areas` (Lima en 5 áreas, Callao aparte). Tests: Σ n_h = rutas, n_h ≥ 2, Σπ = n_h por estrato, π > 0 en toda manzana con medida, Monte Carlo (6.000 réplicas) contra π, vista previa = cuota. **Pendiente:** el control en la UI |
+| 8 | Publicar π de titulares y reemplazos en la muestra (ADR 0131 paso 3) | `api/R/hojas_ruta_pi_muestra.R` (nuevo) · payload `blocks` / `replacement_blocks` | **hecho**: `estrato`, `pi`, `pi_regla` en titulares; `estrato`, `pi`, `pi_fuente` en reemplazos. El pareado de la misma zona hereda; el de otra zona queda sin π y avisa (`W_REPLACEMENT_PI_OTRA_ZONA`). **Decisión pendiente:** la política por defecto del motor es `alternate_zone_same_district` (otra zona), al revés de lo que supone el ADR §5 |
 
 ## Aprendido en el camino
 
@@ -93,3 +95,15 @@ Contexto que ya se verificó (no reinvestigar):
     regenerar `tamanoMuestra.golden.json` con un caso 2025 y añadir el control en `MuestraPaneles.tsx`. Mientras
     tanto la opción se fija en `sample_size` y el front la conserva al guardar (`desdeConfig.ts` esparce
     `config.sample_size`).
+
+- **Pasos 2 y 3 (2026-11-04), cómo quedó:**
+  - El estrato provincia no corre un sistemático único sobre todo el estrato: reparte primero n_h entre sus distritos
+    con e_d = n_h·MOS_d/MOS_h y un redondeo sistemático aleatorio (⌊e_d⌋ o ⌈e_d⌉, E = e_d), y después corre el PPS
+    por distrito de siempre. Es equivalente en π (la mezcla exacta de las dos ramas, que sin certezas da
+    n_h·MOS_i/MOS_h) y deja intactos la cuota sexo × edad por distrito, la vista previa y el envío.
+  - En modo estrato, `row_var = "zona"` da `E_HOJAS_RUTA_ESTRATO_CUOTA_ZONA`: la cuota por zona reparte con otra
+    medida y la π dejaría de ser exacta.
+  - Con cuota por zona (modo distrito) la π publicada es condicional a las rutas de la zona (`pi_regla` lo dice).
+  - La π va en el payload de la muestra; el libro de campo (`Hojas_de_ruta`) no la lleva porque es para el equipo.
+  - `hojas_ruta_engine.R` (congelado) creció 4 líneas netas en los tres pasos; la línea base del manifiesto
+    (10.224) sigue holgada.
