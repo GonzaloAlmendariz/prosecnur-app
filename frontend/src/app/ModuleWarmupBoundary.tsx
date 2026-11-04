@@ -19,6 +19,7 @@ import { WarmupReloj, useAhora } from "./WarmupReloj";
 import { SIN_ESTIMACION, duracionFase } from "./warmupTiempo";
 import "./module-warmup.css";
 import { BarraDeAvance } from "../components/BarraDeAvance";
+import { BootEcualizador } from "./BootEcualizador";
 
 type ModuleWarmupProfile = {
   key: string;
@@ -484,11 +485,7 @@ function ModuleWarmupScreen({
         <VistaSkeleton variante="modulo" secciones={module?.sections.length ?? 5} />
       </div>
       <div className="pulso-module-warmup-card">
-        <div className="pulso-module-warmup-mark" aria-hidden="true">
-          <span />
-          <span />
-          <span />
-        </div>
+        <BootEcualizador detenido={Boolean(error)} />
         <div className="pulso-module-warmup-copy">
           <p>{profile.title}</p>
           <h2>{message || "Preparando módulo"}</h2>
