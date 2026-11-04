@@ -67,6 +67,7 @@ export default function DashboardPage({
   onPestana,
   personalizar: personalizarProp,
   paletas: paletasProp,
+  publicar: publicarProp,
 }: {
   publicMode?: boolean;
   /**
@@ -84,6 +85,8 @@ export default function DashboardPage({
   personalizar?: ControlDePanel;
   /** Las paletas por lista (`?panel=paletas`), con el mismo reparto que `personalizar`. */
   paletas?: ControlDePanel;
+  /** El diálogo de publicación (`?panel=publicar`). Abrirlo no publica: eso sigue pidiendo su clic. */
+  publicar?: ControlDePanel;
 } = {}) {
   // Modo público (deploy a HF/Fly): backend real, pero UI sin shell admin.
   // Misma desactivación de autosave (el .pulso del server es read-only;
@@ -107,7 +110,8 @@ export default function DashboardPage({
   const palettesOpen = paletas.abierto;
   const personalizar = usePanelConRespaldo(personalizarProp);
   const customizeOpen = personalizar.abierto;
-  const [publishOpen, setPublishOpen] = useState(false);
+  const publicar = usePanelConRespaldo(publicarProp);
+  const publishOpen = publicar.abierto;
   // Modo "Vista previa": oculta el admin toolbar y los controles de
   // edición para que el editor pueda ver cómo se verá el dashboard
   // publicado. Solo de sesión, no se persiste.
@@ -120,7 +124,7 @@ export default function DashboardPage({
       setSourceOpen(false);
       if (paletas.abierto) paletas.cerrar();
       if (personalizar.abierto) personalizar.cerrar();
-      setPublishOpen(false);
+      if (publicar.abierto) publicar.cerrar();
     }
   }, [previewMode]);
 
@@ -261,7 +265,7 @@ export default function DashboardPage({
                 icon: Rocket,
                 rank: 1,
                 kind: "primary",
-                onSelect: () => setPublishOpen(true),
+                onSelect: () => publicar.abrir(),
               },
               {
                 id: "vista-previa",
@@ -434,7 +438,7 @@ export default function DashboardPage({
         <DashboardPublishDialog
           defaultTitle={config.titulo || "pulso-dashboard"}
           lastDeploy={config.last_deploy}
-          onClose={() => setPublishOpen(false)}
+          onClose={() => publicar.cerrar()}
         />
       )}
     </ThemeProvider>

@@ -19,4 +19,11 @@ export const PANEL_PALETAS: PanelDeclarado = {
   clase: "dialogo",
 };
 
-export const PANELES_DASHBOARD = [PANEL_PERSONALIZAR, PANEL_PALETAS] as const satisfies readonly PanelDeclarado[];
+/** Dashboard › Publicar: el despliegue del tablero a un Space. `?panel=publicar`; publicar sigue pidiendo su clic. */
+export const PANEL_PUBLICAR: PanelDeclarado = {
+  id: "publicar",
+  label: "Publicar el dashboard",
+  clase: "dialogo",
+};
+
+export const PANELES_DASHBOARD = [PANEL_PERSONALIZAR, PANEL_PALETAS, PANEL_PUBLICAR] as const satisfies readonly PanelDeclarado[];

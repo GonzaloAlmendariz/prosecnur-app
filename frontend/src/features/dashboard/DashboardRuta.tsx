@@ -19,7 +19,7 @@ import { useMemo } from "react";
 
 import { usePanelDireccionable } from "../../lib/navegacion/paneles";
 import { useSeccion } from "../../lib/navegacion/useDireccion";
-import { PANEL_PALETAS, PANEL_PERSONALIZAR } from "./panelesDashboard";
+import { PANEL_PALETAS, PANEL_PERSONALIZAR, PANEL_PUBLICAR } from "./panelesDashboard";
 import { resolverPestanaDashboard } from "./pestanaDashboard";
 import DashboardPage from "./DashboardPage";
 
@@ -30,6 +30,7 @@ export default function DashboardRuta() {
   // hay Router.
   const personalizar = usePanelDireccionable(PANEL_PERSONALIZAR);
   const paletas = usePanelDireccionable(PANEL_PALETAS);
+  const publicar = usePanelDireccionable(PANEL_PUBLICAR);
 
   return (
     <DashboardPage
@@ -37,6 +38,7 @@ export default function DashboardRuta() {
       onPestana={(id) => irA("pestana", id)}
       personalizar={personalizar}
       paletas={paletas}
+      publicar={publicar}
     />
   );
 }
