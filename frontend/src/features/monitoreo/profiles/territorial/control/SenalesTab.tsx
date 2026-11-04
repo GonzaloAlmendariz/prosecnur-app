@@ -8,6 +8,7 @@ import { construirSenales, type FilaDeSenales, type Histograma } from "./senales
 import { RotuloDePestana } from "../navegacion/RotuloDePestana";
 import { SiluetaDeDistrito } from "../avance/SiluetaDeDistrito";
 import "./senales.css";
+import { BloqueDeMonitoreo } from "../../../core/BloqueDeMonitoreo";
 
 /**
  * Control › Señales (territorial.md §3.7): la distancia del GPS a la manzana y
@@ -120,15 +121,17 @@ const COLUMNAS: Array<[keyof FilaDeSenales, string]> = [
 function MatrizPorDistrito({ modelo }: { modelo: ReturnType<typeof construirSenales> }) {
   const columnas = COLUMNAS.filter(([clave]) => clave !== "sinCruce" || modelo.total.sinCruce > 0);
   return (
-    <section className="mon-sen-panel mon-sen-matriz" aria-labelledby="mon-sen-matriz" data-qa-geometry-member="matriz">
-      <header className="mon-sen-cabecera">
-        <h3 id="mon-sen-matriz">Señales por distrito</h3>
-        <span className="mon-sen-base">
-          {fmt(modelo.total.casos)} que cuentan
-          {modelo.fuera ? <span className="mon-ter-cuenta" title="Sin consentimiento o no válidas: no entran a las señales">{fmt(modelo.fuera)} fuera del conteo</span> : null}
-          {modelo.sinDistrito ? <span className="mon-ter-cuenta" title="Cuentan pero no traen distrito: no entran a la matriz">{fmt(modelo.sinDistrito)} sin distrito</span> : null}
-        </span>
-      </header>
+    <BloqueDeMonitoreo
+      marco="kit"
+      className="mon-sen-panel mon-sen-matriz"
+      aria-labelledby="mon-sen-matriz"
+      data-qa-geometry-member="matriz"
+      titulo="Señales por distrito"
+      tituloId="mon-sen-matriz"
+      bajada={<>{fmt(modelo.total.casos)} que cuentan
+        {modelo.fuera ? <span className="mon-ter-cuenta" title="Sin consentimiento o no válidas: no entran a las señales">{fmt(modelo.fuera)} fuera del conteo</span> : null}
+        {modelo.sinDistrito ? <span className="mon-ter-cuenta" title="Cuentan pero no traen distrito: no entran a la matriz">{fmt(modelo.sinDistrito)} sin distrito</span> : null}</>}
+    >
       <div className="mon-sen-tabla-marco" data-qa-geometry-capacity="owned" tabIndex={0} aria-label="Señales por distrito, con desplazamiento">
         <table className="mon-sen-tabla">
           <thead>
@@ -153,7 +156,7 @@ function MatrizPorDistrito({ modelo }: { modelo: ReturnType<typeof construirSena
           </tfoot>
         </table>
       </div>
-    </section>
+    </BloqueDeMonitoreo>
   );
 }
 

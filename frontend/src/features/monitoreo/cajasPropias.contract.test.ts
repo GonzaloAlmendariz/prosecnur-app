@@ -48,7 +48,7 @@ function contar(perfil: string) {
 const LINEA_BASE: Record<string, { titulos: number; cabeceras: number }> = {
   acreditacion: { titulos: 80, cabeceras: 0 },
   aulas: { titulos: 80, cabeceras: 12 },
-  territorial: { titulos: 94, cabeceras: 0 },
+  territorial: { titulos: 59, cabeceras: 0 },
   telefonico: { titulos: 18, cabeceras: 0 },
 };
 

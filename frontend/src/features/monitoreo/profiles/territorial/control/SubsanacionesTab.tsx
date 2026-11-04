@@ -12,6 +12,7 @@ import { RotuloDePestana } from "../navegacion/RotuloDePestana";
 import { SiluetaDeDistrito } from "../avance/SiluetaDeDistrito";
 import "./subsanaciones.css";
 import { PulsoButton } from "../../../../../components/PulsoButton";
+import { BloqueDeMonitoreo } from "../../../core/BloqueDeMonitoreo";
 
 type Aviso = { tono: "ok" | "error"; texto: string } | null;
 
@@ -115,12 +116,16 @@ function SubsanacionesTabImpl({
       data-qa-geometry-group="territorial-subsanaciones"
       data-qa-geometry-contract="intrinsic"
     >
-      <section className="mon-sub-panel" aria-labelledby="mon-sub-deficit" data-qa-geometry-member="deficit">
-        <header className="mon-sub-cabecera">
-          <RotuloDePestana />
-          <h3 id="mon-sub-deficit">Celdas con déficit</h3>
-          <span className="mon-sub-base">{fmt(modelo.celdas)} en {fmt(modelo.umps.length)} UMP</span>
-        </header>
+      <BloqueDeMonitoreo
+        marco="kit"
+        className="mon-sub-panel"
+        aria-labelledby="mon-sub-deficit"
+        data-qa-geometry-member="deficit"
+        antetitulo={<RotuloDePestana />}
+        titulo="Celdas con déficit"
+        tituloId="mon-sub-deficit"
+        bajada={<>{fmt(modelo.celdas)} en {fmt(modelo.umps.length)} UMP</>}
+      >
         {modelo.umps.length ? (
           <ul className="mon-sub-lista" data-qa-geometry-capacity="owned" data-qa-geometry-group="territorial-subsanaciones-deficit" data-qa-geometry-contract="intrinsic">
             {modelo.umps.map((item) => (
@@ -140,13 +145,17 @@ function SubsanacionesTabImpl({
         ) : (
           <p className="mon-sub-base">Ninguna celda con déficit.</p>
         )}
-      </section>
+      </BloqueDeMonitoreo>
 
-      <section className="mon-sub-panel" aria-labelledby="mon-sub-paquetes" data-qa-geometry-member="paquetes">
-        <header className="mon-sub-cabecera">
-          <h3 id="mon-sub-paquetes">Paquete sugerido</h3>
-          <span className="mon-sub-base">{fmt(sugerencias.length)} del motor</span>
-        </header>
+      <BloqueDeMonitoreo
+        marco="kit"
+        className="mon-sub-panel"
+        aria-labelledby="mon-sub-paquetes"
+        data-qa-geometry-member="paquetes"
+        titulo="Paquete sugerido"
+        tituloId="mon-sub-paquetes"
+        bajada={<>{fmt(sugerencias.length)} del motor</>}
+      >
         {aviso ? <p className={`mon-sub-aviso is-${aviso.tono}`} role={aviso.tono === "error" ? "alert" : "status"}>{aviso.texto}</p> : null}
         {sugerencias.length ? (
           <ul className="mon-sub-paquetes" data-qa-geometry-capacity="owned">
@@ -194,21 +203,27 @@ function SubsanacionesTabImpl({
         ) : (
           <p className="mon-sub-base">Sin excedente compatible</p>
         )}
-      </section>
+      </BloqueDeMonitoreo>
 
       <div className="mon-sub-derecha" data-qa-geometry-member="derecha">
-      <section className="mon-sub-panel mon-sub-movimientos" aria-labelledby="mon-sub-movimientos">
-        <header className="mon-sub-cabecera">
-          <h3 id="mon-sub-movimientos">Movimientos en el territorio</h3>
-        </header>
+      <BloqueDeMonitoreo
+        marco="kit"
+        className="mon-sub-panel mon-sub-movimientos"
+        aria-labelledby="mon-sub-movimientos"
+        titulo="Movimientos en el territorio"
+        tituloId="mon-sub-movimientos"
+      >
         <MapaDeMovimientos activos={modelo.ajustesActivos} sugeridos={sugerencias.map((paquete) => paquete.ajuste)} />
-      </section>
+      </BloqueDeMonitoreo>
 
-      <section className="mon-sub-panel mon-sub-aplicadas" aria-labelledby="mon-sub-activas">
-        <header className="mon-sub-cabecera">
-          <h3 id="mon-sub-activas">Subsanaciones aplicadas</h3>
-          <span className="mon-sub-base">{fmt(modelo.activas)} activas, {fmt(modelo.revertidas)} revertidas y {fmt(modelo.rechazadas)} {modelo.rechazadas === 1 ? "paquete rechazado" : "paquetes rechazados"}</span>
-        </header>
+      <BloqueDeMonitoreo
+        marco="kit"
+        className="mon-sub-panel mon-sub-aplicadas"
+        aria-labelledby="mon-sub-activas"
+        titulo="Subsanaciones aplicadas"
+        tituloId="mon-sub-activas"
+        bajada={<>{fmt(modelo.activas)} activas, {fmt(modelo.revertidas)} revertidas y {fmt(modelo.rechazadas)} {modelo.rechazadas === 1 ? "paquete rechazado" : "paquetes rechazados"}</>}
+      >
         {modelo.activasPorDistrito.length ? (
           <ul className="mon-sub-distritos">
             {modelo.activasPorDistrito.map((item) => <li key={item.distrito}><span>{item.distrito}</span><b>{fmt(item.casos)}</b></li>)}
@@ -216,7 +231,7 @@ function SubsanacionesTabImpl({
         ) : null}
         <h4 className="mon-sub-subtitulo">Historial</h4>
         {modelo.historial.length ? (
-          <ol className="mon-sub-historial" data-qa-geometry-capacity="owned">
+          <ol className="mon-sub-historial" data-qa-geometry-group="territorial-subsanaciones-historial" data-qa-geometry-contract="intrinsic" data-qa-geometry-capacity="owned">
             {modelo.historial.map((entrada) => (
               <li key={entrada.id} className={`is-${entrada.estado}`}>
                 <small>{entrada.cuando}</small>
@@ -241,7 +256,7 @@ function SubsanacionesTabImpl({
         ) : (
           <p className="mon-sub-base">Todavía no se aplicó ninguna subsanación.</p>
         )}
-      </section>
+      </BloqueDeMonitoreo>
       </div>
     </section>
   );

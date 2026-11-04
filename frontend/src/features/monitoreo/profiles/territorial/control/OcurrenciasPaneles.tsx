@@ -15,6 +15,7 @@ import {
 } from "./ocurrenciasPanelesModel";
 import "./ocurrencias.css";
 import "./ocurrenciasPaneles.css";
+import { BloqueDeMonitoreo } from "../../../core/BloqueDeMonitoreo";
 
 /**
  * Control › Ocurrencias › Distritos y Ritmo (ronda 4). Sustituyen la vista
@@ -192,11 +193,15 @@ const TONO_DEL_CHIP = { ok: "success", aviso: "warn", error: "danger", info: "in
 
 function Lecturas({ modelo }: { modelo: ModeloRitmoDePartes }) {
   return (
-    <section className="mon-ocu-panel mon-ocu-lecturas" aria-labelledby="mon-ocu-lecturas-titulo" data-qa-geometry-member="lecturas">
-      <header className="mon-ocu-cabecera">
-        <h3 id="mon-ocu-lecturas-titulo" className="mon-ocu-titulo">Lecturas del formulario</h3>
-        <span className="mon-ter-cuenta">{fmt(modelo.lecturas.length)}</span>
-      </header>
+    <BloqueDeMonitoreo
+      marco="kit"
+      className="mon-ocu-panel mon-ocu-lecturas"
+      aria-labelledby="mon-ocu-lecturas-titulo"
+      data-qa-geometry-member="lecturas"
+      titulo="Lecturas del formulario"
+      tituloId="mon-ocu-lecturas-titulo"
+      acciones={<span className="mon-ter-cuenta">{fmt(modelo.lecturas.length)}</span>}
+    >
       {modelo.lecturas.length ? (
         <ol className="mon-ocu-lecturas-lista" data-qa-geometry-capacity="owned" data-qa-geometry-group="territorial-ocurrencias-lecturas" data-qa-geometry-contract="equal">
           {modelo.lecturas.map((lectura) => (
@@ -212,7 +217,7 @@ function Lecturas({ modelo }: { modelo: ModeloRitmoDePartes }) {
       ) : (
         <p className="mon-ocu-base" data-qa-geometry-empty="legitimo">Sin lecturas registradas</p>
       )}
-    </section>
+    </BloqueDeMonitoreo>
   );
 }
 
