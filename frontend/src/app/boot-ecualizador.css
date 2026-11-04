@@ -151,3 +151,17 @@
   }
 }
 
+
+/* El reloj acompaña a la barra: sus cifras bajan a tamaño de lectura para no competir con la fase. */
+.boot-warmup-lectura {
+  align-items: flex-end;
+}
+
+.boot-warmup-lectura .pulso-warmup-reloj dd {
+  font-size: 15px;
+  line-height: 1.2;
+}
+
+.boot-warmup-lectura .pulso-warmup-reloj-item {
+  justify-items: start;
+}
