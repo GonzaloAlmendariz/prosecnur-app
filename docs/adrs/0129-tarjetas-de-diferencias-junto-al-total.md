@@ -24,7 +24,7 @@ Una lámina de total (`p_slide_1_grafico` sin cruce, con un gráfico de categor�
 ```
 
 - `true` equivale a `{ "activo": true }`.
-- Los cruces por defecto son los que el estudio declara en Analítica (`cruces_vars` de la raíz).
+- Los cruces por defecto son los que el estudio declara en Analítica (`cruces_vars` de la raíz; si está vacía, los de la tabla de cruces).
 - `rotulos` nombra cada cruce; si falta, se usa la etiqueta del instrumento.
 - `cortos` acorta los rótulos de grupo.
 - `publico` nombra a quienes respondieron en la lectura.

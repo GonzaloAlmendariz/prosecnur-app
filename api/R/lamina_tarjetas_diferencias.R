@@ -220,7 +220,7 @@
   for (k in 1:2) {
     wk <- w * v[k]
     .lam_caja(lz, x, ys, wk, 0.85, if (k == 1L) azul else banda, nombre = "total:barra")
-    if (wk > 0.7) .lam_txt(lz, espec$cifras[k], x, ys + 0.18, wk, 0.55, 28, if (k == 1L) "#FFFFFF" else azul, bold = TRUE,
+    if (wk > 0.7) .lam_txt(lz, espec$cifras[k], x, ys + 0.18, wk, 0.55, 28, if (k == 1L) .std_color("tarjeta_fondo") else azul, bold = TRUE,
                            align = "center", nombre = "total:cifra")
     .lam_txt(lz, espec$rotulos[k], x - 0.2, ys + 0.92, wk + 0.4, 0.34, 13, if (k == 1L) azul else .std_color("texto_suave"),
              bold = k == 1L, align = "center", nombre = "total:categoria")
@@ -257,7 +257,7 @@
       .lam_caja(lz, x, yc - 0.2, w, 0.4, cats$color[j], nombre = "total:segmento")
       pct <- 100 * a
       if (pct >= 6) .lam_txt(lz, as.character(floor(pct + 0.5)), x - 0.1, yc - 0.13, w + 0.2, 0.28, 11,
-                             if (identical(toupper(cats$color[j]), toupper(.std_color("verde_top_two_box")))) "#FFFFFF" else azul,
+                             if (identical(toupper(cats$color[j]), toupper(.std_color("verde_top_two_box")))) .std_color("tarjeta_fondo") else azul,
                              bold = TRUE, align = "center", nombre = "total:segmento:cifra")
       x <- x + w
     }

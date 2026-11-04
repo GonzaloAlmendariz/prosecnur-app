@@ -34,6 +34,7 @@
 #' @keywords internal
 .sig_informe_preparar <- function(significancia, data_sources, inst_sources, base = "") {
   previa <- list(prosecnur.sig_informe = getOption("prosecnur.sig_informe"))
+  .tarjetas_fuente_fijar(NULL, NULL)   # ADR 0129: cada export empieza sin tarjetas registradas de otro
   if (!is.list(significancia)) {
     message("[diferencias] el worker no recibió la regla del estudio: cada entregable usa la prueba de siempre.")
     return(previa)
