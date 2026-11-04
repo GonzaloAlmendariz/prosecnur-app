@@ -101,3 +101,42 @@ test_that("distritos: el GET trae nombres y población para elegir el ámbito", 
   expect_equal(sum(r$provincias$n_distritos), nrow(r$distritos))
   expect_match(r$universo, "omisión")
 })
+
+test_that("contrato HTTP: rutas montadas, null del grupo abierto y escalares de largo 1", {
+  fuente <- paste(deparse(body(build_plumber_app)), collapse = " ")
+  expect_match(fuente, "mount_ponderacion_metas_cpv2025(pr)", fixed = TRUE)
+  pr <- mount_ponderacion_metas_cpv2025(plumber::pr_set_serializer(plumber::pr(), .api_serializer()))
+  rutas <- vapply(pr$endpoints[[1]], function(e) paste(e$verbs, e$path), character(1))
+  expect_true(all(c("GET /api/analitica/ponderacion/cpv2025/distritos",
+                    "POST /api/analitica/ponderacion/cpv2025/metas") %in% rutas))
+  llamar <- function(metodo, ruta, cuerpo = "", tipo = "application/json") {
+    bytes <- charToRaw(enc2utf8(cuerpo))
+    req <- new.env()
+    req$REQUEST_METHOD <- metodo
+    req$PATH_INFO <- ruta
+    req$QUERY_STRING <- ""
+    req$CONTENT_TYPE <- tipo
+    req$rook.input <- list(read = function(...) bytes, rewind = function() invisible(0L),
+                           read_lines = function(...) rawToChar(bytes))
+    pr$call(req)
+  }
+
+  g <- llamar("GET", "/api/analitica/ponderacion/cpv2025/distritos")
+  expect_identical(as.integer(g$status), 200L)
+  jg <- jsonlite::fromJSON(g$body, simplifyVector = FALSE)
+  expect_length(jg$distritos, nrow(d$distritos))
+  abierto <- jg$grupos_edad_default[[length(jg$grupos_edad_default)]]
+  expect_null(abierto$max)
+
+  p <- llamar("POST", "/api/analitica/ponderacion/cpv2025/metas",
+              sprintf('{"distritos":["%s"],"grupos_edad":[{"etiqueta":"18+","min":18,"max":null}]}', uno))
+  expect_identical(as.integer(p$status), 200L)
+  jp <- jsonlite::fromJSON(p$body, simplifyVector = FALSE)
+  expect_equal(jp$total, suma_edad(uno))
+  # Un ubigeo solo viaja como escalar: el normalizador del front lo acepta.
+  expect_identical(unlist(jp$ambito$ubigeos), uno)
+
+  # Un cuerpo que no es JSON lo rechaza el parser de Plumber antes del handler
+  # (igual que en las demás rutas POST); el E_BAD_JSON del router cubre sólo
+  # el caso en que el cuerpo llega crudo. No se fija aquí: es del framework.
+})

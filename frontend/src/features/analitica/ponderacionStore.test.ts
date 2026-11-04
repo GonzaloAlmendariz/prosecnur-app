@@ -97,3 +97,16 @@ describe("hidratación: la config vuelve pasada por R", () => {
     expect(p.metas_cpv2025?.grupos_edad[0].max).toBeNull();
   });
 });
+
+describe("metas del CPV editadas a mano", () => {
+  test("retocar una meta que vino del censo la deja como tecleada: sin fuente", () => {
+    const conFuente: PonderacionConfig = {
+      enabled: true,
+      rake: { margins: [{ var: "sexo", targets: { "1": 480, "2": 520 }, fuente: { tipo: "cpv2025", variable: "sexo", mapeo: { "1": ["Hombre"], "2": ["Mujer"] } } }] },
+    };
+    useAnaliticaStore.setState({ config: { ...DEFAULT_CONFIG, ponderacion: conFuente }, hydrated: true, dirty: false });
+    // Así edita el panel (CategoryEditor.onChange): margen nuevo con sólo var y targets.
+    useAnaliticaStore.getState().upsertPonderMargin({ var: "sexo", targets: { "1": 500, "2": 520 } });
+    expect(useAnaliticaStore.getState().config.ponderacion.rake.margins[0].fuente).toBeUndefined();
+  });
+});
