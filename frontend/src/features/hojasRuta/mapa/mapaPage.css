@@ -346,6 +346,8 @@
   .hr-sel-cajon > .pulso-panel-header > .pulso-panel-actions { flex: 1 1 auto; justify-content: space-between; }
 }
 .hr-sel-cajon .pulso-panel-actions .hr-muestra-opciones { width: min(360px, 100%); }
+/* Las dos lecturas de la matriz miden su rótulo: a su lado van la agrupación y las descargas plegadas. */
+.hr-sel-cajon .pulso-panel-actions .hr-muestra-opciones.hr-cajon-lectura { width: auto; flex: 0 1 auto; }
 .hr-sel-cajon .hr-mapa-tabla-caja { min-height: 0; flex: 1; overflow: auto; }
 .hr-sel-cajon tbody tr { cursor: pointer; }
 .hr-sel-cajon tbody tr:hover { background: var(--pulso-surface-2); }
@@ -529,7 +531,6 @@ div.hr-mapa-aviso { display: flex; flex-direction: column; align-items: flex-sta
 .hr-me-atajos button:hover:not(:disabled) { background: var(--pulso-surface-2); }
 .hr-me-atajos button[aria-pressed="true"] { background: var(--pulso-module-routes-soft); border-color: transparent; color: var(--pulso-module-routes); }
 .hr-me-atajos button:disabled { opacity: 0.5; cursor: default; }
-.hr-sel-cajon .pulso-panel-actions .hr-cajon-agrupar { width: 352px; max-width: 100%; flex: none; } /* cuatro opciones desde que se sumó «Ubigeo» (P9) */
 /* A ancho angosto las acciones del cajón bajan de línea en vez de salirse (revisión de usuario, 1 nov): lo hace el
    `flex-wrap` de las acciones del Panel. */
 .hr-edad-lista li.is-fija { grid-template-columns: 10px minmax(0, 1fr) auto; }
