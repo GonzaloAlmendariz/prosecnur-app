@@ -42,9 +42,16 @@ fuera de las declaradas. Con el caso que prueba que cada detector reconoce lo qu
 
 ## Vistas (capturas «después», `acnur_pdm` con la curaduría confirmada, 1440×1000 y 1024×600)
 
+Primera corrida (`cap/dash-despues`): se quedó en «Fuente del dashboard» (la curaduría pide dos pasos). Segunda,
+contra la pila de la sesión con `--sembrar "Cargar fuente" --sembrar "Confirmar y construir dashboard"`
+(`cap/dash-2`): Resumen con sus donas a 1440 y 1024. Dimensiones aterriza en Resumen porque `acnur_pdm` no tiene
+dimensiones construidas (esperado).
+
 | # | Vista | Qué se ve | Estado |
 |---|---|---|---|
-| | | (se llena con la corrida «después») | |
+| 1 | Resumen › Perfil de la muestra | `rotulosPartidos=4`: falso positivo, el título del KPI lleva un `<br>` (`wrapTitle`) y el runner lee «llegaral» | se queda |
+| 2 | Resumen › Perfil de la muestra | «…Espacio de Protección de ${sede_ppl} ?» y etiquetas bilingües («Hasta 15 minutos Up to 15 minutes») | dato del XLSForm de `acnur_pdm`, no de la UI |
+| 3 | Resumen de sección | «Cargando...» con tres puntos dentro de un recuadro punteado | ☐ lo pinta `shared/EmptyState` con `title="Cargando…"`; candidato a una espera del tablero con su propia marca |
 
 ## Estado
 
@@ -53,5 +60,5 @@ fuera de las declaradas. Con el caso que prueba que cada detector reconoce lo qu
 | Medición | ☑ | (este doc) | |
 | P3, P4, P5 | ☑ | | |
 | P1, P2, P6 | fuera de alcance / sin casos | — | |
-| Capturas después | en curso | | Se commitea antes de la captura (pedido de coordinación); lo que muestre va en el commit siguiente |
+| Capturas después | ☑ | | Ver «Vistas» |
 | Gate | ☑ | | `tsc` 0; `make gate-front AREA=dashboard` 29 suites, 701 tests |
