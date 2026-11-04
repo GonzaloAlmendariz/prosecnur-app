@@ -33,7 +33,7 @@ export function PonderacionPesoBase({ origen, columna, variables, onOrigen, onCo
           </button>
         ))}
       </div>
-      {origen === "columna" && (
+      {origen === "columna" && (candidatas.length > 0 || fuera) && (
         <span className="pond-ajuste-campo"
           title="Numérica y mayor que 0 en todos los casos; si no, el cálculo se detiene y dice cuántos fallan.">
           <span>Columna</span>

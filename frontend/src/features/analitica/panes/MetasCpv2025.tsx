@@ -29,10 +29,10 @@ const SIN_META = "__sin_meta__";
 
 // Variable de la base que probablemente corresponde a cada margen del censo.
 const PATRON_VARIABLE: Record<string, RegExp> = {
-  sexo: /sexo|genero|género/i,
-  edad: /edad|etario/i,
-  educacion: /educ|nivel_?ed|instruc|estudios/i,
-  distrito: /distrito|ubigeo/i,
+  sexo: /sex|genero|género|gender/i,
+  edad: /edad|etario|age/i,
+  educacion: /educ|_edu|nivel_?ed|instruc|estudios/i,
+  distrito: /distrito|district|ubigeo/i,
   provincia: /provincia/i,
 };
 
@@ -87,6 +87,13 @@ export function MetasCpv2025({
   }, [catalogo, buscar, ambitoUi]);
 
   const seleccion = ambitoUi === "provincias" ? pedido.provincias : pedido.distritos;
+  // Sin scroll anidado (C4): las provincias caben enteras; de los distritos se
+  // ven los elegidos y, al buscar, hasta TOPE coincidencias.
+  const TOPE = 30;
+  const visibles = ambitoUi === "distritos"
+    ? (buscar.trim() ? listado.slice(0, TOPE) : listado.filter((x) => seleccion.includes(x.codigo)))
+    : listado;
+  const ocultos = ambitoUi === "distritos" && buscar.trim() ? Math.max(0, listado.length - TOPE) : 0;
   const alternar = (codigo: string) => {
     const set = new Set(seleccion);
     if (set.has(codigo)) set.delete(codigo); else set.add(codigo);
@@ -141,7 +148,7 @@ export function MetasCpv2025({
   const aplicar = (m: CpvMargen) => {
     const a = asignacion[m.variable];
     if (!a?.var) return;
-    const base = (catCache[a.var] ?? []).map((c) => ({ value: c.value, label: c.label }));
+    const base = (catCache[a.var] ?? []).map((c) => ({ value: c.value, label: c.label || c.value }));
     const mapeo = Object.keys(a.mapeo).length ? a.mapeo : sugerirMapeo(base, m);
     const r = metasDesdeMapeo(base, m, mapeo);
     onAplicar({ var: a.var, targets: r.targets, fuente: { tipo: "cpv2025", variable: m.variable, mapeo } });
@@ -185,7 +192,8 @@ export function MetasCpv2025({
               <PulsoInput size="sm" className="pond-cpv-buscar" value={buscar} onChange={(e) => setBuscar(e.target.value)}
                 placeholder={ambitoUi === "provincias" ? "Buscar provincia" : "Buscar distrito"} aria-label="Buscar en el ámbito" />
               <Panel variant="subtle" className="pond-cpv-lista" role="group" aria-label={ambitoUi === "provincias" ? "Provincias" : "Distritos"} data-qa-geometry-capacity="owned">
-                {listado.map((x) => {
+                <div className="pond-cpv-lista-grilla" data-qa-geometry-group="analitica/ponderacion-cpv-ambito" data-qa-geometry-contract="equal">
+                {visibles.map((x) => {
                   const on = seleccion.includes(x.codigo);
                   return (
                     <button key={x.codigo} type="button" className={`pond-cpv-opcion${on ? " is-on" : ""}`}
@@ -195,7 +203,13 @@ export function MetasCpv2025({
                     </button>
                   );
                 })}
-                {!listado.length && <p className="pond-copy">Sin coincidencias.</p>}
+                </div>
+                {!visibles.length && (
+                  <p className="pond-copy">
+                    {ambitoUi === "distritos" && !buscar.trim() ? "Busca un distrito por su nombre o el de su provincia." : "Sin coincidencias."}
+                  </p>
+                )}
+                {ocultos > 0 && <p className="pond-cpv-nota">{ocultos} más; afina la búsqueda.</p>}
               </Panel>
               <small className="pond-cpv-nota">{seleccion.length ? `${seleccion.length} elegidos` : "Elige al menos uno"}</small>
             </div>
@@ -257,7 +271,7 @@ export function MetasCpv2025({
           )}
 
           {metas && (
-            <div className="pond-cpv-resultado">
+            <div className="pond-cpv-resultado" data-qa-geometry-group="analitica/ponderacion-cpv-margenes" data-qa-geometry-contract="intrinsic">
               <p className="pond-cpv-fuente" title={`${metas.fuente}. Consultado el ${metas.consultado}.`}>
                 <strong>{formatoConteo(metas.total)}</strong> personas en {metas.ambito.nDistritos} distritos.{" "}
                 {metas.universo}.
@@ -297,7 +311,7 @@ function MargenCpv({ margen, categoricas, asignado, categoriasBase, enUso, onAsi
   onAsignar: (a: { var: string; mapeo: Mapeo }) => void;
   onAplicar: () => void;
 }) {
-  const base = categoriasBase.map((c) => ({ value: c.value, label: c.label }));
+  const base = categoriasBase.map((c) => ({ value: c.value, label: c.label || c.value }));
   // Sin mapeo guardado se propone el de rótulos iguales; editarlo lo fija.
   const mapeo = Object.keys(asignado.mapeo).length ? asignado.mapeo : sugerirMapeo(base, margen);
   const r = asignado.var && base.length ? metasDesdeMapeo(base, margen, mapeo) : null;

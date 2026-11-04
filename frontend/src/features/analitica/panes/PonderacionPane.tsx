@@ -358,7 +358,7 @@ function CategoryEditor({ mode, variable, label, categorias, values, fuente, obs
       )}
       {categorias.map((c) => (
         <div key={c.value} className="pond-categorias-fila">
-          <span className="pond-categorias-nombre">{c.label}</span>
+          <span className="pond-categorias-nombre">{c.label || c.value}</span>
           {isRake && (
             <span className="pond-num pond-categorias-muestra">
               {obs(c.value) != null ? pct(obs(c.value)!) : "—"}

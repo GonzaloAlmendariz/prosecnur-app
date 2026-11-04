@@ -35,7 +35,7 @@
 }
 
 .pond-ajuste-campo {
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   min-width: 0;
   display: inline-flex;
   align-items: center;
@@ -89,4 +89,36 @@
   background: var(--pulso-primary-soft);
   font-size: var(--pulso-type-caption-size);
   color: var(--pulso-primary);
+}
+
+/* El kit estira campo y select al 100 %: aquí van en línea con su rótulo. */
+.pond-ajuste-campo .pulso-input:not(.is-numeric) {
+  width: 160px;
+}
+
+.pond-ajuste-campo .pulso-select-trigger {
+  width: auto;
+  min-width: 220px;
+}
+
+.pond-ajuste-campo .pulso-input.is-numeric {
+  width: 72px;
+}
+
+/* Recorte: cada control en su fila; el tope (slider + valor) no se parte. */
+.pond-ajuste-bloque.is-columna {
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.pond-ajuste .pond-recorte-rango {
+  flex: 0 0 160px;
+  width: 160px;
+}
+
+.pond-ajuste-tope {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--pulso-space-2);
+  white-space: nowrap;
 }

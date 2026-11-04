@@ -86,17 +86,17 @@ export function PonderacionAjustes({ pond, onEscala, onTotal, onRake, onTrim }: 
         )}
       </div>
 
-      <div className="pond-ajuste-bloque">
+      <div className="pond-ajuste-bloque is-columna">
         <div className="pond-ajuste">
           <span className="pond-ajuste-rotulo">Recorte</span>
           <Switch checked={recorte} ariaLabel="Recortar pesos extremos"
             onToggle={() => onTrim(recorte ? null : { cap: 5 })} />
           {recorte && (
-            <>
+            <span className="pond-ajuste-tope">
               <input type="range" min={2} max={8} step={1} value={cap} className="pond-recorte-rango"
                 aria-label="Tope del recorte (veces la media)" onChange={(e) => onTrim({ cap: Number.parseInt(e.target.value, 10) })} />
               <span className="pond-recorte-valor" title="Ningún caso pesa más de este múltiplo de la media ni menos de su inverso.">{cap}×</span>
-            </>
+            </span>
           )}
         </div>
         {recorte && (
