@@ -49,7 +49,7 @@ const LINEA_BASE: Record<string, { titulos: number; cabeceras: number }> = {
   acreditacion: { titulos: 80, cabeceras: 0 },
   aulas: { titulos: 80, cabeceras: 12 },
   territorial: { titulos: 94, cabeceras: 0 },
-  telefonico: { titulos: 44, cabeceras: 26 },
+  telefonico: { titulos: 18, cabeceras: 0 },
 };
 
 describe("cajas propias en Monitoreo (P2): los títulos sueltos sólo bajan", () => {
