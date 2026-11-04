@@ -3249,7 +3249,7 @@ a { color: var(--pulso-primary); }
   font-weight: var(--pulso-weight-bold);
 }
 .pulso-step-number {
-  font-family: ui-monospace, monospace;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: 10px;
   font-weight: var(--pulso-weight-heavy);
   opacity: 0.7;
@@ -5494,21 +5494,6 @@ a { color: var(--pulso-primary); }
   border-color: color-mix(in srgb, var(--pulso-border) 84%, var(--pulso-text-soft));
   background: color-mix(in srgb, var(--pulso-surface-2) 80%, #fff 20%);
   color: var(--pulso-text-soft);
-}
-.pulso-codificacion-matrix-empty {
-  min-height: 190px;
-  display: grid;
-  align-content: center;
-  justify-items: center;
-  gap: 5px;
-  padding: 22px;
-  color: var(--pulso-text-soft);
-  text-align: center;
-}
-.pulso-codificacion-matrix-empty span {
-  max-width: 280px;
-  font-size: 11.5px;
-  line-height: 1.35;
 }
 .pulso-codificacion-matrix-standard {
   min-height: 44px;
@@ -8154,23 +8139,6 @@ h1.pulso-page-title {
   border-radius: 999px;
   background: color-mix(in srgb, var(--pulso-border) 72%, #fff);
 }
-.pulso-sm-case-badge {
-  display: inline-flex;
-  align-items: center;
-  width: fit-content;
-  margin: 0 6px 3px 0;
-  padding: 2px 6px;
-  border-radius: 999px;
-  font-size: 10px;
-  font-weight: var(--pulso-weight-heavy);
-  line-height: 1.2;
-  white-space: nowrap;
-}
-.pulso-sm-case-badge.is-near {
-  border: 1px solid var(--pulso-warn-border);
-  background: color-mix(in srgb, var(--pulso-warn-bg) 72%, #fff);
-  color: var(--pulso-warn-fg);
-}
 .pulso-sm-case-review {
   display: grid;
   gap: 5px;
@@ -8303,19 +8271,6 @@ h1.pulso-page-title {
 .pulso-sm-case-action-note {
   color: var(--pulso-text-faint);
   font-size: 10px;
-  font-weight: var(--pulso-weight-bold);
-}
-.pulso-sm-case-empty {
-  min-height: 44px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px;
-  border: 1px dashed var(--pulso-border);
-  border-radius: 8px;
-  background: #fff;
-  color: var(--pulso-text-soft);
-  font-size: 11px;
   font-weight: var(--pulso-weight-bold);
 }
 .pulso-sm-collector-picks {
@@ -8488,8 +8443,7 @@ h1.pulso-page-title {
   margin: 0;
 }
 .pulso-sm-decision-warning,
-.pulso-sm-decision-ok,
-.pulso-sm-decision-empty {
+.pulso-sm-decision-ok {
   display: flex;
   align-items: flex-start;
   gap: 7px;
@@ -9164,7 +9118,7 @@ h1.pulso-page-title {
   border-radius: 999px;
   background: #fff;
   color: var(--carga-accent);
-  font-family: ui-monospace, monospace;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: 11px;
   font-variant-numeric: tabular-nums;
   font-weight: var(--pulso-weight-heavy);
@@ -15001,15 +14955,6 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-card:hover:not
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 
-.pulso-question-detail-empty {
-  padding: 10px 12px;
-  border: 1px dashed var(--pulso-border);
-  border-radius: 8px;
-  background: var(--pulso-surface);
-  color: var(--pulso-text-soft);
-  font-size: 12px;
-  line-height: 1.45;
-}
 .pulso-question-detail-response {
   gap: 12px;
 }
@@ -15140,9 +15085,6 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-card:hover:not
   grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
   gap: 10px;
 }
-.pulso-canvas-logic-grid > .pulso-question-detail-empty {
-  grid-column: 1 / -1;
-}
 .pulso-canvas-logic-item {
   display: flex;
   gap: 10px;
@@ -15270,7 +15212,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-card:hover:not
 }
 .pulso-inspector-logic-readout pre {
   margin: 0;
-  font-family: ui-monospace, monospace;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: 11.5px;
   color: var(--pulso-text);
   white-space: pre-wrap;
@@ -15708,7 +15650,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-card:hover:not
   border-radius: 6px;
   background: color-mix(in srgb, var(--pulso-primary) 6%, #ffffff);
   color: color-mix(in srgb, var(--pulso-primary) 74%, #253149);
-  font-family: ui-monospace, monospace;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: 10px;
   font-weight: var(--pulso-weight-heavy);
   white-space: nowrap;
@@ -15740,7 +15682,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-card:hover:not
 }
 .pulso-logic-builder-raw pre {
   margin: 0;
-  font-family: ui-monospace, monospace;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: 11.5px;
   color: var(--pulso-text);
   white-space: pre-wrap;
@@ -15869,7 +15811,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-card:hover:not
   flex: 0 1 auto;
   max-width: 46%;
   overflow: hidden;
-  font-family: ui-monospace, monospace;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: 10.5px;
   color: #64748b;
   background: color-mix(in srgb, var(--pulso-primary) 7%, #ffffff);
@@ -15904,7 +15846,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-card:hover:not
   min-width: 240px;
 }
 .pulso-logic-varpicker-itemtext code {
-  font-family: ui-monospace, monospace;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: 11.5px;
   color: #64748b;
   overflow: hidden;
@@ -16218,7 +16160,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-card:hover:not
   border-radius: 7px;
   background: color-mix(in srgb, var(--pulso-primary) 6%, #ffffff);
   color: var(--pulso-primary);
-  font-family: ui-monospace, monospace;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: 10px;
   font-weight: var(--pulso-weight-heavy);
 }
@@ -16310,7 +16252,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-card:hover:not
   background: var(--pulso-surface-2);
 }
 .pulso-logic-calc-varpop code {
-  font-family: ui-monospace, monospace;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: 11.5px;
   color: var(--pulso-primary);
 }
@@ -16741,7 +16683,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-card:hover:not
   border-radius: 4px;
   padding: 0 5px;
   font-size: 12px;
-  font-family: ui-monospace, monospace;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   color: var(--pulso-text);
 }
 
@@ -19615,7 +19557,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-card:hover:not
 .pulso-graph-edge-panel-card-text code {
   display: block;
   font-size: 11px;
-  font-family: ui-monospace, monospace;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   color: var(--pulso-text-soft);
   white-space: normal;
   overflow: visible;
@@ -19814,7 +19756,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-card:hover:not
 }
 .pulso-graph-edge-panel-nested-question code {
   color: var(--pulso-text-soft);
-  font-family: ui-monospace, monospace;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: 11px;
 }
 .pulso-graph-edge-panel-nested-question span {
@@ -20239,7 +20181,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-card:hover:not
   text-overflow: ellipsis;
 }
 .pulso-graph-detail-title code {
-  font-family: ui-monospace, monospace;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: 10.5px;
 }
 
@@ -20538,7 +20480,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-card:hover:not
   line-height: 1.35;
 }
 .pulso-inspector-conditional-required-rule code {
-  font-family: ui-monospace, monospace;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: 11px;
   background: rgba(0, 0, 0, 0.05);
   padding: 4px 6px;
@@ -21195,7 +21137,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-card:hover:not
 }
 
 .pulso-focus-fact code {
-  font-family: ui-monospace, monospace;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: 12px;
 }
 
@@ -21309,7 +21251,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-card:hover:not
   border-radius: 5px;
   background: rgba(15, 23, 42, 0.06);
   color: var(--pulso-text);
-  font-family: ui-monospace, monospace;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: 11px;
   line-height: 1.45;
   word-break: break-word;
@@ -21498,7 +21440,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-card:hover:not
   border-radius: 7px;
   background: color-mix(in srgb, var(--pulso-primary) 6%, #ffffff);
   color: color-mix(in srgb, var(--pulso-primary) 78%, #253149);
-  font-family: ui-monospace, monospace;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: 10px;
   font-weight: var(--pulso-weight-heavy);
 }
