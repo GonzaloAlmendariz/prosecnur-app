@@ -36,7 +36,7 @@ export function FichaPregunta({ pregunta, onEditar }: { pregunta: PreguntaDoc; o
             <dt>Opciones</dt>
             <dd>
               <code>{ficha.lista.nombre}</code>
-              {" · "}
+              {": "}
               {ficha.lista.opciones.length === 0
                 ? "La lista no existe en la hoja de opciones"
                 : `${ficha.lista.opciones.length} ${ficha.lista.opciones.length === 1 ? "opción" : "opciones"}`}

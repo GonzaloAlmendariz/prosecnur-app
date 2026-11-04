@@ -259,10 +259,10 @@ export function SheetsView({
         )}
         <span className="pulso-xfs-meta">
           {visibleColumns.length}{" "}
-          {visibleColumns.length === 1 ? "columna" : "columnas"} ·{" "}
+          {visibleColumns.length === 1 ? "columna" : "columnas"},{" "}
           {sheet.rows.length} {sheet.rows.length === 1 ? "fila" : "filas"}
           {hiddenPdfCount > 0
-            ? ` · ${hiddenPdfCount} papel/PDF ${hiddenPdfCount === 1 ? "oculta" : "ocultas"}`
+            ? ` (${hiddenPdfCount} papel/PDF ${hiddenPdfCount === 1 ? "oculta" : "ocultas"})`
             : ""}
         </span>
       </div>

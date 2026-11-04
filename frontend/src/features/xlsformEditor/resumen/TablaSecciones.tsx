@@ -21,6 +21,7 @@ import {
   type FilaSeccion,
   type Orden,
 } from "./modeloResumen";
+import { formatoDecimal } from "../../../lib/formatoNumero";
 
 const COLUMNAS: readonly { columna: ColumnaOrden; rotulo: string; clase: string; ayuda?: string }[] = [
   { columna: "preguntas", rotulo: "Preguntas", clase: "is-num is-col-preguntas" },
@@ -45,7 +46,7 @@ function Encabezado({ columna, rotulo, clase, ayuda, orden, onOrden }: {
 }
 
 function minutosDePregunta(segundos: number): string {
-  return `${(segundos / 60).toLocaleString("es-PE", { maximumFractionDigits: 1 })} min`;
+  return `${formatoDecimal(segundos / 60, 1)} min`;
 }
 
 function PreguntasDesplegadas({ preguntas, onEditar }: {
@@ -106,7 +107,7 @@ export function TablaSecciones({ filas, kindDe, abierta, onAlternar, resaltada, 
         <span className="pulso-xf-res-panel-nota">
           {/* «Fuera de toda sección» es una fila, no una sección: el conteo cuadra con la cifra de arriba (S14). */}
           {nSecciones} {nSecciones === 1 ? "sección" : "secciones"}{filas.length > nSecciones ? " y preguntas sueltas" : ""}
-          {pesadas ? ` · ${pesadas} ${pesadas === 1 ? "pesada" : "pesadas"}` : ""}
+          {pesadas ? `, ${pesadas} ${pesadas === 1 ? "pesada" : "pesadas"}` : ""}
         </span>
       </header>
       {filas.length === 0 ? (

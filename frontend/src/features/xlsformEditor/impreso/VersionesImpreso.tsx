@@ -22,7 +22,7 @@ export function textoSincronia(s: SincroniaImpreso): string {
     case "guardando": return "Guardando en el proyecto…";
     case "guardado": {
       const cuando = momentoImpreso(s.en);
-      return cuando ? `Guardadas en el proyecto · ${cuando}` : "Guardadas en el proyecto.";
+      return cuando ? `Guardadas en el proyecto (${cuando})` : "Guardadas en el proyecto.";
     }
     case "error": return `No se guardaron en el proyecto (${s.causa}); quedan en este equipo.`;
   }

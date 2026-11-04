@@ -114,9 +114,8 @@ export function CatalogWorkspace({
         </div>
         <div className="pulso-catalogworkspace-meta">
           <span>
-            {totalCount} {totalCount === 1 ? "opción" : "opciones"}
+            {totalCount} {totalCount === 1 ? "opción" : "opciones"},
           </span>
-          <span>·</span>
           <span>
             {usageCount === 0
               ? "Sin uso todavía"

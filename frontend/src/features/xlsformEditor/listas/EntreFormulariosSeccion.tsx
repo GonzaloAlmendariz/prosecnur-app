@@ -148,7 +148,7 @@ function CoincidenciaFila({
       <div className="pulso-xf-listas-entre-texto">
         <code className="pulso-xf-listas-nombre">{c.lista}</code>
         <p>
-          {describirDondeSeRepite(c.copias)} · {describirNombresAlla(c.copias)}
+          {describirDondeSeRepite(c.copias)}; {describirNombresAlla(c.copias)}
           {c.motivo ? <span className="pulso-xf-listas-entre-motivo"> {c.motivo}</span> : null}
         </p>
       </div>

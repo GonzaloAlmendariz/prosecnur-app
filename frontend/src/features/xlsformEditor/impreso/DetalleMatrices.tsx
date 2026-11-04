@@ -65,8 +65,8 @@ function CandidataMatriz({ candidata, matrices, onCambiar, plano }: {
       >
         <span className="pulso-xf-pdf-matrix-badge" aria-hidden="true"><Grid3x3 size={16} /></span>
         <span className="pulso-xf-pdf-matrix-info">
-          <strong>{candidata.count} {candidata.count === 1 ? "pregunta" : "preguntas"} · lista {candidata.listName}</strong>
-          <em>{resumenPreguntas(candidata, plano)} · {candidata.sectionLabel}</em>
+          <strong>{candidata.count} {candidata.count === 1 ? "pregunta" : "preguntas"}, lista {candidata.listName}</strong>
+          <em>{resumenPreguntas(candidata, plano)} ({candidata.sectionLabel})</em>
         </span>
         <span className="pulso-xf-pdf-matrix-toggle-label">¿Va como matriz?</span>
         <span className={`pulso-xf-pdf-switch${eleccion.enabled ? " is-on" : ""}`} aria-hidden="true">

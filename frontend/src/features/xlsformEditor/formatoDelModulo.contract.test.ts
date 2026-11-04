@@ -62,43 +62,13 @@ function medir(contar: (l: string) => number): Record<string, number> {
 
 /** Foto del 4 nov 2026 después de la tanda de `shell/`. Sólo baja. */
 const SNAPSHOT_P3: Record<string, number> = {
-  "XlsformEditorPage.tsx": 3,
-  "catalogs/CatalogLibrary.tsx": 1,
-  "catalogs/CatalogWorkspace.tsx": 1,
-  "catalogs/CatalogsContextLens.tsx": 1,
-  "cuestionario/FichaPregunta.tsx": 1,
-  "cuestionario/IndiceCuestionario.tsx": 2,
-  "impreso/DetalleMatrices.tsx": 2,
   "impreso/MaquetaPagina.tsx": 1,
-  "impreso/PreviaImpreso.tsx": 4,
-  "impreso/VersionesImpreso.tsx": 1,
-  "impreso/modeloImpreso.ts": 4,
-  "kit/CuerpoPanelMarca.tsx": 1,
-  "listas/EntreFormulariosSeccion.tsx": 1,
-  "listas/GrupoListasCard.tsx": 1,
-  "opciones/edicionOpciones.ts": 1,
-  "outline/BarraEstructura.tsx": 1,
-  "outline/BotonInsertar.tsx": 1,
-  "outline/OutlineRow.tsx": 3,
-  "outline/PuntoAviso.tsx": 1,
-  "outline/SeccionEstructura.tsx": 3,
-  "outline/SurveyOutline.tsx": 1,
-  "pestanas/PestanaCalculos.tsx": 2,
-  "pestanas/PestanaRestricciones.tsx": 2,
-  "pestanas/ProbarCalculo.tsx": 1,
   "pestanas/armador/armadorModelo.ts": 1,
   "reglas/acnurEs.fixture.ts": 1,
-  "resumen/LineaTiempo.tsx": 1,
-  "resumen/TablaSecciones.tsx": 1,
-  "sheets/BarraFormula.tsx": 1,
-  "sheets/PanelFila.tsx": 2,
-  "sheets/SheetsView.tsx": 2,
   "shell/logicaExternaModel.ts": 1,
 };
 const SNAPSHOT_P4: Record<string, number> = {
   "kit/Sello.tsx": 1,
-  "outline/modeloEstructura.ts": 1,
-  "resumen/TablaSecciones.tsx": 1,
 };
 const SNAPSHOT_P5: Record<string, number> = {
   "canvas/constructor/CalculoRepeticionPaneles.tsx": 1,

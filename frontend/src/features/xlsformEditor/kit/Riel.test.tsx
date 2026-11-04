@@ -130,7 +130,7 @@ describe("PanelMarca (contenido)", () => {
       />,
     );
     // El texto entero, recortado por CSS (elipsis), nunca a mitad de palabra con «…» escrito (M5).
-    expect(html).toContain('<span class="xfk-pop__ref" title="¿Acepta participar en la encuesta de hogares del distrito? · acepta"><span class="xfk-pop__ref-txt">¿Acepta participar en la encuesta de hogares del distrito?</span><code>acepta</code></span>');
+    expect(html).toContain('<span class="xfk-pop__ref" title="¿Acepta participar en la encuesta de hogares del distrito? (acepta)"><span class="xfk-pop__ref-txt">¿Acepta participar en la encuesta de hogares del distrito?</span><code>acepta</code></span>');
     expect(html).toContain(" es");
     expect(html).toContain('Sí</span><code>1</code>');
   });

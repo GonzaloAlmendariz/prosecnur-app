@@ -85,7 +85,7 @@ describe("ListasOpcionesPanel", () => {
     expect(html).toContain("Entre formularios del proyecto");
     expect(html).toContain(TEXTO_ENTRE_FORMULARIOS);
     expect(html).toContain('data-qa-geometry-group="xlsform-listas-entre"');
-    expect(html).toContain("Igual en Docentes · se llama «genero» allí");
+    expect(html).toContain("Igual en Docentes; se llama «genero» allí");
     expect(html).toContain("Renombrar como «genero»");
     expect(html).toContain('data-qa-geometry-group="xlsform-listas-codigos"');
     expect(html).toContain("Misma escala con códigos distintos en Docentes (SIN INF: 5 aquí, 99 allá)");

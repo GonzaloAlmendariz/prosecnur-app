@@ -1458,7 +1458,7 @@ export default function XlsformEditorPage() {
           const res = await apiXlsformEditorImportMatrizPulso(dialog.fileId, audience);
           const formId = openWorkbookAsForm(
             res.workbook,
-            { kind: "matriz_pulso", original_name: `${dialog.fileName} · ${audience}` },
+            { kind: "matriz_pulso", original_name: `${dialog.fileName} (${audience})` },
             `Generamos el formulario de ${audience} desde la matriz PULSO.`,
             // Guarda cada formulario sin activarlo; el switchToForm de abajo
             // activa solo el primero, evitando la carrera de activaciones.
@@ -1492,7 +1492,7 @@ export default function XlsformEditorPage() {
     if (createdIds.length > 0) {
       toasts.push({
         kind: "success",
-        title: `Matriz PULSO · ${createdIds.length} formulario${createdIds.length === 1 ? "" : "s"}`,
+        title: `Matriz PULSO: ${createdIds.length} formulario${createdIds.length === 1 ? "" : "s"}`,
         detail: `Generamos ${plan.toCreate.slice(0, createdIds.length).join(", ")} desde ${dialog.fileName}.`,
       });
     }
@@ -1500,7 +1500,7 @@ export default function XlsformEditorPage() {
       toasts.push({
         kind: "info",
         title: "Escala inferida — revísala",
-        detail: `${scaleNotes.join(" · ")}. Revisa las preguntas antes de publicar.`,
+        detail: `${scaleNotes.join("; ")}. Revisa las preguntas antes de publicar.`,
         durationMs: 8000,
       });
     }

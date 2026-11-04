@@ -612,7 +612,7 @@ export function SurveyOutline({
         </div>
       </DndContext>
       <p className="xfe-pie" aria-hidden="true">
-        <kbd>↑↓</kbd> recorre · <kbd>Enter</kbd> abre · <kbd>Alt ↑↓</kbd> mueve · <kbd>+</kbd> agrega
+        <kbd>↑↓</kbd> recorre, <kbd>Enter</kbd> abre, <kbd>Alt ↑↓</kbd> mueve, <kbd>+</kbd> agrega
       </p>
       {insertando ? (
         <AddElementMenu

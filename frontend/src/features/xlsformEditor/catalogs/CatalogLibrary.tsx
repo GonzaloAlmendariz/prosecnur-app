@@ -99,7 +99,7 @@ export function CatalogLibrary({
                     {catalog.items.length} {catalog.items.length === 1 ? "opción" : "opciones"}
                     {usage > 0 && (
                       <>
-                        {" · "}
+                        {", "}
                         {usage === 1 ? "1 pregunta" : `${usage} preguntas`}
                       </>
                     )}

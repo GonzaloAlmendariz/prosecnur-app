@@ -26,7 +26,7 @@ import { previewKindLabel } from "../parsing/buildIndex";
 import { BotonInsertar, type AbrirInsertar } from "./BotonInsertar";
 import { PuntoAviso, type AvisoFila } from "./PuntoAviso";
 
-export const ATAJOS_FILA = "Enter abre · Alt+↑ / Alt+↓ mueve · Insert o + agrega debajo";
+export const ATAJOS_FILA = "Enter abre, Alt+↑ / Alt+↓ mueve, Insert o + agrega debajo";
 
 export function tituloDe(node: BuilderNode): string {
   return stripMarkdown(node.label) || node.name || `fila_${node.rowIndex + 1}`;
@@ -74,7 +74,7 @@ export const OutlineRow = memo(function OutlineRow({
         data-outline-row={node.rowIndex}
         data-depth={node.depth}
       >
-        <AsaArrastre id={node.rowIndex} arrastrable={arrastrable} titulo="Arrastra para mover · Alt+↑ / Alt+↓" etiqueta="Arrastra para mover" />
+        <AsaArrastre id={node.rowIndex} arrastrable={arrastrable} titulo="Arrastra para mover (Alt+↑ / Alt+↓)" etiqueta="Arrastra para mover" />
 
         <div
           role="button"
@@ -100,7 +100,6 @@ export const OutlineRow = memo(function OutlineRow({
               </span>
               {node.name && node.name !== stripMarkdown(node.label) ? (
                 <span className="pulso-outline-codewrap">
-                  <span aria-hidden="true">·</span>
                   <code className="pulso-outline-code">{node.name}</code>
                 </span>
               ) : null}

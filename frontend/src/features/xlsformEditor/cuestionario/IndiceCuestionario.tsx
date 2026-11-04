@@ -28,7 +28,7 @@ export function IndiceCuestionario({ secciones, actual, onSeccion, onPregunta }:
     partes: visibles.map((s) => ({
       clave: s.clave,
       rotulo: stripMarkdown(rotuloDeIndice(s)),
-      detalle: `${plural(s.preguntas, "pregunta", "preguntas")}${s.preguntas ? ` · ${duracion(s.segundos)}` : ""}`,
+      detalle: `${plural(s.preguntas, "pregunta", "preguntas")}${s.preguntas ? `, ${duracion(s.segundos)}` : ""}`,
       // Un glifo con su explicación al pasar el puntero: el texto «condicional» le quitaba la mitad del ancho al título.
       ...(s.conCondicion > 0
         ? { estado: { tono: "neutro" as const, texto: `${plural(s.conCondicion, "pregunta condicional", "preguntas condicionales")}` } }
@@ -58,7 +58,7 @@ export function IndiceCuestionario({ secciones, actual, onSeccion, onPregunta }:
       {resultado && (
         <p className="pulso-xf-cue-buscador-conteo" role="status">
           {resultado.secciones.size || resultado.preguntas.length
-            ? `${plural(resultado.secciones.size, "sección", "secciones")} · ${plural(resultado.preguntas.length, "pregunta", "preguntas")}`
+            ? `${plural(resultado.secciones.size, "sección", "secciones")}, ${plural(resultado.preguntas.length, "pregunta", "preguntas")}`
             : "Nada coincide"}
         </p>
       )}
