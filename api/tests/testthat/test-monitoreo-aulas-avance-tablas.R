@@ -173,10 +173,14 @@ test_that("la portada trae el corte PELADO, y la tabla por facultad su fila Tota
   expect_null(fac$nota_pie)
 })
 
-test_that("sin plan no se devuelve una tabla vacía: se dice por qué", {
+test_that("sin plan no se devuelve una tabla vacía muda: se dice por qué, sin error", {
   sid <- session_create()
   session_set(sid, "monitoreo_config", list(aulas_universitarias = list(enabled = TRUE)))
-  expect_error(monitoreo_aulas_avance_tablas(sid), class = "api_error")
+  res <- monitoreo_aulas_avance_tablas(sid)
+  expect_true(isTRUE(res$ok))
+  expect_true(isTRUE(res$sin_plan))
+  expect_length(res$tablas, 0L)
+  expect_match(res$vacio, "plan de cursos-horario")
 })
 
 test_that("sin respuestas sincronizadas las tablas callan en vez de inventar ceros", {

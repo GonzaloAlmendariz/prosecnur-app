@@ -52,7 +52,7 @@ const ICONOS: Record<Salida["clave"], typeof FileText> = {
  * libro, hoja por hoja. «Revisar cambios» no escribe: las tablas se construyen en Material (R13).
  */
 function SalidasAulasImpl({ contexto }: { contexto: ContextoDeSalidas }) {
-  const { tablas, error } = useTablasDeAvance();
+  const { tablas, error, sinPlan } = useTablasDeAvance();
   const modelo = useMemo(
     () => construirSalidas({
       config: contexto.config,
@@ -60,8 +60,9 @@ function SalidasAulasImpl({ contexto }: { contexto: ContextoDeSalidas }) {
       clientSheets: contexto.clientSheets,
       tablas,
       errorTablas: error,
+      sinPlanTablas: sinPlan,
     }),
-    [contexto.config, contexto.corte, contexto.clientSheets, tablas, error],
+    [contexto.config, contexto.corte, contexto.clientSheets, tablas, error, sinPlan],
   );
   const revisar = usePanelDireccionable(PANEL_REVISAR_LIBRO);
   const libro = modelo.salidas.find((s) => s.clave === "libro");
