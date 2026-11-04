@@ -73,10 +73,44 @@ export function SalidasDeMonitoreo({
     : <><EstadoChip label="Bloqueado" tone="warn" /> {readiness.bloqueos[0]?.mensaje ?? "El corte todavía no puede salir a cliente."}</>;
 
   return (
+    <PortadaDeSalidas
+      rotulo={motor.rotulo}
+      lectura={estadoDelCorte}
+      acciones={<PulsoButton variant="secondary" size="sm" nav onClick={abrir}>PDF y cliente</PulsoButton>}
+      filas={[
+        ...filasPropias,
+        ...filas.map((fila) => ({
+          ...fila,
+          accion: <PulsoButton variant="secondary" size="sm" onClick={abrir}>{String(fila.clave).startsWith("sheets") ? "Revisar" : "Abrir"}</PulsoButton>,
+        })),
+      ]}
+      despues={despues}
+      vistaPrevia={vistaPrevia}
+    />
+  );
+}
+
+export type FilaDePortada = FilaDeSalida & { accion?: ReactNode; icono?: typeof FileText };
+
+/**
+ * La portada de Salidas, sólo presentación: la lista a la izquierda (con lo que el modo agrega debajo) y la hoja
+ * del cliente a la derecha. `SalidasDeMonitoreo` la arma con las filas comunes; cursos-horario, con las suyas.
+ */
+export function PortadaDeSalidas({ rotulo, lectura, acciones, filas, despues, vistaPrevia, readiness = "monitoreo-salidas" }: {
+  rotulo?: ReactNode;
+  lectura?: ReactNode;
+  acciones?: ReactNode;
+  filas: FilaDePortada[];
+  despues?: ReactNode;
+  vistaPrevia: ReactNode;
+  /** La marca de `data-audit-ready` (la del modo, si ya la declara). */
+  readiness?: string;
+}) {
+  return (
     <section
       className="mon-sal"
       aria-label="Salidas del corte"
-      data-audit-ready="monitoreo-salidas"
+      data-audit-ready={readiness}
       data-qa-geometry-group="monitoreo-salidas"
       data-qa-geometry-contract="intrinsic"
     >
@@ -84,20 +118,13 @@ export function SalidasDeMonitoreo({
         <BloqueDeMonitoreo
           marco="kit"
           className="mon-sal-lista"
-          antetitulo={motor.rotulo}
+          antetitulo={rotulo}
           titulo="Salidas del corte"
-          lectura={estadoDelCorte}
-          acciones={<PulsoButton variant="secondary" size="sm" nav onClick={abrir}>PDF y cliente</PulsoButton>}
+          lectura={lectura}
+          acciones={acciones}
         >
           <ul className="mon-sal-filas" data-qa-geometry-group="monitoreo-salidas-filas" data-qa-geometry-contract="intrinsic">
-            {filasPropias.map((fila) => <Fila key={fila.clave} fila={fila} accion={fila.accion} />)}
-            {filas.map((fila) => (
-              <Fila
-                key={fila.clave}
-                fila={fila}
-                accion={<PulsoButton variant="secondary" size="sm" onClick={abrir}>{fila.clave.startsWith("sheets") ? "Revisar" : "Abrir"}</PulsoButton>}
-              />
-            ))}
+            {filas.map((fila) => <Fila key={fila.clave} fila={fila} accion={fila.accion} icono={fila.icono} />)}
           </ul>
         </BloqueDeMonitoreo>
         {despues}
@@ -109,8 +136,8 @@ export function SalidasDeMonitoreo({
   );
 }
 
-function Fila({ fila, accion }: { fila: FilaDeSalida; accion?: ReactNode }) {
-  const Icono = ICONOS[String(fila.clave)] ?? FileText;
+function Fila({ fila, accion, icono }: { fila: FilaDeSalida; accion?: ReactNode; icono?: typeof FileText }) {
+  const Icono = icono ?? ICONOS[String(fila.clave)] ?? FileText;
   return (
     <li className="mon-sal-fila" data-qa-geometry-member>
       <span className="mon-sal-icono" aria-hidden="true"><Icono size={18} /></span>
