@@ -91,7 +91,7 @@
   width: 100%;
   display: flex;
   justify-content: space-between;
-  align-items: baseline;
+  align-items: flex-end;
   gap: 12px;
   color: var(--pulso-text-soft);
   font-size: 12px;
@@ -153,10 +153,6 @@
 
 
 /* El reloj acompaña a la barra: sus cifras bajan a tamaño de lectura para no competir con la fase. */
-.boot-warmup-lectura {
-  align-items: flex-end;
-}
-
 .boot-warmup-lectura .pulso-warmup-reloj dd {
   font-size: 15px;
   line-height: 1.2;
