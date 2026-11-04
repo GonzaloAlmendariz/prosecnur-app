@@ -3501,7 +3501,7 @@ hojas_ruta_integrada_normalize_config <- function(config = list()) {
   )
   replacement_policy <- .hojas_ruta_scalar(
     config$replacement_policy %||% config$replacementPolicy %||% config$politica_reemplazo,
-    defaults$replacement_policy
+    if (hojas_ruta_estrato_activo(sample_size)) "paired_by_titular_zone" else defaults$replacement_policy # ADR 0131 §5
   )
   if (!replacement_policy %in% .hojas_ruta_replacement_policies()) {
     replacement_policy <- defaults$replacement_policy

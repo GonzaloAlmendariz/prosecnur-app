@@ -155,3 +155,19 @@ test_that("el reparto dentro del estrato usa la medida del marco elegible, la mi
   })
   expect_equal(as.numeric(suma[a$estratos$estrato]), as.numeric(a$estratos$rutas), tolerance = 1e-8)
 })
+
+test_that("en estrato provincia el reemplazo por defecto es el pareado de la misma zona y hereda π", {
+  expect_identical(.es_norm("provincia")$replacement_policy, "paired_by_titular_zone")
+  expect_identical(.es_norm("provincia_lima_areas")$replacement_policy, "paired_by_titular_zone")
+  # El modo distrito conserva su defecto (estudios existentes).
+  expect_identical(.es_norm()$replacement_policy, "alternate_zone_same_district")
+  # «Otra zona» sigue disponible si se pide explícitamente.
+  expect_identical(.es_norm("provincia", replacement_policy = "alternate_zone_same_district")$replacement_policy,
+                   "alternate_zone_same_district")
+  s <- hojas_ruta_sample_preview_integrado(.es_cfg("provincia", replacements_per_titular = 1L))
+  expect_true(s$ok)
+  r <- .hojas_ruta_rows_df(s$replacement_blocks)
+  expect_gt(nrow(r), 0L)
+  expect_true(all(r$pi_fuente == "hereda_titular"))
+  expect_false(any(vapply(s$alerts, function(a) identical(a$code, "W_REPLACEMENT_PI_OTRA_ZONA"), logical(1))))
+})
