@@ -189,105 +189,6 @@
   L
 }
 
-#' El total a la izquierda: barras horizontales (múltiple, opción única) con la letra del mazo
-#' @keywords internal
-.lam_tarjetas_total_barras <- function(lz, espec, negritas, x0, ancho, y0, y1) {
-  rot <- min(3.4, ancho * 0.42); xb <- x0 + rot + 0.18; wbar <- ancho - rot - 0.18 - 0.65
-  n <- length(espec$rotulos); fh <- min(0.9, (y1 - y0) / max(1L, n))
-  yi <- y0 + max(0, (y1 - y0 - fh * n) / 2)
-  maximo <- max(espec$largos, na.rm = TRUE) * 1.08
-  azul <- .std_color("azul")
-  for (k in seq_len(n)) {
-    yc <- yi + (k - 0.5) * fh; bh <- min(0.36, fh * 0.55)
-    w <- if (maximo > 0) wbar * espec$largos[k] / maximo else 0
-    neg <- espec$rotulos[k] %in% negritas
-    h_r <- .lam_alto_tinta(espec$rotulos[k], rot + 0.2, 11, neg)
-    .lam_txt(lz, espec$rotulos[k], x0 - 0.1, yc - h_r / 2, rot + 0.2, h_r, 11, azul, bold = neg, align = "right", nombre = "total:rotulo")
-    if (w > 0.004) .lam_caja(lz, xb, yc - bh / 2, w, bh, azul, nombre = "total:barra")
-    .lam_txt(lz, espec$cifras[k], xb + w + 0.07 - 0.1, yc - 0.15, 0.9, 0.3, 12, azul, bold = TRUE, nombre = "total:cifra")
-  }
-  invisible(lz)
-}
-
-#' El total de una dicotómica: una barra partida con la cifra grande (lámina T2 de la maqueta)
-#' @keywords internal
-.lam_tarjetas_total_dicotomica <- function(lz, espec, x0, ancho, y0, y1) {
-  w <- ancho - 0.3; ys <- (y0 + y1) / 2 - 0.5
-  v <- espec$largos / max(1e-9, sum(espec$largos[1:2]))
-  azul <- .std_color("azul"); banda <- .std_color("banda_clara")
-  .lam_txt(lz, "Total", x0 + 0.05, ys - 0.45, 4, 0.32, 12, .std_color("texto_suave"), nombre = "total:rotulo")
-  x <- x0 + 0.15
-  for (k in 1:2) {
-    wk <- w * v[k]
-    .lam_caja(lz, x, ys, wk, 0.85, if (k == 1L) azul else banda, nombre = "total:barra")
-    if (wk > 0.7) .lam_txt(lz, espec$cifras[k], x, ys + 0.18, wk, 0.55, 28, if (k == 1L) .std_color("tarjeta_fondo") else azul, bold = TRUE,
-                           align = "center", nombre = "total:cifra")
-    .lam_txt(lz, espec$rotulos[k], x - 0.2, ys + 0.92, wk + 0.4, 0.34, 13, if (k == 1L) azul else .std_color("texto_suave"),
-             bold = k == 1L, align = "center", nombre = "total:categoria")
-    x <- x + wk
-  }
-  invisible(lz)
-}
-
-#' El total de una batería de escala: barra apilada, Top Two Box a la derecha y leyenda debajo (lámina T5)
-#' @keywords internal
-.lam_tarjetas_total_escala <- function(lz, espec, negritas, x0, ancho, y0, y1) {
-  rot <- min(3.0, ancho * 0.4); xb <- x0 + rot + 0.18; wbar <- ancho - rot - 0.18 - 0.95
-  filas <- espec$filas; n <- nrow(filas)
-  azul <- .std_color("azul"); verde <- .std_color("verde_acuerdo")
-  cats <- espec$categorias; box <- espec$box
-  # La leyenda se arma primero: su alto se reserva antes de repartir las filas (CCSS, batería de gobierno: con seis
-  # categorías ocupaba cuatro renglones y se montaba sobre «Base:»).
-  ley <- .lam_tarjetas_leyenda_disponer(cats$rotulo, xb, xb + wbar + 0.9)
-  alto_ley <- 0.06 + ley$renglones * 0.2
-  disp <- y1 - y0 - 0.25 - alto_ley
-  fh <- min(1.0, disp / max(1L, n)); yi <- y0 + 0.2 + max(0, (disp - fh * n) / 2)
-  .lam_txt(lz, box$rotulo %||% "Top Two Box", xb + wbar + 0.05 - 0.1, yi - 0.3, 1.1, 0.3, 10, verde, bold = TRUE, align = "center",
-           nombre = "total:encabezado_box")
-  for (k in seq_len(n)) {
-    yc <- yi + (k - 0.5) * fh
-    neg <- filas$rotulo[k] %in% negritas
-    h_r <- .lam_alto_tinta(filas$rotulo[k], rot + 0.2, 11, neg)
-    .lam_txt(lz, filas$rotulo[k], x0 - 0.1, yc - h_r / 2, rot + 0.2, h_r, 11, azul, bold = neg, align = "right", nombre = "total:rotulo")
-    x <- xb
-    for (j in seq_len(nrow(cats))) {
-      a <- espec$anchos[k, cats$col[j]]
-      if (!is.finite(a) || a <= 0) next
-      w <- wbar * a
-      .lam_caja(lz, x, yc - 0.2, w, 0.4, cats$color[j], nombre = "total:segmento")
-      pct <- 100 * a
-      if (pct >= 6) .lam_txt(lz, as.character(floor(pct + 0.5)), x - 0.1, yc - 0.13, w + 0.2, 0.28, 11,
-                             if (identical(toupper(cats$color[j]), toupper(.std_color("verde_top_two_box")))) .std_color("tarjeta_fondo") else azul,
-                             bold = TRUE, align = "center", nombre = "total:segmento:cifra")
-      x <- x + w
-    }
-    cif <- if (length(box$cifras) >= k) box$cifras[k] else ""
-    .lam_txt(lz, cif, xb + wbar + 0.05 - 0.1, yc - 0.17, 1.1, 0.36, 15, verde, bold = TRUE, align = "center", nombre = "total:box")
-  }
-  # Leyenda: cuadro de color y rótulo, en los renglones que ya se reservaron.
-  yl <- yi + n * fh + 0.06
-  for (j in seq_len(nrow(cats))) {
-    xl <- ley$x[j]; yj <- yl + (ley$renglon[j] - 1L) * 0.2
-    .lam_caja(lz, xl, yj + 0.045, 0.11, 0.11, cats$color[j], nombre = "total:leyenda:color")
-    .lam_txt(lz, cats$rotulo[j], xl + 0.11, yj - 0.02, ley$w[j], 0.24, 9, azul, nombre = "total:leyenda:rotulo")
-  }
-  invisible(lz)
-}
-
-#' Renglones de la leyenda de la escala: cuadro de color y rótulo, sin pasar del borde derecho
-#' @return `list(x, w, renglon, renglones)` por categoría.
-#' @keywords internal
-.lam_tarjetas_leyenda_disponer <- function(rotulos, x0, x1) {
-  w <- .lam_ancho_tinta(as.character(rotulos), 9) + 0.2
-  x <- numeric(length(w)); r <- integer(length(w)); xl <- x0; k <- 1L
-  for (j in seq_along(w)) {
-    if (xl > x0 && xl + 0.11 + w[j] > x1) { xl <- x0; k <- k + 1L }
-    x[j] <- xl; r[j] <- k
-    xl <- xl + 0.11 + w[j] + 0.06
-  }
-  list(x = x, w = w, renglon = r, renglones = max(1L, k))
-}
-
 #' ¿La lámina va con su panel de tarjetas? Solo si hay al menos una diferencia que mostrar
 #' @keywords internal
 .lam_tarjetas_aplica <- function(p, slide = NULL) {
@@ -297,60 +198,84 @@
   !is.null(t) && length(t$tarjetas) > 0L && !is.null(espec) && espec$tipo %in% c("categorica", "escala")
 }
 
-#' Lámina del total con su panel de tarjetas
-#' @return Lista con `doc`.
+#' Reserva a la derecha (in) que deja el panel: el total termina 0.45 in antes del panel
 #' @keywords internal
-.lam_laminas_tarjetas <- function(doc, p, titulo, ante = NULL, base = NULL, folio = NULL, layout = "Graficos2",
-                                  master = "Office Theme", por_lamina = function(doc) doc) {
-  force(folio)
-  t <- attr(p, "pulso_tarjetas"); espec <- attr(p, "pulso_espec")
-  g <- .std_geom
-  doc <- officer::add_slide(doc, layout = layout, master = master)
-  doc <- .lam_titulo(doc, titulo, ante = ante)   # versión 6: título = pregunta, sin subtítulo
-  fin <- .lam_titulo_fin(titulo)
-  y0 <- fin + 0.32; y1 <- g("base_y") - 0.12
-  cortos <- t$opcion$cortos
-  L <- .lam_tarjetas_disponer(t$tarjetas, y0, y1, cortos = cortos, tipo = t$tipo)
-  lz <- .lam_lienzo()
-  for (i in seq_along(t$tarjetas)) {
-    tj <- t$tarjetas[[i]]
-    .lam_tarjeta_dibujar(.lam_tarjeta_backend_ppt(lz), tj, L$cajas[[i]], unname(t$rotulos_cruce[tj$cruce]) %||% tj$cruce, cortos = cortos, tipo = t$tipo)
-  }
-  # El total: de la izquierda al panel, con la misma letra del mazo.
-  x0 <- g("margen_izq"); ancho <- L$xp - 0.45 - x0
-  lt <- .lam_lienzo()
-  negritas <- unique(vapply(t$tarjetas, `[[`, character(1), "fila"))
-  yd0 <- fin + 0.38; yd1 <- g("base_y") - 0.1
-  if (identical(t$tipo, "bateria")) {
-    .lam_tarjetas_total_escala(lt, espec, negritas, x0, ancho, yd0, yd1)
-  } else if (identical(t$tipo, "dicotomica") && length(espec$rotulos) == 2L) {
-    .lam_tarjetas_total_dicotomica(lt, espec, x0, ancho, yd0, yd1)
-  } else {
-    .lam_tarjetas_total_barras(lt, espec, negritas, x0, ancho, yd0, yd1)
-  }
-  doc <- .lam_agrupar(doc, lt, nombre = "prosecnur:grafico:total")
-  doc <- .lam_agrupar(doc, lz, nombre = "prosecnur:tarjetas_diferencias")
-  doc <- .lam_pie(doc, base, folio)
-  list(doc = por_lamina(doc), partes = 1L)
+.lam_tarjetas_reserva <- function(L) {
+  .std_valor("ppt", "geometria", "ancho") - .std_valor("ppt", "geometria", "margen_der") - L$xp + 0.45
 }
 
-#' La rama `slide_1` con tarjetas: resuelve la base como la lámina nativa y compone (enganche de lamina_citas.R)
+#' La rama `slide_1` con tarjetas (enganche de lamina_citas.R)
+#'
+#' El gráfico del total lo compone EL MOTOR, con su estándar (rótulos, cifras fuera con línea guía, leyenda centrada,
+#' resaltado, paleta, base y folio): la misma lámina nativa de siempre (`.lam_slide_1_nativa`) o, si no tiene pieza
+#' nativa, la del recetario para un ggplot (`.lam_laminas_ggplot`). Lo único distinto es el ancho: con
+#' `prosecnur.lam_reserva_derecha` la geometría del estándar (`.std_geom`) termina antes del panel. Después se agrega el
+#' panel de tarjetas en la misma lámina. (Gonzalo, v7 RV: el total redibujado a mano no seguía los estándares.)
 #' @keywords internal
 .lam_tarjetas_slide_1 <- function(doc, p, slide, titulo, el_plot, presets, layout, master, antetitulo, base_auto, nota_de,
                                   sin_base = FALSE, sin_pie = FALSE, por_lamina = function(doc) doc) {
-  slots <- slide$slots %||% list()
+  t <- attr(p, "pulso_tarjetas")
   texto <- function(x) {
     v <- if (inherits(x, "ppt_element_text")) x$text else if (is.character(x)) x else NULL
     if (is.null(v) || !length(v) || is.na(v[1]) || !nzchar(trimws(v[1]))) NULL else trimws(as.character(v)[1])
   }
-  base <- if (isTRUE(sin_base)) NULL else texto(slots$base)
-  if (!isTRUE(sin_base) && is.null(base)) {
-    base <- texto(base_auto(el = el_plot, sufijo_auto = presets$base$args$sufijo_auto %||% NULL,
-                            formato = presets$base$args$formato %||% "Base: %s"))
+  tit <- texto(titulo) %||% ""
+  cortos <- t$opcion$cortos
+  y0 <- .lam_titulo_fin(tit) + 0.32; y1 <- .std_valor("ppt", "geometria", "base_y") - 0.12
+  L <- .lam_tarjetas_disponer(t$tarjetas, y0, y1, cortos = cortos, tipo = t$tipo)
+  op <- options(prosecnur.lam_reserva_derecha = .lam_tarjetas_reserva(L))
+  on.exit(options(op), add = TRUE)
+  slide$slots$subtitle <- NULL   # versión 6: el título es la pregunta, sin subtítulo
+  # Cascada, siempre dentro del motor: la lámina nativa tal cual; si en el ancho que queda no cabe, la misma lámina con la
+  # letra declarada un punto menor (`size_ejes`, lamina_tamanos_declarados.R); y sólo si tampoco, la del recetario.
+  if (!.lam_tarjetas_nativa_cabe(p, slide, el_plot) && is.null((el_plot$overrides %||% list())$size_ejes)) {
+    menor <- el_plot; menor$overrides$size_ejes <- .std_pt("rotulo_categoria") - 1
+    if (.lam_tarjetas_nativa_cabe(p, slide, menor)) el_plot <- menor
   }
-  pie <- if (isTRUE(sin_pie)) NULL else texto(slots$footer)
-  if (!isTRUE(sin_pie) && is.null(pie)) pie <- texto(nota_de(p, el_plot$overrides$nota_pie %||% el_plot$nota_pie %||% NULL))
-  if (!isTRUE(sin_base) && is.null(base) && is.null(pie)) base <- texto((attr(p, "pulso_espec") %||% list())$nota)
-  .lam_laminas_tarjetas(doc, p, titulo = texto(titulo) %||% "", ante = texto(antetitulo), base = .lam_unir_base(base, pie),
-                        folio = length(doc) + 1L, layout = layout, master = master, por_lamina = por_lamina)$doc
+  if (.lam_tarjetas_nativa_cabe(p, slide, el_plot)) {
+    doc <- .lam_slide_1_nativa(doc, p, slide, titulo, NULL, el_plot, presets, layout, master, antetitulo, base_auto, nota_de,
+                               sin_base, sin_pie, por_lamina)
+  } else {
+    slots <- slide$slots %||% list()
+    base <- if (isTRUE(sin_base)) NULL else texto(slots$base) %||% texto(base_auto(el = el_plot,
+      sufijo_auto = presets$base$args$sufijo_auto %||% NULL, formato = presets$base$args$formato %||% "Base: %s"))
+    pie <- if (isTRUE(sin_pie)) NULL else texto(slots$footer) %||% texto(nota_de(p, el_plot$overrides$nota_pie %||% el_plot$nota_pie %||% NULL))
+    doc <- .lam_laminas_ggplot(doc, p, .espec_ggplot_marco("total"), titulo = tit, ante = texto(antetitulo),
+                               base = .lam_unir_base(base, pie), folio = length(doc) + 1L, layout = layout, master = master,
+                               por_lamina = por_lamina)$doc
+  }
+  options(op)
+  .lam_tarjetas_panel(doc, t, L)
+}
+
+#' ¿El total cabe como lámina nativa en el ancho que deja el panel? (lo que decide `.lam_slide_1_nativa` para su forma)
+#'
+#' `.lam_compositor_aplica` mide con la dicotomía y las columnas; la lámina, en cambio, pide barras para la agrupada de
+#' una serie, y con el ancho acotado esa forma puede no caber (CCSS, «cinco años»: diez opciones de dos y tres líneas).
+#' @keywords internal
+.lam_tarjetas_nativa_cabe <- function(p, slide, el_plot) {
+  if (!.lam_compositor_aplica(p, slide)) return(FALSE)
+  espec <- attr(p, "pulso_espec")
+  if (!identical(espec$tipo, "categorica") || identical(espec$forma, "lollipop")) return(TRUE)
+  if (.lam_dicotomia_cabe(espec, .std_geom("ancho") - .std_geom("margen_izq") - .std_geom("margen_der"))) return(TRUE)
+  espec <- .lam_espec_con_tamanos(espec, el_plot)
+  forma <- .lam_categorica_forma(espec, if (identical(el_plot$.element_type, "barras_agrupadas")) "barras" else "columnas")
+  if (is.na(forma)) return(FALSE)
+  if (identical(forma, "columnas")) return(TRUE)
+  # Barras: la columna de rótulos tiene que quedar dentro de su tope (35 % del ancho); si el motor vuelve a la columna
+  # natural, los rótulos largos se salen por la izquierda.
+  ancho <- .std_geom("ancho") - .std_geom("margen_izq") - .std_geom("margen_der")
+  .lam_barras_geo(espec)$wlab <= .lam_barras_tope_rotulo() * ancho + 1e-6
+}
+
+#' Dibuja el panel de tarjetas en la lámina en curso
+#' @keywords internal
+.lam_tarjetas_panel <- function(doc, t, L) {
+  lz <- .lam_lienzo()
+  for (i in seq_along(t$tarjetas)) {
+    tj <- t$tarjetas[[i]]
+    .lam_tarjeta_dibujar(.lam_tarjeta_backend_ppt(lz), tj, L$cajas[[i]], unname(t$rotulos_cruce[tj$cruce]) %||% tj$cruce,
+                         cortos = t$opcion$cortos, tipo = t$tipo)
+  }
+  .lam_agrupar(doc, lz, nombre = "prosecnur:tarjetas_diferencias")
 }
