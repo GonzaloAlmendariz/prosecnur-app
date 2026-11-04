@@ -32,8 +32,6 @@ import { GlidingTabList } from "../../components/GlidingTabList";
 import { ChromeIndicator, ChromeIndicatorGroup } from "../../components/ChromeIndicator";
 import { ModuleCommandBar } from "../../components/ModuleCommandBar";
 import { DASHBOARD_PESTANAS } from "../../lib/navegacion/catalogos/dashboard";
-import { usePanelDireccionable } from "../../lib/navegacion/paneles";
-import { PANEL_PERSONALIZAR } from "./panelesDashboard";
 
 type DashboardVisibleTab = typeof DASHBOARD_PESTANAS[number] & {
   available: boolean;
@@ -65,6 +63,7 @@ export default function DashboardPage({
   publicMode: publicModeProp,
   pestana: pestanaProp,
   onPestana,
+  personalizar: personalizarProp,
 }: {
   publicMode?: boolean;
   /**
@@ -74,6 +73,12 @@ export default function DashboardPage({
    */
   pestana?: DashboardTabId;
   onPestana?: (id: DashboardTabId) => void;
+  /**
+   * El editor de personalización direccionable (`?panel=personalizar`). Lo da `DashboardRuta`, que vive dentro del
+   * Router: la publicación monta esta página fuera de él y un hook de router aquí la tumbaría. Sin esta prop (la
+   * publicación), el editor usa un estado propio.
+   */
+  personalizar?: { abierto: boolean; abrir: () => void; cerrar: () => void };
 } = {}) {
   // Modo público (deploy a HF/Fly): backend real, pero UI sin shell admin.
   // Misma desactivación de autosave (el .pulso del server es read-only;
@@ -93,8 +98,13 @@ export default function DashboardPage({
   const setSeccionActiva = useDashboardStore((s) => s.setSeccionActiva);
   const [sourceOpen, setSourceOpen] = useState(false);
   const [palettesOpen, setPalettesOpen] = useState(false);
-  // Direccionable (`?panel=personalizar`): el editor se enlaza y el QA lo abre sin clic.
-  const personalizar = usePanelDireccionable(PANEL_PERSONALIZAR);
+  // En admin, `?panel=personalizar` (lo da DashboardRuta); en la publicación, un estado propio.
+  const [customizeLocal, setCustomizeLocal] = useState(false);
+  const personalizar = personalizarProp ?? {
+    abierto: customizeLocal,
+    abrir: () => setCustomizeLocal(true),
+    cerrar: () => setCustomizeLocal(false),
+  };
   const customizeOpen = personalizar.abierto;
   const [publishOpen, setPublishOpen] = useState(false);
   // Modo "Vista previa": oculta el admin toolbar y los controles de
@@ -108,7 +118,7 @@ export default function DashboardPage({
     if (previewMode) {
       setSourceOpen(false);
       setPalettesOpen(false);
-      personalizar.cerrar();
+      if (personalizar.abierto) personalizar.cerrar();
       setPublishOpen(false);
     }
   }, [previewMode]);

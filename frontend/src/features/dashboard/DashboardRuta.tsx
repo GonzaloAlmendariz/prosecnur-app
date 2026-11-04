@@ -17,13 +17,18 @@
 
 import { useMemo } from "react";
 
+import { usePanelDireccionable } from "../../lib/navegacion/paneles";
 import { useSeccion } from "../../lib/navegacion/useDireccion";
+import { PANEL_PERSONALIZAR } from "./panelesDashboard";
 import { resolverPestanaDashboard } from "./pestanaDashboard";
 import DashboardPage from "./DashboardPage";
 
 export default function DashboardRuta() {
   const { pestana, irA } = useSeccion("dashboard");
   const activa = useMemo(() => resolverPestanaDashboard(pestana), [pestana]);
+  // El editor de personalización también vive en la URL (`?panel=personalizar`), por el mismo motivo: aquí sí
+  // hay Router.
+  const personalizar = usePanelDireccionable(PANEL_PERSONALIZAR);
 
-  return <DashboardPage pestana={activa} onPestana={(id) => irA("pestana", id)} />;
+  return <DashboardPage pestana={activa} onPestana={(id) => irA("pestana", id)} personalizar={personalizar} />;
 }
