@@ -68,6 +68,8 @@ import { argsATemas, codigosComunes, patchModoRadar } from "../temasEquivalentes
 import { useVariables } from "../useVariables";
 import { NumeroAcotado, tieneRango } from "./NumeroAcotado";
 import { DiferenciasInspector } from "./diferencias/DiferenciasInspector";
+import { TarjetasDiferencias } from "./diferencias/TarjetasDiferencias";
+import { admiteTarjetas } from "./diferencias/modeloTarjetas";
 import { argDeCruce, valorDeCruce } from "./diferencias/modeloDiferencias";
 import "./datosGrafico.css";
 import { formatoConteo } from "../../../lib/formatoNumero";
@@ -185,6 +187,8 @@ export function DatosGrafico({ slideId, slot, valor }: Props) {
   const nombreCruce = cruce.includes("$") ? cruce.slice(cruce.lastIndexOf("$") + 1) : cruce;
   const etiquetaCruce = cruce ? variables.find((v) => v.name === nombreCruce || `${v.source}$${v.name}` === cruce)?.label ?? null : null;
   const sigGuardada = args.mostrar_significancia ?? (tipo ? presets[tipo]?.mostrar_significancia : undefined);
+  // ADR 0129: una lámina de total (un gráfico, sin cruce) puede llevar tarjetas de diferencias en vez de marcas.
+  const conTarjetas = admiteTarjetas(slidesPlan.find((x) => x.id === slideId)?.tipo ?? "", valor.graficador, cruce);
   const agregarCruce = () => {
     const campo = argCruce ? tarjetaRef.current?.querySelector<HTMLElement>(`[data-campo="${argCruce}"]`) : null;
     const control = campo?.querySelector<HTMLElement>("button, input, [tabindex]");
@@ -257,7 +261,12 @@ export function DatosGrafico({ slideId, slot, valor }: Props) {
         <RedondeoDelGrafico graficador={valor.graficador} args={args} onCambio={(ov) => set({ overrides: ov })} />
         <DonaCentro slideId={slideId} slot={slot} valor={valor} />
       </GrupoDeTarjeta>
-      {argSig && argCruce && (
+      {conTarjetas && (
+        <GrupoDeTarjeta titulo={TITULO_GRUPO.diferencias}>
+          <TarjetasDiferencias slideId={slideId} />
+        </GrupoDeTarjeta>
+      )}
+      {argSig && argCruce && !conTarjetas && (
         <GrupoDeTarjeta titulo={TITULO_GRUPO.diferencias}>
           <DiferenciasInspector
             slideId={slideId}
