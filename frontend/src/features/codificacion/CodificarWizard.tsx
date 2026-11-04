@@ -179,10 +179,10 @@ export function CodificarWizard({ onBackToOrganizar }: Props) {
 
           <div className="pulso-codificacion-autosave-card">
             <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-              <div style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, color: "var(--pulso-success-fg)", display: "inline-flex", alignItems: "center", gap: 4 }}>
+              <div style={{ fontSize: "var(--pulso-type-micro-size)", fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, color: "var(--pulso-success-fg)", display: "inline-flex", alignItems: "center", gap: 4 }}>
                 <CheckCircle2 size={11} /> Autoguardado activo
               </div>
-              <div style={{ fontSize: 11, color: "var(--pulso-success-fg)", opacity: 0.85, lineHeight: 1.4 }}>
+              <div style={{ fontSize: "var(--pulso-type-caption-size)", color: "var(--pulso-success-fg)", opacity: 0.85, lineHeight: 1.4 }}>
                 El progreso se guarda en el proyecto. Puedes guardar o aplicar plantillas desde la barra superior sin mover respuestas ni bases.
               </div>
             </div>
@@ -315,15 +315,15 @@ function CodificadorPane({ p, canPrev, canNext, onPrev, onNext, prevLabel, nextL
               style={{ background: ts.bg, color: ts.fg }}
             >
               {ts.label}
-              {p.modo_so === "hijo" && " · hijo"}
-              {p.modo_so === "padre" && " · padre"}
+              {p.modo_so === "hijo" && " (hijo)"}
+              {p.modo_so === "padre" && " (padre)"}
             </span>
           </div>
           <h2 className="pulso-codificacion-coder-title">
             <TextoConEnfasis texto={label} />
           </h2>
           {textoPlano(p.section_label) && (
-            <div style={{ fontSize: 11, color: "var(--pulso-text-soft)", marginTop: 4 }}>
+            <div style={{ fontSize: "var(--pulso-type-caption-size)", color: "var(--pulso-text-soft)", marginTop: 4 }}>
               {textoPlano(p.section_label)}
             </div>
           )}
@@ -337,7 +337,7 @@ function CodificadorPane({ p, canPrev, canNext, onPrev, onNext, prevLabel, nextL
           onClick={onPrev}
           disabled={!canPrev}
           className="pulso-ghost-nav"
-          style={{ fontSize: 12, display: "inline-flex", alignItems: "center", gap: 5 }}
+          style={{ fontSize: "var(--pulso-type-body-size)", display: "inline-flex", alignItems: "center", gap: 5 }}
         >
           <ArrowLeft size={12} /> <span style={{ opacity: 0.7 }}>Anterior:</span> {prevLabel || "—"}
         </button>
@@ -347,7 +347,7 @@ function CodificadorPane({ p, canPrev, canNext, onPrev, onNext, prevLabel, nextL
           onClick={onNext}
           disabled={!canNext}
           className="pulso-ghost-nav"
-          style={{ fontSize: 12, display: "inline-flex", alignItems: "center", gap: 5 }}
+          style={{ fontSize: "var(--pulso-type-body-size)", display: "inline-flex", alignItems: "center", gap: 5 }}
         >
           <span style={{ opacity: 0.7 }}>Siguiente:</span> {nextLabel || "—"} <ArrowRight size={12} />
         </button>
@@ -372,9 +372,9 @@ function CodificadorPane({ p, canPrev, canNext, onPrev, onNext, prevLabel, nextL
           data-audit-ready="codificacion-codificar"
           style={{ padding: 18, background: "white", border: "1px solid var(--pulso-border)", borderRadius: 8 }}
         >
-          <div style={{ fontSize: 13, color: "var(--pulso-text-soft)", lineHeight: 1.6 }}>
+          <div style={{ fontSize: "var(--pulso-type-body-size)", color: "var(--pulso-text-soft)", lineHeight: 1.6 }}>
             Esta pregunta tiene <strong>{formatoConteo(p.n_respuestas)}</strong> respuestas
-            ({<strong>{formatoConteo(p.n_unicas)}</strong>} únicas) en la columna <code style={{ fontFamily: "monospace" }}>{p.col_efectiva}</code>.
+            ({<strong>{formatoConteo(p.n_unicas)}</strong>} únicas) en la columna <code style={{ fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace" }}>{p.col_efectiva}</code>.
             <br /><br />
             {arq === "no-aplica" && "Esta pregunta está desactivada."}
           </div>

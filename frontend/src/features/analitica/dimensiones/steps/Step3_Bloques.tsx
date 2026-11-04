@@ -211,13 +211,13 @@ export function Step3_Bloques() {
       <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
         <header style={{ display: "flex", alignItems: "flex-start", gap: 16, flexWrap: "wrap" }}>
           <div style={{ flex: 1, minWidth: 280 }}>
-            <h2 style={{ margin: 0, fontSize: 22, fontWeight: 800 }}>
+            <h2 style={{ margin: 0, fontSize: "var(--pulso-type-kpi-size)", fontWeight: 800 }}>
               Agrupa preguntas en bloques temáticos
             </h2>
             <p
               style={{
                 margin: "6px 0 0",
-                fontSize: 13,
+                fontSize: "var(--pulso-type-body-size)",
                 color: "var(--pulso-text-soft)",
                 lineHeight: 1.5,
                 maxWidth: 720,
@@ -249,7 +249,7 @@ export function Step3_Bloques() {
               border: "1px solid var(--pulso-danger-border)",
               background: "var(--pulso-danger-bg)",
               color: "var(--pulso-danger-fg)",
-              fontSize: 12,
+              fontSize: "var(--pulso-type-body-size)",
             }}
           >
             {error}
@@ -288,7 +288,7 @@ export function Step3_Bloques() {
 
             <div
               style={{
-                fontSize: 11,
+                fontSize: "var(--pulso-type-eyebrow-size)",
                 fontWeight: 700,
                 textTransform: "uppercase",
                 letterSpacing: 0.4,
@@ -404,7 +404,7 @@ export function Step3_Bloques() {
                 borderRadius: 10,
                 background: "var(--pulso-surface)",
                 cursor: "pointer",
-                fontSize: 13,
+                fontSize: "var(--pulso-type-body-size)",
                 color: "var(--pulso-text-soft)",
               }}
             >
@@ -487,7 +487,7 @@ function SidebarEmptyState({
     >
       <div
         style={{
-          fontSize: 12,
+          fontSize: "var(--pulso-type-subtitle-size)",
           fontWeight: 700,
           marginBottom: 4,
           color: isOk
@@ -497,7 +497,7 @@ function SidebarEmptyState({
       >
         {titulo}
       </div>
-      <p style={{ margin: 0, fontSize: 11, color: "var(--pulso-text-soft)", lineHeight: 1.5 }}>
+      <p style={{ margin: 0, fontSize: "var(--pulso-type-caption-size)", color: "var(--pulso-text-soft)", lineHeight: 1.5 }}>
         {detalle}
       </p>
     </div>

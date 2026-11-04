@@ -114,7 +114,7 @@ describe("rótulos", () => {
 
   it("casos y diferencia de filas en palabras", () => {
     const lados = { a: "SurveyMonkey", b: "Archivo .sav" };
-    expect(rotuloCasos({ clave: "id", en_ambas: 279, solo_a: 10, solo_b: 0 }, lados)).toBe("279 en ambas · 10 solo en SurveyMonkey");
+    expect(rotuloCasos({ clave: "id", en_ambas: 279, solo_a: 10, solo_b: 0 }, lados)).toBe("279 en ambas, 10 solo en SurveyMonkey");
     expect(rotuloCasos(null, lados)).toBeNull();
     expect(rotuloDiferenciaFilas(10, lados)).toBe("SurveyMonkey trae 10 respuestas más");
     expect(rotuloDiferenciaFilas(-1, lados)).toBe("Archivo .sav trae 1 respuesta más");

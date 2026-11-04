@@ -196,12 +196,6 @@
   color: var(--pulso-text);
 }
 
-.pulso-xf-cue-vacio {
-  margin: var(--pulso-space-6);
-  color: var(--pulso-text-soft);
-  font-size: var(--pulso-type-body-size);
-}
-
 .pulso-xf-cue-leyenda {
   display: flex;
   flex-wrap: wrap;

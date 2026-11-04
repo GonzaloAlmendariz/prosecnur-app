@@ -30,15 +30,6 @@
   padding: 6px;
 }
 
-.pulso-diagnostics-popover-empty {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 24px 16px;
-  text-align: center;
-}
-
 .pulso-diagnostics-popover-item.is-clickable {
   cursor: pointer;
 }
@@ -411,13 +402,6 @@
 .pulso-catalogchip-pop-item-count.is-empty {
   color: color-mix(in srgb, var(--pulso-warn-fg) 82%, var(--pulso-text-soft));
   font-weight: var(--pulso-weight-bold);
-}
-
-.pulso-catalogchip-pop-empty {
-  padding: 16px 12px;
-  text-align: center;
-  font-size: var(--pulso-type-body-size);
-  color: var(--pulso-text-soft);
 }
 
 .pulso-catalogchip-pop-footer {

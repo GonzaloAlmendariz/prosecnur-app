@@ -174,7 +174,7 @@ export function AplicarOmitidasAviso({ omitidas, textosSinCodigo, incompletos = 
                   <code className="pulso-codif-omitidas-pregunta">{t.pregunta}</code>
                   <div className="pulso-codif-omitidas-detalle">
                     <span className="pulso-codif-omitidas-mensaje">
-                      {plural(t.casos, "caso", "casos")} · {plural(t.textos, "texto distinto", "textos distintos")}
+                      {plural(t.casos, "caso", "casos")}, {plural(t.textos, "texto distinto", "textos distintos")}
                       {t.columna && t.columna !== t.pregunta && (
                         <>
                           {" "}en <code>{t.columna}</code>

@@ -29,8 +29,8 @@ describe("mapa de bases", () => {
   it("resumen por base y la matriz con un indicador por base", () => {
     const html = cuerpo();
     expect(html).toContain("400 variables");
-    expect(html).toContain("1 en la matriz · 399 fuera");
-    expect(html).toContain("2 en la matriz · 0 fuera");
+    expect(html).toContain("1 en la matriz, 399 fuera");
+    expect(html).toContain("2 en la matriz, 0 fuera");
     expect(html).toContain("Ver las 399 fuera");
     expect(html).toContain("Todas en la matriz");
     expect(html).toContain("Preguntas de la matriz");
@@ -51,8 +51,8 @@ describe("mapa de bases", () => {
   });
 
   it("cada vacío dice el suyo", () => {
-    expect(cuerpo({ foco: "2025" })).toContain("Todas las variables de 2025 están en la matriz.");
-    expect(cuerpo({ foco: "1999" })).toContain("La base «1999» no está en este estudio.");
+    expect(cuerpo({ foco: "2025" })).toContain("Todas las variables de 2025 están en la matriz");
+    expect(cuerpo({ foco: "1999" })).toContain("La base «1999» no está en este estudio");
     expect(cuerpo({ filas: [] })).toContain("Todavía no hay preguntas en la matriz.");
     expect(cuerpo({ cargando: true })).toContain("Leyendo la matriz");
     expect(cuerpo({ bases: [] })).toContain("todavía no tiene bases que comparar");
@@ -85,7 +85,7 @@ describe("aplicar a otras con la misma escala", () => {
       onTodas: sinAccion,
     }));
     expect(html).toContain("Preguntas con la misma escala");
-    expect(html).toContain("2024 p1 · 2025 q1");
+    expect(html).toContain("2024 p1, 2025 q1");
     expect(html).toContain("Ya armonizada");
     expect(html).toContain("Esta pregunta también se guarda.");
     expect(html).toContain("3 preguntas casan sólo en algunas de sus bases y quedan fuera");

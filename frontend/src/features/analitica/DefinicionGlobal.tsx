@@ -93,12 +93,12 @@ export function DefinicionGlobal({ embedded = false, defaultOpen = false }: { em
           transition: "background 120ms ease",
         }}
       >
-        <span style={{ display: "inline-flex", alignItems: "center", gap: 7, fontSize: 13, fontWeight: 700, color: "var(--pulso-text)" }}>
+        <span style={{ display: "inline-flex", alignItems: "center", gap: 7, fontSize: "var(--pulso-type-subtitle-size)", fontWeight: 700, color: "var(--pulso-text)" }}>
           <Layers size={14} />
           Definición global
         </span>
-        <span style={{ fontSize: 11, color: "var(--pulso-text-soft)", lineHeight: 1.4, flex: 1 }}>
-          {summaryBits.join(" · ")}
+        <span style={{ fontSize: "var(--pulso-type-caption-size)", color: "var(--pulso-text-soft)", lineHeight: 1.4, flex: 1 }}>
+          {summaryBits.join(", ")}
         </span>
         <span style={{ color: "var(--pulso-text-soft)" }}>
           {open ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
@@ -175,10 +175,10 @@ function SeccionesBlock({ variables }: { variables: VariableInstrumento[] }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 8, minWidth: 0 }}>
       <div>
-        <div style={{ fontSize: 12, fontWeight: 700, color: "var(--pulso-text)", lineHeight: 1.3 }}>
+        <div style={{ fontSize: "var(--pulso-type-subtitle-size)", fontWeight: 700, color: "var(--pulso-text)", lineHeight: 1.3 }}>
           Secciones del instrumento
         </div>
-        <div style={{ fontSize: 11, color: "var(--pulso-text-soft)", marginTop: 3, lineHeight: 1.5 }}>
+        <div style={{ fontSize: "var(--pulso-type-caption-size)", color: "var(--pulso-text-soft)", marginTop: 3, lineHeight: 1.5 }}>
           Detectadas desde los <code>begin_group</code> del XLSForm. Agrupan las variables en <strong>Frecuencias</strong> y <strong>Cruces</strong>. Click en el nombre para renombrar; ícono <Eye size={10} style={{ display: "inline", verticalAlign: "-1px" }} /> para incluir/excluir en los reportes (por defecto incluidas).
         </div>
       </div>
@@ -188,14 +188,14 @@ function SeccionesBlock({ variables }: { variables: VariableInstrumento[] }) {
           type="button"
           onClick={() => detectar()}
           disabled={busy}
-          style={{ fontSize: 11, padding: "4px 10px", display: "inline-flex", alignItems: "center", gap: 5 }}
+          style={{ fontSize: "var(--pulso-type-caption-size)", padding: "4px 10px", display: "inline-flex", alignItems: "center", gap: 5 }}
           title="Re-detecta desde el instrumento; preserva renames/merges manuales."
         >
           {busy ? <Loader2 size={11} className="pulso-spin" /> : <RefreshCw size={11} />}
           {busy ? "Detectando…" : "Detectar de nuevo"}
         </button>
-        <span style={{ fontSize: 11, color: "var(--pulso-text-soft)" }}>
-          {secciones.length} {secciones.length === 1 ? "sección" : "secciones"} · {nVarsActivas} variables analizables
+        <span style={{ fontSize: "var(--pulso-type-caption-size)", color: "var(--pulso-text-soft)" }}>
+          {secciones.length} {secciones.length === 1 ? "sección" : "secciones"}, {nVarsActivas} variables analizables
         </span>
       </div>
 
@@ -286,7 +286,7 @@ function SeccionRow({
               if (e.key === "Enter") commit();
               if (e.key === "Escape") onEndEdit();
             }}
-            style={{ width: "100%", fontSize: 12, fontWeight: 600, padding: "2px 4px" }}
+            style={{ width: "100%", fontSize: "var(--pulso-type-subtitle-size)", fontWeight: 600, padding: "2px 4px" }}
           />
         ) : (
           <div
@@ -295,7 +295,7 @@ function SeccionRow({
             tabIndex={0}
             onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onStartEdit(); } }}
             style={{
-              cursor: "pointer", fontSize: 12, fontWeight: 600,
+              cursor: "pointer", fontSize: "var(--pulso-type-subtitle-size)", fontWeight: 600,
               color: seccion.oculto ? "var(--pulso-text-soft)" : "var(--pulso-text)",
               lineHeight: 1.3,
               textDecoration: seccion.oculto ? "line-through" : undefined,
@@ -304,15 +304,14 @@ function SeccionRow({
           >
             {seccion.nombre}
             {seccion.manual && (
-              <span style={{ marginLeft: 6, fontSize: 10, color: "var(--pulso-text-soft)", fontWeight: 500, textTransform: "uppercase", letterSpacing: 0.3 }}>
+              <span style={{ marginLeft: 6, fontSize: "var(--pulso-type-micro-size)", color: "var(--pulso-text-soft)", fontWeight: 500, textTransform: "uppercase", letterSpacing: 0.3 }}>
                 editado
               </span>
             )}
           </div>
         )}
-        <div style={{ fontSize: 10, color: "var(--pulso-text-soft)", marginTop: 1, display: "flex", alignItems: "center", gap: 6 }}>
-          <code style={{ fontFamily: "monospace" }}>{seccion.id}</code>
-          <span>·</span>
+        <div style={{ fontSize: "var(--pulso-type-micro-size)", color: "var(--pulso-text-soft)", marginTop: 1, display: "flex", alignItems: "center", gap: 6 }}>
+          <code style={{ fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace" }}>{seccion.id}</code>
           <span>{seccion.variables.length} {seccion.variables.length === 1 ? "variable" : "variables"}</span>
         </div>
       </div>
@@ -339,10 +338,10 @@ function VariablesExcluidasBlock({ variables }: { variables: VariableInstrumento
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 8, minWidth: 0 }}>
       <div>
-        <div style={{ fontSize: 12, fontWeight: 700, color: "var(--pulso-text)", lineHeight: 1.3 }}>
+        <div style={{ fontSize: "var(--pulso-type-subtitle-size)", fontWeight: 700, color: "var(--pulso-text)", lineHeight: 1.3 }}>
           Variables excluidas del análisis
         </div>
-        <div style={{ fontSize: 11, color: "var(--pulso-text-soft)", marginTop: 3, lineHeight: 1.5 }}>
+        <div style={{ fontSize: "var(--pulso-type-caption-size)", color: "var(--pulso-text-soft)", marginTop: 3, lineHeight: 1.5 }}>
           Variables que <strong>no aparecen</strong> en los entregables de análisis. Las bases exportadas conservan las respuestas abiertas y columnas originales necesarias.
         </div>
       </div>

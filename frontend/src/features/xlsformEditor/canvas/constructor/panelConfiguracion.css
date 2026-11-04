@@ -10,26 +10,6 @@
   box-shadow: var(--pulso-shadow-low);
 }
 
-.pulso-focus-config-body :is(
-  .pulso-focus-rule-context,
-  .pulso-focus-custom-validation,
-  .pulso-focus-choice-filter,
-  .pulso-focus-required-message-block,
-  .pulso-focus-message-presets,
-  .pulso-focus-media-panel,
-  .pulso-focus-presentation-guide,
-  .pulso-focus-data-contract,
-  .pulso-focus-name-assistant,
-  .pulso-focus-select-data-guide,
-  .pulso-logic-builder-empty,
-  .pulso-logic-builder-advanced,
-  .pulso-inspector-conditional-required-trigger
-) {
-  background: var(--pulso-surface-2) !important;
-  border-color: var(--pulso-border) !important;
-  box-shadow: none !important;
-}
-
 .pulso-focus-config-body :is(.pulso-focus-rule-item, .pulso-focus-message-preset, .pulso-focus-fact, .is-ok, .is-pending) {
   background: var(--pulso-surface) !important;
 }

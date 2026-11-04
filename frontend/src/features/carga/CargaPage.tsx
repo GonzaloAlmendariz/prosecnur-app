@@ -115,6 +115,7 @@ import { ImportadorPlataforma } from "./plataforma/ImportadorPlataforma";
 import { exitoDe, useImportsDeCarga } from "./plataforma/useImportsDeCarga";
 import { EstadoVacio } from "../../components/EstadoVacio";
 import { Switch } from "../../components/Switch";
+import { formatoConteo } from "../../lib/formatoNumero";
 
 // Fase 1 — Carga de insumos.
 //
@@ -664,11 +665,11 @@ export default function CargaPage() {
     const sourceLabel = selectedSource?.label || handoffStatus.source.label || "trabajo de campo";
     const processable = selectedSource?.counts.processable ?? handoffStatus.counts.processable;
     const replacement = handoffStatus.existing_base.present
-      ? ` Reemplazará la base actual de ${handoffStatus.existing_base.n_filas.toLocaleString("es-PE")} filas.`
+      ? ` Reemplazará la base actual de ${formatoConteo(handoffStatus.existing_base.n_filas)} filas.`
       : " Creará la base de procesamiento con esta fuente.";
     if (!window.confirm(
       `¿Traer «${sourceLabel}» a Procesamiento?\n\n` +
-      `${processable.toLocaleString("es-PE")} respuestas procesables.${replacement}`,
+      `${formatoConteo(processable)} respuestas procesables.${replacement}`,
     )) return;
     setError("");
     setHandoffMessage("");
@@ -682,7 +683,7 @@ export default function CargaPage() {
       // versiones viejas del formulario: ofrece reconciliarlas.
       await loadReconciliacion(true);
       const fr = result.filter_report ?? {};
-      const nf = (n?: number) => (n ?? 0).toLocaleString("es-PE");
+      const nf = (n?: number) => formatoConteo(n ?? 0);
       const traidas = result.data?.n_filas ?? fr.filas_incluidas ?? 0;
       const desglose = [
         fr.validada != null ? `${nf(fr.validada)} validadas` : null,
@@ -1906,8 +1907,8 @@ function FieldWorkHandoffCallout({
   const filteredByValidity =
     source.validity !== undefined && source.validity !== "" && source.validity !== "all_rows";
   const countLine = filteredByValidity
-    ? `${processable.toLocaleString("es-PE")} respuestas validadas listas para procesar.`
-    : `${processable.toLocaleString("es-PE")} respuestas listas para procesar.`;
+    ? `${formatoConteo(processable)} respuestas validadas listas para procesar.`
+    : `${formatoConteo(processable)} respuestas listas para procesar.`;
   // Si ya hay una base cruda cargada (import previo sin filtrar), el traer la
   // reemplaza en sitio por la selección validada — lo decimos con claridad.
   const replacing =
@@ -1941,14 +1942,14 @@ function FieldWorkHandoffCallout({
           {countLine}
           {excluded > 0 ? (
             <span className="pulso-carga-handoff-aside">
-              {" "}{excluded.toLocaleString("es-PE")} quedan fuera por no ser defendibles.
+              {" "}{formatoConteo(excluded)} quedan fuera por no ser defendibles.
             </span>
           ) : null}
         </p>
         {replacing ? (
           <span className="pulso-carga-handoff-note is-warning">
             <AlertTriangle size={13} aria-hidden="true" />
-            Reemplaza la base actual ({replacedRows.toLocaleString("es-PE")} sin filtrar)
+            Reemplaza la base actual ({formatoConteo(replacedRows)} sin filtrar)
             por esta selección validada.
           </span>
         ) : null}
@@ -2266,13 +2267,11 @@ function PlatformImportPanel({
 
       <div className="pulso-platform-list" aria-label={`Catálogo ${providerName}`}>
         {rowsCount === 0 ? (
-          <div className="pulso-platform-empty">
-            <span className="pulso-platform-empty-icon" aria-hidden="true">
-              <Search size={15} />
-            </span>
-            <strong>{hasConnection ? "Catálogo pendiente" : `Sin conexión con ${providerName}`}</strong>
-            <small>{hasConnection ? "Actualiza el catálogo para ver fuentes disponibles." : "Elige una conexión antes de importar."}</small>
-          </div>
+          <EstadoVacio
+            icono={<Search size={15} />}
+            titulo={hasConnection ? "Catálogo pendiente" : `Sin conexión con ${providerName}`}
+            descripcion={hasConnection ? "Actualiza el catálogo para ver fuentes disponibles." : "Elige una conexión antes de importar."}
+          />
         ) : isSurveyMonkey ? (
           smSurveys.map((survey) => (
             <button
@@ -2431,8 +2430,8 @@ function cargaBaseLabel(base: EstudioBase) {
 }
 
 function cargaBaseMeta(base: EstudioBase) {
-  const rows = typeof base.n_filas === "number" ? base.n_filas.toLocaleString("es-PE") : "sin conteo";
-  const cols = typeof base.n_columnas === "number" ? base.n_columnas.toLocaleString("es-PE") : "sin columnas";
+  const rows = typeof base.n_filas === "number" ? formatoConteo(base.n_filas) : "sin conteo";
+  const cols = typeof base.n_columnas === "number" ? formatoConteo(base.n_columnas) : "sin columnas";
   return `${base.nombre}: ${rows} filas y ${cols} columnas`;
 }
 

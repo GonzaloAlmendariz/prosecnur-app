@@ -1,7 +1,7 @@
 import { useState, type ReactNode } from "react";
 import { CODIGO_V1, muestraV1, resumenV1 } from "./sorteoV1";
 import "./sorteoV1.css";
-import { Shuffle, Trash2 } from "../../../../vendor/lucide-react";
+import { Shuffle, Trash2, Inbox } from "../../../../vendor/lucide-react";
 import { InspectorCabecera } from "../InspectorCabecera";
 import { GlidingRadioGroup } from "../../../../components/GlidingRadioGroup";
 import { PulsoButton } from "../../../../components/PulsoButton";
@@ -18,6 +18,8 @@ import { useSeccion } from "../../../../lib/navegacion/useDireccion";
 import { TEXTO_CAUSA, type CausaRuteo } from "./causaRuteo";
 import { acotarReemplazos, cambiosDeSorteo, mismoTerritorio, otraSemilla, saltoVistaPrevia, type BorradorSorteo } from "./sorteo";
 
+import { formatoDecimal } from "../../../../lib/formatoNumero";
+import { EstadoVacio } from "../../../../components/EstadoVacio";
 /**
  * Manzanas en la página del lienzo (U8). El inspector arma el sorteo —método,
  * peso, semilla, recorrido y reemplazos— y lo manda a R; la estructura es el
@@ -134,7 +136,7 @@ export function ManzanasInspector({ guardada, config, muestra, viviendas, manzan
               </p>
             ) : null}
             <PulsoButton variant="primary" size="sm" disabled={ed || !listoParaSortear || confirmando} onClick={pedirSorteo}>
-              {guardando ? "Sorteando…" : "Sortear de nuevo con el método vigente"}
+              {guardando ? "Sorteando…" : "Sortear con el método vigente"}
             </PulsoButton>
           </section>
         ) : null}
@@ -216,7 +218,7 @@ export function ManzanasInspector({ guardada, config, muestra, viviendas, manzan
               : config.route_jump_mode === "manual"
                 ? `Se toca una de cada ${config.route_jump_manual} viviendas en todas las manzanas.`
                 : salto
-                  ? `K = viviendas por manzana / ${ruta} entrevistas ≈ ${salto.k.toLocaleString("es-PE", { maximumFractionDigits: 1 })}: en el PDF, una de cada ${salto.operativo}.`
+                  ? `K = viviendas por manzana / ${ruta} entrevistas ≈ ${formatoDecimal(salto.k, 1)}: en el PDF, una de cada ${salto.operativo}.`
                   : "K = viviendas por manzana / entrevistas de la ruta, calculado en cada manzana."}
           </p>
         </section>
@@ -376,7 +378,7 @@ export function ManzanasEstructura({ muestra, historial, territorios, nFinal, co
             ))}
           </ul>
         ) : (
-          <p className="hr-mapa-vacio">Todavía no hay manzanas sorteadas. Sortea desde el panel de la derecha.</p>
+          <EstadoVacio icono={<Inbox size={16} />} titulo="Todavía no hay manzanas sorteadas" descripcion="Sortea desde el panel de la derecha." />
         )}
         {cobertura.some((c) => c.cobertura_poblacion != null && c.cobertura_poblacion < 1) ? (
           <section className="hr-muestra-grupo" aria-label="Cobertura del marco elegible">
@@ -385,7 +387,7 @@ export function ManzanasEstructura({ muestra, historial, territorios, nFinal, co
               {cobertura.map((c) => (
                 <li key={c.ubigeo} data-tono={tonoCobertura(c)}>
                   <strong>{nombreDistrito(c.distrito)}</strong>
-                  <span>{c.cobertura_poblacion == null ? "—" : `${(c.cobertura_poblacion * 100).toLocaleString("es-PE", { maximumFractionDigits: 1 })} %`}</span>
+                  <span>{c.cobertura_poblacion == null ? "—" : `${formatoDecimal(c.cobertura_poblacion * 100, 1)} %`}</span>
                   <small>{fmt(c.elegible.manzanas)} de {fmt(c.total.manzanas)} manzanas</small>
                 </li>
               ))}

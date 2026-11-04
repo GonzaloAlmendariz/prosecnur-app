@@ -20,7 +20,7 @@ describe("avisoMarcaPrevia", () => {
   it("va en proporción cuando sólo algunas filas lo tenían", () => {
     const aviso = avisoMarcaPrevia("1", MARCAS, 3);
     expect(aviso?.todas).toBe(false);
-    expect(aviso?.etiqueta).toBe("ya marcada · 2 de 3");
+    expect(aviso?.etiqueta).toBe("ya marcada (2 de 3)");
     expect(aviso?.detalle).toContain("2 de 3");
   });
 
@@ -56,7 +56,7 @@ describe("avisoMarcaPrevia", () => {
   });
 
   it("compara el código sin espacios de sobra", () => {
-    expect(avisoMarcaPrevia(" 1 ", MARCAS, 3)?.etiqueta).toBe("ya marcada · 2 de 3");
+    expect(avisoMarcaPrevia(" 1 ", MARCAS, 3)?.etiqueta).toBe("ya marcada (2 de 3)");
     expect(avisoMarcaPrevia("1", [{ codigo: " 1", n: 2 }], 3)?.todas).toBe(false);
   });
 });

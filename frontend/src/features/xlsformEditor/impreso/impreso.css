@@ -166,12 +166,6 @@
   }
 }
 
-.pulso-xf-imp-vacio {
-  margin: 0;
-  color: var(--pulso-text-soft);
-  font-size: 12.5px;
-}
-
 /* Preguntas sueltas con escala: plegadas por defecto, con su cuenta. */
 .pulso-xf-imp-sueltas {
   border: 1px solid var(--pulso-border);
@@ -704,8 +698,7 @@
   white-space: nowrap;
 }
 
-.pulso-xf-imp-versiones-fecha,
-.pulso-xf-imp-versiones-vacio {
+.pulso-xf-imp-versiones-fecha {
   margin: 0;
   color: var(--pulso-text-soft);
   font-size: var(--pulso-type-caption-size);

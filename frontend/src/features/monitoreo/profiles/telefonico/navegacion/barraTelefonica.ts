@@ -8,6 +8,7 @@ import type { MetricaDeSeccion } from "../../../shell/metricaDeSeccion";
 import { fmt } from "../formato";
 import { rotuloDelSegmento, variableDeCuotas } from "../segmentoDeCuotas";
 import { origenDeEfectivas, sufijoDeOrigen, type OrigenDeEfectivas } from "../avance/origenDeEfectivas";
+import { useVariableDeCuotasElegida } from "../avance/variableElegida";
 import { filasDeBloque } from "./bloques";
 import { chipsDeInsistencia } from "../control/insistenciaModel";
 import { contarDesvios } from "../control/equipoModel";
@@ -47,15 +48,18 @@ export function resumenDelModo({
   variables,
   porRevisar,
   origen = "kobo",
+  elegida = null,
 }: {
   cuotas: readonly CuotaParaLaBarra[];
   origen?: OrigenDeEfectivas;
+  /** La variable elegida en Avance › Cuotas (R5 paso 2): la barra nombra la misma. */
+  elegida?: string | null;
   /** Columnas `Variable` y `Meta` de las filas de cuota, para nombrar el eje (`variableDeCuotas`). */
   variables: ReadonlyArray<{ variable: unknown; meta?: unknown }>;
   porRevisar: number | null;
 }): ResumenDelModoTelefonico {
   const conMeta = cuotas.filter((item) => item.meta != null && item.meta > 0);
-  const segmento = cuotas.length ? variableDeCuotas(variables, "") : "";
+  const segmento = cuotas.length ? variableDeCuotas(variables, "", elegida) : "";
   return {
     origen,
     ejeDeCuota: segmento ? `${rotuloDelSegmento(segmento)}, ${fmt(cuotas.length)} ${cuotas.length === 1 ? "valor" : "valores"}` : null,
@@ -111,18 +115,20 @@ export function insigniasDelModo(resumen: ResumenDelModoTelefonico): Partial<Rec
  */
 export function useResumenDelModo(
   reports: MonitoreoAcreditacionReports | null,
-  leerCuotas: (reports: MonitoreoAcreditacionReports) => readonly CuotaParaLaBarra[],
+  leerCuotas: (reports: MonitoreoAcreditacionReports, elegida?: string | null) => readonly CuotaParaLaBarra[],
   leerComparacion: (filas: Array<Record<string, unknown>>) => { mismatch: number },
 ): ResumenDelModoTelefonico | null {
   const ultimo = useRef<ResumenDelModoTelefonico | null>(null);
+  const { elegida } = useVariableDeCuotasElegida();
   return useMemo(() => {
     if (!reports) return ultimo.current;
     const filasDeCuota = filasDeBloque(reports, ["cuotas_variable", "cuotas_telefonicas", "cuotas_por_variable"]);
     const comparacion = filasDeBloque(reports, ["comparacion_codpulso", "campo_vs_plataforma_codpulso"]);
     if (!filasDeCuota.length && !comparacion.length) return ultimo.current;
-    const cuotas = filasDeCuota.length ? leerCuotas(reports) : [];
+    const cuotas = filasDeCuota.length ? leerCuotas(reports, elegida) : [];
     const nuevo = resumenDelModo({
       origen: origenDeEfectivas(filasDeCuota),
+      elegida,
       cuotas,
       variables: filasDeCuota.map((fila) => ({ variable: fila.Variable, meta: fila.Meta })),
       porRevisar: comparacion.length ? leerComparacion(comparacion).mismatch : ultimo.current?.porRevisar ?? null,
@@ -132,7 +138,7 @@ export function useResumenDelModo(
       : { ...ultimo.current, porRevisar: nuevo.porRevisar };
     ultimo.current = fusionado;
     return fusionado;
-  }, [reports, leerCuotas, leerComparacion]);
+  }, [reports, leerCuotas, leerComparacion, elegida]);
 }
 
 /** Chips de contexto de la cabecera de pestaña. */

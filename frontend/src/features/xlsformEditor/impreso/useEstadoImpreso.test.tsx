@@ -153,6 +153,6 @@ describe("VersionesImpreso", () => {
     const sin = renderToStaticMarkup(
       <VersionesImpreso sincronia={{ fase: "local" }} puedeGuardar={false} onGuardar={async () => true} onUsar={() => undefined} versiones={[]} />,
     );
-    expect(sin).toContain("Aún no hay versiones guardadas.");
+    expect(sin).toContain("Aún no hay versiones guardadas");
   });
 });

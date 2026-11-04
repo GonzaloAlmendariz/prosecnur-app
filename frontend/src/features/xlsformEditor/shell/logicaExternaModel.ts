@@ -51,15 +51,15 @@ export const CONSECUENCIA_LOGICA_EXTERNA =
 export const CONSECUENCIA_DESHACER_LOGICA_EXTERNA =
   "El formulario vuelve a pedir que revises su lógica en Prosecnur antes de publicar una revisión nueva.";
 
-/** «Fuera de Prosecnur · SPSS» (o sin programa si no se dijo). */
+/** «Fuera de Prosecnur (SPSS)» (o sin programa si no se dijo). */
 export function detalleLogicaExterna(info: LogicaExterna): string {
-  return info.herramienta ? `Fuera de Prosecnur · ${info.herramienta}` : "Fuera de Prosecnur";
+  return info.herramienta ? `Fuera de Prosecnur (${info.herramienta})` : "Fuera de Prosecnur";
 }
 
-/** «Lógica: fuera de Prosecnur · SPSS»: la línea neutra de tarjeta y cabecera. */
+/** «Lógica: fuera de Prosecnur (SPSS)»: la línea neutra de tarjeta y cabecera. */
 export function rotuloLogicaExterna(info: LogicaExterna): string {
   return info.herramienta
-    ? `Lógica: fuera de Prosecnur · ${info.herramienta}`
+    ? `Lógica: fuera de Prosecnur (${info.herramienta})`
     : "Lógica: fuera de Prosecnur";
 }
 
@@ -94,6 +94,6 @@ export function validarLogicaExterna(borrador: BorradorLogicaExterna): Validacio
 /** Mensaje legible de un rechazo del backend, sin el código `E_*` del final. */
 export function mensajeDeRechazo(err: unknown, porDefecto: string): string {
   if (!(err instanceof Error)) return porDefecto;
-  const limpio = err.message.replace(/\s*·\s*E_[A-Z0-9_]+\s*$/, "").trim();
+  const limpio = err.message.replace(/\s*\u00b7\s*E_[A-Z0-9_]+\s*$/, "").trim();
   return limpio || porDefecto;
 }

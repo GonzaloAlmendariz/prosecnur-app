@@ -10,6 +10,8 @@ import { ArmonizacionBaseVista, type CargaArmonizacion } from "./ArmonizacionBas
 import { PANEL_ARMONIZACION_BASE, searchSinPanelYFoco } from "./compararFuentesModel";
 import { PanelLateralFuentes } from "./PanelLateralFuentes";
 
+import { EstadoVacio } from "../../../components/EstadoVacio";
+import { Inbox } from "../../../vendor/lucide-react";
 /** Readiness del panel: `false` sólo mientras lee (AD6). */
 export function readinessArmonizacion(carga: CargaArmonizacion, foco: string | null): string {
   if (!foco) return "vacio:sin-base";
@@ -54,8 +56,8 @@ function PanelConDireccion() {
       {foco ? (
         <ArmonizacionBaseVista carga={carga} />
       ) : (
-        <div className="pulso-plf-estado" role="status" data-qa-geometry-capacity="owned">
-          <p>El enlace no nombra ninguna base. Ábrela desde su tarjeta en Bases del estudio.</p>
+        <div data-qa-geometry-capacity="owned">
+          <EstadoVacio icono={<Inbox size={16} />} titulo="El enlace no nombra ninguna base" descripcion="Ábrela desde su tarjeta en Bases del estudio." />
         </div>
       )}
     </PanelLateralFuentes>

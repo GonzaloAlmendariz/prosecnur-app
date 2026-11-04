@@ -74,8 +74,8 @@ export function AnexarColumnas({ base, onAnexadas }: { base: string; onAnexadas:
             <select value={clave} aria-label="Identificador común" onChange={(e) => setClave(e.target.value)}>
               {vista.claves.map((c) => <option key={c.clave} value={c.clave}>{c.clave}</option>)}
             </select>
-            {k ? ` · coinciden ${formatoConteo(k.n_coinciden)} de ${formatoConteoDe(k.n_base, "caso")} de la base` : ""}
-            {k && k.repetidas_en_archivo ? ` · ${formatoConteoDe(k.repetidas_en_archivo, "identificador repetido", "identificadores repetidos")} en el archivo (se usa el primero)` : ""}
+            {k ? `, coinciden ${formatoConteo(k.n_coinciden)} de ${formatoConteoDe(k.n_base, "caso")} de la base` : ""}
+            {k && k.repetidas_en_archivo ? `, ${formatoConteoDe(k.repetidas_en_archivo, "identificador repetido", "identificadores repetidos")} en el archivo (se usa el primero)` : ""}
           </p>
           <ul className="pulso-vb-anexar-lista">
             {vista.columnas.map((c) => (
@@ -84,7 +84,7 @@ export function AnexarColumnas({ base, onAnexadas }: { base: string; onAnexadas:
                   <input type="checkbox" disabled={c.ya_en_la_base} checked={elegidas.includes(c.nombre)}
                          onChange={() => setElegidas((x) => x.includes(c.nombre) ? x.filter((n) => n !== c.nombre) : [...x, c.nombre])} />
                   <code>{c.nombre}</code>
-                  <small>{c.ya_en_la_base ? "la base ya la tiene" : `${formatoConteoDe(c.n_valores, "valor", "valores")} · ${formatoConteo(c.n_con_dato)} con dato`}</small>
+                  <small>{c.ya_en_la_base ? "la base ya la tiene" : `${formatoConteoDe(c.n_valores, "valor", "valores")}, ${formatoConteo(c.n_con_dato)} con dato`}</small>
                 </label>
               </li>
             ))}

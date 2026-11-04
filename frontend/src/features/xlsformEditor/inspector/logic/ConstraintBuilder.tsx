@@ -41,6 +41,7 @@ import { ConstraintRow } from "./ConstraintRow";
 import { TextRuleSuite } from "./TextRuleSuite";
 import { buildTextRuleConstraint, matchTextRule, textRuleById } from "./textRules";
 import type { TextRuleParams, TextRuleRecipe } from "./textRules";
+import { EstadoVacio } from "../../../../components/EstadoVacio";
 
 export type ConstraintBuilderProps = {
   expression: string;
@@ -142,13 +143,15 @@ export function ConstraintBuilder({
         <header className="pulso-logic-builder-header">
           <span className="pulso-section-eyebrow">{fieldLabel}</span>
         </header>
-        <div className="pulso-logic-builder-empty">
-          <IconHint size={14} />
-          <span>Sin validación: la respuesta se acepta tal cual.</span>
-          <button type="button" className="pulso-logic-builder-add" onClick={startManual}>
-            + Agregar validación
-          </button>
-        </div>
+        <EstadoVacio
+          icono={<IconHint size={14} />}
+          titulo="Sin validación: la respuesta se acepta tal cual."
+          accion={(
+            <button type="button" className="pulso-logic-builder-add" onClick={startManual}>
+              + Agregar validación
+            </button>
+          )}
+        />
         {showShortcuts && !isText && shortcutPresets.length > 0 && (
           <div className="pulso-constraint-shortcuts" aria-label="Atajos comunes de validación">
             <div className="pulso-constraint-shortcuts-head">

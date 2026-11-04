@@ -24,6 +24,7 @@ import { GenerateFooter, Section } from "../PaneKit";
 import { type FichaTecnicaConfig, useAnaliticaStore } from "../store";
 import { useReporteRun } from "../useReporteRun";
 
+import { EstadoVacio } from "../../../components/EstadoVacio";
 type FichaLayout = NonNullable<FichaTecnicaConfig["layout"]>;
 
 const LAYOUTS: Array<{ key: FichaLayout; label: string }> = [
@@ -279,19 +280,13 @@ export function FichaTecnicaPane() {
                           <div>
                             <span>{kpi.source}</span>
                             <strong>{kpi.value}</strong>
-                            <small>{kpi.label}{kpi.detail ? ` · ${kpi.detail}` : ""}</small>
+                            <small>{kpi.label}{kpi.detail ? `, ${kpi.detail}` : ""}</small>
                           </div>
                         </div>
                       ))}
                     </div>
                   ) : (
-                    <div className="analitica-empty">
-                      <span className="analitica-empty-icon" aria-hidden="true">
-                        <Gauge size={15} />
-                      </span>
-                      <strong>Sin indicadores automáticos</strong>
-                      <small>Los indicadores aparecerán cuando haya evidencia disponible.</small>
-                    </div>
+                    <EstadoVacio icono={<Gauge size={15} />} titulo="Sin indicadores automáticos" descripcion="Los indicadores aparecerán cuando haya evidencia disponible." />
                   )}
                 </Section>
 

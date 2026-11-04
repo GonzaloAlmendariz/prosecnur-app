@@ -117,7 +117,7 @@ export function explicacionArmonizacion(estado: EstadoArmonizacion, serie: Nombr
  */
 export function resumenDeEscala(fila: { armonizacion?: Armonizacion | null }): string {
   const escala = fila.armonizacion?.escala ?? [];
-  return escala.map((o) => o.etiqueta.trim() || o.codigo).join(" · ");
+  return escala.map((o) => o.etiqueta.trim() || o.codigo).join(", ");
 }
 
 /** Estado de cada base dentro del borrador, para el índice del editor. */

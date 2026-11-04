@@ -4,12 +4,14 @@
 // la cabecera con formulario, revisión, fuente y fecha.
 
 import type { ArmonizacionBase } from "../../../api/cargaArmonizacion";
-import { FileCheck2, Loader2 } from "../../../vendor/lucide-react";
+import { FileCheck2, Loader2, Inbox } from "../../../vendor/lucide-react";
 import { cabeceraArmonizacion } from "./compararFuentesModel";
 import { VistaPreviaFormularioPublicado } from "./VistaPreviaFormularioPublicado";
 import "./formularioPublicado.css";
 import "./armonizacionBase.css";
 
+import { EstadoVacio } from "../../../components/EstadoVacio";
+import { LoadingBlock, ErrorBlock } from "../../../components/States";
 export type CargaArmonizacion =
   | { tipo: "cargando" }
   | { tipo: "listo"; datos: ArmonizacionBase }
@@ -18,17 +20,15 @@ export type CargaArmonizacion =
 export function ArmonizacionBaseVista({ carga }: { carga: CargaArmonizacion }) {
   if (carga.tipo === "cargando") {
     return (
-      <div className="pulso-plf-estado" role="status" data-qa-geometry-capacity="owned">
-        <Loader2 size={16} aria-hidden="true" className="pulso-bfp-giro" />
-        <p>Leyendo la armonización guardada…</p>
+      <div data-qa-geometry-capacity="owned">
+        <LoadingBlock variant="inline" label="Leyendo la armonización guardada…" />
       </div>
     );
   }
   if (carga.tipo === "error") {
     return (
-      <div className="pulso-plf-estado is-error" role="alert" data-qa-geometry-capacity="owned">
-        <strong>No se pudo leer la armonización</strong>
-        <p>{carga.mensaje}</p>
+      <div data-qa-geometry-capacity="owned">
+        <ErrorBlock label="No se pudo leer la armonización" detail={carga.mensaje} />
       </div>
     );
   }
@@ -51,12 +51,8 @@ export function ArmonizacionBaseVista({ carga }: { carga: CargaArmonizacion }) {
       ) : (
         // C5: vacío legítimo. La base no guarda armonización: se creó por otra
         // vía o antes de que Prosecnur la registrara. No se inventa una.
-        <div className="pulso-plf-estado" role="status" data-qa-geometry-capacity="owned">
-          <strong>Esta base no guarda su armonización</strong>
-          <p>
-            Se registra al crear la base desde «Formulario publicado». Esta se creó antes o por otra vía, así que no hay
-            recodificaciones ni coberturas que mostrar. Para tenerlas, vuelve a crearla desde su formulario.
-          </p>
+        <div data-qa-geometry-capacity="owned">
+          <EstadoVacio icono={<Inbox size={16} />} titulo="Esta base no guarda su armonización" descripcion="Se registra al crear la base desde «Formulario publicado». Esta se creó antes o por otra vía, así que no hay recodificaciones ni coberturas que mostrar. Para tenerlas, vuelve a crearla desde su formulario." />
         </div>
       )}
     </>

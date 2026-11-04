@@ -104,11 +104,11 @@ export function RelationDialog({
           <Link2 size={18} color="var(--pulso-primary)" />
           <div style={{ flex: 1 }}>
             <Dialog.Title asChild>
-              <h2 style={{ margin: 0, fontSize: 15, fontWeight: 700 }}>
+              <h2 style={{ margin: 0, fontSize: "var(--pulso-type-title-size)", fontWeight: 700 }}>
                 Relacionar dos preguntas
               </h2>
             </Dialog.Title>
-            <Dialog.Description id="relation-dialog-description" style={{ margin: "2px 0 0", fontSize: 11, color: "var(--pulso-text-soft)", lineHeight: 1.4 }}>
+            <Dialog.Description id="relation-dialog-description" style={{ margin: "2px 0 0", fontSize: "var(--pulso-type-caption-size)", color: "var(--pulso-text-soft)", lineHeight: 1.4 }}>
               Decide cuál de las dos preguntas actúa como padre y cuál provee los textos o valores que se
               van a codificar.
             </Dialog.Description>
@@ -123,7 +123,7 @@ export function RelationDialog({
         <div style={{ padding: 18, overflowY: "auto", display: "flex", flexDirection: "column", gap: 18 }}>
           {/* Step 1 — dirección */}
           <section style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            <div className="pulso-section-eyebrow">Paso 1 · Dirección de la codificación</div>
+            <div className="pulso-section-eyebrow">Paso 1: dirección de la codificación</div>
             <DirectionOption
               selected={side === "target-as-parent"}
               onSelect={() => setSide("target-as-parent")}
@@ -142,7 +142,7 @@ export function RelationDialog({
           {parentIsSO && (
             <section style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               <div className="pulso-section-eyebrow">
-                Paso 2 · ¿Qué se va a codificar en <code style={{ fontFamily: "ui-monospace, monospace", fontSize: 11 }}>{parent.parent}</code>?
+                Paso 2: ¿qué se va a codificar en <code style={{ fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace", fontSize: "var(--pulso-type-caption-size)" }}>{parent.parent}</code>?
               </div>
               <ModoOption
                 value="padre"
@@ -165,9 +165,9 @@ export function RelationDialog({
           {parentIsSM && (
             <section style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               <div className="pulso-section-eyebrow">
-                Paso 2 · Opción "Otros" en <code style={{ fontFamily: "ui-monospace, monospace", fontSize: 11 }}>{parent.parent}</code>
+                Paso 2: opción «Otros» en <code style={{ fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace", fontSize: "var(--pulso-type-caption-size)" }}>{parent.parent}</code>
               </div>
-              <p style={{ margin: 0, fontSize: 11, color: "var(--pulso-text-soft)", lineHeight: 1.5 }}>
+              <p style={{ margin: 0, fontSize: "var(--pulso-type-caption-size)", color: "var(--pulso-text-soft)", lineHeight: 1.5 }}>
                 En preguntas de múltiple elección, indica qué opción corresponde a "Otros, especifique" —
                 es la columna dummy que marca cuándo hay texto libre para codificar.
                 {parentHasOptions && " Puedes dejarlo vacío y configurarlo luego desde la card emparejada."}
@@ -178,7 +178,7 @@ export function RelationDialog({
                 onChange={(e) => setDummyCol(e.target.value)}
                 placeholder={`ej. ${parent.parent}/99`}
                 style={{
-                  fontSize: 13, fontFamily: "ui-monospace, monospace",
+                  fontSize: "var(--pulso-type-body-size)", fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
                   padding: "7px 10px", borderRadius: 6,
                   border: "1px solid var(--pulso-border)",
                   background: "white", outline: "none",
@@ -196,7 +196,7 @@ export function RelationDialog({
                 padding: "10px 12px", borderRadius: 7,
                 background: "var(--pulso-warn-bg)",
                 border: "1px solid var(--pulso-warn-border)",
-                color: "var(--pulso-warn-fg)", fontSize: 12, lineHeight: 1.5,
+                color: "var(--pulso-warn-fg)", fontSize: "var(--pulso-type-body-size)", lineHeight: 1.5,
               }}
             >
               <span>
@@ -217,7 +217,7 @@ export function RelationDialog({
           }}
         >
           <Dialog.Close asChild>
-            <button type="button" className="pulso-cv2-pill" style={{ fontSize: 12, padding: "7px 14px" }}>
+            <button type="button" className="pulso-cv2-pill" style={{ fontSize: "var(--pulso-type-body-size)", padding: "7px 14px" }}>
               Cancelar
             </button>
           </Dialog.Close>
@@ -227,7 +227,7 @@ export function RelationDialog({
             disabled={!canConfirm}
             className="pulso-primary pulso-cv2-pill pulso-cv2-pill--primary"
             style={{
-              fontSize: 12, padding: "7px 14px",
+              fontSize: "var(--pulso-type-body-size)", padding: "7px 14px",
               display: "inline-flex", alignItems: "center", gap: 6,
               opacity: canConfirm ? 1 : 0.55,
             }}
@@ -309,8 +309,8 @@ function PreguntaChip({
       <div style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0 }}>
         <code
           style={{
-            fontFamily: "ui-monospace, monospace",
-            fontSize: 12, fontWeight: 700,
+            fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
+            fontSize: "var(--pulso-type-subtitle-size)", fontWeight: 700,
             color: ts.fg,
             overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
           }}
@@ -319,7 +319,7 @@ function PreguntaChip({
         </code>
         <span
           style={{
-            fontSize: 10, fontWeight: 700,
+            fontSize: "var(--pulso-type-micro-size)", fontWeight: 700,
             textTransform: "uppercase", letterSpacing: 0.4,
             padding: "1px 6px", borderRadius: 4,
             background: ts.bg, color: ts.fg,
@@ -331,7 +331,7 @@ function PreguntaChip({
       </div>
       <div
         style={{
-          fontSize: 10, color: "var(--pulso-text-soft)",
+          fontSize: "var(--pulso-type-micro-size)", color: "var(--pulso-text-soft)",
           overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
           fontWeight: isTarget ? 600 : 400,
         }}
@@ -341,7 +341,7 @@ function PreguntaChip({
       </div>
       <div
         style={{
-          fontSize: 10, fontWeight: 600,
+          fontSize: "var(--pulso-type-micro-size)", fontWeight: 600,
           textTransform: "uppercase", letterSpacing: 0.3,
           color: isTarget ? "var(--pulso-primary)" : "var(--pulso-text-soft)",
         }}
@@ -381,10 +381,10 @@ function ModoOption({
         style={{ marginTop: 3, accentColor: "var(--pulso-primary)" }}
       />
       <div>
-        <div style={{ fontWeight: 600, fontSize: 13, color: active ? "var(--pulso-primary)" : "var(--pulso-text)" }}>
+        <div style={{ fontWeight: 600, fontSize: "var(--pulso-type-subtitle-size)", color: active ? "var(--pulso-primary)" : "var(--pulso-text)" }}>
           {title}
         </div>
-        <div style={{ fontSize: 12, color: "var(--pulso-text-soft)", marginTop: 3, lineHeight: 1.5 }}>
+        <div style={{ fontSize: "var(--pulso-type-body-size)", color: "var(--pulso-text-soft)", marginTop: 3, lineHeight: 1.5 }}>
           {description}
         </div>
       </div>

@@ -82,7 +82,7 @@ export function SeccionEstructura({
           <AsaArrastre
             id={node.rowIndex}
             arrastrable={arrastrable}
-            titulo={`Arrastra para mover la ${nombreTipo} entera · Alt+↑ / Alt+↓`}
+            titulo={`Arrastra para mover la ${nombreTipo} entera (Alt+↑ / Alt+↓)`}
             etiqueta={`Arrastra para mover la ${nombreTipo}`}
           />
           <button
@@ -90,7 +90,7 @@ export function SeccionEstructura({
             className="xfe-chev"
             tabIndex={-1}
             aria-label={`${abierta ? "Plegar" : "Desplegar"} «${tituloSinRefs}»`}
-            title={abierta ? "Plegar · ←" : "Desplegar · →"}
+            title={abierta ? "Plegar (←)" : "Desplegar (→)"}
             onClick={(e) => {
               e.stopPropagation();
               onPlegar(node.rowIndex);
@@ -106,7 +106,7 @@ export function SeccionEstructura({
             aria-expanded={abierta}
             aria-controls={idHijos}
             aria-keyshortcuts="Enter ArrowLeft ArrowRight Alt+ArrowUp Alt+ArrowDown Insert"
-            title={`${titulo}\n${ATAJOS_FILA} · ← → pliega`}
+            title={`${titulo}\n${ATAJOS_FILA}, ← → pliega`}
             data-nav={node.rowIndex}
             onClick={() => onElegir(node.rowIndex)}
             className="pulso-outline-body xfe-sec-cab__cuerpo"

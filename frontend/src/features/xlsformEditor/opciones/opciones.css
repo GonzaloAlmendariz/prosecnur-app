@@ -37,9 +37,6 @@
 /* Riel: la cantidad ocupa una columna fija para que los títulos arranquen en la misma x. */
 .xfo .xfp-item__num { width: 3.6ch; max-width: none; overflow: visible; text-overflow: clip; text-align: right; font-variant-numeric: tabular-nums; }
 
-.xfo-vacio { display: flex; flex-direction: column; align-items: flex-start; gap: var(--pulso-space-2); color: var(--pulso-text-muted); font-size: var(--pulso-type-body-size); line-height: 1.5; }
-.xfo-vacio p { margin: 0; }
-
 .xfo-codigo { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: var(--pulso-type-caption-size); color: var(--pulso-text-muted); }
 
 .xfo-lateral { display: flex; flex-direction: column; gap: 14px; }

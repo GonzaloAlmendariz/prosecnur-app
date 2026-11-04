@@ -681,7 +681,7 @@ export function FakeInput({
       </span>
       <span className="pulso-canvas-fakeinput-placeholder">
         {placeholder}
-        {multiline && " · multilínea"}
+        {multiline && " (multilínea)"}
       </span>
     </div>
   );

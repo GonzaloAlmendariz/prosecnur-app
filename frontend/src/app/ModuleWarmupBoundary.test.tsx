@@ -26,6 +26,9 @@ describe("warm start de módulo (L23)", () => {
     // pintar un porcentaje. Sin avance medido (fallback) es indeterminada.
     expect(html).toContain("pulso-barra-avance pulso-barra-avance--indeterminada");
     expect(html).toContain('style="--module-accent:');
+    // 4 nov 2026: el mismo isotipo que la carga del proyecto, no las tres pastillas propias.
+    expect(html).toContain('class="boot-eq"');
+    expect(html).not.toContain("pulso-module-warmup-mark");
   });
 
   it("la silueta no es la vista: oculta a lectores y sin marca de readiness", () => {

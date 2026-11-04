@@ -54,31 +54,8 @@
   font-weight: var(--pulso-weight-semibold);
 }
 
-.pulso-origen-externo-estado {
-  min-height: 24px;
-  display: inline-flex;
-  align-items: center;
-  padding: 4px 9px;
-  border: 1px solid var(--pulso-border);
-  border-radius: 999px;
-  background: var(--pulso-surface);
-  color: var(--pulso-text-soft);
-  font-size: var(--pulso-type-micro-size);
-  font-weight: var(--pulso-weight-heavy);
-  white-space: nowrap;
-}
 
-.pulso-origen-externo-estado.is-vigente {
-  border-color: var(--pulso-success-border);
-  background: var(--pulso-success-bg);
-  color: var(--pulso-success-fg);
-}
 
-.pulso-origen-externo-estado.is-otra_base {
-  border-color: var(--pulso-warn-border);
-  background: var(--pulso-warn-bg);
-  color: var(--pulso-warn-fg);
-}
 
 .pulso-origen-externo-cuerpo {
   display: grid;
@@ -109,20 +86,7 @@
   font-size: var(--pulso-type-caption-size);
 }
 
-.pulso-origen-externo-vacio {
-  display: grid;
-  gap: 4px;
-  max-width: 72ch;
-  color: var(--pulso-text-soft);
-  font-size: var(--pulso-type-caption-size);
-  line-height: 1.45;
-}
 
-.pulso-origen-externo-vacio strong {
-  color: var(--pulso-text);
-  font-size: var(--pulso-type-subtitle-size);
-  font-weight: var(--pulso-weight-semibold);
-}
 
 .pulso-origen-externo-error {
   margin: 0;

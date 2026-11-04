@@ -43,8 +43,8 @@ describe("Variables de la base", () => {
     // Columnas propias, columnas desde otro archivo, calculadas y «ya viene codificada».
     expect((html.match(/data-qa-geometry-member/g) ?? []).length).toBe(4);
     expect(html).toContain("Columnas desde otro archivo");
-    expect(html).toContain("La base no trae columnas fuera del formulario.");
-    expect(html).toContain("Ninguna todavía. Combina varias preguntas, recodifica una o escribe una fórmula.");
+    expect(html).toContain("La base no trae columnas fuera del formulario");
+    expect(html).toContain("Combina varias preguntas, recodifica una o escribe una fórmula.");
     expect(html).toContain("Esta base ya viene codificada");
     expect(html).toContain("Codificación no la vuelve a codificar.");
     expect(html).toContain('role="switch"');
@@ -80,14 +80,14 @@ describe("Variables de la base", () => {
     expect(html).toContain("Incorporada");
     expect(html).toContain(`${formatoConteo(2500)} válidos`);
     expect(html).toContain("sin etiquetas");
-    expect(html).toContain("Alguna de 2 preguntas · sí = 1");
-    expect(html).toContain("Sí 120 · Sin dato 5");
+    expect(html).toContain("Alguna de 2 preguntas, sí = 1");
+    expect(html).toContain("Sí 120, Sin dato 5");
     expect(html).toContain('aria-checked="true"');
   });
 
   it("error de lectura: lo dice con el mensaje del backend", () => {
     const html = cuerpo({ carga: { tipo: "error", mensaje: "No existe la base «x». · E_BASE_NOT_FOUND" } });
-    expect(html).toContain("No se pudieron leer las variables de la base.");
+    expect(html).toContain("No se pudieron leer las variables de la base");
     expect(html).toContain("E_BASE_NOT_FOUND");
   });
 });

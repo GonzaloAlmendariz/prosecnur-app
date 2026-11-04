@@ -529,10 +529,21 @@
   display: -webkit-box;
   max-width: 100%;
   overflow: hidden;
-  overflow-wrap: anywhere;
+  /* El valor se parte por palabras, nunca a mitad de una: una coordenada o una
+     marca de tiempo partida en tres renglones no se lee (pasada de formato). */
+  overflow-wrap: normal;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
-  word-break: break-word;
+  word-break: normal;
+}
+
+/* Un valor sin espacios (fecha ISO, código, identificador) va en una línea con
+   elipsis; el valor entero está en el `title` de la celda. */
+.pulso-processing-sheet-cell-text.is-token {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .pulso-processing-sheet-table tbody tr {

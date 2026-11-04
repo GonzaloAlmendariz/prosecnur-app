@@ -37,15 +37,14 @@ export function RespuestasResumen({
       {cambios ? <CambiosDeRespuestasAviso cambios={cambios} onCerrar={onCerrarCambios} /> : null}
 
       <p className="pulso-resp-cifras">
-        <strong>{formatoConteo(preview.n_filas)}</strong> respuestas
-        <span aria-hidden="true">·</span>
+        <strong>{formatoConteo(preview.n_filas)}</strong> respuestas y{" "}
         <strong>{formatoConteo(preview.n_columnas)}</strong> columnas
       </p>
 
       {compat ? <p className={`pulso-resp-linea ${compat.ok ? "is-ok" : "is-bad"}`}>{compat.texto}</p> : null}
       <p className="pulso-resp-linea">
         {preview.normalizacion?.applied
-          ? preparacion.length ? `Preparada: ${preparacion.join(" · ")}` : "Preparada sin cambios"
+          ? preparacion.length ? `Preparada: ${preparacion.join(", ")}` : "Preparada sin cambios"
           : "La preparación se hace después de cargar el formulario"}
       </p>
 

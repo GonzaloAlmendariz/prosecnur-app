@@ -19,6 +19,8 @@ import { iconForType } from "../xlsformEditor/helpers/icons";
 import { paletteForType } from "../xlsformEditor/helpers/paletteForType";
 import { typeLabel } from "../xlsformEditor/parsing/parseType";
 import type { BuilderNode, BuilderStructure, CatalogSummary, ChoiceItem, SectionMeta } from "../xlsformEditor/types";
+import { EstadoVacio } from "../../components/EstadoVacio";
+import { Inbox } from "../../vendor/lucide-react";
 
 type Filtros = {
   seccion: string;
@@ -124,7 +126,7 @@ export default function PreguntasPanel({ preguntas, secciones }: { preguntas: Pr
           />
         </label>
         <span className="pulso-question-map-count">
-          {filtered.length}/{preguntas.length} ítems · {formatItemStats(filteredStats)}
+          {filtered.length}/{preguntas.length} ítems, {formatItemStats(filteredStats)}
         </span>
         <button type="button" className="pulso-question-map-logic-button" onClick={() => setLogicOpen(true)}>
           <Network size={13} />
@@ -264,7 +266,7 @@ function QuestionDetailPopup({
       placement="center"
       variant="wide"
       title={pregunta?.label || "Detalle de pregunta"}
-      subtitle={pregunta ? `${pregunta.name} · ${seccionLabel[pregunta.seccion] || pregunta.seccion || "Sin sección"}` : undefined}
+      subtitle={pregunta ? `${pregunta.name}, ${seccionLabel[pregunta.seccion] || pregunta.seccion || "Sin sección"}` : undefined}
     >
       {pregunta && (
         <div className="pulso-question-detail">
@@ -375,7 +377,7 @@ function CalculationDetailPanel({ pregunta, allPreguntas }: { pregunta: Pregunta
                 <FieldChip
                   key={`${item.name}-${item.kind}`}
                   name={item.name}
-                  title={`${item.label || item.name} · ${item.kind}`}
+                  title={`${item.label || item.name} (${item.kind})`}
                 />
               ))}
             </div>
@@ -424,7 +426,7 @@ function LogicReadout({
 }
 
 function EmptyReadout({ text }: { text: string }) {
-  return <div className="pulso-question-detail-empty">{text}</div>;
+  return <EstadoVacio icono={<Inbox size={16} />} titulo={<>{text}</>} />;
 }
 
 function toChoiceItems(pregunta: Pregunta): ChoiceItem[] {
@@ -462,7 +464,7 @@ function formatItemStats(stats: ItemStats): string {
   if (stats.notes > 0) {
     parts.push(`${stats.notes} ${stats.notes === 1 ? "nota" : "notas"}`);
   }
-  return parts.join(" · ");
+  return parts.join(", ");
 }
 
 function formatFormulaPreview(value?: string | null): string {

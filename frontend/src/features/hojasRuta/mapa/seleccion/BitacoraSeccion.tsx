@@ -3,6 +3,9 @@ import { PulsoButton } from "../../../../components/PulsoButton";
 import { apiHojasRutaBitacora, apiHojasRutaBitacoraAnotar, type HojasRutaBitacoraEntrada } from "../../../../api/hojasRuta";
 import "./bitacora.css";
 
+import { EstadoVacio } from "../../../../components/EstadoVacio";
+import { LoadingBlock } from "../../../../components/States";
+import { Inbox } from "../../../../vendor/lucide-react";
 /**
  * Bitácora de decisiones (U17) dentro de las salidas de Selección. Va aquí y no en
  * un `?panel=bitacora` propio mientras la página clásica sea la de por defecto: el
@@ -56,11 +59,9 @@ export function BitacoraSeccion({ conDecisionesPrevias = false }: { conDecisione
     <section className="hr-muestra-grupo hr-bitacora-seccion" aria-label="Bitácora de decisiones">
       <h3>Bitácora de decisiones</h3>
       {error ? <p className="hr-bitacora-aviso">{error}</p> : null}
-      {entradas === null && !error ? <p className="hr-bitacora-vacio">Leyendo la bitácora…</p> : null}
+      {entradas === null && !error ? <LoadingBlock variant="inline" label="Leyendo la bitácora…" /> : null}
       {entradas && !entradas.length ? (
-        <p className="hr-bitacora-vacio">
-          {mensajeBitacoraVacia(conDecisionesPrevias)}
-        </p>
+        <EstadoVacio icono={<Inbox size={16} />} titulo={mensajeBitacoraVacia(conDecisionesPrevias)} />
       ) : null}
       {entradas?.length ? (
         <ol className="hr-bitacora">

@@ -1,4 +1,4 @@
-import { ChevronLeft, ChevronRight, MapPinned, Plus } from "../../../../vendor/lucide-react";
+import { ChevronLeft, ChevronRight, MapPinned, Plus, Inbox } from "../../../../vendor/lucide-react";
 import { PulsoButton } from "../../../../components/PulsoButton";
 import { InspectorCabecera } from "../InspectorCabecera";
 import { proyectarLonLat } from "../lienzo/camara";
@@ -6,6 +6,8 @@ import type { CiudadAtlas } from "./ciudades";
 import { ciudadesDeDepartamento } from "./atlasFoco";
 import "./atlas.css";
 
+import { formatoDecimal } from "../../../../lib/formatoNumero";
+import { EstadoVacio } from "../../../../components/EstadoVacio";
 /**
  * Territorio, nivel atlas (dirección A del paquete docs/qa/plan-territorio-por-regiones-2026-10-29.md).
  * Estructura: la columna del estudio (cifras y ciudades elegidas) y, debajo, el resto de ciudades con
@@ -14,7 +16,7 @@ import "./atlas.css";
  */
 
 const fmt = (n: number) => new Intl.NumberFormat("es-PE").format(Math.round(n));
-const enMiles = (n: number) => (n >= 1e6 ? `${(n / 1e6).toLocaleString("es-PE", { maximumFractionDigits: 1 })} M` : `${fmt(n / 1000)} mil`);
+const enMiles = (n: number) => (n >= 1e6 ? `${formatoDecimal(n / 1e6, 1)} M` : `${fmt(n / 1000)} mil`);
 
 /** Silueta de la huella urbana de una ciudad, a su propia escala. */
 export function Silueta({ ciudad, tam, enEstudio }: { ciudad: CiudadAtlas; tam: number; enEstudio: boolean }) {
@@ -75,7 +77,7 @@ export function AtlasEstructura({ ciudades, enEstudio, confirmados, enfocada, de
             })}
           </ul>
         ) : (
-          <p className="hr-atlas-vacio">Todavía ninguna. Haz clic en una ciudad del mapa o elígela abajo.</p>
+          <EstadoVacio icono={<Inbox size={16} />} titulo="Todavía ninguna" descripcion="Haz clic en una ciudad del mapa o elígela abajo." />
         )}
         {departamento || enfocada ? (
           <button type="button" className="hr-atlas-volver" onClick={onTodoPeru}>
@@ -96,7 +98,7 @@ export function AtlasEstructura({ ciudades, enEstudio, confirmados, enfocada, de
             </li>
           ))}
         </ul>
-        {departamento && !otras.length ? <p className="hr-atlas-vacio">{departamento} no tiene otras ciudades con cartografía de manzanas.</p> : null}
+        {departamento && !otras.length ? <EstadoVacio icono={<Inbox size={16} />} titulo={`${departamento} no tiene otras ciudades con cartografía de manzanas`} /> : null}
       </div>
     </div>
   );

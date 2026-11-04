@@ -98,11 +98,11 @@ describe("recorrido de la serie: seis pasos, siempre en el mismo orden", () => {
   });
 });
 
-describe("paso 1 · Bases", () => {
+describe("paso 1, Bases", () => {
   it("sin orden declarado y sin años en los nombres falta declarar el orden", () => {
     const p = paso(pasosDelRecorrido(completa({ ordenDeclarado: false, ordenPorAnio: false })), "bases");
     expect(p.estado).toBe("falta");
-    expect(p.detalle).toBe("3 bases · orden sin declarar");
+    expect(p.detalle).toBe("3 bases, orden sin declarar");
   });
 
   it("sin matriz guardada el orden no se edita aún: lleva a Fuentes", () => {
@@ -113,7 +113,7 @@ describe("paso 1 · Bases", () => {
   });
 });
 
-describe("paso 2 · Variables de cada base", () => {
+describe("paso 2, Variables de cada base", () => {
   it("cuenta columnas sin incorporar y retiradas sin motivo, por base, y enlaza a la primera", () => {
     const p = paso(pasosDelRecorrido(completa({
       variables: {
@@ -123,7 +123,7 @@ describe("paso 2 · Variables de cada base", () => {
       },
     })), "variables");
     expect(p.estado).toBe("falta");
-    expect(p.detalle).toBe("2025: 1 retirada sin motivo · 2026: 3 columnas sin incorporar");
+    expect(p.detalle).toBe("2025: 1 retirada sin motivo, 2026: 3 columnas sin incorporar");
     expect(p.enlace).toEqual({ tipo: "panel", panel: "variables-base", foco: "2025", etiqueta: "Variables de la base" });
   });
 
@@ -137,7 +137,7 @@ describe("paso 2 · Variables de cada base", () => {
   });
 });
 
-describe("paso 3 · Segmentos de cruce", () => {
+describe("paso 3, Segmentos de cruce", () => {
   it("con la ruta todavía sin publicar o sin segmentos: «Sin segmentos declarados», sin romper", () => {
     for (const lectura of [segs([], false), segs([])]) {
       const p = paso(pasosDelRecorrido(completa({ segmentos: lectura })), "segmentos");
@@ -166,7 +166,7 @@ describe("paso 3 · Segmentos de cruce", () => {
   });
 });
 
-describe("paso 4 · Matriz", () => {
+describe("paso 4, Matriz", () => {
   it("dice cuántas filas, cuántas sin armonizar y cuántas faltan en alguna base", () => {
     const p = paso(pasosDelRecorrido(completa({
       filas: [
@@ -176,7 +176,7 @@ describe("paso 4 · Matriz", () => {
       ],
     })), "matriz");
     expect(p.estado).toBe("falta");
-    expect(p.detalle).toBe("3 filas · 2 sin armonizar · 2 faltan en alguna base");
+    expect(p.detalle).toBe("3 filas, 2 sin armonizar, 2 faltan en alguna base");
     expect(p.enlace).toMatchObject({ tipo: "panel", panel: "mapa-bases" });
   });
 
@@ -185,7 +185,7 @@ describe("paso 4 · Matriz", () => {
       filas: [fila({ "2024": "p1", "2025": "q1" }, armonizada(["2024", "2025"]))],
     })), "matriz");
     expect(p.estado).toBe("hecho");
-    expect(p.detalle).toBe("1 fila · 1 falta en alguna base");
+    expect(p.detalle).toBe("1 fila, 1 falta en alguna base");
   });
 
   it("una fila de misma escala sin armonizar no es pendiente: entra sola al comparativo", () => {
@@ -203,7 +203,7 @@ describe("paso 4 · Matriz", () => {
   });
 });
 
-describe("paso 5 · Ponderación", () => {
+describe("paso 5, Ponderación", () => {
   it("una base que trae columna de peso sin declarar es una falta, con su nombre y la columna", () => {
     const p = paso(pasosDelRecorrido(completa({
       ponderacion: {
@@ -233,7 +233,7 @@ describe("paso 5 · Ponderación", () => {
       },
     })), "ponderacion");
     expect(p.estado).toBe("sin-lectura");
-    expect(p.detalle).toBe("2026: columna «peso» · 2 bases sin leer aquí");
+    expect(p.detalle).toBe("2026: columna «peso», 2 bases sin leer aquí");
   });
 
   it("sin declarar y sin columnas de peso es «sin ponderar»: un hecho, no una falta", () => {
@@ -247,7 +247,7 @@ describe("paso 5 · Ponderación", () => {
       },
     })), "ponderacion");
     expect(p.estado).toBe("hecho");
-    expect(p.detalle).toBe("2025: columna «factor_ponderacion» · 2026: sin ponderar");
+    expect(p.detalle).toBe("2025: columna «factor_ponderacion», 2026: sin ponderar");
   });
 
   it("si la lectura no dice las columnas de peso, sigue pendiente", () => {
@@ -260,11 +260,11 @@ describe("paso 5 · Ponderación", () => {
   it("con la serie entera declarada está hecho", () => {
     const p = paso(pasosDelRecorrido(completa()), "ponderacion");
     expect(p.estado).toBe("hecho");
-    expect(p.detalle).toBe("2024: sin ponderar · y 2 bases más");
+    expect(p.detalle).toBe("2024: sin ponderar y 2 bases más");
   });
 });
 
-describe("paso 6 · Comparativos", () => {
+describe("paso 6, Comparativos", () => {
   it("listo con una fila armonizada comparable en dos bases", () => {
     expect(filasComparables([fila({ "2024": "p1", "2025": "q1" }, armonizada(["2024", "2025"]))], BASES)).toBe(1);
     // Armonizada pero presente en una sola base: no compara nada.
@@ -285,8 +285,8 @@ describe("paso 6 · Comparativos", () => {
 
 describe("C2: el texto no crece con el número de bases", () => {
   it("dos entradas se nombran; con más, la primera y el resto contado", () => {
-    expect(porBaseConTope(["a: 1", "b: 2"])).toBe("a: 1 · b: 2");
-    expect(porBaseConTope(["a: 1", "b: 2", "c: 3", "d: 4", "e: 5", "f: 6"])).toBe("a: 1 · y 5 bases más");
+    expect(porBaseConTope(["a: 1", "b: 2"])).toBe("a: 1, b: 2");
+    expect(porBaseConTope(["a: 1", "b: 2", "c: 3", "d: 4", "e: 5", "f: 6"])).toBe("a: 1 y 5 bases más");
   });
 
   it("con seis bases y todas con faltas, cada detalle sigue siendo de una línea corta", () => {
@@ -298,8 +298,8 @@ describe("C2: el texto no crece con el número de bases", () => {
       segmentos: segs([segmento("edad", {})]),
       ponderacion: { tipo: "listo", datos: seis.map((base) => ({ base, ponderacion: { tipo: "sin_declarar" as const, columnasPeso: ["factor"] } })) },
     });
-    expect(paso(pasos, "variables").detalle).toBe("b1: 1 columna sin incorporar · y 5 bases más");
-    expect(paso(pasos, "segmentos").detalle).toBe("b1: falta 1 segmento · y 5 bases más");
+    expect(paso(pasos, "variables").detalle).toBe("b1: 1 columna sin incorporar y 5 bases más");
+    expect(paso(pasos, "segmentos").detalle).toBe("b1: falta 1 segmento y 5 bases más");
     expect(paso(pasos, "ponderacion").detalle).toBe("6 bases traen columnas de peso sin declarar");
     expect(Math.max(...pasos.map((p) => p.detalle.length))).toBeLessThanOrEqual(60);
   });

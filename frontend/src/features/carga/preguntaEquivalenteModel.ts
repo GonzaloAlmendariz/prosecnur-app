@@ -165,7 +165,7 @@ export function indicadorDeEscala(
     case "distintas":
       return {
         tono: "aviso",
-        texto: "Escalas distintas · Armonizar",
+        texto: "Escalas distintas: armonizar",
         explicacion: `La lista de respuestas cambia en ${coincidencia.bases.join(", ")}. Armonizar es declarar qué respuesta de cada base es la misma.`,
         abre: true,
       };

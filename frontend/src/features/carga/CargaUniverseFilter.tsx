@@ -24,7 +24,11 @@ import {
   type UniverseClassification,
 } from "./universeFilterModel";
 import { Switch } from "../../components/Switch";
+import { formatoConteo } from "../../lib/formatoNumero";
+import { EstadoVacio } from "../../components/EstadoVacio";
+import { Search, Inbox } from "../../vendor/lucide-react";
 
+import { LoadingBlock } from "../../components/States";
 type Props = {
   baseNombre?: string | null;
   disabled?: boolean;
@@ -185,11 +189,9 @@ export function CargaUniverseFilter({ baseNombre, disabled = false, onApplied, o
       </header>
 
       {loading ? (
-        <div className="pulso-carga-universe-loading" role="status"><Loader2 size={14} className="pulso-spin" /> Leyendo configuración de la base…</div>
+        <LoadingBlock variant="inline" label="Leyendo configuración de la base…" />
       ) : sinBase && !state ? (
-        <div className="pulso-carga-universe-empty">
-          Este proyecto todavía no tiene una base registrada para configurar el universo.
-        </div>
+        <EstadoVacio icono={<Inbox size={16} />} titulo="Todavía no hay una base registrada" descripcion="Carga una base para configurar el universo de análisis." />
       ) : error && !state ? (
         <div className="pulso-carga-universe-error" role="alert">{error}</div>
       ) : state ? (
@@ -237,8 +239,8 @@ export function CargaUniverseFilter({ baseNombre, disabled = false, onApplied, o
                       <option value="">Selecciona una variable…</option>
                       {rankedVariables.map((variable, index) => (
                         <option key={variable.variable} value={variable.variable}>
-                          {index < 3 && isUniverseVariableSuggested(variable) ? "Prioridad sugerida · " : ""}
-                          {variable.variable}{variable.n_distinct != null ? ` · ${variable.n_distinct} valores` : ""}
+                          {index < 3 && isUniverseVariableSuggested(variable) ? "Prioridad sugerida: " : ""}
+                          {variable.variable}{variable.n_distinct != null ? `, ${variable.n_distinct} valores` : ""}
                         </option>
                       ))}
                     </select>
@@ -262,7 +264,7 @@ export function CargaUniverseFilter({ baseNombre, disabled = false, onApplied, o
                         />
                       ))}
                       {!previewing && observedValues.length === 0 && (
-                        <div className="pulso-carga-universe-empty">No se encontraron valores observados para esta variable.</div>
+                        <EstadoVacio icono={<Search size={16} />} titulo="No se encontraron valores observados para esta variable" />
                       )}
                       {previewing && <div className="pulso-carga-universe-previewing" role="status"><Loader2 size={12} className="pulso-spin" /> Actualizando conteos…</div>}
                     </fieldset>
@@ -279,7 +281,7 @@ export function CargaUniverseFilter({ baseNombre, disabled = false, onApplied, o
               <CheckCircle2 size={14} aria-hidden="true" />
               <span>
                 <strong>Constancia aplicada.</strong> Variable <code>{state.config.variable}</code>
-                {state.applied_at ? ` · ${formatAppliedAt(state.applied_at)}` : ""}. Crudo conservado.
+                {state.applied_at ? `, ${formatAppliedAt(state.applied_at)}` : ""}. Crudo conservado.
               </span>
             </div>
           )}
@@ -331,7 +333,7 @@ function UniverseValueRow({
         <strong>{value.value || "Vacío"}</strong>
         <code>{value.missing ? "sin valor" : value.value}</code>
       </span>
-      <b>{value.count.toLocaleString("es-PE")}</b>
+      <b>{formatoConteo(value.count)}</b>
       <div className="pulso-carga-universe-classification" role="radiogroup" aria-label={`Clasificar ${value.value || "vacíos"}`}>
         {value.missing ? (
           <span className="is-fixed">Sin clasificar</span>
@@ -355,13 +357,13 @@ function UniverseValueRow({
 function UniverseSummary({ summary, enabled }: { summary: CargaUniverseSummary; enabled: boolean }) {
   return (
     <div className="pulso-carga-universe-summary" aria-live="polite">
-      <div><small>Base original</small><strong>{summary.total.toLocaleString("es-PE")}</strong><span>registros</span></div>
+      <div><small>Base original</small><strong>{formatoConteo(summary.total)}</strong><span>registros</span></div>
       <span aria-hidden="true">→</span>
-      <div className={enabled ? "is-included" : ""}><small>Universo de análisis</small><strong>{(enabled ? summary.included : summary.total).toLocaleString("es-PE")}</strong><span>incluidos</span></div>
+      <div className={enabled ? "is-included" : ""}><small>Universo de análisis</small><strong>{formatoConteo(enabled ? summary.included : summary.total)}</strong><span>incluidos</span></div>
       {enabled && (
         <div className="pulso-carga-universe-exclusions">
-          <span>{summary.excluded_test.toLocaleString("es-PE")} prueba</span>
-          <span>{summary.excluded_unclassified.toLocaleString("es-PE")} sin clasificar</span>
+          <span>{formatoConteo(summary.excluded_test)} prueba</span>
+          <span>{formatoConteo(summary.excluded_unclassified)} sin clasificar</span>
         </div>
       )}
     </div>

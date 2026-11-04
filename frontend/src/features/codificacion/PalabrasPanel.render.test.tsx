@@ -72,7 +72,7 @@ describe("PalabrasCuerpo", () => {
     }
     // El resumen plegable dice qué guarda sin abrirlo.
     expect(html).toMatch(/<details[^>]*class="pulso-cv2-pal-ajustes"/);
-    expect(html).toContain("1 grupo · 1 excluida · 1 frase");
+    expect(html).toContain("1 grupo, 1 excluida y 1 frase");
   });
 
   it("el buscador filtra y avisa si nada coincide", () => {

@@ -6,11 +6,11 @@ import { useState } from "react";
 import type { CalculadaADeclarar, ResumenCalculada, VariableCalculada } from "../../../api/baseVariables";
 import type { VariableDeBase } from "../../../api/equivalencias";
 import { PulsoButton } from "../../../components/PulsoButton";
-import { Pencil, Plus, Sigma, Trash2 } from "../../../vendor/lucide-react";
+import { Pencil, Plus, Sigma, Trash2, Inbox } from "../../../vendor/lucide-react";
 import { CalculadaEditor } from "./CalculadaEditor";
-import { preguntasUsables } from "./variablesBaseModel";
+import { preguntasUsables, reglaLegible, textoResumen } from "./variablesBaseModel";
 import type { MensajeVariablesBase } from "./useVariablesBase";
-import { reglaLegible, textoResumen } from "./variablesBaseModel";
+import { EstadoVacio } from "../../../components/EstadoVacio";
 
 export type VariablesCalculadasProps = {
   /** La base del panel: el editor lee de ella los códigos observados. */
@@ -89,7 +89,7 @@ export function VariablesCalculadas({
 
       {calculadas.length === 0 ? (
         // C3: el vacío es de esta sección y dice cómo se llena.
-        edicion === null && <p className="pulso-armon-vacio">Ninguna todavía. Combina varias preguntas, recodifica una o escribe una fórmula.</p>
+        edicion === null && <EstadoVacio icono={<Inbox size={16} />} titulo="Todavía no hay variables calculadas" descripcion="Combina varias preguntas, recodifica una o escribe una fórmula." />
       ) : (
         <ul className="pulso-vb-calculadas" aria-label="Variables calculadas de la base">
           {calculadas.map((c) =>

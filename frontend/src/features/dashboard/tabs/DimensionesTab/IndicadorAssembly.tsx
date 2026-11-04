@@ -624,7 +624,7 @@ export function IndicadorAssembly({
         <div className="dash-assembly-context" aria-live="polite">
           <strong>{selected}</strong>
           <span>
-            {(subRows[selected]?.length ?? 0)} subcriterios · score{" "}
+            {(subRows[selected]?.length ?? 0)} subcriterios, score{" "}
             {dimensiones.find((d) => d.axis_label === selected)?.score_round ?? "—"}
           </span>
         </div>

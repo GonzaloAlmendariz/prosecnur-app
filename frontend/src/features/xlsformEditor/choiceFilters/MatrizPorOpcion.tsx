@@ -128,7 +128,7 @@ export function MatrizPorOpcion({ a, workbook, porNombre, candidatas, resaltadas
               <th scope="col" className="xcf-mx__esquina">Opción de <code>{a.pregunta}</code></th>
               {preguntas.map((p, i) => {
                 return (
-                  <th key={p} scope="col" title={`${p} · ${titulos[i]}`}>
+                  <th key={p} scope="col" title={`${p}: ${titulos[i]}`}>
                     <span className="xcf-mx__hc" title={p}>{p}</span>
                     <span className={cortos[i] !== titulos[i] ? "xcf-mx__hl is-recortado" : "xcf-mx__hl"} title={titulos[i]}>{cortos[i]}</span>
                   </th>

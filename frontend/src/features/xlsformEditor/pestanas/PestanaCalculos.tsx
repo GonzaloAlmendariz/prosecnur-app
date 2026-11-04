@@ -104,7 +104,7 @@ export function PestanaCalculos({ structure, scope: scopeBase, seleccionada, onS
     <PestanaReglas
       titulo="Cálculos"
       marca="calc"
-      total={`${items.length} cálculo${items.length === 1 ? "" : "s"}${enPreguntas ? ` · ${enPreguntas} en preguntas` : ""}`}
+      total={`${items.length} cálculo${items.length === 1 ? "" : "s"}${enPreguntas ? `, ${enPreguntas} en preguntas` : ""}`}
       aviso={focoPerdido}
       grupos={grupos}
       seleccionada={actual?.node.name ?? null}
@@ -119,7 +119,7 @@ export function PestanaCalculos({ structure, scope: scopeBase, seleccionada, onS
           <div className="xfp-encabezado">
             <span className="xfp-encabezado__ruta">
               <TypeIcon baseType={actual.enPregunta ? actual.node.typeInfo.base : "calculate"} boxed /> {actual.enPregunta ? "Pregunta con fórmula" : "Cálculo"}
-              {actual.node.label ? <> · <code className="xfp-codigo">{actual.node.name}</code></> : null}
+              {actual.node.label ? <> (<code className="xfp-codigo">{actual.node.name}</code>)</> : null}
             </span>
             <h2 className="xfp-encabezado__titulo">{actual.node.label ? <EtiquetaLegible texto={actual.node.label} etiquetaDe={etiquetaDe} /> : <code className="xfp-var is-codigo">{actual.node.name}</code>}</h2>
             <span className="xfp-encabezado__accion"><EditarEnConstructor onEditar={() => onEditar(actual.node.rowIndex)} que={`el cálculo ${actual.node.name}`} /></span>

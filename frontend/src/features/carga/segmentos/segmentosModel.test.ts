@@ -109,7 +109,7 @@ describe("estado de cada celda segmento × base", () => {
 
   it("el resumen dice cuántas bases tienen algo por resolver", () => {
     expect(resumenSegmentos({ disponible: true, bases: BASES, segmentos: [] })).toBe("Ninguno todavía.");
-    expect(resumenSegmentos({ disponible: true, bases: BASES, segmentos: [segmento] })).toBe("1 segmento · 1 base con algo por resolver");
+    expect(resumenSegmentos({ disponible: true, bases: BASES, segmentos: [segmento] })).toBe("1 segmento, 1 base con algo por resolver");
     const completo = { ...segmento, por_base: { "2024": enBase() } };
     expect(resumenSegmentos({ disponible: true, bases: ["2024"], segmentos: [completo] })).toBe("1 segmento en la base");
   });
@@ -225,7 +225,7 @@ describe("filas de la tabla de códigos", () => {
     expect(filas.map((f) => [f.rotulo, f.destino, f.sinMapa])).toEqual([["1", "2", false], ["2", "", false], ["3", null, true]]);
     const r = resumenMapa(filas);
     expect(r).toEqual({ total: 3, asignados: 1, sinDato: 1, sinCasos: 0, sinMapa: 1 });
-    expect(textoResumenMapa(r)).toBe("1 de 3 códigos asignados · 1 sin dato · 1 sin mapa");
+    expect(textoResumenMapa(r)).toBe("1 de 3 códigos asignados, 1 sin dato, 1 sin mapa");
     expect(estadoDeEntrada("P2", filas)).toBe("incompleto");
     expect(estadoDeEntrada("", filas)).toBe("sin_origen");
     expect(casosSinMapa(filas)).toBe(2);
@@ -241,7 +241,7 @@ describe("filas de la tabla de códigos", () => {
     expect(filas.map((f) => [f.rotulo, f.sinMapa, f.sinCasos])).toEqual([["1", false, false], ["2", false, false], ["99", false, true]]);
     const r = resumenMapa(filas);
     expect(r).toEqual({ total: 3, asignados: 2, sinDato: 0, sinCasos: 1, sinMapa: 0 });
-    expect(textoResumenMapa(r)).toBe("2 de 3 códigos asignados · 1 sin casos");
+    expect(textoResumenMapa(r)).toBe("2 de 3 códigos asignados, 1 sin casos");
     expect(estadoDeEntrada("P1_recod", filas)).toBe("definido");
     expect(casosSinMapa(filas)).toBe(0);
     // Con destino deja de ser «sin casos»; sin conteo (`n` nulo) sigue siendo pendiente.
@@ -397,8 +397,8 @@ describe("borrador y acciones", () => {
     };
     const atajos = atajosPartirDe(BASES, b.porBase, opcionesPorBase, { "2025": [{ codigo: "1", etiqueta: "" }] }, (s) => s.replace(/\*/g, ""));
     expect(atajos).toEqual([
-      { base: "2024", variable: "cruce_1", rotulo: "cruce_1 · 2024", opciones: [{ codigo: "1", etiqueta: "18-20 años" }] },
-      { base: "2025", variable: "P1_recod", rotulo: "P1_recod · 2025", opciones: [{ codigo: "1", etiqueta: "1" }] },
+      { base: "2024", variable: "cruce_1", rotulo: "cruce_1, 2024", opciones: [{ codigo: "1", etiqueta: "18-20 años" }] },
+      { base: "2025", variable: "P1_recod", rotulo: "P1_recod, 2025", opciones: [{ codigo: "1", etiqueta: "1" }] },
     ]);
     expect(atajosPartirDe(BASES, b.porBase, opcionesPorBase, {})).toHaveLength(1);
   });

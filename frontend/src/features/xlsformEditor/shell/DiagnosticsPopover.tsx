@@ -23,6 +23,7 @@ import type { EditorHeaderStatus } from "./editorHeaderStatus";
 import { LogicaExternaDeshacer, LogicaExternaDisparador } from "./LogicaExterna";
 import { CONSECUENCIA_LOGICA_EXTERNA, rotuloLogicaExterna } from "./logicaExternaModel";
 import type { AccionesLogicaExterna } from "./useLogicaExterna";
+import { EstadoVacio } from "../../../components/EstadoVacio";
 
 /** Formulario abierto y acciones para declarar/deshacer la lógica hecha fuera. */
 export type LogicaExternaCabecera = { formId: string; acciones: AccionesLogicaExterna };
@@ -223,12 +224,12 @@ function DiagnosticsContenido({
           </div>
         )}
         {sorted.length === 0 && !status.logicStepPending && !status.logicaExterna ? (
-          <div className="pulso-diagnostics-popover-empty">
-            <CheckCircle2 size={32} color="var(--pulso-success-fg)" />
-            <p style={{ margin: "8px 0 0", fontSize: 12, color: "var(--pulso-text-soft)" }}>
-              No detectamos problemas estructurales. Buen trabajo.
-            </p>
-          </div>
+          <EstadoVacio
+            tamano="normal"
+            icono={<CheckCircle2 size={20} />}
+            titulo="Sin problemas estructurales"
+            descripcion="El validador no encontró nada que corregir."
+          />
         ) : (
           sorted.map((diag) => (
             <DiagnosticItem

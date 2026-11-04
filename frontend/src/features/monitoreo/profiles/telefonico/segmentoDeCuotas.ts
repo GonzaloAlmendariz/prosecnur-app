@@ -77,12 +77,15 @@ function claveDeVariable(valor: string) {
 export function variableDeCuotas(
   filas: ReadonlyArray<{ variable: unknown; meta?: unknown }>,
   porDefecto = "Cuota",
+  /** La que eligió el usuario (`panel=variable&foco=…`); manda si es una de las candidatas. */
+  elegida?: string | null,
 ): string {
   const conMeta = filas.filter((fila) => {
     const meta = Number(fila.meta);
     return fila.meta != null && fila.meta !== "" && Number.isFinite(meta) && meta > 0;
   });
   const candidatas = (conMeta.length ? conMeta : filas).map((fila) => String(fila.variable ?? "").trim()).filter(Boolean);
+  if (elegida && candidatas.includes(elegida)) return elegida;
   const deEje = candidatas.find((variable) => VARIABLES_DE_EJE.includes(claveDeVariable(variable)));
   return deEje ?? nombreDelSegmento(candidatas, porDefecto);
 }

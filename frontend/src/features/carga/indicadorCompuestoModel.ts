@@ -72,7 +72,7 @@ export function componentesDeBase(
 export function textoComponentes(c: DerivadaBase): string {
   const preguntas = `Alguna de: ${c.variables.join(", ")}`;
   if (c.codigos.length === 0) return preguntas;
-  return `${preguntas} · ${c.codigos.length === 1 ? "código" : "códigos"} ${c.codigos.join(", ")}`;
+  return `${preguntas}, ${c.codigos.length === 1 ? "código" : "códigos"} ${c.codigos.join(", ")}`;
 }
 
 /**
@@ -84,7 +84,7 @@ export function resumenCelda(c: DerivadaBase): { etiqueta: string; codigo: strin
   const n = c.variables.length;
   const etiqueta = n === 1 ? "Alguna de 1 pregunta" : `Alguna de ${n} preguntas`;
   const vars = n > 2 ? `${c.variables[0]} … ${c.variables[n - 1]}` : c.variables.join(", ");
-  const si = c.codigos.length ? ` · sí = ${c.codigos.join(", ")}` : "";
+  const si = c.codigos.length ? `, sí = ${c.codigos.join(", ")}` : "";
   return { etiqueta, codigo: `${vars}${si}` };
 }
 
@@ -94,7 +94,7 @@ export function resumenCelda(c: DerivadaBase): { etiqueta: string; codigo: strin
  */
 export function textoConteos(c: ConteosCompuesto, base: string): string {
   if (c.tipo === "conteos") {
-    return `Sí ${formatoConteo(c.n_si)} · No ${formatoConteo(c.n_no)} · Sin dato ${formatoConteo(c.n_sin_dato)}`;
+    return `Sí ${formatoConteo(c.n_si)}, No ${formatoConteo(c.n_no)}, Sin dato ${formatoConteo(c.n_sin_dato)}`;
   }
   if (c.variables.length === 0) return `Falta una de sus preguntas en los datos de ${base}.`;
   return c.variables.length === 1

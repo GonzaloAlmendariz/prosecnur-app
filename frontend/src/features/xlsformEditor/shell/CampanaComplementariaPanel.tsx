@@ -25,6 +25,7 @@ import { leerVistaPrevia, motivoNoElegible } from "./campanaComplementariaModel"
 import { CampanaVistaPreviaResumen } from "./CampanaVistaPreviaResumen";
 import { leerIdEncuesta, smSurveyMatchesQuery, smSurveyMetaParts, smSurveyTitle } from "./surveyMonkeySurveySearch";
 import "../styles/xfCampana";
+import { EstadoVacio } from "../../../components/EstadoVacio";
 
 /** Encuestas del catálogo a la vista; el resto se alcanza afinando la búsqueda. */
 const MAX_ENCUESTAS_VISIBLES = 8;
@@ -280,7 +281,7 @@ export function CampanaComplementariaPanel({
                         {visibles.map((item) => {
                           const motivo = motivoNoElegible(item.id, encuestaPrincipal, campanasDeclaradas);
                           // U5: respuestas · preguntas · fecha distinguen encuestas hermanas.
-                          const meta = [...smSurveyMetaParts(item), `ID ${item.id}`].join(" · ");
+                          const meta = [...smSurveyMetaParts(item), `ID ${item.id}`].join(", ");
                           const MotivoIcono = motivo === "Ya está declarada" ? CheckCircle2 : Lock;
                           return (
                             <li key={item.id}>
@@ -332,9 +333,11 @@ export function CampanaComplementariaPanel({
         >
           <h3 id="pulso-xf-campana-vista" className="pulso-xf-campana-subtitulo">Coincidencia con el instrumento</h3>
           {vista.estado === "vacia" ? (
-            <p className="pulso-xf-campana-vacio" data-qa-geometry-capacity="owned">
-              Elige una encuesta para ver cuántas de sus preguntas calzan con este formulario.
-            </p>
+            <EstadoVacio
+              icono={<Search size={16} />}
+              titulo="Elige una encuesta"
+              descripcion="Verás cuántas de sus preguntas calzan con este formulario."
+            />
           ) : null}
           {vista.estado === "cargando" ? (
             <div className="pulso-xf-campana-cargando" role="status">

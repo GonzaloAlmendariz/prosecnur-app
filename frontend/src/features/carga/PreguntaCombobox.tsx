@@ -186,7 +186,7 @@ export function PreguntaCombobox({
         aria-haspopup="listbox"
         aria-expanded={abierto}
         aria-label={nombreAccesible}
-        title={valor ? `${textoElegida} · ${valor}` : undefined}
+        title={valor ? `${textoElegida} (${valor})` : undefined}
         onClick={() => (abierto ? cerrar(false) : abrir())}
       >
         <span className="pulso-preg-disparador-texto">

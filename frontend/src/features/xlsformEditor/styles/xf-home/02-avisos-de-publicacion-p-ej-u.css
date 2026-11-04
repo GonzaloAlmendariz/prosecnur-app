@@ -97,27 +97,6 @@
 }
 
 /* Borrador vacío: posee el espacio libre de la tarjeta (C3). Neutro. */
-.pulso-xf-home-card-vacio {
-  display: flex;
-  flex: 1 1 auto;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 3px;
-  min-height: 72px;
-  padding: 12px;
-  border: 1px dashed var(--pulso-border);
-  border-radius: 9px;
-  color: var(--pulso-text-faint);
-  font-size: var(--pulso-type-caption-size);
-  text-align: center;
-}
-
-.pulso-xf-home-card-vacio strong {
-  color: var(--pulso-text-soft);
-  font-size: var(--pulso-type-subtitle-size);
-  font-weight: var(--pulso-weight-semibold);
-}
 
 /* Cierre de la tarjeta: estado de publicación + pie, anclados al fondo. */
 .pulso-xf-home-card-cierre {

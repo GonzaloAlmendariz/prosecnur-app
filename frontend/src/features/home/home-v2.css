@@ -590,33 +590,6 @@
   background: var(--pulso-primary);
 }
 
-.home-layout-preset-current {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  min-height: 40px;
-  padding: 9px 11px;
-  border: 1px solid var(--pulso-primary-border);
-  border-radius: 8px;
-  color: var(--pulso-primary);
-  background: var(--pulso-primary-soft);
-}
-
-.home-layout-preset-current span {
-  font-size: var(--pulso-type-micro-size);
-  font-weight: var(--pulso-weight-heavy);
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-}
-
-.home-layout-preset-current strong {
-  min-width: 0;
-  font-size: var(--pulso-type-subtitle-size);
-  font-weight: var(--pulso-weight-heavy);
-  text-align: right;
-}
-
 .home-connection-list {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -666,14 +639,6 @@
     grid-template-columns: 1fr;
   }
 
-  .home-layout-preset-current {
-    align-items: flex-start;
-    flex-direction: column;
-  }
-
-  .home-layout-preset-current strong {
-    text-align: left;
-  }
 }
 
 /* =============================================================================
@@ -2247,46 +2212,7 @@
   line-height: 1.42;
 }
 
-.home-connection-status {
-  grid-column: 1 / -1;
-  justify-self: start;
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  max-width: 100%;
-  min-height: 22px;
-  padding: 2px 7px;
-  border-radius: 999px;
-  color: var(--pulso-warn-fg);
-  background: var(--pulso-warn-bg);
-  border: 1px solid var(--pulso-warn-border);
-  font-size: var(--pulso-type-micro-size);
-  font-weight: var(--pulso-weight-bold);
-  line-height: 1.2;
-}
-
-.home-connection-status svg {
-  flex: 0 0 auto;
-}
-
-.home-connection-status.is-ready {
-  color: var(--pulso-success-fg);
-  background: var(--pulso-success-bg);
-  border-color: var(--pulso-success-border);
-}
-
 /* U3: una clave guardada pero sin probar no se pinta de verde; una rechazada, en rojo. */
-.home-connection-status.is-pending {
-  color: var(--pulso-text-soft);
-  background: var(--pulso-surface-2);
-  border-color: var(--pulso-border);
-}
-
-.home-connection-status.is-error {
-  color: var(--pulso-danger-fg);
-  background: var(--pulso-danger-bg);
-  border-color: var(--pulso-danger-border);
-}
 
 .home-connection-current,
 .home-connection-empty {

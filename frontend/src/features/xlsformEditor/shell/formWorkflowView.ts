@@ -197,7 +197,7 @@ export function getFormWorkflowView(
     };
   } else if (publication.status === "published" && publication.blockers.length === 0) {
     processing = {
-      label: `Publicada · revisión ${revisionNo}`,
+      label: `Publicada, revisión ${revisionNo}`,
       tone: "neutral",
       // El enlace se hace comparando el instrumento, no por el nombre del
       // archivo ni por el tipo de estudio.

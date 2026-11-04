@@ -58,7 +58,7 @@ export function DatosInspector(props: DatosInspectorProps) {
       <header className="pulso-datos-inspector-head">
         <div className="pulso-datos-inspector-titulo">
           <code>{variable.name}</code>
-          <span>{tipoDeFila(variable)} · {props.bloqueada ? "sección oculta" : props.incluida ? "incluida" : "excluida"}</span>
+          <span>{tipoDeFila(variable)}, {props.bloqueada ? "sección oculta" : props.incluida ? "incluida" : "excluida"}</span>
         </div>
         <PulsoButton variant="icon" size="sm" onClick={props.onCerrar} aria-label="Cerrar el inspector" title="Cerrar">
           <X size={14} aria-hidden="true" />
@@ -86,7 +86,7 @@ export function DatosInspector(props: DatosInspectorProps) {
         </p>
         {padre ? (
           <p className="pulso-datos-inspector-nota" title={padreEtiqueta}>
-            Pertenece a <code>{padre}</code> · {variable.dummy_option_label?.trim() || props.etiqueta}
+            Pertenece a <code>{padre}</code>, {variable.dummy_option_label?.trim() || props.etiqueta}
           </p>
         ) : null}
         {props.hayCambios ? (

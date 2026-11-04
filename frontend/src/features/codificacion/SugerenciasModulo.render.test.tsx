@@ -26,10 +26,10 @@ describe("SugerenciaModuloFila", () => {
 
   it("cada módulo es un chip que se confirma, con el porqué accesible; multicode muestra los dos", () => {
     const html = renderToStaticMarkup(createElement(SugerenciaModuloFila, { entrada: entrada("x", [B, A]), grupos: [], onConfirmar: noop, onQuitar: noop }));
-    expect(html).toContain("B · Experiencia universitaria");
-    expect(html).toContain("A · Información general");
+    expect(html).toContain("B. Experiencia universitaria");
+    expect(html).toContain("A. Información general");
     expect(html).toContain('aria-pressed="false"');
-    expect(html).toContain("Confirmar B · Experiencia universitaria para esta respuesta");
+    expect(html).toContain("Confirmar B. Experiencia universitaria para esta respuesta");
     expect(html).toContain("Coincide en: biblioteca, espacios");
     expect(html).toContain("aria-describedby=");
   });
@@ -38,7 +38,7 @@ describe("SugerenciaModuloFila", () => {
     const grupos: Grupo[] = [{ id: "mod_20", codigo: "20", etiqueta: "B. Experiencia universitaria", respuestas: ["x"], origen: "nuevo" }];
     const html = renderToStaticMarkup(createElement(SugerenciaModuloFila, { entrada: entrada("x"), grupos, onConfirmar: noop, onQuitar: noop }));
     expect(html).toContain('aria-pressed="true"');
-    expect(html).toContain("Quitar B · Experiencia universitaria de esta respuesta");
+    expect(html).toContain("Quitar B. Experiencia universitaria de esta respuesta");
   });
 });
 
@@ -55,17 +55,17 @@ describe("SugerenciasModuloBanda", () => {
   it("dice que es una propuesta, cuenta por módulo y ofrece confirmar módulo por módulo (no todo de una)", () => {
     const html = renderToStaticMarkup(createElement(SugerenciasModuloBanda, { datos, mapa, grupos: [], ultima: null, onConfirmarModulo: noop, onDeshacer: noop }));
     expect(html).toContain("Es una propuesta");
-    expect(html).toContain("Confirmar las 2 respuestas sugeridas para B · Experiencia universitaria");
-    expect(html).toContain("Confirmar la respuesta sugerida para A · Información general");
-    expect(html).not.toContain("C · Gobierno");
+    expect(html).toContain("Confirmar las 2 respuestas sugeridas para B. Experiencia universitaria");
+    expect(html).toContain("Confirmar la respuesta sugerida para A. Información general");
+    expect(html).not.toContain("C. Gobierno");
     expect(html).toContain("Sin módulo claro");
     expect(html).not.toMatch(/Confirmar todo/i);
     expect(html).not.toContain("Deshacer");
   });
 
   it("tras confirmar un módulo, ofrece deshacer", () => {
-    const html = renderToStaticMarkup(createElement(SugerenciasModuloBanda, { datos, mapa, grupos: [], ultima: { modulo: "B · Experiencia universitaria", n: 2 }, onConfirmarModulo: noop, onDeshacer: noop }));
-    expect(html).toContain("Se confirmaron 2 respuestas en B · Experiencia universitaria.");
+    const html = renderToStaticMarkup(createElement(SugerenciasModuloBanda, { datos, mapa, grupos: [], ultima: { modulo: "B. Experiencia universitaria", n: 2 }, onConfirmarModulo: noop, onDeshacer: noop }));
+    expect(html).toContain("Se confirmaron 2 respuestas en B. Experiencia universitaria.");
     expect(html).toContain("Deshacer");
   });
 });
@@ -92,11 +92,11 @@ describe("SugerenciasModuloBanda: subtemas", () => {
   const html = renderToStaticMarkup(createElement(SugerenciasModuloBanda, { datos, mapa, grupos: [], ultima: null, onConfirmarModulo: noop, onDeshacer: noop }));
 
   it("el módulo partido encabeza su grupo con el total, y sus subtemas van dentro con rótulo corto", () => {
-    expect(html).toContain("B · Experiencia universitaria");
-    expect(html).toMatch(/aria-label="Subtemas de B · Experiencia universitaria"/);
+    expect(html).toContain("B. Experiencia universitaria");
+    expect(html).toMatch(/aria-label="Subtemas de B. Experiencia universitaria"/);
     expect(html).toContain(">Redes sociales y plataformas<");
     expect(html).toContain(">Recursos de la Facultad<");
-    expect(html).toContain("Confirmar las 2 respuestas sugeridas para B · Recursos de la Facultad");
+    expect(html).toContain("Confirmar las 2 respuestas sugeridas para B. Recursos de la Facultad");
     expect(html).toContain("3 respuestas");
   });
 
@@ -107,7 +107,7 @@ describe("SugerenciasModuloBanda: subtemas", () => {
 
   it("el chip de la respuesta usa el rótulo corto", () => {
     const fila = renderToStaticMarkup(createElement(SugerenciaModuloFila, { entrada: entrada("x", [pRed]), grupos: [], onConfirmar: noop, onQuitar: noop }));
-    expect(fila).toContain("B · Redes sociales y plataformas");
+    expect(fila).toContain("B. Redes sociales y plataformas");
     expect(fila).not.toContain(`>${RED}<`);
   });
 });

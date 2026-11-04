@@ -9,7 +9,6 @@
 .xfl-lista__cuerpo { flex: 1; min-height: 0; overflow: auto; padding: 12px; display: flex; flex-direction: column; gap: 10px; }
 .xfl-lista__pie { display: flex; gap: 14px; padding: 10px 14px; border-top: 1px solid var(--pulso-border); background: var(--pulso-surface); font-size: var(--pulso-type-caption-size); color: var(--pulso-text-muted); }
 .xfl-lista__pie span { display: inline-flex; align-items: center; gap: 5px; }
-.xfl-vacio { margin: 4px; font-size: var(--pulso-type-body-size); line-height: 1.5; color: var(--pulso-text-muted); }
 
 .xfl-sec { flex-shrink: 0; background: var(--pulso-surface); border: 1px solid var(--pulso-border); border-radius: 8px; overflow: hidden; box-shadow: var(--pulso-shadow-low); }
 .xfl-sec__head { display: grid; grid-template-columns: 22px minmax(0, 1fr) auto; gap: 8px; align-items: center; min-height: 36px; padding: 0 10px; border-bottom: 1px solid var(--pulso-border); background: var(--pulso-surface-2); }

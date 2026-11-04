@@ -88,7 +88,7 @@ function isTechnicalCode(value: string): boolean {
 export function displayCodificacionValueLabel(code: string, rawLabel?: string | null): CodificacionDisplayLabel {
   const cleanCode = cleanCodificacionLabel(code);
   const cleanLabel = cleanCodificacionLabel(rawLabel);
-  const title = rawLabel ? `${code} · ${rawLabel}` : code;
+  const title = rawLabel ? `${code}. ${rawLabel}` : code;
 
   if (!cleanLabel || cleanLabel.toLowerCase() === cleanCode.toLowerCase()) {
     return { label: cleanCode || code, title };

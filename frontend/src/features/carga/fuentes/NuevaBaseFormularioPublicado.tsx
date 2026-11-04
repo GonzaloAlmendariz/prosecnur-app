@@ -91,7 +91,7 @@ export function NuevaBaseFormularioPublicado({
                 <span className="pulso-bfp-formulario-texto">
                   <strong>{f.form_name}</strong>
                   <small>{rotuloRevision(f.revision_no)}</small>
-                  {detalles.length ? <small className="pulso-bfp-formulario-meta">{detalles.join(" · ")}</small> : null}
+                  {detalles.length ? <small className="pulso-bfp-formulario-meta">{detalles.join(", ")}</small> : null}
                 </span>
               </button>
             );

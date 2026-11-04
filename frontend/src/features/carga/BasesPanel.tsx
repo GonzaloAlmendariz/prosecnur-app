@@ -72,6 +72,8 @@ import {
 } from "./surveymonkey/smBasesModel";
 import { IndependentSiblingsSurveyMonkeyWizard } from "./independiente/IndependentSiblingsWizard";
 import { FilePicker } from "./BasesFilePicker";
+import { EstadoVacio } from "../../components/EstadoVacio";
+import { Inbox } from "../../vendor/lucide-react";
 export {
   INDEPENDENT_SIBLINGS_MAX_BASES,
   independentSiblingsCapacity,
@@ -629,7 +631,7 @@ function IntegratedHistoryPanel({
                       </small>
                     </div>
                   ))}
-                  {!origins.length && <div className="pulso-sm-empty">Sin orígenes registrados.</div>}
+                  {!origins.length && <EstadoVacio icono={<Inbox size={16} />} titulo="Sin orígenes registrados" />}
                 </div>
               </section>
 
@@ -686,7 +688,7 @@ function IntegratedHistoryPanel({
                   {labelGroups.length > 4 && (
                     <small className="pulso-integrated-history-more">+{labelGroups.length - 4} origen(es) con fraseos adicionales</small>
                   )}
-                  {!wordingCount && <div className="pulso-sm-empty">Sin cambios de fraseo.</div>}
+                  {!wordingCount && <EstadoVacio icono={<Inbox size={16} />} titulo="Sin cambios de fraseo" />}
                 </div>
               </section>
 
@@ -718,7 +720,7 @@ function IntegratedHistoryPanel({
                   {variantGroups.length > 5 && (
                     <small className="pulso-integrated-history-more">+{variantGroups.length - 5} variable(s) preservadas</small>
                   )}
-                  {!variantGroups.length && <div className="pulso-sm-empty">Sin variantes estructurales.</div>}
+                  {!variantGroups.length && <EstadoVacio icono={<Inbox size={16} />} titulo="Sin variantes estructurales" />}
                 </div>
               </section>
             </div>
@@ -746,7 +748,7 @@ function IntegratedHistoryPanel({
                         </small>
                       </div>
                     ))}
-                    {!origins.length && <div className="pulso-sm-empty">Sin orígenes registrados.</div>}
+                    {!origins.length && <EstadoVacio icono={<Inbox size={16} />} titulo="Sin orígenes registrados" />}
                   </div>
                 </section>
 
@@ -766,7 +768,7 @@ function IntegratedHistoryPanel({
                       </div>
                     ))}
                     {technicalLabelEntries.length > 12 && <small className="pulso-integrated-history-more">+{technicalLabelEntries.length - 12} fraseo(s)</small>}
-                    {!technicalLabelEntries.length && <div className="pulso-sm-empty">Sin cambios de fraseo.</div>}
+                    {!technicalLabelEntries.length && <EstadoVacio icono={<Inbox size={16} />} titulo="Sin cambios de fraseo" />}
                   </div>
                 </section>
 
@@ -787,7 +789,7 @@ function IntegratedHistoryPanel({
                       </div>
                     ))}
                     {variantsCount > 12 && <small className="pulso-integrated-history-more">+{variantsCount - 12} variante(s)</small>}
-                    {!variantsCount && <div className="pulso-sm-empty">Sin variantes estructurales.</div>}
+                    {!variantsCount && <EstadoVacio icono={<Inbox size={16} />} titulo="Sin variantes estructurales" />}
                   </div>
                 </section>
               </div>

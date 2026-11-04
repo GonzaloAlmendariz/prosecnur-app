@@ -45,6 +45,9 @@ import {
 } from "./mapaBasesModel";
 import "./ArmonizacionFilaEditor.css";
 import "./MapaBasesPanel.css";
+import { EstadoVacio } from "../../components/EstadoVacio";
+import { LoadingBlock } from "../../components/States";
+import { Inbox } from "../../vendor/lucide-react";
 
 // ---- Abrir --------------------------------------------------------------------
 
@@ -203,18 +206,18 @@ export function MapaBasesCuerpo({ cargando, bases, filas, variablesPorBase, foco
   const baseActiva = foco && bases.includes(foco) ? foco : null;
   if (cargando) {
     // C5: no es vacío, es la lectura en curso.
-    return <p className="pulso-armon-vacio">Leyendo la matriz y las variables de cada base…</p>;
+    return <LoadingBlock variant="inline" label="Leyendo la matriz y las variables de cada base…" />;
   }
   if (bases.length === 0) {
     // C5 categoría 1: vacío legítimo, el estudio no tiene bases separadas.
-    return <p className="pulso-armon-vacio">Este estudio todavía no tiene bases que comparar.</p>;
+    return <EstadoVacio icono={<Inbox size={16} />} titulo="Este estudio todavía no tiene bases que comparar" />;
   }
   return (
     <>
       <ResumenBases resumen={resumen} activa={baseActiva} onIr={onIr} onVariables={onVariables} />
       {foco && !baseActiva ? (
         <section className="pulso-armon-seccion" data-qa-geometry-member>
-          <p className="pulso-armon-vacio">La base «{foco}» no está en este estudio.</p>
+          <EstadoVacio icono={<Inbox size={16} />} titulo={<>La base «{foco}» no está en este estudio</>} />
           <div>
             <PulsoButton variant="secondary" size="sm" className="pulso-armon-btn" onClick={() => onIr(null)}>
               <ArrowLeft size={13} aria-hidden="true" />
@@ -268,7 +271,7 @@ function ResumenBases({
               {r.total > 0 ? formatoConteoDe(r.total, "variable", "variables") : "Sin variables en el catálogo"}
             </span>
             <span className="pulso-mapa-resumen-reparto">
-              {formatoConteo(r.enMatriz)} en la matriz · {formatoConteo(r.fuera)} fuera
+              {formatoConteo(r.enMatriz)} en la matriz, {formatoConteo(r.fuera)} fuera
             </span>
             <button
               type="button"
@@ -349,7 +352,7 @@ function MatrizPorBase({ bases, filas }: { bases: readonly string[]; filas: read
       </div>
       {todas.length === 0 ? (
         // C3: el vacío es de esta sección y dice cómo se llena.
-        <p className="pulso-armon-vacio">Elige una base arriba para ver sus variables y añadirlas a la matriz.</p>
+        <EstadoVacio icono={<Inbox size={16} />} titulo="Elige una base arriba para ver sus variables y añadirlas a la matriz" />
       ) : (
         <div
           ref={marcoRef}
@@ -426,10 +429,10 @@ function FueraDeLaMatriz({
 
       {total === 0 ? (
         // C5 categoría 3: el catálogo de la base no llegó o está vacío.
-        <p className="pulso-armon-vacio">No hay variables del instrumento de {base} para mostrar.</p>
+        <EstadoVacio icono={<Inbox size={16} />} titulo={<>No hay variables del instrumento de {base} para mostrar</>} />
       ) : todas.length === 0 ? (
         // C5 categoría 1: vacío legítimo.
-        <p className="pulso-armon-vacio">Todas las variables de {base} están en la matriz.</p>
+        <EstadoVacio icono={<Inbox size={16} />} titulo={<>Todas las variables de {base} están en la matriz</>} />
       ) : (
         <>
           <div className="pulso-mapa-buscar">
@@ -444,7 +447,7 @@ function FueraDeLaMatriz({
             <span className="pulso-mapa-buscar-conteo" aria-live="polite">{conteo}</span>
           </div>
           {visibles.length === 0 ? (
-            <p className="pulso-armon-vacio">Ninguna variable de {base} fuera de la matriz casa con «{consulta.trim()}».</p>
+            <EstadoVacio icono={<Search size={16} />} titulo={<>Ninguna variable de {base} fuera de la matriz casa con «{consulta.trim()}»</>} />
           ) : (
             <>
             {separarMetadatos(visibles).preguntas.length > 0 && (

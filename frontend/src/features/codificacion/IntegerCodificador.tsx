@@ -13,6 +13,7 @@ import { LoadingBlock, ErrorBlock } from "../../components/States";
 import { SaveStatusIndicator } from "../../components/SaveStatusIndicator";
 import { EstadoVacio } from "../../components/EstadoVacio";
 import { PulsoButton } from "../../components/PulsoButton";
+import { formatoConteo } from "../../lib/formatoNumero";
 
 type SaveStatus = "idle" | "dirty" | "saving" | "saved" | "error";
 
@@ -196,11 +197,11 @@ export function IntegerCodificador({ parent }: Props) {
     <div data-audit-ready="codificacion-codificar">
       <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 14, flexWrap: "wrap" }}>
         <SaveStatusIndicator state={saveStatus} variant="badge" />
-        <span style={{ fontSize: 13, color: "var(--pulso-text-soft)" }}>
-          <strong style={{ color: "var(--pulso-text)" }}>{stats.covered}</strong> de <strong>{stats.total}</strong> valores únicos cubiertos
-          {stats.cases > 0 && <> · <strong>{stats.cases}</strong> de {stats.totalCasos} casos</>}
-          {grupos.length > 0 && <> · <strong>{grupos.length}</strong> {grupos.length === 1 ? "grupo" : "grupos"}</>}
-          {stats.overlaps > 0 && <> · <span style={{ color: "var(--pulso-danger-fg)", fontWeight: 700 }}>{stats.overlaps} valor(es) en más de un grupo</span></>}
+        <span style={{ fontSize: "var(--pulso-type-body-size)", color: "var(--pulso-text-soft)" }}>
+          <strong style={{ color: "var(--pulso-text)" }}>{formatoConteo(stats.covered)}</strong> de <strong>{formatoConteo(stats.total)}</strong> valores únicos cubiertos
+          {stats.cases > 0 && <>; <strong>{formatoConteo(stats.cases)}</strong> de {formatoConteo(stats.totalCasos)} casos</>}
+          {grupos.length > 0 && <>; <strong>{grupos.length}</strong> {grupos.length === 1 ? "grupo" : "grupos"}</>}
+          {stats.overlaps > 0 && <>; <span style={{ color: "var(--pulso-danger-fg)", fontWeight: 700 }}>{stats.overlaps} valor(es) en más de un grupo</span></>}
         </span>
         <div style={{ flex: 1 }} />
         <button type="button" className="pulso-primary" onClick={addGroup} style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
@@ -220,7 +221,7 @@ export function IntegerCodificador({ parent }: Props) {
             background: "var(--pulso-info-bg)",
             border: "1px solid var(--pulso-info-border)",
             borderRadius: 6,
-            fontSize: 11, color: "var(--pulso-info-fg)", lineHeight: 1.5,
+            fontSize: "var(--pulso-type-caption-size)", color: "var(--pulso-info-fg)", lineHeight: 1.5,
           }}
         >
           <Info size={12} style={{ flexShrink: 0, marginTop: 1 }} />
@@ -264,8 +265,8 @@ export function IntegerCodificador({ parent }: Props) {
 
       {uncovered.length > 0 && (
         <section style={{ marginTop: 20, padding: 14, background: "var(--pulso-surface-2)", border: "1px solid var(--pulso-border)", borderRadius: 8 }}>
-          <div style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, color: "var(--pulso-text-soft)", marginBottom: 8 }}>
-            Valores sin rango ({uncovered.length})
+          <div style={{ fontSize: "var(--pulso-type-eyebrow-size)", fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, color: "var(--pulso-text-soft)", marginBottom: 8 }}>
+            Valores sin rango ({formatoConteo(uncovered.length)})
           </div>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
             {uncovered.slice(0, 40).map((r) => (
@@ -274,14 +275,14 @@ export function IntegerCodificador({ parent }: Props) {
                 style={{
                   display: "inline-flex", alignItems: "center", gap: 3,
                   background: "white", border: "1px solid var(--pulso-border)",
-                  borderRadius: 10, padding: "1px 8px", fontSize: 11,
+                  borderRadius: 10, padding: "1px 8px", fontSize: "var(--pulso-type-caption-size)",
                 }}
               >
-                <span style={{ fontFamily: "monospace" }}>{r.texto}</span>
-                <span style={{ color: "var(--pulso-text-soft)", fontSize: 10 }}>×{r.frecuencia}</span>
+                <span style={{ fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace" }}>{r.texto}</span>
+                <span style={{ color: "var(--pulso-text-soft)", fontSize: "var(--pulso-type-micro-size)" }}>×{r.frecuencia}</span>
               </span>
             ))}
-            {uncovered.length > 40 && <span style={{ fontSize: 11, color: "var(--pulso-text-soft)", alignSelf: "center" }}>+ {uncovered.length - 40} más</span>}
+            {uncovered.length > 40 && <span style={{ fontSize: "var(--pulso-type-caption-size)", color: "var(--pulso-text-soft)", alignSelf: "center" }}>+ {uncovered.length - 40} más</span>}
           </div>
         </section>
       )}
@@ -331,7 +332,7 @@ function GrupoReglaCard({ grupo, respuestas, onUpdate, onDelete, onMoveUp, onMov
           value={grupo.codigo}
           onChange={(e) => onUpdate({ codigo: e.target.value })}
           placeholder="código"
-          style={{ fontFamily: "monospace", fontWeight: 700, width: 56, fontSize: 13, textAlign: "center", flexShrink: 0 }}
+          style={{ fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace", fontWeight: 700, width: 56, fontSize: "var(--pulso-type-subtitle-size)", textAlign: "center", flexShrink: 0 }}
           aria-label="Código del grupo"
         />
         <input
@@ -339,13 +340,13 @@ function GrupoReglaCard({ grupo, respuestas, onUpdate, onDelete, onMoveUp, onMov
           value={grupo.etiqueta}
           onChange={(e) => onUpdate({ etiqueta: e.target.value })}
           placeholder="Etiqueta (ej. Jóvenes)"
-          style={{ flex: 1, fontSize: 13, minWidth: 0 }}
+          style={{ flex: 1, fontSize: "var(--pulso-type-body-size)", minWidth: 0 }}
           aria-label="Etiqueta del grupo"
         />
         <select
           value={regla.tipo}
           onChange={(e) => setTipo(e.target.value as "between" | "gte" | "lte")}
-          style={{ fontSize: 12, padding: "4px 6px", flexShrink: 0 }}
+          style={{ fontSize: "var(--pulso-type-body-size)", padding: "4px 6px", flexShrink: 0 }}
           aria-label="Tipo de rango"
         >
           <option value="between">De X a Y</option>
@@ -358,7 +359,7 @@ function GrupoReglaCard({ grupo, respuestas, onUpdate, onDelete, onMoveUp, onMov
             className="pulso-icon"
             onClick={onMoveUp}
             disabled={isFirst}
-            title="Subir · gana prioridad frente a los rangos de abajo (first-match-wins)"
+            title="Subir: gana prioridad frente a los rangos de abajo (first-match-wins)"
             aria-label="Subir este rango"
           >
             <ChevronUp size={14} />
@@ -368,7 +369,7 @@ function GrupoReglaCard({ grupo, respuestas, onUpdate, onDelete, onMoveUp, onMov
             className="pulso-icon"
             onClick={onMoveDown}
             disabled={isLast}
-            title="Bajar · pierde prioridad frente a los rangos de arriba"
+            title="Bajar: pierde prioridad frente a los rangos de arriba"
             aria-label="Bajar este rango"
           >
             <ChevronDown size={14} />
@@ -393,7 +394,7 @@ function GrupoReglaCard({ grupo, respuestas, onUpdate, onDelete, onMoveUp, onMov
         <SingleBoundEditor label="Hasta" regla={regla} onChange={setRegla} />
       )}
 
-      <div style={{ marginTop: 8, fontSize: 11, color: "var(--pulso-text-soft)" }}>
+      <div style={{ marginTop: 8, fontSize: "var(--pulso-type-caption-size)", color: "var(--pulso-text-soft)" }}>
         {incompleta ? (
           <span key="incompleta">
             <AlertTriangle size={11} color="var(--pulso-warn-fg)" style={{ verticalAlign: "middle" }} />{" "}
@@ -402,8 +403,8 @@ function GrupoReglaCard({ grupo, respuestas, onUpdate, onDelete, onMoveUp, onMov
         ) : cobertura.n > 0 ? (
           <span key="cubierta">
             <Check size={11} color="var(--pulso-success-fg)" style={{ verticalAlign: "middle" }} />{" "}
-            <strong>{cobertura.n}</strong> valor{cobertura.n === 1 ? "" : "es"} ·{" "}
-            <strong>{cobertura.casos}</strong> caso{cobertura.casos === 1 ? "" : "s"} cubierto{cobertura.casos === 1 ? "" : "s"}
+            <strong>{formatoConteo(cobertura.n)}</strong> valor{cobertura.n === 1 ? "" : "es"} y{" "}
+            <strong>{formatoConteo(cobertura.casos)}</strong> caso{cobertura.casos === 1 ? "" : "s"} cubierto{cobertura.casos === 1 ? "" : "s"}
           </span>
         ) : (
           <span key="sin-cobertura">
@@ -419,22 +420,22 @@ function GrupoReglaCard({ grupo, respuestas, onUpdate, onDelete, onMoveUp, onMov
 function BetweenEditor({ regla, onChange }: { regla: { tipo: "between"; min: number | null; max: number | null }; onChange: (r: ReglaInteger) => void }) {
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-      <label style={{ fontSize: 11, color: "var(--pulso-text-soft)" }}>De</label>
+      <label style={{ fontSize: "var(--pulso-type-caption-size)", color: "var(--pulso-text-soft)" }}>De</label>
       <input
         type="number"
         value={regla.min ?? ""}
         onChange={(e) => onChange({ ...regla, min: e.target.value === "" ? null : Number(e.target.value) })}
         placeholder="—"
-        style={{ width: 80, fontSize: 13, fontFamily: "monospace", textAlign: "center" }}
+        style={{ width: 80, fontSize: "var(--pulso-type-body-size)", fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace", textAlign: "center" }}
         aria-label="Valor mínimo del rango"
       />
-      <label style={{ fontSize: 11, color: "var(--pulso-text-soft)" }}>a</label>
+      <label style={{ fontSize: "var(--pulso-type-caption-size)", color: "var(--pulso-text-soft)" }}>a</label>
       <input
         type="number"
         value={regla.max ?? ""}
         onChange={(e) => onChange({ ...regla, max: e.target.value === "" ? null : Number(e.target.value) })}
         placeholder="—"
-        style={{ width: 80, fontSize: 13, fontFamily: "monospace", textAlign: "center" }}
+        style={{ width: 80, fontSize: "var(--pulso-type-body-size)", fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace", textAlign: "center" }}
         aria-label="Valor máximo del rango"
       />
     </div>
@@ -448,7 +449,7 @@ function SingleBoundEditor({ label, regla, onChange }: {
 }) {
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-      <label style={{ fontSize: 11, color: "var(--pulso-text-soft)" }}>{label}</label>
+      <label style={{ fontSize: "var(--pulso-type-caption-size)", color: "var(--pulso-text-soft)" }}>{label}</label>
       <input
         type="number"
         value={regla.value ?? ""}
@@ -457,7 +458,7 @@ function SingleBoundEditor({ label, regla, onChange }: {
           onChange({ ...regla, value: v });
         }}
         placeholder="—"
-        style={{ width: 80, fontSize: 13, fontFamily: "monospace", textAlign: "center" }}
+        style={{ width: 80, fontSize: "var(--pulso-type-body-size)", fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace", textAlign: "center" }}
         aria-label={`Valor ${label.toLowerCase()}`}
       />
     </div>

@@ -125,7 +125,7 @@ describe("panel de declaración", () => {
     expect(html).toContain('placeholder="Ej.: 123456789 o enlace de SurveyMonkey"');
     expect(html).toContain("Buscar mis encuestas");
     // El vacío lo posee la sección de coincidencia (C3).
-    expect(html).toContain('data-qa-geometry-capacity="owned"');
+    expect(html).toContain('data-estado-vacio');
     expect(html).toMatch(/<button[^>]*disabled=""[^>]*>Agregar campaña<\/button>/);
     expect(html).toContain('data-qa-geometry-group="xlsform-campana-complementaria"');
     expect(html).not.toMatch(/survey_id|required|hash/i);
@@ -170,7 +170,7 @@ describe("campañas en la tarjeta", () => {
     expect(html).toContain('aria-expanded="true"');
     expect(html).toContain("Estudiantes por correo");
     expect(html).toContain("73/74");
-    expect(html).toContain("ID 423593924 · calzan 73 de 74 campos");
+    expect(html).toContain("ID 423593924, calzan 73 de 74 campos");
     expect(html).toContain('aria-label="Quitar la campaña Estudiantes por correo"');
   });
 

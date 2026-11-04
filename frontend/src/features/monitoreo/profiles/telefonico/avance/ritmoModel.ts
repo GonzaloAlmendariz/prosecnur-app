@@ -241,9 +241,9 @@ export function resumenDeRitmo(serie: Pick<SerieKobo, "fechas" | "porFecha" | "t
 }
 
 /** Segmento de cuota del corte (Sede, Actor…): la misma variable que Avance › Cuotas (`variableDeCuotas`). */
-export function segmentoDeCuotas(reports: MonitoreoAcreditacionReports | null | undefined) {
+export function segmentoDeCuotas(reports: MonitoreoAcreditacionReports | null | undefined, elegida?: string | null) {
   return variableDeCuotas(filasDeBloque(reports, ["cuotas_variable", "cuotas_telefonicas", "cuotas_por_variable"])
-    .map((fila) => ({ variable: texto(fila.Variable), meta: fila.Meta })));
+    .map((fila) => ({ variable: texto(fila.Variable), meta: fila.Meta })), "Cuota", elegida);
 }
 
 /**
@@ -253,8 +253,8 @@ export function segmentoDeCuotas(reports: MonitoreoAcreditacionReports | null | 
  * en ninguna categoría no entra a la serie; se cuenta aparte (`sinCategoria`)
  * para que la vista lo declare en vez de mostrar dos totales.
  */
-export function serieDiariaDelCorte(reports: MonitoreoAcreditacionReports | null | undefined) {
-  const segmento = segmentoDeCuotas(reports);
+export function serieDiariaDelCorte(reports: MonitoreoAcreditacionReports | null | undefined, elegida?: string | null) {
+  const segmento = segmentoDeCuotas(reports, elegida);
   // Los valores con cuota del eje: el mismo filtro que el diario de Avance › Cuotas.
   const valoresDeCuota = new Set(
     filasDeBloque(reports, ["cuotas_variable", "cuotas_telefonicas", "cuotas_por_variable"])

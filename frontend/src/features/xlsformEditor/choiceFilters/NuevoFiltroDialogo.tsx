@@ -58,7 +58,7 @@ export function NuevoFiltroDialogo({ preguntas, candidatasDe, workbook, onCrear,
         <ol className="xcf-pasos" aria-label="Pasos">
           {PASOS.map((p, i) => (
             <li key={p} className={paso === i + 1 ? "is-actual" : paso > i + 1 ? "is-hecho" : undefined} aria-current={paso === i + 1 ? "step" : undefined}>
-              {i + 1} · {p}
+              {i + 1}. {p}
             </li>
           ))}
         </ol>
@@ -92,7 +92,7 @@ export function NuevoFiltroDialogo({ preguntas, candidatasDe, workbook, onCrear,
           ) : null}
           {paso === 3 && destino && intento ? (
             <>
-              <p className="xcf-nota">Filtro para <code>{destino.name}</code> · {INTENCIONES.find((x) => x.forma === forma)?.titulo.toLowerCase()}</p>
+              <p className="xcf-nota">Filtro para <code>{destino.name}</code>, {INTENCIONES.find((x) => x.forma === forma)?.titulo.toLowerCase()}</p>
               <ConfigIntento intento={intento} onCambio={setIntento} candidatas={candidatasDe(destino.name)} choices={workbook.choices} />
             </>
           ) : null}

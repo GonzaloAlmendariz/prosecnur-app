@@ -113,7 +113,7 @@ export function resumenSegmentos(datos: SegmentosEstado): string {
   ).length;
   const segs = formatoConteoDe(n, "segmento", "segmentos");
   return conPendiente
-    ? `${segs} · ${formatoConteoDe(conPendiente, "base", "bases")} con algo por resolver`
+    ? `${segs}, ${formatoConteoDe(conPendiente, "base", "bases")} con algo por resolver`
     : `${segs} en ${datos.bases.length === 1 ? "la base" : `las ${formatoConteo(datos.bases.length)} bases`}`;
 }
 
@@ -350,7 +350,7 @@ export function textoResumenMapa(r: ResumenMapa): string {
   if (r.sinDato) partes.push(`${formatoConteo(r.sinDato)} sin dato`);
   if (r.sinMapa) partes.push(`${formatoConteo(r.sinMapa)} sin mapa`);
   if (r.sinCasos) partes.push(`${formatoConteo(r.sinCasos)} sin casos`);
-  return partes.join(" · ");
+  return partes.join(", ");
 }
 
 /** «Sin dato: 5 casos», lo que la data trae vacío en el origen. */
@@ -655,7 +655,7 @@ export function atajosPartirDe(
     const opciones = fuente
       .filter((o) => o.codigo.trim())
       .map((o) => ({ codigo: o.codigo, etiqueta: legible(o.etiqueta) || o.codigo }));
-    if (opciones.length) out.push({ base, variable, rotulo: `${variable} · ${base}`, opciones });
+    if (opciones.length) out.push({ base, variable, rotulo: `${variable}, ${base}`, opciones });
   }
   return out;
 }

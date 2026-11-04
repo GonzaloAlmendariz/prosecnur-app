@@ -6,6 +6,8 @@ import { nombreDistrito } from "../nombres";
 import { useLienzoHojasRuta } from "../store";
 import { ANCLA_MARCO, aLonLat, faltaEnArea, irAlMarcoElegible, MARCO_NUEVO, MOTIVOS, nuevaArea, pideEvidencia, tonoCobertura, type FormularioArea } from "./marcoElegible";
 
+import { formatoDecimal } from "../../../../lib/formatoNumero";
+import { LoadingBlock } from "../../../../components/States";
 /**
  * Marco elegible en el inspector de Manzanas (U11d, ADR 0115). Con una corrida
  * legacy se ofrece adoptarlo mostrando antes lo que saca; adoptado, se ajusta el
@@ -14,7 +16,7 @@ import { ANCLA_MARCO, aLonLat, faltaEnArea, irAlMarcoElegible, MARCO_NUEVO, MOTI
  */
 
 const fmt = (n: number) => new Intl.NumberFormat("es-PE").format(Math.round(n));
-const pct = (x: number) => `${(x * 100).toLocaleString("es-PE", { maximumFractionDigits: 1 })} %`;
+const pct = (x: number) => `${formatoDecimal(x * 100, 1)} %`;
 const ETIQUETA_MOTIVO = Object.fromEntries(MOTIVOS) as Record<string, string>;
 const FORM_VACIO: FormularioArea = { motivo: "no_residencial", detalle: "", fuente: "", fecha: "" };
 
@@ -83,7 +85,7 @@ export function MarcoElegiblePanel({ marco, vista, cargando, deshabilitado, onCa
           <p className="hr-mapa-nota">
             Adoptarlo saca <b>{fmt(excluidasMinimo)}</b> manzanas sin viviendas registradas{sinConteo ? ` (${fmt(sinConteo)} por falta de conteo en el censo)` : ""} y cubre el {cubierta == null ? "—" : pct(cubierta)} de la población.
           </p>
-        ) : cargando ? <p className="hr-mapa-nota">Calculando lo que cambiaría…</p> : null}
+        ) : cargando ? <LoadingBlock variant="inline" label="Calculando lo que cambiaría…" /> : null}
         <div className="hr-mapa-acciones">
           <PulsoButton variant="secondary" size="sm" disabled={deshabilitado} onClick={() => onCambiar(MARCO_NUEVO)}>
             Adoptar el marco elegible

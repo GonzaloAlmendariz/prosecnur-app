@@ -39,6 +39,8 @@ import {
   downloadUrl,
 } from "../../api/client";
 import { Alert } from "../../components/Alert";
+import { EstadoVacio } from "../../components/EstadoVacio";
+import { LoadingBlock } from "../../components/States";
 import { useCodifSource } from "./useCodifSource";
 import { formatoConteo } from "../../lib/formatoNumero";
 
@@ -573,7 +575,7 @@ export function CodingConfigActions({ disabled = false, onImported }: Props) {
                 <span aria-hidden="true"><Pencil size={15} /></span>
                 <div>
                   <strong>Casos y asignaciones</strong>
-                  <small>{activeBaseLabel} · {visibleCaseRows.length} visibles · {focusedAssignmentCount} asignaciones · {focusedCaseCount} casos únicos</small>
+                  <small>{activeBaseLabel}: {formatoConteo(visibleCaseRows.length)} visibles, {formatoConteo(focusedAssignmentCount)} asignaciones y {formatoConteo(focusedCaseCount)} casos únicos</small>
                 </div>
               </div>
               <div className="pulso-codificacion-matrix-case-list">
@@ -581,7 +583,7 @@ export function CodingConfigActions({ disabled = false, onImported }: Props) {
                   <div className="pulso-codificacion-matrix-case-editor">
                     <div>
                       <strong>{editingCase.id_caso}</strong>
-                      <span>{editingCase.variableLabel} · {editingCase.respuesta}</span>
+                      <span>{editingCase.variableLabel}: {editingCase.respuesta}</span>
                     </div>
                     <select
                       value={editingCase.nextCodigo}
@@ -590,7 +592,7 @@ export function CodingConfigActions({ disabled = false, onImported }: Props) {
                     >
                       {editCategoryOptions.map((category) => (
                         <option key={category.codigo} value={category.codigo}>
-                          {category.codigo} · {category.etiqueta}
+                          {category.codigo}. {category.etiqueta}
                         </option>
                       ))}
                     </select>
@@ -612,11 +614,7 @@ export function CodingConfigActions({ disabled = false, onImported }: Props) {
                   </div>
                 )}
                 {visibleCaseRows.length === 0 ? (
-                  <div className="pulso-codificacion-matrix-empty">
-                    <Pencil size={18} />
-                    <strong>No hay casos visibles</strong>
-                    <span>{caseQuery ? "Limpia la búsqueda o cambia la variable activa." : "Actualiza el mapa o importa una matriz con id_caso para habilitar edición puntual."}</span>
-                  </div>
+                  <EstadoVacio icono={<Pencil size={18} />} titulo="No hay casos visibles" descripcion={caseQuery ? "Limpia la búsqueda o cambia la variable activa." : "Actualiza el mapa o importa una matriz con id_caso para habilitar edición puntual."} />
                 ) : (
                   visibleCaseRows.map((row, index) => (
                     <button
@@ -628,8 +626,8 @@ export function CodingConfigActions({ disabled = false, onImported }: Props) {
                       <span className="pulso-codificacion-matrix-variable-code">C{row.codigo || "s/c"}</span>
                       <span>
                         <strong>{row.respuesta || "Sin texto registrado"}</strong>
-                        <small>{row.variableLabel} · caso {row.id_caso}</small>
-                        {row.obs && <small>Comentario de revisión · {row.obs}</small>}
+                        <small>{row.variableLabel}, caso {row.id_caso}</small>
+                        {row.obs && <small>Comentario de revisión: {row.obs}</small>}
                       </span>
                       <em className={`is-${matrixCategoryRoleClass(row.categoryRole)}`}>
                         {matrixCaseCategoryLabel(row)}
@@ -645,7 +643,7 @@ export function CodingConfigActions({ disabled = false, onImported }: Props) {
                 <span aria-hidden="true"><ListChecks size={15} /></span>
                 <div>
                   <strong>Variables para generar matriz</strong>
-                  <small>{activeBaseLabel} · {selectedVariableNames.length}/{textQuestions.length} seleccionadas</small>
+                  <small>{activeBaseLabel}: {formatoConteo(selectedVariableNames.length)} de {formatoConteo(textQuestions.length)} seleccionadas</small>
                 </div>
                 <div className="pulso-codificacion-matrix-panel-actions">
                   <button type="button" onClick={() => toggleAllVariables(true)} disabled={!textQuestions.length || busy !== null}>
@@ -658,11 +656,7 @@ export function CodingConfigActions({ disabled = false, onImported }: Props) {
               </div>
               <div className="pulso-codificacion-matrix-variable-list">
                 {textQuestions.length === 0 ? (
-                  <div className="pulso-codificacion-matrix-empty">
-                    <FileSpreadsheet size={18} />
-                    <strong>No hay textos abiertos detectados</strong>
-                    <span>Vuelve a Preparar para revisar qué preguntas se pueden codificar.</span>
-                  </div>
+                  <EstadoVacio icono={<FileSpreadsheet size={18} />} titulo="No hay textos abiertos detectados" descripcion="Vuelve a Preparar para revisar qué preguntas se pueden codificar." />
                 ) : (
                   textQuestions.map((question) => (
                     <label key={question.parent} className="pulso-codificacion-matrix-variable-row">
@@ -675,7 +669,7 @@ export function CodingConfigActions({ disabled = false, onImported }: Props) {
                       <span className="pulso-codificacion-matrix-variable-code">{question.parent}</span>
                       <span className="pulso-codificacion-matrix-variable-copy">
                         <strong>{question.parent_label || question.parent}</strong>
-                        <small>{formatoConteo(question.n_respuestas)} casos · {formatoConteo(question.n_unicas)} respuestas únicas</small>
+                        <small>{formatoConteo(question.n_respuestas)} casos, {formatoConteo(question.n_unicas)} respuestas únicas</small>
                       </span>
                       <span className={`pulso-codificacion-matrix-state is-${question.status.replace("-", "")}`}>
                         {question.status === "completo" ? "Lista" : question.marcada ? "Marcada" : "Disponible"}
@@ -693,37 +687,25 @@ export function CodingConfigActions({ disabled = false, onImported }: Props) {
             <span aria-hidden="true"><Database size={15} /></span>
             <div>
               <strong>Diccionario por variable</strong>
-              <small>{focusedLabel} · {activeBaseLabel} · solo casos de esta base</small>
+              <small>{focusedLabel} en {activeBaseLabel}, solo casos de esta base</small>
             </div>
           </div>
           <div className="pulso-codificacion-matrix-map">
             {!map ? (
-              <div className="pulso-codificacion-matrix-empty">
-                <Loader2 size={18} className="pulso-spin" />
-                <strong>Cargando mapa</strong>
-                <span>Estamos leyendo el estado actual de codificación.</span>
-              </div>
+              <LoadingBlock label="Leyendo el mapa de codificación…" variant="inline" />
             ) : !activeMapBase ? (
-              <div className="pulso-codificacion-matrix-empty">
-                <Network size={18} />
-                <strong>Selecciona una base</strong>
-                <span>El mapa mostrará variables y categorías de una base a la vez.</span>
-              </div>
+              <EstadoVacio icono={<Network size={18} />} titulo="Selecciona una base" descripcion="El mapa mostrará variables y categorías de una base a la vez." />
             ) : activeMapBase.variables.length === 0 ? (
-              <div className="pulso-codificacion-matrix-empty">
-                <Network size={18} />
-                <strong>Sin mapeo de matriz en {activeBaseLabel}</strong>
-                <span>Esta vista muestra solo mapeos de matriz por base; los grupos codificados en Prosecnur se confirman junto con este mapa en Adaptación.</span>
-              </div>
+              <EstadoVacio icono={<Network size={18} />} titulo={<>Sin mapeo de matriz en {activeBaseLabel}</>} descripcion="Esta vista muestra solo mapeos de matriz por base; los grupos codificados en Prosecnur se confirman junto con este mapa en Adaptación." />
             ) : (
               visibleMapVariables.map((variable) => (
                 <article key={`${activeMapBase.base}:${variable.variable}`} className={`pulso-codificacion-matrix-base-card${focusedVariable === variable.variable ? " is-focused" : ""}`}>
                   <header>
                     <div className="pulso-codificacion-matrix-card-title">
                       <strong>{labelForVariable(variable.variable, variable.variable_label)}</strong>
-                      <small>{variable.variable_kind_label ?? "Variable de matriz"} · {variable.variable}</small>
+                      <small>{variable.variable_kind_label ?? "Variable de matriz"} ({variable.variable})</small>
                     </div>
-                    <span>{variable.n_casos ?? 0} casos · {variable.categories.length} categorías</span>
+                    <span>{formatoConteo(variable.n_casos ?? 0)} casos, {formatoConteo(variable.categories.length)} categorías</span>
                   </header>
                   <div className="pulso-codificacion-matrix-dictionary-table-wrap">
                     {variable.categories.length === 0 ? (
@@ -775,7 +757,7 @@ export function CodingConfigActions({ disabled = false, onImported }: Props) {
 
       <section className="pulso-codificacion-matrix-standard">
         <span>Mapa previo a adaptación</span>
-        <strong>ID caso · Texto original · Código · Categoría · Observaciones</strong>
+        <strong>ID caso, texto original, código, categoría y observaciones</strong>
         <small>{hasActiveMatrix ? `Diccionario activo en ${activeBaseLabel}; Adaptación aplicará este mapa junto con la codificación manual.` : `La matriz editable se genera para ${activeBaseLabel} y se confirma después en Adaptación.`}</small>
       </section>
       {importDialog}
@@ -786,7 +768,7 @@ export function CodingConfigActions({ disabled = false, onImported }: Props) {
 function MatrixStat({ label, value }: { label: string; value: number | string }) {
   return (
     <span className="pulso-codificacion-matrix-stat">
-      <strong>{value}</strong>
+      <strong>{typeof value === "number" ? formatoConteo(value) : value}</strong>
       {label}
     </span>
   );
@@ -825,7 +807,7 @@ function matrixCaseCategoryLabel(row: MatrixCaseRow) {
   if (role === "regular" || !roleLabel || normalizeMatrixSearch(roleLabel) === normalizeMatrixSearch(etiqueta)) {
     return etiqueta;
   }
-  return `${roleLabel} · ${etiqueta}`;
+  return `${roleLabel}: ${etiqueta}`;
 }
 
 function resetMatrixFocusRail(node: HTMLElement | null) {
@@ -1041,7 +1023,7 @@ function CodingConfigImportDialog({
                         </td>
                         <td>
                           {item.target.name ? <code>{item.target.name}</code> : <strong>No encontrada</strong>}
-                          <span>{item.target.base_id}{item.target.label ? ` · ${item.target.label}` : ""}</span>
+                          <span>{item.target.base_id}{item.target.label ? `, ${item.target.label}` : ""}</span>
                         </td>
                         <td>
                           <StatusBadge item={item} />
@@ -1140,7 +1122,7 @@ function ImportSummary({ preview }: { preview: CodifImportPreview }) {
 function SummaryPill({ tone, label, value }: { tone: "ok" | "review" | "warn" | "muted"; label: string; value: number }) {
   return (
     <span className={`pulso-codificacion-import-pill is-${tone}`}>
-      <strong>{value}</strong>
+      <strong>{typeof value === "number" ? formatoConteo(value) : value}</strong>
       {label}
     </span>
   );

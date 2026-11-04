@@ -24,6 +24,7 @@ import {
   type SavNormalizationReviewFilter,
 } from "./savNormalizationReviewModel";
 
+import { EstadoVacio } from "../../components/EstadoVacio";
 type SavNormalizationReviewDialogProps = {
   open: boolean;
   files: SurveyMonkeySavBundleFileInspection[];
@@ -284,9 +285,7 @@ export function SavNormalizationReviewDialogContent({
                 ) : null}
               </div>
             ) : (
-              <div className="pulso-sav-review-empty" role="status">
-                <Search size={18} aria-hidden="true" /><strong>Sin coincidencias</strong><span>Ajusta la búsqueda o selecciona otro filtro.</span>
-              </div>
+              <EstadoVacio icono={<Search size={18} />} titulo="Sin coincidencias" descripcion="Ajusta la búsqueda o selecciona otro filtro." />
             )}
           </div>
       ) : (

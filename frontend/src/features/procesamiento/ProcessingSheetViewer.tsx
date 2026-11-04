@@ -269,7 +269,7 @@ export function ProcessingSheetViewer({
             <span className="pulso-processing-sheet-source">{sourceLabel}</span>
             {payload && (
               <span className="pulso-processing-sheet-meta">
-                {total.toLocaleString("es-PE")} {isRoster ? rosterUnitLabel : "filas"} ·{" "}
+                {total.toLocaleString("es-PE")} {isRoster ? rosterUnitLabel : "filas"} y{" "}
                 {payload.n_columns.toLocaleString("es-PE")} columnas
               </span>
             )}
@@ -524,7 +524,7 @@ export function ProcessingSheetViewer({
                               data-kind={displayKind}
                               title={value || undefined}
                             >
-                              <span className="pulso-processing-sheet-cell-text">{display}</span>
+                              <span className={`pulso-processing-sheet-cell-text${/\s/.test(String(display).trim()) ? "" : " is-token"}`}>{display}</span>
                             </td>
                           );
                         })}
@@ -541,8 +541,8 @@ export function ProcessingSheetViewer({
               {total > 0
                 ? `${visibleStart.toLocaleString("es-PE")}-${visibleEnd.toLocaleString("es-PE")} de ${total.toLocaleString("es-PE")}`
                 : "0 filas"}
-              {payload ? ` · ${payload.n_columns.toLocaleString("es-PE")} columnas` : ""}
-              {isWideSheet ? " · desplaza horizontalmente" : ""}
+              {payload ? `, ${payload.n_columns.toLocaleString("es-PE")} columnas` : ""}
+              {isWideSheet ? "; desplaza horizontalmente" : ""}
             </span>
             <div className="pulso-processing-sheet-pager">
               <select

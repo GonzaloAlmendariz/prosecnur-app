@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { describirMarcoCartografia } from "./marcoCartografia";
 import { marcoDeLaVista, type CiudadEnVista } from "./marcoDeLaVista";
 import { TerritorioGraficos } from "./TerritorioGraficos";
-import { MapPinned, Minus, Plus, X } from "../../../../vendor/lucide-react";
+import { MapPinned, Minus, Plus, X, Search } from "../../../../vendor/lucide-react";
 import { GlidingRadioGroup } from "../../../../components/GlidingRadioGroup";
 import { InspectorCabecera } from "../InspectorCabecera";
 import { PulsoButton } from "../../../../components/PulsoButton";
@@ -15,6 +15,8 @@ import { agregarVarios, alternar, cambios } from "./borrador";
 import type { ZonaLima } from "./zonasLima";
 import { captacionDe, etiquetaProvincia, gruposPorProvincia, marcoDeProvincias, nombreDelMarco } from "./provincias";
 
+import { formatoDecimal, formatoConteo } from "../../../../lib/formatoNumero";
+import { EstadoVacio } from "../../../../components/EstadoVacio";
 const FILTRO = [["todos", "Todos"], ["elegidos", "Elegidos"]] as const;
 
 /**
@@ -25,7 +27,7 @@ const FILTRO = [["todos", "Todos"], ["elegidos", "Elegidos"]] as const;
  */
 
 const fmt = (n: number) => new Intl.NumberFormat("es-PE").format(n);
-const enMiles = (n: number) => (n >= 1e6 ? `${(n / 1e6).toLocaleString("es-PE", { maximumFractionDigits: 2 })} M` : `${fmt(Math.round(n / 1000))} mil`);
+const enMiles = (n: number) => (n >= 1e6 ? `${formatoDecimal(n / 1e6, 2)} M` : `${fmt(Math.round(n / 1000))} mil`);
 const normalizar = (s: string) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLocaleLowerCase("es-PE");
 
 type EstructuraProps = {
@@ -142,7 +144,7 @@ export function TerritorioEstructura({ territorios, confirmados, zonas, bloquead
               </ul>
             </section>
           ))}
-        {!visibles.length ? <p className="hr-mapa-vacio">Ningún distrito coincide con «{busquedaDistrito}».</p> : null}
+        {!visibles.length ? <EstadoVacio icono={<Search size={16} />} titulo={`Ningún distrito coincide con «${busquedaDistrito}»`} /> : null}
       </div>
     </>
   );
@@ -200,8 +202,8 @@ export function TerritorioInspector({ territorios, confirmados, bloqueado, guard
               <div><small>Manzanas</small><strong>{fmt(suma("manzanas"))}</strong></div>
             </div>
             <dl className="hr-mapa-filas">
-              <div><dt>Del marco {nombreDelMarco(elegidos)}</dt><dd style={{ whiteSpace: "nowrap" }}>{marco ? `${((suma("poblacion") / marco) * 100).toLocaleString("es-PE", { maximumFractionDigits: 1 })} %` : "—"}</dd></div>
-              <div><dt>Viviendas por manzana</dt><dd>{suma("manzanas") ? (suma("viviendas") / suma("manzanas")).toLocaleString("es-PE", { maximumFractionDigits: 1 }) : "—"}</dd></div>
+              <div><dt>Del marco {nombreDelMarco(elegidos)}</dt><dd style={{ whiteSpace: "nowrap" }}>{marco ? `${formatoDecimal((suma("poblacion") / marco) * 100, 1)} %` : "—"}</dd></div>
+              <div><dt>Viviendas por manzana</dt><dd>{suma("manzanas") ? formatoDecimal(suma("viviendas") / suma("manzanas"), 1) : "—"}</dd></div>
               {ciudad && fuera ? <div><dt>En otras ciudades del estudio</dt><dd>{fuera} distrito{fuera === 1 ? "" : "s"}</dd></div> : null}
             </dl>
           </>
@@ -223,9 +225,9 @@ export function TerritorioInspector({ territorios, confirmados, bloqueado, guard
             <p className="hr-ter-ficha-nota">
               {(() => {
                 const marcoEnfocado = marcoDeProvincias(territorios, [enfocado]);
-                return marcoEnfocado ? `${((enfocado.poblacion / marcoEnfocado) * 100).toLocaleString("es-PE", { maximumFractionDigits: 1 })} % del marco ${nombreDelMarco([enfocado])}` : null;
+                return marcoEnfocado ? `${formatoDecimal((enfocado.poblacion / marcoEnfocado) * 100, 1)} % del marco ${nombreDelMarco([enfocado])}` : null;
               })()}
-              {enfocado.manzanas ? `, ${(enfocado.viviendas / enfocado.manzanas).toLocaleString("es-PE", { maximumFractionDigits: 1 })} viviendas por manzana` : null}
+              {enfocado.manzanas ? `, ${formatoDecimal(enfocado.viviendas / enfocado.manzanas, 1)} viviendas por manzana` : null}
             </p>
             {captacionDe(enfocado) ? (
               <p className="hr-ter-ficha-nota">
@@ -291,7 +293,7 @@ function MarcoTerritorial({ meta, territorios, ciudad = null }: { meta: Territor
     );
   }
   const cartografiaMarco = filas.conComparacion ? describirMarcoCartografia(meta) : null;
-  const miles = (n: number | undefined) => (typeof n === "number" && Number.isFinite(n) && n > 0 ? n.toLocaleString("es-PE") : "—");
+  const miles = (n: number | undefined) => (typeof n === "number" && Number.isFinite(n) && n > 0 ? formatoConteo(n) : "—");
   const fuentes = meta.block_cartography?.sources ?? {};
   const delPaquete = (["lima", "callao"] as const)
     .map((k) => (fuentes[k]?.year ? `${k === "lima" ? "Lima" : "Callao"} ${fuentes[k].year}` : ""))

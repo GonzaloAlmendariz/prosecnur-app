@@ -320,7 +320,7 @@ export function buildLogicGraph(
     if (node.kind === "section") {
       const count = countQuestionsDeep(node);
       const noun = count === 1 ? "pregunta" : "preguntas";
-      node.subtitle = `${node.name} · ${count} ${noun}`;
+      node.subtitle = `${node.name} (${count} ${noun})`;
     }
   }
 

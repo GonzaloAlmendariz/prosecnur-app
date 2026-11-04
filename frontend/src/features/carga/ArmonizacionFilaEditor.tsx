@@ -91,6 +91,9 @@ import {
 import "./ArmonizacionFilaEditor.css";
 import { PulsoButton } from "../../components/PulsoButton";
 import { AvisoMalUbicados } from "./AvisoMalUbicados";
+import { EstadoVacio } from "../../components/EstadoVacio";
+import { LoadingBlock, ErrorBlock } from "../../components/States";
+import { Inbox } from "../../vendor/lucide-react";
 
 // ---- Abrir sobre una fila ---------------------------------------------------
 //
@@ -209,13 +212,13 @@ function PanelConDireccion({ estado, cargandoEstado, variablesPorBase, filasEdit
               {/* C5: vacío legítimo. El enlace nombra una fila que la
                   declaración guardada ya no tiene, o el estado todavía carga. */}
               <div className="pulso-armon-cuerpo">
-                <p className="pulso-armon-vacio">
-                  {estado
-                    ? "Esta fila no está en la declaración guardada. Ábrela desde la tabla de equivalencias."
-                    : cargandoEstado
-                      ? "Revisando la declaración del estudio…"
-                      : "No se pudo leer la declaración del estudio. Cierra el panel y revisa el aviso de Equivalencias."}
-                </p>
+                {estado ? (
+                  <EstadoVacio icono={<Inbox size={16} />} titulo="Esta fila no está en la declaración guardada" descripcion="Ábrela desde la tabla de equivalencias." />
+                ) : cargandoEstado ? (
+                  <LoadingBlock variant="inline" label="Revisando la declaración del estudio…" />
+                ) : (
+                  <ErrorBlock label="No se pudo leer la declaración del estudio" detail="Cierra el panel y revisa el aviso de Equivalencias." />
+                )}
               </div>
             </div>
           )}
@@ -680,9 +683,7 @@ function EscalaComun({
       </div>
       {borrador.escala.length === 0 ? (
         // C3: el vacío es de esta sección y dice cómo se llena.
-        <p className="pulso-armon-vacio">
-          Todavía no hay escala. Agrega categorías o copia la lista de una base desde su tabla.
-        </p>
+        <EstadoVacio icono={<Inbox size={16} />} titulo="Todavía no hay escala" descripcion="Agrega categorías o copia la lista de una base desde su tabla." />
       ) : (
         <ol className="pulso-armon-escala">
           {borrador.escala.map((c, i) => (
@@ -893,9 +894,9 @@ function MapaDeBase({
           )}
 
           {vista.fuente === "cargando" ? (
-            <p className="pulso-armon-vacio">Contando casos en {base}…</p>
+            <LoadingBlock variant="inline" label={`Contando casos en ${base}…`} />
           ) : filas.length === 0 ? (
-            <p className="pulso-armon-vacio">{vista.vacio}</p>
+            <EstadoVacio icono={<Inbox size={16} />} titulo={<>{vista.vacio}</>} />
           ) : (
             <PlegableValorPorValor plegado={esMapaNumerico(codigos, escala)} n={filas.length} base={base}>
             {escala.length > 0 && (

@@ -112,7 +112,7 @@ export function BloqueCard({
             borderRadius: 8,
             background: "var(--pulso-primary-soft)",
             color: "var(--pulso-primary)",
-            fontSize: 11,
+            fontSize: "var(--pulso-type-caption-size)",
             fontWeight: 700,
             marginTop: 14,
           }}
@@ -122,7 +122,7 @@ export function BloqueCard({
         <div style={{ flex: 1, minWidth: 0 }}>
           <span
             style={{
-              fontSize: 10,
+              fontSize: "var(--pulso-type-micro-size)",
               fontWeight: 700,
               textTransform: "uppercase",
               letterSpacing: 0.4,
@@ -162,7 +162,7 @@ export function BloqueCard({
                 flex: 1,
                 border: "none",
                 background: "transparent",
-                fontSize: 14,
+                fontSize: "var(--pulso-type-subtitle-size)",
                 fontWeight: 700,
                 color: "var(--pulso-text)",
                 padding: 0,
@@ -172,7 +172,7 @@ export function BloqueCard({
             />
           </div>
         </div>
-        <span style={{ fontSize: 11, color: "var(--pulso-text-soft)", marginTop: 22 }}>
+        <span style={{ fontSize: "var(--pulso-type-caption-size)", color: "var(--pulso-text-soft)", marginTop: 22 }}>
           {vars.length} {vars.length === 1 ? "var" : "vars"}
         </span>
         <button
@@ -209,7 +209,7 @@ export function BloqueCard({
         }}
       >
         {vars.length === 0 ? (
-          <span style={{ fontSize: 11, color: "var(--pulso-text-soft)", textAlign: "center" }}>
+          <span style={{ fontSize: "var(--pulso-type-caption-size)", color: "var(--pulso-text-soft)", textAlign: "center" }}>
             Arrastra variables aquí
           </span>
         ) : (

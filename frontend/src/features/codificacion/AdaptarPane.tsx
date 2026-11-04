@@ -96,7 +96,7 @@ export function AdaptarPane({ base, onBackToCodificar, onBackToMatrices }: Props
           className="pulso-cv2-pill"
           onClick={load}
           disabled={busyLoad}
-          style={{ fontSize: 12, display: "inline-flex", alignItems: "center", gap: 4 }}
+          style={{ fontSize: "var(--pulso-type-body-size)", display: "inline-flex", alignItems: "center", gap: 4 }}
           title="Recargar el resumen (útil si volviste a codificar)"
         >
           <RefreshCw size={12} /> Actualizar
@@ -154,11 +154,11 @@ export function AdaptarPane({ base, onBackToCodificar, onBackToMatrices }: Props
 function Stat({ label, value, hint }: { label: string; value: number; hint?: string }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-      <span style={{ fontSize: 22, fontWeight: 700, color: "var(--pulso-primary)" }}>{value}</span>
-      <span style={{ fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.5, color: "var(--pulso-text-soft)" }}>
+      <span style={{ fontSize: "var(--pulso-type-kpi-size)", fontWeight: 700, color: "var(--pulso-primary)" }}>{value}</span>
+      <span style={{ fontSize: "var(--pulso-type-eyebrow-size)", fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.5, color: "var(--pulso-text-soft)" }}>
         {label}
       </span>
-      {hint && <span style={{ fontSize: 10, color: "var(--pulso-text-soft)", fontStyle: "italic" }}>{hint}</span>}
+      {hint && <span style={{ fontSize: "var(--pulso-type-micro-size)", color: "var(--pulso-text-soft)", fontStyle: "italic" }}>{hint}</span>}
     </div>
   );
 }
@@ -169,9 +169,9 @@ function Divider() {
 
 function PreguntaPlanCard({ p }: { p: PlanPregunta }) {
   const arqLabel =
-    p.tipo === "select_one" && p.modo_so === "hijo" ? "Opción única · texto codificado aparte" :
-    p.tipo === "select_one" && p.modo_so === "padre" ? "Opción única · pregunta original codificada" :
-    p.tipo === "integer" ? "Numérica · rangos" :
+    p.tipo === "select_one" && p.modo_so === "hijo" ? "Opción única, texto codificado aparte" :
+    p.tipo === "select_one" && p.modo_so === "padre" ? "Opción única, pregunta original codificada" :
+    p.tipo === "integer" ? "Numérica por rangos" :
     p.tipo === "text" ? "Texto abierto" :
     p.tipo === "select_multiple" ? "Opción múltiple" : p.tipo;
 
@@ -185,14 +185,14 @@ function PreguntaPlanCard({ p }: { p: PlanPregunta }) {
       }}
     >
       <div style={{ display: "flex", alignItems: "baseline", gap: 10, flexWrap: "wrap" }}>
-        <code style={{ fontFamily: "monospace", fontSize: 14, fontWeight: 700, color: "var(--pulso-primary)" }}>
+        <code style={{ fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace", fontSize: "var(--pulso-type-subtitle-size)", fontWeight: 700, color: "var(--pulso-primary)" }}>
           {p.parent}
         </code>
-        <span style={{ fontSize: 12, color: "var(--pulso-text-soft)" }}>{textoPlano(p.parent_label)}</span>
+        <span style={{ fontSize: "var(--pulso-type-body-size)", color: "var(--pulso-text-soft)" }}>{textoPlano(p.parent_label)}</span>
         <div style={{ flex: 1 }} />
         <span
           style={{
-            fontSize: 10,
+            fontSize: "var(--pulso-type-micro-size)",
             fontWeight: 700,
             textTransform: "uppercase",
             letterSpacing: 0.5,
@@ -210,7 +210,7 @@ function PreguntaPlanCard({ p }: { p: PlanPregunta }) {
           background: "#f0fdf4",
           border: "1px solid #bbf7d0",
           borderRadius: 4,
-          fontSize: 12,
+          fontSize: "var(--pulso-type-body-size)",
           display: "flex",
           alignItems: "center",
           gap: 8,
@@ -218,15 +218,14 @@ function PreguntaPlanCard({ p }: { p: PlanPregunta }) {
         }}
       >
         <span style={{ color: "var(--pulso-success-fg)", fontWeight: 700 }}>Campo nuevo:</span>
-        <code style={{ fontFamily: "monospace", fontWeight: 700 }}>{p.nueva_variable}</code>
-        <span style={{ color: "var(--pulso-success-fg)" }}>·</span>
+        <code style={{ fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace", fontWeight: 700 }}>{p.nueva_variable}</code>
         <span>{formatoConteo(p.n_respuestas_afectadas)} {p.n_respuestas_afectadas === 1 ? "respuesta afectada" : "respuestas afectadas"}</span>
       </div>
 
       {/* Códigos nuevos */}
       {p.codigos_nuevos.length > 0 && (
         <div style={{ marginTop: 10 }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: "var(--pulso-text-soft)", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 4 }}>
+          <div style={{ fontSize: "var(--pulso-type-eyebrow-size)", fontWeight: 700, color: "var(--pulso-text-soft)", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 4 }}>
             {p.codigos_nuevos.length} código{p.codigos_nuevos.length === 1 ? "" : "s"} nuevo{p.codigos_nuevos.length === 1 ? "" : "s"}
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
@@ -240,7 +239,7 @@ function PreguntaPlanCard({ p }: { p: PlanPregunta }) {
       {/* Códigos reutilizados */}
       {p.codigos_reutilizados.length > 0 && (
         <div style={{ marginTop: 10 }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: "var(--pulso-text-soft)", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 4 }}>
+          <div style={{ fontSize: "var(--pulso-type-eyebrow-size)", fontWeight: 700, color: "var(--pulso-text-soft)", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 4 }}>
             {p.codigos_reutilizados.length === 1 ? "1 opción existente reutilizada" : `${p.codigos_reutilizados.length} opciones existentes reutilizadas`}
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
@@ -264,26 +263,26 @@ function CodigoRow({ c, kind }: { c: { codigo: string; etiqueta: string; n_respu
         gridTemplateColumns: "50px 1fr auto",
         gap: 10,
         alignItems: "center",
-        fontSize: 12,
+        fontSize: "var(--pulso-type-body-size)",
         padding: "3px 8px",
       }}
     >
       <code
         style={{
-          fontFamily: "monospace",
+          fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
           fontWeight: 700,
           padding: "2px 8px",
           background: bg,
           color: fg,
           borderRadius: 4,
-          fontSize: 11,
+          fontSize: "var(--pulso-type-caption-size)",
           textAlign: "center",
         }}
       >
         {c.codigo}
       </code>
       <span>{c.etiqueta || <em style={{ color: "var(--pulso-text-soft)" }}>sin etiqueta</em>}</span>
-      <span style={{ fontSize: 11, color: "var(--pulso-text-soft)" }}>
+      <span style={{ fontSize: "var(--pulso-type-caption-size)", color: "var(--pulso-text-soft)" }}>
         {formatoConteo(c.n_respuestas)} {c.n_respuestas === 1 ? "respuesta" : "respuestas"}
       </span>
     </div>

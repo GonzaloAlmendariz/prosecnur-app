@@ -39,12 +39,9 @@
   display: inline-flex;
   align-items: center;
   gap: 3px;
+  padding-left: 8px;
+  border-left: 1px solid var(--pulso-border);
   color: var(--pulso-text-faint);
-}
-
-.pulso-carga-sources-plan-meta-origen::before {
-  content: "·";
-  margin-right: 4px;
 }
 
 .pulso-carga-sources-plan-strategy,

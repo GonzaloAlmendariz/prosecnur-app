@@ -9,6 +9,7 @@ import {
   ListPlus,
   Plus,
   Search,
+  Tags,
   Square,
   Target,
   X,
@@ -67,7 +68,7 @@ function GrupoMembershipChips({ grupos }: { grupos: Grupo[] }) {
       {grupos.map((g) => {
         const d = displayCodificacionValueLabel(g.codigo, g.etiqueta);
         const accent = grupoAccentColor(g.codigo, g.id);
-        const full = d.code ? `${d.code} · ${d.label}` : d.label;
+        const full = d.code ? `${d.code}. ${d.label}` : d.label;
         const primary = truncateChip(d.label || d.code || "sin nombre", 16);
         return (
           <span
@@ -277,7 +278,7 @@ export function RespuestasCodificador({ parent }: Props) {
 
   function grupoLabel(grupo: Grupo): string {
     const display = displayCodificacionValueLabel(grupo.codigo, grupo.etiqueta);
-    if (display.code) return `${display.code} · ${display.label}`;
+    if (display.code) return `${display.code}. ${display.label}`;
     return display.label || `grupo ${grupo.codigo}`;
   }
 
@@ -411,7 +412,7 @@ export function RespuestasCodificador({ parent }: Props) {
     const out = confirmarSugerencias(grupos, { codigo: m.codigo, etiqueta: r.grupo }, entradas);
     setGrupos(out.grupos);
     setUltimaMasiva({ registro: out.registro, aviso: { modulo: r.corto, n: entradas.length } });
-    announce(`${entradas.length === 1 ? "Se confirmó 1 respuesta" : `Se confirmaron ${entradas.length} respuestas`} en ${r.corto}.`);
+    announce(`${entradas.length === 1 ? "Se confirmó 1 respuesta" : `Se confirmaron ${formatoConteo(entradas.length)} respuestas`} en ${r.corto}.`);
   }
 
   function deshacerMasiva() {
@@ -594,7 +595,7 @@ export function RespuestasCodificador({ parent }: Props) {
               )}
             </span>
             <span className="pulso-cv2-col-count">
-              {codificadas} de {respuestas.length} codificadas
+              {formatoConteo(codificadas)} de {formatoConteo(respuestas.length)} codificadas
             </span>
           </div>
           <div className="pulso-cv2-search">
@@ -622,7 +623,7 @@ export function RespuestasCodificador({ parent }: Props) {
           {/* C1: filas de respuesta; su alto depende de las variantes que agrupan. */}
           <div className="pulso-cv2-resp-list" data-qa-geometry-group="codificacion/respuestas" data-qa-geometry-contract="intrinsic">
             {visibleRespuestas.length === 0 && (
-              <div className="pulso-cv2-resp-empty">No hay respuestas que coincidan.</div>
+              <EstadoVacio icono={<Search size={16} />} titulo="No hay respuestas que coincidan" />
             )}
             {tramos.conContenido.map(filaRespuesta)}
             {tramos.noRespuestas.length > 0 && (
@@ -778,7 +779,7 @@ function QuickAssignDropdown(props: QuickAssignProps) {
       {open && (
         <div id={menuId} role="menu" className="pulso-cv2-qa-menu" aria-label={`Grupos para "${respuesta}"`}>
           {grupos.length === 0 && (
-            <div className="pulso-cv2-qa-empty">Todavía no hay grupos creados.</div>
+            <EstadoVacio icono={<Tags size={16} />} titulo="Todavía no hay grupos creados" />
           )}
           {grupos.map((g, idx) => {
             const display = displayCodificacionValueLabel(g.codigo, g.etiqueta);

@@ -85,12 +85,12 @@ describe("isRepeatMother / repeatGroupOfMother", () => {
 
 describe("esquemaOptionLabel", () => {
   it("anota la base hija repeat", () => {
-    expect(esquemaOptionLabel(pdmBases, "rep_servicios")).toBe("rep_servicios · base repetible");
+    expect(esquemaOptionLabel(pdmBases, "rep_servicios")).toBe("rep_servicios, base repetible");
   });
 
   it("anota la base madre", () => {
     expect(esquemaOptionLabel(pdmBases, "post_distribution_monitoring")).toBe(
-      "post_distribution_monitoring · con grupo repetible",
+      "post_distribution_monitoring, con grupo repetible",
     );
   });
 

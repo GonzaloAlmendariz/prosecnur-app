@@ -10,6 +10,7 @@ import { nombreDistrito } from "../nombres";
 import { useLienzoHojasRuta } from "../store";
 import { agruparFilas, type AgruparFilas, type FilaMatriz, type GrupoDeZona, type ResumenMatriz } from "./matriz";
 
+import { formatoDecimal } from "../../../../lib/formatoNumero";
 /**
  * Cajón inferior de Población (brecha B17/B29): la matriz distrito × rango de
  * edad entera, sobre el mapa, en vez de recortada en el inspector. Dos lecturas
@@ -21,7 +22,7 @@ const PESTANAS = [["matriz", "Personas"], ["pct", "Distribución %"]] as const;
 const AGRUPAR = [["distrito", "Distrito"], ["ubigeo", "Ubigeo"], ["provincia", "Provincia"], ["zona", "Zona"]] as const;
 const ENCABEZADO: Record<AgruparFilas, string> = { distrito: "Distrito", ubigeo: "Ubigeo", provincia: "Provincia", zona: "Zona" };
 const fmt = (n: number) => new Intl.NumberFormat("es-PE").format(Math.round(n));
-const pct = (n: number, d: number) => (d ? `${((n / d) * 100).toLocaleString("es-PE", { maximumFractionDigits: 1 })} %` : "—");
+const pct = (n: number, d: number) => (d ? `${formatoDecimal((n / d) * 100, 1)} %` : "—");
 const enRango = (f: FilaMatriz, i: number) => (f.porRango[i] ? f.porRango[i].H + f.porRango[i].M : 0);
 
 function descargarCsv(filasCsv: readonly FilaMatriz[], por: AgruparFilas, rangos: readonly HojasRutaAgeRange[], sexo: boolean) {

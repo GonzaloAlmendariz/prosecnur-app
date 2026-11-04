@@ -17,6 +17,7 @@ import {
 } from "./ritmoModel";
 import { metaDelProyecto } from "./metaDelProyecto";
 import { origenDeEfectivas } from "./origenDeEfectivas";
+import { useVariableDeCuotasElegida } from "./variableElegida";
 import { avisosDelNumerador, filasDeBloque } from "../navegacion/bloques";
 import { TrazadoDeBarras } from "./TrazadoDeBarras";
 import { NotaDelModo } from "../../../core/NotaDelModo";
@@ -67,7 +68,8 @@ export function Ritmo({
 }) {
   const reglas = state?.config?.operational_model?.state_rules;
   // La misma serie que leen el calendario de Cuotas, la vista del PDF y los chips.
-  const { segmento, serie: kobo, sinCategoria, fueraDeCuota, sinFecha } = useMemo(() => serieDiariaDelCorte(reports), [reports]);
+  const { elegida } = useVariableDeCuotasElegida();
+  const { segmento, serie: kobo, sinCategoria, fueraDeCuota, sinFecha } = useMemo(() => serieDiariaDelCorte(reports, elegida), [reports, elegida]);
   const notaDeSerie = notaSinCategoria(sinCategoria, rotuloDelSegmento(segmento), fueraDeCuota, sinFecha);
   // Lo que el conteo no suma o no asigna (llaves repetidas, completas sin caso), con la causa que da el motor.
   const avisos = useMemo(() => avisosDelNumerador(reports), [reports]);

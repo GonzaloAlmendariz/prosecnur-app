@@ -15,6 +15,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Check, ChevronDown, FileSpreadsheet, LayoutGrid, Lock, Plus } from "../../../vendor/lucide-react";
 import type { LibraryEntry } from "../state/persistence";
+import { EstadoVacio } from "../../../components/EstadoVacio";
 
 export type FormSwitcherProps = {
   forms: LibraryEntry[];
@@ -86,9 +87,7 @@ export function FormSwitcher({
         <div className="pulso-more-views-menu pulso-xf-form-switcher-menu" role="menu">
           <span className="pulso-more-views-eyebrow">Formularios del proyecto</span>
           {forms.length === 0 && (
-            <span className="pulso-xf-form-switcher-empty">
-              Todavía no hay otros formularios en este proyecto.
-            </span>
+            <EstadoVacio icono={<FileSpreadsheet size={14} />} titulo="Todavía no hay otros formularios en este proyecto" />
           )}
           {forms.map((form) => {
             const isActive = form.id === activeFormId;
@@ -104,7 +103,7 @@ export function FormSwitcher({
                 // existiría para nadie: recortar solo es legítimo si el texto
                 // completo sigue alcanzable.
                 title={form.source?.original_name
-                  ? `${form.name} · ${form.source.original_name}`
+                  ? `${form.name} (${form.source.original_name})`
                   : form.name}
                 onClick={() => {
                   setOpen(false);

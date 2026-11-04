@@ -28,7 +28,7 @@ function Chip({ etiqueta, codigo }: { etiqueta: string; codigo: string }) {
   const texto = stripMarkdown(etiqueta).replace(/\s+/g, " ").trim();
   const conTexto = texto !== "" && texto !== codigo;
   return (
-    <span className="xfk-pop__ref" title={conTexto ? `${tituloPlano(texto)} · ${codigo}` : codigo}>
+    <span className="xfk-pop__ref" title={conTexto ? `${tituloPlano(texto)} (${codigo})` : codigo}>
       {conTexto ? <span className="xfk-pop__ref-txt"><TituloLegible texto={texto} /></span> : null}
       {codigo ? <code className={conTexto ? undefined : "is-solo"}>{codigo}</code> : null}
     </span>

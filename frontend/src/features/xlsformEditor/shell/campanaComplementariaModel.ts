@@ -5,6 +5,7 @@
 // decisiones que se pueden equivocar —quién admite campañas, qué dice la vista
 // previa, cómo se escribe la dirección del diálogo— para probarlas sin React.
 
+import { formatoDecimal } from "../../../lib/formatoNumero";
 import type { XlsformFormSource } from "../../../api/multiIntegrado";
 import type { CampanaPregunta, CampanaVistaPrevia } from "../../../api/xlsformCampanas";
 import { conNivel } from "../../../lib/navegacion/direccion";
@@ -53,7 +54,7 @@ function porcentaje(cobertura: number | null): string {
   if (cobertura == null) return "";
   // Hacia abajo: un 79,6 % no puede mostrarse como «80 %» si se bloquea.
   const decimas = Math.floor(cobertura * 1000) / 10;
-  return `${decimas.toLocaleString("es-PE", { maximumFractionDigits: 1 })} %`;
+  return `${formatoDecimal(decimas, 1)} %`;
 }
 
 export function textoCobertura(cobertura: number | null, coberturaTexto: string): string {

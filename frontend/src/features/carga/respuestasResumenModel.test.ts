@@ -18,10 +18,10 @@ describe("resumen de Respuestas", () => {
     expect(textoCompatibilidad({
       applied: true, ok: true, expected_columns: 118, matched_columns: 118,
       missing_columns: [], extra_columns: [], n_extra: 20,
-    })).toEqual({ ok: true, texto: "Calza con el formulario · 118 de 118 preguntas · 20 columnas que no son del formulario" });
+    })).toEqual({ ok: true, texto: "Calza con el formulario, 118 de 118 preguntas, 20 columnas que no son del formulario" });
     expect(textoCompatibilidad({
       applied: true, ok: false, expected_columns: 10, matched_columns: 9,
       missing_columns: ["q4"], extra_columns: ["x"],
-    })?.texto).toBe("No calza con el formulario · 9 de 10 preguntas · faltan q4 · 1 columna que no es del formulario");
+    })?.texto).toBe("No calza con el formulario, 9 de 10 preguntas, faltan q4, 1 columna que no es del formulario");
   });
 });

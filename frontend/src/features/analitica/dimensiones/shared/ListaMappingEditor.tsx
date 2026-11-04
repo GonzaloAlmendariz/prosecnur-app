@@ -168,7 +168,7 @@ export function ListaMappingEditor({ lista, choicesDetectadas, vars, variablesIn
             <HelpCircle size={11} color="var(--pulso-text-soft)" />
             <span
               style={{
-                fontSize: 10,
+                fontSize: "var(--pulso-type-micro-size)",
                 fontWeight: 700,
                 textTransform: "uppercase",
                 letterSpacing: 0.4,
@@ -195,15 +195,15 @@ export function ListaMappingEditor({ lista, choicesDetectadas, vars, variablesIn
                   display: "flex",
                   alignItems: "baseline",
                   gap: 8,
-                  fontSize: 12,
+                  fontSize: "var(--pulso-type-body-size)",
                   color: "var(--pulso-text)",
                   lineHeight: 1.4,
                 }}
               >
                 <code
                   style={{
-                    fontFamily: "ui-monospace, monospace",
-                    fontSize: 10,
+                    fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
+                    fontSize: "var(--pulso-type-micro-size)",
                     color: "var(--pulso-text-soft)",
                     background: "var(--pulso-surface-2, #f4f5f9)",
                     padding: "1px 5px",
@@ -242,7 +242,7 @@ export function ListaMappingEditor({ lista, choicesDetectadas, vars, variablesIn
       >
         <span
           style={{
-            fontSize: 11,
+            fontSize: "var(--pulso-type-eyebrow-size)",
             fontWeight: 700,
             textTransform: "uppercase",
             letterSpacing: 0.4,
@@ -277,7 +277,7 @@ export function ListaMappingEditor({ lista, choicesDetectadas, vars, variablesIn
           alignItems: "center",
           gap: 6,
           marginBottom: 8,
-          fontSize: 11,
+          fontSize: "var(--pulso-type-caption-size)",
           color: "var(--pulso-text-soft)",
         }}
       >
@@ -306,7 +306,7 @@ export function ListaMappingEditor({ lista, choicesDetectadas, vars, variablesIn
       <p
         style={{
           margin: "10px 0 0",
-          fontSize: 10,
+          fontSize: "var(--pulso-type-micro-size)",
           color: "var(--pulso-text-soft)",
           lineHeight: 1.5,
         }}
@@ -389,9 +389,9 @@ function SortableCodeRow({
       </button>
       <code
         style={{
-          fontFamily: "ui-monospace, monospace",
+          fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
           fontWeight: 700,
-          fontSize: 11,
+          fontSize: "var(--pulso-type-caption-size)",
           padding: "2px 6px",
           borderRadius: 4,
           background: "var(--pulso-surface-2, #f4f5f9)",
@@ -404,7 +404,7 @@ function SortableCodeRow({
       </code>
       <span
         style={{
-          fontSize: 12,
+          fontSize: "var(--pulso-type-body-size)",
           color: modo === "normal" ? "var(--pulso-text)" : "var(--pulso-text-soft)",
           overflow: "hidden",
           textOverflow: "ellipsis",
@@ -426,7 +426,7 @@ function SortableCodeRow({
       </div>
       <span
         style={{
-          fontSize: 12,
+          fontSize: "var(--pulso-type-subtitle-size)",
           fontWeight: 700,
           fontVariantNumeric: "tabular-nums",
           color: modo === "normal" ? "var(--pulso-primary)" : "var(--pulso-text-soft)",
@@ -464,7 +464,7 @@ function ModeChip({
       onClick={onClick}
       style={{
         padding: "3px 8px",
-        fontSize: 10,
+        fontSize: "var(--pulso-type-micro-size)",
         fontWeight: 600,
         borderRadius: 999,
         border: `1px solid ${active ? c.border : "var(--pulso-border)"}`,
@@ -484,7 +484,7 @@ const btnSecundarioStyle: React.CSSProperties = {
   alignItems: "center",
   gap: 4,
   padding: "3px 8px",
-  fontSize: 10,
+  fontSize: "var(--pulso-type-micro-size)",
   fontWeight: 600,
   border: "1px solid var(--pulso-border)",
   borderRadius: 6,

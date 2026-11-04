@@ -90,7 +90,7 @@ export function PestanaRestricciones({ structure, scope: scopeBase, seleccionada
     <PestanaReglas
       titulo="Restricciones"
       marca="regla"
-      total={`${con.length} con regla · ${sugeridas.length} sugeridas`}
+      total={`${con.length} con regla, ${sugeridas.length} sugeridas`}
       grupos={grupos}
       seleccionada={actual?.node.name ?? null}
       onSeleccionar={onSeleccionar}
@@ -107,7 +107,7 @@ export function PestanaRestricciones({ structure, scope: scopeBase, seleccionada
       {actual ? (
         <>
           <div className="xfp-encabezado">
-            <span className="xfp-encabezado__ruta"><TypeIcon baseType={actual.node.typeInfo.base} boxed /> Restricción{actual.node.label ? <> · <code className="xfp-codigo">{actual.node.name}</code></> : null}</span>
+            <span className="xfp-encabezado__ruta"><TypeIcon baseType={actual.node.typeInfo.base} boxed /> Restricción{actual.node.label ? <> (<code className="xfp-codigo">{actual.node.name}</code></> : null}</span>
             <h2 className="xfp-encabezado__titulo">{actual.node.label ? <EtiquetaLegible texto={actual.node.label} etiquetaDe={etq} /> : <code className="xfp-var is-codigo">{actual.node.name}</code>}</h2>
             <span className="xfp-encabezado__accion"><EditarEnConstructor onEditar={() => onEditar(actual.node.rowIndex)} que={`la pregunta ${numero(actual.node)}`} /></span>
           </div>

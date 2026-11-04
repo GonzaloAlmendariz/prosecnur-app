@@ -54,7 +54,7 @@ type Props = {
 
 function savBundleBaseLabel(base: EstudioBase) {
   const actor = String(base.source_alias || base.source_title || "").trim();
-  return actor && actor !== base.nombre ? `${actor} · ${base.nombre}` : base.nombre;
+  return actor && actor !== base.nombre ? `${actor}, ${base.nombre}` : base.nombre;
 }
 
 export function savFirstReviewableEntryName(
@@ -284,7 +284,7 @@ export function SavBundleImportPanel({ bases, disabled = false, onImported }: Pr
         <label className={`pulso-base-file-picker${file ? " is-ready" : ""}`}>
           {file ? <Check size={18} /> : <Upload size={18} />}
           <span className="pulso-base-file-picker-title"><Database size={13} />{file ? file.name : "SAV o ZIP con SAV"}</span>
-          <span className="pulso-base-file-picker-accept">.sav · .zip</span>
+          <span className="pulso-base-file-picker-accept">.sav o .zip</span>
           <input
             type="file"
             accept=".sav,.zip,application/x-spss-sav,application/octet-stream,application/zip,application/x-zip-compressed"
@@ -323,8 +323,8 @@ export function SavBundleImportPanel({ bases, disabled = false, onImported }: Pr
                 {inspection.ok ? <CheckCircle2 size={12} /> : <AlertTriangle size={12} />}
                 {inspection.n_matched}/{inspection.n_files} archivos listos
               </span>
-              <small>{smSavBundleInspectionWarningCount(inspection)} advertencias · {inspection.filename}</small>
-              <small>{policy === "strict" ? "Política estricta" : "Compatibilidad con blancos"} · formulario preservado</small>
+              <small>{smSavBundleInspectionWarningCount(inspection)} advertencias, {inspection.filename}</small>
+              <small>{policy === "strict" ? "Política estricta" : "Compatibilidad con blancos"}, formulario preservado</small>
             </>
           ) : (
             <>
@@ -378,7 +378,7 @@ export function SavBundleImportPanel({ bases, disabled = false, onImported }: Pr
               >
                 <div className="pulso-sm-family-origin-cell">
                   <strong>{inspectedFile.file_name || inspectedFile.entry_name}</strong>
-                  <small>{inspectedFile.n_rows} filas · {inspectedFile.n_columns} columnas SAV</small>
+                  <small>{inspectedFile.n_rows} filas, {inspectedFile.n_columns} columnas SAV</small>
                 </div>
                 <label className="pulso-sav-base-select">
                   <span className="pulso-sr-only">Base para {inspectedFile.file_name || inspectedFile.entry_name}</span>

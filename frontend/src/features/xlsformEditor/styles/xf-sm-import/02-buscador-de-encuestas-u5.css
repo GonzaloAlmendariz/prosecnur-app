@@ -297,12 +297,6 @@
   margin-top: 1px;
 }
 
-.pulso-xf-smi-sug-cargando {
-  margin: 0;
-  color: var(--pulso-text-soft);
-  font-size: var(--pulso-type-body-size);
-}
-
 .pulso-xf-smi-sugerencias {
   display: grid;
   gap: var(--pulso-space-2);

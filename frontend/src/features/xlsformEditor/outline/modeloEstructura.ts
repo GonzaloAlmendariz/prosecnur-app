@@ -12,6 +12,7 @@
 
 import type { BuilderNode, BuilderStructure } from "../types";
 import type { RowMovePlan } from "./outlineUtils";
+import { formatoConteo } from "../../../lib/formatoNumero";
 
 export type NodoArbol = NodoFila | NodoSeccion;
 export type NodoFila = { tipo: "fila"; nodo: BuilderNode };
@@ -271,6 +272,6 @@ export function planMoverA(structure: BuilderStructure, desde: number, indice: n
 
 /** Subtítulo de la Estructura: «31 preguntas en 13 secciones». */
 export function subtituloEstructura(preguntas: number, secciones: number): string {
-  const n = (v: number, uno: string, varios: string) => `${v.toLocaleString("es-PE")} ${v === 1 ? uno : varios}`;
+  const n = (v: number, uno: string, varios: string) => `${formatoConteo(v)} ${v === 1 ? uno : varios}`;
   return `${n(preguntas, "pregunta", "preguntas")} en ${n(secciones, "sección", "secciones")}`;
 }

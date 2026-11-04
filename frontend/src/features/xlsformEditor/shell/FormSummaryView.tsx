@@ -40,6 +40,8 @@ import { enfocarFilaDelConstructor } from "../resumen/enfocarFila";
 import "../styles/xf-summary/01-el-overlay-de-antes-sigue-ex.css";
 import "../styles/xf-summary/02-secciones.css";
 import "../resumen/resumen.css";
+import { EstadoVacio } from "../../../components/EstadoVacio";
+import { FileText } from "../../../vendor/lucide-react";
 
 /** Lo que el editor sabe fuera de la estructura: lógica, listas, impreso y adónde llevar cada cosa. */
 export type ContextoResumen = {
@@ -185,7 +187,7 @@ export function FormSummaryView({
             <strong>Resumen</strong>
             <span>
               {nombre?.trim() || formTitle || "Formulario sin título"}
-              {nombre?.trim() && formTitle && formTitle !== nombre.trim() ? ` · título en el formulario: ${formTitle}` : ""}
+              {nombre?.trim() && formTitle && formTitle !== nombre.trim() ? ` (título en el formulario: ${formTitle})` : ""}
             </span>
           </div>
         </div>
@@ -219,7 +221,7 @@ export function FormSummaryView({
                 <span className="pulso-xf-res-panel-nota">{resumen.preguntas} preguntas</span>
               </header>
               {resumen.preguntas === 0 ? (
-                <p className="pulso-xf-res-vacio">Aún no hay preguntas: agrega la primera en el Constructor.</p>
+                <EstadoVacio icono={<FileText size={16} />} titulo="Aún no hay preguntas" descripcion="Agrega la primera en el Constructor." />
               ) : (
                 <div className="pulso-xf-res-comp-pila" data-qa-geometry-group="xlsform/resumen-composicion" data-qa-geometry-contract="intrinsic">
                   <TiposConMaqueta tipos={resumen.tipos} total={resumen.preguntas} />

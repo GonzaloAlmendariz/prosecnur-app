@@ -27,7 +27,7 @@ export function LineaTiempo({ filas, segundos, resaltada, onResaltar }: {
       </header>
       <ol className="pulso-xf-res-tiempo-barra" data-qa-geometry-group="xlsform/resumen-recorrido" data-qa-geometry-contract="intrinsic">
         {tramos.map((f, i) => {
-          const texto = `${f.rotulo} · ${duracion(f.segundos)}`;
+          const texto = `${f.rotulo}, ${duracion(f.segundos)}`;
           return (
             <li key={f.id} style={{ flexGrow: f.segundos }} data-qa-geometry-member="">
               <button

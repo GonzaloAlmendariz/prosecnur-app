@@ -137,36 +137,8 @@
   padding: var(--pulso-space-5) var(--pulso-space-6) var(--pulso-space-7);
 }
 
-/* Estados terminales del panel: cargando, vacío honesto, error. Contienen su
-   propio vacío (C3) dentro del cuerpo. */
-.pulso-plf-estado {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: var(--pulso-space-2);
-  padding: var(--pulso-space-5);
-  border: 1px dashed var(--pulso-border-strong);
-  border-radius: var(--pulso-radius-card);
-  background: var(--pulso-surface);
-  color: var(--pulso-text-soft);
-  font-size: var(--pulso-type-body-size);
-  line-height: 1.5;
-}
+/* Los estados terminales del panel (cargando, vacío honesto, error) son
+   LoadingBlock, EstadoVacio y ErrorBlock del kit (pasada de formato, 4 nov 2026). */
 
-.pulso-plf-estado strong {
-  color: var(--pulso-text);
-  font-size: var(--pulso-type-subtitle-size);
-  font-weight: var(--pulso-weight-semibold);
-}
 
-.pulso-plf-estado p {
-  margin: 0;
-  max-width: 62ch;
-}
 
-.pulso-plf-estado.is-error {
-  border-style: solid;
-  border-color: var(--pulso-danger-border);
-  background: var(--pulso-danger-bg);
-  color: var(--pulso-danger-fg);
-}
