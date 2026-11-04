@@ -72,8 +72,11 @@
     # fila de arriba (antes 0,04) con la misma fila (`aire_cifra_chica`) y la misma separación entre cifras.
     # N9b: la caja mide 0,22 in y acaba a la altura de la base del glifo (el texto lleva 0,05 in de margen superior y
     # desborda sin recorte); la guía (0,03 in) y su codo (a 0,04 in) quedan a 0,02 in por debajo de ella: ya no tocan el número.
+    nuevo <- identical(attr(pos, "reparto"), "nuevo")
+    # Ítem 20 (v7 RV): el reparto nuevo ya no traza diagonales; sus guías van rectas por un carril común.
     for (k in seq_along(peq)) {
-      .lam_callout_guia(lz, cs[k], pos[k], y, 0.03, y - 0.04, identical(attr(pos, "reparto"), "nuevo"), tenue)   # CCSS-14
+      if (nuevo) .lam_callout_carril(lz, cs[k], pos[k], y, tenue, y_cifra = y - 0.06) else
+        .lam_callout_guia(lz, cs[k], pos[k], y, 0.03, y - 0.04, FALSE, tenue)   # CCSS-14: la de siempre (Arte idéntico)
       .lam_txt(lz, peq[[k]]$v, pos[k] - 0.32, y - 0.28, 0.64, 0.22, .std_pt("cifra_fuera"), azul, bold = TRUE,
                align = "center", nombre = "cifra_fuera")
     }
