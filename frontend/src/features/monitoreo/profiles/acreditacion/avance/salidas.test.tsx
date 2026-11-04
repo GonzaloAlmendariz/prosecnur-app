@@ -58,7 +58,8 @@ describe("Avance › Salidas", () => {
     expect(tabla?.total?.[6]).toBe("30");
     expect(tabla?.filas[2].celdas[4]).toBe("—");
     expect(tabla?.total?.[4]).toBe("158");
-    expect(tabla?.total?.[5]).toBe(`${((177 / 158) * 100).toFixed(1)} %`);
+    // El cumplimiento tampoco compensa: A aporta a lo sumo su mínimo (108) y B sus 20, sobre 158.
+    expect(tabla?.total?.[5]).toBe(`${(((108 + 20) / 158) * 100).toFixed(1)} %`);
   });
 
   it("sin ningún mínimo declarado, la hoja no publica las columnas del mínimo", () => {

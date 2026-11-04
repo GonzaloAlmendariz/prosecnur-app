@@ -20,8 +20,9 @@ export type TerritorialOutputsPanelProps = {
 
 /**
  * La tabla de la hoja del cliente: lo que cuenta contra la meta en cada distrito. «Faltan» del total suma lo que
- * falta en cada distrito: lo que sobra en uno no cubre lo que falta en otro. El avance del total sale de las mismas
- * sumas de la tabla, para que la fila cuadre con sus columnas (revisión metodológica del 4 nov 2026).
+ * falta en cada distrito: lo que sobra en uno no cubre lo que falta en otro. El avance del total es lo cubierto (cada
+ * distrito aporta a lo sumo su meta) sobre la meta, igual que el PDF (`monitoreo_avance_sin_compensar.R`): así el
+ * total nunca dice 100 % con algo por recoger (revisión metodológica del 4 nov 2026).
  */
 export function tablaTerritorialDelCliente(reports: MonitoreoTerritorialDashboard | null | undefined): TablaDelCliente | null {
   const resumen = construirResumen(reports);
@@ -35,7 +36,7 @@ export function tablaTerritorialDelCliente(reports: MonitoreoTerritorialDashboar
       clave: fila.distrito,
       celdas: [fila.distrito, formatoConteo(fila.meta), <b key="c">{formatoConteo(fila.cuentan)}</b>, formatoConteo(faltan(fila)), fila.avance],
     })),
-    total: ["Total", formatoConteo(suma("meta")), formatoConteo(suma("cuentan")), formatoConteo(resumen.distritos.reduce((t, fila) => t + faltan(fila), 0)), pctEntero(suma("cuentan"), suma("meta"))],
+    total: ["Total", formatoConteo(suma("meta")), formatoConteo(suma("cuentan")), formatoConteo(resumen.distritos.reduce((t, fila) => t + faltan(fila), 0)), pctEntero(resumen.distritos.reduce((t, fila) => t + Math.min(fila.cuentan, fila.meta), 0), suma("meta"))],
   };
 }
 
