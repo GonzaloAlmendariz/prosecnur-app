@@ -119,9 +119,9 @@ export default function InstrumentoOperationalControls({
           >
             <StatusChip active={value.field_period.enabled} label={statusLabels.fieldPeriod} />
             <StatusChip active={value.duplicates.enabled} label={statusLabels.duplicates} />
-            {dirty && <span className="pulso-operational-estado"><EstadoChip tone="warn" label="Cambios sin aplicar" /></span>}
+            {dirty && <EstadoChip tone="warn" label="Cambios sin aplicar" />}
             {Object.keys(errors).length > 0 && (
-              <span className="pulso-operational-estado"><EstadoChip tone="danger" label="Requiere completar" /></span>
+              <EstadoChip tone="danger" label="Requiere completar" />
             )}
           </span>
           <span className="pulso-operational-edit-label">
@@ -279,9 +279,7 @@ export default function InstrumentoOperationalControls({
 }
 
 function StatusChip({ active, label }: { active: boolean; label: string }) {
-  // Envuelto: la auditoría de geometría mide los hijos elemento y no ve el rótulo de texto del
-  // EstadoChip, así que leía el punto de 7 px como el fondo del chip (capacity-drift de 5.3 px).
-  return <span className="pulso-operational-estado"><EstadoChip tone={active ? "info" : "neutral"} label={label} /></span>;
+  return <EstadoChip tone={active ? "info" : "neutral"} label={label} />;
 }
 
 function OperationalCard({

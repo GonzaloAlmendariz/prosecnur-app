@@ -332,10 +332,6 @@
   gap: 5px;
 }
 
-.pulso-operational-chips > .pulso-operational-estado {
-  display: inline-flex;
-}
-
 .pulso-operational-edit-label {
   justify-content: flex-end;
   color: var(--pulso-primary);
