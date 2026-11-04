@@ -27,18 +27,27 @@
   !(v %in% categorias) & (is.na(v) | !nzchar(limpio) | limpio %in% as.character(codigos))
 }
 
-# Evalua `expr` con una semilla fija sin alterar el RNG global de la sesion.
+# Generador fijo: la semilla sola no reproduce si la sesion cambio de RNGkind.
+.PONDERACION_RNG_IMPUTACION <- c(kind = "Mersenne-Twister", normal.kind = "Inversion",
+                                 sample.kind = "Rejection")
+
+# Evalua `expr` con una semilla y un generador fijos sin alterar el RNG global
+# de la sesion (ni la semilla ni el tipo de generador).
 .ponderacion_con_semilla <- function(semilla, expr) {
   habia <- exists(".Random.seed", envir = .GlobalEnv, inherits = FALSE)
   if (habia) guardada <- get(".Random.seed", envir = .GlobalEnv, inherits = FALSE)
+  kind_previo <- RNGkind()
   on.exit({
+    suppressWarnings(RNGkind(kind_previo[[1]], kind_previo[[2]], kind_previo[[3]]))
     if (habia) {
       assign(".Random.seed", guardada, envir = .GlobalEnv)
     } else if (exists(".Random.seed", envir = .GlobalEnv, inherits = FALSE)) {
       rm(".Random.seed", envir = .GlobalEnv)
     }
   }, add = TRUE)
-  set.seed(semilla)
+  rng <- .PONDERACION_RNG_IMPUTACION
+  suppressWarnings(set.seed(semilla, kind = rng[["kind"]], normal.kind = rng[["normal.kind"]],
+                            sample.kind = rng[["sample.kind"]]))
   force(expr)
 }
 
@@ -93,9 +102,12 @@
       imputado <- originales[[v]]
       colapsados <- 0L
       celdas_vacias <- character()
+      sin_celda <- 0L
+      hecho <- rep(FALSE, n)
       for (i in receptores) {
         clave <- otros[vapply(otros, function(o) isTRUE(validos[[o]][i]), logical(1))]
         clave_inicial <- clave
+        if (length(otros) && !length(clave_inicial)) sin_celda <- sin_celda + 1L
         repeat {
           donantes <- validos[[v]]
           for (o in clave) donantes <- donantes & validos[[o]] & originales[[o]] == originales[[o]][i]
@@ -103,30 +115,50 @@
           if (length(donantes) || !length(clave)) break
           clave <- clave[-length(clave)]
         }
-        if (!identical(clave, clave_inicial)) {
+        if (length(donantes) && !identical(clave, clave_inicial)) {
           colapsados <- colapsados + 1L
           celdas_vacias <- c(celdas_vacias, paste(sprintf("%s = %s", clave_inicial,
             vapply(clave_inicial, function(o) originales[[o]][i], character(1))), collapse = ", "))
         }
-        if (length(donantes)) imputado[i] <- originales[[v]][donantes[sample.int(length(donantes), 1L)]]
+        if (length(donantes)) {
+          imputado[i] <- originales[[v]][donantes[sample.int(length(donantes), 1L)]]
+          hecho[i] <- TRUE
+        }
+      }
+      sin_donante <- length(receptores) - sum(hecho)
+      if (sin_donante > 0L) {
+        # Ni toda la muestra tiene un caso con categoria valida: no hay de donde
+        # imputar. Esos casos quedan fuera del margen, como con «excluir».
+        avisos[[length(avisos) + 1L]] <- .ponderacion_aviso(
+          "warn", "imputacion_sin_donantes",
+          sprintf("%d casos sin dato en «%s» no se imputaron porque ningún caso de la base tiene una categoría con meta (%s): quedan fuera del margen y conservan su peso. Revisa que las categorías de las metas sean las de la base.",
+                  sin_donante, v, paste(cats[[v]], collapse = ", ")),
+          var = v, casos = as.integer(sin_donante)
+        )
       }
       data_cal[[v]] <- imputado
-      marca[[v]] <- faltan[[v]]
-      valores[[v]] <- imputado[receptores]
+      marca[[v]] <- hecho
+      valores[[v]] <- imputado[hecho]
       variables[[v]] <- list(
-        imputados = length(receptores),
+        imputados = as.integer(sum(hecho)),
+        sin_donante = as.integer(sin_donante),
         pct = pct[[v]],
         colapsados = colapsados,
         celda = otros
       )
-      avisos[[length(avisos) + 1L]] <- .ponderacion_aviso(
-        "info", "imputacion_aplicada",
-        sprintf("Se imputaron %d casos sin dato en «%s» (%s %%) por hot-deck dentro de celdas de %s, con semilla %d, sólo para calcular el peso: la variable de la base no cambia.",
-                length(receptores), v, .ponderacion_pct_txt(pct[[v]]),
-                if (length(otros)) paste(sprintf("«%s»", otros), collapse = " × ") else "toda la muestra",
-                semilla),
-        var = v, casos = length(receptores)
-      )
+      if (any(hecho)) {
+        donde <- if (length(otros)) paste(sprintf("«%s»", otros), collapse = " × ") else "toda la muestra"
+        if (length(otros) && sin_celda > 0L) {
+          donde <- sprintf("%s (en toda la muestra para %d casos sin dato también en esas variables)",
+                           donde, sin_celda)
+        }
+        avisos[[length(avisos) + 1L]] <- .ponderacion_aviso(
+          "info", "imputacion_aplicada",
+          sprintf("Se imputaron %d casos sin dato en «%s» (%s %%) por hot-deck dentro de celdas de %s, con semilla %d, sólo para calcular el peso: la variable de la base no cambia.",
+                  sum(hecho), v, .ponderacion_pct_txt(pct[[v]]), donde, semilla),
+          var = v, casos = as.integer(sum(hecho))
+        )
+      }
       if (colapsados > 0L) {
         celdas <- sort(unique(celdas_vacias))
         avisos[[length(avisos) + 1L]] <- .ponderacion_aviso(
@@ -145,6 +177,7 @@
       semilla = semilla,
       umbral = umbral,
       metodo = "hot-deck en celdas de las otras variables de calibración",
+      rng = as.list(.PONDERACION_RNG_IMPUTACION),
       variables = variables,
       valores = valores,
       marca = marca

@@ -313,10 +313,16 @@
     tgt <- .ponderacion_normalize_targets(m$targets)
     if (is.null(tgt)) next
     v <- as.character(data[[var]])
+    # Las proporciones se leen entre los casos con categoria valida, que es
+    # sobre lo que el raking calibra («dejar fuera del margen»). Contra el total
+    # con NA, un margen que cierra se veia incumplido. Sin NA es lo de siempre.
+    dentro <- !is.na(v) & v %in% names(tgt)
+    v <- v[dentro]
+    wd <- w[dentro]
     n <- length(v)
-    unw <- table(v) / n
-    wt <- tapply(w, v, sum)
-    tot_w <- sum(w)
+    unw <- if (n > 0) table(v) / n else table(v)
+    wt <- tapply(wd, v, sum)
+    tot_w <- sum(wd)
     rows <- lapply(names(tgt), function(lvl) {
       list(
         categoria = lvl,

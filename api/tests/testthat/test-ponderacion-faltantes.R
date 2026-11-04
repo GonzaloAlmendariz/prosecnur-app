@@ -207,3 +207,65 @@ test_that("la normalización lleva faltantes e imputación al motor", {
   ))
   expect_null(legacy$rake$faltantes)
 })
+
+# --- lecturas del resultado (revisión del verificador) --------------------------
+
+test_that("con «excluir» la tabla de márgenes se lee entre los válidos y cierra en la meta", {
+  r <- ponderacion_compute(.fa_datos_10(), .fa_cfg(.fa_sexo))
+  filas <- r$margins$sexo
+  pond <- vapply(filas, `[[`, numeric(1), "ponderado")
+  expect_equal(pond, c(0.5, 0.5), tolerance = 1e-9)
+  muestra <- vapply(filas, `[[`, numeric(1), "muestra")
+  expect_equal(muestra, c(50, 40) / 90, tolerance = 1e-12)
+  # Con dos márgenes y NA en el primero, el segundo se lee con su propio peso.
+  data <- .fa_datos_imp(8L)
+  r2 <- ponderacion_compute(data, .fa_cfg(.fa_margins_imp))
+  expect_true(r2$converged)
+  pond_edad <- vapply(r2$margins$edad, `[[`, numeric(1), "ponderado")
+  expect_equal(pond_edad, c(.3, .4, .3), tolerance = 1e-6)
+  pond_sexo <- vapply(r2$margins$sexo, `[[`, numeric(1), "ponderado")
+  expect_equal(pond_sexo, c(.5, .5), tolerance = 1e-6)
+})
+
+test_that("sin ningún donante posible no se cuenta como imputado y se dice por qué", {
+  data <- data.frame(sexo = rep(NA_character_, 40), edad = rep(c("joven", "mayor"), 20),
+                     stringsAsFactors = FALSE)
+  r <- ponderacion_compute(data, .fa_cfg(
+    list(list(var = "sexo", targets = c(H = .5, M = .5)),
+         list(var = "edad", targets = c(joven = .5, mayor = .5))),
+    faltantes = "imputar", imputacion = list(umbral = 1)
+  ))
+  expect_identical(r$imputacion$variables$sexo$imputados, 0L)
+  expect_identical(r$imputacion$variables$sexo$sin_donante, 40L)
+  expect_false(any(r$imputacion$marca$sexo))
+  codes <- vapply(r$avisos, `[[`, "", "code")
+  expect_true("imputacion_sin_donantes" %in% codes)
+  expect_false("imputacion_aplicada" %in% codes)
+  expect_false("celda_sin_donantes" %in% codes)
+  av <- .fa_avisos(r, "imputacion_sin_donantes")[[1]]
+  expect_match(av$message, "ningún caso de la base", fixed = TRUE)
+})
+
+test_that("un receptor sin dato en las demás variables se imputa de toda la muestra y el aviso lo dice", {
+  data <- .fa_datos_imp(0L)
+  data$sexo[1:3] <- NA
+  data$edad[1:3] <- NA
+  r <- ponderacion_compute(data, .fa_cfg(.fa_margins_imp, faltantes = "imputar"))
+  av <- .fa_avisos(r, "imputacion_aplicada")
+  msg_sexo <- Filter(function(a) identical(a$var, "sexo"), av)[[1]]$message
+  expect_match(msg_sexo, "en toda la muestra para 3 casos", fixed = TRUE)
+  expect_length(.fa_avisos(r, "celda_sin_donantes"), 0)
+})
+
+test_that("la imputación fija su generador: otro RNGkind en la sesión no cambia el resultado ni queda tocado", {
+  data <- .fa_datos_imp(8L)
+  cfg <- .fa_cfg(.fa_margins_imp, faltantes = "imputar", imputacion = list(semilla = 5L))
+  base <- ponderacion_compute(data, cfg)
+  previo <- RNGkind()
+  on.exit(do.call(RNGkind, as.list(previo)), add = TRUE)
+  suppressWarnings(RNGkind("L'Ecuyer-CMRG", "Box-Muller", "Rounding"))
+  otro <- ponderacion_compute(data, cfg)
+  expect_identical(otro$imputacion$valores, base$imputacion$valores)
+  expect_identical(RNGkind(), c("L'Ecuyer-CMRG", "Box-Muller", "Rounding"))
+  expect_identical(base$imputacion$rng$kind, "Mersenne-Twister")
+})

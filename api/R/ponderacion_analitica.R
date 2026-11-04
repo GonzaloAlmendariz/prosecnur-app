@@ -184,7 +184,7 @@
   if (!is.null(res$imputacion)) {
     # El estado lleva el resumen; la marca por caso viaja en su propio atributo.
     # La imputacion solo sirvio para el peso: las columnas de `data` no cambian.
-    estado$imputacion <- res$imputacion[c("semilla", "umbral", "metodo", "variables")]
+    estado$imputacion <- res$imputacion[c("semilla", "umbral", "metodo", "rng", "variables")]
     if (length(res$imputacion$marca)) {
       attr(data, "ponderacion_imputados") <- as.data.frame(res$imputacion$marca, check.names = FALSE)
     }
@@ -402,7 +402,7 @@
     peso_base = res$peso_base,
     recorte = res$recorte,
     faltantes = res$faltantes,
-    imputacion = if (is.null(res$imputacion)) NULL else res$imputacion[c("semilla", "umbral", "metodo", "variables")],
+    imputacion = if (is.null(res$imputacion)) NULL else res$imputacion[c("semilla", "umbral", "metodo", "rng", "variables")],
     warnings = .analitica_ponderacion_warnings(res)
   )
 }
