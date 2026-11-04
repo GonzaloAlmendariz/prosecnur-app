@@ -114,6 +114,19 @@ Las baterías de frecuencia de redes sociales y de IA generativa declaran su Top
 - **Franja dicotómica en una mitad (ítem 14).** Una franja Sí/No con tarjetas no reserva alto. La franja se agranda (cifra de 30 pt, barra de 0,55 in, a todo el ancho de la mitad) y sus tarjetas van pegadas debajo, sin filete. El bloque se centra en el alto de la mitad. La receta del panel conserva el estilo de la lámina, para que su título sea como el de la otra mitad.
 - **Lámina de lectura (ítem 1).** La tarjeta de ejemplo va a escala 1,75 desde el margen, la diferencia en puntos llena la derecha y la leyenda va en una fila de 13 pt a lo ancho. El conjunto se reparte en el alto entre la definición y el método.
 
+### 9. Desglose en línea y cifra al lado (2026-11-04, ítem 6 de la v7.11, alternativa B)
+
+Maqueta «Colegio y resumen ejecutivo» (2026-11-04), `02_colegio_B_cifra_y_desglose_en_linea.png`.
+
+- **Modo en línea.** `meta.tarjetas_diferencias.modo = "en_linea"` (en una lámina de dos gráficos, en la opción de su ranura). En una categórica en barras sin cruce, bajo cada opción que difiere va el rótulo del cruce en versalitas («SEGÚN ESTUDIOS DE PADRES») y sus grupos como barras finas en la misma escala que el total, con su cifra y su marca: ▲ azul y ▼ naranja al 99%, barra clara y triángulo hueco al 95%. Los grupos van con su nombre corto. Las opciones van sobre una pista gris al 100%. La lámina lleva una fila de leyenda de las marcas.
+- **Tope.** Hasta dos opciones con desglose y un cruce por opción, el de la tarjeta de mayor prioridad. Las demás diferencias se avisan («quedan en las tablas de cruces»). Con otro gráfico van las tarjetas de siempre, con aviso.
+- **Alto.** Si no cabe, la letra de las opciones baja de 14 a 11 pt y su fila hasta 0,32 in; el desglose conserva su medida. Si ni así cabe, avisa que hay que acortar los rótulos (`rotulos_cortos`).
+- **Cifra al lado.** Es una disposición de `p_slide_2_graficos` y no un tipo nuevo: `meta.composicion = "cifra_lateral"` con la cifra en `meta.cifra` (`fila`, `texto`, `rotulo`, `franja`, `comparacion`).
+  - Un tipo nuevo exigía crecer `reporte_plan_ppt.R`, que está congelado, y el catálogo de tipos. La de dos gráficos ya trae las dos ranuras renderizadas y su Word (dos figuras con sus tarjetas).
+  - Vive en `lamina_cifra_y_grafico.R` y no en `lamina_hallazgos.R`. De hallazgos reusa sin cambiarlos el modelo de la cifra (`.halla_kpi_modelo`: valor, intervalo con el diseño por aula, comparación automática con la prueba del informe) y sus piezas (marco, barra de intervalo, comparación).
+  - La izquierda, un tercio de la lámina, lleva la tarjeta de la cifra: rótulo, cifra de 60 pt, lo que mide, la franja partida al 100% con el intervalo debajo y las dos opciones, y la comparación completa en hasta dos líneas. La derecha lleva la pregunta del gráfico, «Respuesta múltiple…» si suma más de 100%, y el gráfico con su desglose en línea.
+  - Al pie van la leyenda de marcas y el método. Si algo falta (`meta.cifra.fila`, un gráfico que no es categórica), la lámina va como dos gráficos, con aviso.
+
 ## Consecuencias
 
 - Una diferencia de nivel puede quedar al 95% o desaparecer frente a la maqueta, que usaba una familia propia y más chica. Pasó en CCSS con nivel 7 en «ONG» y con padres en «posgrado».
@@ -126,5 +139,6 @@ Las baterías de frecuencia de redes sociales y de IA generativa declaran su Top
 - Tokens de color: `ppt.colores.tarjeta_*` y `verde_acuerdo` en `api/inst/estandar/estandar_pulso.json`.
 - Tests: `api/tests/testthat/test-graficos-tarjetas-diferencias.R` `api/tests/testthat/test-graficos-tarjetas-todas.R` `api/tests/testthat/test-graficos-tarjetas-ranuras.R` y `api/tests/testthat/test-graficos-tarjetas-sin-ttb.R`.
 - Por ranura: `api/R/graficos_tarjetas_ranuras.R` y `api/R/lamina_tarjetas_ranuras.R`.
+- En línea y cifra al lado: `api/R/lamina_tarjetas_en_linea.R`, `api/R/lamina_cifra_y_grafico.R` y `api/tests/testthat/test-graficos-tarjetas-en-linea.R`.
 - Columna con llave: `api/R/lamina_columna_llave.R`.
 - UI: interruptor «Tarjetas de diferencias» en la sección «Diferencias entre grupos» del inspector de la lámina.

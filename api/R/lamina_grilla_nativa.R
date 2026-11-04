@@ -65,8 +65,16 @@
 #' @keywords internal
 .lam_slide_2_despacho <- function(doc, ps, els, slide, titulo, presets, layout, master, antetitulo, base_auto, nota_de,
                                   por_lamina = function(doc) doc, titulo_de_var = NULL) {
+  motor <- parent.frame()
+  # ADR 0129 §9: la cifra al lado y el gráfico con su desglose en línea (lamina_cifra_y_grafico.R).
+  if (.lam_cifra_lateral_aplica(slide)) {
+    r <- tryCatch(.lam_slide_cifra_y_grafico(doc, ps, els, slide, titulo, presets, antetitulo, base_auto, por_lamina, env = motor,
+                                             layout = layout, master = master),
+                  error = function(e) { if (exists(".pulso_aviso", mode = "function")) .pulso_aviso(paste0("Cifra y gráfico: ", conditionMessage(e))); NULL })
+    if (!is.null(r)) return(r)
+  }
   # ADR 0129 §6: con tarjetas por ranura la lámina va por la composición mixta, con los paneles acortados.
-  ts <- .tarjetas_de_ranuras(ps, els, slide, parent.frame())
+  ts <- .tarjetas_de_ranuras(ps, els, slide, motor)
   if (!is.null(ts)) {
     return(.lam_slide_2_con_tarjetas(doc, ts, function(d) .lam_slide_2_mixta(d, ps, els, slide, titulo, presets, antetitulo, base_auto,
                                                                              por_lamina, titulo_de_var),
