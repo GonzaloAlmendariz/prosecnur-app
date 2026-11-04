@@ -1,6 +1,7 @@
 import { sinDefaultHeredado } from "./panes/codigosEspecialesModel";
 import { create } from "zustand";
 import { DEFAULT_NOTAS_PIE, normalizeNotasPie, type NotasPieConfig } from "./panes/notasPieModel";
+import { conDiseno, conMargen, conOpcionesRake, conRecorte, sinMargen } from "./ponderacionConfigModel";
 
 export type { NotasPieConfig } from "./panes/notasPieModel";
 
@@ -327,7 +328,44 @@ export type PonderMargin = {
   var: string;
   // categoría -> objetivo poblacional (proporción o conteo; el motor normaliza).
   targets: Record<string, number>;
+  /**
+   * De dónde salen las metas cuando no se teclean: el CPV 2025 con el mapeo
+   * categoría de la base → categorías del censo. El motor lo ignora (usa
+   * `targets`); sirve para rehacer las metas y declarar la fuente.
+   */
+  fuente?: MetaFuenteCpv | null;
 };
+/** Metas tomadas del CPV 2025: qué variable del censo y cómo se mapeó. */
+export type MetaFuenteCpv = {
+  tipo: "cpv2025";
+  variable: string;
+  /** categoría de la base → categorías del CPV que suma. */
+  mapeo: Record<string, string[]>;
+};
+/** Ámbito y agrupaciones con que se pidieron las metas del CPV 2025. */
+export type MetasCpvConfig = {
+  distritos: string[];
+  provincias: string[];
+  grupos_edad: { etiqueta: string; min: number; max: number | null }[];
+  agrupacion_educacion: string;
+  desagregacion: "ninguna" | "distrito" | "provincia";
+  consultado?: string;
+};
+export type PonderDesign = {
+  /** Estrato y su población: reequilibra la asignación. */
+  var?: string;
+  pop_sizes?: Record<string, number>;
+  /** Peso base desde una columna de la base (1/π por caso); manda sobre `var`. */
+  peso_columna?: string;
+};
+export type PonderRake = {
+  margins: PonderMargin[];
+  /** NA/98/99 en una variable de margen: quedan fuera del margen o se imputan. */
+  faltantes?: "excluir" | "imputar";
+  imputacion?: { umbral?: number; semilla?: number };
+  codigos_faltantes?: string[];
+};
+export type PonderTrim = { cap: number; recalibrar?: boolean; max_ciclos?: number; tol_margen?: number };
 export type PonderacionConfig = {
   enabled: boolean;
   /**
@@ -339,9 +377,15 @@ export type PonderacionConfig = {
   modo?: "calibracion" | "columna";
   /** Columna de la base que es el peso, sólo con `modo: "columna"`. */
   peso_columna?: string;
-  design?: { var: string; pop_sizes: Record<string, number> } | null;
-  rake: { margins: PonderMargin[] };
-  trim?: { cap: number } | null;
+  design?: PonderDesign | null;
+  rake: PonderRake;
+  trim?: PonderTrim | null;
+  /** `expansion`: Σw = N̂; ausente o `media1`: media 1. */
+  escala?: "media1" | "expansion";
+  /** N̂ explícito cuando las metas están en proporciones. */
+  total_poblacion?: number | null;
+  /** Última petición de metas al CPV 2025 (para rehacerlas y declararlas). */
+  metas_cpv2025?: MetasCpvConfig | null;
 };
 
 export type AnaliticaConfig = {
@@ -591,6 +635,12 @@ type AnaliticaStore = {
   }) => void;
   upsertPonderMargin: (m: PonderMargin) => void;
   removePonderMargin: (varName: string) => void;
+  /** Mezcla sobre el diseño: editar el estrato no borra el peso base. */
+  setPonderDesign: (patch: Partial<PonderDesign> | null) => void;
+  /** Mezcla sobre las opciones del raking (NA/98/99) sin tocar los márgenes. */
+  setPonderRake: (patch: Partial<Omit<PonderRake, "margins">>) => void;
+  /** Mezcla sobre el recorte; `null` lo quita. */
+  setPonderTrim: (patch: Partial<PonderTrim> | null) => void;
 
   // Orden de categorías por list_name. `setOrdenCategorias` guarda la
   // secuencia explícita; `clearOrdenCategorias` borra el override (restaura
@@ -945,23 +995,19 @@ export const useAnaliticaStore = create<AnaliticaStore>((set) => ({
     ),
 
   upsertPonderMargin: (m) =>
-    set((s) => {
-      const margins = (s.config.ponderacion.rake?.margins ?? []).slice();
-      const i = margins.findIndex((x) => x.var === m.var);
-      if (i >= 0) margins[i] = m;
-      else margins.push(m);
-      return dirty({
-        config: { ...s.config, ponderacion: { ...s.config.ponderacion, rake: { margins } } },
-      });
-    }),
+    set((s) => dirty({ config: { ...s.config, ponderacion: conMargen(s.config.ponderacion, m) } })),
 
   removePonderMargin: (varName) =>
-    set((s) => {
-      const margins = (s.config.ponderacion.rake?.margins ?? []).filter((x) => x.var !== varName);
-      return dirty({
-        config: { ...s.config, ponderacion: { ...s.config.ponderacion, rake: { margins } } },
-      });
-    }),
+    set((s) => dirty({ config: { ...s.config, ponderacion: sinMargen(s.config.ponderacion, varName) } })),
+
+  setPonderDesign: (patch) =>
+    set((s) => dirty({ config: { ...s.config, ponderacion: conDiseno(s.config.ponderacion, patch) } })),
+
+  setPonderRake: (patch) =>
+    set((s) => dirty({ config: { ...s.config, ponderacion: conOpcionesRake(s.config.ponderacion, patch) } })),
+
+  setPonderTrim: (patch) =>
+    set((s) => dirty({ config: { ...s.config, ponderacion: conRecorte(s.config.ponderacion, patch) } })),
 
   setOrdenCategorias: (listName, codes) =>
     set((s) => {
