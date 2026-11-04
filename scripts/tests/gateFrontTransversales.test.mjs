@@ -37,7 +37,7 @@ function contratos(dir) {
   return readdirSync(`${RAIZ}${dir}`, { withFileTypes: true }).flatMap((e) => {
     const ruta = `${dir}/${e.name}`;
     if (e.isDirectory()) return e.name === "node_modules" || e.name === "__tests__" ? [] : contratos(ruta);
-    return e.name.endsWith(".contract.test.ts") ? [ruta] : [];
+    return /\.contract\.test\.tsx?$/.test(e.name) ? [ruta] : [];
   });
 }
 

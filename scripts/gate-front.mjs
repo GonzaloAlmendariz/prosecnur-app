@@ -52,6 +52,9 @@ const TRANSVERSALES = [
   "src/lib/navegacion/aliasLegacyNoSeEscribe.contract.test.ts", // un alias viejo (tab, stage…) que se escribe
   "src/lib/navegacion/direccionesRenombradasNoSeEscriben.contract.test.ts", // una dirección renombrada que vuelve
   "src/components/GlidingTabList.contract.test.ts",           // un tablist fuera del GlidingTabList
+  // La publicación monta sin Router: un hook de router en lo que alcanza lanza al montarse (7453e06dc).
+  // Recorre el cierre de imports de PublicArtifactApp, así que se rompe desde cualquier componente que importe.
+  "src/app/publicModeSinRouter.contract.test.tsx",
 ];
 
 const area = process.argv[2] ?? "";
