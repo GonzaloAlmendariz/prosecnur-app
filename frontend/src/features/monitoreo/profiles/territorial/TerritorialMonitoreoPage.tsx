@@ -1133,6 +1133,7 @@ function renderView(
         internalSheets={state?.publication?.internal_last_sheets ?? null}
         corte={corteTerritorial(state, reports)}
         syncedAt={state?.synced_at ?? ""}
+        reports={reports}
         onPublished={options.onPublished}
       />
     );

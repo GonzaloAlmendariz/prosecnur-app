@@ -34,10 +34,12 @@ const PRODUCCION: Record<FamiliaDeSalidas, string> = {
   aulas: "por aplicador",
 };
 
+/** «02/07»: día y mes con dos dígitos (el `toLocaleDateString` de es-PE los recorta a «2/7»). */
 function fecha(iso?: string): string {
   const d = iso ? new Date(iso) : null;
   if (!d || Number.isNaN(d.getTime())) return "";
-  return d.toLocaleDateString("es-PE", { day: "2-digit", month: "2-digit" });
+  const dos = (n: number) => String(n).padStart(2, "0");
+  return `${dos(d.getDate())}/${dos(d.getMonth() + 1)}`;
 }
 
 function filaDeSheets(clave: ClaveDeSalida, titulo: string, publicacion: MonitoreoLastSheetsPublication | null | undefined, puede: boolean, quien: string): FilaDeSalida {
