@@ -49,7 +49,13 @@
     if (is.character(obj)) obj <- .inclusivo_parentesis(obj)
     attributes(obj) <- a
     lb <- attr(obj, "labels", exact = TRUE)
-    if (!is.null(lb) && !is.null(names(lb))) { names(lb) <- .inclusivo_parentesis(names(lb)); attr(obj, "labels") <- lb }
+    if (!is.null(lb)) {
+      # En haven los nombres son las etiquetas; en las variables recodificadas va al revés (código = etiqueta, como
+      # A9_otro_recod de CCSS). Se convierten los dos lados: un código no lleva barra de género.
+      if (!is.null(names(lb))) names(lb) <- .inclusivo_parentesis(names(lb))
+      if (is.character(lb)) { nm <- names(lb); lb <- .inclusivo_parentesis(lb); names(lb) <- nm }
+      attr(obj, "labels") <- lb
+    }
     l1 <- attr(obj, "label", exact = TRUE)
     if (is.character(l1)) attr(obj, "label") <- .inclusivo_parentesis(l1)
     if (!is.null(names(obj))) names(obj) <- .inclusivo_parentesis(names(obj))

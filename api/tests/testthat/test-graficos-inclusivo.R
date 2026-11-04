@@ -34,6 +34,9 @@ test_that("se aplica a valores, nombres, niveles de factor y etiquetas de haven,
   expect_identical(attr(ch2, "label"), "¿Cómo te sientes más cómodo(a)?")
   expect_identical(names(attr(ch2, "labels")), "Abuelos(as)")
   expect_identical(as.vector(ch2), c("Abuelos(as)", "Tíos(as)"))
+  rec <- structure(c("1", "2"), labels = c(`1` = "Abuelos/as", `2` = "Tíos/as"))   # recodificada: código = etiqueta
+  expect_identical(unname(attr(.inclusivo_en(rec), "labels")), c("Abuelos(as)", "Tíos(as)"))
+  expect_identical(names(attr(.inclusivo_en(rec), "labels")), c("1", "2"))
 })
 
 test_that("el job trabaja sobre copias: los RDS originales no cambian", {
