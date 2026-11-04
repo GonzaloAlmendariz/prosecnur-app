@@ -2431,6 +2431,9 @@ span.pulso-validacion-base-current {
   position: sticky;
   top: var(--pulso-validacion-sticky-top, 0px);
   z-index: 4;
+  /* Fija sobre el contenido que desplaza: fondo opaco. El del Panel es semitransparente y la
+     cola se transparentaba por debajo al hacer scroll (verificador, 4 nov 2026). */
+  background: var(--pulso-surface);
   display: flex;
   flex-direction: column;
   gap: 2px;
