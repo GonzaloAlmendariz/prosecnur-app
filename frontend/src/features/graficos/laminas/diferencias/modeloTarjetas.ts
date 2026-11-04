@@ -37,3 +37,17 @@ export function tarjetasAlternadas(meta: SlideMeta, activo: boolean): boolean | 
   if (activo) return tieneConfig ? { ...resto, activo: true } : true;
   return tieneConfig ? { ...resto, activo: false } : undefined;
 }
+
+/** ¿Muestran todos los grupos, aunque no difieran? (`todas`, apagada por defecto). */
+export function tarjetasTodas(meta: SlideMeta): boolean {
+  const t = meta.tarjetas_diferencias;
+  return !!t && typeof t === "object" && t.todas === true;
+}
+
+/** El valor de `tarjetas_diferencias` al alternar «todos los grupos»: conserva el resto de la opción y las deja encendidas. */
+export function tarjetasConTodas(meta: SlideMeta, todas: boolean): TarjetasDiferenciasMeta {
+  const t = meta.tarjetas_diferencias;
+  const opcion: TarjetasDiferenciasMeta = t && typeof t === "object" ? { ...t } : {};
+  const { todas: _previa, activo: _activo, ...resto } = opcion;
+  return todas ? { ...resto, activo: true, todas: true } : { ...resto, activo: true };
+}
