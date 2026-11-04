@@ -27,9 +27,14 @@ P5 (declaradas la preparación de la Ficha y el valor de readiness `analitica-va
 
 ## Vistas (capturas «después» contra la pila de la sesión, `acnur_acg`)
 
+Corrida contra la pila de la sesión (`cap/ana-despues`, `acnur_acg`): las 7 pestañas principales (Datos, Base final,
+Libro de códigos, Bases, Ponderación, Frecuencias, Multibase) a 1440 y 1024, 14 capturas y 14 md5 distintos.
+`rotulosPartidos=0`, `textosFuera=0`.
+
 | # | Vista | Qué se ve | Estado |
 |---|---|---|---|
-| | | (se llena con la corrida «después») | |
+| 1 | Base final | `cabecerasQueTapan=1` (41 px) y `columnasOcultas=1`: es la grilla compartida de `procesamiento/ProcessingSheetViewer`, el mismo pendiente de Carga › Datos | ☐ anotado en `formato-carga-2026-11-04.md` |
+| 2 | Datos | Los códigos de variable se ven en Courier **en la captura** | no es defecto: el Chromium headless del runner no resuelve Menlo y cae a Courier con cualquier pila; en Electron sobre macOS la pila resuelve Menlo. No juzgar la monoespaciada por las capturas |
 
 ## Estado
 
@@ -38,5 +43,5 @@ P5 (declaradas la preparación de la Ficha y el valor de readiness `analitica-va
 | Medición | ☑ | (este doc) | |
 | P1b, P3, P4, P5, P6, P8 | ☑ | | |
 | P2 | línea base | — | |
-| Capturas después | en curso | | Contra la pila de la sesión con `--url`; lo que muestre va en el commit siguiente |
+| Capturas después | ☑ | | Ver «Vistas» |
 | Gate | ☑ | | `tsc` 0; `make gate-front AREA=analitica` 53 suites, 914 tests |
