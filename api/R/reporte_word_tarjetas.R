@@ -34,14 +34,15 @@
 .word_tarjeta_backend_grid <- function(alto_pag, z = .WORD_TARJETAS_ZOOM, ox = 0, oy = 0) {
   Y <- function(t) grid::unit(alto_pag - (oy + t * z), "in")
   X <- function(x) grid::unit(ox + x * z, "in")
+  L <- function(w) grid::unit(w * z, "in")   # largos: sin el desplazamiento (una posición lleva `ox`; un ancho, no)
   list(
     rect = function(l, t, w, h, fill = NULL, borde = NULL, pt = 0.75, punteado = FALSE, radio = 0, nombre = NULL) {
       gp <- grid::gpar(fill = fill %||% NA, col = borde %||% NA, lwd = pt * z * 96 / 72, lty = if (isTRUE(punteado)) "22" else "solid")
       if (radio > 0) {
-        grid::grid.roundrect(X(l), Y(t + h), X(w), grid::unit(h * z, "in"), r = grid::unit(radio * z, "in"),
+        grid::grid.roundrect(X(l), Y(t + h), L(w), L(h), r = L(radio),
                              just = c("left", "bottom"), gp = gp)
       } else {
-        grid::grid.rect(X(l), Y(t + h), X(w), grid::unit(h * z, "in"), just = c("left", "bottom"), gp = gp)
+        grid::grid.rect(X(l), Y(t + h), L(w), L(h), just = c("left", "bottom"), gp = gp)
       }
     },
     txt = function(s, l, t, w, h, size, color, bold = FALSE, align = "left", nombre = NULL) {

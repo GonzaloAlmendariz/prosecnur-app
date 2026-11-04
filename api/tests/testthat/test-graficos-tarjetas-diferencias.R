@@ -263,3 +263,12 @@ test_that("la leyenda de la escala reserva sus renglones y ninguno pasa del bord
   expect_identical(ley$renglon[1], 1L)
   expect_true(all(diff(ley$renglon) >= 0L))
 })
+
+test_that("el backend grid desplaza las posiciones pero no los anchos (la tarjeta de ejemplo va centrada)", {
+  rects <- list()
+  local_mocked_bindings(grid.rect = function(x, y, width, height, ...) { rects[[length(rects) + 1L]] <<- width; invisible(NULL) },
+                        .package = "grid")
+  b <- .word_tarjeta_backend_grid(3, z = 0.5, ox = 2, oy = 0)
+  b$rect(0, 0, 1, 0.2, fill = "#000000")
+  expect_equal(grid::convertWidth(rects[[1]], "in", valueOnly = TRUE), 0.5)
+})
