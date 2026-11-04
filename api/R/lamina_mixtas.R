@@ -292,6 +292,8 @@
   # de cualquier lámina de varios gráficos (antetítulo y título desde el margen).
   doc <- .lam_titulo(doc, titulo, ante = ante, sub = sub)
   lz <- .lam_lienzo()
+  # v7.11, lámina 9: en las láminas de población las barras de una serie van sobre su pista hasta el 100% (lamina_barras_pista.R).
+  if (grepl("^poblacion", tipo)) especs <- lapply(especs, function(e) { if (is.list(e) && identical(e$tipo, "categorica")) e$en_poblacion <- TRUE; e })
   compartida <- .lam_mixta_compartida(especs, geo$paneles)
   # Ítems 18–20: un estilo para toda la lámina y, si hace falta, el alto repartido entre sus dos filas (lamina_perfil_panel.R).
   plan <- .lam_perfil_plan(especs, geo, preguntas, publicos %||% vector("list", length(especs)), compartida)

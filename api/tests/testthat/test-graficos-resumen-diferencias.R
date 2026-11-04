@@ -155,7 +155,7 @@ test_that("el constructor arma un slide_1 con el elemento y el antetítulo; el r
 
 # ---- Artefactos: PPT y Word ------------------------------------------------------------------------------------------
 
-test_that("la lámina nativa del PPT lleva encabezado, capítulos, celdas, «n. a.», leyenda, nota y la base sola", {
+test_that("la lámina nativa del PPT lleva encabezado, capítulos, celdas, «n. a.», leyenda y la base sola, sin la nota del método", {
   skip_if_not_installed("officer")
   old <- options(prosecnur.sig_informe = .rd_sig()); on.exit(options(old), add = TRUE)
   out <- tempfile(fileext = ".pptx")
@@ -170,7 +170,10 @@ test_that("la lámina nativa del PPT lleva encabezado, capítulos, celdas, «n. 
   textos <- xml2::xml_text(xml2::xml_find_all(xml, "//a:t"))
   expect_true(all(c("prosecnur:grafico:resumen_diferencias", "prosecnur:leyenda_diferencias", "resumen:cruce", "resumen:grupo",
                     "resumen:capitulo", "resumen:fila", "resumen:celda:99", "resumen:celda:igual", "resumen:celda:na",
-                    "Nota significancia", "Base lamina") %in% nombres))
+                    "Base lamina") %in% nombres))
+  # v7.11, lámina 59: el método ya lo explica «Cómo leer las diferencias»; la lámina no repite el párrafo.
+  expect_false("Nota significancia" %in% nombres)
+  expect_false(any(grepl("Benjamini|Rao-Scott|prueba z|Puntos de diferencia entre", textos)))
   expect_true(any(grepl("^Econ\\.", textos)))   # el rótulo corto declarado (en una o dos líneas)
   expect_true(all(c("ÁREA", "CAPÍTULO UNO", "Dice mucho", "n. a.", "Mayor que el resto", "99% de confianza",
                     "Base: 400 casos.") %in% textos))

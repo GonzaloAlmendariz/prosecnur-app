@@ -12,7 +12,8 @@
 #   - la celda: con diferencia, una pastilla con los puntos frente al resto y su triángulo (▲▼ al 99%, en azul si es
 #     mayor y naranja si es menor, color pleno; △▽ al 95%, color tenue con borde punteado); sin diferencia, un punto
 #     gris sin cifra; con el cruce tautológico, «n. a.»;
-#   - leyenda de los triángulos, la nota fija sobre la base y la base sola (sin «Fuente»), con el pie de las demás.
+#   - leyenda de los triángulos en una línea y la base sola (sin «Fuente»), con el pie de las demás. El método no se
+#     repite: lo explica la lámina «Cómo leer las diferencias» (revisión del PPT v7.11 de CCSS, lámina 59).
 #
 # Aquí viven también las piezas que comparte la lámina de hallazgos (lamina_hallazgos.R): el tono de cada marca, el
 # triángulo, la pastilla y la leyenda.
@@ -173,6 +174,10 @@
                                              master = "Office Theme", por_lamina = function(doc) doc) {
   force(folio)
   aviso <- function(...) .dif_aviso("Resumen de diferencias", ...)
+  # Revisión del PPT v7.11 de CCSS (lámina 59): «¿por qué pones una nota tan grande si todo eso ya se explica al inicio?».
+  # El método ya lo explica la lámina «Cómo leer las diferencias»: aquí quedan la leyenda de los símbolos y la base. La
+  # nota sigue en la espec para el respaldo en ggplot (Word y `motor_nativo = FALSE`).
+  espec$nota <- NULL
   g <- .std_geom
   doc <- officer::add_slide(doc, layout = layout, master = master)
   doc <- .lam_titulo(doc, titulo, ante = ante)
