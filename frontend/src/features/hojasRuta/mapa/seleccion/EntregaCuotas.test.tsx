@@ -32,6 +32,9 @@ describe("Entrega por cuotas", () => {
     expect(html({ envio: meta({}) })).toContain("2 zonas y 198 entrevistas");
     expect(html({ envio: meta({}) })).toContain("Abrir en Material de campo");
     expect(html({ envio: meta({ desactualizado: true }) })).toContain("Las cuotas cambiaron desde el envío");
+    // P6: el estado del envío es EstadoChip del kit.
+    expect(html({ envio: meta({}) })).toMatch(/pulso-estado-chip[^>]*>[\s\S]*?Al día/);
+    expect(html({ envio: meta({ desactualizado: true }) })).toMatch(/pulso-estado-chip[^>]*>[\s\S]*?Desactualizado/);
   });
 
   it("un envío por UMP anterior no cuenta como el de cuotas", () => {

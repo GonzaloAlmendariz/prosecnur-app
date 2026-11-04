@@ -595,6 +595,7 @@ div.hr-mapa-aviso { display: flex; flex-direction: column; align-items: flex-sta
 /* «Entrega» (ADR 0118 F3) */
 .hr-entrega-estado { display: flex; flex-direction: column; gap: 2px; padding: 10px 12px; border-radius: 10px; background: var(--pulso-surface-2); font-size: var(--pulso-type-body-size); color: var(--pulso-text-soft); }
 .hr-entrega-estado strong { font-size: var(--pulso-type-body-size); color: var(--pulso-text); }
+.hr-entrega-estado > .pulso-estado-chip { align-self: flex-start; margin-bottom: 2px; } /* P6: el estado del envío es EstadoChip */
 .hr-entrega[data-estado="desactualizado"] .hr-entrega-estado { background: var(--pulso-warn-soft, var(--pulso-surface-2)); }
 .hr-entrega[data-estado="desactualizado"] .hr-entrega-estado strong { color: var(--pulso-warn-fg); }
 .hr-entrega-enlace { align-self: center; font-size: var(--pulso-type-subtitle-size); font-weight: 600; color: var(--pulso-module-routes); text-decoration: none; }
