@@ -74,7 +74,9 @@ test_that("el home refleja el avance vivo tras refrescar el fact territorial", {
   # criterio que avance_pct; las en observacion van ademas como alerta.
   expect_equal(mon_stale$valid, 1028L)
   expect_equal(mon_stale$target, 1351L)
-  expect_equal(mon_stale$avance_pct, 85.7)
+  # El 85.7 congelado es 1028 sobre OTRA meta (1200), no sobre la 1351 que trae:
+  # la tarjeta deriva el porcentaje del par que muestra (auditoría visual, 4 nov).
+  expect_equal(mon_stale$avance_pct, round(100 * 1028 / 1351, 1))
 
   # La vista viva de "Avance territorial" sirve un tablero fresco (scope
   # advance_summary): esto es exactamente lo que el modulo muestra al usuario.

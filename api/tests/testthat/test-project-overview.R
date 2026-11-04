@@ -75,6 +75,15 @@ test_that("facts.monitoreo despacha KPIs por familia (territorial vs generico)",
   # test-monitoreo-overview-facts.R).
   expect_equal(mon_t$alerts, 5L)
 
+  # Un `avance_pct` de otro numerador no se cuela: la tarjeta decía «1,283 de
+  # 1,200, meta cumplida» con «86 % avance de meta» (auditoría visual, 4 nov).
+  session_set(sid, "monitoreo_snapshot", list(dashboard = list(territorial_reports = list(kpis = list(
+    total_respuestas = 1693L, validas = 1283L, efectivas = 1283L, meta = 1200L, avance_pct = 86,
+    revision = 89L
+  )))))
+  mon_d <- .project_overview_payload(sid)$facts$monitoreo
+  expect_equal(mon_d$avance_pct, round(100 * 1283 / 1200, 1))
+
   # Telefonico sin modelo de efectividad todavia: se degrada a un conteo
   # honesto (cuantas respuestas hay) en vez de publicar el avance del bloque
   # generico, que divide filas crudas entre objetivo_total.
