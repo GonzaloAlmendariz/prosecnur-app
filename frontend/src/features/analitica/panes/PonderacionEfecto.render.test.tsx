@@ -2,6 +2,7 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import type { PonderPreview } from "../../../api/client";
+import { normalizarPonderPreview } from "../../../api/analitica";
 import { PonderacionEfecto } from "./PonderacionEfecto";
 
 const render = (preview: PonderPreview | null) =>
@@ -21,9 +22,25 @@ describe("Ponderación › Efecto", () => {
     expect(render(null)).toContain("Configura al menos una variable con metas");
   });
 
+  it("los NULL de R llegan como {}: sin recorte ni imputación no se rompe", () => {
+    const crudo = {
+      ok: true, rake_applied: true, diagnostics: DIAG, margins: {}, warnings: {},
+      recorte: {}, imputacion: {}, total_poblacion: {}, peso_base: {}, faltantes: "excluir",
+    } as unknown as PonderPreview;
+    const p = normalizarPonderPreview(crudo);
+    expect(p.recorte).toBeNull();
+    expect(p.imputacion).toBeNull();
+    expect(p.total_poblacion).toBeNull();
+    expect(p.warnings).toEqual([]);
+    expect(render(p)).toContain("n efectivo");
+    // Sin margen ni diseño aplicados no hay efecto que mostrar.
+    expect(render(normalizarPonderPreview({ ...crudo, rake_applied: false } as PonderPreview))).toContain("Configura al menos");
+  });
+
   it("deff y n efectivo antes y después del recorte, imputados por variable y avisos con causa", () => {
     const html = render({
       ok: true,
+      rake_applied: true,
       diagnostics: DIAG,
       margins: { sexo: [{ categoria: "1", objetivo: 0.48, muestra: 0.4, ponderado: 0.48 }] },
       recorte: {

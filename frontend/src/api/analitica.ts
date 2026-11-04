@@ -214,14 +214,37 @@ export type PonderPreview = {
   warnings?: PonderWarning[];
 };
 
+/**
+ * R serializa `NULL` como `{}`: sin recorte, sin imputación o sin N̂ el preview
+ * trae `recorte: {}`, y leer `recorte.antes.n_eff` tumbaba el panel. Un objeto
+ * vacío (o sin sus campos) es «no hay».
+ */
+export function normalizarPonderPreview(raw: PonderPreview): PonderPreview {
+  const vacio = (x: unknown) => x == null || (typeof x === "object" && Object.keys(x as object).length === 0);
+  const out: PonderPreview = { ...raw };
+  const r = raw.recorte as Partial<PonderRecorte> | null | undefined;
+  out.recorte = r && r.antes && r.despues && !vacio(r.antes) && !vacio(r.despues) ? (r as PonderRecorte) : null;
+  const imp = raw.imputacion as Partial<PonderImputacion> | null | undefined;
+  out.imputacion = imp && !vacio(imp) ? { ...(imp as PonderImputacion), variables: vacio(imp.variables) ? {} : imp.variables! } : null;
+  const escalar = <T,>(x: T) => (vacio(x) ? null : Array.isArray(x) ? (x[0] as T) : x);
+  out.total_poblacion = escalar(raw.total_poblacion) as number | null;
+  out.peso_base = escalar(raw.peso_base) as string | null;
+  out.faltantes = escalar(raw.faltantes) as PonderPreview["faltantes"];
+  out.message = (escalar(raw.message) as string | null) ?? undefined;
+  out.margins = vacio(raw.margins) ? {} : raw.margins;
+  out.warnings = Array.isArray(raw.warnings) ? raw.warnings : [];
+  return out;
+}
+
 export async function apiAnaliticaPonderacionPreview(ponderacion: unknown) {
-  return handle<PonderPreview>(
+  const raw = await handle<PonderPreview>(
     await apiFetch("/api/analitica/ponderacion/preview", {
       method: "POST",
       headers: headers({ "Content-Type": "application/json" }),
       body: JSON.stringify({ ponderacion }),
     }),
   );
+  return normalizarPonderPreview(raw);
 }
 
 // Respuesta de reporte multi-base (v0.2+):

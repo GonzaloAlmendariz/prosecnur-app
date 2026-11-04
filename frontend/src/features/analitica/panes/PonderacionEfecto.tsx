@@ -29,7 +29,8 @@ export function PonderacionEfecto({ preview, labelOf }: {
       </div>
     );
   }
-  if (!preview?.ok) {
+  const sinEfecto = preview?.ok && !preview.rake_applied && !preview.design_applied;
+  if (!preview?.ok || sinEfecto) {
     return (
       <div className="pond-card pond-diagnostico">
         <div className="pond-copy">Configura al menos una variable con metas para ver el efecto.</div>
