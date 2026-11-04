@@ -363,9 +363,9 @@ export function SeleccionGeneralVista({
           />
         </Panel>
       ) : corrida.unidades === null ? (
-        <section className="cmv2-panel" data-qa-geometry-member>
+        <Panel data-qa-geometry-member>
           <CargaDeBloque label="Cargando el listado de unidades…" />
-        </section>
+        </Panel>
       ) : (
         <TablaUnidades
           unidades={corrida.unidades}

@@ -101,23 +101,6 @@
     var(--cmv2-surface-raised);
 }
 
-.cmv2-defi-hero-title {
-  margin: 0;
-  font-size: var(--pulso-type-title-size);
-  font-weight: var(--pulso-weight-heavy);
-  letter-spacing: -0.2px;
-  line-height: 1.2;
-  color: var(--pulso-text);
-}
-
-.cmv2-defi-hero-lead {
-  margin: 0;
-  font-size: var(--pulso-type-body-size);
-  line-height: 1.55;
-  color: var(--pulso-text-muted);
-  max-width: 68ch;
-}
-
 /* Subtítulo bajo el select de un rol dual-hoja (condicion_curso): aclara que la
    columna puede venir de cualquiera de las dos hojas. */
 .cmv2-defi-var-sheet-note {
@@ -303,11 +286,6 @@
 
 /* Cabecera del formulario: mismo eyebrow de nivel panel que el mapa lateral,
    para que el protagonista no abra en seco con el primer campo. */
-.cmv2-defi-form-head {
-  display: flex;
-  align-items: center;
-  margin-bottom: 12px;
-}
 
 @media (max-width: 980px) {
   .cmv2-defi-estudio-layout {
@@ -364,14 +342,6 @@
 .cmv2-defi-mapa .cmv2-uni-flujo-etapa {
   background: transparent;
   border-color: color-mix(in srgb, var(--cmv2-border) 60%, transparent);
-}
-
-.cmv2-defi-mapa-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  flex-wrap: wrap;
 }
 
 /* --- Bases: modos con popover, tarjetas y CTA ------------------------------- */
@@ -1359,33 +1329,9 @@
 }
 
 /* --- Cabecera de la pestaña Variables --------------------------------------- */
-.cmv2-defi-var-head {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 10px;
-}
-
-.cmv2-defi-var-head-copy {
-  display: grid;
-  gap: 3px;
-  min-width: 0;
-  max-width: 60ch;
-}
-
-.cmv2-defi-var-head-copy p {
-  margin: 0;
-  font-size: var(--pulso-type-caption-size);
-  line-height: 1.45;
-  color: var(--pulso-text-muted);
-}
 
 /* El rail/contexto local ya nombra Variables. Se conserva la explicación
    operativa y se elimina el rótulo interior duplicado. */
-.cmv2-defi-var-head-copy > .cmv2-eyebrow {
-  display: none;
-}
 
 .cmv2-defi-var-sheet-note {
   grid-area: sheet;

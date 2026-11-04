@@ -194,7 +194,7 @@ function ActorSinSorteo({
   onActores: () => void;
 }) {
   return (
-    <section className="cmv2-panel cmg-sin-sorteo" aria-label={`${nombre}: sin selección`}>
+    <Panel className="cmg-sin-sorteo" aria-label={`${nombre}: sin selección`}>
       <EmptyState
         icon={<CircleSlash2 size={20} aria-hidden="true" />}
         title={tecnica.clase === "cuotas" ? `${nombre} va por cuotas` : `${nombre} no se selecciona aquí`}
@@ -205,6 +205,6 @@ function ActorSinSorteo({
           </button>
         )}
       />
-    </section>
+    </Panel>
   );
 }

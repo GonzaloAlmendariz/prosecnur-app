@@ -6,6 +6,7 @@ import { PerfilNoDeclarado } from "../estudio/PerfilNoDeclarado";
 import { deskDeModo } from "./navegacion";
 import type { ActiveDesk } from "./sharedCore";
 import { TIPOS_DE_ESTUDIO } from "./SelectorTipo";
+import { Panel } from "../../components/Panel";
 
 /**
  * Aterrizaje de Cálculo de muestra según el Planner (ADR 0122, fase P2).
@@ -63,14 +64,20 @@ export function AterrizajeDelPlanner({ decision, perdidas, confirmando, onEmpeza
   onConfirmar: () => void;
 }) {
   if (decision.tipo === "cargando") {
-    return <section className="cmv2-panel cmv2-aterrizaje" aria-busy="true" data-audit-ready="false" />;
+    return <Panel className="cmv2-aterrizaje" aria-busy="true" data-audit-ready="false">{null}</Panel>;
   }
   if (decision.tipo === "error") {
     return (
-      <section className="cmv2-panel cmv2-aterrizaje" role="status" data-audit-ready="vacio:planner-ilegible">
-        <strong>No se pudo leer el tipo del estudio</strong>
-        <p className="cmv2-sal-nota">{decision.mensaje}</p>
-      </section>
+      <Panel
+        className="cmv2-aterrizaje"
+        role="status"
+        aria-labelledby="cmv2-aterrizaje-titulo"
+        title={<span id="cmv2-aterrizaje-titulo">No se pudo leer el tipo del estudio</span>}
+        hint={decision.mensaje}
+        data-audit-ready="vacio:planner-ilegible"
+      >
+        {null}
+      </Panel>
     );
   }
   if (decision.tipo === "sin-perfil") {
@@ -78,40 +85,56 @@ export function AterrizajeDelPlanner({ decision, perdidas, confirmando, onEmpeza
   }
   if (decision.tipo === "del-cliente") {
     return (
-      <section className="cmv2-panel cmv2-aterrizaje" role="status" data-audit-ready="vacio:muestra-del-cliente">
-        <strong>La muestra la entrega el cliente</strong>
-        <p className="cmv2-sal-nota">
-          En un estudio {decision.perfiles.map((t) => ETIQUETA_PERFIL[t].toLowerCase()).join(", ")} la muestra no se calcula aquí.
-        </p>
+      <Panel
+        className="cmv2-aterrizaje"
+        role="status"
+        aria-labelledby="cmv2-aterrizaje-titulo"
+        title={<span id="cmv2-aterrizaje-titulo">La muestra la entrega el cliente</span>}
+        hint={`En un estudio ${decision.perfiles.map((t) => ETIQUETA_PERFIL[t].toLowerCase()).join(", ")} la muestra no se calcula aquí.`}
+        data-audit-ready="vacio:muestra-del-cliente"
+      >
         <EnlaceFichaDelEstudio>Ver la ficha del estudio</EnlaceFichaDelEstudio>
-      </section>
+      </Panel>
     );
   }
   if (decision.tipo === "al-dia") {
     return (
-      <section className="cmv2-panel cmv2-aterrizaje" role="status" data-audit-ready="calc-muestra-aterrizaje">
-        <strong>El escenario ya es el que fija el tipo del estudio</strong>
+      <Panel
+        className="cmv2-aterrizaje"
+        role="status"
+        aria-labelledby="cmv2-aterrizaje-titulo"
+        title={<span id="cmv2-aterrizaje-titulo">El escenario ya es el que fija el tipo del estudio</span>}
+        data-audit-ready="calc-muestra-aterrizaje"
+      >
         <div><button type="button" className="pulso-button pulso-button--secondary" onClick={onCancelar}>Volver al escenario</button></div>
-      </section>
+      </Panel>
     );
   }
   if (decision.tipo === "empezar") {
     return (
-      <section className="cmv2-panel cmv2-aterrizaje" aria-label="Empezar el diseño" data-audit-ready="calc-muestra-aterrizaje">
-        <strong>{decision.titulo}</strong>
-        <p className="cmv2-sal-nota">Es el diseño que fija el tipo declarado en la ficha del estudio.</p>
+      <Panel
+        className="cmv2-aterrizaje"
+        aria-labelledby="cmv2-aterrizaje-titulo"
+        title={<span id="cmv2-aterrizaje-titulo">{decision.titulo}</span>}
+        hint="Es el diseño que fija el tipo declarado en la ficha del estudio."
+        data-audit-ready="calc-muestra-aterrizaje"
+      >
         <div>
           <button type="button" className="pulso-button is-primary" onClick={() => onEmpezar(decision.desk)}>
             Empezar el diseño
           </button>
         </div>
-      </section>
+      </Panel>
     );
   }
   return (
-    <section className="cmv2-panel cmv2-aterrizaje" aria-label="El tipo del estudio pide otro diseño" data-audit-ready="calc-muestra-aterrizaje">
-      <strong>El tipo del estudio pide «{decision.titulo}»</strong>
-      <p className="cmv2-sal-nota">Este escenario es «{decision.actual}». Para cambiarlo hay que reiniciar el cálculo.</p>
+    <Panel
+      className="cmv2-aterrizaje"
+      aria-labelledby="cmv2-aterrizaje-titulo"
+      title={<span id="cmv2-aterrizaje-titulo">El tipo del estudio pide «{decision.titulo}»</span>}
+      hint={`Este escenario es «${decision.actual}». Para cambiarlo hay que reiniciar el cálculo.`}
+      data-audit-ready="calc-muestra-aterrizaje"
+    >
       {confirmando ? (
         <>
           {perdidas.length ? (
@@ -130,6 +153,6 @@ export function AterrizajeDelPlanner({ decision, perdidas, confirmando, onEmpeza
           <button type="button" className="pulso-button is-primary" onClick={() => onPedirCambio(decision.desk)}>Cambiar a «{decision.titulo}»</button>
         </div>
       )}
-    </section>
+    </Panel>
   );
 }
