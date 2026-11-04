@@ -81,6 +81,7 @@ export function SalidasPanel({ salidas, envio: envioDelEstado, onCambio, fase = 
   return (
     <Sideover
       panel={PANEL_SALIDAS_SELECCION}
+      alto="contenido"
       title="Entrega"
       subtitle="Envía la muestra a Material de campo, que produce las fichas, las hojas de zona y el paquete"
       icon={<Send size={16} />}

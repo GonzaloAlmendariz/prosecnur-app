@@ -85,8 +85,8 @@ Muestra con las cuotas, Selección con las tablas y el panel de salidas (Entrega
 |---|---|---|---|
 | 1 | Los tres cajones a 1440 | El título del Panel y sus controles; la tabla conserva su alto | ☑ |
 | 2 | Cajón de Población y de Selección a 1024 | Con el título, la cabecera de Población llegaba a cuatro renglones y la tabla mostraba sólo su cabecera | ☑ en un cajón de menos de 620 px el título cede su renglón (`@container hr-cajon`) y quedan los tres renglones de controles de antes |
-| 3 | Población a 1024 | La cabecera fija de la matriz tapa 15 px de una fila: el cajón deja una sola fila a la vista bajo tres renglones de controles | ☐ previo (los tres renglones ya estaban sin Panel); pide que el cajón crezca en alturas bajas o que los controles se plieguen en un menú |
-| 4 | Entrega (panel de salidas) a 1440 | `capacity-drift` del `Sideover`: 156 px vacíos al pie | ☐ previo, del kit; el estado del envío sólo aparece tras enviar y en estas copias no hay envío (lo cubre el test de `EntregaCuotas`) |
+| 3 | Población a 1024 | La cabecera fija de la matriz tapa 15 px de una fila: el cajón deja una sola fila a la vista bajo tres renglones de controles | ☑ (4 nov tarde) la agrupación y las descargas se pliegan en `MenuDelCajon`: el botón dice la agrupación vigente («Por distrito») y abre las cuatro; «Descargar» abre Excel y CSV (a 1024 queda en su ícono). Los controles caben en un renglón, la tabla muestra cuatro filas a 1024 y la cabecera ya no tapa |
+| 4 | Entrega (panel de salidas) a 1440 | `capacity-drift` del `Sideover`: 156 px vacíos al pie | ☑ (4 nov tarde) `Sideover` suma la política `alto` (como `Dialog`): por defecto `ventana`; con `alto="contenido"` mide lo que trae hasta la ventana y cierra abajo con borde y radio. Lo usa el panel de salidas; la lente de Validación sigue a alto de ventana, porque su contenido cambia con cada clic. El estado del envío sólo aparece tras enviar (lo cubre el test de `EntregaCuotas`) |
 | 5 | Tablas de los cajones | Columnas a la derecha tras desplazar en horizontal (`alcanzable`) | no es defecto: las tablas desplazan |
 
 Entrega por cuotas (`EntregaCuotas`) sólo existe en un estudio por cuotas; ninguna de las dos copias lo es.
@@ -95,3 +95,9 @@ Entrega por cuotas (`EntregaCuotas`) sólo existe en un estudio por cuotas; ning
 
 `formatoDelModulo.contract.test.ts` suma a P6 el estado del envío y estrena P2 (`<section className="hr-sel-cajon"`,
 meta 0), con los casos que prueban los detectores.
+
+### Los dos previos, 4 nov tarde
+
+Capturas con `--url` contra la pila de la sesión, a 1440 y 1024, sobre las dos copias (Lima y Callao; tres ciudades):
+Población con la matriz y Entrega, 8 capturas distintas, `ok=true` e `issues=0`. Más dos con los menús abiertos
+(agrupación a 1024 y descargas a 1440), también limpias.

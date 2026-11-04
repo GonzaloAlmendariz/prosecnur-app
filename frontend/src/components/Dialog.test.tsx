@@ -239,4 +239,18 @@ describe("Dialog — apertura por ?panel=", () => {
     expect(html).toContain('aria-modal="true"');
     expect(html).toContain('data-pulso-panel="demo"');
   });
+
+  test("Sideover mide lo que trae sólo si lo pide (alto=\"contenido\")", () => {
+    const lateral = (alto?: "ventana" | "contenido") =>
+      enRuta(
+        "/tablero?panel=demo",
+        <Sideover panel={PANEL_DEMO} title="Lateral" alto={alto} className="extra">
+          <p>cuerpo</p>
+        </Sideover>,
+      );
+    expect(lateral("contenido")).toMatch(/class="[^"]*pulso-sideover--contenido/);
+    expect(lateral("contenido")).toContain("extra");
+    expect(lateral()).not.toContain("pulso-sideover--contenido");
+    expect(lateral("ventana")).not.toContain("pulso-sideover--contenido");
+  });
 });
