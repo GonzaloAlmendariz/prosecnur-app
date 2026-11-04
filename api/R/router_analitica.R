@@ -4686,11 +4686,10 @@ mount_analitica <- function(pr) {
 	      ds <- sources$data_sources
 	      is_ <- sources$inst_sources
 	      if (length(ds) == 0L) stop_api(409, "E_NO_RP_DATA", "Estudio sin bases.")
-		      excluidas <- .as_chr_vec(cfg$variables_excluidas)
 		      for (nombre in names(ds)) {
 		        reviewed <- .analitica_apply_data_review(ds[[nombre]], is_[[nombre]], cfg)
 		        reviewed$data <- .bases_normalize_other_selects(reviewed$data, reviewed$inst)
-		        ds[[nombre]] <- .excluir_cols(reviewed$data, excluidas)
+		        ds[[nombre]] <- .excluir_cols(reviewed$data, .analitica_bases_cols_fuera(reviewed$data, reviewed$inst, cfg))
 		        is_[[nombre]] <- reviewed$inst
 		      }
 
@@ -4771,7 +4770,7 @@ mount_analitica <- function(pr) {
 		        fn = function(rp_data, rp_inst, out_path) {
 		          reviewed <- .analitica_apply_data_review(rp_data, rp_inst, cfg)
 		          reviewed$data <- .bases_normalize_other_selects(reviewed$data, reviewed$inst)
-		          rp_data <- .excluir_cols(reviewed$data, .as_chr_vec(cfg$variables_excluidas))
+		          rp_data <- .excluir_cols(reviewed$data, .analitica_bases_cols_fuera(reviewed$data, reviewed$inst, cfg))
 		          rp_inst <- reviewed$inst
 		          df <- rp_data
 	          if (multi_select == "dummy_01") df <- .expand_multiselect(df, rp_inst)
@@ -4865,15 +4864,7 @@ mount_analitica <- function(pr) {
 		          # plataforma) se excluyen; solo sobreviven las que el usuario
 		          # incluyó (`variables_extra_incluidas`). El include manda sobre el
 		          # empty-drop: una extra incluida-pero-vacía NO se dropea por vacía.
-		          recon <- .reconciliacion_export_plan(reviewed$data, reviewed$inst, cfg)
-		          empty_cols <- setdiff(.analitica_base_empty_cols(reviewed$data), recon$extra_incluidas)
-		          rp_data <- .excluir_cols(
-		            reviewed$data,
-		            c(.as_chr_vec(cfg$variables_excluidas),
-		              .analitica_base_internal_cols(reviewed$data),
-		              empty_cols,
-		              recon$extra_a_excluir)
-		          )
+		          rp_data <- .excluir_cols(reviewed$data, .analitica_bases_cols_fuera(reviewed$data, reviewed$inst, cfg))
 		          rp_inst <- reviewed$inst
 		          df_base <- rp_data
           if (multi_select == "dummy_01") df_base <- .expand_multiselect(df_base, rp_inst)
@@ -4952,7 +4943,7 @@ mount_analitica <- function(pr) {
 		      overrides <- .bases_overrides_parse((cfg$bases %||% list())$overrides)
 		      reviewed <- .analitica_apply_data_review(ctx$rp_data, ctx$rp_inst, cfg)
 		      reviewed$data <- .bases_normalize_other_selects(reviewed$data, reviewed$inst)
-		      reviewed$data <- .excluir_cols(reviewed$data, .as_chr_vec(cfg$variables_excluidas))
+		      reviewed$data <- .excluir_cols(reviewed$data, .analitica_bases_cols_fuera(reviewed$data, reviewed$inst, cfg))
 		      td <- tempfile()
       dir.create(td)
       on.exit(unlink(td, recursive = TRUE), add = TRUE)

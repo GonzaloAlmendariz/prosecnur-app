@@ -11,12 +11,12 @@ aparte (8871). Destino:
 
 | # | Ítem | Dónde vive | Estado |
 |---|---|---|---|
-| 1 | Base de administrativos (Excel) | motor `/api/analitica/bases/xlsx`, proyecto v1-12 | generado (85 × 36) — falta tu visto bueno |
-| 2 | Base de docentes (Excel) | ídem | generado (115 × 95) — falta tu visto bueno |
-| 3 | Base de estudiantes (Excel) | ídem | **bloqueado**: trae `p4` = código PUCP de los 279 estudiantes; decidir si sale |
+| 1 | Base de administrativos (Excel y SAV, anónima) | motor `/api/analitica/bases/xlsx` y `/bases/sav`, proyecto v1-12 | generada (85 × 34), sin PII ni IDs técnicos — falta tu visto bueno |
+| 2 | Base de docentes (Excel y SAV, anónima) | ídem | generada (115 × 93), sin PII ni IDs técnicos — falta tu visto bueno |
+| 3 | Base de estudiantes (Excel y SAV, anónima) | ídem | generada (279 × 77), sin `p4` (código PUCP), sin PII ni IDs técnicos — falta tu visto bueno |
 | 4 | Libro de códigos de administrativos (Excel y PDF) | motor `/api/analitica/codebook` (`reporte_codebook.R`, `reporte_codebook_pdf.R`) | generado, PDF revisado en render — falta tu visto bueno |
 | 5 | Libro de códigos de docentes (Excel y PDF) | ídem | generado, PDF revisado en render — falta tu visto bueno |
-| 6 | Libro de códigos de estudiantes (Excel y PDF) | ídem | generado, PDF revisado en render — falta tu visto bueno |
+| 6 | Libro de códigos de estudiantes (Excel y PDF) | ídem | regenerado sin `p4`, PDF revisado en render — falta tu visto bueno |
 | 7 | Anexo: frecuencias simples de administrativos | motor `/api/analitica/frecuencias` (`reporte_frecuencias.R`) | generado sin secciones y en orden del cuestionario — falta tu visto bueno |
 | 8 | Anexo: frecuencias simples de docentes | ídem | ídem |
 | 9 | Anexo: frecuencias simples de estudiantes | ídem | ídem |
@@ -64,4 +64,28 @@ Observaciones menores, sin acción tomada:
   «No binario» (6); es correcto, pero puede leerse como contradicción con el PPT.
 - La base de estudiantes trae `p4` (código PUCP de los 279) y las tres bases,
   `respondent_id` y `collector_id`: ver ítem 3.
+
+## Bases anónimas en Excel y SAV (2026-11-04, segunda tanda)
+
+Criterio de Gonzalo: las bases son anónimas, sin datos personales ni información
+técnica; sólo variables preguntadas y de control; en SAV y Excel, con etiquetas y
+códigos.
+
+- Fuera de las tres bases: `respondent_id`, `collector_id`; de estudiantes, `p4`
+  (código PUCP). La exclusión del motor es global por nombre y `p4` es otra
+  pregunta en docentes (grado) y administrativos («Pertenece a»), así que se
+  generaron dos corridas y de cada una se tomó su base.
+- **Defecto de motor encontrado y arreglado:** el SAV, el CSV y el alias
+  `/analitica/spss` sólo quitaban `variables_excluidas`; el Excel además quitaba
+  internas, vacías y extra no declaradas. El SAV salía con `email_address` y
+  `first_name` de 105 docentes y 78 administrativos, `ip_address` de los 479 casos,
+  y `CollectorNm`, fechas, `anio` y `filtro`. Ahora los cuatro exportadores usan
+  `.analitica_bases_cols_fuera` (test `test-analitica-bases-sin-pii-en-todo-formato.R`).
+- Verificado: SAV y Excel con las mismas columnas en el mismo orden y los mismos
+  valores en las tres bases; ninguna PII ni técnica en ningún formato; el SAV lleva
+  etiqueta de variable en todas y etiquetas de valor en todas las categóricas (las
+  que no, son numéricas o texto abierto); el Excel trae hoja `codigos` y hoja
+  `etiquetas`. Pasada de coherencia repetida: 197 de 197 bloques del anexo se
+  reproducen con las bases nuevas.
+- Los textos abiertos (`*_other`) se revisaron: no traen datos personales.
 
