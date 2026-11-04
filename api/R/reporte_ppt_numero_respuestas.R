@@ -347,6 +347,7 @@
 #' @return El documento, con el diagrama puesto si procedia.
 #' @keywords internal
 .nresp_colocar <- function(doc, slots, style = list(), solo_lista = FALSE) {
+  doc <- .tarjetas_lectura_colocar(doc, solo_lista, parent.frame())   # ADR 0129: «Cómo leer las diferencias» nativa (graficos_tarjetas_lectura.R)
   # Quien llama esta en un archivo congelado a crecimiento, asi que la decision
   # entera vive aqui: sin diagrama declarado no pasa nada.
   if (!identical(as.character((slots %||% list())$diagrama %||% "")[1],

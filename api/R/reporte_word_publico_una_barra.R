@@ -43,6 +43,7 @@
 #' @return `p`, con su espec marcada si aplica (copia; la del PPT no se muta).
 #' @keywords internal
 .word_publico_marcar <- function(p, el) {
+  p <- .tarjetas_heredar(p, get0("plot", envir = parent.frame(), inherits = FALSE))   # ADR 0129: el render del Word lleva las tarjetas de la lámina
   pub <- tryCatch(.word_publico_una_barra(el), error = function(e) "")
   if (!nzchar(pub)) return(p)
   espec <- attr(p, "pulso_espec", exact = TRUE)

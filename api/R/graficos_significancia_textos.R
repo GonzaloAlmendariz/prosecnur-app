@@ -181,6 +181,7 @@
 #' Reconoce la lámina por su título. Sin regla vigente, el plan queda igual.
 #' @keywords internal
 .sig_plan_como_leer <- function(plan) {
+  .tarjetas_plan_lectura(plan)   # ADR 0129: con tarjetas, la lámina se dibuja nativa (graficos_tarjetas_lectura.R)
   ctx <- .sig_informe_vigente()
   if (is.null(ctx) || !is.list(plan)) return(plan)
   slides <- plan$slides %||% NULL

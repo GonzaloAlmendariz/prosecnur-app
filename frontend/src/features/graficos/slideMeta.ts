@@ -35,6 +35,18 @@ export type SlideMeta = {
    * En la de tres gráficos en fila, `habilita` va por ranura dependiente (dependenciaTres.ts).
    */
   dependencia?: { de: string; habilita: string[] | Record<string, string[]>; frase?: string };
+  /** ADR 0129: tarjetas de diferencias junto al total (graficos_tarjetas_diferencias.R). `true` o la opción completa. */
+  tarjetas_diferencias?: boolean | TarjetasDiferenciasMeta;
+};
+
+/** Opción de las tarjetas de diferencias (ADR 0129): sólo `activo` y `max` se editan aquí; el resto se conserva. */
+export type TarjetasDiferenciasMeta = {
+  activo?: boolean;
+  max?: number;
+  cruces?: string[];
+  rotulos?: Record<string, string>;
+  cortos?: Record<string, string>;
+  publico?: string;
 };
 
 const esObjeto = (v: unknown): v is Record<string, unknown> => !!v && typeof v === "object" && !Array.isArray(v);
