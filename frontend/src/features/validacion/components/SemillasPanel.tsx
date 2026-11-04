@@ -1,6 +1,7 @@
 import { useId, useState } from "react";
 import { Check, Lightbulb } from "lucide-react";
 import type { ReglaSemilla } from "../types";
+import { formatoConteo } from "../../../lib/formatoNumero";
 
 // =============================================================================
 // SemillasPanel — criterios que Prosecnur propone a partir de la base
@@ -57,7 +58,7 @@ export default function SemillasPanel({ semillas, onAdoptar, disabled }: Props) 
           <h3 id={`${baseId}-titulo`}>
             {semillas.length === 1
               ? "Hay 1 criterio sugerido para esta base"
-              : `Hay ${semillas.length} criterios sugeridos para esta base`}
+              : `Hay ${formatoConteo(semillas.length)} criterios sugeridos para esta base`}
           </h3>
           <p>
             Salen de mirar la base, no el formulario. Revísalos y adopta los que

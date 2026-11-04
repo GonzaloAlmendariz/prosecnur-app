@@ -63,7 +63,7 @@ describe("base en una frase (E4)", () => {
     expect(base).toEqual({ nCasos: 642, nTotal: 1283, filtrado: true, responden: 604, sinRespuesta: 38 });
     expect(fraseBase(base)).toEqual({
       destacado: "642 de 1,283 casos",
-      resto: " con el filtro activo · 604 responden y 38 quedan sin respuesta.",
+      resto: " con el filtro activo; 604 responden y 38 quedan sin respuesta.",
     });
   });
 
@@ -306,9 +306,9 @@ describe("tabla de calor con una múltiple: denominadores en casos", () => {
   });
 
   it("la base del cruce en una frase, con el «de» sólo cuando hay más casos que el cruce", () => {
-    expect(fraseCruceBase({ base_n: 560, n_x: 1283, n_y: 560 })).toBe("560 casos responden las dos (de 1,283) · sin ponderar");
-    expect(fraseCruceBase({ base_n: 1283, n_x: 1283, n_y: 1283 })).toBe("1,283 casos responden las dos · sin ponderar");
-    expect(fraseCruceBase({ base_n: 1, n_x: null, n_y: null })).toBe("1 caso responde las dos · sin ponderar");
+    expect(fraseCruceBase({ base_n: 560, n_x: 1283, n_y: 560 })).toBe("560 casos responden las dos (de 1,283), sin ponderar");
+    expect(fraseCruceBase({ base_n: 1283, n_x: 1283, n_y: 1283 })).toBe("1,283 casos responden las dos, sin ponderar");
+    expect(fraseCruceBase({ base_n: 1, n_x: null, n_y: null })).toBe("1 caso responde las dos, sin ponderar");
   });
 });
 

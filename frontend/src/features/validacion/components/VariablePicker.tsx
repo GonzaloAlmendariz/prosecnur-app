@@ -12,6 +12,7 @@ import {
   enFamilia,
   type FamiliaTipo,
 } from "../tabs/explorar/tiposVariable";
+import { formatoConteo } from "../../../lib/formatoNumero";
 
 // =============================================================================
 // VariablePicker — lista de variables del explorador (E1, revamp 2026-11-02)
@@ -75,7 +76,7 @@ export default function VariablePicker({
       <div className="vx-lista-cab">
         <strong>{titulo}</strong>
         <span>
-          {todas.length} en {secciones.length} {secciones.length === 1 ? "sección" : "secciones"}
+          {formatoConteo(todas.length)} en {formatoConteo(secciones.length)} {secciones.length === 1 ? "sección" : "secciones"}
         </span>
         {accion}
       </div>
@@ -115,7 +116,7 @@ export default function VariablePicker({
                   {isCollapsed ? <ChevronRight size={12} aria-hidden /> : <ChevronDown size={12} aria-hidden />}
                   {sec.nombre}
                 </span>
-                <span>{sec.variables.length}</span>
+                <span>{formatoConteo(sec.variables.length)}</span>
               </button>
               <div id={sectionId} hidden={isCollapsed}>
                 {sec.variables.map((v) => (

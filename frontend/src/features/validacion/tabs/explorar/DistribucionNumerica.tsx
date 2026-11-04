@@ -37,7 +37,7 @@ export default function DistribucionNumerica({ num }: { num: ExploradorDistNum }
         height={H}
         viewBox={`0 0 ${marco.W} ${H}`}
         role="img"
-        aria-label={`Histograma en ${num.bins.length} tramos, de ${fmtValor(num.min)} a ${fmtValor(num.max)}; mediana ${fmtValor(num.mediana)}, mitad central de ${fmtValor(num.p25)} a ${fmtValor(num.p75)}`}
+        aria-label={`Histograma en ${fmtN(num.bins.length)} tramos, de ${fmtValor(num.min)} a ${fmtValor(num.max)}; mediana ${fmtValor(num.mediana)}, mitad central de ${fmtValor(num.p25)} a ${fmtValor(num.p75)}`}
       >
         <EjesSvg marco={marco} y={y} rotuloY={fmtN} x={x} rotuloX={fmtValor} />
         {num.bins.map((b, i) => (
@@ -56,7 +56,7 @@ export default function DistribucionNumerica({ num }: { num: ExploradorDistNum }
         <line className="vx-svg-mediana" x1={md} x2={md} y1={marco.arr - 6} y2={altoHist - marco.aba} />
         <text className="vx-svg-anota" x={md + 6} y={marco.arr - 8}>{`Mediana ${fmtValor(num.mediana)}`}</text>
         <g>
-          <title>{`Mínimo ${fmtValor(num.min)} · p25 ${fmtValor(num.p25)} · mediana ${fmtValor(num.mediana)} · p75 ${fmtValor(num.p75)} · máximo ${fmtValor(num.max)}`}</title>
+          <title>{`Mínimo ${fmtValor(num.min)}, p25 ${fmtValor(num.p25)}, mediana ${fmtValor(num.mediana)}, p75 ${fmtValor(num.p75)}, máximo ${fmtValor(num.max)}`}</title>
           <line className="vx-svg-bigote" x1={X(num.min)} x2={X(num.max)} y1={cy} y2={cy} />
           <rect className="vx-svg-cajita" x={X(num.p25)} y={cy - 10} width={Math.max(2, X(num.p75) - X(num.p25))} height={20} rx={4} />
           <line className="vx-svg-cajita-mediana" x1={md} x2={md} y1={cy - 12} y2={cy + 12} />

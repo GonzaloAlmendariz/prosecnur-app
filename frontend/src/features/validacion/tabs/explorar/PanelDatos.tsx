@@ -20,7 +20,7 @@ export default function PanelDatos({ ficha, filtrado }: { ficha: ExploradorFicha
         <dt>Sin respuesta</dt>
         <dd>
           {fmtN(d.n_sin_respuesta)}
-          {d.n_total > 0 ? ` · ${fmtPct((100 * d.n_sin_respuesta) / d.n_total)}` : ""}
+          {d.n_total > 0 ? ` (${fmtPct((100 * d.n_sin_respuesta) / d.n_total)})` : ""}
         </dd>
         {categorica && (
           <>

@@ -35,7 +35,7 @@ export function fmtPct(x: number): string {
   return `${fmtDecimal(x, 1)}%`;
 }
 
-/** Número con los decimales que necesita (hasta 2): 1,150 · 3.5 · 0.25. */
+/** Número con los decimales que necesita (hasta 2): 1,150, 3.5 o 0.25. */
 export function fmtValor(x: number): string {
   if (!Number.isFinite(x)) return "—";
   if (Number.isInteger(x)) return fmtN(x);
@@ -92,7 +92,7 @@ export function fraseBase(base: BaseLectura): { destacado: string; resto: string
   const desglose =
     base.responden === null
       ? ""
-      : ` · ${fmtN(base.responden)} responden y ${fmtN(base.sinRespuesta ?? 0)} ${
+      : `; ${fmtN(base.responden)} responden y ${fmtN(base.sinRespuesta ?? 0)} ${
           base.sinRespuesta === 1 ? "queda" : "quedan"
         } sin respuesta`;
   return { destacado, resto: `${filtro}${desglose}.` };
@@ -252,7 +252,7 @@ export function cifrasClave(
     cifras.push({
       rotulo: "Mediana",
       valor: fmtValor(num.mediana),
-      nota: `p25–p75 · ${fmtValor(num.p25)}–${fmtValor(num.p75)}`,
+      nota: `p25–p75: ${fmtValor(num.p25)}–${fmtValor(num.p75)}`,
     });
     cifras.push({
       rotulo: "Atípicos",
@@ -504,7 +504,7 @@ export function rangoColumnas(modelo: ModeloCalor): { min: number; max: number; 
 export function fraseCruceBase(cruce: Pick<ExploradorCruce, "base_n" | "n_x" | "n_y">): string {
   const de = [cruce.n_x, cruce.n_y].find((n): n is number => n !== null && n > cruce.base_n);
   const casos = `${fmtN(cruce.base_n)} ${cruce.base_n === 1 ? "caso responde" : "casos responden"} las dos`;
-  return `${casos}${de !== undefined ? ` (de ${fmtN(de)})` : ""} · sin ponderar`;
+  return `${casos}${de !== undefined ? ` (de ${fmtN(de)})` : ""}, sin ponderar`;
 }
 
 // --- Escalas -------------------------------------------------------------------

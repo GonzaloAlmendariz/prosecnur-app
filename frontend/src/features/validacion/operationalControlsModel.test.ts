@@ -160,8 +160,8 @@ describe("operational controls model", () => {
     config.duplicates.enabled = true;
 
     expect(buildOperationalStatusLabels(config)).toEqual({
-      fieldPeriod: "Campo · 30 jun.–6 jul.",
-      duplicates: "Similitud · 90%",
+      fieldPeriod: "Campo: 30 jun.–6 jul.",
+      duplicates: "Similitud: 90%",
     });
   });
 });

@@ -117,7 +117,7 @@ export default function PanoramaTab() {
             background: "var(--pulso-info-bg)",
             border: "1px solid var(--pulso-info-border)",
             color: "var(--pulso-info-fg)",
-            fontSize: 13,
+            fontSize: "var(--pulso-type-body-size)",
             lineHeight: 1.5,
           }}
         >
@@ -207,7 +207,7 @@ function ProgresoPill({
     >
       <span
         style={{
-          fontSize: 12,
+          fontSize: "var(--pulso-type-subtitle-size)",
           fontWeight: 600,
           color: on ? "var(--pulso-success-fg)" : "var(--pulso-text-soft)",
         }}
@@ -216,7 +216,7 @@ function ProgresoPill({
       </span>
       <span
         style={{
-          fontSize: 11,
+          fontSize: "var(--pulso-type-caption-size)",
           fontWeight: 700,
           padding: "2px 8px",
           borderRadius: 999,

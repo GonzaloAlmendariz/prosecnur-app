@@ -168,7 +168,7 @@ export default function VariableChip({
     gap: 4,
     padding: variant === "inline" ? "0 4px" : "2px 7px",
     borderRadius: variant === "inline" ? 4 : "var(--pulso-radius-chip)",
-    fontSize: variant === "inline" ? "inherit" : 11,
+    fontSize: variant === "inline" ? "inherit" : "var(--pulso-type-caption-size)",
     fontWeight: 700,
     fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
     background: tokens.bg,
@@ -182,7 +182,7 @@ export default function VariableChip({
   };
 
   const typeLabelStyle: CSSProperties = {
-    fontSize: 10,
+    fontSize: "var(--pulso-type-micro-size)",
     fontWeight: 800,
     letterSpacing: 0.3,
     opacity: 0.75,
@@ -294,7 +294,7 @@ function VariableHoverCard({
         background: "var(--pulso-surface)",
         border: "1px solid var(--pulso-border)",
         boxShadow: "var(--pulso-shadow-high)",
-        fontSize: 12,
+        fontSize: "var(--pulso-type-body-size)",
         color: "var(--pulso-text)",
         pointerEvents: "auto",
       }}
@@ -305,7 +305,7 @@ function VariableHoverCard({
           style={{
             fontFamily: "ui-monospace, monospace",
             fontWeight: 700,
-            fontSize: 13,
+            fontSize: "var(--pulso-type-subtitle-size)",
             color: "var(--pulso-text)",
           }}
         >
@@ -317,7 +317,7 @@ function VariableHoverCard({
             borderRadius: "var(--pulso-radius-chip)",
             background: tokens.bg,
             color: tokens.fg,
-            fontSize: 10,
+            fontSize: "var(--pulso-type-micro-size)",
             fontWeight: 800,
             letterSpacing: 0.3,
             border: `1px solid ${tokens.border}`,
@@ -329,21 +329,21 @@ function VariableHoverCard({
 
       {/* Label humano */}
       {data?.label && (
-        <div style={{ fontSize: 12, lineHeight: 1.5, color: "var(--pulso-text)", marginBottom: 8 }}>
+        <div style={{ fontSize: "var(--pulso-type-body-size)", lineHeight: 1.5, color: "var(--pulso-text)", marginBottom: 8 }}>
           {data.label}
         </div>
       )}
 
       {/* Sección / grupo */}
       {(data?.seccion || data?.grupo) && (
-        <div style={{ fontSize: 11, color: "var(--pulso-text-soft)", marginBottom: 8, lineHeight: 1.55 }}>
+        <div style={{ fontSize: "var(--pulso-type-caption-size)", color: "var(--pulso-text-soft)", marginBottom: 8, lineHeight: 1.55 }}>
           {data.seccion && <div>Sección: <strong style={{ color: "var(--pulso-text)" }}>{data.seccion}</strong></div>}
           {data.grupo && data.grupo !== data.seccion && (
             <div>Grupo: <strong style={{ color: "var(--pulso-text)" }}>{data.grupo}</strong></div>
           )}
           {data.grupo_relevant && (
             <div style={{ marginTop: 2 }}>
-              Activa si: <code style={{ fontSize: 11 }}>{data.grupo_relevant}</code>
+              Activa si: <code style={{ fontSize: "var(--pulso-type-caption-size)" }}>{data.grupo_relevant}</code>
             </div>
           )}
         </div>
@@ -369,7 +369,7 @@ function VariableHoverCard({
               alignItems: "center",
               gap: 6,
               padding: "5px 12px",
-              fontSize: 11,
+              fontSize: "var(--pulso-type-caption-size)",
               cursor: "pointer",
             }}
           >
@@ -382,14 +382,14 @@ function VariableHoverCard({
       {pinned && (
         <div
           style={{
-            fontSize: 10,
+            fontSize: "var(--pulso-type-micro-size)",
             color: "var(--pulso-text-soft)",
             marginTop: 8,
             textAlign: "right",
             fontStyle: "italic",
           }}
         >
-          Fijado · Esc o click afuera cierra
+          Fijado. Esc o un clic afuera lo cierra
         </div>
       )}
     </div>,
@@ -413,12 +413,12 @@ function Stats({
   const pct = stats.missing_pct ?? (total > 0 ? (1 - validos / total) * 100 : 0);
 
   return (
-    <div style={{ fontSize: 11, lineHeight: 1.55 }}>
+    <div style={{ fontSize: "var(--pulso-type-caption-size)", lineHeight: 1.55 }}>
       {(stats.n_total != null || stats.n_validos != null) && (
         <div style={{ color: "var(--pulso-text-soft)", marginBottom: 6 }}>
           <strong style={{ color: "var(--pulso-text)" }}>{fmtNum(validos)}</strong> con valor
           {total > 0 && (
-            <> · <strong style={{ color: "var(--pulso-text)" }}>{fmtNum(total - validos)}</strong> vacíos
+            <>, <strong style={{ color: "var(--pulso-text)" }}>{fmtNum(total - validos)}</strong> vacíos
             {pct > 0 && <> ({pct.toFixed(1)}%)</>}</>
           )}
         </div>
@@ -455,7 +455,7 @@ function TopValores({
           <div key={v.label} style={{ display: "flex", alignItems: "center", gap: 6 }}>
             <span
               style={{
-                fontSize: 10,
+                fontSize: "var(--pulso-type-micro-size)",
                 color: "var(--pulso-text)",
                 flex: "0 0 110px",
                 overflow: "hidden",
@@ -485,7 +485,7 @@ function TopValores({
                 }}
               />
             </div>
-            <span style={{ fontSize: 10, color: "var(--pulso-text-soft)", flex: "0 0 30px", textAlign: "right" }}>
+            <span style={{ fontSize: "var(--pulso-type-micro-size)", color: "var(--pulso-text-soft)", flex: "0 0 30px", textAlign: "right" }}>
               {fmtNum(v.n)}
             </span>
           </div>

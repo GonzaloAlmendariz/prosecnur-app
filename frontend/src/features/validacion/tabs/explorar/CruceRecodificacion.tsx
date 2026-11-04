@@ -42,7 +42,7 @@ export default function CruceRecodificacion({ datos }: { datos: Recodificacion }
           <span className="vx-eyebrow">Sin cambios</span>
           <div className="vx-fichas">
             {datos.intactas.map((o) => (
-              <span key={o.etiqueta}>{o.etiqueta} · {fmtN(o.n)}</span>
+              <span key={o.etiqueta}>{o.etiqueta} ({fmtN(o.n)})</span>
             ))}
           </div>
         </div>

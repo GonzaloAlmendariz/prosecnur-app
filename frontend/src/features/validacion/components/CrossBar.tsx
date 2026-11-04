@@ -13,7 +13,7 @@
 
 import type { CSSProperties, ReactElement } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ArrowRight, ChevronDown, Info, X as XIcon } from "../../../vendor/lucide-react";
+import { Search, ArrowRight, ChevronDown, Info, X as XIcon } from "../../../vendor/lucide-react";
 import { Popover } from "../../../components/Popover";
 import { PulsoButton } from "../../../components/PulsoButton";
 import { PulsoInput } from "../../../components/PulsoInput";
@@ -23,6 +23,7 @@ import ChipsTipo from "../tabs/explorar/ChipsTipo";
 import InsigniaTipo from "../tabs/explorar/InsigniaTipo";
 import { abiertaSinCruce, graficoDelPar, LIMITE_ABIERTA } from "../tabs/explorar/graficoDelPar";
 import { coincide, conteoPorFamilia, enFamilia, type FamiliaTipo } from "../tabs/explorar/tiposVariable";
+import { EstadoVacio } from "../../../components/EstadoVacio";
 
 export type CrossBarProps = {
   secciones: ExploradorSeccion[];
@@ -184,7 +185,7 @@ function CrossPanel({
       </div>
       <div className="crossbar-panel-lista">
         {grupos.length === 0 ? (
-          <p role="status" className="crossbar-vacio">Sin variables que coincidan.</p>
+          <EstadoVacio icono={<Search size={16} />} titulo="Sin variables que coincidan." />
         ) : (
           grupos.map((g) => (
             <div key={g.nombre} className="crossbar-grupo">
@@ -210,7 +211,7 @@ function CrossPanel({
                     {grafico && (
                       <span className="crossbar-grafico">
                         <ArrowRight size={12} aria-hidden />
-                        {grafico}
+                        <span className="crossbar-grafico-texto">{grafico}</span>
                       </span>
                     )}
                   </button>
