@@ -50,3 +50,17 @@ describe("Avance › Cuotas recibe los avisos del numerador (reparo 4)", () => {
     expect(entradaDeCuotasFaltante(reportes(deLaHoja), null, []).modelo.avisos).toEqual([]);
   });
 });
+
+describe("R5 paso 1: las metas de otra variable se dicen, no se suman", () => {
+  it("con metas por actor y por sexo, Cuotas muestra actor y avisa «sexo (2)»", () => {
+    const filas = [
+      ...deLaHoja,
+      { Actor: "Total", Variable: "Sexo", Valor: "Mujer", Universo: 90, Meta: 50, Efectivas: 40 },
+      { Actor: "Total", Variable: "Sexo", Valor: "Hombre", Universo: 93, Meta: 50, Efectivas: 32 },
+    ];
+    const { modelo } = entradaDeCuotasFaltante(reportes(filas), null, []);
+    expect(modelo.segmento).toBe("Actor");
+    expect(modelo.otrasConMeta).toEqual(["sexo (2)"]);
+    expect(entradaDeCuotasFaltante(reportes(deLaHoja), null, []).modelo.otrasConMeta).toEqual([]);
+  });
+});
