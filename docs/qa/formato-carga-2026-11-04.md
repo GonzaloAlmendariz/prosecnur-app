@@ -67,7 +67,7 @@ no tocó: coordenadas y marcas de tiempo crudas que se parten dentro de su celda
 | # | Vista | Qué se ve | Estado |
 |---|---|---|---|
 | 1 | Estructura | Códigos de sección («DATO_»), su nota y la condición («si consent = '1'») salían en Courier: `ui-monospace, monospace` no existe en Chromium ni en Electron y cae al genérico | ☑ la pila completa del módulo (`ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace`) en las 8 declaraciones de `carga-v2.css`. `app/theme.css` tiene 4 más (fuera de alcance, avisado) |
-| 2 | Datos | La grilla parte valores crudos dentro de la celda («2026-06-/13T10:38…») y su cabecera fija tapa 41 px de la primera fila | ☐ fuera de alcance (`procesamiento/ProcessingSheetViewer`) |
+| 2 | Datos | La grilla parte valores crudos dentro de la celda («2026-06-/13T10:38…») y su cabecera fija tapa 41 px de la primera fila | ◐ commit siguiente (autorizado por coordinación): el valor se parte por palabras y uno sin espacios (fecha ISO, código) va en una línea con elipsis y el valor en el `title`. `rotulosPartidos` 40 → 0. De paso, «1,283 filas y 79 columnas» y «1-50 de 1,283, 79 columnas; desplaza horizontalmente». **Queda** `cabecerasQueTapan=1` (32 px tras desplazar fila y media): `scroll-snap` con `scroll-padding-top` no enganchó en la medición y no se dejó un cambio sin verificar; pendiente con la vista abierta. `columnasOcultas=2` es el desplazamiento horizontal de 79 columnas, que el pie anuncia |
 | 3 | Revisión › Base preparada fuera | Ahora el vacío es el del kit con su descripción larga en dos líneas; el estado «Sin declarar» es `EstadoChip` | ☑ |
 | 4 | Estructura | «CONDICIONAL» en versalitas verdes: es una etiqueta del tipo de sección, no un estado | se queda |
 
