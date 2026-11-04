@@ -192,6 +192,8 @@ test_that("con N por distrito el estrato no rige: el sorteo y la π son los del 
   cfg$sample_size_mode <- "external_district"
   cfg$n_por_distrito <- stats::setNames(as.list(rep(24L, length(.es_ubigeos))), .es_ubigeos)
   expect_false(hojas_ruta_estrato_vigente(hojas_ruta_integrada_normalize_config(cfg)))
+  # Tampoco cambia el reemplazo por defecto: sin estrato vigente rige el del distrito.
+  expect_identical(hojas_ruta_integrada_normalize_config(cfg)$replacement_policy, "alternate_zone_same_district")
   s <- hojas_ruta_sample_preview_integrado(cfg)
   expect_true(s$ok)
   b <- .hojas_ruta_rows_df(s$blocks)
