@@ -356,11 +356,10 @@
 }
 
 .pulso-armon-tabla .pulso-armon-marca input {
-  display: block;
-  width: 15px;
-  height: 15px;
+  /* La casilla es la del kit (theme.css): `display: block` y 15 px rompían su `inline-grid`, y el tilde, que es un
+     ::before centrado por esa grilla, quedaba arriba a la izquierda y desbordaba la caja (overflow-y con datos). */
+  vertical-align: middle;
   margin: 0;
-  accent-color: var(--module-accent);
 }
 
 .pulso-armon-tabla tr.is-marcado td {
