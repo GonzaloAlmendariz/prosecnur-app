@@ -2,7 +2,14 @@
   {
     "nombre": "acnur_real",
     "config": {
-      "territorios": ["150103", "150108", "150117", "150132", "150133", "150135"],
+      "territorios": [
+        "150103",
+        "150108",
+        "150117",
+        "150132",
+        "150133",
+        "150135"
+      ],
       "entrevistas_por_manzana": 8,
       "max_per_manzana": 8,
       "sample_size_mode": "external_district",
@@ -83,7 +90,14 @@
   {
     "nombre": "calculadora_piso",
     "config": {
-      "territorios": ["150103", "150108", "150117", "150132", "150133", "150135"],
+      "territorios": [
+        "150103",
+        "150108",
+        "150117",
+        "150132",
+        "150133",
+        "150135"
+      ],
       "entrevistas_por_manzana": 8,
       "max_per_manzana": 8,
       "sample_size_mode": "calculator",
@@ -157,7 +171,14 @@
   {
     "nombre": "total_uniforme",
     "config": {
-      "territorios": ["150103", "150108", "150117", "150132", "150133", "150135"],
+      "territorios": [
+        "150103",
+        "150108",
+        "150117",
+        "150132",
+        "150133",
+        "150135"
+      ],
       "entrevistas_por_manzana": 8,
       "max_per_manzana": 8,
       "sample_size_mode": "external_total",
@@ -230,6 +251,79 @@
           "n_min_district": 120,
           "n_used": 160,
           "margin_estimated": 0.102225056354146
+        }
+      ]
+    }
+  },
+  {
+    "nombre": "cpv2025_calculadora",
+    "config": {
+      "territorios": ["150103", "150108", "150117", "150132", "150133", "150135"],
+      "entrevistas_por_manzana": 8,
+      "sample_size_mode": "calculator",
+      "sample_size": {
+        "confidence_level": 0.95,
+        "margin_total": 0.04,
+        "margin_district": 0.1,
+        "expected_proportion": 0.5,
+        "design_effect": 1.5,
+        "allocation_mode": "proportional",
+        "enforce_district_floor": true,
+        "response_rate": 0.9,
+        "apply_fpc": true,
+        "base_reparto": "cpv2025_adultos_urbanos"
+      },
+      "n_mode": "total"
+    },
+    "esperado": {
+      "n_total_min": 904,
+      "n_district_floor": 888,
+      "n_recommended": 904,
+      "n_used": 904,
+      "margin_total_estimated": 0.0399117624456608,
+      "contacts_suggested": 1005,
+      "distritos": [
+        {
+          "ubigeo": "150103",
+          "poblacion": 434445.63070488,
+          "n_min_district": 152,
+          "n_used": 152,
+          "margin_estimated": 0.0973344196759411
+        },
+        {
+          "ubigeo": "150108",
+          "poblacion": 262591.829281465,
+          "n_min_district": 144,
+          "n_used": 144,
+          "margin_estimated": 0.0999917557033999
+        },
+        {
+          "ubigeo": "150117",
+          "poblacion": 256900.9793593,
+          "n_min_district": 144,
+          "n_used": 144,
+          "margin_estimated": 0.0999911522529374
+        },
+        {
+          "ubigeo": "150132",
+          "poblacion": 728656.928367603,
+          "n_min_district": 152,
+          "n_used": 160,
+          "margin_estimated": 0.0948759952519224
+        },
+        {
+          "ubigeo": "150133",
+          "poblacion": 283845.476767508,
+          "n_min_district": 144,
+          "n_used": 144,
+          "margin_estimated": 0.0999937954482551
+        },
+        {
+          "ubigeo": "150135",
+          "poblacion": 528603.544747294,
+          "n_min_district": 152,
+          "n_used": 160,
+          "margin_estimated": 0.0948720767382296
         }
       ]
     }

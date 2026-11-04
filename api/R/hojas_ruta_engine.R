@@ -640,7 +640,7 @@ hojas_ruta_contexto_curado_path <- function() {
 .hojas_ruta_inei_frame_cache <- new.env(parent = emptyenv())
 .hojas_ruta_inei_frame_summary_cache <- new.env(parent = emptyenv())
 .hojas_ruta_inei_age_simple_cache <- new.env(parent = emptyenv())
-.hojas_ruta_inei_frame_summary_cache_version <- "summary-v3-registro-ciudades-adr0119"
+.hojas_ruta_inei_frame_summary_cache_version <- "summary-v4-base-2025-adr0131"
 
 .hojas_ruta_frame_summary_signature <- function(source, path, info) {
   paste(
@@ -3501,7 +3501,7 @@ hojas_ruta_integrada_normalize_config <- function(config = list()) {
   )
   replacement_policy <- .hojas_ruta_scalar(
     config$replacement_policy %||% config$replacementPolicy %||% config$politica_reemplazo,
-    defaults$replacement_policy
+    if (hojas_ruta_estrato_vigente(list(sample_size = sample_size, sample_size_mode = sample_size_mode))) "paired_by_titular_zone" else defaults$replacement_policy # ADR 0131 §5
   )
   if (!replacement_policy %in% .hojas_ruta_replacement_policies()) {
     replacement_policy <- defaults$replacement_policy
@@ -3871,6 +3871,7 @@ hojas_ruta_integrada_normalize_config <- function(config = list()) {
 
 .hojas_ruta_finalize_quota_cells <- function(cells, cfg) {
   if (!nrow(cells)) return(cells)
+  cells <- hojas_ruta_reparto_base_escalar_celdas(cells, cfg) # ADR 0131 §2
   cells$cuota_raw <- 0
   cells$cuota <- 0L
   route_size <- .hojas_ruta_route_size(cfg)
@@ -3913,9 +3914,8 @@ hojas_ruta_integrada_normalize_config <- function(config = list()) {
     district_weights <- vapply(districts, function(ubigeo) {
       sum(cells$poblacion[as.character(cells$ubigeo) == ubigeo], na.rm = TRUE)
     }, numeric(1))
-    district_route_counts <- .hojas_ruta_allocate_by_mode(
-      district_weights, route_total, alloc_mode
-    )
+    district_route_counts <- hojas_ruta_reparto_base_rutas(districts, route_total, cfg) %||%
+      .hojas_ruta_allocate_by_mode(district_weights, route_total, alloc_mode)
     for (j in seq_along(districts)) {
       district_idx <- as.character(cells$ubigeo) == districts[[j]]
       district_routes <- as.integer(district_route_counts[[j]])
@@ -3999,7 +3999,7 @@ hojas_ruta_integrada_normalize_config <- function(config = list()) {
   if (!nrow(cells)) return(cells)
   source <- attr(cells, "age_source", exact = TRUE)
   cells <- .hojas_ruta_finalize_quota_cells(cells, cfg)
-  attr(cells, "age_source") <- source
+  attr(cells, "age_source") <- hojas_ruta_cuotas_2025_fuente_edad(source, cfg) # ADR 0131 §2
   cells
 }
 
@@ -4312,6 +4312,8 @@ hojas_ruta_sample_size_preview <- function(config = list()) {
 
   district_pop <- as.numeric(district_frame$poblacion)
   district_ubigeos <- as.character(district_frame$ubigeo)
+  district_pop <- hojas_ruta_reparto_base_poblacion(district_ubigeos, district_pop, params) # ADR 0131 §2
+  total_population <- sum(district_pop, na.rm = TRUE)
   district_deff <- vapply(district_ubigeos, function(u) {
     .hojas_ruta_design_effect_for(params, u)
   }, numeric(1))
@@ -4373,6 +4375,7 @@ hojas_ruta_sample_size_preview <- function(config = list()) {
     floors_used <- if (enforce_floor && n_used >= n_district_floor) n_district_min else rep(0L, length(district_pop))
     .hojas_ruta_allocate_by_mode(district_pop, n_used, alloc_mode, floors_used)
   }
+  used_by_district <- hojas_ruta_estrato_preview_rutas(district_ubigeos, n_used, cfg, route_status$ok) %||% used_by_district # ADR 0131 §1
   used_by_district[is.na(used_by_district) | used_by_district < 0L] <- 0L
 
   margin_total <- .hojas_ruta_margin_error(total_population, n_used, params)
@@ -4446,7 +4449,7 @@ hojas_ruta_sample_size_preview <- function(config = list()) {
     )
   }
 
-  list(
+  c(list(
     ok = nrow(frame) > 0L && n_used > 0L && isTRUE(route_status$ok),
     frame_meta = .hojas_ruta_frame_meta(frame_all, cfg$frame_source),
     config = cfg,
@@ -4471,7 +4474,7 @@ hojas_ruta_sample_size_preview <- function(config = list()) {
     margin_total_target = params$margin_total,
     district_rows = rows,
     alerts = alerts
-  )
+  ), hojas_ruta_reparto_base_declaracion(district_ubigeos, params, cfg, n_used))
 }
 
 #' Previsualizar cuotas integradas desde el marco INEI 2017
@@ -5478,7 +5481,8 @@ hojas_ruta_sample_preview_integrado <- function(config = list()) {
   replacement_blocks_df <- replacement_assignment$blocks
   replacement_blocks_df <- .hojas_ruta_apply_replacement_route_ranges(replacement_blocks_df, blocks_df)
   replacement_blocks_df <- .hojas_ruta_order_replacements(replacement_blocks_df)
-  alerts <- c(alerts, replacement_assignment$alerts)
+  pim <- hojas_ruta_pi_muestra(blocks_df, replacement_blocks_df, frame, cfg) # ADR 0131 §5: π y estrato
+  blocks_df <- pim$blocks; replacement_blocks_df <- pim$replacements; alerts <- c(alerts, replacement_assignment$alerts, pim$alerts)
   if (unassigned_total > 0L) {
     alerts[[length(alerts) + 1L]] <- list(
       level = "error",
@@ -5502,7 +5506,7 @@ hojas_ruta_sample_preview_integrado <- function(config = list()) {
     "manzana", "viviendas", "poblacion", "territorio_muestral", "metodo",
     "orden_seleccion", "hoja_num", "rango_inicio", "rango_fin",
     "entrevistas", "medida_tamano", "lat", "lon", "tipo_manzana",
-    "cuota_edad_totals", "cuota_sexo_totals",
+    "cuota_edad_totals", "cuota_sexo_totals", "estrato", "pi", "pi_regla", "pi_ciudad", "ciudad_condicion", "grupo_ciudades",
     "esquina_codigo", "esquina_inicio", "esquina_coordenada", "sentido_recorrido",
     "vivienda_inicio", "domicilio_inicio", "constante_salto", "constante_salto_unidad",
     "constante_salto_modo", "modo_seleccion_vivienda",
@@ -5518,7 +5522,7 @@ hojas_ruta_sample_preview_integrado <- function(config = list()) {
     "replacement_policy", "replacement_order", "replacement_total", "titular_id_manzana",
     "titular_orden_seleccion", "titular_ubigeo", "titular_zona",
     "titular_hoja_num", "titular_rango_inicio", "titular_rango_fin",
-    "replacement_label", "replacement_fallback",
+    "replacement_label", "replacement_fallback", "estrato", "pi", "pi_fuente", "pi_ciudad", "ciudad_condicion", "grupo_ciudades",
     "esquina_codigo", "esquina_inicio", "esquina_coordenada", "sentido_recorrido",
     "vivienda_inicio", "domicilio_inicio", "constante_salto", "constante_salto_unidad",
     "constante_salto_modo", "modo_seleccion_vivienda",

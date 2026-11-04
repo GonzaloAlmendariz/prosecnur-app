@@ -123,3 +123,47 @@ test_that("sin ninguna diferencia en la lámina no hay franja: los paneles conse
   expect_false(grepl("Sin diferencias", xml, fixed = TRUE))
   expect_false(grepl("prosecnur:tarjetas_diferencias", xml, fixed = TRUE))
 })
+
+test_that("la mitad sin tarjetas usa todo su alto: la franja solo acorta el panel que las lleva", {
+  # Ítem 11 de la v7.11 RV: «que uno tenga tarjetas no significa que el otro no pueda usar todo su alto».
+  g0 <- .lam_mixta_geo("graficos_2")
+  r <- .lam_reservas_por_mitad(list(.tr_conjunto(2), list(tarjetas = list())), 1.7)
+  expect_identical(r, c(1.7, 0))
+  g1 <- withr::with_options(list(prosecnur.lam_reserva_inferior = r), .lam_mixta_geo("graficos_2"))
+  expect_equal(g0$paneles[[1]]$h - g1$paneles[[1]]$h, 1.7)
+  expect_equal(g1$paneles[[2]]$h, g0$paneles[[2]]$h)
+  vistas <- NULL
+  local_mocked_bindings(.lam_slide_2_caben_con_tarjetas = function(ps, els, reserva, titulo_de_var = NULL) { vistas <<- reserva; TRUE })
+  compone <- function(d) { vistas <<- c(vistas, getOption("prosecnur.lam_reserva_inferior")); officer::add_slide(d, layout = "Graficos2", master = "Office Theme") }
+  base <- officer::read_pptx(system.file("plantillas", "plantilla_16_9.pptx", package = "prosecnurapp"))
+  .lam_slide_2_con_tarjetas(base, list(NULL, .tr_conjunto(1)), compone, ps = list(1, 2), els = list(), titulo = "T")
+  expect_equal(vistas[1], 0)                     # izquierda sin tarjetas: sin franja
+  expect_gt(vistas[2], 0)
+  expect_equal(tail(vistas, 2), vistas[1:2])     # lo que se probó es lo que se compone
+})
+
+test_that("una franja dicotómica con tarjetas llena su mitad: más grande, centrada y con sus tarjetas pegadas debajo", {
+  # Ítem 14 de la v7.11 RV: B19 (Sí/No) dejaba la mitad vacía y su tarjeta al pie.
+  e <- preparar_categorica(c("Sí", "No"), c(.28, .72), c("28%", "72%"))
+  geo <- .lam_mixta_geo("graficos_2"); col2 <- geo$paneles[[1]]$w
+  expect_true(.lam_ranura_es_dicotomia(e, col2))
+  expect_false(.lam_ranura_es_dicotomia(preparar_categorica(c("A", "B", "C"), c(.5, .3, .2), c("50%", "30%", "20%")), col2))
+  r <- .lam_receta_dicotomia_con_tarjetas(4.6, 1.2)
+  expect_true(r$conserva_estilo)                                   # el título del panel como el de la otra mitad
+  expect_gt(r$dicotomia$dy, 0.65)                                  # bajada para centrar el bloque
+  expect_equal(r$dicotomia$size, .TARJETAS_DICO_CIFRA)
+  expect_equal(.lam_receta_dicotomia_con_tarjetas(1, 5)$dicotomia$dy, 0.65)   # sin alto libre, en su lugar de siempre
+  vistas <- list()
+  local_mocked_bindings(.lam_slide_2_caben_con_tarjetas = function(...) TRUE, .lam_espec_de = function(p) p,
+                        .lam_tarjetas_ranuras_dibujar = function(doc, ts, debajo = c(FALSE, FALSE)) { vistas$debajo <<- debajo; doc })
+  compone <- function(d) {
+    vistas$reserva <<- getOption("prosecnur.lam_reserva_inferior"); vistas$recetas <<- getOption("prosecnur.lam_recetas_ranura")
+    d
+  }
+  barras <- preparar_categorica(c("A", "B", "C"), c(.5, .3, .2), c("50%", "30%", "20%"))
+  .lam_slide_2_con_tarjetas(NULL, list(.tr_conjunto(1), .tr_conjunto(1)), compone, ps = list(barras, e), els = list(), titulo = "T")
+  expect_identical(vistas$debajo, c(FALSE, TRUE))
+  expect_gt(vistas$reserva[1], 0); expect_equal(vistas$reserva[2], 0)    # la franja no reserva alto
+  expect_null(vistas$recetas[[1]]); expect_true(vistas$recetas[[2]]$conserva_estilo)
+  expect_null(getOption("prosecnur.lam_recetas_ranura"))                 # no queda pegada
+})

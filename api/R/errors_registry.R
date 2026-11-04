@@ -222,6 +222,17 @@ errores_registrados <- function() {
     # Contornos por región del lienzo (paquete por regiones, R2).
     "E_HOJAS_RUTA_REGION",                                   "router_hojas_ruta_contornos.R",     "400",
     "E_HOJAS_RUTA_REGION_SIN_CONTORNOS",                     "router_hojas_ruta_contornos.R",     "404",
+    # Base de reparto 2025 por distrito (ADR 0131 §2).
+    "E_HOJAS_RUTA_BASE_2025_INCOMPLETA",                     "hojas_ruta_reparto_base.R",         "422",
+    # Estrato explícito provincia (ADR 0131 §1).
+    "E_HOJAS_RUTA_ESTRATO_SIN_AREA",                         "hojas_ruta_estrato.R",              "422",
+    "E_HOJAS_RUTA_ESTRATO_CUOTA_ZONA",                       "hojas_ruta_estrato.R",              "422",
+    "E_HOJAS_RUTA_ESTRATO_SIN_RUTAS",                        "hojas_ruta_estrato.R",              "422",
+    "E_HOJAS_RUTA_ESTRATO_SIN_MEDIDA",                       "hojas_ruta_estrato.R",              "422",
+    # Ciudades forzosas y sorteadas por macrorregión (ADR 0131 §1b).
+    "E_HOJAS_RUTA_CIUDAD_SIN_RUTAS",                         "hojas_ruta_ciudades_sorteo.R",      "422",
+    "E_HOJAS_RUTA_CIUDAD_SIN_MEDIDA",                        "hojas_ruta_ciudades_sorteo.R",      "422",
+    "E_HOJAS_RUTA_CIUDAD_SIN_MACRORREGION",                  "hojas_ruta_macrorregiones.R",       "422",
     # Imágenes de línea gráfica y ZIP importable (ADR 0110 §B, E1g).
     "E_COLLECTION_MAIL_IMAGE_INVALID",                       "collection_mail_images.R",          "422",
     "E_COLLECTION_MAIL_IMPORT_ZIP_TOO_LARGE",                "collection_mail_import_zip.R",      "413",
@@ -442,6 +453,13 @@ errores_registrados <- function() {
     "E_SEGMENTO_NO_ENCONTRADO",                              "segmentos_cruce.R",                 "404",
     "E_PONDERACION_COLUMNA_SIN_NOMBRE",                      "ponderacion_analitica.R",           "400",
     "E_PONDERACION_COLUMNA_INEXISTENTE",                     "ponderacion_analitica.R",           "422",
+    "E_PONDERACION_PESO_BASE_INEXISTENTE",                   "ponderacion_engine.R",              "422",
+    "E_PONDERACION_PESO_BASE_INVALIDO",                      "ponderacion_engine.R",              "422",
+    "E_PONDERACION_EXPANSION_SIN_TOTAL",                     "ponderacion_engine.R",              "422",
+    "E_PONDERACION_IMPUTACION_EXCEDE_UMBRAL",                "ponderacion_faltantes.R",           "422",
+    "E_PONDERACION_CPV_SIN_DATOS",                           "ponderacion_metas_cpv2025.R",       "500",
+    "E_PONDERACION_CPV_GRUPOS_EDAD_INVALIDOS",               "ponderacion_metas_cpv2025.R",       "422",
+    "E_PONDERACION_CPV_AMBITO_DESCONOCIDO",                  "ponderacion_metas_cpv2025.R",       "422",
     "E_BASE_REQUERIDA",                                      "carga_estructura_base.R",           "400",
     "E_BLOCK_MAP_SOURCE",                                    "hojas_ruta_engine.R",               "indirecto",
     "E_CALC_DEFF_RANGO",                                     "helpers_calc_comunes.R",            "400",

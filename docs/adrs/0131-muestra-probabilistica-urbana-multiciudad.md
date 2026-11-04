@@ -3,7 +3,7 @@
 Estado: Propuesto. Espera la decisión de Gonzalo. Revisión metodológica previa de `revisor-metodologico` (aprobado
 con supuestos, incorporados aquí); falta la revisión de `guardian-contratos` sobre el texto final.
 
-Implementación: no iniciada; postergada por Gonzalo el 4/11 («el cálculo de la muestra puede ir después»). Estado vivo
+Implementación: paso 1 (reparto con la base 2025 y g_d) en backend desde el 2026-11-04, apagado por defecto; el resto, no iniciado. Estado vivo
 en `docs/qa/checklist-muestra-urbana-multiciudad-2026-11-04.md`.
 
 **Decisión de Gonzalo, 4/11, que corrige el §4:** la persona dentro de la vivienda se elige por **cuotas de sexo ×
@@ -48,6 +48,38 @@ y las 25 ciudades del ADR 0119 con 1.500–1.800 adultos, hacen falta cuatro cos
   Distrito y zona son estratos implícitos: cada distrito recibe ⌊Σπ⌋ o ⌈Σπ⌉ rutas.
 - Cada estrato recibe al menos 2 rutas, para poder estimar la varianza. El resto se reparte en proporción.
 - El modo actual (distrito como estrato) sigue disponible: es un modo nuevo, no un reemplazo.
+
+#### 1b. Enmienda del 4/11: ciudades de inclusión forzosa y ciudades sorteadas
+
+Gonzalo, 4/11: «hay que tener cuidado de no ir a lugares solo por un par de rutas». Con el reparto proporcional y el
+mínimo de 2 rutas sumado encima, varias ciudades recibían 1 a 3 rutas y Lima Metropolitana quedaba con el 41–46 % de
+la muestra teniendo el 54 % de la población. Esta enmienda reemplaza la regla del mínimo de 2 rutas.
+
+- **Mínimo operativo por ciudad visitada: 6 rutas** (decisión de Gonzalo). Es un parámetro del estudio
+  (`rutas_minimas_ciudad`), con 6 por defecto.
+- **Ciudades de inclusión forzosa.** Una ciudad (provincia del registro; Lima Metropolitana y Callao siempre) entra
+  con certeza si su reparto proporcional a los adultos urbanos 2025 alcanza el mínimo operativo. Recibe su reparto
+  proporcional puro, sin piso añadido. Lima puede seguir partida en sus 5 áreas como estratos.
+- **Ciudades sorteadas.** Las que quedan bajo el mínimo se agrupan por macrorregión (norte, centro, sur y oriente,
+  con la tabla de departamentos declarada en el código y aquí). En cada grupo g:
+  - rutas del grupo `R_g` = suma de los repartos proporcionales de sus ciudades;
+  - ciudades a visitar `h_g = max(1, ⌊R_g / mínimo⌋)`;
+  - las ciudades se sortean por PPS sistemático con la medida de tamaño `MOS_c`, la suma de la medida del sorteo
+    de las manzanas del marco elegible de la ciudad (con la base 2025, `M_i · g_d`, que equivale a los adultos
+    urbanos 2025): `π_c = h_g · MOS_c / MOS_g`. Con esa medida el grupo queda exactamente autoponderado,
+    `π_i = n_g · MOS_i / MOS_g` (decisión del 4/11). Una ciudad con `π_c ≥ 1` pasa a inclusión forzosa y se recalcula
+    el grupo;
+  - cada ciudad sorteada recibe `R_g / h_g` rutas (redondeo controlado), por lo que nunca baja del mínimo.
+- **Macrorregiones** (por departamento, `api/R/hojas_ruta_macrorregiones.R`; por confirmar con Gonzalo):
+  - norte: Tumbes, Piura, Lambayeque, La Libertad, Cajamarca y Áncash;
+  - centro: Lima (provincias), Callao, Ica, Junín, Pasco, Huánuco, Huancavelica y Ayacucho;
+  - sur: Arequipa, Moquegua, Tacna, Cusco, Puno y Apurímac;
+  - oriente: Amazonas, Loreto, San Martín, Ucayali y Madre de Dios.
+- **π de la manzana** = `π_c · π_manzana|ciudad`. En las ciudades forzosas `π_c = 1`. El diseño sigue siendo
+  probabilístico y autoponderado dentro de cada grupo; la ciudad sorteada representa a las no sorteadas de su grupo.
+- **Varianza:** en los grupos sorteados la ciudad es la unidad primaria. Un grupo con una sola ciudad sorteada se
+  colapsa con otro grupo para estimar la varianza, con regla declarada.
+- La semilla del sorteo de ciudades se guarda con la muestra, igual que la de manzanas.
 
 ### 2. Reparto y medida de tamaño con 2025
 

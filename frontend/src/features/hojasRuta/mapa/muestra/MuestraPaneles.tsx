@@ -10,7 +10,7 @@ import { InspectorCabecera } from "../InspectorCabecera";
 import { GlidingRadioGroup } from "../../../../components/GlidingRadioGroup";
 import { PulsoButton } from "../../../../components/PulsoButton";
 import { PulsoSwitch } from "../../../../components/PulsoSwitch";
-import type { HojasRutaAlert, HojasRutaIntegratedConfig, HojasRutaSampleSizeConfig } from "../../../../api/hojasRuta";
+import type { HojasRutaAlert, HojasRutaEstratoMuestral, HojasRutaIntegratedConfig, HojasRutaSampleSizeConfig, HojasRutaTerritory } from "../../../../api/hojasRuta";
 import { nombreDistrito } from "../nombres";
 import { tonoCss } from "../lienzo/tonos";
 import { useLienzoHojasRuta } from "../store";
@@ -19,6 +19,8 @@ import { deffPorIcc, pasoDeRutas, type BorradorMuestra } from "./desdeConfig";
 import type { ResultadoTamano } from "./motorTamano";
 import { visitasCap, visitasPorRuta } from "../../seleccion/visitas";
 import { IccPanel } from "./IccPanel";
+import { BaseReparto2025, fuenteDelReparto } from "./BaseReparto2025";
+import { EstratoMuestral, politicaAlCambiar } from "./EstratoMuestral";
 
 import { formatoDecimal } from "../../../../lib/formatoNumero";
 import { EstadoVacio } from "../../../../components/EstadoVacio";
@@ -87,12 +89,16 @@ type InspectorProps = {
   onGuardar: () => void;
   /** Margen total que daría otro N con los supuestos en vista (B34). */
   margenPara?: (n: number) => number | null;
+  /** Distritos confirmados, con los datos de la base 2025 (ADR 0131 §2). */
+  territorios?: readonly HojasRutaTerritory[];
+  /** `estrato_muestral` del último tamaño guardado (ADR 0131 §1). */
+  estratoServidor?: HojasRutaEstratoMuestral | null;
 };
 
 // Lo que el inspector ya dice con sus propias palabras: no se repite el aviso del servidor.
 const AVISOS_YA_DICHOS = /MARGIN_HIGH|ROUTE_N_NOT_MULTIPLE|DEFF_IGNORES_CLUSTERING/;
 
-export function MuestraInspector({ config, resultado: r, bloqueado, guardando, hayMuestra, hayTamano = false, avisosServidor = [], margenPara, onGuardar }: InspectorProps) {
+export function MuestraInspector({ config, resultado: r, bloqueado, guardando, hayMuestra, hayTamano = false, avisosServidor = [], margenPara, territorios = [], estratoServidor = null, onGuardar }: InspectorProps) {
   const { muestraBorrador, setMuestraBorrador, cajonMuestra, setCajonMuestra } = useLienzoHojasRuta();
   const nav = useSeccion("hojas-ruta");
   const s = config.sample_size;
@@ -234,6 +240,8 @@ export function MuestraInspector({ config, resultado: r, bloqueado, guardando, h
         {config.sample_size_mode !== "external_district" ? (
           <Opciones etiqueta="Asignación entre distritos" valor={s.allocation_mode ?? "proportional"} deshabilitado={ed} opciones={[["proportional", "Por tamaño"], ["uniform", "Igualitaria"], ["compromise", "Intermedia"]] as const} onCambio={(v) => cambiarS({ allocation_mode: v })} />
         ) : null}
+        <BaseReparto2025 sampleSize={s} territorios={territorios} deshabilitado={ed} onCambio={(base_reparto) => cambiarS({ base_reparto })} />
+        <EstratoMuestral sampleSize={s} rowVar={config.row_var} nPorDistrito={config.sample_size_mode === "external_district"} servidor={estratoServidor} deshabilitado={ed} onCambio={(estrato) => cambiar({ sample_size: { estrato }, ...politicaAlCambiar(estrato) })} onCambioMinimo={(rutas_minimas_ciudad) => cambiarS({ rutas_minimas_ciudad })} />
 
         <section className="hr-muestra-grupo" aria-label="Alternativas">
           <h3>Alternativas</h3>
@@ -264,6 +272,7 @@ export function MuestraInspector({ config, resultado: r, bloqueado, guardando, h
             ))}
             <div><dt>N recomendado</dt><dd><strong>{fmt(pasosN.n)}</strong></dd></div>
           </dl>
+          <p className="hr-mapa-nota">Población: {fuenteDelReparto(s)}.</p>
           <p className="hr-mapa-nota">z = {r.z.toFixed(3)} para una confianza de {Math.round(s.confidence_level * 100)} %. Cambiar el margen, p, el DEFF o los márgenes por distrito recalcula este N.</p>
         </details>
         {/* P7: la recomendación de DEFF, los semáforos de los supuestos y los criterios de la clásica. */}

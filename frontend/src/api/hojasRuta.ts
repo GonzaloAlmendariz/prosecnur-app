@@ -72,7 +72,164 @@ export type HojasRutaSampleSizeConfig = {
   design_effect_fuente?: HojasRutaDeffFuente;
   /** La entrada de la biblioteca de ICC aplicada, copiada para reconstruir el DEFF sin la biblioteca. */
   icc_aplicado?: HojasRutaIccEntrada | null;
+  /** ADR 0131 §2: con qué población se reparte entre distritos; `cpv2017` (por defecto) o adultos urbanos 2025. */
+  base_reparto?: HojasRutaBaseRepartoCodigo;
+  /** ADR 0131 §1: estrato explícito del sorteo; `distrito` (por defecto) o la provincia. */
+  estrato?: HojasRutaEstratoModo;
+  /** ADR 0131 §1b: rutas mínimas de toda ciudad visitada en el estrato provincia (6 por defecto). */
+  rutas_minimas_ciudad?: number;
 };
+
+export type HojasRutaEstratoModo = "distrito" | "provincia" | "provincia_lima_areas";
+
+export type HojasRutaEstratoFila = { estrato: string; etiqueta: string; n_distritos: number; poblacion: number; rutas: number };
+
+export type HojasRutaCiudadCondicion = "forzosa" | "sorteada" | "no_sorteada";
+
+/** Ciudad (provincia del registro) en la selección del §1b: forzosa con π 1, o de un grupo por macrorregión. */
+export type HojasRutaCiudadSorteo = {
+  ciudad: string;
+  etiqueta: string;
+  macrorregion: string;
+  grupo: string | null;
+  condicion: HojasRutaCiudadCondicion;
+  pi_ciudad: number;
+  rutas: number;
+};
+
+export type HojasRutaGrupoCiudades = { grupo: string; reparto: number; h: number; rutas: number; n_ciudades: number };
+
+/** Lo que la vista previa del tamaño declara del estrato provincia (ADR 0131 §1 y §1b). */
+export type HojasRutaEstratoMuestral = {
+  modo: Exclude<HojasRutaEstratoModo, "distrito">;
+  rutas_minimas_ciudad: number;
+  regla: string;
+  estratos: HojasRutaEstratoFila[];
+  ciudades: HojasRutaCiudadSorteo[];
+  grupos: HojasRutaGrupoCiudades[];
+};
+
+const escalar = (v: unknown): unknown => (Array.isArray(v) ? v[0] : v);
+
+/** Normalizador defensivo de `sample_size_preview.estrato_muestral`; null si no aplica o viene roto. */
+export function normalizeHojasRutaEstratoMuestral(raw: unknown): HojasRutaEstratoMuestral | null {
+  if (!raw || typeof raw !== "object") return null;
+  const r = raw as Record<string, unknown>;
+  const modo = escalar(r.modo);
+  if (modo !== "provincia" && modo !== "provincia_lima_areas") return null;
+  const estratos = (Array.isArray(r.estratos) ? r.estratos : []).flatMap((e): HojasRutaEstratoFila[] => {
+    if (!e || typeof e !== "object") return [];
+    const x = e as Record<string, unknown>;
+    const estrato = escalar(x.estrato);
+    const rutas = numeroFinito(escalar(x.rutas));
+    if (typeof estrato !== "string" || rutas === null) return [];
+    const etiqueta = escalar(x.etiqueta);
+    return [{
+      estrato,
+      etiqueta: typeof etiqueta === "string" && etiqueta ? etiqueta : estrato,
+      n_distritos: numeroFinito(escalar(x.n_distritos)) ?? 0,
+      poblacion: numeroFinito(escalar(x.poblacion)) ?? 0,
+      rutas,
+    }];
+  });
+  if (!estratos.length) return null;
+  const regla = escalar(r.regla);
+  const ciudades = (Array.isArray(r.ciudades) ? r.ciudades : []).flatMap((c): HojasRutaCiudadSorteo[] => {
+    if (!c || typeof c !== "object") return [];
+    const x = c as Record<string, unknown>;
+    const ciudad = escalar(x.ciudad);
+    const condicion = escalar(x.condicion);
+    const pi = numeroFinito(escalar(x.pi_ciudad));
+    const rutas = numeroFinito(escalar(x.rutas));
+    if (typeof ciudad !== "string" || (condicion !== "forzosa" && condicion !== "sorteada" && condicion !== "no_sorteada") || pi === null || rutas === null) return [];
+    const etiqueta = escalar(x.etiqueta);
+    const grupo = escalar(x.grupo);
+    const macro = escalar(x.macrorregion);
+    return [{
+      ciudad,
+      etiqueta: typeof etiqueta === "string" && etiqueta ? etiqueta : ciudad,
+      macrorregion: typeof macro === "string" ? macro : "",
+      grupo: typeof grupo === "string" && grupo ? grupo : null,
+      condicion,
+      pi_ciudad: pi,
+      rutas,
+    }];
+  });
+  const grupos = (Array.isArray(r.grupos) ? r.grupos : []).flatMap((g): HojasRutaGrupoCiudades[] => {
+    if (!g || typeof g !== "object") return [];
+    const x = g as Record<string, unknown>;
+    const grupo = escalar(x.grupo);
+    const h = numeroFinito(escalar(x.h));
+    const rutas = numeroFinito(escalar(x.rutas));
+    if (typeof grupo !== "string" || h === null || rutas === null) return [];
+    return [{ grupo, reparto: numeroFinito(escalar(x.reparto)) ?? 0, h, rutas, n_ciudades: numeroFinito(escalar(x.n_ciudades)) ?? 0 }];
+  });
+  return {
+    modo,
+    rutas_minimas_ciudad: numeroFinito(escalar(r.rutas_minimas_ciudad)) ?? 6,
+    regla: typeof regla === "string" ? regla : "",
+    estratos,
+    ciudades,
+    grupos,
+  };
+}
+
+/** π publicada de una manzana sorteada, o null si falta o no es una probabilidad (0, 1]. */
+export function piDeManzana(b: Pick<SelectedBlock, "pi">): number | null {
+  const v = Array.isArray(b.pi) ? (b.pi as unknown[])[0] : b.pi;
+  return typeof v === "number" && Number.isFinite(v) && v > 0 && v <= 1 + 1e-9 ? v : null;
+}
+
+export type HojasRutaBaseRepartoCodigo = "cpv2017" | "cpv2025_adultos_urbanos";
+
+/** Insumos de la base 2025 de un distrito: P̂25 = pob25 · u17 · a17 y g = P̂25 / pob17 en el marco. */
+export type HojasRutaBaseRepartoDistrito = {
+  ubigeo: string;
+  pob25: number;
+  pob17_redatam: number;
+  pob17_en_capa: number;
+  pob18_17: number;
+  u17: number;
+  a17: number;
+  p25: number;
+  g: number;
+};
+
+/** Lo que el backend declara cuando reparte con la base 2025 (`base_reparto` de la vista previa del tamaño). */
+export type HojasRutaBaseReparto = {
+  codigo: "cpv2025_adultos_urbanos";
+  fuente: string;
+  formula: string;
+  supuestos: { u17: string; a17: string };
+  distritos: HojasRutaBaseRepartoDistrito[];
+};
+
+const numeroFinito = (v: unknown): number | null => (typeof v === "number" && Number.isFinite(v) ? v : null);
+
+/** Normalizador defensivo de `base_reparto`: null si falta o no trae lo mínimo para declarar la fuente. */
+export function normalizeHojasRutaBaseReparto(raw: unknown): HojasRutaBaseReparto | null {
+  if (!raw || typeof raw !== "object") return null;
+  const r = raw as Record<string, unknown>;
+  if (r.codigo !== "cpv2025_adultos_urbanos" || typeof r.fuente !== "string") return null;
+  const sup = (r.supuestos && typeof r.supuestos === "object" ? r.supuestos : {}) as Record<string, unknown>;
+  const distritos = (Array.isArray(r.distritos) ? r.distritos : []).flatMap((d): HojasRutaBaseRepartoDistrito[] => {
+    if (!d || typeof d !== "object") return [];
+    const x = d as Record<string, unknown>;
+    const campos = ["pob25", "pob17_redatam", "pob17_en_capa", "pob18_17", "u17", "a17", "p25", "g"] as const;
+    const vals = campos.map((c) => numeroFinito(Array.isArray(x[c]) ? (x[c] as unknown[])[0] : x[c]));
+    const ubigeo = Array.isArray(x.ubigeo) ? x.ubigeo[0] : x.ubigeo;
+    if (typeof ubigeo !== "string" || vals.some((v) => v === null)) return [];
+    const [pob25, pob17_redatam, pob17_en_capa, pob18_17, u17, a17, p25, g] = vals as number[];
+    return [{ ubigeo, pob25, pob17_redatam, pob17_en_capa, pob18_17, u17, a17, p25, g }];
+  });
+  return {
+    codigo: "cpv2025_adultos_urbanos",
+    fuente: r.fuente,
+    formula: typeof r.formula === "string" ? r.formula : "",
+    supuestos: { u17: typeof sup.u17 === "string" ? sup.u17 : "", a17: typeof sup.a17 === "string" ? sup.a17 : "" },
+    distritos,
+  };
+}
 
 export type HojasRutaDeffFuente = "legado" | "por_declarar" | "manual" | "icc_biblioteca";
 
@@ -388,6 +545,13 @@ export type HojasRutaTerritory = {
   cobertura_nivel?: string | null;
   cobertura_cartografica?: number | null;
   captacion?: number | null;
+  /** ADR 0131 §2: base 2025 del distrito; null si el registro no trae sus datos. */
+  pob25?: number | null;
+  u17?: number | null;
+  a17?: number | null;
+  /** Adultos urbanos estimados 2025: pob25 · u17 · a17. */
+  p25?: number | null;
+  g?: number | null;
 };
 
 export type HojasRutaAlert = {
@@ -468,6 +632,10 @@ export type HojasRutaSampleSizePreview = {
   margin_total_target: number;
   district_rows: HojasRutaSampleSizeDistrictRow[];
   alerts: HojasRutaAlert[];
+  /** ADR 0131 §2: sólo cuando se reparte con la base 2025. Léelo con `normalizeHojasRutaBaseReparto`. */
+  base_reparto?: unknown;
+  /** ADR 0131 §1: sólo con estrato provincia. Léelo con `normalizeHojasRutaEstratoMuestral`. */
+  estrato_muestral?: unknown;
 };
 
 export type HojasRutaPopulationExportResult = {
@@ -513,6 +681,12 @@ export type SelectedBlock = {
   titular_rango_fin?: number;
   replacement_label?: string;
   replacement_fallback?: boolean | string;
+  /** ADR 0131 §5: estrato explícito del sorteo (ubigeo, provincia o área de Lima). */
+  estrato?: string | null;
+  /** Probabilidad de inclusión de la manzana; en un reemplazo, la heredada de su titular (o null fuera de su zona). Léela con `piDeManzana`. */
+  pi?: number | null;
+  pi_regla?: string | null;
+  pi_fuente?: "hereda_titular" | "otra_zona_sin_pi" | string | null;
   esquina_codigo?: number;
   esquina_inicio?: string;
   esquina_coordenada?: string;
