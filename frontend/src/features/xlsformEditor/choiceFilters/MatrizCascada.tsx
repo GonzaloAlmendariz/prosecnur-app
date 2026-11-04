@@ -81,7 +81,7 @@ export function MatrizCascada({ a, choices, actual, resaltadas, editable, onMarc
                 const enVista = actual.includes(r.codigo);
                 return (
                   <th key={r.codigo} scope="col" className={`${vacia ? "is-vacia" : ""}${enVista ? " is-actual" : ""}`.trim() || undefined}
-                    title={`${r.etiqueta}${vacia ? " · sin opciones" : ""}`}>
+                    title={`${r.etiqueta}${vacia ? " (sin opciones)" : ""}`}>
                     <span className="xcf-mx__hc" title={r.codigo}>{r.codigo}</span>
                     <span className="xcf-mx__hl" title={r.etiqueta}>{r.etiqueta}</span>
                   </th>

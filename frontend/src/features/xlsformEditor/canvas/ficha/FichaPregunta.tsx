@@ -17,7 +17,7 @@ export function FichaPregunta({ datos }: { datos: DatosFicha }) {
   const { node, structure, survey, scope, requiredRaw, choices, catalogs, usosPorLista, avisos, acciones } = datos;
   const numero = numeroDePregunta(structure, node.rowIndex);
   const donde = dondeEsta(node, structure);
-  const posicion = numero != null ? `Pregunta ${numero} · ${donde}` : donde;
+  const posicion = numero != null ? `Pregunta ${numero}, ${donde}` : donde;
   return (
     <>
       <section className="xfh-caja" data-qa-geometry-group="xlsform/ficha-bloques" data-qa-geometry-contract="intrinsic">

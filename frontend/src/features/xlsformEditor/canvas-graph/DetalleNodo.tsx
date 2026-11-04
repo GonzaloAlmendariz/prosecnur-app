@@ -14,6 +14,7 @@ import { stripMarkdown } from "../helpers/markdown";
 import { EditarEnConstructor } from "../shell/EditarEnConstructor";
 import type { GraphNode, LogicGraph } from "./buildGraph";
 import "./detalleNodo.css";
+import { EstadoVacio } from "../../../components/EstadoVacio";
 
 /** Una pregunta citada en el detalle: su título en prosa (dos líneas como mucho) y el código debajo, chico. Antes el
  *  código mono se comía el ancho y el título caía en columnas de una sílaba (S6). */
@@ -86,8 +87,8 @@ export function DetalleNodo({
           </strong>
           <span>
             {node.kind === "section" ? "Sección" : "Pregunta"}
-            {" · "}
-            <code>{node.name}</code>
+            {" "}
+            (<code>{node.name}</code>)
           </span>
         </div>
         <button
@@ -186,7 +187,7 @@ export function DetalleNodo({
       )}
 
       {incoming.length === 0 && outgoing.length === 0 && node.inheritedRelevant.length === 0 && !node.relevantExpression && (
-        <p className="pulso-graph-detail-vacio">Sin reglas: aparece siempre y no condiciona a otras preguntas.</p>
+        <EstadoVacio icono={<CircleDot size={14} />} titulo="Sin reglas" descripcion="Aparece siempre y no condiciona a otras preguntas." />
       )}
 
       {onEditar && <EditarEnConstructor onEditar={() => onEditar(node.rowIndex)} describedBy={tituloId} />}

@@ -195,11 +195,6 @@
   font-family: var(--pulso-font-mono, ui-monospace, monospace);
   font-style: normal;
 }
-.pulso-graph-detail-vacio {
-  margin: 0;
-  color: var(--pulso-text-soft);
-  font-size: var(--pulso-type-body-size);
-}
 
 @media (prefers-reduced-motion: reduce) {
   .pulso-graph-detail {

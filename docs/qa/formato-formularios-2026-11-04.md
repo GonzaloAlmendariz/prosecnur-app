@@ -26,9 +26,9 @@ cuenta comentarios.
 |---|---|---|---|---|---|---|
 | 1 | `shell/` (cabecera, biblioteca, paneles laterales, asistentes) | 40 | 20 | 24 | 24 | ☑ tanda 1 |
 | 2 | `inspector/` | 7 | 11 | 22 | 0 | ☑ tanda 2 |
-| 3 | `choiceFilters/` | 6 | 5 | 11 | 8 | ☐ |
-| 4 | `canvas-graph/` (lógica en grafo) | 12 | 10 | 4 | 1 | ☐ |
-| 5 | `canvas/` | 6 | 8 | 5 | 4 | ☐ |
+| 3 | `choiceFilters/` | 6 | 5 | 11 | 8 | ☑ tanda 3 |
+| 4 | `canvas-graph/` (lógica en grafo) | 12 | 10 | 4 | 1 | ☑ tanda 3 |
+| 5 | `canvas/` | 6 | 8 | 5 | 4 | ☑ tanda 3 |
 | 6 | `impreso/` | 12 | 3 | 6 | 2 | ☐ (mirar `git log` antes) |
 | 7 | `sheets/`, `outline/`, `listas/`, `catalogs/`, `resumen/` y el resto | 30 | 18 | 15 | 17 | ☐ |
 
@@ -39,3 +39,4 @@ cuenta comentarios.
 | Medición y ranking | ☑ | (este doc) | |
 | Tanda 1: `shell/` | ☑ | (ver abajo) | P3: 39 líneas pasan a coma, «y» o paréntesis («Disponible, revisión 2», «Fuera de Prosecnur (SPSS)», «Matriz (2 filas)»). La barra de comando dice «N preguntas, M secciones, listas» sin separadores sueltos. El parser de errores del servidor busca `\u00b7`, no el carácter. P4: `toFixed` y `toLocaleString` a `formatoDecimal`. P5: 12 vacíos a `EstadoVacio` y la carga de sugerencias a `LoadingBlock`; −16 selectores huérfanos. Declarados: el simulador y el esqueleto de carga de la campaña. P6: sin estados con tono que convertir («Activo» es identidad del módulo; las píldoras de la barra son el slot de estado del chrome). Guard nuevo `formatoDelModulo.contract.test.ts` (P3, P4 y P5 por archivo, sólo baja). Foto: P3 81, P4 3, P5 48 |
 | Tanda 2: `inspector/` | ☑ | (ver abajo) | P3: 7 líneas («n.º 3», «(compartida con 2)», «(equivale a DNI)», el placeholder de cálculo con «o»). P5: 6 vacíos a `EstadoVacio`, los de condición y validación con su acción («+ Agregar condición», «Fórmula avanzada»); −7 selectores huérfanos. Declarados: la condición guiada sin preguntas previas (ilustración y dos acciones) y `pulso-catalogchip-empty`, que es el botón «Asignar lista» y cuyo estilo vive en `app/theme.css`. P6: los chips del inspector son de tipo o de dato, no estados. Foto: P3 74, P4 3, P5 41 |
+| Tanda 3: `choiceFilters/`, `canvas-graph/`, `canvas/` | ☑ | (ver abajo) | P3: 24 líneas. Los pasos del asistente de filtro dicen «1. Pregunta»; las relaciones del lienzo, «(3 ramas)»; las fichas, «Pregunta 4, Sección A»; la referencia corta de una pregunta, «P3.2». P5: 6 vacíos a `EstadoVacio` (el cierre de sección con su acción «Eliminar el cierre»); −10 selectores huérfanos. Declarados: las superposiciones del lienzo de lógica (`pulso-graph-*`, con ilustración y acciones). Foto: P3 50, P4 3, P5 32 |

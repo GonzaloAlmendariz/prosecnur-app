@@ -35,7 +35,7 @@ test("es un diálogo del kit con sus pasos, y Escape lo cierra", () => {
   const dialogo = document.querySelector<HTMLElement>("[role='dialog']");
   expect(dialogo?.closest(".pulso-overlay, .xcf-dialogo-kit") ?? dialogo?.querySelector(".xcf-dialogo-kit")).toBeTruthy();
   expect(dialogo?.textContent).toContain("Nuevo filtro");
-  expect(dialogo?.querySelector(".xcf-pasos")?.textContent).toContain("1 · Pregunta");
+  expect(dialogo?.querySelector(".xcf-pasos")?.textContent).toContain("1. Pregunta");
   act(() => {
     (document.activeElement ?? dialogo)!.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true }));
   });

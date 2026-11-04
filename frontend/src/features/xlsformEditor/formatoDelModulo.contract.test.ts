@@ -18,7 +18,8 @@ import { describe, expect, it } from "vitest";
  *   esqueleto de carga de la campaña (una carga con forma, no una receta), y la
  *   condición guiada sin preguntas previas de `LogicBuilder` (ilustración y dos acciones).
  *   `pulso-catalogchip-empty` es el botón «Asignar lista» del chip (su clase vive en
- *   `app/theme.css`), no un vacío.
+ *   `app/theme.css`), no un vacío. Los `pulso-graph-*` son superposiciones del lienzo de
+ *   lógica con ilustración y acciones, sobre el canvas.
  */
 
 const aqui = path.dirname(fileURLToPath(import.meta.url));
@@ -45,7 +46,7 @@ const PUNTO = (l: string) => (l.includes("·") ? 1 : 0);
 const CIFRA_A_MANO = /toFixed\(|toLocaleString\(\)|toLocaleString\("es-PE"(?:, \{ maximumFractionDigits: [^}]+\})?\)/g;
 const RECETA = /(?<![-\w])(?!data-)[a-z][a-z0-9]*(?:-[a-z0-9]+)*-(?:empty|emptylist|vacio|vacia|loading|cargando)(?![-\w])/g;
 /** Imitan el formulario en el dispositivo o son una carga con forma: no son recetas del módulo. */
-const RECETA_DECLARADA = /^pulso-xfsim-|^pulso-xf-campana-(?:cargando|esqueleto)|^pulso-logic-builder-guided-empty$|^pulso-catalogchip-empty$/;
+const RECETA_DECLARADA = /^pulso-xfsim-|^pulso-xf-campana-(?:cargando|esqueleto)|^pulso-logic-builder-guided-empty$|^pulso-catalogchip-empty$|^pulso-graph-/;
 
 const cuenta = (re: RegExp, filtro?: (m: string) => boolean) => (l: string) =>
   [...l.matchAll(re)].map((m) => m[0]).filter((m) => !filtro || filtro(m)).length;
@@ -62,26 +63,9 @@ function medir(contar: (l: string) => number): Record<string, number> {
 /** Foto del 4 nov 2026 después de la tanda de `shell/`. Sólo baja. */
 const SNAPSHOT_P3: Record<string, number> = {
   "XlsformEditorPage.tsx": 3,
-  "canvas-graph/DetalleNodo.tsx": 1,
-  "canvas-graph/ListaLogica.tsx": 1,
-  "canvas-graph/LogicCanvas.tsx": 6,
-  "canvas-graph/VistaListaLogica.tsx": 2,
-  "canvas-graph/buildGraph.ts": 1,
-  "canvas-graph/logicaTexto.ts": 1,
-  "canvas/PreviewQuestionCard.tsx": 1,
-  "canvas/ficha/FichaCalculo.tsx": 1,
-  "canvas/ficha/FichaNota.tsx": 1,
-  "canvas/ficha/FichaPregunta.tsx": 1,
-  "canvas/ficha/RespuestaFicha.tsx": 1,
-  "canvas/previewInputs.tsx": 1,
   "catalogs/CatalogLibrary.tsx": 1,
   "catalogs/CatalogWorkspace.tsx": 1,
   "catalogs/CatalogsContextLens.tsx": 1,
-  "choiceFilters/ListaFija.tsx": 1,
-  "choiceFilters/MatrizCascada.tsx": 1,
-  "choiceFilters/MatrizPorOpcion.tsx": 1,
-  "choiceFilters/NuevoFiltroDialogo.tsx": 2,
-  "choiceFilters/VistaEncuestado.tsx": 1,
   "cuestionario/FichaPregunta.tsx": 1,
   "cuestionario/IndiceCuestionario.tsx": 2,
   "impreso/DetalleMatrices.tsx": 2,
@@ -117,16 +101,10 @@ const SNAPSHOT_P4: Record<string, number> = {
   "resumen/TablaSecciones.tsx": 1,
 };
 const SNAPSHOT_P5: Record<string, number> = {
-  "canvas-graph/DetalleNodo.tsx": 1,
-  "canvas-graph/ListaLogica.tsx": 1,
-  "canvas-graph/LogicCanvas.tsx": 3,
-  "canvas-graph/VistaListaLogica.tsx": 1,
   "canvas/constructor/CalculoRepeticionPaneles.tsx": 1,
   "canvas/constructor/FiltroOpcionesPanel.tsx": 1,
-  "canvas/ficha/FichaConstructor.tsx": 2,
   "catalogs/CatalogLibrary.tsx": 1,
   "catalogs/CatalogWorkspace.tsx": 3,
-  "choiceFilters/ChoiceFiltersView.tsx": 1,
   "choiceFilters/MatrizCascada.tsx": 1,
   "choiceFilters/MatrizPorOpcion.tsx": 1,
   "helpers/markdown.ts": 1,
