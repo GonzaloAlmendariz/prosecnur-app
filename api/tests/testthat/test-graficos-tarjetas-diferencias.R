@@ -253,3 +253,13 @@ test_that("la lectura (PPT y Word) sale de la regla del estudio, en prosa y sin 
   expect_match(xml, "DIFERENCIA ENTRE GRUPOS", fixed = TRUE)
   expect_match(xml, ">39<", fixed = TRUE)
 })
+
+test_that("la leyenda de la escala reserva sus renglones y ninguno pasa del borde derecho", {
+  rot <- c("Totalmente en desacuerdo", "En desacuerdo", "Ni de acuerdo ni en desacuerdo", "De acuerdo",
+           "Totalmente de acuerdo", "No tengo información suficiente para responder")
+  ley <- .lam_tarjetas_leyenda_disponer(rot, 3.5, 7.5)
+  expect_gt(ley$renglones, 1L)
+  expect_true(all(ley$x + 0.11 + ley$w <= 7.5 + 1e-9 | ley$x == 3.5))
+  expect_identical(ley$renglon[1], 1L)
+  expect_true(all(diff(ley$renglon) >= 0L))
+})

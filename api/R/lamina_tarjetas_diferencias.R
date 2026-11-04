@@ -221,9 +221,14 @@
 .lam_tarjetas_total_escala <- function(lz, espec, negritas, x0, ancho, y0, y1) {
   rot <- min(3.0, ancho * 0.4); xb <- x0 + rot + 0.18; wbar <- ancho - rot - 0.18 - 0.95
   filas <- espec$filas; n <- nrow(filas)
-  fh <- min(1.0, (y1 - y0 - 0.45) / max(1L, n)); yi <- y0 + 0.2 + max(0, (y1 - y0 - 0.45 - fh * n) / 2)
   azul <- .std_color("azul"); verde <- .std_color("verde_acuerdo")
   cats <- espec$categorias; box <- espec$box
+  # La leyenda se arma primero: su alto se reserva antes de repartir las filas (CCSS, batería de gobierno: con seis
+  # categorías ocupaba cuatro renglones y se montaba sobre «Base:»).
+  ley <- .lam_tarjetas_leyenda_disponer(cats$rotulo, xb, xb + wbar + 0.9)
+  alto_ley <- 0.06 + ley$renglones * 0.2
+  disp <- y1 - y0 - 0.25 - alto_ley
+  fh <- min(1.0, disp / max(1L, n)); yi <- y0 + 0.2 + max(0, (disp - fh * n) / 2)
   .lam_txt(lz, box$rotulo %||% "Top Two Box", xb + wbar + 0.05 - 0.1, yi - 0.3, 1.1, 0.3, 10, verde, bold = TRUE, align = "center",
            nombre = "total:encabezado_box")
   for (k in seq_len(n)) {
@@ -246,16 +251,28 @@
     cif <- if (length(box$cifras) >= k) box$cifras[k] else ""
     .lam_txt(lz, cif, xb + wbar + 0.05 - 0.1, yc - 0.17, 1.1, 0.36, 15, verde, bold = TRUE, align = "center", nombre = "total:box")
   }
-  # Leyenda: cuadro de color y rótulo, en filas que caben en el ancho de las barras.
-  yl <- yi + n * fh + 0.04; xl <- xb
+  # Leyenda: cuadro de color y rótulo, en los renglones que ya se reservaron.
+  yl <- yi + n * fh + 0.06
   for (j in seq_len(nrow(cats))) {
-    w_txt <- .lam_ancho_tinta(cats$rotulo[j], 9) + 0.2
-    if (xl + 0.15 + w_txt > xb + wbar + 0.9) { xl <- xb; yl <- yl + 0.2 }
-    .lam_caja(lz, xl, yl + 0.045, 0.11, 0.11, cats$color[j], nombre = "total:leyenda:color")
-    .lam_txt(lz, cats$rotulo[j], xl + 0.11, yl - 0.02, w_txt, 0.24, 9, azul, nombre = "total:leyenda:rotulo")
-    xl <- xl + 0.11 + w_txt + 0.06
+    xl <- ley$x[j]; yj <- yl + (ley$renglon[j] - 1L) * 0.2
+    .lam_caja(lz, xl, yj + 0.045, 0.11, 0.11, cats$color[j], nombre = "total:leyenda:color")
+    .lam_txt(lz, cats$rotulo[j], xl + 0.11, yj - 0.02, ley$w[j], 0.24, 9, azul, nombre = "total:leyenda:rotulo")
   }
   invisible(lz)
+}
+
+#' Renglones de la leyenda de la escala: cuadro de color y rótulo, sin pasar del borde derecho
+#' @return `list(x, w, renglon, renglones)` por categoría.
+#' @keywords internal
+.lam_tarjetas_leyenda_disponer <- function(rotulos, x0, x1) {
+  w <- .lam_ancho_tinta(as.character(rotulos), 9) + 0.2
+  x <- numeric(length(w)); r <- integer(length(w)); xl <- x0; k <- 1L
+  for (j in seq_along(w)) {
+    if (xl > x0 && xl + 0.11 + w[j] > x1) { xl <- x0; k <- k + 1L }
+    x[j] <- xl; r[j] <- k
+    xl <- xl + 0.11 + w[j] + 0.06
+  }
+  list(x = x, w = w, renglon = r, renglones = max(1L, k))
 }
 
 #' ¿La lámina va con su panel de tarjetas? Solo si hay al menos una diferencia que mostrar
