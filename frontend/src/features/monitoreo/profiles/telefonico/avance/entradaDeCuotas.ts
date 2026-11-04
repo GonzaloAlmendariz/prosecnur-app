@@ -1,6 +1,6 @@
 import type { MonitoreoAcreditacionReports, MonitoreoState } from "../../../../../api/client";
 import { criteriosDesdeFiltro } from "../../../filtroEfectiva/criterios";
-import { filasDeBloque } from "../navegacion/bloques";
+import { avisosDelNumerador, filasDeBloque } from "../navegacion/bloques";
 import { rotuloDelSegmento, variableDeCuotas } from "../segmentoDeCuotas";
 import { origenDeEfectivas } from "./origenDeEfectivas";
 import { caracterDeclarado, estadoDeCuotaDesde } from "../../../core/caracterDeCuota";
@@ -70,6 +70,7 @@ export function entradaDeCuotasFaltante(
       sinAsignar: sinAsignarDesdeBloque(filasDeBloque(reports, ["no_barridos_responsable"])),
     }),
     origen: origenDeEfectivas(filasDeCuota),
+    avisos: avisosDelNumerador(reports),
   };
 
   const fuentesKobo = new Set((state?.sources ?? []).filter((fuente) => fuente.enabled && fuente.kind === "kobo").map((fuente) => fuente.id));

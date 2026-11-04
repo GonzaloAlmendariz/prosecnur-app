@@ -138,6 +138,8 @@ test_that("con la base hecha de las propias respuestas, cada completa cuenta una
   expect_identical(sum(as.integer(cuotas$Efectivas)), 1L)       # la única completa telefónica (R1)
   expect_identical(sum(as.integer(diario$Efectivas)), 1L)       # ni 2 (doble) ni la de correo
   expect_identical(sum(as.integer(diario$`Fuera de la base`)), 0L)
+  # Esas completas suman por su propio estado: ningún aviso dice que «no se suman».
+  expect_length(blocks$avisos_numerador$rows, 0L)
 })
 
 test_that("un actor sin Kobo conectado cuenta su hoja en vez de caer a 0; el otro sigue en Kobo (reparo 2)", {
@@ -189,4 +191,84 @@ test_that("una fila Total que junta un actor con Kobo y otro con la hoja se publ
   total <- q[q$Actor == "Total" & q$Valor == "Muestra", , drop = FALSE]
   expect_identical(nrow(total), 1L)
   expect_identical(total$Origen, "mixto")
+})
+
+test_that("dos casos con la misma llave y una sola respuesta: una efectiva, no dos, y el aviso con su conteo (reparo 4)", {
+  bar <- rms_barrido()
+  resp <- rms_respuestas(bar, n_huerfanas = 0L)
+  efectivo <- which(bar$Status == "Efectivo")[[1]]
+  copia <- which(bar$Status == "No barrido" & bar$Origen == "Muestra")[[1]]
+  bar$`Código proGres`[copia] <- bar$`Código proGres`[efectivo]   # la base repite la llave
+  bar$Status[copia] <- "Efectivo"; bar$Fecha[copia] <- bar$Fecha[efectivo]; bar$Intentos[copia] <- "1"
+  esc <- rms_escenario(bar = bar, resp = resp)
+  b <- num_bloques(esc$datos, esc$cfg)
+  expect_identical(sum(as.integer(b$avance_efectivo_dia$Efectivas)), nrow(resp))   # antes: nrow(resp) + 1
+  avisos <- b$avisos_numerador
+  expect_identical(avisos$Aviso, "Llaves repetidas")
+  expect_match(avisos$Detalle, "^2 casos de la base comparten llave \\(1 llave repetida")
+  expect_match(avisos$Detalle, gsub("-", "", bar$`Código proGres`[efectivo]), fixed = TRUE)  # la llave como la normaliza el cruce
+})
+
+test_that("emparejar uno a uno: prioridad a los casos «Completa» de la hoja y una respuesta con varias llaves cuenta una vez", {
+  phone <- list(c("codigo:A", "tel:1"), c("codigo:A"), c("codigo:B"))
+  resp <- list(c("codigo:A", "tel:1"), c("codigo:B"))
+  expect_identical(.monitoreo_telefonico_emparejar_uno_a_uno(phone, resp, c(TRUE, TRUE)), c(TRUE, FALSE, TRUE))
+  expect_identical(.monitoreo_telefonico_emparejar_uno_a_uno(phone, resp, c(TRUE, TRUE), prioridad = c(FALSE, TRUE, FALSE)), c(FALSE, TRUE, TRUE))
+  expect_identical(.monitoreo_telefonico_llaves_repetidas(phone)$casos, 2L)
+  expect_identical(.monitoreo_telefonico_aviso_llaves_repetidas(list(casos = 0L, llaves = 0L, ejemplos = character(0))), "")
+})
+
+test_that("dos pasadas: el código manda sobre el teléfono compartido y sobre la prioridad de la hoja (revisión del reparo 4)", {
+  # A y B comparten teléfono; la única respuesta es de B: va a B, no a A.
+  expect_identical(.monitoreo_telefonico_emparejar_uno_a_uno(
+    list(c("codigo:A", "telefono:9"), c("codigo:B", "telefono:9")), list(c("codigo:B", "telefono:9")), TRUE),
+    c(FALSE, TRUE))
+  # X (no barrido) e Y («Completa» en la hoja) comparten teléfono; la respuesta trae el código de X: va a X.
+  expect_identical(.monitoreo_telefonico_emparejar_uno_a_uno(
+    list(c("codigo:X", "telefono:5"), c("codigo:Y", "telefono:5")), list("codigo:X"), TRUE, prioridad = c(FALSE, TRUE)),
+    c(TRUE, FALSE))
+  # Sin código que cruce, el teléfono todavía empareja.
+  expect_identical(.monitoreo_telefonico_emparejar_uno_a_uno(list(c("codigo:Z", "telefono:7")), list("telefono:7"), TRUE), TRUE)
+})
+
+test_that("llaves repetidas por código, esté donde esté; un teléfono compartido no es una llave repetida", {
+  expect_identical(.monitoreo_telefonico_llaves_repetidas(list("telefono:9", "telefono:9"))$casos, 0L)
+  r <- .monitoreo_telefonico_llaves_repetidas(list(c("telefono:1", "codigo:Q"), c("telefono:2", "codigo:Q")))
+  expect_identical(r$casos, 2L)
+  expect_identical(r$ejemplos, "Q")
+})
+
+test_that("las completas sin llave legible se avisan, no se pierden en silencio (revisión del reparo 4)", {
+  bar <- rms_barrido()
+  resp <- rms_respuestas(bar, n_huerfanas = 0L)
+  resp$`intro/Intro01`[1:2] <- ""
+  b <- num_bloques(rms_escenario(bar = bar, resp = resp)$datos, rms_escenario(bar = bar, resp = resp)$cfg)
+  aviso <- b$avisos_numerador$Detalle[b$avisos_numerador$Aviso == "Completas sin llave"]
+  expect_match(aviso, "^2 completas de Kobo sin llave legible")
+})
+
+test_that("la fecha de un caso es la de su propia respuesta, no la más reciente de las que comparten llave", {
+  bar <- rms_barrido()
+  resp <- rms_respuestas(bar, n_huerfanas = 0L)
+  efectivo <- which(bar$Status == "Efectivo")[1:2]
+  bar$`Código proGres`[efectivo[[2]]] <- bar$`Código proGres`[efectivo[[1]]]
+  dos <- resp[resp$`intro/Intro01` == bar$`Código proGres`[efectivo[[1]]], , drop = FALSE]
+  dos <- rbind(dos, transform(dos, start = "2026-10-26T10:00:00.000-05:00", end = "2026-10-26T10:30:00.000-05:00",
+                              `intro/interviewdate` = "2026-10-26", check.names = FALSE))
+  resp <- rbind(resp[resp$`intro/Intro01` != bar$`Código proGres`[efectivo[[1]]], , drop = FALSE], dos)
+  b <- num_bloques(rms_escenario(bar = bar, resp = resp)$datos, rms_escenario(bar = bar, resp = resp)$cfg)
+  dia <- b$avance_efectivo_dia
+  # Dos casos, dos respuestas (24/10 y 26/10): cada día cuenta la suya, no las dos el 26.
+  expect_identical(sum(as.integer(dia$Efectivas)), nrow(resp))
+  expect_gte(sum(as.integer(dia$Efectivas[grepl("24", dia$Fecha)])), 1L)
+})
+
+test_that("un envío duplicado cuenta una vez y se avisa; con la base hecha de respuestas no hay aviso «sin llave» (revisión del reparo 4)", {
+  bar <- rms_barrido()
+  resp <- rms_respuestas(bar, n_huerfanas = 0L)
+  resp <- rbind(resp, resp[1, , drop = FALSE])
+  b <- num_bloques(rms_escenario(bar = bar, resp = resp)$datos, rms_escenario(bar = bar, resp = resp)$cfg)
+  expect_identical(sum(as.integer(b$avance_efectivo_dia$Efectivas)), nrow(resp) - 1L)
+  expect_match(b$avisos_numerador$Detalle[b$avisos_numerador$Aviso == "Respuestas repetidas"], "^1 completa de Kobo repite un caso")
+  expect_identical(.monitoreo_telefonico_aviso_respuestas_repetidas(0L), "")
 })

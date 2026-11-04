@@ -27,12 +27,12 @@ export function filasDeHoja(
   ));
 }
 
-/** La nota de un bloque del reporte telefónico: el motor la usa para declarar lo que no suma (p. ej. «no se suman a Efectivas»). */
-export function notaDeBloque(
-  reports: MonitoreoAcreditacionReports | null | undefined,
-  id: string,
-): string {
-  const hoja = reports?.sheets?.find((item) => item.id === "monitoreo_telefonico");
-  const bloque = hoja?.blocks.find((item) => String(item.id).toLowerCase() === id.toLowerCase()) as { note?: unknown } | undefined;
-  return typeof bloque?.note === "string" ? bloque.note.trim() : "";
+/**
+ * Los avisos del numerador (`avisos_numerador`): llaves repetidas en la base y completas de Kobo que no se
+ * suman, cada uno con su causa. Ritmo y Avance › Cuotas los muestran igual: nada del conteo se pierde en silencio.
+ */
+export function avisosDelNumerador(reports: MonitoreoAcreditacionReports | null | undefined): string[] {
+  return filasDeBloque(reports, ["avisos_numerador"])
+    .map((fila) => String(fila.Detalle ?? "").trim())
+    .filter(Boolean);
 }

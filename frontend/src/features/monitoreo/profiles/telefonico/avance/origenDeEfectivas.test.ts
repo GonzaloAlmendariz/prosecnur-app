@@ -36,3 +36,17 @@ describe("el origen de las efectivas se escribe en Cuotas y en la barra, como en
     expect(indicadoresDelModo(resumen)[1]).toMatchObject({ detalle: "72 efectivas de la hoja de una meta de 100" });
   });
 });
+
+describe("Avance › Cuotas recibe los avisos del numerador (reparo 4)", () => {
+  it("las llaves repetidas llegan al modelo con su texto", () => {
+    const aviso = "2 casos de la base comparten llave (1 llave repetida, p. ej. CGU269000001): cada respuesta de Kobo se asigna a un solo caso y los demás quedan sin efectiva. Revisa la base.";
+    const reports = {
+      sheets: [{ id: "monitoreo_telefonico", title: "Telefónico", blocks: [
+        { id: "cuotas_variable", title: "Cuotas", columns: [], rows: deLaHoja },
+        { id: "avisos_numerador", title: "Avisos", columns: [], rows: [{ Aviso: "Llaves repetidas", Detalle: aviso }] },
+      ] }],
+    } as unknown as MonitoreoAcreditacionReports;
+    expect(entradaDeCuotasFaltante(reports, null, []).modelo.avisos).toEqual([aviso]);
+    expect(entradaDeCuotasFaltante(reportes(deLaHoja), null, []).modelo.avisos).toEqual([]);
+  });
+});

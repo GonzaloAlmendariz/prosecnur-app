@@ -216,7 +216,14 @@
   response_any_keys <- .monitoreo_report_key_set(response_keys[response_states %in% c("Completa", "Parcial", "Rechazo")])
   phone_effective <- phone_states == "Completa"
   phone_rejection <- phone_states == "Rechazo"
-  phone_platform_complete <- vapply(phone_keys, .monitoreo_report_has_key, logical(1), key_set = response_complete_keys)
+  # Uno a uno: cada respuesta completa a un solo caso (reparo 4; monitoreo_telefonico_emparejar.R). Parcial,
+  # rechazo y «alguna respuesta» siguen por llave: un caso que perdió la completa ante otro con su misma llave
+  # conserva `phone_platform_any` y cae en «rechazo con respuesta» si la hoja dice rechazo; lo avisa
+  # `avisos_numerador` («Llaves repetidas») y no toca el numerador, que decide por actor.
+  phone_response_asignada <- .monitoreo_telefonico_respuesta_asignada(
+    phone_keys, response_keys, response_states == "Completa", prioridad = phone_effective
+  )
+  phone_platform_complete <- !is.na(phone_response_asignada)
   phone_platform_partial <- vapply(phone_keys, .monitoreo_report_has_key, logical(1), key_set = response_partial_keys)
   phone_platform_rejection <- vapply(phone_keys, .monitoreo_report_has_key, logical(1), key_set = response_rejection_keys)
   phone_platform_any <- vapply(phone_keys, .monitoreo_report_has_key, logical(1), key_set = response_any_keys)
@@ -237,6 +244,14 @@
     phone_effective_partial_mask = effective_partial,
     phone_rejection_with_response_mask = rejection_with_response,
     phone_keys = phone_keys,
+    llaves_repetidas = .monitoreo_telefonico_llaves_repetidas(phone_keys),
+    phone_response_asignada = phone_response_asignada,
+    # Completas que cruzan con un caso que ya recibió otra respuesta (envío duplicado): cuentan una vez y se avisan.
+    completas_repetidas = as.integer(sum(response_states == "Completa" &
+      vapply(response_keys, .monitoreo_report_has_key, logical(1), key_set = .monitoreo_report_key_set(phone_keys)) &
+      !(seq_along(response_keys) %in% phone_response_asignada), na.rm = TRUE)),
+    completas_sin_llave = as.integer(sum(response_states == "Completa" &
+      !vapply(response_keys, function(llaves) any(nzchar(llaves)), logical(1)), na.rm = TRUE)),
     response_keys = response_keys,
     response_states = response_states,
     phone_states = phone_states
@@ -707,17 +722,14 @@
   response_outside_phone_complete <- response_states == "Completa" &
     .monitoreo_report_nonempty(response_primary_keys) &
     !response_has_phone_key
+  # La fecha de un caso es la de SU respuesta (la que le asignó el emparejamiento uno a uno), no la más
+  # reciente de todas las que comparten llave: con llaves repetidas, otra respuesta movía el día del diario.
+  asignada <- reconciliation$phone_response_asignada %||% rep(NA_integer_, nrow(phone))
   phone_platform_dates <- vapply(seq_len(nrow(phone)), function(idx) {
-    phone_key_values <- reconciliation$phone_keys[[idx]] %||% character(0)
-    phone_key_values <- phone_key_values[nzchar(phone_key_values)]
-    if (!length(phone_key_values) || !length(response_keys)) return("Sin fecha")
-    matches <- which(response_states == "Completa" & vapply(response_keys, function(item) {
-      length(item) > 0L && any(item %in% phone_key_values)
-    }, logical(1)))
-    if (!length(matches)) return("Sin fecha")
-    matched_dates <- response_dates[matches]
-    matched_dates <- matched_dates[.monitoreo_report_nonempty(matched_dates) & matched_dates != "Sin fecha"]
-    if (length(matched_dates)) max(matched_dates, na.rm = TRUE) else "Sin fecha"
+    j <- if (length(asignada) == nrow(phone)) asignada[[idx]] else NA_integer_
+    if (is.na(j) || j > length(response_dates)) return("Sin fecha")
+    fecha <- response_dates[[j]]
+    if (.monitoreo_report_nonempty(fecha) && fecha != "Sin fecha") fecha else "Sin fecha"
   }, character(1))
   if (length(phone_platform_dates) != nrow(phone)) phone_platform_dates <- rep("Sin fecha", nrow(phone))
   # Un solo numerador para cuotas, su serie y las series diarias del avance (checklist de cuotas 1b): con
@@ -793,6 +805,17 @@
             fuera_sin_sumar, if (fuera_sin_sumar == 1L) "completa" else "completas",
             paste(con_hoja, collapse = ", "), if (length(con_hoja) == 1L) "cuenta" else "cuentan")
   } else ""
+  avisos_numerador <- data.frame(Aviso = character(0), Detalle = character(0), stringsAsFactors = FALSE)
+  aviso_llaves <- .monitoreo_telefonico_aviso_llaves_repetidas(reconciliation$llaves_repetidas %||% list())
+  if (nzchar(aviso_llaves) && nrow(responses)) avisos_numerador[nrow(avisos_numerador) + 1L, ] <- c("Llaves repetidas", aviso_llaves)
+  if (nzchar(nota_fuera_de_la_base)) avisos_numerador[nrow(avisos_numerador) + 1L, ] <- c("Completas sin caso", nota_fuera_de_la_base)
+  # Sólo con la base del barrido: con la base hecha de respuestas esas completas sí suman (por su propio estado).
+  if (fuera_declarada) {
+    aviso_sin_llave <- .monitoreo_telefonico_aviso_sin_llave(reconciliation$completas_sin_llave %||% 0L)
+    if (nzchar(aviso_sin_llave)) avisos_numerador[nrow(avisos_numerador) + 1L, ] <- c("Completas sin llave", aviso_sin_llave)
+    aviso_repetidas <- .monitoreo_telefonico_aviso_respuestas_repetidas(reconciliation$completas_repetidas %||% 0L)
+    if (nzchar(aviso_repetidas)) avisos_numerador[nrow(avisos_numerador) + 1L, ] <- c("Respuestas repetidas", aviso_repetidas)
+  }
   efectivo_dia$`Ratio incidencias` <- ifelse(efectivo_dia$Barridos > 0L, round(efectivo_dia$Incidencias / efectivo_dia$Barridos, 4), NA_real_)
   status_labels <- as.character(dist$Estatus %||% character(0))
   status_day <- if (length(status_labels)) {
@@ -1264,6 +1287,7 @@
     .monitoreo_report_block("control_tiempo_kobo", "Control de tiempos Kobo", utils::head(duration_control, 500L), "Efectivas Kobo que pasan filtro y no son pruebas, clasificadas por duración."),
     .monitoreo_report_block("produccion_dia", "Producción por día", by_day),
     .monitoreo_report_block("avance_efectivo_dia", "Avance efectivo por día", efectivo_dia, nota_fuera_de_la_base),
+    .monitoreo_report_block("avisos_numerador", "Avisos del numerador", avisos_numerador, "Lo que el conteo de efectivas no suma o asigna, con su causa."),
     # Se publica en cualquier familia, no solo en el telefónico puro. `status_day`
     # ya se calcula arriba pase lo que pase, así que publicarlo no cuesta nada;
     # tenerlo escondido dejaba a la acreditación con barrido telefónico sin
