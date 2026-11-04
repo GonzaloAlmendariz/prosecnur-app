@@ -137,3 +137,68 @@ Corrección (misma noche): `AcreditacionActiveSourcesView` (8112–8372; 5 bloqu
 
 Orden de magnitud: unas 950 líneas por página madre, ~1.900 entre las dos. **Pendiente de Gonzalo**: confirmar el borrado.
 Después del borrado, los bloques de las ramas condicionales se capturan con un `.pulso` de acreditación por correo.
+
+## Estándar de Salidas (4 nov, noche): decidido por coordinación a pedido de Gonzalo, revisable
+
+Pedido de Gonzalo: «¿Por qué todas las vistas de salidas de Monitoreo tienen diseños diferentes? ¿No se pueden
+estandarizar en el mejor?». Las cuatro corrían el mismo motor (`salidas/MonitoreoOutputsWorkbench`), pero cada modo le había
+puesto una portada distinta. Antes del cambio:
+
+| Modo | Portada |
+|---|---|
+| Acreditación | Franja «Cierre del campo» con cuatro cifras, barra «Entregables del corte» y el motor debajo |
+| Telefónico | Vista del PDF del cliente a la izquierda y el motor a la derecha |
+| Territorial | Sólo el motor |
+| Cursos-horario | Lista «Salidas del corte», vista previa del libro y «Qué toca Publicar»; el motor en la sub-vista «PDF y cliente» |
+
+El estándar (`salidas/estandar/`) toma lo mejor de dos: la lista de cursos-horario (una fila por entregable, con su estado y
+una sola acción) y la hoja del telefónico (lo que recibe el cliente).
+
+- Portada (`PortadaDeSalidas`): a la izquierda «Salidas del corte», con el estado del corte en una línea; a la derecha
+  «Así se verá», con la `HojaDelCliente` del modo.
+- Filas comunes (`filasDeSalidas.ts`): PDF del cliente, Producción, Sheets del cliente, Sheets interno y Base final. Se
+  derivan de lo mismo que lee el motor (corte, readiness y últimas publicaciones), sin recalcular nada.
+- Filas propias: el cierre del campo en acreditación (primera fila, con su diálogo `panel=cerrar-campo`), y en cursos-horario
+  el libro y el Excel con sus acciones.
+- El motor completo queda en «PDF y cliente» (`panel=herramientas`), un panel superpuesto con dirección y vuelta a la portada.
+
+| Modo | Commit | Hoja del cliente | Captura (1440 y 1024, portada y «PDF y cliente») |
+|---|---|---|---|
+| Núcleo | 4f5266da0, b66479aff | — | — |
+| Telefónico | f454611f3 | Avance por cuota y ritmo diario | `ok=true` |
+| Territorial | 03f164cbf | Avance por distrito | `ok=true` |
+| Acreditación | f04bc0cfd | Avance por público | `ok=true` |
+| Cursos-horario | 54ee4d1da | Avance de campo | `ok=true` |
+
+Pendiente de Gonzalo (borrado con doble confirmación): `profiles/telefonico/avance/Entregas.tsx` y su
+`entregasTelefonico.css` quedaron sin uso, reemplazados por `SalidasTelefonicas.tsx`.
+
+### Revisión metodológica de las hojas del cliente (4 nov, noche)
+
+La revisión (agente revisor-metodológico, sólo lectura) rechazó la primera versión: «Así se verá» promete reproducir el
+entregable, y en los tres modos el total, o la columna de avance, no coincidía con el PDF. Lo que se corrigió en el front:
+
+- **Acreditación:** el columnado y el vocabulario del PDF (`monitoreo_acreditacion_avance_pdf.R`).
+  - Columnas: Universo, Completas y Avance sobre el universo (el `progress` de la tarjeta, que es la cifra principal).
+  - Mínimo esperado, Cumplimiento del mínimo y Faltan para el mínimo, sólo si algún público declara mínimo.
+  - El cumplimiento total cuenta sólo los públicos con mínimo, y «Faltan» suma por público sin compensar.
+- **Territorial:** el avance del total sale de las mismas sumas de la tabla, y la tabla usa el vocabulario del PDF («Meta
+  encuestas», «Encuestas válidas»).
+
+Pendiente, revisable por Gonzalo (fuera del alcance del front):
+
+1. **Los PDF de acreditación y territorial compensan sobrantes en su total**. Acreditación lo hace en `pdf:318` y en la
+   fila Total (`pdf:371,400`); territorial en `monitoreo_engine.R:20533`. Pueden decir «0 por recoger» con públicos o
+   distritos todavía bajo su mínimo, y declarar el cierre antes de tiempo. **Es el riesgo más alto que salió de la
+   revisión.** La vista previa ya suma sin compensar, así que hoy no coincide con esos totales del PDF.
+2. **Territorial tiene tres «Faltan» para el mismo corte**: por UMP en el Sheets (`engine:26451`), por distrito en la
+   vista previa y global en el PDF. Hay que fijar un grano y alinear los tres.
+3. **Telefónico:** el total de la vista previa es lo cubierto de la meta, acotado. El PDF divide todas las válidas, sin
+   acotar y con las que no tienen grupo, entre las previstas (`monitoreo_telefonico_avance_pdf.R:197,207`). Hay que
+   elegir una de las dos definiciones.
+4. **La meta de la vista previa no sigue el interruptor «Incluir metas»** (`include_targets`), y el PDF sí.
+5. **Territorial:** un distrito con meta nula sale con «0», porque `resumenModel.ts:164` convierte NA en 0. Debería decir
+   «—» y quedar fuera del total.
+
+Pendiente de otra tanda (Meta B): las vistas de cursos-horario `avance/*` y las vistas propias de acreditación, contra
+el Sistema Pabellón y el kit.
