@@ -96,17 +96,28 @@ Las tarjetas solo se enganchaban a `p_slide_1_grafico`. Al combinar dos pregunta
 - **Word.** Cada figura lleva las tarjetas de su ranura. Las calcula `.word_publico_marcar`, que llega a la lámina por el entorno del motor; `reporte_plan_ppt.R` no crece.
 - **Lectura.** Los gráficos de una lámina de dos también son candidatos a la tarjeta de ejemplo.
 
+### 7. Extensión: baterías sin columna de Top Two Box (2026-11-04, RV v7 láminas 21 y 26)
+
+Las baterías de frecuencia de redes sociales y de IA generativa declaran su Top Two Box («Todos los días, en momentos puntuales» + «…a lo largo del día»), pero no dibujan su columna (`barra_extra = FALSE`, G17). Las tarjetas no salían.
+
+- **Indicador.** La tarjeta compara el Top Two Box que declara el gráfico (`top2box_labels`). El total sale de la base, redondeado como el gráfico.
+- **Encabezado.** Como el indicador no se ve en el gráfico, la tarjeta lo nombra. Anclada a su premisa dice solo el indicador («Todos los días»): la premisa ya está en el eje y la guía la une. En el Word y en el panel dice la fila y el indicador («Claude · Todos los días»). El nombre es el declarado (`tarjetas_diferencias.indicador`) o la parte común de las categorías que suma. Sin parte común de al menos cuatro letras, «Top Two Box».
+- **Anclaje.** La guía sale del borde derecho de la barra de su premisa, porque no hay cifra del Top Two Box donde engancharse.
+- **Baterías largas.** La escala se parte con su regla y cada tarjeta va en la lámina de su premisa.
+- **Columna fija y cascada.** Una batería va anclada en una columna angosta, cuyo ancho no escala aunque las tarjetas no quepan en alto. El panel de dos columnas aplastaba el gráfico (Gonzalo: «estas barras están extremadamente apretadas»). Si las tarjetas no caben junto a sus premisas, se anclan compactas, con el nombre corto a la izquierda. Si tampoco, van las principales que quepan y un aviso dice cuántas.
+- **Word.** El Word parte una batería larga en piezas: cada pieza toma, de su lámina, las tarjetas de sus filas. El título de la tarjeta se corta con la misma regla con que se mide.
+
 ## Consecuencias
 
 - Una diferencia de nivel puede quedar al 95% o desaparecer frente a la maqueta, que usaba una familia propia y más chica. Pasó en CCSS con nivel 7 en «ONG» y con padres en «posgrado».
 - Las láminas de cruce de una pregunta con tarjetas siguen en el plan. Ocultarlas es decisión del estudio: en CCSS v7 se ocultaron.
-- Una batería que el Word parte en piezas no casa con la lámina y va sin tarjetas en el Word.
+- Una batería que el Word parte en piezas lleva en cada pieza las tarjetas de sus filas (§7).
 
 ## Cumplimiento
 
 - Motor: `api/R/graficos_tarjetas_diferencias.R`, `api/R/graficos_tarjetas_lectura.R`, `api/R/lamina_tarjetas_diferencias.R` y `api/R/reporte_word_tarjetas.R`.
 - Tokens de color: `ppt.colores.tarjeta_*` y `verde_acuerdo` en `api/inst/estandar/estandar_pulso.json`.
-- Tests: `api/tests/testthat/test-graficos-tarjetas-diferencias.R` `api/tests/testthat/test-graficos-tarjetas-todas.R` y `api/tests/testthat/test-graficos-tarjetas-ranuras.R`.
+- Tests: `api/tests/testthat/test-graficos-tarjetas-diferencias.R` `api/tests/testthat/test-graficos-tarjetas-todas.R` `api/tests/testthat/test-graficos-tarjetas-ranuras.R` y `api/tests/testthat/test-graficos-tarjetas-sin-ttb.R`.
 - Por ranura: `api/R/graficos_tarjetas_ranuras.R` y `api/R/lamina_tarjetas_ranuras.R`.
 - Columna con llave: `api/R/lamina_columna_llave.R`.
 - UI: interruptor «Tarjetas de diferencias» en la sección «Diferencias entre grupos» del inspector de la lámina.
