@@ -1,8 +1,10 @@
-// `skip_on_cran()` apaga un test salvo que NOT_CRAN=true, y ni `gate-area` ni el CI
-// (`testthat::test_dir` en quality.yml) lo fijan: el paquete no se publica en CRAN, así
-// que un skip_on_cran es un test que no corre en ninguna parte. El 4 nov 2026 el del
-// deploy manual del tablero llevaba así quién sabe cuánto, esperando un resultado que
-// el código ya no daba, y cinco renders reales con Quarto tampoco corrían en local.
+// `skip_on_cran()` apaga un test salvo que NOT_CRAN=true. El CI sí lo fija (lo exporta
+// `r-lib/actions/setup-r`, se ve como `NOT_CRAN: true` en el log del job backend-r), pero
+// `gate-area`, `testthat::test_file` y cualquier corrida local no: ahí un skip_on_cran mudo
+// deja el test fuera del gate que se corre al cerrar un cambio, y su rojo aparece recién en
+// el CI. El 4 nov 2026 el del deploy manual del tablero esperaba un resultado que el código
+// ya no daba y ningún gate local lo vio; cinco renders reales con Quarto tampoco corrían en
+// local, y en el CI se saltan por falta de Quarto: no corrían en ninguna parte.
 //
 // Regla: un `skip_on_cran()` en api/tests lleva en la línea anterior un comentario
 // `# skip_on_cran: <por qué>`, que declara que se apaga a propósito. Lo normal es
@@ -37,6 +39,6 @@ test("el detector da rojo por un skip mudo y no por uno declarado ni por su menc
   assert.deepEqual(skipsSinMotivo("a.R", 'test_that("x", {\n  skip_on_cran()\n})'), ["a.R:2"]);
   assert.deepEqual(skipsSinMotivo("b.R", "  testthat::skip_on_cran()"), ["b.R:1"]);
   assert.deepEqual(skipsSinMotivo("c.R", "  # skip_on_cran: tarda 10 min y el gate de release lo corre\n  skip_on_cran()"), []);
-  assert.deepEqual(skipsSinMotivo("d.R", "  # Sin skip_on_cran(): NOT_CRAN no se fija en CI"), []);
+  assert.deepEqual(skipsSinMotivo("d.R", "  # Sin skip_on_cran(): gate-area no fija NOT_CRAN"), []);
   assert.deepEqual(skipsSinMotivo("e.R", "  # skip_on_cran:\n  skip_on_cran()"), ["e.R:2"]);
 });
