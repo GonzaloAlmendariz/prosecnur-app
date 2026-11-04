@@ -49,6 +49,30 @@ y las 25 ciudades del ADR 0119 con 1.500–1.800 adultos, hacen falta cuatro cos
 - Cada estrato recibe al menos 2 rutas, para poder estimar la varianza. El resto se reparte en proporción.
 - El modo actual (distrito como estrato) sigue disponible: es un modo nuevo, no un reemplazo.
 
+#### 1b. Enmienda del 4/11: ciudades de inclusión forzosa y ciudades sorteadas
+
+Gonzalo, 4/11: «hay que tener cuidado de no ir a lugares solo por un par de rutas». Con el reparto proporcional y el
+mínimo de 2 rutas sumado encima, varias ciudades recibían 1 a 3 rutas y Lima Metropolitana quedaba con el 41–46 % de
+la muestra teniendo el 54 % de la población. Esta enmienda reemplaza la regla del mínimo de 2 rutas.
+
+- **Mínimo operativo por ciudad visitada: 6 rutas** (decisión de Gonzalo). Es un parámetro del estudio
+  (`rutas_minimas_ciudad`), con 6 por defecto.
+- **Ciudades de inclusión forzosa.** Una ciudad (provincia del registro; Lima Metropolitana y Callao siempre) entra
+  con certeza si su reparto proporcional a los adultos urbanos 2025 alcanza el mínimo operativo. Recibe su reparto
+  proporcional puro, sin piso añadido. Lima puede seguir partida en sus 5 áreas como estratos.
+- **Ciudades sorteadas.** Las que quedan bajo el mínimo se agrupan por macrorregión (norte, centro, sur y oriente,
+  con la tabla de departamentos declarada en el código y aquí). En cada grupo g:
+  - rutas del grupo `R_g` = suma de los repartos proporcionales de sus ciudades;
+  - ciudades a visitar `h_g = max(1, ⌊R_g / mínimo⌋)`;
+  - las ciudades se sortean por PPS sistemático según adultos urbanos 2025: `π_c = h_g · P_c / P_g`. Una ciudad con
+    `π_c ≥ 1` pasa a inclusión forzosa y se recalcula el grupo;
+  - cada ciudad sorteada recibe `R_g / h_g` rutas (redondeo controlado), por lo que nunca baja del mínimo.
+- **π de la manzana** = `π_c · π_manzana|ciudad`. En las ciudades forzosas `π_c = 1`. El diseño sigue siendo
+  probabilístico y autoponderado dentro de cada grupo; la ciudad sorteada representa a las no sorteadas de su grupo.
+- **Varianza:** en los grupos sorteados la ciudad es la unidad primaria. Un grupo con una sola ciudad sorteada se
+  colapsa con otro grupo para estimar la varianza, con regla declarada.
+- La semilla del sorteo de ciudades se guarda con la muestra, igual que la de manzanas.
+
 ### 2. Reparto y medida de tamaño con 2025
 
 - **Entre estratos:** proporcional a los adultos urbanos estimados para 2025,
