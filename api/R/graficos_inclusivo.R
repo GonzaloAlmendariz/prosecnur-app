@@ -26,6 +26,8 @@
   y <- x[ok]
   # Raíz repetida: «los/las», «Todos/Todas», «alumno/alumna».
   y <- gsub("\\b(\\p{L}+?)(os|o)/\\1(as|a)\\b", "\\1\\2(\\3)", y, perl = TRUE)
+  y <- gsub("\\b(\\p{L}+?)(as|a)/\\1(os|o)\\b", "\\1\\2(\\3)", y, perl = TRUE)   # «las/los» → «las(os)»
+  y <- gsub("\\b([Ee]l)/(la)\\b", "\\1(\\2)", y, perl = TRUE)                              # «el/la» → «el(la)»
   # Sufijo de género tras una palabra de dos letras o más: «Abuelos/as», «cómodo/a», «Tíos/as».
   y <- gsub("\\b(\\p{L}{2,})/(as|os|a|o|es)\\b", "\\1(\\2)", y, perl = TRUE)
   x[ok] <- y
@@ -63,8 +65,10 @@
       if (!is.null(v) && !grepl("^(path|ruta|file|archivo|src|template_pptx|result_path)$", nm[i])) obj[[i]] <- .inclusivo_en(v)
     }
     if (!is.null(names(obj)) && !is.data.frame(obj)) names(obj) <- .inclusivo_parentesis(names(obj))
+    # Atributos con texto: la base trae su propio instrumento en `instrumento_reporte` (una lista), y de ahí leen
+    # sus opciones varias láminas (CCSS, láminas 10 y 18 de la prueba).
     for (k in setdiff(names(a), c("names", "row.names", "class"))) {
-      if (is.character(a[[k]])) attr(obj, k) <- .inclusivo_en(a[[k]])
+      if (is.character(a[[k]]) || is.list(a[[k]])) attr(obj, k) <- .inclusivo_en(a[[k]])
     }
     return(obj)
   }
