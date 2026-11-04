@@ -1987,6 +1987,9 @@ async function inspectDomCajas(page, { projectMode, geometryGroups, geometryTole
         "svg", "defs", "g",
         "[role='navigation']", "[role='tablist']", "[role='toolbar']",
         "[role='menu']", "[role='menubar']", "[role='listbox']",
+        // Maquetado interno de una librería que la app no compone (KaTeX en
+        // `components/Math.tsx`): el componente lo declara con su porqué.
+        "[data-qa-geometry-exento]",
       ].join(",");
       const interactiveGeometryMember = [
         "button", "a[href]", "input", "select", "textarea", "option",
