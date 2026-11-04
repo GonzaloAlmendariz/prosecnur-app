@@ -90,7 +90,7 @@
 # Args compartidos por TODOS los graficadores.
 .args_graf_comunes <- function() list(
   list(name = "titulo",     label = "Título del gráfico", tipo_input = "string",      grupo = "textos",
-       descripcion = "Título que aparece sobre el gráfico. Si lo dejas vacío, se usa la etiqueta de la variable."),
+       descripcion = "Rótulo sobre el gráfico en las láminas de varios gráficos y en las barras agrupadas. En las apiladas de un solo gráfico no se dibuja, porque el título es el de la lámina. Si lo dejas vacío, se usa la etiqueta de la variable."),
   list(name = "overrides",  label = "Overrides de estilo",tipo_input = "overrides",   grupo = "estilo",
        descripcion = "Ajustes visuales sólo para este gráfico (tamaños, colores, márgenes); mandan sobre el estilo del informe."),
   list(name = "filtros",    label = "Filtros",            tipo_input = "filtros",     grupo = "filtro",
