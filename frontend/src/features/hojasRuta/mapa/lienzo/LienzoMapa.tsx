@@ -103,6 +103,8 @@ type Props = {
   rotuloCursor?: ReactNode;
   /** Punto del mundo al que se acercan «+» y «−» (la UMP enfocada); sin él, el centro. */
   anclaZoom?: readonly [number, number] | null;
+  /** Ficha flotante bajo la miga (la del distrito en la vista nacional). */
+  ficha?: ReactNode;
 };
 
 const COSTO_PARA_REUTILIZAR_MS = 18;
@@ -170,6 +172,7 @@ export function LienzoMapa({
   leyenda,
   controles,
   anclaZoom = null,
+  ficha,
 }: Props) {
   const lienzoRef = useRef<HTMLCanvasElement | null>(null);
   const escalaRef = useRef<HTMLDivElement | null>(null);
@@ -504,6 +507,7 @@ export function LienzoMapa({
     <div className={["hr-lienzo", className].filter(Boolean).join(" ")}>
       <canvas ref={lienzoRef} className="hr-lienzo-canvas" role="img" aria-label={ariaLabel} />
       {miga ? <div className="hr-lienzo-capsula hr-lienzo-miga">{miga}</div> : null}
+      {ficha ? <div className="hr-lienzo-ficha">{ficha}</div> : null}
       {rotuloCursor ? <div ref={rotuloRef} className="hr-lienzo-cursor" role="status" aria-live="polite">{rotuloCursor}</div> : null}
       {leyenda ? <div className="hr-lienzo-capsula hr-lienzo-leyenda">{leyenda}</div> : null}
       {controles ? <div className="hr-lienzo-capsula hr-lienzo-controles">{controles}</div> : null}
