@@ -10,7 +10,7 @@ describe("TarjetasDiferenciasVista", () => {
     const on = renderToStaticMarkup(<TarjetasDiferenciasVista activas onAlternar={nada} onAbrirRegla={nada} />);
     expect(on).toContain('data-estado="tarjetas_encendidas"');
     expect(on).toContain("Cada grupo frente al resto");
-    expect(on).toContain("Hasta 6 tarjetas");
+    expect(on).toContain("Hasta 4 tarjetas");
     const off = renderToStaticMarkup(<TarjetasDiferenciasVista activas={false} onAlternar={nada} onAbrirRegla={nada} />);
     expect(off).toContain('data-estado="tarjetas_apagadas"');
     expect(off).toContain("Tarjetas de diferencias junto al total");

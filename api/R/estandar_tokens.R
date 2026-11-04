@@ -144,11 +144,27 @@
   if (identical(nombre, "margen_der")) return(v + der)
   if (identical(nombre, "ancho_contenido")) return(v - der)
   if (identical(nombre, "likert")) {
-    tope <- .std_valor("ppt", "geometria", "ancho") - .std_valor("ppt", "geometria", "margen_der")
-    x0 <- v$x_actor %||% v$x_barra
-    f <- max(0.3, (tope - der - x0) / (tope - x0))
-    for (k in intersect(c("x_barra", "x_top_two_box"), names(v))) v[[k]] <- x0 + (v[[k]] - x0) * f
-    for (k in intersect(c("ancho_actor", "ancho_barra"), names(v))) v[[k]] <- v[[k]] * f
+    # Gonzalo (v7.4): «menos barras por lámina si eso da barras más anchas; ahora están súper apretadas», y la distancia
+    # que se recorta es la del Top Two Box a la tarjeta, no la de la barra al Top Two Box.
+    #  - la columna de premisas se acota al 30 % del bloque (sus enunciados se parten en más líneas; si las filas no
+    #    caben, la escala se parte);
+    #  - el Top Two Box conserva su distancia a la barra y se arrima al borde que deja el panel;
+    #  - la barra gana lo que queda.
+    R <- .std_valor("ppt", "geometria", "ancho") - .std_valor("ppt", "geometria", "margen_der") - der
+    centro_std <- v$x_top_two_box + 0.75
+    hueco_barra_box <- centro_std - (v$x_barra + v$ancho_barra)
+    centro <- min(centro_std, R - 0.65)   # la tinta de «TOP TWO BOX» (12 pt) no pasa el borde
+    bloque <- R - v$x_premisa
+    # Hasta el 30 % del bloque, y menos si la barra no llegaría al 45 % (con un piso de 1.5 in para el enunciado).
+    fijo <- (R - centro) + hueco_barra_box + 0.25
+    wp <- min(v$x_barra - v$x_premisa - 0.25, 0.30 * bloque, max(1.5, 0.55 * bloque - fijo))
+    xb <- v$x_premisa + wp + 0.25
+    dx <- v$x_barra - xb
+    v$x_barra <- xb
+    v$x_actor <- max(v$x_premisa + 0.5, v$x_actor - dx)
+    v$ancho_premisa <- min(v$ancho_premisa, v$x_actor - v$x_premisa - 0.05)
+    v$x_top_two_box <- centro - 0.75
+    v$ancho_barra <- centro - hueco_barra_box - xb
   }
   v
 }

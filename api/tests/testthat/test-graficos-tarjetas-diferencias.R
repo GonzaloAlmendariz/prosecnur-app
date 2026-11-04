@@ -50,7 +50,7 @@ test_that("la lámina pide tarjetas con TRUE o con una lista; FALSE o activo = F
   expect_null(.tarjetas_opcion(list(tarjetas_diferencias = FALSE)))
   expect_null(.tarjetas_opcion(list(tarjetas_diferencias = list(activo = FALSE))))
   o <- .tarjetas_opcion(list(tarjetas_diferencias = TRUE))
-  expect_identical(o$max, 6L)
+  expect_identical(o$max, 4L)
   o <- .tarjetas_opcion(list(tarjetas_diferencias = list(max = 4, cortos = list(`Economía y Finanzas` = "Econ. y Finanzas"),
                                                           rotulos = list(area = "Área"), publico = "estudiantes")))
   expect_identical(o$max, 4L)
@@ -147,7 +147,7 @@ test_that("con «fragiles = ocultar» las diferencias del 95% no generan tarjeta
 
 # ---- Tope de 6 -------------------------------------------------------------------------------------------------------
 
-test_that("con más de seis diferencias se dibujan las seis principales y se informa el total", {
+test_that("con más de cuatro diferencias se dibujan las cuatro principales y se informa el total", {
   # Opción única de tres categorías: por cruce, la de mayor diferencia y otra que trae el otro grupo (dos por cruce).
   d <- .tj_base()
   for (k in 1:8) d[[paste0("c", k)]] <- d$area
@@ -155,9 +155,10 @@ test_that("con más de seis diferencias se dibujan las seis principales y se inf
   sig <- list(regla = .tj_regla(), familia = NULL, cruces = paste0("c", 1:8))
   r <- .tarjetas_calcular(fuente, "q", .tarjetas_opcion(list(tarjetas_diferencias = TRUE)), list(tipo = "categorica"), sig)
   expect_identical(r$total, 16L)
-  expect_length(r$tarjetas, 6L)
-  r4 <- .tarjetas_calcular(fuente, "q", .tarjetas_opcion(list(tarjetas_diferencias = list(max = 4))), list(tipo = "categorica"), sig)
-  expect_length(r4$tarjetas, 4L)
+  expect_length(r$tarjetas, 4L)
+  expect_identical(.tarjetas_opcion(list(tarjetas_diferencias = TRUE))$max, 4L)
+  r3 <- .tarjetas_calcular(fuente, "q", .tarjetas_opcion(list(tarjetas_diferencias = list(max = 3))), list(tipo = "categorica"), sig)
+  expect_length(r3$tarjetas, 3L)
 })
 
 # ---- Geometría del PPT -----------------------------------------------------------------------------------------------
@@ -241,19 +242,23 @@ test_that("el total lo compone el motor nativo en el ancho que deja el panel, y 
   expect_true(all(fin <= L$xp))
 })
 
-test_that("la reserva a la derecha acorta el contenido y escala la escala likert sin mover el folio", {
+test_that("con panel lateral la escala acota sus premisas, ensancha la barra y deja el Top Two Box a su distancia de la barra", {
   g0 <- .std_valor("ppt", "geometria", "margen_der"); L0 <- .std_geom("likert")
-  withr::with_options(list(prosecnur.lam_reserva_derecha = 4.6), {
-    expect_equal(.std_geom("margen_der"), g0 + 4.6)
+  hueco0 <- (L0$x_top_two_box + 0.75) - (L0$x_barra + L0$ancho_barra)
+  for (der in c(2.6, 4.6, 6.4)) withr::with_options(list(prosecnur.lam_reserva_derecha = der), {
+    expect_equal(.std_geom("margen_der"), g0 + der)
     L <- .std_geom("likert")
-    tope <- .std_valor("ppt", "geometria", "ancho") - g0 - 4.6
-    expect_lte(L$x_top_two_box + .std_valor("ppt", "geometria", "columna_top_two_box"), tope + 0.6)
-    expect_lt(L$ancho_barra, L0$ancho_barra)
+    R <- .std_valor("ppt", "geometria", "ancho") - g0 - der; bloque <- R - L$x_premisa
+    expect_lte(L$x_barra - L$x_premisa - 0.25, 0.30 * bloque + 1e-9)        # premisas: 30 % del bloque
+    expect_gte(L$ancho_barra, 0.45 * bloque)                                # barra: al menos 45 %
+    expect_equal((L$x_top_two_box + 0.75) - (L$x_barra + L$ancho_barra), hueco0)   # barra–TTB como sin tarjetas
+    expect_lte(L$x_top_two_box + 0.75 + 0.65, R + 1e-9)                     # el TTB no pasa el borde del panel
     expect_equal(L$x_premisa, L0$x_premisa)
-    expect_equal(L$ancho_premisa, L0$ancho_premisa)   # las premisas conservan su columna: la escala no se parte en «(cont.)»
-    expect_equal(.lam_dicotomia_partida_geo()$w + 4.6, withr::with_options(list(prosecnur.lam_reserva_derecha = 0), .lam_dicotomia_partida_geo()$w))
   })
   expect_equal(.std_geom("margen_der"), g0)
+  expect_equal(.std_geom("likert"), L0)   # sin panel, el mazo no cambia
+  expect_equal(.lam_dicotomia_partida_geo()$w - 4.6,
+               withr::with_options(list(prosecnur.lam_reserva_derecha = 4.6), .lam_dicotomia_partida_geo()$w))
 })
 
 test_that("el Word dibuja las tarjetas en una imagen bajo la figura, del ancho del texto", {
