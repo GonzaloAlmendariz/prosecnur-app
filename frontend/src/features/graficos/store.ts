@@ -610,7 +610,7 @@ export const usePlanStore = create<PlanStore>((set) => ({
   addSlide: (tipo) => {
     const s: Slide = { id: nuevoIdLamina(), tipo, payload: { ...DEFAULT_PAYLOADS[tipo] } };
     set((state) => dirty(state, {
-      plan: { slides: [...state.plan.slides, s] },
+      plan: { ...state.plan, slides: [...state.plan.slides, s] },
       selectedSlideId: s.id,
     }));
   },
@@ -619,7 +619,7 @@ export const usePlanStore = create<PlanStore>((set) => ({
     set((state) => {
       const slides = state.plan.slides.filter((s) => s.id !== id);
       const nextSelected = state.selectedSlideId === id ? (slides[0]?.id ?? null) : state.selectedSlideId;
-      return dirty(state, { plan: { slides }, selectedSlideId: nextSelected });
+      return dirty(state, { plan: { ...state.plan, slides }, selectedSlideId: nextSelected });
     });
   },
 
@@ -642,7 +642,7 @@ export const usePlanStore = create<PlanStore>((set) => ({
         copy,
         ...state.plan.slides.slice(i + 1),
       ];
-      return dirty(state, { plan: { slides }, selectedSlideId: copy.id });
+      return dirty(state, { plan: { ...state.plan, slides }, selectedSlideId: copy.id });
     });
   },
 
@@ -654,14 +654,15 @@ export const usePlanStore = create<PlanStore>((set) => ({
       if (j < 0 || j >= state.plan.slides.length) return state;
       const slides = [...state.plan.slides];
       [slides[i], slides[j]] = [slides[j], slides[i]];
-      return dirty(state, { plan: { slides } });
+      return dirty(state, { plan: { ...state.plan, slides } });
     });
   },
 
-  transformarLaminas: (f) => set((state) => { const slides = f(state.plan.slides); return slides === state.plan.slides ? {} : dirty(state, { plan: { slides } }); }),
+  transformarLaminas: (f) => set((state) => { const slides = f(state.plan.slides); return slides === state.plan.slides ? {} : dirty(state, { plan: { ...state.plan, slides } }); }),
   updateSlidePayload: (id, patch) => {
     set((state) => dirty(state, {
       plan: {
+        ...state.plan,
         slides: state.plan.slides.map((s) =>
           s.id === id ? { ...s, payload: { ...s.payload, ...patch } } : s
         ),
@@ -671,7 +672,7 @@ export const usePlanStore = create<PlanStore>((set) => ({
 
   setSlideTipo: (id, tipo, payload) => {
     set((state) => dirty(state, {
-      plan: { slides: state.plan.slides.map((s) => (s.id === id ? { ...s, tipo, payload } : s)) },
+      plan: { ...state.plan, slides: state.plan.slides.map((s) => (s.id === id ? { ...s, tipo, payload } : s)) },
     }));
   },
 
@@ -680,7 +681,7 @@ export const usePlanStore = create<PlanStore>((set) => ({
     set((state) => {
       const i = Math.max(0, Math.min(state.plan.slides.length, Math.floor(index)));
       const slides = [...state.plan.slides.slice(0, i), s, ...state.plan.slides.slice(i)];
-      return dirty(state, { plan: { slides }, selectedSlideId: s.id });
+      return dirty(state, { plan: { ...state.plan, slides }, selectedSlideId: s.id });
     });
     return s.id;
   },
@@ -688,6 +689,7 @@ export const usePlanStore = create<PlanStore>((set) => ({
   setSlot: (id, slot, graf) => {
     set((state) => dirty(state, {
       plan: {
+        ...state.plan,
         slides: state.plan.slides.map((s) =>
           s.id === id
             ? { ...s, payload: { ...s.payload, [slot]: graf ?? undefined } }
@@ -700,6 +702,7 @@ export const usePlanStore = create<PlanStore>((set) => ({
   updateSlotArgs: (id, slot, patch) => {
     set((state) => dirty(state, {
       plan: {
+        ...state.plan,
         slides: state.plan.slides.map((s) => {
           if (s.id !== id) return s;
           const current = s.payload[slot] as GraficadorRef | undefined;
@@ -921,7 +924,7 @@ export const usePlanStore = create<PlanStore>((set) => ({
       const [moved] = slides.splice(i, 1);
       const target = Math.max(0, Math.min(slides.length, newIndex));
       slides.splice(target, 0, moved);
-      return dirty(state, { plan: { slides } });
+      return dirty(state, { plan: { ...state.plan, slides } });
     });
   },
 }));
