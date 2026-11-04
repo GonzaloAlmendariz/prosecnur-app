@@ -58,7 +58,8 @@
     h <- .lam_alto_tinta(et[k], wlab, size, .std_negrita_forzada("categorias") || isTRUE(st$bold))   # tinta medida: la estimación por carácter subía el rótulo de una línea
     .lam_txt(lz, et[k], x, yy + (fila - h) / 2, wlab, h, size, st$color_rotulo %||% azul, bold = st$bold %||% es_max, align = "right", nombre = "rotulo")
     yb <- yy + (fila - g) / 2; bw <- if (escala > 0) wbar * v[k] / escala else 0
-    fill <- st$fill %||% (if (!is.null(cols) && !length(elegidas)) cols[k] else if ((isTRUE(espec$realce) || length(elegidas)) && !es_max) tenue else azul)
+    fill <- st$fill %||% (if (isTRUE(espec[["residuales_gris"]]) && grepl(.CATEGORIAS_RESIDUALES, et[k], ignore.case = TRUE)) .graficos_no_sustantivo_color() else
+      if (!is.null(cols) && !length(elegidas)) cols[k] else if ((isTRUE(espec$realce) || length(elegidas)) && !es_max) tenue else azul)
     if (bw > 0.004) .lam_caja(lz, x + wlab + 0.12, yb, bw, g, fill, nombre = "barra")
     h_cif <- max(0.3, size_cif * 1.25 / 72)
     # La caja de la cifra suma sus márgenes internos (0.1 in por lado) a la columna: con 0.12 de holgura «60% (12)» se partía

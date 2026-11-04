@@ -206,7 +206,18 @@
   if (is.null(cols) || !length(cols) || is.null(names(cols)) || !length(rotulos)) return(NULL)
   out <- unname(cols[as.character(rotulos)])
   out[is.na(out) | !nzchar(out)] <- .paleta_gris_residual()
-  out
+  # `residuales_gris` es una decisión explícita del analista: gana sobre la paleta de la lista («Otros» salía del color
+  # de su opción aunque el mando pidiera gris; CCSS 2026-11-04, lámina de agrupaciones).
+  .espec_residuales_en_gris(espec, rotulos, out)
+}
+
+#' Pinta de gris las opciones residuales («Otros», «No sabe», «Ninguna»…) cuando la espec pide `residuales_gris`
+#' @keywords internal
+.espec_residuales_en_gris <- function(espec, rotulos, colores) {
+  if (!isTRUE(espec[["residuales_gris"]]) || is.null(colores) || !length(rotulos)) return(colores)
+  es_res <- grepl(.CATEGORIAS_RESIDUALES, as.character(rotulos), ignore.case = TRUE)
+  colores[es_res] <- .graficos_no_sustantivo_color()
+  colores
 }
 
 #' Likert del recetario para una escala sin paleta (P4a), también cuando sus pasos son sólo números
