@@ -136,6 +136,7 @@
 }
 
 .pulso-xf-res-pesada {
+  flex: none;
   margin-left: auto;
   padding: 1px 8px;
   border-radius: 999px;
@@ -219,6 +220,28 @@
 
   .pulso-xf-res-seccion-texto > small {
     display: block;
+  }
+
+  /* La columna de la sección mide 140 px a 1440: la chapa «Pesada» se comía el nombre (o, encogida, se salía 30 px).
+     Sigue para el lector de pantalla, y a la vista la marca un filete del acento junto al nombre, además de su barra
+     de peso llena. El botón la ancla: sin un ancestro posicionado, la chapa oculta escapaba del recorte de la tabla
+     y estiraba el desplazamiento de la pestaña. */
+  .pulso-xf-res-seccion {
+    position: relative;
+  }
+
+  .pulso-xf-res-pesada {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+
+  .pulso-xf-res-tabla tbody tr.is-pesada > th.is-seccion {
+    box-shadow: inset 3px 0 0 var(--xf-res-acento);
   }
 }
 
