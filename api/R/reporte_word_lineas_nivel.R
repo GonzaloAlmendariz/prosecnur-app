@@ -18,7 +18,16 @@
   d$tinta <- vapply(d$color, .lam_texto_sobre, character(1))
   # Rótulos bajo cada parte: centrados y, si dos se pisan, corridos a la derecha (el ancho en fracción de la franja).
   d$rot <- ifelse(d$cabe, d$rotulo, paste(d$cifra, d$rotulo))
-  wl <- .lam_ancho_tinta(d$rot, 8) / 6.1
+  # Un rótulo más ancho que su parte se parte en dos renglones antes de correrse: corrido, dejaba de leerse bajo su parte
+  # (Word v7.3, «Medio tiempo o más | Por horas o fines de semana» pegados).
+  ancho <- function(r) max(.lam_ancho_tinta(strsplit(r, "\n", fixed = FALSE)[[1]], 8.5)) / 6.1
+  d$rot <- vapply(seq_len(nrow(d)), function(k) {
+    r <- d$rot[k]
+    if (ancho(r) <= (d$x1[k] - d$x0[k]) || !grepl(" ", r)) return(r)
+    paste(strwrap(r, width = ceiling(nchar(r) / 2) + 3L), collapse = "\n")
+  }, character(1))
+  wl <- vapply(d$rot, ancho, numeric(1))
+  dos <- any(grepl("\n", d$rot, fixed = TRUE))
   izq <- d$xm - wl / 2
   for (k in seq_along(izq)) { if (k > 1L) izq[k] <- max(izq[k], izq[k - 1L] + wl[k - 1L] + 0.02); izq[k] <- max(izq[k], 0) }
   izq <- izq - max(0, max(izq + wl) - 1)
@@ -28,8 +37,8 @@
     ggplot2::geom_rect(ggplot2::aes(xmin = x0, xmax = x1, ymin = 0, ymax = 1), fill = d$color, colour = NA) +
     ggplot2::geom_text(data = d[d$cabe, , drop = FALSE], ggplot2::aes(x = xm, y = 0.5, label = cifra),
                        colour = d$tinta[d$cabe], fontface = "bold", size = 4.2, family = fam) +
-    ggplot2::geom_text(ggplot2::aes(x = xr, y = -0.45, label = rot), hjust = 0, colour = .std_color("texto_suave"), size = 2.8,
-                       family = fam) +
+    ggplot2::geom_text(ggplot2::aes(x = xr, y = -0.12, label = rot), hjust = 0, vjust = 1, lineheight = 0.9,
+                       colour = .std_color("texto_suave"), size = 3, family = fam) +
     ggplot2::annotate("text", x = 0, y = 1.75, label = total$rotulo, hjust = 0, colour = .std_color("texto_suave"),
                       fontface = "bold", size = 3, family = fam)
   ll <- total$llave
@@ -41,7 +50,7 @@
                         colour = azul, fontface = "bold", size = 3.2, family = fam)
   }
   g + ggplot2::scale_x_continuous(limits = c(0, 1), expand = c(0.005, 0.005)) +
-    ggplot2::scale_y_continuous(limits = c(-0.75, 1.95), expand = c(0, 0)) +
+    ggplot2::scale_y_continuous(limits = c(if (dos) -1.25 else -0.75, 1.95), expand = c(0, 0)) +
     ggplot2::theme_void(base_family = fam)
 }
 
