@@ -22,7 +22,7 @@ Script reproducible del scratchpad (`val2/medir.py`): cuenta sin comentarios y s
 | P3 | « · » en código | 57 | **0** | `FiltroCascada` 6, `ReglaEditor` 5, `operationalControlsModel` 4, `RolesDeclarados` 3 y 25 en el explorador (casi todos en `<title>` de gráficos). Lo que queda está en comentarios |
 | P4 | `toLocaleString` suelto / conteos `.length` sin miles | 3 / 18 | 0 / 0 | La cola de Limpieza, los casos detectados de una regla y las variables del selector pueden pasar de mil |
 | P5 | Vacíos con clase propia / esperas como texto | 5 / 5 | 0 / 0 | `crossbar-vacio`, `pulso-option-picker-empty` ×3, `pulso-rel-empty`, `pulso-criterios-empty`; «Leyendo…»/«Cargando…» sueltos |
-| P6 | Estados con píldora propia | 7 | **0** | `pulso-rel-status` (4 estados de las reglas de coherencia) y `pulso-operational-chip` (3) |
+| P6 | Estados con píldora propia | 7 por clase + 7 en línea | 0 por clase; **6 en línea pendientes** | Por clase: `pulso-rel-status` (4) y `pulso-operational-chip` (3). En línea, que el guard aún no mira: `StatusPill` de Cierre (ya `EstadoChip`), y quedan `StatusBadge` (Cierre), `ProgresoPill` (Panorama) y `SourceBadge`, `CategoryBadge`, `SeverityBadge`, `CaseBadge` (`RuleNarrative`); hay que separar los que son estado de los que son categoría |
 | P2 | `<Panel>` / cajas propias con borde, radio y relleno | 4 / 64 | 4 / 64 | Ver «P2: siguiente tanda» |
 
 ### Regla de P1 (la de Material de campo)
@@ -56,7 +56,7 @@ tapan ni geometría.
 |---|---|---|---|
 | 1 | Reglas del formulario | Tarjetas dentro de tarjetas (Controles operativos, Qué es un caso, Variables fuera de auditoría), cada una con su borde | **P2 hecho en los tres pasos**: Plan, Auditoría y Resultados son `Panel` (`PasoDeValidacion`: «Paso N de 3» de antetítulo, estado como `EstadoChip`); la lista de reglas pierde su caja dentro del paso 3; las tarjetas de preparación miden su texto al apilarse. Controles operativos y Qué es un caso siguen siendo fichas dentro del paso |
 | 2 | Criterios de revisión | La cabecera, la sugerencia y el vacío son tres cajas distintas con tres bordes (sólido, punteado y punteado) | **P2 hecho**: la barra es `Panel` con el conteo de título y Nuevo criterio / Ejecutar de acciones (Ejecutar deja su verde a mano por `pulso-secondary`); las sugerencias, `Panel` sutil con antetítulo «Sugeridos», sin la caja punteada; el vacío ya era `EstadoVacio` |
-| 3 | Cierre de base | Cola y panel de decisión con caja propia; el aviso de auditoría es una tira ámbar suelta | P2, siguiente tanda |
+| 3 | Cierre de base | Cola y panel de decisión con caja propia; el aviso de auditoría es una tira ámbar suelta | **P2 hecho**: la barra de estado es `Panel` (sigue fija bajo el encabezado; el contrato del sticky lee ahora la hoja) con su estado como `EstadoChip` (fuera `StatusPill`); la cola es `Panel` con el conteo en el título; el editor toma el material del kit; los cuatro vacíos punteados en línea son `EstadoVacio` |
 | 4 | Explorar | Rehecho en E8; aquí sólo P1, P3 y P4 | hecho |
 
 ## Lo que destapó la captura

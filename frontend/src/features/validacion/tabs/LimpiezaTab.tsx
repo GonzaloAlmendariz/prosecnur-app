@@ -1,6 +1,7 @@
 import type { CSSProperties, Dispatch, ReactNode, SetStateAction } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
+  Search,
   Inbox,
   AlertTriangle,
   ArrowRight,
@@ -52,6 +53,8 @@ import type {
 import { formatoConteo } from "../../../lib/formatoNumero";
 import { EstadoVacio } from "../../../components/EstadoVacio";
 import { VacioListo } from "../components/VacioListo";
+import { Panel } from "../../../components/Panel";
+import { EstadoChip } from "../../../components/EstadoChip";
 
 // =============================================================================
 // Limpieza y transformación
@@ -762,40 +765,14 @@ function StatusBar({
       : "neutral";
 
   return (
-    <section
-      style={{
-        position: "sticky",
-        // Debajo del encabezado de sección, no encima: los dos son sticky en el
-        // mismo scroller y con `top: 0` esta banda lo tapaba al hacer scroll.
-        top: "var(--pulso-validacion-sticky-top, 0px)",
-        zIndex: 4,
-        display: "flex",
-        flexDirection: "column",
-        gap: 12,
-        padding: "14px 18px",
-        borderRadius: "var(--pulso-radius-panel)",
-        border: "1px solid var(--pulso-border)",
-        background: "var(--pulso-surface)",
-        boxShadow: "var(--pulso-shadow-soft)",
-      }}
-    >
-      {/* Fila 1: título + estado + botones */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, flexWrap: "wrap" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
-          <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-            <div style={{ fontSize: "var(--pulso-type-title-size)", fontWeight: 800, color: "var(--pulso-text)" }}>
-              Limpieza y transformación
-            </div>
-            <div style={{ fontSize: "var(--pulso-type-caption-size)", color: "var(--pulso-text-soft)" }}>
-              {finalizedAt
-                ? `Último cierre: ${formatDateTime(finalizedAt)}`
-                : "Decisiones sobre los hallazgos detectados"}
-            </div>
-          </div>
-          <StatusPill tone={statusTone} label={statusLabel} />
-        </div>
-
-        <div style={{ display: "flex", gap: 8 }}>
+    <Panel
+      className="pulso-limpieza-estado"
+      aria-labelledby="pulso-limpieza-estado-titulo"
+      title={<span id="pulso-limpieza-estado-titulo">Limpieza y transformación</span>}
+      hint={finalizedAt ? `Último cierre: ${formatDateTime(finalizedAt)}` : "Decisiones sobre los hallazgos detectados"}
+      actions={
+        <>
+          <EstadoChip tone={statusTone} label={statusLabel} />
           <button
             type="button"
             onClick={onRefresh}
@@ -815,11 +792,11 @@ function StatusBar({
             {finalizeBusy ? <Loader2 size={13} className="pulso-spin" /> : <Check size={13} />}
             Cerrar y generar base
           </button>
-        </div>
-      </div>
-
-      {/* Fila 2: barra de decisiones estilo almacenamiento. Solo si hay queue. */}
-      {total > 0 && (
+        </>
+      }
+    >
+      {/* La barra de decisiones estilo almacenamiento. Sólo si hay cola. */}
+      {total > 0 ? (
         <DecisionStorageBar
           counts={decisionCounts}
           activeKind={activeFilterKind}
@@ -830,41 +807,8 @@ function StatusBar({
           showTotals
           height={14}
         />
-      )}
-    </section>
-  );
-}
-
-function StatusPill({
-  tone,
-  label,
-}: {
-  tone: "neutral" | "success" | "warn";
-  label: string;
-}) {
-  const colors =
-    tone === "success"
-      ? { bg: "var(--pulso-success-bg)", border: "var(--pulso-success-border)", fg: "var(--pulso-success-fg)" }
-      : tone === "warn"
-        ? { bg: "var(--pulso-warn-bg)", border: "var(--pulso-warn-border)", fg: "var(--pulso-warn-fg)" }
-        : { bg: "var(--pulso-surface-2)", border: "var(--pulso-border)", fg: "var(--pulso-text-soft)" };
-  return (
-    <span
-      style={{
-        display: "inline-flex",
-        alignItems: "center",
-        padding: "4px 10px",
-        borderRadius: 999,
-        fontSize: "var(--pulso-type-caption-size)",
-        fontWeight: 800,
-        letterSpacing: 0.3,
-        background: colors.bg,
-        border: `1px solid ${colors.border}`,
-        color: colors.fg,
-      }}
-    >
-      {label}
-    </span>
+      ) : null}
+    </Panel>
   );
 }
 
@@ -930,32 +874,19 @@ function Workbench({
         alignItems: "stretch",
       }}
     >
-      <aside
-        style={{
-          display: "flex",
-          flexDirection: "column",
-          gap: 10,
-          padding: "16px",
-          borderRadius: 16,
-          border: "1px solid var(--pulso-border)",
-          background: "white",
-          boxShadow: "var(--pulso-shadow-low)",
-          maxHeight: 780,
-        }}
-      >
-        <header style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-          <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 8 }}>
-            <div style={{ fontSize: "var(--pulso-type-subtitle-size)", fontWeight: 800, color: "var(--pulso-text)" }}>
-              Cola de hallazgos
-            </div>
-            <span style={{ fontSize: "var(--pulso-type-caption-size)", color: "var(--pulso-text-soft)" }}>
-              {filterCat === "all" ? formatoConteo(queue.length) : `${formatoConteo(filteredQueue.length)} / ${formatoConteo(queue.length)}`}
+      <Panel
+        className="pulso-limpieza-cola"
+        aria-labelledby="pulso-limpieza-cola-titulo"
+        title={
+          <span id="pulso-limpieza-cola-titulo">
+            Cola de hallazgos{" "}
+            <span className="pulso-limpieza-cola-conteo">
+              ({filterCat === "all" ? formatoConteo(queue.length) : `${formatoConteo(filteredQueue.length)} de ${formatoConteo(queue.length)}`})
             </span>
-          </div>
-          <div style={{ fontSize: "var(--pulso-type-caption-size)", color: "var(--pulso-text-soft)", lineHeight: 1.4 }}>
-            Las pendientes aparecen primero; las que ya decidiste bajan al final.
-          </div>
-        </header>
+          </span>
+        }
+        hint="Las pendientes aparecen primero; las que ya decidiste bajan al final."
+      >
 
         {auditReady && categoriasUx.length > 1 && (
           <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginBottom: 4 }}>
@@ -1014,17 +945,11 @@ function Workbench({
         )}
 
         {!auditReady ? (
-          <div style={emptyDashedStyle}>
-            La cola aparece después de correr la auditoría.
-          </div>
+          <EstadoVacio icono={<Inbox size={16} />} titulo="La cola aparece después de correr la auditoría." />
         ) : queue.length === 0 ? (
-          <div style={emptyDashedStyle}>
-            No hay hallazgos pendientes.
-          </div>
+          <EstadoVacio icono={<Inbox size={16} />} titulo="No hay hallazgos pendientes." />
         ) : filteredQueue.length === 0 ? (
-          <div style={emptyDashedStyle}>
-            No hay hallazgos en «{filterCat}».
-          </div>
+          <EstadoVacio icono={<Search size={16} />} titulo={`No hay hallazgos en «${filterCat}».`} />
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 8, overflowY: "auto", paddingRight: 4 }}>
             {filteredQueue.map((item, idx) => {
@@ -1063,23 +988,11 @@ function Workbench({
             })}
           </div>
         )}
-      </aside>
+      </Panel>
 
-      <div
-        ref={editorRef}
-        style={{
-          display: "flex",
-          flexDirection: "column",
-          gap: 12,
-          padding: "18px",
-          borderRadius: 16,
-          border: "1px solid var(--pulso-border)",
-          background: "white",
-          boxShadow: "var(--pulso-shadow-low)",
-          maxHeight: 780,
-          overflowY: "auto",
-        }}
-      >
+      {/* El editor necesita su ref para volver arriba al cambiar de hallazgo, y Panel no la
+          reenvía: toma el material del kit con su clase. */}
+      <div ref={editorRef} className="pulso-panel pulso-panel--content pulso-limpieza-editor">
         {children}
       </div>
     </section>
@@ -1178,11 +1091,11 @@ function SeverityDot({ severity }: { severity: string }) {
 
 function EditorEmpty({ auditReady }: { auditReady: boolean }) {
   return (
-    <div style={{ ...emptyDashedStyle, padding: "40px 20px", textAlign: "center" }}>
-      {auditReady
-        ? "Selecciona un hallazgo de la cola para decidir."
-        : "Corre la auditoría para poder decidir sobre las reglas."}
-    </div>
+    <EstadoVacio
+      tamano="normal"
+      icono={<Inbox size={20} />}
+      titulo={auditReady ? "Selecciona un hallazgo de la cola para decidir." : "Corre la auditoría para poder decidir sobre las reglas."}
+    />
   );
 }
 
@@ -3040,16 +2953,6 @@ const tableCell: CSSProperties = {
   fontSize: "var(--pulso-type-body-size)",
   color: "var(--pulso-text)",
   verticalAlign: "top",
-};
-
-const emptyDashedStyle: CSSProperties = {
-  padding: "14px 16px",
-  borderRadius: 10,
-  border: "1px dashed var(--pulso-border)",
-  background: "var(--pulso-surface-2)",
-  fontSize: "var(--pulso-type-body-size)",
-  color: "var(--pulso-text-soft)",
-  textAlign: "center",
 };
 
 const summaryStyle: CSSProperties = {

@@ -2424,3 +2424,62 @@ span.pulso-validacion-base-current {
 .pulso-panel.pulso-validacion-paso--resultados {
   gap: 16px;
 }
+
+/* P2: la barra de estado de Cierre de base es un Panel; sigue fija bajo el encabezado de la
+   sección (los dos son sticky en el mismo scroller y con `top: 0` esta banda lo tapaba). */
+.pulso-panel.pulso-limpieza-estado {
+  position: sticky;
+  top: var(--pulso-validacion-sticky-top, 0px);
+  z-index: 4;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-bottom: 0;
+}
+
+/* La nota va pegada al título; la barra de decisiones, separada de los dos. */
+.pulso-panel.pulso-limpieza-estado > :not(.pulso-panel-header):not(.pulso-panel-hint) {
+  margin-top: 10px;
+}
+
+.pulso-panel.pulso-limpieza-estado > .pulso-panel-header {
+  align-items: center;
+}
+
+.pulso-panel.pulso-limpieza-estado > .pulso-panel-header,
+.pulso-panel.pulso-limpieza-estado > .pulso-panel-hint {
+  margin-bottom: 0;
+}
+
+.pulso-limpieza-estado .pulso-panel-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.pulso-panel.pulso-limpieza-cola,
+.pulso-limpieza-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 780px;
+  margin-bottom: 0;
+}
+
+.pulso-panel.pulso-limpieza-cola > .pulso-panel-header,
+.pulso-panel.pulso-limpieza-cola > .pulso-panel-hint {
+  margin-bottom: 0;
+}
+
+.pulso-limpieza-cola-conteo {
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+  font-weight: var(--pulso-weight-regular);
+  font-variant-numeric: tabular-nums;
+}
+
+.pulso-limpieza-editor {
+  gap: 12px;
+  overflow-y: auto;
+}
