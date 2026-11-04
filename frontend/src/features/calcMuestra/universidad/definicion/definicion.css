@@ -9,14 +9,14 @@
    (dirección §2) y un flujo vertical propio: el espacio ENTRE bloques de tema
    distinto (14-18px) siempre mayor que DENTRO de cada bloque. Las clases
    cmv2-university-* de estos paneles solo las consumen los tabs de Definición. */
-.cmv2-panel.cmv2-university-sources {
+.pulso-panel.cmv2-university-sources {
   display: flex;
   flex-direction: column;
   gap: 14px;
   padding: 16px 18px;
 }
 
-.cmv2-panel.cmv2-university-variable-map {
+.pulso-panel.cmv2-university-variable-map {
   display: flex;
   flex-direction: column;
   gap: var(--cmv2-space-4);
@@ -33,7 +33,7 @@
   margin-top: 0;
 }
 
-.cmv2-university-variable-map .cmv2-panel-head {
+.cmv2-university-variable-map .pulso-panel-header {
   margin-bottom: 0;
 }
 
@@ -87,7 +87,7 @@
 /* --- Estudio: hero de primera vez -------------------------------------------
    Aparece solo sin bases ni marco: pregunta directa + una tarjeta por insumo
    (estilo EmptyHome del editor XLSForm) + el recorrido completo ilustrado. */
-.cmv2-panel.cmv2-defi-hero {
+.pulso-panel.cmv2-defi-hero {
   display: grid;
   gap: 10px;
   padding: 16px 18px;
@@ -278,7 +278,7 @@
 /* El form llena la altura de la fila (marcada por el mapa) y el textarea de
    alcance crece para ocupar el espacio: elimina el vacío en L y da sitio real
    para escribir el alcance del estudio (regla 8: sin espacio sin propósito). */
-.cmv2-defi-estudio-layout > .cmv2-panel {
+.cmv2-defi-estudio-layout > .pulso-panel {
   display: flex;
   flex-direction: column;
   padding: 16px 18px;
@@ -325,7 +325,7 @@
 
 /* Tinte sutil de acento: jerarquiza el mapa como "resumen vivo" frente al
    formulario plano de la izquierda. */
-.cmv2-panel.cmv2-defi-mapa {
+.pulso-panel.cmv2-defi-mapa {
   border-color: color-mix(in srgb, var(--cmv2-accent-border) 45%, var(--cmv2-border));
   background:
     linear-gradient(

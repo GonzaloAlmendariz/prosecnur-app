@@ -68,7 +68,7 @@ export function CursosHorarioSexo({
 
   if (!rows.length) {
     return (
-      <Panel className="cmv2-ch-sexo" title="Sexo por curso-horario">
+      <Panel className="cmv2-ch-sexo" aria-labelledby="cmv2-ch-sexo-titulo" title={<span id="cmv2-ch-sexo-titulo">Sexo por curso-horario</span>}>
         <DescriptiveEmptyNotice
           state={descriptiveMissingState(workspace, {
             role: "sex",
