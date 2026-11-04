@@ -180,6 +180,21 @@ Sustento de cobertura— (`c2ebe884c`, 17 → 0). Se borraron las cabeceras prop
 
 ## Bitácora
 
+- 4 nov, noche (sesión de cuotas de Monitoreo, encargo de Meta B): cerrada la deuda de Universidad que encontró la
+  captura con datos. Copia `aulas-marco-calculada`, pila propia, 1440 y 1024:
+  - Propuestas: la cadena ① a ⑥ parte sus etiquetas por palabras enteras a 1024, con menos relleno; antes se salían
+    41–43 px. La tabla de cuotas por facultad mide sus filas y desplaza la página: con 320 px de tope desplazaba
+    por dentro y su cabecera fija tapaba 17 px.
+  - CH por facultad: las cifras del carril de elegibles y el total de la tabla no parten («2 | 0»).
+  - Consistencia: la merma y la razón se apilan a 1024, y «cursos‑horario» lleva guion que no corta.
+  - Variables: «Docente / contacto» parte entre palabras.
+  - Salidas › Guía: «CURSOS‑HORARIO» cabe con menos relleno y espaciado, y no corta a media palabra.
+  - Las dos cadenas de Propuestas (① a ⑥ y «Del n de fórmula al plan operativo») declaran su grupo C1 `intrinsic`; sus
+    etapas estiradas llenan el alto con su contenido. Captura `--url` contra pila propia, 1440 y 1024: 0 rótulos
+    partidos, 0 textos fuera, 0 cabeceras que tapan, 0 problemas de geometría.
+  - Queda fuera: 10 faltas de cobertura de la fórmula KaTeX (`span.vlist-r`), que son del componente `Math` del kit
+    (`components/Math.tsx`); se declaran allí, no en Cálculo.
+
 - 4 nov: P2 de `.cmv2-panel` cerrado (43 → 0) y Cálculo capturado con la propuesta calculada.
 
 - 3 nov, mañana: P2 cerrado — los 23 bloques en Panel (ver arriba), margen del kit en la mesa y reglas muertas.

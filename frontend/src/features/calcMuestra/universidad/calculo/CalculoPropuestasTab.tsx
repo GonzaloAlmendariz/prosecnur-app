@@ -150,6 +150,7 @@ export function EscenarioCard({
         <FlujoVertical
           etapas={etapasEscenario(comp)}
           orientacion="horizontal"
+          geometryGroup="calc-muestra/del-n-al-plan"
           ariaLabel={`Del n de fórmula al plan operativo (${proposalShortLabel(comp)})`}
         />
       </div>
@@ -376,6 +377,7 @@ export function CalculoPropuestasTab({
                     <FlujoVertical
                       etapas={etapasEscenario(comp)}
                       orientacion="horizontal"
+                      geometryGroup={`calc-muestra/del-n-al-plan-${comp.id}`}
                       ariaLabel={`Del n de fórmula al plan operativo (${proposalShortLabel(comp)}), por calcular`}
                     />
                   </article>

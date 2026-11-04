@@ -95,6 +95,7 @@ export function CadenaAfijacion({
       <FlujoVertical
         etapas={etapas}
         orientacion="horizontal"
+        geometryGroup="calc-muestra/cadena-afijacion"
         ariaLabel="Cadena de la población a la meta: fórmula, redondeo de diseño, afijación por facultad y sexo, cuadratura y meta"
       />
       <p className="cmv2-cadena-a-meta">

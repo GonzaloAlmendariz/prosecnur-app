@@ -189,6 +189,21 @@
   white-space: normal;
 }
 
+/* A 1024 la etapa mide su mínimo (148 px) y «CURSOS‑HORARIO» en versalitas no
+ * cabía: se partía a media palabra («CURSOS‑HORARI | O»). Menos relleno y
+ * espaciado, y nunca un corte dentro de la palabra. */
+@media (max-width: 1180px) {
+  .cmv2-sal-panel .cmv2-uni-flujo[data-orientacion="horizontal"] .cmv2-uni-flujo-etapa {
+    padding-inline: 10px;
+  }
+
+  .cmv2-sal-panel .cmv2-uni-flujo-label {
+    letter-spacing: 0.03em;
+    overflow-wrap: normal;
+    word-break: normal;
+  }
+}
+
 .cmv2-sal-panel .cmv2-uni-flujo-valor {
   font-size: var(--pulso-type-kpi-size);
   font-weight: var(--pulso-weight-heavy);
