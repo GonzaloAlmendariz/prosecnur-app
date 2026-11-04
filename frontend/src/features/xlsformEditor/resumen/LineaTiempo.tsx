@@ -3,7 +3,6 @@
 // distingan. Cada tramo dice su sección y sus minutos al pasar el puntero o al enfocarlo; el clic resalta su fila en
 // la tabla de secciones y la trae a la vista, sin salir de «Resumen» (ítem 50).
 
-import { stripMarkdown } from "../helpers/markdown";
 import { duracion, marcasDeMinutos, rotuloMinutos, type FilaSeccion } from "./modeloResumen";
 
 /** Un tramo más angosto que esta parte del total no lleva rótulo: «S2: …» montado sobre el vecino no se lee (S14). */
@@ -38,7 +37,7 @@ export function LineaTiempo({ filas, segundos, resaltada, onResaltar }: {
                 aria-pressed={resaltada === f.id}
                 onClick={() => onResaltar(f)}
               >
-                {f.segundos / segundos >= ANCHO_CON_ROTULO ? <span>{stripMarkdown(f.rotulo) || f.name}</span> : null}
+                {f.segundos / segundos >= ANCHO_CON_ROTULO ? <span>{f.rotulo}</span> : null}
               </button>
             </li>
           );
