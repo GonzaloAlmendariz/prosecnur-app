@@ -194,6 +194,26 @@ test_that("expansión con metas en proporciones pide un total explícito", {
   expect_equal(sum(r$peso), 25000, tolerance = 1e-8)
 })
 
+test_that("expansión con peso 1/π y metas en proporción usa Σ del peso base (ADR 0131)", {
+  data <- .pb_datos_legacy()
+  set.seed(7)
+  data$pd <- round(stats::runif(nrow(data), 20, 80), 1)
+  r <- ponderacion_compute(data, list(
+    enabled = TRUE, escala = "expansion",
+    design = list(peso_columna = "pd"),
+    rake = list(margins = list(list(var = "sexo", targets = c(H = .49, M = .51))))
+  ))
+  expect_equal(sum(r$peso), sum(data$pd), tolerance = 1e-8)
+  expect_equal(r$total_poblacion, sum(data$pd))
+  # pop_sizes del diseño con metas en proporción: Σ de los estratos.
+  r2 <- ponderacion_compute(data, list(
+    enabled = TRUE, escala = "expansion",
+    design = list(var = "distrito", pop_sizes = c(A = 1000, B = 1500, C = 2500)),
+    rake = list(margins = list(list(var = "sexo", targets = c(H = .49, M = .51))))
+  ))
+  expect_equal(sum(r2$peso), 5000, tolerance = 1e-8)
+})
+
 test_that("expansión sobre pop_sizes del diseño suma la población de los estratos", {
   data <- .pb_datos_legacy()
   r <- ponderacion_compute(data, list(

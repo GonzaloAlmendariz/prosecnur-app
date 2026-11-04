@@ -811,9 +811,12 @@
     .analitica_ponderacion_apply_sources(
       sid, src$data_sources, src$inst_sources, cfg %||% list()
     ),
-    error = function(e) NULL
+    error = function(e) e
   )
-  if (!is.list(weighted)) return(src)
+  # Una ponderacion mal declarada (peso base invalido, expansion sin total) es
+  # un error de configuracion E_*: sube, no deja el grafico sin ponderar mudo.
+  if (inherits(weighted, "api_error")) stop(weighted)
+  if (!is.list(weighted) || inherits(weighted, "error")) return(src)
 
   src$data_sources <- weighted$data_sources %||% src$data_sources
   src$inst_sources <- weighted$inst_sources %||% src$inst_sources

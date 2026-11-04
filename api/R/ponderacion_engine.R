@@ -124,7 +124,7 @@
     cats <- sort(unique(.ponderacion_rotulo(stratum[fuera])))
     avisos[[length(avisos) + 1L]] <- .ponderacion_aviso(
       "warn", "estrato_sin_poblacion",
-      sprintf("%d casos están en estratos sin tamaño de población (%s): conservan peso 1 y no se reequilibran.",
+      sprintf("%d casos están en estratos sin tamaño de población (%s): reciben factor 1 en el diseño (no se reequilibran) y luego solo los mueve la normalización o el raking.",
               sum(fuera), paste(cats, collapse = ", ")),
       categorias = cats, casos = as.integer(sum(fuera))
     )
@@ -412,16 +412,16 @@
   avisos <- list()
   total <- suppressWarnings(as.numeric(config$total_poblacion %||% NA_real_)[1])
   if (is.finite(total) && total > 0) return(list(total = total, avisos = avisos))
+  conteos <- integer(0)
   if (length(margins)) {
     sums <- vapply(margins, function(m) {
       v <- .ponderacion_num(m$targets)
       sum(v[is.finite(v) & v >= 0])
     }, numeric(1))
     conteos <- which(sums > 1 + 1e-9)
-    if (!length(conteos)) {
-      stop_api(422, "E_PONDERACION_EXPANSION_SIN_TOTAL",
-               "El peso de expansión necesita la población total: las metas están en proporciones. Declara 'total_poblacion' o escribe las metas como conteos.")
-    }
+  }
+  # Metas en proporciones no dicen N̂: se sigue con pop_sizes y el peso base.
+  if (length(margins) && length(conteos)) {
     total <- sums[[conteos[[1]]]]
     otros <- sums[conteos]
     if (any(abs(otros - total) / total > 0.005)) {
@@ -443,7 +443,7 @@
   }
   if (!is.null(base_raw)) return(list(total = sum(base_raw), avisos = avisos))
   stop_api(422, "E_PONDERACION_EXPANSION_SIN_TOTAL",
-           "El peso de expansión necesita la población total: declara 'total_poblacion', metas en conteos o tamaños de estrato.")
+           "El peso de expansión necesita la población total: las metas están en proporciones y no hay tamaños de estrato ni peso base. Declara 'total_poblacion' o escribe las metas como conteos.")
 }
 
 .ponderacion_diag_corto <- function(w) {
