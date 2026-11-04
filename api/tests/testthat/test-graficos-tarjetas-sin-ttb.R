@@ -99,3 +99,19 @@ test_that("Word: cada pieza de una batería partida lleva las tarjetas de sus fi
   expect_identical(vapply(b$tarjetas, `[[`, "", "fila"), "Facebook")
   expect_null(.tarjetas_de_figura(pieza(c("TikTok", "X"))))
 })
+
+test_that("con tarjetas, la columna de premisas se angosta hasta donde ninguna premisa gana una línea", {
+  prem <- lapply(c("ChatGPT", "Claude", "Otras herramientas de IA generativa (Copilot, DeepSeek, Perplexity, entre otras)."),
+                 function(x) list(texto = x))
+  pt <- .std_pt("pregunta")
+  lin <- function(w) vapply(prem, function(p) .lam_lineas_tinta(p$texto, w - 0.3, pt, TRUE), 0)
+  w <- .lam_escala_columna_con_tarjetas(prem, 2.99)
+  expect_lt(w, 2.99)                                   # gana ancho para las barras
+  expect_true(all(lin(w) <= lin(2.99)))                # sin líneas de más
+  expect_gt(max(lin(w - 0.05) - lin(2.99)), 0)         # y es lo justo
+  expect_equal(.lam_escala_columna_con_tarjetas(lapply(c("A", "B"), function(x) list(texto = x)), 2.99), 1.0)
+  # Solo con el panel de tarjetas: sin reserva, la columna de una batería no cambia.
+  e <- list(premisas_son_grupos = FALSE)
+  expect_equal(.lam_escala_columna_premisa(prem, 2.99, e), 2.99)
+  expect_lt(withr::with_options(list(prosecnur.lam_reserva_derecha = 2.5), .lam_escala_columna_premisa(prem, 2.99, e)), 2.99)
+})

@@ -60,6 +60,9 @@
     g_ <- .std_geom
     return(max(0.8, frac * (g_("ancho") - g_("margen_izq") - g_("margen_der"))))
   }
+  if (isTRUE(auto) && !isTRUE(espec$premisas_son_grupos) && length(premisas) && .std_reserva_derecha() > 0) {
+    return(.lam_escala_columna_con_tarjetas(premisas, wp))
+  }
   if (!isTRUE(auto) || !isTRUE(espec$premisas_son_grupos) || !length(premisas)) return(wp)
   textos <- vapply(premisas, function(p) as.character(p$texto %||% "")[1], "")
   notas <- unlist(lapply(premisas, function(p) p$nota), use.names = FALSE)
@@ -68,6 +71,28 @@
   if (!is.finite(tinta) || tinta <= 0) return(wp)
   propia <- max(1.0, tinta + 0.3)
   if (propia >= wp) wp else propia
+}
+
+#' Columna de premisas de una batería con tarjetas al lado: lo justo para que ninguna premisa gane una línea
+#'
+#' Con el panel de tarjetas la lámina pierde ancho y la columna fija dejaba aire a la izquierda de rótulos cortos
+#' («ChatGPT», «Claude»). Todas las barras arrancan en el mismo punto (Gonzalo: «en multiapiladas todos deben empezar y
+#' finalizar a la misma altura»), así que lo fija la premisa más larga: la columna se angosta mientras ninguna premisa
+#' pase a más líneas que en la columna de siempre; nunca por debajo de 1 in ni por encima de `wp`. El alto de las filas
+#' no cambia.
+#' @keywords internal
+.lam_escala_columna_con_tarjetas <- function(premisas, wp) {
+  textos <- vapply(premisas, function(p) as.character(p$texto %||% "")[1], "")
+  textos <- textos[nzchar(textos)]
+  if (!length(textos)) return(wp)
+  pt <- .std_pt("pregunta")
+  lineas <- function(w) vapply(textos, function(x) .lam_lineas_tinta(x, w - 0.3, pt, TRUE), 0)
+  tope <- lineas(wp)
+  cabe <- function(w) all(lineas(w) <= tope)
+  lo <- 1.0; hi <- wp
+  if (cabe(lo)) return(lo)
+  for (i in 1:20) { mid <- (lo + hi) / 2; if (cabe(mid)) hi <- mid else lo <- mid }
+  hi
 }
 
 #' En la agrupada ggplot, un cuerpo declarado en el gráfico no se escala ni se topa por densidad
