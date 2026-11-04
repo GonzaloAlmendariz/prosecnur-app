@@ -1693,19 +1693,7 @@
   gap: 16px;
 }
 
-.pulso-instrumento-step {
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  padding: 16px 18px;
-  border: 1px solid var(--pulso-border);
-  border-radius: 12px;
-  background: #fff;
-  box-shadow: var(--pulso-shadow-low);
-}
-
-.pulso-instrumento-step.is-setup {
+.pulso-validacion-paso.is-setup {
   min-height: 232px;
   border-color: color-mix(in srgb, var(--pulso-module-processing-border) 48%, var(--pulso-border));
   background:
@@ -1822,7 +1810,12 @@
     grid-template-columns: 1fr;
   }
 
-  .pulso-instrumento-step.is-setup {
+  .pulso-validacion-paso.is-setup {
+    min-height: 0;
+  }
+
+  /* Apiladas, cada tarjeta mide lo que su texto: los 92 px eran para igualar tres columnas. */
+  .pulso-instrumento-setup-card {
     min-height: 0;
   }
 }
@@ -2412,4 +2405,23 @@ span.pulso-validacion-base-current {
   font-family: inherit;
   font-size: var(--pulso-type-caption-size);
   letter-spacing: 0;
+}
+
+/* P2: los pasos de Reglas del formulario son Panel del kit (`PasoDeValidacion`). El Panel no
+   reparte el aire entre sus hijos: el paso conserva su columna con 12 px entre bloques, y el
+   margen lo pone el contenedor de la pestaña. */
+.pulso-panel.pulso-validacion-paso {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 0;
+}
+
+.pulso-validacion-paso > .pulso-panel-header,
+.pulso-validacion-paso > .pulso-panel-hint {
+  margin-bottom: 0;
+}
+
+.pulso-panel.pulso-validacion-paso--resultados {
+  gap: 16px;
 }

@@ -54,7 +54,7 @@ tapan ni geometría.
 
 | # | Vista | Qué se ve | Estado |
 |---|---|---|---|
-| 1 | Reglas del formulario | Tarjetas dentro de tarjetas (Controles operativos, Qué es un caso, Variables fuera de auditoría), cada una con su borde | P2, siguiente tanda |
+| 1 | Reglas del formulario | Tarjetas dentro de tarjetas (Controles operativos, Qué es un caso, Variables fuera de auditoría), cada una con su borde | **P2 hecho en los tres pasos**: Plan, Auditoría y Resultados son `Panel` (`PasoDeValidacion`: «Paso N de 3» de antetítulo, estado como `EstadoChip`); la lista de reglas pierde su caja dentro del paso 3; las tarjetas de preparación miden su texto al apilarse. Controles operativos y Qué es un caso siguen siendo fichas dentro del paso |
 | 2 | Criterios de revisión | La cabecera, la sugerencia y el vacío son tres cajas distintas con tres bordes (sólido, punteado y punteado) | P2, siguiente tanda |
 | 3 | Cierre de base | Cola y panel de decisión con caja propia; el aviso de auditoría es una tira ámbar suelta | P2, siguiente tanda |
 | 4 | Explorar | Rehecho en E8; aquí sólo P1, P3 y P4 | hecho |
@@ -86,3 +86,5 @@ del formulario, Criterios y Cierre.
 ## Bitácora
 
 - 4 nov, 03:00: medición, P1, P3, P4, P5 y P6 con el guard; captura después con los dos proyectos.
+- 4 nov, 04:30: selector de cruces medido en vivo y arreglado (popovers 12 → 0), semillas sin «·» en el R, destino del warm
+  start en las rutas de sección, y P2 de Reglas del formulario.
