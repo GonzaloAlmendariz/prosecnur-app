@@ -50,10 +50,12 @@
   cruces <- as.character(unlist(x$cruces %||% character(0)))
   pub <- as.character(unlist(x$publico %||% ""))[1]
   ind <- as.character(unlist(x$indicador %||% ""))[1]
+  modo <- as.character(unlist(x$modo %||% "panel"))[1]   # «en_linea»: el desglose pegado a su barra (lamina_tarjetas_en_linea.R)
   list(activo = TRUE, max = min(mx, 9L), todas = isTRUE(as.logical(unlist(x$todas %||% FALSE))[1]),
        cruces = cruces[nzchar(cruces)], rotulos = mapa(x$rotulos),
        cortos = mapa(x$cortos), publico = if (is.na(pub) || !nzchar(trimws(pub))) "personas encuestadas" else trimws(pub),
-       indicador = if (is.na(ind) || !nzchar(trimws(ind))) NULL else trimws(ind))
+       indicador = if (is.na(ind) || !nzchar(trimws(ind))) NULL else trimws(ind),
+       modo = if (identical(modo, "en_linea")) "en_linea" else "panel")
 }
 
 #' Tipo de la pregunta para la unidad de tarjeta
