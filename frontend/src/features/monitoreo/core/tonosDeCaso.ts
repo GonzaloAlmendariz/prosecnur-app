@@ -20,11 +20,6 @@ export function tonoDeCruce(valor: string): ChromeStatusTone {
   return valor === "sin_cruce" || valor === "sin_llave" || valor === "sin_base" ? "warn" : "info";
 }
 
-/** Si el caso cuenta en el avance: sí, no, o en revisión. */
-export function tonoDeConteo(cuenta: boolean | null | undefined): ChromeStatusTone {
-  return cuenta === true ? "success" : "warn";
-}
-
 /** Lectura de `platformToneValue` / `crossingToneValue`. */
 export function tonoDeLectura(valor: "effective" | "partial" | "refusal" | "warning" | "muted"): ChromeStatusTone {
   if (valor === "effective") return "success";

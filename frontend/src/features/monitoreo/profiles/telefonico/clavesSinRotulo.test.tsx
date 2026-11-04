@@ -29,7 +29,8 @@ import { LlaveYFiltros } from "./insumos/Llave";
 import { AcreditacionPhoneSourceSlotCard } from "./insumos/TarjetaDeFuente";
 import { Cuotas } from "./modelo/Cuotas";
 import { Ritmo } from "./avance/Ritmo";
-import { Entregas } from "./avance/Entregas";
+import { tablaTelefonicaDelCliente } from "./avance/SalidasTelefonicas";
+import { HojaDelCliente, RitmoDeLaHoja } from "../../salidas/estandar/HojaDelCliente";
 
 // Claves que viven en contratos y modelos del telefónico y que en pantalla
 // siempre llevan rótulo.
@@ -255,9 +256,13 @@ const PESTANAS: Array<[string, () => string]> = [
     `${RUTA}&seccion=modelo&pestana=cuotas`,
   )],
   ["Avance › Ritmo", () => pintar(<Ritmo reports={REPORTS} state={STATE} />, `${RUTA}&seccion=avance&pestana=ritmo`)],
+  // La hoja del cliente que `SalidasTelefonicas` monta en Avance › Entregas: su tabla por cuota y su ritmo diario.
   ["Avance › Entregas", () => pintar(
-    <Entregas
-      modelo={{
+    <HojaDelCliente
+      encabezado="Monitoreo telefónico"
+      corte="27/07/26, 9:04 a. m."
+      titulo="Avance por sede"
+      tabla={tablaTelefonicaDelCliente({
         segmento: "Sede",
         filas: [SJL],
         todas: [SJL],
@@ -267,11 +272,11 @@ const PESTANAS: Array<[string, () => string]> = [
         rendimiento: null,
         sinAsignar: null,
         faltanteDiario: { fechas: [], series: [] },
-      }}
-      corte="27/07/26, 9:04 a. m."
-      dias={[{ fecha: "2026-07-01", casos: 74 }]}
-      salidas={null}
-    />,
+      })}
+      vacio="El corte no trae cuotas para mostrar."
+    >
+      <RitmoDeLaHoja dias={[{ fecha: "2026-07-01", casos: 74 }]} />
+    </HojaDelCliente>,
     `${RUTA}&seccion=avance&pestana=entregas`,
   )],
   ["Insumos › Fuentes", () => {

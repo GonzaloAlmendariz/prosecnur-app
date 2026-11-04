@@ -381,7 +381,6 @@
   font-size: var(--pulso-type-micro-size);
 }
 
-.mon-profile-canonical-shell .mon-profile-stat-row,
 .mon-profile-canonical-shell .mon-acr-case-kpis,
 .mon-profile-canonical-shell .mon-acr-model-summary__stats {
   grid-template-columns: repeat(auto-fit, minmax(128px, 1fr));
@@ -1354,15 +1353,10 @@
   color: rgba(255, 255, 255, 0.78);
 }
 
-.mon-profile-kpis,
-.mon-profile-stat-row {
+.mon-profile-kpis {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px;
-}
-
-.mon-profile-stat-row {
-  grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
 .mon-profile-stat-row--phone {
@@ -3159,92 +3153,6 @@
   padding: 8px 10px;
 }
 
-.mon-acr-insight-grid {
-  min-width: 0;
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
-}
-
-.mon-acr-insight-wide {
-  grid-column: 1 / -1;
-}
-
-.mon-acr-recon {
-  min-width: 0;
-  display: grid;
-  gap: 10px;
-}
-
-.mon-acr-recon-panel {
-  min-height: 0;
-}
-
-.mon-acr-recon-table-wrap {
-  min-width: 0;
-  max-height: 420px;
-  overflow: auto;
-  border: 1px solid var(--pulso-border);
-  border-radius: 12px;
-  background: #fff;
-}
-
-.mon-acr-recon-table {
-  width: 100%;
-  min-width: 920px;
-  border-collapse: separate;
-  border-spacing: 0;
-}
-
-.mon-acr-recon-table th,
-.mon-acr-recon-table td {
-  border-bottom: 1px solid var(--pulso-border);
-  padding: 8px 10px;
-  text-align: left;
-  vertical-align: top;
-}
-
-.mon-acr-recon-table th {
-  position: sticky;
-  top: 0;
-  z-index: 1;
-  background: var(--pulso-surface-2);
-  color: var(--pulso-text-soft);
-  font-size: var(--pulso-type-micro-size);
-  font-weight: var(--pulso-weight-black);
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-}
-
-.mon-acr-recon-table td {
-  color: var(--pulso-text);
-  font-size: var(--pulso-type-subtitle-size);
-  font-weight: var(--pulso-weight-bold);
-  line-height: 1.28;
-}
-
-.mon-acr-recon-table td strong,
-.mon-acr-recon-table td small {
-  display: block;
-  min-width: 0;
-}
-
-.mon-acr-recon-table td small {
-  margin-top: 3px;
-  color: var(--pulso-text-soft);
-  font-size: var(--pulso-type-micro-size);
-  font-weight: var(--pulso-weight-bold);
-}
-
-.mon-acr-recon-table tr.is-not-counting td {
-  background: color-mix(in srgb, var(--pulso-warn-bg) 28%, #fff);
-}
-
-.mon-acr-recon-table tr.mon-acr-recon-review-row > td {
-  padding: 0 10px 12px;
-  background: color-mix(in srgb, var(--pulso-module-monitoring) 3%, #fff);
-}
-
 .mon-acr-assisted-review {
   margin-top: 8px;
 }
@@ -3677,7 +3585,6 @@
   .mon-profile-grid,
   .mon-acr-case-overview,
   .mon-acr-case-filter-board,
-  .mon-acr-insight-grid,
   .mon-acr-case-grid {
     grid-template-columns: 1fr;
   }
@@ -3717,7 +3624,6 @@
   }
 
   .mon-profile-local-tabs,
-  .mon-profile-stat-row,
   .mon-profile-stat-row--phone,
   .mon-acr-model-summary__stats,
   .mon-acr-model-metrics,
