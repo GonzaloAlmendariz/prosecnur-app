@@ -1,8 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import {
-  AlertTriangle, CheckCircle2, HelpCircle, Info, Landmark, Plus, Scale,
-  SlidersHorizontal, X,
-} from "../../../vendor/lucide-react";
+import { CheckCircle2, HelpCircle, Info, Landmark, Plus, Scale, X } from "../../../vendor/lucide-react";
 import {
   apiAnaliticaColumnValues, apiAnaliticaPonderacionPreview,
   PonderPreview, ValorColumna, VariableInstrumento,
@@ -11,11 +8,16 @@ import { Panel } from "../../../components/Panel";
 import { PulsoButton } from "../../../components/PulsoButton";
 import { Switch } from "../../../components/Switch";
 import { formatoConteo } from "../../../lib/formatoNumero";
+import { conOrigenPesoBase, origenPesoBase } from "../ponderacionConfigModel";
 import { CifrasPestana } from "../CifrasPestana";
 import { useAnaliticaStore } from "../store";
 import { VariableSelect } from "../VariableSelect";
 import { useSession } from "../../../lib/SessionContext";
+import { MetasCpv2025 } from "./MetasCpv2025";
 import { PesoPorColumna } from "./PesoPorColumna";
+import { PonderacionAjustes } from "./PonderacionAjustes";
+import { PonderacionEfecto } from "./PonderacionEfecto";
+import { PonderacionPesoBase } from "./PonderacionPesoBase";
 import { useVariablesDeLaBase, variablesDeLectura } from "./variablesDeLaBase";
 import "./PonderacionPane.css";
 
@@ -33,12 +35,14 @@ export function PonderacionPane() {
   const setPonderacion = useAnaliticaStore((s) => s.setPonderacion);
   const upsertMargin = useAnaliticaStore((s) => s.upsertPonderMargin);
   const removeMargin = useAnaliticaStore((s) => s.removePonderMargin);
+  const setDesign = useAnaliticaStore((s) => s.setPonderDesign);
+  const setRake = useAnaliticaStore((s) => s.setPonderRake);
+  const setTrim = useAnaliticaStore((s) => s.setPonderTrim);
 
   const porColumna = pond.modo === "columna";
   const baseActiva = useSession().state?.active_base ?? null;
   const margins = pond.rake?.margins ?? [];
-  const designOn = !!pond.design;
-  const cap = pond.trim?.cap ?? 0;
+  const origen = origenPesoBase(pond);
 
   // F7: la lectura se repite al cambiar de base y distingue cargando de vacío.
   const lecturaVariables = useVariablesDeLaBase(baseActiva);
@@ -77,10 +81,9 @@ export function PonderacionPane() {
     return () => { if (timer.current) clearTimeout(timer.current); };
   }, [JSON.stringify(pond)]);
 
-  const d = preview?.diagnostics;
+  const d = preview?.ok ? preview.diagnostics : undefined;
   const nEff = d ? intfmt(d.n_eff) : "—";
   const deff = d ? d.deff.toFixed(2) : "—";
-  const loss = d && Number.isFinite(d.loss_pct) ? Math.round(d.loss_pct) : null;
 
   return (
     <Panel className="analitica-ponderacion-panel">
@@ -143,29 +146,46 @@ export function PonderacionPane() {
 
         {pond.enabled && !porColumna && (
           <>
-            {/* Paso 1 — Método */}
-            <StepLabel n={1} text="¿Qué quieres corregir?" />
-            <div className="pond-metodos">
-              <MetodoCard
-                icon={<SlidersHorizontal size={17} />}
-                title="Ajustar a la población"
-                active={margins.length > 0}
-                activeLabel={margins.length > 0 ? "en uso" : undefined}
-                copy="Corrige la no-respuesta: lleva sexo, edad o distrito a las cifras reales de la población."
-              />
-              <MetodoCard
-                icon={<Scale size={17} />}
-                title="Reequilibrar la asignación"
-                active={designOn}
-                toggle
-                onToggle={() => setPonderacion({ design: designOn ? null : { var: "", pop_sizes: {} } })}
-                copy="Cuando muestreaste distinto de la población (ej. n igual por distrito, pero unos son más grandes)."
-              />
-            </div>
+            <StepLabel n={1} text="Peso base" />
+            <PonderacionPesoBase
+              origen={origen}
+              columna={pond.design?.peso_columna ?? ""}
+              variables={variables}
+              onOrigen={(o) => setPonderacion(conOrigenPesoBase(pond, o))}
+              onColumna={(peso_columna) => setDesign({ peso_columna })}
+            />
+            {origen === "estrato" && (
+              <div className="pond-design">
+                {pond.design?.var ? (
+                  <CategoryEditor
+                    mode="design"
+                    variable={pond.design.var}
+                    label={labelOf(pond.design.var)}
+                    categorias={catCache[pond.design.var] ?? []}
+                    values={pond.design.pop_sizes ?? {}}
+                    onChange={(vals) => setDesign({ pop_sizes: vals })}
+                    onRemove={() => setDesign({ var: "", pop_sizes: {} })}
+                  />
+                ) : (
+                  <AddVariable
+                    variables={categoricas.filter((v) => !margins.some((m) => m.var === v.name))}
+                    label="Elegir el estrato (distrito, sede…)"
+                    onPick={(name) => { ensureCats(name); setDesign({ var: name, pop_sizes: {} }); }}
+                  />
+                )}
+              </div>
+            )}
 
-            {/* Paso 2 — Variables y objetivos */}
-            <StepLabel n={2} text="Variables y objetivos" />
-
+            <StepLabel n={2} text="Metas" />
+            <MetasCpv2025
+              categoricas={categoricas}
+              catCache={catCache}
+              ensureCats={ensureCats}
+              margenes={margins}
+              guardado={pond.metas_cpv2025}
+              onAplicar={upsertMargin}
+              onGuardarPedido={(metas_cpv2025) => setPonderacion({ metas_cpv2025 })}
+            />
             {margins.map((m) => (
               <CategoryEditor
                 key={m.var}
@@ -174,47 +194,29 @@ export function PonderacionPane() {
                 label={labelOf(m.var)}
                 categorias={catCache[m.var] ?? []}
                 values={m.targets}
+                fuente={m.fuente ? "CPV 2025" : null}
                 observed={preview?.margins?.[m.var]}
                 onChange={(vals) => upsertMargin({ var: m.var, targets: vals })}
                 onRemove={() => removeMargin(m.var)}
               />
             ))}
-
             <AddVariable
               variables={categoricas.filter((v) => !margins.some((m) => m.var === v.name) && v.name !== pond.design?.var)}
-              label="Agregar variable a ajustar (sexo, edad, distrito…)"
+              label="Agregar variable a ajustar"
               onPick={(name) => { ensureCats(name); upsertMargin({ var: name, targets: {} }); }}
             />
 
-            {designOn && (
-              <div className="pond-design">
-                <div className="pond-design-label">
-                  <Scale size={13} aria-hidden="true" /> Reequilibrio: elige el estrato y su población real
-                </div>
-                {pond.design?.var ? (
-                  <CategoryEditor
-                    mode="design"
-                    variable={pond.design.var}
-                    label={labelOf(pond.design.var)}
-                    categorias={catCache[pond.design.var] ?? []}
-                    values={pond.design.pop_sizes}
-                    onChange={(vals) => setPonderacion({ design: { var: pond.design!.var, pop_sizes: vals } })}
-                    onRemove={() => setPonderacion({ design: { var: "", pop_sizes: {} } })}
-                  />
-                ) : (
-                  <AddVariable
-                    variables={categoricas.filter((v) => !margins.some((m) => m.var === v.name))}
-                    label="Elegir variable de estrato (distrito, sede…)"
-                    onPick={(name) => { ensureCats(name); setPonderacion({ design: { var: name, pop_sizes: {} } }); }}
-                  />
-                )}
-              </div>
-            )}
+            <StepLabel n={3} text="Ajustes" />
+            <PonderacionAjustes
+              pond={pond}
+              onEscala={(escala) => setPonderacion({ escala })}
+              onTotal={(total_poblacion) => setPonderacion({ total_poblacion })}
+              onRake={setRake}
+              onTrim={setTrim}
+            />
 
-            {/* Paso 3 — Diagnóstico */}
-            <StepLabel n={3} text="Revisa el efecto" />
-            <Diagnostico preview={preview} nEff={nEff} deff={deff} loss={loss} cap={cap}
-              onCap={(v) => setPonderacion({ trim: v > 1 ? { cap: v } : null })} />
+            <StepLabel n={4} text="Efecto" />
+            <PonderacionEfecto preview={preview} labelOf={labelOf} />
           </>
         )}
 
@@ -291,43 +293,12 @@ function YesNo({ q, yes, no, value, onChange }: {
   );
 }
 
-// ---- Método card ------------------------------------------------------------
-// La que se puede activar es un botón de verdad (teclado y estado); la otra
-// solo informa si está en uso.
-function MetodoCard({ icon, title, copy, active, activeLabel, toggle, onToggle }: {
-  icon: React.ReactNode; title: string; copy: string; active: boolean;
-  activeLabel?: string; toggle?: boolean; onToggle?: () => void;
-}) {
-  const contenido = (
-    <>
-      <span className="pond-metodo-head">
-        <span className="pond-metodo-icon" aria-hidden="true">{icon}</span>
-        <span className="pond-title">{title}</span>
-        {(active && (activeLabel || toggle)) && (
-          <span className="pond-metodo-estado">{activeLabel ?? "activo"}</span>
-        )}
-        {toggle && !active && (
-          <span className="pond-metodo-activar">activar</span>
-        )}
-      </span>
-      <span className="pond-copy">{copy}</span>
-    </>
-  );
-  const clase = `pond-card pond-metodo${active ? " is-active" : ""}`;
-  if (toggle) {
-    return (
-      <button type="button" className={`${clase} is-toggle`} aria-pressed={active} onClick={onToggle}>
-        {contenido}
-      </button>
-    );
-  }
-  return <div className={clase}>{contenido}</div>;
-}
-
 // ---- Editor de categorías (rake targets / design pop_sizes) -----------------
-function CategoryEditor({ mode, variable, label, categorias, values, observed, onChange, onRemove }: {
+function CategoryEditor({ mode, variable, label, categorias, values, fuente, observed, onChange, onRemove }: {
   mode: "rake" | "design";
   variable: string; label: string;
+  /** Las metas vienen de una fuente (CPV 2025); editarlas a mano la suelta. */
+  fuente?: string | null;
   categorias: ValorColumna[];
   values: Record<string, number>;
   observed?: { categoria: string; muestra: number }[];
@@ -354,19 +325,23 @@ function CategoryEditor({ mode, variable, label, categorias, values, observed, o
     onChange(next);
   };
   const isRake = mode === "rake";
+  // Metas del censo llegan en conteos; las tecleadas, en porcentaje.
+  const enConteos = Object.values(values).reduce((a, b) => a + b, 0) > 101;
   return (
     <div className={`pond-card pond-categorias${isRake ? " is-rake" : " is-design"}`}>
       <div className="pond-categorias-head">
         <span className="pond-title">{label}</span>
+        {fuente && (
+          <span className="pond-categorias-fuente" title="Población censada, sin la omisión censal. Editar una meta la deja como tecleada.">
+            <Landmark size={12} aria-hidden="true" />{fuente}
+          </span>
+        )}
         {isRake && (
           <span className="pond-categorias-acciones">
             <PulsoButton variant="secondary" size="sm" onClick={usarMuestra} title="Prefijar los objetivos con la distribución actual de tu muestra">
               Usar muestra
             </PulsoButton>
             <PulsoButton variant="secondary" size="sm" onClick={igualar}>Igualar</PulsoButton>
-            <PulsoButton variant="secondary" size="sm" disabled title="Disponible para estudios territoriales (próximamente)">
-              <Landmark size={13} aria-hidden="true" />Censo INEI
-            </PulsoButton>
           </span>
         )}
         <PulsoButton variant="icon" size="sm" aria-label={`Quitar ${variable}`} onClick={onRemove} className="pond-categorias-quitar">
@@ -376,7 +351,7 @@ function CategoryEditor({ mode, variable, label, categorias, values, observed, o
       <div className="pond-categorias-fila is-cabecera">
         <span>categoría</span>
         {isRake && <span className="pond-num">en tu muestra</span>}
-        <span className="pond-num">{isRake ? "objetivo %" : "población"}</span>
+        <span className="pond-num">{isRake && !enConteos ? "meta %" : "población"}</span>
       </div>
       {categorias.length === 0 && (
         <div className="pond-copy pond-categorias-cargando">Cargando categorías…</div>
@@ -392,7 +367,7 @@ function CategoryEditor({ mode, variable, label, categorias, values, observed, o
           <input
             value={values[c.value] ?? ""}
             onChange={(e) => set(c.value, e.target.value)}
-            placeholder={isRake ? "%" : "n"}
+            placeholder={isRake && !enConteos ? "%" : "n"}
             inputMode="decimal"
             className="pond-categorias-input"
             aria-label={`${isRake ? "objetivo" : "población"} ${c.label}`}
@@ -422,94 +397,6 @@ function AddVariable({ variables, label, onPick }: {
       </div>
       <PulsoButton variant="secondary" onClick={() => setAdding(false)}>Cancelar</PulsoButton>
     </div>
-  );
-}
-
-// ---- Diagnóstico ------------------------------------------------------------
-function Diagnostico({ preview, nEff, deff, loss, cap, onCap }: {
-  preview: PonderPreview | null; nEff: string; deff: string; loss: number | null;
-  cap: number; onCap: (v: number) => void;
-}) {
-  const d = preview?.diagnostics;
-  const firstVar = preview?.margins ? Object.keys(preview.margins)[0] : null;
-  const rows = firstVar ? preview!.margins![firstVar] : [];
-  const max = Math.max(0.4, ...rows.flatMap((r) => [r.muestra, r.ponderado, r.objetivo]));
-  const capVal = cap > 1 ? cap : 5;
-  return (
-    <div className="pond-card pond-diagnostico">
-      {!preview?.ok && (
-        <div className="pond-copy">Configura al menos una variable con objetivos para ver el efecto.</div>
-      )}
-      {preview?.ok && firstVar && (
-        <>
-          <div className="pond-title pond-diagnostico-titulo">{firstVar}: antes y después de ponderar</div>
-          {rows.map((r) => (
-            <div key={r.categoria} className="pond-barra-fila">
-              <span className="pond-barra-categoria">{r.categoria}</span>
-              <div className="pond-barra-pista">
-                {/* El ancho de cada barra es el dato: es lo único que va en línea. */}
-                <div className="pond-barra is-muestra" style={{ width: `${(r.muestra / max) * 100}%` }} />
-                <div className="pond-barra is-ponderado" style={{ width: `${(r.ponderado / max) * 100}%` }} />
-                <div className="pond-barra-objetivo" style={{ left: `${(r.objetivo / max) * 100}%` }} />
-              </div>
-              <span className="pond-barra-valores">{pct(r.muestra)} → {pct(r.ponderado)}</span>
-            </div>
-          ))}
-          <div className="pond-leyenda">
-            <Legend tono="muestra" text="tu muestra" />
-            <Legend tono="ponderado" text="ponderado" />
-            <Legend tono="objetivo" text="objetivo" />
-          </div>
-
-          <div className="pond-stats">
-            <StatCard label="muestra efectiva" value={<>{nEff} <span className="pond-stat-de">de {d ? intfmt(d.n) : "—"}</span></>} />
-            <StatCard label="efecto de diseño" value={deff} />
-            <StatCard label="precisión que cedes" value={loss != null ? `${loss}%` : "—"} tone={loss != null && loss >= 25 ? "warn" : undefined} />
-          </div>
-
-          <div className="pond-recorte">
-            <div className="pond-recorte-copy">
-              <div className="pond-title">Limitar pesos extremos</div>
-              <div className="pond-copy">
-                {cap > 1 ? <>Ningún caso pesa más de <strong>{cap}×</strong> el promedio. Estabiliza sin sesgar.</>
-                  : "Sin recorte. Actívalo si aparecen pesos muy dispersos."}
-              </div>
-            </div>
-            <input type="range" min={2} max={8} step={1} value={capVal} onChange={(e) => onCap(parseInt(e.target.value, 10))} className="pond-recorte-rango" aria-label="Recorte de pesos extremos" />
-            <span className="pond-recorte-valor">{capVal}×</span>
-          </div>
-
-          {(preview.warnings ?? []).map((w, i) => (
-            <div key={i} className={`pond-aviso${w.level === "warn" ? " is-warn" : " is-info"}`}>
-              {w.level === "warn" ? <AlertTriangle size={16} aria-hidden="true" /> : <Info size={16} aria-hidden="true" />}
-              <span>{w.message}</span>
-            </div>
-          ))}
-
-          <div className="pond-pie">
-            <CheckCircle2 size={13} aria-hidden="true" />
-            Se aplica automáticamente a frecuencias, cruces y dimensiones. El método queda documentado en la ficha técnica.
-          </div>
-        </>
-      )}
-    </div>
-  );
-}
-
-function StatCard({ label, value, tone }: { label: string; value: React.ReactNode; tone?: "warn" }) {
-  return (
-    <div className={`pond-stat${tone === "warn" ? " is-warn" : ""}`}>
-      <div className="pond-stat-label">{label}</div>
-      <div className="pond-stat-valor">{value}</div>
-    </div>
-  );
-}
-
-function Legend({ tono, text }: { tono: "muestra" | "ponderado" | "objetivo"; text: string }) {
-  return (
-    <span className="pond-leyenda-item">
-      <span className={`pond-leyenda-marca is-${tono}`} aria-hidden="true" />{text}
-    </span>
   );
 }
 

@@ -170,10 +170,39 @@ export type PonderDiagnostics = {
   median: number;
   ratio_max_min: number;
 };
-export type PonderWarning = { level: "info" | "warn"; code: string; message: string };
+export type PonderWarning = {
+  level: "info" | "warn"; code: string; message: string;
+  var?: string; casos?: number; categorias?: string[];
+};
+/** Deff de Kish, n efectivo y peso mayor / media, antes o después del recorte. */
+export type PonderDiagCorto = { deff: number; n_eff: number; max_sobre_media: number };
+export type PonderRecorte = {
+  cap: number;
+  modo: "recalibrar" | "renormalizar";
+  ciclos: number;
+  convergio: boolean;
+  tol_margen: number;
+  max_desvio_margen: number;
+  antes: PonderDiagCorto;
+  despues: PonderDiagCorto;
+};
+export type PonderImputacion = {
+  semilla: number;
+  umbral: number;
+  metodo: string;
+  variables: Record<string, { imputados: number; sin_donante: number; pct: number; colapsados: number }>;
+};
 export type PonderPreview = {
   ok: boolean;
   reason?: string;
+  /** Con `ok: false` por un error declarado (E_*): el mensaje del backend, tal cual. */
+  message?: string;
+  escala?: "media1" | "expansion";
+  total_poblacion?: number | null;
+  peso_base?: string | null;
+  recorte?: PonderRecorte | null;
+  faltantes?: "excluir" | "imputar" | null;
+  imputacion?: PonderImputacion | null;
   n?: number;
   enabled?: boolean;
   design_applied?: boolean;

@@ -1,0 +1,189 @@
+/* Metas del CPV 2025: disclosure dentro del panel de Ponderación. Cerrado,
+ * sólo participa el summary; abierto, cada fila mide lo que su contenido
+ * necesita y la lista de distritos es dueña de su propio scroll. */
+
+.pond-cpv-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--pulso-space-2);
+  cursor: pointer;
+  list-style: none;
+}
+
+.pond-cpv-summary::-webkit-details-marker {
+  display: none;
+}
+
+.pond-cpv-summary small {
+  font-size: var(--pulso-type-caption-size);
+  color: var(--pulso-text-soft);
+}
+
+.pond-cpv[open] .pond-cpv-summary {
+  margin-bottom: var(--pulso-space-3);
+}
+
+.pond-cpv-cuerpo,
+.pond-cpv-resultado {
+  display: grid;
+  gap: var(--pulso-space-3);
+}
+
+.pond-cpv-fila {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--pulso-space-2) var(--pulso-space-3);
+}
+
+.pond-cpv-fila.is-arriba {
+  align-items: flex-start;
+}
+
+.pond-cpv-rotulo {
+  min-width: 96px;
+  font-size: var(--pulso-type-body-size);
+  font-weight: var(--pulso-weight-semibold);
+  color: var(--pulso-text);
+}
+
+.pond-cpv-campo {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--pulso-space-2);
+}
+
+.pond-cpv-campo .pond-cpv-rotulo {
+  min-width: 0;
+}
+
+.pond-cpv-buscar {
+  max-width: 320px;
+}
+
+.pond-cpv-lista-caja {
+  display: grid;
+  gap: var(--pulso-space-2);
+}
+
+.pond-cpv-lista {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 2px var(--pulso-space-3);
+  max-height: 220px;
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+
+.pond-cpv-opcion {
+  appearance: none;
+  border: 0;
+  border-radius: var(--pulso-radius);
+  background: transparent;
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+  display: grid;
+  align-items: baseline;
+  padding: 4px var(--pulso-space-2);
+  font-size: var(--pulso-type-body-size);
+  color: var(--pulso-text);
+}
+
+.pond-cpv-opcion:hover {
+  background: var(--pulso-surface-2);
+}
+
+.pond-cpv-opcion.is-on {
+  background: var(--pulso-primary-soft);
+  color: var(--pulso-primary);
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.pond-cpv-opcion:focus-visible {
+  outline: 2px solid var(--pulso-primary-focus);
+  outline-offset: 1px;
+}
+
+.pond-cpv-opcion small {
+  font-weight: var(--pulso-weight-regular);
+  font-size: var(--pulso-type-caption-size);
+  color: var(--pulso-text-soft);
+}
+
+.pond-cpv-nota {
+  font-size: var(--pulso-type-caption-size);
+  color: var(--pulso-text-soft);
+}
+
+.pond-cpv-grupos {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--pulso-space-2);
+  min-width: 0;
+  flex: 1;
+}
+
+.pond-cpv-grupo {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 2px 2px var(--pulso-space-2);
+  border-radius: var(--pulso-radius);
+  background: var(--pulso-surface-2);
+  font-size: var(--pulso-type-body-size);
+  color: var(--pulso-text-soft);
+}
+
+.pond-cpv-fuente {
+  margin: 0;
+  font-size: var(--pulso-type-body-size);
+  color: var(--pulso-text-soft);
+}
+
+.pond-cpv-fuente strong {
+  color: var(--pulso-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.pond-cpv-margen {
+  display: grid;
+  gap: var(--pulso-space-2);
+}
+
+.pond-cpv-margen-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--pulso-space-2) var(--pulso-space-3);
+}
+
+.pond-cpv-margen-head small {
+  flex: 1;
+  font-size: var(--pulso-type-caption-size);
+  color: var(--pulso-text-soft);
+}
+
+.pond-cpv-mapeo {
+  display: grid;
+  gap: 4px;
+}
+
+.pond-cpv-mapeo-fila {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr) 112px;
+  align-items: center;
+  gap: var(--pulso-space-3);
+  font-size: var(--pulso-type-body-size);
+  color: var(--pulso-text);
+}
+
+.pond-cpv-mapeo-base {
+  overflow-wrap: anywhere;
+}
+
+.pond-cpv .pond-aviso {
+  margin-top: 0;
+}

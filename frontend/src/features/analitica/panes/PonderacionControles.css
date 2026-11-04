@@ -1,0 +1,92 @@
+/* Peso base, ajustes (escala, NA/98/99, recorte) y efecto de la ponderación.
+ * Mismas tarjetas que el resto del panel; filas de control con alto propio. */
+
+.pond-peso-base,
+.pond-ajustes {
+  display: grid;
+  gap: var(--pulso-space-3);
+}
+
+.pond-ajuste-bloque {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--pulso-space-2) var(--pulso-space-4);
+}
+
+.pond-ajuste-bloque + .pond-ajuste-bloque {
+  padding-top: var(--pulso-space-3);
+  border-top: 1px solid var(--pulso-border);
+}
+
+.pond-ajuste {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--pulso-space-2) var(--pulso-space-3);
+  min-width: 0;
+}
+
+.pond-ajuste-rotulo {
+  min-width: 96px;
+  font-size: var(--pulso-type-body-size);
+  font-weight: var(--pulso-weight-semibold);
+  color: var(--pulso-text);
+}
+
+.pond-ajuste-campo {
+  flex-wrap: wrap;
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--pulso-space-2);
+  font-size: var(--pulso-type-body-size);
+  color: var(--pulso-text-soft);
+}
+
+.pond-ajuste-nota {
+  font-size: var(--pulso-type-caption-size);
+  color: var(--pulso-text-soft);
+}
+
+.pond-diagnostico-cabeza {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--pulso-space-2);
+}
+
+.pond-recorte-resumen {
+  margin: 0;
+}
+
+.pond-imputados {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--pulso-space-2);
+  margin-top: var(--pulso-space-3);
+}
+
+.pond-imputado {
+  padding: 4px var(--pulso-space-2);
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-surface-2);
+  font-size: var(--pulso-type-body-size);
+  color: var(--pulso-text-soft);
+}
+
+.pond-imputado strong {
+  color: var(--pulso-text);
+}
+
+.pond-categorias-fuente {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px var(--pulso-space-2);
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-primary-soft);
+  font-size: var(--pulso-type-caption-size);
+  color: var(--pulso-primary);
+}
