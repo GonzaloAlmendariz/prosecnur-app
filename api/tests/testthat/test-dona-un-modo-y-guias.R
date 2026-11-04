@@ -38,18 +38,18 @@ test_that("la torta de dos y tres porciones sigue con su lámina de siempre", {
   expect_true(.lam_circular_cabe(e6))
 })
 
-test_that("en la leyenda compacta del panel el cuadro de color va a la altura de la primera línea de su cifra", {
+test_that("en la leyenda del panel el cuadro de color va a la altura de la primera línea de su rótulo", {
   P <- .lam_mixta_geo("graficos_2")$paneles[[1]]
   rot <- c("Economía", "Relaciones Internacionales", "Ciencia Política y Gobierno", "Finanzas", "Antropología", "Sociología")
   v <- c(184, 92, 68, 44, 8, 4); p <- v / sum(v)
   e <- attr(suppressWarnings(graficar_pie(data.frame(c = rot, p = p, n = v), "c", "p", var_n = "n", tipo_pie = "pie")), "pulso_espec")
   geo <- .lam_panel_circular_geo(e, P$x, P$y, P$w, P$h)
-  expect_true(isTRUE(geo$compacto))
+  expect_true(isTRUE(geo$cabe))
   lz <- .lam_lienzo(); .lam_panel_circular(lz, e, geo)
   nm <- vapply(lz$formas, function(f) sub('^.*?name="([^"]*)".*$', "\\1", f), "")
-  cu <- do.call(rbind, lz$cajas[nm == "circular:cuadro"]); ci <- do.call(rbind, lz$cajas[nm == "circular:cifra"])
-  # Centro del cuadro frente al centro de la primera línea de la cifra (margen superior de 0.05 in de la caja de texto).
+  cu <- do.call(rbind, lz$cajas[nm == "circular:cuadro"]); ro <- do.call(rbind, lz$cajas[nm == "circular:rotulo"])
+  # Centro del cuadro frente al centro de la primera línea del rótulo (margen superior de 0.05 in de la caja de texto).
   centro_cuadro <- cu[, 2] + (cu[, 4] - cu[, 2]) / 2
-  centro_linea <- ci[, 2] + 0.05 + geo$size_cifra * 1.2 / 72 / 2
+  centro_linea <- ro[, 2] + 0.05 + geo$ley$size * 1.2 / 72 / 2
   expect_true(all(abs(centro_cuadro - centro_linea) <= 0.02), info = paste(round(centro_cuadro - centro_linea, 3), collapse = " "))
 })

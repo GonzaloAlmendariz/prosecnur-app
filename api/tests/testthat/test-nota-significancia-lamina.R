@@ -108,7 +108,9 @@ test_that("una leyenda de dos filas sube sobre la nota de significancia y no la 
   cajas <- .ns_cajas(x)
   nota <- cajas[cajas$nombre == "Nota significancia", ]
   ley <- cajas[cajas$nombre == "leyenda:texto", ]
-  expect_equal(nrow(nota), 1L)
+  # Sin marcas la lámina ya no lleva nota de «ninguna diferencia» (Gonzalo, RV v7, lámina 32): este fixture no marca, así
+  # que no hay nota que pisar. Si la hay (otra regla), la leyenda de dos filas sigue arriba de ella.
   expect_gt(length(unique(round(ley$y, 2))), 1L)            # la leyenda va en dos filas
-  expect_true(all(ley$y + ley$h <= nota$y + 1e-6), info = paste(round(ley$y + ley$h, 2), collapse = " "))
+  if (nrow(nota)) expect_true(all(ley$y + ley$h <= nota$y + 1e-6), info = paste(round(ley$y + ley$h, 2), collapse = " "))
+  expect_false(any(grepl("Ninguna diferencia|no se distinguen", cajas$texto)))
 })

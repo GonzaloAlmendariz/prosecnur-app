@@ -2,35 +2,8 @@
 # lamina_numericos.R — gráficos de números del recetario, con formas nativas (ADR 0093, N4)
 # =============================================================================
 #
-# Histograma (lámina 79, recetario_graficos2.R:4-18): una barra azul por valor que
-# ocupa su columna menos 0.04 in de aire, la cifra encima a 12 pt en negrita, el
-# valor debajo, el triángulo coral de la mediana bajo su valor y la cifra de la
-# mediana arriba a la derecha. Sin eje Y ni título del eje.
-
-#' Histograma del recetario en un rectángulo
-#'
-#' @param espec Especificación `histograma/1` (adjunta por `.histograma_recetario`).
-#' @param hb Alto máximo de las barras. `espec$x_mediana` es la posición de la mediana en columnas desde 0 (la primera barra).
-#' @keywords internal
-.lam_histograma <- function(lz, espec, x, y, w, hb) {
-  azul <- .std_color("azul"); coral <- .std_color("coral")
-  n <- length(espec$valores); wcol <- w / n; vmax <- max(espec$valores)
-  cif <- .histograma_cifras_en_columna(espec$cifras, wcol)   # «103 (26%)» en dos líneas si no cabe en una
-  h_cif <- 0.28 + (cif$lineas - 1L) * 0.2
-  for (k in seq_len(n)) {
-    hk <- if (vmax > 0) hb * espec$valores[k] / vmax else 0; xk <- x + (k - 1) * wcol
-    if (hk > 0) {
-      .lam_caja(lz, xk + 0.02, y + hb - hk, wcol - 0.04, hk, azul, nombre = "histograma:barra")
-      lin <- strsplit(cif$textos[k], "\n", fixed = TRUE)[[1]]   # el conteo arriba y su porcentaje debajo, en cajas propias
-      for (j in seq_along(lin)) .lam_txt(lz, lin[j], xk, y + hb - hk - 0.02 - h_cif + (j - 1L) * 0.2, wcol, 0.28, 12, azul, bold = TRUE,
-                                         align = "center", nombre = if (j == 1L) "histograma:cifra" else "histograma:cifra_pct")
-    }
-    .lam_txt(lz, espec$rotulos[k], xk, y + hb + 0.06, wcol, 0.28, 12, azul, align = "center", nombre = "histograma:valor")
-  }
-  xm <- x + (espec$x_mediana + 0.5) * wcol
-  .lam_caja(lz, xm - 0.08, y + hb + 0.4, 0.16, 0.13, coral, nombre = "histograma:mediana", geom = "triangle")
-  invisible(y + hb + 0.53)
-}
+# Histograma (lámina 79, recetario_graficos2.R:4-18): lo dibuja graficador_histograma_lamina.R, con
+# las barras contiguas sobre su base y la mediana como línea fina rotulada (revisión del PPT v7 de CCSS).
 
 #' Lámina de un histograma (lámina 79 del recetario)
 #' @keywords internal
@@ -42,9 +15,8 @@
   doc <- officer::add_slide(doc, layout = layout, master = master)
   doc <- .lam_titulo(doc, titulo, ante = ante, sub = sub)
   lz <- .lam_lienzo()
-  .lam_histograma(lz, espec, ml + .LAM_SANGRIA_TXT, yt + 0.55, W - 2 * (ml + .LAM_SANGRIA_TXT), yf - yt - 1.25)   # mismo margen a ambos lados (lamina_dicotomia_margenes.R)
-  .lam_txt(lz, espec$texto_mediana, W - g_("margen_der") - 3.2, yt, 3.2, 0.3, 12, .std_color("coral"), bold = TRUE, align = "right",
-           nombre = "histograma:texto_mediana")
+  # Barras contiguas, base y la mediana como línea rotulada (graficador_histograma_lamina.R); mismo margen a ambos lados.
+  .lam_histograma_distribucion(lz, espec, ml + .LAM_SANGRIA_TXT, yt, W - 2 * (ml + .LAM_SANGRIA_TXT), yf - 0.05)
   doc <- .lam_agrupar(doc, lz, nombre = "prosecnur:grafico:histograma")
   doc <- .lam_pie(doc, base, folio)
   list(doc = por_lamina(doc), partes = 1L)

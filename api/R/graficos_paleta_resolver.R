@@ -235,9 +235,8 @@
   n <- .paleta_norm_etiqueta(levels)
   especial <- grepl(.DIVERGENTES_ESPECIAL, levels, ignore.case = TRUE) | grepl(.PALETA_ESCALA_ESPECIAL_EXTRA, n)
   k <- sum(!especial); base <- unname(.std_paleta("likert"))
-  rampa <- if (k == 4L) base[1:4] else if (k == 5L) unname(.std_paleta("likert_neutro"))[1:5] else
-    grDevices::colorRampPalette(base[1:4])(max(k, 1L))[seq_len(k)]
   pasos <- n[!especial]
+  rampa <- if (k >= 1L) .paleta_rampa_escala(k, pasos)[seq_len(k)] else character(0)   # medio neutro en gris (graficador_paleta.R)
   if (k >= 2L && grepl(.PALETA_ESCALA_NEGATIVO, pasos[k]) && !grepl(.PALETA_ESCALA_NEGATIVO, pasos[1])) rampa <- rev(rampa)
   vals <- character(length(levels)); vals[!especial] <- rampa; vals[especial] <- base[5]
   stats::setNames(vals, levels)

@@ -258,16 +258,10 @@
     linea <- .sig_texto_linea_marcas(regla, hay_fragiles = any(marcas$fragil),
                                      frente_al_resto = identical(ev$modo, "frente_al_resto"))
   } else {
-    pr <- ev$pares
-    pr <- if (!is.null(pr)) pr[pr$elegible, , drop = FALSE] else NULL
-    if (!is.null(pr) && nrow(pr)) {
-      k <- which.max(pr$dif)
-      et <- ev$etiquetas_grupos
-      linea <- .sig_texto_ninguna(regla, pr$p_a[k], unname(et[pr$a[k]]) %||% "", pr$p_b[k], unname(et[pr$b[k]]) %||% "",
-                                  niveles = niveles)
-    } else {
-      linea <- .sig_texto_ninguna(regla, NA, "", NA, "", niveles = niveles)
-    }
+    # Sin marcas la lámina no lleva nota de «ninguna diferencia» (Gonzalo, revisión del PPT v7 de CCSS, lámina 32:
+    # «quedamos en que no se pone»). La línea de bases chicas sí queda: dice que hubo grupos que no se pudieron comparar.
+    # El texto sigue disponible en `.sig_texto_ninguna` para la UI (estado «ninguna» del inspector).
+    linea <- NULL
   }
   .sig_nota_lineas(c(contexto, linea, .sig_texto_tendencia(ev, regla)))
 }

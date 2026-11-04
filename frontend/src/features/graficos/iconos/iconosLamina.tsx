@@ -155,6 +155,29 @@ const estandar: DibujoLamina = () => (
   </>
 );
 
+/** Resumen de diferencias: renglones por capítulo con la marca ▲ de la diferencia al final (lamina_resumen_diferencias.R). */
+const resumenDiferencias: DibujoLamina = () => (
+  <>
+    <Marco />
+    <LineaTitulo />
+    <Trazo d="M3 10.5H15M3 13.5H13.5M3 16.5H15.75" />
+    <Acento><Trazo d="M17.25 11.25L18.75 9.75L20.25 11.25" tono="pleno" /></Acento>
+    <Trazo d="M17.25 15.75L18.75 17.25L20.25 15.75" />
+  </>
+);
+
+/** Hallazgos clave: tres cifras destacadas en fila, cada una con su rótulo debajo (lamina_hallazgos.R). */
+const hallazgos: DibujoLamina = () => (
+  <>
+    <Marco />
+    <LineaTitulo />
+    <Acento><Bloque x={3} y={9.75} w={4.5} h={3.75} tono="pleno" /></Acento>
+    <Bloque x={9.75} y={9.75} w={4.5} h={3.75} />
+    <Bloque x={16.5} y={9.75} w={4.5} h={3.75} />
+    <Trazo d="M3 16.5H7.5M9.75 16.5H14.25M16.5 16.5H21" />
+  </>
+);
+
 const ESTRUCTURA: Readonly<Record<string, DibujoLamina>> = {
   p_slide_portada: portada,
   p_slide_objetivo_icono: objetivo,
@@ -165,9 +188,11 @@ const ESTRUCTURA: Readonly<Record<string, DibujoLamina>> = {
   p_slide_seccion: seccion,
   p_slide_cierre: cierre,
   p_slide_estandar: estandar,
+  p_slide_resumen_diferencias: resumenDiferencias,
+  p_slide_hallazgos: hallazgos,
 };
 
-/** Ícono propio (dibujado): 22 del estándar + 8 de estructura. */
+/** Ícono propio (dibujado): 22 del estándar + 11 de estructura y contenido sin ranuras. */
 export const ICONOS_LAMINA: Readonly<Record<string, DibujoLamina>> = {
   ...Object.fromEntries(
     Object.keys(RANURAS_ESTANDAR).map((id): [string, DibujoLamina] =>

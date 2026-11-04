@@ -35,7 +35,7 @@ colores <- list(coral = "#CA5651", azul = "#081F5C", tenue = "#8E9DBD", texto_su
                 # Tarjetas de diferencias (ADR 0129, propuesta P08): borde y fondo al 99 %, borde, fondo y barra al 95 %
                 # (punteado), la fila del total y el verde del encabezado del acuerdo.
                 tarjeta_borde = "#D9DEE8", tarjeta_fondo = "#FFFFFF", tarjeta_fondo_95 = "#F8F9FB", tarjeta_borde_95 = "#3A6591",
-                tarjeta_barra_95 = "#6F8FC4", tarjeta_total = "#B7BECC", verde_acuerdo = "#3B7A2A",
+                tarjeta_barra_95 = "#6F8FC4", tarjeta_total = "#B7BECC", tarjeta_barra_neutra = "#C3CFE2", verde_acuerdo = "#3B7A2A",
                 # Mapas de distribución (especificación aprobada de las láminas de variables geográficas, CCSS 2026-11-03;
                 # graficos_mapa_distribucion_*.R): clases ColorBrewer Blues (cinco; la de cuatro cambia la tercera), áreas sin
                 # casos, el borde entre áreas (gris oscuro, y blanco sobre las clases oscuras: revisión v7, lámina 11), mar,
@@ -131,6 +131,7 @@ composicion <- list(unidad = "in",
   perfil = list(                     # paneles de las láminas de perfil y mixtas, como Conta (lamina_perfil_panel.R; ítems 18–20)
     titulo_pt = 16,                  # pregunta del panel, centrada
     rotulo_pt = c(13, 12.5, 12, 11.5, 11),   # categoría: 13 pt y baja medio punto sólo si así quedan más paneles nativos
+    rotulo_pt_con_tarjetas = c(10.5, 10),   # ADR 0129 §6: con tarjetas debajo del gráfico, el panel puede bajar a 10 pt
     grosor_max_cm = 0.99,            # la barra más gruesa de Conta (el piso es piso_panel_cm)
     grosor_frac = 0.7,               # fracción de la fila que ocupa la barra
     aire_fila = 0.06,                # aire mínimo entre dos barras

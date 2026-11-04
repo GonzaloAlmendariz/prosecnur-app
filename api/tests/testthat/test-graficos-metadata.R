@@ -56,7 +56,9 @@ source("setup-load-all.R")
   p_slide_5_graficos_poblacion = c(kind = "population5", ppt_layout = "poblacion_5", structure_label = "Matriz 3 + 2"),
   p_slide_6_graficos_poblacion = c(kind = "population6", ppt_layout = "poblacion_6", structure_label = "Matriz 3 × 2"),
   p_slide_cierre = c(kind = "closing", ppt_layout = "Contraportada", structure_label = "Contraportada"),
-  p_slide_estandar = c(kind = "topTwo", ppt_layout = "Title and Content", structure_label = "Reglas de la identidad")
+  p_slide_estandar = c(kind = "topTwo", ppt_layout = "Title and Content", structure_label = "Reglas de la identidad"),
+  p_slide_resumen_diferencias = c(kind = "single", ppt_layout = "Graficos2", structure_label = "Resumen de diferencias"),
+  p_slide_hallazgos = c(kind = "single", ppt_layout = "Graficos2", structure_label = "Hallazgos clave")
 )
 
 .gm_slot <- function(role, label) list(role = role, label = label)
@@ -182,7 +184,9 @@ source("setup-load-all.R")
     grafico_inferior_3 = .gm_slot("chart", "Inferior derecha")
   ),
   p_slide_cierre = list(),
-  p_slide_estandar = list()
+  p_slide_estandar = list(),
+  p_slide_resumen_diferencias = list(),
+  p_slide_hallazgos = list()
 )
 
 .gm_graficadores <- list(
@@ -282,7 +286,7 @@ test_that("registry: cada slide y graficador expone el shape completo con nombre
   reg <- .graficos_registry_payload()
   # `familias_editor` (K4, plan F6 §5.2): el orden de las familias del selector «Tipo de gráfico».
   expect_setequal(names(reg), c("slides", "graficadores", "familias_editor"))
-  expect_length(reg$slides, 34L)
+  expect_length(reg$slides, 36L)
   expect_length(reg$graficadores, 33L)
 
   slide_names <- vapply(reg$slides, function(s) s$name, character(1))
@@ -492,7 +496,7 @@ test_that("metadata G2-L0.1 declara direccion de escala y exclusion del denomina
   }
 })
 
-test_that("registry L4: los 34 blueprints de slides siguen la tabla PPT acreditada", {
+test_that("registry L4: los 36 blueprints de slides siguen la tabla PPT acreditada", {
   reg <- .graficos_registry_payload()
   expect_identical(.slide_names(), names(.gm_slide_blueprints))
 

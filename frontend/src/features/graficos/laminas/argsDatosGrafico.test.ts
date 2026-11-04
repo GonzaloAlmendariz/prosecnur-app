@@ -29,6 +29,17 @@ describe("camposDeDatos", () => {
     expect([p.rotulo, d.rotulo]).toEqual(["Pregunta", "Dividir por"]);
     expect(p.detalle).toMatch(/Descripción larga/);
   });
+  it("total y línea por nivel: el cruce es el eje, y las líneas y partes del total (meta, JSON) no son filas de la tarjeta", () => {
+    // Firma de p_lineas_nivel en el registro (graficos_metadata.R), sin los comunes.
+    const lineas = [
+      a("var", "variable"), a("cruce", "variable"), a("series", "meta"), a("total_arriba", "bool"), a("segmentos_total", "meta"),
+      a("mostrar_significancia", "bool"), a("grupos", "codigos_list"), a("titulo_seccion", "string", "textos"),
+    ];
+    const campos = camposDeDatos(lineas, { series: [{ rotulo: "Trabaja", respuestas: ["1"] }] }, "p_lineas_nivel");
+    expect(campos.map((c) => c.arg.name)).toEqual(["var", "cruce"]);
+    expect(campos[1]).toMatchObject({ rotulo: "Niveles del eje", ayuda: "Un punto por nivel, de menor a mayor." });
+    expect(camposDeDatos(agrupadas, {}, "p_barras_agrupadas")[1].rotulo).toBe("Dividir por");
+  });
 });
 
 describe("códigos y etiqueta corta", () => {
