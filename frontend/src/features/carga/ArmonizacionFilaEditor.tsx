@@ -94,6 +94,7 @@ import { AvisoMalUbicados } from "./AvisoMalUbicados";
 import { EstadoVacio } from "../../components/EstadoVacio";
 import { LoadingBlock, ErrorBlock } from "../../components/States";
 import { Inbox } from "../../vendor/lucide-react";
+import { Panel } from "../../components/Panel";
 
 // ---- Abrir sobre una fila ---------------------------------------------------
 //
@@ -664,15 +665,13 @@ function EscalaComun({
   despachar: (a: Parameters<typeof reducirArmonizacion>[1]) => void;
 }) {
   return (
-    <section className="pulso-armon-seccion" aria-labelledby="pulso-armon-escala" data-qa-geometry-member>
-      <div className="pulso-armon-seccion-head">
-        <div className="pulso-armon-seccion-titulo">
-          <h3 id="pulso-armon-escala" tabIndex={-1}>Escala común</h3>
-          <p className="pulso-armon-ayuda">
-            La lista de respuestas con la que se compara esta pregunta en {serie.todas}.
-          </p>
-        </div>
-        <PulsoButton
+    <Panel
+      className="pulso-armon-seccion"
+      aria-labelledby="pulso-armon-escala" data-qa-geometry-member
+      title={<span id="pulso-armon-escala" tabIndex={-1}>Escala común</span>}
+      hint={<>La lista de respuestas con la que se compara esta pregunta en {serie.todas}.</>}
+      actions={<>
+<PulsoButton
           variant="secondary"
           className="pulso-armon-btn"
           onClick={() => despachar({ tipo: "agregar" })}
@@ -680,7 +679,9 @@ function EscalaComun({
           <Plus size={14} aria-hidden="true" />
           Agregar categoría
         </PulsoButton>
-      </div>
+    </>}
+    >
+      
       {borrador.escala.length === 0 ? (
         // C3: el vacío es de esta sección y dice cómo se llena.
         <EstadoVacio icono={<Inbox size={16} />} titulo="Todavía no hay escala" descripcion="Agrega categorías o copia la lista de una base desde su tabla." />
@@ -732,7 +733,7 @@ function EscalaComun({
           ))}
         </ol>
       )}
-    </section>
+    </Panel>
   );
 }
 

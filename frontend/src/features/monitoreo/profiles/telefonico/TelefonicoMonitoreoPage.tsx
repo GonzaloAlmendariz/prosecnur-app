@@ -302,6 +302,7 @@ import { preferredPhoneEffectiveValue, splitListInput, calendarPhaseDurationDays
 import { caracterDeCuotas, phoneQuotaGoalHasActor, phoneQuotaGoalTotal, phoneQuotaRemoveGoal, phoneQuotaGoalVariables, phoneQuotaUpsertGoal } from "../../core/cuotasTelefonicasComunes";
 import { phoneRowNumber, phoneRowOptionalNumber, phoneRowRatioPct, phoneAttemptValue, phoneDurationAlertThreshold, phoneDurationAlertDisplayDetail, phoneAlertCaseCount, phoneContractReadyCount, acreditacionPhoneAlertSignalRows } from "../../core/alertasTelefonicasComunes";
 import { useSubvistaEnFoco } from "../../core/subvistaEnFoco";
+import { BloqueDeMonitoreo } from "../../core/BloqueDeMonitoreo";
 const VISTAS_DE_SUPERVISION = ["tiempo", "muestra", "prioridad"] as const;
 export { caseResponseDateTimeLabel, caseResponseTimeDetailLabel } from "../../core/rotulosComunes";
 export { TELEFONICO_VISIBLE_PHONE_TABS, TELEFONICO_VISIBLE_ADVANCE_TABS } from "./telefonicoBase";
@@ -1579,20 +1580,18 @@ function AcreditacionModelWorkbench({
           <StatTile label="Modo" value={acreditacion.modo_trabajo === "cierre_campo" ? "Cierre" : "Campo"} />
         </div>
         <div className="mon-profile-grid">
-          <section className="mon-profile-panel">
-            <div className="mon-profile-panel-head">
-              <h3>Base de barrido y seguimiento</h3>
-              <span>{fmt(seguimientoRows.length)} actores</span>
-            </div>
+          <BloqueDeMonitoreo
+            titulo="Base de barrido y seguimiento"
+            bajada={<>{fmt(seguimientoRows.length)} actores</>}
+          >
             <DataTable rows={seguimientoRows} empty="No hay actores para seguimiento." />
-          </section>
-          <section className="mon-profile-panel">
-            <div className="mon-profile-panel-head">
-              <h3>Bolsa operativa</h3>
-              <span>{fmt(bolsaRows.length)} filas</span>
-            </div>
+          </BloqueDeMonitoreo>
+          <BloqueDeMonitoreo
+            titulo="Bolsa operativa"
+            bajada={<>{fmt(bolsaRows.length)} filas</>}
+          >
             <DataTable rows={bolsaRows} empty="No hay bolsa operativa normalizada." />
-          </section>
+          </BloqueDeMonitoreo>
         </div>
       </div>
     );
@@ -1608,18 +1607,16 @@ function AcreditacionModelWorkbench({
           <StatTile label="Componentes" value={fmt(componentes.length)} />
         </div>
         <div className="mon-profile-grid">
-          <section className="mon-profile-panel">
-            <div className="mon-profile-panel-head">
-              <h3>Fuentes, links y recopiladores</h3>
-              <span>{fmt(sourceRows.length)} fuentes</span>
-            </div>
+          <BloqueDeMonitoreo
+            titulo="Fuentes, links y recopiladores"
+            bajada={<>{fmt(sourceRows.length)} fuentes</>}
+          >
             <DataTable rows={sourceRows} empty="No hay fuentes conectadas para enlaces/envíos." />
-          </section>
-          <section className="mon-profile-panel">
-            <div className="mon-profile-panel-head">
-              <h3>Intentos por canal</h3>
-              <span>{fmt(componentes.length)} actores</span>
-            </div>
+          </BloqueDeMonitoreo>
+          <BloqueDeMonitoreo
+            titulo="Intentos por canal"
+            bajada={<>{fmt(componentes.length)} actores</>}
+          >
             <DataTable
               rows={componentes.map((component) => ({
                 Actor: component.actor,
@@ -1631,7 +1628,7 @@ function AcreditacionModelWorkbench({
               }))}
               empty="No hay intentos por canal."
             />
-          </section>
+          </BloqueDeMonitoreo>
         </div>
       </div>
     );
@@ -1658,13 +1655,12 @@ function AcreditacionModelWorkbench({
             ))}
           </section>
         ) : null}
-        <section className="mon-profile-panel">
-          <div className="mon-profile-panel-head">
-            <h3>Estados válidos, metas y brechas</h3>
-            <span>{fmt(ruleRows.length)} reglas</span>
-          </div>
+        <BloqueDeMonitoreo
+          titulo="Estados válidos, metas y brechas"
+          bajada={<>{fmt(ruleRows.length)} reglas</>}
+        >
           <DataTable rows={ruleRows} empty="No hay reglas de cumplimiento para este modelo." />
-        </section>
+        </BloqueDeMonitoreo>
       </div>
     );
   }
@@ -1678,13 +1674,12 @@ function AcreditacionModelWorkbench({
           <StatTile label="Aprobación" value={aprobarBrechas ? "Sí" : "No"} tone={aprobarBrechas ? "good" : "neutral"} />
           <StatTile label="Cierre" value={acreditacion.modo_trabajo === "cierre_campo" ? "Marcado" : "Editable"} />
         </div>
-        <section className="mon-profile-panel">
-          <div className="mon-profile-panel-head">
-            <h3>Calendario y mecanismos por semana</h3>
-            <span>{fmt(strategyRows.length)} fases</span>
-          </div>
+        <BloqueDeMonitoreo
+          titulo="Calendario y mecanismos por semana"
+          bajada={<>{fmt(strategyRows.length)} fases</>}
+        >
           <DataTable rows={strategyRows} empty="No hay fases estratégicas configuradas." />
-        </section>
+        </BloqueDeMonitoreo>
         <section className="mon-acr-model-close" aria-label="Cierre de acreditación">
           <div>
             <span>Cierre metodológico</span>
@@ -1852,26 +1847,24 @@ function AcreditacionModelWorkbench({
               </section>
 
               {Object.keys(selected.seguimiento.sub_cuotas_progreso).length ? (
-                <section className="mon-profile-panel">
-                  <div className="mon-profile-panel-head">
-                    <h3>Subcuotas</h3>
-                    <span>{fmt(Object.keys(selected.seguimiento.sub_cuotas_progreso).length)} celdas</span>
-                  </div>
+                <BloqueDeMonitoreo
+                  titulo="Subcuotas"
+                  bajada={<>{fmt(Object.keys(selected.seguimiento.sub_cuotas_progreso).length)} celdas</>}
+                >
                   <DataTable
                     rows={Object.entries(selected.seguimiento.sub_cuotas_progreso).map(([celda, row]) => ({ Celda: celda, ...row }))}
                     empty="Sin subcuotas para este componente."
                   />
-                </section>
+                </BloqueDeMonitoreo>
               ) : null}
 
               {selected.seguimiento.bolsa_operativa.length ? (
-                <section className="mon-profile-panel">
-                  <div className="mon-profile-panel-head">
-                    <h3>Bolsa operativa</h3>
-                    <span>{fmt(selected.seguimiento.bolsa_operativa.length)} filas</span>
-                  </div>
+                <BloqueDeMonitoreo
+                  titulo="Bolsa operativa"
+                  bajada={<>{fmt(selected.seguimiento.bolsa_operativa.length)} filas</>}
+                >
                   <DataTable rows={selected.seguimiento.bolsa_operativa as unknown as Array<Record<string, unknown>>} empty="Sin bolsa operativa para este componente." />
-                </section>
+                </BloqueDeMonitoreo>
               ) : null}
             </>
           ) : (
@@ -2746,11 +2739,11 @@ function AcreditacionModelConfigWorkbench({
     return (
       <div className="mon-acr-model mon-acr-model-config">
         {showHeader ? header : null}
-        <section className="mon-profile-panel mon-acr-model-router-note">
-          <div className="mon-profile-panel-head">
-            <h3>Enlaces operativos</h3>
-            <span>{fmt(collectorSummary.includedCollectors)} recopiladores incluidos</span>
-          </div>
+        <BloqueDeMonitoreo
+          className="mon-acr-model-router-note"
+          titulo="Enlaces operativos"
+          bajada={<>{fmt(collectorSummary.includedCollectors)} recopiladores incluidos</>}
+        >
           <p className="mon-profile-muted">
             La clasificacion editable de recopiladores vive en Fuentes, dentro de la pestaña Recopiladores. Este modelo conserva la relacion guardada para metas, reglas y avance.
           </p>
@@ -2760,12 +2753,11 @@ function AcreditacionModelConfigWorkbench({
             <StatTile label="Incluidos" value={fmt(collectorSummary.includedCollectors)} tone={collectorSummary.includedCollectors ? "good" : "neutral"} />
             <StatTile label="Sin metadata" value={fmt(collectorSummary.missingCollectorMetadata)} tone={collectorSummary.missingCollectorMetadata ? "warn" : "good"} />
           </div>
-        </section>
-        <section className="mon-profile-panel">
-          <div className="mon-profile-panel-head">
-            <h3>Fuentes disponibles para mecanismos</h3>
-            <span>{fmt(activeSources.length)} activas</span>
-          </div>
+        </BloqueDeMonitoreo>
+        <BloqueDeMonitoreo
+          titulo="Fuentes disponibles para mecanismos"
+          bajada={<>{fmt(activeSources.length)} activas</>}
+        >
           <DataTable
             rows={activeSources.map((source) => ({
               Fuente: source.label || source.id,
@@ -2778,7 +2770,7 @@ function AcreditacionModelConfigWorkbench({
             empty="Sin fuentes activas para enlazar mecanismos."
             preferredColumns={["Fuente", "Servicio", "Rol", "Actor", "Canal", "ID"]}
           />
-        </section>
+        </BloqueDeMonitoreo>
       </div>
     );
   }
@@ -3288,11 +3280,10 @@ function AcreditacionSweepBaseWorkbench({
         {status ? <div className={status.tone === "error" ? "mon-sm-error" : "mon-sm-meta"}>{status.message}</div> : null}
         <div className="mon-profile-grid">
           <AcreditacionSheetSourceEditor preset={sweepPreset} sources={sweepSourceCandidates} onStateChange={onStateChange} />
-          <section className="mon-profile-panel">
-            <div className="mon-profile-panel-head">
-              <h3>Campos operativos</h3>
-              <span>{cases.enabled ? "Activo" : "Pendiente"}</span>
-            </div>
+          <BloqueDeMonitoreo
+            titulo="Campos operativos"
+            bajada={<>{cases.enabled ? "Activo" : "Pendiente"}</>}
+          >
             <div className="mon-form mon-form--two">
               <AcreditacionVarSelect label="Identificador" value={cases.case_id_var} vars={variableNames} onChange={(value) => onCasesChange({ case_id_var: value })} />
               <AcreditacionVarSelect label="Persona o caso" value={cases.person_label_var} vars={variableNames} onChange={(value) => onCasesChange({ person_label_var: value })} />
@@ -3311,7 +3302,7 @@ function AcreditacionSweepBaseWorkbench({
               <AcreditacionVariableChipPicker label="Campos de contacto" vars={variableNames} selected={cases.contact_vars} onChange={(contact_vars) => onCasesChange({ contact_vars })} />
               <AcreditacionVariableChipPicker label="Campos sensibles" vars={variableNames} selected={cases.sensitive_vars} onChange={(sensitive_vars) => onCasesChange({ sensitive_vars })} />
             </div>
-          </section>
+          </BloqueDeMonitoreo>
         </div>
       </section>
       <section className="mon-contract-block mon-contract-block--wide mon-channel-selector-matrix" aria-label="Canales telefónicos con base de barrido">
@@ -3539,10 +3530,11 @@ function AcreditacionEventsEditor({
     onChange(events.map((event, itemIndex) => itemIndex === index ? { ...event, ...patch } : event));
   };
   return (
-    <section className="mon-profile-panel">
-      <div className="mon-profile-panel-head">
-        <h3>Eventos operativos</h3>
-        <button type="button" onClick={() => onChange([...events, {
+    <BloqueDeMonitoreo
+      titulo="Eventos operativos"
+      acciones={(
+      <>
+<button type="button" onClick={() => onChange([...events, {
           id: `evento-${Date.now()}`,
           label: "Completa",
           modality: "email",
@@ -3554,7 +3546,9 @@ function AcreditacionEventsEditor({
         }])}>
           <Plus size={13} /> Agregar
         </button>
-      </div>
+      </>
+    )}
+    >
       <div className="mon-contract-list">
         {events.map((event, index) => (
           <article key={event.id || index} className="mon-event-row">
@@ -3571,7 +3565,7 @@ function AcreditacionEventsEditor({
         ))}
         {!events.length ? <p className="mon-profile-muted">Sin eventos configurados.</p> : null}
       </div>
-    </section>
+    </BloqueDeMonitoreo>
   );
 }
 
@@ -3588,10 +3582,11 @@ function AcreditacionStateRulesEditor({
     onChange(rules.map((rule, itemIndex) => itemIndex === index ? { ...rule, ...patch } : rule));
   };
   return (
-    <section className="mon-profile-panel">
-      <div className="mon-profile-panel-head">
-        <h3>Reglas de estado final</h3>
-        <button type="button" onClick={() => onChange([...rules, {
+    <BloqueDeMonitoreo
+      titulo="Reglas de estado final"
+      acciones={(
+      <>
+<button type="button" onClick={() => onChange([...rules, {
           id: `regla-${Date.now()}`,
           label: "Completa válida",
           final_state: "complete",
@@ -3601,7 +3596,9 @@ function AcreditacionStateRulesEditor({
         }])}>
           <Plus size={13} /> Agregar
         </button>
-      </div>
+      </>
+    )}
+    >
       <div className="mon-contract-list">
         {rules.map((rule, index) => (
           <article key={rule.id || index} className="mon-rule-row">
@@ -3623,7 +3620,7 @@ function AcreditacionStateRulesEditor({
         ))}
         {!rules.length ? <p className="mon-profile-muted">Sin reglas de avance configuradas.</p> : null}
       </div>
-    </section>
+    </BloqueDeMonitoreo>
   );
 }
 
@@ -9157,20 +9154,18 @@ function AcreditacionActiveSourcesView({
             <em>{fmt(activeRows.length)} activas</em>
           </summary>
           <div className="mon-profile-grid">
-            <section className="mon-profile-panel">
-              <div className="mon-profile-panel-head">
-                <h3>Fuentes activas</h3>
-                <span>{fmt(activeRows.length)} filas</span>
-              </div>
+            <BloqueDeMonitoreo
+              titulo="Fuentes activas"
+              bajada={<>{fmt(activeRows.length)} filas</>}
+            >
               <DataTable rows={activeRows} empty="No hay fuentes activas." preferredColumns={["Fuente", "Servicio", "Rol", "Estado", "Ultimo sync", "ID"]} />
-            </section>
-            <section className="mon-profile-panel">
-              <div className="mon-profile-panel-head">
-                <h3>Fuentes del corte</h3>
-                <span>{fmt(reportSources.length)} filas</span>
-              </div>
+            </BloqueDeMonitoreo>
+            <BloqueDeMonitoreo
+              titulo="Fuentes del corte"
+              bajada={<>{fmt(reportSources.length)} filas</>}
+            >
               <DataTable rows={reportSources} empty="El corte no declaró fuentes." />
-            </section>
+            </BloqueDeMonitoreo>
           </div>
           <AcreditacionConfiguredSourcesList
             sources={sources}
@@ -9270,27 +9265,24 @@ function AcreditacionActiveSourcesView({
           <em>{fmt(activeRows.length)} fuentes activas</em>
         </summary>
         <div className="mon-profile-grid">
-          <section className="mon-profile-panel">
-            <div className="mon-profile-panel-head">
-              <h3>Cobertura fija</h3>
-              <span>{fmt(packageRows.length)} piezas</span>
-            </div>
+          <BloqueDeMonitoreo
+            titulo="Cobertura fija"
+            bajada={<>{fmt(packageRows.length)} piezas</>}
+          >
             <DataTable rows={packageRows} empty="No hay cobertura de fuentes para acreditacion." preferredColumns={["Pieza", "Servicio", "Configuradas", "Activas", "Estado", "Ultimo sync"]} />
-          </section>
-          <section className="mon-profile-panel">
-            <div className="mon-profile-panel-head">
-              <h3>Fuentes configuradas</h3>
-              <span>{fmt(activeRows.length)} activas</span>
-            </div>
+          </BloqueDeMonitoreo>
+          <BloqueDeMonitoreo
+            titulo="Fuentes configuradas"
+            bajada={<>{fmt(activeRows.length)} activas</>}
+          >
             <DataTable rows={activeRows} empty="No hay fuentes activas." preferredColumns={["Fuente", "Servicio", "Actor", "Canal", "Estado", "Ultimo sync", "ID"]} />
-          </section>
-          <section className="mon-profile-panel">
-            <div className="mon-profile-panel-head">
-              <h3>Fuentes del reporte</h3>
-              <span>{fmt(reportSources.length)} filas</span>
-            </div>
+          </BloqueDeMonitoreo>
+          <BloqueDeMonitoreo
+            titulo="Fuentes del reporte"
+            bajada={<>{fmt(reportSources.length)} filas</>}
+          >
             <DataTable rows={reportSources} empty="El reporte no declaro fuentes para este corte." />
-          </section>
+          </BloqueDeMonitoreo>
         </div>
         <AcreditacionConfiguredSourcesList
           sources={sources}
@@ -11124,27 +11116,25 @@ function AcreditacionCrucesView({ cases }: { cases: MonitoreoInternalQueryCase[]
   const sourceRows = groupedCaseRows(cases, (item) => item.source_label || acreditacionChannelDisplay(item.channel, "Sin fuente"), (value) => value);
   return (
     <div className="mon-acr-insight-grid">
-      <section className="mon-profile-panel">
-        <div className="mon-profile-panel-head">
-          <h3>Cruce por llave</h3>
-          <span>{fmt(crossingRows.length)} tipos</span>
-        </div>
+      <BloqueDeMonitoreo
+        titulo="Cruce por llave"
+        bajada={<>{fmt(crossingRows.length)} tipos</>}
+      >
         <DataTable rows={crossingRows} empty="No hay cruces para los filtros activos." />
-      </section>
-      <section className="mon-profile-panel">
-        <div className="mon-profile-panel-head">
-          <h3>Actor y estado</h3>
-          <span>{fmt(actorRows.length)} actores</span>
-        </div>
+      </BloqueDeMonitoreo>
+      <BloqueDeMonitoreo
+        titulo="Actor y estado"
+        bajada={<>{fmt(actorRows.length)} actores</>}
+      >
         <DataTable rows={actorRows} empty="No hay actores para los filtros activos." />
-      </section>
-      <section className="mon-profile-panel mon-acr-insight-wide">
-        <div className="mon-profile-panel-head">
-          <h3>Fuente y respuesta</h3>
-          <span>{fmt(sourceRows.length)} fuentes</span>
-        </div>
+      </BloqueDeMonitoreo>
+      <BloqueDeMonitoreo
+        className="mon-acr-insight-wide"
+        titulo="Fuente y respuesta"
+        bajada={<>{fmt(sourceRows.length)} fuentes</>}
+      >
         <DataTable rows={sourceRows} empty="No hay fuentes para los filtros activos." />
-      </section>
+      </BloqueDeMonitoreo>
     </div>
   );
 }
@@ -11168,20 +11158,18 @@ function AcreditacionAuditoriaView({
         <StatTile label="Duplicados" value={fmt(duplicates)} tone={duplicates ? "warn" : "neutral"} />
         <StatTile label="Parciales" value={fmt(partials)} tone={partials ? "warn" : "neutral"} />
       </div>
-      <section className="mon-profile-panel">
-        <div className="mon-profile-panel-head">
-          <h3>Casos que explican diferencias</h3>
-          <span>{fmt(auditRows.length)} filas</span>
-        </div>
+      <BloqueDeMonitoreo
+        titulo="Casos que explican diferencias"
+        bajada={<>{fmt(auditRows.length)} filas</>}
+      >
         <DataTable rows={auditRows} empty="No hay casos auditables con los filtros activos." />
-      </section>
-      <section className="mon-profile-panel">
-        <div className="mon-profile-panel-head">
-          <h3>Alertas internas</h3>
-          <span>{fmt(issues.length)} alertas</span>
-        </div>
+      </BloqueDeMonitoreo>
+      <BloqueDeMonitoreo
+        titulo="Alertas internas"
+        bajada={<>{fmt(issues.length)} alertas</>}
+      >
         <DataTable rows={issues} empty="No hay alertas internas para este corte." />
-      </section>
+      </BloqueDeMonitoreo>
     </div>
   );
 }
@@ -11217,11 +11205,11 @@ function AcreditacionReconciliacionView({
       </section>
       {status ? <span className={`mon-acr-model-action-status is-${status.tone}`}>{status.message}</span> : null}
 
-      <section className="mon-profile-panel mon-acr-recon-panel">
-        <div className="mon-profile-panel-head">
-          <h3>Reconciliación de persona, respuesta y barrido</h3>
-          <span>{fmt(visible.length)} de {fmt(visibleTotal)} casos</span>
-        </div>
+      <BloqueDeMonitoreo
+        className="mon-acr-recon-panel"
+        titulo="Reconciliación de persona, respuesta y barrido"
+        bajada={<>{fmt(visible.length)} de {fmt(visibleTotal)} casos</>}
+      >
         {visible.length ? (
           <div className="mon-acr-recon-table-wrap">
             <table className="mon-acr-recon-table">
@@ -11284,7 +11272,7 @@ function AcreditacionReconciliacionView({
         ) : (
           <p className="mon-profile-muted">No hay casos de reconciliación para los filtros activos.</p>
         )}
-      </section>
+      </BloqueDeMonitoreo>
     </div>
   );
 }
@@ -17299,20 +17287,18 @@ function renderAcreditacionView(
   return (
     <div className="mon-profile-stack">
       <div className="mon-profile-grid">
-        <section className="mon-profile-panel">
-          <div className="mon-profile-panel-head">
-            <h3>Avance por actor</h3>
-            <span>{fmt(actorRows.length)} filas</span>
-          </div>
+        <BloqueDeMonitoreo
+          titulo="Avance por actor"
+          bajada={<>{fmt(actorRows.length)} filas</>}
+        >
           <DataTable rows={actorRows as Array<Record<string, unknown>>} empty="No hay avance por actor preparado." />
-        </section>
-        <section className="mon-profile-panel">
-          <div className="mon-profile-panel-head">
-            <h3>Ritmo diario</h3>
-            <span>{fmt(dailyRows.length)} dias</span>
-          </div>
+        </BloqueDeMonitoreo>
+        <BloqueDeMonitoreo
+          titulo="Ritmo diario"
+          bajada={<>{fmt(dailyRows.length)} dias</>}
+        >
           <DataTable rows={dailyRows as Array<Record<string, unknown>>} empty="No hay serie diaria preparada." />
-        </section>
+        </BloqueDeMonitoreo>
       </div>
     </div>
   );

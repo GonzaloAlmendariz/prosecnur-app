@@ -31,6 +31,7 @@ import "./segmentos.css";
 import { EstadoVacio } from "../../../components/EstadoVacio";
 
 import { LoadingBlock, ErrorBlock } from "../../../components/States";
+import { Panel } from "../../../components/Panel";
 // ---- Abrir --------------------------------------------------------------------
 
 export function SegmentosBoton({ disabled }: { disabled?: boolean }) {
@@ -229,20 +230,20 @@ function TablaSegmentos({
   const [marcoRef, desborda] = useDesbordeHorizontal();
   const segmentos = datos.segmentos;
   return (
-    <section className="pulso-armon-seccion" aria-labelledby="pulso-seg-lista" data-qa-geometry-member>
-      <div className="pulso-armon-seccion-head">
-        <div className="pulso-armon-seccion-titulo">
-          <h3 id="pulso-seg-lista">
-            Segmentos del estudio
-            {segmentos.length > 0 && <small>{segmentos.length}</small>}
-          </h3>
-          <p className="pulso-armon-ayuda">{resumenSegmentos(datos)}</p>
-        </div>
-        <PulsoButton variant="secondary" size="sm" className="pulso-armon-btn" onClick={onNuevo}>
+    <Panel
+      className="pulso-armon-seccion"
+      aria-labelledby="pulso-seg-lista" data-qa-geometry-member
+      title={<span id="pulso-seg-lista">Segmentos del estudio
+            {segmentos.length > 0 && <small>{segmentos.length}</small>}</span>}
+      hint={<>{resumenSegmentos(datos)}</>}
+      actions={<>
+<PulsoButton variant="secondary" size="sm" className="pulso-armon-btn" onClick={onNuevo}>
           <Plus size={14} aria-hidden="true" />
           Nuevo segmento
         </PulsoButton>
-      </div>
+    </>}
+    >
+      
 
       {segmentos.length === 0 ? (
         // C3: el vacío es de esta sección y dice cómo se llena.
@@ -327,6 +328,6 @@ function TablaSegmentos({
           </table>
         </div>
       )}
-    </section>
+    </Panel>
   );
 }

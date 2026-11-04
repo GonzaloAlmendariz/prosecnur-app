@@ -45,6 +45,14 @@ describe("EstadoChip y el slot de estado de la barra (P6)", () => {
     expect(html).not.toContain("disabled");
   });
 
+  it("el rótulo va en su propio elemento, para que la geometría mida el texto y no sólo el punto", () => {
+    const html = renderToStaticMarkup(<EstadoChip label="sin lote" tone="warn" />);
+    expect(html).toContain('<span class="pulso-estado-chip-rotulo">Sin lote</span>');
+    // Ningún texto suelto como hijo directo del chip: sólo el punto y el rótulo.
+    const interior = html.replace(/^<span[^>]*>/, "").replace(/<\/span>$/, "");
+    expect(interior.replace(/<span[^>]*>[^<]*<\/span>/g, "")).toBe("");
+  });
+
   it("la mayúscula inicial respeta el resto del rótulo", () => {
     expect(conMayusculaInicial("entregada a Monitoreo")).toBe("Entregada a Monitoreo");
     expect(conMayusculaInicial("")).toBe("");

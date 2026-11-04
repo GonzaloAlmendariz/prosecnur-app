@@ -164,6 +164,8 @@ import "./calcMuestra.css";
 import { estrato, matrizEjemplo } from "./ComponenteTablas";
 import { AterrizajeDelPlanner, decidirAterrizaje } from "./AterrizajeDelPlanner";
 import { usePlannerModos } from "../estudio/usePlannerModos";
+import { AvisoDiferenciaDeTipo } from "./AvisoDiferenciaDeTipo";
+import { diferenciaDeTipo } from "./diferenciaDeTipo";
 import { loQueSePierde } from "./modeloVistaPreviaTipo";
 import { MesaAcreditacion, MesaGeneral, TerritorialHandoff, labelMarcoOcasional, productoLabel, tecnicaCalculadaLabel, tecnicaLabel, tecnicaProducto, variableControl, type MarcoOcasional } from "./general";
 
@@ -883,6 +885,7 @@ export default function CalcMuestraPage() {
     workspace.frame_mode !== "sin_definir" ||
     hasAulasDeskState
   );
+  const diferencia = diferenciaDeTipo(plannerModos, currentDesk, hasExistingDesk);
 
   // F9 (bug QA #4): resetear la sección del rail SOLO en cambio real de mesa.
   // La decisión vive en hooks/railReset.ts (pura, testeada); antes este efecto
@@ -1126,7 +1129,9 @@ export default function CalcMuestraPage() {
     setDeskOverride(null);
     setChoosingDesk(false);
     if (nextMode === "territorial_handoff") {
-      navigate("/hojas-ruta");
+      // Alinear con un estudio territorial deja Cálculo en su traspaso a Hojas de ruta: sin esto el
+      // escenario viejo seguía guardado y volvía a abrirse en la próxima visita (hallazgo 11).
+      replaceEstudio({ ...estudio, macro_familia: "territorial", componentes: [], workspace: EMPTY_WORKSPACE });
       return;
     }
     void iniciar(nextMode);
@@ -2424,6 +2429,10 @@ export default function CalcMuestraPage() {
               onCancelar={() => { setPendingDeskReset(null); setChoosingDesk(false); }}
               onConfirmar={confirmarCambioEstudio}
             />
+          )}
+
+          {desk !== "sin_definir" && diferencia && (
+            <AvisoDiferenciaDeTipo diferencia={diferencia} onAlinear={(d) => { setChoosingDesk(true); setPendingDeskReset(d); }} />
           )}
 
           {desk === "legacy" && (

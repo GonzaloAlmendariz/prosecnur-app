@@ -11,6 +11,7 @@ import { CalculadaEditor } from "./CalculadaEditor";
 import { preguntasUsables, reglaLegible, textoResumen } from "./variablesBaseModel";
 import type { MensajeVariablesBase } from "./useVariablesBase";
 import { EstadoVacio } from "../../../components/EstadoVacio";
+import { Panel } from "../../../components/Panel";
 
 export type VariablesCalculadasProps = {
   /** La base del panel: el editor lee de ella los códigos observados. */
@@ -56,22 +57,22 @@ export function VariablesCalculadas({
   };
 
   return (
-    <section className="pulso-armon-seccion" aria-labelledby="pulso-vb-calculadas" data-qa-geometry-member>
-      <div className="pulso-armon-seccion-head">
-        <div className="pulso-armon-seccion-titulo">
-          <h3 id="pulso-vb-calculadas">
-            Variables calculadas
-            {calculadas.length > 0 && <small>{calculadas.length}</small>}
-          </h3>
-          <p className="pulso-armon-ayuda">Se calculan al leer la base; la data no se modifica.</p>
-        </div>
-        {edicion === null && (
+    <Panel
+      className="pulso-armon-seccion"
+      aria-labelledby="pulso-vb-calculadas" data-qa-geometry-member
+      title={<span id="pulso-vb-calculadas">Variables calculadas
+            {calculadas.length > 0 && <small>{calculadas.length}</small>}</span>}
+      hint={<>Se calculan al leer la base; la data no se modifica.</>}
+      actions={<>
+{edicion === null && (
           <PulsoButton variant="secondary" size="sm" className="pulso-armon-btn" onClick={() => setEdicion("")}>
             <Plus size={14} aria-hidden="true" />
             Nueva variable calculada
           </PulsoButton>
         )}
-      </div>
+    </>}
+    >
+      
 
       {edicion === "" && (
         <CalculadaEditor
@@ -178,6 +179,6 @@ export function VariablesCalculadas({
           {avisoDeLista.texto}
         </p>
       )}
-    </section>
+    </Panel>
   );
 }

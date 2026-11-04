@@ -150,11 +150,19 @@
   gap: 4px;
   max-width: 100%;
   font-variant-numeric: tabular-nums;
-  overflow-wrap: anywhere;
 }
 
 .pulso-mapa-presencia > svg {
   flex: 0 0 auto;
+}
+
+/* El nombre de la variable es un código: no se parte a mitad («Variabl/e», «p7_oth/er»); se recorta con
+   puntos suspensivos y el título de la celda lo dice entero (4 nov 2026). */
+.pulso-mapa-presencia > span:not(.pulso-sr-only) {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .pulso-mapa-presencia.is-presente {

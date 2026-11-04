@@ -332,10 +332,6 @@
   gap: 5px;
 }
 
-.pulso-operational-chips > .pulso-operational-estado {
-  display: inline-flex;
-}
-
 .pulso-operational-edit-label {
   justify-content: flex-end;
   color: var(--pulso-primary);
@@ -903,8 +899,31 @@
   overflow: hidden;
 }
 
-.pulso-criterios-toolbar {
+.pulso-panel.pulso-criterios-toolbar {
   flex: 0 0 auto;
+  margin-bottom: 0;
+}
+
+.pulso-panel.pulso-criterios-toolbar > .pulso-panel-header {
+  margin-bottom: 2px;
+}
+
+.pulso-panel.pulso-criterios-toolbar > .pulso-panel-hint,
+.pulso-panel.pulso-criterios-semillas > .pulso-panel-header,
+.pulso-panel.pulso-criterios-semillas > .pulso-panel-hint {
+  margin-bottom: 0;
+}
+
+.pulso-criterios-activas {
+  margin-left: 6px;
+  color: var(--pulso-text-soft);
+  font-weight: var(--pulso-weight-regular, 400);
+}
+
+.pulso-criterios-accion {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .pulso-criterios-editor-slot {
@@ -1697,19 +1716,7 @@
   gap: 16px;
 }
 
-.pulso-instrumento-step {
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  padding: 16px 18px;
-  border: 1px solid var(--pulso-border);
-  border-radius: 12px;
-  background: #fff;
-  box-shadow: var(--pulso-shadow-low);
-}
-
-.pulso-instrumento-step.is-setup {
+.pulso-validacion-paso.is-setup {
   min-height: 232px;
   border-color: color-mix(in srgb, var(--pulso-module-processing-border) 48%, var(--pulso-border));
   background:
@@ -1826,7 +1833,12 @@
     grid-template-columns: 1fr;
   }
 
-  .pulso-instrumento-step.is-setup {
+  .pulso-validacion-paso.is-setup {
+    min-height: 0;
+  }
+
+  /* Apiladas, cada tarjeta mide lo que su texto: los 92 px eran para igualar tres columnas. */
+  .pulso-instrumento-setup-card {
     min-height: 0;
   }
 }
@@ -2143,36 +2155,12 @@
 /* Criterios sugeridos por la app -------------------------------------------
    Panel de propuestas: se distingue de los criterios ya guardados por el
    borde punteado — nada de lo que hay aquí está persistido todavía. */
-.pulso-criterios-semillas {
+.pulso-panel.pulso-criterios-semillas {
   flex: 0 0 auto;
   display: flex;
   flex-direction: column;
   gap: 10px;
-  padding: 12px 14px;
-  border: 1px dashed var(--pulso-border-strong);
-  border-radius: 10px;
-  background: var(--pulso-surface-2);
-}
-
-.pulso-criterios-semillas-head {
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
-  color: var(--pulso-text-soft);
-}
-
-.pulso-criterios-semillas-head h3 {
-  margin: 0;
-  font-size: var(--pulso-type-subtitle-size);
-  font-weight: 700;
-  line-height: 1.25;
-  color: var(--pulso-text);
-}
-
-.pulso-criterios-semillas-head p {
-  margin: 2px 0 0;
-  font-size: var(--pulso-type-caption-size);
-  line-height: 1.45;
+  margin-bottom: 0;
 }
 
 .pulso-criterios-semillas-lista {
@@ -2416,4 +2404,85 @@ span.pulso-validacion-base-current {
   font-family: inherit;
   font-size: var(--pulso-type-caption-size);
   letter-spacing: 0;
+}
+
+/* P2: los pasos de Reglas del formulario son Panel del kit (`PasoDeValidacion`). El Panel no
+   reparte el aire entre sus hijos: el paso conserva su columna con 12 px entre bloques, y el
+   margen lo pone el contenedor de la pestaña. */
+.pulso-panel.pulso-validacion-paso {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 0;
+}
+
+.pulso-validacion-paso > .pulso-panel-header,
+.pulso-validacion-paso > .pulso-panel-hint {
+  margin-bottom: 0;
+}
+
+.pulso-panel.pulso-validacion-paso--resultados {
+  gap: 16px;
+}
+
+/* P2: la barra de estado de Cierre de base es un Panel; sigue fija bajo el encabezado de la
+   sección (los dos son sticky en el mismo scroller y con `top: 0` esta banda lo tapaba). */
+.pulso-panel.pulso-limpieza-estado {
+  position: sticky;
+  top: var(--pulso-validacion-sticky-top, 0px);
+  z-index: 4;
+  /* Fija sobre el contenido que desplaza: fondo opaco. El del Panel es semitransparente y la
+     cola se transparentaba por debajo al hacer scroll (verificador, 4 nov 2026). */
+  background: var(--pulso-surface);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-bottom: 0;
+}
+
+/* La nota va pegada al título; la barra de decisiones, separada de los dos. */
+.pulso-panel.pulso-limpieza-estado > :not(.pulso-panel-header):not(.pulso-panel-hint) {
+  margin-top: 10px;
+}
+
+.pulso-panel.pulso-limpieza-estado > .pulso-panel-header {
+  align-items: center;
+}
+
+.pulso-panel.pulso-limpieza-estado > .pulso-panel-header,
+.pulso-panel.pulso-limpieza-estado > .pulso-panel-hint {
+  margin-bottom: 0;
+}
+
+.pulso-limpieza-estado .pulso-panel-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.pulso-panel.pulso-limpieza-cola,
+.pulso-limpieza-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 780px;
+  margin-bottom: 0;
+}
+
+.pulso-panel.pulso-limpieza-cola > .pulso-panel-header,
+.pulso-panel.pulso-limpieza-cola > .pulso-panel-hint {
+  margin-bottom: 0;
+}
+
+.pulso-limpieza-cola-conteo {
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+  font-weight: var(--pulso-weight-regular);
+  font-variant-numeric: tabular-nums;
+}
+
+.pulso-limpieza-editor {
+  gap: 12px;
+  overflow-y: auto;
 }

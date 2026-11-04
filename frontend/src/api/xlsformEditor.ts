@@ -331,10 +331,43 @@ export function normalizeFormLibraryEntry(value: unknown): FormLibraryEntry | nu
   };
 }
 
+/**
+ * El instrumento vinculado al estudio (el XLSForm de su base), que el editor puede abrir como un
+ * formulario más (auditoría visual del 4 nov 2026, hallazgo 12).
+ */
+export type InstrumentoDelEstudio = { file_id: string; nombre: string; base: string; n_questions: number };
+
+export function normalizarInstrumentoDelEstudio(value: unknown): InstrumentoDelEstudio | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  const r = value as Record<string, unknown>;
+  const fileId = typeof r.file_id === "string" ? r.file_id : "";
+  if (!fileId) return null;
+  const n = Number(r.n_questions);
+  return {
+    file_id: fileId,
+    nombre: typeof r.nombre === "string" ? r.nombre : "",
+    base: typeof r.base === "string" ? r.base : "",
+    n_questions: Number.isFinite(n) && n > 0 ? Math.round(n) : 0,
+  };
+}
+
+/** Abre el instrumento del estudio con la misma forma que `/import`. */
+export async function apiXlsformEditorImportInstrumentoEstudio(): Promise<XlsformEditorPayload> {
+  const raw = await handle<unknown>(
+    await apiFetch("/api/xlsform-editor/import-instrumento-estudio", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: "{}",
+    }),
+  );
+  return normalizeEditorPayload(raw);
+}
+
 export async function apiXlsformFormsList(): Promise<{
   ok: true;
   forms: FormLibraryEntry[];
   active_form_id: string | null;
+  instrumento_del_estudio: InstrumentoDelEstudio | null;
 }> {
   const raw = await handle<unknown>(
     await apiFetch("/api/xlsform-editor/forms", { method: "GET", headers: headers() }),
@@ -347,6 +380,7 @@ export async function apiXlsformFormsList(): Promise<{
     ok: true,
     forms,
     active_form_id: typeof r.active_form_id === "string" ? r.active_form_id : null,
+    instrumento_del_estudio: normalizarInstrumentoDelEstudio(r.instrumento_del_estudio),
   };
 }
 

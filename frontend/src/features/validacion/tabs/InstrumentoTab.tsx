@@ -74,6 +74,7 @@ import {
 } from "../operationalControlsModel";
 import { formatoConteo } from "../../../lib/formatoNumero";
 import { VacioListo } from "../components/VacioListo";
+import { PasoDeValidacion } from "../components/PasoDeValidacion";
 
 // =============================================================================
 // InstrumentoTab — Sprint 2
@@ -535,22 +536,21 @@ export default function InstrumentoTab() {
   const panelContent = (
     <>
       {/* --- Paso 1: Construir plan --- */}
-      <section
-        className={`pulso-instrumento-step pulso-instrumento-step--plan${estado.plan_construido ? "" : " is-setup"}`}
+      <PasoDeValidacion
+        className={`pulso-instrumento-step--plan${estado.plan_construido ? "" : " is-setup"}`}
+        paso={1}
+        de={3}
+        titulo="Plan de reglas"
+        detalle={
+          <>
+            Obligatorias, saltos, rangos, cálculos y filtros declarados en el formulario{" "}
+            <span className="pulso-vv2-tech">XLSForm</span>.
+          </>
+        }
+        listo={estado.plan_construido}
+        conteo={estado.plan_construido ? estado.n_reglas : null}
+        rotuloConteo="reglas"
       >
-        <StepHeader
-          idx={1}
-          title="Plan de reglas"
-          subtitle={
-            <>
-              Obligatorias, saltos, rangos, cálculos y filtros declarados en el formulario{" "}
-              <span className="pulso-vv2-tech">XLSForm</span>.
-            </>
-          }
-          done={estado.plan_construido}
-          count={estado.plan_construido ? estado.n_reglas : null}
-          countLabel="reglas"
-        />
         {!estado.plan_construido && (
           <div className="pulso-instrumento-setup-grid" aria-label="Secuencia de validación del instrumento">
             <div className="pulso-instrumento-setup-card is-active">
@@ -674,28 +674,17 @@ export default function InstrumentoTab() {
             </a>
           </div>
         )}
-      </section>
+      </PasoDeValidacion>
 
       {/* --- Paso 2: Ejecutar auditoría --- */}
       {estado.plan_construido && (
-        <section
-          style={{
-            padding: "18px 20px",
-            borderRadius: 12,
-            background: "white",
-            border: "1px solid var(--pulso-border)",
-            boxShadow: "var(--pulso-shadow-low)",
-            display: "flex",
-            flexDirection: "column",
-            gap: 12,
-          }}
+        <PasoDeValidacion
+          paso={2}
+          de={3}
+          titulo="Auditoría"
+          detalle="Corre el plan contra la data y encuentra casos inconsistentes."
+          listo={estado.auditoria_corrida}
         >
-          <StepHeader
-            idx={2}
-            title="Auditoría"
-            subtitle="Corre el plan contra la data y encuentra casos inconsistentes."
-            done={estado.auditoria_corrida}
-          />
           <VariableExclusionsPanel
             options={variableExclusionOptions}
             excluded={excludedVariableSet}
@@ -739,19 +728,12 @@ export default function InstrumentoTab() {
               onCancelled={() => setJobId(null)}
             />
           )}
-        </section>
+        </PasoDeValidacion>
       )}
 
       {/* --- Paso 3: Dashboard de resultado --- */}
       {estado.auditoria_corrida && resultado && (
-        <section
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            gap: 16,
-          }}
-        >
-          <StepHeader idx={3} title="Resultados" done={true} />
+        <PasoDeValidacion paso={3} de={3} titulo="Resultados" listo className="pulso-validacion-paso--resultados">
 
           {/* KPIs */}
           <div
@@ -786,7 +768,7 @@ export default function InstrumentoTab() {
             selectedRuleId={selectedRuleId}
             onSelect={onSelectRule}
           />
-        </section>
+        </PasoDeValidacion>
       )}
 
       <ContextLens
@@ -1206,92 +1188,6 @@ function VariableExclusionsPanel({
   );
 }
 
-function StepHeader({
-  idx,
-  title,
-  subtitle,
-  done,
-  count,
-  countLabel,
-}: {
-  idx: number;
-  title: string;
-  subtitle?: ReactNode;
-  done: boolean;
-  count?: number | null;
-  countLabel?: string;
-}) {
-  return (
-    <div
-      style={{
-        display: "flex",
-        alignItems: "flex-start",
-        gap: 10,
-      }}
-    >
-      <span
-        aria-hidden="true"
-        style={{
-          flexShrink: 0,
-          width: 24,
-          height: 24,
-          borderRadius: "50%",
-          background: done ? "var(--pulso-success-fg)" : "var(--pulso-text-soft)",
-          color: "white",
-          display: "inline-flex",
-          alignItems: "center",
-          justifyContent: "center",
-          fontSize: "var(--pulso-type-caption-size)",
-          fontWeight: 700,
-        }}
-      >
-        {idx}
-      </span>
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div
-          style={{
-            fontSize: "var(--pulso-type-subtitle-size)",
-            fontWeight: 700,
-            color: "var(--pulso-text)",
-            display: "inline-flex",
-            alignItems: "center",
-            gap: 8,
-          }}
-        >
-          {title}
-          {count != null && (
-            <span
-              style={{
-                fontSize: "var(--pulso-type-caption-size)",
-                fontWeight: 600,
-                padding: "2px 8px",
-                borderRadius: 999,
-                background: "var(--pulso-primary-soft)",
-                color: "var(--pulso-primary)",
-                fontFamily: "ui-monospace, monospace",
-              }}
-            >
-              {count} {countLabel}
-            </span>
-          )}
-        </div>
-        {subtitle && (
-          <div
-            style={{
-              fontSize: "var(--pulso-type-caption-size)",
-              color: "var(--pulso-text-soft)",
-              marginTop: 2,
-              lineHeight: 1.4,
-            }}
-          >
-            {subtitle}
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
 function uniqueStrings(values: string[]) {
   return Array.from(new Set(values.map((value) => value.trim()).filter(Boolean)));
 }
@@ -1546,13 +1442,9 @@ function RuleGroupsSection({
   onSelect: (id: string) => void;
 }) {
   return (
+    // Vive dentro del paso 3 (un Panel): sin caja propia, para no anidar una tarjeta en otra.
     <section
       style={{
-        padding: "16px 20px 20px",
-        background: "white",
-        border: "1px solid var(--pulso-border)",
-        borderRadius: 10,
-        boxShadow: "var(--pulso-shadow-low)",
         display: "flex",
         flexDirection: "column",
         gap: 18,

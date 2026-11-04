@@ -37,6 +37,18 @@
   min-width: 0;
 }
 
+/* La columna izquierda llega al pie de la fila y su último panel se estira con
+ * ella: con la columna lateral más alta, la izquierda dejaba
+ * un hueco en la página bajo su tarjeta (auditoría visual a 1280). El espacio
+ * libre queda dentro de la tarjeta, que es la que lo explica. */
+.aulas-pf-izquierda {
+  align-self: stretch;
+}
+
+.aulas-pf-izquierda > :last-child {
+  flex: 1 1 auto;
+}
+
 .aulas-pf-panel {
   display: flex;
   flex-direction: column;
@@ -389,10 +401,15 @@
 }
 
 /* Franja de cuatro cifras. */
+/* Cada cifra mide lo que su rótulo y el sobrante se reparte entre ellas: con
+ * cuatro columnas iguales, a 1280 la columna lateral de 440 px dejaba ~100 px a
+ * cada una y «Caídos sin relevo» partía en dos renglones (auditoría visual a
+ * 1280). Medidos, los cuatro rótulos suman ~390 px y caben en un renglón. */
 .aulas-pf-cifras {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: var(--pulso-space-2);
+  grid-template-columns: repeat(4, max-content);
+  justify-content: space-between;
+  gap: var(--pulso-space-2) var(--pulso-space-3);
   margin: 0;
 }
 
@@ -407,6 +424,7 @@
 }
 
 .aulas-pf-cifras dt {
+  white-space: nowrap;
   color: var(--pulso-text-faint);
   font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-bold);
@@ -519,6 +537,14 @@
 @media (max-width: 1180px) {
   .aulas-pf {
     grid-template-columns: minmax(0, 1fr);
+  }
+
+  .aulas-pf-izquierda {
+    align-self: start;
+  }
+
+  .aulas-pf-izquierda > :last-child {
+    flex: 0 0 auto;
   }
 
   .aulas-pf-silueta.is-cuota {

@@ -22,6 +22,7 @@ import { columnasDeLaTabla } from "./columnasDeLaTabla";
 import { contar } from "../../fuentes/vocabulario";
 import type { FocoDeCuota } from "./AulasCuotasResumen";
 import type { MonitoreoAulasDashboard } from "../../../../api/monitoreo";
+import { BloqueDeMonitoreo } from "../../core/BloqueDeMonitoreo";
 
 /**
  * La sección «calidad» del perfil de aulas.
@@ -69,15 +70,12 @@ export function AulasSeccionCalidad({
       const cruce = dashboard.cruce_por_carrera;
       return (
         <div className="mon-profile-stack aulas-tablas-apiladas">
-          <section
-            className="mon-profile-panel"
+          <BloqueDeMonitoreo
             data-qa-geometry-group="monitoring-aulas-table"
             data-qa-geometry-contract="intrinsic"
+            titulo="Quién respondió, por su código"
+            bajada="alumnos identificados contra el padrón, por la carrera a la que pertenecen"
           >
-            <div className="mon-profile-panel-head">
-              <h3>Quién respondió, por su código</h3>
-              <span>alumnos identificados contra el padrón, por la carrera a la que pertenecen</span>
-            </div>
             {cruce?.aplica === false ? (
               <p className="mon-profile-muted" data-qa-geometry-capacity="owned" data-qa-geometry-member>
                 {cruce.motivo || "Este estudio no pide un código identificador."}
@@ -90,7 +88,7 @@ export function AulasSeccionCalidad({
                 <AulasCrucePorCarrera bloque={cruce as never} />
               </>
             )}
-          </section>
+          </BloqueDeMonitoreo>
         </div>
       );
     }
@@ -104,17 +102,14 @@ export function AulasSeccionCalidad({
             Tiene pestaña propia —«Respuestas abiertas»— porque leerlas es un
             trabajo entero y no algo que se mire de paso entre otros seis
             paneles. */}
-        <section
-          className="mon-profile-panel"
+        <BloqueDeMonitoreo
           data-qa-geometry-group="monitoring-aulas-table"
           data-qa-geometry-contract="intrinsic"
+          titulo="Lo que se escribió a mano"
+          bajada="calidad de las respuestas abiertas"
         >
-          <div className="mon-profile-panel-head">
-            <h3>Lo que se escribió a mano</h3>
-            <span>calidad de las respuestas abiertas</span>
-          </div>
           <AulasTextoAbierto bloque={dashboard.texto_abierto} />
-        </section>
+        </BloqueDeMonitoreo>
         </div>
       );
     }
@@ -128,15 +123,12 @@ export function AulasSeccionCalidad({
               y eso no llegaba a nadie. Va aquí, debajo del registro, porque es
               la misma pestaña y la misma persona: quien registra y quien lee lo
               registrado son el jefe de campo. */}
-          <section
-            className="mon-profile-panel"
+          <BloqueDeMonitoreo
             data-qa-geometry-group="monitoring-aulas-table"
             data-qa-geometry-contract="intrinsic"
+            titulo="Lo que reportó el campo"
+            bajada="observaciones de partes y registros"
           >
-            <div className="mon-profile-panel-head">
-              <h3>Lo que reportó el campo</h3>
-              <span>observaciones de partes y registros</span>
-            </div>
             {/* Las DOS fuentes: el parte del libro y el registro de esta app,
                 que guarda su `field_note` en la fila del plan. El panel leía
                 sólo la primera mientras su vacío decía «se escriben al registrar
@@ -145,76 +137,64 @@ export function AulasSeccionCalidad({
               partes={(dashboard.partes_campo ?? []) as Array<Record<string, unknown>>}
               registros={(dashboard.agenda ?? []) as Array<Record<string, unknown>>}
             />
-          </section>
+          </BloqueDeMonitoreo>
           {/* **Cómo trabaja cada equipo, en Validación y no enterrado en
               Avance.** Es lo que el jefe de campo viene a ver, y existía sólo
               como el cuarto de nueve paneles de otra sección midiendo encuestas
               por aula. Aquí va con su banda: se está juzgando el trabajo de
               personas y una diferencia de cinco encuestas entre el primero y el
               último cabe entera en el ruido. */}
-          <section
-            className="mon-profile-panel"
+          <BloqueDeMonitoreo
             data-qa-geometry-group="monitoring-aulas-table"
             data-qa-geometry-contract="intrinsic"
+            titulo="Desempeño por equipo"
+            bajada="producción y calidad por aplicador"
           >
-            <div className="mon-profile-panel-head">
-              <h3>Desempeño por equipo</h3>
-              <span>producción y calidad por aplicador</span>
-            </div>
             <AulasTrabajoDeLosEquipos
               partes={(dashboard.partes_campo ?? []) as Array<Record<string, unknown>>}
             />
-          </section>
+          </BloqueDeMonitoreo>
           {/* La pregunta del analista: ¿lo de plataforma coincide con lo que se
               vio en el aula? Va en la misma pestaña que el registro porque es el
               contraste de lo que ahí se anota. */}
-          <section
-            className="mon-profile-panel"
+          <BloqueDeMonitoreo
             data-qa-geometry-group="monitoring-aulas-table"
             data-qa-geometry-contract="intrinsic"
+            titulo="El parte contra la plataforma"
+            bajada="lo declarado y lo que llegó"
           >
-            <div className="mon-profile-panel-head">
-              <h3>El parte contra la plataforma</h3>
-              <span>lo declarado y lo que llegó</span>
-            </div>
             <AulasParteContraPlataforma
               partes={(dashboard.partes_campo ?? []) as Array<Record<string, unknown>>}
               agenda={(dashboard.agenda ?? []) as Array<Record<string, unknown>>}
             />
-          </section>
+          </BloqueDeMonitoreo>
           {/* **El control de tiempos, que el Excel anterior tenía y la app no.**
               Va en Validación porque es pregunta del analista, y se muestra
               aunque este estudio no traiga marcas de tiempo: el panel dice que
               faltan. Un panel que desaparece cuando no hay dato deja al usuario
               sin saber que el dato existe. */}
-          <section
-            className="mon-profile-panel"
+          <BloqueDeMonitoreo
             data-qa-geometry-group="monitoring-aulas-table"
             data-qa-geometry-contract="intrinsic"
+            titulo="Cuánto se tarda en responder"
+            bajada="duración por respuesta y por curso-horario"
           >
-            <div className="mon-profile-panel-head">
-              <h3>Cuánto se tarda en responder</h3>
-              <span>duración por respuesta y por curso-horario</span>
-            </div>
             <AulasTiemposDeRespuesta tiempos={dashboard.tiempos}
               onDeclararUmbral={onDeclararUmbralDeDuracion ?? undefined} />
-          </section>
+          </BloqueDeMonitoreo>
 
           {/* **Qué descarta cada filtro.** Con sólo el total de válidas no se
               puede saber si el criterio trabaja: un filtro que acepta todos los
               valores da el mismo número que no tener filtro. Va en Validación
               porque es la pregunta del analista sobre su propio criterio. */}
-          <section
-            className="mon-profile-panel"
+          <BloqueDeMonitoreo
             data-qa-geometry-group="monitoring-aulas-table"
             data-qa-geometry-contract="intrinsic"
+            titulo="Qué descarta cada filtro"
+            bajada="la cadena de validez, paso a paso"
           >
-            <div className="mon-profile-panel-head">
-              <h3>Qué descarta cada filtro</h3>
-              <span>la cadena de validez, paso a paso</span>
-            </div>
             <AulasCadenaDeFiltros bloque={dashboard.cadena_filtros} />
-          </section>
+          </BloqueDeMonitoreo>
         </div>
       );
     }
@@ -236,15 +216,12 @@ export function AulasSeccionCalidad({
           detalle de facultad de esta misma sección. Cerrarla limpia el foco
           y la sección vuelve a su lectura completa. */}
       {foco?.tipo === "aula" ? (
-      <section
-        className="mon-profile-panel"
+      <BloqueDeMonitoreo
         data-qa-geometry-group="monitoring-aulas-table"
         data-qa-geometry-contract="intrinsic"
+        titulo="Ficha del curso-horario"
+        bajada="lo esperado, lo conseguido y lo que anotó el campo"
       >
-        <div className="mon-profile-panel-head">
-          <h3>Ficha del curso-horario</h3>
-          <span>lo esperado, lo conseguido y lo que anotó el campo</span>
-        </div>
         <AulasFichaDeAula
           codigo={foco.valor}
           fuentes={{
@@ -259,31 +236,28 @@ export function AulasSeccionCalidad({
           // aula: `codigoEnFoco` lo recoge del mismo `foco=aula:<codigo>`.
           onRegistrar={irAPestana ? () => irAPestana("registro") : undefined}
         />
-      </section>
+      </BloqueDeMonitoreo>
       ) : null}
       {enBase ? null : (
-      <section
-        className="mon-profile-panel"
+      <BloqueDeMonitoreo
         data-qa-geometry-group="monitoring-aulas-table"
         data-qa-geometry-contract="intrinsic"
+        titulo="Validación de cursos-horario"
+        bajada={<>{summary.label}, lo que deriva la app</>}
       >
-        <div className="mon-profile-panel-head">
-          {/* Se queda: los controles los deriva el motor —el libro no trae hoja
-              de validación—, así que no hay encabezado que copiar. */}
-          <h3>Validación de cursos-horario</h3>
-          {/* **De dónde sale esta lista, porque abajo hay otra.** Los dos
-              paneles de esta sección son control de calidad y el comentario que
-              los separa ya avisaba del riesgo —«que una fila parezca respaldar a
-              la otra»— pero eso vivía en el código y no en la pantalla. Aquí es
-              lo que la app deriva; abajo, lo que el equipo calcula en su Excel.
-              Son dos medidas distintas del mismo operativo. */}
-          <span>{summary.label}, lo que deriva la app</span>
-        </div>
+        {/* Se queda: los controles los deriva el motor —el libro no trae hoja
+            de validación—, así que no hay encabezado que copiar. */}
+        {/* **De dónde sale esta lista, porque abajo hay otra.** Los dos
+            paneles de esta sección son control de calidad y el comentario que
+            los separa ya avisaba del riesgo —«que una fila parezca respaldar a
+            la otra»— pero eso vivía en el código y no en la pantalla. Aquí es
+            lo que la app deriva; abajo, lo que el equipo calcula en su Excel.
+            Son dos medidas distintas del mismo operativo. */}
         {/* Avisos y no tabla: el detalle de un control es una frase entera y en
             una celda de tres columnas se lee mal. Es además el lenguaje que ya
             usa `CalidadDeCampo` justo arriba, en esta misma sección. */}
         <AulasControles filas={rows} plan={(dashboard.agenda ?? []) as Array<Record<string, unknown>>} />
-      </section>
+      </BloqueDeMonitoreo>
       )}
       {/* La tercera hoja del operativo. Los dos paneles son control de calidad y
           por eso comparten sección, pero no son la misma medida: arriba lo que
@@ -291,31 +265,26 @@ export function AulasSeccionCalidad({
           evita que una fila parezca respaldar a la otra, y ahora además cada uno
           recibe la vista entera en vez de competir por el alto. */}
       {enBase ? (
-      <section
-        className="mon-profile-panel"
+      <BloqueDeMonitoreo
         data-qa-geometry-group="monitoring-aulas-table"
         data-qa-geometry-contract="intrinsic"
+        titulo="Base de control"
+        bajada={<>{control.length
+          ? `${contar(control.length, "fila de la hoja", "filas de la hoja")}, ${columnasDeLaTabla(controlResumen)}, lo que calcula el equipo`
+          : dashboard.libro ? "Hoja de control sin filas" : "Libro sin importar"}</>}
       >
-        <div className="mon-profile-panel-head">
-          {/* El nombre de la hoja, tal cual, porque es a lo que el equipo va a
-              buscarlo en su libro. */}
-          <h3>Base de control</h3>
-          {/* «filas de la hoja» y no «aulas»: son las que trae el libro que llena
-              el equipo, y no tienen por qué ser las del plan —aquí 210 contra
-              196—. Llamarlas «aulas» ponía dos cifras con el mismo nombre en un
-              perfil cuya unidad es el curso-horario. El recibo del libro ya usa
-              este mismo lenguaje: «210 filas de control». */}
-          {/* Y cuantas columnas: en 1440 solo caben nueve, asi que dos tercios
-              de la tabla viven a la derecha del borde. La sombra de
-              desplazamiento ensena que hay mas; el numero dice cuanto mas.
-              «en la tabla» y no «columnas» a secas: pegado a «filas de la
-              hoja», se leia como el ancho de la HOJA, que son 39. */}
-          <span>
-            {control.length
-              ? `${contar(control.length, "fila de la hoja", "filas de la hoja")}, ${columnasDeLaTabla(controlResumen)}, lo que calcula el equipo`
-              : dashboard.libro ? "Hoja de control sin filas" : "Libro sin importar"}
-          </span>
-        </div>
+        {/* El nombre de la hoja, tal cual, porque es a lo que el equipo va a
+            buscarlo en su libro. */}
+        {/* «filas de la hoja» y no «aulas»: son las que trae el libro que llena
+            el equipo, y no tienen por qué ser las del plan —aquí 210 contra
+            196—. Llamarlas «aulas» ponía dos cifras con el mismo nombre en un
+            perfil cuya unidad es el curso-horario. El recibo del libro ya usa
+            este mismo lenguaje: «210 filas de control». */}
+        {/* Y cuantas columnas: en 1440 solo caben nueve, asi que dos tercios
+            de la tabla viven a la derecha del borde. La sombra de
+            desplazamiento ensena que hay mas; el numero dice cuanto mas.
+            «en la tabla» y no «columnas» a secas: pegado a «filas de la
+            hoja», se leia como el ancho de la HOJA, que son 39. */}
         {/* La vara, junto al veredicto que produce. Declararla en una pantalla
             de ajustes la dejaría lejos de su resultado, que es lo que hacía que
             nadie supiera cuál era. */}
@@ -352,27 +321,21 @@ export function AulasSeccionCalidad({
               : "Este estudio todavía no ha importado el libro del operativo, así que no hay hoja de control que revisar."}
           </p>
         )}
-      </section>
+      </BloqueDeMonitoreo>
       ) : null}
       {/* El precio de cerrar lo que no llegó. Va DESPUÉS de la tabla del libro
           —el veredicto primero, la cola de trabajo después— y en la misma
           pestaña porque sale del mismo dato: en una pestaña propia habría que
           saltar entre las dos para saber de qué aula se habla. */}
       {enBase && control.length ? (
-      <section
-        className="mon-profile-panel"
+      <BloqueDeMonitoreo
         data-qa-geometry-group="monitoring-aulas-table"
         data-qa-geometry-contract="intrinsic"
+        titulo="Lo que falta para cerrar"
+        bajada="en encuestas, sobre el umbral que la hoja calculó. Segunda lectura: un curso-horario corto no obliga a nada si su facultad cierra igual"
       >
-        <div className="mon-profile-panel-head">
-          <h3>Lo que falta para cerrar</h3>
-          <span>
-            en encuestas, sobre el umbral que la hoja calculó. Segunda lectura: un curso-horario corto
-            no obliga a nada si su facultad cierra igual
-          </span>
-        </div>
         <AulasLoQueFalta filas={control} facultadEnFoco={facultadEnFoco} onFoco={onFoco} />
-      </section>
+      </BloqueDeMonitoreo>
       ) : null}
       </div>
   );

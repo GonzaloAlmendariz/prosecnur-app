@@ -44,6 +44,30 @@ de las tarjetas de base y de las matrices: objetos de una colección o pasos de 
 `carga-v2.css` está congelado a crecimiento y sólo bajó. Queda como línea base; el candidato claro para `Panel` es la
 cabecera de cada pestaña del asistente independiente cuando se toque esa vista.
 
+**4 nov, madrugada (P2, revisable por Gonzalo).** Las secciones con cabecera propia (`pulso-armon-seccion` con
+`-seccion-head`) son `Panel`: el título enlazado (con su conteo en `small`), la ayuda como nota y los botones como
+acciones. Son 8 de 13, en Armonización (Escala común), Mapa de bases (Preguntas de la matriz, Fuera de la matriz),
+Variables de la base (Columnas que trae la base, Variables calculadas) y Segmentos (la lista, el editor y su escala).
+Las otras cinco no abren con cabecera y se quedan. Su regla CSS sigue viva, así que el conteo no baja: el ratchet
+`cajasPropias.contract.test.ts` entra con la foto del día, **211**. Captura con la auditoría canónica (dos olas) a 1440
+y 1024 sin hallazgos, pero esa copia no tiene equivalencias ni segmentos: Segmentos y Mapa de bases muestran su vacío
+y Variables de la base no abrió por dirección desde Plan. La conversión queda respaldada por `tsc` y los 91 archivos
+de tests del módulo, no por una captura con datos. Hace falta un proyecto de referencia con serie armonizada.
+
+**Verificado con datos (4 nov, mañana).** Copia de trabajo en el scratchpad, nunca en el repo: `acrconta_mazo` (referencia con 4 bases separadas y 153
+filas de equivalencias ya declaradas), con un segmento «Género» declarado por la API (`POST /api/carga/segmentos`:
+`clave genero`, escala `1 Masculino`, `2 Femenino`, origen `p5` en docentes, estudiantes y egresados y `p4` en
+administrativos, con `3 → ""`) y guardada con `POST /api/project/save`. La auditoría canónica no sirve: sus dos olas
+comparten instrumento y Equivalencias responde `E_EQUIV_NO_APLICA`. Captura con `--url` a 1440 y 1024 de
+`/carga?pestana=equivalencias&panel=segmentos` (lista y `foco=genero`), `panel=mapa-bases` y
+`panel=variables-base&foco=docentes`: 10 capturas distintas. Los bloques convertidos se leen bien (Preguntas de la
+matriz con su interruptor, el editor del segmento y su Escala estándar, Columnas que trae la base, Variables calculadas).
+La captura destapó que «Columnas desde otro archivo» (`AnexarColumnas`), una de las cinco sin cabecera, desentonaba
+junto a sus hermanas y dejaba una caja alta casi vacía: ahora es `Panel` y «Elegir archivo» va de acción. Lo que marca
+el runner cae fuera de esta tanda: la tabla de Equivalencias del fondo (`columnasOcultas`, `placeholder-clipped`), el
+nombre del recorrido partido a 1024, la palabra «Variable» partida en la matriz, el `equal-frame-drift` de las tarjetas
+de base del Mapa y el `overflow-y` de los `select` del editor de segmento.
+
 ## Guard
 
 - `features/carga/puntoMedio.contract.test.ts`: la foto pasa a vacía (meta 0).

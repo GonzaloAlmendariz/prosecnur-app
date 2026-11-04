@@ -16,7 +16,7 @@
 
 import type { CSSProperties, ReactNode } from "react";
 import { useMemo } from "react";
-import { ChevronRight, AlertCircle, AlertTriangle, Info } from "lucide-react";
+import { ChevronRight } from "lucide-react";
 import { IconCustom } from "../../../lib/icons";
 import type { ReglaLike, RoleKey } from "../narrative";
 import {
@@ -29,6 +29,7 @@ import {
 } from "../narrative";
 import VariableChip from "./VariableChip";
 import type { VariableHoverData } from "./VariableChip";
+import { EstadoChip } from "../../../components/EstadoChip";
 
 // -----------------------------------------------------------------------------
 // Tipos públicos
@@ -507,39 +508,14 @@ function SeverityDot({ severidad }: { severidad: string }) {
 }
 
 function SeverityBadge({ severidad }: { severidad: string }) {
+  // Un estado con tono: EstadoChip del kit (P6). La severidad se dice entera («Severidad alta»):
+  // «Alta» suelta, junto al conteo de casos, se leía como «alta cantidad».
   const meta = {
-    error: { icon: AlertCircle, bg: "var(--pulso-danger-bg)", fg: "var(--pulso-danger-fg)", border: "var(--pulso-danger-border)", label: "Alta" },
-    advertencia: { icon: AlertTriangle, bg: "var(--pulso-warn-bg)", fg: "var(--pulso-warn-fg)", border: "var(--pulso-warn-border)", label: "Media" },
-    info: { icon: Info, bg: "var(--pulso-info-bg)", fg: "var(--pulso-info-fg)", border: "var(--pulso-info-border)", label: "Baja" },
-  }[severidad as "error" | "advertencia" | "info"] ?? {
-    icon: Info,
-    bg: "var(--pulso-info-bg)",
-    fg: "var(--pulso-info-fg)",
-    border: "var(--pulso-info-border)",
-    label: severidad,
-  };
-  const Icon = meta.icon;
-  return (
-    <span
-      style={{
-        display: "inline-flex",
-        alignItems: "center",
-        gap: 4,
-        padding: "2px 8px",
-        borderRadius: "var(--pulso-radius-chip)",
-        background: meta.bg,
-        color: meta.fg,
-        border: `1px solid ${meta.border}`,
-        fontSize: "var(--pulso-type-micro-size)",
-        fontWeight: 700,
-        letterSpacing: 0.3,
-        textTransform: "uppercase",
-      }}
-    >
-      <Icon size={10} />
-      {meta.label}
-    </span>
-  );
+    error: { tone: "danger" as const, label: "Severidad alta" },
+    advertencia: { tone: "warn" as const, label: "Severidad media" },
+    info: { tone: "info" as const, label: "Severidad baja" },
+  }[severidad as "error" | "advertencia" | "info"] ?? { tone: "info" as const, label: severidad };
+  return <EstadoChip tone={meta.tone} label={meta.label} />;
 }
 
 function CaseBadge({

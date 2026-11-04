@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { lazyWithReload } from "../../lib/lazyWithReload";
 import { usePanelDireccionable } from "../../lib/navegacion/paneles";
 import { useDireccion } from "../../lib/navegacion/useDireccion";
-import { PARAMS_DIRECCION } from "../../lib/navegacion/direccion";
+import { useFoco } from "../../lib/navegacion/useFoco";
 import { seccionDeConfiguracion } from "./seccionesConfiguracion";
 import { PANEL_CONFIGURACION } from "./panelesHome";
 import { searchSinConfiguracion } from "./useAbrirConfiguracion";
@@ -22,7 +22,9 @@ export function ConfiguracionHost() {
   const location = useLocation();
   // Fuera de un módulo (el Home, `/`) no hay dirección y `useDireccion` da null: el `foco` se lee
   // del query directamente, o `/?panel=configuracion&foco=credits` abría siempre en Conexiones.
-  const foco = useDireccion()?.foco ?? new URLSearchParams(location.search).get(PARAMS_DIRECCION.foco);
+  // `useFoco` lee el foco también donde no hay dirección de módulo (el Home), que `useDireccion` no cubre.
+  const [focoDelQuery] = useFoco();
+  const foco = useDireccion()?.foco ?? focoDelQuery;
   const seccion = seccionDeConfiguracion(foco);
   const navigate = useNavigate();
   // Cerrar también suelta el `foco` de sección: si no, Carga heredaría un

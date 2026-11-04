@@ -4,7 +4,7 @@
 
 .acr-emb {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(150px, 0.8fr) minmax(0, 1fr) minmax(150px, 0.8fr) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr) minmax(176px, 0.85fr) minmax(0, 1fr) minmax(176px, 0.85fr) minmax(0, 1fr);
   align-items: stretch;
   gap: 0;
   border: 1px solid color-mix(in srgb, var(--pulso-border) 80%, var(--pulso-surface));
@@ -69,7 +69,7 @@
   display: flex;
   flex-direction: column;
   justify-content: center;
-  gap: 2px;
+  gap: var(--pulso-space-1);
   min-width: 0;
   padding: var(--pulso-space-2) var(--pulso-space-3) var(--pulso-space-2) var(--pulso-space-5);
   border-inline: 1px solid var(--pulso-surface-3);
@@ -94,8 +94,20 @@
   font-weight: var(--pulso-weight-bold);
 }
 
+/* El libro de mermas: una fila por motivo, la cifra en su columna (alineada a la derecha) y el
+ * motivo corto en un renglón. Una sub-rejilla comparte la columna de cifras entre las filas. */
+.acr-emb-mermas {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  column-gap: var(--pulso-space-2);
+  row-gap: 2px;
+}
+
 .acr-emb-merma {
-  display: block;
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: subgrid;
+  align-items: baseline;
   padding: 0;
   border: 0;
   background: transparent;
@@ -106,10 +118,19 @@
   font-size: var(--pulso-type-caption-size);
   line-height: 1.35;
   text-align: left;
-  /* El button global no envuelve: sin esto la regla pisaba el paso siguiente. */
-  white-space: normal;
-  overflow-wrap: break-word;
   cursor: pointer;
+}
+
+.acr-emb-merma > .acr-av-num {
+  justify-self: end;
+  font-variant-numeric: tabular-nums;
+}
+
+.acr-emb-merma-regla {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .acr-emb-merma:hover {

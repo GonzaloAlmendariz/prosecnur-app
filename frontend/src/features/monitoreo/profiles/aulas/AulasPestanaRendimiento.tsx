@@ -14,6 +14,7 @@ import type { FocoDeCuota } from "./AulasCuotasResumen";
 import type {
   MonitoreoAulasDashboard, MonitoreoAulasPlanRow, MonitoreoRow,
 } from "../../../../api/monitoreo";
+import { BloqueDeMonitoreo } from "../../core/BloqueDeMonitoreo";
 
 /**
  * La pestaña «Rendimiento» del perfil de aulas.
@@ -77,15 +78,12 @@ export function AulasPestanaRendimiento({
      sobre los partes del corte. */
 
   const panelAplicador = (
-            <section
-              className="mon-profile-panel"
+            <BloqueDeMonitoreo
               data-qa-geometry-group="monitoring-aulas-avance"
               data-qa-geometry-contract="intrinsic"
+              titulo="Quién consigue más"
+              bajada="a quién apoyar y de quién copiar, «por visita» depende de cuántos alumnos tenía el curso-horario que le tocó"
             >
-              <div className="mon-profile-panel-head">
-                <h3>Quién consigue más</h3>
-                <span>a quién apoyar y de quién copiar, «por visita» depende de cuántos alumnos tenía el curso-horario que le tocó</span>
-              </div>
               <AulasRendimientoPorFacultad
                 partes={partesConFacultad}
                 plan={(dashboard.agenda ?? []) as MonitoreoRow[]}
@@ -95,23 +93,20 @@ export function AulasPestanaRendimiento({
                    más arriba y en esta misma pantalla. */
                 explicaLasColumnas={false}
               />
-            </section>
+            </BloqueDeMonitoreo>
   );
 
   const panelFranja = (
-            <section
-              className="mon-profile-panel"
+            <BloqueDeMonitoreo
               data-qa-geometry-group="monitoring-aulas-avance"
               data-qa-geometry-contract="intrinsic"
+              titulo="Franja horaria del operativo"
+              bajada="a qué hora conviene agendar, el volumen de cada franja va en «cursos-horario»"
             >
-              <div className="mon-profile-panel-head">
-                {/* Las franjas son las del libro —hoja «planilla»—, no unas nuestras. */}
-                {/* «A qué hora se consigue más» terminaba igual que «Quién consigue
-                    más» y el guard lo tumbó. El título nombra la unidad, que además es
-                    la del libro. */}
-                <h3>Franja horaria del operativo</h3>
-                <span>a qué hora conviene agendar, el volumen de cada franja va en «cursos-horario»</span>
-              </div>
+              {/* Las franjas son las del libro —hoja «planilla»—, no unas nuestras. */}
+              {/* «A qué hora se consigue más» terminaba igual que «Quién consigue
+                  más» y el guard lo tumbó. El título nombra la unidad, que además es
+                  la del libro. */}
               <AulasRendimientoPorFacultad
                 partes={partesConFacultad}
                 plan={(dashboard.agenda ?? []) as MonitoreoRow[]}
@@ -119,30 +114,27 @@ export function AulasPestanaRendimiento({
                 unidad="Franja"
                 explicaLasColumnas={false}
               />
-            </section>
+            </BloqueDeMonitoreo>
   );
 
   const panelDia = (
-            <section
-              className="mon-profile-panel"
+            <BloqueDeMonitoreo
               data-qa-geometry-group="monitoring-aulas-avance"
               data-qa-geometry-contract="intrinsic"
+              titulo="Día de la semana"
+              bajada="qué días conviene cargar de citas, el volumen de cada día va en «cursos-horario»"
             >
-              <div className="mon-profile-panel-head">
-                {/* La cuarta unidad de esfuerzo, y la única sobre la que el equipo
-                    decide al agendar: la hora la pone el curso, el aplicador lo pone
-                    la asignación, la facultad la pone la muestra — el día se elige.
+              {/* La cuarta unidad de esfuerzo, y la única sobre la que el equipo
+                  decide al agendar: la hora la pone el curso, el aplicador lo pone
+                  la asignación, la facultad la pone la muestra — el día se elige.
 
-                    Y no es una curiosidad: el pronóstico de cierre proyecta «al ritmo
-                    observado de N aulas por día de campo», o sea tratando todos los
-                    días como iguales. Si un martes rinde el doble que un viernes, dos
-                    agendas con el mismo número de aulas dan resultados distintos.
+                  Y no es una curiosidad: el pronóstico de cierre proyecta «al ritmo
+                  observado de N aulas por día de campo», o sea tratando todos los
+                  días como iguales. Si un martes rinde el doble que un viernes, dos
+                  agendas con el mismo número de aulas dan resultados distintos.
 
-                    El título nombra la unidad y no termina como ningún otro, que es
-                    la regla que el guard de títulos sujeta. */}
-                <h3>Día de la semana</h3>
-                <span>qué días conviene cargar de citas, el volumen de cada día va en «cursos-horario»</span>
-              </div>
+                  El título nombra la unidad y no termina como ningún otro, que es
+                  la regla que el guard de títulos sujeta. */}
               <AulasRendimientoPorFacultad
                 partes={partesConFacultad}
                 plan={(dashboard.agenda ?? []) as MonitoreoRow[]}
@@ -150,7 +142,7 @@ export function AulasPestanaRendimiento({
                 unidad="Día"
                 explicaLasColumnas={false}
               />
-            </section>
+            </BloqueDeMonitoreo>
   );
 
   return (
@@ -159,31 +151,28 @@ export function AulasPestanaRendimiento({
                 único panel de esta pestaña que pedía una acción hoy, y esta pestaña
                 contesta «qué rinde más». Allá quedó pegado a «Cursos-horario vencidos
                 sin aplicar», que es su pareja: a quién citar y a quién reclamar. */}
-            <section
-              className="mon-profile-panel"
+            <BloqueDeMonitoreo
               data-qa-geometry-group="monitoring-aulas-avance"
               data-qa-geometry-contract="intrinsic"
+              titulo="Rendimiento diario de las facultades"
+              bajada="el día a día en efectivas de plataforma y el acumulado en encuestas del parte, contra lo esperado"
             >
-              <div className="mon-profile-panel-head">
-                {/* El ranking de arriba dice QUIÉN rinde más; esto, cómo le fue día a
-                    día y qué cabe esperar de su próxima aula. Son preguntas distintas
-                    y por eso son dos paneles: el ranking se mira para repartir hoy, la
-                    serie para ver si una facultad se está apagando. */}
-                <h3>Rendimiento diario de las facultades</h3>
-                {/* **El subtítulo estaba caducado.** Decía «encuestas por curso-horario
-                    visitado», y este panel dejó de medir por curso-horario el
-                    2026-09-08: Gonzalo pidió que el día a día contara la JORNADA
-                    —«me importa cuántas efectivas se hicieron en el día y cuántas se
-                    tenían mapeadas»— y desde entonces la barra es lo esperado del día
-                    y la línea lo conseguido. El rótulo se quedó describiendo el
-                    gráfico anterior. */}
-                {/* **El panel tiene DOS bloques con DOS fuentes** y el subtítulo lo dice,
-                    porque sus cifras no cuadran entre sí y eso desconcierta antes de
-                    informar: el día a día suma efectivas de plataforma —494 el
-                    2026-09-08— y el acumulado suma encuestas del parte de campo
-                    —298—. Cada bloque lo repite en su propio rótulo. */}
-                <span>el día a día en efectivas de plataforma y el acumulado en encuestas del parte, contra lo esperado</span>
-              </div>
+              {/* El ranking de arriba dice QUIÉN rinde más; esto, cómo le fue día a
+                  día y qué cabe esperar de su próxima aula. Son preguntas distintas
+                  y por eso son dos paneles: el ranking se mira para repartir hoy, la
+                  serie para ver si una facultad se está apagando. */}
+              {/* **El subtítulo estaba caducado.** Decía «encuestas por curso-horario
+                  visitado», y este panel dejó de medir por curso-horario el
+                  2026-09-08: Gonzalo pidió que el día a día contara la JORNADA
+                  —«me importa cuántas efectivas se hicieron en el día y cuántas se
+                  tenían mapeadas»— y desde entonces la barra es lo esperado del día
+                  y la línea lo conseguido. El rótulo se quedó describiendo el
+                  gráfico anterior. */}
+              {/* **El panel tiene DOS bloques con DOS fuentes** y el subtítulo lo dice,
+                  porque sus cifras no cuadran entre sí y eso desconcierta antes de
+                  informar: el día a día suma efectivas de plataforma —494 el
+                  2026-09-08— y el acumulado suma encuestas del parte de campo
+                  —298—. Cada bloque lo repite en su propio rótulo. */}
               <AulasSerieDeRendimiento
                 jornadas={jornadas}
                 // La facultad elegida viaja en la URL, igual que en la
@@ -209,24 +198,21 @@ export function AulasPestanaRendimiento({
                 // cifras (A17, 2026-08-31). Número finito o null, nada más.
                 sobremuestra={numeroONulo(dashboard.avance_cuota?.meta_operativa)}
               />
-            </section>
-            <section
-              className="mon-profile-panel"
+            </BloqueDeMonitoreo>
+            <BloqueDeMonitoreo
               data-qa-geometry-group="monitoring-aulas-avance"
               data-qa-geometry-contract="intrinsic"
+              titulo="Qué está rindiendo más"
+              bajada="encuestas del parte, por curso-horario visitado"
             >
-              <div className="mon-profile-panel-head">
-                {/* El título son SUS palabras —«qué nos está rindiendo más, qué no
-                    está rindiendo más»— y además esquiva el guard: «Rendimiento por
-                    facultad» terminaría igual que «Cuota sexo por facultad». */}
-                <h3>Qué está rindiendo más</h3>
-                {/* «del parte»: estas encuestas son las que el equipo anotó aula por
-                    aula —4 863 sobre este corte— y no las respuestas de Kobo que la
-                    pestaña vecina cuenta como VÁLIDAS —3 700—. Sin nombrar la fuente,
-                    dos cifras separadas por una pestaña y con 1 163 de diferencia se
-                    leen como la misma. */}
-                <span>encuestas del parte, por curso-horario visitado</span>
-              </div>
+              {/* El título son SUS palabras —«qué nos está rindiendo más, qué no
+                  está rindiendo más»— y además esquiva el guard: «Rendimiento por
+                  facultad» terminaría igual que «Cuota sexo por facultad». */}
+              {/* «del parte»: estas encuestas son las que el equipo anotó aula por
+                  aula —4 863 sobre este corte— y no las respuestas de Kobo que la
+                  pestaña vecina cuenta como VÁLIDAS —3 700—. Sin nombrar la fuente,
+                  dos cifras separadas por una pestaña y con 1 163 de diferencia se
+                  leen como la misma. */}
               {/* Las filas del parte YA UNIDAS a su facultad, que es lo que devuelve
                   `parteDeCampo`. Pasando el parte crudo salían las 210 aulas bajo
                   «Sin facultad»: la hoja «Aulas Aplicadas (Campo)» no tiene columna de
@@ -239,7 +225,7 @@ export function AulasPestanaRendimiento({
                 facultadEnFoco={facultadEnFoco}
                 onFoco={onFoco}
               />
-            </section>
+            </BloqueDeMonitoreo>
             {/* Las otras TRES unidades de esfuerzo, en paneles propios y no tras un
                 selector: se leen juntas —una facultad rinde poco Y su aplicador rinde
                 bien— y un control las escondería de a dos.

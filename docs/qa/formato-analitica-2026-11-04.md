@@ -16,7 +16,7 @@ vivían en `app/theme.css` y este doc. Decisiones «decididas por coordinación,
 | P5 | Vacíos con receta propia | 5 (`analitica-empty` ×2, `analitica-dimensiones-empty`, `analitica-orden-catalogo-empty`, `analitica-panel-empty`) | **0** | Declarada la pantalla de preparación de la Ficha técnica (`analitica-ficha-loading*`). −11 reglas huérfanas en `analitica-v2.css` y `app/theme.css` |
 | P6 | Estados con píldora propia | 1 | **0** | «ID común listo / Falta ID común» del Panel base, a `EstadoChip`. Las demás «pill» son descargas y etiquetas |
 | P8 | `fontFamily: "monospace"` en línea | 4 | 0 | La pila completa: en Chromium y Electron `monospace` a secas es Courier |
-| P2 | `<Panel>` / cajas propias | 14 / 62 | 14 / 62 | Línea base |
+| P2 | `<Panel>` / cajas propias | 14 / 62 | 17 / 60 | 4 nov, madrugada: Presentación (Panel sutil, «Ir a Equivalencias» de acción), Columnas del comparativo y el Resultado son `Panel`; ratchet `cajasPropias.contract.test.ts` con la foto del día. La lista de preguntas es un `fieldset` y se queda. Revisable por Gonzalo |
 
 Además: el glifo «·» del aviso informativo del importador JSON pasa a «i».
 
@@ -42,6 +42,6 @@ Libro de códigos, Bases, Ponderación, Frecuencias, Multibase) a 1440 y 1024, 1
 |---|---|---|---|
 | Medición | ☑ | (este doc) | |
 | P1b, P3, P4, P5, P6, P8 | ☑ | | |
-| P2 | línea base | — | |
+| P2 | ☑ Comparativos | | Capturado con la auditoría canónica (dos olas) a 1440 y 1024 sin hallazgos, pero sin matriz de equivalencias la pestaña muestra su vacío: los tres bloques quedan respaldados por `tsc` y los tests del módulo. **Verificado con datos** sobre la copia de `acrconta_mazo` con el segmento «Género» (receta en `formato-carga-2026-11-04.md`): Presentación y Columnas del comparativo se leen bien a 1440 y 1024; el Resultado sólo aparece al generar el comparativo. Queda que la Lista (un `fieldset`) pone título y ayuda en una línea y los Panel los apilan |
 | Capturas después | ☑ | | Ver «Vistas» |
 | Gate | ☑ | | `tsc` 0; `make gate-front AREA=analitica` 53 suites, 914 tests |

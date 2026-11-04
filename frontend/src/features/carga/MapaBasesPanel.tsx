@@ -48,6 +48,7 @@ import "./MapaBasesPanel.css";
 import { EstadoVacio } from "../../components/EstadoVacio";
 import { LoadingBlock } from "../../components/States";
 import { Inbox } from "../../vendor/lucide-react";
+import { Panel } from "../../components/Panel";
 
 // ---- Abrir --------------------------------------------------------------------
 
@@ -256,15 +257,22 @@ function ResumenBases({
   onVariables?: (base: string) => void;
 }) {
   return (
-    <ul className="pulso-mapa-resumen" aria-label="Resumen por base" data-qa-geometry-member>
+    // El contrato «equal» iguala las TARJETAS entre sí: va en la lista y no en cada tarjeta, donde comparaba el
+    // nombre con los totales y los botones (equal-frame-drift con datos, 4 nov 2026). La lista es además miembro del
+    // grupo de afuera, y un elemento no puede ser las dos cosas: la envuelve un div que hace de miembro.
+    <div data-qa-geometry-member>
+    <ul
+      className="pulso-mapa-resumen"
+      aria-label="Resumen por base"
+      data-qa-geometry-group="carga-mapa-bases-base"
+      data-qa-geometry-contract="equal"
+    >
       {resumen.map((r) => {
         const esActiva = r.base === activa;
         return (
           <li
             key={r.base}
             className={esActiva ? "is-activa" : undefined}
-            data-qa-geometry-group="carga-mapa-bases-base"
-            data-qa-geometry-contract="equal"
           >
             <strong>{r.base}</strong>
             <span className="pulso-mapa-resumen-total">
@@ -298,6 +306,7 @@ function ResumenBases({
         );
       })}
     </ul>
+    </div>
   );
 }
 
@@ -317,7 +326,11 @@ function CeldaPresencia({ presencia, variable, base }: { presencia: PresenciaEnB
       : <Minus size={12} aria-hidden="true" />;
   const texto = presencia === "presente" && variable && !variable.includes("(") ? variable : TEXTO_PRESENCIA[presencia];
   return (
-    <span className={`pulso-mapa-presencia is-${presencia}`} title={`${TEXTO_PRESENCIA[presencia]} en ${base}`}>
+    <span
+      className={`pulso-mapa-presencia is-${presencia}`}
+      // El nombre puede ir recortado en la celda: el título lo dice entero.
+      title={texto !== TEXTO_PRESENCIA[presencia] ? `${texto}: ${TEXTO_PRESENCIA[presencia].toLowerCase()} en ${base}` : `${TEXTO_PRESENCIA[presencia]} en ${base}`}
+    >
       {icono}
       <span>{texto}</span>
       {texto !== TEXTO_PRESENCIA[presencia] && <span className="pulso-sr-only">{TEXTO_PRESENCIA[presencia]}</span>}
@@ -331,17 +344,15 @@ function MatrizPorBase({ bases, filas }: { bases: readonly string[]; filas: read
   const todas: FilaDelMapa[] = useMemo(() => filasDelMapa(bases, filas), [bases, filas]);
   const visibles = soloIncompletas ? todas.filter((f) => f.incompleta) : todas;
   return (
-    <section className="pulso-armon-seccion" aria-labelledby="pulso-mapa-matriz" data-qa-geometry-member>
-      <div className="pulso-armon-seccion-head">
-        <div className="pulso-armon-seccion-titulo">
-          <h3 id="pulso-mapa-matriz">Preguntas de la matriz</h3>
-          <p className="pulso-armon-ayuda">
-            {todas.length === 0
+    <Panel
+      className="pulso-armon-seccion"
+      aria-labelledby="pulso-mapa-matriz" data-qa-geometry-member
+      title={<span id="pulso-mapa-matriz">Preguntas de la matriz</span>}
+      hint={<>{todas.length === 0
               ? "Todavía no hay preguntas en la matriz."
-              : `${formatoConteoDe(todas.length, "pregunta", "preguntas")}. ${textoFaltaEn(todas)}`}
-          </p>
-        </div>
-        {todas.some((f) => f.incompleta) && (
+              : `${formatoConteoDe(todas.length, "pregunta", "preguntas")}. ${textoFaltaEn(todas)}`}</>}
+      actions={<>
+{todas.some((f) => f.incompleta) && (
           <PulsoSwitch
             size="sm"
             label="Sólo las que faltan en alguna base"
@@ -349,7 +360,9 @@ function MatrizPorBase({ bases, filas }: { bases: readonly string[]; filas: read
             onCheckedChange={setSoloIncompletas}
           />
         )}
-      </div>
+    </>}
+    >
+      
       {todas.length === 0 ? (
         // C3: el vacío es de esta sección y dice cómo se llena.
         <EstadoVacio icono={<Inbox size={16} />} titulo="Elige una base arriba para ver sus variables y añadirlas a la matriz" />
@@ -384,7 +397,7 @@ function MatrizPorBase({ bases, filas }: { bases: readonly string[]; filas: read
           </table>
         </div>
       )}
-    </section>
+    </Panel>
   );
 }
 
@@ -415,17 +428,19 @@ function FueraDeLaMatriz({
     ? `${formatoConteo(visibles.length)} de ${formatoConteo(todas.length)}`
     : formatoConteoDe(todas.length, "variable", "variables");
   return (
-    <section className="pulso-armon-seccion" aria-labelledby="pulso-mapa-fuera" data-qa-geometry-member>
-      <div className="pulso-armon-seccion-head">
-        <div className="pulso-armon-seccion-titulo">
-          <h3 id="pulso-mapa-fuera">Fuera de la matriz en {base}</h3>
-          <p className="pulso-armon-ayuda">Variables de {base} que todavía no están en ninguna fila.</p>
-        </div>
-        <PulsoButton variant="secondary" size="sm" className="pulso-armon-btn" onClick={onVolver}>
+    <Panel
+      className="pulso-armon-seccion"
+      aria-labelledby="pulso-mapa-fuera" data-qa-geometry-member
+      title={<span id="pulso-mapa-fuera">Fuera de la matriz en {base}</span>}
+      hint={<>Variables de {base} que todavía no están en ninguna fila.</>}
+      actions={<>
+<PulsoButton variant="secondary" size="sm" className="pulso-armon-btn" onClick={onVolver}>
           <ArrowLeft size={13} aria-hidden="true" />
           Ver la matriz
         </PulsoButton>
-      </div>
+    </>}
+    >
+      
 
       {total === 0 ? (
         // C5 categoría 3: el catálogo de la base no llegó o está vacío.
@@ -507,6 +522,6 @@ function FueraDeLaMatriz({
           )}
         </>
       )}
-    </section>
+    </Panel>
   );
 }

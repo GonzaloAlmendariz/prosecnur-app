@@ -16,6 +16,23 @@
   background: currentColor;
   opacity: 0.85;
 }
+/* El rótulo en su propio elemento (lo mide la geometría) hereda todo del chip: algunos módulos
+   pintan cada `span` descendiente de su cabecera (gris, `overflow: auto`) y no deben alcanzarlo.
+   Con `>` y dos clases gana a esas reglas de clase más elementos. */
+.pulso-estado-chip > .pulso-estado-chip-rotulo {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  white-space: inherit;
+  overflow: visible;
+}
+
 .pulso-estado-chip[data-tone="neutral"] .pulso-estado-chip-punto {
   background: var(--pulso-text-faint);
 }

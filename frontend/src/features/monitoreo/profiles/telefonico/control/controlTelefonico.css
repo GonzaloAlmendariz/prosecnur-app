@@ -249,6 +249,7 @@
 
 .mon-barrido-tarjeta-barra .is-llamados { background: var(--pulso-accent-steel); }
 .mon-barrido-tarjeta-barra .is-sin-llamar { background: var(--pulso-border-strong); }
+.mon-barrido-tarjeta-barra .is-asignados { background: color-mix(in srgb, var(--pulso-accent-steel) 55%, var(--pulso-surface)); }
 .mon-barrido-tarjeta-barra .is-efectiva { background: var(--pulso-resultado-efectiva); }
 
 .mon-barrido-tarjeta-nota {
@@ -395,24 +396,6 @@
   height: 100%;
   border-radius: 3px;
   background: var(--pulso-accent-steel);
-}
-
-.mon-barrido-reparto {
-  display: flex;
-  gap: var(--pulso-space-6);
-  margin-top: var(--pulso-space-2);
-  padding: var(--pulso-space-3) var(--pulso-space-4);
-  border-top: 1px solid var(--pulso-surface-3);
-}
-
-.mon-barrido-reparto > span {
-  display: flex;
-  flex-direction: column;
-}
-
-.mon-barrido-reparto b {
-  font-size: var(--pulso-type-title-size);
-  text-align: left;
 }
 
 /* Alto natural: la lista mide lo que pide y, si no cabe, desplaza dentro. */

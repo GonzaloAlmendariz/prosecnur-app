@@ -6,6 +6,7 @@ import { embudoDelOperativo, explicacionDelEmbudo } from "./embudoDelOperativo";
 import { fmt } from "./kpisDeAulas";
 import { FlujoVertical } from "../../../calcMuestra/universidad/ui/FlujoVertical";
 import type { MonitoreoAulasDashboard, MonitoreoSource } from "../../../../api/monitoreo";
+import { BloqueDeMonitoreo } from "../../core/BloqueDeMonitoreo";
 
 /**
  * La sección «fuentes» del perfil de aulas.
@@ -152,40 +153,42 @@ export function AulasSeccionFuentes({
             Van aquí, encima del criterio, porque se deciden ANTES: de qué son
             las celdas manda sobre qué cuenta para ellas. */}
         {comoMide ? (
-          <section
-            className="mon-profile-panel"
+          <BloqueDeMonitoreo
             data-qa-geometry-group="monitoring-aulas-criterio-efectiva"
             data-qa-geometry-contract="intrinsic"
-          >
-            <div className="mon-profile-panel-head">
-              <h3>Cómo mide este estudio</h3>
-              <span className="mon-profile-panel-hint">
+            titulo="Cómo mide este estudio"
+            acciones={(
+            <>
+<span className="mon-profile-panel-hint">
                 de qué son los grupos, cómo se agrupa el resumen y desde cuándo es campo
               </span>
-            </div>
+            </>
+          )}
+          >
             {/* `member` declarado por el mismo motivo que abajo: sin él el runner
                 mide el encabezado como si fuera el contenedor de datos. */}
             <div data-qa-geometry-capacity="owned" data-qa-geometry-member="true">
               {comoMide}
             </div>
-          </section>
+          </BloqueDeMonitoreo>
         ) : null}
         {/* **Qué cuenta como efectiva**, aquí y no en otra sección: Fuentes es la
             que promete decir de dónde salen las respuestas, y de qué vale cada
             una es parte de eso. Hasta ahora no se podía declarar en aulas —los
             perfiles hermanos sí— y el motor sólo admitía una condición. */}
         {criterioDeEfectiva ? (
-          <section
-            className="mon-profile-panel"
+          <BloqueDeMonitoreo
             data-qa-geometry-group="monitoring-aulas-criterio-efectiva"
             data-qa-geometry-contract="intrinsic"
-          >
-            <div className="mon-profile-panel-head">
-              <h3>Qué cuenta como encuesta efectiva</h3>
-              <span className="mon-profile-panel-hint">
+            titulo="Qué cuenta como encuesta efectiva"
+            acciones={(
+            <>
+<span className="mon-profile-panel-hint">
                 hasta cuatro condiciones, y se cumplen todas
               </span>
-            </div>
+            </>
+          )}
+          >
             {/* El contenedor de datos del panel, declarado: sin `member` el
                 runner cae a los hijos directos del `section` y mide el
                 encabezado como si lo fuera —`capacity-drift` con 5 px, séptima
@@ -212,7 +215,7 @@ export function AulasSeccionFuentes({
                   : "Cuánto tiene que durar una respuesta para contar."}
               />
             ) : null}
-          </section>
+          </BloqueDeMonitoreo>
         ) : null}
       </div>
   );

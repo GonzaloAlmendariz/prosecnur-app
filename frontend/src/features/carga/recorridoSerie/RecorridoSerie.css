@@ -78,7 +78,8 @@
   list-style: none;
 }
 
-@container (max-width: 760px) {
+/* Seis pasos en una fila necesitan unos 980 px: por debajo, dos filas de tres (a 1024 los nombres se partían). */
+@container (max-width: 980px) {
   .pulso-recorrido-pasos {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
@@ -143,7 +144,10 @@
   font-size: var(--pulso-type-subtitle-size);
   font-weight: 600;
   line-height: 1.3;
-  overflow-wrap: anywhere;
+  /* Se parte por palabras; una sola palabra que no cabe va con guion silábico («Compara-tivos»), nunca cortada
+     a ciegas («Comparativo/s» con `overflow-wrap: anywhere`) ni recortada con puntos suspensivos a 1024. */
+  overflow-wrap: break-word;
+  hyphens: auto;
 }
 
 .pulso-recorrido-icono {

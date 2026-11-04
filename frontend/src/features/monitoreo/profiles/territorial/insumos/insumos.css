@@ -20,6 +20,10 @@
   gap: var(--pulso-space-3);
   min-width: 0;
   min-height: 0;
+}
+
+/* El material sólo para el panel que no es un bloque del kit (P2: el `Panel` pone el suyo). */
+.mon-ins-panel:not(.mon-bloque) {
   padding: var(--pulso-space-4);
   border: 1px solid var(--pulso-border);
   border-radius: var(--pulso-radius-panel);
@@ -166,6 +170,21 @@
   scrollbar-gutter: stable;
   scrollbar-width: thin;
   scrollbar-color: var(--pulso-border-strong) transparent;
+  /* La cabecera fija mide 36 px: al desplazar, cada fila encaja
+   * debajo de ella en vez de quedar tapada a medias (misma receta que la grilla
+   * de Carga › Datos). */
+  scroll-padding-top: 36px;
+  scroll-snap-type: y mandatory;
+}
+
+.mon-ins-tabla tbody tr {
+  scroll-snap-align: start;
+}
+
+/* Dentro de un bloque del kit la tabla llega a los bordes del `Panel`, cuyo
+ * padding lateral es 18 px. */
+.mon-bloque .mon-ins-tabla-marco {
+  margin: 0 -18px calc(-1 * var(--pulso-space-4));
 }
 
 .mon-ins-tabla-marco::-webkit-scrollbar,

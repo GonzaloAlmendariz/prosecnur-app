@@ -1653,7 +1653,8 @@ export async function apiHojasRutaCartografia(ubigeos: readonly string[]): Promi
   }).filter((p) => p.provincia);
 }
 
-/** «Arequipa, Arequipa 2017»: lo que dice la fila Cartografía con una ciudad abierta. */
+/** «Arequipa, Arequipa 2017»: lo que dice la fila Cartografía con una ciudad abierta. Varias
+ *  provincias van con punto y coma: la cobertura de cada una ya lleva comas. */
 export function rotuloDeCartografia(provincias: readonly CartografiaDeProvincia[]): string {
-  return provincias.map((p) => (p.disponible ? `${p.cobertura}${p.anio ? ` ${p.anio}` : ""}` : "sin cartografía de manzanas")).join(" · ");
+  return provincias.map((p) => (p.disponible ? `${p.cobertura}${p.anio ? ` ${p.anio}` : ""}` : "sin cartografía de manzanas")).join("; ");
 }

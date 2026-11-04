@@ -179,6 +179,28 @@
   background: var(--pulso-surface);
 }
 
+/* P2 (4 nov 2026): las secciones con cabecera son Panel del kit. La caja es la de arriba (mismo
+   relleno y borde); el Panel no suma su margen y su cabecera no suma el suyo al gap. */
+.pulso-panel.pulso-armon-seccion {
+  margin-bottom: 0;
+}
+
+.pulso-panel.pulso-armon-seccion > .pulso-panel-header,
+.pulso-panel.pulso-armon-seccion > .pulso-panel-hint {
+  margin-bottom: 0;
+}
+
+.pulso-panel.pulso-armon-seccion > .pulso-panel-hint {
+  margin-top: calc(-1 * var(--pulso-space-2));
+}
+
+.pulso-armon-seccion .pulso-panel-title small {
+  margin-left: var(--pulso-space-1);
+  font-size: var(--pulso-type-body-size);
+  font-weight: var(--pulso-weight-regular);
+  color: var(--pulso-text-soft);
+}
+
 .pulso-armon-base.is-no-comparable {
   background: var(--pulso-surface-2);
 }
@@ -334,11 +356,10 @@
 }
 
 .pulso-armon-tabla .pulso-armon-marca input {
-  display: block;
-  width: 15px;
-  height: 15px;
+  /* La casilla es la del kit (theme.css): `display: block` y 15 px rompían su `inline-grid`, y el tilde, que es un
+     ::before centrado por esa grilla, quedaba arriba a la izquierda y desbordaba la caja (overflow-y con datos). */
+  vertical-align: middle;
   margin: 0;
-  accent-color: var(--module-accent);
 }
 
 .pulso-armon-tabla tr.is-marcado td {
@@ -531,6 +552,7 @@
   color: var(--pulso-text-soft);
 }
 
+.pulso-armon-seccion .pulso-panel-title [tabindex="-1"]:focus-visible,
 .pulso-armon-seccion-head h3:focus-visible {
   outline: 2px solid var(--module-accent);
   outline-offset: 2px;

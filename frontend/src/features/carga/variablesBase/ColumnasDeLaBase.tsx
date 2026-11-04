@@ -25,6 +25,7 @@ import {
 } from "./variablesBaseModel";
 import type { MensajeVariablesBase } from "./useVariablesBase";
 import { EstadoVacio } from "../../../components/EstadoVacio";
+import { Panel } from "../../../components/Panel";
 
 /** Con más columnas que esto aparece el buscador. */
 const UMBRAL_BUSCADOR = 8;
@@ -57,16 +58,14 @@ export function ColumnasDeLaBase({ extras, ocupado, mensaje, onIncorporar, onQui
   };
 
   return (
-    <section className="pulso-armon-seccion" aria-labelledby="pulso-vb-columnas" data-qa-geometry-member>
-      <div className="pulso-armon-seccion-head">
-        <div className="pulso-armon-seccion-titulo">
-          <h3 id="pulso-vb-columnas">
-            Columnas que trae la base
-            {extras.length > 0 && <small>{formatoConteo(extras.length)}</small>}
-          </h3>
-          <p className="pulso-armon-ayuda">Están en la data, pero no en el formulario.</p>
-        </div>
-      </div>
+    <Panel
+      className="pulso-armon-seccion"
+      aria-labelledby="pulso-vb-columnas" data-qa-geometry-member
+      title={<span id="pulso-vb-columnas">Columnas que trae la base
+            {extras.length > 0 && <small>{formatoConteo(extras.length)}</small>}</span>}
+      hint={<>Están en la data, pero no en el formulario.</>}
+    >
+      
 
       {extras.length === 0 ? (
         // C5 categoría 1: vacío legítimo, la data no trae nada fuera del formulario.
@@ -162,7 +161,7 @@ export function ColumnasDeLaBase({ extras, ocupado, mensaje, onIncorporar, onQui
           )}
         </>
       )}
-    </section>
+    </Panel>
   );
 }
 

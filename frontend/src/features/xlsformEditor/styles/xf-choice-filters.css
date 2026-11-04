@@ -139,12 +139,7 @@
   color: var(--pulso-text-soft);
   white-space: nowrap;
 }
-.xcf-chip__punto { width: 6px; height: 6px; border-radius: 50%; background: currentColor; flex: none; }
-.xcf-chip.is-ok { border-color: var(--pulso-success-border); background: var(--pulso-success-bg); color: var(--pulso-success-fg); }
 .xcf-chip.is-nunca { border-color: var(--pulso-warn-border); background: var(--pulso-warn-bg); color: var(--pulso-warn-fg); }
-.xcf-chip.is-vacia,
-.xcf-chip.is-conflicto { border-color: var(--pulso-danger-border); background: var(--pulso-danger-bg); color: var(--pulso-danger-fg); }
-.xcf-chip.is-sin-vista { color: var(--pulso-text-muted); }
 .xcf-chip.is-mini { padding: 0 6px; font-size: var(--pulso-type-micro-size); margin-left: 4px; }
 
 /* ── Detalle ──────────────────────────────────────────────────────────────── */

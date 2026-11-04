@@ -219,9 +219,6 @@
 /* S12/S13 (2026-10-17): la regla se lee primero, con una sola insignia; el código va una vez, plegado. */
 .xfp-aviso { margin: 0; padding: 8px 12px; border: 1px solid var(--pulso-warn-border); border-radius: 8px; background: var(--pulso-warn-bg); font-size: var(--pulso-type-body-size); color: var(--pulso-text-soft); }
 .xfp-aviso code, .xfp-codigo { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: var(--pulso-type-caption-size); color: var(--pulso-text-muted); }
-.xfp-insignia { display: inline-flex; align-items: center; height: 20px; padding: 0 8px; border-radius: 999px; border: 1px solid var(--pulso-border); background: var(--pulso-surface-2); font-size: var(--pulso-type-caption-size); color: var(--pulso-text-soft); }
-.xfp-insignia.is-vigente { border-color: var(--pulso-success-border); color: var(--pulso-success-fg); }
-.xfp-insignia.is-fila-rota, .xfp-insignia.is-sin-traducir { border-color: var(--pulso-warn-border); color: var(--pulso-accent-amber); }
 .xfp-lectura-regla { display: flex; flex-direction: column; gap: 10px; max-width: 880px; }
 .xfp-lectura { margin: 0; font-size: var(--pulso-type-body-size); line-height: 1.55; color: var(--pulso-text); }
 .xfp-def { display: grid; grid-template-columns: 84px minmax(0, 1fr); gap: 4px 12px; margin: 0; font-size: var(--pulso-type-body-size); line-height: 1.5; }

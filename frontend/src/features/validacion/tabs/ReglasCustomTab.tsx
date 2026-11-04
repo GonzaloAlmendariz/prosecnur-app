@@ -39,6 +39,7 @@ import { customRuleToRule } from "../customRuleNarrative";
 import { formatoConteo } from "../../../lib/formatoNumero";
 import { EstadoVacio } from "../../../components/EstadoVacio";
 import { VacioListo } from "../components/VacioListo";
+import { Panel } from "../../../components/Panel";
 
 // =============================================================================
 // ReglasCustomTab — Sprint 4
@@ -214,69 +215,44 @@ export default function ReglasCustomTab() {
   const panelContent = (
     <>
       {/* Header + acciones */}
-      <section
+      <Panel
         className="pulso-criterios-toolbar"
-        style={{
-          padding: "14px 18px",
-          background: "white",
-          border: "1px solid var(--pulso-border)",
-          borderRadius: 10,
-          display: "flex",
-          alignItems: "center",
-          gap: 12,
-          flexWrap: "wrap",
-        }}
-      >
-        <div style={{ flex: 1, minWidth: 200 }}>
-          <div style={{ fontSize: "var(--pulso-type-subtitle-size)", fontWeight: 700 }}>
+        aria-labelledby="pulso-criterios-titulo"
+        title={
+          <span id="pulso-criterios-titulo">
             {formatoConteo(reglas.length)} criterio{reglas.length === 1 ? "" : "s"} de revisión
             {nActivas !== reglas.length && (
-              <span style={{ fontWeight: 400, color: "var(--pulso-text-soft)", marginLeft: 6 }}>
-                ({nActivas} se ejecuta{nActivas === 1 ? "" : "n"})
+              <span className="pulso-criterios-activas">
+                ({formatoConteo(nActivas)} se ejecuta{nActivas === 1 ? "" : "n"})
               </span>
             )}
-          </div>
-          <div style={{ fontSize: "var(--pulso-type-caption-size)", color: "var(--pulso-text-soft)", marginTop: 2, lineHeight: 1.5 }}>
-            Configura señales adicionales sobre la base y envía los registros detectados a Limpieza y transformación.
-          </div>
-        </div>
-        <button
-          type="button"
-          onClick={() => { setEditing(null); setShowEditor(true); }}
-          className="pulso-primary"
-          disabled={!!busy || !!jobId}
-          style={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: 6,
-            fontSize: "var(--pulso-type-body-size)",
-            padding: "8px 14px",
-          }}
-        >
-          <Plus size={12} /> Nuevo criterio
-        </button>
-        <button
-          type="button"
-          className="pulso-vv2-pill"
-          onClick={() => void handleEjecutar()}
-          disabled={!!busy || !!jobId || nActivas === 0}
-          title={nActivas === 0 ? "No hay criterios incluidos para ejecutar" : undefined}
-          style={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: 6,
-            fontSize: "var(--pulso-type-body-size)",
-            padding: "8px 14px",
-            border: "1px solid var(--pulso-success-border)",
-            background: nActivas > 0 ? "var(--pulso-success-bg)" : "var(--pulso-surface-2)",
-            color: nActivas > 0 ? "var(--pulso-success-fg)" : "var(--pulso-text-soft)",
-            cursor: nActivas === 0 ? "not-allowed" : "pointer",
-            opacity: nActivas === 0 ? 0.6 : 1,
-          }}
-        >
-          <Play size={12} /> Ejecutar {nActivas > 0 ? `(${nActivas})` : ""}
-        </button>
-      </section>
+          </span>
+        }
+        hint="Configura señales adicionales sobre la base y envía los registros detectados a Limpieza y transformación."
+        actions={
+          <>
+            <button
+              type="button"
+              onClick={() => { setEditing(null); setShowEditor(true); }}
+              className="pulso-primary pulso-criterios-accion"
+              disabled={!!busy || !!jobId}
+            >
+              <Plus size={12} /> Nuevo criterio
+            </button>
+            <button
+              type="button"
+              className="pulso-secondary pulso-criterios-accion"
+              onClick={() => void handleEjecutar()}
+              disabled={!!busy || !!jobId || nActivas === 0}
+              title={nActivas === 0 ? "No hay criterios incluidos para ejecutar" : undefined}
+            >
+              <Play size={12} /> Ejecutar{nActivas > 0 ? ` (${formatoConteo(nActivas)})` : ""}
+            </button>
+          </>
+        }
+      >
+        {null}
+      </Panel>
 
       <SemillasPanel
         semillas={semillas}

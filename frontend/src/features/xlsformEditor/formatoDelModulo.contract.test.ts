@@ -74,6 +74,15 @@ const SNAPSHOT_P4: Record<string, number> = {
 };
 const SNAPSHOT_P5: Record<string, number> = {};
 
+/**
+ * P6 (4 nov 2026, decidido por coordinación, revisable por Gonzalo): sólo las píldoras que dicen un
+ * ESTADO pasan a `EstadoChip` — el estado de cada filtro de opciones, «ya tiene filtro», «nunca
+ * visible», las insignias de Restricciones y Cálculos y el contador de «Qué falta para publicar».
+ * Se quedan los chips de tipo, de dato (los códigos huérfanos de la matriz de cascada) y del simulador,
+ * y «Activo», que es identidad del módulo.
+ */
+const PILDORA_DE_ESTADO = /\bxfp-insignia\b|\bpulso-xf-res-contador\b|\bxcf-chip__punto\b|\bxcf-chip is-(?:ok|vacia|conflicto|sin-vista)\b|xcf-chip is-\$\{|xcf-chip is-nunca[^"]*">(?:ya tiene filtro|nunca visible)/g;
+
 function regresiones(actual: Record<string, number>, foto: Record<string, number>) {
   return Object.entries(actual).filter(([f, n]) => n > (foto[f] ?? 0)).map(([f, n]) => `${f}: ${foto[f] ?? 0} → ${n}`);
 }
@@ -99,6 +108,12 @@ describe("formato de Formularios", () => {
   it("P5: ningún vacío ni carga nuevo con receta propia", () => {
     expect(regresiones(p5, SNAPSHOT_P5), "Usa EstadoVacio o LoadingBlock del kit.").toEqual([]);
   });
+  it("P6: un estado es EstadoChip, no una píldora propia", () => {
+    expect(medir(cuenta(PILDORA_DE_ESTADO)), "Usa EstadoChip del kit.").toEqual({});
+  });
+  it("P2: los bloques del Resumen son Panel del kit, sin cabecera propia", () => {
+    expect(medir(cuenta(/\bpulso-xf-res-panel-cabeza\b/g)), "Usa Panel (title y actions).").toEqual({});
+  });
   it("las fotos no guardan conteos que ya bajaron", () => {
     expect([...viejos(p3, SNAPSHOT_P3), ...viejos(p4, SNAPSHOT_P4), ...viejos(p5, SNAPSHOT_P5)], "Baja la foto: es un ratchet.").toEqual([]);
   });
@@ -108,6 +123,12 @@ describe("formato de Formularios", () => {
     expect(cuenta(CIFRA_A_MANO)("(x * 100).toFixed(0)")).toBe(1);
     expect(cuenta(CIFRA_A_MANO)('d.toLocaleString("es-PE", { day: "2-digit" })')).toBe(0);
     expect(cuenta(RECETA)('<p className="pulso-xf-res-vacio">')).toBe(1);
+    expect(cuenta(PILDORA_DE_ESTADO)('<span className={`xcf-chip is-${estado.clase}`}>')).toBe(1);
+    expect(cuenta(PILDORA_DE_ESTADO)('<span className="xcf-chip is-nunca">ya tiene filtro</span>')).toBe(1);
+    expect(cuenta(PILDORA_DE_ESTADO)('<span className="xcf-chip">{NOMBRE_TIPO[f.tipo]}</span>')).toBe(0);
+    // Los códigos huérfanos de la matriz son datos con tono de aviso, no un estado: se quedan.
+    expect(cuenta(PILDORA_DE_ESTADO)('<span key={h} className="xcf-chip is-nunca is-mini">{h}</span>')).toBe(0);
+    expect(cuenta(PILDORA_DE_ESTADO)('<span className="xcf-chip is-nunca is-mini">nunca visible</span>')).toBe(1);
     expect(cuenta(RECETA)('<div data-estado-vacio="compacto">')).toBe(0);
     expect(cuenta(RECETA, (m) => !RECETA_DECLARADA.test(m))('<div className="pulso-xfsim-empty">')).toBe(0);
   });

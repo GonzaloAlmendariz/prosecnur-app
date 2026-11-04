@@ -72,7 +72,7 @@
 }
 
 .pulso-agrupar-toolbar svg,
-.pulso-agrupar-seccion-head svg {
+.pulso-agrupar-seccion .pulso-panel-actions svg {
   margin-right: var(--pulso-space-1);
   vertical-align: -2px;
 }
@@ -111,29 +111,18 @@
   min-width: 0;
 }
 
-.pulso-agrupar-seccion {
+/* P2 (4 nov 2026): cada sección es un Panel del kit, que pone la caja y la cabecera; aquí sólo
+   la columna con su aire entre bloques. */
+.pulso-panel.pulso-agrupar-seccion {
   display: flex;
   flex-direction: column;
   gap: var(--pulso-space-3);
   min-width: 0;
-  padding: var(--pulso-space-4);
-  border: 1px solid var(--pulso-border);
-  border-radius: var(--pulso-radius-card);
-  background: var(--pulso-surface);
+  margin-bottom: 0;
 }
 
-.pulso-agrupar-seccion-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--pulso-space-2);
-}
-
-.pulso-agrupar-titulo {
-  margin: 0;
-  color: var(--pulso-text);
-  font-size: var(--pulso-type-subtitle-size);
-  font-weight: var(--pulso-weight-bold);
+.pulso-panel.pulso-agrupar-seccion > .pulso-panel-header {
+  margin-bottom: 0;
 }
 
 .pulso-agrupar-lista {
@@ -353,4 +342,10 @@
     grid-column: 1 / -1;
     justify-content: flex-end;
   }
+}
+
+/* Las columnas de Agrupar son angostas: el título del Panel no reserva 320 px, así la acción
+   («Agregar categoría») queda a su lado y no cae debajo. */
+.pulso-agrupar-seccion .pulso-panel-heading {
+  flex-basis: auto;
 }

@@ -52,33 +52,17 @@
   color: var(--pulso-text-soft);
 }
 
-/* Presentación: qué produce la pestaña y qué entra. Sección independiente de
- * alto intrínseco; el enlace a Equivalencias envuelve debajo en compacto. */
-.pulso-comparativos-presentacion {
+/* Presentación: qué produce la pestaña y qué entra. Es un Panel sutil del kit (P2, 4 nov 2026);
+ * el enlace a Equivalencias va de acción en la cabecera. */
+.pulso-panel.pulso-comparativos-presentacion {
   display: flex;
-  flex-wrap: wrap;
-  align-items: flex-start;
-  gap: var(--pulso-space-2) var(--pulso-space-3);
-  padding: var(--pulso-space-3) var(--pulso-space-4);
-  border: 1px solid var(--pulso-border);
-  border-radius: var(--pulso-radius-panel);
-  background: var(--pulso-surface-2);
-  color: var(--pulso-module-processing);
-}
-
-.pulso-comparativos-presentacion > div {
-  display: flex;
-  flex: 1 1 360px;
   flex-direction: column;
   gap: 4px;
-  min-width: 0;
+  margin-bottom: 0;
 }
 
-.pulso-comparativos-presentacion h2 {
-  margin: 0;
-  font-size: var(--pulso-type-subtitle-size);
-  font-weight: var(--pulso-weight-semibold);
-  color: var(--pulso-text);
+.pulso-panel.pulso-comparativos-presentacion > .pulso-panel-header {
+  margin-bottom: 2px;
 }
 
 .pulso-comparativos-presentacion p {
@@ -87,10 +71,6 @@
   font-size: var(--pulso-type-body-size);
   line-height: 1.5;
   color: var(--pulso-text-soft);
-}
-
-.pulso-comparativos-presentacion .pulso-comparativos-enlace {
-  align-self: center;
 }
 
 /* Columnas del comparativo: una fila por base (orden, base, título, ponderación).
@@ -541,14 +521,25 @@
 }
 
 /* Resultado. */
-.pulso-comparativos-resultado {
+.pulso-panel.pulso-comparativos-resultado {
   display: flex;
   flex-direction: column;
   gap: var(--pulso-space-3);
-  padding: var(--pulso-space-4);
-  border: 1px solid var(--pulso-success-border);
-  border-radius: var(--pulso-radius-panel);
-  background: var(--pulso-surface);
+  margin-bottom: 0;
+  border-color: var(--pulso-success-border);
+}
+
+/* Columnas del comparativo y el resultado son Panel: la cabecera y la nota las pone el kit, el
+   aire entre bloques el gap de la columna. */
+.pulso-panel.pulso-comparativos-bloque {
+  margin-bottom: 0;
+}
+
+.pulso-panel.pulso-comparativos-bloque > .pulso-panel-header,
+.pulso-panel.pulso-comparativos-bloque > .pulso-panel-hint,
+.pulso-panel.pulso-comparativos-resultado > .pulso-panel-header,
+.pulso-panel.pulso-comparativos-resultado > .pulso-panel-hint {
+  margin-bottom: 0;
 }
 
 .pulso-comparativos-descargas {
