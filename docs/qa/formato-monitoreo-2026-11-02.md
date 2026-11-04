@@ -131,8 +131,9 @@ Líneas de acreditación; en telefónico, entre paréntesis.
 
 Alcanzables sólo con condiciones; no son código muerto y se quedan:
 
-- `AcreditacionActiveSourcesView` (8112–8372; 5 bloques): Insumos › Fuentes cuando el modelo de fuentes NO es telefónico (`isPhoneSourceModel` falso). Los dos proyectos de prueba son telefónicos.
-- `AcreditacionEventsEditor` y `AcreditacionStateRulesEditor` (3803–3907; 2 bloques): dentro del plegable «Eventos de contacto y reglas de estado final» de Insumos › Reglas, en un estudio que no es telefónico.
+- `AcreditacionEventsEditor` y `AcreditacionStateRulesEditor` (3803–3907; 2 bloques): dentro del plegable «Eventos de contacto y reglas de estado final» de Insumos › Reglas, en un estudio que no es telefónico. Medidos en `d1_acr` (que es de acreditación, no telefónico): se pintan al abrir el plegable; la primera medición no esperó a que la sección terminara de leer el corte.
 
-Orden de magnitud: unas 690 líneas por página madre, ~1.380 entre las dos. **Pendiente de Gonzalo**: confirmar el borrado.
+Corrección (misma noche): `AcreditacionActiveSourcesView` (8112–8372; 5 bloques; en telefónico 9047–9296) **no es condicional sino inalcanzable**. `AcreditacionSourcesWorkbench` devuelve la vista nueva (`<Fuentes>`) cuando el modelo de fuentes no es telefónico, y la monta sólo en la rama contraria del mismo ternario. Suma unas 260 líneas por página a la lista de arriba.
+
+Orden de magnitud: unas 950 líneas por página madre, ~1.900 entre las dos. **Pendiente de Gonzalo**: confirmar el borrado.
 Después del borrado, los bloques de las ramas condicionales se capturan con un `.pulso` de acreditación por correo.
