@@ -49,20 +49,26 @@ v3) y gramática en `frontend/src/lib/navegacion/direccion.ts`. Sus cinco
 dimensiones son módulo → modo → sección → pestaña → panel; cada módulo declara
 slug, tono `--pulso-module-*`, secciones y, cuando aplican, modos y pestañas.
 
-Los ocho módulos del proyecto son:
+Los siete módulos del proyecto son:
 
 | Módulo | Ruta | Modos / secciones |
 |---|---|---|
-| Bitácora (`diseno-estudio`) | `/bitacora` | bitácora · cronograma · calendario · canvas |
 | Cálculo de muestra | `/calc-muestra` | modos `opinion-universitaria`, `marco-disponible`, `acreditacion`, `territorial-handoff` |
 | Formularios (`editor-xlsform`) | `/editor-xlsform` | formularios |
 | Hojas de ruta | `/hojas-ruta` | territorio · población · muestra · manzanas · selección (`seccion=seleccion`; en modo cuotas se rotula «Entrega»; tabs: cuotas, titulares, reemplazos, revisión) |
-| Recopiladores | `/recopiladores` | plan de recolección · accesos · materiales · entrega a campo |
+| Material de campo (`recopiladores`) | `/material-campo` | modos aulas · territorial · telefónica · correo · supervisión; en aulas: unidades, catálogo, paquetes, accesos y entrega |
 | Monitoreo | `/monitoreo` | modos acreditación · telefónico · territorial · cursos-horario (ADR 0022) |
 | Procesamiento | `/procesamiento` | carga · validación · codificación · analítica · gráficos |
 | Dashboard | `/tablero` | dashboard (code-split: plotly no entra al bundle principal) |
 
-Rutas legacy (`/diseno-estudio`, `/plan-trabajo`, `/diseno-muestra`, `/muestra-aulas`) redirigen; no reintroducirlas como destinos.
+La identidad del estudio no es un módulo: el nombre, el código, el cliente, el objetivo y el tipo único (que fija el
+modo de Cálculo, Monitoreo, Material y Hojas de ruta) se declaran una vez en el panel «Ficha del estudio» del Home
+(`/?panel=estudio`, `features/estudio/`). El ADR 0124 retiró el Planner y la Bitácora con su cronograma, calendario y
+lienzo; los demás módulos leen esa identidad y no la editan.
+
+Rutas legacy redirigen; no reintroducirlas como destinos: `/bitacora`, `/planner`, `/diseno-estudio` y
+`/plan-trabajo` van a la Ficha (`/?panel=estudio`); `/recopiladores` a `/material-campo`; `/diseno-muestra` y
+`/muestra-aulas` a Cálculo de muestra.
 
 ## Enrutamiento del agentic OS
 
