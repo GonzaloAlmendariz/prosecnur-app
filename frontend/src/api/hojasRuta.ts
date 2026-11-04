@@ -76,18 +76,37 @@ export type HojasRutaSampleSizeConfig = {
   base_reparto?: HojasRutaBaseRepartoCodigo;
   /** ADR 0131 §1: estrato explícito del sorteo; `distrito` (por defecto) o la provincia. */
   estrato?: HojasRutaEstratoModo;
+  /** ADR 0131 §1b: rutas mínimas de toda ciudad visitada en el estrato provincia (6 por defecto). */
+  rutas_minimas_ciudad?: number;
 };
 
 export type HojasRutaEstratoModo = "distrito" | "provincia" | "provincia_lima_areas";
 
 export type HojasRutaEstratoFila = { estrato: string; etiqueta: string; n_distritos: number; poblacion: number; rutas: number };
 
-/** Lo que la vista previa del tamaño declara del estrato provincia (ADR 0131 §1). */
+export type HojasRutaCiudadCondicion = "forzosa" | "sorteada" | "no_sorteada";
+
+/** Ciudad (provincia del registro) en la selección del §1b: forzosa con π 1, o de un grupo por macrorregión. */
+export type HojasRutaCiudadSorteo = {
+  ciudad: string;
+  etiqueta: string;
+  macrorregion: string;
+  grupo: string | null;
+  condicion: HojasRutaCiudadCondicion;
+  pi_ciudad: number;
+  rutas: number;
+};
+
+export type HojasRutaGrupoCiudades = { grupo: string; reparto: number; h: number; rutas: number; n_ciudades: number };
+
+/** Lo que la vista previa del tamaño declara del estrato provincia (ADR 0131 §1 y §1b). */
 export type HojasRutaEstratoMuestral = {
   modo: Exclude<HojasRutaEstratoModo, "distrito">;
-  minimo_rutas: number;
+  rutas_minimas_ciudad: number;
   regla: string;
   estratos: HojasRutaEstratoFila[];
+  ciudades: HojasRutaCiudadSorteo[];
+  grupos: HojasRutaGrupoCiudades[];
 };
 
 const escalar = (v: unknown): unknown => (Array.isArray(v) ? v[0] : v);
@@ -115,7 +134,44 @@ export function normalizeHojasRutaEstratoMuestral(raw: unknown): HojasRutaEstrat
   });
   if (!estratos.length) return null;
   const regla = escalar(r.regla);
-  return { modo, minimo_rutas: numeroFinito(escalar(r.minimo_rutas)) ?? 2, regla: typeof regla === "string" ? regla : "", estratos };
+  const ciudades = (Array.isArray(r.ciudades) ? r.ciudades : []).flatMap((c): HojasRutaCiudadSorteo[] => {
+    if (!c || typeof c !== "object") return [];
+    const x = c as Record<string, unknown>;
+    const ciudad = escalar(x.ciudad);
+    const condicion = escalar(x.condicion);
+    const pi = numeroFinito(escalar(x.pi_ciudad));
+    const rutas = numeroFinito(escalar(x.rutas));
+    if (typeof ciudad !== "string" || (condicion !== "forzosa" && condicion !== "sorteada" && condicion !== "no_sorteada") || pi === null || rutas === null) return [];
+    const etiqueta = escalar(x.etiqueta);
+    const grupo = escalar(x.grupo);
+    const macro = escalar(x.macrorregion);
+    return [{
+      ciudad,
+      etiqueta: typeof etiqueta === "string" && etiqueta ? etiqueta : ciudad,
+      macrorregion: typeof macro === "string" ? macro : "",
+      grupo: typeof grupo === "string" && grupo ? grupo : null,
+      condicion,
+      pi_ciudad: pi,
+      rutas,
+    }];
+  });
+  const grupos = (Array.isArray(r.grupos) ? r.grupos : []).flatMap((g): HojasRutaGrupoCiudades[] => {
+    if (!g || typeof g !== "object") return [];
+    const x = g as Record<string, unknown>;
+    const grupo = escalar(x.grupo);
+    const h = numeroFinito(escalar(x.h));
+    const rutas = numeroFinito(escalar(x.rutas));
+    if (typeof grupo !== "string" || h === null || rutas === null) return [];
+    return [{ grupo, reparto: numeroFinito(escalar(x.reparto)) ?? 0, h, rutas, n_ciudades: numeroFinito(escalar(x.n_ciudades)) ?? 0 }];
+  });
+  return {
+    modo,
+    rutas_minimas_ciudad: numeroFinito(escalar(r.rutas_minimas_ciudad)) ?? 6,
+    regla: typeof regla === "string" ? regla : "",
+    estratos,
+    ciudades,
+    grupos,
+  };
 }
 
 /** π publicada de una manzana sorteada, o null si falta o no es una probabilidad (0, 1]. */

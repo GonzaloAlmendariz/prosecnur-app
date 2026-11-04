@@ -241,7 +241,7 @@ export function MuestraInspector({ config, resultado: r, bloqueado, guardando, h
           <Opciones etiqueta="Asignación entre distritos" valor={s.allocation_mode ?? "proportional"} deshabilitado={ed} opciones={[["proportional", "Por tamaño"], ["uniform", "Igualitaria"], ["compromise", "Intermedia"]] as const} onCambio={(v) => cambiarS({ allocation_mode: v })} />
         ) : null}
         <BaseReparto2025 sampleSize={s} territorios={territorios} deshabilitado={ed} onCambio={(base_reparto) => cambiarS({ base_reparto })} />
-        <EstratoMuestral sampleSize={s} rowVar={config.row_var} nPorDistrito={config.sample_size_mode === "external_district"} servidor={estratoServidor} deshabilitado={ed} onCambio={(estrato) => cambiar({ sample_size: { estrato }, ...politicaAlCambiar(estrato) })} />
+        <EstratoMuestral sampleSize={s} rowVar={config.row_var} nPorDistrito={config.sample_size_mode === "external_district"} servidor={estratoServidor} deshabilitado={ed} onCambio={(estrato) => cambiar({ sample_size: { estrato }, ...politicaAlCambiar(estrato) })} onCambioMinimo={(rutas_minimas_ciudad) => cambiarS({ rutas_minimas_ciudad })} />
 
         <section className="hr-muestra-grupo" aria-label="Alternativas">
           <h3>Alternativas</h3>

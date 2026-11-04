@@ -1,17 +1,23 @@
 import type { HojasRutaEstratoModo, HojasRutaEstratoMuestral, HojasRutaIntegratedConfig, HojasRutaSampleSizeConfig, HojasRutaSampleSizeDistrictRow } from "../../../../api/hojasRuta";
 import type { ResultadoTamano } from "./motorTamano";
+import { PulsoButton } from "../../../../components/PulsoButton";
 import { PulsoSelect } from "../../../../components/PulsoSelect";
-import { formatoConteo } from "../../../../lib/formatoNumero";
+import { formatoConteo, formatoDecimal } from "../../../../lib/formatoNumero";
 
 /**
  * ADR 0131 §1: estrato explícito del sorteo. Por distrito (defecto) cada distrito es su
  * estrato; por provincia el estrato es la provincia (o, con Lima en 5 áreas, cada área
- * interdistrital de Lima Metropolitana, con Callao aparte), con un mínimo de 2 rutas por
- * estrato y distrito y zona como estratos implícitos. Las rutas por estrato salen del
- * último tamaño calculado en R: el espejo del navegador no reparte por estrato.
+ * interdistrital de Lima Metropolitana, con Callao aparte), con distrito y zona como
+ * estratos implícitos. §1b: toda ciudad visitada lleva al menos `rutas_minimas_ciudad`
+ * rutas (6 por defecto); entran con certeza las que llegan al mínimo, y siempre Lima y
+ * Callao, y las demás se sortean por macrorregión. La selección sale del último tamaño
+ * calculado en R: el espejo del navegador no reparte por ciudad.
  */
 
-export const ESTRATO_MIN_RUTAS = 2;
+export const RUTAS_MINIMAS_CIUDAD = 6;
+
+const MACRORREGIONES: Record<string, string> = { norte: "Norte", centro: "Centro", sur: "Sur", oriente: "Oriente" };
+const fmtPi = (v: number) => formatoDecimal(v, 2);
 
 export const ESTRATOS: ReadonlyArray<readonly [HojasRutaEstratoModo, string]> = [
   ["distrito", "Por distrito"],
@@ -57,13 +63,18 @@ type Props = {
   servidor: HojasRutaEstratoMuestral | null;
   deshabilitado: boolean;
   onCambio: (estrato: HojasRutaEstratoModo) => void;
+  onCambioMinimo: (rutas: number) => void;
 };
 
-export function EstratoMuestral({ sampleSize, rowVar, nPorDistrito, servidor, deshabilitado, onCambio }: Props) {
+export function EstratoMuestral({ sampleSize, rowVar, nPorDistrito, servidor, deshabilitado, onCambio, onCambioMinimo }: Props) {
   const modo = nPorDistrito ? "distrito" : estratoDe(sampleSize);
   const porZona = rowVar === "zona";
-  const vigente = servidor && servidor.modo === modo ? servidor : null;
-  const totalRutas = vigente ? vigente.estratos.reduce((a, e) => a + e.rutas, 0) : 0;
+  const minimo = sampleSize.rutas_minimas_ciudad ?? RUTAS_MINIMAS_CIUDAD;
+  // Las cifras del servidor sólo valen para el mismo estrato y el mismo mínimo.
+  const vigente = servidor && servidor.modo === modo && servidor.rutas_minimas_ciudad === minimo ? servidor : null;
+  const forzosas = vigente ? [...vigente.ciudades.filter((c) => c.condicion === "forzosa")].sort((a, b) => b.rutas - a.rutas) : [];
+  const areasLima = vigente && vigente.modo === "provincia_lima_areas" ? vigente.estratos.filter((e) => e.estrato.startsWith("1501-")) : [];
+  const totalRutas = vigente ? vigente.ciudades.reduce((a, c) => a + c.rutas, 0) : 0;
 
   return (
     <section className="hr-muestra-grupo" aria-label="Estrato del sorteo" data-estrato={modo}>
@@ -82,26 +93,58 @@ export function EstratoMuestral({ sampleSize, rowVar, nPorDistrito, servidor, de
         <p className="hr-mapa-nota">Cada distrito es su propio estrato y recibe las rutas del reparto.</p>
       ) : (
         <>
+          <label className="hr-muestra-campo">
+            <small>Rutas mínimas por ciudad visitada</small>
+            <span className="hr-muestra-pasos">
+              <PulsoButton variant="secondary" size="sm" disabled={deshabilitado || minimo <= 1} aria-label="Una ruta mínima menos" onClick={() => onCambioMinimo(Math.max(1, minimo - 1))}>−</PulsoButton>
+              <input type="number" value={minimo} min={1} step={1} disabled={deshabilitado} aria-label="Rutas mínimas por ciudad visitada" onChange={(e) => e.target.value !== "" && Number(e.target.value) >= 1 && onCambioMinimo(Math.round(Number(e.target.value)))} />
+              <PulsoButton variant="secondary" size="sm" disabled={deshabilitado} aria-label="Una ruta mínima más" onClick={() => onCambioMinimo(minimo + 1)}>+</PulsoButton>
+            </span>
+          </label>
           <p className="hr-mapa-nota">
-            Mínimo {ESTRATO_MIN_RUTAS} rutas por estrato y el resto según su población. Dentro del estrato, las rutas se reparten entre distritos según las viviendas del marco elegible; distrito y zona quedan como estratos implícitos. Los reemplazos son de la misma zona.
+            Entra con certeza toda ciudad cuyo reparto llega a {minimo} rutas, y siempre Lima y Callao. Las demás se sortean por macrorregión según su tamaño y cada ciudad sorteada recibe al menos {minimo} rutas. Dentro de la ciudad, distrito y zona quedan como estratos implícitos; los reemplazos son de la misma zona.
           </p>
           {vigente ? (
-            <dl className="hr-mapa-filas hr-muestra-estratos" aria-label="Rutas por estrato">
-              {vigente.estratos.map((e) => (
-                <div key={e.estrato} data-bajo-minimo={e.rutas < vigente.minimo_rutas || undefined}>
-                  <dt>{e.etiqueta}</dt>
-                  <dd>
-                    {formatoConteo(e.rutas)} rutas ({formatoConteo(e.n_distritos)} {e.n_distritos === 1 ? "distrito" : "distritos"})
-                  </dd>
+            <>
+              <dl className="hr-mapa-filas hr-muestra-estratos" aria-label="Ciudades con certeza">
+                {forzosas.map((c) => (
+                  <div key={c.ciudad} data-bajo-minimo={c.rutas < minimo || undefined}>
+                    <dt>{c.etiqueta}</dt>
+                    <dd>{formatoConteo(c.rutas)} rutas</dd>
+                  </div>
+                ))}
+              </dl>
+              {areasLima.length ? (
+                <p className="hr-mapa-nota">Lima por áreas: {areasLima.map((e) => `${e.etiqueta.replace(/^Lima /, "")} ${formatoConteo(e.rutas)}`).join(", ")} rutas.</p>
+              ) : null}
+              {vigente.grupos.map((g) => {
+                const ciudades = vigente.ciudades.filter((c) => c.grupo === g.grupo).sort((a, b) => b.pi_ciudad - a.pi_ciudad);
+                return (
+                  <div key={g.grupo} className="hr-muestra-grupo-ciudades" data-grupo={g.grupo}>
+                    <p className="hr-muestra-grupo-cab">
+                      <strong>{MACRORREGIONES[g.grupo] ?? g.grupo}</strong>
+                      <span>{formatoConteo(g.rutas)} rutas en {formatoConteo(g.h)} de {formatoConteo(g.n_ciudades)} ciudades</span>
+                    </p>
+                    <dl className="hr-mapa-filas hr-muestra-estratos" aria-label={`Sorteo de ciudades en ${MACRORREGIONES[g.grupo] ?? g.grupo}`}>
+                    {ciudades.map((c) => (
+                      <div key={c.ciudad} data-condicion={c.condicion} data-bajo-minimo={(c.condicion === "sorteada" && c.rutas < minimo) || undefined}>
+                        <dt>{c.etiqueta}</dt>
+                        <dd>{c.condicion === "sorteada" ? `sorteada, ${formatoConteo(c.rutas)} rutas` : "no sale"} (π {fmtPi(c.pi_ciudad)})</dd>
+                      </div>
+                    ))}
+                    </dl>
+                  </div>
+                );
+              })}
+              <dl className="hr-mapa-filas hr-muestra-estratos" aria-label="Total de rutas">
+                <div>
+                  <dt>Total</dt>
+                  <dd><strong>{formatoConteo(totalRutas)} rutas</strong></dd>
                 </div>
-              ))}
-              <div>
-                <dt>Total</dt>
-                <dd><strong>{formatoConteo(totalRutas)} rutas</strong></dd>
-              </div>
-            </dl>
+              </dl>
+            </>
           ) : (
-            <p className="hr-mapa-nota">Las rutas por estrato se calculan al guardar.</p>
+            <p className="hr-mapa-nota">Las ciudades y sus rutas se calculan al guardar.</p>
           )}
         </>
       )}
