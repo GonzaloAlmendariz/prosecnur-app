@@ -1722,7 +1722,7 @@
   }
   grupo[is.na(grupo) | !nzchar(grupo)] <- "general"
   ok <- !is.na(survey$name) & nzchar(survey$name)
-  tapply(survey$name[ok], grupo[ok], function(v) unique(v), simplify = FALSE) |>
+  tapply(survey$name[ok], factor(grupo[ok], levels = unique(grupo[ok])), function(v) unique(v), simplify = FALSE) |>
     as.list()
 }
 
