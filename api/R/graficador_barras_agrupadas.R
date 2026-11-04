@@ -1148,7 +1148,12 @@ graficar_barras_agrupadas <- function(
   usar_color_categorias <- !is.null(colores_categorias) &&
     length(cols_porcentaje) == 1L &&
     is.null(colores_series)
-  if (isTRUE(usar_color_categorias)) {
+  # `residuales_gris` en la agrupada de una serie sin leyenda: el relleno va por categoría para poder pintar de gris
+  # «Otros», «No sabe» o «Ninguna». Sin esto el mando sólo llegaba a la espec nativa y la ruta ggplot (la que toma una
+  # categórica que no cabe en columnas ni barras nativas) lo ignoraba (CCSS 2026-11-04, lámina de agrupaciones).
+  residuales_gris_1s <- isTRUE(residuales_gris) && length(cols_porcentaje) == 1L && !isTRUE(mostrar_leyenda) &&
+    any(grepl(.CATEGORIAS_RESIDUALES, as.character(cat_lvls), ignore.case = TRUE))
+  if (isTRUE(usar_color_categorias) || residuales_gris_1s) {
     df_long$.fill_key <- factor(as.character(df_long[[var_categoria]]), levels = cat_lvls)
   } else {
     df_long$.fill_key <- df_long$.serie
@@ -1518,6 +1523,12 @@ graficar_barras_agrupadas <- function(
     )
   }
   if (length(cruce_agr$colores)) pal_fill <- cruce_agr$colores
+  if (residuales_gris_1s) {
+    base_col <- if (isTRUE(usar_color_categorias)) pal_fill else stats::setNames(rep(.PULSO_PPT_COLORS$azul, length(cat_lvls)), as.character(cat_lvls))
+    es_res <- grepl(.CATEGORIAS_RESIDUALES, names(base_col), ignore.case = TRUE)
+    base_col[es_res] <- .graficos_no_sustantivo_color()
+    pal_fill <- base_col
+  }
   p <- p + ggplot2::scale_fill_manual(values = pal_fill)
 
   if (!is.null(ancho_max_eje_y_eff)) {
@@ -1783,6 +1794,18 @@ graficar_barras_agrupadas <- function(
       plot.background  = ggplot2::element_rect(fill = color_fondo, color = NA),
       panel.background = ggplot2::element_rect(fill = color_fondo, color = NA)
     )
+  # «Marcas del eje» en el lienzo: theme_void() borraba eje y guías y el mando no cambiaba el PPT (banco de mutación de
+  # mandos, CCSS 2026-11-04). Con escala completa de 0 a 100 % se escriben 0, 25, 50, 75 y 100 % con sus guías, como en la
+  # lámina nativa (lamina_categorica.R).
+  if (isTRUE(marcas_eje) && !isTRUE(usar_eje_libre) && escala_valor %in% c("proporcion_1", "proporcion_100")) {
+    tope_marcas <- if (identical(escala_valor, "proporcion_100")) 100 else 1
+    p_panel <- p_panel +
+      ggplot2::scale_y_continuous(limits = c(0, max(base_max, tope_marcas)), breaks = seq(0, tope_marcas, length.out = 5),
+                                  labels = function(z) .pulso_fmt_pct_half_up(z * (100 / tope_marcas) / 100, 0),
+                                  expand = ggplot2::expansion(mult = c(0, 0.02))) +
+      ggplot2::theme(panel.grid.major.x = ggplot2::element_line(color = .std_color("filete"), linewidth = 0.3),
+                     axis.text.x = ggplot2::element_text(size = 8, color = .std_color("texto_tenue"), family = font_family))
+  }
 
   # leyenda grob (con separacion real)
   n_por_fila <- as.integer(legend_n_por_fila)
