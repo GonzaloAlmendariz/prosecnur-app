@@ -17,6 +17,7 @@ import { ProbarCalculo } from "./ProbarCalculo";
 import { CatalogoFunciones } from "./CatalogoFunciones";
 import { CalculationRecipePanel } from "../canvas/constructor/CalculoRepeticionPaneles";
 
+import { EstadoChip } from "../../../components/EstadoChip";
 // Pestaña Cálculos (revamp 2026-10-16): cada `calculate` del formulario con su fórmula leída
 // en español, de qué respuestas sale y quién lo usa después.
 
@@ -126,7 +127,7 @@ export function PestanaCalculos({ structure, scope: scopeBase, seleccionada, onS
           </div>
           <PanelCard
             title="Fórmula"
-            meta={<span className={`xfp-insignia is-${actual.vacio ? "sin-regla" : lectura?.tecnica ? "sin-traducir" : "vigente"}`}>{actual.vacio ? "vacía" : lectura?.tecnica ? "sin traducir" : "vigente"}</span>}
+            meta={<EstadoChip label={actual.vacio ? "vacía" : lectura?.tecnica ? "sin traducir" : "vigente"} tone={actual.vacio ? "neutral" : lectura?.tecnica ? "warn" : "success"} />}
             footer={actual.vacio ? undefined : (
               <button type="button" className="xfp-boton" aria-expanded={editando} onClick={() => setEditando((v) => !v)}>
                 <Pencil size={13} aria-hidden="true" /> {editando ? "Cerrar el editor" : "Editar la fórmula"}

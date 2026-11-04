@@ -15,6 +15,7 @@ import { PestanaReglas, type ReglaListaGrupo } from "./PestanaReglas";
 import { restriccionesDelFormulario } from "./reglasModel";
 import { ProbarRestriccion } from "./ProbarRestriccion";
 
+import { EstadoChip } from "../../../components/EstadoChip";
 // Pestaña Restricciones (revamp 2026-10-16): todas las reglas de «qué acepta» del formulario
 // en un solo lugar. El Constructor edita la misma regla en línea; aquí hay más espacio para
 // leerla, ver de qué otras preguntas depende y qué le falta.
@@ -113,7 +114,7 @@ export function PestanaRestricciones({ structure, scope: scopeBase, seleccionada
           </div>
           <PanelCard
             title="Regla"
-            meta={<span className={`xfp-insignia is-${estado.replace(/\s+/g, "-")}`}>{estado}</span>}
+            meta={<EstadoChip label={estado} tone={estado === "vigente" ? "success" : estado === "sin regla" ? "neutral" : "warn"} />}
             footer={actual.estado === "con" ? (
               <button type="button" className="xfp-boton" aria-expanded={editando} onClick={() => setEditando((v) => !v)}>
                 <Pencil size={13} aria-hidden="true" /> {editando ? "Cerrar el editor" : "Editar la regla"}
