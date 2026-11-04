@@ -24,6 +24,7 @@ import {
 import { formatoDecimal } from "../../../lib/formatoNumero";
 import { EstadoVacio } from "../../../components/EstadoVacio";
 
+import { Panel } from "../../../components/Panel";
 const COLUMNAS: readonly { columna: ColumnaOrden; rotulo: string; clase: string; ayuda?: string }[] = [
   { columna: "preguntas", rotulo: "Preguntas", clase: "is-num is-col-preguntas" },
   { columna: "obligatorias", rotulo: "Obligatorias", clase: "is-num is-col-obligatorias" },
@@ -102,15 +103,20 @@ export function TablaSecciones({ filas, kindDe, abierta, onAlternar, resaltada, 
   const totalColumnas = columnas.length + 3;
 
   return (
-    <section className="pulso-xf-res-panel pulso-xf-res-secciones" aria-labelledby="xf-res-secciones-titulo" data-qa-geometry-member="">
-      <header className="pulso-xf-res-panel-cabeza">
-        <h3 id="xf-res-secciones-titulo">Secciones</h3>
+    <Panel
+      className="pulso-xf-res-panel pulso-xf-res-secciones"
+      noPadding
+      aria-labelledby="xf-res-secciones-titulo"
+      data-qa-geometry-member=""
+      title={<span id="xf-res-secciones-titulo">Secciones</span>}
+      actions={
         <span className="pulso-xf-res-panel-nota">
           {/* «Fuera de toda sección» es una fila, no una sección: el conteo cuadra con la cifra de arriba (S14). */}
           {nSecciones} {nSecciones === 1 ? "sección" : "secciones"}{filas.length > nSecciones ? " y preguntas sueltas" : ""}
           {pesadas ? `, ${pesadas} ${pesadas === 1 ? "pesada" : "pesadas"}` : ""}
         </span>
-      </header>
+      }
+    >
       {filas.length === 0 ? (
         <EstadoVacio icono={<ChevronRight size={14} />} titulo="El formulario no tiene secciones" descripcion="Todas sus preguntas van en un solo bloque." />
       ) : (
@@ -183,6 +189,6 @@ export function TablaSecciones({ filas, kindDe, abierta, onAlternar, resaltada, 
         {sinCondiciones && filas.length > 0 ? "Ninguna sección tiene condiciones todavía. " : ""}
         Pesada: {Math.round(UMBRAL_SECCION_PESADA * 100)} % o más de las preguntas.
       </p>
-    </section>
+    </Panel>
   );
 }

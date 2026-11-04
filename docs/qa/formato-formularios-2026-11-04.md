@@ -43,5 +43,32 @@ cuenta comentarios.
 | Tanda 4: P3 y P4 en el resto | ☑ | (ver abajo) | P3: 46 líneas. Los atajos se escriben con coma («Enter abre, Alt+↑ / Alt+↓ mueve»); los resúmenes de Impreso, «Dos columnas, con N.º» y «A4, 12 páginas, 87 preguntas»; el código de la fila ya no lleva un « · » suelto delante. Quedan 4, deliberadas: la portada de `impreso/MaquetaPagina` (reproduce el Word), el ejemplo «10 · 20» del Armador, un fixture de prueba y el parser de errores del servidor (escrito `\u00b7`, no cuenta). P4: el conteo de `outline/modeloEstructura` y los minutos de `resumen/TablaSecciones` por el formateador; queda el `toFixed(4)` de `kit/Sello`, que es geometría SVG. Foto: P3 4, P4 1, P5 32 |
 | Tanda 5: P5 en el resto | ☑ | (ver abajo) | 13 vacíos a `EstadoVacio` (biblioteca y área de listas, comparación entre formularios, matrices y versiones de Impreso, pestaña Opciones, Armador, secciones del Resumen y hojas vacías) y la lectura de otros formularios a `LoadingBlock`; −16 selectores huérfanos. Declarados en el guard: el error de la previa de Impreso con «Reintentar» (`ErrorBlock` no lleva acción), el HTML de la previa de markdown y el id de diagnóstico `settings-*-empty`. Los `is-empty`, `is-vacia` e `is-loading` son modificadores de estado, no recetas. **P5 en meta 0.** P3 queda en 3 líneas deliberadas: la portada de `MaquetaPagina`, que reproduce el Word, el ejemplo «10 · 20» del Armador y un fixture. P4 en 1: geometría SVG de `kit/Sello` |
 | Captura después | ☑ | | `acnur_acg` (copia de corrida), `/editor-xlsform` a 1440×1000 y 1024×600: `ok=true`, 0 hallazgos. Se lee «1 pregunta, 0 secciones, 1 lista», «Pregunta 1, fuera de toda sección» y «1 opción, sólo esta pregunta la usa» |
-| P2 (Panel) | línea base | — | 56 `h2–h4` y 3 `<Panel>`. Como en Hojas de ruta, el constructor con su inspector y el lienzo de lógica son bancos de trabajo propios; queda para una tanda propia, **revisable por Gonzalo** |
-| P6 (EstadoChip) | línea base | — | Los chips que quedan son de tipo, de dato o del simulador. «Activo» de la tarjeta es identidad del módulo. Las píldoras de estado de la barra de comando son el slot del chrome (`ModuleCommandBar`), que se hace en el kit, no aquí |
+| P2 (Panel) | ☑ (acotado) | (ver «P2 y P6, 4 nov mañana») | Decisión de coordinación, revisable por Gonzalo: sólo `shell/` y `choiceFilters/`. Revisados los 32 `h2–h4` uno por uno, el único bloque «caja con cabecera» son los paneles del Resumen; los demás son títulos de diálogo, nombres de tarjeta, la leyenda, la ayuda guiada, secciones dentro de los pasos del importador, antetítulos de sub-bloque del detalle de filtro y un cajón flotante (`HallazgosPanel`, que sería un `Sideover`). El constructor, su inspector y el lienzo de lógica no se tocan |
+| P6 (EstadoChip) | ☑ | (ver «P2 y P6, 4 nov mañana») | Sólo las píldoras de ESTADO: el estado de cada filtro de opciones, «ya tiene filtro», «nunca visible», las insignias de Restricciones y Cálculos y el contador de «Qué falta para publicar». Se quedan los chips de tipo, de dato (los códigos huérfanos de la matriz de cascada), del simulador y «Activo» |
+
+## P2 y P6, 4 nov mañana (decidido por coordinación, revisable por Gonzalo)
+
+Antes de tocar nada se miró `git log -10 -- frontend/src/features/xlsformEditor`: el asa de arrastre, el «?» y L36
+(Impreso) no se tocan.
+
+- **P6.** `choiceFilters/ListaFiltros` (`ChipEstado`: ok → éxito, nunca → aviso, vacía y en conflicto → peligro, sin
+  vista → neutro, también en el detalle), «ya tiene filtro» (selector de pregunta) y «nunca visible» (opciones de la
+  expresión) a `EstadoChip`; `pestanas/` las insignias de Restricciones (vigente, sin regla, sin traducir, fila rota) y
+  de Cálculos; `resumen/` el contador «N tareas pendientes / Todo en orden». −10 reglas (`xfp-insignia`,
+  `xcf-chip__punto` y sus tonos, `pulso-xf-res-contador`).
+- **P2.** Los tres bloques del Resumen («Qué falta para publicar e imprimir», «Composición» y «Secciones») son `Panel`
+  sin relleno, con el título y la nota o el estado en `actions`; la cabecera conserva su filete. «Composición» vive en
+  `shell/`; los otros dos en `resumen/` y van en el mismo cambio para que el Resumen no mezcle dos cabeceras.
+- **Guard.** `formatoDelModulo.contract.test.ts` suma P6 (las píldoras de estado de arriba, meta 0) y P2
+  (`pulso-xf-res-panel-cabeza`, meta 0), con los casos que prueban el detector (los códigos huérfanos no cuentan).
+- **Defecto previo visto en la captura, no tocado:** Restricciones titula la pregunta «Restricción ( P1», con el
+  paréntesis sin cerrar.
+- **Capturas** (`--url` contra la pila de la sesión, `hsvg2026`, 1440×1000 y 1024×600): Filtros, Restricciones y
+  Cálculos sin hallazgos; los estados se leen como `EstadoChip`. El Resumen se pide con su `form_id`
+  (`/editor-xlsform?pestana=resumen&form_id=…`) porque abrir el formulario restaura la última pestaña. Los tres Panel se
+  leen bien en los dos anchos. El runner marca tres cosas de la tabla de Secciones que este cambio no toca (viven en
+  `xf-summary/02-secciones.css`, sin diff), anotadas como **previas**:
+  1. La chapa «Pesada» se sale 30 px (1440) y 18 px (1024) de su caja.
+  2. A 1440, la cabecera fija de la tabla tapa 23 px de la fila tras desplazar fila y media.
+  3. El nombre de sección trae el HTML del XLSForm (`<span style="color:#002060">…`) y se pinta como texto: es el
+     dato del instrumento, pero la tabla debería mostrar el rótulo limpio.

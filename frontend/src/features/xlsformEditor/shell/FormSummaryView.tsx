@@ -43,6 +43,7 @@ import "../resumen/resumen.css";
 import { EstadoVacio } from "../../../components/EstadoVacio";
 import { FileText } from "../../../vendor/lucide-react";
 
+import { Panel } from "../../../components/Panel";
 /** Lo que el editor sabe fuera de la estructura: lógica, listas, impreso y adónde llevar cada cosa. */
 export type ContextoResumen = {
   formId: string | null;
@@ -214,12 +215,15 @@ export function FormSummaryView({
 
         <div className="pulso-xf-res-cuerpo" data-qa-geometry-group="xlsform/resumen-cuerpo" data-qa-geometry-contract="intrinsic">
             <PendientesPublicar items={pendientes} onAccion={irA} />
-            <section className="pulso-xf-res-panel pulso-xf-res-composicion" aria-labelledby="xf-res-composicion-titulo" data-qa-geometry-member=""
-              data-qa-geometry-capacity="owned">
-              <header className="pulso-xf-res-panel-cabeza">
-                <h3 id="xf-res-composicion-titulo">Composición</h3>
-                <span className="pulso-xf-res-panel-nota">{resumen.preguntas} preguntas</span>
-              </header>
+            <Panel
+              className="pulso-xf-res-panel pulso-xf-res-composicion"
+              noPadding
+              aria-labelledby="xf-res-composicion-titulo"
+              data-qa-geometry-member=""
+              data-qa-geometry-capacity="owned"
+              title={<span id="xf-res-composicion-titulo">Composición</span>}
+              actions={<span className="pulso-xf-res-panel-nota">{resumen.preguntas} preguntas</span>}
+            >
               {resumen.preguntas === 0 ? (
                 <EstadoVacio icono={<FileText size={16} />} titulo="Aún no hay preguntas" descripcion="Agrega la primera en el Constructor." />
               ) : (
@@ -243,7 +247,7 @@ export function FormSummaryView({
                   />
                 </div>
               )}
-            </section>
+            </Panel>
           <TablaSecciones
             filas={resumen.filasSecciones}
             kindDe={(id) => structure?.sections.get(id)?.kind ?? "root"}
