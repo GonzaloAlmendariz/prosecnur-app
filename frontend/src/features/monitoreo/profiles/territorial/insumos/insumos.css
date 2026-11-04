@@ -181,12 +181,6 @@
   scroll-snap-align: start;
 }
 
-/* Dentro de un bloque del kit la tabla llega a los bordes del `Panel`, cuyo
- * padding lateral es 18 px. */
-.mon-bloque .mon-ins-tabla-marco {
-  margin: 0 -18px calc(-1 * var(--pulso-space-4));
-}
-
 .mon-ins-tabla-marco::-webkit-scrollbar,
 .mon-ins-derecha::-webkit-scrollbar {
   width: 8px;

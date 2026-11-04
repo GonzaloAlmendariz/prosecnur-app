@@ -15,8 +15,11 @@
   border-bottom: 1px solid var(--mon-profile-toolbar-border, var(--pulso-border));
 }
 
+/* El título no se encoge por debajo de su texto: si no caben título y acciones en un renglón, son
+ * las acciones las que bajan (con `min-width: 0` el título se salía de la tarjeta a 1024). */
 .mon-bloque .pulso-panel-heading {
-  flex: 1 1 auto;
+  flex: 1 0 auto;
+  max-width: 100%;
 }
 
 .mon-bloque .pulso-panel-title {
@@ -55,12 +58,20 @@
 
 /* Marco del kit (territorial): el material es el del `Panel`; el bloque reparte sus hijos en columna
  * y la cabecera va sin filete, como las de las vistas que reemplaza. */
-.mon-bloque--kit {
+/* El padding del módulo en los cuatro lados (el kit pone 18 px a los costados): las tablas de las
+ * vistas sangran hasta el borde con `margin: 0 calc(-1 * var(--pulso-space-4))`. */
+.mon-bloque--kit.pulso-panel {
+  padding: var(--pulso-space-4);
+}
+
+/* Especificidad cero: el layout de cada vista (su `min-height`, su `gap`, su reparto en la rejilla)
+ * manda sobre este reparto por defecto aunque su hoja cargue antes. Con `.mon-bloque--kit` a secas
+ * el `min-height: 0` de aquí pisaba el de Faltante y la tarjeta medía 34 px a 1024 × 600. */
+:where(.mon-bloque--kit) {
   display: flex;
   flex-direction: column;
   gap: var(--pulso-space-3);
   min-width: 0;
-  min-height: 0;
 }
 
 .mon-bloque--kit > .pulso-panel-header {
