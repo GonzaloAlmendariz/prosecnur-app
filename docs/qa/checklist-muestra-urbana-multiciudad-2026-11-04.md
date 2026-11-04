@@ -107,3 +107,16 @@ Contexto que ya se verificó (no reinvestigar):
   - La π va en el payload de la muestra; el libro de campo (`Hojas_de_ruta`) no la lleva porque es para el equipo.
   - `hojas_ruta_engine.R` (congelado) creció 4 líneas netas en los tres pasos; la línea base del manifiesto
     (10.224) sigue holgada.
+- **Verificador (2026-11-04):**
+  - Paso 1: aprobado en el motor. El commit `91ddaaac2` aislado tiene en rojo el test de la memoria de cálculo, porque depende de `reporte_muestra_territorial_marco.R`, que entró en `2bb73fe15`. La rama está verde desde `2bb73fe15`.
+  - UI y pasos 2–3: aprobado con pendientes.
+- **Pendientes del paso 2 que deciden el diseño (para Gonzalo):**
+  - **Medida del reparto entre distritos.** La MOS_d con que se reparten las rutas sale del marco INEI completo; el sorteo y la π, del marco elegible.
+    - La π publicada sigue siendo exacta y Σπ = n_h.
+    - Con `minimo_viviendas` > 1 o con áreas excluidas, el estrato deja de ser autoponderado. En la sonda del verificador, con mínimo 60, 070106 pasa de 4,7 a 0,8 rutas esperadas.
+    - Hay dos salidas: repartir con la medida elegible o dejarlo declarado. Hoy está declarado en la regla publicada.
+  - **Asignación en `hojas_ruta_pi_muestra`.** Se recalcula con `cfg$territorios`, mientras la cuota usa los ubigeos de las celdas.
+    - Si un distrito confirmado se queda sin celdas, los dos conjuntos difieren.
+    - Es un caso de borde, sin test.
+  - **Aviso de reemplazos fuera de la zona.** `W_REPLACEMENT_PI_OTRA_ZONA` sale en toda muestra con la política por defecto (otra zona). Hay que decidir el valor por defecto de `replacement_policy`, o bajar el aviso a `info`.
+  - **Estrato en la UI.** No hay control: hoy `sample_size$estrato` sólo se fija en la configuración.

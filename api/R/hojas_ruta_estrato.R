@@ -180,7 +180,12 @@ hojas_ruta_estrato_declaracion <- function(ubigeos, cfg, n_used) {
   list(estrato_muestral = list(
     modo = cfg$sample_size$estrato,
     minimo_rutas = HOJAS_RUTA_ESTRATO_MIN_RUTAS,
-    regla = "n_h >= 2 y el resto proporcional a la población del estrato; distrito y zona implícitos; pi = n_h * MOS_i / MOS_h",
+    regla = paste(
+      "n_h >= 2 y el resto proporcional a la población del estrato; distrito y zona implícitos.",
+      "Cada distrito recibe floor o ceil de e_d = n_h * MOS_d / MOS_h (MOS_d del marco completo) y la pi de la manzana",
+      "es la mezcla exacta de las dos ramas sobre el marco del sorteo; sin certezas y sin manzanas excluidas por el",
+      "marco elegible se reduce a n_h * MOS_i / MOS_h."
+    ),
     estratos = .hojas_ruta_df_rows(a$estratos),
     distritos = .hojas_ruta_df_rows(a$distritos)
   ))

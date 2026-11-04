@@ -77,6 +77,7 @@ hojas_ruta_pi_muestra <- function(blocks_df, replacement_blocks_df, frame, cfg) 
     tit <- match(as.character(replacement_blocks_df$titular_id_manzana), ids)
     misma_zona <- !is.na(tit) & as.character(replacement_blocks_df$zona) == as.character(blocks_df$zona[tit]) &
       as.character(replacement_blocks_df$ubigeo) == ub[tit]
+    misma_zona[is.na(misma_zona)] <- FALSE  # sin zona no se puede afirmar que es la misma: no hereda
     replacement_blocks_df$estrato <- blocks_df$estrato[tit]
     replacement_blocks_df$pi <- ifelse(misma_zona, blocks_df$pi[tit], NA_real_)
     replacement_blocks_df$pi_fuente <- ifelse(misma_zona, "hereda_titular", "otra_zona_sin_pi")

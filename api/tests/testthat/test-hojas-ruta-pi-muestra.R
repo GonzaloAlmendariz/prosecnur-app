@@ -84,3 +84,14 @@ test_that("un reemplazo en otra zona queda sin π y avisa", {
   expect_identical(out$replacements$pi_fuente, "otra_zona_sin_pi")
   expect_identical(out$alerts[[1]]$code, "W_REPLACEMENT_PI_OTRA_ZONA")
 })
+
+test_that("un reemplazo sin zona no hereda π y no rompe con NA", {
+  b <- data.frame(ubigeo = "070106", zona = "01", id_manzana = "X1", stringsAsFactors = FALSE)
+  r <- data.frame(ubigeo = "070106", zona = NA_character_, id_manzana = "X2", titular_id_manzana = "X1", stringsAsFactors = FALSE)
+  frame <- data.frame(ubigeo = "070106", zona = c("01", "02"), manzana = c("1", "2"), id_manzana = c("X1", "X2"),
+                      viviendas = c(10, 20), stringsAsFactors = FALSE)
+  out <- hojas_ruta_pi_muestra(b, r, frame, list(sampling_method = "pps", measure_var = "viviendas",
+                                                 sample_size = list(), territorios = "070106", entrevistas_por_manzana = 8))
+  expect_true(is.na(out$replacements$pi))
+  expect_identical(out$replacements$pi_fuente, "otra_zona_sin_pi")
+})
