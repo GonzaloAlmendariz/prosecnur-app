@@ -13,9 +13,10 @@
 #      adultos 2017 del marco, pob17_en_capa · a17, con la base 2017).
 #   2. Dentro del estrato, sobre la lista distrito (ubigeo) → zona → manzana, la
 #      esperanza de rutas del distrito es e_d = n_h · MOS_d / MOS_h, con
-#      MOS_d = Σ_i MOS_i de sus manzanas. El distrito recibe ⌊e_d⌋ o ⌈e_d⌉ por un
-#      redondeo sistemático aleatorio (una sola uniforme por estrato, la misma
-#      regla que reparte rutas entre zonas): E[n_d] = e_d y Σ_d n_d = n_h.
+#      MOS_d = Σ_i MOS_i de sus manzanas del marco elegible (el del sorteo). El
+#      distrito recibe ⌊e_d⌋ o ⌈e_d⌉ por un redondeo sistemático aleatorio (una
+#      sola uniforme por estrato, la misma regla que reparte rutas entre zonas):
+#      E[n_d] = e_d y Σ_d n_d = n_h.
 #   3. Dentro del distrito corre el PPS sistemático de siempre (ADR 0117), con
 #      n_d rutas sobre la lista zona → manzana → id_manzana.
 #
@@ -77,15 +78,21 @@ hojas_ruta_estrato_de <- function(ubigeos, modo = "provincia") {
 # Memo de la medida por distrito (el marco no cambia dentro de una corrida).
 .hojas_ruta_estrato_memo <- new.env(parent = emptyenv())
 
-#' MOS_d = Σ MOS_i de las manzanas del distrito en el marco, con la misma medida del
-#' sorteo (`.hojas_ruta_sorteo_medida`: topada en `pps_tope`, × g_d con la base 2025).
+#' MOS_d = Σ MOS_i de las manzanas del distrito en el marco ELEGIBLE, con la misma
+#' medida del sorteo (`.hojas_ruta_sorteo_medida`: topada en `pps_tope`, × g_d con la
+#' base 2025). El marco es el del sorteo (`.hojas_ruta_filter_frame`): sin las manzanas
+#' bajo `minimo_viviendas`, las de áreas excluidas ni las titulares del piloto. Así e_d
+#' reparte con lo que de verdad se puede sortear y el estrato sigue autoponderado.
 .hojas_ruta_estrato_mos_distritos <- function(ubigeos, cfg) {
-  frame <- hojas_ruta_inei_frame(cfg$frame_source)
+  cfg_f <- cfg
+  cfg_f$territorios <- as.list(ubigeos)
   ss <- cfg$sample_size %||% list()
   key <- paste(c(sort(ubigeos), cfg$frame_source %||% "", cfg$sampling_method %||% "", cfg$measure_var %||% "",
-                 ss$base_reparto %||% "", nrow(frame)), collapse = "|")
+                 ss$base_reparto %||% "", .hojas_ruta_me_hash(list(cfg$marco_elegible, cfg$excluded_titular_ids))),
+               collapse = "|")
   hit <- .hojas_ruta_estrato_memo[[key]]
   if (!is.null(hit)) return(hit)
+  frame <- .hojas_ruta_filter_frame(cfg_f)
   out <- vapply(ubigeos, function(u) {
     df <- frame[as.character(frame$ubigeo) == u, , drop = FALSE]
     if (!nrow(df)) return(0)
@@ -182,9 +189,8 @@ hojas_ruta_estrato_declaracion <- function(ubigeos, cfg, n_used) {
     minimo_rutas = HOJAS_RUTA_ESTRATO_MIN_RUTAS,
     regla = paste(
       "n_h >= 2 y el resto proporcional a la población del estrato; distrito y zona implícitos.",
-      "Cada distrito recibe floor o ceil de e_d = n_h * MOS_d / MOS_h (MOS_d del marco completo) y la pi de la manzana",
-      "es la mezcla exacta de las dos ramas sobre el marco del sorteo; sin certezas y sin manzanas excluidas por el",
-      "marco elegible se reduce a n_h * MOS_i / MOS_h."
+      "Cada distrito recibe floor o ceil de e_d = n_h * MOS_d / MOS_h, con MOS_d del marco elegible (el mismo del sorteo),",
+      "y la pi de la manzana es la mezcla exacta de las dos ramas; sin certezas se reduce a n_h * MOS_i / MOS_h."
     ),
     estratos = .hojas_ruta_df_rows(a$estratos),
     distritos = .hojas_ruta_df_rows(a$distritos)

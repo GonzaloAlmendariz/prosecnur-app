@@ -122,3 +122,36 @@ test_that("con estrato distrito la salida es la de siempre", {
   expect_identical(hojas_ruta_quota_preview_integrado(a), hojas_ruta_quota_preview_integrado(b))
   expect_null(hojas_ruta_sample_size_preview(a)$estrato_muestral)
 })
+
+test_that("el reparto dentro del estrato usa la medida del marco elegible, la misma del sorteo", {
+  # Con mínimo de 60 viviendas el Callao cambia mucho: 070106 pasaba de 4,7 a 0,8 rutas
+  # esperadas entre lo que el reparto creía y lo que el sorteo veía (sonda del verificador).
+  me <- list(declarado = TRUE, minimo_viviendas = 60L, areas_excluidas = list())
+  cfg <- .es_norm("provincia", marco_elegible = me)
+  a <- hojas_ruta_estrato_asignacion(.es_ubigeos, 40L, cfg)
+  frame <- .hojas_ruta_filter_frame(cfg)
+  mos_eleg <- vapply(a$distritos$ubigeo, function(u) {
+    df <- frame[as.character(frame$ubigeo) == u, , drop = FALSE]
+    if (!nrow(df)) return(0)
+    sum(.hojas_ruta_sorteo_medida(df, .hojas_ruta_sorteo_cfg_distrito(cfg, df)))
+  }, numeric(1))
+  expect_equal(unname(a$distritos$mos), unname(mos_eleg))
+  n_h <- stats::setNames(a$estratos$rutas, a$estratos$estrato)[a$distritos$estrato]
+  mos_h <- stats::ave(mos_eleg, a$distritos$estrato, FUN = sum)
+  expect_equal(unname(a$distritos$esperado), unname(n_h * mos_eleg / mos_h), tolerance = 1e-10)
+  # Contra el marco completo la esperanza de 070106 sí cambia: el caso existe en el registro.
+  completo <- hojas_ruta_estrato_asignacion(.es_ubigeos, 40L, .es_norm("provincia"))
+  e_eleg <- a$distritos$esperado[a$distritos$ubigeo == "070106"]
+  e_comp <- completo$distritos$esperado[completo$distritos$ubigeo == "070106"]
+  expect_gt(abs(e_eleg - e_comp), 0.05)
+  # Σπ sobre el marco del sorteo = n_h en cada estrato (ya no sólo sin exclusiones).
+  suma <- tapply(seq_len(nrow(a$distritos)), a$distritos$estrato, function(ix) {
+    sum(vapply(ix, function(k) {
+      u <- a$distritos$ubigeo[[k]]
+      df <- frame[as.character(frame$ubigeo) == u, , drop = FALSE]
+      if (!nrow(df)) return(0)
+      sum(hojas_ruta_estrato_pi(.hojas_ruta_sorteo_medida(df, .hojas_ruta_sorteo_cfg_distrito(cfg, df)), a$distritos$esperado[[k]]))
+    }, numeric(1)))
+  })
+  expect_equal(as.numeric(suma[a$estratos$estrato]), as.numeric(a$estratos$rutas), tolerance = 1e-8)
+})
