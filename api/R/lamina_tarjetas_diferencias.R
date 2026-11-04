@@ -62,10 +62,10 @@
 #' Alto de una tarjeta (in) en un ancho
 #' @keywords internal
 .lam_tarjeta_alto <- function(t, w, cortos = character(0), tipo = "multiple", con_fila = TRUE) {
-  con_fila <- isTRUE(con_fila) && !isTRUE(t$fila_es_titulo)
+  enc <- .tarjetas_encabezado(t, con_fila, tipo)
   nombres <- .tarjetas_rotulo_grupo(t$grupos$etiqueta, cortos)
   m <- .lam_tarjeta_medidas(w, nombres)
-  h_fila <- if (isTRUE(con_fila)) .lam_lineas_tinta(.tarjetas_rotulo_fila(t$fila, tipo), (w - 2 * m$pad_x) * .TARJETA_TINTA_TITULO + 0.22, m$pt_titulo, TRUE) *
+  h_fila <- if (!is.null(enc)) .lam_lineas_tinta(enc, (w - 2 * m$pad_x) * .TARJETA_TINTA_TITULO + 0.22, m$pt_titulo, TRUE) *
     m$pt_titulo * 1.2 / 72 + m$aire_titulo else m$aire_titulo
   renglones <- .lam_tarjeta_alto_renglon("Total", m) + sum(vapply(nombres, .lam_tarjeta_alto_renglon, numeric(1), m = m))
   m$pad_t + m$alto_cruce + h_fila + renglones + m$aire_total + m$pad_b + 0.02
@@ -78,8 +78,8 @@
 .lam_tarjeta_y_grupos <- function(t, w, tipo = "multiple", cortos = character(0)) {
   nombres <- .tarjetas_rotulo_grupo(t$grupos$etiqueta, cortos)
   m <- .lam_tarjeta_medidas(w, nombres)
-  h_tit <- if (isTRUE(t$fila_es_titulo)) 0 else
-    .lam_lineas_tinta(.tarjetas_rotulo_fila(t$fila, tipo), (w - 2 * m$pad_x) * .TARJETA_TINTA_TITULO + 0.22, m$pt_titulo, TRUE) * m$pt_titulo * 1.2 / 72
+  enc <- .tarjetas_encabezado(t, TRUE, tipo)
+  h_tit <- if (is.null(enc)) 0 else .lam_lineas_tinta(enc, (w - 2 * m$pad_x) * .TARJETA_TINTA_TITULO + 0.22, m$pt_titulo, TRUE) * m$pt_titulo * 1.2 / 72
   y0 <- m$pad_t + m$alto_cruce + h_tit + m$aire_titulo + .lam_tarjeta_alto_renglon("Total", m) + m$aire_total
   c(y0, y0 + sum(vapply(nombres, .lam_tarjeta_alto_renglon, numeric(1), m = m)))
 }
@@ -149,10 +149,12 @@
   y <- y + m$alto_cruce
   # En una batería la premisa ya está en el eje: la tarjeta no la repite y una línea guía la une a su fila (Gonzalo, v7 RV).
   # Tampoco repite la fila que ya es el título de la lámina (una batería de un solo ítem, ítem 23 de la v7 RV).
-  if (isTRUE(con_fila) && !isTRUE(t$fila_es_titulo)) {
-    fila <- .tarjetas_rotulo_fila(t$fila, tipo)
-    h_tit <- .lam_lineas_tinta(fila, wi * .TARJETA_TINTA_TITULO + 0.22, m$pt_titulo, TRUE) * m$pt_titulo * 1.2 / 72
-    b$txt(fila, x0, y, wi, h_tit, m$pt_titulo, azul, bold = TRUE, nombre = "tarjeta:fila")
+  # Sin columna de Top Two Box el encabezado nombra además el indicador, que no se ve en el gráfico («Claude · Todos los
+  # días»; anclada a su premisa, solo «Todos los días»).
+  enc <- .tarjetas_encabezado(t, con_fila, tipo)
+  if (!is.null(enc)) {
+    h_tit <- .lam_lineas_tinta(enc, wi * .TARJETA_TINTA_TITULO + 0.22, m$pt_titulo, TRUE) * m$pt_titulo * 1.2 / 72
+    b$txt(enc, x0, y, wi, h_tit, m$pt_titulo, azul, bold = TRUE, nombre = "tarjeta:fila")
     y <- y + h_tit
   }
   y <- y + m$aire_titulo
@@ -202,7 +204,8 @@
 #' Disposición del panel de tarjetas: columnas, ancho y alto de cada fila
 #' @param y0,y1 Zona vertical disponible (in).
 #' @keywords internal
-.lam_tarjetas_disponer <- function(tarjetas, y0, y1, cortos = character(0), tipo = "multiple", fraccion = .tarjetas_panel_fraccion(tipo)) {
+.lam_tarjetas_disponer <- function(tarjetas, y0, y1, cortos = character(0), tipo = "multiple", fraccion = .tarjetas_panel_fraccion(tipo),
+                                   escalar = TRUE) {
   g <- .std_geom
   util <- g("ancho") - g("margen_izq") - g("margen_der"); sep <- 0.12
   arma <- function(cols) {
@@ -216,7 +219,8 @@
     list(cols = cols, wp = wp, xp = xp, cw = cw, filas = filas, alto_fila = alto_fila, total = total, sep = sep,
          cabe = total <= y1 - y0 + 1e-6)
   }
-  L <- arma(.tarjetas_columnas_ppt(length(tarjetas)))
+  L <- arma(if (isTRUE(escalar)) .tarjetas_columnas_ppt(length(tarjetas)) else 1L)
+  if (!isTRUE(escalar)) L$cabe <- TRUE   # la batería anclada se acomoda después; el ancho no se negocia
   if (!L$cabe && L$cols == 1L) L <- arma(2L)
   # Un panel angosto que no cabe en alto vuelve a los anchos de la maqueta (1/3 y 1/2).
   if (!L$cabe && !identical(fraccion, .TARJETAS_PANEL$estandar)) {
@@ -300,7 +304,10 @@
   cortos <- t$opcion$cortos
   y0 <- .lam_titulo_fin(tit) + 0.32; y1 <- .std_valor("ppt", "geometria", "base_y") - 0.12
   if (identical(t$tipo, "bateria")) y1 <- .std_valor("ppt", "geometria", "leyenda_y") - 0.1   # la leyenda corre bajo el panel
-  L <- .lam_tarjetas_disponer(t$tarjetas, y0, y1, cortos = cortos, tipo = t$tipo)
+  # Una batería va anclada a sus premisas en una columna angosta (sin repetir la premisa): su ancho no escala aunque
+  # las tarjetas no quepan en alto; si no caben, se anclan compactas o se dejan las principales (`.lam_tarjetas_anclar_cascada`).
+  L <- if (identical(t$tipo, "bateria")) .lam_tarjetas_disponer(t$tarjetas, y0, y1, cortos = cortos, tipo = t$tipo, escalar = FALSE) else
+    .lam_tarjetas_disponer(t$tarjetas, y0, y1, cortos = cortos, tipo = t$tipo)
   op <- options(prosecnur.lam_reserva_derecha = .lam_tarjetas_reserva(L, t$tipo))
   on.exit(options(op), add = TRUE)
   # La leyenda de la escala corre a todo el ancho, también bajo el panel: en el ancho acotado pedía dos renglones y
@@ -348,7 +355,7 @@
   }
   options(op); options(op_ley)
   if (identical(t$tipo, "bateria")) {
-    anclado <- tryCatch(.lam_tarjetas_anclar(doc, t, L, y0, y1, laminas = seq.int(n0 + 1L, length(doc))), error = function(e) NULL)
+    anclado <- .lam_tarjetas_anclar_cascada(doc, t, L, y0, y1, laminas = seq.int(n0 + 1L, length(doc)), titulo = tit)
     if (!is.null(anclado)) return(anclado)
   }
   .lam_tarjetas_panel(doc, t, L)
@@ -374,6 +381,17 @@
   prem <- pieza("premisa"); box <- pieza("box:cifra")
   if (!nrow(prem)) return(NULL)
   prem$yc <- prem$y + prem$h / 2
+  if (!nrow(box)) {
+    # Sin columna de Top Two Box (G17) la guía sale del borde derecho de la barra de su premisa.
+    seg <- pieza("segmento")
+    if (!nrow(seg)) { prem$x_fin <- NA_real_; return(prem) }
+    seg$yc <- seg$y + seg$h / 2
+    filas_y <- unique(round(seg$yc, 3))
+    k <- vapply(prem$yc, function(yc) filas_y[which.min(abs(filas_y - yc))], 0)
+    prem$x_fin <- vapply(k, function(yy) { s <- seg[abs(seg$yc - yy) < 0.002, ]; max(s$x + s$w) + 0.07 }, 0)
+    prem$y_ancla <- k
+    return(prem)
+  }
   # El punto va a la mitad exacta de la cifra, que es la de su barra: la escala centra la caja de la cifra en la barra
   # (`.lam_bloque_escala`: caja de 0.3 in en `yb + (g - 0.3) / 2`).
   k <- vapply(prem$yc, function(yc) if (nrow(box)) which.min(abs(box$y + box$h / 2 - yc)) else NA_integer_, 1L)
@@ -437,6 +455,29 @@
     doc <- .lam_agrupar(doc, lz, nombre = "prosecnur:tarjetas_diferencias")
   }
   officer::on_slide(doc, max(laminas))
+}
+
+#' Ancla las tarjetas de una batería: normales; si no caben, compactas (nombre corto a la izquierda, como bajo un
+#' gráfico de una lámina de dos); y si tampoco, las principales que quepan, con un aviso de cuántas quedaron fuera.
+#' El gráfico nunca se achica por las tarjetas.
+#' @keywords internal
+.lam_tarjetas_anclar_cascada <- function(doc, t, L, y0, y1, laminas, titulo = "") {
+  intento <- function(tt) tryCatch(.lam_tarjetas_anclar(doc, tt, L, y0, y1, laminas = laminas), error = function(e) NULL)
+  r <- intento(t)
+  if (!is.null(r)) return(r)
+  op <- options(prosecnur.lam_tarjeta_compacta = TRUE); on.exit(options(op), add = TRUE)
+  n <- length(t$tarjetas)
+  for (k in rev(seq_len(n))) {
+    tt <- t; tt$tarjetas <- utils::head(t$tarjetas, k)
+    r <- intento(tt)
+    if (!is.null(r)) {
+      if (k < n && exists(".pulso_aviso", mode = "function")) {
+        .pulso_aviso(sprintf("Tarjetas de diferencias: en «%s» caben %d de %d tarjetas junto a sus premisas; van las principales.", titulo, k, n))
+      }
+      return(r)
+    }
+  }
+  NULL
 }
 
 #' ¿El total cabe como lámina nativa en el ancho que deja el panel? (lo que decide `.lam_slide_1_nativa` para su forma)

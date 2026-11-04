@@ -49,9 +49,11 @@
   }
   cruces <- as.character(unlist(x$cruces %||% character(0)))
   pub <- as.character(unlist(x$publico %||% ""))[1]
+  ind <- as.character(unlist(x$indicador %||% ""))[1]
   list(activo = TRUE, max = min(mx, 9L), todas = isTRUE(as.logical(unlist(x$todas %||% FALSE))[1]),
        cruces = cruces[nzchar(cruces)], rotulos = mapa(x$rotulos),
-       cortos = mapa(x$cortos), publico = if (is.na(pub) || !nzchar(trimws(pub))) "personas encuestadas" else trimws(pub))
+       cortos = mapa(x$cortos), publico = if (is.na(pub) || !nzchar(trimws(pub))) "personas encuestadas" else trimws(pub),
+       indicador = if (is.na(ind) || !nzchar(trimws(ind))) NULL else trimws(ind))
 }
 
 #' Tipo de la pregunta para la unidad de tarjeta
@@ -322,6 +324,8 @@
   }
   vars <- as.character(unlist(el$vars %||% el$var))
   if (!length(vars)) return(NULL)
+  # Una batería sin columna de Top Two Box (`barra_extra = FALSE`, G17) compara igual el indicador que declara.
+  opt$top2box <- as.character(unlist(el$top2box_labels %||% (el$overrides %||% list())$top2box_labels %||% character(0)))
   ctx_var <- resolver(vars[[1]])
   fuente <- list(data = as.data.frame(ctx_var$data, stringsAsFactors = FALSE), survey = ctx_var$survey,
                  choices = ctx_var$choices, orders_list = ctx_var$orders_list)
@@ -353,14 +357,16 @@
     return(NULL)
   }
 
-  partes <- list()
+  partes <- list(); sin_columna <- FALSE
   if (identical(espec$tipo, "escala")) {
     box <- espec$box
-    if (is.null(box) || !length(box$cols)) {
-      aviso("la batería «", titulo, "» no muestra Top Two Box; las tarjetas comparan ese indicador.")
+    sin_columna <- is.null(box) || !length(box$cols)
+    ttb <- if (!sin_columna) espec$categorias$rotulo[match(box$cols, espec$categorias$col)] else
+      intersect(opt$top2box %||% character(0), as.character(espec$categorias$rotulo))
+    if (!length(ttb)) {
+      aviso("la batería «", titulo, "» no declara Top Two Box; las tarjetas comparan ese indicador y van sin ellas.")
       return(NULL)
     }
-    ttb <- espec$categorias$rotulo[match(box$cols, espec$categorias$col)]
     vfila <- .tarjetas_vars_bateria(vars_loc, espec, fuente$survey)
     filas_vis <- as.character(espec$filas$rotulo)
     tipo <- "bateria"
@@ -393,11 +399,14 @@
                filas_visibles = if (identical(tipo, "dicotomica")) sustantivas else filas_vis)
   rotulos_cruce <- vapply(cruces, function(cr) if (cr %in% names(opt$rotulos)) unname(opt$rotulos[[cr]]) else .tarjetas_rotulo_var(cr, fuente$survey), character(1))
   # La fila «Total» de la tarjeta repite la cifra del gráfico (su redondeo), no una propia.
-  cifras <- if (identical(tipo, "bateria")) stats::setNames(as.character(espec$box$cifras), filas_vis) else
+  cifras <- if (identical(tipo, "bateria") && !isTRUE(sin_columna)) stats::setNames(as.character(espec$box$cifras), filas_vis) else
+    if (identical(tipo, "bateria")) stats::setNames(.tarjetas_pct(totales[filas_vis]), filas_vis) else
     stats::setNames(as.character(espec$cifras %||% character(0)), as.character(espec$rotulos %||% character(0)))
   todas <- lapply(todas, function(t) {
     t$cifra_total <- unname(cifras[t$fila])
     t$fila_es_titulo <- nzchar(titulo) && .lam_mismo_texto(t$fila, titulo)   # la tarjeta no repite el título
+    # Sin columna de Top Two Box el indicador no se ve en el gráfico: la tarjeta lo nombra (`.tarjetas_indicador`).
+    if (isTRUE(sin_columna)) t$indicador <- .tarjetas_indicador(ttb, opt$indicador)
     t
   })
   list(tarjetas = utils::head(todas, opt$max), total = length(todas), tipo = tipo, opcion = opt,
@@ -469,7 +478,20 @@
   if (!is.null(t)) return(t)
   f <- .tarjetas_firma(p)
   if (is.na(f) || is.null(.tarjetas_estado$registro)) return(NULL)
-  .tarjetas_estado$registro[[f]]
+  t <- .tarjetas_estado$registro[[f]]
+  if (!is.null(t)) return(t)
+  # El Word parte una batería larga en piezas (redes sociales: 8 ítems en dos figuras): cada pieza toma, de la lámina
+  # que contiene todas sus filas, las tarjetas de esas filas.
+  espec <- attr(p, "pulso_espec")
+  if (!identical(espec$tipo, "escala") || NROW(espec$filas) < 2L) return(NULL)
+  norm <- function(x) gsub("\\s+", " ", trimws(as.character(x)))
+  filas <- norm(espec$filas$rotulo)
+  for (r in .tarjetas_estado$registro) {
+    if (!identical(r$tipo, "bateria") || !all(filas %in% norm(r$filas))) next
+    r$tarjetas <- Filter(function(x) norm(x$fila) %in% filas, r$tarjetas)
+    return(if (length(r$tarjetas)) r else NULL)
+  }
+  NULL
 }
 
 #' El render del Word es otro gráfico que el de la lámina: hereda sus tarjetas (las calculó `.tarjetas_adjuntar`)
@@ -491,6 +513,35 @@
   v <- if (is.null(v) || !length(v) || is.na(v[1])) "" else trimws(as.character(v)[1])
   if (grepl(.TARJETAS_FRASE_TODAS, v, fixed = TRUE)) return(v)
   if (!nzchar(v)) .TARJETAS_FRASE_TODAS else paste(sub("([^.])$", "\\1.", v), .TARJETAS_FRASE_TODAS)
+}
+
+#' Nombre del indicador de una batería sin columna de Top Two Box: el declarado (`indicador`) o la parte común de las
+#' categorías que suma («Todos los días, en momentos puntuales» + «Todos los días, a lo largo del día» → «Todos los
+#' días»); sin parte común de al menos cuatro letras, «Top Two Box».
+#' @keywords internal
+.tarjetas_indicador <- function(categorias, declarado = NULL) {
+  if (!is.null(declarado) && nzchar(declarado)) return(declarado)
+  categorias <- as.character(categorias)
+  if (length(categorias) == 1L) return(categorias)
+  pal <- strsplit(categorias, "\\s+")
+  n <- 0L
+  repeat {
+    k <- n + 1L
+    if (any(lengths(pal) < k) || length(unique(vapply(pal, `[`, "", k))) != 1L) break
+    n <- k
+  }
+  comun <- sub("[,;:[:space:]]+$", "", paste(pal[[1]][seq_len(n)], collapse = " "))
+  if (nchar(comun) >= 4L) comun else .PPT_ROTULO_TOP_TWO_BOX
+}
+
+#' Encabezado de una tarjeta: la fila (si no la dice el eje ni el título) y, sin columna de Top Two Box, el indicador
+#' («Claude · Todos los días»; anclada a su premisa, solo «Todos los días»). NULL si no lleva.
+#' @keywords internal
+.tarjetas_encabezado <- function(t, con_fila = TRUE, tipo = "multiple") {
+  fila <- if (isTRUE(con_fila) && !isTRUE(t$fila_es_titulo)) .tarjetas_rotulo_fila(t$fila, tipo) else NULL
+  ind <- t$indicador %||% NULL
+  partes <- c(fila, ind)
+  if (!length(partes)) NULL else paste(partes, collapse = " \u00b7 ")
 }
 
 #' Rótulo de grupo para la tarjeta: el corto declarado, si lo hay
