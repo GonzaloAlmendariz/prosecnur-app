@@ -4375,6 +4375,7 @@ hojas_ruta_sample_size_preview <- function(config = list()) {
     floors_used <- if (enforce_floor && n_used >= n_district_floor) n_district_min else rep(0L, length(district_pop))
     .hojas_ruta_allocate_by_mode(district_pop, n_used, alloc_mode, floors_used)
   }
+  used_by_district <- hojas_ruta_estrato_preview_rutas(district_ubigeos, n_used, cfg, route_status$ok) %||% used_by_district # ADR 0131 §1
   used_by_district[is.na(used_by_district) | used_by_district < 0L] <- 0L
 
   margin_total <- .hojas_ruta_margin_error(total_population, n_used, params)
@@ -4473,7 +4474,7 @@ hojas_ruta_sample_size_preview <- function(config = list()) {
     margin_total_target = params$margin_total,
     district_rows = rows,
     alerts = alerts
-  ), hojas_ruta_reparto_base_declaracion(district_ubigeos, params))
+  ), hojas_ruta_reparto_base_declaracion(district_ubigeos, params, cfg, n_used))
 }
 
 #' Previsualizar cuotas integradas desde el marco INEI 2017
