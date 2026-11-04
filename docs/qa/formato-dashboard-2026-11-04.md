@@ -22,7 +22,7 @@ ese `EmptyState` propio.
 | P4 | `toLocaleString` en cifras / `toFixed(1).replace(/\.0$/)` | 3 / 2 | 0 / 0 | `formatoConteo` en el total de Resumen y en Base de datos; `formatoDecimal(v, 1)` en las marcas del FODA (mismo resultado). Quedan los `toFixed(1)` de decimal fijo (score y DE del FODA: «80.0» se lee distinto de «80») y los porcentajes que van dentro de Plotly |
 | P5 | Vacíos y cargas con receta propia | 2 sin declarar | **0** | «Sin indicadores configurados» (Resumen) y «Sin coincidencias» (Paletas) pasan a `shared/EmptyState` |
 | P6 | Estados con píldora propia | 0 | 0 | Los «chip» del módulo son etiquetas de dato y conmutadores (cuadrantes FODA, ensamblado del indicador), no estados |
-| P2 | Cajas propias | 84 | 84 | Las tarjetas son las del tablero publicado: mismo motivo que P1 |
+| P2 | Cajas propias | 84 | 84 | 4 nov, mañana (revisable por Gonzalo): los grupos de ajustes del editor de personalización (`SettingBlock`: Logos, Color principal, Resumen, Barras, Radar, Variables, Conductores, Por categoría, Layout) son `Panel`, porque el editor es chrome de la app. El tablero publicado y los gates de curaduría y fuente (`dash-cardbox`, dentro del lienzo y con su tema) se quedan. El editor se abre con `?panel=personalizar` (antes un `useState`); fuente, paletas y publicar siguen sin dirección. Ratchet `cajasPropias.contract.test.ts` (el conteo no baja: la caja de `SettingBlock` repartía borde y relleno en dos reglas y el detector no la veía). Captura con `acnur_acg` a 1440 y 1024: `ok=true` |
 
 ### Declarados (decididos por coordinación, revisables por Gonzalo)
 

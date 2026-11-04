@@ -32,6 +32,8 @@ import { GlidingTabList } from "../../components/GlidingTabList";
 import { ChromeIndicator, ChromeIndicatorGroup } from "../../components/ChromeIndicator";
 import { ModuleCommandBar } from "../../components/ModuleCommandBar";
 import { DASHBOARD_PESTANAS } from "../../lib/navegacion/catalogos/dashboard";
+import { usePanelDireccionable } from "../../lib/navegacion/paneles";
+import { PANEL_PERSONALIZAR } from "./panelesDashboard";
 
 type DashboardVisibleTab = typeof DASHBOARD_PESTANAS[number] & {
   available: boolean;
@@ -91,7 +93,9 @@ export default function DashboardPage({
   const setSeccionActiva = useDashboardStore((s) => s.setSeccionActiva);
   const [sourceOpen, setSourceOpen] = useState(false);
   const [palettesOpen, setPalettesOpen] = useState(false);
-  const [customizeOpen, setCustomizeOpen] = useState(false);
+  // Direccionable (`?panel=personalizar`): el editor se enlaza y el QA lo abre sin clic.
+  const personalizar = usePanelDireccionable(PANEL_PERSONALIZAR);
+  const customizeOpen = personalizar.abierto;
   const [publishOpen, setPublishOpen] = useState(false);
   // Modo "Vista previa": oculta el admin toolbar y los controles de
   // edición para que el editor pueda ver cómo se verá el dashboard
@@ -104,7 +108,7 @@ export default function DashboardPage({
     if (previewMode) {
       setSourceOpen(false);
       setPalettesOpen(false);
-      setCustomizeOpen(false);
+      personalizar.cerrar();
       setPublishOpen(false);
     }
   }, [previewMode]);
@@ -266,7 +270,7 @@ export default function DashboardPage({
                 label: "Personalizar",
                 icon: Settings,
                 rank: 2,
-                onSelect: () => setCustomizeOpen(true),
+                onSelect: () => personalizar.abrir(),
                 disabled: !hasDashboardSource,
                 title: "Personalizar marca, pestañas y vistas",
               },
@@ -415,7 +419,7 @@ export default function DashboardPage({
       )}
       {customizeOpen && (
         <DashboardCustomizeDialog
-          onClose={() => setCustomizeOpen(false)}
+          onClose={() => personalizar.cerrar()}
           returnFocusTo={DISPARADOR_MAS_ACCIONES}
         />
       )}

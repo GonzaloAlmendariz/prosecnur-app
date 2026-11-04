@@ -31,6 +31,7 @@ import {
 import { Dialog, type RetornoDeFoco } from "../../../components/Dialog";
 import { useDimSeccionesVars } from "../useDashboardData";
 import { DASHBOARD_PESTANAS } from "../../../lib/navegacion/catalogos/dashboard";
+import { Panel } from "../../../components/Panel";
 
 type CustomizePanel = "marca" | "pestanas" | "foda" | "graficos" | "semaforo" | "dimensiones" | "matriz" | "iconos";
 
@@ -947,15 +948,25 @@ function PanelTitle({ title, text }: { title: string; text: string }) {
   );
 }
 
+/**
+ * Un grupo de ajustes del editor con su título: `Panel` del kit (P2, 4 nov 2026; revisable por Gonzalo). El
+ * editor es chrome de la app, no el tablero publicado, así que toma el material del kit; el ícono va con el título.
+ */
 function SettingBlock({ title, icon, children }: { title: string; icon: ReactNode; children: ReactNode }) {
   return (
-    <div className="dash-customize-setting-block" data-qa-geometry-group="dash-customize-setting-block" data-qa-geometry-contract="intrinsic">
-      <div className="dash-customize-setting-title">
-        {icon}
-        <strong>{title}</strong>
-      </div>
+    <Panel
+      className="dash-customize-setting-block"
+      data-qa-geometry-group="dash-customize-setting-block"
+      data-qa-geometry-contract="intrinsic"
+      title={
+        <span className="dash-customize-setting-title">
+          {icon}
+          <span>{title}</span>
+        </span>
+      }
+    >
       {children}
-    </div>
+    </Panel>
   );
 }
 
