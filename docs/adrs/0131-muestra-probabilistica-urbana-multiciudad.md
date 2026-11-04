@@ -64,9 +64,17 @@ la muestra teniendo el 54 % de la población. Esta enmienda reemplaza la regla d
   con la tabla de departamentos declarada en el código y aquí). En cada grupo g:
   - rutas del grupo `R_g` = suma de los repartos proporcionales de sus ciudades;
   - ciudades a visitar `h_g = max(1, ⌊R_g / mínimo⌋)`;
-  - las ciudades se sortean por PPS sistemático según adultos urbanos 2025: `π_c = h_g · P_c / P_g`. Una ciudad con
-    `π_c ≥ 1` pasa a inclusión forzosa y se recalcula el grupo;
+  - las ciudades se sortean por PPS sistemático con la medida de tamaño `MOS_c`, la suma de la medida del sorteo
+    de las manzanas del marco elegible de la ciudad (con la base 2025, `M_i · g_d`, que equivale a los adultos
+    urbanos 2025): `π_c = h_g · MOS_c / MOS_g`. Con esa medida el grupo queda exactamente autoponderado,
+    `π_i = n_g · MOS_i / MOS_g` (decisión del 4/11). Una ciudad con `π_c ≥ 1` pasa a inclusión forzosa y se recalcula
+    el grupo;
   - cada ciudad sorteada recibe `R_g / h_g` rutas (redondeo controlado), por lo que nunca baja del mínimo.
+- **Macrorregiones** (por departamento, `api/R/hojas_ruta_macrorregiones.R`; por confirmar con Gonzalo):
+  - norte: Tumbes, Piura, Lambayeque, La Libertad, Cajamarca y Áncash;
+  - centro: Lima (provincias), Callao, Ica, Junín, Pasco, Huánuco, Huancavelica y Ayacucho;
+  - sur: Arequipa, Moquegua, Tacna, Cusco, Puno y Apurímac;
+  - oriente: Amazonas, Loreto, San Martín, Ucayali y Madre de Dios.
 - **π de la manzana** = `π_c · π_manzana|ciudad`. En las ciudades forzosas `π_c = 1`. El diseño sigue siendo
   probabilístico y autoponderado dentro de cada grupo; la ciudad sorteada representa a las no sorteadas de su grupo.
 - **Varianza:** en los grupos sorteados la ciudad es la unidad primaria. Un grupo con una sola ciudad sorteada se
