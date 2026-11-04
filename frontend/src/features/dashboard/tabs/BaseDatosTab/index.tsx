@@ -13,6 +13,7 @@ import {
 import { EmptyState } from "../../shared/EmptyState";
 import { GlidingTabList } from "../../../../components/GlidingTabList";
 import "./baseDatos.css";
+import { useAltoDeCabecera } from "../../../procesamiento/useAltoDeCabecera";
 
 import { formatoConteo } from "../../../../lib/formatoNumero";
 // Tab Base de datos — fiel al legacy `prosecnur::reporte_interactivo()`:
@@ -370,6 +371,9 @@ function BaseDatosTabla({
   const end = Math.min(payload.total, start + payload.rows.length - 1);
 
   const hasFiltros = !!search || Object.values(columnFilters).some((v) => v.trim().length > 0);
+  // La cabecera fija tiene dos filas (nombres y filtros): se mide su alto real para anclar los filtros bajo los
+  // nombres y para que las filas encajen bajo ella al desplazar (el patrón de la grilla de bases).
+  const marcoDeLaTabla = useAltoDeCabecera<HTMLDivElement>(payload.columnas);
 
   return (
     <div className="dash-base-tabla-wrap">
@@ -411,7 +415,7 @@ function BaseDatosTabla({
         </div>
       </div>
 
-      <div className="dash-base-tabla-scroll">
+      <div className="dash-base-tabla-scroll" ref={marcoDeLaTabla}>
         <table className="dash-base-tabla">
           <thead>
             {/* Header fila 1: nombre columna. */}

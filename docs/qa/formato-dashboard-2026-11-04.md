@@ -62,3 +62,27 @@ dimensiones construidas (esperado).
 | P1, P2, P6 | fuera de alcance / sin casos | — | |
 | Capturas después | ☑ | | Ver «Vistas» |
 | Gate | ☑ | | `tsc` 0; `make gate-front AREA=dashboard` 29 suites, 701 tests |
+
+## Overlays direccionables y alcance a 1024 (4 nov, tarde; decidido por coordinación, revisable por Gonzalo)
+
+Paletas, Publicar y Fuente («Datos») se abren con `?panel=paletas`, `?panel=publicar` y `?panel=fuente` (bb59b66ce,
+f94f84aba, 53a3cbf73). `DashboardRuta` lee la dirección y pasa el control como prop; `DashboardPage` usa
+`usePanelConRespaldo` (estado propio en la publicación, que monta la página fuera del Router). Fuente es `inspector`:
+reemplaza el tablero en la página. Abrir Publicar por dirección no publica.
+
+| # | Vista | Qué se ve | Estado |
+|---|---|---|---|
+| 4 | Fuente («Datos») a 1024 | `scroll-jail`: más alta que el marco del editor, su pie quedaba fuera de alcance | ☑ desplaza dentro del marco (53a3cbf73) |
+| 5 | Curaduría (fase inicial) a 1440 y 1024 | Sin hallazgos: su lista ya es dueña de su scroll | ☑ medida |
+| 6 | Base de datos a 1024, con todas las variables | La cabecera fija (nombres y filtros) tapaba 17 px de una fila al desplazar; el botón del libro de códigos se salía 3 px | ☑ `useAltoDeCabecera` y encaje de filas (el patrón de la grilla de bases); el botón sin relleno heredado |
+| 7 | Base de datos, 52 columnas | Columnas a la derecha tras desplazar en horizontal (`alcanzable`) | no es defecto |
+| 8 | Resumen, Relaciones y el editor de personalización a 1024 y 1440 | Sin hallazgos C4 | ☑ |
+| 9 | Dimensiones | La pestaña está bloqueada en la copia («Dimensiones pendientes») y la dirección cae en Resumen | ☐ sin medir: pide un estudio con dimensiones configuradas |
+
+**La curaduría no se hace direccionable.** No es un panel que se abra: es la fase inicial que el tablero muestra sola
+mientras la curaduría no está confirmada, y una vez confirmada sus variables se ajustan en «Personalizar variables»,
+dentro de la Fuente (`?panel=fuente`). Un `?panel=curaduria` sería una segunda entrada a lo mismo (regla de no
+duplicar navegación).
+
+Capturas con `--url` contra la pila de la sesión sobre una copia de `acnur_pdm` con la fuente del dashboard cargada por
+la API (XLSForm y data del PDM de su sesión) y, para el recorrido de pestañas, la curaduría confirmada.
