@@ -19,6 +19,7 @@ import {
   type ProcessingSheetRepeatContext,
 } from "../../lib/rosterExplorer";
 import { ColumnFilterControl, columnFilterActive, describeColumnFilter } from "./ColumnFilterControl";
+import { useAltoDeCabecera } from "./useAltoDeCabecera";
 import "./processingSheetViewer.css";
 
 type Props = {
@@ -170,6 +171,7 @@ export function ProcessingSheetViewer({
   const hasCodingLegend = highlightCoding && columns.some((column) => isColumnWithKindColor(column));
   const hasOpenTextMultipleLegend = highlightCoding && columns.some((column) => isOpenTextMultipleRecodColumn(column));
   const isWideSheet = (payload?.n_columns ?? columns.length) > 8;
+  const marcoDeLaGrilla = useAltoDeCabecera<HTMLDivElement>(payload);
 
   const rosterGrain = useMemo(
     () =>
@@ -435,7 +437,7 @@ export function ProcessingSheetViewer({
         </div>
       ) : (
         <>
-          <div className="pulso-processing-sheet-scroll">
+          <div className="pulso-processing-sheet-scroll" ref={marcoDeLaGrilla}>
             <table className="pulso-processing-sheet-table">
               <thead>
                 <tr>
