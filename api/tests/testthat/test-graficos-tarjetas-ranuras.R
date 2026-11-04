@@ -48,7 +48,7 @@ test_that("bajo un gráfico la tarjeta es compacta: el nombre corto a la izquier
   expect_true(.lam_tarjeta_medidas(2.9)$apilada)                         # fuera de la franja, como siempre
 })
 
-test_that("PPT: hasta dos tarjetas por gráfico, dentro de su mitad y bajo su gráfico; la mitad sin diferencias lo dice", {
+test_that("PPT: hasta dos tarjetas por gráfico, dentro de su mitad y bajo su gráfico; la mitad sin diferencias no lleva nada", {
   doc <- officer::add_slide(officer::read_pptx(system.file("plantillas", "plantilla_16_9.pptx", package = "prosecnurapp")),
                             layout = "Graficos2", master = "Office Theme")
   ts <- list(.tr_conjunto(2), list(tarjetas = list(), opcion = list(), pedidas = TRUE))
@@ -67,11 +67,13 @@ test_that("PPT: hasta dos tarjetas por gráfico, dentro de su mitad y bajo su gr
   expect_true(all(tj$x >= P[[1]]$x - 1e-6 & tj$x + tj$w <= P[[1]]$x + P[[1]]$w + 1e-6))   # en la mitad izquierda
   expect_true(all(tj$y + tj$h <= .std_geom("contenido_y1") + 0.02))
   expect_gt(min(tj$y), P[[1]]$y + 2)                                                       # debajo del gráfico
-  av <- caja("tarjeta:sin_diferencias:aviso")
-  expect_identical(nrow(av), 1L)
-  expect_gte(av$x, P[[2]]$x - 1e-6)
   xml <- paste(readLines(file.path(d, "ppt/slides/slide1.xml"), warn = FALSE), collapse = "")
   expect_match(xml, "CC. Pol. y Soc.", fixed = TRUE)
+  # Ítem 18 de la v7 RV: ni la nota de «sin diferencias» ni el filete en la mitad sin tarjetas.
+  expect_false(grepl("Sin diferencias", xml, fixed = TRUE))
+  sep <- caja("separador")
+  expect_identical(nrow(sep), 1L)
+  expect_lt(sep$x + sep$w, P[[2]]$x)
 })
 
 test_that("si los gráficos no caben sobre la franja, la lámina va sin tarjetas y un aviso dice qué acortar", {
@@ -107,4 +109,17 @@ test_that("Word: cada figura de una lámina de dos gráficos lleva las tarjetas 
   expect_length(attr(q, "pulso_tarjetas")$tarjetas, 2L)
   motor$stype <- "slide_1"
   expect_null(attr(.tarjetas_word_ranura(p, el_der, marco), "pulso_tarjetas"))
+})
+
+test_that("sin ninguna diferencia en la lámina no hay franja: los paneles conservan su alto y no se dibuja nada", {
+  vistos <- NULL
+  base <- officer::read_pptx(system.file("plantillas", "plantilla_16_9.pptx", package = "prosecnurapp"))
+  compone <- function(d) { vistos <<- getOption("prosecnur.lam_reserva_inferior"); officer::add_slide(d, layout = "Graficos2", master = "Office Theme") }
+  vacia <- list(tarjetas = list(), opcion = list(), pedidas = TRUE)
+  doc <- .lam_slide_2_con_tarjetas(base, list(vacia, vacia), compone, ps = list(1, 2), els = list(), titulo = "Tiempo")
+  expect_null(vistos)
+  f <- tempfile(fileext = ".pptx"); print(doc, target = f)
+  xml <- paste(readLines(unz(f, "ppt/slides/slide1.xml"), warn = FALSE), collapse = "")
+  expect_false(grepl("Sin diferencias", xml, fixed = TRUE))
+  expect_false(grepl("prosecnur:tarjetas_diferencias", xml, fixed = TRUE))
 })
