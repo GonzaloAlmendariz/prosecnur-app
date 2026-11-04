@@ -43,6 +43,8 @@ export type SlideMeta = {
 export type TarjetasDiferenciasMeta = {
   activo?: boolean;
   max?: number;
+  /** Una tarjeta por cruce con todos los grupos comparables, haya o no diferencias (ítem 23 de la v7 RV). */
+  todas?: boolean;
   cruces?: string[];
   rotulos?: Record<string, string>;
   cortos?: Record<string, string>;

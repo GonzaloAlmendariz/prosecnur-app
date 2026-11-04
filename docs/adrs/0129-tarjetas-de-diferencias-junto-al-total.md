@@ -70,6 +70,19 @@ Cada diferencia de un grupo **frente al resto** se prueba con la misma evaluaci�
 - `.nresp_colocar` reemplaza la lámina de texto de lectura.
 - `.sig_informe_preparar` deja la base para la tarjeta de ejemplo.
 
+### 5. Extensión: todos los grupos con `todas` (2026-11-04, ítem 23 de la v7 RV)
+
+Gonzalo pidió ver las diferencias entre las variables de corte principales aunque no sean significativas. La lámina «¿Cómo consideras que es la calidad de la educación en la Facultad?» no tenía ninguna.
+
+- **Opción.** `meta.tarjetas_diferencias.todas = true`, apagada por defecto. Sin ella todo sigue igual.
+- **Unidad.** Una tarjeta por cruce declarado, en el orden de los cruces, aunque ninguna diferencia sea significativa. En una batería va una por ítem y cruce. En una opción única la fila es la de mayor diferencia significativa y, sin ninguna, la categoría que más se aleja del total en un grupo comparable. El tope de 4 tarjetas sigue: con los cuatro cruces de CCSS caben justo.
+- **Grupos.** Cada tarjeta muestra el total y todos los grupos comparables del cruce, con su cifra. La flecha y el nivel van solo donde la regla los da. Los demás grupos van sin flecha, con barra neutra (`tarjeta_barra_neutra`) y cifra sin negrita.
+- **No comparables.** Los grupos que no se comparan por base o por conglomerados no se muestran. Una cifra sin prueba al lado de las probadas se leería como «sin diferencia», que es justo lo que no se sabe. Una tarjeta sin ninguna diferencia lleva el borde de la de 99% y se llama `tarjeta:sin_diferencias`.
+- **Frase.** La base de la lámina (PPT) y el pie de las tarjetas (Word) dicen «Se muestran todos los grupos con base suficiente; la flecha marca solo las diferencias significativas.» La lámina de lectura no elige como ejemplo una tarjeta sin flechas.
+- **La fila no repite el título.** Si la fila de la tarjeta es el título de la lámina (una batería de un solo ítem), la tarjeta no la repite. Esto vale también sin `todas`.
+- **Columna con llave.** En el PPT, una batería de un solo ítem con Top Two Box y tarjetas no va en barra horizontal. Va en una columna apilada vertical, con el nombre de cada categoría a su izquierda y una llave que abarca las de la caja y rotula «TOP TWO BOX» con su cifra (`api/R/lamina_columna_llave.R`). Las tarjetas ocupan la mitad derecha (panel estándar). Gonzalo eligió esta excepción frente a las barras agrupadas.
+- **Word.** El Word dibuja esa batería con la fila vacía. Su figura se reconoce además por la firma de fila vacía, que vale solo para la lámina en curso.
+
 ## Consecuencias
 
 - Una diferencia de nivel puede quedar al 95% o desaparecer frente a la maqueta, que usaba una familia propia y más chica. Pasó en CCSS con nivel 7 en «ONG» y con padres en «posgrado».
@@ -80,5 +93,6 @@ Cada diferencia de un grupo **frente al resto** se prueba con la misma evaluaci�
 
 - Motor: `api/R/graficos_tarjetas_diferencias.R`, `api/R/graficos_tarjetas_lectura.R`, `api/R/lamina_tarjetas_diferencias.R` y `api/R/reporte_word_tarjetas.R`.
 - Tokens de color: `ppt.colores.tarjeta_*` y `verde_acuerdo` en `api/inst/estandar/estandar_pulso.json`.
-- Tests: `api/tests/testthat/test-graficos-tarjetas-diferencias.R`.
+- Tests: `api/tests/testthat/test-graficos-tarjetas-diferencias.R` y `api/tests/testthat/test-graficos-tarjetas-todas.R`.
+- Columna con llave: `api/R/lamina_columna_llave.R`.
 - UI: interruptor «Tarjetas de diferencias» en la sección «Diferencias entre grupos» del inspector de la lámina.

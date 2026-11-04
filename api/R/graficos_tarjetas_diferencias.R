@@ -25,7 +25,8 @@
 
 #' Opción de la lámina: NULL si no pide tarjetas; si las pide, la lista normalizada
 #'
-#' Acepta `TRUE` o una lista `{activo, max, cruces, rotulos, cortos, publico}`. `cruces` restringe o reordena los cruces del
+#' Acepta `TRUE` o una lista `{activo, max, todas, cruces, rotulos, cortos, publico}`. `todas = TRUE` (ítem 23 de la v7 RV,
+#' apagada por defecto) pone una tarjeta por cruce con todos sus grupos comparables, haya o no diferencias significativas. `cruces` restringe o reordena los cruces del
 #' estudio; `rotulos` nombra cada cruce («area» → «Área»); `cortos` acorta rótulos de grupo («Economía y Finanzas» →
 #' «Econ. y Finanzas»); `publico` nombra a quienes respondieron en la lectura («estudiantes»).
 #' @keywords internal
@@ -47,7 +48,8 @@
   }
   cruces <- as.character(unlist(x$cruces %||% character(0)))
   pub <- as.character(unlist(x$publico %||% ""))[1]
-  list(activo = TRUE, max = min(mx, 9L), cruces = cruces[nzchar(cruces)], rotulos = mapa(x$rotulos),
+  list(activo = TRUE, max = min(mx, 9L), todas = isTRUE(as.logical(unlist(x$todas %||% FALSE))[1]),
+       cruces = cruces[nzchar(cruces)], rotulos = mapa(x$rotulos),
        cortos = mapa(x$cortos), publico = if (is.na(pub) || !nzchar(trimws(pub))) "personas encuestadas" else trimws(pub))
 }
 
@@ -133,6 +135,7 @@
   }
   ce <- ev$celdas
   celdas <- data.frame(cruce = cruce, fila = renombrar(ce$fila), grupo = ce$grupo, p = 100 * ce$p, n = ce$n,
+                       comparable = if (is.null(ce$comparable)) rep(TRUE, nrow(ce)) else ce$comparable %in% TRUE,
                        stringsAsFactors = FALSE)
   tot <- .tarjetas_total_filas(ind, filas)
   list(pruebas = pruebas, celdas = celdas,
@@ -209,6 +212,62 @@
   fr <- vapply(out, function(t) isTRUE(t$fragil), logical(1))
   br <- vapply(out, function(t) t$brecha, numeric(1))
   out[order(fr, -br)]
+}
+
+#' Una tarjeta con todos los grupos comparables del cruce (opción `todas`, ítem 23 de la v7 RV)
+#'
+#' Los grupos que la regla marca llevan su flecha y su nivel, como en `.tarjetas_armar`; los demás van sin flecha
+#' (`dir = NA`) en el tono neutro de la tarjeta. Los que no se comparan por base o por conglomerados no se muestran: una
+#' cifra sin prueba al lado de las probadas se leería como «sin diferencia», que es justo lo que no se sabe.
+#' @keywords internal
+.tarjetas_armar_todas <- function(cruce, fila, ts, celdas, grupos, total) {
+  gs <- grupos$codigo[grupos$cruce == cruce]
+  ce <- celdas[celdas$cruce == cruce & celdas$fila == fila, , drop = FALSE]
+  comparables <- gs[gs %in% ce$grupo[ce$comparable %in% TRUE]]
+  if (!length(comparables)) return(NULL)
+  marcada <- if (nrow(ts)) .tarjetas_armar(ts, celdas, grupos, total)$grupos else NULL
+  gdf <- do.call(rbind, lapply(comparables, function(g) {
+    m <- if (is.null(marcada)) NULL else marcada[marcada$codigo == g, , drop = FALSE]
+    data.frame(codigo = g, etiqueta = grupos$etiqueta[grupos$cruce == cruce & grupos$codigo == g][1],
+               p = ce$p[ce$grupo == g][1], dir = if (length(m) && nrow(m)) m$dir[1] else NA_character_,
+               fragil = length(m) > 0L && nrow(m) > 0L && isTRUE(m$fragil[1]), stringsAsFactors = FALSE)
+  }))
+  gdf <- gdf[order(-gdf$p), , drop = FALSE]
+  rownames(gdf) <- NULL
+  list(cruce = cruce, fila = fila, total = unname(total[fila]), grupos = gdf,
+       fragil = nrow(ts) > 0L && all(ts$fragil), brecha = if (nrow(ts)) max(ts$dif) else 0,
+       sin_diferencias = !nrow(ts), todas = TRUE)
+}
+
+#' Tarjetas de la opción `todas`: una por cruce declarado (y por ítem en una batería), en el orden de los cruces
+#'
+#' En una opción única la fila es la categoría con la diferencia significativa mayor; sin ninguna, la que más se aleja
+#' del total en algún grupo comparable. En una dicotómica, la opción principal.
+#' @keywords internal
+.tarjetas_seleccionar_todas <- function(pruebas, celdas, grupos, totales, tipo, cruces, filas_visibles = NULL) {
+  pruebas <- pruebas %||% data.frame(cruce = character(), fila = character(), dif = numeric())
+  filas <- if (length(filas_visibles)) filas_visibles else unique(celdas$fila)
+  filas <- intersect(filas, unique(celdas$fila))
+  if (!length(filas)) return(list())
+  if (identical(tipo, "dicotomica")) filas <- filas[1]
+  out <- list()
+  elegir <- function(cr) {
+    del <- pruebas[pruebas$cruce == cr & pruebas$fila %in% filas, , drop = FALSE]
+    if (nrow(del)) return(del$fila[which.max(del$dif)])
+    ce <- celdas[celdas$cruce == cr & celdas$fila %in% filas & celdas$comparable %in% TRUE, , drop = FALSE]
+    if (!nrow(ce)) return(NA_character_)
+    ce$lejos <- abs(ce$p - unname(totales[ce$fila]))
+    ce$fila[which.max(ce$lejos)]
+  }
+  por_fila <- if (identical(tipo, "opcion_unica")) NULL else filas
+  for (f in por_fila %||% NA_character_) for (cr in cruces) {
+    fila <- if (is.na(f)) elegir(cr) else f
+    if (is.na(fila)) next
+    ts <- pruebas[pruebas$cruce == cr & pruebas$fila == fila, , drop = FALSE]
+    t <- .tarjetas_armar_todas(cr, fila, ts, celdas, grupos, totales)
+    if (!is.null(t)) out[[length(out) + 1L]] <- t
+  }
+  out
 }
 
 #' Disposición de las tarjetas en el Word: con número impar, la principal sola; las demás de a dos
@@ -328,13 +387,18 @@
   grupos <- unique(do.call(rbind, lapply(partes, `[[`, "grupos")))
   totales <- unlist(lapply(partes, `[[`, "totales"))
   totales <- totales[!duplicated(names(totales))]
-  todas <- .tarjetas_seleccionar(pruebas, celdas, grupos, totales, tipo, cruces,
-                                 filas_visibles = if (identical(tipo, "dicotomica")) sustantivas else filas_vis)
+  sel <- if (isTRUE(opt$todas)) .tarjetas_seleccionar_todas else .tarjetas_seleccionar
+  todas <- sel(pruebas, celdas, grupos, totales, tipo, cruces,
+               filas_visibles = if (identical(tipo, "dicotomica")) sustantivas else filas_vis)
   rotulos_cruce <- vapply(cruces, function(cr) if (cr %in% names(opt$rotulos)) unname(opt$rotulos[[cr]]) else .tarjetas_rotulo_var(cr, fuente$survey), character(1))
   # La fila «Total» de la tarjeta repite la cifra del gráfico (su redondeo), no una propia.
   cifras <- if (identical(tipo, "bateria")) stats::setNames(as.character(espec$box$cifras), filas_vis) else
     stats::setNames(as.character(espec$cifras %||% character(0)), as.character(espec$rotulos %||% character(0)))
-  todas <- lapply(todas, function(t) { t$cifra_total <- unname(cifras[t$fila]); t })
+  todas <- lapply(todas, function(t) {
+    t$cifra_total <- unname(cifras[t$fila])
+    t$fila_es_titulo <- nzchar(titulo) && .lam_mismo_texto(t$fila, titulo)   # la tarjeta no repite el título
+    t
+  })
   list(tarjetas = utils::head(todas, opt$max), total = length(todas), tipo = tipo, opcion = opt,
        filas = filas_vis, totales = totales, grupos = grupos, cruces = cruces, rotulos_cruce = rotulos_cruce,
        regla = regla)
@@ -349,6 +413,8 @@
 .tarjetas_adjuntar <- function(p, env) {
   if (!inherits(p, "ggplot") || !is.environment(env)) return(p)
   if (!identical(get0("stype", envir = env, inherits = FALSE), "slide_1")) return(p)
+  # La variante de fila vacía (batería de un ítem) vale sólo para la figura de su lámina: cada lámina nueva la limpia.
+  if (!is.null(.tarjetas_estado$registro)) .tarjetas_estado$registro[["escala\r"]] <- NULL
   slide <- get0("slide", envir = env, inherits = FALSE)
   if (is.null(.tarjetas_opcion(slide$meta))) return(p)
   resolver <- get0(".resolve_ref", envir = env, inherits = FALSE)
@@ -388,6 +454,10 @@
   if (is.na(f)) return(invisible(NULL))
   if (is.null(.tarjetas_estado$registro)) .tarjetas_estado$registro <- list()
   .tarjetas_estado$registro[[f]] <- t
+  # Una batería de un solo ítem igual al título: el Word la dibuja con la fila vacía (no repite el título). Se registra
+  # también así; la figura del Word sigue a su lámina, de modo que la última registrada es la suya (ítem 23 de la v7 RV).
+  espec <- attr(p, "pulso_espec")
+  if (identical(espec$tipo, "escala") && NROW(espec$filas) == 1L) .tarjetas_estado$registro[["escala\r"]] <- t
   invisible(NULL)
 }
 
@@ -407,6 +477,19 @@
   t <- if (inherits(origen, "ggplot")) attr(origen, "pulso_tarjetas") else NULL
   if (!is.null(t) && inherits(p, "ggplot")) attr(p, "pulso_tarjetas") <- t
   p
+}
+
+#' Frase de la opción `todas` (ítem 23 de la v7 RV): va en la nota del PPT y bajo las tarjetas del Word
+#' @keywords internal
+.TARJETAS_FRASE_TODAS <- "Se muestran todos los grupos con base suficiente; la flecha marca solo las diferencias significativas."
+
+#' La nota de la lámina con la frase de la opción `todas` al final (sin repetirla)
+#' @keywords internal
+.tarjetas_nota_todas <- function(nota) {
+  v <- if (inherits(nota, "ppt_element_text")) nota$text else nota
+  v <- if (is.null(v) || !length(v) || is.na(v[1])) "" else trimws(as.character(v)[1])
+  if (grepl(.TARJETAS_FRASE_TODAS, v, fixed = TRUE)) return(v)
+  if (!nzchar(v)) .TARJETAS_FRASE_TODAS else paste(sub("([^.])$", "\\1.", v), .TARJETAS_FRASE_TODAS)
 }
 
 #' Rótulo de grupo para la tarjeta: el corto declarado, si lo hay

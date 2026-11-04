@@ -68,7 +68,8 @@
   }
   if (!length(candidatas)) return(invisible(NULL))
   # La más clara del informe: dos grupos al 99% y la mayor diferencia (la maqueta usó «empresa privada», 39 puntos).
-  ok <- vapply(candidatas, function(x) !isTRUE(x$t$fragil) && nrow(x$t$grupos) == 2L, logical(1))
+  ok <- vapply(candidatas, function(x) !isTRUE(x$t$fragil) && !isTRUE(x$t$sin_diferencias) && nrow(x$t$grupos) == 2L &&
+                 !anyNA(x$t$grupos$dir), logical(1))   # con `todas`, solo una tarjeta con sus dos flechas
   brecha <- vapply(candidatas, function(x) x$t$brecha, numeric(1))
   orden <- order(!ok, -brecha)
   elegida <- candidatas[[orden[1]]]

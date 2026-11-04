@@ -35,7 +35,7 @@ colores <- list(coral = "#CA5651", azul = "#081F5C", tenue = "#8E9DBD", texto_su
                 # Tarjetas de diferencias (ADR 0129, propuesta P08): borde y fondo al 99 %, borde, fondo y barra al 95 %
                 # (punteado), la fila del total y el verde del encabezado del acuerdo.
                 tarjeta_borde = "#D9DEE8", tarjeta_fondo = "#FFFFFF", tarjeta_fondo_95 = "#F8F9FB", tarjeta_borde_95 = "#3A6591",
-                tarjeta_barra_95 = "#6F8FC4", tarjeta_total = "#B7BECC", verde_acuerdo = "#3B7A2A")
+                tarjeta_barra_95 = "#6F8FC4", tarjeta_total = "#B7BECC", tarjeta_barra_neutra = "#C3CFE2", verde_acuerdo = "#3B7A2A")
 # `uso` es la regla de cada paleta tal como la lee la lámina «Los colores y lo que significan» del catálogo
 # (lamina_estandar_paleta.R): la constitución dice el color y su regla en el mismo sitio (Gonzalo, 2026-10-27).
 paletas <- list(

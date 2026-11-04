@@ -10,17 +10,23 @@ import { Switch } from "../../../../components/Switch";
 import { PANEL_DIFERENCIAS_REGLA } from "../../panelesGraficos";
 import { leerSlideMeta } from "../../slideMeta";
 import { usePlanStore } from "../../store";
-import { TARJETAS_MAX, tarjetasActivas, tarjetasAlternadas } from "./modeloTarjetas";
+import { TARJETAS_MAX, tarjetasActivas, tarjetasAlternadas, tarjetasConTodas, tarjetasTodas } from "./modeloTarjetas";
 import "./diferencias.css";
 
-type VistaProps = { activas: boolean; onAlternar: (activas: boolean) => void; onAbrirRegla: () => void };
+type VistaProps = {
+  activas: boolean;
+  onAlternar: (activas: boolean) => void;
+  onAbrirRegla: () => void;
+  todas?: boolean;
+  onAlternarTodas?: (todas: boolean) => void;
+};
 
 /** La sección sin store ni dirección: lo que pintan los tests. */
-export function TarjetasDiferenciasVista({ activas, onAlternar, onAbrirRegla }: VistaProps) {
+export function TarjetasDiferenciasVista({ activas, onAlternar, onAbrirRegla, todas = false, onAlternarTodas }: VistaProps) {
   return (
     <div
       className="pulso-sig-inspector"
-      data-estado={activas ? "tarjetas_encendidas" : "tarjetas_apagadas"}
+      data-estado={activas ? (todas ? "tarjetas_todas" : "tarjetas_encendidas") : "tarjetas_apagadas"}
       data-qa="tarjetas-diferencias"
       data-qa-surface="graficos/f6-tarjetas-diferencias"
       data-qa-geometry-group="graficos/f6-tarjetas-diferencias"
@@ -30,11 +36,19 @@ export function TarjetasDiferenciasVista({ activas, onAlternar, onAbrirRegla }: 
         <span className="pulso-f6-dato-rotulo">Tarjetas junto al total</span>
         <Switch checked={activas} ariaLabel="Tarjetas de diferencias junto al total" onToggle={() => onAlternar(!activas)} />
       </div>
+      {activas && onAlternarTodas && (
+        <div className="pulso-f6-dato" data-qa-geometry-member="">
+          <span className="pulso-f6-dato-rotulo">Todos los grupos</span>
+          <Switch checked={todas} ariaLabel="Mostrar todos los grupos aunque no difieran" onToggle={() => onAlternarTodas(!todas)} />
+        </div>
+      )}
       <div className="pulso-sig-cuerpo" data-qa-geometry-member="">
         <p className="pulso-sig-texto">
-          {activas
-            ? `Cada grupo frente al resto, en los cruces del estudio. Hasta ${TARJETAS_MAX} tarjetas; sin diferencias, la lámina va sin ellas.`
-            : "Muestra al lado del total los grupos que difieren del resto."}
+          {!activas
+            ? "Muestra al lado del total los grupos que difieren del resto."
+            : todas
+              ? `Una tarjeta por cruce con todos sus grupos; la flecha marca solo las diferencias. Hasta ${TARJETAS_MAX} tarjetas.`
+              : `Cada grupo frente al resto, en los cruces del estudio. Hasta ${TARJETAS_MAX} tarjetas; sin diferencias, la lámina va sin ellas.`}
         </p>
       </div>
       <div className="pulso-sig-regla-linea" data-qa-geometry-member="">
@@ -60,5 +74,16 @@ export function TarjetasDiferencias({ slideId }: { slideId: string }) {
     else siguiente.tarjetas_diferencias = valor;
     updatePayload(slide.id, { meta: siguiente });
   };
-  return <TarjetasDiferenciasVista activas={tarjetasActivas(meta)} onAlternar={alternar} onAbrirRegla={reglaPanel.abrir} />;
+  const alternarTodas = (todas: boolean) => {
+    updatePayload(slide.id, { meta: { ...meta, tarjetas_diferencias: tarjetasConTodas(meta, todas) } });
+  };
+  return (
+    <TarjetasDiferenciasVista
+      activas={tarjetasActivas(meta)}
+      onAlternar={alternar}
+      onAbrirRegla={reglaPanel.abrir}
+      todas={tarjetasTodas(meta)}
+      onAlternarTodas={alternarTodas}
+    />
+  );
 }

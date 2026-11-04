@@ -61,6 +61,7 @@
 #' Alto de una tarjeta (in) en un ancho
 #' @keywords internal
 .lam_tarjeta_alto <- function(t, w, cortos = character(0), tipo = "multiple", con_fila = TRUE) {
+  con_fila <- isTRUE(con_fila) && !isTRUE(t$fila_es_titulo)
   nombres <- .tarjetas_rotulo_grupo(t$grupos$etiqueta, cortos)
   m <- .lam_tarjeta_medidas(w, nombres)
   h_fila <- if (isTRUE(con_fila)) .lam_lineas_tinta(.tarjetas_rotulo_fila(t$fila, tipo), (w - 2 * m$pad_x) * .TARJETA_TINTA_TITULO + 0.22, m$pt_titulo, TRUE) *
@@ -76,7 +77,8 @@
 .lam_tarjeta_y_grupos <- function(t, w, tipo = "multiple", cortos = character(0)) {
   nombres <- .tarjetas_rotulo_grupo(t$grupos$etiqueta, cortos)
   m <- .lam_tarjeta_medidas(w, nombres)
-  h_tit <- .lam_lineas_tinta(.tarjetas_rotulo_fila(t$fila, tipo), (w - 2 * m$pad_x) * .TARJETA_TINTA_TITULO + 0.22, m$pt_titulo, TRUE) * m$pt_titulo * 1.2 / 72
+  h_tit <- if (isTRUE(t$fila_es_titulo)) 0 else
+    .lam_lineas_tinta(.tarjetas_rotulo_fila(t$fila, tipo), (w - 2 * m$pad_x) * .TARJETA_TINTA_TITULO + 0.22, m$pt_titulo, TRUE) * m$pt_titulo * 1.2 / 72
   y0 <- m$pad_t + m$alto_cruce + h_tit + m$aire_titulo + .lam_tarjeta_alto_renglon("Total", m) + m$aire_total
   c(y0, y0 + sum(vapply(nombres, .lam_tarjeta_alto_renglon, numeric(1), m = m)))
 }
@@ -138,13 +140,15 @@
   azul <- .std_color("azul"); suave <- .std_color("texto_suave")
   b$rect(box$l, box$t, box$w, box$h, fill = .std_color(if (fr) "tarjeta_fondo_95" else "tarjeta_fondo"),
          borde = .std_color(if (fr) "tarjeta_borde_95" else "tarjeta_borde"), pt = if (fr) 1.05 else 0.75,
-         punteado = fr, radio = 0.0625, nombre = if (fr) "tarjeta:95" else "tarjeta:99")
+         punteado = fr, radio = 0.0625,
+         nombre = if (isTRUE(t$sin_diferencias)) "tarjeta:sin_diferencias" else if (fr) "tarjeta:95" else "tarjeta:99")
   x0 <- box$l + m$pad_x; wi <- box$w - 2 * m$pad_x; y <- box$t + m$pad_t
   # Antetítulo del cruce: versalitas de 8 pt, como el antetítulo de la lámina.
   b$txt(toupper(rotulo_cruce), x0, y, wi, m$alto_cruce, m$pt_cruce, suave, bold = TRUE, nombre = "tarjeta:cruce")
   y <- y + m$alto_cruce
   # En una batería la premisa ya está en el eje: la tarjeta no la repite y una línea guía la une a su fila (Gonzalo, v7 RV).
-  if (isTRUE(con_fila)) {
+  # Tampoco repite la fila que ya es el título de la lámina (una batería de un solo ítem, ítem 23 de la v7 RV).
+  if (isTRUE(con_fila) && !isTRUE(t$fila_es_titulo)) {
     fila <- .tarjetas_rotulo_fila(t$fila, tipo)
     h_tit <- .lam_lineas_tinta(fila, wi * .TARJETA_TINTA_TITULO + 0.22, m$pt_titulo, TRUE) * m$pt_titulo * 1.2 / 72
     b$txt(fila, x0, y, wi, h_tit, m$pt_titulo, azul, bold = TRUE, nombre = "tarjeta:fila")
@@ -182,9 +186,14 @@
   renglon("Total", t$total, .std_color("tarjeta_total"), suave, FALSE, suave, FALSE, clase = "total", cifra = t$cifra_total)
   y <- y + m$aire_total
   for (k in seq_len(nrow(t$grupos))) {
-    fr_k <- isTRUE(t$grupos$fragil[k])
+    fr_k <- isTRUE(t$grupos$fragil[k]); dir_k <- t$grupos$dir[k]
+    if (is.null(dir_k) || is.na(dir_k)) {
+      # Opción `todas` (ítem 23): un grupo sin diferencia va sin flecha, con barra neutra y cifra sin negrita.
+      renglon(nombres[k], t$grupos$p[k], .std_color("tarjeta_barra_neutra"), azul, FALSE, azul, TRUE, clase = "grupo_neutro")
+      next
+    }
     renglon(nombres[k], t$grupos$p[k], .std_color(if (fr_k) "tarjeta_barra_95" else "azul"),
-            .std_color(if (fr_k) "tarjeta_borde_95" else "azul"), !fr_k, azul, TRUE, dir = t$grupos$dir[k], fragil = fr_k)
+            .std_color(if (fr_k) "tarjeta_borde_95" else "azul"), !fr_k, azul, TRUE, dir = dir_k, fragil = fr_k)
   }
   invisible(b)
 }
@@ -276,6 +285,17 @@
     if (is.null(v) || !length(v) || is.na(v[1]) || !nzchar(trimws(v[1]))) NULL else trimws(as.character(v)[1])
   }
   tit <- texto(titulo) %||% ""
+  if (isTRUE(t$opcion$todas)) {   # ítem 23: la base dice que hay grupos sin flecha a propósito
+    if (isTRUE(sin_base)) {
+      nota_motor <- nota_de
+      nota_de <- function(...) .tarjetas_nota_todas(nota_motor(...))
+    } else if (!is.null(texto(slide$slots$base))) {   # la base escrita en la lámina
+      slide$slots$base <- .tarjetas_nota_todas(texto(slide$slots$base))
+    } else {
+      base_motor <- base_auto
+      base_auto <- function(...) .tarjetas_nota_todas(base_motor(...))
+    }
+  }
   cortos <- t$opcion$cortos
   y0 <- .lam_titulo_fin(tit) + 0.32; y1 <- .std_valor("ppt", "geometria", "base_y") - 0.12
   if (identical(t$tipo, "bateria")) y1 <- .std_valor("ppt", "geometria", "leyenda_y") - 0.1   # la leyenda corre bajo el panel
@@ -294,6 +314,22 @@
     if (.lam_tarjetas_nativa_cabe(p, slide, menor)) el_plot <- menor
   }
   n0 <- length(doc)   # la escala puede partirse en varias láminas: cada tarjeta irá a la de su premisa
+  espec_p <- attr(p, "pulso_espec")
+  if (identical(t$tipo, "bateria") && .lam_columna_llave_aplica(espec_p) && .lam_tarjetas_disponer_columna_ok(t)) {
+    # Ítem 23 (v7 RV): una pregunta sola va en columna apilada con llave y deja la mitad derecha a las tarjetas.
+    options(op); options(op_ley)
+    slots <- slide$slots %||% list()
+    base <- if (isTRUE(sin_base)) NULL else texto(slots$base) %||% texto(base_auto(el = el_plot,
+      sufijo_auto = presets$base$args$sufijo_auto %||% NULL, formato = presets$base$args$formato %||% "Base: %s"))
+    pie <- if (isTRUE(sin_pie)) NULL else texto(slots$footer) %||% texto(nota_de(p, el_plot$overrides$nota_pie %||% el_plot$nota_pie %||% NULL))
+    Lc <- .lam_tarjetas_disponer(t$tarjetas, y0, .std_valor("ppt", "geometria", "base_y") - 0.12, cortos = cortos, tipo = "multiple",
+                                 fraccion = .TARJETAS_PANEL$estandar)
+    base_col <- .lam_unir_base(base, pie); if (nzchar(base_col)) base_col <- paste0(base_col, ".")
+    doc <- .lam_laminas_columna_llave(doc, espec_p, tit, ante = texto(antetitulo), base = base_col,
+                                      folio = length(doc) + 1L, x1 = Lc$xp - 0.3, layout = layout, master = master,
+                                      por_lamina = por_lamina)
+    return(.lam_tarjetas_panel(doc, t, Lc))
+  }
   if (.lam_tarjetas_nativa_cabe(p, slide, el_plot)) {
     doc <- .lam_slide_1_nativa(doc, p, slide, titulo, NULL, el_plot, presets, layout, master, antetitulo, base_auto, nota_de,
                                sin_base, sin_pie, por_lamina)
@@ -316,6 +352,10 @@
   }
   .lam_tarjetas_panel(doc, t, L)
 }
+
+#' ¿Las tarjetas de una columna con llave son de una sola fila? (todas comparan la misma pregunta)
+#' @keywords internal
+.lam_tarjetas_disponer_columna_ok <- function(t) length(unique(vapply(t$tarjetas, `[[`, "", "fila"))) <= 1L
 
 #' Filas de la escala nativa en la lámina en curso: enunciado, centro vertical y fin de su cifra de Top Two Box
 #' @keywords internal
