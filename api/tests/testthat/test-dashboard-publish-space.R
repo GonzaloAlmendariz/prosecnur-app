@@ -124,7 +124,7 @@ test_that("launch_server.R se niega a servir un .pulso sin la marca", {
 }
 
 test_that("el script del deploy manual prepara el .pulso por la misma ruta", {
-  testthat::skip_on_cran()
+  # Sin skip_on_cran: el gate y el CI no fijan NOT_CRAN y el test corría saltado sin que nadie lo viera.
   ref <- system.file("reference_projects", "acnur_pdm", "acnur_pdm.pulso", package = "prosecnurapp")
   if (!nzchar(ref)) ref <- testthat::test_path("..", "..", "inst", "reference_projects", "acnur_pdm", "acnur_pdm.pulso")
   skip_if_not(file.exists(ref), "sin el proyecto de referencia acnur_pdm")
@@ -152,7 +152,7 @@ test_that("el script del deploy manual prepara el .pulso por la misma ruta", {
 })
 
 test_that("el script del deploy manual se niega a preparar un tablero sin fuente", {
-  testthat::skip_on_cran()
+  # Sin skip_on_cran: el gate y el CI no fijan NOT_CRAN y el test corría saltado sin que nadie lo viera.
   sid <- session_create()
   withr::defer(session_delete(sid))
   dir <- withr::local_tempdir()
