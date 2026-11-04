@@ -42,6 +42,6 @@ Libro de códigos, Bases, Ponderación, Frecuencias, Multibase) a 1440 y 1024, 1
 |---|---|---|---|
 | Medición | ☑ | (este doc) | |
 | P1b, P3, P4, P5, P6, P8 | ☑ | | |
-| P2 | ☑ Comparativos | | Capturado con la auditoría canónica (dos olas) a 1440 y 1024 sin hallazgos, pero sin matriz de equivalencias la pestaña muestra su vacío: los tres bloques quedan respaldados por `tsc` y los tests del módulo, no por una captura |
+| P2 | ☑ Comparativos | | Capturado con la auditoría canónica (dos olas) a 1440 y 1024 sin hallazgos, pero sin matriz de equivalencias la pestaña muestra su vacío: los tres bloques quedan respaldados por `tsc` y los tests del módulo. **Verificado con datos** sobre la copia de `acrconta_mazo` con el segmento «Género» (receta en `formato-carga-2026-11-04.md`): Presentación y Columnas del comparativo se leen bien a 1440 y 1024; el Resultado sólo aparece al generar el comparativo. Queda que la Lista (un `fieldset`) pone título y ayuda en una línea y los Panel los apilan |
 | Capturas después | ☑ | | Ver «Vistas» |
 | Gate | ☑ | | `tsc` 0; `make gate-front AREA=analitica` 53 suites, 914 tests |
