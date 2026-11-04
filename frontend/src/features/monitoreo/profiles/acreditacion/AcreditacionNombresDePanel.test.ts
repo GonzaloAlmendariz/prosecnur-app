@@ -68,17 +68,9 @@ describe("un mismo dato se llama igual en todas las ramas", () => {
     expect(conflictos).toEqual([]);
   });
 
-  test("las fuentes conservan los nombres acordados", () => {
-    const de = (variable: string) => {
-      const titulos = new Set<string>();
-      for (const [clave, valores] of titulosPorDato()) {
-        if (clave.endsWith(`.${variable}`)) valores.forEach((v) => titulos.add(v));
-      }
-      return [...titulos];
-    };
-    expect(de("activeRows")).toEqual(["Fuentes activas"]);
-    expect(de("reportSources")).toEqual(["Fuentes del reporte"]);
-  });
+  // «Las fuentes conservan los nombres acordados» fijaba los títulos de `activeRows` y `reportSources` en
+  // `AcreditacionActiveSourcesView`, que nadie alcanzaba y se retiró el 2026-11-04 con confirmación de Gonzalo.
+  // La invariante general, la de arriba, sigue mirando todo el archivo.
 
   test("«Fuentes configuradas» queda para la lista que sí las trae todas", () => {
     // La que lleva el contador activas/total. Si alguien vuelve a titular así

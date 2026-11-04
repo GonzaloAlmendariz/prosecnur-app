@@ -1,7 +1,7 @@
 // Helpers de formato y rótulos idénticos entre las páginas de Telefónico y
 // Acreditación (L33 parte 2, lote 1). Se movieron sin cambiar una línea; las
 // dos páginas los importan de aquí. Semántica de familia: no se fusiona nada más.
-import { caseCountsInAdvance, formatPercentLabel, normalizeReportMatch, parseCalendarIsoDate, reportNumberValue, reportPercentValue, shortColumnLabel } from "./rotulosComunes";
+import { formatPercentLabel, normalizeReportMatch, parseCalendarIsoDate, reportNumberValue, reportPercentValue, shortColumnLabel } from "./rotulosComunes";
 import { CALENDAR_REPORT_WEEKDAY_INDEX, calendarIsoDate, normalizeCalendarReportWeekday } from "../profiles/telefonico/avance/ritmoDiario";
 import { type MonitoreoAcreditacionReports, type MonitoreoInternalQueryCase, type MonitoreoReportBlock, type MonitoreoReportSheet, type MonitoreoReportWeekday, type MonitoreoState, type MonitoreoStrategyPhase, type MonitoreoStrategyReportException } from "../../../api/client";
 import { internalCaseCrossingValue, internalCaseResponseStateValue, summarizeInternalCases } from "../internalQueries";
@@ -136,34 +136,6 @@ export function caseDisplayName(item: MonitoreoInternalQueryCase) {
 export function caseWithoutCrossing(item: MonitoreoInternalQueryCase) {
   const crossing = internalCaseCrossingValue(item);
   return crossing === "sin_cruce" || crossing === "sin_llave" || crossing === "sin_base";
-}
-
-export function caseIsAuditable(item: MonitoreoInternalQueryCase) {
-  return (
-    item.advancement !== "effective" ||
-    caseWithoutCrossing(item) ||
-    Number(item.duplicate_count ?? item.duplicate_group_size ?? 0) > 1 ||
-    caseCountsInAdvance(item) === false ||
-    Boolean(casePhoneAction(item)) ||
-    Boolean(String(item.issue_type || "").trim())
-  );
-}
-
-export function casePrimaryEvidence(item: MonitoreoInternalQueryCase) {
-  const label = item.primary_identity_label || item.identity_label || item.channel_key_strategy_label || "Llave";
-  const value = item.primary_identity_value || item.case_key || item.phone_audit?.cv_id || item.response_id || "";
-  return value ? `${label}: ${value}` : "Sin evidencia primaria";
-}
-
-export function caseSecondaryEvidence(item: MonitoreoInternalQueryCase) {
-  const phone = item.phone_audit;
-  if (item.secondary_identity_value) {
-    return `${item.secondary_identity_label || "Evidencia secundaria"}: ${item.secondary_identity_value}`;
-  }
-  if (phone?.final_codpulso) return `Código final: ${phone.final_codpulso}`;
-  if (phone?.declared_phone) return `Celular declarado: ${phone.declared_phone}`;
-  if (phone?.manual_code_base?.case_key) return `Código manual: ${phone.manual_code_base.case_key}`;
-  return "";
 }
 
 export function casePhoneAction(item: MonitoreoInternalQueryCase) {

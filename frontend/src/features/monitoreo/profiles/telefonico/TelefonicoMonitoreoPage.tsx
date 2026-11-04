@@ -1,6 +1,6 @@
-import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { EstadoChip } from "../../../../components/EstadoChip";
-import { tonoDeConteo, tonoDeCruce, tonoDeLectura, tonoDeRespuesta } from "../../core/tonosDeCaso";
+import { tonoDeCruce, tonoDeLectura, tonoDeRespuesta } from "../../core/tonosDeCaso";
 import type { CSSProperties, ReactNode } from "react";
 import { AlertCircle, BarChart3, CalendarRange, CheckCircle2, ChevronDown, ClipboardCheck, Clock3, ContactRound, Download, Eye, FileCheck2, Filter, KeyRound, Layers3, Link2, Loader2, Mail, PhoneCall, PlugZap, Plus, ListChecks, QrCode, RefreshCw, Route, Save, Search, ShieldAlert, SlidersHorizontal, Table2, Target, X, XCircle } from "lucide-react";
 import { PageFrame } from "../../../../components/PageFrame";
@@ -205,7 +205,6 @@ import {
   acreditacionSourceChannel,
   acreditacionSourceResponseCount,
   acreditacionSourceWithOperationalMetadata,
-  acreditacionSweepSourceForChannel,
   acreditacionSweepSources,
   buildAcreditacionPhoneSourceContract,
   buildAcreditacionTelephoneChannels,
@@ -214,7 +213,6 @@ import {
   type AcreditacionCollectorRow,
   type AcreditacionPhoneSourceContract,
   type AcreditacionPhoneSourceSlot,
-  type AcreditacionTelephoneChannel,
 } from "./TelefonicoSourcesModel";
 import { CadenaDeFuentes } from "./fuentes/CadenaDeFuentes";
 import type { EslabonDeFuente } from "./fuentes/modeloDeCadena";
@@ -267,7 +265,6 @@ import {
   KOBO_DEFAULT_BASE_URL,
   TELEFONICO_ROUTE,
   columnLabel,
-  cumplimientoLabel,
   draftFromComponent,
   formatCaseLabel,
   isTelefonicoMonitoreoState,
@@ -295,8 +292,8 @@ import type {
   AcreditacionSourcePresetKey,
   SeguimientoDraft,
 } from "./telefonicoBase";
-import { compactSelectLabel, calendarWeekWindowLabel, calendarDateWindowLabel, parseCalendarIsoDate, calendarDateDiffDays, calendarDurationLabel, prettyModelLabel, phonePercentLabel, phoneLooksLikeTechnicalSourceLabel, phoneOpsPercent, phoneAttemptCountLabel, sourceProviderLabel, sourceActorLabel, mostRecentSyncLabel, dimensionLabel, collectorNumber, caseResponseDateTimeLabel, caseResponseTimeDetailLabel, explicitBoolean, caseCountsInAdvance, caseCountsLabel, caseDuplicateLabel, cleanCaseKeyText, advancementLabel, formatPercentLabel, formatSignedPp, normalizeReportMatch, reportNumberValue, reportPercentValue, normalizeAcreditacionDailyDateLabel, isTechnicalAcreditacionCollectorLabel, compactMechanismLabel, shortColumnLabel, formatReportCell } from "../../core/rotulosComunes";
-import { calendarAddDaysIso, calendarReportExceptions, calendarWeekRange, calendarReportDateForWeek, reportsFromState, normalizeAcreditacionReports, rowValue, rowsFromSheets, rowsForSheetBlock, phoneDisplayRowsWithBaseColumn, acreditacionPhoneControlSampleRows, caseDisplayName, caseWithoutCrossing, caseIsAuditable, casePrimaryEvidence, caseSecondaryEvidence, casePhoneAction, responseCounts, groupedCaseRows, caseDimensionRows, reportBlockForSheet, reportBlockColumns, reportStateTone, acreditacionReportRowValue, acreditacionReportColumn, acreditacionReportBlockDateColumns, reportPanelSheetTitle, reportBlockTone, reportBlockMetric } from "../../core/tablasComunes";
+import { compactSelectLabel, calendarWeekWindowLabel, calendarDateWindowLabel, parseCalendarIsoDate, calendarDateDiffDays, calendarDurationLabel, prettyModelLabel, phonePercentLabel, phoneLooksLikeTechnicalSourceLabel, phoneOpsPercent, phoneAttemptCountLabel, sourceProviderLabel, sourceActorLabel, mostRecentSyncLabel, dimensionLabel, collectorNumber, caseResponseDateTimeLabel, caseResponseTimeDetailLabel, explicitBoolean, caseCountsInAdvance, caseCountsLabel, cleanCaseKeyText, advancementLabel, formatPercentLabel, formatSignedPp, normalizeReportMatch, reportNumberValue, reportPercentValue, normalizeAcreditacionDailyDateLabel, isTechnicalAcreditacionCollectorLabel, compactMechanismLabel, shortColumnLabel, formatReportCell } from "../../core/rotulosComunes";
+import { calendarAddDaysIso, calendarReportExceptions, calendarWeekRange, calendarReportDateForWeek, reportsFromState, normalizeAcreditacionReports, rowValue, rowsFromSheets, rowsForSheetBlock, phoneDisplayRowsWithBaseColumn, acreditacionPhoneControlSampleRows, caseDisplayName, caseWithoutCrossing, responseCounts, groupedCaseRows, caseDimensionRows, reportBlockForSheet, reportBlockColumns, reportStateTone, acreditacionReportRowValue, acreditacionReportColumn, acreditacionReportBlockDateColumns, reportPanelSheetTitle, reportBlockTone, reportBlockMetric } from "../../core/tablasComunes";
 import { caseIdentity, countCaseOptions, caseChannelValue, caseSourceValue, caseCollectorValue, caseToneClass, assistedReviewCandidateCountForCase, caseNeedsReconciliationReview, acreditacionSurveyStateTone, caseDailyTone } from "../../core/casosComunes";
 import { preferredPhoneEffectiveValue, splitListInput, calendarPhaseDurationDays, calendarPhaseWeekDurationDays, calendarPhaseOverlapCount, calendarBasePhase, distributeCalendarDatesByWeek, inferCalendarModality, calendarGoalActor, calendarGoalForActor, calendarTargetRule, splitCalendarTokens, phoneQuotaGoalValue, statusValueOptions, phoneIsUnassignedResponsible, phoneQuotaStatusTone, phoneDailyBlockForPanel, uniqueDisplayValues, isPlatformResponseSource, isSurveyMonkeyResponseSource, isKoboResponseSource, shortenMiddle, sourceFlatField, presetSourceStatus, cleanSourceDimensions, sourceDimensionEntries, collectorDisplayName, countFromRecord, inferAcreditacionSurveyChannel, surveyMonkeyDisplayTitle, csvCell, platformToneValue, crossingToneValue, acreditacionQueryDonutBackground, uniqueNormalizedKeys, addAcreditacionDailyValue, dailySeriesTotals, collectorDisplayLookupKey, sourceRoleForActor, surveySourceForAcreditacionId, surveySourceForAcreditacionTitle, sheetTitleIcon } from "../../core/helpersComunesTelAcr";
 import { caracterDeCuotas, phoneQuotaGoalHasActor, phoneQuotaGoalTotal, phoneQuotaRemoveGoal, phoneQuotaGoalVariables, phoneQuotaUpsertGoal } from "../../core/cuotasTelefonicasComunes";
@@ -1523,24 +1520,6 @@ function AcreditacionModelWorkbench({
 
   const canClose = Boolean(acreditacion.dashboard.cierre_habilitado || planRefuerzo.trim() || aprobarBrechas);
   const cierreDisabled = saving || acreditacion.modo_trabajo === "cierre_campo" || !canClose;
-  const strategyRows = (state?.config.strategy_phases ?? []).map((phase) => ({
-    ID: phase.id || "sin_id",
-    Estrato: phase.stratum || "Todo",
-    Modalidad: phase.modality,
-    Inicio: phase.start_week,
-    Fin: phase.end_week,
-    "Fecha inicio": phase.start_date || "S/F",
-    "Fecha fin": phase.end_date || "S/F",
-    Regla: phase.target_rule || "Sin regla",
-    KPI: Array.isArray(phase.kpi_focus) ? phase.kpi_focus.join(", ") : "",
-  }));
-  const sourceRows = (state?.sources ?? []).map((source) => ({
-    Fuente: source.label || source.id,
-    Tipo: source.kind,
-    Rol: source.role || "respuestas",
-    Estado: source.enabled ? "Activa" : "Inactiva",
-    ID: source.id,
-  }));
   const saveSelected = () => {
     if (!selected || !onSaveSeguimiento) return;
     const intentos_canal = CANALES.reduce<Partial<MonitoreoAcreditacionIntentos>>((acc, canal) => {
@@ -1554,160 +1533,6 @@ function AcreditacionModelWorkbench({
       intentos_canal,
     });
   };
-
-  if (activeTab === "casos") {
-    const bolsaRows = componentes.flatMap((component) => (
-      component.seguimiento.bolsa_operativa.map((row) => ({ Actor: component.actor, ...row }))
-    )) as unknown as Array<Record<string, unknown>>;
-    const seguimientoRows = componentes.map((component) => ({
-      Actor: component.actor,
-      Tecnica: component.tecnica,
-      "n efectivo": component.seguimiento.n_efectivo,
-      "Meta": component.meta.n_objetivo ?? "S/M",
-      "Email": component.seguimiento.intentos_canal.email,
-      "Enlace": component.seguimiento.intentos_canal.whatsapp,
-      "SMS": component.seguimiento.intentos_canal.sms,
-      "Teléfono": component.seguimiento.intentos_canal.telefono,
-      "Presencial": component.seguimiento.intentos_canal.presencial,
-      Estado: cumplimientoLabel(component.seguimiento.cumplimiento.estado),
-    }));
-    return (
-      <div className="mon-acr-model">
-        <div className="mon-profile-stat-row">
-          <StatTile label="Actores" value={fmt(componentes.length)} tone={componentes.length ? "good" : "neutral"} />
-          <StatTile label="Bolsa operativa" value={fmt(bolsaRows.length)} tone={bolsaRows.length ? "good" : "neutral"} />
-          <StatTile label="Bloqueos" value={fmt(acreditacion.dashboard.bloqueos)} tone={acreditacion.dashboard.bloqueos ? "warn" : "good"} />
-          <StatTile label="Modo" value={acreditacion.modo_trabajo === "cierre_campo" ? "Cierre" : "Campo"} />
-        </div>
-        <div className="mon-profile-grid">
-          <BloqueDeMonitoreo
-            titulo="Base de barrido y seguimiento"
-            bajada={<>{fmt(seguimientoRows.length)} actores</>}
-          >
-            <DataTable rows={seguimientoRows} empty="No hay actores para seguimiento." />
-          </BloqueDeMonitoreo>
-          <BloqueDeMonitoreo
-            titulo="Bolsa operativa"
-            bajada={<>{fmt(bolsaRows.length)} filas</>}
-          >
-            <DataTable rows={bolsaRows} empty="No hay bolsa operativa normalizada." />
-          </BloqueDeMonitoreo>
-        </div>
-      </div>
-    );
-  }
-
-  if (activeTab === "enlaces") {
-    return (
-      <div className="mon-acr-model">
-        <div className="mon-profile-stat-row">
-          <StatTile label="Fuentes" value={fmt(sourceRows.length)} tone={sourceRows.length ? "good" : "warn"} />
-          <StatTile label="Activas" value={fmt(sourceRows.filter((row) => row.Estado === "Activa").length)} tone="good" />
-          <StatTile label="Canales" value={fmt(CANALES.length)} />
-          <StatTile label="Componentes" value={fmt(componentes.length)} />
-        </div>
-        <div className="mon-profile-grid">
-          <BloqueDeMonitoreo
-            titulo="Fuentes, links y recopiladores"
-            bajada={<>{fmt(sourceRows.length)} fuentes</>}
-          >
-            <DataTable rows={sourceRows} empty="No hay fuentes conectadas para enlaces/envíos." />
-          </BloqueDeMonitoreo>
-          <BloqueDeMonitoreo
-            titulo="Intentos por canal"
-            bajada={<>{fmt(componentes.length)} actores</>}
-          >
-            <DataTable
-              rows={componentes.map((component) => ({
-                Actor: component.actor,
-                Email: component.seguimiento.intentos_canal.email,
-                Enlace: component.seguimiento.intentos_canal.whatsapp,
-                SMS: component.seguimiento.intentos_canal.sms,
-                Telefono: component.seguimiento.intentos_canal.telefono,
-                Presencial: component.seguimiento.intentos_canal.presencial,
-              }))}
-              empty="No hay intentos por canal."
-            />
-          </BloqueDeMonitoreo>
-        </div>
-      </div>
-    );
-  }
-
-  if (activeTab === "reglas") {
-    const ruleRows = cards.map((card) => ({
-      Actor: card.actor,
-      Estado: cumplimientoLabel(card.estado),
-      "n efectivo": card.n_efectivo,
-      Meta: card.n_objetivo ?? "S/M",
-      Brecha: card.brecha_absoluta ?? 0,
-      "% avance": card.avance_pct == null ? "S/D" : pct(card.avance_pct),
-    }));
-    return (
-      <div className="mon-acr-model">
-        {acreditacion.dashboard.alertas.length ? (
-          <section className="mon-acr-model-alerts" aria-label="Alertas de reglas de avance">
-            {acreditacion.dashboard.alertas.slice(0, 8).map((alerta, index) => (
-              <div key={`${alerta.componente_id}-${alerta.tipo}-${index}`} className={`is-${alerta.severidad}`}>
-                <AlertCircle size={14} />
-                <span><strong>{alerta.actor}</strong>: {alerta.mensaje}</span>
-              </div>
-            ))}
-          </section>
-        ) : null}
-        <BloqueDeMonitoreo
-          titulo="Estados válidos, metas y brechas"
-          bajada={<>{fmt(ruleRows.length)} reglas</>}
-        >
-          <DataTable rows={ruleRows} empty="No hay reglas de cumplimiento para este modelo." />
-        </BloqueDeMonitoreo>
-      </div>
-    );
-  }
-
-  if (String(activeTab) === "__legacy_estrategias__") {
-    return (
-      <div className="mon-acr-model">
-        <div className="mon-profile-stat-row">
-          <StatTile label="Fases" value={fmt(strategyRows.length)} tone={strategyRows.length ? "good" : "warn"} />
-          <StatTile label="Plan refuerzo" value={planRefuerzo.trim() ? "Activo" : "Pendiente"} tone={planRefuerzo.trim() ? "good" : "warn"} />
-          <StatTile label="Aprobación" value={aprobarBrechas ? "Sí" : "No"} tone={aprobarBrechas ? "good" : "neutral"} />
-          <StatTile label="Cierre" value={acreditacion.modo_trabajo === "cierre_campo" ? "Marcado" : "Editable"} />
-        </div>
-        <BloqueDeMonitoreo
-          titulo="Calendario y mecanismos por semana"
-          bajada={<>{fmt(strategyRows.length)} fases</>}
-        >
-          <DataTable rows={strategyRows} empty="No hay fases estratégicas configuradas." />
-        </BloqueDeMonitoreo>
-        <section className="mon-acr-model-close" aria-label="Cierre de acreditación">
-          <div>
-            <span>Cierre metodológico</span>
-            <input
-              value={planRefuerzo}
-              disabled={saving || acreditacion.modo_trabajo === "cierre_campo"}
-              onChange={(event) => setPlanRefuerzo(event.target.value)}
-              placeholder="Plan de refuerzo o justificación de cierre"
-            />
-          </div>
-          <label>
-            <input
-              type="checkbox"
-              checked={aprobarBrechas}
-              disabled={saving || acreditacion.modo_trabajo === "cierre_campo"}
-              onChange={(event) => setAprobarBrechas(event.target.checked)}
-            />
-            Aprobación metodológica
-          </label>
-          <button type="button" disabled={cierreDisabled || !onCerrar} onClick={() => void onCerrar?.(planRefuerzo, aprobarBrechas)}>
-            <FileCheck2 size={14} />
-            {acreditacion.modo_trabajo === "cierre_campo" ? "Cierre marcado" : "Marcar cierre"}
-          </button>
-        </section>
-        {actionStatus ? <span className={`mon-acr-model-action-status is-${actionStatus.tone}`}>{actionStatus.message}</span> : null}
-      </div>
-    );
-  }
 
   return (
     <div className="mon-acr-model">
@@ -1916,13 +1741,6 @@ const MODEL_COLLECTOR_USE_OPTIONS: Array<{
   { value: "mixto", label: "Refuerzo operativo", modality: "mixto", channel: "Correo", icon: Route },
   { value: "sin_clasificar", label: "Sin clasificar", modality: "mixto", channel: "Correo", icon: SlidersHorizontal },
 ];
-
-const MODEL_ROSTER_SOURCE_OPTIONS = [
-  { value: "none", label: "Sin barrido" },
-  { value: "source", label: "Fuente configurada" },
-  { value: "uploaded", label: "Archivo cargado" },
-  { value: "external_local", label: "Base local externa" },
-] as const;
 
 const MODEL_FINAL_STATE_OPTIONS = [
   { value: "complete", label: "Completa" },
@@ -2630,9 +2448,6 @@ function AcreditacionModelConfigWorkbench({
       operational_model: { ...current.operational_model, ...patch },
     } : current);
   };
-  const patchCases = (patch: Partial<MonitoreoConfig["operational_model"]["cases"]>) => {
-    patchModel({ cases: { ...model.cases, ...patch } });
-  };
 
   const saveConfig = async () => {
     if (!draft) return;
@@ -2717,63 +2532,6 @@ function AcreditacionModelConfigWorkbench({
       </div>
     </section>
   );
-
-  if (activeTab === "casos") {
-    return (
-      <div className="mon-acr-model mon-acr-model-config">
-        {showHeader ? header : null}
-        <AcreditacionSweepBaseWorkbench
-          sources={sources}
-          config={draft}
-          cases={model.cases}
-          variableNames={variableNames}
-          onCasesChange={patchCases}
-          onStateChange={onStateChange}
-        />
-      </div>
-    );
-  }
-
-  if (activeTab === "enlaces") {
-    const collectorSummary = buildAcreditacionActiveSourcesSummary(sources, draft.operational_model.link_collectors);
-    return (
-      <div className="mon-acr-model mon-acr-model-config">
-        {showHeader ? header : null}
-        <BloqueDeMonitoreo
-          className="mon-acr-model-router-note"
-          titulo="Enlaces operativos"
-          bajada={<>{fmt(collectorSummary.includedCollectors)} recopiladores incluidos</>}
-        >
-          <p className="mon-profile-muted">
-            La clasificacion editable de recopiladores vive en Fuentes, dentro de la pestaña Recopiladores. Este modelo conserva la relacion guardada para metas, reglas y avance.
-          </p>
-          <div className="mon-acr-active-kpis">
-            <StatTile label="Encuestas activas" value={fmt(collectorSummary.activeSurveys)} tone={collectorSummary.activeSurveys ? "good" : "warn"} />
-            <StatTile label="Actores con encuesta" value={fmt(collectorSummary.actorsWithSurvey.length)} tone={collectorSummary.actorsWithSurvey.length ? "good" : "warn"} />
-            <StatTile label="Incluidos" value={fmt(collectorSummary.includedCollectors)} tone={collectorSummary.includedCollectors ? "good" : "neutral"} />
-            <StatTile label="Sin metadata" value={fmt(collectorSummary.missingCollectorMetadata)} tone={collectorSummary.missingCollectorMetadata ? "warn" : "good"} />
-          </div>
-        </BloqueDeMonitoreo>
-        <BloqueDeMonitoreo
-          titulo="Fuentes disponibles para mecanismos"
-          bajada={<>{fmt(activeSources.length)} activas</>}
-        >
-          <DataTable
-            rows={activeSources.map((source) => ({
-              Fuente: source.label || source.id,
-              Servicio: source.kind,
-              Rol: source.role || "respuestas",
-              Actor: sourceActorLabel(source),
-              Canal: acreditacionChannelLabel(sourceChannelLabel(source)),
-              ID: source.id,
-            }))}
-            empty="Sin fuentes activas para enlazar mecanismos."
-            preferredColumns={["Fuente", "Servicio", "Rol", "Actor", "Canal", "ID"]}
-          />
-        </BloqueDeMonitoreo>
-      </div>
-    );
-  }
 
   if (activeTab === "reglas") {
     return (
@@ -3181,209 +2939,6 @@ function AcreditacionModelConfigWorkbench({
         <AcreditacionGoalsEditor goals={draft.goals} vars={variableNames} onUpdate={updateGoal} onRemove={removeGoal} />
       </section>
     </div>
-  );
-}
-
-function AcreditacionSweepBaseWorkbench({
-  sources,
-  config,
-  cases,
-  variableNames,
-  onCasesChange,
-  onStateChange,
-}: {
-  sources: MonitoreoSource[];
-  config: MonitoreoConfig;
-  cases: MonitoreoConfig["operational_model"]["cases"];
-  variableNames: string[];
-  onCasesChange: (patch: Partial<MonitoreoConfig["operational_model"]["cases"]>) => void;
-  onStateChange?: (state: MonitoreoState) => void;
-}) {
-  const [selectedByChannel, setSelectedByChannel] = useState<Record<string, string>>({});
-  const [savingKey, setSavingKey] = useState("");
-  const [status, setStatus] = useState<AcreditacionActionStatus>(null);
-  const sweepPreset = ACREDITACION_SOURCE_PRESETS.find((preset) => preset.key === "barrido_telefonico") ?? ACREDITACION_SOURCE_PRESETS[1];
-  const telephoneChannels = useMemo(
-    () => buildAcreditacionTelephoneChannels(sources, config.operational_model.link_collectors),
-    [config.operational_model.link_collectors, sources],
-  );
-  const sweepSourceCandidates = useMemo(() => acreditacionSweepSources(sources), [sources]);
-  const selectableSweepSources = sweepSourceCandidates.filter((source) => source.enabled);
-  const confirmedChannels = telephoneChannels.filter((channel) => (
-    Boolean(acreditacionSweepSourceForChannel(sweepSourceCandidates, channel))
-  ));
-  const sourceOptions = selectableSweepSources.length ? selectableSweepSources : sweepSourceCandidates;
-
-  const confirmSweepBase = async (channel: AcreditacionTelephoneChannel) => {
-    const matched = acreditacionSweepSourceForChannel(sweepSourceCandidates, channel);
-    const sourceId = selectedByChannel[channel.key] ?? matched?.id ?? "";
-    const source = sweepSourceCandidates.find((item) => item.id === sourceId) ?? null;
-    if (!source) {
-      setStatus({ tone: "error", message: "Selecciona o registra una hoja de barrido antes de confirmar." });
-      return;
-    }
-    setSavingKey(channel.key);
-    setStatus({ tone: "info", message: `Confirmando barrido para ${channel.actor}...` });
-    try {
-      const result = await apiMonitoreoSource(sourcePayloadFromExisting(source, {
-        enabled: true,
-        role: "barrido",
-        integration_mode: source.integration_mode || "connected_read",
-        dimensions: cleanSourceDimensions({
-          ...source.dimensions,
-          actor: channel.actor,
-          segmento: channel.actor,
-          canal: "Telefónico",
-          channel: "Telefónico",
-          servicio: "Barrido telefónico",
-          sheet_name: source.sheet_binding?.sheet_name ?? source.dimensions?.sheet_name,
-          survey_id: channel.surveyId || undefined,
-          survey_source_id: channel.sourceId || undefined,
-          source_id: channel.sourceId || undefined,
-          collector_id: channel.collectorId || undefined,
-          collector_name: channel.collectorName || undefined,
-        }),
-      }));
-      onStateChange?.(result.state);
-      setSelectedByChannel((current) => ({ ...current, [channel.key]: result.source.id }));
-      onCasesChange({ enabled: true, roster_source: "external_local" });
-      setStatus({ tone: "success", message: `Base de barrido confirmada para ${channel.actor}.` });
-    } catch (error) {
-      setStatus({ tone: "error", message: (error as Error).message });
-    } finally {
-      setSavingKey("");
-    }
-  };
-
-  return (
-    <>
-      <section className="mon-contract-block mon-contract-block--wide">
-        <div className="mon-contract-block-head">
-          <span>Base de barrido</span>
-          <label className="mon-switch-line">
-            <input
-              type="checkbox"
-              checked={Boolean(cases.enabled)}
-              onChange={(event) => onCasesChange({ enabled: event.target.checked })}
-            />
-            <span>Usar barrido operativo</span>
-          </label>
-        </div>
-        <div className="mon-acr-active-kpis" aria-label="Resumen de base de barrido">
-          <StatTile label="Canales telefónicos" value={fmt(telephoneChannels.length)} tone={telephoneChannels.length ? "good" : "warn"} />
-          <StatTile label="Bases de barrido" value={fmt(sweepSourceCandidates.length)} tone={sweepSourceCandidates.length ? "good" : "warn"} />
-          <StatTile label="Confirmadas" value={`${fmt(confirmedChannels.length)}/${fmt(telephoneChannels.length)}`} tone={telephoneChannels.length && confirmedChannels.length === telephoneChannels.length ? "good" : "warn"} />
-        </div>
-        <p className="mon-profile-muted">
-          Los canales telefónicos salen de Enlaces y envíos. La base de barrido se confirma contra una fuente Google Sheets con rol barrido para que el modelo sepa qué hoja alimenta responsables, intentos y estados.
-        </p>
-        {status ? <div className={status.tone === "error" ? "mon-sm-error" : "mon-sm-meta"}>{status.message}</div> : null}
-        <div className="mon-profile-grid">
-          <AcreditacionSheetSourceEditor preset={sweepPreset} sources={sweepSourceCandidates} onStateChange={onStateChange} />
-          <BloqueDeMonitoreo
-            titulo="Campos operativos"
-            bajada={<>{cases.enabled ? "Activo" : "Pendiente"}</>}
-          >
-            <div className="mon-form mon-form--two">
-              <AcreditacionVarSelect label="Identificador" value={cases.case_id_var} vars={variableNames} onChange={(value) => onCasesChange({ case_id_var: value })} />
-              <AcreditacionVarSelect label="Persona o caso" value={cases.person_label_var} vars={variableNames} onChange={(value) => onCasesChange({ person_label_var: value })} />
-              <AcreditacionVarSelect label="Estado reportado" value={cases.status_var} vars={variableNames} onChange={(value) => onCasesChange({ status_var: value })} />
-              <label>
-                <span>Origen del barrido</span>
-                <select
-                  value={cases.roster_source}
-                  onChange={(event) => onCasesChange({ roster_source: event.target.value as MonitoreoConfig["operational_model"]["cases"]["roster_source"] })}
-                >
-                  {MODEL_ROSTER_SOURCE_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-                </select>
-              </label>
-            </div>
-            <div className="mon-profile-grid">
-              <AcreditacionVariableChipPicker label="Campos de contacto" vars={variableNames} selected={cases.contact_vars} onChange={(contact_vars) => onCasesChange({ contact_vars })} />
-              <AcreditacionVariableChipPicker label="Campos sensibles" vars={variableNames} selected={cases.sensitive_vars} onChange={(sensitive_vars) => onCasesChange({ sensitive_vars })} />
-            </div>
-          </BloqueDeMonitoreo>
-        </div>
-      </section>
-      <section className="mon-contract-block mon-contract-block--wide mon-channel-selector-matrix" aria-label="Canales telefónicos con base de barrido">
-        <div className="mon-contract-block-head">
-          <span>Canales telefónicos definidos en Enlaces y envíos</span>
-          <span className="mon-contract-counter">{fmt(confirmedChannels.length)} confirmados</span>
-        </div>
-        {!telephoneChannels.length ? (
-          <EmptyPanel title="Sin canales telefónicos" detail="Clasifica al menos un recopilador como Teléfono asistido o Barrido en Enlaces y envíos." />
-        ) : (
-          <div className="mon-collector-list">
-            {telephoneChannels.map((channel) => {
-              const matched = acreditacionSweepSourceForChannel(sweepSourceCandidates, channel);
-              const selectedId = selectedByChannel[channel.key] ?? matched?.id ?? "";
-              const selectedSource = sourceOptions.find((source) => source.id === selectedId) ?? matched ?? null;
-              const dimensions = sourceDimensionEntries(selectedSource?.dimensions).slice(0, 5);
-              return (
-                <article key={channel.key} className={`mon-collector-card mon-collector-card--channel is-${matched ? "telefono" : "mixto"}`}>
-                  <div className="mon-collector-title">
-                    <span className="mon-collector-use-icon"><PhoneCall size={14} /></span>
-                    <div>
-                      <strong>{channel.actor}</strong>
-                      <em>{channel.collectorName}, {channel.sourceName}</em>
-                    </div>
-                    <span className="mon-collector-chip">{matched ? "Base confirmada" : "Por confirmar"}</span>
-                  </div>
-                  <div className="mon-collector-metrics">
-                    <AcreditacionCollectorMetric label="Respuestas" value={channel.responseCount} tone={channel.responseCount ? "ready" : "neutral"} />
-                    <AcreditacionCollectorMetric label="Barrido" value={matched ? 1 : 0} tone={matched ? "ready" : "warning"} />
-                    <AcreditacionCollectorMetric label="Hoja" value={selectedSource?.sheet_binding?.sheet_name ? 1 : 0} tone={selectedSource?.sheet_binding?.sheet_name ? "ready" : "neutral"} />
-                  </div>
-                  <div className="mon-collector-controls mon-collector-controls--channel">
-                    <label>
-                      <span>Base de barrido</span>
-                      <select
-                        value={selectedId}
-                        onChange={(event) => setSelectedByChannel((current) => ({ ...current, [channel.key]: event.currentTarget.value }))}
-                        disabled={Boolean(savingKey)}
-                      >
-                        <option value="">Sin base confirmada</option>
-                        {sourceOptions.map((source) => (
-                          <option key={source.id} value={source.id}>
-                            {[source.label || source.id, source.sheet_binding?.sheet_name, sourceActorLabel(source)].filter(Boolean).join(", ")}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-                    <button
-                      type="button"
-                      className="pulso-primary"
-                      onClick={() => { void confirmSweepBase(channel); }}
-                      disabled={savingKey === channel.key || !selectedId}
-                    >
-                      {savingKey === channel.key ? <Loader2 size={13} className="pulso-spin" /> : <CheckCircle2 size={13} />}
-                      Confirmar selección
-                    </button>
-                  </div>
-                  <div className="mon-collector-channel-line">
-                    <AcreditacionChannelBadge channel={channel.channel} />
-                    <span>{channel.collectorId || channel.sourceId}, {channel.collectorType}</span>
-                  </div>
-                  {selectedSource ? (
-                    <div className="mon-source-dim-badges">
-                      <span>{selectedSource.sheet_binding?.sheet_name || "Pestaña pendiente"}</span>
-                      {sourceSpreadsheetUrl(selectedSource) ? (
-                        <a href={sourceSpreadsheetUrl(selectedSource)} target="_blank" rel="noreferrer">
-                          {sourceSpreadsheetDisplay(selectedSource)}
-                        </a>
-                      ) : null}
-                      {dimensions.map(([key, value]) => <span key={`${channel.key}-${key}`}>{dimensionLabel(key)}: {value}</span>)}
-                    </div>
-                  ) : (
-                    <EstadoVacio icono={<Table2 size={15} />} titulo="Registra una hoja de barrido arriba para asociarla a este canal." />
-                  )}
-                </article>
-              );
-            })}
-          </div>
-        )}
-      </section>
-    </>
   );
 }
 
@@ -10371,18 +9926,6 @@ function telefonicoConsultedEffectiveCasesFromSources(
   return comparisonEffective.length > queryEffective.length ? comparisonEffective : queryEffective;
 }
 
-function casePartialLabel(item: MonitoreoInternalQueryCase) {
-  const answered = Number(item.partial_answered_questions ?? Number.NaN);
-  const total = Number(item.partial_total_questions ?? Number.NaN);
-  const pctValue = Number(item.partial_completion_pct ?? Number.NaN);
-  if (Number.isFinite(answered) && Number.isFinite(total) && total > 0) {
-    const percent = Number.isFinite(pctValue) ? pctValue : (answered / total) * 100;
-    return `${fmt(answered)}/${fmt(total)} (${pct(percent)})`;
-  }
-  if (Number.isFinite(pctValue)) return pct(pctValue);
-  return internalCaseResponseStateValue(item) === "partial" ? "Parcial sin detalle" : "";
-}
-
 type AcreditacionCaseKeyEvidenceTone = "primary" | "secondary" | "base";
 
 type AcreditacionCaseKeyEvidenceRow = {
@@ -10947,24 +10490,6 @@ function AcreditacionAssistedReviewBlock({
   );
 }
 
-function caseAuditRows(cases: MonitoreoInternalQueryCase[]) {
-  return cases.filter(caseIsAuditable).map((item) => ({
-    Actor: item.actor || "Sin actor",
-    Persona: caseDisplayName(item),
-    "Estado respuesta": internalCaseResponseStateLabel(internalCaseResponseStateValue(item)),
-    "Cuenta avance": caseCountsLabel(item),
-    Cruce: internalCaseCrossingLabel(internalCaseCrossingValue(item)),
-    Decisión: item.decision || advancementLabel(item.advancement),
-    Motivo: item.decision_reason || item.rule || item.issue_type || "Regla estándar",
-    "Evidencia primaria": casePrimaryEvidence(item),
-    "Evidencia secundaria": caseSecondaryEvidence(item),
-    "Acción telefónica": casePhoneAction(item),
-    Duplicados: caseDuplicateLabel(item),
-    Parcial: casePartialLabel(item),
-    "Response ID": item.response_id || "",
-  }));
-}
-
 function AcreditacionCaseFilterChips({
   label,
   value,
@@ -11107,173 +10632,6 @@ function AcreditacionConsultaTabs({
         );
       })}
     </GlidingTabList>
-  );
-}
-
-function AcreditacionCrucesView({ cases }: { cases: MonitoreoInternalQueryCase[] }) {
-  const crossingRows = groupedCaseRows(cases, internalCaseCrossingValue, internalCaseCrossingLabel);
-  const actorRows = groupedCaseRows(cases, (item) => item.actor || "Sin actor", (value) => value);
-  const sourceRows = groupedCaseRows(cases, (item) => item.source_label || acreditacionChannelDisplay(item.channel, "Sin fuente"), (value) => value);
-  return (
-    <div className="mon-acr-insight-grid">
-      <BloqueDeMonitoreo
-        titulo="Cruce por llave"
-        bajada={<>{fmt(crossingRows.length)} tipos</>}
-      >
-        <DataTable rows={crossingRows} empty="No hay cruces para los filtros activos." />
-      </BloqueDeMonitoreo>
-      <BloqueDeMonitoreo
-        titulo="Actor y estado"
-        bajada={<>{fmt(actorRows.length)} actores</>}
-      >
-        <DataTable rows={actorRows} empty="No hay actores para los filtros activos." />
-      </BloqueDeMonitoreo>
-      <BloqueDeMonitoreo
-        className="mon-acr-insight-wide"
-        titulo="Fuente y respuesta"
-        bajada={<>{fmt(sourceRows.length)} fuentes</>}
-      >
-        <DataTable rows={sourceRows} empty="No hay fuentes para los filtros activos." />
-      </BloqueDeMonitoreo>
-    </div>
-  );
-}
-
-function AcreditacionAuditoriaView({
-  cases,
-  issues,
-}: {
-  cases: MonitoreoInternalQueryCase[];
-  issues: Array<Record<string, unknown>>;
-}) {
-  const auditRows = caseAuditRows(cases);
-  const noCrossing = cases.filter(caseWithoutCrossing).length;
-  const duplicates = cases.filter((item) => Number(item.duplicate_count ?? item.duplicate_group_size ?? 0) > 1).length;
-  const partials = cases.filter((item) => internalCaseResponseStateValue(item) === "partial").length;
-  return (
-    <div className="mon-profile-stack">
-      <div className="mon-profile-stat-row">
-        <StatTile label="Casos auditables" value={fmt(auditRows.length)} tone={auditRows.length ? "warn" : "good"} />
-        <StatTile label="Sin cruce" value={fmt(noCrossing)} tone={noCrossing ? "warn" : "good"} />
-        <StatTile label="Duplicados" value={fmt(duplicates)} tone={duplicates ? "warn" : "neutral"} />
-        <StatTile label="Parciales" value={fmt(partials)} tone={partials ? "warn" : "neutral"} />
-      </div>
-      <BloqueDeMonitoreo
-        titulo="Casos que explican diferencias"
-        bajada={<>{fmt(auditRows.length)} filas</>}
-      >
-        <DataTable rows={auditRows} empty="No hay casos auditables con los filtros activos." />
-      </BloqueDeMonitoreo>
-      <BloqueDeMonitoreo
-        titulo="Alertas internas"
-        bajada={<>{fmt(issues.length)} alertas</>}
-      >
-        <DataTable rows={issues} empty="No hay alertas internas para este corte." />
-      </BloqueDeMonitoreo>
-    </div>
-  );
-}
-
-function AcreditacionReconciliacionView({
-  cases,
-  busyId = "",
-  status = null,
-  onDecision,
-}: {
-  cases: MonitoreoInternalQueryCase[];
-  busyId?: string;
-  status?: AcreditacionActionStatus;
-  onDecision?: (payload: AcreditacionCaseReconciliationPayload) => void;
-}) {
-  const reviewCases = cases.filter(caseNeedsReconciliationReview);
-  const assistedCases = cases.filter(assistedReviewVisible);
-  const visible = (assistedCases.length ? assistedCases : reviewCases.length ? reviewCases : cases).slice(0, 120);
-  const countsAdvance = cases.filter((item) => caseCountsInAdvance(item) === true).length;
-  const notCounting = cases.filter((item) => caseCountsInAdvance(item) === false).length;
-  const duplicates = cases.filter((item) => Number(item.duplicate_count ?? item.duplicate_group_size ?? 0) > 1).length;
-  const phoneActions = cases.filter((item) => Boolean(casePhoneAction(item))).length;
-  const visibleTotal = assistedCases.length || reviewCases.length || cases.length;
-
-  return (
-    <div className="mon-acr-recon">
-      <section className="mon-profile-stat-row" aria-label="Resumen de reconciliación">
-        <StatTile label="Cuentan" value={fmt(countsAdvance)} tone={countsAdvance ? "good" : "neutral"} />
-        <StatTile label="No cuentan" value={fmt(notCounting)} tone={notCounting ? "warn" : "good"} />
-        <StatTile label="Duplicados" value={fmt(duplicates)} tone={duplicates ? "warn" : "good"} />
-        <StatTile label="Revisión asistida" value={fmt(assistedCases.length)} tone={assistedCases.length ? "warn" : "neutral"} />
-        <StatTile label="Acción tel." value={fmt(phoneActions)} tone={phoneActions ? "warn" : "neutral"} />
-      </section>
-      {status ? <span className={`mon-acr-model-action-status is-${status.tone}`}>{status.message}</span> : null}
-
-      <BloqueDeMonitoreo
-        className="mon-acr-recon-panel"
-        titulo="Reconciliación de persona, respuesta y barrido"
-        bajada={<>{fmt(visible.length)} de {fmt(visibleTotal)} casos</>}
-      >
-        {visible.length ? (
-          <div className="mon-acr-recon-table-wrap">
-            <table className="mon-acr-recon-table">
-              <thead>
-                <tr>
-                  <th>Persona / código</th>
-                  <th>Cuenta</th>
-                  <th>Evidencia</th>
-                  <th>Teléfono / acción</th>
-                  <th>Duplicado y parcial</th>
-                </tr>
-              </thead>
-              <tbody>
-                {visible.map((item) => {
-                  const counts = caseCountsInAdvance(item);
-                  const phoneAction = casePhoneAction(item);
-                  const reviewVisible = assistedReviewVisible(item);
-                  const id = caseIdentity(item);
-                  return (
-                    <Fragment key={id}>
-                      <tr className={counts === true ? "is-counting" : counts === false ? "is-not-counting" : "is-review"}>
-                        <td>
-                          <strong>{caseDisplayName(item)}</strong>
-                          <small>{item.actor || "Sin actor"}, {item.case_key || "sin llave"}, {item.response_id || "sin response_id"}</small>
-                        </td>
-                        <td>
-                          <EstadoChip label={caseCountsLabel(item)} tone={tonoDeConteo(counts)} />
-                          <small>{item.decision || advancementLabel(item.advancement)}</small>
-                        </td>
-                        <td>
-                          <strong>{casePrimaryEvidence(item)}</strong>
-                          <small>{caseSecondaryEvidence(item) || internalCaseCrossingLabel(internalCaseCrossingValue(item))}</small>
-                        </td>
-                        <td>
-                          <strong>{phoneAction || item.base_status || acreditacionChannelDisplay(item.channel, "Sin acción telefónica")}</strong>
-                          <small>{item.source_label || "Sin fuente"}, {internalQueryCollectorDisplayLabel(item)}</small>
-                        </td>
-                        <td>
-                          <strong>{caseDuplicateLabel(item)}</strong>
-                          <small>{casePartialLabel(item) || item.rule || item.issue_type || "Sin parcialidad reportada"}</small>
-                        </td>
-                      </tr>
-                      {reviewVisible ? (
-                        <tr className="mon-acr-recon-review-row">
-                          <td colSpan={5}>
-                            <AcreditacionAssistedReviewBlock
-                              item={item}
-                              busy={busyId === item.response_id}
-                              onDecision={onDecision}
-                            />
-                          </td>
-                        </tr>
-                      ) : null}
-                    </Fragment>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        ) : (
-          <p className="mon-profile-muted">No hay casos de reconciliación para los filtros activos.</p>
-        )}
-      </BloqueDeMonitoreo>
-    </div>
   );
 }
 
@@ -17282,24 +16640,8 @@ function renderAcreditacionView(
       />
     );
   }
-  return (
-    <div className="mon-profile-stack">
-      <div className="mon-profile-grid">
-        <BloqueDeMonitoreo
-          titulo="Avance por actor"
-          bajada={<>{fmt(actorRows.length)} filas</>}
-        >
-          <DataTable rows={actorRows as Array<Record<string, unknown>>} empty="No hay avance por actor preparado." />
-        </BloqueDeMonitoreo>
-        <BloqueDeMonitoreo
-          titulo="Ritmo diario"
-          bajada={<>{fmt(dailyRows.length)} dias</>}
-        >
-          <DataTable rows={dailyRows as Array<Record<string, unknown>>} empty="No hay serie diaria preparada." />
-        </BloqueDeMonitoreo>
-      </div>
-    </div>
-  );
+  // Ninguna sección interna llega aquí: cada una se despachó arriba.
+  return null;
 }
 
 

@@ -380,8 +380,8 @@ build-if-stale-fast:
 dev-port-preflight:
 	@node scripts/dev-port-preflight.mjs --ports 8787,8788,8789
 
-# Higiene de servers dev: inventario y limpieza de vites huérfanos/stale.
-# Nunca toca el backend R (8787).
+# Higiene de servers dev: inventario y limpieza de vites, backends R y runners
+# de QA huérfanos. Nunca toca los puertos del usuario (8787, 8841, 5181).
 dev-status:
 	@bash scripts/dev-servers.sh status
 

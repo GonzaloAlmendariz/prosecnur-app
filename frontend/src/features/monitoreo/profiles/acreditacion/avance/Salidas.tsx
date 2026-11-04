@@ -61,7 +61,9 @@ export function tablaDeAcreditacionDelCliente(tarjetas: readonly AcreditacionAdv
     };
   }
   const minimos = conMinimo.reduce((t, c) => t + (c.meta ?? 0), 0);
-  const completasConMinimo = conMinimo.reduce((t, c) => t + c.effective, 0);
+  // Lo cubierto no compensa entre públicos: cada uno aporta a lo sumo su mínimo,
+  // igual que el total del PDF (monitoreo_avance_sin_compensar.R).
+  const completasConMinimo = conMinimo.reduce((t, c) => t + Math.min(c.effective, c.meta ?? 0), 0);
   return {
     cabecera: [...base.cabecera, "Mínimo esperado", "Cumplimiento del mínimo", "Faltan para el mínimo"],
     numericas: [...base.numericas, true, true, true],

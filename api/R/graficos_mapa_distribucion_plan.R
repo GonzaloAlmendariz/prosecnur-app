@@ -23,18 +23,25 @@
 #' nada va fuera de escala (la última clase es abierta: «11 o más», «51 o más»), las áreas de otra respuesta del filtro van
 #' en gris con rayado y la lista lleva una barra de 11 px sobre una pista del 100 %.
 #' @keywords internal
-.MAPA_DIST <- list(
-  blues5 = c("#C6DBEF", "#9ECAE1", "#6BAED6", "#3182BD", "#08519C"),
-  blues4 = c("#C6DBEF", "#9ECAE1", "#4292C6", "#08519C"),
-  vacio = "#FAF9F6", vacio_borde = "#C9CED6", punto = "#C8463D",
-  # Borde entre áreas gris oscuro fino (Gonzalo, 2026-11-03: «no se distinguen los distritos»; la maqueta usaba blanco).
-  borde = "#5A6478", borde_pt = 0.5, contorno = "#8E98A8", mar = "#E6EEF5", oceano = "#7A8AA0",
-  tierra = "#EEECE7", tierra_borde = "#D9D5CD", pais = "#A39E94", texto = "#14213D", gris = "#5A6478", guia = "#3C4658",
-  otra = "#E4E7EC", otra_raya = "#B3BAC6", pista = "#EDEFF3", otros_barra = "#AEB5C1", otros_texto = "#6B7486",
-  cortes_conteo = list(lima_callao = c(3, 6, 11, 21), peru = c(3, 6, 11)),
-  cortes_personas = c(6, 11, 21, 51),
-  cortes_tasa = c(0.5, 1, 2, 3)
-)
+.MAPA_DIST <- function() {
+  # Los colores son tokens `ppt.colores.mapa_*` de estandar_pulso.json (ADR 0092, «manda el JSON»); se leen al dibujar.
+  k <- function(n) .std_color(paste0("mapa_", n))
+  list(
+    blues5 = vapply(paste0("clase_", 1:5), k, "", USE.NAMES = FALSE),
+    blues4 = vapply(c("clase_1", "clase_2", "clase4_3", "clase_5"), k, "", USE.NAMES = FALSE),
+    vacio = k("vacio"), vacio_borde = k("vacio_borde"), punto = k("punto"),
+    # Borde entre áreas gris oscuro (Gonzalo, 2026-11-03: «no se distinguen los distritos»; la maqueta usaba blanco) y,
+    # sobre las clases oscuras, blanco: entre dos distritos del mismo azul oscuro el gris no se veía (revisión v7, lámina 11).
+    borde = k("borde_area"), borde_oscura = k("borde_area_oscura"), borde_pt = 0.6, contorno = k("contorno"), mar = k("mar"),
+    oceano = k("oceano"), tierra = k("tierra"), tierra_borde = k("tierra_borde"), pais = k("pais"), texto = k("texto"),
+    gris = k("borde_area"), guia = k("guia"), otra = k("otra"), otra_raya = k("otra_raya"), pista = k("pista"),
+    otros_barra = k("otros_barra"), otros_texto = k("otros_texto"), tarjeta_borde = k("tarjeta_borde"),
+    zona_texto = k("zona_texto"), zona_filete = k("zona_filete"),
+    cortes_conteo = list(lima_callao = c(3, 6, 11, 21), peru = c(3, 6, 11)),
+    cortes_personas = c(6, 11, 21, 51),
+    cortes_tasa = c(0.5, 1, 2, 3)
+  )
+}
 
 #' Mapa de la distribución de los encuestados por distrito de Lima y Callao o por departamento del Perú
 #'
@@ -57,11 +64,13 @@
 #' @param otra_respuesta Áreas del mapa que pertenecen a otra respuesta del filtro («Lima», «Callao»): van en gris con
 #'   rayado, con su entrada en la leyenda, y lo que caiga en ellas va a la fila «otros» de la lista.
 #' @param otra_respuesta_rotulo Rótulo de esa entrada en la leyenda; vacío, «Lima y Callao».
+#' @param ancho_mapa Fracción de la tarjeta (0.25 a 0.8) que toma el mapa; el resto es de la lista. Vacío: la elige el
+#'   motor: el mapa toma el ancho que su alto pide y deja el resto a las barras (Gonzalo, 2026-11-04).
 #' @export
 p_mapa_distribucion <- function(var, area = c("lima_callao", "peru"), medida = c("conteo", "tasa"), titulo = NULL, filtros = list(),
                                 excluir_opciones = NULL, cortes = NULL, rotulo = NULL, encuadre = c("datos", "completo"), puntos = NULL,
                                 zona_lima = NULL, juntar = NULL, unidad = c("estudiantes", "personas"), otra_respuesta = NULL,
-                                otra_respuesta_rotulo = NULL, overrides = list(), base = list()) {
+                                otra_respuesta_rotulo = NULL, ancho_mapa = NULL, overrides = list(), base = list()) {
   var <- .puntos_comparativos_ref(var, "var")
   area <- match.arg(as.character(unlist(area %||% "lima_callao"))[1], .MAPA_DISTRIBUCION_AREAS)
   medida <- match.arg(as.character(unlist(medida %||% "conteo"))[1], c("conteo", "tasa"))
@@ -77,6 +86,10 @@ p_mapa_distribucion <- function(var, area = c("lima_callao", "peru"), medida = c
   unidad <- match.arg(as.character(unlist(unidad %||% "estudiantes"))[1], c("estudiantes", "personas"))
   juntar <- as.character(unlist(juntar %||% character(0))); juntar <- juntar[!is.na(juntar) & nzchar(trimws(juntar))]
   otra <- .mapa_dist_otra_grupos(otra_respuesta, otra_respuesta_rotulo)
+  ancho_mapa <- if (length(ancho_mapa)) suppressWarnings(as.numeric(unlist(ancho_mapa))[1]) else NULL
+  if (length(ancho_mapa) && (!is.finite(ancho_mapa) || ancho_mapa < 0.25 || ancho_mapa > 0.8)) {
+    .plan_spec_abort("p_mapa_distribucion(): `ancho_mapa` es la fracción de la tarjeta que toma el mapa, entre 0.25 y 0.8.")
+  }
   el <- list(.element_type = "mapa_distribucion", var = var, area = area, medida = medida, title_slide = .ppt_norm_text1(titulo, blank = NULL),
              juntar = if (length(juntar)) vapply(juntar, .puntos_comparativos_ref, "", argumento = "juntar", USE.NAMES = FALSE) else NULL,
              unidad = unidad, otra_respuesta = if (length(otra)) otra else NULL,   # grupos con su rótulo (.mapa_dist_otra_grupos)
@@ -85,6 +98,7 @@ p_mapa_distribucion <- function(var, area = c("lima_callao", "peru"), medida = c
              excluir_opciones = if (length(excluir_opciones)) .puntos_comparativos_codigos(excluir_opciones, "excluir_opciones") else NULL,
              cortes = cortes, rotulo = .ppt_norm_text1(rotulo, blank = NULL), encuadre = encuadre,
              puntos = .mapa_puntos_normalizar(puntos),
+             ancho_mapa = ancho_mapa,
              zona_lima = if (is.null(zona_lima) || !length(zona_lima)) NULL else isTRUE(as.logical(unlist(zona_lima))[1]),
              overrides = overrides, base = base)
   class(el) <- c("ppt_element", "list")
@@ -143,7 +157,7 @@ p_mapa_distribucion <- function(var, area = c("lima_callao", "peru"), medida = c
 #' @return `list(cortes, colores, rotulos, clase = function(valor))`.
 #' @keywords internal
 .mapa_distribucion_clases <- function(medida, area, cortes = NULL, unidad = "estudiantes") {
-  M <- .MAPA_DIST
+  M <- .MAPA_DIST()
   cortes <- cortes %||% (if (identical(medida, "tasa")) M$cortes_tasa else if (identical(unidad, "personas")) M$cortes_personas else
     M$cortes_conteo[[area]])
   k <- length(cortes) + 1L
@@ -217,7 +231,7 @@ p_mapa_distribucion <- function(var, area = c("lima_callao", "peru"), medida = c
                                      rotulo = NULL, zona_lima = NULL, unidad = "estudiantes", otra_respuesta = NULL,
                                      otra_rotulo = NULL) {
   if (is.null(carto)) return(NULL)
-  M <- .MAPA_DIST
+  M <- .MAPA_DIST()
   # Los puntos de referencia (la PUCP) van sólo en el mapa distrital: en el nacional no se ven a esa escala (Gonzalo,
   # 2026-11-02: «la PUCP sólo va en distrital, no en nacional, por definición propia»).
   if (identical(area, "peru")) puntos <- NULL
@@ -333,7 +347,12 @@ graficar_mapa_distribucion <- function(espec) {
                                     el$zona_lima, unidad = el$unidad %||% "estudiantes", otra_respuesta = el$otra_respuesta,
                                     otra_rotulo = el$otra_respuesta_rotulo)
   # La pregunta encima de la tarjeta (lamina_mapa_distribucion.R); el plan la guarda en `overrides$titulo`.
+  espec$ancho_mapa <- el$ancho_mapa
   espec$pregunta <- .ppt_norm_text1((el$overrides %||% list())$titulo %||% el$title_slide, blank = NULL)
+  # Revisión v7, lámina 12 (Gonzalo, 2026-11-04): si la base del mapa difiere del total de la base del estudio, va en la
+  # esquina inferior izquierda del mapa, para que se lea que es un subgrupo.
+  total <- NROW(data_sources[[fuente]])
+  if (espec$base > 0 && total > 0 && espec$base != total) espec$base_rotulo <- paste0("Base: ", format(espec$base, big.mark = ","))
   # Lo que no casa con la cartografía sigue en el total y se dice con su nombre: nunca se descarta en silencio.
   if (length(espec$sin_casar)) message("[PULSO-AVISO] Mapa de distribución: fuera del mapa (cuentan en el total, en la fila «otros»): ",
                                        paste(espec$sin_casar, collapse = ", "), ".")

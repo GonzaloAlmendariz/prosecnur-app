@@ -222,6 +222,10 @@ monitoreo_acreditacion_client_report_pdf <- function(model, output_file, include
   total_comp <- sum(pub$completas)
   total_parc <- sum(pub$parciales)
   total_meta <- if (con_meta) sum(pub$meta) else NA_real_
+  # El total no compensa entre públicos: lo que sobra en uno no cubre lo que
+  # falta en otro. «Faltan» suma lo que falta en cada público y el cumplimiento
+  # cuenta sólo lo cubierto de cada mínimo (`monitoreo_avance_sin_compensar.R`).
+  sin_comp <- .monitoreo_avance_sin_compensar(pub$completas, if (con_meta) pub$meta else rep(NA_real_, nrow(pub)))
   den_total <- total_uni
   n_dias <- nrow(serie)
   inicio <- if (n_dias) serie$fecha[[1]] else as.Date(NA)
@@ -314,8 +318,8 @@ monitoreo_acreditacion_client_report_pdf <- function(model, output_file, include
     ),
     if (con_meta) list(
       list("Mínimo esperado", .acav_n(total_meta), paste(.acav_pct(total_meta, total_uni), "del universo"), FALSE),
-      list("Cumplimiento del mínimo", .acav_pct(total_comp, total_meta), paste(.acav_n(total_comp), "de", .acav_n(total_meta)), FALSE),
-      list("Faltan para el mínimo", .acav_n(max(0, total_meta - total_comp)), "", FALSE)
+      list("Cumplimiento del mínimo", .acav_pct(sin_comp$cubierto, total_meta), paste(.acav_n(sin_comp$cubierto), "de", .acav_n(total_meta)), FALSE),
+      list("Faltan para el mínimo", .acav_n(sin_comp$faltan), "", FALSE)
     ) else list(
       list("Universo", .acav_n(total_uni), "", FALSE)
     ),
@@ -369,6 +373,10 @@ monitoreo_acreditacion_client_report_pdf <- function(model, output_file, include
   }
   filas <- rbind(pub, data.frame(publico = "Total", universo = total_uni, completas = total_comp,
                                  parciales = total_parc, meta = total_meta, stringsAsFactors = FALSE))
+  # Lo que cuenta para el mínimo y lo que falta, fila por fila y sin compensar
+  # en el Total: en cada público son sus completas y max(0, mínimo − completas).
+  filas$cubiertas <- c(pub$completas, sin_comp$cubierto)
+  filas$faltan <- c(pmax(0, pub$meta - pub$completas), sin_comp$faltan)
   fila_h <- min(0.054, (hy - hh / 2 - suelo - 0.010) / max(1L, nrow(filas)))
   fy <- hy - hh / 2
   for (i in seq_len(nrow(filas))) {
@@ -394,10 +402,10 @@ monitoreo_acreditacion_client_report_pdf <- function(model, output_file, include
       tx(.acav_n(f$meta), cols$minimo, cy + 0.008, size = ty$body, face = cara, just = c("right", "center"))
       tx(paste(.acav_pct(f$meta, f$universo), "del universo"), cols$minimo, cy - 0.010, size = ty$caption,
          col = tk$soft, just = c("right", "center"))
-      tx(.acav_pct(f$completas, f$meta), cols$pct_min, cy + 0.008, size = ty$body, face = cara, just = c("right", "center"))
-      tx(paste(.acav_n(f$completas), "de", .acav_n(f$meta)), cols$pct_min, cy - 0.010, size = ty$caption,
+      tx(.acav_pct(f$cubiertas, f$meta), cols$pct_min, cy + 0.008, size = ty$body, face = cara, just = c("right", "center"))
+      tx(paste(.acav_n(f$cubiertas), "de", .acav_n(f$meta)), cols$pct_min, cy - 0.010, size = ty$caption,
          col = tk$soft, just = c("right", "center"))
-      tx(.acav_n(max(0, f$meta - f$completas)), cols$faltan, cy, size = ty$body, face = cara, just = c("right", "center"))
+      tx(.acav_n(f$faltan), cols$faltan, cy, size = ty$body, face = cara, just = c("right", "center"))
     }
     fy <- fy - fila_h
     regla(m, right, fy, col = if (es_total) tk$tbl_frame else tk$rule, lwd = if (es_total) pesos$bloque else pesos$fila)
