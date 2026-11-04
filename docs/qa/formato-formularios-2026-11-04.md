@@ -25,7 +25,7 @@ cuenta comentarios.
 | # | Vista | « · » | Vacío o carga | Chip o estado | `h2–h4` | Estado |
 |---|---|---|---|---|---|---|
 | 1 | `shell/` (cabecera, biblioteca, paneles laterales, asistentes) | 40 | 20 | 24 | 24 | ☑ tanda 1 |
-| 2 | `inspector/` | 7 | 11 | 22 | 0 | ☐ |
+| 2 | `inspector/` | 7 | 11 | 22 | 0 | ☑ tanda 2 |
 | 3 | `choiceFilters/` | 6 | 5 | 11 | 8 | ☐ |
 | 4 | `canvas-graph/` (lógica en grafo) | 12 | 10 | 4 | 1 | ☐ |
 | 5 | `canvas/` | 6 | 8 | 5 | 4 | ☐ |
@@ -38,3 +38,4 @@ cuenta comentarios.
 |---|---|---|---|
 | Medición y ranking | ☑ | (este doc) | |
 | Tanda 1: `shell/` | ☑ | (ver abajo) | P3: 39 líneas pasan a coma, «y» o paréntesis («Disponible, revisión 2», «Fuera de Prosecnur (SPSS)», «Matriz (2 filas)»). La barra de comando dice «N preguntas, M secciones, listas» sin separadores sueltos. El parser de errores del servidor busca `\u00b7`, no el carácter. P4: `toFixed` y `toLocaleString` a `formatoDecimal`. P5: 12 vacíos a `EstadoVacio` y la carga de sugerencias a `LoadingBlock`; −16 selectores huérfanos. Declarados: el simulador y el esqueleto de carga de la campaña. P6: sin estados con tono que convertir («Activo» es identidad del módulo; las píldoras de la barra son el slot de estado del chrome). Guard nuevo `formatoDelModulo.contract.test.ts` (P3, P4 y P5 por archivo, sólo baja). Foto: P3 81, P4 3, P5 48 |
+| Tanda 2: `inspector/` | ☑ | (ver abajo) | P3: 7 líneas («n.º 3», «(compartida con 2)», «(equivale a DNI)», el placeholder de cálculo con «o»). P5: 6 vacíos a `EstadoVacio`, los de condición y validación con su acción («+ Agregar condición», «Fórmula avanzada»); −7 selectores huérfanos. Declarados: la condición guiada sin preguntas previas (ilustración y dos acciones) y `pulso-catalogchip-empty`, que es el botón «Asignar lista» y cuyo estilo vive en `app/theme.css`. P6: los chips del inspector son de tipo o de dato, no estados. Foto: P3 74, P4 3, P5 41 |

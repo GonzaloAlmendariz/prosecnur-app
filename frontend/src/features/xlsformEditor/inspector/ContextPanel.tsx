@@ -129,8 +129,8 @@ export function ContextPanel({
           )}
           <span className="pulso-context-panel-header-sub">
             {typeLabel(node.typeInfo.base)}
-            {position ? <> · #{position}</> : null}
-            {node.name ? <> · <code>{node.name}</code></> : null}
+            {position ? <>, n.º {position}</> : null}
+            {node.name ? <>, <code>{node.name}</code></> : null}
           </span>
         </div>
       </header>
@@ -168,7 +168,7 @@ export function ContextPanel({
           title="Lista de opciones"
           hint={`${catalogInfo.choicesCount} ${catalogInfo.choicesCount === 1 ? "opción" : "opciones"}${
             catalogInfo.sharedWith.length > 0
-              ? ` · compartida con ${catalogInfo.sharedWith.length}`
+              ? ` (compartida con ${catalogInfo.sharedWith.length})`
               : ""
           }`}
           defaultOpen

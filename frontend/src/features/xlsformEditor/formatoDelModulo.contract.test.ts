@@ -15,7 +15,10 @@ import { describe, expect, it } from "vitest";
  *   de cifra a mano).
  * - P5: el vacío es `EstadoVacio` y la carga `LoadingBlock`, no una receta propia.
  *   Quedan declarados el simulador (imita el formulario en el dispositivo) y el
- *   esqueleto de carga de la campaña (una carga con forma, no una receta).
+ *   esqueleto de carga de la campaña (una carga con forma, no una receta), y la
+ *   condición guiada sin preguntas previas de `LogicBuilder` (ilustración y dos acciones).
+ *   `pulso-catalogchip-empty` es el botón «Asignar lista» del chip (su clase vive en
+ *   `app/theme.css`), no un vacío.
  */
 
 const aqui = path.dirname(fileURLToPath(import.meta.url));
@@ -42,7 +45,7 @@ const PUNTO = (l: string) => (l.includes("·") ? 1 : 0);
 const CIFRA_A_MANO = /toFixed\(|toLocaleString\(\)|toLocaleString\("es-PE"(?:, \{ maximumFractionDigits: [^}]+\})?\)/g;
 const RECETA = /(?<![-\w])(?!data-)[a-z][a-z0-9]*(?:-[a-z0-9]+)*-(?:empty|emptylist|vacio|vacia|loading|cargando)(?![-\w])/g;
 /** Imitan el formulario en el dispositivo o son una carga con forma: no son recetas del módulo. */
-const RECETA_DECLARADA = /^pulso-xfsim-|^pulso-xf-campana-(?:cargando|esqueleto)/;
+const RECETA_DECLARADA = /^pulso-xfsim-|^pulso-xf-campana-(?:cargando|esqueleto)|^pulso-logic-builder-guided-empty$|^pulso-catalogchip-empty$/;
 
 const cuenta = (re: RegExp, filtro?: (m: string) => boolean) => (l: string) =>
   [...l.matchAll(re)].map((m) => m[0]).filter((m) => !filtro || filtro(m)).length;
@@ -86,10 +89,6 @@ const SNAPSHOT_P3: Record<string, number> = {
   "impreso/PreviaImpreso.tsx": 4,
   "impreso/VersionesImpreso.tsx": 1,
   "impreso/modeloImpreso.ts": 4,
-  "inspector/ContextPanel.tsx": 3,
-  "inspector/logic/CalculationBuilder.tsx": 2,
-  "inspector/logic/TextRuleSuite.tsx": 1,
-  "inspector/logic/VariablePicker.tsx": 1,
   "kit/CuerpoPanelMarca.tsx": 1,
   "listas/EntreFormulariosSeccion.tsx": 1,
   "listas/GrupoListasCard.tsx": 1,
@@ -134,10 +133,8 @@ const SNAPSHOT_P5: Record<string, number> = {
   "impreso/DetalleMatrices.tsx": 1,
   "impreso/PreviaImpreso.tsx": 1,
   "impreso/VersionesImpreso.tsx": 1,
-  "inspector/CatalogChip.tsx": 5,
-  "inspector/logic/ConstraintBuilder.tsx": 1,
-  "inspector/logic/LogicBuilder.tsx": 2,
-  "inspector/logic/VariablePicker.tsx": 3,
+  "inspector/CatalogChip.tsx": 3,
+  "inspector/logic/VariablePicker.tsx": 1,
   "kit/CuerpoPanelMarca.tsx": 1,
   "listas/EntreFormulariosSeccion.tsx": 2,
   "listas/ListasOpcionesPanel.tsx": 1,

@@ -404,13 +404,6 @@
   font-weight: var(--pulso-weight-bold);
 }
 
-.pulso-catalogchip-pop-empty {
-  padding: 16px 12px;
-  text-align: center;
-  font-size: var(--pulso-type-body-size);
-  color: var(--pulso-text-soft);
-}
-
 .pulso-catalogchip-pop-footer {
   padding: 8px 10px;
   border-top: 1px solid var(--pulso-border);

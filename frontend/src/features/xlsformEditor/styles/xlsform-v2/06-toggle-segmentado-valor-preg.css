@@ -208,13 +208,6 @@ button.pulso-focus-calculation-recipe {
   max-height: 40vh;
 }
 
-.pulso-logic-calc-varempty {
-  padding: 12px;
-  text-align: center;
-  font-size: var(--pulso-type-caption-size);
-  color: var(--pulso-text-soft);
-}
-
 /* ============================================================================
  * Questionnaire view — full-screen reading surface for the XLSForm editor
  * ========================================================================= */

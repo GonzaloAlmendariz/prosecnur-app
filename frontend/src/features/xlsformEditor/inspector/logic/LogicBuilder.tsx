@@ -39,6 +39,7 @@ import { ConditionRow } from "./ConditionRow";
 import { LogicGroupBlock } from "./LogicGroupBlock";
 import { LogicTreeBuilder } from "./LogicTreeBuilder";
 import { VariablePicker } from "./VariablePicker";
+import { EstadoVacio } from "../../../../components/EstadoVacio";
 
 export type LogicBuilderProps = {
   /** Expresión ODK actual. */
@@ -160,37 +161,41 @@ export function LogicBuilder({
     return (
       <div className="pulso-logic-builder">
         {renderHeader()}
-        <div className="pulso-logic-builder-empty">
-          <IconHint size={14} />
-          <span>{emptyText}</span>
-          <button
-            type="button"
-            className="pulso-logic-builder-add"
-            onClick={() => {
-              if (!hasVariables) {
-                setGuidedEmptyOpen(true);
-                return;
-              }
-              const cond = buildEmpty();
-              if (!cond.variableName) {
-                setGuidedEmptyOpen(true);
-                return;
-              }
-              onChange(serializeExpression(expandCondition(cond)));
-            }}
-          >
-            + Agregar condición
-          </button>
-          {hasVariables && (
-            <button
-              type="button"
-              className="pulso-logic-builder-advanced"
-              onClick={openManual}
-            >
-              Fórmula avanzada
-            </button>
+        <EstadoVacio
+          icono={<IconHint size={14} />}
+          titulo={emptyText}
+          accion={(
+            <>
+              <button
+                type="button"
+                className="pulso-logic-builder-add"
+                onClick={() => {
+                  if (!hasVariables) {
+                    setGuidedEmptyOpen(true);
+                    return;
+                  }
+                  const cond = buildEmpty();
+                  if (!cond.variableName) {
+                    setGuidedEmptyOpen(true);
+                    return;
+                  }
+                  onChange(serializeExpression(expandCondition(cond)));
+                }}
+              >
+                + Agregar condición
+              </button>
+              {hasVariables && (
+                <button
+                  type="button"
+                  className="pulso-logic-builder-advanced"
+                  onClick={openManual}
+                >
+                  Fórmula avanzada
+                </button>
+              )}
+            </>
           )}
-        </div>
+        />
         {renderHint()}
       </div>
     );
