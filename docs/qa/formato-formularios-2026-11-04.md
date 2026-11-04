@@ -72,3 +72,16 @@ Antes de tocar nada se miró `git log -10 -- frontend/src/features/xlsformEditor
   2. A 1440, la cabecera fija de la tabla tapa 23 px de la fila tras desplazar fila y media.
   3. El nombre de sección trae el HTML del XLSForm (`<span style="color:#002060">…`) y se pinta como texto: es el
      dato del instrumento, pero la tabla debería mostrar el rótulo limpio.
+
+  **Resueltos los tres** (pedido de coordinación, un commit cada uno; capturas `--url` a 1440 y 1024 con `ok=true`,
+  `issues=0`, 2 md5 distintos):
+  1. ☑ El rótulo de la sección pasa por `stripMarkdown`, el helper con que el resto del editor (Vista, simulador,
+     filtros, progreso) muestra el texto del XLSForm. Se limpia una vez en el modelo (`modeloResumen`), así la tabla,
+     el detalle desplegado y los tramos del recorrido con sus títulos leen lo mismo; sin texto, cae al `name`. Test en
+     `modeloResumen.test.ts`.
+  2. ☑ «Pesada»: en la tabla angosta (contenedor ≤ 980 px, que es la de 1440 y la de 1024) la columna de la sección
+     mide 140 px y la chapa se encogía bajo su texto. Ahí la chapa queda sólo para el lector de pantalla y a la vista
+     la marca un filete del acento junto al nombre, además de su barra de peso llena; en la tabla ancha no se encoge.
+  3. ☑ Cabecera fija: el patrón de la grilla de bases (1f8075374). `useAltoDeCabecera` mide su alto real (46 px: los
+     rótulos parten en dos líneas) y las filas encajan bajo ella al desplazar (`scroll-snap`); una sección desplegada
+     más alta que el marco se sigue recorriendo libre.

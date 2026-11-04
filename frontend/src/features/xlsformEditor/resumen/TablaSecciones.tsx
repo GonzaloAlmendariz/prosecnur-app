@@ -25,6 +25,7 @@ import { formatoDecimal } from "../../../lib/formatoNumero";
 import { EstadoVacio } from "../../../components/EstadoVacio";
 
 import { Panel } from "../../../components/Panel";
+import { useAltoDeCabecera } from "../../procesamiento/useAltoDeCabecera";
 const COLUMNAS: readonly { columna: ColumnaOrden; rotulo: string; clase: string; ayuda?: string }[] = [
   { columna: "preguntas", rotulo: "Preguntas", clase: "is-num is-col-preguntas" },
   { columna: "obligatorias", rotulo: "Obligatorias", clase: "is-num is-col-obligatorias" },
@@ -93,6 +94,8 @@ export function TablaSecciones({ filas, kindDe, abierta, onAlternar, resaltada, 
     el.scrollIntoView({ block: "nearest", behavior: quieto ? "auto" : "smooth" });
   }, [resaltada]);
   const ordenadas = useMemo(() => ordenarSecciones(filas, orden), [filas, orden]);
+  // La cabecera fija parte sus rótulos en dos líneas: se mide su alto real para que las filas encajen debajo.
+  const marcoDeLaTabla = useAltoDeCabecera<HTMLDivElement>(filas);
   const maxPeso = Math.max(0.0001, ...filas.map((f) => f.peso));
   const pesadas = filas.filter((f) => f.pesada).length;
   const nSecciones = filas.filter((f) => f.id !== "root").length;
@@ -120,7 +123,7 @@ export function TablaSecciones({ filas, kindDe, abierta, onAlternar, resaltada, 
       {filas.length === 0 ? (
         <EstadoVacio icono={<ChevronRight size={14} />} titulo="El formulario no tiene secciones" descripcion="Todas sus preguntas van en un solo bloque." />
       ) : (
-        <div className="pulso-xf-res-tabla-marco" data-qa-scroll-owner="resumen-secciones" tabIndex={0} aria-label="Tabla de secciones">
+        <div className="pulso-xf-res-tabla-marco" ref={marcoDeLaTabla} data-qa-scroll-owner="resumen-secciones" tabIndex={0} aria-label="Tabla de secciones">
           <table className="pulso-xf-res-tabla">
             <thead>
               <tr>
