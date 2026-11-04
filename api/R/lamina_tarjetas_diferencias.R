@@ -19,29 +19,54 @@
 #' @keywords internal
 .lam_tarjeta_medidas <- function(w, nombres = character(0)) {
   angosta <- w < 3.4; media <- !angosta && w < 4.6
-  xn <- if (angosta) 1.3 else if (media) 1.45 else 2.15
+  # El nombre del grupo va encima de su barra y la barra usa todo el ancho (maqueta, versión 2; Gonzalo, v7 RV: «lo mejor»,
+  # con los nombres completos).
+  apilada <- TRUE
+  xn <- if (apilada) 0 else if (angosta) 1.3 else if (media) 1.45 else 2.15
   # La columna de rótulos crece hasta el 45% del ancho interno si un nombre la pide; si ni así cabe, se parte.
-  if (length(nombres)) xn <- max(xn, min(max(.lam_ancho_tinta(nombres, if (angosta) 9.5 else 10, TRUE)) + 0.04, 0.45 * (w - 0.34)))
-  list(angosta = angosta, pad_x = 0.17, pad_t = 0.12, pad_b = 0.1,
+  if (length(nombres) && !apilada) xn <- max(xn, min(max(.lam_ancho_tinta(nombres, if (angosta) 9.5 else 10, TRUE)) + 0.04, 0.45 * (w - 0.34)))
+  pt_nombre <- if (angosta) 9.5 else 10
+  list(angosta = angosta, apilada = apilada, alto_nombre = pt_nombre * 1.15 / 72, wi = w - 2 * (if (apilada) 0.14 else 0.17),
+       pad_x = if (apilada) 0.14 else 0.17, pad_t = 0.11, pad_b = if (apilada) 0.05 else 0.1,
        xn = xn, reserva_cifra = if (angosta) 0.62 else 0.72,
-       fila = if (angosta) 0.23 else 0.25, barra = if (angosta) 0.15 else 0.16, barra_dy = if (angosta) 0.04 else 0.045,
-       pt_cruce = 8, pt_titulo = if (angosta) 10.5 else 11, pt_nombre = if (angosta) 9.5 else 10,
-       pt_cifra = if (angosta) 10 else 10.5, alto_cruce = 0.17, aire_titulo = 0.08, aire_total = 0.04)
+       # Apilada, el renglón de la barra sólo lleva la barra y su cifra: lo justo para la cifra (10.5 pt).
+       fila = if (apilada) 0.205 else if (angosta) 0.23 else 0.25, barra = if (angosta) 0.15 else 0.16, barra_dy = if (angosta) 0.04 else 0.045,
+       pt_cruce = 8, pt_titulo = if (angosta) 10.5 else 11, pt_nombre = pt_nombre,
+       pt_cifra = if (angosta) 10 else 10.5, alto_cruce = 0.17, aire_titulo = if (apilada) 0.05 else 0.08, aire_total = 0.04)
 }
 
-#' Líneas que ocupa un rótulo de grupo en su columna (1 o 2)
+#' Ancho (in) bajo el que la tarjeta pone el nombre del grupo encima de su barra
 #' @keywords internal
-.lam_tarjeta_lineas_nombre <- function(nombre, m) min(2L, max(1L, as.integer(.lam_lineas_tinta(nombre, m$xn + 0.2, m$pt_nombre, TRUE))))
+.TARJETA_ANCHO_APILADA <- 2.9
+
+#' Holgura con que se cuentan las líneas del título de la tarjeta: PowerPoint compone el texto ~5 % más angosto que la
+#' tinta que mide systemfonts, y una línea de más dejaba un hueco entre el título y las barras (Gonzalo, v7 RV)
+#' @keywords internal
+.TARJETA_TINTA_TITULO <- 1.05
+
+#' Líneas que ocupa un rótulo de grupo en su columna (1 o 2); apilada, el nombre va en su propio renglón
+#' @keywords internal
+.lam_tarjeta_lineas_nombre <- function(nombre, m) {
+  ancho <- if (isTRUE(m$apilada)) m$wi + 0.2 else m$xn + 0.2
+  min(2L, max(1L, as.integer(.lam_lineas_tinta(nombre, ancho, m$pt_nombre, TRUE))))
+}
+
+#' Alto de un renglón de grupo (in): con el nombre encima, suma su línea
+#' @keywords internal
+.lam_tarjeta_alto_renglon <- function(nombre, m) {
+  if (isTRUE(m$apilada)) return(.lam_tarjeta_lineas_nombre(nombre, m) * m$alto_nombre + m$fila - 0.02)
+  m$fila + (.lam_tarjeta_lineas_nombre(nombre, m) - 1L) * 0.16
+}
 
 #' Alto de una tarjeta (in) en un ancho
 #' @keywords internal
-.lam_tarjeta_alto <- function(t, w, cortos = character(0), tipo = "multiple") {
+.lam_tarjeta_alto <- function(t, w, cortos = character(0), tipo = "multiple", con_fila = TRUE) {
   nombres <- .tarjetas_rotulo_grupo(t$grupos$etiqueta, cortos)
   m <- .lam_tarjeta_medidas(w, nombres)
-  lineas <- .lam_lineas_tinta(.tarjetas_rotulo_fila(t$fila, tipo), w - 2 * m$pad_x + 0.2, m$pt_titulo, TRUE)
-  extra <- sum(vapply(nombres, function(x) .lam_tarjeta_lineas_nombre(x, m) - 1L, integer(1))) * 0.16
-  m$pad_t + m$alto_cruce + lineas * m$pt_titulo * 1.2 / 72 + m$aire_titulo + (nrow(t$grupos) + 1L) * m$fila +
-    m$aire_total + extra + m$pad_b + 0.02
+  h_fila <- if (isTRUE(con_fila)) .lam_lineas_tinta(.tarjetas_rotulo_fila(t$fila, tipo), (w - 2 * m$pad_x) * .TARJETA_TINTA_TITULO + 0.22, m$pt_titulo, TRUE) *
+    m$pt_titulo * 1.2 / 72 + m$aire_titulo else m$aire_titulo
+  renglones <- .lam_tarjeta_alto_renglon("Total", m) + sum(vapply(nombres, .lam_tarjeta_alto_renglon, numeric(1), m = m))
+  m$pad_t + m$alto_cruce + h_fila + renglones + m$aire_total + m$pad_b + 0.02
 }
 
 #' Dónde empiezan y terminan los renglones de grupo dentro de la tarjeta (in de diseño, desde su borde superior)
@@ -51,10 +76,9 @@
 .lam_tarjeta_y_grupos <- function(t, w, tipo = "multiple", cortos = character(0)) {
   nombres <- .tarjetas_rotulo_grupo(t$grupos$etiqueta, cortos)
   m <- .lam_tarjeta_medidas(w, nombres)
-  h_tit <- .lam_lineas_tinta(.tarjetas_rotulo_fila(t$fila, tipo), w - 2 * m$pad_x + 0.2, m$pt_titulo, TRUE) * m$pt_titulo * 1.2 / 72
-  y0 <- m$pad_t + m$alto_cruce + h_tit + m$aire_titulo + m$fila + m$aire_total
-  altos <- m$fila + (vapply(nombres, .lam_tarjeta_lineas_nombre, integer(1), m = m) - 1L) * 0.16
-  c(y0, y0 + sum(altos))
+  h_tit <- .lam_lineas_tinta(.tarjetas_rotulo_fila(t$fila, tipo), (w - 2 * m$pad_x) * .TARJETA_TINTA_TITULO + 0.22, m$pt_titulo, TRUE) * m$pt_titulo * 1.2 / 72
+  y0 <- m$pad_t + m$alto_cruce + h_tit + m$aire_titulo + .lam_tarjeta_alto_renglon("Total", m) + m$aire_total
+  c(y0, y0 + sum(vapply(nombres, .lam_tarjeta_alto_renglon, numeric(1), m = m)))
 }
 
 #' Forma con borde (continuo o punteado), relleno opcional y volteo vertical
@@ -107,7 +131,7 @@
 #' @param box Caja de la tarjeta `list(l, t, w, h)` en pulgadas de diseño.
 #' @param rotulo_cruce Antetítulo («Área»).
 #' @keywords internal
-.lam_tarjeta_dibujar <- function(b, t, box, rotulo_cruce, cortos = character(0), tipo = "multiple") {
+.lam_tarjeta_dibujar <- function(b, t, box, rotulo_cruce, cortos = character(0), tipo = "multiple", con_fila = TRUE) {
   nombres <- .tarjetas_rotulo_grupo(t$grupos$etiqueta, cortos)
   m <- .lam_tarjeta_medidas(box$w, nombres)
   fr <- isTRUE(t$fragil)
@@ -119,20 +143,33 @@
   # Antetítulo del cruce: versalitas de 8 pt, como el antetítulo de la lámina.
   b$txt(toupper(rotulo_cruce), x0, y, wi, m$alto_cruce, m$pt_cruce, suave, bold = TRUE, nombre = "tarjeta:cruce")
   y <- y + m$alto_cruce
-  fila <- .tarjetas_rotulo_fila(t$fila, tipo)
-  h_tit <- .lam_lineas_tinta(fila, wi + 0.2, m$pt_titulo, TRUE) * m$pt_titulo * 1.2 / 72
-  b$txt(fila, x0, y, wi, h_tit, m$pt_titulo, azul, bold = TRUE, nombre = "tarjeta:fila")
-  y <- y + h_tit + m$aire_titulo
-  ancho_barra <- wi - m$xn - 0.08 - m$reserva_cifra
+  # En una batería la premisa ya está en el eje: la tarjeta no la repite y una línea guía la une a su fila (Gonzalo, v7 RV).
+  if (isTRUE(con_fila)) {
+    fila <- .tarjetas_rotulo_fila(t$fila, tipo)
+    h_tit <- .lam_lineas_tinta(fila, wi * .TARJETA_TINTA_TITULO + 0.22, m$pt_titulo, TRUE) * m$pt_titulo * 1.2 / 72
+    b$txt(fila, x0, y, wi, h_tit, m$pt_titulo, azul, bold = TRUE, nombre = "tarjeta:fila")
+    y <- y + h_tit
+  }
+  y <- y + m$aire_titulo
+  sep_b <- if (isTRUE(m$apilada)) 0 else 0.08
+  ancho_barra <- wi - m$xn - sep_b - m$reserva_cifra
   maximo <- max(c(t$total, t$grupos$p), na.rm = TRUE) * 1.04
-  X <- function(p) x0 + m$xn + 0.08 + if (is.finite(p) && maximo > 0) ancho_barra * p / maximo else 0
+  X <- function(p) x0 + m$xn + sep_b + if (is.finite(p) && maximo > 0) ancho_barra * p / maximo else 0
   # El rótulo del grupo va siempre en azul y negrita; la cifra lleva el nivel (negrita al 99%, azul medio al 95%).
   renglon <- function(nombre, p, color_barra, color_txt, negrita, color_nombre, nombre_negrita, dir = NULL, fragil = FALSE,
-                      alto = m$fila, clase = "grupo", cifra = NULL) {
-    h_n <- m$pt_nombre * 1.2 / 72 * .lam_tarjeta_lineas_nombre(nombre, m)
-    b$txt(nombre, x0, y + (alto - h_n) / 2, m$xn, h_n, m$pt_nombre, color_nombre, bold = nombre_negrita, align = "right",
-          nombre = paste0("tarjeta:", clase, ":rotulo"))
-    xb <- x0 + m$xn + 0.08; wb <- X(p) - xb
+                      alto = .lam_tarjeta_alto_renglon(nombre, m), clase = "grupo", cifra = NULL) {
+    if (isTRUE(m$apilada)) {
+      # El nombre en su renglón, alineado a la izquierda; la barra y la cifra debajo.
+      lin <- .lam_tarjeta_lineas_nombre(nombre, m)
+      b$txt(nombre, x0, y, wi, lin * m$pt_nombre * 1.2 / 72, m$pt_nombre, color_nombre, bold = nombre_negrita,
+            nombre = paste0("tarjeta:", clase, ":rotulo"))
+      y <<- y + lin * m$alto_nombre; alto <- alto - lin * m$alto_nombre
+    } else {
+      h_n <- m$pt_nombre * 1.2 / 72 * .lam_tarjeta_lineas_nombre(nombre, m)
+      b$txt(nombre, x0, y + (alto - h_n) / 2, m$xn, h_n, m$pt_nombre, color_nombre, bold = nombre_negrita, align = "right",
+            nombre = paste0("tarjeta:", clase, ":rotulo"))
+    }
+    xb <- x0 + m$xn + sep_b; wb <- X(p) - xb
     if (wb > 0.004) b$rect(xb, y + (alto - m$barra) / 2, wb, m$barra, fill = color_barra, nombre = paste0("tarjeta:", clase, ":barra"))
     cifra <- if (is.null(cifra) || is.na(cifra) || !nzchar(cifra)) .tarjetas_pct(p) else cifra
     h_c <- m$pt_cifra * 1.2 / 72
@@ -146,10 +183,8 @@
   y <- y + m$aire_total
   for (k in seq_len(nrow(t$grupos))) {
     fr_k <- isTRUE(t$grupos$fragil[k])
-    alto_k <- m$fila + (.lam_tarjeta_lineas_nombre(nombres[k], m) - 1L) * 0.16
     renglon(nombres[k], t$grupos$p[k], .std_color(if (fr_k) "tarjeta_barra_95" else "azul"),
-            .std_color(if (fr_k) "tarjeta_borde_95" else "azul"), !fr_k, azul, TRUE, dir = t$grupos$dir[k], fragil = fr_k,
-            alto = alto_k)
+            .std_color(if (fr_k) "tarjeta_borde_95" else "azul"), !fr_k, azul, TRUE, dir = t$grupos$dir[k], fragil = fr_k)
   }
   invisible(b)
 }
@@ -157,11 +192,11 @@
 #' Disposición del panel de tarjetas: columnas, ancho y alto de cada fila
 #' @param y0,y1 Zona vertical disponible (in).
 #' @keywords internal
-.lam_tarjetas_disponer <- function(tarjetas, y0, y1, cortos = character(0), tipo = "multiple") {
+.lam_tarjetas_disponer <- function(tarjetas, y0, y1, cortos = character(0), tipo = "multiple", fraccion = .tarjetas_panel_fraccion(tipo)) {
   g <- .std_geom
   util <- g("ancho") - g("margen_izq") - g("margen_der"); sep <- 0.12
   arma <- function(cols) {
-    wp <- if (cols == 1L) util / 3 else util / 2
+    wp <- util * fraccion[[cols]]
     xp <- g("ancho") - g("margen_der") - wp
     cw <- (wp - sep * (cols - 1L)) / cols
     altos <- vapply(tarjetas, .lam_tarjeta_alto, numeric(1), w = cw, cortos = cortos, tipo = tipo)
@@ -173,6 +208,10 @@
   }
   L <- arma(.tarjetas_columnas_ppt(length(tarjetas)))
   if (!L$cabe && L$cols == 1L) L <- arma(2L)
+  # Un panel angosto que no cabe en alto vuelve a los anchos de la maqueta (1/3 y 1/2).
+  if (!L$cabe && !identical(fraccion, .TARJETAS_PANEL$estandar)) {
+    return(.lam_tarjetas_disponer(tarjetas, y0, y1, cortos, tipo, fraccion = .TARJETAS_PANEL$estandar))
+  }
   if (!L$cabe && exists(".pulso_aviso", mode = "function")) {
     .pulso_aviso(sprintf("Tarjetas de diferencias: el panel mide %.2f in y la lámina tiene %.2f in.", L$total, y1 - y0))
   }
@@ -189,6 +228,16 @@
   L
 }
 
+#' Ancho del panel (fracción del ancho útil) con una y con dos columnas
+#'
+#' Maqueta aprobada: 1/3 y 1/2. El panel quitaba demasiado al gráfico del total (Gonzalo, PPT v7 RV): 20 % y 30 %, con el
+#' nombre del grupo encima de su barra. Si así las tarjetas no caben en alto, vuelven los anchos de la maqueta.
+#' @keywords internal
+.TARJETAS_PANEL <- list(estandar = c(1 / 3, 1 / 2), angosto = c(0.20, 0.30))
+
+#' @keywords internal
+.tarjetas_panel_fraccion <- function(tipo) .TARJETAS_PANEL$angosto
+
 #' ¿La lámina va con su panel de tarjetas? Solo si hay al menos una diferencia que mostrar
 #' @keywords internal
 .lam_tarjetas_aplica <- function(p, slide = NULL) {
@@ -198,10 +247,17 @@
   !is.null(t) && length(t$tarjetas) > 0L && !is.null(espec) && espec$tipo %in% c("categorica", "escala")
 }
 
-#' Reserva a la derecha (in) que deja el panel: el total termina 0.45 in antes del panel
+#' Aire (in) entre el gráfico del total y el panel de tarjetas (Gonzalo, v7 RV: 0.45 separaba demasiado)
 #' @keywords internal
-.lam_tarjetas_reserva <- function(L) {
-  .std_valor("ppt", "geometria", "ancho") - .std_valor("ppt", "geometria", "margen_der") - L$xp + 0.45
+.TARJETAS_AIRE_PANEL <- 0.15
+
+#' Reserva a la derecha (in) que deja el panel: el total termina `.TARJETAS_AIRE_PANEL` antes del panel
+#' @keywords internal
+.lam_tarjetas_reserva <- function(L, tipo = "multiple") {
+  # En la escala la cifra del Top Two Box va centrada en su columna de 1 in: la columna puede llegar al panel sin que la
+  # cifra lo toque (Gonzalo: «sigue muy distanciado»).
+  aire <- if (identical(tipo, "bateria")) -0.02 else .TARJETAS_AIRE_PANEL
+  .std_valor("ppt", "geometria", "ancho") - .std_valor("ppt", "geometria", "margen_der") - L$xp + aire
 }
 
 #' La rama `slide_1` con tarjetas (enganche de lamina_citas.R)
@@ -213,7 +269,7 @@
 #' panel de tarjetas en la misma lámina. (Gonzalo, v7 RV: el total redibujado a mano no seguía los estándares.)
 #' @keywords internal
 .lam_tarjetas_slide_1 <- function(doc, p, slide, titulo, el_plot, presets, layout, master, antetitulo, base_auto, nota_de,
-                                  sin_base = FALSE, sin_pie = FALSE, por_lamina = function(doc) doc) {
+                                  sin_base = FALSE, sin_pie = FALSE, por_lamina = function(doc) doc, motor = NULL) {
   t <- attr(p, "pulso_tarjetas")
   texto <- function(x) {
     v <- if (inherits(x, "ppt_element_text")) x$text else if (is.character(x)) x else NULL
@@ -222,9 +278,14 @@
   tit <- texto(titulo) %||% ""
   cortos <- t$opcion$cortos
   y0 <- .lam_titulo_fin(tit) + 0.32; y1 <- .std_valor("ppt", "geometria", "base_y") - 0.12
+  if (identical(t$tipo, "bateria")) y1 <- .std_valor("ppt", "geometria", "leyenda_y") - 0.1   # la leyenda corre bajo el panel
   L <- .lam_tarjetas_disponer(t$tarjetas, y0, y1, cortos = cortos, tipo = t$tipo)
-  op <- options(prosecnur.lam_reserva_derecha = .lam_tarjetas_reserva(L))
+  op <- options(prosecnur.lam_reserva_derecha = .lam_tarjetas_reserva(L, t$tipo))
   on.exit(options(op), add = TRUE)
+  # La leyenda de la escala corre a todo el ancho, también bajo el panel: en el ancho acotado pedía dos renglones y
+  # pisaba la última fila (CCSS, batería de gobierno).
+  op_ley <- options(prosecnur.lam_leyenda_ancho_completo = identical(t$tipo, "bateria"))
+  on.exit(options(op_ley), add = TRUE)
   slide$slots$subtitle <- NULL   # versión 6: el título es la pregunta, sin subtítulo
   # Cascada, siempre dentro del motor: la lámina nativa tal cual; si en el ancho que queda no cabe, la misma lámina con la
   # letra declarada un punto menor (`size_ejes`, lamina_tamanos_declarados.R); y sólo si tampoco, la del recetario.
@@ -240,12 +301,82 @@
     base <- if (isTRUE(sin_base)) NULL else texto(slots$base) %||% texto(base_auto(el = el_plot,
       sufijo_auto = presets$base$args$sufijo_auto %||% NULL, formato = presets$base$args$formato %||% "Base: %s"))
     pie <- if (isTRUE(sin_pie)) NULL else texto(slots$footer) %||% texto(nota_de(p, el_plot$overrides$nota_pie %||% el_plot$nota_pie %||% NULL))
+    # La ruta del recetario (la del mazo para un gráfico sin pieza nativa), con el gráfico renderizado para el ancho que
+    # queda: el de 12.5 in metido en la caja angosta cortaba sus rótulos (CCSS, agrupación presencial).
+    p <- .lam_tarjetas_rerender(p, el_plot, motor)
     doc <- .lam_laminas_ggplot(doc, p, .espec_ggplot_marco("total"), titulo = tit, ante = texto(antetitulo),
                                base = .lam_unir_base(base, pie), folio = length(doc) + 1L, layout = layout, master = master,
                                por_lamina = por_lamina)$doc
   }
-  options(op)
+  options(op); options(op_ley)
+  if (identical(t$tipo, "bateria")) {
+    anclado <- tryCatch(.lam_tarjetas_anclar(doc, t, L, y0, y1), error = function(e) NULL)
+    if (!is.null(anclado)) return(anclado)
+  }
   .lam_tarjetas_panel(doc, t, L)
+}
+
+#' Filas de la escala nativa en la lámina en curso: enunciado, centro vertical y fin de su cifra de Top Two Box
+#' @keywords internal
+.lam_tarjetas_filas_escala <- function(doc) {
+  sl <- doc$slide$get_slide(doc$cursor)$get()
+  ns <- xml2::xml_ns(sl)
+  pieza <- function(nombre) {
+    sps <- xml2::xml_find_all(sl, sprintf("//p:sp[p:nvSpPr/p:cNvPr[@name='%s']]", nombre), ns)
+    if (!length(sps)) return(data.frame(texto = character(), x = numeric(), y = numeric(), w = numeric(), h = numeric()))
+    off <- xml2::xml_find_first(sps, ".//a:off", ns); ext <- xml2::xml_find_first(sps, ".//a:ext", ns)
+    num <- function(nodos, at) as.numeric(xml2::xml_attr(nodos, at)) / .EMU
+    texto <- vapply(seq_along(sps), function(i) paste(xml2::xml_text(xml2::xml_find_all(sps[[i]], ".//a:t", ns)), collapse = " "), "")
+    data.frame(texto = texto, x = num(off, "x"), y = num(off, "y"), w = num(ext, "cx"), h = num(ext, "cy"), stringsAsFactors = FALSE)
+  }
+  prem <- pieza("premisa"); box <- pieza("box:cifra")
+  if (!nrow(prem)) return(NULL)
+  prem$yc <- prem$y + prem$h / 2
+  # El punto va a la mitad exacta de la cifra, que es la de su barra: la escala centra la caja de la cifra en la barra
+  # (`.lam_bloque_escala`: caja de 0.3 in en `yb + (g - 0.3) / 2`).
+  k <- vapply(prem$yc, function(yc) if (nrow(box)) which.min(abs(box$y + box$h / 2 - yc)) else NA_integer_, 1L)
+  if (anyNA(k)) { prem$x_fin <- NA_real_; return(prem) }
+  prem$x_fin <- box$x[k] + box$w[k] / 2 + .lam_ancho_tinta(box$texto[k], .std_pt("cifra"), TRUE) / 2 + 0.07
+  prem$y_ancla <- box$y[k] + box$h[k] / 2
+  prem
+}
+
+#' Panel de una batería anclado a sus premisas: cada tarjeta a la altura de su fila, sin repetir el enunciado y con una
+#' línea guía desde el Top Two Box de la fila. NULL si alguna premisa no se encuentra o si en una columna no cabe.
+#' @keywords internal
+.lam_tarjetas_anclar <- function(doc, t, L, y0, y1) {
+  filas <- .lam_tarjetas_filas_escala(doc)
+  if (is.null(filas) || anyNA(filas$x_fin)) return(NULL)
+  norm <- function(x) gsub("[^[:alnum:]]", "", tolower(x))
+  k <- match(norm(vapply(t$tarjetas, `[[`, "", "fila")), norm(filas$texto))
+  if (anyNA(k)) return(NULL)
+  cw <- L$wp; xp <- .std_valor("ppt", "geometria", "ancho") - .std_valor("ppt", "geometria", "margen_der") - cw
+  altos <- vapply(t$tarjetas, .lam_tarjeta_alto, numeric(1), w = cw, cortos = t$opcion$cortos, tipo = t$tipo, con_fila = FALSE)
+  sep <- 0.12
+  if (sum(altos) + sep * (length(altos) - 1L) > y1 - y0) return(NULL)
+  orden <- order(filas$yc[k])
+  # Cada tarjeta centrada en su fila; si se pisan, la de abajo baja; si el bloque se pasa del pie, sube entero.
+  top <- numeric(length(orden)); cursor <- y0
+  for (j in orden) { top[j] <- max(cursor, filas$yc[k[j]] - altos[j] / 2); cursor <- top[j] + altos[j] + sep }
+  exceso <- (cursor - sep) - y1
+  if (exceso > 0) {
+    top <- top - exceso
+    if (min(top) < y0) { cursor <- y0; for (j in orden) { top[j] <- cursor; cursor <- cursor + altos[j] + sep } }   # apiladas desde arriba
+  }
+  lz <- .lam_lienzo(); tenue <- .std_color("texto_tenue")
+  for (j in orden) {
+    tj <- t$tarjetas[[j]]
+    .lam_tarjeta_dibujar(.lam_tarjeta_backend_ppt(lz), tj, list(l = xp, t = top[j], w = cw, h = altos[j]),
+                         unname(t$rotulos_cruce[tj$cruce]) %||% tj$cruce, cortos = t$opcion$cortos, tipo = t$tipo, con_fila = FALSE)
+    # Línea guía en codo: del Top Two Box de la fila al borde de la tarjeta, con un punto en el origen.
+    ya <- filas$y_ancla[k[j]]; xa <- filas$x_fin[k[j]]; yt <- min(max(ya, top[j] + 0.18), top[j] + altos[j] - 0.18)
+    xm <- xa + max(0.12, (xp - xa) / 2)
+    .lam_caja(lz, xa - 0.03, ya - 0.03, 0.06, 0.06, tenue, nombre = "tarjeta:guia:punto", geom = "ellipse")
+    .lam_linea(lz, xa, ya, xm, ya, tenue, pt = 0.75, nombre = "tarjeta:guia")
+    if (abs(yt - ya) > 0.01) .lam_linea(lz, xm, ya, xm, yt, tenue, pt = 0.75, nombre = "tarjeta:guia")
+    .lam_linea(lz, xm, yt, xp, yt, tenue, pt = 0.75, nombre = "tarjeta:guia")
+  }
+  .lam_agrupar(doc, lz, nombre = "prosecnur:tarjetas_diferencias")
 }
 
 #' ¿El total cabe como lámina nativa en el ancho que deja el panel? (lo que decide `.lam_slide_1_nativa` para su forma)
@@ -266,6 +397,23 @@
   # natural, los rótulos largos se salen por la izquierda.
   ancho <- .std_geom("ancho") - .std_geom("margen_izq") - .std_geom("margen_der")
   .lam_barras_geo(espec)$wlab <= .lam_barras_tope_rotulo() * ancho + 1e-6
+}
+
+#' El gráfico del total renderizado de nuevo por el motor para el ancho acotado (`.render_element` del entorno del motor)
+#' @keywords internal
+.lam_tarjetas_rerender <- function(p, el_plot, motor) {
+  rend <- if (is.environment(motor)) get0(".render_element", envir = motor, inherits = FALSE) else NULL
+  if (!is.function(rend)) return(p)
+  ancho <- .std_geom("ancho") - .std_geom("margen_izq") - .std_geom("margen_der")
+  el <- el_plot; ov <- el$overrides %||% list()
+  # El ancho del cajón manda (el del plan es el de la lámina entera) y los rótulos del eje se parten en proporción.
+  ov$ancho <- ancho
+  if (is.null(ov$ancho_max_eje_y) && is.null(ov$wrap_y)) ov$ancho_max_eje_y <- max(20L, as.integer(round(50 * ancho / 12.5)))
+  el$overrides <- ov
+  q <- tryCatch(rend(el, ancho_slot = ancho), error = function(e) NULL)
+  if (!inherits(q, "ggplot")) return(p)
+  for (a in c("pulso_espec", "pulso_tarjetas")) attr(q, a) <- attr(p, a)
+  q
 }
 
 #' Dibuja el panel de tarjetas en la lámina en curso

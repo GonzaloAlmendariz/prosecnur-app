@@ -411,8 +411,12 @@
 #' Rótulo de grupo para la tarjeta: el corto declarado, si lo hay
 #' @keywords internal
 .tarjetas_rotulo_grupo <- function(etiqueta, cortos) {
+  # Los nombres van completos encima de su barra (Gonzalo, v7 RV); el corto declarado queda para el que no cabe en dos
+  # líneas de una tarjeta angosta (unos 60 caracteres).
   if (!length(cortos)) return(etiqueta)
-  out <- unname(cortos[etiqueta]); out[is.na(out)] <- etiqueta[is.na(out)]
+  largo <- nchar(etiqueta) > 60
+  out <- etiqueta
+  out[largo] <- ifelse(is.na(cortos[etiqueta[largo]]), etiqueta[largo], unname(cortos[etiqueta[largo]]))
   out
 }
 

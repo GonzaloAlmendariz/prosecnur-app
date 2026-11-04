@@ -55,6 +55,7 @@
   # primer add_slide y saldría corrido. Se fuerza antes de tocar el documento (verificador de N1).
   force(folio)
   .op_piso <- c(.grosor_piso_slot(espec$grosor_piso_cm), .lam_escala_ensanche_previa()); on.exit(options(.op_piso), add = TRUE)   # N1: piso del slot; ensanche justo
+  .op_ley <- options(prosecnur.lam_filas_leyenda = .lam_escala_filas_leyenda(espec)); on.exit(options(.op_ley), add = TRUE)   # la leyenda de varias filas reserva su alto
   # Un título de más de tres líneas baja la zona de datos antes de planear las partes (lamina_titulo_alto.R).
   .lam_con_titulo(c(titulo, .particion_titulo_cont(titulo)), {
   premisas <- .lam_escala_premisas(espec); if (!.lam_escala_modo_filas(espec)) .lam_escala_ensanche_fijar(premisas, espec)   # lamina_escala_ensanche_justo.R

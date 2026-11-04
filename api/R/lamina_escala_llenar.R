@@ -28,7 +28,20 @@
 #' La nota de significancia reserva su alto sobre «Base:» (`prosecnur.lam_reserva_pie`, lamina_nota_significancia.R):
 #' `leyenda_y` ya lo descuenta, `base_y` no, y la leyenda que bajaba hasta su piso pisaba la nota.
 #' @keywords internal
-.lam_piso_leyenda <- function() .std_geom("base_y") - .std_comp("llenar", "piso_leyenda") - getOption("prosecnur.lam_reserva_pie", 0)
+.lam_piso_leyenda <- function() {
+  # Una leyenda de varias filas sube 0.3 in por fila sobre «Base:» (`.lam_leyenda`); su piso sube lo mismo, o la última
+  # barra quedaba bajo la leyenda (CCSS, batería de gobierno: seis categorías en dos filas).
+  k <- suppressWarnings(as.integer(getOption("prosecnur.lam_filas_leyenda", 1L))[1])
+  .std_geom("base_y") - .std_comp("llenar", "piso_leyenda") - getOption("prosecnur.lam_reserva_pie", 0) - 0.3 * max(0L, (if (is.na(k)) 1L else k) - 1L)
+}
+
+#' Filas que ocupa la leyenda de una escala en su lámina (la cuenta de `.lam_leyenda`)
+#' @keywords internal
+.lam_escala_filas_leyenda <- function(espec) {
+  labels <- tryCatch(espec$categorias$rotulo[espec$leyenda], error = function(e) NULL)
+  if (!length(labels)) return(1L)
+  length(.lam_leyenda_plan_lamina(labels, (.std_geom("ancho") - .std_reserva_derecha()) / 2)$filas)
+}
 
 #' Alto disponible para el bloque de una lámina de escala que llena su alto: hasta la leyenda en su piso
 #'

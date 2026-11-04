@@ -162,21 +162,33 @@ test_that("con más de seis diferencias se dibujan las seis principales y se inf
 
 # ---- Geometría del PPT -----------------------------------------------------------------------------------------------
 
-test_that("PPT: hasta 4 tarjetas, una columna de 1/3 del ancho útil; con 5 o 6, dos columnas en la mitad", {
+test_that("PPT: panel angosto (20 % con una columna, 30 % con dos) y, si las tarjetas no caben en alto, el de la maqueta", {
   expect_identical(vapply(1:6, .tarjetas_columnas_ppt, integer(1)), c(1L, 1L, 1L, 1L, 2L, 2L))
   g <- .std_geom; util <- g("ancho") - g("margen_izq") - g("margen_der")
-  L3 <- .lam_tarjetas_disponer(rep(list(.tj_tarjeta()), 3), 1.4, 6.7)
-  expect_identical(L3$cols, 1L)
-  expect_equal(L3$wp, util / 3)
-  expect_equal(L3$xp + L3$wp, g("ancho") - g("margen_der"))
+  L1 <- .lam_tarjetas_disponer(list(.tj_tarjeta()), 1.4, 6.7)
+  expect_identical(L1$cols, 1L)
+  expect_equal(L1$wp, util * 0.20)
+  expect_equal(L1$xp + L1$wp, g("ancho") - g("margen_der"))
   L6 <- .lam_tarjetas_disponer(rep(list(.tj_tarjeta()), 6), 1.4, 6.7)
   expect_identical(L6$cols, 2L)
-  expect_equal(L6$wp, util / 2)
+  expect_true(L6$wp %in% c(util * 0.30, util / 2))
   expect_true(L6$cabe)
+  # Si el angosto no cabe en alto, vuelve el ancho de la maqueta (y no al revés).
+  angosto <- .lam_tarjetas_disponer(rep(list(.tj_tarjeta()), 6), 1.4, 6.7, fraccion = .TARJETAS_PANEL$angosto)
+  if (!isTRUE(angosto$cabe) || angosto$wp > util * 0.3 + 1e-9) expect_equal(L6$wp, util / 2)
   # Las cajas no se pisan y quedan dentro de la zona.
   cajas <- L6$cajas
   expect_true(all(vapply(cajas, function(b) b$t >= 1.4 - 1e-9 && b$t + b$h <= 6.7 + 1e-9, logical(1))))
   expect_lt(cajas[[1]]$l + cajas[[1]]$w, cajas[[2]]$l)
+})
+
+test_that("el nombre del grupo va completo encima de su barra (dos líneas si hace falta); el corto sólo si no cabe", {
+  m <- .lam_tarjeta_medidas(2.5)
+  expect_true(m$apilada)
+  expect_identical(.lam_tarjeta_lineas_nombre("Mujer", m), 1L)
+  expect_identical(.lam_tarjeta_lineas_nombre("Ningún padre o tutor con estudios universitarios", m), 2L)
+  cortos <- c(`Economía y Finanzas` = "Econ. y Finanzas")
+  expect_identical(.tarjetas_rotulo_grupo("Economía y Finanzas", cortos), "Economía y Finanzas")
 })
 
 # ---- Disposición del Word --------------------------------------------------------------------------------------------
