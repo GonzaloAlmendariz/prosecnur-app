@@ -22,6 +22,15 @@ describe("contenidoDeLamina", () => {
     expect(c.pendientes).toEqual(["FILAS", "ICONO"]);
   });
 
+  it("una lámina sin inspector nombra lo que todavía no se edita, sin perder sus textos", () => {
+    const args = [arg("titulo", "string"), arg("etiqueta", "string"), arg("base", "string"), arg("modo", "choice")];
+    const c = contenidoDeLamina(args, [], "p_slide_hallazgos");
+    expect(c.campos.map((x) => x.name)).toEqual(["titulo", "etiqueta", "base"]);
+    expect(c.pendientes).toEqual(["Cifras destacadas", "Modo"]);
+    expect(contenidoDeLamina(args, [], "p_slide_resumen_diferencias").pendientes).toEqual(["Filas por capítulo", "Selección de filas"]);
+    expect(contenidoDeLamina(args, [], "p_slide_texto").pendientes).toEqual([]);
+  });
+
   it("no ofrece args de estilo aunque sean texto", () => {
     const c = contenidoDeLamina([arg("font_family", "string", "estilo")], []);
     expect(c.campos.map((x) => x.name)).toEqual(["titulo"]);

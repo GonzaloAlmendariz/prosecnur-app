@@ -308,6 +308,9 @@ const DEFAULT_PAYLOADS: Record<SlideType, Record<string, unknown>> = {
   p_slide_1_grafico_narrativo: { titulo: "", grafico: null, texto: "", base: "", pie: "", etiqueta: "" },
   p_slide_grafico_texto_derecha:    { titulo: "", grafico: null, texto: "", base: "", pie: "", etiqueta: "" },
   p_slide_grafico_texto_izquierda:  { titulo: "", grafico: null, texto: "", base: "", pie: "", etiqueta: "" },
+  // Sin ranuras: las filas por capítulo y las cifras viven en el payload que escribe el plan (todavía sin inspector).
+  p_slide_resumen_diferencias: { titulo: "", etiqueta: "", base: "", seleccion: "manual" },
+  p_slide_hallazgos:           { titulo: "", etiqueta: "", base: "", modo: "cifras" },
 
   // ---- 2 gráficos -----------------------------------------------------
   p_slide_2_graficos:              { titulo: "", izquierda: null, derecha: null, base: "", pie: "", etiqueta: "" },
@@ -941,6 +944,8 @@ export const SLIDE_LABELS: Record<SlideType, string> = {
   p_slide_1_grafico_narrativo:          "Un gráfico + narrativa",
   p_slide_grafico_texto_derecha:        "Gráfico + texto derecha",
   p_slide_grafico_texto_izquierda:      "Gráfico + texto izquierda",
+  p_slide_resumen_diferencias:          "Resumen de diferencias",
+  p_slide_hallazgos:                    "Hallazgos clave",
   p_slide_2_graficos:                   "Dos gráficos",
   p_slide_2_graficos_narrativo:         "Dos gráficos + narrativa",
   p_slide_2_graficos_texto_izquierda:   "Dos gráficos + texto izquierda",
@@ -980,6 +985,8 @@ export const SLIDE_GRAF_SLOTS: Record<SlideType, string[]> = {
   p_slide_1_grafico_narrativo:          ["grafico"],
   p_slide_grafico_texto_derecha:        ["grafico"],
   p_slide_grafico_texto_izquierda:      ["grafico"],
+  p_slide_resumen_diferencias:          [],
+  p_slide_hallazgos:                    [],
   p_slide_2_graficos:                   ["izquierda", "derecha"],
   p_slide_2_graficos_narrativo:         ["izquierda", "derecha"],
   p_slide_2_graficos_texto_izquierda:   ["grafico_1", "grafico_2"],
