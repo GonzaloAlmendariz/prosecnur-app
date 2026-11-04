@@ -90,14 +90,8 @@
 #' @keywords internal
 .lam_leyenda <- function(lz, y, labels, cols, centrar_en) {
   g <- .std_geom
-  ml <- g("margen_izq"); fin <- g("ancho") - g("margen_der")
-  disp <- 2 * min(centrar_en - ml, fin - centrar_en)
-  modo <- .std_leyenda_modo()
-  plan <- .lam_leyenda_plan(labels, if (identical(modo, "automatica")) disp else fin - ml, modo = modo)
-  if (identical(modo, "automatica") && length(plan$filas) > 1L) {
-    entera <- .lam_leyenda_plan(labels, fin - ml, modo = modo)   # cabe en una fila corrida dentro del margen
-    if (length(entera$filas) == 1L) { plan <- entera; plan$gaps <- 0.15; plan$totales <- sum(plan$items) + 0.15 * (length(labels) - 1L) }
-  }
+  ml <- g("margen_izq"); fin <- .lam_leyenda_fin()
+  plan <- .lam_leyenda_plan_lamina(labels, centrar_en)
   .leyenda_avisar(plan)
   k <- length(plan$filas)
   # La nota de significancia reserva su alto sobre «Base:» (`prosecnur.lam_reserva_pie`): el bloque de varias filas
@@ -105,6 +99,27 @@
   if (k > 1L) y <- min(y, g("base_y") - getOption("prosecnur.lam_reserva_pie", 0) - 0.02 - 0.3 * k)
   .lam_leyenda_dibujar(lz, plan, y, labels, cols, centrar_en, ml, fin)
   invisible(lz)
+}
+
+#' Borde derecho de la leyenda: el del contenido; con un panel lateral (tarjetas, ADR 0129) puede correr bajo el panel
+#' @keywords internal
+.lam_leyenda_fin <- function() {
+  if (isTRUE(getOption("prosecnur.lam_leyenda_ancho_completo"))) return(.std_valor("ppt", "geometria", "ancho") - .std_valor("ppt", "geometria", "margen_der"))
+  .std_geom("ancho") - .std_geom("margen_der")
+}
+
+#' Plan de la leyenda de la lámina: el reparto en filas que dibuja `.lam_leyenda` (lo usa también el bloque para reservar)
+#' @keywords internal
+.lam_leyenda_plan_lamina <- function(labels, centrar_en) {
+  ml <- .std_geom("margen_izq"); fin <- .lam_leyenda_fin()
+  disp <- 2 * min(centrar_en - ml, fin - centrar_en)
+  modo <- .std_leyenda_modo()
+  plan <- .lam_leyenda_plan(labels, if (identical(modo, "automatica")) disp else fin - ml, modo = modo)
+  if (identical(modo, "automatica") && length(plan$filas) > 1L) {
+    entera <- .lam_leyenda_plan(labels, fin - ml, modo = modo)   # cabe en una fila corrida dentro del margen
+    if (length(entera$filas) == 1L) { plan <- entera; plan$gaps <- 0.15; plan$totales <- sum(plan$items) + 0.15 * (length(labels) - 1L) }
+  }
+  plan
 }
 
 #' Dibuja las filas de un plan de leyenda (`.lam_leyenda_plan`): cuadro y texto por respuesta, cada fila centrada en
@@ -168,7 +183,12 @@
 #' Barras de un juego de premisas (o de bloques de la multilista, que traen las suyas en `$premisas`)
 #' @keywords internal
 .lam_escala_n_barras <- function(x) sum(vapply(x, function(p) if (!is.null(p$filas)) length(p$filas) else .lam_escala_n_barras(p$premisas %||% list()), 0))
-.lam_escala_alto_util <- function() (.std_geom("zona_datos_y1") - 0.15) - (.std_geom("zona_datos_y0") + 0.1)
+.lam_escala_alto_util <- function() {
+  # Las filas de leyenda de más (`prosecnur.lam_filas_leyenda`, que fija `.lam_laminas_escala`) también le quitan alto al
+  # bloque: si ya no cabe, la escala se parte en vez de montar su última barra bajo la leyenda.
+  k <- suppressWarnings(as.integer(getOption("prosecnur.lam_filas_leyenda", 1L))[1])
+  (.std_geom("zona_datos_y1") - 0.15) - (.std_geom("zona_datos_y0") + 0.1) - 0.3 * max(0L, (if (is.na(k)) 1L else k) - 1L)
+}
 
 #' Partición en «(cont.)» (recetario.R:319-332)
 #'
@@ -300,7 +320,10 @@
   ley <- espec$leyenda; labels <- espec$categorias$rotulo[ley]; cols <- espec$categorias$color[ley]
   respuestas <- function(n) paste(format(as.integer(n), big.mark = ","), "respuestas")
   con_n <- isTRUE(espec$mostrar_respuestas)   # M10 / N3b: «Respuestas por público»; apagado por defecto, switcher opcional por gráfico
-  y0 <- y0 %||% (Y_DATOS + 0.1); y1 <- y1 %||% (Y_LEY - 0.15)
+  # Una leyenda de varias filas sube 0.3 in por fila sobre «Base:» (`.lam_leyenda`): el bloque le deja ese lugar o su
+  # última barra queda debajo de la leyenda (CCSS, batería de gobierno: seis categorías en dos filas).
+  k_ley <- if (isTRUE(leyenda) && length(labels)) length(.lam_leyenda_plan_lamina(labels, (W - .std_reserva_derecha()) / 2)$filas) else 1L
+  y0 <- y0 %||% (Y_DATOS + 0.1); y1 <- y1 %||% (Y_LEY - 0.15 - 0.3 * max(0L, k_ley - 1L))
   llenar <- is.null(estirar) && is.null(aire) && is.null(grosor) && isTRUE(leyenda)   # la lámina es este bloque: aprovecha su alto
   llenando <- llenando %||% llenar
 

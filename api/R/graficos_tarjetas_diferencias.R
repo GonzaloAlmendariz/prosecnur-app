@@ -18,9 +18,10 @@
 #   - con dos grupos se muestran los dos (el otro es el resto), con ▲ y ▼; con más, solo los que difieren;
 #   - dos niveles definidos solo por el p ajustado: < 0.01 continuo; entre 0.01 y alfa, punteado (Gonzalo,
 #     2026-11-04: «solo p», sin el criterio de 12 puntos de «Historias del informe»);
-#   - orden: las del 99% primero, luego de mayor a menor diferencia; tope de 6 (las demás no se dibujan).
+#   - orden: las del 99% primero, luego de mayor a menor diferencia; tope de 4 (las demás no se dibujan; era 6 en la
+#     maqueta, Gonzalo lo bajó con las tarjetas más altas de la v7 RV).
 
-.TARJETAS_MAX <- 6L
+.TARJETAS_MAX <- 4L   # Gonzalo (v7 RV): con el nombre sobre la barra las tarjetas son más altas; cuatro como máximo
 
 #' Opción de la lámina: NULL si no pide tarjetas; si las pide, la lista normalizada
 #'
@@ -411,8 +412,12 @@
 #' Rótulo de grupo para la tarjeta: el corto declarado, si lo hay
 #' @keywords internal
 .tarjetas_rotulo_grupo <- function(etiqueta, cortos) {
+  # Los nombres van completos encima de su barra (Gonzalo, v7 RV); el corto declarado queda para el que no cabe en dos
+  # líneas de una tarjeta angosta (unos 60 caracteres).
   if (!length(cortos)) return(etiqueta)
-  out <- unname(cortos[etiqueta]); out[is.na(out)] <- etiqueta[is.na(out)]
+  largo <- nchar(etiqueta) > 60
+  out <- etiqueta
+  out[largo] <- ifelse(is.na(cortos[etiqueta[largo]]), etiqueta[largo], unname(cortos[etiqueta[largo]]))
   out
 }
 
