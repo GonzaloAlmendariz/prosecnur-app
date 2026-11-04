@@ -28,6 +28,7 @@ import { InventarioUnicosPanel } from "./InventarioUnicosPanel";
 import { recordNumber, recordStringList } from "./marcoCharts";
 import "../../didactica/didactica.css";
 import "./marco.css";
+import { Panel } from "../../../../components/Panel";
 
 /** Acción sugerida por código de hallazgo del motor R. */
 const MARCO_ISSUE_ACTIONS: Record<string, string> = {
@@ -162,7 +163,7 @@ export function MarcoConsistenciaTab({
   return (
     <div className="cmv2-marco-stack">
       <InventarioUnicosPanel aulasState={aulasState} />
-      <section className="cmv2-panel cmv2-marco-consistencia">
+      <Panel className="cmv2-marco-consistencia">
         <div className="cmv2-frame-source-relation">
           {sourceCards.map((card, index) => (
             <div className="cmv2-frame-source-node" key={card.label}>
@@ -242,7 +243,7 @@ export function MarcoConsistenciaTab({
           </>
         )}
 
-      </section>
+      </Panel>
     </div>
   );
 }

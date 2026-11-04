@@ -110,14 +110,6 @@ const SNAPSHOT_CMV2_PANEL: Record<string, number> = {
   "universidad/definicion/DefBasesTab.tsx": 1,
   "universidad/definicion/DefEstudioTab.tsx": 3,
   "universidad/definicion/DefVariablesTab.tsx": 1,
-  "universidad/marco/AlumnosPorChMarcoTab.tsx": 2,
-  "universidad/marco/CursosHorarioSexo.tsx": 1,
-  "universidad/marco/InventarioUnicosPanel.tsx": 1,
-  "universidad/marco/MarcoAulasTab.tsx": 1,
-  "universidad/marco/MarcoConsistenciaTab.tsx": 1,
-  "universidad/marco/MarcoPoblacionTab.tsx": 1,
-  "universidad/marco/MatrizEmbudoCriterios.tsx": 2,
-  "universidad/marco/ParticularidadesPanel.tsx": 1,
   "universidad/salidas/SustentoCoberturaCard.tsx": 1,
 };
 

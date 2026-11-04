@@ -27,6 +27,7 @@ import {
 } from "./marcoCards";
 import "../../didactica/didactica.css";
 import "./marco.css";
+import { Panel } from "../../../../components/Panel";
 
 export function MarcoPoblacionTab({
   workspace,
@@ -109,7 +110,7 @@ export function MarcoPoblacionTab({
       // haber terminado. Una vista con fetch propio tendría que condicionarlo.
       data-audit-ready="true"
     >
-      <section className="cmv2-panel cmv2-marco-poblacion-head" data-qa-geometry-member>
+      <Panel className="cmv2-marco-poblacion-head" data-qa-geometry-member>
         <div className="cmv2-marco-flujo-layout">
           <div className="cmv2-marco-flujo-main cmv2-marco-flujo-stagger">
             <FlujoVertical
@@ -129,7 +130,7 @@ export function MarcoPoblacionTab({
             />
           </div>
         </div>
-      </section>
+      </Panel>
 
       {hasMarco ? (
         <>
