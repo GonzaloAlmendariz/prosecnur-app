@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 
 import { AulasTablasDeAvance } from "./AulasTablasDeAvance";
+import { BloqueDeMonitoreo } from "../../core/BloqueDeMonitoreo";
 
 /**
  * Las cinco tablas del libro, en la pestaña donde se decide publicarlas.
@@ -41,19 +42,16 @@ import { AulasTablasDeAvance } from "./AulasTablasDeAvance";
  */
 export function AulasVistaPreviaDelLibro(): ReactNode {
   return (
-    <section
-      className="mon-profile-panel"
+    <BloqueDeMonitoreo
       data-qa-geometry-group="monitoring-aulas-salidas"
       data-qa-geometry-contract="intrinsic"
+      titulo="Así se verá el libro"
+      bajada="las cinco hojas del corte, tal como saldrán al Sheets"
     >
-      <div className="mon-profile-panel-head">
-        {/* El título dice QUÉ ES —lo que se va a publicar— y no «Avance de
-            campo en tablas», que era el nombre en Metas y prometía un tablero.
-            C1: la superficie declara su función en su rótulo. */}
-        <h3>Así se verá el libro</h3>
-        <span>las cinco hojas del corte, tal como saldrán al Sheets</span>
-      </div>
+      {/* El título dice QUÉ ES —lo que se va a publicar— y no «Avance de
+          campo en tablas», que era el nombre en Metas y prometía un tablero.
+          C1: la superficie declara su función en su rótulo. */}
       <AulasTablasDeAvance />
-    </section>
+    </BloqueDeMonitoreo>
   );
 }

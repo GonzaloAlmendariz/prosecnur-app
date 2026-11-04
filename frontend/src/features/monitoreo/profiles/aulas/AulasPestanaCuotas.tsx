@@ -30,6 +30,7 @@ import type {
 import type { TablaDelPerfil } from "./tablaDelPerfil";
 import { AulasReservaDirigida } from "./AulasReservaDirigida";
 import { AulasTresLecturas } from "./AulasTresLecturas";
+import { BloqueDeMonitoreo } from "../../core/BloqueDeMonitoreo";
 
 /**
  * La pestaña «Metas» del perfil de aulas (hasta 2026-09-08, «Cuotas»).
@@ -176,19 +177,13 @@ export function AulasPestanaCuotas({
           `titulosDePanel` en el acto, y con razón — dos «Metas por facultad y
           sexo» en la misma pantalla no son un vacío, son un duplicado. */}
       {hayPanelDeSexo ? (
-        <section
-          className="mon-profile-panel"
+        <BloqueDeMonitoreo
           data-qa-geometry-group="monitoring-aulas-avance"
           data-qa-geometry-contract="intrinsic"
-        >
-          <div className="mon-profile-panel-head">
-            <h3>{metasSinSexo ? `Metas por ${grupoDeMetas}` : "Metas por facultad y sexo"}</h3>
-            {/* **La procedencia del denominador viaja con el bloque que lo
-                usa.** Venía del panel «Cumplimiento de la cuota del estudio»,
-                retirado en esta misma poda: era lo único suyo que no dice
-                nadie más —de dónde sale la cuota y si está degradada—, y sin
-                ella la cinta publicaría un 2 500 sin decir de quién es. */}
-            <span title={cuotaDiseno.procedencia.detalle || undefined}>
+          titulo={<>{metasSinSexo ? `Metas por ${grupoDeMetas}` : "Metas por facultad y sexo"}</>}
+          acciones={(
+          <>
+<span title={cuotaDiseno.procedencia.detalle || undefined}>
               {/* Con una facultad puesta, «1 de 1 facultades llegan» es una
                   cuenta correcta y una frase inútil: se dice de ella. */}
               {alcance && facultadEnFoco
@@ -199,7 +194,14 @@ export function AulasPestanaCuotas({
                 : null}
               {cuotaDiseno.procedencia.chip}
             </span>
-          </div>
+          </>
+        )}
+        >
+          {/* **La procedencia del denominador viaja con el bloque que lo
+              usa.** Venía del panel «Cumplimiento de la cuota del estudio»,
+              retirado en esta misma poda: era lo único suyo que no dice
+              nadie más —de dónde sale la cuota y si está degradada—, y sin
+              ella la cinta publicaría un 2 500 sin decir de quién es. */}
           {!proyeccion ? (
             <p className="mon-profile-muted">
               {facultadEnFoco} no tiene cuota declarada en el diseño, así que no
@@ -267,7 +269,7 @@ export function AulasPestanaCuotas({
           </div>
           </>
           )}
-        </section>
+        </BloqueDeMonitoreo>
       ) : null}
       {/* **«Cumplimiento de la cuota del estudio» se retiró el 2026-09-09**, con
           autorización de Gonzalo sobre el revamp: «los bocetos a veces son
@@ -338,32 +340,27 @@ export function AulasPestanaCuotas({
           panel dice y el otro no es la CALIBRACIÓN —«el campo está rindiendo un
           X % menos de lo previsto»—, y ésa es la pieza que merece sobrevivir,
           como lectura y no como un segundo panel de proyección. */}
-      <section
-        className="mon-profile-panel"
+      <BloqueDeMonitoreo
         data-qa-geometry-group="monitoring-aulas-avance"
         data-qa-geometry-contract="intrinsic"
+        titulo="Consumo de la reserva"
+        bajada={<>{`por ${etiquetaDelEje(
+            (dashboard as { avance_cuota?: { eje?: Record<string, unknown> | null } })
+              ?.avance_cuota?.eje,
+          ).toLocaleLowerCase("es")}, al ritmo de reemplazos observado`}</>}
       >
-        <div className="mon-profile-panel-head">
-          {/* **Vino de Rendimiento el 2026-09-08.** Habla del banco, igual que «A
-              qué aula del banco ir» de arriba: separados, había que cambiar de
-              pestaña para leer el diagnóstico —qué celdas no van a llegar— y su
-              remedio —cuánto aguanta la reserva que las cubriría—.
+        {/* **Vino de Rendimiento el 2026-09-08.** Habla del banco, igual que «A
+            qué aula del banco ir» de arriba: separados, había que cambiar de
+            pestaña para leer el diagnóstico —qué celdas no van a llegar— y su
+            remedio —cuánto aguanta la reserva que las cubriría—.
 
-              Sin «por facultad» en el título: el guard de títulos lo cazó por
-              terminar igual que «Cuota sexo por facultad». La unidad va en el
-              subtítulo. */}
-          <h3>Consumo de la reserva</h3>
-          {/* La unidad sigue al eje: «por facultad» en HSVG, «por nivel» en un
-              estudio cuya cuota es por nivel. Va en el subtítulo y no en el
-              título porque el guard `titulosDePanel` caza un `h3` que termine
-              igual que «Cuota sexo por facultad». */}
-          <span>
-            {`por ${etiquetaDelEje(
-              (dashboard as { avance_cuota?: { eje?: Record<string, unknown> | null } })
-                ?.avance_cuota?.eje,
-            ).toLocaleLowerCase("es")}, al ritmo de reemplazos observado`}
-          </span>
-        </div>
+            Sin «por facultad» en el título: el guard de títulos lo cazó por
+            terminar igual que «Cuota sexo por facultad». La unidad va en el
+            subtítulo. */}
+        {/* La unidad sigue al eje: «por facultad» en HSVG, «por nivel» en un
+            estudio cuya cuota es por nivel. Va en el subtítulo y no en el
+            título porque el guard `titulosDePanel` caza un `h3` que termine
+            igual que «Cuota sexo por facultad». */}
         {/* Los días de campo salen de los PARTES —los días en que el operativo
             salió de verdad— y no de `ritmo_diario`, que cuenta días con
             respuestas: una caída sólo puede ocurrir un día en que se sale. */}
@@ -402,32 +399,33 @@ export function AulasPestanaCuotas({
           onFoco={onFoco}
           eje={(dashboard as { avance_cuota?: { eje?: Record<string, unknown> | null } })?.avance_cuota?.eje}
         />
-        </section>
-      <section
-        className="mon-profile-panel"
+        </BloqueDeMonitoreo>
+      <BloqueDeMonitoreo
         data-qa-geometry-group="monitoring-aulas-avance"
         data-qa-geometry-contract="intrinsic"
-      >
-        <div className="mon-profile-panel-head">
-          <h3>Qué grupos no llegan, y con qué remedio</h3>
-          {/* **La procedencia del denominador, cuando no la dice nadie más.**
-              El chip que declara de dónde sale la cuota —y si su sello no se
-              pudo verificar— vivía sólo en «Metas por facultad y sexo», y ese
-              panel se monta bajo guarda. Medido el 2026-09-18 sobre CCSS: el
-              motor publicaba `vigencia: "no_verificable"` con su motivo escrito,
-              la pantalla enseñaba «Nivel 7 · faltan 121 · 0 de 121» y la palabra
-              «sello» no estaba en ninguna parte del DOM, ni en un `title`. El
-              aviso existía, tenía test, y no lo pintaba nadie.
-              Va en ESTE panel porque es el que no tiene guarda y el que declara
-              la lectura de la cuota; y sólo cuando el otro no está, para no
-              decir dos veces lo mismo. */}
-          <span title={!hayPanelDeSexo ? (cuotaDiseno.procedencia.detalle || undefined) : undefined}>
+        titulo="Qué grupos no llegan, y con qué remedio"
+        acciones={(
+        <>
+<span title={!hayPanelDeSexo ? (cuotaDiseno.procedencia.detalle || undefined) : undefined}>
             lo recogido, lo que traerá lo agendado y el techo de todo el plan
             {!hayPanelDeSexo && cuotaDiseno.procedencia.chip
               ? `, ${cuotaDiseno.procedencia.chip}`
               : ""}
           </span>
-        </div>
+        </>
+      )}
+      >
+        {/* **La procedencia del denominador, cuando no la dice nadie más.**
+            El chip que declara de dónde sale la cuota —y si su sello no se
+            pudo verificar— vivía sólo en «Metas por facultad y sexo», y ese
+            panel se monta bajo guarda. Medido el 2026-09-18 sobre CCSS: el
+            motor publicaba `vigencia: "no_verificable"` con su motivo escrito,
+            la pantalla enseñaba «Nivel 7 · faltan 121 · 0 de 121» y la palabra
+            «sello» no estaba en ninguna parte del DOM, ni en un `title`. El
+            aviso existía, tenía test, y no lo pintaba nadie.
+            Va en ESTE panel porque es el que no tiene guarda y el que declara
+            la lectura de la cuota; y sólo cuando el otro no está, para no
+            decir dos veces lo mismo. */}
         {/* **Las cuatro bolsas, sobre los grupos que no llegan.**
             Aquí y no en el panel de metas de arriba, que es donde las puse
             primero: ese panel se monta sólo si el estudio publica
@@ -454,7 +452,7 @@ export function AulasPestanaCuotas({
           ) as Array<Record<string, unknown>>}
           eje={(dashboard as { avance_cuota?: { eje?: Record<string, unknown> | null } })?.avance_cuota?.eje}
         />
-      </section>
+      </BloqueDeMonitoreo>
       {/* **El panel entero desaparece cuando no hay a qué ir.** `AulasReservaDirigida`
           devuelve `null` sin decisiones —decisión deliberada, con dos contratos
           que la fijan: «un "todo bien" compite por la atención»—, y sin esta
@@ -466,15 +464,12 @@ export function AulasPestanaCuotas({
           254 px con dos grupos en déficit— sino el encabezado midiéndose como
           contenedor de datos; se arregla declarando la capacidad en el hijo. */}
       {hayReservaDirigida ? (
-      <section
-        className="mon-profile-panel"
+      <BloqueDeMonitoreo
         data-qa-geometry-group="monitoring-aulas-avance"
         data-qa-geometry-contract="intrinsic"
+        titulo="A qué aula del banco ir"
+        bajada="candidatos para cerrar cada grupo que no llega"
       >
-        <div className="mon-profile-panel-head">
-          <h3>A qué aula del banco ir</h3>
-          <span>candidatos para cerrar cada grupo que no llega</span>
-        </div>
         {/* El remedio, que venía de «Hombres y mujeres por facultad»: a qué aula
             del banco ir para cerrar justo las celdas que no llegan. */}
         <AulasReservaDirigida
@@ -485,7 +480,7 @@ export function AulasPestanaCuotas({
           porDebajoHoy={quotaRows.filter((f) => Number(f.missing ?? 0) > 0).length}
           eje={(dashboard as { avance_cuota?: { eje?: Record<string, unknown> | null } })?.avance_cuota?.eje}
         />
-      </section>
+      </BloqueDeMonitoreo>
       ) : null}
       {/* **El panel referencial de sexo y carrera** (decisión 8 del plan del eje
           declarable). Va aquí, al final y no entre «Qué grupos no llegan» y «A
@@ -496,17 +491,14 @@ export function AulasPestanaCuotas({
           El motor lo calcula desde el 2026-09-17 y hasta hoy no lo pintaba
           nadie. Ver la nota de `AulasComposicionReferencial`, con el porqué de
           que aquí no haya umbrales ni avisos de desvío. */}
-      <section
-        className="mon-profile-panel"
+      <BloqueDeMonitoreo
         data-qa-geometry-group="monitoring-aulas-avance"
         data-qa-geometry-contract="intrinsic"
+        titulo="A quién se está alcanzando"
+        bajada="sexo y carrera contra la población, como marco de comparación y no como cuota"
       >
-        <div className="mon-profile-panel-head">
-          <h3>A quién se está alcanzando</h3>
-          <span>sexo y carrera contra la población, como marco de comparación y no como cuota</span>
-        </div>
         <AulasComposicionReferencial avanceCuota={dashboard.avance_cuota} />
-      </section>
+      </BloqueDeMonitoreo>
       {/* **La pirámide «Tamaño de cada meta» se retiró el 2026-09-08**, con
           decisión de Gonzalo («toma decisiones por mí viendo lo mejor y más
           intuitivo y profesional»).
