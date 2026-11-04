@@ -5481,7 +5481,8 @@ hojas_ruta_sample_preview_integrado <- function(config = list()) {
   replacement_blocks_df <- replacement_assignment$blocks
   replacement_blocks_df <- .hojas_ruta_apply_replacement_route_ranges(replacement_blocks_df, blocks_df)
   replacement_blocks_df <- .hojas_ruta_order_replacements(replacement_blocks_df)
-  alerts <- c(alerts, replacement_assignment$alerts)
+  pim <- hojas_ruta_pi_muestra(blocks_df, replacement_blocks_df, frame, cfg) # ADR 0131 §5: π y estrato
+  blocks_df <- pim$blocks; replacement_blocks_df <- pim$replacements; alerts <- c(alerts, replacement_assignment$alerts, pim$alerts)
   if (unassigned_total > 0L) {
     alerts[[length(alerts) + 1L]] <- list(
       level = "error",
@@ -5505,7 +5506,7 @@ hojas_ruta_sample_preview_integrado <- function(config = list()) {
     "manzana", "viviendas", "poblacion", "territorio_muestral", "metodo",
     "orden_seleccion", "hoja_num", "rango_inicio", "rango_fin",
     "entrevistas", "medida_tamano", "lat", "lon", "tipo_manzana",
-    "cuota_edad_totals", "cuota_sexo_totals",
+    "cuota_edad_totals", "cuota_sexo_totals", "estrato", "pi", "pi_regla",
     "esquina_codigo", "esquina_inicio", "esquina_coordenada", "sentido_recorrido",
     "vivienda_inicio", "domicilio_inicio", "constante_salto", "constante_salto_unidad",
     "constante_salto_modo", "modo_seleccion_vivienda",
@@ -5521,7 +5522,7 @@ hojas_ruta_sample_preview_integrado <- function(config = list()) {
     "replacement_policy", "replacement_order", "replacement_total", "titular_id_manzana",
     "titular_orden_seleccion", "titular_ubigeo", "titular_zona",
     "titular_hoja_num", "titular_rango_inicio", "titular_rango_fin",
-    "replacement_label", "replacement_fallback",
+    "replacement_label", "replacement_fallback", "estrato", "pi", "pi_fuente",
     "esquina_codigo", "esquina_inicio", "esquina_coordenada", "sentido_recorrido",
     "vivienda_inicio", "domicilio_inicio", "constante_salto", "constante_salto_unidad",
     "constante_salto_modo", "modo_seleccion_vivienda",
