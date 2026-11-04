@@ -23,6 +23,9 @@ const RAIZ = path.resolve(__dirname);
  * su archivo.
  */
 const SIN_MONTAR_CONOCIDOS = [
+  // Desmontado el 2026-11-04 por el estándar de Salidas: `SalidasTelefonicas` lo reemplaza con la portada común
+  // (lista de salidas y hoja del cliente). Mudanza, no borrado: retirarlo pide doble confirmación de Gonzalo.
+  "Entregas.tsx::Entregas",
   // Desmontado el 2026-10-29: Gonzalo pidió contar el embudo de Avance «solo por
   // respuestas» y `EmbudoDeRespuestas` lo reemplaza en Resumen y Salidas. Es una
   // MUDANZA, no un borrado: retirar el archivo es decisión con doble confirmación.

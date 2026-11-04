@@ -12,6 +12,8 @@ function n(valor: number | null) {
   return valor == null ? "—" : formatoConteo(valor);
 }
 
+// ⚠ SIN MONTAR desde el 2026-11-04: el estándar de Salidas (`SalidasTelefonicas.tsx`) lo reemplaza con la
+// portada común. Mudanza, no borrado.
 /**
  * Avance › Entregas: a la izquierda, lo que recibe el cliente (el avance por
  * cuota y el ritmo diario con las cifras de este corte, como los lleva su PDF);
