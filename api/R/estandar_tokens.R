@@ -121,6 +121,35 @@
   if (identical(nombre, "zona_datos_y0")) v <- v + getOption("prosecnur.lam_desplazo", 0) + getOption("prosecnur.lam_desplazo_titulo", 0)
   # Una nota sobre «Base:» (la de significancia, lamina_nota_significancia.R) sube el fondo de la zona de datos lo que mide.
   if (nombre %in% c("zona_datos_y1", "leyenda_y", "contenido_y1")) v <- v - getOption("prosecnur.lam_reserva_pie", 0)
+  # Un panel a la derecha (las tarjetas de diferencias, ADR 0129) acorta el ancho del contenido: cada lámina nativa compone
+  # su gráfico con su estándar en el ancho que queda. El folio y la nota leen la geometría cruda (`.std_valor`).
+  der <- .std_reserva_derecha()
+  if (der > 0) v <- .std_geom_con_reserva(nombre, v, der)
+  v
+}
+
+#' Reserva a la derecha vigente (in): la que deja un panel lateral, o 0
+#' @keywords internal
+.std_reserva_derecha <- function() {
+  der <- getOption("prosecnur.lam_reserva_derecha", 0)
+  if (is.numeric(der) && length(der) == 1L && is.finite(der) && der > 0) der else 0
+}
+
+#' Medida de la geometría con una reserva a la derecha: márgenes y anchos
+#'
+#' En la escala likert la columna de premisas conserva su ancho (sus rótulos se parten como en el mazo y la lámina no se
+#' divide en «(cont.)»): lo que se acorta es lo que va desde el actor, la barra y el Top Two Box.
+#' @keywords internal
+.std_geom_con_reserva <- function(nombre, v, der) {
+  if (identical(nombre, "margen_der")) return(v + der)
+  if (identical(nombre, "ancho_contenido")) return(v - der)
+  if (identical(nombre, "likert")) {
+    tope <- .std_valor("ppt", "geometria", "ancho") - .std_valor("ppt", "geometria", "margen_der")
+    x0 <- v$x_actor %||% v$x_barra
+    f <- max(0.3, (tope - der - x0) / (tope - x0))
+    for (k in intersect(c("x_barra", "x_top_two_box"), names(v))) v[[k]] <- x0 + (v[[k]] - x0) * f
+    for (k in intersect(c("ancho_actor", "ancho_barra"), names(v))) v[[k]] <- v[[k]] * f
+  }
   v
 }
 

@@ -197,25 +197,51 @@ test_that("Word: una a todo el ancho; dos a la mitad; con número impar, la prin
 
 # ---- Artefactos ------------------------------------------------------------------------------------------------------
 
-test_that("la lámina del PPT lleva el total y el panel como grupos nativos, con borde punteado en la del 95%", {
+test_that("el total lo compone el motor nativo en el ancho que deja el panel, y el panel va en la misma lámina", {
   doc <- officer::read_pptx(system.file("plantillas", "plantilla_16_9.pptx", package = "prosecnurapp"))
-  espec <- list(tipo = "categorica", rotulos = c("Trabajaré en una empresa privada", "Otra"), largos = c(0.35, 0.02),
-                cifras = c("35%", "2%"))
   p <- ggplot2::ggplot()
-  attr(p, "pulso_espec") <- espec
-  attr(p, "pulso_tarjetas") <- list(tarjetas = list(.tj_tarjeta(), .tj_tarjeta("Otra", fragil = TRUE)), total = 2L, tipo = "multiple",
-                                    opcion = .tarjetas_opcion(list(tarjetas_diferencias = TRUE)),
+  attr(p, "pulso_espec") <- preparar_categorica(c("Trabajaré en una empresa privada", "Trabajaré en el sector público", "Otra"),
+                                               c(.35, .23, .02), c("35%", "23%", "2%"))
+  attr(p, "pulso_tarjetas") <- list(tarjetas = list(.tj_tarjeta(), .tj_tarjeta("Trabajaré en el sector público", fragil = TRUE)),
+                                    total = 2L, tipo = "multiple", opcion = .tarjetas_opcion(list(tarjetas_diferencias = TRUE)),
                                     rotulos_cruce = c(area = "Área"))
-  expect_true(.lam_tarjetas_aplica(p, list(meta = list())))
+  slide <- list(meta = list(), slots = list())
+  expect_true(.lam_tarjetas_aplica(p, slide))
   expect_false(.lam_tarjetas_aplica(p, list(meta = list(motor_nativo = FALSE))))
-  o <- .lam_laminas_tarjetas(doc, p, "¿Cuáles de las siguientes opciones…?", base = "Base: 400", folio = 3L)
-  f <- tempfile(fileext = ".pptx"); print(o$doc, target = f)
+  doc <- .lam_tarjetas_slide_1(doc, p, slide, "¿Cuáles de las siguientes opciones…?", list(var = "x"), list(base = list(args = list())),
+                               "Graficos2", "Office Theme", NULL, base_auto = function(...) "Base: 400", nota_de = function(...) NULL)
+  expect_null(getOption("prosecnur.lam_reserva_derecha"))   # la reserva no se queda pegada al proceso
+  f <- tempfile(fileext = ".pptx"); print(doc, target = f)
   xml <- paste(readLines(unz(f, "ppt/slides/slide1.xml"), warn = FALSE), collapse = "")
   expect_match(xml, "prosecnur:tarjetas_diferencias", fixed = TRUE)
-  expect_match(xml, "prosecnur:grafico:total", fixed = TRUE)
   expect_match(xml, 'prstDash val="dash"', fixed = TRUE)
-  expect_match(xml, "Econ", fixed = TRUE)
   expect_false(grepl("Nota significancia", xml, fixed = TRUE))   # sin nota por lámina: solo base y fuente
+  # El gráfico nativo termina antes del panel: ninguna barra del total entra en la zona de las tarjetas.
+  sl <- xml2::read_xml(f |> (\(z) { d <- tempfile(); utils::unzip(z, "ppt/slides/slide1.xml", exdir = d); file.path(d, "ppt/slides/slide1.xml") })())
+  ns <- xml2::xml_ns(sl)
+  barras <- xml2::xml_find_all(sl, "//p:sp[p:nvSpPr/p:cNvPr[@name='barra' or @name='columna' or @name='cifra' or @name='rotulo']]", ns)
+  expect_gt(length(barras), 0L)
+  fin <- vapply(barras, function(b) {
+    off <- xml2::xml_find_first(b, ".//a:off", ns); ext <- xml2::xml_find_first(b, ".//a:ext", ns)
+    (as.numeric(xml2::xml_attr(off, "x")) + as.numeric(xml2::xml_attr(ext, "cx"))) / 914400
+  }, numeric(1))
+  L <- .lam_tarjetas_disponer(attr(p, "pulso_tarjetas")$tarjetas, 1.4, 6.7)
+  expect_true(all(fin <= L$xp))
+})
+
+test_that("la reserva a la derecha acorta el contenido y escala la escala likert sin mover el folio", {
+  g0 <- .std_valor("ppt", "geometria", "margen_der"); L0 <- .std_geom("likert")
+  withr::with_options(list(prosecnur.lam_reserva_derecha = 4.6), {
+    expect_equal(.std_geom("margen_der"), g0 + 4.6)
+    L <- .std_geom("likert")
+    tope <- .std_valor("ppt", "geometria", "ancho") - g0 - 4.6
+    expect_lte(L$x_top_two_box + .std_valor("ppt", "geometria", "columna_top_two_box"), tope + 0.6)
+    expect_lt(L$ancho_barra, L0$ancho_barra)
+    expect_equal(L$x_premisa, L0$x_premisa)
+    expect_equal(L$ancho_premisa, L0$ancho_premisa)   # las premisas conservan su columna: la escala no se parte en «(cont.)»
+    expect_equal(.lam_dicotomia_partida_geo()$w + 4.6, withr::with_options(list(prosecnur.lam_reserva_derecha = 0), .lam_dicotomia_partida_geo()$w))
+  })
+  expect_equal(.std_geom("margen_der"), g0)
 })
 
 test_that("el Word dibuja las tarjetas en una imagen bajo la figura, del ancho del texto", {
@@ -252,16 +278,6 @@ test_that("la lectura (PPT y Word) sale de la regla del estudio, en prosa y sin 
   expect_match(xml, "CÓMO LEER ESTE INFORME", fixed = TRUE)
   expect_match(xml, "DIFERENCIA ENTRE GRUPOS", fixed = TRUE)
   expect_match(xml, ">39<", fixed = TRUE)
-})
-
-test_that("la leyenda de la escala reserva sus renglones y ninguno pasa del borde derecho", {
-  rot <- c("Totalmente en desacuerdo", "En desacuerdo", "Ni de acuerdo ni en desacuerdo", "De acuerdo",
-           "Totalmente de acuerdo", "No tengo información suficiente para responder")
-  ley <- .lam_tarjetas_leyenda_disponer(rot, 3.5, 7.5)
-  expect_gt(ley$renglones, 1L)
-  expect_true(all(ley$x + 0.11 + ley$w <= 7.5 + 1e-9 | ley$x == 3.5))
-  expect_identical(ley$renglon[1], 1L)
-  expect_true(all(diff(ley$renglon) >= 0L))
 })
 
 test_that("el backend grid desplaza las posiciones pero no los anchos (la tarjeta de ejemplo va centrada)", {
