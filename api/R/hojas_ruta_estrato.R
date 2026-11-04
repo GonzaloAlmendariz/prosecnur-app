@@ -30,7 +30,6 @@
 # =============================================================================
 
 HOJAS_RUTA_ESTRATOS <- c("distrito", "provincia", "provincia_lima_areas")
-HOJAS_RUTA_ESTRATO_MIN_RUTAS <- 2L
 
 # Lima Metropolitana en cinco áreas interdistritales (agrupación APEIM); Callao
 # (0701) es su propia provincia y no entra aquí.
@@ -138,37 +137,55 @@ hojas_ruta_estrato_asignacion <- function(ubigeos, route_total, cfg) {
   ubigeos <- sort(unique(sprintf("%06s", as.character(ubigeos))))
   route_total <- as.integer(route_total)
   estrato <- hojas_ruta_estrato_de(ubigeos, params$estrato)
+  ciudad <- substr(ubigeos, 1L, 4L)
   base <- hojas_ruta_reparto_base_distritos(ubigeos)
   pob <- if (hojas_ruta_reparto_base_activa(params)) base$p25 else base$pob17_en_capa * base$a17
-  estratos <- sort(unique(estrato))
-  pob_h <- vapply(estratos, function(h) sum(pob[estrato == h]), numeric(1))
-  minimo <- HOJAS_RUTA_ESTRATO_MIN_RUTAS * length(estratos)
-  if (is.na(route_total) || route_total < minimo) {
-    stop_api(422, "E_HOJAS_RUTA_ESTRATO_SIN_RUTAS",
-             sprintf("Con %d estratos hacen falta al menos %d rutas (%d por estrato) y el tamaño da %d.",
-                     length(estratos), minimo, HOJAS_RUTA_ESTRATO_MIN_RUTAS, as.integer(route_total %||% 0L)),
-             details = list(estratos = length(estratos), rutas = route_total))
+  if (is.na(route_total) || route_total < 1L) {
+    stop_api(422, "E_HOJAS_RUTA_ESTRATO_SIN_RUTAS", "El tamaño no da ninguna ruta completa.", details = list(rutas = route_total))
   }
-  n_h <- .hojas_ruta_allocate_by_mode(pob_h, route_total, params$allocation_mode %||% "proportional",
-                                     rep(HOJAS_RUTA_ESTRATO_MIN_RUTAS, length(estratos)))
   mos <- .hojas_ruta_estrato_mos_distritos(ubigeos, cfg)
-  esperado <- numeric(length(ubigeos))
-  rutas <- integer(length(ubigeos))
-  for (j in seq_along(estratos)) {
-    idx <- which(estrato == estratos[[j]])
-    if (sum(mos[idx]) <= 0) {
-      stop_api(422, "E_HOJAS_RUTA_ESTRATO_SIN_MEDIDA",
-               sprintf("Ninguna manzana del estrato %s tiene medida mayor que 0.", estratos[[j]]))
-    }
-    esperado[idx] <- n_h[[j]] * mos[idx] / sum(mos[idx])
-    rutas[idx] <- .hojas_ruta_cuota_zona_rutas(mos[idx], n_h[[j]], cfg$seed %||% 2017L, paste0("estrato-", estratos[[j]]))
+  # ADR 0131 §1b: ciudades forzosas y sorteadas (hojas_ruta_ciudades_sorteo.R).
+  sel <- hojas_ruta_ciudades_seleccion(ciudad, pob, mos, route_total, cfg)
+  cc <- sel$ciudades
+  ic <- match(ciudad, cc$ciudad)
+  estratos <- sort(unique(estrato))
+  # Rutas de cada estrato: la ciudad entera, o sus áreas (Lima) en proporción a su población.
+  n_h <- stats::setNames(integer(length(estratos)), estratos)
+  for (c in cc$ciudad) {
+    hs <- sort(unique(estrato[ciudad == c]))
+    w <- vapply(hs, function(h) sum(pob[estrato == h]), numeric(1))
+    n_h[hs] <- if (length(hs) == 1L) cc$rutas[cc$ciudad == c] else .hojas_ruta_allocate_integer(w, cc$rutas[cc$ciudad == c])
   }
+  mos_h <- vapply(estratos, function(h) sum(mos[estrato == h]), numeric(1))
+  for (h in estratos[n_h[estratos] > 0L & mos_h <= 0]) {
+    stop_api(422, "E_HOJAS_RUTA_ESTRATO_SIN_MEDIDA", sprintf("Ninguna manzana del estrato %s tiene medida mayor que 0.", h))
+  }
+  share <- ifelse(mos_h[estrato] > 0, mos / mos_h[estrato], 0)
+  # Rutas del estrato como variable aleatoria: fijas en las forzosas; ⌊e⌋ o ⌈e⌉ con
+  # E = n_g/h_g en las sorteadas (condicionadas a que la ciudad salió).
+  sorteada <- cc$condicion[ic] != "forzosa"
+  e_c <- cc$esperado[ic]
+  n_lo <- ifelse(sorteada, floor(e_c + 1e-9), n_h[estrato])
+  f_n <- ifelse(sorteada, e_c - n_lo, 0)
+  rutas <- integer(length(ubigeos))
+  for (h in estratos[n_h[estratos] > 0L]) {
+    idx <- which(estrato == h)
+    rutas[idx] <- .hojas_ruta_cuota_zona_rutas(mos[idx], n_h[[h]], cfg$seed %||% 2017L, paste0("estrato-", h))
+  }
+  pob_h <- vapply(estratos, function(h) sum(pob[estrato == h]), numeric(1))
+  ce <- cc[match(vapply(estratos, function(h) ciudad[estrato == h][[1]], character(1)), cc$ciudad), , drop = FALSE]
   list(
-    distritos = data.frame(ubigeo = ubigeos, estrato = estrato, mos = mos, esperado = esperado, rutas = as.integer(rutas),
-                           stringsAsFactors = FALSE),
+    distritos = data.frame(ubigeo = ubigeos, estrato = estrato, ciudad = ciudad, grupo = cc$grupo[ic], condicion = cc$condicion[ic],
+                           pi_ciudad = cc$pi_ciudad[ic], mos = mos, share = share,
+                           esperado = cc$pi_ciudad[ic] * ((1 - f_n) * n_lo + f_n * (n_lo + 1)) * share,
+                           n_lo = n_lo, n_hi = n_lo + 1, f_n = f_n, rutas = as.integer(rutas), stringsAsFactors = FALSE),
     estratos = data.frame(estrato = estratos, etiqueta = .hojas_ruta_estrato_etiquetas(estratos, ubigeos, estrato, cfg),
+                          ciudad = ce$ciudad, condicion = ce$condicion, pi_ciudad = ce$pi_ciudad,
                           n_distritos = as.integer(table(estrato)[estratos]),
-                          poblacion = as.numeric(pob_h), rutas = as.integer(n_h), stringsAsFactors = FALSE)
+                          poblacion = as.numeric(pob_h), rutas = as.integer(n_h[estratos]), stringsAsFactors = FALSE),
+    ciudades = cbind(cc, etiqueta = .hojas_ruta_estrato_etiquetas(cc$ciudad, ubigeos, ciudad, cfg), stringsAsFactors = FALSE),
+    grupos = sel$grupos,
+    rutas_minimas_ciudad = sel$rutas_minimas_ciudad
   )
 }
 
@@ -207,13 +224,17 @@ hojas_ruta_estrato_declaracion <- function(ubigeos, cfg, n_used) {
   a <- hojas_ruta_estrato_asignacion(ubigeos, as.integer(n_used) %/% route_size, cfg)
   list(estrato_muestral = list(
     modo = cfg$sample_size$estrato,
-    minimo_rutas = HOJAS_RUTA_ESTRATO_MIN_RUTAS,
+    rutas_minimas_ciudad = a$rutas_minimas_ciudad,
     regla = paste(
-      "n_h >= 2 y el resto proporcional a la población del estrato; distrito y zona implícitos.",
-      "Cada distrito recibe floor o ceil de e_d = n_h * MOS_d / MOS_h, con MOS_d del marco elegible (el mismo del sorteo),",
-      "y la pi de la manzana es la mezcla exacta de las dos ramas; sin certezas se reduce a n_h * MOS_i / MOS_h."
+      "ADR 0131 §1b: entra con certeza toda ciudad cuyo reparto proporcional alcanza el mínimo de rutas (y siempre Lima",
+      "Metropolitana y Callao); las demás se agrupan por macrorregión y se sortean por PPS, con h_g = max(1, floor(R_g / mínimo))",
+      "ciudades por grupo, pi_c = h_g * MOS_c / MOS_g, y R_g / h_g rutas por ciudad sorteada. Dentro de la ciudad, cada distrito",
+      "recibe floor o ceil de n_c * MOS_d / MOS_c (marco elegible) y la pi de la manzana es pi_c por la mezcla exacta de las",
+      "ramas; sin certezas, en un grupo sorteado se reduce a n_g * MOS_i / MOS_g."
     ),
     estratos = .hojas_ruta_df_rows(a$estratos),
+    ciudades = .hojas_ruta_df_rows(a$ciudades),
+    grupos = .hojas_ruta_df_rows(a$grupos),
     distritos = .hojas_ruta_df_rows(a$distritos)
   ))
 }

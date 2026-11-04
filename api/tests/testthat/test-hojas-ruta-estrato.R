@@ -28,13 +28,13 @@ test_that("las cinco áreas de Lima cubren sus 43 distritos una sola vez; Callao
   expect_identical(hojas_ruta_estrato_de(c("150110", "070106"), "provincia"), c("1501", "0701"))
 })
 
-test_that("Σ n_h = rutas, n_h ≥ 2 y Σ_d n_d = n_h en cada estrato", {
+test_that("Σ n_h = rutas, toda ciudad visitada con el mínimo (§1b) y Σ_d n_d = n_h en cada estrato", {
   for (modo in c("provincia", "provincia_lima_areas")) {
     for (base in c("cpv2017", "cpv2025_adultos_urbanos")) {
       cfg <- .es_norm(modo, base = base)
       a <- hojas_ruta_estrato_asignacion(.es_ubigeos, 40L, cfg)
       expect_identical(sum(a$estratos$rutas), 40L)
-      expect_true(all(a$estratos$rutas >= 2L))
+      expect_true(all(a$ciudades$rutas[a$ciudades$rutas > 0] >= a$rutas_minimas_ciudad))
       por_h <- tapply(a$distritos$rutas, a$distritos$estrato, sum)
       expect_equal(as.integer(por_h[a$estratos$estrato]), a$estratos$rutas)
       # Cada distrito recibe ⌊e_d⌋ o ⌈e_d⌉.
@@ -110,7 +110,7 @@ test_that("con estrato provincia: vista previa = cuota por distrito, Σ cuotas =
 
 test_that("errores declarados del modo estrato", {
   err <- tryCatch(hojas_ruta_estrato_asignacion(.es_ubigeos, 5L, .es_norm("provincia")), api_error = function(e) e)
-  expect_identical(err$code, "E_HOJAS_RUTA_ESTRATO_SIN_RUTAS")
+  expect_identical(err$code, "E_HOJAS_RUTA_CIUDAD_SIN_RUTAS")  # §1b: 3 ciudades × 6 rutas no caben en 5
   err <- tryCatch(hojas_ruta_estrato_asignacion(.es_ubigeos, 40L, .es_norm("provincia", row_var = "zona")), api_error = function(e) e)
   expect_identical(err$code, "E_HOJAS_RUTA_ESTRATO_CUOTA_ZONA")
 })
@@ -172,16 +172,17 @@ test_that("en estrato provincia el reemplazo por defecto es el pareado de la mis
   expect_false(any(vapply(s$alerts, function(a) identical(a$code, "W_REPLACEMENT_PI_OTRA_ZONA"), logical(1))))
 })
 
-test_that("la memoria de cálculo declara el estrato, el mínimo de 2 rutas y las rutas por estrato", {
+test_that("la memoria de cálculo declara el estrato, el mínimo por ciudad y las ciudades forzosas (§1b)", {
   sp <- hojas_ruta_sample_size_preview(.es_cfg("provincia_lima_areas"))
   expect_true(all(nzchar(vapply(sp$estrato_muestral$estratos, function(e) e$etiqueta, character(1)))))
   d <- reporte_mt_diseno_modelo(sp$config, sp)
   frase <- grep("estrato", d$nota_tecnica, value = TRUE)
   expect_length(frase, 1L)
   expect_match(frase, "cinco áreas interdistritales")
-  expect_match(frase, "al menos 2 rutas")
+  expect_match(frase, "al menos 6 rutas")
   expect_match(frase, "marco elegible")
-  expect_match(frase, "Lima Norte \\d+")
+  expect_match(frase, "Lima \\d+")
+  expect_match(frase, "Callao \\d+")
   d0 <- reporte_mt_diseno_modelo(sp$config, hojas_ruta_sample_size_preview(.es_cfg()))
   expect_length(grep("estrato", d0$nota_tecnica), 0L)
 })

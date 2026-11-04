@@ -64,7 +64,8 @@ hojas_ruta_pi_muestra <- function(blocks_df, replacement_blocks_df, frame, cfg) 
       if (!length(en_muestra)) next
       m <- .hojas_ruta_sorteo_medida(df, cfg_d)
       pi <- if (modo_estrato) {
-        hojas_ruta_estrato_pi(m, asignacion$esperado[match(u, asignacion$ubigeo)])
+        a <- asignacion[match(u, asignacion$ubigeo), , drop = FALSE]
+        hojas_ruta_ciudades_pi(m, a$pi_ciudad, a$n_lo, a$n_hi, a$f_n, a$share)
       } else {
         .hojas_ruta_sorteo_pi(m, length(en_muestra))
       }
