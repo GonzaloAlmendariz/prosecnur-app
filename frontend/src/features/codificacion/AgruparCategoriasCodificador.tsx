@@ -34,6 +34,7 @@ import {
 import "./AgruparCategoriasCodificador.css";
 import { formatoConteo } from "../../lib/formatoNumero";
 import { EstadoVacio } from "../../components/EstadoVacio";
+import { Panel } from "../../components/Panel";
 
 // ---------- Pestañas del detalle de una select_one ----------
 
@@ -235,8 +236,7 @@ export function AgruparCategoriasCodificador({ parent, base }: { parent: string;
       >
         <div className="pulso-agrupar-col" data-qa-geometry-group="codificacion/agrupar/definir" data-qa-geometry-contract="intrinsic">
         {/* Variable nueva */}
-        <section className="pulso-agrupar-seccion" aria-labelledby={`agrupar-${parent}-target`}>
-          <h3 id={`agrupar-${parent}-target`} className="pulso-agrupar-titulo">Variable nueva</h3>
+        <Panel className="pulso-agrupar-seccion" aria-labelledby={`agrupar-${parent}-target`} title={<span id={`agrupar-${parent}-target`}>Variable nueva</span>}>
           <label className="pulso-agrupar-campo">
             <span>Nombre</span>
             <input
@@ -255,16 +255,19 @@ export function AgruparCategoriasCodificador({ parent, base }: { parent: string;
               Otra codificación ya usa «{target}». Prueba con «{datos.target_sugerido}».
             </p>
           )}
-        </section>
+        </Panel>
 
         {/* Categorías nuevas */}
-        <section className="pulso-agrupar-seccion" aria-labelledby={`agrupar-${parent}-cats`}>
-          <div className="pulso-agrupar-seccion-head">
-            <h3 id={`agrupar-${parent}-cats`} className="pulso-agrupar-titulo">Categorías nuevas</h3>
+        <Panel
+          className="pulso-agrupar-seccion"
+          aria-labelledby={`agrupar-${parent}-cats`}
+          title={<span id={`agrupar-${parent}-cats`}>Categorías nuevas</span>}
+          actions={
             <PulsoButton variant="secondary" size="sm" onClick={() => dispatch({ tipo: "agregar" })}>
               <Plus size={13} aria-hidden="true" /> Agregar categoría
             </PulsoButton>
-          </div>
+          }
+        >
           <div className="pulso-agrupar-lista" data-qa-geometry-capacity="owned">
             {borrador.categorias.length === 0 ? (
               <EstadoVacio
@@ -294,14 +297,13 @@ export function AgruparCategoriasCodificador({ parent, base }: { parent: string;
               </ol>
             )}
           </div>
-        </section>
+        </Panel>
 
         </div>
 
         <div className="pulso-agrupar-col" data-qa-geometry-group="codificacion/agrupar/asignar" data-qa-geometry-contract="intrinsic">
         {/* Códigos originales */}
-        <section className="pulso-agrupar-seccion" aria-labelledby={`agrupar-${parent}-orig`}>
-          <h3 id={`agrupar-${parent}-orig`} className="pulso-agrupar-titulo">Códigos originales</h3>
+        <Panel className="pulso-agrupar-seccion" aria-labelledby={`agrupar-${parent}-orig`} title={<span id={`agrupar-${parent}-orig`}>Códigos originales</span>}>
           <div className="pulso-agrupar-lista" data-qa-geometry-capacity="owned">
             {datos.codigos.length === 0 ? (
               <EstadoVacio
@@ -359,12 +361,11 @@ export function AgruparCategoriasCodificador({ parent, base }: { parent: string;
               </table>
             )}
           </div>
-        </section>
+        </Panel>
 
         {/* Textos de «Otro» */}
         {hayTexto && (
-          <section className="pulso-agrupar-seccion" aria-labelledby={`agrupar-${parent}-otro`}>
-            <h3 id={`agrupar-${parent}-otro`} className="pulso-agrupar-titulo">Textos escritos en «Otro»</h3>
+          <Panel className="pulso-agrupar-seccion" aria-labelledby={`agrupar-${parent}-otro`} title={<span id={`agrupar-${parent}-otro`}>Textos escritos en «Otro»</span>}>
             <label className="pulso-agrupar-campo">
               <span>Código de «Otro» en {parent}</span>
               <select
@@ -430,12 +431,11 @@ export function AgruparCategoriasCodificador({ parent, base }: { parent: string;
                 </table>
               )}
             </div>
-          </section>
+          </Panel>
         )}
 
         {/* Validación y vista previa */}
-        <section className="pulso-agrupar-seccion" aria-labelledby={`agrupar-${parent}-prev`}>
-          <h3 id={`agrupar-${parent}-prev`} className="pulso-agrupar-titulo">Resultado</h3>
+        <Panel className="pulso-agrupar-seccion" aria-labelledby={`agrupar-${parent}-prev`} title={<span id={`agrupar-${parent}-prev`}>Resultado</span>}>
           <div className="pulso-agrupar-lista" data-qa-geometry-capacity="owned">
             {errores.length > 0 ? (
               <ul className="pulso-agrupar-errores" aria-label="Falta para guardar">
@@ -452,7 +452,7 @@ export function AgruparCategoriasCodificador({ parent, base }: { parent: string;
               />
             )}
           </div>
-        </section>
+        </Panel>
         </div>
       </div>
     </div>
