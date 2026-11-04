@@ -2,6 +2,7 @@ import { readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
+import { cajasDeLaHoja } from "../../test/cajasPropias";
 
 /**
  * **P2 de la pasada de formato de Carga — un bloque con marco es un `Panel`** (4 nov 2026).
@@ -25,12 +26,6 @@ function hojas(dir: string): string[] {
 
 const rel = (f: string) => path.relative(aqui, f).split(path.sep).join("/");
 
-function cajasDeLaHoja(css: string): number {
-  return css
-    .replace(/\/\*[\s\S]*?\*\//g, "")
-    .split("}")
-    .filter((b) => /border\s*:[^;]*solid/.test(b) && /border-radius/.test(b) && /padding/.test(b)).length;
-}
 
 /** Foto del 4 nov 2026. Sólo baja. */
 const SNAPSHOT: Record<string, number> = {
@@ -38,24 +33,24 @@ const SNAPSHOT: Record<string, number> = {
   "ArmonizacionFilaEditor.css": 5,
   "BaseSavPanel.css": 3,
   "EquivalenciasEsqueleto.css": 1,
-  "EquivalenciasPanel.css": 9,
+  "EquivalenciasPanel.css": 14,
   "ImportarBloquesDialog.css": 3,
-  "IndicadorCompuestoEditor.css": 4,
+  "IndicadorCompuestoEditor.css": 5,
   "MapaBasesPanel.css": 3,
-  "OrigenExternoPanel.css": 7,
+  "OrigenExternoPanel.css": 8,
   "PreguntaCombobox.css": 1,
-  "carga-hidratacion.css": 2,
-  "carga-sources.css": 8,
-  "carga-v2.css": 113,
+  "carga-hidratacion.css": 5,
+  "carga-sources.css": 11,
+  "carga-v2.css": 142,
   "fuentes/armonizacionBase.css": 1,
-  "fuentes/basesDelEstudio.css": 9,
+  "fuentes/basesDelEstudio.css": 10,
   "fuentes/compararFuentes.css": 9,
   "fuentes/formularioPublicado.css": 8,
   "fuentesEmparejamiento.css": 10,
-  "plataforma/importador-plataforma.css": 2,
+  "plataforma/importador-plataforma.css": 3,
   "recorridoSerie/RecorridoSerie.css": 3,
-  "segmentos/segmentos.css": 2,
-  "variablesBase/variablesBase.css": 5,
+  "segmentos/segmentos.css": 3,
+  "variablesBase/variablesBase.css": 7,
 };
 
 describe("cajas propias de Carga (P2)", () => {
@@ -83,5 +78,8 @@ describe("cajas propias de Carga (P2)", () => {
   it("el detector reconoce una caja", () => {
     expect(cajasDeLaHoja(".a { border: 1px solid red; border-radius: 4px; padding: 8px; }")).toBe(1);
     expect(cajasDeLaHoja(".a { border-radius: 4px; padding: 8px; }")).toBe(0);
+    // Una caja repartida en dos reglas también es caja (el punto ciego que dejó pasar `.cmv2-panel` y `SettingBlock`).
+    expect(cajasDeLaHoja(".a { border: 1px solid red; border-radius: 4px; }\n.b { color: red; }\n.a { padding: 8px; }")).toBe(1);
+    expect(cajasDeLaHoja("@media (max-width: 800px) { .a { padding: 8px; } }\n.a { border: 1px solid red; border-radius: 4px; }")).toBe(1);
   });
 });

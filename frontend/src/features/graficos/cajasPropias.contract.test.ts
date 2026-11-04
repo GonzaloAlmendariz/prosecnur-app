@@ -2,6 +2,7 @@ import { readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
+import { cajasDeLaHoja } from "../../test/cajasPropias";
 
 /**
  * **P2 de la pasada de formato — un bloque con marco es un `Panel`.**
@@ -27,12 +28,6 @@ function hojas(dir: string): string[] {
 
 const rel = (f: string) => path.relative(aqui, f).split(path.sep).join("/");
 
-export function cajasDeLaHoja(css: string): number {
-  return css
-    .replace(/\/\*[\s\S]*?\*\//g, "")
-    .split("}")
-    .filter((b) => /border\s*:[^;]*solid/.test(b) && /border-radius/.test(b) && /padding/.test(b)).length;
-}
 
 /** Foto del 2 nov 2026. Sólo baja. */
 const SNAPSHOT: Record<string, number> = {
@@ -41,11 +36,11 @@ const SNAPSHOT: Record<string, number> = {
   "avisosExportacion/avisosExportacion.css": 3,
   "compartir/compartir.css": 2,
   "estilo/coloresPendientes.css": 1,
-  "estilo/coloresRespuestas.css": 2,
-  "estilo/estilo.css": 16,
+  "estilo/coloresRespuestas.css": 3,
+  "estilo/estilo.css": 19,
   "estiloInforme/casos.css": 1,
   "estiloInforme/estiloInforme.css": 6,
-  "graficadorPicker.css": 4,
+  "graficadorPicker.css": 5,
   "indice/editorIndice.css": 4,
   "indice/fijadosIndice.css": 2,
   "laminas/barraLaminas.css": 3,
@@ -63,15 +58,15 @@ const SNAPSHOT: Record<string, number> = {
   "laminas/panelAvisos.css": 1,
   "laminas/selectores/selectores.css": 5,
   "laminas/tiraMiniaturas.css": 4,
-  "laminas/visorLamina.css": 5,
+  "laminas/visorLamina.css": 6,
   "lineaFijadaRecetario.css": 2,
   "multiapiladas/multiapiladas.css": 4,
   "subpestanas/segmentado.css": 1,
   "subpestanas/subpestanas.css": 1,
   "temasEquivalentes/temasEquivalentes.css": 3,
-  "v2/styles/editor-v2.css": 287,
+  "v2/styles/editor-v2.css": 317,
   "v2/timeline/slidePicker.css": 5,
-  "vistaGeneral/vistaGeneral.css": 8,
+  "vistaGeneral/vistaGeneral.css": 9,
   "word/word.css": 2,
 };
 
@@ -101,5 +96,8 @@ describe("cajas propias (P2)", () => {
   it("el detector reconoce una caja", () => {
     expect(cajasDeLaHoja(".a { border: 1px solid red; border-radius: 4px; padding: 8px; }")).toBe(1);
     expect(cajasDeLaHoja(".a { border-radius: 4px; padding: 8px; }")).toBe(0);
+    // Una caja repartida en dos reglas también es caja (el punto ciego que dejó pasar `.cmv2-panel` y `SettingBlock`).
+    expect(cajasDeLaHoja(".a { border: 1px solid red; border-radius: 4px; }\n.b { color: red; }\n.a { padding: 8px; }")).toBe(1);
+    expect(cajasDeLaHoja("@media (max-width: 800px) { .a { padding: 8px; } }\n.a { border: 1px solid red; border-radius: 4px; }")).toBe(1);
   });
 });
