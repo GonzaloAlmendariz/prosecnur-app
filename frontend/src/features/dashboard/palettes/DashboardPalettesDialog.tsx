@@ -207,7 +207,7 @@ export function DashboardPalettesDialog({
               );
             })}
             {filteredListas.length === 0 && (
-              <div className="dash-palette-list-empty">Sin coincidencias.</div>
+              <EmptyState title="Sin coincidencias" />
             )}
           </aside>
 
