@@ -74,8 +74,8 @@ describe("expresión y lectura", () => {
   it("la celda dice los componentes, nunca la expresión cruda", () => {
     const c = componentesDeBase(compuesta, "2024");
     expect(c).toEqual({ variables: ["P28_1", "P28_2"], codigos: ["1"] });
-    expect(textoComponentes(c!)).toBe("Alguna de: P28_1, P28_2 · código 1");
-    expect(textoComponentes(componentesDeBase(compuesta, "2026")!)).toBe("Alguna de: Q9 · códigos 1, 2");
+    expect(textoComponentes(c!)).toBe("Alguna de: P28_1, P28_2, código 1");
+    expect(textoComponentes(componentesDeBase(compuesta, "2026")!)).toBe("Alguna de: Q9, códigos 1, 2");
     expect(componentesDeBase(compuesta, "2025")).toBeNull();
   });
 
@@ -279,7 +279,7 @@ describe("conteos de lo guardado", () => {
     });
     expect(p.derivada).toEqual({ regla: "alguna", variables: ["P1", "P2"], codigos: ["1"], n_si: 120, n_no: 80, n_sin_dato: 5 });
     expect(normalizarArmonizacionPreview({ ok: true }).derivada).toBeUndefined();
-    expect(textoConteos({ tipo: "conteos", n_si: 120, n_no: 80, n_sin_dato: 5 }, "2024")).toBe("Sí 120 · No 80 · Sin dato 5");
+    expect(textoConteos({ tipo: "conteos", n_si: 120, n_no: 80, n_sin_dato: 5 }, "2024")).toBe("Sí 120, No 80, Sin dato 5");
   });
 
   it("el 409 de componente ausente dice qué variable falta en esa base", async () => {
@@ -309,7 +309,7 @@ describe("conteos de lo guardado", () => {
 
 describe("cabecera de la armonización", () => {
   it("una fila compuesta muestra sus componentes; una simple, su variable", () => {
-    expect(rotuloDeVariable(compuesta, "2024")).toBe("Alguna de: P28_1, P28_2 · código 1");
+    expect(rotuloDeVariable(compuesta, "2024")).toBe("Alguna de: P28_1, P28_2, código 1");
     expect(rotuloDeVariable({ variables: { a: "p12" } }, "a")).toBe("variable p12");
   });
 });

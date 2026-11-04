@@ -7,7 +7,7 @@ import { useMemo, useReducer, useState } from "react";
 import type { ColumnaADeclarar, ColumnaPropia } from "../../../api/baseVariables";
 import { PulsoButton } from "../../../components/PulsoButton";
 import { formatoConteo, formatoConteoDe } from "../../../lib/formatoNumero";
-import { CheckCircle2, ChevronDown, ChevronUp, ListPlus, Search, X } from "../../../vendor/lucide-react";
+import { CheckCircle2, ChevronDown, ChevronUp, ListPlus, Search, X, Inbox } from "../../../vendor/lucide-react";
 import { normalizarBusqueda } from "../preguntaEquivalenteModel";
 import {
   BORRADOR_COLUMNAS_VACIO,
@@ -24,6 +24,7 @@ import {
   type BorradorColumnas,
 } from "./variablesBaseModel";
 import type { MensajeVariablesBase } from "./useVariablesBase";
+import { EstadoVacio } from "../../../components/EstadoVacio";
 
 /** Con más columnas que esto aparece el buscador. */
 const UMBRAL_BUSCADOR = 8;
@@ -69,7 +70,7 @@ export function ColumnasDeLaBase({ extras, ocupado, mensaje, onIncorporar, onQui
 
       {extras.length === 0 ? (
         // C5 categoría 1: vacío legítimo, la data no trae nada fuera del formulario.
-        <p className="pulso-armon-vacio">La base no trae columnas fuera del formulario.</p>
+        <EstadoVacio icono={<Inbox size={16} />} titulo="La base no trae columnas fuera del formulario" />
       ) : (
         <>
           {pendientes.length > 0 && (
@@ -204,7 +205,7 @@ function ColumnaPendiente({
         <div className="pulso-vb-opciones">
           <p className="pulso-vb-opciones-resumen">
             {resumenOpciones(editadas)}
-            {sinEtiqueta && !abiertas && <span className="pulso-vb-sin-etiqueta"> · sin etiquetas</span>}
+            {sinEtiqueta && !abiertas && <span className="pulso-vb-sin-etiqueta">, sin etiquetas</span>}
           </p>
           <button
             type="button"

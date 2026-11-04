@@ -119,13 +119,13 @@ describe("textoDeProgresoImport", () => {
       percent: 42.4,
       phase: "fetch",
       message: "Kobo: descargando...",
-    })).toBe("Importando PDM — Kobo: descargando... · 42%");
+    })).toBe("Importando PDM — Kobo: descargando..., 42%");
   });
 
   it("degrada con elegancia sin progreso o sin mensaje", () => {
     expect(textoDeProgresoImport("Importando PDM", null)).toBe("Importando PDM...");
     expect(textoDeProgresoImport("Importando PDM", { percent: 10, phase: "prepare", message: "" }))
-      .toBe("Importando PDM... · 10%");
+      .toBe("Importando PDM..., 10%");
   });
 });
 

@@ -10,6 +10,7 @@ import {
 } from "../../api/client";
 import { CargaBaseFilePicker } from "./CargaBaseFilePicker";
 
+import { EstadoVacio } from "../../components/EstadoVacio";
 type LaneDraft = {
   nombre: string;
   xlsform: File | null;
@@ -126,7 +127,7 @@ export function CargaManualBaseLanes({
                     <CheckCircle2 size={15} aria-hidden="true" /> Base materializada
                   </span>
                   {renderMaterializedBase ? renderMaterializedBase(base) : (
-                    <span><strong>{base.nombre}</strong> · {base.n_filas ?? "—"} filas</span>
+                    <span><strong>{base.nombre}</strong>: {base.n_filas ?? "—"} filas</span>
                   )}
                 </div>
               ) : (
@@ -171,7 +172,7 @@ export function CargaManualBaseLanes({
         })}
       </div>
       {lanes.length === 0 ? (
-        <div className="pulso-carga-manual-lanes-empty"><Database size={15} /> No hay entradas planificadas.</div>
+        <EstadoVacio icono={<Database size={15} />} titulo="No hay entradas planificadas" />
       ) : null}
     </section>
   );

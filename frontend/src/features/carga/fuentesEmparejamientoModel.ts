@@ -16,6 +16,7 @@ import { conNivel } from "../../lib/navegacion/direccion";
 import { panelAbiertoEn } from "../../lib/navegacion/paneles";
 import { CARGA_REVIEW_SIN_RESPUESTAS } from "./cargaReviewFuentesModel";
 import { PANEL_EMPAREJAMIENTO_FUENTE } from "./panelesCarga";
+import { formatoConteo } from "../../lib/formatoNumero";
 
 export type EmparejamientoFiltro = "diferencias" | "todas";
 
@@ -172,7 +173,7 @@ export function avisoExclusion(fuente: Pick<EmparejamientoFuente, "estado" | "n_
   if (fuente.estado !== "excluida") return null;
   const n = fuente.n_filas_excluidas;
   const fuera = n > 0
-    ? `${n.toLocaleString("es-PE")} ${plural(n, "respuesta quedó fuera", "respuestas quedaron fuera")}`
+    ? `${formatoConteo(n)} ${plural(n, "respuesta quedó fuera", "respuestas quedaron fuera")}`
     : "Sus respuestas quedaron fuera";
   const porque = fuente.n_preguntas_base > 0
     ? ` porque solo coinciden ${fuente.n_emparejadas} de ${fuente.n_preguntas_base} preguntas.`
@@ -189,7 +190,7 @@ export function datoRespuestas(fuente: Pick<EmparejamientoFuente, "estado" | "n_
   if (fuente.estado === "excluida" || fuente.n_filas_incorporadas === null) return null;
   const n = fuente.n_filas_incorporadas;
   if (n === 0) return CARGA_REVIEW_SIN_RESPUESTAS;
-  return `${n.toLocaleString("es-PE")} ${plural(n, "respuesta de esta fuente está", "respuestas de esta fuente están")} en la base.`;
+  return `${formatoConteo(n)} ${plural(n, "respuesta de esta fuente está", "respuestas de esta fuente están")} en la base.`;
 }
 
 /** La fuente pedida por `foco`; sin foco, la primera. */

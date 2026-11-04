@@ -113,29 +113,9 @@
   background: var(--pulso-surface);
 }
 
-.pulso-equiv-vacio {
-  display: flex;
-  flex-direction: column;
-  gap: var(--pulso-space-2);
-  margin: 0;
-}
 
-.pulso-equiv-vacio p {
-  margin: 0;
-  font-size: var(--pulso-type-body-size);
-  line-height: 1.55;
-  color: var(--pulso-text-soft);
-  max-width: 68ch;
-}
 
-.pulso-equiv-vacio strong {
-  color: var(--pulso-text);
-}
 
-.pulso-equiv-vacio-nota {
-  color: var(--pulso-text-faint);
-  font-size: var(--pulso-type-body-size);
-}
 
 .pulso-equiv-resumen {
   list-style: none;

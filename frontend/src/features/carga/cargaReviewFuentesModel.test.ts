@@ -100,7 +100,7 @@ describe("cargaReviewFuentesHallazgos", () => {
   it("una fuente sana y en orden tiene su tarjeta neutra, para poder ver sus preguntas", () => {
     const [h] = cargaReviewFuentesHallazgos({ principal: null, fuentes: [fuente({})] });
     expect(h.tono).toBe("info");
-    expect(h.titulo).toBe("Telefónico · 73 de 74 preguntas emparejadas");
+    expect(h.titulo).toBe("Telefónico, 73 de 74 preguntas emparejadas");
     expect(h.lineas).toEqual([]);
     expect(cargaReviewFuentesHallazgos(null)).toEqual([]);
   });
@@ -108,7 +108,7 @@ describe("cargaReviewFuentesHallazgos", () => {
   it("una fuente solo reordenada es un dato neutro", () => {
     const [h] = cargaReviewFuentesHallazgos({ principal: null, fuentes: [fuente({ reordenada: true })] });
     expect(h.tono).toBe("info");
-    expect(h.titulo).toBe("Telefónico · 73 de 74 preguntas emparejadas, en otro orden");
+    expect(h.titulo).toBe("Telefónico, 73 de 74 preguntas emparejadas, en otro orden");
     expect(h.lineas).toEqual([]);
   });
 
@@ -121,7 +121,7 @@ describe("cargaReviewFuentesHallazgos", () => {
       })],
     });
     expect(h.tono).toBe("pending");
-    expect(h.titulo).toBe("Telefónico · 73 de 74 preguntas emparejadas");
+    expect(h.titulo).toBe("Telefónico, 73 de 74 preguntas emparejadas");
     expect(h.lineas).toEqual([{ texto: "No entraron: Cod Pulso, Celular del egresado, Enumerador" }]);
   });
 
@@ -134,7 +134,7 @@ describe("cargaReviewFuentesHallazgos", () => {
         n_opciones_sin_par: 12,
       })],
     });
-    expect(h.titulo).toBe("Telefónico · 73 de 74 preguntas emparejadas");
+    expect(h.titulo).toBe("Telefónico, 73 de 74 preguntas emparejadas");
     expect(h.lineas).toEqual([
       { texto: "No entraron: A, B, C +2", completo: "No entraron: A, B, C, p_d, E" },
       { texto: "Sin respuesta en esta fuente: Edad" },
@@ -157,7 +157,7 @@ describe("cargaReviewFuentesHallazgos", () => {
       ],
     });
     expect(hallazgos.map((h) => h.tono)).toEqual(["incompatible", "info"]);
-    expect(hallazgos[0].titulo).toBe("Fuente 2 · es otro instrumento");
+    expect(hallazgos[0].titulo).toBe("Fuente 2, es otro instrumento");
     expect(hallazgos[0].lineas.map((l) => l.texto)).toEqual([
       "Solo coinciden 30 de 74 preguntas con la base.",
       "Impórtala como base separada y relaciónala en Equivalencias.",
@@ -170,7 +170,7 @@ describe("cargaReviewFuentesHallazgos", () => {
       fuentes: [fuente({ titulo: "Docentes", instrumento_distinto: true, excluida: true, n_emparejadas: 28, n_preguntas_base: 73, n_filas_excluidas: 48 })],
     });
     expect(h.tono).toBe("incompatible");
-    expect(h.titulo).toBe("Docentes · no entró a la base");
+    expect(h.titulo).toBe("Docentes, no entró a la base");
     expect(h.lineas[0].texto).toBe("Solo coinciden 28 de 73 preguntas con la base. 48 respuestas quedaron fuera.");
   });
 

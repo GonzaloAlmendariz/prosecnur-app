@@ -13,7 +13,7 @@
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
 import { useInRouterContext, useLocation, useNavigate } from "react-router-dom";
-import { Combine, Plus, Save, Search, X } from "../../vendor/lucide-react";
+import { Combine, Plus, Save, Search, X, Inbox } from "../../vendor/lucide-react";
 import {
   getConteosCompuesto,
   guardarEquivalencias,
@@ -47,6 +47,7 @@ import {
 } from "./indicadorCompuestoModel";
 import "./ArmonizacionFilaEditor.css";
 import "./IndicadorCompuestoEditor.css";
+import { EstadoVacio } from "../../components/EstadoVacio";
 
 // ---- Abrir ------------------------------------------------------------------
 
@@ -163,7 +164,7 @@ function PanelConDireccion({ estado, cargandoEstado, bases, variablesPorBase, on
               </header>
               {/* C5: vacío legítimo, el enlace nombra una fila que no se puede editar aquí. */}
               <div className="pulso-armon-cuerpo">
-                <p className="pulso-armon-vacio">{vacio}</p>
+                <EstadoVacio icono={<Inbox size={16} />} titulo={<>{vacio}</>} />
               </div>
             </div>
           )}
@@ -292,7 +293,7 @@ function EditorCompuesto({
         </section>
 
         {bases.length === 0 ? (
-          <p className="pulso-armon-vacio">El estudio todavía no tiene bases con instrumento.</p>
+          <EstadoVacio icono={<Inbox size={16} />} titulo="El estudio todavía no tiene bases con instrumento" />
         ) : (
           bases.map((base) => (
             <BaseCompuesta
@@ -370,7 +371,7 @@ export function BaseCompuesta({
 
       {/* C3: el vacío de la base vive en su propia sección. */}
       {sinPreguntas ? (
-        <p className="pulso-armon-vacio">Sin preguntas elegidas: {base} queda sin declarar.</p>
+        <EstadoVacio icono={<Inbox size={16} />} titulo={<>Sin preguntas elegidas: {base} queda sin declarar</>} />
       ) : (
         <ul className="pulso-compuesto-elegidas" aria-label={`Preguntas de ${base}`}>
           {entrada.variables.map((v) => (

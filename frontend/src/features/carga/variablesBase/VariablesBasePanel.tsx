@@ -14,7 +14,7 @@ import { Switch } from "../../../components/Switch";
 import { usePanelDireccionable } from "../../../lib/navegacion/paneles";
 import { useSeccion } from "../../../lib/navegacion/useDireccion";
 import { formatoConteoDe } from "../../../lib/formatoNumero";
-import { AlertTriangle, ArrowRight } from "../../../vendor/lucide-react";
+import { AlertTriangle, ArrowRight, Inbox } from "../../../vendor/lucide-react";
 import { PanelLateralFuentes } from "../fuentes/PanelLateralFuentes";
 import { searchSinPanelYFoco } from "../fuentes/compararFuentesModel";
 import { ColumnasDeLaBase } from "./ColumnasDeLaBase";
@@ -30,6 +30,8 @@ import {
 import "../ArmonizacionFilaEditor.css";
 import "./variablesBase.css";
 
+import { EstadoVacio } from "../../../components/EstadoVacio";
+import { LoadingBlock, ErrorBlock } from "../../../components/States";
 export type VariablesBasePanelProps = {
   /** Rótulo sobre el título: desde dónde se abrió. */
   antetitulo?: string;
@@ -61,8 +63,8 @@ function PanelConDireccion({ antetitulo = "Carga › Bases del estudio" }: Varia
       {foco ? (
         <VariablesBaseCuerpo control={control} />
       ) : (
-        <div className="pulso-plf-estado" role="status" data-qa-geometry-capacity="owned">
-          <p>El enlace no nombra ninguna base. Ábrela desde su tarjeta en Bases del estudio.</p>
+        <div data-qa-geometry-capacity="owned">
+          <EstadoVacio icono={<Inbox size={16} />} titulo="El enlace no nombra ninguna base" descripcion="Ábrela desde su tarjeta en Bases del estudio." />
         </div>
       )}
     </PanelLateralFuentes>
@@ -83,17 +85,16 @@ export function VariablesBaseCuerpo({ control }: { control: ControlVariablesBase
 
   if (carga.tipo === "cargando") {
     return (
-      <div className="pulso-plf-estado" role="status" data-qa-geometry-capacity="owned">
-        <p>Leyendo las columnas de la base…</p>
+      <div data-qa-geometry-capacity="owned">
+        <LoadingBlock variant="inline" label="Leyendo las columnas de la base…" />
       </div>
     );
   }
   if (carga.tipo === "error") {
     // C5 categoría 3: desconexión o base inexistente; el mensaje del backend lo dice.
     return (
-      <div className="pulso-plf-estado is-error" role="alert" data-qa-geometry-capacity="owned">
-        <strong>No se pudieron leer las variables de la base.</strong>
-        <p>{carga.mensaje}</p>
+      <div data-qa-geometry-capacity="owned">
+        <ErrorBlock label="No se pudieron leer las variables de la base" detail={carga.mensaje} />
       </div>
     );
   }

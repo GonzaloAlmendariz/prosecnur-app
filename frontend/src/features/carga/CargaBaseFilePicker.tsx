@@ -14,7 +14,7 @@ export function CargaBaseFilePicker({
   const isForm = kind === "xlsform";
   const Icon = isForm ? FileSpreadsheet : Database;
   const label = isForm ? "Formulario XLSForm" : "Respuestas";
-  const formats = isForm ? "Excel .xlsx" : ".xlsx · .csv · .sav · .zip";
+  const formats = isForm ? "Excel .xlsx" : ".xlsx, .csv, .sav o .zip";
 
   return (
     <label className={`pulso-carga-base-picker${file ? " is-ready" : ""}${disabled ? " is-disabled" : ""}`}>

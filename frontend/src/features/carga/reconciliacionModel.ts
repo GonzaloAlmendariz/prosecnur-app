@@ -46,7 +46,7 @@ export function selectionEquals(a: string[], b: string[]): boolean {
 export function summaryLabel(info: ReconciliacionInfo): string {
   const extraLabel = `${info.n_extra} variable${info.n_extra === 1 ? "" : "s"} extra`;
   const incluidasLabel = `${info.n_incluidas} incluida${info.n_incluidas === 1 ? "" : "s"}`;
-  return `${extraLabel} · ${incluidasLabel}`;
+  return `${extraLabel}, ${incluidasLabel}`;
 }
 
 // Título del diálogo según cuántas variables se detectaron.

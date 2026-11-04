@@ -54,7 +54,7 @@ export function CargaStructureWorkbench({
             Estructura del instrumento
           </h2>
           <span className="pulso-carga-structure-count">
-            {estructura.secciones.length} secciones · {estructura.preguntas.length} ítems
+            {estructura.secciones.length} secciones, {estructura.preguntas.length} ítems
           </span>
         </div>
         {schemaSelector && (

@@ -22,6 +22,7 @@ import {
 } from "./fuentesEmparejamientoModel";
 import { EmparejamientoInsignia, FuentesEmparejamientoTabla, ICONO_ESTADO } from "./FuentesEmparejamientoTabla";
 import { EstadoVacio } from "../../components/EstadoVacio";
+import { formatoConteo } from "../../lib/formatoNumero";
 
 export type EmparejamientoCarga =
   | { tipo: "cargando" }
@@ -57,7 +58,7 @@ export type FuentesEmparejamientoVistaProps = {
 };
 
 function formatoEntero(n: number): string {
-  return n.toLocaleString("es-PE");
+  return formatoConteo(n);
 }
 
 function SelectorFuente({

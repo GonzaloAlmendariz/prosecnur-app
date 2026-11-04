@@ -106,8 +106,8 @@ export function newProcessingIntakeBinding(
 
 export function processingIntakeRevisionLabel(revision: ProcessingIntakeRevision): string {
   const name = revision.form_name || revision.form_id || "Formulario";
-  const current = revision.is_latest ? " · vigente" : " · histórica";
-  return `${name} · rev. ${revision.revision_no}${current}`;
+  const current = revision.is_latest ? ", vigente" : ", histórica";
+  return `${name}, rev. ${revision.revision_no}${current}`;
 }
 
 export function processingIntakeResolvedEntry(

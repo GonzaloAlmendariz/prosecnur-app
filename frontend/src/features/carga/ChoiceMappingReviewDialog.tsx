@@ -108,7 +108,7 @@ function ChoiceMappingCard({ map, defaultOpen }: { map: ChoiceCodeMap; defaultOp
             <code>{map.variable}</code> {map.label}
           </h3>
           <p>
-            {changedRows.length} ajuste(s) de código · {map.type === "select_multiple" ? "selección múltiple" : "selección única"} · lista <code>{map.list_name}</code>
+            {changedRows.length} ajuste(s) de código, {map.type === "select_multiple" ? "selección múltiple" : "selección única"}, lista <code>{map.list_name}</code>
           </p>
         </div>
         <span className={`pulso-choice-map-confidence${map.high_confidence ? " is-high" : " is-review"}`}>

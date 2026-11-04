@@ -29,6 +29,8 @@ import {
 } from "../../api/client";
 import { ErrorBlock } from "../../components/States";
 import { GlidingTabList } from "../../components/GlidingTabList";
+import { EstadoVacio } from "../../components/EstadoVacio";
+import { Inbox } from "../../vendor/lucide-react";
 
 type CanonicalOption = {
   fileId: string;
@@ -1085,16 +1087,14 @@ export function IntegratedInstrumentsWizard({ canonicalOptions, plannedInputCoun
                     >
                       <span>
                         <strong>{title}</strong>
-                        <small>{item.id}{item.date_modified ? ` · ${item.date_modified.slice(0, 10)}` : ""}</small>
+                        <small>{item.id}{item.date_modified ? `, ${item.date_modified.slice(0, 10)}` : ""}</small>
                       </span>
                       <em>{isGuide ? "Guía" : selected ? "Seleccionada" : "Seleccionar"}</em>
                     </button>
                   );
                 })}
                 {!visibleSurveys.length && (
-                  <div className="pulso-sm-empty">
-                    No hay coincidencias con el filtro actual.
-                  </div>
+                  <EstadoVacio icono={<Search size={16} />} titulo="No hay coincidencias con el filtro actual" />
                 )}
               </div>
             </>
@@ -1168,13 +1168,13 @@ export function IntegratedInstrumentsWizard({ canonicalOptions, plannedInputCoun
               ))}
             </div>
           ) : (
-            <div className="pulso-sm-empty">Selecciona una o más encuestas.</div>
+            <EstadoVacio icono={<Inbox size={16} />} titulo="Selecciona una o más encuestas" />
           )}
           {needsGuideSurveyLink && (
-            <div className="pulso-sm-empty">Marca la encuesta origen del XLSForm guía.</div>
+            <EstadoVacio icono={<Inbox size={16} />} titulo="Marca la encuesta origen del XLSForm guía" />
           )}
           {hasIncompleteOrigins && rows.length > 0 && (
-            <div className="pulso-sm-empty">Completa la llave de cada origen seleccionado.</div>
+            <EstadoVacio icono={<Inbox size={16} />} titulo="Completa la llave de cada origen seleccionado" />
           )}
         </div>
       )}
@@ -1218,7 +1218,7 @@ export function IntegratedInstrumentsWizard({ canonicalOptions, plannedInputCoun
             {audit.ok && !unresolved.length ? <CheckCircle2 size={16} /> : <AlertTriangle size={16} />}
             <strong>{audit.ok && !unresolved.length ? "Lista para importar" : "Revisión pendiente"}</strong>
             <span>
-              {audit.n_origins} orígenes · {unresolvedGroups.length} decisiones visibles · {audit.n_blocking} bloqueos · llave <code>{audit.origin_key_name}</code>
+              {audit.n_origins} orígenes, {unresolvedGroups.length} decisiones visibles, {audit.n_blocking} bloqueos, llave <code>{audit.origin_key_name}</code>
             </span>
           </div>
           <div className={`pulso-integrated-help${audit.n_blocking > 0 ? " is-blocking" : ""}`}>
@@ -1237,7 +1237,7 @@ export function IntegratedInstrumentsWizard({ canonicalOptions, plannedInputCoun
             <div className="pulso-integrated-decisions-head">
               <div>
                 <strong>Diferencias por decidir</strong>
-                <span>{unresolvedGroups.length ? `${unresolvedGroups.length} pendiente(s)` : "Todas resueltas"} · bloqueos: {audit.n_blocking}</span>
+                <span>{unresolvedGroups.length ? `${unresolvedGroups.length} pendiente(s)` : "Todas resueltas"}, bloqueos: {audit.n_blocking}</span>
               </div>
               <button type="button" className="pulso-sm-secondary" onClick={acceptSuggestedDecisions} title="Marca como resueltas las decisiones no bloqueantes usando los nombres y fraseos sugeridos.">
                 <CheckCircle2 size={13} /> Aceptar sugeridas
@@ -1259,15 +1259,15 @@ export function IntegratedInstrumentsWizard({ canonicalOptions, plannedInputCoun
                 <div key={group.id} className={`pulso-integrated-diff is-${diff.severity}${group.kind !== "single" ? " is-wording" : ""}`}>
                   <div>
                     <strong>
-                      <span>{diffKindLabel(diff)}{group.diffs.length > 1 ? ` · ${group.diffs.length} orígenes` : ` · ${diff.origin_key}`}</span>
+                      <span>{diffKindLabel(diff)}{group.diffs.length > 1 ? `, ${group.diffs.length} orígenes` : `, ${diff.origin_key}`}</span>
                       <em>{diffStatusLabel(diff, resolved)}</em>
                     </strong>
                     <span>{diff.message}</span>
                     <span className="pulso-integrated-action">{diffActionText(diff)}</span>
                     <small>
                       <code>{diff.variable}</code>
-                      {group.kind === "single" && diff.ref && ` · ${diffRefOriginLabel(diff)}: ${diff.ref}`}
-                      {group.kind === "single" && diff.current && ` · origen: ${diff.current}`}
+                      {group.kind === "single" && diff.ref && `, ${diffRefOriginLabel(diff)}: ${diff.ref}`}
+                      {group.kind === "single" && diff.current && `, origen: ${diff.current}`}
                     </small>
                     {group.kind !== "single" && (
                       <div className="pulso-integrated-wording-review">

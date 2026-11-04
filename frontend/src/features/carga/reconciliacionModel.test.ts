@@ -94,13 +94,13 @@ describe("selectionEquals", () => {
 describe("summaryLabel", () => {
   test("singular / plural", () => {
     expect(summaryLabel(info([extra({ name: "a", incluida: true })]))).toBe(
-      "1 variable extra · 1 incluida",
+      "1 variable extra, 1 incluida",
     );
     expect(
       summaryLabel(
         info([extra({ name: "a", incluida: true }), extra({ name: "b", incluida: false })]),
       ),
-    ).toBe("2 variables extra · 1 incluida");
+    ).toBe("2 variables extra, 1 incluida");
   });
 });
 

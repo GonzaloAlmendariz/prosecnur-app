@@ -55,7 +55,7 @@ export function EscalaChip({ texto, opciones, contexto }: EscalaChipProps) {
       }
     >
       <p className="pulso-equiv-escala-globo-head">
-        {opciones.length} opciones · {contexto}
+        {opciones.length} opciones, {contexto}
       </p>
       <ol className="pulso-equiv-escala-lista">
         {opciones.map((o) => (

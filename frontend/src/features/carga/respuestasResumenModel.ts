@@ -53,5 +53,5 @@ export function textoCompatibilidad(c: Compatibilidad | null | undefined): { ok:
   }
   const extra = c.n_extra ?? c.extra_columns.length;
   if (extra > 0) partes.push(formatoConteoDe(extra, "columna que no es del formulario", "columnas que no son del formulario"));
-  return { ok, texto: partes.join(" · ") };
+  return { ok, texto: partes.join(", ") };
 }

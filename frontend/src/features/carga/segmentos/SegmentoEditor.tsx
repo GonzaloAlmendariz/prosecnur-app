@@ -8,7 +8,7 @@ import type { BaseVariables } from "../../../api/baseVariables";
 import type { VariableDeBase } from "../../../api/equivalencias";
 import type { Segmento, SegmentoADeclarar } from "../../../api/segmentos";
 import { PulsoButton } from "../../../components/PulsoButton";
-import { Copy, Plus, Save, Trash2, Wand2, X } from "../../../vendor/lucide-react";
+import { Copy, Plus, Save, Trash2, Wand2, X, Inbox } from "../../../vendor/lucide-react";
 import { etiquetaLegible } from "../preguntaEquivalenteModel";
 import { observadosListos, useCodigosObservadosPorBase } from "../useCodigosObservados";
 import { BuscadorPreguntas } from "../variablesBase/SelectorPreguntas";
@@ -29,6 +29,7 @@ import {
   type CodigoDeOrigen,
 } from "./segmentosModel";
 import type { CatalogoSegmentos } from "./useSegmentos";
+import { EstadoVacio } from "../../../components/EstadoVacio";
 
 export type SegmentoEditorProps = {
   inicial: Segmento | null;
@@ -262,7 +263,7 @@ export function SegmentoEditor({
 
         {b.escala.length === 0 ? (
           // C3: el vacío es de la escala y dice cómo se llena.
-          <p className="pulso-armon-vacio">Agrega las categorías o parte de las opciones de una variable.</p>
+          <EstadoVacio icono={<Inbox size={16} />} titulo="Agrega las categorías o parte de las opciones de una variable" />
         ) : (
           <ol className="pulso-armon-escala">
             {b.escala.map((c, i) => (

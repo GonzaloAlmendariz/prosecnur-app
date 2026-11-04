@@ -6,7 +6,7 @@ import { useId, useMemo, useReducer, useState } from "react";
 import type { CalculadaADeclarar, ReglaCalculada, VariableCalculada } from "../../../api/baseVariables";
 import type { VariableDeBase } from "../../../api/equivalencias";
 import { PulsoButton } from "../../../components/PulsoButton";
-import { Copy, Plus, Save, Trash2 } from "../../../vendor/lucide-react";
+import { Copy, Plus, Save, Trash2, Inbox } from "../../../vendor/lucide-react";
 import { ArmonizacionAsignarEnMasa } from "../ArmonizacionAsignarEnMasa";
 import { DESTINO_SIN_MAPA, textoMarcados } from "../armonizacionMasaModel";
 import { avisoNoListable } from "../codigosObservadosModel";
@@ -28,7 +28,9 @@ import { FormulaCampo } from "./FormulaCampo";
 import { ayudasDisponibles } from "../segmentos/segmentosModel";
 import { MapaPorRangos } from "../MapaPorRangos";
 import { PlegableValorPorValor } from "../ArmonizacionAyudaMapa";
+import { EstadoVacio } from "../../../components/EstadoVacio";
 
+import { LoadingBlock } from "../../../components/States";
 const REGLAS: { id: ReglaCalculada; rotulo: string; ayuda: string }[] = [
   { id: "alguna", rotulo: "Alguna de varias preguntas", ayuda: "Sí si alguna tiene uno de los códigos indicados." },
   { id: "recodificar", rotulo: "Recodificar una pregunta", ayuda: "Lleva sus códigos o valores a una escala nueva." },
@@ -124,7 +126,7 @@ export function CalculadaEditor({
       </div>
 
       {preguntas === null ? (
-        <p className="pulso-armon-nota" role="status">Leyendo las preguntas de la base…</p>
+        <LoadingBlock variant="inline" label="Leyendo las preguntas de la base…" />
       ) : catalogoError ? (
         // C5 categoría 3: el catálogo no llegó.
         <p className="pulso-armon-aviso" role="alert">No se pudieron leer las preguntas de la base.</p>
@@ -217,7 +219,7 @@ function Recodificar({
           </div>
           {r.escala.length === 0 ? (
             // C3: el vacío es de la escala y dice cómo se llena.
-            <p className="pulso-armon-vacio">Agrega las categorías o parte de las opciones de {r.variable}.</p>
+            <EstadoVacio icono={<Inbox size={16} />} titulo={<>Agrega las categorías o parte de las opciones de {r.variable}</>} />
           ) : (
             <ol className="pulso-armon-escala">
               {r.escala.map((c, i) => (
@@ -274,7 +276,7 @@ function Recodificar({
             />
           )}
           {lectura.tipo === "cargando" && (
-            <p className="pulso-armon-nota" role="status">Leyendo los valores de {r.variable}…</p>
+            <LoadingBlock variant="inline" label={`Leyendo los valores de ${r.variable}…`} />
           )}
           {lectura.tipo === "error" && (
             // C5 categoría 3: queda la lista del instrumento.

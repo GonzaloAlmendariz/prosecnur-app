@@ -88,8 +88,8 @@ describe("aviso a las vistas que listan variables", () => {
 describe("rótulos", () => {
   it("resume opciones y avisa cuando vienen sin etiqueta", () => {
     const op = [1, 2, 3, 4, 5].map((n) => ({ codigo: String(n), etiqueta: String(n) }));
-    expect(resumenOpciones(op)).toBe("1 · 2 · 3 · +2");
-    expect(resumenOpciones([{ codigo: "1", etiqueta: "Sí" }, { codigo: "2", etiqueta: "No" }])).toBe("1 Sí · 2 No");
+    expect(resumenOpciones(op)).toBe("1, 2, 3, +2");
+    expect(resumenOpciones([{ codigo: "1", etiqueta: "Sí" }, { codigo: "2", etiqueta: "No" }])).toBe("1 Sí, 2 No");
     expect(opcionesSinEtiqueta(op)).toBe(true);
     expect(opcionesSinEtiqueta([{ codigo: "1", etiqueta: "Sí" }])).toBe(false);
     expect(opcionesSinEtiqueta([])).toBe(false);
@@ -105,15 +105,15 @@ describe("rótulos", () => {
 
   it("la regla se lee en llano", () => {
     const alguna = { regla: "alguna" as const, variables: ["a", "b", "c", "d", "e", "f", "g", "h", "i"], codigos: ["1"], escala: [] };
-    expect(reglaLegible(alguna)).toBe("Alguna de 9 preguntas · sí = 1");
-    expect(reglaLegible({ ...alguna, variables: ["P5"], codigos: ["1", "2"] })).toBe("P5 · sí = 1, 2");
+    expect(reglaLegible(alguna)).toBe("Alguna de 9 preguntas, sí = 1");
+    expect(reglaLegible({ ...alguna, variables: ["P5"], codigos: ["1", "2"] })).toBe("P5, sí = 1, 2");
     const escala = ["1", "2", "3", "4"].map((codigo) => ({ codigo, etiqueta: codigo }));
     expect(reglaLegible({ regla: "recodificar", variables: ["P8"], codigos: [], escala })).toBe("Recodifica P8 en 4 categorías");
   });
 
   it("el resumen nombra cada código y el sin dato", () => {
     expect(textoResumen({ por_codigo: [{ codigo: "1", etiqueta: "Sí", n: 120 }, { codigo: "0", etiqueta: "No", n: 300 }], n_sin_dato: 5, n_total: 425 }))
-      .toBe("Sí 120 · No 300 · Sin dato 5");
+      .toBe("Sí 120, No 300, Sin dato 5");
   });
 });
 
