@@ -12,6 +12,7 @@ import { RotuloDePestana } from "../navegacion/RotuloDePestana";
 import { SiluetaDeDistrito } from "./SiluetaDeDistrito";
 import "./resumen.css";
 import { EstadoChip } from "../../../../../components/EstadoChip";
+import { BloqueDeMonitoreo } from "../../../core/BloqueDeMonitoreo";
 
 /**
  * Avance › Resumen (territorial.md §3.14). Izquierda: la cifra que cuenta para
@@ -125,8 +126,13 @@ function CifraConBase({ modelo, cuotas, onFaltante }: { modelo: ModeloResumen; c
 function Embudo({ modelo }: { modelo: ModeloResumen }) {
   const maximo = Math.max(1, ...modelo.embudo.map((paso) => paso.valor));
   return (
-    <section className="mon-res-panel" aria-labelledby="mon-res-embudo-titulo">
-      <h3 id="mon-res-embudo-titulo" className="mon-res-titulo">Del Kobo a la meta</h3>
+    <BloqueDeMonitoreo
+      marco="kit"
+      className="mon-res-panel"
+      aria-labelledby="mon-res-embudo-titulo"
+      titulo="Del Kobo a la meta"
+      tituloId="mon-res-embudo-titulo"
+    >
       <ol className="mon-res-embudo" data-qa-geometry-group="territorial-resumen-embudo" data-qa-geometry-contract="equal">
         {modelo.embudo.map((paso) => (
           <li key={paso.clave} className={`${paso.resta ? "is-resta" : ""}${paso.nivel ? " is-desglose" : ""}`}>
@@ -144,15 +150,20 @@ function Embudo({ modelo }: { modelo: ModeloResumen }) {
           <span title="Recibidas menos anuladas no da lo que queda en el corte">{fmtConSigno(modelo.descuadre)} fuera de fase</span>
         </p>
       ) : null}
-    </section>
+    </BloqueDeMonitoreo>
   );
 }
 
 function Motivos({ modelo, onSenales }: { modelo: ModeloResumen; onSenales: () => void }) {
   const enObservacion = modelo.embudo.find((paso) => paso.clave === "observacion")?.valor ?? 0;
   return (
-    <section className="mon-res-panel" aria-labelledby="mon-res-motivos-titulo">
-      <h3 id="mon-res-motivos-titulo" className="mon-res-titulo" title="Un caso puede tener dos motivos">Motivos de observación ({fmt(enObservacion)} {enObservacion === 1 ? "caso" : "casos"})</h3>
+    <BloqueDeMonitoreo
+      marco="kit"
+      className="mon-res-panel"
+      aria-labelledby="mon-res-motivos-titulo"
+      titulo={<>Motivos de observación ({fmt(enObservacion)} {enObservacion === 1 ? "caso" : "casos"})</>}
+      tituloId="mon-res-motivos-titulo"
+    >
       {modelo.motivos === null ? (
         <p className="mon-res-nota" data-qa-geometry-empty="desconexion">
           <Info size={14} aria-hidden="true" />
@@ -177,7 +188,7 @@ function Motivos({ modelo, onSenales }: { modelo: ModeloResumen; onSenales: () =
         <div><dt>Último</dt><dd>{modelo.ultimoRegistro || "—"}</dd></div>
         <div><dt>Días con campo</dt><dd>{fmt(modelo.diasConCampo)}</dd></div>
       </dl>
-    </section>
+    </BloqueDeMonitoreo>
   );
 }
 
@@ -199,10 +210,14 @@ function Ritmo({ modelo }: { modelo: ModeloResumen }) {
   const [pista, anchoDePista] = useAnchoMedido<HTMLSpanElement>();
   const rotulos = ejeDeFechas(dias.map((dia) => dia.fecha), paso * ((anchoDePista || ancho) / ancho));
   return (
-    <section className="mon-res-panel mon-res-ritmo" aria-labelledby="mon-res-ritmo-titulo" data-qa-geometry-member="ritmo">
-      <header className="mon-res-cabecera">
-        <h3 id="mon-res-ritmo-titulo" className="mon-res-titulo">Ritmo del campo</h3>
-      </header>
+    <BloqueDeMonitoreo
+      marco="kit"
+      className="mon-res-panel mon-res-ritmo"
+      aria-labelledby="mon-res-ritmo-titulo"
+      data-qa-geometry-member="ritmo"
+      titulo="Ritmo del campo"
+      tituloId="mon-res-ritmo-titulo"
+    >
       {dias.length ? (
         <div className="mon-res-grafico-marco">
         <span className="mon-res-eje-titulo" aria-hidden="true">Encuestas acumuladas</span>
@@ -246,7 +261,7 @@ function Ritmo({ modelo }: { modelo: ModeloResumen }) {
             <span className="is-meta">Meta ({fmt(modelo.meta)})</span>
           </span>
       ) : null}
-    </section>
+    </BloqueDeMonitoreo>
   );
 }
 
@@ -289,8 +304,14 @@ function Distritos({ modelo, cuotas }: { modelo: ModeloResumen; cuotas: AvancePo
   const diarios = new Map([...zonas].map(([u, z]) => [u, new Map(z.diario.map((d) => [d.fecha, d.efectivas]))]));
   const maxDia = Math.max(1, ...[...diarios.values()].flatMap((m) => [...m.values()]));
   return (
-    <section className="mon-res-panel mon-res-distritos" aria-labelledby="mon-res-distritos-titulo" data-qa-geometry-member="distritos">
-      <h3 id="mon-res-distritos-titulo" className="mon-res-titulo">Distritos</h3>
+    <BloqueDeMonitoreo
+      marco="kit"
+      className="mon-res-panel mon-res-distritos"
+      aria-labelledby="mon-res-distritos-titulo"
+      data-qa-geometry-member="distritos"
+      titulo="Distritos"
+      tituloId="mon-res-distritos-titulo"
+    >
       <div className="mon-res-tabla-marco" data-qa-geometry-capacity="owned" tabIndex={0} aria-label="Distritos, con desplazamiento">
         <table className="mon-res-tabla">
           <thead>
@@ -354,7 +375,7 @@ function Distritos({ modelo, cuotas }: { modelo: ModeloResumen; cuotas: AvancePo
           </tfoot>
         </table>
       </div>
-    </section>
+    </BloqueDeMonitoreo>
   );
 }
 

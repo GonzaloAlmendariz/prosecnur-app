@@ -33,6 +33,10 @@
   gap: var(--pulso-space-3);
   flex: 0 0 auto;
   min-width: 0;
+}
+
+/* El material sólo para el panel que no es un bloque del kit (P2: el `Panel` pone el suyo). */
+.mon-res-panel:not(.mon-bloque) {
   padding: var(--pulso-space-4);
   border: 1px solid var(--pulso-border);
   border-radius: var(--pulso-radius-panel);

@@ -23,6 +23,10 @@
   gap: var(--pulso-space-3);
   min-width: 0;
   min-height: 0;
+}
+
+/* El material sólo para el panel que no es un bloque del kit (P2: el `Panel` pone el suyo). */
+.mon-falt-panel:not(.mon-bloque) {
   padding: var(--pulso-space-4);
   border: 1px solid var(--pulso-border);
   border-radius: var(--pulso-radius-panel);
@@ -333,8 +337,10 @@
   color: var(--pulso-text);
 }
 
-/* Cuota de cada UMP. */
-.mon-falt-cuotas {
+/* Cuota de cada UMP: la tabla llega al pie de la tarjeta. `.mon-bloque` sube la especificidad sobre
+ * el padding del bloque del kit. */
+.mon-falt-cuotas,
+.mon-falt-cuotas.mon-bloque {
   padding-bottom: 0;
 }
 
@@ -393,7 +399,14 @@
   overflow: auto;
   scrollbar-gutter: stable;
   scrollbar-width: thin;
-  scrollbar-color: var(--pulso-border-strong) transparent;
+  scrollbar-color: var(--pulso-border-strong) transparent;  /* La cabecera fija mide 36 px: al desplazar, cada fila encaja debajo de
+   * ella en vez de quedar tapada a medias. */
+  scroll-padding-top: 36px;
+  scroll-snap-type: y mandatory;
+}
+
+.mon-falt-tabla > tbody > tr {
+  scroll-snap-align: start;
 }
 
 .mon-falt-tabla-marco::-webkit-scrollbar {
