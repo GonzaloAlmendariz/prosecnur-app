@@ -1057,6 +1057,43 @@
            ),
            descripcion = "Qué parte de estandar_pulso.json dibuja la lámina.")
     )
+  ),
+
+  # Láminas de diferencias (especificación CCSS del 2026-11-04): el resumen por capítulo y los hallazgos clave. Las dos
+  # son nativas y se componen como un `slide_1` (graficos_resumen_diferencias.R, graficos_hallazgos.R). Sus listas
+  # (`capitulos`, `cifras`) se escriben en el plan; todavía no tienen inspector, así que no se ofrecen en el selector.
+  p_slide_resumen_diferencias = list(
+    titulo_humano = "Resumen de diferencias",
+    descripcion   = "Tabla por capítulo con los puntos de diferencia de cada grupo frente al resto, con la prueba del informe.",
+    icono_ui      = "Table",
+    categoria     = "1grafico",
+    render_key    = "resumen_diferencias",
+    en_selector   = FALSE,
+    blueprint     = list(kind = "single", ppt_layout = "Graficos2", structure_label = "Resumen de diferencias"),
+    slot_specs    = list(),
+    args = c(.args_slide_titulos_base(c("titulo", "etiqueta", "base")), list(
+      list(name = "seleccion", label = "Selección de filas", tipo_input = "choice", grupo = "textos", default = "manual",
+           choices = list(list(value = "manual", label = "Las filas escritas en el plan"),
+                          list(value = "auto", label = "Las filas del plan con diferencias")),
+           descripcion = "Con «auto», el motor propone las filas con diferencias: primero las del 99%, luego las más grandes, hasta 4 por capítulo y 18 en total.")
+    ))
+  ),
+
+  p_slide_hallazgos = list(
+    titulo_humano = "Hallazgos clave",
+    descripcion   = "Cifras destacadas con su intervalo de 95% calculado con el diseño y su diferencia frente al resto; con o sin gráfico de apoyo.",
+    icono_ui      = "LayoutGrid",
+    categoria     = "1grafico",
+    render_key    = "hallazgos",
+    en_selector   = FALSE,
+    blueprint     = list(kind = "single", ppt_layout = "Graficos2", structure_label = "Hallazgos clave"),
+    slot_specs    = list(),
+    args = c(.args_slide_titulos_base(c("titulo", "etiqueta", "base")), list(
+      list(name = "modo", label = "Modo", tipo_input = "choice", grupo = "textos", default = "cifras",
+           choices = list(list(value = "cifras", label = "Hasta seis cifras"),
+                          list(value = "cifras_con_graficos", label = "Hasta tres cifras con su gráfico")),
+           descripcion = "Las cifras solas, para abrir o cerrar el informe, o con su gráfico de apoyo, para abrir un capítulo.")
+    ))
   )
 )
 
@@ -1519,7 +1556,7 @@
       list(name = "var", label = "Variable", tipo_input = "variable", grupo = "datos"),
       # Recetario p70: la respuesta del centro y su frase. La pestaña Gráfico los edita con su tarjeta (DonaCentro).
       list(name = "al_centro", label = "Al centro", tipo_input = "string", grupo = "valores",
-           descripcion = "La respuesta cuya cifra va al centro de la dona y abre la lectura. Vacío: la primera."),
+           descripcion = "La respuesta cuya cifra va al centro de la dona y abre la lectura. Vacío: en lámina completa, la primera; en un panel, ninguna (cada cifra va en su porción)."),
       list(name = "frase_centro", label = "Frase del centro", tipo_input = "string", grupo = "textos",
            descripcion = "Lo que se lee bajo la cifra del centro («conoce la misión»). Vacío: el nombre de la respuesta."),
       list(name = "top_k", label = "Top K + Otros", tipo_input = "number", grupo = "filtro",

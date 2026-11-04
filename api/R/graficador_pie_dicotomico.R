@@ -791,6 +791,9 @@ graficar_pie <- function(
   if (is.null(espec)) return(espec)
   elegido <- trimws(as.character(al_centro %||% "")[1])
   i <- if (nzchar(elegido %||% "")) match(elegido, espec$rotulos) else NA_integer_
+  # Que el analista eligió qué resaltar: el panel sólo pone una cifra al centro de la dona si se la pidieron (revisión del
+  # PPT v7 de CCSS: «no hay valor a resaltar»).
+  if (!is.na(i)) espec$centro_elegido <- TRUE
   if (!is.na(i) && i > 1L) {
     orden <- c(i, setdiff(seq_along(espec$rotulos), i))
     for (k in c("rotulos", "valores", "cifras", "unidades", "n", "n_casos")) {
@@ -798,6 +801,6 @@ graficar_pie <- function(
     }
   }
   frase <- trimws(as.character(frase_centro %||% "")[1])
-  if (nzchar(frase %||% "")) espec$frase_centro <- frase
+  if (nzchar(frase %||% "")) { espec$frase_centro <- frase; espec$centro_elegido <- TRUE }
   espec
 }

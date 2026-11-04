@@ -1,0 +1,245 @@
+# =============================================================================
+# lamina_resumen_diferencias.R — la lámina nativa del resumen de diferencias por capítulo (especificación 2026-11-04, §1)
+# =============================================================================
+#
+# Referencia visual: `10_resumen_diferencias_por_capitulo.png` de la maqueta del 2026-11-04. Todo en piezas nativas y
+# editables, en un grupo:
+#
+#   - antetítulo «Resumen de diferencias» y título de la lámina, como las demás láminas nativas (`.lam_titulo`);
+#   - encabezado de dos pisos: el cruce en versalitas grises con su filete y, debajo, el rótulo corto de cada grupo;
+#   - filas agrupadas por capítulo (rótulo del capítulo en versalitas coral), cada una sobre su franja blanca: el rótulo,
+#     el total en negrita y una celda por grupo;
+#   - la celda: con diferencia, una pastilla con los puntos frente al resto y su triángulo (▲▼ al 99%, en azul si es
+#     mayor y naranja si es menor, color pleno; △▽ al 95%, color tenue con borde punteado); sin diferencia, un punto
+#     gris sin cifra; con el cruce tautológico, «n. a.»;
+#   - leyenda de los triángulos, la nota fija sobre la base y la base sola (sin «Fuente»), con el pie de las demás.
+#
+# Aquí viven también las piezas que comparte la lámina de hallazgos (lamina_hallazgos.R): el tono de cada marca, el
+# triángulo, la pastilla y la leyenda.
+#
+# Se engancha sin crecer `reporte_plan_ppt.R`: `.lam_compositor_aplica()` y `.lam_slide_1_nativa()` (lamina_compositor.R)
+# desvían aquí la espec `resumen_diferencias` (y `hallazgos`) con `.lam_dif_slide_1()`.
+
+#' ¿La espec es de una de las láminas de diferencias (resumen o hallazgos)?
+#' @keywords internal
+.lam_dif_es <- function(p) {
+  espec <- if (inherits(p, "ggplot")) attr(p, "pulso_espec") else NULL
+  is.list(espec) && as.character(espec$tipo %||% "")[1] %in% c("resumen_diferencias", "hallazgos")
+}
+
+#' Tono de una marca: relleno, borde, texto y triángulo según la dirección y el nivel
+#' @keywords internal
+.lam_dif_tono <- function(dir, fragil) {
+  abajo <- identical(dir, "down"); fr <- isTRUE(fragil)
+  if (!fr && !abajo) return(list(fill = .std_color("azul"), borde = .std_color("azul"), texto = "#FFFFFF", linea = .std_color("azul"), punteado = FALSE))
+  if (!fr && abajo) return(list(fill = .std_color("naranja_bottom_two_box"), borde = .std_color("naranja_bottom_two_box"), texto = "#FFFFFF",
+                                linea = .std_color("naranja_bottom_two_box_texto"), punteado = FALSE))
+  if (fr && !abajo) return(list(fill = .std_color("tarjeta_fondo_95"), borde = .std_color("tarjeta_borde_95"), texto = .std_color("tarjeta_borde_95"),
+                                linea = .std_color("tarjeta_borde_95"), punteado = TRUE))
+  list(fill = .std_color("fondo_destacado"), borde = .std_color("naranja_bottom_two_box"), texto = .std_color("naranja_bottom_two_box_texto"),
+       linea = .std_color("naranja_bottom_two_box"), punteado = TRUE)
+}
+
+#' Triángulo de dirección, lleno (99%) o hueco (95%)
+#' @keywords internal
+.lam_dif_triangulo <- function(lz, x, yc, dir, color, lleno = TRUE, alto = 0.085, nombre = NULL) {
+  ancho <- alto * 1.15
+  .lam_forma_borde(lz, x, yc - alto / 2, ancho, alto, fill = if (isTRUE(lleno)) color else NULL, borde = color, borde_pt = 1,
+                   geom = "triangle", voltear = identical(dir, "down"),
+                   nombre = nombre %||% if (identical(dir, "down")) "diferencia:menor" else "diferencia:mayor")
+  invisible(ancho)
+}
+
+#' Puntos de diferencia con signo tipográfico («+23», «−14»)
+#' @keywords internal
+.lam_dif_puntos <- function(valor) paste0(ifelse(valor >= 0, "+", "−"), floor(abs(round(valor, 6)) + 0.5))
+
+#' Pastilla de una celda con diferencia: los puntos y el triángulo, centrados en `cx`
+#' @keywords internal
+.lam_dif_pastilla <- function(lz, cx, yc, w, h, valor, dir, fragil, pt = 9.5) {
+  tn <- .lam_dif_tono(dir, fragil)
+  .lam_forma_borde(lz, cx - w / 2, yc - h / 2, w, h, fill = tn$fill, borde = tn$borde, borde_pt = if (tn$punteado) 1 else 0.75,
+                   punteado = tn$punteado, geom = "roundRect", radio = 0.035,
+                   nombre = paste0("resumen:celda:", if (isTRUE(fragil)) "95" else "99"))
+  txt <- .lam_dif_puntos(valor)
+  wt <- .lam_ancho_tinta(txt, pt, TRUE); at <- 0.085 * 1.15; sep <- 0.05
+  xi <- cx - (wt + sep + at) / 2
+  .lam_tyc_txt(lz, txt, xi, yc, wt + 0.04, pt, tn$texto, bold = TRUE, nombre = "resumen:celda:puntos")
+  .lam_dif_triangulo(lz, xi + wt + sep, yc, dir, tn$texto, lleno = !isTRUE(fragil))
+}
+
+#' Leyenda de los triángulos: mayor, menor, 99% y 95% de confianza, en una línea desde `x`
+#' @return Ancho usado (in).
+#' @keywords internal
+.lam_dif_leyenda <- function(lz, x, yc, regla = NULL, pt = 9) {
+  suave <- .std_color("texto_suave"); azul <- .std_color("azul"); nar <- .std_color("naranja_bottom_two_box")
+  conf <- if (is.null(regla)) "95%" else .tarjetas_confianza(regla)
+  x0 <- x; a <- 0.085 * 1.15
+  item <- function(dibujar, texto) {
+    w_icono <- dibujar(x)
+    .lam_tyc_txt(lz, texto, x + w_icono + 0.07, yc, .lam_ancho_tinta(texto, pt) + 0.04, pt, suave, nombre = "leyenda:texto")
+    x <<- x + w_icono + 0.07 + .lam_ancho_tinta(texto, pt) + 0.42
+  }
+  item(function(xx) .lam_dif_triangulo(lz, xx, yc, "up", azul, nombre = "leyenda:mayor"), "Mayor que el resto")
+  item(function(xx) .lam_dif_triangulo(lz, xx, yc, "down", nar, nombre = "leyenda:menor"), "Menor que el resto")
+  item(function(xx) { .lam_dif_triangulo(lz, xx, yc, "up", azul, nombre = "leyenda:99"); .lam_dif_triangulo(lz, xx + a + 0.03, yc, "down", azul, nombre = "leyenda:99"); 2 * a + 0.03 },
+       "99% de confianza")
+  item(function(xx) { .lam_dif_triangulo(lz, xx, yc, "up", azul, lleno = FALSE, nombre = "leyenda:95"); .lam_dif_triangulo(lz, xx + a + 0.03, yc, "down", azul, lleno = FALSE, nombre = "leyenda:95"); 2 * a + 0.03 },
+       paste(conf, "de confianza"))
+  x - x0
+}
+
+#' Alto de la nota al pie (o 0 sin nota), con la misma medida que `.lam_nota_sig_dibujar`
+#' @keywords internal
+.lam_dif_alto_nota <- function(nota) if (is.null(nota) || !nzchar(nota)) 0 else .lam_nota_sig_alto(nota)
+
+#' Parte de abajo de la lámina: leyenda, nota fija y la base con el folio. Devuelve el documento y el límite de contenido
+#' @keywords internal
+.lam_dif_pie <- function(doc, espec, base, folio, leyenda = TRUE) {
+  alto_nota <- .lam_dif_alto_nota(espec$nota)
+  y_ley <- .std_valor("ppt", "geometria", "base_y") - alto_nota - 0.2
+  if (isTRUE(leyenda)) {
+    lz <- .lam_lienzo()
+    .lam_dif_leyenda(lz, .std_geom("margen_izq"), y_ley, espec$regla)
+    doc <- .lam_agrupar(doc, lz, nombre = "prosecnur:leyenda_diferencias")
+  }
+  if (alto_nota > 0) doc <- .lam_nota_sig_dibujar(doc, espec$nota)
+  .lam_pie(doc, base, folio)
+}
+
+#' Límite inferior del contenido: sobre la leyenda y la nota
+#' @keywords internal
+.lam_dif_limite <- function(espec) .std_valor("ppt", "geometria", "base_y") - .lam_dif_alto_nota(espec$nota) - 0.2 - 0.2
+
+#' Recorta un texto a un ancho con «…» (corte por palabra); devuelve el texto y si se recortó
+#' @keywords internal
+.lam_dif_recortar <- function(s, w, pt, bold = FALSE) {
+  if (.lam_ancho_tinta(s, pt, bold) <= w) return(list(texto = s, recortado = FALSE))
+  pal <- strsplit(s, "\\s+")[[1]]
+  while (length(pal) > 1L && .lam_ancho_tinta(paste0(paste(pal, collapse = " "), "…"), pt, bold) > w) pal <- pal[-length(pal)]
+  list(texto = paste0(paste(pal, collapse = " "), "…"), recortado = TRUE)
+}
+
+#' Base de la lámina: la declarada o «Base: N público»
+#' @keywords internal
+.lam_dif_base <- function(slide, espec, sin_base = FALSE) {
+  if (isTRUE(sin_base)) return(NULL)
+  b <- (slide$slots %||% list())$base
+  b <- if (inherits(b, "ppt_element_text")) b$text else if (is.character(b)) b else NULL
+  b <- .dif_chr1(b)
+  b %||% sprintf("Base: %s %s.", format(espec$n %||% 0, big.mark = ","), espec$publico %||% "casos")
+}
+
+#' La rama `slide_1` de las láminas de diferencias (enganche de `.lam_slide_1_nativa`)
+#' @keywords internal
+.lam_dif_slide_1 <- function(doc, p, slide, titulo, antetitulo, layout, master, por_lamina = function(doc) doc, sin_base = FALSE) {
+  espec <- attr(p, "pulso_espec")
+  texto <- function(x) if (is.null(x) || !length(x) || is.na(x[1]) || !nzchar(trimws(as.character(x)[1]))) NULL else trimws(as.character(x)[1])
+  f <- if (identical(espec$tipo, "hallazgos")) .lam_laminas_hallazgos else .lam_laminas_resumen_diferencias
+  f(doc, espec, titulo = texto(titulo) %||% "", ante = texto(antetitulo), base = .lam_dif_base(slide, espec, sin_base),
+    folio = length(doc) + 1L, layout = layout, master = master, por_lamina = por_lamina)$doc
+}
+
+# ---- la tabla ------------------------------------------------------------------------------------------------------
+
+#' Geometría de columnas de la tabla: rótulo, total y una columna por grupo
+#' @keywords internal
+.lam_resumen_columnas <- function(espec, x0, x1) {
+  K <- nrow(espec$columnas)
+  rot <- unlist(lapply(espec$capitulos, function(c) vapply(c$filas, `[[`, "", "rotulo")))
+  w_tot <- 0.7; util <- x1 - x0
+  necesita <- if (length(rot)) max(.lam_ancho_tinta(rot, 10)) + 0.3 else 3
+  # Cada columna de grupo cabe al menos su palabra más larga (los rótulos se parten por palabra, nunca dentro de una); el
+  # resto del ancho se reparte entre el rótulo de la fila (lo que pide, hasta donde alcance) y las columnas (hasta 0.9 in).
+  piso <- vapply(as.character(espec$columnas$corto), function(s) {
+    pal <- strsplit(s, "\\s+")[[1]]
+    w <- max(0.62, if (length(pal)) max(.lam_ancho_tinta(pal, 9.5, TRUE)) + 0.16 else 0)
+    while (length(.lam_tyc_envolver(s, w - 0.12, 9.5, TRUE)) > 2L && w < 1.6) w <- w + 0.02   # y el rótulo entero en dos líneas
+    w
+  }, numeric(1), USE.NAMES = FALSE)
+  meta <- if (K) min(0.9, (util - necesita - w_tot) / K) else 0
+  # Si los pisos se comen el ancho del rótulo, las demás columnas ceden hasta su propio piso.
+  while (K && sum(pmax(piso, meta)) > util - necesita - w_tot && meta > min(piso)) meta <- meta - 0.01
+  cw <- pmax(piso, meta)
+  w_rot <- util - w_tot - sum(cw)
+  xs <- x0 + w_rot + w_tot + cumsum(cw) - cw / 2
+  list(w_rot = w_rot, x_tot = x0 + w_rot + w_tot / 2, w_tot = w_tot, cw = cw, xs = xs, K = K)
+}
+
+#' Lámina del resumen de diferencias
+#' @return Lista con `doc` y `partes`.
+#' @keywords internal
+.lam_laminas_resumen_diferencias <- function(doc, espec, titulo, ante = NULL, base = NULL, folio = NULL, layout = "Graficos2",
+                                             master = "Office Theme", por_lamina = function(doc) doc) {
+  force(folio)
+  aviso <- function(...) .dif_aviso("Resumen de diferencias", ...)
+  g <- .std_geom
+  doc <- officer::add_slide(doc, layout = layout, master = master)
+  doc <- .lam_titulo(doc, titulo, ante = ante)
+  azul <- .std_color("azul"); suave <- .std_color("texto_suave")
+  x0 <- g("margen_izq"); x1 <- g("ancho") - g("margen_der") - 0.1
+  C <- .lam_resumen_columnas(espec, x0, x1)
+  cols <- espec$columnas
+  lz <- .lam_lienzo()
+  # Encabezado: el cruce sobre sus grupos, con su filete, y el rótulo corto de cada grupo (hasta dos líneas).
+  y_h <- .lam_titulo_fin(titulo) + 0.12
+  lineas_grupo <- if (C$K) vapply(cols$corto, function(s) length(.lam_tyc_envolver(s, C$cw[match(s, cols$corto)] - 0.12, 9.5, TRUE)), integer(1)) else 0L
+  if (any(lineas_grupo > 2L)) aviso("hay rótulos de grupo de más de dos líneas; declara un rótulo corto en `cortos`.")
+  h_grupo <- max(1L, min(2L, max(lineas_grupo, 1L))) * 9.5 * 1.2 / 72
+  for (cr in unique(cols$cruce)) {
+    i <- which(cols$cruce == cr)
+    xa <- C$xs[min(i)] - C$cw[min(i)] / 2 + 0.05; xb <- C$xs[max(i)] + C$cw[max(i)] / 2 - 0.05
+    rc <- toupper(espec$rotulos_cruce[[cr]] %||% cr)
+    .lam_tyc_txt(lz, rc, (xa + xb) / 2, y_h + 0.09, max(xb - xa, .lam_ancho_tinta(rc, 8.5, TRUE) + 0.15), 8.5, suave, bold = TRUE,
+                 align = "center", nombre = "resumen:cruce")
+    .lam_caja(lz, xa, y_h + 0.22, xb - xa, 0.012, .std_color("filete"), nombre = "resumen:cruce:filete")
+  }
+  y_g <- y_h + 0.32
+  for (k in seq_len(C$K)) {
+    lin <- utils::head(.lam_tyc_envolver(cols$corto[k], C$cw[k] - 0.12, 9.5, TRUE), 2L)
+    for (j in seq_along(lin)) .lam_tyc_txt(lz, lin[j], C$xs[k], y_g + (j - 0.5) * 9.5 * 1.2 / 72, C$cw[k] - 0.04, 9.5, azul, bold = TRUE,
+                                          align = "center", nombre = "resumen:grupo")
+  }
+  .lam_tyc_txt(lz, "Total", C$x_tot, y_g + 0.5 * 9.5 * 1.2 / 72, C$w_tot, 9.5, azul, bold = TRUE, align = "center", nombre = "resumen:total:encabezado")
+  y <- y_g + h_grupo + 0.12
+  # Alto de renglón: el que quepa entre 0.19 y 0.25 in; si ni con 0.19 caben, se quitan las últimas filas y se avisa.
+  y_lim <- .lam_dif_limite(espec)
+  caps <- espec$capitulos
+  n_lin <- function(cs) sum(vapply(cs, function(c) 0.85 + length(c$filas), numeric(1)))
+  while (length(caps) && (y_lim - y) / n_lin(caps) < 0.17) {
+    ult <- length(caps)
+    if (length(caps[[ult]]$filas) > 1L) caps[[ult]]$filas <- caps[[ult]]$filas[-length(caps[[ult]]$filas)] else caps <- caps[-ult]
+    if (!isTRUE(attr(caps, "avisado"))) { aviso("las filas no caben en la lámina; se quitaron las últimas. Reduce la lista."); attr(caps, "avisado") <- TRUE }
+  }
+  h <- if (length(caps)) min(0.25, (y_lim - y) / n_lin(caps)) else 0.25
+  recortes <- 0L
+  for (cp in caps) {
+    .lam_tyc_txt(lz, toupper(cp$titulo), x0, y + 0.85 * h / 2, C$w_rot + C$w_tot, 8.5, .std_color("coral"), bold = TRUE, nombre = "resumen:capitulo")
+    y <- y + 0.85 * h
+    for (f in cp$filas) {
+      yc <- y + h / 2
+      .lam_caja(lz, x0, y + 0.015, x1 - x0, h - 0.03, .std_color("tarjeta_fondo"), nombre = "resumen:franja")
+      r <- .lam_dif_recortar(f$rotulo, C$w_rot - 0.2, 10)
+      if (r$recortado) recortes <- recortes + 1L
+      .lam_tyc_txt(lz, r$texto, x0 + 0.08, yc, C$w_rot - 0.12, 10, azul, nombre = "resumen:fila")
+      .lam_tyc_txt(lz, .tarjetas_pct(f$total), C$x_tot, yc, C$w_tot, 10, azul, bold = TRUE, align = "center", nombre = "resumen:total")
+      ce <- f$celdas
+      for (k in seq_len(C$K)) {
+        e <- if (is.null(ce)) NULL else ce[ce$cruce == cols$cruce[k] & ce$codigo == cols$codigo[k], , drop = FALSE]
+        est <- if (is.null(e) || !nrow(e)) "sin_prueba" else e$estado[1]
+        if (identical(est, "dif")) {
+          .lam_dif_pastilla(lz, C$xs[k], yc, min(C$cw[k] - 0.08, 0.72), min(0.19, h - 0.035), e$valor[1], e$dir[1], e$fragil[1])
+        } else if (identical(est, "na")) {
+          .lam_tyc_txt(lz, "n. a.", C$xs[k], yc, C$cw[k] - 0.06, 8, .std_color("texto_tenue"), align = "center", nombre = "resumen:celda:na")
+        } else {
+          .lam_caja(lz, C$xs[k] - 0.025, yc - 0.025, 0.05, 0.05, .std_color("tarjeta_total"), geom = "ellipse", nombre = "resumen:celda:igual")
+        }
+      }
+      y <- y + h
+    }
+  }
+  if (recortes) aviso(sprintf("%d rótulo(s) no caben en su columna y se recortaron con «…»; acórtalos.", recortes))
+  doc <- .lam_agrupar(doc, lz, nombre = "prosecnur:grafico:resumen_diferencias")
+  doc <- .lam_dif_pie(doc, espec, base, folio)
+  list(doc = por_lamina(doc), partes = 1L)
+}

@@ -30,8 +30,9 @@ test_that("los tres tipos de población antigua salen del selector y siguen regi
   reg <- .graficos_registry_payload()
   sel <- setNames(vapply(reg$slides, function(s) isTRUE(s$en_selector), TRUE), vapply(reg$slides, `[[`, "", "name"))
   expect_false(any(sel[viejos]))
-  expect_true(all(sel[setdiff(names(sel), c(viejos, "p_slide_estandar"))]))   # las reglas de la identidad son del catálogo
-  expect_false(sel[["p_slide_estandar"]])
+  fuera <- c("p_slide_estandar", "p_slide_resumen_diferencias", "p_slide_hallazgos")   # del catálogo, o sin inspector todavía
+  expect_true(all(sel[setdiff(names(sel), c(viejos, fuera))]))
+  expect_false(any(sel[fuera]))
   cat <- .graficos_tipos_catalogo()
   sel_cat <- setNames(vapply(cat$slides, function(s) isTRUE(s$en_selector), TRUE), vapply(cat$slides, `[[`, "", "name"))
   expect_identical(sel_cat, sel)

@@ -56,6 +56,7 @@
     segs <- segs[order(vapply(segs, `[[`, 0, "x"))]
     # CCSS-14: si la colocación de siempre cruza codos, cada lado se reparte sin solaparse ni cruzar el centro (lamina_callouts_sin_solape.R).
     cl_de <- .lam_callouts_divergentes(Filter(function(sg) U[i, sg$k] > 0 && sg$w < 0.45, segs), X[i, ], xc, xa, xa + wa)
+    nuevo_i <- identical(attr(cl_de, "reparto"), "nuevo")
     for (sg in segs) {
       if (U[i, sg$k] <= 0) next
       .lam_caja(lz, sg$x - 0.002, yb, sg$w + 0.004, g, C$color[sg$k], nombre = "divergentes:segmento")
@@ -67,7 +68,9 @@
         # Y nunca sobre la línea del centro, que atraviesa el aire entre filas: la cifra se queda entera de su lado y,
         # si de ese lado no cabe junto a la vecina, pasa al otro (verificador de N6, ronda 3).
         cs <- sg$x + sg$w / 2; cl <- cl_de[[as.character(sg$k)]]
-        .lam_callout_guia(lz, cs, cl, yb, 0.06, yb - 0.066, identical(attr(cl_de, "reparto"), "nuevo"), tenue, nombre = "divergentes:guia")
+        # Ítem 20 (v7 RV): en el reparto nuevo, guía recta por un carril común (nunca diagonal).
+        if (nuevo_i) .lam_callout_carril(lz, cs, cl, yb, tenue, y_cifra = yb - 0.06, nombre = "divergentes:guia") else
+          .lam_callout_guia(lz, cs, cl, yb, 0.06, yb - 0.066, FALSE, tenue, nombre = "divergentes:guia")
         .lam_txt(lz, X[i, sg$k], cl - 0.3, yb - 0.3, 0.6, 0.24, 10.5, azul, bold = TRUE, align = "center", nombre = "divergentes:cifra")
       }
     }

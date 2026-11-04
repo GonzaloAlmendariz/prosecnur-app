@@ -129,12 +129,13 @@ test_that("con más de seis grupos la marca es ▲▼ frente al resto (D7)", {
   expect_match(.nota_plana(ev, .regla_test(prueba = "z")), "frente|resto")
 })
 
-test_that("ninguna diferencia: la nota dice las cifras extremas en vez de callar", {
+test_that("ninguna diferencia: la lámina no lleva nota (Gonzalo, RV v7 lámina 32); el texto queda para la UI", {
   f <- .fixture_dos_grupos(0.40, 0.38)
   ev <- .sig_veredictos(.sig_evaluar(.ind_de(list(Si = f$y)), f$g, c("A", "B"), c("Mujer", "Hombre"), cluster = f$aula,
                                      regla = .regla_test(), filas = "Si"), .regla_test())
   expect_equal(.sig_estado(ev), "ninguna")
-  expect_match(.nota_plana(ev, .regla_test()), "el 40% de Mujer y el 38% de Hombre no se distinguen")
+  expect_false(grepl("no se distinguen|Ninguna diferencia", .nota_plana(ev, .regla_test()) %||% ""))
+  expect_match(.sig_texto_ninguna(.regla_test(), 0.40, "Mujer", 0.38, "Hombre"), "el 40% de Mujer y el 38% de Hombre no se distinguen")
 })
 
 test_that("la cápsula ▲A es una capa aparte de la cifra, con contorno en la frágil, y no deja cajas vacías", {

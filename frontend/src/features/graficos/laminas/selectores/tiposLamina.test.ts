@@ -1,4 +1,4 @@
-// Cobertura de los 33 tipos del registro (F6.2; inventario F6, fila 1: «12 de 33 tipos no insertables»):
+// Cobertura de los 36 tipos del registro (F6.2; inventario F6, fila 1: «12 de 33 tipos no insertables»):
 // - `SlideType` y los mapas del editor conocen todos los tipos de `.SLIDES_META`, con los slots que el registro declara;
 // - ningún tipo del selector queda sin intención y la población antigua queda fuera;
 // - cada tipo tiene composición dibujable;
@@ -34,10 +34,10 @@ function slotsDelRegistro(): Record<string, string[]> {
   }));
 }
 
-describe("los 34 tipos del registro", () => {
-  it("el registro tiene 34 tipos y el catálogo versionado los lista todos", () => {
+describe("los 36 tipos del registro", () => {
+  it("el registro tiene 36 tipos y el catálogo versionado los lista todos", () => {
     const registro = slotsDelRegistro();
-    expect(Object.keys(registro)).toHaveLength(34);
+    expect(Object.keys(registro)).toHaveLength(36);
     expect([...nombres].sort()).toEqual(Object.keys(registro).sort());
   });
 
@@ -88,7 +88,7 @@ describe("los 34 tipos del registro", () => {
   it("cada tipo aparece en una sola intención", () => {
     const todos = INTENCIONES.flatMap((i) => i.tipos);
     expect(new Set(todos).size).toBe(todos.length);
-    expect(todos.length + TIPOS_FUERA_DEL_SELECTOR.size).toBe(34);
+    expect(todos.length + TIPOS_FUERA_DEL_SELECTOR.size).toBe(36);
   });
 
   it("cada tipo tiene composición dibujable: ranuras del estándar o dibujo de estructura", () => {

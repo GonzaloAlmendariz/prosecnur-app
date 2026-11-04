@@ -37,7 +37,7 @@
   cnt <- as.vector(table(factor(xv, levels = niveles)))
   valor <- switch(modo, conteo = cnt, cnt / sum(cnt) * 100)
   lab <- if (isTRUE(mostrar_frecuencia)) .histograma_cifra_con_frecuencia(cnt, decimales) else
-    if (identical(modo, "conteo")) format(cnt, trim = TRUE) else .pulso_fmt_pct_half_up(valor, decimales, escala = 1)
+    if (identical(modo, "conteo")) format(cnt, trim = TRUE) else .lam_cifras_menor_uno(.pulso_fmt_pct_half_up(valor, decimales, escala = 1), cnt)
   lab[cnt == 0] <- ""
   rot <- as.character(niveles)
   if (is.finite(tope) && any(x > tope)) rot[length(rot)] <- paste0(rot[length(rot)], "+")
@@ -89,6 +89,7 @@
 .histograma_cifra_con_frecuencia <- function(cnt, decimales = 0) {
   tot <- sum(cnt)
   pct <- .pulso_fmt_pct_half_up(if (tot > 0) cnt / tot * 100 else cnt * 0, decimales, escala = 1)
+  pct <- .lam_cifras_menor_uno(pct, cnt)   # una barra de un caso de 400 decía «1 (0%)»: «1 (<1%)» (U5)
   sprintf("%s (%s)", format(cnt, big.mark = ",", trim = TRUE), pct)
 }
 
