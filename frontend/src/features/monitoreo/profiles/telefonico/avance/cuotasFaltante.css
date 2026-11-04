@@ -61,6 +61,20 @@
   border-bottom: 1px solid var(--pulso-border);
 }
 
+/* R5 paso 2: qué variable de cuota ver, a la derecha del título (sólo con metas en más de una). */
+.mon-tel-cuotas-variable {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--pulso-space-2);
+  margin-left: auto;
+}
+
+.mon-tel-cuotas-variable > small {
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+  white-space: nowrap;
+}
+
 .mon-tel-cuotas-tabla {
   display: flex;
   flex: 1 1 auto;

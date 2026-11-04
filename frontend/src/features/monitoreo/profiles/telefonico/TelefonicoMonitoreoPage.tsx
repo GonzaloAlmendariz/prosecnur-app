@@ -79,7 +79,7 @@ import { CabeceraTelefonica } from "./navegacion/CabeceraTelefonica";
 import { SubvistasDePestana } from "./navegacion/SubvistasDePestana";
 import { RotuloDePestana, RotuloDePestanaProvider } from "./navegacion/RotuloDePestana";
 import { formatoDecimal } from "../../../../lib/formatoNumero";
-import { CuotasFaltante } from "./avance/CuotasFaltante";
+import { CuotasFaltanteDelCorte } from "./avance/CuotasFaltanteDelCorte";
 import { entradaDeCuotasFaltante } from "./avance/entradaDeCuotas";
 import { Insistencia } from "./control/Insistencia";
 import { BarridoDeLaHoja, RespuestasDelCorte } from "./control/montaje";
@@ -13777,9 +13777,9 @@ export function advanceCardsFromRows(rows: Array<Record<string, unknown>>, goals
   });
 }
 
-function preferredPhoneAdvanceQuotaVariable(rows: AcreditacionPhoneQuotaRow[]) {
-  // La misma variable que Ritmo y la barra: una sola regla (`segmentoDeCuotas.ts`).
-  return variableDeCuotas(rows, "");
+function preferredPhoneAdvanceQuotaVariable(rows: AcreditacionPhoneQuotaRow[], elegida?: string | null) {
+  // La misma variable que Ritmo y la barra: una sola regla (`segmentoDeCuotas.ts`), y la elegida (R5).
+  return variableDeCuotas(rows, "", elegida);
 }
 
 function phoneQuotaCategoryNoun(variable: string) {
@@ -13795,9 +13795,9 @@ function phoneQuotaCategoryNoun(variable: string) {
   return "categoría";
 }
 
-export function phoneQuotaAdvanceCardsFromRows(rows: Array<Record<string, unknown>>): AcreditacionAdvanceCard[] {
+export function phoneQuotaAdvanceCardsFromRows(rows: Array<Record<string, unknown>>, elegida?: string | null): AcreditacionAdvanceCard[] {
   const quotaRows = phoneQuotaRowsForPanel(rows);
-  const variable = preferredPhoneAdvanceQuotaVariable(quotaRows);
+  const variable = preferredPhoneAdvanceQuotaVariable(quotaRows, elegida);
   const sourceRows = (variable ? quotaRows.filter((row) => row.variable === variable) : quotaRows)
     .filter((row) => row.meta != null || row.universe > 0);
   return sourceRows.map((row, index) => {
@@ -14720,11 +14720,11 @@ function phoneQuotaDailyPointsByValue(
   return new Map(Array.from(out.entries()).map(([key, points]) => [key, sortAcreditacionDailyPoints(Array.from(points.values()))]));
 }
 
-export function phoneQuotaCardsForDashboard(reports: MonitoreoAcreditacionReports): AcreditacionActorCard[] {
+export function phoneQuotaCardsForDashboard(reports: MonitoreoAcreditacionReports, elegida?: string | null): AcreditacionActorCard[] {
   const quotaRows = rowsForSheetBlock(reports, "monitoreo_telefonico", ["cuotas_variable", "cuotas_telefonicas", "cuotas_por_variable"]);
   const parsedQuotaRows = phoneQuotaRowsForPanel(quotaRows);
   const dailyByValue = phoneQuotaDailyPointsByValue(reports, parsedQuotaRows);
-  return phoneQuotaAdvanceCardsFromRows(quotaRows).map((card) => ({
+  return phoneQuotaAdvanceCardsFromRows(quotaRows, elegida).map((card) => ({
     ...card,
     status: actorStatusLabel(card),
     mechanisms: [],
@@ -17172,8 +17172,7 @@ function renderAcreditacionView(
     );
   }
   if (view === "avance" && options.activeAdvanceTab === "actores" && isTelefonicoMonitoreoState(options.state)) {
-    const { modelo, cadena } = entradaDeCuotasFaltante(reports, options.state, phoneQuotaCardsForDashboard(reports));
-    return <CuotasFaltante modelo={modelo} cadena={cadena} />; // Avance › Cuotas del revamp (T3).
+    return <CuotasFaltanteDelCorte reports={reports} state={options.state} tarjetas={phoneQuotaCardsForDashboard} />; // Avance › Cuotas (T3), con su variable elegible (R5).
   }
   if (view === "avance" && options.activeAdvanceTab === "resumen" && isTelefonicoMonitoreoState(options.state)) {
     return <Ritmo reports={reports} state={options.state} />; // Avance › Ritmo (T8).

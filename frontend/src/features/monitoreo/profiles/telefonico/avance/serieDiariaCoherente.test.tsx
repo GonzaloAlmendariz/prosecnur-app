@@ -64,7 +64,7 @@ describe("la serie diaria de efectivas es una sola", () => {
     expect(entregas).not.toContain(">17<");
     expect(entregas).toContain("sin actor");
 
-    const ritmo = renderToStaticMarkup(<Ritmo reports={REPORTS} state={STATE} />).replace(/<!-- -->/g, "");
+    const ritmo = renderToStaticMarkup(<MemoryRouter><Ritmo reports={REPORTS} state={STATE} /></MemoryRouter>).replace(/<!-- -->/g, "");
     expect(ritmo).toContain("30 de 100");
     expect(ritmo).not.toContain(">17<");
     expect(ritmo).toContain("sin actor");
@@ -156,7 +156,7 @@ describe("Ritmo dice por qué unas completas de Kobo no suman (reparo 2 del nume
         blocks: [...hoja.blocks, { id: "avisos_numerador", title: "Avisos", columns: [], rows: [{ Aviso: "Completas sin caso", Detalle: nota }] }],
       })),
     } as MonitoreoAcreditacionReports;
-    expect(renderToStaticMarkup(<Ritmo reports={conNota} state={STATE} />)).toContain("no se suman a Efectivas: Pandemia cuenta la hoja");
-    expect(renderToStaticMarkup(<Ritmo reports={REPORTS} state={STATE} />)).not.toContain("no se suman a Efectivas");
+    expect(renderToStaticMarkup(<MemoryRouter><Ritmo reports={conNota} state={STATE} /></MemoryRouter>)).toContain("no se suman a Efectivas: Pandemia cuenta la hoja");
+    expect(renderToStaticMarkup(<MemoryRouter><Ritmo reports={REPORTS} state={STATE} /></MemoryRouter>)).not.toContain("no se suman a Efectivas");
   });
 });
