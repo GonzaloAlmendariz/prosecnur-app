@@ -1,7 +1,7 @@
 import { sinDefaultHeredado } from "./panes/codigosEspecialesModel";
 import { create } from "zustand";
 import { DEFAULT_NOTAS_PIE, normalizeNotasPie, type NotasPieConfig } from "./panes/notasPieModel";
-import { conDiseno, conMargen, conOpcionesRake, conRecorte, sinMargen } from "./ponderacionConfigModel";
+import { conDiseno, conMargen, conOpcionesRake, conRecorte, normalizarPonderacion, sinMargen } from "./ponderacionConfigModel";
 
 export type { NotasPieConfig } from "./panes/notasPieModel";
 
@@ -1121,6 +1121,7 @@ export function normalizeAnaliticaConfig(raw: AnaliticaConfig): AnaliticaConfig 
       return { ...cb, codigos_solo_si_presentes: sinDefaultHeredado(cb.codigos_solo_si_presentes ?? []) };
     })(),
     frecuencias: { ...DEFAULT_CONFIG.frecuencias, ...(c as Partial<AnaliticaConfig>).frecuencias },
+    ponderacion: normalizarPonderacion((c as Partial<AnaliticaConfig>).ponderacion ?? DEFAULT_CONFIG.ponderacion),
     multibase: {
       ...DEFAULT_CONFIG.multibase,
       ...((c as Partial<AnaliticaConfig>).multibase ?? {}),

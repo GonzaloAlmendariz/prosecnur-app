@@ -50,7 +50,8 @@ export type OrigenPesoBase = "ninguno" | "columna" | "estrato";
 export function origenPesoBase(p: PonderacionConfig): OrigenPesoBase {
   const d = p.design;
   if (!d) return "ninguno";
-  if ((d.peso_columna ?? "").trim()) return "columna";
+  // La clave presente (aun vacía, antes de elegir la columna) declara el origen.
+  if (d.peso_columna !== undefined) return "columna";
   return "estrato";
 }
 
@@ -61,4 +62,53 @@ export function conOrigenPesoBase(
   if (origen === "ninguno") return { ...p, design: null };
   if (origen === "columna") return { ...p, design: { peso_columna: columna } };
   return { ...p, design: { var: p.design?.var ?? "", pop_sizes: p.design?.pop_sizes ?? {} } };
+}
+
+// ---- Hidratación ------------------------------------------------------------
+// La config vuelve del backend pasada por R: `null` llega como `{}` (y un
+// arreglo de largo 1 podría llegar como escalar). Sin normalizar, `design: {}`
+// se leía como «reequilibrio por estrato», `total_poblacion: {}` se pintaba
+// «[object Object]» y el grupo de edad abierto («65 a más») perdía su `null`.
+
+const esObjetoVacio = (x: unknown) =>
+  x != null && typeof x === "object" && !Array.isArray(x) && Object.keys(x as object).length === 0;
+const nulo = <T,>(x: T): T | null => (x == null || esObjetoVacio(x) ? null : x);
+const arreglo = (x: unknown): string[] =>
+  (Array.isArray(x) ? x : x == null || esObjetoVacio(x) ? [] : [x]).map(String).filter(Boolean);
+const numero = (x: unknown): number | null => {
+  const v = Array.isArray(x) ? x[0] : x;
+  return typeof v === "number" && Number.isFinite(v) ? v : null;
+};
+
+export function normalizarPonderacion(raw: unknown): PonderacionConfig {
+  const p = (raw && typeof raw === "object" ? raw : {}) as Partial<PonderacionConfig>;
+  const rake = (p.rake && typeof p.rake === "object" ? p.rake : { margins: [] }) as PonderRake;
+  const margins = (Array.isArray(rake.margins) ? rake.margins : []).map((m) => {
+    const f = nulo(m.fuente ?? null);
+    const fuente = f
+      ? { ...f, mapeo: Object.fromEntries(Object.entries(f.mapeo ?? {}).map(([k, v]) => [k, arreglo(v)])) }
+      : null;
+    return { ...m, targets: esObjetoVacio(m.targets) ? {} : m.targets ?? {}, ...(fuente ? { fuente } : {}) };
+  });
+  const out: PonderacionConfig = { ...p, enabled: !!p.enabled, rake: { ...rake, margins } } as PonderacionConfig;
+  const design = nulo(p.design ?? null);
+  out.design = design;
+  out.trim = nulo(p.trim ?? null);
+  if ("total_poblacion" in p) out.total_poblacion = numero(p.total_poblacion);
+  if (rake.codigos_faltantes !== undefined) out.rake.codigos_faltantes = arreglo(rake.codigos_faltantes);
+  if (rake.imputacion !== undefined && esObjetoVacio(rake.imputacion)) delete out.rake.imputacion;
+  const metas = nulo(p.metas_cpv2025 ?? null);
+  out.metas_cpv2025 = metas
+    ? {
+        ...metas,
+        distritos: arreglo(metas.distritos),
+        provincias: arreglo(metas.provincias),
+        grupos_edad: (Array.isArray(metas.grupos_edad) ? metas.grupos_edad : []).map((g) => ({
+          etiqueta: typeof g.etiqueta === "string" ? g.etiqueta : "",
+          min: numero(g.min) ?? 0,
+          max: numero(g.max),
+        })),
+      }
+    : null;
+  return out;
 }
