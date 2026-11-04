@@ -305,5 +305,6 @@
 .graficos_migrar_plan <- function(plan, avisar = FALSE) {
   plan <- .graficos_migrar_poblacion_antigua(plan, avisar = avisar)
   plan <- .graficos_migrar_barra_extra(plan, avisar = avisar)
-  .graficos_migrar_radar_tabla(plan)   # `mostrar_tabla` -> `tabla` del radar entre públicos (graficos_radar_tabla.R)
+  plan <- .graficos_migrar_radar_tabla(plan)   # `mostrar_tabla` -> `tabla` del radar entre públicos (graficos_radar_tabla.R)
+  .graficos_migrar_args_a_overrides(plan)   # mandos de presentación sueltos en `args` (graficos_migrar_args_overrides.R)
 }
