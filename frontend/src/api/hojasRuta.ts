@@ -76,6 +76,12 @@ export type HojasRutaSampleSizeConfig = {
   base_reparto?: HojasRutaBaseRepartoCodigo;
 };
 
+/** π publicada de una manzana sorteada, o null si falta o no es una probabilidad (0, 1]. */
+export function piDeManzana(b: Pick<SelectedBlock, "pi">): number | null {
+  const v = Array.isArray(b.pi) ? (b.pi as unknown[])[0] : b.pi;
+  return typeof v === "number" && Number.isFinite(v) && v > 0 && v <= 1 + 1e-9 ? v : null;
+}
+
 export type HojasRutaBaseRepartoCodigo = "cpv2017" | "cpv2025_adultos_urbanos";
 
 /** Insumos de la base 2025 de un distrito: P̂25 = pob25 · u17 · a17 y g = P̂25 / pob17 en el marco. */
@@ -575,6 +581,12 @@ export type SelectedBlock = {
   titular_rango_fin?: number;
   replacement_label?: string;
   replacement_fallback?: boolean | string;
+  /** ADR 0131 §5: estrato explícito del sorteo (ubigeo, provincia o área de Lima). */
+  estrato?: string | null;
+  /** Probabilidad de inclusión de la manzana; en un reemplazo, la heredada de su titular (o null fuera de su zona). Léela con `piDeManzana`. */
+  pi?: number | null;
+  pi_regla?: string | null;
+  pi_fuente?: "hereda_titular" | "otra_zona_sin_pi" | string | null;
   esquina_codigo?: number;
   esquina_inicio?: string;
   esquina_coordenada?: string;

@@ -53,3 +53,14 @@ describe("base de reparto 2025 en la UI (ADR 0131 §2)", () => {
     expect(n?.distritos[0].a17).toBe(0.7);
   });
 });
+
+describe("π publicada en la muestra (ADR 0131 §5)", () => {
+  it("piDeManzana acepta una probabilidad y descarta lo demás", async () => {
+    const { piDeManzana } = await import("../../../../api/hojasRuta");
+    expect(piDeManzana({ pi: 0.25 })).toBe(0.25);
+    expect(piDeManzana({ pi: null })).toBeNull();
+    expect(piDeManzana({ pi: 0 })).toBeNull();
+    expect(piDeManzana({ pi: 1.5 })).toBeNull();
+    expect(piDeManzana({ pi: [0.4] as unknown as number })).toBe(0.4);
+  });
+});
