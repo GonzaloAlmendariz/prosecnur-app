@@ -149,11 +149,10 @@
   grid::grid.newpage()
   b <- .word_tarjeta_backend_grid(alto, z = Zw, ox = x0, oy = 0)
   .lam_tarjeta_dibujar(b, t, list(l = 0, t = 0, w = cw, h = ch), lectura$rotulo_cruce, character(0), lectura$tipo)
-  m <- .lam_tarjeta_medidas(cw)
-  h_tit <- .lam_lineas_tinta(.tarjetas_rotulo_fila(t$fila, lectura$tipo), cw - 2 * m$pad_x + 0.2, m$pt_titulo, TRUE) * m$pt_titulo * 1.2 / 72
-  y_tot <- (m$pad_t + m$alto_cruce + h_tit + m$aire_titulo + m$fila / 2) * Zw
-  y_g1 <- (m$pad_t + m$alto_cruce + h_tit + m$aire_titulo + m$fila + m$aire_total) * Zw
-  y_g2 <- y_g1 + nrow(t$grupos) * m$fila * Zw
+  m <- .lam_tarjeta_medidas(cw, t$grupos$etiqueta)
+  y_g <- .lam_tarjeta_y_grupos(t, cw, lectura$tipo)
+  y_tot <- (y_g[1] - m$aire_total - m$fila / 2) * Zw
+  y_g1 <- y_g[1] * Zw; y_g2 <- y_g[2] * Zw
   xa <- x0 + cw * Zw + sep
   Y <- function(y) grid::unit(alto - y, "in"); X <- function(x) grid::unit(x, "in")
   azul <- .std_color("azul"); suave <- .std_color("texto_suave"); tenue <- .std_color("texto_tenue")

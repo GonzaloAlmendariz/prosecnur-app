@@ -65,11 +65,13 @@
     r <- tryCatch(.tarjetas_calcular(fuente, v$vars, opt, list(tipo = "categorica"), sig), error = function(e) NULL)
     if (is.null(r) || !length(r$tarjetas)) next
     for (t in r$tarjetas) candidatas[[length(candidatas) + 1L]] <- list(t = t, r = r)
-    if (any(vapply(r$tarjetas, function(t) !isTRUE(t$fragil) && nrow(t$grupos) == 2L, logical(1)))) break
   }
   if (!length(candidatas)) return(invisible(NULL))
+  # La más clara del informe: dos grupos al 99% y la mayor diferencia (la maqueta usó «empresa privada», 39 puntos).
   ok <- vapply(candidatas, function(x) !isTRUE(x$t$fragil) && nrow(x$t$grupos) == 2L, logical(1))
-  elegida <- candidatas[[if (any(ok)) which(ok)[1] else 1L]]
+  brecha <- vapply(candidatas, function(x) x$t$brecha, numeric(1))
+  orden <- order(!ok, -brecha)
+  elegida <- candidatas[[orden[1]]]
   r <- elegida$r
   bases <- lapply(r$cruces, function(cr) {
     g <- r$grupos[r$grupos$cruce == cr, , drop = FALSE]
@@ -185,14 +187,12 @@
   .lam_txt(lz, tx$frase_ppt, .std_geom("margen_izq") - 0.02, 1.45, 11.4, 0.9, 15, azul, nombre = "lectura:definicion")
   t <- lectura$tarjeta
   Z <- 1.3; cw <- 4.9; cx <- 1.55; cy <- 2.55
-  ch <- .lam_tarjeta_alto(t, cw, lectura$opcion$cortos, lectura$tipo)
+  ch <- .lam_tarjeta_alto(t, cw, character(0), lectura$tipo)   # ampliada: con los nombres completos, como se dibuja
   .lam_tarjeta_dibujar(.lam_tarjeta_backend_zoom(lz, Z, cx, cy), t, list(l = 0, t = 0, w = cw, h = ch), lectura$rotulo_cruce,
                        cortos = character(0), tipo = lectura$tipo)
   # Llave sobre los grupos y la diferencia en puntos (como el «TOP TWO BOX 70%» de «Cómo leer las escalas»).
-  m <- .lam_tarjeta_medidas(cw)
-  h_tit <- .lam_lineas_tinta(.tarjetas_rotulo_fila(t$fila, lectura$tipo), cw - 2 * m$pad_x + 0.2, m$pt_titulo, TRUE) * m$pt_titulo * 1.2 / 72
-  y_g <- m$pad_t + m$alto_cruce + h_tit + m$aire_titulo + m$fila + m$aire_total
-  yG1 <- cy + y_g * Z; yG2 <- cy + (y_g + nrow(t$grupos) * m$fila) * Z; xFin <- cx + cw * Z
+  y_g <- .lam_tarjeta_y_grupos(t, cw, lectura$tipo)
+  yG1 <- cy + y_g[1] * Z; yG2 <- cy + y_g[2] * Z; xFin <- cx + cw * Z
   .lam_linea(lz, xFin + 0.15, yG1, xFin + 0.35, yG1, azul, pt = 1.5, nombre = "lectura:llave")
   .lam_linea(lz, xFin + 0.35, yG1, xFin + 0.35, yG2, azul, pt = 1.5, nombre = "lectura:llave")
   .lam_linea(lz, xFin + 0.15, yG2, xFin + 0.35, yG2, azul, pt = 1.5, nombre = "lectura:llave")

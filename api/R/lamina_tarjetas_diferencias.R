@@ -44,6 +44,19 @@
     m$aire_total + extra + m$pad_b + 0.02
 }
 
+#' Dónde empiezan y terminan los renglones de grupo dentro de la tarjeta (in de diseño, desde su borde superior)
+#'
+#' Lo usan las anotaciones de la lectura (la llave sobre los grupos): un nombre de dos líneas alarga su renglón.
+#' @keywords internal
+.lam_tarjeta_y_grupos <- function(t, w, tipo = "multiple", cortos = character(0)) {
+  nombres <- .tarjetas_rotulo_grupo(t$grupos$etiqueta, cortos)
+  m <- .lam_tarjeta_medidas(w, nombres)
+  h_tit <- .lam_lineas_tinta(.tarjetas_rotulo_fila(t$fila, tipo), w - 2 * m$pad_x + 0.2, m$pt_titulo, TRUE) * m$pt_titulo * 1.2 / 72
+  y0 <- m$pad_t + m$alto_cruce + h_tit + m$aire_titulo + m$fila + m$aire_total
+  altos <- m$fila + (vapply(nombres, .lam_tarjeta_lineas_nombre, integer(1), m = m) - 1L) * 0.16
+  c(y0, y0 + sum(altos))
+}
+
 #' Forma con borde (continuo o punteado), relleno opcional y volteo vertical
 #' @keywords internal
 .lam_forma_borde <- function(lz, l, t, w, h, fill = NULL, borde = NULL, borde_pt = 0.75, punteado = FALSE,
