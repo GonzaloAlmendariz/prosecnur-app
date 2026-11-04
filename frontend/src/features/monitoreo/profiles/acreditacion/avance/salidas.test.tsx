@@ -3,7 +3,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import type { MonitoreoAcreditacion } from "../../../../../api/client";
 import type { AcreditacionAdvanceCard } from "./tarjetasDeAvance";
 import { estadoDelCierre, publicacionesFrenteAlCorte, puedeCerrar } from "./salidasModelo";
-import { SalidasVista } from "./Salidas";
+import { filaDelCierre, tablaDeAcreditacionDelCliente } from "./Salidas";
 import { DialogoCerrarCampo } from "./DialogoCerrarCampo";
 
 const tarjeta = (actor: string, effective: number, meta: number | null) => ({ id: actor, actor, universe: 500, effective, partial: 0, refusals: 0, pending: 0, meta, missing: null, progress: null }) as AcreditacionAdvanceCard;
@@ -42,15 +42,23 @@ describe("Avance › Salidas", () => {
     expect(puedeCerrar(false, "", false)).toBe(true);
   });
 
-  it("dibuja publicaciones y cierre sin claves técnicas", () => {
-    const cierre = estadoDelCierre({ tarjetas: [tarjeta("A", 120, 100)], esperan: 0, publicaciones: [], acreditacion });
-    const html = renderToStaticMarkup(<SalidasVista corte="2026-07-23T18:09:00Z" publicaciones={publicacionesFrenteAlCorte("2026-07-23T18:09:00Z", null, null)} cierre={cierre} onAbrirCierre={() => {}} />);
-    // Una sola franja: el estado de Sheets no se repite en una tarjeta aparte.
-    expect(html).not.toContain("Publicaciones frente al corte");
-    expect(html).toContain("Cierre del campo");
-    expect(html).toContain("Cerrar campo");
-    expect(html).toContain("Sin publicar");
-    expect(html).not.toMatch(/cierre_habilitado|aprobacion_metodologica|seguimiento_campo/);
+  it("el cierre es una fila de «Salidas del corte», sin claves técnicas", () => {
+    const cierre = estadoDelCierre({ tarjetas: [tarjeta("A", 120, 100)], esperan: 0, publicaciones: publicacionesFrenteAlCorte("2026-07-23T18:09:00Z", null, null), acreditacion });
+    const fila = filaDelCierre(cierre);
+    expect(fila.titulo).toBe("Cierre del campo");
+    expect(fila.estado).toMatch(/pendientes?$|Listo para cerrar/);
+    expect(fila.detalle).toContain("Sin publicar");
+    expect(`${fila.estado} ${fila.detalle}`).not.toMatch(/cierre_habilitado|aprobacion_metodologica|seguimiento_campo/);
+  });
+
+  it("la hoja del cliente lleva el avance de cada público y su total", () => {
+    const tabla = tablaDeAcreditacionDelCliente([tarjeta("A", 120, 100), tarjeta("B", 40, 100)]);
+    expect(tabla?.cabecera).toEqual(["Público", "Meta", "Efectivas", "Faltan", "Avance"]);
+    expect(tabla?.filas.map((f) => f.celdas[0])).toEqual(["A", "B"]);
+    // B falta 60 y A sobra 20: el total no los compensa.
+    expect(tabla?.total?.slice(0, 4)).toEqual(["Total", "200", "160", "60"]);
+    expect(tabla?.filas[0].celdas[4]).toBe("120.0 %");
+    expect(tablaDeAcreditacionDelCliente([])).toBeNull();
   });
 
   it("el diálogo dice lo pendiente y nombra el botón con la cifra", () => {

@@ -14578,20 +14578,18 @@ function renderAcreditacionView(
   if (view === "avance" && options.activeAdvanceTab === "salidas") {
     const outputState = options.state;
     const isPhoneOutputs = isTelefonicoMonitoreoState(outputState);
-    const tarjetasDeSalida = (
-      <MonitoreoOutputsWorkbench
-        family={isPhoneOutputs ? "telefonico" : "acreditacion"}
-        routeLabel={isPhoneOutputs ? "Monitoreo telefónico" : options.routeLabel ?? "Acreditación"}
-        defaultTitle={isPhoneOutputs ? "" : outputState?.config?.acreditacion?.estudio?.titulo || "reporte-monitoreo"}
-        config={outputState?.config}
-        clientSheets={outputState?.publication?.client_last_sheets ?? null}
-        internalSheets={outputState?.publication?.internal_last_sheets ?? null}
-        corte={corteAcreditacionDeReports(outputState, reports)} embudo={isPhoneOutputs ? undefined : <EmbudoDeRespuestas />}
-        syncedAt={outputState?.synced_at ?? ""}
-        onPublished={options.onPublished}
-      />
-    );
-    if (isPhoneOutputs) return tarjetasDeSalida;
+    const motor = {
+      family: isPhoneOutputs ? "telefonico" as const : "acreditacion" as const,
+      routeLabel: isPhoneOutputs ? "Monitoreo telefónico" : options.routeLabel ?? "Acreditación",
+      defaultTitle: isPhoneOutputs ? "" : outputState?.config?.acreditacion?.estudio?.titulo || "reporte-monitoreo",
+      config: outputState?.config,
+      clientSheets: outputState?.publication?.client_last_sheets ?? null,
+      internalSheets: outputState?.publication?.internal_last_sheets ?? null,
+      corte: corteAcreditacionDeReports(outputState, reports), embudo: isPhoneOutputs ? undefined : <EmbudoDeRespuestas />,
+      syncedAt: outputState?.synced_at ?? "",
+      onPublished: options.onPublished,
+    };
+    if (isPhoneOutputs) return <MonitoreoOutputsWorkbench {...motor} />;
     // Avance › Salidas (A8): publicaciones frente al corte y cierre del campo con diálogo.
     return (
       <Salidas
@@ -14602,7 +14600,8 @@ function renderAcreditacionView(
         guardando={Boolean(options.savingAcreditacion)}
         error={options.actionStatus?.tone === "error" ? options.actionStatus.message : null}
         onCerrarCampo={options.onCerrar ? (plan, aprobacion) => options.onCerrar?.(plan, aprobacion) ?? Promise.resolve() : undefined}
-        salidas={tarjetasDeSalida}
+        motor={motor}
+        encabezado={outputState?.config?.acreditacion?.estudio?.titulo || "Acreditación"}
       />
     );
   }
