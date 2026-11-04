@@ -127,7 +127,7 @@ Líneas de acreditación; en telefónico, entre paréntesis.
 | `AcreditacionReconciliacionView` | 10021–10123 (11177–11279) | 1 | Sin ningún uso | 103 |
 | `AcreditacionModelWorkbench`, pestañas internas `casos`, `enlaces`, `reglas` y `__legacy_estrategias__` | dentro de 1526–1906 (1449–1878) | 6 | La tabla de direcciones (`direccionAcreditacion.ts`) sólo lleva Modelo a `estructura`, `resumen`, `distribucion` y `estrategias`; las tres primeras van a las vistas nuevas antes de llegar aquí y `distribucion` cae en la rama que no tiene estos bloques | las cuatro ramas, ~150 líneas por página |
 | `AcreditacionModelConfigWorkbench`, pestañas `casos` y `enlaces` (incluye `AcreditacionSweepBaseWorkbench`, 3468–3670) | dentro de 2836–3467 (2554–3186) | 3 | Sólo se monta con `activeTab="reglas"` (Insumos › Reglas) | `casos` + `enlaces` + `SweepBase`, ~350 líneas por página |
-| `renderAcreditacionView`, retorno final | 14772–14792 (17285–17307) | 2 | Cada vista interna se despacha antes; el retorno final no lo alcanza ninguna | 21 |
+| `renderAcreditacionView`, retorno final | 14772–14792 (17287–17307) | 2 | Cada vista interna se despacha antes; el retorno final no lo alcanza ninguna | 21 |
 
 Alcanzables sólo con condiciones; no son código muerto y se quedan:
 
