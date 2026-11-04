@@ -186,7 +186,7 @@ export default function SaveEntregableButton({
           alignItems: "center",
           gap: 4,
           color: "var(--pulso-success-fg)",
-          fontSize: 11,
+          fontSize: "var(--pulso-type-caption-size)",
         }}>
           <CheckCircle2 size={12} /> {success}
         </span>
@@ -224,7 +224,7 @@ export default function SaveEntregableButton({
               alignItems: "center",
               justifyContent: "space-between",
             }}>
-              <strong style={{ fontSize: 12, color: "var(--pulso-text)" }}>
+              <strong style={{ fontSize: "var(--pulso-type-body-size)", color: "var(--pulso-text)" }}>
                 Guardar en el proyecto
               </strong>
               <button
@@ -259,7 +259,7 @@ export default function SaveEntregableButton({
                 borderRadius: 4,
                 background: "var(--pulso-danger-bg)",
                 color: "var(--pulso-danger-fg)",
-                fontSize: 11,
+                fontSize: "var(--pulso-type-caption-size)",
               }}>
                 {error}
               </div>
@@ -269,7 +269,7 @@ export default function SaveEntregableButton({
                 type="button"
                 onClick={() => setOpen(false)}
                 style={{
-                  fontSize: 12,
+                  fontSize: "var(--pulso-type-body-size)",
                   padding: "6px 12px",
                   borderRadius: 6,
                   border: "1px solid var(--pulso-border)",
@@ -285,7 +285,7 @@ export default function SaveEntregableButton({
                 disabled={!valid || busy}
                 className="pulso-primary"
                 style={{
-                  fontSize: 12,
+                  fontSize: "var(--pulso-type-body-size)",
                   padding: "6px 12px",
                   display: "inline-flex",
                   alignItems: "center",

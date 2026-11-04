@@ -60,7 +60,7 @@ export default function ProjectIndicator({ project, onOpenProjectViewer, onReque
           setViewerOpen(true);
           onOpenProjectViewer();
         }}
-        title={projectPath ? `Gestionar proyecto · ${projectPath}` : "Gestionar proyecto"}
+        title={projectPath ? `Gestionar proyecto: ${projectPath}` : "Gestionar proyecto"}
         className={`pulso-project-chip ${status.dirty ? "is-dirty" : "is-saved"}`}
         disabled={project.busy}
         onBlur={() => setViewerOpen(false)}
