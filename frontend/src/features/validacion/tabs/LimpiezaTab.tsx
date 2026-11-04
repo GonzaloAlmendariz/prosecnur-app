@@ -1846,25 +1846,7 @@ function StatusBadge({
   text?: string;
 }) {
   const ready = status === "ready";
-  return (
-    <span
-      style={{
-        display: "inline-flex",
-        alignItems: "center",
-        padding: "3px 7px",
-        borderRadius: 999,
-        fontSize: "var(--pulso-type-micro-size)",
-        fontWeight: 800,
-        textTransform: "uppercase",
-        letterSpacing: 0.4,
-        background: ready ? "var(--pulso-success-bg)" : "var(--pulso-warn-bg)",
-        border: `1px solid ${ready ? "var(--pulso-success-border)" : "var(--pulso-warn-border)"}`,
-        color: ready ? "var(--pulso-success-fg)" : "var(--pulso-warn-fg)",
-      }}
-    >
-      {text ?? (ready ? "Lista" : "Pendiente")}
-    </span>
-  );
+  return <EstadoChip tone={ready ? "success" : "warn"} label={text ?? (ready ? "Lista" : "Pendiente")} />;
 }
 
 function FormField({ label, children }: { label: string; children: ReactNode }) {

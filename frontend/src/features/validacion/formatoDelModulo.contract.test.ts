@@ -26,7 +26,10 @@ import { describe, expect, it } from "vitest";
  *   (`pulso-validacion-explorar-loading*`): enseña los pasos y una silueta, como la de Codificación.
  * - P6: un estado con tono es `EstadoChip`: el de cada regla de coherencia (`pulso-rel-status`) y
  *   los del encabezado de controles operativos (`pulso-operational-chip`). Las píldoras que son
- *   botones (`pulso-vv2-pill`) y las fichas de datos (`pulso-cvm-chip`) no son estados.
+ *   botones (`pulso-vv2-pill`) y las fichas de datos (`pulso-cvm-chip`) no son estados. Tampoco
+ *   vuelven las píldoras de estado escritas en línea (`StatusPill`, `StatusBadge`, `SeverityBadge`
+ *   pintaban fondo, borde y tono a mano); las de categoría o conteo (`SourceBadge`,
+ *   `CategoryBadge`, `CaseBadge`) son datos y se quedan.
  */
 
 const aqui = path.dirname(fileURLToPath(import.meta.url));
@@ -69,6 +72,8 @@ const DECLARADAS = /^pulso-validacion-explorar-loading(?=$|-)/;
 const ESPERA_A_MANO = /(Leyendo|Cargando|Calculando|Preparando|Generando|Validando) [^"'`<>{}]*…/;
 const ESPERA_PERMITIDA = /\blabel=|\?\s*"(Leyendo|Cargando|Calculando|Preparando|Generando|Validando)/;
 const PILDORA = /\bpulso-(?:rel-status|operational-chip)\b/g;
+/** Un componente de píldora de estado que vuelve a pintar el tono a mano. */
+const PILDORA_EN_LINEA = /function (?:StatusPill|StatusBadge|SeverityBadge)\b[\s\S]*?\n\}/g;
 const CONTEO_CRUDO = /(?<![=\w])\{[A-Za-z_][\w.?]*\.length\}|\$\{[A-Za-z_][\w.?]*\.length\}/g;
 
 const todas = (re: RegExp) => (l: string) => [...l.matchAll(re)].map((m) => m[0]);
@@ -116,6 +121,15 @@ describe("formato de Validación", () => {
     expect(hallazgos(/\.(tsx|css)$/, todas(PILDORA))).toEqual([]);
   });
 
+  it("P6: una píldora de estado no se pinta a mano en línea", () => {
+    const aMano = archivos(aqui, /\.tsx$/).flatMap((f) =>
+      [...readFileSync(f, "utf8").matchAll(PILDORA_EN_LINEA)]
+        .filter((m) => /background:|border:/.test(m[0]))
+        .map((m) => `${rel(f)}: ${m[0].split("(")[0]}`),
+    );
+    expect(aMano, "Usa EstadoChip.").toEqual([]);
+  });
+
   it("los detectores reconocen lo que prohíben (no son guards que no guardan)", () => {
     expect(todas(PX_EN_HOJA)("a { font-size: 11.5px; }")).toHaveLength(1);
     expect(todas(PX_EN_LINEA)("{ fontSize: 12, color }")).toHaveLength(1);
@@ -134,6 +148,8 @@ describe("formato de Validación", () => {
     expect(ESPERA_PERMITIDA.test('<LoadingBlock label="Leyendo el formulario…" />')).toBe(true);
     expect(todas(PILDORA)('<span className="pulso-rel-status is-cases">')).toHaveLength(1);
     expect(todas(PILDORA)('<span className="pulso-operational-chips">')).toHaveLength(0);
+    const vieja = 'function StatusBadge({ a }) {\n  return <span style={{ background: "x" }} />;\n}';
+    expect([...vieja.matchAll(PILDORA_EN_LINEA)]).toHaveLength(1);
     expect(lineas("// a · b\nconst x = 1;")).toEqual(["", "const x = 1;"]);
   });
 });
