@@ -11,7 +11,7 @@ export const GRAFICADORES_CON_TARJETAS: ReadonlySet<string> = new Set([
 ]);
 
 /** Tope del formato aprobado: las principales, nunca más de seis. */
-export const TARJETAS_MAX = 6;
+export const TARJETAS_MAX = 4;
 
 /** ¿La lámina admite tarjetas? Una lámina de un gráfico, de un tipo que el motor acompaña, sin cruce propio. */
 export function admiteTarjetas(tipoLamina: string, graficador: string, cruce: string): boolean {

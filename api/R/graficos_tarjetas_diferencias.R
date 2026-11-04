@@ -18,9 +18,10 @@
 #   - con dos grupos se muestran los dos (el otro es el resto), con ▲ y ▼; con más, solo los que difieren;
 #   - dos niveles definidos solo por el p ajustado: < 0.01 continuo; entre 0.01 y alfa, punteado (Gonzalo,
 #     2026-11-04: «solo p», sin el criterio de 12 puntos de «Historias del informe»);
-#   - orden: las del 99% primero, luego de mayor a menor diferencia; tope de 6 (las demás no se dibujan).
+#   - orden: las del 99% primero, luego de mayor a menor diferencia; tope de 4 (las demás no se dibujan; era 6 en la
+#     maqueta, Gonzalo lo bajó con las tarjetas más altas de la v7 RV).
 
-.TARJETAS_MAX <- 6L
+.TARJETAS_MAX <- 4L   # Gonzalo (v7 RV): con el nombre sobre la barra las tarjetas son más altas; cuatro como máximo
 
 #' Opción de la lámina: NULL si no pide tarjetas; si las pide, la lista normalizada
 #'

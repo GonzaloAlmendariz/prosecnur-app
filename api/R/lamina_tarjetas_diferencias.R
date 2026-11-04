@@ -47,8 +47,8 @@
 #' Líneas que ocupa un rótulo de grupo en su columna (1 o 2); apilada, el nombre va en su propio renglón
 #' @keywords internal
 .lam_tarjeta_lineas_nombre <- function(nombre, m) {
-  ancho <- if (isTRUE(m$apilada)) m$wi + 0.2 else m$xn + 0.2
-  min(2L, max(1L, as.integer(.lam_lineas_tinta(nombre, ancho, m$pt_nombre, TRUE))))
+  ancho <- if (isTRUE(m$apilada)) m$wi * .TARJETA_TINTA_TITULO + 0.22 else m$xn + 0.2   # misma holgura que el título
+  min(if (isTRUE(m$apilada)) 3L else 2L, max(1L, as.integer(.lam_lineas_tinta(nombre, ancho, m$pt_nombre, TRUE))))   # apilada, hasta tres líneas
 }
 
 #' Alto de un renglón de grupo (in): con el nombre encima, suma su línea
@@ -256,7 +256,7 @@
 .lam_tarjetas_reserva <- function(L, tipo = "multiple") {
   # En la escala la cifra del Top Two Box va centrada en su columna de 1 in: la columna puede llegar al panel sin que la
   # cifra lo toque (Gonzalo: «sigue muy distanciado»).
-  aire <- if (identical(tipo, "bateria")) -0.02 else .TARJETAS_AIRE_PANEL
+  aire <- if (identical(tipo, "bateria")) 0.05 else .TARJETAS_AIRE_PANEL   # la escala ya arrima su Top Two Box al borde
   .std_valor("ppt", "geometria", "ancho") - .std_valor("ppt", "geometria", "margen_der") - L$xp + aire
 }
 
@@ -293,6 +293,7 @@
     menor <- el_plot; menor$overrides$size_ejes <- .std_pt("rotulo_categoria") - 1
     if (.lam_tarjetas_nativa_cabe(p, slide, menor)) el_plot <- menor
   }
+  n0 <- length(doc)   # la escala puede partirse en varias láminas: cada tarjeta irá a la de su premisa
   if (.lam_tarjetas_nativa_cabe(p, slide, el_plot)) {
     doc <- .lam_slide_1_nativa(doc, p, slide, titulo, NULL, el_plot, presets, layout, master, antetitulo, base_auto, nota_de,
                                sin_base, sin_pie, por_lamina)
@@ -310,7 +311,7 @@
   }
   options(op); options(op_ley)
   if (identical(t$tipo, "bateria")) {
-    anclado <- tryCatch(.lam_tarjetas_anclar(doc, t, L, y0, y1), error = function(e) NULL)
+    anclado <- tryCatch(.lam_tarjetas_anclar(doc, t, L, y0, y1, laminas = seq.int(n0 + 1L, length(doc))), error = function(e) NULL)
     if (!is.null(anclado)) return(anclado)
   }
   .lam_tarjetas_panel(doc, t, L)
@@ -341,42 +342,60 @@
   prem
 }
 
-#' Panel de una batería anclado a sus premisas: cada tarjeta a la altura de su fila, sin repetir el enunciado y con una
-#' línea guía desde el Top Two Box de la fila. NULL si alguna premisa no se encuentra o si en una columna no cabe.
+#' Panel de una batería anclado a sus premisas: cada tarjeta a la altura de su fila, en la lámina donde está su premisa
+#' (la escala puede partirse), sin repetir el enunciado y con una línea guía desde el Top Two Box de la fila. NULL si
+#' alguna premisa no se encuentra o si las tarjetas de una lámina no caben en una columna.
 #' @keywords internal
-.lam_tarjetas_anclar <- function(doc, t, L, y0, y1) {
-  filas <- .lam_tarjetas_filas_escala(doc)
-  if (is.null(filas) || anyNA(filas$x_fin)) return(NULL)
+.lam_tarjetas_anclar <- function(doc, t, L, y0, y1, laminas = length(doc)) {
   norm <- function(x) gsub("[^[:alnum:]]", "", tolower(x))
-  k <- match(norm(vapply(t$tarjetas, `[[`, "", "fila")), norm(filas$texto))
-  if (anyNA(k)) return(NULL)
+  buscadas <- norm(vapply(t$tarjetas, `[[`, "", "fila"))
+  donde <- rep(NA_integer_, length(buscadas)); filas_de <- list()
+  for (idx in laminas) {
+    doc <- officer::on_slide(doc, idx)
+    f <- .lam_tarjetas_filas_escala(doc)
+    if (is.null(f) || anyNA(f$x_fin)) next
+    filas_de[[as.character(idx)]] <- f
+    hit <- is.na(donde) & buscadas %in% norm(f$texto)
+    donde[hit] <- idx
+  }
+  doc <- officer::on_slide(doc, max(laminas))
+  if (anyNA(donde)) return(NULL)
   cw <- L$wp; xp <- .std_valor("ppt", "geometria", "ancho") - .std_valor("ppt", "geometria", "margen_der") - cw
   altos <- vapply(t$tarjetas, .lam_tarjeta_alto, numeric(1), w = cw, cortos = t$opcion$cortos, tipo = t$tipo, con_fila = FALSE)
   sep <- 0.12
-  if (sum(altos) + sep * (length(altos) - 1L) > y1 - y0) return(NULL)
-  orden <- order(filas$yc[k])
-  # Cada tarjeta centrada en su fila; si se pisan, la de abajo baja; si el bloque se pasa del pie, sube entero.
-  top <- numeric(length(orden)); cursor <- y0
-  for (j in orden) { top[j] <- max(cursor, filas$yc[k[j]] - altos[j] / 2); cursor <- top[j] + altos[j] + sep }
-  exceso <- (cursor - sep) - y1
-  if (exceso > 0) {
-    top <- top - exceso
-    if (min(top) < y0) { cursor <- y0; for (j in orden) { top[j] <- cursor; cursor <- cursor + altos[j] + sep } }   # apiladas desde arriba
+  for (idx in unique(donde)) {
+    if (sum(altos[donde == idx]) + sep * (sum(donde == idx) - 1L) > y1 - y0) return(NULL)
   }
-  lz <- .lam_lienzo(); tenue <- .std_color("texto_tenue")
-  for (j in orden) {
-    tj <- t$tarjetas[[j]]
-    .lam_tarjeta_dibujar(.lam_tarjeta_backend_ppt(lz), tj, list(l = xp, t = top[j], w = cw, h = altos[j]),
-                         unname(t$rotulos_cruce[tj$cruce]) %||% tj$cruce, cortos = t$opcion$cortos, tipo = t$tipo, con_fila = FALSE)
-    # Línea guía en codo: del Top Two Box de la fila al borde de la tarjeta, con un punto en el origen.
-    ya <- filas$y_ancla[k[j]]; xa <- filas$x_fin[k[j]]; yt <- min(max(ya, top[j] + 0.18), top[j] + altos[j] - 0.18)
-    xm <- xa + max(0.12, (xp - xa) / 2)
-    .lam_caja(lz, xa - 0.03, ya - 0.03, 0.06, 0.06, tenue, nombre = "tarjeta:guia:punto", geom = "ellipse")
-    .lam_linea(lz, xa, ya, xm, ya, tenue, pt = 0.75, nombre = "tarjeta:guia")
-    if (abs(yt - ya) > 0.01) .lam_linea(lz, xm, ya, xm, yt, tenue, pt = 0.75, nombre = "tarjeta:guia")
-    .lam_linea(lz, xm, yt, xp, yt, tenue, pt = 0.75, nombre = "tarjeta:guia")
+  for (idx in unique(donde)) {
+    doc <- officer::on_slide(doc, idx)
+    filas <- filas_de[[as.character(idx)]]
+    js <- which(donde == idx)
+    k <- match(buscadas[js], norm(filas$texto))
+    orden <- js[order(filas$yc[k])]; kk <- stats::setNames(k, js)
+    # Cada tarjeta centrada en su fila; si se pisan, la de abajo baja; si el bloque se pasa del pie, sube entero.
+    top <- stats::setNames(numeric(length(js)), js); cursor <- y0
+    for (j in orden) { top[[as.character(j)]] <- max(cursor, filas$yc[kk[[as.character(j)]]] - altos[j] / 2); cursor <- top[[as.character(j)]] + altos[j] + sep }
+    exceso <- (cursor - sep) - y1
+    if (exceso > 0) {
+      top <- top - exceso
+      if (min(top) < y0) { cursor <- y0; for (j in orden) { top[[as.character(j)]] <- cursor; cursor <- cursor + altos[j] + sep } }   # apiladas desde arriba
+    }
+    lz <- .lam_lienzo(); tenue <- .std_color("texto_tenue")
+    for (j in orden) {
+      tj <- t$tarjetas[[j]]; tp <- top[[as.character(j)]]; fk <- kk[[as.character(j)]]
+      .lam_tarjeta_dibujar(.lam_tarjeta_backend_ppt(lz), tj, list(l = xp, t = tp, w = cw, h = altos[j]),
+                           unname(t$rotulos_cruce[tj$cruce]) %||% tj$cruce, cortos = t$opcion$cortos, tipo = t$tipo, con_fila = FALSE)
+      # Línea guía en codo: del Top Two Box de la fila al borde de la tarjeta, con un punto en el origen.
+      ya <- filas$y_ancla[fk]; xa <- filas$x_fin[fk]; yt <- min(max(ya, tp + 0.18), tp + altos[j] - 0.18)
+      xm <- xa + max(0.06, (xp - xa) / 2)
+      .lam_caja(lz, xa - 0.03, ya - 0.03, 0.06, 0.06, tenue, nombre = "tarjeta:guia:punto", geom = "ellipse")
+      .lam_linea(lz, xa, ya, xm, ya, tenue, pt = 0.75, nombre = "tarjeta:guia")
+      if (abs(yt - ya) > 0.01) .lam_linea(lz, xm, ya, xm, yt, tenue, pt = 0.75, nombre = "tarjeta:guia")
+      .lam_linea(lz, xm, yt, xp, yt, tenue, pt = 0.75, nombre = "tarjeta:guia")
+    }
+    doc <- .lam_agrupar(doc, lz, nombre = "prosecnur:tarjetas_diferencias")
   }
-  .lam_agrupar(doc, lz, nombre = "prosecnur:tarjetas_diferencias")
+  officer::on_slide(doc, max(laminas))
 }
 
 #' ¿El total cabe como lámina nativa en el ancho que deja el panel? (lo que decide `.lam_slide_1_nativa` para su forma)
