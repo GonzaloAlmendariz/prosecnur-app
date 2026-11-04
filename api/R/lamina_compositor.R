@@ -118,6 +118,7 @@
   if (!is.null(ml)) return(!identical((slide$meta %||% list())$motor_nativo, FALSE) && isTRUE(.lam_multilista_cabe(ml)))
   espec <- if (inherits(p, "ggplot")) attr(p, "pulso_espec") else NULL
   if (is.null(espec)) return(FALSE)
+  if (identical(espec$tipo, "total_y_cruce")) return(.lam_total_y_cruce_aplica(espec, slide))   # total arriba y cruce abajo (lamina_total_y_cruce.R)
   # N4: los gráficos de números son nativos cuando traen su especificación con grupos que dibujar.
   # N4: los gráficos de números son nativos cuando caben (rótulos, cifras, series que no se encimen); lo que no
   # cabe sigue por la ruta anterior (verificador de N4).
@@ -273,6 +274,10 @@
       pesas = do.call(.lam_laminas_pesas, c(comunes, list(unidad_n = unidad))),
       serie2 = do.call(.lam_laminas_serie2, comunes))
     return(o$doc)
+  }
+  if (identical(espec$tipo, "total_y_cruce")) {   # total arriba y cruce abajo (lamina_total_y_cruce.R)
+    return(.lam_laminas_total_y_cruce(doc, espec, titulo = texto(titulo) %||% "", ante = texto(antetitulo), base = .lam_unir_base(texto(base), texto(pie)),
+                                      folio = length(doc) + 1L, layout = layout, master = master, por_lamina = por_lamina)$doc)
   }
   if (identical(espec$tipo, "ggplot_marco")) {
     return(.lam_laminas_ggplot(doc, p, espec, titulo = texto(titulo) %||% "", ante = texto(antetitulo),
