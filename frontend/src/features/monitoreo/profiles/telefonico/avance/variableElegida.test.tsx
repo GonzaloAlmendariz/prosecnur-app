@@ -45,3 +45,23 @@ describe("R5 paso 2: la variable de cuota se elige y la dirección la guarda", (
     expect(pintar("/monitoreo?seccion=avance&pestana=cuotas&panel=variable&foco=Distrito")).toContain("cuánto falta por actor");
   });
 });
+
+describe("la variable elegida trae su propia serie diaria (no «Sin serie diaria»)", () => {
+  it("con Sexo elegido, cada tarjeta de sexo lleva sus puntos por día", () => {
+    const reports = {
+      sheets: [{ id: "monitoreo_telefonico", title: "Telefónico", blocks: [
+        { id: "cuotas_variable", title: "Cuotas", columns: [], rows: FILAS },
+        { id: "avance_efectivo_variable_dia", title: "Día", columns: [], rows: [
+          { Variable: "Actor", Valor: "Homologación", Fecha: "2026-08-04", "Efectivas Kobo": 12, Efectivas: 12 },
+          { Variable: "Sexo", Valor: "Mujer", Fecha: "2026-08-04", "Efectivas Kobo": 7, Efectivas: 7 },
+          { Variable: "Sexo", Valor: "Mujer", Fecha: "2026-08-05", "Efectivas Kobo": 5, Efectivas: 5 },
+          { Variable: "Sexo", Valor: "Hombre", Fecha: "2026-08-04", "Efectivas Kobo": 4, Efectivas: 4 },
+        ] },
+      ] }],
+    } as unknown as MonitoreoAcreditacionReports;
+    const mujer = phoneQuotaCardsForDashboard(reports, "Sexo").find((t) => t.actor === "Mujer");
+    expect(mujer?.dailyPoints.map((p) => p.effective)).toEqual([7, 5]);
+    // Sin elección, Sexo no es la variable a la vista y no lleva serie.
+    expect(phoneQuotaCardsForDashboard(reports).find((t) => t.actor === "Homologación")?.dailyPoints.length).toBe(1);
+  });
+});

@@ -14654,9 +14654,9 @@ function actorCardsForDashboard({
 
 function phoneQuotaDailyPointsByValue(
   reports: MonitoreoAcreditacionReports,
-  quotaRows: AcreditacionPhoneQuotaRow[],
+  quotaRows: AcreditacionPhoneQuotaRow[], elegida?: string | null,
 ) {
-  const variable = preferredPhoneAdvanceQuotaVariable(quotaRows);
+  const variable = preferredPhoneAdvanceQuotaVariable(quotaRows, elegida); // la variable elegida (R5) trae su serie
   const variableLabel = phoneQuotaVariableLabel(variable);
   const valueKeys = new Set(quotaRows.map((row) => normalizeSourceMatch(row.value)).filter(Boolean));
   const out = new Map<string, Map<string, AcreditacionAdvanceDailyPoint>>();
@@ -14723,7 +14723,7 @@ function phoneQuotaDailyPointsByValue(
 export function phoneQuotaCardsForDashboard(reports: MonitoreoAcreditacionReports, elegida?: string | null): AcreditacionActorCard[] {
   const quotaRows = rowsForSheetBlock(reports, "monitoreo_telefonico", ["cuotas_variable", "cuotas_telefonicas", "cuotas_por_variable"]);
   const parsedQuotaRows = phoneQuotaRowsForPanel(quotaRows);
-  const dailyByValue = phoneQuotaDailyPointsByValue(reports, parsedQuotaRows);
+  const dailyByValue = phoneQuotaDailyPointsByValue(reports, parsedQuotaRows, elegida);
   return phoneQuotaAdvanceCardsFromRows(quotaRows, elegida).map((card) => ({
     ...card,
     status: actorStatusLabel(card),
