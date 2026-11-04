@@ -3,10 +3,13 @@
 
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { AlertTriangle, Scale } from "../../../vendor/lucide-react";
+import { Scale } from "../../../vendor/lucide-react";
 import { ApiError } from "../../../api/core";
 import { getDiferenciasRegla, type ReglaDiferenciasRespuesta } from "../../../api/graficosDiferencias";
+import { Alert } from "../../../components/Alert";
+import { Panel } from "../../../components/Panel";
 import { PulsoButton } from "../../../components/PulsoButton";
+import { CargaDeBloque } from "../../../components/CargaDeBloque";
 import { DIRECCION_REGLA_ESTUDIO, filasRegla, origenRegla, textoErrorRegla } from "./reglaEstudioModel";
 import "./crucesReglaEstudio.css";
 
@@ -36,7 +39,8 @@ export function CrucesReglaEstudio() {
 export function CrucesReglaEstudioVista({ lectura }: { lectura: Lectura }) {
   const navigate = useNavigate();
   return (
-    <section
+    <Panel
+      variant="subtle"
       className="analitica-regla-estudio"
       aria-label="Regla de diferencias del estudio"
       data-estado={lectura.estado}
@@ -54,12 +58,14 @@ export function CrucesReglaEstudioVista({ lectura }: { lectura: Lectura }) {
         )}
       </header>
       <div data-qa-geometry-member="">
-        {lectura.estado === "cargando" && <p className="analitica-regla-estudio-texto" role="status">Leyendo la regla del estudio…</p>}
+        {lectura.estado === "cargando" && <CargaDeBloque label="Leyendo la regla del estudio…" />}
         {lectura.estado === "error" && (
-          <p className="analitica-regla-estudio-error" role="alert">
-            <AlertTriangle size={13} aria-hidden="true" />
-            <span>{lectura.texto}{lectura.code ? <> · <code>{lectura.code}</code></> : null}</span>
-          </p>
+          <div role="alert">
+            <Alert kind="error">
+              {lectura.texto}
+              {lectura.code ? <span className="analitica-regla-estudio-codigo" title={lectura.code}> (error {lectura.code})</span> : null}
+            </Alert>
+          </div>
         )}
         {lectura.estado === "listo" && (
           <dl className="analitica-regla-estudio-filas">
@@ -75,6 +81,6 @@ export function CrucesReglaEstudioVista({ lectura }: { lectura: Lectura }) {
           Cambiar la regla del estudio
         </PulsoButton>
       </footer>
-    </section>
+    </Panel>
   );
 }

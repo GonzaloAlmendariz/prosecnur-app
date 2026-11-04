@@ -18,6 +18,8 @@ import { Segmentado } from "../../subpestanas/Segmentado";
 import { capaVisibleFuera, destinoDelFoco, escucharEscape } from "../cierreConEscape";
 import { enfocarSinDesplazar } from "../enfocarSinDesplazar";
 import type { EstructuraInforme } from "../modeloEstructura";
+import { CajaDiferencias } from "./CajaDiferencias";
+import { CodigoError } from "./CodigoError";
 import { Capsula } from "./Capsula";
 import {
   csvRevision,
@@ -99,13 +101,13 @@ export function RevisionDiferenciasPanel({ panel, estructura, slideIdActual, onI
       </header>
       <div className="pulso-sig-revision-cuerpo" data-qa-geometry-member="" data-qa-scroll-owner="diferencias-informe">
         {carga?.estado === "error" ? (
-          <div className="pulso-sig-caja is-peligro" role="alert">
+          <CajaDiferencias tono="peligro" role="alert">
             <strong className="pulso-sig-titulo">No se pudo revisar el informe</strong>
-            <p className="pulso-sig-texto">{carga.message}{carga.code ? <> · <code>{carga.code}</code></> : null}{carga.error_id ? <> · id <code>{carga.error_id}</code></> : null}</p>
+            <p className="pulso-sig-texto">{carga.message}<CodigoError code={carga.code} errorId={carga.error_id} /></p>
             <div className="pulso-sig-acciones">
               <PulsoButton variant="secondary" size="sm" onClick={reintentar}><RotateCcw size={14} aria-hidden="true" /> Reintentar</PulsoButton>
             </div>
-          </div>
+          </CajaDiferencias>
         ) : !datos || !r ? (
           <div className="pulso-sig-chips" role="status" aria-label="Revisando las láminas con cruce">
             <Skeleton forma="texto" ancho={84} alto={24} />
@@ -126,7 +128,7 @@ export function RevisionDiferenciasPanel({ panel, estructura, slideIdActual, onI
               <Segmentado<FiltroRevision> etiqueta="Qué láminas mostrar" valor={filtro} opciones={OPCIONES_FILTRO} onCambiar={setFiltro} />
               <span className="pulso-sig-espacio" />
               <PulsoButton variant="link" size="sm" data-pulso-abre-panel={PANEL_DIFERENCIAS_REGLA.id} onClick={regla.abrir}
-                title={`${resumenRegla(datos.regla)}${r.familia ? ` · familia de ${formatoConteo(r.familia)} comparaciones` : ""}`}>
+                title={`${resumenRegla(datos.regla)}${r.familia ? ` (familia de ${formatoConteo(r.familia)} comparaciones)` : ""}`}>
                 {resumenRegla(datos.regla)}
               </PulsoButton>
             </div>
@@ -151,7 +153,7 @@ function TablaRevision({ filas, filtro, slideIdActual, onIr }: {
     { id: "lamina", encabezado: "Lám.", ancho: 52, tipo: "cifra", celda: (f) => f.posicion ?? "—", valor: (f) => f.posicion },
     { id: "cruce", encabezado: "Cruce", ancho: 190, celda: (f) => textoCruce(f), valor: (f) => textoCruce(f) },
     { id: "estado", encabezado: "Estado", ancho: 140, celda: (f) => <EstadoChip lamina={f.lamina} /> },
-    { id: "revisar", encabezado: "Qué revisar", ancho: 196, celda: (f) => queRevisar(f.lamina).join(" · ") || "—", valor: (f) => queRevisar(f.lamina).join(" · ") },
+    { id: "revisar", encabezado: "Qué revisar", ancho: 196, celda: (f) => queRevisar(f.lamina).join("; ") || "—", valor: (f) => queRevisar(f.lamina).join("; ") },
   ];
   const porId = new Map(filas.map((f) => [f.lamina.slide_id, f]));
   return (
@@ -162,7 +164,7 @@ function TablaRevision({ filas, filtro, slideIdActual, onIr }: {
 }
 
 function textoCruce(f: FilaRevision): string {
-  return [f.titulo, f.lamina.cruce].filter(Boolean).join(" · ");
+  return f.lamina.cruce ? `${f.titulo} (${f.lamina.cruce})` : f.titulo;
 }
 
 function EstadoChip({ lamina }: { lamina: LaminaDiferencias }) {

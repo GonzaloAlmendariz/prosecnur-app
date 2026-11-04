@@ -15,6 +15,8 @@ import { usePanelDireccionable } from "../../../../lib/navegacion/paneles";
 import { copiarTexto } from "../../../../lib/portapapeles";
 import { toast } from "../../../../components/toasterStore";
 import { PANEL_DIFERENCIAS_LAMINA, PANEL_DIFERENCIAS_REGLA } from "../../panelesGraficos";
+import { CajaDiferencias } from "./CajaDiferencias";
+import { CodigoError } from "./CodigoError";
 import { Capsula } from "./Capsula";
 import {
   conteosLamina,
@@ -129,52 +131,48 @@ function CuerpoPorEstado({ estado, lamina, errorCarga, etiquetaCruce, onAgregarC
       return <p className="pulso-sig-texto">Este gráfico no marca diferencias. Enciéndelo para compararlas entre los grupos del cruce.</p>;
     case "sin_cruce":
       return (
-        <div className="pulso-sig-caja">
+        <CajaDiferencias>
           <p className="pulso-sig-texto">Las diferencias se calculan entre los grupos de un cruce, y este gráfico no tiene cruce.</p>
           <div className="pulso-sig-acciones">
             <PulsoButton variant="secondary" size="sm" onClick={onAgregarCruce}>
               <Plus size={14} aria-hidden="true" /> Agregar cruce
             </PulsoButton>
           </div>
-        </div>
+        </CajaDiferencias>
       );
     case "calculando":
       return (
-        <div className="pulso-sig-caja" role="status">
+        <CajaDiferencias role="status">
           <div className="pulso-sig-chips" aria-hidden="true">
             <Skeleton forma="texto" ancho={84} alto={22} />
             <Skeleton forma="texto" ancho={64} alto={22} />
             <Skeleton forma="texto" ancho={72} alto={22} />
           </div>
           <p className="pulso-sig-texto">Comparando los grupos{etiquetaCruce ? ` de ${etiquetaCruce}` : ""}…</p>
-        </div>
+        </CajaDiferencias>
       );
     case "error": {
       const e = lamina?.error ?? errorCarga;
       return (
-        <div className="pulso-sig-caja is-peligro" role="alert">
+        <CajaDiferencias tono="peligro" role="alert">
           <strong className="pulso-sig-titulo">La prueba no pudo ejecutarse</strong>
           <p className="pulso-sig-texto">{e?.message || "El cálculo de diferencias falló."}</p>
           {(e?.code || e?.error_id) && (
-            <p className="pulso-sig-codigo">
-              {e?.code ? <>Error <code>{e.code}</code></> : null}
-              {e?.code && e?.error_id ? " · " : null}
-              {e?.error_id ? <>id <code>{e.error_id}</code></> : null}
-            </p>
+            <p className="pulso-sig-codigo"><CodigoError code={e?.code} errorId={e?.error_id} /></p>
           )}
           <div className="pulso-sig-acciones">
             <PulsoButton variant="secondary" size="sm" onClick={onReintentar}><RotateCcw size={14} aria-hidden="true" /> Reintentar</PulsoButton>
             <PulsoButton variant="ghost" size="sm" onClick={onAbrirRegla}>Revisar la regla</PulsoButton>
           </div>
-        </div>
+        </CajaDiferencias>
       );
     }
     case "abstencion":
       return (
-        <div className="pulso-sig-caja is-aviso" role="note">
+        <CajaDiferencias tono="aviso" role="note">
           <strong className="pulso-sig-titulo"><AlertTriangle size={14} aria-hidden="true" /> No se marcan diferencias</strong>
           <p className="pulso-sig-texto">{lamina?.motivo ?? lamina?.nota ?? "Esta pregunta no admite la comparación entre grupos."} La lámina lo explica en la nota.</p>
-        </div>
+        </CajaDiferencias>
       );
     case "ninguna":
     case "con_marcas":
@@ -192,7 +190,7 @@ function Resumen({ lamina, estado, etiquetaCruce, onQuitarCruce, onVerPorQue }: 
     copiarTexto(redaccion).then(() => toast.exito("Redacción copiada")).catch(() => toast.error("No se pudo copiar la redacción"));
   };
   return (
-    <div className="pulso-sig-caja">
+    <CajaDiferencias>
       <ul className="pulso-sig-chips" aria-label="Resumen de las diferencias">
         <li className={`pulso-sig-chip${c.marcadas ? " is-marcada" : ""}`}>
           {c.marcadas > 0 && <Capsula letras="" decorativa />} {c.marcadas === 1 ? "1 marcada" : `${c.marcadas} marcadas`}
@@ -201,7 +199,7 @@ function Resumen({ lamina, estado, etiquetaCruce, onQuitarCruce, onVerPorQue }: 
         <li className="pulso-sig-chip">{c.bajoUmbral} bajo el umbral</li>
       </ul>
       <p className="pulso-sig-texto">{estado === "ninguna" ? (lamina.nota || "Ninguna diferencia entre grupos es significativa. La nota lo dice en la lámina.") : descripcionComparacion(lamina, etiquetaCruce)}</p>
-      {chicos.length > 0 && <p className="pulso-sig-texto is-trama">Con trama: {chicos.join(" · ")}.</p>}
+      {chicos.length > 0 && <p className="pulso-sig-texto is-trama">Con trama: {chicos.join("; ")}.</p>}
       {estado === "con_marcas" ? (
         <div className="pulso-sig-acciones">
           <PulsoButton variant="secondary" size="sm" data-pulso-abre-panel={PANEL_DIFERENCIAS_LAMINA.id} data-sig-ancla="" onClick={onVerPorQue}>
@@ -210,7 +208,7 @@ function Resumen({ lamina, estado, etiquetaCruce, onQuitarCruce, onVerPorQue }: 
           {redaccion && <PulsoButton variant="ghost" size="sm" onClick={copiar}><Copy size={14} aria-hidden="true" /> Copiar redacción</PulsoButton>}
         </div>
       ) : (
-        <div className="pulso-sig-caja is-sugerencia">
+        <CajaDiferencias tono="sugerencia">
           <p className="pulso-sig-texto">
             Este cruce no muestra diferencias. Si el informe sólo lleva cruces con diferencias relevantes, puedes quitarlo.
           </p>
@@ -222,8 +220,8 @@ function Resumen({ lamina, estado, etiquetaCruce, onQuitarCruce, onVerPorQue }: 
             )}
             <PulsoButton variant="ghost" size="sm" onClick={onQuitarCruce}>Quitar el cruce</PulsoButton>
           </div>
-        </div>
+        </CajaDiferencias>
       )}
-    </div>
+    </CajaDiferencias>
   );
 }
