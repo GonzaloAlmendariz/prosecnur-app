@@ -36,6 +36,8 @@ import { GenerateFooter, Section } from "../PaneKit";
 import { type PanelConfig, useAnaliticaStore } from "../store";
 import { useReporteRun } from "../useReporteRun";
 
+import { EstadoVacio } from "../../../components/EstadoVacio";
+import { EstadoChip } from "../../../components/EstadoChip";
 type PanelView = "estructura" | "variables" | "nse" | "auditoria" | "exportar";
 
 const VIEWS: Array<{ key: PanelView; label: string }> = [
@@ -355,10 +357,7 @@ export function PanelBasePane() {
                     )}
                   </label>
                   <div className="analitica-panel-status-row">
-                    <span className={`analitica-panel-badge ${info?.available ? "is-ok" : "is-warn"}`}>
-                      {info?.available ? <Database size={12} /> : <AlertTriangle size={12} />}
-                      {info?.available ? "ID común listo" : "Falta ID común"}
-                    </span>
+                    <EstadoChip label={info?.available ? "ID común listo" : "Falta ID común"} tone={info?.available ? "success" : "warn"} />
                     <span>{panelSourceLabel(info?.fuente)}</span>
                   </div>
                 </div>
@@ -734,7 +733,7 @@ function Metric({
   return (
     <div className="analitica-stat">
       <span className="analitica-stat-label">{label}</span>
-      <span className="analitica-stat-value" style={compact ? { fontSize: 13, paddingTop: 2 } : undefined}>
+      <span className="analitica-stat-value" style={compact ? { fontSize: "var(--pulso-type-body-size)", paddingTop: 2 } : undefined}>
         {value}
         {suffix && <small>{suffix}</small>}
       </span>
@@ -944,13 +943,7 @@ function formatCell(value: unknown) {
 
 function EmptyPanelState({ icon, label }: { icon: ReactNode; label: string }) {
   return (
-    <div className="analitica-empty analitica-panel-empty">
-      <span className="analitica-empty-icon" aria-hidden="true">
-        {icon}
-      </span>
-      <strong>{label}</strong>
-      <small>Previsualiza cuando quieras recalcular esta vista.</small>
-    </div>
+    <EstadoVacio icono={icon} titulo={label} descripcion="Previsualiza cuando quieras recalcular esta vista." />
   );
 }
 

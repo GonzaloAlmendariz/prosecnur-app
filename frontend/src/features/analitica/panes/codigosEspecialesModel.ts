@@ -31,7 +31,7 @@ export function textoUso(o: Pick<OpcionCodigoEspecial, "porBase">): string {
     ? o.porBase.reduce((s, u) => s + (u.n_con_casos ?? 0), 0)
     : null;
   const base = `En ${formatoConteoDe(preguntas, "pregunta", "preguntas")}`;
-  return conCasos === null ? base : `${base} · elegido en ${conCasos}`;
+  return conCasos === null ? base : `${base}, elegido en ${conCasos}`;
 }
 
 /** Qué hace marcarlo: «Se omitirá en 9 preguntas donde nadie lo eligió». */
@@ -43,12 +43,12 @@ export function textoEfecto(o: Pick<OpcionCodigoEspecial, "porBase" | "marcado">
     : "Se muestra en todas: en cada pregunta alguien lo eligió";
 }
 
-/** Desglose por base para el `title`: «2024: 4 preguntas, elegido en 3 · 2026: …». */
+/** Desglose por base para el `title`: «2024: 4 preguntas, elegido en 3; 2026: …». */
 export function textoPorBase(o: Pick<OpcionCodigoEspecial, "porBase">): string {
   return o.porBase
     .filter((u) => u.n_preguntas > 0)
     .map((u) => `${u.base}: ${formatoConteoDe(u.n_preguntas, "pregunta", "preguntas")}${u.n_con_casos === null ? "" : `, elegido en ${u.n_con_casos}`}`)
-    .join(" · ");
+    .join("; ");
 }
 
 /** El default de fábrica de versiones anteriores: nadie lo eligió. */

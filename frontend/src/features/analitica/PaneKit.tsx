@@ -197,7 +197,7 @@ export function GenerateFooter({
             className="analitica-download-pill"
           >
             <Download size={12} />
-            {multi ? `${downloadName} (zip · ${perBase!.length} bases)` : downloadName}
+            {multi ? `${downloadName} (zip, ${perBase!.length} bases)` : downloadName}
           </a>
         )}
         {saveStatus && (

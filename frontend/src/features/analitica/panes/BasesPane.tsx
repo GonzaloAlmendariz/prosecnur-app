@@ -122,7 +122,7 @@ function BasesUseGuide({
       <div>
         <strong>Todo se genera como archivo nuevo</strong>
         <span>
-          Fuente {fuenteLabel} · {siblingsLabel}. Descargar cualquier entregable no altera la base activa ni la codificación del proyecto.
+          Fuente {fuenteLabel}, {siblingsLabel}. Descargar cualquier entregable no altera la base activa ni la codificación del proyecto.
         </span>
       </div>
     </div>
@@ -676,7 +676,7 @@ function UnifiedSiblingsCard({
         <div className="analitica-bases-unified-summary" aria-live="polite">
           {summary && (
             <span>
-              {summary.n_filas} filas · {summary.n_columnas} columnas · {summary.n_variables_comunes} variables comunes · {summary.n_variables_no_comunes} no comunes
+              {summary.n_filas} filas, {summary.n_columnas} columnas, {summary.n_variables_comunes} variables comunes, {summary.n_variables_no_comunes} no comunes
             </span>
           )}
         </div>

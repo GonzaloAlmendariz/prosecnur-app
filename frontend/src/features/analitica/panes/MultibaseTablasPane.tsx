@@ -256,7 +256,7 @@ function Metric({
   return (
     <div className="analitica-stat">
       <span className="analitica-stat-label">{label}</span>
-      <span className="analitica-stat-value" style={compact ? { fontSize: 13, paddingTop: 2 } : undefined}>
+      <span className="analitica-stat-value" style={compact ? { fontSize: "var(--pulso-type-body-size)", paddingTop: 2 } : undefined}>
         {value}
         {suffix && <small>{suffix}</small>}
       </span>

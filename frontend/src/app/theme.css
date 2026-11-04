@@ -11718,17 +11718,6 @@ h1.pulso-page-title {
   font-size: 11px;
   font-weight: var(--pulso-weight-semibold);
 }
-.analitica-panel-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  min-height: 26px;
-  padding: 4px 8px;
-  border-radius: var(--pulso-radius-chip);
-  border: 1px solid var(--pulso-border);
-  background: #fff;
-  color: var(--pulso-text-soft);
-}
 .analitica-panel-contract-strip {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -11816,10 +11805,6 @@ h1.pulso-page-title {
   font-size: 10px;
   font-weight: var(--pulso-weight-heavy);
   text-transform: uppercase;
-}
-.analitica-panel-empty {
-  width: 100%;
-  min-height: 64px;
 }
 .analitica-panel-check {
   display: inline-flex;
@@ -12788,47 +12773,6 @@ h1.pulso-page-title {
   text-overflow: ellipsis;
   text-transform: none;
   white-space: nowrap;
-}
-.analitica-dimensiones-empty {
-  min-height: 148px;
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 12px;
-  padding: 16px;
-  border: 1px solid color-mix(in srgb, var(--pulso-warn-border, #f5c45b) 54%, var(--pulso-border));
-  border-radius: 12px;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(255, 252, 244, 0.78)),
-    var(--pulso-warn-bg, #fff7e6);
-  color: var(--pulso-text);
-}
-.analitica-dimensiones-empty-icon {
-  width: 34px;
-  height: 34px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid color-mix(in srgb, var(--pulso-warn-border, #f5c45b) 70%, #fff 30%);
-  border-radius: 10px;
-  background: #fff;
-  color: var(--pulso-warn-fg, #b45309);
-}
-.analitica-dimensiones-empty-copy {
-  min-width: 0;
-  display: grid;
-  gap: 4px;
-}
-.analitica-dimensiones-empty-copy strong {
-  color: var(--pulso-text);
-  font-size: 13px;
-  font-weight: var(--pulso-weight-heavy);
-  line-height: 1.2;
-}
-.analitica-dimensiones-empty-copy span {
-  color: var(--pulso-text-soft);
-  font-size: 11.5px;
-  line-height: 1.48;
 }
 .analitica-dimensiones-action,
 .analitica-dimensiones-footer button,
