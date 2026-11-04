@@ -45,6 +45,8 @@ import {
   apiXlsformFormPublishRevision,
   apiXlsformFormSave,
   apiXlsformFormsList,
+  apiXlsformEditorImportInstrumentoEstudio,
+  type InstrumentoDelEstudio,
   downloadUrl,
   normalizeXlsformFormSource,
   type ChoiceCodeMap,
@@ -177,6 +179,8 @@ import { useActivePublicationRefresh } from "./shell/useActivePublicationRefresh
 import { contarEscalasRepetidas, useListasOpcionesPanel } from "./listas";
 import { buildSuiteMetrics } from "./shell/editorMetrics";
 import { RestoreOfferBanner } from "./shell/RestoreOfferBanner";
+import { OfertaInstrumentoDelEstudio } from "./shell/OfertaInstrumentoDelEstudio";
+import { ofrecerInstrumentoDelEstudio } from "./shell/instrumentoDelEstudio";
 import { LogicaExternaDialogo, LogicaExternaDisparador } from "./shell/LogicaExterna";
 import { useLogicaExterna } from "./shell/useLogicaExterna";
 import { CollapsibleSection } from "./shell/CollapsibleSection";
@@ -255,6 +259,9 @@ export default function XlsformEditorPage() {
   // caliente, las tarjetas nacían sin su bloque de publicación y crecían al
   // llegar. Esperar una sola vez cuesta unos ms y entrega una sola superficie.
   const [libraryReady, setLibraryReady] = useState(false);
+  // Hallazgo 12: el instrumento vinculado al estudio, que la biblioteca puede no traer todavía.
+  const [instrumentoDelEstudio, setInstrumentoDelEstudio] = useState<InstrumentoDelEstudio | null>(null);
+  const [abriendoInstrumento, setAbriendoInstrumento] = useState(false);
   // El índice del proyecto no se pudo leer. Distinto de "no hay formularios":
   // afirmar el vacío sin saberlo es la misma mentira que producía el hero de
   // creación delante de un proyecto que sí tenía formularios.
@@ -433,6 +440,7 @@ export default function XlsformEditorPage() {
       });
     }
     setForms(listForms(projectScope));
+    setInstrumentoDelEstudio(backend.instrumento_del_estudio);
     setPublicationUi((prev) => ({
       ...prev,
       byFormId: Object.fromEntries(
@@ -755,6 +763,7 @@ export default function XlsformEditorPage() {
     let localActive = migrated.activeFormId;
     let formCount = migrated.forms.length;
     let backendFormIds = new Set<string>();
+    let instrumentoDelBackend: InstrumentoDelEstudio | null = null;
 
     let cancelled = false;
     void (async () => {
@@ -767,6 +776,7 @@ export default function XlsformEditorPage() {
         if (cancelled) return;
         setLibraryError(false);
         backendFormIds = new Set(backend.forms.map((form) => form.id));
+        instrumentoDelBackend = backend.instrumento_del_estudio;
         if (backend.active_form_id && !localActive) {
           localActive = backend.active_form_id;
         }
@@ -807,6 +817,9 @@ export default function XlsformEditorPage() {
           localActive
           && !hubElegidoRef.current
           && (formCount <= 1 || new URLSearchParams(window.location.search).has("pestana"))
+          // Con el instrumento del estudio fuera de la biblioteca se aterriza en ella, que lo ofrece:
+          // entrar directo al borrador escondía el instrumento (hallazgo 12).
+          && !ofrecerInstrumentoDelEstudio(instrumentoDelBackend, listForms(projectScope))
         ) {
           // Una dirección que pide una pestaña (`?pestana=impreso`) pide el
           // formulario, no la biblioteca: sin `form_id`, se abre el activo.
@@ -1419,6 +1432,24 @@ export default function XlsformEditorPage() {
     } finally {
       setBusy("");
       if (xlsInputRef.current) xlsInputRef.current.value = "";
+    }
+  }
+
+  async function onAbrirInstrumentoDelEstudio() {
+    if (!instrumentoDelEstudio || blockUntilRestoreDecision("abrir el instrumento del estudio") || blockIfAtFormLimit()) return;
+    resetMessages();
+    setAbriendoInstrumento(true);
+    try {
+      const out = await apiXlsformEditorImportInstrumentoEstudio();
+      const nombre = instrumentoDelEstudio.nombre || "el instrumento del estudio";
+      loadWorkbook(out.workbook, out.source, `Abrimos ${nombre}, el instrumento del estudio.`);
+      toasts.push({ kind: "success", title: "Instrumento del estudio abierto", detail: `${nombre} queda en la biblioteca como un formulario más.` });
+    } catch (e: unknown) {
+      const msg = (e as Error).message;
+      setError(msg);
+      toasts.push({ kind: "danger", title: "No se pudo abrir el instrumento", detail: msg });
+    } finally {
+      setAbriendoInstrumento(false);
     }
   }
 
@@ -2606,6 +2637,13 @@ export default function XlsformEditorPage() {
                 snapshot={restoreOffer}
                 onAccept={acceptRestoreOffer}
                 onDismiss={dismissRestoreOffer}
+              />
+            ) : instrumentoDelEstudio && ofrecerInstrumentoDelEstudio(instrumentoDelEstudio, forms) ? (
+              <OfertaInstrumentoDelEstudio
+                instrumento={instrumentoDelEstudio}
+                abriendo={abriendoInstrumento}
+                puedeCrear={canCreateForm}
+                onAbrir={() => { void onAbrirInstrumentoDelEstudio(); }}
               />
             ) : null
           }

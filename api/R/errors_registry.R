@@ -1166,6 +1166,7 @@ errores_registrados <- function() {
     "E_WRONG_DATA",                                          "dashboard_source.R",                "400",
     "E_WRONG_KIND",                                          "router_carga.R",                    "400",
     "E_WRONG_XLSFORM",                                       "dashboard_source.R",                "400",
+    "E_XLSFORM_SIN_INSTRUMENTO_ESTUDIO",                     "xlsform_instrumento_estudio.R",     "409",
     "E_XLSFORM_LOGIC_HELPER",                                "surveymonkey_multibase.R",          "500",
     "E_XLSFORM_MATERIALIZE_FAILED",                          "xlsform_revisions.R",               "500",
     "E_XLSFORM_NOT_PUBLISHABLE",                             "xlsform_revisions.R",               "422",
