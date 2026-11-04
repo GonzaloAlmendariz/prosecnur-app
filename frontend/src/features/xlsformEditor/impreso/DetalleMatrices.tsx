@@ -8,6 +8,7 @@ import type { MatrixCandidate } from "../parsing/detectMatrixCandidates";
 import { matrixChoiceFor, type PdfDialogState, type PdfMatrixChoice } from "../shell/pdfExportPreference";
 import { separarCandidatas } from "./modeloImpreso";
 import { TarjetaImpreso } from "./TarjetaImpreso";
+import { EstadoVacio } from "../../../components/EstadoVacio";
 
 /** Etiqueta corta de las preguntas de una matriz: «primera» +N. */
 type Plano = (texto: string) => string;
@@ -134,7 +135,7 @@ export function DetalleMatrices({ candidatas, matrices, onCambiar, plano }: {
         ayuda="Preguntas contiguas con la misma escala corta. Actívalas para imprimirlas como tabla."
       >
         {reales.length === 0 ? (
-          <p className="pulso-xf-imp-vacio">Ningún grupo de dos o más preguntas comparte escala.</p>
+          <EstadoVacio icono={<Grid3x3 size={14} />} titulo="Ningún grupo de dos o más preguntas comparte escala" />
         ) : (
           <div className="pulso-xf-pdf-matrix-list" data-qa-geometry-group="xlsform/impreso-matrices" data-qa-geometry-contract="intrinsic">
             {reales.map((c) => <CandidataMatriz key={c.id} candidata={c} matrices={matrices} onCambiar={onCambiar} plano={plano} />)}

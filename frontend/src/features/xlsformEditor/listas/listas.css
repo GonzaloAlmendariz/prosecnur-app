@@ -501,18 +501,8 @@
   border-top-color: var(--pulso-warn-border);
 }
 
-.pulso-xf-listas-girando {
-  animation: pulso-xf-listas-girar 1s linear infinite;
-}
-
 @keyframes pulso-xf-listas-girar {
   to { transform: rotate(360deg); }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .pulso-xf-listas-girando {
-    animation: none;
-  }
 }
 
 @media (max-width: 720px) {

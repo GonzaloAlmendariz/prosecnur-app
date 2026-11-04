@@ -64,8 +64,8 @@ describe("ListasOpcionesPanel", () => {
   test("vacío legítimo sin escalas repetidas", () => {
     const w = wb([["sexo", "1", "Hombre"]], [["select_one sexo", "sexo", ""]]);
     const html = renderToStaticMarkup(<ListasOpcionesPanel workbook={w} control={control(w)} />);
-    expect(html).toContain("No hay escalas repetidas.");
-    expect(html).toContain('data-qa-geometry-capacity="owned"');
+    expect(html).toContain("No hay escalas repetidas");
+    expect(html).toContain('data-estado-vacio');
     expect(html).not.toContain("xlsform-listas-grupos");
   });
 

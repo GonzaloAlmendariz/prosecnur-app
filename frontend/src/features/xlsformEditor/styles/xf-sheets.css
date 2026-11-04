@@ -507,18 +507,6 @@
 
 /* ── Vacíos ────────────────────────────────────────────────────────────── */
 
-.pulso-xlsform-frame .pulso-xfs-empty {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  padding: 32px 20px;
-  color: var(--pulso-text-soft);
-  font-size: var(--pulso-type-body-size);
-  font-weight: var(--pulso-weight-medium);
-  text-align: center;
-}
-
 /* ── Accesibilidad: reduced motion ─────────────────────────────────────── */
 
 @media (prefers-reduced-motion: reduce) {

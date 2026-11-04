@@ -19,7 +19,10 @@ import { describe, expect, it } from "vitest";
  *   condición guiada sin preguntas previas de `LogicBuilder` (ilustración y dos acciones).
  *   `pulso-catalogchip-empty` es el botón «Asignar lista» del chip (su clase vive en
  *   `app/theme.css`), no un vacío. Los `pulso-graph-*` son superposiciones del lienzo de
- *   lógica con ilustración y acciones, sobre el canvas.
+ *   lógica con ilustración y acciones, sobre el canvas. `pulso-xf-imp-previa-vacia` es el error de
+ *   la previa con «Reintentar» (`ErrorBlock` no lleva acción), `pulso-md-empty` es HTML de la previa
+ *   de markdown y `settings-*-empty` un id de diagnóstico. Los `is-*` son modificadores de estado
+ *   sobre un elemento que ya existe, no un vacío con receta.
  */
 
 const aqui = path.dirname(fileURLToPath(import.meta.url));
@@ -46,7 +49,7 @@ const PUNTO = (l: string) => (l.includes("·") ? 1 : 0);
 const CIFRA_A_MANO = /toFixed\(|toLocaleString\(\)|toLocaleString\("es-PE"(?:, \{ maximumFractionDigits: [^}]+\})?\)/g;
 const RECETA = /(?<![-\w])(?!data-)[a-z][a-z0-9]*(?:-[a-z0-9]+)*-(?:empty|emptylist|vacio|vacia|loading|cargando)(?![-\w])/g;
 /** Imitan el formulario en el dispositivo o son una carga con forma: no son recetas del módulo. */
-const RECETA_DECLARADA = /^pulso-xfsim-|^pulso-xf-campana-(?:cargando|esqueleto)|^pulso-logic-builder-guided-empty$|^pulso-catalogchip-empty$|^pulso-graph-/;
+const RECETA_DECLARADA = /^pulso-xfsim-|^pulso-xf-campana-(?:cargando|esqueleto)|^pulso-logic-builder-guided-empty$|^pulso-catalogchip-empty$|^pulso-graph-|^pulso-xf-imp-previa-vacia$|^pulso-md-empty$|^settings-[a-z-]+-empty$|^is-/;
 
 const cuenta = (re: RegExp, filtro?: (m: string) => boolean) => (l: string) =>
   [...l.matchAll(re)].map((m) => m[0]).filter((m) => !filtro || filtro(m)).length;
@@ -65,38 +68,11 @@ const SNAPSHOT_P3: Record<string, number> = {
   "impreso/MaquetaPagina.tsx": 1,
   "pestanas/armador/armadorModelo.ts": 1,
   "reglas/acnurEs.fixture.ts": 1,
-  "shell/logicaExternaModel.ts": 1,
 };
 const SNAPSHOT_P4: Record<string, number> = {
   "kit/Sello.tsx": 1,
 };
-const SNAPSHOT_P5: Record<string, number> = {
-  "canvas/constructor/CalculoRepeticionPaneles.tsx": 1,
-  "canvas/constructor/FiltroOpcionesPanel.tsx": 1,
-  "catalogs/CatalogLibrary.tsx": 1,
-  "catalogs/CatalogWorkspace.tsx": 3,
-  "choiceFilters/MatrizCascada.tsx": 1,
-  "choiceFilters/MatrizPorOpcion.tsx": 1,
-  "helpers/markdown.ts": 1,
-  "impreso/DetalleMatrices.tsx": 1,
-  "impreso/PreviaImpreso.tsx": 1,
-  "impreso/VersionesImpreso.tsx": 1,
-  "inspector/CatalogChip.tsx": 3,
-  "inspector/logic/VariablePicker.tsx": 1,
-  "kit/CuerpoPanelMarca.tsx": 1,
-  "listas/EntreFormulariosSeccion.tsx": 2,
-  "listas/ListasOpcionesPanel.tsx": 1,
-  "listas/OpcionesChips.tsx": 1,
-  "opciones/PestanaOpciones.tsx": 2,
-  "parsing/diagnostics.ts": 1,
-  "pestanas/armador/ArmadorPatron.tsx": 1,
-  "resumen/TablaSecciones.tsx": 1,
-  "sheets/BarraFormula.tsx": 1,
-  "sheets/SheetsView.tsx": 2,
-  "shell/CampanaVistaPreviaResumen.tsx": 1,
-  "shell/FormSimulator.tsx": 1,
-  "shell/FormsLibrary.tsx": 1,
-};
+const SNAPSHOT_P5: Record<string, number> = {};
 
 function regresiones(actual: Record<string, number>, foto: Record<string, number>) {
   return Object.entries(actual).filter(([f, n]) => n > (foto[f] ?? 0)).map(([f, n]) => `${f}: ${foto[f] ?? 0} → ${n}`);

@@ -26,6 +26,7 @@ import {
 } from "@dnd-kit/sortable";
 import type { CatalogSummary } from "../types";
 import { SortableChoiceRow } from "./SortableChoiceRow";
+import { EstadoVacio } from "../../../components/EstadoVacio";
 
 export type CatalogWorkspaceProps = {
   catalog: CatalogSummary | null;
@@ -71,10 +72,13 @@ export function CatalogWorkspace({
 
   if (!catalog) {
     return (
-      <div className="pulso-catalogworkspace pulso-catalogworkspace-empty">
-        <ListChecks size={20} />
-        <strong>Selecciona una lista</strong>
-        <span>Elige una lista de la columna izquierda para editar sus opciones.</span>
+      <div className="pulso-catalogworkspace">
+        <EstadoVacio
+          tamano="normal"
+          icono={<ListChecks size={20} />}
+          titulo="Selecciona una lista"
+          descripcion="Elige una lista de la columna izquierda para editar sus opciones."
+        />
       </div>
     );
   }
@@ -163,19 +167,13 @@ export function CatalogWorkspace({
       )}
 
       {totalCount === 0 ? (
-        <div className="pulso-catalogworkspace-emptylist">
-          <strong>Lista en preparación</strong>
-          <span>
-            Agrega la primera opción con el botón <code>+ Opción</code> arriba.
-            Las opciones aparecen aquí en el mismo orden que verá el encuestado.
-          </span>
-        </div>
+        <EstadoVacio
+          icono={<Plus size={14} />}
+          titulo="Lista en preparación"
+          descripcion={<>Agrega la primera opción con <code>+ Opción</code>; aparecen en el orden que verá el encuestado.</>}
+        />
       ) : filteredCount === 0 ? (
-        <div className="pulso-catalogworkspace-emptylist">
-          <span>
-            Ninguna opción coincide con <em>{query}</em>.
-          </span>
-        </div>
+        <EstadoVacio icono={<Search size={14} />} titulo={`Ninguna opción coincide con «${query}»`} />
       ) : (
         <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
           <SortableContext

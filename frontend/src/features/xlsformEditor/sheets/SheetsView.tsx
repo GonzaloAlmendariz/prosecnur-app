@@ -40,6 +40,7 @@ import "./editorXlsform.css";
 import { columnaDeIdComillas, rectificarComillas } from "../parsing/comillas";
 import { conNivel } from "../../../lib/navegacion/direccion";
 import { useDireccion } from "../../../lib/navegacion/useDireccion";
+import { EstadoVacio } from "../../../components/EstadoVacio";
 
 const PanelFila = memo(PanelFilaBase);
 
@@ -296,9 +297,9 @@ export function SheetsView({
             ref={contenedor}
           >
             {sheet.columns.length === 0 ? (
-              <div className="pulso-xfs-empty">Sin columnas. Agrega una arriba.</div>
+              <EstadoVacio icono={<Plus size={14} />} titulo="Sin columnas" descripcion="Agrega una arriba." />
             ) : sheet.rows.length === 0 ? (
-              <div className="pulso-xfs-empty">Hoja vacía. Agrega una fila arriba.</div>
+              <EstadoVacio icono={<Plus size={14} />} titulo="Hoja vacía" descripcion="Agrega una fila arriba." />
             ) : (
               <TablaHoja
                 hoja={sheet}

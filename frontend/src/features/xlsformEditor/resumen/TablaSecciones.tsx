@@ -22,6 +22,7 @@ import {
   type Orden,
 } from "./modeloResumen";
 import { formatoDecimal } from "../../../lib/formatoNumero";
+import { EstadoVacio } from "../../../components/EstadoVacio";
 
 const COLUMNAS: readonly { columna: ColumnaOrden; rotulo: string; clase: string; ayuda?: string }[] = [
   { columna: "preguntas", rotulo: "Preguntas", clase: "is-num is-col-preguntas" },
@@ -111,7 +112,7 @@ export function TablaSecciones({ filas, kindDe, abierta, onAlternar, resaltada, 
         </span>
       </header>
       {filas.length === 0 ? (
-        <p className="pulso-xf-res-vacio">El formulario no tiene secciones: todas sus preguntas van en un solo bloque.</p>
+        <EstadoVacio icono={<ChevronRight size={14} />} titulo="El formulario no tiene secciones" descripcion="Todas sus preguntas van en un solo bloque." />
       ) : (
         <div className="pulso-xf-res-tabla-marco" data-qa-scroll-owner="resumen-secciones" tabIndex={0} aria-label="Tabla de secciones">
           <table className="pulso-xf-res-tabla">
