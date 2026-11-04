@@ -369,7 +369,7 @@ function LateralDeLaPestana({ lateral, etiquetaEje, enFoco }: { lateral: Lateral
             DECLARA; en «Qué rindió», las aulas ya aplicadas según su procedencia.
             Sin la base, «Refuerzos 5» y «Refuerzos 0» se leían como contradicción. */}
         <Cabecera id="aulas-pf-franja-titulo" titulo="Desenlaces de los titulares" sub="lo que declara el libro" />
-        <dl className="aulas-pf-cifras" data-qa-geometry-group="aulas-porfacultad-franja" data-qa-geometry-contract="equal">
+        <dl className="aulas-pf-cifras" data-qa-geometry-group="aulas-porfacultad-franja" data-qa-geometry-contract="intrinsic">
           {franja.cifras.map((c) => (
             <div key={c.clave} title={c.titulo} data-qa-geometry-member={c.clave}>
               <dt>{c.rotulo}</dt>
