@@ -12,6 +12,8 @@ import { calcularTamano, qnorm, repartirEnteros, type EntradaTamano, type ModoAs
  *     confianza 90 %, DEFF 1,5, asignación intermedia y rutas de 6;
  *   - total_uniforme: N total 960, igualitaria, 99 %, p 0,3, sin FPC y con
  *     ajustes de margen y DEFF por distrito.
+ *   - cpv2025_calculadora (2026-11-04, ADR 0131 §2): la calculadora con piso sobre los
+ *     adultos urbanos estimados 2025 (P̂25 exacta, sin redondear, como población).
  * Para regenerarlo: el script golden_tamano.R (load_all + hojas_ruta_sample_size_preview
  * por escenario y write_json de esos campos). Un golden versionado a propósito.
  */
