@@ -41,3 +41,27 @@ aparte (8871). Destino:
   sobre la Formación General de la Facultad de Arte y Diseño PUCP», periodo
   «Octubre, 2026». Sin puntos medios ni guiones en títulos ni nombres de archivo
   (corrección de Gonzalo).
+
+## Coherencia entre .sav, bases, tablas, PPT y Word (2026-11-04)
+
+Pedido de Gonzalo: «todo debe ser coherente». El Word y el PPT no se tocan: los
+corrige otra persona. Aquí solo se registra lo encontrado.
+
+| Cruce | Resultado |
+|---|---|
+| Base ↔ anexo de frecuencias (3 actores) | 197 de 197 bloques se reproducen contando la base; código → etiqueta igual en instrumento, base y libro. Chequeo probado rompiendo un conteo y una etiqueta: cayeron los dos |
+| `.sav` 28-10 ↔ base de estudiantes | 279 de 279 casos emparejados por `respondent_id`; todas las variables idénticas celda a celda. Única diferencia: género, que el proyecto agrupa (fluido y agénero en «No binario») igual que la columna `q0003_n` del `.sav`, con otros códigos; misma partición 60/199/6/14 |
+| PPT FINAL_v4 ↔ proyecto v1-12 | El mazo regenerado desde v1-12 es idéntico texto por texto; solo difiere un punto final en la lámina 25 |
+| PPT FINAL_v4 ↔ anexo | 168 bloques pregunta × actor y 20 TTB de competencias cuadran (TTB = suma de lo rotulado, regla del recetario; en las láms. 37-38, sin partes rotuladas, TTB de la suma exacta). Chequeo probado rompiendo una cifra, un TTB y un Sí/No: cayeron los tres |
+| **PPT lám. 12 y Word gráficos 19-20** | **Títulos corridos.** El gráfico titulado «servicio de Bienestar psicológico» muestra Servicio de salud (docentes 16/53/9/23, TTB 62); el titulado «oferta de actividades culturales» muestra Bienestar psicológico (docentes 3/17/42/9/30, TTB 51). Actividades culturales sale correcta en la lám. 13 / gráfico 21, así que figura dos veces y «Servicio de salud» no figura. Vive en el plan del proyecto (títulos del plan); se reproduce al regenerar. Lo corrige quien ve el informe |
+| Word ↔ PPT | Los gráficos del Word son imágenes. Los títulos de Bienestar repiten el error de arriba; las cifras de competencias citadas en el texto coinciden con el PPT. No se comparó imagen por imagen el resto |
+
+Observaciones menores, sin acción tomada:
+
+- Las tablas de frecuencias rotulan la residual «Otros» y el instrumento, la base y el
+  libro, «Otro (especifique)».
+- El anexo de estudiantes lista «Género Fluido 0» y «Agénero 0» tras la agrupación en
+  «No binario» (6); es correcto, pero puede leerse como contradicción con el PPT.
+- La base de estudiantes trae `p4` (código PUCP de los 279) y las tres bases,
+  `respondent_id` y `collector_id`: ver ítem 3.
+
