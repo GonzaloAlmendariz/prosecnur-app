@@ -28,7 +28,7 @@
                                   color_titulo = .std_color("coral"), size_titulo = 12,
                                   color_subtitulo = .std_color("azul"), size_subtitulo = 10,
                                   color_nota_pie = .std_color("azul"), size_nota_pie = 8,
-                                  unidad = "", ancho = NULL, mostrar_frecuencia = FALSE) {
+                                  unidad = "", ancho = NULL, mostrar_frecuencia = FALSE, marca_mediana = "linea") {
   cara <- function(token) if (token %in% textos_negrita) "bold" else "plain"
   mediana <- stats::median(x)
   tope <- suppressWarnings(as.numeric(limite_superior)[1])
@@ -76,7 +76,8 @@
   attr(p, "pulso_histograma_recetario") <- c(list(mediana = mediana, niveles = niveles, conteos = cnt), rt)
   # ADR 0093 (N4): lo que afirma el histograma para la lámina nativa; las cifras son las mismas que rotula el gráfico.
   attr(p, "pulso_espec") <- list(version = "histograma/1", tipo = "histograma", rotulos = rot, valores = valor, cifras = lab,
-                                 conteos = cnt, mediana = mediana, x_mediana = x_med - 1, texto_mediana = texto_med, enteros = enteros)
+                                 conteos = cnt, mediana = mediana, x_mediana = x_med - 1, texto_mediana = texto_med, enteros = enteros,
+                                 marca_mediana = .lam_hist_marca(marca_mediana))   # v7.11: «linea» (defecto) o «triangulo»
   p
 }
 

@@ -7,8 +7,8 @@
 #   - arriba, la franja 100% del total de la pregunta (cualquier pregunta de categorías: una parte por categoría o las
 #     partes que declare la lámina), con la llave sobre las partes que forman una serie («Trabaja 35%»);
 #   - abajo, a la izquierda, la PROTAGONISTA: el cruce dibujado por una pieza enchufable;
-#   - abajo, a la derecha, el panel lateral: el rótulo de cada serie a la altura de su último punto, su chip (tendencia
-#     u otra marca de la serie) y la lectura en gris, sin marcas;
+#   - abajo, a la derecha, el panel lateral con la lectura en gris, sin marcas. Si la protagonista devuelve ítems de
+#     panel (rótulo y chip de cada serie), van ahí; `lineas_nivel` los rotula al final de cada línea (v7.11, lámina 45);
 #   - base y fuente al pie, con el pie de las demás láminas (`.lam_pie`).
 #
 # Protagonistas (`espec$protagonista`, registro `.lam_tyc_protagonista`):
@@ -197,7 +197,9 @@
     .lam_tyc_txt(lz, espec$seccion, x0, y + 0.22, 8, .std_pt("pregunta"), .std_color("azul"), bold = TRUE, nombre = "seccion:titulo")
     y <- y + 0.45
   }
-  ancho_panel <- 3.6
+  # v7.11, lámina 45: las series se rotulan al final de su línea (lamina_lineas_nivel.R); el panel sólo lleva la lectura y
+  # cede ancho a la protagonista.
+  ancho_panel <- 3.0
   x_panel <- xr - ancho_panel
   caja <- list(l = x0, t = y + 0.1, r = x_panel - 0.3, b = .std_comp("pie", "base_y") - 0.12)
   prot <- .lam_tyc_protagonista(espec$protagonista)

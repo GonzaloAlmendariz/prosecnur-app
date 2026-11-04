@@ -145,7 +145,9 @@ test_that("en la ruta real una categórica de dos opciones que suman 100 sale co
 
 test_that("las barras agrupadas van de 0 a 100 % por defecto y con eje libre escalan al máximo (Gonzalo, 2026-10-09)", {
   largo <- function(e) { lz <- .lam_lienzo(); .lam_barras_h(lz, e, 0.5, 2, 12, wlab = 2, g = 0.3, fila = 0.5)
-    bb <- do.call(rbind, lz$cajas); (bb[, 3] - bb[, 1])[c(2, 5)] }
+    # Por nombre: con la escala de 0 a 100% cada barra lleva antes su pista (v7.11, lamina_barras_pista.R).
+    es_barra <- vapply(lz$formas, function(x) grepl('name="barra"', x, fixed = TRUE), TRUE)
+    bb <- do.call(rbind, lz$cajas[es_barra]); bb[, 3] - bb[, 1] }
   e <- preparar_categorica(c("A", "B"), c(0.5, 0.25), c("50%", "25%"))
   expect_equal(largo(e)[1] / 9.2, 0.5 / 0.56, tolerance = 1e-6)          # sin marca: al máximo con aire (recetario)
   e$escala_completa <- TRUE

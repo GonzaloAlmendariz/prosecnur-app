@@ -1166,8 +1166,9 @@
            default = FALSE,
            descripcion = "Pinta de gris “Prefiero no responder”, “No sabe”, “Otros”…; apagado por defecto. Siguen al final de la lista, con o sin gris."),
       # ADR 0130 (Gonzalo, 2026-11-04: «no entiendo por qué usamos paleta de colores y es barras agrupadas»).
+      # `p_barras_agrupadas()` no lo tiene como formal: viaja por overrides (test-graficos-controles-llegan.R).
       list(name = "colorear_por_opcion", label = "Un color por opción", tipo_input = "bool", grupo = "estilo",
-           default = FALSE,
+           default = FALSE, via_overrides = TRUE,
            descripcion = "Con una sola serie, pinta cada barra con el color que la paleta del estudio da a su opción. Apagado, todas van en un color."),
       list(name = "invertir_barras", label = "Invertir el orden de las barras", tipo_input = "bool", grupo = "filtro",
            default = TRUE, descripcion = "Dibuja las barras en el orden contrario."),   # O7c: formal del constructor desde 383c1fe2b
@@ -1215,6 +1216,15 @@
       list(name = "marcas_eje", label = "Marcas del eje", tipo_input = "bool", grupo = "estilo",
            default = FALSE,
            descripcion = "Escribe 0, 25, 50, 75 y 100 % bajo las barras, con líneas guía. Sin ellas, cada barra lleva sólo su cifra."),
+      # Revisión del PPT v7.11 de CCSS (lámina 9): «un gris suave que muestre el 100%». Lo dibuja la lámina nativa
+      # (lamina_barras_pista.R). `p_*()` no lo tiene como formal: viaja por overrides hasta el graficador.
+      list(name = "pista_barras", label = "Pista hasta el 100%", tipo_input = "choice", grupo = "estilo", default = "auto",
+           via_overrides = TRUE,
+           choices = list(
+             list(value = "auto", label = "Automática", hint = "Con la escala de 0 a 100% y en las láminas de población."),
+             list(value = "siempre", label = "Siempre", hint = "La escala pasa a ir de 0 a 100%."),
+             list(value = "nunca", label = "Nunca", hint = "La barra sola, sin pista.")),
+           descripcion = "Pinta bajo cada barra una pista gris suave que llega al 100%, para leer cada parte frente al total."),
       list(name = "canvas_w_etiquetas", label = "Espacio para etiquetas", tipo_input = "number", grupo = "canvas",
            default = 0.36,
            descripcion = "Ancho relativo reservado para textos largos a la izquierda del gráfico.")
@@ -1254,6 +1264,15 @@
       list(name = "residuales_gris", label = "Residuales en gris", tipo_input = "bool", grupo = "estilo",
            default = FALSE,
            descripcion = "Pinta de gris “Prefiero no responder”, “No sabe”, “Otros”…; apagado por defecto. Siguen al final de la lista, con o sin gris."),
+      # Revisión del PPT v7.11 de CCSS (lámina 9): «un gris suave que muestre el 100%». Lo dibuja la lámina nativa
+      # (lamina_barras_pista.R). `p_*()` no lo tiene como formal: viaja por overrides hasta el graficador.
+      list(name = "pista_barras", label = "Pista hasta el 100%", tipo_input = "choice", grupo = "estilo", default = "auto",
+           via_overrides = TRUE,
+           choices = list(
+             list(value = "auto", label = "Automática", hint = "Con la escala de 0 a 100% y en las láminas de población."),
+             list(value = "siempre", label = "Siempre", hint = "La escala pasa a ir de 0 a 100%."),
+             list(value = "nunca", label = "Nunca", hint = "La barra sola, sin pista.")),
+           descripcion = "Pinta bajo cada barra una pista gris suave que llega al 100%, para leer cada parte frente al total."),
       list(name = "excluir_opciones", label = "Opciones a ocultar", tipo_input = "codigos_list", grupo = "filtro",
            descripcion = "Etiquetas/códigos que no deben aparecer en el gráfico. Los porcentajes se recalculan sobre las opciones visibles."),
       list(name = "max_categorias", label = "Máximo de categorías", tipo_input = "number", grupo = "filtro",
@@ -1627,6 +1646,14 @@
       list(name = "mostrar_frecuencia", label = "Mostrar frecuencia junto al %", tipo_input = "bool", grupo = "valores",
            default = FALSE,
            descripcion = "Agrega el conteo al porcentaje: 42% (76) en vez de 42%. Apagado por defecto."),
+      # Revisión del PPT v7.11 de CCSS (lámina 11): Gonzalo aún no elige entre la línea y el triángulo; la línea es el
+      # defecto. Lo dibuja la lámina nativa (graficador_histograma_lamina.R) y viaja por overrides.
+      list(name = "marca_mediana", label = "Marca de la mediana", tipo_input = "choice", grupo = "valores", default = "linea",
+           via_overrides = TRUE,
+           choices = list(
+             list(value = "linea", label = "Línea", hint = "Una línea fina sube desde la base hasta su rótulo, por el borde de la barra."),
+             list(value = "triangulo", label = "Triángulo", hint = "Un triángulo bajo el eje con el rótulo a su lado.")),
+           descripcion = "Cómo se marca la mediana en el histograma de una barra por valor."),
       list(name = "mostrar_resumen_grupos_subtitulo", label = "Resumen de grupos en subtítulo", tipo_input = "bool", grupo = "valores",
            default = FALSE,
            descripcion = "Agrega al subtítulo la distribución general de los grupos visibles. Ejemplo: Sexo: Hombre 82% · Mujer 18%."),

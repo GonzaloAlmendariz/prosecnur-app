@@ -195,44 +195,55 @@
   doc <- officer::add_slide(doc, layout = layout, master = master)
   doc <- .lam_titulo(doc, titulo, ante = "Cómo leer este informe")
   lz <- .lam_lienzo()
-  .lam_txt(lz, tx$frase_ppt, .std_geom("margen_izq") - 0.02, 1.45, 11.4, 0.9, 15, azul, nombre = "lectura:definicion")
+  # Ítem 1 de la v7.11 RV («aún se ve algo vacía»): la tarjeta de ejemplo ocupa la mitad izquierda a escala 1.75, la
+  # diferencia en puntos llena la derecha con su llave, y la leyenda va en una fila más grande; el conjunto se reparte en
+  # el alto que queda entre la definición y el método.
+  W <- .std_geom("ancho"); ML <- .std_geom("margen_izq")
+  .lam_txt(lz, tx$frase_ppt, ML - 0.02, 1.4, W - 2 * ML, 0.9, 16, azul, nombre = "lectura:definicion")
   t <- lectura$tarjeta
-  Z <- 1.3; cw <- 4.9; cx <- 1.55; cy <- 2.55
+  Z <- 1.75; cw <- 4.1
   ch <- .lam_tarjeta_alto(t, cw, character(0), lectura$tipo)   # ampliada: con los nombres completos, como se dibuja
+  alto_ley <- 0.42; aire <- 0.5
+  y_top <- 2.45; y_fin <- 6.2
+  bloque <- ch * Z + aire + alto_ley
+  cy <- y_top + max(0, (y_fin - y_top - bloque) / 2); cx <- ML + 0.15
   .lam_tarjeta_dibujar(.lam_tarjeta_backend_zoom(lz, Z, cx, cy), t, list(l = 0, t = 0, w = cw, h = ch), lectura$rotulo_cruce,
                        cortos = character(0), tipo = lectura$tipo)
   # Llave sobre los grupos y la diferencia en puntos (como el «TOP TWO BOX 70%» de «Cómo leer las escalas»).
   y_g <- .lam_tarjeta_y_grupos(t, cw, lectura$tipo)
   yG1 <- cy + y_g[1] * Z; yG2 <- cy + y_g[2] * Z; xFin <- cx + cw * Z
-  .lam_linea(lz, xFin + 0.15, yG1, xFin + 0.35, yG1, azul, pt = 1.5, nombre = "lectura:llave")
-  .lam_linea(lz, xFin + 0.35, yG1, xFin + 0.35, yG2, azul, pt = 1.5, nombre = "lectura:llave")
-  .lam_linea(lz, xFin + 0.15, yG2, xFin + 0.35, yG2, azul, pt = 1.5, nombre = "lectura:llave")
-  .lam_linea(lz, xFin + 0.35, (yG1 + yG2) / 2, xFin + 0.8, (yG1 + yG2) / 2, azul, pt = 1.5, nombre = "lectura:llave")
+  .lam_linea(lz, xFin + 0.2, yG1, xFin + 0.45, yG1, azul, pt = 1.75, nombre = "lectura:llave")
+  .lam_linea(lz, xFin + 0.45, yG1, xFin + 0.45, yG2, azul, pt = 1.75, nombre = "lectura:llave")
+  .lam_linea(lz, xFin + 0.2, yG2, xFin + 0.45, yG2, azul, pt = 1.75, nombre = "lectura:llave")
+  .lam_linea(lz, xFin + 0.45, (yG1 + yG2) / 2, xFin + 0.95, (yG1 + yG2) / 2, azul, pt = 1.75, nombre = "lectura:llave")
   g <- t$grupos
   dif <- floor(round(g$p[1], 6) + 0.5) - floor(round(g$p[nrow(g)], 6) + 0.5)
-  xC <- xFin + 0.95; wC <- .std_geom("ancho") - 0.5 - xC; yC <- (yG1 + yG2) / 2
-  .lam_txt(lz, "DIFERENCIA ENTRE GRUPOS", xC, yC - 0.8, wC, 0.3, 12, azul, bold = TRUE, align = "center", nombre = "lectura:rotulo")
-  .lam_txt_tramos(lz, list(list(format(dif), TRUE)), xC + wC / 2 - 0.9, yC - 0.52, 1.1, 0.85, size = 50, color = azul, nombre = "lectura:puntos")
-  .lam_txt(lz, "puntos", xC + wC / 2 + 0.15, yC - 0.12, 1.4, 0.45, 22, azul, bold = TRUE, nombre = "lectura:puntos:unidad")
-  .lam_txt(lz, sprintf("%s − %s", .tarjetas_pct(g$p[1]), .tarjetas_pct(g$p[nrow(g)])), xC, yC + 0.33, wC, 0.32, 13, suave,
+  xC <- xFin + 1.1; wC <- W - ML - xC; yC <- (yG1 + yG2) / 2
+  .lam_txt(lz, "DIFERENCIA ENTRE GRUPOS", xC, yC - 1.05, wC, 0.32, 14, azul, bold = TRUE, align = "center", nombre = "lectura:rotulo")
+  .lam_txt_tramos(lz, list(list(format(dif), TRUE)), xC + wC / 2 - 1.25, yC - 0.72, 1.45, 1.1, size = 66, color = azul, nombre = "lectura:puntos")
+  .lam_txt(lz, "puntos", xC + wC / 2 + 0.2, yC - 0.18, 1.6, 0.5, 26, azul, bold = TRUE, nombre = "lectura:puntos:unidad")
+  .lam_txt(lz, sprintf("%s − %s", .tarjetas_pct(g$p[1]), .tarjetas_pct(g$p[nrow(g)])), xC, yC + 0.42, wC, 0.36, 15, suave,
            align = "center", nombre = "lectura:resta")
-  # Leyenda en una fila, centrada bajo el ejemplo.
-  yl <- cy + ch * Z + 0.45
+  # Leyenda en una fila bajo el ejemplo, a lo ancho de la lámina.
+  yl <- cy + ch * Z + aire
   items <- list(list("tri", "up", tx$mayor), list("tri", "down", tx$menor), list("muestra", FALSE, tx$nivel_1), list("muestra", TRUE, tx$nivel_2))
-  anchos <- vapply(items, function(it) (if (identical(it[[1]], "tri")) 0.13 else 0.55) + 0.09 + .lam_ancho_tinta(it[[3]], 11.5) + 0.05, numeric(1))
-  total <- sum(anchos) + 0.42 * (length(items) - 1L)
-  x <- (.std_geom("ancho") - total) / 2
+  pt_ley <- 13
+  anchos <- vapply(items, function(it) (if (identical(it[[1]], "tri")) 0.15 else 0.55) + 0.1 + .lam_ancho_tinta(it[[3]], pt_ley) + 0.05, numeric(1))
+  calle <- (W - 2 * ML - sum(anchos)) / (length(items) - 1L)
+  calle <- min(max(calle, 0.42), 1.2)
+  total <- sum(anchos) + calle * (length(items) - 1L)
+  x <- (W - total) / 2
   for (k in seq_along(items)) {
     it <- items[[k]]
     if (identical(it[[1]], "tri")) {
-      .lam_tarjeta_triangulo(lz, x, yl + 0.14, it[[2]], FALSE, alto = 0.11)
-      xt <- x + 0.13 + 0.09
+      .lam_tarjeta_triangulo(lz, x, yl + 0.15, it[[2]], FALSE, alto = 0.13)
+      xt <- x + 0.15 + 0.1
     } else {
       .lam_tarjeta_muestra(lz, x, yl, it[[2]])
-      xt <- x + 0.55 + 0.09
+      xt <- x + 0.55 + 0.1
     }
-    .lam_txt(lz, it[[3]], xt - 0.1, yl - 0.02, .lam_ancho_tinta(it[[3]], 11.5) + 0.3, 0.32, 11.5, azul, nombre = "lectura:leyenda")
-    x <- x + anchos[k] + 0.42
+    .lam_txt(lz, it[[3]], xt - 0.1, yl - 0.04, .lam_ancho_tinta(it[[3]], pt_ley) + 0.3, 0.36, pt_ley, azul, nombre = "lectura:leyenda")
+    x <- x + anchos[k] + calle
   }
   .lam_txt(lz, tx$metodo_ppt, 0.48, 6.4, .std_geom("ancho") - 0.98, 0.3, 9.5, suave, align = "center", nombre = "lectura:metodo")
   doc <- .lam_agrupar(doc, lz, nombre = "prosecnur:lectura_diferencias")

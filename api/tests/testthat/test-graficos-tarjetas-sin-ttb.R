@@ -115,3 +115,40 @@ test_that("con tarjetas, la columna de premisas se angosta hasta donde ninguna p
   expect_equal(.lam_escala_columna_premisa(prem, 2.99, e), 2.99)
   expect_lt(withr::with_options(list(prosecnur.lam_reserva_derecha = 2.5), .lam_escala_columna_premisa(prem, 2.99, e)), 2.99)
 })
+
+test_that("categórica: la tarjeta va junto a la barra de su categoría, con su guía y sin comillas", {
+  # Ítem 9 de la v7.11 RV: «no me gusta que tenga comillas … ¿por qué la tarjeta y las barras están tan distantes?».
+  expect_identical(.tarjetas_rotulo_fila("Posgrado", "opcion_unica"), "Posgrado")
+  doc <- officer::read_pptx(system.file("plantillas", "plantilla_16_9.pptx", package = "prosecnurapp"))
+  p <- ggplot2::ggplot()
+  attr(p, "pulso_espec") <- preparar_categorica(c("Hasta secundaria completa", "Superior técnica", "Universitaria", "Posgrado"),
+                                               c(.17, .20, .40, .23), c("17%", "20%", "40%", "23%"))
+  tj <- list(cruce = "sexo_marco", fila = "Posgrado", total = 23, cifra_total = "23%", fragil = TRUE, brecha = 17,
+             grupos = data.frame(codigo = c("2", "1"), etiqueta = c("Hombre", "Mujer"), p = c(32, 15), dir = c("up", "down"),
+                                 fragil = TRUE, stringsAsFactors = FALSE))
+  attr(p, "pulso_tarjetas") <- list(tarjetas = list(tj), total = 1L, tipo = "opcion_unica",
+                                    opcion = .tarjetas_opcion(list(tarjetas_diferencias = TRUE)), rotulos_cruce = c(sexo_marco = "Sexo"))
+  doc <- .lam_tarjetas_slide_1(doc, p, list(meta = list(), slots = list()), "Nivel educativo del padre",
+                               list(var = "x", .element_type = "barras_agrupadas"),
+                               list(base = list(args = list())), "Graficos2", "Office Theme", NULL,
+                               base_auto = function(...) "Base: 301", nota_de = function(...) NULL)
+  f <- tempfile(fileext = ".pptx"); print(doc, target = f)
+  d <- tempfile(); utils::unzip(f, "ppt/slides/slide1.xml", exdir = d)
+  sl <- xml2::read_xml(file.path(d, "ppt/slides/slide1.xml")); ns <- xml2::xml_ns(sl)
+  caja <- function(nombre) {
+    sp <- xml2::xml_find_all(sl, sprintf("//p:sp[p:nvSpPr/p:cNvPr[@name='%s']]", nombre), ns)
+    v <- function(x, a) as.numeric(xml2::xml_attr(xml2::xml_find_first(sp, paste0(".//a:", x)), a)) / 914400
+    data.frame(x = v("off", "x"), y = v("off", "y"), w = v("ext", "cx"), h = v("ext", "cy"), texto = xml2::xml_text(sp))
+  }
+  xml <- paste(readLines(file.path(d, "ppt/slides/slide1.xml"), warn = FALSE), collapse = "")
+  expect_false(grepl("«Posgrado»", xml, fixed = TRUE))
+  t <- caja("tarjeta:95"); b <- caja("barra"); r <- caja("rotulo")
+  fin <- max(b$x + b$w)
+  borde <- .std_valor("ppt", "geometria", "ancho") - .std_valor("ppt", "geometria", "margen_der")
+  expect_lt(t$x - fin, 1.6)                                              # junto a las barras, no en el borde
+  expect_lt(t$x + t$w, borde + 1e-6)
+  punto <- caja("tarjeta:guia:punto")
+  expect_identical(nrow(punto), 1L)
+  pos <- r[grepl("Posgrado", r$texto), ]
+  expect_lt(abs((punto$y + punto$h / 2) - (pos$y + pos$h / 2)), 0.2)     # la guía sale de la fila de «Posgrado»
+})

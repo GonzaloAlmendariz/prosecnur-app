@@ -28,7 +28,8 @@
     # Dos gráficos lado a lado (133 y, con narrativa, 136): media columna cada uno y el filete vertical al medio.
     # Con tarjetas por gráfico (ADR 0129 §6) los paneles se acortan lo que mide su franja (lamina_tarjetas_ranuras.R).
     graficos_2 = list(
-      paneles = list(P(ml, yt, col2, yf - yt - .lam_reserva_inferior()), P(xr, yt, col2, yf - yt - .lam_reserva_inferior())),
+      paneles = list(c(P(ml, yt, col2, yf - yt - .lam_reserva_inferior(1L)), list(receta = .lam_receta_ranura(1L))),
+                     c(P(xr, yt, col2, yf - yt - .lam_reserva_inferior(2L)), list(receta = .lam_receta_ranura(2L)))),
       filetes = list(list(tipo = "v", x = xm, y0 = yt, y1 = yf))),
     graficos_3_2mas1 = list(
       paneles = list(P(ml, yt, col2, 2.15), P(ml, yt + 2.35, col2, yf - yt - 2.35), P(xr, yt, col2, yf - yt)),
@@ -147,7 +148,7 @@
 #'   rótulo común y el piso de panel. `NULL`, la regla anterior.
 #' @keywords internal
 .lam_panel_geo <- function(espec, x, y, w, h, pregunta = NULL, publico = NULL, leyenda = TRUE, receta = NULL, estilo = NULL) {
-  if (!is.null(receta)) estilo <- NULL   # la corona y la tira dibujan su receta del recetario (p160, m2c), no el estilo
+  if (!is.null(receta) && !isTRUE(receta$conserva_estilo)) estilo <- NULL   # la corona y la tira dibujan su receta del recetario (p160, m2c), no el estilo
   alto <- h >= 3.5; fin <- y + h
   # Las mismas líneas que dibuja `.lam_panel_titulo` (lamina_paneles.R): corte por palabras sobre la tinta.
   dy <- if (!is.null(pregunta) && nzchar(pregunta)) {
@@ -232,7 +233,7 @@
 #' @return El `y` donde terminó lo dibujado (para colocar una leyenda compartida debajo).
 #' @keywords internal
 .lam_panel_mixto <- function(lz, espec, x, y, w, h, pregunta = NULL, publico = NULL, leyenda = TRUE, receta = NULL, estilo = NULL) {
-  if (!is.null(receta)) estilo <- NULL
+  if (!is.null(receta) && !isTRUE(receta$conserva_estilo)) estilo <- NULL
   if (!is.null(receta$lateral)) {
     # La tira (P4): el enunciado y su público en la columna izquierda; el gráfico a su derecha, sin encabezado.
     if (!is.null(pregunta) && nzchar(pregunta)) .lam_panel_titulo(lz, x, y, receta$lateral$w_titulo, pregunta, publico)
@@ -291,6 +292,8 @@
   # de cualquier lámina de varios gráficos (antetítulo y título desde el margen).
   doc <- .lam_titulo(doc, titulo, ante = ante, sub = sub)
   lz <- .lam_lienzo()
+  # v7.11, lámina 9: en las láminas de población las barras de una serie van sobre su pista hasta el 100% (lamina_barras_pista.R).
+  if (grepl("^poblacion", tipo)) especs <- lapply(especs, function(e) { if (is.list(e) && identical(e$tipo, "categorica")) e$en_poblacion <- TRUE; e })
   compartida <- .lam_mixta_compartida(especs, geo$paneles)
   # Ítems 18–20: un estilo para toda la lámina y, si hace falta, el alto repartido entre sus dos filas (lamina_perfil_panel.R).
   plan <- .lam_perfil_plan(especs, geo, preguntas, publicos %||% vector("list", length(especs)), compartida)

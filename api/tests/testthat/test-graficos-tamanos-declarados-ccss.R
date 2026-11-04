@@ -102,11 +102,11 @@ test_that("4: el histograma con `mostrar_frecuencia` rotula «conteo (porcentaje
   sin <- .tdc_piezas(.tdc_render(p_histograma("edad")), "histograma:cifra")
   expect_false(any(grepl("(", sin$texto, fixed = TRUE)))
   x <- .tdc_render(p_histograma("edad", mostrar_frecuencia = TRUE))
-  con <- .tdc_piezas(x, "histograma:cifra"); pct <- .tdc_piezas(x, "histograma:cifra_pct")
-  expect_true(all(grepl("^[0-9,]+", con$texto)))
-  # Con una columna angosta el porcentaje baja a su propia línea; las dos juntas dicen «conteo (porcentaje)».
-  # «(<1%)» en la barra de un caso que redondea a cero (U5, revisión del v7).
-  if (nrow(pct)) expect_true(all(grepl("^\\(<?[0-9]+%\\)$", pct$texto))) else expect_true(all(grepl("^[0-9,]+ \\(<?[0-9]+%\\)$", con$texto)))
+  # v7.11, lámina 11: la lámina nativa jerarquiza la cifra. El porcentaje va arriba («histograma:cifra») y los casos debajo,
+  # más tenues («histograma:casos»); la espec sigue diciendo «conteo (porcentaje)». «<1%» en la barra de un caso (U5).
+  con <- .tdc_piezas(x, "histograma:cifra"); casos <- .tdc_piezas(x, "histograma:casos")
+  expect_true(all(grepl("^<?[0-9]+%$", con$texto)))
+  expect_equal(nrow(casos), nrow(con)); expect_true(all(grepl("^[0-9,]+$", casos$texto)))
   expect_identical(.histograma_cifras_en_columna(c("103 (26%)", "9 (2%)"), wcol = 0.75)$lineas, 2L)
   expect_identical(.histograma_cifras_en_columna(c("103 (26%)", "9 (2%)"), wcol = 3)$lineas, 1L)
 })

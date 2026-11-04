@@ -274,6 +274,8 @@
 #'   entre graficos. Si `TRUE`, ajusta el maximo al valor observado.
 #' @param marcas_eje Con la escala de 0 a 100 %, escribe las marcas 0, 25, 50, 75 y 100 % bajo las barras (variante
 #'   del recetario; Gonzalo, 2026-10-09: «Opcional brindar ambas opciones»). Sin efecto con el eje libre.
+#' @param pista_barras Pista gris hasta el 100% bajo cada barra de la lámina nativa: `"auto"` (con la escala de 0 a
+#'   100% y en las láminas de población), `"siempre"` o `"nunca"` (lamina_barras_pista.R).
 #' @param color_fondo Color de fondo del grafico. Por defecto es transparente (`NA`).
 #'
 #' @param grosor_barras Grosor de las barras (ancho en `geom_col()`).
@@ -450,6 +452,7 @@ graficar_barras_agrupadas <- function(
     lineheight_eje_y          = NULL,
     usar_eje_libre            = FALSE,
     marcas_eje                = FALSE,
+    pista_barras              = "auto",   # v7.11: pista gris hasta el 100% en la lámina nativa (lamina_barras_pista.R)
     color_fondo               = NA,
     font_family               = "Arial",
 
@@ -976,7 +979,7 @@ graficar_barras_agrupadas <- function(
   }, error = function(e) { message("[espec agrupada] ", conditionMessage(e)); NULL }) else NULL
   # Gonzalo (2026-10-09): «si vamos a usar barras agrupadas es mejor que por defecto vayan de 0 a 100%». La lámina
   # nativa escala a 100 % salvo que se pida el eje libre, como ya hacía el eje de este ggplot.
-  if (!is.null(espec_agrupada)) { espec_agrupada$escala_completa <- !isTRUE(usar_eje_libre); espec_agrupada$marcas_eje <- isTRUE(marcas_eje) && !isTRUE(usar_eje_libre); espec_agrupada$colorear_por_opcion <- isTRUE(colorear_por_opcion) }
+  if (!is.null(espec_agrupada)) { espec_agrupada$escala_completa <- !isTRUE(usar_eje_libre); espec_agrupada$marcas_eje <- isTRUE(marcas_eje) && !isTRUE(usar_eje_libre); espec_agrupada$colorear_por_opcion <- isTRUE(colorear_por_opcion); espec_agrupada$pista <- pista_barras }
   n_categorias <- length(cat_lvls)
   canvas_min_filas_eff <- suppressWarnings(as.numeric(canvas_min_filas)[1])
   if (!is.finite(canvas_min_filas_eff) || is.na(canvas_min_filas_eff) || canvas_min_filas_eff < 1) {
@@ -1361,7 +1364,7 @@ graficar_barras_agrupadas <- function(
                             if (".n_label_val" %in% names(df_lab)) df_lab$.n_label_val[o_lab] else NULL, residuales_al_final = FALSE, sin_ceros = sin_ceros_espec,
                             n_base_casos = if (length(n_base_casos_agr) == 1L) n_base_casos_agr, casos = mostrar_n_en_etiquetas, resaltar = resaltar_mayor, resaltar_opciones = resaltar_opciones, residuales_gris = isTRUE(residuales_gris)),
         error = function(e) espec_agrupada)
-      if (!is.null(espec_agrupada)) { espec_agrupada$escala_completa <- !isTRUE(usar_eje_libre); espec_agrupada$marcas_eje <- isTRUE(marcas_eje) && !isTRUE(usar_eje_libre); espec_agrupada$colorear_por_opcion <- isTRUE(colorear_por_opcion) }
+      if (!is.null(espec_agrupada)) { espec_agrupada$escala_completa <- !isTRUE(usar_eje_libre); espec_agrupada$marcas_eje <- isTRUE(marcas_eje) && !isTRUE(usar_eje_libre); espec_agrupada$colorear_por_opcion <- isTRUE(colorear_por_opcion); espec_agrupada$pista <- pista_barras }
     }
 
     umbral_posicion_eff <- umbral_posicion

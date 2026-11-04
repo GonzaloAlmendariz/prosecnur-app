@@ -123,21 +123,34 @@
   }
 }
 
-#' Gráfico de apoyo en barras: rótulo, barra y cifra con su marca; la línea roja del total
-#' @param x_max Máximo común de la escala (0-100).
+#' Alto del encabezado de un gráfico de apoyo (título y base), para que los de una lámina arranquen a la misma altura
 #' @keywords internal
-.lam_halla_barras <- function(lz, gd, x, y, w, y1, x_max) {
+.lam_halla_alto_encabezado <- function(gd, w) {
+  length(.lam_halla_lineas(gd$titulo, w, 11, 2L, TRUE)) * 11 * 1.2 / 72 + 0.03 +
+    length(.lam_halla_lineas(gd$base, w, 8.5, 2L)) * 8.5 * 1.2 / 72 + 0.12
+}
+
+#' Gráfico de apoyo en barras: rótulo, barra y cifra con su marca; la línea roja del total
+#'
+#' Las filas se reparten en todo el alto que queda bajo el encabezado, hasta `y1` (revisión del PPT v7.11 de CCSS,
+#' lámina 7: «los elementos no aprovechan bien el alto a veces»). Antes la fila tenía un tope de 0.5 in y un gráfico de
+#' dos o tres barras dejaba un bloque vacío al pie de su tarjeta. La barra engrosa con su fila hasta 0.34 in.
+#' @param x_max Máximo común de la escala (0-100).
+#' @param y_barras Donde empiezan las barras (el encabezado más alto de la lámina); `NULL`, bajo el propio encabezado.
+#' @keywords internal
+.lam_halla_barras <- function(lz, gd, x, y, w, y1, x_max, y_barras = NULL) {
   azul <- .std_color("azul"); suave <- .std_color("texto_suave"); coral <- .std_color("coral")
   y <- .lam_halla_escribir(lz, .lam_halla_lineas(gd$titulo, w, 11, 2L, TRUE), x, y, w, 11, azul, bold = TRUE, nombre = "hallazgo:grafico:titulo")
   y <- .lam_halla_escribir(lz, .lam_halla_lineas(gd$base, w, 8.5, 2L), x, y + 0.03, w, 8.5, suave, nombre = "hallazgo:grafico:base") + 0.12
+  y <- max(y, y_barras %||% y)
   f <- gd$filas; n <- nrow(f)
   if (!n) return(invisible(NULL))
   reserva_total <- if (is.null(gd$total)) 0 else 0.3
-  h_fila <- min(0.5, (y1 - y - reserva_total) / n)
+  h_fila <- (y1 - y - reserva_total) / n
   if (h_fila < 0.24) .dif_aviso("Hallazgos clave", sprintf("el gráfico «%s» tiene %d barras y no caben en la tarjeta.", gd$titulo, n))
   w_rot <- min(1.7, max(.lam_ancho_tinta(f$rotulo, 10)) + 0.2); xb <- x + w_rot; wb <- w - w_rot - 0.75
   X <- function(p) xb + wb * max(0, p) / x_max
-  bar <- min(0.24, h_fila * 0.55)
+  bar <- min(0.34, h_fila * 0.5)
   for (i in seq_len(n)) {
     yc <- y + (i - 0.5) * h_fila
     lr <- .lam_halla_lineas(f$rotulo[i], w_rot, 10, 2L)
@@ -179,6 +192,8 @@
   n_lin <- max(vapply(lin, length, 1L))
   maximo <- max(unlist(lapply(ks, function(k) c(k$grafico$filas$p, k$grafico$total))), 1, na.rm = TRUE)
   x_max <- min(100, maximo * 1.12)
+  # Las barras de las tres tarjetas arrancan a la misma altura: la del encabezado de gráfico más alto.
+  enc <- max(0, unlist(lapply(ks, function(k) if (!is.null(k$grafico)) .lam_halla_alto_encabezado(k$grafico, wi))))
   for (i in seq_len(n)) {
     k <- ks[[i]]; l <- x0 + (i - 1L) * (w + sep); t <- y0
     .lam_halla_marco(lz, l, t, w, y1 - y0)
@@ -189,7 +204,7 @@
     .lam_halla_comparacion(lz, k$comparacion, l + pad, y + 0.48, wi)
     y_sep <- y + 0.72
     .lam_caja(lz, l + pad, y_sep, wi, 0.01, .std_color("filete"), nombre = "hallazgo:separador")
-    if (!is.null(k$grafico)) .lam_halla_barras(lz, k$grafico, l + pad, y_sep + 0.18, wi, y1 - 0.35, x_max)
+    if (!is.null(k$grafico)) .lam_halla_barras(lz, k$grafico, l + pad, y_sep + 0.18, wi, y1 - 0.35, x_max, y_barras = y_sep + 0.18 + enc)
   }
 }
 
