@@ -1148,7 +1148,12 @@ graficar_barras_agrupadas <- function(
   usar_color_categorias <- !is.null(colores_categorias) &&
     length(cols_porcentaje) == 1L &&
     is.null(colores_series)
-  if (isTRUE(usar_color_categorias)) {
+  # `residuales_gris` en la agrupada de una serie sin leyenda: el relleno va por categoría para poder pintar de gris
+  # «Otros», «No sabe» o «Ninguna». Sin esto el mando sólo llegaba a la espec nativa y la ruta ggplot (la que toma una
+  # categórica que no cabe en columnas ni barras nativas) lo ignoraba (CCSS 2026-11-04, lámina de agrupaciones).
+  residuales_gris_1s <- isTRUE(residuales_gris) && length(cols_porcentaje) == 1L && !isTRUE(mostrar_leyenda) &&
+    any(grepl(.CATEGORIAS_RESIDUALES, as.character(cat_lvls), ignore.case = TRUE))
+  if (isTRUE(usar_color_categorias) || residuales_gris_1s) {
     df_long$.fill_key <- factor(as.character(df_long[[var_categoria]]), levels = cat_lvls)
   } else {
     df_long$.fill_key <- df_long$.serie
@@ -1518,6 +1523,12 @@ graficar_barras_agrupadas <- function(
     )
   }
   if (length(cruce_agr$colores)) pal_fill <- cruce_agr$colores
+  if (residuales_gris_1s) {
+    base_col <- if (isTRUE(usar_color_categorias)) pal_fill else stats::setNames(rep(.PULSO_PPT_COLORS$azul, length(cat_lvls)), as.character(cat_lvls))
+    es_res <- grepl(.CATEGORIAS_RESIDUALES, names(base_col), ignore.case = TRUE)
+    base_col[es_res] <- .graficos_no_sustantivo_color()
+    pal_fill <- base_col
+  }
   p <- p + ggplot2::scale_fill_manual(values = pal_fill)
 
   if (!is.null(ancho_max_eje_y_eff)) {

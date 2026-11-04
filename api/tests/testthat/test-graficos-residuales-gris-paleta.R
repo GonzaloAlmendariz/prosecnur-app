@@ -33,3 +33,15 @@ test_that("las barras y la piruleta nativas miran residuales_gris antes que la p
   pos_pal <- regexpr("if (!is.null(cols_u)) cols_u[i] else azul", src_l, fixed = TRUE)
   expect_true(pos_res > 0 && pos_pal > 0 && pos_res < pos_pal)
 })
+
+test_that("la agrupada de una serie en ggplot pinta de gris las residuales con residuales_gris", {
+  df <- data.frame(categoria = c("Voluntariado", "Académica", "Otros", "Ninguna"), pct = c(.44, .29, .01, .28), n = c(176, 116, 4, 112), N = 400)
+  dibujar <- function(rg) suppressWarnings(graficar_barras_agrupadas(data = df, var_categoria = "categoria", var_n = "N",
+    cols_porcentaje = "pct", etiquetas_series = c(pct = "Porcentaje"), cols_n = c(pct = "n"), residuales_gris = rg, usar_canvas = FALSE))
+  rellenos <- function(p) { b <- ggplot2::ggplot_build(p)$data[[1]]; stats::setNames(b$fill, as.character(levels(p$data$categoria)[b$x])) }
+  gris <- .graficos_no_sustantivo_color()
+  con <- rellenos(dibujar(TRUE)); sin <- rellenos(dibujar(FALSE))
+  expect_true(all(con[c("Otros", "Ninguna")] == gris))
+  expect_false(any(con[c("Voluntariado", "Académica")] == gris))
+  expect_false(any(sin == gris))
+})
