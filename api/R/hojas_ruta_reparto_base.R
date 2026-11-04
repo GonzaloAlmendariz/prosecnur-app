@@ -157,15 +157,12 @@ hojas_ruta_reparto_base_rutas <- function(ubigeos, route_total, cfg) {
   .hojas_ruta_allocate_by_mode(p25, route_total, params$allocation_mode %||% "proportional", floors)
 }
 
-#' Celdas sexo × edad con la base activa: cada distrito escalado por
-#' P̂25_d / pob18_17_d. Conserva la estructura y las columnas; apagada, tal cual.
+#' Celdas sexo × edad con la base activa: estructura del CPV 2025 escalada a P̂25_d
+#' (`hojas_ruta_cuotas_2025_celdas`). Conserva las columnas; apagada, tal cual.
 hojas_ruta_reparto_base_escalar_celdas <- function(cells, cfg) {
   if (!nrow(cells) || !hojas_ruta_reparto_base_activa(cfg$sample_size)) return(cells)
-  ub <- as.character(cells$ubigeo)
-  base <- hojas_ruta_reparto_base_distritos(unique(ub))
-  factor <- (base$p25 / base$pob18_17)[match(ub, base$ubigeo)]
-  cells$poblacion <- as.numeric(cells$poblacion) * factor
-  cells
+  # La estructura sexo × edad es la del CPV 2025, no la 2017 escalada (hojas_ruta_cuotas_cpv2025.R).
+  hojas_ruta_cuotas_2025_celdas(cells, cfg)
 }
 
 #' Medida de tamaño del sorteo con la base activa: MOS_i = M_i · g_d. `m` es la
@@ -205,6 +202,7 @@ hojas_ruta_reparto_base_declaracion <- function(ubigeos, params, cfg = NULL, n_u
     codigo = HOJAS_RUTA_BASE_REPARTO_2025,
     fuente = HOJAS_RUTA_BASE_REPARTO_2025_FUENTE,
     formula = "P25_d = pob25_d * u17_d * a17_d; g_d = P25_d / pob17_en_capa_d",
+    cuotas = HOJAS_RUTA_CUOTAS_2025_FUENTE,
     supuestos = list(
       u17 = "Fracción del distrito que en 2017 cae en manzanas del marco (pob17_en_capa / pob17_redatam).",
       a17 = "Proporción de 18 a más del distrito en la edad simple 2017."

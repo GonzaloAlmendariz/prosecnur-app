@@ -100,16 +100,15 @@ test_that("con la base 2025 el reparto es proporcional a P̂25 y la vista previa
   expect_equal(rows$poblacion, as.integer(round(base$p25[match(rows$ubigeo, base$ubigeo)])))
 })
 
-test_that("las celdas sexo × edad conservan su estructura dentro del distrito", {
+test_that("con la base activa las celdas sexo × edad suman P̂25 por distrito (estructura 2025, ítem 9)", {
   off <- .hojas_ruta_rows_df(hojas_ruta_quota_preview_integrado(.rb_cfg())$cells)
   on <- .hojas_ruta_rows_df(hojas_ruta_quota_preview_integrado(.rb_cfg("cpv2025_adultos_urbanos"))$cells)
   key <- function(d) paste(d$ubigeo, d$sexo, d$rango_id)
-  on <- on[match(key(off), key(on)), ]
-  base <- hojas_ruta_reparto_base_distritos(unique(off$ubigeo))
-  factor <- (base$p25 / base$pob18_17)[match(off$ubigeo, base$ubigeo)]
-  expect_equal(on$poblacion, off$poblacion * factor, tolerance = 1e-6)
-  prop <- function(d) d$poblacion / stats::ave(d$poblacion, d$ubigeo, FUN = sum)
-  expect_equal(prop(on), prop(off), tolerance = 1e-9)
+  # Mismas celdas: cambia la población de cada una, no la forma de la cuota.
+  expect_setequal(key(on), key(off))
+  base <- hojas_ruta_reparto_base_distritos(unique(on$ubigeo))
+  suma <- tapply(on$poblacion, on$ubigeo, sum)
+  expect_equal(as.numeric(suma[base$ubigeo]), base$p25, tolerance = 1e-6)
 })
 
 test_that("la medida del PPS es M · g_d con la base activa y π sigue siendo n·MOS/ΣMOS", {

@@ -13,6 +13,8 @@ import { usaBase2025 } from "./desdeConfig";
 
 export const FUENTE_REPARTO_2025 = "CPV 2025 (supuestos u17, a17 de 2017)";
 export const FUENTE_REPARTO_2017 = "CPV 2017 (población del marco de manzanas)";
+/** Con la base 2025 las cuotas sexo × edad salen de la edad simple 2025 por distrito (ADR 0131 §2). */
+export const FUENTE_CUOTAS_2025 = "CPV 2025 (población censada)";
 
 /** Rótulo de la población con que se reparte, para la memoria de cálculo. */
 export const fuenteDelReparto = (s: Pick<HojasRutaSampleSizeConfig, "base_reparto"> | undefined) =>
@@ -67,6 +69,7 @@ export function BaseReparto2025({ sampleSize, territorios, deshabilitado, onCamb
             ))}
           </dl>
           <p className="hr-mapa-nota">Captación: población del marco 2017 frente a la censada en 2025.</p>
+          <p className="hr-mapa-nota" data-cuotas="cpv2025">Cuotas por sexo y edad: {FUENTE_CUOTAS_2025}, llevadas a los adultos urbanos de cada distrito.</p>
         </>
       ) : null}
     </section>
