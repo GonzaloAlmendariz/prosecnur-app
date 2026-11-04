@@ -87,7 +87,8 @@
 #' @param activo ¿La lámina estándar escribe la nota? Si no, `expr` corre tal cual.
 #' @keywords internal
 .lam_con_sig_en_lamina <- function(activo, expr) {
-  if (!isTRUE(activo)) return(expr)
+  motor <- parent.frame()   # la lámina en curso, para las tarjetas de diferencias (graficos_tarjetas_diferencias.R)
+  if (!isTRUE(activo)) return(.tarjetas_adjuntar(expr, motor))
   viejo <- options(prosecnur.sig_nota_en_lamina = TRUE); on.exit(options(viejo), add = TRUE)
-  force(expr)
+  .tarjetas_adjuntar(force(expr), motor)
 }

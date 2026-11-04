@@ -87,7 +87,14 @@
       "mapa_borde": "#B8C2D3",
       "numero_fondo": "#DCE2EC",
       "banda_clara": "#E3E7EF",
-      "fondo_destacado": "#F8E3E2"
+      "fondo_destacado": "#F8E3E2",
+      "tarjeta_borde": "#D9DEE8",
+      "tarjeta_fondo": "#FFFFFF",
+      "tarjeta_fondo_95": "#F8F9FB",
+      "tarjeta_borde_95": "#3A6591",
+      "tarjeta_barra_95": "#6F8FC4",
+      "tarjeta_total": "#B7BECC",
+      "verde_acuerdo": "#3B7A2A"
     },
     "paletas": {
       "likert": {
