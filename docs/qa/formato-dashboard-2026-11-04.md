@@ -86,3 +86,40 @@ duplicar navegación).
 
 Capturas con `--url` contra la pila de la sesión sobre una copia de `acnur_pdm` con la fuente del dashboard cargada por
 la API (XLSForm y data del PDM de su sesión) y, para el recorrido de pestañas, la curaduría confirmada.
+
+## Dimensiones (4 nov, tarde)
+
+### Receta de la copia (para reusar; siempre en el scratchpad, nunca en el repo)
+
+Sobre una copia de `api/inst/reference_projects/acnur_pdm/acnur_pdm.pulso`, con la API de la sesión levantada
+(`node scripts/ui-quick-check.mjs --project <copia> --keep-servers …` en puertos propios) y una sesión abierta con
+`POST /api/session?fresh=1` + `POST /api/project/open {path, in_place: true}` (cabecera `X-Pulso-Session`):
+
+1. **Fuente del dashboard**: `GET /api/dashboard/source` lista los candidatos de la sesión; `POST
+   /api/dashboard/source/import` con `xlsform_file_id` y `data_file_id` del par del PDM
+   (`post_distribution_monitoring_…_xlsform.xlsx` y `…_data.xlsx`). El par que el `.pulso` trae guardado
+   (`telefonico_cuotas_*`) ya no existe en la copia (`E_NO_FILE`).
+2. **Curaduría**: `POST /api/dashboard/curacion {exclude_sections: ["General"], exclude_vars: []}`.
+3. **Dimensiones**: en `GET /api/analitica/config`, `dimensiones.listas_objetivo = ["scale", "scale_par", "easy",
+   "security"]` (las escalas del PDM; las de fábrica no casan con su instrumento) y `POST /api/analitica/config`;
+   `GET /api/analitica/dimensiones/sugerir` da los bloques; se guardan como `dimensiones.subindices` con un índice que
+   los agrupa (`indices: [{nombre: "Experiencia", etiqueta: …, subindices: [<nombres>]}]`); `POST
+   /api/analitica/dimensiones/build` → 426 filas, 21 variables 0-100, 2 subíndices (`rep_servicios` cae: sus variables
+   no están en la base activa) y 1 índice.
+4. `POST /api/project/save {path}`.
+
+**Las dimensiones no sobreviven al reabrir** (causa exacta, backend, sin arreglar en esta tanda): la copia es
+multibase con la config de Analítica global, así que `.analitica_scoped_base()` devuelve `""` y `build` sólo escribe
+`s$analitica_dim_ok = TRUE` (el espejo global), no `analitica_status_por_base[[activa]]`, que ya existía en `FALSE`.
+Al abrir, `.estudio_capture_stage_flags` sólo rellena claves vacías y `.estudio_apply_stage_flags` reproyecta la de la
+base: `analitica_dim_ok` vuelve a `FALSE` aunque `rp_dim` sí viaja (426 filas). El tablero muestra «Dimensiones
+pendientes». Para capturar, la copia lleva la marca por base corregida a mano en su `state.rds` (`saveRDS` + `zip` de
+vuelta). Ver `api/R/router_analitica.R` (`.analitica_status_set`, `.analitica_scoped_base`) y `api/R/session_store.R`
+(`.estudio_capture_stage_flags`).
+
+### Vistas
+
+| # | Vista | Qué se ve | Estado |
+|---|---|---|---|
+| 10 | Construcción a 1440 y 1024 | Los rótulos de los nodos (etiquetas largas del XLSForm) se salían del círculo en blanco sobre blanco; el runner no lo ve | ☑ `rotuloDeNodo.ts`: a 19 px si cabe; si no, a 16 px (rol title) en hasta dos líneas con «…»; el rótulo completo en el `<title>` y en la tira de contexto al seleccionar |
+| 11 | Heatmap, Barras, Radar, FODA y Matriz a 1024 y 1440 | El runner da `ok=true` en las seis vistas (12 capturas distintas). Matriz muestra su vacío propio («Configura la Matriz», pide la variable en Personalizar) | ☑; FODA salió con su esqueleto de carga (la corrida no espera al gráfico): no se juzgó su contenido |

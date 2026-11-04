@@ -1,4 +1,5 @@
 import { type CSSProperties, useEffect, useMemo, useState } from "react";
+import { crearMedidor, partirRotulo } from "./rotuloDeNodo";
 import { apiDashboardDimPayload, type DashboardDimPayload } from "../../../../api/client";
 import { useDashboardStore } from "../../store";
 import { useDimCatalogo } from "../../useDashboardData";
@@ -171,6 +172,19 @@ export function IndicadorAssembly({
       return w;
     };
   }, []);
+
+  // Rótulos de los nodos circulares: a 19 px si caben en una línea; si no, a 16 px (rol title) partidos en las líneas que caben
+  // (con «…» si aún sobra). Antes se salían del círculo en blanco sobre blanco (`rotuloDeNodo.ts`).
+  const rotuloDeNodo = useMemo(() => {
+    const grande = crearMedidor('700 19px system-ui, -apple-system, "Segoe UI", sans-serif', 10.5);
+    const chico = crearMedidor('700 16px system-ui, -apple-system, "Segoe UI", sans-serif', 8.8);
+    return (texto: string, radio: number, maxLineas: number) => {
+      const ancho = radio * 1.6;
+      if (grande(texto) <= ancho) return { lineas: [texto], largo: false };
+      return { lineas: partirRotulo(texto, ancho, chico, maxLineas), largo: true };
+    };
+  }, []);
+  const LH_NODO = 17;
 
   // ── Layout geométrico ────────────────────────────────────────────────────
   // Lienzo SVG: viewBox cuadrado normalizado para escalar. Coordenadas
@@ -484,13 +498,19 @@ export function IndicadorAssembly({
                   {/* Layout vertical: label arriba, icono al medio,
                      chip score abajo. Sin icono: label centrado y chip
                      debajo del label. */}
-                  <text
-                    className="dash-assembly-dim-label"
-                    textAnchor="middle"
-                    dy={axisIcons[dp.label] ? -28 : dp.score != null ? -8 : 4}
-                  >
-                    {dp.label}
-                  </text>
+                  {(() => {
+                    const conIcono = Boolean(axisIcons[dp.label]);
+                    const base = conIcono ? -28 : dp.score != null ? -8 : 4;
+                    const { lineas, largo } = rotuloDeNodo(dp.label, R_DIM, conIcono ? 1 : 2);
+                    return (
+                      <text className={`dash-assembly-dim-label${largo ? " is-largo" : ""}`} textAnchor="middle">
+                        <title>{dp.label}</title>
+                        {lineas.map((linea, j) => (
+                          <tspan key={j} x={0} y={base - LH_NODO * (lineas.length - 1 - j)}>{linea}</tspan>
+                        ))}
+                      </text>
+                    );
+                  })()}
                   {axisIcons[dp.label] ? (
                     <image
                       href={axisIcons[dp.label]}
@@ -610,9 +630,17 @@ export function IndicadorAssembly({
               className="dash-assembly-index-circle"
               filter="url(#dash-glow)"
             />
-            <text className="dash-assembly-index-label" textAnchor="middle" dy={-8}>
-              {indiceLabel}
-            </text>
+            {(() => {
+              const { lineas, largo } = rotuloDeNodo(indiceLabel, R_INDEX, 2);
+              return (
+                <text className={`dash-assembly-index-label${largo ? " is-largo" : ""}`} textAnchor="middle">
+                  <title>{indiceLabel}</title>
+                  {lineas.map((linea, j) => (
+                    <tspan key={j} x={0} y={-8 - LH_NODO * (lineas.length - 1 - j)}>{linea}</tspan>
+                  ))}
+                </text>
+              );
+            })()}
             {semChip(indiceScore, sem, 36, 60, 36, 10, 21)}
           </g>
         </g>
