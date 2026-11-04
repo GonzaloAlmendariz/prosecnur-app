@@ -360,3 +360,29 @@ test_that("si la entrega no cambió, sólo se pide la actividad nueva y se suma 
   expect_identical(c1$clic_at[[4]], "2026-10-30T17:41:00+00:00")
   expect_identical(snap2$envios$c1$aperturas_unicas, snap$envios$c1$aperturas_unicas)
 })
+
+test_that("la lectura en paralelo de Mailchimp sale con timeout y connecttimeout en cada handle", {
+  # Censo de transporte (test-api-http-transporte.R): un handle sin esperas acotadas cuelga el backend
+  # entero, porque Plumber atiende en un solo hilo. `.mcm_http_varias` arma su propio handle por página.
+  opts <- list()
+  testthat::local_mocked_bindings(
+    new_pool = function(...) "pool",
+    new_handle = function(...) structure(list(), class = "curl_handle_falso"),
+    handle_setopt = function(handle, ...) {
+      opts <<- c(opts, list(list(...)))
+      invisible(handle)
+    },
+    curl_fetch_multi = function(url, handle, pool, done, fail) {
+      done(list(status_code = 200L, content = charToRaw("{}")))
+      invisible(NULL)
+    },
+    multi_run = function(...) invisible(NULL),
+    .package = "curl"
+  )
+  res <- .mcm_http_varias(c("https://us21.api.mailchimp.com/3.0/a", "https://us21.api.mailchimp.com/3.0/b"), "k-us21")
+  expect_length(res, 2L)
+  expect_equal(res[[1]]$status, 200L)
+  aplicados <- Filter(function(x) "timeout" %in% names(x), opts)
+  expect_length(aplicados, 2L)
+  expect_true(all(vapply(aplicados, function(x) identical(x$timeout, 60L) && identical(x$connecttimeout, 15L), logical(1))))
+})

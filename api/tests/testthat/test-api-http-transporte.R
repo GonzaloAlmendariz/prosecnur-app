@@ -27,7 +27,11 @@
     "collection_drive.R",      # Google Drive      -> test-collection-drive.R
     # Mailchimp por API (material de campo y Monitoreo › Correo): `.mc_http`
     # construye su handle con timeout 60 s y connecttimeout 15 s.
-    "collection_mail_mailchimp.R" # Mailchimp     -> test-collection-mail-mailchimp-api.R
+    "collection_mail_mailchimp.R", # Mailchimp     -> test-collection-mail-mailchimp-api.R
+    # Monitoreo › Correo lee las páginas de a cuatro en paralelo (`.mcm_http_varias`, con un pool de curl):
+    # cada handle lleva timeout 60 s y connecttimeout 15 s, como `.mc_http`. Censado el 4 nov 2026, cuando el
+    # contrato entró a los transversales de gate-area y destapó que el archivo había nacido fuera del censo.
+    "monitoreo_mailchimp_lectura.R" # Mailchimp   -> test-monitoreo-mailchimp.R
   )
 }
 
