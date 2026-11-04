@@ -5,7 +5,7 @@ import { HojaDelCliente, type TablaDelCliente } from "../../salidas/estandar/Hoj
 import { SalidasDeMonitoreo } from "../../salidas/estandar/SalidasDeMonitoreo";
 import { construirResumen } from "./avance/resumenModel";
 import { RotuloDePestana } from "./navegacion/RotuloDePestana";
-import { fechaYHoraDeLima } from "./rotulos";
+import { fechaYHoraDeLima, pctEntero } from "./rotulos";
 
 export type TerritorialOutputsPanelProps = {
   config?: Partial<MonitoreoConfig>;
@@ -18,19 +18,24 @@ export type TerritorialOutputsPanelProps = {
   onPublished?: () => void;
 };
 
-/** La tabla de la hoja del cliente: lo que cuenta contra la meta en cada distrito. */
+/**
+ * La tabla de la hoja del cliente: lo que cuenta contra la meta en cada distrito. «Faltan» del total suma lo que
+ * falta en cada distrito: lo que sobra en uno no cubre lo que falta en otro. El avance del total sale de las mismas
+ * sumas de la tabla, para que la fila cuadre con sus columnas (revisión metodológica del 4 nov 2026).
+ */
 export function tablaTerritorialDelCliente(reports: MonitoreoTerritorialDashboard | null | undefined): TablaDelCliente | null {
   const resumen = construirResumen(reports);
   if (!resumen.distritos.length) return null;
+  const faltan = (fila: { meta: number; cuentan: number }) => Math.max(0, fila.meta - fila.cuentan);
   const suma = (clave: "cuentan" | "meta") => resumen.distritos.reduce((t, fila) => t + fila[clave], 0);
   return {
-    cabecera: ["Distrito", "Meta", "Cuentan", "Faltan", "Avance"],
+    cabecera: ["Distrito", "Meta encuestas", "Encuestas válidas", "Faltan", "Avance"],
     numericas: [false, true, true, true, true],
     filas: resumen.distritos.map((fila) => ({
       clave: fila.distrito,
-      celdas: [fila.distrito, formatoConteo(fila.meta), <b key="c">{formatoConteo(fila.cuentan)}</b>, formatoConteo(Math.max(0, fila.meta - fila.cuentan)), fila.avance],
+      celdas: [fila.distrito, formatoConteo(fila.meta), <b key="c">{formatoConteo(fila.cuentan)}</b>, formatoConteo(faltan(fila)), fila.avance],
     })),
-    total: ["Total", formatoConteo(suma("meta")), formatoConteo(suma("cuentan")), formatoConteo(Math.max(0, suma("meta") - suma("cuentan"))), resumen.avance],
+    total: ["Total", formatoConteo(suma("meta")), formatoConteo(suma("cuentan")), formatoConteo(resumen.distritos.reduce((t, fila) => t + faltan(fila), 0)), pctEntero(suma("cuentan"), suma("meta"))],
   };
 }
 

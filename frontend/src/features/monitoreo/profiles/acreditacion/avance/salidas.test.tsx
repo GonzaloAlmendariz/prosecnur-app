@@ -51,13 +51,19 @@ describe("Avance › Salidas", () => {
     expect(`${fila.estado} ${fila.detalle}`).not.toMatch(/cierre_habilitado|aprobacion_metodologica|seguimiento_campo/);
   });
 
-  it("la hoja del cliente lleva el avance de cada público y su total", () => {
-    const tabla = tablaDeAcreditacionDelCliente([tarjeta("A", 120, 100), tarjeta("B", 40, 100)]);
-    expect(tabla?.cabecera).toEqual(["Público", "Meta", "Efectivas", "Faltan", "Avance"]);
-    expect(tabla?.filas.map((f) => f.celdas[0])).toEqual(["A", "B"]);
-    // B falta 60 y A sobra 20: el total no los compensa.
-    expect(tabla?.total?.slice(0, 4)).toEqual(["Total", "200", "160", "60"]);
-    expect(tabla?.filas[0].celdas[4]).toBe("120.0 %");
+  it("la hoja del cliente usa las columnas del PDF y no compensa entre públicos", () => {
+    const tabla = tablaDeAcreditacionDelCliente([tarjeta("A", 157, 108), tarjeta("B", 20, 50), tarjeta("C", 10, null)]);
+    expect(tabla?.cabecera).toEqual(["Público", "Universo", "Completas", "Avance sobre el universo", "Mínimo esperado", "Cumplimiento del mínimo", "Faltan para el mínimo"]);
+    // A sobra 49 y B falta 30: el total dice 30, no 0. C no tiene mínimo: «—» y fuera del cumplimiento.
+    expect(tabla?.total?.[6]).toBe("30");
+    expect(tabla?.filas[2].celdas[4]).toBe("—");
+    expect(tabla?.total?.[4]).toBe("158");
+    expect(tabla?.total?.[5]).toBe(`${((177 / 158) * 100).toFixed(1)} %`);
+  });
+
+  it("sin ningún mínimo declarado, la hoja no publica las columnas del mínimo", () => {
+    const tabla = tablaDeAcreditacionDelCliente([tarjeta("A", 120, null)]);
+    expect(tabla?.cabecera).toEqual(["Público", "Universo", "Completas", "Avance sobre el universo"]);
     expect(tablaDeAcreditacionDelCliente([])).toBeNull();
   });
 

@@ -35,25 +35,47 @@ export function filaDelCierre(cierre: EstadoDelCierre) {
 }
 
 /**
- * La tabla de la hoja del cliente: el avance de cada público contra su meta. «Faltan» del total suma lo que falta
- * en cada público: lo que sobra en uno no cubre lo que falta en otro.
+ * La tabla de la hoja del cliente, con el vocabulario y las columnas del PDF de acreditación
+ * (`monitoreo_acreditacion_avance_pdf.R`): el avance manda sobre el UNIVERSO de cada público, y el mínimo esperado
+ * va al lado, como referencia, sólo si algún público lo declara. «Faltan para el mínimo» del total suma lo que
+ * falta en cada público (lo que sobra en uno no cubre lo que falta en otro) y el cumplimiento total cuenta sólo
+ * los públicos con mínimo (revisión metodológica del 4 nov 2026).
  */
 export function tablaDeAcreditacionDelCliente(tarjetas: readonly AcreditacionAdvanceCard[]): TablaDelCliente | null {
   if (!tarjetas.length) return null;
-  const n = (v: number | null) => (v == null ? "—" : formatoConteo(v));
-  const faltan = (c: AcreditacionAdvanceCard) => (c.meta == null ? null : Math.max(0, c.meta - c.effective));
-  const avance = (efectivas: number, meta: number | null) => (meta ? pctConEspacio((efectivas / meta) * 100) : "—");
-  const metas = tarjetas.reduce((t, c) => t + (c.meta ?? 0), 0);
-  const efectivas = tarjetas.reduce((t, c) => t + c.effective, 0);
-  const faltanTotal = tarjetas.reduce((t, c) => t + (faltan(c) ?? 0), 0);
+  const n = (v: number | null | undefined) => (v == null ? "—" : formatoConteo(v));
+  const pct = (parte: number, total: number) => (total > 0 ? pctConEspacio((parte / total) * 100) : "—");
+  const conMinimo = tarjetas.filter((c) => c.meta != null && c.meta > 0);
+  const faltan = (c: AcreditacionAdvanceCard) => (c.meta == null || c.meta <= 0 ? null : Math.max(0, c.meta - c.effective));
+  const universo = tarjetas.reduce((t, c) => t + c.universe, 0);
+  const completas = tarjetas.reduce((t, c) => t + c.effective, 0);
+  const base = {
+    cabecera: ["Público", "Universo", "Completas", "Avance sobre el universo"],
+    numericas: [false, true, true, true],
+  };
+  if (!conMinimo.length) {
+    return {
+      ...base,
+      filas: tarjetas.map((c) => ({ clave: c.id, celdas: [c.actor, n(c.universe), <b key="c">{n(c.effective)}</b>, pct(c.effective, c.universe)] })),
+      total: ["Total", n(universo), n(completas), pct(completas, universo)],
+    };
+  }
+  const minimos = conMinimo.reduce((t, c) => t + (c.meta ?? 0), 0);
+  const completasConMinimo = conMinimo.reduce((t, c) => t + c.effective, 0);
   return {
-    cabecera: ["Público", "Meta", "Efectivas", "Faltan", "Avance"],
-    numericas: [false, true, true, true, true],
+    cabecera: [...base.cabecera, "Mínimo esperado", "Cumplimiento del mínimo", "Faltan para el mínimo"],
+    numericas: [...base.numericas, true, true, true],
     filas: tarjetas.map((c) => ({
       clave: c.id,
-      celdas: [c.actor, n(c.meta), <b key="e">{n(c.effective)}</b>, n(faltan(c)), avance(c.effective, c.meta)],
+      celdas: [
+        c.actor, n(c.universe), <b key="c">{n(c.effective)}</b>, pct(c.effective, c.universe),
+        c.meta && c.meta > 0 ? n(c.meta) : "—", c.meta && c.meta > 0 ? pct(c.effective, c.meta) : "—", n(faltan(c)),
+      ],
     })),
-    total: ["Total", n(metas), n(efectivas), n(faltanTotal), avance(efectivas, metas)],
+    total: [
+      "Total", n(universo), n(completas), pct(completas, universo),
+      n(minimos), pct(completasConMinimo, minimos), n(conMinimo.reduce((t, c) => t + (faltan(c) ?? 0), 0)),
+    ],
   };
 }
 

@@ -145,13 +145,15 @@
   text-align: left;
 }
 
+/* Las cabeceras parten en renglones, como en el PDF: acreditación lleva siete columnas (universo y mínimo). */
 .mon-sal-hoja-tabla thead th {
   color: var(--pulso-text-faint);
   font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-bold);
-  letter-spacing: 0.06em;
+  letter-spacing: 0.04em;
+  line-height: 1.25;
   text-transform: uppercase;
-  white-space: nowrap;
+  vertical-align: bottom;
 }
 
 .mon-sal-hoja-tabla tbody th {
@@ -164,9 +166,13 @@
   font-weight: var(--pulso-weight-bold);
 }
 
+.mon-sal-hoja-tabla tbody .is-num,
+.mon-sal-hoja-tabla tfoot .is-num {
+  white-space: nowrap;
+}
+
 .mon-sal-hoja-tabla .is-num {
   text-align: right;
-  white-space: nowrap;
 }
 
 .mon-sal-hoja-ritmo h4 {
