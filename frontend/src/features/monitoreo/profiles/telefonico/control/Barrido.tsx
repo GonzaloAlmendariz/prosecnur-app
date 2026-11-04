@@ -106,7 +106,11 @@ export function Barrido({ modelo, segmento }: { modelo: Modelo; segmento: string
             rotulo="Sin llamar"
             valor={modelo.sinLlamar}
             base={modelo.listado}
-            tramos={[{ clave: "sin-llamar", valor: modelo.sinLlamar }]}
+            // Formato de Monitoreo, vista 8: el reparto asignados / sin asignar vive en esta tarjeta, con
+            // su barra en dos tramos, y no en un pie aparte con otra gramática de mini cifra.
+            tramos={modelo.sinAsignar != null && modelo.porLlamarAsignados != null
+              ? [{ clave: "asignados", valor: modelo.porLlamarAsignados }, { clave: "sin-llamar", valor: modelo.sinAsignar }]
+              : [{ clave: "sin-llamar", valor: modelo.sinLlamar }]}
             nota={modelo.sinAsignar != null && modelo.porLlamarAsignados != null
               ? `${n(modelo.porLlamarAsignados)} asignados y ${n(modelo.sinAsignar)} sin asignar`
               : `${porcentaje(modelo.listado ? (modelo.sinLlamar / modelo.listado) * 100 : null)} del listado`}
@@ -190,10 +194,6 @@ export function Barrido({ modelo, segmento }: { modelo: Modelo; segmento: string
             ) : (
               <EstadoVacio icono={<Target size={15} />} titulo="Sin eje de cuota, lo que falta llamar no se reparte por categoría." />
             )}
-            <footer className="mon-barrido-reparto">
-              <span><span className="mon-ctl-antetitulo">Asignados</span><b className="is-num">{n(modelo.porLlamarAsignados)}</b></span>
-              <span><span className="mon-ctl-antetitulo">Sin asignar</span><b className="is-num">{n(modelo.sinAsignar)}</b></span>
-            </footer>
           </section>
         </div>
       </div>
