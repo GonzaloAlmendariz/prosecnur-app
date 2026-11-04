@@ -1,8 +1,10 @@
 # lamina_tarjetas_ranuras.R — tarjetas de diferencias bajo cada gráfico de una lámina de dos gráficos (ADR 0129 §6)
 #
 # Maqueta «Composición y línea por nivel» (2026-11-04, 07_combinada_transporte_y_tiempo): cada gráfico arriba en su
-# mitad; debajo, un filete y hasta dos tarjetas lado a lado dentro de la misma mitad. La mitad que pidió tarjetas y no
-# tiene diferencias lo dice en una línea. La lámina conserva su base y su pie (uno por lámina).
+# mitad; debajo, un filete y hasta dos tarjetas lado a lado dentro de la misma mitad. La mitad sin diferencias no lleva
+# nada (ítem 18 de la v7 RV: «quedamos en que no se pone» la nota de «sin diferencias»); su gráfico queda alineado con
+# el de al lado, del mismo alto, para que las dos mitades terminen a la misma altura. Sin ninguna tarjeta en la lámina no
+# hay franja. La lámina conserva su base y su pie (uno por lámina).
 
 .TARJETAS_RANURA_SEP <- 0.15     # entre las dos tarjetas de una mitad
 .TARJETAS_RANURA_AIRE <- 0.08    # del fin del gráfico al filete y del filete a las tarjetas (las tarjetas llegan al fin del
@@ -29,7 +31,7 @@
     if (is.null(t) || !length(t$tarjetas)) return(numeric(0))
     vapply(t$tarjetas, .lam_tarjeta_alto, numeric(1), w = cw, cortos = t$opcion$cortos, tipo = t$tipo %||% "multiple")
   }))
-  alto <- if (length(altos)) max(altos) else 0.35   # sin tarjetas, el renglón de «sin diferencias»
+  alto <- if (length(altos)) max(altos) else 0
   list(cw = cw, alto = alto, reserva = alto + 2 * .TARJETAS_RANURA_AIRE)
 }
 
@@ -46,14 +48,9 @@
   lz <- .lam_lienzo()
   for (k in seq_along(ts)) {
     t <- ts[[k]]
-    if (is.null(t)) next
+    if (is.null(t) || !length(t$tarjetas)) next   # sin diferencias, la mitad no lleva filete ni nota (ítem 18)
     x0 <- geo$paneles[[k]]$x
     .lam_separador_h(lz, x0, x0 + col2, y_filete)
-    if (!length(t$tarjetas)) {
-      .lam_txt(lz, "Sin diferencias entre grupos que cumplan la regla del estudio.", x0, y_filete + .TARJETAS_RANURA_AIRE, col2, 0.3,
-               .std_pt("n"), .std_color("texto_tenue"), align = "center", nombre = "tarjeta:sin_diferencias:aviso")
-      next
-    }
     n <- length(t$tarjetas)
     xs <- if (n == 1L) x0 + (col2 - M$cw) / 2 else x0 + c(0, M$cw + .TARJETAS_RANURA_SEP)
     for (j in seq_len(n)) {
@@ -87,7 +84,8 @@
   geo <- .lam_mixta_geo("graficos_2")
   M <- .lam_tarjetas_ranuras_medidas(ts, geo$paneles[[1]]$w)
   hay <- any(vapply(ts, function(t) length(t$tarjetas %||% list()) > 0L, TRUE))
-  if (hay && !is.null(ps) && !.lam_slide_2_caben_con_tarjetas(ps, els, M$reserva, titulo_de_var)) {
+  if (!hay) return(compone(doc))   # ninguna diferencia: la lámina de siempre, sin franja
+  if (!is.null(ps) && !.lam_slide_2_caben_con_tarjetas(ps, els, M$reserva, titulo_de_var)) {
     if (exists(".pulso_aviso", mode = "function")) {
       .pulso_aviso(sprintf(paste0("Tarjetas de diferencias: en «%s» los gráficos no caben sobre las tarjetas (piden %.1f in); la lámina ",
                                   "va sin ellas. Acorta los rótulos o excluye opciones del gráfico más largo."), titulo, M$reserva))
