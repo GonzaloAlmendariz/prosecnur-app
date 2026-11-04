@@ -107,3 +107,32 @@ este doc; ninguna línea añadida esta noche escribe « · » visible; sin halla
 | P2 en territorial, aulas y acreditación | ☑ 4 nov (noche): `core/BloqueDeMonitoreo.tsx` es el `Panel` del kit con título, bajada, lectura, antetítulo y acciones. Marco «perfil» (conserva `mon-profile-panel`, de la que cuelgan pilas y gráficos) y marco «kit» (territorial: el `Panel` pone el material; la clase de la vista, sólo su layout). Ratchet `cajasPropias.contract.test.ts`, por perfil, sólo baja: aulas 126→80 títulos sueltos y 57→12 cabeceras propias; acreditación 106→80 y 26→0; telefónico 44→18 y 26→0; territorial 94→59. Quedan: los sub-rótulos dentro de un bloque (correctos), las vistas nuevas de aulas con diseño propio (`avance/*`), las 12 cabeceras de aulas con comentarios dentro de la etiqueta y las vistas nuevas de acreditación. Commits b193865db, df108b32d, 4686b08bf, 14cc7c8b3, a934ed636, a212b7b58, 7a1411951, 64240946c, bf7696e4e, 2746b584b, 7350410d7 |
 | Guard de `content: "·"` en el CSS de Monitoreo y caso sintético en `letraPorRol` y `pisoTipografico` | Menores; hoy hay 0 y la mutación del verificador los respalda |
 | `.acr-av-chip.is-cumple` e `.is-falta` en `acreditacion/avance/avance.css` | Huérfanas; la hoja la estaba editando otra sesión |
+
+## Ramas de las páginas madre que ninguna dirección alcanza (4 nov, noche) — pendiente de Gonzalo
+
+Los 26 bloques convertidos a `BloqueDeMonitoreo` en cada página madre (P2) no se vieron en ninguna captura. Medición: una
+sola carga por perfil (`d1_acr`, `d1_telefonico`), navegación con `window.__pulsoNav.ir` por TODAS las direcciones
+canónicas, subvistas incluidas (`insumos/fuentes/recopiladores`, `modelo/cuotas/variables`, `control/barrido/ritmo`,
+`control/calidad/supervision`…), y conteo de `.mon-bloque` en el DOM: **cero en todas**. Las claves viejas de Fuentes
+(`fuentes/survey`, `collectors`…) se resuelven a las pestañas de hoy y no reabren estas ramas. Nada se borra sin la doble
+confirmación de Gonzalo (gate 3).
+
+Las dos páginas llevan las mismas funciones copiadas (`AcreditacionMonitoreoPage.tsx` y `TelefonicoMonitoreoPage.tsx`).
+Líneas de acreditación; en telefónico, entre paréntesis.
+
+| Función | Líneas | Bloques | Por qué no se alcanza | Se podría quitar |
+|---|---|---|---|---|
+| `AcreditacionCrucesView` | 9957–9985 (11113–11141) | 3 | Sin ningún uso: nadie la monta | 29 líneas por página |
+| `AcreditacionAuditoriaView` | 9986–10020 (11142–11176) | 2 | Sin ningún uso | 35 |
+| `AcreditacionReconciliacionView` | 10021–10123 (11177–11279) | 1 | Sin ningún uso | 103 |
+| `AcreditacionModelWorkbench`, pestañas internas `casos`, `enlaces`, `reglas` y `__legacy_estrategias__` | dentro de 1526–1906 (1449–1878) | 6 | La tabla de direcciones (`direccionAcreditacion.ts`) sólo lleva Modelo a `estructura`, `resumen`, `distribucion` y `estrategias`; las tres primeras van a las vistas nuevas antes de llegar aquí y `distribucion` cae en la rama que no tiene estos bloques | las cuatro ramas, ~150 líneas por página |
+| `AcreditacionModelConfigWorkbench`, pestañas `casos` y `enlaces` (incluye `AcreditacionSweepBaseWorkbench`, 3468–3670) | dentro de 2836–3467 (2554–3186) | 3 | Sólo se monta con `activeTab="reglas"` (Insumos › Reglas) | `casos` + `enlaces` + `SweepBase`, ~350 líneas por página |
+| `renderAcreditacionView`, retorno final | 14772–14792 (17285–17307) | 2 | Cada vista interna se despacha antes; el retorno final no lo alcanza ninguna | 21 |
+
+Alcanzables sólo con condiciones; no son código muerto y se quedan:
+
+- `AcreditacionActiveSourcesView` (8112–8372; 5 bloques): Insumos › Fuentes cuando el modelo de fuentes NO es telefónico (`isPhoneSourceModel` falso). Los dos proyectos de prueba son telefónicos.
+- `AcreditacionEventsEditor` y `AcreditacionStateRulesEditor` (3803–3907; 2 bloques): dentro del plegable «Eventos de contacto y reglas de estado final» de Insumos › Reglas, en un estudio que no es telefónico.
+
+Orden de magnitud: unas 690 líneas por página madre, ~1.380 entre las dos. **Pendiente de Gonzalo**: confirmar el borrado.
+Después del borrado, los bloques de las ramas condicionales se capturan con un `.pulso` de acreditación por correo.
