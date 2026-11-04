@@ -43,6 +43,7 @@ import { historiaDeCadena } from "./historiaDeCadena";
 import { parteDeCampo } from "./parteDeCampo";
 import { soloFacultad } from "./aulasPresentation";
 import type { TablaDelPerfil } from "./tablaDelPerfil";
+import { BloqueDeMonitoreo } from "../../core/BloqueDeMonitoreo";
 
 /**
  * La sección «consultas» del perfil de aulas.
@@ -184,15 +185,12 @@ export function AulasSeccionConsultas({
   return (
       <div className="mon-profile-stack aulas-tablas-apiladas">
         {enFicha ? (
-          <section
-            className="mon-profile-panel"
+          <BloqueDeMonitoreo
             data-qa-geometry-group="monitoring-aulas-consultas"
             data-qa-geometry-contract="intrinsic"
+            titulo="Buscar por código"
+            bajada="un curso-horario del plan, su estado, sus encuestas y su efectividad"
           >
-            <div className="mon-profile-panel-head">
-              <h3>Buscar por código</h3>
-              <span>un curso-horario del plan, su estado, sus encuestas y su efectividad</span>
-            </div>
             {/* El PLAN entero y SIN el filtro de facultad en foco: quien busca un
                 código quiere encontrarlo, y no hallarlo por un filtro puesto en
                 otra pestaña se lee como «no existe». */}
@@ -211,40 +209,35 @@ export function AulasSeccionConsultas({
               // `control`: buscarla por el nombre de la hoja no la encuentra.
               control={(dashboard.control_calidad ?? []) as Array<Record<string, unknown>>}
             />
-          </section>
+          </BloqueDeMonitoreo>
         ) : null}
         {enCadena ? (
-        <section
-          className="mon-profile-panel"
+        <BloqueDeMonitoreo
           data-qa-geometry-group="monitoring-aulas-consultas"
           data-qa-geometry-contract="intrinsic"
+          titulo="Cadena de reemplazos"
+          bajada={<>{(() => {
+              const n = cadenas.historias.length;
+              return n === 1 ? "1 cadena" : `${fmt(n)} cadenas`;
+            })()}
+            {", "}de aquí salen el reemplazo (A) y el complemento (B)</>}
         >
-          <div className="mon-profile-panel-head">
-            {/* Se queda: el libro no tiene hoja de cadena, la expresa por
-                bloques —«APLICACIÓN DE REEMPLAZO n»— y por el valor «EN RESERVA
-                n» de STATUS MUESTRA. El nombre de la vista es nuestro. */}
-            <h3>Cadena de reemplazos</h3>
-            {/* En CADENAS, que es la unidad de la lectura de abajo. Decía «50
-                filas» dos renglones encima de «3 con un reemplazo · 21 sin
-                cerrar», que suman 24: el mismo panel daba dos números para lo
-                que se lee como la misma cosa. La cuenta sale de la MISMA función
-                que escribe la lectura. */}
-            {/* **De qué tipo es lo que se decide aquí.** Gonzalo, 2026-09-10:
-                «en Consultas mapeamos las nuevas aulas a aplicar el ABC, aunque
-                el A se hace más en el Sheets de agendación pero el B y el C
-                desde la app».
-                Esta pantalla es el camino del REEMPLAZO (A) —el titular cayó y
-                entra su relevo— y del COMPLEMENTO (B) —el titular se queda y se
-                le suma uno—. Sin nombrarlo, las tres superficies de Consultas
-                se parecen y no se sabe cuál lleva a qué decisión. */}
-            <span>
-              {(() => {
-                const n = cadenas.historias.length;
-                return n === 1 ? "1 cadena" : `${fmt(n)} cadenas`;
-              })()}
-              {", "}de aquí salen el reemplazo (A) y el complemento (B)
-            </span>
-          </div>
+          {/* Se queda: el libro no tiene hoja de cadena, la expresa por
+              bloques —«APLICACIÓN DE REEMPLAZO n»— y por el valor «EN RESERVA
+              n» de STATUS MUESTRA. El nombre de la vista es nuestro. */}
+          {/* En CADENAS, que es la unidad de la lectura de abajo. Decía «50
+              filas» dos renglones encima de «3 con un reemplazo · 21 sin
+              cerrar», que suman 24: el mismo panel daba dos números para lo
+              que se lee como la misma cosa. La cuenta sale de la MISMA función
+              que escribe la lectura. */}
+          {/* **De qué tipo es lo que se decide aquí.** Gonzalo, 2026-09-10:
+              «en Consultas mapeamos las nuevas aulas a aplicar el ABC, aunque
+              el A se hace más en el Sheets de agendación pero el B y el C
+              desde la app».
+              Esta pantalla es el camino del REEMPLAZO (A) —el titular cayó y
+              entra su relevo— y del COMPLEMENTO (B) —el titular se queda y se
+              le suma uno—. Sin nombrarlo, las tres superficies de Consultas
+              se parecen y no se sabe cuál lleva a qué decisión. */}
           {/* Primero CÓMO se llegó —titular, su reemplazo, cuál cerró—, que es
               lo que se pregunta al cerrar el operativo; después cuánta reserva
               se gastó. La tabla de abajo queda como el detalle fila a fila. */}
@@ -261,18 +254,15 @@ export function AulasSeccionConsultas({
             filas={agendaFilas}
             eje={(dashboard as { avance_cuota?: { eje?: Record<string, unknown> | null } })?.avance_cuota?.eje}
           />
-        </section>
+        </BloqueDeMonitoreo>
         ) : null}
         {enBrechas ? (
-        <section
-          className="mon-profile-panel"
+        <BloqueDeMonitoreo
           data-qa-geometry-group="monitoring-aulas-consultas"
           data-qa-geometry-contract="intrinsic"
+          titulo="Qué pasó, y por dónde se sale"
+          bajada="el vocabulario del libro, reemplazo (A), complemento (B), refuerzo (C)"
         >
-          <div className="mon-profile-panel-head">
-            <h3>Qué pasó, y por dónde se sale</h3>
-            <span>el vocabulario del libro, reemplazo (A), complemento (B), refuerzo (C)</span>
-          </div>
           {/* Cierra el circuito de la pestaña: arriba se decide a quién meter,
               aquí se ve qué dio meterlo. Y con las dos varas separadas, que era
               lo que faltaba: «hay que diferenciar qué tan bien nos fue en esa
@@ -282,18 +272,15 @@ export function AulasSeccionConsultas({
             filas={(dashboard.agenda ?? []) as unknown as MonitoreoAulasPlanRow[]}
             porTipo={(dashboard.reemplazos_por_tipo ?? null) as Record<string, unknown> | null}
           />
-        </section>
+        </BloqueDeMonitoreo>
         ) : null}
         {enBrechas ? (
-        <section
-          className="mon-profile-panel"
+        <BloqueDeMonitoreo
           data-qa-geometry-group="monitoring-aulas-consultas"
           data-qa-geometry-contract="intrinsic"
+          titulo="Deuda por sexo, facultad a facultad"
+          bajada="el mapa de la deuda, pulsa una facultad para ver qué la hundió"
         >
-          <div className="mon-profile-panel-head">
-            <h3>Deuda por sexo, facultad a facultad</h3>
-            <span>el mapa de la deuda, pulsa una facultad para ver qué la hundió</span>
-          </div>
           {/* **El contexto va ANTES de la tabla, no después.**
 
               Gonzalo, 2026-09-10, sobre lo que había aquí: «este embudo raro que
@@ -318,28 +305,23 @@ export function AulasSeccionConsultas({
             partes={(dashboard.partes_campo ?? []) as MonitoreoRow[]}
             plan={(dashboard.agenda ?? []) as MonitoreoRow[]}
           />
-        </section>
+        </BloqueDeMonitoreo>
         ) : null}
         {enBrechas ? (
-        <section
-          className="mon-profile-panel"
+        <BloqueDeMonitoreo
           data-qa-geometry-group="monitoring-aulas-consultas"
           data-qa-geometry-contract="intrinsic"
+          titulo="Cursos-horario con brecha"
+          bajada={<>{fmt(brechas.length)} cursos-horario
+            {", "}el diagnóstico que decide si toca complemento (B) o refuerzo (C)</>}
         >
-          <div className="mon-profile-panel-head">
-            {/* Se queda: la brecha la calcula el motor contra la meta; ninguna
-                columna del libro la trae escrita. */}
-            <h3>Cursos-horario con brecha</h3>
-            {/* «Cursos-horario», no «filas»: el subtítulo de un panel nombra lo
-                que hay dentro, y aquí coincide con el KPI «Brechas» de la banda
-                —98 y 98—, así que la cuenta es completa y no esconde un recorte.
-                En Resumen sí lo escondía: la tabla decía «500 filas» de un
-                payload de 1.424. */}
-            <span>
-              {fmt(brechas.length)} cursos-horario
-              {", "}el diagnóstico que decide si toca complemento (B) o refuerzo (C)
-            </span>
-          </div>
+          {/* Se queda: la brecha la calcula el motor contra la meta; ninguna
+              columna del libro la trae escrita. */}
+          {/* «Cursos-horario», no «filas»: el subtítulo de un panel nombra lo
+              que hay dentro, y aquí coincide con el KPI «Brechas» de la banda
+              —98 y 98—, así que la cuenta es completa y no esconde un recorte.
+              En Resumen sí lo escondía: la tabla decía «500 filas» de un
+              payload de 1.424. */}
           {/* **La tabla genérica se fue el 2026-09-10.** Enseñaba siete columnas
               del payload —`operational_status`, `expected_valid`— y ninguna
               contestaba la pregunta con la que se entra: ¿esto es grave, y qué
@@ -390,23 +372,20 @@ export function AulasSeccionConsultas({
               />
             );
           })()}
-        </section>
+        </BloqueDeMonitoreo>
         ) : null}
         {enParte ? (
-        <section
-          className="mon-profile-panel"
+        <BloqueDeMonitoreo
           data-qa-geometry-group="monitoring-aulas-consultas"
           data-qa-geometry-contract="intrinsic"
+          titulo="Partes de campo"
+          bajada={<>{cuadre.label}</>}
         >
-          <div className="mon-profile-panel-head">
-            {/* «Partes de campo» y no «Aulas aplicadas (campo)», que es como se
-                llama el panel del registro en Agenda: son dos superficies
-                distintas sobre la misma hoja —allí se llena un parte, aquí se
-                leen todos— y el guard de títulos rechaza que compartan nombre.
-                Lo pilló al escribirlo. */}
-            <h3>Partes de campo</h3>
-            <span>{cuadre.label}</span>
-          </div>
+          {/* «Partes de campo» y no «Aulas aplicadas (campo)», que es como se
+              llama el panel del registro en Agenda: son dos superficies
+              distintas sobre la misma hoja —allí se llena un parte, aquí se
+              leen todos— y el guard de títulos rechaza que compartan nombre.
+              Lo pilló al escribirlo. */}
           {/* De qué hoja sale. Las otras dos superficies del libro llevan el
               nombre EXACTO de la suya —«Aulas agendadas» y «Base de control»,
               que es a lo que el equipo va a buscarlas—; ésta se llama «partes de
@@ -473,28 +452,23 @@ export function AulasSeccionConsultas({
             // (B42): plegada en su botón, no ocupa espacio de fila.
             preferredColumns={["operational_code", "faculty", "application_status", "actual_room", "applied_date", "applied_by", "observed_students", "attendance_pct", "refusals", "duplicates", "effective_surveys", "esperado", "diferencia", "field_note"]}
           />
-        </section>
+        </BloqueDeMonitoreo>
         ) : null}
         {enExtras ? (
-        <section
-          className="mon-profile-panel"
+        <BloqueDeMonitoreo
           data-qa-geometry-group="monitoring-aulas-extras"
           data-qa-geometry-contract="intrinsic"
+          titulo="Cursos-horario extra disponibles"
+          bajada={<>{fmt(dashboard.banco_extras?.total ?? 0)} extras
+            {", "}de aquí sale el refuerzo (C)</>}
         >
-          <div className="mon-profile-panel-head">
-            {/* «Extras» es el nombre del dato: el plan las trae con
-                `wave = "Extra"`. La descripción dice para qué sirven, que es lo
-                que no se deduce del nombre —y que yo tenía mal: no reemplazan
-                a nadie—. */}
-            {/* NO «… por facultad»: choca con «Cuota sexo por facultad» y el
-                guard de títulos lo caza. Dos paneles que terminan igual se
-                confunden en el rail y en el historial de navegación. */}
-            <h3>Cursos-horario extra disponibles</h3>
-            <span>
-              {fmt(dashboard.banco_extras?.total ?? 0)} extras
-              {", "}de aquí sale el refuerzo (C)
-            </span>
-          </div>
+          {/* «Extras» es el nombre del dato: el plan las trae con
+              `wave = "Extra"`. La descripción dice para qué sirven, que es lo
+              que no se deduce del nombre —y que yo tenía mal: no reemplazan
+              a nadie—. */}
+          {/* NO «… por facultad»: choca con «Cuota sexo por facultad» y el
+              guard de títulos lo caza. Dos paneles que terminan igual se
+              confunden en el rail y en el historial de navegación. */}
           {/* **La frase dice la cuota que el estudio TIENE, no una fija.**
               Decía «para cerrar la cuota de hombres y mujeres de cada
               facultad», y en un estudio cuya cuota es por nivel y sin sexo eso
@@ -534,21 +508,16 @@ export function AulasSeccionConsultas({
             facultadEnFoco={facultadEnFoco}
             eje={(dashboard as { avance_cuota?: { eje?: Record<string, unknown> | null } })?.avance_cuota?.eje}
           />
-        </section>
+        </BloqueDeMonitoreo>
         ) : null}
 
         {enRefuerzos ? (
-        <section
-          className="mon-profile-panel"
+        <BloqueDeMonitoreo
           data-qa-geometry-group="monitoring-aulas-refuerzos"
           data-qa-geometry-contract="intrinsic"
+          titulo="Refuerzos dentro del techo"
+          bajada="cuántos cursos-horario más se pueden agendar, a qué facultad va cada uno"
         >
-          <div className="mon-profile-panel-head">
-            <h3>Refuerzos dentro del techo</h3>
-            <span>
-              cuántos cursos-horario más se pueden agendar, a qué facultad va cada uno
-            </span>
-          </div>
           {/* **La continuación de Extras.** Allí está el inventario; aquí, qué
               conviene pedir de él. El reparto vivía en Resumen y Gonzalo lo
               movió el 2026-09-11: «los refuerzos deberían tener su propia
@@ -564,18 +533,15 @@ export function AulasSeccionConsultas({
             plan={(dashboard.agenda ?? []) as unknown as MonitoreoAulasPlanRow[]}
             onGuardado={onGuardado}
           />
-        </section>
+        </BloqueDeMonitoreo>
         ) : null}
         {enRefuerzos ? (
-        <section
-          className="mon-profile-panel"
+        <BloqueDeMonitoreo
           data-qa-geometry-group="monitoring-aulas-refuerzos-eleccion"
           data-qa-geometry-contract="intrinsic"
+          titulo="Tomar refuerzos de una en una"
+          bajada="se entra por la facultad que peor está y la cola se rehace tras cada elección"
         >
-          <div className="mon-profile-panel-head">
-            <h3>Tomar refuerzos de una en una</h3>
-            <span>se entra por la facultad que peor está y la cola se rehace tras cada elección</span>
-          </div>
           {/* **El otro modo de gastar el techo, y no sustituye al de arriba.**
               Gonzalo, 2026-09-11: «podemos ir seleccionando de uno en uno y el
               top se actualiza tomando en cuenta que si escogemos uno el
@@ -602,18 +568,15 @@ export function AulasSeccionConsultas({
             plan={(dashboard.agenda ?? []) as unknown as MonitoreoAulasPlanRow[]}
             onGuardado={onGuardado}
           />
-        </section>
+        </BloqueDeMonitoreo>
         ) : null}
         {enRefuerzos ? (
-        <section
-          className="mon-profile-panel"
+        <BloqueDeMonitoreo
           data-qa-geometry-group="monitoring-aulas-refuerzos-pedidos"
           data-qa-geometry-contract="intrinsic"
+          titulo="Refuerzos pedidos"
+          bajada="a dónde fue lo marcado y en qué punto está su gestión"
         >
-          <div className="mon-profile-panel-head">
-            <h3>Refuerzos pedidos</h3>
-            <span>a dónde fue lo marcado y en qué punto está su gestión</span>
-          </div>
           {/* La respuesta a «qué pasa cuando ya selecciones uno, a dónde se va»
               (Gonzalo, 2026-09-11). En panel aparte del reparto y no dentro de
               él: uno decide y el otro rinde cuentas, y mezclarlos haría que la
@@ -622,7 +585,7 @@ export function AulasSeccionConsultas({
             plan={(dashboard.agenda ?? []) as unknown as MonitoreoAulasPlanRow[]}
             onGuardado={onGuardado}
           />
-        </section>
+        </BloqueDeMonitoreo>
         ) : null}
 
         {/* **El acuse de la marca, que antes no se pintaba.** El popover se
