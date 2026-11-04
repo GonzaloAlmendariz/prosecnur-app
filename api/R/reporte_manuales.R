@@ -9,7 +9,8 @@
 #' para leer o renderizar.
 #'
 #' @param dir_destino Directorio donde se publicarán los manuales. Por defecto
-#'   `/Users/gonzaloalmendariz/Documents/Pulso/Pruebas_Prosecnur/manuales`.
+#'   el de la variable de entorno `PROSECNUR_MANUALES_DESTINO`; sin ella hay que
+#'   pasarlo, porque no hay un destino que valga para cualquier máquina.
 #' @param render_pdf Si `TRUE`, intenta renderizar los `.qmd` a `.pdf` en el
 #'   directorio de destino.
 #' @param overwrite Si `TRUE`, permite sobreescribir archivos existentes.
@@ -24,13 +25,16 @@
 #' @family reporte
 #' @export
 exportar_manuales_qmd <- function(
-    dir_destino = "/Users/gonzaloalmendariz/Documents/Pulso/Pruebas_Prosecnur/manuales",
+    dir_destino = Sys.getenv("PROSECNUR_MANUALES_DESTINO", ""),
     render_pdf = TRUE,
     overwrite = TRUE,
     limpiar_destino = TRUE,
     quiet = FALSE,
     package = "prosecnurapp"
 ) {
+  if (!nzchar(dir_destino %||% "")) {
+    stop("exportar_manuales_qmd(): indica `dir_destino` o define PROSECNUR_MANUALES_DESTINO.", call. = FALSE)
+  }
   source_dir <- .manuales_qmd_source_dir(package = package)
   qmd_src <- list.files(
     source_dir,

@@ -7175,12 +7175,17 @@ hojas_ruta_sample_preview_integrado <- function(config = list()) {
   }
 }
 
+# Los assets de la hoja salen del paquete (`inst/hojas_ruta/assets`) o de una
+# carpeta declarada en PROSECNUR_HOJAS_RUTA_ASSETS_DIR; si no están, NA y la hoja
+# se dibuja sin ellos. Antes caía a una carpeta del Documents de una persona
+# (el generador viejo), una ruta personal en un repo público (4 nov 2026).
 .hojas_ruta_legacy_asset_path <- function(filename) {
+  dir_env <- Sys.getenv("PROSECNUR_HOJAS_RUTA_ASSETS_DIR", "")
   candidates <- c(
     .hojas_ruta_inst_path("hojas_ruta", "assets", filename),
-    file.path(path.expand("~"), "Documents", "Pulso", "GeneradorHojasDeZona", "assets", filename),
-    file.path("/Users/gonzaloalmendariz/Documents/Pulso/GeneradorHojasDeZona/assets", filename)
+    if (nzchar(dir_env)) file.path(dir_env, filename) else character(0)
   )
+  candidates <- candidates[!is.na(candidates) & nzchar(candidates)]
   hit <- candidates[file.exists(candidates)][1]
   if (!is.na(hit) && nzchar(hit)) normalizePath(hit, mustWork = FALSE) else NA_character_
 }
