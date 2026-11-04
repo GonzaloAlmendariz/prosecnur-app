@@ -141,6 +141,8 @@ hojas_ruta_reparto_base_poblacion <- function(ubigeos, poblacion, params) {
 #' con su reparto de siempre.
 hojas_ruta_reparto_base_rutas <- function(ubigeos, route_total, cfg) {
   params <- cfg$sample_size
+  # ADR 0131 §1: con estrato provincia las rutas salen del estrato (hojas_ruta_estrato.R).
+  if (hojas_ruta_estrato_activo(params)) return(.hojas_ruta_estrato_rutas_en_orden(ubigeos, route_total, cfg))
   if (!hojas_ruta_reparto_base_activa(params)) return(NULL)
   route_size <- .hojas_ruta_route_size(cfg)
   p25 <- hojas_ruta_reparto_base_distritos(ubigeos)$p25
@@ -195,10 +197,11 @@ hojas_ruta_reparto_base_columnas <- function(ubigeos) {
 
 #' Lo que el reparto declara para la memoria de cálculo y la UI. Vacío con la base
 #' apagada, para que la salida de siempre no cambie.
-hojas_ruta_reparto_base_declaracion <- function(ubigeos, params) {
-  if (!hojas_ruta_reparto_base_activa(params)) return(list())
+hojas_ruta_reparto_base_declaracion <- function(ubigeos, params, cfg = NULL, n_used = 0L) {
+  estrato <- if (is.null(cfg)) list() else hojas_ruta_estrato_declaracion(ubigeos, cfg, n_used)
+  if (!hojas_ruta_reparto_base_activa(params)) return(estrato)
   base <- hojas_ruta_reparto_base_distritos(ubigeos)
-  list(base_reparto = list(
+  c(list(base_reparto = list(
     codigo = HOJAS_RUTA_BASE_REPARTO_2025,
     fuente = HOJAS_RUTA_BASE_REPARTO_2025_FUENTE,
     formula = "P25_d = pob25_d * u17_d * a17_d; g_d = P25_d / pob17_en_capa_d",
@@ -207,5 +210,5 @@ hojas_ruta_reparto_base_declaracion <- function(ubigeos, params) {
       a17 = "Proporción de 18 a más del distrito en la edad simple 2017."
     ),
     distritos = lapply(seq_len(nrow(base)), function(i) as.list(base[i, , drop = FALSE]))
-  ))
+  )), estrato)
 }

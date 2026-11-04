@@ -224,6 +224,11 @@ errores_registrados <- function() {
     "E_HOJAS_RUTA_REGION_SIN_CONTORNOS",                     "router_hojas_ruta_contornos.R",     "404",
     # Base de reparto 2025 por distrito (ADR 0131 §2).
     "E_HOJAS_RUTA_BASE_2025_INCOMPLETA",                     "hojas_ruta_reparto_base.R",         "422",
+    # Estrato explícito provincia (ADR 0131 §1).
+    "E_HOJAS_RUTA_ESTRATO_SIN_AREA",                         "hojas_ruta_estrato.R",              "422",
+    "E_HOJAS_RUTA_ESTRATO_CUOTA_ZONA",                       "hojas_ruta_estrato.R",              "422",
+    "E_HOJAS_RUTA_ESTRATO_SIN_RUTAS",                        "hojas_ruta_estrato.R",              "422",
+    "E_HOJAS_RUTA_ESTRATO_SIN_MEDIDA",                       "hojas_ruta_estrato.R",              "422",
     # Imágenes de línea gráfica y ZIP importable (ADR 0110 §B, E1g).
     "E_COLLECTION_MAIL_IMAGE_INVALID",                       "collection_mail_images.R",          "422",
     "E_COLLECTION_MAIL_IMPORT_ZIP_TOO_LARGE",                "collection_mail_import_zip.R",      "413",
