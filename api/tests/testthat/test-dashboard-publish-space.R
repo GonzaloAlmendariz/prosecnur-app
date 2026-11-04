@@ -172,3 +172,57 @@ test_that("launch_server.R se niega a servir un tablero preparado sin fuente", {
   expect_length(chequeo, 1L)
   expect_lt(chequeo, grep("PULSO_BOOTSTRAP_SID = bs$session_id", fuente, fixed = TRUE)[[1]])
 })
+
+# El bloque real del launcher, ejecutado: buscar la llamada en el texto no ve un
+# bloque que dejó de hacer su trabajo. Se toma de `launch_server.R` tal cual (de
+# `.bs_estado <-` hasta antes de exponer la sesión) y se evalúa contra estados
+# preparados a mano. `prosecnurapp:::` resuelve contra el paquete cargado.
+.dps_bloque_launcher <- function() {
+  src <- readLines(testthat::test_path("..", "..", "..", "launcher", "launch_server.R"), warn = FALSE)
+  i <- grep("^\\.bs_estado <-", src)
+  j <- grep("^Sys.setenv\\(PULSO_BOOTSTRAP_SID", src)
+  expect_length(i, 1L)
+  expect_length(j, 1L)
+  parse(text = src[i:(j - 1L)])
+}
+
+.dps_arranca <- function(bloque, estado, envir = parent.frame()) {
+  sid <- session_create()
+  withr::defer(session_delete(sid), envir = envir)
+  s <- session_get(sid)
+  for (k in names(estado)) s[[k]] <- estado[[k]]
+  .session_env[[sid]] <- s
+  bs <- list(session_id = sid)
+  tryCatch({
+    for (e in bloque) eval(e, envir = environment())
+    "sirve"
+  }, error = function(e) conditionMessage(e))
+}
+
+test_that("el bloque del launcher niega un tablero sin fuente y sirve lo demás", {
+  bloque <- .dps_bloque_launcher()
+  tablero <- .publicacion_marca("dashboard")
+  fuente <- list(xlsform_file_id = "f-inst", data_file_id = "f-base")
+  expect_identical(
+    .dps_arranca(bloque, list(publicacion_preparada = tablero)),
+    "[launch_server] El tablero no tiene base elegida: elígela en Dashboard › Fuente antes de publicar."
+  )
+  expect_match(
+    .dps_arranca(bloque, list(publicacion_preparada = tablero, dashboard_source = fuente)),
+    "^\\[launch_server\\] La base o el instrumento elegidos para el tablero ya no están en el proyecto"
+  )
+  expect_identical(
+    .dps_arranca(bloque, list(publicacion_preparada = tablero, dashboard_source = fuente,
+                              files = list(`f-inst` = list(), `f-base` = list()))),
+    "sirve"
+  )
+  # El monitoreo público no tiene fuente de tablero que exigir.
+  expect_identical(.dps_arranca(bloque, list(publicacion_preparada = .publicacion_marca("monitoreo"))), "sirve")
+})
+
+test_that("el bloque del launcher no disfraza un error que no es del guard", {
+  bloque <- .dps_bloque_launcher()
+  local_mocked_bindings(.publicacion_exigir_fuente_dashboard = function(s) stop("paquete viejo"))
+  r <- .dps_arranca(bloque, list(publicacion_preparada = .publicacion_marca("dashboard")))
+  expect_identical(r, "paquete viejo")
+})
