@@ -1813,7 +1813,9 @@
       list(name = "cortes", label = "Dónde empieza cada clase", tipo_input = "codigos_list", grupo = "estilo",
            descripcion = "Desde la segunda clase, en la unidad de la medida. Vacío usa 3, 6, 11 y 21 encuestados (Perú: 3, 6 y 11), 6, 11, 21 y 51 personas o 0.5, 1, 2 y 3 por 10 000."),
       list(name = "puntos", label = "Puntos de referencia", tipo_input = "textarea", grupo = "textos",
-           descripcion = "Uno por línea: Etiqueta | latitud, longitud o enlace de Google Maps | color opcional. Ej.: PUCP | -12.0693, -77.0794")
+           descripcion = "Uno por línea: Etiqueta | latitud, longitud o enlace de Google Maps | color opcional. Ej.: PUCP | -12.0693, -77.0794"),
+      list(name = "ancho_mapa", label = "Ancho del mapa", tipo_input = "number", grupo = "estilo", min = 0.25, max = 0.8, step = 0.05,
+           descripcion = "Fracción de la tarjeta que toma el mapa (0.25 a 0.8); el resto es de la lista. Vacío: automático, el mapa toma el ancho que su alto pide.")
     ), .args_graf_comunes())
   ),
 

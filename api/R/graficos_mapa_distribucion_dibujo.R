@@ -22,6 +22,18 @@
   else list(rotulo = 9, leyenda = 8.25, escala = 8.25, oceano = 9.75, zona = 8.25)
 }
 
+#' ¿Es oscuro el relleno? Luminancia relativa (WCAG) bajo 0.3: el borde gris oscuro no se ve sobre él
+#' @keywords internal
+.mapa_dist_oscuro <- function(col) {
+  ok <- !is.na(col) & nzchar(col)
+  out <- rep(FALSE, length(col))
+  if (!any(ok)) return(out)
+  rgb <- grDevices::col2rgb(col[ok]) / 255
+  lin <- ifelse(rgb <= 0.03928, rgb / 12.92, ((rgb + 0.055) / 1.055)^2.4)
+  out[ok] <- (0.2126 * lin[1, ] + 0.7152 * lin[2, ] + 0.0722 * lin[3, ]) < 0.3
+  out
+}
+
 #' Grosor en puntos a `linewidth` de ggplot (mm): 1 mm de linewidth son ~2,13 pt
 #' @keywords internal
 .mapa_dist_lw <- function(pt) pt / (ggplot2::.pt * 0.75)
@@ -34,12 +46,12 @@
 #' @return `list(k, s, tx, ty, lon0, lat0)`: x = ((lon − lon0)·k)·s + tx, y = lat·s + ty.
 #' @keywords internal
 .mapa_dist_proyeccion <- function(espec, ancho, alto, col) {
-  m <- 16 * .MAPA_DIST_PX
+  m <- .mapa_dist_margen(espec)
   v <- .mapa_dist_ventana(espec); lon <- v$lon; lat <- v$lat
   lat0 <- mean(lat); k <- cos(lat0 * pi / 180); lon0 <- lon[[1]]
   dx <- (lon[[2]] - lon[[1]]) * k; dy <- lat[[2]] - lat[[1]]
   util_w <- ancho - col - m; util_h <- alto - 2 * m
-  s <- min(util_w / dx, util_h / dy) * (if (identical(espec$area, "peru")) 0.94 else 1)
+  s <- min(util_w / dx, util_h / dy)
   # Sin recuadro de la zona de Lima ni rótulos que pidan columna, el Perú se centra; si no, va a la derecha.
   # Sin columna de rótulos (especificación aprobada: el rótulo de la PUCP va dentro del mapa) el mapa se centra.
   tx <- if (col <= 0) (ancho - dx * s) / 2 else ancho - m - dx * s
@@ -69,20 +81,28 @@
 #' contenido pide en vez de una fracción fija de la lámina; lo que sobra va a la tarjeta del ranking.
 #' @keywords internal
 .mapa_dist_ancho_natural <- function(espec, alto, pt) {
-  m <- 16 * .MAPA_DIST_PX; v <- .mapa_dist_ventana(espec)
+  m <- .mapa_dist_margen(espec); v <- .mapa_dist_ventana(espec)
   k <- cos(mean(v$lat) * pi / 180)
-  s <- (alto - 2 * m) / diff(v$lat) * (if (identical(espec$area, "peru")) 0.94 else 1)
+  s <- (alto - 2 * m) / diff(v$lat)
   .mapa_dist_col(espec, 99, pt) + diff(v$lon) * k * s + 2 * m
 }
 
 #' Alto (in) que pide el panel para un ancho dado (Word: el mapa va al ancho de texto)
 #' @keywords internal
 .mapa_dist_alto_natural <- function(espec, ancho, pt) {
-  m <- 16 * .MAPA_DIST_PX; v <- .mapa_dist_ventana(espec)
+  m <- .mapa_dist_margen(espec); v <- .mapa_dist_ventana(espec)
   k <- cos(mean(v$lat) * pi / 180)
   s <- (ancho - .mapa_dist_col(espec, ancho, pt) - 2 * m) / (diff(v$lon) * k)
-  diff(v$lat) * s / (if (identical(espec$area, "peru")) 0.94 else 1) + 2 * m
+  diff(v$lat) * s + 2 * m
 }
+
+#' Aire (in) entre el territorio y el borde del panel
+#'
+#' Revisión v7, lámina 19 (Gonzalo, 2026-11-04): «los mapas nacionales pueden tener algo más de zoom» y luego «en el mapa del
+#' Perú se puede hacer aún más zoom». El Perú va casi al borde (5 px del lienzo, sin el 6 % de reducción de antes); Lima
+#' conserva sus 16 px porque su encuadre ya lleva aire alrededor de las áreas con encuestados.
+#' @keywords internal
+.mapa_dist_margen <- function(espec) (if (identical(espec$area, "peru")) 5 else 16) * .MAPA_DIST_PX
 
 #' Proyecta lon/lat a pulgadas con la proyección del panel
 #' @keywords internal
@@ -220,7 +240,7 @@
 #' @return ggplot sin márgenes, en pulgadas de 0 a `ancho` y de 0 a `alto`.
 #' @keywords internal
 .mapa_dist_panel_gg <- function(espec, ancho, alto, pt = .mapa_dist_pt("lamina")) {
-  M <- .MAPA_DIST; P <- .MAPA_DIST_PX; fuente <- .std_pt("fuente")
+  M <- .MAPA_DIST(); P <- .MAPA_DIST_PX; fuente <- .std_pt("fuente")
   s2 <- suppressMessages(sf::sf_use_s2(FALSE)); on.exit(suppressMessages(sf::sf_use_s2(s2)), add = TRUE)
   col <- .mapa_dist_col(espec, ancho, pt)
   pr <- .mapa_dist_proyeccion(espec, ancho, alto, col)
@@ -228,8 +248,11 @@
   areas <- espec$carto$areas
   datos <- espec$areas[match(areas$clave, espec$areas$clave), ]
   arriba_de_todo <- areas$clave %in% c("15M", "07") & identical(espec$area, "peru")   # una sola área sin distritos
-  datos$trazo <- ifelse(arriba_de_todo | (datos$lima_par %||% FALSE) %in% TRUE, datos$color, M$borde)
-  orden <- order(arriba_de_todo)
+  # Revisión v7, lámina 11: «los bordes distritales de los distritos con el mismo tono no se perciben». Sobre las clases
+  # oscuras el borde va blanco y esas áreas se dibujan al final, para que su borde quede encima del de la vecina clara.
+  oscura <- .mapa_dist_oscuro(datos$color)
+  datos$trazo <- ifelse(arriba_de_todo | (datos$lima_par %||% FALSE) %in% TRUE, datos$color, ifelse(oscura, M$borde_oscura, M$borde))
+  orden <- order(arriba_de_todo, oscura)
   poly <- .mapa_dist_df(areas[orden, ], pr, caja, datos[orden, ], c("clave", "color", "trazo"), id = "a")
   ctx <- .mapa_dist_df(espec$carto$contexto, pr, caja, id = "c")
   g <- ggplot2::ggplot() +
@@ -283,10 +306,17 @@
   }
   # «Océano Pacífico» sólo cuando el mapa es grande (lámina del mapa suelto); en las tarjetas de la lámina con su filtro no
   # cabe sin tocar tierra. Sin escala gráfica (especificación aprobada, Gonzalo, 2026-11-03).
+  # La base del mapa, si no es la del estudio, en la esquina inferior izquierda (revisión v7, lámina 12: «para saber que
+  # nos referimos a un subgrupo»).
+  con_base <- !is.null(espec$base_rotulo) && nzchar(espec$base_rotulo)
+  if (con_base) {
+    g <- g + ggplot2::annotate("text", x = 10 * P, y = 9 * P, label = espec$base_rotulo, hjust = 0, vjust = 0,
+                               size = pt$leyenda / ggplot2::.pt, fontface = "bold", colour = M$guia, family = fuente)
+  }
   if (ancho >= 5.5 || !is.null(espec$zona)) {
     # En el Perú con recuadro, a su derecha sobre el mar del sur; si no, en la esquina del mar (a 212 px caía sobre Tacna).
     x_oc <- if (identical(espec$area, "peru") && !is.null(espec$zona)) 212 * P else 16 * P
-    y_oc <- if (identical(espec$area, "peru")) 0.45 else alto - 26 * P
+    y_oc <- if (identical(espec$area, "peru")) 0.45 + (if (con_base) 0.25 else 0) else alto - 26 * P
     g <- g + ggplot2::annotate("text", x = x_oc, y = y_oc, label = "Océano Pacífico", hjust = 0, vjust = 0.5, size = pt$oceano / ggplot2::.pt,
                                fontface = "italic", colour = M$oceano, family = fuente)
   }
@@ -352,7 +382,7 @@
 #' unido por una línea al lugar en el mapa
 #' @keywords internal
 .mapa_dist_zona_lima <- function(g, espec, pr, alto, pt) {
-  M <- .MAPA_DIST; P <- .MAPA_DIST_PX; fuente <- .std_pt("fuente")
+  M <- .MAPA_DIST(); P <- .MAPA_DIST_PX; fuente <- .std_pt("fuente")
   f <- pt$zona / 8.25
   x0 <- 12 * P; w <- .mapa_dist_zona_ancho(espec, pt); top <- alto - 112 * P
   h_map <- 170 * P; h_cab <- 21 * P * f; h_filas <- 3 * 16 * P * f + 12 * P
@@ -393,10 +423,10 @@
                          fontface = "bold", colour = dp$col, family = fuente)
   }
   filas <- data.frame(y = my0 - 6 * P - (seq_len(nrow(z)) - 0.5) * 16 * P * f, nombre = z$nombre, cifra = z$cifra, color = z$color)
-  g + ggplot2::annotate("segment", x = x0, xend = x0 + w, y = my0, yend = my0, colour = "#E3E6EB", linewidth = .mapa_dist_lw(0.75)) +
+  g + ggplot2::annotate("segment", x = x0, xend = x0 + w, y = my0, yend = my0, colour = .MAPA_DIST()$zona_filete, linewidth = .mapa_dist_lw(0.75)) +
     ggplot2::geom_tile(data = filas, ggplot2::aes(x0 + 15 * P, .data$y, fill = .data$color), width = 12 * P, height = 10 * P) +
     ggplot2::geom_text(data = filas, ggplot2::aes(x0 + 27 * P, .data$y, label = .data$nombre), hjust = 0, size = pt$zona / ggplot2::.pt,
-                       colour = "#2A3448", family = fuente) +
+                       colour = .MAPA_DIST()$zona_texto, family = fuente) +
     ggplot2::geom_text(data = filas, ggplot2::aes(x0 + w - 9 * P, .data$y, label = .data$cifra), hjust = 1, size = pt$zona / ggplot2::.pt,
                        fontface = "bold", colour = M$texto, family = fuente)
 }
