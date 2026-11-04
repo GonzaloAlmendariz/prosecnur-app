@@ -384,6 +384,11 @@ export type PonderacionConfig = {
   escala?: "media1" | "expansion";
   /** N̂ explícito cuando las metas están en proporciones. */
   total_poblacion?: number | null;
+  /**
+   * Contra qué población se calibra. Sólo `territorio` ofrece las metas del
+   * CPV 2025. Ausente: se infiere del estudio (poblacionReferenciaModel.ts).
+   */
+  poblacion?: "territorio" | "marco";
   /** Última petición de metas al CPV 2025 (para rehacerlas y declararlas). */
   metas_cpv2025?: MetasCpvConfig | null;
 };

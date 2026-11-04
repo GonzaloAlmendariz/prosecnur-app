@@ -97,6 +97,7 @@ export function normalizarPonderacion(raw: unknown): PonderacionConfig {
   if ("total_poblacion" in p) out.total_poblacion = numero(p.total_poblacion);
   if (rake.codigos_faltantes !== undefined) out.rake.codigos_faltantes = arreglo(rake.codigos_faltantes);
   if (rake.imputacion !== undefined && esObjetoVacio(rake.imputacion)) delete out.rake.imputacion;
+  if (p.poblacion !== "territorio" && p.poblacion !== "marco") delete out.poblacion;
   const metas = nulo(p.metas_cpv2025 ?? null);
   out.metas_cpv2025 = metas
     ? {
