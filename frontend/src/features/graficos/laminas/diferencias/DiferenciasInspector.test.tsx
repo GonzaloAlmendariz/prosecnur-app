@@ -13,7 +13,7 @@ const LAMINA = normalizeDiferenciasLamina({
   grupos: [
     { letra: "A", etiqueta: "Norte", n: 120, comparable: true },
     { letra: "B", etiqueta: "Sur", n: 95, comparable: true },
-    { letra: "C", etiqueta: "Isla", n: 8, comparable: false, motivo: "n = 8 · no se compara" },
+    { letra: "C", etiqueta: "Isla", n: 8, comparable: false, motivo: "n = 8, no se compara" },
   ],
   pares: [
     { fila: "Sí", a: "B", b: "A", p_a: 40, p_b: 22, dif: 18, p_ajustado: 0.0004, veredicto: "marcada", redaccion: "Sur dice sí más." },
@@ -49,10 +49,10 @@ describe("los seis estados del inspector de diferencias", () => {
     expect(html).toContain("1 marcada");
     expect(html).toContain("0 frágiles");
     expect(html).toContain("1 bajo el umbral");
-    expect(html).toContain("Compara los 3 grupos de Zona entre sí · bases 120, 95 y 8.");
-    expect(html).toContain("Isla: n = 8 · no se compara");
+    expect(html).toContain("Compara los 3 grupos de Zona entre sí (bases 120, 95 y 8).");
+    expect(html).toContain("Isla: n = 8, no se compara");
     expect(html).toContain("Ver por qué");
-    expect(html).toContain("Regla del informe: Prueba z · Bonferroni");
+    expect(html).toContain("Regla del informe: Prueba z, Bonferroni");
   });
   it("sin cruce: el vacío explica y ofrece «Agregar cruce»", () => {
     const html = pintar("sin_cruce");

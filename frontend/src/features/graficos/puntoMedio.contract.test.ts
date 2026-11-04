@@ -40,6 +40,8 @@ function lineasConPunto(fuente: string): number {
 /** Líneas que leen o reproducen un formato ajeno (backend, motor), no separan texto. */
 const DECLARADAS: Record<string, number> = {
   "ExportarInformeMenu.tsx": 2,
+  // Lee el formato de los errores del backend («mensaje · E_CODIGO», api/core.ts) para quitar el código del mensaje.
+  "laminas/diferencias/useDiferencias.ts": 1,
   "humanizeExportError.ts": 1,
   "laminas/citas/useCitasCandidatas.ts": 1,
   "laminas/miniaturas/loteMiniaturas.ts": 1,

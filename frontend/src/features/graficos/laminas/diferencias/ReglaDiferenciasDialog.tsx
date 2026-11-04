@@ -17,6 +17,7 @@ import {
   type VistaPreviaRegla,
 } from "../../../../api/graficosDiferencias";
 import { Dialog } from "../../../../components/Dialog";
+import { Panel } from "../../../../components/Panel";
 import { PulsoButton } from "../../../../components/PulsoButton";
 import { PulsoSelect } from "../../../../components/PulsoSelect";
 import { toast } from "../../../../components/toasterStore";
@@ -24,6 +25,9 @@ import { formatoConteo } from "../../../../lib/formatoNumero";
 import { usePanelDireccionable } from "../../../../lib/navegacion/paneles";
 import { PANEL_DIFERENCIAS_REGLA } from "../../panelesGraficos";
 import { Segmentado } from "../../subpestanas/Segmentado";
+import { CajaDiferencias } from "./CajaDiferencias";
+import { CodigoError } from "./CodigoError";
+import { CargaDeBloque } from "../../../../components/CargaDeBloque";
 import { Capsula } from "./Capsula";
 import {
   mismaRegla,
@@ -154,12 +158,12 @@ export function ReglaDiferenciasDialog() {
         data-qa-geometry-contract="intrinsic"
       >
         {estado.regla?.estado === "error" ? (
-          <div className="pulso-sig-caja is-peligro" role="alert" data-qa-geometry-member="">
+          <CajaDiferencias tono="peligro" role="alert" data-qa-geometry-member="">
             <strong className="pulso-sig-titulo">No se pudo leer la regla del estudio</strong>
-            <p className="pulso-sig-texto">{estado.regla.message}{estado.regla.code ? <> · <code>{estado.regla.code}</code></> : null}</p>
-          </div>
+            <p className="pulso-sig-texto">{estado.regla.message}<CodigoError code={estado.regla.code} errorId={estado.regla.error_id} /></p>
+          </CajaDiferencias>
         ) : !respuesta || !borrador ? (
-          <p className="pulso-sig-texto" role="status" data-qa-geometry-member="">Leyendo la regla del estudio…</p>
+          <div data-qa-geometry-member=""><CargaDeBloque label="Leyendo la regla del estudio…" /></div>
         ) : (
           <FormularioRegla respuesta={respuesta} borrador={borrador} previa={previa} onCambiar={cambiar}
             onRestablecer={() => setBorrador(respuesta.propuesta)} />
@@ -273,29 +277,29 @@ function AvisoCambios({ previa, conglomerado }: { previa: CargaDiferencias<Vista
   if (previa.estado === "error") {
     const sinCong = previa.code === "E_SIG_SIN_CONGLOMERADO";
     return (
-      <div className="pulso-sig-caja is-peligro" role="alert" data-qa-geometry-member="">
+      <CajaDiferencias tono="peligro" role="alert" data-qa-geometry-member="">
         <strong className="pulso-sig-titulo"><AlertCircle size={14} aria-hidden="true" /> {sinCong ? "Falta la columna de conglomerado" : "No se pudo calcular la vista previa"}</strong>
         <p className="pulso-sig-texto">
           {sinCong ? `La base no tiene ${conglomerado ? `la columna «${conglomerado}»` : "una columna de conglomerado"}. Elige otra o usa la prueba z.` : previa.message}
-          {previa.code ? <> · <code>{previa.code}</code></> : null}
+          <CodigoError code={previa.code} errorId={previa.error_id} />
         </p>
-      </div>
+      </CajaDiferencias>
     );
   }
   const datos = previa.datos;
   if (!datos) return <p className="pulso-sig-texto" role="status" data-qa-geometry-member="">Calculando cuántas celdas de las tablas cambian. Recorre todo el estudio y puede tardar un poco.</p>;
   const { cambian, total } = datos.cambios_tablas;
   if (cambian === 0) {
-    return <p className="pulso-sig-caja pulso-sig-texto" data-qa-geometry-member="">Con esta regla no cambia ninguna letra de las tablas de cruces.</p>;
+    return <CajaDiferencias data-qa-geometry-member=""><p className="pulso-sig-texto">Con esta regla no cambia ninguna letra de las tablas de cruces.</p></CajaDiferencias>;
   }
   return (
-    <div className="pulso-sig-caja is-aviso" role="note" data-qa-geometry-member="">
+    <CajaDiferencias tono="aviso" role="note" data-qa-geometry-member="">
       <p className="pulso-sig-texto">
         <strong><AlertTriangle size={14} aria-hidden="true" /> Cambian las tablas de cruces.</strong>{" "}
         Con esta regla cambian de letra {formatoConteo(cambian)}{total !== null ? ` de ${formatoConteo(total)}` : ""} {cambian === 1 ? "celda" : "celdas"}.
         Al aplicar, las tablas adoptan la misma regla que las láminas.
       </p>
-    </div>
+    </CajaDiferencias>
   );
 }
 
@@ -304,7 +308,7 @@ function OpcionRadio<K extends string>({ nombre, valor, actual, recomendada, tit
 }) {
   const elegida = valor === actual;
   return (
-    <div className={`pulso-sig-opcion${elegida ? " is-elegida" : ""}`}>
+    <Panel className={`pulso-sig-opcion${elegida ? " is-elegida" : ""}`}>
       <label className="pulso-sig-opcion-rotulo">
         <input type="radio" name={nombre} value={valor} checked={elegida} onChange={() => onElegir(valor)} />
         <span className="pulso-sig-opcion-texto">
@@ -313,7 +317,7 @@ function OpcionRadio<K extends string>({ nombre, valor, actual, recomendada, tit
         </span>
       </label>
       {children}
-    </div>
+    </Panel>
   );
 }
 

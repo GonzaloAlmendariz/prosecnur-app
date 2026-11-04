@@ -9,12 +9,11 @@
   align-items: center;
   gap: 3px;
   min-height: 18px;
-  padding: 0 6px 0 5px;
-  border: 1px solid transparent;
+  padding: 1px 7px 1px 6px;
   border-radius: 999px;
   background: var(--pulso-sig-capsula-fondo);
   color: var(--pulso-sig-capsula-texto);
-  font-size: 11px;
+  font-size: var(--pulso-type-eyebrow-size);
   font-weight: var(--pulso-weight-bold);
   line-height: 1;
   white-space: nowrap;
@@ -22,7 +21,8 @@
 }
 
 .pulso-sig-capsula.is-fragil {
-  border: 1.3px dashed var(--pulso-sig-fragil);
+  outline: 1.3px dashed var(--pulso-sig-fragil);
+  outline-offset: -1.3px;
   color: var(--pulso-sig-fragil);
 }
 
@@ -36,7 +36,7 @@
 
 .pulso-sig-texto {
   margin: 0;
-  font-size: 12px;
+  font-size: var(--pulso-type-caption-size);
   line-height: 1.45;
   color: var(--pulso-text-soft);
   overflow-wrap: anywhere;
@@ -51,43 +51,43 @@
   display: inline-flex;
   align-items: center;
   gap: var(--pulso-space-1);
-  font-size: 12px;
+  font-size: var(--pulso-type-caption-size);
   font-weight: var(--pulso-weight-semibold);
   color: var(--pulso-text);
 }
 
 .pulso-sig-codigo {
   margin: 0;
-  font-size: 11px;
+  font-size: var(--pulso-type-eyebrow-size);
   color: var(--pulso-danger-fg);
 }
 
-.pulso-sig-codigo code,
-.pulso-sig-texto code {
-  font-size: 11px;
+/* Código E_* e id del fallo: letra del sistema con cifras tabulares; el valor completo va en `title`. */
+.pulso-sig-codigo-error {
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
 }
 
 .pulso-sig-espacio {
   flex: 1;
 }
 
-.pulso-sig-caja {
+/* El marco es el de Panel (components/Panel.tsx, CajaDiferencias.tsx); aquí sólo su ritmo interior. */
+.pulso-panel.pulso-sig-caja {
   display: grid;
   gap: var(--pulso-space-2);
   min-width: 0;
+  margin: 0;
   padding: var(--pulso-space-3);
-  border: 1px solid var(--pulso-border);
-  border-radius: var(--pulso-radius-card);
-  background: var(--pulso-surface);
 }
 
-.pulso-sig-caja.is-sugerencia {
+.pulso-panel.pulso-sig-caja.is-sugerencia {
   padding: var(--pulso-space-2) var(--pulso-space-3);
   border-color: transparent;
-  background: var(--pulso-surface-2);
+  box-shadow: none;
 }
 
-.pulso-sig-caja.is-aviso {
+.pulso-panel.pulso-sig-caja.is-aviso {
   border-color: var(--pulso-warn-border);
   background: var(--pulso-warn-bg);
 }
@@ -97,7 +97,7 @@
   color: var(--pulso-warn-fg);
 }
 
-.pulso-sig-caja.is-peligro {
+.pulso-panel.pulso-sig-caja.is-peligro {
   border-color: var(--pulso-danger-border);
   background: var(--pulso-danger-bg);
 }
@@ -130,18 +130,18 @@
   align-items: center;
   gap: 4px;
   min-height: 24px;
-  padding: 0 var(--pulso-space-2);
-  border: 1px solid var(--pulso-border);
+  padding: 0 calc(var(--pulso-space-2) + 1px);
   border-radius: 999px;
+  box-shadow: inset 0 0 0 1px var(--pulso-border);
   background: var(--pulso-surface);
-  font-size: 12px;
+  font-size: var(--pulso-type-caption-size);
   font-weight: var(--pulso-weight-semibold);
   color: var(--pulso-text-soft);
   white-space: nowrap;
 }
 
 .pulso-sig-chip.is-marcada {
-  border-color: transparent;
+  box-shadow: none;
   background: var(--pulso-sig-capsula-fondo);
   color: var(--pulso-sig-capsula-texto);
 }
@@ -152,24 +152,26 @@
 }
 
 .pulso-sig-chip.is-fragil {
-  border: 1.3px dashed var(--pulso-sig-fragil);
+  box-shadow: none;
+  outline: 1.3px dashed var(--pulso-sig-fragil);
+  outline-offset: -1.3px;
   color: var(--pulso-sig-fragil);
 }
 
 .pulso-sig-chip.is-fragil .pulso-sig-capsula {
   padding: 0;
-  border: 0;
+  outline: 0;
   background: transparent;
 }
 
 .pulso-sig-chip.is-aviso {
-  border-color: var(--pulso-warn-border);
+  box-shadow: inset 0 0 0 1px var(--pulso-warn-border);
   background: var(--pulso-warn-bg);
   color: var(--pulso-warn-fg);
 }
 
 .pulso-sig-chip.is-peligro {
-  border-color: var(--pulso-danger-border);
+  box-shadow: inset 0 0 0 1px var(--pulso-danger-border);
   background: var(--pulso-danger-bg);
   color: var(--pulso-danger-fg);
 }
@@ -177,7 +179,7 @@
 .pulso-sig-eyebrow {
   margin: 0 0 var(--pulso-space-2);
   padding: 0;
-  font-size: 11px;
+  font-size: var(--pulso-type-eyebrow-size);
   font-weight: var(--pulso-weight-semibold);
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -202,7 +204,7 @@
   align-items: center;
   gap: var(--pulso-space-1) var(--pulso-space-2);
   margin: 0;
-  font-size: 12px;
+  font-size: var(--pulso-type-caption-size);
   line-height: 1.45;
   color: var(--pulso-text-faint);
 }
@@ -247,17 +249,15 @@
   border: 0;
 }
 
-.pulso-sig-opcion {
+.pulso-panel.pulso-sig-opcion {
   display: grid;
   gap: var(--pulso-space-2);
+  margin: 0;
   padding: var(--pulso-space-3);
-  border: 1px solid var(--pulso-border);
-  border-radius: var(--pulso-radius-card);
   background: var(--pulso-surface);
-  transition: border-color var(--motion-dur-fast) var(--motion-ease-out), background-color var(--motion-dur-fast) var(--motion-ease-out);
 }
 
-.pulso-sig-opcion.is-elegida {
+.pulso-panel.pulso-sig-opcion.is-elegida {
   border-color: var(--pulso-module-processing);
   background: var(--pulso-module-processing-soft);
 }
@@ -290,13 +290,13 @@
   flex-wrap: wrap;
   align-items: center;
   gap: var(--pulso-space-2);
-  font-size: 13px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-semibold);
   color: var(--pulso-text);
 }
 
 .pulso-sig-opcion-detalle {
-  font-size: 12px;
+  font-size: var(--pulso-type-caption-size);
   line-height: 1.4;
   color: var(--pulso-text-soft);
 }
@@ -305,7 +305,7 @@
   padding: 1px 6px;
   border-radius: 999px;
   background: var(--pulso-module-processing-soft);
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-semibold);
   color: var(--pulso-module-processing);
 }
@@ -332,7 +332,7 @@
 }
 
 .pulso-sig-fila-rotulo {
-  font-size: 12px;
+  font-size: var(--pulso-type-caption-size);
   font-weight: var(--pulso-weight-semibold);
   color: var(--pulso-text-soft);
 }
@@ -356,7 +356,7 @@
   align-items: baseline;
   gap: var(--pulso-space-2);
   margin: 0;
-  font-size: 12px;
+  font-size: var(--pulso-type-caption-size);
   line-height: 1.45;
   color: var(--pulso-text);
 }
@@ -407,7 +407,7 @@
 
 .pulso-sig-porque-cabeza h2 {
   margin: 0;
-  font-size: 14px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-semibold);
   color: var(--pulso-text);
 }
@@ -443,13 +443,13 @@
   display: flex;
   align-items: center;
   gap: var(--pulso-space-2);
-  font-size: 13px;
+  font-size: var(--pulso-type-subtitle-size);
   color: var(--pulso-text);
 }
 
 .pulso-sig-frase {
   margin: 0;
-  font-size: 13px;
+  font-size: var(--pulso-type-subtitle-size);
   line-height: 1.45;
   color: var(--pulso-text);
 }
@@ -459,7 +459,7 @@
   grid-template-columns: auto minmax(0, 1fr);
   gap: 4px var(--pulso-space-3);
   margin: 0;
-  font-size: 12px;
+  font-size: var(--pulso-type-caption-size);
 }
 
 .pulso-sig-datos dt {
@@ -489,7 +489,7 @@
   min-height: 24px;
   padding: 0 var(--pulso-space-2);
   border-radius: 999px;
-  font-size: 12px;
+  font-size: var(--pulso-type-caption-size);
   font-weight: var(--pulso-weight-semibold);
 }
 
@@ -561,8 +561,7 @@
 @media (prefers-reduced-motion: reduce) {
   .pulso-sig-porque,
   .pulso-sig-revision,
-  .pulso-sig-nota,
-  .pulso-sig-opcion {
+  .pulso-sig-nota {
     transition: none;
   }
 

@@ -44,8 +44,8 @@ describe("opciones cerradas", () => {
     expect(opcionesUmbral(10).map((o) => o.valor)).toEqual([0, 5, 10, 15]);
   });
   it("la regla en una línea", () => {
-    expect(resumenRegla(REGLA)).toBe("Rao-Scott por seccion · BH · p < 0.05 · 10 pts · n ≥ 30");
-    expect(resumenRegla(REGLA_DIFERENCIAS_POR_DEFECTO)).toBe("Prueba z · Bonferroni · p < 0.05 · 10 pts · n ≥ 30");
+    expect(resumenRegla(REGLA)).toBe("Rao-Scott por seccion, BH, p < 0.05, 10 pts, n ≥ 30");
+    expect(resumenRegla(REGLA_DIFERENCIAS_POR_DEFECTO)).toBe("Prueba z, Bonferroni, p < 0.05, 10 pts, n ≥ 30");
   });
 });
 
@@ -69,7 +69,7 @@ describe("una lámina", () => {
     expect(conteosLamina(lamina())).toEqual({ marcadas: 2, fragiles: 1, bajoUmbral: 1, noComparables: 0 });
   });
   it("describe la comparación con sus bases", () => {
-    expect(descripcionComparacion(lamina(), "Zona")).toBe("Compara los 2 grupos de Zona entre sí · bases 120 y 95.");
+    expect(descripcionComparacion(lamina(), "Zona")).toBe("Compara los 2 grupos de Zona entre sí (bases 120 y 95).");
   });
   it("el par inicial es la primera marcada; la frase y las condiciones", () => {
     const l = lamina();

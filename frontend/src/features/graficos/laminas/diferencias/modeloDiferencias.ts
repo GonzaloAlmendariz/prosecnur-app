@@ -59,7 +59,7 @@ export function nombreCorreccion(regla: Pick<ReglaDiferencias, "correccion">): s
   return regla.correccion === "bh_informe" ? "BH" : "Bonferroni";
 }
 
-/** «Rao-Scott por aula · BH · p < 0.05 · 10 pts · n ≥ 30». */
+/** «Rao-Scott por aula, BH, p < 0.05, 10 pts, n ≥ 30». */
 export function resumenRegla(regla: ReglaDiferencias): string {
   return [
     nombrePrueba(regla),
@@ -67,7 +67,7 @@ export function resumenRegla(regla: ReglaDiferencias): string {
     rotuloAlfa(regla.alfa),
     regla.umbral_puntos > 0 ? `${regla.umbral_puntos} pts` : "sin mínimo de puntos",
     `n ≥ ${regla.base_minima}`,
-  ].join(" · ");
+  ].join(", ");
 }
 
 /** Dos reglas iguales en lo que decide una marca (la versión y `tendencia`, apagada, no cuentan). */
@@ -122,7 +122,7 @@ export function etiquetaGrupo(grupos: readonly GrupoDiferencias[], letra: string
 const unirConY = (partes: readonly string[]): string =>
   partes.length <= 1 ? partes.join("") : `${partes.slice(0, -1).join(", ")} y ${partes[partes.length - 1]}`;
 
-/** «Compara los 2 grupos de Área entre sí · bases 224 y 176.» (o «cada grupo frente al resto»). */
+/** «Compara los 2 grupos de Área entre sí (bases 224 y 176).» (o «cada grupo frente al resto»). */
 export function descripcionComparacion(lamina: Pick<LaminaDiferencias, "grupos" | "modo_letras" | "cruce">, etiquetaCruce?: string | null): string {
   const n = lamina.grupos.length;
   const cruce = etiquetaCruce || lamina.cruce || "el cruce";
@@ -134,12 +134,12 @@ export function descripcionComparacion(lamina: Pick<LaminaDiferencias, "grupos" 
   const tramo = bases.length <= 3
     ? `bases ${unirConY(bases.map((b) => formatoConteo(b)))}`
     : `bases de ${formatoConteo(Math.min(...bases))} a ${formatoConteo(Math.max(...bases))}`;
-  return `${que} · ${tramo}.`;
+  return `${que} (${tramo}).`;
 }
 
-/** Grupos que no se comparan, con su razón visible: «Antropología: n = 11 · no se compara». */
+/** Grupos que no se comparan, con su razón visible: «Antropología: n = 11, no se compara». */
 export function gruposNoComparables(grupos: readonly GrupoDiferencias[]): string[] {
-  return grupos.filter((g) => !g.comparable).map((g) => `${g.etiqueta}: ${g.motivo ?? (g.n !== null ? `n = ${formatoConteo(g.n)} · no se compara` : "no se compara")}`);
+  return grupos.filter((g) => !g.comparable).map((g) => `${g.etiqueta}: ${g.motivo ?? (g.n !== null ? `n = ${formatoConteo(g.n)}, no se compara` : "no se compara")}`);
 }
 
 /** La redacción de las marcadas de una lámina, en el orden de sus filas. */
@@ -288,7 +288,7 @@ export function csvRevision(filas: readonly FilaRevision[]): string {
   const cabecera = ["Lámina", "Título", "Variable", "Cruce", "Estado", "Marcadas", "Frágiles", "Bajo el umbral", "Qué revisar"];
   const cuerpo = filas.map(({ lamina, posicion, titulo }) => {
     const c = conteosLamina(lamina);
-    return [posicion, titulo, lamina.variable, lamina.cruce, estadoRevision(lamina).rotulo, c.marcadas, c.fragiles, c.bajoUmbral, queRevisar(lamina).join(" · ")]
+    return [posicion, titulo, lamina.variable, lamina.cruce, estadoRevision(lamina).rotulo, c.marcadas, c.fragiles, c.bajoUmbral, queRevisar(lamina).join("; ")]
       .map(celdaCsv).join(",");
   });
   return [cabecera.map(celdaCsv).join(","), ...cuerpo].join("\n");

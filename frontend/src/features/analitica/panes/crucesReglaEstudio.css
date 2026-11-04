@@ -1,13 +1,11 @@
 /* Tarjeta de la regla del estudio en Cruces (ADR 0128). Sólo tokens `--pulso-*`; sin scroll propio (C4). */
 
-.analitica-regla-estudio {
+/* El marco es el de Panel (subtle); aquí sólo su ritmo interior. */
+.pulso-panel.analitica-regla-estudio {
   display: grid;
   gap: var(--pulso-space-2);
-  margin-top: var(--pulso-space-3);
+  margin: var(--pulso-space-3) 0 0;
   padding: var(--pulso-space-3);
-  border: 1px solid var(--pulso-border);
-  border-radius: var(--pulso-radius-card);
-  background: var(--pulso-surface-2);
 }
 
 .analitica-regla-estudio-cabeza {
@@ -64,17 +62,8 @@
   color: var(--pulso-text-soft);
 }
 
-.analitica-regla-estudio-error {
-  display: flex;
-  align-items: flex-start;
-  gap: var(--pulso-space-1);
-  margin: 0;
-  padding: var(--pulso-space-2);
-  border: 1px solid var(--pulso-danger-border);
-  border-radius: var(--pulso-radius-chip);
-  background: var(--pulso-danger-bg);
-  font-size: var(--pulso-type-body-size);
-  color: var(--pulso-danger-fg);
+.analitica-regla-estudio-codigo {
+  font-variant-numeric: tabular-nums;
 }
 
 .analitica-regla-estudio-pie {

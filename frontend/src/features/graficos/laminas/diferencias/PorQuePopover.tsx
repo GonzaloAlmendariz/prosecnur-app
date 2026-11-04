@@ -18,6 +18,9 @@ import { formatoConteo, formatoDecimal } from "../../../../lib/formatoNumero";
 import { PANEL_DIFERENCIAS_LAMINA } from "../../panelesGraficos";
 import { capaVisibleFuera, escucharEscape } from "../cierreConEscape";
 import { enfocarSinDesplazar } from "../enfocarSinDesplazar";
+import { CajaDiferencias } from "./CajaDiferencias";
+import { CodigoError } from "./CodigoError";
+import { CargaDeBloque } from "../../../../components/CargaDeBloque";
 import { Capsula } from "./Capsula";
 import {
   condicionesPar,
@@ -154,13 +157,15 @@ function CapaPorQue({ slideId, cerrarPanel, panelProps }: { slideId: string; cer
       </header>
       <div className="pulso-sig-porque-cuerpo" data-qa-geometry-member="">
         {carga?.estado === "error" ? (
-          <p className="pulso-sig-caja is-peligro pulso-sig-texto" role="alert">
-            {carga.message || "No se pudieron leer las diferencias."}{carga.code ? <> · <code>{carga.code}</code></> : null}
-          </p>
+          <CajaDiferencias tono="peligro" role="alert">
+            <p className="pulso-sig-texto">
+              {carga.message || "No se pudieron leer las diferencias."}<CodigoError code={carga.code} errorId={carga.error_id} />
+            </p>
+          </CajaDiferencias>
         ) : !lamina ? (
-          <p className="pulso-sig-texto" role="status">Leyendo las diferencias de la lámina…</p>
+          <CargaDeBloque label="Leyendo las diferencias de la lámina…" />
         ) : !par || !datos ? (
-          <p className="pulso-sig-caja pulso-sig-texto">{lamina.estado === "abstencion" ? (lamina.motivo ?? lamina.nota) : "Esta lámina no tiene pares comparados."}</p>
+          <CajaDiferencias><p className="pulso-sig-texto">{lamina.estado === "abstencion" ? (lamina.motivo ?? lamina.nota) : "Esta lámina no tiene pares comparados."}</p></CajaDiferencias>
         ) : (
           <>
             <DetallePar lamina={lamina} regla={datos.regla} par={par} indice={indice} total={pares.length}
@@ -200,7 +205,7 @@ function DetallePar({ lamina, regla, par, indice, total, onMover }: {
       <p className="pulso-sig-frase">{frasePar(par, lamina.grupos)}</p>
       <dl className="pulso-sig-datos">
         <dt>p ajustado</dt><dd>{formatoP(par.p_ajustado)}</dd>
-        <dt>Prueba</dt><dd>{nombrePrueba(regla)} · {nombreCorreccion(regla)}</dd>
+        <dt>Prueba</dt><dd>{nombrePrueba(regla)}, {nombreCorreccion(regla)}</dd>
         <dt>Bases</dt><dd>{nA !== null && nB !== null ? `${formatoConteo(nA)} y ${formatoConteo(nB)} casos` : "—"}</dd>
         <dt>Efecto de diseño</dt><dd>{par.deff === null ? "—" : formatoDecimal(par.deff, 2)}</dd>
         <dt>Intervalo</dt><dd>{par.ic ? `${formatoPuntos(par.ic[0])} a ${formatoPuntos(par.ic[1])} puntos` : "—"}</dd>
@@ -214,7 +219,7 @@ function DetallePar({ lamina, regla, par, indice, total, onMover }: {
         ))}
       </ul>
       {par.veredicto === "fragil" && (
-        <p className="pulso-sig-caja is-aviso pulso-sig-texto">Frágil: p ajustado entre 0.01 y {regla.alfa.toFixed(2)}. Redáctala con prudencia y no la lleves a conclusiones.</p>
+        <CajaDiferencias tono="aviso"><p className="pulso-sig-texto">Frágil: p ajustado entre 0.01 y {regla.alfa.toFixed(2)}. Redáctala con prudencia y no la lleves a conclusiones.</p></CajaDiferencias>
       )}
       {par.redaccion && (
         <div className="pulso-sig-acciones">
@@ -247,10 +252,10 @@ function TablaPares({ lamina, indice, onElegir }: { lamina: LaminaDiferencias; i
         seleccionada={String(indice)} onSeleccionar={(id) => onElegir(Number(id))} altoMaximo={260} vacio="Sin pares comparados." />
       <p className="pulso-sig-texto">Las cifras sin marca son el grupo menor de su par: la marca la lleva el mayor.</p>
       {redaccion && (
-        <div className="pulso-sig-caja">
+        <CajaDiferencias>
           <strong className="pulso-sig-titulo">Redacción sugerida</strong>
           <p className="pulso-sig-texto">{redaccion}</p>
-        </div>
+        </CajaDiferencias>
       )}
     </div>
   );
