@@ -72,6 +72,11 @@
 }
 
 .pulso-agrupar-toolbar svg,
+.pulso-agrupar-seccion .pulso-panel-actions svg {
+  margin-right: var(--pulso-space-1);
+  vertical-align: -2px;
+}
+
 .pulso-agrupar-aviso {
   display: flex;
   align-items: center;
@@ -337,4 +342,10 @@
     grid-column: 1 / -1;
     justify-content: flex-end;
   }
+}
+
+/* Las columnas de Agrupar son angostas: el título del Panel no reserva 320 px, así la acción
+   («Agregar categoría») queda a su lado y no cae debajo. */
+.pulso-agrupar-seccion .pulso-panel-heading {
+  flex-basis: auto;
 }

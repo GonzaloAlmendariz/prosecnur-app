@@ -668,7 +668,7 @@ function EscalaComun({
     <Panel
       className="pulso-armon-seccion"
       aria-labelledby="pulso-armon-escala" data-qa-geometry-member
-      title={<span id="pulso-armon-escala">Escala común</span>}
+      title={<span id="pulso-armon-escala" tabIndex={-1}>Escala común</span>}
       hint={<>La lista de respuestas con la que se compara esta pregunta en {serie.todas}.</>}
       actions={<>
 <PulsoButton
