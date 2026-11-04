@@ -17,7 +17,7 @@
 #' Corta un texto en líneas que caben en `w` pulgadas (por palabras, con la tinta real de Arial)
 #' @keywords internal
 .word_tarjetas_envolver <- function(s, w, size, bold = FALSE) {
-  util <- w - 0.02
+  util <- (w - 0.02) * .TARJETA_TINTA_TITULO   # misma holgura con que la tarjeta cuenta sus líneas (lamina_tarjetas_diferencias.R)
   pal <- strsplit(trimws(as.character(s)), "\\s+")[[1]]; pal <- pal[nzchar(pal)]
   if (!length(pal)) return("")
   lineas <- character(0); cur <- pal[1]

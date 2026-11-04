@@ -26,7 +26,7 @@
   # La columna de rótulos crece hasta el 45% del ancho interno si un nombre la pide; si ni así cabe, se parte.
   if (length(nombres) && !apilada) xn <- max(xn, min(max(.lam_ancho_tinta(nombres, if (angosta) 9.5 else 10, TRUE)) + 0.04, 0.45 * (w - 0.34)))
   pt_nombre <- if (angosta) 9.5 else 10
-  list(angosta = angosta, apilada = apilada, alto_nombre = pt_nombre * 1.15 / 72, wi = w - 2 * (if (apilada) 0.14 else 0.17),
+  list(angosta = angosta, apilada = apilada, alto_nombre = pt_nombre * 1.25 / 72, wi = w - 2 * (if (apilada) 0.14 else 0.17),
        pad_x = if (apilada) 0.14 else 0.17, pad_t = 0.11, pad_b = if (apilada) 0.05 else 0.1,
        xn = xn, reserva_cifra = if (angosta) 0.62 else 0.72,
        # Apilada, el renglón de la barra sólo lleva la barra y su cifra: lo justo para la cifra (10.5 pt).
