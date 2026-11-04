@@ -35,6 +35,8 @@ import "./AgruparCategoriasCodificador.css";
 import { formatoConteo } from "../../lib/formatoNumero";
 import { EstadoVacio } from "../../components/EstadoVacio";
 import { Panel } from "../../components/Panel";
+import { usePanelDireccionable } from "../../lib/navegacion/paneles";
+import { PANEL_AGRUPAR } from "./panelesCodificacion";
 
 // ---------- Pestañas del detalle de una select_one ----------
 
@@ -47,7 +49,10 @@ const MODOS: { id: ModoSelectOne; label: string }[] = [
 
 /** Pestañas reales (tab/tabpanel) entre codificar el «Otro» y agrupar categorías. */
 export function ModoSelectOneTabs({ parent, codificarRespuestas }: { parent: string; codificarRespuestas: ReactNode }) {
-  const [modo, setModo] = useState<ModoSelectOne>("respuestas");
+  // Direccionable (`?panel=agrupar`): el modo se enlaza y el QA lo abre sin clic.
+  const agrupar = usePanelDireccionable(PANEL_AGRUPAR);
+  const modo: ModoSelectOne = agrupar.abierto ? "agrupar" : "respuestas";
+  const setModo = (m: ModoSelectOne) => (m === "agrupar" ? agrupar.abrir() : agrupar.cerrar());
   const idBase = `codif-modo-${parent.replace(/[^A-Za-z0-9_-]/g, "_")}`;
   return (
     <div className="pulso-agrupar-modos">

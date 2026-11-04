@@ -10,4 +10,16 @@ export const PANEL_PALABRAS: PanelDeclarado = {
   clase: "sideover",
 };
 
-export const PANELES_CODIFICACION = [PANEL_PALABRAS] as const satisfies readonly PanelDeclarado[];
+/**
+ * Codificación › una pregunta de opción única: «Agrupar categorías» en vez de «Codificar respuestas» (4 nov 2026).
+ * La gramática no tiene un sexto nivel: la pestaña ya es `codificar` y el `modo` lo fija el estudio, no un clic. Por eso
+ * la vista alternativa es un panel `inspector` sobre la pregunta del `foco`: `?pestana=codificar&foco=<p>&panel=agrupar`.
+ * Antes vivía en un `useState` suelto y no se podía enlazar ni auditar. Revisable por Gonzalo.
+ */
+export const PANEL_AGRUPAR: PanelDeclarado = {
+  id: "agrupar",
+  label: "Agrupar categorías",
+  clase: "inspector",
+};
+
+export const PANELES_CODIFICACION = [PANEL_PALABRAS, PANEL_AGRUPAR] as const satisfies readonly PanelDeclarado[];
