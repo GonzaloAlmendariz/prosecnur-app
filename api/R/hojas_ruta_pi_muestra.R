@@ -40,8 +40,7 @@ hojas_ruta_pi_muestra <- function(blocks_df, replacement_blocks_df, frame, cfg) 
   if (!is.data.frame(blocks_df) || !nrow(blocks_df)) {
     return(list(blocks = blocks_df, replacements = replacement_blocks_df, alerts = alerts))
   }
-  params <- cfg$sample_size %||% list()
-  modo_estrato <- hojas_ruta_estrato_activo(params)
+  modo_estrato <- hojas_ruta_estrato_vigente(cfg)
   route_size <- .hojas_ruta_route_size(cfg)
   asignacion <- if (modo_estrato) {
     hojas_ruta_estrato_asignacion(unlist(cfg$territorios, use.names = FALSE), as.integer(cfg$n_objetivo) %/% route_size, cfg)$distritos

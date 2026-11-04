@@ -618,3 +618,6 @@ div.hr-mapa-aviso { display: flex; flex-direction: column; align-items: flex-sta
 .hr-muestra-base25 div { flex-direction: column; gap: 2px; }
 .hr-muestra-base25 dt { color: var(--pulso-text); font-weight: 700; }
 .hr-muestra-base25 dd { font-weight: 400; color: var(--pulso-text-soft); font-size: var(--pulso-type-micro-size); }
+/* ADR 0131 §1: rutas por estrato; lista y no tabla, como la base 2025 (C4 en el inspector). */
+.hr-muestra-estratos dd { font-variant-numeric: tabular-nums; }
+.hr-muestra-estratos [data-bajo-minimo] dd { color: var(--pulso-danger-fg); font-weight: 700; }

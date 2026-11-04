@@ -74,7 +74,49 @@ export type HojasRutaSampleSizeConfig = {
   icc_aplicado?: HojasRutaIccEntrada | null;
   /** ADR 0131 §2: con qué población se reparte entre distritos; `cpv2017` (por defecto) o adultos urbanos 2025. */
   base_reparto?: HojasRutaBaseRepartoCodigo;
+  /** ADR 0131 §1: estrato explícito del sorteo; `distrito` (por defecto) o la provincia. */
+  estrato?: HojasRutaEstratoModo;
 };
+
+export type HojasRutaEstratoModo = "distrito" | "provincia" | "provincia_lima_areas";
+
+export type HojasRutaEstratoFila = { estrato: string; etiqueta: string; n_distritos: number; poblacion: number; rutas: number };
+
+/** Lo que la vista previa del tamaño declara del estrato provincia (ADR 0131 §1). */
+export type HojasRutaEstratoMuestral = {
+  modo: Exclude<HojasRutaEstratoModo, "distrito">;
+  minimo_rutas: number;
+  regla: string;
+  estratos: HojasRutaEstratoFila[];
+};
+
+const escalar = (v: unknown): unknown => (Array.isArray(v) ? v[0] : v);
+
+/** Normalizador defensivo de `sample_size_preview.estrato_muestral`; null si no aplica o viene roto. */
+export function normalizeHojasRutaEstratoMuestral(raw: unknown): HojasRutaEstratoMuestral | null {
+  if (!raw || typeof raw !== "object") return null;
+  const r = raw as Record<string, unknown>;
+  const modo = escalar(r.modo);
+  if (modo !== "provincia" && modo !== "provincia_lima_areas") return null;
+  const estratos = (Array.isArray(r.estratos) ? r.estratos : []).flatMap((e): HojasRutaEstratoFila[] => {
+    if (!e || typeof e !== "object") return [];
+    const x = e as Record<string, unknown>;
+    const estrato = escalar(x.estrato);
+    const rutas = numeroFinito(escalar(x.rutas));
+    if (typeof estrato !== "string" || rutas === null) return [];
+    const etiqueta = escalar(x.etiqueta);
+    return [{
+      estrato,
+      etiqueta: typeof etiqueta === "string" && etiqueta ? etiqueta : estrato,
+      n_distritos: numeroFinito(escalar(x.n_distritos)) ?? 0,
+      poblacion: numeroFinito(escalar(x.poblacion)) ?? 0,
+      rutas,
+    }];
+  });
+  if (!estratos.length) return null;
+  const regla = escalar(r.regla);
+  return { modo, minimo_rutas: numeroFinito(escalar(r.minimo_rutas)) ?? 2, regla: typeof regla === "string" ? regla : "", estratos };
+}
 
 /** π publicada de una manzana sorteada, o null si falta o no es una probabilidad (0, 1]. */
 export function piDeManzana(b: Pick<SelectedBlock, "pi">): number | null {
@@ -536,6 +578,8 @@ export type HojasRutaSampleSizePreview = {
   alerts: HojasRutaAlert[];
   /** ADR 0131 §2: sólo cuando se reparte con la base 2025. Léelo con `normalizeHojasRutaBaseReparto`. */
   base_reparto?: unknown;
+  /** ADR 0131 §1: sólo con estrato provincia. Léelo con `normalizeHojasRutaEstratoMuestral`. */
+  estrato_muestral?: unknown;
 };
 
 export type HojasRutaPopulationExportResult = {

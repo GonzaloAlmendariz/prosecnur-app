@@ -57,6 +57,12 @@ hojas_ruta_estrato_activo <- function(params) {
   is.list(params) && !is.null(params$estrato) && params$estrato %in% HOJAS_RUTA_ESTRATOS[-1]
 }
 
+#' ¿El estrato provincia rige el sorteo? Con N por distrito (`external_district`) las rutas
+#' de cada distrito las fija el usuario y el sorteo es el del distrito, con su π.
+hojas_ruta_estrato_vigente <- function(cfg) {
+  hojas_ruta_estrato_activo(cfg$sample_size) && !identical(cfg$sample_size_mode, "external_district")
+}
+
 #' Estrato de cada ubigeo según el modo: el código de provincia (4 dígitos) o,
 #' en `provincia_lima_areas`, `1501-<área>` para Lima Metropolitana.
 hojas_ruta_estrato_de <- function(ubigeos, modo = "provincia") {
@@ -73,6 +79,20 @@ hojas_ruta_estrato_de <- function(ubigeos, modo = "provincia") {
     h[lima] <- paste0("1501-", area[lima])
   }
   h
+}
+
+HOJAS_RUTA_LIMA_AREAS_ETIQUETAS <- c(lima_norte = "Lima Norte", lima_este = "Lima Este", lima_sur = "Lima Sur",
+                                      lima_centro = "Lima Centro", lima_moderna = "Lima Moderna")
+
+#' Rótulo legible de cada estrato: el área de Lima o el nombre de la provincia en el marco.
+.hojas_ruta_estrato_etiquetas <- function(estratos, ubigeos, estrato, cfg) {
+  frame <- tryCatch(hojas_ruta_inei_frame(cfg$frame_source), error = function(e) NULL)
+  vapply(estratos, function(h) {
+    if (startsWith(h, "1501-")) return(unname(HOJAS_RUTA_LIMA_AREAS_ETIQUETAS[sub("^1501-", "", h)]) %||% h)
+    u <- ubigeos[estrato == h][[1]]
+    nom <- if (!is.null(frame) && "provincia" %in% names(frame)) as.character(frame$provincia[match(u, as.character(frame$ubigeo))]) else NA_character_
+    if (is.na(nom) || !nzchar(nom)) h else tools::toTitleCase(tolower(nom))
+  }, character(1), USE.NAMES = FALSE)
 }
 
 # Memo de la medida por distrito (el marco no cambia dentro de una corrida).
@@ -146,7 +166,8 @@ hojas_ruta_estrato_asignacion <- function(ubigeos, route_total, cfg) {
   list(
     distritos = data.frame(ubigeo = ubigeos, estrato = estrato, mos = mos, esperado = esperado, rutas = as.integer(rutas),
                            stringsAsFactors = FALSE),
-    estratos = data.frame(estrato = estratos, n_distritos = as.integer(table(estrato)[estratos]),
+    estratos = data.frame(estrato = estratos, etiqueta = .hojas_ruta_estrato_etiquetas(estratos, ubigeos, estrato, cfg),
+                          n_distritos = as.integer(table(estrato)[estratos]),
                           poblacion = as.numeric(pob_h), rutas = as.integer(n_h), stringsAsFactors = FALSE)
   )
 }

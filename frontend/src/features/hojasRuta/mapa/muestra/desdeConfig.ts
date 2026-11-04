@@ -7,7 +7,7 @@ import type { EntradaTamano, ModoAsignacion } from "./motorTamano";
  * es siempre la configuración con el borrador encima.
  */
 
-export type BorradorMuestra = Partial<Pick<HojasRutaIntegratedConfig, "sample_size_mode" | "n_objetivo" | "n_por_distrito" | "entrevistas_por_manzana">> & {
+export type BorradorMuestra = Partial<Pick<HojasRutaIntegratedConfig, "sample_size_mode" | "n_objetivo" | "n_por_distrito" | "entrevistas_por_manzana" | "replacement_policy">> & {
   sample_size?: Partial<HojasRutaSampleSizeConfig>;
 };
 

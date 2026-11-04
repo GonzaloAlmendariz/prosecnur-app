@@ -171,3 +171,29 @@ test_that("en estrato provincia el reemplazo por defecto es el pareado de la mis
   expect_true(all(r$pi_fuente == "hereda_titular"))
   expect_false(any(vapply(s$alerts, function(a) identical(a$code, "W_REPLACEMENT_PI_OTRA_ZONA"), logical(1))))
 })
+
+test_that("la memoria de cálculo declara el estrato, el mínimo de 2 rutas y las rutas por estrato", {
+  sp <- hojas_ruta_sample_size_preview(.es_cfg("provincia_lima_areas"))
+  expect_true(all(nzchar(vapply(sp$estrato_muestral$estratos, function(e) e$etiqueta, character(1)))))
+  d <- reporte_mt_diseno_modelo(sp$config, sp)
+  frase <- grep("estrato", d$nota_tecnica, value = TRUE)
+  expect_length(frase, 1L)
+  expect_match(frase, "cinco áreas interdistritales")
+  expect_match(frase, "al menos 2 rutas")
+  expect_match(frase, "marco elegible")
+  expect_match(frase, "Lima Norte \\d+")
+  d0 <- reporte_mt_diseno_modelo(sp$config, hojas_ruta_sample_size_preview(.es_cfg()))
+  expect_length(grep("estrato", d0$nota_tecnica), 0L)
+})
+
+test_that("con N por distrito el estrato no rige: el sorteo y la π son los del distrito", {
+  cfg <- .es_cfg("provincia")
+  cfg$sample_size_mode <- "external_district"
+  cfg$n_por_distrito <- stats::setNames(as.list(rep(24L, length(.es_ubigeos))), .es_ubigeos)
+  expect_false(hojas_ruta_estrato_vigente(hojas_ruta_integrada_normalize_config(cfg)))
+  s <- hojas_ruta_sample_preview_integrado(cfg)
+  expect_true(s$ok)
+  b <- .hojas_ruta_rows_df(s$blocks)
+  expect_true(all(b$pi_regla == "pps_sistematico_distrito"))
+  expect_identical(as.character(b$estrato), as.character(b$ubigeo))
+})
