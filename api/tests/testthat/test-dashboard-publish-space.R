@@ -112,20 +112,63 @@ test_that("launch_server.R se niega a servir un .pulso sin la marca", {
   expect_lt(chequeo, grep("PULSO_BOOTSTRAP_SID = bs$session_id", fuente, fixed = TRUE)[[1]])
 })
 
+# El deploy manual corre el script de verdad: es el único test que ejecuta ese camino.
+.dps_correr_script <- function(proyecto, salida) {
+  script <- testthat::test_path("..", "..", "scripts", "publicacion_preparar.R")
+  testthat::skip_if_not(file.exists(script))
+  log <- tempfile(fileext = ".log")
+  status <- system2(file.path(R.home("bin"), "Rscript"),
+                    c(shQuote(normalizePath(script)), "--project", shQuote(proyecto), "--out", shQuote(salida)),
+                    stdout = log, stderr = log)
+  list(status = status, log = paste(readLines(log, warn = FALSE), collapse = "\n"))
+}
+
 test_that("el script del deploy manual prepara el .pulso por la misma ruta", {
   testthat::skip_on_cran()
-  script <- testthat::test_path("..", "..", "scripts", "publicacion_preparar.R")
-  skip_if_not(file.exists(script))
+  ref <- system.file("reference_projects", "acnur_pdm", "acnur_pdm.pulso", package = "prosecnurapp")
+  if (!nzchar(ref)) ref <- testthat::test_path("..", "..", "inst", "reference_projects", "acnur_pdm", "acnur_pdm.pulso")
+  skip_if_not(file.exists(ref), "sin el proyecto de referencia acnur_pdm")
+  dir <- withr::local_tempdir()
+  copia <- file.path(dir, "ref.pulso")
+  file.copy(ref, copia)
+  Sys.chmod(copia, "644")
+  ld <- suppressMessages(load_pulso(copia))
+  withr::defer(session_delete(ld$session_id))
+  # Un proyecto con base elegida para el tablero (instrumento y base de acnur_pdm).
+  invisible(.dashboard_import_source(ld$session_id, list(
+    xlsform_file_id = "8f166bcd-01f1-4c73-a70c-6ccba88b1795",
+    data_file_id = "2a1c6390-b530-428e-b1ce-eff82b32e48a"
+  )))
+  proyecto <- file.path(dir, "proyecto.pulso")
+  build_pulso(ld$session_id, proyecto, project_name = "proyecto", allow_empty_overwrite = TRUE)
+  salida <- file.path(dir, "data", "proyecto.pulso")
+  r <- .dps_correr_script(proyecto, salida)
+  expect_equal(r$status, 0L, info = r$log)
+  pub <- suppressMessages(load_pulso(salida))
+  withr::defer(session_delete(pub$session_id))
+  s_pub <- session_get(pub$session_id)
+  expect_true(.publicacion_preparada(s_pub))
+  expect_true(.publicacion_exigir_fuente_dashboard(s_pub))
+})
+
+test_that("el script del deploy manual se niega a preparar un tablero sin fuente", {
+  testthat::skip_on_cran()
   sid <- session_create()
   withr::defer(session_delete(sid))
   dir <- withr::local_tempdir()
   proyecto <- file.path(dir, "proyecto.pulso")
   build_pulso(sid, proyecto, project_name = "proyecto", allow_empty_overwrite = TRUE)
   salida <- file.path(dir, "data", "proyecto.pulso")
-  status <- system2(file.path(R.home("bin"), "Rscript"), c(shQuote(normalizePath(script)), "--project", shQuote(proyecto), "--out", shQuote(salida)),
-                    stdout = FALSE, stderr = FALSE)
-  expect_equal(status, 0L)
-  ld <- suppressMessages(load_pulso(salida))
-  withr::defer(session_delete(ld$session_id))
-  expect_true(.publicacion_preparada(session_get(ld$session_id)))
+  r <- .dps_correr_script(proyecto, salida)
+  expect_equal(r$status, 1L)
+  expect_match(r$log, "El tablero no tiene base elegida", fixed = TRUE)
+  expect_false(file.exists(salida))
+})
+
+test_that("launch_server.R se niega a servir un tablero preparado sin fuente", {
+  # Defensa ante un .pulso preparado antes del guard (marca sí, fuente no).
+  fuente <- readLines(testthat::test_path("..", "..", "..", "launcher", "launch_server.R"), warn = FALSE)
+  chequeo <- grep(".publicacion_exigir_fuente_dashboard", fuente, fixed = TRUE)
+  expect_length(chequeo, 1L)
+  expect_lt(chequeo, grep("PULSO_BOOTSTRAP_SID = bs$session_id", fuente, fixed = TRUE)[[1]])
 })
