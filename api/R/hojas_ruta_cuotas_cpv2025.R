@@ -70,3 +70,16 @@ hojas_ruta_cuotas_2025_celdas <- function(cells, cfg) {
   cells$poblacion <- pob * factor
   cells
 }
+
+#' Fuente de edad que declara la cuota: con la base 2025 la estructura es la del CPV
+#' 2025, no la edad simple 2017 con que se armaron las celdas. Apagada, la de siempre.
+hojas_ruta_cuotas_2025_fuente_edad <- function(source, cfg) {
+  if (!hojas_ruta_reparto_base_activa(cfg$sample_size) || !is.list(source)) return(source)
+  # `type` se conserva: decide el aviso de edad simple de la vista previa (.hojas_ruta_population_alerts).
+  utils::modifyList(source, list(
+    estructura = "cpv2025",
+    label = sprintf("Edad simple por sexo %s, llevada a los adultos urbanos estimados", HOJAS_RUTA_CUOTAS_2025_FUENTE),
+    variable_edad = "POBLACION.S5_P3",
+    variable_sexo = "POBLACION.S5_P2"
+  ))
+}

@@ -3999,7 +3999,7 @@ hojas_ruta_integrada_normalize_config <- function(config = list()) {
   if (!nrow(cells)) return(cells)
   source <- attr(cells, "age_source", exact = TRUE)
   cells <- .hojas_ruta_finalize_quota_cells(cells, cfg)
-  attr(cells, "age_source") <- source
+  attr(cells, "age_source") <- hojas_ruta_cuotas_2025_fuente_edad(source, cfg) # ADR 0131 §2
   cells
 }
 

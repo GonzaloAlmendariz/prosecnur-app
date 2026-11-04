@@ -71,3 +71,15 @@ test_that("la memoria declara las cuotas CPV 2025 con la base activa", {
   d0 <- reporte_mt_diseno_modelo(sp$config, hojas_ruta_sample_size_preview(.c25_cfg()))
   expect_true(any(grepl("población INEI 2017 del distrito", d0$nota_tecnica, fixed = TRUE)))
 })
+
+test_that("la fuente de edad de la cuota dice CPV 2025 con la base activa y la de siempre apagada", {
+  on <- hojas_ruta_quota_preview_integrado(.c25_cfg("cpv2025_adultos_urbanos"))
+  expect_match(on$age_source$label, "CPV 2025", fixed = TRUE)
+  expect_identical(on$age_source$estructura, "cpv2025")
+  # El tipo se conserva: decide el aviso de edad simple, que no debe pasar a «aproximación por buckets».
+  expect_identical(on$age_source$type, "edad_simple_c5p41")
+  codigos <- vapply(on$alerts, function(a) a$code, character(1))
+  expect_false("W_AGE_BUCKET_APPROXIMATION" %in% codigos)
+  off <- hojas_ruta_quota_preview_integrado(.c25_cfg())
+  expect_identical(off$age_source$label, "Edad simple oficial INEI 2017")
+})
