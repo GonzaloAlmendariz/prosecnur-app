@@ -899,8 +899,31 @@
   overflow: hidden;
 }
 
-.pulso-criterios-toolbar {
+.pulso-panel.pulso-criterios-toolbar {
   flex: 0 0 auto;
+  margin-bottom: 0;
+}
+
+.pulso-panel.pulso-criterios-toolbar > .pulso-panel-header {
+  margin-bottom: 2px;
+}
+
+.pulso-panel.pulso-criterios-toolbar > .pulso-panel-hint,
+.pulso-panel.pulso-criterios-semillas > .pulso-panel-header,
+.pulso-panel.pulso-criterios-semillas > .pulso-panel-hint {
+  margin-bottom: 0;
+}
+
+.pulso-criterios-activas {
+  margin-left: 6px;
+  color: var(--pulso-text-soft);
+  font-weight: var(--pulso-weight-regular, 400);
+}
+
+.pulso-criterios-accion {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .pulso-criterios-editor-slot {
@@ -2132,36 +2155,12 @@
 /* Criterios sugeridos por la app -------------------------------------------
    Panel de propuestas: se distingue de los criterios ya guardados por el
    borde punteado — nada de lo que hay aquí está persistido todavía. */
-.pulso-criterios-semillas {
+.pulso-panel.pulso-criterios-semillas {
   flex: 0 0 auto;
   display: flex;
   flex-direction: column;
   gap: 10px;
-  padding: 12px 14px;
-  border: 1px dashed var(--pulso-border-strong);
-  border-radius: 10px;
-  background: var(--pulso-surface-2);
-}
-
-.pulso-criterios-semillas-head {
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
-  color: var(--pulso-text-soft);
-}
-
-.pulso-criterios-semillas-head h3 {
-  margin: 0;
-  font-size: var(--pulso-type-subtitle-size);
-  font-weight: 700;
-  line-height: 1.25;
-  color: var(--pulso-text);
-}
-
-.pulso-criterios-semillas-head p {
-  margin: 2px 0 0;
-  font-size: var(--pulso-type-caption-size);
-  line-height: 1.45;
+  margin-bottom: 0;
 }
 
 .pulso-criterios-semillas-lista {
