@@ -16,6 +16,7 @@ import {
 } from "../ponderacionSerieModel";
 import type { LecturaPonderacionSerie } from "../usePonderacionDeLaSerie";
 import { rotulosPorDefecto, rotulosRepetidos } from "./comparativosModel";
+import { Panel } from "../../../components/Panel";
 
 export function ColumnasDelComparativo({
   periodos,
@@ -32,14 +33,18 @@ export function ColumnasDelComparativo({
   const repetidos = rotulosRepetidos(rotulos, periodos);
   const pesoDe = new Map(ponderacion.tipo === "listo" ? ponderacion.serie.map((s) => [s.base, s.ponderacion]) : []);
   return (
-    <section className="pulso-comparativos-bloque" aria-labelledby="comparativos-columnas-titulo" data-qa-geometry-member>
-      <header className="pulso-comparativos-bloque-head">
-        <h3 id="comparativos-columnas-titulo">Columnas del comparativo</h3>
-        <p>Una columna por base, en el orden de la serie. El título es el que se lee en el Excel.</p>
+    <Panel
+      className="pulso-comparativos-bloque"
+      aria-labelledby="comparativos-columnas-titulo"
+      data-qa-geometry-member
+      title={<span id="comparativos-columnas-titulo">Columnas del comparativo</span>}
+      hint="Una columna por base, en el orden de la serie. El título es el que se lee en el Excel."
+      actions={
         <Link className="pulso-comparativos-columnas-enlace" to={DIRECCION_PONDERACION_SERIE}>
           Ir a Ponderación <ArrowRight size={13} aria-hidden="true" />
         </Link>
-      </header>
+      }
+    >
       <table className="pulso-comparativos-columnas">
         <colgroup>
           <col className="is-pos" />
@@ -94,6 +99,6 @@ export function ColumnasDelComparativo({
             : `${repetidos.map((r) => `«${r}»`).join(", ")} titulan a más de una columna. Cambia los títulos para que las columnas se distingan.`}
         </p>
       ) : null}
-    </section>
+    </Panel>
   );
 }
