@@ -89,3 +89,12 @@ códigos.
   reproducen con las bases nuevas.
 - Los textos abiertos (`*_other`) se revisaron: no traen datos personales.
 
+## Nombres y carpetas (formato del Drive)
+
+`1. Bases de datos y Libros de códigos/` con `Bases de datos/` y `Libro de códigos/`;
+`4. Anexos (Tablas de frecuencia simple)/`. Nombres `Tipo_Actor FAD_04.11.26`, por
+ejemplo `Base de Datos_Docentes FAD_04.11.26.sav`,
+`Libro de Códigos_Personal Administrativo FAD_04.11.26.pdf`,
+`Anexos_Tablas de Frecuencia Simple_Estudiantes FAD_04.11.26.xlsx`. Sigla FAD y
+anexos en tres Excel por decisión de Gonzalo.
+
