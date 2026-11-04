@@ -142,14 +142,14 @@ export function MetodoGeneralVista({
           {esTecnicaDeElementos(comp.tecnica) ? (
             <MemoriaCalculoGeneral comp={comp} calculando={calculando} onCalcular={onCalcular} />
           ) : (
-            <section className="cmv2-panel" aria-label="Memoria de cálculo">
+            <Panel aria-labelledby="cmg-memoria-vacia-titulo" title={<span id="cmg-memoria-vacia-titulo">Memoria de cálculo</span>}>
               <EmptyState
                 variant="inline"
                 icon={<Settings2 size={18} aria-hidden="true" />}
                 title="Esta técnica no tiene fórmula de n"
                 hint="Sólo las muestras de elementos llevan memoria con fórmula; esta técnica fija el n por cobertura o por cuotas."
               />
-            </section>
+            </Panel>
           )}
         </>
       )}

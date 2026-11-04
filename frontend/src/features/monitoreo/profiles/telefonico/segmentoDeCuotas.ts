@@ -88,6 +88,24 @@ export function variableDeCuotas(
 }
 
 /**
+ * Las variables con alguna meta, en el orden del motor, con cuántas metas trae cada una. Avance › Cuotas
+ * muestra una; las demás se avisan (R5 de la ronda de cuotas): sus metas no se suman a las de la variable a
+ * la vista porque las dos reparten la misma población.
+ */
+export function variablesConMeta(
+  filas: ReadonlyArray<{ variable: unknown; meta?: unknown }>,
+): Array<{ variable: string; metas: number }> {
+  const cuenta = new Map<string, number>();
+  for (const fila of filas) {
+    const meta = Number(fila.meta);
+    if (fila.meta == null || fila.meta === "" || !Number.isFinite(meta) || meta <= 0) continue;
+    const variable = String(fila.variable ?? "").trim();
+    if (variable) cuenta.set(variable, (cuenta.get(variable) ?? 0) + 1);
+  }
+  return [...cuenta].map(([variable, metas]) => ({ variable, metas }));
+}
+
+/**
  * El plural del segmento, para los recuentos («2 actores», «2 sedes»).
  *
  * Reglas del español suficientes para nombres de variable, que son sustantivos

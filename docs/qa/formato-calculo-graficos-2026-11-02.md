@@ -158,7 +158,29 @@ cada uno con `make gate-front AREA=calcMuestra` (311 archivos, 3013–3014 tests
   pintarlos: HSVG2026, `aulas.pulso` y `d1_aulas_datos` traen la propuesta sin calcular. Calculada por la API, Cálculo
   sigue pidiendo confirmar Alumnos por CH, y eso exige el marco ejecutado. Verificados por tests y `tsc`.
 
+## P2: `.cmv2-panel` a `Panel` (43 usos, 4 nov 2026)
+
+El ratchet `cajasPropias` cuenta ahora los usos de `.cmv2-panel` en `.tsx` (`SNAPSHOT_CMV2_PANEL`, `68841c0dd`):
+43 de línea base, **0 al cierre**. Tres commits: Universidad › Selección (`9634cf5e7`, 43 → 27), Universidad › Marco
+(`ea76bf057`, 27 → 17) y el resto —Aterrizaje, Muestra general, Acreditación, Universidad › Datos, CH por facultad,
+Sustento de cobertura— (`c2ebe884c`, 17 → 0). Se borraron las cabeceras propias que dejaban de pintarse
+(alumnosPorCh.css, matrizEmbudo.css, marco.css, definicion.css).
+
+- **Captura de Universidad › Cálculo con propuesta calculada**: lograda. La copia de trabajo `aulas-marco-calculada`
+  (fuera del repo, con PII: no se publica) tiene el marco ejecutado, Alumnos por CH confirmado y la propuesta corrida
+  (N 2,500, operativo 3,750, 201 CH, 186 aulas). Propuestas y Cursos-horario requeridos se ven con datos a 1440 y 1024.
+- **Corrida «después»** (1440×1000 y 1024×600): Muestra general 6 capturas, Acreditación 6 y Aterrizaje 2, `ok=true` y
+  todas distintas. Universidad (14) sale `ok=false` por hallazgos de superficies que ninguna captura había alcanzado
+  con datos y que esta tanda no tocó: 12 rótulos partidos a 1024 (cifras de CH por facultad en columna de 9 px, «Cursos‑
+  horario» del flujo, las notas de Consistencia y «Docente/contacto» en Variables), 3 etiquetas del `FlujoVertical` que
+  se salen 41–43 px de su etapa en Propuestas a 1024 y la cabecera fija de la tabla de cuotas por facultad, que tapa
+  17 px de fila. Quedan como deuda de P1/P2 en Cálculo, no de este cambio.
+- **Pendiente**: las reglas CSS de `.cmv2-panel` que quedan en calcMuestra.css y escala.css ya no tienen consumidor,
+  pero varias van dentro de listas `:is()` compartidas; se borran a mano, no con el script.
+
 ## Bitácora
+
+- 4 nov: P2 de `.cmv2-panel` cerrado (43 → 0) y Cálculo capturado con la propuesta calculada.
 
 - 3 nov, mañana: P2 cerrado — los 23 bloques en Panel (ver arriba), margen del kit en la mesa y reglas muertas.
 - 23 h: medición inicial y doc.

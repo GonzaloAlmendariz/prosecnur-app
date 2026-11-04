@@ -10,6 +10,8 @@ import { llevaFaltanteDiario } from "./cuotasFaltanteModel";
 import { RotuloDePestana, useHayRotulo } from "../navegacion/RotuloDePestana";
 import { PesasReferenciales } from "../../../core/PesasReferenciales";
 import { sufijoDeOrigen } from "./origenDeEfectivas";
+import { NotaDelModo } from "../../../core/NotaDelModo";
+import { enumerar } from "../../../../../lib/enumerar";
 import "../control/controlTelefonico.css";
 import "./cuotasFaltante.css";
 
@@ -220,6 +222,12 @@ export function CuotasFaltante({ modelo, cadena }: { modelo: Modelo; cadena: Cad
             <b>Metas: cuánto falta por {segmentoMinuscula}</b>
           </header>
         ) : <header className="mon-tel-cuotas-tabla-cabecera"><b>Metas: cuánto falta por {segmentoMinuscula}</b></header>}
+        {/* Lo que el conteo no suma o no asigna, con su causa: nunca en silencio. */}
+        {modelo.avisos?.map((aviso) => <NotaDelModo key={aviso} tono="aviso">{aviso}</NotaDelModo>)}
+        {/* R5: las metas de otra variable no se muestran ni se suman aquí, pero se dicen. */}
+        {modelo.otrasConMeta?.length ? (
+          <NotaDelModo>También hay metas por {enumerar(modelo.otrasConMeta)}: no se muestran aquí.</NotaDelModo>
+        ) : null}
         {filas.length ? (
         <div role="table" aria-label={`Cuotas por ${segmentoMinuscula}`} className="mon-tel-cuotas-tabla">
           <div role="row" className="mon-tel-cuotas-fila is-cabecera">

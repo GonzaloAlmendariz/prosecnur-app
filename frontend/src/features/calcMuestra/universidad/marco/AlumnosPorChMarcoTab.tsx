@@ -26,6 +26,7 @@ import {
   AlumnosPorChTiraLeyenda,
 } from "./AlumnosPorChTira";
 import "./alumnosPorCh.css";
+import { Panel } from "../../../../components/Panel";
 
 function metric(value: number | null): string {
   return value === null ? "—" : fmtDec(value, 1);
@@ -80,19 +81,17 @@ export function AlumnosPorChMarcoTab({
 
   if (!snapshot) {
     return (
-      <section
-        className="cmv2-panel cmv2-alumnos-ch"
+      <Panel
+        className="cmv2-alumnos-ch"
         aria-labelledby="cmv2-alumnos-ch-title"
+        eyebrow="Decisión del marco"
+        title={<span id="cmv2-alumnos-ch-title">Estadístico por facultad</span>}
         // Terminal: sin distribución acreditada no hay nada que esperar. En
         // `false` colgaba el QA ahora que toda marca anidada cuenta.
         data-audit-ready="vacio:alumnos-por-ch-sin-distribucion"
         data-qa-geometry-group="calc-muestra/alumnos-por-ch"
         data-qa-geometry-contract="intrinsic"
       >
-        <header className="cmv2-alumnos-ch-head">
-          <span aria-hidden="true"><BarChart3 size={18} /></span>
-          <div><small>Decisión del marco</small><h3 id="cmv2-alumnos-ch-title">Estadístico por facultad</h3></div>
-        </header>
         {rawSnapshot ? (
           <AvisoModulo tone="warn" role="status">
             La distribución no acredita todas las unidades o pertenece a otro marco. Reconstruye el marco; mientras tanto no se rellena ningún valor.
@@ -111,7 +110,7 @@ export function AlumnosPorChMarcoTab({
           ) : undefined}
           />
         )}
-      </section>
+      </Panel>
     );
   }
 
@@ -151,18 +150,14 @@ export function AlumnosPorChMarcoTab({
       data-qa-geometry-group="calc-muestra/alumnos-por-ch"
       data-qa-geometry-contract="intrinsic"
     >
-      <section className="cmv2-panel cmv2-alumnos-ch">
-        <header className="cmv2-alumnos-ch-head">
-          <span aria-hidden="true"><BarChart3 size={18} /></span>
-          <div>
-            <small>Decisión del marco</small>
-            <h3 id="cmv2-alumnos-ch-title">Estadístico por facultad</h3>
-            {/* S3: la tabla ya rotula «marco elegible» y «contraste», y la
-                procedencia R vive en el aviso de estado. La intro solo
-                parafraseaba lo que la propia superficie muestra. */}
-            <p>El estadístico se elige viendo la distribución de la que sale.</p>
-          </div>
-        </header>
+      {/* S3: la tabla ya rotula «marco elegible» y «contraste», y la procedencia R vive en el aviso de estado. */}
+      <Panel
+        className="cmv2-alumnos-ch"
+        aria-labelledby="cmv2-alumnos-ch-title"
+        eyebrow="Decisión del marco"
+        title={<span id="cmv2-alumnos-ch-title">Estadístico por facultad</span>}
+        hint="El estadístico se elige viendo la distribución de la que sale."
+      >
 
         <div className="cmv2-alumnos-ch-method" role="radiogroup" aria-label="Método global de alumnos por CH">
           {ALUMNOS_POR_CH_METHODS.map((item) => (
@@ -249,7 +244,7 @@ export function AlumnosPorChMarcoTab({
             </tbody>
           </table>
         </div>
-      </section>
+      </Panel>
 
       <div className="cmv2-alumnos-ch-confirm" role="region" aria-label="Confirmar decisión de alumnos por CH">
         <div>

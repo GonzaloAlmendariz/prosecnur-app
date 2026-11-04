@@ -124,7 +124,7 @@ export function CalculoCursosHorarioFacultadTab({
         data-qa-geometry-contract="intrinsic"
       >
         <SinDecisionAlumnosChAviso filas={filasSinDecision} />
-        <section className="cmv2-panel" data-qa-geometry-member>
+        <Panel data-qa-geometry-member>
           <EmptyState
             icon={<Grid3X3 size={20} />}
             title={fijadasTotal > 0
@@ -134,7 +134,7 @@ export function CalculoCursosHorarioFacultadTab({
               ? `Hay ${fijadasTotal} ${fijadasTotal === 1 ? "facultad" : "facultades"} con titulares fijados a mano, ${fijadasSuma} en total. Una fijación reemplaza al número que calcula la fórmula: ejecuta la propuesta en Cálculo › Propuestas para aplicarla, y vuelve a seleccionar.`
               : "Confirma Alumnos por CH en Marco y ejecuta la propuesta. Esta vista no reconstruye estadísticas ni aulas en React."}
           />
-        </section>
+        </Panel>
       </div>
     );
   }

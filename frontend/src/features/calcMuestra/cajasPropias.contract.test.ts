@@ -101,24 +101,7 @@ const SNAPSHOT: Record<string, number> = {
  * los usos de la clase en los componentes. Foto del 3 nov 2026; sólo baja, y cae a cero cuando el último pase a `Panel`.
  */
 const SNAPSHOT_CMV2_PANEL: Record<string, number> = {
-  "AterrizajeDelPlanner.tsx": 6,
-  "general/MesaAcreditacion.tsx": 1,
-  "general/MetodoGeneral.tsx": 1,
-  "general/SeleccionActores.tsx": 1,
-  "general/SeleccionGeneral.tsx": 1,
-  "universidad/calculo/CalculoCursosHorarioFacultadTab.tsx": 1,
-  "universidad/definicion/DefBasesTab.tsx": 1,
-  "universidad/definicion/DefEstudioTab.tsx": 3,
-  "universidad/definicion/DefVariablesTab.tsx": 1,
-  "universidad/marco/AlumnosPorChMarcoTab.tsx": 2,
-  "universidad/marco/CursosHorarioSexo.tsx": 1,
-  "universidad/marco/InventarioUnicosPanel.tsx": 1,
-  "universidad/marco/MarcoAulasTab.tsx": 1,
-  "universidad/marco/MarcoConsistenciaTab.tsx": 1,
-  "universidad/marco/MarcoPoblacionTab.tsx": 1,
-  "universidad/marco/MatrizEmbudoCriterios.tsx": 2,
-  "universidad/marco/ParticularidadesPanel.tsx": 1,
-  "universidad/salidas/SustentoCoberturaCard.tsx": 1,
+
 };
 
 function componentes(dir: string): string[] {

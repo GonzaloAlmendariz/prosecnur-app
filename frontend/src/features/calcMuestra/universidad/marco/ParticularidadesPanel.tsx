@@ -23,6 +23,7 @@ import {
   type ParticularidadDecisionValor,
 } from "./particularidadesModel";
 import { EstadoVacio } from "../../../../components/EstadoVacio";
+import { Panel } from "../../../../components/Panel";
 
 type Decisiones = Record<string, CalcMuestraParticularidadDecision>;
 
@@ -156,12 +157,12 @@ export function ParticularidadesPanel({
   );
 
   return (
-    <section className="cmv2-panel cmv2-partic" aria-label="Particularidades del marco">
-      <header className="cmv2-partic-head">
-        <div className="cmv2-marco-subhead">
-          <span className="cmv2-eyebrow">Particularidades del marco</span>
-          <strong>Casos detectados para tu revisión manual</strong>
-        </div>
+    <Panel
+      className="cmv2-partic"
+      aria-labelledby="cmv2-partic-titulo"
+      eyebrow="Particularidades del marco"
+      title={<span id="cmv2-partic-titulo">Casos detectados para tu revisión manual</span>}
+    >
         {/* S3: la regla de qué hace cada acción solo aplica cuando HAY casos que
             decidir. Con el marco sin señales, el vacío ya dice lo suyo y esta
             explicación ocupaba el hueco sin nada que explicar. */}
@@ -172,7 +173,6 @@ export function ParticularidadesPanel({
             incluir o marcar como revisado solo documenta.
           </p>
         ) : null}
-      </header>
 
       {!particularidades ? (
         <EstadoVacio
@@ -305,6 +305,6 @@ export function ParticularidadesPanel({
           ) : null}
         </div>
       )}
-    </section>
+    </Panel>
   );
 }

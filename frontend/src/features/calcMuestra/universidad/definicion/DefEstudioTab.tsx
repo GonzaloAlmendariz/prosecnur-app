@@ -30,6 +30,7 @@ import { classroomM1RowsForState, frameAuditNumber } from "../shared/frame";
 import { FlujoVertical, MuestraFlowDiagram, type FlujoEtapa, type MuestraFlowNodeKey } from "../ui";
 import "../../didactica/didactica.css";
 import "./definicion.css";
+import { Panel } from "../../../../components/Panel";
 
 export type MuestraRecorridoInputs = {
   tituloDefinido: boolean;
@@ -208,10 +209,7 @@ export function DefEstudioTab({
         </div>
       )}
       <div className="cmv2-defi-estudio-layout">
-        <section className="cmv2-panel" aria-label="Identidad del estudio">
-          <div className="cmv2-defi-form-head">
-            <span className="cmv2-eyebrow">Identidad del estudio</span>
-          </div>
+        <Panel aria-labelledby="cmv2-defi-identidad-titulo" title={<span id="cmv2-defi-identidad-titulo">Identidad del estudio</span>}>
           <div className="cmv2-defi-form">
             <label className="cmv2-compact-field">
               <span>Título</span>
@@ -268,14 +266,15 @@ export function DefEstudioTab({
               </em>
             </label>
           </div>
-        </section>
-        <aside className="cmv2-panel cmv2-defi-mapa cmv2-defi-stagger" aria-label="Mapa del recorrido muestral">
-          <div className="cmv2-defi-mapa-head">
-            <span className="cmv2-eyebrow">Mapa del recorrido</span>
-            {hayCifrasMotor && <BadgeMotor estado="validado" />}
-          </div>
+        </Panel>
+        <Panel
+          className="cmv2-defi-mapa cmv2-defi-stagger"
+          aria-labelledby="cmv2-defi-mapa-titulo"
+          title={<span id="cmv2-defi-mapa-titulo">Mapa del recorrido</span>}
+          actions={hayCifrasMotor ? <BadgeMotor estado="validado" /> : undefined}
+        >
           <FlujoVertical etapas={etapas} ariaLabel="Del universo a los cursos-horario titulares" />
-        </aside>
+        </Panel>
       </div>
       <EjemploTrabajado />
       <RespaldoMetodologico paso="definicion" />
@@ -339,13 +338,13 @@ function HeroPrimeraVez({
     : null;
 
   return (
-    <section className="cmv2-panel cmv2-defi-hero" aria-label="Por dónde empezar">
-      <span className="cmv2-eyebrow">Primer paso</span>
-      <h3 className="cmv2-defi-hero-title">¿Con qué insumo empiezas?</h3>
-      <p className="cmv2-defi-hero-lead">
-        Todo el recorrido nace de un Excel institucional. Elige el que tienes a la mano;
-        el resto — marco, cálculo y cursos-horario — se construye aquí.
-      </p>
+    <Panel
+      className="cmv2-defi-hero"
+      aria-labelledby="cmv2-defi-hero-titulo"
+      eyebrow="Primer paso"
+      title={<span id="cmv2-defi-hero-titulo">¿Con qué insumo empiezas?</span>}
+      hint="Todo el recorrido nace de un Excel institucional. Elige el que tienes a la mano; el resto — marco, cálculo y cursos-horario — se construye aquí."
+    >
       <div className="cmv2-defi-hero-cards cmv2-uni-stagger">
         {UNIVERSITY_SOURCE_MODE_OPTIONS.map((option) => {
           const Icon = HERO_ICONS[option.id];
@@ -401,7 +400,7 @@ function HeroPrimeraVez({
         </p>
         <MuestraFlowDiagram highlight="definir" />
       </div>
-    </section>
+    </Panel>
   );
 }
 
