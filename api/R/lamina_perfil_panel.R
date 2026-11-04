@@ -43,6 +43,7 @@
   size <- estilo$rotulo_pt
   nb <- .std_negrita_forzada("categorias")
   tope <- if (w <= 4.5) w * 0.55 else min(2.6, w * 0.45)
+  if (.lam_reserva_inferior() > 0) tope <- w * 0.55   # con tarjetas debajo (ADR 0129 §6) el rótulo gana ancho en vez de líneas
   tinta <- if (length(espec$rotulos)) max(.lam_ancho_tinta(espec$rotulos, size, nb)) else 0
   wlab <- min(tope, max(rb$wlab %||% 1.2, tinta + 0.3))
   altos <- vapply(espec$rotulos, function(r) .lam_alto_tinta(r, wlab, size, nb), 0)
@@ -70,7 +71,10 @@
                                                                                       publicos[[k]], !compartida[k], est))
   tipo <- function(x) if (isTRUE(x$cabe)) x$tipo %||% "nativo" else "respaldo"
   mejor <- NULL
-  for (s in unlist(.std_comp("perfil", "rotulo_pt"))) {
+  # Con tarjetas por gráfico debajo (ADR 0129 §6) el panel es más bajo: puede bajar hasta 10 pt, como la maqueta.
+  tamanos <- unlist(.std_comp("perfil", "rotulo_pt"))
+  if (.lam_reserva_inferior() > 0) tamanos <- c(tamanos, unlist(.std_comp("perfil", "rotulo_pt_con_tarjetas")))
+  for (s in tamanos) {
     est <- .lam_perfil_estilo(s)
     gs <- geos(est, geo); g <- geo
     t0 <- vapply(gs, tipo, "")

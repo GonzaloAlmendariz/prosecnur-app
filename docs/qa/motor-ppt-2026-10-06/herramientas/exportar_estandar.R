@@ -131,6 +131,7 @@ composicion <- list(unidad = "in",
   perfil = list(                     # paneles de las láminas de perfil y mixtas, como Conta (lamina_perfil_panel.R; ítems 18–20)
     titulo_pt = 16,                  # pregunta del panel, centrada
     rotulo_pt = c(13, 12.5, 12, 11.5, 11),   # categoría: 13 pt y baja medio punto sólo si así quedan más paneles nativos
+    rotulo_pt_con_tarjetas = c(10.5, 10),   # ADR 0129 §6: con tarjetas debajo del gráfico, el panel puede bajar a 10 pt
     grosor_max_cm = 0.99,            # la barra más gruesa de Conta (el piso es piso_panel_cm)
     grosor_frac = 0.7,               # fracción de la fila que ocupa la barra
     aire_fila = 0.06,                # aire mínimo entre dos barras

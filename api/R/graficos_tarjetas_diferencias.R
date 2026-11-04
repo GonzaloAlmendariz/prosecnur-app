@@ -38,6 +38,7 @@
     x <- list()
   }
   if (!is.list(x) || identical(x$activo, FALSE)) return(NULL)
+  if (.tarjetas_es_mapa(x)) return(NULL)   # un mapa por ranura es de la lámina de dos gráficos (graficos_tarjetas_ranuras.R)
   mx <- suppressWarnings(as.integer(unlist(x$max %||% .TARJETAS_MAX))[1])
   if (is.na(mx) || mx < 1L) mx <- .TARJETAS_MAX
   mapa <- function(m) {
@@ -498,7 +499,8 @@
   # Los nombres van completos encima de su barra (Gonzalo, v7 RV); el corto declarado queda para el que no cabe en dos
   # líneas de una tarjeta angosta (unos 60 caracteres).
   if (!length(cortos)) return(etiqueta)
-  largo <- nchar(etiqueta) > 60
+  # La tarjeta compacta (nombre a la izquierda de la barra) usa el corto declarado siempre que lo haya.
+  largo <- if (.lam_tarjeta_compacta()) etiqueta %in% names(cortos) else nchar(etiqueta) > 60
   out <- etiqueta
   out[largo] <- ifelse(is.na(cortos[etiqueta[largo]]), etiqueta[largo], unname(cortos[etiqueta[largo]]))
   out
