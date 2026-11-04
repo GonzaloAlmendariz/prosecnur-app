@@ -16,6 +16,7 @@ import { DashboardCustomizeDialog } from "./customize/DashboardCustomizeDialog";
 import "./customize/customize.css";
 import { DashboardPalettesDialog } from "./palettes/DashboardPalettesDialog";
 import { DashboardPublishDialog } from "./publish/DashboardPublishDialog";
+import { accionPublicar } from "./publish/accionPublicar";
 import { EmptyState } from "./shared/EmptyState";
 import { DashboardSourceGate } from "./source/DashboardSourceGate";
 import { ResumenTab } from "./tabs/ResumenTab";
@@ -256,15 +257,11 @@ export default function DashboardPage({
             acciones={[
               {
                 id: "deploy",
-                label: config.last_deploy ? "Re-publicar" : "Publicar",
+                ...accionPublicar({ tieneFuente: hasDashboardSource, lastDeploy: config.last_deploy }),
                 icon: Rocket,
                 rank: 1,
                 kind: "primary",
                 onSelect: () => setPublishOpen(true),
-                disabled: !hasDashboardSource,
-                title: config.last_deploy
-                  ? `Re-publicar a ${config.last_deploy.repo_id}`
-                  : "Publicar el dashboard como Hugging Face Space",
               },
               {
                 id: "vista-previa",

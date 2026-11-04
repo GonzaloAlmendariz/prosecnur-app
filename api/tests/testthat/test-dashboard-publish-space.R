@@ -66,6 +66,9 @@ test_that("en un repo git, además, sólo lo versionado: un borrador local no vi
 })
 
 test_that("armar el Space de punta a punta no copia nada de la basura", {
+  # Publica una sesión sin fuente de tablero: aquí se mide otra cosa. El guard
+  # de la fuente tiene su suite (test-dashboard-publish-fuente.R).
+  local_mocked_bindings(.publicacion_exigir_fuente_dashboard = function(s) invisible(TRUE))
   root <- .dps_arbol()
   plantilla <- testthat::test_path("..", "..", "..", "deploy", "hf-space-README.md.template")
   testthat::skip_if_not(file.exists(plantilla), "sin deploy/hf-space-README.md.template")
@@ -87,6 +90,9 @@ test_that("armar el Space de punta a punta no copia nada de la basura", {
 # --- El runtime público sólo sirve un .pulso preparado -----------------------
 
 test_that("el .pulso de una publicación lleva la marca y el del proyecto no", {
+  # Publica una sesión sin fuente de tablero: aquí se mide otra cosa. El guard
+  # de la fuente tiene su suite (test-dashboard-publish-fuente.R).
+  local_mocked_bindings(.publicacion_exigir_fuente_dashboard = function(s) invisible(TRUE))
   sid <- session_create()
   withr::defer(session_delete(sid))
   expect_false(.publicacion_preparada(session_get(sid)))

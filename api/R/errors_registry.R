@@ -544,6 +544,7 @@ errores_registrados <- function() {
     "E_COPY_FAIL",                                           "reporte_calc_muestra.R",            "500",
     "E_COPY_FAILED",                                         "router_proyecto.R",                 "500",
     "E_DASHBOARD_FUENTE_INVALIDA",                           "dashboard_source.R",                "500",
+    "E_DASHBOARD_SIN_FUENTE",                                "dashboard_publish_fuente.R",        "409",
     "E_DATA_XLSFORM_INCOMPATIBLE",                           "router_carga.R",                    "400",
     "E_DELIVERY_NO_TITULAR_BLOCKS",                          "hojas_ruta_engine.R",               "indirecto",
     "E_DEMO_MISSING",                                        "router_sistema.R",                  "404",
