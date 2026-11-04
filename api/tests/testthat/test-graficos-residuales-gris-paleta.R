@@ -45,3 +45,17 @@ test_that("la agrupada de una serie en ggplot pinta de gris las residuales con r
   expect_false(any(con[c("Voluntariado", "Académica")] == gris))
   expect_false(any(sin == gris))
 })
+
+test_that("«Marcas del eje» dibuja 0 a 100 % en el lienzo de la agrupada (antes theme_void lo borraba)", {
+  df <- data.frame(categoria = c("A", "B", "C"), pct = c(.44, .29, .10), n = c(176, 116, 40), N = 400)
+  panel <- function(me) {
+    p <- suppressWarnings(graficar_barras_agrupadas(data = df, var_categoria = "categoria", var_n = "N", cols_porcentaje = "pct",
+      etiquetas_series = c(pct = "Porcentaje"), cols_n = c(pct = "n"), marcas_eje = me, usar_canvas = TRUE, exportar = "rplot"))
+    p
+  }
+  # El lienzo devuelve una composición; se buscan los rótulos del eje en su texto renderizado.
+  txt <- function(p) { f <- tempfile(fileext = ".svg"); grDevices::svg(f, 6, 4); print(p); grDevices::dev.off(); paste(readLines(f, warn = FALSE), collapse = "") }
+  skip_if_not(capabilities("cairo"))
+  con <- txt(panel(TRUE)); sin <- txt(panel(FALSE))
+  expect_gt(nchar(con), nchar(sin))
+})

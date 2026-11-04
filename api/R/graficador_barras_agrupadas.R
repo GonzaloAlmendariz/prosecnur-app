@@ -1794,6 +1794,18 @@ graficar_barras_agrupadas <- function(
       plot.background  = ggplot2::element_rect(fill = color_fondo, color = NA),
       panel.background = ggplot2::element_rect(fill = color_fondo, color = NA)
     )
+  # «Marcas del eje» en el lienzo: theme_void() borraba eje y guías y el mando no cambiaba el PPT (banco de mutación de
+  # mandos, CCSS 2026-11-04). Con escala completa de 0 a 100 % se escriben 0, 25, 50, 75 y 100 % con sus guías, como en la
+  # lámina nativa (lamina_categorica.R).
+  if (isTRUE(marcas_eje) && !isTRUE(usar_eje_libre) && escala_valor %in% c("proporcion_1", "proporcion_100")) {
+    tope_marcas <- if (identical(escala_valor, "proporcion_100")) 100 else 1
+    p_panel <- p_panel +
+      ggplot2::scale_y_continuous(limits = c(0, max(base_max, tope_marcas)), breaks = seq(0, tope_marcas, length.out = 5),
+                                  labels = function(z) .pulso_fmt_pct_half_up(z * (100 / tope_marcas) / 100, 0),
+                                  expand = ggplot2::expansion(mult = c(0, 0.02))) +
+      ggplot2::theme(panel.grid.major.x = ggplot2::element_line(color = .std_color("filete"), linewidth = 0.3),
+                     axis.text.x = ggplot2::element_text(size = 8, color = .std_color("texto_tenue"), family = font_family))
+  }
 
   # leyenda grob (con separacion real)
   n_por_fila <- as.integer(legend_n_por_fila)
