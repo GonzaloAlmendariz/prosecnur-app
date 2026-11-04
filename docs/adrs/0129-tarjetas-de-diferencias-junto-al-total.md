@@ -1,0 +1,82 @@
+# ADR 0129: Tarjetas de diferencias junto al gráfico del total
+
+Estado: Aceptado (Gonzalo, 2026-11-03: formato P08 aprobado para PPT y Word; 2026-11-04: «solo p» para los dos niveles y el p de nivel frente al resto se ajusta contra la familia del informe sin agregarlo)
+
+Fecha: 2026-11-04
+
+Extiende: [ADR 0128](0128-una-regla-de-diferencias-por-estudio.md) (D7, «frente al resto», y la familia de BH del informe).
+
+Diseño: `docs/qa/maqueta-total-con-diferencias-2026-11-03/propuesta.md` (§5, versiones 5 y 6). Las imágenes con datos de CCSS no se versionan: viven en la carpeta del estudio.
+
+## Contexto
+
+Las diferencias entre grupos se mostraban en láminas de cruce aparte: una lámina por cruce, con letras ▲A por pares. Gonzalo aprobó otro formato para el informe: el gráfico del total con, a su lado (PPT) o debajo (Word), solo las diferencias significativas de cada grupo frente al resto. Ese formato es el patrón de Ipsos y de Pew.
+
+## Decisión
+
+### 1. Una opción de la lámina, no un graficador
+
+Una lámina de total (`p_slide_1_grafico` sin cruce, con un gráfico de categorías o una batería de escala) pide tarjetas con `payload.meta.tarjetas_diferencias`:
+
+```json
+{ "activo": true, "max": 6, "cruces": ["area", "nivel_curricular"],
+  "rotulos": { "area": "Área" }, "cortos": { "Economía y Finanzas": "Econ. y Finanzas" }, "publico": "estudiantes" }
+```
+
+- `true` equivale a `{ "activo": true }`.
+- Los cruces por defecto son los que el estudio declara en Analítica (`cruces_vars` de la raíz).
+- `rotulos` nombra cada cruce; si falta, se usa la etiqueta del instrumento.
+- `cortos` acorta los rótulos de grupo.
+- `publico` nombra a quienes respondieron en la lectura.
+
+`meta` ya conserva las claves que no conoce (`graficos_slide_meta.R`). Por eso no cambia el esquema del plan ni las listas blancas de `graficos_config`.
+
+### 2. Qué genera una tarjeta
+
+Cada diferencia de un grupo **frente al resto** se prueba con la misma evaluación de la regla del estudio (`.sig_evaluar` + `.sig_veredictos`), forzada a `max_letras = 1`. Es la misma regla de la lámina y de la tabla: Rao-Scott por aula, al menos 10 puntos, 30 casos y 8 conglomerados por grupo.
+
+- **Familia.** Con dos grupos, la prueba frente al resto es la del par, que ya está en la familia de BH del informe, y su p ajustado es exacto. Con más grupos (nivel), la prueba frente al resto **no entra a la familia**: su p se ajusta contra ella por interpolación monótona, como las láminas filtradas del ADR 0128. Así ninguna letra ya generada cambia.
+- **Dos niveles, solo por p.** Si el p ajustado es menor que 0.01, la tarjeta lleva borde continuo y ▲▼. Si está entre 0.01 y alfa, lleva borde punteado y △▽. No se suma el criterio de 12 puntos de «Historias del informe».
+- **Unidad de tarjeta:**
+  - en una múltiple o una batería, una tarjeta por (opción o ítem, cruce); en la batería se prueba el *top two box*;
+  - en una dicotómica, solo la opción principal;
+  - en una nominal u ordinal, una por cruce con la categoría de mayor diferencia, y otra categoría solo si trae un grupo que aún no aparece.
+- **Grupos que se muestran.** Con dos grupos se muestran los dos con ▲ y ▼. Con más, solo los que difieren. La primera fila de la tarjeta es el total, en gris, con la cifra del gráfico.
+- **Orden y tope.** Primero las del 99% y después de mayor a menor diferencia. Se dibujan las 6 primeras y las demás no.
+
+### 3. Salidas
+
+- **PPT.** Composición nativa propia (`lamina_tarjetas_diferencias.R`):
+  - el título es la pregunta y no hay subtítulo;
+  - el total va a la izquierda, con rótulos de 11 pt y cifras de 12 pt;
+  - con 4 tarjetas o menos, el panel es una columna de 1/3 del ancho útil; con 5 o 6, dos columnas en la mitad;
+  - no hay nota de significancia: solo base y fuente;
+  - sin diferencias, la lámina sigue su camino de siempre.
+- **Word.** Las tarjetas van bajo la imagen del total, dentro de la misma figura (`reporte_word_tarjetas.R`):
+  - es la misma tarjeta, dibujada con `grid` a 0.8;
+  - una tarjeta ocupa todo el ancho y dos van a la mitad; con número impar, la principal va sola;
+  - el total de barras se compacta para que total y tarjetas quepan en una página.
+- **Lectura.** Se explica una sola vez (`graficos_tarjetas_lectura.R`):
+  - en el PPT, la lámina del plan titulada «Cómo leer las diferencias entre grupos» pasa a la composición nativa aprobada, con una tarjeta real del informe ampliada;
+  - en el Word, el capítulo «Cómo leer este informe» suma «Pautas para la lectura del informe» en prosa.
+
+### 4. Enganches sin crecer `reporte_plan_ppt.R`
+
+- `.lam_con_sig_en_lamina` calcula las tarjetas y las adjunta a `attr(p, "pulso_tarjetas")`. Lo hace con la lámina y `.resolve_ref` del entorno del motor, igual que `.sig_fuente_render`.
+- `.lam_citas_aplica`/`.lam_citas_slide_1_nativa` desvían la lámina hacia la composición con tarjetas.
+- `.word_publico_marcar` y un registro por firma de filas llevan las tarjetas a la figura del Word.
+- `.nresp_colocar` reemplaza la lámina de texto de lectura.
+- `.sig_informe_preparar` deja la base para la tarjeta de ejemplo.
+
+## Consecuencias
+
+- Una diferencia de nivel puede quedar al 95% o desaparecer frente a la maqueta, que usaba una familia propia y más chica. Pasó en CCSS con nivel 7 en «ONG» y con padres en «posgrado».
+- Las láminas de cruce de una pregunta con tarjetas siguen en el plan. Ocultarlas es decisión del estudio: en CCSS v7 se ocultaron.
+- Una batería que el Word parte en piezas no casa con la lámina y va sin tarjetas en el Word.
+
+## Cumplimiento
+
+- Motor: `api/R/graficos_tarjetas_diferencias.R`, `api/R/graficos_tarjetas_lectura.R`, `api/R/lamina_tarjetas_diferencias.R` y `api/R/reporte_word_tarjetas.R`.
+- Tokens de color: `ppt.colores.tarjeta_*` y `verde_acuerdo` en `api/inst/estandar/estandar_pulso.json`.
+- Tests: `api/tests/testthat/test-graficos-tarjetas-diferencias.R`.
+- UI: interruptor «Tarjetas de diferencias» en la sección «Diferencias entre grupos» del inspector de la lámina.
