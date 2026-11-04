@@ -72,6 +72,24 @@
         max_iter = as.integer(.analitica_ponderacion_scalar(rk$max_iter, 50L)),
         tol = as.numeric(.analitica_ponderacion_scalar(rk$tol, 1e-7))
       )
+      # NA/98/99: "excluir" (por defecto en el motor) o "imputar" (hot-deck bajo umbral).
+      falt <- tolower(as.character(.analitica_ponderacion_scalar(rk$faltantes, "")))
+      if (length(falt) && falt %in% c("excluir", "imputar")) out$rake$faltantes <- falt
+      imp <- rk$imputacion
+      if (is.list(imp)) {
+        imp_out <- list()
+        um <- suppressWarnings(as.numeric(.analitica_ponderacion_scalar(imp$umbral, NA)))
+        if (length(um) && is.finite(um) && um > 0 && um <= 1) imp_out$umbral <- um
+        se <- suppressWarnings(as.integer(.analitica_ponderacion_scalar(imp$semilla, NA)))
+        if (length(se) && !is.na(se)) imp_out$semilla <- se
+        if (length(imp_out)) out$rake$imputacion <- imp_out
+      }
+      cods <- rk$codigos_faltantes
+      if (length(cods)) {
+        cods <- trimws(as.character(unlist(cods)))
+        cods <- cods[!is.na(cods) & nzchar(cods)]
+        if (length(cods)) out$rake$codigos_faltantes <- cods
+      }
     }
   }
 
@@ -162,6 +180,15 @@
     estado$total_poblacion <- res$total_poblacion
   }
   if (!is.null(res$recorte)) estado$recorte <- res$recorte
+  if (!is.null(res$faltantes)) estado$faltantes <- res$faltantes
+  if (!is.null(res$imputacion)) {
+    # El estado lleva el resumen; la marca por caso viaja en su propio atributo.
+    # La imputacion solo sirvio para el peso: las columnas de `data` no cambian.
+    estado$imputacion <- res$imputacion[c("semilla", "umbral", "metodo", "variables")]
+    if (length(res$imputacion$marca)) {
+      attr(data, "ponderacion_imputados") <- as.data.frame(res$imputacion$marca, check.names = FALSE)
+    }
+  }
   attr(data, "ponderacion_estado") <- estado
   data
 }
@@ -374,6 +401,8 @@
     total_poblacion = res$total_poblacion,
     peso_base = res$peso_base,
     recorte = res$recorte,
+    faltantes = res$faltantes,
+    imputacion = if (is.null(res$imputacion)) NULL else res$imputacion[c("semilla", "umbral", "metodo", "variables")],
     warnings = .analitica_ponderacion_warnings(res)
   )
 }

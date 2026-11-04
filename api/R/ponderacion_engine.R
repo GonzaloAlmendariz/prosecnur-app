@@ -150,7 +150,8 @@
 # inicial (p.ej. de diseno); por defecto 1. Devuelve el peso final (media 1) y,
 # como atributos, la convergencia.
 .ponderacion_rake <- function(data, margins, base = NULL,
-                              max_iter = 50L, tol = 1e-7) {
+                              max_iter = 50L, tol = 1e-7,
+                              codigos_faltantes = c("98", "99")) {
   n <- nrow(data)
   w <- if (is.null(base)) rep(1, n) else .ponderacion_num(base)
   w[is.na(w) | w < 0] <- 0
@@ -159,10 +160,12 @@
   prepared <- lapply(margins, function(m) {
     v <- as.character(data[[m$var]])
     tgt <- .ponderacion_normalize_targets(m$targets)
-    list(var = m$var, values = v, targets = tgt)
+    # Casos con categoria valida en este margen: los unicos que el paso ajusta.
+    dentro <- !is.na(v) & v %in% names(tgt)
+    list(var = m$var, values = v, targets = tgt, dentro = dentro)
   })
   prepared <- Filter(function(p) !is.null(p$targets), prepared)
-  attr_avisos <- .ponderacion_rake_avisos(prepared, w)
+  attr_avisos <- .ponderacion_rake_avisos(prepared, w, codigos_faltantes)
   if (!length(prepared)) {
     w <- if (sum(w) > 0) w * n / sum(w) else rep(1, n)
     attr(w, "iterations") <- 0L
@@ -175,7 +178,13 @@
     iter_used <- it
     max_change <- 0
     for (p in prepared) {
-      total_w <- sum(w)
+      # «Dejar fuera del margen» (ipf `exclude`; Battaglia, Hoaglin y Frankel
+      # 2009): la meta se escala a la parte del total que representan los casos
+      # con categoria valida, y los NA/98/99 conservan el peso que traen en este
+      # paso. Antes el total incluia a los sin dato: el margen no podia cerrar,
+      # el raking no convergia y esos casos perdian peso en cada iteracion. Sin
+      # sin-dato, `w[p$dentro]` es `w` entero y el calculo es el de siempre.
+      total_w <- sum(w[p$dentro])
       if (total_w <= 0) next
       cur <- tapply(w, p$values, sum)
       # Una categoria sin casos (o sin peso) no se puede ajustar: su meta se
@@ -219,7 +228,7 @@
 #     la salta y el margen queda incumplido (el resto se reparte su meta);
 #   - casos cuya categoria no esta en las metas (NA, 98/99, otra): ningun factor
 #     los toca en ese margen y conservan el peso que traian.
-.ponderacion_rake_avisos <- function(prepared, w) {
+.ponderacion_rake_avisos <- function(prepared, w, codigos_faltantes = c("98", "99")) {
   avisos <- list()
   for (p in prepared) {
     observed <- tapply(w, p$values, sum)
@@ -233,13 +242,15 @@
         var = p$var, categorias = sin_casos
       )
     }
-    fuera <- is.na(p$values) | !p$values %in% names(p$targets)
+    fuera <- !p$dentro
     if (any(fuera)) {
       cats <- sort(unique(.ponderacion_rotulo(p$values[fuera])))
+      sin_dato <- all(.ponderacion_es_faltante(p$values[fuera], names(p$targets), codigos_faltantes))
+      que <- if (sin_dato) sprintf("sin dato en «%s»", p$var) else sprintf("de «%s» sin dato o sin meta", p$var)
       avisos[[length(avisos) + 1L]] <- .ponderacion_aviso(
-        "warn", "categoria_fuera_de_margen",
-        sprintf("%d casos de «%s» no tienen meta (%s): el raking no los ajusta en ese margen, el margen no puede cerrar y esos casos pierden peso frente al resto en cada iteración. Recodifícalos o dales una meta.",
-                sum(fuera), p$var, paste(cats, collapse = ", ")),
+        "info", "categoria_fuera_de_margen",
+        sprintf("%d casos %s (%s) conservan su peso en ese margen: el ajuste se aplica sólo a los casos con categoría válida, con la meta escalada a la parte del total que representan.",
+                sum(fuera), que, paste(cats, collapse = ", ")),
         var = p$var, categorias = cats, casos = as.integer(sum(fuera))
       )
     }
@@ -372,7 +383,8 @@
 # a rakear partiendo del peso recortado, hasta que el tope y los margenes se
 # cumplen a la vez o se agotan los ciclos. Los pesos 0 (meta 0) no se tocan.
 .ponderacion_trim_recalibrar <- function(data, margins, w, cap, max_ciclos = 20L,
-                                         tol_margen = 1e-3, max_iter = 50L, tol = 1e-7) {
+                                         tol_margen = 1e-3, max_iter = 50L, tol = 1e-7,
+                                         codigos_faltantes = c("98", "99")) {
   # El tope se cumple con 0,1% de holgura relativa: cuando la solucion cae justo
   # en el borde, el ciclo se acerca a el de forma asintotica y no lo toca nunca.
   holgura <- 1e-3
@@ -393,7 +405,8 @@
     m <- mean(w)
     pos <- w > 0
     w[pos] <- pmin(pmax(w[pos], m / cap), cap * m)
-    w <- .ponderacion_rake(data, margins, base = w, max_iter = max_iter, tol = tol)
+    w <- .ponderacion_rake(data, margins, base = w, max_iter = max_iter, tol = tol,
+                           codigos_faltantes = codigos_faltantes)
     converged <- isTRUE(attr(w, "converged"))
     iterations <- as.integer(attr(w, "iterations") %||% 0L)
     ok <- cumple(w)
@@ -463,7 +476,10 @@
 #              list(peso_columna = "peso_diseno") | NULL,
 #     rake   = list(
 #       margins = list(list(var = "sexo", targets = c(H = 0.49, M = 0.51)), ...),
-#       max_iter = 50, tol = 1e-7
+#       max_iter = 50, tol = 1e-7,
+#       faltantes = "excluir" | "imputar",   # NA/98/99 (ponderacion_faltantes.R)
+#       imputacion = list(umbral = 0.05, semilla = 20261104L),
+#       codigos_faltantes = c("98", "99")
 #     ) | NULL,
 #     trim = list(cap = 5,                 # cap = multiplicador sobre la media
 #                 recalibrar = FALSE,      # TRUE: recorte + raking en ciclo
@@ -526,11 +542,24 @@ ponderacion_compute <- function(data, config = list()) {
   rake <- config$rake
   max_iter <- as.integer(rake$max_iter %||% 50L)
   tol <- as.numeric(rake$tol %||% 1e-7)
+  faltantes <- NULL
+  imputacion <- NULL
+  data_cal <- data
+  codigos <- as.character(unlist((rake %||% list())$codigos_faltantes %||% c("98", "99")))
   if (is.list(rake) && length(rake$margins %||% list())) {
     margins <- Filter(function(m) is.list(m) && .ponderacion_scalar(m$var, "") %in% names(data),
                       rake$margins)
     if (length(margins)) {
-      w <- .ponderacion_rake(data, margins, base = base, max_iter = max_iter, tol = tol)
+      faltantes <- if (identical(.ponderacion_scalar(rake$faltantes, ""), "imputar")) "imputar" else "excluir"
+      if (identical(faltantes, "imputar")) {
+        # Se imputa una copia (data_cal) solo para calibrar: `data` no se toca.
+        imp <- .ponderacion_imputar(data, margins, rake$imputacion, codigos)
+        data_cal <- imp$data
+        imputacion <- imp$resumen
+        add_avisos(imp$avisos)
+      }
+      w <- .ponderacion_rake(data_cal, margins, base = base, max_iter = max_iter, tol = tol,
+                             codigos_faltantes = codigos)
       rake_applied <- TRUE
       converged <- isTRUE(attr(w, "converged"))
       iterations <- as.integer(attr(w, "iterations") %||% 0L)
@@ -549,9 +578,10 @@ ponderacion_compute <- function(data, config = list()) {
     if (isTRUE(trim$recalibrar) && rake_applied) {
       max_ciclos <- suppressWarnings(as.integer(trim$max_ciclos %||% 20L)[1])
       if (is.na(max_ciclos) || max_ciclos < 1L) max_ciclos <- 20L
-      w <- .ponderacion_trim_recalibrar(data, margins, as.numeric(w), cap = cap,
+      w <- .ponderacion_trim_recalibrar(data_cal, margins, as.numeric(w), cap = cap,
                                         max_ciclos = max_ciclos, tol_margen = tol_margen,
-                                        max_iter = max_iter, tol = tol)
+                                        max_iter = max_iter, tol = tol,
+                                        codigos_faltantes = codigos)
       ciclos <- attr(w, "ciclos")
       convergio <- isTRUE(attr(w, "convergio"))
       if (ciclos > 0L) {
@@ -559,7 +589,7 @@ ponderacion_compute <- function(data, config = list()) {
         iterations <- attr(w, "rake_iterations")
       }
       w <- if (sum(w) > 0) as.numeric(w) * n / sum(w) else rep(1, n)
-      desvio <- .ponderacion_max_desvio(data, margins, w)
+      desvio <- .ponderacion_max_desvio(data_cal, margins, w)
       if (!convergio) {
         avisos[[length(avisos) + 1L]] <- .ponderacion_aviso(
           "warn", "recorte_no_converge",
@@ -572,7 +602,7 @@ ponderacion_compute <- function(data, config = list()) {
     } else {
       w <- .ponderacion_trim(w, cap = cap, target_sum = n)
       ciclos <- 0L
-      desvio <- if (rake_applied) .ponderacion_max_desvio(data, margins, w) else 0
+      desvio <- if (rake_applied) .ponderacion_max_desvio(data_cal, margins, w) else 0
       convergio <- TRUE
       if (rake_applied && desvio > tol_margen) {
         avisos[[length(avisos) + 1L]] <- .ponderacion_aviso(
@@ -617,7 +647,7 @@ ponderacion_compute <- function(data, config = list()) {
     reason = NULL,
     peso = w,
     diagnostics = .ponderacion_diagnostics(w),
-    margins = .ponderacion_margin_compare(data, margins, w),
+    margins = .ponderacion_margin_compare(data_cal, margins, w),
     design_applied = design_applied,
     rake_applied = rake_applied,
     converged = converged,
@@ -626,6 +656,8 @@ ponderacion_compute <- function(data, config = list()) {
     escala = escala,
     total_poblacion = total_poblacion,
     peso_base = peso_base,
-    recorte = recorte
+    recorte = recorte,
+    faltantes = faltantes,
+    imputacion = imputacion
   )
 }

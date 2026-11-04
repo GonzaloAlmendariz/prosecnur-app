@@ -445,6 +445,7 @@ errores_registrados <- function() {
     "E_PONDERACION_PESO_BASE_INEXISTENTE",                   "ponderacion_engine.R",              "422",
     "E_PONDERACION_PESO_BASE_INVALIDO",                      "ponderacion_engine.R",              "422",
     "E_PONDERACION_EXPANSION_SIN_TOTAL",                     "ponderacion_engine.R",              "422",
+    "E_PONDERACION_IMPUTACION_EXCEDE_UMBRAL",                "ponderacion_faltantes.R",           "422",
     "E_BASE_REQUERIDA",                                      "carga_estructura_base.R",           "400",
     "E_BLOCK_MAP_SOURCE",                                    "hojas_ruta_engine.R",               "indirecto",
     "E_CALC_DEFF_RANGO",                                     "helpers_calc_comunes.R",            "400",
