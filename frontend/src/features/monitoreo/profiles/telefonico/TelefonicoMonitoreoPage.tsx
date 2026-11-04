@@ -99,7 +99,7 @@ import { acreditacionPrimarySchedulePhase, acreditacionScheduleDraftFromPhases, 
 import { Calendario } from "./modelo/Calendario";
 import { Salvedades, type FilaDeSalvedad } from "./control/Salvedades";
 import { Ritmo } from "./avance/Ritmo";
-import { Entregas } from "./avance/Entregas";
+import { SalidasTelefonicas } from "./avance/SalidasTelefonicas";
 import { chipsDeCabecera, pestanaConLienzo, rotuloEnLaPestana, corteCorto, estadoDelModo, indicadoresDelModo, insigniasDelModo, useResumenDelModo } from "./navegacion/barraTelefonica";
 import { useRegistrarPestanasMonitoreo } from "../../useRegistrarPestanas";
 import { buildCaseCrossingExplanation } from "../../core/acreditacionActorCases";
@@ -17108,30 +17108,28 @@ function renderAcreditacionView(
   if (view === "avance" && options.activeAdvanceTab === "salidas") {
     const outputState = options.state;
     const isPhoneOutputs = isTelefonicoMonitoreoState(outputState);
-    const salidas = (
-      <MonitoreoOutputsWorkbench
-        family={isPhoneOutputs ? "telefonico" : "acreditacion"}
-        routeLabel={isPhoneOutputs ? "Monitoreo telefónico" : options.routeLabel ?? "Acreditación"}
-        defaultTitle={isPhoneOutputs ? "" : outputState?.config?.acreditacion?.estudio?.titulo || "reporte-monitoreo"}
-        config={outputState?.config}
-        clientSheets={outputState?.publication?.client_last_sheets ?? null}
-        internalSheets={outputState?.publication?.internal_last_sheets ?? null}
-        corte={corteTelefonicoDeReports(outputState, reports)}
-        syncedAt={outputState?.synced_at ?? ""}
-        onPublished={options.onPublished}
-        notaDeValidas={isPhoneOutputs ? notaDeValidasTelefonica(reports) : undefined}
-        variante={isPhoneOutputs ? "ficha" : undefined}
-      />
-    );
-    // Avance › Entregas (T8): la vista del PDF del cliente junto a las salidas de siempre.
-    if (!isPhoneOutputs) return salidas;
+    const motor = {
+      family: isPhoneOutputs ? "telefonico" as const : "acreditacion" as const,
+      routeLabel: isPhoneOutputs ? "Monitoreo telefónico" : options.routeLabel ?? "Acreditación",
+      defaultTitle: isPhoneOutputs ? "" : outputState?.config?.acreditacion?.estudio?.titulo || "reporte-monitoreo",
+      config: outputState?.config,
+      clientSheets: outputState?.publication?.client_last_sheets ?? null,
+      internalSheets: outputState?.publication?.internal_last_sheets ?? null,
+      corte: corteTelefonicoDeReports(outputState, reports),
+      syncedAt: outputState?.synced_at ?? "",
+      onPublished: options.onPublished,
+      notaDeValidas: isPhoneOutputs ? notaDeValidasTelefonica(reports) : undefined,
+      variante: isPhoneOutputs ? "ficha" as const : undefined,
+    };
+    if (!isPhoneOutputs) return <MonitoreoOutputsWorkbench {...motor} />;
+    // Avance › Entregas sobre el estándar de Salidas (4 nov 2026): lista de salidas y hoja del cliente.
     return (
-      <Entregas
+      <SalidasTelefonicas
+        motor={motor}
         modelo={reports ? entradaDeCuotasFaltante(reports, outputState, phoneQuotaCardsForDashboard(reports)).modelo : null}
         corte={outputState?.synced_at ? formatDate(outputState.synced_at) : ""}
         dias={efectivasPorDia(reports)}
         nota={notaDeLaSerie(reports)}
-        salidas={salidas}
       />
     );
   }
