@@ -48,3 +48,32 @@ en la captura aunque la pila de fuentes esté bien. En Electron sobre macOS resu
 `validacion/tabs/ExplorarTab.tsx` tiene 3 marcas `validacion-explorar` y el contrato espera 2. En HEAD tiene 2: es
 trabajo sin commitear de otra sesión en `validacion/`, no de esta. Los commits de Home y Gráficos se hicieron con el
 resto del gate en verde (755 de 756 y 2,411 de 2,412).
+
+## Segunda pasada: 1710×1107, 1366×768 y 1280×720 (4 nov 2026, mañana)
+
+Encargo de coordinación: los otros tres anchos de la matriz de QA, con los mismos dos proyectos, arreglando todo salvo
+`monitoreo/` y `validacion/` (ocupados por sus sesiones) y cuidando que el arreglo de un ancho no rompa los otros.
+
+- `acnur_acg` (`cap/m3-acg`): 12 rutas (Home, Cálculo, Formularios, Hojas de ruta, Material, Monitoreo, Carga,
+  Validación, Codificación, Analítica, Gráficos, Dashboard) × 3 anchos, 36 capturas y 36 md5 distintos, `ok=true`.
+- `hsvg2026` (`cap/m3-hsvg`): 9 rutas × 3 anchos, 27 capturas y 27 md5 distintos, `ok=true`.
+
+El runner no marcó nada en ninguno de los tres anchos. Los hallazgos salieron de mirar cada captura:
+
+| # | Módulo (dueño) | Vista | Proyecto, ancho | Qué se ve | Cláusula | Estado |
+|---|---|---|---|---|---|---|
+| 17 | Hojas de ruta | Miga del mapa con una ciudad abierta | acg 1280 | «Lima y Callao **,** clic en un distrito…»: la coma inicial queda suelta por el hueco del contenedor flex (el mismo defecto que 5d2dd72ad arregló en otra miga) | C1 | ☑ 39f6cb854 (entre paréntesis) |
+| 18 | Hojas de ruta | Miga del atlas | hsvg 1366 | «Perú **,** 26 ciudades con cartografía…», y sus variantes de departamento y ciudad | C1 | ☑ 39f6cb854, con test de las cuatro variantes |
+| 19 | Hojas de ruta | Inspector › Marco territorial › Cartografía | acg 1280 | «Callao 2019 · Lima Metropolitana 2017»: `rotuloDeCartografia` (en `api/hojasRuta.ts`, fuera del guard del módulo) unía con « · » | P3 | ☑ 39f6cb854 (punto y coma: cada cobertura ya lleva comas), con test |
+| 20 | Cálculo de muestra | Datos › Estudio | hsvg 1710 | ~100 px en blanco entre «Nombre y cliente se declaran en la ficha» y el alcance: la nota (64912ee26) cayó en la fila `1fr` de la grilla | C2 | ☑ c900e0e16 (fila propia) |
+| 21 | Monitoreo | Cursos-horario › Avance › Por facultad | hsvg 1280 | «CAÍDOS SIN RELEVO» parte en dos renglones en la franja de cuatro cifras, y la columna izquierda deja un hueco alto bajo «Cuota por facultad» | C2 | ☐ para la sesión de Monitoreo |
+| 22 | Carga | Plan › Qué tiene cada base | hsvg 1280 | El vacío «Aún no hay una base definida» flota en un área tintada alta (la fila vacía mide el alto del listado) | C3 | se queda: el vacío vive en su sección y dice cómo se llena |
+| 23 | Home | Composición | hsvg 1710 | Con tres módulos, ~330 px vacíos arriba | — | se queda (composición centrada declarada, como el #16) |
+
+**Control de los arreglos en los cinco anchos** (1710, 1440, 1366, 1280 y 1024), contra la pila de la sesión:
+Cálculo y Hojas de ruta con `hsvg2026` (`cap/fx-hsvg`, 10 capturas) y Hojas de ruta › Territorio con `acnur_acg`
+(`cap/fx-acg`, 5 capturas): `ok=true` en todas. Gate: tsc 0, Hojas de ruta 877 tests y Cálculo 3,033.
+
+Formularios ya muestra el arreglo de su sesión (63d22771b: «El estudio ya tiene su instrumento… Abrir el instrumento
+del estudio»), y Cálculo el aviso de tipo («El estudio se lee como Territorial presencial… Alinear con la ficha»):
+los hallazgos 11 y 12 de la primera pasada quedan atendidos por sus dueños.
