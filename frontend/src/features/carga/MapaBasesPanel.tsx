@@ -48,6 +48,7 @@ import "./MapaBasesPanel.css";
 import { EstadoVacio } from "../../components/EstadoVacio";
 import { LoadingBlock } from "../../components/States";
 import { Inbox } from "../../vendor/lucide-react";
+import { Panel } from "../../components/Panel";
 
 // ---- Abrir --------------------------------------------------------------------
 
@@ -331,17 +332,15 @@ function MatrizPorBase({ bases, filas }: { bases: readonly string[]; filas: read
   const todas: FilaDelMapa[] = useMemo(() => filasDelMapa(bases, filas), [bases, filas]);
   const visibles = soloIncompletas ? todas.filter((f) => f.incompleta) : todas;
   return (
-    <section className="pulso-armon-seccion" aria-labelledby="pulso-mapa-matriz" data-qa-geometry-member>
-      <div className="pulso-armon-seccion-head">
-        <div className="pulso-armon-seccion-titulo">
-          <h3 id="pulso-mapa-matriz">Preguntas de la matriz</h3>
-          <p className="pulso-armon-ayuda">
-            {todas.length === 0
+    <Panel
+      className="pulso-armon-seccion"
+      aria-labelledby="pulso-mapa-matriz" data-qa-geometry-member
+      title={<span id="pulso-mapa-matriz">Preguntas de la matriz</span>}
+      hint={<>{todas.length === 0
               ? "Todavía no hay preguntas en la matriz."
-              : `${formatoConteoDe(todas.length, "pregunta", "preguntas")}. ${textoFaltaEn(todas)}`}
-          </p>
-        </div>
-        {todas.some((f) => f.incompleta) && (
+              : `${formatoConteoDe(todas.length, "pregunta", "preguntas")}. ${textoFaltaEn(todas)}`}</>}
+      actions={<>
+{todas.some((f) => f.incompleta) && (
           <PulsoSwitch
             size="sm"
             label="Sólo las que faltan en alguna base"
@@ -349,7 +348,9 @@ function MatrizPorBase({ bases, filas }: { bases: readonly string[]; filas: read
             onCheckedChange={setSoloIncompletas}
           />
         )}
-      </div>
+    </>}
+    >
+      
       {todas.length === 0 ? (
         // C3: el vacío es de esta sección y dice cómo se llena.
         <EstadoVacio icono={<Inbox size={16} />} titulo="Elige una base arriba para ver sus variables y añadirlas a la matriz" />
@@ -384,7 +385,7 @@ function MatrizPorBase({ bases, filas }: { bases: readonly string[]; filas: read
           </table>
         </div>
       )}
-    </section>
+    </Panel>
   );
 }
 
@@ -415,17 +416,19 @@ function FueraDeLaMatriz({
     ? `${formatoConteo(visibles.length)} de ${formatoConteo(todas.length)}`
     : formatoConteoDe(todas.length, "variable", "variables");
   return (
-    <section className="pulso-armon-seccion" aria-labelledby="pulso-mapa-fuera" data-qa-geometry-member>
-      <div className="pulso-armon-seccion-head">
-        <div className="pulso-armon-seccion-titulo">
-          <h3 id="pulso-mapa-fuera">Fuera de la matriz en {base}</h3>
-          <p className="pulso-armon-ayuda">Variables de {base} que todavía no están en ninguna fila.</p>
-        </div>
-        <PulsoButton variant="secondary" size="sm" className="pulso-armon-btn" onClick={onVolver}>
+    <Panel
+      className="pulso-armon-seccion"
+      aria-labelledby="pulso-mapa-fuera" data-qa-geometry-member
+      title={<span id="pulso-mapa-fuera">Fuera de la matriz en {base}</span>}
+      hint={<>Variables de {base} que todavía no están en ninguna fila.</>}
+      actions={<>
+<PulsoButton variant="secondary" size="sm" className="pulso-armon-btn" onClick={onVolver}>
           <ArrowLeft size={13} aria-hidden="true" />
           Ver la matriz
         </PulsoButton>
-      </div>
+    </>}
+    >
+      
 
       {total === 0 ? (
         // C5 categoría 3: el catálogo de la base no llegó o está vacío.
@@ -507,6 +510,6 @@ function FueraDeLaMatriz({
           )}
         </>
       )}
-    </section>
+    </Panel>
   );
 }

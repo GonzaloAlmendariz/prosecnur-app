@@ -44,6 +44,16 @@ de las tarjetas de base y de las matrices: objetos de una colección o pasos de 
 `carga-v2.css` está congelado a crecimiento y sólo bajó. Queda como línea base; el candidato claro para `Panel` es la
 cabecera de cada pestaña del asistente independiente cuando se toque esa vista.
 
+**4 nov, madrugada (P2, revisable por Gonzalo).** Las secciones con cabecera propia (`pulso-armon-seccion` con
+`-seccion-head`) son `Panel`: el título enlazado (con su conteo en `small`), la ayuda como nota y los botones como
+acciones. Son 8 de 13, en Armonización (Escala común), Mapa de bases (Preguntas de la matriz, Fuera de la matriz),
+Variables de la base (Columnas que trae la base, Variables calculadas) y Segmentos (la lista, el editor y su escala).
+Las otras cinco no abren con cabecera y se quedan. Su regla CSS sigue viva, así que el conteo no baja: el ratchet
+`cajasPropias.contract.test.ts` entra con la foto del día, **211**. Captura con la auditoría canónica (dos olas) a 1440
+y 1024 sin hallazgos, pero esa copia no tiene equivalencias ni segmentos: Segmentos y Mapa de bases muestran su vacío
+y Variables de la base no abrió por dirección desde Plan. La conversión queda respaldada por `tsc` y los 91 archivos
+de tests del módulo, no por una captura con datos. Hace falta un proyecto de referencia con serie armonizada.
+
 ## Guard
 
 - `features/carga/puntoMedio.contract.test.ts`: la foto pasa a vacía (meta 0).
