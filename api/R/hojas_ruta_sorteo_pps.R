@@ -27,7 +27,7 @@ HOJAS_RUTA_ALGORITMO_SORTEO_V1 <- "zona_mayor_resto_v1"
   m <- suppressWarnings(as.numeric(df[[cfg$measure_var]]))
   m[!is.finite(m) | m < 0] <- 0
   if (.hojas_ruta_sorteo_es_tope(cfg)) m <- .hojas_ruta_sorteo_topar(m, cfg)  # ADR 0120
-  m
+  hojas_ruta_reparto_base_mos(m, df, cfg)  # ADR 0131 §2: MOS = M · g_d con la base 2025
 }
 
 #' Candidatas a reemplazo: en PPS sólo las de medida > 0, como las titulares (el

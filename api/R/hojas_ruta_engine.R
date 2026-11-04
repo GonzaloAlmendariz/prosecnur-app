@@ -3871,6 +3871,7 @@ hojas_ruta_integrada_normalize_config <- function(config = list()) {
 
 .hojas_ruta_finalize_quota_cells <- function(cells, cfg) {
   if (!nrow(cells)) return(cells)
+  cells <- hojas_ruta_reparto_base_escalar_celdas(cells, cfg) # ADR 0131 §2
   cells$cuota_raw <- 0
   cells$cuota <- 0L
   route_size <- .hojas_ruta_route_size(cfg)
@@ -3913,9 +3914,8 @@ hojas_ruta_integrada_normalize_config <- function(config = list()) {
     district_weights <- vapply(districts, function(ubigeo) {
       sum(cells$poblacion[as.character(cells$ubigeo) == ubigeo], na.rm = TRUE)
     }, numeric(1))
-    district_route_counts <- .hojas_ruta_allocate_by_mode(
-      district_weights, route_total, alloc_mode
-    )
+    district_route_counts <- hojas_ruta_reparto_base_rutas(districts, route_total, cfg) %||%
+      .hojas_ruta_allocate_by_mode(district_weights, route_total, alloc_mode)
     for (j in seq_along(districts)) {
       district_idx <- as.character(cells$ubigeo) == districts[[j]]
       district_routes <- as.integer(district_route_counts[[j]])
@@ -4312,6 +4312,8 @@ hojas_ruta_sample_size_preview <- function(config = list()) {
 
   district_pop <- as.numeric(district_frame$poblacion)
   district_ubigeos <- as.character(district_frame$ubigeo)
+  district_pop <- hojas_ruta_reparto_base_poblacion(district_ubigeos, district_pop, params) # ADR 0131 §2
+  total_population <- sum(district_pop, na.rm = TRUE)
   district_deff <- vapply(district_ubigeos, function(u) {
     .hojas_ruta_design_effect_for(params, u)
   }, numeric(1))
@@ -4446,7 +4448,7 @@ hojas_ruta_sample_size_preview <- function(config = list()) {
     )
   }
 
-  list(
+  c(list(
     ok = nrow(frame) > 0L && n_used > 0L && isTRUE(route_status$ok),
     frame_meta = .hojas_ruta_frame_meta(frame_all, cfg$frame_source),
     config = cfg,
@@ -4471,7 +4473,7 @@ hojas_ruta_sample_size_preview <- function(config = list()) {
     margin_total_target = params$margin_total,
     district_rows = rows,
     alerts = alerts
-  )
+  ), hojas_ruta_reparto_base_declaracion(district_ubigeos, params))
 }
 
 #' Previsualizar cuotas integradas desde el marco INEI 2017
