@@ -48,7 +48,7 @@ const SNAPSHOT_LITERALES: Record<string, number> = {
   "features/dashboard/tabs/DimensionesTab/indicador-assembly.css": 8,
   "features/dashboard/tabs/DimensionesTab/matriz_unidades.css": 9,
   "features/dashboard/tabs/RelacionTab/relacion.css": 7,
-  "features/dashboard/theme/tokens.css": 78,
+  "features/dashboard/theme/tokens.css": 77,
   "features/graficos/estilo/estilo.css": 2,
   "features/graficos/graficadorPicker.css": 5,
   "features/graficos/v2/styles/editor-v2.css": 2,

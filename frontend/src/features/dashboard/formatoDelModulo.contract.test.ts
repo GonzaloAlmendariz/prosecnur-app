@@ -53,9 +53,7 @@ const PUNTO = /·/g;
 const A_MANO = /toLocaleString\((?:"es-PE")?\)/g;
 const FECHA_DECLARADA = /new Date\(iso\)\.toLocaleString\("es-PE"\)/;
 const RECETA = /(?<!-)\bdash-[a-z0-9]+(?:-[a-z0-9]+)*-(?:empty|vacio|loading|cargando)(?:(?:-|__)[a-z0-9]+)*\b/g;
-// `dash-palette-list-empty` ya no la usa nadie, pero su regla lleva un `font-size` en px
-// que cuenta `app/letraPorRol` (fuera de esta pasada): se poda junto con su foto.
-const DECLARADAS = /^(?:dash-kpi-empty(?:--roomy)?|dash-dt-empty|dash-construccion-loading|dash-customize-logo-empty|dash-empty-state(?:-[a-z]+)?|dash-palette-list-empty)$/;
+const DECLARADAS = /^(?:dash-kpi-empty(?:--roomy)?|dash-dt-empty|dash-construccion-loading|dash-customize-logo-empty|dash-empty-state(?:-[a-z]+)?)$/;
 
 describe("formato de Dashboard", () => {
   it("el barrido ve el feature (centinela)", () => {

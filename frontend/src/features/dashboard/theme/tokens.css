@@ -1644,11 +1644,6 @@
 .dashboard-scope .dash-palette-search input::placeholder {
   color: var(--dash-texto-suave);
 }
-.dashboard-scope .dash-palette-list-empty {
-  color: var(--dash-texto-suave);
-  font-size: 12px;
-  padding: 10px 8px;
-}
 .dashboard-scope .dash-palette-list-item {
   align-items: center;
   appearance: none;

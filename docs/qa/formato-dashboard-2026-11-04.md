@@ -32,9 +32,7 @@ ese `EmptyState` propio.
 - `dash-customize-logo-empty`: la ranura de logo sin imagen en Personalizar.
 - Las esperas en línea bajo el rótulo de un campo de formulario (`dash-cardbox-help`: «Cargando catálogo…»,
   «Cargando secciones…»): son el estado de un campo, como el rótulo ocupado de un botón.
-- `dash-palette-list-empty`: ya no la usa nadie, pero su regla en `theme/tokens.css` lleva un `font-size` en px que
-  cuenta `app/letraPorRol` (su prueba exige que la foto no guarde conteos que bajaron). Se poda junto con la foto
-  cuando coordinación toque `app/` (lo probé: podarla pone en rojo `letraPorRol`).
+- ~~`dash-palette-list-empty`~~: podada en el commit siguiente junto con su foto en `app/letraPorRol` (78 → 77), con autorización de coordinación.
 
 ## Guard
 
