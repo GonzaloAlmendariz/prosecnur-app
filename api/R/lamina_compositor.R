@@ -120,6 +120,7 @@
   espec <- if (inherits(p, "ggplot")) attr(p, "pulso_espec") else NULL
   if (is.null(espec)) return(FALSE)
   if (identical(espec$tipo, "total_y_cruce")) return(.lam_total_y_cruce_aplica(espec, slide))   # total arriba y cruce abajo (lamina_total_y_cruce.R)
+  if (.lam_dif_es(p)) return(!identical((slide$meta %||% list())$motor_nativo, FALSE))   # resumen de diferencias y hallazgos (lamina_resumen_diferencias.R)
   # N4: los gráficos de números son nativos cuando traen su especificación con grupos que dibujar.
   # N4: los gráficos de números son nativos cuando caben (rótulos, cifras, series que no se encimen); lo que no
   # cabe sigue por la ruta anterior (verificador de N4).
@@ -198,6 +199,7 @@
                                 titulo_de_var = NULL) {
   # G4: una lámina apaga la leyenda en el antetítulo con `meta$leyenda_antetitulo = FALSE` (lamina_antetitulo_leyenda.R).
   if (identical((slide$meta %||% list())$leyenda_antetitulo, FALSE)) { op <- options(prosecnur.lam_leyenda_antetitulo = FALSE); on.exit(options(op), add = TRUE) }
+  if (.lam_dif_es(p)) return(.lam_dif_slide_1(doc, p, slide, titulo, antetitulo, layout, master, por_lamina, sin_base))   # lamina_resumen_diferencias.R
   slots <- slide$slots %||% list()
   como_texto <- function(x) if (inherits(x, "ppt_element_text")) x$text else if (is.character(x)) x else NULL
   base <- if (isTRUE(sin_base)) NULL else como_texto(slots$base)

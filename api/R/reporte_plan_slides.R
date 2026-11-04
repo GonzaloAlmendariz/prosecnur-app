@@ -1628,6 +1628,72 @@ p_slide_cifras_y_graficos <- function(
   ))
 }
 
+#' Resumen de diferencias por capítulo
+#'
+#' Una tabla de resumen ejecutivo: filas agrupadas por capítulo, la columna «Total» y una columna por grupo de los
+#' cruces del estudio. Cada celda dice los puntos de diferencia del grupo frente al resto, con la prueba de las tarjetas
+#' y la familia del informe (▲▼ al 99%, △▽ al 95%); sin diferencia, un punto gris. Ver
+#' `graficos_resumen_diferencias.R`.
+#'
+#' @param capitulos Lista de `list(titulo, filas)`; cada fila es `list(var, fila | filas | top2box, rotulo, base_rotulo)`.
+#' @param titulo Título de la lámina.
+#' @param etiqueta Antetítulo («Resumen de diferencias»).
+#' @param cruces Cruces de las columnas; `NULL` usa los de las tarjetas del plan o los del estudio.
+#' @param seleccion «manual» (las filas de `capitulos`) o «auto» (las filas del plan con diferencias, con tope).
+#' @param rotulos,cortos Rótulo de cada cruce y rótulo corto de cada grupo; `NULL` toma los de las tarjetas del plan.
+#' @param tautologicos Cruces que se derivan de una variable (`{"primera_gen": ["educ_padre"]}`), además de los de la
+#'   convención del plan de análisis.
+#' @param publico Nombre de quienes respondieron («estudiantes»).
+#' @param max_filas,max_por_capitulo Topes de la selección automática (18 y 4).
+#' @param fuente Base del informe (multibase); por defecto, la primera.
+#' @param base Nota de base, texto.
+#' @param meta Metadatos de la lámina.
+#' @family reporte
+#' @export
+p_slide_resumen_diferencias <- function(capitulos = list(), titulo = NULL, etiqueta = NULL, cruces = NULL, seleccion = c("manual", "auto"),
+                                        rotulos = list(), cortos = list(), tautologicos = list(), publico = NULL,
+                                        max_filas = NULL, max_por_capitulo = NULL, fuente = NULL, base = NULL, meta = list()) {
+  seleccion <- match.arg(as.character(unlist(seleccion))[1], c("manual", "auto"))
+  .ppt_chk_meta(meta)
+  if (!is.list(capitulos)) .plan_spec_abort("p_slide_resumen_diferencias(): `capitulos` debe ser una lista.")
+  if (identical(seleccion, "manual") && !length(capitulos)) .plan_spec_abort("p_slide_resumen_diferencias(): con selección manual declara `capitulos`.")
+  etiqueta <- .ppt_norm_text1(etiqueta, blank = NULL)
+  if (!is.null(etiqueta)) meta$antetitulo <- meta$antetitulo %||% etiqueta
+  el <- .el_resumen_diferencias(capitulos = capitulos, cruces = cruces, seleccion = seleccion, rotulos = rotulos, cortos = cortos,
+                                tautologicos = tautologicos, publico = publico, max_filas = max_filas,
+                                max_por_capitulo = max_por_capitulo, fuente = fuente)
+  p_slide_1_grafico(el, titulo = titulo %||% "¿En qué se diferencian los grupos?", base = base, meta = meta)
+}
+
+#' Hallazgos clave
+#'
+#' Cifras destacadas con su intervalo de 95% bajo el diseño del estudio y su comparación frente al resto. Modo `cifras`:
+#' hasta seis en cuadrícula. Modo `cifras_con_graficos`: hasta tres con su gráfico de apoyo debajo, o un solo gráfico de
+#' ancho completo (`grafico_ancho`). Ver `graficos_hallazgos.R`.
+#'
+#' @param cifras Lista de `list(var, fila | filas | top2box, texto, comparacion, grafico, base, filtros)`.
+#' @param titulo Título de la lámina.
+#' @param etiqueta Antetítulo («Capítulo 4»).
+#' @param modo «cifras» o «cifras_con_graficos».
+#' @param grafico_ancho En el modo con gráficos, un gráfico de ancho completo `list(graficador, args, titulo, base)`.
+#' @param cruces,rotulos,cortos,tautologicos,publico,fuente Como en [p_slide_resumen_diferencias()].
+#' @param base Nota de base, texto.
+#' @param meta Metadatos de la lámina.
+#' @family reporte
+#' @export
+p_slide_hallazgos <- function(cifras = list(), titulo = NULL, etiqueta = NULL, modo = c("cifras", "cifras_con_graficos"),
+                              grafico_ancho = NULL, cruces = NULL, rotulos = list(), cortos = list(), tautologicos = list(),
+                              publico = NULL, fuente = NULL, base = NULL, meta = list()) {
+  modo <- match.arg(as.character(unlist(modo))[1], c("cifras", "cifras_con_graficos"))
+  .ppt_chk_meta(meta)
+  if (!is.list(cifras) || !length(cifras)) .plan_spec_abort("p_slide_hallazgos(): declara al menos una cifra en `cifras`.")
+  etiqueta <- .ppt_norm_text1(etiqueta, blank = NULL)
+  if (!is.null(etiqueta)) meta$antetitulo <- meta$antetitulo %||% etiqueta
+  el <- .el_hallazgos(cifras = cifras, modo = modo, grafico_ancho = grafico_ancho, cruces = cruces, rotulos = rotulos,
+                      cortos = cortos, tautologicos = tautologicos, publico = publico, fuente = fuente)
+  p_slide_1_grafico(el, titulo = titulo %||% "Hallazgos clave", base = base, meta = meta)
+}
+
 #' Lámina de perfil con tres gráficos: dos apilados y uno alto
 #'
 #' Dos paneles a la izquierda, uno arriba y otro abajo, y un tercero a la
