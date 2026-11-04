@@ -272,6 +272,7 @@
       "perfil": {
         "titulo_pt": 16,
         "rotulo_pt": [13, 12.5, 12, 11.5, 11],
+        "rotulo_pt_con_tarjetas": [10.5, 10],
         "grosor_max_cm": 0.99,
         "grosor_frac": 0.7,
         "aire_fila": 0.06,

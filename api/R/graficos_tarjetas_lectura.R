@@ -55,13 +55,23 @@
   fuente <- .tarjetas_estado$fuente
   sig <- .sig_informe_vigente()
   slides <- if (is.list(plan)) plan$slides %||% list() else list()
-  con <- Filter(function(s) !is.null(.tarjetas_opcion((s$payload %||% list())$meta)), slides)
-  if (!length(con) || is.null(fuente) || is.null(sig)) return(invisible(NULL))
+  # Cada gráfico con tarjetas: el de una lámina de un gráfico y, en una de dos (ADR 0129 §6), el de cada ranura que las pide.
+  pedidos <- list()
+  for (s in slides) {
+    meta <- (s$payload %||% list())$meta
+    opt <- .tarjetas_opcion(meta)
+    if (!is.null(opt)) { pedidos[[length(pedidos) + 1L]] <- list(v = .tarjetas_var_del_plan(s), opt = opt); next }
+    mapa <- .tarjetas_mapa(meta)
+    for (r in names(mapa)) if (!is.null(mapa[[r]]) && is.list(s$payload[[r]])) {
+      pedidos[[length(pedidos) + 1L]] <- list(v = .tarjetas_var_del_plan(list(payload = list(g = s$payload[[r]]))), opt = mapa[[r]])
+    }
+  }
+  if (!length(pedidos) || is.null(fuente) || is.null(sig)) return(invisible(NULL))
   candidatas <- list()
-  for (s in con) {
-    v <- .tarjetas_var_del_plan(s)
+  for (pd in pedidos) {
+    v <- pd$v
     if (is.null(v) || length(v$vars) != 1L || length(unlist(v$cruce))) next
-    opt <- .tarjetas_opcion(s$payload$meta)
+    opt <- pd$opt
     r <- tryCatch(.tarjetas_calcular(fuente, v$vars, opt, list(tipo = "categorica"), sig), error = function(e) NULL)
     if (is.null(r) || !length(r$tarjetas)) next
     for (t in r$tarjetas) candidatas[[length(candidatas) + 1L]] <- list(t = t, r = r)

@@ -83,6 +83,19 @@ Gonzalo pidió ver las diferencias entre las variables de corte principales aunq
 - **Columna con llave.** En el PPT, una batería de un solo ítem con Top Two Box y tarjetas no va en barra horizontal. Va en una columna apilada vertical, con el nombre de cada categoría a su izquierda y una llave que abarca las de la caja y rotula «TOP TWO BOX» con su cifra (`api/R/lamina_columna_llave.R`). Las tarjetas ocupan la mitad derecha (panel estándar). Gonzalo eligió esta excepción frente a las barras agrupadas.
 - **Word.** El Word dibuja esa batería con la fila vacía. Su figura se reconoce además por la firma de fila vacía, que vale solo para la lámina en curso.
 
+### 6. Extensión: tarjetas por gráfico en una lámina de dos gráficos (2026-11-04)
+
+Las tarjetas solo se enganchaban a `p_slide_1_grafico`. Al combinar dos preguntas en `p_slide_2_graficos` se perdían: «¿Cómo solventas tus estudios?» junto al tipo de colegio (ítem 8 de Gonzalo) y las combinaciones de la maqueta de estilos. La referencia es la maqueta «Composición y línea por nivel» (2026-11-04), `07_combinada_transporte_y_tiempo`.
+
+- **Opción.** Es un mapa por ranura en la meta de la lámina: `meta.tarjetas_diferencias = {izquierda: {...} | true, derecha: {...} | true}`. Cada valor es la opción de siempre, incluida `todas`. Una ranura ausente o en `false` va sin tarjetas. Se eligió la meta de la lámina, y no la de cada ranura, porque la meta es de la lámina en todo el plan y `payload.izquierda` es un graficador. Un mapa no cuenta como opción de una lámina de un gráfico (`.tarjetas_opcion` lo ignora).
+- **Tope.** Hasta 2 tarjetas por gráfico, elegidas y ordenadas con las mismas reglas.
+- **Disposición (PPT).** Cada gráfico arriba en su mitad, un filete y, debajo, sus tarjetas lado a lado dentro de la misma mitad. La mitad que las pidió sin diferencias dice «Sin diferencias entre grupos que cumplan la regla del estudio.». La lámina conserva su base y su pie, uno por lámina. Los paneles se acortan lo que mide la franja (`prosecnur.lam_reserva_inferior`, que lee `.lam_mixta_geo("graficos_2")`).
+- **Tarjeta compacta.** Bajo un gráfico la tarjeta lleva el nombre a la izquierda de su barra, con el corto declarado (`cortos`), como en la maqueta. Con el nombre encima medía casi 3 in y el gráfico no cabía.
+- **El gráfico se adapta.** Con la franja, los paneles pueden bajar el rótulo hasta 10 pt (`perfil.rotulo_pt_con_tarjetas`) y ensanchar su columna hasta el 55 % del panel.
+- **Si no caben.** Si un gráfico no cabe en piezas nativas sobre la franja, la lámina sale sin tarjetas, como siempre, y un aviso dice qué acortar. El respaldo ggplot, aplastado, encimaba sus rótulos. Pasa con «¿Cómo solventas tus estudios?» completo: siete opciones con rótulos de tres y cuatro líneas, y una tarjeta de beca de cuatro líneas de título.
+- **Word.** Cada figura lleva las tarjetas de su ranura. Las calcula `.word_publico_marcar`, que llega a la lámina por el entorno del motor; `reporte_plan_ppt.R` no crece.
+- **Lectura.** Los gráficos de una lámina de dos también son candidatos a la tarjeta de ejemplo.
+
 ## Consecuencias
 
 - Una diferencia de nivel puede quedar al 95% o desaparecer frente a la maqueta, que usaba una familia propia y más chica. Pasó en CCSS con nivel 7 en «ONG» y con padres en «posgrado».
@@ -93,6 +106,7 @@ Gonzalo pidió ver las diferencias entre las variables de corte principales aunq
 
 - Motor: `api/R/graficos_tarjetas_diferencias.R`, `api/R/graficos_tarjetas_lectura.R`, `api/R/lamina_tarjetas_diferencias.R` y `api/R/reporte_word_tarjetas.R`.
 - Tokens de color: `ppt.colores.tarjeta_*` y `verde_acuerdo` en `api/inst/estandar/estandar_pulso.json`.
-- Tests: `api/tests/testthat/test-graficos-tarjetas-diferencias.R` y `api/tests/testthat/test-graficos-tarjetas-todas.R`.
+- Tests: `api/tests/testthat/test-graficos-tarjetas-diferencias.R` `api/tests/testthat/test-graficos-tarjetas-todas.R` y `api/tests/testthat/test-graficos-tarjetas-ranuras.R`.
+- Por ranura: `api/R/graficos_tarjetas_ranuras.R` y `api/R/lamina_tarjetas_ranuras.R`.
 - Columna con llave: `api/R/lamina_columna_llave.R`.
 - UI: interruptor «Tarjetas de diferencias» en la sección «Diferencias entre grupos» del inspector de la lámina.

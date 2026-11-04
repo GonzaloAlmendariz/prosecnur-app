@@ -21,7 +21,8 @@
   angosta <- w < 3.4; media <- !angosta && w < 4.6
   # El nombre del grupo va encima de su barra y la barra usa todo el ancho (maqueta, versión 2; Gonzalo, v7 RV: «lo mejor»,
   # con los nombres completos).
-  apilada <- TRUE
+  # Bajo un gráfico de una lámina de dos (ADR 0129 §6) la tarjeta es la compacta de la maqueta: nombre corto a la izquierda.
+  apilada <- !.lam_tarjeta_compacta()
   xn <- if (apilada) 0 else if (angosta) 1.3 else if (media) 1.45 else 2.15
   # La columna de rótulos crece hasta el 45% del ancho interno si un nombre la pide; si ni así cabe, se parte.
   if (length(nombres) && !apilada) xn <- max(xn, min(max(.lam_ancho_tinta(nombres, if (angosta) 9.5 else 10, TRUE)) + 0.04, 0.45 * (w - 0.34)))
