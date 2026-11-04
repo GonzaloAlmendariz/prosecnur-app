@@ -6,7 +6,8 @@
   margin-bottom: 0;
 }
 
-.mon-bloque > .pulso-panel-header {
+/* Marco de perfil: la cabecera lleva el filete de `mon-profile-panel-head`. */
+.mon-profile-panel.mon-bloque > .pulso-panel-header {
   align-items: center;
   min-height: 36px;
   margin: 0;
@@ -52,8 +53,43 @@
   letter-spacing: 0;
 }
 
+/* Marco del kit (territorial): el material es el del `Panel`; el bloque reparte sus hijos en columna
+ * y la cabecera va sin filete, como las de las vistas que reemplaza. */
+.mon-bloque--kit {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-3);
+  min-width: 0;
+  min-height: 0;
+}
+
+.mon-bloque--kit > .pulso-panel-header {
+  align-items: center;
+  margin: 0;
+}
+
+.mon-bloque--kit .pulso-panel-title {
+  font-size: var(--pulso-type-subtitle-size);
+  font-weight: var(--pulso-weight-bold);
+}
+
+/* El antetítulo es el rótulo de la pestaña (§2a-bis), que trae su propia tipografía: el `eyebrow` del
+ * kit no le impone versalitas ni color. */
+.mon-bloque--kit .pulso-section-eyebrow {
+  margin-bottom: var(--pulso-space-2);
+  color: inherit;
+  font-size: inherit;
+  font-weight: inherit;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.mon-bloque--kit .pulso-section-eyebrow:empty {
+  display: none;
+}
+
 @media (max-width: 1180px), (max-height: 760px) {
-  .mon-bloque > .pulso-panel-header {
+  .mon-profile-panel.mon-bloque > .pulso-panel-header {
     min-height: 32px;
     padding: 1px 1px 6px;
   }
