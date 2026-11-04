@@ -88,7 +88,7 @@ HOJAS_RUTA_LIMA_AREAS_ETIQUETAS <- c(lima_norte = "Lima Norte", lima_este = "Lim
 .hojas_ruta_estrato_etiquetas <- function(estratos, ubigeos, estrato, cfg) {
   frame <- tryCatch(hojas_ruta_inei_frame(cfg$frame_source), error = function(e) NULL)
   vapply(estratos, function(h) {
-    if (startsWith(h, "1501-")) return(unname(HOJAS_RUTA_LIMA_AREAS_ETIQUETAS[sub("^1501-", "", h)]) %||% h)
+    if (startsWith(h, "1501-")) return(unname(HOJAS_RUTA_LIMA_AREAS_ETIQUETAS[substring(h, 6L)]) %||% h)
     u <- ubigeos[estrato == h][[1]]
     nom <- if (!is.null(frame) && "provincia" %in% names(frame)) as.character(frame$provincia[match(u, as.character(frame$ubigeo))]) else NA_character_
     if (is.na(nom) || !nzchar(nom)) h else tools::toTitleCase(tolower(nom))
