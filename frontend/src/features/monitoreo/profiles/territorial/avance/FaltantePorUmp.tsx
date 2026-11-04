@@ -17,6 +17,7 @@ import {
   type ModeloFaltante,
 } from "./faltanteModel";
 import { DetalleDeUmp } from "./DetalleDeUmp";
+import { aplicadorCorto, hayAlgunSaldo, quienCubreCorto } from "./celdasDeCuotaUmp";
 import { AvancePorZona } from "./AvancePorZona";
 import { avancePorZona } from "./porZonaModelo";
 import type { UmpPlanificada } from "../../../../../api/monitoreoAsignacionPlanificada";
@@ -281,6 +282,7 @@ function TablaDeCuotas({
   const filaAbierta = useRef<HTMLTableRowElement | null>(null);
   const abiertaPorClick = useRef<string | null>(null);
   const hayFilaEnFoco = foco != null && filas.some((fila) => fila.ump === foco);
+  const conSaldo = hayAlgunSaldo(filas);
   // `foco` llega por la dirección (`&foco=7`): la fila se despliega y se lleva
   // a la vista, también a 1024, donde la tabla queda bajo el pliegue (C4). Un
   // click sobre una fila visible no desplaza. Espera dos cuadros porque el
@@ -317,7 +319,7 @@ function TablaDeCuotas({
             <th scope="col" className="is-aplicador">Aplicador</th>
             {columnas.map((columna) => <th key={columna.clave} scope="col" className="is-celda">{columna.rotulo}</th>)}
             <th scope="col" className="is-num">Falta</th>
-            <th scope="col" className="is-num" title="Saldo de subsanaciones recibidas o cedidas">Saldo</th>
+            {conSaldo ? <th scope="col" className="is-num" title="Saldo de subsanaciones recibidas o cedidas">Saldo</th> : null}
             <th scope="col" className="is-cubre" title="Quién cubre la falta">Cubre</th>
           </tr>
         </thead>
@@ -344,21 +346,26 @@ function TablaDeCuotas({
                   </th>
                   <td className="is-distrito">{fila.distrito}</td>
                   <td className="is-manzana">{`${fila.reemplazo ? "Reemplazo" : "Titular"} ${fila.manzana}`}</td>
-                  <td className="is-aplicador">{fila.aplicador}</td>
+                  <td className="is-aplicador" title={fila.aplicador}>
+                    {(() => {
+                      const aplicador = aplicadorCorto(fila.aplicador);
+                      return <>{aplicador.codigo ? <span className="mon-falt-codigo">{aplicador.codigo}</span> : null}{aplicador.nombre}</>;
+                    })()}
+                  </td>
                   {fila.celdas.map((celda) => (
                     <td key={celda.clave} className="is-celda"><CeldaDeTabla celda={celda} /></td>
                   ))}
                   <td className={`is-num${fila.falta > 0 ? " is-falta" : ""}`}>{fmt(fila.falta)}</td>
-                  <td className="is-num">{saldoDeSubsanaciones(fila)}</td>
-                  <td className="is-cubre">
+                  {conSaldo ? <td className="is-num">{saldoDeSubsanaciones(fila)}</td> : null}
+                  <td className="is-cubre" title={fila.falta > 0 ? quienCubreCorto(fila.cubre).titulo : undefined}>
                     {fila.cubre?.tipo === "sugerencia" ? (
                       <span className="mon-falt-chip is-sugerencia">{textoDeQuienCubre(fila.cubre)}</span>
-                    ) : fila.falta > 0 ? textoDeQuienCubre(fila.cubre) : "—"}
+                    ) : fila.falta > 0 ? quienCubreCorto(fila.cubre).texto : "—"}
                   </td>
                 </tr>
                 {abierta ? (
                   <tr className="mon-falt-detalle-fila" id={`mon-falt-detalle-${fila.ump}`}>
-                    <td colSpan={columnas.length + 7}>
+                    <td colSpan={columnas.length + (conSaldo ? 7 : 6)}>
                       <DetalleDeUmp fila={fila} coordinacion={coordinacionDe.get(fila.bloque.id_manzana) ?? null} />
                     </td>
                   </tr>
