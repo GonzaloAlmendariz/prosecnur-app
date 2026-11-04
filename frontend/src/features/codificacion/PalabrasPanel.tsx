@@ -9,7 +9,10 @@
 import { useId } from "react";
 import { useInRouterContext } from "react-router-dom";
 import type { FraseDetectada, PalabraReconocida } from "../../api/textoAbierto";
+import { EstadoVacio } from "../../components/EstadoVacio";
 import { PulsoButton } from "../../components/PulsoButton";
+import { ErrorBlock, LoadingBlock } from "../../components/States";
+import { enumerar } from "../../lib/enumerar";
 import { formatoConteo } from "../../lib/formatoNumero";
 import { usePanelDireccionable } from "../../lib/navegacion/paneles";
 import { Check, Eye, EyeOff, Link2, Pin, Save, Search, Tags, Undo2, X } from "../../vendor/lucide-react";
@@ -183,25 +186,23 @@ export function PalabrasCuerpo({ estado, despachar }: CuerpoProps) {
   const l = estado.lectura;
   if (l.fase === "cargando") {
     return (
-      <div className="pulso-plf-estado" role="status" data-qa-geometry-capacity="owned">
-        <strong>Leyendo las palabras de esta pregunta…</strong>
+      <div data-qa-geometry-capacity="owned">
+        <LoadingBlock label="Leyendo las palabras de esta pregunta…" variant="inline" />
       </div>
     );
   }
   if (l.fase === "error") {
     return (
-      <div className="pulso-plf-estado is-error" role="alert" data-qa-geometry-capacity="owned">
-        <strong>No se pudieron leer las palabras</strong>
-        <p>{l.mensaje}</p>
+      <div data-qa-geometry-capacity="owned">
+        <ErrorBlock label="No se pudieron leer las palabras" detail={l.mensaje} />
       </div>
     );
   }
   const { datos } = l;
   if (!datos.palabras.length && !datos.frasesDetectadas.length && !estado.borrador.frases.length) {
     return (
-      <div className="pulso-plf-estado" role="status" data-qa-geometry-capacity="owned">
-        <strong>Todavía no hay palabras para revisar</strong>
-        <p>Ningún comentario de esta pregunta tiene palabras con contenido.</p>
+      <div data-qa-geometry-capacity="owned">
+        <EstadoVacio icono={<Tags size={16} />} titulo="Todavía no hay palabras para revisar" descripcion="Ningún comentario de esta pregunta tiene palabras con contenido." />
       </div>
     );
   }
@@ -237,7 +238,7 @@ function AjustesPlegados({ estado, despachar }: CuerpoProps) {
     <details className="pulso-cv2-pal-ajustes" data-qa-geometry-member="ajustes">
       <summary className="pulso-cv2-pal-ajustes-resumen">
         <span className="pulso-cv2-pal-ajustes-titulo">Unidas, excluidas y frases</span>
-        <span className="pulso-cv2-col-count">{partes.join(" · ")}</span>
+        <span className="pulso-cv2-col-count">{enumerar(partes)}</span>
       </summary>
       <div className="pulso-cv2-pal-ajustes-cuerpo">
         <GruposSeccion estado={estado} despachar={despachar} />
@@ -344,9 +345,10 @@ function PalabrasSeccion({ estado, despachar }: CuerpoProps) {
       </div>
       <div className="pulso-cv2-resp-list" data-qa-geometry-group="codificacion/palabras-frecuentes" data-qa-geometry-contract="intrinsic">
         {frecuentes.length === 0 ? (
-          <div className="pulso-cv2-resp-empty">
-            {estado.consulta.trim() ? `Ninguna palabra coincide con «${estado.consulta.trim()}».` : "Todas las palabras están excluidas."}
-          </div>
+          <EstadoVacio
+            icono={<Search size={16} />}
+            titulo={estado.consulta.trim() ? `Ninguna palabra coincide con «${estado.consulta.trim()}»` : "Todas las palabras están excluidas"}
+          />
         ) : (
           frecuentes.map((p) => <PalabraFila key={p.clave} p={p} estado={estado} despachar={despachar} />)
         )}

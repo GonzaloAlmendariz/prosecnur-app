@@ -6,7 +6,7 @@
 .pulso-codif-adaptar-estado {
   min-width: 0;
   color: var(--pulso-text-soft);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .pulso-codif-adaptar-estado:empty {
@@ -38,7 +38,7 @@
   margin: 0;
   min-width: 0;
   color: var(--pulso-text);
-  font-size: 13px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .pulso-codif-adaptar-resumen-icono {
@@ -96,7 +96,7 @@
   border-radius: var(--pulso-radius);
   background: var(--pulso-surface-2);
   color: var(--pulso-text-soft);
-  font-size: 13px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .pulso-codif-ya-codificada a {

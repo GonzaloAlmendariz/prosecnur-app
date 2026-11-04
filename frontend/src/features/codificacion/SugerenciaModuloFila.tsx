@@ -43,7 +43,7 @@ export function SugerenciaModuloFila({ entrada, grupos, onConfirmar, onQuitar }:
               aria-pressed={ok}
               aria-label={ok ? `Quitar ${r.corto} de esta respuesta` : `Confirmar ${r.corto} para esta respuesta`}
               aria-describedby={idPorque}
-              title={`${r.nombre !== r.completo && p.padreEtiqueta ? `${r.completo}\n` : ""}${porque}${ok ? " · Confirmado: clic para quitar" : " · Clic para confirmar"}`}
+              title={`${r.nombre !== r.completo && p.padreEtiqueta ? `${r.completo}\n` : ""}${porque}${ok ? ". Confirmado: clic para quitar" : ". Clic para confirmar"}`}
               onClick={() => (ok ? onQuitar(p) : onConfirmar(p))}
             >
               {ok ? <Check size={11} aria-hidden="true" /> : <Plus size={11} aria-hidden="true" />}

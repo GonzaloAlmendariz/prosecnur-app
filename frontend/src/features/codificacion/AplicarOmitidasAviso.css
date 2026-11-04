@@ -38,14 +38,14 @@
 .pulso-codif-omitidas-cabecera strong {
   display: block;
   color: var(--pulso-warn-fg);
-  font-size: 13px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-bold);
 }
 
 .pulso-codif-omitidas-cabecera p {
   margin: 2px 0 0;
   color: var(--pulso-text-soft);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .pulso-codif-omitidas-icono {
@@ -70,7 +70,7 @@
   gap: var(--pulso-space-3);
   padding: var(--pulso-space-1) 0;
   border-top: 1px solid color-mix(in srgb, var(--pulso-warn-border) 60%, transparent);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .pulso-codif-omitidas-fila:first-child {
@@ -141,7 +141,7 @@
 .pulso-codif-omitidas-incompleto-nota {
   margin: 4px 0 0;
   color: var(--pulso-text-soft);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
 }
 
 /* Fila con su acción a la derecha («Codificar P55»). */
@@ -161,6 +161,6 @@
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   color: var(--pulso-text-soft);
 }

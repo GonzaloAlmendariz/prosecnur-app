@@ -92,7 +92,7 @@ export default function NoCategorizarAction({
         aria-label={`Motivo por el que ${parent} no se categoriza`}
         style={{
           flex: "1 1 160px", minWidth: 0,
-          padding: "4px 8px", borderRadius: 6, fontSize: 11,
+          padding: "4px 8px", borderRadius: 6, fontSize: "var(--pulso-type-caption-size)",
           border: "1px solid var(--pulso-border)",
           background: "var(--pulso-surface)", color: "var(--pulso-text)",
         }}
@@ -121,7 +121,7 @@ const enlaceStyle = {
   border: "none",
   background: "none",
   color: "var(--pulso-text-soft)",
-  fontSize: 11,
+  fontSize: "var(--pulso-type-caption-size)",
   fontWeight: 700,
   cursor: "pointer",
   textDecoration: "underline",
