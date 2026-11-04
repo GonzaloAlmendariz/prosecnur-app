@@ -461,7 +461,7 @@
     }
     y <- y + a + (if (i < length(premisas)) ta$gaps[i] else 0)
   }
-  if (isTRUE(leyenda)) .lam_leyenda(lz, min(.lam_piso_leyenda(), ytop + tot + .std_comp(if (llenando) "llenar" else "escala", "aire_leyenda")), labels, cols, centrar_en = .std_geom("ancho") / 2)   # centrada a la lámina; G14: en la lámina llena baja hasta el tope de `.lam_leyenda` y no queda pegada a la barra
+  if (isTRUE(leyenda)) .lam_leyenda(lz, min(.lam_piso_leyenda(), ytop + tot + .std_comp(if (llenando) "llenar" else "escala", "aire_leyenda")), labels, cols, centrar_en = (.std_geom("ancho") - .std_reserva_derecha()) / 2)   # centrada a la lámina (o a lo que deja un panel lateral, ADR 0129); G14: en la lámina llena baja hasta el tope de `.lam_leyenda` y no queda pegada a la barra
   invisible(structure(ytop + tot, centro_barras = x_bar + WB / 2))   # N16: la multilista centra su leyenda compartida con este eje
 }
 
@@ -666,6 +666,6 @@
                         g = geo$g, fila = geo$fila) + 0.2
   }
   ley <- espec$leyenda
-  .lam_leyenda(lz, g_("leyenda_y") - 0.05, espec$categorias$rotulo[ley], espec$categorias$color[ley], centrar_en = g_("ancho") / 2)
+  .lam_leyenda(lz, g_("leyenda_y") - 0.05, espec$categorias$rotulo[ley], espec$categorias$color[ley], centrar_en = (g_("ancho") - .std_reserva_derecha()) / 2)
   invisible(lz)
 }

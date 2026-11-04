@@ -37,7 +37,7 @@
   desplazo <- getOption("prosecnur.lam_folio_desplazo", 0L)
   if (!is.null(folio) && desplazo != 0L) folio <- folio + desplazo
   if (!is.null(base) && nzchar(base)) .lam_txt(lz, base, .std_comp("pie", "base_x"), .std_comp("pie", "base_y"), 10.5, 0.4, .std_pt("base"), .std_color("azul"), bold = isTRUE(.std_comp("pie", "base_negrita")), nombre = "Base lamina")   # ítem 24: como Conta (composicion.pie del estándar)
-  if (!is.null(folio)) .lam_txt(lz, as.character(folio), g("ancho") - g("margen_der") - 0.6, .std_comp("pie", "base_y"), 0.6, 0.3, .std_pt("base"),   # en la línea de «Base:»
+  if (!is.null(folio)) .lam_txt(lz, as.character(folio), .std_valor("ppt", "geometria", "ancho") - .std_valor("ppt", "geometria", "margen_der") - 0.6, .std_comp("pie", "base_y"), 0.6, 0.3, .std_pt("base"),   # en la línea de «Base:»; folio crudo: un panel a la derecha (tarjetas) no lo corre
                                 .std_color("texto_suave"), align = "right", nombre = "Folio lamina")
   .lam_agrupar(doc, lz, nombre = "prosecnur:pie")
 }

@@ -101,11 +101,16 @@ test_that("la opción sin color en la paleta del usuario sale gris residual, con
   expect_true(any(grepl("La opción «Otros» no tiene color en la paleta de «cic»", msgs, fixed = TRUE)))
 })
 
-test_that("la agrupada de una serie y el ranking con puntos llevan la paleta del usuario en su espec y su lámina", {
+test_that("la agrupada de una serie lleva la paleta del usuario sólo si la pide; el ranking con puntos, siempre", {
   pal <- .pll_usuario(c(B = "#0000AA", A = "#AA0000", C = "#00AA00", Otros = "#777777"))
   d <- data.frame(categoria = c("A", "B", "Otros", "C"), N = 100, s1 = c(.2, .5, .05, .25))
-  g <- .paleta_en_espec(suppressWarnings(graficar_barras_agrupadas(d, "categoria", "N", "s1", c(s1 = "Serie"), orden_barras = "mayor_menor",
-                                                                    invertir_barras = TRUE, exportar = "rplot", decimales = 0)), pal)
+  agrupada <- function(...) .paleta_en_espec(suppressWarnings(graficar_barras_agrupadas(d, "categoria", "N", "s1", c(s1 = "Serie"),
+    orden_barras = "mayor_menor", invertir_barras = TRUE, exportar = "rplot", decimales = 0, ...)), pal)
+  # ADR 0130: con una serie el color no codifica nada; sin pedirlo, la espec no trae colores y la lámina es monocroma.
+  e0 <- attr(agrupada(), "pulso_espec")
+  expect_null(e0$colores)
+  expect_length(unique(.pll_fill(.pll_xml(.lam_laminas_categorica(.pll_doc(), e0, "Agrupada", forma = "barras")), "barra")), 1L)
+  g <- agrupada(colorear_por_opcion = TRUE)
   e <- attr(g, "pulso_espec")
   expect_identical(unname(e$colores[e$rotulos]), unname(pal[e$rotulos]) |> as.vector())
   x <- .pll_xml(.lam_laminas_categorica(.pll_doc(), e, "Agrupada", forma = "barras"))

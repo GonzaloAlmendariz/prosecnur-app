@@ -387,6 +387,7 @@ graficar_barras_agrupadas <- function(
     mostrar_n_en_etiquetas    = NA,   # NA: lo decide «Casos junto al porcentaje» del informe
     resaltar_mayor            = FALSE,   # en la lámina nativa, la barra más alta en otro tono (opción del gráfico)
     residuales_gris           = FALSE,   # residuales en gris en Word y lámina; apagado por defecto
+    colorear_por_opcion       = FALSE,   # ADR 0130: con una serie, un color; la paleta de la lista sólo si se pide
     resaltar_opciones         = NULL,    # D1: las respuestas que el analista resalta, por rótulo (lámina nativa)
     escala_valor              = c("proporcion_1", "proporcion_100"),
     orientacion               = c("horizontal", "vertical"),
@@ -975,7 +976,7 @@ graficar_barras_agrupadas <- function(
   }, error = function(e) { message("[espec agrupada] ", conditionMessage(e)); NULL }) else NULL
   # Gonzalo (2026-10-09): «si vamos a usar barras agrupadas es mejor que por defecto vayan de 0 a 100%». La lámina
   # nativa escala a 100 % salvo que se pida el eje libre, como ya hacía el eje de este ggplot.
-  if (!is.null(espec_agrupada)) { espec_agrupada$escala_completa <- !isTRUE(usar_eje_libre); espec_agrupada$marcas_eje <- isTRUE(marcas_eje) && !isTRUE(usar_eje_libre) }
+  if (!is.null(espec_agrupada)) { espec_agrupada$escala_completa <- !isTRUE(usar_eje_libre); espec_agrupada$marcas_eje <- isTRUE(marcas_eje) && !isTRUE(usar_eje_libre); espec_agrupada$colorear_por_opcion <- isTRUE(colorear_por_opcion) }
   n_categorias <- length(cat_lvls)
   canvas_min_filas_eff <- suppressWarnings(as.numeric(canvas_min_filas)[1])
   if (!is.finite(canvas_min_filas_eff) || is.na(canvas_min_filas_eff) || canvas_min_filas_eff < 1) {
@@ -1147,7 +1148,8 @@ graficar_barras_agrupadas <- function(
 
   usar_color_categorias <- !is.null(colores_categorias) &&
     length(cols_porcentaje) == 1L &&
-    is.null(colores_series)
+    is.null(colores_series) &&
+    isTRUE(colorear_por_opcion)   # ADR 0130: la paleta de la lista no colorea una sola serie si no se pide
   # `residuales_gris` en la agrupada de una serie sin leyenda: el relleno va por categoría para poder pintar de gris
   # «Otros», «No sabe» o «Ninguna». Sin esto el mando sólo llegaba a la espec nativa y la ruta ggplot (la que toma una
   # categórica que no cabe en columnas ni barras nativas) lo ignoraba (CCSS 2026-11-04, lámina de agrupaciones).
@@ -1359,7 +1361,7 @@ graficar_barras_agrupadas <- function(
                             if (".n_label_val" %in% names(df_lab)) df_lab$.n_label_val[o_lab] else NULL, residuales_al_final = FALSE, sin_ceros = sin_ceros_espec,
                             n_base_casos = if (length(n_base_casos_agr) == 1L) n_base_casos_agr, casos = mostrar_n_en_etiquetas, resaltar = resaltar_mayor, resaltar_opciones = resaltar_opciones, residuales_gris = isTRUE(residuales_gris)),
         error = function(e) espec_agrupada)
-      if (!is.null(espec_agrupada)) { espec_agrupada$escala_completa <- !isTRUE(usar_eje_libre); espec_agrupada$marcas_eje <- isTRUE(marcas_eje) && !isTRUE(usar_eje_libre) }
+      if (!is.null(espec_agrupada)) { espec_agrupada$escala_completa <- !isTRUE(usar_eje_libre); espec_agrupada$marcas_eje <- isTRUE(marcas_eje) && !isTRUE(usar_eje_libre); espec_agrupada$colorear_por_opcion <- isTRUE(colorear_por_opcion) }
     }
 
     umbral_posicion_eff <- umbral_posicion

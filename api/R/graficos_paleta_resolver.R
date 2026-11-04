@@ -195,6 +195,9 @@
 .paleta_en_espec <- function(p, colores) {
   espec <- attr(p, "pulso_espec", exact = TRUE)
   if (is.null(espec) || is.null(espec$rotulos) || !.paleta_es_de_usuario(colores)) return(p)
+  # ADR 0130: una agrupada de una sola serie va en un color; la paleta de la lista sólo entra si el gráfico lo pide
+  # (`colorear_por_opcion`). Los graficadores que no declaran el campo siguen el ADR 0097 como antes.
+  if (identical(espec$tipo, "categorica") && identical(espec$colorear_por_opcion, FALSE)) return(p)
   attr(p, "pulso_espec") <- .espec_con_colores(espec, colores)
   p
 }

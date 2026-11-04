@@ -19,6 +19,11 @@
 .LAM_BARRAS_ANCHO <- list(aire = 1.15, tope_rotulo = 0.35, lineas = 3L, piso_pt = 11, pocas = 3L, frac_pocas = 0.75,
                           sep_barra = 0.12, sep_cifra = 0.04)
 
+#' Tope de la columna de rótulos (fracción del ancho útil): el 35 % de la norma; con un panel lateral (ADR 0129) el ancho
+#' útil se acorta y la columna puede llegar a la mitad (en pulgadas sigue siendo menos que la del mazo a lo ancho)
+#' @keywords internal
+.lam_barras_tope_rotulo <- function() if (.std_reserva_derecha() > 0) 0.5 else .LAM_BARRAS_ANCHO$tope_rotulo
+
 #' ¿El eje de la lámina completa escala al máximo? Sólo con el eje libre: con `escala_completa` (el defecto) va de 0 a 100 %
 #' @keywords internal
 .lam_barras_ancho_aplica <- function(espec) !isTRUE(espec$escala_completa)
@@ -34,7 +39,7 @@
 #' @return `list(wlab, size, acotada)`.
 #' @keywords internal
 .lam_barras_ancho_rotulos <- function(rotulos, ancho, size, fila, nb = FALSE, previa = NULL) {
-  U <- .LAM_BARRAS_ANCHO; tope <- U$tope_rotulo * ancho
+  U <- .LAM_BARRAS_ANCHO; tope <- .lam_barras_tope_rotulo() * ancho
   natural <- max(1.4, max(.lam_ancho_tinta(rotulos, size, nb)) + 0.3)
   if (natural <= tope) return(list(wlab = natural, size = size, acotada = FALSE))
   piso <- min(size, max(U$piso_pt, .std_valor("ppt", "tipografia", "cifra_minimo") %||% 8))   # un cuerpo declarado bajo el piso no sube
