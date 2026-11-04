@@ -74,7 +74,105 @@ export type HojasRutaSampleSizeConfig = {
   icc_aplicado?: HojasRutaIccEntrada | null;
   /** ADR 0131 §2: con qué población se reparte entre distritos; `cpv2017` (por defecto) o adultos urbanos 2025. */
   base_reparto?: HojasRutaBaseRepartoCodigo;
+  /** ADR 0131 §1: estrato explícito del sorteo; `distrito` (por defecto) o la provincia. */
+  estrato?: HojasRutaEstratoModo;
+  /** ADR 0131 §1b: rutas mínimas de toda ciudad visitada en el estrato provincia (6 por defecto). */
+  rutas_minimas_ciudad?: number;
 };
+
+export type HojasRutaEstratoModo = "distrito" | "provincia" | "provincia_lima_areas";
+
+export type HojasRutaEstratoFila = { estrato: string; etiqueta: string; n_distritos: number; poblacion: number; rutas: number };
+
+export type HojasRutaCiudadCondicion = "forzosa" | "sorteada" | "no_sorteada";
+
+/** Ciudad (provincia del registro) en la selección del §1b: forzosa con π 1, o de un grupo por macrorregión. */
+export type HojasRutaCiudadSorteo = {
+  ciudad: string;
+  etiqueta: string;
+  macrorregion: string;
+  grupo: string | null;
+  condicion: HojasRutaCiudadCondicion;
+  pi_ciudad: number;
+  rutas: number;
+};
+
+export type HojasRutaGrupoCiudades = { grupo: string; reparto: number; h: number; rutas: number; n_ciudades: number };
+
+/** Lo que la vista previa del tamaño declara del estrato provincia (ADR 0131 §1 y §1b). */
+export type HojasRutaEstratoMuestral = {
+  modo: Exclude<HojasRutaEstratoModo, "distrito">;
+  rutas_minimas_ciudad: number;
+  regla: string;
+  estratos: HojasRutaEstratoFila[];
+  ciudades: HojasRutaCiudadSorteo[];
+  grupos: HojasRutaGrupoCiudades[];
+};
+
+const escalar = (v: unknown): unknown => (Array.isArray(v) ? v[0] : v);
+
+/** Normalizador defensivo de `sample_size_preview.estrato_muestral`; null si no aplica o viene roto. */
+export function normalizeHojasRutaEstratoMuestral(raw: unknown): HojasRutaEstratoMuestral | null {
+  if (!raw || typeof raw !== "object") return null;
+  const r = raw as Record<string, unknown>;
+  const modo = escalar(r.modo);
+  if (modo !== "provincia" && modo !== "provincia_lima_areas") return null;
+  const estratos = (Array.isArray(r.estratos) ? r.estratos : []).flatMap((e): HojasRutaEstratoFila[] => {
+    if (!e || typeof e !== "object") return [];
+    const x = e as Record<string, unknown>;
+    const estrato = escalar(x.estrato);
+    const rutas = numeroFinito(escalar(x.rutas));
+    if (typeof estrato !== "string" || rutas === null) return [];
+    const etiqueta = escalar(x.etiqueta);
+    return [{
+      estrato,
+      etiqueta: typeof etiqueta === "string" && etiqueta ? etiqueta : estrato,
+      n_distritos: numeroFinito(escalar(x.n_distritos)) ?? 0,
+      poblacion: numeroFinito(escalar(x.poblacion)) ?? 0,
+      rutas,
+    }];
+  });
+  if (!estratos.length) return null;
+  const regla = escalar(r.regla);
+  const ciudades = (Array.isArray(r.ciudades) ? r.ciudades : []).flatMap((c): HojasRutaCiudadSorteo[] => {
+    if (!c || typeof c !== "object") return [];
+    const x = c as Record<string, unknown>;
+    const ciudad = escalar(x.ciudad);
+    const condicion = escalar(x.condicion);
+    const pi = numeroFinito(escalar(x.pi_ciudad));
+    const rutas = numeroFinito(escalar(x.rutas));
+    if (typeof ciudad !== "string" || (condicion !== "forzosa" && condicion !== "sorteada" && condicion !== "no_sorteada") || pi === null || rutas === null) return [];
+    const etiqueta = escalar(x.etiqueta);
+    const grupo = escalar(x.grupo);
+    const macro = escalar(x.macrorregion);
+    return [{
+      ciudad,
+      etiqueta: typeof etiqueta === "string" && etiqueta ? etiqueta : ciudad,
+      macrorregion: typeof macro === "string" ? macro : "",
+      grupo: typeof grupo === "string" && grupo ? grupo : null,
+      condicion,
+      pi_ciudad: pi,
+      rutas,
+    }];
+  });
+  const grupos = (Array.isArray(r.grupos) ? r.grupos : []).flatMap((g): HojasRutaGrupoCiudades[] => {
+    if (!g || typeof g !== "object") return [];
+    const x = g as Record<string, unknown>;
+    const grupo = escalar(x.grupo);
+    const h = numeroFinito(escalar(x.h));
+    const rutas = numeroFinito(escalar(x.rutas));
+    if (typeof grupo !== "string" || h === null || rutas === null) return [];
+    return [{ grupo, reparto: numeroFinito(escalar(x.reparto)) ?? 0, h, rutas, n_ciudades: numeroFinito(escalar(x.n_ciudades)) ?? 0 }];
+  });
+  return {
+    modo,
+    rutas_minimas_ciudad: numeroFinito(escalar(r.rutas_minimas_ciudad)) ?? 6,
+    regla: typeof regla === "string" ? regla : "",
+    estratos,
+    ciudades,
+    grupos,
+  };
+}
 
 /** π publicada de una manzana sorteada, o null si falta o no es una probabilidad (0, 1]. */
 export function piDeManzana(b: Pick<SelectedBlock, "pi">): number | null {
@@ -536,6 +634,8 @@ export type HojasRutaSampleSizePreview = {
   alerts: HojasRutaAlert[];
   /** ADR 0131 §2: sólo cuando se reparte con la base 2025. Léelo con `normalizeHojasRutaBaseReparto`. */
   base_reparto?: unknown;
+  /** ADR 0131 §1: sólo con estrato provincia. Léelo con `normalizeHojasRutaEstratoMuestral`. */
+  estrato_muestral?: unknown;
 };
 
 export type HojasRutaPopulationExportResult = {

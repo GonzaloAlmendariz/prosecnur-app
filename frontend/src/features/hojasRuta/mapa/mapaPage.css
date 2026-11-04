@@ -618,3 +618,10 @@ div.hr-mapa-aviso { display: flex; flex-direction: column; align-items: flex-sta
 .hr-muestra-base25 div { flex-direction: column; gap: 2px; }
 .hr-muestra-base25 dt { color: var(--pulso-text); font-weight: 700; }
 .hr-muestra-base25 dd { font-weight: 400; color: var(--pulso-text-soft); font-size: var(--pulso-type-micro-size); }
+/* ADR 0131 §1: rutas por estrato; lista y no tabla, como la base 2025 (C4 en el inspector). */
+.hr-muestra-estratos dd { font-variant-numeric: tabular-nums; }
+.hr-muestra-estratos [data-bajo-minimo] dd { color: var(--pulso-danger-fg); font-weight: 700; }
+/* ADR 0131 §1b: cabecera de cada grupo de ciudades sorteadas, fuera de la lista dt/dd para no comprimir el rótulo. */
+.hr-muestra-grupo-ciudades { display: flex; flex-direction: column; gap: 4px; }
+.hr-muestra-grupo-cab { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 8px; margin: 0; font-size: var(--pulso-type-body-size); color: var(--pulso-text); }
+.hr-muestra-grupo-cab span { color: var(--pulso-text-soft); }

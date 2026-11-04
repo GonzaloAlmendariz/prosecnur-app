@@ -28,9 +28,11 @@ describe("base de reparto 2025 en la UI (ADR 0131 §2)", () => {
     expect(on).toContain("u17");
     expect(on).toContain("Captación");
     expect(on).toContain('data-base-reparto="cpv2025"');
+    expect(on).toContain("Cuotas por sexo y edad: CPV 2025 (población censada)");
     const off = renderToStaticMarkup(<BaseReparto2025 sampleSize={ss()} territorios={[t("150110", 500, 320.5)]} deshabilitado={false} onCambio={() => undefined} />);
     expect(off).toContain("CPV 2017");
     expect(off).not.toContain("Captación");
+    expect(off).not.toContain("CPV 2025 (población censada)");
     expect(fuenteDelReparto(ss())).toMatch(/2017/);
   });
 

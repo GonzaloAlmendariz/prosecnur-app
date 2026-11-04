@@ -760,8 +760,10 @@ reporte_mt_diseno_modelo <- function(config, sample_size_preview = NULL, decisio
     else sprintf("El efecto de diseño se integra en la fórmula del tamaño%s.", if (fpc) ", junto con la corrección por población finita" else "; no se aplica corrección por población finita"),
     rp[["frase"]],
     if (!is.null(base25)) sprintf("La población con que se calcula el tamaño y se reparten las entrevistas entre distritos son los adultos urbanos estimados para 2025, según %s: población censada 2025 × u17 × a17, donde u17 es la fracción del distrito que en 2017 se encontraba en manzanas del marco y a17 la proporción de personas de 18 años a más en 2017. Ambas fracciones son supuestos. Las manzanas se sortean sobre el marco 2017.", as.character(base25$fuente %||% "CPV 2025")[1]) else NULL,
+    .reporte_mt_frase_estrato(sp$estrato_muestral),
     if (desproporcion) "Las entrevistas no se reparten entre distritos en proporción a su población: para estimar el total, los resultados deben ponderarse por el peso de cada distrito en la población. El margen nominal del total no incluye el efecto de esa ponderación." else NULL,
-    "Las cuotas por sexo y por edad de cada distrito salen de la población INEI 2017 del distrito y se aplican en campo como totales, sin cruces entre sexo y edad.",
+    sprintf("Las cuotas por sexo y por edad de cada distrito salen de %s y se aplican en campo como totales, sin cruces entre sexo y edad.",
+            if (is.null(base25)) "la población INEI 2017 del distrito" else sprintf("la estructura por sexo y edad simple del distrito en el %s, llevada a los adultos urbanos estimados", as.character(base25$cuotas %||% "CPV 2025")[1])),
     sprintf("El tamaño total es múltiplo de %d entrevistas por ruta, de modo que cada ruta es completa.", k)
   )
   aviso_sorteo_v1 <- if (length(v1)) {

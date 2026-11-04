@@ -229,6 +229,10 @@ errores_registrados <- function() {
     "E_HOJAS_RUTA_ESTRATO_CUOTA_ZONA",                       "hojas_ruta_estrato.R",              "422",
     "E_HOJAS_RUTA_ESTRATO_SIN_RUTAS",                        "hojas_ruta_estrato.R",              "422",
     "E_HOJAS_RUTA_ESTRATO_SIN_MEDIDA",                       "hojas_ruta_estrato.R",              "422",
+    # Ciudades forzosas y sorteadas por macrorregión (ADR 0131 §1b).
+    "E_HOJAS_RUTA_CIUDAD_SIN_RUTAS",                         "hojas_ruta_ciudades_sorteo.R",      "422",
+    "E_HOJAS_RUTA_CIUDAD_SIN_MEDIDA",                        "hojas_ruta_ciudades_sorteo.R",      "422",
+    "E_HOJAS_RUTA_CIUDAD_SIN_MACRORREGION",                  "hojas_ruta_macrorregiones.R",       "422",
     # Imágenes de línea gráfica y ZIP importable (ADR 0110 §B, E1g).
     "E_COLLECTION_MAIL_IMAGE_INVALID",                       "collection_mail_images.R",          "422",
     "E_COLLECTION_MAIL_IMPORT_ZIP_TOO_LARGE",                "collection_mail_import_zip.R",      "413",

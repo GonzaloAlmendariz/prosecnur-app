@@ -12,7 +12,7 @@ import { PageFrame } from "../../../components/PageFrame";
 import { ModuleCommandBar } from "../../../components/ModuleCommandBar";
 import { SectionPillbar } from "../../../components/SectionPillbar";
 import { ChromeIndicator, ChromeIndicatorGroup } from "../../../components/ChromeIndicator";
-import { apiHojasRutaCreateFieldFromPilot, apiHojasRutaGeometria, apiHojasRutaGuardarConfig, apiHojasRutaMarcoElegiblePreview, apiHojasRutaPersistWorkspace, apiHojasRutaPopulationPreview, apiHojasRutaQuotaPreview, apiHojasRutaSamplePreview, apiHojasRutaSampleSizePreview, apiHojasRutaSetPhase, apiHojasRutaState, type HojasRutaIntegratedConfig, type HojasRutaMarcoElegiblePreview, type HojasRutaPilotExclusionMode, type HojasRutaRouteSnapshot, type HojasRutaSamplePreview, type HojasRutaState } from "../../../api/hojasRuta";
+import { apiHojasRutaCreateFieldFromPilot, apiHojasRutaGeometria, apiHojasRutaGuardarConfig, apiHojasRutaMarcoElegiblePreview, apiHojasRutaPersistWorkspace, apiHojasRutaPopulationPreview, apiHojasRutaQuotaPreview, apiHojasRutaSamplePreview, apiHojasRutaSampleSizePreview, apiHojasRutaSetPhase, apiHojasRutaState, normalizeHojasRutaEstratoMuestral, type HojasRutaIntegratedConfig, type HojasRutaMarcoElegiblePreview, type HojasRutaPilotExclusionMode, type HojasRutaRouteSnapshot, type HojasRutaSamplePreview, type HojasRutaState } from "../../../api/hojasRuta";
 import { useSeccion } from "../../../lib/navegacion/useDireccion";
 import { usePlannerModos } from "../../estudio/usePlannerModos";
 import { EntregaCuotas } from "./seleccion/EntregaCuotas";
@@ -58,6 +58,7 @@ import { PoblacionEstructura, PoblacionInspector } from "./poblacion/PoblacionPa
 import { aplicarBorrador, entradaDesdeConfig } from "./muestra/desdeConfig";
 import { calcularTamano, margenTotalParaN } from "./muestra/motorTamano";
 import { MuestraEstructura, MuestraInspector } from "./muestra/MuestraPaneles";
+import { conRepartoDelEstrato, estratoDe } from "./muestra/EstratoMuestral";
 import { aplicarSorteo, conInstantanea, instantaneaDeSorteo, parametrosDeSorteo } from "./manzanas/sorteo";
 import { causaDeRuteo, type CausaRuteo } from "./manzanas/causaRuteo";
 import { ManzanasEstructura, ManzanasInspector } from "./manzanas/ManzanasPaneles";
@@ -268,7 +269,12 @@ export default function HojasRutaMapaPage() {
   const matriz = useMemo(() => resumirMatriz(salidas?.population, rangosVista), [salidas, rangosVista]);
   const configMuestra = useMemo(() => (estado ? aplicarBorrador(estado.integrated_config, muestraBorrador) : null), [estado, muestraBorrador]);
   const entradaTamano = useMemo(() => (configMuestra && estado ? entradaDesdeConfig(configMuestra, estado.territories) : null), [configMuestra, estado]);
-  const tamano = useMemo(() => (entradaTamano ? calcularTamano(entradaTamano) : null), [entradaTamano]);
+  // ADR 0131 §1: con estrato provincia el reparto por distrito lo da R (EstratoMuestral.tsx).
+  const estratoServidor = useMemo(() => normalizeHojasRutaEstratoMuestral(salidas?.sample_size_preview?.estrato_muestral), [salidas]);
+  const tamano = useMemo(
+    () => (entradaTamano && configMuestra ? conRepartoDelEstrato(calcularTamano(entradaTamano), salidas?.sample_size_preview?.district_rows, estratoDe(configMuestra.sample_size), estratoServidor, Boolean(muestraBorrador)) : null),
+    [entradaTamano, configMuestra, salidas, estratoServidor, muestraBorrador],
+  );
 
   // Muestra: guardar los parámetros y recalcular el tamaño en R. La población
   // se conserva; tamaño, cuotas y muestra se recalculan.
@@ -973,7 +979,7 @@ export default function HojasRutaMapaPage() {
               onSortear={() => void sortear(configSorteo)}
             />
           ) : enMuestra && configMuestra && tamano ? (
-            <MuestraInspector config={configMuestra} resultado={tamano} bloqueado={bloqueado} guardando={guardando} hayMuestra={Boolean(salidas?.quota || salidas?.sample)} hayTamano={Boolean(salidas?.sample_size_preview)} avisosServidor={salidas?.sample_size_preview?.alerts ?? []} margenPara={entradaTamano ? (n) => margenTotalParaN(entradaTamano, n) : undefined} territorios={territorios} onGuardar={() => void guardarMuestra()} />
+            <MuestraInspector config={configMuestra} resultado={tamano} bloqueado={bloqueado} guardando={guardando} hayMuestra={Boolean(salidas?.quota || salidas?.sample)} hayTamano={Boolean(salidas?.sample_size_preview)} avisosServidor={salidas?.sample_size_preview?.alerts ?? []} margenPara={entradaTamano ? (n) => margenTotalParaN(entradaTamano, n) : undefined} territorios={territorios} estratoServidor={estratoServidor} onGuardar={() => void guardarMuestra()} />
           ) : enPoblacion && estado ? (
             <PoblacionInspector
               config={estado.integrated_config}
