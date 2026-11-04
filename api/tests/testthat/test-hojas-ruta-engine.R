@@ -1,8 +1,16 @@
-testthat::skip_if(
-  identical(Sys.getenv("CI"), "true") &&
-    !nzchar(Sys.getenv("PROSECNUR_RUN_HOJAS_RUTA_ENGINE_CI")),
-  "Integracion pesada de hojas de ruta requiere frame/cartografia completa; set PROSECNUR_RUN_HOJAS_RUTA_ENGINE_CI=1 para correrla en CI."
-)
+# Antes un skip a nivel de archivo apagaba los 65 tests en CI (8699413d6, may
+# 2026) y ningún workflow fijaba la variable que los reactivaba: la suite entera
+# no corría nunca en CI. Medido el 4 nov 2026: 155–215 s en local, de los que 8
+# tests suman ~95 s y los otros 57 ~60 s. Los 57 corren siempre; los 8 de
+# integración (zip, PDF y cartografía completos) se apagan sólo en CI.
+.hr_engine_pesado <- function() {
+  # skip_on_ci: integración de ~5–28 s por test (≈95 s los ocho) sobre un shard de CI;
+  # corren siempre en gate-area y local, y PROSECNUR_RUN_HOJAS_RUTA_ENGINE_CI=1 los activa en CI.
+  testthat::skip_if(
+    identical(Sys.getenv("CI"), "true") && !nzchar(Sys.getenv("PROSECNUR_RUN_HOJAS_RUTA_ENGINE_CI")),
+    "Integración pesada de hojas de ruta: corre en gate-area; PROSECNUR_RUN_HOJAS_RUTA_ENGINE_CI=1 la activa en CI."
+  )
+}
 
 test_that("hojas_ruta_detectar_campos valida columnas canonicas", {
   df <- data.frame(
@@ -92,6 +100,7 @@ test_that("hojas_ruta_generar_zip produce PDFs y resumen", {
 })
 
 test_that("hojas_ruta_inei_frame carga marco completo versionado", {
+  .hr_engine_pesado()
   frame <- hojas_ruta_inei_frame()
   expect_true(nrow(frame) > 0)
   expect_true(all(c("ubigeo", "distrito", "id_manzana", "viviendas", "poblacion") %in% names(frame)))
@@ -673,6 +682,7 @@ test_that("cartografia de zonas se deriva de manzanas locales", {
 })
 
 test_that("cartografia vial INEI 2017 se sirve localmente con respaldo OSM", {
+  .hr_engine_pesado()
   meta <- hojas_ruta_cartografia_calles_meta()
   expect_true(meta$ok)
   expect_match(meta$source, "INEI|Informacion Digital")
@@ -701,6 +711,7 @@ test_that("cartografia vial INEI 2017 se sirve localmente con respaldo OSM", {
 })
 
 test_that("schema vial expone atributos enriquecidos (name_es, lanes, surface, source)", {
+  .hr_engine_pesado()
   miraflores <- hojas_ruta_street_map_preview("150122")
   skip_if(!miraflores$ok, "Capa vial Miraflores no disponible")
   feats <- miraflores$geojson$features
@@ -826,6 +837,7 @@ test_that("contexto urbano OSM esta empaquetado y se sirve localmente", {
 })
 
 test_that("hojas_ruta_sample_preview_integrado es reproducible con semilla PPS", {
+  .hr_engine_pesado()
   cfg <- list(
     n_objetivo = 24,
     territorios = c("150110", "070106"),
@@ -1048,6 +1060,7 @@ test_that("codigo operativo UMP/R usa la UMP titular y el orden de reemplazo", {
 })
 
 test_that("reemplazos puntuales generan PDF unificado para titulares seleccionadas", {
+  .hr_engine_pesado()
   testthat::skip_if_not_installed("qpdf")
   cfg <- hojas_ruta_integrada_normalize_config(list(
     n_objetivo = 12,
@@ -1320,6 +1333,7 @@ test_that("valores operativos son estables por id_manzana y no por orden", {
 })
 
 test_that("hojas_ruta_generar_pdf_aleatorio_integrado funciona sin seleccion previa", {
+  .hr_engine_pesado()
   out_pdf <- tempfile(fileext = ".pdf")
   res <- hojas_ruta_generar_pdf_aleatorio_integrado(list(), out_pdf)
   expect_true(res$ok)
@@ -1332,6 +1346,7 @@ test_that("hojas_ruta_generar_pdf_aleatorio_integrado funciona sin seleccion pre
 })
 
 test_that("hojas_ruta_generar_pdf_aleatorio_integrado respeta territorios si existen", {
+  .hr_engine_pesado()
   out_pdf <- tempfile(fileext = ".pdf")
   res <- hojas_ruta_generar_pdf_aleatorio_integrado(
     list(
@@ -1472,6 +1487,7 @@ test_that("tabla B usa poblacion etaria de cada manzana y sexo balanceado", {
 })
 
 test_that("hojas_ruta_generar_zip_integrado produce entrega operativa plana", {
+  .hr_engine_pesado()
   out_zip <- tempfile(fileext = ".zip")
   res <- hojas_ruta_generar_zip_integrado(
     list(
