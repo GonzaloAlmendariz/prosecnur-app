@@ -612,3 +612,9 @@ div.hr-mapa-aviso { display: flex; flex-direction: column; align-items: flex-sta
 .hr-entrega[data-estado="desactualizado"] .hr-entrega-estado strong { color: var(--pulso-warn-fg); }
 .hr-entrega-enlace { align-self: center; font-size: var(--pulso-type-subtitle-size); font-weight: 600; color: var(--pulso-module-routes); text-decoration: none; }
 .hr-entrega-enlace:hover { text-decoration: underline; }
+
+/* ADR 0131 §2: supuestos de la base 2025 por distrito; el nombre arriba y las cifras debajo, sin recortar. */
+.hr-muestra-base25 { margin: 0; }
+.hr-muestra-base25 div { flex-direction: column; gap: 2px; }
+.hr-muestra-base25 dt { color: var(--pulso-text); font-weight: 700; }
+.hr-muestra-base25 dd { font-weight: 400; color: var(--pulso-text-soft); font-size: var(--pulso-type-micro-size); }
