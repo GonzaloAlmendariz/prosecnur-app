@@ -557,10 +557,11 @@
   out
 }
 
-#' Rótulo de la fila en la tarjeta: «Sí» en la dicotómica; entre comillas en la opción única
+#' Rótulo de la fila en la tarjeta: la categoría tal cual
 #' @keywords internal
 .tarjetas_rotulo_fila <- function(fila, tipo) {
-  if (identical(tipo, "opcion_unica")) paste0("«", fila, "»") else fila
+  # Sin comillas en ningún tipo (ítem 9 de la v7.11 RV: «no me gusta que tenga comillas»).
+  fila
 }
 
 #' Cifra entera con «%»

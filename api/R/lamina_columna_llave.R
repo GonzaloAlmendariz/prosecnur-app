@@ -21,7 +21,7 @@
   seg <- .lam_escala_seg(espec, 1L)
   nombres <- as.character(espec$categorias$rotulo)
   pt_cat <- .std_pt("rotulo_categoria"); pt_cifra <- .std_pt("cifra")
-  w_nom <- max(.lam_ancho_tinta(paste0(nombres, "  100%"), pt_cat, FALSE))
+  w_nom <- max(.lam_ancho_tinta(paste0(nombres, "  100%"), pt_cat, FALSE))   # cabe también «Nombre  1%» (segmento chico en la llave)
   wc <- 1.15                                             # ancho de la columna
   rot_box <- .lam_rotulo_box(espec$box$rotulo %||% .PPT_ROTULO_TOP_TWO_BOX)
   w_box <- max(.lam_ancho_tinta(rot_box, .std_pt("rotulo_top_two_box"), TRUE), 1.2)
@@ -42,24 +42,40 @@
                             align = "center", nombre = "columna:cifra")
     y <- y - hs
   }
-  # Rótulos a la izquierda, a la altura de su segmento; los que se pisarían se separan hacia arriba y abajo, y su guía va
-  # recta: horizontal desde la columna, vertical hasta la altura del rótulo y horizontal hasta él.
+  # Rótulos a la izquierda, a la altura de su segmento, en un solo eje: solo el nombre (ítem 15 de la v7.11 RV: «el 1%
+  # puede ir al otro lado, porque el eje y debe estar alineado perfectamente»). La cifra que no cabe en su segmento va a
+  # la derecha de la columna con su guía recta. Si ese segmento cae dentro de la llave del Top Two Box, la cifra sigue
+  # junto a su nombre: a la derecha la tapa la llave. Los rótulos que se pisarían se separan hacia arriba y abajo, y su
+  # guía va recta: horizontal desde la columna, vertical hasta la altura del rótulo y horizontal hasta él.
+  kb <- match(espec$box$cols, espec$categorias$col); kb <- kb[!is.na(kb)]
   vis <- which(seg$dibujar & seg$ancho > 0)
   h_r <- pt_cat * 1.25 / 72 + 0.04
+  a_derecha <- !dentro & !(seq_len(nrow(seg)) %in% kb)
+  guia_escalon <- function(x_col, x_txt, yc, yt) {   # de la columna (x_col) al texto (x_txt), con escalón si se movió
+    xm <- x_col + sign(x_txt - x_col) * 0.1
+    .lam_caja(lz, min(x_col, xm), yc - 0.006, abs(xm - x_col), 0.012, tenue, nombre = "columna:guia")
+    if (abs(yt - yc) > 0.01) .lam_caja(lz, xm - 0.006, min(yt, yc), 0.012, abs(yt - yc) + 0.006, tenue, nombre = "columna:guia")
+    .lam_caja(lz, min(xm, x_txt), yt - 0.006, abs(x_txt - xm) + 0.006, 0.012, tenue, nombre = "columna:guia")
+  }
   ys <- .lam_columna_rotulos_y(centros[vis], h_r, y0 - 0.2, yb + 0.2)
   for (j in seq_along(vis)) {
     k <- vis[j]
-    txt <- if (dentro[k]) nombres[k] else paste0(nombres[k], "  ", seg$cifra[k])
+    txt <- if (dentro[k] || a_derecha[k]) nombres[k] else paste0(nombres[k], "  ", seg$cifra[k])
     .lam_txt(lz, txt, xl, ys[j] - h_r / 2, w_nom, h_r, pt_cat, azul, align = "right", nombre = "columna:rotulo")
-    if (!dentro[k] || abs(ys[j] - centros[k]) > 0.01) {
-      xm <- xc - 0.1
-      .lam_caja(lz, xm, centros[k] - 0.006, xc - xm, 0.012, tenue, nombre = "columna:guia")
-      if (abs(ys[j] - centros[k]) > 0.01) .lam_caja(lz, xm - 0.006, min(ys[j], centros[k]), 0.012, abs(ys[j] - centros[k]) + 0.006, tenue, nombre = "columna:guia")
-      .lam_caja(lz, xc - 0.17, ys[j] - 0.006, xm - (xc - 0.17) + 0.006, 0.012, tenue, nombre = "columna:guia")
+    if ((!dentro[k] && !a_derecha[k]) || abs(ys[j] - centros[k]) > 0.01) guia_escalon(xc, xc - 0.17, centros[k], ys[j])
+  }
+  der <- which(a_derecha & seg$dibujar & seg$ancho > 0)
+  if (length(der)) {
+    h_c <- pt_cifra * 1.25 / 72 + 0.04
+    yd <- .lam_columna_rotulos_y(centros[der], h_c, y0 - 0.2, yb + 0.2)
+    xd <- xc + wc + 0.2
+    for (j in seq_along(der)) {
+      k <- der[j]
+      guia_escalon(xc + wc, xd - 0.04, centros[k], yd[j])
+      .lam_txt(lz, seg$cifra[k], xd, yd[j] - h_c / 2, 0.8, h_c, pt_cifra, azul, bold = TRUE, nombre = "columna:cifra_fuera")
     }
   }
   # Llave del Top Two Box: abarca las categorías de la caja (las de arriba), con su pico al centro.
-  kb <- match(espec$box$cols, espec$categorias$col); kb <- kb[!is.na(kb)]
   if (length(kb)) {
     arriba <- yb - alto * sum(seg$ancho[seq_len(max(kb))] * seg$dibujar[seq_len(max(kb))])
     abajo <- yb - alto * sum(seg$ancho[seq_len(min(kb) - 1L)] * seg$dibujar[seq_len(min(kb) - 1L)])

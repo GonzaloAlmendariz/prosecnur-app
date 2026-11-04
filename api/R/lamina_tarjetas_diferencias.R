@@ -354,6 +354,12 @@
                                por_lamina = por_lamina)$doc
   }
   options(op); options(op_ley)
+  if (!identical(t$tipo, "bateria")) {
+    # Una categórica en barras: la tarjeta junto a la barra de su categoría, con su guía (ítem 9 de la v7.11 RV).
+    anclado <- tryCatch(.lam_tarjetas_anclar(doc, t, L, y0, .std_valor("ppt", "geometria", "base_y") - 0.12, laminas = seq.int(n0 + 1L, length(doc)),
+                                             filas_fn = .lam_tarjetas_filas_barras, con_fila = TRUE, junto = TRUE), error = function(e) NULL)
+    if (!is.null(anclado)) return(anclado)
+  }
   if (identical(t$tipo, "bateria")) {
     anclado <- .lam_tarjetas_anclar_cascada(doc, t, L, y0, y1, laminas = seq.int(n0 + 1L, length(doc)), titulo = tit)
     if (!is.null(anclado)) return(anclado)
@@ -364,6 +370,39 @@
 #' ¿Las tarjetas de una columna con llave son de una sola fila? (todas comparan la misma pregunta)
 #' @keywords internal
 .lam_tarjetas_disponer_columna_ok <- function(t) length(unique(vapply(t$tarjetas, `[[`, "", "fila"))) <= 1L
+
+.TARJETAS_JUNTO_AIRE <- 0.6    # del fin de la barra más larga (con su cifra) a la tarjeta de una categórica
+.TARJETAS_JUNTO_ANCHO <- 3.4   # ancho de esa tarjeta: la del panel estándar de un tercio
+
+#' Filas de la categórica nativa en barras de la lámina en curso: rótulo, centro de su barra y fin de su cifra
+#'
+#' La guía de una tarjeta de categórica sale del final de la barra de su categoría (con su cifra), como en las baterías.
+#' NULL si la lámina no es de barras (columnas, dicotomía).
+#' @keywords internal
+.lam_tarjetas_filas_barras <- function(doc) {
+  sl <- doc$slide$get_slide(doc$cursor)$get()
+  ns <- xml2::xml_ns(sl)
+  pieza <- function(nombre) {
+    sps <- xml2::xml_find_all(sl, sprintf("//p:grpSp[p:nvGrpSpPr/p:cNvPr[@name='prosecnur:grafico:categorica']]//p:sp[p:nvSpPr/p:cNvPr[@name='%s']]", nombre), ns)
+    if (!length(sps)) return(NULL)
+    off <- xml2::xml_find_first(sps, ".//a:off", ns); ext <- xml2::xml_find_first(sps, ".//a:ext", ns)
+    num <- function(nodos, at) as.numeric(xml2::xml_attr(nodos, at)) / .EMU
+    texto <- vapply(seq_along(sps), function(i) paste(xml2::xml_text(xml2::xml_find_all(sps[[i]], ".//a:t", ns)), collapse = " "), "")
+    data.frame(texto = texto, x = num(off, "x"), y = num(off, "y"), w = num(ext, "cx"), h = num(ext, "cy"), stringsAsFactors = FALSE)
+  }
+  rot <- pieza("rotulo"); bar <- pieza("barra"); cif <- pieza("cifra")
+  if (is.null(rot) || is.null(bar) || nrow(bar) != nrow(rot)) return(NULL)
+  rot$yc <- rot$y + rot$h / 2; bar$yc <- bar$y + bar$h / 2
+  k <- vapply(rot$yc, function(yc) which.min(abs(bar$yc - yc)), 1L)
+  fin <- bar$x[k] + bar$w[k]
+  if (!is.null(cif)) {
+    cif$yc <- cif$y + cif$h / 2
+    kc <- vapply(bar$yc[k], function(yc) which.min(abs(cif$yc - yc)), 1L)
+    fin <- pmax(fin, cif$x[kc] + .lam_ancho_tinta(cif$texto[kc], .std_pt("cifra"), TRUE) + 0.12)
+  }
+  rot$yc <- bar$yc[k]; rot$x_fin <- fin + 0.07; rot$y_ancla <- bar$yc[k]
+  rot
+}
 
 #' Filas de la escala nativa en la lámina en curso: enunciado, centro vertical y fin de su cifra de Top Two Box
 #' @keywords internal
@@ -405,13 +444,14 @@
 #' (la escala puede partirse), sin repetir el enunciado y con una línea guía desde el Top Two Box de la fila. NULL si
 #' alguna premisa no se encuentra o si las tarjetas de una lámina no caben en una columna.
 #' @keywords internal
-.lam_tarjetas_anclar <- function(doc, t, L, y0, y1, laminas = length(doc)) {
+.lam_tarjetas_anclar <- function(doc, t, L, y0, y1, laminas = length(doc), filas_fn = .lam_tarjetas_filas_escala, con_fila = FALSE,
+                                 junto = FALSE) {
   norm <- function(x) gsub("[^[:alnum:]]", "", tolower(x))
   buscadas <- norm(vapply(t$tarjetas, `[[`, "", "fila"))
   donde <- rep(NA_integer_, length(buscadas)); filas_de <- list()
   for (idx in laminas) {
     doc <- officer::on_slide(doc, idx)
-    f <- .lam_tarjetas_filas_escala(doc)
+    f <- filas_fn(doc)
     if (is.null(f) || anyNA(f$x_fin)) next
     filas_de[[as.character(idx)]] <- f
     hit <- is.na(donde) & buscadas %in% norm(f$texto)
@@ -419,8 +459,16 @@
   }
   doc <- officer::on_slide(doc, max(laminas))
   if (anyNA(donde)) return(NULL)
-  cw <- L$wp; xp <- .std_valor("ppt", "geometria", "ancho") - .std_valor("ppt", "geometria", "margen_der") - cw
-  altos <- vapply(t$tarjetas, .lam_tarjeta_alto, numeric(1), w = cw, cortos = t$opcion$cortos, tipo = t$tipo, con_fila = FALSE)
+  borde <- .std_valor("ppt", "geometria", "ancho") - .std_valor("ppt", "geometria", "margen_der")
+  cw <- L$wp; xp <- borde - cw
+  if (isTRUE(junto)) {
+    # Barras que no llenan la lámina (una categórica: van al 100 %): la tarjeta se arrima al final de las barras y gana
+    # ancho, en vez de quedar sola en el borde (ítem 9 de la v7.11 RV: «la tarjeta y las barras están tan distantes»).
+    fin <- max(unlist(lapply(filas_de, `[[`, "x_fin")))
+    xp <- min(xp, fin + .TARJETAS_JUNTO_AIRE)
+    cw <- min(.TARJETAS_JUNTO_ANCHO, borde - xp)
+  }
+  altos <- vapply(t$tarjetas, .lam_tarjeta_alto, numeric(1), w = cw, cortos = t$opcion$cortos, tipo = t$tipo, con_fila = con_fila)
   sep <- 0.12
   for (idx in unique(donde)) {
     if (sum(altos[donde == idx]) + sep * (sum(donde == idx) - 1L) > y1 - y0) return(NULL)
@@ -443,7 +491,7 @@
     for (j in orden) {
       tj <- t$tarjetas[[j]]; tp <- top[[as.character(j)]]; fk <- kk[[as.character(j)]]
       .lam_tarjeta_dibujar(.lam_tarjeta_backend_ppt(lz), tj, list(l = xp, t = tp, w = cw, h = altos[j]),
-                           unname(t$rotulos_cruce[tj$cruce]) %||% tj$cruce, cortos = t$opcion$cortos, tipo = t$tipo, con_fila = FALSE)
+                           unname(t$rotulos_cruce[tj$cruce]) %||% tj$cruce, cortos = t$opcion$cortos, tipo = t$tipo, con_fila = con_fila)
       # Línea guía en codo: del Top Two Box de la fila al borde de la tarjeta, con un punto en el origen.
       ya <- filas$y_ancla[fk]; xa <- filas$x_fin[fk]; yt <- min(max(ya, tp + 0.18), tp + altos[j] - 0.18)
       xm <- xa + max(0.06, (xp - xa) / 2)

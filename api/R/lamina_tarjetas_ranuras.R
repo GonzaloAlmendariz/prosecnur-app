@@ -2,9 +2,9 @@
 #
 # Maqueta «Composición y línea por nivel» (2026-11-04, 07_combinada_transporte_y_tiempo): cada gráfico arriba en su
 # mitad; debajo, un filete y hasta dos tarjetas lado a lado dentro de la misma mitad. La mitad sin diferencias no lleva
-# nada (ítem 18 de la v7 RV: «quedamos en que no se pone» la nota de «sin diferencias»); su gráfico queda alineado con
-# el de al lado, del mismo alto, para que las dos mitades terminen a la misma altura. Sin ninguna tarjeta en la lámina no
-# hay franja. La lámina conserva su base y su pie (uno por lámina).
+# nada (ítem 18 de la v7 RV: «quedamos en que no se pone» la nota de «sin diferencias») y su gráfico usa todo el alto
+# (ítem 11 de la v7.11 RV: «que uno tenga tarjetas no significa que el otro no pueda usar todo su alto»). Sin ninguna
+# tarjeta en la lámina no hay franja. La lámina conserva su base y su pie (uno por lámina).
 
 .TARJETAS_RANURA_SEP <- 0.15     # entre las dos tarjetas de una mitad
 .TARJETAS_RANURA_AIRE <- 0.08    # del fin del gráfico al filete y del filete a las tarjetas (las tarjetas llegan al fin del
@@ -17,9 +17,19 @@
 
 #' Reserva inferior de los paneles de `graficos_2` (in): la fija quien compone una lámina con tarjetas por ranura
 #' @keywords internal
-.lam_reserva_inferior <- function() {
-  v <- suppressWarnings(as.numeric(getOption("prosecnur.lam_reserva_inferior", 0))[1])
-  if (is.na(v) || v < 0) 0 else v
+.lam_reserva_inferior <- function(k = NULL) {
+  # Una por mitad (ítem 11 de la v7.11 RV: «que uno tenga tarjetas no significa que el otro no pueda usar todo su alto»);
+  # sin `k`, la mayor (el estilo de la lámina, común a sus paneles).
+  v <- suppressWarnings(as.numeric(getOption("prosecnur.lam_reserva_inferior", 0)))
+  v[is.na(v) | v < 0] <- 0
+  if (!length(v)) return(0)
+  if (is.null(k)) max(v) else v[min(k, length(v))]
+}
+
+#' Reserva de cada mitad: la franja solo bajo el gráfico que lleva tarjetas
+#' @keywords internal
+.lam_reservas_por_mitad <- function(ts, reserva) {
+  vapply(seq_len(2L), function(k) if (k <= length(ts) && length(ts[[k]]$tarjetas %||% list())) reserva else 0, 0)
 }
 
 #' Medidas de la franja de tarjetas: ancho de cada tarjeta y alto de la franja (el de la tarjeta más alta)
@@ -66,7 +76,7 @@
 #' ¿Los dos gráficos caben en piezas nativas con la franja de tarjetas debajo? Un gráfico que no cabe va por el respaldo
 #' (ggplot) y, con menos alto, sus rótulos se pisan: entonces la lámina va sin tarjetas.
 #' @keywords internal
-.lam_slide_2_caben_con_tarjetas <- function(ps, els, reserva, titulo_de_var = NULL) {
+.lam_slide_2_caben_con_tarjetas <- function(ps, els, reserva, titulo_de_var = NULL) {   # `reserva`: una por mitad
   especs <- lapply(ps, .lam_espec_de)
   if (any(vapply(especs, is.null, TRUE))) return(FALSE)
   op <- options(prosecnur.lam_reserva_inferior = reserva); on.exit(options(op), add = TRUE)
@@ -85,14 +95,15 @@
   M <- .lam_tarjetas_ranuras_medidas(ts, geo$paneles[[1]]$w)
   hay <- any(vapply(ts, function(t) length(t$tarjetas %||% list()) > 0L, TRUE))
   if (!hay) return(compone(doc))   # ninguna diferencia: la lámina de siempre, sin franja
-  if (!is.null(ps) && !.lam_slide_2_caben_con_tarjetas(ps, els, M$reserva, titulo_de_var)) {
+  reservas <- .lam_reservas_por_mitad(ts, M$reserva)
+  if (!is.null(ps) && !.lam_slide_2_caben_con_tarjetas(ps, els, reservas, titulo_de_var)) {
     if (exists(".pulso_aviso", mode = "function")) {
       .pulso_aviso(sprintf(paste0("Tarjetas de diferencias: en «%s» los gráficos no caben sobre las tarjetas (piden %.1f in); la lámina ",
                                   "va sin ellas. Acorta los rótulos o excluye opciones del gráfico más largo."), titulo, M$reserva))
     }
     return(compone(doc))
   }
-  op <- options(prosecnur.lam_reserva_inferior = M$reserva); on.exit(options(op), add = TRUE)
+  op <- options(prosecnur.lam_reserva_inferior = reservas); on.exit(options(op), add = TRUE)
   doc <- compone(doc)
   options(op)
   .lam_tarjetas_ranuras_dibujar(doc, ts)

@@ -123,3 +123,21 @@ test_that("sin ninguna diferencia en la lámina no hay franja: los paneles conse
   expect_false(grepl("Sin diferencias", xml, fixed = TRUE))
   expect_false(grepl("prosecnur:tarjetas_diferencias", xml, fixed = TRUE))
 })
+
+test_that("la mitad sin tarjetas usa todo su alto: la franja solo acorta el panel que las lleva", {
+  # Ítem 11 de la v7.11 RV: «que uno tenga tarjetas no significa que el otro no pueda usar todo su alto».
+  g0 <- .lam_mixta_geo("graficos_2")
+  r <- .lam_reservas_por_mitad(list(.tr_conjunto(2), list(tarjetas = list())), 1.7)
+  expect_identical(r, c(1.7, 0))
+  g1 <- withr::with_options(list(prosecnur.lam_reserva_inferior = r), .lam_mixta_geo("graficos_2"))
+  expect_equal(g0$paneles[[1]]$h - g1$paneles[[1]]$h, 1.7)
+  expect_equal(g1$paneles[[2]]$h, g0$paneles[[2]]$h)
+  vistas <- NULL
+  local_mocked_bindings(.lam_slide_2_caben_con_tarjetas = function(ps, els, reserva, titulo_de_var = NULL) { vistas <<- reserva; TRUE })
+  compone <- function(d) { vistas <<- c(vistas, getOption("prosecnur.lam_reserva_inferior")); officer::add_slide(d, layout = "Graficos2", master = "Office Theme") }
+  base <- officer::read_pptx(system.file("plantillas", "plantilla_16_9.pptx", package = "prosecnurapp"))
+  .lam_slide_2_con_tarjetas(base, list(NULL, .tr_conjunto(1)), compone, ps = list(1, 2), els = list(), titulo = "T")
+  expect_equal(vistas[1], 0)                     # izquierda sin tarjetas: sin franja
+  expect_gt(vistas[2], 0)
+  expect_equal(tail(vistas, 2), vistas[1:2])     # lo que se probó es lo que se compone
+})

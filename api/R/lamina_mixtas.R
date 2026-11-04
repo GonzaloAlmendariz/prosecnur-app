@@ -28,7 +28,7 @@
     # Dos gráficos lado a lado (133 y, con narrativa, 136): media columna cada uno y el filete vertical al medio.
     # Con tarjetas por gráfico (ADR 0129 §6) los paneles se acortan lo que mide su franja (lamina_tarjetas_ranuras.R).
     graficos_2 = list(
-      paneles = list(P(ml, yt, col2, yf - yt - .lam_reserva_inferior()), P(xr, yt, col2, yf - yt - .lam_reserva_inferior())),
+      paneles = list(P(ml, yt, col2, yf - yt - .lam_reserva_inferior(1L)), P(xr, yt, col2, yf - yt - .lam_reserva_inferior(2L))),
       filetes = list(list(tipo = "v", x = xm, y0 = yt, y1 = yf))),
     graficos_3_2mas1 = list(
       paneles = list(P(ml, yt, col2, 2.15), P(ml, yt + 2.35, col2, yf - yt - 2.35), P(xr, yt, col2, yf - yt)),

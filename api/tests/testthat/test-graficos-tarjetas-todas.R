@@ -123,7 +123,19 @@ test_that("una pregunta de escala sola va en columna apilada vertical con la lla
   expect_match(xml, "prosecnur:grafico:columna_llave", fixed = TRUE)
   expect_match(xml, "TOP TWO BOX", fixed = TRUE)
   expect_match(xml, ">47%<", fixed = TRUE)
-  expect_match(xml, "Mala  1%", fixed = TRUE)          # la cifra que no cabe va junto a su nombre
+  # Ítem 15 de la v7.11 RV: el eje de los nombres queda limpio; la cifra que no cabe va a la derecha con su guía.
+  expect_false(grepl("Mala  1%", xml, fixed = TRUE))
+  sl <- xml2::read_xml(xml); ns <- xml2::xml_ns(sl)
+  caja <- function(nombre) {
+    sp <- xml2::xml_find_all(sl, sprintf("//p:sp[p:nvSpPr/p:cNvPr[@name='%s']]", nombre), ns)
+    v <- function(x, a) as.numeric(xml2::xml_attr(xml2::xml_find_first(sp, paste0(".//a:", x)), a)) / 914400
+    data.frame(x = v("off", "x"), w = v("ext", "cx"), texto = xml2::xml_text(sp))
+  }
+  rot <- caja("columna:rotulo")
+  expect_lt(diff(range(rot$x + rot$w)), 1e-6)                          # un solo eje
+  fuera <- caja("columna:cifra_fuera")
+  expect_identical(trimws(fuera$texto), "1%")
+  expect_gt(fuera$x, geo$xc + geo$wc)                                  # a la derecha de la columna
   expect_false(grepl("columna:leyenda", xml, fixed = TRUE))
   expect_equal(geo$alto, 6.4 - 1.8)
   # Una batería de varias filas o sin Top Two Box sigue con la escala de siempre.
