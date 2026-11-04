@@ -40,8 +40,32 @@ const GUARDADOS: Record<string, string> = {
 };
 
 const HOOKS_DE_ROUTER =
-  /\b(useDireccion|usePanelDireccionable|useFoco|useSeccion|usePestana|useIrA|useSearchParams|useNavigate|useLocation|useParams|useMatch|useHref|useNavigationType|useOutletContext|useLinkClickHandler)\s*\(|<(Link|NavLink|Navigate|Outlet)\b/g;
-const PANEL_DIRECCIONABLE = /<(Dialog|Sideover)\b[^>]*\bpanel=/;
+  /\b(useDireccion|usePanelDireccionable|useFoco|useSeccion|usePestana|useIrA|useSearchParams|useNavigate|useNavigation|useLocation|useParams|useMatch|useMatches|useHref|useResolvedPath|useRoutes|useBlocker|useNavigationType|useOutletContext|useLinkClickHandler)\s*\(|<(Link|NavLink|Navigate|Outlet)\b/g;
+/** Cualquier import del router, también con alias (`import { useNavigate as nav }`), que la llamada no delata. */
+const IMPORTA_ROUTER = /from\s*["']react-router(?:-dom)?["']/;
+
+/**
+ * Etiquetas JSX de un overlay que se abre por dirección: `<Dialog …panel=…>` o `<Sideover …panel=…>`, y
+ * `<OverlayDePanel` siempre. Lee la etiqueta siguiendo las llaves, porque un `>` de flecha dentro de una prop
+ * (`onOpenChange={(v) => …}`) cortaba la lectura antes de llegar a `panel=`. Un `panel` escondido en un spread
+ * (`{...props}`) no se ve estáticamente: lo atrapa el montaje, si el overlay está en el estado inicial.
+ */
+export function overlaysPorDireccion(fuente: string): string[] {
+  const hallados: string[] = [];
+  for (const m of fuente.matchAll(/<(Dialog|Sideover|OverlayDePanel)\b/g)) {
+    let i = (m.index ?? 0) + m[0].length;
+    let llaves = 0;
+    for (; i < fuente.length; i++) {
+      const c = fuente[i];
+      if (c === "{") llaves++;
+      else if (c === "}") llaves--;
+      else if (c === ">" && llaves === 0) break;
+    }
+    const etiqueta = fuente.slice(m.index, i + 1);
+    if (m[1] === "OverlayDePanel" || /\bpanel=/.test(etiqueta)) hallados.push(m[1]);
+  }
+  return hallados;
+}
 
 const sinComentarios = (s: string) => s.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:"'`])\/\/.*$/gm, "$1");
 
@@ -73,7 +97,10 @@ export function cierreDeImports(raices: string[]): Map<string, string | null> {
 }
 
 export function hooksDeRouter(fuente: string): string[] {
-  return [...new Set([...sinComentarios(fuente).matchAll(HOOKS_DE_ROUTER)].map((m) => m[1] ?? m[2]))];
+  const limpio = sinComentarios(fuente);
+  const hooks = [...limpio.matchAll(HOOKS_DE_ROUTER)].map((m) => m[1] ?? m[2]);
+  if (IMPORTA_ROUTER.test(limpio)) hooks.push("import de react-router");
+  return [...new Set(hooks)];
 }
 
 describe("modo público sin Router: el cierre de imports", () => {
@@ -101,8 +128,11 @@ describe("modo público sin Router: el cierre de imports", () => {
     expect(fs.readFileSync(path.join(SRC, "components/Dialog.tsx"), "utf8")).toMatch(/useInRouterContext\(\)/);
   });
 
-  it("ningún overlay del cierre se abre por dirección (`panel=`)", () => {
-    const fallas = fuentes.filter((f) => PANEL_DIRECCIONABLE.test(sinComentarios(fs.readFileSync(f, "utf8")))).map(rel);
+  it("ningún overlay del cierre se abre por dirección (`panel=` u `OverlayDePanel`)", () => {
+    const fallas = fuentes
+      .filter((f) => !(rel(f) in GUARDADOS))
+      .filter((f) => overlaysPorDireccion(sinComentarios(fs.readFileSync(f, "utf8"))).length)
+      .map(rel);
     expect(fallas).toEqual([]);
   });
 
@@ -110,8 +140,13 @@ describe("modo público sin Router: el cierre de imports", () => {
     expect(hooksDeRouter("const c = usePanelDireccionable(PANEL);")).toEqual(["usePanelDireccionable"]);
     expect(hooksDeRouter("const [p] = useSearchParams(); return <Link to='/'>x</Link>;")).toEqual(["useSearchParams", "Link"]);
     expect(hooksDeRouter("// usa useLocation() en DashboardRuta\nconst x = 1;")).toEqual([]);
-    expect(PANEL_DIRECCIONABLE.test("<Dialog open={a} panel={PANEL_X}>")).toBe(true);
-    expect(PANEL_DIRECCIONABLE.test("<Dialog open={a} onOpenChange={b}>")).toBe(false);
+    expect(hooksDeRouter('import { useNavigate as ir } from "react-router-dom";')).toEqual(["import de react-router"]);
+    expect(hooksDeRouter("const r = useResolvedPath('x');")).toEqual(["useResolvedPath"]);
+    expect(overlaysPorDireccion("<Dialog open={a} panel={PANEL_X}>")).toEqual(["Dialog"]);
+    expect(overlaysPorDireccion("<Dialog onOpenChange={(v) => setX(v)} panel={P}>")).toEqual(["Dialog"]);
+    expect(overlaysPorDireccion("<Sideover\n  titulo={t}\n  panel={P}\n>")).toEqual(["Sideover"]);
+    expect(overlaysPorDireccion("<OverlayDePanel {...resto} />")).toEqual(["OverlayDePanel"]);
+    expect(overlaysPorDireccion("<Dialog open={a} onOpenChange={(v) => b(v)}>x</Dialog> <p panel={1}>")).toEqual([]);
   });
 });
 

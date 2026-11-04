@@ -22,7 +22,9 @@ const RAIZ = new URL("../../frontend/", import.meta.url).pathname;
 const gate = readFileSync(new URL("../gate-front.mjs", import.meta.url), "utf8");
 
 /** Lee el árbol: una llamada directa de fs o el helper compartido que la envuelve. */
-const ESCANEA = /readdirSync|globSync|import\.meta\.glob|readSources\(|parseSourcesContaining\(|test\/contractSourceScan/;
+// `cierreDeImports(`: el contrato recorre el cierre de imports desde una raíz (publicModeSinRouter) y se rompe
+// desde cualquier archivo que esa raíz alcance, igual que un barrido del árbol.
+const ESCANEA = /readdirSync|globSync|import\.meta\.glob|readSources\(|parseSourcesContaining\(|test\/contractSourceScan|cierreDeImports\(/;
 
 export function escaneaElArbol(fuente) {
   return ESCANEA.test(fuente);
@@ -54,10 +56,12 @@ test("el detector da rojo por un contrato nuevo que escanea el árbol y no está
     "src/app/directo.contract.test.ts": "const xs = fs.readdirSync(SRC);",
     "src/app/fijo.contract.test.ts": 'const css = readFileSync(path.join(appDir, "theme.css"), "utf8");',
     "src/app/yaEsta.contract.test.ts": "fs.readdirSync(SRC)",
+    "src/app/cierre.contract.test.tsx": "const cierre = cierreDeImports([APP_PUBLICA]);",
   };
   const gateFalso = 'const TRANSVERSALES = ["src/app/yaEsta.contract.test.ts"];';
   assert.deepEqual(faltantes(Object.keys(fuentes), (r) => fuentes[r], gateFalso), [
     "src/lib/navegacion/nuevo.contract.test.ts",
     "src/app/directo.contract.test.ts",
+    "src/app/cierre.contract.test.tsx",
   ]);
 });
