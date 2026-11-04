@@ -2394,6 +2394,42 @@
            ),
            descripcion = "Si un criterio no es una pregunta de escala, se usa el índice lineal en todos.")
     ), .args_graf_comunes())
+  ),
+
+  # Lámina «total arriba y protagonista abajo», variante 05 (Gonzalo, 2026-11-04): graficos_lineas_nivel.R,
+  # lamina_total_y_cruce.R y lamina_lineas_nivel.R.
+  p_lineas_nivel = list(
+    titulo_humano = "Total y línea por nivel",
+    descripcion   = "Arriba, el total de la pregunta en una franja. Abajo, una línea por serie con un punto por nivel (nivel curricular, ciclo, grupo de edad). Cada nivel que se aparta del resto lleva su marca, y cada serie que crece o baja con el nivel lleva su aviso, con la regla de diferencias del estudio.",
+    icono_ui      = "TrendingUp",
+    categoria     = "comparison",
+    blueprint     = "line-series",
+    args = c(list(
+      list(name = "var", label = "Pregunta", tipo_input = "variable", grupo = "datos",
+           descripcion = "La pregunta que se muestra en el total y en las líneas."),
+      list(name = "cruce", label = "Niveles del eje", tipo_input = "variable", grupo = "datos",
+           descripcion = "Pregunta con niveles ordenados (ej. nivel curricular). Un punto por nivel, de menor a mayor."),
+      list(name = "series", label = "Líneas", tipo_input = "meta", grupo = "datos",
+           descripcion = "Una lista de líneas, hasta tres. Cada una tiene su rótulo y las respuestas de la pregunta que cuentan. Una línea puede sumar una segunda pregunta (ej. «trabaja y lo hace medio tiempo o más»). Todas se calculan sobre todos los casos de cada nivel."),
+      list(name = "total_arriba", label = "Total arriba", tipo_input = "bool", grupo = "datos", default = TRUE,
+           descripcion = "Muestra arriba la franja con el total de la pregunta."),
+      list(name = "segmentos_total", label = "Partes del total", tipo_input = "meta", grupo = "datos",
+           descripcion = "Cómo se parte la franja del total, con la misma forma que las líneas. Vacío: si las líneas van una dentro de otra, la interior, lo que falta para la exterior y el resto; si no, una parte por respuesta."),
+      list(name = "mostrar_significancia", label = "Marcar diferencias", tipo_input = "bool", grupo = "datos", default = TRUE,
+           descripcion = "Marca el nivel que se aparta del resto y avisa si la línea crece o baja con el nivel, con la regla de diferencias del estudio."),
+      list(name = "grupos", label = "Niveles que se muestran", tipo_input = "codigos_list", grupo = "datos",
+           descripcion = "Opcional. Los códigos de los niveles que entran al eje; vacío, todos los que tienen casos."),
+      list(name = "titulo_seccion", label = "Título de las líneas", tipo_input = "string", grupo = "textos",
+           descripcion = "Texto sobre las líneas. Ej. «Según nivel curricular»."),
+      list(name = "rotulo_total", label = "Título del total", tipo_input = "string", grupo = "textos",
+           descripcion = "Texto sobre la franja del total. Ej. «Total de estudiantes»."),
+      list(name = "publico", label = "Cómo se llaman los casos", tipo_input = "string", grupo = "textos",
+           descripcion = "Va bajo cada nivel con su número. Ej. «estudiantes» escribe «119 estudiantes»."),
+      list(name = "nombre_nivel", label = "Qué crece", tipo_input = "string", grupo = "textos",
+           descripcion = "La palabra del aviso de cada línea. Ej. «nivel» escribe «Crece con el nivel»."),
+      list(name = "lectura", label = "Lectura al margen", tipo_input = "textarea", grupo = "textos",
+           descripcion = "Texto en gris a la derecha, sin marcas. Sirve para un análisis complementario.")
+    ), .args_graf_comunes())
   )
 )
 
@@ -2438,7 +2474,8 @@
   # Fuera del selector (Gonzalo, 2026-10-10: «sí, sácalo»): no está en el recetario. Sigue registrado y renderizable
   # para los planes que ya lo usan.
   p_dim_foda = list("dimensiones", "ruta_anterior", motivo = "No hay pieza propia para la matriz FODA.", en_selector = FALSE),
-  p_dim_heatmap_criterios = list("dimensiones", "nativa", condicion = "Si no cabe en la lámina, sale por la ruta anterior.")
+  p_dim_heatmap_criterios = list("dimensiones", "nativa", condicion = "Si no cabe en la lámina, sale por la ruta anterior."),
+  p_lineas_nivel = list("comparar", "nativa", condicion = "Con dos niveles o más; en el Word sale como figura.")
 )
 stopifnot(setequal(names(.GRAFICOS_SALIDA_EDITOR), names(.GRAFICADORES_META)))
 .GRAFICADORES_META <- Map(function(meta, s) {
@@ -2486,7 +2523,8 @@ stopifnot(setequal(names(.GRAFICOS_SALIDA_EDITOR), names(.GRAFICADORES_META)))
   p_dim_heatmap = "dim_heatmap",
   p_dim_comparativo_radarbar = "",
   p_dim_foda = "dim_foda",
-  p_dim_heatmap_criterios = "dim_heatmap_criterios"
+  p_dim_heatmap_criterios = "dim_heatmap_criterios",
+  p_lineas_nivel = ""
 )
 
 .graf_operational_contract <- function(name, meta) {
