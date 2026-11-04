@@ -51,6 +51,13 @@ hojas_ruta_pi_muestra <- function(blocks_df, replacement_blocks_df, frame, cfg) 
   ids <- as.character(blocks_df$id_manzana)
   blocks_df$estrato <- if (modo_estrato) asignacion$estrato[match(ub, asignacion$ubigeo)] else ub
   blocks_df$pi <- NA_real_
+  if (modo_estrato) {
+    # ADR 0131 §1b: π de la ciudad, su condición (forzosa o sorteada) y su macrorregión.
+    ia <- match(ub, asignacion$ubigeo)
+    blocks_df$pi_ciudad <- asignacion$pi_ciudad[ia]
+    blocks_df$ciudad_condicion <- asignacion$condicion[ia]
+    blocks_df$grupo_ciudades <- asignacion$grupo[ia]
+  }
   blocks_df$pi_regla <- .hojas_ruta_pim_regla(cfg, if (modo_estrato) "estrato" else if (por_zona) "zona_condicional" else "distrito")
 
   for (u in unique(ub)) {
@@ -79,6 +86,7 @@ hojas_ruta_pi_muestra <- function(blocks_df, replacement_blocks_df, frame, cfg) 
       as.character(replacement_blocks_df$ubigeo) == ub[tit]
     misma_zona[is.na(misma_zona)] <- FALSE  # sin zona no se puede afirmar que es la misma: no hereda
     replacement_blocks_df$estrato <- blocks_df$estrato[tit]
+    if (modo_estrato) for (k in c("pi_ciudad", "ciudad_condicion", "grupo_ciudades")) replacement_blocks_df[[k]] <- blocks_df[[k]][tit]
     replacement_blocks_df$pi <- ifelse(misma_zona, blocks_df$pi[tit], NA_real_)
     replacement_blocks_df$pi_fuente <- ifelse(misma_zona, "hereda_titular", "otra_zona_sin_pi")
     fuera <- sum(!misma_zona)

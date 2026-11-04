@@ -149,6 +149,33 @@ test_that("con estrato distrito el mínimo por ciudad no cambia nada", {
   expect_null(hojas_ruta_estrato_asignacion(ub, 30L, hojas_ruta_integrada_normalize_config(con)))
 })
 
+test_that("la muestra publica π = π_c · π_i|c, π_c, la condición de la ciudad y su grupo; ninguna manzana de una ciudad no sorteada", {
+  reg <- .cs_registro()
+  primer <- function(cod) unlist(Filter(function(p) identical(p$codigo, cod), reg$provincias)[[1]]$distritos)[[1]]
+  ub <- c("150110", "150101", "070106", vapply(c("2006", "2005", "0201", "2101", "2301", "1601"), primer, character(1)))
+  cfg <- list(territorios = unname(ub), sample_size_mode = "external_total", n_objetivo = 40L * 8L, entrevistas_por_manzana = 8L, seed = 3L,
+              sample_size = list(design_effect = 1, estrato = "provincia", base_reparto = "cpv2025_adultos_urbanos"))
+  ncfg <- hojas_ruta_integrada_normalize_config(cfg)
+  a <- hojas_ruta_estrato_asignacion(ncfg$territorios, 40L, ncfg)
+  expect_true(any(a$ciudades$condicion == "sorteada"))
+  expect_true(any(a$ciudades$condicion == "no_sorteada"))
+  s <- hojas_ruta_sample_preview_integrado(cfg)
+  expect_true(s$ok)
+  b <- .hojas_ruta_rows_df(s$blocks)
+  expect_true(all(c("pi", "pi_ciudad", "ciudad_condicion", "grupo_ciudades") %in% names(b)))
+  ciudad_b <- substr(b$ubigeo, 1L, 4L)
+  expect_false(any(ciudad_b %in% a$ciudades$ciudad[a$ciudades$condicion == "no_sorteada"]))
+  expect_true(all(b$pi > 0 & b$pi <= 1))
+  expect_true(all(b$pi <= b$pi_ciudad + 1e-12))
+  pc <- stats::setNames(a$ciudades$pi_ciudad, a$ciudades$ciudad)
+  expect_equal(b$pi_ciudad, unname(pc[ciudad_b]))
+  expect_true(all(b$ciudad_condicion[ciudad_b %in% c("1501", "0701")] == "forzosa"))
+  expect_true(all(is.na(b$grupo_ciudades[b$ciudad_condicion == "forzosa"])))
+  expect_true(all(!is.na(b$grupo_ciudades[b$ciudad_condicion == "sorteada"])))
+  r <- .hojas_ruta_rows_df(s$replacement_blocks)
+  if (nrow(r)) expect_true(all(c("pi_ciudad", "ciudad_condicion") %in% names(r)))
+})
+
 test_that("la memoria declara el mínimo por ciudad, las forzosas y los grupos con sus ciudades sorteadas y su probabilidad", {
   cfg <- .cs_cfg()
   sp <- hojas_ruta_sample_size_preview(list(territorios = cfg$territorios, sample_size_mode = "external_total", n_objetivo = 225L * 8L, entrevistas_por_manzana = 8L,
