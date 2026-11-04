@@ -57,6 +57,15 @@ ninguna es un bloque con título. Captura: Codificar con `acnur_acg` a 1440 y 10
 aparece en esa copia (ninguna opción única está en «Preguntas para codificar»); la conversión queda respaldada por
 `tsc` y los tests del módulo, no por una captura de la vista.
 
+**Verificado con datos (4 nov, mañana).** Copia de trabajo en el scratchpad, nunca en el repo: `acnur_acg` con `E2_sex`
+marcada para codificar (`POST /api/codificacion/marcar {parent:"E2_sex", marcada:true}`) y agrupada en dos categorías
+(`POST /api/codificacion/agrupacion` con `Hombres ← 1` y `Mujeres ← 2`), guardada con `POST /api/project/save`. Captura
+`/codificacion?pestana=codificar&foco=E2_sex` con `--click-tab "Agrupar categorías"` a 1440 y 1024: `ok=true`. La
+captura destapó una regresión de esta tanda, que ya está arreglada en `7e2558b54`: al borrar un selector quedó una
+coma colgada y los íconos de la barra heredaban la caja roja del aviso. También que «Agregar categoría» caía debajo del
+título en la columna angosta. Hallazgo aparte: el modo «Codificar respuestas / Agrupar categorías» vive en un `useState`
+suelto (`ModoSelectOneTabs`), sin dirección, cuando toda vista debería ser enlazable.
+
 ## Guard
 
 `features/codificacion/formatoDelModulo.contract.test.ts`, meta 0: P1 en hojas y en línea, P3 con foto de los que
