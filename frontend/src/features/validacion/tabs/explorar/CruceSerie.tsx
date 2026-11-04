@@ -148,7 +148,7 @@ function SerieMediana({ puntos }: { puntos: readonly ExploradorCrucePunto[] }) {
                 {[
                   `${fechaCorta(x.fecha)}: mediana ${fmtValor(x.valor)}`,
                   x.baja !== null && x.alta !== null ? `Mitad central ${fmtValor(x.baja)} a ${fmtValor(x.alta)}` : null,
-                  x.n !== null ? `${plural(x.n)}${chico(x) ? " · base chica" : ""}` : null,
+                  x.n !== null ? `${plural(x.n)}${chico(x) ? ", base chica" : ""}` : null,
                 ].filter(Boolean).join("\n")}
               </title>
             </circle>
@@ -241,7 +241,7 @@ function PanelOpcion({
           {tramos.map((t, i) => <polyline key={i} className="vx-svg-chispa" points={t.map((x) => `${X(x.fecha)},${Y(x.valor)}`).join(" ")} />)}
           {p.map((x) => (
             <circle key={x.fecha} className="vx-svg-toque" cx={X(x.fecha)} cy={Y(x.valor)} r={5}>
-              <title>{`${fechaCorta(x.fecha)}: ${fmtPct(x.valor)} la marca${x.n !== null ? ` · ${plural(x.n)}` : ""}`}</title>
+              <title>{`${fechaCorta(x.fecha)}: ${fmtPct(x.valor)} la marca${x.n !== null ? `, ${plural(x.n)}` : ""}`}</title>
             </circle>
           ))}
         </svg>

@@ -38,12 +38,12 @@ function Celda({ c, total = false, columna, fila, lectura }: { c: CeldaCalor; to
   const sentido =
     c.dif === null || c.marca === null
       ? ""
-      : ` · ${Math.abs(c.dif).toFixed(1)} puntos ${c.marca === "arriba" ? "por encima" : "por debajo"} del total`;
+      : `; ${Math.abs(c.dif).toFixed(1)} puntos ${c.marca === "arriba" ? "por encima" : "por debajo"} del total`;
   return (
     <div
       role="cell"
       className={clase}
-      title={`${fila} × ${columna}: ${c.texto} (n = ${fmtN(c.n)})${sentido}${c.chica ? " · base chica, sin flecha" : ""}`}
+      title={`${fila} × ${columna}: ${c.texto} (n = ${fmtN(c.n)})${sentido}${c.chica ? "; base chica, sin flecha" : ""}`}
     >
       {c.texto}
       {c.marca && (
@@ -147,7 +147,7 @@ function LeyendaCalor({ lectura }: { lectura: LecturaCalor }) {
         {["is-bajo3", "is-bajo2", "is-bajo1", "is-parejo", "is-sobre1", "is-sobre2", "is-sobre3"].map((t) => <i key={t} className={`vx-calor-celda ${t}`} />)}
       </span>
       <span>Por encima</span>
-      <span className="vx-calor-tramos">tramos de 2, {UMBRAL_PUNTOS} y 10 puntos · ▲▼ desde {UMBRAL_PUNTOS}</span>
+      <span className="vx-calor-tramos">tramos de 2, {UMBRAL_PUNTOS} y 10 puntos; ▲▼ desde {UMBRAL_PUNTOS}</span>
     </div>
   );
 }

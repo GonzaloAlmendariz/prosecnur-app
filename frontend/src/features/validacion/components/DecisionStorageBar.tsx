@@ -115,7 +115,7 @@ export default function DecisionStorageBar({
       {showTotals && totals.total > 0 && (
         <div
           style={{
-            fontSize: 11,
+            fontSize: "var(--pulso-type-caption-size)",
             color: "var(--pulso-text-soft)",
             lineHeight: 1.55,
             display: "flex",
@@ -127,7 +127,7 @@ export default function DecisionStorageBar({
           <span>
             Total hallazgos: <strong style={{ color: "var(--pulso-text)" }}>{fmt(totals.total)}</strong>
           </span>
-          <span aria-hidden="true">·</span>
+          <span aria-hidden="true" style={{ width: 1, alignSelf: "stretch", background: "var(--pulso-border)" }} />
           <span>
             Decididas:{" "}
             <strong style={{ color: "var(--pulso-text)" }}>{fmt(totals.decided)}</strong>{" "}
@@ -135,7 +135,7 @@ export default function DecisionStorageBar({
           </span>
           {counts.pending > 0 && (
             <>
-              <span aria-hidden="true">·</span>
+              <span aria-hidden="true" style={{ width: 1, alignSelf: "stretch", background: "var(--pulso-border)" }} />
               <span style={{ color: "var(--pulso-warn-fg)" }}>
                 Pendientes: <strong>{fmt(counts.pending)}</strong>
               </span>
@@ -178,7 +178,7 @@ function BarTrack({
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          fontSize: 10,
+          fontSize: "var(--pulso-type-micro-size)",
           color: "var(--pulso-text-soft)",
           letterSpacing: 0.3,
           textTransform: "uppercase",
@@ -217,7 +217,7 @@ function BarTrack({
             role={isClickable ? "button" : undefined}
             tabIndex={isClickable ? 0 : undefined}
             aria-label={`${meta.label}: ${fmt(seg.n)} casos (${seg.pct.toFixed(1)}%)`}
-            title={`${meta.label}: ${fmt(seg.n)} · ${seg.pct.toFixed(1)}%`}
+            title={`${meta.label}: ${fmt(seg.n)} (${seg.pct.toFixed(1)}%)`}
             onMouseEnter={() => setHoverKind(seg.kind)}
             onMouseLeave={() => setHoverKind(null)}
             onClick={() => onSelectKind?.(seg.kind)}
@@ -287,7 +287,7 @@ function Legend({
               background: isActive ? "var(--pulso-surface)" : "var(--pulso-surface-2)",
               border: `1px solid ${isActive ? "var(--pulso-primary-border)" : "var(--pulso-border)"}`,
               color: "var(--pulso-text)",
-              fontSize: 11,
+              fontSize: "var(--pulso-type-caption-size)",
               fontWeight: 600,
               cursor: isClickable ? "pointer" : "default",
               opacity: isDimmed ? 0.55 : 1,
@@ -299,7 +299,7 @@ function Legend({
             <span style={{ fontVariantNumeric: "tabular-nums", color: "var(--pulso-text-soft)" }}>
               {fmt(n)}
             </span>
-            <span style={{ fontSize: 10, color: "var(--pulso-text-soft)" }}>
+            <span style={{ fontSize: "var(--pulso-type-micro-size)", color: "var(--pulso-text-soft)" }}>
               ({pct.toFixed(1)}%)
             </span>
           </button>

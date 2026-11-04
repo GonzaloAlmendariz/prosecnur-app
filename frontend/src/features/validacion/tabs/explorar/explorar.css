@@ -384,6 +384,12 @@
 .vx-sep-punto {
   color: var(--pulso-border-strong);
 }
+/* Separador entre dos datos de la cabecera: una línea fina, no un «·». */
+.vx-sep-linea {
+  align-self: stretch;
+  width: 1px;
+  background: var(--pulso-border);
+}
 .vx-cabecera-nav {
   display: flex;
   gap: var(--pulso-space-2);
@@ -1348,13 +1354,6 @@
 .vx-ficha {
   display: flex;
   flex-direction: column;
-}
-.vx-ficha-cargando {
-  margin: 0;
-  padding: var(--pulso-space-4) 18px;
-  min-height: 240px;
-  color: var(--pulso-text-faint);
-  font-size: var(--pulso-type-caption-size);
 }
 .vx-ficha > .vx-panel + .vx-panel {
   border-top: 1px solid var(--pulso-border);

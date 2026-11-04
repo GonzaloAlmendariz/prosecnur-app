@@ -37,7 +37,7 @@ describe("calcularImpacto", () => {
   it("declara lo que van a hacer las decisiones", () => {
     const imp = calcularImpacto(preview({ cases_excluded: 2, cells_changed: 14 }, [103, 101]), summary(3));
     expect(imp?.nulo).toBe(false);
-    expect(imp?.titular).toBe("2 casos excluidos · 14 celdas corregidas");
+    expect(imp?.titular).toBe("2 casos excluidos y 14 celdas corregidas");
     expect(detalleFilas(imp!)).toBe("La base pasaría de 103 a 101 casos al cerrar.");
   });
 

@@ -1,6 +1,7 @@
 import type { CSSProperties, Dispatch, ReactNode, SetStateAction } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
+  Inbox,
   AlertTriangle,
   ArrowRight,
   Check,
@@ -48,6 +49,9 @@ import type {
   ReglaLike,
   VariableHoverData,
 } from "../components/v2";
+import { formatoConteo } from "../../../lib/formatoNumero";
+import { EstadoVacio } from "../../../components/EstadoVacio";
+import { VacioListo } from "../components/VacioListo";
 
 // =============================================================================
 // Limpieza y transformación
@@ -598,11 +602,13 @@ export default function LimpiezaTab() {
 
   if (error) {
     return (
-      <EmptyState
-        icon={<AlertTriangle size={20} />}
-        title="No se pudo cargar la sección"
-        hint={error}
-      />
+      <VacioListo marca="validacion-limpieza">
+        <EmptyState
+          icon={<AlertTriangle size={20} />}
+          title="No se pudo cargar la sección"
+          hint={error}
+        />
+      </VacioListo>
     );
   }
 
@@ -777,10 +783,10 @@ function StatusBar({
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, flexWrap: "wrap" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
           <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-            <div style={{ fontSize: 15, fontWeight: 800, color: "var(--pulso-text)" }}>
+            <div style={{ fontSize: "var(--pulso-type-title-size)", fontWeight: 800, color: "var(--pulso-text)" }}>
               Limpieza y transformación
             </div>
-            <div style={{ fontSize: 11, color: "var(--pulso-text-soft)" }}>
+            <div style={{ fontSize: "var(--pulso-type-caption-size)", color: "var(--pulso-text-soft)" }}>
               {finalizedAt
                 ? `Último cierre: ${formatDateTime(finalizedAt)}`
                 : "Decisiones sobre los hallazgos detectados"}
@@ -849,7 +855,7 @@ function StatusPill({
         alignItems: "center",
         padding: "4px 10px",
         borderRadius: 999,
-        fontSize: 11,
+        fontSize: "var(--pulso-type-caption-size)",
         fontWeight: 800,
         letterSpacing: 0.3,
         background: colors.bg,
@@ -939,14 +945,14 @@ function Workbench({
       >
         <header style={{ display: "flex", flexDirection: "column", gap: 2 }}>
           <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 8 }}>
-            <div style={{ fontSize: 14, fontWeight: 800, color: "var(--pulso-text)" }}>
+            <div style={{ fontSize: "var(--pulso-type-subtitle-size)", fontWeight: 800, color: "var(--pulso-text)" }}>
               Cola de hallazgos
             </div>
-            <span style={{ fontSize: 11, color: "var(--pulso-text-soft)" }}>
-              {filterCat === "all" ? queue.length : `${filteredQueue.length} / ${queue.length}`}
+            <span style={{ fontSize: "var(--pulso-type-caption-size)", color: "var(--pulso-text-soft)" }}>
+              {filterCat === "all" ? formatoConteo(queue.length) : `${formatoConteo(filteredQueue.length)} / ${formatoConteo(queue.length)}`}
             </span>
           </div>
-          <div style={{ fontSize: 11, color: "var(--pulso-text-soft)", lineHeight: 1.4 }}>
+          <div style={{ fontSize: "var(--pulso-type-caption-size)", color: "var(--pulso-text-soft)", lineHeight: 1.4 }}>
             Las pendientes aparecen primero; las que ya decidiste bajan al final.
           </div>
         </header>
@@ -982,7 +988,7 @@ function Workbench({
               borderRadius: 10,
               background: "var(--pulso-primary-soft)",
               border: "1px solid var(--pulso-primary-border)",
-              fontSize: 11,
+              fontSize: "var(--pulso-type-caption-size)",
               color: "var(--pulso-primary)",
               fontWeight: 700,
             }}
@@ -992,7 +998,7 @@ function Workbench({
               type="button"
               onClick={onClearFilterKind}
               style={{
-                fontSize: 11,
+                fontSize: "var(--pulso-type-caption-size)",
                 fontWeight: 700,
                 padding: "2px 8px",
                 borderRadius: 999,
@@ -1035,7 +1041,7 @@ function Workbench({
                         alignItems: "center",
                         gap: 8,
                         margin: "8px 2px 10px",
-                        fontSize: 10,
+                        fontSize: "var(--pulso-type-micro-size)",
                         fontWeight: 800,
                         color: "var(--pulso-text-soft)",
                         textTransform: "uppercase",
@@ -1134,7 +1140,7 @@ function FilterChip({
         gap: 4,
         padding: "3px 9px",
         borderRadius: 999,
-        fontSize: 10,
+        fontSize: "var(--pulso-type-micro-size)",
         fontWeight: 700,
         border: `1px solid ${active ? "var(--pulso-primary-border)" : "var(--pulso-border)"}`,
         background: active ? "var(--pulso-primary-soft)" : "white",
@@ -1363,7 +1369,7 @@ function EditorPanel({
               }));
             }}
           />
-          <div style={{ fontSize: 11, color: "var(--pulso-text-soft)", lineHeight: 1.4 }}>
+          <div style={{ fontSize: "var(--pulso-type-caption-size)", color: "var(--pulso-text-soft)", lineHeight: 1.4 }}>
             {form.scope_mode === "all"
               ? "La acción se aplicará a todos los hallazgos de esta señal."
               : form.scope_mode === "single"
@@ -1400,7 +1406,7 @@ function EditorPanel({
 
         {/* Columna derecha: casos observados co-ubicados con el form */}
         <div style={{ display: "flex", flexDirection: "column", gap: 12, position: "sticky", top: 8 }}>
-          <DecisionBlock title={`Casos observados${drill?.casos?.length ? ` (${drill.casos.length})` : ""}`}>
+          <DecisionBlock title={`Casos observados${drill?.casos?.length ? ` (${formatoConteo(drill.casos.length)})` : ""}`}>
             <CasesTable
               rows={caseRows}
               columns={caseColumns}
@@ -1440,7 +1446,7 @@ function EditorPanel({
         <details open={historyOpen} onToggle={(e) => setHistoryOpen((e.target as HTMLDetailsElement).open)}>
           <summary style={summaryStyle}>
             {historyOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-            {relatedDecisions.length} decisión{relatedDecisions.length === 1 ? "" : "es"} previa{relatedDecisions.length === 1 ? "" : "s"} para esta regla
+            {formatoConteo(relatedDecisions.length)} decisión{relatedDecisions.length === 1 ? "" : "es"} previa{relatedDecisions.length === 1 ? "" : "s"} para esta regla
           </summary>
           <div style={{ paddingTop: 10, display: "flex", flexDirection: "column", gap: 8 }}>
             <button type="button" onClick={onNewDecision} style={secondaryButtonStyle}>
@@ -1460,7 +1466,7 @@ function EditorPanel({
                 >
                   <StatusBadge status={decision.status} />
                   <span>{humanizeAction(decision.action_type)}</span>
-                  <span style={{ fontSize: 10, color: "var(--pulso-text-soft)" }}>
+                  <span style={{ fontSize: "var(--pulso-type-micro-size)", color: "var(--pulso-text-soft)" }}>
                     {formatDateTime(decision.updated_at)}
                   </span>
                 </button>
@@ -1488,7 +1494,7 @@ function EditorPanel({
 function DecisionBlock({ title, children }: { title: string; children: ReactNode }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-      <div style={{ fontSize: 11, fontWeight: 800, textTransform: "uppercase", letterSpacing: 0.6, color: "var(--pulso-text-soft)" }}>
+      <div style={{ fontSize: "var(--pulso-type-eyebrow-size)", fontWeight: 800, textTransform: "uppercase", letterSpacing: 0.6, color: "var(--pulso-text-soft)" }}>
         {title}
       </div>
       {children}
@@ -1549,8 +1555,8 @@ function ScopeModeSelector({
               cursor: "pointer",
             }}
           >
-            <strong style={{ fontSize: 12, lineHeight: 1.2 }}>{item.label}</strong>
-            <span style={{ fontSize: 10.5, lineHeight: 1.3, color: "var(--pulso-text-soft)" }}>
+            <strong style={{ fontSize: "var(--pulso-type-body-size)", lineHeight: 1.2 }}>{item.label}</strong>
+            <span style={{ fontSize: "var(--pulso-type-micro-size)", lineHeight: 1.3, color: "var(--pulso-text-soft)" }}>
               {item.hint}
             </span>
           </button>
@@ -1600,13 +1606,13 @@ function DecisionApplySummary({
       }}
     >
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
-        <strong style={{ fontSize: 12.5, color: "var(--pulso-text)" }}>Decisión a guardar</strong>
+        <strong style={{ fontSize: "var(--pulso-type-body-size)", color: "var(--pulso-text)" }}>Decisión a guardar</strong>
         <span
           style={{
             display: "inline-flex",
             alignItems: "center",
             gap: 5,
-            fontSize: 10.5,
+            fontSize: "var(--pulso-type-micro-size)",
             fontWeight: 800,
             color: readiness.ready ? "var(--pulso-primary)" : "var(--pulso-warn-fg)",
             textTransform: "uppercase",
@@ -1617,7 +1623,7 @@ function DecisionApplySummary({
           {readiness.ready ? "Lista" : "Incompleta"}
         </span>
       </div>
-      <div style={{ display: "grid", gap: 5, fontSize: 11.5, color: "var(--pulso-text-soft)", lineHeight: 1.35 }}>
+      <div style={{ display: "grid", gap: 5, fontSize: "var(--pulso-type-caption-size)", color: "var(--pulso-text-soft)", lineHeight: 1.35 }}>
         <span><strong style={{ color: "var(--pulso-text)" }}>{action}</strong></span>
         <span>{scope}</span>
         {procedure && <span>{procedure}</span>}
@@ -1660,7 +1666,7 @@ function ActionBar({
             border: "1px solid var(--pulso-warn-border)",
             background: "var(--pulso-warn-bg)",
             color: "var(--pulso-warn-fg)",
-            fontSize: 11.5,
+            fontSize: "var(--pulso-type-caption-size)",
             lineHeight: 1.35,
           }}
         >
@@ -1750,16 +1756,13 @@ function CasesTable({
 }) {
   if (loading) {
     return (
-      <div style={{ display: "inline-flex", alignItems: "center", gap: 8, fontSize: 12, color: "var(--pulso-text-soft)" }}>
-        <Loader2 size={14} className="pulso-spin" />
-        Cargando casos…
-      </div>
+      <LoadingBlock variant="inline" minHeight={40} label="Cargando casos…" />
     );
   }
 
   if (error) {
     return (
-      <div style={{ fontSize: 12, color: "var(--pulso-danger-fg)" }}>
+      <div style={{ fontSize: "var(--pulso-type-body-size)", color: "var(--pulso-danger-fg)" }}>
         No se pudo cargar el detalle de casos: {error}
       </div>
     );
@@ -1767,7 +1770,7 @@ function CasesTable({
 
   if (!rows.length) {
     return (
-      <div style={{ fontSize: 12, color: "var(--pulso-text-soft)" }}>
+      <div style={{ fontSize: "var(--pulso-type-body-size)", color: "var(--pulso-text-soft)" }}>
         Sin detalle de casos disponible para esta regla.
       </div>
     );
@@ -1795,7 +1798,7 @@ function CasesTable({
           border: "1px solid var(--pulso-border)",
         }}
       >
-        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "var(--pulso-type-body-size)" }}>
           <thead>
             <tr style={{ background: "var(--pulso-surface-2)" }}>
               {selectable && <th style={tableHeadCell}>{selectionMode === "single" ? "Elegir" : "Incluir"}</th>}
@@ -1820,7 +1823,7 @@ function CasesTable({
                     />
                   </td>
                 )}
-                <td style={{ ...tableCell, fontFamily: "ui-monospace, monospace", fontSize: 11 }}>
+                <td style={{ ...tableCell, fontFamily: "ui-monospace, monospace", fontSize: "var(--pulso-type-caption-size)" }}>
                   {row.id}
                 </td>
                 {columns.map((column) => (
@@ -1912,7 +1915,7 @@ function InlineMessage({
         border: `1px solid ${colors.border}`,
         background: colors.bg,
         color: colors.fg,
-        fontSize: 12,
+        fontSize: "var(--pulso-type-body-size)",
         lineHeight: 1.5,
       }}
     >
@@ -1937,7 +1940,7 @@ function StatusBadge({
         alignItems: "center",
         padding: "3px 7px",
         borderRadius: 999,
-        fontSize: 10,
+        fontSize: "var(--pulso-type-micro-size)",
         fontWeight: 800,
         textTransform: "uppercase",
         letterSpacing: 0.4,
@@ -1954,7 +1957,7 @@ function StatusBadge({
 function FormField({ label, children }: { label: string; children: ReactNode }) {
   return (
     <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-      <span style={{ fontSize: 12, fontWeight: 700, color: "var(--pulso-text)" }}>{label}</span>
+      <span style={{ fontSize: "var(--pulso-type-subtitle-size)", fontWeight: 700, color: "var(--pulso-text)" }}>{label}</span>
       {children}
     </label>
   );
@@ -2086,7 +2089,7 @@ function HierarchyDecisionEditor({
               borderRadius: 8,
               background: "white",
               border: "1px solid var(--pulso-border)",
-              fontSize: 11,
+              fontSize: "var(--pulso-type-caption-size)",
               color: "var(--pulso-text-soft)",
             }}
           >
@@ -2147,7 +2150,7 @@ function OptionRadioPicker({
           );
         })}
         {!options.length && (
-          <div className="pulso-option-picker-empty">Sin opciones del catálogo.</div>
+          <EstadoVacio icono={<Inbox size={16} />} titulo="Sin opciones del catálogo." />
         )}
       </div>
     </div>
@@ -2190,7 +2193,7 @@ function OptionChecklist({
           );
         })}
         {!options.length && (
-          <div className="pulso-option-picker-empty">Sin opciones disponibles.</div>
+          <EstadoVacio icono={<Inbox size={16} />} titulo="Sin opciones disponibles." />
         )}
       </div>
     </div>
@@ -2260,7 +2263,7 @@ function renderActionSpecificFields(
           style={{ ...inputStyle, resize: "vertical", fontFamily: "ui-monospace, monospace" }}
           placeholder={'{\n  "Sii": "Sí",\n  "N": "No"\n}'}
         />
-        <span style={{ fontSize: 11, color: "var(--pulso-text-soft)", lineHeight: 1.4 }}>
+        <span style={{ fontSize: "var(--pulso-type-caption-size)", color: "var(--pulso-text-soft)", lineHeight: 1.4 }}>
           Usa JSON: cada clave es el valor actual y cada valor es la recodificación.
         </span>
       </FormField>
@@ -2357,7 +2360,7 @@ function renderActionSpecificFields(
             setForm((current) => ({ ...current, hierarchy_map_json: hierarchyMapJson }));
           }}
         />
-        <span style={{ fontSize: 11, color: "var(--pulso-text-soft)", lineHeight: 1.4 }}>
+        <span style={{ fontSize: "var(--pulso-type-caption-size)", color: "var(--pulso-text-soft)", lineHeight: 1.4 }}>
           Se lee así: cuando aparece la opción de la izquierda, también deben aparecer las de la derecha.
         </span>
       </FormField>
@@ -2393,7 +2396,7 @@ function renderActionSpecificFields(
               />
             </FormField>
           </div>
-          <div style={{ fontSize: 11, color: "var(--pulso-text-soft)", lineHeight: 1.4 }}>
+          <div style={{ fontSize: "var(--pulso-type-caption-size)", color: "var(--pulso-text-soft)", lineHeight: 1.4 }}>
             {addCodes.length > 0 && (
               <span>
                 Agregar: <strong style={{ color: "var(--pulso-text)" }}>{choiceOptionsLabel(addCodes, optionsByCode, "opciones")}</strong>.
@@ -2526,7 +2529,7 @@ function decisionProcedureText(form: EditorForm, optionsByCode: Map<string, Choi
       const requiredLabel = choiceOptionsLabel(required, optionsByCode, required.join(", "));
       return `${triggerLabel} → ${requiredLabel}`;
     });
-    return `Relación: ${bits.join(" · ")}`;
+    return `Relación: ${bits.join("; ")}`;
   }
   if (form.action_type === "adjust_select_multiple") {
     const add = parseLineList(form.sm_add_codes);
@@ -2977,7 +2980,7 @@ const inputStyle: CSSProperties = {
   border: "1px solid var(--pulso-border)",
   background: "white",
   color: "var(--pulso-text)",
-  fontSize: 13,
+  fontSize: "var(--pulso-type-body-size)",
   outline: "none",
 };
 
@@ -2988,7 +2991,7 @@ const primaryButtonStyle: CSSProperties = {
   gap: 6,
   padding: "9px 12px",
   borderRadius: 10,
-  fontSize: 12,
+  fontSize: "var(--pulso-type-subtitle-size)",
   fontWeight: 700,
   cursor: "pointer",
 };
@@ -3003,7 +3006,7 @@ const secondaryButtonStyle: CSSProperties = {
   border: "1px solid var(--pulso-border)",
   background: "white",
   color: "var(--pulso-text)",
-  fontSize: 12,
+  fontSize: "var(--pulso-type-subtitle-size)",
   fontWeight: 700,
   cursor: "pointer",
 };
@@ -3018,7 +3021,7 @@ const dangerButtonStyle: CSSProperties = {
   border: "1px solid var(--pulso-danger-border)",
   background: "var(--pulso-danger-bg)",
   color: "var(--pulso-danger-fg)",
-  fontSize: 12,
+  fontSize: "var(--pulso-type-subtitle-size)",
   fontWeight: 700,
   cursor: "pointer",
 };
@@ -3026,7 +3029,7 @@ const dangerButtonStyle: CSSProperties = {
 const tableHeadCell: CSSProperties = {
   textAlign: "left",
   padding: "8px 10px",
-  fontSize: 11,
+  fontSize: "var(--pulso-type-caption-size)",
   fontWeight: 800,
   color: "var(--pulso-text-soft)",
   whiteSpace: "nowrap",
@@ -3034,7 +3037,7 @@ const tableHeadCell: CSSProperties = {
 
 const tableCell: CSSProperties = {
   padding: "8px 10px",
-  fontSize: 12,
+  fontSize: "var(--pulso-type-body-size)",
   color: "var(--pulso-text)",
   verticalAlign: "top",
 };
@@ -3044,7 +3047,7 @@ const emptyDashedStyle: CSSProperties = {
   borderRadius: 10,
   border: "1px dashed var(--pulso-border)",
   background: "var(--pulso-surface-2)",
-  fontSize: 12,
+  fontSize: "var(--pulso-type-body-size)",
   color: "var(--pulso-text-soft)",
   textAlign: "center",
 };
@@ -3057,7 +3060,7 @@ const summaryStyle: CSSProperties = {
   borderRadius: 8,
   background: "var(--pulso-surface-2)",
   border: "1px solid var(--pulso-border)",
-  fontSize: 11,
+  fontSize: "var(--pulso-type-caption-size)",
   fontWeight: 700,
   color: "var(--pulso-text)",
   cursor: "pointer",

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { ExploradorFicha } from "../../../../api/validacionExplorar";
 import { fmtN } from "./explorarModelo";
+import { formatoConteo } from "../../../../lib/formatoNumero";
 
 const OPCIONES_VISIBLES = 12;
 
@@ -34,7 +35,7 @@ export default function PanelFormulario({ ficha }: { ficha: ExploradorFicha }) {
         <Valor texto={tipo || null} vacio="sin declarar" mono />
         <dt>Grupo</dt>
         <Valor
-          texto={ficha.grupo ? (ficha.grupo.label !== ficha.grupo.name ? `${ficha.grupo.name} · ${ficha.grupo.label}` : ficha.grupo.name) : null}
+          texto={ficha.grupo ? (ficha.grupo.label !== ficha.grupo.name ? `${ficha.grupo.name} (${ficha.grupo.label})` : ficha.grupo.name) : null}
           vacio="ninguno"
         />
         <dt>Aparece si</dt>
@@ -43,7 +44,7 @@ export default function PanelFormulario({ ficha }: { ficha: ExploradorFicha }) {
         {ficha.constraint ? (
           <dd>
             <span className="vx-mono">{ficha.constraint}</span>
-            {ficha.constraint_message && <> · «{ficha.constraint_message}»</>}
+            {ficha.constraint_message && <>: «{ficha.constraint_message}»</>}
           </dd>
         ) : (
           <dd className="is-vacio">ninguna</dd>
@@ -90,7 +91,7 @@ export default function PanelFormulario({ ficha }: { ficha: ExploradorFicha }) {
           </div>
           {ficha.opciones.length > OPCIONES_VISIBLES && (
             <button type="button" className="vx-ver-mas" aria-expanded={todas} onClick={() => setTodas((t) => !t)}>
-              {todas ? "Ver menos" : `Ver las ${ficha.opciones.length} opciones`}
+              {todas ? "Ver menos" : `Ver las ${formatoConteo(ficha.opciones.length)} opciones`}
             </button>
           )}
         </>

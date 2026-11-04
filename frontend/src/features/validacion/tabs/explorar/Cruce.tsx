@@ -10,6 +10,7 @@ import TablaCalor, { LecturaCalorSelector } from "./TablaCalor";
 import TituloCruce, { rotuloDe, textoTituloCruce, type VariableTitulo } from "./TituloCruce";
 import { fraseCruceBase, type LecturaCalor, type ModeloCalor } from "./explorarModelo";
 import { modoDeSerie } from "./serieModelo";
+import { formatoConteo } from "../../../../lib/formatoNumero";
 
 /**
  * E8 — el cruce dibujado por su forma (`biv.cruce.forma`). La tabla recibe el
@@ -53,7 +54,7 @@ export default function Cruce({
         <CruceRecodificacion datos={recod} />
         {modelo && (
           <details className="vx-detalle">
-            <summary>Ver la tabla completa ({cruce.tabla?.filas.length} × {cruce.tabla?.columnas.length})</summary>
+            <summary>Ver la tabla completa ({formatoConteo(cruce.tabla?.filas.length)} × {formatoConteo(cruce.tabla?.columnas.length)})</summary>
             <div className="vx-detalle-cuerpo">
               <LecturaCalorSelector valor={lectura} onCambio={onLectura} />
               <TablaCalor modelo={modelo} rotuloFilas={rotuloX} />

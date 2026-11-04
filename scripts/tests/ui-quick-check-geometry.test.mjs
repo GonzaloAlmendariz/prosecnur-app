@@ -174,6 +174,9 @@ const undeclaredGeometryPageHtml = `<!doctype html>
           <tr class="candidate-card"><td>Fila alta</td></tr>
         </tbody>
       </table>
+      <span data-qa-geometry-exento="maquetado de una librería">
+        <span class="exenta"><article class="candidate-card" style="height: 30px"><div>Pieza uno</div></article><article class="candidate-card" style="height: 90px"><div>Pieza dos</div></article></span>
+      </span>
       <section class="mixed-variants">
         <article class="candidate-card candidate-card--primary"><div>Variante primaria</div></article>
         <article class="candidate-card candidate-card--secondary"><div>Variante secundaria</div></article>

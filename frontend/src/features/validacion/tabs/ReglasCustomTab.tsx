@@ -36,6 +36,9 @@ import SemillasPanel from "../components/SemillasPanel";
 import { RuleNarrative } from "../components/v2";
 import type { VariableHoverData } from "../components/v2";
 import { customRuleToRule } from "../customRuleNarrative";
+import { formatoConteo } from "../../../lib/formatoNumero";
+import { EstadoVacio } from "../../../components/EstadoVacio";
+import { VacioListo } from "../components/VacioListo";
 
 // =============================================================================
 // ReglasCustomTab — Sprint 4
@@ -189,15 +192,17 @@ export default function ReglasCustomTab() {
   // «No se pudo cargar · No hay data o instrumento cargado para esta base. ·
   // E_NO_DATA_INST», con el codigo tecnico a la vista.
   if (esEstadoInicial(errorCode)) {
-    return <EmptyState icon={<AlertTriangle size={20} />} {...vacioSinDatos("para revisar")} />;
+    return <VacioListo marca="validacion-reglas_custom"><EmptyState icon={<AlertTriangle size={20} />} {...vacioSinDatos("para revisar")} /></VacioListo>;
   }
   if (!list || !inv) {
     return (
-      <EmptyState
-        icon={<AlertTriangle size={20} />}
-        title="No se pudo cargar"
-        hint={error || "Estado desconocido."}
-      />
+      <VacioListo marca="validacion-reglas_custom">
+        <EmptyState
+          icon={<AlertTriangle size={20} />}
+          title="No se pudo cargar"
+          hint={error || "Estado desconocido."}
+        />
+      </VacioListo>
     );
   }
 
@@ -223,15 +228,15 @@ export default function ReglasCustomTab() {
         }}
       >
         <div style={{ flex: 1, minWidth: 200 }}>
-          <div style={{ fontSize: 13, fontWeight: 700 }}>
-            {reglas.length} criterio{reglas.length === 1 ? "" : "s"} de revisión
+          <div style={{ fontSize: "var(--pulso-type-subtitle-size)", fontWeight: 700 }}>
+            {formatoConteo(reglas.length)} criterio{reglas.length === 1 ? "" : "s"} de revisión
             {nActivas !== reglas.length && (
               <span style={{ fontWeight: 400, color: "var(--pulso-text-soft)", marginLeft: 6 }}>
-                · {nActivas} se ejecuta{nActivas === 1 ? "" : "n"}
+                ({nActivas} se ejecuta{nActivas === 1 ? "" : "n"})
               </span>
             )}
           </div>
-          <div style={{ fontSize: 11, color: "var(--pulso-text-soft)", marginTop: 2, lineHeight: 1.5 }}>
+          <div style={{ fontSize: "var(--pulso-type-caption-size)", color: "var(--pulso-text-soft)", marginTop: 2, lineHeight: 1.5 }}>
             Configura señales adicionales sobre la base y envía los registros detectados a Limpieza y transformación.
           </div>
         </div>
@@ -244,7 +249,7 @@ export default function ReglasCustomTab() {
             display: "inline-flex",
             alignItems: "center",
             gap: 6,
-            fontSize: 12,
+            fontSize: "var(--pulso-type-body-size)",
             padding: "8px 14px",
           }}
         >
@@ -260,7 +265,7 @@ export default function ReglasCustomTab() {
             display: "inline-flex",
             alignItems: "center",
             gap: 6,
-            fontSize: 12,
+            fontSize: "var(--pulso-type-body-size)",
             padding: "8px 14px",
             border: "1px solid var(--pulso-success-border)",
             background: nActivas > 0 ? "var(--pulso-success-bg)" : "var(--pulso-surface-2)",
@@ -332,13 +337,12 @@ export default function ReglasCustomTab() {
 
       {/* Lista */}
       {reglas.length === 0 && !showEditor && (
-        <div className="pulso-criterios-empty">
-          <EmptyState
-            icon={<PieChart size={20} />}
-            title="Sin criterios de revisión todavía"
-            hint="Crea señales para duración corta, coherencias de campo, duplicados operativos o patrones de selección múltiple."
-          />
-        </div>
+        <EstadoVacio
+          tamano="normal"
+          icono={<PieChart size={20} />}
+          titulo="Sin criterios de revisión todavía"
+          descripcion="Crea señales para duración corta, coherencias de campo, duplicados operativos o patrones de selección múltiple."
+        />
       )}
 
       {reglas.length > 0 && (

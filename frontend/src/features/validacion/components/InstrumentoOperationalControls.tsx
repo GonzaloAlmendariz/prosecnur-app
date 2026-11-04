@@ -26,6 +26,9 @@ import {
   validateOperationalConfig,
   type OperationalVariablePurpose,
 } from "../operationalControlsModel";
+import { formatoConteo } from "../../../lib/formatoNumero";
+import { LoadingBlock } from "../../../components/States";
+import { EstadoChip } from "../../../components/EstadoChip";
 
 type Props = {
   baseNombre?: string | null;
@@ -116,9 +119,9 @@ export default function InstrumentoOperationalControls({
           >
             <StatusChip active={value.field_period.enabled} label={statusLabels.fieldPeriod} />
             <StatusChip active={value.duplicates.enabled} label={statusLabels.duplicates} />
-            {dirty && <span className="pulso-operational-chip is-dirty">Cambios sin aplicar</span>}
+            {dirty && <span className="pulso-operational-estado"><EstadoChip tone="warn" label="Cambios sin aplicar" /></span>}
             {Object.keys(errors).length > 0 && (
-              <span className="pulso-operational-chip is-error">Requiere completar</span>
+              <span className="pulso-operational-estado"><EstadoChip tone="danger" label="Requiere completar" /></span>
             )}
           </span>
           <span className="pulso-operational-edit-label">
@@ -134,7 +137,7 @@ export default function InstrumentoOperationalControls({
             Elige la variable de fecha y las preguntas que se compararán. Estas opciones se guardan al construir el plan.
           </p>
 
-          {loadingVariables && <div className="pulso-operational-inline-note">Leyendo variables disponibles…</div>}
+          {loadingVariables && <LoadingBlock variant="inline" minHeight={40} label="Leyendo variables disponibles…" />}
           {loadError && <div className="pulso-operational-error" role="alert">{loadError}</div>}
 
           {upstreamUniverse?.applied && (
@@ -142,7 +145,7 @@ export default function InstrumentoOperationalControls({
               <Check size={13} aria-hidden="true" />
               <span>
                 <strong>Encuestas incluidas:</strong>{" "}
-                {upstreamUniverse.included.toLocaleString("es-PE")} de {upstreamUniverse.total.toLocaleString("es-PE")} recibidas.
+                {formatoConteo(upstreamUniverse.included)} de {formatoConteo(upstreamUniverse.total)} recibidas.
               </span>
             </div>
           )}
@@ -220,7 +223,7 @@ export default function InstrumentoOperationalControls({
                 }}
               />
               <div className="pulso-operational-summary" role="status">
-                <span>{value.duplicates.variables.length} preguntas seleccionadas</span>
+                <span>{formatoConteo(value.duplicates.variables.length)} preguntas seleccionadas</span>
                 <span>Mínimo {MIN_DUPLICATE_COMPARISON_VARIABLES}</span>
               </div>
               <div className="pulso-operational-key-list" aria-label="Preguntas seleccionadas para comparar similitud">
@@ -276,7 +279,9 @@ export default function InstrumentoOperationalControls({
 }
 
 function StatusChip({ active, label }: { active: boolean; label: string }) {
-  return <span className={`pulso-operational-chip${active ? " is-active" : ""}`}>{label}</span>;
+  // Envuelto: la auditoría de geometría mide los hijos elemento y no ve el rótulo de texto del
+  // EstadoChip, así que leía el punto de 7 px como el fondo del chip (capacity-drift de 5.3 px).
+  return <span className="pulso-operational-estado"><EstadoChip tone={active ? "info" : "neutral"} label={label} /></span>;
 }
 
 function OperationalCard({
@@ -351,7 +356,7 @@ function VariableSelect({
         {!selectedIsListed && <option value={value}>{value}</option>}
         {ranked.map((variable, index) => (
           <option key={variable.name} value={variable.name}>
-            {index < 3 && isOperationalVariableSuggested(variable, purpose) ? "Prioridad sugerida · " : ""}{variable.label || variable.name} · {variable.name}
+            {index < 3 && isOperationalVariableSuggested(variable, purpose) ? "Prioridad sugerida: " : ""}{variable.label || variable.name} ({variable.name})
           </option>
         ))}
       </select>

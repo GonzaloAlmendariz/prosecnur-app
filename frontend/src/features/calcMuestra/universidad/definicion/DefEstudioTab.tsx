@@ -31,6 +31,8 @@ import { FlujoVertical, MuestraFlowDiagram, type FlujoEtapa, type MuestraFlowNod
 import "../../didactica/didactica.css";
 import "./definicion.css";
 import { Panel } from "../../../../components/Panel";
+import { EnlaceFichaDelEstudio } from "../../../estudio/EnlaceFichaDelEstudio";
+import { usePlannerIdentidad } from "../../usePlannerIdentidad";
 
 export type MuestraRecorridoInputs = {
   tituloDefinido: boolean;
@@ -109,7 +111,6 @@ export function DefEstudioTab({
   workspace,
   totalComp,
   aulasState,
-  onTitulo,
   onContexto,
   onWorkspace,
   onNavigate,
@@ -124,6 +125,7 @@ export function DefEstudioTab({
   /** Contrato de navegación del desk: (seccion, pestana). */
   onNavigate?: (section: string, tab?: string) => void;
 }) {
+  const identidad = usePlannerIdentidad();
   const frame = aulasState?.frame ?? null;
   const universo = frameAuditNumber(frame, "input_rows");
   const elegibles = frameAuditNumber(frame, "eligible_student_rows");
@@ -211,22 +213,23 @@ export function DefEstudioTab({
       <div className="cmv2-defi-estudio-layout">
         <Panel aria-labelledby="cmv2-defi-identidad-titulo" title={<span id="cmv2-defi-identidad-titulo">Identidad del estudio</span>}>
           <div className="cmv2-defi-form">
-            <label className="cmv2-compact-field">
+            {/* Nombre y cliente los declara la Ficha del estudio (ADR 0124); aquí se leen, y
+                Cálculo adopta su copia de ahí (usePlannerIdentidad). Antes eran dos campos propios
+                y la misma entidad tenía dos lecturas. */}
+            <div className="cmv2-compact-field cmv2-defi-identidad-leida">
               <span>Título</span>
-              <input
-                value={estudio.titulo}
-                placeholder="Encuesta a estudiantes"
-                onChange={(e) => onTitulo(e.currentTarget.value)}
-              />
-            </label>
-            <label className="cmv2-compact-field">
+              <b>{identidad?.nombre.trim() || estudio.titulo || "sin título"}</b>
+            </div>
+            <div className="cmv2-compact-field cmv2-defi-identidad-leida">
               <span>Cliente</span>
-              <input
-                value={estudio.contexto.cliente}
-                placeholder="Institución o área solicitante"
-                onChange={(e) => onContexto("cliente", e.currentTarget.value)}
-              />
-            </label>
+              <b>{identidad?.cliente.trim() || estudio.contexto.cliente || "sin declarar"}</b>
+            </div>
+            <p className="cmv2-defi-identidad-nota">
+              {identidad && !identidad.nombre.trim()
+                ? "El estudio todavía no declara su nombre en la ficha del estudio. "
+                : "Nombre y cliente se declaran una vez, en la ficha del estudio. "}
+              <EnlaceFichaDelEstudio>Editar la ficha</EnlaceFichaDelEstudio>
+            </p>
             <label className="cmv2-compact-field cmv2-compact-field--wide">
               <span>Alcance o nota del estudio</span>
               <textarea

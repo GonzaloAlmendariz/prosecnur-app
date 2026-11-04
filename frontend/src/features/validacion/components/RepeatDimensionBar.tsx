@@ -1,6 +1,7 @@
 import { useId, useState } from "react";
 import { ChevronDown, Layers3 } from "../../../vendor/lucide-react";
 import type { ExplorerRepeatContext } from "../../../lib/rosterExplorer";
+import { formatoConteo } from "../../../lib/formatoNumero";
 
 type Props = {
   context: ExplorerRepeatContext;
@@ -9,7 +10,7 @@ type Props = {
 };
 
 function countLabel(value: number): string {
-  return value.toLocaleString("es-PE");
+  return formatoConteo(value);
 }
 
 export default function RepeatDimensionBar({ context, selectedCode, onChange }: Props) {

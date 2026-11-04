@@ -34,7 +34,7 @@ export default function ImpactoDecisiones({ impacto }: { impacto: Impacto | null
         borderRadius: "var(--pulso-radius-panel)",
         border: `1px solid ${alerta ? "var(--pulso-warn-border)" : "var(--pulso-border)"}`,
         background: alerta ? "var(--pulso-warn-bg)" : "var(--pulso-surface-2)",
-        fontSize: 12,
+        fontSize: "var(--pulso-type-body-size)",
         color: "var(--pulso-text)",
       }}
     >
@@ -60,7 +60,7 @@ export default function ImpactoDecisiones({ impacto }: { impacto: Impacto | null
         ) : null}
         {!alerta && impacto.reglasResueltas > 0 && (
           <span style={subtle}>
-            {" · "}
+            {"; "}
             {impacto.reglasResueltas === 1
               ? "1 hallazgo queda resuelto"
               : `${impacto.reglasResueltas} hallazgos quedan resueltos`}

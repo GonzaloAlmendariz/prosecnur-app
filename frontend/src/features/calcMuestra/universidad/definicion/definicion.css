@@ -1770,3 +1770,17 @@
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: var(--pulso-type-caption-size);
 }
+
+/* Título y cliente leídos de la Ficha del estudio (ADR 0124): no se editan aquí. */
+.cmv2-defi-identidad-leida b {
+  color: var(--pulso-text);
+  font-size: var(--pulso-type-body-size);
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.cmv2-defi-identidad-nota {
+  grid-column: 1 / -1;
+  margin: 0;
+  color: var(--pulso-text-faint);
+  font-size: var(--pulso-type-caption-size);
+}

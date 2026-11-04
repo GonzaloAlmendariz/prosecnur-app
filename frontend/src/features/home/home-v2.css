@@ -831,7 +831,9 @@
   align-items: stretch;
   align-content: start;
   grid-template-columns: repeat(var(--home-cols, 4), minmax(0, 1fr));
-  grid-auto-rows: minmax(0, auto);
+  /* Todas las filas al alto de la más alta: el grupo declara contrato «equal» y una
+     fila con el pie en dos renglones medía 2.7 px más que la otra (1024 px). */
+  grid-auto-rows: 1fr;
   gap: 14px;
   /* Techo por columna: con dos módulos, repartir todo el ancho daba tarjetas
      de 715px con el contenido flotando en el medio. La tarjeta tiene un ancho
@@ -1042,13 +1044,18 @@
 /* La tagline describe el módulo, no su estado: con la tarjeta compacta se
    limita a una línea para que no empuje la cifra. */
 .home-mc-tagline {
+  /* Dos renglones antes de cortar: en una línea, a 1440 la descripción ya se
+     cortaba a media palabra («…selección de unidad…»), justo lo que la regla de
+     arriba evita. Las filas se igualan entre sí (grid-auto-rows: 1fr). */
+  display: -webkit-box;
   overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  white-space: normal;
   color: var(--pulso-text-faint);
   font-size: var(--pulso-type-caption-size);
   font-weight: var(--pulso-weight-regular);
   line-height: 1.3;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .home-mc-signals {
@@ -1436,7 +1443,11 @@
   display: flex;
   align-items: baseline;
   flex-wrap: wrap;
-  gap: 2px 7px;
+  /* El separador vive en el hueco (19 px, lo mismo que antes sumaban el gap y los
+     márgenes del filete). Cuando un hecho abre renglón, su separador cae fuera del
+     borde izquierdo y `overflow: hidden` lo recorta: ningún renglón empieza con «|». */
+  gap: 2px 19px;
+  overflow: hidden;
   width: 100%;
   margin-top: auto;
   padding-top: 10px;
@@ -1448,10 +1459,18 @@
 }
 
 .home-mc-fact {
+  position: relative;
   display: inline-flex;
   align-items: baseline;
   gap: 4px;
   min-width: 0;
+}
+
+.home-mc-foot .home-mc-fact-dot {
+  position: absolute;
+  top: 0.32em;
+  left: -10px;
+  margin: 0;
 }
 
 .home-mc-fact strong {

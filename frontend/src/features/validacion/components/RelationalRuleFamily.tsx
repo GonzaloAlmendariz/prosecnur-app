@@ -1,8 +1,5 @@
 import { useMemo } from "react";
 import {
-  AlertTriangle,
-  CheckCircle2,
-  Clock,
   Database,
   GitCompareArrows,
   Hash,
@@ -19,6 +16,9 @@ import {
   type RelationalRuleInfo,
   type RelationalSummary,
 } from "../relationalPlan";
+import { formatoConteo } from "../../../lib/formatoNumero";
+import { EstadoVacio } from "../../../components/EstadoVacio";
+import { EstadoChip } from "../../../components/EstadoChip";
 
 // =============================================================================
 // Panel de la familia "coherencia relacional del repeat" (Fase 4, ADR 0030).
@@ -87,7 +87,7 @@ function rowStatus(view: RelationalRuleView): CardStatus {
 
 function cardTitle(kind: RelationalKind, repeatGroup: string | null): string {
   const base = relationalKindLabel(kind);
-  return repeatGroup ? `${base} · ${repeatGroup}` : base;
+  return repeatGroup ? `${base} (${repeatGroup})` : base;
 }
 
 /**
@@ -164,35 +164,11 @@ function buildCards(
 function StatusChip({ status, count }: { status: CardStatus; count: number | null }) {
   if (status === "cases") {
     const n = count ?? 0;
-    return (
-      <span className="pulso-rel-status is-cases">
-        <AlertTriangle size={12} />
-        {n.toLocaleString("es-PE")} {n === 1 ? "caso" : "casos"}
-      </span>
-    );
+    return <EstadoChip tone="warn" label={`${formatoConteo(n)} ${n === 1 ? "caso" : "casos"}`} />;
   }
-  if (status === "pending") {
-    return (
-      <span className="pulso-rel-status is-pending">
-        <Clock size={12} />
-        Se evalúa junto con la base de respuestas repetidas
-      </span>
-    );
-  }
-  if (status === "external") {
-    return (
-      <span className="pulso-rel-status is-external">
-        <Database size={12} />
-        Requiere un listado externo
-      </span>
-    );
-  }
-  return (
-    <span className="pulso-rel-status is-clean">
-      <CheckCircle2 size={12} />
-      Sin inconsistencias
-    </span>
-  );
+  if (status === "pending") return <EstadoChip tone="neutral" label="Se evalúa junto con la base de respuestas repetidas" />;
+  if (status === "external") return <EstadoChip tone="info" label="Requiere un listado externo" />;
+  return <EstadoChip tone="success" label="Sin inconsistencias" />;
 }
 
 function RelationalCardView({
@@ -306,10 +282,11 @@ export default function RelationalRuleFamily({
       </header>
 
       {cards.length === 0 ? (
-        <div className="pulso-rel-empty">
-          Este instrumento tiene respuestas repetidas, pero aún no se han
-          evaluado sus reglas de coherencia.
-        </div>
+        <EstadoVacio
+          icono={<Layers size={16} />}
+          titulo="Las reglas de coherencia aún no se han evaluado"
+          descripcion="Este instrumento tiene respuestas repetidas."
+        />
       ) : (
         <div className="pulso-rel-grid">
           {cards.map((card) => (
