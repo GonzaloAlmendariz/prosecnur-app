@@ -141,3 +141,29 @@ test_that("la mitad sin tarjetas usa todo su alto: la franja solo acorta el pane
   expect_gt(vistas[2], 0)
   expect_equal(tail(vistas, 2), vistas[1:2])     # lo que se probó es lo que se compone
 })
+
+test_that("una franja dicotómica con tarjetas llena su mitad: más grande, centrada y con sus tarjetas pegadas debajo", {
+  # Ítem 14 de la v7.11 RV: B19 (Sí/No) dejaba la mitad vacía y su tarjeta al pie.
+  e <- preparar_categorica(c("Sí", "No"), c(.28, .72), c("28%", "72%"))
+  geo <- .lam_mixta_geo("graficos_2"); col2 <- geo$paneles[[1]]$w
+  expect_true(.lam_ranura_es_dicotomia(e, col2))
+  expect_false(.lam_ranura_es_dicotomia(preparar_categorica(c("A", "B", "C"), c(.5, .3, .2), c("50%", "30%", "20%")), col2))
+  r <- .lam_receta_dicotomia_con_tarjetas(4.6, 1.2)
+  expect_true(r$conserva_estilo)                                   # el título del panel como el de la otra mitad
+  expect_gt(r$dicotomia$dy, 0.65)                                  # bajada para centrar el bloque
+  expect_equal(r$dicotomia$size, .TARJETAS_DICO_CIFRA)
+  expect_equal(.lam_receta_dicotomia_con_tarjetas(1, 5)$dicotomia$dy, 0.65)   # sin alto libre, en su lugar de siempre
+  vistas <- list()
+  local_mocked_bindings(.lam_slide_2_caben_con_tarjetas = function(...) TRUE, .lam_espec_de = function(p) p,
+                        .lam_tarjetas_ranuras_dibujar = function(doc, ts, debajo = c(FALSE, FALSE)) { vistas$debajo <<- debajo; doc })
+  compone <- function(d) {
+    vistas$reserva <<- getOption("prosecnur.lam_reserva_inferior"); vistas$recetas <<- getOption("prosecnur.lam_recetas_ranura")
+    d
+  }
+  barras <- preparar_categorica(c("A", "B", "C"), c(.5, .3, .2), c("50%", "30%", "20%"))
+  .lam_slide_2_con_tarjetas(NULL, list(.tr_conjunto(1), .tr_conjunto(1)), compone, ps = list(barras, e), els = list(), titulo = "T")
+  expect_identical(vistas$debajo, c(FALSE, TRUE))
+  expect_gt(vistas$reserva[1], 0); expect_equal(vistas$reserva[2], 0)    # la franja no reserva alto
+  expect_null(vistas$recetas[[1]]); expect_true(vistas$recetas[[2]]$conserva_estilo)
+  expect_null(getOption("prosecnur.lam_recetas_ranura"))                 # no queda pegada
+})

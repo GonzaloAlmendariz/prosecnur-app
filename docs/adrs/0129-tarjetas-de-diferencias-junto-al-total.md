@@ -111,6 +111,7 @@ Las baterías de frecuencia de redes sociales y de IA generativa declaran su Top
 
 - **Categóricas (ítem 9).** El título de la tarjeta va sin comillas en todos los tipos. En una categórica en barras, la tarjeta va junto a la barra de su categoría: la guía sale del final de esa barra (con su cifra), como en las baterías, y la columna de tarjetas se arrima a 0,6 in del fin de la barra más larga, con 3,4 in de ancho. Antes quedaba sola en el borde de la lámina. Si la categórica no está en barras (columnas, dicotomía), sigue el panel.
 - **Columna con llave (ítem 15).** Los nombres de las categorías van en un solo eje a la izquierda. La cifra de un segmento chico pasa a la derecha de la columna con su guía recta. Si ese segmento está dentro de la llave, la cifra sigue junto a su nombre, porque a la derecha la tapa la llave.
+- **Franja dicotómica en una mitad (ítem 14).** Una franja Sí/No con tarjetas no reserva alto. La franja se agranda (cifra de 30 pt, barra de 0,55 in, a todo el ancho de la mitad) y sus tarjetas van pegadas debajo, sin filete. El bloque se centra en el alto de la mitad. La receta del panel conserva el estilo de la lámina, para que su título sea como el de la otra mitad.
 - **Lámina de lectura (ítem 1).** La tarjeta de ejemplo va a escala 1,75 desde el margen, la diferencia en puntos llena la derecha y la leyenda va en una fila de 13 pt a lo ancho. El conjunto se reparte en el alto entre la definición y el método.
 
 ## Consecuencias
