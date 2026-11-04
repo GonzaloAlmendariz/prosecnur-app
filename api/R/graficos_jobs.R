@@ -168,6 +168,8 @@ graficos_job_worker_ppt <- function(rp_data_path, rp_inst_path, plan, presets, p
   ec <- .graficos_estilo_cliente_iniciar(estilo_cliente, "ppt", template_pptx)   # graficos_estilo_cliente_worker.R
   on.exit(options(ec$previas), add = TRUE)
   report("loading", percent = 4, message = "Calculando diferencias del informe...")
+  inc <- .inclusivo_preparar_job(rp_data_path, rp_inst_path, plan, paletas)   # lenguaje inclusivo con paréntesis (graficos_inclusivo.R)
+  rp_data_path <- inc$data; rp_inst_path <- inc$inst; plan <- inc$plan; paletas <- inc$paletas
   sig_previa <- .sig_informe_preparar(significancia, rp_data_path, rp_inst_path, active_base)   # ADR 0128
   on.exit(options(sig_previa), add = TRUE)
   palette_env <- .graficos_palette_env(paletas, parent = parent.frame())
@@ -303,6 +305,8 @@ graficos_job_worker_word <- function(rp_data_path, rp_inst_path, plan, presets, 
   ec <- .graficos_estilo_cliente_iniciar(estilo_cliente, "word")   # graficos_estilo_cliente_worker.R
   on.exit(options(ec$previas), add = TRUE)
   if (length(ec$logos)) opciones_documento$logos <- ec$logos
+  inc <- .inclusivo_preparar_job(rp_data_path, rp_inst_path, plan, paletas)   # lenguaje inclusivo con paréntesis (graficos_inclusivo.R)
+  rp_data_path <- inc$data; rp_inst_path <- inc$inst; plan <- inc$plan; paletas <- inc$paletas
   sig_previa <- .sig_informe_preparar(significancia, rp_data_path, rp_inst_path, active_base)   # ADR 0128
   on.exit(options(sig_previa), add = TRUE)
   palette_env <- .graficos_palette_env(paletas, parent = parent.frame())
