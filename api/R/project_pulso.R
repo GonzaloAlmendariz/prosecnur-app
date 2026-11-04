@@ -700,7 +700,10 @@
   # referencia de auditoría— y lo borraría al reabrir. Con la captura, ese flag
   # se promueve al mapa por base y `apply` lo devuelve idéntico, mientras los
   # flags que sí viven por base se siguen reproyectando.
-  restored <- .estudio_capture_stage_flags(s, active)
+  # Con config global de Analítica el espejo manda sobre la foto por base:
+  # estudio_stage_flags_global.R explica por qué.
+  restored <- .estudio_stage_flags_espejo_global(sid, s, active)
+  restored <- .estudio_capture_stage_flags(restored, active)
   restored <- .estudio_apply_stage_flags(restored, active)
   .session_env[[sid]] <- restored
   invisible(TRUE)
