@@ -9,7 +9,7 @@
 #' Leyenda del Word: la de la lámina (`.lam_mapa_dist_leyenda`) dibujada en ggplot, con el rayado de otra respuesta
 #' @param w Ancho (in). @keywords internal
 .word_mapa_dist_leyenda <- function(espec, w, pt) {
-  M <- .MAPA_DIST; cl <- espec$clases; fuente <- "Arial"
+  M <- .MAPA_DIST(); cl <- espec$clases; fuente <- "Arial"
   ex <- espec$leyenda_extras %||% data.frame(texto = "Sin encuestados", tipo = "vacio", stringsAsFactors = FALSE)
   ancho_extra <- vapply(ex$texto, function(t) max(0.9, .lam_ancho_tinta(t, pt) + 0.1), 0)
   n <- length(cl$colores); util <- w - 0.3 - sum(ancho_extra) - 0.12 * nrow(ex)
@@ -29,13 +29,13 @@
   }))
   g <- ggplot2::ggplot() +
     ggplot2::annotate("text", x = w / 2, y = 0.5, label = espec$leyenda_titulo, size = pt / ggplot2::.pt, fontface = "bold",
-                      colour = "#3C4658", family = fuente) +
+                      colour = .MAPA_DIST()$guia, family = fuente) +
     ggplot2::geom_rect(data = b, ggplot2::aes(xmin = .data$x0, xmax = .data$x0 + .data$w, ymin = 0.27, ymax = 0.39, fill = .data$fill)) +
-    ggplot2::geom_text(data = b, ggplot2::aes(.data$x0 + .data$w / 2, 0.13, label = .data$t), size = pt / ggplot2::.pt, colour = "#3C4658",
+    ggplot2::geom_text(data = b, ggplot2::aes(.data$x0 + .data$w / 2, 0.13, label = .data$t), size = pt / ggplot2::.pt, colour = .MAPA_DIST()$guia,
                        family = fuente) +
     ggplot2::geom_rect(data = e, ggplot2::aes(xmin = .data$x0, xmax = .data$x0 + .data$w, ymin = 0.27, ymax = 0.39, fill = .data$fill,
                                               colour = .data$borde), linewidth = .mapa_dist_lw(0.75)) +
-    ggplot2::geom_text(data = e, ggplot2::aes(.data$x0 + .data$w / 2, 0.13, label = .data$t), size = pt / ggplot2::.pt, colour = "#3C4658",
+    ggplot2::geom_text(data = e, ggplot2::aes(.data$x0 + .data$w / 2, 0.13, label = .data$t), size = pt / ggplot2::.pt, colour = .MAPA_DIST()$guia,
                        family = fuente)
   if (NROW(rayas)) g <- g + ggplot2::geom_segment(data = rayas, ggplot2::aes(x = .data$x, xend = .data$xend, y = .data$y, yend = .data$yend),
                                                  colour = M$otra_raya, linewidth = .mapa_dist_lw(0.5))
@@ -48,7 +48,7 @@
 #' fila «otros» al final, en gris
 #' @return ggplot con atributo `alto` (in). @keywords internal
 .word_mapa_dist_ranking <- function(espec, w, pt) {
-  M <- .MAPA_DIST; fuente <- "Arial"
+  M <- .MAPA_DIST(); fuente <- "Arial"
   f <- .lam_mapa_dist_filas(espec, 16L)
   n <- nrow(f); por_col <- max(1L, ceiling(n / 2)); fila <- pt * 2.6 / 72
   col_w <- (w - 0.3) / 2
