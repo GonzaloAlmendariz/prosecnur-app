@@ -48,3 +48,17 @@ test_that("el job trabaja sobre copias: los RDS originales no cambian", {
   expect_identical(r$plan$slides[[1]]$payload$titulo, "Tíos(as)")
   expect_identical(.inclusivo_preparar_job(f, f, list(), activo = FALSE)$data, f)
 })
+
+test_that("los rótulos cortos del estudio reemplazan el rótulo entero en datos, instrumento y plan, nunca un pedazo", {
+  largo <- "Por beca de estudios (puede ser beca 18 o alguna otra beca externa a la universidad a la que se haya accedido)"
+  f <- tempfile(fileext = ".rds")
+  saveRDS(list(default = data.frame(x = c(largo, "Trabajo", paste(largo, "y más")), stringsAsFactors = FALSE)), f)
+  plan <- list(rotulos_cortos = stats::setNames(list("Por beca (Beca 18 u otra externa)"), largo),
+               slides = list(list(payload = list(titulo = "T", orden = largo))))
+  r <- .inclusivo_preparar_job(f, f, plan)
+  expect_identical(readRDS(r$data)$default$x, c("Por beca (Beca 18 u otra externa)", "Trabajo", paste(largo, "y más")))
+  expect_identical(r$plan$slides[[1]]$payload$orden, "Por beca (Beca 18 u otra externa)")
+  expect_identical(names(r$plan$rotulos_cortos), largo)   # el mapa mismo no se reescribe
+  sin <- .inclusivo_preparar_job(f, f, list(slides = list()))
+  expect_identical(readRDS(sin$data)$default$x[1], largo)
+})

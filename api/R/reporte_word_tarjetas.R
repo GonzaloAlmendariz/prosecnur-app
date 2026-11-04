@@ -121,8 +121,11 @@
     NULL
   })
   if (is.null(png)) return(doc)
-  officer::body_add_fpar(doc, officer::fpar(officer::external_img(as.character(png), width = attr(png, "ancho"), height = attr(png, "alto")),
-                                            fp_p = officer::fp_par(text.align = "center", keep_with_next = TRUE, padding.top = 8)))
+  doc <- officer::body_add_fpar(doc, officer::fpar(officer::external_img(as.character(png), width = attr(png, "ancho"), height = attr(png, "alto")),
+                                                   fp_p = officer::fp_par(text.align = "center", keep_with_next = TRUE, padding.top = 8)))
+  # Opción `todas` (ítem 23): la frase que explica los grupos sin flecha, con el estilo de la base.
+  if (isTRUE(tarjetas$opcion$todas)) doc <- officer::body_add_fpar(doc, officer::fpar(officer::ftext(.TARJETAS_FRASE_TODAS)), style = "Base y fuente")
+  doc
 }
 
 #' Abre el dispositivo PNG de una imagen de tarjetas (ragg si está; si no, el de R)
