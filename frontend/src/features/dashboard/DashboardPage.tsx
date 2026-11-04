@@ -33,6 +33,7 @@ import { GlidingTabList } from "../../components/GlidingTabList";
 import { ChromeIndicator, ChromeIndicatorGroup } from "../../components/ChromeIndicator";
 import { ModuleCommandBar } from "../../components/ModuleCommandBar";
 import { DASHBOARD_PESTANAS } from "../../lib/navegacion/catalogos/dashboard";
+import { usePanelConRespaldo, type ControlDePanel } from "./panelConRespaldo";
 
 type DashboardVisibleTab = typeof DASHBOARD_PESTANAS[number] & {
   available: boolean;
@@ -65,6 +66,7 @@ export default function DashboardPage({
   pestana: pestanaProp,
   onPestana,
   personalizar: personalizarProp,
+  paletas: paletasProp,
 }: {
   publicMode?: boolean;
   /**
@@ -79,7 +81,9 @@ export default function DashboardPage({
    * Router: la publicación monta esta página fuera de él y un hook de router aquí la tumbaría. Sin esta prop (la
    * publicación), el editor usa un estado propio.
    */
-  personalizar?: { abierto: boolean; abrir: () => void; cerrar: () => void };
+  personalizar?: ControlDePanel;
+  /** Las paletas por lista (`?panel=paletas`), con el mismo reparto que `personalizar`. */
+  paletas?: ControlDePanel;
 } = {}) {
   // Modo público (deploy a HF/Fly): backend real, pero UI sin shell admin.
   // Misma desactivación de autosave (el .pulso del server es read-only;
@@ -98,14 +102,10 @@ export default function DashboardPage({
   const setTabActiva = onPestana ?? setTabActivaStore;
   const setSeccionActiva = useDashboardStore((s) => s.setSeccionActiva);
   const [sourceOpen, setSourceOpen] = useState(false);
-  const [palettesOpen, setPalettesOpen] = useState(false);
-  // En admin, `?panel=personalizar` (lo da DashboardRuta); en la publicación, un estado propio.
-  const [customizeLocal, setCustomizeLocal] = useState(false);
-  const personalizar = personalizarProp ?? {
-    abierto: customizeLocal,
-    abrir: () => setCustomizeLocal(true),
-    cerrar: () => setCustomizeLocal(false),
-  };
+  // En admin, `?panel=…` (lo da DashboardRuta); en la publicación, un estado propio (`usePanelConRespaldo`).
+  const paletas = usePanelConRespaldo(paletasProp);
+  const palettesOpen = paletas.abierto;
+  const personalizar = usePanelConRespaldo(personalizarProp);
   const customizeOpen = personalizar.abierto;
   const [publishOpen, setPublishOpen] = useState(false);
   // Modo "Vista previa": oculta el admin toolbar y los controles de
@@ -118,7 +118,7 @@ export default function DashboardPage({
   useEffect(() => {
     if (previewMode) {
       setSourceOpen(false);
-      setPalettesOpen(false);
+      if (paletas.abierto) paletas.cerrar();
       if (personalizar.abierto) personalizar.cerrar();
       setPublishOpen(false);
     }
@@ -295,7 +295,7 @@ export default function DashboardPage({
                 label: "Paletas",
                 icon: Palette,
                 rank: 3,
-                onSelect: () => setPalettesOpen(true),
+                onSelect: () => paletas.abrir(),
                 disabled: !hasDashboardSource,
                 title: "Paletas de colores por lista",
               },
@@ -420,7 +420,7 @@ export default function DashboardPage({
 
       {palettesOpen && (
         <DashboardPalettesDialog
-          onClose={() => setPalettesOpen(false)}
+          onClose={() => paletas.cerrar()}
           returnFocusTo={DISPARADOR_MAS_ACCIONES}
         />
       )}

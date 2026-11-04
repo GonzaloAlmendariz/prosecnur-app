@@ -241,7 +241,8 @@ export const PANELES_POR_MODULO: Readonly<
   // Aulas › Catálogo › Editor: el inspector del bloque, siempre abierto; lo elige `foco` (E1b).
   // Selección › salidas: `?seccion=seleccion&panel=salidas`. Sideover bajo 1280 px en la página clásica;
   // en el lienzo (ADR 0114) siempre sideover, disparado desde el pie del inspector.
-  // `?panel=personalizar`: el editor de marca, color, vistas y pestañas del dashboard.
+  // `?panel=personalizar`: el editor de marca, color, vistas y pestañas del dashboard; `?panel=paletas`: las
+  // paletas por lista.
   dashboard: [...PANELES_DASHBOARD],
   "hojas-ruta": [PANEL_SALIDAS_SELECCION],
   "material-campo": [
