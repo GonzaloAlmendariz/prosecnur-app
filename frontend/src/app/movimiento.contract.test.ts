@@ -55,7 +55,10 @@ const SNAPSHOT: Record<"layout" | "infinitas" | "retardo", Record<string, number
     "features/xlsformEditor/styles/xlsform-v2/07-secciones-largas-20-pregunta.css": 1,
   },
   infinitas: {
-    "app/boot.css": 5,
+    // 4 nov 2026: el anillo del warm start (su órbita giraba sin fin) se retiró; el isotipo que lo
+    // reemplaza late mientras se prepara el proyecto: es el indicador de espera, como un spinner.
+    "app/boot-ecualizador.css": 1,
+    "app/boot.css": 4,
     "app/module-warmup.css": 1,
     "app/theme.css": 7,
     "components/bases-inspector.css": 1,

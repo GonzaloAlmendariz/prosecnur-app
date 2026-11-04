@@ -55,6 +55,7 @@ import {
   type WarmupModuleProgress,
 } from "./warmupRegistry";
 import { BarraDeAvance } from "../components/BarraDeAvance";
+import { BootEcualizador } from "./BootEcualizador";
 import "./boot-destino.css";
 
 type AppSuiteModule = {
@@ -1539,27 +1540,20 @@ function WarmupView({
       style={destino ? moduleChromeVars(destino) : undefined}
     >
       <div className="boot-warmup-summary">
-        <div className="boot-warmup-mark">Prosecnur</div>
-        <div
-          className="boot-ring"
-          style={{ "--boot-ring-p": clampedPercent } as CSSProperties}
-          role="progressbar"
-          aria-label="Avance de preparación"
-          aria-valuemin={0}
-          aria-valuemax={100}
-          aria-valuenow={clampedPercent}
-        >
-          <span className="boot-ring-orbit" aria-hidden="true" />
-          <span className="boot-ring-arc" aria-hidden="true" />
-          <span className="boot-ring-core">
-            <span className="boot-progress-percent">{progressPercent}%</span>
-          </span>
-        </div>
+        {/* 4 nov 2026: el isotipo hace de indicador y la cifra pasa a la barra (dirección A de la
+            maqueta «Pantalla de carga de proyecto», revisable por Gonzalo). */}
+        <BootEcualizador detenido={steps.some((step) => step.status === "error")} />
         <div className="boot-progress">
-          <p className="boot-project-name" title={projectPath ?? undefined}>{projectName(projectPath)}</p>
+          <div className="boot-warmup-cabeza">
+            <p className="boot-warmup-destino-rotulo">{destino ? `Abriendo ${destino.cardTitle ?? destino.shortLabel}` : "Abriendo el proyecto"}</p>
+            <p className="boot-project-name" title={projectPath ?? undefined}>{projectName(projectPath)}</p>
+          </div>
           <h1>{message}</h1>
-          <WarmupReloj className="boot-warmup-reloj" transcurridoMs={transcurridoMs} estimacion={estimacion} />
           <BarraDeAvance valor={clampedPercent} total={100} etiqueta="Avance de preparación del proyecto" />
+          <div className="boot-warmup-lectura">
+            <WarmupReloj className="boot-warmup-reloj" transcurridoMs={transcurridoMs} estimacion={estimacion} />
+            <span className="boot-warmup-cifra">{clampedPercent}%</span>
+          </div>
         </div>
       </div>
       <div className="boot-warmup-steps" aria-label="Fases de preparación" aria-live="off">
