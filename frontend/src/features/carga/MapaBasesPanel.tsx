@@ -326,7 +326,11 @@ function CeldaPresencia({ presencia, variable, base }: { presencia: PresenciaEnB
       : <Minus size={12} aria-hidden="true" />;
   const texto = presencia === "presente" && variable && !variable.includes("(") ? variable : TEXTO_PRESENCIA[presencia];
   return (
-    <span className={`pulso-mapa-presencia is-${presencia}`} title={`${TEXTO_PRESENCIA[presencia]} en ${base}`}>
+    <span
+      className={`pulso-mapa-presencia is-${presencia}`}
+      // El nombre puede ir recortado en la celda: el título lo dice entero.
+      title={texto !== TEXTO_PRESENCIA[presencia] ? `${texto}: ${TEXTO_PRESENCIA[presencia].toLowerCase()} en ${base}` : `${TEXTO_PRESENCIA[presencia]} en ${base}`}
+    >
       {icono}
       <span>{texto}</span>
       {texto !== TEXTO_PRESENCIA[presencia] && <span className="pulso-sr-only">{TEXTO_PRESENCIA[presencia]}</span>}
