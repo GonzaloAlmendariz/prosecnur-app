@@ -105,7 +105,8 @@ test_that("4: el histograma con `mostrar_frecuencia` rotula «conteo (porcentaje
   con <- .tdc_piezas(x, "histograma:cifra"); pct <- .tdc_piezas(x, "histograma:cifra_pct")
   expect_true(all(grepl("^[0-9,]+", con$texto)))
   # Con una columna angosta el porcentaje baja a su propia línea; las dos juntas dicen «conteo (porcentaje)».
-  if (nrow(pct)) expect_true(all(grepl("^\\([0-9]+%\\)$", pct$texto))) else expect_true(all(grepl("^[0-9,]+ \\([0-9]+%\\)$", con$texto)))
+  # «(<1%)» en la barra de un caso que redondea a cero (U5, revisión del v7).
+  if (nrow(pct)) expect_true(all(grepl("^\\(<?[0-9]+%\\)$", pct$texto))) else expect_true(all(grepl("^[0-9,]+ \\(<?[0-9]+%\\)$", con$texto)))
   expect_identical(.histograma_cifras_en_columna(c("103 (26%)", "9 (2%)"), wcol = 0.75)$lineas, 2L)
   expect_identical(.histograma_cifras_en_columna(c("103 (26%)", "9 (2%)"), wcol = 3)$lineas, 1L)
 })

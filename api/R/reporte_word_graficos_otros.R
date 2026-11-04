@@ -7,7 +7,12 @@
 
 .WORD_PALETA_TORTA <- c("#081F5C", "#9DC3E6", "#2A9D8F", "#E9C46A", "#BFBFBF")
 
-#' Dona (la cifra mayor al centro) o torta, con la leyenda a la derecha centrada junto al círculo (`g_torta()`)
+#' Dona o torta con la leyenda de rótulos a la derecha, centrada junto al círculo (`g_torta()`)
+#'
+#' Revisión del PPT v7 de CCSS (paridad con el panel nativo, lamina_panel_circular.R): cada cifra va sobre su porción y,
+#' si la porción es chica (menos de 7 %, el umbral de las cifras chicas del Word), fuera del círculo con su guía recta;
+#' antes se callaba. La dona sólo lleva una cifra al centro si el analista eligió qué resaltar (`al_centro`). La
+#' leyenda no lleva porcentajes.
 #' @param dona `NULL` toma la forma de la espec (`forma`); la dicotomía de dos porciones va en torta.
 #' @keywords internal
 .word_g_pie <- function(espec, dona = NULL) {
@@ -25,18 +30,38 @@
   tl <- 9.5 + .word_desplazo("leyenda"); panel <- alto - 0.5; leg <- max(nchar(rot)) * tl * 0.55 / 72 + 0.4
   m <- max(0.1, (.std_word("pagina", "ancho_util") - panel - leg - 0.35) / 2)
   cif <- .casos_junto_cifras(espec$cifras, .espec_casos(espec), .espec_total_casos(espec))   # «Casos junto al porcentaje»
-  et <- ifelse(v >= 6 & !(dona & v == max(v)), cif, "")         # en la dona la mayor ya está al centro
+  cif <- .lam_cifras_menor_uno(cif, .espec_casos(espec))                                     # U5: «<1%» con casos
+  centro <- dona && isTRUE(espec$centro_elegido)
+  xb <- if (dona) 2 else 1; borde <- xb + 0.5
+  casos <- suppressWarnings(as.numeric(.espec_casos(espec))); if (length(casos) != n) casos <- rep(NA_real_, n)
+  hay <- (v > 0 | (is.finite(casos) & casos > 0)) & !(centro & seq_len(n) == 1L)   # la porción de 1 caso también se rotula
+  dentro <- v >= .WORD_ESCALA_CABE_PCT
+  et <- ifelse(dentro & hay, cif, "")
+  # ggplot apila la primera porción arriba: su centro, contado desde el total hacia abajo.
+  y_mid <- sum(v) - (cumsum(v) - v / 2)
+  fuera <- data.frame(y = y_mid, et = cif)[!dentro & hay, , drop = FALSE]
+  # Las cifras de fuera vecinas se abren para no encimarse (como en la lámina, lamina_circular_guia.R).
+  fuera$y_et <- if (nrow(fuera)) .lam_circular_separar(fuera$y / sum(v), 0.06) * sum(v) else numeric(0)
   d <- data.frame(k = factor(rot, levels = rot), v = v, et = et)
-  g <- ggplot2::ggplot(d, ggplot2::aes(x = if (dona) 2 else 1, y = .data$v, fill = .data$k)) +
+  col_txt <- vapply(pal, function(h) .lam_texto_sobre(h), "")
+  g <- ggplot2::ggplot(d, ggplot2::aes(x = xb, y = .data$v, fill = .data$k)) +
     ggplot2::geom_col(width = 1, colour = "#FFFFFF") + ggplot2::coord_polar(theta = "y", direction = -1) +
-    ggplot2::geom_text(ggplot2::aes(label = .data$et), position = ggplot2::position_stack(vjust = 0.5), size = .word_pt(8.5, "cifra"), fontface = .word_cara("cifras"),
-                       family = "Arial", colour = "#FFFFFF") +
+    ggplot2::geom_text(ggplot2::aes(label = .data$et, colour = .data$k), position = ggplot2::position_stack(vjust = 0.5), size = .word_pt(8.5, "cifra"),
+                       fontface = .word_cara("cifras"), family = "Arial", show.legend = FALSE) +
+    ggplot2::scale_colour_manual(values = stats::setNames(col_txt, rot), guide = "none") +
     ggplot2::scale_fill_manual(values = stats::setNames(pal, rot)) + .word_tema() +
     ggplot2::theme(legend.position = "right", legend.text = ggplot2::element_text(size = tl, colour = navy, face = .word_cara("leyenda", FALSE), margin = ggplot2::margin(l = 4)),
                    legend.key.size = ggplot2::unit(11, "pt"), legend.key.spacing.y = ggplot2::unit(5, "pt"), legend.box.spacing = ggplot2::unit(0.35, "in"),
                    plot.margin = ggplot2::margin(6, m * 72, 4, m * 72, "pt"))
-  if (dona) g <- g + ggplot2::xlim(0.6, 2.5) +
-    ggplot2::annotate("text", x = 0.6, y = 0, label = espec$cifras[which.max(v)], size = .word_pt(18, "cifra"), fontface = .word_cara("cifras"), colour = .WORD_TINTA$navy, family = "Arial")
+  if (nrow(fuera)) {
+    # La guía es recta y radial: sale del borde de la porción y la cifra va al final, fuera del círculo.
+    g <- g + ggplot2::annotate("segment", x = borde, xend = borde + 0.22, y = fuera$y, yend = fuera$y_et, colour = .WORD_TINTA$tenue, linewidth = 0.3) +
+      ggplot2::annotate("text", x = borde + 0.42, y = fuera$y_et, label = fuera$et, size = .word_pt(8.5, "cifra"), fontface = .word_cara("cifras"),
+                        colour = navy, family = "Arial")
+  }
+  g <- g + ggplot2::scale_x_continuous(limits = c(if (dona) 0.6 else 0.5, borde + (if (nrow(fuera)) 0.6 else 0.05)), expand = c(0, 0))
+  if (centro) g <- g +
+    ggplot2::annotate("text", x = 0.6, y = 0, label = cif[1], size = .word_pt(18, "cifra"), fontface = .word_cara("cifras"), colour = .WORD_TINTA$navy, family = "Arial")
   attr(g, "alto") <- alto - 0.22; g
 }
 

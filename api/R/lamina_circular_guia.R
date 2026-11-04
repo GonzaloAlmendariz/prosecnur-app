@@ -18,6 +18,17 @@
   !(arco >= .lam_ancho_txt(cifra, size, TRUE) + 0.12)
 }
 
+#' Qué porciones llevan su cifra fuera: la que no cabe a lo largo de su arco y, en una dona, la que no cabe en el grosor
+#' del aro a su ángulo (a las 3 cuenta su ancho; a las 12, su alto). Lo usan el dibujo y la reserva de margen del panel.
+#' @keywords internal
+.lam_circular_chicas <- function(cifras, f, r_cifra, size = .std_pt("cifra"), aro = Inf) {
+  mid <- c(0, cumsum(f))[seq_along(f)] + f / 2
+  w <- .lam_ancho_tinta(cifras, size, TRUE); h <- size * 0.75 / 72
+  radial <- abs(sin(2 * pi * mid)) * w + abs(cos(2 * pi * mid)) * h
+  vapply(seq_along(f), function(i) f[i] > 0 && (.lam_circular_cifra_chica(cifras[i], 2 * pi * r_cifra * f[i], size) ||
+                                                  radial[i] > aro - 0.06), TRUE)
+}
+
 #' Separa posiciones (fracciones del círculo) para que queden a `minimo` sin cambiar su orden
 #'
 #' Las que chocan forman un grupo que se abre hacia los dos lados alrededor del promedio de sus posiciones, y los grupos
@@ -90,20 +101,24 @@
 #' @param f,acum Fracción de cada porción y su acumulado (desde las 12, horario).
 #' @keywords internal
 #' @param r_cifra Radio donde va la cifra dentro (la torta, a media distancia del centro; la dona, a media altura del aro).
+#' @param size_dentro Cuerpo de la cifra dentro de la porción (el panel lo baja si el aro es delgado).
+#' @param aro Grosor del aro de la dona (in): la cifra que no cabe en él a su ángulo sale fuera. `Inf`, sin esa regla.
+#' @param omitir Porciones sin cifra en la figura (la que el analista puso al centro de la dona).
 #' @param color_sobre `TRUE`: la cifra de dentro toma el color que se lee sobre su porción (la dona); si no, la regla de la
 #'   torta (blanca sobre la primera, azul sobre las demás, salvo paleta propia).
 .lam_circular_cifras <- function(lz, espec, cx, cy, r, f, acum, cols, prefijo = "torta", r_cifra = r * 0.5, color_sobre = FALSE,
-                                 nombre_dentro = paste0(prefijo, ":cifra")) {
+                                 nombre_dentro = paste0(prefijo, ":cifra"), size_dentro = .std_pt("cifra"), omitir = integer(0), aro = Inf) {
   azul <- .std_color("azul"); tenue <- .std_color("texto_tenue"); k <- length(f)
   mid <- acum[seq_len(k)] + f / 2
-  chica <- vapply(seq_len(k), function(i) f[i] > 0 && .lam_circular_cifra_chica(espec$cifras[i], 2 * pi * r_cifra * f[i]), TRUE)
-  for (i in which(f > 0 & !chica)) {
+  chica <- .lam_circular_chicas(espec$cifras, f, r_cifra, size_dentro, aro)
+  h_dentro <- size_dentro * 1.2 / 72 + 0.1
+  for (i in setdiff(which(f > 0 & !chica), omitir)) {   # `omitir`: la porción cuya cifra ya está al centro
     a <- 2 * pi * mid[i]; tx <- cx + r_cifra * sin(a); ty <- cy - r_cifra * cos(a)
     col_t <- if (isTRUE(color_sobre) || !is.null(espec$colores)) .lam_texto_sobre(cols[i]) else if (i == 1L) "#FFFFFF" else azul
-    .lam_txt(lz, espec$cifras[i], tx - 0.4, ty - 0.15, 0.8, 0.3, .std_pt("cifra"), col_t, bold = TRUE, align = "center",
+    .lam_txt(lz, espec$cifras[i], tx - 0.4, ty - h_dentro / 2, 0.8, h_dentro, size_dentro, col_t, bold = TRUE, align = "center",
              nombre = nombre_dentro)
   }
-  idx <- which(f > 0 & chica)
+  idx <- setdiff(which(f > 0 & chica), omitir)
   if (!length(idx)) return(invisible(lz))
   size <- .std_pt("cifra_fuera")
   R <- r + .LAM_GUIA_LARGO_IN
