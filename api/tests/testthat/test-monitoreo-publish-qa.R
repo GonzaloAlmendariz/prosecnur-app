@@ -625,10 +625,17 @@ test_that("PDF cliente territorial usa conteos del Sheets cliente", {
   # La cifra de cada tarjeta es la primera que sigue a su rótulo «ENCUESTAS». pypdf
   # la lee pegada («ENCUESTAS\n22») y pdftotext lee primero los rótulos de la fila
   # («ENCUESTAS\nCUOTA\n22\n31»): se compara la cifra, no el salto de línea.
+  # Cada cifra va atada a su tarjeta: la primera es el total y la de cada distrito
+  # es la que sigue a «ENCUESTAS» después de su nombre, así que dos distritos que
+  # intercambian sus cifras dan rojo.
   encuestas <- .monitoreo_publish_qa_cifras_tras(pdf_text, "ENCUESTAS")
-  expect_true(as.integer(expected_total) %in% encuestas, info = paste(encuestas, collapse = ", "))
-  for (value in district_effective) {
-    expect_true(as.integer(value) %in% encuestas, info = paste(encuestas, collapse = ", "))
+  expect_identical(encuestas[[1]], as.integer(expected_total))
+  expect_length(encuestas, 1L + length(district_rows))
+  for (row in district_rows) {
+    seg <- strsplit(pdf_text, toupper(row[["Distrito"]]), fixed = TRUE)[[1]]
+    expect_gte(length(seg), 2L)
+    expect_identical(.monitoreo_publish_qa_cifras_tras(seg[[length(seg)]], "ENCUESTAS")[[1]],
+                     as.integer(row[["Efectivas"]]), info = row[["Distrito"]])
   }
   expect_false(grepl("TER-RAW|GPS y territorio|Casos accionables|Auditoría técnica|_uuid|\\.source_id", pdf_text))
 })
