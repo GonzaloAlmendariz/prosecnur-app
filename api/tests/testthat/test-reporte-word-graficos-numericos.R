@@ -24,13 +24,19 @@ test_that("entre años la diferencia sube en verde y baja en coral; entre públi
   expect_true(all(publicos == .std_word("colores", "titulos")))
 })
 
-test_that("el histograma del Word pone el triángulo en la mediana real y su texto desde la espec", {
+test_that("el histograma del Word marca la mediana real con la línea fina rotulada (defecto) o, si se pide, con el triángulo", {
   x <- rep(19:30, c(9, 30, 35, 32, 25, 10, 13, 5, 5, 3, 1, 2))
   e <- attr(.histograma_recetario(x, modo = "conteo", unidad = "años"), "pulso_espec")
   g <- .word_g_hist(e)
   expect_true(all(c("Mediana: 22 años", "35", "19", "30") %in% .wn_textos(g)))
   b <- suppressWarnings(ggplot2::ggplot_build(g))
-  tri <- Filter(function(l) "shape" %in% names(l) && any(l$shape == 17), b$data)[[1]]
+  expect_length(Filter(function(l) "shape" %in% names(l) && any(l$shape == 17), b$data), 0L)   # Gonzalo, 2026-11-04: sin triángulo
+  seg <- Filter(function(l) all(c("xend", "yend") %in% names(l)), b$data)[[1]]
+  expect_equal(seg$x, e$x_mediana + 1); expect_equal(seg$xend, e$x_mediana + 1)
+  expect_gt(min(seg$y, seg$yend), e$valores[e$x_mediana + 1])                                   # no entra en la barra
+  e$marca_mediana <- "triangulo"
+  b2 <- suppressWarnings(ggplot2::ggplot_build(.word_g_hist(e)))
+  tri <- Filter(function(l) "shape" %in% names(l) && any(l$shape == 17), b2$data)[[1]]
   expect_equal(tri$x, e$x_mediana + 1)
 })
 

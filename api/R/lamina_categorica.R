@@ -44,6 +44,8 @@
   v <- espec$largos; et <- espec$rotulos
   # Las agrupadas van de 0 a 100 % por defecto (`escala_completa`); el resto, al máximo con aire, como el recetario.
   escala <- escala %||% (if (isTRUE(espec$escala_completa)) max(1, v) else max(v) * 1.12)
+  pista <- .lam_barras_pista_activa(espec)   # v7.11, lámina 9: la barra sobre su pista hasta el 100% (lamina_barras_pista.R)
+  if (pista) escala <- max(1, v)
   # La cifra lleva su propia columna: 0.8 in, o lo que mida si trae «(n)» o letras (no se parte en dos líneas). Su cuerpo
   # es el de los rótulos salvo que el gráfico declare `size_texto_barras` (lamina_tamanos_declarados.R).
   size_cif <- (espec$tamanos %||% list())$cifra_pt %||% size
@@ -60,6 +62,7 @@
     yb <- yy + (fila - g) / 2; bw <- if (escala > 0) wbar * v[k] / escala else 0
     fill <- st$fill %||% (if (isTRUE(espec[["residuales_gris"]]) && grepl(.CATEGORIAS_RESIDUALES, et[k], ignore.case = TRUE)) .graficos_no_sustantivo_color() else
       if (!is.null(cols) && !length(elegidas)) cols[k] else if ((isTRUE(espec$realce) || length(elegidas)) && !es_max) tenue else azul)
+    if (pista) .lam_barras_pista(lz, x + wlab + 0.12, yb, wbar / escala, g)
     if (bw > 0.004) .lam_caja(lz, x + wlab + 0.12, yb, bw, g, fill, nombre = "barra")
     h_cif <- max(0.3, size_cif * 1.25 / 72)
     # La caja de la cifra suma sus márgenes internos (0.1 in por lado) a la columna: con 0.12 de holgura «60% (12)» se partía
