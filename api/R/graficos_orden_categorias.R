@@ -440,7 +440,7 @@
   if (!is.data.frame(data)) return(rep(0L, length(codigos)))
   if (identical(tipo, "select_multiple")) {
     return(vapply(codigos, function(k) {
-      col <- intersect(c(paste0(var, "/", k), paste0(var, "_", k)), names(data))
+      col <- intersect(c(paste0(var, "/", k), paste0(var, "_", k), paste0(var, ".", k)), names(data))   # «.»: dummies de R (CCSS, B3_recod.1)
       if (length(col)) return(as.integer(sum(suppressWarnings(as.numeric(data[[col[1]]])) == 1, na.rm = TRUE)))
       if (!var %in% names(data)) return(0L)
       as.integer(sum(vapply(strsplit(as.character(data[[var]]), "\\s+"), function(r) k %in% r, logical(1)), na.rm = TRUE))
@@ -454,7 +454,7 @@
 #' Respondentes de una opción múltiple (filas con al menos una opción marcada)
 #' @keywords internal
 .goc_respondentes <- function(data, var, codigos) {
-  cols <- intersect(c(paste0(var, "/", codigos), paste0(var, "_", codigos)), names(data))
+  cols <- intersect(c(paste0(var, "/", codigos), paste0(var, "_", codigos), paste0(var, ".", codigos)), names(data))
   if (length(cols)) return(sum(rowSums(sapply(data[cols], function(x) suppressWarnings(as.numeric(x)) == 1), na.rm = TRUE) > 0))
   if (!var %in% names(data)) return(0L)
   sum(!is.na(data[[var]]) & nzchar(trimws(as.character(data[[var]]))))
