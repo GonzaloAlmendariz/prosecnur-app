@@ -66,7 +66,7 @@ type Props = {
   onCambioMinimo: (rutas: number) => void;
 };
 
-export function EstratoMuestral({ sampleSize, rowVar, nPorDistrito, servidor, deshabilitado, onCambio, onCambioMinimo }: Props) {
+export function EstratoMuestral({ sampleSize, rowVar, nPorDistrito, servidor, deshabilitado, onCambio, onCambioMinimo, parte = "todo" }: Props & { parte?: "estrato" | "visitas" | "todo" }) {
   const modo = nPorDistrito ? "distrito" : estratoDe(sampleSize);
   const porZona = rowVar === "zona";
   const minimo = sampleSize.rutas_minimas_ciudad ?? RUTAS_MINIMAS_CIUDAD;
@@ -77,21 +77,28 @@ export function EstratoMuestral({ sampleSize, rowVar, nPorDistrito, servidor, de
   const totalRutas = vigente ? vigente.ciudades.reduce((a, c) => a + c.rutas, 0) : 0;
 
   return (
-    <section className="hr-muestra-grupo" aria-label="Estrato del sorteo" data-estrato={modo}>
-      <h3>Estrato del sorteo</h3>
-      <PulsoSelect
+    <section className="hr-muestra-grupo" aria-label={parte === "visitas" ? "Visitas mínimas" : "Estrato del sorteo"} data-estrato={modo}>
+      {/* En «Ajustes del diseño» el estrato va en «Reparto y estrato» y el mínimo con sus ciudades en «Visitas
+          mínimas» (maqueta aprobada): `parte` elige qué mitad se dibuja; la semántica no cambia. */}
+      {parte !== "visitas" ? <h3>Estrato del sorteo</h3> : null}
+      {parte !== "visitas" ? <PulsoSelect
         size="sm"
         ariaLabel="Estrato del sorteo"
         value={modo}
         disabled={deshabilitado || nPorDistrito}
         options={ESTRATOS.map(([v, l]) => ({ value: v, label: l, disabled: v !== "distrito" && porZona }))}
         onValueChange={(v) => onCambio(v as HojasRutaEstratoModo)}
-      />
-      {nPorDistrito ? <p className="hr-mapa-nota">Con el N escrito por distrito, cada distrito es su propio estrato.</p> : null}
-      {porZona ? <p className="hr-mapa-nota">Con la cuota por zona el estrato es el distrito: la provincia necesita la cuota por distrito.</p> : null}
+      /> : null}
+      {parte !== "visitas" && nPorDistrito ? <p className="hr-mapa-nota">Con el N escrito por distrito, cada distrito es su propio estrato.</p> : null}
+      {parte !== "visitas" && porZona ? <p className="hr-mapa-nota">Con la cuota por zona el estrato es el distrito: la provincia necesita la cuota por distrito.</p> : null}
       {modo === "distrito" ? (
-        <p className="hr-mapa-nota">Cada distrito es su propio estrato y recibe las rutas del reparto.</p>
-      ) : (
+        parte === "visitas" ? (
+          <p className="hr-mapa-nota">Con estrato por distrito todas las ciudades del estudio son fijas: el mínimo por ciudad aplica con estrato por provincia.</p>
+        ) : nPorDistrito ? null : (
+          // Con N por distrito ya lo dijo la nota de arriba: no se repite.
+          <p className="hr-mapa-nota">Cada distrito es su propio estrato y recibe las rutas del reparto.</p>
+        )
+      ) : parte === "estrato" ? null : (
         <>
           <label className="hr-muestra-campo">
             <small>Rutas mínimas por ciudad visitada</small>
@@ -102,11 +109,11 @@ export function EstratoMuestral({ sampleSize, rowVar, nPorDistrito, servidor, de
             </span>
           </label>
           <p className="hr-mapa-nota">
-            Entra con certeza toda ciudad cuyo reparto llega a {minimo} rutas, y siempre Lima y Callao. Las demás se sortean por macrorregión según su tamaño y cada ciudad sorteada recibe al menos {minimo} rutas. Dentro de la ciudad, distrito y zona quedan como estratos implícitos; los reemplazos son de la misma zona.
+            Es fija toda ciudad cuyo reparto llega a {minimo} rutas, y siempre Lima y Callao. Las demás entran como aleatorias por macrorregión según su tamaño y cada una recibe al menos {minimo} rutas. Dentro de la ciudad, distrito y zona quedan como estratos implícitos; los reemplazos son de la misma zona.
           </p>
           {vigente ? (
             <>
-              <dl className="hr-mapa-filas hr-muestra-estratos" aria-label="Ciudades con certeza">
+              <dl className="hr-mapa-filas hr-muestra-estratos" aria-label="Ciudades fijas">
                 {forzosas.map((c) => (
                   <div key={c.ciudad} data-bajo-minimo={c.rutas < minimo || undefined}>
                     <dt>{c.etiqueta}</dt>
@@ -125,11 +132,11 @@ export function EstratoMuestral({ sampleSize, rowVar, nPorDistrito, servidor, de
                       <strong>{MACRORREGIONES[g.grupo] ?? g.grupo}</strong>
                       <span>{formatoConteo(g.rutas)} rutas en {formatoConteo(g.h)} de {formatoConteo(g.n_ciudades)} ciudades</span>
                     </p>
-                    <dl className="hr-mapa-filas hr-muestra-estratos" aria-label={`Sorteo de ciudades en ${MACRORREGIONES[g.grupo] ?? g.grupo}`}>
+                    <dl className="hr-mapa-filas hr-muestra-estratos" aria-label={`Ciudades aleatorias en ${MACRORREGIONES[g.grupo] ?? g.grupo}`}>
                     {ciudades.map((c) => (
                       <div key={c.ciudad} data-condicion={c.condicion} data-bajo-minimo={(c.condicion === "sorteada" && c.rutas < minimo) || undefined}>
                         <dt>{c.etiqueta}</dt>
-                        <dd>{c.condicion === "sorteada" ? `sorteada, ${formatoConteo(c.rutas)} rutas` : "no sale"} (π {fmtPi(c.pi_ciudad)})</dd>
+                        <dd>{c.condicion === "sorteada" ? `aleatoria, ${formatoConteo(c.rutas)} rutas` : "no sale"} (π {fmtPi(c.pi_ciudad)})</dd>
                       </div>
                     ))}
                     </dl>

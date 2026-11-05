@@ -46,7 +46,8 @@ export function resumenGrupo(id: GrupoAjustesId, c: HojasRutaIntegratedConfig, e
     case "reparto":
       return `${ESTRATOS.find(([m]) => m === estratoDe(s))?.[1] ?? "Por distrito"}, ${usaBase2025(s) ? "CPV 2025" : "CPV 2017"}`;
     case "visitas":
-      return `${s.rutas_minimas_ciudad ?? RUTAS_MINIMAS_CIUDAD} rutas por ciudad como mínimo`;
+      // Con estrato por distrito (o N por distrito) todas las ciudades son fijas y el mínimo no actúa: decirlo.
+      return c.sample_size_mode === "external_district" || estratoDe(s) === "distrito" ? "Sin efecto con estrato por distrito" : `${s.rutas_minimas_ciudad ?? RUTAS_MINIMAS_CIUDAD} rutas por ciudad como mínimo`;
     case "cuotas":
       return `${c.age_ranges.length} rango${c.age_ranges.length === 1 ? "" : "s"} de edad${c.subquota_var === "sexo" ? ", por sexo" : ""}`;
     case "marco": {

@@ -4,19 +4,14 @@ import { EscenariosMuestra } from "./EscenariosMuestra";
 import { repartoMinimos, repartoPorPoblacion } from "./repartos";
 import { InspectorCabecera } from "../InspectorCabecera";
 import { PulsoButton } from "../../../../components/PulsoButton";
-import type { HojasRutaAlert, HojasRutaEstratoMuestral, HojasRutaIntegratedConfig, HojasRutaSampleSizeConfig, HojasRutaTerritory } from "../../../../api/hojasRuta";
+import type { HojasRutaAlert, HojasRutaEstratoMuestral, HojasRutaIntegratedConfig, HojasRutaTerritory } from "../../../../api/hojasRuta";
 import { nombreDistrito } from "../nombres";
 import { tonoCss } from "../lienzo/tonos";
 import { useLienzoHojasRuta } from "../store";
 import { useSeccion } from "../../../../lib/navegacion/useDireccion";
-import type { BorradorMuestra } from "./desdeConfig";
 import type { ResultadoTamano } from "./motorTamano";
-import { BaseReparto2025 } from "./BaseReparto2025";
-import { GrupoMuestra } from "./GrupoMuestra";
 import { AccesoAjustes } from "../ajustes/AccesoAjustes";
 import { resumenGrupo } from "../ajustes/gruposAjustes";
-import { resumenReparto } from "./resumenesMuestra";
-import { EstratoMuestral, politicaAlCambiar } from "./EstratoMuestral";
 
 import { EstadoVacio } from "../../../../components/EstadoVacio";
 /**
@@ -26,7 +21,7 @@ import { EstadoVacio } from "../../../../components/EstadoVacio";
  * distrito, editable cuando el N es por distrito.
  */
 
-import { fmt, Opciones, pct } from "./controlesMuestra";
+import { fmt, pct } from "./controlesMuestra";
 
 type InspectorProps = {
   config: HojasRutaIntegratedConfig;
@@ -50,17 +45,14 @@ type InspectorProps = {
 // Lo que el inspector ya dice con sus propias palabras: no se repite el aviso del servidor.
 const AVISOS_YA_DICHOS = /MARGIN_HIGH|ROUTE_N_NOT_MULTIPLE|DEFF_IGNORES_CLUSTERING/;
 
-export function MuestraInspector({ config, resultado: r, bloqueado, guardando, hayMuestra, hayTamano = false, avisosServidor = [], margenPara, territorios = [], estratoServidor = null, onGuardar }: InspectorProps) {
+export function MuestraInspector({ config, resultado: r, bloqueado, guardando, hayMuestra, hayTamano = false, avisosServidor = [], onGuardar }: InspectorProps) {
   const { muestraBorrador, setMuestraBorrador, cajonMuestra, setCajonMuestra } = useLienzoHojasRuta();
   const nav = useSeccion("hojas-ruta");
   const s = config.sample_size;
   const ruta = config.entrevistas_por_manzana;
-  const cambiar = (b: BorradorMuestra) => setMuestraBorrador({ ...muestraBorrador, ...b, sample_size: { ...muestraBorrador?.sample_size, ...b.sample_size } });
-  const cambiarS = (x: Partial<HojasRutaSampleSizeConfig>) => cambiar({ sample_size: x });
   const peor = r.filas.length ? Math.max(...r.filas.map((f) => f.margen ?? 0)) : null;
   const excedidos = r.filas.filter((f) => (f.margen ?? 0) > f.margenObjetivo + 1e-9).length;
   const razon = config.sample_size_mode === "calculator" ? (s.enforce_district_floor && r.sumaMinimos > r.nTotalMinimo ? "Manda la suma de mínimos por distrito" : "Manda el margen total") : config.sample_size_mode === "external_total" ? "N aprobado por el cliente" : "N aprobado por distrito";
-  const ed = bloqueado || guardando;
 
   return (
     <>
@@ -88,13 +80,8 @@ export function MuestraInspector({ config, resultado: r, bloqueado, guardando, h
 
         <AccesoAjustes grupo="tamano" titulo="Tamaño y precisión" valor={resumenGrupo("tamano", config, { n: r.nUsado })} />
 
-        <GrupoMuestra titulo="Reparto entre distritos" resumen={resumenReparto(s, config.sample_size_mode === "external_district")}>
-        {config.sample_size_mode !== "external_district" ? (
-          <Opciones etiqueta="Asignación entre distritos" valor={s.allocation_mode ?? "proportional"} deshabilitado={ed} opciones={[["proportional", "Por tamaño"], ["uniform", "Igualitaria"], ["compromise", "Intermedia"]] as const} onCambio={(v) => cambiarS({ allocation_mode: v })} />
-        ) : null}
-        <BaseReparto2025 sampleSize={s} territorios={territorios} deshabilitado={ed} onCambio={(base_reparto) => cambiarS({ base_reparto })} />
-        <EstratoMuestral sampleSize={s} rowVar={config.row_var} nPorDistrito={config.sample_size_mode === "external_district"} servidor={estratoServidor} deshabilitado={ed} onCambio={(estrato) => cambiar({ sample_size: { estrato }, ...politicaAlCambiar(estrato) })} onCambioMinimo={(rutas_minimas_ciudad) => cambiarS({ rutas_minimas_ciudad })} />
-        </GrupoMuestra>
+        <AccesoAjustes grupo="reparto" titulo="Reparto y estrato" valor={resumenGrupo("reparto", config)} />
+        <AccesoAjustes grupo="visitas" titulo="Visitas mínimas" valor={resumenGrupo("visitas", config)} />
 
         {muestraBorrador && hayMuestra ? <p className="hr-mapa-aviso">Guardar recalcula el tamaño y descarta las cuotas y el sorteo actual.</p> : null}
       </div>

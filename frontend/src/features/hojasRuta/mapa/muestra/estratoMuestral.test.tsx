@@ -45,16 +45,16 @@ describe("estrato del sorteo en la UI (ADR 0131 §1)", () => {
     expect(politicaAlCambiar("distrito")).toBeNull();
   });
 
-  it("muestra el mínimo por ciudad, las ciudades con certeza y los grupos con sus ciudades sorteadas y su π (§1b)", () => {
+  it("muestra el mínimo por ciudad, las ciudades fijas y los grupos con sus ciudades aleatorias y su π (§1b; «Fija/Aleatoria», maqueta 2026-11-05)", () => {
     const html = renderToStaticMarkup(<EstratoMuestral sampleSize={ss("provincia_lima_areas")} rowVar="distrito" nPorDistrito={false} servidor={normalizeHojasRutaEstratoMuestral(crudo)} deshabilitado={false} onCambio={() => undefined} onCambioMinimo={() => undefined} />);
     expect(html).toContain("Rutas mínimas por ciudad visitada");
     expect(html).toContain('value="6"');
-    expect(html).toContain("Ciudades con certeza");
+    expect(html).toContain("Ciudades fijas");
     expect(html).toContain("Lima por áreas");
     expect(html).toContain("Norte 16");
     expect(html).toContain("Oriente");
     expect(html).toContain("9 rutas en 1 de 2 ciudades");
-    expect(html).toContain("sorteada, 9 rutas (π 0.38)");
+    expect(html).toContain("aleatoria, 9 rutas (π 0.38)");
     expect(html).toContain("no sale (π 0.37)");
     expect(html).toContain("35 rutas");
     // Otro estrato u otro mínimo que el calculado: no se muestran cifras viejas.

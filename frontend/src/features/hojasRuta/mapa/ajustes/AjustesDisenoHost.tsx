@@ -1,13 +1,15 @@
 import { useCallback, useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 
-import type { HojasRutaIntegratedConfig } from "../../../../api/hojasRuta";
+import type { HojasRutaEstratoMuestral, HojasRutaIntegratedConfig, HojasRutaTerritory } from "../../../../api/hojasRuta";
 import type { ResultadoTamano } from "../muestra/motorTamano";
 import { useLienzoHojasRuta } from "../store";
 import { AjustesDiseno, type VistaPreviaDiseno } from "./AjustesDiseno";
 import { cambiosSinAplicar } from "./BotonDiseno";
 import type { GrupoAjustesId, SeccionOrigen } from "./gruposAjustes";
+import { GrupoReparto } from "./grupos/GrupoReparto";
 import { GrupoTamano } from "./grupos/GrupoTamano";
+import { GrupoVisitas } from "./grupos/GrupoVisitas";
 import { useAjustesDiseno } from "./useAjustesDiseno";
 
 type Props = {
@@ -19,6 +21,8 @@ type Props = {
   margenPara?: (n: number) => number | null;
   bloqueado: boolean;
   guardando: boolean;
+  territorios: readonly HojasRutaTerritory[];
+  estratoServidor: HojasRutaEstratoMuestral | null;
   /** El guardar de la muestra de la página (el mismo de antes de la mudanza). */
   onAplicarMuestra: () => void;
 };
@@ -34,7 +38,7 @@ const vistaDe = (config: HojasRutaIntegratedConfig, tamano: ResultadoTamano | nu
  * crecer `HojasRutaMapaPage.tsx`. Recalcular fija la vista previa con el borrador vigente sin guardar; si el
  * borrador cambia después, la vista previa queda atenuada hasta volver a recalcular. Aplicar guarda.
  */
-export function AjustesDisenoHost({ config, configMuestra, fase, tamano, margenPara, bloqueado, guardando, onAplicarMuestra }: Props) {
+export function AjustesDisenoHost({ config, configMuestra, fase, tamano, margenPara, bloqueado, guardando, territorios, estratoServidor, onAplicarMuestra }: Props) {
   const { abierto, grupo, cerrar, irAGrupo } = useAjustesDiseno();
   const { rangosBorrador, cortesBorrador, muestraBorrador, sorteoBorrador } = useLienzoHojasRuta();
   const location = useLocation();
@@ -63,8 +67,14 @@ export function AjustesDisenoHost({ config, configMuestra, fase, tamano, margenP
   }, [location.pathname, location.search, navigate]);
 
   const contenidoDe = useCallback(
-    (g: GrupoAjustesId) => (g === "tamano" && configMuestra && tamano ? <GrupoTamano config={configMuestra} resultado={tamano} bloqueado={bloqueado} guardando={guardando} margenPara={margenPara} /> : null),
-    [configMuestra, tamano, bloqueado, guardando, margenPara],
+    (g: GrupoAjustesId) => {
+      if (!configMuestra) return null;
+      if (g === "tamano" && tamano) return <GrupoTamano config={configMuestra} resultado={tamano} bloqueado={bloqueado} guardando={guardando} margenPara={margenPara} />;
+      if (g === "reparto") return <GrupoReparto config={configMuestra} territorios={territorios} estratoServidor={estratoServidor} deshabilitado={bloqueado || guardando} />;
+      if (g === "visitas") return <GrupoVisitas config={configMuestra} estratoServidor={estratoServidor} deshabilitado={bloqueado || guardando} />;
+      return null;
+    },
+    [configMuestra, tamano, bloqueado, guardando, margenPara, territorios, estratoServidor],
   );
 
   if (!config) return null;

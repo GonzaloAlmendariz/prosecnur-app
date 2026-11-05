@@ -25,6 +25,8 @@ describe("grupos de Ajustes del diseño", () => {
     expect(resumenGrupo("marco", config)).toBe("Mínimo 8 viviendas, 2 áreas excluidas");
     expect(resumenGrupo("sorteo", config)).toBe("PPS estratificado, semilla 2017");
     expect(resumenGrupo("fase", config, { fase: "pilot" })).toBe("Piloto");
+    expect(resumenGrupo("visitas", config)).toBe("6 rutas por ciudad como mínimo");
+    expect(resumenGrupo("visitas", { ...config, sample_size: { ...config.sample_size, estrato: "distrito" } } as HojasRutaIntegratedConfig)).toBe("Sin efecto con estrato por distrito");
     for (const g of GRUPOS_AJUSTES) expect(resumenGrupo(g.id, config)).not.toContain("·");
   });
 });
