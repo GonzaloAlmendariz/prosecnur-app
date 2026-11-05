@@ -77,7 +77,7 @@ export type ValidationIssue = {
     | "ttb-sin-respuestas"
     | "radar-criterios";
   message: string;
-  /** El mensaje sin «Lámina N · “título” (tipo)»: para mostrarlo dentro de la lámina (Inspector). */
+  /** El mensaje sin «Lámina N, “título” (tipo)»: para mostrarlo dentro de la lámina (Inspector). */
   detalle?: string;
   slideId?: string;       // para poder saltar al slide afectado
   slotName?: string;
@@ -125,7 +125,7 @@ export type EntradaValidarPlan = {
   relacionBases?: RelacionBases;
 };
 
-// Los textos nombran la lámina como el backend (`rotuloLamina`: «Lámina 3 · “título”») y su tipo y espacio como el
+// Los textos nombran la lámina como el backend (`rotuloLamina`: «Lámina 3, “título”») y su tipo y espacio como el
 // selector; el id de la lámina viaja sólo en `slideId`, para «Ir a la lámina».
 export function validarPlan(entrada: EntradaValidarPlan): ValidationSummary {
   const { slides, presets, wPresets, overridesReusables, paletas, iconos, slidesById, graficadoresById, presetsByName, variables, multi, relacionBases } = entrada;
@@ -552,7 +552,7 @@ function enMayuscula(texto: string): string {
   return texto ? texto.charAt(0).toLocaleUpperCase("es") + texto.slice(1) : texto;
 }
 
-/** «Estas preguntas…» → «estas preguntas…», para ir detrás de «Lámina 3 · …: ». */
+/** «Estas preguntas…» → «estas preguntas…», para ir detrás de «Lámina 3, …: ». */
 function enMinuscula(texto: string): string {
   return texto ? texto.charAt(0).toLocaleLowerCase("es") + texto.slice(1) : texto;
 }
