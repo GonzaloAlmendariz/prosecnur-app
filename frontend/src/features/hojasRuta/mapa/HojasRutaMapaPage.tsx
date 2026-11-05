@@ -70,6 +70,7 @@ import { useVistaNacional } from "./nacional/useVistaNacional";
 import { estadosPorTitular, manzanaEnPunto, reemplazosDe, rutasPorDistrito, vecina } from "./seleccion/rutas";
 import { SeleccionCajon, SeleccionEstructura, SeleccionInspector } from "./seleccion/SeleccionPaneles";
 import { SalidasPanel } from "./seleccion/SalidasPanel";
+import { AjustesDisenoHost } from "./ajustes/AjustesDisenoHost";
 import { useSeleccionDireccion } from "./seleccion/useSeleccionDireccion";
 import "./marco.css";
 import "./mapaPage.css";
@@ -1041,6 +1042,7 @@ export default function HojasRutaMapaPage() {
           )}
         </section>
       </div>
+      <AjustesDisenoHost config={estado?.integrated_config ?? null} fase={fase} tamano={tamano} />
     </PageFrame>
   );
 }

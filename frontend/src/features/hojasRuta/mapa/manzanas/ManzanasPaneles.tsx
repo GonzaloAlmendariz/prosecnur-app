@@ -30,7 +30,7 @@ import { resumenHistorial } from "./resumenHistorial";
 
 const fmt = (n: number) => new Intl.NumberFormat("es-PE").format(Math.round(n));
 
-const METODOS: ReadonlyArray<{ id: SamplingMethod; titulo: string; cuerpo: string }> = [
+export const METODOS: ReadonlyArray<{ id: SamplingMethod; titulo: string; cuerpo: string }> = [
   { id: "pps", titulo: "PPS estratificado", cuerpo: "Más viviendas, más probabilidad, dentro de cada distrito." },
   // ADR 0120: para estudios donde preocupan los condominios; no es autoponderado (W_DESIGN_NOT_SELF_WEIGHTING).
   { id: "pps_tope", titulo: "PPS con tope", cuerpo: "Como PPS, pero las manzanas enormes (condominios) no acaparan rutas. Obliga a analizar con pesos." },

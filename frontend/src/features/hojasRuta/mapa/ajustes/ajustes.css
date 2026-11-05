@@ -1,0 +1,47 @@
+/* «Ajustes del diseño» (AjustesDiseno.tsx), maqueta aprobada lámina 6. Densidad pedida: tarjetas con
+   11–12 px de padding y gaps de 10 px. Velo con desenfoque, ventana que sube y contenido escalonado. */
+
+/* El marco, el velo, la cabecera y el pie los pone components/Dialog (kit): aquí sólo el interior. */
+.hr-ajustes .hr-ajustes-buscar { display: flex; align-items: center; gap: 6px; height: 32px; margin-bottom: 6px; padding: 0 10px; border: 1px solid var(--pulso-border); border-radius: 8px; color: var(--pulso-text-soft); background: var(--pulso-surface-2); }
+.hr-ajustes-buscar input { flex: 1; min-width: 0; border: 0; background: none; font: inherit; font-size: var(--pulso-type-body-size); color: var(--pulso-text); outline: none; }
+.hr-ajustes-buscar:focus-within { border-color: var(--pulso-module-routes); }
+
+.hr-ajustes-medio { display: grid; grid-template-columns: 250px minmax(0, 1fr); min-height: 0; height: 100%; }
+.hr-ajustes-nav { display: flex; flex-direction: column; gap: 2px; padding: 10px; border-right: 1px solid var(--pulso-border); overflow: auto; }
+.hr-ajustes-nav-item { display: flex; flex-direction: column; align-items: flex-start; gap: 1px; padding: 8px 10px; border: 0; border-radius: 9px; background: none; font: inherit; text-align: left; cursor: pointer; transition: background 0.18s ease; }
+.hr-ajustes-nav-item span { font-size: var(--pulso-type-body-size); font-weight: 600; color: var(--pulso-text); }
+.hr-ajustes-nav-item small { font-size: var(--pulso-type-caption-size); color: var(--pulso-text-soft); }
+.hr-ajustes-nav-item:hover { background: var(--pulso-surface-2); color: var(--pulso-text); }
+.hr-ajustes-nav-item[aria-current="true"] { background: var(--pulso-module-routes-soft); }
+.hr-ajustes-nav-item[aria-current="true"] span { color: var(--pulso-module-routes); }
+.hr-ajustes-nav-item:focus-visible { outline: 2px solid var(--pulso-module-routes); outline-offset: 1px; }
+.hr-ajustes-nada { margin: 6px 10px; font-size: var(--pulso-type-caption-size); color: var(--pulso-text-soft); }
+
+.hr-ajustes-cuerpo { display: flex; flex-direction: column; gap: 10px; padding: 12px 16px; overflow: auto; }
+.hr-ajustes-cuerpo > * { animation: hr-ajustes-aparecer 0.32s ease-out both; }
+.hr-ajustes-cuerpo > *:nth-child(2) { animation-delay: 30ms; }
+.hr-ajustes-cuerpo > *:nth-child(3) { animation-delay: 60ms; }
+.hr-ajustes-cuerpo > *:nth-child(4) { animation-delay: 90ms; }
+.hr-ajustes-grupo-cab h3 { margin: 0; font-size: var(--pulso-type-title-size); font-weight: 700; color: var(--pulso-text); }
+.hr-ajustes-grupo-cab p { margin: 2px 0 0; font-size: var(--pulso-type-body-size); color: var(--pulso-text-soft); }
+.hr-ajustes-vigente { display: flex; flex-direction: column; gap: 2px; margin: 0; padding: 11px 12px; border-radius: 10px; background: var(--pulso-surface-2); }
+.hr-ajustes-vigente dt { font-size: var(--pulso-type-micro-size); font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--pulso-text-soft); }
+.hr-ajustes-vigente dd { margin: 0; font-size: var(--pulso-type-body-size); font-weight: 600; color: var(--pulso-text); }
+.hr-ajustes-pendiente { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 11px 12px; border: 1px dashed var(--pulso-border); border-radius: 10px; font-size: var(--pulso-type-caption-size); color: var(--pulso-text-soft); }
+
+.hr-ajustes-vista { display: flex; gap: 18px; margin: 0; }
+.hr-ajustes-vista[data-desfasada] { opacity: 0.5; }
+.hr-ajustes-vista div { display: flex; flex-direction: column; }
+.hr-ajustes-vista dt { font-size: var(--pulso-type-micro-size); color: var(--pulso-text-soft); }
+.hr-ajustes-vista dd { margin: 0; font-size: var(--pulso-type-body-size); font-weight: 700; color: var(--pulso-text); font-variant-numeric: tabular-nums; }
+
+@media (max-width: 1100px) {
+  .hr-ajustes-medio { grid-template-columns: 210px minmax(0, 1fr); }
+  .hr-ajustes-vista { gap: 12px; }
+}
+
+@keyframes hr-ajustes-aparecer { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .hr-ajustes-cuerpo > * { animation: none; }
+}

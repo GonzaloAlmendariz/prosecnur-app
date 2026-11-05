@@ -39,6 +39,7 @@ import { PANELES_CAMPANAS } from "../../features/recopiladores/campanas/panelesC
 import { PANEL_EDITOR_BLOQUE } from "../../features/recopiladores/editor/panelesEditor";
 import { PANELES_TERRITORIAL } from "../../features/recopiladores/territorial/panelesTerritorial";
 import { PANEL_SALIDAS_SELECCION } from "../../features/hojasRuta/seleccion/panelesSeleccion";
+import { PANEL_AJUSTES_DISENO } from "../../features/hojasRuta/mapa/ajustes/panelAjustes";
 import { PANEL_CONTACTOS_VARIABLES } from "../../features/recopiladores/correos/contactos/panelesContactos";
 import { PANEL_NUEVO_FILTRO } from "../../features/xlsformEditor/choiceFilters/panelesFiltros";
 import { PANEL_CAMPANA_COMPLEMENTARIA } from "../../features/xlsformEditor/shell/campanaComplementariaModel";
@@ -245,7 +246,8 @@ export const PANELES_POR_MODULO: Readonly<
   // paletas por lista; `?panel=publicar`: el despliegue (abrirlo no publica); `?panel=fuente`: «Datos», la fuente
   // del tablero, que lo reemplaza en la página.
   dashboard: [...PANELES_DASHBOARD],
-  "hojas-ruta": [PANEL_SALIDAS_SELECCION],
+  // `?panel=ajustes&foco=<grupo>`: «Ajustes del diseño», los ocho grupos de la configuración (maqueta 2026-11-05).
+  "hojas-ruta": [PANEL_SALIDAS_SELECCION, PANEL_AJUSTES_DISENO],
   "material-campo": [
     ...PANELES_CAMPANAS,
     ...PANELES_CORREOS,
