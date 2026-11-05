@@ -584,7 +584,7 @@ div.hr-mapa-aviso { display: flex; flex-direction: column; align-items: flex-sta
 .hr-sel-grupo-nombre { display: inline-flex; align-items: center; gap: 7px; } .hr-sel-grupo-nombre i { width: 9px; height: 9px; border-radius: 50%; }
 .hr-muestra-rep-nombre { display: inline-flex; align-items: center; gap: 8px; min-width: 0; } .hr-muestra-rep-nombre i { flex: none; width: 9px; height: 9px; border-radius: 50%; }
 .hr-manz-pasos { counter-reset: paso; }
-.hr-manz-pasos > .hr-muestra-grupo > h3::before { counter-increment: paso; content: counter(paso) " · "; }
+.hr-manz-pasos > .hr-muestra-grupo > h3::before { counter-increment: paso; content: counter(paso) ". "; }  /* Sin punto medio en títulos (registro formal de la casa): «1. Recorrido». */
 .hr-sorteo-historial-cab small { font-weight: 600; letter-spacing: 0; text-transform: none; }
 .hr-sorteo-subtitulo { display: flex; justify-content: space-between; margin-top: 10px; }
 .hr-mapa-estructura .hr-muestra-grupo[aria-label="Historial de ruteos"] { border-top: 0; padding-top: 0; }
