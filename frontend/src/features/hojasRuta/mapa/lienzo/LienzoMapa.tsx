@@ -409,7 +409,7 @@ export function LienzoMapa({
       lienzo.width = Math.max(1, Math.round(r.width * e.dpr));
       lienzo.height = Math.max(1, Math.round(r.height * e.dpr));
       e.baseSucia = true;
-      if (e.objetivo && !e.manual) e.camara = encuadre(e.objetivo.caja, e.tamano, e.objetivo.pad ?? 0.1);
+      if (e.objetivo && !e.manual) e.camara = encuadre(e.objetivo.caja, e.tamano, e.objetivo.pad ?? 0.1, e.objetivo.tapadoAbajo);
       pintar();
     };
     medir();
