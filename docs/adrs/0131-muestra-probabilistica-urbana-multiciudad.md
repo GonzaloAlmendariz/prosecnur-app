@@ -60,6 +60,9 @@ la muestra teniendo el 54 % de la población. Esta enmienda reemplaza la regla d
 - **Ciudades de inclusión forzosa.** Una ciudad (provincia del registro; Lima Metropolitana y Callao siempre) entra
   con certeza si su reparto proporcional a los adultos urbanos 2025 alcanza el mínimo operativo. Recibe su reparto
   proporcional puro, sin piso añadido. Lima puede seguir partida en sus 5 áreas como estratos.
+  - **Ciudades fijas por decisión** (enmienda del 5/11): el estudio puede declarar en `sample_size$ciudades_fijas`
+    códigos de provincia que entran con certeza aunque su reparto no llegue al mínimo (caso: Cusco en la propuesta
+    conjoint). Reciben su reparto proporcional con piso del mínimo; el peso de diseño corrige la sobrerrepresentación.
 - **Ciudades sorteadas.** Las que quedan bajo el mínimo se agrupan por macrorregión (norte, centro, sur y oriente,
   con la tabla de departamentos declarada en el código y aquí). En cada grupo g:
   - rutas del grupo `R_g` = suma de los repartos proporcionales de sus ciudades;
@@ -112,7 +115,12 @@ recibían 1 o 2 rutas. Se aplica dentro de cada ciudad (o área de Lima) la mism
   - Los dos son supuestos que se declaran. `pob25` incluye la parte rural del distrito y todas las edades, así que
     no se usa sin ajustar.
 - **Dentro del estrato:** la medida de tamaño de la manzana es `MOS_i = M_i^2017 · g_d`, con
-  `g_d = P̂25_d / pob17_en_capa_d`.
+  `g_d = P̂25_d / Σ_{i∈d} M_i^2017`, en la misma unidad que `M` (viviendas por defecto) sobre el marco completo
+  del distrito. Así `Σ_{i∈d} MOS_i = P̂25_d`.
+  - Corrección del 5/11: antes `g_d = P̂25_d / pob17_en_capa_d` dividía por personas aunque `M` fueran viviendas, y
+    la medida del distrito quedaba en `P̂25_d` × viviendas por persona (de 0,21 a 0,51 según el distrito). El diseño no
+    era autoponderado (Kish ≈ 1,02) y la π de las ciudades sorteadas no seguía a sus adultos (Cusco 0,339 frente a
+    0,390). Las π publicadas eran exactas para la medida que se usó.
   - g_d es un factor por distrito conocido antes del sorteo, así que π sigue siendo exacta.
   - Iguala el peso de cada distrito en la muestra con su peso en 2025.
   - Esto no reemplaza el marco calibrado con Open Buildings del ADR 0119 §5.

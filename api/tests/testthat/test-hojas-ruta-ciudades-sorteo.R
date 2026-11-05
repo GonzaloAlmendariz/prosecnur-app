@@ -191,3 +191,20 @@ test_that("la memoria declara el mínimo por ciudad, las forzosas y los grupos c
   expect_match(frase, "probabilidad 0\\.\\d{2}")
   expect_match(frase, "(Norte|Centro|Sur|Oriente), \\d+ rutas en \\d+ de sus \\d+ ciudades")
 })
+
+
+test_that("ciudades_fijas fuerza la ciudad aunque su reparto no llegue al mínimo", {
+  expect_identical(unlist(hojas_ruta_ciudades_normalizar(list(ciudades_fijas = list("0801", "x", "0801")))$ciudades_fijas), "0801")
+  expect_length(hojas_ruta_ciudades_normalizar(NULL)$ciudades_fijas, 0L)
+  ciudad <- c("1501", "0801", "2301", "2101")
+  pob <- c(1000, 40, 30, 20); mos <- pob
+  cfg <- list(sample_size = list(rutas_minimas_ciudad = 6L), seed = 2017L)
+  sin <- hojas_ruta_ciudades_seleccion(ciudad, pob, mos, 60L, cfg)$ciudades
+  expect_identical(sin$condicion[sin$ciudad == "0801"] == "forzosa", FALSE)
+  cfg$sample_size$ciudades_fijas <- list("0801")
+  con <- hojas_ruta_ciudades_seleccion(ciudad, pob, mos, 60L, cfg)$ciudades
+  expect_identical(con$condicion[con$ciudad == "0801"], "forzosa")
+  expect_equal(con$pi_ciudad[con$ciudad == "0801"], 1)
+  expect_true(con$rutas[con$ciudad == "0801"] >= 6L)
+  expect_identical(sum(con$rutas), 60L)
+})

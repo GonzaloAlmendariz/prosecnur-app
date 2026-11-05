@@ -165,14 +165,42 @@ hojas_ruta_reparto_base_escalar_celdas <- function(cells, cfg) {
   hojas_ruta_cuotas_2025_celdas(cells, cfg)
 }
 
-#' Medida de tamaño del sorteo con la base activa: MOS_i = M_i · g_d. `m` es la
-#' medida ya saneada (y topada) de las filas de `df`. Apagada, `m` tal cual.
+# Memo de la medida 2017 del marco completo por distrito (el marco no cambia en una corrida).
+.hojas_ruta_rb_medida17_memo <- new.env(parent = emptyenv())
+
+#' Σ de la medida 2017 (`viviendas` o `poblacion`) del distrito en el marco completo.
+.hojas_ruta_rb_medida17 <- function(ubigeos, cfg) {
+  var <- cfg$measure_var %||% "viviendas"
+  frame <- hojas_ruta_inei_frame(cfg$frame_source)
+  key <- paste(cfg$frame_source %||% "", var, nrow(frame), sep = "|")
+  tot <- .hojas_ruta_rb_medida17_memo[[key]]
+  if (is.null(tot)) {
+    v <- suppressWarnings(as.numeric(frame[[var]]))
+    v[!is.finite(v) | v < 0] <- 0
+    tot <- tapply(v, as.character(frame$ubigeo), sum)
+    .hojas_ruta_rb_medida17_memo[[key]] <- tot
+  }
+  out <- as.numeric(tot[ubigeos])
+  faltan <- ubigeos[!is.finite(out) | out <= 0]
+  if (length(faltan)) .hojas_ruta_rb_incompleta(sprintf("%s (medida 2017 del marco en 0)", faltan))
+  out
+}
+
+#' Medida de tamaño del sorteo con la base activa: MOS_i = M_i · g_d, con
+#' g_d = P̂25_d / Σ_{i∈d} M_i en la MISMA unidad que M (viviendas o población del marco
+#' 2017). Así Σ MOS_i del distrito = P̂25_d y el reparto entre ciudades, el sorteo de
+#' ciudades y el de distritos siguen a los adultos urbanos 2025: el diseño queda
+#' autoponderado. (Antes g_d se dividía por la población 2017 aunque M fueran
+#' viviendas, y la medida del distrito quedaba en P̂25 × viviendas por persona.)
+#' `m` es la medida ya saneada (y topada) de las filas de `df`. Apagada, `m` tal cual.
 hojas_ruta_reparto_base_mos <- function(m, df, cfg) {
   if (!length(m) || !hojas_ruta_reparto_base_activa(cfg$sample_size)) return(m)
   if (!"ubigeo" %in% names(df)) .hojas_ruta_rb_incompleta("el ubigeo de las manzanas del marco")
   ub <- as.character(df$ubigeo)
-  base <- hojas_ruta_reparto_base_distritos(unique(ub))
-  m * base$g[match(ub, base$ubigeo)]
+  u <- unique(ub)
+  base <- hojas_ruta_reparto_base_distritos(u)
+  g <- base$p25 / .hojas_ruta_rb_medida17(u, cfg)
+  m * g[match(ub, u)]
 }
 
 #' Columnas de la base 2025 para la lista de territorios (la UI las usa en su espejo

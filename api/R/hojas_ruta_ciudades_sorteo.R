@@ -11,8 +11,8 @@
 #      registro) según su población (adultos urbanos 2025 con la base 2025):
 #      R_c = T · P_c / ΣP.
 #   2. Forzosa: R_c ≥ m (`rutas_minimas_ciudad`, 6 por defecto), y siempre Lima
-#      Metropolitana (1501) y Callao (0701). Recibe su reparto proporcional, sin
-#      piso añadido.
+#      Metropolitana (1501), Callao (0701) y las `ciudades_fijas` que declare el
+#      estudio. Recibe su reparto proporcional, con piso m si queda debajo.
 #   3. Las demás se agrupan por macrorregión g. R_g = Σ R_c, h_g = max(1, ⌊R_g/m⌋)
 #      ciudades a visitar, π_c = h_g · MOS_c / MOS_g. Una ciudad con π_c ≥ 1 pasa a
 #      forzosa y el grupo se recalcula.
@@ -43,7 +43,12 @@ hojas_ruta_ciudades_normalizar <- function(x = NULL) {
   v <- if (is.list(x)) x$rutas_minimas_ciudad else NULL
   v <- suppressWarnings(as.integer(if (is.null(v) || !length(v)) NA else unlist(v)[[1]]))
   if (is.na(v) || v < 1L) v <- HOJAS_RUTA_RUTAS_MINIMAS_CIUDAD
-  list(rutas_minimas_ciudad = v)
+  # Ciudades fijas por decisión del estudio (además de Lima Metropolitana y Callao):
+  # códigos de provincia de 4 dígitos. Lo que no tenga esa forma se descarta.
+  f <- if (is.list(x)) unlist(x$ciudades_fijas, use.names = FALSE) else NULL
+  f <- unique(trimws(as.character(f %||% character(0))))
+  f <- sort(f[grepl("^[0-9]{4}$", f)])
+  list(rutas_minimas_ciudad = v, ciudades_fijas = as.list(f))
 }
 
 #' Reparto entero con piso: proporcional a `w`, pero ninguna unidad debajo de su
@@ -80,13 +85,15 @@ hojas_ruta_ciudades_normalizar <- function(x = NULL) {
 #'   reparto, pi_ciudad, rutas, esperado), grupos = data.frame(grupo, reparto,
 #'   h, rutas, n_ciudades)).
 hojas_ruta_ciudades_seleccion <- function(ciudad, pob, mos, route_total, cfg) {
-  m <- hojas_ruta_ciudades_normalizar(cfg$sample_size)$rutas_minimas_ciudad
+  norm <- hojas_ruta_ciudades_normalizar(cfg$sample_size)
+  m <- norm$rutas_minimas_ciudad
+  siempre <- c(HOJAS_RUTA_CIUDADES_SIEMPRE, unlist(norm$ciudades_fijas, use.names = FALSE))
   cods <- sort(unique(ciudad))
   P <- vapply(cods, function(c) sum(pob[ciudad == c]), numeric(1))
   M <- vapply(cods, function(c) sum(mos[ciudad == c]), numeric(1))
   R <- route_total * P / sum(P)
   grupo <- hojas_ruta_macrorregion_de(cods)
-  forzosa <- R >= m - 1e-9 | cods %in% HOJAS_RUTA_CIUDADES_SIEMPRE
+  forzosa <- R >= m - 1e-9 | cods %in% siempre
   repeat {
     pi_c <- rep(1, length(cods))
     h <- list()
