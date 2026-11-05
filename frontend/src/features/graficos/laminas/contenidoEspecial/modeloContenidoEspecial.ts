@@ -19,8 +19,10 @@ export function esArgIcono(a: Pick<ArgMetadata, "tipo_input">): boolean {
 /**
  * Láminas cuyos ajustes que no son texto (modo, topes, interruptores, listas) tienen su propio bloque en Contenido.
  * «Hallazgos clave» (revisión del PPT v7.11, ítem 2): el modo y el resumen ejecutivo por capítulo (hallazgos/).
+ * «Resumen de diferencias» (revisión del PPT v7.23, ítem 15): la selección, los cruces, los topes y los capítulos con
+ * sus filas (resumenDiferencias/).
  */
-export const LAMINAS_CON_AJUSTES: ReadonlySet<string> = new Set(["p_slide_hallazgos"]);
+export const LAMINAS_CON_AJUSTES: ReadonlySet<string> = new Set(["p_slide_hallazgos", "p_slide_resumen_diferencias"]);
 
 /** Un argumento de esa lámina que va en su bloque de ajustes: todo lo que no es texto ni `meta`. */
 export function esArgDeAjustes(a: Pick<ArgMetadata, "tipo_input">, tipo?: string): boolean {
