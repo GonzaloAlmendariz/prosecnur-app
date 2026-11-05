@@ -417,6 +417,10 @@
     fin <- pmax(fin, cif$x[kc] + .lam_ancho_tinta(cif$texto[kc], .std_pt("cifra"), TRUE) + 0.12)
   }
   rot$yc <- bar$yc[k]; rot$x_fin <- fin + 0.07; rot$y_ancla <- bar$yc[k]
+  # Con la pista gris al 100% (lamina_barras_pista.R) la escala llega hasta el fin de la pista: la tarjeta no puede
+  # arrimarse más acá (v7.14, lámina 25: la pista pasaba por debajo de la tarjeta).
+  pista <- pieza("barra:pista")
+  attr(rot, "fin_escala") <- if (is.null(pista)) NA_real_ else max(pista$x + pista$w)
   rot
 }
 
@@ -481,6 +485,8 @@
     # Barras que no llenan la lámina (una categórica: van al 100 %): la tarjeta se arrima al final de las barras y gana
     # ancho, en vez de quedar sola en el borde (ítem 9 de la v7.11 RV: «la tarjeta y las barras están tan distantes»).
     fin <- max(unlist(lapply(filas_de, `[[`, "x_fin")))
+    escala <- suppressWarnings(max(unlist(lapply(filas_de, function(f) attr(f, "fin_escala"))), na.rm = TRUE))
+    if (is.finite(escala)) fin <- max(fin, escala + 0.15 - .TARJETAS_JUNTO_AIRE)   # nada pasa por debajo de la tarjeta
     xp <- min(xp, fin + .TARJETAS_JUNTO_AIRE)
     cw <- min(.TARJETAS_JUNTO_ANCHO, borde - xp)
   }
