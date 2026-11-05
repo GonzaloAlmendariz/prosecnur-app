@@ -18,7 +18,9 @@ test_that("el indicador se nombra con lo común de sus categorías, o con el dec
   expect_identical(.tarjetas_indicador(c("Siempre", "Casi siempre"), "Con frecuencia"), "Con frecuencia")
   expect_identical(.tarjetas_indicador("Excelente"), "Excelente")
   t <- list(fila = "Claude", indicador = "Todos los días")
-  expect_identical(.tarjetas_encabezado(t), "Claude · Todos los días")                 # Word y panel: fila e indicador
+  expect_identical(.tarjetas_encabezado(t), "Claude: todos los días")   # Word y panel: fila e indicador, sin punto medio (registro formal, v7.23)
+  expect_identical(.tarjetas_encabezado(list(fila = "Otras herramientas (Copilot, entre otros).", indicador = "Todos los días")),
+                   "Otras herramientas (Copilot, entre otros): todos los días")   # sin «.:»
   expect_identical(.tarjetas_encabezado(t, con_fila = FALSE), "Todos los días")            # anclada: la premisa ya está en el eje
   expect_null(.tarjetas_encabezado(list(fila = "Claude"), con_fila = FALSE))               # con columna, como siempre
   expect_identical(.tarjetas_encabezado(list(fila = "Claude")), "Claude")
