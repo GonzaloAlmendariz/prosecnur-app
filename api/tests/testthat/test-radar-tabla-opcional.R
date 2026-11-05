@@ -309,3 +309,14 @@ test_that("el Word de la tarjeta completa lleva la tabla encima con `tabla` auto
   expect_length(xml2::xml_find_all(doc_de(mk(tabla = "no")), "//w:tbl", .rt_ns), 0L)
   expect_length(xml2::xml_find_all(doc_de(mk(word_tabla = TRUE)), "//w:tbl", .rt_ns), 1L)
 })
+
+test_that("la tabla del radar con la primera columna sin encabezado (o dos iguales) sale con su celda vacía y no tumba el mazo", {
+  doc <- officer::read_pptx(system.file("plantillas", "plantilla_16_9.pptx", package = "prosecnurapp"))
+  doc <- officer::add_slide(doc, layout = "Graficos2", master = "Office Theme")
+  d <- data.frame(c("Comunicación eficaz", "Trabajo en equipo"), c("98%", "98%"), c("94%", "99%"), check.names = FALSE, stringsAsFactors = FALSE)
+  names(d) <- c("", "Docentes", "Docentes")   # acrconta_mazo, lámina 48: «undefined columns selected»
+  doc <- .lam_tabla_ttb(doc, d, 1, 1, c(2, 1, 1), 0.3)
+  xml <- as.character(doc$slide$get_slide(doc$cursor)$get())
+  expect_match(xml, "Comunicación eficaz", fixed = TRUE)
+  expect_equal(lengths(regmatches(xml, gregexpr("<a:t>Docentes</a:t>", xml, fixed = TRUE))), 2L)
+})
