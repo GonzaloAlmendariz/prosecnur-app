@@ -62,7 +62,7 @@ const vistaDe = (config: HojasRutaIntegratedConfig, tamano: ResultadoTamano | nu
  */
 export function AjustesDisenoHost({ config, configMuestra, fase, tamano, margenPara, bloqueado, guardando, territorios, estratoServidor, onAplicarMuestra, rangosConfig, matriz, onGuardarYCalcularPoblacion, onGuardarCaracter, configSorteo, listoParaSortear, marcoElegible, viviendas, manzanas, reglaPiloto }: Props) {
   const { abierto, grupo, cerrar, irAGrupo } = useAjustesDiseno();
-  const { rangosBorrador, cortesBorrador, muestraBorrador } = useLienzoHojasRuta();
+  const { rangosBorrador, cortesBorrador, muestraBorrador, setRangosBorrador, setCortesBorrador, setMuestraBorrador, setSorteoBorrador } = useLienzoHojasRuta();
   const location = useLocation();
   const navigate = useNavigate();
   const firma = JSON.stringify(muestraBorrador ?? null);
@@ -124,6 +124,14 @@ export function AjustesDisenoHost({ config, configMuestra, fase, tamano, margenP
       pendientes={cambiosSinAplicar({ rangos: rangosBorrador, cortes: cortesBorrador, muestra: muestraBorrador, sorteo: null })}
       desfasada={desfasada}
       onRecalcular={() => setFijada({ firma, vista: actual })}
+      onCancelar={() => {
+        // Cancelar es descartar: los borradores que se editan en la ventana vuelven a lo guardado.
+        setMuestraBorrador(null);
+        setRangosBorrador(null);
+        setCortesBorrador(null);
+        setSorteoBorrador(null);
+        cerrar();
+      }}
       onAplicar={muestraBorrador || rangosBorrador || cortesBorrador ? () => {
         // Cada borrador se guarda con su guardar de siempre: la muestra con el de Muestra, los rangos con el de Población.
         if (muestraBorrador) onAplicarMuestra();

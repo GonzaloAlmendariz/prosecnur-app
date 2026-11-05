@@ -45,13 +45,17 @@ export function useAjustesDiseno() {
   const { abrir } = useAbrirAjustes();
 
   const cerrar = useCallback(() => {
-    const p = new URLSearchParams(location.search);
+    // La URL viva, no la del render: dos cierres en el mismo tick verían la misma `location` vieja.
+    const p = new URLSearchParams(window.location.search);
+    // Idempotente: un segundo cierre (Esc y velo a la vez, doble pulsación) con la ventana ya cerrada borraba el
+    // `foco` recién restaurado y Territorio perdía la ciudad abierta (recorrido M9).
+    if (p.get("panel") !== PANEL_AJUSTES_DISENO.id) return;
     p.delete("panel");
     const previo = leer();
     if (previo) p.set("foco", previo); else p.delete("foco");
     guardar(null);
     escribir(p);
-  }, [location.search, escribir]);
+  }, [escribir]);
 
   const irAGrupo = useCallback((g: GrupoAjustesId) => abrir(g), [abrir]);
 

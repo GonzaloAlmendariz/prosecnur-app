@@ -27,6 +27,8 @@ type Props = {
   /** La vista previa no refleja los últimos cambios: se atenúa hasta Recalcular. */
   desfasada?: boolean;
   onRecalcular?: () => void;
+  /** Cancelar descarta lo editado en la ventana y cierra; la ✕ y Esc cierran sin descartar. */
+  onCancelar?: () => void;
   onAplicar?: () => void;
   aplicando?: boolean;
 };
@@ -37,7 +39,7 @@ type Props = {
  * los ocho grupos con su contenido (M2–M6); si el contenido aún no llegó, el grupo dice su valor vigente.
  * Recalcular y Aplicar son dos botones distintos; sin cambios pendientes los dos esperan.
  */
-export function AjustesDiseno({ abierto, grupo, config, fase, vista, onGrupo, onCerrar, contenidoDe, pendientes = 0, desfasada = false, onRecalcular, onAplicar, aplicando = false }: Props) {
+export function AjustesDiseno({ abierto, grupo, config, fase, vista, onGrupo, onCerrar, contenidoDe, pendientes = 0, desfasada = false, onRecalcular, onCancelar, onAplicar, aplicando = false }: Props) {
   const [busqueda, setBusqueda] = useState("");
   const visibles = useMemo(() => filtrarGrupos(busqueda), [busqueda]);
   const actual = GRUPOS_AJUSTES.find((g) => g.id === grupo) ?? GRUPOS_AJUSTES[0];
@@ -65,7 +67,7 @@ export function AjustesDiseno({ abierto, grupo, config, fase, vista, onGrupo, on
       }
       footer={
         <>
-          <PulsoButton variant="secondary" onClick={onCerrar}>Cancelar</PulsoButton>
+          <PulsoButton variant="secondary" onClick={onCancelar ?? onCerrar} title="Descarta los cambios sin aplicar y cierra">Cancelar</PulsoButton>
           <PulsoButton variant="secondary" disabled={!desfasada || aplicando} title={desfasada ? "Actualiza la vista previa sin guardar" : "La vista previa está al día"} onClick={onRecalcular}>Recalcular</PulsoButton>
           <PulsoButton variant="primary" disabled={!pendientes || aplicando || !onAplicar} title={pendientes ? `Guarda ${pendientes === 1 ? "el cambio" : `los ${pendientes} cambios`} y recalcula en el servidor` : "Sin cambios que aplicar"} onClick={onAplicar}>{aplicando ? "Aplicando…" : pendientes ? `Aplicar ${pendientes}` : "Aplicar"}</PulsoButton>
         </>
