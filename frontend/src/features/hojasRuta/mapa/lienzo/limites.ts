@@ -98,6 +98,13 @@ export function dibujarNombresDepartamento(ctx: CanvasRenderingContext2D, u: Uti
   ctx.font = "500 9.5px -apple-system, system-ui, sans-serif";
   ctx.textAlign = "right";
   ctx.globalAlpha = 0.7;
-  ctx.fillText("Límites: IGN vía OCHA, CC BY 3.0 IGO", u.tamano.w - 12, u.tamano.h - 54);
+  // Encima del grupo de zoom y la escala (≈ 48 px desde el borde con su sombra): a 54 px el texto quedaba bajo
+  // el borde de los controles y se leía «IGN vía OCHA» tapado.
+  // Con halo del fondo, como los rótulos: a 1024 cae sobre marcas de ciudad y nombres de departamento.
+  ctx.lineWidth = 3;
+  ctx.lineJoin = "round";
+  ctx.strokeStyle = u.colores.fondo;
+  ctx.strokeText("Límites: IGN vía OCHA, CC BY 3.0 IGO", u.tamano.w - 12, u.tamano.h - 66);
+  ctx.fillText("Límites: IGN vía OCHA, CC BY 3.0 IGO", u.tamano.w - 12, u.tamano.h - 66);
   ctx.restore();
 }
