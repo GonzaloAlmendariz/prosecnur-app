@@ -142,7 +142,9 @@ test_that("metadata de graficadores expone controles claros y sin duplicados", {
     #   `orden_categorias` — filas que se suben y bajan, como los slides
     #   `categorias_escala`— marcar categorías sobre las escalas reales
     #   `partes`           — filas rótulo + respuestas de la línea por nivel (antes `meta`, sin control)
-    "iconos_list", "colores_list", "orden_categorias", "categorias_escala", "partes"
+    "iconos_list", "colores_list", "orden_categorias", "categorias_escala", "partes",
+    #   `hallazgos_capitulos` — capítulos y hallazgos del resumen ejecutivo (ítem 2 de la v7.11 RV)
+    "hallazgos_capitulos"
   )
   ui_grupo_soportado <- c(
     "datos", "lectura", "valores", "leyenda", "espacio", "tabla",

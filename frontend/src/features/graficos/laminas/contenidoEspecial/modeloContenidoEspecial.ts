@@ -16,11 +16,22 @@ export function esArgIcono(a: Pick<ArgMetadata, "tipo_input">): boolean {
   return a.tipo_input === "icono";
 }
 
-export function esArgEspecial(a: Pick<ArgMetadata, "name" | "tipo_input">): boolean {
-  return esArgFilas(a) || esArgIcono(a);
+/**
+ * Láminas cuyos ajustes que no son texto (modo, topes, interruptores, listas) tienen su propio bloque en Contenido.
+ * «Hallazgos clave» (revisión del PPT v7.11, ítem 2): el modo y el resumen ejecutivo por capítulo (hallazgos/).
+ */
+export const LAMINAS_CON_AJUSTES: ReadonlySet<string> = new Set(["p_slide_hallazgos"]);
+
+/** Un argumento de esa lámina que va en su bloque de ajustes: todo lo que no es texto ni `meta`. */
+export function esArgDeAjustes(a: Pick<ArgMetadata, "tipo_input">, tipo?: string): boolean {
+  return !!tipo && LAMINAS_CON_AJUSTES.has(tipo) && a.tipo_input !== "string" && a.tipo_input !== "textarea" && a.tipo_input !== "meta";
 }
 
-export type ContenidoEspecial = { filas: ArgMetadata[]; iconos: ArgMetadata[] };
+export function esArgEspecial(a: Pick<ArgMetadata, "name" | "tipo_input">, tipo?: string): boolean {
+  return esArgFilas(a) || esArgIcono(a) || esArgDeAjustes(a, tipo);
+}
+
+export type ContenidoEspecial = { filas: ArgMetadata[]; iconos: ArgMetadata[]; ajustes: ArgMetadata[] };
 
 /** Los argumentos de la lámina que se editan con su editor propio, en el orden del registro. */
 /** Las láminas de población no llevan ícono (Gonzalo: «ya quedamos en que población no lleva ícono»), aunque el
@@ -31,7 +42,7 @@ export function esLaminaPoblacion(tipo: string | undefined): boolean {
 
 export function contenidoEspecialDe(args: readonly ArgMetadata[], tipo?: string): ContenidoEspecial {
   const iconos = esLaminaPoblacion(tipo) ? [] : args.filter((a) => !esArgFilas(a) && esArgIcono(a));
-  return { filas: args.filter(esArgFilas), iconos };
+  return { filas: args.filter(esArgFilas), iconos, ajustes: args.filter((a) => esArgDeAjustes(a, tipo)) };
 }
 
 export type TituloPorDefecto = {

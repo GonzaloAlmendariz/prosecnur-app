@@ -2,6 +2,7 @@
 // de población u objetivo. Cada cambio es un `updateSlidePayload` (un paso de deshacer) sobre su arg y nada más.
 
 import { ActoresObjetivo } from "./ActoresObjetivo";
+import { AjustesHallazgos } from "../hallazgos/AjustesHallazgos";
 import type { Slide } from "../../../../api/graficos";
 import { usePlanStore } from "../../store";
 import { FilasFichaTecnica } from "./FilasFichaTecnica";
@@ -18,6 +19,7 @@ export function ContenidoEspecialLamina({ slide, especial }: { slide: Slide; esp
         <FilasFichaTecnica key={a.name} arg={a} valor={payload[a.name]} onCambio={(filas) => updatePayload(slide.id, { [a.name]: filas })} />
       ))}
       {slide.tipo === "p_slide_objetivo_icono" && <ActoresObjetivo slide={slide} />}
+      {especial.ajustes.length > 0 && <AjustesHallazgos slide={slide} args={especial.ajustes} />}
       {especial.iconos.map((a) => (
         <SelectorIconoSubido key={a.name} arg={a} valor={payload[a.name]} iconos={iconos}
           onCambio={(id) => updatePayload(slide.id, { [a.name]: id })} />
