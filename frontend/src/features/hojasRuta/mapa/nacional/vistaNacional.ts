@@ -101,7 +101,7 @@ export function cifrasPorCiudad(
     if (seccion === "poblacion") {
       const objetivo = datos.objetivoPorUbigeo ?? {};
       if (tieneAlguno((u) => objetivo[u])) {
-        cifra = `${enMiles(suma((u) => objetivo[u]))} en la población objetivo`;
+        cifra = `${enMiles(suma((u) => objetivo[u]))} objetivo`;
         detalle = distritos;
       } else {
         const hab = datos.territorios.filter((t) => set.has(t.ubigeo)).reduce((a, t) => a + t.poblacion, 0);

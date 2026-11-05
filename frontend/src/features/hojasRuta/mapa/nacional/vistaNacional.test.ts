@@ -44,6 +44,9 @@ describe("vista nacional del mapa", () => {
     const pob = cifrasPorCiudad("poblacion", ciudades, datos);
     expect(pob.find((c) => c.codigo === "lima")?.cifra).toBe("2.5 M hab.");
     expect(pob.find((c) => c.codigo === otra.codigo)?.cifra).toBe("80 mil hab.");
+    // Con la matriz: la cifra corta (la marca larga chocaba con la vecina a 1024).
+    const conMatriz = cifrasPorCiudad("poblacion", ciudades, { ...datos, objetivoPorUbigeo: { [uLima]: 2_400_000 } });
+    expect(conMatriz.find((c) => c.codigo === "lima")?.cifra).toBe("2.4 M objetivo");
     const sinTamano = cifrasPorCiudad("muestra", ciudades, datos);
     expect(sinTamano[0]).toMatchObject({ cifra: "1 distrito", detalle: "sin tamaño calculado" });
     const conTamano = cifrasPorCiudad("muestra", ciudades, { ...datos, entrevistasPorUbigeo: new Map([[uLima, 120], [uOtra, 40]]) });

@@ -150,7 +150,7 @@ export function PoblacionEstructura({ rangosConfig, config, matriz, bloqueado }:
         <div className="hr-rangos" role="table" aria-label="Rangos de edad y su población objetivo">
           <div className="hr-rangos-cabeza" role="row">
             <span role="columnheader">Edad</span>
-            <span role="columnheader" className="is-num">Población objetivo</span>
+            <span role="columnheader" className="is-num">Población</span>
           </div>
           {rangos.map((r, i) => {
             const peso = matriz.vigente ? matriz.pesoPorRango[i] : null;
@@ -285,7 +285,8 @@ export function PoblacionInspector({ config, rangosConfig, matriz, poblacionDist
           Deshacer
         </PulsoButton>
         <PulsoButton variant="primary" disabled={bloqueado || guardando || conProblemas || (!cambiaron && matriz.vigente)} onClick={() => onGuardarYCalcular(modo === "manual" ? { age_ranges: [...rangos], age_range_mode: "manual", age_range_scope: base } : { age_range_mode: modo, age_range_scope: base })}>
-          {guardando ? "Calculando…" : "Calcular la matriz"}
+          {/* Deshabilitado sin decir por qué parecía roto: con la matriz vigente y sin cambios lo dice. */}
+          {guardando ? "Calculando…" : !cambiaron && matriz.vigente ? "Matriz al día" : "Calcular la matriz"}
         </PulsoButton>
       </footer>
     </>
