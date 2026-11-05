@@ -114,3 +114,10 @@
 /* El anillo de foco global del input se sumaba al borde de la caja: un solo anillo, el de la caja. */
 .hr-ajustes .hr-ajustes-buscar input:focus, .hr-ajustes .hr-ajustes-buscar input:focus-visible { outline: none; box-shadow: none; border: 0; }
 .hr-ajustes .hr-ajustes-buscar:focus-within { background: var(--pulso-surface); box-shadow: 0 0 0 3px var(--pulso-module-routes-soft); }
+/* Contador de reemplazos: un solo control compacto (− número +), no un número estirado entre dos botones sueltos. */
+.hr-ajustes .hr-muestra-pasos { display: inline-flex; align-items: stretch; align-self: flex-start; width: max-content; height: 32px; border: 1px solid var(--pulso-border); border-radius: 8px; background: var(--pulso-surface); overflow: hidden; }
+.hr-ajustes .hr-muestra-pasos > button { width: 32px; height: 100%; min-height: 0; border: 0; border-radius: 0; background: var(--pulso-surface-2); color: var(--pulso-text); }
+.hr-ajustes .hr-muestra-pasos > button:hover:not(:disabled) { background: var(--pulso-module-routes-soft); color: var(--pulso-module-routes); }
+.hr-ajustes .hr-muestra-pasos > input { width: 52px; flex: none; height: 100%; padding: 0; border: 0; border-inline: 1px solid var(--pulso-border); border-radius: 0; background: var(--pulso-surface); text-align: center; font: inherit; font-size: var(--pulso-type-body-size); font-weight: 700; font-variant-numeric: tabular-nums; color: var(--pulso-text); -moz-appearance: textfield; appearance: textfield; }
+.hr-ajustes .hr-muestra-pasos > input::-webkit-inner-spin-button, .hr-ajustes .hr-muestra-pasos > input::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+.hr-ajustes .hr-muestra-pasos > input:focus-visible { outline: none; box-shadow: inset 0 0 0 2px var(--pulso-module-routes); }

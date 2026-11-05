@@ -60,7 +60,7 @@ export function GrupoRecorrido({ config, viviendas, manzanas, deshabilitado: ed,
             <input type="number" min={0} max={10} aria-label="Reemplazos por titular" value={reemplazos} disabled={ed} onChange={(e) => cambiar({ replacements_per_titular: acotarReemplazos(Number(e.target.value)) })} />
             <PulsoButton variant="icon" size="sm" aria-label="Un reemplazo más" disabled={ed || reemplazos >= 10} onClick={() => cambiar({ replacements_per_titular: acotarReemplazos(reemplazos + 1) })}>+</PulsoButton>
           </span>
-          <span className="hr-mapa-nota">{reemplazos === 0 ? "Sin reemplazos: si una manzana falla, no hay respaldo sorteado." : `De 0 a 10. ${reemplazos} por titular.`}</span>
+          <span className="hr-mapa-nota">{reemplazos === 0 ? "Sin reemplazos: si una manzana falla, no hay respaldo sorteado." : "De 0 a 10."}</span>
         </div>
         <Opciones etiqueta="Dónde buscar el reemplazo" valor={config.replacement_policy} opciones={POLITICAS} onCambio={(replacement_policy) => cambiar({ replacement_policy })} deshabilitado={ed || reemplazos === 0} />
       </section>
