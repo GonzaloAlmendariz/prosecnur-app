@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
 import { EvidenciaRevision } from "./EvidenciaRevision";
 import { AvisosDelMotor } from "../AvisosDelMotor";
 import { cuotasDescuadradas } from "../filtroDeAvisos";
@@ -15,7 +15,7 @@ import { useLienzoHojasRuta } from "../store";
 import { tonoCss } from "../lienzo/tonos";
 import { useSeleccionDireccion, type CajonSeleccion } from "./useSeleccionDireccion";
 import { Link } from "react-router-dom";
-import { accionesSinRepetir, type AccionObservacion } from "./accionesRevision";
+import { accionDeObservacion, accionesSinRepetir, type AccionObservacion } from "./accionesRevision";
 import { HREF_CAMPANA_TERRITORIAL } from "./SalidasPanel";
 import { porRevisar, reemplazosDe, type EstadoRuta, type GrupoRutas } from "./rutas";
 
@@ -46,6 +46,14 @@ export function SeleccionEstructura({ grupos, total, observadas, confirmados = [
   const { soloPorRevisar, setSoloPorRevisar, busquedaUmp, setBusquedaUmp } = useLienzoHojasRuta();
   const { umpEnfocada, setUmpEnfocada } = useSeleccionDireccion();
   const visibles = grupos.reduce((a, g) => a + g.filas.length, 0);
+  // La ruta enfocada desde el mapa, un enlace o el teclado se trae a la vista en la lista: abrir la UMP 71 dejaba la
+  // lista arriba, en Ate, y la fila marcada fuera de pantalla.
+  const catalogo = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    if (!umpEnfocada) return;
+    const fila = catalogo.current?.querySelector<HTMLElement>(`[data-ruta="${umpEnfocada}"]`);
+    fila?.scrollIntoView?.({ block: "nearest" });
+  }, [umpEnfocada, grupos]);
   return (
     <>
       <div className="hr-mapa-cab hr-mapa-cab--pila">
@@ -58,7 +66,7 @@ export function SeleccionEstructura({ grupos, total, observadas, confirmados = [
           {(o) => <span>{o[0] === "revisar" ? `${o[1]}, ${fmt(observadas)}` : `${o[1]}, ${fmt(total)}`}</span>}
         </GlidingRadioGroup>
       </div>
-      <div className="hr-mapa-catalogo">
+      <div className="hr-mapa-catalogo" ref={catalogo}>
         {grupos.map((g) => (
           <section key={g.ubigeo} aria-label={nombreDistrito(g.distrito)}>
             <h3>
@@ -74,6 +82,7 @@ export function SeleccionEstructura({ grupos, total, observadas, confirmados = [
                   <button
                     type="button"
                     aria-pressed={f.id === umpEnfocada}
+                    data-ruta={f.id}
                     data-estado={f.estado}
                     aria-label={`${f.codigo}, zona ${f.zona}, manzana ${f.id.slice(-4)}, ${fmt(f.viviendas)} viviendas${porRevisar(f.estado) ? `, ${ETIQUETA[f.estado]}` : ""}`}
                     title={porRevisar(f.estado) ? ETIQUETA[f.estado] : undefined}
@@ -164,11 +173,16 @@ export function SeleccionInspector({ titular, estado, reemplazos, revision, tota
             <div><dt>Encuestas</dt><dd>{rango(titular)}</dd></div>
             {titular.esquina_inicio ? <div><dt>Esquina inicial</dt><dd>{titular.esquina_inicio}</dd></div> : null}
           </dl>
-          {observaciones.map((g) => (
-            <p key={g.tipo} className={g.tono === "info" ? "hr-mapa-nota" : "hr-mapa-aviso"}>
-              <b>{g.titulo}.</b> {g.detalle}
-            </p>
-          ))}
+          {observaciones.map((g) => {
+            // La ficha dice qué falla y también dónde se arregla (el mismo destino que el panel general), sin repetir su texto.
+            const accion = accionDeObservacion(g.tipo, minimoMarco);
+            return (
+              <div key={g.tipo} className={g.tono === "info" ? "hr-mapa-nota" : "hr-mapa-aviso"}>
+                <p><b>{g.titulo}.</b> {g.detalle}</p>
+                <AccionDelGrupo accion={accion && { ...accion, texto: "" }} />
+              </div>
+            );
+          })}
           {/* ADR 0118 F3: la hoja grande y su impresión viven en Material de campo (módulo encargado). */}
           {enviada ? (
             <Link className="hr-entrega-enlace" to={`${HREF_CAMPANA_TERRITORIAL}&panel=hoja&foco=${encodeURIComponent(titular.id_manzana)}`}>

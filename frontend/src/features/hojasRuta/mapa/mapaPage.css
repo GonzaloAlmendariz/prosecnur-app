@@ -652,3 +652,6 @@ div.hr-mapa-aviso { display: flex; flex-direction: column; align-items: flex-sta
 .hr-muestra-plegable-cuerpo { display: flex; flex-direction: column; gap: 10px; padding-bottom: 12px; }
 .hr-muestra-plegable-cuerpo > .hr-muestra-grupo { border-top: 0; padding-top: 4px; }
 @media (prefers-reduced-motion: reduce) { .hr-muestra-plegable-flecha { transition: none; } }
+/* Un aviso de la ficha de Selección con su salida («Ir al marco elegible») debajo: el párrafo sin márgenes propios. */
+div.hr-mapa-aviso > p, div.hr-mapa-nota > p { margin: 0; }
+div.hr-mapa-aviso > .hr-sel-accion { margin-top: 6px; }
