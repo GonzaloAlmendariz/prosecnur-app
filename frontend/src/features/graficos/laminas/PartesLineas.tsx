@@ -72,7 +72,7 @@ export function PartesLineas({ id, arg, etiqueta, nota, valor, variable, scope, 
                 </button>
               </div>
               <SelectorCategorias id={`${id}-${f.clave}`} variable={variable} scope={scope} graficador={graficador} valor={f.codigos} modo="elegir"
-                etiqueta={<span className="pulso-f6-dato-ayuda">Respuestas que cuentan</span>}
+                etiqueta={<span className="pulso-f6-dato-rotulo">Respuestas que cuentan</span>}
                 textoRespaldo={respaldo} nota={null} onCambio={(codigos) => cambiar(i, { codigos })} />
               {soloLectura && <span className="pulso-f6-dato-ayuda is-nota">{soloLectura}</span>}
               {aviso && <span className="pulso-f6-dato-ayuda is-aviso" role="note">{aviso}</span>}
