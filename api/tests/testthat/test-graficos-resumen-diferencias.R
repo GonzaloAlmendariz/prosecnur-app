@@ -219,3 +219,18 @@ test_that("el Word dibuja el resumen como la tabla de la lámina: total, capítu
   sin_cols <- espec; sin_cols$columnas <- espec$columnas[0, ]
   expect_null(.resumen_dif_word_ggplot(sin_cols))
 })
+
+test_that("sin `cruces`, la lámina usa los que rotula (no los de Analítica) y avisa del que no está en la base", {
+  fuente <- list(data = data.frame(area = 1, sexo = 1, primera_gen = 1), survey = NULL)
+  el <- list(rotulos = list(area = "Área", sexo = "Sexo", primera_gen = "Estudios de padres"))
+  cx <- .dif_cruces(el, plan = list(), sig = list(cruces = c("area", "sexo")), fuente = fuente)
+  expect_identical(cx$cruces, c("area", "sexo", "primera_gen"))
+  expect_identical(unname(cx$rotulos), c("Área", "Sexo", "Estudios de padres"))
+  avisos <- character(0)
+  testthat::local_mocked_bindings(.pulso_aviso = function(x) avisos <<- c(avisos, x))
+  el2 <- list(rotulos = list(area = "Área", ciclo = "Ciclo"))
+  expect_identical(.dif_cruces(el2, list(), list(cruces = "area"), fuente)$cruces, "area")
+  expect_true(any(grepl("ciclo", avisos)))
+  # Con `cruces` declarados mandan ellos.
+  expect_identical(.dif_cruces(list(cruces = list("sexo"), rotulos = el$rotulos), list(), list(), fuente)$cruces, "sexo")
+})

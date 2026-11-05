@@ -98,9 +98,15 @@
 .dif_cruces <- function(el, plan, sig, fuente) {
   opt <- .dif_opcion_del_plan(plan)
   cruces <- .dif_chr(el$cruces)
+  # Sin `cruces`, los que la lámina rotula: sus `rotulos` ya dicen cuáles quiere. Antes caía a los de Analítica y perdía
+  # en silencio los estudios de los padres (CCSS v7.22, resumen de diferencias y resumen ejecutivo).
+  if (!length(cruces)) cruces <- names(.dif_mapa(el$rotulos))
   if (!length(cruces)) cruces <- opt$cruces %||% character(0)
   if (!length(cruces)) cruces <- .dif_chr(sig$cruces)
   cruces <- unique(vapply(cruces, .sig_var_local, character(1)))
+  fuera <- setdiff(names(.dif_mapa(el$rotulos)), cruces[cruces %in% names(fuente$data)])
+  if (length(fuera)) .dif_aviso("Diferencias", sprintf("%s rotulado(s) sin columna en la base: %s; no entran a la tabla.",
+                                                       if (length(fuera) == 1L) "un cruce" else "cruces", paste(fuera, collapse = ", ")))
   cruces <- cruces[cruces %in% names(fuente$data)]
   rotulos <- c(.dif_mapa(el$rotulos), opt$rotulos %||% character(0))
   rotulos <- rotulos[!duplicated(names(rotulos))]
