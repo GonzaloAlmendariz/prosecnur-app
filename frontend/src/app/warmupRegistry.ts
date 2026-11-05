@@ -241,7 +241,8 @@ function hojasRutaUbigeos(state: HojasRutaState) {
   return uniqueStrings([...fromRuns, ...fromTerritories]);
 }
 
-async function warmupHojasRutaRunData(api: WarmupApi, plan: ReturnType<typeof hojasRutaRunPlans>[number]) {
+/** Exportada para el test de regresión: el warm start no debe tomar decisiones (sortear). */
+export async function warmupHojasRutaRunData(api: Pick<WarmupApi, "apiHojasRutaPopulationPreview" | "apiHojasRutaSampleSizePreview" | "apiHojasRutaQuotaPreview">, plan: ReturnType<typeof hojasRutaRunPlans>[number]) {
   const territorios = plan.config.territorios ?? [];
   if (!territorios.length) return { phase: plan.phase, skipped: "sin territorios" };
 
@@ -250,7 +251,7 @@ async function warmupHojasRutaRunData(api: WarmupApi, plan: ReturnType<typeof ho
   let population = plan.outputs.population ?? null;
   let sampleSize = plan.outputs.sample_size_preview ?? null;
   let quota = plan.outputs.quota ?? null;
-  let sample = plan.outputs.sample ?? null;
+  const sample = plan.outputs.sample ?? null;
 
   if (!population && fullDepth >= HOJAS_RUTA_STAGE_ORDER.poblacion) {
     population = await api.apiHojasRutaPopulationPreview(plan.config, "restauracion").catch(() => null);
@@ -261,9 +262,9 @@ async function warmupHojasRutaRunData(api: WarmupApi, plan: ReturnType<typeof ho
   if (!quota && fullDepth >= HOJAS_RUTA_STAGE_ORDER.manzanas && (sampleSize as { ok?: boolean } | null)?.ok) {
     quota = await api.apiHojasRutaQuotaPreview(plan.config).catch(() => null);
   }
-  if (!sample && fullDepth >= HOJAS_RUTA_STAGE_ORDER.seleccion && (quota as { ok?: boolean } | null)?.ok) {
-    sample = await api.apiHojasRutaSamplePreview(plan.config, "restauracion").catch(() => null);
-  }
+  // El sorteo NO se restaura: el .pulso guarda la muestra de cada corrida, así que si falta es porque se
+  // descartó (confirmar otro territorio lo descarta) o nunca se sorteó. Rehacerla aquí sorteaba al abrir el
+  // proyecto, sin que nadie pulsara «Sortear» (regresión en warmupHojasRutaSinSorteo.test.ts).
 
   return {
     phase: plan.phase,

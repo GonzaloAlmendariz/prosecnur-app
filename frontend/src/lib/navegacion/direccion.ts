@@ -62,6 +62,16 @@ export const PARAM_PROYECTO = "pulso";
  */
 export const PARAM_CAMPANA = "campana";
 
+/**
+ * Param de ALCANCE del mapa de Hojas de ruta, como `campana`: no es una sexta
+ * dimensión. Con distritos en varias ciudades, el mapa abre en el nivel
+ * nacional y `ciudad` dice a qué ciudad se bajó («lima» o el código de
+ * provincia). Es aparte de `foco` porque en Selección `foco` ya es la UMP, y
+ * las dos cosas conviven: una UMP de Arequipa mirada desde Arequipa. Al cambiar
+ * de sección se conserva (la ciudad que se mira no depende de la sección).
+ */
+export const PARAM_CIUDAD = "ciudad";
+
 const PARAMS_CANONICOS: readonly string[] = [
   ...Object.values(PARAMS_DIRECCION),
 ];
@@ -75,6 +85,8 @@ export type DireccionProsecnur = {
   foco?: string;
   /** Campaña abierta (alcance, ADR 0111): `aulas.principal`, `correo.<id>`. */
   campana?: string;
+  /** Ciudad a la que se bajó en el mapa nacional de Hojas de ruta (alcance). */
+  ciudad?: string;
   /** Ruta absoluta al `.pulso`. Solo se honra en build de dev. */
   proyecto?: string;
   /** Params ajenos a la gramática que la dirección no debe perder. */
@@ -113,6 +125,7 @@ const PARAMS_RESERVADOS = new Set<string>([
   ...PARAMS_CANONICOS,
   PARAM_PROYECTO,
   PARAM_CAMPANA,
+  PARAM_CIUDAD,
   "devPulso",
   "devProject",
   ...Object.values(ALIAS_LEGACY).flatMap((porNivel) =>
@@ -245,6 +258,7 @@ export function parsearDireccion(
   const panel = leerParam(params, PARAMS_DIRECCION.panel);
   const foco = leerParam(params, PARAMS_DIRECCION.foco);
   const campana = leerParam(params, PARAM_CAMPANA);
+  const ciudad = leerParam(params, PARAM_CIUDAD);
   const proyecto = leerParam(params, PARAM_PROYECTO, [
     "devPulso",
     "devProject",
@@ -254,6 +268,7 @@ export function parsearDireccion(
     ...PARAMS_CANONICOS,
     PARAM_PROYECTO,
     PARAM_CAMPANA,
+    PARAM_CIUDAD,
     "devPulso",
     "devProject",
     ...(alias.modo ?? []),
@@ -275,6 +290,7 @@ export function parsearDireccion(
     ...(panel ? { panel: normalizarToken(panel) } : {}),
     ...(foco ? { foco } : {}),
     ...(campana ? { campana } : {}),
+    ...(ciudad ? { ciudad } : {}),
     ...(proyecto ? { proyecto } : {}),
     ...(Object.keys(extra).length > 0 ? { extra } : {}),
   };
@@ -342,6 +358,7 @@ export function serializarDireccion(direccion: DireccionProsecnur): string {
   if (direccion.pestana) params.set(PARAMS_DIRECCION.pestana, direccion.pestana);
   if (direccion.panel) params.set(PARAMS_DIRECCION.panel, direccion.panel);
   if (direccion.foco) params.set(PARAMS_DIRECCION.foco, direccion.foco);
+  if (direccion.ciudad) params.set(PARAM_CIUDAD, direccion.ciudad);
   if (direccion.proyecto) params.set(PARAM_PROYECTO, direccion.proyecto);
 
   const query = params.toString();
@@ -386,6 +403,20 @@ export function conCampana(search: string, valor: string | null): string {
   return query ? `?${query}` : "";
 }
 
+/**
+ * Devuelve el `search` con la ciudad del mapa nacional reescrita (o quitada con
+ * `null`), preservando todo lo demás. Es el único escritor de ese param.
+ */
+export function conCiudad(search: string, valor: string | null): string {
+  const params = new URLSearchParams(
+    search.startsWith("?") ? search.slice(1) : search,
+  );
+  if (valor) params.set(PARAM_CIUDAD, valor);
+  else params.delete(PARAM_CIUDAD);
+  const query = params.toString();
+  return query ? `?${query}` : "";
+}
+
 /** El param de proyecto y sus alias históricos. */
 export const PARAMS_PROYECTO = [
   PARAM_PROYECTO,
@@ -410,8 +441,9 @@ export function hrefSinParamDeProyecto(href: string): string {
 }
 
 /**
- * Compara dos direcciones por sus cinco niveles y su alcance (ignora `foco` y
- * `extra`). La misma sección de dos campañas distintas no es la misma vista.
+ * Compara dos direcciones por sus cinco niveles y su alcance (ignora `foco`,
+ * `ciudad` y `extra`). La misma sección de dos campañas distintas no es la
+ * misma vista; la misma sección mirada desde otra ciudad sí (es encuadre).
  */
 export function mismaDireccion(
   a: DireccionProsecnur | null,

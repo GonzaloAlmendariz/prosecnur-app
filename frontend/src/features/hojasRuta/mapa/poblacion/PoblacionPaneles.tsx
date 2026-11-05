@@ -7,6 +7,7 @@ import { PulsoSwitch } from "../../../../components/PulsoSwitch";
 import type { HojasRutaAgeRange, HojasRutaAgeRangeMode, HojasRutaAgeRangeScope, HojasRutaAlert, HojasRutaIntegratedConfig } from "../../../../api/hojasRuta";
 import { AvisosDelMotor } from "../AvisosDelMotor";
 import { useLienzoHojasRuta } from "../store";
+import { payloadDeRangos } from "./aplicarRangos";
 import type { ResumenMatriz } from "./matriz";
 
 import { agregarRango, CORTES, editarRango, firmaRangos, PRESETS_EDAD, problemasDeRangos, rangosLimpios } from "./rangos";
@@ -150,7 +151,7 @@ export function PoblacionEstructura({ rangosConfig, config, matriz, bloqueado }:
         <div className="hr-rangos" role="table" aria-label="Rangos de edad y su población objetivo">
           <div className="hr-rangos-cabeza" role="row">
             <span role="columnheader">Edad</span>
-            <span role="columnheader" className="is-num">Población objetivo</span>
+            <span role="columnheader" className="is-num">Población</span>
           </div>
           {rangos.map((r, i) => {
             const peso = matriz.vigente ? matriz.pesoPorRango[i] : null;
@@ -228,16 +229,13 @@ type InspectorProps = {
   avisos?: readonly HojasRutaAlert[];
 };
 
-export function PoblacionInspector({ config, rangosConfig, matriz, poblacionDistritos, bloqueado, guardando, hayMuestra, avisos, onGuardarYCalcular, onGuardarCaracter }: InspectorProps) {
-  const { rangosBorrador, setRangosBorrador, cajonPoblacion, setCajonPoblacion } = useLienzoHojasRuta();
-  const { modo, base, pendiente, deshacer } = useModoRangos(config);
+export function PoblacionInspector({ config, rangosConfig, matriz, poblacionDistritos, bloqueado, guardando, hayMuestra, avisos, onGuardarYCalcular }: InspectorProps) {
+  const { rangosBorrador, cajonPoblacion, setCajonPoblacion } = useLienzoHojasRuta();
+  const { modo, base, pendiente } = useModoRangos(config);
   const rangos = rangosBorrador ?? rangosConfig;
   const cambiaron = pendiente || firmaRangos(rangos) !== firmaRangos(rangosConfig);
   const conProblemas = modo === "manual" && problemasDeRangos(rangos).length > 0;
   const sexo = config.subquota_var !== "ninguna";
-  const caracter = config.caracter_cuotas ?? {};
-  const declarar = (dim: "sexo" | "edad", referencial: boolean) =>
-    onGuardarCaracter?.({ ...caracter, [dim]: referencial ? "referencial" : "meta" });
 
   return (
     <>
@@ -255,39 +253,25 @@ export function PoblacionInspector({ config, rangosConfig, matriz, poblacionDist
         </p>
         {matriz.vigente ? <AvisosDelMotor avisos={avisos} /> : null}
         <h3 className="hr-mapa-subtitulo">Matriz</h3>
-        <PulsoSwitch label="Dividir por sexo" size="sm" checked={sexo} disabled={bloqueado || guardando} onCheckedChange={(v) => onGuardarYCalcular({ subquota_var: v ? "sexo" : "ninguna" })} />
         {matriz.vigente ? (
           <PulsoButton variant="secondary" onClick={() => setCajonPoblacion(cajonPoblacion ? null : "matriz")} aria-pressed={Boolean(cajonPoblacion)}>
             <Table2 size={14} aria-hidden /> {cajonPoblacion ? "Ocultar la matriz" : `Ver la matriz, ${matriz.filas.length} distritos`}
           </PulsoButton>
         ) : null}
         {matriz.vigente && sexo && !cambiaron ? <PiramidePoblacion filas={matriz.filas} rangos={rangosConfig} /> : null}
-        {onGuardarCaracter ? (
-          <>
-            {/* ADR 0126: qué de la cuota se exige y qué sólo se describe. */}
-            <h3 className="hr-mapa-subtitulo">Qué se exige</h3>
-            {sexo ? (
-              <PulsoSwitch label="Sexo como referencia, sin exigirlo" size="sm" checked={caracter.sexo === "referencial"} disabled={bloqueado || guardando} onCheckedChange={(v) => declarar("sexo", v)} />
-            ) : null}
-            <PulsoSwitch label="Edad como referencia, sin exigirla" size="sm" checked={caracter.edad === "referencial"} disabled={bloqueado || guardando} onCheckedChange={(v) => declarar("edad", v)} />
-            <p className="hr-mapa-fuente">
-              <Info size={14} aria-hidden />
-              <span>El total de cada zona siempre se exige. Llega a Monitoreo con el próximo envío.</span>
-            </p>
-          </>
-        ) : null}
+        {/* Sexo, qué se exige y los rangos se editan en «Ajustes del diseño» (M4); el acceso está en la columna. */}
         {cambiaron || !matriz.vigente ? (
           hayMuestra ? <p className="hr-mapa-aviso">Calcular con estos rangos recalcula la población y descarta el tamaño, las cuotas y el sorteo actual.</p> : null
         ) : null}
       </div>
-      <footer className="hr-mapa-pie">
-        <PulsoButton variant="secondary" disabled={!cambiaron || guardando} onClick={() => { setRangosBorrador(null); deshacer(); }}>
-          Deshacer
-        </PulsoButton>
-        <PulsoButton variant="primary" disabled={bloqueado || guardando || conProblemas || (!cambiaron && matriz.vigente)} onClick={() => onGuardarYCalcular(modo === "manual" ? { age_ranges: [...rangos], age_range_mode: "manual", age_range_scope: base } : { age_range_mode: modo, age_range_scope: base })}>
-          {guardando ? "Calculando…" : "Calcular la matriz"}
-        </PulsoButton>
-      </footer>
+      {/* Aplicar rangos nuevos es del pie de la ventana; aquí sólo queda calcular la matriz si nunca se calculó. */}
+      {!matriz.vigente && !cambiaron ? (
+        <footer className="hr-mapa-pie">
+          <PulsoButton variant="primary" disabled={bloqueado || guardando || conProblemas} onClick={() => onGuardarYCalcular(payloadDeRangos(modo, base, rangos))}>
+            {guardando ? "Calculando…" : "Calcular la matriz"}
+          </PulsoButton>
+        </footer>
+      ) : null}
     </>
   );
 }

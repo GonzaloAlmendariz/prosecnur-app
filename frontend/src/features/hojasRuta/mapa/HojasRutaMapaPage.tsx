@@ -23,6 +23,7 @@ import { dibujarLimites, dibujarNombresDepartamento, limitesDePeru, type Limites
 import { useFoco } from "../../../lib/navegacion/useFoco";
 import { ciudadAbiertaDeFoco, ciudadDeEntrada, ciudadDeUbigeo, ciudadesDelAtlas, ciudadesDelEstudio, FOCO_ATLAS, LIMA, regionesDe } from "./territorio/ciudades";
 import { useContornosRegiones } from "./territorio/useContornosRegiones";
+import { dibujarRecorridoManzana } from "./seleccion/recorridoManzana";
 import { AtlasEstructura, AtlasInspector, CiudadCabecera, MigaAtlas } from "./territorio/AtlasPaneles";
 import { ciudadEnPantalla, dibujarCiudadesAtlas } from "./territorio/atlasCapas";
 import { LienzoMapa, type UtilLienzo } from "./lienzo/LienzoMapa";
@@ -54,7 +55,8 @@ import { normalizarEnvioMeta } from "../../../api/materialTerritorial";
 import { useBarraAngosta } from "./useBarraAngosta";
 import { PoblacionCajon } from "./poblacion/PoblacionCajon";
 import { FichaManzana } from "./manzanas/FichaManzana";
-import { PoblacionEstructura, PoblacionInspector } from "./poblacion/PoblacionPaneles";
+import { PoblacionInspector } from "./poblacion/PoblacionPaneles";
+import { PoblacionLectura } from "./poblacion/PoblacionLectura";
 import { aplicarBorrador, entradaDesdeConfig } from "./muestra/desdeConfig";
 import { calcularTamano, margenTotalParaN } from "./muestra/motorTamano";
 import { MuestraEstructura, MuestraInspector } from "./muestra/MuestraPaneles";
@@ -66,9 +68,13 @@ import { MarcoElegiblePanel } from "./manzanas/MarcoElegiblePanel";
 import { cierraEnPrimero, MARCO_NUEVO } from "./manzanas/marcoElegible";
 import { proyectarLonLat } from "./lienzo/camara";
 import { cajaDelAtlas, departamentoEnPunto } from "./territorio/atlasFoco";
+import { useVistaNacional } from "./nacional/useVistaNacional";
 import { estadosPorTitular, manzanaEnPunto, reemplazosDe, rutasPorDistrito, vecina } from "./seleccion/rutas";
 import { SeleccionCajon, SeleccionEstructura, SeleccionInspector } from "./seleccion/SeleccionPaneles";
 import { SalidasPanel } from "./seleccion/SalidasPanel";
+import { AjustesDisenoHost } from "./ajustes/AjustesDisenoHost";
+import { BotonDiseno } from "./ajustes/BotonDiseno";
+import { alcanceEstudio, seccionLista } from "./ajustes/barraDiseno";
 import { useSeleccionDireccion } from "./seleccion/useSeleccionDireccion";
 import "./marco.css";
 import "./mapaPage.css";
@@ -95,6 +101,8 @@ export default function HojasRutaMapaPage() {
   const [estado, setEstado] = useState<HojasRutaState | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [geometrias, setGeometrias] = useState<Record<string, PiezasDistrito>>({});
+  // Distritos cuya geometría no llegó: la readiness de una ruta enfocada no los espera (colgaría el QA).
+  const [sinGeometria, setSinGeometria] = useState<ReadonlySet<string>>(() => new Set());
   const [guardando, setGuardando] = useState(false);
   // Desde cuándo corre el sorteo (SorteoEnCurso): el pedido tarda minutos y no informa avance.
   const [sorteoDesde, setSorteoDesde] = useState<number | null>(null);
@@ -245,8 +253,10 @@ export default function HojasRutaMapaPage() {
         try {
           const geo = await apiHojasRutaGeometria(u);
           if (vivo && geo.ok) setGeometrias((prev) => ({ ...prev, [u]: piezasDeGeometria(geo) }));
+          else if (vivo) setSinGeometria((prev) => new Set(prev).add(u));
         } catch {
           // Un distrito sin geometría sigue visible por su contorno.
+          if (vivo) setSinGeometria((prev) => new Set(prev).add(u));
         }
       }
     })();
@@ -308,7 +318,9 @@ export default function HojasRutaMapaPage() {
   // pedirla en cada tecla. Una corrida legacy ve lo que cambiaría al adoptarlo.
   const [vistaMarco, setVistaMarco] = useState<HojasRutaMarcoElegiblePreview | null>(null);
   const [cargandoMarco, setCargandoMarco] = useState(false);
-  const firmaMarco = configSorteo && enManzanas && configSorteo.territorios.length ? JSON.stringify([configSorteo.territorios, configSorteo.marco_elegible ?? null, configSorteo.replacements_per_titular, configSorteo.entrevistas_por_manzana]) : "";
+  // El grupo «Marco elegible» de Ajustes del diseño también necesita la vista previa, abierto desde cualquier sección.
+  const marcoEnAjustes = /(?:^|[?&])panel=ajustes(?:&|$)/.test(location.search) && /(?:^|[?&])foco=marco(?:&|$)/.test(location.search);
+  const firmaMarco = configSorteo && (enManzanas || marcoEnAjustes) && configSorteo.territorios.length ? JSON.stringify([configSorteo.territorios, configSorteo.marco_elegible ?? null, configSorteo.replacements_per_titular, configSorteo.entrevistas_por_manzana]) : "";
   useEffect(() => {
     if (!firmaMarco || !configSorteo) return undefined;
     let vivo = true;
@@ -323,6 +335,8 @@ export default function HojasRutaMapaPage() {
     return () => {
       vivo = false;
       window.clearTimeout(t);
+      // Sin esto, salir de Manzanas a medio cálculo dejaba `cargandoMarco` encendido (y la readiness en false).
+      setCargandoMarco(false);
     };
     // la firma resume lo que cambia la vista previa; configSorteo entero cambiaría en cada render
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -459,6 +473,13 @@ export default function HojasRutaMapaPage() {
       return [{ id: b.id_manzana, numero: b.hoja_num ?? i + 1, estado: estadoUmp, manzana }];
     });
   }, [bloquesTitulares, manzanaPorId, entrevistasPorRuta, estados, enSeleccion]);
+  // El mapa dice lo mismo que la lista: con «Por revisar» o una búsqueda, sólo esas rutas (y la enfocada); antes la lista
+  // mostraba 12 de 150 y el mapa seguía pintando las 150 con el mismo peso.
+  const titularesVisibles = useMemo(() => {
+    if (!enSeleccion || (!soloPorRevisar && !busquedaUmp.trim())) return titulares;
+    const ids = new Set(grupos.flatMap((g) => g.filas.map((f) => f.id)));
+    return titulares.filter((t) => ids.has(t.id) || t.id === umpEnfocada);
+  }, [enSeleccion, soloPorRevisar, busquedaUmp, titulares, grupos, umpEnfocada]);
   const titularEnfocada = enSeleccion && umpEnfocada ? bloquesTitulares.find((b) => b.id_manzana === umpEnfocada) ?? null : null;
   const reemplazosEnfocados = useMemo<PiezaManzana[]>(() => (titularEnfocada ? reemplazosDe(titularEnfocada.id_manzana, bloquesReemplazos).flatMap((b) => manzanaPorId.get(b.id_manzana) ?? []) : []), [titularEnfocada, bloquesReemplazos, manzanaPorId]);
   const cajaEnfocada = useMemo(() => {
@@ -467,6 +488,15 @@ export default function HojasRutaMapaPage() {
     const m = titularEnfocada ? manzanaPorId.get(titularEnfocada.id_manzana) : undefined;
     return m ? m.caja : null;
   }, [titularEnfocada, manzanaPorId]);
+  // Una ruta abierta por enlace (`foco=`) se encuadra cuando llega la geometría de su distrito: hasta entonces
+  // la vista no está lista (el QA capturaba Lima entera creyendo ver la manzana).
+  // Tampoco está lista mientras llegan los contornos de sus distritos (`cargando` se vacía también si fallan):
+  // el QA capturaba la silueta provisional de la ciudad como si fuera el mapa. Ni mientras calcula la vista
+  // previa del marco elegible («Calculando lo que cambiaría…»; `cargandoMarco` se apaga en su finally).
+  // Con sorteo, Manzanas y Selección dibujan sus UMP sobre la geometría de cada distrito, que llega de a uno: el QA
+  // capturaba el mapa sin un solo punto. Un distrito cuya geometría falló no se espera.
+  const esperaGeometrias = Boolean((enManzanas || enSeleccion) && salidas?.sample && confirmados.some((u) => !geometrias[u] && !sinGeometria.has(u)));
+  const esperaFoco = Boolean(titularEnfocada && !cajaEnfocada && !sinGeometria.has(titularEnfocada.ubigeo));
   const centroEnfocado = useMemo(() => {
     const m = titularEnfocada ? manzanaPorId.get(titularEnfocada.id_manzana) : undefined;
     return m ? m.centro : null;
@@ -507,10 +537,13 @@ export default function HojasRutaMapaPage() {
     return unirCajas(contornos.filter((c) => ciudadDeUbigeo(c.ubigeo) === ciudadAbierta).map((c) => c.caja)) ?? atlas.find((c) => c.codigo === ciudadAbierta)?.caja ?? null;
   }, [enAtlas, ciudadAbierta, contornos, atlas, departamentoEnfocado, ciudadEnfocada]);
   const contornosAbiertos = useMemo(() => (ciudadAbierta ? contornos.filter((c) => ciudadDeUbigeo(c.ubigeo) === ciudadAbierta) : contornos), [contornos, ciudadAbierta]);
+  // Vista nacional (Población, Muestra, Manzanas y Selección con distritos en 2+ ciudades): Perú › ciudad › distrito.
+  const nacional = useVistaNacional({ seccion: nav.seccion, atlas, confirmados, territorios, contornos, departamentos: limites.departamentos, objetivoPorUbigeo: matriz.vigente ? matriz.porUbigeo : undefined, tamanoFilas: tamano?.filas, titulares: bloquesTitulares, ump: titularEnfocada ? codigoDeUmp(titularEnfocada) : null });
 
   const dibujarFondo = useCallback(
     (ctx: CanvasRenderingContext2D, u: UtilLienzo) => {
       dibujarLimites(ctx, u, limites);
+      nacional.dibujarFondo(ctx, u);
       if (enAtlas) {
         // El departamento enfocado se distingue de las provincias con el acento del módulo.
         const dep = departamentoEnfocado ? limites.departamentos.find((d) => d.nombre === departamentoEnfocado) : null;
@@ -546,14 +579,16 @@ export default function HojasRutaMapaPage() {
         };
       });
     },
-    [confirmados, borrador, enTerritorio, enPoblacion, enMuestra, enAtlas, contornos, contornosAbiertos, ciudadEnfocada, departamentoEnfocado],
+    [confirmados, borrador, enTerritorio, enPoblacion, enMuestra, enAtlas, contornos, contornosAbiertos, ciudadEnfocada, departamentoEnfocado, nacional.dibujarFondo],
   );
   // Sobre Viviendas o NSE la titular va en tinta oscura con halo (si no, se pierde en el naranja).
-  const capaContraste = conSelectorDeCapa(nav.seccion as SeccionLienzo) && capaMapa !== "manzanas";
+  // A escala país no hay manzanas que colorear: la capa (y su selector) sólo existen bajo la vista nacional.
+  const capaContraste = conSelectorDeCapa(nav.seccion as SeccionLienzo) && nacional.nivel?.nivel !== "nacional" && capaMapa !== "manzanas";
   const dibujarMundo = useCallback(
     (ctx: CanvasRenderingContext2D, u: UtilLienzo) => {
       // P9: parques, plazas y agua (OSM) al fondo, para orientarse donde se ven manzanas.
       if (contextoOsm.length && u.camara.s > 0.08) dibujarContexto(ctx, u, contextoOsm);
+      nacional.dibujarMundo(ctx, u);
       if (enTerritorio) {
 
         const enfocadoC = distritoEnfocado ? contornos.find((c) => c.ubigeo === distritoEnfocado) : null;
@@ -611,9 +646,9 @@ export default function HojasRutaMapaPage() {
         dibujarReemplazosMundo(ctx, u, reemplazos);
       }
       if (enSeleccion) dibujarReemplazosMundo(ctx, u, reemplazosEnfocados);
-      if (!enPoblacion && !enMuestra) dibujarTitularesMundo(ctx, u, titulares, enSeleccion ? umpEnfocada : null, capaContraste);
+      if (!enPoblacion && !enMuestra) dibujarTitularesMundo(ctx, u, titularesVisibles, enSeleccion ? umpEnfocada : null, capaContraste);
     },
-    [enMuestra, enPoblacion, enTerritorio, enManzanas, enSeleccion, borrador, distritoBajoCursor, distritoEnfocado, titulares, reemplazos, excluidasPiloto, contextoOsm, reemplazosEnfocados, umpEnfocada, zonasCortas, distritos, configSorteo, dibujoArea, capaContraste, contornos],
+    [enMuestra, enPoblacion, enTerritorio, enManzanas, enSeleccion, borrador, distritoBajoCursor, distritoEnfocado, titularesVisibles, reemplazos, excluidasPiloto, contextoOsm, reemplazosEnfocados, umpEnfocada, zonasCortas, distritos, configSorteo, dibujoArea, capaContraste, contornos, nacional.dibujarMundo],
   );
   // Perfil NSE de lo elegido para la gráfica del inspector de Territorio: viviendas
   // por nivel de las manzanas ya cargadas en el lienzo. null mientras no hay geometría.
@@ -680,15 +715,25 @@ export default function HojasRutaMapaPage() {
   const habitantes = useMemo(() => new Map((estado?.territories ?? []).map((t) => [t.ubigeo, t.poblacion])), [estado]);
   const dibujarPantalla = useCallback(
     (ctx: CanvasRenderingContext2D, u: UtilLienzo) => {
+      // Mientras llegan los distritos de una ciudad, su círculo sigue en el mapa: sin él el lienzo quedaba en blanco (C2).
+      const sinDistritos = (codigo: string | null) => Boolean(codigo) && !contornos.some((c) => ciudadDeUbigeo(c.ubigeo) === codigo);
       if (enAtlas) {
-        dibujarCiudadesAtlas(ctx, u, atlas, enEstudio, ciudadEnfocada);
+        dibujarCiudadesAtlas(ctx, u, atlas, enEstudio, sinDistritos(ciudadEnfocada) ? null : ciudadEnfocada);
         // La ciudad enfocada muestra sus distritos con nombre (zoom de ciudad).
         if (ciudadEnfocada) dibujarNombresFuera(ctx, u, contornos.filter((c) => ciudadDeUbigeo(c.ubigeo) === ciudadEnfocada).map((c) => ({ clave: c.ubigeo, nombre: nombreDistrito(c.nombre), x: c.rotulo[0], y: c.rotulo[1] })));
         return;
       }
-      dibujarNombresDepartamento(ctx, u, limites);
-      if (!enTerritorio && !enPoblacion && !enMuestra) dibujarTitularesPantalla(ctx, u, titulares, enSeleccion ? umpEnfocada : null, null, enSeleccion ? reemplazosEnfocados : [], capaContraste);
-      const visibles = enTerritorio ? contornosAbiertos.filter((c) => borrador.includes(c.ubigeo) || confirmados.includes(c.ubigeo)) : contornos.filter((c) => confirmados.includes(c.ubigeo));
+      if (enTerritorio && ciudadAbierta && sinDistritos(ciudadAbierta)) {
+        dibujarCiudadesAtlas(ctx, u, atlas.filter((c) => c.codigo === ciudadAbierta), enEstudio, null);
+        return;
+      }
+      dibujarNombresDepartamento(ctx, u, nacional.limitesDeNombres(limites));
+      if (nacional.dibujarPantalla(ctx, u)) return;
+      if (!enTerritorio && !enPoblacion && !enMuestra) dibujarTitularesPantalla(ctx, u, titularesVisibles, enSeleccion ? umpEnfocada : null, null, enSeleccion ? reemplazosEnfocados : [], capaContraste);
+      // La ruta enfocada dice por qué esquina se entra y hacia dónde se camina, como su ficha impresa.
+      const mEnfocada = titularEnfocada ? manzanaPorId.get(titularEnfocada.id_manzana) : undefined;
+      if (mEnfocada?.anillos[0] && u.camara.s > 0.5) dibujarRecorridoManzana(ctx, u, mEnfocada.anillos[0], titularEnfocada?.esquina_inicio, titularEnfocada?.sentido_recorrido);
+      const visibles = enTerritorio ? contornosAbiertos.filter((c) => borrador.includes(c.ubigeo) || confirmados.includes(c.ubigeo)) : contornos.filter((c) => confirmados.includes(c.ubigeo) && nacional.enVista(c.ubigeo));
       // D11 (checklist visual 2/11): primero las fichas del estudio y después los nombres de los demás, que no las pisan.
       let fichas: CajaOcupada[] = [];
       if (u.camara.s < 0.09 || enTerritorio || enPoblacion || enMuestra) {
@@ -706,7 +751,7 @@ export default function HojasRutaMapaPage() {
       }
       if (enTerritorio) dibujarNombresFuera(ctx, u, contornosAbiertos.filter((c) => !visibles.includes(c)).map((c) => ({ clave: c.ubigeo, nombre: nombreDistrito(c.nombre), x: c.rotulo[0], y: c.rotulo[1] })), fichas);
     },
-    [titulares, confirmados, borrador, enTerritorio, enPoblacion, enMuestra, enSeleccion, umpEnfocada, reemplazosEnfocados, matriz, tamano, habitantes, capaContraste, enAtlas, atlas, enEstudio, ciudadEnfocada, contornos, contornosAbiertos],
+    [titularesVisibles, confirmados, borrador, enTerritorio, enPoblacion, enMuestra, enSeleccion, umpEnfocada, titularEnfocada, manzanaPorId, reemplazosEnfocados, matriz, tamano, habitantes, capaContraste, enAtlas, atlas, enEstudio, ciudadEnfocada, ciudadAbierta, contornos, contornosAbiertos, nacional],
   );
 
   // B1: la zona de acciones del documento (fase, avisos por revisar, bitácora, Material).
@@ -758,7 +803,8 @@ export default function HojasRutaMapaPage() {
       label: envio ? (envio.desactualizado ? "Reenviar a Material" : "En Material") : "Enviar a Material",
       // La mochila es el ícono de Material de campo; el verde del botón lo da marco.css.
       icon: Backpack,
-      kind: "secondary" as const,
+      // Maqueta aprobada (lámina 0): «Enviar a Material» es la acción principal de la barra.
+      kind: "primary" as const,
       rank: 2 as const,
       disabled: enCuotas ? !confirmados.length : !salidas?.sample,
       title: envio ? (envio.desactualizado ? "La muestra cambió desde el envío: reenvíala" : "La muestra está enviada a Material de campo") : "Envía la muestra a Material de campo, que produce las fichas y el paquete",
@@ -774,23 +820,21 @@ export default function HojasRutaMapaPage() {
       ariaLabel="Contexto operativo de hojas de ruta"
       densidad={barraAngosta ? "compact" : "normal"}
       contexto={
-        <ChromeIndicatorGroup ariaLabel="Lo decidido" resumen={decidido.map((i) => i.detalle).join(", ")}>
-          {decidido.map((i) => (
-            // B4: el lienzo lleva fase, revisión, bitácora y Material en la barra; bajo 1080 px de barra
-            // los indicadores ceden todos (como en el artefacto) para que secciones y acciones no se monten.
-            <ChromeIndicator key={i.id} label={i.label} value={i.value} detalle={i.detalle} prioridad={i.prioridad === "alta" ? "media" : i.prioridad} onClick={() => nav.irA("seccion", i.seccion)} />
-          ))}
+        // Maqueta aprobada (lámina 0): a la izquierda el estudio y su alcance; lo decidido (N, k, estrato) lo resume
+        // el botón «Diseño» y el detalle completo sigue en el `title` del grupo.
+        <ChromeIndicatorGroup ariaLabel="Estudio" resumen={decidido.map((i) => i.detalle).join(", ")}>
+          <ChromeIndicator label="Alcance" value={alcanceEstudio(atlas.filter((c) => enEstudio.includes(c.codigo)).map((c) => c.nombre), confirmados.length)} prioridad="alta" onClick={() => nav.irA("seccion", "territorio")} />
         </ChromeIndicatorGroup>
       }
       acciones={accionesChrome}
       // Gonzalo, 3/11: los avisos van recogidos en un solo botón.
-      herramientas={<AvisosDeLaBarra chips={chipsEstado} />}
+      herramientas={<><BotonDiseno config={estado?.integrated_config ?? null} n={tamano?.nUsado ?? null} compacto={barraAngosta} /><AvisosDeLaBarra chips={chipsEstado} /></>}
       secciones={
         <SectionPillbar
           modulo="hojas-ruta"
           ariaLabel="Secciones de Hojas de ruta"
           seccionActiva={nav.seccion}
-          items={nav.secciones.map((s) => ({ id: s.id, label: s.label, href: nav.hrefDe("seccion", s.id) }))}
+          items={nav.secciones.map((s) => ({ id: s.id, label: s.label, href: nav.hrefDe("seccion", s.id), lista: seccionLista(s.id, { distritos: confirmados.length, matriz: matriz.vigente, tamano: Boolean(salidas?.sample_size_preview), sorteo: Boolean(salidas?.sample), enviado: Boolean(envio && !envio.desactualizado) }) }))}
         />
       }
     />
@@ -798,7 +842,7 @@ export default function HojasRutaMapaPage() {
 
   return (
     <PageFrame className="hojas-ruta-frame hr-mapa-frame" bodyMode="fill" scrollOwner="panels" layout="canvas" density="compact" headerMode="sr-only" title="Hojas de ruta" chrome={chrome}>
-      <span hidden data-audit-ready={estado || error ? "hojas-ruta" : "false"} data-audit-stage={nav.seccion ?? ""} data-audit-navigation="lienzo-v1" />
+      <span hidden data-audit-ready={error || (estado && !esperaFoco && !esperaGeometrias && !regionesCargando.length && !cargandoMarco) ? "hojas-ruta" : "false"} data-audit-stage={nav.seccion ?? ""} data-audit-navigation="lienzo-v1" />
       <div className="hr-mapa">
         {/* key por sección: cada una empieza arriba; el scroll de otra no se hereda (B25). */}
         <section key={nav.seccion ?? "territorio"} className="hr-mapa-estructura" aria-label="Distritos del estudio">
@@ -816,7 +860,7 @@ export default function HojasRutaMapaPage() {
           ) : enMuestra && configMuestra && tamano ? (
             <MuestraEstructura config={configMuestra} resultado={tamano} bloqueado={bloqueado} />
           ) : enPoblacion && estado ? (
-            <PoblacionEstructura rangosConfig={rangosConfig} config={estado.integrated_config} matriz={matriz} bloqueado={bloqueado} />
+            <PoblacionLectura rangos={rangosVista} config={estado.integrated_config} matriz={matriz} />
           ) : (
           <>
           <header className="hr-mapa-cab">
@@ -847,13 +891,14 @@ export default function HojasRutaMapaPage() {
         <LienzoMapa
           className="hr-mapa-lienzo"
           ariaLabel="Mapa del territorio del estudio"
-          miga={enAtlas ? <MigaAtlas total={atlas.length} departamento={departamentoEnfocado} ciudad={atlas.find((c) => c.codigo === ciudadEnfocada) ?? null} distritos={contornos.filter((c) => ciudadDeUbigeo(c.ubigeo) === ciudadEnfocada).length} cargando={regionesCargando.length > 0} enEstudio={Boolean(ciudadEnfocada && enEstudio.includes(ciudadEnfocada))} onPeru={() => { setCiudadEnfocada(null); setDepartamentoEnfocado(null); }} onDepartamento={(d) => { setCiudadEnfocada(null); setDepartamentoEnfocado(d); }} /> : enTerritorio && ciudadAbierta ? <><b>{atlas.find((c) => c.codigo === ciudadAbierta)?.nombre}</b>{regionesCargando.length ? "(cargando su mapa…)" : <span className="hr-lienzo-miga-ayuda">(clic en un distrito para ver su ficha)</span>}</> : migaLienzo(nav.seccion as SeccionLienzo, confirmados.length, titularEnfocada ? { distrito: nombreDistrito(titularEnfocada.distrito), ump: codigoDeUmp(titularEnfocada) } : null, atlas.filter((c) => enEstudio.includes(c.codigo)).map((c) => c.nombre))}
-          leyenda={enAtlas ? <><span className="hr-atlas-punto" aria-hidden="true" /> Con cartografía <span className="hr-atlas-punto" data-en-estudio aria-hidden="true" /> En el estudio</> : leyendaLienzo(nav.seccion as SeccionLienzo, { zonasCortas: zonasCortas.size > 0, areas: (configSorteo?.marco_elegible?.areas_excluidas ?? []).length > 0, capa: capaMapa })}
+          miga={enAtlas ? <MigaAtlas total={atlas.length} departamento={departamentoEnfocado} ciudad={atlas.find((c) => c.codigo === ciudadEnfocada) ?? null} distritos={contornos.filter((c) => ciudadDeUbigeo(c.ubigeo) === ciudadEnfocada).length} cargando={regionesCargando.length > 0} enEstudio={Boolean(ciudadEnfocada && enEstudio.includes(ciudadEnfocada))} onPeru={() => { setCiudadEnfocada(null); setDepartamentoEnfocado(null); }} onDepartamento={(d) => { setCiudadEnfocada(null); setDepartamentoEnfocado(d); }} /> : enTerritorio && ciudadAbierta ? <><b>{atlas.find((c) => c.codigo === ciudadAbierta)?.nombre}</b>{regionesCargando.length ? "(cargando su mapa…)" : <span className="hr-lienzo-miga-ayuda">(clic en un distrito para ver su ficha)</span>}</> : nacional.miga ? <>{nacional.miga}{regionesCargando.length && nacional.nivel?.nivel !== "nacional" ? <span className="hr-lienzo-miga-ayuda">(cargando sus distritos…)</span> : null}</> : migaLienzo(nav.seccion as SeccionLienzo, confirmados.length, titularEnfocada ? { distrito: nombreDistrito(titularEnfocada.distrito), ump: codigoDeUmp(titularEnfocada) } : null, atlas.filter((c) => enEstudio.includes(c.codigo)).map((c) => c.nombre))}
+          leyenda={enAtlas ? <><span className="hr-atlas-punto" aria-hidden="true" /> Con cartografía <span className="hr-atlas-punto" data-en-estudio aria-hidden="true" /> En el estudio</> : nacional.nivel?.nivel === "nacional" ? <><span className="hr-atlas-punto" data-en-estudio aria-hidden="true" /> Ciudad del estudio</> : leyendaLienzo(nav.seccion as SeccionLienzo, { zonasCortas: zonasCortas.size > 0, areas: (configSorteo?.marco_elegible?.areas_excluidas ?? []).length > 0, capa: capaMapa })}
           distritos={enPoblacion || enMuestra ? [] : distritos}
           capa={conSelectorDeCapa(nav.seccion as SeccionLienzo) ? capaMapa : "manzanas"}
           anclaZoom={centroEnfocado}
-          controles={!enAtlas && conSelectorDeCapa(nav.seccion as SeccionLienzo) ? <SelectorCapa capa={capaMapa} onCapa={setCapaMapa} /> : undefined}
-          encuadreObjetivo={enTerritorio && cajaTerritorio ? { caja: cajaTerritorio, pad: enAtlas ? 0.03 : 0.08, clave: `territorio:${ciudadAbierta ?? `pe:${departamentoEnfocado ?? ""}:${ciudadEnfocada ?? ""}`}:${(ciudadAbierta || ciudadEnfocada) && regionesCargando.length ? "silueta" : "distritos"}`, animar: true } : cajaEnfocada ? { caja: cajaEnfocada, pad: 2.2, clave: `ump:${umpEnfocada}:${cajon ? "cajon" : "libre"}`, animar: true, tapadoAbajo: cajon ? 0.5 : 0 } : caja ? { caja, pad: 0.08, clave: `${nav.seccion}:${confirmados.join(",") || "lima"}:${contornosConfirmados}`, animar: false } : null}
+          controles={!enAtlas && nacional.nivel?.nivel !== "nacional" && conSelectorDeCapa(nav.seccion as SeccionLienzo) ? <SelectorCapa capa={capaMapa} onCapa={setCapaMapa} /> : undefined}
+          encuadreObjetivo={!estado ? null : enTerritorio && cajaTerritorio ? { caja: cajaTerritorio, pad: enAtlas ? 0.04 : 0.08, tapadoAbajo: enAtlas ? 0.07 : 0, clave: `territorio:${ciudadAbierta ?? `pe:${departamentoEnfocado ?? ""}:${ciudadEnfocada ?? ""}`}:${(ciudadAbierta || ciudadEnfocada) && regionesCargando.length ? "silueta" : "distritos"}`, animar: true } : cajaEnfocada ? { caja: cajaEnfocada, pad: 2.2, clave: `ump:${umpEnfocada}:${cajon ? "cajon" : "libre"}`, animar: true, tapadoAbajo: cajon ? 0.5 : 0 } : nacional.encuadre ? (cajon && nav.seccion === "seleccion" ? { ...nacional.encuadre, clave: `${nacional.encuadre.clave}:cajon`, tapadoAbajo: 0.5 } : nacional.encuadre) : (caja ? { caja, pad: 0.08, clave: `${nav.seccion}:${confirmados.join(",") || "lima"}:${contornosConfirmados}`, animar: false } : null)}
+          ficha={nacional.ficha}
           dibujarFondo={dibujarFondo}
           dibujarMundo={dibujarMundo}
           dibujarPantalla={dibujarPantalla}
@@ -863,6 +908,8 @@ export default function HojasRutaMapaPage() {
                   // Un clic cerca del primer vértice no agrega otro: el área ya cerró y espera su motivo.
                   if (!cierraEnPrimero(dibujoArea, punto, 12 / u.camara.s)) setDibujoArea([...dibujoArea, punto]);
                 }
+              : nacional.alClic
+              ? nacional.alClic
               : enSeleccion
               ? ([x, y]) => {
                   const m = manzanaEnPunto(titulares.map((t) => t.manzana), x, y);
@@ -950,28 +997,8 @@ export default function HojasRutaMapaPage() {
               viviendas={territorios.reduce((a, t) => a + t.viviendas, 0)}
               manzanas={territorios.reduce((a, t) => a + t.manzanas, 0)}
               listoParaSortear={Boolean(salidas?.sample_size_preview) && confirmados.length > 0}
-              reglaPiloto={
-                fase === "field" && estado?.runs?.pilot ? (
-                  <ReglaPiloto
-                    modo={estado.runs.field?.pilot_exclusion_mode ?? "exclude_titulars"}
-                    titularesPiloto={estado.runs.pilot.workspace_outputs?.sample?.blocks?.length ?? 0}
-                    excluidasEnLaMuestra={salidas?.sample ? (salidas.sample.config?.excluded_titular_ids?.length ?? 0) : null}
-                    deshabilitado={bloqueado || guardando}
-                    onCambiar={(modo: HojasRutaPilotExclusionMode) => void cambiarReglaPiloto(modo)}
-                  />
-                ) : null
-              }
               parecido={<ParecidoAlMarco marco={perfilNseMarco} muestra={perfilNseMuestra} causaV1={Boolean(muestraV1(salidas?.sample?.alerts))} />}
-              marcoElegible={
-                <MarcoElegiblePanel
-                  marco={configSorteo.marco_elegible}
-                  vista={vistaMarco}
-                  cargando={cargandoMarco}
-                  deshabilitado={bloqueado || guardando}
-                  onCambiar={(me) => setSorteoBorrador({ ...sorteoBorrador, marco_elegible: me })}
-                  ruta={configSorteo.entrevistas_por_manzana}
-                />
-              }
+              conPiloto={fase === "field" && Boolean(estado?.runs?.pilot)}
               bloqueado={bloqueado}
               guardando={guardando}
               enviada={envio ? { enviadoEl: envio.enviado_at } : null}
@@ -1024,6 +1051,7 @@ export default function HojasRutaMapaPage() {
           )}
         </section>
       </div>
+      <AjustesDisenoHost config={estado?.integrated_config ?? null} configMuestra={configMuestra ?? null} fase={fase} tamano={tamano} margenPara={entradaTamano ? (n) => margenTotalParaN(entradaTamano, n) : undefined} bloqueado={bloqueado} guardando={guardando} territorios={territorios} estratoServidor={estratoServidor} onAplicarMuestra={() => void guardarMuestra()} rangosConfig={rangosConfig} matriz={matriz} onGuardarYCalcularPoblacion={(c) => void guardarYCalcularPoblacion(c)} onGuardarCaracter={(c) => void guardarCaracterCuotas(c)} configSorteo={configSorteo ?? null} listoParaSortear={Boolean(Boolean(salidas?.sample_size_preview) && confirmados.length > 0)} viviendas={territorios.reduce((a, t) => a + t.viviendas, 0)} manzanas={territorios.reduce((a, t) => a + t.manzanas, 0)} reglaPiloto={fase === "field" && estado?.runs?.pilot ? (                   <ReglaPiloto                     modo={estado.runs.field?.pilot_exclusion_mode ?? "exclude_titulars"}                     titularesPiloto={estado.runs.pilot.workspace_outputs?.sample?.blocks?.length ?? 0}                     excluidasEnLaMuestra={salidas?.sample ? (salidas.sample.config?.excluded_titular_ids?.length ?? 0) : null}                     deshabilitado={bloqueado || guardando}                     onCambiar={(modo: HojasRutaPilotExclusionMode) => void cambiarReglaPiloto(modo)}                   />                 ) : null} hayTamano={Boolean(salidas?.sample_size_preview)} hayCuotasOSorteo={Boolean(salidas?.quota || salidas?.sample)} marcoElegible={configSorteo ? <MarcoElegiblePanel                   marco={configSorteo.marco_elegible}                   vista={vistaMarco}                   cargando={cargandoMarco}                   deshabilitado={bloqueado || guardando}                   onCambiar={(me) => setSorteoBorrador({ ...sorteoBorrador, marco_elegible: me })}                   ruta={configSorteo.entrevistas_por_manzana}                   metodo={configSorteo.sampling_method}                 /> : null} />
     </PageFrame>
   );
 }

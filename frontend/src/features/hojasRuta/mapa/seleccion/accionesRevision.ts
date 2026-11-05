@@ -1,3 +1,4 @@
+import type { SamplingMethod } from "../../../../api/hojasRuta";
 import type { TipoObservacion } from "../../seleccion/revisionMarco";
 
 /**
@@ -7,15 +8,20 @@ import type { TipoObservacion } from "../../seleccion/revisionMarco";
  * suelta, el reemplazo puntual en Material de campo.
  *
  * `minimoMarco`: mínimo de viviendas del marco elegible declarado; null si el estudio no lo declaró.
+ * `metodo`: con el que salió la muestra (`SelectedBlock.metodo`). En PPS, PPS con tope y conglomerado fijo una
+ * manzana sin viviendas tiene probabilidad 0 (ADR 0117, `.hojas_ruta_sorteo_medida`): si aparece, salió en un
+ * sorteo anterior a esa regla y basta sortear de nuevo. Sólo el sistemático (misma probabilidad para todas)
+ * puede volver a sacarla, y ahí el arreglo sí es el marco elegible.
  */
 /** `destino`: el bloque del marco elegible en Manzanas, o Manzanas a secas (reemplazos por titular). */
 export type AccionObservacion = { texto: string; destino: "marco" | "manzanas" };
 
-export function accionDeObservacion(tipo: TipoObservacion, minimoMarco: number | null): AccionObservacion | null {
+export function accionDeObservacion(tipo: TipoObservacion, minimoMarco: number | null, metodo?: SamplingMethod): AccionObservacion | null {
   const sinMarco = minimoMarco === null || minimoMarco < 1;
   switch (tipo) {
     case "titular-sin-viviendas":
     case "reemplazo-sin-viviendas":
+      if (metodo !== "sistematico") return { texto: "Salió en un sorteo anterior a la regla actual: con PPS ya no saldría. Sortea de nuevo.", destino: "manzanas" };
       return sinMarco
         ? { texto: "Volver a sortear con el marco elegible (mínimo 1 vivienda) las deja fuera.", destino: "marco" }
         : null;
@@ -29,4 +35,19 @@ export function accionDeObservacion(tipo: TipoObservacion, minimoMarco: number |
       // Su detalle ya dice qué hacer (fijar la esquina de inicio en la ficha).
       return null;
   }
+}
+
+/**
+ * Las acciones de varios grupos, sin repetir el mismo consejo: el segundo grupo con el mismo arreglo
+ * conserva sólo el enlace (las tarjetas de «no alcanzan» repetían dos veces el mismo párrafo).
+ */
+export function accionesSinRepetir(tipos: readonly TipoObservacion[], minimoMarco: number | null, metodo?: SamplingMethod): Array<AccionObservacion | null> {
+  const dichas = new Set<string>();
+  return tipos.map((t) => {
+    const a = accionDeObservacion(t, minimoMarco, metodo);
+    if (!a) return null;
+    if (dichas.has(a.texto)) return { ...a, texto: "" };
+    dichas.add(a.texto);
+    return a;
+  });
 }

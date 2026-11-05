@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { GlidingRadioGroup } from "../../../../components/GlidingRadioGroup";
 import { PulsoButton } from "../../../../components/PulsoButton";
-import { apiHojasRutaBitacoraAnotar, apiHojasRutaDecisionCobertura, type HojasRutaMarcoElegible, type HojasRutaMarcoElegiblePreview } from "../../../../api/hojasRuta";
+import { apiHojasRutaBitacoraAnotar, apiHojasRutaDecisionCobertura, type HojasRutaMarcoElegible, type HojasRutaMarcoElegiblePreview, type SamplingMethod } from "../../../../api/hojasRuta";
 import { nombreDistrito } from "../nombres";
 import { useLienzoHojasRuta } from "../store";
 import { ANCLA_MARCO, aLonLat, faltaEnArea, irAlMarcoElegible, MARCO_NUEVO, MOTIVOS, nuevaArea, pideEvidencia, tonoCobertura, type FormularioArea } from "./marcoElegible";
@@ -28,9 +28,11 @@ type Props = {
   onCambiar: (me: HojasRutaMarcoElegible) => void;
   /** Entrevistas por ruta: el atajo «una ruta completa» usa este mínimo (B38). */
   ruta?: number;
+  /** Método de sorteo vigente: con PPS una manzana sin viviendas no sale; con el sistemático, sí (ADR 0117). */
+  metodo?: SamplingMethod;
 };
 
-export function MarcoElegiblePanel({ marco, vista, cargando, deshabilitado, onCambiar, ruta = 0 }: Props) {
+export function MarcoElegiblePanel({ marco, vista, cargando, deshabilitado, onCambiar, ruta = 0, metodo }: Props) {
   const { dibujoArea, setDibujoArea } = useLienzoHojasRuta();
   const [form, setForm] = useState<FormularioArea>(FORM_VACIO);
   // ADR 0115 §4: con 10 % o más de población excluida en un distrito, el equipo decide y queda registrado (U17).
@@ -80,14 +82,16 @@ export function MarcoElegiblePanel({ marco, vista, cargando, deshabilitado, onCa
     return (
       <section id={ANCLA_MARCO} className="hr-muestra-grupo" aria-label="Marco elegible">
         <h3>Marco elegible</h3>
-        <p className="hr-mapa-nota">Este estudio sortea sobre todas las manzanas del marco 2017, también las que no tienen viviendas registradas.</p>
+        {/* Con PPS una manzana sin viviendas tiene π = 0 (ADR 0117): «sortea sobre todas» hacía creer que podían salir. */}
+        <p className="hr-mapa-nota">El marco de este estudio incluye todas las manzanas 2017, también las que no tienen viviendas registradas{metodo === "sistematico" ? " y que el sistemático puede sortear" : "; con PPS no salen sorteadas"}.</p>
         {vista ? (
           <p className="hr-mapa-nota">
             Adoptarlo saca <b>{fmt(excluidasMinimo)}</b> manzanas sin viviendas registradas{sinConteo ? ` (${fmt(sinConteo)} por falta de conteo en el censo)` : ""} y cubre el {cubierta == null ? "—" : pct(cubierta)} de la población.
           </p>
         ) : cargando ? <LoadingBlock variant="inline" label="Calculando lo que cambiaría…" /> : null}
         <div className="hr-mapa-acciones">
-          <PulsoButton variant="secondary" size="sm" disabled={deshabilitado} onClick={() => onCambiar(MARCO_NUEVO)}>
+          {/* Adoptar es la acción del bloque; dibujar un área, la alternativa: no pesan igual. */}
+          <PulsoButton variant="primary" size="sm" disabled={deshabilitado} onClick={() => onCambiar(MARCO_NUEVO)}>
             Adoptar el marco elegible
           </PulsoButton>
           {/* B39: dibujar a la vista. Declara el marco sólo con el área: mínimo 0, no saca manzanas sin viviendas. */}

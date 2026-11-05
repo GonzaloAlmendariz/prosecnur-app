@@ -31,16 +31,13 @@
   }
 }
 
-/* B4 (lienzo): bajo 1080 px de barra todos los indicadores ceden; sin esto la zona de
-   contexto seguía reservando 272 px vacíos al inicio de la barra (C3). Las secciones
-   toman ese ancho. El dato sigue en el `title` del grupo y en cada sección. */
+/* B4 (lienzo): bajo 1080 px de barra ceden los indicadores de prioridad media (chrome.css) y
+   queda sólo el de la sección abierta (`alta`, HojasRutaMapaPage): la zona de contexto toma
+   su ancho justo en vez de los 272 px de arriba (C3), y la barra sigue diciendo algo del
+   estudio (antes se ocultaba entera y a 1024 no decía nada). */
 @container pulso-chrome (max-width: 1080px) {
-  .hr-mapa-frame .hojas-ruta-commandbar > .pulso-command-bar-zone[data-zone="contexto"] {
-    display: none;
-  }
-
-  .hr-mapa-frame .hojas-ruta-commandbar > .pulso-command-bar-zone[data-zone="secciones"] {
-    grid-column: 1 / span 2;
+  .hr-mapa-frame .hojas-ruta-commandbar {
+    grid-template-columns: max-content minmax(0, 1fr) minmax(0, max-content);
   }
 }
 

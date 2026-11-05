@@ -9,8 +9,11 @@ export type Camara = { x: number; y: number; s: number };
 export type Caja = readonly [number, number, number, number];
 export type Tamano = { w: number; h: number };
 
-/** Límites del zoom: del Perú entero (≈ 1.800 km en pantalla, ADR 0119) a una manzana. */
-export const ESCALA_MIN = 0.0003;
+/**
+ * Límites del zoom: del Perú entero (ADR 0119) a una manzana. El mínimo deja caber el país (~2.000 km de
+ * norte a sur) en un lienzo de ~260 px de alto: con 0,0003 el atlas a 1024x600 cortaba Arequipa y Tacna.
+ */
+export const ESCALA_MIN = 0.00012;
 export const ESCALA_MAX = 6;
 /** El encuadre automático nunca acerca más que esto (una manzana sola no llena la pantalla). */
 export const ESCALA_ENCUADRE_MAX = 2.4;
@@ -18,6 +21,12 @@ export const ESCALA_ENCUADRE_MAX = 2.4;
 export const SENSIBILIDAD_RUEDA = 0.0065;
 export const SENSIBILIDAD_PELLIZCO = 0.014;
 export const DURACION_VUELO_MS = 620;
+/**
+ * Si un cambio de encuadre vuela o salta. El primero siempre salta: la cámara aún no mira nada (arranca en
+ * un origen arbitrario) y volar desde ahí pinta ~1 s de mapa en blanco o a medio camino antes de llegar.
+ */
+export const debeVolar = (o: { animar: boolean; reducido: boolean; ancho: number; encuadrado: boolean }) =>
+  o.animar && !o.reducido && o.ancho > 0 && o.encuadrado;
 
 export const acotarEscala = (s: number) => Math.max(ESCALA_MIN, Math.min(ESCALA_MAX, s));
 

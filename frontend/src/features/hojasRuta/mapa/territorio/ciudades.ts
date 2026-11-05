@@ -58,7 +58,8 @@ export function ciudadesDelAtlas(territorios: readonly HojasRutaTerritory[]): Ci
 }
 
 /** Radio del círculo de una ciudad en píxeles: área ∝ población. */
-export const radioCiudad = (poblacion: number) => 4 + Math.sqrt(Math.max(0, poblacion)) / 95;
+// Área proporcional a la población; con /95 Lima (10,6 M) medía 38 px y tapaba su rótulo y a Huacho a 1024.
+export const radioCiudad = (poblacion: number) => 4 + Math.sqrt(Math.max(0, poblacion)) / 125;
 
 /** Ciudades del estudio: las pedidas más las de cada distrito confirmado (invariante del backend, R3). */
 export function ciudadesDelEstudio(ciudades: readonly string[] | undefined, territorios: readonly string[]): string[] {

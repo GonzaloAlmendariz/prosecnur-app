@@ -19,10 +19,10 @@ describe("la ayuda de la miga del atlas", () => {
       renderToStaticMarkup(<MigaAtlas total={26} departamento={null} ciudad={arequipa} distritos={12} cargando={false} enEstudio onPeru={nada} onDepartamento={nada} />),
     ].map(ayuda);
     expect(variantes).toEqual([
-      "(26 ciudades con cartografía; el tamaño es su población)",
+      "(26 ciudades con cartografía)",
       "(clic en una ciudad para ver su ficha)",
       "(cargando sus distritos…)",
-      "(12 distritos; «Elegir distritos» para trabajarlos)",
+      "(12 distritos, en el estudio)",
     ]);
   });
 });

@@ -7,6 +7,7 @@ import {
   aPantalla,
   arrastre,
   cajaVisible,
+  debeVolar,
   DURACION_VUELO_MS,
   encuadre,
   escalaGrafica,
@@ -103,6 +104,8 @@ type Props = {
   rotuloCursor?: ReactNode;
   /** Punto del mundo al que se acercan «+» y «−» (la UMP enfocada); sin él, el centro. */
   anclaZoom?: readonly [number, number] | null;
+  /** Ficha flotante bajo la miga (la del distrito en la vista nacional). */
+  ficha?: ReactNode;
 };
 
 const COSTO_PARA_REUTILIZAR_MS = 18;
@@ -152,6 +155,9 @@ function trazoDe(pieza: Pieza, cerrar = true): Path2D {
   return pieza.trazo;
 }
 
+/** La marca de QA del vuelo: «false» mientras la cámara vuela, «lienzo» cuando se detiene o la corta el usuario. */
+const marcarVuelo = (nodo: HTMLSpanElement | null, volando: boolean) => nodo?.setAttribute("data-audit-ready", volando ? "false" : "lienzo");
+
 export function LienzoMapa({
   distritos,
   capa,
@@ -170,6 +176,7 @@ export function LienzoMapa({
   leyenda,
   controles,
   anclaZoom = null,
+  ficha,
 }: Props) {
   const lienzoRef = useRef<HTMLCanvasElement | null>(null);
   const escalaRef = useRef<HTMLDivElement | null>(null);
@@ -190,10 +197,14 @@ export function LienzoMapa({
     /** El último encuadre pedido y si el usuario movió la cámara después. */
     objetivo: null as EncuadreLienzo | null,
     manual: false,
+    /** Si la cámara ya miró algo: el primer encuadre salta en vez de volar (`debeVolar`). */
+    encuadrado: false,
   });
   // Lo que cambia con cada render se lee por referencia desde el bucle de dibujo.
   // El rótulo del cursor se mueve por ref: re-renderizar en cada pointermove sería pagar React por píxel.
   const rotuloRef = useRef<HTMLDivElement | null>(null);
+  // Marca de QA: en «false» mientras la cámara vuela, para que ninguna captura salga a medio camino.
+  const vueloRef = useRef<HTMLSpanElement | null>(null);
   const cursorRef = useRef<[number, number] | null>(null);
   const moverRotulo = useCallback((x: number | null, y: number | null) => {
     cursorRef.current = x === null || y === null ? null : [x, y];
@@ -355,9 +366,12 @@ export function LienzoMapa({
   const volar = useCallback(
     (destino: Camara, animar: boolean) => {
       const e = estado.current;
-      const reducido = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
-      if (!animar || reducido || !e.tamano.w) {
+      const reducido = Boolean(window.matchMedia?.("(prefers-reduced-motion: reduce)").matches);
+      const vuela = debeVolar({ animar, reducido, ancho: e.tamano.w, encuadrado: e.encuadrado });
+      if (e.tamano.w) e.encuadrado = true;
+      if (!vuela) {
         e.vuelo = 0;
+        marcarVuelo(vueloRef.current, false);
         e.camara = destino;
         pintar();
         return;
@@ -373,9 +387,11 @@ export function LienzoMapa({
         if (k < 1) requestAnimationFrame(paso);
         else {
           e.vuelo = 0;
+          marcarVuelo(vueloRef.current, false);
           dibujar();
         }
       };
+      marcarVuelo(vueloRef.current, true);
       requestAnimationFrame(paso);
     },
     [dibujar, pintar],
@@ -393,7 +409,7 @@ export function LienzoMapa({
       lienzo.width = Math.max(1, Math.round(r.width * e.dpr));
       lienzo.height = Math.max(1, Math.round(r.height * e.dpr));
       e.baseSucia = true;
-      if (e.objetivo && !e.manual) e.camara = encuadre(e.objetivo.caja, e.tamano, e.objetivo.pad ?? 0.1);
+      if (e.objetivo && !e.manual) e.camara = encuadre(e.objetivo.caja, e.tamano, e.objetivo.pad ?? 0.1, e.objetivo.tapadoAbajo);
       pintar();
     };
     medir();
@@ -448,6 +464,7 @@ export function LienzoMapa({
           e.arrastre.movio = true;
           lienzo.dataset.arrastrando = "true";
           e.vuelo = 0;
+          marcarVuelo(vueloRef.current, false);
           e.manual = true;
           e.camara = arrastre(e.arrastre.camara, dx, dy);
           marcarInteraccion();
@@ -473,6 +490,7 @@ export function LienzoMapa({
     const rueda = (ev: WheelEvent) => {
       ev.preventDefault();
       e.vuelo = 0;
+      marcarVuelo(vueloRef.current, false);
       const [x, y] = local(ev);
       e.manual = true;
       e.camara = zoomRueda(e.camara, e.tamano, x, y, ev.deltaY, ev.deltaMode, ev.ctrlKey);
@@ -503,7 +521,9 @@ export function LienzoMapa({
   return (
     <div className={["hr-lienzo", className].filter(Boolean).join(" ")}>
       <canvas ref={lienzoRef} className="hr-lienzo-canvas" role="img" aria-label={ariaLabel} />
+      <span ref={vueloRef} hidden data-audit-ready="lienzo" />
       {miga ? <div className="hr-lienzo-capsula hr-lienzo-miga">{miga}</div> : null}
+      {ficha ? <div className="hr-lienzo-ficha">{ficha}</div> : null}
       {rotuloCursor ? <div ref={rotuloRef} className="hr-lienzo-cursor" role="status" aria-live="polite">{rotuloCursor}</div> : null}
       {leyenda ? <div className="hr-lienzo-capsula hr-lienzo-leyenda">{leyenda}</div> : null}
       {controles ? <div className="hr-lienzo-capsula hr-lienzo-controles">{controles}</div> : null}

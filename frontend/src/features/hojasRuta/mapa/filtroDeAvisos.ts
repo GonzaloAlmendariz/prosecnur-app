@@ -19,6 +19,23 @@ export function avisosVisibles(avisos: readonly HojasRutaAlert[] | null | undefi
   return out;
 }
 
+/**
+ * El texto de un aviso del motor, en buen castellano. El motor (congelado) escribe «2 distrito(s) no tienen
+ * N externo»: los avisos conocidos se reescriben con su número y la concordancia del verbo; en los demás,
+ * el «(s)» se resuelve por el número que lo precede.
+ */
+const POR_CODIGO: Record<string, (n: number) => string> = {
+  W_EXTERNAL_DISTRICT_MISSING: (n) => (n === 1 ? "1 distrito no tiene N externo." : `${formatoConteo(n)} distritos no tienen N externo.`),
+  W_DISTRICT_MARGIN_HIGH: (n) => (n === 1 ? "1 distrito queda con margen de error distrital alto." : `${formatoConteo(n)} distritos quedan con margen de error distrital alto.`),
+};
+export function textoDeAviso(a: Pick<HojasRutaAlert, "code" | "message">): string {
+  const texto = a.message ?? "";
+  const n = Number(/^(\d+)\s/.exec(texto)?.[1]);
+  const propio = POR_CODIGO[a.code ?? ""];
+  if (propio && Number.isFinite(n)) return propio(n);
+  return texto.replace(/(\d+)(\s+[^\s(]+)\(s\)/g, (_, k: string, palabra: string) => `${k}${palabra}${Number(k) === 1 ? "" : "s"}`);
+}
+
 /** Las cuotas que no cuadran con el N objetivo (el chip en aviso de la clásica); null si cuadran. */
 export function cuotasDescuadradas(quota: Pick<QuotaPlan, "total_asignado" | "n_objetivo"> | null | undefined): string | null {
   if (!quota || !Number.isFinite(quota.total_asignado) || !Number.isFinite(quota.n_objetivo)) return null;

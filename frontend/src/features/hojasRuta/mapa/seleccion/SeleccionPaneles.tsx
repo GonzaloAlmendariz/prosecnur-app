@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
 import { EvidenciaRevision } from "./EvidenciaRevision";
 import { AvisosDelMotor } from "../AvisosDelMotor";
 import { cuotasDescuadradas } from "../filtroDeAvisos";
@@ -15,7 +15,7 @@ import { useLienzoHojasRuta } from "../store";
 import { tonoCss } from "../lienzo/tonos";
 import { useSeleccionDireccion, type CajonSeleccion } from "./useSeleccionDireccion";
 import { Link } from "react-router-dom";
-import { accionDeObservacion, type AccionObservacion } from "./accionesRevision";
+import { accionDeObservacion, accionesSinRepetir, type AccionObservacion } from "./accionesRevision";
 import { HREF_CAMPANA_TERRITORIAL } from "./SalidasPanel";
 import { porRevisar, reemplazosDe, type EstadoRuta, type GrupoRutas } from "./rutas";
 
@@ -46,6 +46,14 @@ export function SeleccionEstructura({ grupos, total, observadas, confirmados = [
   const { soloPorRevisar, setSoloPorRevisar, busquedaUmp, setBusquedaUmp } = useLienzoHojasRuta();
   const { umpEnfocada, setUmpEnfocada } = useSeleccionDireccion();
   const visibles = grupos.reduce((a, g) => a + g.filas.length, 0);
+  // La ruta enfocada desde el mapa, un enlace o el teclado se trae a la vista en la lista: abrir la UMP 71 dejaba la
+  // lista arriba, en Ate, y la fila marcada fuera de pantalla.
+  const catalogo = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    if (!umpEnfocada) return;
+    const fila = catalogo.current?.querySelector<HTMLElement>(`[data-ruta="${umpEnfocada}"]`);
+    fila?.scrollIntoView?.({ block: "nearest" });
+  }, [umpEnfocada, grupos]);
   return (
     <>
       <div className="hr-mapa-cab hr-mapa-cab--pila">
@@ -58,7 +66,7 @@ export function SeleccionEstructura({ grupos, total, observadas, confirmados = [
           {(o) => <span>{o[0] === "revisar" ? `${o[1]}, ${fmt(observadas)}` : `${o[1]}, ${fmt(total)}`}</span>}
         </GlidingRadioGroup>
       </div>
-      <div className="hr-mapa-catalogo">
+      <div className="hr-mapa-catalogo" ref={catalogo}>
         {grupos.map((g) => (
           <section key={g.ubigeo} aria-label={nombreDistrito(g.distrito)}>
             <h3>
@@ -74,6 +82,7 @@ export function SeleccionEstructura({ grupos, total, observadas, confirmados = [
                   <button
                     type="button"
                     aria-pressed={f.id === umpEnfocada}
+                    data-ruta={f.id}
                     data-estado={f.estado}
                     aria-label={`${f.codigo}, zona ${f.zona}, manzana ${f.id.slice(-4)}, ${fmt(f.viviendas)} viviendas${porRevisar(f.estado) ? `, ${ETIQUETA[f.estado]}` : ""}`}
                     title={porRevisar(f.estado) ? ETIQUETA[f.estado] : undefined}
@@ -164,11 +173,16 @@ export function SeleccionInspector({ titular, estado, reemplazos, revision, tota
             <div><dt>Encuestas</dt><dd>{rango(titular)}</dd></div>
             {titular.esquina_inicio ? <div><dt>Esquina inicial</dt><dd>{titular.esquina_inicio}</dd></div> : null}
           </dl>
-          {observaciones.map((g) => (
-            <p key={g.tipo} className={g.tono === "info" ? "hr-mapa-nota" : "hr-mapa-aviso"}>
-              <b>{g.titulo}.</b> {g.detalle}
-            </p>
-          ))}
+          {observaciones.map((g) => {
+            // La ficha dice qué falla y también dónde se arregla (el mismo destino que el panel general), sin repetir su texto.
+            const accion = accionDeObservacion(g.tipo, minimoMarco, titular.metodo);
+            return (
+              <div key={g.tipo} className={g.tono === "info" ? "hr-mapa-nota" : "hr-mapa-aviso"}>
+                <p><b>{g.titulo}.</b> {g.detalle}</p>
+                <AccionDelGrupo accion={accion && { ...accion, texto: "" }} />
+              </div>
+            );
+          })}
           {/* ADR 0118 F3: la hoja grande y su impresión viven en Material de campo (módulo encargado). */}
           {enviada ? (
             <Link className="hr-entrega-enlace" to={`${HREF_CAMPANA_TERRITORIAL}&panel=hoja&foco=${encodeURIComponent(titular.id_manzana)}`}>
@@ -223,6 +237,9 @@ export function SeleccionInspector({ titular, estado, reemplazos, revision, tota
       </>
     );
   }
+  // Todos los bloques de una muestra salen con el mismo método: decide si una manzana sin viviendas es de un sorteo viejo.
+  const metodoMuestra = reemplazos[0]?.metodo;
+  const acciones = accionesSinRepetir(revision.grupos.map((g) => g.tipo), minimoMarco, metodoMuestra);
   return (
     <>
       <InspectorCabecera icono={ListChecks} sobre="Selección" titulo="Revisión contra el marco" />
@@ -239,15 +256,16 @@ export function SeleccionInspector({ titular, estado, reemplazos, revision, tota
           <p className="hr-mapa-nota">{fmt(rutasPorRevisar)} rutas con su titular o algún reemplazo observado: {fmt(revision.porRevisar)} UMP en total.</p>
         ) : null}
         {revision.grupos.length ? (
-          revision.grupos.map((g) => (
+          revision.grupos.map((g, i) => (
             <article key={g.tipo} className="hr-sel-grupo" data-estado={g.tono}>
               <strong>{g.titulo}</strong>
               <small>{g.detalle}</small>
-              <AccionDelGrupo accion={accionDeObservacion(g.tipo, minimoMarco)} />
+              <AccionDelGrupo accion={acciones[i]} />
               <div className="hr-mapa-chips">
                 {g.umps.slice(0, 12).map((u) => (
                   <button key={u.idManzana} type="button" className="hr-mapa-zona" onClick={() => setUmpEnfocada(reemplazos.find((r) => r.id_manzana === u.idManzana)?.titular_id_manzana ?? u.idManzana)} title={u.titular ? `Abre la ficha de ${u.titular}` : undefined}>
-                    <span>{u.codigo}{u.titular ? ` de ${u.titular}` : ""}</span>
+                    {/* «R 13» ya dice de qué UMP es: «R 13 de UMP 13» repetía el número en cada chip. */}
+                    <span>{u.codigo}</span>
                   </button>
                 ))}
                 {g.umps.length > 12 ? <span className="hr-mapa-nota">y {g.umps.length - 12} más</span> : null}
@@ -276,8 +294,8 @@ function AccionDelGrupo({ accion }: { accion: AccionObservacion | null }) {
   if (!accion) return null;
   return (
     <p className="hr-sel-accion">
-      {accion.texto}{" "}
-      {accion.destino === "marco" ? <Link to="/hojas-ruta?seccion=manzanas#marco-elegible">Ir al marco elegible</Link> : <Link to="/hojas-ruta?seccion=manzanas">Ir a Manzanas</Link>}
+      {accion.texto ? <>{accion.texto} </> : null}
+      {accion.destino === "marco" ? <Link to="/hojas-ruta?seccion=manzanas&panel=ajustes&foco=marco">Ir al marco elegible</Link> : <Link to="/hojas-ruta?seccion=manzanas">Ir a Manzanas</Link>}
     </p>
   );
 }
@@ -285,22 +303,28 @@ function AccionDelGrupo({ accion }: { accion: AccionObservacion | null }) {
 const PESTANAS: ReadonlyArray<readonly [CajonSeleccion, string]> = [["titulares", "Titulares"], ["reemplazos", "Reemplazos"], ["cuotas", "Cuotas"]];
 
 type Celda = Record<string, string | number | null>;
-const COL_DISTRITO: PulsoTableColumna<SelectedBlock> = { id: "distrito", encabezado: "Distrito", ancho: 150, celda: (b) => nombreDistrito(b.distrito), valor: (b) => b.distrito };
+// Anchos que suman ~700 px: con NSE a 104 la suma pasaba de 720 y a 1440 «Encuestas» quedaba fuera del cajón.
+const COL_DISTRITO: PulsoTableColumna<SelectedBlock> = { id: "distrito", encabezado: "Distrito", ancho: 124, celda: (b) => nombreDistrito(b.distrito), valor: (b) => b.distrito };
 const COLUMNAS_BLOQUE = (reemplazos: boolean): PulsoTableColumna<SelectedBlock>[] => [
   COL_DISTRITO,
-  { id: "codigo", encabezado: reemplazos ? "R" : "UMP", ancho: 84, celda: (b) => codigoDeUmp(b), valor: (b) => Number(reemplazos ? b.titular_hoja_num ?? 0 : b.hoja_num ?? b.orden_seleccion ?? 0) },
-  { id: "manzana", encabezado: "Manzana", ancho: 150, celda: (b) => b.id_manzana, valor: (b) => b.id_manzana },
+  // «R 125» cabe en 64; la pestaña de reemplazos suma una columna y a 1440 se desplazaba 88 px.
+  { id: "codigo", encabezado: reemplazos ? "R" : "UMP", ancho: reemplazos ? 64 : 84, celda: (b) => codigoDeUmp(b), valor: (b) => Number(reemplazos ? b.titular_hoja_num ?? 0 : b.hoja_num ?? b.orden_seleccion ?? 0) },
+  // «Reemplaza a» junto al código: es la relación que la pestaña existe para mostrar, y a 1024 quedaba cortada a la derecha.
   ...(reemplazos ? [{ id: "titular", encabezado: "Reemplaza a", ancho: 100, celda: (b: SelectedBlock) => (b.titular_hoja_num ? `UMP ${b.titular_hoja_num}` : "—"), valor: (b: SelectedBlock) => Number(b.titular_hoja_num ?? 0) }] : []),
+  { id: "manzana", encabezado: "Manzana", ancho: 132, celda: (b) => b.id_manzana, valor: (b) => b.id_manzana },
   { id: "zona", encabezado: "Zona", ancho: 76, celda: (b) => b.zona, valor: (b) => b.zona },
-  { id: "nse", encabezado: "NSE", ancho: 80, celda: (b) => nse(b), valor: (b) => nse(b) },
+  // 104 px: «MEDIO BAJO» y «MEDIO ALTO» se leían «MEDIO …» con 80.
+  { id: "nse", encabezado: "NSE", ancho: 104, celda: (b) => nse(b), valor: (b) => nse(b) },
   { id: "viviendas", encabezado: "Viviendas", ancho: 90, tipo: "cifra", celda: (b) => fmt(b.viviendas), valor: (b) => Number(b.viviendas || 0) },
-  { id: "encuestas", encabezado: "Encuestas", ancho: 96, tipo: "cifra", celda: (b) => rango(b), valor: (b) => Number(b.rango_inicio ?? 0) },
+  // Un reemplazo hace las encuestas de su titular: el rango ya lo dice «Reemplaza a», y repetirlo empujaba la tabla fuera del cajón.
+  ...(reemplazos ? [] : [{ id: "encuestas", encabezado: "Encuestas", ancho: 96, tipo: "cifra" as const, celda: (b: SelectedBlock) => rango(b), valor: (b: SelectedBlock) => Number(b.rango_inicio ?? 0) }]),
 ];
 const COLUMNAS_CUOTA: PulsoTableColumna<Celda & { _i: number }>[] = [
   { id: "distrito", encabezado: "Distrito", ancho: 170, celda: (c) => nombreDistrito(String(c.territorio ?? "")), valor: (c) => String(c.territorio ?? "") },
   { id: "edad", encabezado: "Edad", ancho: 100, celda: (c) => String(c.rango_edad ?? ""), valor: (c) => String(c.rango_edad ?? "") },
   { id: "sexo", encabezado: "Sexo", ancho: 90, celda: (c) => String(c.sexo ?? "Total"), valor: (c) => String(c.sexo ?? "Total") },
-  { id: "cuota", encabezado: "Cuota", ancho: 80, tipo: "cifra", celda: (c) => fmt(Number(c.cuota ?? 0)), valor: (c) => Number(c.cuota ?? 0) },
+  // Una cuota en cero (distrito sin N) se atenúa: con el mismo peso que una cuota real, ocho filas de ceros encabezaban la tabla.
+  { id: "cuota", encabezado: "Cuota", ancho: 80, tipo: "cifra", celda: (c) => (Number(c.cuota ?? 0) === 0 ? <span className="hr-cuota-cero">0</span> : fmt(Number(c.cuota))), valor: (c) => Number(c.cuota ?? 0) },
 ];
 
 type CajonProps = { titulares: readonly SelectedBlock[]; reemplazos: readonly SelectedBlock[]; cuotas: QuotaPlan | null };

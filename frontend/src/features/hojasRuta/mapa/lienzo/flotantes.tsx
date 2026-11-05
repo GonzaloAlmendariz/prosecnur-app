@@ -22,7 +22,8 @@ export function nombreDelTerritorio(ciudades: readonly string[]): string {
 export function migaLienzo(seccion: SeccionLienzo, distritos: number, foco: { distrito: string; ump: string } | null, ciudades: readonly string[] = []): ReactNode {
   const icono = <MapPinned size={14} aria-hidden="true" />;
   const donde = nombreDelTerritorio(ciudades);
-  if (seccion === "seleccion" && foco) return <>{icono} <b>{foco.distrito}</b>, {foco.ump}</>;
+  // Distrito y UMP en un solo nodo: sueltos, el `gap` de la miga ponía un espacio antes de la coma («Ate , UMP 3»).
+  if (seccion === "seleccion" && foco) return <>{icono} <span><b>{foco.distrito}</b>, {foco.ump}</span></>;
   if (seccion === "territorio") return <>{icono} <b>{donde}</b><span className="hr-lienzo-miga-ayuda">(clic en un distrito para ver su ficha)</span></>;
   return <>{icono} <b>{donde}</b><span className="hr-lienzo-miga-ayuda">({distritos ? `${distritos} distrito${distritos === 1 ? "" : "s"}` : "sin distritos confirmados"})</span></>;
 }

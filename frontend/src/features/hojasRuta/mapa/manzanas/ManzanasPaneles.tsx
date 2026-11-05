@@ -6,20 +6,23 @@ import { InspectorCabecera } from "../InspectorCabecera";
 import { GlidingRadioGroup } from "../../../../components/GlidingRadioGroup";
 import { PulsoButton } from "../../../../components/PulsoButton";
 import type { HojasRutaCoberturaMarco, HojasRutaIntegratedConfig, HojasRutaRouteSnapshot, HojasRutaSamplePreview, SamplingMethod } from "../../../../api/hojasRuta";
-import { irAlMarcoElegible, tonoCobertura } from "./marcoElegible";
-import { CompararSemillas } from "./CompararSemillas";
+import { tonoCobertura } from "./marcoElegible";
 import { SorteoEnCurso } from "./SorteoEnCurso";
 import { ConfirmarResorteo } from "./ConfirmarResorteo";
 import { fechaDelSorteo } from "./fechaSorteo";
 import { nombreDistrito } from "../nombres";
 import { tonoCss } from "../lienzo/tonos";
 import { useLienzoHojasRuta } from "../store";
-import { useSeccion } from "../../../../lib/navegacion/useDireccion";
 import { TEXTO_CAUSA, type CausaRuteo } from "./causaRuteo";
-import { acotarReemplazos, cambiosDeSorteo, mismoTerritorio, otraSemilla, saltoVistaPrevia, type BorradorSorteo } from "./sorteo";
+import { cambiosDeSorteo, mismoTerritorio, type BorradorSorteo } from "./sorteo";
 
 import { formatoDecimal } from "../../../../lib/formatoNumero";
 import { EstadoVacio } from "../../../../components/EstadoVacio";
+import { GrupoMuestra } from "../muestra/GrupoMuestra";
+import { AccesoAjustes } from "../ajustes/AccesoAjustes";
+import { resumenGrupo } from "../ajustes/gruposAjustes";
+import { useAbrirAjustes } from "../ajustes/useAjustesDiseno";
+import { etiquetaRuteo, resumenHistorial } from "./resumenHistorial";
 /**
  * Manzanas en la página del lienzo (U8). El inspector arma el sorteo —método,
  * peso, semilla, recorrido y reemplazos— y lo manda a R; la estructura es el
@@ -28,20 +31,20 @@ import { EstadoVacio } from "../../../../components/EstadoVacio";
 
 const fmt = (n: number) => new Intl.NumberFormat("es-PE").format(Math.round(n));
 
-const METODOS: ReadonlyArray<{ id: SamplingMethod; titulo: string; cuerpo: string }> = [
+export const METODOS: ReadonlyArray<{ id: SamplingMethod; titulo: string; cuerpo: string }> = [
   { id: "pps", titulo: "PPS estratificado", cuerpo: "Más viviendas, más probabilidad, dentro de cada distrito." },
   // ADR 0120: para estudios donde preocupan los condominios; no es autoponderado (W_DESIGN_NOT_SELF_WEIGHTING).
   { id: "pps_tope", titulo: "PPS con tope", cuerpo: "Como PPS, pero las manzanas enormes (condominios) no acaparan rutas. Obliga a analizar con pesos." },
   { id: "sistematico", titulo: "Sistemático", cuerpo: "Ordena, calcula un salto y arranca al azar." },
   { id: "conglomerado_fijo", titulo: "Conglomerado fijo", cuerpo: "Menos manzanas con carga estable: menos traslados." },
 ];
-const ESQUINAS = [["auto", "Auto"], ["1", "1"], ["2", "2"], ["3", "3"], ["4", "4"]] as const;
-const SALTOS = [["auto", "Automático"], ["off", "Sin salto"], ["manual", "Manual"]] as const;
-const POLITICAS = [["alternate_zone_same_district", "Otra zona"], ["paired_by_titular_zone", "Misma zona"]] as const;
-const PESOS = [["viviendas", "Viviendas"], ["poblacion", "Población"]] as const;
+export const ESQUINAS = [["auto", "Auto"], ["1", "1"], ["2", "2"], ["3", "3"], ["4", "4"]] as const;
+export const SALTOS = [["auto", "Automático"], ["off", "Sin salto"], ["manual", "Manual"]] as const;
+export const POLITICAS = [["alternate_zone_same_district", "Otra zona"], ["paired_by_titular_zone", "Misma zona"]] as const;
+export const PESOS = [["viviendas", "Viviendas"], ["poblacion", "Población"]] as const;
 const metodoDe = (m: SamplingMethod) => METODOS.find((x) => x.id === m)?.titulo ?? m;
 
-function Diagrama({ metodo }: { metodo: SamplingMethod }) {
+export function Diagrama({ metodo }: { metodo: SamplingMethod }) {
   if (metodo === "pps")
     return (
       <svg viewBox="0 0 96 28" aria-hidden="true">
@@ -69,7 +72,7 @@ function Diagrama({ metodo }: { metodo: SamplingMethod }) {
   );
 }
 
-function Opciones<V extends string>({ etiqueta, valor, opciones, onCambio, deshabilitado }: { etiqueta: string; valor: V; opciones: ReadonlyArray<readonly [V, string]>; onCambio: (v: V) => void; deshabilitado?: boolean }) {
+export function Opciones<V extends string>({ etiqueta, valor, opciones, onCambio, deshabilitado }: { etiqueta: string; valor: V; opciones: ReadonlyArray<readonly [V, string]>; onCambio: (v: V) => void; deshabilitado?: boolean }) {
   return (
     <div className="hr-muestra-campo">
       <small>{etiqueta}</small>
@@ -93,6 +96,8 @@ type InspectorProps = {
   parecido?: ReactNode;
   /** P2: en Campo real con piloto, si el sorteo evita sus titulares. Último paso, tras Reemplazos. */
   reglaPiloto?: ReactNode;
+  /** Campo real con corrida piloto: la regla del piloto se edita en «Ajustes del diseño», grupo Fase y piloto. */
+  conPiloto?: boolean;
   bloqueado: boolean;
   guardando: boolean;
   /** La muestra vigente ya está en Material: volver a sortear pide confirmación (1 nov 2026). */
@@ -102,17 +107,15 @@ type InspectorProps = {
   onSortear: () => void;
 };
 
-export function ManzanasInspector({ guardada, config, muestra, viviendas, manzanas, listoParaSortear, marcoElegible, parecido, reglaPiloto, bloqueado, guardando, enviada, sorteando = null, onSortear }: InspectorProps) {
+export function ManzanasInspector({ guardada, config, muestra, listoParaSortear, parecido, conPiloto = false, bloqueado, guardando, enviada, sorteando = null, onSortear }: InspectorProps) {
   const [confirmando, setConfirmando] = useState(false);
   const pedirSorteo = () => (enviada && muestra ? setConfirmando(true) : onSortear());
   const sorteadaEl = fechaDelSorteo(muestra?.sorteado_en);
   const { sorteoBorrador, setSorteoBorrador } = useLienzoHojasRuta();
-  const nav = useSeccion("hojas-ruta");
+  const { abrir: abrirAjustes } = useAbrirAjustes();
   const cambiar = (b: BorradorSorteo) => setSorteoBorrador({ ...sorteoBorrador, ...b });
   const cambios = cambiosDeSorteo(guardada, sorteoBorrador);
   const ruta = Math.max(1, config.entrevistas_por_manzana || 1);
-  const reemplazos = acotarReemplazos(config.replacements_per_titular);
-  const salto = saltoVistaPrevia(viviendas, manzanas, ruta);
   const ed = bloqueado || guardando;
   const vigente = Boolean(muestra) && !cambios.length;
   // F11: una muestra v1 deja manzanas sin probabilidad de salir; se dice arriba de todo y se puede re-sortear sin cambiar nada.
@@ -132,7 +135,7 @@ export function ManzanasInspector({ guardada, config, muestra, viviendas, manzan
             {!config.marco_elegible?.declarado ? (
               <p>
                 Antes, revisa el marco elegible: hoy se sortea también sobre manzanas sin viviendas registradas.{" "}
-                <button type="button" className="hr-sorteo-v1-ir" onClick={() => irAlMarcoElegible()}>Ver el marco elegible</button>
+                <button type="button" className="hr-sorteo-v1-ir" onClick={() => abrirAjustes("marco")}>Ver el marco elegible</button>
               </p>
             ) : null}
             <PulsoButton variant="primary" size="sm" disabled={ed || !listoParaSortear || confirmando} onClick={pedirSorteo}>
@@ -159,84 +162,13 @@ export function ManzanasInspector({ guardada, config, muestra, viviendas, manzan
         {muestra ? parecido : null}
         {!listoParaSortear ? <p className="hr-mapa-aviso">Primero calcula el tamaño en Muestra: el sorteo reparte ese N en rutas de {ruta} entrevistas.</p> : null}
 
-        <section className="hr-muestra-grupo" aria-label="Método">
-          <h3>Método</h3>
-          <GlidingRadioGroup value={config.sampling_method} options={METODOS} getOptionValue={(m) => m.id} onValueChange={(sampling_method) => cambiar({ sampling_method })} className="hr-sorteo-metodos" aria-label="Método de selección" getOptionProps={() => ({ disabled: ed })}>
-            {(m) => (
-              <>
-                <Diagrama metodo={m.id} />
-                <strong>{m.titulo}</strong>
-                <small>{m.cuerpo}</small>
-              </>
-            )}
-          </GlidingRadioGroup>
-        </section>
+        {/* Método, medida, semilla y marco elegible se editan en «Ajustes del diseño» (M5); el sorteo, que es la
+            decisión, sigue aquí abajo. */}
+        <AccesoAjustes grupo="sorteo" titulo="Sorteo de manzanas" valor={resumenGrupo("sorteo", config)} />
+        <AccesoAjustes grupo="marco" titulo="Marco elegible" valor={resumenGrupo("marco", config)} />
 
-        <section className="hr-muestra-grupo" aria-label="Carga de la ruta">
-          <h3>Carga de la ruta</h3>
-          <Opciones etiqueta="Ponderar manzanas por" valor={config.measure_var} opciones={PESOS} onCambio={(measure_var) => cambiar({ measure_var })} deshabilitado={ed} />
-          <div className="hr-sorteo-ruta">
-            <span>
-              <b>{ruta} encuestas por ruta</b>
-              <small>Se define en Muestra</small>
-            </span>
-            <PulsoButton variant="secondary" size="sm" onClick={() => nav.irA("seccion", "muestra")}>
-              Cambiar
-            </PulsoButton>
-          </div>
-          <div className="hr-muestra-campo">
-            <small>Semilla</small>
-            <span className="hr-sorteo-semilla">
-              <input type="number" min={0} step={1} aria-label="Semilla" value={config.seed} disabled={ed} onChange={(e) => e.target.value !== "" && Number.isFinite(Number(e.target.value)) && cambiar({ seed: Math.max(0, Math.round(Number(e.target.value))) })} />
-              <PulsoButton variant="secondary" size="sm" disabled={ed} onClick={() => cambiar({ seed: otraSemilla(config.seed) })}>
-                Otra
-              </PulsoButton>
-            </span>
-            <span className="hr-mapa-nota">La misma semilla con los mismos parámetros repite el sorteo.</span>
-          </div>
-          {listoParaSortear ? <CompararSemillas config={config} deshabilitado={ed} onUsar={(seed) => cambiar({ seed })} /> : null}
-        </section>
-
-        {marcoElegible}
-
-        <section className="hr-muestra-grupo" aria-label="Recorrido en campo">
-          <h3>Recorrido en campo</h3>
-          <Opciones etiqueta="Esquina inicial" valor={config.route_start_corner} opciones={ESQUINAS} onCambio={(route_start_corner) => cambiar({ route_start_corner })} deshabilitado={ed} />
-          <Opciones etiqueta="Salto entre viviendas" valor={config.route_jump_mode} opciones={SALTOS} onCambio={(route_jump_mode) => cambiar({ route_jump_mode })} deshabilitado={ed} />
-          {config.route_jump_mode === "manual" ? (
-            <label className="hr-muestra-campo">
-              <small>Salto manual</small>
-              <span className="hr-muestra-numero">
-                <input type="number" min={1} step={1} value={config.route_jump_manual} disabled={ed} onChange={(e) => e.target.value !== "" && cambiar({ route_jump_manual: Math.max(1, Math.round(Number(e.target.value) || 1)) })} />
-                <span>viviendas</span>
-              </span>
-            </label>
-          ) : null}
-          <p className="hr-mapa-nota">
-            {config.route_jump_mode === "off"
-              ? "Sin salto: se visita cada vivienda desde la esquina."
-              : config.route_jump_mode === "manual"
-                ? `Se toca una de cada ${config.route_jump_manual} viviendas en todas las manzanas.`
-                : salto
-                  ? `K = viviendas por manzana / ${ruta} entrevistas ≈ ${formatoDecimal(salto.k, 1)}: en el PDF, una de cada ${salto.operativo}.`
-                  : "K = viviendas por manzana / entrevistas de la ruta, calculado en cada manzana."}
-          </p>
-        </section>
-
-        <section className="hr-muestra-grupo" aria-label="Reemplazos">
-          <h3>Reemplazos</h3>
-          <div className="hr-muestra-campo">
-            <small>Por cada titular</small>
-            <span className="hr-muestra-pasos">
-              <PulsoButton variant="icon" size="sm" aria-label="Un reemplazo menos" disabled={ed || reemplazos <= 0} onClick={() => cambiar({ replacements_per_titular: acotarReemplazos(reemplazos - 1) })}>−</PulsoButton>
-              <input type="number" min={0} max={10} aria-label="Reemplazos por titular" value={reemplazos} disabled={ed} onChange={(e) => cambiar({ replacements_per_titular: acotarReemplazos(Number(e.target.value)) })} />
-              <PulsoButton variant="icon" size="sm" aria-label="Un reemplazo más" disabled={ed || reemplazos >= 10} onClick={() => cambiar({ replacements_per_titular: acotarReemplazos(reemplazos + 1) })}>+</PulsoButton>
-            </span>
-            <span className="hr-mapa-nota">{reemplazos === 0 ? "Sin reemplazos: si una manzana falla, no hay respaldo sorteado." : `De 0 a 10. ${reemplazos} por titular.`}</span>
-          </div>
-          <Opciones etiqueta="Dónde buscar el reemplazo" valor={config.replacement_policy} opciones={POLITICAS} onCambio={(replacement_policy) => cambiar({ replacement_policy })} deshabilitado={ed || reemplazos === 0} />
-        </section>
-        {reglaPiloto}
+        <AccesoAjustes grupo="recorrido" titulo="Recorrido y reemplazos" valor={resumenGrupo("recorrido", config)} />
+        {conPiloto ? <AccesoAjustes grupo="fase" titulo="Fase y piloto" valor="Regla del piloto en el campo real" /> : null}
         {avisosDelSorteo(muestra).map((a) => (
           <p key={a.code + a.message} className="hr-mapa-aviso" data-codigo={a.code}>{a.message}</p>
         ))}
@@ -258,7 +190,8 @@ export function ManzanasInspector({ guardada, config, muestra, viviendas, manzan
           Deshacer
         </PulsoButton>
         <PulsoButton variant="primary" disabled={ed || !listoParaSortear || (vigente && !v1) || confirmando} onClick={pedirSorteo}>
-          {guardando ? "Sorteando…" : muestra ? "Sortear de nuevo" : "Sortear manzanas"}
+          {/* Deshabilitado sin decir por qué parecía roto: con el sorteo vigente y sin cambios lo dice (como «Matriz al día»). */}
+          {guardando ? "Sorteando…" : vigente && !v1 ? "Sorteo al día" : muestra ? "Sortear de nuevo" : "Sortear manzanas"}
         </PulsoButton>
       </footer>
     </>
@@ -312,20 +245,45 @@ export function ManzanasEstructura({ muestra, historial, territorios, nFinal, co
 
   return (
     <>
+      {/* Lo principal primero: las rutas que dejó el sorteo; el historial, plegado debajo (antes iba arriba y a 1024
+          se partía cada dos palabras, empujando la lista fuera de la vista). */}
       <div className="hr-mapa-cab hr-mapa-cab--pila">
         <div className="hr-mapa-cab-titulo">
-          <h2>Ruteos</h2>
-          <small>{historial.length ? `${historial.length} en este proyecto` : "Sin sorteo"}</small>
+          <h2>Rutas por distrito</h2>
+          <small>{muestra ? `${fmt(muestra.n_blocks)} UMP titulares` : "Sin sorteo"}</small>
         </div>
       </div>
       <div className="hr-mapa-ins-cuerpo">
+        {filas.length ? (
+          <ul className="hr-sorteo-distritos">
+            {filas.map(([u, f]) => (
+              <li key={u}>
+                {/* B40: el punto lleva el tono del distrito en el mapa (orden de confirmación, como en B9). */}
+                <i style={{ background: tonoCss(territorios.indexOf(u)) }} aria-hidden="true" />
+                <span className="hr-sorteo-dist-copia">
+                  <strong>{nombreDistrito(f.distrito)}</strong>
+                  <small>
+                    {fmt(f.entrevistas)} entrevistas{f.reemplazos ? `, ${fmt(f.reemplazos)} reemplazo${f.reemplazos === 1 ? "" : "s"}` : ""}
+                  </small>
+                </span>
+                <span className="hr-sorteo-dist-cifra">
+                  <b>{fmt(f.titulares)}</b>
+                  <small>UMP</small>
+                </span>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <EstadoVacio icono={<Inbox size={16} />} titulo="Todavía no hay manzanas sorteadas" descripcion="Sortea desde el panel de la derecha." />
+        )}
+        <GrupoMuestra titulo="Historial de ruteos" resumen={resumenHistorial(historial.length, historial.some(vigente))} abierto={!muestra}>
         <section className="hr-muestra-grupo" aria-label="Historial de ruteos">
           {historial.length ? (
             <ul className="hr-sorteo-historial">
               {historial.map((h) => (
                 <li key={h.id} data-vigente={vigente(h) || undefined}>
                   <span>
-                    <strong>{h.label}</strong>
+                    <strong>{etiquetaRuteo(h.label)}</strong>
                     <small>{metodoDe(h.method)}, semilla {h.seed}, {fmt(h.n_replacement_blocks)} reemplazos{nFinal != null && h.n_final !== nFinal ? `, con N ${fmt(h.n_final)}` : ""}</small>
                   </span>
                   {vigente(h) ? (
@@ -354,32 +312,7 @@ export function ManzanasEstructura({ muestra, historial, territorios, nFinal, co
             <p className="hr-mapa-nota">Cada sorteo queda aquí para volver a él con la misma semilla.</p>
           )}
         </section>
-        <h3 className="hr-mapa-subtitulo hr-sorteo-subtitulo">
-          <span>Rutas por distrito</span>
-          <span>{muestra ? fmt(muestra.n_blocks) : ""}</span>
-        </h3>
-        {filas.length ? (
-          <ul className="hr-sorteo-distritos">
-            {filas.map(([u, f]) => (
-              <li key={u}>
-                {/* B40: el punto lleva el tono del distrito en el mapa (orden de confirmación, como en B9). */}
-                <i style={{ background: tonoCss(territorios.indexOf(u)) }} aria-hidden="true" />
-                <span className="hr-sorteo-dist-copia">
-                  <strong>{nombreDistrito(f.distrito)}</strong>
-                  <small>
-                    {fmt(f.entrevistas)} entrevistas{f.reemplazos ? `, ${fmt(f.reemplazos)} reemplazo${f.reemplazos === 1 ? "" : "s"}` : ""}
-                  </small>
-                </span>
-                <span className="hr-sorteo-dist-cifra">
-                  <b>{fmt(f.titulares)}</b>
-                  <small>UMP</small>
-                </span>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <EstadoVacio icono={<Inbox size={16} />} titulo="Todavía no hay manzanas sorteadas" descripcion="Sortea desde el panel de la derecha." />
-        )}
+        </GrupoMuestra>
         {cobertura.some((c) => c.cobertura_poblacion != null && c.cobertura_poblacion < 1) ? (
           <section className="hr-muestra-grupo" aria-label="Cobertura del marco elegible">
             <h3>Cobertura del marco</h3>
