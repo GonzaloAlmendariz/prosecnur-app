@@ -537,13 +537,14 @@
 }
 
 #' Encabezado de una tarjeta: la fila (si no la dice el eje ni el título) y, sin columna de Top Two Box, el indicador
-#' («Claude · Todos los días»; anclada a su premisa, solo «Todos los días»). NULL si no lleva.
+#' («Claude: todos los días»; anclada a su premisa, solo «Todos los días»). NULL si no lleva.
 #' @keywords internal
 .tarjetas_encabezado <- function(t, con_fila = TRUE, tipo = "multiple") {
   fila <- if (isTRUE(con_fila) && !isTRUE(t$fila_es_titulo)) .tarjetas_rotulo_fila(t$fila, tipo) else NULL
   ind <- t$indicador %||% NULL
   partes <- c(fila, ind)
-  if (!length(partes)) NULL else paste(partes, collapse = " \u00b7 ")
+  # Registro formal (revisión v7.23): sin punto medio; la premisa y su indicador se leen como una frase.
+  if (!length(partes)) NULL else if (length(partes) == 1L) partes else paste0(sub("[.,;:[:space:]]+$", "", partes[1]), ": ", .tarjetas_minuscula_inicial(partes[2]))
 }
 
 #' Rótulo de grupo para la tarjeta: el corto declarado, si lo hay
@@ -569,3 +570,12 @@
 #' Cifra entera con «%»
 #' @keywords internal
 .tarjetas_pct <- function(x) ifelse(is.finite(x), paste0(floor(round(x, 6) + 0.5), "%"), "\u2014")   # 100 × 0.365 = 36.4999…
+
+#' Primera letra en minúscula tras dos puntos («Claude: todos los días»), salvo siglas («Top Two Box», «TTB»)
+#' @keywords internal
+.tarjetas_minuscula_inicial <- function(x) {
+  if (!length(x) || is.na(x) || !nzchar(x)) return(x)
+  pal <- strsplit(x, " ", fixed = TRUE)[[1]][1]
+  if (grepl("^[[:upper:]]{2,}", pal) || identical(x, .PPT_ROTULO_TOP_TWO_BOX)) return(x)
+  paste0(tolower(substr(x, 1, 1)), substr(x, 2, nchar(x)))
+}
