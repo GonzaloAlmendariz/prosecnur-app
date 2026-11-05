@@ -29,6 +29,17 @@
 #'   `codigos` la lista de códigos de cada rótulo, `tipo` `"sm"` o `"so"` y `w` el peso de cada caso (`.peso_vec`).
 #' @keywords internal
 .sig_indicadores <- function(data, var, survey = NULL, sm_vars_force = NULL, orders_list = NULL) {
+  # Dentro de un pedido memorizado (graficos_memo_evaluacion.R) la misma pregunta no se rearma.
+  if (.gmemo_activa()) {
+    return(.gmemo_obtener("indicadores", list(data, survey, orders_list), .gmemo_llave(var, sm_vars_force),
+                          function() .sig_indicadores_calcular(data, var, survey, sm_vars_force, orders_list)))
+  }
+  .sig_indicadores_calcular(data, var, survey, sm_vars_force, orders_list)
+}
+
+#' Cálculo de `.sig_indicadores` (sin memoria)
+#' @keywords internal
+.sig_indicadores_calcular <- function(data, var, survey = NULL, sm_vars_force = NULL, orders_list = NULL) {
   if (!is.data.frame(data) || !nrow(data)) return(NULL)
   n <- nrow(data)
   w <- .peso_vec(data)

@@ -3,7 +3,7 @@
 // las del formulario (el mismo catálogo que Colores de las respuestas), porque el motor sólo reemplaza el rótulo entero.
 // Escribe `plan.rotulos_cortos` con `setRotulosCortos` del store del plan: un paso deshacible que guarda el autosave.
 
-import { useId, useMemo, useState, type ReactNode } from "react";
+import { useId, useMemo, useRef, useState, type ReactNode } from "react";
 import { PulsoButton } from "../../../components/PulsoButton";
 import { PulsoInput } from "../../../components/PulsoInput";
 import { Panel } from "../../../components/Panel";
@@ -22,9 +22,13 @@ import {
   sugerencias,
   type FilaRotuloCorto,
 } from "./modeloRotulosCortos";
+import { revelarFilaNueva, selectorFila } from "../revelarFila";
 import "./rotulosCortos.css";
 
 type Edicion = { largo: string; borrador: string };
+
+/** `data-fila` de la respuesta nueva que se está acortando (aún no está en el mapa). */
+const FILA_NUEVA = "pulso-rc-nueva";
 
 function EditorCorto({ edicion, onCambio, onGuardar, onCancelar }: {
   edicion: Edicion;
@@ -44,7 +48,6 @@ function EditorCorto({ edicion, onCambio, onGuardar, onCancelar }: {
           size="sm"
           className="pulso-rc-input"
           value={edicion.borrador}
-          autoFocus
           invalid={Boolean(problema)}
           aria-describedby={`${id}-ayuda`}
           onChange={(e) => onCambio(e.target.value)}
@@ -72,7 +75,7 @@ function FilaRotulo({ fila, edicion, onEditar, onQuitar, editor }: {
 }) {
   const editando = edicion?.largo === fila.largo;
   return (
-    <li className={editando ? "pulso-rc-fila is-editando" : "pulso-rc-fila"} data-qa-geometry-member>
+    <li className={editando ? "pulso-rc-fila is-editando" : "pulso-rc-fila"} data-fila={fila.largo} data-qa-geometry-member>
       <div className="pulso-rc-par">
         <span className="pulso-rc-largo">{fila.largo}</span>
         <ArrowRight size={16} aria-hidden="true" className="pulso-rc-flecha" />
@@ -103,6 +106,10 @@ export function RotulosCortos() {
   const [edicion, setEdicion] = useState<Edicion | null>(null);
   const tituloId = useId();
   const buscarId = useId();
+  const raiz = useRef<HTMLElement>(null);
+  // H10: la fila que se abre o se guarda se trae a la vista con el foco en su primer control (la nueva va arriba de la
+  // lista, bajo las sugerencias; la guardada toma su lugar en la lista).
+  const editar = (e: Edicion, fila: string) => { setEdicion(e); revelarFilaNueva(raiz.current, selectorFila(fila)); };
 
   const opciones = useMemo(() => (listas ? opcionesDelInstrumento(listas) : null), [listas]);
   const filas = filasRotulosCortos(mapa, opciones);
@@ -117,13 +124,14 @@ export function RotulosCortos() {
     setRotulosCortos(conRotuloCorto(mapa, edicion.largo, edicion.borrador));
     setEdicion(null);
     setConsulta("");
+    revelarFilaNueva(raiz.current, selectorFila(edicion.largo));
   };
   const editor = edicion ? (
     <EditorCorto edicion={edicion} onCambio={(t) => setEdicion({ ...edicion, borrador: t })} onGuardar={guardar} onCancelar={() => setEdicion(null)} />
   ) : null;
 
   return (
-    <section className="pulso-rc" aria-labelledby={tituloId} data-seccion="rotulos-cortos">
+    <section ref={raiz} className="pulso-rc" aria-labelledby={tituloId} data-seccion="rotulos-cortos">
       <header className="pulso-rc-cabecera">
         {/* H6: «del estudio» lo separa del «Nombre corto de un grupo» de las tarjetas, que vive en cada lámina. */}
         <h3 id={tituloId} className="pulso-rc-titulo">Rótulos cortos del estudio</h3>
@@ -149,7 +157,7 @@ export function RotulosCortos() {
               {halladas.map((o) => (
                 <li key={o.rotulo}>
                   <button type="button" className="pulso-rc-sugerencia" aria-pressed={nueva?.largo === o.rotulo}
-                    onClick={() => setEdicion({ largo: o.rotulo, borrador: "" })}>
+                    onClick={() => editar({ largo: o.rotulo, borrador: "" }, FILA_NUEVA)}>
                     <span className="pulso-rc-sugerencia-texto">{o.rotulo}</span>
                     <span className="pulso-rc-sugerencia-n">{formatoConteo(o.rotulo.length)} car.</span>
                   </button>
@@ -169,7 +177,7 @@ export function RotulosCortos() {
         <ul className="pulso-rc-lista"
           data-qa-geometry-group="graficos/identidad-rotulos-cortos" data-qa-geometry-contract="intrinsic">
           {nueva ? (
-            <li className="pulso-rc-fila is-editando is-nueva" data-qa-geometry-member>
+            <li className="pulso-rc-fila is-editando is-nueva" data-fila={FILA_NUEVA} data-qa-geometry-member>
               <div className="pulso-rc-par">
                 <span className="pulso-rc-largo">{nueva.largo}</span>
                 <ArrowRight size={16} aria-hidden="true" className="pulso-rc-flecha" />
@@ -179,7 +187,7 @@ export function RotulosCortos() {
           ) : null}
           {filas.map((f) => (
             <FilaRotulo key={f.largo} fila={f} edicion={edicion} editor={editor}
-              onEditar={() => setEdicion({ largo: f.largo, borrador: f.corto })}
+              onEditar={() => editar({ largo: f.largo, borrador: f.corto }, f.largo)}
               onQuitar={() => { setRotulosCortos(sinRotuloCorto(mapa, f.largo)); if (edicion?.largo === f.largo) setEdicion(null); }} />
           ))}
         </ul>

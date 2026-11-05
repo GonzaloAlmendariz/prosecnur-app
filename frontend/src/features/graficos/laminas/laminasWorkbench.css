@@ -29,7 +29,10 @@
   /* Sin borde ni radio propios: el marco es del workbench (`.pulso-adaptive-split`). Una segunda tarjeta junto al rail
      abría una muesca en su esquina y bajaba un píxel la primera línea (encaje junto al rail, ver graficosPestanas.css). */
   background: var(--pulso-surface);
-  overflow: hidden;
+  /* H10: `clip`, no `hidden`. Con `hidden` el marco era un contenedor de scroll sin barra: `focus()` o
+     `scrollIntoView` de un hijo lo corrían unos 44 px y tapaban la cabecera del inspector y la barra del lienzo, sin
+     forma de volver. `clip` recorta igual y no se desplaza; el scroll es de cada columna (C4). */
+  overflow: clip;
 }
 
 .pulso-f6-laminas.is-sin-estructura.is-sin-inspector {
@@ -43,7 +46,7 @@
 .pulso-f6-laminas.is-sin-estructura > .pulso-f6-estructura,
 .pulso-f6-laminas.is-sin-inspector > .pulso-f6-inspector-marco {
   visibility: hidden;
-  overflow: hidden;
+  overflow: clip;
   border: 0;
 }
 

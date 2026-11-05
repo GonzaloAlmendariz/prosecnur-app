@@ -152,3 +152,28 @@ export async function apiGraficosPropuestaResumen({ slide, config, scope, signal
     signal,
   })));
 }
+
+/** Lo que responde el POST del job de la propuesta (`cache = true`: ya estaba calculada y llega `done` al primer poll). */
+export type PropuestaResumenJobStart = { jobId: string; slideId: string; cache: boolean };
+
+export function normalizarInicioPropuestaJob(raw: unknown): PropuestaResumenJobStart {
+  const r = esObjeto(raw) ? raw : {};
+  const jobId = texto(r.job_id).trim();
+  if (!jobId) throw new Error("El motor no devolvió el trabajo de la propuesta. Reintenta.");
+  return { jobId, slideId: texto(r.slide_id), cache: esVerdad(r.cache) };
+}
+
+/**
+ * La propuesta como job (`POST /api/graficos/resumenes/propuesta/job`, mismo cuerpo que el síncrono): Plumber no queda
+ * tomado mientras el motor la calcula. El resultado se sigue en `/api/jobs/<id>`; al terminar, `result_data` es la
+ * respuesta del síncrono (o `{ok: false, error}`), que se normaliza con `normalizarPropuestaResumen`.
+ */
+export async function apiGraficosPropuestaResumenJob({ slide, config, scope, signal }: PedidoPropuesta): Promise<PropuestaResumenJobStart> {
+  const cuerpo = { slide, ...(config !== undefined ? { config } : {}), ...(scope === "consolidated" ? { scope } : {}) };
+  return normalizarInicioPropuestaJob(await handle<unknown>(await apiFetch("/api/graficos/resumenes/propuesta/job", {
+    method: "POST",
+    headers: headers({ "Content-Type": "application/json" }),
+    body: JSON.stringify(cuerpo),
+    signal,
+  })));
+}

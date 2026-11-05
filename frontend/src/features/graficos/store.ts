@@ -13,6 +13,7 @@ import { conVinculo, vinculosDecisiones } from "./paletasResolver";
 import { sinEstiloDePerfil } from "./estiloInforme/quitarLineaVisual";
 import { conAjusteEnElTipo } from "./laminas/modeloAlcance";
 import { conEspejoEnOverrides } from "./laminas/mandosPorOverrides";
+import { agrupadorDelPlan } from "./historialAgrupado";
 
 // Store del plan de gráficos. Sigue el mismo patrón que el store de
 // Analítica: hidrata desde backend al montar, marca `dirty` con cada
@@ -421,7 +422,8 @@ function dirty<T extends object>(state: PlanStore, partial: T): T & {
   past: Snapshot[];
   future: Snapshot[];
 } {
-  const past = [...state.past, snapshotFromState(state)].slice(-MAX_HISTORY);
+  // H10: las ediciones seguidas del mismo control van en un paso (historialAgrupado.ts).
+  const past = agrupadorDelPlan.agrupa() && state.past.length > 0 ? state.past : [...state.past, snapshotFromState(state)].slice(-MAX_HISTORY);
   return { ...partial, dirty: true, past, future: [] };
 }
 
@@ -555,6 +557,7 @@ export const usePlanStore = create<PlanStore>((set) => ({
   // Undo: aplica el último snapshot del past, guardando el estado actual
   // en future para poder rehacer. Si past está vacío, no-op.
   undo: () => {
+    agrupadorDelPlan.cortar();
     set((state) => {
       if (state.past.length === 0) return state;
       const prev = state.past[state.past.length - 1];
@@ -570,6 +573,7 @@ export const usePlanStore = create<PlanStore>((set) => ({
   },
 
   redo: () => {
+    agrupadorDelPlan.cortar();
     set((state) => {
       if (state.future.length === 0) return state;
       const next = state.future[state.future.length - 1];
@@ -584,7 +588,7 @@ export const usePlanStore = create<PlanStore>((set) => ({
     });
   },
 
-  hydrate: (cfg) => set({
+  hydrate: (cfg) => { agrupadorDelPlan.cortar(); set({
     plan: cfg.plan ?? { slides: [] },
     presets: cfg.presets ?? {},
     wPresets: normalizeWordPresets(cfg.w_presets),
@@ -609,7 +613,7 @@ export const usePlanStore = create<PlanStore>((set) => ({
     // historizamos el estado pre-hidratación porque era placeholder vacío.
     past: [],
     future: [],
-  }),
+  }); },
 
   markClean: () => set({ dirty: false }),
 

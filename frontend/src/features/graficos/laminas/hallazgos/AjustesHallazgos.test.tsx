@@ -119,7 +119,7 @@ describe("«Hallazgos clave» en el inspector", () => {
     const html = pintar({ modo: "resumen", seleccion: "auto" });
     expect(html).toContain('data-qa="propuesta-motor"');
     expect(html).toContain("Lo que propone el motor");
-    expect(html).toContain("El motor elige los hallazgos. Puede tardar hasta un minuto.");
+    expect(html).toContain("Calculando la propuesta del motor. Tarda unos segundos.");
     expect(html).not.toContain("pulso-f6-hallazgos-campo");
     expect(html).not.toContain("Traer la propuesta del motor");
   });

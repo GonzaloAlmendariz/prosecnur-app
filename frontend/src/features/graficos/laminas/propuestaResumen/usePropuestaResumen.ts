@@ -1,12 +1,15 @@
-// Pide la propuesta del motor de una lámina de resumen (POST /api/graficos/resumenes/propuesta, api/graficosPropuesta.ts).
-// Tarda de 6 a 13 s: se pide al mostrarla y a demanda, nunca por tecla. Si después cambian los ajustes que la deciden
+// Pide la propuesta del motor de una lámina de resumen como job (POST /api/graficos/resumenes/propuesta/job y poll de
+// /api/jobs/<id>, propuestaPorJob.ts; sin la ruta del job, el síncrono). Se pide al mostrarla y a demanda, nunca por tecla. Si después cambian los ajustes que la deciden
 // (cruces, topes, modo), queda marcada como desactualizada hasta que el analista la vuelva a pedir. Lo traído se guarda
 // por sesión, alcance y firma de la lámina: volver a la lámina sin cambios no la recalcula.
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ApiError, getSession } from "../../../../api/core";
 import type { Slide } from "../../../../api/graficos";
-import { apiGraficosPropuestaResumen, type PropuestaResumen } from "../../../../api/graficosPropuesta";
+import { apiGraficosPropuestaResumen, apiGraficosPropuestaResumenJob, type PropuestaResumen } from "../../../../api/graficosPropuesta";
+import { apiJobCancel } from "../../../../api/jobs";
+import { iniciarJobPoll } from "../../../../hooks/useJob";
+import { crearCargaPropuestaPorJob } from "./propuestaPorJob";
 import { buildGraficosConfigFromStore } from "../../configSnapshot";
 import { usePlanStore } from "../../store";
 import { leerPreguntasClave } from "../preguntasClave/modeloPreguntasClave";
@@ -19,6 +22,14 @@ export type EstadoPropuesta =
   | { fase: "error"; mensaje: string };
 
 const guardadas = new Map<string, PropuestaResumen>();
+
+/** Una sola instancia por app: recuerda si el backend tiene la ruta del job. */
+const cargarPropuesta = crearCargaPropuestaPorJob({
+  lanzar: apiGraficosPropuestaResumenJob,
+  sincrono: apiGraficosPropuestaResumen,
+  poll: (jobId, onUpdate) => iniciarJobPoll(jobId, onUpdate),
+  cancelar: apiJobCancel,
+});
 const TOPE = 24;
 
 if (typeof window !== "undefined") {
@@ -72,19 +83,26 @@ export function usePropuestaResumen(slide: Slide, scope: "active" | "consolidate
     const ctl = new AbortController();
     pedido.current = ctl;
     setEstado({ fase: "cargando" });
-    apiGraficosPropuestaResumen({ slide: vigente, config: buildGraficosConfigFromStore(), scope, signal: ctl.signal })
+    cargarPropuesta({ slide: vigente, config: buildGraficosConfigFromStore(), scope, signal: ctl.signal })
       .then((datos) => {
         if (ctl.signal.aborted) return;
+        if (pedido.current === ctl) pedido.current = null;
         guardadas.set(k, datos);
         if (guardadas.size > TOPE) { const primera = guardadas.keys().next().value; if (primera !== undefined) guardadas.delete(primera); }
         setEstado({ fase: "lista", datos, firma: f, claves: c });
       })
-      .catch((e: unknown) => { if (!ctl.signal.aborted) setEstado({ fase: "error", mensaje: mensajeError(e) }); });
+      .catch((e: unknown) => {
+        if (ctl.signal.aborted) return;
+        if (pedido.current === ctl) pedido.current = null;
+        setEstado({ fase: "error", mensaje: mensajeError(e) });
+      });
   }, [slideId, scope]);
 
   // Se pide sola al mostrarse con «Los propone el motor»; en «Los escribo yo», sólo cuando el analista la trae.
   useEffect(() => {
-    if (autoCargar && fase.current !== "lista" && fase.current !== "error") cargar();
+    // Un pedido ya en curso (el clic de «Traer la propuesta» abre la propuesta y la pide) no se relanza: con el job, el
+    // segundo pedido cancelaba el primero y calculaba dos veces.
+    if (autoCargar && fase.current !== "lista" && fase.current !== "error" && !(pedido.current && !pedido.current.signal.aborted)) cargar();
   }, [autoCargar, cargar]);
 
   useEffect(() => () => pedido.current?.abort(), []);

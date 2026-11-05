@@ -29,6 +29,17 @@
 #' Grupos de un cruce: código por caso, orden del instrumento y rótulo
 #' @keywords internal
 .sig_grupos_cruce <- function(fuente, cruce) {
+  # Dentro de un pedido memorizado (graficos_memo_evaluacion.R) el mismo cruce no se rearma.
+  if (.gmemo_activa()) {
+    return(.gmemo_obtener("grupos", list(fuente$data, fuente$survey, fuente$choices), .gmemo_llave(cruce),
+                          function() .sig_grupos_cruce_calcular(fuente, cruce)))
+  }
+  .sig_grupos_cruce_calcular(fuente, cruce)
+}
+
+#' Cálculo de `.sig_grupos_cruce` (sin memoria)
+#' @keywords internal
+.sig_grupos_cruce_calcular <- function(fuente, cruce) {
   d <- fuente$data
   if (!cruce %in% names(d)) return(NULL)
   g <- .reporte_plan_clean_chr(d[[cruce]])

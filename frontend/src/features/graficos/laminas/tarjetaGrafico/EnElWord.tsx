@@ -3,7 +3,6 @@
 
 import { useId } from "react";
 import { leerModoInforme, leerModoLamina, MODOS_MULTI_INFORME, MODOS_MULTI_LAMINA, rotuloHeredado } from "../../word/modeloMultiWord";
-import { FileText } from "../../../../vendor/lucide-react";
 import type { ArgMetadata, GraficadorRef } from "../../../../api/graficos";
 import { Switch } from "../../../../components/Switch";
 import { BarraExtraControl } from "../../BarraExtraControl";
@@ -53,10 +52,8 @@ export function EnElWord({ slideId, slot, valor, argsDelRegistro }: Props) {
   const porDefecto = tituloWordPorDefecto(variable ? leerEtiquetaCorta(args, variable) : "", "");
 
   return (
-    <section className="pulso-f6-word" aria-labelledby={`${id}-cab`} data-qa-geometry-group="graficos/f6-word" data-qa-geometry-contract="intrinsic" data-qa="en-el-word">
-      <h4 className="pulso-f6-word-cabeza" id={`${id}-cab`}>
-        <FileText size={14} aria-hidden="true" /> En el Word
-      </h4>
+    // H4: la cabecera «En el Word» es la de su sección plegable (SeccionPlegable, en DatosGrafico).
+    <div className="pulso-f6-word" data-qa-geometry-group="graficos/f6-word" data-qa-geometry-contract="intrinsic" data-qa="en-el-word">
       {/* En las multiapiladas cómo sale depende de su forma (W6): lo explica la ayuda del control de abajo. */}
       {valor.graficador !== "p_barras_multiapiladas" && <p className="pulso-f6-dato-ayuda">{COMO_SALE[titulo]}</p>}
       {conTitulo && (
@@ -134,6 +131,6 @@ export function EnElWord({ slideId, slot, valor, argsDelRegistro }: Props) {
           />
         </div>
       )}
-    </section>
+    </div>
   );
 }

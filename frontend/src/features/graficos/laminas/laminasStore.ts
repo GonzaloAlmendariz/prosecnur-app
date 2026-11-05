@@ -5,6 +5,7 @@
 import { create } from "zustand";
 import type { EstadoSalida } from "./estadoLamina";
 import type { Lateral } from "./lateralLaminas";
+import { conSeccion, seccionAbierta, type SeccionesAbiertas, type SeccionTarjeta } from "./gruposTarjeta";
 
 export type SeccionInspector = "contenido" | "composicion" | "graficos" | "estado";
 
@@ -44,6 +45,15 @@ type LaminasUiStore = {
   alternarNodo: (id: string) => void;
   fijarCerrados: (ids: string[]) => void;
   registrarResumen: (slideId: string, r: ResumenLamina) => void;
+  /** H4: qué secciones de la tarjeta del gráfico están abiertas; se recuerda mientras la app está abierta. */
+  seccionesTarjeta: SeccionesAbiertas;
+  alternarSeccionTarjeta: (s: SeccionTarjeta) => void;
+  abrirSeccionTarjeta: (s: SeccionTarjeta) => void;
+  /** H4: la última sección que se abrió o a la que se saltó; al volver a la tarjeta (de Identidad, de otra lámina), se va a ella. */
+  seccionReciente: SeccionTarjeta | null;
+  /** H4: los avisos de la lámina, plegados en un chip bajo la cabecera del inspector. */
+  avisosAbiertos: boolean;
+  alternarAvisos: () => void;
 };
 
 export const useLaminasUi = create<LaminasUiStore>((set) => ({
@@ -74,6 +84,15 @@ export const useLaminasUi = create<LaminasUiStore>((set) => ({
     return { cerrados };
   }),
   fijarCerrados: (ids) => set({ cerrados: Object.fromEntries(ids.map((id) => [id, true as const])) }),
+  seccionesTarjeta: {},
+  alternarSeccionTarjeta: (k) => set((s) => {
+    const abrir = !seccionAbierta(s.seccionesTarjeta, k);
+    return { seccionesTarjeta: conSeccion(s.seccionesTarjeta, k, abrir), seccionReciente: abrir ? k : s.seccionReciente === k ? null : s.seccionReciente };
+  }),
+  abrirSeccionTarjeta: (k) => set((s) => ({ seccionesTarjeta: conSeccion(s.seccionesTarjeta, k, true), seccionReciente: k })),
+  seccionReciente: null,
+  avisosAbiertos: false,
+  alternarAvisos: () => set((s) => ({ avisosAbiertos: !s.avisosAbiertos })),
   registrarResumen: (slideId, r) => set((s) => {
     const prev = s.resumenes[slideId];
     if (prev && prev.estado === r.estado && prev.partes === r.partes && prev.avisos === r.avisos

@@ -107,7 +107,7 @@ describe("«Resumen de diferencias» en el inspector", () => {
     expect(html).toContain('data-campo="max_filas"');
     expect(html).toContain('data-campo="max_por_capitulo"');
     expect(html).toContain('data-qa="propuesta-motor"');
-    expect(html).toContain("El motor elige las filas. Puede tardar hasta un minuto.");
+    expect(html).toContain("Calculando la propuesta del motor. Tarda unos segundos.");
     expect(html).not.toContain("pulso-f6-hallazgos-campo");
     expect(html).not.toContain("Sin un capítulo completo");
   });

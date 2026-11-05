@@ -13,6 +13,7 @@ import { ArrowRight, Plus, X } from "../../../../vendor/lucide-react";
 import { varCalificada } from "../ordenCategorias";
 import { useCategoriasGrafico } from "../useCategoriasGrafico";
 import { searchDePiezaIdentidad } from "../../estilo/direccionIdentidad";
+import { revelarFilaNueva, selectorFila } from "../../revelarFila";
 import "../datosGrafico.css";
 import { avisoCorto, cortosAFilas, filasACortos, mismosCortos, type FilaCorto, type ValorTarjetas } from "./modeloTarjetas";
 
@@ -41,6 +42,7 @@ export function CortosGrupos({ valor, cruces, scope, baseActiva, onCambio, uso =
   const listaId = `${id}-grupos`;
   const [borrador, setBorrador] = useState<FilaCorto[]>(() => cortosAFilas(valor));
   const siguiente = useRef(0);
+  const raiz = useRef<HTMLDivElement>(null);
   // Cambió afuera (deshacer, el plan): manda lo guardado.
   const filas = mismosCortos(valor, borrador) ? borrador : cortosAFilas(valor);
   if (filas !== borrador) setBorrador(filas);
@@ -53,7 +55,7 @@ export function CortosGrupos({ valor, cruces, scope, baseActiva, onCambio, uso =
     aplicar(filas.map((f, k) => (k === i ? { ...f, ...parche } : f)));
 
   return (
-    <div className="pulso-f6-dato is-apilado" data-qa="tarjetas-cortos" data-qa-geometry-member="">
+    <div ref={raiz} className="pulso-f6-dato is-apilado" data-qa="tarjetas-cortos" data-qa-geometry-member="">
       <span className="pulso-f6-dato-rotulo" id={`${id}-rotulo`}>Nombre corto de un grupo</span>
       <div className="pulso-f6-criterios" role="group" aria-labelledby={`${id}-rotulo`} aria-describedby={`${id}-ayuda`}
         data-qa-geometry-group="graficos/f6-tarjetas-cortos" data-qa-geometry-contract="intrinsic">
@@ -61,7 +63,7 @@ export function CortosGrupos({ valor, cruces, scope, baseActiva, onCambio, uso =
           const n = i + 1;
           const aviso = avisoCorto(f, filas);
           return (
-            <div key={f.clave} className="pulso-tarjetas-corto" role="group" aria-label={`Nombre corto ${n}`}>
+            <div key={f.clave} data-fila={f.clave} className="pulso-tarjetas-corto" role="group" aria-label={`Nombre corto ${n}`}>
               <input className="pulso-f6-input" value={f.grupo} placeholder="Grupo" list={listaId} title={f.grupo || undefined}
                 aria-label={`Grupo ${n}`} onChange={(e) => cambiar(i, { grupo: e.target.value })} />
               <ArrowRight size={14} aria-hidden="true" className="pulso-tarjetas-corto-flecha" />
@@ -78,7 +80,10 @@ export function CortosGrupos({ valor, cruces, scope, baseActiva, onCambio, uso =
         <button type="button" className="pulso-f6-boton pulso-f6-dato-accion" data-qa-geometry-capacity="owned"
           onClick={() => {
             siguiente.current += 1;
-            aplicar([...filas, { clave: `nuevo-${siguiente.current}`, grupo: "", corto: "" }]);
+            const k = `nuevo-${siguiente.current}`;
+            aplicar([...filas, { clave: k, grupo: "", corto: "" }]);
+            // H10: la fila nueva se trae a la vista con el foco en «Grupo».
+            revelarFilaNueva(raiz.current, selectorFila(k));
           }}>
           <Plus size={14} aria-hidden="true" /> Agregar nombre corto
         </button>

@@ -255,17 +255,32 @@
         if (!is.na(dir)) { estado <- "dif"; valor <- if (identical(dir, "up")) abs(valor) else -abs(valor) }
       }
       ncl <- if (is.null(cl)) NA_integer_ else length(unique(cl[en_g & !is.na(fi$y)]))
-      filas[[length(filas) + 1L]] <- data.frame(
+      # Una fila por (cruce, grupo) como lista: el data.frame se arma una vez al final (armar uno por fila y unirlos
+      # con rbind costaba ~0,4 s en la propuesta de CCSS; mismas columnas y tipos).
+      filas[[length(filas) + 1L]] <- list(
         cruce = cr, codigo = g, etiqueta = unname(gr$etiquetas[k]), estado = estado, valor = valor, dir = dir,
         fragil = fragil, p = .dif_prop(fi$y, w, en_g), p_resto = .dif_prop(fi$y, w, en_resto),
-        n = sum(en_g & !is.na(fi$y)), conglomerados = ncl, stringsAsFactors = FALSE)
+        n = sum(en_g & !is.na(fi$y)), conglomerados = ncl)
     }
   }
-  celdas <- if (length(filas)) do.call(rbind, filas) else
+  celdas <- if (length(filas)) .dif_celdas_df(filas) else
     data.frame(cruce = character(), codigo = character(), etiqueta = character(), estado = character(), valor = numeric(),
                dir = character(), fragil = logical(), p = numeric(), p_resto = numeric(), n = numeric(),
                conglomerados = integer(), stringsAsFactors = FALSE)
   list(celdas = celdas, probados = probados)
+}
+
+#' Une las filas de `.dif_evaluar` (listas de escalares) en un data.frame, con los tipos que daba `rbind`
+#' @keywords internal
+.dif_celdas_df <- function(filas) {
+  col <- function(nm, vacio) unlist(lapply(filas, `[[`, nm), use.names = FALSE) %||% vacio
+  escalares <- all(vapply(filas, function(f) all(lengths(f) == 1L), logical(1)))
+  if (!escalares) return(do.call(rbind, lapply(filas, function(f) as.data.frame(f, stringsAsFactors = FALSE))))
+  data.frame(cruce = col("cruce", character()), codigo = col("codigo", character()), etiqueta = col("etiqueta", character()),
+             estado = col("estado", character()), valor = as.numeric(col("valor", numeric())), dir = as.character(col("dir", character())),
+             fragil = as.logical(col("fragil", logical())), p = as.numeric(col("p", numeric())),
+             p_resto = as.numeric(col("p_resto", numeric())), n = col("n", integer()),
+             conglomerados = as.integer(col("conglomerados", integer())), stringsAsFactors = FALSE)
 }
 
 #' Fuerza de una fila para ordenar: las que tienen alguna firme primero, luego la mayor diferencia

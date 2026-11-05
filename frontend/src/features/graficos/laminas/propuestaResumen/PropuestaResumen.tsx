@@ -23,7 +23,6 @@ import {
   conteoQuedan,
   cuantosQuedan,
   escritosQueSalen,
-  losElementos,
   nombreElemento,
   todosMarcados,
   totalElementos,
@@ -134,7 +133,7 @@ export function PropuestaResumen({ slide, scope, automatica, valor, onAplicar }:
         )}
       </div>
       <div aria-live="polite" className="pulso-f6-propuesta-estado" data-qa-geometry-member>
-        {estado.fase === "cargando" && <CargaDeBloque label={`El motor elige ${losElementos(tipo)}. Puede tardar hasta un minuto.`} />}
+        {estado.fase === "cargando" && <CargaDeBloque label="Calculando la propuesta del motor. Tarda unos segundos." />}
         {estado.fase === "lista" && <span className="pulso-sr-only">Propuesta lista: {conteoQuedan(quedan, total)}.</span>}
       </div>
       {/* H14: el criterio, o cómo cambiarlo, antes de lo propuesto. Sólo el resumen ejecutivo elige por preguntas clave. */}

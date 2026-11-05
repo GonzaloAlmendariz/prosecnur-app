@@ -216,7 +216,9 @@
   slide$payload$seleccion <- "auto"   # la propuesta no depende de lo que el analista ya escribió
   previa <- options(prosecnur.sig_informe = sig_informe)
   on.exit(options(previa), add = TRUE)
-  r <- .preview_con_avisos({
+  # Una memoria por pedido: la selección y el modelo prueban la misma pregunta por el mismo cruce varias veces
+  # (graficos_memo_evaluacion.R).
+  r <- .gmemo_con(.preview_con_avisos({
     lamina <- tryCatch(.graficos_rebuild_slide_json(.propuesta_preparar(slide, mapa, inclusivo, base), icon_registry = icon_registry),
                        error = function(e) stop_api(422, "E_PROPUESTA_LAMINA_INVALIDA",
                                                     sprintf("La lámina no se pudo leer: %s", conditionMessage(e))))
@@ -231,7 +233,7 @@
     p <- if (identical(el$.element_type, "hallazgos")) .propuesta_hallazgos(el, fuente, sig, plan, traducir) else
       .propuesta_resumen_dif(el, fuente, sig, plan, traducir)
     list(capitulos = p$capitulos, base = base_lectura, modo = if (identical(el$.element_type, "hallazgos")) .dif_chr1(el$modo) else NULL)
-  })
+  }))
   # Los avisos de la propuesta que piden pasar a manual no aplican aquí: el editor ya ofrece editar a partir de ella.
   avisos <- r$avisos[!grepl("el motor propone", r$avisos, fixed = TRUE)]
   out <- .propuesta_compacto(list(ok = TRUE, tipo = slide$tipo, slide_id = as.character(slide$id %||% "")[1], modo = r$valor$modo,
@@ -240,27 +242,5 @@
   out
 }
 
-#' Propuesta de una lámina de la sesión: fuentes, plan y regla como los lee la vista previa
-#'
-#' @param slide_id Id de la lámina en el plan guardado (GET), o NULL si la lámina viene en `parsed$slide` (POST).
-#' @param parsed Pedido de la vista previa: `slide` (lámina sin guardar), `config` (plan sin guardar) y `scope`.
-#' @keywords internal
-.propuesta_resumen_sesion <- function(sid, slide_id = NULL, parsed = list()) {
-  fuentes <- .graficos_preview_fuentes(sid, parsed)
-  comun <- .graficos_preview_comun(sid, parsed, fuentes)
-  plan_slides <- comun$plan_slides
-  slide <- parsed$slide
-  if (is.null(slide)) {
-    slide <- .propuesta_slide_por_id(plan_slides, slide_id)
-    if (is.null(slide)) stop_api(404, "E_PROPUESTA_SIN_LAMINA", sprintf("No existe la lámina «%s» en el plan.", slide_id))
-  } else {
-    # La lámina sin guardar reemplaza a la guardada: sus textos y cruces son los que se están editando.
-    id <- as.character(slide$id %||% "")[1]
-    plan_slides <- lapply(plan_slides, function(s) if (identical(as.character(s$id %||% "")[1], id)) slide else s)
-  }
-  # La regla del estudio y las preguntas clave de la config efectiva (la sin guardar, si viene): graficos_preguntas_clave.R
-  sig_informe <- comun$opciones_motor[["prosecnur.sig_informe"]]
-  .propuesta_resumen_calcular(slide, plan_slides, comun$data_sources, comun$inst_sources, sig_informe = sig_informe,
-                              mapa = comun$rotulos_cortos_mapa %||% character(0), inclusivo = isTRUE(comun$inclusivo),
-                              base = comun$base, crudas = fuentes, icon_registry = comun$icon_registry)
-}
+# La propuesta de una lámina de la sesión (fuentes, plan, regla y preguntas clave como los lee la vista previa), su caché
+# por firma y el job viven en graficos_propuesta_job.R.

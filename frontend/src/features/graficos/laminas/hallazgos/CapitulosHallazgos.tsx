@@ -18,6 +18,7 @@ import {
   type CapituloEditable,
   type HallazgoEditable,
 } from "./modeloCapitulosHallazgos";
+import { revelarFilaNueva, selectorFila } from "../../revelarFila";
 import "./hallazgos.css";
 
 type Props = {
@@ -38,6 +39,7 @@ export function CapitulosHallazgos({ valor, modo, automatica, calificar, scope, 
   const [borrador, setBorrador] = useState<CapituloEditable[]>(() => leerCapitulos(valor));
   const [anuncio, setAnuncio] = useState("");
   const siguiente = useRef(0);
+  const raiz = useRef<HTMLElement>(null);
   // Cambió afuera (deshacer, el plan): manda lo guardado.
   const capitulos = mismosCapitulos(valor, borrador) ? borrador : leerCapitulos(valor);
   if (capitulos !== borrador) setBorrador(capitulos);
@@ -56,7 +58,7 @@ export function CapitulosHallazgos({ valor, modo, automatica, calificar, scope, 
   const titulares = modo === "titulares";
 
   return (
-    <section className="pulso-f6-especial pulso-f6-hallazgos" aria-labelledby={idTitulo} aria-describedby={idAyuda}
+    <section ref={raiz} className="pulso-f6-especial pulso-f6-hallazgos" aria-labelledby={idTitulo} aria-describedby={idAyuda}
       data-campo="capitulos" data-qa="capitulos-hallazgos" data-qa-geometry-group="graficos/f6-hallazgos" data-qa-geometry-contract="intrinsic">
       <div className="pulso-f6-especial-cabeza" data-qa-geometry-member>
         <h3 id={idTitulo} className="pulso-f6-subtitulo">Capítulos y hallazgos</h3>
@@ -81,7 +83,7 @@ export function CapitulosHallazgos({ valor, modo, automatica, calificar, scope, 
                 const nombre = nombreCapitulo(c, i);
                 const aviso = avisoCapitulo(c, modo);
                 return (
-                  <li key={c.clave} className="pulso-f6-criterio pulso-f6-hallazgos-capitulo" role="group" aria-label={`C${nombre.slice(1)}`} data-qa-geometry-member>
+                  <li key={c.clave} data-fila={c.clave} className="pulso-f6-criterio pulso-f6-hallazgos-capitulo" role="group" aria-label={`C${nombre.slice(1)}`} data-qa-geometry-member>
                     <div className="pulso-f6-hallazgos-cabeza">
                       <input className="pulso-f6-input" value={c.titulo} placeholder="Título del capítulo" aria-label={`Título del capítulo ${i + 1}`}
                         onChange={(e) => cambiarCapitulo(i, { titulo: e.target.value })} />
@@ -104,7 +106,7 @@ export function CapitulosHallazgos({ valor, modo, automatica, calificar, scope, 
                     )}
                     <ol className="pulso-f6-hallazgos-lista" data-qa-geometry-group="graficos/f6-hallazgos-lista" data-qa-geometry-contract="intrinsic">
                       {c.hallazgos.map((h, j) => (
-                        <li key={h.clave}>
+                        <li key={h.clave} data-fila={h.clave}>
                           <HallazgoFila hallazgo={h} numero={j + 1} nombre={`hallazgo ${j + 1} del ${nombre}`} primero={j === 0} ultimo={j === c.hallazgos.length - 1}
                             calificar={calificar} scope={scope}
                             onCambio={(parche) => cambiarHallazgo(i, j, parche)}
@@ -114,7 +116,12 @@ export function CapitulosHallazgos({ valor, modo, automatica, calificar, scope, 
                       ))}
                     </ol>
                     <button type="button" className="pulso-f6-boton pulso-f6-dato-accion" data-qa-geometry-capacity="owned"
-                      onClick={() => cambiarCapitulo(i, { hallazgos: [...c.hallazgos, hallazgoNuevo(clave("h"))] })}>
+                      onClick={() => {
+                        // H10: la fila nueva se trae a la vista con el foco en su primer campo.
+                        const k = clave("h");
+                        cambiarCapitulo(i, { hallazgos: [...c.hallazgos, hallazgoNuevo(k)] });
+                        revelarFilaNueva(raiz.current, selectorFila(k));
+                      }}>
                       <Plus size={14} aria-hidden="true" /> Agregar hallazgo
                     </button>
                     {aviso && <span className="pulso-f6-dato-ayuda is-aviso" role="note">{aviso}</span>}
@@ -124,7 +131,11 @@ export function CapitulosHallazgos({ valor, modo, automatica, calificar, scope, 
             </ol>
           )}
           <button type="button" className="pulso-f6-boton pulso-f6-especial-anadir" data-qa-geometry-capacity="owned"
-            onClick={() => aplicar([...capitulos, capituloNuevo(clave("c"), clave("h"))])}>
+            onClick={() => {
+              const k = clave("c");
+              aplicar([...capitulos, capituloNuevo(k, clave("h"))]);
+              revelarFilaNueva(raiz.current, selectorFila(k));
+            }}>
             <Plus size={15} aria-hidden="true" /> Agregar capítulo
           </button>
         </fieldset>
