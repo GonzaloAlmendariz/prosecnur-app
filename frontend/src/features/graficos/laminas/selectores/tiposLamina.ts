@@ -12,7 +12,7 @@ import { SLIDE_GRAF_SLOTS } from "../../store";
 import { esSlotCifra } from "../../iconos/composicion";
 import { composicionIndiceEfectiva, composicionIndicePorDefecto } from "../../indice/modeloIndice";
 
-export type IntencionLamina = "una" | "dos" | "varias" | "cifras" | "mensaje" | "estructura";
+export type IntencionLamina = "una" | "dos" | "varias" | "cifras" | "resumen" | "mensaje" | "estructura";
 
 export type Intencion = { id: IntencionLamina; label: string; descripcion: string; tipos: readonly SlideType[] };
 
@@ -52,6 +52,12 @@ export const INTENCIONES: readonly Intencion[] = [
     tipos: ["p_slide_cifras_y_graficos", "p_slide_3_graficos_poblacion_cifras"],
   },
   {
+    id: "resumen",
+    label: "Resumir el informe",
+    descripcion: "Hallazgos clave y diferencias entre grupos, al final del mazo.",
+    tipos: ["p_slide_hallazgos", "p_slide_resumen_diferencias"],
+  },
+  {
     id: "mensaje",
     label: "Dejar un mensaje",
     descripcion: "Texto: conclusiones o notas metodológicas breves.",
@@ -75,12 +81,7 @@ export const TIPOS_FUERA_DEL_SELECTOR: ReadonlySet<SlideType> = new Set<SlideTyp
   "p_slide_4_graficos_poblacion",
   // Reglas de la identidad: la constitución del motor en el catálogo del recetario, no una lámina de informe.
   "p_slide_estandar",
-  // Resumen de diferencias y hallazgos clave: ya tienen su bloque en Inspector › Lámina (resumenDiferencias/ y
-  // hallazgos/), salvo las cifras de los modos «cifras» de hallazgos, que se escriben en el plan. Siguen fuera del
-  // selector porque el registro las declara `en_selector = FALSE` (catalogoTipos.generated.ts lo espeja); ofrecerlas es
-  // cambiar el registro, regenerar el catálogo y darles una intención y un payload inicial que el motor arme.
-  "p_slide_resumen_diferencias",
-  "p_slide_hallazgos",
+  // Resumen de diferencias y hallazgos clave ya se ofrecen (intención «resumen»): se arman en Inspector › Lámina.
 ]);
 
 export function intencionDe(tipo: SlideType): IntencionLamina | null {
