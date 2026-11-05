@@ -287,13 +287,14 @@ function AccionDelGrupo({ accion }: { accion: AccionObservacion | null }) {
 const PESTANAS: ReadonlyArray<readonly [CajonSeleccion, string]> = [["titulares", "Titulares"], ["reemplazos", "Reemplazos"], ["cuotas", "Cuotas"]];
 
 type Celda = Record<string, string | number | null>;
-const COL_DISTRITO: PulsoTableColumna<SelectedBlock> = { id: "distrito", encabezado: "Distrito", ancho: 150, celda: (b) => nombreDistrito(b.distrito), valor: (b) => b.distrito };
+// Anchos que suman ~700 px: con NSE a 104 la suma pasaba de 720 y a 1440 «Encuestas» quedaba fuera del cajón.
+const COL_DISTRITO: PulsoTableColumna<SelectedBlock> = { id: "distrito", encabezado: "Distrito", ancho: 124, celda: (b) => nombreDistrito(b.distrito), valor: (b) => b.distrito };
 const COLUMNAS_BLOQUE = (reemplazos: boolean): PulsoTableColumna<SelectedBlock>[] => [
   COL_DISTRITO,
   { id: "codigo", encabezado: reemplazos ? "R" : "UMP", ancho: 84, celda: (b) => codigoDeUmp(b), valor: (b) => Number(reemplazos ? b.titular_hoja_num ?? 0 : b.hoja_num ?? b.orden_seleccion ?? 0) },
   // «Reemplaza a» junto al código: es la relación que la pestaña existe para mostrar, y a 1024 quedaba cortada a la derecha.
   ...(reemplazos ? [{ id: "titular", encabezado: "Reemplaza a", ancho: 100, celda: (b: SelectedBlock) => (b.titular_hoja_num ? `UMP ${b.titular_hoja_num}` : "—"), valor: (b: SelectedBlock) => Number(b.titular_hoja_num ?? 0) }] : []),
-  { id: "manzana", encabezado: "Manzana", ancho: 150, celda: (b) => b.id_manzana, valor: (b) => b.id_manzana },
+  { id: "manzana", encabezado: "Manzana", ancho: 132, celda: (b) => b.id_manzana, valor: (b) => b.id_manzana },
   { id: "zona", encabezado: "Zona", ancho: 76, celda: (b) => b.zona, valor: (b) => b.zona },
   // 104 px: «MEDIO BAJO» y «MEDIO ALTO» se leían «MEDIO …» con 80.
   { id: "nse", encabezado: "NSE", ancho: 104, celda: (b) => nse(b), valor: (b) => nse(b) },
