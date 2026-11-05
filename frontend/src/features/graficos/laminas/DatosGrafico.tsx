@@ -41,6 +41,7 @@ import { PublicoGrafico } from "./PublicoGrafico";
 import { SignificanciaPublicos } from "./SignificanciaPublicos";
 import { ResaltarGrafico } from "./ResaltarGrafico";
 import { EtiquetaCortaPregunta, EtiquetasCortasPreguntas } from "./EtiquetasCortas";
+import { PreguntaClave } from "./preguntasClave/PreguntaClave";
 import { LetraYEjeAgrupadas } from "./tarjetaGrafico/LetraYEjeAgrupadas";
 import { valorDeMando } from "./mandosPorOverrides";
 import { EnElWord } from "./tarjetaGrafico/EnElWord";
@@ -247,7 +248,9 @@ export function DatosGrafico({ slideId, slot, valor }: Props) {
         {sinBaseCompartido && <NotaBaseCompartido />}
         {variable && !cifra && <EtiquetaCortaPregunta args={args} variable={variable} onCambio={(ov) => set({ overrides: ov })} />}
         {/* U9: en la multiapilada de una barra por pregunta, una etiqueta corta por pregunta. */}
-        {esMulti && !variable && <EtiquetasCortasPreguntas args={args} onCambio={(ov) => set({ overrides: ov })} />}
+        {esMulti && !variable && <EtiquetasCortasPreguntas slideId={slideId} args={args} onCambio={(ov) => set({ overrides: ov })} />}
+        {/* H14: marca la pregunta (o cada pregunta de la batería) como clave del estudio, de donde propone el resumen. */}
+        <PreguntaClave slideId={slideId} graficador={valor.graficador} args={args} />
         {admiteFiltros && (
           <div className="pulso-f6-dato">
             <span className="pulso-f6-dato-rotulo">Filtrar respuestas</span>

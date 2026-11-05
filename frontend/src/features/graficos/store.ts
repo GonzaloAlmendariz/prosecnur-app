@@ -239,6 +239,8 @@ type PlanStore = {
   loadPlan: (plan: PlanJson) => void;
   /** U3: rótulos cortos del estudio (`plan.rotulos_cortos`); un mapa vacío quita la clave. Un paso deshacible. */
   setRotulosCortos: (mapa: Record<string, string>) => void;
+  /** H14: preguntas clave del estudio (`plan.preguntas_clave`); una lista vacía quita la clave. Un paso deshacible. */
+  setPreguntasClave: (refs: string[]) => void;
   reset: () => void;
 
   // --- Setters de configuración global (Bloque 2) ---
@@ -788,6 +790,13 @@ export const usePlanStore = create<PlanStore>((set) => ({
   setRotulosCortos: (mapa) => set((state) => {
     const plan: PlanJson = { ...state.plan, rotulos_cortos: { ...mapa } };
     if (!Object.keys(mapa).length) delete plan.rotulos_cortos;
+    return dirty(state, { plan });
+  }),
+
+  setPreguntasClave: (refs) => set((state) => {
+    const limpias = [...new Set(refs.map((r) => r.trim()).filter(Boolean))];
+    const plan: PlanJson = { ...state.plan, preguntas_clave: limpias };
+    if (!limpias.length) delete plan.preguntas_clave;
     return dirty(state, { plan });
   }),
 

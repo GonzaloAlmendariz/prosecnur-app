@@ -9,12 +9,13 @@ import type { Slide } from "../../../../api/graficos";
 import { apiGraficosPropuestaResumen, type PropuestaResumen } from "../../../../api/graficosPropuesta";
 import { buildGraficosConfigFromStore } from "../../configSnapshot";
 import { usePlanStore } from "../../store";
-import { firmaLamina } from "./modeloPropuesta";
+import { leerPreguntasClave } from "../preguntasClave/modeloPreguntasClave";
+import { firmaClaves, firmaLamina } from "./modeloPropuesta";
 
 export type EstadoPropuesta =
   | { fase: "inactiva" }
   | { fase: "cargando" }
-  | { fase: "lista"; datos: PropuestaResumen; firma: string }
+  | { fase: "lista"; datos: PropuestaResumen; firma: string; claves: string }
   | { fase: "error"; mensaje: string };
 
 const guardadas = new Map<string, PropuestaResumen>();
@@ -27,7 +28,10 @@ if (typeof window !== "undefined") {
 
 /** La sesión, o vacío donde no hay almacenamiento (render en servidor, pruebas). */
 const sesion = (): string => { try { return getSession() ?? ""; } catch { return ""; } };
-const claveDe = (scope: string, firma: string) => `${sesion()}|${scope}|${firma}`;
+const claveDe = (scope: string, firma: string, claves: string) => `${sesion()}|${scope}|${firma}|${claves}`;
+
+/** Por qué la propuesta mostrada puede no ser la de ahora: cambió la lámina o cambiaron las preguntas clave (H14). */
+export type DesfasePropuesta = "lamina" | "claves" | null;
 
 /** El error del motor dicho para el analista. */
 export function mensajeError(e: unknown): string {
@@ -41,9 +45,12 @@ export function mensajeError(e: unknown): string {
 
 export function usePropuestaResumen(slide: Slide, scope: "active" | "consolidated", autoCargar: boolean) {
   const firma = firmaLamina(slide);
+  // Las preguntas clave del estudio deciden la propuesta tanto como la lámina (H14): van en la firma.
+  const clavesGuardadas = usePlanStore((s) => s.plan.preguntas_clave);
+  const claves = firmaClaves(leerPreguntasClave({ preguntas_clave: clavesGuardadas }));
   const [estado, setEstado] = useState<EstadoPropuesta>(() => {
-    const ya = guardadas.get(claveDe(scope, firma));
-    if (ya) return { fase: "lista", datos: ya, firma };
+    const ya = guardadas.get(claveDe(scope, firma, claves));
+    if (ya) return { fase: "lista", datos: ya, firma, claves };
     return autoCargar ? { fase: "cargando" } : { fase: "inactiva" };
   });
   const pedido = useRef<AbortController | null>(null);
@@ -54,12 +61,14 @@ export function usePropuestaResumen(slide: Slide, scope: "active" | "consolidate
   const cargar = useCallback(() => {
     pedido.current?.abort();
     // Se lee la lámina vigente al disparar, no la de un render: es la que se está editando, sin guardar.
-    const vigente = usePlanStore.getState().plan.slides.find((s) => s.id === slideId);
+    const plan = usePlanStore.getState().plan;
+    const vigente = plan.slides.find((s) => s.id === slideId);
     if (!vigente) { setEstado({ fase: "error", mensaje: "Esta lámina ya no está en el informe." }); return; }
     const f = firmaLamina(vigente);
-    const k = claveDe(scope, f);
+    const c = firmaClaves(leerPreguntasClave(plan));
+    const k = claveDe(scope, f, c);
     const ya = guardadas.get(k);
-    if (ya) { setEstado({ fase: "lista", datos: ya, firma: f }); return; }
+    if (ya) { setEstado({ fase: "lista", datos: ya, firma: f, claves: c }); return; }
     const ctl = new AbortController();
     pedido.current = ctl;
     setEstado({ fase: "cargando" });
@@ -68,7 +77,7 @@ export function usePropuestaResumen(slide: Slide, scope: "active" | "consolidate
         if (ctl.signal.aborted) return;
         guardadas.set(k, datos);
         if (guardadas.size > TOPE) { const primera = guardadas.keys().next().value; if (primera !== undefined) guardadas.delete(primera); }
-        setEstado({ fase: "lista", datos, firma: f });
+        setEstado({ fase: "lista", datos, firma: f, claves: c });
       })
       .catch((e: unknown) => { if (!ctl.signal.aborted) setEstado({ fase: "error", mensaje: mensajeError(e) }); });
   }, [slideId, scope]);
@@ -80,6 +89,7 @@ export function usePropuestaResumen(slide: Slide, scope: "active" | "consolidate
 
   useEffect(() => () => pedido.current?.abort(), []);
 
-  const desactualizada = estado.fase === "lista" && estado.firma !== firma;
-  return { estado, cargar, desactualizada };
+  const desfase: DesfasePropuesta = estado.fase !== "lista" ? null
+    : estado.firma !== firma ? "lamina" : estado.claves !== claves ? "claves" : null;
+  return { estado, cargar, desfase };
 }

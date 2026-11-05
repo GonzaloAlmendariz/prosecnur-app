@@ -32,6 +32,7 @@ import {
   type ElementoVista,
 } from "./modeloPropuesta";
 import { usePropuestaResumen } from "./usePropuestaResumen";
+import { CriterioPropuesta } from "./CriterioPropuesta";
 import "../datosGrafico.css";
 import "./propuestaResumen.css";
 
@@ -67,7 +68,7 @@ export function PropuestaResumen({ slide, scope, automatica, valor, onAplicar }:
   const [ui, setUi] = useState<Ui>(UI_INICIAL);
   const cambiar = (p: Partial<Ui>) => setUi((u) => ({ ...u, ...p }));
   const visible = automatica || ui.abierta;
-  const { estado, cargar, desactualizada } = usePropuestaResumen(slide, scope, visible);
+  const { estado, cargar, desfase } = usePropuestaResumen(slide, scope, visible);
   const { multi } = useVariables();
   const traer = useRef<HTMLButtonElement>(null);
   const confirmar = useRef<HTMLDivElement>(null);
@@ -136,6 +137,8 @@ export function PropuestaResumen({ slide, scope, automatica, valor, onAplicar }:
         {estado.fase === "cargando" && <CargaDeBloque label={`El motor elige ${losElementos(tipo)}. Puede tardar hasta un minuto.`} />}
         {estado.fase === "lista" && <span className="pulso-sr-only">Propuesta lista: {conteoQuedan(quedan, total)}.</span>}
       </div>
+      {/* H14: el criterio, o cómo cambiarlo, antes de lo propuesto. Sólo el resumen ejecutivo elige por preguntas clave. */}
+      {tipo === "p_slide_hallazgos" && <CriterioPropuesta />}
       {estado.fase === "error" && (
         <div className="pulso-f6-propuesta-error" data-qa-geometry-member>
           <p className="pulso-f6-propuesta-aviso" role="alert">{estado.mensaje}</p>
@@ -146,9 +149,11 @@ export function PropuestaResumen({ slide, scope, automatica, valor, onAplicar }:
       )}
       {datos && (
         <>
-          {desactualizada && (
+          {desfase && (
             <div className="pulso-f6-propuesta-desfase" data-qa-geometry-member>
-              <span className="pulso-f6-dato-ayuda">Cambiaste los ajustes de la lámina. La propuesta puede ser otra.</span>
+              <span className="pulso-f6-dato-ayuda">
+                {desfase === "claves" ? "Cambiaste tus preguntas clave." : "Cambiaste los ajustes de la lámina."} La propuesta puede ser otra.
+              </span>
               <PulsoButton variant="secondary" size="sm" onClick={cargar}>
                 <RefreshCw size={14} aria-hidden="true" /> Actualizar
               </PulsoButton>
@@ -214,9 +219,14 @@ function ElementoPropuesta({ e, queda, onAlternar }: { e: ElementoVista; queda: 
   return (
     <li className={`pulso-f6-propuesta-elemento${queda ? "" : " is-fuera"}`} data-qa-geometry-member>
       <PulsoSwitch className="pulso-f6-propuesta-queda" size="sm" label="Queda" checked={queda} onCheckedChange={onAlternar}
-        ariaLabel={`Queda: ${[e.pregunta, `${e.cifra} ${e.frase}`.trim()].filter(Boolean).join(", ")}`} />
+        ariaLabel={`Queda: ${[e.pregunta, `${e.cifra} ${e.frase}`.trim()].filter(Boolean).join(", ")}${e.deClave ? ", pregunta clave" : ""}`} />
       <div className="pulso-f6-propuesta-cuerpo">
-        {e.pregunta && <span className="pulso-f6-propuesta-pregunta-corta" title={e.pregunta}>{e.pregunta}</span>}
+        {(e.pregunta || e.deClave) && (
+          <div className="pulso-f6-propuesta-pregunta-linea">
+            {e.deClave && <span className="pulso-f6-propuesta-clave" title="Viene de una pregunta clave del estudio">Clave</span>}
+            {e.pregunta && <span className="pulso-f6-propuesta-pregunta-corta" title={e.pregunta}>{e.pregunta}</span>}
+          </div>
+        )}
         <div className="pulso-f6-propuesta-cifra-linea">
           <span className="pulso-f6-propuesta-cifra">{e.cifra || "Sin cifra"}</span>
           <span className="pulso-f6-propuesta-frase">

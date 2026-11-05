@@ -21,6 +21,8 @@ export type ElementoVista = {
   estado: EstadoDiferencia;
   /** Hallazgo sin texto propio: la lámina usa la frase de respaldo. */
   sinTexto: boolean;
+  /** Viene de una pregunta clave del estudio (H14). */
+  deClave: boolean;
 };
 
 export type CapituloVista = { clave: string; titulo: string; elementos: ElementoVista[] };
@@ -34,7 +36,7 @@ export function vistaPropuesta(p: PropuestaResumen): CapituloVista[] {
       titulo: c.titulo,
       elementos: c.filas.map((f, j) => ({
         clave: clave(i, j), pregunta: f.pregunta, cifra: f.cifra, n: f.n, frase: f.rotuloLamina,
-        diferencia: f.diferencia, estado: f.diferenciaEstado, sinTexto: false,
+        diferencia: f.diferencia, estado: f.diferenciaEstado, sinTexto: false, deClave: f.clave,
       })),
     }));
   }
@@ -43,7 +45,7 @@ export function vistaPropuesta(p: PropuestaResumen): CapituloVista[] {
     titulo: c.titulo,
     elementos: c.cifras.map((h, j) => ({
       clave: clave(i, j), pregunta: h.pregunta, cifra: h.cifra, n: h.n, frase: h.frase,
-      diferencia: h.diferencia, estado: h.diferenciaEstado, sinTexto: !h.texto,
+      diferencia: h.diferencia, estado: h.diferenciaEstado, sinTexto: !h.texto, deClave: h.clave,
     })),
   }));
 }
@@ -159,3 +161,10 @@ export function firmaLamina(slide: { id: string; tipo: string; payload: Record<s
   const resto = Object.keys(slide.payload).filter((k) => !NO_DECIDEN.has(k)).sort().map((k) => [k, slide.payload[k]]);
   return JSON.stringify([slide.id, slide.tipo, resto]);
 }
+
+/** La firma de las preguntas clave, sin orden: marcar las mismas en otro orden no cambia la propuesta. */
+export const firmaClaves = (claves: readonly string[]): string => JSON.stringify([...claves].sort());
+
+/** El criterio con que el motor elige los hallazgos, en palabras de analista (H14). */
+export const CRITERIO_CON_CLAVES = "Por capítulo: la diferencia más fuerte entre grupos y una cifra de tus preguntas clave.";
+export const CRITERIO_SIN_CLAVES = "Sin preguntas clave, el motor elige por capítulo la diferencia más fuerte y la cifra más lejos del 50 %.";
