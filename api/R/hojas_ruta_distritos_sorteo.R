@@ -26,3 +26,154 @@ hojas_ruta_distritos_activo <- function(params) {
   hojas_ruta_estrato_activo(params) && hojas_ruta_reparto_base_activa(params) &&
     hojas_ruta_distritos_normalizar(params)$rutas_minimas_distrito >= 1L
 }
+
+#' Plan determinista del estrato (ciudad o área de Lima) con `n` rutas: qué distritos
+#' entran con certeza, cuántos se sortean y con qué π_d. No sortea nada.
+#'
+#'   1. R_d = n · MOS_d / MOS_h (la medida del marco elegible: el estrato sigue
+#'      autoponderado). Forzoso si R_d ≥ m.
+#'   2. Los demás forman el grupo: h_g = max(1, ⌊R_g/m⌋), π_d = h_g · MOS_d / MOS_g.
+#'      Un π_d ≥ 1 pasa a forzoso y el grupo se recalcula.
+#'   3. Rutas enteras: proporcional con piso m por forzoso y m · h_g en el grupo
+#'      (`.hojas_ruta_ciudades_reparto_con_piso`, mayor resto).
+#'   4. Grupo con menos rutas que el mínimo (R_g < m, h_g = 1): el distrito sorteado
+#'      recibe el mínimo y el exceso se descuenta de los forzosos de la misma ciudad
+#'      (`regla = "minimo_descontado_de_forzosos"`). Si los forzosos no pueden ceder sin
+#'      bajar del mínimo, el forzoso más chico pasa al grupo (`"forzoso_al_grupo"`).
+#'      Con n < m todo el estrato es un grupo y su único distrito lleva las n rutas
+#'      (`"estrato_bajo_minimo"`).
+#'
+#' @return list(condicion = "forzoso" | "candidato" | "sin_medida" por distrito,
+#'   pi_distrito, rutas_fijas (las de los forzosos), h, rutas_grupo, reparto, regla).
+hojas_ruta_distritos_plan <- function(mos, n, m) {
+  mos <- suppressWarnings(as.numeric(mos))
+  mos[!is.finite(mos) | mos < 0] <- 0
+  k <- length(mos)
+  n <- as.integer(n)
+  vacio <- list(condicion = ifelse(mos > 0, "candidato", "sin_medida"), pi_distrito = numeric(k),
+                rutas_fijas = integer(k), h = 0L, rutas_grupo = 0L, reparto = numeric(k), regla = "ordinaria")
+  if (!k || is.na(n) || n <= 0L || sum(mos) <= 0) return(vacio)
+  R <- n * mos / sum(mos)
+  con_medida <- mos > 0
+  forzoso <- con_medida & R >= m - 1e-9
+  degradado <- rep(FALSE, k)
+  regla <- "ordinaria"
+  for (iter in seq_len(4L * k + 4L)) {
+    ix <- which(!forzoso & con_medida)
+    pi_d <- as.numeric(forzoso)
+    h <- 0L
+    if (length(ix)) {
+      h <- max(1L, as.integer(floor(sum(R[ix]) / m + 1e-9)))
+      h <- min(h, length(ix))
+      pi_d[ix] <- h * mos[ix] / sum(mos[ix])
+      # Un degradado no vuelve a forzoso (oscilaría): el grupo visita uno menos.
+      while (h > 1L && any(degradado[ix] & pi_d[ix] >= 1 - 1e-9)) {
+        h <- h - 1L
+        pi_d[ix] <- h * mos[ix] / sum(mos[ix])
+      }
+      nuevas <- ix[!degradado[ix] & pi_d[ix] >= 1 - 1e-9]
+      if (length(nuevas)) {
+        forzoso[nuevas] <- TRUE
+        next
+      }
+      if (sum(R[ix]) < m - 1e-9 && regla == "ordinaria") regla <- "minimo_descontado_de_forzosos"
+    }
+    piso <- c(rep(m, sum(forzoso)), if (length(ix)) m * h)
+    if (sum(piso) <= n) break
+    if (!any(forzoso)) {
+      regla <- "estrato_bajo_minimo"
+      break
+    }
+    j <- which(forzoso)[which.min(R[forzoso])]
+    forzoso[j] <- FALSE
+    degradado[j] <- TRUE
+    regla <- "forzoso_al_grupo"
+  }
+  ix <- which(!forzoso & con_medida)
+  w <- c(R[forzoso], if (length(ix)) sum(R[ix]))
+  piso <- c(rep(m, sum(forzoso)), if (length(ix)) min(n, m * h))
+  n_u <- if (identical(regla, "estrato_bajo_minimo")) n else .hojas_ruta_ciudades_reparto_con_piso(w, n, piso)
+  rutas_fijas <- integer(k)
+  rutas_fijas[forzoso] <- n_u[seq_len(sum(forzoso))]
+  condicion <- ifelse(forzoso, "forzoso", ifelse(con_medida, "candidato", "sin_medida"))
+  list(condicion = condicion, pi_distrito = pi_d, rutas_fijas = rutas_fijas, h = as.integer(h),
+       rutas_grupo = if (length(ix)) as.integer(n_u[[length(n_u)]]) else 0L, reparto = R, regla = regla)
+}
+
+#' Sorteo de los distritos del estrato con `n` rutas: PPS sistemático de h_g distritos
+#' del grupo (clave `distritos-<estrato>`) y reparto de las rutas del grupo entre los
+#' sorteados, ⌊R_g/h_g⌋ o ⌈R_g/h_g⌉ (clave `distritos-rutas-<estrato>`).
+#'
+#' @return list(plan, rutas = entero por distrito, condicion = "forzoso" | "sorteado" |
+#'   "no_sorteado" | "sin_medida").
+hojas_ruta_distritos_sorteo <- function(mos, n, m, seed, estrato) {
+  plan <- hojas_ruta_distritos_plan(mos, n, m)
+  rutas <- plan$rutas_fijas
+  condicion <- ifelse(plan$condicion == "candidato", "no_sorteado", plan$condicion)
+  ix <- which(plan$condicion == "candidato")
+  if (length(ix) && plan$h > 0L && plan$rutas_grupo > 0L) {
+    sel <- .hojas_ruta_cuota_zona_rutas(mos[ix], plan$h, seed, paste0("distritos-", estrato)) > 0L
+    rutas[ix[sel]] <- .hojas_ruta_cuota_zona_rutas(rep(1, sum(sel)), plan$rutas_grupo, seed, paste0("distritos-rutas-", estrato))
+    condicion[ix[sel]] <- "sorteado"
+  }
+  list(plan = plan, rutas = as.integer(rutas), condicion = condicion)
+}
+
+#' Rutas esperadas del distrito condicionadas a que esté en la muestra: las fijas del
+#' forzoso o R_g/h_g del sorteado (0 si no es visitable).
+.hojas_ruta_distritos_esperado_cond <- function(plan) {
+  ifelse(plan$condicion == "forzoso", plan$rutas_fijas,
+         ifelse(plan$condicion == "candidato" & plan$h > 0L, plan$rutas_grupo / max(1L, plan$h), 0))
+}
+
+#' §1c dentro de `hojas_ruta_estrato_asignacion()`: sorteo de distritos de cada estrato
+#' con sus rutas realizadas `n_h` y las dos ramas del diseño (⌊e_c⌋ y ⌈e_c⌉ rutas en una
+#' ciudad sorteada; una sola rama, fija, en las forzosas) para la π exacta.
+#'
+#' @return list(rutas, columnas = data.frame(condicion_distrito, pi_distrito, pi_d_lo,
+#'   e_lo, pi_d_hi, e_hi), grupos = una fila por estrato con rutas).
+.hojas_ruta_distritos_asignacion <- function(estrato, estratos, mos, n_h, n_lo, f_n, cfg) {
+  m <- hojas_ruta_distritos_normalizar(cfg$sample_size)$rutas_minimas_distrito
+  seed <- cfg$seed %||% 2017L
+  k <- length(estrato)
+  rutas <- integer(k)
+  col <- data.frame(condicion_distrito = rep("no_sorteado", k), pi_distrito = numeric(k), pi_d_lo = numeric(k),
+                    e_lo = numeric(k), pi_d_hi = numeric(k), e_hi = numeric(k), stringsAsFactors = FALSE)
+  grupos <- list()
+  for (h in estratos) {
+    idx <- which(estrato == h)
+    lo <- hojas_ruta_distritos_plan(mos[idx], n_lo[idx][[1]], m)
+    hi <- hojas_ruta_distritos_plan(mos[idx], n_lo[idx][[1]] + 1L, m)
+    f <- f_n[idx][[1]]
+    col$pi_d_lo[idx] <- lo$pi_distrito
+    col$e_lo[idx] <- .hojas_ruta_distritos_esperado_cond(lo)
+    col$pi_d_hi[idx] <- if (f > 1e-9) hi$pi_distrito else lo$pi_distrito
+    col$e_hi[idx] <- if (f > 1e-9) .hojas_ruta_distritos_esperado_cond(hi) else col$e_lo[idx]
+    col$pi_distrito[idx] <- (1 - f) * col$pi_d_lo[idx] + f * col$pi_d_hi[idx]
+    if (n_h[[h]] <= 0L) next
+    s <- hojas_ruta_distritos_sorteo(mos[idx], n_h[[h]], m, seed, h)
+    rutas[idx] <- s$rutas
+    col$condicion_distrito[idx] <- s$condicion
+    p <- s$plan
+    grupos[[length(grupos) + 1L]] <- data.frame(
+      estrato = h, rutas = as.integer(n_h[[h]]), n_distritos = length(idx),
+      n_forzosos = sum(p$condicion == "forzoso"), n_candidatos = sum(p$condicion == "candidato"),
+      h = p$h, rutas_grupo = p$rutas_grupo, reparto_grupo = sum(p$reparto[p$condicion == "candidato"]),
+      n_sorteados = sum(s$condicion == "sorteado"), regla = p$regla, stringsAsFactors = FALSE
+    )
+  }
+  grupos <- if (length(grupos)) do.call(rbind, grupos) else
+    data.frame(estrato = character(0), rutas = integer(0), n_distritos = integer(0), n_forzosos = integer(0),
+               n_candidatos = integer(0), h = integer(0), rutas_grupo = integer(0), reparto_grupo = numeric(0),
+               n_sorteados = integer(0), regla = character(0), stringsAsFactors = FALSE)
+  list(rutas = as.integer(rutas), columnas = col, grupos = grupos)
+}
+
+#' π de la manzana con el §1c: π_c · Σ_ramas p · π_d · π_i|d. `a` es la fila del distrito
+#' de `hojas_ruta_estrato_asignacion()$distritos`; `m` la medida del sorteo de sus manzanas.
+hojas_ruta_distritos_pi <- function(m, a) {
+  rama <- function(pd, e) if (pd <= 0 || e <= 0) numeric(length(m)) else pd * hojas_ruta_estrato_pi(m, e)
+  lo <- rama(a$pi_d_lo, a$e_lo)
+  cond <- if (a$f_n <= 1e-9) lo else (1 - a$f_n) * lo + a$f_n * rama(a$pi_d_hi, a$e_hi)
+  a$pi_ciudad * cond
+}
