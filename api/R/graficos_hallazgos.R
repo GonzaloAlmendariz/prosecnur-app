@@ -310,6 +310,7 @@
 #' Respaldo en ggplot (Word y `motor_nativo = FALSE`): cada cifra con su intervalo, como puntos con su rango
 #' @keywords internal
 .halla_ggplot <- function(espec) {
+  if (isTRUE(espec$modo %in% .HALLAZGOS_MODOS_RESUMEN)) return(.halla_res_ggplot(espec))   # tabla del Word (reporte_word_hallazgos_resumen.R)
   ks <- espec$kpis
   if (!length(ks)) {
     p <- ggplot2::ggplot() + ggplot2::annotate("text", x = 0, y = 0, label = "Sin cifras", colour = .std_color("texto_suave")) + ggplot2::theme_void()

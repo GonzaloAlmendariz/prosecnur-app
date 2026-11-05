@@ -15,7 +15,7 @@ withr::local_options(prosecnur.casos_junto = list(cuando = "nunca"))
 .wc_word <- function(g) {
   w <- .word_grafico(g); expect_identical(attr(w, "renderer"), "categorica")
   b <- suppressWarnings(ggplot2::ggplot_build(w))
-  cif <- b$data[[2]]; rot <- b$data[[3]]; rot <- rot[order(-rot$y), ]
+  tx <- Filter(function(d) "label" %in% names(d), b$data); cif <- tx[[1]]; rot <- tx[[2]]; rot <- rot[order(-rot$y), ]   # por contenido: la pista (v7.11) agrega una capa debajo
   setNames(vapply(rot$y, function(y) as.character(cif$label[which.min(abs(cif$y - y))]), ""), gsub("\n", " ", rot$label))
 }
 
