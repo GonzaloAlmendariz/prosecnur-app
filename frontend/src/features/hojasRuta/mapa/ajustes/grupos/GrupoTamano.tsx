@@ -1,16 +1,18 @@
 import type { HojasRutaIntegratedConfig, HojasRutaSampleSizeConfig } from "../../../../../api/hojasRuta";
-import { PulsoButton } from "../../../../../components/PulsoButton";
 import { PulsoSwitch } from "../../../../../components/PulsoSwitch";
 import { formatoDecimal } from "../../../../../lib/formatoNumero";
 import { visitasCap, visitasPorRuta } from "../../../seleccion/visitas";
 import { fuenteDelReparto } from "../../muestra/BaseReparto2025";
 import { Atajos, DEFF_TIPICOS, fmt, Numero, Opciones, pct } from "../../muestra/controlesMuestra";
-import { deffPorIcc, pasoDeRutas, type BorradorMuestra } from "../../muestra/desdeConfig";
+import { deffPorIcc, type BorradorMuestra } from "../../muestra/desdeConfig";
 import { GuiaDeMuestra } from "../../muestra/GuiaDeMuestra";
 import { IccPanel } from "../../muestra/IccPanel";
 import { MargenCurva } from "../../muestra/MargenCurva";
 import type { ResultadoTamano } from "../../muestra/motorTamano";
 import { pasosDelN } from "../../muestra/pasosDelN";
+import { CampoN } from "./CampoN";
+import { SelectorK } from "./SelectorK";
+import { intervaloP50, nEfectivo } from "./tamanoN";
 import { useLienzoHojasRuta } from "../../store";
 
 type Props = {
@@ -40,6 +42,7 @@ export function GrupoTamano({ config, resultado: r, bloqueado, guardando, margen
     ["Suma de mínimos por distrito", r.sumaMinimos],
   ].filter(([, n], i, a) => Number(n) > 0 && a.findIndex((x) => x[1] === n) === i) as Array<[string, number]>;
   const ed = bloqueado || guardando;
+  const intervalo = intervaloP50(r.margenTotal);
 
   return (
     <div className="hr-ajustes-grupo-cuerpo">
@@ -51,30 +54,21 @@ export function GrupoTamano({ config, resultado: r, bloqueado, guardando, margen
           onCambio={(v) => cambiar({ sample_size_mode: v })}
         />
         {config.sample_size_mode === "external_total" ? (
-          <div className="hr-muestra-campo">
-            <small>Encuestas completas aprobadas</small>
-            <span className="hr-muestra-pasos">
-              <PulsoButton variant="secondary" size="sm" disabled={ed} aria-label="Una ruta menos" onClick={() => cambiar({ n_objetivo: pasoDeRutas(config.n_objetivo, ruta, -1) })}>−</PulsoButton>
-              <input type="number" value={config.n_objetivo} min={ruta} step={ruta} disabled={ed} onChange={(e) => e.target.value !== "" && cambiar({ n_objetivo: Math.max(1, Math.round(Number(e.target.value))) })} aria-label="Encuestas completas aprobadas" />
-              <PulsoButton variant="secondary" size="sm" disabled={ed} aria-label="Una ruta más" onClick={() => cambiar({ n_objetivo: pasoDeRutas(config.n_objetivo, ruta, 1) })}>+</PulsoButton>
-            </span>
-            <span className="hr-mapa-nota">− y + quitan o suman una ruta: {ruta} entrevistas.</span>
-          </div>
+          <CampoN valor={config.n_objetivo} k={ruta} deshabilitado={ed} onCambio={(n_objetivo) => cambiar({ n_objetivo })} />
         ) : config.sample_size_mode === "external_district" ? (
           <p className="hr-mapa-nota">Escribe el N de cada distrito en la lista de la izquierda.</p>
         ) : (
           <p className="hr-mapa-nota">El N sale de los márgenes y supuestos de abajo, redondeado a rutas completas.</p>
         )}
 
-        <div className="hr-muestra-campo">
-          <small>Encuestas por ruta (por manzana)</small>
-          <span className="hr-muestra-pasos">
-            <PulsoButton variant="secondary" size="sm" disabled={ed || ruta <= 1} aria-label="Una encuesta menos por ruta" onClick={() => cambiar({ entrevistas_por_manzana: Math.max(1, ruta - 1) })}>−</PulsoButton>
-            <input type="number" value={ruta} min={1} step={1} disabled={ed} onChange={(e) => e.target.value !== "" && Number(e.target.value) >= 1 && cambiar({ entrevistas_por_manzana: Math.round(Number(e.target.value)) })} aria-label="Encuestas por ruta" />
-            <PulsoButton variant="secondary" size="sm" disabled={ed} aria-label="Una encuesta más por ruta" onClick={() => cambiar({ entrevistas_por_manzana: ruta + 1 })}>+</PulsoButton>
-          </span>
-          <span className="hr-mapa-nota">{r.multiploDeRuta ? `N compatible: ${fmt(r.nUsado)} = ${fmt(Math.floor(r.nUsado / ruta))} × ${ruta}` : `El N debe ser múltiplo de ${ruta}`}</span>
-        </div>
+        <SelectorK n={config.sample_size_mode === "external_total" ? config.n_objetivo : r.nUsado} k={ruta} deshabilitado={ed} onCambio={(entrevistas_por_manzana) => cambiar({ entrevistas_por_manzana })} />
+        {/* Fórmulas y derivados en contenedor formal, no como texto con «=» (maqueta aprobada). */}
+        <dl className="hr-ajustes-formula" aria-label="Encuestas, rutas y precisión">
+          <div><dt>Encuestas</dt><dd>{fmt(r.nUsado)}</dd></div>
+          <div><dt>Rutas de {ruta}</dt><dd>{r.multiploDeRuta ? fmt(r.nUsado / ruta) : <small>N no múltiplo de {ruta}</small>}</dd></div>
+          <div><dt>Intervalo, p 50 %</dt><dd>{intervalo ? `${formatoDecimal(intervalo[0], 1)} a ${formatoDecimal(intervalo[1], 1)} %` : "—"}</dd></div>
+          <div><dt>Tamaño efectivo</dt><dd>{fmt(nEfectivo(r.nUsado, s.design_effect))} <small>DEFF {formatoDecimal(s.design_effect, 2)}</small></dd></div>
+        </dl>
 
         <section className="hr-ajustes-bloque" aria-label="Margen de error">
           <h4>Margen de error</h4>

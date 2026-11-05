@@ -78,3 +78,18 @@
 /* La curva del margen se dibujó para la columna del inspector (~300 px): estirada al ancho de la ventana
    sus rótulos crecían con el viewBox. Aquí conserva ese tamaño. */
 .hr-ajustes .hr-margen-curva { max-width: 360px; }
+
+/* Tamaño y precisión, M2b: N como texto, k por divisores, fórmulas en contenedor formal. */
+.hr-campo-n label { font-size: var(--pulso-type-caption-size); font-weight: 600; color: var(--pulso-text-soft); }
+.hr-campo-n input { height: 36px; padding: 0 10px; border: 1px solid var(--pulso-border); border-radius: 8px; background: var(--pulso-surface); font: inherit; font-size: var(--pulso-type-subtitle-size); font-weight: 700; font-variant-numeric: tabular-nums; color: var(--pulso-text); }
+.hr-campo-n input:focus { outline: none; border-color: var(--pulso-module-routes); }
+.hr-campo-n input[aria-invalid="true"] { border-color: var(--pulso-warn-border); }
+.hr-campo-n-aviso { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 0; font-size: var(--pulso-type-caption-size); color: var(--pulso-warn-fg); }
+.hr-campo-n-opcion { padding: 3px 9px; border: 1px solid var(--pulso-warn-border); border-radius: 7px; background: var(--pulso-warn-bg); color: var(--pulso-warn-fg); font: inherit; font-weight: 700; font-variant-numeric: tabular-nums; cursor: pointer; }
+.hr-campo-n-opcion:hover { background: var(--pulso-surface); color: var(--pulso-warn-fg); }
+.hr-selector-k-otro { width: 64px; height: 30px; padding: 0 8px; border: 1px solid var(--pulso-module-routes); border-radius: 8px; font: inherit; font-variant-numeric: tabular-nums; }
+.hr-ajustes-formula { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; margin: 0; padding: 11px 12px; border-radius: 10px; background: var(--pulso-surface-2); }
+.hr-ajustes-formula div { display: flex; flex-direction: column; gap: 1px; }
+.hr-ajustes-formula dt { font-size: var(--pulso-type-micro-size); font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--pulso-text-soft); }
+.hr-ajustes-formula dd { margin: 0; font-size: var(--pulso-type-body-size); font-weight: 700; color: var(--pulso-text); font-variant-numeric: tabular-nums; }
+.hr-ajustes-formula dd small { font-weight: 500; color: var(--pulso-text-soft); }
