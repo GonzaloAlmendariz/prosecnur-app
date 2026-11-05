@@ -311,9 +311,10 @@ const DEFAULT_PAYLOADS: Record<SlideType, Record<string, unknown>> = {
   p_slide_1_grafico_narrativo: { titulo: "", grafico: null, texto: "", base: "", pie: "", etiqueta: "" },
   p_slide_grafico_texto_derecha:    { titulo: "", grafico: null, texto: "", base: "", pie: "", etiqueta: "" },
   p_slide_grafico_texto_izquierda:  { titulo: "", grafico: null, texto: "", base: "", pie: "", etiqueta: "" },
-  // Sin ranuras: las filas por capítulo y las cifras viven en el payload que escribe el plan (todavía sin inspector).
-  p_slide_resumen_diferencias: { titulo: "", etiqueta: "", base: "", seleccion: "manual" },
-  p_slide_hallazgos:           { titulo: "", etiqueta: "", base: "", modo: "cifras" },
+  // Sin ranuras: se arman en Inspector › Lámina. Nacen con la selección del motor, que no exige capítulos ni cifras escritas
+  // (con «manual» sin capítulos, o «cifras» sin cifras, el motor rechaza la lámina recién insertada).
+  p_slide_resumen_diferencias: { titulo: "", etiqueta: "", base: "", seleccion: "auto" },
+  p_slide_hallazgos:           { titulo: "", etiqueta: "", base: "", modo: "resumen", seleccion: "auto" },
 
   // ---- 2 gráficos -----------------------------------------------------
   p_slide_2_graficos:              { titulo: "", izquierda: null, derecha: null, base: "", pie: "", etiqueta: "" },

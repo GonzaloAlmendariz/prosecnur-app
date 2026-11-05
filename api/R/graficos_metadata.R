@@ -1064,15 +1064,15 @@
 
   # Láminas de diferencias (especificación CCSS del 2026-11-04): el resumen por capítulo y los hallazgos clave. Las dos
   # son nativas y se componen como un `slide_1` (graficos_resumen_diferencias.R, graficos_hallazgos.R). Sus listas
-  # (`capitulos`, `cifras`): los capítulos del resumen ejecutivo ya se editan en Inspector › Lámina (hallazgos/); las `cifras`
-  # de los modos «cifras» siguen en el plan, así que la lámina todavía no se ofrece en el selector.
+  # (`capitulos`, `cifras`): los dos se arman en Inspector › Lámina (resumenDiferencias/ y hallazgos/) y se ofrecen en el
+  # selector (ítem 15 de la revisión del PPT v7.23). Las `cifras` de los modos «cifras» de hallazgos siguen en el plan.
   p_slide_resumen_diferencias = list(
     titulo_humano = "Resumen de diferencias",
     descripcion   = "Tabla por capítulo con los puntos de diferencia de cada grupo frente al resto, con la prueba del informe.",
     icono_ui      = "Table",
     categoria     = "1grafico",
     render_key    = "resumen_diferencias",
-    en_selector   = FALSE,
+    en_selector   = TRUE,
     blueprint     = list(kind = "single", ppt_layout = "Graficos2", structure_label = "Resumen de diferencias"),
     slot_specs    = list(),
     args = c(.args_slide_titulos_base(c("titulo", "etiqueta", "base")), list(
@@ -1102,7 +1102,7 @@
     icono_ui      = "LayoutGrid",
     categoria     = "1grafico",
     render_key    = "hallazgos",
-    en_selector   = FALSE,
+    en_selector   = TRUE,
     blueprint     = list(kind = "single", ppt_layout = "Graficos2", structure_label = "Hallazgos clave"),
     slot_specs    = list(),
     args = c(.args_slide_titulos_base(c("titulo", "etiqueta", "base")), list(
