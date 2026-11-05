@@ -4,7 +4,7 @@ import type { GraficosCategorias } from "../../../api/graficos";
 import { mergeSlotArgsPatch } from "../store";
 import { mergeWithDefaults } from "../useGraficosAutosave";
 import { claveCategorias } from "./useCategoriasGrafico";
-import { AVISO_BASE_POR_DEFECTO, AVISO_ESCALA_ORDEN_IGNORADO, leerAvisosOrden, sinPrefijoPregunta } from "./ordenCategorias";
+import { AVISO_BASE_POR_DEFECTO, AVISO_ESCALA_ORDEN_IGNORADO, leerAvisosOrden, sinPrefijoPregunta, rotuloFrecuencia } from "./ordenCategorias";
 import { aplicaOrden, botonTrasMover, categoriasSinRespuestas, listaDesdeMostrado, ordenMostrado, varCalificada, leerOrden, listaPersonalizada, mover, ordenAGuardar, rotuloRecetario, tieneOrdenHeredado, ordenHeredado } from "./ordenCategorias";
 
 const datos: GraficosCategorias = {
@@ -34,7 +34,7 @@ describe("orden de categorías por gráfico (D8)", () => {
   });
 
   it("la opción Recetario dice qué modo aplica, o que manda un orden anterior", () => {
-    expect(rotuloRecetario(datos, false)).toBe("Por defecto, por frecuencia");
+    expect(rotuloRecetario(datos, false)).toBe("Por defecto, de mayor a menor");
     expect(rotuloRecetario({ ...datos, modo_recetario: "instrumento" }, false)).toBe("Por defecto, como el instrumento");
     expect(rotuloRecetario(null, false)).toBe("Por defecto");
     expect(rotuloRecetario(datos, true)).toBe("Por defecto, orden elegido antes");
@@ -191,5 +191,12 @@ describe("avisos de la pregunta (decisión 4, §7)", () => {
 
   it("la caché del hook distingue el graficador (el aviso de escala depende de él)", () => {
     expect(claveCategorias("s", "active", "d$p7", "p_pie")).not.toBe(claveCategorias("s", "active", "d$p7", "p_barras_apiladas"));
+  });
+});
+
+describe("rotuloFrecuencia (H11)", () => {
+  it("dice hacia dónde ordena, y sigue a «Invertir»", () => {
+    expect(rotuloFrecuencia(false)).toBe("De mayor a menor (frecuencia)");
+    expect(rotuloFrecuencia(true)).toBe("De menor a mayor (frecuencia)");
   });
 });

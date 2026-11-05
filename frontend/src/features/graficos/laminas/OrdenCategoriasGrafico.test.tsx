@@ -149,6 +149,6 @@ describe("OrdenCategoriasGrafico · orden elegido antes (U4)", () => {
     expect(html).toContain(">De mayor a menor, elegido antes</option>");
     expect(html).toContain("Este gráfico trae el orden «De mayor a menor», elegido antes; manda mientras no elijas otro.");
     expect(html).not.toContain("Por defecto, orden elegido antes");
-    expect(html).toContain('<option value="frecuencia">Frecuencia</option>');
+    expect(html).toContain('<option value="frecuencia">De mayor a menor (frecuencia)</option>');
   });
 });

@@ -519,3 +519,18 @@
 @media (prefers-reduced-motion: reduce) {
   .pulso-f6-ranura-etiqueta { transform: none; }
 }
+
+/* H12 (checklist de usabilidad, 2026-11-05): «Previsualizar» es un interruptor. Pulsado se ve lleno con el acento del
+   módulo, distinto del borde suave de «Ajustes» o de un botón activo cualquiera. (`--pulso-button-accent` sólo existe
+   dentro de `.pulso-button`: aquí va el acento del módulo directo.) */
+.pulso-f6-boton.pulso-f6-previsualizar[aria-pressed="true"] {
+  border-color: var(--module-accent);
+  background: var(--module-accent);
+  color: var(--pulso-surface);
+}
+
+.pulso-f6-boton.pulso-f6-previsualizar[aria-pressed="true"]:hover:not(:disabled) {
+  border-color: var(--module-accent);
+  background: color-mix(in srgb, var(--module-accent) 86%, var(--pulso-text));
+  color: var(--pulso-surface);
+}

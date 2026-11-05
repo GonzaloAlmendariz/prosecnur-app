@@ -6,6 +6,7 @@ import { useVariables, parseVarRef, formatVarRef, type VarWithSource } from "./u
 import { safeText } from "./safeText";
 import { formatoConteo } from "../../lib/formatoNumero";
 import { CargaDeBloque } from "../../components/CargaDeBloque";
+import { textoPlano } from "./textoPlano";
 
 type Props = {
   value: string[] | null | undefined;
@@ -210,7 +211,7 @@ export default function VarsListPicker({ value, onChange }: Props) {
                     </span>
                     <span className="pulso-gv2-vars-option-meta">
                       {multi && variable.source && <em>{variable.source}</em>}
-                      {variable.seccion && <em>{variable.seccion}</em>}
+                      {variable.seccion && <em>{textoPlano(variable.seccion)}</em>}
                       {variable.tipo && <em>{friendlyVarType(variable.tipo)}</em>}
                       {typeof variable.n_non_empty === "number" && <em>{variable.n_non_empty} respuestas</em>}
                     </span>

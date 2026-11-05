@@ -43,6 +43,7 @@ import { ConteoBarrasMultiapiladas } from "./multiapiladas/ConteoBarras";
 import "./multiapiladas/multiapiladas.css";
 import { formatoConteo } from "../../lib/formatoNumero";
 import { CargaDeBloque } from "../../components/CargaDeBloque";
+import { textoPlano } from "./textoPlano";
 
 type Props = {
   graf: GraficadorRef;
@@ -908,7 +909,7 @@ function VariableChoicePopover({
                     </span>
                     <span className="pulso-gv2-variable-option-meta">
                       {multi && <em>{v.source}</em>}
-                      {v.seccion && <em>{v.seccion}</em>}
+                      {v.seccion && <em>{textoPlano(v.seccion)}</em>}
                       {v.tipo && <em>{friendlyVarType(v.tipo)}</em>}
                       {typeof v.n_non_empty === "number" && <em>{v.n_non_empty} respuestas</em>}
                       {/* La escala decide si la pregunta puede entrar al

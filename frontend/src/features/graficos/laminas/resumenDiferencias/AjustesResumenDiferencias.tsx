@@ -1,8 +1,8 @@
 // Ajustes de «Resumen de diferencias» (`p_slide_resumen_diferencias`) en Inspector › Lámina: la selección de filas, los
 // cruces con su nombre y los rótulos cortos de sus grupos, los topes de la selección automática y los capítulos con sus
-// filas (ítem 15 de la revisión del PPT v7.23). Se pintan los argumentos del registro que no son texto (los textos, como
-// «Cómo se nombran los casos», van en «Textos»), en su orden y según su `depende`. Cada cambio es un
-// `updateSlidePayload`.
+// filas (ítem 15 de la revisión del PPT v7.23). Se pintan los argumentos del registro que no son texto (los textos van en
+// «Textos», salvo «Cómo se nombran los casos», que va bajo «Comparar por» como en las tarjetas), en su orden y según su
+// `depende`. Cada cambio es un `updateSlidePayload`.
 
 import { useId } from "react";
 import { useLocation } from "react-router-dom";
@@ -27,6 +27,8 @@ export function AjustesResumenDiferencias({ slide, args }: { slide: Slide; args:
   const seleccion = args.find((a) => a.name === "seleccion");
   const automatica = seleccion ? valorEfectivo(payload, seleccion) === "auto" : false;
   const set = (parche: Record<string, unknown>) => updatePayload(slide.id, parche);
+  // «Cómo se nombran los casos» va con «Comparar por», como en las tarjetas (H6); no se pinta también suelto.
+  const tienePublico = args.some((a) => a.name === "publico");
 
   return (
     <section className="pulso-f6-especial pulso-f6-hallazgos-ajustes" aria-labelledby={idTitulo}
@@ -34,10 +36,12 @@ export function AjustesResumenDiferencias({ slide, args }: { slide: Slide; args:
       <h3 id={idTitulo} className="pulso-f6-subtitulo">Resumen de diferencias</h3>
       <div className="pulso-f6-datos" data-qa-geometry-group="graficos/f6-resumen-datos" data-qa-geometry-contract="intrinsic">
         {conDependientesJuntos(ajustesQueAplican(args, payload)).map((a) => {
+          if (a.name === "publico") return null;
           if (a.name === "cruces") {
             return (
               <CrucesLamina key={a.name} payload={payload} scope={scope} baseActiva={baseActiva} onParche={set}
-                ayudaVacia="Sin elegir, los de las tarjetas del plan o los del estudio." />
+                ayudaVacia="Sin elegir, compara como las tarjetas del informe o por los cruces del estudio."
+                conPublico={tienePublico} />
             );
           }
           if (a.tipo_input === "resumen_capitulos") {

@@ -14,6 +14,7 @@ import { usePlanStore } from "../store";
 import { useGraficosRegistry } from "../useGraficosRegistry";
 import VariablePicker from "../VariablePicker";
 import {
+  ayudaDeLaOpcion,
   camposDeDatos,
   codigosATexto,
   codigosEmitidos,
@@ -45,12 +46,14 @@ import { valorDeMando } from "./mandosPorOverrides";
 import { EnElWord } from "./tarjetaGrafico/EnElWord";
 import { ColoresGrafico } from "./colores/ColoresGrafico";
 import { PaletaDelGrafico } from "./colores/PaletaDelGrafico";
+import { AvisoColorPorOpcion } from "./colores/AvisoColorPorOpcion";
 import { NombresPorBase } from "./datosBase/NombresPorBase";
 import { RedondeoDelGrafico } from "./RedondeoDelGrafico";
 import { grupoDeCampo, TITULO_GRUPO, type GrupoTarjeta } from "./gruposTarjeta";
 import { esPropio, ranurasDelTipo, SIN_ALCANCE, valorDelTipo } from "./modeloAlcance";
 import { SelloAlcance } from "./SelloAlcance";
 import { SelectorCategorias } from "./SelectorCategorias";
+import { GRUPO, NIVEL, type Sustantivo } from "./modeloSelectorCategorias";
 import { CifraGrafico } from "./CifraGrafico";
 import { CitasAprobadas } from "./citas/CitasAprobadas";
 import { ObjetivoDimension } from "./ObjetivoDimension";
@@ -165,11 +168,14 @@ export function DatosGrafico({ slideId, slot, valor }: Props) {
       if (!variable && !primera) return nVars > 0 ? undefined : { variable: "", scope, modo: name === "corte" ? "elegir" : "excluir" };
       return { variable: varCalificada(variable || primera, baseActiva, scope), scope, modo: name === "corte" ? "elegir" : "excluir" };
     }
-    if (name === "excluir_grupos") return { variable: grupoVar ? varCalificada(grupoVar, baseActiva, scope) : "", scope, modo: "excluir" };
+    if (name === "excluir_grupos") return { variable: grupoVar ? varCalificada(grupoVar, baseActiva, scope) : "", scope, modo: "excluir", sustantivo: GRUPO };
     // Línea por nivel: los niveles del eje son las categorías de su `cruce` (U5).
     if (name === "grupos" && valor.graficador === "p_lineas_nivel") {
       const niveles = typeof args.cruce === "string" ? args.cruce : "";
-      return { variable: niveles ? varCalificada(niveles, baseActiva, scope) : "", scope, modo: "elegir", nota: "Sin marcar, todos los niveles con casos." };
+      return {
+        variable: niveles ? varCalificada(niveles, baseActiva, scope) : "", scope, modo: "elegir", vacioEsTodos: true, sustantivo: NIVEL,
+        nota: "Quita un nivel para sacarlo del gráfico.",
+      };
     }
     return undefined;
   };
@@ -179,8 +185,11 @@ export function DatosGrafico({ slideId, slot, valor }: Props) {
       onCambio={(v) => set({ objetivo: v })} />
   ) : (
     <Fragment key={c.arg.name}>
-      <Fila campo={c} graficador={valor.graficador} valor={alcance(c).valor} sello={alcance(c).sello} categorias={categoriasDe(c.arg.name)}
+      {/* H2: la ayuda de «Pista gris» describe la opción elegida, no siempre «Automática». */}
+      <Fila campo={{ ...c, ayuda: ayudaDeLaOpcion(c, alcance(c).valor) }} graficador={valor.graficador} valor={alcance(c).valor} sello={alcance(c).sello} categorias={categoriasDe(c.arg.name)}
             onCambio={(v) => set(valor.graficador === "p_radar" && c.arg.name === "modo" && typeof v === "string" ? patchModoRadar(args.modo, v) : { [c.arg.name]: v })} />
+      {/* H2: «Un color por opción» encendido sobre una lista sin colores dice por qué no se ve. */}
+      {c.arg.name === "colorear_por_opcion" && interruptorEncendido(c.arg, alcance(c).valor) && <AvisoColorPorOpcion valor={valor} />}
       {radarPublicos && c.arg.name === "forma" && <NotaFormaRadar args={args} />}
       {radarPublicos && c.arg.name === "modo" && <EditorTemasEquivalentes tipo="radar" args={args} onCambio={set} />}
     </Fragment>
@@ -316,7 +325,11 @@ function GrupoDeTarjeta({ titulo, children }: { titulo: string; children: ReactN
   );
 }
 
-const ORDEN_ANTERIOR = new Set(["orden_barras", "ordenar_categorias"]);
+// H5 (checklist de usabilidad, 2026-11-05): donde rige el orden por gráfico, `invertir_barras` es un segundo «Invertir»
+// que el motor no lee para el orden pedido: `.goc_traducir` escribe el orden ya invertido según
+// `orden_categorias.invertir`, y con un orden pedido en horizontal la agrupada fuerza `invertir_barras` a TRUE
+// (graficador_barras_agrupadas.R, F1). Queda un solo mando, el «Invertir» de «Orden»; el valor guardado no se toca.
+const ORDEN_ANTERIOR = new Set(["orden_barras", "ordenar_categorias", "invertir_barras"]);
 
 function Ayuda({ rotulo, detalle }: { rotulo: string; detalle: string }) {
   return <AyudaGlobo rotulo={rotulo} detalle={detalle} />;
@@ -326,6 +339,9 @@ type CategoriasFila = {
   variable: string; scope: "active" | "consolidated"; modo: "excluir" | "elegir";
   /** Lo que dice la marca, si no es «se excluye» ni «forma el corte». */
   nota?: string;
+  /** «elegir» donde nada guardado es todos (H9). */
+  vacioEsTodos?: boolean;
+  sustantivo?: Sustantivo;
 };
 
 function Fila({ campo, graficador, valor, onCambio, sello, categorias }: {
@@ -460,7 +476,7 @@ function Fila({ campo, graficador, valor, onCambio, sello, categorias }: {
     if (!categorias) return comoTexto;
     return (
       <SelectorCategorias id={id} etiqueta={etiqueta} variable={categorias.variable} scope={categorias.scope} graficador={graficador}
-        valor={valor} modo={categorias.modo} textoRespaldo={comoTexto}
+        valor={valor} modo={categorias.modo} vacioEsTodos={categorias.vacioEsTodos} sustantivo={categorias.sustantivo} textoRespaldo={comoTexto}
         nota={<span className="pulso-f6-dato-ayuda">{categorias.nota ?? (categorias.modo === "excluir" ? "Las marcadas no salen en el gráfico." : "Las marcadas forman el corte.")}</span>}
         onCambio={(cods) => onCambio(arg.name === "corte" && CORTE_EN_CADENA.has(graficador) ? cods.join(",") : cods)} />
     );

@@ -13,6 +13,7 @@ import { ARGS_FIJADOS_INDICE } from "../indice/fijadosIndiceModel";
 import { useVariables } from "../useVariables";
 import { ContenidoEspecialLamina } from "./contenidoEspecial/ContenidoEspecialLamina";
 import { contenidoEspecialDe, esArgEspecial, tituloPorDefecto } from "./contenidoEspecial/modeloContenidoEspecial";
+import { avisoDentroDeLamina } from "./avisoEnLamina";
 import { DatosGrafico } from "./DatosGrafico";
 import { DependenciaLamina } from "./DependenciaLamina";
 import { DependenciaTresLamina } from "./DependenciaTresLamina";
@@ -54,6 +55,9 @@ const TEXTOS_CAMPO: Record<string, { label: string; descripcion: string }> = {
   subtitulo: { label: "Subtítulo", descripcion: "Línea bajo el título." },
   base: { label: "Base", descripcion: "Vacía, sale la base automática." },
   pie: { label: "Nota al pie", descripcion: "Fuente u otra aclaración al pie de la lámina." },
+  // H6 (2026-11-05): el registro lo llama «Etiqueta corta», como el nombre corto de una pregunta. Es el texto pequeño
+  // sobre el bloque de la lámina (hallazgos, resumen): un antetítulo del bloque, no del título.
+  etiqueta: { label: "Antetítulo del bloque", descripcion: "Texto pequeño sobre el bloque de la lámina." },
 };
 
 // El objetivo dice su rótulo junto a la diana, no arriba de la lámina (`.lam_laminas_objetivo`, lamina_identidad.R).
@@ -91,7 +95,8 @@ export function InspectorLamina({
   const seccion: SeccionInspector = conGraficos && (seccionGuardada === "graficos" || seccionGuardada === "estado") ? "graficos" : "contenido";
   const { issues } = usePlanValidator();
   // Dentro de la lámina, sin repetir «Lámina N · “título”» ni el mismo aviso dos veces (U4 de CCSS: cuatro casi iguales).
-  const avisos = [...new Set([...issues.filter((i) => i.slideId === slide.id).map((i) => i.detalle ?? i.message), ...(visor?.avisos ?? [])])];
+  // H12: dentro de la lámina, sin su rótulo «Lámina N · “…”» ni punto medio (avisoEnLamina.ts).
+  const avisos = [...new Set([...issues.filter((i) => i.slideId === slide.id).map((i) => i.detalle ?? i.message), ...(visor?.avisos ?? [])].map(avisoDentroDeLamina))];
 
   const tabId = (k: SeccionInspector) => `${baseId}-tab-${k}`;
   const panelId = (k: SeccionInspector) => `${baseId}-panel-${k}`;
@@ -317,7 +322,8 @@ function SeccionGraficos({ slide, slots, ranura, onRanura, onCambiarGrafico }: {
               <button key={slot} type="button" role="tab" aria-selected={activo === i + 1} data-gliding-opt-out="Chip del selector de gráfico de la lámina; ver su tablist."
                 className={`pulso-f6-selector-grafico-opcion${activo === i + 1 ? " is-activa" : ""}`} onClick={() => onRanura(i + 1)}>
                 {v?.graficador ? <IconoTipo clase="grafico" tipo={v.graficador} size={16} /> : null}
-                Gráfico {i + 1}
+                {/* H6: el lugar en la lámina («Izquierda», «Derecha»), como en los avisos («Espacio «Derecha»»). */}
+                {nombreSlot(slot, slidesById[slide.tipo])}
               </button>
             );
           })}
@@ -331,16 +337,16 @@ function SeccionGraficos({ slide, slots, ranura, onRanura, onCambiarGrafico }: {
           const tecnico = valor?.graficador ?? "";
           const nombre = tecnico ? graficadorDisplayName(tecnico, graficadoresById[tecnico]) : "Sin gráfico";
           const abierta = true;
-          const rotulo = `Gráfico ${k}${slots.length > 1 ? `, ${nombreSlot(slot, slidesById[slide.tipo]).toLowerCase()}` : ""}`;
+          const rotulo = slots.length > 1 ? `gráfico (${nombreSlot(slot, slidesById[slide.tipo]).toLowerCase()})` : "gráfico";
           return (
             <li key={slot} className={`pulso-f6-ranura${abierta ? " is-abierta" : ""}`}>
               <div className="pulso-f6-ranura-fila">
-                {/* El selector de arriba ya dice qué gráfico es: la cabecera sólo dice su tipo (y dónde va, si hay varios). */}
-                <div className="pulso-f6-ranura-cabeza" aria-label={rotulo}>
+                {/* El selector de arriba ya dice dónde va: la cabecera sólo dice su tipo. */}
+                <div className="pulso-f6-ranura-cabeza" aria-label={`${rotulo.charAt(0).toUpperCase()}${rotulo.slice(1)}`}>
                   {tecnico && <IconoTipo clase="grafico" tipo={tecnico} size={20} />}
                   <span className="pulso-f6-ranura-texto">
                     <strong>{nombre}</strong>
-                    {slots.length > 1 && <span>{nombreSlot(slot, slidesById[slide.tipo])}</span>}
+
                   </span>
                 </div>
                 {abierta && (

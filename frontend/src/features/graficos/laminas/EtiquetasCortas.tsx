@@ -1,4 +1,5 @@
-// «Etiqueta corta» de la tarjeta: la de la pregunta del gráfico y, en las multiapiladas de una barra por pregunta, una por
+// «Nombre corto de la pregunta» en la tarjeta (antes «Etiqueta corta»; H6: «Etiqueta corta» era también el antetítulo del
+// bloque de hallazgos): el de la pregunta del gráfico y, en las multiapiladas de una barra por pregunta, una por
 // pregunta (U9 del checklist de mandos del mazo). Todas viven en `overrides.etiquetas_vars[ref]` (leerEtiquetaCorta y
 // conEtiquetaCorta; el modelo de cuáles van en etiquetasPorPregunta.ts). El campo guarda el texto sin espacios en los
 // bordes, así que se escribe sobre un borrador: sin él, el espacio entre dos palabras se perdía al teclearlo.
@@ -18,7 +19,7 @@ export function EtiquetaCortaPregunta({ args, variable, onCambio }: Props & { va
   const id = useId();
   return (
     <div className="pulso-f6-dato is-apilado">
-      <label className="pulso-f6-dato-rotulo" htmlFor={id}>Etiqueta corta</label>
+      <label className="pulso-f6-dato-rotulo" htmlFor={id}>Nombre corto de la pregunta</label>
       <CampoConBorrador id={id} describe={`${id}-ayuda`} valor={leerEtiquetaCorta(args, variable)}
         onCambio={(t) => onCambio(conEtiquetaCorta(args, variable, t))} />
       <span id={`${id}-ayuda`} className="pulso-f6-dato-ayuda">{AYUDA}</span>
@@ -39,7 +40,7 @@ export function EtiquetasCortasPreguntas({ args, onCambio }: Props) {
   };
   return (
     <div className="pulso-f6-dato is-apilado" data-qa="etiquetas-por-pregunta">
-      <span className="pulso-f6-dato-rotulo" id={id}>Etiqueta corta por pregunta</span>
+      <span className="pulso-f6-dato-rotulo" id={id}>Nombre corto de cada pregunta</span>
       <ul className="pulso-f6-etiquetas-preguntas" aria-labelledby={id}
         data-qa-geometry-group="graficos/f6-etiquetas-preguntas" data-qa-geometry-contract="intrinsic">
         {refs.map((ref, i) => {
