@@ -175,7 +175,7 @@ export function SeleccionInspector({ titular, estado, reemplazos, revision, tota
           </dl>
           {observaciones.map((g) => {
             // La ficha dice qué falla y también dónde se arregla (el mismo destino que el panel general), sin repetir su texto.
-            const accion = accionDeObservacion(g.tipo, minimoMarco);
+            const accion = accionDeObservacion(g.tipo, minimoMarco, titular.metodo);
             return (
               <div key={g.tipo} className={g.tono === "info" ? "hr-mapa-nota" : "hr-mapa-aviso"}>
                 <p><b>{g.titulo}.</b> {g.detalle}</p>
@@ -237,7 +237,9 @@ export function SeleccionInspector({ titular, estado, reemplazos, revision, tota
       </>
     );
   }
-  const acciones = accionesSinRepetir(revision.grupos.map((g) => g.tipo), minimoMarco);
+  // Todos los bloques de una muestra salen con el mismo método: decide si una manzana sin viviendas es de un sorteo viejo.
+  const metodoMuestra = reemplazos[0]?.metodo;
+  const acciones = accionesSinRepetir(revision.grupos.map((g) => g.tipo), minimoMarco, metodoMuestra);
   return (
     <>
       <InspectorCabecera icono={ListChecks} sobre="Selección" titulo="Revisión contra el marco" />
