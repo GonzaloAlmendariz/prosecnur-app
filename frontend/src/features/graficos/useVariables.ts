@@ -53,6 +53,9 @@ export function useVariables(): {
   variables: VarWithSource[];  // lista plana con `source` anotado
   /** De qué base lee el motor una ref suelta y qué base es hija de cuál (repeats); ver relacionBases.ts. */
   relacionBases: RelacionBases;
+  /** Base activa del informe (`active_base`): con ella el motor resuelve una ref suelta (baseDeReferencia.ts). */
+  baseActiva: string | null;
+  scope: GraficosReportScope;
   loading: boolean;
   error: string;
 } {
@@ -133,7 +136,8 @@ export function useVariables(): {
     }
   }
 
-  return { sources, multi, variables, relacionBases: relacionDeCache(data), loading, error };
+  const baseActiva = safeText(data?.active_base) || null;
+  return { sources, multi, variables, relacionBases: relacionDeCache(data), baseActiva, scope: reportScope, loading, error };
 }
 
 // La relación se memoiza por respuesta (inmutable, cacheada arriba) para que `usePlanValidator` no recalcule en cada
