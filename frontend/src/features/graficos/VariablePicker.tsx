@@ -7,6 +7,7 @@ import { safeText } from "./safeText";
 import { getDerivedReportVariable } from "./derivedReportVariables";
 import { formatoConteo } from "../../lib/formatoNumero";
 import { CargaDeBloque } from "../../components/CargaDeBloque";
+import { textoPlano } from "./textoPlano";
 
 type Props = {
   value: string | null | undefined;
@@ -147,7 +148,7 @@ export default function VariablePicker({
   const selectedSourceName = valueSource ?? pickerSource;
   const selectedSource = sources.find((s) => s.name === selectedSourceName) ?? source;
   const selectedVar = selectedSource?.variables.find((v) => safeText(v.name) === parsed.name) ?? null;
-  const selectedLabel = selectedVar ? safeText(selectedVar.label, selectedVar.name) : "";
+  const selectedLabel = selectedVar ? textoPlano(safeText(selectedVar.label, selectedVar.name)) : "";
   const selectedCode = selectedVar ? safeText(selectedVar.name) : "";
   const selectedSourceLabel = selectedVar ? (selectedSource?.name ?? "") : (pickerSource ?? "");
   // Con varias bases, una referencia sin prefijo no tiene base: la que se
@@ -334,12 +335,12 @@ export default function VariablePicker({
                   </span>
                   <span className="pulso-gv2-variable-option-main">
                     <span className="pulso-gv2-variable-option-title">
-                      <strong>{label}</strong>
+                      <strong>{textoPlano(label)}</strong>
                       <code>{name}</code>
                     </span>
                     <span className="pulso-gv2-variable-option-meta">
                       {multi && source?.name && <em>{source.name}</em>}
-                      {v.seccion && <em>{v.seccion}</em>}
+                      {v.seccion && <em>{textoPlano(v.seccion)}</em>}
                       {v.tipo && <em>{friendlyVarType(v.tipo)}</em>}
                       {typeof v.n_non_empty === "number" && <em>{v.n_non_empty} respuestas</em>}
                       {v.is_recoded && <em>recodificada</em>}

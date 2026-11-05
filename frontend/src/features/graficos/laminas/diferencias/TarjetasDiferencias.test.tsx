@@ -66,7 +66,13 @@ describe("OpcionesTarjetas (U1, U2)", () => {
     expect(html).toContain('data-qa="tarjetas-cortos"');
     expect(html).toContain('value="Economía y Finanzas"');
     expect(html).toContain('value="Econ. y Finanzas"');
-    expect(html).toContain('aria-label="Rótulo corto del grupo Economía y Finanzas"');
+    expect(html).toContain('aria-label="Nombre corto del grupo Economía y Finanzas"');
+    // H1b: la ayuda dice cuándo lo usa el motor, no «tal como sale en la lámina»; y enlaza los rótulos del estudio.
+    expect(html).toContain("Se usa cuando el nombre no cabe en la tarjeta.");
+    expect(html).not.toContain("tal como sale en la lámina");
+    expect(html).toMatch(/<a[^>]*href="[^"]*pestana=identidad[^"]*foco=rotulos[^"]*"[^>]*>Rótulos cortos del estudio<\/a>/);
+    // H6: «Comparar por» en las tarjetas; «Dividir por» queda para el cruce del gráfico.
+    expect(html).toContain(">Comparar por<");
     // Las sugerencias del grupo son las categorías de los cruces elegidos.
     expect(html).toMatch(/<datalist[^>]*><option value="Economía y Finanzas"/);
     expect(html).toContain("Cómo se nombran los casos");
@@ -78,7 +84,7 @@ describe("OpcionesTarjetas (U1, U2)", () => {
 
   it("sin cruces elegidos dice que van los del estudio; en una ranura el tope es 1 o 2", () => {
     const html = pintar(true, "izquierda");
-    expect(html).toContain("Sin elegir, los cruces del estudio.");
+    expect(html).toContain("Sin elegir, compara por los cruces del estudio.");
     expect(html).toContain(">2 (por defecto)<");
     expect(html).not.toContain(">3<");
   });

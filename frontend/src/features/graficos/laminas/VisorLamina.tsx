@@ -35,6 +35,7 @@ import type { VistaPreviaLamina } from "./usePreviewLamina";
 import { useLaminasUi, type ZoomVisor } from "./laminasStore";
 import { useMiniaturasLoteStore } from "./miniaturas/miniaturasStore";
 import { RanurasSobreLamina } from "./RanurasSobreLamina";
+import { nombreSlot } from "./selectores/etiquetas";
 import { ATRIBUTO_LIENZO } from "./selectores/focoAlCerrar";
 import type { RanuraSobreLamina } from "./ranurasLamina";
 import { BotonGuias } from "./guias/BotonGuias";
@@ -208,7 +209,7 @@ export function VisorLamina({
         )}
         <button
           type="button"
-          className={`pulso-f6-boton${verComoQueda ? " is-activo" : ""}`}
+          className={`pulso-f6-boton pulso-f6-previsualizar${verComoQueda ? " is-activo" : ""}`}
           aria-pressed={verComoQueda}
           disabled={!prepOk && !verComoQueda}
           title={prepOk ? (verComoQueda ? "Volver a la maqueta" : "Ver la lámina como saldrá en el PowerPoint") : "Prepara la base en Analítica para previsualizar"}
@@ -273,7 +274,8 @@ export function VisorLamina({
             <MaquetaLamina slide={slide} lamina={lamina} ranuraActiva={ranuraActiva} onRanura={onRanura} onCambiar={onCambiarGrafico} onTexto={onTexto} />
           )}
           {src && <ZonasTextoLamina onTexto={onTexto} campos={camposTexto} zonas={zonasPortada(slide.tipo, varianteDe(slide)) ?? undefined} />}
-          {src && <RanurasSobreLamina ranuras={ranuras} activa={ranuraActiva} nombre={nombreRanura} onRanura={onRanura} onCambiar={onCambiarGrafico} />}
+          {src && <RanurasSobreLamina ranuras={ranuras} activa={ranuraActiva} nombre={nombreRanura} onRanura={onRanura} onCambiar={onCambiarGrafico}
+            lugar={(slot) => nombreSlot(slot, slidesById[slide.tipo])} />}
           {/* Las guías son del visor: nunca entran al entregable (D17). Sólo sobre el dibujo real del motor. */}
           {real && !cargando && <GuiasSobreLamina modelo={guias} resaltada={resaltada} hojaRef={hojaRef} />}
         </figure>

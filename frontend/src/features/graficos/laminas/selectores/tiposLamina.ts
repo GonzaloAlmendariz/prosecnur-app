@@ -54,7 +54,7 @@ export const INTENCIONES: readonly Intencion[] = [
   {
     id: "resumen",
     label: "Resumir el informe",
-    descripcion: "Hallazgos clave y diferencias entre grupos, al final del mazo.",
+    descripcion: "Resumen ejecutivo, hallazgos clave y diferencias entre grupos, al final del mazo.",
     tipos: ["p_slide_hallazgos", "p_slide_resumen_diferencias"],
   },
   {
@@ -81,7 +81,8 @@ export const TIPOS_FUERA_DEL_SELECTOR: ReadonlySet<SlideType> = new Set<SlideTyp
   "p_slide_4_graficos_poblacion",
   // Reglas de la identidad: la constitución del motor en el catálogo del recetario, no una lámina de informe.
   "p_slide_estandar",
-  // Resumen de diferencias y hallazgos clave ya se ofrecen (intención «resumen»): se arman en Inspector › Lámina.
+  // Resumen de diferencias y hallazgos clave ya se ofrecen (intención «resumen»): se arman en Inspector › Lámina. El
+  // resumen ejecutivo es una tarjeta más de esa intención, con su payload de partida (opcionesLamina.ts, H7).
 ]);
 
 export function intencionDe(tipo: SlideType): IntencionLamina | null {

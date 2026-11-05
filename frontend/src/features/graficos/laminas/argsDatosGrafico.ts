@@ -496,6 +496,22 @@ export function camposDeDatos(args: readonly ArgMetadata[], valores: Valores, gr
   return salida;
 }
 
+/**
+ * H2 (checklist de usabilidad, 2026-11-05): mandos de opciones cuya ayuda describe la opción ELEGIDA con el `hint` del
+ * registro («Nunca: la barra sola, sin pista»), no siempre la de por defecto. Sin `hint` para esa opción, la ayuda fija.
+ */
+const AYUDA_DE_LA_OPCION: ReadonlySet<string> = new Set(["pista_barras"]);
+
+/** La ayuda que va junto al control con el valor que rige (`valor`, o el `default` del registro si no hay). */
+export function ayudaDeLaOpcion(campo: Pick<CampoDato, "arg" | "ayuda" | "opciones">, valor: unknown): string | null {
+  if (!AYUDA_DE_LA_OPCION.has(campo.arg.name)) return campo.ayuda;
+  const elegida = typeof valor === "string" && valor !== "" ? valor : campo.arg.default;
+  const op = campo.opciones.find((o) => o.value === elegida);
+  const hint = op?.hint?.trim();
+  if (!op || !hint) return campo.ayuda;
+  return `${op.label}: ${hint.charAt(0).toLowerCase()}${hint.slice(1)}`;
+}
+
 /** El `depende` del arg se cumple con un valor ya elegido (sin `depende`, siempre). */
 function dependenciaElegida(arg: ArgMetadata, valores: Valores): boolean {
   const dep = arg.depende;

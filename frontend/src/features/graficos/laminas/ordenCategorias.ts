@@ -46,7 +46,7 @@ export function tieneOrdenHeredado(args: Readonly<Record<string, unknown>>): boo
 }
 
 const NOMBRE_MODO: Record<Exclude<ModoOrden, "recetario">, string> = {
-  frecuencia: "por frecuencia",
+  frecuencia: "de mayor a menor",
   instrumento: "como el instrumento",
   personalizado: "personalizado",
 };
@@ -75,6 +75,14 @@ export function ordenHeredado(args: Readonly<Record<string, unknown>>): string |
     if (typeof v === "string" && v !== "") return ORDEN_HEREDADO[v] ?? null;
   }
   return ORDEN_HEREDADO.manual;
+}
+
+/**
+ * H11 (checklist de usabilidad, 2026-11-05): «Frecuencia» dice hacia dónde ordena. Con «Invertir», el motor ordena de
+ * menor a mayor (`.goc_orden_codigos` y `menor_mayor` en `.goc_traducir`), y el rótulo lo sigue.
+ */
+export function rotuloFrecuencia(invertir: boolean): string {
+  return invertir ? "De menor a mayor (frecuencia)" : "De mayor a menor (frecuencia)";
 }
 
 /**

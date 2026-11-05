@@ -1,5 +1,5 @@
 // Fila «Orden» de la tarjeta de un gráfico categórico, agrupado, de torta o de dona (D8; contrato
-// docs/qa/contrato-orden-categorias-f6-2026-10-10.md). Recetario por defecto —y dice qué modo aplica—, Frecuencia,
+// docs/qa/contrato-orden-categorias-f6-2026-10-10.md). Recetario por defecto —y dice qué modo aplica—, de mayor a menor,
 // Instrumento o Personalizado (lista arrastrable con ratón y con teclado; la clave es el código, se ve la etiqueta) e
 // «Invertir». Persiste en `args.orden_categorias` del gráfico. Encima de la lista, los avisos que el backend da de la
 // pregunta (decisión 4, §7): se ramifica por `codigo`, nunca por el texto.
@@ -21,6 +21,7 @@ import {
   NO_SE_DIBUJA,
   ordenAGuardar,
   ordenHeredado,
+  rotuloFrecuencia,
   rotuloRecetario,
   tieneOrdenHeredado,
   type ModoOrden,
@@ -75,7 +76,7 @@ export function OrdenCategoriasGrafico({ variable, graficador, args, scope, onCa
           onChange={(e) => cambiarModo(e.target.value as ModoOrden)}
         >
           <option value="recetario">{rotuloRecetario(datos, nombreHeredado ?? heredado)}</option>
-          <option value="frecuencia">Frecuencia</option>
+          <option value="frecuencia">{rotuloFrecuencia(orden.invertir)}</option>
           <option value="instrumento">Instrumento</option>
           <option value="personalizado" disabled={!datos}>Personalizado</option>
         </select>

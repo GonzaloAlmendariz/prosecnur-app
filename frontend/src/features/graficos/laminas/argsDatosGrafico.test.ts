@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { ArgMetadata } from "../../../api/graficos";
 import {
+  ayudaDeLaOpcion,
   avisoParte, camposDeDatos, codigosATexto, conEtiquetaCorta, filasAPartes, leerEtiquetaCorta, mismasPartes, notaParte, partesAFilas,
   textoACodigos,
 } from "./argsDatosGrafico";
@@ -137,5 +138,27 @@ describe("partes de la línea por nivel", () => {
     expect(mismasPartes(guardado, borrador, "series")).toBe(true);
     expect(mismasPartes([{ rotulo: "No", codigos: ["2"] }], borrador, "series")).toBe(false);
     expect(mismasPartes(null, [], "segmentos_total")).toBe(true);
+  });
+});
+
+describe("ayudaDeLaOpcion (H2): la ayuda de «Pista gris» describe la opción elegida", () => {
+  const pista = {
+    arg: { name: "pista_barras", label: "Pista", tipo_input: "choice", default: "auto" } as ArgMetadata,
+    ayuda: "Automática: en toda barra de una serie.",
+    opciones: [
+      { value: "auto", label: "Automática", hint: "En toda barra de una serie, como el resto del mazo." },
+      { value: "siempre", label: "Siempre", hint: "La escala pasa a ir de 0 a 100%." },
+      { value: "nunca", label: "Nunca", hint: "La barra sola, sin pista." },
+    ],
+  };
+  it("con «Nunca» elegida dice lo que hace «Nunca», no «Automática»", () => {
+    expect(ayudaDeLaOpcion(pista, "nunca")).toBe("Nunca: la barra sola, sin pista.");
+    expect(ayudaDeLaOpcion(pista, "siempre")).toBe("Siempre: la escala pasa a ir de 0 a 100%.");
+  });
+  it("sin valor guardado manda el default del registro", () => {
+    expect(ayudaDeLaOpcion(pista, undefined)).toBe("Automática: en toda barra de una serie, como el resto del mazo.");
+  });
+  it("otro mando conserva su ayuda fija", () => {
+    expect(ayudaDeLaOpcion({ ...pista, arg: { ...pista.arg, name: "tipo_rango" } }, "nunca")).toBe(pista.ayuda);
   });
 });

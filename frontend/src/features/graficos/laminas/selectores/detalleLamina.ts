@@ -38,7 +38,8 @@ const USO_ESTRUCTURA: Readonly<Partial<Record<SlideType, string>>> = {
   p_slide_redondeo: "Por qué una barra suma 99 % o 101 %",
   p_slide_seccion: "Abre un capítulo o un subcapítulo",
   p_slide_cierre: "Logo y contacto al cierre",
-  p_slide_hallazgos: "Las cifras que resumen cada capítulo",
+  // H7: el resumen ejecutivo tiene su tarjeta (opcionesLamina.ts); ésta son las cifras.
+  p_slide_hallazgos: "Cifras destacadas con su intervalo de confianza",
   p_slide_resumen_diferencias: "Qué grupos difieren, pregunta por pregunta",
 };
 

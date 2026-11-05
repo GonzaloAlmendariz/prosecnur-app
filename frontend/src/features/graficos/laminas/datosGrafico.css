@@ -329,3 +329,19 @@
   color: var(--pulso-text-muted);
 }
 .pulso-f6-etiqueta-pregunta .pulso-f6-input { min-width: 0; width: 100%; }
+
+/* Un enlace dentro de una ayuda o un aviso de la tarjeta («asígnalos en Identidad › Colores»): es navegación, así que
+   es un <a> con su subrayado, no un botón disfrazado. */
+.pulso-f6-enlace-ayuda {
+  color: var(--module-accent);
+  font: inherit;
+  font-weight: var(--pulso-weight-semibold);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.pulso-f6-enlace-ayuda:focus-visible {
+  outline: var(--pulso-nav-focus-outline-width) solid var(--module-accent);
+  outline-offset: var(--pulso-nav-focus-offset);
+  border-radius: var(--pulso-radius);
+}

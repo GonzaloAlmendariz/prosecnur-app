@@ -125,9 +125,11 @@ export function RotulosCortos() {
   return (
     <section className="pulso-rc" aria-labelledby={tituloId} data-seccion="rotulos-cortos">
       <header className="pulso-rc-cabecera">
-        <h3 id={tituloId} className="pulso-rc-titulo">Rótulos cortos</h3>
+        {/* H6: «del estudio» lo separa del «Nombre corto de un grupo» de las tarjetas, que vive en cada lámina. */}
+        <h3 id={tituloId} className="pulso-rc-titulo">Rótulos cortos del estudio</h3>
         <p className="pulso-rc-bajada">
           Una respuesta con rótulo largo sale con su versión corta en todo el PPT y el Word: barras, leyendas, tarjetas y colores.
+          El nombre corto de un grupo en las tarjetas de diferencias se escribe en su lámina, en Gráfico › Diferencias entre grupos.
         </p>
       </header>
 

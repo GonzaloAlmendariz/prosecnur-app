@@ -64,7 +64,10 @@ export function SelectorTipoGrafico({ slide, posicion, ranura, cerrar }: Props) 
     ?? lista[0]
     ?? null;
 
-  const rotuloRanura = k && slot ? `Gráfico ${k}, ${nombreSlot(slot, slide ? slidesById[slide.tipo] : undefined)}` : "";
+  // H6: en una lámina de varios gráficos la ranura se nombra por su lugar («espacio «Derecha»»), como en los avisos.
+  const rotuloRanura = k && slot
+    ? slots.length > 1 ? `espacio «${nombreSlot(slot, slide ? slidesById[slide.tipo] : undefined)}»` : "gráfico"
+    : "";
   const bloqueoDe = (g: GraficadorMetadata): string | null => {
     if (canInsertGraficador(g, dimOk)) return encajeEnRanura(g.name, slot).cabe ? null : "No va en esta ranura";
     return g.disabled_reason?.trim() || graficadorAvailabilityLabel(g, dimOk);
@@ -79,7 +82,7 @@ export function SelectorTipoGrafico({ slide, posicion, ranura, cerrar }: Props) 
     if (!g || !slide || !slot || bloqueoDe(g) || g.name === actual?.graficador) return;
     const id = slide.id;
     setSlot(id, slot, compatibleGraficadorRef(g, actual));
-    toast.exito(`${rotuloRanura}: ${graficadorDisplayName(g.name, g)}`, {
+    toast.exito(`${rotuloRanura.charAt(0).toUpperCase()}${rotuloRanura.slice(1)}: ${graficadorDisplayName(g.name, g)}`, {
       detalle: actual ? `Reemplaza a ${graficadorDisplayName(actual.graficador, graficadoresById[actual.graficador])}; se conservan sus datos compatibles.` : undefined,
       accion: { label: "Deshacer", onSelect: () => undo() },
     });
@@ -100,7 +103,7 @@ export function SelectorTipoGrafico({ slide, posicion, ranura, cerrar }: Props) 
       onCerrar={cerrarYOlvidar}
       panelProps={panel.props}
       auditReady="f6-selector-grafico"
-      antetitulo={posicion && rotuloRanura ? `Lámina ${posicion}, ${rotuloRanura}` : posicion ? `Lámina ${posicion}` : "Gráfico"}
+      antetitulo={posicion && rotuloRanura && slots.length > 1 ? `Lámina ${posicion}, ${rotuloRanura}` : posicion ? `Lámina ${posicion}` : "Gráfico"}
       titulo="¿Qué gráfico?"
       descripcion={actual
         ? `Hoy: ${graficadorDisplayName(actual.graficador, graficadoresById[actual.graficador])}. Al cambiarlo se conservan los datos que el nuevo entienda.`
@@ -174,7 +177,7 @@ export function SelectorTipoGrafico({ slide, posicion, ranura, cerrar }: Props) 
         <DetalleTipoGrafico
           meta={candidato}
           nombre={graficadorDisplayName(candidato.name, candidato)}
-          ranura={rotuloRanura ? `“${rotuloRanura}”` : "esta ranura"}
+          ranura={rotuloRanura && slots.length > 1 ? `el ${rotuloRanura}` : "esta ranura"}
           encaje={encajeEnRanura(candidato.name, slot)}
           bloqueo={canInsertGraficador(candidato, dimOk) ? null : bloqueoDe(candidato)}
           esActual={candidato.name === actual?.graficador}

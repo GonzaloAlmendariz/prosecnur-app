@@ -98,7 +98,7 @@ describe("«Hallazgos clave» en el inspector", () => {
   it("en el resumen, el nombre de cada cruce y los rótulos cortos de sus grupos se editan (U7)", () => {
     const html = pintar({ modo: "resumen", capitulos: real, cruces: ["A11_recod"], rotulos: { A11_recod: "Colegio" },
       cortos: { "Economía y Finanzas": "Econ. y Fin." } });
-    expect(html).toContain('aria-label="Nombre del cruce Tipo de colegio en las tarjetas"');
+    expect(html).toContain('aria-label="Nombre de Tipo de colegio en la lámina"');
     expect(html).toContain('value="Colegio"');
     expect(html).toContain('data-qa="tarjetas-cortos"');
     expect(html).toContain('value="Econ. y Fin."');

@@ -69,7 +69,7 @@ describe("«Resumen de diferencias» en el inspector", () => {
     expect(html).toContain('data-qa="ajustes-resumen-diferencias"');
     expect(html).toContain('data-campo="seleccion"');
     expect(html).toContain('data-campo="cruces"');
-    expect(html).toContain('aria-label="Nombre del cruce Área de estudios en las tarjetas"');
+    expect(html).toContain('aria-label="Nombre de Área de estudios en la lámina"');
     expect(html).toContain('value="Área"');
     expect(html).toContain('value="Econ. y Fin."');
     expect(html).not.toContain('data-campo="max_filas"');
@@ -81,8 +81,16 @@ describe("«Resumen de diferencias» en el inspector", () => {
     expect(html).toContain("Rótulo de la base: que trabajan. No se edita aquí y se conserva.");
     expect(html).toContain("Cuenta la suma: De acuerdo + Totalmente de acuerdo.");
     expect(html).toContain("Contar una sola respuesta");
-    // «Cómo se nombran los casos» va con los textos, y ya no se nombra nada como pendiente.
-    expect(html).toContain("Cómo se nombran los casos");
+    // H6: «Cómo se nombran los casos» va bajo «Comparar por» y el nombre corto de los grupos, como en las tarjetas, y
+    // ya no se nombra nada como pendiente.
+    expect(html).toContain("Comparar por");
+    const cortos = html.indexOf('data-qa="tarjetas-cortos"');
+    const publico = html.indexOf('data-campo="publico"');
+    expect(cortos).toBeGreaterThan(-1);
+    expect(publico).toBeGreaterThan(cortos);
+    expect(publico).toBeLessThan(html.indexOf('data-qa="capitulos-resumen"'));
+    expect(html.match(/Cómo se nombran los casos/g)).toHaveLength(1);
+    expect(html).toContain("Esta lámina lo usa siempre en lugar del nombre.");
     expect(html).not.toContain("todavía no está en Láminas");
     // Antes, el tipo desconocido caía a «string» y los capítulos salían como un campo de texto que pisaba la lista.
     expect(html).not.toMatch(/<input[^>]*data-campo="capitulos"/);

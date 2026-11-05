@@ -9,6 +9,8 @@ import { SLIDE_GRAF_SLOTS } from "../../store";
 
 type Props = {
   nombreGrupo: string;
+  /** La tarjeta: el tipo o el tipo con su payload de partida (`p_slide_hallazgos:resumen`, opcionesLamina.ts). */
+  opcion: string;
   tipo: SlideType;
   nombre: string;
   meta: string;
@@ -24,7 +26,7 @@ type Props = {
 };
 
 export function TarjetaTipoLamina({
-  nombreGrupo, tipo, nombre, meta, uso, graficos, variante, elegida, actual, sobrantes, onElegir, onAplicar,
+  nombreGrupo, opcion, tipo, nombre, meta, uso, graficos, variante, elegida, actual, sobrantes, onElegir, onAplicar,
 }: Props) {
   const onKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
     if (e.key !== "Enter" || e.nativeEvent.isComposing) return;
@@ -32,12 +34,12 @@ export function TarjetaTipoLamina({
     onAplicar();
   };
   return (
-    <label className="pulso-f6-tarjeta-tipo" onDoubleClick={onAplicar} data-tipo-lamina={tipo}>
+    <label className="pulso-f6-tarjeta-tipo" onDoubleClick={onAplicar} data-tipo-lamina={tipo} data-opcion-lamina={opcion}>
       <input
         type="radio"
         className="pulso-f6-radio-oculto"
         name={nombreGrupo}
-        value={tipo}
+        value={opcion}
         checked={elegida}
         onChange={onElegir}
         onKeyDown={onKeyDown}
