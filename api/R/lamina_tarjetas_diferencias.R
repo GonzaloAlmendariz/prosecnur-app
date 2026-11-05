@@ -520,12 +520,11 @@
       .lam_tarjeta_dibujar(.lam_tarjeta_backend_ppt(lz), tj, list(l = xp, t = tp, w = cw, h = altos[j]),
                            unname(t$rotulos_cruce[tj$cruce]) %||% tj$cruce, cortos = t$opcion$cortos, tipo = t$tipo, con_fila = con_fila)
       # Línea guía en codo: del Top Two Box de la fila al borde de la tarjeta, con un punto en el origen.
-      ya <- filas$y_ancla[fk]; xa <- filas$x_fin[fk]; yt <- min(max(ya, tp + 0.18), tp + altos[j] - 0.18)
-      xm <- xa + max(0.06, (xp - xa) / 2)
+      # Por el carril entre filas, sin cruzar otra barra (v7.25, ítem 6: `.lam_tarjeta_guia_ruta`).
+      ya <- filas$y_ancla[fk]; xa <- filas$x_fin[fk]
+      ruta <- .lam_tarjeta_guia_ruta(xa, ya, xp, tp, altos[j], filas$y_ancla, suppressWarnings(max(c(attr(filas, "fin_escala"), filas$x_fin - 0.07), na.rm = TRUE)))
       .lam_caja(lz, xa - 0.03, ya - 0.03, 0.06, 0.06, tenue, nombre = "tarjeta:guia:punto", geom = "ellipse")
-      .lam_linea(lz, xa, ya, xm, ya, tenue, pt = 0.75, nombre = "tarjeta:guia")
-      if (abs(yt - ya) > 0.01) .lam_linea(lz, xm, ya, xm, yt, tenue, pt = 0.75, nombre = "tarjeta:guia")
-      .lam_linea(lz, xm, yt, xp, yt, tenue, pt = 0.75, nombre = "tarjeta:guia")
+      for (r in seq_len(nrow(ruta) - 1L)) .lam_linea(lz, ruta[r, 1], ruta[r, 2], ruta[r + 1L, 1], ruta[r + 1L, 2], tenue, pt = 0.75, nombre = "tarjeta:guia")
     }
     doc <- .lam_agrupar(doc, lz, nombre = "prosecnur:tarjetas_diferencias")
   }

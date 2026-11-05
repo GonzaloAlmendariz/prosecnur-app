@@ -92,7 +92,9 @@
   nb <- .std_negrita_forzada("categorias") || .lam_jer_activa(espec)   # TXT-26: con jerarquía, la columna se mide en negrita
   wlab <- min(6.3, max(1.4, max(.lam_ancho_tinta(espec$rotulos, size, nb)) + 0.3))
   ancho <- g_("ancho") - g_("margen_izq") - g_("margen_der")   # CCSS-8 (lamina_barras_ancho.R): columna acotada y bloque a lo ancho
-  r <- .lam_barras_ancho_rotulos(espec$rotulos, ancho, size, fila, nb, previa = wlab); wlab <- r$wlab; size <- r$size
+  w_decl <- (espec$tamanos %||% list())$w_etiquetas   # `canvas_w_etiquetas`, fracción del ancho útil (v7.25, ítem 8)
+  r <- .lam_barras_ancho_rotulos(espec$rotulos, ancho, size, fila, nb, previa = wlab, declarada = if (is.null(w_decl)) NULL else w_decl * ancho)
+  wlab <- r$wlab; size <- r$size
   list(size = size, fila = fila, g = g, wlab = wlab, ancho_geo = .lam_barras_ancho_geo(espec, ancho, wlab, (espec$tamanos %||% list())$cifra_pt %||% size))
 }
 

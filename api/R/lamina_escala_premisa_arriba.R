@@ -25,7 +25,7 @@
 #' ¿La espec de escala admite la premisa encima? Batería sin públicos (una barra por premisa), fuera del modo en filas
 #' @keywords internal
 .lam_escala_arriba_aplica <- function(espec) {
-  is.list(espec) && identical(espec$tipo, "escala") && NROW(espec$filas) >= 2L && all(is.na(espec$filas$grupo_id)) &&
+  is.list(espec) && identical(espec$tipo, "escala") && !identical(.lam_premisa_posicion(espec), "izquierda") && NROW(espec$filas) >= 2L && all(is.na(espec$filas$grupo_id)) &&
     !isTRUE(.lam_escala_modo_filas(espec))
 }
 
@@ -40,12 +40,17 @@
 #' @param premisas Premisas de la parte (`.lam_escala_premisas`).
 #' @return `NULL`, o `list(arriba, reserva)`.
 #' @keywords internal
-.lam_escala_tarjetas_parte <- function(premisas) {
+.lam_escala_tarjetas_parte <- function(premisas, espec = NULL) {
   op <- getOption("prosecnur.lam_escala_tarjetas")
-  if (!is.list(op) || !length(op$filas)) return(NULL)
+  pos <- .lam_premisa_posicion(espec)
+  # `premisa_posicion` (v7.25, ítem 4): «arriba» la pone encima también sin tarjetas; «izquierda» nunca.
+  sin_op <- !is.list(op) || !length(op$filas)
+  if (identical(pos, "arriba") && .lam_escala_arriba_aplica(espec)) {
+    if (sin_op) return(list(arriba = TRUE, reserva = 0))
+  } else if (sin_op || identical(pos, "izquierda")) return(NULL)
   textos <- vapply(premisas, function(p) as.character(p$texto %||% "")[1], "")
   lleva <- any(.lam_arriba_norm(textos) %in% .lam_arriba_norm(op$filas))
-  list(arriba = lleva && !isFALSE(op$arriba), reserva = if (lleva) as.numeric(op$reserva %||% 0) else 0)
+  list(arriba = (lleva && !isFALSE(op$arriba)) || identical(pos, "arriba"), reserva = if (lleva) as.numeric(op$reserva %||% 0) else 0)
 }
 
 #' El panel de la batería con la premisa encima: una columna del ancho de la tarjeta estándar, contra el margen derecho
@@ -73,6 +78,7 @@
   piso <- max(.std_piso_panel_in(), .LAM_ARRIBA$grosor_min)
   if (fijo(g) + .LAM_ARRIBA$gap_min * (n - 1) > disp) g <- max(piso, (disp - sum(hp + .LAM_ARRIBA$aire_rotulo + sube) - .LAM_ARRIBA$gap_min * (n - 1)) / n)
   gap <- if (n > 1L) min(.LAM_ARRIBA$gap_max, max(.LAM_ARRIBA$gap_min, (disp - fijo(g)) / (n - 1))) else 0
+  g_gap <- .lam_escala_arriba_grosor(g, gap, n, disp, fijo); g <- g_gap$g; gap <- g_gap$gap   # v7.25, ítem 4
   alto <- fijo(g) + gap * (n - 1)
   list(x = x, wb = wb, pt = pt, hp = hp, sube = sube, g = g, gap = gap, alto = alto, cb = cb,
        desplazo = max(0, (disp - alto) / 2), cabe = alto <= disp + 1e-6)
@@ -87,7 +93,7 @@
   g_ <- .std_geom
   L <- g_("likert"); cb <- .lam_escala_columnas_box(espec); centro <- (L$x_premisa + L$x_barra + cb$ancho_barra) / 2
   labels <- espec$categorias$rotulo[espec$leyenda]
-  k <- if (isTRUE(leyenda) && length(labels)) length(.lam_leyenda_plan_lamina(labels, centro)$filas) else 1L
+  k <- if (isTRUE(leyenda) && length(labels)) length(.lam_escala_arriba_leyenda(labels, centro)$plan$filas) else 1L
   piso <- g_("base_y") - .std_comp("llenar", "piso_leyenda") - getOption("prosecnur.lam_reserva_pie", 0) - 0.3 * max(0L, k - 1L)
   list(y0 = g_("zona_datos_y0") + 0.1, y1 = piso - (if (isTRUE(leyenda)) .LAM_ARRIBA$aire_leyenda else 0.15), piso = piso, centro = centro)
 }
@@ -124,7 +130,7 @@
                                               w = wcol, prefijo = cc$prefijo)
     y <- yb + geo$g + (if (i < length(premisas)) geo$gap else 0)
   }
-  if (isTRUE(leyenda)) .lam_leyenda(lz, min(piso, y + .LAM_ARRIBA$aire_leyenda), labels, espec$categorias$color[ley], centrar_en = centro)
+  if (isTRUE(leyenda)) .lam_escala_arriba_leyenda_dibujar(lz, min(piso, y + .LAM_ARRIBA$aire_leyenda), labels, espec$categorias$color[ley], centro)
   invisible(y)
 }
 
@@ -160,7 +166,7 @@
 #' @param partes Partes de la escala (`.lam_escala_partir`).
 #' @keywords internal
 .lam_escala_arriba_partes <- function(espec, partes) {
-  modos <- lapply(partes, .lam_escala_tarjetas_parte)
+  modos <- lapply(partes, .lam_escala_tarjetas_parte, espec = espec)
   con <- which(vapply(modos, function(m) isTRUE(m$arriba), TRUE))
   if (!length(con)) return(FALSE)
   all(vapply(con, function(k) {

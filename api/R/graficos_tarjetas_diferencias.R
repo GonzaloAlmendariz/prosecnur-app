@@ -308,14 +308,16 @@
 #' @param p Gráfico ya renderizado (su `pulso_espec` da las filas que se ven y su orden).
 #' @param slide Lámina del plan (`meta$tarjetas_diferencias`).
 #' @param resolver `.resolve_ref` del motor: de la variable a su fuente (base, instrumento, órdenes).
+#' @param tipos Tipos de espec que admiten tarjetas (`pie` sólo en una ranura).
 #' @return `list(tarjetas, total, tipo, opcion, filas, totales, grupos, cruces)` o NULL si la lámina no las pide.
 #' @keywords internal
-.tarjetas_de_lamina <- function(p, slide, resolver) {
+.tarjetas_de_lamina <- function(p, slide, resolver, tipos = c("categorica", "escala")) {
   opt <- .tarjetas_opcion(slide$meta)
   if (is.null(opt)) return(NULL)
   espec <- if (inherits(p, "ggplot")) attr(p, "pulso_espec") else NULL
   aviso <- function(...) if (exists(".pulso_aviso", mode = "function")) .pulso_aviso(paste0("Tarjetas de diferencias: ", ...))
-  if (is.null(espec) || !espec$tipo %in% c("categorica", "escala")) {
+  # `tipos`: una torta admite tarjetas en la ranura de una lámina de dos (v7.25, ítem 7; van en la franja de debajo).
+  if (is.null(espec) || !espec$tipo %in% tipos) {
     aviso("la lámina «", slide$title %||% "", "» no es un gráfico de categorías ni una batería de escala; va sin tarjetas.")
     return(NULL)
   }
@@ -413,7 +415,7 @@
   })
   list(tarjetas = utils::head(todas, opt$max), total = length(todas), tipo = tipo, opcion = opt,
        filas = filas_vis, totales = totales, grupos = grupos, cruces = cruces, rotulos_cruce = rotulos_cruce,
-       regla = regla)
+       regla = regla, indicador = .tarjetas_indicador_frase(tipo, sin_columna, espec, ttb = if (identical(tipo, "bateria")) ttb else NULL, opt = opt))
 }
 
 #' Adjunta las tarjetas al gráfico de una lámina de total (gancho de `.lam_con_sig_en_lamina`)

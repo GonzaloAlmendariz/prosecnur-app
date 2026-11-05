@@ -1124,7 +1124,7 @@
       list(name = "max_por_lamina", label = "Hallazgos por lámina", tipo_input = "number", grupo = "textos", default = 8, min = 4, max = 8, step = 1,
            depende = list(arg = "modo", valores = list("resumen", "titulares")),
            descripcion = "Con más, el motor abre otra lámina sin partir un capítulo. Hasta cuatro capítulos por lámina."),
-      list(name = "tambien", label = "Mostrar «También»", tipo_input = "bool", grupo = "textos", default = TRUE,
+      list(name = "tambien", label = "Mostrar «También»", tipo_input = "bool", grupo = "textos", default = FALSE,
            depende = list(arg = "modo", valores = list("resumen")),
            descripcion = "Si otro cruce también difiere, una línea corta bajo la diferencia principal."),
       # Ítem 2 de la v7.11 RV: «la UI pueda generarlos». Capítulos y cruces se escribían a mano en el plan.
@@ -1473,6 +1473,13 @@
       list(name = "grosor_piso_cm", label = "Grosor mínimo de barra (cm)", tipo_input = "number", grupo = "valores",
            min = 0, max = 3, step = 0.01,
            descripcion = "Las barras de la escala no bajan de este grosor: si no caben, primero se acorta el aire entre ellas y sólo después la lámina se parte. Con alto de sobra, la barra engrosa por encima de este mínimo. Vacío hereda el del informe; 0 lo quita."),
+      # v7.25, ítem 4 (Gonzalo: «la etiqueta arriba de la barra ¿es configurable?»): dónde va el enunciado de cada barra.
+      list(name = "premisa_posicion", label = "Enunciado de cada barra", tipo_input = "choice", grupo = "valores", default = "auto",
+           choices = list(
+             list(value = "auto", label = "Automático", hint = "Encima de su barra cuando la lámina lleva tarjetas de diferencias; si no, a la izquierda."),
+             list(value = "arriba", label = "Encima de la barra", hint = "La barra usa todo el ancho y el enunciado va sobre ella."),
+             list(value = "izquierda", label = "A la izquierda", hint = "El enunciado en su columna, a la izquierda de la barra.")),
+           descripcion = "Dónde va el enunciado de cada barra en la lámina."),
       # G15 (Gonzalo, 2026-10-13): el reparto de ancho por lámina, en tres pasos y no en proporciones. Sólo lo usa la
       # lámina que compara públicos; «Automático» es el reparto del estilo del informe.
       list(name = "ancho_tema", label = "Ancho de los temas", tipo_input = "choice", grupo = "valores", default = "auto",

@@ -1682,7 +1682,7 @@ p_slide_resumen_diferencias <- function(capitulos = list(), titulo = NULL, etiqu
 #' @param seleccion Modos de resumen: «manual» (los `capitulos`) o «auto» (por capítulo del plan, la diferencia más
 #'   fuerte y la cifra más rotunda sin diferencia).
 #' @param max_por_capitulo,max_por_lamina Topes del resumen (3 y 8; la selección automática propone 2 por capítulo).
-#' @param tambien Si el resumen escribe la línea «También» cuando otro cruce difiere.
+#' @param tambien Si el resumen escribe la línea «También» cuando otro cruce difiere (por defecto no: sólo la principal).
 #' @param titulos Un título por lámina cuando el resumen se pagina.
 #' @param cruces,rotulos,cortos,tautologicos,publico,fuente Como en [p_slide_resumen_diferencias()].
 #' @param base Nota de base, texto.
@@ -1692,7 +1692,7 @@ p_slide_resumen_diferencias <- function(capitulos = list(), titulo = NULL, etiqu
 p_slide_hallazgos <- function(cifras = list(), titulo = NULL, etiqueta = NULL, modo = c("cifras", "cifras_con_graficos", "resumen", "titulares"),
                               grafico_ancho = NULL, cruces = NULL, rotulos = list(), cortos = list(), tautologicos = list(),
                               publico = NULL, fuente = NULL, base = NULL, meta = list(), capitulos = list(), seleccion = c("manual", "auto"),
-                              max_por_capitulo = NULL, max_por_lamina = NULL, tambien = TRUE, titulos = NULL) {
+                              max_por_capitulo = NULL, max_por_lamina = NULL, tambien = FALSE, titulos = NULL) {
   modo <- match.arg(as.character(unlist(modo))[1], c("cifras", "cifras_con_graficos", "resumen", "titulares"))
   seleccion <- match.arg(as.character(unlist(seleccion))[1], c("manual", "auto"))
   .ppt_chk_meta(meta)
@@ -1706,7 +1706,7 @@ p_slide_hallazgos <- function(cifras = list(), titulo = NULL, etiqueta = NULL, m
   el <- .el_hallazgos(cifras = cifras, modo = modo, grafico_ancho = grafico_ancho, cruces = cruces, rotulos = rotulos,
                       cortos = cortos, tautologicos = tautologicos, publico = publico, fuente = fuente, capitulos = capitulos,
                       seleccion = seleccion, max_por_capitulo = max_por_capitulo, max_por_lamina = max_por_lamina,
-                      tambien = !identical(tambien, FALSE), titulos = titulos)
+                      tambien = isTRUE(as.logical(unlist(tambien))[1]), titulos = titulos)
   p_slide_1_grafico(el, titulo = titulo %||% if (resumen) "Principales hallazgos" else "Hallazgos clave", base = base, meta = meta)
 }
 
@@ -2297,7 +2297,7 @@ p_barras_multiapiladas <- function(
     ancho_tema = NULL,
     mostrar_respuestas = NULL,
     filete_temas = NULL,
-    grosor_piso_cm = NULL,
+    grosor_piso_cm = NULL, premisa_posicion = NULL,
     invertir_barras = NULL,
     word_multiapiladas = NULL,
     word_titulo_figura = NULL
@@ -2403,6 +2403,7 @@ p_barras_multiapiladas <- function(
   overrides <- .ppt_slot_override(overrides, "mostrar_respuestas", mostrar_respuestas, "bool")
   overrides <- .ppt_slot_override(overrides, "filete_temas", filete_temas, "bool")   # N2
   overrides <- .ppt_slot_override(overrides, "grosor_piso_cm", grosor_piso_cm, "numero", min = 0)   # N1
+  overrides <- .ppt_slot_override(overrides, "premisa_posicion", premisa_posicion, "opcion", opciones = c("auto", "arriba", "izquierda"))   # v7.25, ítem 4
   overrides <- .ppt_slot_override(overrides, "invertir_barras", invertir_barras, "bool"); overrides <- .barra_extra_en_overrides(overrides, barra_extra)   # O7c; la barra extra del nivel manda sobre la heredada
   # W6/D6: cuántas figuras Word sale de esta lámina; NULL hereda el informe (reporte_word_multi_modos.R)
   word_multiapiladas <- .word_multi_modo_normalizar(word_multiapiladas, "la lámina")

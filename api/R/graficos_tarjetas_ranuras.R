@@ -16,6 +16,8 @@
 
 .TARJETAS_RANURAS <- c("izquierda", "derecha")
 .TARJETAS_MAX_RANURA <- 2L
+# v7.25, ítem 7 (lámina 45: «podría ser torta con significancia»): en una ranura la torta también lleva tarjetas.
+.TARJETAS_TIPOS_RANURA <- c("categorica", "escala", "pie")
 
 #' ¿La opción de tarjetas es un mapa por ranura?
 #' @keywords internal
@@ -59,7 +61,7 @@
   lapply(seq_along(.TARJETAS_RANURAS), function(k) {
     opt <- mapa[[.TARJETAS_RANURAS[k]]]
     if (is.null(opt)) return(NULL)
-    t <- tryCatch(.tarjetas_de_lamina(ps[[k]], .tarjetas_lamina_de_ranura(els[[k]], opt), resolver), error = function(e) {
+    t <- tryCatch(.tarjetas_de_lamina(ps[[k]], .tarjetas_lamina_de_ranura(els[[k]], opt), resolver, tipos = .TARJETAS_TIPOS_RANURA), error = function(e) {
       if (exists(".pulso_aviso", mode = "function")) .pulso_aviso(sprintf("Tarjetas de diferencias: no se pudieron calcular en «%s» (%s).",
                                                                         slide$title %||% "", conditionMessage(e)))
       NULL
@@ -92,8 +94,9 @@
   if (is.na(k) || is.null(mapa[[k]])) return(p)
   resolver <- get0(".resolve_ref", envir = env, inherits = TRUE)
   if (!is.function(resolver)) return(p)
-  t <- tryCatch(.tarjetas_de_lamina(p, .tarjetas_lamina_de_ranura(el, mapa[[k]]), resolver), error = function(e) NULL)
-  if (!is.null(t) && length(t$tarjetas)) {
+  t <- tryCatch(.tarjetas_de_lamina(p, .tarjetas_lamina_de_ranura(el, mapa[[k]]), resolver, tipos = .TARJETAS_TIPOS_RANURA), error = function(e) NULL)
+  # Sin diferencias la figura también lleva sus tarjetas (vacías): el Word escribe la línea «Sin diferencias…» (v7.25, ítem 5).
+  if (!is.null(t) && (length(t$tarjetas) || !is.null(.tarjetas_sin_diferencias_texto(t)))) {
     t$tarjetas <- utils::head(t$tarjetas, .TARJETAS_MAX_RANURA)
     attr(p, "pulso_tarjetas") <- t
   }

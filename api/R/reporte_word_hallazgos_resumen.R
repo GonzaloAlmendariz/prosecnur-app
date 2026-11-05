@@ -56,6 +56,24 @@
           ld <- envolver(comp$partes[[1]]$texto, w_dif - 0.05, 7.5, bold = TRUE)
           for (l in seq_along(ld)) add_t(x_dif, yd + (l - (length(ld) + 1) / 2) * 0.13, ld[l], 7.5,
                                          if (identical(comp$estado, "manual")) azul else suave, TRUE)
+        } else if (length(comp$partes) == 1L && !is.null(comp$partes[[1]]$corto)) {
+          # La diferencia principal (v7.25, ítems 10 y 11): una pastilla con el nombre completo, en dos líneas si hace
+          # falta, y la cifra del resto a la derecha o, si no entra, debajo.
+          pa <- comp$partes[[1]]; tn <- .lam_dif_tono(pa$dir, pa$fragil); fl <- flecha(pa$dir, pa$fragil)
+          wc <- if (is.null(comp$cola)) 0 else .lam_ancho_tinta(comp$cola, 7.5, TRUE)
+          formas <- .halla_res_rotulo_formas(pa, w_dif - 0.12 - .lam_ancho_tinta(" ▲", 7.5, TRUE), 7.5)
+          anch <- vapply(formas, function(f) max(.lam_ancho_tinta(paste(f[length(f)], fl), 7.5, TRUE), .lam_ancho_tinta(f, 7.5, TRUE)) + 0.12, 0)
+          ok <- which(anch + 0.06 + wc <= w_dif + 1e-6); el <- if (length(ok)) ok[1] else which(anch <= w_dif + 1e-6)[1]
+          if (!is.na(el)) {
+            f <- formas[[el]]; f[length(f)] <- paste(f[length(f)], fl); nl <- length(f)
+            add_r(x_dif, x_dif + anch[el], yd - 0.09 - (nl - 1) * 0.065, yd + 0.09 + (nl - 1) * 0.065, tn$fill, tn$borde,
+                  if (isTRUE(tn$punteado)) "22" else "solid")
+            for (l in seq_len(nl)) add_t(x_dif + 0.07, yd + (l - (nl + 1) / 2) * 0.13, f[l], 7.5, tn$texto, TRUE)
+            if (wc > 0) {
+              if (length(ok)) add_t(x_dif + anch[el] + 0.06, yd, comp$cola, 7.5, suave, TRUE) else
+                add_t(x_dif, yd + 0.17 + (nl - 1) * 0.065, comp$cola, 7.5, suave, TRUE)
+            }
+          }
         } else {
           x <- x_dif
           for (pa in comp$partes) {

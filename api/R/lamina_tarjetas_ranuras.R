@@ -138,10 +138,17 @@
 #' no cabe sobre la franja, la lámina sale como siempre, sin tarjetas, y un aviso dice qué acortar.
 #' @keywords internal
 .lam_slide_2_con_tarjetas <- function(doc, ts, compone, ps = NULL, els = NULL, titulo = "", titulo_de_var = NULL) {
+  # v7.25, ítem 5: la ranura con tarjetas activas y ninguna diferencia lo dice sobre «Base:» (graficos_tarjetas_sin_diferencias.R).
+  .lam_slide_2_sin_diferencias(doc, ts, els, function(doc) .lam_slide_2_con_tarjetas_cuerpo(doc, ts, compone, ps, els, titulo, titulo_de_var))
+}
+
+#' El cuerpo de `.lam_slide_2_con_tarjetas`: la franja de tarjetas bajo cada gráfico, o la lámina de siempre
+#' @keywords internal
+.lam_slide_2_con_tarjetas_cuerpo <- function(doc, ts, compone, ps = NULL, els = NULL, titulo = "", titulo_de_var = NULL) {
   geo <- .lam_mixta_geo("graficos_2")
   M <- .lam_tarjetas_ranuras_medidas(ts, geo$paneles[[1]]$w)
   hay <- any(vapply(ts, function(t) length(t$tarjetas %||% list()) > 0L, TRUE))
-  if (!hay) return(compone(doc))   # ninguna diferencia: la lámina de siempre, sin franja
+  if (!hay) return(compone(doc))   # ninguna diferencia: la lámina de siempre, sin franja (su línea la pone `.lam_slide_2_con_tarjetas`)
   reservas <- .lam_reservas_por_mitad(ts, M$reserva)
   # Una franja dicotómica con tarjetas no reserva alto: sus tarjetas van pegadas debajo y el bloque se centra (ítem 14).
   especs <- if (is.null(ps)) list(NULL, NULL) else lapply(ps, function(p) tryCatch(.lam_espec_de(p), error = function(e) NULL))
