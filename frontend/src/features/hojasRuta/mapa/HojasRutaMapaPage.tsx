@@ -23,6 +23,7 @@ import { dibujarLimites, dibujarNombresDepartamento, limitesDePeru, type Limites
 import { useFoco } from "../../../lib/navegacion/useFoco";
 import { ciudadAbiertaDeFoco, ciudadDeEntrada, ciudadDeUbigeo, ciudadesDelAtlas, ciudadesDelEstudio, FOCO_ATLAS, LIMA, regionesDe } from "./territorio/ciudades";
 import { useContornosRegiones } from "./territorio/useContornosRegiones";
+import { dibujarRecorridoManzana } from "./seleccion/recorridoManzana";
 import { AtlasEstructura, AtlasInspector, CiudadCabecera, MigaAtlas } from "./territorio/AtlasPaneles";
 import { ciudadEnPantalla, dibujarCiudadesAtlas } from "./territorio/atlasCapas";
 import { LienzoMapa, type UtilLienzo } from "./lienzo/LienzoMapa";
@@ -714,6 +715,9 @@ export default function HojasRutaMapaPage() {
       dibujarNombresDepartamento(ctx, u, nacional.limitesDeNombres(limites));
       if (nacional.dibujarPantalla(ctx, u)) return;
       if (!enTerritorio && !enPoblacion && !enMuestra) dibujarTitularesPantalla(ctx, u, titulares, enSeleccion ? umpEnfocada : null, null, enSeleccion ? reemplazosEnfocados : [], capaContraste);
+      // La ruta enfocada dice por qué esquina se entra y hacia dónde se camina, como su ficha impresa.
+      const mEnfocada = titularEnfocada ? manzanaPorId.get(titularEnfocada.id_manzana) : undefined;
+      if (mEnfocada?.anillos[0] && u.camara.s > 0.5) dibujarRecorridoManzana(ctx, u, mEnfocada.anillos[0], titularEnfocada?.esquina_inicio, titularEnfocada?.sentido_recorrido);
       const visibles = enTerritorio ? contornosAbiertos.filter((c) => borrador.includes(c.ubigeo) || confirmados.includes(c.ubigeo)) : contornos.filter((c) => confirmados.includes(c.ubigeo) && nacional.enVista(c.ubigeo));
       // D11 (checklist visual 2/11): primero las fichas del estudio y después los nombres de los demás, que no las pisan.
       let fichas: CajaOcupada[] = [];
@@ -732,7 +736,7 @@ export default function HojasRutaMapaPage() {
       }
       if (enTerritorio) dibujarNombresFuera(ctx, u, contornosAbiertos.filter((c) => !visibles.includes(c)).map((c) => ({ clave: c.ubigeo, nombre: nombreDistrito(c.nombre), x: c.rotulo[0], y: c.rotulo[1] })), fichas);
     },
-    [titulares, confirmados, borrador, enTerritorio, enPoblacion, enMuestra, enSeleccion, umpEnfocada, reemplazosEnfocados, matriz, tamano, habitantes, capaContraste, enAtlas, atlas, enEstudio, ciudadEnfocada, ciudadAbierta, contornos, contornosAbiertos, nacional],
+    [titulares, confirmados, borrador, enTerritorio, enPoblacion, enMuestra, enSeleccion, umpEnfocada, titularEnfocada, manzanaPorId, reemplazosEnfocados, matriz, tamano, habitantes, capaContraste, enAtlas, atlas, enEstudio, ciudadEnfocada, ciudadAbierta, contornos, contornosAbiertos, nacional],
   );
 
   // B1: la zona de acciones del documento (fase, avisos por revisar, bitácora, Material).
