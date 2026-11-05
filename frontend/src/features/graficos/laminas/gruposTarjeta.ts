@@ -4,7 +4,12 @@
 
 export type GrupoTarjeta = "datos" | "orden" | "cifras";
 
-export const TITULO_GRUPO: Readonly<Record<GrupoTarjeta | "diferencias" | "colores" | "word", string>> = {
+/** Las secciones de la tarjeta, en el orden en que salen (H4: cada una se pliega y el índice salta a ella). */
+export type SeccionTarjeta = GrupoTarjeta | "diferencias" | "colores" | "word";
+
+export const SECCIONES_TARJETA: readonly SeccionTarjeta[] = ["datos", "orden", "cifras", "diferencias", "colores", "word"];
+
+export const TITULO_GRUPO: Readonly<Record<SeccionTarjeta, string>> = {
   datos: "Datos",
   orden: "Categorías y orden",
   cifras: "Cifras",
@@ -32,4 +37,41 @@ const CIFRAS: ReadonlySet<string> = new Set([
 
 export function grupoDeCampo(arg: string): GrupoTarjeta {
   return ORDEN.has(arg) ? "orden" : CIFRAS.has(arg) ? "cifras" : "datos";
+}
+
+/** Rótulo de la sección en el índice de arriba: una palabra, para que el índice quepa en una línea del inspector. */
+export const ROTULO_INDICE: Readonly<Record<SeccionTarjeta, string>> = {
+  datos: "Datos",
+  orden: "Orden",
+  cifras: "Cifras",
+  diferencias: "Diferencias",
+  colores: "Colores",
+  word: "Word",
+};
+
+/**
+ * H4 (checklist de usabilidad, 2026-11-05): a 1024x600 la tarjeta entera abierta eran ocho pantallas. Arranca abierta
+ * sólo Datos (la pregunta y lo que divide); las demás muestran su cabecera y se abren con un clic o desde el índice.
+ */
+export const ABIERTA_POR_DEFECTO: Readonly<Record<SeccionTarjeta, boolean>> = {
+  datos: true,
+  orden: false,
+  cifras: false,
+  diferencias: false,
+  colores: false,
+  word: false,
+};
+
+export type SeccionesAbiertas = Partial<Record<SeccionTarjeta, boolean>>;
+
+export function seccionAbierta(abiertas: SeccionesAbiertas, s: SeccionTarjeta): boolean {
+  return abiertas[s] ?? ABIERTA_POR_DEFECTO[s];
+}
+
+export function conSeccion(abiertas: SeccionesAbiertas, s: SeccionTarjeta, abierta: boolean): SeccionesAbiertas {
+  return seccionAbierta(abiertas, s) === abierta ? abiertas : { ...abiertas, [s]: abierta };
+}
+
+export function esSeccionTarjeta(v: unknown): v is SeccionTarjeta {
+  return typeof v === "string" && (SECCIONES_TARJETA as readonly string[]).includes(v);
 }

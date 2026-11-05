@@ -4,7 +4,7 @@
 // (bloques de multiapiladas, filtros) se edita en un panel ancho. Cierran la tarjeta el Top/Bottom Two Box de las
 // escalas y «En el Word» (F6.2, F-d; tarjetaGrafico/).
 
-import { Fragment, useId, useRef, type ReactNode } from "react";
+import { Fragment, useEffect, useId, useRef, type ReactNode } from "react";
 import { useLocation } from "react-router-dom";
 import { Filter, Rows3 } from "../../../vendor/lucide-react";
 import { AyudaGlobo } from "./AyudaGlobo";
@@ -50,7 +50,10 @@ import { PaletaDelGrafico } from "./colores/PaletaDelGrafico";
 import { AvisoColorPorOpcion } from "./colores/AvisoColorPorOpcion";
 import { NombresPorBase } from "./datosBase/NombresPorBase";
 import { RedondeoDelGrafico } from "./RedondeoDelGrafico";
-import { grupoDeCampo, TITULO_GRUPO, type GrupoTarjeta } from "./gruposTarjeta";
+import { grupoDeCampo, seccionAbierta, type GrupoTarjeta } from "./gruposTarjeta";
+import { SeccionPlegable } from "./tarjetaGrafico/SeccionPlegable";
+import { IndiceSecciones } from "./tarjetaGrafico/IndiceSecciones";
+import { irASeccion } from "./tarjetaGrafico/irASeccion";
 import { esPropio, ranurasDelTipo, SIN_ALCANCE, valorDelTipo } from "./modeloAlcance";
 import { SelloAlcance } from "./SelloAlcance";
 import { SelectorCategorias } from "./SelectorCategorias";
@@ -77,6 +80,7 @@ import { DiferenciasInspector } from "./diferencias/DiferenciasInspector";
 import { TarjetasDiferencias } from "./diferencias/TarjetasDiferencias";
 import { admiteTarjetas } from "./diferencias/modeloTarjetas";
 import { argDeCruce, valorDeCruce } from "./diferencias/modeloDiferencias";
+import { revelarYEnfocar } from "../revelarFila";
 import "./datosGrafico.css";
 import { formatoConteo } from "../../../lib/formatoNumero";
 
@@ -209,21 +213,32 @@ export function DatosGrafico({ slideId, slot, valor }: Props) {
   // ADR 0129: una lámina de total (un gráfico, sin cruce) puede llevar tarjetas de diferencias en vez de marcas; en la
   // de dos gráficos, cada uno las suyas (U2 del checklist del mazo).
   const conTarjetas = admiteTarjetas(slidesPlan.find((x) => x.id === slideId)?.tipo ?? "", valor.graficador, cruce, slot);
+  const abrirSeccion = useLaminasUi((s) => s.abrirSeccionTarjeta);
   const agregarCruce = () => {
-    const campo = argCruce ? tarjetaRef.current?.querySelector<HTMLElement>(`[data-campo="${argCruce}"]`) : null;
-    const control = campo?.querySelector<HTMLElement>("button, input, [tabindex]");
-    if (!campo || !control) {
-      toast.info("Elige la pregunta que divide en «Dividir por», en Datos.");
-      return;
-    }
-    campo.scrollIntoView({ block: "nearest" });
-    control.focus({ preventScroll: true });
+    // H4: «Dividir por» vive en Datos, que puede estar plegada; se abre antes de llevar el foco.
+    abrirSeccion("datos");
+    requestAnimationFrame(() => {
+      const campo = argCruce ? tarjetaRef.current?.querySelector<HTMLElement>(`[data-campo="${argCruce}"]`) : null;
+      if (!campo?.querySelector("button, input, [tabindex]")) {
+        toast.info("Elige la pregunta que divide en «Dividir por», en Datos.");
+        return;
+      }
+      revelarYEnfocar(campo);
+    });
   };
+  // H4: al volver a la tarjeta (de Identidad › Colores, de otra lámina) se vuelve a la sección que se abrió por última vez.
+  useEffect(() => {
+    const { seccionReciente, seccionesTarjeta } = useLaminasUi.getState();
+    if (seccionReciente && seccionReciente !== "datos" && seccionAbierta(seccionesTarjeta, seccionReciente)) {
+      irASeccion(tarjetaRef.current, seccionReciente, { enfocar: false, instantaneo: true });
+    }
+  }, [slideId, slot]);
 
   // O7b: la tarjeta en grupos; cada uno se oculta si ese tipo no tiene nada en él (`.pulso-f6-grupo:not(:has(...))`).
   return (
     <div className="pulso-f6-datos" ref={tarjetaRef} data-qa-geometry-group="graficos/f6-datos" data-qa-geometry-contract="intrinsic">
-      <GrupoDeTarjeta titulo={TITULO_GRUPO.datos}>
+      <IndiceSecciones tarjeta={tarjetaRef} />
+      <SeccionPlegable seccion="datos">
         {esMulti && (
           <div className="pulso-f6-dato">
             <span className="pulso-f6-dato-rotulo">Bloques</span>
@@ -261,16 +276,16 @@ export function DatosGrafico({ slideId, slot, valor }: Props) {
           </div>
         )}
         <PublicoGrafico slideId={slideId} slot={slot} valor={valor} />
-      </GrupoDeTarjeta>
-      <GrupoDeTarjeta titulo={TITULO_GRUPO.orden}>
+      </SeccionPlegable>
+      <SeccionPlegable seccion="orden">
         {conOrden && variable && !sinBaseCompartido && (
           <OrdenCategoriasGrafico variable={varCalificada(variable, baseActiva, scope)} graficador={valor.graficador} args={args} scope={scope} onCambio={(o) => set({ orden_categorias: o })} />
         )}
         {delGrupo("orden")}
         <ResaltarGrafico slideId={slideId} slot={slot} valor={valor} />
         <DestacarRespuestas slideId={slideId} slot={slot} valor={valor} />
-      </GrupoDeTarjeta>
-      <GrupoDeTarjeta titulo={TITULO_GRUPO.cifras}>
+      </SeccionPlegable>
+      <SeccionPlegable seccion="cifras">
         {delGrupo("cifras")}
         {/* U12: letra de categorías y cifras y eje libre, que la lámina nativa lee de `overrides`. */}
         <LetraYEjeAgrupadas graficador={valor.graficador} args={args} onCambio={(ov) => set({ overrides: ov })} />
@@ -279,14 +294,14 @@ export function DatosGrafico({ slideId, slot, valor }: Props) {
         {/* R4: método y decimales propios, como excepción a la regla del informe. */}
         <RedondeoDelGrafico graficador={valor.graficador} args={args} onCambio={(ov) => set({ overrides: ov })} />
         <DonaCentro slideId={slideId} slot={slot} valor={valor} />
-      </GrupoDeTarjeta>
+      </SeccionPlegable>
       {conTarjetas && (
-        <GrupoDeTarjeta titulo={TITULO_GRUPO.diferencias}>
+        <SeccionPlegable seccion="diferencias">
           <TarjetasDiferencias slideId={slideId} slot={slot} />
-        </GrupoDeTarjeta>
+        </SeccionPlegable>
       )}
       {argSig && argCruce && !conTarjetas && (
-        <GrupoDeTarjeta titulo={TITULO_GRUPO.diferencias}>
+        <SeccionPlegable seccion="diferencias">
           <DiferenciasInspector
             slideId={slideId}
             encendido={interruptorEncendido(argSig, sigGuardada)}
@@ -296,13 +311,15 @@ export function DatosGrafico({ slideId, slot, valor }: Props) {
             onAgregarCruce={agregarCruce}
             onQuitarCruce={() => set({ [argCruce]: null })}
           />
-        </GrupoDeTarjeta>
+        </SeccionPlegable>
       )}
-      <GrupoDeTarjeta titulo={TITULO_GRUPO.colores}>
+      <SeccionPlegable seccion="colores">
         <ColoresGrafico slideId={slideId} slot={slot} valor={valor} argsDelRegistro={meta?.args ?? []} />
         <PaletaDelGrafico valor={valor} />
-      </GrupoDeTarjeta>
-      <EnElWord slideId={slideId} slot={slot} valor={valor} argsDelRegistro={meta?.args ?? []} />
+      </SeccionPlegable>
+      <SeccionPlegable seccion="word">
+        <EnElWord slideId={slideId} slot={slot} valor={valor} argsDelRegistro={meta?.args ?? []} />
+      </SeccionPlegable>
       {propios.length > 0 && (
         <div className="pulso-f6-dato pulso-f6-alcance-pie" data-qa="ajustes-del-tipo">
           <span className="pulso-f6-dato-rotulo">
@@ -314,17 +331,6 @@ export function DatosGrafico({ slideId, slot, valor }: Props) {
         </div>
       )}
     </div>
-  );
-}
-
-/** Un grupo de la tarjeta con su título; el cuerpo vacío lo oculta por CSS. */
-function GrupoDeTarjeta({ titulo, children }: { titulo: string; children: ReactNode }) {
-  const id = useId();
-  return (
-    <section className="pulso-f6-grupo" aria-labelledby={id}>
-      <h4 id={id} className="pulso-f6-grupo-titulo">{titulo}</h4>
-      <div className="pulso-f6-grupo-cuerpo" data-qa-geometry-group="graficos/f6-grupo-cuerpo" data-qa-geometry-contract="intrinsic">{children}</div>
-    </section>
   );
 }
 

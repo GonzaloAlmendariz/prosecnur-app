@@ -14,6 +14,8 @@ const pedir = vi.fn();
 vi.mock("../../../../api/graficosPropuesta", async (importOriginal) => ({
   ...(await importOriginal<typeof import("../../../../api/graficosPropuesta")>()),
   apiGraficosPropuestaResumen: (...a: unknown[]) => pedir(...a),
+  // Sin la ruta del job (backend anterior): el flujo cae al síncrono, que es el que este test controla.
+  apiGraficosPropuestaResumenJob: () => Promise.reject(new ApiError("E_NOT_FOUND", "No existe")),
 }));
 vi.mock("../../configSnapshot", () => ({ buildGraficosConfigFromStore: () => ({ slides: [] }) }));
 // Un estudio de una sola base: la pregunta va sin calificar (la calificación con varias bases se prueba en el modelo).
@@ -171,7 +173,7 @@ describe("PropuestaResumen", () => {
   it("mientras carga se anuncia y el bloque no se da por listo", async () => {
     pedir.mockReturnValue(new Promise(() => undefined));
     await montar({ seleccion: "auto" });
-    expect(host.textContent).toContain("El motor elige los hallazgos. Puede tardar hasta un minuto.");
+    expect(host.textContent).toContain("Calculando la propuesta del motor. Tarda unos segundos.");
     expect(host.querySelector('[data-audit-ready="false"]')).not.toBeNull();
   });
 

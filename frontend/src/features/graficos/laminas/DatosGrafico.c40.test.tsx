@@ -32,7 +32,9 @@ vi.mock("react-router-dom", () => ({ useLocation: () => ({ search: "", pathname:
 // O7b: la tarjeta lee también los presets y el plan (alcance de cada ajuste) y aplica al tipo.
 const ESTADO = { updateSlotArgs: () => undefined, presets: {}, plan: { slides: [] }, aplicarAjusteAlTipo: () => undefined, undo: () => undefined };
 vi.mock("../store", () => ({ usePlanStore: (sel: (s: typeof ESTADO) => unknown) => sel(ESTADO), SLIDE_GRAF_SLOTS: {} }));
-vi.mock("./laminasStore", () => ({ useLaminasUi: (sel: (s: { setEditorAmplio: () => void }) => unknown) => sel({ setEditorAmplio: () => undefined }) }));
+// H4: las secciones plegables leen su estado del store de la vista; aquí todas arrancan con su defecto.
+const UI = { setEditorAmplio: () => undefined, seccionesTarjeta: {}, seccionReciente: null, alternarSeccionTarjeta: () => undefined, abrirSeccionTarjeta: () => undefined };
+vi.mock("./laminasStore", () => ({ useLaminasUi: Object.assign((sel: (s: typeof UI) => unknown) => sel(UI), { getState: () => UI }) }));
 vi.mock("../useGraficosRegistry", () => ({ useGraficosRegistry: () => ({ graficadoresById: REGISTRO }) }));
 vi.mock("../reportScope", () => ({ useGraficosReportScope: () => "active" }));
 vi.mock("../../../lib/SessionContext", () => ({ useSession: () => ({ state: { active_base: "b1" } }) }));

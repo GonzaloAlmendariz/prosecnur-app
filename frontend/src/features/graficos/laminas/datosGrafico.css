@@ -227,20 +227,88 @@
 .pulso-f6-criterio-quitar { display: inline-grid; place-items: center; padding: 2px; border: 0; border-radius: 999px; background: transparent; color: inherit; cursor: pointer; }
 .pulso-f6-criterio-quitar:hover { background: var(--pulso-surface); }
 
-/* O7b: la tarjeta en grupos con un título discreto. Un grupo cuyo cuerpo quedó vacío para ese tipo no se muestra. */
-.pulso-f6-grupo { display: grid; gap: 0; min-width: 0; padding-top: var(--pulso-space-3); }
-.pulso-f6-grupo:first-child { padding-top: 0; }
+/* O7b: la tarjeta en grupos con un título discreto. Un grupo cuyo cuerpo quedó vacío para ese tipo no se muestra.
+   H4: cada grupo se pliega; su cabecera es un botón a lo ancho con el chevron a la derecha y un filete arriba. */
+.pulso-f6-grupo { display: grid; gap: 0; min-width: 0; border-top: 1px solid var(--pulso-border); }
+.pulso-f6-indice-tarjeta + .pulso-f6-grupo { border-top: 0; }
 .pulso-f6-grupo:not(:has(> .pulso-f6-grupo-cuerpo > *)) { display: none; }
 .pulso-f6-grupo-titulo {
-  margin: 0 0 var(--pulso-space-1);
+  margin: 0;
   color: var(--module-accent);
   font-size: var(--pulso-type-eyebrow-size);
   font-weight: var(--pulso-weight-semibold);
   letter-spacing: 0.06em;
   text-transform: uppercase;
 }
+.pulso-f6-grupo-boton {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--pulso-space-2);
+  width: 100%;
+  min-height: var(--pulso-control-height-md);
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.pulso-f6-grupo-boton:focus-visible {
+  outline: var(--pulso-nav-focus-outline-width) solid var(--module-accent);
+  outline-offset: var(--pulso-nav-focus-offset);
+  border-radius: var(--pulso-radius);
+}
+.pulso-f6-grupo-rotulo { min-width: 0; overflow-wrap: anywhere; }
+.pulso-f6-grupo-chevron {
+  flex: none;
+  color: var(--pulso-text-soft);
+  transform: rotate(-90deg);
+  transition: transform var(--motion-dur-fast) var(--motion-ease-out);
+}
+.pulso-f6-grupo.is-abierta .pulso-f6-grupo-chevron { transform: none; }
+@media (hover: hover) and (pointer: fine) {
+  .pulso-f6-grupo-boton:hover .pulso-f6-grupo-chevron { color: var(--module-accent); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pulso-f6-grupo-chevron { transition: none; }
+}
 .pulso-f6-grupo-cuerpo { display: grid; gap: 0; min-width: 0; }
+.pulso-f6-grupo.is-abierta > .pulso-f6-grupo-cuerpo { padding-bottom: var(--pulso-space-2); }
+/* Plegado sin «until-found» (navegador sin soporte): el `display: grid` de arriba no debe ganarle a `hidden`. */
+.pulso-f6-grupo-cuerpo[hidden]:not([hidden="until-found"]) { display: none; }
 .pulso-f6-grupo-cuerpo > .pulso-f6-dato:first-child { border-top: 0; }
+/* En el Word: su cabecera es la de la sección; sin filete ni aire propios arriba. */
+.pulso-f6-grupo-cuerpo > .pulso-f6-word { border-top: 0; padding-top: 0; }
+
+/* H4: índice de la tarjeta, pegado arriba del cuerpo del inspector (su dueño de scroll) mientras se recorre la tarjeta.
+   Cada botón salta a su sección; el de una sección que este gráfico no tiene se oculta con la misma regla que la oculta. */
+.pulso-f6-indice-tarjeta {
+  position: sticky;
+  /* El borde pegado es el del contenido del cuerpo: se sube su padding para que no asome nada encima. */
+  top: calc(-1 * var(--pulso-space-3));
+  z-index: 1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--pulso-space-1);
+  min-width: 0;
+  padding: var(--pulso-space-2) 0;
+  background: var(--pulso-surface);
+  box-shadow: inset 0 -1px 0 var(--pulso-border);
+}
+.pulso-f6-indice-tarjeta-ir { flex: none; }
+.pulso-f6-datos:not(:has(> [data-seccion-tarjeta="datos"] > .pulso-f6-grupo-cuerpo > *)) [data-ir="datos"],
+.pulso-f6-datos:not(:has(> [data-seccion-tarjeta="orden"] > .pulso-f6-grupo-cuerpo > *)) [data-ir="orden"],
+.pulso-f6-datos:not(:has(> [data-seccion-tarjeta="cifras"] > .pulso-f6-grupo-cuerpo > *)) [data-ir="cifras"],
+.pulso-f6-datos:not(:has(> [data-seccion-tarjeta="diferencias"] > .pulso-f6-grupo-cuerpo > *)) [data-ir="diferencias"],
+.pulso-f6-datos:not(:has(> [data-seccion-tarjeta="colores"] > .pulso-f6-grupo-cuerpo > *)) [data-ir="colores"],
+.pulso-f6-datos:not(:has(> [data-seccion-tarjeta="word"] > .pulso-f6-grupo-cuerpo > *)) [data-ir="word"] {
+  display: none;
+}
 
 /* O7b: marca de alcance. Discreta; el menú dice qué pasa con cada opción. */
 .pulso-f6-alcance {

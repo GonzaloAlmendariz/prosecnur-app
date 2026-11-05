@@ -5,7 +5,7 @@
 
 import { antetituloDelTipo, esLaminaFija } from "./antetituloDelTipo";
 import { useId, useMemo } from "react";
-import { AlertTriangle, BarChart3, FileText, History, Lock, X } from "../../../vendor/lucide-react";
+import { BarChart3, FileText, History, Lock, X } from "../../../vendor/lucide-react";
 import type { GraficadorRef, Slide } from "../../../api/graficos";
 import { GlidingTabList } from "../../../components/GlidingTabList";
 import { EditorIndice } from "../indice/EditorIndice";
@@ -15,6 +15,7 @@ import { ContenidoEspecialLamina } from "./contenidoEspecial/ContenidoEspecialLa
 import { contenidoEspecialDe, esArgEspecial, tituloPorDefecto } from "./contenidoEspecial/modeloContenidoEspecial";
 import { avisoDentroDeLamina } from "./avisoEnLamina";
 import { DatosGrafico } from "./DatosGrafico";
+import { AvisosLamina } from "./AvisosLamina";
 import { DependenciaLamina } from "./DependenciaLamina";
 import { DependenciaTresLamina } from "./DependenciaTresLamina";
 import { SeccionComposicion } from "./SeccionComposicion";
@@ -119,12 +120,8 @@ export function InspectorLamina({
         </button>
       </header>
 
-      {avisos.length > 0 && (
-        <div className="pulso-f6-inspector-avisos" role="status" aria-label={`${formatoConteo(avisos.length)} ${avisos.length === 1 ? "aviso" : "avisos"} en esta lámina`}>
-          <AlertTriangle size={14} aria-hidden="true" />
-          <ul>{avisos.map((a) => <li key={a}>{a}</li>)}</ul>
-        </div>
-      )}
+      {/* H4: los avisos, plegados en un chip que se despliega. */}
+      <AvisosLamina avisos={avisos} />
 
       {conGraficos && (
         <GlidingTabList activeKey={seccion} className="pulso-f6-inspector-tabs" role="tablist" aria-label="Secciones de la lámina">

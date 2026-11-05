@@ -19,6 +19,7 @@ import {
   type CapituloResumenEditable,
   type FilaResumenEditable,
 } from "./modeloCapitulosResumen";
+import { revelarFilaNueva, selectorFila } from "../../revelarFila";
 import "../hallazgos/hallazgos.css";
 
 type Props = {
@@ -38,6 +39,7 @@ export function CapitulosResumen({ valor, automatica, calificar, scope, onCambio
   const [borrador, setBorrador] = useState<CapituloResumenEditable[]>(() => leerCapitulosResumen(valor));
   const [anuncio, setAnuncio] = useState("");
   const siguiente = useRef(0);
+  const raiz = useRef<HTMLElement>(null);
   // Cambió afuera (deshacer, el plan): manda lo guardado.
   const capitulos = mismosCapitulosResumen(valor, borrador) ? borrador : leerCapitulosResumen(valor);
   if (capitulos !== borrador) setBorrador(capitulos);
@@ -56,7 +58,7 @@ export function CapitulosResumen({ valor, automatica, calificar, scope, onCambio
   const filas = filasQueSalen(capitulos);
 
   return (
-    <section className="pulso-f6-especial pulso-f6-hallazgos" aria-labelledby={idTitulo} aria-describedby={idAyuda}
+    <section ref={raiz} className="pulso-f6-especial pulso-f6-hallazgos" aria-labelledby={idTitulo} aria-describedby={idAyuda}
       data-campo="capitulos" data-qa="capitulos-resumen" data-qa-geometry-group="graficos/f6-resumen-capitulos-bloque" data-qa-geometry-contract="intrinsic">
       <div className="pulso-f6-especial-cabeza" data-qa-geometry-member>
         <h3 id={idTitulo} className="pulso-f6-subtitulo">Capítulos y filas</h3>
@@ -80,7 +82,7 @@ export function CapitulosResumen({ valor, automatica, calificar, scope, onCambio
                 const nombre = nombreCapitulo(c, i);
                 const aviso = avisoCapituloResumen(c);
                 return (
-                  <li key={c.clave} className="pulso-f6-criterio pulso-f6-hallazgos-capitulo" role="group" aria-label={`C${nombre.slice(1)}`} data-qa-geometry-member>
+                  <li key={c.clave} data-fila={c.clave} className="pulso-f6-criterio pulso-f6-hallazgos-capitulo" role="group" aria-label={`C${nombre.slice(1)}`} data-qa-geometry-member>
                     <div className="pulso-f6-hallazgos-cabeza">
                       <input className="pulso-f6-input" value={c.titulo} placeholder="Título del capítulo" aria-label={`Título del capítulo ${i + 1}`}
                         onChange={(e) => cambiarCapitulo(i, { titulo: e.target.value })} />
@@ -99,7 +101,7 @@ export function CapitulosResumen({ valor, automatica, calificar, scope, onCambio
                     </div>
                     <ol className="pulso-f6-hallazgos-lista" data-qa-geometry-group="graficos/f6-resumen-filas" data-qa-geometry-contract="intrinsic">
                       {c.filas.map((f, j) => (
-                        <li key={f.clave}>
+                        <li key={f.clave} data-fila={f.clave}>
                           <FilaResumen fila={f} numero={j + 1} nombre={`fila ${j + 1} del ${nombre}`} primera={j === 0} ultima={j === c.filas.length - 1}
                             calificar={calificar} scope={scope}
                             onCambio={(nueva) => cambiarFila(i, j, nueva)}
@@ -109,7 +111,12 @@ export function CapitulosResumen({ valor, automatica, calificar, scope, onCambio
                       ))}
                     </ol>
                     <button type="button" className="pulso-f6-boton pulso-f6-dato-accion" data-qa-geometry-capacity="owned"
-                      onClick={() => cambiarCapitulo(i, { filas: [...c.filas, filaNueva(clave("f"))] })}>
+                      onClick={() => {
+                        // H10: la fila nueva se trae a la vista con el foco en su primer campo.
+                        const k = clave("f");
+                        cambiarCapitulo(i, { filas: [...c.filas, filaNueva(k)] });
+                        revelarFilaNueva(raiz.current, selectorFila(k));
+                      }}>
                       <Plus size={14} aria-hidden="true" /> Agregar fila
                     </button>
                     {aviso && <span className="pulso-f6-dato-ayuda is-aviso" role="note">{aviso}</span>}
@@ -119,7 +126,11 @@ export function CapitulosResumen({ valor, automatica, calificar, scope, onCambio
             </ol>
           )}
           <button type="button" className="pulso-f6-boton pulso-f6-especial-anadir" data-qa-geometry-capacity="owned"
-            onClick={() => aplicar([...capitulos, capituloResumenNuevo(clave("c"), clave("f"))])}>
+            onClick={() => {
+              const k = clave("c");
+              aplicar([...capitulos, capituloResumenNuevo(k, clave("f"))]);
+              revelarFilaNueva(raiz.current, selectorFila(k));
+            }}>
             <Plus size={15} aria-hidden="true" /> Agregar capítulo
           </button>
         </fieldset>
