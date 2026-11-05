@@ -14,6 +14,7 @@ import { AjusteRegistro } from "../contenidoEspecial/AjusteRegistro";
 import { ajustesQueAplican, valorEfectivo } from "../contenidoEspecial/ajustesRegistro";
 import { CrucesLamina } from "../diferencias/CrucesLamina";
 import { varCalificada } from "../ordenCategorias";
+import { PropuestaResumen } from "../propuestaResumen/PropuestaResumen";
 import { CapitulosHallazgos } from "./CapitulosHallazgos";
 import { MODOS_RESUMEN } from "./modeloCapitulosHallazgos";
 import "../datosGrafico.css";
@@ -30,7 +31,8 @@ export function AjustesHallazgos({ slide, args }: { slide: Slide; args: readonly
   const porNombre = new Map(args.map((a) => [a.name, a]));
   const texto = (n: string) => { const a = porNombre.get(n); return a ? String(valorEfectivo(payload, a) ?? "") : ""; };
   const modo = texto("modo") || "cifras";
-  const automatica = texto("seleccion") === "auto";
+  // La selección sólo existe en el resumen ejecutivo: en modo de cifras, un «auto» que quedó guardado no aplica.
+  const automatica = MODOS_RESUMEN.has(modo) && texto("seleccion") === "auto";
   const set = (parche: Record<string, unknown>) => updatePayload(slide.id, parche);
   // «Cómo se nombran los casos» va con «Comparar por», como en las tarjetas (H6); no se pinta también suelto.
   const tienePublico = args.some((a) => a.name === "publico");
@@ -53,7 +55,10 @@ export function AjustesHallazgos({ slide, args }: { slide: Slide; args: readonly
             return (
               <div key={a.name} className="pulso-f6-dato is-apilado" data-campo={a.name}>
                 <CapitulosHallazgos valor={payload[a.name]} modo={modo} automatica={automatica}
-                  calificar={(ref) => varCalificada(ref, baseActiva, scope)} scope={scope} onCambio={(v) => set({ [a.name]: v })} />
+                  calificar={(ref) => varCalificada(ref, baseActiva, scope)} scope={scope} onCambio={(v) => set({ [a.name]: v })}
+                  propuesta={MODOS_RESUMEN.has(modo) && (
+                    <PropuestaResumen key={slide.id} slide={slide} scope={scope} automatica={automatica} valor={payload[a.name]} onAplicar={set} />
+                  )} />
               </div>
             );
           }

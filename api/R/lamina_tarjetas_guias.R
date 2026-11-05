@@ -32,3 +32,42 @@
   if (anyNA(fin)) return(NULL)
   data.frame(yc = yc, fin = fin)
 }
+
+#' Ruta de la guía tarjeta→fila sin cruzar otras barras: por el carril entre filas
+#'
+#' Revisión del PPT v7.25 de CCSS, lámina 38 (ítem 6). Gonzalo: «la línea ¿no puede ir o hacer su carril entre las dos
+#' barras al medio para no tocar otra barra?». El codo bajaba a media distancia entre la cifra y la tarjeta y su tramo
+#' vertical atravesaba la pista de la fila vecina. Ahora:
+#'
+#'   - si la tarjeta toca la altura de su fila, la guía va recta (o con un codo dentro de la propia fila);
+#'   - si no, sale de su fila por el lado (un tramo vertical corto junto al punto, dentro de su franja) hasta el carril,
+#'     el hueco a media altura entre su fila y la vecina en dirección a la tarjeta, y corre por él;
+#'   - si la tarjeta no alcanza ese carril, corre por el carril hasta la columna libre a la derecha de todas las barras,
+#'     y sólo ahí sube o baja hasta la tarjeta.
+#'
+#' @param filas_y Centros de todas las filas de la lámina (in). @param fin_barras Borde derecho de la zona de barras (la
+#'   pista o la barra más larga), o NA.
+#' @return Matriz de puntos (x, y) de la polilínea, del punto de la fila a la tarjeta.
+#' @keywords internal
+.lam_tarjeta_guia_ruta <- function(xa, ya, xp, tp, h, filas_y, fin_barras = NA_real_) {
+  yt <- min(max(ya, tp + 0.18), tp + h - 0.18)
+  fy <- sort(unique(round(filas_y, 4)))
+  paso <- if (length(fy) > 1L) min(diff(fy)) else 0.5
+  if (abs(yt - ya) <= 0.3 * paso) {
+    # Recta, o con un codo que no sale de la franja de su fila.
+    xm <- xa + max(0.06, (xp - xa) / 2)
+    return(if (abs(yt - ya) > 0.01) rbind(c(xa, ya), c(xm, ya), c(xm, yt), c(xp, yt)) else rbind(c(xa, ya), c(xp, ya)))
+  }
+  dir <- sign(yt - ya)
+  vecina <- if (dir > 0) fy[fy > ya + 1e-3] else fy[fy < ya - 1e-3]
+  carril <- if (length(vecina)) (ya + (if (dir > 0) min(vecina) else max(vecina))) / 2 else ya + dir * paso / 2
+  xs <- xa + 0.08   # el tramo que sale de la fila, junto al punto
+  if (carril >= tp + 0.08 && carril <= tp + h - 0.08) return(rbind(c(xa, ya), c(xs, ya), c(xs, carril), c(xp, carril)))
+  # La tarjeta queda más allá del carril: por él hasta la columna libre, y ahí el tramo vertical hasta su altura.
+  x_libre <- if (is.finite(fin_barras) && fin_barras + 0.04 < xp) (max(fin_barras, xs) + xp) / 2 else NA_real_
+  if (is.na(x_libre)) {
+    xm <- xa + max(0.06, (xp - xa) / 2)
+    return(rbind(c(xa, ya), c(xm, ya), c(xm, yt), c(xp, yt)))
+  }
+  rbind(c(xa, ya), c(xs, ya), c(xs, carril), c(x_libre, carril), c(x_libre, yt), c(xp, yt))
+}

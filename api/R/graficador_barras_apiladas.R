@@ -1178,6 +1178,9 @@ graficar_barras_apiladas <- function(
     # N1 (Renzo, 2026-10-22): piso de grosor de la barra en la lámina nativa de escala, en cm. NULL = el del informe o ninguno;
     # 0 = sin piso aunque el informe lo declare. Con piso, la lámina se parte en vez de apretar la barra (`.std_grosor()`).
     grosor_piso_cm        = NULL,
+    # v7.25, ítem 4: dónde va el enunciado en la lámina nativa: «auto» (encima de su barra cuando la batería lleva
+    # tarjetas), «arriba» (siempre encima) o «izquierda» (siempre en su columna). lamina_escala_premisa_arriba_ajuste.R
+    premisa_posicion      = "auto",
     piso_categoria_cero   = .BARRAS_PISO_CERO,
     # `estandar` (cada cifra se redondea sola, el 0,5 sube) o `reparto` (resto
     # mayor, las cifras suman exactamente 100 %). Ver `.pulso_pct_metodo()`.
@@ -2896,6 +2899,7 @@ graficar_barras_apiladas <- function(
   })
   if (!is.null(espec_escala)) espec_escala$mostrar_respuestas <- isTRUE(mostrar_respuestas)
   if (!is.null(espec_escala)) espec_escala$filete_temas <- isTRUE(filete_temas)
+  if (!is.null(espec_escala)) espec_escala$premisa_posicion <- .lam_premisa_posicion(list(premisa_posicion = premisa_posicion))
   if (!is.null(espec_escala) && is.numeric(grosor_piso_cm) && length(grosor_piso_cm) == 1L && is.finite(grosor_piso_cm)) espec_escala$grosor_piso_cm <- grosor_piso_cm
   if (isTRUE(mostrar_barra_extra) && barra_extra_preset %in% c("top2box", "top3box", "bottom2box") &&
       !is.null(espec_escala$box$unidades)) {

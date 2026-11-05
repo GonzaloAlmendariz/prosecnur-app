@@ -34,8 +34,11 @@
   }
   espec <- if (inherits(p, "ggplot")) attr(p, "pulso_espec") else NULL
   if (!identical(espec$tipo, "citas")) {
-    return(.lam_slide_1_nativa(doc, p, slide, titulo, subtitulo, el_plot, presets, layout, master, antetitulo, base_auto,
-                               nota_de, sin_base, sin_pie, por_lamina, titulo_de_var))
+    # Tarjetas activas sin ninguna diferencia: la lámina lo dice sobre «Base:» (v7.25, ítem 5; graficos_tarjetas_sin_diferencias.R).
+    sin_dif <- if (is.null(.lam_nota_sig_de(p))) .tarjetas_sin_diferencias_de(p) else NULL
+    return(.lam_con_nota_sig(sin_dif, por_lamina, function(por_lamina)
+      .lam_slide_1_nativa(doc, p, slide, titulo, subtitulo, el_plot, presets, layout, master, antetitulo, base_auto,
+                          nota_de, sin_base, sin_pie, por_lamina, titulo_de_var)))
   }
   slots <- slide$slots %||% list()
   como_texto <- function(x) {

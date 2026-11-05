@@ -110,6 +110,8 @@ to_wml.pulso_run_seq <- function(x, add_ns = FALSE, ...) {
                                                    fp_p = officer::fp_par(text.align = "center", keep_with_next = (!is.null(base) && nzchar(trimws(base))) || length(tarjetas$tarjetas) > 0L,
                                                                           padding.top = if (is.null(tabla)) 0 else 6)))
   if (length(tarjetas$tarjetas)) doc <- .word_tarjetas_en_figura(doc, tarjetas, ancho = .std_word("pagina", "ancho_util"))   # ADR 0129: reporte_word_tarjetas.R
+  # Tarjetas activas sin ninguna diferencia: la misma línea que la lámina, con el estilo de la base (v7.25, ítem 5).
+  if (!.word_tiene(nota_sig)) nota_sig <- .tarjetas_sin_diferencias_texto(tarjetas)
   # Sin base la imagen no se pega a lo que sigue: encadenaba figura tras figura y empujaba el capítulo a otra página (N8.13).
   con_lectura <- !is.null(lectura) && nzchar(trimws(lectura))
   doc <- .word_base(doc, base, con_lectura = con_lectura || .word_tiene(nota_sig))

@@ -38,8 +38,15 @@
 #' @param nb ¿Rótulos en negrita? @param previa Columna de antes (respaldo si con el tope no cabe).
 #' @return `list(wlab, size, acotada)`.
 #' @keywords internal
-.lam_barras_ancho_rotulos <- function(rotulos, ancho, size, fila, nb = FALSE, previa = NULL) {
+.lam_barras_ancho_rotulos <- function(rotulos, ancho, size, fila, nb = FALSE, previa = NULL, declarada = NULL) {
   U <- .LAM_BARRAS_ANCHO; tope <- .lam_barras_tope_rotulo() * ancho
+  # v7.25, ítem 8: el ancho declarado por el gráfico (`canvas_w_etiquetas`, «Espacio para etiquetas») manda también en
+  # la lámina nativa de barras; si sus rótulos no caben ahí ni en tres líneas, se avisa y sigue el ancho automático.
+  if (!is.null(declarada) && is.finite(declarada) && declarada > 0) {
+    d <- .lam_barras_ancho_en(rotulos, max(0.8, declarada), size, fila, nb)
+    if (!is.null(d)) return(c(d, list(acotada = TRUE)))
+    if (exists(".pulso_aviso", mode = "function")) .pulso_aviso(sprintf("Barras: los rótulos no caben en el espacio para etiquetas declarado (%.1f cm); va el automático.", declarada * 2.54))
+  }
   natural <- max(1.4, max(.lam_ancho_tinta(rotulos, size, nb)) + 0.3)
   if (natural <= tope) return(list(wlab = natural, size = size, acotada = FALSE))
   piso <- min(size, max(U$piso_pt, .std_valor("ppt", "tipografia", "cifra_minimo") %||% 8))   # un cuerpo declarado bajo el piso no sube
@@ -49,7 +56,10 @@
     # Cabe en su fila por la tinta y por la cuenta de `.lam_categorica_forma` (que no debe cambiar de forma por esto).
     if (all(lin <= U$lineas) && all(.lam_alto_tinta(rotulos, tope, s, nb) <= fila + 0.02) &&
         all(vapply(rotulos, function(r) .lam_alto_txt(r, tope, s) <= fila + 0.02, TRUE))) {
-      return(list(wlab = tope, size = s, acotada = TRUE))
+      # v7.25, ítem 8: la columna se ajusta a la tinta de los rótulos ya partidos, no al tope.
+      w_t <- .lam_barras_ancho_tinta_partida(rotulos, tope, s, nb)
+      if (w_t < tope && is.null(.lam_barras_ancho_en(rotulos, w_t, s, fila, nb))) w_t <- tope   # la cuenta de la fila manda
+      return(list(wlab = w_t, size = s, acotada = TRUE))
     }
   }
   list(wlab = previa %||% natural, size = size, acotada = FALSE)

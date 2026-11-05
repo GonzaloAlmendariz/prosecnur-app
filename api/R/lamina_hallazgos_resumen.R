@@ -27,16 +27,23 @@
 #' @keywords internal
 .lam_halla_res_pastilla <- function(lz, x, yc, texto, dir, fragil, pt = 9.5, dibujar = TRUE) {
   tn <- .lam_dif_tono(dir, fragil)
-  wt <- .lam_ancho_tinta(texto, pt, TRUE); at <- 0.1 * 1.15
-  w <- 0.09 + wt + 0.04 + at + 0.09; h <- 0.23
+  # `texto` puede traer dos líneas (el nombre completo del grupo partido: v7.25, ítem 11); la pastilla crece en alto.
+  texto <- as.character(texto); nl <- length(texto); lh <- pt * 1.2 / 72
+  wt <- max(.lam_ancho_tinta(texto, pt, TRUE)); at <- 0.1 * 1.15
+  w <- 0.09 + wt + 0.04 + at + 0.09; h <- 0.23 + (nl - 1L) * lh
   if (!dibujar) return(w)
   .lam_forma_borde(lz, x, yc - h / 2, w, h, fill = tn$fill, borde = tn$borde, borde_pt = if (tn$punteado) 1 else 0.75,
                    punteado = tn$punteado, geom = "roundRect", radio = 0.035,
                    nombre = paste0("resumen_ejecutivo:pastilla:", if (isTRUE(fragil)) "95" else "99"))
-  .lam_tyc_txt(lz, texto, x + 0.09, yc, wt + 0.04, pt, tn$texto, bold = TRUE, nombre = "resumen_ejecutivo:pastilla:texto")
+  for (j in seq_len(nl)) .lam_tyc_txt(lz, texto[j], x + 0.09, yc + (j - (nl + 1) / 2) * lh, wt + 0.04, pt, tn$texto, bold = TRUE,
+                                      nombre = "resumen_ejecutivo:pastilla:texto")
   .lam_dif_triangulo(lz, x + 0.09 + wt + 0.04, yc, dir, tn$texto, lleno = !isTRUE(fragil), alto = 0.1)
   w
 }
+
+#' Ancho de tinta que deja una pastilla a su texto dentro de `w` (márgenes y triángulo)
+#' @keywords internal
+.lam_halla_res_pastilla_util <- function(w) w - (0.09 + 0.04 + 0.1 * 1.15 + 0.09)
 
 #' La diferencia principal de un hallazgo desde `x`: pastillas, la cola «frente al N% del resto» o el texto gris
 #' @keywords internal
@@ -55,6 +62,7 @@
     return(invisible(w))
   }
   x0 <- x
+  if (length(comp$partes) == 1L && !is.null(comp$partes[[1]]$corto)) return(invisible(.lam_halla_res_principal(lz, comp, x, yc, w, pt)))
   anchos <- vapply(comp$partes, function(pa) .lam_halla_res_pastilla(lz, 0, 0, pa$texto, pa$dir, pa$fragil, pt, dibujar = FALSE), 0)
   if (length(anchos) == 2L && is.null(comp$cola) && sum(anchos) + 0.1 > w && max(anchos) <= w) {
     # Las dos pastillas de un cruce de dos grupos no caben lado a lado (columna angosta de los titulares): una sobre otra.

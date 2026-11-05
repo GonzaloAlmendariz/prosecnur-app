@@ -1,0 +1,199 @@
+/* La propuesta del motor (PropuestaResumen.tsx): una tarjeta por capítulo y, dentro, un elemento por hallazgo o fila con
+   su casilla «Queda». Mide lo que su contenido pide (sin alto fijo ni scroll propio: No Scroll Jail); el inspector es
+   angosto, así que todo lleva min-width: 0 y el texto largo se corta por palabra. */
+
+.pulso-f6-propuesta {
+  display: grid;
+  gap: var(--pulso-space-2);
+  min-width: 0;
+}
+
+.pulso-f6-propuesta-cabeza {
+  display: flex;
+  align-items: center;
+  gap: var(--pulso-space-2);
+  min-width: 0;
+}
+
+.pulso-f6-propuesta-cabeza h4 {
+  flex: 1 1 auto;
+  margin: 0;
+}
+
+.pulso-f6-propuesta-n,
+.pulso-f6-propuesta-base {
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+  font-variant-numeric: tabular-nums;
+}
+
+.pulso-f6-propuesta-estado:empty {
+  display: none;
+}
+
+.pulso-f6-propuesta-traer {
+  display: flex;
+  min-width: 0;
+}
+
+.pulso-f6-propuesta-aviso {
+  margin: 0;
+  padding: var(--pulso-space-2) var(--pulso-space-3);
+  border-radius: var(--pulso-radius);
+  background: var(--pulso-warn-bg);
+  color: var(--pulso-warn-fg);
+  font-size: var(--pulso-type-caption-size);
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.pulso-f6-propuesta-avisos {
+  display: grid;
+  gap: var(--pulso-space-1);
+  min-width: 0;
+}
+
+.pulso-f6-propuesta-error,
+.pulso-f6-propuesta-desfase {
+  display: grid;
+  gap: var(--pulso-space-2);
+  justify-items: start;
+  min-width: 0;
+}
+
+.pulso-f6-propuesta-capitulos,
+.pulso-f6-propuesta-lista {
+  display: grid;
+  gap: var(--pulso-space-2);
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* La tarjeta del capítulo es la de los capítulos del editor (`.pulso-f6-criterio`, datosGrafico.css). */
+.pulso-f6-propuesta-capitulo {
+  gap: var(--pulso-space-2);
+}
+
+.pulso-f6-propuesta-titulo {
+  margin: 0;
+  color: var(--pulso-text);
+  font-size: var(--pulso-type-body-size);
+  font-weight: var(--pulso-weight-semibold);
+  overflow-wrap: anywhere;
+}
+
+.pulso-f6-propuesta-elemento {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: var(--pulso-space-2);
+  align-items: start;
+  min-width: 0;
+  padding-top: var(--pulso-space-2);
+  border-top: 1px solid var(--pulso-border);
+}
+
+/* Lo desmarcado se sigue leyendo (puede volver a marcarse), pero se aparta. */
+.pulso-f6-propuesta-elemento.is-fuera .pulso-f6-propuesta-cuerpo {
+  color: var(--pulso-text-faint);
+}
+
+.pulso-f6-propuesta-elemento.is-fuera .pulso-f6-propuesta-cifra {
+  color: var(--pulso-text-faint);
+  text-decoration: line-through;
+}
+
+.pulso-f6-propuesta-queda {
+  padding-top: 2px;
+}
+
+.pulso-f6-propuesta-cuerpo {
+  display: grid;
+  gap: var(--pulso-space-1);
+  min-width: 0;
+  color: var(--pulso-text);
+}
+
+.pulso-f6-propuesta-pregunta-corta {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.pulso-f6-propuesta-cifra-linea {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: var(--pulso-space-2);
+  align-items: baseline;
+  min-width: 0;
+}
+
+.pulso-f6-propuesta-cifra {
+  color: var(--module-accent);
+  font-size: var(--pulso-type-kpi-size);
+  font-weight: var(--pulso-weight-bold);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+}
+
+.pulso-f6-propuesta-frase {
+  font-size: var(--pulso-type-body-size);
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.pulso-f6-propuesta-marca {
+  margin-left: var(--pulso-space-1);
+  color: var(--pulso-warn-fg);
+  font-size: var(--pulso-type-caption-size);
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.pulso-f6-propuesta-dif {
+  font-size: var(--pulso-type-caption-size);
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.pulso-f6-propuesta-dif.is-diferencia {
+  color: var(--pulso-text);
+  font-weight: var(--pulso-weight-medium);
+}
+
+.pulso-f6-propuesta-dif.is-sin_diferencias,
+.pulso-f6-propuesta-dif.is-sin_prueba {
+  color: var(--pulso-text-soft);
+}
+
+.pulso-f6-propuesta-acciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--pulso-space-2);
+  min-width: 0;
+}
+
+.pulso-f6-propuesta-confirmar {
+  display: grid;
+  gap: var(--pulso-space-2);
+  min-width: 0;
+  padding: var(--pulso-space-2) var(--pulso-space-3);
+  border-radius: var(--pulso-radius);
+  background: var(--module-accent-soft);
+}
+
+.pulso-f6-propuesta-confirmar:focus-visible {
+  outline: var(--pulso-nav-focus-outline-width) solid var(--module-accent);
+  outline-offset: var(--pulso-nav-focus-offset);
+}
+
+.pulso-f6-propuesta-pregunta {
+  margin: 0;
+  font-size: var(--pulso-type-body-size);
+  line-height: 1.4;
+}

@@ -174,7 +174,9 @@ test_that("la lámina nativa del PPT lleva encabezado, capítulos, celdas, «n. 
   # v7.11, lámina 59: el método ya lo explica «Cómo leer las diferencias»; la lámina no repite el párrafo.
   expect_false("Nota significancia" %in% nombres)
   expect_false(any(grepl("Benjamini|Rao-Scott|prueba z|Puntos de diferencia entre", textos)))
-  expect_true(any(grepl("^Econ\\.", textos)))   # el rótulo corto declarado (en una o dos líneas)
+  # v7.25, ítem 9 (CAMBIO DELIBERADO): con ancho, el nombre completo del grupo («Economía y Finanzas», en una o dos
+  # líneas) en vez del corto declarado; el corto queda de respaldo cuando el completo no cabe.
+  expect_true(any(grepl("^Economía", textos))); expect_false(any(grepl("^Econ\\.", textos)))
   expect_true(all(c("ÁREA", "CAPÍTULO UNO", "Dice mucho", "n. a.", "Mayor que el resto", "99% de confianza",
                     "Base: 400 casos.") %in% textos))
   expect_false(any(grepl("Fuente", textos, fixed = TRUE)))

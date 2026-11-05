@@ -156,8 +156,9 @@
     }
     if (length(items) > por_lamina) items <- items[seq_len(por_lamina)]
     kpis <- Filter(Negate(is.null), lapply(items, .halla_kpi_modelo, fuente0 = fuente, sig = sig, cx = cx, tauto = tauto,
-                                            n_lamina = n_lamina, con_grafico = FALSE))
-    if (!isTRUE(el$tambien %||% TRUE)) kpis <- lapply(kpis, function(k) { k$tambien <- NULL; k })
+                                            n_lamina = n_lamina, con_grafico = FALSE, principal = TRUE))
+    # «Solo poner la principal diferencia» (v7.25, ítem 10): la línea «También» sale sólo si se pide.
+    if (!isTRUE(el$tambien %||% FALSE)) kpis <- lapply(kpis, function(k) { k$tambien <- NULL; k })
     titular <- .dif_chr1(c$titular)
     if (titulares && length(kpis) && is.null(titular)) {
       aviso("el capítulo «", titulo, "» no tiene titular: el modo «titulares» lo pide, y el motor no lo redacta. Va la frase del hallazgo.")

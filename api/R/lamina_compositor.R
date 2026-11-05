@@ -71,7 +71,7 @@
     # El subtítulo sólo en la primera parte, bajo el título (recetario.R:122); el aviso del título, una vez por lámina.
     doc <- .lam_titulo(doc, if (k > 1) .particion_titulo_cont(titulo) else titulo, ante = ante, sub = if (k == 1L) sub else NULL, avisar = k == 1L)   # «(cont.)» una sola vez
     lz <- .lam_lienzo()
-    tp <- if (en_filas) NULL else .lam_escala_tarjetas_parte(partes[[k]])   # v7.23, ítems 7 y 12 (lamina_escala_premisa_arriba.R)
+    tp <- if (en_filas) NULL else .lam_escala_tarjetas_parte(partes[[k]], espec)   # v7.23, ítems 7 y 12 (lamina_escala_premisa_arriba.R)
     op_tp <- if (!is.null(tp)) options(prosecnur.lam_reserva_derecha = tp$reserva, prosecnur.lam_leyenda_ancho_completo = FALSE) else list()
     bloque <- function(lz, desplazar = 0) .lam_bloque_escala(lz, espec, partes[[k]], solo = length(partes) == 1L, titulo_lamina = titulo,
                                                             encabezar_tema = length(premisas) == 1L, desplazar = desplazar,
