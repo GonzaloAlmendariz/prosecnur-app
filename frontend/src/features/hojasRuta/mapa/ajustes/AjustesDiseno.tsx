@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 
 import type { HojasRutaIntegratedConfig } from "../../../../api/hojasRuta";
 import { Dialog } from "../../../../components/Dialog";
@@ -23,6 +23,15 @@ type Props = {
   onCerrar: () => void;
   /** Mientras el grupo no pasa a la ventana (M2–M6), lleva a la sección donde hoy se edita. */
   onIrSeccion: (s: SeccionOrigen) => void;
+  /** El contenido de los grupos ya mudados a la ventana; `null` = todavía se edita en su sección. */
+  contenidoDe?: (g: GrupoAjustesId) => ReactNode | null;
+  /** Grupos con cambios en borrador, sin aplicar. */
+  pendientes?: number;
+  /** La vista previa no refleja los últimos cambios: se atenúa hasta Recalcular. */
+  desfasada?: boolean;
+  onRecalcular?: () => void;
+  onAplicar?: () => void;
+  aplicando?: boolean;
 };
 
 /**
@@ -31,11 +40,12 @@ type Props = {
  * armazón; cada grupo declara su valor vigente y, hasta que su contenido se mude aquí, dónde se edita.
  * Recalcular y Aplicar son dos botones distintos; sin cambios pendientes los dos esperan.
  */
-export function AjustesDiseno({ abierto, grupo, config, fase, vista, onGrupo, onCerrar, onIrSeccion }: Props) {
+export function AjustesDiseno({ abierto, grupo, config, fase, vista, onGrupo, onCerrar, onIrSeccion, contenidoDe, pendientes = 0, desfasada = false, onRecalcular, onAplicar, aplicando = false }: Props) {
   const [busqueda, setBusqueda] = useState("");
   const visibles = useMemo(() => filtrarGrupos(busqueda), [busqueda]);
   const actual = GRUPOS_AJUSTES.find((g) => g.id === grupo) ?? GRUPOS_AJUSTES[0];
   const n = vista.n;
+  const contenido = contenidoDe?.(actual.id) ?? null;
   return (
     <Dialog
       open={abierto}
@@ -49,7 +59,7 @@ export function AjustesDiseno({ abierto, grupo, config, fase, vista, onGrupo, on
       bodyClassName="hr-ajustes-medio"
       closeLabel="Cerrar los ajustes"
       footerStatus={
-        <dl className="hr-ajustes-vista" aria-label="Vista previa del diseño">
+        <dl className="hr-ajustes-vista" aria-label="Vista previa del diseño" data-desfasada={desfasada || undefined} title={desfasada ? "Hay cambios sin recalcular" : undefined}>
           <div><dt>Encuestas</dt><dd>{n == null ? "—" : formatoConteo(n)}</dd></div>
           <div><dt>Rutas</dt><dd>{vista.rutas == null ? "—" : formatoConteo(vista.rutas)}</dd></div>
           <div><dt>Distritos</dt><dd>{formatoConteo(vista.distritos)}</dd></div>
@@ -59,8 +69,8 @@ export function AjustesDiseno({ abierto, grupo, config, fase, vista, onGrupo, on
       footer={
         <>
           <PulsoButton variant="secondary" onClick={onCerrar}>Cancelar</PulsoButton>
-          <PulsoButton variant="secondary" disabled title="Sin cambios que recalcular">Recalcular</PulsoButton>
-          <PulsoButton variant="primary" disabled title="Sin cambios que aplicar">Aplicar</PulsoButton>
+          <PulsoButton variant="secondary" disabled={!desfasada || aplicando} title={desfasada ? "Actualiza la vista previa sin guardar" : "La vista previa está al día"} onClick={onRecalcular}>Recalcular</PulsoButton>
+          <PulsoButton variant="primary" disabled={!pendientes || aplicando || !onAplicar} title={pendientes ? `Guarda ${pendientes === 1 ? "el cambio" : `los ${pendientes} cambios`} y recalcula en el servidor` : "Sin cambios que aplicar"} onClick={onAplicar}>{aplicando ? "Aplicando…" : pendientes ? `Aplicar ${pendientes}` : "Aplicar"}</PulsoButton>
         </>
       }
     >
@@ -81,16 +91,20 @@ export function AjustesDiseno({ abierto, grupo, config, fase, vista, onGrupo, on
           <h3>{actual.nombre}</h3>
           <p>{actual.descripcion}</p>
         </div>
-        <dl className="hr-ajustes-vigente">
-          <dt>Vigente</dt>
-          <dd>{resumenGrupo(actual.id, config, { n, fase })}</dd>
-        </dl>
-        <div className="hr-ajustes-pendiente">
-          <span>Se edita en {NOMBRE_SECCION[actual.origen]} mientras el grupo pasa a esta ventana.</span>
-          <PulsoButton variant="secondary" size="sm" onClick={() => onIrSeccion(actual.origen)}>
-            Ir a {NOMBRE_SECCION[actual.origen]} <ArrowRight size={13} aria-hidden />
-          </PulsoButton>
-        </div>
+        {contenido ?? (
+          <>
+            <dl className="hr-ajustes-vigente">
+              <dt>Vigente</dt>
+              <dd>{resumenGrupo(actual.id, config, { n, fase })}</dd>
+            </dl>
+            <div className="hr-ajustes-pendiente">
+              <span>Se edita en {NOMBRE_SECCION[actual.origen]} mientras el grupo pasa a esta ventana.</span>
+              <PulsoButton variant="secondary" size="sm" onClick={() => onIrSeccion(actual.origen)}>
+                Ir a {NOMBRE_SECCION[actual.origen]} <ArrowRight size={13} aria-hidden />
+              </PulsoButton>
+            </div>
+          </>
+        )}
       </div>
     </Dialog>
   );

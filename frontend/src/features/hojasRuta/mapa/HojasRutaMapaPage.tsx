@@ -1042,7 +1042,7 @@ export default function HojasRutaMapaPage() {
           )}
         </section>
       </div>
-      <AjustesDisenoHost config={estado?.integrated_config ?? null} fase={fase} tamano={tamano} />
+      <AjustesDisenoHost config={estado?.integrated_config ?? null} configMuestra={configMuestra ?? null} fase={fase} tamano={tamano} margenPara={entradaTamano ? (n) => margenTotalParaN(entradaTamano, n) : undefined} bloqueado={bloqueado} guardando={guardando} onAplicarMuestra={() => void guardarMuestra()} />
     </PageFrame>
   );
 }

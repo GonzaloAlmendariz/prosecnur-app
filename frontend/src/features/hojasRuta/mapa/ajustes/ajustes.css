@@ -6,7 +6,10 @@
 .hr-ajustes-buscar input { flex: 1; min-width: 0; border: 0; background: none; font: inherit; font-size: var(--pulso-type-body-size); color: var(--pulso-text); outline: none; }
 .hr-ajustes-buscar:focus-within { border-color: var(--pulso-module-routes); }
 
-.hr-ajustes-medio { display: grid; grid-template-columns: 250px minmax(0, 1fr); min-height: 0; height: 100%; }
+/* El cuerpo del diálogo es este grid: una sola fila al alto del cuerpo, y scrollean la navegación y el
+   contenido por separado (sin la fila `auto`, la fila crecía con el contenido y los últimos 44 px quedaban
+   fuera de alcance: «scroll-unreachable» del QA). */
+.hr-ajustes-medio { display: grid; grid-template-columns: 250px minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); min-height: 0; overflow: hidden; }
 .hr-ajustes-nav { display: flex; flex-direction: column; gap: 2px; padding: 10px; border-right: 1px solid var(--pulso-border); overflow: auto; }
 .hr-ajustes-nav-item { display: flex; flex-direction: column; align-items: flex-start; gap: 1px; padding: 8px 10px; border: 0; border-radius: 9px; background: none; font: inherit; text-align: left; cursor: pointer; transition: background 0.18s ease; }
 .hr-ajustes-nav-item span { font-size: var(--pulso-type-body-size); font-weight: 600; color: var(--pulso-text); }
@@ -57,3 +60,21 @@
 .hr-boton-diseno b { font-size: var(--pulso-type-body-size); font-weight: 600; color: var(--pulso-text); white-space: nowrap; }
 .hr-boton-diseno-pendientes { padding: 3px 8px; border-radius: 7px; background: var(--pulso-module-routes); color: var(--pulso-on-primary, var(--pulso-surface)); font-size: var(--pulso-type-micro-size); font-weight: 700; white-space: nowrap; }
 .hr-boton-diseno-punto { width: 8px; height: 8px; border-radius: 50%; background: var(--pulso-module-routes); }
+
+/* Acceso contextual (AccesoAjustes.tsx): lo que queda en la sección cuando su configuración se muda. */
+.hr-acceso-ajustes { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 11px 12px; border-radius: 10px; background: var(--pulso-surface-2); }
+.hr-acceso-ajustes-texto { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.hr-acceso-ajustes-texto small { font-size: var(--pulso-type-micro-size); font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--pulso-text-soft); }
+.hr-acceso-ajustes-texto b { font-size: var(--pulso-type-body-size); font-weight: 600; color: var(--pulso-text); }
+.hr-acceso-ajustes-boton { display: inline-flex; align-items: center; gap: 2px; flex: none; padding: 4px 9px; border: 0; border-radius: 7px; background: var(--pulso-module-routes-soft); color: var(--pulso-module-routes); font: inherit; font-size: var(--pulso-type-caption-size); font-weight: 600; cursor: pointer; transition: background-color 0.15s ease; }
+.hr-acceso-ajustes-boton:hover { background: color-mix(in srgb, var(--pulso-module-routes) 16%, var(--pulso-surface)); color: var(--pulso-module-routes); }
+.hr-acceso-ajustes-boton:focus-visible { outline: 2px solid var(--pulso-module-routes); outline-offset: 2px; }
+
+/* Bloques del interior de un grupo (GrupoTamano y los que siguen): abiertos, densos, con su título. */
+.hr-ajustes-grupo-cuerpo { display: flex; flex-direction: column; gap: 10px; }
+.hr-ajustes-bloque { display: flex; flex-direction: column; gap: 10px; padding: 11px 12px; border: 1px solid var(--pulso-border); border-radius: 10px; }
+.hr-ajustes-bloque > h4 { margin: 0; font-size: var(--pulso-type-micro-size); font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--pulso-text-soft); }
+.hr-ajustes-bloque .hr-muestra-grupo { border-top: 0; padding-top: 0; }
+/* La curva del margen se dibujó para la columna del inspector (~300 px): estirada al ancho de la ventana
+   sus rótulos crecían con el viewBox. Aquí conserva ese tamaño. */
+.hr-ajustes .hr-margen-curva { max-width: 360px; }
