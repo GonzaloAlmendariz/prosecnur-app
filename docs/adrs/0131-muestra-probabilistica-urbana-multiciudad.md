@@ -81,6 +81,28 @@ la muestra teniendo el 54 % de la población. Esta enmienda reemplaza la regla d
   colapsa con otro grupo para estimar la varianza, con regla declarada.
 - La semilla del sorteo de ciudades se guarda con la muestra, igual que la de manzanas.
 
+#### 1c. Enmienda del 5/11: distritos de inclusión forzosa y distritos sorteados
+
+Gonzalo, 5/11: «ir a un distrito solo para una encuesta es muy costoso, además cada ficha o ruta debe ser de un
+distrito en su totalidad». Con el PPS sistemático sobre la lista ordenada por distrito, muchos distritos chicos
+recibían 1 o 2 rutas. Se aplica dentro de cada ciudad (o área de Lima) la misma regla del §1b, un nivel más abajo.
+
+- **Mínimo operativo por distrito visitado: 3 rutas** (decisión de Gonzalo). Parámetro del estudio
+  (`rutas_minimas_distrito`), 3 por defecto.
+- **Distritos forzosos:** los que alcanzan el mínimo con su reparto proporcional dentro de la ciudad o área. Reciben
+  su reparto proporcional y dentro de ellos sigue el PPS sistemático de manzanas.
+- **Distritos sorteados:** los que quedan bajo el mínimo se agrupan dentro de su ciudad o área. Con `R_g` rutas del
+  grupo se visitan `h_g = max(1, ⌊R_g / mínimo⌋)` distritos, sorteados por PPS sistemático con su medida (`MOS_d`,
+  suma de la medida del marco elegible del distrito), y cada uno recibe `R_g / h_g` rutas por redondeo controlado, sin
+  bajar del mínimo. Si un grupo tiene menos rutas que el mínimo, se une al grupo de la ciudad o área más cercana en la
+  lista, o el distrito recibe el mínimo y el exceso se descuenta de los forzosos de la misma ciudad, con regla
+  declarada.
+- **π de la manzana** = `π_c · π_d · π_manzana|distrito`, con `π_d = 1` en los distritos forzosos. Se publica `π_d` y
+  la condición de cada distrito.
+- **Ruta dentro de un distrito:** la ruta, sus manzanas aledañas y su reemplazo pareado quedan en el distrito de la
+  titular. El motor lo verifica y avisa si alguna cruzara un límite distrital.
+- La semilla del sorteo de distritos se guarda con la muestra.
+
 ### 2. Reparto y medida de tamaño con 2025
 
 - **Entre estratos:** proporcional a los adultos urbanos estimados para 2025,
