@@ -1,8 +1,10 @@
 /**
  * Curva del margen total según el N (brecha B54): la misma fórmula del motor
  * (`margenTotalParaN`) evaluada en una grilla, con el objetivo en línea
- * discontinua y el N en uso como punto. Sólo dibuja: no decide nada.
+ * discontinua y el N en uso como punto. Con `onElegirN` (Ajustes del diseño, modo N total) un clic en la
+ * curva o el deslizador de abajo proponen el N de ese punto, redondeado a rutas completas; sin él sólo dibuja.
  */
+import type { MouseEvent } from "react";
 
 const W = 300;
 const H = 128;
@@ -11,9 +13,12 @@ const ABAJO = 18;
 const TOPE = 0.12;
 const fmt = (n: number) => new Intl.NumberFormat("es-PE").format(Math.round(n));
 
-type Props = { margenPara: (n: number) => number | null; nUsado: number; objetivo: number; porRuta: number };
+type Props = { margenPara: (n: number) => number | null; nUsado: number; objetivo: number; porRuta: number; onElegirN?: (n: number) => void };
 
-export function MargenCurva({ margenPara, nUsado, objetivo, porRuta }: Props) {
+/** El múltiplo de k más cercano a n, nunca menor que k. */
+export const alMultiplo = (n: number, k: number) => (k > 0 ? Math.max(k, Math.round(n / k) * k) : Math.round(n));
+
+export function MargenCurva({ margenPara, nUsado, objetivo, porRuta, onElegirN }: Props) {
   const x0 = Math.max(porRuta, 100);
   const x1 = Math.max(3600, nUsado * 1.3);
   const mx = (n: number) => IZQ + ((n - x0) / (x1 - x0)) * (W - IZQ - 6);
@@ -26,8 +31,15 @@ export function MargenCurva({ margenPara, nUsado, objetivo, porRuta }: Props) {
   }
   const actual = margenPara(nUsado);
   if (!puntos.length) return null;
-  return (
-    <svg className="hr-margen-curva" viewBox={`0 0 ${W} ${H}`} role="img" aria-label={`Margen total según N: con ${fmt(nUsado)} entrevistas, ±${((actual ?? 0) * 100).toFixed(1)} %`}>
+  const alClic = (e: MouseEvent<SVGSVGElement>) => {
+    if (!onElegirN) return;
+    const caja = e.currentTarget.getBoundingClientRect();
+    const x = ((e.clientX - caja.left) / caja.width) * W;
+    const n = x0 + ((x - IZQ) / (W - IZQ - 6)) * (x1 - x0);
+    onElegirN(alMultiplo(Math.min(x1, Math.max(x0, n)), porRuta));
+  };
+  const curva = (
+    <svg className="hr-margen-curva" data-interactiva={onElegirN ? "" : undefined} onClick={onElegirN ? alClic : undefined} viewBox={`0 0 ${W} ${H}`} role="img" aria-label={`Margen total según N: con ${fmt(nUsado)} entrevistas, ±${((actual ?? 0) * 100).toFixed(1)} %`}>
       {[0.03, 0.06, 0.09, 0.12].map((m) => (
         <g key={m}>
           <line x1={IZQ} x2={W - 6} y1={my(m)} y2={my(m)} className="hr-margen-curva-guia" />
@@ -42,5 +54,22 @@ export function MargenCurva({ margenPara, nUsado, objetivo, porRuta }: Props) {
         <text key={i} x={mx(n)} y={H - 4} textAnchor={i === 0 ? "start" : i === 1 ? "middle" : "end"}>{fmt(Math.round(n / 10) * 10)}</text>
       ))}
     </svg>
+  );
+  if (!onElegirN) return curva;
+  return (
+    <div className="hr-margen-curva-caja">
+      {curva}
+      <input
+        type="range"
+        className="hr-margen-curva-deslizador"
+        min={alMultiplo(x0, porRuta)}
+        max={alMultiplo(x1, porRuta)}
+        step={porRuta}
+        value={alMultiplo(nUsado, porRuta)}
+        aria-label="Número de encuestas"
+        aria-valuetext={`${fmt(nUsado)} encuestas`}
+        onChange={(e) => onElegirN(alMultiplo(Number(e.target.value), porRuta))}
+      />
+    </div>
   );
 }

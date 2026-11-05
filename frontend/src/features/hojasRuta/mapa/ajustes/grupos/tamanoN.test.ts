@@ -24,3 +24,12 @@ describe("tamaño y precisión: N, k y lo que se muestra", () => {
     expect(nEfectivo(1200, 1.5)).toBe(800);
   });
 });
+
+import { alMultiplo } from "../../muestra/MargenCurva";
+describe("curva interactiva", () => {
+  it("el punto elegido se redondea a rutas completas, nunca bajo k", () => {
+    expect(alMultiplo(1203, 8)).toBe(1200);
+    expect(alMultiplo(1205, 8)).toBe(1208);
+    expect(alMultiplo(3, 8)).toBe(8);
+  });
+});

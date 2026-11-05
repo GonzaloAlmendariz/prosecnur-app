@@ -93,3 +93,6 @@
 .hr-ajustes-formula dt { font-size: var(--pulso-type-micro-size); font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--pulso-text-soft); }
 .hr-ajustes-formula dd { margin: 0; font-size: var(--pulso-type-body-size); font-weight: 700; color: var(--pulso-text); font-variant-numeric: tabular-nums; }
 .hr-ajustes-formula dd small { font-weight: 500; color: var(--pulso-text-soft); }
+.hr-margen-curva-caja { display: flex; flex-direction: column; gap: 4px; max-width: 360px; }
+.hr-margen-curva[data-interactiva] { cursor: crosshair; }
+.hr-margen-curva-deslizador { width: 100%; accent-color: var(--pulso-module-routes); }
