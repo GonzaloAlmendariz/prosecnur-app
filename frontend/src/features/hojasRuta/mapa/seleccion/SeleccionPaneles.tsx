@@ -300,7 +300,8 @@ const COLUMNAS_CUOTA: PulsoTableColumna<Celda & { _i: number }>[] = [
   { id: "distrito", encabezado: "Distrito", ancho: 170, celda: (c) => nombreDistrito(String(c.territorio ?? "")), valor: (c) => String(c.territorio ?? "") },
   { id: "edad", encabezado: "Edad", ancho: 100, celda: (c) => String(c.rango_edad ?? ""), valor: (c) => String(c.rango_edad ?? "") },
   { id: "sexo", encabezado: "Sexo", ancho: 90, celda: (c) => String(c.sexo ?? "Total"), valor: (c) => String(c.sexo ?? "Total") },
-  { id: "cuota", encabezado: "Cuota", ancho: 80, tipo: "cifra", celda: (c) => fmt(Number(c.cuota ?? 0)), valor: (c) => Number(c.cuota ?? 0) },
+  // Una cuota en cero (distrito sin N) se atenúa: con el mismo peso que una cuota real, ocho filas de ceros encabezaban la tabla.
+  { id: "cuota", encabezado: "Cuota", ancho: 80, tipo: "cifra", celda: (c) => (Number(c.cuota ?? 0) === 0 ? <span className="hr-cuota-cero">0</span> : fmt(Number(c.cuota))), valor: (c) => Number(c.cuota ?? 0) },
 ];
 
 type CajonProps = { titulares: readonly SelectedBlock[]; reemplazos: readonly SelectedBlock[]; cuotas: QuotaPlan | null };

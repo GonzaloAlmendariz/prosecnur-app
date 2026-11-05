@@ -338,7 +338,9 @@
 .hr-sel-cajon > .pulso-panel-header { align-items: center; margin-bottom: 0; gap: 8px; }
 /* El título cede ancho a las acciones (el Panel le reserva 320 px): en el centro del lienzo no caben los dos. */
 .hr-sel-cajon > .pulso-panel-header > .pulso-panel-heading { flex: 1 1 0; min-width: 0; }
-.hr-sel-cajon > .pulso-panel-header > .pulso-panel-actions { flex: 0 1 auto; }
+.hr-sel-cajon > .pulso-panel-header > .pulso-panel-actions { flex: 0 1 auto; flex-wrap: nowrap; align-items: center; }
+/* Sin nowrap la «×» caía sola a una segunda fila a 1440 y le robaba un renglón a la tabla. */
+.hr-cuota-cero { color: var(--pulso-text-soft); }
 /* Cajón angosto (el centro del lienzo a 1024 y a 1366 con el inspector abierto): el título cedería un renglón entero a
    la tabla, que ya vive en 46 % del alto. Ahí lo declaran el `aria-label` del cajón y el botón que lo abrió, y los
    controles ocupan la fila como antes de ser Panel. */
