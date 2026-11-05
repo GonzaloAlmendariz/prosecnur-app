@@ -1685,7 +1685,7 @@
            default = TRUE,
            descripcion = "Si se desactiva, oculta rangos sin casos para compactar el histograma."),
       list(name = "mostrar_frecuencia", label = "Mostrar frecuencia junto al %", tipo_input = "bool", grupo = "valores",
-           default = FALSE,
+           default = FALSE, via_overrides = TRUE,
            descripcion = "Agrega el conteo al porcentaje: 42% (76) en vez de 42%. Apagado por defecto."),
       # Revisión del PPT v7.11 de CCSS (lámina 11): Gonzalo aún no elige entre la línea y el triángulo; la línea es el
       # defecto. Lo dibuja la lámina nativa (graficador_histograma_lamina.R) y viaja por overrides.

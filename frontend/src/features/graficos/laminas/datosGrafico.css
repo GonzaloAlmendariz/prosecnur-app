@@ -311,3 +311,21 @@
   opacity: 0.4;
   cursor: not-allowed;
 }
+
+/* U9: una etiqueta corta por pregunta en las multiapiladas. El enunciado entero, envuelto, y su campo al lado. */
+.pulso-f6-etiquetas-preguntas { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.pulso-f6-etiqueta-pregunta {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+.pulso-f6-etiqueta-pregunta-texto {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-size: var(--pulso-type-body-size);
+  line-height: 1.3;
+  color: var(--pulso-text-muted);
+}
+.pulso-f6-etiqueta-pregunta .pulso-f6-input { min-width: 0; width: 100%; }

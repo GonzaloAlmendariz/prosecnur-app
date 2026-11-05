@@ -26,6 +26,8 @@ const CIFRAS: ReadonlySet<string> = new Set([
   "decimales", "mostrar_leyenda",
   // U6 (2026-11-05): cómo se dibujan las barras y la mediana.
   "pista_barras", "colorear_por_opcion", "marca_mediana",
+  // U10: los casos bajo el porcentaje del histograma.
+  "mostrar_frecuencia",
 ]);
 
 export function grupoDeCampo(arg: string): GrupoTarjeta {

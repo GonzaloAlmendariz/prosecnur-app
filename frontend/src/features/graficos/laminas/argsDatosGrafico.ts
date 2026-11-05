@@ -385,6 +385,10 @@ const LISTA_BLANCA: Record<string, Entrada> = {
     rotulo: "Un color por opción", ayuda: "Con una sola serie, cada barra con el color de su respuesta.", soloEn: ["p_barras_agrupadas"],
   },
   marca_mediana: { rotulo: "Marca de la mediana", soloEn: ["p_histograma"] },
+  // U10 (2026-11-05): la lámina nativa lo lee (graficador_histograma_recetario.R); viaja en espejo como los de U6.
+  // `ancho_bin` y `mostrar_bins_vacios` siguen en RETIRADOS: con un ancho declarado el histograma deja la lámina nativa y
+  // sale como imagen (`.histograma_recetario_aplica`), y los intervalos vacíos sólo existen en esa ruta.
+  mostrar_frecuencia: { rotulo: "Casos junto al %", ayuda: "Bajo cada porcentaje, cuántos casos son.", soloEn: ["p_histograma"] },
 };
 
 /**

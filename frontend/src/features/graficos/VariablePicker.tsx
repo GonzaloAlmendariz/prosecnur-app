@@ -19,6 +19,9 @@ type Props = {
   /** Base en la que abre el buscador mientras no hay pregunta elegida: la fila de un público abre en la suya (antes abría
    *  en la primera base del estudio y, desde la fila de Estudiantes, buscaba en Docentes). */
   fuenteInicial?: string;
+  /** Sin el aviso «falta la base» de una referencia sin prefijo: donde el motor la lee en la base del gráfico (los cruces
+   *  de las tarjetas de diferencias, `.sig_var_local`; U15 del checklist de mandos del mazo). */
+  sinAvisoDeBase?: boolean;
 };
 
 // VariablePicker multi-base (v0.2+).
@@ -36,7 +39,7 @@ type Props = {
 // el analista lo guardó conscientemente así).
 
 export default function VariablePicker({
-  value, onChange, placeholder = "Selecciona variable…", filter, allowEmpty = false, ocultarBase = false, fuenteInicial,
+  value, onChange, placeholder = "Selecciona variable…", filter, allowEmpty = false, ocultarBase = false, fuenteInicial, sinAvisoDeBase = false,
 }: Props) {
   const { sources, multi, loading, error } = useVariables();
   const [open, setOpen] = useState(false);
@@ -151,7 +154,8 @@ export default function VariablePicker({
   // mostraba era la del picker, o sea la primera que resultara tener ese
   // nombre. El chip parecía una atribución y el motor, en cambio, ni siquiera
   // puede renderizar el gráfico. Se dice lo que hay: falta elegir la base.
-  const refSinBase = multi && !parsed.source && !!parsed.name;
+  const sinPrefijo = multi && !parsed.source && !!parsed.name;
+  const refSinBase = sinPrefijo && !sinAvisoDeBase;
 
   function handleSourceChange(newSource: string) {
     if (!sources.some((s) => s.name === newSource)) return;
@@ -227,7 +231,7 @@ export default function VariablePicker({
           <span className="pulso-gv2-variable-trigger-source is-sin-base" title="Esta variable no dice de qué base es; vuelve a elegirla.">
             falta la base
           </span>
-        ) : selectedVar && selectedSourceLabel && !ocultarBase ? (
+        ) : selectedVar && selectedSourceLabel && !ocultarBase && !sinPrefijo ? (
           <span className="pulso-gv2-variable-trigger-source">{selectedSourceLabel}</span>
         ) : null}
         <ChevronDown size={14} className="pulso-gv2-variable-trigger-chevron" />

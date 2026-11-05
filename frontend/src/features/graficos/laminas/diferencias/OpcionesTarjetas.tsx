@@ -57,7 +57,8 @@ export function OpcionesTarjetas({ valor, ranura, scope, baseActiva, onCambio }:
 
 /**
  * Los cruces de las tarjetas, cada uno con el nombre que lleva en ellas; vacío, los del estudio. La lámina de resumen y
- * la de hallazgos lo usan con sus `cruces` y `rotulos` (CrucesLamina), con su propia ayuda.
+ * la de hallazgos lo usan con sus `cruces` y `rotulos` (CrucesLamina), con su propia ayuda. U15: el motor lee cada cruce
+ * en la base del gráfico (`.sig_var_local`), así que un cruce sin base no es un error y el selector no avisa «falta la base».
  */
 export function CrucesTarjetas({ valor, cruces, onCambio, ayudaVacia = "Sin elegir, los cruces del estudio.", ayudaLlena = "En este orden. El nombre vacío usa el de la pregunta." }: {
   valor: ValorTarjetas;
@@ -89,7 +90,7 @@ export function CrucesTarjetas({ valor, cruces, onCambio, ayudaVacia = "Sin eleg
           return (
             <div key={`${ref}-${i}`} className="pulso-f6-criterio" role="group" aria-label={`Cruce ${i + 1}: ${etiqueta}`}>
               <div className="pulso-f6-criterio-cabecera">
-                <VariablePicker value={ref} onChange={(v) => reemplazar(i, v)} placeholder="Elige el cruce…" />
+                <VariablePicker value={ref} onChange={(v) => reemplazar(i, v)} placeholder="Elige el cruce…" sinAvisoDeBase />
                 <button type="button" className="pulso-f6-boton pulso-f6-preguntas-quitar" aria-label={`Quitar el cruce ${etiqueta}`}
                   onClick={() => reemplazar(i, null)}>
                   <X size={14} aria-hidden="true" />
@@ -103,7 +104,7 @@ export function CrucesTarjetas({ valor, cruces, onCambio, ayudaVacia = "Sin eleg
         })}
         <div className="pulso-f6-preguntas-fila is-nueva">
           <Plus size={14} aria-hidden="true" />
-          <VariablePicker value={null} placeholder="Agregar cruce…"
+          <VariablePicker value={null} placeholder="Agregar cruce…" sinAvisoDeBase
             onChange={(v) => { if (v && !cruces.includes(v)) onCambio({ cruces: [...cruces, v] }); }} />
         </div>
       </div>

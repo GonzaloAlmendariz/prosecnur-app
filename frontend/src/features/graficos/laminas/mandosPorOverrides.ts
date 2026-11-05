@@ -4,9 +4,23 @@
 // espejo a los dos lados. El backend completa el lado que falte en planes viejos y, si difieren, manda `overrides`
 // (api/R/graficos_migrar_args_overrides.R, `.GRAFICOS_ARGS_ESPEJO_OVERRIDES`). Las dos listas son la misma.
 
-export const MANDOS_ESPEJO_OVERRIDES: ReadonlySet<string> = new Set(["pista_barras", "colorear_por_opcion", "marca_mediana"]);
+// U10 (2026-11-05): `mostrar_frecuencia` del histograma tampoco es formal de `p_histograma()`; su `...` lo pasaría a
+// `overrides`, pero `.clean_rebuild_args` descarta antes todo lo que no es formal con nombre (router_graficos.R).
+export const MANDOS_ESPEJO_OVERRIDES: ReadonlySet<string> = new Set(["pista_barras", "colorear_por_opcion", "marca_mediana", "mostrar_frecuencia"]);
 
 const esRegistro = (v: unknown): v is Record<string, unknown> => !!v && typeof v === "object" && !Array.isArray(v);
+
+/**
+ * Lo guardado de un campo de la tarjeta. Para un mando en espejo manda `overrides` si lo trae, como en el backend: un plan
+ * escrito a mano que sólo lo pone ahí no se ve apagado en la tarjeta mientras la lámina lo dibuja encendido.
+ */
+export function valorDeMando(args: Readonly<Record<string, unknown>>, name: string): unknown {
+  if (MANDOS_ESPEJO_OVERRIDES.has(name) && esRegistro(args.overrides)) {
+    const v = args.overrides[name];
+    if (v !== undefined && v !== null) return v;
+  }
+  return args[name];
+}
 
 /**
  * El parche con su copia en `overrides` para los mandos en espejo: un valor se escribe también ahí y un `null` (borrar)
