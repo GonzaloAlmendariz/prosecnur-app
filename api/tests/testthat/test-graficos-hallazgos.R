@@ -341,3 +341,14 @@ test_that("PPT, modo «titulares»: un titular por capítulo, con la frase debaj
   expect_true("resumen_ejecutivo:titular" %in% r$nombres)
   expect_equal(sum(r$nombres == "resumen_ejecutivo:cifra"), 2L)   # uno por capítulo
 })
+
+test_that("resumen en el Word: tabla propia con su alto (no los puntos del respaldo) y se dibuja sin error en un dispositivo", {
+  e <- .hz_resumen(modo = "resumen", capitulos = .hz_caps())
+  g <- .halla_ggplot(e)
+  expect_true(is.finite(attr(g, "alto_word")) && attr(g, "alto_word") > 1)   # el marco del Word lee `alto_word`
+  tx <- unlist(lapply(suppressWarnings(ggplot2::ggplot_build(g))$data, function(l) if ("label" %in% names(l)) as.character(l$label)))
+  expect_true(all(c("CIFRA", "HALLAZGO", "CAPÍTULO UNO") %in% tx))
+  f <- tempfile(fileext = ".png")
+  expect_silent(suppressWarnings(ggplot2::ggsave(f, g, width = 6.27, height = attr(g, "alto_word"), dpi = 60, device = ragg::agg_png)))
+  expect_true(file.exists(f))
+})
