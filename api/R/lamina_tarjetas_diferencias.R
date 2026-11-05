@@ -575,7 +575,9 @@
   # Barras: la columna de rótulos tiene que quedar dentro de su tope (35 % del ancho); si el motor vuelve a la columna
   # natural, los rótulos largos se salen por la izquierda.
   ancho <- .std_geom("ancho") - .std_geom("margen_izq") - .std_geom("margen_der")
-  .lam_barras_geo(espec)$wlab <= .lam_barras_tope_rotulo() * ancho + 1e-6
+  geo <- .lam_barras_geo(espec)
+  if (geo$wlab <= .lam_barras_tope_rotulo() * ancho + 1e-6) return(TRUE)
+  .lam_tarjetas_columna_declarada_cabe(espec, geo, ancho)   # lamina_tarjetas_columna_declarada.R
 }
 
 #' El gráfico del total renderizado de nuevo por el motor para el ancho acotado (`.render_element` del entorno del motor)

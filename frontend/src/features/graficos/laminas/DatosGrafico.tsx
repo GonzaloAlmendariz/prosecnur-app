@@ -80,6 +80,7 @@ import { DiferenciasInspector } from "./diferencias/DiferenciasInspector";
 import { TarjetasDiferencias } from "./diferencias/TarjetasDiferencias";
 import { admiteTarjetas } from "./diferencias/modeloTarjetas";
 import { argDeCruce, valorDeCruce } from "./diferencias/modeloDiferencias";
+import { interruptorAplica, interruptorGuardado, parcheInterruptor } from "./diferencias/interruptorDelGrafico";
 import { revelarYEnfocar } from "../revelarFila";
 import "./datosGrafico.css";
 import { formatoConteo } from "../../../lib/formatoNumero";
@@ -209,7 +210,9 @@ export function DatosGrafico({ slideId, slot, valor }: Props) {
   const cruce = argCruce ? valorDeCruce(args[argCruce]) : "";
   const nombreCruce = cruce.includes("$") ? cruce.slice(cruce.lastIndexOf("$") + 1) : cruce;
   const etiquetaCruce = cruce ? variables.find((v) => v.name === nombreCruce || `${v.source}$${v.name}` === cruce)?.label ?? null : null;
-  const sigGuardada = args.mostrar_significancia ?? (tipo ? presets[tipo]?.mostrar_significancia : undefined);
+  // U11: un `overrides.mostrar_significancia` viejo manda, como en el motor; en multiapiladas sólo el modo «cruce» marca.
+  const sigGuardada = interruptorGuardado(args) ?? (tipo ? presets[tipo]?.mostrar_significancia : undefined);
+  const sigAplica = !!argSig && interruptorAplica(argSig, meta?.args ?? [], args);
   // ADR 0129: una lámina de total (un gráfico, sin cruce) puede llevar tarjetas de diferencias en vez de marcas; en la
   // de dos gráficos, cada uno las suyas (U2 del checklist del mazo).
   const conTarjetas = admiteTarjetas(slidesPlan.find((x) => x.id === slideId)?.tipo ?? "", valor.graficador, cruce, slot);
@@ -300,14 +303,14 @@ export function DatosGrafico({ slideId, slot, valor }: Props) {
           <TarjetasDiferencias slideId={slideId} slot={slot} />
         </SeccionPlegable>
       )}
-      {argSig && argCruce && !conTarjetas && (
+      {argSig && sigAplica && argCruce && !conTarjetas && (
         <SeccionPlegable seccion="diferencias">
           <DiferenciasInspector
             slideId={slideId}
             encendido={interruptorEncendido(argSig, sigGuardada)}
             cruce={cruce}
             etiquetaCruce={etiquetaCruce}
-            onAlternar={(v) => set({ mostrar_significancia: v })}
+            onAlternar={(v) => set(parcheInterruptor(args, v))}
             onAgregarCruce={agregarCruce}
             onQuitarCruce={() => set({ [argCruce]: null })}
           />
