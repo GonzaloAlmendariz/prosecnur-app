@@ -1,7 +1,11 @@
 import { useCallback, useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 
-import type { HojasRutaEstratoMuestral, HojasRutaIntegratedConfig, HojasRutaTerritory } from "../../../../api/hojasRuta";
+import type { HojasRutaAgeRange, HojasRutaEstratoMuestral, HojasRutaIntegratedConfig, HojasRutaTerritory } from "../../../../api/hojasRuta";
+import { payloadDeRangos } from "../poblacion/aplicarRangos";
+import type { ResumenMatriz } from "../poblacion/matriz";
+import { useModoRangos } from "../poblacion/PoblacionPaneles";
+import { GrupoCuotas } from "./grupos/GrupoCuotas";
 import type { ResultadoTamano } from "../muestra/motorTamano";
 import { useLienzoHojasRuta } from "../store";
 import { AjustesDiseno, type VistaPreviaDiseno } from "./AjustesDiseno";
@@ -25,6 +29,11 @@ type Props = {
   estratoServidor: HojasRutaEstratoMuestral | null;
   /** El guardar de la muestra de la página (el mismo de antes de la mudanza). */
   onAplicarMuestra: () => void;
+  rangosConfig: readonly HojasRutaAgeRange[];
+  matriz: ResumenMatriz;
+  /** Los guardados de Población (los mismos que usaba su inspector). */
+  onGuardarYCalcularPoblacion: (cambios: Partial<HojasRutaIntegratedConfig>) => void;
+  onGuardarCaracter: (caracter: NonNullable<HojasRutaIntegratedConfig["caracter_cuotas"]>) => void;
 };
 
 const vistaDe = (config: HojasRutaIntegratedConfig, tamano: ResultadoTamano | null): VistaPreviaDiseno => {
@@ -38,12 +47,14 @@ const vistaDe = (config: HojasRutaIntegratedConfig, tamano: ResultadoTamano | nu
  * crecer `HojasRutaMapaPage.tsx`. Recalcular fija la vista previa con el borrador vigente sin guardar; si el
  * borrador cambia después, la vista previa queda atenuada hasta volver a recalcular. Aplicar guarda.
  */
-export function AjustesDisenoHost({ config, configMuestra, fase, tamano, margenPara, bloqueado, guardando, territorios, estratoServidor, onAplicarMuestra }: Props) {
+export function AjustesDisenoHost({ config, configMuestra, fase, tamano, margenPara, bloqueado, guardando, territorios, estratoServidor, onAplicarMuestra, rangosConfig, matriz, onGuardarYCalcularPoblacion, onGuardarCaracter }: Props) {
   const { abierto, grupo, cerrar, irAGrupo } = useAjustesDiseno();
   const { rangosBorrador, cortesBorrador, muestraBorrador, sorteoBorrador } = useLienzoHojasRuta();
   const location = useLocation();
   const navigate = useNavigate();
   const firma = JSON.stringify(muestraBorrador ?? null);
+  // useModoRangos lee la config; sin config aún, una vacía basta (el host no dibuja nada).
+  const rangos = useModoRangos(config ?? ({} as HojasRutaIntegratedConfig));
   const [fijada, setFijada] = useState<{ firma: string; vista: VistaPreviaDiseno } | null>(null);
   // La vista aplicada (sin borrador) es la base: con cambios sin recalcular se muestra ella, atenuada.
   const [base, setBase] = useState<VistaPreviaDiseno | null>(null);
@@ -72,9 +83,10 @@ export function AjustesDisenoHost({ config, configMuestra, fase, tamano, margenP
       if (g === "tamano" && tamano) return <GrupoTamano config={configMuestra} resultado={tamano} bloqueado={bloqueado} guardando={guardando} margenPara={margenPara} />;
       if (g === "reparto") return <GrupoReparto config={configMuestra} territorios={territorios} estratoServidor={estratoServidor} deshabilitado={bloqueado || guardando} />;
       if (g === "visitas") return <GrupoVisitas config={configMuestra} estratoServidor={estratoServidor} deshabilitado={bloqueado || guardando} />;
+      if (g === "cuotas" && config) return <GrupoCuotas config={config} rangosConfig={rangosConfig} matriz={matriz} bloqueado={bloqueado} guardando={guardando} onGuardarYCalcular={onGuardarYCalcularPoblacion} onGuardarCaracter={onGuardarCaracter} />;
       return null;
     },
-    [configMuestra, tamano, bloqueado, guardando, margenPara, territorios, estratoServidor],
+    [config, configMuestra, tamano, bloqueado, guardando, margenPara, territorios, estratoServidor, rangosConfig, matriz, onGuardarYCalcularPoblacion, onGuardarCaracter],
   );
 
   if (!config) return null;
@@ -95,7 +107,11 @@ export function AjustesDisenoHost({ config, configMuestra, fase, tamano, margenP
       pendientes={cambiosSinAplicar({ rangos: rangosBorrador, cortes: cortesBorrador, muestra: muestraBorrador, sorteo: sorteoBorrador })}
       desfasada={desfasada}
       onRecalcular={() => setFijada({ firma, vista: actual })}
-      onAplicar={muestraBorrador ? onAplicarMuestra : undefined}
+      onAplicar={muestraBorrador || rangosBorrador || cortesBorrador ? () => {
+        // Cada borrador se guarda con su guardar de siempre: la muestra con el de Muestra, los rangos con el de Población.
+        if (muestraBorrador) onAplicarMuestra();
+        if (rangosBorrador || cortesBorrador) onGuardarYCalcularPoblacion(payloadDeRangos(rangos.modo, rangos.base, rangosBorrador ?? rangosConfig));
+      } : undefined}
       aplicando={guardando}
     />
   );

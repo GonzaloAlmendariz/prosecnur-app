@@ -96,3 +96,9 @@
 .hr-margen-curva-caja { display: flex; flex-direction: column; gap: 4px; max-width: 360px; }
 .hr-margen-curva[data-interactiva] { cursor: crosshair; }
 .hr-margen-curva-deslizador { width: 100%; accent-color: var(--pulso-module-routes); }
+/* Los rangos de edad dentro de la ventana: su cabecera de columna pierde el padding de columna. */
+.hr-ajustes-rangos .hr-mapa-cab { padding: 0; }
+.hr-ajustes-rangos .hr-mapa-ins-cuerpo { padding: 0; overflow: visible; }
+/* A 1024 la navegación mide ~190 px: el resumen se parte en vez de desbordar el ítem (overflow-x del QA). */
+.hr-ajustes-nav-item { width: 100%; min-width: 0; white-space: normal; }
+.hr-ajustes-nav-item small { display: block; max-width: 100%; overflow-wrap: anywhere; }

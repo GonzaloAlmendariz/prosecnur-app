@@ -209,3 +209,11 @@
 .hr-rangos-cabeza > span {
   white-space: nowrap;
 }
+
+/* Lectura de los rangos (PoblacionLectura.tsx): edad, barra del peso y porcentaje en una línea. */
+.hr-edad-lectura { display: flex; flex-direction: column; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.hr-edad-lectura li { display: grid; grid-template-columns: 64px minmax(0, 1fr) 64px; align-items: center; gap: 10px; }
+.hr-edad-lectura b { font-size: var(--pulso-type-body-size); font-weight: 600; font-variant-numeric: tabular-nums; color: var(--pulso-text); }
+.hr-edad-lectura li > i { height: 8px; border-radius: 4px; background: var(--pulso-surface-2); overflow: hidden; }
+.hr-edad-lectura li > i > i { display: block; height: 100%; border-radius: 4px; background: var(--pulso-module-routes); }
+.hr-edad-lectura small { text-align: right; font-size: var(--pulso-type-caption-size); color: var(--pulso-text-soft); font-variant-numeric: tabular-nums; }

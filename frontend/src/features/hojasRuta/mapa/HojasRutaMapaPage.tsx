@@ -54,7 +54,8 @@ import { normalizarEnvioMeta } from "../../../api/materialTerritorial";
 import { useBarraAngosta } from "./useBarraAngosta";
 import { PoblacionCajon } from "./poblacion/PoblacionCajon";
 import { FichaManzana } from "./manzanas/FichaManzana";
-import { PoblacionEstructura, PoblacionInspector } from "./poblacion/PoblacionPaneles";
+import { PoblacionInspector } from "./poblacion/PoblacionPaneles";
+import { PoblacionLectura } from "./poblacion/PoblacionLectura";
 import { aplicarBorrador, entradaDesdeConfig } from "./muestra/desdeConfig";
 import { calcularTamano, margenTotalParaN } from "./muestra/motorTamano";
 import { MuestraEstructura, MuestraInspector } from "./muestra/MuestraPaneles";
@@ -831,7 +832,7 @@ export default function HojasRutaMapaPage() {
           ) : enMuestra && configMuestra && tamano ? (
             <MuestraEstructura config={configMuestra} resultado={tamano} bloqueado={bloqueado} />
           ) : enPoblacion && estado ? (
-            <PoblacionEstructura rangosConfig={rangosConfig} config={estado.integrated_config} matriz={matriz} bloqueado={bloqueado} />
+            <PoblacionLectura rangos={rangosVista} config={estado.integrated_config} matriz={matriz} />
           ) : (
           <>
           <header className="hr-mapa-cab">
@@ -1042,7 +1043,7 @@ export default function HojasRutaMapaPage() {
           )}
         </section>
       </div>
-      <AjustesDisenoHost config={estado?.integrated_config ?? null} configMuestra={configMuestra ?? null} fase={fase} tamano={tamano} margenPara={entradaTamano ? (n) => margenTotalParaN(entradaTamano, n) : undefined} bloqueado={bloqueado} guardando={guardando} territorios={territorios} estratoServidor={estratoServidor} onAplicarMuestra={() => void guardarMuestra()} />
+      <AjustesDisenoHost config={estado?.integrated_config ?? null} configMuestra={configMuestra ?? null} fase={fase} tamano={tamano} margenPara={entradaTamano ? (n) => margenTotalParaN(entradaTamano, n) : undefined} bloqueado={bloqueado} guardando={guardando} territorios={territorios} estratoServidor={estratoServidor} onAplicarMuestra={() => void guardarMuestra()} rangosConfig={rangosConfig} matriz={matriz} onGuardarYCalcularPoblacion={(c) => void guardarYCalcularPoblacion(c)} onGuardarCaracter={(c) => void guardarCaracterCuotas(c)} />
     </PageFrame>
   );
 }
