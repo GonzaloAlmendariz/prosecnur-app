@@ -34,7 +34,8 @@
   display: flex;
   align-items: baseline;
   gap: 8px;
-  padding: 14px 16px 10px;
+  /* Densidad pedida por Gonzalo (maqueta 2026-11-05): 11–12 px en tarjetas y columnas, 10 px entre bloques. */
+  padding: 12px 12px 10px;
 }
 
 .hr-mapa-cab h2 {
@@ -143,7 +144,7 @@
 .hr-mapa-catalogo li[data-elegido="false"] strong { font-weight: 600; color: var(--pulso-text-soft); }
 .hr-mapa-catalogo-copia small { font-size: var(--pulso-type-caption-size); color: var(--pulso-text-soft); font-variant-numeric: tabular-nums; }
 .hr-mapa-catalogo-copia em { font-style: normal; font-weight: 700; color: var(--pulso-module-routes); }
-.hr-mapa-ins-cuerpo { flex: 1; min-height: 0; overflow: auto; display: flex; flex-direction: column; gap: 12px; padding: 0 16px 16px; }
+.hr-mapa-ins-cuerpo { flex: 1; min-height: 0; overflow: auto; display: flex; flex-direction: column; gap: 10px; padding: 0 12px 12px; }
 /* Las tarjetas no se encogen: si el contenido no cabe, el cuerpo hace scroll (C2).
    Sin esto, una tarjeta con overflow:hidden se aplastaba y cortaba sus cifras. */
 .hr-mapa-ins-cuerpo > * { flex-shrink: 0; }
@@ -165,7 +166,7 @@
 .hr-mapa-chip { display: inline-flex; align-items: center; height: 24px; padding: 0 9px; border-radius: 999px; border: 1px solid var(--pulso-module-routes-border); background: var(--pulso-module-routes-soft); color: var(--pulso-module-routes); font-size: var(--pulso-type-caption-size); font-weight: 700; }
 .hr-mapa-chip[data-tipo="quita"] { border-color: var(--pulso-border-strong); background: var(--pulso-surface-2); color: var(--pulso-text-soft); text-decoration: line-through; }
 .hr-mapa-aviso { margin: 8px 0 0; padding: 9px 11px; border: 1px solid var(--pulso-warn-border); border-radius: 11px; background: var(--pulso-warn-bg); color: var(--pulso-warn-fg); font-size: var(--pulso-type-subtitle-size); font-weight: 600; }
-.hr-mapa-pie { display: flex; gap: 8px; padding: 12px 16px; border-top: 1px solid var(--pulso-border); }
+.hr-mapa-pie { display: flex; gap: 8px; padding: 11px 12px; border-top: 1px solid var(--pulso-border); }
 .hr-mapa-pie > * { flex: 1; }
 @media (max-width: 1279px) {
   .hr-mapa-cifras strong { font-size: var(--pulso-type-body-size); }
@@ -442,7 +443,7 @@ div.hr-mapa-aviso { display: flex; flex-direction: column; align-items: flex-sta
 .hr-salidas-error { margin: 0; }
 
 /* Cabecera del inspector (brecha B14, artefacto .hm-ins-cab) */
-.hr-ins-cab { display: grid; grid-template-columns: 40px minmax(0, 1fr) auto; align-items: center; gap: 12px; padding: 14px 16px; border-bottom: 1px solid var(--pulso-border); }
+.hr-ins-cab { display: grid; grid-template-columns: 40px minmax(0, 1fr) auto; align-items: center; gap: 10px; padding: 12px; border-bottom: 1px solid var(--pulso-border); }
 .hr-ins-icono { width: 40px; height: 40px; border-radius: 11px; display: grid; place-items: center; background: var(--pulso-module-routes); color: var(--pulso-surface); font-size: var(--pulso-type-title-size); font-weight: 700; font-variant-numeric: tabular-nums; }
 .hr-ins-icono[data-estado="aviso"] { background: var(--pulso-warn-accent); }
 .hr-ins-icono[data-estado="error"] { background: var(--pulso-danger-fg); }
@@ -495,7 +496,7 @@ div.hr-mapa-aviso { display: flex; flex-direction: column; align-items: flex-sta
 
 /* Territorio: ficha del distrito enfocado (clic en el mapa o en su nombre) y zonas como filtro.
    Superficie blanca, sin franja lateral ni tarjetas dentro de la tarjeta. */
-.hr-ter-ficha { display: flex; flex-direction: column; gap: 12px; padding: 14px; border-radius: 12px; border: 1px solid var(--pulso-border); background: var(--pulso-surface); box-shadow: 0 4px 14px color-mix(in srgb, var(--pulso-text) 6%, transparent); }
+.hr-ter-ficha { display: flex; flex-direction: column; gap: 10px; padding: 12px; border-radius: 12px; border: 1px solid var(--pulso-border); background: var(--pulso-surface); box-shadow: 0 4px 14px color-mix(in srgb, var(--pulso-text) 6%, transparent); }
 .hr-ter-ficha-cab { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
 .hr-ter-ficha-cab strong { display: block; font-size: var(--pulso-type-title-size); font-weight: 700; color: var(--pulso-text); }
 .hr-ter-ficha-cab small { display: block; margin-top: 2px; font-size: var(--pulso-type-caption-size); color: var(--pulso-text-soft); }
