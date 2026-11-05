@@ -1,10 +1,13 @@
 # Hallazgos clave: el modelo de la lámina de cifras (especificación CCSS del 2026-11-04, §2)
 # ========================================================================================
 #
-# Un mismo tipo de lámina (`p_slide_hallazgos`) en dos modos:
+# Un mismo tipo de lámina (`p_slide_hallazgos`) en cuatro modos (los dos últimos, el resumen ejecutivo, en
+# graficos_hallazgos_resumen.R):
 #   - `cifras`: hasta seis cifras en una cuadrícula de 3 × 2 (con cuatro, 2 × 2), para abrir o cerrar el informe;
 #   - `cifras_con_graficos`: hasta tres cifras arriba y, debajo de cada una, su gráfico de apoyo; o un solo gráfico de
-#     ancho completo (`grafico_ancho`), para abrir un capítulo.
+#     ancho completo (`grafico_ancho`), para abrir un capítulo;
+#   - `resumen`: la tabla ejecutiva por capítulo (maqueta V1 del 2026-11-04), al final del mazo;
+#   - `titulares`: un titular por capítulo en una sola lámina (maqueta V3).
 #
 # Cada cifra:
 #   - es el porcentaje de `fila` (o de la suma de `filas`, o del Top Two Box con `top2box`) sobre su base, con el mismo
@@ -36,7 +39,7 @@
   it$texto <- .dif_chr1(x$texto)
   it$comparacion <- comp
   it$grafico <- if (is.list(x$grafico) && length(x$grafico)) x$grafico else NULL
-  it$base_texto <- .dif_chr1(x$base)
+  it$base_texto <- .dif_chr1(x[["base"]])   # `x$base` completaba a `base_rotulo` y la base salía «que trabajan»
   it
 }
 
@@ -216,9 +219,27 @@
     list(partes = list(list(texto = it$comparacion, dir = NULL, fragil = NA)), cola = NULL, estado = "manual")
   }
   if (!is.null(comp) && identical(comp$estado, "sin_prueba")) comp <- NULL
+  tambien <- if (identical(it$comparacion, "auto")) .halla_tambien(ev, auto, cx) else NULL
   graf <- if (isTRUE(con_grafico) && !is.null(it$grafico)) .halla_grafico_datos(fuente, it$grafico, it, sig, cx, tauto) else NULL
   list(var = fi$var, fila = fi$key, valor = fi$total, cifra = .tarjetas_pct(fi$total), texto = texto, intervalo = iv,
-       intervalo_texto = .intervalo_texto(iv), n = fi$n, base = base, comparacion = comp, grafico = graf)
+       intervalo_texto = .intervalo_texto(iv), n = fi$n, base = base, comparacion = comp, tambien = tambien, grafico = graf,
+       tipo_pregunta = fi$tipo, sumar = fi$sumar)
+}
+
+#' «También»: la diferencia más fuerte de OTRO cruce que el de la comparación automática
+#'
+#' Con dos grupos, el que está sobre el resto (el otro es su espejo); con más, el grupo que más se aleja.
+#' @return `list(texto, dir, fragil, cruce)` o NULL si ningún otro cruce difiere.
+#' @keywords internal
+.halla_tambien <- function(ev, auto, cx) {
+  if (!identical(auto$estado, "diferencia") || is.null(auto$cruce)) return(NULL)
+  ce <- ev$celdas
+  dif <- ce[ce$estado == "dif" & ce$cruce != auto$cruce, , drop = FALSE]
+  if (!nrow(dif)) return(NULL)
+  fuerza <- vapply(split(dif, dif$cruce), function(d) 1000 * as.numeric(any(!d$fragil)) + max(abs(d$valor)), numeric(1))
+  d <- dif[dif$cruce == names(fuerza)[which.max(fuerza)], , drop = FALSE]
+  i <- if (sum(ce$cruce == d$cruce[1]) == 2L && any(d$dir == "up")) which(d$dir == "up")[1] else which.max(abs(d$valor))
+  list(texto = paste(.dif_corto(d$etiqueta[i], cx$cortos), .tarjetas_pct(d$p[i])), dir = d$dir[i], fragil = d$fragil[i], cruce = d$cruce[i])
 }
 
 #' Nota al pie fija de la lámina de hallazgos: qué es la barra o el intervalo, y el método de diferencias
@@ -241,6 +262,7 @@
 #' @keywords internal
 .halla_modelo <- function(el, fuente, sig, plan = list()) {
   aviso <- function(...) .dif_aviso("Hallazgos clave", ...)
+  if (isTRUE(.dif_chr1(el$modo) %in% .HALLAZGOS_MODOS_RESUMEN)) return(.halla_resumen_modelo(el, fuente, sig, plan))   # graficos_hallazgos_resumen.R
   modo <- if (identical(.dif_chr1(el$modo), "cifras_con_graficos")) "cifras_con_graficos" else "cifras"
   cx <- .dif_cruces(el, plan, sig, fuente)
   tauto <- el$tautologicos %||% list()
@@ -266,9 +288,12 @@
 #' Elemento del plan de la lámina de hallazgos (lo construye `p_slide_hallazgos`)
 #' @keywords internal
 .el_hallazgos <- function(cifras = list(), modo = "cifras", grafico_ancho = NULL, cruces = NULL, rotulos = list(), cortos = list(),
-                          tautologicos = list(), publico = NULL, fuente = NULL) {
+                          tautologicos = list(), publico = NULL, fuente = NULL, capitulos = list(), seleccion = "manual",
+                          max_por_capitulo = NULL, max_por_lamina = NULL, tambien = TRUE, titulos = NULL) {
   el <- list(.element_type = "hallazgos", cifras = cifras, modo = modo, grafico_ancho = grafico_ancho, cruces = cruces,
-             rotulos = rotulos, cortos = cortos, tautologicos = tautologicos, publico = publico, fuente_ref = fuente, overrides = list())
+             rotulos = rotulos, cortos = cortos, tautologicos = tautologicos, publico = publico, fuente_ref = fuente,
+             capitulos = capitulos, seleccion = seleccion, max_por_capitulo = max_por_capitulo, max_por_lamina = max_por_lamina,
+             tambien = tambien, titulos = titulos, overrides = list())
   class(el) <- c("ppt_element", "list")
   el
 }

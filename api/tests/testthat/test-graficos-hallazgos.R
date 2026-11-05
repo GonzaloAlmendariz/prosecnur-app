@@ -236,3 +236,108 @@ test_that("sin motor nativo y en el Word va el respaldo en ggplot con la espec; 
   expect_identical(s$.slide_type, "slide_1")
   expect_identical(s$meta$antetitulo, "Capítulo 4")
 })
+
+# ---- Resumen ejecutivo (modos «resumen» y «titulares»; revisión del PPT v7.11, ítem 2) --------------------------------
+
+.hz_caps <- function() list(
+  list(titulo = "Capítulo uno", cifras = list(list(var = "q", fila = "Sí", texto = "dice que sí a q"),
+                                              list(var = "z", fila = "Sí", texto = "dice que sí a z"))),
+  list(titulo = "Capítulo dos", titular = "El trabajo crece con el nivel",
+       cifras = list(list(var = "t", fila = "Sí", texto = "trabaja de forma remunerada"),
+                     list(var = "h", filas = c("Tiempo completo", "Medio tiempo"), texto = "de quienes trabajan lo hace medio tiempo o más",
+                          base_rotulo = "que trabajan"))))
+.hz_resumen <- function(..., plan = list()) {
+  el <- p_slide_hallazgos(rotulos = .hz_rot, cortos = list(`Economía y Finanzas` = "Econ. y Fin."), ...)$slots$plot
+  suppressMessages(.halla_modelo(el, .hz_fuente(), .hz_sig(), plan))
+}
+
+test_that("resumen: el antetítulo es «Resumen ejecutivo» y la selección manual pide capítulos", {
+  s <- p_slide_hallazgos(modo = "resumen", capitulos = .hz_caps())
+  expect_identical(s$meta$antetitulo, "Resumen ejecutivo")
+  expect_identical(s$title, "Principales hallazgos")
+  expect_error(p_slide_hallazgos(modo = "resumen"), "declara `capitulos`")
+  expect_silent(p_slide_hallazgos(modo = "resumen", seleccion = "auto"))
+  modos <- vapply(Filter(function(a) identical(a$name, "modo"), .SLIDES_META$p_slide_hallazgos$args)[[1]]$choices, `[[`, "", "value")
+  expect_true(all(c("resumen", "titulares") %in% modos))
+})
+
+test_that("resumen: cada hallazgo es la cifra de su pregunta con su intervalo, su base si difiere y su diferencia principal", {
+  e <- .hz_resumen(modo = "resumen", capitulos = .hz_caps())
+  expect_identical(e$modo, "resumen")
+  expect_length(e$paginas, 1L)
+  expect_identical(vapply(e$paginas[[1]], `[[`, "", "titulo"), c("Capítulo uno", "Capítulo dos"))
+  e0 <- .hz_modelo()
+  q <- e$paginas[[1]][[1]]$kpis[[1]]
+  expect_identical(q$cifra, .hz_kpi(e0, "dice que sí a q")$cifra)
+  expect_identical(q$comparacion$estado, "diferencia")
+  expect_identical(q$comparacion$cruce, "area")
+  z <- e$paginas[[1]][[1]]$kpis[[2]]
+  expect_identical(z$comparacion$estado, "sin_diferencias")
+  h <- e$paginas[[1]][[2]]$kpis[[2]]
+  expect_match(h$base, "^Base de [0-9]+ que trabajan$")
+  expect_match(e$nota, "Cómo leer las diferencias entre grupos", fixed = TRUE)
+  expect_false(grepl("Benjamini|Rao-Scott", e$nota))
+  expect_length(e$kpis, 4L)   # el respaldo en ggplot (Word) lee las cifras aplanadas
+  expect_s3_class(.halla_ggplot(e), "ggplot")
+})
+
+test_that("resumen: «También» sólo nombra un cruce distinto del de la diferencia principal y se apaga con `tambien = FALSE`", {
+  ev <- list(celdas = data.frame(cruce = c("area", "area", "niv", "niv", "niv"), codigo = c("1", "2", "6", "7", "9"),
+                                 etiqueta = c("Economía y Finanzas", "Ciencias", "Nivel 6", "Nivel 7", "Nivel 9"),
+                                 estado = c("dif", "dif", "igual", "igual", "dif"), valor = c(20, -20, NA, NA, 17), dir = c("up", "down", NA, NA, "up"),
+                                 fragil = c(FALSE, FALSE, NA, NA, FALSE), p = c(48, 23, 30, 31, 48), p_resto = c(23, 48, 33, 33, 31),
+                                 n = 100, conglomerados = 10L, stringsAsFactors = FALSE), probados = c("area", "niv"))
+  cx <- list(cortos = c(`Economía y Finanzas` = "Econ. y Fin."), rotulos = .hz_rot)
+  auto <- .halla_comparacion_auto(ev, cx)
+  t <- .halla_tambien(ev, auto, cx)
+  expect_identical(auto$cruce, "area")
+  expect_identical(t$texto, "Nivel 9 48%"); expect_identical(t$dir, "up"); expect_identical(t$cruce, "niv")
+  ev$celdas$estado[5] <- "igual"
+  expect_null(.halla_tambien(ev, auto, cx))
+  e <- .hz_resumen(modo = "resumen", capitulos = .hz_caps(), tambien = FALSE)
+  expect_true(all(vapply(e$kpis, function(k) is.null(k$tambien), TRUE)))
+})
+
+test_that("resumen: la paginación llega a 8 hallazgos y 4 capítulos por lámina y nunca parte un capítulo", {
+  cap <- function(n, i) list(titulo = paste("C", i), kpis = replicate(n, list(), simplify = FALSE))
+  p <- .halla_res_paginar(list(cap(3, 1), cap(3, 2), cap(3, 3), cap(2, 4)), 8L, 4L)
+  expect_identical(lengths(lapply(p, function(pg) vapply(pg, `[[`, "", "titulo"))), c(2L, 2L))
+  p2 <- .halla_res_paginar(lapply(1:5, function(i) cap(1, i)), 8L, 4L)
+  expect_identical(vapply(p2, length, 0L), c(4L, 1L))
+  expect_true(all(vapply(p, function(pg) sum(vapply(pg, function(c) length(c$kpis), 0L)), 0L) <= 8L))
+})
+
+test_that("resumen automático: por capítulo, la diferencia más fuerte y la cifra más rotunda sin diferencia", {
+  plan <- list(
+    p_slide_seccion("Uno"),
+    p_slide_1_grafico(p_barras_agrupadas(var = "q"), titulo = "Pregunta q"),
+    p_slide_1_grafico(p_barras_agrupadas(var = "z"), titulo = "Pregunta z"),
+    p_slide_seccion("Dos"),
+    p_slide_1_grafico(p_barras_agrupadas(var = "t"), titulo = "¿Trabajas?"))
+  e <- .hz_resumen(modo = "resumen", seleccion = "auto", plan = plan)
+  caps <- e$paginas[[1]]
+  expect_identical(vapply(caps, `[[`, "", "titulo"), c("Uno", "Dos"))
+  uno <- caps[[1]]$kpis
+  expect_identical(uno[[1]]$var, "q"); expect_identical(uno[[1]]$comparacion$estado, "diferencia")   # la diferencia
+  expect_identical(uno[[2]]$var, "z"); expect_identical(uno[[2]]$comparacion$estado, "sin_diferencias")   # la rotunda sin diferencia
+  expect_true(all(vapply(e$kpis, function(k) k$fila != "No", TRUE)))   # de la dicotómica, la opción principal
+})
+
+test_that("PPT, modo «resumen»: tabla por capítulo con cifra, frase, intervalo, pastillas, leyenda, nota y base", {
+  skip_if_not_installed("officer")
+  r <- .hz_render(p_slide_hallazgos(modo = "resumen", capitulos = .hz_caps(), titulo = "Quiénes son", rotulos = .hz_rot, base = "Base: 400 casos."))
+  expect_true(all(c("prosecnur:grafico:resumen_ejecutivo", "resumen_ejecutivo:capitulo", "resumen_ejecutivo:cifra", "resumen_ejecutivo:hallazgo",
+                    "resumen_ejecutivo:intervalo", "resumen_ejecutivo:pastilla:texto", "resumen_ejecutivo:sin_diferencias",
+                    "prosecnur:leyenda_diferencias", "Nota significancia", "Base lamina") %in% r$nombres))
+  expect_true(all(c("RESUMEN EJECUTIVO", "CAPÍTULO UNO", "CIFRA", "HALLAZGO", "DIFERENCIA PRINCIPAL FRENTE AL RESTO", "dice que sí a q") %in% r$textos))
+  expect_true(any(grepl("^Intervalo de [0-9]+% a [0-9]+%", r$textos)))
+  expect_true(any(grepl("^Economía y Finanzas [0-9]+%$", r$textos)))   # sin `cortos`, el rótulo entero
+})
+
+test_that("PPT, modo «titulares»: un titular por capítulo, con la frase debajo", {
+  skip_if_not_installed("officer")
+  r <- .hz_render(p_slide_hallazgos(modo = "titulares", capitulos = .hz_caps(), titulo = "Lo principal", rotulos = .hz_rot))
+  expect_true("El trabajo crece con el nivel" %in% r$textos)
+  expect_true("resumen_ejecutivo:titular" %in% r$nombres)
+  expect_equal(sum(r$nombres == "resumen_ejecutivo:cifra"), 2L)   # uno por capítulo
+})

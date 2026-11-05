@@ -278,6 +278,10 @@
 .lam_laminas_hallazgos <- function(doc, espec, titulo, ante = NULL, base = NULL, folio = NULL, layout = "Graficos2",
                                    master = "Office Theme", por_lamina = function(doc) doc) {
   force(folio)
+  if (isTRUE(espec$modo %in% .HALLAZGOS_MODOS_RESUMEN)) {   # el resumen ejecutivo, paginado (lamina_hallazgos_resumen.R)
+    return(.lam_laminas_hallazgos_resumen(doc, espec, titulo, ante = ante, base = base, folio = folio, layout = layout, master = master,
+                                          por_lamina = por_lamina))
+  }
   g <- .std_geom
   doc <- officer::add_slide(doc, layout = layout, master = master)
   doc <- .lam_titulo(doc, titulo, ante = ante)
