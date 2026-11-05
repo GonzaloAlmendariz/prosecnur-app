@@ -167,3 +167,30 @@ test_that("la muestra publica π = π_c · π_d · π_i|d, π_d y la condición 
     expect_equal((pi / m)[m > 0], rep(g$rutas_grupo[[1]] / mos_g, sum(m > 0)), tolerance = 1e-6)
   }
 })
+
+test_that("la ruta queda en su distrito: el reemplazo pareado es del distrito de su titular y las aledañas no cruzan el límite", {
+  ub <- HOJAS_RUTA_LIMA_AREAS$lima_norte
+  cfg <- list(territorios = ub, sample_size_mode = "external_total", n_objetivo = 10L * 8L, entrevistas_por_manzana = 8L, seed = 3L,
+              replacements_per_titular = 1L,
+              sample_size = list(design_effect = 1, estrato = "provincia", base_reparto = "cpv2025_adultos_urbanos"))
+  s <- hojas_ruta_sample_preview_integrado(cfg)
+  b <- .hojas_ruta_rows_df(s$blocks)
+  r <- .hojas_ruta_rows_df(s$replacement_blocks)
+  expect_gt(nrow(r), 0L)
+  tit <- match(as.character(r$titular_id_manzana), as.character(b$id_manzana))
+  expect_false(anyNA(tit))
+  expect_identical(as.character(r$ubigeo), as.character(b$ubigeo[tit]))
+  expect_identical(as.character(r$zona), as.character(b$zona[tit]))
+  expect_identical(r$distrito_condicion, b$distrito_condicion[tit])
+  expect_false(any(vapply(s$alerts, function(a) identical(a$code, "W_HOJAS_RUTA_REEMPLAZO_OTRO_DISTRITO"), logical(1))))
+  # Las aledañas son una regla de campo (no son manzanas del sorteo): la ficha dice que no cruzan el distrito.
+  bs <- .hojas_ruta_rows_df(hojas_ruta_tamano_extras_salto_muestra(s, cfg)$blocks)
+  expect_true(all(grepl("mismo distrito", bs$regla_no_respuesta)))
+  expect_false(grepl("mismo distrito", hojas_ruta_regla_no_respuesta(FALSE)))
+  # El motor avisa si un reemplazo cruzara el límite distrital.
+  bb <- data.frame(ubigeo = "150110", zona = "01", id_manzana = "A", stringsAsFactors = FALSE)
+  rr <- data.frame(ubigeo = "150102", zona = "01", id_manzana = "B", titular_id_manzana = "A", stringsAsFactors = FALSE)
+  av <- hojas_ruta_distritos_avisos_reemplazo(bb, rr)
+  expect_identical(av[[1]]$code, "W_HOJAS_RUTA_REEMPLAZO_OTRO_DISTRITO")
+  expect_length(hojas_ruta_distritos_avisos_reemplazo(bb, transform(rr, ubigeo = "150110")), 0L)
+})

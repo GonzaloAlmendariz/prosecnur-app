@@ -270,7 +270,8 @@ HOJAS_RUTA_AVISO_SIN_VIVIENDAS <- "El censo no registra viviendas en esta manzan
 #' La misma regla sin salto (checklist F38): con el salto deshabilitado la ficha dice
 #' «Constante de salto: deshabilitada», y la regla no puede mandar a «la siguiente
 #' que indica el salto».
-hojas_ruta_regla_no_respuesta <- function(sin_salto = FALSE) {
+hojas_ruta_regla_no_respuesta <- function(sin_salto = FALSE, en_distrito = FALSE) {
+  if (isTRUE(en_distrito)) return(paste(hojas_ruta_regla_no_respuesta(sin_salto), HOJAS_RUTA_REGLA_ALEDANAS_DISTRITO))  # ADR 0131 §1c
   if (!isTRUE(sin_salto)) return(HOJAS_RUTA_REGLA_NO_RESPUESTA)
   paste(
     "Si en la vivienda no responden, está desocupada o no vive nadie del perfil del estudio, pase a la vivienda siguiente.",
@@ -293,7 +294,7 @@ hojas_ruta_regla_no_respuesta <- function(sin_salto = FALSE) {
     V <- max(0L, suppressWarnings(as.integer(b$viviendas %||% 0L)), na.rm = TRUE)
     v <- hojas_ruta_visitas_por_ruta(k, r, e)
     b$visitas_esperadas <- v
-    b$regla_no_respuesta <- hojas_ruta_regla_no_respuesta(identical(modo, "off"))
+    b$regla_no_respuesta <- hojas_ruta_regla_no_respuesta(identical(modo, "off"), hojas_ruta_distritos_activo(cfg$sample_size))
     if (identical(modo, "auto")) {
       raw <- if (v > 0) V / v else NA_real_
       constante <- max(1L, as.integer(floor(raw)))

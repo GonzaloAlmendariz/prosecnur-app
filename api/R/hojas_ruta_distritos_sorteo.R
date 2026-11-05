@@ -177,3 +177,26 @@ hojas_ruta_distritos_pi <- function(m, a) {
   cond <- if (a$f_n <= 1e-9) lo else (1 - a$f_n) * lo + a$f_n * rama(a$pi_d_hi, a$e_hi)
   a$pi_ciudad * cond
 }
+
+# ---------- La ruta queda en su distrito (ADR 0131 §1c) ----------
+#
+# La titular sale del PPS de su distrito y el reemplazo pareado de su misma zona
+# (`ubigeo` + `zona`), así que la ruta no cruza el límite por construcción; el aviso
+# es la red si alguna política lo rompiera. Las aledañas no son manzanas del sorteo
+# sino una regla de campo: la ficha la dice con el distrito.
+
+HOJAS_RUTA_REGLA_ALEDANAS_DISTRITO <- "Las manzanas aledañas son siempre del mismo distrito: no cruce al distrito vecino."
+
+#' Aviso si algún reemplazo queda en otro distrito que su titular.
+hojas_ruta_distritos_avisos_reemplazo <- function(blocks_df, replacement_blocks_df) {
+  if (!is.data.frame(replacement_blocks_df) || !nrow(replacement_blocks_df) || !is.data.frame(blocks_df)) return(list())
+  tit <- match(as.character(replacement_blocks_df$titular_id_manzana), as.character(blocks_df$id_manzana))
+  cruza <- !is.na(tit) & as.character(replacement_blocks_df$ubigeo) != as.character(blocks_df$ubigeo[tit])
+  if (!any(cruza)) return(list())
+  list(list(
+    level = "warn", code = "W_HOJAS_RUTA_REEMPLAZO_OTRO_DISTRITO",
+    message = sprintf("%d reemplazo(s) están en otro distrito que su titular: la ruta debe quedar entera en el distrito de la titular.", sum(cruza)),
+    reemplazos = as.integer(sum(cruza))
+  ))
+}
+

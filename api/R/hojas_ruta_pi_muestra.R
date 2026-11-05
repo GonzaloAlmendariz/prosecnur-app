@@ -104,6 +104,7 @@ hojas_ruta_pi_muestra <- function(blocks_df, replacement_blocks_df, frame, cfg) 
         reemplazos = as.integer(fuera)
       )
     }
+    alerts <- c(alerts, hojas_ruta_distritos_avisos_reemplazo(blocks_df, replacement_blocks_df))  # ADR 0131 §1c
   }
   list(blocks = blocks_df, replacements = replacement_blocks_df, alerts = alerts)
 }
