@@ -137,7 +137,8 @@
   position: absolute;
   left: 3.1%;
   bottom: 4%;
-  max-width: 80%;
+  /* A la derecha va la línea que declara la maqueta (AvisoMaqueta): el pie no la pisa. */
+  max-width: 60%;
   overflow: hidden;
   color: var(--pulso-text-muted);
   font-size: 1.05em;
@@ -213,4 +214,50 @@
   color: var(--pulso-primary);
   pointer-events: none;
   overflow: visible;
+}
+
+/* H4: la maqueta se declara como tal, abajo a la derecha y con letra de interfaz (no escala con la lámina): sin ella,
+   una lámina de resumen se leía como un gráfico vacío. «Previsualizar» pide la vista real. */
+.pulso-f6-maqueta-aviso {
+  position: absolute;
+  right: 2.6%;
+  bottom: 3%;
+  z-index: 1;
+  max-width: 36%;
+  margin: 0;
+  padding: var(--pulso-space-1) var(--pulso-space-2);
+  border-radius: var(--pulso-radius);
+  background: color-mix(in srgb, var(--pulso-surface) 88%, transparent);
+  color: var(--pulso-text-muted);
+  font-size: var(--pulso-type-caption-size);
+  line-height: 1.4;
+  text-align: right;
+}
+
+.pulso-f6-maqueta-aviso-linea {
+  display: block;
+  text-wrap: balance;
+  /* Cada renglón termina donde termina su letra, como la ayuda de la tarjeta (datosGrafico.css). */
+  text-box: trim-end text;
+}
+
+.pulso-f6-maqueta-aviso-boton {
+  display: inline;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--module-accent);
+  font: inherit;
+  font-weight: var(--pulso-weight-semibold);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+
+.pulso-f6-maqueta-aviso-boton:focus-visible {
+  outline: var(--pulso-nav-focus-outline-width) solid var(--module-accent);
+  outline-offset: 2px;
+  border-radius: 2px;
 }

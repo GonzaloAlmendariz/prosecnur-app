@@ -31,9 +31,11 @@ type Props = {
   onCambio: (capitulos: Record<string, unknown>[]) => void;
   /** La propuesta del motor (PropuestaResumen): con selección automática ocupa el lugar del editor. */
   propuesta?: ReactNode;
+  /** Dentro de su sección plegable, que ya lo nombra, el título queda para el lector de pantalla. */
+  conTitulo?: boolean;
 };
 
-export function CapitulosHallazgos({ valor, modo, automatica, calificar, scope, onCambio, propuesta }: Props) {
+export function CapitulosHallazgos({ valor, modo, automatica, calificar, scope, onCambio, propuesta, conTitulo = true }: Props) {
   const idTitulo = useId();
   const idAyuda = useId();
   const [borrador, setBorrador] = useState<CapituloEditable[]>(() => leerCapitulos(valor));
@@ -61,7 +63,7 @@ export function CapitulosHallazgos({ valor, modo, automatica, calificar, scope, 
     <section ref={raiz} className="pulso-f6-especial pulso-f6-hallazgos" aria-labelledby={idTitulo} aria-describedby={idAyuda}
       data-campo="capitulos" data-qa="capitulos-hallazgos" data-qa-geometry-group="graficos/f6-hallazgos" data-qa-geometry-contract="intrinsic">
       <div className="pulso-f6-especial-cabeza" data-qa-geometry-member>
-        <h3 id={idTitulo} className="pulso-f6-subtitulo">Capítulos y hallazgos</h3>
+        <h3 id={idTitulo} className={conTitulo ? "pulso-f6-subtitulo" : "pulso-sr-only"}>Capítulos y hallazgos</h3>
         <span className="pulso-f6-ayuda">
           {automatica ? "Los propone el motor"
             : capitulos.length === 0 ? "Ninguno" : `${formatoConteo(completos)} de ${formatoConteo(capitulos.length)} ${capitulos.length === 1 ? "sale" : "salen"}`}

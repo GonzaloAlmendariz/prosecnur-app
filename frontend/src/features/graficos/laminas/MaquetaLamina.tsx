@@ -18,6 +18,7 @@ import type { LaminaEnEstructura } from "./modeloEstructura";
 import { baseAutomatica, ranurasDeMaqueta } from "./modeloMaqueta";
 import { fichaDeRanura } from "./maqueta/fichaModelo";
 import { FichaRanura } from "./maqueta/FichaRanura";
+import { AvisoMaqueta } from "./maqueta/AvisoMaqueta";
 import { LlaveDependencia } from "./maqueta/LlaveDependencia";
 import { useConteosMaqueta } from "./maqueta/useConteosMaqueta";
 import { datosEstructura } from "./maqueta/datosEstructura";
@@ -35,9 +36,12 @@ type Props = {
   onRanura: (k: number) => void;
   onCambiar: (k: number) => void;
   onTexto: (campo: CampoTextoLamina) => void;
+  /** Pide la vista real: la maqueta se declara como tal y lleva «Previsualizar» al alcance (AvisoMaqueta). */
+  onPrevisualizar?: () => void;
+  prepOk?: boolean;
 };
 
-export function MaquetaLamina({ slide, lamina, ranuraActiva, onRanura, onCambiar, onTexto }: Props) {
+export function MaquetaLamina({ slide, lamina, ranuraActiva, onRanura, onCambiar, onTexto, onPrevisualizar, prepOk }: Props) {
   const { variables } = useVariables();
   const { graficadoresById, slidesById } = useGraficosRegistry();
   const slots = SLIDE_GRAF_SLOTS[slide.tipo] ?? [];
@@ -75,6 +79,7 @@ export function MaquetaLamina({ slide, lamina, ranuraActiva, onRanura, onCambiar
             <span className="pulso-f6-maqueta-titulo">{lamina.titulo}</span>
           </button>
         )}
+        <AvisoMaqueta onPrevisualizar={onPrevisualizar} prepOk={prepOk} />
       </div>
     );
   }
@@ -139,6 +144,7 @@ export function MaquetaLamina({ slide, lamina, ranuraActiva, onRanura, onCambiar
           {baseEscrita || baseAuto || (slots.length > 1 ? "Cada gráfico lleva su base debajo" : "Base del gráfico")}
         </button>
       )}
+      <AvisoMaqueta onPrevisualizar={onPrevisualizar} prepOk={prepOk} />
     </div>
   );
 }
