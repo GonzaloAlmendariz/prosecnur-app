@@ -150,7 +150,7 @@ test_that("el constructor arma un slide_1 con el elemento y el antetítulo; el r
   expect_error(p_slide_resumen_diferencias(), "declara `capitulos`")
   expect_true("p_slide_resumen_diferencias" %in% .slide_names())
   expect_identical(.SLIDES_META$p_slide_resumen_diferencias$render_key, "resumen_diferencias")
-  expect_false(isTRUE(.SLIDES_META$p_slide_resumen_diferencias$en_selector))
+  expect_true(isTRUE(.SLIDES_META$p_slide_resumen_diferencias$en_selector))   # se ofrece desde la revisión v7.23 (ítem 15)
 })
 
 # ---- Artefactos: PPT y Word ------------------------------------------------------------------------------------------

@@ -30,7 +30,8 @@ test_that("los tres tipos de población antigua salen del selector y siguen regi
   reg <- .graficos_registry_payload()
   sel <- setNames(vapply(reg$slides, function(s) isTRUE(s$en_selector), TRUE), vapply(reg$slides, `[[`, "", "name"))
   expect_false(any(sel[viejos]))
-  fuera <- c("p_slide_estandar", "p_slide_resumen_diferencias", "p_slide_hallazgos")   # del catálogo, o sin inspector todavía
+  # Hallazgos y resumen de diferencias se ofrecen desde la revisión del PPT v7.23 (ítem 15): ya tienen su inspector.
+  fuera <- c("p_slide_estandar")   # del catálogo del recetario, no una lámina de informe
   expect_true(all(sel[setdiff(names(sel), c(viejos, fuera))]))
   expect_false(any(sel[fuera]))
   cat <- .graficos_tipos_catalogo()
