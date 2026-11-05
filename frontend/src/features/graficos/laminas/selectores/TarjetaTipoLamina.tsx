@@ -59,7 +59,9 @@ export function TarjetaTipoLamina({
         <span className="pulso-f6-tarjeta-chips">
           {actual && <span className="pulso-f6-chip is-actual">Actual</span>}
           {sobrantes > 0 && (
-            <span className="pulso-f6-chip is-aviso">{sobrantes === 1 ? "1 no cabe" : `${sobrantes} no caben`}</span>
+            <span className="pulso-f6-chip is-aviso" title={sobrantes === 1 ? "El gráfico de esta lámina no tiene lugar en la nueva" : "Los gráficos de esta lámina no tienen lugar en la nueva"}>
+              {sobrantes === 1 ? "Quita 1 gráfico" : `Quita ${sobrantes} gráficos`}
+            </span>
           )}
         </span>
       )}
