@@ -625,3 +625,18 @@ div.hr-mapa-aviso { display: flex; flex-direction: column; align-items: flex-sta
 .hr-muestra-grupo-ciudades { display: flex; flex-direction: column; gap: 4px; }
 .hr-muestra-grupo-cab { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 8px; margin: 0; font-size: var(--pulso-type-body-size); color: var(--pulso-text); }
 .hr-muestra-grupo-cab span { color: var(--pulso-text-soft); }
+
+/* Grupos plegables del inspector de Muestra (GrupoMuestra.tsx): título y valor vigente en una línea. */
+.hr-muestra-plegable { border-top: 1px solid var(--pulso-border); }
+.hr-muestra-plegable > summary { display: grid; grid-template-columns: 14px minmax(0, 1fr); align-items: center; column-gap: 8px; row-gap: 2px; padding: 12px 0 10px; list-style: none; cursor: pointer; }
+.hr-muestra-plegable > summary::-webkit-details-marker { display: none; }
+.hr-muestra-plegable > summary:hover .hr-muestra-plegable-titulo { color: var(--pulso-module-routes); }
+.hr-muestra-plegable > summary:focus-visible { outline: 2px solid var(--pulso-module-routes); outline-offset: 2px; border-radius: 6px; }
+.hr-muestra-plegable-flecha { color: var(--pulso-text-soft); transition: transform 160ms ease; }
+.hr-muestra-plegable[open] .hr-muestra-plegable-flecha { transform: rotate(90deg); }
+.hr-muestra-plegable-titulo { font-size: var(--pulso-type-micro-size); font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--pulso-text-soft); }
+.hr-muestra-plegable-resumen { grid-column: 2; font-size: var(--pulso-type-body-size); font-weight: 600; color: var(--pulso-text); }
+.hr-muestra-plegable[open] .hr-muestra-plegable-resumen { display: none; }
+.hr-muestra-plegable-cuerpo { display: flex; flex-direction: column; gap: 10px; padding-bottom: 12px; }
+.hr-muestra-plegable-cuerpo > .hr-muestra-grupo { border-top: 0; padding-top: 4px; }
+@media (prefers-reduced-motion: reduce) { .hr-muestra-plegable-flecha { transition: none; } }

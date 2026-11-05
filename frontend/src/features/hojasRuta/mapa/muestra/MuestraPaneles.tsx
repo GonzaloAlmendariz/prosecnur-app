@@ -20,6 +20,8 @@ import type { ResultadoTamano } from "./motorTamano";
 import { visitasCap, visitasPorRuta } from "../../seleccion/visitas";
 import { IccPanel } from "./IccPanel";
 import { BaseReparto2025, fuenteDelReparto } from "./BaseReparto2025";
+import { GrupoMuestra } from "./GrupoMuestra";
+import { resumenMargen, resumenReparto, resumenSupuestos } from "./resumenesMuestra";
 import { EstratoMuestral, politicaAlCambiar } from "./EstratoMuestral";
 
 import { formatoDecimal } from "../../../../lib/formatoNumero";
@@ -115,6 +117,8 @@ export function MuestraInspector({ config, resultado: r, bloqueado, guardando, h
     ["Suma de mínimos por distrito", r.sumaMinimos],
   ].filter(([, n], i, a) => Number(n) > 0 && a.findIndex((x) => x[1] === n) === i) as Array<[string, number]>;
   const ed = bloqueado || guardando;
+  // Margen y supuestos deciden el N sólo cuando se calcula: abiertos ahí, plegados con el N aprobado.
+  const calculado = config.sample_size_mode === "calculator";
 
   return (
     <>
@@ -173,8 +177,7 @@ export function MuestraInspector({ config, resultado: r, bloqueado, guardando, h
           <span className="hr-mapa-nota">{r.multiploDeRuta ? `N compatible: ${fmt(r.nUsado)} = ${fmt(Math.floor(r.nUsado / ruta))} × ${ruta}` : `El N debe ser múltiplo de ${ruta}`}</span>
         </div>
 
-        <section className="hr-muestra-grupo" aria-label="Margen de error">
-          <h3>Margen de error que quieres lograr</h3>
+        <GrupoMuestra titulo="Margen de error" resumen={resumenMargen(s)} abierto={calculado}>
           <Opciones etiqueta="Confianza" valor={s.confidence_level} deshabilitado={ed} opciones={[[0.9, "90 %"], [0.95, "95 %"], [0.99, "99 %"]] as const} onCambio={(v) => cambiarS({ confidence_level: v })} />
           <div className="hr-muestra-dos">
             <Numero etiqueta="Margen total" sufijo="%" valor={Math.round(s.margin_total * 1000) / 10} min={0.1} max={50} paso={0.5} deshabilitado={ed} onCambio={(v) => cambiarS({ margin_total: Math.min(0.5, Math.max(0.001, v / 100)) })} />
@@ -188,10 +191,9 @@ export function MuestraInspector({ config, resultado: r, bloqueado, guardando, h
           {config.sample_size_mode === "calculator" ? (
             <Opciones etiqueta="El margen por distrito es…" valor={s.enforce_district_floor ? "requisito" : "maximo"} deshabilitado={ed} opciones={[["requisito", "Un requisito"], ["maximo", "Solo un máximo"]] as const} onCambio={(v) => cambiarS({ enforce_district_floor: v === "requisito" })} />
           ) : null}
-        </section>
+        </GrupoMuestra>
 
-        <section className="hr-muestra-grupo" aria-label="Supuestos">
-          <h3>Supuestos</h3>
+        <GrupoMuestra titulo="Supuestos" resumen={resumenSupuestos(s)} abierto={calculado}>
           <div className="hr-muestra-dos">
             <Numero etiqueta="Resultado esperado (p)" sufijo="%" valor={Math.round(s.expected_proportion * 1000) / 10} min={0.1} max={99.9} paso={5} deshabilitado={ed} onCambio={(v) => cambiarS({ expected_proportion: Math.min(0.999, Math.max(0.001, v / 100)) })} />
             <Numero etiqueta="Respuesta esperada" sufijo="%" valor={Math.round(s.response_rate * 100)} min={1} max={100} paso={5} deshabilitado={ed} onCambio={(v) => cambiarS({ response_rate: Math.min(1, Math.max(0.01, v / 100)) })} ayuda={`${fmt(r.contactos)} contactos`} />
@@ -235,16 +237,18 @@ export function MuestraInspector({ config, resultado: r, bloqueado, guardando, h
               ))}
             </div>
           </div>
-        </section>
+        </GrupoMuestra>
 
+        <GrupoMuestra titulo="Reparto entre distritos" resumen={resumenReparto(s, config.sample_size_mode === "external_district")}>
         {config.sample_size_mode !== "external_district" ? (
           <Opciones etiqueta="Asignación entre distritos" valor={s.allocation_mode ?? "proportional"} deshabilitado={ed} opciones={[["proportional", "Por tamaño"], ["uniform", "Igualitaria"], ["compromise", "Intermedia"]] as const} onCambio={(v) => cambiarS({ allocation_mode: v })} />
         ) : null}
         <BaseReparto2025 sampleSize={s} territorios={territorios} deshabilitado={ed} onCambio={(base_reparto) => cambiarS({ base_reparto })} />
         <EstratoMuestral sampleSize={s} rowVar={config.row_var} nPorDistrito={config.sample_size_mode === "external_district"} servidor={estratoServidor} deshabilitado={ed} onCambio={(estrato) => cambiar({ sample_size: { estrato }, ...politicaAlCambiar(estrato) })} onCambioMinimo={(rutas_minimas_ciudad) => cambiarS({ rutas_minimas_ciudad })} />
+        </GrupoMuestra>
 
+        <GrupoMuestra titulo="Alternativas y cálculo" resumen={alternativas.length > 1 ? `${alternativas.length} N posibles` : "El N en uso"}>
         <section className="hr-muestra-grupo" aria-label="Alternativas">
-          <h3>Alternativas</h3>
           <div className="hr-muestra-alts">
             {alternativas.map(([l, n]) => (
               <button key={l} type="button" aria-pressed={n === r.nUsado} disabled={ed} onClick={() => cambiar({ sample_size_mode: "external_total", n_objetivo: n })}>
@@ -282,6 +286,7 @@ export function MuestraInspector({ config, resultado: r, bloqueado, guardando, h
           deshabilitado={ed}
           onUsarDeff={(design_effect) => cambiarS({ design_effect })}
         />
+        </GrupoMuestra>
         {muestraBorrador && hayMuestra ? <p className="hr-mapa-aviso">Guardar recalcula el tamaño y descarta las cuotas y el sorteo actual.</p> : null}
       </div>
       <footer className="hr-mapa-pie">
@@ -393,7 +398,8 @@ export function MuestraEstructura({ config, resultado: r, bloqueado }: Estructur
               <s style={{ left: `${(f.nMinimo / tope) * 100}%` }} />
             </div>
             <small>
-              {f.nUsado % ruta ? `${fmt(f.nUsado)} entr.` : `${fmt(f.nUsado / ruta)} rutas`}, mín. {fmt(f.nMinimo)}, <span data-aviso={(f.margen ?? 0) > f.margenObjetivo + 1e-9 || undefined}>{pct(f.margen)}</span>
+              {/* Sin N el distrito lo dice: «0 rutas, mín. 96, —» se leía como un resultado. */}
+              {f.nUsado === 0 ? <span data-aviso>Sin N asignado</span> : <>{f.nUsado % ruta ? `${fmt(f.nUsado)} entr.` : `${fmt(f.nUsado / ruta)} rutas`}, <span data-aviso={(f.margen ?? 0) > f.margenObjetivo + 1e-9 || undefined}>{pct(f.margen)}</span></>}, mín. {fmt(f.nMinimo)}
               {porDistrito && f.nUsado % ruta ? <span data-error>, no es múltiplo de {ruta}</span> : null}
             </small>
           </li>
