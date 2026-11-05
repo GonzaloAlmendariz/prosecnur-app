@@ -92,23 +92,32 @@
     g <- g + ggplot2::annotate("point", x = m$x + 0.2, y = m$p + ifelse(m$arriba, dy, -dy), shape = ifelse(m$dir == "up", 24, 25),
                                size = 2, colour = azul, fill = ifelse(m$fragil, "white", azul), stroke = 0.7)
   }
-  # Rótulo y chip de cada serie a la derecha, a la altura de su último punto (sin pisarse).
-  ult <- vapply(S, function(s) s$puntos$p[K], numeric(1))
-  yl <- ult; o <- order(-yl)
-  for (j in seq_along(o)[-1]) yl[o[j]] <- min(yl[o[j]], yl[o[j - 1L]] - tope * 0.17)
-  xr <- K + 0.32
-  for (k in seq_along(S)) {
-    g <- g + ggplot2::annotate("text", x = xr, y = yl[k] + tope * 0.03, label = S[[k]]$rotulo, hjust = 0, colour = S[[k]]$color,
-                               fontface = "bold", size = 3.4, family = fam)
-    td <- S[[k]]$tendencia
-    if (!is.null(td)) {
-      g <- g + ggplot2::annotate("label", x = xr, y = yl[k] - tope * 0.05, label = paste(if (td$dir == "up") "↑" else "↓", td$texto),
-                                 hjust = 0, colour = azul, fill = .std_color(if (isTRUE(td$fragil)) "tarjeta_fondo_95" else "tarjeta_fondo"),
-                                 size = 2.8, family = fam, fontface = "bold")
+  # Revisión del PPT v7.23, ítem 10 (paridad con la lámina): la leyenda de las series va a la derecha del gráfico, apilada
+  # desde arriba (muestra, rótulo, su parte del total y el chip), no al final de cada línea.
+  xr <- K + 0.38; y <- tope * 0.97
+  for (it in .lam_ln_leyenda_items(espec, 0)) {
+    g <- g + ggplot2::annotate("segment", x = xr, xend = xr + 0.22, y = y, yend = y, colour = it$muestra, linewidth = 1.1) +
+      ggplot2::annotate("point", x = xr + 0.11, y = y, size = 2.2, shape = 21, stroke = 0.8, colour = "white", fill = it$muestra) +
+      ggplot2::annotate("text", x = xr + 0.3, y = y, label = it$rotulo, hjust = 0, colour = it$color, fontface = "bold", size = 3.4, family = fam)
+    y <- y - tope * 0.085
+    if (!is.null(it$nota)) {
+      g <- g + ggplot2::annotate("text", x = xr + 0.3, y = y, label = it$nota, hjust = 0, colour = .std_color("texto_suave"), size = 2.8, family = fam)
+      y <- y - tope * 0.09
     }
+    td <- it$chip
+    if (!is.null(td)) {
+      fl <- if (td$dir == "up") (if (isTRUE(td$fragil)) "△" else "▲") else (if (isTRUE(td$fragil)) "▽" else "▼")
+      # En dos líneas: «▲ Crece significativamente / con el nivel» cabe en el ancho que la página deja a la leyenda.
+      g <- g + ggplot2::annotate("label", x = xr + 0.3, y = y - tope * 0.025, label = stringr::str_wrap(paste(fl, td$texto), 30), hjust = 0, colour = azul,
+                                 lineheight = 0.95,
+                                 fill = .std_color(if (isTRUE(td$fragil)) "tarjeta_fondo_95" else "tarjeta_fondo"),
+                                 size = 2.6, family = fam, fontface = "bold")
+      y <- y - tope * 0.15
+    }
+    y <- y - tope * 0.06
   }
   etq <- sprintf("%s\n%s %s", niv$etiqueta, format(niv$n, big.mark = ","), espec$publico %||% "casos")
-  g + ggplot2::scale_x_continuous(breaks = seq_len(K), labels = etq, limits = c(0.6, K + 1.6), expand = c(0, 0)) +
+  g + ggplot2::scale_x_continuous(breaks = seq_len(K), labels = etq, limits = c(0.6, K + 2.35), expand = c(0, 0)) +
     ggplot2::scale_y_continuous(limits = c(0, tope), labels = function(v) paste0(v, "%"), expand = c(0, 0)) +
     ggplot2::labs(subtitle = espec$seccion, x = NULL, y = NULL) +
     ggplot2::theme_minimal(base_family = fam) +
@@ -119,12 +128,26 @@
                    plot.subtitle = ggplot2::element_text(colour = azul, face = "bold", size = 11))
 }
 
+#' Leyenda de los símbolos en texto (paridad con `.lam_ln_leyenda_simbolos`); NULL si la figura no usa símbolos
+#' @keywords internal
+.lineas_nivel_word_simbolos <- function(espec) {
+  S <- espec$series %||% list()
+  dirs <- unlist(lapply(S, function(s) s$puntos$dir)); fr <- unlist(lapply(S, function(s) s$puntos$fragil[!is.na(s$puntos$dir)]))
+  chips <- Filter(Negate(is.null), lapply(S, `[[`, "tendencia"))
+  fr_chip <- vapply(chips, function(t) isTRUE(t$fragil), logical(1))
+  if (!any(!is.na(dirs)) && !length(chips)) return(NULL)
+  partes <- c(if (any(!is.na(dirs))) c("▲ Mayor que el resto de niveles", "▼ Menor que el resto de niveles"),
+              if (any(!fr) || any(!fr_chip)) "▲▼ 99% de confianza", if (any(fr) || any(fr_chip)) "△▽ 95% de confianza",
+              if (length(chips)) sprintf("Recuadro: tendencia significativa con el %s", espec$nombre_nivel %||% "nivel"))
+  paste(partes, collapse = "     ")
+}
+
 #' Figura completa: la franja del total arriba (si la hay) y las líneas abajo; debajo, la lectura en gris
 #' @keywords internal
 .lineas_nivel_ggplot <- function(espec) {
   fam <- .std_pt("fuente")
   abajo <- .lineas_nivel_gg_lineas(espec, fam)
-  notas <- c(espec$lectura, espec$no_comparables)
+  notas <- c(.lineas_nivel_word_simbolos(espec), espec$lectura, espec$no_comparables)
   if (length(notas)) {
     abajo <- abajo + ggplot2::labs(caption = paste(stringr::str_wrap(notas, 110), collapse = "\n")) +
       ggplot2::theme(plot.caption = ggplot2::element_text(colour = .std_color("texto_suave"), size = 8, hjust = 0))

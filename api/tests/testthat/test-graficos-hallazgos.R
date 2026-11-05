@@ -323,14 +323,18 @@ test_that("resumen automático: por capítulo, la diferencia más fuerte y la ci
   expect_true(all(vapply(e$kpis, function(k) k$fila != "No", TRUE)))   # de la dicotómica, la opción principal
 })
 
-test_that("PPT, modo «resumen»: tabla por capítulo con cifra, frase, intervalo, pastillas, leyenda, nota y base", {
+# Revisión del PPT v7.23, ítem 14 (Gonzalo: «no trates al usuario de tonto»): sin encabezados CIFRA, HALLAZGO y DIFERENCIA
+# PRINCIPAL, sin la nota al pie y sin la línea del intervalo. Antes este test los exigía.
+test_that("PPT, modo «resumen»: tabla por capítulo con cifra, frase, pastillas, leyenda y base (sin encabezados, nota ni intervalo)", {
   skip_if_not_installed("officer")
   r <- .hz_render(p_slide_hallazgos(modo = "resumen", capitulos = .hz_caps(), titulo = "Quiénes son", rotulos = .hz_rot, base = "Base: 400 casos."))
   expect_true(all(c("prosecnur:grafico:resumen_ejecutivo", "resumen_ejecutivo:capitulo", "resumen_ejecutivo:cifra", "resumen_ejecutivo:hallazgo",
-                    "resumen_ejecutivo:intervalo", "resumen_ejecutivo:pastilla:texto", "resumen_ejecutivo:sin_diferencias",
-                    "prosecnur:leyenda_diferencias", "Nota significancia", "Base lamina") %in% r$nombres))
-  expect_true(all(c("RESUMEN EJECUTIVO", "CAPÍTULO UNO", "CIFRA", "HALLAZGO", "DIFERENCIA PRINCIPAL FRENTE AL RESTO", "dice que sí a q") %in% r$textos))
-  expect_true(any(grepl("^Intervalo de [0-9]+% a [0-9]+%", r$textos)))
+                    "resumen_ejecutivo:pastilla:texto", "resumen_ejecutivo:sin_diferencias",
+                    "prosecnur:leyenda_diferencias", "Base lamina") %in% r$nombres))
+  expect_false(any(c("Nota significancia", "resumen_ejecutivo:encabezado", "resumen_ejecutivo:intervalo") %in% r$nombres))
+  expect_true(all(c("RESUMEN EJECUTIVO", "CAPÍTULO UNO", "dice que sí a q") %in% r$textos))
+  expect_false(any(c("CIFRA", "HALLAZGO", "DIFERENCIA PRINCIPAL FRENTE AL RESTO") %in% r$textos))
+  expect_false(any(grepl("Intervalo de", r$textos, fixed = TRUE)))
   expect_true(any(grepl("^Economía y Finanzas [0-9]+%$", r$textos)))   # sin `cortos`, el rótulo entero
 })
 
@@ -347,8 +351,38 @@ test_that("resumen en el Word: tabla propia con su alto (no los puntos del respa
   g <- .halla_ggplot(e)
   expect_true(is.finite(attr(g, "alto_word")) && attr(g, "alto_word") > 1)   # el marco del Word lee `alto_word`
   tx <- unlist(lapply(suppressWarnings(ggplot2::ggplot_build(g))$data, function(l) if ("label" %in% names(l)) as.character(l$label)))
-  expect_true(all(c("CIFRA", "HALLAZGO", "CAPÍTULO UNO") %in% tx))
+  expect_true("CAPÍTULO UNO" %in% tx)
+  # v7.23, ítem 14 (paridad con la lámina): sin encabezados de columna ni intervalo.
+  expect_false(any(c("CIFRA", "HALLAZGO") %in% tx)); expect_false(any(grepl("Intervalo de", tx, fixed = TRUE)))
   f <- tempfile(fileext = ".png")
   expect_silent(suppressWarnings(ggplot2::ggsave(f, g, width = 6.27, height = attr(g, "alto_word"), dpi = 60, device = ragg::agg_png)))
   expect_true(file.exists(f))
+})
+
+# ---- Revisión del PPT v7.23 de CCSS, lámina 57 (ítem 14) -----------------------------------------------------------------
+
+.hz_v723_kpi <- function(base = NULL, comp = NULL) list(cifra = "84%", texto = "tiene a sus padres entre quienes pagan", intervalo_texto = "81% a 88%",
+                                                       base = base, comparacion = comp, tambien = NULL)
+
+test_that("v7.23 ítem 14: el alto ganado va a las filas (cifra y frase más grandes) y bajo la frase sólo va la base distinta", {
+  lz <- .lam_lienzo()
+  caps <- list(list(titulo = "Uno", kpis = list(.hz_v723_kpi(), .hz_v723_kpi(base = "Base de 399"))))
+  .lam_halla_res_tabla(lz, caps, 0.5, 12.8, 1.2, 6.6)
+  formas <- unlist(lz$formas)
+  cifra <- formas[grepl('name="resumen_ejecutivo:cifra"', formas)]
+  expect_true(all(grepl('sz="2800"', cifra)))                 # con aire, 28 pt (antes 24 fijos)
+  expect_false(any(grepl('name="resumen_ejecutivo:encabezado"|name="resumen_ejecutivo:intervalo"', formas)))
+  expect_false(any(grepl("Intervalo de|81% a 88%", formas)))
+  expect_identical(sum(grepl('name="resumen_ejecutivo:base"', formas)), 1L)
+  expect_true(any(grepl("Base de 399", formas, fixed = TRUE)))
+})
+
+test_that("v7.23 ítem 14: en el Word dos pastillas que no caben lado a lado van una sobre otra (no se omite la segunda)", {
+  comp <- list(estado = "diferencia", partes = list(list(texto = "Algún padre o tutor univ. 92%", dir = "up", fragil = FALSE),
+                                                    list(texto = "Ningún padre o tutor univ. 72%", dir = "down", fragil = FALSE)))
+  e <- list(tipo = "hallazgos", modo = "resumen", paginas = list(list(list(titulo = "Uno", kpis = list(.hz_v723_kpi(comp = comp))))))
+  g <- .halla_res_ggplot(e)
+  tx <- unlist(lapply(suppressWarnings(ggplot2::ggplot_build(g))$data, function(l) if ("label" %in% names(l)) as.character(l$label)))
+  expect_true(all(c("Algún padre o tutor univ. 92% ▲", "Ningún padre o tutor univ. 72% ▼") %in% tx))
+  expect_false(any(grepl("Intervalo de", tx, fixed = TRUE)))
 })
