@@ -471,6 +471,13 @@ export default function HojasRutaMapaPage() {
       return [{ id: b.id_manzana, numero: b.hoja_num ?? i + 1, estado: estadoUmp, manzana }];
     });
   }, [bloquesTitulares, manzanaPorId, entrevistasPorRuta, estados, enSeleccion]);
+  // El mapa dice lo mismo que la lista: con «Por revisar» o una búsqueda, sólo esas rutas (y la enfocada); antes la lista
+  // mostraba 12 de 150 y el mapa seguía pintando las 150 con el mismo peso.
+  const titularesVisibles = useMemo(() => {
+    if (!enSeleccion || (!soloPorRevisar && !busquedaUmp.trim())) return titulares;
+    const ids = new Set(grupos.flatMap((g) => g.filas.map((f) => f.id)));
+    return titulares.filter((t) => ids.has(t.id) || t.id === umpEnfocada);
+  }, [enSeleccion, soloPorRevisar, busquedaUmp, titulares, grupos, umpEnfocada]);
   const titularEnfocada = enSeleccion && umpEnfocada ? bloquesTitulares.find((b) => b.id_manzana === umpEnfocada) ?? null : null;
   const reemplazosEnfocados = useMemo<PiezaManzana[]>(() => (titularEnfocada ? reemplazosDe(titularEnfocada.id_manzana, bloquesReemplazos).flatMap((b) => manzanaPorId.get(b.id_manzana) ?? []) : []), [titularEnfocada, bloquesReemplazos, manzanaPorId]);
   const cajaEnfocada = useMemo(() => {
@@ -633,9 +640,9 @@ export default function HojasRutaMapaPage() {
         dibujarReemplazosMundo(ctx, u, reemplazos);
       }
       if (enSeleccion) dibujarReemplazosMundo(ctx, u, reemplazosEnfocados);
-      if (!enPoblacion && !enMuestra) dibujarTitularesMundo(ctx, u, titulares, enSeleccion ? umpEnfocada : null, capaContraste);
+      if (!enPoblacion && !enMuestra) dibujarTitularesMundo(ctx, u, titularesVisibles, enSeleccion ? umpEnfocada : null, capaContraste);
     },
-    [enMuestra, enPoblacion, enTerritorio, enManzanas, enSeleccion, borrador, distritoBajoCursor, distritoEnfocado, titulares, reemplazos, excluidasPiloto, contextoOsm, reemplazosEnfocados, umpEnfocada, zonasCortas, distritos, configSorteo, dibujoArea, capaContraste, contornos, nacional.dibujarMundo],
+    [enMuestra, enPoblacion, enTerritorio, enManzanas, enSeleccion, borrador, distritoBajoCursor, distritoEnfocado, titularesVisibles, reemplazos, excluidasPiloto, contextoOsm, reemplazosEnfocados, umpEnfocada, zonasCortas, distritos, configSorteo, dibujoArea, capaContraste, contornos, nacional.dibujarMundo],
   );
   // Perfil NSE de lo elegido para la gráfica del inspector de Territorio: viviendas
   // por nivel de las manzanas ya cargadas en el lienzo. null mientras no hay geometría.
@@ -716,7 +723,7 @@ export default function HojasRutaMapaPage() {
       }
       dibujarNombresDepartamento(ctx, u, nacional.limitesDeNombres(limites));
       if (nacional.dibujarPantalla(ctx, u)) return;
-      if (!enTerritorio && !enPoblacion && !enMuestra) dibujarTitularesPantalla(ctx, u, titulares, enSeleccion ? umpEnfocada : null, null, enSeleccion ? reemplazosEnfocados : [], capaContraste);
+      if (!enTerritorio && !enPoblacion && !enMuestra) dibujarTitularesPantalla(ctx, u, titularesVisibles, enSeleccion ? umpEnfocada : null, null, enSeleccion ? reemplazosEnfocados : [], capaContraste);
       // La ruta enfocada dice por qué esquina se entra y hacia dónde se camina, como su ficha impresa.
       const mEnfocada = titularEnfocada ? manzanaPorId.get(titularEnfocada.id_manzana) : undefined;
       if (mEnfocada?.anillos[0] && u.camara.s > 0.5) dibujarRecorridoManzana(ctx, u, mEnfocada.anillos[0], titularEnfocada?.esquina_inicio, titularEnfocada?.sentido_recorrido);
@@ -738,7 +745,7 @@ export default function HojasRutaMapaPage() {
       }
       if (enTerritorio) dibujarNombresFuera(ctx, u, contornosAbiertos.filter((c) => !visibles.includes(c)).map((c) => ({ clave: c.ubigeo, nombre: nombreDistrito(c.nombre), x: c.rotulo[0], y: c.rotulo[1] })), fichas);
     },
-    [titulares, confirmados, borrador, enTerritorio, enPoblacion, enMuestra, enSeleccion, umpEnfocada, titularEnfocada, manzanaPorId, reemplazosEnfocados, matriz, tamano, habitantes, capaContraste, enAtlas, atlas, enEstudio, ciudadEnfocada, ciudadAbierta, contornos, contornosAbiertos, nacional],
+    [titularesVisibles, confirmados, borrador, enTerritorio, enPoblacion, enMuestra, enSeleccion, umpEnfocada, titularEnfocada, manzanaPorId, reemplazosEnfocados, matriz, tamano, habitantes, capaContraste, enAtlas, atlas, enEstudio, ciudadEnfocada, ciudadAbierta, contornos, contornosAbiertos, nacional],
   );
 
   // B1: la zona de acciones del documento (fase, avisos por revisar, bitácora, Material).
