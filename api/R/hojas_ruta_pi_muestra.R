@@ -15,7 +15,9 @@
 #         recibió la zona (regla `..._zona_condicional`);
 #       · estrato provincia: la mezcla exacta de π(⌊e_d⌋) y π(⌈e_d⌉)
 #         (`hojas_ruta_estrato_pi`), que suma n_h en el estrato;
-#   - `pi_regla`: cuál de las tres.
+#   - `pi_regla`: cuál de las tres;
+#   - con el §1c (base 2025), `pi_distrito` y `distrito_condicion`, y la π es
+#     π_c · π_d · π_i|d (`hojas_ruta_distritos_pi`).
 #
 # El reemplazo pareado de la MISMA zona hereda la π y el estrato de su titular
 # (`pi_fuente = "hereda_titular"`): sustituye a la titular en su segmento y el
@@ -57,6 +59,11 @@ hojas_ruta_pi_muestra <- function(blocks_df, replacement_blocks_df, frame, cfg) 
     blocks_df$pi_ciudad <- asignacion$pi_ciudad[ia]
     blocks_df$ciudad_condicion <- asignacion$condicion[ia]
     blocks_df$grupo_ciudades <- asignacion$grupo[ia]
+    # ADR 0131 §1c: π del distrito y su condición (forzoso o sorteado).
+    if ("pi_distrito" %in% names(asignacion)) {
+      blocks_df$pi_distrito <- asignacion$pi_distrito[ia]
+      blocks_df$distrito_condicion <- asignacion$condicion_distrito[ia]
+    }
   }
   blocks_df$pi_regla <- .hojas_ruta_pim_regla(cfg, if (modo_estrato) "estrato" else if (por_zona) "zona_condicional" else "distrito")
 
@@ -72,7 +79,7 @@ hojas_ruta_pi_muestra <- function(blocks_df, replacement_blocks_df, frame, cfg) 
       m <- .hojas_ruta_sorteo_medida(df, cfg_d)
       pi <- if (modo_estrato) {
         a <- asignacion[match(u, asignacion$ubigeo), , drop = FALSE]
-        hojas_ruta_ciudades_pi(m, a$pi_ciudad, a$n_lo, a$n_hi, a$f_n, a$share)
+        if ("pi_d_lo" %in% names(a)) hojas_ruta_distritos_pi(m, a) else hojas_ruta_ciudades_pi(m, a$pi_ciudad, a$n_lo, a$n_hi, a$f_n, a$share)
       } else {
         .hojas_ruta_sorteo_pi(m, length(en_muestra))
       }
@@ -86,7 +93,7 @@ hojas_ruta_pi_muestra <- function(blocks_df, replacement_blocks_df, frame, cfg) 
       as.character(replacement_blocks_df$ubigeo) == ub[tit]
     misma_zona[is.na(misma_zona)] <- FALSE  # sin zona no se puede afirmar que es la misma: no hereda
     replacement_blocks_df$estrato <- blocks_df$estrato[tit]
-    if (modo_estrato) for (k in c("pi_ciudad", "ciudad_condicion", "grupo_ciudades")) replacement_blocks_df[[k]] <- blocks_df[[k]][tit]
+    if (modo_estrato) for (k in intersect(c("pi_ciudad", "ciudad_condicion", "grupo_ciudades", "pi_distrito", "distrito_condicion"), names(blocks_df))) replacement_blocks_df[[k]] <- blocks_df[[k]][tit]
     replacement_blocks_df$pi <- ifelse(misma_zona, blocks_df$pi[tit], NA_real_)
     replacement_blocks_df$pi_fuente <- ifelse(misma_zona, "hereda_titular", "otra_zona_sin_pi")
     fuera <- sum(!misma_zona)

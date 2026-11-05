@@ -132,3 +132,38 @@ test_that("con el §1c apagado (mínimo 0 o base 2017) la asignación queda idé
     expect_true(all(old))
   }
 })
+
+test_that("la muestra publica π = π_c · π_d · π_i|d, π_d y la condición del distrito; ninguna manzana de un distrito no sorteado", {
+  # Lima Norte entera (8 distritos) con 8 rutas: unos forzosos y otros sorteados.
+  ub <- HOJAS_RUTA_LIMA_AREAS$lima_norte
+  cfg <- list(territorios = ub, sample_size_mode = "external_total", n_objetivo = 10L * 8L, entrevistas_por_manzana = 8L, seed = 3L,
+              sample_size = list(design_effect = 1, estrato = "provincia", base_reparto = "cpv2025_adultos_urbanos"))
+  ncfg <- hojas_ruta_integrada_normalize_config(cfg)
+  a <- hojas_ruta_estrato_asignacion(ncfg$territorios, 10L, ncfg)
+  d <- a$distritos
+  expect_true(any(d$condicion_distrito == "sorteado"))
+  expect_true(any(d$condicion_distrito == "no_sorteado"))
+  s <- hojas_ruta_sample_preview_integrado(cfg)
+  expect_true(s$ok)
+  b <- .hojas_ruta_rows_df(s$blocks)
+  expect_true(all(c("pi", "pi_distrito", "distrito_condicion") %in% names(b)))
+  expect_false(any(b$ubigeo %in% d$ubigeo[d$condicion_distrito == "no_sorteado"]))
+  expect_equal(b$pi_distrito, d$pi_distrito[match(b$ubigeo, d$ubigeo)])
+  expect_true(all(b$pi > 0 & b$pi <= b$pi_distrito + 1e-12))
+  expect_true(all(b$distrito_condicion %in% c("forzoso", "sorteado")))
+  # Por distrito, las rutas sorteadas son las asignadas (cada ruta entera en su distrito).
+  por_d <- table(b$ubigeo)
+  expect_identical(as.integer(por_d[d$ubigeo[d$rutas > 0]]), d$rutas[d$rutas > 0])
+  # Autoponderación del grupo sin certezas: π_d · π_i|d = n_g · MOS_i / MOS_g.
+  frame <- .hojas_ruta_filter_frame(ncfg)
+  g <- a$grupos_distritos
+  for (u in d$ubigeo[d$condicion_distrito %in% c("sorteado", "no_sorteado")]) {
+    df <- frame[as.character(frame$ubigeo) == u, , drop = FALSE]
+    m <- .hojas_ruta_sorteo_medida(df, .hojas_ruta_sorteo_cfg_distrito(ncfg, df))
+    j <- match(u, d$ubigeo)
+    if (max(ceiling(d$e_lo[[j]]) * m / sum(m)) >= 1) next
+    pi <- hojas_ruta_distritos_pi(m, d[j, ])
+    mos_g <- sum(d$mos[d$condicion_distrito %in% c("sorteado", "no_sorteado")])
+    expect_equal((pi / m)[m > 0], rep(g$rutas_grupo[[1]] / mos_g, sum(m > 0)), tolerance = 1e-6)
+  }
+})
