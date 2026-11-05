@@ -18,6 +18,12 @@ export const ESCALA_ENCUADRE_MAX = 2.4;
 export const SENSIBILIDAD_RUEDA = 0.0065;
 export const SENSIBILIDAD_PELLIZCO = 0.014;
 export const DURACION_VUELO_MS = 620;
+/**
+ * Si un cambio de encuadre vuela o salta. El primero siempre salta: la cámara aún no mira nada (arranca en
+ * un origen arbitrario) y volar desde ahí pinta ~1 s de mapa en blanco o a medio camino antes de llegar.
+ */
+export const debeVolar = (o: { animar: boolean; reducido: boolean; ancho: number; encuadrado: boolean }) =>
+  o.animar && !o.reducido && o.ancho > 0 && o.encuadrado;
 
 export const acotarEscala = (s: number) => Math.max(ESCALA_MIN, Math.min(ESCALA_MAX, s));
 

@@ -7,6 +7,7 @@ import {
   aPantalla,
   arrastre,
   cajaVisible,
+  debeVolar,
   DURACION_VUELO_MS,
   encuadre,
   escalaGrafica,
@@ -193,6 +194,8 @@ export function LienzoMapa({
     /** El último encuadre pedido y si el usuario movió la cámara después. */
     objetivo: null as EncuadreLienzo | null,
     manual: false,
+    /** Si la cámara ya miró algo: el primer encuadre salta en vez de volar (`debeVolar`). */
+    encuadrado: false,
   });
   // Lo que cambia con cada render se lee por referencia desde el bucle de dibujo.
   // El rótulo del cursor se mueve por ref: re-renderizar en cada pointermove sería pagar React por píxel.
@@ -358,8 +361,10 @@ export function LienzoMapa({
   const volar = useCallback(
     (destino: Camara, animar: boolean) => {
       const e = estado.current;
-      const reducido = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
-      if (!animar || reducido || !e.tamano.w) {
+      const reducido = Boolean(window.matchMedia?.("(prefers-reduced-motion: reduce)").matches);
+      const vuela = debeVolar({ animar, reducido, ancho: e.tamano.w, encuadrado: e.encuadrado });
+      if (e.tamano.w) e.encuadrado = true;
+      if (!vuela) {
         e.vuelo = 0;
         e.camara = destino;
         pintar();

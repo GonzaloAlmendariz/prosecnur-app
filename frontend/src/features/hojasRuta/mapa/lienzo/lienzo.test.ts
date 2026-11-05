@@ -1,11 +1,20 @@
 import { describe, expect, test } from "vitest";
 import { normalizarGeometriaHojasRuta } from "../../../../api/hojasRuta";
-import { aMundo, aPantalla, cajaVisible, encuadre, ESCALA_ENCUADRE_MAX, ESCALA_MAX, escalaGrafica, interpolar, zoomRueda, arrastre } from "./camara";
+import { aMundo, aPantalla, cajaVisible, debeVolar, encuadre, ESCALA_ENCUADRE_MAX, ESCALA_MAX, escalaGrafica, interpolar, zoomRueda, arrastre } from "./camara";
 import { cajaDe, centroDe, nivelDensidad, piezasDeGeometria, unirCajas, visibles } from "./piezas";
 
 const T = { w: 800, h: 600 };
 
 describe("cámara del lienzo", () => {
+  test("el primer encuadre salta: volar desde el origen pinta el mapa en blanco o a medio camino", () => {
+    const base = { animar: true, reducido: false, ancho: 800 };
+    expect(debeVolar({ ...base, encuadrado: false })).toBe(false);
+    expect(debeVolar({ ...base, encuadrado: true })).toBe(true);
+    expect(debeVolar({ ...base, encuadrado: true, reducido: true })).toBe(false);
+    expect(debeVolar({ ...base, encuadrado: true, ancho: 0 })).toBe(false);
+    expect(debeVolar({ ...base, encuadrado: true, animar: false })).toBe(false);
+  });
+
   test("pantalla y mundo son inversas", () => {
     const c = { x: 1200, y: -8600, s: 0.4 };
     const [px, py] = aPantalla(c, T, 1500, -8500);
