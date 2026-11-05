@@ -1248,7 +1248,7 @@
       list(name = "pista_barras", label = "Pista hasta el 100%", tipo_input = "choice", grupo = "estilo", default = "auto",
            via_overrides = TRUE,
            choices = list(
-             list(value = "auto", label = "Automática", hint = "Con la escala de 0 a 100% y en las láminas de población."),
+             list(value = "auto", label = "Automática", hint = "En toda barra de una serie, como el resto del mazo."),
              list(value = "siempre", label = "Siempre", hint = "La escala pasa a ir de 0 a 100%."),
              list(value = "nunca", label = "Nunca", hint = "La barra sola, sin pista.")),
            descripcion = "Pinta bajo cada barra una pista gris suave que llega al 100%, para leer cada parte frente al total."),
@@ -1296,7 +1296,7 @@
       list(name = "pista_barras", label = "Pista hasta el 100%", tipo_input = "choice", grupo = "estilo", default = "auto",
            via_overrides = TRUE,
            choices = list(
-             list(value = "auto", label = "Automática", hint = "Con la escala de 0 a 100% y en las láminas de población."),
+             list(value = "auto", label = "Automática", hint = "En toda barra de una serie, como el resto del mazo."),
              list(value = "siempre", label = "Siempre", hint = "La escala pasa a ir de 0 a 100%."),
              list(value = "nunca", label = "Nunca", hint = "La barra sola, sin pista.")),
            descripcion = "Pinta bajo cada barra una pista gris suave que llega al 100%, para leer cada parte frente al total."),

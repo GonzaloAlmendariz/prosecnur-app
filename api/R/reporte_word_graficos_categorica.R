@@ -63,7 +63,8 @@
   marcas <- isTRUE(espec$escala_completa) && isTRUE(espec$marcas_eje)
   pista <- .lam_barras_pista_activa(espec)   # v7.11: la pista hasta el 100%, como en la lámina (lamina_barras_pista.R)
   esc <- if (isTRUE(espec$escala_completa) || pista) max(100, max(p)) * 1.12 else max(p) * (if (any(grepl("\\(", espec$cifras))) 1.34 else 1.18)
-  d <- data.frame(l = l, p = p, pd = ifelse(p <= 0, 100 * .BARRAS_PISO_CERO, p), y = ps$y, col = col, et = espec$cifras, negrita = isTRUE(espec$realce) & seq_along(p) == mx, stringsAsFactors = FALSE)   # 0 % con casos: astilla visible (piso del graficador)
+  # U5 (revisión v7.23, ítem 1): «0%» con casos se escribe «<1%», como en la lámina (lamina_cifra_menor_uno.R).
+  d <- data.frame(l = l, p = p, pd = ifelse(p <= 0, 100 * .BARRAS_PISO_CERO, p), y = ps$y, col = col, et = .lam_cifras_menor_uno(espec$cifras, .espec_casos(espec)), negrita = isTRUE(espec$realce) & seq_along(p) == mx, stringsAsFactors = FALSE)   # 0 % con casos: astilla visible (piso del graficador)
   g <- ggplot2::ggplot(d) +
     (if (pista) ggplot2::geom_rect(ggplot2::aes(xmin = 0, xmax = 100, ymin = .data$y - 0.32, ymax = .data$y + 0.32), fill = .lam_barras_pista_color())) +
     ggplot2::geom_rect(ggplot2::aes(xmin = 0, xmax = .data$pd, ymin = .data$y - 0.32, ymax = .data$y + 0.32, fill = .data$col)) + ggplot2::scale_fill_identity() +
@@ -127,7 +128,7 @@
   marcadas <- espec$rotulos %in% (espec[["resaltar"]] %||% character(0))
   col[marcadas] <- T$coral
   esc <- max(p, 1) * (if (any(grepl("\\(", espec$cifras))) 1.30 else 1.15)
-  d <- data.frame(l = l, p = p, y = ps$y, col = col, et = espec$cifras, negrita = marcadas,
+  d <- data.frame(l = l, p = p, y = ps$y, col = col, et = .lam_cifras_menor_uno(espec$cifras, .espec_casos(espec)), negrita = marcadas,
                   stringsAsFactors = FALSE)
   g <- ggplot2::ggplot(d) +
     ggplot2::geom_segment(ggplot2::aes(x = 0, xend = .data$p, y = .data$y, yend = .data$y), colour = T$tenue, linewidth = 0.9) +

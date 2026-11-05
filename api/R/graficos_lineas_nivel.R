@@ -23,7 +23,8 @@
 #     frágil (entre 0.01 y alfa). Un punto bajo la base mínima o con pocos conglomerados se dibuja pero no se marca;
 #   - por serie, la tendencia lineal entre niveles (`.sig_tendencia`, D6) con la corrección que el motor usa hoy
 #     (Bonferroni entre las filas de la evaluación). El chip «Crece con el nivel» o «Baja con el nivel» sale solo si es
-#     significativa; firme o frágil con el mismo corte de 0.01.
+#     significativa; firme o frágil con el mismo corte de 0.01. Revisión del PPT v7.23, ítem 10: Gonzalo preguntó si
+#     «Crece con el nivel» era significativo; el chip ahora lo dice («Crece significativamente con el nivel»).
 #     PENDIENTE (fuera de este trabajo): ajustar el p de la tendencia contra la familia del informe con `.sig_bh_q`, como
 #     propone la maqueta (§1.3). Con eso «Medio tiempo o más» de CCSS pasaría de firme a frágil.
 
@@ -305,7 +306,7 @@ p_lineas_nivel <- function(
       fragil_t <- t1$p_ajustado >= 0.01
       if (is.finite(t1$p_ajustado) && t1$p_ajustado < alfa && !(fragil_t && identical(regla$fragiles, "ocultar"))) {
         td <- list(dir = if (t1$estimado > 0) "up" else "down", fragil = fragil_t, p = t1$p, p_ajustado = t1$p_ajustado,
-                   texto = sprintf("%s con el %s", if (t1$estimado > 0) "Crece" else "Baja", el$nombre_nivel))
+                   texto = sprintf("%s significativamente con el %s", if (t1$estimado > 0) "Crece" else "Baja", el$nombre_nivel))
       }
     }
     list(rotulo = s$rotulo, color = col$hex, token = col$token,
@@ -347,7 +348,7 @@ p_lineas_nivel <- function(
   }
   list(tipo = "total_y_cruce", protagonista = "lineas_nivel",
        total = if (is.null(total)) NULL else total[c("rotulo", "segmentos", "llave", "n")],
-       seccion = el$titulo_seccion,
+       seccion = el$titulo_seccion, nombre_nivel = el$nombre_nivel,
        niveles = data.frame(codigo = niv, etiqueta = unname(etq[niv]), n = unname(n_niv), comparable = unname(comparable),
                             stringsAsFactors = FALSE),
        series = series_out, anidadas = anidadas, bandas = bandas, lectura = el$lectura, publico = el$publico,

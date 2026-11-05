@@ -11,10 +11,10 @@
 #   - el punto que difiere del resto lleva halo y ▲▼ (firme) o △▽ con halo punteado (frágil);
 #   - un punto sin la base mínima va hueco, su tramo punteado y sin marca;
 #   - bajo cada nivel, su rótulo y «N estudiantes»;
-#   - el rótulo de cada serie al final de su línea, junto a su último punto, con su chip de tendencia pequeño debajo
-#     (etiquetado directo). Revisión del PPT v7.11 de CCSS, lámina 45: «la leyenda debe ser más minimalista y fácilmente
-#     intuitiva». Antes el rótulo y un chip grande iban en el panel lateral, lejos de su línea.
-# Al panel lateral sólo le queda la lectura en gris.
+#   - la leyenda de las series a la DERECHA del gráfico, en el panel lateral, sobre la lectura (muestra, rótulo, su parte
+#     del total y el chip de tendencia), y la de los símbolos al pie (lamina_lineas_nivel_leyenda.R). Revisión del PPT
+#     v7.23 de CCSS, lámina 42 (ítem 10): «la leyenda va a la derecha del gráfico, no al lado del último eje de la
+#     línea». Deshace el rótulo al final de cada línea de la v7.11 (lámina 45).
 
 #' Línea recta con trazo opcional punteado
 #' @keywords internal
@@ -115,9 +115,8 @@
   list()
 }
 
-#' Cuerpo del rótulo de serie y del chip junto al final de la línea
+#' Cuerpo del chip de tendencia de la leyenda de series
 #' @keywords internal
-.LAM_LN_ROTULO_PT <- 11.5
 .LAM_LN_CHIP_PT <- 8.5
 
 #' Ancho del chip pequeño de una serie
@@ -134,19 +133,6 @@
   .lam_tarjeta_triangulo(lz, x + 0.08, yc, chip$dir, fr, alto = 0.075)
   .lam_tyc_txt(lz, chip$texto, x + 0.22, yc, w - 0.24, .LAM_LN_CHIP_PT, .std_color("azul"), bold = TRUE, nombre = "chip:texto")
   invisible(w)
-}
-
-#' Rótulos al final de cada línea: la altura de su último punto, sin pisarse entre series ni salir de la caja
-#' @param yk Altura del último punto de cada serie. @param altos Alto de cada bloque (rótulo y chip).
-#' @return Borde superior de cada bloque, en el orden de las series.
-#' @keywords internal
-.lam_ln_rotulos_tops <- function(yk, altos, lh, y_min, y_max, sep = 0.1) {
-  tops <- yk - lh / 2; o <- order(tops); t <- tops[o]; a <- altos[o]
-  for (k in seq_along(t)) { t[k] <- max(t[k], y_min); if (k > 1L) t[k] <- max(t[k], t[k - 1L] + a[k - 1L] + sep) }
-  sobra <- max(0, t[length(t)] + a[length(a)] - y_max)
-  if (sobra > 0) t <- pmax(y_min, t - sobra)
-  out <- numeric(length(t)); out[o] <- t
-  out
 }
 
 #' Escala vertical: el tope deja aire para la cifra del punto más alto; guías cada 10 o 20 puntos
@@ -167,14 +153,12 @@
 .lam_lineas_nivel_dibujar <- function(lz, espec, caja) {
   azul <- .std_color("azul"); tenue <- .std_color("texto_tenue")
   niv <- espec$niveles; K <- nrow(niv); S <- espec$series
-  ybot <- caja$b - 0.62; x_eje <- caja$l + 0.45
+  h_ley <- .lam_ln_leyenda_simbolos_alto(espec)
+  ybot <- caja$b - 0.62 - h_ley; x_eje <- caja$l + 0.45
   pmax <- max(unlist(lapply(S, function(s) s$puntos$p)), na.rm = TRUE)
   esc <- .lam_ln_escala(pmax, caja$t, ybot); yv <- esc$y
-  # El rótulo de cada serie va al final de su línea: las líneas dejan a su derecha el ancho del rótulo más largo.
-  pt_r <- .LAM_LN_ROTULO_PT; lh_r <- pt_r * 1.2 / 72
-  w_rot <- min(2.1, max(vapply(S, function(s) max(.lam_ancho_tinta(s$rotulo, pt_r, TRUE),
-                                                   if (is.null(s$tendencia)) 0 else .lam_ln_chip_ancho(s$tendencia$texto)), 0)) + 0.05)
-  x_fin <- caja$r - w_rot - 0.3
+  # La leyenda de las series va en el panel lateral: las líneas usan todo el ancho de su caja.
+  x_fin <- caja$r - 0.45
   XS <- if (K == 1L) (x_eje + x_fin) / 2 else seq(x_eje + 0.55, x_fin, length.out = K)
 
   # Guías y eje.
@@ -226,15 +210,9 @@
     y <- yv(s$puntos$p); data.frame(x1 = XS[-K], y1 = y[-K], x2 = XS[-1], y2 = y[-1])
   }))
   puntos <- do.call(rbind, lapply(S, function(s) data.frame(x = XS, y = yv(s$puntos$p), r = ifelse(is.na(s$puntos$dir), 0.08, 0.16))))
-  # Rótulos de serie al final de su línea; las cifras no los pisan.
-  rot_lin <- lapply(S, function(s) .lam_tyc_envolver(s$rotulo, w_rot, pt_r, TRUE))
-  altos_r <- vapply(seq_along(S), function(k) length(rot_lin[[k]]) * lh_r + if (is.null(S[[k]]$tendencia)) 0 else 0.3, 0)
-  x_rot <- XS[K] + 0.24
-  tops_r <- .lam_ln_rotulos_tops(vapply(S, function(s) yv(s$puntos$p[K]), 0), altos_r, lh_r, caja$t, ybot - 0.05)
-  cajas_rot <- lapply(seq_along(S), function(k) c(x_rot - 0.02, tops_r[k], x_rot + w_rot, tops_r[k] + altos_r[k]))
-  ocupado <- c(banda_cajas, cajas_rot)
+  ocupado <- banda_cajas
   libre <- function(r) {
-    if (r[2] < caja$t - 0.1 || r[4] > ybot - 0.08 || r[1] < caja$l || r[3] > caja$r + 0.25) return(FALSE)
+    if (r[2] < caja$t - 0.1 || r[4] > ybot - 0.08 || r[1] < caja$l || r[3] > caja$r) return(FALSE)
     for (o in ocupado) if (r[1] < o[3] && o[1] < r[3] && r[2] < o[4] && o[2] < r[4]) return(FALSE)
     if (nrow(puntos)) {
       dx <- pmax(r[1] - puntos$x, 0, puntos$x - r[3]); dy <- pmax(r[2] - puntos$y, 0, puntos$y - r[4])
@@ -292,11 +270,7 @@
                  tenue, align = "center", nombre = "lineas:n")
   }
 
-  for (k in seq_along(S)) {
-    y <- tops_r[k]
-    for (l in rot_lin[[k]]) { .lam_tyc_txt(lz, l, x_rot, y + lh_r / 2, w_rot, pt_r, S[[k]]$color, bold = TRUE, nombre = "panel:serie"); y <- y + lh_r }
-    if (!is.null(S[[k]]$tendencia)) .lam_ln_chip(lz, x_rot, y + 0.05 + 0.115, S[[k]]$tendencia)
-  }
-  # El panel lateral ya no repite las series: sólo lleva la lectura.
-  list(panel = list(), notas = character(0))
+  # Al pie, la leyenda de los símbolos; a la derecha (panel lateral), la de las series sobre la lectura.
+  if (h_ley > 0) .lam_ln_leyenda_simbolos(lz, espec, caja$l, caja$b - 0.12)
+  list(panel = .lam_ln_leyenda_items(espec, caja$t), notas = character(0))
 }

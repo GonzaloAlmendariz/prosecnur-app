@@ -22,7 +22,8 @@ withr::local_options(prosecnur.casos_junto = list(cuando = "nunca"))
 test_that("el Word muestra la categoría con casos cuya cifra redondea a 0 %", {
   w <- .wc_word(.wc_graf(c(1000, 200, 1)))
   expect_identical(names(w), c("A", "B", "C"))
-  expect_identical(unname(w), c("83%", "17%", "0%"))
+  # Revisión v7.23, ítem 1: con casos, la cifra que redondea a 0 se escribe «<1%» (U5), como en la lámina.
+  expect_identical(unname(w), c("83%", "17%", "<1%"))
 })
 
 test_that("la categoría con casos en 0 % conserva su lugar entre las demás, también en la espec", {

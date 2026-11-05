@@ -9,17 +9,26 @@
 .dce_espec <- function() list(tipo = "categorica", rotulos = c("Sí", "No"), cifras = c("76%", "24%"), largos = c(0.76, 0.24),
                               valores = c(0.76, 0.24), colores = c(`Sí` = "#081F5C", No = "#CA5651"))
 
-test_that("cada cifra va en el color de su tramo y el rótulo a 14 pt en negrita", {
+# Revisión del PPT v7.23 de CCSS, ítem 11: la lámina ya no dibuja la franja partida (sale como apilada clásica, test de
+# abajo); la pieza `.lam_dicotomia` queda en el recetario y sus reglas de color y rótulo se prueban sobre la pieza.
+test_that("la pieza partida: cada cifra va en el color de su tramo y el rótulo a 14 pt en negrita", {
   e <- .dce_espec()
-  testthat::local_mocked_bindings(.lam_dicotomia_datos = function(espec) list(rotulos = e$rotulos, cifras = e$cifras, largos = e$largos,
-                                                                              n = NULL, colores = unname(e$colores)), .package = "prosecnurapp")
-  o <- .lam_laminas_dicotomia(.dce_doc(), e, "Dicotómica")
+  doc <- officer::add_slide(.dce_doc(), layout = "Graficos2", master = "Office Theme")
+  lz <- .lam_lienzo()
+  .lam_dicotomia(lz, 1, 2, 10, e$rotulos, e$cifras, e$largos, size = 40, g = 0.7, cols = unname(e$colores), size_rot = 14)
+  o <- list(doc = .lam_agrupar(doc, lz, nombre = "prosecnur:grafico:dicotomia"))
   cif <- .dce_formas(o$doc, "dicotomia:cifra")
   cols <- toupper(xml2::xml_attr(xml2::xml_find_first(cif, ".//a:srgbClr"), "val"))
   expect_identical(cols, c("081F5C", "CA5651"))
   rot <- .dce_formas(o$doc, "dicotomia:rotulo")
   expect_true(all(xml2::xml_attr(xml2::xml_find_first(rot, ".//a:rPr"), "sz") == "1400"))
   expect_true(all(xml2::xml_attr(xml2::xml_find_first(rot, ".//a:rPr"), "b") == "1"))
+})
+
+test_that("v7.23 ítem 11: la lámina de una Sí/No no dibuja la franja partida", {
+  o <- .lam_laminas_dicotomia(.dce_doc(), .dce_espec(), "Dicotómica")
+  expect_length(.dce_formas(o$doc, "dicotomia:cifra"), 0L)
+  expect_length(.dce_formas(o$doc, "segmento"), 2L)
 })
 
 test_that("un tramo muy claro escribe su cifra en un tono más hondo del mismo color", {

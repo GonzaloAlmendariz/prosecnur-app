@@ -212,8 +212,10 @@
     .lam_panel_titulo(lz, ml, yt, ancho, espec$pregunta_filtro, publico(espec$n_filtro))
     # F2: con una batería abajo, la dicotomía se compacta para dejarle el alto.
     bateria <- identical(s$tipo, "escala") && NROW(s$filas) > 1L
-    yb_fin <- .lam_dicotomia(lz, xb, yt + 0.55, wb, d$rotulos, d$cifras, d$largos, d$n, size = .std_comp("filtro", if (bateria) "cifra_pt_bateria" else "cifra_pt"),
-                             g = .std_comp("filtro", if (bateria) "grosor_bateria" else "grosor"), cols = d$colores)
+    # v7.23, ítem 11: ninguna franja dicotómica en el mazo; la Sí/No va como barra apilada clásica, cifras dentro y leyenda.
+    yb_fin <- .lam_dicotomia_estandar(lz, xb, yt + 0.55, wb, d$rotulos, d$cifras, d$largos, d$n,
+                                      g = .std_comp("filtro", if (bateria) "grosor_bateria" else "grosor"), cols = d$colores,
+                                      x_ley = ml, w_ley = ancho)
     y2 <- yb_fin + .std_comp("filtro", if (bateria) "aire_sub_bateria" else "aire_sub")
     # G16 (Gabriela: «ese n 77 ahí no se lee, mejor como estaba antes, encima de la barra»): con la escala de una barra la
     # base va como «N = 77» sobre su extremo derecho (Contabilidad, lamina_filtro_sub_n.R), no en gris bajo la premisa.

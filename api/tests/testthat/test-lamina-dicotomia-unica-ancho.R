@@ -35,9 +35,9 @@ test_that("una sola pregunta Sí/No sale como fila de escala: columna y largo de
   expect_equal(nrow(.du_formas(o$doc, "barra:segmento")), 0L)  # ya no el bloque centrado de la barra estándar
 })
 
-test_that("el resto de formas de la dicotomía no cambia", {
+test_that("v7.23 ítem 11: `partida` en el plan ya no dibuja la franja; la Sí/No sale como fila de escala", {
   p <- .du_formas(.du_lamina(espec = .du_espec("partida"))$doc, "segmento")
-  expect_equal(nrow(p), 0L)   # la partida no sale como escala
+  expect_equal(nrow(p), 2L)   # antes la partida no salía como escala
   v <- suppressWarnings(.lam_laminas_dicotomia(.du_doc(), .du_espec("partida"), "T", pregunta = "¿P?", vertical = TRUE, folio = 1))
   expect_s3_class(v$doc, "rpptx")
 })

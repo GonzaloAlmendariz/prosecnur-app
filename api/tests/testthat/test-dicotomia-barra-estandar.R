@@ -1,7 +1,9 @@
 source("setup-load-all.R")
 
 # Estilo `barra_estandar` de la dicotómica (Renzo, informe Arte, 2026-10-22): una barra normal con el % dentro, en blanco,
-# tamaño estándar y leyenda, en vez de la barra partida con cifras de 22/40 pt encima. El defecto sigue siendo la partida.
+# tamaño estándar y leyenda, en vez de la barra partida con cifras de 22/40 pt encima. Revisión del PPT v7.23 de CCSS,
+# ítem 11 (Gonzalo: «pensé que el gráfico dicotómico ya había desaparecido; aquí debe haber un gráfico apilado clásico»):
+# la partida salió del mazo y `barra_estandar` es el único estilo, también cuando el plan todavía declara `partida`.
 
 .be_doc <- function() officer::read_pptx(system.file("plantillas", "plantilla_16_9.pptx", package = "prosecnurapp"))
 .be_xml <- function(doc) {
@@ -59,12 +61,13 @@ test_that("panel mixto: barra_estandar dibuja lo mismo dentro del panel", {
   expect_true(all(.be_sz(.be_sp(xml, "barra:cifra")) < 24))
 })
 
-test_that("el informe lo elige con presets$base$args$estilo_dicotomia y el slot gana al informe", {
-  expect_identical(.lam_estilo_dicotomia(.be_espec()), "partida")
+test_that("v7.23 ítem 11: el estilo es siempre barra_estandar; `partida` sigue siendo un valor válido del plan pero no se dibuja", {
+  expect_identical(.lam_estilo_dicotomia(.be_espec()), "barra_estandar")           # antes el defecto era la partida
+  expect_identical(.lam_estilo_dicotomia(.be_espec("partida")), "barra_estandar")  # antes el slot la pedía
+  withr::local_options(prosecnur.estilo_dicotomia = "partida")
+  expect_identical(.lam_estilo_dicotomia(.be_espec()), "barra_estandar")           # antes el informe la pedía
   withr::local_options(prosecnur.estilo_dicotomia = "barra_estandar")
-  expect_identical(.lam_estilo_dicotomia(.be_espec()), "barra_estandar")
-  expect_identical(.lam_estilo_dicotomia(.be_espec("partida")), "partida")        # el slot manda
-  expect_identical(.lam_estilo_dicotomia(.be_espec("raro")), "barra_estandar")     # lo desconocido no apaga el del informe
+  expect_identical(.lam_estilo_dicotomia(.be_espec("raro")), "barra_estandar")
   withr::local_options(prosecnur.estilo_dicotomia = NULL)
   viejo <- .estilo_dicotomia_fijar(list(base = list(args = list(estilo_dicotomia = "barra_estandar"))))
   expect_identical(getOption("prosecnur.estilo_dicotomia"), "barra_estandar")
@@ -74,7 +77,7 @@ test_that("el informe lo elige con presets$base$args$estilo_dicotomia y el slot 
   expect_error(p_dicotomica("trabaja", estilo = "otra"), "barra_estandar")
 })
 
-test_that("de punta a punta: el informe (presets) y el slot cambian la lámina; sin ellos sale la partida de siempre", {
+test_that("de punta a punta (v7.23 ítem 11): sin estilo, con el del informe o con `partida` en el slot, la Sí/No sale apilada clásica", {
   skip_if_not_installed("officer"); skip_if_not_installed("rvg")
   dat <- data.frame(qsn = rep(c("Sí", "No"), c(110, 90)), stringsAsFactors = FALSE)
   inst <- .be_inst()
@@ -85,16 +88,14 @@ test_that("de punta a punta: el informe (presets) y el slot cambian la lámina; 
     .be_xml_k(out)
   }
   base <- render(p_barras_agrupadas("qsn", overrides = list(orden_barras = "instrumento", invertir_barras = TRUE)))
-  expect_length(.be_sp(base, "dicotomia:cifra"), 2L)                                # regresión: el defecto no cambia
-  expect_gte(max(.be_sz(.be_sp(base, "dicotomia:cifra"))), 24)
-  expect_length(.be_sp(base, "barra:cifra"), 0L)
+  .be_verificar_estandar(base)                                                       # el defecto ya no es la franja partida
   slot <- render(p_dicotomica("qsn", estilo = "barra_estandar"))
   .be_verificar_estandar(slot)   # G8 (Arte 2026-10-28): blanco en los dos segmentos, también sobre el celeste de la casa
   informe <- render(p_barras_agrupadas("qsn", overrides = list(orden_barras = "instrumento", invertir_barras = TRUE)),
                     presets = list(base = list(args = list(estilo_dicotomia = "barra_estandar"))))
   .be_verificar_estandar(informe)
   gana <- render(p_dicotomica("qsn", estilo = "partida"), presets = list(base = list(args = list(estilo_dicotomia = "barra_estandar"))))
-  expect_length(.be_sp(gana, "dicotomia:cifra"), 2L)                                # el slot gana al informe
+  .be_verificar_estandar(gana)                                                       # `partida` en el slot ya no dibuja la franja
 })
 
 test_that("Word: barra_estandar deja las cifras dentro de los límites de la barra, blancas y más chicas; el defecto no cambia", {
@@ -143,7 +144,7 @@ test_that("panel mixto: la barra estándar y su leyenda quedan centradas en el p
   }
 })
 
-test_that("N20: en el PPT una nominal de 2 categorías (género) sale como barras, no como la pieza dicotomía; el Sí/No no cambia", {
+test_that("N20: en el PPT una nominal de 2 categorías (género) sale como barras; el Sí/No y la declarada, apiladas clásicas (v7.23 ítem 11)", {
   inst <- list(survey = data.frame(name = c("sexo", "qsn"), type = c("select_one sx", "select_one sn"), list_name = c("sx", "sn"),
                                    label = c("Sexo", "Pregunta qsn"), stringsAsFactors = FALSE),
                choices = data.frame(list_name = c("sx", "sx", "sn", "sn"), name = c("Masculino", "Femenino", "Sí", "No"),
@@ -157,8 +158,8 @@ test_that("N20: en el PPT una nominal de 2 categorías (género) sale como barra
   }
   ov <- list(orden_barras = "instrumento", invertir_barras = TRUE)
   expect_length(.be_sp(render(p_barras_agrupadas("sexo", overrides = ov)), "dicotomia:cifra"), 0L)
-  sn <- render(p_barras_agrupadas("qsn", overrides = ov))
-  expect_length(.be_sp(sn, "dicotomia:cifra"), 2L)
-  expect_gte(max(.be_sz(.be_sp(sn, "dicotomia:cifra"))), 24)
-  expect_length(.be_sp(render(p_dicotomica("sexo")), "dicotomia:cifra"), 2L)   # declarada: sí es dicotomía
+  expect_length(.be_sp(render(p_barras_agrupadas("sexo", overrides = ov)), "segmento"), 0L)   # barras, no la apilada
+  .be_verificar_estandar(render(p_barras_agrupadas("qsn", overrides = ov)))
+  # Declarada: sí es dicotomía. G8 deja en blanco las dos cifras sólo en la Sí/No; en otro par la del tramo claro va en azul.
+  .be_verificar_estandar(render(p_dicotomica("sexo")), colores = c("FFFFFF", "081F5C"))
 })
