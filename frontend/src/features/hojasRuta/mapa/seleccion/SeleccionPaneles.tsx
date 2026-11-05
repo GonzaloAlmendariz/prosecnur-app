@@ -291,7 +291,8 @@ type Celda = Record<string, string | number | null>;
 const COL_DISTRITO: PulsoTableColumna<SelectedBlock> = { id: "distrito", encabezado: "Distrito", ancho: 124, celda: (b) => nombreDistrito(b.distrito), valor: (b) => b.distrito };
 const COLUMNAS_BLOQUE = (reemplazos: boolean): PulsoTableColumna<SelectedBlock>[] => [
   COL_DISTRITO,
-  { id: "codigo", encabezado: reemplazos ? "R" : "UMP", ancho: 84, celda: (b) => codigoDeUmp(b), valor: (b) => Number(reemplazos ? b.titular_hoja_num ?? 0 : b.hoja_num ?? b.orden_seleccion ?? 0) },
+  // «R 125» cabe en 64; la pestaña de reemplazos suma una columna y a 1440 se desplazaba 88 px.
+  { id: "codigo", encabezado: reemplazos ? "R" : "UMP", ancho: reemplazos ? 64 : 84, celda: (b) => codigoDeUmp(b), valor: (b) => Number(reemplazos ? b.titular_hoja_num ?? 0 : b.hoja_num ?? b.orden_seleccion ?? 0) },
   // «Reemplaza a» junto al código: es la relación que la pestaña existe para mostrar, y a 1024 quedaba cortada a la derecha.
   ...(reemplazos ? [{ id: "titular", encabezado: "Reemplaza a", ancho: 100, celda: (b: SelectedBlock) => (b.titular_hoja_num ? `UMP ${b.titular_hoja_num}` : "—"), valor: (b: SelectedBlock) => Number(b.titular_hoja_num ?? 0) }] : []),
   { id: "manzana", encabezado: "Manzana", ancho: 132, celda: (b) => b.id_manzana, valor: (b) => b.id_manzana },
@@ -299,7 +300,8 @@ const COLUMNAS_BLOQUE = (reemplazos: boolean): PulsoTableColumna<SelectedBlock>[
   // 104 px: «MEDIO BAJO» y «MEDIO ALTO» se leían «MEDIO …» con 80.
   { id: "nse", encabezado: "NSE", ancho: 104, celda: (b) => nse(b), valor: (b) => nse(b) },
   { id: "viviendas", encabezado: "Viviendas", ancho: 90, tipo: "cifra", celda: (b) => fmt(b.viviendas), valor: (b) => Number(b.viviendas || 0) },
-  { id: "encuestas", encabezado: "Encuestas", ancho: 96, tipo: "cifra", celda: (b) => rango(b), valor: (b) => Number(b.rango_inicio ?? 0) },
+  // Un reemplazo hace las encuestas de su titular: el rango ya lo dice «Reemplaza a», y repetirlo empujaba la tabla fuera del cajón.
+  ...(reemplazos ? [] : [{ id: "encuestas", encabezado: "Encuestas", ancho: 96, tipo: "cifra" as const, celda: (b: SelectedBlock) => rango(b), valor: (b: SelectedBlock) => Number(b.rango_inicio ?? 0) }]),
 ];
 const COLUMNAS_CUOTA: PulsoTableColumna<Celda & { _i: number }>[] = [
   { id: "distrito", encabezado: "Distrito", ancho: 170, celda: (c) => nombreDistrito(String(c.territorio ?? "")), valor: (c) => String(c.territorio ?? "") },
