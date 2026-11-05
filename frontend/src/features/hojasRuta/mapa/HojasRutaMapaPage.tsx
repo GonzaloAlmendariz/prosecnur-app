@@ -335,6 +335,8 @@ export default function HojasRutaMapaPage() {
     return () => {
       vivo = false;
       window.clearTimeout(t);
+      // Sin esto, salir de Manzanas a medio cálculo dejaba `cargandoMarco` encendido (y la readiness en false).
+      setCargandoMarco(false);
     };
     // la firma resume lo que cambia la vista previa; configSorteo entero cambiaría en cada render
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -489,7 +491,8 @@ export default function HojasRutaMapaPage() {
   // Una ruta abierta por enlace (`foco=`) se encuadra cuando llega la geometría de su distrito: hasta entonces
   // la vista no está lista (el QA capturaba Lima entera creyendo ver la manzana).
   // Tampoco está lista mientras llegan los contornos de sus distritos (`cargando` se vacía también si fallan):
-  // el QA capturaba la silueta provisional de la ciudad como si fuera el mapa.
+  // el QA capturaba la silueta provisional de la ciudad como si fuera el mapa. Ni mientras calcula la vista
+  // previa del marco elegible («Calculando lo que cambiaría…»; `cargandoMarco` se apaga en su finally).
   const esperaFoco = Boolean(titularEnfocada && !cajaEnfocada && !sinGeometria.has(titularEnfocada.ubigeo));
   const centroEnfocado = useMemo(() => {
     const m = titularEnfocada ? manzanaPorId.get(titularEnfocada.id_manzana) : undefined;
@@ -836,7 +839,7 @@ export default function HojasRutaMapaPage() {
 
   return (
     <PageFrame className="hojas-ruta-frame hr-mapa-frame" bodyMode="fill" scrollOwner="panels" layout="canvas" density="compact" headerMode="sr-only" title="Hojas de ruta" chrome={chrome}>
-      <span hidden data-audit-ready={error || (estado && !esperaFoco && !regionesCargando.length) ? "hojas-ruta" : "false"} data-audit-stage={nav.seccion ?? ""} data-audit-navigation="lienzo-v1" />
+      <span hidden data-audit-ready={error || (estado && !esperaFoco && !regionesCargando.length && !cargandoMarco) ? "hojas-ruta" : "false"} data-audit-stage={nav.seccion ?? ""} data-audit-navigation="lienzo-v1" />
       <div className="hr-mapa">
         {/* key por sección: cada una empieza arriba; el scroll de otra no se hereda (B25). */}
         <section key={nav.seccion ?? "territorio"} className="hr-mapa-estructura" aria-label="Distritos del estudio">
