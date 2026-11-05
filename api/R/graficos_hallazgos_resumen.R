@@ -25,6 +25,10 @@
 .HALLAZGOS_MODOS_RESUMEN <- c("resumen", "titulares")
 .HALLAZGOS_RESUMEN_TOPES <- list(por_lamina = 8L, capitulos = 4L, por_capitulo = 3L, auto_por_capitulo = 2L)
 
+#' Aviso del resumen en manual sin capítulos completos: en lenguaje de analista, sin nombres de argumentos (H3 de usabilidad)
+#' @keywords internal
+.HALLAZGOS_SIN_CAPITULOS <- "escribe al menos un capítulo con un hallazgo completo, o elige que los proponga el motor."
+
 #' Entero positivo de un tope del payload, o el de fábrica
 #' @keywords internal
 .halla_res_tope <- function(x, defecto, maximo = defecto) {
@@ -96,9 +100,9 @@
   })
   out <- Filter(function(c) length(c$cifras) > 0L, out)
   if (length(out)) {
-    aviso(sprintf("la selección automática propone %d hallazgos en %d capítulos: por capítulo, la diferencia más fuerte y la cifra más rotunda sin diferencia. Para editarla, pasa la lámina a selección manual con esa lista.",
+    aviso(sprintf("el motor propone %d hallazgos en %d capítulos: por capítulo, la diferencia más fuerte y la cifra más rotunda sin diferencia. Para cambiarlos, elige «Los escribo yo» en Selección de hallazgos.",
                   sum(vapply(out, function(c) length(c$cifras), 0L)), length(out)))
-  } else aviso("el plan no tiene preguntas que resumir.")
+  } else aviso("el informe no tiene preguntas que resumir.")
   out
 }
 
@@ -160,7 +164,7 @@
     }
     if (length(kpis)) capitulos[[length(capitulos) + 1L]] <- list(titulo = titulo, titular = titular, kpis = kpis)
   }
-  if (!length(capitulos)) aviso("la lámina no tiene hallazgos que mostrar; declara `capitulos` o usa `seleccion = \"auto\"`.")
+  if (!length(capitulos)) aviso(.HALLAZGOS_SIN_CAPITULOS)
   paginas <- if (titulares) .halla_res_paginar(capitulos, por_lamina, por_lamina) else .halla_res_paginar(capitulos, por_lamina, T$capitulos)
   list(tipo = "hallazgos", modo = modo, paginas = paginas, kpis = unlist(lapply(capitulos, `[[`, "kpis"), recursive = FALSE),
        titulos = .dif_chr(el$titulos), regla = sig$regla, m = sig$m %||% NA_integer_, n = n_lamina, publico = cx$publico,

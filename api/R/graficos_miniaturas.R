@@ -104,8 +104,15 @@
   )
   template_pptx <- .graficos_resolve_template_pptx(config = cfg, profile_id = delivery$profile_id,
                                                    template_id = delivery$template_id)
+  # H1 (usabilidad del editor): la regla inclusiva y los rótulos cortos del estudio, como el job de PPT y Word de la base
+  # activa (graficos_inclusivo.R). El export consolidado no la aplica, así que su vista previa tampoco.
+  inc <- .inclusivo_preparar_preview(fuentes$data_sources, fuentes$inst_sources, cfg$paletas %||% list(),
+                                     cfg$plan$rotulos_cortos, activo = !isTRUE(fuentes$consolidado))
+  fuentes$data_sources <- inc$data_sources; fuentes$inst_sources <- inc$inst_sources
   list(
     plan_slides = cfg$plan$slides %||% list(),
+    rotulos_cortos_mapa = inc$mapa,
+    inclusivo = !isTRUE(fuentes$consolidado),
     antetitulo_seccion = isTRUE(unlist(.graficos_estilo_cliente_validos(cfg$estilo_cliente)$antetitulo_seccion)),
     scope = if (isTRUE(fuentes$consolidado)) "consolidated" else "active_base",
     base = if (isTRUE(fuentes$consolidado)) "" else .graficos_active_base_name(sid),
@@ -117,7 +124,7 @@
     opciones_motor = .sig_opciones_preview(sid, .mini_opciones_motor()),   # ADR 0128: la regla de diferencias entra a la huella
     # Presets con canvas y SIN las guías heredadas: las del visor son una capa aparte (ver cabecera).
     presets_json = .enriquecer_presets(cfg$presets %||% list(), NULL),
-    paletas = cfg$paletas %||% list(),
+    paletas = inc$paletas %||% list(),
     icon_registry = .graficos_icon_registry(sid, cfg),
     template_pptx = template_pptx,
     template_id = delivery$template_id,
@@ -171,6 +178,7 @@
     ))
   }
   slide <- .graficos_calificar_refs_plan(list(slides = list(slide)), comun$base)$slides[[1]]
+  if (isTRUE(comun$inclusivo)) slide <- .inclusivo_preparar_lamina(slide, comun$rotulos_cortos_mapa %||% character(0))   # H1
   ctx <- .mini_contexto(
     slide = slide, folio = folio, scope = comun$scope, base = comun$base,
     data_sources = comun$data_sources, inst_sources = comun$inst_sources,

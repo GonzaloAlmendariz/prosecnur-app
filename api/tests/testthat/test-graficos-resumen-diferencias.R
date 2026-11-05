@@ -147,7 +147,7 @@ test_that("el constructor arma un slide_1 con el elemento y el antetítulo; el r
   expect_identical(s$.slide_type, "slide_1")
   expect_identical(s$slots$plot$.element_type, "resumen_diferencias")
   expect_identical(s$meta$antetitulo, "Resumen de diferencias")
-  expect_error(p_slide_resumen_diferencias(), "declara `capitulos`")
+  expect_error(p_slide_resumen_diferencias(), "escribe al menos un capítulo con una fila completa", fixed = TRUE)
   expect_true("p_slide_resumen_diferencias" %in% .slide_names())
   expect_identical(.SLIDES_META$p_slide_resumen_diferencias$render_key, "resumen_diferencias")
   expect_true(isTRUE(.SLIDES_META$p_slide_resumen_diferencias$en_selector))   # se ofrece desde la revisión v7.23 (ítem 15)
@@ -321,4 +321,26 @@ test_that("v7.23 ítem 13: en el Word los rótulos de grupo van enteros (vertica
   b2 <- ggplot2::ggplot_build(.resumen_dif_word_ggplot(e2))
   d2 <- do.call(rbind, lapply(b2$data, function(x) if ("label" %in% names(x)) data.frame(label = as.character(x$label), angle = x$angle)))
   expect_true(all(d2$angle[d2$label %in% c("Mujer", "Hombre")] == 0))
+})
+
+# ---- H3 del checklist de usabilidad del editor (2026-11-05) -----------------------------------------------------------
+
+test_that("H3: un solo capítulo manual escrito por el editor llega como lista de uno y la tabla lo dibuja", {
+  s <- jsonlite::fromJSON('{"id":"r1","tipo":"p_slide_resumen_diferencias","payload":{"seleccion":"manual","capitulos":[{"titulo":"Capítulo uno","filas":[{"var":"t","fila":"Sí","rotulo":"Trabaja"}]}]}}',
+                          simplifyVector = FALSE)
+  el <- .mini_rebuild_slide(s)$slots$plot
+  expect_length(el$capitulos, 1L)
+  e <- .rd_modelo(el)
+  expect_length(e$capitulos, 1L)
+  expect_identical(e$capitulos[[1]]$titulo, "Capítulo uno")
+  expect_length(e$capitulos[[1]]$filas, 1L)
+})
+
+test_that("H3: sin filas completas el aviso habla en lenguaje de analista", {
+  avisos <- character(0)
+  local_mocked_bindings(.pulso_aviso = function(m, ...) { avisos <<- c(avisos, m); invisible(TRUE) })
+  el <- p_slide_resumen_diferencias(capitulos = list(list(titulo = "Vacío", filas = list(list(var = "no_existe", fila = "Sí")))))$slots$plot
+  .resumen_dif_modelo(el, .rd_fuente(), .rd_sig())
+  expect_true("Resumen de diferencias: escribe al menos un capítulo con una fila completa, o elige que las proponga el motor." %in% avisos)
+  expect_false(any(grepl("`|seleccion = |declara `capitulos`", avisos)))
 })

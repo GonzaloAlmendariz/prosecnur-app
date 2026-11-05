@@ -17,7 +17,7 @@
 
 #' Versión manual de la caché de miniaturas: subirla invalida todas las entradas
 #' @keywords internal
-.MINIATURAS_VERSION_CACHE <- "2"
+.MINIATURAS_VERSION_CACHE <- "3"   # 3: la vista previa aplica la regla inclusiva y los rótulos cortos (H1, 2026-11-05)
 
 #' Forma canónica de un objeto para la huella: textos en UTF-8 y NADA más
 #'
