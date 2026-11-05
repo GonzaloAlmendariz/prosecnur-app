@@ -198,3 +198,24 @@ test_that("sin motor nativo y en el Word va el respaldo en ggplot con la espec (
   f <- tempfile(fileext = ".png"); ggplot2::ggsave(f, g, width = 6, height = attr(g, "alto"), dpi = 60)
   expect_gt(file.size(f), 0)
 })
+
+test_that("el Word dibuja el resumen como la tabla de la lámina: total, capítulos, cruce sobre sus grupos y pastillas", {
+  celdas <- data.frame(cruce = c("area", "area", "sexo"), codigo = c("1", "2", "1"), estado = c("dif", "dif", "igual"),
+                       valor = c(23, -23, NA), dir = c("up", "down", NA), fragil = c(FALSE, TRUE, NA), stringsAsFactors = FALSE)
+  espec <- list(tipo = "resumen_diferencias",
+                columnas = data.frame(cruce = c("area", "area", "sexo", "sexo"), codigo = c("1", "2", "1", "2"),
+                                      etiqueta = c("Economía y Finanzas", "Ciencias políticas y sociales", "Mujer", "Hombre"),
+                                      corto = c("Econ. y Fin.", "CC. Pol. y Soc.", "Mujer", "Hombre"), stringsAsFactors = FALSE),
+                rotulos_cruce = list(area = "Área", sexo = "Estudios de padres y sexo"),
+                capitulos = list(list(titulo = "Vida universitaria", filas = list(list(rotulo = "Pasa más tiempo en la biblioteca", total = 61, celdas = celdas)))))
+  g <- .resumen_dif_ggplot(espec)
+  expect_true(is.finite(attr(g, "alto_word")) && attr(g, "alto_word") > 0.5)
+  et <- unlist(lapply(ggplot2::ggplot_build(g)$data, function(d) if ("label" %in% names(d)) as.character(d$label)))
+  expect_true(all(c("Total", "61%", "VIDA UNIVERSITARIA", "ÁREA", "+23 ▲", "−23 ▽") %in% et))
+  # Un cruce más ancho que sus dos grupos se parte en líneas que caben sobre ellos, no se sale del lienzo.
+  b <- ggplot2::ggplot_build(g)$layout$panel_params[[1]]$x.range
+  expect_equal(b, c(0, .std_word("pagina", "ancho_util")))
+  # Sin columnas queda el respaldo de mosaicos.
+  sin_cols <- espec; sin_cols$columnas <- espec$columnas[0, ]
+  expect_null(.resumen_dif_word_ggplot(sin_cols))
+})
