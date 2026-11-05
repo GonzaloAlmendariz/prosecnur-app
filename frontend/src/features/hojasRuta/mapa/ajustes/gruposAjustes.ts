@@ -6,20 +6,18 @@ import { ESTRATOS, estratoDe, RUTAS_MINIMAS_CIUDAD } from "../muestra/EstratoMue
 
 /** Los ocho grupos de «Ajustes del diseño», en el orden de la maqueta aprobada. El id es la dirección (`foco`). */
 export type GrupoAjustesId = "tamano" | "reparto" | "visitas" | "cuotas" | "marco" | "sorteo" | "recorrido" | "fase";
-/** Dónde se edita hoy cada grupo, mientras su contenido no pasa a la ventana (etapas M2–M6). */
-export type SeccionOrigen = "muestra" | "poblacion" | "manzanas" | "seleccion";
 
-export type GrupoAjustes = { id: GrupoAjustesId; nombre: string; descripcion: string; claves: readonly string[]; origen: SeccionOrigen };
+export type GrupoAjustes = { id: GrupoAjustesId; nombre: string; descripcion: string; claves: readonly string[] };
 
 export const GRUPOS_AJUSTES: readonly GrupoAjustes[] = [
-  { id: "tamano", nombre: "Tamaño y precisión", descripcion: "Encuestas, margen y supuestos.", claves: ["n", "margen", "confianza", "deff", "efecto de diseño", "icc", "encuestas por ruta", "respuesta"], origen: "muestra" },
-  { id: "reparto", nombre: "Reparto y estrato", descripcion: "Población del reparto y estrato del sorteo.", claves: ["censo", "2025", "2017", "provincia", "distrito", "asignación"], origen: "muestra" },
-  { id: "visitas", nombre: "Visitas mínimas", descripcion: "Rutas mínimas por ciudad visitada.", claves: ["mínimo", "fija", "aleatoria", "ciudad"], origen: "muestra" },
-  { id: "cuotas", nombre: "Cuotas y edades", descripcion: "Rangos de edad, sexo y qué se exige en campo.", claves: ["edad", "rango", "sexo", "meta", "referencia"], origen: "poblacion" },
-  { id: "marco", nombre: "Marco elegible", descripcion: "Qué manzanas pueden salir sorteadas.", claves: ["viviendas", "mínimo", "áreas excluidas", "marco"], origen: "manzanas" },
-  { id: "sorteo", nombre: "Sorteo de manzanas", descripcion: "Método, medida y semilla.", claves: ["pps", "sistemático", "conglomerado", "semilla", "viviendas", "población"], origen: "manzanas" },
-  { id: "recorrido", nombre: "Recorrido y reemplazos", descripcion: "Esquina, salto y reemplazos por titular.", claves: ["esquina", "salto", "reemplazo", "zona"], origen: "manzanas" },
-  { id: "fase", nombre: "Fase y piloto", descripcion: "Piloto y campo real.", claves: ["piloto", "campo", "fase", "bloqueado"], origen: "manzanas" },
+  { id: "tamano", nombre: "Tamaño y precisión", descripcion: "Encuestas, margen y supuestos.", claves: ["n", "margen", "confianza", "deff", "efecto de diseño", "icc", "encuestas por ruta", "respuesta"] },
+  { id: "reparto", nombre: "Reparto y estrato", descripcion: "Población del reparto y estrato del sorteo.", claves: ["censo", "2025", "2017", "provincia", "distrito", "asignación"] },
+  { id: "visitas", nombre: "Visitas mínimas", descripcion: "Rutas mínimas por ciudad visitada.", claves: ["mínimo", "fija", "aleatoria", "ciudad"] },
+  { id: "cuotas", nombre: "Cuotas y edades", descripcion: "Rangos de edad, sexo y qué se exige en campo.", claves: ["edad", "rango", "sexo", "meta", "referencia"] },
+  { id: "marco", nombre: "Marco elegible", descripcion: "Qué manzanas pueden salir sorteadas.", claves: ["viviendas", "mínimo", "áreas excluidas", "marco"] },
+  { id: "sorteo", nombre: "Sorteo de manzanas", descripcion: "Método, medida y semilla.", claves: ["pps", "sistemático", "conglomerado", "semilla", "viviendas", "población"] },
+  { id: "recorrido", nombre: "Recorrido y reemplazos", descripcion: "Esquina, salto y reemplazos por titular.", claves: ["esquina", "salto", "reemplazo", "zona"] },
+  { id: "fase", nombre: "Fase y piloto", descripcion: "Piloto y campo real.", claves: ["piloto", "campo", "fase", "bloqueado"] },
 ];
 
 export const esGrupoAjustes = (v: string | null | undefined): v is GrupoAjustesId => GRUPOS_AJUSTES.some((g) => g.id === v);

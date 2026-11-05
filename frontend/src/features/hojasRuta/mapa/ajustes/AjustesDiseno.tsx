@@ -4,14 +4,13 @@ import type { HojasRutaIntegratedConfig } from "../../../../api/hojasRuta";
 import { Dialog } from "../../../../components/Dialog";
 import { PulsoButton } from "../../../../components/PulsoButton";
 import { formatoConteo, formatoDecimal } from "../../../../lib/formatoNumero";
-import { ArrowRight, Search, SlidersHorizontal } from "../../../../vendor/lucide-react";
-import { filtrarGrupos, GRUPOS_AJUSTES, resumenGrupo, type GrupoAjustesId, type SeccionOrigen } from "./gruposAjustes";
+import { Search, SlidersHorizontal } from "../../../../vendor/lucide-react";
+import { filtrarGrupos, GRUPOS_AJUSTES, resumenGrupo, type GrupoAjustesId } from "./gruposAjustes";
 import "./ajustes.css";
 
 /** La vista previa del pie: lo que el diseño vigente produce. */
 export type VistaPreviaDiseno = { n: number | null; rutas: number | null; distritos: number; margen: number | null };
 
-const NOMBRE_SECCION: Record<SeccionOrigen, string> = { muestra: "Muestra", poblacion: "Población", manzanas: "Manzanas", seleccion: "Selección" };
 
 type Props = {
   abierto: boolean;
@@ -21,8 +20,6 @@ type Props = {
   vista: VistaPreviaDiseno;
   onGrupo: (g: GrupoAjustesId) => void;
   onCerrar: () => void;
-  /** Mientras el grupo no pasa a la ventana (M2–M6), lleva a la sección donde hoy se edita. */
-  onIrSeccion: (s: SeccionOrigen) => void;
   /** El contenido de los grupos ya mudados a la ventana; `null` = todavía se edita en su sección. */
   contenidoDe?: (g: GrupoAjustesId) => ReactNode | null;
   /** Grupos con cambios en borrador, sin aplicar. */
@@ -37,10 +34,10 @@ type Props = {
 /**
  * «Ajustes del diseño» (maqueta aprobada, lámina 6): la ventana que reúne la configuración del diseño
  * muestral en ocho grupos, con buscador, navegación lateral y un pie con la vista previa. Etapa M0: el
- * armazón; cada grupo declara su valor vigente y, hasta que su contenido se mude aquí, dónde se edita.
+ * los ocho grupos con su contenido (M2–M6); si el contenido aún no llegó, el grupo dice su valor vigente.
  * Recalcular y Aplicar son dos botones distintos; sin cambios pendientes los dos esperan.
  */
-export function AjustesDiseno({ abierto, grupo, config, fase, vista, onGrupo, onCerrar, onIrSeccion, contenidoDe, pendientes = 0, desfasada = false, onRecalcular, onAplicar, aplicando = false }: Props) {
+export function AjustesDiseno({ abierto, grupo, config, fase, vista, onGrupo, onCerrar, contenidoDe, pendientes = 0, desfasada = false, onRecalcular, onAplicar, aplicando = false }: Props) {
   const [busqueda, setBusqueda] = useState("");
   const visibles = useMemo(() => filtrarGrupos(busqueda), [busqueda]);
   const actual = GRUPOS_AJUSTES.find((g) => g.id === grupo) ?? GRUPOS_AJUSTES[0];
@@ -97,12 +94,7 @@ export function AjustesDiseno({ abierto, grupo, config, fase, vista, onGrupo, on
               <dt>Vigente</dt>
               <dd>{resumenGrupo(actual.id, config, { n, fase })}</dd>
             </dl>
-            <div className="hr-ajustes-pendiente">
-              <span>Se edita en {NOMBRE_SECCION[actual.origen]} mientras el grupo pasa a esta ventana.</span>
-              <PulsoButton variant="secondary" size="sm" onClick={() => onIrSeccion(actual.origen)}>
-                Ir a {NOMBRE_SECCION[actual.origen]} <ArrowRight size={13} aria-hidden />
-              </PulsoButton>
-            </div>
+            <p className="hr-mapa-nota">Cargando el diseño…</p>
           </>
         )}
       </div>

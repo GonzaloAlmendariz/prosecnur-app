@@ -14,7 +14,7 @@ import type { ResultadoTamano } from "../muestra/motorTamano";
 import { useLienzoHojasRuta } from "../store";
 import { AjustesDiseno, type VistaPreviaDiseno } from "./AjustesDiseno";
 import { cambiosSinAplicar } from "./BotonDiseno";
-import type { GrupoAjustesId, SeccionOrigen } from "./gruposAjustes";
+import type { GrupoAjustesId } from "./gruposAjustes";
 import { GrupoReparto } from "./grupos/GrupoReparto";
 import { GrupoTamano } from "./grupos/GrupoTamano";
 import { GrupoVisitas } from "./grupos/GrupoVisitas";
@@ -82,7 +82,7 @@ export function AjustesDisenoHost({ config, configMuestra, fase, tamano, margenP
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [muestraBorrador, firmaBase]);
 
-  const irSeccion = useCallback((s: SeccionOrigen) => {
+  const irSeccion = useCallback((s: "manzanas") => {
     const p = new URLSearchParams(location.search);
     p.delete("panel");
     p.delete("foco");
@@ -119,7 +119,6 @@ export function AjustesDisenoHost({ config, configMuestra, fase, tamano, margenP
       vista={vista}
       onGrupo={irAGrupo}
       onCerrar={cerrar}
-      onIrSeccion={irSeccion}
       contenidoDe={contenidoDe}
       // El sorteo no cuenta aquí: sus cambios se aplican al sortear, en Manzanas (GrupoSorteo lo dice).
       pendientes={cambiosSinAplicar({ rangos: rangosBorrador, cortes: cortesBorrador, muestra: muestraBorrador, sorteo: null })}
