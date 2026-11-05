@@ -40,6 +40,13 @@ describe("camposDeDatos", () => {
     expect(campos[1]).toMatchObject({ rotulo: "Niveles del eje", ayuda: "Un punto por nivel, de menor a mayor." });
     expect(camposDeDatos(agrupadas, {}, "p_barras_agrupadas")[1].rotulo).toBe("Dividir por");
   });
+  it("total y línea por nivel: la lectura en gris se escribe en la tarjeta (antes solo en el plan) y no sale en otros gráficos", () => {
+    const lineas = [a("var", "variable"), a("cruce", "variable"), a("lectura", "textarea", "textos")];
+    const campos = camposDeDatos(lineas, {}, "p_lineas_nivel");
+    expect(campos.map((c) => c.arg.name)).toEqual(["var", "cruce", "lectura"]);
+    expect(campos[2]).toMatchObject({ rotulo: "Lectura" });
+    expect(camposDeDatos([...agrupadas, a("lectura", "textarea", "textos")], {}, "p_barras_agrupadas").map((c) => c.arg.name)).not.toContain("lectura");
+  });
 });
 
 describe("códigos y etiqueta corta", () => {

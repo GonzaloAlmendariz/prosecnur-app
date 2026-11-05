@@ -196,6 +196,12 @@ const LISTA_BLANCA: Record<string, Entrada> = {
     rotulo: "Dividir por", ayuda: "Sin dividir, el gráfico muestra una sola serie.", excepto: ["p_barras_multiapiladas", "p_dumbbell"],
     textosEn: { p_lineas_nivel: () => ({ rotulo: "Niveles del eje", ayuda: "Un punto por nivel, de menor a mayor." }) },
   },
+  // Gonzalo (revisión del PPT v7.11, lámina 45): la nota en gris bajo la línea por nivel se escribía a mano en el plan.
+  lectura: {
+    rotulo: "Lectura", control: "texto", soloEn: ["p_lineas_nivel"],
+    ayuda: "Una o dos frases en gris junto al gráfico. Vacío, no se muestra.",
+    placeholder: "La diferencia por nivel se mantiene al comparar estudiantes de la misma edad.",
+  },
   corte: { rotulo: "Corte", excepto: ["p_dumbbell", "p_significancia_publicos"] },
   corte_etiqueta: { rotulo: "Rótulo del corte" },
   // C44: el radar «entre públicos» rotula cada columna de su tabla con el nombre técnico de la base.

@@ -1081,7 +1081,7 @@
 
   p_slide_hallazgos = list(
     titulo_humano = "Hallazgos clave",
-    descripcion   = "Cifras destacadas con su intervalo de 95% calculado con el diseño y su diferencia frente al resto; con o sin gráfico de apoyo.",
+    descripcion   = "Cifras destacadas con su intervalo de 95% calculado con el diseño y su diferencia frente al resto, con o sin gráfico de apoyo, o como resumen ejecutivo por capítulo.",
     icono_ui      = "LayoutGrid",
     categoria     = "1grafico",
     render_key    = "hallazgos",
@@ -1091,8 +1091,25 @@
     args = c(.args_slide_titulos_base(c("titulo", "etiqueta", "base")), list(
       list(name = "modo", label = "Modo", tipo_input = "choice", grupo = "textos", default = "cifras",
            choices = list(list(value = "cifras", label = "Hasta seis cifras"),
-                          list(value = "cifras_con_graficos", label = "Hasta tres cifras con su gráfico")),
-           descripcion = "Las cifras solas, para abrir o cerrar el informe, o con su gráfico de apoyo, para abrir un capítulo.")
+                          list(value = "cifras_con_graficos", label = "Hasta tres cifras con su gráfico"),
+                          list(value = "resumen", label = "Resumen ejecutivo en tabla por capítulo"),
+                          list(value = "titulares", label = "Un titular por capítulo")),
+           descripcion = "Las cifras solas, con su gráfico de apoyo o, al final del mazo, el resumen ejecutivo: una tabla por capítulo o un titular por capítulo."),
+      # Revisión del PPT v7.11 de CCSS, ítem 2: el resumen ejecutivo (graficos_hallazgos_resumen.R, maqueta V1 y V3).
+      list(name = "seleccion", label = "Selección de hallazgos", tipo_input = "choice", grupo = "textos", default = "manual",
+           depende = list(arg = "modo", valores = list("resumen", "titulares")),
+           choices = list(list(value = "manual", label = "Los hallazgos escritos en el plan"),
+                          list(value = "auto", label = "Propuestos por el motor")),
+           descripcion = "Con «auto», el motor propone por capítulo la diferencia más fuerte y la cifra más rotunda sin diferencia."),
+      list(name = "max_por_capitulo", label = "Hallazgos por capítulo", tipo_input = "number", grupo = "textos", default = 3, min = 1, max = 3, step = 1,
+           depende = list(arg = "modo", valores = list("resumen")),
+           descripcion = "Tope por capítulo. La selección automática propone dos."),
+      list(name = "max_por_lamina", label = "Hallazgos por lámina", tipo_input = "number", grupo = "textos", default = 8, min = 4, max = 8, step = 1,
+           depende = list(arg = "modo", valores = list("resumen", "titulares")),
+           descripcion = "Con más, el motor abre otra lámina sin partir un capítulo. Hasta cuatro capítulos por lámina."),
+      list(name = "tambien", label = "Mostrar «También»", tipo_input = "bool", grupo = "textos", default = TRUE,
+           depende = list(arg = "modo", valores = list("resumen")),
+           descripcion = "Si otro cruce también difiere, una línea corta bajo la diferencia principal.")
     ))
   )
 )

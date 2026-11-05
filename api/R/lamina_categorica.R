@@ -108,12 +108,39 @@
   g_ <- .std_geom; ancho <- g_("ancho") - g_("margen_izq") - g_("margen_der")
   wbox <- (ancho - 1.2) / k * 0.56 + 0.8
   cols_ok <- k <= 10L && all(vapply(espec$rotulos, function(r) .lam_alto_txt(r, wbox, .std_pt("rotulo_categoria"), TRUE) <= 0.62, TRUE))
+  # Con el panel de tarjetas al lado el paso de cada columna se achica: se mide con tinta en el paso real (v7.13,
+  # lámina 25: «Voluntariado» invadía a «Académica», «Entretenimiento» se partía y los «N respuestas» se montaban).
+  if (cols_ok && .std_reserva_derecha() > 0) cols_ok <- .lam_columnas_caben(espec, ancho - 1.2)
   geo <- .lam_barras_geo(espec)
-  barras_ok <- geo$fila >= 0.26 && all(.lam_jer_altos(espec, geo$wlab, geo$size) <= geo$fila + 0.02)   # TXT-26: con jerarquía, por tinta
+  altos <- if (.std_reserva_derecha() > 0 && !.lam_jer_activa(espec)) {
+    # Con el panel de tarjetas, por tinta como la columna de rótulos (que se ajusta a la tinta): contando letras,
+    # «Política universitaria» salía en dos líneas en una columna hecha para una y la lámina caía al respaldo.
+    vapply(espec$rotulos, function(r) .lam_alto_tinta(r, geo$wlab, geo$size, .std_negrita_forzada("categorias")), 0)
+  } else .lam_jer_altos(espec, geo$wlab, geo$size)
+  barras_ok <- geo$fila >= 0.26 && all(altos <= geo$fila + 0.02)   # TXT-26: con jerarquía, por tinta
   if (identical(preferida, "columnas") && cols_ok) return("columnas")
   if (barras_ok) return("barras")
   if (cols_ok) return("columnas")
   NA_character_
+}
+
+#' ¿Caben las columnas en su paso, medidas con tinta? Cada palabra del rótulo en el paso (no se parte a media palabra),
+#' el rótulo en dos líneas y el «N respuestas» de encima sin tocar al vecino
+#' @param wv Ancho de las columnas (in), el mismo que recibe `.lam_columnas`.
+#' @keywords internal
+.lam_columnas_caben <- function(espec, wv, unidad_n = "respuestas") {
+  k <- length(espec$largos); if (!k) return(FALSE)
+  util <- wv / k - 0.08
+  pt <- .std_pt("rotulo_categoria")
+  palabras <- unlist(strsplit(as.character(espec$rotulos), "\\s+"))
+  if (any(.lam_ancho_tinta(palabras[nzchar(palabras)], pt, TRUE) > util)) return(FALSE)
+  if (any(vapply(as.character(espec$rotulos), function(r) .lam_lineas_tinta(r, util + 0.2, pt, TRUE), 0) > 2)) return(FALSE)
+  nk <- .espec_casos(espec)
+  if (any(is.finite(nk))) {
+    txt <- sprintf("%s %s", format(as.integer(nk[is.finite(nk)]), big.mark = ","), unidad_n)
+    if (any(.lam_ancho_tinta(txt, .std_pt("n"), FALSE) > util + 0.04)) return(FALSE)
+  }
+  TRUE
 }
 
 #' Lámina de una categórica, en columnas (pregunta categórica) o en barras (una serie)

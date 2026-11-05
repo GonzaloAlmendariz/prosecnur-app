@@ -1669,29 +1669,45 @@ p_slide_resumen_diferencias <- function(capitulos = list(), titulo = NULL, etiqu
 #'
 #' Cifras destacadas con su intervalo de 95% bajo el diseño del estudio y su comparación frente al resto. Modo `cifras`:
 #' hasta seis en cuadrícula. Modo `cifras_con_graficos`: hasta tres con su gráfico de apoyo debajo, o un solo gráfico de
-#' ancho completo (`grafico_ancho`). Ver `graficos_hallazgos.R`.
+#' ancho completo (`grafico_ancho`). Modo `resumen`: el resumen ejecutivo en tabla por capítulo, hasta 8 hallazgos y 4
+#' capítulos por lámina, con paginación que no parte un capítulo. Modo `titulares`: un titular por capítulo en una
+#' lámina. Ver `graficos_hallazgos.R` y `graficos_hallazgos_resumen.R`.
 #'
 #' @param cifras Lista de `list(var, fila | filas | top2box, texto, comparacion, grafico, base, filtros)`.
 #' @param titulo Título de la lámina.
-#' @param etiqueta Antetítulo («Capítulo 4»).
-#' @param modo «cifras» o «cifras_con_graficos».
+#' @param etiqueta Antetítulo («Capítulo 4»). En los modos de resumen, «Resumen ejecutivo» por defecto.
+#' @param modo «cifras», «cifras_con_graficos», «resumen» o «titulares».
 #' @param grafico_ancho En el modo con gráficos, un gráfico de ancho completo `list(graficador, args, titulo, base)`.
+#' @param capitulos Modos de resumen con selección manual: lista de `list(titulo, titular, cifras)`.
+#' @param seleccion Modos de resumen: «manual» (los `capitulos`) o «auto» (por capítulo del plan, la diferencia más
+#'   fuerte y la cifra más rotunda sin diferencia).
+#' @param max_por_capitulo,max_por_lamina Topes del resumen (3 y 8; la selección automática propone 2 por capítulo).
+#' @param tambien Si el resumen escribe la línea «También» cuando otro cruce difiere.
+#' @param titulos Un título por lámina cuando el resumen se pagina.
 #' @param cruces,rotulos,cortos,tautologicos,publico,fuente Como en [p_slide_resumen_diferencias()].
 #' @param base Nota de base, texto.
 #' @param meta Metadatos de la lámina.
 #' @family reporte
 #' @export
-p_slide_hallazgos <- function(cifras = list(), titulo = NULL, etiqueta = NULL, modo = c("cifras", "cifras_con_graficos"),
+p_slide_hallazgos <- function(cifras = list(), titulo = NULL, etiqueta = NULL, modo = c("cifras", "cifras_con_graficos", "resumen", "titulares"),
                               grafico_ancho = NULL, cruces = NULL, rotulos = list(), cortos = list(), tautologicos = list(),
-                              publico = NULL, fuente = NULL, base = NULL, meta = list()) {
-  modo <- match.arg(as.character(unlist(modo))[1], c("cifras", "cifras_con_graficos"))
+                              publico = NULL, fuente = NULL, base = NULL, meta = list(), capitulos = list(), seleccion = c("manual", "auto"),
+                              max_por_capitulo = NULL, max_por_lamina = NULL, tambien = TRUE, titulos = NULL) {
+  modo <- match.arg(as.character(unlist(modo))[1], c("cifras", "cifras_con_graficos", "resumen", "titulares"))
+  seleccion <- match.arg(as.character(unlist(seleccion))[1], c("manual", "auto"))
   .ppt_chk_meta(meta)
-  if (!is.list(cifras) || !length(cifras)) .plan_spec_abort("p_slide_hallazgos(): declara al menos una cifra en `cifras`.")
-  etiqueta <- .ppt_norm_text1(etiqueta, blank = NULL)
+  resumen <- modo %in% c("resumen", "titulares")
+  if (resumen) {
+    if (!is.list(capitulos)) .plan_spec_abort("p_slide_hallazgos(): `capitulos` debe ser una lista.")
+    if (identical(seleccion, "manual") && !length(capitulos)) .plan_spec_abort("p_slide_hallazgos(): el resumen con selección manual declara `capitulos`.")
+  } else if (!is.list(cifras) || !length(cifras)) .plan_spec_abort("p_slide_hallazgos(): declara al menos una cifra en `cifras`.")
+  etiqueta <- .ppt_norm_text1(etiqueta, blank = NULL) %||% if (resumen) "Resumen ejecutivo"
   if (!is.null(etiqueta)) meta$antetitulo <- meta$antetitulo %||% etiqueta
   el <- .el_hallazgos(cifras = cifras, modo = modo, grafico_ancho = grafico_ancho, cruces = cruces, rotulos = rotulos,
-                      cortos = cortos, tautologicos = tautologicos, publico = publico, fuente = fuente)
-  p_slide_1_grafico(el, titulo = titulo %||% "Hallazgos clave", base = base, meta = meta)
+                      cortos = cortos, tautologicos = tautologicos, publico = publico, fuente = fuente, capitulos = capitulos,
+                      seleccion = seleccion, max_por_capitulo = max_por_capitulo, max_por_lamina = max_por_lamina,
+                      tambien = !identical(tambien, FALSE), titulos = titulos)
+  p_slide_1_grafico(el, titulo = titulo %||% if (resumen) "Principales hallazgos" else "Hallazgos clave", base = base, meta = meta)
 }
 
 #' Lámina de perfil con tres gráficos: dos apilados y uno alto

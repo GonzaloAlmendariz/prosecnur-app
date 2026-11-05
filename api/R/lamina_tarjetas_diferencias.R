@@ -323,6 +323,22 @@
   }
   n0 <- length(doc)   # la escala puede partirse en varias láminas: cada tarjeta irá a la de su premisa
   espec_p <- attr(p, "pulso_espec")
+  if (identical(t$opcion$modo, "en_linea")) {
+    if (.tarjetas_en_linea_aplica(t, espec_p)) {
+      # ADR 0129 §9: el desglose pegado a su barra, a todo el ancho y sin panel (lamina_tarjetas_en_linea.R).
+      options(op); options(op_ley)
+      slots <- slide$slots %||% list()
+      base <- if (isTRUE(sin_base)) NULL else texto(slots$base) %||% texto(base_auto(el = el_plot,
+        sufijo_auto = presets$base$args$sufijo_auto %||% NULL, formato = presets$base$args$formato %||% "Base: %s"))
+      pie <- if (isTRUE(sin_pie)) NULL else texto(slots$footer) %||% texto(nota_de(p, el_plot$overrides$nota_pie %||% el_plot$nota_pie %||% NULL))
+      base_el <- .lam_unir_base(base, pie); if (nzchar(base_el)) base_el <- paste0(base_el, ".")
+      return(.lam_laminas_en_linea(doc, espec_p, t, tit, ante = texto(antetitulo), base = base_el, folio = length(doc) + 1L,
+                                   layout = layout, master = master, por_lamina = por_lamina))
+    }
+    if (exists(".pulso_aviso", mode = "function")) {
+      .pulso_aviso(sprintf("Tarjetas de diferencias: «%s» pide el desglose en línea, que es solo para una categórica en barras; va con las tarjetas de siempre.", tit))
+    }
+  }
   if (identical(t$tipo, "bateria") && .lam_columna_llave_aplica(espec_p) && .lam_tarjetas_disponer_columna_ok(t)) {
     # Ítem 23 (v7 RV): una pregunta sola va en columna apilada con llave y deja la mitad derecha a las tarjetas.
     options(op); options(op_ley)
@@ -401,6 +417,10 @@
     fin <- pmax(fin, cif$x[kc] + .lam_ancho_tinta(cif$texto[kc], .std_pt("cifra"), TRUE) + 0.12)
   }
   rot$yc <- bar$yc[k]; rot$x_fin <- fin + 0.07; rot$y_ancla <- bar$yc[k]
+  # Con la pista gris al 100% (lamina_barras_pista.R) la escala llega hasta el fin de la pista: la tarjeta no puede
+  # arrimarse más acá (v7.14, lámina 25: la pista pasaba por debajo de la tarjeta).
+  pista <- pieza("barra:pista")
+  attr(rot, "fin_escala") <- if (is.null(pista)) NA_real_ else max(pista$x + pista$w)
   rot
 }
 
@@ -465,6 +485,8 @@
     # Barras que no llenan la lámina (una categórica: van al 100 %): la tarjeta se arrima al final de las barras y gana
     # ancho, en vez de quedar sola en el borde (ítem 9 de la v7.11 RV: «la tarjeta y las barras están tan distantes»).
     fin <- max(unlist(lapply(filas_de, `[[`, "x_fin")))
+    escala <- suppressWarnings(max(unlist(lapply(filas_de, function(f) attr(f, "fin_escala"))), na.rm = TRUE))
+    if (is.finite(escala)) fin <- max(fin, escala + 0.15 - .TARJETAS_JUNTO_AIRE)   # nada pasa por debajo de la tarjeta
     xp <- min(xp, fin + .TARJETAS_JUNTO_AIRE)
     cw <- min(.TARJETAS_JUNTO_ANCHO, borde - xp)
   }
