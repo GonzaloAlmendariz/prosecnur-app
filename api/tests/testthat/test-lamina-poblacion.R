@@ -22,14 +22,16 @@
   lapply(seq_len(length(officer::read_pptx(out))), function(k) xml2::read_xml(unz(out, sprintf("ppt/slides/slide%d.xml", k))))
 }
 
-test_that("la cuadrícula de población sale nativa, con la pregunta de cada panel y dos dicotomías abajo (193)", {
+# Revisión del PPT v7.23 de CCSS, ítem 11: las dos Sí/No de abajo van como barras apiladas clásicas, no como franjas partidas.
+test_that("la cuadrícula de población sale nativa, con la pregunta de cada panel y dos Sí/No apiladas abajo (193)", {
   lam <- .pb_lams(list(a = p_slide_4_graficos_poblacion(p_barras_categoricas("cargo"), p_barras_categoricas("anios"),
                                                        p_barras_categoricas("sexo"), p_barras_categoricas("grado"), titulo = "Perfil de las autoridades")))
   x <- lam[[1]]; nm <- xml2::xml_attr(xml2::xml_find_all(x, "//p:cNvPr"), "name")
   expect_true(any(grepl("^prosecnur:grafico", nm)))
   txt <- xml2::xml_text(xml2::xml_find_all(x, "//a:t"))
   expect_true(all(c("Cargo", "Años en el cargo", "Sexo", "Máximo grado alcanzado") %in% txt))
-  expect_equal(sum(nm == "dicotomia:cifra"), 4L)                                            # dos dicotomías, dos cifras cada una
+  expect_equal(sum(nm == "dicotomia:cifra"), 0L)
+  expect_equal(sum(nm == "barra:segmento"), 4L)                                             # dos apiladas, dos segmentos cada una
 })
 
 # P4 (checklist-poblacion-y-filtro, 2026-10-14): antes volvía entera a la ruta anterior; ahora el panel sin pieza nativa

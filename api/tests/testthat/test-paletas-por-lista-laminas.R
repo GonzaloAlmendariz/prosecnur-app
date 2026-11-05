@@ -49,7 +49,10 @@ test_that("sin colores en la espec, las láminas categóricas y circulares salen
                    "c2057c23e6f8219cc1b0be9eed3b5cd11a3c146fdb82309d6ff86d4eb35d7848")
   # 2026-10-25 (CCSS-8, lamina_barras_ancho.R): cambio deliberado de geometría, sin tocar colores, cifras ni orden. Las barras
   # escalan al máximo × 1.15 y, con tres categorías, el bloque mide el 75 % del ancho útil y se centra. Arte: 0 distintas.
-  expect_identical(.pll_hash(.lam_laminas_categorica(.pll_doc(), e3, "Nivel", base = "Base: 100", folio = 68, forma = "barras")),
+  # Revisión v7.23, ítem 8: la pista gris va en toda barra de una serie (tiene sus propios tests en
+  # test-lamina-revision-v723-ccss.R); aquí se apaga para que la huella siga midiendo sólo la paleta.
+  e3b <- e3; e3b$pista <- "nunca"
+  expect_identical(.pll_hash(.lam_laminas_categorica(.pll_doc(), e3b, "Nivel", base = "Base: 100", folio = 68, forma = "barras")),
                    "c371afccd1e75ba1007eae0e439557b7fc0585e82ab5635993aa7eaf2f49eae3")
   # 2026-10-24 (loop motor PPT ↔ CCSS), cambios deliberados de geometría sin tocar colores: las barras usan el alto del área
   # (98e6690db), la dicotomía partida deja el mismo margen a ambos lados (7e10765b8) y la torta saca sus cifras chicas con
@@ -57,8 +60,10 @@ test_that("sin colores en la espec, las láminas categóricas y circulares salen
   # La dicotomía rotulaba «Sí (62)» siempre; desde «Casos junto al porcentaje» eso es el modo «siempre».
   # 2026-10-14 (Gonzalo): en la lámina completa el rótulo pasa de 10.5 pt a 14 pt en negrita; cambio deliberado de la
   # huella (los colores por defecto no cambian: azul y azul medio del recetario).
-  expect_identical(withr::with_options(list(prosecnur.casos_junto = list(cuando = "siempre")), .pll_hash(.lam_laminas_dicotomia(.pll_doc(), e2, "Dico", base = "Base: 100", folio = 74))),
-                   "68e290e289d34e76215fbd62c79d60344da8888c23adadcd246d2e513df0a839")
+  # Revisión v7.23, ítem 11: la lámina de la Sí/No ya no es la franja partida de la huella anterior (68e290e2…) sino la
+  # apilada clásica; sin paleta del usuario sus segmentos llevan la dicotómica de la casa.
+  d2 <- withr::with_options(list(prosecnur.casos_junto = list(cuando = "siempre")), .lam_laminas_dicotomia(.pll_doc(), e2, "Dico", base = "Base: 100", folio = 74))
+  expect_identical(.pll_fill(.pll_xml(d2), "segmento"), .pll_hex(.std_paleta("dicotomica")[1:2]))
   expect_identical(.pll_hash(.lam_laminas_torta(.pll_doc(), pie3, "Torta", folio = 69, unidad_n = "egresados")),
                    "1aca84665e354a72cdc3fc04319262a6c3706b6921f246b6a3cfe4c25b79adba")
   expect_identical(.pll_hash(.lam_laminas_dona(.pll_doc(), dona2, "Dona", folio = 70, unidad_n = "estudiantes", rotulo_centro = "conoce")),
@@ -90,7 +95,7 @@ test_that("categórica, dicotomía y torta usan la paleta del usuario (por nombr
   expect_identical(.pll_fill(.pll_slide(f, 1), "columna"), c("AA0000", "00AA00", "0000AA"))
   torta <- .pll_fill(.pll_slide(f, 2), "torta:porcion")
   expect_setequal(torta, c("123456", "654321"))
-  expect_setequal(.pll_fill(.pll_slide(f, 3), "dicotomia:segmento"), c("123456", "654321"))
+  expect_setequal(.pll_fill(.pll_slide(f, 3), "segmento"), c("123456", "654321"))   # v7.23 ítem 11: apilada clásica
 })
 
 test_that("la opción sin color en la paleta del usuario sale gris residual, con aviso, y no por posición", {

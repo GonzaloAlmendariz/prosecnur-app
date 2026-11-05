@@ -65,15 +65,20 @@
   partes <- if (en_filas) .lam_filas_planear(espec, premisas) else
     .lam_escala_partir(premisas, aire_min_fn = function(p) .lam_escala_aire_minimo(p, chica = .lam_escala_chica_por_premisa(espec, p))$alto)   # M1 con piso
   .lam_aviso_partes(titulo, list(premisas), length(partes))
+  arriba_ok <- !en_filas && .lam_escala_arriba_partes(espec, partes)   # v7.23, ítem 7: todas las partes con tarjetas, o ninguna
   for (k in seq_along(partes)) {
     doc <- officer::add_slide(doc, layout = layout, master = master)
     # El subtítulo sólo en la primera parte, bajo el título (recetario.R:122); el aviso del título, una vez por lámina.
     doc <- .lam_titulo(doc, if (k > 1) .particion_titulo_cont(titulo) else titulo, ante = ante, sub = if (k == 1L) sub else NULL, avisar = k == 1L)   # «(cont.)» una sola vez
     lz <- .lam_lienzo()
+    tp <- if (en_filas) NULL else .lam_escala_tarjetas_parte(partes[[k]])   # v7.23, ítems 7 y 12 (lamina_escala_premisa_arriba.R)
+    op_tp <- if (!is.null(tp)) options(prosecnur.lam_reserva_derecha = tp$reserva, prosecnur.lam_leyenda_ancho_completo = FALSE) else list()
     bloque <- function(lz, desplazar = 0) .lam_bloque_escala(lz, espec, partes[[k]], solo = length(partes) == 1L, titulo_lamina = titulo,
                                                             encabezar_tema = length(premisas) == 1L, desplazar = desplazar,
                                                             negrita = !nzchar(sub %||% ""))   # lámina por público: preguntas sin negrita, como Conta
-    if (en_filas) .lam_bloque_filas(lz, espec, partes[[k]]) else bloque(lz, .lam_escala_centrar(bloque(.lam_lienzo())))   # centrado si sobra alto
+    if (en_filas) .lam_bloque_filas(lz, espec, partes[[k]]) else if (isTRUE(tp$arriba) && arriba_ok) .lam_bloque_escala_arriba(lz, espec, partes[[k]], negrita = !nzchar(sub %||% "")) else
+      bloque(lz, .lam_escala_centrar(bloque(.lam_lienzo())))   # centrado si sobra alto
+    options(op_tp)
     doc <- .lam_agrupar(doc, lz, nombre = "prosecnur:grafico:escala")
     doc <- .lam_pie(doc, if (en_filas) base else .lam_base_de_parte_escala(base, espec, partes, k), if (is.null(folio)) NULL else folio + k - 1L)
     doc <- por_lamina(doc)

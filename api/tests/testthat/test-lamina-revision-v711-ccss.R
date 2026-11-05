@@ -41,9 +41,11 @@ test_that("v7.11 lámina 7: con dos, tres o seis barras el gráfico de apoyo rep
 
 # ---- Ítem 4, lámina 9: la pista gris hasta el 100% -----------------------------------------------------------------
 
-test_that("v7.11 lámina 9: la pista se enciende con la escala de 0 a 100% y en población; el mando la fuerza o la apaga", {
+# Revisión del PPT v7.23, ítem 8 («¿por qué algunos tienen el recuadro gris y otros no?»): "auto" la enciende en toda barra
+# de una serie, también con el eje libre (antes, sólo con la escala de 0 a 100% o en población). "nunca" la sigue apagando.
+test_that("v7.11 lámina 9 y v7.23 ítem 8: la pista se enciende en toda barra de una serie; el mando la apaga", {
   expect_true(.lam_barras_pista_activa(list(escala_completa = TRUE)))
-  expect_false(.lam_barras_pista_activa(list(escala_completa = FALSE)))
+  expect_true(.lam_barras_pista_activa(list(escala_completa = FALSE)))   # v7.23: antes FALSE
   expect_true(.lam_barras_pista_activa(list(en_poblacion = TRUE)))
   expect_false(.lam_barras_pista_activa(list(escala_completa = TRUE, pista = "nunca")))
   expect_true(.lam_barras_pista_activa(list(pista = "siempre")))

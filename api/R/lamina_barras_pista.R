@@ -7,9 +7,11 @@
 # (lamina_mapa_distribucion.R): la pista mide el 100% y la barra, su parte. La cifra sigue al final de la barra.
 #
 # Mando `pista_barras` del gráfico (graficos_metadata.R, en las agrupadas y las categóricas):
-#   - "auto" (defecto): encendida cuando la escala ya va de 0 a 100% (`escala_completa`, el defecto de la agrupada de una
-#     serie) y en los paneles de las láminas de población (`en_poblacion`, lo marca `.lam_laminas_mixta`);
-#   - "siempre": encendida, y la escala pasa a ir de 0 a 100% (una pista corta no mostraría el 100%);
+#   - "auto" (defecto): encendida en TODA barra de una serie (revisión del PPT v7.23, ítem 8: «¿por qué algunos tienen el
+#     recuadro gris y otros no?»). Antes dependía de la escala (`escala_completa`) y de las láminas de población
+#     (`en_poblacion`), y una agrupada con eje libre salía sin pista junto a otra que la llevaba. Una sola regla para el
+#     mazo, en PPT y Word; la escala pasa a ir de 0 a 100% (una pista corta no mostraría el 100%);
+#   - "siempre": igual que "auto" (se conserva para los planes que lo declaran);
 #   - "nunca": como antes, la barra sola.
 # Sólo cambia el dibujo: largos y cifras son los de la espec.
 
@@ -24,7 +26,7 @@
   if (is.logical(modo) && length(modo) == 1L && !is.na(modo)) return(modo)   # un plan escrito a mano con TRUE/FALSE
   modo <- as.character(modo %||% "auto")[1]
   if (is.na(modo) || !modo %in% .LAM_PISTA_MODOS) modo <- "auto"
-  switch(modo, siempre = TRUE, nunca = FALSE, isTRUE(espec$escala_completa) || isTRUE(espec[["en_poblacion"]]))
+  !identical(modo, "nunca")   # v7.23, ítem 8: "auto" y "siempre" la encienden en toda barra de una serie
 }
 
 #' Color de la pista: gris suave que se distingue del fondo de la lámina sin competir con la barra

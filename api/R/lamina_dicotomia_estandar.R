@@ -1,7 +1,7 @@
 # lamina_dicotomia_estandar.R — estilo `barra_estandar` de la dicotómica (Renzo, informe Arte, 2026-10-22)
 #
-# El motor dibuja toda pregunta de dos opciones que reparte el 100 % como `dicotomia` (barra partida con cifras de 22/40
-# pt encima, `.lam_dicotomia`). Ese sigue siendo el defecto (estilo `partida`). El estilo `barra_estandar` es una barra
+# El motor dibujaba toda pregunta de dos opciones que reparte el 100 % como `dicotomia` (barra partida con cifras de 22/40
+# pt encima, `.lam_dicotomia`). Desde la revisión v7.23 (ítem 11) el único estilo es `barra_estandar`: una barra
 # normal de 100 % partida en sus dos segmentos, con el porcentaje DENTRO de cada segmento (en blanco en los dos, G8 de
 # Arte 2026-10-28; fuera del segmento, el azul de la casa), a 14 pt (`.std_pt("cifra")`) y con leyenda. En el Word, sin
 # «(n)» ni base: la leyenda nombra las opciones y nada más.
@@ -13,15 +13,16 @@
 
 .ESTILOS_DICOTOMIA <- c("partida", "barra_estandar")
 
-#' Estilo vigente de una dicotomía: el de su espec (slot), si no el del informe, si no `partida`
+#' Estilo vigente de una dicotomía: siempre `barra_estandar`
+#'
+#' Revisión del PPT v7.23 de CCSS, ítem 11 (Gonzalo: «pensé que el gráfico dicotómico ya había desaparecido; aquí debe
+#' haber un gráfico apilado clásico»): decisión de identidad del mazo, no de una lámina. Ninguna franja dicotómica: una
+#' pregunta de dos opciones va como barra apilada clásica, con las cifras dentro y su leyenda, como las demás apiladas
+#' (en lámina sola, en ranura y en el Word, que ya la dibujaba así, N5). Un plan que todavía declara `partida` (en el slot
+#' o en el informe) se lee como `barra_estandar`; el valor sigue siendo válido para no romper los planes guardados.
+#' La barra partida (`.lam_dicotomia`) queda sólo como pieza del recetario, sin uso en el mazo.
 #' @keywords internal
-.lam_estilo_dicotomia <- function(espec) {
-  valido <- function(x) {
-    x <- as.character(x %||% NA_character_)[1]
-    if (!is.na(x) && x %in% .ESTILOS_DICOTOMIA) x else NA_character_
-  }
-  valido(espec[["estilo_dicotomia"]]) %|NA|% valido(getOption("prosecnur.estilo_dicotomia")) %|NA|% "partida"
-}
+.lam_estilo_dicotomia <- function(espec) "barra_estandar"
 `%|NA|%` <- function(a, b) if (is.na(a)) b else a
 
 #' Copia a la espec el estilo que el slot pidió en sus overrides (el slot gana al informe)
