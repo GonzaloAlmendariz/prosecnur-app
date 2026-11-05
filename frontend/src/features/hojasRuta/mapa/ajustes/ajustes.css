@@ -56,5 +56,4 @@
 .hr-boton-diseno-texto small { font-size: var(--pulso-type-micro-size); font-weight: 700; color: var(--pulso-module-routes); }
 .hr-boton-diseno b { font-size: var(--pulso-type-body-size); font-weight: 600; color: var(--pulso-text); white-space: nowrap; }
 .hr-boton-diseno-pendientes { padding: 3px 8px; border-radius: 7px; background: var(--pulso-module-routes); color: var(--pulso-on-primary, var(--pulso-surface)); font-size: var(--pulso-type-micro-size); font-weight: 700; white-space: nowrap; }
-.hr-boton-diseno kbd { padding: 3px 6px; border-radius: 6px; background: color-mix(in srgb, var(--pulso-text) 6%, transparent); color: var(--pulso-text-soft); font: inherit; font-size: var(--pulso-type-micro-size); }
 .hr-boton-diseno-punto { width: 8px; height: 8px; border-radius: 50%; background: var(--pulso-module-routes); }

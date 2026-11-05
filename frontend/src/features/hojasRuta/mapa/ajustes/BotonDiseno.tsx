@@ -44,7 +44,6 @@ export function BotonDiseno({ config, n, compacto }: { config: HojasRutaIntegrat
             <b>{resumen}</b>
           </span>
           {pendientes ? <span className="hr-boton-diseno-pendientes">{pendientes} sin aplicar</span> : null}
-          <kbd>{nombreDeAtajo(",")}</kbd>
         </>
       )}
     </button>
