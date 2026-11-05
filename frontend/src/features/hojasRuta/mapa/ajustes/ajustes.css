@@ -104,3 +104,13 @@
 .hr-ajustes-nav-item small { display: block; max-width: 100%; overflow-wrap: anywhere; }
 /* Lo que Aplicar descartaría, en la pista del pie de la ventana. */
 .hr-ajustes-aviso { font-size: var(--pulso-type-caption-size); font-weight: 600; color: var(--pulso-warn-fg); }
+
+/* E12: pulido de la ventana.
+   El indicador deslizante se medía mientras la ventana entraba con su escala y la tarjeta del método
+   elegido quedaba más angosta que las otras; en la lista de métodos la opción marcada se pinta sola. */
+.hr-ajustes .hr-sorteo-metodos > .pulso-gliding-tab-indicator { display: none; }
+.hr-ajustes .hr-sorteo-metodos.pulso-gliding-tab-list > button[aria-checked="true"] { border-color: var(--pulso-module-routes); background: var(--pulso-module-routes-soft); box-shadow: inset 0 0 0 1px var(--pulso-module-routes); }
+.hr-ajustes .hr-sorteo-metodos.pulso-gliding-tab-list > button:not([aria-checked="true"]):hover { border-color: var(--pulso-border-strong); background: var(--pulso-surface-2); color: var(--pulso-text); }
+/* El anillo de foco global del input se sumaba al borde de la caja: un solo anillo, el de la caja. */
+.hr-ajustes .hr-ajustes-buscar input:focus, .hr-ajustes .hr-ajustes-buscar input:focus-visible { outline: none; box-shadow: none; border: 0; }
+.hr-ajustes .hr-ajustes-buscar:focus-within { background: var(--pulso-surface); box-shadow: 0 0 0 3px var(--pulso-module-routes-soft); }

@@ -70,7 +70,7 @@ export function AjustesDiseno({ abierto, grupo, config, fase, vista, onGrupo, on
       }
       footer={
         <>
-          <PulsoButton variant="secondary" onClick={onCancelar ?? onCerrar} title="Descarta los cambios sin aplicar y cierra">Cancelar</PulsoButton>
+          <PulsoButton variant="ghost" onClick={onCancelar ?? onCerrar} title="Descarta los cambios sin aplicar y cierra">Cancelar</PulsoButton>
           <PulsoButton variant="secondary" disabled={!desfasada || aplicando} title={desfasada ? "Actualiza la vista previa sin guardar" : "La vista previa está al día"} onClick={onRecalcular}>Recalcular</PulsoButton>
           <PulsoButton variant="primary" disabled={!pendientes || aplicando || !onAplicar} title={pendientes ? `Guarda ${pendientes === 1 ? "el cambio" : `los ${pendientes} cambios`} y recalcula en el servidor` : "Sin cambios que aplicar"} onClick={onAplicar}>{aplicando ? "Aplicando…" : pendientes ? `Aplicar ${pendientes}` : "Aplicar"}</PulsoButton>
         </>
@@ -79,7 +79,8 @@ export function AjustesDiseno({ abierto, grupo, config, fase, vista, onGrupo, on
       <nav className="hr-ajustes-nav" aria-label="Grupos de ajustes">
         <label className="hr-ajustes-buscar">
           <Search size={14} aria-hidden />
-          <input type="search" placeholder="Buscar un ajuste" aria-label="Buscar un ajuste" value={busqueda} onChange={(e) => setBusqueda(e.target.value)} />
+          {/* Al abrir, el foco va al buscador y no a la ✕ (que aparecía con el anillo de foco, como si fuera lo que hay que hacer). */}
+          <input autoFocus type="search" placeholder="Buscar un ajuste" aria-label="Buscar un ajuste" value={busqueda} onChange={(e) => setBusqueda(e.target.value)} />
         </label>
         {visibles.length ? visibles.map((g) => (
           <button key={g.id} type="button" className="hr-ajustes-nav-item" aria-current={g.id === actual.id ? "true" : undefined} onClick={() => onGrupo(g.id)}>
