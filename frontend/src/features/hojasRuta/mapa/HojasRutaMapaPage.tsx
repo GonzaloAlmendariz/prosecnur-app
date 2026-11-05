@@ -100,6 +100,8 @@ export default function HojasRutaMapaPage() {
   const [estado, setEstado] = useState<HojasRutaState | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [geometrias, setGeometrias] = useState<Record<string, PiezasDistrito>>({});
+  // Distritos cuya geometría no llegó: la readiness de una ruta enfocada no los espera (colgaría el QA).
+  const [sinGeometria, setSinGeometria] = useState<ReadonlySet<string>>(() => new Set());
   const [guardando, setGuardando] = useState(false);
   // Desde cuándo corre el sorteo (SorteoEnCurso): el pedido tarda minutos y no informa avance.
   const [sorteoDesde, setSorteoDesde] = useState<number | null>(null);
@@ -250,8 +252,10 @@ export default function HojasRutaMapaPage() {
         try {
           const geo = await apiHojasRutaGeometria(u);
           if (vivo && geo.ok) setGeometrias((prev) => ({ ...prev, [u]: piezasDeGeometria(geo) }));
+          else if (vivo) setSinGeometria((prev) => new Set(prev).add(u));
         } catch {
           // Un distrito sin geometría sigue visible por su contorno.
+          if (vivo) setSinGeometria((prev) => new Set(prev).add(u));
         }
       }
     })();
@@ -474,6 +478,9 @@ export default function HojasRutaMapaPage() {
     const m = titularEnfocada ? manzanaPorId.get(titularEnfocada.id_manzana) : undefined;
     return m ? m.caja : null;
   }, [titularEnfocada, manzanaPorId]);
+  // Una ruta abierta por enlace (`foco=`) se encuadra cuando llega la geometría de su distrito: hasta entonces
+  // la vista no está lista (el QA capturaba Lima entera creyendo ver la manzana).
+  const esperaFoco = Boolean(titularEnfocada && !cajaEnfocada && !sinGeometria.has(titularEnfocada.ubigeo));
   const centroEnfocado = useMemo(() => {
     const m = titularEnfocada ? manzanaPorId.get(titularEnfocada.id_manzana) : undefined;
     return m ? m.centro : null;
@@ -816,7 +823,7 @@ export default function HojasRutaMapaPage() {
 
   return (
     <PageFrame className="hojas-ruta-frame hr-mapa-frame" bodyMode="fill" scrollOwner="panels" layout="canvas" density="compact" headerMode="sr-only" title="Hojas de ruta" chrome={chrome}>
-      <span hidden data-audit-ready={estado || error ? "hojas-ruta" : "false"} data-audit-stage={nav.seccion ?? ""} data-audit-navigation="lienzo-v1" />
+      <span hidden data-audit-ready={error || (estado && !esperaFoco) ? "hojas-ruta" : "false"} data-audit-stage={nav.seccion ?? ""} data-audit-navigation="lienzo-v1" />
       <div className="hr-mapa">
         {/* key por sección: cada una empieza arriba; el scroll de otra no se hereda (B25). */}
         <section key={nav.seccion ?? "territorio"} className="hr-mapa-estructura" aria-label="Distritos del estudio">

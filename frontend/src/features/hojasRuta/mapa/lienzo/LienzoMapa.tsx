@@ -155,6 +155,9 @@ function trazoDe(pieza: Pieza, cerrar = true): Path2D {
   return pieza.trazo;
 }
 
+/** La marca de QA del vuelo: «false» mientras la cámara vuela, «lienzo» cuando se detiene o la corta el usuario. */
+const marcarVuelo = (nodo: HTMLSpanElement | null, volando: boolean) => nodo?.setAttribute("data-audit-ready", volando ? "false" : "lienzo");
+
 export function LienzoMapa({
   distritos,
   capa,
@@ -200,6 +203,8 @@ export function LienzoMapa({
   // Lo que cambia con cada render se lee por referencia desde el bucle de dibujo.
   // El rótulo del cursor se mueve por ref: re-renderizar en cada pointermove sería pagar React por píxel.
   const rotuloRef = useRef<HTMLDivElement | null>(null);
+  // Marca de QA: en «false» mientras la cámara vuela, para que ninguna captura salga a medio camino.
+  const vueloRef = useRef<HTMLSpanElement | null>(null);
   const cursorRef = useRef<[number, number] | null>(null);
   const moverRotulo = useCallback((x: number | null, y: number | null) => {
     cursorRef.current = x === null || y === null ? null : [x, y];
@@ -366,6 +371,7 @@ export function LienzoMapa({
       if (e.tamano.w) e.encuadrado = true;
       if (!vuela) {
         e.vuelo = 0;
+        marcarVuelo(vueloRef.current, false);
         e.camara = destino;
         pintar();
         return;
@@ -381,9 +387,11 @@ export function LienzoMapa({
         if (k < 1) requestAnimationFrame(paso);
         else {
           e.vuelo = 0;
+          marcarVuelo(vueloRef.current, false);
           dibujar();
         }
       };
+      marcarVuelo(vueloRef.current, true);
       requestAnimationFrame(paso);
     },
     [dibujar, pintar],
@@ -456,6 +464,7 @@ export function LienzoMapa({
           e.arrastre.movio = true;
           lienzo.dataset.arrastrando = "true";
           e.vuelo = 0;
+          marcarVuelo(vueloRef.current, false);
           e.manual = true;
           e.camara = arrastre(e.arrastre.camara, dx, dy);
           marcarInteraccion();
@@ -481,6 +490,7 @@ export function LienzoMapa({
     const rueda = (ev: WheelEvent) => {
       ev.preventDefault();
       e.vuelo = 0;
+      marcarVuelo(vueloRef.current, false);
       const [x, y] = local(ev);
       e.manual = true;
       e.camara = zoomRueda(e.camara, e.tamano, x, y, ev.deltaY, ev.deltaMode, ev.ctrlKey);
@@ -511,6 +521,7 @@ export function LienzoMapa({
   return (
     <div className={["hr-lienzo", className].filter(Boolean).join(" ")}>
       <canvas ref={lienzoRef} className="hr-lienzo-canvas" role="img" aria-label={ariaLabel} />
+      <span ref={vueloRef} hidden data-audit-ready="lienzo" />
       {miga ? <div className="hr-lienzo-capsula hr-lienzo-miga">{miga}</div> : null}
       {ficha ? <div className="hr-lienzo-ficha">{ficha}</div> : null}
       {rotuloCursor ? <div ref={rotuloRef} className="hr-lienzo-cursor" role="status" aria-live="polite">{rotuloCursor}</div> : null}
