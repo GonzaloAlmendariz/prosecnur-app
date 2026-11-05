@@ -248,7 +248,8 @@ export function SeleccionInspector({ titular, estado, reemplazos, revision, tota
               <div className="hr-mapa-chips">
                 {g.umps.slice(0, 12).map((u) => (
                   <button key={u.idManzana} type="button" className="hr-mapa-zona" onClick={() => setUmpEnfocada(reemplazos.find((r) => r.id_manzana === u.idManzana)?.titular_id_manzana ?? u.idManzana)} title={u.titular ? `Abre la ficha de ${u.titular}` : undefined}>
-                    <span>{u.codigo}{u.titular ? ` de ${u.titular}` : ""}</span>
+                    {/* «R 13» ya dice de qué UMP es: «R 13 de UMP 13» repetía el número en cada chip. */}
+                    <span>{u.codigo}</span>
                   </button>
                 ))}
                 {g.umps.length > 12 ? <span className="hr-mapa-nota">y {g.umps.length - 12} más</span> : null}
