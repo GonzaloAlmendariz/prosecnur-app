@@ -194,3 +194,18 @@ test_that("la ruta queda en su distrito: el reemplazo pareado es del distrito de
   expect_identical(av[[1]]$code, "W_HOJAS_RUTA_REEMPLAZO_OTRO_DISTRITO")
   expect_length(hojas_ruta_distritos_avisos_reemplazo(bb, transform(rr, ubigeo = "150110")), 0L)
 })
+
+test_that("la vista previa del tamaño declara el mínimo por distrito y, por ciudad o área, los forzosos y el sorteo", {
+  cfg <- .ds_cfg()
+  sp <- hojas_ruta_sample_size_preview(list(territorios = cfg$territorios, sample_size_mode = "external_total", n_objetivo = 225L * 8L, entrevistas_por_manzana = 8L,
+                                            sample_size = list(design_effect = 1, estrato = "provincia_lima_areas", base_reparto = "cpv2025_adultos_urbanos")))
+  em <- sp$estrato_muestral
+  expect_identical(as.integer(em$rutas_minimas_distrito), 3L)
+  expect_match(em$regla_distritos, "§1c")
+  g <- .hojas_ruta_rows_df(em$grupos_distritos)
+  expect_true(all(c("estrato", "etiqueta", "n_forzosos", "n_candidatos", "h", "rutas_grupo", "regla") %in% names(g)))
+  expect_true(any(g$etiqueta == "Lima Norte"))
+  off <- hojas_ruta_sample_size_preview(list(territorios = cfg$territorios, sample_size_mode = "external_total", n_objetivo = 225L * 8L, entrevistas_por_manzana = 8L,
+                                             sample_size = list(design_effect = 1, estrato = "provincia_lima_areas", base_reparto = "cpv2017")))
+  expect_null(off$estrato_muestral$grupos_distritos)
+})

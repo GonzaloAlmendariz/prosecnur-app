@@ -20,6 +20,7 @@ import type { ResultadoTamano } from "./motorTamano";
 import { visitasCap, visitasPorRuta } from "../../seleccion/visitas";
 import { IccPanel } from "./IccPanel";
 import { BaseReparto2025, fuenteDelReparto } from "./BaseReparto2025";
+import { DistritosSorteados, distritosAplica } from "./DistritosSorteados";
 import { EstratoMuestral, politicaAlCambiar } from "./EstratoMuestral";
 
 import { formatoDecimal } from "../../../../lib/formatoNumero";
@@ -242,6 +243,7 @@ export function MuestraInspector({ config, resultado: r, bloqueado, guardando, h
         ) : null}
         <BaseReparto2025 sampleSize={s} territorios={territorios} deshabilitado={ed} onCambio={(base_reparto) => cambiarS({ base_reparto })} />
         <EstratoMuestral sampleSize={s} rowVar={config.row_var} nPorDistrito={config.sample_size_mode === "external_district"} servidor={estratoServidor} deshabilitado={ed} onCambio={(estrato) => cambiar({ sample_size: { estrato }, ...politicaAlCambiar(estrato) })} onCambioMinimo={(rutas_minimas_ciudad) => cambiarS({ rutas_minimas_ciudad })} />
+        <DistritosSorteados sampleSize={s} aplica={distritosAplica(s, config.sample_size_mode === "external_district")} servidor={estratoServidor} deshabilitado={ed} onCambioMinimo={(rutas_minimas_distrito) => cambiarS({ rutas_minimas_distrito })} />
 
         <section className="hr-muestra-grupo" aria-label="Alternativas">
           <h3>Alternativas</h3>

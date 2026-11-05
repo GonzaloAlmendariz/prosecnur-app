@@ -200,3 +200,20 @@ hojas_ruta_distritos_avisos_reemplazo <- function(blocks_df, replacement_blocks_
   ))
 }
 
+
+#' Lo que la vista previa del tamaño declara del §1c dentro de `estrato_muestral`:
+#' el mínimo, la regla y, por ciudad o área, los forzosos y el sorteo. Vacío si no rige.
+hojas_ruta_distritos_declaracion <- function(a) {
+  if (is.null(a$grupos_distritos)) return(list())
+  list(
+    rutas_minimas_distrito = a$rutas_minimas_distrito,
+    regla_distritos = paste(
+      "ADR 0131 §1c: dentro de cada ciudad o área de Lima entra con certeza todo distrito cuyo reparto proporcional",
+      "(n_h * MOS_d / MOS_h, marco elegible) alcanza el mínimo; los demás se sortean por PPS sistemático, con",
+      "h_g = max(1, floor(R_g / mínimo)) distritos, pi_d = h_g * MOS_d / MOS_g, y R_g / h_g rutas por distrito sorteado.",
+      "Un grupo con menos rutas que el mínimo recibe el mínimo descontado de los forzosos de la misma ciudad.",
+      "La pi de la manzana es pi_c * pi_d * pi_manzana|distrito. La ruta, sus aledañas y su reemplazo quedan en el distrito."
+    ),
+    grupos_distritos = .hojas_ruta_df_rows(a$grupos_distritos)
+  )
+}

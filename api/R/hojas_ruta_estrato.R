@@ -237,7 +237,7 @@ hojas_ruta_estrato_declaracion <- function(ubigeos, cfg, n_used) {
   if (!hojas_ruta_estrato_activo(cfg$sample_size) || identical(cfg$sample_size_mode, "external_district")) return(list())
   route_size <- .hojas_ruta_route_size(cfg)
   a <- hojas_ruta_estrato_asignacion(ubigeos, as.integer(n_used) %/% route_size, cfg)
-  list(estrato_muestral = list(
+  em <- c(list(
     modo = cfg$sample_size$estrato,
     rutas_minimas_ciudad = a$rutas_minimas_ciudad,
     regla = paste(
@@ -251,5 +251,6 @@ hojas_ruta_estrato_declaracion <- function(ubigeos, cfg, n_used) {
     ciudades = .hojas_ruta_df_rows(a$ciudades),
     grupos = .hojas_ruta_df_rows(a$grupos),
     distritos = .hojas_ruta_df_rows(a$distritos)
-  ))
+  ), hojas_ruta_distritos_declaracion(a))
+  list(estrato_muestral = em)
 }
