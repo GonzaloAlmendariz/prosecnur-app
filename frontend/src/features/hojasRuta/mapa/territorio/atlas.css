@@ -33,6 +33,9 @@
 .hr-atlas-nota { width: 100%; margin: 0; font-size: var(--pulso-type-body-size); line-height: 1.45; color: var(--pulso-text-soft); }
 .hr-atlas-nota[data-baja] { color: var(--pulso-warn-fg); }
 .hr-atlas-acciones { display: flex; flex-direction: column; gap: 8px; }
+.hr-atlas-pasos { counter-reset: paso; display: flex; flex-direction: column; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.hr-atlas-pasos li { counter-increment: paso; display: flex; align-items: center; gap: 10px; font-size: var(--pulso-type-body-size); font-weight: 600; color: var(--pulso-text); }
+.hr-atlas-pasos li::before { content: counter(paso); display: inline-grid; place-items: center; flex: none; width: 22px; height: 22px; border-radius: 999px; background: var(--pulso-module-routes-soft); color: var(--pulso-module-routes); font-size: var(--pulso-type-micro-size); font-weight: 700; }
 .hr-atlas-guia { margin: 0; font-size: var(--pulso-type-body-size); line-height: 1.5; color: var(--pulso-text-soft); }
 
 .hr-atlas-ciudad-cab { display: flex; flex-direction: column; gap: 10px; padding: 14px 16px 4px; }

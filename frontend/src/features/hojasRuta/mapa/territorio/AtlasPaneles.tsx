@@ -123,10 +123,12 @@ export function AtlasInspector({ ciudad, enEstudio, elegidos, totalCiudades, blo
       <>
         <InspectorCabecera icono={MapPinned} sobre="Territorio" titulo="¿Dónde se hace el estudio?" />
         <div className="hr-mapa-ins-cuerpo">
-          <p className="hr-atlas-guia">
-            Las {totalCiudades} ciudades con cartografía de manzanas están en el mapa; el tamaño del círculo es su población. Haz clic en una para ver qué cubre, agrégala al estudio y luego elige sus distritos.
-          </p>
-          <p className="hr-atlas-guia">Sólo se carga el mapa de las ciudades que abres.</p>
+          <ol className="hr-atlas-pasos" aria-label="Cómo se elige el territorio">
+            <li>Abre una de las {totalCiudades} ciudades</li>
+            <li>Agrégala al estudio</li>
+            <li>Elige sus distritos</li>
+          </ol>
+          <p className="hr-atlas-guia">El círculo crece con la población.</p>
         </div>
       </>
     );
@@ -202,7 +204,7 @@ export function MigaAtlas({ total, departamento, ciudad, distritos, cargando, en
   onDepartamento: (nombre: string) => void;
 }) {
   const dep = ciudad ? (ciudad.codigo === "lima" ? null : ciudad.departamento) : departamento;
-  if (!dep && !ciudad) return <><b>Perú</b><span className="hr-lienzo-miga-ayuda">({total} ciudades con cartografía; el tamaño es su población)</span></>;
+  if (!dep && !ciudad) return <><b>Perú</b><span className="hr-lienzo-miga-ayuda">({total} ciudades con cartografía)</span></>;
   return (
     <>
       <button type="button" className="hr-miga-nivel" onClick={onPeru}>Perú</button>
@@ -211,7 +213,8 @@ export function MigaAtlas({ total, departamento, ciudad, distritos, cargando, en
       <span className="hr-lienzo-miga-ayuda">
         {/* Nombra el botón que de verdad está en la ficha: fuera del estudio es «Agregar al estudio». */}
         {/* Entre paréntesis: con el hueco del contenedor flex, una coma inicial quedaba suelta («Perú , 26…»). */}
-        {ciudad ? (cargando ? "(cargando sus distritos…)" : `(${distritos} distrito${distritos === 1 ? "" : "s"}${enEstudio ? "; «Elegir distritos» para trabajarlos" : "; agrégala al estudio para elegirlos"})`) : "(clic en una ciudad para ver su ficha)"}
+        {/* Sólo el dato: la acción («Elegir distritos» / «Agregar al estudio») ya está en la ficha y la frase truncaba la píldora. */}
+        {ciudad ? (cargando ? "(cargando sus distritos…)" : `(${distritos} distrito${distritos === 1 ? "" : "s"}${enEstudio ? ", en el estudio" : ""})`) : "(clic en una ciudad para ver su ficha)"}
       </span>
     </>
   );

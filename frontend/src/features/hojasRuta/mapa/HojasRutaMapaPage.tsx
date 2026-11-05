@@ -685,10 +685,16 @@ export default function HojasRutaMapaPage() {
   const habitantes = useMemo(() => new Map((estado?.territories ?? []).map((t) => [t.ubigeo, t.poblacion])), [estado]);
   const dibujarPantalla = useCallback(
     (ctx: CanvasRenderingContext2D, u: UtilLienzo) => {
+      // Mientras llegan los distritos de una ciudad, su círculo sigue en el mapa: sin él el lienzo quedaba en blanco (C2).
+      const sinDistritos = (codigo: string | null) => Boolean(codigo) && !contornos.some((c) => ciudadDeUbigeo(c.ubigeo) === codigo);
       if (enAtlas) {
-        dibujarCiudadesAtlas(ctx, u, atlas, enEstudio, ciudadEnfocada);
+        dibujarCiudadesAtlas(ctx, u, atlas, enEstudio, sinDistritos(ciudadEnfocada) ? null : ciudadEnfocada);
         // La ciudad enfocada muestra sus distritos con nombre (zoom de ciudad).
         if (ciudadEnfocada) dibujarNombresFuera(ctx, u, contornos.filter((c) => ciudadDeUbigeo(c.ubigeo) === ciudadEnfocada).map((c) => ({ clave: c.ubigeo, nombre: nombreDistrito(c.nombre), x: c.rotulo[0], y: c.rotulo[1] })));
+        return;
+      }
+      if (enTerritorio && ciudadAbierta && sinDistritos(ciudadAbierta)) {
+        dibujarCiudadesAtlas(ctx, u, atlas.filter((c) => c.codigo === ciudadAbierta), enEstudio, null);
         return;
       }
       dibujarNombresDepartamento(ctx, u, nacional.limitesDeNombres(limites));
@@ -712,7 +718,7 @@ export default function HojasRutaMapaPage() {
       }
       if (enTerritorio) dibujarNombresFuera(ctx, u, contornosAbiertos.filter((c) => !visibles.includes(c)).map((c) => ({ clave: c.ubigeo, nombre: nombreDistrito(c.nombre), x: c.rotulo[0], y: c.rotulo[1] })), fichas);
     },
-    [titulares, confirmados, borrador, enTerritorio, enPoblacion, enMuestra, enSeleccion, umpEnfocada, reemplazosEnfocados, matriz, tamano, habitantes, capaContraste, enAtlas, atlas, enEstudio, ciudadEnfocada, contornos, contornosAbiertos, nacional],
+    [titulares, confirmados, borrador, enTerritorio, enPoblacion, enMuestra, enSeleccion, umpEnfocada, reemplazosEnfocados, matriz, tamano, habitantes, capaContraste, enAtlas, atlas, enEstudio, ciudadEnfocada, ciudadAbierta, contornos, contornosAbiertos, nacional],
   );
 
   // B1: la zona de acciones del documento (fase, avisos por revisar, bitácora, Material).

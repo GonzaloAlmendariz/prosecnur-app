@@ -6,6 +6,13 @@ import { cajaDe, centroDe, nivelDensidad, piezasDeGeometria, unirCajas, visibles
 const T = { w: 800, h: 600 };
 
 describe("cámara del lienzo", () => {
+  test("el Perú entero cabe en el lienzo del atlas a 1024x600 (490x439 px)", () => {
+    const peru = [-472519, -1325375, 908020, 698613] as const;
+    const vista = cajaVisible(encuadre(peru, { w: 490, h: 439 }, 0.03), { w: 490, h: 439 });
+    expect(vista[1]).toBeLessThanOrEqual(peru[1]);
+    expect(vista[3]).toBeGreaterThanOrEqual(peru[3]);
+  });
+
   test("el primer encuadre salta: volar desde el origen pinta el mapa en blanco o a medio camino", () => {
     const base = { animar: true, reducido: false, ancho: 800 };
     expect(debeVolar({ ...base, encuadrado: false })).toBe(false);
