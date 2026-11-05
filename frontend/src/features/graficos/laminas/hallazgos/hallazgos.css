@@ -10,11 +10,6 @@
   border: 0;
 }
 
-/* Selección automática: se ve lo escrito, pero no se edita. */
-.pulso-f6-hallazgos-campo.is-atenuado {
-  opacity: 0.55;
-}
-
 .pulso-f6-hallazgos-capitulos,
 .pulso-f6-hallazgos-lista {
   display: grid;

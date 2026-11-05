@@ -102,12 +102,13 @@ describe("«Resumen de diferencias» en el inspector", () => {
     expect(html).toContain("Los que la lámina nombra. El nombre vacío usa el de la pregunta.");
   });
 
-  it("automática: topes visibles y el editor atenuado con su nota", () => {
+  it("automática: topes visibles y la propuesta del motor en lugar del editor (H13)", () => {
     const html = pintar({ seleccion: "auto", capitulos: real });
     expect(html).toContain('data-campo="max_filas"');
     expect(html).toContain('data-campo="max_por_capitulo"');
-    expect(html).toContain("El motor propone las filas. Pasa a manual para editarlas.");
-    expect(html).toMatch(/<fieldset class="pulso-f6-hallazgos-campo is-atenuado" disabled=""/);
+    expect(html).toContain('data-qa="propuesta-motor"');
+    expect(html).toContain("El motor elige las filas. Puede tardar hasta un minuto.");
+    expect(html).not.toContain("pulso-f6-hallazgos-campo");
     expect(html).not.toContain("Sin un capítulo completo");
   });
 

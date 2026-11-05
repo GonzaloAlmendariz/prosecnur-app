@@ -14,6 +14,7 @@ import { AjusteRegistro } from "../contenidoEspecial/AjusteRegistro";
 import { ajustesQueAplican, conDependientesJuntos, valorEfectivo } from "../contenidoEspecial/ajustesRegistro";
 import { CrucesLamina } from "../diferencias/CrucesLamina";
 import { varCalificada } from "../ordenCategorias";
+import { PropuestaResumen } from "../propuestaResumen/PropuestaResumen";
 import { CapitulosResumen } from "./CapitulosResumen";
 import "../datosGrafico.css";
 import "../hallazgos/hallazgos.css";
@@ -48,7 +49,8 @@ export function AjustesResumenDiferencias({ slide, args }: { slide: Slide; args:
             return (
               <div key={a.name} className="pulso-f6-dato is-apilado">
                 <CapitulosResumen valor={payload[a.name]} automatica={automatica} scope={scope}
-                  calificar={(ref) => varCalificada(ref, baseActiva, scope)} onCambio={(v) => set({ [a.name]: v })} />
+                  calificar={(ref) => varCalificada(ref, baseActiva, scope)} onCambio={(v) => set({ [a.name]: v })}
+                  propuesta={<PropuestaResumen key={slide.id} slide={slide} scope={scope} automatica={automatica} valor={payload[a.name]} onAplicar={set} />} />
               </div>
             );
           }

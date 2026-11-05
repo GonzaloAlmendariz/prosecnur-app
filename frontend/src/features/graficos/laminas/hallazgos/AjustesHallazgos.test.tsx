@@ -115,10 +115,26 @@ describe("«Hallazgos clave» en el inspector", () => {
     expect(html).toContain("Falta la pregunta, la respuesta y el texto: no sale.");
   });
 
-  it("con selección automática el editor queda atenuado y deshabilitado, con su nota", () => {
+  it("con selección automática muestra la propuesta del motor (cargando) en lugar del editor (H13)", () => {
     const html = pintar({ modo: "resumen", seleccion: "auto" });
-    expect(html).toContain("El motor propone los hallazgos; pasa a manual para editarlos.");
-    expect(html).toMatch(/<fieldset class="pulso-f6-hallazgos-campo is-atenuado" disabled="">/);
+    expect(html).toContain('data-qa="propuesta-motor"');
+    expect(html).toContain("Lo que propone el motor");
+    expect(html).toContain("El motor elige los hallazgos. Puede tardar hasta un minuto.");
+    expect(html).not.toContain("pulso-f6-hallazgos-campo");
+    expect(html).not.toContain("Traer la propuesta del motor");
+  });
+
+  it("en manual ofrece traer la propuesta del motor sin pedirla todavía", () => {
+    const html = pintar({ modo: "resumen", seleccion: "manual", capitulos: real });
+    expect(html).toContain("Traer la propuesta del motor");
+    expect(html).not.toContain('data-qa="propuesta-motor"');
+    expect(html).toContain("pulso-f6-hallazgos-campo");
+  });
+
+  it("en modo de cifras no hay propuesta, aunque quede un «auto» guardado", () => {
+    const html = pintar({ modo: "cifras", seleccion: "auto", cifras: [{ var: "q1" }] });
+    expect(html).not.toContain("Traer la propuesta del motor");
+    expect(html).not.toContain('data-qa="propuesta-motor"');
   });
 
   it("en manual sin capítulos completos avisa que el motor no arma la lámina", () => {
