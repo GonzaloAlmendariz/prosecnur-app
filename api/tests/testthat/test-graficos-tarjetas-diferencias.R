@@ -273,6 +273,8 @@ test_that("el Word dibuja las tarjetas en una imagen bajo la figura, del ancho d
   # La escala no se compacta; las barras sí.
   expect_equal(.word_tarjetas_alto_total(4, list(tarjetas = list(1), tipo = "bateria")), 4)
   expect_lt(.word_tarjetas_alto_total(4, list(tarjetas = list(1), tipo = "multiple")), 4)
+  # Compacta, nunca agranda: una franja Sí/No de 0,6 in conserva su alto (antes subía al piso de 1,4 in).
+  expect_equal(.word_tarjetas_alto_total(0.6, list(tarjetas = list(1), tipo = "dicotomica")), 0.6)
 })
 
 test_that("la lectura (PPT y Word) sale de la regla del estudio, en prosa y sin «frágil»", {

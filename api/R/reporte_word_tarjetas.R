@@ -112,7 +112,9 @@
   if (is.null(alto) || !is.finite(alto) || !length(tarjetas$tarjetas)) return(alto)
   # La escala no se compacta: sus cifras chicas van sobre la barra y se encimarían (CCSS, batería de pobreza).
   if (identical(tarjetas$tipo, "bateria")) return(alto)
-  max(1.4, alto * 0.62)
+  # Compacta, nunca agranda: una franja Sí/No de 0,6 in subía al piso de 1,4 in y su barra salía al triple de su grosor
+  # (CCSS v7.20, experiencia laboral vinculada con la carrera).
+  min(alto, max(1.4, alto * 0.62))
 }
 
 #' Agrega las tarjetas bajo la imagen del total (dentro de la figura, antes de la base)
