@@ -30,3 +30,18 @@ export function accionDeObservacion(tipo: TipoObservacion, minimoMarco: number |
       return null;
   }
 }
+
+/**
+ * Las acciones de varios grupos, sin repetir el mismo consejo: el segundo grupo con el mismo arreglo
+ * conserva sólo el enlace (las tarjetas de «no alcanzan» repetían dos veces el mismo párrafo).
+ */
+export function accionesSinRepetir(tipos: readonly TipoObservacion[], minimoMarco: number | null): Array<AccionObservacion | null> {
+  const dichas = new Set<string>();
+  return tipos.map((t) => {
+    const a = accionDeObservacion(t, minimoMarco);
+    if (!a) return null;
+    if (dichas.has(a.texto)) return { ...a, texto: "" };
+    dichas.add(a.texto);
+    return a;
+  });
+}

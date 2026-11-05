@@ -15,7 +15,7 @@ import { useLienzoHojasRuta } from "../store";
 import { tonoCss } from "../lienzo/tonos";
 import { useSeleccionDireccion, type CajonSeleccion } from "./useSeleccionDireccion";
 import { Link } from "react-router-dom";
-import { accionDeObservacion, type AccionObservacion } from "./accionesRevision";
+import { accionesSinRepetir, type AccionObservacion } from "./accionesRevision";
 import { HREF_CAMPANA_TERRITORIAL } from "./SalidasPanel";
 import { porRevisar, reemplazosDe, type EstadoRuta, type GrupoRutas } from "./rutas";
 
@@ -223,6 +223,7 @@ export function SeleccionInspector({ titular, estado, reemplazos, revision, tota
       </>
     );
   }
+  const acciones = accionesSinRepetir(revision.grupos.map((g) => g.tipo), minimoMarco);
   return (
     <>
       <InspectorCabecera icono={ListChecks} sobre="Selección" titulo="Revisión contra el marco" />
@@ -239,11 +240,11 @@ export function SeleccionInspector({ titular, estado, reemplazos, revision, tota
           <p className="hr-mapa-nota">{fmt(rutasPorRevisar)} rutas con su titular o algún reemplazo observado: {fmt(revision.porRevisar)} UMP en total.</p>
         ) : null}
         {revision.grupos.length ? (
-          revision.grupos.map((g) => (
+          revision.grupos.map((g, i) => (
             <article key={g.tipo} className="hr-sel-grupo" data-estado={g.tono}>
               <strong>{g.titulo}</strong>
               <small>{g.detalle}</small>
-              <AccionDelGrupo accion={accionDeObservacion(g.tipo, minimoMarco)} />
+              <AccionDelGrupo accion={acciones[i]} />
               <div className="hr-mapa-chips">
                 {g.umps.slice(0, 12).map((u) => (
                   <button key={u.idManzana} type="button" className="hr-mapa-zona" onClick={() => setUmpEnfocada(reemplazos.find((r) => r.id_manzana === u.idManzana)?.titular_id_manzana ?? u.idManzana)} title={u.titular ? `Abre la ficha de ${u.titular}` : undefined}>
@@ -276,7 +277,7 @@ function AccionDelGrupo({ accion }: { accion: AccionObservacion | null }) {
   if (!accion) return null;
   return (
     <p className="hr-sel-accion">
-      {accion.texto}{" "}
+      {accion.texto ? <>{accion.texto} </> : null}
       {accion.destino === "marco" ? <Link to="/hojas-ruta?seccion=manzanas#marco-elegible">Ir al marco elegible</Link> : <Link to="/hojas-ruta?seccion=manzanas">Ir a Manzanas</Link>}
     </p>
   );

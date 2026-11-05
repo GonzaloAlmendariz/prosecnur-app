@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { accionDeObservacion } from "./accionesRevision";
+import { accionesSinRepetir, accionDeObservacion } from "./accionesRevision";
 
 describe("accionDeObservacion", () => {
   it("sin marco elegible, las manzanas sin viviendas se arreglan volviendo a sortear con él", () => {
@@ -18,5 +18,14 @@ describe("accionDeObservacion", () => {
   });
   it("la atípica no repite su detalle", () => {
     expect(accionDeObservacion("titular-atipica", null)).toBeNull();
+  });
+});
+
+describe("acciones de varios grupos", () => {
+  it("el segundo grupo con el mismo arreglo conserva sólo el enlace", () => {
+    const [a, b, c] = accionesSinRepetir(["reemplazo-corto", "titular-corta", "titular-sin-reemplazo"], 3);
+    expect(a?.texto).toMatch(/Un mínimo de viviendas/);
+    expect(b).toEqual({ texto: "", destino: "marco" });
+    expect(c?.texto).toMatch(/Sube los reemplazos/);
   });
 });
