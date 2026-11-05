@@ -3,7 +3,10 @@
 import { describe, expect, it } from "vitest";
 import type { SlideMeta } from "../../slideMeta";
 import {
+  admiteEnLinea,
   admiteTarjetas,
+  dondeTarjetas,
+  modoAGuardar,
   avisoCorto,
   cortosAFilas,
   filasACortos,
@@ -142,5 +145,22 @@ describe("U2: tarjetas por ranura en la lámina de dos gráficos", () => {
     expect(opcionesMax("izquierda")).toEqual([1, 2]);
     expect(maxAGuardar(2, "izquierda")).toBeUndefined();
     expect(maxAGuardar(1, "izquierda")).toBe(1);
+  });
+});
+
+describe("dónde van las tarjetas (U13, `modo`)", () => {
+  it("«Bajo cada barra» sólo en la agrupada de una lámina de un gráfico (`.tarjetas_en_linea_aplica`)", () => {
+    expect(admiteEnLinea("p_barras_agrupadas", null)).toBe(true);
+    expect(admiteEnLinea("p_barras_agrupadas", "izquierda")).toBe(false);
+    expect(admiteEnLinea("p_barras_multiapiladas", null)).toBe(false);
+    expect(admiteEnLinea("p_barras_apiladas", null)).toBe(false);
+  });
+  it("lee como el motor: sólo «en_linea» es bajo cada barra; el panel se guarda sin clave y conserva lo demás", () => {
+    expect(dondeTarjetas({ modo: "en_linea" })).toBe("en_linea");
+    expect(dondeTarjetas({ modo: "otro" })).toBe("panel");
+    expect(dondeTarjetas(true)).toBe("panel");
+    const v = { activo: true, cruces: ["e$area"], modo: "en_linea" };
+    expect(opcionCon(v, { modo: modoAGuardar("panel") })).toEqual({ activo: true, cruces: ["e$area"] });
+    expect(opcionCon(true, { modo: modoAGuardar("en_linea") })).toEqual({ activo: true, modo: "en_linea" });
   });
 });

@@ -17,6 +17,7 @@ import { leerSlideMeta } from "../../slideMeta";
 import { usePlanStore } from "../../store";
 import { OpcionesTarjetas } from "./OpcionesTarjetas";
 import {
+  admiteEnLinea,
   leerTarjetas,
   maxEfectivo,
   metaConTarjetas,
@@ -102,6 +103,8 @@ export function TarjetasDiferencias({ slideId, slot = "grafico" }: { slideId: st
   const meta = leerSlideMeta(slide);
   const ranura = ranuraDeTarjetas(slide.tipo, slot);
   const valor = leerTarjetas(meta, ranura);
+  const grafico = (slide.payload as Record<string, unknown>)[slot];
+  const graficador = grafico && typeof grafico === "object" && "graficador" in grafico ? String((grafico as { graficador: unknown }).graficador) : "";
   const guardar = (siguiente: ReturnType<typeof opcionAlternada>) =>
     updatePayload(slide.id, { meta: metaConTarjetas(meta, ranura, siguiente) });
   return (
@@ -114,7 +117,7 @@ export function TarjetasDiferencias({ slideId, slot = "grafico" }: { slideId: st
       max={maxEfectivo(valor, ranura)}
       enRanura={ranura !== null}
       opciones={
-        <OpcionesTarjetas valor={valor} ranura={ranura} scope={scope} baseActiva={baseActiva}
+        <OpcionesTarjetas valor={valor} ranura={ranura} scope={scope} baseActiva={baseActiva} enLinea={admiteEnLinea(graficador, ranura)}
           onCambio={(cambios: CambiosOpcion) => guardar(opcionCon(valor, cambios))} />
       }
     />

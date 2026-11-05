@@ -100,4 +100,20 @@ describe("OpcionesTarjetas (U1, U2)", () => {
     const off = renderToStaticMarkup(<TarjetasDiferenciasVista activas={false} onAlternar={nada} onAbrirRegla={nada} opciones={<span>opciones</span>} />);
     expect(off).not.toContain("<span>opciones</span>");
   });
+
+  // U13: «Bajo cada barra» (`modo = "en_linea"`, lamina_tarjetas_en_linea.R), sólo donde el motor lo dibuja.
+  it("ofrece dónde van sólo si el gráfico admite el desglose bajo cada barra, y marca la opción guardada", () => {
+    const pintarDonde = (valor: Parameters<typeof OpcionesTarjetas>[0]["valor"], enLinea: boolean) => renderToStaticMarkup(
+      <MemoryRouter><OpcionesTarjetas valor={valor} ranura={null} scope="active" baseActiva="estudiantes" onCambio={nada} enLinea={enLinea} /></MemoryRouter>,
+    );
+    expect(pintarDonde(true, false)).not.toContain('data-qa="tarjetas-donde"');
+    const panel = pintarDonde(true, true);
+    expect(panel).toContain('role="radiogroup" aria-label="Dónde van las diferencias"');
+    expect(panel).toMatch(/aria-checked="true"[^>]*>Al lado del gráfico</);
+    const enLinea = pintarDonde({ activo: true, modo: "en_linea" }, true);
+    expect(enLinea).toMatch(/aria-checked="true"[^>]*>Bajo cada barra</);
+    expect(enLinea).toContain("Hasta dos respuestas, sin panel aparte.");
+    const bloque = enLinea.slice(enLinea.indexOf('data-qa="tarjetas-donde"'), enLinea.indexOf('data-qa="tarjetas-cruces"'));
+    expect(bloque).not.toMatch(/en_linea|[;·—]/);
+  });
 });

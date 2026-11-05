@@ -105,7 +105,7 @@ export function opcionConTodas(v: ValorTarjetas, todas: boolean): TarjetasDifere
   return todas ? { ...resto, activo: true, todas: true } : { ...resto, activo: true };
 }
 
-export type CambiosOpcion = Partial<Pick<TarjetasDiferenciasMeta, "cruces" | "rotulos" | "cortos" | "publico" | "max">>;
+export type CambiosOpcion = Partial<Pick<TarjetasDiferenciasMeta, "cruces" | "rotulos" | "cortos" | "publico" | "max" | "modo">>;
 
 /**
  * La opción con unos ajustes cambiados y encendida. Un ajuste vacío (lista o mapa sin nada, texto en blanco,
@@ -220,3 +220,29 @@ export const tarjetasActivas = (meta: SlideMeta): boolean => opcionActiva(leerTa
 export const tarjetasAlternadas = (meta: SlideMeta, activo: boolean): ValorTarjetas => opcionAlternada(leerTarjetas(meta, null), activo);
 export const tarjetasTodas = (meta: SlideMeta): boolean => opcionTodas(leerTarjetas(meta, null));
 export const tarjetasConTodas = (meta: SlideMeta, todas: boolean): TarjetasDiferenciasMeta => opcionConTodas(leerTarjetas(meta, null), todas);
+
+// ---- dónde van: panel al lado o desglose bajo cada barra (U13) ------------------
+
+/**
+ * Graficadores cuyo total el motor sabe desglosar bajo cada barra (`modo = "en_linea"`, lamina_tarjetas_en_linea.R): una
+ * categórica en barras sin cruce (`.tarjetas_en_linea_aplica`). Una batería o una apilada van siempre con el panel.
+ */
+export const GRAFICADORES_EN_LINEA: ReadonlySet<string> = new Set(["p_barras_agrupadas"]);
+
+export type DondeTarjetas = "panel" | "en_linea";
+
+/**
+ * ¿Se ofrece «Bajo cada barra»? Sólo en la lámina de un gráfico: en la de dos, el motor dibuja el desglose únicamente en
+ * la composición con la cifra al lado (lamina_cifra_y_grafico.R), que lo pide sola.
+ */
+export function admiteEnLinea(graficador: string, ranura: RanuraTarjetas | null): boolean {
+  return ranura === null && GRAFICADORES_EN_LINEA.has(graficador);
+}
+
+/** Dónde van, como lo lee `.tarjetas_opcion`: cualquier otro `modo` es el panel. */
+export function dondeTarjetas(v: ValorTarjetas): DondeTarjetas {
+  return esObjeto(v) && v.modo === "en_linea" ? "en_linea" : "panel";
+}
+
+/** El `modo` que se guarda: sin clave para el panel, que es el de fábrica. */
+export const modoAGuardar = (d: DondeTarjetas): string | undefined => (d === "en_linea" ? "en_linea" : undefined);

@@ -10,8 +10,13 @@ import type { Slide } from "../../api/graficos";
 export type SlideMeta = {
   /** Portada («centrada», «izquierda», «banda») o cierre. */
   variante?: string;
-  /** Índice: «arcos», «facetas», «circulos», «bloques». */
+  /**
+   * Índice: «arcos», «facetas», «circulos», «bloques». En la lámina de dos gráficos, «cifra_lateral»: la cifra al lado y
+   * el gráfico con su desglose bajo cada barra (lamina_cifra_y_grafico.R; laminas/cifraLateral/).
+   */
   composicion?: string;
+  /** La cifra de la composición «cifra_lateral»: `fila` (la respuesta que cuenta), `rotulo`, `texto`, `franja`, `comparacion`. */
+  cifra?: Record<string, unknown>;
   /** Índice: ícono por capítulo, en orden. */
   iconos?: string[];
   /** Objetivo: actores consultados. */

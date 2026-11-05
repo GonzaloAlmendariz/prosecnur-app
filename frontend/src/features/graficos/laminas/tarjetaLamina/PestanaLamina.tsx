@@ -5,6 +5,7 @@
 
 import { useEffect, useMemo, useRef } from "react";
 import type { Slide } from "../../../../api/graficos";
+import { CifraAlLado } from "../cifraLateral/CifraAlLado";
 import { DependenciaLamina } from "../DependenciaLamina";
 import { DependenciaTresLamina } from "../DependenciaTresLamina";
 import { AjustesHallazgos } from "../hallazgos/AjustesHallazgos";
@@ -51,6 +52,8 @@ export function PestanaLamina({ slide, lamina, ranura, onCambiarLamina }: Props)
         <SeccionComposicion slide={slide} lamina={lamina} ranura={ranura} onCambiarLamina={onCambiarLamina} />
         <DependenciaLamina slide={slide} />
         <DependenciaTresLamina slide={slide} />
+        {/* U13: la cifra al lado y el gráfico con sus grupos bajo cada barra (lamina_cifra_y_grafico.R). */}
+        <CifraAlLado slide={slide} />
       </SeccionLaminaPlegable>
       <SeccionLaminaPlegable seccion="textos" titulo={titulo("textos")}>
         <TextosLamina slide={slide} lamina={lamina} contenido={contenido} especial={especial} />
