@@ -117,12 +117,12 @@
   cruces_txt <- paste(tolower(lectura$cruces), collapse = ", ")
   cruces_txt <- sub(", ([^,]+)$", " y \\1", cruces_txt)
   bases <- paste(vapply(lectura$bases, function(b) sprintf("%s: %s", b$cruce, paste(sprintf("%s %s", b$grupos, format(b$n, big.mark = ",")), collapse = ", ")), ""),
-                 collapse = "; ")
+                 collapse = ". ")
   list(
     frase_ppt = sprintf(paste0("Las tarjetas muestran los grupos de %s que se diferencian del resto en una respuesta. ",
                                "Aparecen solo si la diferencia es de al menos %s puntos y la prueba estadística la confirma."),
                         pub, format(umbral)),
-    metodo_ppt = sprintf("%s con corrección de %s. Se muestran hasta %s diferencias por gráfico; las demás están en las tablas de cruces.",
+    metodo_ppt = sprintf("%s con corrección de %s. Se muestran hasta %s diferencias por gráfico y las demás están en las tablas de cruces.",
                          if (rao) sprintf("Prueba de Rao-Scott por %s", aula) else "Prueba z de diferencia de proporciones",
                          if (bh) "Benjamini-Hochberg" else "Bonferroni", .tarjetas_en_letras(opt$max %||% .TARJETAS_MAX)),
     mayor = "Mayor que el resto", menor = "Menor que el resto",
@@ -134,24 +134,24 @@
                      "resultado se diferencia del resto, como se muestra en la siguiente imagen."), pub, cruces_txt, pub),
       NA_character_,   # la imagen va aquí
       sprintf(paste0("El triángulo hacia arriba indica que el porcentaje del grupo es mayor que el del resto de %s, y el ",
-                     "triángulo hacia abajo, que es menor. En el ejemplo, en «%s», el %s de %s frente al %s del total de %s; ",
-                     "en %s, la proporción es de %s."),
+                     "triángulo hacia abajo, que es menor. En el ejemplo, en «%s», el %s de %s frente al %s del total de %s. ",
+                     "En %s, la proporción es de %s."),
               pub, t$fila, .tarjetas_pct(g$p[1]), g$etiqueta[1], t$cifra_total %||% .tarjetas_pct(t$total), pub,
               g$etiqueta[nrow(g)], .tarjetas_pct(g$p[nrow(g)])),
       sprintf(paste0("Una diferencia se presenta solo si cumple dos condiciones: alcanza al menos %s puntos porcentuales y ",
                      "es estadísticamente significativa. Para evaluarla se empleó %s, con %s. El borde continuo indica que ",
-                     "la diferencia se confirma con un 99%% de confianza; el borde punteado, con un %s, por lo que estas ",
-                     "últimas se comentan con una formulación prudente."),
+                     "la diferencia se confirma con un 99%% de confianza. El borde punteado indica que se confirma con un %s, ",
+                     "por lo que estas últimas se comentan con una formulación prudente."),
               .tarjetas_en_letras(umbral),
               if (rao) sprintf("la prueba de Rao-Scott, que considera que las personas fueron encuestadas por %s", aula) else
                 "una prueba z de diferencia de proporciones",
               if (bh) "la corrección de Benjamini-Hochberg sobre el conjunto de comparaciones del informe" else
                 "la corrección de Bonferroni dentro de cada fila",
               .tarjetas_confianza(regla)),
-      sprintf(paste0("No se muestran los grupos que no se diferencian del resto ni las diferencias menores de %s puntos; ",
-                     "cuando una pregunta no presenta diferencias, el gráfico no incluye tarjetas. Si una pregunta presenta ",
+      sprintf(paste0("No se muestran los grupos que no se diferencian del resto ni las diferencias menores de %s puntos. ",
+                     "Cuando una pregunta no presenta diferencias, el gráfico no incluye tarjetas. Si una pregunta presenta ",
                      "más de %s diferencias, se muestran las %s principales y las demás pueden consultarse en las tablas de ",
-                     "cruces. Solo se comparan grupos de al menos %s %s%s. Las bases de cada grupo son: %s."),
+                     "cruces. Solo se comparan grupos de al menos %s %s%s. Las bases de cada grupo son las siguientes. %s."),
               .tarjetas_en_letras(umbral), .tarjetas_en_letras(opt$max %||% .TARJETAS_MAX),
               .tarjetas_en_letras(opt$max %||% .TARJETAS_MAX), format(regla$base_minima %||% 30), pub,
               if (rao) sprintf(" y %s %ss", format(regla$conglomerados_minimos %||% 8L), aula) else "", bases)

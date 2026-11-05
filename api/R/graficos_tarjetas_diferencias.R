@@ -520,7 +520,7 @@
 
 #' Frase de la opción `todas` (ítem 23 de la v7 RV): va en la nota del PPT y bajo las tarjetas del Word
 #' @keywords internal
-.TARJETAS_FRASE_TODAS <- "Se muestran todos los grupos con base suficiente; la flecha marca solo las diferencias significativas."
+.TARJETAS_FRASE_TODAS <- "Se muestran todos los grupos con base suficiente. La flecha marca solo las diferencias significativas."
 
 #' La nota de la lámina con la frase de la opción `todas` al final (sin repetirla)
 #' @keywords internal

@@ -159,7 +159,7 @@
   if (!nrow(sig)) return("Tendencia por nivel: ninguna fila muestra una tendencia lineal significativa.")
   partes <- sprintf("«%s» %s con el nivel", sig$fila, sig$direccion)
   sprintf("Tendencia por nivel: %s (prueba de tendencia lineal, p < %s con corrección de Bonferroni).",
-          paste(partes, collapse = "; "), .sig_num(regla$alfa %||% 0.05))
+          .sig_lista_y(partes), .sig_num(regla$alfa %||% 0.05))
 }
 
 #' p de la evaluación que entran a la familia de BH (elegibles y no duplicados)
