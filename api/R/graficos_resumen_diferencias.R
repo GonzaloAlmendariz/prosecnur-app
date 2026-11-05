@@ -386,31 +386,35 @@
 
   if (seleccion == "auto") {
     cands <- unlist(lapply(.resumen_dif_preguntas_plan(plan), function(q) .resumen_dif_candidatas(fuente, q, regla)), recursive = FALSE)
+    claves <- .preguntas_clave_de(sig)   # H14: las preguntas clave del estudio van primero en su capítulo
     filas <- list()
     for (cd in cands) {
       it <- .dif_item(cd); it$rotulo <- cd$rotulo
       e <- evaluar(it)
       if (is.null(e) || e$fuerza[["tam"]] <= 0) next
       e$capitulo <- cd$capitulo %||% ""
+      e$clave <- .preguntas_clave_es(c(cd$var, e$var), claves)
       e$candidata <- list(var = it$var, fila = it$fila, top2box = it$top2box, rotulo = it$rotulo)
       filas[[length(filas) + 1L]] <- e
     }
-    orden <- order(-vapply(filas, function(f) f$fuerza[["firme"]], 0), -vapply(filas, function(f) f$fuerza[["tam"]], 0))
-    elegidas <- list(); por_cap <- integer(0)
-    for (i in orden) {
+    elegidas <- list(); por_cap <- integer(0); usadas <- character(0)
+    for (i in .preguntas_clave_orden_dif(filas)) {
       cp <- filas[[i]]$capitulo
       if (length(elegidas) >= max_total) break
       if ((por_cap[cp] %||% 0L) >= max_cap) next
+      if (paste(cp, filas[[i]]$var, sep = "\r") %in% usadas) next   # nunca dos filas de la misma pregunta en un capítulo
       if (is.na(por_cap[cp])) por_cap[cp] <- 0L
       por_cap[cp] <- por_cap[cp] + 1L
+      usadas <- c(usadas, paste(cp, filas[[i]]$var, sep = "\r"))
       elegidas[[length(elegidas) + 1L]] <- filas[[i]]
     }
     caps <- unique(vapply(filas, `[[`, "", "capitulo"))   # en el orden del plan
     capitulos <- lapply(caps, function(cp) list(titulo = cp, filas = Filter(function(f) identical(f$capitulo, cp), elegidas)))
     capitulos <- Filter(function(c) length(c$filas) > 0L, capitulos)
     if (length(filas)) {
-      aviso(sprintf("el motor propone %d de %d filas con diferencias (hasta %d por capítulo y %d en total). Para cambiarlas, elige «Las escribo yo» en Selección de filas.",
-                    length(elegidas), length(filas), max_cap, max_total))
+      aviso(sprintf("el motor propone %d de %d filas con diferencias (hasta %d por capítulo y %d en total), %ssin repetir pregunta. Para cambiarlas, elige «Las escribo yo» en Selección de filas.",
+                    length(elegidas), length(filas), max_cap, max_total,
+                    if (any(vapply(filas, function(f) isTRUE(f$clave), logical(1)))) "con las preguntas clave del estudio primero y " else ""))
     } else {
       aviso("ninguna pregunta del informe muestra diferencias entre grupos con la regla del informe.")
     }

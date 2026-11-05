@@ -16,6 +16,9 @@
 # (`.graficos_preview_comun`, `.sig_opciones_preview`); el plan se rearma como en el job de PPT, porque la selección
 # automática recorre las preguntas de TODO el informe (la vista previa sólo arma la lámina).
 #
+# Cada cifra o fila lleva además `clave` (sólo lectura, H14): si su pregunta está en `plan$preguntas_clave`, que la
+# selección automática prefiere (graficos_preguntas_clave.R).
+#
 # Las respuestas (`fila`, `top2box`) vuelven con el rótulo del instrumento, el que muestra el selector de categorías
 # del editor: la regla inclusiva y los rótulos cortos las convierten igual al dibujar, así que la lámina no cambia.
 
@@ -132,6 +135,7 @@
 #' @keywords internal
 .propuesta_hallazgos <- function(el, fuente, sig, plan, traducir = function(var, x) x) {
   el$seleccion <- "auto"
+  claves <- .preguntas_clave_de(sig)
   cx <- .dif_cruces(el, plan, sig, fuente)
   caps <- .halla_res_auto(fuente, sig, cx, el$tautologicos %||% list(), plan, .propuesta_halla_por_capitulo(el))
   manual <- el; manual$seleccion <- "manual"; manual$capitulos <- caps
@@ -150,7 +154,8 @@
       .propuesta_compacto(list(
         var = var, fila = if (length(top)) NULL else traducir(var, .dif_chr1(x$fila)), top2box = if (length(top)) I(top) else NULL,
         texto = x$texto, comparacion = "auto",
-        # Sólo lectura: lo que va a salir en la lámina.
+        # Sólo lectura: lo que va a salir en la lámina, y si la pregunta es clave del estudio (H14).
+        clave = var %in% claves,
         pregunta = .tarjetas_rotulo_var(var, fuente$survey), frase = kpi$texto %||% NA_character_,
         cifra = kpi$cifra %||% NA_character_, n = kpi$n %||% NA_integer_,
         diferencia = dif$texto, diferencia_estado = dif$estado))
@@ -167,6 +172,7 @@
 #' @keywords internal
 .propuesta_resumen_dif <- function(el, fuente, sig, plan, traducir = function(var, x) x) {
   el$seleccion <- "auto"
+  claves <- .preguntas_clave_de(sig)
   modelo <- .resumen_dif_modelo(el, fuente, sig, plan)
   cx <- .dif_cruces(el, plan, sig, fuente)
   capitulos <- lapply(modelo$capitulos, function(c) {
@@ -181,7 +187,8 @@
       .propuesta_compacto(list(
         var = var, fila = if (length(top)) NULL else traducir(var, .dif_chr1(cd$fila)), top2box = if (length(top)) I(top) else NULL,
         rotulo = cd$rotulo,
-        # Sólo lectura: lo que va a salir en la lámina.
+        # Sólo lectura: lo que va a salir en la lámina, y si la pregunta es clave del estudio (H14).
+        clave = var %in% claves,
         pregunta = .tarjetas_rotulo_var(var, fuente$survey), rotulo_lamina = f$rotulo, cifra = .tarjetas_pct(f$total),
         n = f$n, diferencia = dif$texto, diferencia_estado = dif$estado))
     })
@@ -251,7 +258,8 @@
     id <- as.character(slide$id %||% "")[1]
     plan_slides <- lapply(plan_slides, function(s) if (identical(as.character(s$id %||% "")[1], id)) slide else s)
   }
-  sig_informe <- .sig_opciones_preview(sid, list())[["prosecnur.sig_informe"]]
+  # La regla del estudio y las preguntas clave de la config efectiva (la sin guardar, si viene): graficos_preguntas_clave.R
+  sig_informe <- comun$opciones_motor[["prosecnur.sig_informe"]]
   .propuesta_resumen_calcular(slide, plan_slides, comun$data_sources, comun$inst_sources, sig_informe = sig_informe,
                               mapa = comun$rotulos_cortos_mapa %||% character(0), inclusivo = isTRUE(comun$inclusivo),
                               base = comun$base, crudas = fuentes, icon_registry = comun$icon_registry)

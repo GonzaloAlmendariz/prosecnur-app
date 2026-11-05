@@ -85,3 +85,21 @@ describe("normalizarPropuestaResumen", () => {
     }
   });
 });
+
+describe("normalizarPropuestaResumen · preguntas clave (H14)", () => {
+  it("lee `clave` por cifra y por fila; ausente, en caja o raro es false", () => {
+    const p = normalizarPropuestaResumen({ tipo: "p_slide_hallazgos", capitulos: [{ titulo: "C", cifras: [
+      { var: "P1", fila: "Sí", clave: true },
+      { var: "P2", fila: "Sí", clave: [true] },
+      { var: "P3", fila: "Sí" },
+      { var: "P4", fila: "Sí", clave: "quizá" },
+    ] }] });
+    if (p.tipo !== "p_slide_hallazgos") throw new Error("tipo");
+    expect(p.capitulos[0].cifras.map((c) => c.clave)).toEqual([true, true, false, false]);
+    const r = normalizarPropuestaResumen({ tipo: "p_slide_resumen_diferencias", capitulos: [{ titulo: "C", filas: [
+      { var: "P1", fila: "Sí", rotulo: "P1", clave: true }, { var: "P2", fila: "Sí", rotulo: "P2" },
+    ] }] });
+    if (r.tipo !== "p_slide_resumen_diferencias") throw new Error("tipo");
+    expect(r.capitulos[0].filas.map((f) => f.clave)).toEqual([true, false]);
+  });
+});

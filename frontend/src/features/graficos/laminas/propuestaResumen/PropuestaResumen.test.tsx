@@ -4,6 +4,7 @@
 // happy-dom no mide layout; la geometría se verifica en la captura.
 import { act, useState } from "react";
 import { createRoot, type Root } from "react-dom/client";
+import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ApiError } from "../../../../api/core";
 import type { Slide } from "../../../../api/graficos";
@@ -71,13 +72,17 @@ function Banco({ inicial, onParche }: { inicial: Slide; onParche: (p: Record<str
   );
 }
 
-async function montar(payload: Record<string, unknown>) {
+async function montar(payload: Record<string, unknown>, extra: { claves?: string[]; slides?: Slide[] } = {}) {
   n += 1;
   // Cada prueba con su lámina: la propuesta traída se recuerda por lámina y no debe cruzarse entre pruebas.
   const slide: Slide = { id: `h${n}`, tipo: "p_slide_hallazgos", payload: { modo: "resumen", cruces: [`c${n}`], ...payload } };
-  usePlanStore.setState((s) => ({ plan: { ...s.plan, slides: [slide] } }));
+  usePlanStore.setState({ plan: { slides: [slide, ...(extra.slides ?? [])], ...(extra.claves ? { preguntas_clave: extra.claves } : {}) } });
   const onParche = vi.fn();
-  await act(async () => root.render(<Banco inicial={slide} onParche={onParche} />));
+  await act(async () => root.render(
+    <MemoryRouter initialEntries={["/procesamiento?seccion=graficos&pestana=laminas&panel=inspector"]}>
+      <Banco inicial={slide} onParche={onParche} />
+    </MemoryRouter>,
+  ));
   await act(async () => { await Promise.resolve(); });
   return onParche;
 }
@@ -168,5 +173,47 @@ describe("PropuestaResumen", () => {
     await montar({ seleccion: "auto" });
     expect(host.textContent).toContain("El motor elige los hallazgos. Puede tardar hasta un minuto.");
     expect(host.querySelector('[data-audit-ready="false"]')).not.toBeNull();
+  });
+
+  it("H14: con preguntas clave dice el criterio y marca «Clave» en los hallazgos que vienen de ellas", async () => {
+    const conClave = normalizarPropuestaResumen({ tipo: "p_slide_hallazgos", capitulos: [{ titulo: "Crianza", cifras: [
+      { var: "educ_padre", fila: "Posgrado", pregunta: "Nivel educativo del padre", cifra: "23%", clave: true, texto: "tiene padre con posgrado" },
+      { var: "B17", fila: "Sí", pregunta: "¿Trabajas?", cifra: "12%", texto: "trabaja" },
+    ] }] });
+    pedir.mockResolvedValue(conClave);
+    await montar({ seleccion: "auto" }, { claves: ["educ_padre", "B3"] });
+    expect(host.textContent).toContain("Por capítulo: la diferencia más fuerte entre grupos y una cifra de tus preguntas clave.");
+    expect(host.textContent).toContain("2 preguntas clave marcadas");
+    const marcas = [...host.querySelectorAll(".pulso-f6-propuesta-clave")];
+    expect(marcas).toHaveLength(1);
+    expect(marcas[0].closest(".pulso-f6-propuesta-elemento")?.textContent).toContain("Nivel educativo del padre");
+    expect(casillas()[0].getAttribute("aria-label")).toContain(", pregunta clave");
+    expect(casillas()[1].getAttribute("aria-label")).not.toContain("pregunta clave");
+    expect(host.querySelector('[data-qa="propuesta-sin-claves"]')).toBeNull();
+  });
+
+  it("H14: sin preguntas clave avisa y enlaza a la tarjeta del primer gráfico con pregunta", async () => {
+    pedir.mockResolvedValue(PROPUESTA);
+    const grafico = { id: "g1", tipo: "p_slide_1_grafico", payload: { grafico: { graficador: "p_barras_agrupadas", args: { var: "P5" } } } } as unknown as Slide;
+    await montar({ seleccion: "auto" }, { slides: [grafico] });
+    const aviso = host.querySelector('[data-qa="propuesta-sin-claves"]');
+    expect(aviso?.textContent).toContain("Sin preguntas clave, el motor elige por capítulo la diferencia más fuerte y la cifra más lejos del 50 %.");
+    const enlace = aviso?.querySelector("a");
+    expect(enlace?.textContent).toBe("Marca tus preguntas clave para que la propuesta se base en ellas");
+    expect(enlace?.getAttribute("href")).toContain("foco=g1%3Ag1");
+    expect(enlace?.getAttribute("href")).toContain("panel=inspector");
+    expect(aviso?.textContent).toContain("Se marcan en la tarjeta de cada gráfico, en Datos.");
+  });
+
+  it("H14: marcar o quitar una pregunta clave deja la propuesta como desactualizada, con su motivo", async () => {
+    pedir.mockResolvedValue(PROPUESTA);
+    await montar({ seleccion: "auto" });
+    expect(host.textContent).not.toContain("La propuesta puede ser otra.");
+    act(() => { usePlanStore.getState().setPreguntasClave(["educ_padre"]); });
+    expect(host.textContent).toContain("Cambiaste tus preguntas clave. La propuesta puede ser otra.");
+    await act(async () => { boton("Actualizar").click(); });
+    await act(async () => { await Promise.resolve(); });
+    expect(pedir).toHaveBeenCalledTimes(2);
+    expect(host.textContent).not.toContain("La propuesta puede ser otra.");
   });
 });

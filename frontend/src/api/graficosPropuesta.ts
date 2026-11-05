@@ -20,6 +20,8 @@ export type LecturaPropuesta = {
   n: number | null;
   diferencia: string;
   diferenciaEstado: EstadoDiferencia;
+  /** Viene de una pregunta clave del estudio (`plan.preguntas_clave`, H14). Sin el campo, `false`. */
+  clave: boolean;
 };
 
 export type CifraPropuesta = LecturaPropuesta & {
@@ -65,6 +67,8 @@ const numero = (v: unknown): number | null => {
   const n = Number(x);
   return Number.isFinite(n) ? n : null;
 };
+/** `TRUE` de R llega como `true` (o en caja); cualquier otra cosa es `false`. */
+const esVerdad = (v: unknown): boolean => { const x = uno(v); return x === true || x === 1 || x === "true" || x === "TRUE"; };
 const ESTADOS: ReadonlySet<string> = new Set(["diferencia", "sin_diferencias", "sin_prueba"]);
 const estado = (v: unknown): EstadoDiferencia => {
   const t = texto(v);
@@ -78,6 +82,7 @@ function lectura(o: Record<string, unknown>): LecturaPropuesta {
     n: numero(o.n),
     diferencia: texto(o.diferencia).trim(),
     diferenciaEstado: estado(o.diferencia_estado),
+    clave: esVerdad(o.clave),
   };
 }
 

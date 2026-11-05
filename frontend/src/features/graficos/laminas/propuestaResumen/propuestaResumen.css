@@ -197,3 +197,70 @@
   font-size: var(--pulso-type-body-size);
   line-height: 1.4;
 }
+
+/* H14: el criterio de la propuesta y, sin preguntas clave, cómo marcarlas. */
+.pulso-f6-propuesta-criterio {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--pulso-space-1) var(--pulso-space-2);
+  align-items: baseline;
+  margin: 0;
+  color: var(--pulso-text);
+  font-size: var(--pulso-type-caption-size);
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.pulso-f6-propuesta-criterio-n {
+  color: var(--pulso-text-soft);
+  font-variant-numeric: tabular-nums;
+}
+
+.pulso-f6-propuesta-sin-claves {
+  display: grid;
+  gap: var(--pulso-space-1);
+  justify-items: start;
+  min-width: 0;
+  padding: var(--pulso-space-2) var(--pulso-space-3);
+  border-radius: var(--pulso-radius);
+  background: var(--module-accent-soft);
+}
+
+.pulso-f6-propuesta-enlace {
+  color: var(--module-accent);
+  font-size: var(--pulso-type-body-size);
+  font-weight: var(--pulso-weight-semibold);
+  line-height: 1.4;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  overflow-wrap: anywhere;
+}
+
+.pulso-f6-propuesta-enlace:focus-visible {
+  outline: var(--pulso-nav-focus-outline-width) solid var(--module-accent);
+  outline-offset: var(--pulso-nav-focus-offset);
+}
+
+/* La pregunta con su marca «Clave» delante. */
+.pulso-f6-propuesta-pregunta-linea {
+  display: flex;
+  gap: var(--pulso-space-1);
+  align-items: baseline;
+  min-width: 0;
+}
+
+.pulso-f6-propuesta-pregunta-linea .pulso-f6-propuesta-pregunta-corta {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.pulso-f6-propuesta-clave {
+  flex: none;
+  padding: 0 var(--pulso-space-2);
+  border-radius: var(--pulso-radius-chip);
+  background: var(--module-accent-soft);
+  color: var(--module-accent);
+  font-size: var(--pulso-type-caption-size);
+  font-weight: var(--pulso-weight-semibold);
+  line-height: 1.5;
+}

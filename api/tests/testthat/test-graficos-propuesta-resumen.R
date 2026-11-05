@@ -254,3 +254,38 @@ test_that("HTTP: GET lee la lámina guardada de la base activa, y POST la lámin
   expect_gt(length(rp$body$capitulos), 0L)
   expect_true(all(vapply(rp$body$capitulos, function(c) length(c$filas) > 0L, TRUE)))
 })
+
+# ---- H14: las preguntas clave del estudio -------------------------------------------------------------------------------
+
+test_that("cada cifra y cada fila de la propuesta dice si su pregunta es clave, y la clave manda en su capítulo", {
+  sig <- .preguntas_clave_en_contexto(.pp_sig(), list("default$t", "otra$q"), "default")
+  p <- .propuesta_resumen_calcular(.pp_hallazgos(), .pp_plan(), list(default = .pp_base()), list(default = .pp_inst()),
+                                   sig_informe = sig, inclusivo = FALSE, base = "default")
+  cifras <- unlist(lapply(p$capitulos, `[[`, "cifras"), recursive = FALSE)
+  expect_true(all(vapply(cifras, function(x) is.logical(x$clave) && length(x$clave) == 1L, TRUE)))
+  expect_identical(vapply(Filter(function(x) isTRUE(x$clave), cifras), `[[`, "", "var"), "t")   # «otra$q» es de otra base
+  dos <- Filter(function(c) identical(c$titulo, "Dos"), p$capitulos)[[1]]
+  expect_identical(dos$cifras[[1]]$var, "t")
+  # Sin preguntas clave, todas en falso.
+  p0 <- .pp_calcular(.pp_hallazgos())
+  expect_false(any(vapply(unlist(lapply(p0$capitulos, `[[`, "cifras"), recursive = FALSE), `[[`, NA, "clave")))
+  r <- .propuesta_resumen_calcular(.pp_resumen(), .pp_plan(), list(default = .pp_base()), list(default = .pp_inst()),
+                                   sig_informe = sig, inclusivo = FALSE, base = "default")
+  filas <- unlist(lapply(r$capitulos, `[[`, "filas"), recursive = FALSE)
+  expect_true(all(vapply(filas, function(f) is.logical(f$clave), TRUE)))
+  js <- jsonlite::toJSON(p, auto_unbox = TRUE, na = "null")
+  expect_true(grepl('"clave":true', js, fixed = TRUE))
+})
+
+test_that("HTTP: POST con la config sin guardar usa sus preguntas clave", {
+  sid <- .pp_sesion(); on.exit(session_delete(sid), add = TRUE)
+  plan <- list(slides = .pp_plan(), preguntas_clave = list("e"))
+  body <- jsonlite::toJSON(list(slide = .pp_hallazgos(), config = list(plan = plan)), auto_unbox = TRUE)
+  r <- .pp_http(sid, "POST", "", as.character(body))
+  expect_identical(r$status, 200L)
+  cifras <- unlist(lapply(r$body$capitulos, `[[`, "cifras"), recursive = FALSE)
+  expect_identical(vapply(Filter(function(x) isTRUE(x$clave), cifras), `[[`, "", "var"), "e")
+  # La guardada no tiene preguntas clave: GET no marca ninguna.
+  g <- .pp_http(sid, "GET", "?slide_id=h1")
+  expect_false(any(vapply(unlist(lapply(g$body$capitulos, `[[`, "cifras"), recursive = FALSE), function(x) isTRUE(x$clave), TRUE)))
+})

@@ -5,9 +5,14 @@
 // bordes, así que se escribe sobre un borrador: sin él, el espacio entre dos palabras se perdía al teclearlo.
 
 import { useId, useState } from "react";
+import { PulsoSwitch } from "../../../components/PulsoSwitch";
 import { conEtiquetaCorta, leerEtiquetaCorta } from "./argsDatosGrafico";
 import { preguntasConEtiqueta, tituloDeGrupo } from "./etiquetasPorPregunta";
 import { parseVarRef, useVariables } from "../useVariables";
+import { usePlanStore } from "../store";
+import { AYUDA_CLAVE, conClave, esClave, leerPreguntasClave } from "./preguntasClave/modeloPreguntasClave";
+import { useMotivoNoCuenta } from "./preguntasClave/useMotivoNoCuenta";
+import "./preguntasClave/preguntasClave.css";
 
 type Args = Readonly<Record<string, unknown>>;
 type Props = { args: Args; onCambio: (overrides: Record<string, unknown>) => void };
@@ -27,10 +32,18 @@ export function EtiquetaCortaPregunta({ args, variable, onCambio }: Props & { va
   );
 }
 
-/** Una fila por pregunta de la multiapilada: su enunciado y, al lado, su etiqueta corta. */
-export function EtiquetasCortasPreguntas({ args, onCambio }: Props) {
+/**
+ * Una fila por pregunta de la multiapilada: su enunciado, su etiqueta corta y, al final, si es pregunta clave del estudio
+ * (H14; `plan.preguntas_clave`, un paso deshacible del store). En una batería no todas importan igual: cada una se marca.
+ */
+export function EtiquetasCortasPreguntas({ args, onCambio, slideId }: Props & { slideId: string }) {
   const id = useId();
+  // Si la multiapilada no entra al resumen ejecutivo, no hay columna «Clave»: PreguntaClave dice por qué.
+  const conClaveCol = !useMotivoNoCuenta(slideId, "p_barras_multiapiladas", args);
   const { variables } = useVariables();
+  const guardadas = usePlanStore((s) => s.plan.preguntas_clave);
+  const setPreguntasClave = usePlanStore((s) => s.setPreguntasClave);
+  const claves = leerPreguntasClave({ preguntas_clave: guardadas });
   const refs = preguntasConEtiqueta(args);
   if (!refs.length) return null;
   const enunciado = (ref: string) => {
@@ -40,22 +53,33 @@ export function EtiquetasCortasPreguntas({ args, onCambio }: Props) {
   };
   return (
     <div className="pulso-f6-dato is-apilado" data-qa="etiquetas-por-pregunta">
-      <span className="pulso-f6-dato-rotulo" id={id}>Nombre corto de cada pregunta</span>
+      <div className="pulso-f6-etiquetas-cabeza">
+        <span className="pulso-f6-dato-rotulo" id={id}>Nombre corto de cada pregunta</span>
+        {conClaveCol && <span className="pulso-f6-etiquetas-col-clave" aria-hidden="true">Clave</span>}
+      </div>
       <ul className="pulso-f6-etiquetas-preguntas" aria-labelledby={id}
         data-qa-geometry-group="graficos/f6-etiquetas-preguntas" data-qa-geometry-contract="intrinsic">
         {refs.map((ref, i) => {
           const texto = enunciado(ref);
           const campo = `${id}-p${i}`;
           return (
-            <li key={ref} className="pulso-f6-etiqueta-pregunta">
+            <li key={ref} className={`pulso-f6-etiqueta-pregunta${conClaveCol ? " is-con-clave" : ""}`}>
               <label htmlFor={campo} className="pulso-f6-etiqueta-pregunta-texto" title={parseVarRef(ref).name}>{texto}</label>
               <CampoConBorrador id={campo} valor={leerEtiquetaCorta(args, ref)} placeholder={tituloDeGrupo(args, ref) || "Como en el instrumento"}
                 onCambio={(t) => onCambio(conEtiquetaCorta(args, ref, t))} />
+              {conClaveCol && (
+                <PulsoSwitch size="sm" ariaLabel={`Pregunta clave del estudio: ${texto}`} checked={esClave(claves, ref)}
+                  onCheckedChange={(v) => setPreguntasClave(conClave(claves, ref, v))} />
+              )}
             </li>
           );
         })}
       </ul>
-      <span className="pulso-f6-dato-ayuda">Vacía, la barra lleva el enunciado del instrumento.</span>
+      {/* Una sola ayuda: dos seguidas forman una colección sin contrato geométrico. */}
+      <span className="pulso-f6-dato-ayuda">
+        Vacía, la barra lleva el enunciado del instrumento.
+        {conClaveCol && ` Clave: ${AYUDA_CLAVE.charAt(0).toLowerCase()}${AYUDA_CLAVE.slice(1)}`}
+      </span>
     </div>
   );
 }
