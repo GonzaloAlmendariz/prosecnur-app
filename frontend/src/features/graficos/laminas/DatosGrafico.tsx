@@ -19,9 +19,7 @@ import {
   codigosEmitidos,
   textoACodigos,
   CORTE_EN_CADENA,
-  conEtiquetaCorta,
   interruptorEncendido,
-  leerEtiquetaCorta,
   type CampoDato,
 } from "./argsDatosGrafico";
 import { useLaminasUi } from "./laminasStore";
@@ -41,6 +39,9 @@ import { DonaCentro } from "./DonaCentro";
 import { PublicoGrafico } from "./PublicoGrafico";
 import { SignificanciaPublicos } from "./SignificanciaPublicos";
 import { ResaltarGrafico } from "./ResaltarGrafico";
+import { EtiquetaCortaPregunta, EtiquetasCortasPreguntas } from "./EtiquetasCortas";
+import { LetraYEjeAgrupadas } from "./tarjetaGrafico/LetraYEjeAgrupadas";
+import { valorDeMando } from "./mandosPorOverrides";
 import { EnElWord } from "./tarjetaGrafico/EnElWord";
 import { ColoresGrafico } from "./colores/ColoresGrafico";
 import { PaletaDelGrafico } from "./colores/PaletaDelGrafico";
@@ -128,7 +129,9 @@ export function DatosGrafico({ slideId, slot, valor }: Props) {
   const nombreTipo = graficadorDisplayName(valor.graficador, meta).toLowerCase();
   const alcance = (c: CampoDato) => {
     const name = c.arg.name;
-    if (!tipo || grupoDeCampo(name) === "datos" || SIN_ALCANCE.has(name)) return { valor: args[name], sello: undefined, propio: false };
+    // U6/U10: un mando que el motor lee de `overrides` muestra lo de `overrides` si está (lo que la lámina dibuja).
+    const guardado = valorDeMando(args, name);
+    if (!tipo || grupoDeCampo(name) === "datos" || SIN_ALCANCE.has(name)) return { valor: guardado, sello: undefined, propio: false };
     const delTipo = valorDelTipo(presets, tipo, name, c.arg.default);
     const enPreset = presets[tipo]?.[name];
     const sello = esPropio(args, name, delTipo) ? (
@@ -141,7 +144,7 @@ export function DatosGrafico({ slideId, slot, valor }: Props) {
         }}
         onVolver={() => set({ [name]: enPreset === undefined || enPreset === null ? undefined : enPreset })} />
     ) : undefined;
-    return { valor: args[name] ?? (enPreset === null ? undefined : enPreset), sello, propio: !!sello };
+    return { valor: guardado ?? (enPreset === null ? undefined : enPreset), sello, propio: !!sello };
   };
   // El pie de la tarjeta lleva todos los cambios propios de una vez (los mismos que muestran la marca).
   const propios = tipo ? campos.filter((c) => alcance(c).propio) : [];
@@ -233,14 +236,9 @@ export function DatosGrafico({ slideId, slot, valor }: Props) {
         {cifra && <CifraGrafico args={args} variable={variable && !sinBaseCompartido ? varCalificada(variable, baseActiva, scope) : ""} scope={scope} onCambio={set} />}
         {citas && <CitasAprobadas args={args} variable={variable && !sinBaseCompartido ? varCalificada(variable, baseActiva, scope) : ""} onCambio={set} />}
         {sinBaseCompartido && <NotaBaseCompartido />}
-        {variable && !cifra && (
-          <FilaTexto
-            rotulo="Etiqueta corta"
-            ayuda="Nombre breve de la pregunta en la lámina y el Word. Vacío, usa el del instrumento."
-            valor={leerEtiquetaCorta(args, variable)}
-            onCambio={(t) => set({ overrides: conEtiquetaCorta(args, variable, t) })}
-          />
-        )}
+        {variable && !cifra && <EtiquetaCortaPregunta args={args} variable={variable} onCambio={(ov) => set({ overrides: ov })} />}
+        {/* U9: en la multiapilada de una barra por pregunta, una etiqueta corta por pregunta. */}
+        {esMulti && !variable && <EtiquetasCortasPreguntas args={args} onCambio={(ov) => set({ overrides: ov })} />}
         {admiteFiltros && (
           <div className="pulso-f6-dato">
             <span className="pulso-f6-dato-rotulo">Filtrar respuestas</span>
@@ -262,6 +260,8 @@ export function DatosGrafico({ slideId, slot, valor }: Props) {
       </GrupoDeTarjeta>
       <GrupoDeTarjeta titulo={TITULO_GRUPO.cifras}>
         {delGrupo("cifras")}
+        {/* U12: letra de categorías y cifras y eje libre, que la lámina nativa lee de `overrides`. */}
+        <LetraYEjeAgrupadas graficador={valor.graficador} args={args} onCambio={(ov) => set({ overrides: ov })} />
         <TwoBoxGrafico slideId={slideId} slot={slot} valor={valor} onAbrirBloques={() => abrirEditorAmplio({ tipo: "bloques", slideId, slot })} />
         <CasosGrafico slideId={slideId} slot={slot} valor={valor} />
         {/* R4: método y decimales propios, como excepción a la regla del informe. */}

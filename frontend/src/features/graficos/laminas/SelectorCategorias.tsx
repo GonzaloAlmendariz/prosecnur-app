@@ -6,6 +6,8 @@
 import type { ReactNode } from "react";
 import { codigosATexto, textoACodigos } from "./argsDatosGrafico";
 import { useCategoriasGrafico } from "./useCategoriasGrafico";
+import { rotuloVisible } from "./rotuloCortoDeLista";
+import { useRotulosCortos } from "./useRotulosCortos";
 
 type Props = {
   id: string;
@@ -29,6 +31,8 @@ type Props = {
 
 export function SelectorCategorias({ id, etiqueta, variable, scope, graficador, valor, modo, porEtiqueta = false, onCambio, nota, textoRespaldo }: Props) {
   const estado = useCategoriasGrafico(variable, scope, graficador);
+  // U14: con el rótulo corto del estudio la ficha dice lo que dirá la lámina; el completo queda en el title.
+  const cortos = useRotulosCortos();
   // Una etiqueta puede llevar comas («Sí, siempre»): por etiqueta no se parte el texto.
   const elegidos = new Set(porEtiqueta
     ? (Array.isArray(valor) ? valor : [valor]).map((v) => (typeof v === "string" || typeof v === "number" ? String(v) : "")).filter(Boolean)
@@ -64,10 +68,12 @@ export function SelectorCategorias({ id, etiqueta, variable, scope, graficador, 
       <div id={id} className={`pulso-f6-cats is-${modo === "una" ? "elegir" : modo}`} role="group">
         {cats.map((c) => {
           const activo = elegidos.has(claveDe(c));
+          const r = rotuloVisible(cortos, c.etiqueta || c.codigo);
+          const detalle = `Código ${c.codigo}${Number.isFinite(c.n) ? `, ${c.n} casos` : ""}`;
           return (
             <button key={c.codigo} type="button" className={`pulso-f6-cat${activo ? " is-activa" : ""}${c.residual ? " is-residual" : ""}`}
-              aria-pressed={activo} onClick={() => alternar(claveDe(c))} title={`Código ${c.codigo}${Number.isFinite(c.n) ? `, ${c.n} casos` : ""}`}>
-              <span className="pulso-f6-cat-texto">{c.etiqueta || c.codigo}</span>
+              aria-pressed={activo} onClick={() => alternar(claveDe(c))} title={r.completo ? `${r.completo}. ${detalle}` : detalle}>
+              <span className="pulso-f6-cat-texto">{r.texto}</span>
               {Number.isFinite(c.n) && <span className="pulso-f6-cat-n">{c.n}</span>}
             </button>
           );

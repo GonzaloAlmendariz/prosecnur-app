@@ -88,3 +88,7 @@ test_that("un segundo cambio desde la tarjeta llega: el espejo no queda con el v
   g2 <- grafico_de(.normalize_plan(p1))
   expect_identical(g2$args$overrides$pista_barras, "siempre")
 })
+
+test_that("«Casos junto al %» del histograma llega a overrides desde la tarjeta (U10)", {
+  expect_true("mostrar_frecuencia" %in% .GRAFICOS_ARGS_ESPEJO_OVERRIDES)
+})

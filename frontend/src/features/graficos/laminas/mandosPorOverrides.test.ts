@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import type { ArgMetadata, GraficadorRef } from "../../../api/graficos";
 import { usePlanStore, type GraficosConfig } from "../store";
 import { camposDeDatos } from "./argsDatosGrafico";
-import { conEspejoEnOverrides, MANDOS_ESPEJO_OVERRIDES } from "./mandosPorOverrides";
+import { conEspejoEnOverrides, MANDOS_ESPEJO_OVERRIDES, valorDeMando } from "./mandosPorOverrides";
 
 // U6 del checklist de mandos del mazo (2026-11-05): pista gris, un color por opción y marca de la mediana viajan por
 // `overrides`. La tarjeta escribe en espejo y el backend completa lo que falte (test-graficos-migrar-args-overrides.R).
@@ -30,7 +30,19 @@ describe("conEspejoEnOverrides", () => {
   });
 
   it("la lista es la misma que la del backend", () => {
-    expect([...MANDOS_ESPEJO_OVERRIDES].sort()).toEqual(["colorear_por_opcion", "marca_mediana", "pista_barras"]);
+    expect([...MANDOS_ESPEJO_OVERRIDES].sort()).toEqual(["colorear_por_opcion", "marca_mediana", "mostrar_frecuencia", "pista_barras"]);
+  });
+});
+
+describe("valorDeMando", () => {
+  it("un mando en espejo se lee de overrides si lo trae (U10: el histograma del mazo)", () => {
+    expect(valorDeMando({ overrides: { mostrar_frecuencia: true } }, "mostrar_frecuencia")).toBe(true);
+    expect(valorDeMando({ mostrar_frecuencia: false, overrides: { mostrar_frecuencia: true } }, "mostrar_frecuencia")).toBe(true);
+    expect(valorDeMando({ marca_mediana: "triangulo" }, "marca_mediana")).toBe("triangulo");
+  });
+
+  it("un campo que no va en espejo se lee de args", () => {
+    expect(valorDeMando({ decimales: 1, overrides: { decimales: 2 } }, "decimales")).toBe(1);
   });
 });
 
@@ -63,5 +75,11 @@ describe("camposDeDatos · mandos por overrides", () => {
     expect(nombres("p_barras_categoricas")).toEqual([["pista_barras", "Pista gris hasta el 100%"]]);
     expect(nombres("p_histograma")).toEqual([["marca_mediana", "Marca de la mediana"]]);
     expect(nombres("p_barras_apiladas")).toEqual([]);
+  });
+
+  it("U10: el histograma ofrece «Casos junto al %»; el ancho y los intervalos vacíos siguen retirados", () => {
+    const num = (name: string, tipo: ArgMetadata["tipo_input"]) => ({ name, label: name, tipo_input: tipo, grupo: "datos" }) as ArgMetadata;
+    const campos = camposDeDatos([MEDIANA, num("mostrar_frecuencia", "bool"), num("ancho_bin", "number"), num("mostrar_bins_vacios", "bool")], {}, "p_histograma");
+    expect(campos.map((c) => c.arg.name)).toEqual(["marca_mediana", "mostrar_frecuencia"]);
   });
 });

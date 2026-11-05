@@ -18,7 +18,7 @@
 # es lo que el motor dibuja, y `args` se alinea con él para que la tarjeta muestre lo mismo que la lámina.
 
 .GRAFICOS_ARGS_SOLO_OVERRIDES <- c("mostrar_significancia", "significancia_alpha", "orden_barras")
-.GRAFICOS_ARGS_ESPEJO_OVERRIDES <- c("pista_barras", "colorear_por_opcion", "marca_mediana")
+.GRAFICOS_ARGS_ESPEJO_OVERRIDES <- c("pista_barras", "colorear_por_opcion", "marca_mediana", "mostrar_frecuencia")   # mostrar_frecuencia: histograma (U10)
 
 #' Copia a `overrides` los mandos de presentación que vienen sueltos en `args`
 #' @keywords internal

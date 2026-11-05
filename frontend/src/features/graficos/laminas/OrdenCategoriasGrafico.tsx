@@ -28,6 +28,8 @@ import {
   type OrdenCategorias,
 } from "./ordenCategorias";
 import { useCategoriasGrafico } from "./useCategoriasGrafico";
+import { rotuloVisible } from "./rotuloCortoDeLista";
+import { useRotulosCortos } from "./useRotulosCortos";
 import "./ordenCategorias.css";
 import { CargaDeBloque } from "../../../components/CargaDeBloque";
 import { formatoConteo } from "../../../lib/formatoNumero";
@@ -150,7 +152,10 @@ function EstadoDatos({ estado }: { estado: ReturnType<typeof useCategoriasGrafic
 }
 
 function ListaOrden({ datos, lista, invertido, onLista }: { datos: GraficosCategorias; lista: string[]; invertido: boolean; onLista: (l: string[]) => void }) {
-  const etiqueta = new Map(datos.categorias.map((c) => [c.codigo, c.etiqueta]));
+  // U14: con el rótulo corto del estudio la lista dice lo que dirá la lámina; el completo queda en el title.
+  const cortos = useRotulosCortos();
+  const completa = new Map(datos.categorias.map((c) => [c.codigo, c.etiqueta]));
+  const etiqueta = new Map(datos.categorias.map((c) => [c.codigo, rotuloVisible(cortos, c.etiqueta).texto]));
   const sinRespuestas = categoriasSinRespuestas(datos);
   const items = useRef(new Map<string, HTMLLIElement>());
   const [arrastrado, setArrastrado] = useState<number | null>(null);
@@ -194,6 +199,7 @@ function ListaOrden({ datos, lista, invertido, onLista }: { datos: GraficosCateg
         data-qa-geometry-group="graficos/f6-orden-lista" data-qa-geometry-contract="intrinsic">
         {lista.map((codigo, i) => {
           const texto = etiqueta.get(codigo) ?? codigo;
+          const larga = completa.get(codigo);
           const vacia = sinRespuestas.has(codigo);
           return (
             <li
@@ -211,7 +217,7 @@ function ListaOrden({ datos, lista, invertido, onLista }: { datos: GraficosCateg
             >
               <GripVertical size={14} aria-hidden="true" className="pulso-f6-orden-asa" />
               <span className="pulso-f6-orden-posicion" aria-hidden="true">{i + 1}</span>
-              <span className="pulso-f6-orden-etiqueta">
+              <span className="pulso-f6-orden-etiqueta" title={larga && larga !== texto ? larga : undefined}>
                 {texto}
                 {vacia && <span className="pulso-f6-orden-sin-respuestas" aria-hidden="true">{NO_SE_DIBUJA}</span>}
               </span>
