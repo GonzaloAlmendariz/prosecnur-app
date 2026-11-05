@@ -345,6 +345,7 @@ export function MuestraEstructura({ config, resultado: r, bloqueado }: Estructur
       <div className="hr-mapa-cab hr-mapa-cab--pila">
         <div className="hr-mapa-cab-titulo">
           <h2>Reparto por distrito</h2>
+          <small>{fmt(r.filas.length)} distrito{r.filas.length === 1 ? "" : "s"}</small>
         </div>
         <div className="hr-mapa-cifras">
           <div><small>Entrevistas</small><strong>{fmt(r.nUsado)}</strong></div>

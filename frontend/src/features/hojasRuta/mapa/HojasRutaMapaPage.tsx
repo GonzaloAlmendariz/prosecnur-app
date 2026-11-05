@@ -792,7 +792,7 @@ export default function HojasRutaMapaPage() {
             // B4: el lienzo lleva fase, revisión, bitácora y Material en la barra; bajo 1080 px de barra
             // los indicadores ceden todos (como en el artefacto) para que secciones y acciones no se monten,
             // salvo el de la sección abierta, que queda con su valor solo: a 1024 la barra no decía nada del estudio.
-            <ChromeIndicator key={i.id} label={i.label} value={i.value} detalle={i.detalle} prioridad={i.seccion === nav.seccion ? "alta" : i.prioridad === "alta" ? "media" : i.prioridad} onClick={() => nav.irA("seccion", i.seccion)} />
+            <ChromeIndicator key={i.id} label={i.label} value={i.value} detalle={i.detalle} prioridad={i.seccion === nav.seccion || (nav.seccion === "seleccion" && i.id === "ump") ? "alta" : i.prioridad === "alta" ? "media" : i.prioridad} onClick={() => nav.irA("seccion", i.seccion)} />
           ))}
         </ChromeIndicatorGroup>
       }

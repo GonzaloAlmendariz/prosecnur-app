@@ -107,8 +107,10 @@
 
 /* Territorio (U5): catálogo con interruptores, zonas de Lima, inspector con pie */
 .hr-mapa-cab--pila { flex-direction: column; align-items: stretch; gap: 10px; }
-.hr-mapa-cab-titulo { display: flex; align-items: baseline; gap: 8px; }
-.hr-mapa-cab-titulo h2 { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* Título y subtítulo siempre apilados: en línea, el subtítulo bajaba sólo cuando no cabía y cada sección
+   se veía con un patrón distinto («Rutas 150 titulares» en una línea, «Rangos de edad» con el suyo debajo). */
+.hr-mapa-cab-titulo { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; }
+.hr-mapa-cab-titulo h2 { max-width: 100%; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .hr-mapa-cab-titulo small { flex: none; white-space: nowrap; }
 .hr-mapa-buscar { box-sizing: border-box; width: 100%; height: 32px; padding: 0 10px; border: 1px solid var(--pulso-border); border-radius: 9px; font: inherit; font-size: var(--pulso-type-body-size); color: var(--pulso-text); background: var(--pulso-surface); }
 .hr-mapa-buscar:focus { outline: 2px solid var(--pulso-module-routes-border); border-color: var(--pulso-module-routes); }
@@ -539,7 +541,7 @@ div.hr-mapa-aviso { display: flex; flex-direction: column; align-items: flex-sta
    `flex-wrap` de las acciones del Panel. */
 .hr-edad-lista li.is-fija { grid-template-columns: 10px minmax(0, 1fr) auto; }
 .hr-edad-lista li.is-fija > b { font-size: var(--pulso-type-subtitle-size); font-weight: 700; }
-.hr-mapa-cab--pila .hr-mapa-cab-titulo { flex-wrap: wrap; row-gap: 2px; }
+.hr-mapa-cab--pila .hr-mapa-cab-titulo { row-gap: 2px; }
 .hr-muestra-escenarios { display: flex; flex-direction: column; gap: 8px; margin: 4px 8px 14px; padding-top: 12px; border-top: 1px solid var(--pulso-border); }
 .hr-muestra-escenarios h3 { margin: 0; display: flex; align-items: baseline; gap: 6px; font-size: var(--pulso-type-subtitle-size); font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--pulso-text-soft); }
 .hr-muestra-escenarios h3 small { font-weight: 700; letter-spacing: 0; }
