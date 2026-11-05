@@ -290,8 +290,9 @@ const COL_DISTRITO: PulsoTableColumna<SelectedBlock> = { id: "distrito", encabez
 const COLUMNAS_BLOQUE = (reemplazos: boolean): PulsoTableColumna<SelectedBlock>[] => [
   COL_DISTRITO,
   { id: "codigo", encabezado: reemplazos ? "R" : "UMP", ancho: 84, celda: (b) => codigoDeUmp(b), valor: (b) => Number(reemplazos ? b.titular_hoja_num ?? 0 : b.hoja_num ?? b.orden_seleccion ?? 0) },
-  { id: "manzana", encabezado: "Manzana", ancho: 150, celda: (b) => b.id_manzana, valor: (b) => b.id_manzana },
+  // «Reemplaza a» junto al código: es la relación que la pestaña existe para mostrar, y a 1024 quedaba cortada a la derecha.
   ...(reemplazos ? [{ id: "titular", encabezado: "Reemplaza a", ancho: 100, celda: (b: SelectedBlock) => (b.titular_hoja_num ? `UMP ${b.titular_hoja_num}` : "—"), valor: (b: SelectedBlock) => Number(b.titular_hoja_num ?? 0) }] : []),
+  { id: "manzana", encabezado: "Manzana", ancho: 150, celda: (b) => b.id_manzana, valor: (b) => b.id_manzana },
   { id: "zona", encabezado: "Zona", ancho: 76, celda: (b) => b.zona, valor: (b) => b.zona },
   { id: "nse", encabezado: "NSE", ancho: 80, celda: (b) => nse(b), valor: (b) => nse(b) },
   { id: "viviendas", encabezado: "Viviendas", ancho: 90, tipo: "cifra", celda: (b) => fmt(b.viviendas), valor: (b) => Number(b.viviendas || 0) },

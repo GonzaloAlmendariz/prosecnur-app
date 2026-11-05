@@ -553,7 +553,8 @@ export default function HojasRutaMapaPage() {
     [confirmados, borrador, enTerritorio, enPoblacion, enMuestra, enAtlas, contornos, contornosAbiertos, ciudadEnfocada, departamentoEnfocado, nacional.dibujarFondo],
   );
   // Sobre Viviendas o NSE la titular va en tinta oscura con halo (si no, se pierde en el naranja).
-  const capaContraste = conSelectorDeCapa(nav.seccion as SeccionLienzo) && capaMapa !== "manzanas";
+  // A escala país no hay manzanas que colorear: la capa (y su selector) sólo existen bajo la vista nacional.
+  const capaContraste = conSelectorDeCapa(nav.seccion as SeccionLienzo) && nacional.nivel?.nivel !== "nacional" && capaMapa !== "manzanas";
   const dibujarMundo = useCallback(
     (ctx: CanvasRenderingContext2D, u: UtilLienzo) => {
       // P9: parques, plazas y agua (OSM) al fondo, para orientarse donde se ven manzanas.
@@ -864,7 +865,7 @@ export default function HojasRutaMapaPage() {
           distritos={enPoblacion || enMuestra ? [] : distritos}
           capa={conSelectorDeCapa(nav.seccion as SeccionLienzo) ? capaMapa : "manzanas"}
           anclaZoom={centroEnfocado}
-          controles={!enAtlas && conSelectorDeCapa(nav.seccion as SeccionLienzo) ? <SelectorCapa capa={capaMapa} onCapa={setCapaMapa} /> : undefined}
+          controles={!enAtlas && nacional.nivel?.nivel !== "nacional" && conSelectorDeCapa(nav.seccion as SeccionLienzo) ? <SelectorCapa capa={capaMapa} onCapa={setCapaMapa} /> : undefined}
           encuadreObjetivo={!estado ? null : enTerritorio && cajaTerritorio ? { caja: cajaTerritorio, pad: enAtlas ? 0.03 : 0.08, clave: `territorio:${ciudadAbierta ?? `pe:${departamentoEnfocado ?? ""}:${ciudadEnfocada ?? ""}`}:${(ciudadAbierta || ciudadEnfocada) && regionesCargando.length ? "silueta" : "distritos"}`, animar: true } : cajaEnfocada ? { caja: cajaEnfocada, pad: 2.2, clave: `ump:${umpEnfocada}:${cajon ? "cajon" : "libre"}`, animar: true, tapadoAbajo: cajon ? 0.5 : 0 } : nacional.encuadre ? (cajon && nav.seccion === "seleccion" ? { ...nacional.encuadre, clave: `${nacional.encuadre.clave}:cajon`, tapadoAbajo: 0.5 } : nacional.encuadre) : (caja ? { caja, pad: 0.08, clave: `${nav.seccion}:${confirmados.join(",") || "lima"}:${contornosConfirmados}`, animar: false } : null)}
           ficha={nacional.ficha}
           dibujarFondo={dibujarFondo}
