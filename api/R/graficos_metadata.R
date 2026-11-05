@@ -33,6 +33,7 @@
 # "overrides"        → editor especial de overrides (delta vs preset tipo)
 # "filtros"          → editor de filtros por variable (avanzado)
 # "base_config"      → editor de la base automática/manual (avanzado)
+# "partes"           → filas {rotulo, codigos} de la pregunta elegida (líneas por nivel); conserva `y` y `color`
 # "meta"             → objeto libre; casi nunca se expone en UI
 
 # ---- Grupos semánticos ----------------------------------------------------
@@ -2496,11 +2497,11 @@
            descripcion = "La pregunta que se muestra en el total y en las líneas."),
       list(name = "cruce", label = "Niveles del eje", tipo_input = "variable", grupo = "datos",
            descripcion = "Pregunta con niveles ordenados (ej. nivel curricular). Un punto por nivel, de menor a mayor."),
-      list(name = "series", label = "Líneas", tipo_input = "meta", grupo = "datos",
+      list(name = "series", label = "Líneas", tipo_input = "partes", grupo = "datos",
            descripcion = "Una lista de líneas, hasta tres. Cada una tiene su rótulo y las respuestas de la pregunta que cuentan. Una línea puede sumar una segunda pregunta (ej. «trabaja y lo hace medio tiempo o más»). Todas se calculan sobre todos los casos de cada nivel."),
       list(name = "total_arriba", label = "Total arriba", tipo_input = "bool", grupo = "datos", default = TRUE,
            descripcion = "Muestra arriba la franja con el total de la pregunta."),
-      list(name = "segmentos_total", label = "Partes del total", tipo_input = "meta", grupo = "datos",
+      list(name = "segmentos_total", label = "Partes del total", tipo_input = "partes", grupo = "datos",
            descripcion = "Cómo se parte la franja del total, con la misma forma que las líneas. Vacío: si las líneas van una dentro de otra, la interior, lo que falta para la exterior y el resto; si no, una parte por respuesta."),
       list(name = "mostrar_significancia", label = "Marcar diferencias", tipo_input = "bool", grupo = "datos", default = TRUE,
            descripcion = "Marca el nivel que se aparta del resto y avisa si la línea crece o baja con el nivel, con la regla de diferencias del estudio."),

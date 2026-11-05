@@ -141,7 +141,8 @@ test_that("metadata de graficadores expone controles claros y sin duplicados", {
     #   `colores_list`     — muestra de color por foco, no HEX tecleado
     #   `orden_categorias` — filas que se suben y bajan, como los slides
     #   `categorias_escala`— marcar categorías sobre las escalas reales
-    "iconos_list", "colores_list", "orden_categorias", "categorias_escala"
+    #   `partes`           — filas rótulo + respuestas de la línea por nivel (antes `meta`, sin control)
+    "iconos_list", "colores_list", "orden_categorias", "categorias_escala", "partes"
   )
   ui_grupo_soportado <- c(
     "datos", "lectura", "valores", "leyenda", "espacio", "tabla",
@@ -646,11 +647,13 @@ test_that("paletas configuradas pintan barras agrupadas simples por categoria", 
     "3" = "#F4A261"
   )
 
+  # ADR 0130 «una serie, un color»: una sola serie va monocroma salvo que se pida «Un color por opción».
   out <- tempfile(fileext = ".png")
   .render_agrupadas_args_ui(
     .fixture_agrupadas_args_ui(),
     out,
     colores_categorias = paleta,
+    colorear_por_opcion = TRUE,
     canvas_w_etiquetas = 0.28
   )
 
@@ -658,6 +661,12 @@ test_that("paletas configuradas pintan barras agrupadas simples por categoria", 
   expect_gt(.count_near_color_pixels(img, "#C1121F"), 100)
   expect_gt(.count_near_color_pixels(img, "#2A9D8F"), 100)
   expect_gt(.count_near_color_pixels(img, "#F4A261"), 100)
+
+  mono <- tempfile(fileext = ".png")
+  .render_agrupadas_args_ui(.fixture_agrupadas_args_ui(), mono, colores_categorias = paleta, canvas_w_etiquetas = 0.28)
+  img_mono <- png::readPNG(mono)
+  expect_equal(.count_near_color_pixels(img_mono, "#C1121F"), 0)
+  expect_equal(.count_near_color_pixels(img_mono, "#F4A261"), 0)
 })
 
 test_that("paletas configuradas pintan barras numericas simples por categoria", {
