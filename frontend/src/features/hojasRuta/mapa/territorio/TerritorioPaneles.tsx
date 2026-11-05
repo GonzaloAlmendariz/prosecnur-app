@@ -260,7 +260,7 @@ export function TerritorioInspector({ territorios, confirmados, bloqueado, guard
           Deshacer
         </PulsoButton>
         <PulsoButton variant="primary" disabled={!pendiente || !borrador.length || bloqueado || guardando} onClick={() => onConfirmar(borrador)}>
-          {guardando ? "Confirmando…" : "Confirmar selección"}
+          {guardando ? "Confirmando…" : !pendiente && borrador.length ? "Territorio confirmado" : "Confirmar selección"}
         </PulsoButton>
       </footer>
     </>

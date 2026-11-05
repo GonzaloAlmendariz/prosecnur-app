@@ -260,7 +260,8 @@ export function ManzanasInspector({ guardada, config, muestra, viviendas, manzan
           Deshacer
         </PulsoButton>
         <PulsoButton variant="primary" disabled={ed || !listoParaSortear || (vigente && !v1) || confirmando} onClick={pedirSorteo}>
-          {guardando ? "Sorteando…" : muestra ? "Sortear de nuevo" : "Sortear manzanas"}
+          {/* Deshabilitado sin decir por qué parecía roto: con el sorteo vigente y sin cambios lo dice (como «Matriz al día»). */}
+          {guardando ? "Sorteando…" : vigente && !v1 ? "Sorteo al día" : muestra ? "Sortear de nuevo" : "Sortear manzanas"}
         </PulsoButton>
       </footer>
     </>
