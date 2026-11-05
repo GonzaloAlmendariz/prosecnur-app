@@ -1,6 +1,6 @@
 import type { UtilLienzo } from "../lienzo/LienzoMapa";
 import { mezclar } from "../lienzo/capas";
-import type { LimiteNombrado } from "../lienzo/limites";
+import { zonaControles, type LimiteNombrado } from "../lienzo/limites";
 import { claveNombre } from "../territorio/atlasFoco";
 import { radioCiudad, type CiudadAtlas } from "../territorio/ciudades";
 import type { CifraCiudad } from "./vistaNacional";
@@ -24,11 +24,8 @@ export function dibujarDepartamentosDelEstudio(ctx: CanvasRenderingContext2D, u:
 type Rect = [number, number, number, number];
 const chocan = (a: Rect, b: Rect) => !(a[2] < b[0] || a[0] > b[2] || a[3] < b[1] || a[1] > b[3]);
 
-/**
- * La esquina inferior derecha la ocupan el zoom, la escala y la atribución de límites (`limites.ts`, a
- * h − 66): un rótulo que cae ahí se lee tapado.
- */
-export const zonaReservada = (w: number, h: number): Rect => [w - 236, h - 80, w, h];
+/** La esquina del zoom y la atribución (`limites.ts`): la comparten todos los rótulos del mapa. */
+export const zonaReservada = zonaControles;
 
 /**
  * Dónde va el rótulo de una ciudad: a la derecha del círculo, si no a la izquierda, arriba o abajo; la

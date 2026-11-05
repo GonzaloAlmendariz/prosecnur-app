@@ -80,6 +80,12 @@ export function dibujarLimites(ctx: CanvasRenderingContext2D, u: UtilLienzo, l: 
   ctx.restore();
 }
 
+/**
+ * La esquina inferior derecha que ocupan el zoom, la escala y la atribución de límites (a h − 66): ningún
+ * rótulo del mapa debe caer ahí, se lee tapado. [x0, y0, x1, y1] en píxeles del lienzo.
+ */
+export const zonaControles = (w: number, h: number): [number, number, number, number] => [w - 236, h - 80, w, h];
+
 /** Nombres de departamento en versalitas tenues, sólo cuando se ve el país o una región. */
 export function dibujarNombresDepartamento(ctx: CanvasRenderingContext2D, u: UtilLienzo, l: LimitesPeru) {
   if (u.camara.s >= ESCALA_NOMBRES_DEPARTAMENTO) return;
@@ -89,10 +95,14 @@ export function dibujarNombresDepartamento(ctx: CanvasRenderingContext2D, u: Uti
   ctx.textBaseline = "middle";
   ctx.fillStyle = u.colores.suave;
   ctx.globalAlpha = 0.8;
+  const zona = zonaControles(u.tamano.w, u.tamano.h);
   for (const d of l.departamentos) {
     const [x, y] = u.aPantalla(d.rotulo[0], d.rotulo[1]);
     if (x < 20 || y < 20 || x > u.tamano.w - 20 || y > u.tamano.h - 20) continue;
-    ctx.fillText(d.nombre.toLocaleUpperCase("es-PE"), x, y);
+    const nombre = d.nombre.toLocaleUpperCase("es-PE");
+    const mitad = ctx.measureText(nombre).width / 2;
+    if (x + mitad > zona[0] && y + 6 > zona[1]) continue;
+    ctx.fillText(nombre, x, y);
   }
   // La licencia de las provincias (CC BY 3.0 IGO) pide citar la fuente donde se ven.
   ctx.font = "500 9.5px -apple-system, system-ui, sans-serif";

@@ -1829,6 +1829,20 @@ export async function apiHojasRutaCartografia(ubigeos: readonly string[]): Promi
 
 /** «Arequipa, Arequipa 2017»: lo que dice la fila Cartografía con una ciudad abierta. Varias
  *  provincias van con punto y coma: la cobertura de cada una ya lleva comas. */
+const MENORES = new Set(["de", "del", "la", "las", "los", "y"]);
+/** «AREQUIPA, AREQUIPA» (provincia y departamento homónimos, en mayúsculas del INEI) se dice «Arequipa». */
+function coberturaLegible(cobertura: string): string {
+  const partes = cobertura.split(",").map((x) => x.trim()).filter(Boolean);
+  const unicas = partes.filter((x, i) => partes.findIndex((y) => y.toLocaleLowerCase("es-PE") === x.toLocaleLowerCase("es-PE")) === i);
+  const capitalizar = (t: string) =>
+    t
+      .toLocaleLowerCase("es-PE")
+      .split(" ")
+      .map((w, i) => (i > 0 && MENORES.has(w) ? w : w.charAt(0).toLocaleUpperCase("es-PE") + w.slice(1)))
+      .join(" ");
+  return unicas.map((x) => (x === x.toLocaleUpperCase("es-PE") ? capitalizar(x) : x)).join(", ");
+}
+
 export function rotuloDeCartografia(provincias: readonly CartografiaDeProvincia[]): string {
-  return provincias.map((p) => (p.disponible ? `${p.cobertura}${p.anio ? ` ${p.anio}` : ""}` : "sin cartografía de manzanas")).join("; ");
+  return provincias.map((p) => (p.disponible ? `${coberturaLegible(p.cobertura)}${p.anio ? ` ${p.anio}` : ""}` : "sin cartografía de manzanas")).join("; ");
 }
