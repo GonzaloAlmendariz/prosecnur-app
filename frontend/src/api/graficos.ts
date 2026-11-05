@@ -250,6 +250,10 @@ export type ArgTipoInput =
   // criteria_config: editor visual de criterios/conductores, cada uno
   // con titulo y variables asociadas.
   | "criteria_config"
+  // partes: filas { rotulo, codigos, y?, color? } sobre las respuestas de la
+  // pregunta `var` del mismo gráfico (líneas y franja del total de
+  // p_lineas_nivel). `y` y `color` no se editan pero se conservan.
+  | "partes"
   | "icono"
   | "overrides"
   | "filtros"

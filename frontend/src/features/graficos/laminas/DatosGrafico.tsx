@@ -54,6 +54,7 @@ import { CifraGrafico } from "./CifraGrafico";
 import { CitasAprobadas } from "./citas/CitasAprobadas";
 import { ObjetivoDimension } from "./ObjetivoDimension";
 import { CortesNumericos } from "./CortesNumericos";
+import { PartesLineas } from "./PartesLineas";
 import { Segmentado } from "../subpestanas/Segmentado";
 import { opcionesNumeroEnBotones } from "./numerosEnBotones";
 import { graficadorToPresetType } from "../graficadorPresetMap";
@@ -154,7 +155,7 @@ export function DatosGrafico({ slideId, slot, valor }: Props) {
   // Excluir respuestas y Corte usan las categorías de la pregunta; Excluir grupos, las de la variable de grupo.
   const grupoVar = typeof args.grupo === "string" ? args.grupo : "";
   const categoriasDe = (name: string): CategoriasFila | undefined => {
-    if (name === "excluir_opciones" || name === "corte") {
+    if (name === "excluir_opciones" || name === "corte" || name === "series" || name === "segmentos_total") {
       // Varias preguntas de la misma escala (radar, divergentes): las categorías de la primera, que todas comparten.
       // Con temas por público (objeto, no lista) no hay una sola lista: queda el texto.
       const primera = !variable && Array.isArray(args.vars) && typeof args.vars[0] === "string" ? args.vars[0] : "";
@@ -428,6 +429,10 @@ function Fila({ campo, graficador, valor, onCambio, sello, categorias }: {
         {nota}
       </div>
     );
+  }
+  if (control === "partes") {
+    return <PartesLineas id={id} arg={arg.name} etiqueta={etiqueta} nota={nota} valor={valor} variable={categorias?.variable ?? ""}
+      scope={categorias?.scope ?? "active"} graficador={graficador} onCambio={onCambio} />;
   }
   if (control === "codigos" && (arg.name === "cortes" || arg.name === "cortes_chip") && placeholder) {
     return <CortesNumericos id={id} etiqueta={etiqueta} nota={nota} describe={describe} defectos={textoACodigos(placeholder)} valor={valor} onCambio={onCambio} />;

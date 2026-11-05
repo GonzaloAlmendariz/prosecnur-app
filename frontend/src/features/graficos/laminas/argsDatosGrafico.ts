@@ -13,7 +13,9 @@
 import type { ArgMetadata } from "../../../api/graficos";
 import { argAplica } from "../argDependencias";
 
-export type ControlDato = "variable" | "variable_opcional" | "variables" | "interruptor" | "numero" | "opciones" | "texto" | "codigos" | "nombres_base";
+export type ControlDato =
+  | "variable" | "variable_opcional" | "variables" | "interruptor" | "numero" | "opciones" | "texto" | "codigos" | "nombres_base"
+  | "partes";
 
 type Valores = Readonly<Record<string, unknown>>;
 
@@ -201,6 +203,12 @@ const LISTA_BLANCA: Record<string, Entrada> = {
     rotulo: "Lectura", control: "texto", soloEn: ["p_lineas_nivel"],
     ayuda: "Una o dos frases en gris junto al gráfico. Vacío, no se muestra.",
     placeholder: "La diferencia por nivel se mantiene al comparar estudiantes de la misma edad.",
+  },
+  // Gonzalo (2026-11-04): las líneas y las partes de la franja del total se escribían a mano en el plan. Filas
+  // { rotulo, codigos } sobre las respuestas de la pregunta (PartesLineas.tsx); `y` y `color` se conservan sin editarse.
+  series: { rotulo: "Líneas", ayuda: "Hasta tres.", soloEn: ["p_lineas_nivel"] },
+  segmentos_total: {
+    rotulo: "Partes del total", ayuda: "Vacío, la franja se arma sola.", soloEn: ["p_lineas_nivel"], siActivo: "total_arriba",
   },
   corte: { rotulo: "Corte", excepto: ["p_dumbbell", "p_significancia_publicos"] },
   corte_etiqueta: { rotulo: "Rótulo del corte" },
@@ -394,6 +402,7 @@ const CONTROL_POR_TIPO: Partial<Record<ArgMetadata["tipo_input"], ControlDato>> 
   string: "texto",
   codigos_list: "codigos",
   base_labels: "nombres_base",
+  partes: "partes",
 };
 
 export type CampoDato = {
@@ -499,4 +508,75 @@ export function conEtiquetaCorta(args: Readonly<Record<string, unknown>>, variab
   if (Object.keys(mapa).length) overrides.etiquetas_vars = mapa;
   else delete overrides.etiquetas_vars;
   return overrides;
+}
+
+/** Tope de líneas de «Línea por nivel» (`.LINEAS_NIVEL_MAX_SERIES`, api/R/graficos_lineas_nivel.R). */
+export const MAX_LINEAS_NIVEL = 3;
+
+/**
+ * Una fila de `series` o `segmentos_total`. `resto` guarda lo que la tarjeta no edita (`y`, `color` y cualquier otra
+ * clave) tal como llegó: editar el rótulo o las respuestas no lo toca.
+ */
+export type FilaParte = { clave: string; rotulo: string; codigos: string[]; resto: Readonly<Record<string, unknown>> };
+
+const codigosDeParte = (v: unknown): string[] =>
+  typeof v === "number" ? [String(v)] : textoACodigos(codigosATexto(v));
+
+/** Lo guardado (lista, una parte suelta sin envolver o nada) como filas; lo que no es objeto no es una parte. */
+export function partesAFilas(valor: unknown): FilaParte[] {
+  if (!valor || typeof valor !== "object") return [];
+  const suelta = !Array.isArray(valor) && ("rotulo" in valor || "codigos" in valor);
+  const lista: unknown[] = Array.isArray(valor) ? valor : suelta ? [valor] : [];
+  return lista.flatMap((p, i) => {
+    if (!p || typeof p !== "object" || Array.isArray(p)) return [];
+    const { rotulo, codigos, ...resto } = p as Record<string, unknown>;
+    return [{ clave: `p${i}`, rotulo: typeof rotulo === "string" ? rotulo : rotulo == null ? "" : String(rotulo), codigos: codigosDeParte(codigos), resto }];
+  });
+}
+
+/** El motor rechaza una parte sin rótulo o sin respuestas: esa fila se muestra, pero no se guarda. */
+export function filaCompleta(f: Pick<FilaParte, "rotulo" | "codigos">): boolean {
+  return f.rotulo.trim() !== "" && f.codigos.length > 0;
+}
+
+/** Fuera del tope de líneas: el motor rechazaría la lista entera. */
+const fueraDelTope = (arg: string, indice: number) => arg === "series" && indice >= MAX_LINEAS_NIVEL;
+
+/**
+ * Lo que se guarda: sólo las filas que el motor acepta, con lo que la tarjeta no edita intacto. Sin ninguna, las partes
+ * del total van como `null` (la franja se arma sola); las líneas, como lista vacía.
+ */
+export function filasAPartes(filas: readonly FilaParte[], arg: string): Record<string, unknown>[] | null {
+  const partes = filas
+    .filter((f, i) => filaCompleta(f) && !fueraDelTope(arg, i))
+    .map((f) => ({ rotulo: f.rotulo.trim(), codigos: [...f.codigos], ...f.resto }));
+  return partes.length ? partes : arg === "segmentos_total" ? null : [];
+}
+
+/** El aviso discreto de una fila que no se guarda (o `null` si se guarda). */
+export function avisoParte(f: Pick<FilaParte, "rotulo" | "codigos">, indice: number, arg: string): string | null {
+  if (fueraDelTope(arg, indice)) return "Hasta tres líneas: esta no sale.";
+  const sinRotulo = f.rotulo.trim() === "";
+  const sinCodigos = f.codigos.length === 0;
+  if (sinRotulo && sinCodigos) return "Falta el rótulo y las respuestas: no sale.";
+  if (sinRotulo) return "Falta el rótulo: no sale.";
+  if (sinCodigos) return "Elige al menos una respuesta: no sale.";
+  return null;
+}
+
+/** Lo que la fila trae y la tarjeta no edita, dicho en una línea de solo lectura. */
+export function notaParte(f: Pick<FilaParte, "resto">): string | null {
+  const notas: string[] = [];
+  const y = f.resto.y;
+  if (y && typeof y === "object" && !Array.isArray(y)) {
+    const v = (y as Record<string, unknown>).var;
+    notas.push(`Suma una segunda pregunta: ${typeof v === "string" && v.trim() ? v.trim() : "sin nombre"}.`);
+  }
+  if (typeof f.resto.color === "string" && f.resto.color.trim()) notas.push(`Color: ${f.resto.color.trim()}.`);
+  return notas.length ? notas.join(" ") : null;
+}
+
+/** ¿Lo guardado y el borrador de la tarjeta dicen lo mismo al motor? Si no, cambió afuera (deshacer, el plan). */
+export function mismasPartes(valor: unknown, filas: readonly FilaParte[], arg: string): boolean {
+  return JSON.stringify(filasAPartes(partesAFilas(valor), arg)) === JSON.stringify(filasAPartes(filas, arg));
 }
