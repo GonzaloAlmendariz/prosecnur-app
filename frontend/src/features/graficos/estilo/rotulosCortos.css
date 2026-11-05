@@ -1,0 +1,206 @@
+/* Identidad › Rótulos cortos (U3, 2026-11-05). Mismo lenguaje que Colores de las respuestas: cabecera, buscador
+   redondo y filas en tarjeta a todo el ancho. Cada fila pone el rótulo completo, una flecha y el corto; el completo
+   envuelve sin recorte (C4). Sólo tokens existentes. */
+
+.pulso-rc {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-4);
+  min-width: 0;
+  width: 100%;
+  container-type: inline-size;
+}
+
+.pulso-rc-titulo {
+  margin: 0;
+  font-size: var(--pulso-type-title-size);
+  font-weight: var(--pulso-weight-semibold);
+  color: var(--pulso-text);
+  letter-spacing: -0.01em;
+}
+
+.pulso-rc-bajada {
+  margin: var(--pulso-space-1) 0 0;
+  max-width: 64ch;
+  color: var(--pulso-text-soft);
+  line-height: 1.5;
+}
+
+.pulso-rc-agregar {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-2);
+  min-width: 0;
+}
+
+.pulso-rc-editor-rotulo {
+  color: var(--pulso-text-muted);
+  font-size: var(--pulso-type-caption-size);
+  font-weight: var(--pulso-weight-medium);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.pulso-rc-buscar {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--pulso-space-2);
+  width: min(460px, 100%);
+  padding: 0 12px;
+  height: var(--pulso-control-height-md);
+  border-radius: 999px;
+  background: var(--pulso-surface);
+  box-shadow: inset 0 0 0 1px var(--pulso-border);
+  color: var(--pulso-text-muted);
+  transition: box-shadow 160ms ease;
+}
+
+.pulso-rc-buscar:focus-within { box-shadow: inset 0 0 0 1px var(--pulso-primary-border), 0 0 0 3px var(--pulso-primary-ring); }
+
+.pulso-rc-buscar input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--pulso-text);
+  font: inherit;
+  font-size: var(--pulso-type-body-size);
+}
+
+.pulso-rc-sugerencias {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  padding: var(--pulso-space-1);
+  list-style: none;
+  border-radius: var(--pulso-radius-card);
+  background: var(--pulso-surface-2);
+}
+
+.pulso-rc-sugerencia {
+  display: flex;
+  align-items: baseline;
+  gap: var(--pulso-space-3);
+  width: 100%;
+  padding: 6px 10px;
+  border: 0;
+  border-radius: var(--pulso-radius-chip);
+  background: transparent;
+  color: var(--pulso-text);
+  font: inherit;
+  font-size: var(--pulso-type-body-size);
+  text-align: left;
+  cursor: pointer;
+  transition: background 160ms ease;
+}
+
+.pulso-rc-sugerencia:hover,
+.pulso-rc-sugerencia[aria-pressed="true"] { background: var(--pulso-surface); box-shadow: var(--pulso-shadow-low); }
+.pulso-rc-sugerencia:focus-visible { outline: 0; box-shadow: 0 0 0 3px var(--pulso-primary-ring); }
+
+.pulso-rc-sugerencia-texto {
+  flex: 1;
+  min-width: 0;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.pulso-rc-sugerencia-n,
+.pulso-rc-nada {
+  color: var(--pulso-text-muted);
+  font-size: var(--pulso-type-caption-size);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.pulso-rc-nada { margin: 0; white-space: normal; }
+
+.pulso-rc-lista {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* Una lista dentro de su Panel: filas separadas por un filete, sin caja propia. */
+.pulso-rc-fila {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--pulso-space-3);
+  min-width: 0;
+  padding: var(--pulso-space-3) var(--pulso-space-4);
+  font-size: var(--pulso-type-body-size);
+  transition: background 180ms ease;
+}
+
+.pulso-rc-fila + .pulso-rc-fila { border-top: 1px solid var(--pulso-border); }
+.pulso-rc-fila.is-editando { background: var(--pulso-surface-2); }
+
+/* Completo y corto en dos columnas iguales con la flecha al medio; bajo el ancho de dos columnas, uno sobre otro. */
+.pulso-rc-par {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: start;
+  gap: var(--pulso-space-3);
+  flex: 1;
+  min-width: 0;
+}
+
+.pulso-rc-largo {
+  color: var(--pulso-text-soft);
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.pulso-rc-flecha { margin-top: 3px; color: var(--pulso-text-muted); }
+
+.pulso-rc-corto {
+  color: var(--pulso-text);
+  font-weight: var(--pulso-weight-semibold);
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.pulso-rc-lado {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--pulso-space-2);
+  flex: none;
+}
+
+.pulso-rc-editor { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+
+.pulso-rc-editor-fila {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--pulso-space-2);
+}
+
+.pulso-rc-input { flex: 1 1 180px; min-width: 0; }
+
+.pulso-rc-ayuda {
+  margin: 0;
+  color: var(--pulso-text-muted);
+  font-size: var(--pulso-type-caption-size);
+  line-height: 1.45;
+}
+
+.pulso-rc-ayuda.is-error { color: var(--pulso-danger-fg); }
+
+@container (max-width: 640px) {
+  .pulso-rc-par { grid-template-columns: minmax(0, 1fr); }
+  .pulso-rc-flecha { transform: rotate(90deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pulso-rc-buscar,
+  .pulso-rc-sugerencia,
+  .pulso-rc-fila { transition: none; }
+}

@@ -163,6 +163,11 @@ export function DatosGrafico({ slideId, slot, valor }: Props) {
       return { variable: varCalificada(variable || primera, baseActiva, scope), scope, modo: name === "corte" ? "elegir" : "excluir" };
     }
     if (name === "excluir_grupos") return { variable: grupoVar ? varCalificada(grupoVar, baseActiva, scope) : "", scope, modo: "excluir" };
+    // Línea por nivel: los niveles del eje son las categorías de su `cruce` (U5).
+    if (name === "grupos" && valor.graficador === "p_lineas_nivel") {
+      const niveles = typeof args.cruce === "string" ? args.cruce : "";
+      return { variable: niveles ? varCalificada(niveles, baseActiva, scope) : "", scope, modo: "elegir", nota: "Sin marcar, todos los niveles con casos." };
+    }
     return undefined;
   };
   const filaDe = (c: CampoDato) => c.arg.name === "objetivo" && valor.graficador.startsWith("p_dim_") ? (
@@ -188,8 +193,9 @@ export function DatosGrafico({ slideId, slot, valor }: Props) {
   const nombreCruce = cruce.includes("$") ? cruce.slice(cruce.lastIndexOf("$") + 1) : cruce;
   const etiquetaCruce = cruce ? variables.find((v) => v.name === nombreCruce || `${v.source}$${v.name}` === cruce)?.label ?? null : null;
   const sigGuardada = args.mostrar_significancia ?? (tipo ? presets[tipo]?.mostrar_significancia : undefined);
-  // ADR 0129: una lámina de total (un gráfico, sin cruce) puede llevar tarjetas de diferencias en vez de marcas.
-  const conTarjetas = admiteTarjetas(slidesPlan.find((x) => x.id === slideId)?.tipo ?? "", valor.graficador, cruce);
+  // ADR 0129: una lámina de total (un gráfico, sin cruce) puede llevar tarjetas de diferencias en vez de marcas; en la
+  // de dos gráficos, cada uno las suyas (U2 del checklist del mazo).
+  const conTarjetas = admiteTarjetas(slidesPlan.find((x) => x.id === slideId)?.tipo ?? "", valor.graficador, cruce, slot);
   const agregarCruce = () => {
     const campo = argCruce ? tarjetaRef.current?.querySelector<HTMLElement>(`[data-campo="${argCruce}"]`) : null;
     const control = campo?.querySelector<HTMLElement>("button, input, [tabindex]");
@@ -264,7 +270,7 @@ export function DatosGrafico({ slideId, slot, valor }: Props) {
       </GrupoDeTarjeta>
       {conTarjetas && (
         <GrupoDeTarjeta titulo={TITULO_GRUPO.diferencias}>
-          <TarjetasDiferencias slideId={slideId} />
+          <TarjetasDiferencias slideId={slideId} slot={slot} />
         </GrupoDeTarjeta>
       )}
       {argSig && argCruce && !conTarjetas && (
@@ -316,7 +322,11 @@ function Ayuda({ rotulo, detalle }: { rotulo: string; detalle: string }) {
   return <AyudaGlobo rotulo={rotulo} detalle={detalle} />;
 }
 
-type CategoriasFila = { variable: string; scope: "active" | "consolidated"; modo: "excluir" | "elegir" };
+type CategoriasFila = {
+  variable: string; scope: "active" | "consolidated"; modo: "excluir" | "elegir";
+  /** Lo que dice la marca, si no es «se excluye» ni «forma el corte». */
+  nota?: string;
+};
 
 function Fila({ campo, graficador, valor, onCambio, sello, categorias }: {
   campo: CampoDato; graficador: string; valor: unknown; onCambio: (v: unknown) => void; sello?: ReactNode;
@@ -451,7 +461,7 @@ function Fila({ campo, graficador, valor, onCambio, sello, categorias }: {
     return (
       <SelectorCategorias id={id} etiqueta={etiqueta} variable={categorias.variable} scope={categorias.scope} graficador={graficador}
         valor={valor} modo={categorias.modo} textoRespaldo={comoTexto}
-        nota={<span className="pulso-f6-dato-ayuda">{categorias.modo === "excluir" ? "Las marcadas no salen en el gráfico." : "Las marcadas forman el corte."}</span>}
+        nota={<span className="pulso-f6-dato-ayuda">{categorias.nota ?? (categorias.modo === "excluir" ? "Las marcadas no salen en el gráfico." : "Las marcadas forman el corte.")}</span>}
         onCambio={(cods) => onCambio(arg.name === "corte" && CORTE_EN_CADENA.has(graficador) ? cods.join(",") : cods)} />
     );
   }

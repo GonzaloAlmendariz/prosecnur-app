@@ -15,6 +15,8 @@ export const PREFIJO_PIEZA = "f6-id-pieza";
 export const SALIDAS: readonly { clave: ClavePieza; titulo: string; ppt: boolean; word: boolean }[] = [
   { clave: "linea", titulo: "Línea visual", ppt: true, word: true },
   { clave: "colores", titulo: "Colores", ppt: true, word: true },
+  // U3: el job de PPT y el de Word aplican los dos `plan.rotulos_cortos` (graficos_jobs.R, `.inclusivo_preparar_job`).
+  { clave: "rotulos", titulo: "Rótulos cortos", ppt: true, word: true },
   { clave: "logos", titulo: "Logos", ppt: true, word: true },
   { clave: "letra", titulo: "Letra", ppt: true, word: true },
   { clave: "iconos", titulo: "Íconos", ppt: true, word: false },

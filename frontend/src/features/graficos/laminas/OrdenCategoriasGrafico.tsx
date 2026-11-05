@@ -20,6 +20,7 @@ import {
   mover,
   NO_SE_DIBUJA,
   ordenAGuardar,
+  ordenHeredado,
   rotuloRecetario,
   tieneOrdenHeredado,
   type ModoOrden,
@@ -46,6 +47,9 @@ export function OrdenCategoriasGrafico({ variable, graficador, args, scope, onCa
   const estado = useCategoriasGrafico(variable, scope, graficador);
   const orden = leerOrden(args);
   const heredado = tieneOrdenHeredado(args);
+  // U4: el orden elegido antes, con palabras («De mayor a menor»); elegir otro modo lo reemplaza y el valor anterior
+  // queda guardado: volver a «elegido antes» lo recupera.
+  const nombreHeredado = ordenHeredado(args);
   const datos = estado.fase === "lista" ? estado.datos : null;
   const { notas, escala } = leerAvisosOrden(datos);
   const escalaId = `${id}-escala`;
@@ -68,7 +72,7 @@ export function OrdenCategoriasGrafico({ variable, graficador, args, scope, onCa
           aria-describedby={escala ? escalaId : undefined}
           onChange={(e) => cambiarModo(e.target.value as ModoOrden)}
         >
-          <option value="recetario">{rotuloRecetario(datos, heredado)}</option>
+          <option value="recetario">{rotuloRecetario(datos, nombreHeredado ?? heredado)}</option>
           <option value="frecuencia">Frecuencia</option>
           <option value="instrumento">Instrumento</option>
           <option value="personalizado" disabled={!datos}>Personalizado</option>
@@ -91,7 +95,10 @@ export function OrdenCategoriasGrafico({ variable, graficador, args, scope, onCa
       </div>
       {escala && <NotaAviso nota={escala} id={escalaId} />}
       {orden.modo === "recetario" && heredado && (
-        <span className="pulso-f6-dato-ayuda">Este gráfico trae un orden elegido antes; manda mientras no elijas otro modo.</span>
+        <span className="pulso-f6-dato-ayuda" data-qa="orden-heredado">
+          {nombreHeredado ? `Este gráfico trae el orden «${nombreHeredado}», elegido antes` : "Este gráfico trae un orden elegido antes"}; manda
+          mientras no elijas otro.
+        </span>
       )}
       <EstadoDatos estado={estado} />
       {notas.length > 0 && (

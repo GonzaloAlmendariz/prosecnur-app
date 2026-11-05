@@ -24,6 +24,8 @@ const CIFRAS: ReadonlySet<string> = new Set([
   "marcas_eje", "alpha", "mostrar_brecha", "etiqueta_brecha", "decimales_promedio",
   "tipo_rango", "mostrar_valores", "max_series_con_cifras", "valores_decimales", "umbral_rojo_pct", "cortes_chip", "min_n", "cortes",
   "decimales", "mostrar_leyenda",
+  // U6 (2026-11-05): cómo se dibujan las barras y la mediana.
+  "pista_barras", "colorear_por_opcion", "marca_mediana",
 ]);
 
 export function grupoDeCampo(arg: string): GrupoTarjeta {

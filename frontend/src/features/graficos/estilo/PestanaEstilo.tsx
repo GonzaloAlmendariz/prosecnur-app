@@ -45,6 +45,8 @@ import { SeccionLegibilidad } from "./SeccionLegibilidad";
 import { SeccionAntetitulo } from "./SeccionAntetitulo";
 import { IconosEditor } from "../IconosEditor";
 import { ColoresRespuestas } from "./ColoresRespuestas";
+import { RotulosCortos } from "./RotulosCortos";
+import { cuantosRotulos } from "./modeloRotulosCortos";
 import { useSubpestana, type Subpestana } from "../subpestanas/Subpestanas";
 import { Segmentado } from "../subpestanas/Segmentado";
 import { PREFIJO_PIEZA, PiezasIdentidad, type ClavePieza } from "./PiezasIdentidad";
@@ -74,6 +76,7 @@ function mensajeDe(error: unknown, porDefecto: string): string {
 const SUB_IDENTIDAD: readonly Subpestana<ClavePieza>[] = [
   { key: "linea", label: "Línea visual" },
   { key: "colores", label: "Colores de las respuestas" },
+  { key: "rotulos", label: "Rótulos cortos" },
   { key: "logos", label: "Logos" },
   { key: "letra", label: "Letra" },
   { key: "iconos", label: "Íconos propios" },
@@ -91,6 +94,7 @@ export default function PestanaEstilo() {
   const scopeRules = usePlanStore((s) => s.scopeRules);
   const iconos = usePlanStore((s) => s.iconos);
   const slidesPlan = usePlanStore((s) => s.plan.slides);
+  const nRotulos = usePlanStore((s) => cuantosRotulos(s.plan.rotulos_cortos));
   const { profiles } = usePptStyleProfiles();
   const propias = useLineasPropias((s) => s.lineas);
   const { filas: filasPaletas } = usePaletasRespuestas();
@@ -158,7 +162,7 @@ export default function PestanaEstilo() {
   const faltanColores = filasPaletas.filter((f) => f.faltan > 0).length;
   const conLogos = logosModificados(decisiones);
   const conLetra = letraModificada(decisiones);
-  const piezas = piezasIdentidad({ lineaNombre, faltanColores, conLogos, conLetra, nIconos: iconos.length });
+  const piezas = piezasIdentidad({ lineaNombre, faltanColores, conLogos, conLetra, nIconos: iconos.length, nRotulos });
   // ID8: datos de la muestra viva. La escala de muestra es la primera con todos sus colores (o la primera con alguno).
   const escala = filasPaletas.find((f) => f.faltan === 0 && f.opciones.length >= 3) ?? filasPaletas.find((f) => f.faltan < f.opciones.length) ?? null;
   const logoMuestra = (lugar: EstiloLugarLogo): LogoMuestra => {
@@ -262,6 +266,8 @@ export default function PestanaEstilo() {
               </section>
             )}
             {sub === "colores" && <ColoresRespuestas />}
+            {/* U3 (2026-11-05): `plan.rotulos_cortos`, que el job aplica a datos, instrumento, plan y paletas. */}
+            {sub === "rotulos" && <RotulosCortos />}
           </div>
           {/* ID8: lo que la identidad cambia, a la vista mientras se ajusta (no en el compartido: sin logos ni letra). */}
           {scope !== "consolidated" && <MuestraIdentidad datos={muestra} />}

@@ -51,8 +51,38 @@ const NOMBRE_MODO: Record<Exclude<ModoOrden, "recetario">, string> = {
   personalizado: "personalizado",
 };
 
-/** Rótulo de la opción «Recetario», que dice qué aplica: «Recetario · por frecuencia». */
-export function rotuloRecetario(datos: GraficosCategorias | null, heredado: boolean): string {
+/**
+ * El orden heredado dicho con palabras (U4 del checklist del mazo): `orden_barras` de barras y agrupadas
+ * (graficador_barras_*.R) y `ordenar_categorias` de torta y dona (graficador_pie_dicotomico.R). Una lista manual sola
+ * (`orden_categorias_manual`) es un orden manual. `null` si no hay orden heredado o es un valor desconocido.
+ */
+const ORDEN_HEREDADO: Readonly<Record<string, string>> = {
+  mayor_menor: "De mayor a menor",
+  menor_mayor: "De menor a mayor",
+  instrumento: "Como en el instrumento",
+  manual: "Orden manual",
+  desc: "De mayor a menor",
+  asc: "De menor a mayor",
+  ninguno: "Como en el instrumento",
+  natural: "Como en el instrumento",
+};
+
+export function ordenHeredado(args: Readonly<Record<string, unknown>>): string | null {
+  if (!tieneOrdenHeredado(args)) return null;
+  const ov = args.overrides && typeof args.overrides === "object" ? (args.overrides as Record<string, unknown>) : {};
+  for (const k of ["orden_barras", "ordenar_categorias"] as const) {
+    const v = ov[k] ?? args[k];
+    if (typeof v === "string" && v !== "") return ORDEN_HEREDADO[v] ?? null;
+  }
+  return ORDEN_HEREDADO.manual;
+}
+
+/**
+ * Rótulo de la opción «Recetario», que dice qué aplica: «Por defecto, por frecuencia». Con un orden elegido antes dice
+ * cuál («De mayor a menor, elegido antes»); `heredado` es ese texto, `true` si no se sabe nombrar o `false`/`null` si no hay.
+ */
+export function rotuloRecetario(datos: GraficosCategorias | null, heredado: string | boolean | null): string {
+  if (typeof heredado === "string") return `${heredado}, elegido antes`;
   if (heredado) return "Por defecto, orden elegido antes";
   const m = datos?.modo_recetario;
   return m ? `Por defecto, ${NOMBRE_MODO[m]}` : "Por defecto";

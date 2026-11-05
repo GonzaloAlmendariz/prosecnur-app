@@ -37,14 +37,34 @@ describe("camposDeDatos", () => {
     const lineas = [
       a("var", "variable"), a("cruce", "variable"), a("series", "partes"), { ...a("total_arriba", "bool"), default: true },
       a("segmentos_total", "partes"), a("mostrar_significancia", "bool"), a("grupos", "codigos_list"), a("titulo_seccion", "string", "textos"),
+      a("rotulo_total", "string", "textos"), a("publico", "string", "textos"), a("nombre_nivel", "string", "textos"),
+      a("lectura", "textarea", "textos"),
     ];
     const campos = camposDeDatos(lineas, { series: [{ rotulo: "Trabaja", codigos: ["1"] }] }, "p_lineas_nivel");
-    expect(campos.map((c) => c.arg.name)).toEqual(["var", "cruce", "series", "segmentos_total"]);
+    const por = (n: string) => campos.find((c) => c.arg.name === n);
+    expect(campos.map((c) => c.arg.name)).toEqual([
+      "var", "cruce", "grupos", "titulo_seccion", "publico", "nombre_nivel", "lectura", "series", "total_arriba", "rotulo_total", "segmentos_total",
+    ]);
     expect(campos[1]).toMatchObject({ rotulo: "Niveles del eje", ayuda: "Un punto por nivel, de menor a mayor." });
-    expect(campos[2]).toMatchObject({ rotulo: "Líneas", control: "partes" });
-    expect(campos[3]).toMatchObject({ rotulo: "Partes del total", control: "partes", ayuda: "Vacío, la franja se arma sola." });
-    // Sin la franja del total no hay partes que elegir.
-    expect(camposDeDatos(lineas, { total_arriba: false }, "p_lineas_nivel").map((c) => c.arg.name)).not.toContain("segmentos_total");
+    expect(por("series")).toMatchObject({ rotulo: "Líneas", control: "partes" });
+    expect(por("segmentos_total")).toMatchObject({ rotulo: "Partes del total", control: "partes", ayuda: "Vacío, la franja se arma sola." });
+    // U5 del checklist del mazo: los textos y los niveles, con el valor que el motor usa sin escribir nada.
+    expect(por("grupos")).toMatchObject({ rotulo: "Niveles que se muestran", control: "codigos" });
+    expect(por("titulo_seccion")).toMatchObject({ rotulo: "Título de las líneas", control: "texto", placeholder: "Sin título" });
+    expect(por("rotulo_total")).toMatchObject({ rotulo: "Título del total", control: "texto", placeholder: "Total" });
+    expect(por("publico")).toMatchObject({ rotulo: "Cómo se nombran los casos", control: "texto", placeholder: "casos" });
+    expect(por("nombre_nivel")).toMatchObject({ rotulo: "Qué crece", control: "texto", placeholder: "nivel" });
+    expect(por("total_arriba")).toMatchObject({ rotulo: "Total arriba", control: "interruptor" });
+    // Sin la franja del total no hay partes que elegir ni título que ponerle.
+    const sinTotal = camposDeDatos(lineas, { total_arriba: false }, "p_lineas_nivel").map((c) => c.arg.name);
+    expect(sinTotal).not.toContain("segmentos_total");
+    expect(sinTotal).not.toContain("rotulo_total");
+    expect(sinTotal).toContain("total_arriba");
+    // Otro graficador que declarase los mismos nombres no los hereda.
+    const otros = camposDeDatos([...agrupadas, a("publico", "string"), a("grupos", "codigos_list"), a("total_arriba", "bool")], {}, "p_barras_agrupadas");
+    expect(otros.map((c) => c.arg.name)).not.toContain("publico");
+    expect(otros.map((c) => c.arg.name)).not.toContain("grupos");
+    expect(otros.map((c) => c.arg.name)).not.toContain("total_arriba");
     // Otro graficador con un arg del mismo nombre no lo hereda.
     expect(camposDeDatos([...agrupadas, a("series", "partes")], {}, "p_barras_agrupadas").map((c) => c.arg.name)).not.toContain("series");
     expect(camposDeDatos(agrupadas, {}, "p_barras_agrupadas")[1].rotulo).toBe("Dividir por");

@@ -5,7 +5,7 @@ import { mergeSlotArgsPatch } from "../store";
 import { mergeWithDefaults } from "../useGraficosAutosave";
 import { claveCategorias } from "./useCategoriasGrafico";
 import { AVISO_BASE_POR_DEFECTO, AVISO_ESCALA_ORDEN_IGNORADO, leerAvisosOrden, sinPrefijoPregunta } from "./ordenCategorias";
-import { aplicaOrden, botonTrasMover, categoriasSinRespuestas, listaDesdeMostrado, ordenMostrado, varCalificada, leerOrden, listaPersonalizada, mover, ordenAGuardar, rotuloRecetario, tieneOrdenHeredado } from "./ordenCategorias";
+import { aplicaOrden, botonTrasMover, categoriasSinRespuestas, listaDesdeMostrado, ordenMostrado, varCalificada, leerOrden, listaPersonalizada, mover, ordenAGuardar, rotuloRecetario, tieneOrdenHeredado, ordenHeredado } from "./ordenCategorias";
 
 const datos: GraficosCategorias = {
   var: "p7", base: "", pregunta: "", ordinal: false, tipo: "select_one", modo_recetario: "frecuencia",
@@ -40,6 +40,20 @@ describe("orden de categorías por gráfico (D8)", () => {
     expect(rotuloRecetario(datos, true)).toBe("Por defecto, orden elegido antes");
     expect(tieneOrdenHeredado({ orden_barras: "mayor_menor" })).toBe(true);
     expect(tieneOrdenHeredado({ overrides: { orden_categorias_manual: [] } })).toBe(false);
+  });
+
+  it("U4: el orden elegido antes se nombra con palabras, no como «orden elegido antes»", () => {
+    expect(ordenHeredado({ overrides: { orden_barras: "mayor_menor" } })).toBe("De mayor a menor");
+    expect(ordenHeredado({ overrides: { orden_barras: "instrumento" } })).toBe("Como en el instrumento");
+    expect(ordenHeredado({ overrides: { orden_barras: "menor_mayor" } })).toBe("De menor a mayor");
+    expect(ordenHeredado({ orden_barras: "mayor_menor" })).toBe("De mayor a menor");
+    expect(ordenHeredado({ overrides: { ordenar_categorias: "desc" } })).toBe("De mayor a menor");
+    expect(ordenHeredado({ overrides: { orden_categorias_manual: ["Sí", "No"] } })).toBe("Orden manual");
+    expect(ordenHeredado({ overrides: { orden_barras: "raro" } })).toBeNull();
+    expect(ordenHeredado({})).toBeNull();
+    expect(rotuloRecetario(datos, "De mayor a menor")).toBe("De mayor a menor, elegido antes");
+    // Un valor que no se sabe nombrar sigue diciendo que hay un orden anterior.
+    expect(rotuloRecetario(datos, ordenHeredado({ overrides: { orden_barras: "raro" } }) ?? true)).toBe("Por defecto, orden elegido antes");
   });
 
   it("la lista personalizada: listados que existen, luego no listados, y los residuales no listados al final", () => {

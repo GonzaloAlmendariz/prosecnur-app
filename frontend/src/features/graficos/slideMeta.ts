@@ -35,20 +35,40 @@ export type SlideMeta = {
    * En la de tres gráficos en fila, `habilita` va por ranura dependiente (dependenciaTres.ts).
    */
   dependencia?: { de: string; habilita: string[] | Record<string, string[]>; frase?: string };
-  /** ADR 0129: tarjetas de diferencias junto al total (graficos_tarjetas_diferencias.R). `true` o la opción completa. */
-  tarjetas_diferencias?: boolean | TarjetasDiferenciasMeta;
+  /**
+   * ADR 0129: tarjetas de diferencias junto al total (graficos_tarjetas_diferencias.R). `true` o la opción completa; en
+   * la lámina de dos gráficos, un mapa por ranura (graficos_tarjetas_ranuras.R).
+   */
+  tarjetas_diferencias?: boolean | TarjetasDiferenciasMeta | TarjetasPorRanura;
 };
 
-/** Opción de las tarjetas de diferencias (ADR 0129): sólo `activo` y `max` se editan aquí; el resto se conserva. */
+/**
+ * Opción de las tarjetas de diferencias (ADR 0129). El inspector edita `activo`, `todas`, `cruces`, `rotulos`, `cortos`,
+ * `publico` y `max` (laminas/diferencias/); `modo`, `indicador` y cualquier otra clave se conservan sin tocarse.
+ */
 export type TarjetasDiferenciasMeta = {
   activo?: boolean;
+  /** Cuántas tarjetas como máximo: 1 a 9, 4 por defecto; en una ranura de dos gráficos, 2 como máximo. */
   max?: number;
   /** Una tarjeta por cruce con todos los grupos comparables, haya o no diferencias (ítem 23 de la v7 RV). */
   todas?: boolean;
+  /** Variables de cruce, en orden; vacío, los cruces del estudio. */
   cruces?: string[];
+  /** Nombre de cada cruce por su variable sin base («area» → «Área»). */
   rotulos?: Record<string, string>;
+  /** Rótulo corto de un grupo largo («Economía y Finanzas» → «Econ. y Finanzas»). */
   cortos?: Record<string, string>;
+  /** Cómo se nombran los casos en la lectura («estudiantes»); vacío, «personas encuestadas». */
   publico?: string;
+  /** «en_linea»: el desglose pegado a su barra (lamina_tarjetas_en_linea.R). */
+  modo?: string;
+  indicador?: string;
+};
+
+/** Tarjetas por gráfico en `p_slide_2_graficos`: la opción de cada ranura. */
+export type TarjetasPorRanura = {
+  izquierda?: boolean | TarjetasDiferenciasMeta;
+  derecha?: boolean | TarjetasDiferenciasMeta;
 };
 
 const esObjeto = (v: unknown): v is Record<string, unknown> => !!v && typeof v === "object" && !Array.isArray(v);
