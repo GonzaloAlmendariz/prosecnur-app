@@ -45,6 +45,7 @@ const ARG_TIPO_INPUTS: Record<ArgTipoInput, true> = {
   series_colors: true,
   criteria_config: true,
   partes: true,
+  hallazgos_capitulos: true,
   icono: true,
   overrides: true,
   filtros: true,

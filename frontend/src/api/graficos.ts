@@ -254,6 +254,9 @@ export type ArgTipoInput =
   // pregunta `var` del mismo gráfico (líneas y franja del total de
   // p_lineas_nivel). `y` y `color` no se editan pero se conservan.
   | "partes"
+  // hallazgos_capitulos: capítulos { titulo, titular?, cifras: [{ var, fila?, texto, comparacion, … }] } del resumen
+  // ejecutivo de «Hallazgos clave» (p_slide_hallazgos). Lo que el editor no maneja (`sumar`, `filtros`…) se conserva.
+  | "hallazgos_capitulos"
   | "icono"
   | "overrides"
   | "filtros"

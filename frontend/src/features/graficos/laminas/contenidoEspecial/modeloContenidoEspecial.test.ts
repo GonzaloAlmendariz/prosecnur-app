@@ -22,6 +22,16 @@ describe("contenido especial (C38)", () => {
     expect(e.iconos.map((a) => a.name)).toEqual(["icono"]);
   });
 
+  it("«Hallazgos clave» lleva sus ajustes que no son texto en su bloque, fuera de los campos de texto", () => {
+    const args = [arg("titulo", "string"), arg("modo", "choice"), arg("cruces", "variables_list"), arg("capitulos", "hallazgos_capitulos"), arg("meta", "meta")];
+    expect(contenidoEspecialDe(args, "p_slide_hallazgos").ajustes.map((a) => a.name)).toEqual(["modo", "cruces", "capitulos"]);
+    expect(esArgEspecial(arg("capitulos", "hallazgos_capitulos"), "p_slide_hallazgos")).toBe(true);
+    expect(esArgEspecial(arg("titulo", "string"), "p_slide_hallazgos")).toBe(false);
+    // Otra lámina no cambia: sus listas siguen nombradas como pendientes en Contenido.
+    expect(contenidoEspecialDe(args, "p_slide_1_grafico").ajustes).toEqual([]);
+    expect(esArgEspecial(arg("cruces", "variables_list"), "p_slide_resumen_diferencias")).toBe(false);
+  });
+
   it("una lámina de población no ofrece ícono aunque el registro declare el campo", () => {
     const args = [arg("titulo", "string"), arg("icono", "icono")];
     expect(contenidoEspecialDe(args, "p_slide_1_poblacion").iconos).toEqual([]);

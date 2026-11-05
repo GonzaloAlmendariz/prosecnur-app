@@ -183,7 +183,7 @@ function SeccionContenido({ slide, lamina }: { slide: Slide; lamina: LaminaEnEst
   const { contenido, especial } = useMemo(() => {
     const args = (argsDelTipo ?? []).filter((a) => !(esIndice && ARGS_DEL_INDICE.has(a.name)));
     return {
-      contenido: contenidoDeLamina(args.filter((a) => !esArgEspecial(a)), SLIDE_GRAF_SLOTS[slide.tipo] ?? [], slide.tipo),
+      contenido: contenidoDeLamina(args.filter((a) => !esArgEspecial(a, slide.tipo)), SLIDE_GRAF_SLOTS[slide.tipo] ?? [], slide.tipo),
       especial: contenidoEspecialDe(args, slide.tipo),
     };
   }, [argsDelTipo, slide.tipo, esIndice]);

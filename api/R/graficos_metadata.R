@@ -33,6 +33,7 @@
 # "overrides"        → editor especial de overrides (delta vs preset tipo)
 # "filtros"          → editor de filtros por variable (avanzado)
 # "base_config"      → editor de la base automática/manual (avanzado)
+# "hallazgos_capitulos" → capítulos {titulo, titular, cifras: [{var, fila, texto, comparacion}]} del resumen ejecutivo
 # "partes"           → filas {rotulo, codigos} de la pregunta elegida (líneas por nivel); conserva `y` y `color`
 # "meta"             → objeto libre; casi nunca se expone en UI
 
@@ -1062,7 +1063,8 @@
 
   # Láminas de diferencias (especificación CCSS del 2026-11-04): el resumen por capítulo y los hallazgos clave. Las dos
   # son nativas y se componen como un `slide_1` (graficos_resumen_diferencias.R, graficos_hallazgos.R). Sus listas
-  # (`capitulos`, `cifras`) se escriben en el plan; todavía no tienen inspector, así que no se ofrecen en el selector.
+  # (`capitulos`, `cifras`): los capítulos del resumen ejecutivo ya se editan en Inspector › Lámina (hallazgos/); las `cifras`
+  # de los modos «cifras» siguen en el plan, así que la lámina todavía no se ofrece en el selector.
   p_slide_resumen_diferencias = list(
     titulo_humano = "Resumen de diferencias",
     descripcion   = "Tabla por capítulo con los puntos de diferencia de cada grupo frente al resto, con la prueba del informe.",
@@ -1110,7 +1112,14 @@
            descripcion = "Con más, el motor abre otra lámina sin partir un capítulo. Hasta cuatro capítulos por lámina."),
       list(name = "tambien", label = "Mostrar «También»", tipo_input = "bool", grupo = "textos", default = TRUE,
            depende = list(arg = "modo", valores = list("resumen")),
-           descripcion = "Si otro cruce también difiere, una línea corta bajo la diferencia principal.")
+           descripcion = "Si otro cruce también difiere, una línea corta bajo la diferencia principal."),
+      # Ítem 2 de la v7.11 RV: «la UI pueda generarlos». Capítulos y cruces se escribían a mano en el plan.
+      list(name = "cruces", label = "Cruces", tipo_input = "variables_list", grupo = "datos",
+           depende = list(arg = "modo", valores = list("resumen", "titulares")),
+           descripcion = "Contra qué grupos se busca la diferencia principal. Vacío, los que la lámina rotula; si no, los de las tarjetas del plan."),
+      list(name = "capitulos", label = "Capítulos y hallazgos", tipo_input = "hallazgos_capitulos", grupo = "datos",
+           depende = list(arg = "modo", valores = list("resumen", "titulares")),
+           descripcion = "Por capítulo, sus hallazgos: la pregunta, la respuesta que se cuenta, el texto que sigue a la cifra y la comparación (automática, ninguna o escrita).")
     ))
   )
 )

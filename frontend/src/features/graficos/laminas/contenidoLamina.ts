@@ -23,7 +23,8 @@ const GRUPOS_DE_CONTENIDO = new Set(["textos", "lectura", "datos"]);
  */
 export const CONTENIDO_SIN_INSPECTOR: Readonly<Record<string, readonly string[]>> = {
   p_slide_resumen_diferencias: ["Filas por capítulo", "Selección de filas"],
-  p_slide_hallazgos: ["Cifras destacadas", "Modo"],
+  // «Hallazgos clave» ya tiene su bloque (hallazgos/AjustesHallazgos): el modo, el resumen ejecutivo y, en los modos de
+  // cifras, la nota de que las cifras todavía se escriben en el plan.
 };
 
 export function contenidoDeLamina(args: readonly ArgMetadata[], ranuras: readonly string[], tipo?: string): ContenidoLamina {
