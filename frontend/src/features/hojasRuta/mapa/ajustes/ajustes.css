@@ -75,9 +75,10 @@
 .hr-ajustes-bloque { display: flex; flex-direction: column; gap: 10px; padding: 11px 12px; border: 1px solid var(--pulso-border); border-radius: 10px; }
 .hr-ajustes-bloque > h4 { margin: 0; font-size: var(--pulso-type-micro-size); font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--pulso-text-soft); }
 .hr-ajustes-bloque .hr-muestra-grupo { border-top: 0; padding-top: 0; }
-/* La curva del margen se dibujó para la columna del inspector (~300 px): estirada al ancho de la ventana
-   sus rótulos crecían con el viewBox. Aquí conserva ese tamaño. */
-.hr-ajustes .hr-margen-curva { max-width: 360px; }
+/* La curva del margen se dibuja a 640 de ancho en la ventana (`ancho` de MargenCurva): llena la tarjeta y
+   sus rótulos quedan del tamaño del texto, sin el tope de 360 px que la dejaba en media tarjeta. */
+.hr-ajustes .hr-margen-curva { width: 100%; max-width: none; }
+.hr-ajustes .hr-margen-curva-caja { max-width: none; }
 
 /* Tamaño y precisión, M2b: N como texto, k por divisores, fórmulas en contenedor formal. */
 .hr-campo-n label { font-size: var(--pulso-type-caption-size); font-weight: 600; color: var(--pulso-text-soft); }

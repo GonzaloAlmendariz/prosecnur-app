@@ -6,19 +6,22 @@
  */
 import type { MouseEvent } from "react";
 
-const W = 300;
 const H = 128;
 const IZQ = 36;
 const ABAJO = 18;
 const TOPE = 0.12;
 const fmt = (n: number) => new Intl.NumberFormat("es-PE").format(Math.round(n));
 
-type Props = { margenPara: (n: number) => number | null; nUsado: number; objetivo: number; porRuta: number; onElegirN?: (n: number) => void };
+/**
+ * `ancho`: el ancho del dibujo en unidades del viewBox. Se dibuja al ancho en que se va a ver (300 en la
+ * columna del inspector, más en la ventana de Ajustes) para que los rótulos no crezcan al estirarla.
+ */
+type Props = { margenPara: (n: number) => number | null; nUsado: number; objetivo: number; porRuta: number; onElegirN?: (n: number) => void; ancho?: number };
 
 /** El múltiplo de k más cercano a n, nunca menor que k. */
 export const alMultiplo = (n: number, k: number) => (k > 0 ? Math.max(k, Math.round(n / k) * k) : Math.round(n));
 
-export function MargenCurva({ margenPara, nUsado, objetivo, porRuta, onElegirN }: Props) {
+export function MargenCurva({ margenPara, nUsado, objetivo, porRuta, onElegirN, ancho: W = 300 }: Props) {
   const x0 = Math.max(porRuta, 100);
   const x1 = Math.max(3600, nUsado * 1.3);
   const mx = (n: number) => IZQ + ((n - x0) / (x1 - x0)) * (W - IZQ - 6);
