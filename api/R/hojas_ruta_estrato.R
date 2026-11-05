@@ -168,17 +168,26 @@ hojas_ruta_estrato_asignacion <- function(ubigeos, route_total, cfg) {
   n_lo <- ifelse(sorteada, floor(e_c + 1e-9), n_h[estrato])
   f_n <- ifelse(sorteada, e_c - n_lo, 0)
   rutas <- integer(length(ubigeos))
+  # ADR 0131 §1c: con la base 2025, distritos forzosos y sorteados (hojas_ruta_distritos_sorteo.R).
+  dd <- if (hojas_ruta_distritos_activo(params)) {
+    .hojas_ruta_distritos_asignacion(estrato, estratos, mos, n_h, n_lo, f_n, cfg)
+  } else NULL
   for (h in estratos[n_h[estratos] > 0L]) {
     idx <- which(estrato == h)
-    rutas[idx] <- .hojas_ruta_cuota_zona_rutas(mos[idx], n_h[[h]], cfg$seed %||% 2017L, paste0("estrato-", h))
+    rutas[idx] <- if (!is.null(dd)) dd$rutas[idx] else .hojas_ruta_cuota_zona_rutas(mos[idx], n_h[[h]], cfg$seed %||% 2017L, paste0("estrato-", h))
   }
   pob_h <- vapply(estratos, function(h) sum(pob[estrato == h]), numeric(1))
   ce <- cc[match(vapply(estratos, function(h) ciudad[estrato == h][[1]], character(1)), cc$ciudad), , drop = FALSE]
-  list(
-    distritos = data.frame(ubigeo = ubigeos, estrato = estrato, ciudad = ciudad, grupo = cc$grupo[ic], condicion = cc$condicion[ic],
-                           pi_ciudad = cc$pi_ciudad[ic], mos = mos, share = share,
-                           esperado = cc$pi_ciudad[ic] * ((1 - f_n) * n_lo + f_n * (n_lo + 1)) * share,
-                           n_lo = n_lo, n_hi = n_lo + 1, f_n = f_n, rutas = as.integer(rutas), stringsAsFactors = FALSE),
+  distritos <- data.frame(ubigeo = ubigeos, estrato = estrato, ciudad = ciudad, grupo = cc$grupo[ic], condicion = cc$condicion[ic],
+                          pi_ciudad = cc$pi_ciudad[ic], mos = mos, share = share,
+                          esperado = cc$pi_ciudad[ic] * ((1 - f_n) * n_lo + f_n * (n_lo + 1)) * share,
+                          n_lo = n_lo, n_hi = n_lo + 1, f_n = f_n, rutas = as.integer(rutas), stringsAsFactors = FALSE)
+  if (!is.null(dd)) {
+    distritos <- cbind(distritos, dd$columnas, stringsAsFactors = FALSE)
+    distritos$esperado <- distritos$pi_ciudad * ((1 - f_n) * distritos$pi_d_lo * distritos$e_lo + f_n * distritos$pi_d_hi * distritos$e_hi)
+  }
+  out <- list(
+    distritos = distritos,
     estratos = data.frame(estrato = estratos, etiqueta = .hojas_ruta_estrato_etiquetas(estratos, ubigeos, estrato, cfg),
                           ciudad = ce$ciudad, condicion = ce$condicion, pi_ciudad = ce$pi_ciudad,
                           n_distritos = as.integer(table(estrato)[estratos]),
@@ -187,6 +196,12 @@ hojas_ruta_estrato_asignacion <- function(ubigeos, route_total, cfg) {
     grupos = sel$grupos,
     rutas_minimas_ciudad = sel$rutas_minimas_ciudad
   )
+  if (!is.null(dd)) {
+    out$grupos_distritos <- cbind(dd$grupos, etiqueta = out$estratos$etiqueta[match(dd$grupos$estrato, out$estratos$estrato)],
+                                  stringsAsFactors = FALSE)
+    out$rutas_minimas_distrito <- hojas_ruta_distritos_normalizar(params)$rutas_minimas_distrito
+  }
+  out
 }
 
 #' Rutas por distrito en el orden de `ubigeos` (para los enganches del motor).
@@ -222,7 +237,7 @@ hojas_ruta_estrato_declaracion <- function(ubigeos, cfg, n_used) {
   if (!hojas_ruta_estrato_activo(cfg$sample_size) || identical(cfg$sample_size_mode, "external_district")) return(list())
   route_size <- .hojas_ruta_route_size(cfg)
   a <- hojas_ruta_estrato_asignacion(ubigeos, as.integer(n_used) %/% route_size, cfg)
-  list(estrato_muestral = list(
+  em <- c(list(
     modo = cfg$sample_size$estrato,
     rutas_minimas_ciudad = a$rutas_minimas_ciudad,
     regla = paste(
@@ -236,5 +251,6 @@ hojas_ruta_estrato_declaracion <- function(ubigeos, cfg, n_used) {
     ciudades = .hojas_ruta_df_rows(a$ciudades),
     grupos = .hojas_ruta_df_rows(a$grupos),
     distritos = .hojas_ruta_df_rows(a$distritos)
-  ))
+  ), hojas_ruta_distritos_declaracion(a))
+  list(estrato_muestral = em)
 }
