@@ -34,7 +34,7 @@
       "Las demás ciudades se agrupan por macrorregión y en cada grupo se sortean, con probabilidad proporcional a su tamaño, tantas ciudades como veces cabe el mínimo en las rutas del grupo; ",
       "cada ciudad sorteada recibe la parte que le toca de las rutas del grupo y representa a las no sorteadas: ",
       paste(texto_grupos, collapse = "; "), ".") else NULL,
-    paste(
+    .reporte_mt_frase_distritos(em) %||% paste(
       "Dentro de cada ciudad, las rutas se reparten entre distritos en proporción a la medida de tamaño de sus manzanas del marco elegible,",
       "con un redondeo sistemático aleatorio, y el distrito y la zona actúan como estratos implícitos.",
       "La probabilidad de inclusión de la manzana es la de su ciudad por la de la manzana dentro de la ciudad.")

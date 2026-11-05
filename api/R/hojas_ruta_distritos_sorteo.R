@@ -217,3 +217,34 @@ hojas_ruta_distritos_declaracion <- function(a) {
     grupos_distritos = .hojas_ruta_df_rows(a$grupos_distritos)
   )
 }
+
+#' Frase de la memoria de cálculo para el §1c, o NULL si no rige. Reemplaza, en
+#' `.reporte_mt_frase_estrato()`, la del redondeo sistemático entre distritos.
+.reporte_mt_frase_distritos <- function(em) {
+  grupos <- em$grupos_distritos %||% list()
+  if (!length(grupos)) return(NULL)
+  m <- as.integer(em$rutas_minimas_distrito %||% HOJAS_RUTA_RUTAS_MINIMAS_DISTRITO)
+  campo <- function(g, k) as.character(g[[k]] %||% NA)[1]
+  ent <- function(g, k) as.integer(g[[k]] %||% 0L)[1]
+  grupos <- grupos[order(-vapply(grupos, function(g) ent(g, "rutas"), integer(1)))]
+  por_area <- vapply(grupos, function(g) {
+    base <- sprintf("%s, %d con certeza", campo(g, "etiqueta"), ent(g, "n_forzosos"))
+    if (ent(g, "n_candidatos") > 0L) base <- sprintf("%s y %d sorteados entre %d", base, ent(g, "h"), ent(g, "n_candidatos"))
+    base
+  }, character(1))
+  descontados <- vapply(Filter(function(g) campo(g, "regla") %in% c("minimo_descontado_de_forzosos", "forzoso_al_grupo"), grupos),
+                        function(g) campo(g, "etiqueta"), character(1))
+  paste(c(
+    sprintf(paste(
+      "Dentro de cada ciudad o área, todo distrito visitado recibe al menos %d rutas. Entra con certeza el distrito cuyo reparto proporcional",
+      "a la medida de tamaño de sus manzanas del marco elegible alcanza ese mínimo; los demás se agrupan y se sortean, con probabilidad",
+      "proporcional a su tamaño, tantos distritos como veces cabe el mínimo en las rutas del grupo, y cada distrito sorteado recibe la parte",
+      "que le toca de esas rutas: %s."), m, paste(por_area, collapse = "; ")),
+    if (length(descontados)) sprintf(
+      "En %s las rutas del grupo no alcanzaban el mínimo: el distrito sorteado recibe el mínimo y la diferencia se descuenta de los distritos con certeza de la misma ciudad.",
+      paste(descontados, collapse = ", ")) else NULL,
+    paste(
+      "Dentro del distrito la zona actúa como estrato implícito, y cada ruta, sus manzanas aledañas y su reemplazo quedan en el distrito de la titular.",
+      "La probabilidad de inclusión de la manzana es la de su ciudad por la de su distrito dentro de la ciudad por la de la manzana dentro del distrito.")
+  ), collapse = " ")
+}

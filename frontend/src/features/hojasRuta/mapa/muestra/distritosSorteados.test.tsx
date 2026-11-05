@@ -40,6 +40,7 @@ describe("DistritosSorteados (ADR 0131 §1c)", () => {
     expect(html).toContain("En Tacna el distrito sorteado recibe el mínimo");
     const otro = renderToStaticMarkup(<DistritosSorteados sampleSize={{ ...ss, rutas_minimas_distrito: 4 }} aplica servidor={normalizeHojasRutaEstratoMuestral(crudo)} deshabilitado={false} onCambioMinimo={() => undefined} />);
     expect(otro).toContain("Los distritos se calculan al guardar.");
+    expect(renderToStaticMarkup(<DistritosSorteados sampleSize={{ ...ss, rutas_minimas_distrito: 0 }} aplica servidor={null} deshabilitado={false} onCambioMinimo={() => undefined} />)).toBe("");
     expect(renderToStaticMarkup(<DistritosSorteados sampleSize={ss} aplica={false} servidor={null} deshabilitado={false} onCambioMinimo={() => undefined} />)).toBe("");
   });
 });

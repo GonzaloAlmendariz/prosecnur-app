@@ -209,3 +209,18 @@ test_that("la vista previa del tamaño declara el mínimo por distrito y, por ci
                                              sample_size = list(design_effect = 1, estrato = "provincia_lima_areas", base_reparto = "cpv2017")))
   expect_null(off$estrato_muestral$grupos_distritos)
 })
+
+test_that("la memoria de cálculo declara el mínimo por distrito, los distritos con certeza y sorteados por área, y π = π_c · π_d · π_i|d", {
+  cfg <- .ds_cfg()
+  pre <- function(base) hojas_ruta_sample_size_preview(list(territorios = cfg$territorios, sample_size_mode = "external_total", n_objetivo = 225L * 8L,
+                                                            entrevistas_por_manzana = 8L, sample_size = list(design_effect = 1, estrato = "provincia_lima_areas", base_reparto = base)))
+  frase <- .reporte_mt_frase_estrato(pre("cpv2025_adultos_urbanos")$estrato_muestral)
+  expect_match(frase, "todo distrito visitado recibe al menos 3 rutas")
+  expect_match(frase, "Lima Norte, \\d+ con certeza")
+  expect_match(frase, "\\d+ sorteados entre \\d+")
+  expect_match(frase, "por la de su distrito dentro de la ciudad")
+  expect_false(grepl("redondeo sistemático aleatorio", frase))
+  expect_false(grepl("·", frase, fixed = TRUE))
+  # Con la base 2017 la memoria es la del §1b.
+  expect_match(.reporte_mt_frase_estrato(pre("cpv2017")$estrato_muestral), "redondeo sistemático aleatorio")
+})

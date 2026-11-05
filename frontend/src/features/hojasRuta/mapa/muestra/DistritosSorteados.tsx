@@ -25,8 +25,9 @@ export const distritosAplica = (s: SampleSizeDistritos, nPorDistrito: boolean): 
   !nPorDistrito && (s.estrato ?? "distrito") !== "distrito" && s.base_reparto === "cpv2025_adultos_urbanos";
 
 export function DistritosSorteados({ sampleSize, aplica, servidor, deshabilitado, onCambioMinimo }: Props) {
-  if (!aplica) return null;
-  const minimo = sampleSize.rutas_minimas_distrito || RUTAS_MINIMAS_DISTRITO;
+  // 0 es el §1c apagado (sólo desde el backend): el panel no se monta.
+  if (!aplica || sampleSize.rutas_minimas_distrito === 0) return null;
+  const minimo = sampleSize.rutas_minimas_distrito ?? RUTAS_MINIMAS_DISTRITO;
   const d = servidor?.distritos;
   const vigente = d && d.rutas_minimas_distrito === minimo && servidor?.modo === sampleSize.estrato ? d : null;
   const grupos = vigente ? [...vigente.grupos].sort((a, b) => b.rutas - a.rutas) : [];
