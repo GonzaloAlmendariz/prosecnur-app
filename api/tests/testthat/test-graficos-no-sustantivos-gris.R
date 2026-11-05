@@ -108,3 +108,16 @@ test_that("el no sustantivo se distingue del neutro de la escala (contraste de l
   pal <- .graficos_no_sustantivos_paleta("acuerdo", c("1", "2", "3", "4", "5", "9"), .gns_choices()[1:6, ])
   expect_gt(abs(lum(pal[3]) - lum(pal[6])), 0.15)
 })
+
+test_that("los códigos de arriba con rótulo de no respuesta salen de la escala aunque sean contiguos (CCSS B15_2_1)", {
+  et <- c("Totalmente en desacuerdo", "En desacuerdo", "Ni de acuerdo ni en desacuerdo", "De acuerdo", "Totalmente de acuerdo",
+          "No he acudido a esos horarios", "No sabía que los/as docentes tuvieran horario de atención")
+  expect_identical(.graficos_no_sustantivos(as.character(1:7), et), c(rep(FALSE, 5), TRUE, TRUE))
+  # Sólo por arriba: un «Ninguno» que abre una escala de frecuencia sigue en ella.
+  fr <- c("Ninguno", "Uno", "Dos", "Tres o más")
+  expect_identical(.graficos_no_sustantivos(as.character(1:4), fr), rep(FALSE, 4))
+  # La escala conserva dos puntos: Sí / No / No sé deja fuera sólo el «No sé».
+  expect_identical(.graficos_no_sustantivos(c("1", "2", "3"), c("Sí", "No", "No sé")), c(FALSE, FALSE, TRUE))
+  # La metadata que declara un código de la escala manda sobre él (el 7 sigue fuera).
+  expect_identical(.graficos_no_sustantivos(as.character(1:7), et, sustantivos = "6"), c(rep(FALSE, 6), TRUE))
+})
