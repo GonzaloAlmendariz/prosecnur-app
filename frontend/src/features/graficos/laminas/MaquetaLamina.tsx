@@ -134,7 +134,8 @@ export function MaquetaLamina({ slide, lamina, ranuraActiva, onRanura, onCambiar
       {rectDe && rectA && <LlaveDependencia de={rectDe} a={rectA} />}
 
       {campos.has("base") && (
-        <button type="button" className="pulso-f6-maqueta-zona pulso-f6-maqueta-pie" onClick={() => onTexto("base")} aria-label="Editar base">
+        <button type="button" className="pulso-f6-maqueta-zona pulso-f6-maqueta-pie" onClick={() => onTexto("base")} aria-label="Editar base"
+          title={baseEscrita || baseAuto || undefined}>
           {baseEscrita || baseAuto || (slots.length > 1 ? "Cada gráfico lleva su base debajo" : "Base del gráfico")}
         </button>
       )}

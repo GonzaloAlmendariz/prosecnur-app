@@ -141,8 +141,13 @@
   overflow: hidden;
   color: var(--pulso-text-muted);
   font-size: 1.05em;
-  white-space: nowrap;
-  text-overflow: ellipsis;
+  /* Una base larga («Las dos líneas se calculan…») se parte en dos líneas en vez de cortarse: es contenido, no adorno. */
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow-wrap: anywhere;
+  white-space: normal;   /* el botón global va en una línea (theme.css) */
 }
 
 /* Sobre la imagen: capas que cubren la hoja entera; sólo sus botones reciben el clic, para no taparse entre sí. */
