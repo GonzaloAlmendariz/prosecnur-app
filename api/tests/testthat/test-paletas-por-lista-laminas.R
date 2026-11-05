@@ -36,6 +36,9 @@ skip_if_not_installed("officer"); skip_if_not_installed("rvg")
 .pll_slide_txt <- function(f, k) paste(readLines(unz(f, sprintf("ppt/slides/slide%d.xml", k)), warn = FALSE), collapse = "\n")
 
 test_that("sin colores en la espec, las láminas categóricas y circulares salen byte a byte como antes (golden)", {
+  # Las huellas se midieron en Linux (el CI, shard 1): el ancho de la tinta sale de systemfonts y en macOS otras fuentes mueven
+  # la geometría, y con ella el hash. En otra plataforma el rojo es falso; el CI sigue vigilándolas.
+  skip_if_not(identical(Sys.info()[["sysname"]], "Linux"), "huellas del XML medidas con las fuentes de Linux (CI)")
   # Huellas del XML medidas con el código anterior al ADR 0097 (commit 4330de9): un cambio aquí es un cambio visible.
   e3 <- preparar_categorica(c("Quinto", "Sexto", "Séptimo"), c(.32, .28, .40), c("32%", "28%", "40%"), c(32, 28, 40), resaltar = TRUE)   # golden con realce
   e2 <- preparar_categorica(c("Sí", "No"), c(.62, .38), c("62%", "38%"), c(62, 38))
