@@ -6,21 +6,22 @@ import { InspectorCabecera } from "../InspectorCabecera";
 import { GlidingRadioGroup } from "../../../../components/GlidingRadioGroup";
 import { PulsoButton } from "../../../../components/PulsoButton";
 import type { HojasRutaCoberturaMarco, HojasRutaIntegratedConfig, HojasRutaRouteSnapshot, HojasRutaSamplePreview, SamplingMethod } from "../../../../api/hojasRuta";
-import { irAlMarcoElegible, tonoCobertura } from "./marcoElegible";
-import { CompararSemillas } from "./CompararSemillas";
+import { tonoCobertura } from "./marcoElegible";
 import { SorteoEnCurso } from "./SorteoEnCurso";
 import { ConfirmarResorteo } from "./ConfirmarResorteo";
 import { fechaDelSorteo } from "./fechaSorteo";
 import { nombreDistrito } from "../nombres";
 import { tonoCss } from "../lienzo/tonos";
 import { useLienzoHojasRuta } from "../store";
-import { useSeccion } from "../../../../lib/navegacion/useDireccion";
 import { TEXTO_CAUSA, type CausaRuteo } from "./causaRuteo";
-import { acotarReemplazos, cambiosDeSorteo, mismoTerritorio, otraSemilla, saltoVistaPrevia, type BorradorSorteo } from "./sorteo";
+import { acotarReemplazos, cambiosDeSorteo, mismoTerritorio, saltoVistaPrevia, type BorradorSorteo } from "./sorteo";
 
 import { formatoDecimal } from "../../../../lib/formatoNumero";
 import { EstadoVacio } from "../../../../components/EstadoVacio";
 import { GrupoMuestra } from "../muestra/GrupoMuestra";
+import { AccesoAjustes } from "../ajustes/AccesoAjustes";
+import { resumenGrupo } from "../ajustes/gruposAjustes";
+import { useAbrirAjustes } from "../ajustes/useAjustesDiseno";
 import { resumenHistorial } from "./resumenHistorial";
 /**
  * Manzanas en la página del lienzo (U8). El inspector arma el sorteo —método,
@@ -40,10 +41,10 @@ export const METODOS: ReadonlyArray<{ id: SamplingMethod; titulo: string; cuerpo
 const ESQUINAS = [["auto", "Auto"], ["1", "1"], ["2", "2"], ["3", "3"], ["4", "4"]] as const;
 const SALTOS = [["auto", "Automático"], ["off", "Sin salto"], ["manual", "Manual"]] as const;
 const POLITICAS = [["alternate_zone_same_district", "Otra zona"], ["paired_by_titular_zone", "Misma zona"]] as const;
-const PESOS = [["viviendas", "Viviendas"], ["poblacion", "Población"]] as const;
+export const PESOS = [["viviendas", "Viviendas"], ["poblacion", "Población"]] as const;
 const metodoDe = (m: SamplingMethod) => METODOS.find((x) => x.id === m)?.titulo ?? m;
 
-function Diagrama({ metodo }: { metodo: SamplingMethod }) {
+export function Diagrama({ metodo }: { metodo: SamplingMethod }) {
   if (metodo === "pps")
     return (
       <svg viewBox="0 0 96 28" aria-hidden="true">
@@ -71,7 +72,7 @@ function Diagrama({ metodo }: { metodo: SamplingMethod }) {
   );
 }
 
-function Opciones<V extends string>({ etiqueta, valor, opciones, onCambio, deshabilitado }: { etiqueta: string; valor: V; opciones: ReadonlyArray<readonly [V, string]>; onCambio: (v: V) => void; deshabilitado?: boolean }) {
+export function Opciones<V extends string>({ etiqueta, valor, opciones, onCambio, deshabilitado }: { etiqueta: string; valor: V; opciones: ReadonlyArray<readonly [V, string]>; onCambio: (v: V) => void; deshabilitado?: boolean }) {
   return (
     <div className="hr-muestra-campo">
       <small>{etiqueta}</small>
@@ -104,12 +105,12 @@ type InspectorProps = {
   onSortear: () => void;
 };
 
-export function ManzanasInspector({ guardada, config, muestra, viviendas, manzanas, listoParaSortear, marcoElegible, parecido, reglaPiloto, bloqueado, guardando, enviada, sorteando = null, onSortear }: InspectorProps) {
+export function ManzanasInspector({ guardada, config, muestra, viviendas, manzanas, listoParaSortear, parecido, reglaPiloto, bloqueado, guardando, enviada, sorteando = null, onSortear }: InspectorProps) {
   const [confirmando, setConfirmando] = useState(false);
   const pedirSorteo = () => (enviada && muestra ? setConfirmando(true) : onSortear());
   const sorteadaEl = fechaDelSorteo(muestra?.sorteado_en);
   const { sorteoBorrador, setSorteoBorrador } = useLienzoHojasRuta();
-  const nav = useSeccion("hojas-ruta");
+  const { abrir: abrirAjustes } = useAbrirAjustes();
   const cambiar = (b: BorradorSorteo) => setSorteoBorrador({ ...sorteoBorrador, ...b });
   const cambios = cambiosDeSorteo(guardada, sorteoBorrador);
   const ruta = Math.max(1, config.entrevistas_por_manzana || 1);
@@ -134,7 +135,7 @@ export function ManzanasInspector({ guardada, config, muestra, viviendas, manzan
             {!config.marco_elegible?.declarado ? (
               <p>
                 Antes, revisa el marco elegible: hoy se sortea también sobre manzanas sin viviendas registradas.{" "}
-                <button type="button" className="hr-sorteo-v1-ir" onClick={() => irAlMarcoElegible()}>Ver el marco elegible</button>
+                <button type="button" className="hr-sorteo-v1-ir" onClick={() => abrirAjustes("marco")}>Ver el marco elegible</button>
               </p>
             ) : null}
             <PulsoButton variant="primary" size="sm" disabled={ed || !listoParaSortear || confirmando} onClick={pedirSorteo}>
@@ -161,45 +162,10 @@ export function ManzanasInspector({ guardada, config, muestra, viviendas, manzan
         {muestra ? parecido : null}
         {!listoParaSortear ? <p className="hr-mapa-aviso">Primero calcula el tamaño en Muestra: el sorteo reparte ese N en rutas de {ruta} entrevistas.</p> : null}
 
-        <section className="hr-muestra-grupo" aria-label="Método">
-          <h3>Método</h3>
-          <GlidingRadioGroup value={config.sampling_method} options={METODOS} getOptionValue={(m) => m.id} onValueChange={(sampling_method) => cambiar({ sampling_method })} className="hr-sorteo-metodos" aria-label="Método de selección" getOptionProps={() => ({ disabled: ed })}>
-            {(m) => (
-              <>
-                <Diagrama metodo={m.id} />
-                <strong>{m.titulo}</strong>
-                <small>{m.cuerpo}</small>
-              </>
-            )}
-          </GlidingRadioGroup>
-        </section>
-
-        <section className="hr-muestra-grupo" aria-label="Carga de la ruta">
-          <h3>Carga de la ruta</h3>
-          <Opciones etiqueta="Ponderar manzanas por" valor={config.measure_var} opciones={PESOS} onCambio={(measure_var) => cambiar({ measure_var })} deshabilitado={ed} />
-          <div className="hr-sorteo-ruta">
-            <span>
-              <b>{ruta} encuestas por ruta</b>
-              <small>Se define en Muestra</small>
-            </span>
-            <PulsoButton variant="secondary" size="sm" onClick={() => nav.irA("seccion", "muestra")}>
-              Cambiar
-            </PulsoButton>
-          </div>
-          <div className="hr-muestra-campo">
-            <small>Semilla</small>
-            <span className="hr-sorteo-semilla">
-              <input type="number" min={0} step={1} aria-label="Semilla" value={config.seed} disabled={ed} onChange={(e) => e.target.value !== "" && Number.isFinite(Number(e.target.value)) && cambiar({ seed: Math.max(0, Math.round(Number(e.target.value))) })} />
-              <PulsoButton variant="secondary" size="sm" disabled={ed} onClick={() => cambiar({ seed: otraSemilla(config.seed) })}>
-                Otra
-              </PulsoButton>
-            </span>
-            <span className="hr-mapa-nota">La misma semilla con los mismos parámetros repite el sorteo.</span>
-          </div>
-          {listoParaSortear ? <CompararSemillas config={config} deshabilitado={ed} onUsar={(seed) => cambiar({ seed })} /> : null}
-        </section>
-
-        {marcoElegible}
+        {/* Método, medida, semilla y marco elegible se editan en «Ajustes del diseño» (M5); el sorteo, que es la
+            decisión, sigue aquí abajo. */}
+        <AccesoAjustes grupo="sorteo" titulo="Sorteo de manzanas" valor={resumenGrupo("sorteo", config)} accion="Cambiar" />
+        <AccesoAjustes grupo="marco" titulo="Marco elegible" valor={resumenGrupo("marco", config)} />
 
         <section className="hr-muestra-grupo" aria-label="Recorrido en campo">
           <h3>Recorrido en campo</h3>

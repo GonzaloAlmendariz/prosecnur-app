@@ -279,7 +279,7 @@ function AccionDelGrupo({ accion }: { accion: AccionObservacion | null }) {
   return (
     <p className="hr-sel-accion">
       {accion.texto ? <>{accion.texto} </> : null}
-      {accion.destino === "marco" ? <Link to="/hojas-ruta?seccion=manzanas#marco-elegible">Ir al marco elegible</Link> : <Link to="/hojas-ruta?seccion=manzanas">Ir a Manzanas</Link>}
+      {accion.destino === "marco" ? <Link to="/hojas-ruta?seccion=manzanas&panel=ajustes&foco=marco">Ir al marco elegible</Link> : <Link to="/hojas-ruta?seccion=manzanas">Ir a Manzanas</Link>}
     </p>
   );
 }

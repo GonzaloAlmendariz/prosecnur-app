@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 
 import type { HojasRutaAgeRange, HojasRutaEstratoMuestral, HojasRutaIntegratedConfig, HojasRutaTerritory } from "../../../../api/hojasRuta";
@@ -6,6 +6,8 @@ import { payloadDeRangos } from "../poblacion/aplicarRangos";
 import type { ResumenMatriz } from "../poblacion/matriz";
 import { useModoRangos } from "../poblacion/PoblacionPaneles";
 import { GrupoCuotas } from "./grupos/GrupoCuotas";
+import { GrupoMarco } from "./grupos/GrupoMarco";
+import { GrupoSorteo } from "./grupos/GrupoSorteo";
 import type { ResultadoTamano } from "../muestra/motorTamano";
 import { useLienzoHojasRuta } from "../store";
 import { AjustesDiseno, type VistaPreviaDiseno } from "./AjustesDiseno";
@@ -34,6 +36,10 @@ type Props = {
   /** Los guardados de Población (los mismos que usaba su inspector). */
   onGuardarYCalcularPoblacion: (cambios: Partial<HojasRutaIntegratedConfig>) => void;
   onGuardarCaracter: (caracter: NonNullable<HojasRutaIntegratedConfig["caracter_cuotas"]>) => void;
+  /** La config con el borrador del sorteo encima y el panel del marco elegible que arma la página. */
+  configSorteo: HojasRutaIntegratedConfig | null;
+  listoParaSortear: boolean;
+  marcoElegible: ReactNode;
 };
 
 const vistaDe = (config: HojasRutaIntegratedConfig, tamano: ResultadoTamano | null): VistaPreviaDiseno => {
@@ -47,9 +53,9 @@ const vistaDe = (config: HojasRutaIntegratedConfig, tamano: ResultadoTamano | nu
  * crecer `HojasRutaMapaPage.tsx`. Recalcular fija la vista previa con el borrador vigente sin guardar; si el
  * borrador cambia después, la vista previa queda atenuada hasta volver a recalcular. Aplicar guarda.
  */
-export function AjustesDisenoHost({ config, configMuestra, fase, tamano, margenPara, bloqueado, guardando, territorios, estratoServidor, onAplicarMuestra, rangosConfig, matriz, onGuardarYCalcularPoblacion, onGuardarCaracter }: Props) {
+export function AjustesDisenoHost({ config, configMuestra, fase, tamano, margenPara, bloqueado, guardando, territorios, estratoServidor, onAplicarMuestra, rangosConfig, matriz, onGuardarYCalcularPoblacion, onGuardarCaracter, configSorteo, listoParaSortear, marcoElegible }: Props) {
   const { abierto, grupo, cerrar, irAGrupo } = useAjustesDiseno();
-  const { rangosBorrador, cortesBorrador, muestraBorrador, sorteoBorrador } = useLienzoHojasRuta();
+  const { rangosBorrador, cortesBorrador, muestraBorrador } = useLienzoHojasRuta();
   const location = useLocation();
   const navigate = useNavigate();
   const firma = JSON.stringify(muestraBorrador ?? null);
@@ -83,10 +89,12 @@ export function AjustesDisenoHost({ config, configMuestra, fase, tamano, margenP
       if (g === "tamano" && tamano) return <GrupoTamano config={configMuestra} resultado={tamano} bloqueado={bloqueado} guardando={guardando} margenPara={margenPara} />;
       if (g === "reparto") return <GrupoReparto config={configMuestra} territorios={territorios} estratoServidor={estratoServidor} deshabilitado={bloqueado || guardando} />;
       if (g === "visitas") return <GrupoVisitas config={configMuestra} estratoServidor={estratoServidor} deshabilitado={bloqueado || guardando} />;
+      if (g === "marco" && marcoElegible) return <GrupoMarco panel={marcoElegible} />;
+      if (g === "sorteo" && configSorteo) return <GrupoSorteo config={configSorteo} listoParaSortear={listoParaSortear} deshabilitado={bloqueado || guardando} onIrASortear={() => irSeccion("manzanas")} />;
       if (g === "cuotas" && config) return <GrupoCuotas config={config} rangosConfig={rangosConfig} matriz={matriz} bloqueado={bloqueado} guardando={guardando} onGuardarYCalcular={onGuardarYCalcularPoblacion} onGuardarCaracter={onGuardarCaracter} />;
       return null;
     },
-    [config, configMuestra, tamano, bloqueado, guardando, margenPara, territorios, estratoServidor, rangosConfig, matriz, onGuardarYCalcularPoblacion, onGuardarCaracter],
+    [config, configMuestra, tamano, bloqueado, guardando, margenPara, territorios, estratoServidor, rangosConfig, matriz, onGuardarYCalcularPoblacion, onGuardarCaracter, configSorteo, listoParaSortear, marcoElegible, irSeccion],
   );
 
   if (!config) return null;
@@ -104,7 +112,8 @@ export function AjustesDisenoHost({ config, configMuestra, fase, tamano, margenP
       onCerrar={cerrar}
       onIrSeccion={irSeccion}
       contenidoDe={contenidoDe}
-      pendientes={cambiosSinAplicar({ rangos: rangosBorrador, cortes: cortesBorrador, muestra: muestraBorrador, sorteo: sorteoBorrador })}
+      // El sorteo no cuenta aquí: sus cambios se aplican al sortear, en Manzanas (GrupoSorteo lo dice).
+      pendientes={cambiosSinAplicar({ rangos: rangosBorrador, cortes: cortesBorrador, muestra: muestraBorrador, sorteo: null })}
       desfasada={desfasada}
       onRecalcular={() => setFijada({ firma, vista: actual })}
       onAplicar={muestraBorrador || rangosBorrador || cortesBorrador ? () => {

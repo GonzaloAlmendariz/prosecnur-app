@@ -981,16 +981,6 @@ export default function HojasRutaMapaPage() {
                 ) : null
               }
               parecido={<ParecidoAlMarco marco={perfilNseMarco} muestra={perfilNseMuestra} causaV1={Boolean(muestraV1(salidas?.sample?.alerts))} />}
-              marcoElegible={
-                <MarcoElegiblePanel
-                  marco={configSorteo.marco_elegible}
-                  vista={vistaMarco}
-                  cargando={cargandoMarco}
-                  deshabilitado={bloqueado || guardando}
-                  onCambiar={(me) => setSorteoBorrador({ ...sorteoBorrador, marco_elegible: me })}
-                  ruta={configSorteo.entrevistas_por_manzana}
-                />
-              }
               bloqueado={bloqueado}
               guardando={guardando}
               enviada={envio ? { enviadoEl: envio.enviado_at } : null}
@@ -1043,7 +1033,7 @@ export default function HojasRutaMapaPage() {
           )}
         </section>
       </div>
-      <AjustesDisenoHost config={estado?.integrated_config ?? null} configMuestra={configMuestra ?? null} fase={fase} tamano={tamano} margenPara={entradaTamano ? (n) => margenTotalParaN(entradaTamano, n) : undefined} bloqueado={bloqueado} guardando={guardando} territorios={territorios} estratoServidor={estratoServidor} onAplicarMuestra={() => void guardarMuestra()} rangosConfig={rangosConfig} matriz={matriz} onGuardarYCalcularPoblacion={(c) => void guardarYCalcularPoblacion(c)} onGuardarCaracter={(c) => void guardarCaracterCuotas(c)} />
+      <AjustesDisenoHost config={estado?.integrated_config ?? null} configMuestra={configMuestra ?? null} fase={fase} tamano={tamano} margenPara={entradaTamano ? (n) => margenTotalParaN(entradaTamano, n) : undefined} bloqueado={bloqueado} guardando={guardando} territorios={territorios} estratoServidor={estratoServidor} onAplicarMuestra={() => void guardarMuestra()} rangosConfig={rangosConfig} matriz={matriz} onGuardarYCalcularPoblacion={(c) => void guardarYCalcularPoblacion(c)} onGuardarCaracter={(c) => void guardarCaracterCuotas(c)} configSorteo={configSorteo ?? null} listoParaSortear={Boolean(Boolean(salidas?.sample_size_preview) && confirmados.length > 0)} marcoElegible={configSorteo ? <MarcoElegiblePanel                   marco={configSorteo.marco_elegible}                   vista={vistaMarco}                   cargando={cargandoMarco}                   deshabilitado={bloqueado || guardando}                   onCambiar={(me) => setSorteoBorrador({ ...sorteoBorrador, marco_elegible: me })}                   ruta={configSorteo.entrevistas_por_manzana}                 /> : null} />
     </PageFrame>
   );
 }
