@@ -94,6 +94,18 @@
 #' @return `list(pruebas, celdas, totales, grupos)` o NULL si el cruce no tiene dos grupos con datos.
 #' @keywords internal
 .tarjetas_evaluar_cruce <- function(fuente, var, cruce, regla, familia, filas = NULL, top2box = NULL, fila_como = NULL) {
+  # Dentro de un pedido memorizado (graficos_memo_evaluacion.R) la misma prueba no se repite.
+  if (.gmemo_activa()) {
+    return(.gmemo_obtener("tarjetas", list(fuente$data, fuente$survey, fuente$orders_list, fuente$choices, regla, familia),
+                          .gmemo_llave(var, cruce, filas, top2box, fila_como),
+                          function() .tarjetas_evaluar_cruce_calcular(fuente, var, cruce, regla, familia, filas, top2box, fila_como)))
+  }
+  .tarjetas_evaluar_cruce_calcular(fuente, var, cruce, regla, familia, filas, top2box, fila_como)
+}
+
+#' Cálculo de `.tarjetas_evaluar_cruce` (sin memoria)
+#' @keywords internal
+.tarjetas_evaluar_cruce_calcular <- function(fuente, var, cruce, regla, familia, filas = NULL, top2box = NULL, fila_como = NULL) {
   gr <- .sig_grupos_cruce(fuente, cruce)
   if (is.null(gr) || length(gr$grupos) < 2L) return(NULL)
   ind <- .sig_indicadores(fuente$data, var, survey = fuente$survey, orders_list = fuente$orders_list)
