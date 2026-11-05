@@ -302,7 +302,9 @@
 .hr-sorteo-distritos small { font-size: var(--pulso-type-caption-size); color: var(--pulso-text-soft); font-variant-numeric: tabular-nums; }
 .hr-sorteo-dist-cifra { display: flex; flex-direction: column; align-items: flex-end; line-height: 1.1; }
 .hr-sorteo-dist-cifra b { font-size: var(--pulso-type-title-size); font-weight: 700; color: var(--pulso-text); font-variant-numeric: tabular-nums; }
-.hr-sorteo-historial li { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; align-items: center; padding: 8px; border-radius: 10px; }
+.hr-sorteo-historial li { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 2px 6px; align-items: center; padding: 8px; border-radius: 10px; }
+/* La marca («En uso», «Otro territorio») va debajo del texto: a su lado le quitaba el ancho y la fila se partía cada dos palabras. */
+.hr-sorteo-historial li > em { grid-column: 1; grid-row: 2; }
 .hr-sorteo-historial li[data-vigente] { background: var(--pulso-surface-2); }
 .hr-sorteo-historial strong { display: block; font-size: var(--pulso-type-body-size); overflow-wrap: anywhere; }
 .hr-sorteo-historial small { display: block; font-size: var(--pulso-type-caption-size); color: var(--pulso-text-soft); overflow-wrap: anywhere; }

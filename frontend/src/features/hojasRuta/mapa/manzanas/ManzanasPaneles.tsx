@@ -20,6 +20,8 @@ import { acotarReemplazos, cambiosDeSorteo, mismoTerritorio, otraSemilla, saltoV
 
 import { formatoDecimal } from "../../../../lib/formatoNumero";
 import { EstadoVacio } from "../../../../components/EstadoVacio";
+import { GrupoMuestra } from "../muestra/GrupoMuestra";
+import { resumenHistorial } from "./resumenHistorial";
 /**
  * Manzanas en la página del lienzo (U8). El inspector arma el sorteo —método,
  * peso, semilla, recorrido y reemplazos— y lo manda a R; la estructura es el
@@ -312,13 +314,38 @@ export function ManzanasEstructura({ muestra, historial, territorios, nFinal, co
 
   return (
     <>
+      {/* Lo principal primero: las rutas que dejó el sorteo; el historial, plegado debajo (antes iba arriba y a 1024
+          se partía cada dos palabras, empujando la lista fuera de la vista). */}
       <div className="hr-mapa-cab hr-mapa-cab--pila">
         <div className="hr-mapa-cab-titulo">
-          <h2>Ruteos</h2>
-          <small>{historial.length ? `${historial.length} en este proyecto` : "Sin sorteo"}</small>
+          <h2>Rutas por distrito</h2>
+          <small>{muestra ? `${fmt(muestra.n_blocks)} UMP titulares` : "Sin sorteo"}</small>
         </div>
       </div>
       <div className="hr-mapa-ins-cuerpo">
+        {filas.length ? (
+          <ul className="hr-sorteo-distritos">
+            {filas.map(([u, f]) => (
+              <li key={u}>
+                {/* B40: el punto lleva el tono del distrito en el mapa (orden de confirmación, como en B9). */}
+                <i style={{ background: tonoCss(territorios.indexOf(u)) }} aria-hidden="true" />
+                <span className="hr-sorteo-dist-copia">
+                  <strong>{nombreDistrito(f.distrito)}</strong>
+                  <small>
+                    {fmt(f.entrevistas)} entrevistas{f.reemplazos ? `, ${fmt(f.reemplazos)} reemplazo${f.reemplazos === 1 ? "" : "s"}` : ""}
+                  </small>
+                </span>
+                <span className="hr-sorteo-dist-cifra">
+                  <b>{fmt(f.titulares)}</b>
+                  <small>UMP</small>
+                </span>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <EstadoVacio icono={<Inbox size={16} />} titulo="Todavía no hay manzanas sorteadas" descripcion="Sortea desde el panel de la derecha." />
+        )}
+        <GrupoMuestra titulo="Historial de ruteos" resumen={resumenHistorial(historial.length, historial.some(vigente))} abierto={!muestra}>
         <section className="hr-muestra-grupo" aria-label="Historial de ruteos">
           {historial.length ? (
             <ul className="hr-sorteo-historial">
@@ -354,32 +381,7 @@ export function ManzanasEstructura({ muestra, historial, territorios, nFinal, co
             <p className="hr-mapa-nota">Cada sorteo queda aquí para volver a él con la misma semilla.</p>
           )}
         </section>
-        <h3 className="hr-mapa-subtitulo hr-sorteo-subtitulo">
-          <span>Rutas por distrito</span>
-          <span>{muestra ? fmt(muestra.n_blocks) : ""}</span>
-        </h3>
-        {filas.length ? (
-          <ul className="hr-sorteo-distritos">
-            {filas.map(([u, f]) => (
-              <li key={u}>
-                {/* B40: el punto lleva el tono del distrito en el mapa (orden de confirmación, como en B9). */}
-                <i style={{ background: tonoCss(territorios.indexOf(u)) }} aria-hidden="true" />
-                <span className="hr-sorteo-dist-copia">
-                  <strong>{nombreDistrito(f.distrito)}</strong>
-                  <small>
-                    {fmt(f.entrevistas)} entrevistas{f.reemplazos ? `, ${fmt(f.reemplazos)} reemplazo${f.reemplazos === 1 ? "" : "s"}` : ""}
-                  </small>
-                </span>
-                <span className="hr-sorteo-dist-cifra">
-                  <b>{fmt(f.titulares)}</b>
-                  <small>UMP</small>
-                </span>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <EstadoVacio icono={<Inbox size={16} />} titulo="Todavía no hay manzanas sorteadas" descripcion="Sortea desde el panel de la derecha." />
-        )}
+        </GrupoMuestra>
         {cobertura.some((c) => c.cobertura_poblacion != null && c.cobertura_poblacion < 1) ? (
           <section className="hr-muestra-grupo" aria-label="Cobertura del marco elegible">
             <h3>Cobertura del marco</h3>
