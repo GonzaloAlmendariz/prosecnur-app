@@ -312,6 +312,15 @@ const LISTA_BLANCA: Record<string, Entrada> = {
   // G15 (Gonzalo, 2026-10-13): el reparto de ancho por lámina, en tres pasos. Lo dibuja la lámina que compara públicos.
   // Sólo donde hace algo: la lámina que compara públicos (Gonzalo, 2026-10-13: «que sus opciones tengan sentido»).
   ancho_tema: { rotulo: "Ancho de los temas", soloEn: ["p_barras_multiapiladas"], cuando: comparaPublicos },
+  // v7.25, ítem 4 (Gonzalo: «la etiqueta arriba de la barra ¿es configurable?»): formal de p_barras_multiapiladas() que el
+  // constructor pasa a `overrides` (reporte_plan_slides.R). La lámina sólo lo aplica a una batería sin públicos ni grupos
+  // dentro del tema (`.lam_escala_arriba_aplica`, lamina_escala_premisa_arriba.R): ahí el enunciado va siempre a la izquierda.
+  premisa_posicion: {
+    rotulo: "Enunciado de cada barra",
+    ayuda: "Encima, la barra usa todo el ancho. Automático lo pone encima sólo cuando la lámina lleva tarjetas de diferencias.",
+    soloEn: ["p_barras_multiapiladas"],
+    cuando: (v) => !comparaPublicos(v) && v.modo !== "var_cruce",
+  },
   excluir_opciones: {
     rotulo: "Excluir respuestas",
     ayuda: "Escribe los códigos separados por comas, por ejemplo 88, 99.",

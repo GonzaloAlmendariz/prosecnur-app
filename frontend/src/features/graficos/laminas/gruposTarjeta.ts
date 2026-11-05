@@ -21,7 +21,7 @@ export const TITULO_GRUPO: Readonly<Record<SeccionTarjeta, string>> = {
 
 const ORDEN: ReadonlySet<string> = new Set([
   "orden_barras", "orden", "orden_periodos", "max_categorias", "top_k", "top_n", "agrupar_resto_en_otros", "etiqueta_otros",
-  "mostrar_ceros", "mostrar_categorias_en_cero", "mostrar_respuestas", "filete_temas", "mostrar_ranking", "ancho_tema", "limite_superior",
+  "mostrar_ceros", "mostrar_categorias_en_cero", "mostrar_respuestas", "filete_temas", "mostrar_ranking", "ancho_tema", "premisa_posicion", "limite_superior",
   "invertir_barras", "otros_al_final", "residuales_gris", "normalizar_etiquetas", "max_palabras", "min_chars", "limites",
 ]);
 

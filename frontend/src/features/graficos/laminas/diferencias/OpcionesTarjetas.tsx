@@ -11,6 +11,8 @@ import { CortosGrupos } from "./CortosGrupos";
 import { CasosNombrados } from "./CasosNombrados";
 import {
   crucesDe,
+  dondeTarjetas,
+  modoAGuardar,
   maxAGuardar,
   maxEfectivo,
   maxPorDefecto,
@@ -18,6 +20,7 @@ import {
   rotuloDeCruce,
   rotulosCon,
   type CambiosOpcion,
+  type DondeTarjetas,
   type RanuraTarjetas,
   type ValorTarjetas,
 } from "./modeloTarjetas";
@@ -28,15 +31,35 @@ type Props = {
   scope: "active" | "consolidated";
   baseActiva: string | null | undefined;
   onCambio: (cambios: CambiosOpcion) => void;
+  /** U13: el gráfico admite el desglose bajo cada barra (`admiteEnLinea`). */
+  enLinea?: boolean;
 };
 
-export function OpcionesTarjetas({ valor, ranura, scope, baseActiva, onCambio }: Props) {
+const DONDE: readonly { clave: DondeTarjetas; rotulo: string }[] = [
+  { clave: "panel", rotulo: "Al lado del gráfico" },
+  { clave: "en_linea", rotulo: "Bajo cada barra" },
+];
+
+export function OpcionesTarjetas({ valor, ranura, scope, baseActiva, onCambio, enLinea = false }: Props) {
   const cruces = crucesDe(valor);
   const publico = valor && typeof valor === "object" && typeof valor.publico === "string" ? valor.publico : "";
   const max = maxEfectivo(valor, ranura);
   const porDefecto = maxPorDefecto(ranura);
+  const donde = dondeTarjetas(valor);
   return (
     <>
+      {enLinea && (
+        <div className="pulso-f6-dato" data-qa="tarjetas-donde" data-qa-geometry-member="">
+          <span className="pulso-f6-dato-rotulo">Dónde van</span>
+          <Segmentado etiqueta="Dónde van las diferencias" valor={donde} opciones={DONDE}
+            onCambiar={(k) => onCambio({ modo: modoAGuardar(k) })} />
+          <span className="pulso-f6-dato-ayuda">
+            {donde === "en_linea"
+              ? "Bajo la barra de la respuesta, sus grupos con su cifra. Hasta dos respuestas, sin panel aparte."
+              : "En un panel junto al gráfico, una tarjeta por diferencia."}
+          </span>
+        </div>
+      )}
       <CrucesTarjetas valor={valor} cruces={cruces} onCambio={onCambio} />
       <CortosGrupos valor={valor} cruces={cruces} scope={scope} baseActiva={baseActiva} onCambio={(cortos) => onCambio({ cortos })} />
       <CasosNombrados valor={publico} onCambio={(p) => onCambio({ publico: p })} />
