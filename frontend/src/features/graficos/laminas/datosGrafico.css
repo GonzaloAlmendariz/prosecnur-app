@@ -108,6 +108,9 @@
   line-height: 1.4;
   color: var(--pulso-text-faint);
   overflow-wrap: anywhere;
+  /* La caja termina donde termina la letra: sin el medio interlineado bajo la última línea (2,09 px a 11,5 px con 1,4),
+     que el QA de geometría contaba como capacidad sin usar en Orden, En el Word y los hallazgos (capacity-drift). */
+  text-box: trim-end text;
 }
 
 .pulso-f6-dato-control {

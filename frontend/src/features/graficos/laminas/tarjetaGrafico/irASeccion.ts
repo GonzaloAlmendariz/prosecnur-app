@@ -1,8 +1,7 @@
-// H4: saltar a una sección de la tarjeta del gráfico. Lleva su cabecera arriba del cuerpo del inspector, bajo el índice
+// H4: saltar a una sección plegable del inspector (tarjeta del gráfico o pestaña «Lámina»). Lleva su cabecera arriba del cuerpo del inspector, bajo el índice
 // pegado, y le da el foco sin que se mueva ningún otro contenedor (sólo el dueño del scroll, C4).
 
 import { duenoDelScroll } from "../../revelarFila";
-import type { SeccionTarjeta } from "../gruposTarjeta";
 
 const AIRE = 8;
 
@@ -17,7 +16,7 @@ const sinMovimiento = () => typeof window !== "undefined" && window.matchMedia?.
  * Espera al cuadro siguiente (la sección se acaba de abrir) y lleva su cabecera arriba. `enfocar` da el foco a su botón;
  * `instantaneo` salta sin animar (al volver a la tarjeta).
  */
-export function irASeccion(tarjeta: HTMLElement | null, seccion: SeccionTarjeta, { enfocar = true, instantaneo = false } = {}): void {
+export function irASeccion(tarjeta: HTMLElement | null, seccion: string, { enfocar = true, instantaneo = false } = {}): void {
   if (!tarjeta || typeof requestAnimationFrame === "undefined") return;
   requestAnimationFrame(() => {
     const el = tarjeta.querySelector<HTMLElement>(`[data-seccion-tarjeta="${seccion}"]`);

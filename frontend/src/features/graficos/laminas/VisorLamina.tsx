@@ -271,7 +271,8 @@ export function VisorLamina({
               draggable={false}
             />
           ) : (
-            <MaquetaLamina slide={slide} lamina={lamina} ranuraActiva={ranuraActiva} onRanura={onRanura} onCambiar={onCambiarGrafico} onTexto={onTexto} />
+            <MaquetaLamina slide={slide} lamina={lamina} ranuraActiva={ranuraActiva} onRanura={onRanura} onCambiar={onCambiarGrafico} onTexto={onTexto}
+              onPrevisualizar={verComoQueda ? undefined : onAlternarComoQueda} prepOk={prepOk} />
           )}
           {src && <ZonasTextoLamina onTexto={onTexto} campos={camposTexto} zonas={zonasPortada(slide.tipo, varianteDe(slide)) ?? undefined} />}
           {src && <RanurasSobreLamina ranuras={ranuras} activa={ranuraActiva} nombre={nombreRanura} onRanura={onRanura} onCambiar={onCambiarGrafico}

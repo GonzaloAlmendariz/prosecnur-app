@@ -6,6 +6,7 @@ import { create } from "zustand";
 import type { EstadoSalida } from "./estadoLamina";
 import type { Lateral } from "./lateralLaminas";
 import { conSeccion, seccionAbierta, type SeccionesAbiertas, type SeccionTarjeta } from "./gruposTarjeta";
+import { conSeccionLamina, seccionLaminaAbierta, type SeccionesLaminaAbiertas, type SeccionLamina } from "./tarjetaLamina/seccionesLamina";
 
 export type SeccionInspector = "contenido" | "composicion" | "graficos" | "estado";
 
@@ -51,6 +52,11 @@ type LaminasUiStore = {
   abrirSeccionTarjeta: (s: SeccionTarjeta) => void;
   /** H4: la última sección que se abrió o a la que se saltó; al volver a la tarjeta (de Identidad, de otra lámina), se va a ella. */
   seccionReciente: SeccionTarjeta | null;
+  /** H4: lo mismo en la pestaña «Lámina» (Composición, Textos y, en las de resumen, sus ajustes y capítulos). */
+  seccionesLamina: SeccionesLaminaAbiertas;
+  alternarSeccionLamina: (s: SeccionLamina) => void;
+  abrirSeccionLamina: (s: SeccionLamina) => void;
+  seccionRecienteLamina: SeccionLamina | null;
   /** H4: los avisos de la lámina, plegados en un chip bajo la cabecera del inspector. */
   avisosAbiertos: boolean;
   alternarAvisos: () => void;
@@ -91,6 +97,16 @@ export const useLaminasUi = create<LaminasUiStore>((set) => ({
   }),
   abrirSeccionTarjeta: (k) => set((s) => ({ seccionesTarjeta: conSeccion(s.seccionesTarjeta, k, true), seccionReciente: k })),
   seccionReciente: null,
+  seccionesLamina: {},
+  alternarSeccionLamina: (k) => set((s) => {
+    const abrir = !seccionLaminaAbierta(s.seccionesLamina, k);
+    return {
+      seccionesLamina: conSeccionLamina(s.seccionesLamina, k, abrir),
+      seccionRecienteLamina: abrir ? k : s.seccionRecienteLamina === k ? null : s.seccionRecienteLamina,
+    };
+  }),
+  abrirSeccionLamina: (k) => set((s) => ({ seccionesLamina: conSeccionLamina(s.seccionesLamina, k, true), seccionRecienteLamina: k })),
+  seccionRecienteLamina: null,
   avisosAbiertos: false,
   alternarAvisos: () => set((s) => ({ avisosAbiertos: !s.avisosAbiertos })),
   registrarResumen: (slideId, r) => set((s) => {
