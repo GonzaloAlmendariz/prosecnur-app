@@ -343,9 +343,19 @@ export function dibujarNombresFuera(ctx: CanvasRenderingContext2D, u: UtilLienzo
   const libres = new Set(elegirRotulos(sinPisarFichas(medidos, ocupadas), 6, false).map((c) => c.clave));
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
+  // Con halo del fondo, como los demás rótulos: sin él, los bordes de distrito y las líneas guía de las
+  // fichas cruzaban el nombre («Callao», «Comas») y a 1024 se leía como trazos sueltos.
+  ctx.lineJoin = "round";
+  ctx.lineWidth = 3;
+  ctx.strokeStyle = u.colores.fondo;
   ctx.fillStyle = u.colores.suave;
-  ctx.globalAlpha = 0.75;
-  for (const m of medidos) if (libres.has(m.clave)) ctx.fillText(m.nombre, m.x, m.y);
+  for (const m of medidos) {
+    if (!libres.has(m.clave)) continue;
+    ctx.globalAlpha = 0.9;
+    ctx.strokeText(m.nombre, m.x, m.y);
+    ctx.globalAlpha = 0.75;
+    ctx.fillText(m.nombre, m.x, m.y);
+  }
   ctx.globalAlpha = 1;
 }
 
