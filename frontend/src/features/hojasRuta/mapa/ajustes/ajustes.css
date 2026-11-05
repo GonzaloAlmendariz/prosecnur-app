@@ -45,3 +45,16 @@
 @media (prefers-reduced-motion: reduce) {
   .hr-ajustes-cuerpo > * { animation: none; }
 }
+
+/* Botón «Diseño» de la barra (BotonDiseno.tsx, maqueta lámina 0). */
+.hr-boton-diseno { display: inline-flex; align-items: center; gap: 10px; height: var(--pulso-chrome-control-h, 38px); padding: 0 6px 0 12px; border: 1px solid color-mix(in srgb, var(--pulso-module-routes) 35%, transparent); border-radius: 10px; background: var(--pulso-module-routes-soft); color: var(--pulso-module-routes); font: inherit; cursor: pointer; transition: background-color 0.18s ease, box-shadow 0.18s ease, transform 0.12s ease; }
+.hr-boton-diseno:hover { background: var(--pulso-surface); color: var(--pulso-module-routes); box-shadow: 0 2px 10px color-mix(in srgb, var(--pulso-module-routes) 18%, transparent); }
+.hr-boton-diseno:active { transform: scale(0.98); }
+.hr-boton-diseno:focus-visible { outline: 2px solid var(--pulso-module-routes); outline-offset: 2px; }
+.hr-boton-diseno[data-compacto] { gap: 8px; padding: 0 10px; }
+.hr-boton-diseno-texto { display: flex; flex-direction: column; align-items: flex-start; line-height: 1.15; }
+.hr-boton-diseno-texto small { font-size: var(--pulso-type-micro-size); font-weight: 700; color: var(--pulso-module-routes); }
+.hr-boton-diseno b { font-size: var(--pulso-type-body-size); font-weight: 600; color: var(--pulso-text); white-space: nowrap; }
+.hr-boton-diseno-pendientes { padding: 3px 8px; border-radius: 7px; background: var(--pulso-module-routes); color: var(--pulso-on-primary, var(--pulso-surface)); font-size: var(--pulso-type-micro-size); font-weight: 700; white-space: nowrap; }
+.hr-boton-diseno kbd { padding: 3px 6px; border-radius: 6px; background: color-mix(in srgb, var(--pulso-text) 6%, transparent); color: var(--pulso-text-soft); font: inherit; font-size: var(--pulso-type-micro-size); }
+.hr-boton-diseno-punto { width: 8px; height: 8px; border-radius: 50%; background: var(--pulso-module-routes); }

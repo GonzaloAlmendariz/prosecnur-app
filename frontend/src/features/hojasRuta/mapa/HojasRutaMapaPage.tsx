@@ -71,6 +71,8 @@ import { estadosPorTitular, manzanaEnPunto, reemplazosDe, rutasPorDistrito, veci
 import { SeleccionCajon, SeleccionEstructura, SeleccionInspector } from "./seleccion/SeleccionPaneles";
 import { SalidasPanel } from "./seleccion/SalidasPanel";
 import { AjustesDisenoHost } from "./ajustes/AjustesDisenoHost";
+import { BotonDiseno } from "./ajustes/BotonDiseno";
+import { alcanceEstudio, seccionLista } from "./ajustes/barraDiseno";
 import { useSeleccionDireccion } from "./seleccion/useSeleccionDireccion";
 import "./marco.css";
 import "./mapaPage.css";
@@ -772,7 +774,8 @@ export default function HojasRutaMapaPage() {
       label: envio ? (envio.desactualizado ? "Reenviar a Material" : "En Material") : "Enviar a Material",
       // La mochila es el ícono de Material de campo; el verde del botón lo da marco.css.
       icon: Backpack,
-      kind: "secondary" as const,
+      // Maqueta aprobada (lámina 0): «Enviar a Material» es la acción principal de la barra.
+      kind: "primary" as const,
       rank: 2 as const,
       disabled: enCuotas ? !confirmados.length : !salidas?.sample,
       title: envio ? (envio.desactualizado ? "La muestra cambió desde el envío: reenvíala" : "La muestra está enviada a Material de campo") : "Envía la muestra a Material de campo, que produce las fichas y el paquete",
@@ -788,24 +791,21 @@ export default function HojasRutaMapaPage() {
       ariaLabel="Contexto operativo de hojas de ruta"
       densidad={barraAngosta ? "compact" : "normal"}
       contexto={
-        <ChromeIndicatorGroup ariaLabel="Lo decidido" resumen={decidido.map((i) => i.detalle).join(", ")}>
-          {decidido.map((i) => (
-            // B4: el lienzo lleva fase, revisión, bitácora y Material en la barra; bajo 1080 px de barra
-            // los indicadores ceden todos (como en el artefacto) para que secciones y acciones no se monten,
-            // salvo el de la sección abierta, que queda con su valor solo: a 1024 la barra no decía nada del estudio.
-            <ChromeIndicator key={i.id} label={i.label} value={i.value} detalle={i.detalle} prioridad={i.seccion === nav.seccion || (nav.seccion === "seleccion" && i.id === "ump") ? "alta" : i.prioridad === "alta" ? "media" : i.prioridad} onClick={() => nav.irA("seccion", i.seccion)} />
-          ))}
+        // Maqueta aprobada (lámina 0): a la izquierda el estudio y su alcance; lo decidido (N, k, estrato) lo resume
+        // el botón «Diseño» y el detalle completo sigue en el `title` del grupo.
+        <ChromeIndicatorGroup ariaLabel="Estudio" resumen={decidido.map((i) => i.detalle).join(", ")}>
+          <ChromeIndicator label="Alcance" value={alcanceEstudio(atlas.filter((c) => enEstudio.includes(c.codigo)).map((c) => c.nombre), confirmados.length)} prioridad="alta" onClick={() => nav.irA("seccion", "territorio")} />
         </ChromeIndicatorGroup>
       }
       acciones={accionesChrome}
       // Gonzalo, 3/11: los avisos van recogidos en un solo botón.
-      herramientas={<AvisosDeLaBarra chips={chipsEstado} />}
+      herramientas={<><BotonDiseno config={estado?.integrated_config ?? null} n={tamano?.nUsado ?? null} compacto={barraAngosta} /><AvisosDeLaBarra chips={chipsEstado} /></>}
       secciones={
         <SectionPillbar
           modulo="hojas-ruta"
           ariaLabel="Secciones de Hojas de ruta"
           seccionActiva={nav.seccion}
-          items={nav.secciones.map((s) => ({ id: s.id, label: s.label, href: nav.hrefDe("seccion", s.id) }))}
+          items={nav.secciones.map((s) => ({ id: s.id, label: s.label, href: nav.hrefDe("seccion", s.id), lista: seccionLista(s.id, { distritos: confirmados.length, matriz: matriz.vigente, tamano: Boolean(salidas?.sample_size_preview), sorteo: Boolean(salidas?.sample), enviado: Boolean(envio && !envio.desactualizado) }) }))}
         />
       }
     />
