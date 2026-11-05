@@ -85,8 +85,8 @@
   celdas <- res$celdas
   celdas$comparable <- celdas$n >= nmin & celdas$conglomerados >= cmin
   celdas$motivo <- ifelse(celdas$comparable, NA_character_,
-                          ifelse(celdas$n < nmin, sprintf("n = %d · no se compara", as.integer(celdas$n)),
-                                 sprintf("%d %ss · no se compara", as.integer(celdas$conglomerados),
+                          ifelse(celdas$n < nmin, sprintf("n = %d, no se compara", as.integer(celdas$n)),
+                                 sprintf("%d %ss, no se compara", as.integer(celdas$conglomerados),
                                          .sig_nombre_conglomerado(regla$conglomerado))))
 
   # Elegibilidad de un grupo en el conjunto: la de su peor fila (en una opción única la base es la misma en todas).

@@ -233,11 +233,14 @@ test_that("HTTP: GET lee la lámina guardada de la base activa, y POST la lámin
   r <- .pp_http(sid, "GET", "?slide_id=h1")
   expect_identical(r$status, 200L)
   expect_identical(r$body$tipo, "p_slide_hallazgos")
-  # Sin `fuente`, la lámina lee la PRIMERA base de las fuentes del procesamiento, en la vista previa y en el PPT
-  # (`.dif_fuente_render` → `.cifra_fuente`), no la activa. La propuesta reproduce lo que dibujaría la lámina y lo
-  # declara en `base`; el defecto del motor queda reportado (H13, multibase).
-  primera <- names(.graficos_processing_sources(sid)$data_sources)[1]
-  expect_identical(r$body$base, primera)
+  # Sin `fuente`, la lámina lee la base del plan, la activa, como las demás láminas (graficos_resumen_base.R), y no la
+  # primera de las fuentes del procesamiento («docentes»), que era el defecto multibase de H13. La propuesta la declara en
+  # `base`.
+  activa <- .graficos_active_base_name(sid)
+  expect_identical(activa, "estudiantes")
+  expect_false(identical(names(.graficos_processing_sources(sid)$data_sources)[1], activa))
+  expect_identical(r$body$base, activa)
+  primera <- activa
   directo <- .propuesta_resumen_sesion(sid, slide_id = "h1")
   expect_identical(vapply(unlist(lapply(r$body$capitulos, `[[`, "cifras"), recursive = FALSE), `[[`, "", "cifra"),
                    vapply(unlist(lapply(directo$capitulos, `[[`, "cifras"), recursive = FALSE), `[[`, "", "cifra"))

@@ -115,12 +115,12 @@
   if (length(hit)) paste0(hit[1], "$", ref) else ref
 }
 
-#' Pie de la serie por niveles: los casos (sin ponderar) de cada nivel, «Casos por nivel: VI 119 · VII 122»
+#' Pie de la serie por niveles: los casos (sin ponderar) de cada nivel, «Casos por nivel: VI: 119, VII: 122»
 #' @keywords internal
 .serie_cruce_nota <- function(datos) {
   niv <- levels(datos$grupo)
   n <- vapply(niv, function(x) max(datos$n_casos[datos$grupo == x], na.rm = TRUE), 0)
-  paste0("Casos que respondieron, por nivel: ", paste(sprintf("%s: %s", niv, .dumbbell_fmt_casos(n)), collapse = " · "), ".")
+  paste0("Casos que respondieron, por nivel: ", paste(sprintf("%s: %s", niv, .dumbbell_fmt_casos(n)), collapse = ", "), ".")
 }
 
 #' Render de la serie por niveles del cruce

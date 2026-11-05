@@ -83,7 +83,7 @@ p_matriz_cuadrantes <- function(temas, corte_x, corte_y, eje_x = NULL, eje_y = N
   do.call(rbind, filas)
 }
 
-#' Rótulo de un eje: el nombre de la medida y las respuestas que suman («Satisfacción · Satisfecho + Muy satisfecho»)
+#' Rótulo de un eje: el nombre de la medida y las respuestas que suman («Satisfacción: Satisfecho + Muy satisfecho»)
 #' @keywords internal
 .matriz_cuadrantes_eje <- function(nombre, ref, corte, sources) {
   ctx <- tryCatch(.graficos_consolidado_ref_context(ref, sources), error = function(e) NULL)
@@ -91,7 +91,7 @@ p_matriz_cuadrantes <- function(temas, corte_x, corte_y, eje_x = NULL, eje_y = N
     tryCatch(.radar_mb_etiqueta_corte(corte, .equiv_escala_opciones(ctx$inst, ctx$resolved_variable)), error = function(e) "")
   } else ""
   partes <- c(nombre %||% "", suma)
-  paste(partes[nzchar(partes)], collapse = " · ")
+  paste(partes[nzchar(partes)], collapse = ": ")
 }
 
 #' @keywords internal

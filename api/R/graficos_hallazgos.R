@@ -305,9 +305,9 @@
 #' Renderer del motor: calcula el modelo y devuelve el ggplot de respaldo con la espec
 #' @keywords internal
 .render_hallazgos <- function(el, preset_args = list()) {
-  fuente <- .dif_fuente_render(el$fuente_ref)
-  sig <- .sig_contexto_render(fuente$data)
   plan_motor <- .dif_plan_render()   # antes de llamar: dentro del modelo, `plan` es una promesa y dynGet la encontraría
+  fuente <- .dif_fuente_render(el, plan_motor)   # la base de la lámina (graficos_resumen_base.R)
+  sig <- .sig_contexto_render(fuente$data)
   .halla_ggplot(.halla_modelo(el, fuente, sig, plan_motor))
 }
 

@@ -79,7 +79,8 @@
   regla <- sig$regla
   claves <- .preguntas_clave_de(sig)
   textos <- .halla_res_textos_del_plan(plan)
-  cands <- unlist(lapply(.resumen_dif_preguntas_plan(plan), function(q) .resumen_dif_candidatas(fuente, q, regla)), recursive = FALSE)
+  preguntas <- .resbase_filtrar_preguntas(.resumen_dif_preguntas_plan(plan), fuente$base, "Resumen ejecutivo")   # graficos_resumen_base.R
+  cands <- unlist(lapply(preguntas, function(q) .resumen_dif_candidatas(fuente, q, regla)), recursive = FALSE)
   vistos <- list()
   for (cd in cands) {
     if (!is.null(cd$fila) && grepl(.CATEGORIAS_RESIDUALES, cd$fila, ignore.case = TRUE)) next
@@ -171,7 +172,7 @@
   for (c in caps) {
     c <- as.list(c)
     titulo <- .dif_chr1(c$titulo) %||% ""
-    items <- lapply(c$cifras %||% list(), .halla_kpi_item)
+    items <- .resbase_filtrar_items(lapply(c$cifras %||% list(), .halla_kpi_item), fuente$base, "Resumen ejecutivo")
     if (length(items) > por_cap) {
       aviso(sprintf("el capítulo «%s» tiene %d hallazgos y el tope es %d; se dibujan los primeros.", titulo, length(items), por_cap))
       items <- items[seq_len(por_cap)]

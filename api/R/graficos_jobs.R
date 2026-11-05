@@ -83,7 +83,7 @@
       }
       sl$payload <- payload
     }
-    sl
+    .resbase_calificar_lamina(sl, base_chr)   # las láminas de resumen leen la base del plan (graficos_resumen_base.R)
   })
   plan
 }
@@ -122,7 +122,7 @@
     }
     titulo_i <- .aviso_titulo_payload(slides[[i]])
     slides_r[[i]] <- tryCatch(
-      .aviso_con_lamina(i, titulo_i, .graficos_rebuild_slide_json(   # avisos «Lámina i · …»
+      .aviso_con_lamina(i, titulo_i, .graficos_rebuild_slide_json(   # avisos «Lámina i, …»
         slides[[i]],
         slide_registry = slide_registry,
         graficador_registry = graficador_registry,

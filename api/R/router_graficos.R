@@ -1161,7 +1161,7 @@
   for (i in seq_along(slides)) {
     s <- as.list(slides[[i]])
     tipo <- as.character(s$tipo %||% "")
-    tag <- .aviso_lamina(i, .aviso_titulo_payload(s))   # «Lámina 3 · “Título”», sin ids ni tipos internos
+    tag <- .aviso_lamina(i, .aviso_titulo_payload(s))   # «Lámina 3, “Título”», sin ids ni tipos internos
     if (!nzchar(tipo)) { errs <- c(errs, sprintf("%s: no tiene tipo de lámina; elige uno en el editor", tag)); next }
     if (!(tipo %in% names(.SLIDE_REGISTRY))) {
       errs <- c(errs, sprintf("%s: es de %s; elige otro tipo en el editor", tag, .aviso_tipo_lamina(tipo))); next
