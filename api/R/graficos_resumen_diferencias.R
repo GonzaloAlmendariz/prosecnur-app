@@ -59,16 +59,22 @@
   v[!is.na(v) & nzchar(v)]
 }
 
-#' Fuente del render para una variable: la base de la referencia («base$var») o la primera de la corrida
+#' Fuente del render de una lámina de resumen: la base que resuelve `.resumen_base_lamina` (graficos_resumen_base.R)
 #'
-#' Lee del motor (`reporte_ppt_plan`, congelado) `data_sources` e `instrument_sources`, como `.render_cifra`.
+#' Lee del motor (`reporte_ppt_plan`, congelado) `data_sources` e `instrument_sources`, como `.render_cifra`. La fuente
+#' lleva `base`, el nombre de la base que lee, para que las filas de otra base queden fuera con su aviso.
+#' @param el Elemento de la lámina (`fuente_ref`, capítulos y cruces).
+#' @param plan Plan del motor, para la base de sus preguntas.
 #' @keywords internal
-.dif_fuente_render <- function(ref = NULL) {
+.dif_fuente_render <- function(el = list(), plan = list()) {
   data_sources <- dynGet("data_sources", ifnotfound = NULL)
   inst_sources <- dynGet("instrument_sources", ifnotfound = NULL)
   if (!length(data_sources)) stop("el render no expone las fuentes del estudio.", call. = FALSE)
-  f <- .cifra_fuente(as.character(ref %||% "")[1], data_sources, inst_sources)
-  .sig_fuente(f$data, f$inst)
+  if (is.data.frame(data_sources)) return(.sig_fuente(data_sources, inst_sources))
+  base <- .resumen_base_lamina(el, data_sources, plan)
+  f <- .sig_fuente(data_sources[[base]], inst_sources[[base]])
+  f$base <- base
+  f
 }
 
 #' El plan del motor (lista de `ppt_slide`), o una lista vacía si el render no lo expone
@@ -306,11 +312,14 @@
     if (!inherits(el, "ppt_element") || el$.element_type %in% c("resumen_diferencias", "hallazgos")) next
     if (!el$.element_type %in% c("barras_agrupadas", "barras_categoricas", "barras_multiapiladas", "dicotomica")) next
     if (!is.null(el$cruces %||% el$cruce %||% (el$overrides %||% list())$cruces)) next
-    vars <- vapply(as.character(unlist(el$vars %||% el$var)), .sig_var_local, character(1))
+    refs <- as.character(unlist(el$vars %||% el$var))
+    vars <- vapply(refs, .sig_var_local, character(1))
     if (!length(vars)) next
     ttb <- .dif_chr(el$top2box_labels %||% (el$overrides %||% list())$top2box_labels)
     if (length(vars) > 1L && !length(ttb)) next   # una batería sin Top Two Box no tiene una fila que resumir
-    out[[length(out) + 1L]] <- list(capitulo = cap, titulo = as.character(s$title %||% "")[1], vars = unname(vars), top2box = ttb)
+    # `bases`: las de sus referencias calificadas, para que la selección automática no lea otra base (graficos_resumen_base.R).
+    out[[length(out) + 1L]] <- list(capitulo = cap, titulo = as.character(s$title %||% "")[1], vars = unname(vars), top2box = ttb,
+                                    bases = unique(.resbase_de_ref(refs)))
   }
   out
 }
@@ -400,7 +409,8 @@
   }
 
   if (seleccion == "auto") {
-    cands <- unlist(lapply(.resumen_dif_preguntas_plan(plan), function(q) .resumen_dif_candidatas(fuente, q, regla)), recursive = FALSE)
+    preguntas <- .resbase_filtrar_preguntas(.resumen_dif_preguntas_plan(plan), fuente$base, "Resumen de diferencias")
+    cands <- unlist(lapply(preguntas, function(q) .resumen_dif_candidatas(fuente, q, regla)), recursive = FALSE)
     claves <- .preguntas_clave_de(sig)   # H14: las preguntas clave del estudio van primero en su capítulo
     filas <- list()
     for (cd in cands) {
@@ -435,7 +445,8 @@
     }
   } else {
     capitulos <- lapply(.resumen_dif_capitulos_manuales(el$capitulos), function(c) {
-      list(titulo = c$titulo, filas = Filter(Negate(is.null), lapply(c$filas, evaluar)))
+      filas <- .resbase_filtrar_items(c$filas, fuente$base, "Resumen de diferencias")   # graficos_resumen_base.R
+      list(titulo = c$titulo, filas = Filter(Negate(is.null), lapply(filas, evaluar)))
     })
     capitulos <- Filter(function(c) length(c$filas) > 0L, capitulos)
     if (!length(capitulos)) aviso(.RESUMEN_DIF_SIN_FILAS)
@@ -495,9 +506,9 @@
 #' Renderer del motor: calcula el modelo y devuelve el ggplot de respaldo con la espec
 #' @keywords internal
 .render_resumen_diferencias <- function(el, preset_args = list()) {
-  fuente <- .dif_fuente_render(el$fuente_ref)
-  sig <- .sig_contexto_render(fuente$data)
   plan_motor <- .dif_plan_render()   # antes de llamar: dentro del modelo, `plan` es una promesa y dynGet la encontraría
+  fuente <- .dif_fuente_render(el, plan_motor)
+  sig <- .sig_contexto_render(fuente$data)
   espec <- .resumen_dif_modelo(el, fuente, sig, plan_motor)
   .resumen_dif_ggplot(espec)
 }

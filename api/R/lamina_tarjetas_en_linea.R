@@ -73,7 +73,7 @@
     if (.en_linea_alto(espec, enl, m, wl) <= alto + 1e-6) return(m)
   }
   if (.en_linea_alto(espec, enl, m, wl) > alto + 0.15 && exists(".pulso_aviso", mode = "function")) {   # un desborde que se ve
-    .pulso_aviso("Tarjetas de diferencias: el gráfico con desglose en línea no cabe en su alto; acorta los rótulos de sus opciones (`rotulos_cortos`).")
+    .pulso_aviso("Tarjetas de diferencias: el gráfico con desglose en línea no cabe en su alto. Acorta los rótulos de sus opciones en Identidad, Rótulos cortos del estudio.")
   }
   m
 }

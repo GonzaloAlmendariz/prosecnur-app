@@ -224,10 +224,12 @@
                                                     sprintf("La lámina no se pudo leer: %s", conditionMessage(e))))
     el <- lamina$slots$plot
     plan <- .propuesta_plan_motor(plan_slides, mapa, inclusivo, base, icon_registry)
-    ref <- as.character(el$fuente_ref %||% "")[1]
-    f <- .cifra_fuente(ref, data_sources, inst_sources)
-    base_lectura <- if (grepl("$", ref, fixed = TRUE)) sub("\\$.*$", "", ref) else names(data_sources)[1]
-    fuente <- .sig_fuente(f$data, f$inst)
+    # La base de la lámina con la misma regla que el render (graficos_resumen_base.R): no la primera de la sesión.
+    base_lectura <- tryCatch(.resumen_base_lamina(el, data_sources, plan),
+                             error = function(e) stop_api(422, "E_PROPUESTA_LAMINA_INVALIDA",
+                                                          sprintf("La lámina no se pudo leer: %s", conditionMessage(e))))
+    fuente <- .sig_fuente(data_sources[[base_lectura]], inst_sources[[base_lectura]])
+    fuente$base <- base_lectura
     sig <- .sig_contexto_render(fuente$data)   # la regla que lee el render
     traducir <- .propuesta_traductor(crudas, base_lectura, mapa, inclusivo)
     p <- if (identical(el$.element_type, "hallazgos")) .propuesta_hallazgos(el, fuente, sig, plan, traducir) else

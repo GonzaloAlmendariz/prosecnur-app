@@ -116,7 +116,7 @@
   if (borrador) {
     wb <- 2.9; xb <- W - mr - wb
     .lam_caja(lz, xb, yt - 0.36, wb, 0.3, .std_color("fondo_destacado"), nombre = "citas:borrador:fondo")
-    .lam_txt(lz, "Citas sin aprobar · borrador", xb, yt - 0.36, wb, 0.3, 10, coral, bold = TRUE, align = "center",
+    .lam_txt(lz, "Citas sin aprobar (borrador)", xb, yt - 0.36, wb, 0.3, 10, coral, bold = TRUE, align = "center",
              nombre = "citas:borrador")
   }
   if (!k) {

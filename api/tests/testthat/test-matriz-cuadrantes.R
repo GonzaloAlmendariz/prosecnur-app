@@ -16,7 +16,7 @@ test_that("cada medida se calcula en su base y la base de la lámina dice el n d
   d <- .matriz_cuadrantes_datos(list(A = c("docentes$a", "estudiantes$a"), B = c("docentes$b", "estudiantes$b")), "4", "4", src)
   expect_equal(d$x, c(80, 30)); expect_equal(d$y, c(60, 90))
   expect_identical(.matriz_cuadrantes_base(d), "Base: 100 docentes y 100 estudiantes.")
-  expect_identical(.matriz_cuadrantes_eje("Docentes", "docentes$a", "4", src), "Docentes · Mucho")
+  expect_identical(.matriz_cuadrantes_eje("Docentes", "docentes$a", "4", src), "Docentes: Mucho")
 })
 
 test_that("las líneas cortan en el promedio o en el valor declarado; los cuadrantes neutros salvo que se nombren", {
