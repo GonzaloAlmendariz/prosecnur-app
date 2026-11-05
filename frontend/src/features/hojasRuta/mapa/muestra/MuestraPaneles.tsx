@@ -2,6 +2,7 @@ import { Calculator, Shuffle, Inbox } from "../../../../vendor/lucide-react";
 import { AjustesPorDistrito } from "./AjustesPorDistrito";
 import { EscenariosMuestra } from "./EscenariosMuestra";
 import { repartoMinimos, repartoPorPoblacion } from "./repartos";
+import { textoDeAviso } from "../filtroDeAvisos";
 import { InspectorCabecera } from "../InspectorCabecera";
 import { PulsoButton } from "../../../../components/PulsoButton";
 import type { HojasRutaAlert, HojasRutaEstratoMuestral, HojasRutaIntegratedConfig, HojasRutaTerritory } from "../../../../api/hojasRuta";
@@ -72,7 +73,7 @@ export function MuestraInspector({ config, resultado: r, bloqueado, guardando, h
           {ruta > 1 && s.design_effect <= 1 ? <p className="hr-mapa-nota hr-muestra-mas">Margen bajo muestreo aleatorio simple: no incluye el conglomerado de {ruta} entrevistas por ruta.</p> : null}
           {!r.multiploDeRuta ? <p className="hr-mapa-aviso">El N no es múltiplo de {ruta} entrevistas por ruta</p> : null}
           {avisosServidor.filter((a) => a.level !== "info" && !AVISOS_YA_DICHOS.test(a.code)).map((a) => (
-            <p key={a.code} className="hr-mapa-aviso">{a.message}</p>
+            <p key={a.code} className="hr-mapa-aviso">{textoDeAviso(a)}</p>
           ))}
           {muestraBorrador && avisosServidor.some((a) => !AVISOS_YA_DICHOS.test(a.code)) ? <p className="hr-mapa-nota">Estos avisos son del último cálculo guardado: se recalculan al guardar.</p> : null}
           {excedidos ? <p className="hr-mapa-aviso">{excedidos} distrito{excedidos > 1 ? "s superan" : " supera"} su margen objetivo</p> : null}
