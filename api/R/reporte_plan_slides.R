@@ -1656,7 +1656,7 @@ p_slide_resumen_diferencias <- function(capitulos = list(), titulo = NULL, etiqu
   seleccion <- match.arg(as.character(unlist(seleccion))[1], c("manual", "auto"))
   .ppt_chk_meta(meta)
   if (!is.list(capitulos)) .plan_spec_abort("p_slide_resumen_diferencias(): `capitulos` debe ser una lista.")
-  if (identical(seleccion, "manual") && !length(capitulos)) .plan_spec_abort("p_slide_resumen_diferencias(): con selección manual declara `capitulos`.")
+  if (identical(seleccion, "manual") && !length(capitulos)) .plan_spec_abort("Resumen de diferencias: ", .RESUMEN_DIF_SIN_FILAS)
   etiqueta <- .ppt_norm_text1(etiqueta, blank = NULL)
   if (!is.null(etiqueta)) meta$antetitulo <- meta$antetitulo %||% etiqueta
   el <- .el_resumen_diferencias(capitulos = capitulos, cruces = cruces, seleccion = seleccion, rotulos = rotulos, cortos = cortos,
@@ -1699,7 +1699,7 @@ p_slide_hallazgos <- function(cifras = list(), titulo = NULL, etiqueta = NULL, m
   resumen <- modo %in% c("resumen", "titulares")
   if (resumen) {
     if (!is.list(capitulos)) .plan_spec_abort("p_slide_hallazgos(): `capitulos` debe ser una lista.")
-    if (identical(seleccion, "manual") && !length(capitulos)) .plan_spec_abort("p_slide_hallazgos(): el resumen con selección manual declara `capitulos`.")
+    if (identical(seleccion, "manual") && !length(capitulos)) .plan_spec_abort("Hallazgos clave: ", .HALLAZGOS_SIN_CAPITULOS)
   } else if (!is.list(cifras) || !length(cifras)) .plan_spec_abort("p_slide_hallazgos(): declara al menos una cifra en `cifras`.")
   etiqueta <- .ppt_norm_text1(etiqueta, blank = NULL) %||% if (resumen) "Resumen ejecutivo"
   if (!is.null(etiqueta)) meta$antetitulo <- meta$antetitulo %||% etiqueta

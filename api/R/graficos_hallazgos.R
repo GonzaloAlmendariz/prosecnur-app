@@ -276,7 +276,7 @@
   n_lamina <- nrow(fuente$data)
   kpis <- Filter(Negate(is.null), lapply(items, .halla_kpi_modelo, fuente0 = fuente, sig = sig, cx = cx, tauto = tauto,
                                           n_lamina = n_lamina, con_grafico = identical(modo, "cifras_con_graficos") && is.null(ancho)))
-  if (!length(kpis)) aviso("la lámina no tiene cifras que mostrar; declara `cifras`.")
+  if (!length(kpis)) aviso("escribe al menos una cifra completa: la pregunta, la respuesta y el texto.")
   g_ancho <- if (!is.null(ancho)) .halla_grafico_datos(fuente, ancho, NULL, sig, cx, tauto, con_intervalo = TRUE) else NULL
   n_fuera <- sum(vapply(kpis, function(k) as.integer(k$grafico$n_fuera %||% 0L), 0L))
   list(tipo = "hallazgos", modo = modo, kpis = kpis, grafico_ancho = g_ancho, regla = sig$regla, m = sig$m %||% NA_integer_,
@@ -290,6 +290,9 @@
 .el_hallazgos <- function(cifras = list(), modo = "cifras", grafico_ancho = NULL, cruces = NULL, rotulos = list(), cortos = list(),
                           tautologicos = list(), publico = NULL, fuente = NULL, capitulos = list(), seleccion = "manual",
                           max_por_capitulo = NULL, max_por_lamina = NULL, tambien = TRUE, titulos = NULL) {
+  # Una cifra o un capítulo sueltos son una lista de uno: el rearmado del plan JSON los desenvuelve (graficos_resumen_diferencias.R).
+  cifras <- .dif_lista_registros(cifras, "var")
+  capitulos <- .dif_lista_registros(capitulos, c("titulo", "cifras", "titular"))
   el <- list(.element_type = "hallazgos", cifras = cifras, modo = modo, grafico_ancho = grafico_ancho, cruces = cruces,
              rotulos = rotulos, cortos = cortos, tautologicos = tautologicos, publico = publico, fuente_ref = fuente,
              capitulos = capitulos, seleccion = seleccion, max_por_capitulo = max_por_capitulo, max_por_lamina = max_por_lamina,

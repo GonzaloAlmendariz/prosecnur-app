@@ -255,7 +255,7 @@ test_that("resumen: el antetítulo es «Resumen ejecutivo» y la selección manu
   s <- p_slide_hallazgos(modo = "resumen", capitulos = .hz_caps())
   expect_identical(s$meta$antetitulo, "Resumen ejecutivo")
   expect_identical(s$title, "Principales hallazgos")
-  expect_error(p_slide_hallazgos(modo = "resumen"), "declara `capitulos`")
+  expect_error(p_slide_hallazgos(modo = "resumen"), "escribe al menos un capítulo con un hallazgo completo", fixed = TRUE)
   expect_silent(p_slide_hallazgos(modo = "resumen", seleccion = "auto"))
   modos <- vapply(Filter(function(a) identical(a$name, "modo"), .SLIDES_META$p_slide_hallazgos$args)[[1]]$choices, `[[`, "", "value")
   expect_true(all(c("resumen", "titulares") %in% modos))
@@ -385,4 +385,57 @@ test_that("v7.23 ítem 14: en el Word dos pastillas que no caben lado a lado van
   tx <- unlist(lapply(suppressWarnings(ggplot2::ggplot_build(g))$data, function(l) if ("label" %in% names(l)) as.character(l$label)))
   expect_true(all(c("Algún padre o tutor univ. 92% ▲", "Ningún padre o tutor univ. 72% ▼") %in% tx))
   expect_false(any(grepl("Intervalo de", tx, fixed = TRUE)))
+})
+
+# ---- H3 del checklist de usabilidad del editor (2026-11-05): un capítulo escrito desde la UI -------------------------
+# Los rearmados del plan JSON desenvuelven una lista de un elemento sin nombres: la lista con UN capítulo llegaba como el
+# capítulo mismo y la lámina salía «Sin datos» con un aviso en código. Rojo antes del arreglo.
+
+.hz_json_un_capitulo <- function(modo = "resumen") jsonlite::fromJSON(sprintf(
+  '{"id":"h1","tipo":"p_slide_hallazgos","payload":{"modo":"%s","seleccion":"manual","capitulos":[{"titulo":"Prueba","cifras":[{"var":"q","fila":"Sí","texto":"dice que sí a q","comparacion":"auto"}]}]}}',
+  modo), simplifyVector = FALSE)
+.hz_registro_slides <- function() stats::setNames(lapply(.slide_names(), function(nm) list(grafs = setdiff(.slide_slots(nm), "icono"))), .slide_names())
+
+test_that("H3: un solo capítulo escrito por el editor llega como lista de uno por los tres rearmados (vista previa, PPT y router)", {
+  s <- .hz_json_un_capitulo()
+  els <- list(
+    vista_previa = .mini_rebuild_slide(s)$slots$plot,
+    job = .graficos_rebuild_slide_json(s, slide_registry = .hz_registro_slides(), graficador_registry = .graf_names())$slots$plot,
+    router = .rebuild_slide(s)$slots$plot)
+  for (nm in names(els)) {
+    caps <- els[[nm]]$capitulos
+    expect_null(names(caps), label = nm)
+    expect_length(caps, 1L)
+    expect_identical(caps[[1]]$titulo, "Prueba", label = nm)
+  }
+})
+
+test_that("H3: el resumen con un capítulo manual dibuja su hallazgo (antes, «Sin datos»)", {
+  el <- .mini_rebuild_slide(.hz_json_un_capitulo())$slots$plot
+  avisos <- character(0)
+  local_mocked_bindings(.pulso_aviso = function(m, ...) { avisos <<- c(avisos, m); invisible(TRUE) })
+  e <- .halla_modelo(el, .hz_fuente(), .hz_sig())
+  expect_length(e$kpis, 1L)
+  expect_identical(e$paginas[[1]][[1]]$titulo, "Prueba")
+  expect_identical(e$kpis[[1]]$cifra, .hz_kpi(.hz_modelo(), "dice que sí a q")$cifra)
+  expect_false(any(grepl("escribe al menos un capítulo", avisos, fixed = TRUE)))
+})
+
+test_that("H3: una sola cifra en el modo «cifras» también llega como lista de uno", {
+  s <- jsonlite::fromJSON('{"id":"h2","tipo":"p_slide_hallazgos","payload":{"modo":"cifras","cifras":[{"var":"q","fila":"Sí","texto":"dice que sí a q"}]}}',
+                          simplifyVector = FALSE)
+  el <- .mini_rebuild_slide(s)$slots$plot
+  expect_length(el$cifras, 1L)
+  e <- suppressMessages(.halla_modelo(el, .hz_fuente(), .hz_sig()))
+  expect_length(e$kpis, 1L)
+})
+
+test_that("H3: sin capítulos completos el aviso habla en lenguaje de analista, sin nombres de argumentos ni código", {
+  avisos <- character(0)
+  local_mocked_bindings(.pulso_aviso = function(m, ...) { avisos <<- c(avisos, m); invisible(TRUE) })
+  el <- p_slide_hallazgos(modo = "resumen", capitulos = list(list(titulo = "Vacío", cifras = list(list(var = "no_existe", fila = "Sí")))))$slots$plot
+  .halla_modelo(el, .hz_fuente(), .hz_sig())
+  final <- avisos[grepl("capítulo con un hallazgo", avisos, fixed = TRUE)]
+  expect_identical(final, "Resumen ejecutivo: escribe al menos un capítulo con un hallazgo completo, o elige que los proponga el motor.")
+  expect_false(any(grepl("`|seleccion|capitulos|\"auto\"|;", avisos[grepl("^Resumen ejecutivo", avisos)])))
 })

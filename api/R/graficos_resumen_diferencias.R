@@ -25,6 +25,10 @@
 .RESUMEN_MAX_FILAS <- 18L
 .RESUMEN_MAX_POR_CAPITULO <- 4L
 
+#' Aviso de la lámina en manual sin filas completas: en lenguaje de analista, sin nombres de argumentos (H3 de usabilidad)
+#' @keywords internal
+.RESUMEN_DIF_SIN_FILAS <- "escribe al menos un capítulo con una fila completa, o elige que las proponga el motor."
+
 #' Aviso del motor con el prefijo de la lámina
 #' @keywords internal
 .dif_aviso <- function(prefijo, ...) {
@@ -136,6 +140,21 @@
     }
   }
   FALSE
+}
+
+#' Una lista de registros del payload (capítulos, cifras), aunque llegue un registro suelto
+#'
+#' Los tres rearmados del plan JSON (`.graficos_rebuild_slide_json`, `.rebuild_slide`, `.mini_rebuild_slide`) desenvuelven
+#' todo valor del payload que sea una lista de un solo elemento sin nombres, para que `["x"]` llegue como `"x"`. Una lista
+#' con UN capítulo (`[{titulo, cifras}]`, lo que escribe el editor con un capítulo) llegaba así como el capítulo mismo, el
+#' modelo recorría sus campos como si fueran capítulos y la lámina salía «Sin datos» en la vista previa y en el PPT
+#' (H3 del checklist de usabilidad del editor, 2026-11-05). Un registro se reconoce por sus claves.
+#' @param claves Claves que delatan un registro suelto (`titulo`/`cifras`/`filas` para un capítulo, `var` para una cifra).
+#' @keywords internal
+.dif_lista_registros <- function(x, claves) {
+  if (is.null(x) || !is.list(x) || !length(x)) return(x %||% list())
+  if (!is.null(names(x)) && any(names(x) %in% claves)) return(list(x))
+  x
 }
 
 #' Normaliza una fila del payload: `{var, fila | filas | top2box, rotulo, base_rotulo, filtros}`
@@ -390,17 +409,17 @@
     capitulos <- lapply(caps, function(cp) list(titulo = cp, filas = Filter(function(f) identical(f$capitulo, cp), elegidas)))
     capitulos <- Filter(function(c) length(c$filas) > 0L, capitulos)
     if (length(filas)) {
-      aviso(sprintf("la selección automática tomó %d de %d filas con diferencias (tope de %d por capítulo y %d en total). Para editarla, pasa la lámina a selección manual con esas filas.",
+      aviso(sprintf("el motor propone %d de %d filas con diferencias (hasta %d por capítulo y %d en total). Para cambiarlas, elige «Las escribo yo» en Selección de filas.",
                     length(elegidas), length(filas), max_cap, max_total))
     } else {
-      aviso("ninguna fila del plan difiere entre grupos con la regla del informe.")
+      aviso("ninguna pregunta del informe muestra diferencias entre grupos con la regla del informe.")
     }
   } else {
     capitulos <- lapply(.resumen_dif_capitulos_manuales(el$capitulos), function(c) {
       list(titulo = c$titulo, filas = Filter(Negate(is.null), lapply(c$filas, evaluar)))
     })
     capitulos <- Filter(function(c) length(c$filas) > 0L, capitulos)
-    if (!length(capitulos)) aviso("la lámina no tiene filas que mostrar; declara `capitulos` o usa `seleccion = \"auto\"`.")
+    if (!length(capitulos)) aviso(.RESUMEN_DIF_SIN_FILAS)
   }
 
   columnas <- do.call(rbind, lapply(cx$cruces, function(cr) {
@@ -446,6 +465,7 @@
 #' @keywords internal
 .el_resumen_diferencias <- function(capitulos = list(), cruces = NULL, seleccion = "manual", rotulos = list(), cortos = list(),
                                     tautologicos = list(), publico = NULL, max_filas = NULL, max_por_capitulo = NULL, fuente = NULL) {
+  capitulos <- .dif_lista_registros(capitulos, c("titulo", "filas"))   # un capítulo suelto es una lista de uno
   el <- list(.element_type = "resumen_diferencias", capitulos = capitulos, cruces = cruces, seleccion = seleccion,
              rotulos = rotulos, cortos = cortos, tautologicos = tautologicos, publico = publico, max_filas = max_filas,
              max_por_capitulo = max_por_capitulo, fuente_ref = fuente, overrides = list())
