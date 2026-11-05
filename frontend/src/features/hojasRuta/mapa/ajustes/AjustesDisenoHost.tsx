@@ -6,7 +6,9 @@ import { payloadDeRangos } from "../poblacion/aplicarRangos";
 import type { ResumenMatriz } from "../poblacion/matriz";
 import { useModoRangos } from "../poblacion/PoblacionPaneles";
 import { GrupoCuotas } from "./grupos/GrupoCuotas";
+import { GrupoFase } from "./grupos/GrupoFase";
 import { GrupoMarco } from "./grupos/GrupoMarco";
+import { GrupoRecorrido } from "./grupos/GrupoRecorrido";
 import { GrupoSorteo } from "./grupos/GrupoSorteo";
 import type { ResultadoTamano } from "../muestra/motorTamano";
 import { useLienzoHojasRuta } from "../store";
@@ -40,6 +42,11 @@ type Props = {
   configSorteo: HojasRutaIntegratedConfig | null;
   listoParaSortear: boolean;
   marcoElegible: ReactNode;
+  /** Totales del territorio para el salto automático del recorrido. */
+  viviendas: number;
+  manzanas: number;
+  /** La regla del piloto (ReglaPiloto) que arma la página; null si no aplica. */
+  reglaPiloto: ReactNode;
 };
 
 const vistaDe = (config: HojasRutaIntegratedConfig, tamano: ResultadoTamano | null): VistaPreviaDiseno => {
@@ -53,7 +60,7 @@ const vistaDe = (config: HojasRutaIntegratedConfig, tamano: ResultadoTamano | nu
  * crecer `HojasRutaMapaPage.tsx`. Recalcular fija la vista previa con el borrador vigente sin guardar; si el
  * borrador cambia después, la vista previa queda atenuada hasta volver a recalcular. Aplicar guarda.
  */
-export function AjustesDisenoHost({ config, configMuestra, fase, tamano, margenPara, bloqueado, guardando, territorios, estratoServidor, onAplicarMuestra, rangosConfig, matriz, onGuardarYCalcularPoblacion, onGuardarCaracter, configSorteo, listoParaSortear, marcoElegible }: Props) {
+export function AjustesDisenoHost({ config, configMuestra, fase, tamano, margenPara, bloqueado, guardando, territorios, estratoServidor, onAplicarMuestra, rangosConfig, matriz, onGuardarYCalcularPoblacion, onGuardarCaracter, configSorteo, listoParaSortear, marcoElegible, viviendas, manzanas, reglaPiloto }: Props) {
   const { abierto, grupo, cerrar, irAGrupo } = useAjustesDiseno();
   const { rangosBorrador, cortesBorrador, muestraBorrador } = useLienzoHojasRuta();
   const location = useLocation();
@@ -91,10 +98,12 @@ export function AjustesDisenoHost({ config, configMuestra, fase, tamano, margenP
       if (g === "visitas") return <GrupoVisitas config={configMuestra} estratoServidor={estratoServidor} deshabilitado={bloqueado || guardando} />;
       if (g === "marco" && marcoElegible) return <GrupoMarco panel={marcoElegible} />;
       if (g === "sorteo" && configSorteo) return <GrupoSorteo config={configSorteo} listoParaSortear={listoParaSortear} deshabilitado={bloqueado || guardando} onIrASortear={() => irSeccion("manzanas")} />;
+      if (g === "recorrido" && configSorteo) return <GrupoRecorrido config={configSorteo} viviendas={viviendas} manzanas={manzanas} deshabilitado={bloqueado || guardando} onIrASortear={() => irSeccion("manzanas")} />;
+      if (g === "fase") return <GrupoFase fase={fase} reglaPiloto={reglaPiloto} />;
       if (g === "cuotas" && config) return <GrupoCuotas config={config} rangosConfig={rangosConfig} matriz={matriz} bloqueado={bloqueado} guardando={guardando} onGuardarYCalcular={onGuardarYCalcularPoblacion} onGuardarCaracter={onGuardarCaracter} />;
       return null;
     },
-    [config, configMuestra, tamano, bloqueado, guardando, margenPara, territorios, estratoServidor, rangosConfig, matriz, onGuardarYCalcularPoblacion, onGuardarCaracter, configSorteo, listoParaSortear, marcoElegible, irSeccion],
+    [config, configMuestra, tamano, bloqueado, guardando, margenPara, territorios, estratoServidor, rangosConfig, matriz, onGuardarYCalcularPoblacion, onGuardarCaracter, configSorteo, listoParaSortear, marcoElegible, irSeccion, viviendas, manzanas, reglaPiloto, fase],
   );
 
   if (!config) return null;

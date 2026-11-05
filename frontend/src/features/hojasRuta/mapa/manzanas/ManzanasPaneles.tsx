@@ -14,7 +14,7 @@ import { nombreDistrito } from "../nombres";
 import { tonoCss } from "../lienzo/tonos";
 import { useLienzoHojasRuta } from "../store";
 import { TEXTO_CAUSA, type CausaRuteo } from "./causaRuteo";
-import { acotarReemplazos, cambiosDeSorteo, mismoTerritorio, saltoVistaPrevia, type BorradorSorteo } from "./sorteo";
+import { cambiosDeSorteo, mismoTerritorio, type BorradorSorteo } from "./sorteo";
 
 import { formatoDecimal } from "../../../../lib/formatoNumero";
 import { EstadoVacio } from "../../../../components/EstadoVacio";
@@ -38,9 +38,9 @@ export const METODOS: ReadonlyArray<{ id: SamplingMethod; titulo: string; cuerpo
   { id: "sistematico", titulo: "Sistemático", cuerpo: "Ordena, calcula un salto y arranca al azar." },
   { id: "conglomerado_fijo", titulo: "Conglomerado fijo", cuerpo: "Menos manzanas con carga estable: menos traslados." },
 ];
-const ESQUINAS = [["auto", "Auto"], ["1", "1"], ["2", "2"], ["3", "3"], ["4", "4"]] as const;
-const SALTOS = [["auto", "Automático"], ["off", "Sin salto"], ["manual", "Manual"]] as const;
-const POLITICAS = [["alternate_zone_same_district", "Otra zona"], ["paired_by_titular_zone", "Misma zona"]] as const;
+export const ESQUINAS = [["auto", "Auto"], ["1", "1"], ["2", "2"], ["3", "3"], ["4", "4"]] as const;
+export const SALTOS = [["auto", "Automático"], ["off", "Sin salto"], ["manual", "Manual"]] as const;
+export const POLITICAS = [["alternate_zone_same_district", "Otra zona"], ["paired_by_titular_zone", "Misma zona"]] as const;
 export const PESOS = [["viviendas", "Viviendas"], ["poblacion", "Población"]] as const;
 const metodoDe = (m: SamplingMethod) => METODOS.find((x) => x.id === m)?.titulo ?? m;
 
@@ -96,6 +96,8 @@ type InspectorProps = {
   parecido?: ReactNode;
   /** P2: en Campo real con piloto, si el sorteo evita sus titulares. Último paso, tras Reemplazos. */
   reglaPiloto?: ReactNode;
+  /** Campo real con corrida piloto: la regla del piloto se edita en «Ajustes del diseño», grupo Fase y piloto. */
+  conPiloto?: boolean;
   bloqueado: boolean;
   guardando: boolean;
   /** La muestra vigente ya está en Material: volver a sortear pide confirmación (1 nov 2026). */
@@ -105,7 +107,7 @@ type InspectorProps = {
   onSortear: () => void;
 };
 
-export function ManzanasInspector({ guardada, config, muestra, viviendas, manzanas, listoParaSortear, parecido, reglaPiloto, bloqueado, guardando, enviada, sorteando = null, onSortear }: InspectorProps) {
+export function ManzanasInspector({ guardada, config, muestra, listoParaSortear, parecido, conPiloto = false, bloqueado, guardando, enviada, sorteando = null, onSortear }: InspectorProps) {
   const [confirmando, setConfirmando] = useState(false);
   const pedirSorteo = () => (enviada && muestra ? setConfirmando(true) : onSortear());
   const sorteadaEl = fechaDelSorteo(muestra?.sorteado_en);
@@ -114,8 +116,6 @@ export function ManzanasInspector({ guardada, config, muestra, viviendas, manzan
   const cambiar = (b: BorradorSorteo) => setSorteoBorrador({ ...sorteoBorrador, ...b });
   const cambios = cambiosDeSorteo(guardada, sorteoBorrador);
   const ruta = Math.max(1, config.entrevistas_por_manzana || 1);
-  const reemplazos = acotarReemplazos(config.replacements_per_titular);
-  const salto = saltoVistaPrevia(viviendas, manzanas, ruta);
   const ed = bloqueado || guardando;
   const vigente = Boolean(muestra) && !cambios.length;
   // F11: una muestra v1 deja manzanas sin probabilidad de salir; se dice arriba de todo y se puede re-sortear sin cambiar nada.
@@ -167,44 +167,8 @@ export function ManzanasInspector({ guardada, config, muestra, viviendas, manzan
         <AccesoAjustes grupo="sorteo" titulo="Sorteo de manzanas" valor={resumenGrupo("sorteo", config)} accion="Cambiar" />
         <AccesoAjustes grupo="marco" titulo="Marco elegible" valor={resumenGrupo("marco", config)} />
 
-        <section className="hr-muestra-grupo" aria-label="Recorrido en campo">
-          <h3>Recorrido en campo</h3>
-          <Opciones etiqueta="Esquina inicial" valor={config.route_start_corner} opciones={ESQUINAS} onCambio={(route_start_corner) => cambiar({ route_start_corner })} deshabilitado={ed} />
-          <Opciones etiqueta="Salto entre viviendas" valor={config.route_jump_mode} opciones={SALTOS} onCambio={(route_jump_mode) => cambiar({ route_jump_mode })} deshabilitado={ed} />
-          {config.route_jump_mode === "manual" ? (
-            <label className="hr-muestra-campo">
-              <small>Salto manual</small>
-              <span className="hr-muestra-numero">
-                <input type="number" min={1} step={1} value={config.route_jump_manual} disabled={ed} onChange={(e) => e.target.value !== "" && cambiar({ route_jump_manual: Math.max(1, Math.round(Number(e.target.value) || 1)) })} />
-                <span>viviendas</span>
-              </span>
-            </label>
-          ) : null}
-          <p className="hr-mapa-nota">
-            {config.route_jump_mode === "off"
-              ? "Sin salto: se visita cada vivienda desde la esquina."
-              : config.route_jump_mode === "manual"
-                ? `Se toca una de cada ${config.route_jump_manual} viviendas en todas las manzanas.`
-                : salto
-                  ? `K = viviendas por manzana / ${ruta} entrevistas ≈ ${formatoDecimal(salto.k, 1)}: en el PDF, una de cada ${salto.operativo}.`
-                  : "K = viviendas por manzana / entrevistas de la ruta, calculado en cada manzana."}
-          </p>
-        </section>
-
-        <section className="hr-muestra-grupo" aria-label="Reemplazos">
-          <h3>Reemplazos</h3>
-          <div className="hr-muestra-campo">
-            <small>Por cada titular</small>
-            <span className="hr-muestra-pasos">
-              <PulsoButton variant="icon" size="sm" aria-label="Un reemplazo menos" disabled={ed || reemplazos <= 0} onClick={() => cambiar({ replacements_per_titular: acotarReemplazos(reemplazos - 1) })}>−</PulsoButton>
-              <input type="number" min={0} max={10} aria-label="Reemplazos por titular" value={reemplazos} disabled={ed} onChange={(e) => cambiar({ replacements_per_titular: acotarReemplazos(Number(e.target.value)) })} />
-              <PulsoButton variant="icon" size="sm" aria-label="Un reemplazo más" disabled={ed || reemplazos >= 10} onClick={() => cambiar({ replacements_per_titular: acotarReemplazos(reemplazos + 1) })}>+</PulsoButton>
-            </span>
-            <span className="hr-mapa-nota">{reemplazos === 0 ? "Sin reemplazos: si una manzana falla, no hay respaldo sorteado." : `De 0 a 10. ${reemplazos} por titular.`}</span>
-          </div>
-          <Opciones etiqueta="Dónde buscar el reemplazo" valor={config.replacement_policy} opciones={POLITICAS} onCambio={(replacement_policy) => cambiar({ replacement_policy })} deshabilitado={ed || reemplazos === 0} />
-        </section>
-        {reglaPiloto}
+        <AccesoAjustes grupo="recorrido" titulo="Recorrido y reemplazos" valor={resumenGrupo("recorrido", config)} accion="Cambiar" />
+        {conPiloto ? <AccesoAjustes grupo="fase" titulo="Fase y piloto" valor="Regla del piloto en el campo real" accion="Cambiar" /> : null}
         {avisosDelSorteo(muestra).map((a) => (
           <p key={a.code + a.message} className="hr-mapa-aviso" data-codigo={a.code}>{a.message}</p>
         ))}
