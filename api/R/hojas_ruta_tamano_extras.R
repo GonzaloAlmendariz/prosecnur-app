@@ -45,7 +45,8 @@ hojas_ruta_tamano_extras_normalizar <- function(x = NULL) {
   }
   if (identical(fuente, "icc_biblioteca") && is.null(icc)) fuente <- "manual"
   c(list(ocupacion = e, design_effect_fuente = fuente, icc_aplicado = icc),
-    hojas_ruta_reparto_base_normalizar(x), hojas_ruta_estrato_normalizar(x), hojas_ruta_ciudades_normalizar(x))  # ADR 0131 §1-§2
+    hojas_ruta_reparto_base_normalizar(x), hojas_ruta_estrato_normalizar(x), hojas_ruta_ciudades_normalizar(x),
+    hojas_ruta_distritos_normalizar(x))  # ADR 0131 §1-§2, §1c
 }
 
 # ---------- Visitas y capacidad (ADR 0116 §1) ----------
