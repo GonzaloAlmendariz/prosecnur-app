@@ -493,6 +493,9 @@ export default function HojasRutaMapaPage() {
   // Tampoco está lista mientras llegan los contornos de sus distritos (`cargando` se vacía también si fallan):
   // el QA capturaba la silueta provisional de la ciudad como si fuera el mapa. Ni mientras calcula la vista
   // previa del marco elegible («Calculando lo que cambiaría…»; `cargandoMarco` se apaga en su finally).
+  // Con sorteo, Manzanas y Selección dibujan sus UMP sobre la geometría de cada distrito, que llega de a uno: el QA
+  // capturaba el mapa sin un solo punto. Un distrito cuya geometría falló no se espera.
+  const esperaGeometrias = Boolean((enManzanas || enSeleccion) && salidas?.sample && confirmados.some((u) => !geometrias[u] && !sinGeometria.has(u)));
   const esperaFoco = Boolean(titularEnfocada && !cajaEnfocada && !sinGeometria.has(titularEnfocada.ubigeo));
   const centroEnfocado = useMemo(() => {
     const m = titularEnfocada ? manzanaPorId.get(titularEnfocada.id_manzana) : undefined;
@@ -839,7 +842,7 @@ export default function HojasRutaMapaPage() {
 
   return (
     <PageFrame className="hojas-ruta-frame hr-mapa-frame" bodyMode="fill" scrollOwner="panels" layout="canvas" density="compact" headerMode="sr-only" title="Hojas de ruta" chrome={chrome}>
-      <span hidden data-audit-ready={error || (estado && !esperaFoco && !regionesCargando.length && !cargandoMarco) ? "hojas-ruta" : "false"} data-audit-stage={nav.seccion ?? ""} data-audit-navigation="lienzo-v1" />
+      <span hidden data-audit-ready={error || (estado && !esperaFoco && !esperaGeometrias && !regionesCargando.length && !cargandoMarco) ? "hojas-ruta" : "false"} data-audit-stage={nav.seccion ?? ""} data-audit-navigation="lienzo-v1" />
       <div className="hr-mapa">
         {/* key por sección: cada una empieza arriba; el scroll de otra no se hereda (B25). */}
         <section key={nav.seccion ?? "territorio"} className="hr-mapa-estructura" aria-label="Distritos del estudio">
