@@ -5,6 +5,7 @@ import type { HojasRutaAgeRange, HojasRutaEstratoMuestral, HojasRutaIntegratedCo
 import { payloadDeRangos } from "../poblacion/aplicarRangos";
 import type { ResumenMatriz } from "../poblacion/matriz";
 import { useModoRangos } from "../poblacion/PoblacionPaneles";
+import { avisoAlAplicar } from "./avisoAplicar";
 import { GrupoCuotas } from "./grupos/GrupoCuotas";
 import { GrupoFase } from "./grupos/GrupoFase";
 import { GrupoMarco } from "./grupos/GrupoMarco";
@@ -47,6 +48,9 @@ type Props = {
   manzanas: number;
   /** La regla del piloto (ReglaPiloto) que arma la página; null si no aplica. */
   reglaPiloto: ReactNode;
+  /** Qué hay aguas abajo que Aplicar descartaría. */
+  hayTamano: boolean;
+  hayCuotasOSorteo: boolean;
 };
 
 const vistaDe = (config: HojasRutaIntegratedConfig, tamano: ResultadoTamano | null): VistaPreviaDiseno => {
@@ -60,7 +64,7 @@ const vistaDe = (config: HojasRutaIntegratedConfig, tamano: ResultadoTamano | nu
  * crecer `HojasRutaMapaPage.tsx`. Recalcular fija la vista previa con el borrador vigente sin guardar; si el
  * borrador cambia después, la vista previa queda atenuada hasta volver a recalcular. Aplicar guarda.
  */
-export function AjustesDisenoHost({ config, configMuestra, fase, tamano, margenPara, bloqueado, guardando, territorios, estratoServidor, onAplicarMuestra, rangosConfig, matriz, onGuardarYCalcularPoblacion, onGuardarCaracter, configSorteo, listoParaSortear, marcoElegible, viviendas, manzanas, reglaPiloto }: Props) {
+export function AjustesDisenoHost({ config, configMuestra, fase, tamano, margenPara, bloqueado, guardando, territorios, estratoServidor, onAplicarMuestra, rangosConfig, matriz, onGuardarYCalcularPoblacion, onGuardarCaracter, configSorteo, listoParaSortear, marcoElegible, viviendas, manzanas, reglaPiloto, hayTamano, hayCuotasOSorteo }: Props) {
   const { abierto, grupo, cerrar, irAGrupo } = useAjustesDiseno();
   const { rangosBorrador, cortesBorrador, muestraBorrador, setRangosBorrador, setCortesBorrador, setMuestraBorrador, setSorteoBorrador } = useLienzoHojasRuta();
   const location = useLocation();
@@ -123,6 +127,7 @@ export function AjustesDisenoHost({ config, configMuestra, fase, tamano, margenP
       // El sorteo no cuenta aquí: sus cambios se aplican al sortear, en Manzanas (GrupoSorteo lo dice).
       pendientes={cambiosSinAplicar({ rangos: rangosBorrador, cortes: cortesBorrador, muestra: muestraBorrador, sorteo: null })}
       desfasada={desfasada}
+      aviso={avisoAlAplicar({ muestra: Boolean(muestraBorrador), rangos: Boolean(rangosBorrador || cortesBorrador), hayTamano, hayCuotasOSorteo })}
       onRecalcular={() => setFijada({ firma, vista: actual })}
       onCancelar={() => {
         // Cancelar es descartar: los borradores que se editan en la ventana vuelven a lo guardado.

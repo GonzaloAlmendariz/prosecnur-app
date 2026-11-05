@@ -27,6 +27,8 @@ type Props = {
   /** La vista previa no refleja los últimos cambios: se atenúa hasta Recalcular. */
   desfasada?: boolean;
   onRecalcular?: () => void;
+  /** Lo que Aplicar descartaría (cuotas, sorteo…); ocupa la pista del pie en vez de «Esc cierra». */
+  aviso?: string | null;
   /** Cancelar descarta lo editado en la ventana y cierra; la ✕ y Esc cierran sin descartar. */
   onCancelar?: () => void;
   onAplicar?: () => void;
@@ -39,7 +41,7 @@ type Props = {
  * los ocho grupos con su contenido (M2–M6); si el contenido aún no llegó, el grupo dice su valor vigente.
  * Recalcular y Aplicar son dos botones distintos; sin cambios pendientes los dos esperan.
  */
-export function AjustesDiseno({ abierto, grupo, config, fase, vista, onGrupo, onCerrar, contenidoDe, pendientes = 0, desfasada = false, onRecalcular, onCancelar, onAplicar, aplicando = false }: Props) {
+export function AjustesDiseno({ abierto, grupo, config, fase, vista, onGrupo, onCerrar, contenidoDe, pendientes = 0, desfasada = false, onRecalcular, onCancelar, onAplicar, aplicando = false, aviso = null }: Props) {
   const [busqueda, setBusqueda] = useState("");
   const visibles = useMemo(() => filtrarGrupos(busqueda), [busqueda]);
   const actual = GRUPOS_AJUSTES.find((g) => g.id === grupo) ?? GRUPOS_AJUSTES[0];
@@ -57,6 +59,7 @@ export function AjustesDiseno({ abierto, grupo, config, fase, vista, onGrupo, on
       className="hr-ajustes"
       bodyClassName="hr-ajustes-medio"
       closeLabel="Cerrar los ajustes"
+      footerHint={aviso ? <span className="hr-ajustes-aviso">{aviso}</span> : undefined}
       footerStatus={
         <dl className="hr-ajustes-vista" aria-label="Vista previa del diseño" data-desfasada={desfasada || undefined} title={desfasada ? "Hay cambios sin recalcular" : undefined}>
           <div><dt>Encuestas</dt><dd>{n == null ? "—" : formatoConteo(n)}</dd></div>

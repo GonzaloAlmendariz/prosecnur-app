@@ -102,3 +102,5 @@
 /* A 1024 la navegación mide ~190 px: el resumen se parte en vez de desbordar el ítem (overflow-x del QA). */
 .hr-ajustes-nav-item { width: 100%; min-width: 0; white-space: normal; }
 .hr-ajustes-nav-item small { display: block; max-width: 100%; overflow-wrap: anywhere; }
+/* Lo que Aplicar descartaría, en la pista del pie de la ventana. */
+.hr-ajustes-aviso { font-size: var(--pulso-type-caption-size); font-weight: 600; color: var(--pulso-warn-fg); }
