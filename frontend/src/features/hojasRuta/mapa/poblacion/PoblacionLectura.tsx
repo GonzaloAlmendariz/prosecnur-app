@@ -34,7 +34,7 @@ export function PoblacionLectura({ rangos, config, matriz }: { rangos: readonly 
             );
           })}
         </ul>
-        <AccesoAjustes grupo="cuotas" titulo="Cuotas y edades" valor={resumenGrupo("cuotas", config)} accion="Editar" />
+        <AccesoAjustes grupo="cuotas" titulo="Cuotas y edades" valor={resumenGrupo("cuotas", config)} />
       </div>
     </>
   );

@@ -6,9 +6,10 @@ import "./ajustes.css";
 /**
  * El acceso que queda en una sección cuando su configuración se muda a «Ajustes del diseño» (maqueta
  * aprobada, accesos contextuales): el valor vigente en una línea y «Ajustar ›», que abre la ventana en su
- * grupo (`?panel=ajustes&foco=<grupo>`).
+ * grupo (`?panel=ajustes&foco=<grupo>`). Un solo verbo en todas las secciones: «Cambiar» en Manzanas y
+ * «Editar» en Población hacían parecer tres acciones distintas lo que es la misma.
  */
-export function AccesoAjustes({ grupo, titulo, valor, accion = "Ajustar" }: { grupo: GrupoAjustesId; titulo: string; valor: string; accion?: "Ajustar" | "Editar" | "Cambiar" }) {
+export function AccesoAjustes({ grupo, titulo, valor }: { grupo: GrupoAjustesId; titulo: string; valor: string }) {
   const { abrir } = useAbrirAjustes();
   return (
     <div className="hr-acceso-ajustes">
@@ -16,8 +17,8 @@ export function AccesoAjustes({ grupo, titulo, valor, accion = "Ajustar" }: { gr
         <small>{titulo}</small>
         <b>{valor}</b>
       </span>
-      <button type="button" className="hr-acceso-ajustes-boton" onClick={() => abrir(grupo)} aria-label={`${accion} ${titulo.toLowerCase()}`}>
-        {accion} <ChevronRight size={13} aria-hidden />
+      <button type="button" className="hr-acceso-ajustes-boton" onClick={() => abrir(grupo)} aria-label={`Ajustar ${titulo.toLowerCase()}`}>
+        Ajustar <ChevronRight size={13} aria-hidden />
       </button>
     </div>
   );

@@ -22,7 +22,7 @@ import { GrupoMuestra } from "../muestra/GrupoMuestra";
 import { AccesoAjustes } from "../ajustes/AccesoAjustes";
 import { resumenGrupo } from "../ajustes/gruposAjustes";
 import { useAbrirAjustes } from "../ajustes/useAjustesDiseno";
-import { resumenHistorial } from "./resumenHistorial";
+import { etiquetaRuteo, resumenHistorial } from "./resumenHistorial";
 /**
  * Manzanas en la página del lienzo (U8). El inspector arma el sorteo —método,
  * peso, semilla, recorrido y reemplazos— y lo manda a R; la estructura es el
@@ -164,11 +164,11 @@ export function ManzanasInspector({ guardada, config, muestra, listoParaSortear,
 
         {/* Método, medida, semilla y marco elegible se editan en «Ajustes del diseño» (M5); el sorteo, que es la
             decisión, sigue aquí abajo. */}
-        <AccesoAjustes grupo="sorteo" titulo="Sorteo de manzanas" valor={resumenGrupo("sorteo", config)} accion="Cambiar" />
+        <AccesoAjustes grupo="sorteo" titulo="Sorteo de manzanas" valor={resumenGrupo("sorteo", config)} />
         <AccesoAjustes grupo="marco" titulo="Marco elegible" valor={resumenGrupo("marco", config)} />
 
-        <AccesoAjustes grupo="recorrido" titulo="Recorrido y reemplazos" valor={resumenGrupo("recorrido", config)} accion="Cambiar" />
-        {conPiloto ? <AccesoAjustes grupo="fase" titulo="Fase y piloto" valor="Regla del piloto en el campo real" accion="Cambiar" /> : null}
+        <AccesoAjustes grupo="recorrido" titulo="Recorrido y reemplazos" valor={resumenGrupo("recorrido", config)} />
+        {conPiloto ? <AccesoAjustes grupo="fase" titulo="Fase y piloto" valor="Regla del piloto en el campo real" /> : null}
         {avisosDelSorteo(muestra).map((a) => (
           <p key={a.code + a.message} className="hr-mapa-aviso" data-codigo={a.code}>{a.message}</p>
         ))}
@@ -283,7 +283,7 @@ export function ManzanasEstructura({ muestra, historial, territorios, nFinal, co
               {historial.map((h) => (
                 <li key={h.id} data-vigente={vigente(h) || undefined}>
                   <span>
-                    <strong>{h.label}</strong>
+                    <strong>{etiquetaRuteo(h.label)}</strong>
                     <small>{metodoDe(h.method)}, semilla {h.seed}, {fmt(h.n_replacement_blocks)} reemplazos{nFinal != null && h.n_final !== nFinal ? `, con N ${fmt(h.n_final)}` : ""}</small>
                   </span>
                   {vigente(h) ? (
