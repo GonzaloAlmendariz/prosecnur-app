@@ -67,18 +67,16 @@
   navy <- .std_word("colores", "titulos"); T <- .WORD_TINTA
   k <- seq_along(espec$rotulos); v <- espec$valores; mx <- max(v, na.rm = TRUE)
   # Misma jerarquía que la lámina (graficador_histograma_lamina.R, revisión del PPT v7.11): el porcentaje arriba en negrita, los
-  # casos debajo y tenues, y las barras de pocos casos (menos del 2% del total) en azul tenue.
+  # casos debajo y tenues. Revisión del PPT v7.23, ítem 3: un solo azul para todas las barras y sus porcentajes (ya no
+  # hay barras tenues de pocos casos).
   cf <- .lam_hist_cifras(as.character(espec$cifras))
-  cnt <- suppressWarnings(as.numeric(espec$conteos %||% v)); tot <- sum(cnt, na.rm = TRUE)
-  pocos <- is.finite(cnt) & tot > 0 & cnt / tot < .LAM_HIST_POCOS
   tenue <- .std_color("texto_tenue")
-  d <- data.frame(k = k, v = v, pct = cf$pct, casos = cf$casos, rot = espec$rotulos, pocos = pocos,
-                  fill = ifelse(pocos, .std_color("tenue"), T$navy), col = ifelse(pocos, tenue, navy), stringsAsFactors = FALSE)
+  d <- data.frame(k = k, v = v, pct = cf$pct, casos = cf$casos, rot = espec$rotulos, stringsAsFactors = FALSE)
   dc <- d[nzchar(d$pct), , drop = FALSE]
   g <- ggplot2::ggplot(d) +
-    ggplot2::geom_rect(ggplot2::aes(xmin = .data$k - 0.47, xmax = .data$k + 0.47, ymin = 0, ymax = .data$v), fill = d$fill) +
+    ggplot2::geom_rect(ggplot2::aes(xmin = .data$k - 0.47, xmax = .data$k + 0.47, ymin = 0, ymax = .data$v), fill = T$navy) +
     ggplot2::geom_text(data = dc, ggplot2::aes(x = .data$k, y = .data$v + mx * (if (cf$con_casos) 0.11 else 0.04), label = .data$pct), vjust = 0,
-                       size = .word_pt(8.5, "cifra"), fontface = .word_cara("cifras"), colour = dc$col, family = "Arial") +
+                       size = .word_pt(8.5, "cifra"), fontface = .word_cara("cifras"), colour = navy, family = "Arial") +
     (if (cf$con_casos) ggplot2::geom_text(data = dc, ggplot2::aes(x = .data$k, y = .data$v + mx * 0.03, label = .data$casos), vjust = 0,
                        size = .word_pt(7, "rotulo"), colour = tenue, family = "Arial")) +
     ggplot2::geom_text(ggplot2::aes(x = .data$k, y = -mx * 0.07, label = .data$rot), size = .word_pt(8.5, "rotulo"), colour = navy, family = "Arial") +

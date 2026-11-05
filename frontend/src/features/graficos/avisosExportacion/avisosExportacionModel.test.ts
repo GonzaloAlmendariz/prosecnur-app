@@ -21,4 +21,16 @@ describe("avisos antes de exportar, por lámina", () => {
     expect(rotuloIrALamina("Lámina 44 · “Preguntas por grupos (p79)”")).toBe("Ir a la lámina 44");
     expect(rotuloIrALamina("Portada")).toBe("Ir a la lámina");
   });
+
+  it("lee el formato del motor con coma y con la base nombrada (y el anterior con «·»)", () => {
+    const g = agruparAvisos([
+      "Lámina 3, “Perfil del docente”: el resumen no tiene capítulos",
+      "Lámina 2 de «docentes», “Trabajo”: «Trabaja» es de otra base",
+      "Lámina 3 · “Perfil del docente”: aviso guardado antes",
+    ]);
+    expect(g.map((x) => [x.lamina, x.titulo, x.detalles.length])).toEqual([
+      ["3", "Perfil del docente", 2],
+      ["2", "Trabajo", 1],
+    ]);
+  });
 });

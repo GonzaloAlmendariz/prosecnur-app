@@ -6,6 +6,8 @@
 # diferencia principal en pastillas. El Word lo dibujaba con el respaldo genérico de hallazgos (`.halla_ggplot`): puntos
 # con su rango y la comparación como texto suelto a la derecha, que se cortaba en el borde de la página (CCSS v7.16,
 # figuras 59 y 60). Esta figura repite la tabla a la escala del Word, con las mismas piezas y tonos (`.lam_dif_tono`).
+# Revisión del PPT v7.23, ítem 14 (paridad con la lámina): sin encabezados de columna y sin la línea del intervalo; bajo
+# la frase sólo va la base de la fila cuando difiere de la de la lámina.
 
 #' Figura de Word del resumen ejecutivo: una tabla por capítulo, en pulgadas sobre un lienzo de `ancho`
 #' @keywords internal
@@ -28,25 +30,50 @@
     lin
   }
   flecha <- function(dir, fragil) if (identical(dir, "up")) (if (isTRUE(fragil)) "△" else "▲") else (if (isTRUE(fragil)) "▽" else "▼")
-  add_t(x_cif, y + 0.12, "CIFRA", 6.5, suave, TRUE); add_t(x_fr, y + 0.12, "HALLAZGO", 6.5, suave, TRUE)
-  add_t(x_dif, y + 0.12, "DIFERENCIA PRINCIPAL FRENTE AL RESTO", 6.5, suave, TRUE)
-  y <- y + 0.24
   for (c in caps) {
     if (nzchar(c$titulo %||% "")) {
       add_t(0, y + 0.13, toupper(c$titulo), 7, coral, TRUE); add_r(0, ancho, y + 0.24, y + 0.25, coral); y <- y + h_cap
     }
     for (j in seq_along(c$kpis)) {
-      k <- c$kpis[[j]]; yc <- y + h_fila / 2
+      k <- c$kpis[[j]]
+      comp <- k$comparacion; con_t <- !is.null(k$tambien)
+      # Pastillas que no caben lado a lado van una sobre otra (antes la segunda se omitía en silencio: CCSS v7.23, figura
+      # del resumen ejecutivo, «Ningún padre univ. 72%» no salía); la fila crece lo que haga falta.
+      anchos <- if (identical(comp$estado, "diferencia")) vapply(comp$partes, function(pa) .lam_ancho_tinta(paste(pa$texto, "▲"), 7.5, TRUE) + 0.12, 0) else 0
+      apiladas <- length(anchos) > 1L && sum(anchos) + 0.06 * (length(anchos) - 1L) > w_dif + 1e-6
+      hf <- h_fila + (if (apiladas) 0.21 * (length(anchos) - 1L) - 0.1 else 0) + (if (apiladas && con_t) 0.12 else 0)
+      yc <- y + hf / 2
       add_t(x_cif, yc, k$cifra, 17, azul, TRUE)
       lin <- envolver(k$texto %||% "", w_fr, 9)
-      for (l in seq_along(lin)) add_t(x_fr, yc - 0.1 + (l - 1) * 0.15 - (length(lin) - 1) * 0.06, lin[l], 9, azul)
-      add_t(x_fr, yc + 0.12 + (length(lin) - 1) * 0.06, .lam_halla_res_contexto(k), 6.5, suave)
-      comp <- k$comparacion; con_t <- !is.null(k$tambien); yd <- if (con_t) yc - 0.06 else yc
+      ctx <- .lam_halla_res_contexto(k)
+      y_fr <- if (nzchar(ctx)) yc - 0.1 else yc - (length(lin) - 1) * 0.075
+      for (l in seq_along(lin)) add_t(x_fr, y_fr + (l - 1) * 0.15 - (if (nzchar(ctx)) (length(lin) - 1) * 0.06 else 0), lin[l], 9, azul)
+      if (nzchar(ctx)) add_t(x_fr, yc + 0.12 + (length(lin) - 1) * 0.06, ctx, 6.5, suave)
+      yd <- if (con_t) yc - 0.06 - (if (apiladas) 0.06 else 0) else yc
+      if (apiladas) yd <- yd - 0.105 * (length(anchos) - 1L)
       if (!is.null(comp) && length(comp$partes)) {
         if (!identical(comp$estado, "diferencia")) {
           ld <- envolver(comp$partes[[1]]$texto, w_dif - 0.05, 7.5, bold = TRUE)
           for (l in seq_along(ld)) add_t(x_dif, yd + (l - (length(ld) + 1) / 2) * 0.13, ld[l], 7.5,
                                          if (identical(comp$estado, "manual")) azul else suave, TRUE)
+        } else if (length(comp$partes) == 1L && !is.null(comp$partes[[1]]$corto)) {
+          # La diferencia principal (v7.25, ítems 10 y 11): una pastilla con el nombre completo, en dos líneas si hace
+          # falta, y la cifra del resto a la derecha o, si no entra, debajo.
+          pa <- comp$partes[[1]]; tn <- .lam_dif_tono(pa$dir, pa$fragil); fl <- flecha(pa$dir, pa$fragil)
+          wc <- if (is.null(comp$cola)) 0 else .lam_ancho_tinta(comp$cola, 7.5, TRUE)
+          formas <- .halla_res_rotulo_formas(pa, w_dif - 0.12 - .lam_ancho_tinta(" ▲", 7.5, TRUE), 7.5)
+          anch <- vapply(formas, function(f) max(.lam_ancho_tinta(paste(f[length(f)], fl), 7.5, TRUE), .lam_ancho_tinta(f, 7.5, TRUE)) + 0.12, 0)
+          ok <- which(anch + 0.06 + wc <= w_dif + 1e-6); el <- if (length(ok)) ok[1] else which(anch <= w_dif + 1e-6)[1]
+          if (!is.na(el)) {
+            f <- formas[[el]]; f[length(f)] <- paste(f[length(f)], fl); nl <- length(f)
+            add_r(x_dif, x_dif + anch[el], yd - 0.09 - (nl - 1) * 0.065, yd + 0.09 + (nl - 1) * 0.065, tn$fill, tn$borde,
+                  if (isTRUE(tn$punteado)) "22" else "solid")
+            for (l in seq_len(nl)) add_t(x_dif + 0.07, yd + (l - (nl + 1) / 2) * 0.13, f[l], 7.5, tn$texto, TRUE)
+            if (wc > 0) {
+              if (length(ok)) add_t(x_dif + anch[el] + 0.06, yd, comp$cola, 7.5, suave, TRUE) else
+                add_t(x_dif, yd + 0.17 + (nl - 1) * 0.065, comp$cola, 7.5, suave, TRUE)
+            }
+          }
         } else {
           x <- x_dif
           for (pa in comp$partes) {
@@ -55,18 +82,18 @@
             if (x + wp > ancho + 1e-6) next
             add_r(x, x + wp, yd - 0.09, yd + 0.09, tn$fill, tn$borde, if (isTRUE(tn$punteado)) "22" else "solid")
             add_t(x + 0.07, yd, s, 7.5, tn$texto, TRUE)
-            x <- x + wp + 0.06
+            if (apiladas) yd <- yd + 0.21 else x <- x + wp + 0.06
           }
           if (!is.null(comp$cola) && x + .lam_ancho_tinta(comp$cola, 7.5, TRUE) <= ancho) add_t(x, yd, comp$cola, 7.5, suave, TRUE)
         }
       }
       if (con_t) {
         t <- k$tambien; tn <- .lam_dif_tono(t$dir, t$fragil)
-        add_t(x_dif, yc + 0.15, paste("También", t$texto, flecha(t$dir, t$fragil)), 7,
+        add_t(x_dif, if (apiladas) yd + 0.02 else yc + 0.15, paste("También", t$texto, flecha(t$dir, t$fragil)), 7,
               if (!isTRUE(t$fragil) && identical(t$dir, "up")) azul else tn$linea, TRUE)
       }
-      if (j < length(c$kpis)) add_r(0, ancho, y + h_fila - 0.003, y + h_fila + 0.003, filete)
-      y <- y + h_fila
+      if (j < length(c$kpis)) add_r(0, ancho, y + hf - 0.003, y + hf + 0.003, filete)
+      y <- y + hf
     }
   }
   td <- do.call(rbind, txt); rd <- if (length(rec)) do.call(rbind, rec) else NULL

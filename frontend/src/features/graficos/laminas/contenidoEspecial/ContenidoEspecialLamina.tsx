@@ -1,8 +1,8 @@
-// Los editores propios de Inspector › Contenido (A10 W-B, C38): filas de la ficha técnica e ícono subido de una lámina
-// de población u objetivo. Cada cambio es un `updateSlidePayload` (un paso de deshacer) sobre su arg y nada más.
+// Los editores propios de Inspector › Lámina › Textos (A10 W-B, C38): filas de la ficha técnica, actores del objetivo e
+// ícono subido de una lámina de población u objetivo. Los ajustes de «Hallazgos clave» y «Resumen de diferencias» van en
+// sus propias secciones (PestanaLamina, H4). Cada cambio es un `updateSlidePayload` (un paso de deshacer) sobre su arg.
 
 import { ActoresObjetivo } from "./ActoresObjetivo";
-import { AjustesHallazgos } from "../hallazgos/AjustesHallazgos";
 import type { Slide } from "../../../../api/graficos";
 import { usePlanStore } from "../../store";
 import { FilasFichaTecnica } from "./FilasFichaTecnica";
@@ -19,7 +19,6 @@ export function ContenidoEspecialLamina({ slide, especial }: { slide: Slide; esp
         <FilasFichaTecnica key={a.name} arg={a} valor={payload[a.name]} onCambio={(filas) => updatePayload(slide.id, { [a.name]: filas })} />
       ))}
       {slide.tipo === "p_slide_objetivo_icono" && <ActoresObjetivo slide={slide} />}
-      {especial.ajustes.length > 0 && <AjustesHallazgos slide={slide} args={especial.ajustes} />}
       {especial.iconos.map((a) => (
         <SelectorIconoSubido key={a.name} arg={a} valor={payload[a.name]} iconos={iconos}
           onCambio={(id) => updatePayload(slide.id, { [a.name]: id })} />

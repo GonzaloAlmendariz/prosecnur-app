@@ -12,8 +12,10 @@
 # Aquí vive el único rótulo de lámina de los avisos: `.lam_avisos_cierre` (lamina_avisos_lineas.R), el validador del
 # plan (`.validar_plan_json`), la degradación por lámina (reporte_plan_condiciones.R) y los avisos del ícono lo usan.
 
-#' Rótulo de una lámina para un aviso: «Lámina 3 · “Perfil del docente”»
+#' Rótulo de una lámina para un aviso: «Lámina 3, “Perfil del docente”»
 #'
+#' Sin punto medio, raya ni punto y coma (registro formal del panel de avisos): el número y el título van separados por
+#' una coma, y el aviso sigue tras los dos puntos («Lámina 3, “Perfil del docente”: …»).
 #' @param numero Posición de la lámina en el informe (como la numera la UI), o `NULL`.
 #' @param titulo Título de la lámina, o `NULL`/vacío.
 #' @param base Base del PPTX en /ppt-all (cada base sale con su numeración), o `NULL`.
@@ -25,7 +27,7 @@
   t <- sub("\\s*\\((cont|CONT)\\.\\)\\s*$", "", t)
   b <- as.character(base %||% "")[1]
   de_base <- if (!is.na(b) && nzchar(b)) sprintf(" de «%s»", b) else ""
-  if (!is.na(n) && nzchar(t)) return(sprintf("Lámina %d%s · “%s”", n, de_base, t))
+  if (!is.na(n) && nzchar(t)) return(sprintf("Lámina %d%s, “%s”", n, de_base, t))
   if (!is.na(n)) return(sprintf("Lámina %d%s", n, de_base))
   if (nzchar(t)) return(sprintf("La lámina “%s”%s", t, de_base))
   "Una lámina sin título"
@@ -197,7 +199,7 @@
 
 #' Antepone el rótulo de la lámina en curso a un aviso, si hay una
 #'
-#' @param texto Lo que pasó, en minúscula: va detrás de «Lámina 3 · “Título”: ».
+#' @param texto Lo que pasó, en minúscula: va detrás de «Lámina 3, “Título”: ».
 #' @param sin_contexto Frase completa para cuando no hay lámina en curso; si falta, `texto` con mayúscula inicial.
 #' @keywords internal
 .aviso_en_lamina <- function(texto, sin_contexto = NULL) {

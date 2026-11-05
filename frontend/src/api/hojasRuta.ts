@@ -5,6 +5,7 @@
 import { apiFetch, apiPath, handle, headers, SESSION_KEY } from "./core";
 import { normalizarEnvioMeta, type EnvioMeta } from "./materialTerritorial";
 import type { JobStart } from "./jobs";
+import { normalizeHojasRutaDistritosSorteo, type HojasRutaDistritosSorteo } from "./hojasRutaDistritos";
 
 // ---------- Hojas de ruta para campo ----------
 
@@ -78,6 +79,8 @@ export type HojasRutaSampleSizeConfig = {
   estrato?: HojasRutaEstratoModo;
   /** ADR 0131 §1b: rutas mínimas de toda ciudad visitada en el estrato provincia (6 por defecto). */
   rutas_minimas_ciudad?: number;
+  /** ADR 0131 §1c: rutas mínimas de todo distrito visitado (3 por defecto; 0 lo apaga). Rige con la base 2025. */
+  rutas_minimas_distrito?: number;
 };
 
 export type HojasRutaEstratoModo = "distrito" | "provincia" | "provincia_lima_areas";
@@ -107,6 +110,8 @@ export type HojasRutaEstratoMuestral = {
   estratos: HojasRutaEstratoFila[];
   ciudades: HojasRutaCiudadSorteo[];
   grupos: HojasRutaGrupoCiudades[];
+  /** ADR 0131 §1c: forzosos y sorteados por ciudad o área; null si no rige. */
+  distritos: HojasRutaDistritosSorteo | null;
 };
 
 const escalar = (v: unknown): unknown => (Array.isArray(v) ? v[0] : v);
@@ -171,6 +176,7 @@ export function normalizeHojasRutaEstratoMuestral(raw: unknown): HojasRutaEstrat
     estratos,
     ciudades,
     grupos,
+    distritos: normalizeHojasRutaDistritosSorteo(r),
   };
 }
 

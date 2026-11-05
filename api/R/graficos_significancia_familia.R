@@ -29,6 +29,17 @@
 #' Grupos de un cruce: código por caso, orden del instrumento y rótulo
 #' @keywords internal
 .sig_grupos_cruce <- function(fuente, cruce) {
+  # Dentro de un pedido memorizado (graficos_memo_evaluacion.R) el mismo cruce no se rearma.
+  if (.gmemo_activa()) {
+    return(.gmemo_obtener("grupos", list(fuente$data, fuente$survey, fuente$choices), .gmemo_llave(cruce),
+                          function() .sig_grupos_cruce_calcular(fuente, cruce)))
+  }
+  .sig_grupos_cruce_calcular(fuente, cruce)
+}
+
+#' Cálculo de `.sig_grupos_cruce` (sin memoria)
+#' @keywords internal
+.sig_grupos_cruce_calcular <- function(fuente, cruce) {
   d <- fuente$data
   if (!cruce %in% names(d)) return(NULL)
   g <- .reporte_plan_clean_chr(d[[cruce]])
@@ -47,8 +58,12 @@
 #'
 #' @param top2box Rótulos que suman el *top two box*. Con ellos se prueba solo esa fila (propuesta §4.1.6).
 #' @param solo_principal En una dicotómica se prueba solo la opción principal.
+#' @param lamina_escala TRUE si la comparación es una lámina de multiapiladas por cruce: el indicador lo decide
+#'   `.sig_indicador_lamina` (el mismo resolutor del render). Una escala sin Top Two Box declarado no se prueba y vuelve
+#'   `list(pares = NULL, sin_declarar = TRUE)`, que no aporta p a la familia.
 #' @keywords internal
-.sig_evaluar_pregunta <- function(fuente, var, cruce, regla, top2box = NULL, solo_principal = TRUE) {
+.sig_evaluar_pregunta <- function(fuente, var, cruce, regla, top2box = NULL, solo_principal = TRUE,
+                                  lamina_escala = FALSE) {
   if (!is.null(.sig_diseno_invalido(fuente$data, regla))) return(NULL)   # ADR 0127 §1: no entra a la familia
   var <- .sig_var_local(var); cruce <- .sig_var_local(cruce)
   gr <- .sig_grupos_cruce(fuente, cruce)
@@ -61,9 +76,16 @@
   if (!is.null(orden_inst)) {
     etiquetas <- c(intersect(as.character(orden_inst$labels), etiquetas), setdiff(etiquetas, orden_inst$labels))
   }
+  if (isTRUE(lamina_escala)) {
+    indicador <- .sig_indicador_lamina(top2box, colnames(ind$Y), ind$codigos, regla)
+    if (identical(indicador$tipo, "escala_sin_declarar")) {
+      return(list(pares = NULL, sin_declarar = TRUE, var = var, cruce = cruce))
+    }
+  }
   if (length(top2box)) {
     rot <- paste(top2box, collapse = " + ")
-    ind <- .sig_indicadores_derivar(ind, rot, top2box)
+    # Un T2B con una categoría que la pregunta no tiene no es el indicador declarado: no se prueba (el render tampoco).
+    if (.sig_top2box_completo(top2box, colnames(ind$Y))) ind <- .sig_indicadores_derivar(ind, rot, top2box)
     filas <- if (rot %in% colnames(ind$Y)) rot else character(0)
   } else {
     filas <- .sig_filas_a_probar(etiquetas, ind$codigos, regla, solo_principal = solo_principal)
@@ -90,10 +112,10 @@
     if (is.na(cruce) || !nzchar(cruce)) next
     var <- .sig_var_local(a$var %||% a$vars)
     if (is.na(var) || !nzchar(var)) next
-    ttb <- as.character(unlist(a$top2box_labels %||% ov$top2box_labels %||% character(0)))
+    ttb <- .sig_top2box_declarado(a, ov)   # el mismo resolutor que el render (graficos_significancia_indicador.R)
     activo <- a$mostrar_significancia %||% ov$mostrar_significancia
     return(list(var = var, cruce = cruce, top2box = ttb, graficador = g$graficador,
-                activo = isTRUE(activo)))
+                activo = isTRUE(activo), escala = .sig_lamina_resuelve_indicador(g$graficador)))
   }
   NULL
 }
@@ -109,7 +131,7 @@
   for (s in slides) {
     l <- .sig_lamina_del_plan(s)
     if (is.null(l)) next
-    filas[[length(filas) + 1L]] <- list(var = l$var, cruce = l$cruce, top2box = l$top2box)
+    filas[[length(filas) + 1L]] <- list(var = l$var, cruce = l$cruce, top2box = l$top2box, lamina_escala = l$escala)
   }
   cruces <- .sig_cruces_de_analitica(analitica_config)
   secciones <- analitica_config$secciones %||% list()
@@ -117,12 +139,20 @@
   ol <- names(fuente$orders_list %||% list())
   categoricas <- vars[vars %in% ol | vapply(vars, function(v) any(startsWith(names(fuente$data), paste0(v, "/"))), logical(1))]
   for (cr in intersect(cruces, names(fuente$data))) for (v in setdiff(categoricas, cr)) {
-    filas[[length(filas) + 1L]] <- list(var = v, cruce = cr, top2box = character(0))
+    filas[[length(filas) + 1L]] <- list(var = v, cruce = cr, top2box = character(0), lamina_escala = FALSE)
   }
-  # Sin duplicados: misma pregunta, cruce y top two box.
+  # Sin duplicados: misma pregunta, cruce y top two box. Si la tabla de Analítica también la compara, la comparación
+  # entra con sus segmentos aunque una lámina de escala sin T2B declarado se abstenga.
   claves <- vapply(filas, function(f) paste(f$var, f$cruce, paste(f$top2box, collapse = "+"), sep = "\r"), character(1))
-  filas[!duplicated(claves)]
+  escala <- tapply(vapply(filas, function(f) isTRUE(f$lamina_escala), logical(1)), claves, all)
+  out <- filas[!duplicated(claves)]
+  for (k in seq_along(out)) out[[k]]$lamina_escala <- isTRUE(escala[[claves[!duplicated(claves)][k]]])
+  out
 }
+
+#' ¿La lámina decide su indicador con `.sig_indicador_lamina`? Hoy, las multiapiladas por cruce (ADR 0128 §4.4)
+#' @keywords internal
+.sig_lamina_resuelve_indicador <- function(graficador) grepl("multiapiladas", as.character(graficador %||% "")[1])
 
 #' Huella de lo que determina la familia
 #' @keywords internal
@@ -147,7 +177,8 @@
   evs <- list()
   p <- list()
   for (cb in combos) {
-    ev <- tryCatch(.sig_evaluar_pregunta(fuente, cb$var, cb$cruce, regla, top2box = cb$top2box),
+    ev <- tryCatch(.sig_evaluar_pregunta(fuente, cb$var, cb$cruce, regla, top2box = cb$top2box,
+                                         lamina_escala = isTRUE(cb$lamina_escala)),
                    error = function(e) NULL)
     clave <- paste(cb$var, cb$cruce, paste(cb$top2box, collapse = "+"), sep = "\r")
     evs[[clave]] <- ev

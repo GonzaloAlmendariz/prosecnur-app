@@ -18,7 +18,9 @@ test_that("el indicador se nombra con lo común de sus categorías, o con el dec
   expect_identical(.tarjetas_indicador(c("Siempre", "Casi siempre"), "Con frecuencia"), "Con frecuencia")
   expect_identical(.tarjetas_indicador("Excelente"), "Excelente")
   t <- list(fila = "Claude", indicador = "Todos los días")
-  expect_identical(.tarjetas_encabezado(t), "Claude · Todos los días")                 # Word y panel: fila e indicador
+  expect_identical(.tarjetas_encabezado(t), "Claude: todos los días")   # Word y panel: fila e indicador, sin punto medio (registro formal, v7.23)
+  expect_identical(.tarjetas_encabezado(list(fila = "Otras herramientas (Copilot, entre otros).", indicador = "Todos los días")),
+                   "Otras herramientas (Copilot, entre otros): todos los días")   # sin «.:»
   expect_identical(.tarjetas_encabezado(t, con_fila = FALSE), "Todos los días")            # anclada: la premisa ya está en el eje
   expect_null(.tarjetas_encabezado(list(fila = "Claude"), con_fila = FALSE))               # con columna, como siempre
   expect_identical(.tarjetas_encabezado(list(fila = "Claude")), "Claude")
@@ -143,7 +145,9 @@ test_that("categórica: la tarjeta va junto a la barra de su categoría, con su 
   xml <- paste(readLines(file.path(d, "ppt/slides/slide1.xml"), warn = FALSE), collapse = "")
   expect_false(grepl("«Posgrado»", xml, fixed = TRUE))
   t <- caja("tarjeta:95"); b <- caja("barra"); r <- caja("rotulo")
-  fin <- max(b$x + b$w)
+  # Revisión v7.23, ítem 8: toda barra de una serie lleva su pista hasta el 100%; la tarjeta va junto al fin de la escala.
+  pista <- caja("barra:pista"); expect_gt(nrow(pista), 0L)
+  fin <- max(c(b$x + b$w, pista$x + pista$w))
   borde <- .std_valor("ppt", "geometria", "ancho") - .std_valor("ppt", "geometria", "margen_der")
   expect_lt(t$x - fin, 1.6)                                              # junto a las barras, no en el borde
   expect_lt(t$x + t$w, borde + 1e-6)

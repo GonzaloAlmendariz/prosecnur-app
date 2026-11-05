@@ -90,7 +90,7 @@
   if (!isTRUE(activo)) return(list(data = rp_data_path, inst = rp_inst_path, plan = plan, paletas = paletas))
   plan <- .inclusivo_en(plan); paletas <- .inclusivo_en(paletas)
   mapa <- .rotulos_cortos_mapa(plan$rotulos_cortos)
-  f <- function(o) { o <- .inclusivo_en(o); if (length(mapa)) .inclusivo_en(o, function(x) .rotulos_cortos_aplicar(x, mapa)) else o }
+  f <- .inclusivo_convertidor(mapa)
   copia <- function(ruta) {
     if (is.null(ruta) || !file.exists(ruta)) return(ruta)
     nueva <- tempfile("inclusivo_", fileext = ".rds")
@@ -104,6 +104,35 @@
   }
   list(data = copia(rp_data_path), inst = copia(rp_inst_path), plan = plan, paletas = paletas)
 }
+
+#' La regla inclusiva y los rótulos cortos como una sola función sobre un objeto
+#' @keywords internal
+.inclusivo_convertidor <- function(mapa) {
+  function(o) {
+    o <- .inclusivo_en(o)
+    if (length(mapa)) .inclusivo_en(o, function(x) .rotulos_cortos_aplicar(x, mapa)) else o
+  }
+}
+
+#' Lo común de la vista previa y las miniaturas con la misma regla del job de PPT y Word
+#'
+#' H1 del checklist de usabilidad del editor (2026-11-05): la vista previa no aplicaba los rótulos cortos del estudio ni la
+#' regla inclusiva, y el editor mostraba «Académica (grupos de lectura, seminarios…)» donde el PPT dice «Académica». Se
+#' aplican aquí, una vez por pedido, a los datos, el instrumento y las paletas que recibe el motor; la lámina se convierte
+#' con `.inclusivo_preparar_lamina`. La huella de la caché se calcula después, sobre lo ya convertido.
+#' @param rotulos_cortos `plan$rotulos_cortos` de la config efectiva.
+#' @return `list(data_sources, inst_sources, paletas, mapa)`.
+#' @keywords internal
+.inclusivo_preparar_preview <- function(data_sources, inst_sources, paletas = NULL, rotulos_cortos = NULL, activo = TRUE) {
+  if (!isTRUE(activo)) return(list(data_sources = data_sources, inst_sources = inst_sources, paletas = paletas, mapa = character(0)))
+  mapa <- .rotulos_cortos_mapa(.inclusivo_en(rotulos_cortos))
+  f <- .inclusivo_convertidor(mapa)
+  list(data_sources = f(data_sources), inst_sources = f(inst_sources), paletas = f(paletas), mapa = mapa)
+}
+
+#' Una lámina del editor con la regla inclusiva y los rótulos cortos, como la convierte el job dentro del plan
+#' @keywords internal
+.inclusivo_preparar_lamina <- function(slide, mapa = character(0)) .inclusivo_convertidor(mapa)(slide)
 
 #' Mapa de rótulos cortos del estudio (`plan$rotulos_cortos`: rótulo completo → corto), ya con la regla inclusiva
 #'

@@ -12,6 +12,8 @@ import { normalizeEstiloCliente, type EstiloCliente } from "../../api/graficosEs
 import { conVinculo, vinculosDecisiones } from "./paletasResolver";
 import { sinEstiloDePerfil } from "./estiloInforme/quitarLineaVisual";
 import { conAjusteEnElTipo } from "./laminas/modeloAlcance";
+import { conEspejoEnOverrides } from "./laminas/mandosPorOverrides";
+import { agrupadorDelPlan } from "./historialAgrupado";
 
 // Store del plan de gráficos. Sigue el mismo patrón que el store de
 // Analítica: hidrata desde backend al montar, marca `dirty` con cada
@@ -236,6 +238,10 @@ type PlanStore = {
   resetPreset: (tipo: string) => void;
   select: (id: string | null) => void;
   loadPlan: (plan: PlanJson) => void;
+  /** U3: rótulos cortos del estudio (`plan.rotulos_cortos`); un mapa vacío quita la clave. Un paso deshacible. */
+  setRotulosCortos: (mapa: Record<string, string>) => void;
+  /** H14: preguntas clave del estudio (`plan.preguntas_clave`); una lista vacía quita la clave. Un paso deshacible. */
+  setPreguntasClave: (refs: string[]) => void;
   reset: () => void;
 
   // --- Setters de configuración global (Bloque 2) ---
@@ -308,9 +314,10 @@ const DEFAULT_PAYLOADS: Record<SlideType, Record<string, unknown>> = {
   p_slide_1_grafico_narrativo: { titulo: "", grafico: null, texto: "", base: "", pie: "", etiqueta: "" },
   p_slide_grafico_texto_derecha:    { titulo: "", grafico: null, texto: "", base: "", pie: "", etiqueta: "" },
   p_slide_grafico_texto_izquierda:  { titulo: "", grafico: null, texto: "", base: "", pie: "", etiqueta: "" },
-  // Sin ranuras: las filas por capítulo y las cifras viven en el payload que escribe el plan (todavía sin inspector).
-  p_slide_resumen_diferencias: { titulo: "", etiqueta: "", base: "", seleccion: "manual" },
-  p_slide_hallazgos:           { titulo: "", etiqueta: "", base: "", modo: "cifras" },
+  // Sin ranuras: se arman en Inspector › Lámina. Nacen con la selección del motor, que no exige capítulos ni cifras escritas
+  // (con «manual» sin capítulos, o «cifras» sin cifras, el motor rechaza la lámina recién insertada).
+  p_slide_resumen_diferencias: { titulo: "", etiqueta: "", base: "", seleccion: "auto" },
+  p_slide_hallazgos:           { titulo: "", etiqueta: "", base: "", modo: "resumen", seleccion: "auto" },
 
   // ---- 2 gráficos -----------------------------------------------------
   p_slide_2_graficos:              { titulo: "", izquierda: null, derecha: null, base: "", pie: "", etiqueta: "" },
@@ -415,7 +422,8 @@ function dirty<T extends object>(state: PlanStore, partial: T): T & {
   past: Snapshot[];
   future: Snapshot[];
 } {
-  const past = [...state.past, snapshotFromState(state)].slice(-MAX_HISTORY);
+  // H10: las ediciones seguidas del mismo control van en un paso (historialAgrupado.ts).
+  const past = agrupadorDelPlan.agrupa() && state.past.length > 0 ? state.past : [...state.past, snapshotFromState(state)].slice(-MAX_HISTORY);
   return { ...partial, dirty: true, past, future: [] };
 }
 
@@ -549,6 +557,7 @@ export const usePlanStore = create<PlanStore>((set) => ({
   // Undo: aplica el último snapshot del past, guardando el estado actual
   // en future para poder rehacer. Si past está vacío, no-op.
   undo: () => {
+    agrupadorDelPlan.cortar();
     set((state) => {
       if (state.past.length === 0) return state;
       const prev = state.past[state.past.length - 1];
@@ -564,6 +573,7 @@ export const usePlanStore = create<PlanStore>((set) => ({
   },
 
   redo: () => {
+    agrupadorDelPlan.cortar();
     set((state) => {
       if (state.future.length === 0) return state;
       const next = state.future[state.future.length - 1];
@@ -578,7 +588,7 @@ export const usePlanStore = create<PlanStore>((set) => ({
     });
   },
 
-  hydrate: (cfg) => set({
+  hydrate: (cfg) => { agrupadorDelPlan.cortar(); set({
     plan: cfg.plan ?? { slides: [] },
     presets: cfg.presets ?? {},
     wPresets: normalizeWordPresets(cfg.w_presets),
@@ -603,7 +613,7 @@ export const usePlanStore = create<PlanStore>((set) => ({
     // historizamos el estado pre-hidratación porque era placeholder vacío.
     past: [],
     future: [],
-  }),
+  }); },
 
   markClean: () => set({ dirty: false }),
 
@@ -709,7 +719,8 @@ export const usePlanStore = create<PlanStore>((set) => ({
           if (!current) return s;
           const merged: GraficadorRef = {
             graficador: current.graficador,
-            args: mergeSlotArgsPatch(current.args, patch),
+            // U6: los mandos que el motor lee sólo de `overrides` van en espejo (laminas/mandosPorOverrides.ts).
+            args: mergeSlotArgsPatch(current.args, conEspejoEnOverrides(current.args, patch)),
           };
           return { ...s, payload: { ...s.payload, [slot]: merged } };
         }),
@@ -779,6 +790,19 @@ export const usePlanStore = create<PlanStore>((set) => ({
   loadPlan: (plan) => set((state) => dirty(state, {
     plan, selectedSlideId: plan.slides[0]?.id ?? null,
   })),
+
+  setRotulosCortos: (mapa) => set((state) => {
+    const plan: PlanJson = { ...state.plan, rotulos_cortos: { ...mapa } };
+    if (!Object.keys(mapa).length) delete plan.rotulos_cortos;
+    return dirty(state, { plan });
+  }),
+
+  setPreguntasClave: (refs) => set((state) => {
+    const limpias = [...new Set(refs.map((r) => r.trim()).filter(Boolean))];
+    const plan: PlanJson = { ...state.plan, preguntas_clave: limpias };
+    if (!limpias.length) delete plan.preguntas_clave;
+    return dirty(state, { plan });
+  }),
 
   reset: () => set((state) => dirty(state, {
     plan: { slides: [] }, selectedSlideId: null, presets: {}, wPresets: createDefaultWordPresets(),

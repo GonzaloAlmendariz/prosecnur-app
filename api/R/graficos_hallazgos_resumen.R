@@ -15,15 +15,29 @@
 # pregunta, el intervalo con el diseño del estudio y la comparación automática de las tarjetas. Aquí sólo se eligen,
 # agrupan y paginan.
 #
-# Selección automática (`seleccion = "auto"`): por capítulo del plan, entre las filas candidatas del resumen de
-# diferencias (`.resumen_dif_candidatas`, sin NS/NR, sin la segunda opción de una dicotómica y sin «Otros»), la
-# diferencia más fuerte (99% primero y luego el tamaño) y la cifra más rotunda sin diferencia (mayor |p − 50| entre las
-# preguntas de opción única y las escalas). Sin diferencias, las dos más rotundas. De una pregunta de opción única sólo
-# compite por rotunda su opción mayoritaria: la menor de sus opciones («1% asiste a menos del 20% de sus clases») queda
-# lejos de 50 y no es un hallazgo (render real sobre CCSS, 2026-11-04).
+# Selección automática (`seleccion = "auto"`, H14 del checklist de usabilidad del editor, 2026-11-05). Por capítulo del
+# plan, entre las filas candidatas del resumen de diferencias (`.resumen_dif_candidatas`, sin NS/NR, sin la segunda opción
+# de una dicotómica y sin «Otros»), el motor propone:
+#
+#   1. La diferencia más fuerte entre grupos con la prueba del estudio: primero las que se sostienen al 99 % y luego la
+#      de más puntos. Si el capítulo tiene preguntas clave con diferencia, gana la más fuerte entre ellas.
+#   2. Una cifra sin diferencia de las preguntas clave del capítulo (`plan$preguntas_clave`, graficos_preguntas_clave.R):
+#      su opción mayoritaria o su Top Two Box. Con varias, la que más se aparta del 50 % y, a igualdad, la primera del
+#      plan. Si ninguna pregunta clave queda sin diferencia, el lugar lo toma la siguiente diferencia más fuerte.
+#   3. Nunca dos filas de la misma pregunta en un capítulo.
+#   4. Si el capítulo no tiene preguntas clave, la cifra sin diferencia es la que más se aparta del 50 % entre las
+#      preguntas de opción única y las escalas (sin diferencias en el capítulo, las dos que más se apartan), con el punto 3.
+#
+# Ese 50 % sólo ordena dentro de lo que el analista no marcó: no mide la importancia de una pregunta, por eso las clave
+# van antes. De una pregunta de opción única sólo compite su opción mayoritaria: la menor de sus opciones («1% asiste a
+# menos del 20% de sus clases») queda lejos de 50 y no es un hallazgo (render real sobre CCSS, 2026-11-04).
 
 .HALLAZGOS_MODOS_RESUMEN <- c("resumen", "titulares")
 .HALLAZGOS_RESUMEN_TOPES <- list(por_lamina = 8L, capitulos = 4L, por_capitulo = 3L, auto_por_capitulo = 2L)
+
+#' Aviso del resumen en manual sin capítulos completos: en lenguaje de analista, sin nombres de argumentos (H3 de usabilidad)
+#' @keywords internal
+.HALLAZGOS_SIN_CAPITULOS <- "escribe al menos un capítulo con un hallazgo completo, o elige que los proponga el motor."
 
 #' Entero positivo de un tope del payload, o el de fábrica
 #' @keywords internal
@@ -57,14 +71,16 @@
   r
 }
 
-#' Selección automática: por capítulo del plan, la diferencia más fuerte y la cifra más rotunda sin diferencia
+#' Selección automática: por capítulo, la diferencia más fuerte y una cifra de las preguntas clave (ver cabecera)
 #' @return Lista de capítulos `list(titulo, titular = NULL, cifras)` con las cifras en el formato del payload.
 #' @keywords internal
 .halla_res_auto <- function(fuente, sig, cx, tauto, plan, por_cap) {
   aviso <- function(...) .dif_aviso("Resumen ejecutivo", ...)
   regla <- sig$regla
+  claves <- .preguntas_clave_de(sig)
   textos <- .halla_res_textos_del_plan(plan)
-  cands <- unlist(lapply(.resumen_dif_preguntas_plan(plan), function(q) .resumen_dif_candidatas(fuente, q, regla)), recursive = FALSE)
+  preguntas <- .resbase_filtrar_preguntas(.resumen_dif_preguntas_plan(plan), fuente$base, "Resumen ejecutivo")   # graficos_resumen_base.R
+  cands <- unlist(lapply(preguntas, function(q) .resumen_dif_candidatas(fuente, q, regla)), recursive = FALSE)
   vistos <- list()
   for (cd in cands) {
     if (!is.null(cd$fila) && grepl(.CATEGORIAS_RESIDUALES, cd$fila, ignore.case = TRUE)) next
@@ -72,33 +88,44 @@
     fi <- .dif_indicador(fuente, it, regla)
     if (!is.null(fi$excluir) || !is.finite(fi$total)) next
     ev <- .dif_evaluar(fuente, fi, cx$cruces, sig, tauto)
-    clave <- paste(it$var, it$fila %||% paste(it$top2box, collapse = "+"), sep = "|")
+    llave <- paste(it$var, it$fila %||% paste(it$top2box, collapse = "+"), sep = "|")
     vistos[[length(vistos) + 1L]] <- list(capitulo = cd$capitulo %||% "", var = fi$var, item = it, fi = fi, fuerza = .dif_fuerza(ev$celdas),
                                           rotunda = abs(fi$total - 50), opcion_unica = !identical(fi$tipo, "multiple"),
-                                          texto = textos[clave] %||% NA_character_)
+                                          clave = .preguntas_clave_es(c(cd$var, fi$var), claves),
+                                          texto = textos[llave] %||% NA_character_)
   }
-  # La opción mayoritaria de cada pregunta: la única que compite por la cifra rotunda.
+  # La opción mayoritaria de cada pregunta: la única que compite por la cifra sin diferencia.
   mayor <- tapply(vapply(vistos, function(x) x$fi$total, 0), vapply(vistos, `[[`, "", "var"), max)
   for (i in seq_along(vistos)) vistos[[i]]$mayoritaria <- vistos[[i]]$fi$total >= mayor[[vistos[[i]]$var]] - 1e-9
   caps <- unique(vapply(vistos, `[[`, "", "capitulo"))
+  con_claves <- FALSE
   out <- lapply(caps, function(cp) {
     v <- Filter(function(x) identical(x$capitulo, cp), vistos)
+    hay_clave <- any(vapply(v, function(x) isTRUE(x$clave), logical(1)))
+    if (hay_clave) con_claves <<- TRUE
     dif <- Filter(function(x) x$fuerza[["tam"]] > 0, v)
-    dif <- dif[order(-vapply(dif, function(x) x$fuerza[["firme"]], 0), -vapply(dif, function(x) x$fuerza[["tam"]], 0))]
-    sin <- Filter(function(x) x$fuerza[["tam"]] <= 0 && x$opcion_unica && x$mayoritaria, v)
-    sin <- sin[order(-vapply(sin, `[[`, 0, "rotunda"))]
-    elegidas <- c(utils::head(dif, 1L), utils::head(sin, if (length(dif)) 1L else 2L))
-    if (length(elegidas) < por_cap) elegidas <- c(elegidas, utils::head(dif[-1], por_cap - length(elegidas)))
-    elegidas <- utils::head(elegidas, por_cap)
+    dif <- dif[.preguntas_clave_orden_dif(dif)]
+    sin <- Filter(function(x) x$fuerza[["tam"]] <= 0 && x$opcion_unica && x$mayoritaria && (!hay_clave || isTRUE(x$clave)), v)
+    sin <- sin[order(-vapply(sin, `[[`, 0, "rotunda"))]   # `order` es estable: a igualdad, el orden del plan
+    t <- .preguntas_clave_tomar(dif, 1L)
+    t <- .preguntas_clave_tomar(sin, if (length(dif)) 1L else 2L, t$elegidas, t$usadas)
+    if (length(t$elegidas) < por_cap) t <- .preguntas_clave_tomar(dif, por_cap - length(t$elegidas), t$elegidas, t$usadas)
+    elegidas <- utils::head(t$elegidas, por_cap)
     cifras <- lapply(elegidas, function(x) list(var = x$item$ref %||% x$item$var, fila = x$item$fila, top2box = x$item$top2box,
                                                  texto = if (is.na(x$texto)) NULL else .halla_res_frase(x$texto), comparacion = "auto"))
     list(titulo = cp, titular = NULL, cifras = cifras)
   })
   out <- Filter(function(c) length(c$cifras) > 0L, out)
   if (length(out)) {
-    aviso(sprintf("la selección automática propone %d hallazgos en %d capítulos: por capítulo, la diferencia más fuerte y la cifra más rotunda sin diferencia. Para editarla, pasa la lámina a selección manual con esa lista.",
-                  sum(vapply(out, function(c) length(c$cifras), 0L)), length(out)))
-  } else aviso("el plan no tiene preguntas que resumir.")
+    n <- sum(vapply(out, function(c) length(c$cifras), 0L))
+    aviso(if (con_claves) {
+      sprintf("el motor propone %d hallazgos en %d capítulos: por capítulo, la diferencia más fuerte entre grupos y una cifra de las preguntas clave del estudio, sin repetir pregunta. Para cambiarlos, elige «Los escribo yo» en Selección de hallazgos.",
+              n, length(out))
+    } else {
+      sprintf("el motor propone %d hallazgos en %d capítulos: por capítulo, la diferencia más fuerte entre grupos y la cifra que más se aparta del 50%% sin diferencia, sin repetir pregunta. Marca las preguntas clave del estudio para que esa cifra salga de ellas, o elige «Los escribo yo» en Selección de hallazgos.",
+              n, length(out))
+    })
+  } else aviso("el informe no tiene preguntas que resumir.")
   out
 }
 
@@ -145,22 +172,23 @@
   for (c in caps) {
     c <- as.list(c)
     titulo <- .dif_chr1(c$titulo) %||% ""
-    items <- lapply(c$cifras %||% list(), .halla_kpi_item)
+    items <- .resbase_filtrar_items(lapply(c$cifras %||% list(), .halla_kpi_item), fuente$base, "Resumen ejecutivo")
     if (length(items) > por_cap) {
       aviso(sprintf("el capítulo «%s» tiene %d hallazgos y el tope es %d; se dibujan los primeros.", titulo, length(items), por_cap))
       items <- items[seq_len(por_cap)]
     }
     if (length(items) > por_lamina) items <- items[seq_len(por_lamina)]
     kpis <- Filter(Negate(is.null), lapply(items, .halla_kpi_modelo, fuente0 = fuente, sig = sig, cx = cx, tauto = tauto,
-                                            n_lamina = n_lamina, con_grafico = FALSE))
-    if (!isTRUE(el$tambien %||% TRUE)) kpis <- lapply(kpis, function(k) { k$tambien <- NULL; k })
+                                            n_lamina = n_lamina, con_grafico = FALSE, principal = TRUE))
+    # «Solo poner la principal diferencia» (v7.25, ítem 10): la línea «También» sale sólo si se pide.
+    if (!isTRUE(el$tambien %||% FALSE)) kpis <- lapply(kpis, function(k) { k$tambien <- NULL; k })
     titular <- .dif_chr1(c$titular)
     if (titulares && length(kpis) && is.null(titular)) {
       aviso("el capítulo «", titulo, "» no tiene titular: el modo «titulares» lo pide, y el motor no lo redacta. Va la frase del hallazgo.")
     }
     if (length(kpis)) capitulos[[length(capitulos) + 1L]] <- list(titulo = titulo, titular = titular, kpis = kpis)
   }
-  if (!length(capitulos)) aviso("la lámina no tiene hallazgos que mostrar; declara `capitulos` o usa `seleccion = \"auto\"`.")
+  if (!length(capitulos)) aviso(.HALLAZGOS_SIN_CAPITULOS)
   paginas <- if (titulares) .halla_res_paginar(capitulos, por_lamina, por_lamina) else .halla_res_paginar(capitulos, por_lamina, T$capitulos)
   list(tipo = "hallazgos", modo = modo, paginas = paginas, kpis = unlist(lapply(capitulos, `[[`, "kpis"), recursive = FALSE),
        titulos = .dif_chr(el$titulos), regla = sig$regla, m = sig$m %||% NA_integer_, n = n_lamina, publico = cx$publico,

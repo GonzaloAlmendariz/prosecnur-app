@@ -116,7 +116,8 @@ test_that("la medida del PPS es M · g_d con la base activa y π sigue siendo n�
   df <- frame[frame$ubigeo == "070106", , drop = FALSE]
   cfg_off <- hojas_ruta_integrada_normalize_config(.rb_cfg())
   cfg_on <- hojas_ruta_integrada_normalize_config(.rb_cfg("cpv2025_adultos_urbanos"))
-  g <- hojas_ruta_reparto_base_distritos("070106")$g
+  # g_d en la unidad de la medida (viviendas por defecto): P̂25_d / Σ viviendas 2017 del distrito.
+  g <- hojas_ruta_reparto_base_distritos("070106")$p25 / sum(df$viviendas, na.rm = TRUE)
   m_off <- .hojas_ruta_sorteo_medida(df, cfg_off)
   m_on <- .hojas_ruta_sorteo_medida(df, cfg_on)
   expect_equal(m_on, m_off * g)
@@ -167,4 +168,20 @@ test_that("la memoria de cálculo declara la base 2025 y rotula la población", 
   d0 <- reporte_mt_diseno_modelo(sp$config, hojas_ruta_sample_size_preview(.rb_cfg()))
   expect_true("Población 2017" %in% names(d0$por_distrito))
   expect_false(any(grepl("CPV 2025", d0$nota_tecnica, fixed = TRUE)))
+})
+
+
+test_that("con la base 2025 la medida del distrito suma sus adultos urbanos 2025 (misma unidad que M)", {
+  # Regresión: g_d se dividía por la población 2017 aunque M fueran viviendas, y la medida
+  # del distrito quedaba en P̂25 × viviendas por persona (Cusco salía con menos π que Tacna).
+  frame <- hojas_ruta_inei_frame(NULL)
+  for (var in c("viviendas", "poblacion")) {
+    cfg <- hojas_ruta_integrada_normalize_config(c(.rb_cfg("cpv2025_adultos_urbanos"), list(measure_var = var)))
+    for (u in c("070106", "080101", "230101")) {
+      df <- frame[frame$ubigeo == u, , drop = FALSE]
+      if (!nrow(df)) next
+      p25 <- hojas_ruta_reparto_base_distritos(u)$p25
+      expect_equal(sum(.hojas_ruta_sorteo_medida(df, cfg)), p25, tolerance = 1e-8, info = paste(var, u))
+    }
+  }
 })

@@ -6,6 +6,9 @@
 import type { ReactNode } from "react";
 import { codigosATexto, textoACodigos } from "./argsDatosGrafico";
 import { useCategoriasGrafico } from "./useCategoriasGrafico";
+import { rotuloVisible } from "./rotuloCortoDeLista";
+import { useRotulosCortos } from "./useRotulosCortos";
+import { fichaBloqueada, marcadas, RESPUESTA, resumenFichas, trasPulsar, type Sustantivo } from "./modeloSelectorCategorias";
 
 type Props = {
   id: string;
@@ -21,14 +24,23 @@ type Props = {
   /** El valor son etiquetas de respuesta, no códigos (`fila` de un hallazgo). Una etiqueta que la pregunta no tiene se
    *  conserva y se nombra. */
   porEtiqueta?: boolean;
+  /** «elegir» donde guardar nada significa todos («Niveles que se muestran», H9): arranca con todas marcadas y quitar
+   *  una ficha la saca (modeloSelectorCategorias.ts). */
+  vacioEsTodos?: boolean;
+  /** Con qué sustantivo concuerda el resumen («Ningún nivel elegido»); por defecto, «respuesta». */
+  sustantivo?: Sustantivo;
   /** Emite la lista de códigos en el formato que espera el arg (lista o cadena unida por comas). */
   onCambio: (codigos: string[]) => void;
   nota: ReactNode;
   textoRespaldo: ReactNode;
 };
 
-export function SelectorCategorias({ id, etiqueta, variable, scope, graficador, valor, modo, porEtiqueta = false, onCambio, nota, textoRespaldo }: Props) {
+export function SelectorCategorias({
+  id, etiqueta, variable, scope, graficador, valor, modo, porEtiqueta = false, vacioEsTodos = false, sustantivo = RESPUESTA, onCambio, nota, textoRespaldo,
+}: Props) {
   const estado = useCategoriasGrafico(variable, scope, graficador);
+  // U14: con el rótulo corto del estudio la ficha dice lo que dirá la lámina; el completo queda en el title.
+  const cortos = useRotulosCortos();
   // Una etiqueta puede llevar comas («Sí, siempre»): por etiqueta no se parte el texto.
   const elegidos = new Set(porEtiqueta
     ? (Array.isArray(valor) ? valor : [valor]).map((v) => (typeof v === "string" || typeof v === "number" ? String(v) : "")).filter(Boolean)
@@ -48,26 +60,30 @@ export function SelectorCategorias({ id, etiqueta, variable, scope, graficador, 
   }
   const cats = estado.datos.categorias;
   const claveDe = (c: (typeof cats)[number]) => (porEtiqueta ? c.etiqueta || c.codigo : c.codigo);
+  const claves = cats.map(claveDe);
+  const todos = vacioEsTodos && modo === "elegir";
+  const visibles = marcadas(elegidos, claves, todos);
   const alternar = (clave: string) => {
-    if (modo === "una") { onCambio(elegidos.has(clave) ? [] : [clave]); return; }
-    const s = new Set(elegidos);
-    if (s.has(clave)) s.delete(clave); else s.add(clave);
-    onCambio(cats.map(claveDe).filter((c) => s.has(c)));
+    if (fichaBloqueada(clave, visibles, todos)) return;
+    onCambio(trasPulsar(clave, elegidos, claves, modo, todos));
   };
   const n = cats.filter((c) => elegidos.has(claveDe(c))).length;
   const ajenas = porEtiqueta ? [...elegidos].filter((e) => !cats.some((c) => claveDe(c) === e)) : [];
-  const resumen = n === 0 ? (modo === "excluir" ? "Se muestran todas" : "Ninguna elegida")
-    : modo === "excluir" ? `${n === 1 ? "Una excluida" : `${n} excluidas`}` : `${n === 1 ? "Una elegida" : `${n} elegidas`}`;
+  const resumen = resumenFichas(n, cats.length, modo, sustantivo, todos);
   return (
     <div className="pulso-f6-dato is-apilado">
       <span className="pulso-f6-cats-cabeza">{etiqueta}<span className="pulso-f6-cats-resumen">{resumen}</span></span>
       <div id={id} className={`pulso-f6-cats is-${modo === "una" ? "elegir" : modo}`} role="group">
         {cats.map((c) => {
-          const activo = elegidos.has(claveDe(c));
+          const activo = visibles.has(claveDe(c));
+          const bloqueada = fichaBloqueada(claveDe(c), visibles, todos);
+          const r = rotuloVisible(cortos, c.etiqueta || c.codigo);
+          const detalle = `Código ${c.codigo}${Number.isFinite(c.n) ? `, ${c.n} casos` : ""}${bloqueada ? `. Al menos ${sustantivo.femenino ? "una" : "uno"} queda` : ""}`;
           return (
             <button key={c.codigo} type="button" className={`pulso-f6-cat${activo ? " is-activa" : ""}${c.residual ? " is-residual" : ""}`}
-              aria-pressed={activo} onClick={() => alternar(claveDe(c))} title={`Código ${c.codigo}${Number.isFinite(c.n) ? `, ${c.n} casos` : ""}`}>
-              <span className="pulso-f6-cat-texto">{c.etiqueta || c.codigo}</span>
+              aria-pressed={activo} aria-disabled={bloqueada || undefined} onClick={() => alternar(claveDe(c))}
+              title={r.completo ? `${r.completo}. ${detalle}` : detalle}>
+              <span className="pulso-f6-cat-texto">{r.texto}</span>
               {Number.isFinite(c.n) && <span className="pulso-f6-cat-n">{c.n}</span>}
             </button>
           );

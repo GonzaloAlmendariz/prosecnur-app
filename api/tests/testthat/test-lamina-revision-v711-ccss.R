@@ -41,9 +41,11 @@ test_that("v7.11 lámina 7: con dos, tres o seis barras el gráfico de apoyo rep
 
 # ---- Ítem 4, lámina 9: la pista gris hasta el 100% -----------------------------------------------------------------
 
-test_that("v7.11 lámina 9: la pista se enciende con la escala de 0 a 100% y en población; el mando la fuerza o la apaga", {
+# Revisión del PPT v7.23, ítem 8 («¿por qué algunos tienen el recuadro gris y otros no?»): "auto" la enciende en toda barra
+# de una serie, también con el eje libre (antes, sólo con la escala de 0 a 100% o en población). "nunca" la sigue apagando.
+test_that("v7.11 lámina 9 y v7.23 ítem 8: la pista se enciende en toda barra de una serie; el mando la apaga", {
   expect_true(.lam_barras_pista_activa(list(escala_completa = TRUE)))
-  expect_false(.lam_barras_pista_activa(list(escala_completa = FALSE)))
+  expect_true(.lam_barras_pista_activa(list(escala_completa = FALSE)))   # v7.23: antes FALSE
   expect_true(.lam_barras_pista_activa(list(en_poblacion = TRUE)))
   expect_false(.lam_barras_pista_activa(list(escala_completa = TRUE, pista = "nunca")))
   expect_true(.lam_barras_pista_activa(list(pista = "siempre")))
@@ -135,9 +137,15 @@ test_that("v7.11 lámina 11: con `marca_mediana = \"triangulo\"` va un triángul
   expect_true("marca_mediana" %in% names(formals(graficar_histograma)))
 })
 
-test_that("v7.11 lámina 11: las barras de pocos casos (menos del 2%) van en azul tenue", {
+# Revisión del PPT v7.23, ítem 3 (Gonzalo: «no me gusta que hayan dos colores diferentes de barras»): retira el azul tenue
+# de las barras de pocos casos que pedía la v7.11. Todas las barras y sus porcentajes van en el mismo azul.
+test_that("v7.23 ítem 3: todas las barras del histograma van en un solo azul, también las de pocos casos", {
   h <- .v711_hist()
-  pocos <- .v711_piezas(h$lz, "histograma:barra:pocos"); muchos <- .v711_piezas(h$lz, "histograma:barra")
-  expect_equal(nrow(pocos), 7L)    # 18, 25, 26, 27, 28, 29 y 30+: menos de 8 casos de 400
-  expect_equal(nrow(pocos) + nrow(muchos), 13L)
+  expect_equal(nrow(.v711_piezas(h$lz, "histograma:barra:pocos")), 0L)
+  barras <- h$lz$formas[vapply(h$lz$formas, grepl, TRUE, pattern = 'name="histograma:barra"')]
+  expect_length(barras, 13L)
+  expect_true(all(grepl(.lam_hex(.std_color("azul")), barras)))
+  expect_false(any(grepl(.lam_hex(.std_color("tenue")), barras)))
+  cif <- h$lz$formas[vapply(h$lz$formas, grepl, TRUE, pattern = 'name="histograma:cifra"')]
+  expect_true(all(grepl(.lam_hex(.std_color("azul")), cif)))
 })

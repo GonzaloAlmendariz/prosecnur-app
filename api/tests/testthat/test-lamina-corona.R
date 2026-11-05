@@ -91,8 +91,10 @@ test_that("una lámina corona generada sale nativa y calza con la p160 (toleranc
   .cerca(h$y, unname(.P160$filete_h[["y"]]))
   .cerca(h$x, unname(.P160$filete_h[["x0"]]))
   .cerca(h$x + h$w, unname(.P160$filete_h[["x1"]]))
-  # La dicotomía (sexo) va arriba a la izquierda; las barras de grado (3) y de edad (4) en sus paneles.
-  expect_equal(nrow(.cr_off(xml, "dicotomia:segmento")), 2L)
+  # La dicotomía (sexo) va arriba a la izquierda; las barras de grado (3) y de edad (4) en sus paneles. Revisión v7.23,
+  # ítem 11: la Sí/No es una barra apilada clásica (`barra:segmento`), no la franja partida de la p160.
+  expect_equal(nrow(.cr_off(xml, "dicotomia:segmento")), 0L)
+  expect_equal(nrow(.cr_off(xml, "barra:segmento")), 2L)
   b <- .cr_off(xml, "barra")
   expect_equal(sum(b$y < 4.0 & b$x > 6.757), 3L)
   expect_equal(sum(b$y > 4.0), 4L)
@@ -118,6 +120,9 @@ test_that("una lámina corona generada sale nativa y calza con la p160 (toleranc
   inf_rotulo_x = 2.995, inf_rotulo_w = 1.9, inf_barra_x = 5.015, inf_barra_max = 4.306
 )
 
+# Revisión del PPT v7.23 de CCSS: la Sí/No va como apilada clásica (ítem 11) y toda barra de una serie lleva su pista
+# hasta el 100% (ítem 8). Lo que se sigue midiendo contra la p160 es dónde va cada bloque; el largo de las barras y las
+# cifras grandes de la franja partida dejaron de ser los de la p160 por decisión de Gonzalo.
 test_that("la corona calza con la p160 también a lo ancho: dicotomía con n a todo el panel y barras de abajo centradas", {
   f <- .cr_fixture(); out <- tempfile(fileext = ".pptx")
   plan <- list(a = p_slide_3_graficos_poblacion_corona(p_barras_categoricas("sexo"), p_barras_categoricas("grado"),
@@ -126,32 +131,28 @@ test_that("la corona calza con la p160 también a lo ancho: dicotomía con n a t
   xml <- xml2::read_xml(unz(out, "ppt/slides/slide1.xml"))
   E <- .P160_X
 
-  cif <- .cr_off(xml, "dicotomia:cifra"); cif <- cif[order(cif$x), ]
-  .cerca(cif$x, E$dico_cifra_x, "x de las cifras de la dicotomía")
-  .cerca(cif$w, rep(E$dico_cifra_w, 2), "ancho de las cifras")
-  .cerca(cif$y, rep(E$dico_cifra_y, 2), "y de las cifras")
-  rot <- .cr_off(xml, "dicotomia:rotulo"); rot <- rot[order(rot$x), ]
-  # La p160 rotula «Masculino (79)»; desde «Casos junto al porcentaje» el «(n)» sale sólo con base chica o en «siempre».
-  expect_identical(rot$texto, sub("\\s*\\([0-9]+\\)$", "", E$dico_rotulo))
-  .cerca(rot$x, E$dico_rotulo_x, "x de los rótulos de la dicotomía")
-  .cerca(rot$w, rep(E$dico_rotulo_w, 2), "ancho de los rótulos")
-  .cerca(rot$y, rep(E$dico_rotulo_y, 2), "y de los rótulos")
-  seg <- .cr_off(xml, "dicotomia:segmento")
-  .cerca(min(seg$x), E$dico_x0, "borde izquierdo de la dicotomía")
+  expect_equal(nrow(.cr_off(xml, "dicotomia:cifra")), 0L)                 # v7.23 ítem 11: sin cifras grandes en los polos
+  ley <- .cr_off(xml, "leyenda:texto")
+  expect_true(all(c("Sí", "No") %in% sub("\\s*\\([0-9]+\\)$", "", ley$texto)))   # las opciones van en la leyenda
+  seg <- .cr_off(xml, "barra:segmento")
+  .cerca(min(seg$x), E$dico_x0, "borde izquierdo de la dicotomía")       # sigue a todo el ancho del panel
   .cerca(max(seg$x + seg$w), E$dico_x1, "borde derecho de la dicotomía")
-  .cerca(seg$y, rep(E$dico_y, 2), "y de la barra partida")
-  .cerca(seg$h, rep(E$dico_h, 2), "grosor de la barra partida")
+  expect_equal(nrow(.cr_off(xml, "barra:cifra")), 2L)
 
   r <- .cr_off(xml, "rotulo"); b <- .cr_off(xml, "barra")
   rs <- r[r$y < 4.0, ]; ri <- r[r$y > 4.0, ]; bs <- b[b$y < 4.0, ]; bi <- b[b$y > 4.0, ]
   .cerca(rs$x, rep(E$sup_rotulo_x, nrow(rs)), "x de los rótulos de arriba a la derecha")
   .cerca(rs$w, rep(E$sup_rotulo_w, nrow(rs)), "ancho de los rótulos de arriba a la derecha")
   .cerca(bs$x, rep(E$sup_barra_x, nrow(bs)), "x de las barras de arriba a la derecha")
-  .cerca(max(bs$w), E$sup_barra_max, "barra más larga de arriba a la derecha")
+  pista <- .cr_off(xml, "barra:pista"); ps <- pista[pista$y < 4.0, ]; pi <- pista[pista$y > 4.0, ]   # v7.23 ítem 8
+  expect_equal(nrow(ps), nrow(bs)); expect_equal(nrow(pi), nrow(bi))
+  .cerca(ps$x, bs$x, "la pista arranca donde la barra (arriba)")
+  expect_true(all(bs$w <= ps$w + 1e-6))
   .cerca(ri$x, rep(E$inf_rotulo_x, nrow(ri)), "x de los rótulos de abajo")
   .cerca(ri$w, rep(E$inf_rotulo_w, nrow(ri)), "ancho de los rótulos de abajo")
   .cerca(bi$x, rep(E$inf_barra_x, nrow(bi)), "x de las barras de abajo")
-  .cerca(max(bi$w), E$inf_barra_max, "barra más larga de abajo")
+  .cerca(pi$x, bi$x, "la pista arranca donde la barra (abajo)")
+  expect_true(all(bi$w <= pi$w + 1e-6))
   # Cada cifra va 0.04 in después de su barra (recetario.R:207).
   cf <- .cr_off(xml, "cifra")
   for (k in seq_len(nrow(b))) {

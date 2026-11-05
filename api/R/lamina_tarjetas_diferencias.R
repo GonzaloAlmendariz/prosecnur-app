@@ -308,8 +308,17 @@
   # las tarjetas no quepan en alto; si no caben, se anclan compactas o se dejan las principales (`.lam_tarjetas_anclar_cascada`).
   L <- if (identical(t$tipo, "bateria")) .lam_tarjetas_disponer(t$tarjetas, y0, y1, cortos = cortos, tipo = t$tipo, escalar = FALSE) else
     .lam_tarjetas_disponer(t$tarjetas, y0, y1, cortos = cortos, tipo = t$tipo)
+  # v7.23, ítems 7 y 12 (lamina_escala_premisa_arriba.R): en la batería la premisa va encima de su barra y la tarjeta
+  # recupera su ancho estándar; cada lámina de la escala reserva el panel sólo si lleva alguna tarjeta.
+  arriba <- identical(t$tipo, "bateria") && .lam_escala_arriba_aplica(attr(p, "pulso_espec"))
+  if (arriba) {   # la leyenda va bajo las barras: las tarjetas suben hasta el título y bajan hasta la base
+    L <- .lam_tarjetas_L_estandar(L); y0 <- .lam_titulo_fin(tit) + 0.18; y1 <- .std_valor("ppt", "geometria", "base_y") - 0.06
+  }
   op <- options(prosecnur.lam_reserva_derecha = .lam_tarjetas_reserva(L, t$tipo))
   on.exit(options(op), add = TRUE)
+  op_esc <- options(prosecnur.lam_escala_tarjetas = if (identical(t$tipo, "bateria"))
+    list(filas = vapply(t$tarjetas, function(tj) as.character(tj$fila %||% "")[1], ""), reserva = .lam_tarjetas_reserva(L, t$tipo), arriba = arriba))
+  on.exit(options(op_esc), add = TRUE)
   # La leyenda de la escala corre a todo el ancho, también bajo el panel: en el ancho acotado pedía dos renglones y
   # pisaba la última fila (CCSS, batería de gobierno).
   op_ley <- options(prosecnur.lam_leyenda_ancho_completo = identical(t$tipo, "bateria"))
@@ -407,16 +416,12 @@
     data.frame(texto = texto, x = num(off, "x"), y = num(off, "y"), w = num(ext, "cx"), h = num(ext, "cy"), stringsAsFactors = FALSE)
   }
   rot <- pieza("rotulo"); bar <- pieza("barra"); cif <- pieza("cifra")
-  if (is.null(rot) || is.null(bar) || nrow(bar) != nrow(rot)) return(NULL)
-  rot$yc <- rot$y + rot$h / 2; bar$yc <- bar$y + bar$h / 2
-  k <- vapply(rot$yc, function(yc) which.min(abs(bar$yc - yc)), 1L)
-  fin <- bar$x[k] + bar$w[k]
-  if (!is.null(cif)) {
-    cif$yc <- cif$y + cif$h / 2
-    kc <- vapply(bar$yc[k], function(yc) which.min(abs(cif$yc - yc)), 1L)
-    fin <- pmax(fin, cif$x[kc] + .lam_ancho_tinta(cif$texto[kc], .std_pt("cifra"), TRUE) + 0.12)
-  }
-  rot$yc <- bar$yc[k]; rot$x_fin <- fin + 0.07; rot$y_ancla <- bar$yc[k]
+  # Revisión v7.23, ítem 9 (lámina 37): una categoría de largo cero («No responde», <1%) no dibuja barra, y exigir una barra
+  # por rótulo devolvía NULL: las tarjetas caían al panel en columna, sin su guía. Cada fila se busca por su altura en la
+  # pieza que sí está (barra, pista o cifra); una fila sin barra ancla en su cifra.
+  filas <- .lam_tarjetas_filas_por_altura(rot, bar, pieza("barra:pista"), cif)
+  if (is.null(filas)) return(NULL)
+  rot$yc <- filas$yc; rot$x_fin <- filas$fin + 0.07; rot$y_ancla <- filas$yc
   # Con la pista gris al 100% (lamina_barras_pista.R) la escala llega hasta el fin de la pista: la tarjeta no puede
   # arrimarse más acá (v7.14, lámina 25: la pista pasaba por debajo de la tarjeta).
   pista <- pieza("barra:pista")
@@ -446,18 +451,18 @@
     if (!nrow(seg)) { prem$x_fin <- NA_real_; return(prem) }
     seg$yc <- seg$y + seg$h / 2
     filas_y <- unique(round(seg$yc, 3))
-    k <- vapply(prem$yc, function(yc) filas_y[which.min(abs(filas_y - yc))], 0)
+    k <- filas_y[.lam_fila_de_premisa(prem, filas_y)]
     prem$x_fin <- vapply(k, function(yy) { s <- seg[abs(seg$yc - yy) < 0.002, ]; max(s$x + s$w) + 0.07 }, 0)
     prem$y_ancla <- k
-    return(prem)
+    return(.lam_premisa_arriba_a_su_fila(prem))
   }
   # El punto va a la mitad exacta de la cifra, que es la de su barra: la escala centra la caja de la cifra en la barra
   # (`.lam_bloque_escala`: caja de 0.3 in en `yb + (g - 0.3) / 2`).
-  k <- vapply(prem$yc, function(yc) if (nrow(box)) which.min(abs(box$y + box$h / 2 - yc)) else NA_integer_, 1L)
+  k <- .lam_fila_de_premisa(prem, box$y + box$h / 2)
   if (anyNA(k)) { prem$x_fin <- NA_real_; return(prem) }
   prem$x_fin <- box$x[k] + box$w[k] / 2 + .lam_ancho_tinta(box$texto[k], .std_pt("cifra"), TRUE) / 2 + 0.07
   prem$y_ancla <- box$y[k] + box$h[k] / 2
-  prem
+  .lam_premisa_arriba_a_su_fila(prem)
 }
 
 #' Panel de una batería anclado a sus premisas: cada tarjeta a la altura de su fila, en la lámina donde está su premisa
@@ -515,12 +520,11 @@
       .lam_tarjeta_dibujar(.lam_tarjeta_backend_ppt(lz), tj, list(l = xp, t = tp, w = cw, h = altos[j]),
                            unname(t$rotulos_cruce[tj$cruce]) %||% tj$cruce, cortos = t$opcion$cortos, tipo = t$tipo, con_fila = con_fila)
       # Línea guía en codo: del Top Two Box de la fila al borde de la tarjeta, con un punto en el origen.
-      ya <- filas$y_ancla[fk]; xa <- filas$x_fin[fk]; yt <- min(max(ya, tp + 0.18), tp + altos[j] - 0.18)
-      xm <- xa + max(0.06, (xp - xa) / 2)
+      # Por el carril entre filas, sin cruzar otra barra (v7.25, ítem 6: `.lam_tarjeta_guia_ruta`).
+      ya <- filas$y_ancla[fk]; xa <- filas$x_fin[fk]
+      ruta <- .lam_tarjeta_guia_ruta(xa, ya, xp, tp, altos[j], filas$y_ancla, suppressWarnings(max(c(attr(filas, "fin_escala"), filas$x_fin - 0.07), na.rm = TRUE)))
       .lam_caja(lz, xa - 0.03, ya - 0.03, 0.06, 0.06, tenue, nombre = "tarjeta:guia:punto", geom = "ellipse")
-      .lam_linea(lz, xa, ya, xm, ya, tenue, pt = 0.75, nombre = "tarjeta:guia")
-      if (abs(yt - ya) > 0.01) .lam_linea(lz, xm, ya, xm, yt, tenue, pt = 0.75, nombre = "tarjeta:guia")
-      .lam_linea(lz, xm, yt, xp, yt, tenue, pt = 0.75, nombre = "tarjeta:guia")
+      for (r in seq_len(nrow(ruta) - 1L)) .lam_linea(lz, ruta[r, 1], ruta[r, 2], ruta[r + 1L, 1], ruta[r + 1L, 2], tenue, pt = 0.75, nombre = "tarjeta:guia")
     }
     doc <- .lam_agrupar(doc, lz, nombre = "prosecnur:tarjetas_diferencias")
   }
@@ -528,18 +532,22 @@
 }
 
 #' Ancla las tarjetas de una batería: normales; si no caben, compactas (nombre corto a la izquierda, como bajo un
-#' gráfico de una lámina de dos); y si tampoco, las principales que quepan, con un aviso de cuántas quedaron fuera.
+#' gráfico de una lámina de dos); y si tampoco, las principales que quepan (estándar antes que compactas), con un aviso
+#' de cuántas quedaron fuera.
 #' El gráfico nunca se achica por las tarjetas.
 #' @keywords internal
 .lam_tarjetas_anclar_cascada <- function(doc, t, L, y0, y1, laminas, titulo = "") {
-  intento <- function(tt) tryCatch(.lam_tarjetas_anclar(doc, tt, L, y0, y1, laminas = laminas), error = function(e) NULL)
-  r <- intento(t)
-  if (!is.null(r)) return(r)
-  op <- options(prosecnur.lam_tarjeta_compacta = TRUE); on.exit(options(op), add = TRUE)
+  intento <- function(tt, compacta = FALSE) {
+    op <- options(prosecnur.lam_tarjeta_compacta = compacta); on.exit(options(op), add = TRUE)
+    tryCatch(.lam_tarjetas_anclar(doc, tt, L, y0, y1, laminas = laminas), error = function(e) NULL)
+  }
   n <- length(t$tarjetas)
+  # v7.23, ítem 7: con el mismo número de tarjetas, la estándar va antes que la compacta (Gonzalo: «no entran los tres con
+  # la tarjeta estándar»); la compacta sólo si deja una tarjeta más.
   for (k in rev(seq_len(n))) {
     tt <- t; tt$tarjetas <- utils::head(t$tarjetas, k)
     r <- intento(tt)
+    if (is.null(r)) r <- intento(tt, compacta = TRUE)
     if (!is.null(r)) {
       if (k < n && exists(".pulso_aviso", mode = "function")) {
         .pulso_aviso(sprintf("Tarjetas de diferencias: en «%s» caben %d de %d tarjetas junto a sus premisas; van las principales.", titulo, k, n))
@@ -567,7 +575,9 @@
   # Barras: la columna de rótulos tiene que quedar dentro de su tope (35 % del ancho); si el motor vuelve a la columna
   # natural, los rótulos largos se salen por la izquierda.
   ancho <- .std_geom("ancho") - .std_geom("margen_izq") - .std_geom("margen_der")
-  .lam_barras_geo(espec)$wlab <= .lam_barras_tope_rotulo() * ancho + 1e-6
+  geo <- .lam_barras_geo(espec)
+  if (geo$wlab <= .lam_barras_tope_rotulo() * ancho + 1e-6) return(TRUE)
+  .lam_tarjetas_columna_declarada_cabe(espec, geo, ancho)   # lamina_tarjetas_columna_declarada.R
 }
 
 #' El gráfico del total renderizado de nuevo por el motor para el ancho acotado (`.render_element` del entorno del motor)

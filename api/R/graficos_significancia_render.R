@@ -29,28 +29,12 @@
   } else if (!is.null(toma("dsrc")) && !is.null(toma("x_cruce"))) {
     fuente$data <- toma("dsrc"); fuente$g <- toma("x_cruce"); fuente$niveles <- toma("lvls_keys")
     fuente$rotulos_niveles <- toma("lvls_labels"); fuente$ancho_rotulo <- toma("wrap_y_eff")
-    fuente$top2box <- .sig_top2box_del_render(toma("el"), toma("overrides"), toma("preset_args_multi"),
-                                              toma("all_opts"), ctx_var$choices)
+    # ADR 0128 §4.4: un solo resolutor del indicador, el mismo que la familia (graficos_significancia_indicador.R).
+    fuente$top2box <- .sig_top2box_declarado(toma("el"), toma("overrides"))
+    fuente$top2box_visible <- .sig_top2box_visible_en(env, fuente$top2box)
+    fuente$resolver_indicador <- TRUE
   }
   structure(fuente, class = "sig_fuente")
-}
-
-#' Rótulos del *top two box* que la lámina muestra, o NULL
-#'
-#' Con `top2box_labels` declarados, esos. Con la columna pedida sin rótulos, las dos últimas categorías sustantivas de
-#' la escala (las que suma `.box_decidir` por defecto).
-#' @keywords internal
-.sig_top2box_del_render <- function(el, overrides, preset_args, opciones, choices = NULL) {
-  el <- el %||% list(); overrides <- overrides %||% list(); preset_args <- preset_args %||% list()
-  pide <- isTRUE(el$top2box) ||
-    identical(as.character(unlist(overrides$barra_extra %||% preset_args$barra_extra_preset %||% ""))[1], "top2box")
-  if (!pide) return(NULL)
-  lab <- as.character(unlist(el$top2box_labels %||% overrides$top2box_labels %||% preset_args$top2box_labels))
-  if (length(lab)) return(lab)
-  op <- as.character(opciones %||% character(0))
-  op <- op[!.sig_fuera_de_prueba(op)]
-  if (length(op) < 3L) return(NULL)
-  utils::tail(op, 2L)
 }
 
 #' Texto de diseño de una fuente (el de siempre si `diseno` ya era texto)
@@ -93,10 +77,26 @@
                          sum(!cuadra), fuente$var, paste(utils::head(filas_render[!cuadra], 3), collapse = ", ")))
   }
   sustantivas <- .sig_filas_a_probar(filas_render, ind$codigos, regla, solo_principal = FALSE)
+  if (isTRUE(fuente$resolver_indicador)) {
+    # ADR 0128 §4.4: el T2B sólo si está declarado; una escala sin declarar no se prueba (la familia hace lo mismo).
+    indicador <- .sig_indicador_lamina(top2box, colnames(ind$Y), ind$codigos, regla)
+    if (identical(indicador$tipo, "escala_sin_declarar")) return(list(sin_declarar = TRUE, regla = regla))
+    top2box <- indicador$top2box
+  }
   if (length(top2box)) {
     rot <- paste(top2box, collapse = " + ")
-    ind <- .sig_indicadores_derivar(ind, rot, top2box)
-    filas <- intersect(rot, colnames(ind$Y))
+    # Cada categoría del T2B tiene que existir y cuadrar con el gráfico; si no, la suma sería otro indicador.
+    cuadra_t2b <- .sig_top2box_completo(top2box, colnames(ind$Y)) && all(top2box %in% filas_render) &&
+      all(cuadra[top2box[top2box %in% names(cuadra)]])
+    if (cuadra_t2b) {
+      ind <- .sig_indicadores_derivar(ind, rot, top2box)
+      filas <- intersect(rot, colnames(ind$Y))
+    } else {
+      filas <- character(0)
+      if (exists(".pulso_aviso", mode = "function")) {
+        .pulso_aviso(sprintf("Diferencias: el Top Two Box de «%s» no cuadra con el gráfico y no se marca.", fuente$var))
+      }
+    }
   } else {
     filas <- .sig_filas_a_probar(filas_render, ind$codigos, regla, solo_principal = TRUE)
     filas <- filas[cuadra[filas]]
@@ -106,7 +106,11 @@
   st <- if (!is.null(regla$estrato) && regla$estrato %in% names(d)) d[[regla$estrato]] else NULL
   ev <- .sig_evaluar(ind, g, codigos, etiquetas, cluster = cl, estrato = st, regla = regla, filas = filas,
                      binaria = identical(ind$tipo, "so") && length(sustantivas) == 2L && !length(top2box))
-  ev <- .sig_veredictos(ev, regla, ctx$familia)
+  ev <- .sig_veredictos(ev, regla, ctx$familia, exigir_familia = TRUE)   # §3: un p ajeno a la familia no se marca
+  if (isTRUE(ev$fuera_de_familia > 0L) && exists(".pulso_aviso", mode = "function")) {
+    .pulso_aviso(sprintf("Diferencias: %d comparación(es) de «%s» no están en la familia del informe y no se marcan.",
+                         ev$fuera_de_familia, fuente$var))
+  }
   ev$regla <- regla
   ev$filas_sin_cuadrar <- filas_render[!cuadra]
   ev
@@ -178,6 +182,15 @@
   ev <- .sig_evaluar_render(fuente, n_render, codigos, etiquetas, top2box = top2box)
   if (is.null(ev)) return(NULL)
   if (!is.null(ev$abstencion)) return(list(sufijos = NULL, nota = ev$abstencion, ev = ev))
+  if (isTRUE(ev$sin_declarar)) {   # ADR 0128 §4.4: escala sin Top Two Box declarado, ni marcas ni clave
+    .sig_aviso_t2b_sin_declarar(fuente$var)
+    return(list(sufijos = NULL, nota = NULL, ev = ev))
+  }
+  if (length(top2box) && !isTRUE(fuente$top2box_visible)) {
+    # La visibilidad no cambia qué se prueba sino dónde se informa: sin columna, el hallazgo va al editor.
+    .sig_aviso_t2b_oculto(ev)
+    return(list(sufijos = NULL, nota = NULL, ev = ev))
+  }
   # La marca del top two box no tiene segmento propio: la lleva la columna del indicador (`top2box`).
   col_de_opcion <- stats::setNames(as.character(cols_porcentaje), opciones)
   m <- ev$marcas

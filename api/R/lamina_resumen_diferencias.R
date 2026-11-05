@@ -144,53 +144,35 @@
 # ---- la tabla ------------------------------------------------------------------------------------------------------
 
 #' Geometría de columnas de la tabla: rótulo, total y una columna por grupo
+#'
+#' v7.23, ítem 13: cada columna de grupo mide lo que su rótulo corto pide en UNA línea (`.lam_resumen_pisos`); el resto
+#' del ancho se reparte entre el rótulo de la fila (lo que pide, hasta donde alcance) y las columnas (hasta 0.9 in).
 #' @keywords internal
 .lam_resumen_columnas <- function(espec, x0, x1) {
   K <- nrow(espec$columnas)
   rot <- unlist(lapply(espec$capitulos, function(c) vapply(c$filas, `[[`, "", "rotulo")))
   w_tot <- 0.7; util <- x1 - x0
   necesita <- if (length(rot)) max(.lam_ancho_tinta(rot, 10)) + 0.3 else 3
-  # Cada columna de grupo cabe al menos su palabra más larga (los rótulos se parten por palabra, nunca dentro de una); el
-  # resto del ancho se reparte entre el rótulo de la fila (lo que pide, hasta donde alcance) y las columnas (hasta 0.9 in).
-  piso <- vapply(as.character(espec$columnas$corto), function(s) {
-    pal <- strsplit(s, "\\s+")[[1]]
-    w <- max(0.62, if (length(pal)) max(.lam_ancho_tinta(pal, 9.5, TRUE)) + 0.16 else 0)
-    while (length(.lam_tyc_envolver(s, w - 0.12, 9.5, TRUE)) > 2L && w < 1.6) w <- w + 0.02   # y el rótulo entero en dos líneas
-    w
-  }, numeric(1), USE.NAMES = FALSE)
+  # v7.25, ítem 9: el nombre completo del grupo cuando cabe (en una o dos líneas); si no, el corto.
+  et <- espec$columnas$etiqueta %||% espec$columnas$corto
+  ps <- if (K) .lam_resumen_rotulos_grupo(et, espec$columnas$corto, util - w_tot, cruces = espec$columnas$cruce,
+                                       w_rot_min = unique(c(max(2.6, min(necesita, 3.4)), 2.6))) else list(piso = numeric(0), pt = 9.5, una_linea = TRUE)
+  piso <- ps$piso
   meta <- if (K) min(0.9, (util - necesita - w_tot) / K) else 0
   # Si los pisos se comen el ancho del rótulo, las demás columnas ceden hasta su propio piso.
   while (K && sum(pmax(piso, meta)) > util - necesita - w_tot && meta > min(piso)) meta <- meta - 0.01
   cw <- pmax(piso, meta)
   w_rot <- util - w_tot - sum(cw)
   xs <- x0 + w_rot + w_tot + cumsum(cw) - cw / 2
-  list(w_rot = w_rot, x_tot = x0 + w_rot + w_tot / 2, w_tot = w_tot, cw = cw, xs = xs, K = K)
+  list(w_rot = w_rot, x_tot = x0 + w_rot + w_tot / 2, w_tot = w_tot, cw = cw, xs = xs, K = K, pt_grupo = ps$pt, una_linea = ps$una_linea,
+       lineas = ps$lineas)
 }
 
-#' Lámina del resumen de diferencias
-#' @return Lista con `doc` y `partes`.
+#' Encabezado de la tabla (el cruce sobre sus grupos, con su filete, y el rótulo corto de cada grupo) desde `y_h`
+#' @return El `y` donde empiezan las filas.
 #' @keywords internal
-.lam_laminas_resumen_diferencias <- function(doc, espec, titulo, ante = NULL, base = NULL, folio = NULL, layout = "Graficos2",
-                                             master = "Office Theme", por_lamina = function(doc) doc) {
-  force(folio)
-  aviso <- function(...) .dif_aviso("Resumen de diferencias", ...)
-  # Revisión del PPT v7.11 de CCSS (lámina 59): «¿por qué pones una nota tan grande si todo eso ya se explica al inicio?».
-  # El método ya lo explica la lámina «Cómo leer las diferencias»: aquí quedan la leyenda de los símbolos y la base. La
-  # nota sigue en la espec para el respaldo en ggplot (Word y `motor_nativo = FALSE`).
-  espec$nota <- NULL
-  g <- .std_geom
-  doc <- officer::add_slide(doc, layout = layout, master = master)
-  doc <- .lam_titulo(doc, titulo, ante = ante)
-  azul <- .std_color("azul"); suave <- .std_color("texto_suave")
-  x0 <- g("margen_izq"); x1 <- g("ancho") - g("margen_der") - 0.1
-  C <- .lam_resumen_columnas(espec, x0, x1)
-  cols <- espec$columnas
-  lz <- .lam_lienzo()
-  # Encabezado: el cruce sobre sus grupos, con su filete, y el rótulo corto de cada grupo (hasta dos líneas).
-  y_h <- .lam_titulo_fin(titulo) + 0.12
-  lineas_grupo <- if (C$K) vapply(cols$corto, function(s) length(.lam_tyc_envolver(s, C$cw[match(s, cols$corto)] - 0.12, 9.5, TRUE)), integer(1)) else 0L
-  if (any(lineas_grupo > 2L)) aviso("hay rótulos de grupo de más de dos líneas; declara un rótulo corto en `cortos`.")
-  h_grupo <- max(1L, min(2L, max(lineas_grupo, 1L))) * 9.5 * 1.2 / 72
+.lam_resumen_encabezado <- function(lz, espec, C, y_h) {
+  azul <- .std_color("azul"); suave <- .std_color("texto_suave"); cols <- espec$columnas; pt <- C$pt_grupo
   for (cr in unique(cols$cruce)) {
     i <- which(cols$cruce == cr)
     xa <- C$xs[min(i)] - C$cw[min(i)] / 2 + 0.05; xb <- C$xs[max(i)] + C$cw[max(i)] / 2 - 0.05
@@ -199,52 +181,120 @@
                  align = "center", nombre = "resumen:cruce")
     .lam_caja(lz, xa, y_h + 0.22, xb - xa, 0.012, .std_color("filete"), nombre = "resumen:cruce:filete")
   }
-  y_g <- y_h + 0.32
+  y_g <- y_h + 0.32; lh <- pt * 1.2 / 72
+  n_lin <- 1L
   for (k in seq_len(C$K)) {
-    lin <- utils::head(.lam_tyc_envolver(cols$corto[k], C$cw[k] - 0.12, 9.5, TRUE), 2L)
-    for (j in seq_along(lin)) .lam_tyc_txt(lz, lin[j], C$xs[k], y_g + (j - 0.5) * 9.5 * 1.2 / 72, C$cw[k] - 0.04, 9.5, azul, bold = TRUE,
-                                          align = "center", nombre = "resumen:grupo")
+    lin <- if (!is.null(C$lineas)) C$lineas[[k]] else if (isTRUE(C$una_linea)) cols$corto[k] else utils::head(.lam_tyc_envolver(cols$corto[k], C$cw[k] - 0.12, pt, TRUE), 2L)
+    n_lin <- max(n_lin, length(lin))
+    # Una línea: la caja de texto es tan ancha como el rótulo pide (el piso de la columna ya lo garantiza).
+    for (j in seq_along(lin)) .lam_tyc_txt(lz, lin[j], C$xs[k], y_g + (j - 0.5) * lh, max(C$cw[k] - 0.04, .lam_ancho_tinta(lin[j], pt, TRUE) + 0.04),
+                                          pt, azul, bold = TRUE, align = "center", nombre = "resumen:grupo")
   }
-  .lam_tyc_txt(lz, "Total", C$x_tot, y_g + 0.5 * 9.5 * 1.2 / 72, C$w_tot, 9.5, azul, bold = TRUE, align = "center", nombre = "resumen:total:encabezado")
-  y <- y_g + h_grupo + 0.12
-  # Alto de renglón: el que quepa entre 0.19 y 0.25 in; si ni con 0.19 caben, se quitan las últimas filas y se avisa.
-  y_lim <- .lam_dif_limite(espec)
-  caps <- espec$capitulos
-  n_lin <- function(cs) sum(vapply(cs, function(c) 0.85 + length(c$filas), numeric(1)))
-  while (length(caps) && (y_lim - y) / n_lin(caps) < 0.17) {
-    ult <- length(caps)
-    if (length(caps[[ult]]$filas) > 1L) caps[[ult]]$filas <- caps[[ult]]$filas[-length(caps[[ult]]$filas)] else caps <- caps[-ult]
-    if (!isTRUE(attr(caps, "avisado"))) { aviso("las filas no caben en la lámina; se quitaron las últimas. Reduce la lista."); attr(caps, "avisado") <- TRUE }
-  }
-  h <- if (length(caps)) min(0.25, (y_lim - y) / n_lin(caps)) else 0.25
-  recortes <- 0L
+  .lam_tyc_txt(lz, "Total", C$x_tot, y_g + 0.5 * lh, C$w_tot, 9.5, azul, bold = TRUE, align = "center", nombre = "resumen:total:encabezado")
+  y_g + n_lin * lh + 0.12
+}
+
+#' Filas de una lámina: capítulos con su rótulo y cada fila con su total y sus celdas, desde `y`, con renglón `h`
+#' @return Número de rótulos de fila recortados.
+#' @keywords internal
+.lam_resumen_filas <- function(lz, espec, C, caps, x0, x1, y, h, h_letra = h) {
+  azul <- .std_color("azul"); cols <- espec$columnas; recortes <- 0L
+  cu <- .lam_resumen_cuerpos(h_letra)   # con alto de sobra, letra y pastilla mayores (v7.25, ítem 9)
   for (cp in caps) {
-    .lam_tyc_txt(lz, toupper(cp$titulo), x0, y + 0.85 * h / 2, C$w_rot + C$w_tot, 8.5, .std_color("coral"), bold = TRUE, nombre = "resumen:capitulo")
-    y <- y + 0.85 * h
+    .lam_tyc_txt(lz, toupper(cp$titulo), x0, y + .LAM_RESUMEN_CAPITULO * h / 2, C$w_rot + C$w_tot, 8.5, .std_color("coral"), bold = TRUE,
+                 nombre = "resumen:capitulo")
+    y <- y + .LAM_RESUMEN_CAPITULO * h
     for (f in cp$filas) {
-      yc <- y + h / 2
-      .lam_caja(lz, x0, y + 0.015, x1 - x0, h - 0.03, .std_color("tarjeta_fondo"), nombre = "resumen:franja")
-      r <- .lam_dif_recortar(f$rotulo, C$w_rot - 0.2, 10)
-      if (r$recortado) recortes <- recortes + 1L
-      .lam_tyc_txt(lz, r$texto, x0 + 0.08, yc, C$w_rot - 0.12, 10, azul, nombre = "resumen:fila")
-      .lam_tyc_txt(lz, .tarjetas_pct(f$total), C$x_tot, yc, C$w_tot, 10, azul, bold = TRUE, align = "center", nombre = "resumen:total")
+      lin <- .lam_resumen_fila_lineas(f$rotulo, C$w_rot - 0.2)
+      hf <- if (length(lin) > 1L) .LAM_RESUMEN_FILA_DOBLE * h else h
+      yc <- y + hf / 2
+      .lam_caja(lz, x0, y + 0.015, x1 - x0, hf - 0.03, .std_color("tarjeta_fondo"), nombre = "resumen:franja")
+      if (any(endsWith(lin, "…"))) recortes <- recortes + 1L
+      pt_f <- if (length(lin) > 1L) cu$fila - 0.5 else cu$fila
+      # Con la letra mayor, un rótulo que cabía en una línea a 10 pt puede no caber: va en dos si el renglón las admite;
+      # si no, baja medio punto hasta 9.5.
+      if (length(lin) == 1L && .lam_ancho_tinta(lin, pt_f) > C$w_rot - 0.2) {
+        l2 <- .lam_tyc_envolver(lin, C$w_rot - 0.2, pt_f - 0.5)
+        if (length(l2) == 2L && 2 * (pt_f - 0.5) * 1.15 / 72 <= hf - 0.03) { lin <- l2; pt_f <- pt_f - 0.5 }
+      }
+      while (pt_f > 9.5 && max(.lam_ancho_tinta(lin, pt_f)) > C$w_rot - 0.2) pt_f <- pt_f - 0.5
+      lh <- pt_f * 1.15 / 72
+      for (j in seq_along(lin)) .lam_tyc_txt(lz, lin[j], x0 + 0.08, yc + (j - (length(lin) + 1) / 2) * lh, C$w_rot - 0.12, pt_f, azul,
+                                            nombre = "resumen:fila")
+      .lam_tyc_txt(lz, .tarjetas_pct(f$total), C$x_tot, yc, C$w_tot, cu$total, azul, bold = TRUE, align = "center", nombre = "resumen:total")
       ce <- f$celdas
       for (k in seq_len(C$K)) {
         e <- if (is.null(ce)) NULL else ce[ce$cruce == cols$cruce[k] & ce$codigo == cols$codigo[k], , drop = FALSE]
         est <- if (is.null(e) || !nrow(e)) "sin_prueba" else e$estado[1]
         if (identical(est, "dif")) {
-          .lam_dif_pastilla(lz, C$xs[k], yc, min(C$cw[k] - 0.08, 0.72), min(0.19, h - 0.035), e$valor[1], e$dir[1], e$fragil[1])
+          .lam_dif_pastilla(lz, C$xs[k], yc, min(C$cw[k] - 0.08, cu$pastilla_w), cu$pastilla_h, e$valor[1], e$dir[1], e$fragil[1], pt = cu$pastilla)
         } else if (identical(est, "na")) {
           .lam_tyc_txt(lz, "n. a.", C$xs[k], yc, C$cw[k] - 0.06, 8, .std_color("texto_tenue"), align = "center", nombre = "resumen:celda:na")
         } else {
           .lam_caja(lz, C$xs[k] - 0.025, yc - 0.025, 0.05, 0.05, .std_color("tarjeta_total"), geom = "ellipse", nombre = "resumen:celda:igual")
         }
       }
-      y <- y + h
+      y <- y + hf
     }
   }
-  if (recortes) aviso(sprintf("%d rótulo(s) no caben en su columna y se recortaron con «…»; acórtalos.", recortes))
-  doc <- .lam_agrupar(doc, lz, nombre = "prosecnur:grafico:resumen_diferencias")
-  doc <- .lam_dif_pie(doc, espec, base, folio)
-  list(doc = por_lamina(doc), partes = 1L)
+  recortes
+}
+
+#' Láminas del resumen de diferencias: una o varias, por capítulos enteros (v7.23, ítem 13)
+#' @return Lista con `doc` y `partes` (láminas agregadas).
+#' @keywords internal
+.lam_laminas_resumen_diferencias <- function(doc, espec, titulo, ante = NULL, base = NULL, folio = NULL, layout = "Graficos2",
+                                             master = "Office Theme", por_lamina = function(doc) doc) {
+  force(folio)
+  aviso <- function(...) .dif_aviso("Resumen de diferencias", ...)
+  # Revisión del PPT v7.11 de CCSS (lámina 59): «¿por qué pones una nota tan grande si todo eso ya se explica al inicio?».
+  # El método ya lo explica la lámina «Cómo leer las diferencias»: aquí quedan la leyenda de los símbolos y la base. La
+  # nota sigue en la espec para el respaldo en ggplot (`motor_nativo = FALSE`).
+  espec$nota <- NULL
+  g <- .std_geom
+  x0 <- g("margen_izq"); x1 <- g("ancho") - g("margen_der") - 0.1
+  C <- .lam_resumen_columnas(espec, x0, x1)
+  if (!isTRUE(C$una_linea)) aviso("los rótulos de grupo no caben en una línea; declara rótulos más cortos en `cortos`.")
+  titulos <- list(titulo, .particion_titulo_cont(titulo) %||% titulo)
+  # Alto disponible para filas: el de la lámina con el título más alto (el «(cont.)» puede ocupar una línea más).
+  y_filas <- function(tk) .lam_resumen_encabezado(.lam_lienzo(), espec, C, .lam_titulo_fin(tk) + 0.12)
+  y_lim <- .lam_dif_limite(espec)
+  disponible <- y_lim - max(vapply(titulos, y_filas, numeric(1)))
+  caps <- Filter(function(c) length(c$filas) > 0L, espec$capitulos)
+  u <- vapply(caps, .lam_resumen_unidades, numeric(1), w_rot = C$w_rot - 0.2)
+  paginas <- .lam_resumen_paginar(u, disponible)
+  # Renglón común a todas las láminas; un capítulo que no cabe solo ni a `H_MIN` pierde sus últimas filas (con aviso).
+  max_u <- if (length(paginas)) max(vapply(paginas, function(i) sum(u[i]), numeric(1))) else 1
+  if (length(paginas) && disponible / max_u < .LAM_RESUMEN_H_MIN) {
+    for (q in seq_along(paginas)) {
+      i <- paginas[[q]]
+      while (sum(u[i]) > disponible / .LAM_RESUMEN_H_MIN) {
+        ult <- i[length(i)]
+        if (length(caps[[ult]]$filas) > 1L) caps[[ult]]$filas <- caps[[ult]]$filas[-length(caps[[ult]]$filas)] else { i <- i[-length(i)]; paginas[[q]] <- i }
+        u[ult] <- .lam_resumen_unidades(caps[[ult]], C$w_rot - 0.2)
+        if (!length(i)) break
+      }
+    }
+    aviso("las filas no caben en la lámina; se quitaron las últimas. Reduce la lista.")
+    max_u <- max(vapply(paginas, function(i) sum(u[i]), numeric(1)))
+  }
+  h <- min(.LAM_RESUMEN_H_MAX, disponible / max(1, max_u))
+  if (!length(paginas)) paginas <- list(integer(0))
+  recortes <- 0L
+  for (q in seq_along(paginas)) {
+    tk <- titulos[[if (q == 1L) 1L else 2L]]
+    doc <- officer::add_slide(doc, layout = layout, master = master)
+    doc <- .lam_titulo(doc, tk, ante = ante, avisar = q == 1L)
+    lz <- .lam_lienzo()
+    y <- .lam_resumen_encabezado(lz, espec, C, .lam_titulo_fin(tk) + 0.12)
+    # v7.25, ítem 9: cada lámina reparte SU alto (la primera ya no deja aire al pie porque la segunda va más llena); la
+    # letra es la misma en todas, la del renglón común.
+    h_q <- if (length(paginas[[q]])) min(.LAM_RESUMEN_H_MAX, max(h, disponible / max(1, sum(u[paginas[[q]]])))) else h
+    recortes <- recortes + .lam_resumen_filas(lz, espec, C, caps[paginas[[q]]], x0, x1, y, h_q, h_letra = h)
+    doc <- .lam_agrupar(doc, lz, nombre = "prosecnur:grafico:resumen_diferencias")
+    doc <- .lam_dif_pie(doc, espec, base, if (is.null(folio)) NULL else folio + q - 1L)
+    doc <- por_lamina(doc)
+  }
+  if (recortes) aviso(sprintf("%d rótulo(s) no caben en dos líneas y se recortaron con «…»; acórtalos.", recortes))
+  list(doc = doc, partes = length(paginas))
 }

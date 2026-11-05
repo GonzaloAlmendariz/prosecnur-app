@@ -8,7 +8,7 @@
 #     partes que declare la lámina), con la llave sobre las partes que forman una serie («Trabaja 35%»);
 #   - abajo, a la izquierda, la PROTAGONISTA: el cruce dibujado por una pieza enchufable;
 #   - abajo, a la derecha, el panel lateral con la lectura en gris, sin marcas. Si la protagonista devuelve ítems de
-#     panel (rótulo y chip de cada serie), van ahí; `lineas_nivel` los rotula al final de cada línea (v7.11, lámina 45);
+#     panel (rótulo y chip de cada serie), van ahí; `lineas_nivel` pone ahí su leyenda de series (v7.23, lámina 42);
 #   - base y fuente al pie, con el pie de las demás láminas (`.lam_pie`).
 #
 # Protagonistas (`espec$protagonista`, registro `.lam_tyc_protagonista`):
@@ -136,6 +136,7 @@
 #' @keywords internal
 .lam_tyc_panel <- function(lz, items, lectura, notas, x, w, y_min, y_max) {
   alto_item <- function(it) {
+    if (!is.null(it$muestra)) return(.lam_ln_leyenda_alto(it, w))   # entrada de leyenda (lamina_lineas_nivel_leyenda.R)
     n <- length(.lam_tyc_envolver(it$rotulo, w, 12, TRUE))
     n * 12 * 1.2 / 72 + if (is.null(it$chip)) 0 else 0.45
   }
@@ -152,6 +153,7 @@
     if (sobra > 0) tops <- pmax(y_min, tops - sobra)
     for (k in seq_along(items)) {
       it <- items[[k]]
+      if (!is.null(it$muestra)) { .lam_ln_leyenda_entrada(lz, it, x, tops[k], w); next }
       lin <- .lam_tyc_envolver(it$rotulo, w, 12, TRUE)
       y <- tops[k]
       for (l in lin) { .lam_tyc_txt(lz, l, x, y + 0.1, w, 12, it$color, bold = TRUE, nombre = "panel:serie"); y <- y + 0.2 }
@@ -197,9 +199,9 @@
     .lam_tyc_txt(lz, espec$seccion, x0, y + 0.22, 8, .std_pt("pregunta"), .std_color("azul"), bold = TRUE, nombre = "seccion:titulo")
     y <- y + 0.45
   }
-  # v7.11, lámina 45: las series se rotulan al final de su línea (lamina_lineas_nivel.R); el panel sólo lleva la lectura y
-  # cede ancho a la protagonista.
-  ancho_panel <- 3.0
+  # v7.23, lámina 42 (ítem 10): la leyenda de las series vuelve al panel, a la derecha del gráfico y sobre la lectura
+  # (lamina_lineas_nivel_leyenda.R); 3.2 in para que el chip de tendencia quepa en una línea junto a la muestra.
+  ancho_panel <- 3.2
   x_panel <- xr - ancho_panel
   caja <- list(l = x0, t = y + 0.1, r = x_panel - 0.3, b = .std_comp("pie", "base_y") - 0.12)
   prot <- .lam_tyc_protagonista(espec$protagonista)

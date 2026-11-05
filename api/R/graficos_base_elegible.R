@@ -143,7 +143,7 @@
   }
   valores <- unique(valores[nzchar(valores)])
   if (!length(valores)) return("")
-  paste(valores, collapse = " · ")
+  paste(valores, collapse = ", ")
 }
 
 #' Redacción del pie.

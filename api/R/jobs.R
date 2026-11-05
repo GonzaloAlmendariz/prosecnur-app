@@ -546,16 +546,16 @@ job_snapshot <- function(j) {
 
 #' Los avisos de un job, con los de líneas de lámina al final y agrupados si no caben
 #'
-#' Los avisos de partición y de títulos largos (`lamina_avisos_lineas.R`) empiezan con «Lámina N · » y pueden ser
+#' Los avisos de partición y de títulos largos (`lamina_avisos_lineas.R`) empiezan con «Lámina N, » y pueden ser
 #' decenas en un mazo grande: con el tope de `maximo` sacaban de la lista a los demás (el del radar en acrconta,
 #' verificador de K12b). Los demás van primero, hasta `maximo`; los de lámina, uno por uno si caben y, si no, en dos
 #' líneas que dicen qué láminas («9 láminas salieron en varias partes: 18, 21, 24…»). Esas dos líneas de resumen se
 #' suman aunque la lista ya tenga `maximo`.
 #' @noRd
 .pulso_avisos_ordenar <- function(avisos, maximo = 8L) {
-  # Sólo se agrupan los dos tipos que se saben resumir (partes y títulos); otro «Lámina N ·» va con los demás y no se
+  # Sólo se agrupan los dos tipos que se saben resumir (partes y títulos); otro «Lámina N,» va con los demás y no se
   # descarta en silencio (verificador de K12b).
-  de_lamina <- grepl("^Lámina [0-9]+( de «[^»]+»)? · ", avisos) &
+  de_lamina <- grepl("^Lámina [0-9]+( de «[^»]+»)?, “", avisos) &
     (grepl("salió en [0-9]+ partes", avisos) | grepl("el título ocupa", avisos, fixed = TRUE))
   otros <- utils::head(avisos[!de_lamina], maximo)
   lam <- avisos[de_lamina]
@@ -564,10 +564,10 @@ job_snapshot <- function(j) {
   # su propio PPTX.
   num <- function(x) {
     n <- sub("^Lámina ([0-9]+).*$", "\\1", x)
-    b <- ifelse(grepl("^Lámina [0-9]+ de «", x), sub("^Lámina [0-9]+ de «([^»]+)» · .*$", "\\1", x), "")
+    b <- ifelse(grepl("^Lámina [0-9]+ de «", x), sub("^Lámina [0-9]+ de «([^»]+)».*$", "\\1", x), "")
     if (all(b == "")) return(paste(n, collapse = ", "))
     paste(vapply(unique(b), function(k) trimws(sprintf("%s %s", if (nzchar(k)) sprintf("«%s»", k) else "", paste(n[b == k], collapse = ", "))), ""),
-          collapse = "; ")
+          collapse = " y ")
   }
   partes <- lam[grepl("salió en [0-9]+ partes", lam)]
   titulos <- lam[grepl("el título ocupa", lam, fixed = TRUE)]

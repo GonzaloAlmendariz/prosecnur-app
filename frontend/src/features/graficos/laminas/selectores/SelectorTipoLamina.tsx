@@ -1,11 +1,12 @@
 // Panel «¿Qué lámina?» (`panel=tipo-lamina`; dirección F6 §4.3). Izquierda, la pregunta del analista (intenciones);
 // centro, las composiciones candidatas dibujadas desde el estándar con los gráficos de la lámina del foco acomodados;
 // derecha, el detalle y el botón. Dos modos: cambiar el tipo de la lámina del foco (conserva sus gráficos y avisa los
-// que no caben) o insertar una lámina nueva detrás de ella.
+// que no caben) o insertar una lámina nueva detrás de ella. Una tarjeta es un tipo o un tipo con su payload de partida
+// (opcionesLamina.ts: «Resumen ejecutivo», H7).
 
-import { LayoutTemplate, MousePointer2 } from "lucide-react";
+import { LayoutTemplate, MousePointer2 } from "../../../../vendor/lucide-react";
 import { useEffect, useId, useMemo, useRef } from "react";
-import type { GraficadorRef, Slide, SlideType } from "../../../../api/graficos";
+import type { GraficadorRef, Slide } from "../../../../api/graficos";
 import { toast } from "../../../../components/toasterStore";
 import { usePanelDireccionable } from "../../../../lib/navegacion/paneles";
 import { CATALOGO_LAMINAS } from "../../iconos/catalogoTipos.generated";
@@ -23,6 +24,7 @@ import { PANEL_TIPO_LAMINA } from "./panelesSelectores";
 import { useSelectoresUi } from "./selectoresStore";
 import { TarjetaTipoLamina } from "./TarjetaTipoLamina";
 import { conVariante, INTENCIONES, intencionDe, rotuloRanuras, varianteDe, variantesDe, type IntencionLamina } from "./tiposLamina";
+import { conOpcion, opcionDeLamina, opcionesDe, presetDe, tipoDeOpcion, type OpcionLamina } from "./opcionesLamina";
 import { EstadoVacio } from "../../../../components/EstadoVacio";
 import { formatoConteo } from "../../../../lib/formatoNumero";
 
@@ -49,6 +51,7 @@ export function SelectorTipoLamina({ slide, posicion, cerrar }: Props) {
 
   const modo = ui.modoLamina === "cambiar" && slide ? "cambiar" : "insertar";
   const tipoActual = modo === "cambiar" && slide ? slide.tipo : null;
+  const opcionActual: OpcionLamina | null = modo === "cambiar" && slide ? opcionDeLamina(slide) : null;
   const intencion: IntencionLamina = ui.intencion ?? (tipoActual ? intencionDe(tipoActual) : null) ?? "una";
 
   // Lo que el registro de esta sesión ofrece: sin los retirados del selector y, con el registro cargado, sin los que
@@ -62,23 +65,34 @@ export function SelectorTipoLamina({ slide, posicion, cerrar }: Props) {
       return !!meta && meta.en_selector !== false;
     }),
   })), [registry, slidesById]);
-  const tipos = useMemo(() => intenciones.find((i) => i.id === intencion)?.tipos ?? [], [intenciones, intencion]);
-  const candidato: SlideType | null = ui.candidato ?? (tipoActual && tipos.includes(tipoActual) ? tipoActual : tipos[0] ?? null);
+  const opciones = useMemo(() => {
+    const i = intenciones.find((x) => x.id === intencion);
+    return i ? opcionesDe(i) : [];
+  }, [intenciones, intencion]);
+  const candidato: OpcionLamina | null = ui.candidato ?? (opcionActual && opciones.includes(opcionActual) ? opcionActual : opciones[0] ?? null);
 
   const cambios = useMemo(() => {
-    const m = new Map<SlideType, CambioTipoLamina>();
+    const m = new Map<OpcionLamina, CambioTipoLamina>();
     if (modo !== "cambiar" || !slide) return m;
-    for (const t of tipos) m.set(t, planearCambioTipo(slide, t, { clavesDestino: slidesById[t]?.args.map((a) => a.name) }));
+    const actual = opcionDeLamina(slide);
+    for (const op of opciones) {
+      const t = tipoDeOpcion(op);
+      const c = planearCambioTipo(slide, t, { clavesDestino: slidesById[t]?.args.map((a) => a.name) });
+      // Otra tarjeta del mismo tipo (Hallazgos clave ⇄ Resumen ejecutivo) es un cambio, con su payload de partida.
+      m.set(op, op === actual ? c : { ...c, payload: conOpcion(op, c.payload), mismoTipo: false });
+    }
     return m;
-  }, [modo, slide, tipos, slidesById]);
+  }, [modo, slide, opciones, slidesById]);
   const conGraficos = modo === "cambiar" && !!slide && graficosDeLamina(slide).length > 0;
 
-  const variantesDeTipo = (t: SlideType) => {
+  const variantesDeTipo = (op: OpcionLamina) => {
+    const t = tipoDeOpcion(op);
     const arg = slidesById[t]?.args.find((a) => a.name === "variante");
     return variantesDe(t, arg?.choices);
   };
-  const varianteInicial = (t: SlideType): string | null =>
-    slide && t === tipoActual ? varianteDe(slide) : variantesDeTipo(t)?.defecto ?? null;
+  const varianteInicial = (op: OpcionLamina): string | null =>
+    slide && op === opcionActual ? varianteDe(slide) : variantesDeTipo(op)?.defecto ?? null;
+  const nombreDe = (op: OpcionLamina): string => presetDe(op)?.nombre ?? nombreLamina(tipoDeOpcion(op), slidesById[tipoDeOpcion(op)]);
   const variante = candidato ? ui.variante ?? varianteInicial(candidato) : null;
   const cambio = candidato ? cambios.get(candidato) ?? null : null;
 
@@ -94,12 +108,13 @@ export function SelectorTipoLamina({ slide, posicion, cerrar }: Props) {
 
   const aplicar = () => {
     if (!candidato) return;
-    const nombre = nombreLamina(candidato, slidesById[candidato]);
+    const tipo = tipoDeOpcion(candidato);
+    const nombre = nombreDe(candidato);
     if (modo === "insertar") {
-      const base = { tipo: candidato, payload: payloadPorDefecto(candidato) };
+      const base = { tipo, payload: conOpcion(candidato, payloadPorDefecto(tipo)) };
       const payload = variante ? conVariante(base, variante) : base.payload;
       const indice = posicion ?? usePlanStore.getState().plan.slides.length;
-      insertSlideAt(candidato, payload, indice);
+      insertSlideAt(tipo, payload, indice);
       toast.exito(`Lámina ${indice + 1} insertada: ${nombre}`);
       cerrarYOlvidar(indice + 1);
       return;
@@ -110,10 +125,10 @@ export function SelectorTipoLamina({ slide, posicion, cerrar }: Props) {
       return;
     }
     const payload = variante && variantesDeTipo(candidato)
-      ? conVariante({ tipo: candidato, payload: cambio.payload }, variante)
+      ? conVariante({ tipo, payload: cambio.payload }, variante)
       : cambio.payload;
     const id = slide.id;
-    setSlideTipo(id, candidato, payload);
+    setSlideTipo(id, tipo, payload);
     const quitados = cambio.sobrantes.length;
     toast.aviso(
       cambio.mismoTipo ? `Lámina ${posicion}: otra composición` : `Lámina ${posicion}: ahora es “${nombre}”`,
@@ -127,8 +142,8 @@ export function SelectorTipoLamina({ slide, posicion, cerrar }: Props) {
     cerrarYOlvidar(posicion);
   };
 
-  const graficosDe = (t: SlideType): Record<string, string> => {
-    const c = cambios.get(t);
+  const graficosDe = (op: OpcionLamina): Record<string, string> => {
+    const c = cambios.get(op);
     return c ? graficosPorSlot(c) : {};
   };
   const nombreG = (g: GraficadorRef) => nombreGrafico(g, graficadoresById);
@@ -163,7 +178,7 @@ export function SelectorTipoLamina({ slide, posicion, cerrar }: Props) {
                 onChange={() => ui.elegirIntencion(i.id)}
               />
               <strong>{i.label}</strong>
-              <span className="pulso-f6-opcion-cuenta">{formatoConteo(i.tipos.length)}</span>
+              <span className="pulso-f6-opcion-cuenta">{formatoConteo(opcionesDe(i).length)}</span>
               <span>{i.descripcion}</span>
             </label>
           ))}
@@ -173,9 +188,9 @@ export function SelectorTipoLamina({ slide, posicion, cerrar }: Props) {
         <section aria-labelledby={`${grupo}-galeria`}>
           <div className="pulso-f6-galeria-cabeza">
             <h3 id={`${grupo}-galeria`}>{intenciones.find((i) => i.id === intencion)?.label}</h3>
-            <span>{conGraficos ? `${rotuloCuenta(tipos.length)}, con los gráficos de esta lámina` : rotuloCuenta(tipos.length)}</span>
+            <span>{conGraficos ? `${rotuloCuenta(opciones.length)}, con los gráficos de esta lámina` : rotuloCuenta(opciones.length)}</span>
           </div>
-          {tipos.length === 0 ? (
+          {opciones.length === 0 ? (
             <EstadoVacio icono={<LayoutTemplate size={16} aria-hidden="true" />} titulo="Todavía no hay láminas de este grupo" />
           ) : (
             <ul
@@ -186,43 +201,47 @@ export function SelectorTipoLamina({ slide, posicion, cerrar }: Props) {
               data-qa-geometry-contract="equal"
               data-qa-geometry-capacity="owned"
             >
-              {tipos.map((t) => (
-                <li key={t} data-qa-geometry-member>
-                  <TarjetaTipoLamina
-                    nombreGrupo={`${grupo}-candidato`}
-                    tipo={t}
-                    nombre={nombreLamina(t, slidesById[t])}
-                    meta={rotuloRanuras(t)}
-                    uso={usoDeTarjeta(t, ESTANDAR_LAMINAS[t]?.uso, slidesById[t]?.descripcion)}
-                    graficos={graficosDe(t)}
-                    variante={varianteInicial(t)}
-                    elegida={t === candidato}
-                    actual={t === tipoActual}
-                    sobrantes={cambios.get(t)?.mismoTipo ? 0 : cambios.get(t)?.sobrantes.length ?? 0}
-                    onElegir={() => ui.elegirCandidato(t, varianteInicial(t))}
-                    onAplicar={() => { if (t !== candidato) ui.elegirCandidato(t, varianteInicial(t)); else aplicar(); }}
-                  />
-                </li>
-              ))}
+              {opciones.map((op) => {
+                const t = tipoDeOpcion(op);
+                return (
+                  <li key={op} data-qa-geometry-member>
+                    <TarjetaTipoLamina
+                      nombreGrupo={`${grupo}-candidato`}
+                      opcion={op}
+                      tipo={t}
+                      nombre={nombreDe(op)}
+                      meta={rotuloRanuras(t)}
+                      uso={presetDe(op)?.uso ?? usoDeTarjeta(t, ESTANDAR_LAMINAS[t]?.uso, slidesById[t]?.descripcion)}
+                      graficos={graficosDe(op)}
+                      variante={varianteInicial(op)}
+                      elegida={op === candidato}
+                      actual={op === opcionActual}
+                      sobrantes={cambios.get(op)?.mismoTipo ? 0 : cambios.get(op)?.sobrantes.length ?? 0}
+                      onElegir={() => ui.elegirCandidato(op, varianteInicial(op))}
+                      onAplicar={() => { if (op !== candidato) ui.elegirCandidato(op, varianteInicial(op)); else aplicar(); }}
+                    />
+                  </li>
+                );
+              })}
             </ul>
           )}
         </section>
       )}
       detalle={candidato ? (
         <DetalleTipoLamina
-          tipo={candidato}
-          nombre={nombreLamina(candidato, slidesById[candidato])}
-          descripcion={slidesById[candidato]?.descripcion ?? ""}
+          tipo={tipoDeOpcion(candidato)}
+          nombre={nombreDe(candidato)}
+          descripcion={presetDe(candidato)?.descripcion ?? slidesById[tipoDeOpcion(candidato)]?.descripcion ?? ""}
           graficos={graficosDe(candidato)}
           variantes={variantesDeTipo(candidato)}
           variante={variante}
           onVariante={(v) => { if (ui.candidato !== candidato) ui.elegirCandidato(candidato, v); else ui.elegirVariante(v); }}
           modo={modo}
           cambio={cambio}
-          varianteActual={slide && candidato === tipoActual ? varianteDe(slide) : null}
+          varianteActual={slide && candidato === opcionActual ? varianteDe(slide) : null}
           confirmando={ui.confirmando}
           nombreGrafico={nombreG}
-          nombreSlot={(s) => nombreSlot(s, slidesById[candidato] ?? metaOrigen)}
+          nombreSlot={(s) => nombreSlot(s, slidesById[tipoDeOpcion(candidato)] ?? metaOrigen)}
           nombreCampo={(c) => nombreCampo(c, metaOrigen)}
           onAplicar={aplicar}
           onVolver={() => ui.setConfirmando(false)}

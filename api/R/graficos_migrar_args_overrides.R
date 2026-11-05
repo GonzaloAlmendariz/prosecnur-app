@@ -11,8 +11,14 @@
 #
 # La migración copia esos mandos de `args` a `overrides` cuando `overrides` no los trae. No borra nada de `args` y no
 # pisa lo que `overrides` ya declara, así que es idempotente y no cambia un plan que ya estaba bien.
+#
+# Los mandos `via_overrides` que la tarjeta del gráfico ofrece (U6 del checklist de mandos del mazo, 2026-11-05) van
+# además en espejo: la tarjeta los escribe en `args` y en `overrides` a la vez (laminas/mandosPorOverrides.ts), y aquí
+# un plan que sólo los trae en uno de los dos lados se completa con el otro. Si los dos difieren manda `overrides`, que
+# es lo que el motor dibuja, y `args` se alinea con él para que la tarjeta muestre lo mismo que la lámina.
 
 .GRAFICOS_ARGS_SOLO_OVERRIDES <- c("mostrar_significancia", "significancia_alpha", "orden_barras")
+.GRAFICOS_ARGS_ESPEJO_OVERRIDES <- c("pista_barras", "colorear_por_opcion", "marca_mediana", "mostrar_frecuencia")   # mostrar_frecuencia: histograma (U10)
 
 #' Copia a `overrides` los mandos de presentación que vienen sueltos en `args`
 #' @keywords internal
@@ -26,6 +32,12 @@
     if (is.null(v) || !length(v) || !is.null(ov[[k]])) next
     ov[[k]] <- v
     cambio <- TRUE
+  }
+  for (k in .GRAFICOS_ARGS_ESPEJO_OVERRIDES) {
+    v <- if (!is.null(ov[[k]]) && length(ov[[k]])) ov[[k]] else args[[k]]
+    if (is.null(v) || !length(v)) next
+    if (!identical(ov[[k]], v)) { ov[[k]] <- v; cambio <- TRUE }
+    if (!identical(args[[k]], v)) { g$args[[k]] <- v }
   }
   if (cambio) g$args$overrides <- ov
   g

@@ -63,7 +63,7 @@ test_that("en el Word la mediana va SIN truncar como su recetario (caja «21.5»
   expect_identical(.word_texto_mediana(list(texto_mediana = "Mediana: 22", mediana = 22)), "Mediana: 22")
 })
 
-test_that("el histograma del Word separa porcentaje y casos, y pinta tenues las barras de pocos casos (paridad con la lámina)", {
+test_that("el histograma del Word separa porcentaje y casos, y pinta todas las barras del mismo azul (paridad con la lámina)", {
   x <- c(rep(20, 60), rep(21, 38), 30)
   e <- attr(.histograma_recetario(x, unidad = "años"), "pulso_espec")   # modo por defecto: «60 (61%)»
   tx <- .wn_textos(.word_g_hist(e))
@@ -75,5 +75,6 @@ test_that("el histograma del Word separa porcentaje y casos, y pinta tenues las 
   expect_true(all(c("61%", "60") %in% tx2)); expect_false("60 (61%)" %in% tx2)
   b <- suppressWarnings(ggplot2::ggplot_build(.word_g_hist(e)))
   rellenos <- unique(toupper(b$data[[1]]$fill))
-  expect_true(toupper(.std_color("tenue")) %in% rellenos)   # la barra de un caso (1%) va tenue
+  # Revisión del PPT v7.23, ítem 3: la barra de un caso (1%) ya no va tenue; un solo color para todo el histograma.
+  expect_identical(rellenos, toupper(.WORD_TINTA$navy))
 })

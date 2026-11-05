@@ -198,6 +198,21 @@ const LISTA_BLANCA: Record<string, Entrada> = {
     rotulo: "Dividir por", ayuda: "Sin dividir, el gráfico muestra una sola serie.", excepto: ["p_barras_multiapiladas", "p_dumbbell"],
     textosEn: { p_lineas_nivel: () => ({ rotulo: "Niveles del eje", ayuda: "Un punto por nivel, de menor a mayor." }) },
   },
+  // U5 del checklist del mazo (2026-11-05): los textos y los niveles de la línea por nivel se escribían a mano en el plan.
+  // Formales de p_lineas_nivel (graficos_lineas_nivel.R) y declarados en el registro (graficos_metadata.R). El texto vacío
+  // dice lo que el motor escribe sin valor: «Total», «casos», «nivel» y, sobre las líneas, nada.
+  grupos: { rotulo: "Niveles que se muestran", soloEn: ["p_lineas_nivel"] },
+  titulo_seccion: {
+    rotulo: "Título de las líneas", control: "texto", soloEn: ["p_lineas_nivel"], placeholder: "Sin título", ayuda: "P. ej. «Según nivel curricular».",
+  },
+  publico: {
+    rotulo: "Cómo se nombran los casos", control: "texto", soloEn: ["p_lineas_nivel"], placeholder: "casos",
+    ayuda: "Va bajo cada nivel con su número: «estudiantes» escribe «119 estudiantes».",
+  },
+  nombre_nivel: {
+    rotulo: "Qué crece", control: "texto", soloEn: ["p_lineas_nivel"], placeholder: "nivel",
+    ayuda: "La palabra del aviso de cada línea: «Crece con el nivel».",
+  },
   // Gonzalo (revisión del PPT v7.11, lámina 45): la nota en gris bajo la línea por nivel se escribía a mano en el plan.
   lectura: {
     rotulo: "Lectura", control: "texto", soloEn: ["p_lineas_nivel"],
@@ -207,6 +222,10 @@ const LISTA_BLANCA: Record<string, Entrada> = {
   // Gonzalo (2026-11-04): las líneas y las partes de la franja del total se escribían a mano en el plan. Filas
   // { rotulo, codigos } sobre las respuestas de la pregunta (PartesLineas.tsx); `y` y `color` se conservan sin editarse.
   series: { rotulo: "Líneas", ayuda: "Hasta tres.", soloEn: ["p_lineas_nivel"] },
+  total_arriba: { rotulo: "Total arriba", ayuda: "La franja con el total de la pregunta.", soloEn: ["p_lineas_nivel"] },
+  rotulo_total: {
+    rotulo: "Título del total", control: "texto", soloEn: ["p_lineas_nivel"], siActivo: "total_arriba", placeholder: "Total",
+  },
   segmentos_total: {
     rotulo: "Partes del total", ayuda: "Vacío, la franja se arma sola.", soloEn: ["p_lineas_nivel"], siActivo: "total_arriba",
   },
@@ -293,6 +312,15 @@ const LISTA_BLANCA: Record<string, Entrada> = {
   // G15 (Gonzalo, 2026-10-13): el reparto de ancho por lámina, en tres pasos. Lo dibuja la lámina que compara públicos.
   // Sólo donde hace algo: la lámina que compara públicos (Gonzalo, 2026-10-13: «que sus opciones tengan sentido»).
   ancho_tema: { rotulo: "Ancho de los temas", soloEn: ["p_barras_multiapiladas"], cuando: comparaPublicos },
+  // v7.25, ítem 4 (Gonzalo: «la etiqueta arriba de la barra ¿es configurable?»): formal de p_barras_multiapiladas() que el
+  // constructor pasa a `overrides` (reporte_plan_slides.R). La lámina sólo lo aplica a una batería sin públicos ni grupos
+  // dentro del tema (`.lam_escala_arriba_aplica`, lamina_escala_premisa_arriba.R): ahí el enunciado va siempre a la izquierda.
+  premisa_posicion: {
+    rotulo: "Enunciado de cada barra",
+    ayuda: "Encima, la barra usa todo el ancho. Automático lo pone encima sólo cuando la lámina lleva tarjetas de diferencias.",
+    soloEn: ["p_barras_multiapiladas"],
+    cuando: (v) => !comparaPublicos(v) && v.modo !== "var_cruce",
+  },
   excluir_opciones: {
     rotulo: "Excluir respuestas",
     ayuda: "Escribe los códigos separados por comas, por ejemplo 88, 99.",
@@ -356,6 +384,20 @@ const LISTA_BLANCA: Record<string, Entrada> = {
   },
   // I-c: en la serie temporal los decimales son decisión del informe (Estilo del informe › Cálculos); sólo el radar.
   valores_decimales: { rotulo: "Decimales", soloEn: ["p_radar"] },
+  // U6 (checklist de mandos del mazo, 2026-11-05): `via_overrides` en el registro. La tarjeta los escribe en espejo en
+  // `args` y `overrides` (mandosPorOverrides.ts, desde `updateSlotArgs`); el motor los lee de `overrides`.
+  pista_barras: {
+    rotulo: "Pista gris hasta el 100%", ayuda: "Automática: en toda barra de una serie.",
+    soloEn: ["p_barras_agrupadas", "p_barras_categoricas"],
+  },
+  colorear_por_opcion: {
+    rotulo: "Un color por opción", ayuda: "Con una sola serie, cada barra con el color de su respuesta.", soloEn: ["p_barras_agrupadas"],
+  },
+  marca_mediana: { rotulo: "Marca de la mediana", soloEn: ["p_histograma"] },
+  // U10 (2026-11-05): la lámina nativa lo lee (graficador_histograma_recetario.R); viaja en espejo como los de U6.
+  // `ancho_bin` y `mostrar_bins_vacios` siguen en RETIRADOS: con un ancho declarado el histograma deja la lámina nativa y
+  // sale como imagen (`.histograma_recetario_aplica`), y los intervalos vacíos sólo existen en esa ruta.
+  mostrar_frecuencia: { rotulo: "Casos junto al %", ayuda: "Bajo cada porcentaje, cuántos casos son.", soloEn: ["p_histograma"] },
 };
 
 /**
@@ -461,6 +503,22 @@ export function camposDeDatos(args: readonly ArgMetadata[], valores: Valores, gr
     });
   }
   return salida;
+}
+
+/**
+ * H2 (checklist de usabilidad, 2026-11-05): mandos de opciones cuya ayuda describe la opción ELEGIDA con el `hint` del
+ * registro («Nunca: la barra sola, sin pista»), no siempre la de por defecto. Sin `hint` para esa opción, la ayuda fija.
+ */
+const AYUDA_DE_LA_OPCION: ReadonlySet<string> = new Set(["pista_barras"]);
+
+/** La ayuda que va junto al control con el valor que rige (`valor`, o el `default` del registro si no hay). */
+export function ayudaDeLaOpcion(campo: Pick<CampoDato, "arg" | "ayuda" | "opciones">, valor: unknown): string | null {
+  if (!AYUDA_DE_LA_OPCION.has(campo.arg.name)) return campo.ayuda;
+  const elegida = typeof valor === "string" && valor !== "" ? valor : campo.arg.default;
+  const op = campo.opciones.find((o) => o.value === elegida);
+  const hint = op?.hint?.trim();
+  if (!op || !hint) return campo.ayuda;
+  return `${op.label}: ${hint.charAt(0).toLowerCase()}${hint.slice(1)}`;
 }
 
 /** El `depende` del arg se cumple con un valor ya elegido (sin `depende`, siempre). */

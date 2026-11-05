@@ -255,7 +255,7 @@ test_that("resumen: el antetítulo es «Resumen ejecutivo» y la selección manu
   s <- p_slide_hallazgos(modo = "resumen", capitulos = .hz_caps())
   expect_identical(s$meta$antetitulo, "Resumen ejecutivo")
   expect_identical(s$title, "Principales hallazgos")
-  expect_error(p_slide_hallazgos(modo = "resumen"), "declara `capitulos`")
+  expect_error(p_slide_hallazgos(modo = "resumen"), "escribe al menos un capítulo con un hallazgo completo", fixed = TRUE)
   expect_silent(p_slide_hallazgos(modo = "resumen", seleccion = "auto"))
   modos <- vapply(Filter(function(a) identical(a$name, "modo"), .SLIDES_META$p_slide_hallazgos$args)[[1]]$choices, `[[`, "", "value")
   expect_true(all(c("resumen", "titulares") %in% modos))
@@ -323,14 +323,18 @@ test_that("resumen automático: por capítulo, la diferencia más fuerte y la ci
   expect_true(all(vapply(e$kpis, function(k) k$fila != "No", TRUE)))   # de la dicotómica, la opción principal
 })
 
-test_that("PPT, modo «resumen»: tabla por capítulo con cifra, frase, intervalo, pastillas, leyenda, nota y base", {
+# Revisión del PPT v7.23, ítem 14 (Gonzalo: «no trates al usuario de tonto»): sin encabezados CIFRA, HALLAZGO y DIFERENCIA
+# PRINCIPAL, sin la nota al pie y sin la línea del intervalo. Antes este test los exigía.
+test_that("PPT, modo «resumen»: tabla por capítulo con cifra, frase, pastillas, leyenda y base (sin encabezados, nota ni intervalo)", {
   skip_if_not_installed("officer")
   r <- .hz_render(p_slide_hallazgos(modo = "resumen", capitulos = .hz_caps(), titulo = "Quiénes son", rotulos = .hz_rot, base = "Base: 400 casos."))
   expect_true(all(c("prosecnur:grafico:resumen_ejecutivo", "resumen_ejecutivo:capitulo", "resumen_ejecutivo:cifra", "resumen_ejecutivo:hallazgo",
-                    "resumen_ejecutivo:intervalo", "resumen_ejecutivo:pastilla:texto", "resumen_ejecutivo:sin_diferencias",
-                    "prosecnur:leyenda_diferencias", "Nota significancia", "Base lamina") %in% r$nombres))
-  expect_true(all(c("RESUMEN EJECUTIVO", "CAPÍTULO UNO", "CIFRA", "HALLAZGO", "DIFERENCIA PRINCIPAL FRENTE AL RESTO", "dice que sí a q") %in% r$textos))
-  expect_true(any(grepl("^Intervalo de [0-9]+% a [0-9]+%", r$textos)))
+                    "resumen_ejecutivo:pastilla:texto", "resumen_ejecutivo:sin_diferencias",
+                    "prosecnur:leyenda_diferencias", "Base lamina") %in% r$nombres))
+  expect_false(any(c("Nota significancia", "resumen_ejecutivo:encabezado", "resumen_ejecutivo:intervalo") %in% r$nombres))
+  expect_true(all(c("RESUMEN EJECUTIVO", "CAPÍTULO UNO", "dice que sí a q") %in% r$textos))
+  expect_false(any(c("CIFRA", "HALLAZGO", "DIFERENCIA PRINCIPAL FRENTE AL RESTO") %in% r$textos))
+  expect_false(any(grepl("Intervalo de", r$textos, fixed = TRUE)))
   expect_true(any(grepl("^Economía y Finanzas [0-9]+%$", r$textos)))   # sin `cortos`, el rótulo entero
 })
 
@@ -347,8 +351,91 @@ test_that("resumen en el Word: tabla propia con su alto (no los puntos del respa
   g <- .halla_ggplot(e)
   expect_true(is.finite(attr(g, "alto_word")) && attr(g, "alto_word") > 1)   # el marco del Word lee `alto_word`
   tx <- unlist(lapply(suppressWarnings(ggplot2::ggplot_build(g))$data, function(l) if ("label" %in% names(l)) as.character(l$label)))
-  expect_true(all(c("CIFRA", "HALLAZGO", "CAPÍTULO UNO") %in% tx))
+  expect_true("CAPÍTULO UNO" %in% tx)
+  # v7.23, ítem 14 (paridad con la lámina): sin encabezados de columna ni intervalo.
+  expect_false(any(c("CIFRA", "HALLAZGO") %in% tx)); expect_false(any(grepl("Intervalo de", tx, fixed = TRUE)))
   f <- tempfile(fileext = ".png")
   expect_silent(suppressWarnings(ggplot2::ggsave(f, g, width = 6.27, height = attr(g, "alto_word"), dpi = 60, device = ragg::agg_png)))
   expect_true(file.exists(f))
+})
+
+# ---- Revisión del PPT v7.23 de CCSS, lámina 57 (ítem 14) -----------------------------------------------------------------
+
+.hz_v723_kpi <- function(base = NULL, comp = NULL) list(cifra = "84%", texto = "tiene a sus padres entre quienes pagan", intervalo_texto = "81% a 88%",
+                                                       base = base, comparacion = comp, tambien = NULL)
+
+test_that("v7.23 ítem 14: el alto ganado va a las filas (cifra y frase más grandes) y bajo la frase sólo va la base distinta", {
+  lz <- .lam_lienzo()
+  caps <- list(list(titulo = "Uno", kpis = list(.hz_v723_kpi(), .hz_v723_kpi(base = "Base de 399"))))
+  .lam_halla_res_tabla(lz, caps, 0.5, 12.8, 1.2, 6.6)
+  formas <- unlist(lz$formas)
+  cifra <- formas[grepl('name="resumen_ejecutivo:cifra"', formas)]
+  expect_true(all(grepl('sz="2800"', cifra)))                 # con aire, 28 pt (antes 24 fijos)
+  expect_false(any(grepl('name="resumen_ejecutivo:encabezado"|name="resumen_ejecutivo:intervalo"', formas)))
+  expect_false(any(grepl("Intervalo de|81% a 88%", formas)))
+  expect_identical(sum(grepl('name="resumen_ejecutivo:base"', formas)), 1L)
+  expect_true(any(grepl("Base de 399", formas, fixed = TRUE)))
+})
+
+test_that("v7.23 ítem 14: en el Word dos pastillas que no caben lado a lado van una sobre otra (no se omite la segunda)", {
+  comp <- list(estado = "diferencia", partes = list(list(texto = "Algún padre o tutor univ. 92%", dir = "up", fragil = FALSE),
+                                                    list(texto = "Ningún padre o tutor univ. 72%", dir = "down", fragil = FALSE)))
+  e <- list(tipo = "hallazgos", modo = "resumen", paginas = list(list(list(titulo = "Uno", kpis = list(.hz_v723_kpi(comp = comp))))))
+  g <- .halla_res_ggplot(e)
+  tx <- unlist(lapply(suppressWarnings(ggplot2::ggplot_build(g))$data, function(l) if ("label" %in% names(l)) as.character(l$label)))
+  expect_true(all(c("Algún padre o tutor univ. 92% ▲", "Ningún padre o tutor univ. 72% ▼") %in% tx))
+  expect_false(any(grepl("Intervalo de", tx, fixed = TRUE)))
+})
+
+# ---- H3 del checklist de usabilidad del editor (2026-11-05): un capítulo escrito desde la UI -------------------------
+# Los rearmados del plan JSON desenvuelven una lista de un elemento sin nombres: la lista con UN capítulo llegaba como el
+# capítulo mismo y la lámina salía «Sin datos» con un aviso en código. Rojo antes del arreglo.
+
+.hz_json_un_capitulo <- function(modo = "resumen") jsonlite::fromJSON(sprintf(
+  '{"id":"h1","tipo":"p_slide_hallazgos","payload":{"modo":"%s","seleccion":"manual","capitulos":[{"titulo":"Prueba","cifras":[{"var":"q","fila":"Sí","texto":"dice que sí a q","comparacion":"auto"}]}]}}',
+  modo), simplifyVector = FALSE)
+.hz_registro_slides <- function() stats::setNames(lapply(.slide_names(), function(nm) list(grafs = setdiff(.slide_slots(nm), "icono"))), .slide_names())
+
+test_that("H3: un solo capítulo escrito por el editor llega como lista de uno por los tres rearmados (vista previa, PPT y router)", {
+  s <- .hz_json_un_capitulo()
+  els <- list(
+    vista_previa = .mini_rebuild_slide(s)$slots$plot,
+    job = .graficos_rebuild_slide_json(s, slide_registry = .hz_registro_slides(), graficador_registry = .graf_names())$slots$plot,
+    router = .rebuild_slide(s)$slots$plot)
+  for (nm in names(els)) {
+    caps <- els[[nm]]$capitulos
+    expect_null(names(caps), label = nm)
+    expect_length(caps, 1L)
+    expect_identical(caps[[1]]$titulo, "Prueba", label = nm)
+  }
+})
+
+test_that("H3: el resumen con un capítulo manual dibuja su hallazgo (antes, «Sin datos»)", {
+  el <- .mini_rebuild_slide(.hz_json_un_capitulo())$slots$plot
+  avisos <- character(0)
+  local_mocked_bindings(.pulso_aviso = function(m, ...) { avisos <<- c(avisos, m); invisible(TRUE) })
+  e <- .halla_modelo(el, .hz_fuente(), .hz_sig())
+  expect_length(e$kpis, 1L)
+  expect_identical(e$paginas[[1]][[1]]$titulo, "Prueba")
+  expect_identical(e$kpis[[1]]$cifra, .hz_kpi(.hz_modelo(), "dice que sí a q")$cifra)
+  expect_false(any(grepl("escribe al menos un capítulo", avisos, fixed = TRUE)))
+})
+
+test_that("H3: una sola cifra en el modo «cifras» también llega como lista de uno", {
+  s <- jsonlite::fromJSON('{"id":"h2","tipo":"p_slide_hallazgos","payload":{"modo":"cifras","cifras":[{"var":"q","fila":"Sí","texto":"dice que sí a q"}]}}',
+                          simplifyVector = FALSE)
+  el <- .mini_rebuild_slide(s)$slots$plot
+  expect_length(el$cifras, 1L)
+  e <- suppressMessages(.halla_modelo(el, .hz_fuente(), .hz_sig()))
+  expect_length(e$kpis, 1L)
+})
+
+test_that("H3: sin capítulos completos el aviso habla en lenguaje de analista, sin nombres de argumentos ni código", {
+  avisos <- character(0)
+  local_mocked_bindings(.pulso_aviso = function(m, ...) { avisos <<- c(avisos, m); invisible(TRUE) })
+  el <- p_slide_hallazgos(modo = "resumen", capitulos = list(list(titulo = "Vacío", cifras = list(list(var = "no_existe", fila = "Sí")))))$slots$plot
+  .halla_modelo(el, .hz_fuente(), .hz_sig())
+  final <- avisos[grepl("capítulo con un hallazgo", avisos, fixed = TRUE)]
+  expect_identical(final, "Resumen ejecutivo: escribe al menos un capítulo con un hallazgo completo, o elige que los proponga el motor.")
+  expect_false(any(grepl("`|seleccion|capitulos|\"auto\"|;", avisos[grepl("^Resumen ejecutivo", avisos)])))
 })

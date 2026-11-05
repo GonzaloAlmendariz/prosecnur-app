@@ -40,7 +40,7 @@
 }
 
 .TARJETAS_DICO_CIFRA <- 30    # cifra de la franja dicotómica con tarjetas (pt)
-.TARJETAS_DICO_BARRA <- 0.55  # grosor de su barra (in)
+.TARJETAS_DICO_BARRA <- 0.44  # grosor de su barra (in): el de las demás apiladas (piso de la escala; v7.23, ítem 11)
 .TARJETAS_DICO_AIRE <- 0.45   # de la franja a sus tarjetas (in)
 
 #' Receta de una franja dicotómica con tarjetas: más grande, a todo el ancho de su mitad, y bajada lo justo para que la
@@ -97,6 +97,7 @@
   y1 <- .std_geom("contenido_y1")
   y_filete <- y1 - M$alto - .TARJETAS_RANURA_AIRE
   lz <- .lam_lienzo()
+  altos <- .lam_tarjetas_ranuras_altos_fila(ts, M$cw, debajo)   # v7.23, ítem 6: una fila visual, un solo alto
   for (k in seq_along(ts)) {
     t <- ts[[k]]
     if (is.null(t) || !length(t$tarjetas)) next   # sin diferencias, la mitad no lleva filete ni nota (ítem 18)
@@ -111,7 +112,7 @@
     xs <- if (n == 1L) x0 + (col2 - M$cw) / 2 else x0 + c(0, M$cw + .TARJETAS_RANURA_SEP)
     for (j in seq_len(n)) {
       tj <- t$tarjetas[[j]]
-      h <- .lam_tarjeta_alto(tj, M$cw, cortos = t$opcion$cortos, tipo = t$tipo %||% "multiple")
+      h <- altos[k]
       .lam_tarjeta_dibujar(.lam_tarjeta_backend_ppt(lz), tj, list(l = xs[j], t = y_t, w = M$cw, h = h),
                            unname(t$rotulos_cruce[tj$cruce]) %||% tj$cruce, cortos = t$opcion$cortos, tipo = t$tipo %||% "multiple")
     }
@@ -137,10 +138,17 @@
 #' no cabe sobre la franja, la lámina sale como siempre, sin tarjetas, y un aviso dice qué acortar.
 #' @keywords internal
 .lam_slide_2_con_tarjetas <- function(doc, ts, compone, ps = NULL, els = NULL, titulo = "", titulo_de_var = NULL) {
+  # v7.25, ítem 5: la ranura con tarjetas activas y ninguna diferencia lo dice sobre «Base:» (graficos_tarjetas_sin_diferencias.R).
+  .lam_slide_2_sin_diferencias(doc, ts, els, function(doc) .lam_slide_2_con_tarjetas_cuerpo(doc, ts, compone, ps, els, titulo, titulo_de_var))
+}
+
+#' El cuerpo de `.lam_slide_2_con_tarjetas`: la franja de tarjetas bajo cada gráfico, o la lámina de siempre
+#' @keywords internal
+.lam_slide_2_con_tarjetas_cuerpo <- function(doc, ts, compone, ps = NULL, els = NULL, titulo = "", titulo_de_var = NULL) {
   geo <- .lam_mixta_geo("graficos_2")
   M <- .lam_tarjetas_ranuras_medidas(ts, geo$paneles[[1]]$w)
   hay <- any(vapply(ts, function(t) length(t$tarjetas %||% list()) > 0L, TRUE))
-  if (!hay) return(compone(doc))   # ninguna diferencia: la lámina de siempre, sin franja
+  if (!hay) return(compone(doc))   # ninguna diferencia: la lámina de siempre, sin franja (su línea la pone `.lam_slide_2_con_tarjetas`)
   reservas <- .lam_reservas_por_mitad(ts, M$reserva)
   # Una franja dicotómica con tarjetas no reserva alto: sus tarjetas van pegadas debajo y el bloque se centra (ítem 14).
   especs <- if (is.null(ps)) list(NULL, NULL) else lapply(ps, function(p) tryCatch(.lam_espec_de(p), error = function(e) NULL))
@@ -163,4 +171,27 @@
   doc <- compone(doc)
   options(op)
   .lam_tarjetas_ranuras_dibujar(doc, ts, debajo = debajo)
+}
+
+#' Alto de las tarjetas de cada mitad: el de la más alta de su fila visual
+#'
+#' Revisión del PPT v7.23 de CCSS, ítem 6 (lámina 26: «tarjetas con el mismo alto»): Nivel, con tres grupos, y Área, con
+#' dos, salían de alto distinto lado a lado. Las tarjetas que arrancan a la misma altura (todas las que van sobre el filete
+#' común) forman una fila y toman el alto de la más alta; las de una mitad pegadas a su barra apilada (`debajo`) forman su
+#' propia fila. Sólo cambia la caja: el contenido de cada tarjeta se dibuja igual, arriba.
+#' @param ts Lo que devuelve `.tarjetas_de_ranuras()`. @param cw Ancho de cada tarjeta. @param debajo Por mitad.
+#' @return Alto (in) de las tarjetas de cada mitad (0 en la mitad sin tarjetas).
+#' @keywords internal
+.lam_tarjetas_ranuras_altos_fila <- function(ts, cw, debajo = c(FALSE, FALSE)) {
+  propios <- lapply(seq_along(ts), function(k) {
+    t <- ts[[k]]
+    if (is.null(t) || !length(t$tarjetas)) return(numeric(0))
+    vapply(t$tarjetas, .lam_tarjeta_alto, numeric(1), w = cw, cortos = t$opcion$cortos, tipo = t$tipo %||% "multiple")
+  })
+  debajo <- rep_len(as.logical(debajo), length(ts)); debajo[is.na(debajo)] <- FALSE
+  comun <- unlist(propios[!debajo])
+  vapply(seq_along(ts), function(k) {
+    if (!length(propios[[k]])) return(0)
+    if (debajo[k]) max(propios[[k]]) else max(comun)
+  }, 0)
 }

@@ -124,7 +124,8 @@ test_that("el chip de tendencia aparece si la serie crece con el nivel y desapar
   e <- .ln_modelo(.ln_el())
   td <- .ln_serie(e, "Trabaja")$tendencia
   expect_identical(td$dir, "up")
-  expect_identical(td$texto, "Crece con el nivel")
+  # Revisión del PPT v7.23, ítem 10: Gonzalo preguntó si «Crece con el nivel» era significativo; el chip lo dice.
+  expect_identical(td$texto, "Crece significativamente con el nivel")
   plana <- .ln_modelo(.ln_el(var = "e", series = list(list(rotulo = "Experiencia", codigos = "1"))))
   expect_null(.ln_serie(plana, "Experiencia")$tendencia)
   expect_true(all(is.na(.ln_serie(plana, "Experiencia")$puntos$dir)))
@@ -133,7 +134,7 @@ test_that("el chip de tendencia aparece si la serie crece con el nivel y desapar
   expect_true(all(is.na(.ln_serie(apagada, "Trabaja")$puntos$dir)))
   # La palabra del chip se declara.
   ciclo <- .ln_modelo(.ln_el(nombre_nivel = "ciclo"))
-  expect_identical(.ln_serie(ciclo, "Trabaja")$tendencia$texto, "Crece con el ciclo")
+  expect_identical(.ln_serie(ciclo, "Trabaja")$tendencia$texto, "Crece significativamente con el ciclo")
 })
 
 test_that("el constructor valida series y acepta la forma rectangular de un JSON", {
@@ -165,7 +166,7 @@ test_that("la lámina nativa del PPT lleva el total, las líneas, el halo, el ch
   expect_true("prosecnur:grafico:lineas_nivel" %in% nombres)
   expect_true(all(c("total:segmento", "total:llave", "lineas:serie", "lineas:punto", "lineas:halo:99", "chip:99", "panel:lectura",
                     "Base lamina") %in% nombres))
-  expect_true(all(c("Total de casos", "Según nivel", "Trabaja", "Medio tiempo o más", "Crece con el nivel", "70%", "Nivel 9",
+  expect_true(all(c("Total de casos", "Según nivel", "Trabaja", "Medio tiempo o más", "Crece significativamente con el nivel", "70%", "Nivel 9",
                     "100 estudiantes") %in% textos))
   expect_true(any(grepl("^Trabaja 39%$", textos)))   # la llave: 155 de 400 casos trabajan
   expect_true(any(grepl("Base: 400 casos", textos, fixed = TRUE)))
@@ -210,4 +211,54 @@ test_that("el Word incluye la figura con la base debajo", {
                                                                  inst_sources = list(default = .ln_inst()))))
   expect_identical(attr(g, "renderer"), "marco")
   expect_gt(attr(g, "alto"), 3)
+})
+
+# ---- Revisión del PPT v7.23 de CCSS, lámina 42 (ítem 10) -----------------------------------------------------------------
+# Gonzalo: «la leyenda va a la derecha del gráfico, no al lado del último eje de la línea»; «no queda claro que quienes
+# trabajan de arriba son los que están abajo»; «¿ese "crece con el nivel" es significante?».
+
+test_that("v7.23 ítem 10: la leyenda de las series va a la derecha de las líneas, con su parte del total, y la de símbolos al pie", {
+  skip_if_not_installed("officer")
+  old <- options(prosecnur.sig_informe = list(regla = .ln_regla(), familia = NULL)); on.exit(options(old), add = TRUE)
+  out <- tempfile(fileext = ".pptx")
+  suppressMessages(suppressWarnings(reporte_ppt_plan(data = .ln_base(), instrumento = .ln_inst(), plan = .ln_plan(), path_ppt = out,
+                                                     mensajes_progreso = FALSE)))
+  xml <- xml2::read_xml(unz(out, "ppt/slides/slide1.xml"))
+  textos <- xml2::xml_text(xml2::xml_find_all(xml, "//a:t"))
+  caja <- function(n) {
+    sp <- xml2::xml_find_all(xml, sprintf("//p:sp[p:nvSpPr/p:cNvPr[@name='%s']]", n))
+    off <- xml2::xml_find_first(sp, ".//a:off"); ext <- xml2::xml_find_first(sp, ".//a:ext")
+    x <- as.numeric(xml2::xml_attr(off, "x")) / 914400; y <- as.numeric(xml2::xml_attr(off, "y")) / 914400
+    data.frame(l = x, r = x + as.numeric(xml2::xml_attr(ext, "cx")) / 914400, t = y, b = y + as.numeric(xml2::xml_attr(ext, "cy")) / 914400)
+  }
+  puntos <- caja("lineas:punto"); serie <- caja("panel:serie"); lectura <- caja("panel:lectura")
+  # Cada rótulo de serie queda entero a la derecha del último punto (no junto a él) y arriba de la lectura.
+  expect_gte(nrow(serie), 2L)
+  expect_true(all(serie$l > max(puntos$r) + 0.4))
+  expect_true(all(serie$b <= min(lectura$t)))
+  # Con su muestra de color y su parte del total: el mismo número que la llave de la franja («Trabaja 39%»).
+  expect_gte(nrow(caja("leyenda:serie:muestra")), 2L)
+  expect_true("39% en el total" %in% textos)
+  expect_true(any(grepl("^Trabaja 39%$", textos)))
+  # El chip dice que la tendencia es significativa y la leyenda de símbolos lo explica, al pie de las líneas.
+  expect_true("Crece significativamente con el nivel" %in% textos)
+  expect_true(all(c("Mayor que el resto de niveles", "Menor que el resto de niveles", "Tendencia significativa con el nivel") %in% textos))
+  expect_gte(nrow(caja("leyenda:chip")), 1L)
+  expect_true(min(caja("leyenda:texto")$t) > max(caja("lineas:n")$b))
+  # Registro formal: sin rayas ni punto medio en lo que se lee.
+  expect_false(any(grepl("—|·", textos)))
+})
+
+test_that("v7.23 ítem 10: el Word repite la leyenda a la derecha y la de símbolos bajo el gráfico", {
+  e <- .ln_modelo(.ln_el(lectura = "Lectura."))
+  g <- .lineas_nivel_gg_lineas(e, "Arial")
+  b <- suppressWarnings(ggplot2::ggplot_build(g))
+  et <- unlist(lapply(b$data, function(d) if ("label" %in% names(d)) as.character(d$label)))
+  expect_true(all(c("Trabaja", "Medio tiempo o más", "39% en el total") %in% et))
+  expect_true(any(grepl("Crece significativamente", et, fixed = TRUE)))
+  # La leyenda va a la derecha del último nivel: ningún rótulo de serie a la altura de las líneas.
+  xs <- unlist(lapply(b$data, function(d) if ("label" %in% names(d)) d$x[d$label %in% c("Trabaja", "Medio tiempo o más")]))
+  expect_true(all(xs > nrow(e$niveles) + 0.3))
+  expect_match(.lineas_nivel_word_simbolos(e), "Tendencia significativa con el nivel|tendencia significativa con el nivel")
+  expect_false(grepl("—|·", .lineas_nivel_word_simbolos(e)))
 })

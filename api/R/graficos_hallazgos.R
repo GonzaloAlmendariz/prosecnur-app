@@ -65,7 +65,7 @@
 #' @return `list(partes = list(list(texto, dir, fragil)), cola, estado)`; `estado` es «diferencia», «sin_diferencias» o
 #'   «sin_prueba».
 #' @keywords internal
-.halla_comparacion_auto <- function(ev, cx) {
+.halla_comparacion_auto <- function(ev, cx, principal = FALSE) {
   ce <- ev$celdas
   dif <- ce[ce$estado == "dif", , drop = FALSE]
   if (!nrow(dif)) {
@@ -79,6 +79,7 @@
   d <- dif[dif$cruce == cr, , drop = FALSE]
   K <- sum(ce$cruce == cr)
   corto <- function(e) .dif_corto(e, cx$cortos)
+  if (isTRUE(principal)) return(.halla_comparacion_principal(d, K, cr, cx))
   if (K == 2L) {
     d <- d[order(-d$valor), , drop = FALSE]
     partes <- lapply(seq_len(nrow(d)), function(i) list(texto = paste(corto(d$etiqueta[i]), .tarjetas_pct(d$p[i])), dir = d$dir[i], fragil = d$fragil[i]))
@@ -194,7 +195,7 @@
 
 #' Una cifra calculada: valor, intervalo, base, comparación y gráfico
 #' @keywords internal
-.halla_kpi_modelo <- function(fuente0, it, sig, cx, tauto, n_lamina, con_grafico) {
+.halla_kpi_modelo <- function(fuente0, it, sig, cx, tauto, n_lamina, con_grafico, principal = FALSE) {
   aviso <- function(...) .dif_aviso("Hallazgos clave", ...)
   regla <- sig$regla
   fuente <- .halla_filtrar(fuente0, it$filtros)
@@ -209,7 +210,7 @@
   iv <- .intervalo_diseno_fuente(fuente, fi$y, regla)
   base <- it$base_texto %||% if (is.finite(fi$n) && fi$n != n_lamina) paste0("Base de ", format(fi$n, big.mark = ","), if (is.null(it$base_rotulo)) "" else paste0(" ", it$base_rotulo)) else NULL
   ev <- if (is.null(.sig_diseno_invalido(fuente$data, regla))) .dif_evaluar(fuente, fi, cx$cruces, sig, tauto) else list(celdas = data.frame(estado = character()), probados = character(0))
-  auto <- .halla_comparacion_auto(ev, cx)
+  auto <- .halla_comparacion_auto(ev, cx, principal = principal)
   comp <- if (identical(it$comparacion, "auto")) auto else if (identical(it$comparacion, "ninguna")) NULL else {
     if (.halla_contradice(it$comparacion, auto$estado)) {
       aviso("la comparación escrita a mano de «", texto, "» («", it$comparacion, "») contradice la prueba del informe; revísala.")
@@ -276,7 +277,7 @@
   n_lamina <- nrow(fuente$data)
   kpis <- Filter(Negate(is.null), lapply(items, .halla_kpi_modelo, fuente0 = fuente, sig = sig, cx = cx, tauto = tauto,
                                           n_lamina = n_lamina, con_grafico = identical(modo, "cifras_con_graficos") && is.null(ancho)))
-  if (!length(kpis)) aviso("la lámina no tiene cifras que mostrar; declara `cifras`.")
+  if (!length(kpis)) aviso("escribe al menos una cifra completa: la pregunta, la respuesta y el texto.")
   g_ancho <- if (!is.null(ancho)) .halla_grafico_datos(fuente, ancho, NULL, sig, cx, tauto, con_intervalo = TRUE) else NULL
   n_fuera <- sum(vapply(kpis, function(k) as.integer(k$grafico$n_fuera %||% 0L), 0L))
   list(tipo = "hallazgos", modo = modo, kpis = kpis, grafico_ancho = g_ancho, regla = sig$regla, m = sig$m %||% NA_integer_,
@@ -289,7 +290,10 @@
 #' @keywords internal
 .el_hallazgos <- function(cifras = list(), modo = "cifras", grafico_ancho = NULL, cruces = NULL, rotulos = list(), cortos = list(),
                           tautologicos = list(), publico = NULL, fuente = NULL, capitulos = list(), seleccion = "manual",
-                          max_por_capitulo = NULL, max_por_lamina = NULL, tambien = TRUE, titulos = NULL) {
+                          max_por_capitulo = NULL, max_por_lamina = NULL, tambien = FALSE, titulos = NULL) {
+  # Una cifra o un capítulo sueltos son una lista de uno: el rearmado del plan JSON los desenvuelve (graficos_resumen_diferencias.R).
+  cifras <- .dif_lista_registros(cifras, "var")
+  capitulos <- .dif_lista_registros(capitulos, c("titulo", "cifras", "titular"))
   el <- list(.element_type = "hallazgos", cifras = cifras, modo = modo, grafico_ancho = grafico_ancho, cruces = cruces,
              rotulos = rotulos, cortos = cortos, tautologicos = tautologicos, publico = publico, fuente_ref = fuente,
              capitulos = capitulos, seleccion = seleccion, max_por_capitulo = max_por_capitulo, max_por_lamina = max_por_lamina,
@@ -301,9 +305,9 @@
 #' Renderer del motor: calcula el modelo y devuelve el ggplot de respaldo con la espec
 #' @keywords internal
 .render_hallazgos <- function(el, preset_args = list()) {
-  fuente <- .dif_fuente_render(el$fuente_ref)
-  sig <- .sig_contexto_render(fuente$data)
   plan_motor <- .dif_plan_render()   # antes de llamar: dentro del modelo, `plan` es una promesa y dynGet la encontraría
+  fuente <- .dif_fuente_render(el, plan_motor)   # la base de la lámina (graficos_resumen_base.R)
+  sig <- .sig_contexto_render(fuente$data)
   .halla_ggplot(.halla_modelo(el, fuente, sig, plan_motor))
 }
 

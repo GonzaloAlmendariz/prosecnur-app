@@ -28,7 +28,8 @@ describe("contenidoDeLamina", () => {
     expect(c.campos.map((x) => x.name)).toEqual(["titulo", "etiqueta", "base"]);
     // «Hallazgos clave» ya tiene su bloque de ajustes: Contenido no lo nombra como pendiente.
     expect(c.pendientes).toEqual([]);
-    expect(contenidoDeLamina(args, [], "p_slide_resumen_diferencias").pendientes).toEqual(["Filas por capítulo", "Selección de filas"]);
+    // «Resumen de diferencias» también (resumenDiferencias/): ya no nombra pendientes.
+    expect(contenidoDeLamina(args, [], "p_slide_resumen_diferencias").pendientes).toEqual([]);
     expect(contenidoDeLamina(args, [], "p_slide_texto").pendientes).toEqual([]);
   });
 

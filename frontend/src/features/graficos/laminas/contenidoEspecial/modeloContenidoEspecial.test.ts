@@ -29,7 +29,14 @@ describe("contenido especial (C38)", () => {
     expect(esArgEspecial(arg("titulo", "string"), "p_slide_hallazgos")).toBe(false);
     // Otra lámina no cambia: sus listas siguen nombradas como pendientes en Contenido.
     expect(contenidoEspecialDe(args, "p_slide_1_grafico").ajustes).toEqual([]);
-    expect(esArgEspecial(arg("cruces", "variables_list"), "p_slide_resumen_diferencias")).toBe(false);
+    expect(esArgEspecial(arg("cruces", "variables_list"), "p_slide_1_grafico")).toBe(false);
+    // «Resumen de diferencias» (ítem 15 de la v7.23): sus listas van en su bloque y, desde H6 (2026-11-05), también «Cómo
+    // se nombran los casos», bajo «Comparar por» como en las tarjetas.
+    const resumen = [arg("titulo", "string"), arg("seleccion", "choice"), arg("cruces", "variables_list"), arg("publico", "string"),
+      arg("max_filas", "number"), arg("capitulos", "resumen_capitulos")];
+    expect(contenidoEspecialDe(resumen, "p_slide_resumen_diferencias").ajustes.map((a) => a.name)).toEqual(["seleccion", "cruces", "publico", "max_filas", "capitulos"]);
+    expect(esArgEspecial(arg("publico", "string"), "p_slide_resumen_diferencias")).toBe(true);
+    expect(esArgEspecial(arg("publico", "string"), "p_slide_1_grafico")).toBe(false);
   });
 
   it("una lámina de población no ofrece ícono aunque el registro declare el campo", () => {

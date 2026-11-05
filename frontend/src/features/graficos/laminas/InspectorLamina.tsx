@@ -3,30 +3,22 @@
 // no construye se declara como tal («todavía no está en Láminas»), sin mandar al Editor anterior (C32/O3).
 // «Cambiar» (cabecera y Composición) abre «¿Qué lámina?»; «Cambiar» de una ranura, «¿Qué gráfico?» (F6.2).
 
-import { antetituloDelTipo, esLaminaFija } from "./antetituloDelTipo";
-import { useId, useMemo } from "react";
-import { AlertTriangle, BarChart3, FileText, History, Lock, X } from "../../../vendor/lucide-react";
+import { useId } from "react";
+import { BarChart3, FileText, X } from "../../../vendor/lucide-react";
 import type { GraficadorRef, Slide } from "../../../api/graficos";
 import { GlidingTabList } from "../../../components/GlidingTabList";
-import { EditorIndice } from "../indice/EditorIndice";
-import { ARGS_FIJADOS_INDICE } from "../indice/fijadosIndiceModel";
-import { useVariables } from "../useVariables";
-import { ContenidoEspecialLamina } from "./contenidoEspecial/ContenidoEspecialLamina";
-import { contenidoEspecialDe, esArgEspecial, tituloPorDefecto } from "./contenidoEspecial/modeloContenidoEspecial";
+import { avisoDentroDeLamina } from "./avisoEnLamina";
 import { DatosGrafico } from "./DatosGrafico";
-import { DependenciaLamina } from "./DependenciaLamina";
-import { DependenciaTresLamina } from "./DependenciaTresLamina";
-import { SeccionComposicion } from "./SeccionComposicion";
+import { AvisosLamina } from "./AvisosLamina";
+import { PestanaLamina } from "./tarjetaLamina/PestanaLamina";
 import { rolDeEstructura } from "./rolEstructura";
 import { nombreSlot } from "./selectores/etiquetas";
 import { graficadorDisplayName } from "../graficadorDisplay";
 import { conSlideMeta, leerSlideMeta } from "../slideMeta";
 import { IconoTipo } from "../iconos/IconoTipo";
 import { SLIDE_GRAF_SLOTS, usePlanStore } from "../store";
-import { useAntetituloSeccionActivo } from "./antetituloQueSale";
 import { useGraficosRegistry } from "../useGraficosRegistry";
 import { usePlanValidator } from "../usePlanValidator";
-import { contenidoDeLamina } from "./contenidoLamina";
 import { estadoDeLamina, motivoDeEstado, type LaminaVisor } from "./estadoLamina";
 import type { LaminaEnEstructura } from "./modeloEstructura";
 import { useLaminasUi, type SeccionInspector } from "./laminasStore";
@@ -43,26 +35,6 @@ const SECCIONES: { key: SeccionInspector; label: string }[] = [
   { key: "contenido", label: "Lámina" },
   { key: "graficos", label: "Gráfico" },
 ];
-
-/** Orden de los textos en la lámina: arriba hacia abajo. Los demás campos van después, en el orden del registro. */
-const ORDEN_TEXTOS = ["titulo", "subtitulo", "texto", "fecha", "subtexto", "base", "nota", "pie"];
-const ordenTexto = (n: string) => { const i = ORDEN_TEXTOS.indexOf(n); return i < 0 ? ORDEN_TEXTOS.length : i; };
-
-/** Rótulos y ayudas de los textos de la lámina, en el idioma del usuario (el registro trae «slide» y «disclaimer»). */
-const TEXTOS_CAMPO: Record<string, { label: string; descripcion: string }> = {
-  titulo: { label: "Título", descripcion: "Va arriba de la lámina." },
-  subtitulo: { label: "Subtítulo", descripcion: "Línea bajo el título." },
-  base: { label: "Base", descripcion: "Vacía, sale la base automática." },
-  pie: { label: "Nota al pie", descripcion: "Fuente u otra aclaración al pie de la lámina." },
-};
-
-// El objetivo dice su rótulo junto a la diana, no arriba de la lámina (`.lam_laminas_objetivo`, lamina_identidad.R).
-const TEXTOS_OBJETIVO: Record<string, { label: string; descripcion: string }> = {
-  titulo: { label: "Rótulo", descripcion: "Va junto a la diana." },
-};
-
-// Los capítulos e íconos tienen su editor; los ajustes del dibujo de los focos, su candado (decisión 32).
-const ARGS_DEL_INDICE = new Set<string>(["secciones", "subtemas", "subindices", "iconos_focos", ...ARGS_FIJADOS_INDICE]);
 
 type Props = {
   slide: Slide;
@@ -91,7 +63,8 @@ export function InspectorLamina({
   const seccion: SeccionInspector = conGraficos && (seccionGuardada === "graficos" || seccionGuardada === "estado") ? "graficos" : "contenido";
   const { issues } = usePlanValidator();
   // Dentro de la lámina, sin repetir «Lámina N · “título”» ni el mismo aviso dos veces (U4 de CCSS: cuatro casi iguales).
-  const avisos = [...new Set([...issues.filter((i) => i.slideId === slide.id).map((i) => i.detalle ?? i.message), ...(visor?.avisos ?? [])])];
+  // H12: dentro de la lámina, sin su rótulo «Lámina N · “…”» ni punto medio (avisoEnLamina.ts).
+  const avisos = [...new Set([...issues.filter((i) => i.slideId === slide.id).map((i) => i.detalle ?? i.message), ...(visor?.avisos ?? [])].map(avisoDentroDeLamina))];
 
   const tabId = (k: SeccionInspector) => `${baseId}-tab-${k}`;
   const panelId = (k: SeccionInspector) => `${baseId}-panel-${k}`;
@@ -114,12 +87,8 @@ export function InspectorLamina({
         </button>
       </header>
 
-      {avisos.length > 0 && (
-        <div className="pulso-f6-inspector-avisos" role="status" aria-label={`${formatoConteo(avisos.length)} ${avisos.length === 1 ? "aviso" : "avisos"} en esta lámina`}>
-          <AlertTriangle size={14} aria-hidden="true" />
-          <ul>{avisos.map((a) => <li key={a}>{a}</li>)}</ul>
-        </div>
-      )}
+      {/* H4: los avisos, plegados en un chip que se despliega. */}
+      <AvisosLamina avisos={avisos} />
 
       {conGraficos && (
         <GlidingTabList activeKey={seccion} className="pulso-f6-inspector-tabs" role="tablist" aria-label="Secciones de la lámina">
@@ -149,15 +118,8 @@ export function InspectorLamina({
         aria-labelledby={conGraficos ? tabId(seccion) : undefined}
         tabIndex={0}
       >
-        {seccion === "contenido" && (
-          <>
-            <SeccionComposicion slide={slide} lamina={lamina} ranura={ranura} onCambiarLamina={onCambiarLamina} />
-            <DependenciaLamina slide={slide} />
-            <DependenciaTresLamina slide={slide} />
-            <h3 className="pulso-f6-subtitulo pulso-f6-inspector-apartado">Textos</h3>
-            <SeccionContenido slide={slide} lamina={lamina} />
-          </>
-        )}
+        {/* H4: en secciones plegables con índice, como la tarjeta del gráfico. */}
+        {seccion === "contenido" && <PestanaLamina slide={slide} lamina={lamina} ranura={ranura} onCambiarLamina={onCambiarLamina} />}
         {seccion === "graficos" && (
           <>
             <SalidaDelGrafico slide={slide} visor={visor} />
@@ -166,123 +128,6 @@ export function InspectorLamina({
         )}
       </div>
     </aside>
-  );
-}
-
-function SeccionContenido({ slide, lamina }: { slide: Slide; lamina: LaminaEnEstructura }) {
-  const seccionActiva = useAntetituloSeccionActivo();
-  // Campos de texto de alto propio (una línea, varias líneas, con o sin ayuda): grupo intrínseco.
-  const updatePayload = usePlanStore((s) => s.updateSlidePayload);
-  const { slidesById } = useGraficosRegistry();
-  const meta = leerSlideMeta(slide);
-  const esIndice = slide.tipo === "p_slide_indice";
-  const { variables } = useVariables();
-  const argsDelTipo = slidesById[slide.tipo]?.args;
-  // Los capítulos, subcapítulos e íconos del índice tienen su editor (A5 rebanada 2b), y las filas de la ficha técnica y
-  // el ícono subido, el suyo (C38): no son campos de texto sueltos.
-  const { contenido, especial } = useMemo(() => {
-    const args = (argsDelTipo ?? []).filter((a) => !(esIndice && ARGS_DEL_INDICE.has(a.name)));
-    return {
-      contenido: contenidoDeLamina(args.filter((a) => !esArgEspecial(a, slide.tipo)), SLIDE_GRAF_SLOTS[slide.tipo] ?? [], slide.tipo),
-      especial: contenidoEspecialDe(args, slide.tipo),
-    };
-  }, [argsDelTipo, slide.tipo, esIndice]);
-  const payload = slide.payload as Record<string, unknown>;
-  // C35: sin título escrito sale el nombre de la pregunta del gráfico, como en el editor anterior y en el motor.
-  const titulo = tituloPorDefecto(slide, variables, lamina.tipoLabel);
-  const idAnte = useId();
-  const ante = antetituloDelTipo(slide.tipo);
-
-  return (
-    <div className="pulso-f6-pila" data-qa-geometry-group="graficos/f6-contenido-campos" data-qa-geometry-contract="intrinsic">
-      {ante.modo === "editable" ? (
-        <div className="pulso-f6-campo">
-          <label htmlFor={idAnte}>Antetítulo</label>
-          <input
-            id={idAnte}
-            data-campo="antetitulo"
-            className="pulso-f6-input"
-            value={meta.antetitulo ?? ""}
-            placeholder={(seccionActiva && lamina.antetituloHeredado) || "Sin antetítulo"}
-            onChange={(e) => updatePayload(slide.id, { meta: conSlideMeta(slide, { antetitulo: e.target.value }).payload.meta })}
-          />
-          <span className="pulso-f6-ayuda">
-            {lamina.antetituloHeredado && seccionActiva
-              ? `Vacío, hereda “${lamina.antetituloHeredado}” del separador.`
-              : lamina.antetituloHeredado
-                ? "Vacío, la lámina sale sin antetítulo: el nombre de la sección está apagado en Estilo."
-                : "Ningún separador lo precede: sin texto, la lámina sale sin antetítulo."}
-          </span>
-        </div>
-      ) : ante.modo === "capitulo" ? (
-        <p className="pulso-f6-candado">
-          <Lock size={14} aria-hidden="true" />
-          Este separador abre un capítulo: su título es el antetítulo de las láminas que le siguen.
-        </p>
-      ) : ante.modo === "fijo" ? (
-        <p className="pulso-f6-candado">
-          <Lock size={14} aria-hidden="true" />
-          Antetítulo fijo del estándar: “{ante.texto}”.
-        </p>
-      ) : null}
-
-      {esLaminaFija(slide.tipo) && (
-        <p className="pulso-f6-candado">
-          <Lock size={14} aria-hidden="true" />
-          Lámina estándar: su título, su texto y su ejemplo salen siempre iguales.
-        </p>
-      )}
-
-      {!esLaminaFija(slide.tipo) && [...contenido.campos].sort((a, b) => ordenTexto(a.name) - ordenTexto(b.name)).map((c) => (
-        <CampoTexto
-          key={c.name}
-          campo={{ ...c, ...((slide.tipo === "p_slide_objetivo_icono" ? TEXTOS_OBJETIVO[c.name] : null) ?? TEXTOS_CAMPO[c.name] ?? {}) }}
-          valor={typeof payload[c.name] === "string" ? (payload[c.name] as string) : ""}
-          placeholder={c.name === "titulo" ? titulo.placeholder : ""}
-          ayuda={c.name === "titulo" ? titulo.ayuda : null}
-          onCambio={(v) => updatePayload(slide.id, { [c.name]: v })}
-        />
-      ))}
-
-      <ContenidoEspecialLamina slide={slide} especial={especial} />
-
-      {esIndice && <EditorIndice slide={slide} />}
-
-      {!esLaminaFija(slide.tipo) && contenido.pendientes.length > 0 && (
-        <p className="pulso-f6-pendiente">
-          <History size={14} aria-hidden="true" />
-          <span>
-            {contenido.pendientes.join(", ")}: este ajuste todavía no está en Láminas.
-          </span>
-        </p>
-      )}
-    </div>
-  );
-}
-
-function CampoTexto({ campo, valor, placeholder, ayuda = null, onCambio }: {
-  campo: { name: string; label: string; multilinea: boolean; descripcion: string };
-  valor: string;
-  placeholder: string;
-  /** Ayuda que no viene del registro (qué sale si queda vacío). */
-  ayuda?: string | null;
-  onCambio: (v: string) => void;
-}) {
-  const id = useId();
-  const idAyuda = `${id}-ayuda`;
-  const textoAyuda = [campo.descripcion, ayuda].filter((t): t is string => !!t).join(" ");
-  return (
-    <div className="pulso-f6-campo">
-      <label htmlFor={id}>{campo.label}</label>
-      {campo.multilinea ? (
-        <textarea id={id} data-campo={campo.name} className="pulso-f6-input" rows={3} value={valor} placeholder={placeholder}
-          aria-describedby={textoAyuda ? idAyuda : undefined} onChange={(e) => onCambio(e.target.value)} />
-      ) : (
-        <input id={id} data-campo={campo.name} className="pulso-f6-input" value={valor} placeholder={placeholder}
-          aria-describedby={textoAyuda ? idAyuda : undefined} onChange={(e) => onCambio(e.target.value)} />
-      )}
-      {textoAyuda && <span id={idAyuda} className="pulso-f6-ayuda">{textoAyuda}</span>}
-    </div>
   );
 }
 
@@ -317,7 +162,8 @@ function SeccionGraficos({ slide, slots, ranura, onRanura, onCambiarGrafico }: {
               <button key={slot} type="button" role="tab" aria-selected={activo === i + 1} data-gliding-opt-out="Chip del selector de gráfico de la lámina; ver su tablist."
                 className={`pulso-f6-selector-grafico-opcion${activo === i + 1 ? " is-activa" : ""}`} onClick={() => onRanura(i + 1)}>
                 {v?.graficador ? <IconoTipo clase="grafico" tipo={v.graficador} size={16} /> : null}
-                Gráfico {i + 1}
+                {/* H6: el lugar en la lámina («Izquierda», «Derecha»), como en los avisos («Espacio «Derecha»»). */}
+                {nombreSlot(slot, slidesById[slide.tipo])}
               </button>
             );
           })}
@@ -331,16 +177,16 @@ function SeccionGraficos({ slide, slots, ranura, onRanura, onCambiarGrafico }: {
           const tecnico = valor?.graficador ?? "";
           const nombre = tecnico ? graficadorDisplayName(tecnico, graficadoresById[tecnico]) : "Sin gráfico";
           const abierta = true;
-          const rotulo = `Gráfico ${k}${slots.length > 1 ? `, ${nombreSlot(slot, slidesById[slide.tipo]).toLowerCase()}` : ""}`;
+          const rotulo = slots.length > 1 ? `gráfico (${nombreSlot(slot, slidesById[slide.tipo]).toLowerCase()})` : "gráfico";
           return (
             <li key={slot} className={`pulso-f6-ranura${abierta ? " is-abierta" : ""}`}>
               <div className="pulso-f6-ranura-fila">
-                {/* El selector de arriba ya dice qué gráfico es: la cabecera sólo dice su tipo (y dónde va, si hay varios). */}
-                <div className="pulso-f6-ranura-cabeza" aria-label={rotulo}>
+                {/* El selector de arriba ya dice dónde va: la cabecera sólo dice su tipo. */}
+                <div className="pulso-f6-ranura-cabeza" aria-label={`${rotulo.charAt(0).toUpperCase()}${rotulo.slice(1)}`}>
                   {tecnico && <IconoTipo clase="grafico" tipo={tecnico} size={20} />}
                   <span className="pulso-f6-ranura-texto">
                     <strong>{nombre}</strong>
-                    {slots.length > 1 && <span>{nombreSlot(slot, slidesById[slide.tipo])}</span>}
+
                   </span>
                 </div>
                 {abierta && (

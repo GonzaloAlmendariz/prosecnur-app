@@ -94,6 +94,18 @@
 #' @return `list(pruebas, celdas, totales, grupos)` o NULL si el cruce no tiene dos grupos con datos.
 #' @keywords internal
 .tarjetas_evaluar_cruce <- function(fuente, var, cruce, regla, familia, filas = NULL, top2box = NULL, fila_como = NULL) {
+  # Dentro de un pedido memorizado (graficos_memo_evaluacion.R) la misma prueba no se repite.
+  if (.gmemo_activa()) {
+    return(.gmemo_obtener("tarjetas", list(fuente$data, fuente$survey, fuente$orders_list, fuente$choices, regla, familia),
+                          .gmemo_llave(var, cruce, filas, top2box, fila_como),
+                          function() .tarjetas_evaluar_cruce_calcular(fuente, var, cruce, regla, familia, filas, top2box, fila_como)))
+  }
+  .tarjetas_evaluar_cruce_calcular(fuente, var, cruce, regla, familia, filas, top2box, fila_como)
+}
+
+#' Cálculo de `.tarjetas_evaluar_cruce` (sin memoria)
+#' @keywords internal
+.tarjetas_evaluar_cruce_calcular <- function(fuente, var, cruce, regla, familia, filas = NULL, top2box = NULL, fila_como = NULL) {
   gr <- .sig_grupos_cruce(fuente, cruce)
   if (is.null(gr) || length(gr$grupos) < 2L) return(NULL)
   ind <- .sig_indicadores(fuente$data, var, survey = fuente$survey, orders_list = fuente$orders_list)
@@ -308,14 +320,16 @@
 #' @param p Gráfico ya renderizado (su `pulso_espec` da las filas que se ven y su orden).
 #' @param slide Lámina del plan (`meta$tarjetas_diferencias`).
 #' @param resolver `.resolve_ref` del motor: de la variable a su fuente (base, instrumento, órdenes).
+#' @param tipos Tipos de espec que admiten tarjetas (`pie` sólo en una ranura).
 #' @return `list(tarjetas, total, tipo, opcion, filas, totales, grupos, cruces)` o NULL si la lámina no las pide.
 #' @keywords internal
-.tarjetas_de_lamina <- function(p, slide, resolver) {
+.tarjetas_de_lamina <- function(p, slide, resolver, tipos = c("categorica", "escala")) {
   opt <- .tarjetas_opcion(slide$meta)
   if (is.null(opt)) return(NULL)
   espec <- if (inherits(p, "ggplot")) attr(p, "pulso_espec") else NULL
   aviso <- function(...) if (exists(".pulso_aviso", mode = "function")) .pulso_aviso(paste0("Tarjetas de diferencias: ", ...))
-  if (is.null(espec) || !espec$tipo %in% c("categorica", "escala")) {
+  # `tipos`: una torta admite tarjetas en la ranura de una lámina de dos (v7.25, ítem 7; van en la franja de debajo).
+  if (is.null(espec) || !espec$tipo %in% tipos) {
     aviso("la lámina «", slide$title %||% "", "» no es un gráfico de categorías ni una batería de escala; va sin tarjetas.")
     return(NULL)
   }
@@ -413,7 +427,7 @@
   })
   list(tarjetas = utils::head(todas, opt$max), total = length(todas), tipo = tipo, opcion = opt,
        filas = filas_vis, totales = totales, grupos = grupos, cruces = cruces, rotulos_cruce = rotulos_cruce,
-       regla = regla)
+       regla = regla, indicador = .tarjetas_indicador_frase(tipo, sin_columna, espec, ttb = if (identical(tipo, "bateria")) ttb else NULL, opt = opt))
 }
 
 #' Adjunta las tarjetas al gráfico de una lámina de total (gancho de `.lam_con_sig_en_lamina`)
@@ -537,13 +551,14 @@
 }
 
 #' Encabezado de una tarjeta: la fila (si no la dice el eje ni el título) y, sin columna de Top Two Box, el indicador
-#' («Claude · Todos los días»; anclada a su premisa, solo «Todos los días»). NULL si no lleva.
+#' («Claude: todos los días»; anclada a su premisa, solo «Todos los días»). NULL si no lleva.
 #' @keywords internal
 .tarjetas_encabezado <- function(t, con_fila = TRUE, tipo = "multiple") {
   fila <- if (isTRUE(con_fila) && !isTRUE(t$fila_es_titulo)) .tarjetas_rotulo_fila(t$fila, tipo) else NULL
   ind <- t$indicador %||% NULL
   partes <- c(fila, ind)
-  if (!length(partes)) NULL else paste(partes, collapse = " \u00b7 ")
+  # Registro formal (revisión v7.23): sin punto medio; la premisa y su indicador se leen como una frase.
+  if (!length(partes)) NULL else if (length(partes) == 1L) partes else paste0(sub("[.,;:[:space:]]+$", "", partes[1]), ": ", .tarjetas_minuscula_inicial(partes[2]))
 }
 
 #' Rótulo de grupo para la tarjeta: el corto declarado, si lo hay
@@ -569,3 +584,12 @@
 #' Cifra entera con «%»
 #' @keywords internal
 .tarjetas_pct <- function(x) ifelse(is.finite(x), paste0(floor(round(x, 6) + 0.5), "%"), "\u2014")   # 100 × 0.365 = 36.4999…
+
+#' Primera letra en minúscula tras dos puntos («Claude: todos los días»), salvo siglas («Top Two Box», «TTB»)
+#' @keywords internal
+.tarjetas_minuscula_inicial <- function(x) {
+  if (!length(x) || is.na(x) || !nzchar(x)) return(x)
+  pal <- strsplit(x, " ", fixed = TRUE)[[1]][1]
+  if (grepl("^[[:upper:]]{2,}", pal) || identical(x, .PPT_ROTULO_TOP_TWO_BOX)) return(x)
+  paste0(tolower(substr(x, 1, 1)), substr(x, 2, nchar(x)))
+}

@@ -142,6 +142,7 @@
     s
   })
   plan$slides <- slides
+  plan$preguntas_clave <- .preguntas_clave_normalizar(plan$preguntas_clave)   # H14 (graficos_preguntas_clave.R)
   .graficos_migrar_plan(plan, avisar = avisar)   # la población antigua y las claves viejas de la barra extra salen del plan en todo camino que normaliza
 }
 
@@ -1160,7 +1161,7 @@
   for (i in seq_along(slides)) {
     s <- as.list(slides[[i]])
     tipo <- as.character(s$tipo %||% "")
-    tag <- .aviso_lamina(i, .aviso_titulo_payload(s))   # «Lámina 3 · “Título”», sin ids ni tipos internos
+    tag <- .aviso_lamina(i, .aviso_titulo_payload(s))   # «Lámina 3, “Título”», sin ids ni tipos internos
     if (!nzchar(tipo)) { errs <- c(errs, sprintf("%s: no tiene tipo de lámina; elige uno en el editor", tag)); next }
     if (!(tipo %in% names(.SLIDE_REGISTRY))) {
       errs <- c(errs, sprintf("%s: es de %s; elige otro tipo en el editor", tag, .aviso_tipo_lamina(tipo))); next
@@ -1523,6 +1524,7 @@
 
   plan <- .graficos_pick_alias(src, "plan")
   cfg$plan <- if (.graficos_is_obj(plan) && is.list(plan$slides)) .graficos_migrar_plan(plan, avisar = FALSE) else defaults$plan
+  cfg$plan$preguntas_clave <- .preguntas_clave_normalizar(cfg$plan$preguntas_clave)   # H14: siempre lista de textos, o fuera
 
   presets <- .graficos_pick_alias(src, "presets")
   cfg$presets <- if (.graficos_is_obj(presets)) {

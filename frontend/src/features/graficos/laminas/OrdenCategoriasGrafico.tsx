@@ -1,5 +1,5 @@
 // Fila «Orden» de la tarjeta de un gráfico categórico, agrupado, de torta o de dona (D8; contrato
-// docs/qa/contrato-orden-categorias-f6-2026-10-10.md). Recetario por defecto —y dice qué modo aplica—, Frecuencia,
+// docs/qa/contrato-orden-categorias-f6-2026-10-10.md). Recetario por defecto —y dice qué modo aplica—, de mayor a menor,
 // Instrumento o Personalizado (lista arrastrable con ratón y con teclado; la clave es el código, se ve la etiqueta) e
 // «Invertir». Persiste en `args.orden_categorias` del gráfico. Encima de la lista, los avisos que el backend da de la
 // pregunta (decisión 4, §7): se ramifica por `codigo`, nunca por el texto.
@@ -20,6 +20,8 @@ import {
   mover,
   NO_SE_DIBUJA,
   ordenAGuardar,
+  ordenHeredado,
+  rotuloFrecuencia,
   rotuloRecetario,
   tieneOrdenHeredado,
   type ModoOrden,
@@ -27,6 +29,8 @@ import {
   type OrdenCategorias,
 } from "./ordenCategorias";
 import { useCategoriasGrafico } from "./useCategoriasGrafico";
+import { rotuloVisible } from "./rotuloCortoDeLista";
+import { useRotulosCortos } from "./useRotulosCortos";
 import "./ordenCategorias.css";
 import { CargaDeBloque } from "../../../components/CargaDeBloque";
 import { formatoConteo } from "../../../lib/formatoNumero";
@@ -46,6 +50,9 @@ export function OrdenCategoriasGrafico({ variable, graficador, args, scope, onCa
   const estado = useCategoriasGrafico(variable, scope, graficador);
   const orden = leerOrden(args);
   const heredado = tieneOrdenHeredado(args);
+  // U4: el orden elegido antes, con palabras («De mayor a menor»); elegir otro modo lo reemplaza y el valor anterior
+  // queda guardado: volver a «elegido antes» lo recupera.
+  const nombreHeredado = ordenHeredado(args);
   const datos = estado.fase === "lista" ? estado.datos : null;
   const { notas, escala } = leerAvisosOrden(datos);
   const escalaId = `${id}-escala`;
@@ -68,8 +75,8 @@ export function OrdenCategoriasGrafico({ variable, graficador, args, scope, onCa
           aria-describedby={escala ? escalaId : undefined}
           onChange={(e) => cambiarModo(e.target.value as ModoOrden)}
         >
-          <option value="recetario">{rotuloRecetario(datos, heredado)}</option>
-          <option value="frecuencia">Frecuencia</option>
+          <option value="recetario">{rotuloRecetario(datos, nombreHeredado ?? heredado)}</option>
+          <option value="frecuencia">{rotuloFrecuencia(orden.invertir)}</option>
           <option value="instrumento">Instrumento</option>
           <option value="personalizado" disabled={!datos}>Personalizado</option>
         </select>
@@ -91,7 +98,10 @@ export function OrdenCategoriasGrafico({ variable, graficador, args, scope, onCa
       </div>
       {escala && <NotaAviso nota={escala} id={escalaId} />}
       {orden.modo === "recetario" && heredado && (
-        <span className="pulso-f6-dato-ayuda">Este gráfico trae un orden elegido antes; manda mientras no elijas otro modo.</span>
+        <span className="pulso-f6-dato-ayuda" data-qa="orden-heredado">
+          {nombreHeredado ? `Este gráfico trae el orden «${nombreHeredado}», elegido antes` : "Este gráfico trae un orden elegido antes"}; manda
+          mientras no elijas otro.
+        </span>
       )}
       <EstadoDatos estado={estado} />
       {notas.length > 0 && (
@@ -143,7 +153,10 @@ function EstadoDatos({ estado }: { estado: ReturnType<typeof useCategoriasGrafic
 }
 
 function ListaOrden({ datos, lista, invertido, onLista }: { datos: GraficosCategorias; lista: string[]; invertido: boolean; onLista: (l: string[]) => void }) {
-  const etiqueta = new Map(datos.categorias.map((c) => [c.codigo, c.etiqueta]));
+  // U14: con el rótulo corto del estudio la lista dice lo que dirá la lámina; el completo queda en el title.
+  const cortos = useRotulosCortos();
+  const completa = new Map(datos.categorias.map((c) => [c.codigo, c.etiqueta]));
+  const etiqueta = new Map(datos.categorias.map((c) => [c.codigo, rotuloVisible(cortos, c.etiqueta).texto]));
   const sinRespuestas = categoriasSinRespuestas(datos);
   const items = useRef(new Map<string, HTMLLIElement>());
   const [arrastrado, setArrastrado] = useState<number | null>(null);
@@ -187,6 +200,7 @@ function ListaOrden({ datos, lista, invertido, onLista }: { datos: GraficosCateg
         data-qa-geometry-group="graficos/f6-orden-lista" data-qa-geometry-contract="intrinsic">
         {lista.map((codigo, i) => {
           const texto = etiqueta.get(codigo) ?? codigo;
+          const larga = completa.get(codigo);
           const vacia = sinRespuestas.has(codigo);
           return (
             <li
@@ -204,7 +218,7 @@ function ListaOrden({ datos, lista, invertido, onLista }: { datos: GraficosCateg
             >
               <GripVertical size={14} aria-hidden="true" className="pulso-f6-orden-asa" />
               <span className="pulso-f6-orden-posicion" aria-hidden="true">{i + 1}</span>
-              <span className="pulso-f6-orden-etiqueta">
+              <span className="pulso-f6-orden-etiqueta" title={larga && larga !== texto ? larga : undefined}>
                 {texto}
                 {vacia && <span className="pulso-f6-orden-sin-respuestas" aria-hidden="true">{NO_SE_DIBUJA}</span>}
               </span>

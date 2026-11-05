@@ -33,6 +33,7 @@
 # "overrides"        → editor especial de overrides (delta vs preset tipo)
 # "filtros"          → editor de filtros por variable (avanzado)
 # "base_config"      → editor de la base automática/manual (avanzado)
+# "resumen_capitulos" → capítulos {titulo, filas: [{var, fila, rotulo}]} del resumen de diferencias
 # "hallazgos_capitulos" → capítulos {titulo, titular, cifras: [{var, fila, texto, comparacion}]} del resumen ejecutivo
 # "partes"           → filas {rotulo, codigos} de la pregunta elegida (líneas por nivel); conserva `y` y `color`
 # "meta"             → objeto libre; casi nunca se expone en UI
@@ -1063,22 +1064,35 @@
 
   # Láminas de diferencias (especificación CCSS del 2026-11-04): el resumen por capítulo y los hallazgos clave. Las dos
   # son nativas y se componen como un `slide_1` (graficos_resumen_diferencias.R, graficos_hallazgos.R). Sus listas
-  # (`capitulos`, `cifras`): los capítulos del resumen ejecutivo ya se editan en Inspector › Lámina (hallazgos/); las `cifras`
-  # de los modos «cifras» siguen en el plan, así que la lámina todavía no se ofrece en el selector.
+  # (`capitulos`, `cifras`): los dos se arman en Inspector › Lámina (resumenDiferencias/ y hallazgos/) y se ofrecen en el
+  # selector (ítem 15 de la revisión del PPT v7.23). Las `cifras` de los modos «cifras» de hallazgos siguen en el plan.
   p_slide_resumen_diferencias = list(
     titulo_humano = "Resumen de diferencias",
     descripcion   = "Tabla por capítulo con los puntos de diferencia de cada grupo frente al resto, con la prueba del informe.",
     icono_ui      = "Table",
     categoria     = "1grafico",
     render_key    = "resumen_diferencias",
-    en_selector   = FALSE,
+    en_selector   = TRUE,
     blueprint     = list(kind = "single", ppt_layout = "Graficos2", structure_label = "Resumen de diferencias"),
     slot_specs    = list(),
     args = c(.args_slide_titulos_base(c("titulo", "etiqueta", "base")), list(
       list(name = "seleccion", label = "Selección de filas", tipo_input = "choice", grupo = "textos", default = "manual",
-           choices = list(list(value = "manual", label = "Las filas escritas en el plan"),
-                          list(value = "auto", label = "Las filas del plan con diferencias")),
-           descripcion = "Con «auto», el motor propone las filas con diferencias: primero las del 99%, luego las más grandes, hasta 4 por capítulo y 18 en total.")
+           choices = list(list(value = "manual", label = "Las escribo yo"),
+                          list(value = "auto", label = "Las propone el motor")),
+           descripcion = "Si las propone el motor, toma las filas con diferencias entre grupos: primero las de las preguntas clave del estudio, luego las del 99% y luego las más grandes, sin repetir pregunta, hasta 4 por capítulo y 18 en total."),
+      # Ítem 15 de la revisión del PPT v7.23 («todo configurable en la UI»): la lámina se escribía entera en el plan.
+      list(name = "cruces", label = "Cruces", tipo_input = "variables_list", grupo = "datos",
+           descripcion = "Los grupos de las columnas. Si lo dejas vacío, van los que la lámina rotula o, si no hay, los de las tarjetas de diferencias del informe."),
+      list(name = "publico", label = "Cómo se nombran los casos", tipo_input = "string", grupo = "textos",
+           descripcion = "Plural de la unidad («estudiantes»). Vacío, «personas encuestadas»."),
+      list(name = "max_filas", label = "Filas en total", tipo_input = "number", grupo = "textos", default = 18, min = 4, max = 30, step = 1,
+           depende = list(arg = "seleccion", valores = list("auto")),
+           descripcion = "Tope de filas que propone el motor. Con más de las que caben, la tabla sigue en otra lámina sin partir un capítulo."),
+      list(name = "max_por_capitulo", label = "Filas por capítulo", tipo_input = "number", grupo = "textos", default = 4, min = 1, max = 8, step = 1,
+           depende = list(arg = "seleccion", valores = list("auto")),
+           descripcion = "Tope de filas por capítulo que propone el motor."),
+      list(name = "capitulos", label = "Capítulos y filas", tipo_input = "resumen_capitulos", grupo = "datos",
+           descripcion = "Por capítulo, sus filas: la pregunta, la respuesta que se cuenta y el rótulo de la fila.")
     ))
   ),
 
@@ -1088,7 +1102,7 @@
     icono_ui      = "LayoutGrid",
     categoria     = "1grafico",
     render_key    = "hallazgos",
-    en_selector   = FALSE,
+    en_selector   = TRUE,
     blueprint     = list(kind = "single", ppt_layout = "Graficos2", structure_label = "Hallazgos clave"),
     slot_specs    = list(),
     args = c(.args_slide_titulos_base(c("titulo", "etiqueta", "base")), list(
@@ -1101,22 +1115,23 @@
       # Revisión del PPT v7.11 de CCSS, ítem 2: el resumen ejecutivo (graficos_hallazgos_resumen.R, maqueta V1 y V3).
       list(name = "seleccion", label = "Selección de hallazgos", tipo_input = "choice", grupo = "textos", default = "manual",
            depende = list(arg = "modo", valores = list("resumen", "titulares")),
-           choices = list(list(value = "manual", label = "Los hallazgos escritos en el plan"),
-                          list(value = "auto", label = "Propuestos por el motor")),
-           descripcion = "Con «auto», el motor propone por capítulo la diferencia más fuerte y la cifra más rotunda sin diferencia."),
+           choices = list(list(value = "manual", label = "Los escribo yo"),
+                          list(value = "auto", label = "Los propone el motor")),
+           # H14 (usabilidad del editor): el criterio con palabras de analista. Las preguntas clave son `plan$preguntas_clave`.
+           descripcion = "Los propone el motor: por capítulo, la diferencia más fuerte entre grupos y una cifra de las preguntas clave del estudio, sin repetir pregunta. Si el capítulo no tiene preguntas clave, la cifra que más se aparta del 50%."),
       list(name = "max_por_capitulo", label = "Hallazgos por capítulo", tipo_input = "number", grupo = "textos", default = 3, min = 1, max = 3, step = 1,
            depende = list(arg = "modo", valores = list("resumen")),
-           descripcion = "Tope por capítulo. La selección automática propone dos."),
+           descripcion = "Tope por capítulo. Si los propone el motor, son dos."),
       list(name = "max_por_lamina", label = "Hallazgos por lámina", tipo_input = "number", grupo = "textos", default = 8, min = 4, max = 8, step = 1,
            depende = list(arg = "modo", valores = list("resumen", "titulares")),
            descripcion = "Con más, el motor abre otra lámina sin partir un capítulo. Hasta cuatro capítulos por lámina."),
-      list(name = "tambien", label = "Mostrar «También»", tipo_input = "bool", grupo = "textos", default = TRUE,
+      list(name = "tambien", label = "Mostrar «También»", tipo_input = "bool", grupo = "textos", default = FALSE,
            depende = list(arg = "modo", valores = list("resumen")),
            descripcion = "Si otro cruce también difiere, una línea corta bajo la diferencia principal."),
       # Ítem 2 de la v7.11 RV: «la UI pueda generarlos». Capítulos y cruces se escribían a mano en el plan.
       list(name = "cruces", label = "Cruces", tipo_input = "variables_list", grupo = "datos",
            depende = list(arg = "modo", valores = list("resumen", "titulares")),
-           descripcion = "Contra qué grupos se busca la diferencia principal. Vacío, los que la lámina rotula; si no, los de las tarjetas del plan."),
+           descripcion = "Contra qué grupos se busca la diferencia principal. Si lo dejas vacío, van los que la lámina rotula o, si no hay, los de las tarjetas de diferencias del informe."),
       list(name = "capitulos", label = "Capítulos y hallazgos", tipo_input = "hallazgos_capitulos", grupo = "datos",
            depende = list(arg = "modo", valores = list("resumen", "titulares")),
            descripcion = "Por capítulo, sus hallazgos: la pregunta, la respuesta que se cuenta, el texto que sigue a la cifra y la comparación (automática, ninguna o escrita).")
@@ -1248,13 +1263,14 @@
       list(name = "pista_barras", label = "Pista hasta el 100%", tipo_input = "choice", grupo = "estilo", default = "auto",
            via_overrides = TRUE,
            choices = list(
-             list(value = "auto", label = "Automática", hint = "Con la escala de 0 a 100% y en las láminas de población."),
+             list(value = "auto", label = "Automática", hint = "En toda barra de una serie, como el resto del mazo."),
              list(value = "siempre", label = "Siempre", hint = "La escala pasa a ir de 0 a 100%."),
              list(value = "nunca", label = "Nunca", hint = "La barra sola, sin pista.")),
            descripcion = "Pinta bajo cada barra una pista gris suave que llega al 100%, para leer cada parte frente al total."),
+      # U-c (checklist de mandos del mazo, 2026-11-05): sin `default`. La lámina nativa sin el valor ajusta la columna a
+      # la tinta de los rótulos (lamina_barras_ancho.R) y el 0.36 que se anunciaba aquí no lo usaba nadie: vacío = automático.
       list(name = "canvas_w_etiquetas", label = "Espacio para etiquetas", tipo_input = "number", grupo = "canvas",
-           default = 0.36,
-           descripcion = "Ancho relativo reservado para textos largos a la izquierda del gráfico.")
+           descripcion = "Ancho relativo reservado para textos largos a la izquierda del gráfico. Vacío, automático: la columna se ajusta a los rótulos.")
     ), .args_graf_comunes())
   ),
 
@@ -1296,7 +1312,7 @@
       list(name = "pista_barras", label = "Pista hasta el 100%", tipo_input = "choice", grupo = "estilo", default = "auto",
            via_overrides = TRUE,
            choices = list(
-             list(value = "auto", label = "Automática", hint = "Con la escala de 0 a 100% y en las láminas de población."),
+             list(value = "auto", label = "Automática", hint = "En toda barra de una serie, como el resto del mazo."),
              list(value = "siempre", label = "Siempre", hint = "La escala pasa a ir de 0 a 100%."),
              list(value = "nunca", label = "Nunca", hint = "La barra sola, sin pista.")),
            descripcion = "Pinta bajo cada barra una pista gris suave que llega al 100%, para leer cada parte frente al total."),
@@ -1423,6 +1439,14 @@
       list(name = "cruces",        label = "Dividir por", tipo_input = "variable_opt", grupo = "datos",
            depende = list(arg = "modo", valores = list("cruce", "var_cruce")),
            descripcion = "Cada grupo de esta variable abre su propia barra."),
+      # U11 (checklist de mandos del mazo, 2026-11-05): el render por cruce ya marcaba las diferencias
+      # (`.graficos_sig_aplicar_transpuesto`, reporte_plan_ppt.R) pero el mando no se ofrecía ni era formal.
+      list(name = "mostrar_significancia", label = "Marcar diferencias significativas", tipo_input = "bool", grupo = "datos",
+           default = FALSE, depende = list(arg = "modo", valores = list("cruce")),
+           descripcion = "Agrega a cada segmento la letra de los grupos a los que supera de forma significativa, con la misma prueba que usan las tablas de cruces. Necesita un cruce con dos o más grupos."),
+      list(name = "significancia_alpha", label = "Nivel de significancia", tipo_input = "number", grupo = "datos",
+           default = 0.05, min = 0.001, max = 0.2, step = 0.005, depende = list(arg = "modo", valores = list("cruce")),
+           descripcion = "Umbral del contraste. 0.05 es el estándar; bajarlo exige diferencias más grandes para marcar."),
       list(name = "titulos_grupo", label = "Títulos por bloque", tipo_input = "textarea",  grupo = "textos",
            depende = list(arg = "modo", valores = list("var_cruce")),
            descripcion = "Formato: 'clave=Título'. Una línea por bloque."),
@@ -1459,6 +1483,13 @@
       list(name = "grosor_piso_cm", label = "Grosor mínimo de barra (cm)", tipo_input = "number", grupo = "valores",
            min = 0, max = 3, step = 0.01,
            descripcion = "Las barras de la escala no bajan de este grosor: si no caben, primero se acorta el aire entre ellas y sólo después la lámina se parte. Con alto de sobra, la barra engrosa por encima de este mínimo. Vacío hereda el del informe; 0 lo quita."),
+      # v7.25, ítem 4 (Gonzalo: «la etiqueta arriba de la barra ¿es configurable?»): dónde va el enunciado de cada barra.
+      list(name = "premisa_posicion", label = "Enunciado de cada barra", tipo_input = "choice", grupo = "valores", default = "auto",
+           choices = list(
+             list(value = "auto", label = "Automático", hint = "Encima de su barra cuando la lámina lleva tarjetas de diferencias; si no, a la izquierda."),
+             list(value = "arriba", label = "Encima de la barra", hint = "La barra usa todo el ancho y el enunciado va sobre ella."),
+             list(value = "izquierda", label = "A la izquierda", hint = "El enunciado en su columna, a la izquierda de la barra.")),
+           descripcion = "Dónde va el enunciado de cada barra en la lámina."),
       # G15 (Gonzalo, 2026-10-13): el reparto de ancho por lámina, en tres pasos y no en proporciones. Sólo lo usa la
       # lámina que compara públicos; «Automático» es el reparto del estilo del informe.
       list(name = "ancho_tema", label = "Ancho de los temas", tipo_input = "choice", grupo = "valores", default = "auto",
@@ -1671,7 +1702,7 @@
            default = TRUE,
            descripcion = "Si se desactiva, oculta rangos sin casos para compactar el histograma."),
       list(name = "mostrar_frecuencia", label = "Mostrar frecuencia junto al %", tipo_input = "bool", grupo = "valores",
-           default = FALSE,
+           default = FALSE, via_overrides = TRUE,
            descripcion = "Agrega el conteo al porcentaje: 42% (76) en vez de 42%. Apagado por defecto."),
       # Revisión del PPT v7.11 de CCSS (lámina 11): Gonzalo aún no elige entre la línea y el triángulo; la línea es el
       # defecto. Lo dibuja la lámina nativa (graficador_histograma_lamina.R) y viaja por overrides.
@@ -2520,7 +2551,7 @@
            descripcion = "Texto sobre las líneas. Ej. «Según nivel curricular»."),
       list(name = "rotulo_total", label = "Título del total", tipo_input = "string", grupo = "textos",
            descripcion = "Texto sobre la franja del total. Ej. «Total de estudiantes»."),
-      list(name = "publico", label = "Cómo se llaman los casos", tipo_input = "string", grupo = "textos",
+      list(name = "publico", label = "Cómo se nombran los casos", tipo_input = "string", grupo = "textos",
            descripcion = "Va bajo cada nivel con su número. Ej. «estudiantes» escribe «119 estudiantes»."),
       list(name = "nombre_nivel", label = "Qué crece", tipo_input = "string", grupo = "textos",
            descripcion = "La palabra del aviso de cada línea. Ej. «nivel» escribe «Crece con el nivel»."),

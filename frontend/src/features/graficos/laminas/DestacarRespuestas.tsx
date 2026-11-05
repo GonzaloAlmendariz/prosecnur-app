@@ -9,6 +9,8 @@ import { useId } from "react";
 import type { GraficadorRef } from "../../../api/graficos";
 import { usePlanStore } from "../store";
 import { parseVarRef, useVariables } from "../useVariables";
+import { rotuloVisible } from "./rotuloCortoDeLista";
+import { useRotulosCortos } from "./useRotulosCortos";
 
 /** Dónde guarda cada gráfico lo que se destaca. */
 const DONDE: Readonly<Record<string, "arg" | "override">> = {
@@ -32,6 +34,7 @@ export function DestacarRespuestas({ slideId, slot, valor }: { slideId: string; 
   const id = useId();
   const { variables } = useVariables();
   const updateSlotArgs = usePlanStore((s) => s.updateSlotArgs);
+  const cortos = useRotulosCortos();
   const donde = DONDE[valor.graficador];
   if (!donde) return null;
   const args = (valor.args ?? {}) as Record<string, unknown>;
@@ -54,9 +57,14 @@ export function DestacarRespuestas({ slideId, slot, valor }: { slideId: string; 
     <div className="pulso-f6-dato is-apilado" data-qa="destacar-respuestas">
       <span className="pulso-f6-dato-rotulo" id={id}>Destacar</span>
       <div className="pulso-f6-destacar" role="group" aria-labelledby={id}>
-        {respuestas.map((r) => (
-          <button key={r} type="button" className="pulso-f6-destacar-opcion" aria-pressed={elegidas.has(r)} onClick={() => alternar(r)}>{r}</button>
-        ))}
+        {respuestas.map((r) => {
+          // U14: se ve el corto del estudio; lo que se guarda sigue siendo el rótulo completo.
+          const v = rotuloVisible(cortos, r);
+          return (
+            <button key={r} type="button" className="pulso-f6-destacar-opcion" aria-pressed={elegidas.has(r)} title={v.completo ?? undefined}
+              onClick={() => alternar(r)}>{v.texto}</button>
+          );
+        })}
       </div>
       {donde === "override" && elegidas.size === 0 && <span className="pulso-f6-dato-ayuda">Sin elegir, todas van del mismo color.</span>}
     </div>

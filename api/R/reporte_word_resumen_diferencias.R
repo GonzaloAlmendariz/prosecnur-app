@@ -18,8 +18,9 @@
   cw <- (ancho - w_rot - w_tot) / K
   xs <- w_rot + w_tot + (seq_len(K) - 0.5) * cw; x_tot <- w_rot + w_tot / 2
   txt <- list(); rec <- list()
-  add_t <- function(x, y, s, pt, col, bold = FALSE, hj = 0) txt[[length(txt) + 1L]] <<- data.frame(x = x, y = y, s = s, pt = pt, col = col,
-                                                                                                  f = if (bold) "bold" else "plain", hj = hj, stringsAsFactors = FALSE)
+  add_t <- function(x, y, s, pt, col, bold = FALSE, hj = 0, ang = 0) txt[[length(txt) + 1L]] <<- data.frame(x = x, y = y, s = s, pt = pt, col = col,
+                                                                                                  f = if (bold) "bold" else "plain", hj = hj, ang = ang,
+                                                                                                  stringsAsFactors = FALSE)
   add_r <- function(x0, x1, y0, y1, fill, borde = NA, lt = "solid") rec[[length(rec) + 1L]] <<- data.frame(x0 = x0, x1 = x1, y0 = y0, y1 = y1, fill = fill,
                                                                                                         borde = borde, lt = lt, stringsAsFactors = FALSE)
   envolver <- function(s, w, pt, max_l = 2L, bold = FALSE) {
@@ -42,13 +43,20 @@
     for (j in seq_along(lin_c[[q]])) add_t((xa + xb) / 2, y + 0.07 + (j - 1) * 0.1 + (n_c - length(lin_c[[q]])) * 0.1, lin_c[[q]][j], 6.5, suave, TRUE, 0.5)
     add_r(xa, xb, y + 0.07 + (n_c - 1) * 0.1 + 0.09, y + 0.07 + (n_c - 1) * 0.1 + 0.098, .std_color("filete"))
   }
-  # El rótulo corto de cada grupo en hasta tres líneas (columnas de 0,35 in con diez grupos).
-  lin_g <- lapply(cols$corto, function(s) envolver(s, cw - 0.03, 6.5, 3L, TRUE))
-  n_g <- max(1L, vapply(lin_g, length, integer(1)))
+  # Revisión del PPT v7.23, ítem 13: el rótulo corto de cada grupo va entero, en una línea. Si los diez rótulos no caben
+  # horizontales en la página (columnas de 0,35 in), van verticales, de abajo hacia arriba, alineados sobre su columna.
   y_g <- y + 0.07 + (n_c - 1) * 0.1 + 0.2
-  for (k in seq_len(K)) for (j in seq_along(lin_g[[k]])) add_t(xs[k], y_g + (j - 1) * 0.1 + (n_g - length(lin_g[[k]])) * 0.1, lin_g[[k]][j], 6.5, azul, TRUE, 0.5)
-  add_t(x_tot, y_g + (n_g - 1) * 0.1, "Total", 7, azul, TRUE, 0.5)
-  y <- y_g + (n_g - 1) * 0.1 + 0.13
+  w_g <- .lam_ancho_tinta(as.character(cols$corto), 6.5, TRUE)
+  if (all(w_g <= cw - 0.04)) {
+    for (k in seq_len(K)) add_t(xs[k], y_g, cols$corto[k], 6.5, azul, TRUE, 0.5)
+    add_t(x_tot, y_g, "Total", 7, azul, TRUE, 0.5)
+    y <- y_g + 0.13
+  } else {
+    alto_g <- max(w_g) + 0.04
+    for (k in seq_len(K)) add_t(xs[k], y_g - 0.06 + alto_g, cols$corto[k], 6.5, azul, TRUE, 0, 90)
+    add_t(x_tot, y_g - 0.06 + alto_g - 0.03, "Total", 7, azul, TRUE, 0.5)
+    y <- y_g - 0.06 + alto_g + 0.1
+  }
   h <- 0.235
   for (cp in caps) {
     if (nzchar(cp$titulo %||% "")) {
@@ -86,7 +94,7 @@
     ggplot2::geom_rect(data = rd, ggplot2::aes(xmin = .data$x0, xmax = .data$x1, ymin = .data$y0, ymax = .data$y1,
                                                fill = .data$fill, colour = .data$borde, linetype = .data$lt), linewidth = 0.3) +
     ggplot2::geom_text(data = td, ggplot2::aes(x = .data$x, y = .data$y, label = .data$s, hjust = .data$hj, size = .data$sz,
-                                               colour = .data$col, fontface = .data$f), vjust = 0.5, family = "Arial") +
+                                               colour = .data$col, fontface = .data$f, angle = .data$ang), vjust = 0.5, family = "Arial") +
     ggplot2::scale_fill_identity() + ggplot2::scale_colour_identity() + ggplot2::scale_linetype_identity() + ggplot2::scale_size_identity() +
     ggplot2::scale_y_reverse(limits = c(y + 0.04, -0.02), expand = c(0, 0)) +
     ggplot2::scale_x_continuous(limits = c(0, ancho), expand = c(0, 0)) +

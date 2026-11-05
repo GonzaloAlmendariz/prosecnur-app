@@ -26,6 +26,7 @@ import { ChromeBaseSelector } from "../../components/ChromeBaseSelector";
 import { usePlanStore, type GraficosConfig } from "./store";
 import { useGraficosAutosave } from "./useGraficosAutosave";
 import { useGraficosShortcuts } from "./useGraficosShortcuts";
+import { useDeshacerPorCampo } from "./useDeshacerPorCampo";
 import { ShortcutsModal } from "./ShortcutsModal";
 import { humanizeGraficosExportError, HumanizedError } from "./humanizeExportError";
 import { GraficosHeader } from "./GraficosHeader";
@@ -84,6 +85,8 @@ export default function GraficosPage() {
   // Atajos: Cmd/Ctrl+Z (undo), +Shift+Z (redo), +D (duplicar), ? (ayuda).
   const panelAtajos = usePanelDireccionable(PANEL_ATAJOS_GRAFICOS);
   useGraficosShortcuts({ onOpenHelp: panelAtajos.abrir });
+  // H10: deshacer va por campo, no por letra.
+  useDeshacerPorCampo();
   // Atajos V2: J/K (nav), / (búsqueda), V/T (modo), 1-4 (tabs)
   useShortcutsV2();
 

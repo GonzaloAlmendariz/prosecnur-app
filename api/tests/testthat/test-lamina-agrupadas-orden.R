@@ -100,8 +100,9 @@ test_that("en los paneles de la población de 4 la ordinal y las demás se leen 
   derecha <- .ao_rotulos(x, x0 = 6.6)
   expect_identical(derecha[derecha %in% .ao_cats], .ao_cats)               # arriba a la derecha
   expect_identical(derecha[derecha %in% .ao_grado], .ao_grado)             # abajo a la derecha
-  # La dicotomía pone a la izquierda la primera categoría del instrumento, aunque sea la menor.
-  expect_identical(.ao_rotulos(x, nombre = "dicotomia:rotulo")[1], "Sí")
+  # La Sí/No (barra apilada clásica desde la revisión v7.23, ítem 11) pone primero en su leyenda la primera categoría del
+  # instrumento, aunque sea la menor.
+  expect_identical(.ao_formas(x, "leyenda:texto")$t[1], "Sí")
 })
 
 test_that("un orders_list 3, 1, 2, 4 sale tal cual: el motor no reordena", {

@@ -101,7 +101,9 @@
 .lam_espec_de <- function(p) {
   if (!inherits(p, "ggplot")) return(NULL)
   e <- attr(p, "pulso_espec") %||% (if (!is.null(attr(p, "pulso_cifra"))) list(tipo = "cifra", item = attr(p, "pulso_cifra")))
-  .lam_numerico_como_cifra(e) %||% e
+  # U5 también en las láminas de dos o más gráficos (revisión v7.23, ítem 1: «Prefiero no responder» con 1 caso de 400 decía
+  # «0%»): la regla sólo corría en la lámina de un gráfico (lamina_compositor.R). Idempotente: «<1%» ya no casa con «0%».
+  .lam_numerico_como_cifra(e) %||% .lam_espec_menor_uno(e)
 }
 
 #' P2 (checklist-poblacion-y-filtro): un indicador numérico de un solo valor (la media de la edad, sin grupos) es una
@@ -443,6 +445,7 @@
     # Las notas de los gráficos: la de la ruta de composición (nota_pie) o la que trae la espec (caption del ggplot).
     bases <- unique(unlist(c(lapply(els, function(el) texto(el$overrides$nota_pie %||% NULL)), lapply(especs, function(e) texto(e$nota)))))
     bases <- .lam_bases_sin_repetir(bases)
+    bases <- .lam_mixta_solo_base_principal(bases, especs, els)   # v7.23, ítem 5 (lamina_mixtas_base_principal.R)
     base <- if (length(bases)) paste(bases, collapse = ". ") else NULL
   }
   enc <- .lam_mixta_encabezados(especs, els, titulo_de_var)
@@ -457,6 +460,8 @@
       if (length(notas) == 1L) base <- notas
     }
   }
+  # v7.23, ítem 5: el panel cuyo n es el de la base de la lámina no lo repite; el que difiere conserva su «55 respuestas».
+  if (!isTRUE((slide$meta %||% list())$suppress_base_placeholder)) enc$publicos <- .lam_mixta_publicos_sin_base(enc$publicos, especs, base)
   # D3 (checklist-poblacion-y-filtro, Gonzalo 2026-10-14: «que cada gráfico pueda permitir si incluye o no su base»): el
   # gráfico decide si su panel dice «172 respuestas» bajo el enunciado; sin decidir, la regla G9 de arriba.
   for (k in seq_along(els)) {

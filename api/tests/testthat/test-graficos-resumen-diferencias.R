@@ -147,10 +147,10 @@ test_that("el constructor arma un slide_1 con el elemento y el antetítulo; el r
   expect_identical(s$.slide_type, "slide_1")
   expect_identical(s$slots$plot$.element_type, "resumen_diferencias")
   expect_identical(s$meta$antetitulo, "Resumen de diferencias")
-  expect_error(p_slide_resumen_diferencias(), "declara `capitulos`")
+  expect_error(p_slide_resumen_diferencias(), "escribe al menos un capítulo con una fila completa", fixed = TRUE)
   expect_true("p_slide_resumen_diferencias" %in% .slide_names())
   expect_identical(.SLIDES_META$p_slide_resumen_diferencias$render_key, "resumen_diferencias")
-  expect_false(isTRUE(.SLIDES_META$p_slide_resumen_diferencias$en_selector))
+  expect_true(isTRUE(.SLIDES_META$p_slide_resumen_diferencias$en_selector))   # se ofrece desde la revisión v7.23 (ítem 15)
 })
 
 # ---- Artefactos: PPT y Word ------------------------------------------------------------------------------------------
@@ -174,7 +174,9 @@ test_that("la lámina nativa del PPT lleva encabezado, capítulos, celdas, «n. 
   # v7.11, lámina 59: el método ya lo explica «Cómo leer las diferencias»; la lámina no repite el párrafo.
   expect_false("Nota significancia" %in% nombres)
   expect_false(any(grepl("Benjamini|Rao-Scott|prueba z|Puntos de diferencia entre", textos)))
-  expect_true(any(grepl("^Econ\\.", textos)))   # el rótulo corto declarado (en una o dos líneas)
+  # v7.25, ítem 9 (CAMBIO DELIBERADO): con ancho, el nombre completo del grupo («Economía y Finanzas», en una o dos
+  # líneas) en vez del corto declarado; el corto queda de respaldo cuando el completo no cabe.
+  expect_true(any(grepl("^Economía", textos))); expect_false(any(grepl("^Econ\\.", textos)))
   expect_true(all(c("ÁREA", "CAPÍTULO UNO", "Dice mucho", "n. a.", "Mayor que el resto", "99% de confianza",
                     "Base: 400 casos.") %in% textos))
   expect_false(any(grepl("Fuente", textos, fixed = TRUE)))
@@ -233,4 +235,114 @@ test_that("sin `cruces`, la lámina usa los que rotula (no los de Analítica) y 
   expect_true(any(grepl("ciclo", avisos)))
   # Con `cruces` declarados mandan ellos.
   expect_identical(.dif_cruces(list(cruces = list("sexo"), rotulos = el$rotulos), list(), list(), fuente)$cruces, "sexo")
+})
+
+# ---- Revisión del PPT v7.23 de CCSS, lámina 55 (ítem 13) -----------------------------------------------------------------
+# Gonzalo: «puede ir en dos slides si se puede ver algo mejor; los ejes de corte lo ideal es que no se corten en sus
+# etiquetas». Paginación por capítulos enteros y rótulos de grupo en una línea.
+
+test_that("v7.23 ítem 13: la paginación usa el menor número de láminas con aire, parejas y sin partir capítulos", {
+  expect_identical(.lam_resumen_paginar(c(3, 4), disponible = 4, h_aire = 0.24), list(1:2))   # 7 renglones caben en 16.7
+  p <- .lam_resumen_paginar(c(2.85, 4.45, 6.45, 3.85, 1.85, 1.85, 4.85), disponible = 4.4, h_aire = 0.24)
+  expect_length(p, 2L)
+  expect_identical(unlist(p), 1:7)                         # todos, en orden y sin repetir
+  expect_true(all(vapply(p, function(i) sum(c(2.85, 4.45, 6.45, 3.85, 1.85, 1.85, 4.85)[i]), 0) <= 4.4 / 0.24))
+  # Un capítulo que no cabe solo con aire queda en su propia lámina.
+  expect_identical(.lam_resumen_paginar(c(30, 2), disponible = 4.4), list(1L, 2L))
+  expect_length(.lam_resumen_paginar(numeric(0), 4.4), 0L)
+})
+
+test_that("v7.23 ítem 13: cada rótulo de grupo va entero en una línea; el de la fila larga va en dos, sin «…»", {
+  cortos <- c("Econ. y Fin.", "CC. Pol. y Soc.", "Nivel 6", "Nivel 7", "Nivel 8", "Nivel 9", "Mujer", "Hombre",
+              "Ningún padre univ.", "Algún padre univ.")
+  ps <- .lam_resumen_pisos(cortos, disponible = 12.42 - 0.7)
+  expect_true(ps$una_linea)
+  expect_true(all(ps$piso >= .lam_ancho_tinta(cortos, ps$pt, TRUE)))
+  espec <- list(columnas = data.frame(cruce = rep(c("a", "n", "s", "p"), c(2, 4, 2, 2)), codigo = as.character(1:10), corto = cortos,
+                                      stringsAsFactors = FALSE),
+                rotulos_cruce = list(a = "Área", n = "Nivel", s = "Sexo", p = "Estudios de padres"),
+                capitulos = list(list(titulo = "Uno", filas = list(list(rotulo = "Alguien que lo crió tiene estudios universitarios (base: 399)",
+                                                                          total = 42, celdas = NULL)))))
+  C <- .lam_resumen_columnas(espec, 0.5, 12.92)
+  lz <- .lam_lienzo()
+  .lam_resumen_encabezado(lz, espec, C, 1)
+  nm <- vapply(lz$formas, function(x) regmatches(x, regexpr('(?<=name=")[^"]+', x, perl = TRUE)), "")
+  tx <- vapply(lz$formas, function(x) { m <- regmatches(x, regexpr("(?<=<a:t>)[^<]*", x, perl = TRUE)); if (length(m)) m else "" }, "")
+  expect_identical(tx[nm == "resumen:grupo"], cortos)       # un texto por grupo, entero
+  lin <- .lam_resumen_fila_lineas(espec$capitulos[[1]]$filas[[1]]$rotulo, C$w_rot - 0.2)
+  expect_length(lin, 2L); expect_false(any(endsWith(lin, "…")))
+})
+
+test_that("v7.23 ítem 13: con muchas filas la lámina nativa sale en dos partes, el capítulo entero en cada una y «(cont.)»", {
+  skip_if_not_installed("officer")
+  # 7 capítulos y 19 filas, como el resumen de CCSS: en una lámina el renglón quedaba en 0.17 in.
+  celdas <- data.frame(cruce = "a", codigo = "1", estado = "dif", valor = 23, dir = "up", fragil = FALSE, stringsAsFactors = FALSE)
+  n_filas <- c(1, 2, 5, 3, 1, 1, 4)
+  caps <- lapply(seq_along(n_filas), function(i) list(titulo = paste("Capítulo", i), filas = lapply(seq_len(n_filas[i]), function(j)
+    list(rotulo = sprintf("Fila %d.%d", i, j), total = 40, celdas = celdas))))
+  espec <- list(tipo = "resumen_diferencias", capitulos = caps, rotulos_cruce = list(a = "Área"),
+                columnas = data.frame(cruce = c("a", "a"), codigo = c("1", "2"), corto = c("Econ. y Fin.", "CC. Pol. y Soc."), stringsAsFactors = FALSE))
+  doc <- officer::read_pptx(system.file("plantillas", "plantilla_16_9.pptx", package = "prosecnurapp"))
+  n0 <- length(doc)
+  o <- suppressMessages(.lam_laminas_resumen_diferencias(doc, espec, "¿En qué se diferencian?", ante = "Resumen de diferencias",
+                                                          base = "Base: 400 casos.", folio = 3L))
+  expect_identical(o$partes, 2L)
+  expect_identical(length(o$doc) - n0, 2L)
+  out <- tempfile(fileext = ".pptx"); print(o$doc, target = out)
+  tx <- lapply(n0 + 1:2, function(k) xml2::xml_text(xml2::xml_find_all(xml2::read_xml(unz(out, sprintf("ppt/slides/slide%d.xml", k))), "//a:t")))
+  expect_true(any(grepl("(cont.)", tx[[2]], fixed = TRUE))); expect_false(any(grepl("(cont.)", tx[[1]], fixed = TRUE)))
+  caps1 <- grep("^CAPÍTULO", tx[[1]], value = TRUE); caps2 <- grep("^CAPÍTULO", tx[[2]], value = TRUE)
+  expect_length(intersect(caps1, caps2), 0L)                 # ningún capítulo partido
+  expect_identical(length(caps1) + length(caps2), 7L)
+  filas <- c(grep("^Fila", tx[[1]], value = TRUE), grep("^Fila", tx[[2]], value = TRUE))
+  expect_identical(sort(filas), sort(unlist(lapply(caps, function(c) vapply(c$filas, `[[`, "", "rotulo")))))   # todas, una vez
+  # Cada lámina repite el encabezado, la leyenda y la base.
+  expect_true(all(vapply(tx, function(t) all(c("ÁREA", "Econ. y Fin.", "Mayor que el resto", "Base: 400 casos.") %in% t), logical(1))))
+  # Pocas filas: una sola lámina.
+  e1 <- espec; e1$capitulos <- caps[1:2]
+  o1 <- suppressMessages(.lam_laminas_resumen_diferencias(officer::read_pptx(system.file("plantillas", "plantilla_16_9.pptx", package = "prosecnurapp")),
+                                                          e1, "¿En qué se diferencian?", base = "Base: 400 casos."))
+  expect_identical(o1$partes, 1L)
+})
+
+test_that("v7.23 ítem 13: en el Word los rótulos de grupo van enteros (verticales si no caben horizontales)", {
+  celdas <- data.frame(cruce = "a", codigo = "1", estado = "igual", valor = NA, dir = NA, fragil = NA, stringsAsFactors = FALSE)
+  cortos <- c("Econ. y Fin.", "CC. Pol. y Soc.", "Nivel 6", "Nivel 7", "Nivel 8", "Nivel 9", "Mujer", "Hombre",
+              "Ningún padre univ.", "Algún padre univ.")
+  espec <- list(tipo = "resumen_diferencias",
+                columnas = data.frame(cruce = rep(c("a", "n", "s", "p"), c(2, 4, 2, 2)), codigo = as.character(1:10), etiqueta = cortos,
+                                      corto = cortos, stringsAsFactors = FALSE),
+                rotulos_cruce = list(a = "Área", n = "Nivel", s = "Sexo", p = "Estudios de padres"),
+                capitulos = list(list(titulo = "Uno", filas = list(list(rotulo = "Fila", total = 50, celdas = celdas)))))
+  b <- ggplot2::ggplot_build(.resumen_dif_word_ggplot(espec))
+  d <- do.call(rbind, lapply(b$data, function(x) if ("label" %in% names(x)) data.frame(label = as.character(x$label), angle = x$angle)))
+  expect_true(all(cortos %in% d$label))                       # enteros, ni partidos ni recortados
+  expect_true(all(d$angle[d$label %in% cortos] == 90))        # diez grupos no caben horizontales en la página
+  # Con pocos grupos caben horizontales.
+  e2 <- espec; e2$columnas <- espec$columnas[7:8, ]; e2$rotulos_cruce <- list(s = "Sexo")
+  b2 <- ggplot2::ggplot_build(.resumen_dif_word_ggplot(e2))
+  d2 <- do.call(rbind, lapply(b2$data, function(x) if ("label" %in% names(x)) data.frame(label = as.character(x$label), angle = x$angle)))
+  expect_true(all(d2$angle[d2$label %in% c("Mujer", "Hombre")] == 0))
+})
+
+# ---- H3 del checklist de usabilidad del editor (2026-11-05) -----------------------------------------------------------
+
+test_that("H3: un solo capítulo manual escrito por el editor llega como lista de uno y la tabla lo dibuja", {
+  s <- jsonlite::fromJSON('{"id":"r1","tipo":"p_slide_resumen_diferencias","payload":{"seleccion":"manual","capitulos":[{"titulo":"Capítulo uno","filas":[{"var":"t","fila":"Sí","rotulo":"Trabaja"}]}]}}',
+                          simplifyVector = FALSE)
+  el <- .mini_rebuild_slide(s)$slots$plot
+  expect_length(el$capitulos, 1L)
+  e <- .rd_modelo(el)
+  expect_length(e$capitulos, 1L)
+  expect_identical(e$capitulos[[1]]$titulo, "Capítulo uno")
+  expect_length(e$capitulos[[1]]$filas, 1L)
+})
+
+test_that("H3: sin filas completas el aviso habla en lenguaje de analista", {
+  avisos <- character(0)
+  local_mocked_bindings(.pulso_aviso = function(m, ...) { avisos <<- c(avisos, m); invisible(TRUE) })
+  el <- p_slide_resumen_diferencias(capitulos = list(list(titulo = "Vacío", filas = list(list(var = "no_existe", fila = "Sí")))))$slots$plot
+  .resumen_dif_modelo(el, .rd_fuente(), .rd_sig())
+  expect_true("Resumen de diferencias: escribe al menos un capítulo con una fila completa, o elige que las proponga el motor." %in% avisos)
+  expect_false(any(grepl("`|seleccion = |declara `capitulos`", avisos)))
 })

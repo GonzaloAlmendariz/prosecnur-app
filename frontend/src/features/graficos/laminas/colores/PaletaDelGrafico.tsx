@@ -7,12 +7,11 @@ import { useId } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import type { GraficadorRef } from "../../../../api/graficos";
 import { PulsoButton } from "../../../../components/PulsoButton";
-import { conNivel } from "../../../../lib/navegacion/direccion";
-import { searchConNivel } from "../../../../lib/navegacion/useDireccion";
 import { useSession } from "../../../../lib/SessionContext";
 import { coloresParaCompletar, conColoresDeFila, conGrupoEnPaleta, paletaDeLaPregunta, type FilaPaleta } from "../../estilo/modeloPaletasConNombre";
 import type { GrupoRespuestas } from "../../estilo/modeloColoresRespuestas";
 import { usePaletasRespuestas } from "../../estilo/usePaletasRespuestas";
+import { searchDePiezaIdentidad } from "../../estilo/direccionIdentidad";
 import { useGraficosReportScope } from "../../reportScope";
 import { usePlanStore } from "../../store";
 import { GRAFICOS_POR_CATEGORIA, preguntasDelGrafico } from "../modeloMaqueta";
@@ -71,7 +70,7 @@ export function PaletaDelGrafico({ valor }: Props) {
 
   const nombradas = filas.filter((f) => f.clave);
   const irAIdentidad = () =>
-    navigate({ pathname: loc.pathname, search: conNivel(conNivel(searchConNivel(loc.search, "pestana", "identidad"), "foco", "colores"), "panel", null) });
+    navigate({ pathname: loc.pathname, search: searchDePiezaIdentidad(loc.search, "colores") });
   const elegir = ({ fila, grupo }: { fila: FilaPaleta; grupo: GrupoRespuestas }, clave: string) => {
     const destino = nombradas.find((f) => f.clave === clave);
     if (!destino) return;

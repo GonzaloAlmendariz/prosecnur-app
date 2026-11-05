@@ -15,13 +15,13 @@
 #    la mediana. Gonzalo no eligió todavía entre las dos (mando `marca_mediana` de `p_histograma`).
 #  - Eje legible: el valor de cada barra en gris oscuro bajo una marca fina, separado de las cifras de arriba.
 #  - Aire uniforme: la misma distancia entre la barra y su cifra en todas las columnas.
-#  - Las barras de pocos casos (menos del 2% del total) pesan menos: azul tenue y su cifra en gris.
+#  - (Retirado en la revisión del PPT v7.23, ítem 3: «no me gusta que hayan dos colores diferentes de barras».) Las
+#    barras de pocos casos ya no van en azul tenue: todo el histograma va en un solo azul, barras y cifras.
 # La cola de valores con pocos casos se junta con el mando `limite_superior` del plan («30+»); el motor no la impone.
 # Cifras, mediana y conteos son los de la espec: sólo cambia el dibujo.
 
 .LAM_HIST_HUECO <- 0.03     # aire entre barras vecinas (in)
 .LAM_HIST_ROTULO_MED <- 0.3 # alto de la franja del rótulo de la mediana (in)
-.LAM_HIST_POCOS <- 0.02     # una barra con menos de esta parte del total se dibuja tenue
 .LAM_HIST_AIRE <- 0.05      # entre el tope de la barra y su cifra (in)
 
 #' Marca de la mediana declarada: «linea» (defecto) o «triangulo»
@@ -57,8 +57,6 @@
   pt_pct <- 12; pt_casos <- 9
   h_pct <- 0.22; h_casos <- if (cf$con_casos) 0.17 else 0
   h_cif <- h_pct + h_casos
-  cnt <- suppressWarnings(as.numeric(espec$conteos %||% espec$valores)); tot <- sum(cnt, na.rm = TRUE)
-  pocos <- is.finite(cnt) & tot > 0 & cnt / tot < .LAM_HIST_POCOS
   texto_med <- as.character(espec$texto_mediana %||% "")[1]
   med <- is.finite(suppressWarnings(as.numeric(espec$x_mediana)[1])) && nzchar(texto_med %||% "")
   marca <- .lam_hist_marca(espec$marca_mediana)
@@ -75,11 +73,10 @@
   for (k in seq_len(n)) {
     hk <- if (vmax > 0) hb * espec$valores[k] / vmax else 0; xk <- x + (k - 1) * wcol
     if (hk > 0) {
-      .lam_caja(lz, xk + .LAM_HIST_HUECO / 2, yb - hk, wcol - .LAM_HIST_HUECO, hk, if (pocos[k]) .std_color("tenue") else azul,
-                nombre = if (pocos[k]) "histograma:barra:pocos" else "histograma:barra")
+      .lam_caja(lz, xk + .LAM_HIST_HUECO / 2, yb - hk, wcol - .LAM_HIST_HUECO, hk, azul, nombre = "histograma:barra")
       y_c <- yb - hk - .LAM_HIST_AIRE - h_cif
       if (nzchar(cf$pct[k])) {
-        .lam_txt(lz, cf$pct[k], xk, y_c - 0.04, wcol, 0.3, pt_pct, if (pocos[k]) suave else azul, bold = TRUE, align = "center",
+        .lam_txt(lz, cf$pct[k], xk, y_c - 0.04, wcol, 0.3, pt_pct, azul, bold = TRUE, align = "center",
                  nombre = "histograma:cifra")
         if (nzchar(cf$casos[k])) .lam_txt(lz, cf$casos[k], xk, y_c + h_pct - 0.05, wcol, 0.24, pt_casos, tenue, align = "center",
                                           nombre = "histograma:casos")

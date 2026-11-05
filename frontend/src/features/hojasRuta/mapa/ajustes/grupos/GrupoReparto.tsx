@@ -1,6 +1,7 @@
 import type { HojasRutaEstratoMuestral, HojasRutaIntegratedConfig, HojasRutaTerritory } from "../../../../../api/hojasRuta";
 import { BaseReparto2025 } from "../../muestra/BaseReparto2025";
 import { Opciones } from "../../muestra/controlesMuestra";
+import { DistritosSorteados, distritosAplica } from "../../muestra/DistritosSorteados";
 import { EstratoMuestral, politicaAlCambiar } from "../../muestra/EstratoMuestral";
 import { useCambiarMuestra } from "./useCambiarMuestra";
 
@@ -28,6 +29,12 @@ export function GrupoReparto({ config, territorios, estratoServidor, deshabilita
       <section className="hr-ajustes-bloque" aria-label="Estrato del sorteo">
         <EstratoMuestral parte="estrato" sampleSize={s} rowVar={config.row_var} nPorDistrito={nPorDistrito} servidor={estratoServidor} deshabilitado={ed} onCambio={(estrato) => cambiar({ sample_size: { estrato }, ...politicaAlCambiar(estrato) })} onCambioMinimo={(rutas_minimas_ciudad) => cambiarS({ rutas_minimas_ciudad })} />
       </section>
+      {/* ADR 0131 §1c (llegó a main mientras el inspector de Muestra se mudaba aquí): mínimo por distrito y distritos con certeza o sorteados. */}
+      {distritosAplica(s, nPorDistrito) && s.rutas_minimas_distrito !== 0 ? (
+        <section className="hr-ajustes-bloque" aria-label="Distritos sorteados">
+          <DistritosSorteados sampleSize={s} aplica servidor={estratoServidor} deshabilitado={ed} onCambioMinimo={(rutas_minimas_distrito) => cambiarS({ rutas_minimas_distrito })} />
+        </section>
+      ) : null}
     </div>
   );
 }

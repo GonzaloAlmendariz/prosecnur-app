@@ -37,3 +37,12 @@ test_that("el JSON versionado es exactamente el que genera el metadata de hoy (r
   expect_length(j$graficadores, 33L)
   expect_null(j$slides[[1]]$estandar)                                       # portada: null en el JSON
 })
+
+test_that("hallazgos y resumen de diferencias se ofrecen en el selector y nacen con un payload que el motor arma", {
+  # Ítem 15 de la revisión del PPT v7.23: se arman en Inspector › Lámina. El payload inicial del editor (store.ts) los crea
+  # con la selección del motor; con «manual» sin capítulos el constructor los rechazaba.
+  expect_true(isTRUE(.SLIDES_META$p_slide_hallazgos$en_selector))
+  expect_true(isTRUE(.SLIDES_META$p_slide_resumen_diferencias$en_selector))
+  expect_no_error(p_slide_resumen_diferencias(titulo = "", etiqueta = "", base = "", seleccion = "auto"))
+  expect_no_error(p_slide_hallazgos(titulo = "", etiqueta = "", base = "", modo = "resumen", seleccion = "auto"))
+})

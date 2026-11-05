@@ -97,7 +97,7 @@ test_that("Word: cada figura de una lámina de dos gráficos lleva las tarjetas 
   motor$slide <- list(meta = list(tarjetas_diferencias = list(derecha = TRUE)), slots = list(left = el_izq, right = el_der))
   motor$.resolve_ref <- function(...) NULL
   vistas <- character(0)
-  local_mocked_bindings(.tarjetas_de_lamina = function(p, slide, resolver) {
+  local_mocked_bindings(.tarjetas_de_lamina = function(p, slide, resolver, ...) {   # `tipos` (v7.25, ítem 7)
     vistas <<- c(vistas, slide$slots$plot$var)
     .tr_conjunto(3)
   })

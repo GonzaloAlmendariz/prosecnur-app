@@ -25,6 +25,10 @@
 .RESUMEN_MAX_FILAS <- 18L
 .RESUMEN_MAX_POR_CAPITULO <- 4L
 
+#' Aviso de la lámina en manual sin filas completas: en lenguaje de analista, sin nombres de argumentos (H3 de usabilidad)
+#' @keywords internal
+.RESUMEN_DIF_SIN_FILAS <- "escribe al menos un capítulo con una fila completa, o elige que las proponga el motor."
+
 #' Aviso del motor con el prefijo de la lámina
 #' @keywords internal
 .dif_aviso <- function(prefijo, ...) {
@@ -55,16 +59,22 @@
   v[!is.na(v) & nzchar(v)]
 }
 
-#' Fuente del render para una variable: la base de la referencia («base$var») o la primera de la corrida
+#' Fuente del render de una lámina de resumen: la base que resuelve `.resumen_base_lamina` (graficos_resumen_base.R)
 #'
-#' Lee del motor (`reporte_ppt_plan`, congelado) `data_sources` e `instrument_sources`, como `.render_cifra`.
+#' Lee del motor (`reporte_ppt_plan`, congelado) `data_sources` e `instrument_sources`, como `.render_cifra`. La fuente
+#' lleva `base`, el nombre de la base que lee, para que las filas de otra base queden fuera con su aviso.
+#' @param el Elemento de la lámina (`fuente_ref`, capítulos y cruces).
+#' @param plan Plan del motor, para la base de sus preguntas.
 #' @keywords internal
-.dif_fuente_render <- function(ref = NULL) {
+.dif_fuente_render <- function(el = list(), plan = list()) {
   data_sources <- dynGet("data_sources", ifnotfound = NULL)
   inst_sources <- dynGet("instrument_sources", ifnotfound = NULL)
   if (!length(data_sources)) stop("el render no expone las fuentes del estudio.", call. = FALSE)
-  f <- .cifra_fuente(as.character(ref %||% "")[1], data_sources, inst_sources)
-  .sig_fuente(f$data, f$inst)
+  if (is.data.frame(data_sources)) return(.sig_fuente(data_sources, inst_sources))
+  base <- .resumen_base_lamina(el, data_sources, plan)
+  f <- .sig_fuente(data_sources[[base]], inst_sources[[base]])
+  f$base <- base
+  f
 }
 
 #' El plan del motor (lista de `ppt_slide`), o una lista vacía si el render no lo expone
@@ -136,6 +146,21 @@
     }
   }
   FALSE
+}
+
+#' Una lista de registros del payload (capítulos, cifras), aunque llegue un registro suelto
+#'
+#' Los tres rearmados del plan JSON (`.graficos_rebuild_slide_json`, `.rebuild_slide`, `.mini_rebuild_slide`) desenvuelven
+#' todo valor del payload que sea una lista de un solo elemento sin nombres, para que `["x"]` llegue como `"x"`. Una lista
+#' con UN capítulo (`[{titulo, cifras}]`, lo que escribe el editor con un capítulo) llegaba así como el capítulo mismo, el
+#' modelo recorría sus campos como si fueran capítulos y la lámina salía «Sin datos» en la vista previa y en el PPT
+#' (H3 del checklist de usabilidad del editor, 2026-11-05). Un registro se reconoce por sus claves.
+#' @param claves Claves que delatan un registro suelto (`titulo`/`cifras`/`filas` para un capítulo, `var` para una cifra).
+#' @keywords internal
+.dif_lista_registros <- function(x, claves) {
+  if (is.null(x) || !is.list(x) || !length(x)) return(x %||% list())
+  if (!is.null(names(x)) && any(names(x) %in% claves)) return(list(x))
+  x
 }
 
 #' Normaliza una fila del payload: `{var, fila | filas | top2box, rotulo, base_rotulo, filtros}`
@@ -236,17 +261,32 @@
         if (!is.na(dir)) { estado <- "dif"; valor <- if (identical(dir, "up")) abs(valor) else -abs(valor) }
       }
       ncl <- if (is.null(cl)) NA_integer_ else length(unique(cl[en_g & !is.na(fi$y)]))
-      filas[[length(filas) + 1L]] <- data.frame(
+      # Una fila por (cruce, grupo) como lista: el data.frame se arma una vez al final (armar uno por fila y unirlos
+      # con rbind costaba ~0,4 s en la propuesta de CCSS; mismas columnas y tipos).
+      filas[[length(filas) + 1L]] <- list(
         cruce = cr, codigo = g, etiqueta = unname(gr$etiquetas[k]), estado = estado, valor = valor, dir = dir,
         fragil = fragil, p = .dif_prop(fi$y, w, en_g), p_resto = .dif_prop(fi$y, w, en_resto),
-        n = sum(en_g & !is.na(fi$y)), conglomerados = ncl, stringsAsFactors = FALSE)
+        n = sum(en_g & !is.na(fi$y)), conglomerados = ncl)
     }
   }
-  celdas <- if (length(filas)) do.call(rbind, filas) else
+  celdas <- if (length(filas)) .dif_celdas_df(filas) else
     data.frame(cruce = character(), codigo = character(), etiqueta = character(), estado = character(), valor = numeric(),
                dir = character(), fragil = logical(), p = numeric(), p_resto = numeric(), n = numeric(),
                conglomerados = integer(), stringsAsFactors = FALSE)
   list(celdas = celdas, probados = probados)
+}
+
+#' Une las filas de `.dif_evaluar` (listas de escalares) en un data.frame, con los tipos que daba `rbind`
+#' @keywords internal
+.dif_celdas_df <- function(filas) {
+  col <- function(nm, vacio) unlist(lapply(filas, `[[`, nm), use.names = FALSE) %||% vacio
+  escalares <- all(vapply(filas, function(f) all(lengths(f) == 1L), logical(1)))
+  if (!escalares) return(do.call(rbind, lapply(filas, function(f) as.data.frame(f, stringsAsFactors = FALSE))))
+  data.frame(cruce = col("cruce", character()), codigo = col("codigo", character()), etiqueta = col("etiqueta", character()),
+             estado = col("estado", character()), valor = as.numeric(col("valor", numeric())), dir = as.character(col("dir", character())),
+             fragil = as.logical(col("fragil", logical())), p = as.numeric(col("p", numeric())),
+             p_resto = as.numeric(col("p_resto", numeric())), n = col("n", integer()),
+             conglomerados = as.integer(col("conglomerados", integer())), stringsAsFactors = FALSE)
 }
 
 #' Fuerza de una fila para ordenar: las que tienen alguna firme primero, luego la mayor diferencia
@@ -272,11 +312,14 @@
     if (!inherits(el, "ppt_element") || el$.element_type %in% c("resumen_diferencias", "hallazgos")) next
     if (!el$.element_type %in% c("barras_agrupadas", "barras_categoricas", "barras_multiapiladas", "dicotomica")) next
     if (!is.null(el$cruces %||% el$cruce %||% (el$overrides %||% list())$cruces)) next
-    vars <- vapply(as.character(unlist(el$vars %||% el$var)), .sig_var_local, character(1))
+    refs <- as.character(unlist(el$vars %||% el$var))
+    vars <- vapply(refs, .sig_var_local, character(1))
     if (!length(vars)) next
     ttb <- .dif_chr(el$top2box_labels %||% (el$overrides %||% list())$top2box_labels)
     if (length(vars) > 1L && !length(ttb)) next   # una batería sin Top Two Box no tiene una fila que resumir
-    out[[length(out) + 1L]] <- list(capitulo = cap, titulo = as.character(s$title %||% "")[1], vars = unname(vars), top2box = ttb)
+    # `bases`: las de sus referencias calificadas, para que la selección automática no lea otra base (graficos_resumen_base.R).
+    out[[length(out) + 1L]] <- list(capitulo = cap, titulo = as.character(s$title %||% "")[1], vars = unname(vars), top2box = ttb,
+                                    bases = unique(.resbase_de_ref(refs)))
   }
   out
 }
@@ -366,41 +409,47 @@
   }
 
   if (seleccion == "auto") {
-    cands <- unlist(lapply(.resumen_dif_preguntas_plan(plan), function(q) .resumen_dif_candidatas(fuente, q, regla)), recursive = FALSE)
+    preguntas <- .resbase_filtrar_preguntas(.resumen_dif_preguntas_plan(plan), fuente$base, "Resumen de diferencias")
+    cands <- unlist(lapply(preguntas, function(q) .resumen_dif_candidatas(fuente, q, regla)), recursive = FALSE)
+    claves <- .preguntas_clave_de(sig)   # H14: las preguntas clave del estudio van primero en su capítulo
     filas <- list()
     for (cd in cands) {
       it <- .dif_item(cd); it$rotulo <- cd$rotulo
       e <- evaluar(it)
       if (is.null(e) || e$fuerza[["tam"]] <= 0) next
       e$capitulo <- cd$capitulo %||% ""
+      e$clave <- .preguntas_clave_es(c(cd$var, e$var), claves)
       e$candidata <- list(var = it$var, fila = it$fila, top2box = it$top2box, rotulo = it$rotulo)
       filas[[length(filas) + 1L]] <- e
     }
-    orden <- order(-vapply(filas, function(f) f$fuerza[["firme"]], 0), -vapply(filas, function(f) f$fuerza[["tam"]], 0))
-    elegidas <- list(); por_cap <- integer(0)
-    for (i in orden) {
+    elegidas <- list(); por_cap <- integer(0); usadas <- character(0)
+    for (i in .preguntas_clave_orden_dif(filas)) {
       cp <- filas[[i]]$capitulo
       if (length(elegidas) >= max_total) break
       if ((por_cap[cp] %||% 0L) >= max_cap) next
+      if (paste(cp, filas[[i]]$var, sep = "\r") %in% usadas) next   # nunca dos filas de la misma pregunta en un capítulo
       if (is.na(por_cap[cp])) por_cap[cp] <- 0L
       por_cap[cp] <- por_cap[cp] + 1L
+      usadas <- c(usadas, paste(cp, filas[[i]]$var, sep = "\r"))
       elegidas[[length(elegidas) + 1L]] <- filas[[i]]
     }
     caps <- unique(vapply(filas, `[[`, "", "capitulo"))   # en el orden del plan
     capitulos <- lapply(caps, function(cp) list(titulo = cp, filas = Filter(function(f) identical(f$capitulo, cp), elegidas)))
     capitulos <- Filter(function(c) length(c$filas) > 0L, capitulos)
     if (length(filas)) {
-      aviso(sprintf("la selección automática tomó %d de %d filas con diferencias (tope de %d por capítulo y %d en total). Para editarla, pasa la lámina a selección manual con esas filas.",
-                    length(elegidas), length(filas), max_cap, max_total))
+      aviso(sprintf("el motor propone %d de %d filas con diferencias (hasta %d por capítulo y %d en total), %ssin repetir pregunta. Para cambiarlas, elige «Las escribo yo» en Selección de filas.",
+                    length(elegidas), length(filas), max_cap, max_total,
+                    if (any(vapply(filas, function(f) isTRUE(f$clave), logical(1)))) "con las preguntas clave del estudio primero y " else ""))
     } else {
-      aviso("ninguna fila del plan difiere entre grupos con la regla del informe.")
+      aviso("ninguna pregunta del informe muestra diferencias entre grupos con la regla del informe.")
     }
   } else {
     capitulos <- lapply(.resumen_dif_capitulos_manuales(el$capitulos), function(c) {
-      list(titulo = c$titulo, filas = Filter(Negate(is.null), lapply(c$filas, evaluar)))
+      filas <- .resbase_filtrar_items(c$filas, fuente$base, "Resumen de diferencias")   # graficos_resumen_base.R
+      list(titulo = c$titulo, filas = Filter(Negate(is.null), lapply(filas, evaluar)))
     })
     capitulos <- Filter(function(c) length(c$filas) > 0L, capitulos)
-    if (!length(capitulos)) aviso("la lámina no tiene filas que mostrar; declara `capitulos` o usa `seleccion = \"auto\"`.")
+    if (!length(capitulos)) aviso(.RESUMEN_DIF_SIN_FILAS)
   }
 
   columnas <- do.call(rbind, lapply(cx$cruces, function(cr) {
@@ -446,6 +495,7 @@
 #' @keywords internal
 .el_resumen_diferencias <- function(capitulos = list(), cruces = NULL, seleccion = "manual", rotulos = list(), cortos = list(),
                                     tautologicos = list(), publico = NULL, max_filas = NULL, max_por_capitulo = NULL, fuente = NULL) {
+  capitulos <- .dif_lista_registros(capitulos, c("titulo", "filas"))   # un capítulo suelto es una lista de uno
   el <- list(.element_type = "resumen_diferencias", capitulos = capitulos, cruces = cruces, seleccion = seleccion,
              rotulos = rotulos, cortos = cortos, tautologicos = tautologicos, publico = publico, max_filas = max_filas,
              max_por_capitulo = max_por_capitulo, fuente_ref = fuente, overrides = list())
@@ -456,9 +506,9 @@
 #' Renderer del motor: calcula el modelo y devuelve el ggplot de respaldo con la espec
 #' @keywords internal
 .render_resumen_diferencias <- function(el, preset_args = list()) {
-  fuente <- .dif_fuente_render(el$fuente_ref)
-  sig <- .sig_contexto_render(fuente$data)
   plan_motor <- .dif_plan_render()   # antes de llamar: dentro del modelo, `plan` es una promesa y dynGet la encontraría
+  fuente <- .dif_fuente_render(el, plan_motor)
+  sig <- .sig_contexto_render(fuente$data)
   espec <- .resumen_dif_modelo(el, fuente, sig, plan_motor)
   .resumen_dif_ggplot(espec)
 }

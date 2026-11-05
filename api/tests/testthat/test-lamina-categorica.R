@@ -106,7 +106,10 @@ test_that("la dicotomía se reconoce en las dos especificaciones y sólo cuando 
                                                  etiquetas_grupos = c("Sí", "No"))))
 })
 
-test_that("la lámina de dicotomía tiene la geometría de la 74: barra de 0.7 in partida por la cifra rotulada", {
+# Revisión del PPT v7.23 de CCSS, ítem 11 (Gonzalo: «pensé que el gráfico dicotómico ya había desaparecido; aquí debe haber
+# un gráfico apilado clásico»): la lámina de una Sí/No ya no dibuja la franja partida de la 74 sino la apilada clásica
+# (fila de escala: la pregunta a la izquierda, cifras dentro de los segmentos y la leyenda con su «(n)»).
+test_that("v7.23 ítem 11: la lámina de una Sí/No sale apilada clásica, no como la franja partida de la 74", {
   withr::local_options(prosecnur.casos_junto = list(cuando = "siempre"))   # la dicotomía con «(n)» es el modo «siempre» del ajuste
   e <- preparar_categorica(c("Sí", "No"), c(.98, .02), c("98%", "2%"), c(172, 4))
   doc <- officer::read_pptx(system.file("plantillas", "plantilla_16_9.pptx", package = "prosecnurapp"))
@@ -116,18 +119,14 @@ test_that("la lámina de dicotomía tiene la geometría de la 74: barra de 0.7 i
   out <- tempfile(fileext = ".pptx"); print(o$doc, target = out)
   xml <- xml2::read_xml(unz(out, sprintf("ppt/slides/slide%d.xml", length(o$doc))))
   txt <- function(n) xml2::xml_text(xml2::xml_find_all(xml, sprintf("//p:sp[p:nvSpPr/p:cNvPr[@name='%s']]", n)))
-  expect_identical(txt("dicotomia:cifra"), c("98%", "2%"))
-  expect_identical(txt("dicotomia:rotulo"), c("Sí (172)", "No (4)"))
-  expect_identical(txt("panel:pregunta"), "¿Está trabajando actualmente?")
-  expect_identical(txt("panel:base"), "176 egresados")
-  ext <- xml2::xml_find_all(xml, "//p:sp[p:nvSpPr/p:cNvPr[@name='dicotomia:segmento']]/p:spPr/a:xfrm/a:ext")
-  cx <- as.numeric(xml2::xml_attr(ext, "cx")) / 914400; cy <- as.numeric(xml2::xml_attr(ext, "cy")) / 914400
-  expect_equal(cy, c(0.7, 0.7), tolerance = 1e-3)
-  ancho <- .lam_dicotomia_partida_geo(TRUE)$w   # mismo margen a ambos lados (lamina_dicotomia_margenes.R)
-  expect_equal(max(cx), ancho * .98 + 0.004, tolerance = 1e-3)   # el Sí mide su 98 % rotulado
+  expect_length(txt("dicotomia:cifra"), 0L); expect_length(txt("dicotomia:segmento"), 0L)
+  expect_length(txt("segmento"), 2L)
+  expect_setequal(c(txt("cifra"), txt("cifra_fuera")), c("98%", "2%"))
+  expect_match(paste(txt("premisa"), collapse = " "), "¿Está trabajando actualmente?", fixed = TRUE)
+  expect_length(txt("leyenda:texto"), 2L)
 })
 
-test_that("en la ruta real una categórica de dos opciones que suman 100 sale como dicotomía partida", {
+test_that("en la ruta real una categórica Sí/No sale como apilada clásica (v7.23 ítem 11; antes, dicotomía partida)", {
   skip_if_not_installed("officer"); skip_if_not_installed("rvg")
   # N20: la dicotomía se decide por los rótulos Sí/No (ya no por la estructura); la base llega con sus rótulos, como en el flujo real.
   dat <- data.frame(p1 = rep(c("Sí", "No"), c(172, 4)), stringsAsFactors = FALSE)
@@ -137,10 +136,10 @@ test_that("en la ruta real una categórica de dos opciones que suman 100 sale co
   out <- tempfile(fileext = ".pptx")
   suppressMessages(suppressWarnings(reporte_ppt_plan(data = dat, instrumento = inst, plan = plan, path_ppt = out, mensajes_progreso = FALSE)))
   xml <- xml2::read_xml(unz(out, "ppt/slides/slide1.xml"))
-  expect_false(inherits(xml2::xml_find_first(xml, "//p:grpSp[p:nvGrpSpPr/p:cNvPr[@name='prosecnur:grafico:dicotomia']]"), "xml_missing"))
   txt <- function(n) xml2::xml_text(xml2::xml_find_all(xml, sprintf("//p:sp[p:nvSpPr/p:cNvPr[@name='%s']]", n)))
-  expect_identical(txt("dicotomia:cifra"), c("98%", "2%"))
-  expect_identical(txt("panel:pregunta"), "¿Está trabajando actualmente?")
+  expect_length(txt("dicotomia:cifra"), 0L)
+  expect_length(txt("segmento"), 2L)
+  expect_setequal(c(txt("cifra"), txt("cifra_fuera")), c("98%", "2%"))
 })
 
 test_that("las barras agrupadas van de 0 a 100 % por defecto y con eje libre escalan al máximo (Gonzalo, 2026-10-09)", {
@@ -149,7 +148,12 @@ test_that("las barras agrupadas van de 0 a 100 % por defecto y con eje libre esc
     es_barra <- vapply(lz$formas, function(x) grepl('name="barra"', x, fixed = TRUE), TRUE)
     bb <- do.call(rbind, lz$cajas[es_barra]); bb[, 3] - bb[, 1] }
   e <- preparar_categorica(c("A", "B"), c(0.5, 0.25), c("50%", "25%"))
-  expect_equal(largo(e)[1] / 9.2, 0.5 / 0.56, tolerance = 1e-6)          # sin marca: al máximo con aire (recetario)
+  # Revisión v7.23, ítem 8: la pista hasta el 100% va en toda barra de una serie y lleva la escala a 0-100%; el eje libre
+  # (al máximo con aire, como el recetario) queda para la barra sin pista (`pista = "nunca"`).
+  expect_equal(largo(e), c(4.6, 2.3), tolerance = 1e-6)
+  e$pista <- "nunca"
+  expect_equal(largo(e)[1] / 9.2, 0.5 / 0.56, tolerance = 1e-6)          # sin pista ni marca: al máximo con aire (recetario)
+  e$pista <- NULL
   e$escala_completa <- TRUE
   expect_equal(largo(e), c(4.6, 2.3), tolerance = 1e-6)                 # 50 % es la mitad del ancho de la barra
   d <- data.frame(categoria = c("Sí", "No"), N = c(30, 10), pct = c(0.75, 0.25), stringsAsFactors = FALSE)

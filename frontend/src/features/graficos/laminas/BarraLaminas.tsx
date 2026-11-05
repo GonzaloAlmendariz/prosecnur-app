@@ -46,6 +46,9 @@ type Props = Omit<ExportarInformeMenuProps, "canExportFinal"> & {
 
 const MOD = teclaMod();
 
+/** Qué dice «Aplicado» (H10): el informe está en el proyecto abierto; el archivo se guarda desde el proyecto. */
+const TITULO_APLICADO = "Tus cambios del informe ya están en el proyecto abierto. Para llevarlos al archivo, guarda el proyecto desde su nombre, arriba a la derecha.";
+
 export function BarraLaminas({ canExport, onIrEditorAnterior: _sinUso, ...exportar }: Props) {
   const { state } = useSession();
   const reportScope = useGraficosReportScope(useLocation().search);
@@ -112,8 +115,11 @@ export function BarraLaminas({ canExport, onIrEditorAnterior: _sinUso, ...export
             </button>
           </span>
         ) : (
-          <span className="pulso-f6-barra-ancho">
-            <SaveStatusIndicator state={!hydrated ? "loading" : dirty ? "dirty" : "saved"} savedLabel="Guardado" />
+          // H10: «Guardado» aquí y «sin guardar» en el proyecto se leían como contradicción. Esta marca dice si el
+          // informe ya llegó al proyecto abierto; si el archivo está guardado lo dice sólo el chip del proyecto.
+          <span className="pulso-f6-barra-ancho" title={TITULO_APLICADO}>
+            <SaveStatusIndicator state={!hydrated ? "loading" : dirty ? "dirty" : "saved"} savedLabel="Aplicado" dirtyLabel="Aplicando…" />
+            <span className="pulso-sr-only">{TITULO_APLICADO}</span>
           </span>
         )}
       </div>
