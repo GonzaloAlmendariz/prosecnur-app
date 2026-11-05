@@ -121,7 +121,7 @@
     huella_fuentes = .mini_huella_fuentes(fuentes$data_sources, fuentes$inst_sources),
     huella_estandar = .mini_huella_estandar(),
     version_paquete = .mini_version_paquete(),
-    opciones_motor = .sig_opciones_preview(sid, .mini_opciones_motor()),   # ADR 0128: la regla de diferencias entra a la huella
+    opciones_motor = .graficos_preview_opciones_motor(sid, cfg$plan$preguntas_clave, if (isTRUE(fuentes$consolidado)) "" else .graficos_active_base_name(sid)),
     # Presets con canvas y SIN las guías heredadas: las del visor son una capa aparte (ver cabecera).
     presets_json = .enriquecer_presets(cfg$presets %||% list(), NULL),
     paletas = inc$paletas %||% list(),

@@ -59,7 +59,8 @@
     message(sprintf("[diferencias] base %s: %s con %s, familia de %d comparaciones.", nombre, ctx$regla$prueba,
                     ctx$regla$correccion, as.integer(ctx$m %||% 0L)))
   }
-  .sig_informe_activar(.sig_contexto_liviano(ctx))
+  # H14: las preguntas clave del plan del pedido viajan en el mismo contexto (graficos_preguntas_clave.R).
+  .sig_informe_activar(.preguntas_clave_en_contexto(.sig_contexto_liviano(ctx), significancia$graficos_config$plan$preguntas_clave, nombre))
   previa
 }
 

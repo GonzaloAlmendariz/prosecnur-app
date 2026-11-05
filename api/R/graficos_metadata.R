@@ -1079,7 +1079,7 @@
       list(name = "seleccion", label = "Selección de filas", tipo_input = "choice", grupo = "textos", default = "manual",
            choices = list(list(value = "manual", label = "Las escribo yo"),
                           list(value = "auto", label = "Las propone el motor")),
-           descripcion = "Si las propone el motor, toma las filas con diferencias entre grupos: primero las del 99%, luego las más grandes, hasta 4 por capítulo y 18 en total."),
+           descripcion = "Si las propone el motor, toma las filas con diferencias entre grupos: primero las de las preguntas clave del estudio, luego las del 99% y luego las más grandes, sin repetir pregunta, hasta 4 por capítulo y 18 en total."),
       # Ítem 15 de la revisión del PPT v7.23 («todo configurable en la UI»): la lámina se escribía entera en el plan.
       list(name = "cruces", label = "Cruces", tipo_input = "variables_list", grupo = "datos",
            descripcion = "Los grupos de las columnas. Si lo dejas vacío, van los que la lámina rotula o, si no hay, los de las tarjetas de diferencias del informe."),
@@ -1117,7 +1117,8 @@
            depende = list(arg = "modo", valores = list("resumen", "titulares")),
            choices = list(list(value = "manual", label = "Los escribo yo"),
                           list(value = "auto", label = "Los propone el motor")),
-           descripcion = "Si los propone el motor, toma por capítulo la diferencia más fuerte y la cifra más rotunda sin diferencia."),
+           # H14 (usabilidad del editor): el criterio con palabras de analista. Las preguntas clave son `plan$preguntas_clave`.
+           descripcion = "Los propone el motor: por capítulo, la diferencia más fuerte entre grupos y una cifra de las preguntas clave del estudio, sin repetir pregunta. Si el capítulo no tiene preguntas clave, la cifra que más se aparta del 50%."),
       list(name = "max_por_capitulo", label = "Hallazgos por capítulo", tipo_input = "number", grupo = "textos", default = 3, min = 1, max = 3, step = 1,
            depende = list(arg = "modo", valores = list("resumen")),
            descripcion = "Tope por capítulo. Si los propone el motor, son dos."),
