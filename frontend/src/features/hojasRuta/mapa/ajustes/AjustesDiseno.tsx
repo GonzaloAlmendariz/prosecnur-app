@@ -59,7 +59,7 @@ export function AjustesDiseno({ abierto, grupo, config, fase, vista, onGrupo, on
       className="hr-ajustes"
       bodyClassName="hr-ajustes-medio"
       closeLabel="Cerrar los ajustes"
-      footerHint={aviso ? <span className="hr-ajustes-aviso">{aviso}</span> : undefined}
+      footerHint={aviso ? <span className="hr-ajustes-aviso">{aviso}</span> : null}
       footerStatus={
         <dl className="hr-ajustes-vista" aria-label="Vista previa del diseño" data-desfasada={desfasada || undefined} title={desfasada ? "Hay cambios sin recalcular" : undefined}>
           <div><dt>Encuestas</dt><dd>{n == null ? "—" : formatoConteo(n)}</dd></div>
