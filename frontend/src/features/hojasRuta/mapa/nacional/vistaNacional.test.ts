@@ -54,6 +54,10 @@ describe("vista nacional del mapa", () => {
     const sel = cifrasPorCiudad("seleccion", ciudades, { ...datos, titulares: [{ ubigeo: uLima }, { ubigeo: uLima }] });
     expect(sel.find((c) => c.codigo === "lima")?.cifra).toBe("2 UMP");
     expect(sel.find((c) => c.codigo === otra.codigo)?.cifra).toBe("0 UMP");
+    // Una ciudad en cero o sin la cifra va en segundo plano; la que tiene UMP, no.
+    expect(sel.find((c) => c.codigo === otra.codigo)?.vacia).toBe(true);
+    expect(sel.find((c) => c.codigo === "lima")?.vacia).toBe(false);
+    expect(sinTamano[0].vacia).toBe(true);
     expect(cifrasPorCiudad("manzanas", ciudades, datos)[0].detalle).toBe("sin sorteo");
   });
 });

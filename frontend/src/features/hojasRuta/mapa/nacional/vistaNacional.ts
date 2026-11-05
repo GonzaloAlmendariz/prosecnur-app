@@ -67,7 +67,8 @@ export function cajaNacional(atlas: readonly CiudadAtlas[], departamentos: reado
   return unirCajas(cajas);
 }
 
-export type CifraCiudad = { codigo: string; nombre: string; cifra: string; detalle: string };
+/** `vacia`: la ciudad todavía no tiene la cifra de la sección (cero o sin calcular); su marca va en segundo plano. */
+export type CifraCiudad = { codigo: string; nombre: string; cifra: string; detalle: string; vacia: boolean };
 
 const enMiles = (n: number) => (n >= 1e6 ? `${formatoDecimal(n / 1e6, 1)} M` : n >= 1e3 ? `${formatoConteo(Math.round(n / 1000))} mil` : formatoConteo(n));
 const plural = (n: number, uno: string, varios: string) => `${formatoConteo(n)} ${n === 1 ? uno : varios}`;
@@ -98,6 +99,7 @@ export function cifrasPorCiudad(
     const tieneAlguno = (f: (u: string) => number | undefined) => propios.some((u) => typeof f(u) === "number");
     let cifra = distritos;
     let detalle = "";
+    let vacia = false;
     if (seccion === "poblacion") {
       const objetivo = datos.objetivoPorUbigeo ?? {};
       if (tieneAlguno((u) => objetivo[u])) {
@@ -111,16 +113,26 @@ export function cifrasPorCiudad(
     } else if (seccion === "muestra") {
       const m = datos.entrevistasPorUbigeo;
       if (m && tieneAlguno((u) => m.get(u))) {
-        cifra = plural(suma((u) => m.get(u)), "entrevista", "entrevistas");
+        const n = suma((u) => m.get(u));
+        cifra = plural(n, "entrevista", "entrevistas");
         detalle = distritos;
-      } else detalle = "sin tamaño calculado";
+        vacia = n === 0;
+      } else {
+        detalle = "sin tamaño calculado";
+        vacia = true;
+      }
     } else {
       const ts = datos.titulares ?? [];
       if (ts.length) {
-        cifra = plural(ts.filter((b) => set.has(b.ubigeo)).length, "UMP", "UMP");
+        const n = ts.filter((b) => set.has(b.ubigeo)).length;
+        cifra = plural(n, "UMP", "UMP");
         detalle = distritos;
-      } else detalle = "sin sorteo";
+        vacia = n === 0;
+      } else {
+        detalle = "sin sorteo";
+        vacia = true;
+      }
     }
-    return { codigo: c.codigo, nombre: c.nombre, cifra, detalle };
+    return { codigo: c.codigo, nombre: c.nombre, cifra, detalle, vacia };
   });
 }
