@@ -4,6 +4,7 @@
 
 test_that("la caja de cada cifra deja su ancho de tinta libre de los márgenes internos", {
   e <- preparar_categorica(c("Callao", "La Perla", "Bellavista"), c(.60, .15, .10), c("60% (12)", "15% (3)", "10% (2)"))
+  e$pista <- "nunca"   # v7.23 ítem 8: la pista fija la escala en 0 a 100 %; esta prueba mide la caja con la escala al máximo
   lz <- .lam_lienzo()
   .lam_barras_h(lz, e, 0.5, 1, 6, wlab = 2, g = 0.3, fila = 0.6)
   nombres <- vapply(lz$formas, function(x) regmatches(x, regexpr('name="[^"]*"', x)), "")
