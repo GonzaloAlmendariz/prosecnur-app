@@ -460,6 +460,8 @@
 #' Respaldo en ggplot (Word y `motor_nativo = FALSE`): la misma tabla con sus celdas, en un gráfico de mosaicos
 #' @keywords internal
 .resumen_dif_ggplot <- function(espec) {
+  w <- .resumen_dif_word_ggplot(espec)   # la tabla de la lámina a escala de página (reporte_word_resumen_diferencias.R)
+  if (!is.null(w)) return(w)
   filas <- unlist(lapply(espec$capitulos, function(c) lapply(c$filas, function(f) f$rotulo)))
   cols <- espec$columnas
   df <- do.call(rbind, lapply(seq_along(espec$capitulos), function(i) {
