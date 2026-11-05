@@ -313,7 +313,9 @@ export default function HojasRutaMapaPage() {
   // pedirla en cada tecla. Una corrida legacy ve lo que cambiaría al adoptarlo.
   const [vistaMarco, setVistaMarco] = useState<HojasRutaMarcoElegiblePreview | null>(null);
   const [cargandoMarco, setCargandoMarco] = useState(false);
-  const firmaMarco = configSorteo && enManzanas && configSorteo.territorios.length ? JSON.stringify([configSorteo.territorios, configSorteo.marco_elegible ?? null, configSorteo.replacements_per_titular, configSorteo.entrevistas_por_manzana]) : "";
+  // El grupo «Marco elegible» de Ajustes del diseño también necesita la vista previa, abierto desde cualquier sección.
+  const marcoEnAjustes = /(?:^|[?&])panel=ajustes(?:&|$)/.test(location.search) && /(?:^|[?&])foco=marco(?:&|$)/.test(location.search);
+  const firmaMarco = configSorteo && (enManzanas || marcoEnAjustes) && configSorteo.territorios.length ? JSON.stringify([configSorteo.territorios, configSorteo.marco_elegible ?? null, configSorteo.replacements_per_titular, configSorteo.entrevistas_por_manzana]) : "";
   useEffect(() => {
     if (!firmaMarco || !configSorteo) return undefined;
     let vivo = true;
