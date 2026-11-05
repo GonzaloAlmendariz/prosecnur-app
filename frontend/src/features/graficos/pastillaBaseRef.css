@@ -1,0 +1,40 @@
+/* Pastilla de base del selector de variables (PastillaBaseRef.tsx). La neutra reusa
+   .pulso-gv2-variable-trigger-source; aquí sólo los tonos de aviso. El aviso de otra base
+   es el Alert del kit con un PulsoButton. */
+
+.pulso-gv2-variable-trigger-source.pulso-base-ref-pastilla.is-otra-base {
+  border-color: var(--pulso-warn-border);
+  background: var(--pulso-warn-bg);
+  color: var(--pulso-warn-fg);
+}
+
+.pulso-gv2-variable-trigger-source.pulso-base-ref-pastilla.is-ninguna {
+  max-width: 150px;
+  border-color: var(--pulso-danger-border);
+  background: var(--pulso-danger-bg);
+  color: var(--pulso-danger-fg);
+}
+
+.pulso-base-ref-aviso {
+  margin-top: 6px;
+}
+
+.pulso-base-ref-aviso .pulso-alert-content {
+  min-width: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+}
+
+.pulso-base-ref-texto {
+  min-width: 0;
+  flex: 1 1 180px;
+  overflow-wrap: anywhere;
+}
+
+.pulso-base-ref-acciones {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
