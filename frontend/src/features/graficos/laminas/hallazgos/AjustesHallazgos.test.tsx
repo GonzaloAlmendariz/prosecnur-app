@@ -95,6 +95,17 @@ describe("«Hallazgos clave» en el inspector", () => {
     expect(pintar({ modo: "titulares", capitulos: real })).toContain('placeholder="Titular del capítulo"');
   });
 
+  it("en el resumen, el nombre de cada cruce y los rótulos cortos de sus grupos se editan (U7)", () => {
+    const html = pintar({ modo: "resumen", capitulos: real, cruces: ["A11_recod"], rotulos: { A11_recod: "Colegio" },
+      cortos: { "Economía y Finanzas": "Econ. y Fin." } });
+    expect(html).toContain('aria-label="Nombre del cruce Tipo de colegio en las tarjetas"');
+    expect(html).toContain('value="Colegio"');
+    expect(html).toContain('data-qa="tarjetas-cortos"');
+    expect(html).toContain('value="Econ. y Fin."');
+    // En los modos de cifras el registro no ofrece los cruces.
+    expect(pintar({ cifras: [{ var: "q1" }] })).not.toContain('data-qa="cruces-lamina"');
+  });
+
   it("lo que el editor no maneja se lee; lo incompleto avisa", () => {
     const html = pintar({ modo: "resumen", capitulos: [{ titulo: "Trabajo", cifras: [
       { var: "P5", sumar: ["Sí", "A veces"], texto: "trabaja", comparacion: "ninguna" },

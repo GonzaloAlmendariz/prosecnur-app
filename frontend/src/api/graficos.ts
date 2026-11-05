@@ -257,6 +257,9 @@ export type ArgTipoInput =
   // hallazgos_capitulos: capítulos { titulo, titular?, cifras: [{ var, fila?, texto, comparacion, … }] } del resumen
   // ejecutivo de «Hallazgos clave» (p_slide_hallazgos). Lo que el editor no maneja (`sumar`, `filtros`…) se conserva.
   | "hallazgos_capitulos"
+  // resumen_capitulos: capítulos { titulo, filas: [{ var, fila?, rotulo, … }] } de «Resumen de diferencias»
+  // (p_slide_resumen_diferencias). Lo que el editor no maneja (`top2box`, `base_rotulo`…) se conserva.
+  | "resumen_capitulos"
   | "icono"
   | "overrides"
   | "filtros"

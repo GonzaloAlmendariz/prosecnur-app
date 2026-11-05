@@ -33,6 +33,7 @@
 # "overrides"        → editor especial de overrides (delta vs preset tipo)
 # "filtros"          → editor de filtros por variable (avanzado)
 # "base_config"      → editor de la base automática/manual (avanzado)
+# "resumen_capitulos" → capítulos {titulo, filas: [{var, fila, rotulo}]} del resumen de diferencias
 # "hallazgos_capitulos" → capítulos {titulo, titular, cifras: [{var, fila, texto, comparacion}]} del resumen ejecutivo
 # "partes"           → filas {rotulo, codigos} de la pregunta elegida (líneas por nivel); conserva `y` y `color`
 # "meta"             → objeto libre; casi nunca se expone en UI
@@ -1078,7 +1079,20 @@
       list(name = "seleccion", label = "Selección de filas", tipo_input = "choice", grupo = "textos", default = "manual",
            choices = list(list(value = "manual", label = "Las filas escritas en el plan"),
                           list(value = "auto", label = "Las filas del plan con diferencias")),
-           descripcion = "Con «auto», el motor propone las filas con diferencias: primero las del 99%, luego las más grandes, hasta 4 por capítulo y 18 en total.")
+           descripcion = "Con «auto», el motor propone las filas con diferencias: primero las del 99%, luego las más grandes, hasta 4 por capítulo y 18 en total."),
+      # Ítem 15 de la revisión del PPT v7.23 («todo configurable en la UI»): la lámina se escribía entera en el plan.
+      list(name = "cruces", label = "Cruces", tipo_input = "variables_list", grupo = "datos",
+           descripcion = "Los grupos de las columnas. Vacío, los que la lámina rotula; si no, los de las tarjetas del plan."),
+      list(name = "publico", label = "Cómo se nombran los casos", tipo_input = "string", grupo = "textos",
+           descripcion = "Plural de la unidad («estudiantes»). Vacío, «personas encuestadas»."),
+      list(name = "max_filas", label = "Filas en total", tipo_input = "number", grupo = "textos", default = 18, min = 4, max = 30, step = 1,
+           depende = list(arg = "seleccion", valores = list("auto")),
+           descripcion = "Tope de filas que propone el motor. Con más de las que caben, la tabla sigue en otra lámina sin partir un capítulo."),
+      list(name = "max_por_capitulo", label = "Filas por capítulo", tipo_input = "number", grupo = "textos", default = 4, min = 1, max = 8, step = 1,
+           depende = list(arg = "seleccion", valores = list("auto")),
+           descripcion = "Tope de filas por capítulo que propone el motor."),
+      list(name = "capitulos", label = "Capítulos y filas", tipo_input = "resumen_capitulos", grupo = "datos",
+           descripcion = "Por capítulo, sus filas: la pregunta, la respuesta que se cuenta y el rótulo de la fila.")
     ))
   ),
 

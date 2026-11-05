@@ -55,8 +55,17 @@ export function OpcionesTarjetas({ valor, ranura, scope, baseActiva, onCambio }:
   );
 }
 
-/** Los cruces de las tarjetas, cada uno con el nombre que lleva en ellas; vacío, los del estudio. */
-function CrucesTarjetas({ valor, cruces, onCambio }: { valor: ValorTarjetas; cruces: string[]; onCambio: (c: CambiosOpcion) => void }) {
+/**
+ * Los cruces de las tarjetas, cada uno con el nombre que lleva en ellas; vacío, los del estudio. La lámina de resumen y
+ * la de hallazgos lo usan con sus `cruces` y `rotulos` (CrucesLamina), con su propia ayuda.
+ */
+export function CrucesTarjetas({ valor, cruces, onCambio, ayudaVacia = "Sin elegir, los cruces del estudio.", ayudaLlena = "En este orden. El nombre vacío usa el de la pregunta." }: {
+  valor: ValorTarjetas;
+  cruces: string[];
+  onCambio: (c: CambiosOpcion) => void;
+  ayudaVacia?: string;
+  ayudaLlena?: string;
+}) {
   const id = useId();
   const { variables } = useVariables();
   const etiquetaDe = (ref: string) => {
@@ -99,7 +108,7 @@ function CrucesTarjetas({ valor, cruces, onCambio }: { valor: ValorTarjetas; cru
         </div>
       </div>
       <span id={`${id}-ayuda`} className="pulso-f6-dato-ayuda">
-        {cruces.length ? "En este orden. El nombre vacío usa el de la pregunta." : "Sin elegir, los cruces del estudio."}
+        {cruces.length ? ayudaLlena : ayudaVacia}
       </span>
     </div>
   );

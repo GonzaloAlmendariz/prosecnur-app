@@ -144,7 +144,9 @@ test_that("metadata de graficadores expone controles claros y sin duplicados", {
     #   `partes`           — filas rótulo + respuestas de la línea por nivel (antes `meta`, sin control)
     "iconos_list", "colores_list", "orden_categorias", "categorias_escala", "partes",
     #   `hallazgos_capitulos` — capítulos y hallazgos del resumen ejecutivo (ítem 2 de la v7.11 RV)
-    "hallazgos_capitulos"
+    "hallazgos_capitulos",
+    #   `resumen_capitulos`   — capítulos y filas del resumen de diferencias (ítem 15 de la v7.23 RV)
+    "resumen_capitulos"
   )
   ui_grupo_soportado <- c(
     "datos", "lectura", "valores", "leyenda", "espacio", "tabla",
