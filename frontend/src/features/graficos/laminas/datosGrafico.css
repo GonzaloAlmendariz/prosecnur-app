@@ -378,6 +378,12 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* «Espacio para las etiquetas» (U-c): vacío dice «Automático», que no cabe en los 64px de una cifra. */
+.pulso-f6-dato.is-automatico .pulso-f6-numero-fila .pulso-f6-dato-numero {
+  width: 13ch;
+  min-width: 13ch;
+}
+
 .pulso-f6-numero-paso:disabled {
   opacity: 0.4;
   cursor: not-allowed;

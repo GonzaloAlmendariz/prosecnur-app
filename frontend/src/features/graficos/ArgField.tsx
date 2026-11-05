@@ -171,7 +171,13 @@ function hasOwnArgValue(meta: ArgMetadata, value: ArgValue): boolean {
   return true;
 }
 
+// U-c (checklist de mandos del mazo, 2026-11-05): sin default en el registro, vacío es automático en la lámina nativa. El
+// valor del preset (0.45 en `barras_agrupadas`) no es lo que dibuja, así que no se muestra como heredado.
+const VACIO_ES_AUTOMATICO: ReadonlySet<string> = new Set(["canvas_w_etiquetas"]);
+const vacioEsAutomatico = (meta: ArgMetadata) => meta.default == null && VACIO_ES_AUTOMATICO.has(meta.name);
+
 export function resolveDisplayFallback(meta: ArgMetadata, inheritedValue?: ArgValue): ArgValue {
+  if (vacioEsAutomatico(meta)) return undefined;
   if (inheritedValue !== undefined && inheritedValue !== null) return inheritedValue;
   return meta.default;
 }
@@ -1197,6 +1203,7 @@ function NumberControl({
             type="text"
             inputMode="decimal"
             value={draft}
+            placeholder={vacioEsAutomatico(meta) ? "Automático" : undefined}
             onChange={(e) => {
               const raw = e.target.value;
               setDraft(raw);

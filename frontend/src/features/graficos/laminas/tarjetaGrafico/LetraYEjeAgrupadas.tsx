@@ -47,10 +47,10 @@ export function LetraYEjeAgrupadas({ graficador, args, onCambio }: Props) {
         <NumeroAcotado id={`${id}-cifra`} rotulo="Letra de las cifras" arg={letra("size_texto_barras", "Letra de las cifras", actual.rotuloPt ?? 12)}
           valor={actual.cifraPt} placeholder="Auto" onCambio={(v) => cambiar({ cifraPt: v })} />
       </div>
-      <div className="pulso-f6-dato" data-qa="espacio-etiquetas">
+      <div className="pulso-f6-dato is-automatico" data-qa="espacio-etiquetas">
         <label className="pulso-f6-dato-rotulo" htmlFor={`${id}-etiquetas`}>Espacio para las etiquetas (%)</label>
         <NumeroAcotado id={`${id}-etiquetas`} rotulo="Espacio para las etiquetas" arg={ESPACIO_ETIQUETAS} describe={`${id}-etiquetas-ayuda`}
-          valor={actual.etiquetasPct} placeholder="Auto" onCambio={(v) => cambiar({ etiquetasPct: v })} />
+          valor={actual.etiquetasPct} placeholder="Automático" onCambio={(v) => cambiar({ etiquetasPct: v })} />
         <span id={`${id}-etiquetas-ayuda`} className="pulso-f6-dato-ayuda">
           La columna con el nombre de cada barra, en % del ancho de la lámina. Vacío, se ajusta a los nombres.
         </span>
