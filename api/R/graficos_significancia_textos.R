@@ -89,7 +89,7 @@
 #' Línea de contexto del *top two box*
 #' @keywords internal
 .sig_texto_top_two_box <- function(rotulo, opciones) {
-  sprintf("%s: %s; la marca la compara. «No sé» se muestra y cuenta en la base, pero no se compara.",
+  sprintf("%s: %s. La marca compara ese indicador. «No sé» se muestra y cuenta en la base, pero no se compara.",
           rotulo, paste(opciones, collapse = " + "))
 }
 
@@ -169,7 +169,7 @@
     if (!identical(regla$fragiles, "ocultar")) sprintf(paste0(
       "△A, con contorno punteado, indica una diferencia frágil: cumple las dos condiciones por un margen estrecho ",
       "(p ajustado entre 0.01 y %s) y se lee con prudencia."), .sig_num(regla$alfa %||% 0.05)),
-    sprintf("Los grupos con %s no se comparan; la nota del gráfico los nombra.", base_min),
+    sprintf("Los grupos con %s no se comparan y la nota del gráfico los nombra.", base_min),
     sprintf("Cómo se decide: las diferencias se evalúan con %s, y con %s (p < %s).", prueba, correccion,
             .sig_num(regla$alfa %||% 0.05))
   )
@@ -200,4 +200,13 @@
   slide$payload$texto <- .sig_texto_como_leer(regla)
   slide$payload$bullets <- NULL
   slide
+}
+
+#' Enumeración en prosa: «a», «a y b», «a, b y c» (el registro de la casa no usa punto y coma en la lámina)
+#' @keywords internal
+.sig_lista_y <- function(x) {
+  x <- as.character(x)
+  n <- length(x)
+  if (n <= 1L) return(paste(x, collapse = ""))
+  paste(paste(x[-n], collapse = ", "), x[n], sep = " y ")
 }
