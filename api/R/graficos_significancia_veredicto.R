@@ -173,8 +173,10 @@
 #'
 #' @param familia Tabla de `.sig_bh_tabla()` del estudio. Con `bh_informe` y sin familia, la familia es la propia
 #'   evaluación y se informa en `familia_local`.
+#' @param exigir_familia Con una familia del estudio, un p que no está en ella no se ajusta con el q de un vecino: queda
+#'   `fuera_de_familia` y no se marca (ADR 0128 §3, paridad lámina–familia). `ev$fuera_de_familia` cuenta los pares.
 #' @keywords internal
-.sig_veredictos <- function(ev, regla, familia = NULL) {
+.sig_veredictos <- function(ev, regla, familia = NULL, exigir_familia = FALSE) {
   pares <- ev$pares
   if (is.null(pares) || !nrow(pares)) {
     ev$marcas <- NULL
@@ -185,6 +187,7 @@
   umbral <- (regla$umbral_puntos %||% 0) / 100
   pares$p_ajustado <- NA_real_
   ok <- pares$elegible
+  fuera <- rep(FALSE, nrow(pares))
   ev$familia_local <- FALSE
   if (identical(regla$correccion, "bh_informe")) {
     tabla <- familia
@@ -193,6 +196,10 @@
       ev$familia_local <- TRUE
     }
     pares$p_ajustado[ok] <- .sig_bh_q(pares$p[ok], tabla)
+    if (isTRUE(exigir_familia) && !isTRUE(ev$familia_local)) {
+      fuera <- ok & !.sig_bh_en_familia(pares$p, tabla)
+      pares$p_ajustado[fuera] <- NA_real_
+    }
   } else {
     for (f in unique(pares$fila[ok])) {
       i <- which(ok & pares$fila == f)
@@ -205,6 +212,8 @@
                      ifelse(sig & grande & pares$p_ajustado >= 0.01, "fragil",
                      ifelse(sig & grande, "marcada",
                      ifelse(sig, "bajo_umbral", "no_significativa"))))
+  pares$veredicto[fuera] <- "fuera_de_familia"
+  ev$fuera_de_familia <- sum(fuera)
   et <- ev$etiquetas_grupos
   nombre <- function(x) ifelse(x == ".resto", "el resto", unname(et[x]))
   pares$redaccion <- ifelse(pares$veredicto %in% c("marcada", "fragil"),

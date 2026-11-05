@@ -185,3 +185,12 @@ Códigos nuevos: `E_SIG_SIN_CONGLOMERADO` (422: se pidió Rao-Scott y la columna
 - La serie por niveles usa la regla. La armonizada aún no: con el estudio en diseño se abstiene y lo dice.
 - La lámina «Cómo leer las diferencias» se escribe desde la regla en cada exportación; se reconoce por su título.
 
+- Multiapiladas por cruce (dictamen del revisor, 2026-11-05). El indicador lo decide un solo resolutor, compartido por
+  la lámina y la familia (`api/R/graficos_significancia_indicador.R`). Supuestos: el Top Two Box se prueba sólo si el
+  gráfico declara `top2box_labels`, nunca por el preset ni por posición. Sin declaración, una escala no se prueba y el
+  editor recibe un aviso para declarar sus categorías. Una lista sin orden sigue probando sus segmentos. La visibilidad
+  de la columna no cambia qué se prueba sino dónde se informa: sin columna, la lámina no lleva marcas ni clave y el
+  hallazgo va como aviso al editor. Si una categoría del Top Two Box no cuadra con el gráfico, la lámina se abstiene.
+  Un p que no pertenece a la familia no se ajusta con el q de un vecino y no se marca. Probado en
+  `test-graficos-significancia-multiapiladas-t2b.R`. El mazo CCSS v7.27 sale idéntico (familia de 4.668 comparaciones
+  con los mismos p).

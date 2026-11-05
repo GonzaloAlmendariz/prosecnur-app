@@ -85,9 +85,12 @@
     return(base)
   }
   clave <- paste(l$var, l$cruce, paste(l$top2box, collapse = "+"), sep = "\r")
-  ev <- ctx$familia_completa$evaluaciones[[clave]]
+  # Una multiapilada sin T2B declarado comparte clave con la comparación de Analítica: no se reusa la evaluación
+  # cacheada, porque la lámina decide su indicador con el mismo resolutor que el render (ADR 0128 §4.4).
+  ev <- if (isTRUE(l$escala) && !length(l$top2box)) NULL else ctx$familia_completa$evaluaciones[[clave]]
   res <- tryCatch({
-    if (is.null(ev)) ev <- .sig_evaluar_pregunta(fuente, l$var, l$cruce, ctx$regla, top2box = l$top2box)
+    if (is.null(ev)) ev <- .sig_evaluar_pregunta(fuente, l$var, l$cruce, ctx$regla, top2box = l$top2box,
+                                                 lamina_escala = isTRUE(l$escala))
     if (is.null(ev)) NULL else .sig_veredictos(ev, ctx$regla, ctx$familia)
   }, error = function(e) e)
   if (inherits(res, "error")) {
@@ -96,6 +99,12 @@
     base$estado <- "error"
     base$error <- list(code = "E_SIG_PRUEBA_FALLO", message = "La prueba no pudo ejecutarse en esta lámina.",
                        error_id = error_id)
+    base$revisar <- list("sin_prueba")
+    return(base)
+  }
+  if (isTRUE(res$sin_declarar)) {
+    base$estado <- "abstencion"
+    base$motivo <- "Es una escala sin Top Two Box declarado. Elige sus categorías en la pestaña Gráfico de la lámina."
     base$revisar <- list("sin_prueba")
     return(base)
   }
