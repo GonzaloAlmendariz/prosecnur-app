@@ -12,6 +12,7 @@ import { normalizeEstiloCliente, type EstiloCliente } from "../../api/graficosEs
 import { conVinculo, vinculosDecisiones } from "./paletasResolver";
 import { sinEstiloDePerfil } from "./estiloInforme/quitarLineaVisual";
 import { conAjusteEnElTipo } from "./laminas/modeloAlcance";
+import { conEspejoEnOverrides } from "./laminas/mandosPorOverrides";
 
 // Store del plan de gráficos. Sigue el mismo patrón que el store de
 // Analítica: hidrata desde backend al montar, marca `dirty` con cada
@@ -236,6 +237,8 @@ type PlanStore = {
   resetPreset: (tipo: string) => void;
   select: (id: string | null) => void;
   loadPlan: (plan: PlanJson) => void;
+  /** U3: rótulos cortos del estudio (`plan.rotulos_cortos`); un mapa vacío quita la clave. Un paso deshacible. */
+  setRotulosCortos: (mapa: Record<string, string>) => void;
   reset: () => void;
 
   // --- Setters de configuración global (Bloque 2) ---
@@ -709,7 +712,8 @@ export const usePlanStore = create<PlanStore>((set) => ({
           if (!current) return s;
           const merged: GraficadorRef = {
             graficador: current.graficador,
-            args: mergeSlotArgsPatch(current.args, patch),
+            // U6: los mandos que el motor lee sólo de `overrides` van en espejo (laminas/mandosPorOverrides.ts).
+            args: mergeSlotArgsPatch(current.args, conEspejoEnOverrides(current.args, patch)),
           };
           return { ...s, payload: { ...s.payload, [slot]: merged } };
         }),
@@ -779,6 +783,12 @@ export const usePlanStore = create<PlanStore>((set) => ({
   loadPlan: (plan) => set((state) => dirty(state, {
     plan, selectedSlideId: plan.slides[0]?.id ?? null,
   })),
+
+  setRotulosCortos: (mapa) => set((state) => {
+    const plan: PlanJson = { ...state.plan, rotulos_cortos: { ...mapa } };
+    if (!Object.keys(mapa).length) delete plan.rotulos_cortos;
+    return dirty(state, { plan });
+  }),
 
   reset: () => set((state) => dirty(state, {
     plan: { slides: [] }, selectedSlideId: null, presets: {}, wPresets: createDefaultWordPresets(),

@@ -182,6 +182,29 @@ test_that("todo arg del registro de graficadores puede llegar al motor", {
   expect_gt(revisados, 13L)
 })
 
+# U6 del checklist de mandos del mazo (2026-11-05): los tres mandos `via_overrides` que la tarjeta del gráfico ofrece
+# llegan desde el slot hasta el elemento que arma el plan y su graficador los recibe como formal.
+test_that("pista, un color por opción y marca de la mediana llegan del slot al graficador", {
+  ns <- asNamespace("prosecnurapp")
+  casos <- list(
+    list(p = "p_barras_agrupadas", g = "graficar_barras_agrupadas", arg = "pista_barras", valor = "nunca"),
+    list(p = "p_barras_agrupadas", g = "graficar_barras_agrupadas", arg = "colorear_por_opcion", valor = TRUE),
+    list(p = "p_barras_categoricas", g = "graficar_barras_categoricas", arg = "pista_barras", valor = "siempre"),
+    list(p = "p_histograma", g = "graficar_histograma", arg = "marca_mediana", valor = "triangulo")
+  )
+  for (k in casos) {
+    slot <- list(var = "p1")
+    slot[[k$arg]] <- k$valor   # así lo guarda la tarjeta: suelto en args (y en espejo en overrides)
+    plan <- list(slides = list(list(id = "s", tipo = "p_slide_1_grafico",
+                                    payload = list(titulo = "T", grafico = list(graficador = k$p, args = slot)))))
+    args <- .normalize_plan(plan)$slides[[1]]$payload$grafico$args
+    f <- get(k$p, envir = ns)
+    el <- do.call(f, .clean_rebuild_args(args, f))
+    expect_identical(el$overrides[[k$arg]], k$valor, info = paste(k$p, k$arg))
+    expect_true(k$arg %in% names(formals(get(k$g, envir = ns))), info = paste(k$g, k$arg))
+  }
+})
+
 test_that("los args de significancia se borran antes de llamar al graficador", {
   # No basta con que el plan los mencione: los CONSUME y los quita de la lista.
   # Si algún día dejaran de borrarse llegarían al graficador, que no los acepta,

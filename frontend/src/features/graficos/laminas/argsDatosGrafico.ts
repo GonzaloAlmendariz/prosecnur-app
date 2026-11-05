@@ -198,6 +198,21 @@ const LISTA_BLANCA: Record<string, Entrada> = {
     rotulo: "Dividir por", ayuda: "Sin dividir, el gráfico muestra una sola serie.", excepto: ["p_barras_multiapiladas", "p_dumbbell"],
     textosEn: { p_lineas_nivel: () => ({ rotulo: "Niveles del eje", ayuda: "Un punto por nivel, de menor a mayor." }) },
   },
+  // U5 del checklist del mazo (2026-11-05): los textos y los niveles de la línea por nivel se escribían a mano en el plan.
+  // Formales de p_lineas_nivel (graficos_lineas_nivel.R) y declarados en el registro (graficos_metadata.R). El texto vacío
+  // dice lo que el motor escribe sin valor: «Total», «casos», «nivel» y, sobre las líneas, nada.
+  grupos: { rotulo: "Niveles que se muestran", soloEn: ["p_lineas_nivel"] },
+  titulo_seccion: {
+    rotulo: "Título de las líneas", control: "texto", soloEn: ["p_lineas_nivel"], placeholder: "Sin título", ayuda: "P. ej. «Según nivel curricular».",
+  },
+  publico: {
+    rotulo: "Cómo se nombran los casos", control: "texto", soloEn: ["p_lineas_nivel"], placeholder: "casos",
+    ayuda: "Va bajo cada nivel con su número: «estudiantes» escribe «119 estudiantes».",
+  },
+  nombre_nivel: {
+    rotulo: "Qué crece", control: "texto", soloEn: ["p_lineas_nivel"], placeholder: "nivel",
+    ayuda: "La palabra del aviso de cada línea: «Crece con el nivel».",
+  },
   // Gonzalo (revisión del PPT v7.11, lámina 45): la nota en gris bajo la línea por nivel se escribía a mano en el plan.
   lectura: {
     rotulo: "Lectura", control: "texto", soloEn: ["p_lineas_nivel"],
@@ -207,6 +222,10 @@ const LISTA_BLANCA: Record<string, Entrada> = {
   // Gonzalo (2026-11-04): las líneas y las partes de la franja del total se escribían a mano en el plan. Filas
   // { rotulo, codigos } sobre las respuestas de la pregunta (PartesLineas.tsx); `y` y `color` se conservan sin editarse.
   series: { rotulo: "Líneas", ayuda: "Hasta tres.", soloEn: ["p_lineas_nivel"] },
+  total_arriba: { rotulo: "Total arriba", ayuda: "La franja con el total de la pregunta.", soloEn: ["p_lineas_nivel"] },
+  rotulo_total: {
+    rotulo: "Título del total", control: "texto", soloEn: ["p_lineas_nivel"], siActivo: "total_arriba", placeholder: "Total",
+  },
   segmentos_total: {
     rotulo: "Partes del total", ayuda: "Vacío, la franja se arma sola.", soloEn: ["p_lineas_nivel"], siActivo: "total_arriba",
   },
@@ -356,6 +375,16 @@ const LISTA_BLANCA: Record<string, Entrada> = {
   },
   // I-c: en la serie temporal los decimales son decisión del informe (Estilo del informe › Cálculos); sólo el radar.
   valores_decimales: { rotulo: "Decimales", soloEn: ["p_radar"] },
+  // U6 (checklist de mandos del mazo, 2026-11-05): `via_overrides` en el registro. La tarjeta los escribe en espejo en
+  // `args` y `overrides` (mandosPorOverrides.ts, desde `updateSlotArgs`); el motor los lee de `overrides`.
+  pista_barras: {
+    rotulo: "Pista gris hasta el 100%", ayuda: "Automática: en toda barra de una serie.",
+    soloEn: ["p_barras_agrupadas", "p_barras_categoricas"],
+  },
+  colorear_por_opcion: {
+    rotulo: "Un color por opción", ayuda: "Con una sola serie, cada barra con el color de su respuesta.", soloEn: ["p_barras_agrupadas"],
+  },
+  marca_mediana: { rotulo: "Marca de la mediana", soloEn: ["p_histograma"] },
 };
 
 /**

@@ -573,3 +573,22 @@
     }
   }
 }
+
+/* ---------- Rótulos cortos de las tarjetas (CortosGrupos.tsx) ---------- */
+
+/* Grupo → corto en una fila; el aviso de una fila incompleta ocupa la fila entera debajo. */
+.pulso-tarjetas-corto {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--pulso-space-1);
+  min-width: 0;
+}
+
+.pulso-tarjetas-corto-flecha {
+  color: var(--pulso-text-muted);
+}
+
+.pulso-tarjetas-corto-aviso {
+  grid-column: 1 / -1;
+}
