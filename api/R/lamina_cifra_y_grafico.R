@@ -132,7 +132,8 @@
     .lam_txt(lz, "Respuesta múltiple. Los porcentajes suman más de 100%.", xr - 0.1, yg, xr1 - xr + 0.2, 0.3, 11, .std_color("texto_suave"), nombre = "cifra:grafico:aclaracion")
     yg <- yg + 0.32
   }
-  .lam_barras_en_linea(lz, espec_g, enl, t_g$rotulos_cruce %||% character(0), t_g$opcion$cortos %||% character(0), xr, xr1, yg + 0.1, y_ley - 0.15)
+  .lam_barras_en_linea(lz, espec_g, enl, t_g$rotulos_cruce %||% character(0), t_g$opcion$cortos %||% character(0), xr, xr1, yg + 0.1, y_ley - 0.15,
+                       titulo = tit)
   # Leyenda de marcas y método, sobre la base.
   if (length(enl)) .lam_en_linea_leyenda(lz, ML, y_ley)
   .lam_txt(lz, nota, ML - 0.1, y_ley + 0.27, W - ML - MR + 0.2, 0.42, 9.5, .std_color("texto_suave"), nombre = "cifra:metodo")

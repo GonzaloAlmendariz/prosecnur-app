@@ -1267,9 +1267,10 @@
              list(value = "siempre", label = "Siempre", hint = "La escala pasa a ir de 0 a 100%."),
              list(value = "nunca", label = "Nunca", hint = "La barra sola, sin pista.")),
            descripcion = "Pinta bajo cada barra una pista gris suave que llega al 100%, para leer cada parte frente al total."),
+      # U-c (checklist de mandos del mazo, 2026-11-05): sin `default`. La lámina nativa sin el valor ajusta la columna a
+      # la tinta de los rótulos (lamina_barras_ancho.R) y el 0.36 que se anunciaba aquí no lo usaba nadie: vacío = automático.
       list(name = "canvas_w_etiquetas", label = "Espacio para etiquetas", tipo_input = "number", grupo = "canvas",
-           default = 0.36,
-           descripcion = "Ancho relativo reservado para textos largos a la izquierda del gráfico.")
+           descripcion = "Ancho relativo reservado para textos largos a la izquierda del gráfico. Vacío, automático: la columna se ajusta a los rótulos.")
     ), .args_graf_comunes())
   ),
 
@@ -1438,6 +1439,14 @@
       list(name = "cruces",        label = "Dividir por", tipo_input = "variable_opt", grupo = "datos",
            depende = list(arg = "modo", valores = list("cruce", "var_cruce")),
            descripcion = "Cada grupo de esta variable abre su propia barra."),
+      # U11 (checklist de mandos del mazo, 2026-11-05): el render por cruce ya marcaba las diferencias
+      # (`.graficos_sig_aplicar_transpuesto`, reporte_plan_ppt.R) pero el mando no se ofrecía ni era formal.
+      list(name = "mostrar_significancia", label = "Marcar diferencias significativas", tipo_input = "bool", grupo = "datos",
+           default = FALSE, depende = list(arg = "modo", valores = list("cruce")),
+           descripcion = "Agrega a cada segmento la letra de los grupos a los que supera de forma significativa, con la misma prueba que usan las tablas de cruces. Necesita un cruce con dos o más grupos."),
+      list(name = "significancia_alpha", label = "Nivel de significancia", tipo_input = "number", grupo = "datos",
+           default = 0.05, min = 0.001, max = 0.2, step = 0.005, depende = list(arg = "modo", valores = list("cruce")),
+           descripcion = "Umbral del contraste. 0.05 es el estándar; bajarlo exige diferencias más grandes para marcar."),
       list(name = "titulos_grupo", label = "Títulos por bloque", tipo_input = "textarea",  grupo = "textos",
            depende = list(arg = "modo", valores = list("var_cruce")),
            descripcion = "Formato: 'clave=Título'. Una línea por bloque."),

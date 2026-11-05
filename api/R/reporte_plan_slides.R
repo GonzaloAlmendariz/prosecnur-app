@@ -2252,6 +2252,8 @@ p_barras_apiladas <- function(var, titulo = NULL, cruces = NULL, overrides = lis
 #'   `altura_rel`, `overrides`, `base` y `filtros`.
 #' @param invertir_barras Da la vuelta al orden de las filas (O7c). Va a `overrides`, así que en `multilista` lo
 #'   heredan los bloques; `NULL` hereda el preset.
+#' @param mostrar_significancia,significancia_alpha Marcar diferencias significativas entre los grupos del cruce y su
+#'   nivel (U11). Van a `overrides`; sólo los lee `modo = "cruce"`. `NULL` hereda el preset.
 #' @param word_multiapiladas Figuras del Word (W6/D6): `"un_grafico"`, `"por_tema"` o `"por_barra"`; `NULL` o `""`
 #'   hereda `w_presets$chart_options$multiapiladas_word`. En `multilista` vale
 #'   para cada bloque. La lámina del PPT no cambia.
@@ -2299,6 +2301,7 @@ p_barras_multiapiladas <- function(
     filete_temas = NULL,
     grosor_piso_cm = NULL, premisa_posicion = NULL,
     invertir_barras = NULL,
+    mostrar_significancia = NULL, significancia_alpha = NULL,   # U11: sólo los lee el modo `cruce`
     word_multiapiladas = NULL,
     word_titulo_figura = NULL
 ) {
@@ -2405,6 +2408,8 @@ p_barras_multiapiladas <- function(
   overrides <- .ppt_slot_override(overrides, "grosor_piso_cm", grosor_piso_cm, "numero", min = 0)   # N1
   overrides <- .ppt_slot_override(overrides, "premisa_posicion", premisa_posicion, "opcion", opciones = c("auto", "arriba", "izquierda"))   # v7.25, ítem 4
   overrides <- .ppt_slot_override(overrides, "invertir_barras", invertir_barras, "bool"); overrides <- .barra_extra_en_overrides(overrides, barra_extra)   # O7c; la barra extra del nivel manda sobre la heredada
+  overrides <- .ppt_slot_override(overrides, "mostrar_significancia", mostrar_significancia, "bool")   # U11
+  overrides <- .ppt_slot_override(overrides, "significancia_alpha", significancia_alpha, "numero", min = 0)
   # W6/D6: cuántas figuras Word sale de esta lámina; NULL hereda el informe (reporte_word_multi_modos.R)
   word_multiapiladas <- .word_multi_modo_normalizar(word_multiapiladas, "la lámina")
   word_titulo_figura <- .word_titulo_figura_normalizar(word_titulo_figura)   # reporte_word_multi_modos.R

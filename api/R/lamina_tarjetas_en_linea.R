@@ -48,11 +48,11 @@
   list(barra = barra, texto = texto, lleno = !fr)
 }
 
-#' Alto de la fila de cada opción (in): la de la maqueta, o lo que pidan las líneas de su rótulo
+#' Alto de la fila de cada opción (in): la de la maqueta, o lo que pidan las líneas de su rótulo (más su aire `pad`)
 #' @keywords internal
 .en_linea_filas <- function(espec, m, wl) {
   lin <- vapply(as.character(espec$rotulos), function(r) .lam_lineas_tinta(r, wl, m$pt, TRUE), 0)
-  pmax(m$fila, lin * m$pt * 1.2 / 72 + 0.12)
+  pmax(m$fila, lin * m$pt * 1.2 / 72 + (m$pad %||% 0.12))
 }
 
 #' Alto que pide el gráfico en línea (in) con sus medidas de fila
@@ -62,18 +62,40 @@
   sum(.en_linea_filas(espec, m, wl)) + extra
 }
 
-#' Medidas del gráfico en línea que caben en `alto`: las de la maqueta, y si no caben, la letra de las opciones baja de
-#' 14 a 11 pt y su fila hasta 0,32 in (un rótulo largo crece en líneas, así que cuenta su alto real); el desglose
-#' conserva su medida, que es lo que se lee junto. Si ni así cabe, avisa: los rótulos deben acortarse.
+#' Medidas del gráfico en línea que caben en `alto`, en tres pasos que se detienen en el primero que cabe:
+#'   1. las de la maqueta, y si no caben, la letra de las opciones baja de 14 a 11 pt y su fila hasta 0,32 in (un
+#'      rótulo largo crece en líneas, así que cuenta su alto real); el desglose conserva su medida;
+#'   2. el desglose se aprieta (rótulo del cruce, filas de grupo y aire) y la fila de la opción baja hasta 0,28 in;
+#'   3. todo baja en proporción, letra incluida, hasta la mitad.
+#' Con muchas opciones y dos desgloses (ccss-036: doce opciones) la maqueta no cabe: antes el motor dibujaba igual y el
+#' último desglose se salía por debajo, sobre la leyenda de las marcas. Si hace falta el paso 3, o ni así cabe, avisa.
 #' @keywords internal
-.en_linea_medidas <- function(espec, enl, alto, wl = 3) {
-  m <- list(fila = 0.46, barra = 0.26, fila_g = 0.27, barra_g = 0.12, cab = 0.22, aire_g = 0.12, pt = 14, pt_g = 11, pt_cab = 8)
+.en_linea_medidas <- function(espec, enl, alto, wl = 3, titulo = "") {
+  m <- list(fila = 0.46, barra = 0.26, fila_g = 0.27, barra_g = 0.12, cab = 0.22, aire_g = 0.12, pad = 0.12,
+            pt = 14, pt_g = 11, pt_cab = 8)
+  cabe <- function(m) .en_linea_alto(espec, enl, m, wl) <= alto + 1e-6
   for (pt in c(14, 13, 12, 11)) for (fila in c(0.46, 0.4, 0.36, 0.32)) {
     m$pt <- pt; m$fila <- fila; m$barra <- min(0.26, fila * 0.56)
-    if (.en_linea_alto(espec, enl, m, wl) <= alto + 1e-6) return(m)
+    if (cabe(m)) return(m)
   }
-  if (.en_linea_alto(espec, enl, m, wl) > alto + 0.15 && exists(".pulso_aviso", mode = "function")) {   # un desborde que se ve
-    .pulso_aviso("Tarjetas de diferencias: el gráfico con desglose en línea no cabe en su alto. Acorta los rótulos de sus opciones en Identidad, Rótulos cortos del estudio.")
+  m[c("cab", "fila_g", "barra_g", "aire_g", "pad")] <- list(0.18, 0.22, 0.1, 0.06, 0.08)
+  for (fila in c(0.32, 0.3, 0.28)) {
+    m$fila <- fila; m$barra <- min(0.26, fila * 0.56)
+    if (cabe(m)) return(m)
+  }
+  base <- m
+  for (f in seq(0.95, 0.5, by = -0.05)) {
+    m <- base
+    for (k in c("fila", "barra", "fila_g", "barra_g", "cab", "aire_g", "pad", "pt", "pt_g", "pt_cab")) m[[k]] <- base[[k]] * f
+    if (cabe(m)) break
+  }
+  if (exists(".pulso_aviso", mode = "function")) {
+    en <- if (nzchar(titulo %||% "")) sprintf("en «%s» ", titulo) else ""
+    .pulso_aviso(if (cabe(m)) {
+      sprintf("Tarjetas de diferencias: %sel gráfico con desglose en línea no cabe con su letra normal y se dibujó más pequeño. Para recuperarla, oculta opciones del gráfico o acorta sus rótulos en Identidad, Rótulos cortos del estudio.", en)
+    } else {
+      sprintf("Tarjetas de diferencias: %sel gráfico con desglose en línea no cabe en su alto. Oculta opciones del gráfico o acorta sus rótulos en Identidad, Rótulos cortos del estudio.", en)
+    })
   }
   m
 }
@@ -83,16 +105,17 @@
 #' @param espec Espec `categorica` (rótulos, largos 0-1, cifras), en su orden.
 #' @param enl Tarjetas del desglose (`.tarjetas_en_linea`).
 #' @param rotulos_cruce Rótulos de los cruces («Estudios de padres»). @param cortos Rótulos cortos de grupo.
+#' @param titulo Título de la lámina, para que el aviso diga dónde.
 #' @return El fin vertical dibujado (in).
 #' @keywords internal
-.lam_barras_en_linea <- function(lz, espec, enl, rotulos_cruce, cortos = character(0), x0, x1, y0, y1) {
+.lam_barras_en_linea <- function(lz, espec, enl, rotulos_cruce, cortos = character(0), x0, x1, y0, y1, titulo = "") {
   azul <- .std_color("azul"); suave <- .std_color("texto_suave")
   # Los grupos con su nombre corto, como en la tarjeta compacta (la maqueta: «Algún padre univ.»).
   op <- options(prosecnur.lam_tarjeta_compacta = TRUE); on.exit(options(op), add = TRUE)
   rot <- as.character(espec$rotulos)
   nombres_g <- unlist(lapply(enl, function(t) .tarjetas_rotulo_grupo(t$grupos$etiqueta, cortos)))
   wl <- min(0.42 * (x1 - x0), max(c(.lam_ancho_tinta(rot, 14, TRUE), .lam_ancho_tinta(nombres_g, 11, TRUE), 1)) + 0.15)
-  m <- .en_linea_medidas(espec, enl, y1 - y0, wl)
+  m <- .en_linea_medidas(espec, enl, y1 - y0, wl, titulo)
   filas_h <- .en_linea_filas(espec, m, wl)
   xb <- x0 + wl + 0.15; wb <- x1 - xb - 0.95
   y <- y0 + max(0, (y1 - y0 - .en_linea_alto(espec, enl, m, wl)) / 2)
@@ -161,7 +184,8 @@
   g_ <- .std_geom
   y0 <- .lam_titulo_fin(titulo) + 0.4; y1 <- .std_valor("ppt", "geometria", "base_y") - 0.55
   enl <- .tarjetas_en_linea(t, titulo)
-  .lam_barras_en_linea(lz, espec, enl, t$rotulos_cruce, t$opcion$cortos, g_("margen_izq") + 0.4, g_("ancho") - g_("margen_der") - 0.4, y0, y1)
+  .lam_barras_en_linea(lz, espec, enl, t$rotulos_cruce, t$opcion$cortos, g_("margen_izq") + 0.4, g_("ancho") - g_("margen_der") - 0.4, y0, y1,
+                       titulo = titulo)
   if (length(enl)) .lam_en_linea_leyenda(lz, g_("margen_izq"), y1 + 0.12)
   doc <- .lam_agrupar(doc, lz, nombre = "prosecnur:grafico:en_linea")
   doc <- .lam_pie(doc, base, folio)
