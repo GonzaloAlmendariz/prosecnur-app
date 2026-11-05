@@ -62,3 +62,18 @@ test_that("en el Word la mediana va SIN truncar como su recetario (caja «21.5»
   expect_true("21.5" %in% .wn_textos(.word_g_boxplot(b)))
   expect_identical(.word_texto_mediana(list(texto_mediana = "Mediana: 22", mediana = 22)), "Mediana: 22")
 })
+
+test_that("el histograma del Word separa porcentaje y casos, y pinta tenues las barras de pocos casos (paridad con la lámina)", {
+  x <- c(rep(20, 60), rep(21, 38), 30)
+  e <- attr(.histograma_recetario(x, unidad = "años"), "pulso_espec")   # modo por defecto: «60 (61%)»
+  tx <- .wn_textos(.word_g_hist(e))
+  expect_true(any(grepl("^[0-9<]+%$", tx)))           # el porcentaje va solo
+  expect_false(any(grepl("\\(.*%\\)", tx)))            # ya no «103 (26%)» en una pieza
+  # Con casos («60 (61%)», como en CCSS) el porcentaje y los casos van en piezas separadas.
+  e2 <- e; e2$cifras <- ifelse(nzchar(e$cifras), paste0(e$conteos, " (", e$cifras, ")"), "")
+  tx2 <- .wn_textos(.word_g_hist(e2))
+  expect_true(all(c("61%", "60") %in% tx2)); expect_false("60 (61%)" %in% tx2)
+  b <- suppressWarnings(ggplot2::ggplot_build(.word_g_hist(e)))
+  rellenos <- unique(toupper(b$data[[1]]$fill))
+  expect_true(toupper(.std_color("tenue")) %in% rellenos)   # la barra de un caso (1%) va tenue
+})
