@@ -28,42 +28,8 @@
 .pulso-universo-base:last-child { border-bottom: 0; }
 .pulso-universo-base h3 { margin: 0 0 4px; font-size: var(--pulso-type-body-size); color: var(--pulso-text); }
 
-/* 5 nov 2026 (pulido de UI): bajo la cabecera de Analítica la línea se leía como texto suelto entre el título y
-   el contenido. Es un estado del análisis con su acción, y se dibuja como tal: una píldora con su punto. */
+/* 5 nov 2026 (pulido de UI): las líneas son EstadoChip del kit; aquí sólo se alinean con su acción. */
 .pulso-analitica-universo-banda .pulso-universo {
-  display: inline-flex;
-  margin-top: 0;
-  padding: 3px 4px 3px 10px;
-  border: 1px solid var(--pulso-border);
-  border-radius: 999px;
-  background: var(--pulso-surface-2);
-  color: var(--pulso-text-soft);
-  font-size: var(--pulso-type-caption-size);
   align-items: center;
-}
-
-.pulso-analitica-universo-banda .pulso-universo::before {
-  content: "";
-  width: 6px;
-  height: 6px;
-  margin-right: 2px;
-  border-radius: 999px;
-  background: var(--module-accent, var(--pulso-primary));
-}
-
-.pulso-analitica-universo-banda .pulso-universo:has(p.is-aviso)::before {
-  background: var(--pulso-warn-fg);
-}
-
-.pulso-analitica-universo-banda .pulso-universo-cambiar {
-  padding: 1px 8px;
-  border-radius: 999px;
-  color: var(--module-accent, var(--pulso-primary));
-}
-
-@media (hover: hover) and (pointer: fine) {
-  .pulso-analitica-universo-banda .pulso-universo-cambiar:hover {
-    background: var(--pulso-surface);
-    text-decoration: none;
-  }
+  margin-top: 0;
 }
