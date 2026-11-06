@@ -1937,7 +1937,9 @@
       list(name = "puntos", label = "Puntos de referencia", tipo_input = "textarea", grupo = "textos",
            descripcion = "Uno por línea: Etiqueta | latitud, longitud o enlace de Google Maps | color opcional. Ej.: PUCP | -12.0693, -77.0794"),
       list(name = "ancho_mapa", label = "Ancho del mapa", tipo_input = "number", grupo = "estilo", min = 0.25, max = 0.8, step = 0.05,
-           descripcion = "Fracción de la tarjeta que toma el mapa (0.25 a 0.8); el resto es de la lista. Vacío: automático, el mapa toma el ancho que su alto pide.")
+           descripcion = "Fracción de la tarjeta que toma el mapa (0.25 a 0.8); el resto es de la lista. Vacío: automático, el mapa toma el ancho que su alto pide."),
+      list(name = "agrupar_lista", label = "Agrupar en la lista", tipo_input = "textarea", grupo = "datos",
+           descripcion = "Una fila de la lista que suma todos los distritos de una pregunta del mapa, con su rótulo. Una línea por fila: Rótulo | preguntas. Ej.: Callao | A6_2. El mapa no cambia.")
     ), .args_graf_comunes())
   ),
 
