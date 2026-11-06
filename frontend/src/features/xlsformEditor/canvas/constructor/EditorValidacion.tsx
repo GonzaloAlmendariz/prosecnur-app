@@ -10,6 +10,8 @@ import { alAplicarFormato, cambiosAlQuitarAtajo } from "./edicionValidacion";
 import { ArmadorFormatoEntrada } from "../../pestanas/armador/ArmadorFormatoEntrada";
 import { OpcionesSolasEntrada } from "../../pestanas/armador/OpcionesSolasEntrada";
 import { CuantasOpcionesEntrada } from "../../pestanas/armador/CuantasOpcionesEntrada";
+import { CondicionadaEntrada } from "../../pestanas/armador/CondicionadaEntrada";
+import { escribirCondicionada, leerCondicionada } from "../../pestanas/armador/condicionadaModelo";
 import { CustomValidationPanel, GuidedValidationNotice, ValidationSummary } from "./ValidacionPaneles";
 
 // Editor de «qué acepta» una pregunta (constraint + constraint_message) en la pestaña Restricciones.
@@ -22,7 +24,15 @@ export type EditorValidacionProps = {
   onFieldsChange: (updates: Record<string, string>) => void;
 };
 
-export function EditorValidacion({ node, scope, onFieldChange, onFieldsChange }: EditorValidacionProps) {
+export function EditorValidacion({ node: nodoCompleto, scope, onFieldChange: escribirCampo, onFieldsChange: escribirCampos }: EditorValidacionProps) {
+  // E19 paso 4: una regla condicionada `if(<cond>, <regla>, true())` se edita por partes. Todos los armadores de abajo
+  // ven y escriben sólo la regla interior; al escribir se vuelve a envolver con la condición vigente.
+  const { condicion, regla } = leerCondicionada(nodoCompleto.constraint);
+  const envolver = (c: string) => escribirCondicionada(c, condicion);
+  const node = condicion ? { ...nodoCompleto, constraint: regla } : nodoCompleto;
+  const onFieldChange = (field: string, value: string) => escribirCampo(field, field === "constraint" ? envolver(value) : value);
+  const onFieldsChange = (updates: Record<string, string>) =>
+    escribirCampos(updates.constraint !== undefined ? { ...updates, constraint: envolver(updates.constraint) } : updates);
   const constraintMessage = node.constraint_message ?? "";
   const hasConstraint = node.constraint.trim().length > 0;
   const validation = describeValidation(node.constraint, node, scope);
@@ -79,6 +89,15 @@ export function EditorValidacion({ node, scope, onFieldChange, onFieldsChange }:
           onAplicar={(next, mensaje) => onFieldsChange(constraintMessage.trim() || !next ? { constraint: next } : { constraint: next, constraint_message: mensaje })}
         />
       )}
+      {/* E19 paso 4: la regla puede exigirse sólo cuando se cumple una condición sobre otra respuesta. */}
+      {hasConstraint && (
+        <CondicionadaEntrada
+          key={`cond-${node.rowIndex}`}
+          condicion={condicion}
+          scope={scope}
+          onCondicion={(c) => escribirCampo("constraint", escribirCondicionada(regla, c))}
+        />
+      )}
       {isGuidedPreset && validation ? (
         <GuidedValidationNotice onClear={quitarAtajo} />
       ) : (
@@ -108,7 +127,8 @@ export function EditorValidacion({ node, scope, onFieldChange, onFieldsChange }:
         <ConstraintMessageField node={node} validation={validation} value={constraintMessage} onFieldChange={onFieldChange} />
       )}
       {/* Escape hatch para fórmula cruda — al final, plegado por defecto. */}
-      <CustomValidationPanel node={node} validation={validation} onFieldChange={onFieldChange} onFieldsChange={onFieldsChange} />
+      {/* La fórmula a mano edita la restricción entera, con su condición si la tiene. */}
+      <CustomValidationPanel node={nodoCompleto} validation={validation} onFieldChange={escribirCampo} onFieldsChange={escribirCampos} />
     </>
   );
 }

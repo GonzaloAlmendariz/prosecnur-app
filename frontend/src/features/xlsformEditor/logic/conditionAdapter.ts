@@ -121,12 +121,13 @@ export function expandCondition(cond: FlatCondition): Expr {
       right: { kind: "literal", value: "" },
     };
   }
-  // Si la pred es selected/not_selected, ignoramos el operador del compare.
+  // Si la pred es selected/not_selected, ignoramos el operador del compare. Su valor es SIEMPRE un código de opción:
+  // va como texto, `selected(${x}, '1')`, nunca como el número 1 (E19 paso 4).
   if (cond.predicate.kind === "selected") {
     return {
       kind: "call",
       name: "selected",
-      args: [lhs, valueExpr(cond.value)],
+      args: [lhs, codigoExpr(cond.value)],
     };
   }
   if (cond.predicate.kind === "count") {
@@ -144,7 +145,7 @@ export function expandCondition(cond: FlatCondition): Expr {
       operand: {
         kind: "call",
         name: "selected",
-        args: [lhs, valueExpr(cond.value)],
+        args: [lhs, codigoExpr(cond.value)],
       },
     };
   }
@@ -331,6 +332,11 @@ export function expandMultiSelected(variableName: string, values: string[]): Log
       },
     })),
   };
+}
+
+/** Código de opción como literal de texto (referencias a otra pregunta, tal cual). */
+function codigoExpr(v: FlatCondition["value"]): Expr {
+  return v.kind === "ref" ? { kind: "ref", name: v.variableName } : { kind: "literal", value: v.raw };
 }
 
 function valueExpr(v: FlatCondition["value"]): Expr {
