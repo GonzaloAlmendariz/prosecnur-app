@@ -17,9 +17,9 @@ export function requiredDe(modo: ModoObligatoria, expresion: string): string {
 }
 
 const MODOS: { modo: ModoObligatoria; nombre: string; detalle: string }[] = [
-  { modo: "nunca", nombre: "Se puede dejar en blanco", detalle: "La encuesta se puede finalizar sin esta respuesta." },
-  { modo: "siempre", nombre: "Siempre obligatoria", detalle: "La encuesta no se puede finalizar sin esta respuesta." },
-  { modo: "expresion", nombre: "Obligatoria sólo si…", detalle: "Según otra respuesta: por ejemplo, sólo si respondió «Sí» antes." },
+  { modo: "nunca", nombre: "Opcional", detalle: "Puede quedar vacía." },
+  { modo: "siempre", nombre: "Obligatoria", detalle: "No se finaliza sin respuesta." },
+  { modo: "expresion", nombre: "Obligatoria con condición", detalle: "Según otra respuesta." },
 ];
 
 export function ObligatoriaSegun({ requiredRaw, scope, onCambio }: {
@@ -59,7 +59,7 @@ export function ObligatoriaSegun({ requiredRaw, scope, onCambio }: {
           targetNoun="esta pregunta"
           techTerm="required"
           chrome="bare"
-          vacio="Agrega la condición: la pregunta será obligatoria sólo cuando se cumpla."
+          vacio="Sin condición todavía."
           onChange={(next) => onCambio(requiredDe("expresion", next))}
         />
       ) : null}

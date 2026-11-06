@@ -22,11 +22,10 @@ export function CondicionadaEntrada({ condicion, scope, onCondicion }: Props) {
       <header className="xfa-bloque__cabeza">
         <span className="xfa-bloque__icono" aria-hidden="true"><GitBranch /></span>
         <div className="xfa-bloque__titulos">
-          <h4 id={tituloId} className="xfa-bloque__titulo">Cuándo se aplica</h4>
-          <p className="xfa-bloque__sub">Fuera de la condición, cualquier respuesta se acepta.</p>
+          <h4 id={tituloId} className="xfa-bloque__titulo">Condición de la regla</h4>
         </div>
       </header>
-      <div className="xfa-cuantas__modos" role="radiogroup" aria-label="Cuándo se aplica la regla">
+      <div className="xfa-cuantas__modos" role="radiogroup" aria-label="Condición de la regla">
         <button
           type="button"
           role="radio"
@@ -43,7 +42,7 @@ export function CondicionadaEntrada({ condicion, scope, onCondicion }: Props) {
           className={`xfa-cuantas__modo${soloCuando ? " is-on" : ""}`}
           onClick={() => setSoloCuando(true)}
         >
-          Sólo cuando…
+          Con condición
         </button>
       </div>
       {soloCuando ? (
@@ -54,7 +53,7 @@ export function CondicionadaEntrada({ condicion, scope, onCondicion }: Props) {
           targetNoun="esta regla"
           techTerm="constraint"
           chrome="bare"
-          vacio="Agrega la condición: la regla sólo se exigirá cuando se cumpla."
+          vacio="Sin condición todavía."
           onChange={(next) => onCondicion(next)}
         />
       ) : null}

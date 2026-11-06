@@ -21,7 +21,7 @@ type Props = {
 /** El workbook que resulta de guardar. null si no hay nada que escribir. */
 function escribir(wb: XlsformEditorWorkbook, a: AnalisisFiltro, i: Intento): XlsformEditorWorkbook | null {
   if (!intentoCompleto(i)) return null;
-  // «Lo marcado antes» y «según un número» se reescriben enteras; si la expresión no cambia, no hay nada que guardar.
+  // «Marcadas en otra pregunta» y «comparación numérica» se reescriben enteras; si la expresión no cambia, no hay nada que guardar.
   if (i.forma === "marcado" || i.forma === "comparacion") {
     const nuevo = escribirIntento(wb, a.fila, a.lista, i);
     return formaDe(a) === i.forma && i.forma === "marcado" && a.cascada?.madre === i.madre ? null : nuevo;

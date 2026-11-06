@@ -59,11 +59,8 @@ export function OpcionesSolasEntrada({
         </span>
         <div className="xfa-bloque__titulos">
           <h4 id={tituloId} className="xfa-bloque__titulo">
-            Opciones que van solas
+            Opciones excluyentes
           </h4>
-          <p className="xfa-bloque__sub">
-            Quien marca una de estas no puede marcar nada más.
-          </p>
         </div>
         {sugeridas.some((c) => !marcadas.includes(c)) ? (
           <button
@@ -86,13 +83,13 @@ export function OpcionesSolasEntrada({
               <span className="xfa-opciones__texto">
                 {texto}
                 {sugeridas.includes(o.name) && !on ? (
-                  <span className="xfa-opciones__suele">Suele ir sola</span>
+                  <span className="xfa-opciones__suele">Sugerida</span>
                 ) : null}
               </span>
               <code className="xfa-opciones__codigo">{o.name}</code>
               <PulsoSwitch
                 size="sm"
-                ariaLabel={`${texto} va sola`}
+                ariaLabel={`${texto} excluyente`}
                 checked={on}
                 onCheckedChange={(si) => cambiar(o.name, si)}
               />
@@ -108,7 +105,7 @@ export function OpcionesSolasEntrada({
         <span>
           {enOrden.length
             ? mensajeSolas(enOrden.map(etiqueta))
-            : "Ninguna opción va sola: se pueden marcar todas juntas."}
+            : "Sin opciones excluyentes."}
         </span>
       </p>
       {cambio ? (

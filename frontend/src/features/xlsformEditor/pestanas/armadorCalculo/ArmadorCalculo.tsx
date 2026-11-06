@@ -83,12 +83,11 @@ export function ArmadorCalculo({ scope, nombre, onBorrador, onAplicar }: Props) 
       <header className="xfa-bloque__cabeza">
         <span className="xfa-bloque__icono" aria-hidden="true"><Calculator /></span>
         <div className="xfa-bloque__titulos">
-          <h4 id={tituloId} className="xfa-bloque__titulo">Armar el cálculo</h4>
-          <p className="xfa-bloque__sub">Elige qué quieres calcular y completa la frase: la fórmula se escribe sola.</p>
+          <h4 id={tituloId} className="xfa-bloque__titulo">Armador de cálculos</h4>
         </div>
       </header>
 
-      <div className="xfc-intenciones" role="radiogroup" aria-label="Qué quieres calcular">
+      <div className="xfc-intenciones" role="radiogroup" aria-label="Tipo de cálculo">
         {INTENCIONES.map((it) => (
           <button
             key={it.tipo}
@@ -224,8 +223,8 @@ function FraseSegun({ i, preguntas, variable, scope, onCambio }: {
       ))}
       <Agregar onAgregar={() => onCambio({ ...i, casos: [...i.casos, { pregunta: "", operador: "=", valor: "", resultado: "" }] })}>Agregar otro caso</Agregar>
       <div className="xfc-linea">
-        <span>Si no se cumple ningún caso, vale</span>
-        <PulsoInput size="sm" aria-label="Valor si no se cumple ningún caso" value={i.siNo} onChange={(e) => onCambio({ ...i, siNo: e.target.value })} placeholder="resultado" />
+        <span>En otro caso, vale</span>
+        <PulsoInput size="sm" aria-label="Valor por defecto" value={i.siNo} onChange={(e) => onCambio({ ...i, siNo: e.target.value })} placeholder="resultado" />
       </div>
     </>
   );
@@ -250,7 +249,7 @@ function FraseOperar({ i, preguntas, onCambio }: { i: Extract<Intencion, { tipo:
       ))}
       <Agregar onAgregar={() => onCambio({ ...i, preguntas: [...i.preguntas, ""] })}>Agregar otra pregunta</Agregar>
       <div className="xfc-linea">
-        <span>Y un número fijo (opcional)</span>
+        <span>Número fijo (opcional)</span>
         <PulsoInput size="sm" className="xfa-cuantas__numero" aria-label="Número fijo" value={i.constante} onChange={(e) => onCambio({ ...i, constante: e.target.value })} placeholder="—" />
       </div>
     </>
@@ -261,7 +260,7 @@ function FraseSortear({ i, onCambio }: { i: Extract<Intencion, { tipo: "sortear"
   const valor = (k: number, c: Partial<{ valor: string; peso: string }>) => onCambio({ ...i, valores: i.valores.map((x, j) => (j === k ? { ...x, ...c } : x)) });
   return (
     <>
-      <p className="xfa-bloque__sub">Uno de estos valores, sorteado una vez por entrevista. Sin pesos, todos con la misma probabilidad; con pesos, en porcentaje.</p>
+      <p className="xfa-bloque__sub">Un sorteo por entrevista. Sin pesos, equiprobable; los pesos van en porcentaje.</p>
       {i.valores.map((v, k) => (
         <div key={k} className="xfc-linea">
           <span className="xfc-linea__n">{k + 1}.</span>
@@ -272,9 +271,9 @@ function FraseSortear({ i, onCambio }: { i: Extract<Intencion, { tipo: "sortear"
       ))}
       <Agregar onAgregar={() => onCambio({ ...i, valores: [...i.valores, { valor: "", peso: "" }] })}>Agregar otro valor</Agregar>
       <div className="xfc-linea">
-        <span>El número al azar se guarda en</span>
+        <span>Número al azar</span>
         <PulsoInput size="sm" aria-label="Nombre del cálculo con el número al azar" value={i.azar} onChange={(e) => onCambio({ ...i, azar: e.target.value.replace(/\s+/g, "_") })} />
-        <span className="xfa-bloque__sub">se agrega antes de este cálculo</span>
+        <span className="xfa-bloque__sub">fila nueva antes de este cálculo</span>
       </div>
     </>
   );

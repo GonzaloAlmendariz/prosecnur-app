@@ -27,7 +27,7 @@ export function ArmadorFormatoEntrada({ constraint, onAplicar }: Props) {
         <span className="xfa-bloque__icono" aria-hidden="true"><Wand2 /></span>
         <div className="xfa-bloque__titulos">
           <h4 id={tituloId} className="xfa-bloque__titulo">Formato</h4>
-          <p className="xfa-bloque__sub">{lectura ? textoDePiezas(lectura) : "Cómo debe escribirse la respuesta: dígitos, letras, largo, prefijo."}</p>
+          <p className="xfa-bloque__sub">{lectura ? textoDePiezas(lectura) : "Sin formato."}</p>
         </div>
         <button type="button" className="xfa-bloque__accion" aria-expanded={abierto} aria-controls={panelId} onClick={() => setAbierto((v) => !v)}>
           {abierto ? "Cerrar" : lectura ? "Cambiar formato" : "Armar formato"}

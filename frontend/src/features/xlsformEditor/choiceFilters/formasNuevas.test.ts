@@ -31,13 +31,13 @@ const filtro = (w: XlsformEditorWorkbook, fila: number) => w.survey.rows[fila]![
 const analisis = (w: XlsformEditorWorkbook, fila: number) => analizarFiltro({ structure: parseBuilderStructure(w.survey), choices: w.choices }, fila)!;
 
 describe("lo marcado antes", () => {
-  it("escribe selected(${q}, name) y se relee como «Lo marcado antes»", () => {
+  it("escribe selected(${q}, name) y se relee como «Marcadas en otra pregunta»", () => {
     const i = { forma: "marcado" as const, madre: "usa" };
     expect(intentoCompleto(i)).toBe(true);
     const w = escribirIntento(wb, 2, "medios", i);
     expect(filtro(w, 2)).toBe("selected(${usa}, name)");
     const a = analisis(w, 2);
-    expect(nombreDeTipo(a)).toBe("Lo marcado antes");
+    expect(nombreDeTipo(a)).toBe("Marcadas en otra pregunta");
     expect(formaDe(a)).toBe("marcado");
     expect(intentoInicial("marcado", a, "principal", w.choices)).toEqual({ forma: "marcado", madre: "usa" });
   });

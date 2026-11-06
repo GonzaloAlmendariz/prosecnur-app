@@ -6,7 +6,7 @@ import type { XlsformEditorSheet, XlsformEditorWorkbook } from "../../../api/mul
 import { aplicarCascada, quitarCascada } from "./cascada";
 import { columnaPara, opcionesDeLista } from "./porOpcion";
 import type { AnalisisFiltro, FormaCascada, LecturaCascada, LecturaFijo, TipoFiltro } from "./modeloFiltros";
-import { nombreDeTipo } from "./modeloFiltros";
+import { esComparacion, esMarcadasAntes } from "./modeloFiltros";
 
 export { quitarCascada as quitarFiltro };
 
@@ -128,9 +128,8 @@ export type Intento =
 
 /** La forma del asistente con que se muestra un filtro ya escrito. */
 export function formaDe(a: Pick<AnalisisFiltro, "tipo" | "cascada" | "expresion">): FormaIntento {
-  const nombre = nombreDeTipo(a);
-  if (nombre === "Lo marcado antes") return "marcado";
-  if (nombre === "Comparación" && leerComparacion(a.expresion)) return "comparacion";
+  if (esMarcadasAntes(a)) return "marcado";
+  if (esComparacion(a) && leerComparacion(a.expresion)) return "comparacion";
   return a.tipo;
 }
 

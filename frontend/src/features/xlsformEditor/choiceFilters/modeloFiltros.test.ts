@@ -148,11 +148,11 @@ describe("nombre del tipo (E11b)", () => {
   it("repetir lo marcado antes no se rotula como cascada", () => {
     const marcada = leerCascada("selected(${medios}, name)");
     expect(marcada?.forma).toBe("marcada");
-    expect(nombreDeTipo({ tipo: "cascada", cascada: marcada })).toBe("Lo marcado antes");
+    expect(nombreDeTipo({ tipo: "cascada", cascada: marcada })).toBe("Marcadas en otra pregunta");
     expect(nombreDeTipo({ tipo: "cascada", cascada: leerCascada("region = ${region}") })).toBe("Cascada");
     expect(nombreDeTipo({ tipo: "fijo", cascada: null })).toBe("Fijo");
-    expect(nombreDeTipo({ tipo: "expresion", cascada: null, expresion: "edad_min <= ${edad}" })).toBe("Comparación");
-    expect(nombreDeTipo({ tipo: "expresion", cascada: null, expresion: "${edad} > minimo" })).toBe("Comparación");
+    expect(nombreDeTipo({ tipo: "expresion", cascada: null, expresion: "edad_min <= ${edad}" })).toBe("Comparación numérica");
+    expect(nombreDeTipo({ tipo: "expresion", cascada: null, expresion: "${edad} > minimo" })).toBe("Comparación numérica");
     expect(nombreDeTipo({ tipo: "expresion", cascada: null, expresion: "edad_min <= ${edad} and x = 1" })).toBe("Expresión");
   });
 });

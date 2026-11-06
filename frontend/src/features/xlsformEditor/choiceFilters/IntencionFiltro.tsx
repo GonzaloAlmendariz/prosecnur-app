@@ -11,12 +11,12 @@ import type { AnalisisFiltro } from "./modeloFiltros";
 import { SelectorPreguntaFiltro, type PreguntaElegible } from "./SelectorPreguntaFiltro";
 
 export const INTENCIONES: { forma: FormaIntento; titulo: string; detalle: string }[] = [
-  { forma: "cascada", titulo: "Según una respuesta anterior", detalle: "La lista depende de otra pregunta." },
-  { forma: "marcado", titulo: "Lo marcado antes", detalle: "Sólo las opciones que se marcaron en otra pregunta." },
-  { forma: "comparacion", titulo: "Según un número", detalle: "Cada opción con su mínimo o máximo frente a una respuesta." },
-  { forma: "opcion", titulo: "Cada opción según su pregunta", detalle: "Cada opción la habilita una pregunta distinta." },
-  { forma: "fijo", titulo: "Siempre las mismas opciones", detalle: "Un subconjunto que no cambia." },
-  { forma: "expresion", titulo: "Escribir la expresión", detalle: "Para casos que no encajan." },
+  { forma: "cascada", titulo: "Cascada", detalle: "Opciones por respuesta de otra pregunta." },
+  { forma: "marcado", titulo: "Marcadas en otra pregunta", detalle: "Las dos preguntas usan la misma lista." },
+  { forma: "comparacion", titulo: "Comparación numérica", detalle: "Columna de la lista frente a una respuesta numérica." },
+  { forma: "opcion", titulo: "Por opción", detalle: "Una pregunta habilita cada opción." },
+  { forma: "fijo", titulo: "Subconjunto fijo", detalle: "Las mismas opciones en toda entrevista." },
+  { forma: "expresion", titulo: "Expresión", detalle: "choice_filter escrito a mano." },
 ];
 
 /** El intento con que arranca cada forma: lo que ya tiene el filtro si es de esa forma, o un punto de partida. */
@@ -103,7 +103,7 @@ export function ConfigIntento({ intento, onCambio, candidatas, numericas = [], c
           {candidatas.length
             ? <SelectorPreguntaFiltro preguntas={candidatas} elegidas={intento.madre ? [intento.madre] : []} onElegir={(madre) => onCambio({ ...intento, madre })} etiqueta="Pregunta donde se marcaron" />
             : <p className="xcf-nota">No hay preguntas de selección antes de esta.</p>}
-          <span className="xcf-nota">Se muestran sólo las opciones marcadas en esa pregunta. Las dos tienen que usar la misma lista de opciones.</span>
+          <span className="xcf-nota">Las dos preguntas tienen que usar la misma lista.</span>
         </div>
       </div>
     );
@@ -131,7 +131,7 @@ export function ConfigIntento({ intento, onCambio, candidatas, numericas = [], c
           {numericas.length
             ? <SelectorPreguntaFiltro preguntas={numericas} elegidas={intento.pregunta ? [intento.pregunta] : []} onElegir={(pregunta) => onCambio({ ...intento, pregunta })} etiqueta="Respuesta numérica" />
             : <p className="xcf-nota">No hay preguntas numéricas antes de esta.</p>}
-          <span className="xcf-nota">{choices.columns.includes(intento.columna) ? "Ya existe en choices: se usan sus números." : "Se crea vacía en choices. Luego escribes el número de cada opción en la lista."}</span>
+          <span className="xcf-nota">{choices.columns.includes(intento.columna) ? "Ya existe en choices: se usan sus números." : "Columna nueva en choices, vacía: el número de cada opción se escribe en la lista."}</span>
         </div>
       </div>
     );

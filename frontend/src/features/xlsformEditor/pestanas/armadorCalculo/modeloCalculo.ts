@@ -21,11 +21,11 @@ export type TipoIntencion = Intencion["tipo"];
 
 /** Las cinco intenciones, con el nombre directo que ve quien arma. */
 export const INTENCIONES: { tipo: TipoIntencion; nombre: string; ejemplo: string }[] = [
-  { tipo: "segun", nombre: "Un valor según respuestas", ejemplo: "Si la edad es menor que 18, vale «menor»; si no, «adulto»" },
-  { tipo: "operar", nombre: "Una cuenta con números", ejemplo: "La suma de los hijos y las hijas" },
-  { tipo: "contar", nombre: "Cuántas opciones marcó", ejemplo: "Cuántos medios marcó en la pregunta 4" },
-  { tipo: "sortear", nombre: "Un sorteo", ejemplo: "Uno de «A» o «B», con la misma probabilidad o con pesos" },
-  { tipo: "unir", nombre: "Unir textos", ejemplo: "«Hola » y el nombre del encuestado" },
+  { tipo: "segun", nombre: "Valor por condiciones", ejemplo: "Si la edad es menor que 18, vale «menor»; si no, «adulto»" },
+  { tipo: "operar", nombre: "Operación con números", ejemplo: "La suma de los hijos y las hijas" },
+  { tipo: "contar", nombre: "Conteo de opciones marcadas", ejemplo: "Cuántos medios marcó en la pregunta 4" },
+  { tipo: "sortear", nombre: "Sorteo", ejemplo: "«A» o «B», equiprobable o con pesos" },
+  { tipo: "unir", nombre: "Unión de textos", ejemplo: "«Hola » y el nombre del encuestado" },
 ];
 
 export function intencionVacia(tipo: TipoIntencion): Intencion {
@@ -69,9 +69,9 @@ export function faltantes(i: Intencion): string[] {
       i.casos.forEach((c, k) => {
         if (!c.pregunta) out.push(`Caso ${k + 1}: falta la pregunta.`);
         if (!c.valor.trim()) out.push(`Caso ${k + 1}: falta el valor con que se compara.`);
-        if (!c.resultado.trim()) out.push(`Caso ${k + 1}: falta lo que vale.`);
+        if (!c.resultado.trim()) out.push(`Caso ${k + 1}: falta el resultado.`);
       });
-      if (!i.siNo.trim()) out.push("Falta lo que vale si no se cumple ningún caso.");
+      if (!i.siNo.trim()) out.push("Falta el valor por defecto.");
       break;
     case "operar":
       if (i.preguntas.filter(Boolean).length + (i.constante.trim() ? 1 : 0) < 2) out.push("Hacen falta al menos dos términos.");
@@ -81,7 +81,7 @@ export function faltantes(i: Intencion): string[] {
       if (!i.pregunta) out.push("Falta la pregunta de opción múltiple.");
       break;
     case "sortear": {
-      if (!i.azar) out.push("Falta el cálculo que guarda el número al azar.");
+      if (!i.azar) out.push("Falta el nombre del número al azar.");
       const llenos = i.valores.filter((x) => x.valor.trim());
       if (llenos.length < 2) out.push("Un sorteo necesita al menos dos valores.");
       const pesos = llenos.map((x) => x.peso.trim()).filter(Boolean);

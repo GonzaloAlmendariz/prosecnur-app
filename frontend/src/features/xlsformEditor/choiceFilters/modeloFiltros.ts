@@ -566,10 +566,19 @@ export function respuestasIniciales(a: AnalisisFiltro, choices: XlsformEditorShe
  * es una: repite las opciones que se marcaron en otra pregunta (E11b editor-conjoint, 2026-11-06).
  */
 export function nombreDeTipo(a: Pick<AnalisisFiltro, "tipo" | "cascada"> & { expresion?: string }): string {
-  if (a.tipo === "cascada" && a.cascada?.forma === "marcada" && a.cascada.columna === "name") return "Lo marcado antes";
-  // Una columna de la lista contra una respuesta o un número (`edad_min <= ${edad}`): se lee como comparación.
-  if (a.tipo === "expresion" && COMPARACION_SOLA.test((a.expresion ?? "").trim())) return "Comparación";
+  if (esMarcadasAntes(a)) return "Marcadas en otra pregunta";
+  if (esComparacion(a)) return "Comparación numérica";
   return NOMBRE_TIPO[a.tipo];
+}
+
+/** `selected(${q}, name)`: repite las opciones marcadas en otra pregunta. */
+export function esMarcadasAntes(a: Pick<AnalisisFiltro, "tipo" | "cascada">): boolean {
+  return a.tipo === "cascada" && a.cascada?.forma === "marcada" && a.cascada.columna === "name";
+}
+
+/** Una columna de la lista contra una respuesta o un número (`edad_min <= ${edad}`). */
+export function esComparacion(a: Pick<AnalisisFiltro, "tipo"> & { expresion?: string }): boolean {
+  return a.tipo === "expresion" && COMPARACION_SOLA.test((a.expresion ?? "").trim());
 }
 
 const COMPARACION_SOLA = /^(?:[A-Za-z_][\w.-]*\s*(?:<=|>=|<|>)\s*(?:\$\{[^}]+\}|-?\d+(?:\.\d+)?)|(?:\$\{[^}]+\}|-?\d+(?:\.\d+)?)\s*(?:<=|>=|<|>)\s*[A-Za-z_][\w.-]*)$/;

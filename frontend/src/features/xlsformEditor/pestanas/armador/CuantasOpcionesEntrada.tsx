@@ -79,18 +79,14 @@ export function CuantasOpcionesEntrada({
         </span>
         <div className="xfa-bloque__titulos">
           <h4 id={tituloId} className="xfa-bloque__titulo">
-            Cuántas opciones
+            Número de opciones
           </h4>
-          <p className="xfa-bloque__sub">
-            Límite de opciones que puede marcar
-            {totalOpciones ? `, de ${totalOpciones}` : ""}.
-          </p>
         </div>
       </header>
       <div
         className="xfa-cuantas__modos"
         role="radiogroup"
-        aria-label="Cuántas opciones puede marcar"
+        aria-label="Número de opciones que puede marcar"
       >
         {MODOS_CUANTAS.map((m) => (
           <button
@@ -136,7 +132,7 @@ export function CuantasOpcionesEntrada({
               onChange={(e) => cambiarNumero("max", e.target.value)}
             />
           ) : null}
-          <span>opciones.</span>
+          <span>opciones{totalOpciones ? ` de ${totalOpciones}` : ""}.</span>
         </div>
       ) : null}
       {problema ? (
