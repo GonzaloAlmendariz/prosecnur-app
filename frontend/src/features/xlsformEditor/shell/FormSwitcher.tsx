@@ -72,16 +72,20 @@ export function FormSwitcher({
     >
       <button
         type="button"
-        className="pulso-more-views-trigger pulso-xf-form-switcher-trigger"
+        // Mismo indicador que el contexto de los otros módulos (rótulo en versalitas y valor), ADR 0042.
+        className="pulso-chrome-indicator is-accion pulso-xf-form-switcher-trigger"
         onClick={() => setOpen((v) => !v)}
         aria-haspopup="menu"
         aria-expanded={open}
         title={`${label} — cambiar de formulario`}
         aria-label={`Formulario activo: ${label}. Cambiar de formulario`}
       >
-        <FileSpreadsheet size={13} aria-hidden="true" />
-        <span className="pulso-xf-form-switcher-label">{label}</span>
-        <ChevronDown size={13} aria-hidden="true" />
+        <small className="pulso-chrome-indicator-label">Formulario</small>
+        <strong className="pulso-chrome-indicator-value pulso-xf-form-switcher-valor">
+          <FileSpreadsheet size={12} aria-hidden="true" />
+          <span className="pulso-xf-form-switcher-label">{label}</span>
+          <ChevronDown size={12} aria-hidden="true" />
+        </strong>
       </button>
       {open && (
         <div className="pulso-more-views-menu pulso-xf-form-switcher-menu" role="menu">
