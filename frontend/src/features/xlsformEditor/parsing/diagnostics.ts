@@ -270,6 +270,8 @@ export function buildDiagnostics(
     if (!section.parentId) return;
     const parent = structure.sections.get(section.parentId);
     if (!parent || parent.kind === "root") return;
+    // Un grupo table-list (batería) o field-list (una página) se anida a propósito: es la forma de declararlo.
+    if (anidadoAProposito(structure.byRow.get(section.rowIndex)?.appearance)) return;
     diagnostics.push({
       id: `nested-section-${section.id}`,
       level: "info",
@@ -470,4 +472,10 @@ export function fusionarDiagnosticos(
     out.push(id.startsWith("ast-unparseable-") ? { ...d, level: "info" } : d);
   }
   return out;
+}
+
+/** `table-list` y `field-list` sólo tienen sentido en un grupo dentro de otro: no son un end_group olvidado. */
+function anidadoAProposito(appearance: string | undefined): boolean {
+  const tokens = (appearance ?? "").toLowerCase().split(/\s+/);
+  return tokens.includes("table-list") || tokens.includes("field-list");
 }

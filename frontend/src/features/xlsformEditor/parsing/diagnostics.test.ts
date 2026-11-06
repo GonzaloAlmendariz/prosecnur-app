@@ -38,6 +38,28 @@ describe("buildDiagnostics — estructura de secciones", () => {
     expect(nested?.title).toContain("Sección externa");
   });
 
+  test("un grupo table-list o field-list anidado no se avisa; uno con rótulo y sin appearance sí", () => {
+    const workbook = workbookFromSurvey([
+      ["begin_group", "externa", "Sección externa"],
+      ["begin_group", "bateria", "", "table-list"],
+      ["select_one sino", "p1", "P1"],
+      ["end_group", "", ""],
+      ["begin_group", "pagina", "Página", "field-list"],
+      ["text", "p2", "P2"],
+      ["end_group", "", ""],
+      ["begin_group", "olvidada", "Sección olvidada"],
+      ["text", "p3", "P3"],
+      ["end_group", "", ""],
+      ["end_group", "", ""],
+    ]);
+    workbook.survey.columns = ["type", "name", "label", "appearance"];
+    const anidadas = buildDiagnostics(workbook, buildXlsformIndex(workbook))
+      .filter((d) => d.id.startsWith("nested-section-"))
+      .map((d) => d.title);
+    expect(anidadas).toHaveLength(1);
+    expect(anidadas[0]).toContain("Sección olvidada");
+  });
+
   test("dos secciones al mismo nivel (raíz) NO generan aviso de anidamiento", () => {
     const workbook = workbookFromSurvey([
       ["begin_group", "a", "Sección A"],
