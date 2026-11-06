@@ -21,7 +21,7 @@
 }
 .xfv-fila:hover { background: var(--pulso-surface-2); }
 .xfv-fila.is-on { background: var(--module-accent-soft, var(--pulso-primary-soft)); box-shadow: inset 0 0 0 1px var(--module-accent-border, var(--pulso-primary-border)); }
-.xfv-fila:focus-visible { outline: 2px solid var(--pulso-primary-focus); outline-offset: -2px; }
+.xfv-fila:focus-visible { outline: var(--mov-foco, 2px solid var(--pulso-primary)); outline-offset: -2px; }
 .xfv-fila__sello { display: inline-grid; place-items: center; color: var(--pulso-text-muted); }
 .xfv-fila__preg, .xfv-fila__lee, .xfv-fila__dep { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .xfv-fila__preg code { margin-left: 6px; font: 11px ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--pulso-text-faint); }

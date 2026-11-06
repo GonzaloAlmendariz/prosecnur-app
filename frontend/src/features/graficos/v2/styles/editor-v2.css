@@ -320,7 +320,7 @@
 }
 
 .pulso-gv2-mode-tab:focus-visible {
-  outline: 2px solid var(--pulso-primary);
+  outline: var(--mov-foco, 2px solid var(--pulso-primary));
   outline-offset: 1px;
 }
 
@@ -2638,7 +2638,7 @@
 }
 
 .pulso-gv2-arg-group-trigger:focus-visible {
-  outline: 2px solid var(--pulso-primary);
+  outline: var(--mov-foco, 2px solid var(--pulso-primary));
   outline-offset: -3px;
 }
 

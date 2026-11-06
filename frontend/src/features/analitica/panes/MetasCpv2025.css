@@ -113,7 +113,7 @@
 }
 
 .pond-cpv-opcion:focus-visible {
-  outline: 2px solid var(--pulso-primary-focus);
+  outline: var(--mov-foco, 2px solid var(--pulso-primary));
   outline-offset: 1px;
 }
 

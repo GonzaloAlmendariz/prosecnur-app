@@ -86,7 +86,7 @@
 }
 
 .rec-imp-archivo:focus-within .rec-imp-archivo-caja {
-  outline: 2px solid var(--pulso-primary-focus);
+  outline: var(--mov-foco, 2px solid var(--pulso-primary));
   outline-offset: 2px;
 }
 

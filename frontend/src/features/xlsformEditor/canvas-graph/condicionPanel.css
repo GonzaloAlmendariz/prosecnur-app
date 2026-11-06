@@ -76,7 +76,7 @@
 
 .xfc-pie { flex-shrink: 0; display: flex; justify-content: flex-end; gap: 8px; padding: 10px 12px; border-top: 1px solid var(--pulso-border); background: var(--pulso-surface-2); }
 .xfc-pie button { display: inline-flex; align-items: center; gap: 5px; }
-.xfc-cab__x:focus-visible, .xfc-pie button:focus-visible, .xfc-op:has(input:focus-visible) { outline: 2px solid var(--pulso-primary-focus); outline-offset: 1px; }
+.xfc-cab__x:focus-visible, .xfc-pie button:focus-visible, .xfc-op:has(input:focus-visible) { outline: var(--mov-foco, 2px solid var(--pulso-primary)); outline-offset: 1px; }
 @media (prefers-reduced-motion: reduce) { .xfc-panel { transition: none; transform: none; } }
 .xfc-panel .xfc-buscar input:focus, .xfc-panel .xfc-buscar input:focus-visible { outline: 0; border: 0; box-shadow: none; }
 /* El lienzo recibe el foco al cerrar el panel (tabindex -1): sin anillo, no es un control. */

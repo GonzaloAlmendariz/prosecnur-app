@@ -44,7 +44,7 @@
   text-align: left; text-decoration: line-through; cursor: pointer;
 }
 .pulso-f6-cita-fragmento.is-elegido { border-style: solid; border-color: var(--module-accent-border); background: var(--module-accent-soft); color: var(--pulso-text); text-decoration: none; }
-.pulso-f6-cita-fragmento:focus-visible { outline: 2px solid var(--module-accent); outline-offset: 1px; }
+.pulso-f6-cita-fragmento:focus-visible { outline: var(--mov-foco, 2px solid var(--pulso-primary)); outline-offset: 1px; }
 .pulso-f6-cita-vista { margin: 0; font-size: var(--pulso-type-body-size); line-height: 1.45; color: var(--pulso-text-soft); overflow-wrap: anywhere; }
 .pulso-f6-cita-area { min-height: 84px; resize: vertical; font-size: var(--pulso-type-body-size); line-height: 1.45; }
 .pulso-f6-citas-mas { align-self: flex-start; }

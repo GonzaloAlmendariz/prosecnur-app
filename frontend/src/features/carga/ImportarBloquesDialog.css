@@ -79,7 +79,7 @@
 }
 
 .pulso-bloques-cerrar:focus-visible {
-  outline: 2px solid var(--module-accent);
+  outline: var(--mov-foco, 2px solid var(--pulso-primary));
   outline-offset: 2px;
 }
 
@@ -270,7 +270,7 @@
 }
 
 .pulso-bloques-grupo summary:focus-visible {
-  outline: 2px solid var(--module-accent);
+  outline: var(--mov-foco, 2px solid var(--pulso-primary));
   outline-offset: -2px;
 }
 

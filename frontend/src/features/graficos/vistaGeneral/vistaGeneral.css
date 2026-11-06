@@ -1482,7 +1482,7 @@
   transition: border-color var(--motion-dur-fast) var(--motion-ease-out), color var(--motion-dur-fast) var(--motion-ease-out);
 }
 .pulso-f6-vg-otros-enlace:hover { border-color: var(--module-accent-border); color: var(--pulso-text); }
-.pulso-f6-vg-otros-enlace:focus-visible { outline: 2px solid var(--module-accent); outline-offset: 2px; }
+.pulso-f6-vg-otros-enlace:focus-visible { outline: var(--mov-foco, 2px solid var(--pulso-primary)); outline-offset: 2px; }
 .pulso-f6-vg-otros-enlace.is-activo {
   border-color: var(--module-accent-border);
   background: var(--module-accent-soft);

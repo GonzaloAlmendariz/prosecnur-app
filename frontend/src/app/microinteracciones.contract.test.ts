@@ -150,9 +150,31 @@ describe("microinteracciones · presión con nombre", () => {
     expect(guardadas).toBeGreaterThan(100);
   });
 
+  test("ningún foco se dibuja con --pulso-primary-focus (navy al 15 %: invisible) — se usa --mov-foco", () => {
+    // Foto del 6 nov 2026: 70 focos usaban ese token; tras migrar 153 anillos genéricos sólo queda uno en
+    // Monitoreo (zona de otra sesión). Sólo baja.
+    const PERMITIDOS: Record<string, number> = { "features/monitoreo/estados/paletaDeFamilias.css": 1 };
+    let focosVistos = 0;
+    const regresiones: string[] = [];
+    for (const f of hojas(SRC)) {
+      const rel = path.relative(SRC, f).split(path.sep).join("/");
+      const limpio = fs.readFileSync(f, "utf8").replace(/\/\*[\s\S]*?\*\//g, "");
+      let n = 0;
+      for (const m of limpio.matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
+        if (!m[1].includes(":focus")) continue;
+        focosVistos += 1;
+        if (/(?<![-\w])outline:[^;]*--pulso-primary-focus/.test(m[2])) n += 1;
+      }
+      if (n > (PERMITIDOS[rel] ?? 0)) regresiones.push(`${rel}: ${PERMITIDOS[rel] ?? 0} → ${n}`);
+    }
+    expect(focosVistos, "vacuna: el censo encuentra reglas de foco").toBeGreaterThan(500);
+    expect(regresiones, "outline: var(--mov-foco, 2px solid var(--pulso-primary))").toEqual([]);
+  });
+
   test("los tokens y la regla base existen", () => {
     const mov = fs.readFileSync(path.join(SRC, "app/movimiento.css"), "utf8");
     expect(mov).toMatch(/--mov-press:\s*0\.97/);
+    expect(mov).toMatch(/--mov-foco:\s*2px solid var\(--module-accent, var\(--pulso-primary\)\)/);
     expect(mov).toMatch(/--mov-press-tarjeta:\s*0\.985/);
     expect(mov).toMatch(/:where\(button[^)]*\)[\s\S]*?:active\s*\{\s*transform: scale\(var\(--mov-press\)\)/);
   });

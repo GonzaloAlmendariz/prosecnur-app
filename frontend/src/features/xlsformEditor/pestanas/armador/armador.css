@@ -152,7 +152,7 @@
 .xfa-btn--primario { border-color: var(--pulso-primary); background: var(--pulso-primary); color: var(--pulso-surface); }
 .xfa-btn--primario:hover:not(:disabled) { border-color: var(--pulso-primary); filter: brightness(1.05); }
 
-.xfa :is(button, input, select, summary):focus-visible { outline: 2px solid var(--pulso-primary-focus); outline-offset: 1px; }
+.xfa :is(button, input, select, summary):focus-visible { outline: var(--mov-foco, 2px solid var(--pulso-primary)); outline-offset: 1px; }
 .xfa-agregar { position: relative; justify-self: start; }
 .xfa-menu {
   position: absolute;
@@ -255,7 +255,7 @@
   cursor: pointer;
 }
 .xfa-entrada:hover { border-color: var(--pulso-border-strong); }
-.xfa-entrada:focus-visible { outline: 2px solid var(--pulso-primary-focus); outline-offset: 1px; }
+.xfa-entrada:focus-visible { outline: var(--mov-foco, 2px solid var(--pulso-primary)); outline-offset: 1px; }
 .xfa-entrada svg { width: 15px; height: 15px; color: var(--pulso-tipo-texto); flex-shrink: 0; }
 .xfa-entrada__nombre { font-weight: var(--pulso-weight-semibold); }
 .xfa-entrada__lectura { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--pulso-text-soft); }

@@ -195,7 +195,7 @@ label.pulso-cv2-pal-texto {
   color: var(--pulso-text);
 }
 .pulso-cv2-pal-accion:focus-visible {
-  outline: 2px solid var(--module-accent);
+  outline: var(--mov-foco, 2px solid var(--pulso-primary));
   outline-offset: 2px;
 }
 
@@ -235,7 +235,7 @@ label.pulso-cv2-pal-texto {
   border-radius: var(--pulso-radius-card);
 }
 .pulso-cv2-pal-ajustes-resumen:focus-visible {
-  outline: 2px solid var(--module-accent);
+  outline: var(--mov-foco, 2px solid var(--pulso-primary));
   outline-offset: 2px;
 }
 .pulso-cv2-pal-ajustes-titulo {

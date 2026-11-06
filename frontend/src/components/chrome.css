@@ -205,7 +205,7 @@
 }
 
 .pulso-chrome-indicator.is-accion:focus-visible {
-  outline: 2px solid var(--module-accent, var(--pulso-primary));
+  outline: var(--mov-foco, 2px solid var(--pulso-primary));
   outline-offset: 1px;
 }
 

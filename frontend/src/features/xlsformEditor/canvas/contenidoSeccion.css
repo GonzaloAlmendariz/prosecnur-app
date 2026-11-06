@@ -10,7 +10,7 @@
   color: var(--pulso-text); font: inherit; font-size: var(--pulso-type-body-size); text-align: left; cursor: pointer; box-shadow: none; min-height: 0;
 }
 .xfcs__fila:hover { background: var(--pulso-surface-2); }
-.xfcs__fila:focus-visible { outline: 2px solid var(--pulso-primary-focus); outline-offset: -2px; }
+.xfcs__fila:focus-visible { outline: var(--mov-foco, 2px solid var(--pulso-primary)); outline-offset: -2px; }
 .xfcs__num { color: var(--pulso-text-muted); font-size: var(--pulso-type-subtitle-size); font-weight: var(--pulso-weight-semibold); font-variant-numeric: tabular-nums; }
 .xfcs__txt { min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 .xfcs__marcas { display: inline-flex; align-items: center; gap: 6px; }

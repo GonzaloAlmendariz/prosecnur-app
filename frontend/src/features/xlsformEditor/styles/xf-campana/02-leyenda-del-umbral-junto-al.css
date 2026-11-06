@@ -95,7 +95,7 @@ button.pulso-xf-campana-contador:hover {
 }
 
 button.pulso-xf-campana-contador:focus-visible {
-  outline: 2px solid var(--module-accent);
+  outline: var(--mov-foco, 2px solid var(--pulso-primary));
   outline-offset: 2px;
 }
 
@@ -327,7 +327,7 @@ button.pulso-xf-campana-contador[aria-expanded="true"] .pulso-xf-campana-contado
 }
 
 .pulso-xf-home-card-campanas-chip:focus-visible {
-  outline: 2px solid var(--pulso-primary-focus);
+  outline: var(--mov-foco, 2px solid var(--pulso-primary));
   outline-offset: 1px;
 }
 
@@ -439,7 +439,7 @@ button.pulso-xf-campana-contador[aria-expanded="true"] .pulso-xf-campana-contado
 
 .pulso-xf-home-card-campana-quitar:focus-visible,
 .pulso-xf-home-card-campana-confirmar button:focus-visible {
-  outline: 2px solid var(--pulso-primary-focus);
+  outline: var(--mov-foco, 2px solid var(--pulso-primary));
   outline-offset: 1px;
 }
 
@@ -459,7 +459,7 @@ button.pulso-xf-campana-contador[aria-expanded="true"] .pulso-xf-campana-contado
 }
 
 .pulso-xf-campana-veredicto-estado:focus-visible {
-  outline: 2px solid var(--module-accent);
+  outline: var(--mov-foco, 2px solid var(--pulso-primary));
   outline-offset: 3px;
   border-radius: 4px;
 }

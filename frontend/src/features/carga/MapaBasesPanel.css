@@ -78,7 +78,7 @@
 }
 
 .pulso-mapa-resumen-ir:focus-visible {
-  outline: 2px solid var(--module-accent);
+  outline: var(--mov-foco, 2px solid var(--pulso-primary));
   outline-offset: 2px;
   border-radius: var(--pulso-radius-chip);
 }
@@ -107,7 +107,7 @@
 }
 
 .pulso-mapa-tabla-wrap:focus-visible {
-  outline: 2px solid var(--module-accent);
+  outline: var(--mov-foco, 2px solid var(--pulso-primary));
   outline-offset: 2px;
 }
 
@@ -212,7 +212,7 @@
 }
 
 .pulso-mapa-buscar input:focus-visible {
-  outline: 2px solid var(--module-accent);
+  outline: var(--mov-foco, 2px solid var(--pulso-primary));
   outline-offset: 1px;
 }
 
@@ -286,6 +286,6 @@
 }
 
 .pulso-mapa-metadatos > summary:focus-visible {
-  outline: 2px solid var(--module-accent);
+  outline: var(--mov-foco, 2px solid var(--pulso-primary));
   outline-offset: 2px;
 }

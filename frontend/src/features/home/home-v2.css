@@ -2467,7 +2467,7 @@
 .home-connection-form input[type="text"]:focus,
 .home-connection-form select:focus,
 .home-connection-form textarea:focus {
-  outline: 2px solid var(--pulso-primary-focus);
+  outline: var(--mov-foco, 2px solid var(--pulso-primary));
   border-color: var(--pulso-primary-border);
 }
 

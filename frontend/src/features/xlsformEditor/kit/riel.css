@@ -28,7 +28,7 @@
 .xfk-riel > button.xfk-casilla.is-on:hover,
 .xfk-riel > button.xfk-casilla[aria-expanded="true"] { background: color-mix(in srgb, var(--xfk-c) 14%, transparent); }
 .xfk-riel > button.xfk-casilla:not(.is-on)[aria-expanded="true"] { background: color-mix(in srgb, var(--pulso-text) 6%, transparent); }
-.xfk-casilla:focus-visible { outline: 2px solid var(--pulso-primary); outline-offset: 1px; }
+.xfk-casilla:focus-visible { outline: var(--mov-foco, 2px solid var(--pulso-primary)); outline-offset: 1px; }
 
 /* Cabecera de columnas: misma rejilla que el riel (línea + aire) y el mismo margen derecho que la fila. Los glifos
  * de las marcas en gris tenue, con su nombre en title y aria-label. */
@@ -106,7 +106,7 @@
 }
 .xfk-pop button.xfk-pop__x { min-width: 0; min-height: 0; padding: 0; box-shadow: none; }
 .xfk-pop__x:hover { background: color-mix(in srgb, var(--pulso-text) 6%, transparent); color: var(--pulso-text); }
-.xfk-pop__x:focus-visible { outline: 2px solid var(--pulso-primary); outline-offset: 1px; }
+.xfk-pop__x:focus-visible { outline: var(--mov-foco, 2px solid var(--pulso-primary)); outline-offset: 1px; }
 
 .xfk-pop__cuerpo { display: grid; gap: 10px; padding: 12px 14px 14px; }
 .xfk-pop__bloque { display: grid; gap: 6px; }
@@ -143,7 +143,7 @@
 }
 .xfk-pop__codigo[open] summary::before { transform: rotate(45deg); }
 .xfk-pop__codigo summary:hover { color: var(--pulso-text); }
-.xfk-pop__codigo summary:focus-visible { outline: 2px solid var(--pulso-primary); outline-offset: 2px; border-radius: 4px; }
+.xfk-pop__codigo summary:focus-visible { outline: var(--mov-foco, 2px solid var(--pulso-primary)); outline-offset: 2px; border-radius: 4px; }
 .xfk-pop__code {
   display: block; margin-top: 6px; padding: 7px 9px; border-radius: 8px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: var(--pulso-type-caption-size); background: color-mix(in srgb, var(--pulso-text) 5%, transparent); color: var(--pulso-text); overflow-wrap: anywhere;

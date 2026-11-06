@@ -108,7 +108,7 @@
 }
 .xcf-item:hover { background: color-mix(in srgb, var(--pulso-text) 4%, transparent); }
 .xcf-item.is-elegido { background: var(--xcf-acento-suave); border-color: var(--xcf-acento-borde); }
-.xcf-item:focus-visible { outline: 2px solid var(--pulso-primary-focus); outline-offset: 1px; }
+.xcf-item:focus-visible { outline: var(--mov-foco, 2px solid var(--pulso-primary)); outline-offset: 1px; }
 .xcf-item__r1 { display: grid; grid-template-columns: 7.5em minmax(0, 1fr); align-items: baseline; gap: 8px; min-width: 0; }
 .xcf-item__codigo { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--pulso-text-soft); }
 .xcf-item__titulo { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: var(--pulso-weight-semibold); }
@@ -237,7 +237,7 @@
   border-radius: var(--pulso-radius);
   background: var(--pulso-surface);
 }
-.xcf-matriz__marco:focus-visible { outline: 2px solid var(--pulso-primary-focus); outline-offset: 1px; }
+.xcf-matriz__marco:focus-visible { outline: var(--mov-foco, 2px solid var(--pulso-primary)); outline-offset: 1px; }
 .xcf-matriz__tope { padding: 8px 12px; }
 
 .xcf-mx { border-collapse: separate; border-spacing: 0; min-width: 100%; font-size: var(--pulso-type-body-size); }
@@ -308,7 +308,7 @@
 }
 .xcf-celda:hover:not(:disabled) { background: color-mix(in srgb, var(--pulso-text) 6%, transparent); }
 .xcf-celda:disabled { cursor: default; }
-.xcf-celda:focus-visible { outline: 2px solid var(--pulso-primary-focus); outline-offset: 0; }
+.xcf-celda:focus-visible { outline: var(--mov-foco, 2px solid var(--pulso-primary)); outline-offset: 0; }
 .xcf-celda__marca {
   width: 14px;
   height: 14px;
@@ -344,7 +344,7 @@
   transition: background-color var(--xcf-t) ease, border-color var(--xcf-t) ease;
 }
 .xcf-tira__op[aria-pressed="true"] { border-color: var(--xcf-acento-borde); background: var(--xcf-acento-suave); color: var(--pulso-text); }
-.xcf-tira__op:focus-visible { outline: 2px solid var(--pulso-primary-focus); outline-offset: 1px; }
+.xcf-tira__op:focus-visible { outline: var(--mov-foco, 2px solid var(--pulso-primary)); outline-offset: 1px; }
 
 /* Lista de casillas (filtro fijo) y de opciones (expresión) */
 .xcf-casillas { margin: 0; padding: 4px; list-style: none; display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 1px 8px; }
@@ -391,7 +391,7 @@
   color: var(--pulso-text-muted);
 }
 .xcf-busca input { flex: 1; min-width: 0; border: 0; outline: 0; background: transparent; font: inherit; color: var(--pulso-text); }
-.xcf-busca:focus-within { outline: 2px solid var(--pulso-primary-focus); outline-offset: 0; }
+.xcf-busca:focus-within { outline: var(--mov-foco, 2px solid var(--pulso-primary)); outline-offset: 0; }
 .xcf-input {
   box-sizing: border-box;
   width: 100%;
@@ -404,7 +404,7 @@
   color: var(--pulso-text);
 }
 .xcf-input.is-mono { font-family: var(--xcf-mono); font-size: var(--pulso-type-body-size); }
-.xcf-input:focus-visible { outline: 2px solid var(--pulso-primary-focus); outline-offset: 0; }
+.xcf-input:focus-visible { outline: var(--mov-foco, 2px solid var(--pulso-primary)); outline-offset: 0; }
 .xcf-expresion { resize: vertical; line-height: 1.5; }
 
 /* ── Qué ve el encuestado ─────────────────────────────────────────────────── */
@@ -489,7 +489,7 @@
 .xcf-intencion span { font-size: var(--pulso-type-body-size); color: var(--pulso-text-muted); }
 .xcf-intencion:hover { border-color: var(--pulso-border-strong); }
 .xcf-intencion.is-on { border-color: var(--xcf-acento-borde); background: var(--xcf-acento-suave); }
-.xcf-intencion:focus-visible { outline: 2px solid var(--pulso-primary-focus); outline-offset: 1px; }
+.xcf-intencion:focus-visible { outline: var(--mov-foco, 2px solid var(--pulso-primary)); outline-offset: 1px; }
 
 .xcf-config { display: flex; flex-direction: column; gap: 12px; }
 .xcf-config.is-fila { flex-direction: row; flex-wrap: wrap; align-items: flex-end; }
@@ -502,13 +502,13 @@
 .xcf-elegidas li { display: inline-flex; align-items: center; gap: 4px; padding: 1px 4px 1px 8px; border: 1px solid var(--xcf-acento-borde); border-radius: 999px; background: var(--xcf-acento-suave); }
 .xcf-icono { display: grid; place-items: center; width: 18px; height: 18px; padding: 0; border: 0; border-radius: 50%; background: transparent; color: var(--pulso-text-muted); cursor: pointer; }
 .xcf-icono:hover { background: color-mix(in srgb, var(--pulso-text) 8%, transparent); color: var(--pulso-text); }
-.xcf-icono:focus-visible { outline: 2px solid var(--pulso-primary-focus); outline-offset: 1px; }
+.xcf-icono:focus-visible { outline: var(--mov-foco, 2px solid var(--pulso-primary)); outline-offset: 1px; }
 
 /* ── Selector de pregunta ─────────────────────────────────────────────────── */
 .xcf-sel { display: flex; flex-direction: column; border: 1px solid var(--pulso-border-strong); border-radius: 8px; background: var(--pulso-surface); overflow: hidden; }
 .xcf-sel__busca { display: flex; align-items: center; gap: 6px; padding: 0 10px; height: 32px; border-bottom: 1px solid var(--pulso-border); color: var(--pulso-text-muted); }
 .xcf-sel__busca input { flex: 1; min-width: 0; border: 0; outline: 0; background: transparent; font: inherit; color: var(--pulso-text); }
-.xcf-sel:focus-within { outline: 2px solid var(--pulso-primary-focus); outline-offset: 0; }
+.xcf-sel:focus-within { outline: var(--mov-foco, 2px solid var(--pulso-primary)); outline-offset: 0; }
 .xcf-sel__lista { margin: 0; padding: 4px; list-style: none; max-height: 232px; overflow-y: auto; overscroll-behavior: contain; }
 .xcf-sel__op {
   display: grid;

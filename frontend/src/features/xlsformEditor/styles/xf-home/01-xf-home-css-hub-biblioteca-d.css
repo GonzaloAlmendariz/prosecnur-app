@@ -403,7 +403,7 @@
 }
 
 .pulso-xf-home-card-select select:focus-visible {
-  outline: 2px solid var(--pulso-primary-focus);
+  outline: var(--mov-foco, 2px solid var(--pulso-primary));
   outline-offset: 1px;
   border-color: var(--pulso-module-editor-border);
 }
@@ -446,7 +446,7 @@
 }
 
 .pulso-xf-home-card-sugerencia:focus-visible {
-  outline: 2px solid var(--pulso-primary-focus);
+  outline: var(--mov-foco, 2px solid var(--pulso-primary));
   outline-offset: 1px;
 }
 

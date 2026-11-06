@@ -46,7 +46,7 @@
 
 .pulso-compuesto-campo input:focus-visible,
 .pulso-compuesto-buscar input:focus-visible {
-  outline: 2px solid var(--module-accent);
+  outline: var(--mov-foco, 2px solid var(--pulso-primary));
   outline-offset: 1px;
 }
 
@@ -142,7 +142,7 @@
 
 .pulso-compuesto-resultados button:focus-visible,
 .pulso-compuesto-opcion:focus-visible {
-  outline: 2px solid var(--module-accent);
+  outline: var(--mov-foco, 2px solid var(--pulso-primary));
   outline-offset: 1px;
 }
 
@@ -224,7 +224,7 @@
 }
 
 .pulso-compuesto-celda:focus-visible {
-  outline: 2px solid var(--module-accent);
+  outline: var(--mov-foco, 2px solid var(--pulso-primary));
   outline-offset: 2px;
 }
 

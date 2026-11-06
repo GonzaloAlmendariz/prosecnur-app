@@ -121,7 +121,7 @@
 }
 
 .pulso-xf-campana-copiar:focus-visible {
-  outline: 2px solid var(--module-accent);
+  outline: var(--mov-foco, 2px solid var(--pulso-primary));
   outline-offset: 1px;
 }
 
@@ -144,7 +144,7 @@
 }
 
 .pulso-xf-campana-cerrar:focus-visible {
-  outline: 2px solid var(--module-accent);
+  outline: var(--mov-foco, 2px solid var(--pulso-primary));
   outline-offset: 2px;
 }
 
@@ -235,7 +235,7 @@
 }
 
 .pulso-xf-campana-campo input:focus-visible {
-  outline: 2px solid var(--module-accent);
+  outline: var(--mov-foco, 2px solid var(--pulso-primary));
   outline-offset: 1px;
 }
 
@@ -318,7 +318,7 @@
 }
 
 .pulso-xf-campana-encuesta:focus-visible {
-  outline: 2px solid var(--module-accent);
+  outline: var(--mov-foco, 2px solid var(--pulso-primary));
   outline-offset: 2px;
 }
 

@@ -102,6 +102,10 @@
    :where() (especificidad 0): cualquier regla de un módulo —incluida una que fije su transform para
    posicionar— gana sin pelear, así que no mueve nada que ya estuviera puesto. */
 :root {
+  /* Foco visible (6 nov 2026): 2 px sólidos en el tono del módulo, azul de marca fuera de un módulo. Medido ese
+     día: 70 reglas dibujaban el foco con --pulso-primary-focus, que es navy al 15 %: un anillo de ~1,2:1 de
+     contraste, invisible para quien navega con teclado (WCAG 2.4.7 / 1.4.11 piden 3:1). */
+  --mov-foco: 2px solid var(--module-accent, var(--pulso-primary));
   --mov-press: 0.97;
   --mov-press-tarjeta: 0.985;
   --mov-hover-lift: -1px;

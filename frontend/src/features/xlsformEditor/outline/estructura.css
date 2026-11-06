@@ -64,7 +64,7 @@
 }
 .pulso-xlsform-frame .xfe-barra__icono:hover:not(:disabled) { color: var(--pulso-text); border-color: var(--pulso-border-strong); }
 .pulso-xlsform-frame .xfe-barra__icono:disabled { opacity: 0.45; cursor: default; }
-.xfe-barra__icono:focus-visible, .xfe-filtro:focus-visible { outline: 2px solid var(--pulso-primary); outline-offset: 1px; }
+.xfe-barra__icono:focus-visible, .xfe-filtro:focus-visible { outline: var(--mov-foco, 2px solid var(--pulso-primary)); outline-offset: 1px; }
 .xfe-barra__estado {
   display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: var(--pulso-type-caption-size); color: var(--pulso-text-faint);
   font-variant-numeric: tabular-nums;
@@ -189,7 +189,7 @@
   opacity: 1; transform: none; pointer-events: auto;
 }
 .pulso-xlsform-frame .xfe-mas:hover { background: var(--pulso-primary); color: var(--pulso-surface); }
-.xfe-mas:focus-visible { outline: 2px solid var(--pulso-primary); outline-offset: 1px; }
+.xfe-mas:focus-visible { outline: var(--mov-foco, 2px solid var(--pulso-primary)); outline-offset: 1px; }
 .xfe-seccion__pie > .xfe-mas { bottom: -7px; }
 .xfe-arbol.is-arrastrando .xfe-mas { display: none; }
 

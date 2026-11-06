@@ -113,7 +113,7 @@
 .pulso-cv2-modsug-banda-accion:focus-visible,
 .pulso-cv2-modsug-deshacer:focus-visible,
 .pulso-cv2-modsug-chip:focus-visible {
-  outline: 2px solid var(--pulso-primary);
+  outline: var(--mov-foco, 2px solid var(--pulso-primary));
   outline-offset: 1px;
 }
 .pulso-cv2-modsug-banda-estado {

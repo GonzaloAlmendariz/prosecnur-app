@@ -1665,7 +1665,7 @@
 
 .pulso-carga-frame .pulso-processing-intake-fields input:focus-visible,
 .pulso-carga-frame .pulso-processing-intake-fields select:focus-visible {
-  outline: 2px solid var(--pulso-primary);
+  outline: var(--mov-foco, 2px solid var(--pulso-primary));
   outline-offset: 1px;
   border-color: var(--pulso-primary-border);
 }
@@ -1831,7 +1831,7 @@
 .pulso-carga-frame .pulso-acreditacion-batch a:focus-visible,
 .pulso-carga-frame .pulso-acreditacion-batch summary:focus-visible,
 .pulso-carga-frame .pulso-acreditacion-batch input:focus-visible {
-  outline: 2px solid var(--pulso-primary);
+  outline: var(--mov-foco, 2px solid var(--pulso-primary));
   outline-offset: 2px;
 }
 
@@ -3865,7 +3865,7 @@
 }
 
 .pulso-sm-logic-reference-select select:focus {
-  outline: 2px solid var(--pulso-primary-focus);
+  outline: var(--mov-foco, 2px solid var(--pulso-primary));
   outline-offset: 1px;
   border-color: var(--pulso-primary-border);
 }
@@ -3895,7 +3895,7 @@
 }
 
 .pulso-sm-logic-reference-rules textarea:focus {
-  outline: 2px solid var(--pulso-primary-focus);
+  outline: var(--mov-foco, 2px solid var(--pulso-primary));
   outline-offset: 1px;
   border-color: var(--pulso-primary-border);
 }

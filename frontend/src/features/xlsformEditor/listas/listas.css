@@ -88,7 +88,7 @@
 }
 
 .pulso-xf-listas-cerrar:focus-visible {
-  outline: 2px solid var(--module-accent);
+  outline: var(--mov-foco, 2px solid var(--pulso-primary));
   outline-offset: 1px;
 }
 
@@ -312,7 +312,7 @@
 }
 
 .pulso-xf-listas-campo input:focus-visible {
-  outline: 2px solid var(--module-accent);
+  outline: var(--mov-foco, 2px solid var(--pulso-primary));
   outline-offset: 0;
 }
 

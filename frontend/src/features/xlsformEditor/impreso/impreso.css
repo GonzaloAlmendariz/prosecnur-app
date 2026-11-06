@@ -210,7 +210,7 @@
 }
 
 .pulso-xf-imp-sueltas > summary:focus-visible {
-  outline: 2px solid var(--module-accent, var(--pulso-primary));
+  outline: var(--mov-foco, 2px solid var(--pulso-primary));
   outline-offset: -2px;
   border-radius: var(--pulso-radius-card);
 }
@@ -270,7 +270,7 @@
 }
 
 .pulso-xf-imp-papel-fila:focus-visible {
-  outline: 2px solid var(--module-accent, var(--pulso-primary));
+  outline: var(--mov-foco, 2px solid var(--pulso-primary));
   outline-offset: -2px;
 }
 

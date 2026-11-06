@@ -113,7 +113,7 @@
 }
 
 .pulso-armon-cerrar:focus-visible {
-  outline: 2px solid var(--module-accent);
+  outline: var(--mov-foco, 2px solid var(--pulso-primary));
   outline-offset: 2px;
 }
 
@@ -554,7 +554,7 @@
 
 .pulso-armon-seccion .pulso-panel-title [tabindex="-1"]:focus-visible,
 .pulso-armon-seccion-head h3:focus-visible {
-  outline: 2px solid var(--module-accent);
+  outline: var(--mov-foco, 2px solid var(--pulso-primary));
   outline-offset: 2px;
   border-radius: var(--pulso-radius-chip);
 }
@@ -626,7 +626,7 @@
 }
 
 .pulso-armon-indice button:focus-visible {
-  outline: 2px solid var(--module-accent);
+  outline: var(--mov-foco, 2px solid var(--pulso-primary));
   outline-offset: 2px;
 }
 
@@ -647,7 +647,7 @@
 }
 
 .pulso-armon-como > summary:focus-visible {
-  outline: 2px solid var(--module-accent);
+  outline: var(--mov-foco, 2px solid var(--pulso-primary));
   outline-offset: 2px;
   border-radius: var(--pulso-radius-chip);
 }

@@ -493,7 +493,7 @@
 .pulso-cf-iguales summary span { color: var(--pulso-text-muted); font-weight: var(--pulso-weight-medium); }
 
 .pulso-cf-iguales summary:focus-visible {
-  outline: 2px solid var(--module-accent);
+  outline: var(--mov-foco, 2px solid var(--pulso-primary));
   outline-offset: -2px;
   border-radius: var(--pulso-radius-card);
 }
@@ -560,7 +560,7 @@
 }
 
 .pulso-cf-selector select:focus-visible {
-  outline: 2px solid var(--module-accent);
+  outline: var(--mov-foco, 2px solid var(--pulso-primary));
   outline-offset: 1px;
 }
 

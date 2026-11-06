@@ -57,7 +57,7 @@
 }
 
 .xfe-alta .pulso-add-element-menu-item.xfe-alta__item:focus-visible {
-  outline: 2px solid var(--pulso-primary);
+  outline: var(--mov-foco, 2px solid var(--pulso-primary));
   outline-offset: -2px;
   border-color: transparent;
   background: var(--pulso-primary-soft);

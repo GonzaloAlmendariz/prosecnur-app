@@ -144,7 +144,7 @@
 .rec-ed-enlace:focus-visible {
   border-radius: 3px;
   box-shadow: none;
-  outline: 2px solid var(--pulso-primary-focus);
+  outline: var(--mov-foco, 2px solid var(--pulso-primary));
   outline-offset: 2px;
 }
 
@@ -300,7 +300,7 @@
 
 .rec-ed-fila:focus-visible {
   box-shadow: none;
-  outline: 2px solid var(--pulso-primary-focus);
+  outline: var(--mov-foco, 2px solid var(--pulso-primary));
   outline-offset: -2px;
 }
 

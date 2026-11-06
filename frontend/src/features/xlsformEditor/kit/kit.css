@@ -81,7 +81,7 @@
 }
 .xfk-prow--action { all: unset; box-sizing: border-box; width: 100%; cursor: pointer; display: grid; grid-template-columns: 104px minmax(0, 1fr); align-items: center; gap: 10px; min-height: 32px; padding: 0 10px; border-radius: var(--pulso-radius-chip); font-size: var(--pulso-type-body-size); color: var(--pulso-text); transition: background-color var(--motion-dur-fast) var(--motion-ease-out); }
 .xfk-prow--action:hover { background: var(--pulso-surface-2); }
-.xfk-prow--action:focus-visible { outline: 2px solid var(--pulso-primary-focus); outline-offset: -2px; }
+.xfk-prow--action:focus-visible { outline: var(--mov-foco, 2px solid var(--pulso-primary)); outline-offset: -2px; }
 .xfk-prow__label { color: var(--pulso-text-muted); font-size: var(--pulso-type-body-size); }
 .xfk-prow__value { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
@@ -111,7 +111,7 @@
 .xfk-seg--md .xfk-seg__opt { height: 24px; }
 .xfk-seg--sm .xfk-seg__opt { height: 22px; font-size: var(--pulso-type-body-size); padding: 0 8px; }
 .xfk-seg__opt.is-on { background: var(--pulso-surface); color: var(--pulso-text); box-shadow: var(--pulso-shadow-low); }
-.xfk-seg__opt:focus-visible { outline: 2px solid var(--pulso-primary-focus); outline-offset: 1px; }
+.xfk-seg__opt:focus-visible { outline: var(--mov-foco, 2px solid var(--pulso-primary)); outline-offset: 1px; }
 .xfk-seg__count { color: var(--pulso-text-faint); }
 
 /* — Ícono de tipo enmarcado — */
@@ -174,7 +174,7 @@
   background: var(--pulso-surface); color: var(--pulso-text); font: inherit; font-size: var(--pulso-type-body-size); text-align: left; cursor: pointer; box-shadow: none;
 }
 .xfk-selpreg__boton:disabled { background: var(--pulso-surface-2); color: var(--pulso-text-muted); cursor: not-allowed; }
-.xfk-selpreg__boton:focus-visible { outline: 2px solid var(--pulso-primary-focus); outline-offset: 0; border-color: var(--pulso-primary); }
+.xfk-selpreg__boton:focus-visible { outline: var(--mov-foco, 2px solid var(--pulso-primary)); outline-offset: 0; border-color: var(--pulso-primary); }
 .xfk-selpreg.is-abierto .xfk-selpreg__boton { border-color: var(--pulso-primary); }
 .xfk-selpreg__elegida, .xfk-selpreg__op { display: flex; align-items: center; gap: 8px; min-width: 0; }
 .xfk-selpreg__elegida b, .xfk-selpreg__op b { flex: none; font-size: var(--pulso-type-subtitle-size); font-weight: var(--pulso-weight-semibold); color: var(--pulso-text); }

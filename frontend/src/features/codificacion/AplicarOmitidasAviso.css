@@ -132,7 +132,7 @@
 }
 
 .pulso-codif-omitidas-titulo:focus-visible {
-  outline: 2px solid var(--pulso-primary);
+  outline: var(--mov-foco, 2px solid var(--pulso-primary));
   outline-offset: 2px;
   border-radius: 2px;
 }

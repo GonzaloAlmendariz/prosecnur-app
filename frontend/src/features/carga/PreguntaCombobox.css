@@ -24,7 +24,7 @@
 
 .pulso-preg-disparador:focus-visible,
 .pulso-preg-disparador[aria-expanded="true"] {
-  outline: 2px solid var(--module-accent);
+  outline: var(--mov-foco, 2px solid var(--pulso-primary));
   outline-offset: 1px;
 }
 

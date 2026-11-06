@@ -601,7 +601,7 @@ button.pulso-equiv-escala:disabled {
 }
 
 button.pulso-equiv-escala:focus-visible {
-  outline: 2px solid var(--module-accent);
+  outline: var(--mov-foco, 2px solid var(--pulso-primary));
   outline-offset: 2px;
 }
 
@@ -744,7 +744,7 @@ button.pulso-equiv-escala:focus-visible {
 }
 
 .pulso-equiv-que-es > summary:focus-visible {
-  outline: 2px solid var(--module-accent);
+  outline: var(--mov-foco, 2px solid var(--pulso-primary));
   outline-offset: 2px;
 }
 
@@ -794,7 +794,7 @@ button.pulso-equiv-escala:focus-visible {
 }
 
 .pulso-equiv-hscroll.is-desborda:focus-visible {
-  outline: 2px solid var(--module-accent);
+  outline: var(--mov-foco, 2px solid var(--pulso-primary));
   outline-offset: 2px;
 }
 
