@@ -300,7 +300,11 @@
   --rc-col: 368px;
   --rc-respiro: clamp(32px, 9.5vw, 122px);
   --rc-x: calc(var(--rc-margen) + var(--rc-col) + var(--rc-respiro));
-  --rc-escena-ancho: clamp(480px, min(44vw, (100vh - var(--rc-top) - 340px) * 1.6), 760px);
+  /* La escena llena el ancho que queda a la derecha (menos su margen interno y el
+     margen de la pantalla) o el alto disponible, lo que se acabe primero. Antes
+     tenía tope de 44vw y 760 px: en una laptop de 15" (1512×945) dejaba 260 px
+     vacíos a la derecha y 140 abajo. */
+  --rc-escena-ancho: clamp(480px, min(100vw - var(--rc-x) - 32px - var(--rc-margen), (100vh - var(--rc-top) - 340px) * 1.6), 1040px);
   place-items: start;
   align-content: start;
   padding: 0;
@@ -311,8 +315,15 @@
 
 .pulso-carga-columna {
   width: var(--rc-col);
+  /* La columna ocupa la misma banda que el escaparate, de la identidad al borde
+     inferior de la escena (176 de identidad, 104 de cabecera y margen, más el alto
+     de la escena), y la lámina con su barra se centra en ella: el bloque de la
+     izquierda equilibra al de la derecha en vez de quedarse arriba con un vacío
+     debajo. */
+  min-height: calc(280px + var(--rc-escena-ancho) / 1.6);
   margin: var(--rc-top) 0 var(--rc-top) var(--rc-margen);
   display: grid;
+  align-content: center;
   gap: 40px;
 }
 
@@ -338,5 +349,5 @@
 @media (max-width: 1080px) {
   .pulso-carga.is-recorrido { place-items: center; }
   .pulso-carga.is-recorrido .pulso-carga-fondo { display: none; }
-  .pulso-carga.is-recorrido .pulso-carga-columna { margin: var(--rc-top) auto; }
+  .pulso-carga.is-recorrido .pulso-carga-columna { min-height: 0; margin: var(--rc-top) auto; }
 }
