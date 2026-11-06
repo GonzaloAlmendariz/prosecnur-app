@@ -137,7 +137,7 @@ export function PestanaCalculos({ structure, scope: scopeBase, seleccionada, onS
           <div className="xfp-encabezado">
             <span className="xfp-encabezado__ruta">
               <TypeIcon baseType={actual.enPregunta ? actual.node.typeInfo.base : "calculate"} boxed /> {actual.enPregunta ? "Pregunta con fórmula" : "Cálculo"}
-              {actual.node.label ? <> (<code className="xfp-codigo">{actual.node.name}</code>)</> : null}
+              {actual.node.label ? <code className="xfp-codigo">{actual.node.name}</code> : null}
             </span>
             <h2 className="xfp-encabezado__titulo">{actual.node.label ? <EtiquetaLegible texto={actual.node.label} etiquetaDe={etiquetaDe} /> : <code className="xfp-var is-codigo">{actual.node.name}</code>}</h2>
             <span className="xfp-encabezado__accion"><EditarEnConstructor onEditar={() => onEditar(actual.node.rowIndex)} que={`el cálculo ${actual.node.name}`} /></span>
@@ -189,7 +189,7 @@ export function PestanaCalculos({ structure, scope: scopeBase, seleccionada, onS
             <PanelCard title="En una entrevista de ejemplo" meta={<EstadoChip label="sorteo" tone="neutral" />}>
               <p className="xfp-lectura">
                 {ejemplo.valores[actual.node.name] !== undefined && ejemplo.valores[actual.node.name] !== ""
-                  ? <>Vale <strong>{ejemplo.valores[actual.node.name]}</strong>. En otra entrevista el sorteo puede dar otro valor.</>
+                  ? <>Vale <strong>{valorLegible(ejemplo.valores[actual.node.name]!)}</strong>. En otra entrevista el sorteo puede dar otro valor.</>
                   : "Con este sorteo queda vacío."}
               </p>
             </PanelCard>
@@ -270,4 +270,9 @@ function CalculosVacio() {
       </PanelCard>
     </>
   );
+}
+
+/** Un número al azar se lee con tres decimales («0.232», no «0.231999499»); un texto o un entero, tal cual. */
+export function valorLegible(valor: string): string {
+  return /^-?\d+\.\d{4,}$/.test(valor) ? String(Math.round(Number(valor) * 1000) / 1000) : valor;
 }

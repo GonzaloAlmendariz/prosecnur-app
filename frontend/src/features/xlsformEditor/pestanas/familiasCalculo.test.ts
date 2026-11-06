@@ -2,6 +2,7 @@
 // y un orden que cambia.
 import { describe, expect, it } from "vitest";
 import { agruparEnFamilias, claveFamilia } from "./familiasCalculo";
+import { valorLegible } from "./PestanaCalculos";
 
 describe("familias de cálculos", () => {
   it("la tarea y el perfil se vuelven t#P y los números #", () => {
@@ -15,5 +16,13 @@ describe("familias de cálculos", () => {
     const nombres = ["inicio", "t1A_x", "t1B_x", "t2A_x", "t2B_x", "t1A_y", "t1B_y", "fin"];
     const g = agruparEnFamilias(nombres, (n) => n);
     expect(g.map((x) => (x.tipo === "familia" ? `${x.clave}×${x.items.length}` : x.item))).toEqual(["inicio", "t#P_x×4", "t1A_y", "t1B_y", "fin"]);
+  });
+});
+
+describe("valor de ejemplo legible", () => {
+  it("redondea un número al azar y deja lo demás", () => {
+    expect(valorLegible("0.231999499")).toBe("0.232");
+    expect(valorLegible("42")).toBe("42");
+    expect(valorLegible("Realizado en el Perú")).toBe("Realizado en el Perú");
   });
 });

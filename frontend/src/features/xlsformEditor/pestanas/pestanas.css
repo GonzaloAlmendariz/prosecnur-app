@@ -113,6 +113,8 @@
   align-items: center;
 }
 .xfp-encabezado__ruta { grid-area: ruta; display: inline-flex; align-items: center; gap: 8px; font-size: var(--pulso-type-body-size); color: var(--pulso-text-muted); }
+/* El código de la variable junto al tipo, como chip (antes entre paréntesis que el gap separaba o dejaba abiertos). */
+.xfp-encabezado__ruta .xfp-codigo { padding: 1px 6px; border: 1px solid var(--pulso-border); border-radius: 6px; background: var(--pulso-surface-2); }
 .xfp-encabezado__titulo { grid-area: titulo; margin: 0; font-size: var(--pulso-type-title-size); font-weight: 600; letter-spacing: -0.01em; color: var(--pulso-text); overflow-wrap: anywhere; }
 .xfp-encabezado__accion { grid-area: accion; }
 
