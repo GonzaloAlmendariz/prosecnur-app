@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { EtapasDelTablero } from "./EtapasDelTablero";
 import { ChevronDown, ChevronRight, Database, FileSpreadsheet, FolderOpen, Layers, ListChecks, Loader2, RotateCcw, Upload, X } from "lucide-react";
 import {
   apiDashboardSourceGet,
@@ -185,6 +186,8 @@ export function DashboardSourceGate({
         )}
       </div>
 
+      {!payload?.has_source && !compact ? <EtapasDelTablero /> : null}
+
       {payload?.has_source && (
         <div className="dash-source-current">
           <Database size={14} />
@@ -233,7 +236,8 @@ export function DashboardSourceGate({
 
           {avisoInactivo && (
             <div className="dash-source-segment-hints" role="note">
-              <span>{avisoInactivo}</span>
+              {/* 5 nov 2026: el aviso dice su consecuencia («…: se usan los de la sesión»), no sólo el hecho. */}
+              <span>{avisoInactivo.replace(/\.$/, "")}: se usan los de la sesión.</span>
             </div>
           )}
 
