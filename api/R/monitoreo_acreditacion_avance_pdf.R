@@ -180,6 +180,46 @@
   out
 }
 
+# «Del 29 de octubre al 4 de diciembre de 2026 (cierre previsto)»; sin cierre,
+# «Desde el 29 de octubre de 2026», como antes.
+.acav_periodo <- function(inicio, cierre) {
+  if (is.na(inicio)) return("")
+  if (is.na(cierre) || cierre < inicio) return(paste("Desde el", .acav_fecha_larga(inicio)))
+  paste0("Del ", sub(" de \\d{4}$", "", .acav_fecha_larga(inicio)), " al ", .acav_fecha_larga(cierre),
+         " (cierre previsto)")
+}
+
+# La tarjeta del cierre: la fecha y cuántos días de campo quedan después del
+# corte, el del cierre incluido. Pasado el cierre, lo dice en vez de contar en negativo.
+.acav_tarjeta_cierre <- function(cierre, fecha_corte) {
+  quedan <- if (is.na(fecha_corte)) NA_integer_ else as.integer(cierre - fecha_corte)
+  detalle <- if (is.na(quedan)) "" else if (quedan > 1L) paste("Quedan", quedan, "días de campo")
+    else if (quedan == 1L) "Queda 1 día de campo" else if (quedan == 0L) "Cierra hoy" else "Fecha ya cumplida"
+  list("Cierre previsto", format(cierre, "%d/%m/%Y"), detalle)
+}
+
+# El eje del ritmo estirado hasta el cierre previsto. Los días por venir llevan
+# 0 completas (no dibujan barra) y acumulado NA (la curva se detiene en el
+# último dato). Sin cierre, o con cierre ya dentro de la serie, todo queda igual
+# salvo la marca.
+.acav_eje_hasta_cierre <- function(serie, etiquetas, cierre) {
+  n <- nrow(serie)
+  base <- list(etiquetas = etiquetas, diarias = serie$completas, acumulado = serie$acumulado, marca = NULL)
+  if (!n || is.na(cierre) || cierre < serie$fecha[[1]]) return(base)
+  rotulo <- paste("Cierre previsto", format(cierre, "%d/%m"))
+  if (cierre <= serie$fecha[[n]]) {
+    base$marca <- list(indice = match(cierre, serie$fecha), rotulo = rotulo)
+    return(base)
+  }
+  futuros <- seq(serie$fecha[[n]] + 1L, cierre, by = "day")
+  list(
+    etiquetas = c(etiquetas, .acav_etiquetas_de_dia(futuros)),
+    diarias = c(serie$completas, rep(0, length(futuros))),
+    acumulado = c(serie$acumulado, rep(NA_real_, length(futuros))),
+    marca = list(indice = n + length(futuros), rotulo = rotulo)
+  )
+}
+
 #' PDF de avance de campo del perfil de acreditación (entregable al cliente).
 #'
 #' Misma familia que el avance de cursos-horario (`monitoreo_aulas_report_pdf.R`):
@@ -229,6 +269,9 @@ monitoreo_acreditacion_client_report_pdf <- function(model, output_file, include
   den_total <- total_uni
   n_dias <- nrow(serie)
   inicio <- if (n_dias) serie$fecha[[1]] else as.Date(NA)
+  # El cierre previsto: fin de la última fase del plan de campo
+  # (`monitoreo_cierre_previsto()`); vacío si el plan no declara fechas.
+  cierre <- tryCatch(as.Date(.monitoreo_scalar(model$cierre_previsto %||% "", "")), error = function(e) as.Date(NA))
   # El último día está «en curso» si el corte cae ese mismo día: sus completas
   # son las registradas hasta la hora del corte, no las de un día cerrado.
   ultimo_en_curso <- n_dias > 0 && !is.na(corte$fecha) &&
@@ -298,7 +341,7 @@ monitoreo_acreditacion_client_report_pdf <- function(model, output_file, include
     titulo = titulo,
     subtitulo = estudio,
     cliente = .monitoreo_scalar(model$client_name %||% model$client_report$client_name %||% "", ""),
-    periodo = if (!is.na(inicio)) paste("Desde el", .acav_fecha_larga(inicio)) else "",
+    periodo = .acav_periodo(inicio, cierre),
     corte = corte$texto
   ))
   grid::grid.newpage()
@@ -431,6 +474,7 @@ monitoreo_acreditacion_client_report_pdf <- function(model, output_file, include
       list("Mejor día", .acav_n(max(serie$completas)),
            format(serie$fecha[[which.max(serie$completas)]], "%d/%m"))
     )
+    if (!is.na(cierre)) ritmo[[length(ritmo) + 1L]] <- .acav_tarjeta_cierre(cierre, corte$fecha)
     kw <- (ancho - hueco * (length(ritmo) - 1L)) / length(ritmo)
     for (k in seq_along(ritmo)) {
       pulso_pdf_kpi(m + (k - 1L) * (kw + hueco), 0.665, kw, 0.135, ritmo[[k]][[1]], ritmo[[k]][[2]],
@@ -441,8 +485,12 @@ monitoreo_acreditacion_client_report_pdf <- function(model, output_file, include
          m, 0.092, size = ty$caption, col = tk$soft)
     }
     metas <- if (con_meta) stats::setNames(total_meta, "Mínimo esperado") else numeric(0)
+    # Con cierre previsto, el eje llega hasta él: los días por venir quedan
+    # vacíos y una línea marca la fecha. Así se ve cuánto calendario queda.
+    eje <- .acav_eje_hasta_cierre(serie, etiquetas, cierre)
     pulso_pdf_serie_partida(m + 0.030, suelo + 0.040, ancho - 0.030, 0.455,
-                            dias = etiquetas, diarias = serie$completas, acumulado = serie$acumulado,
+                            dias = eje$etiquetas, diarias = eje$diarias, acumulado = eje$acumulado,
+                            marca = eje$marca,
                             metas = metas, tokens = tk, ty = ty, geo = geo,
                             rotulo_acumulado = if (con_meta) "Completas acumuladas y mínimo esperado" else "Completas acumuladas",
                             rotulo_diario = "Encuestas completas por día",

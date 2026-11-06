@@ -94,3 +94,58 @@ test_that("los públicos de un mismo padrón salen por pares: Campus y luego CEN
   orden <- .acav_publicos(actors, TRUE)$publico
   expect_identical(orden, c("Estudiantes de pregrado", "Docentes Campus", "Docentes CENTRUM", "Administrativos", "Egresados de posgrado Campus", "Egresados de posgrado CENTRUM"))
 })
+
+test_that("el cierre previsto es el fin de la última fase del plan de campo", {
+  # Gonzalo, 2026-11-06: el reporte declara la fecha esperada del cierre; sale
+  # del plan, no de un segundo campo que pueda contradecirlo.
+  cfg <- list(strategy_phases = list(
+    list(id = "a", start_date = "2026-10-29", end_date = "2026-11-20"),
+    list(id = "b", start_date = "2026-11-21", end_date = "2026-12-04"),
+    list(id = "c", start_date = "2026-11-01", end_date = "")
+  ))
+  expect_equal(monitoreo_cierre_previsto(cfg), as.Date("2026-12-04"))
+  expect_true(is.na(monitoreo_cierre_previsto(list())))
+  expect_true(is.na(monitoreo_cierre_previsto(list(strategy_phases = list(list(end_date = ""))))))
+  marcado <- .monitoreo_acreditacion_marcar_reporte(list(), cfg)
+  expect_equal(marcado$report_kind, "acreditacion_client_report_pdf")
+  expect_equal(marcado$cierre_previsto, "2026-12-04")
+  expect_equal(.monitoreo_acreditacion_marcar_reporte(list(), list())$cierre_previsto, "")
+})
+
+test_that("con cierre previsto, el periodo va de inicio a cierre y el ritmo llega hasta él", {
+  inicio <- as.Date("2026-10-29"); cierre <- as.Date("2026-12-04")
+  expect_equal(.acav_periodo(inicio, cierre), "Del 29 de octubre al 4 de diciembre de 2026 (cierre previsto)")
+  expect_equal(.acav_periodo(inicio, as.Date(NA)), "Desde el 29 de octubre de 2026")
+  tarjeta <- .acav_tarjeta_cierre(cierre, as.Date("2026-11-06"))
+  expect_equal(tarjeta[[2]], "04/12/2026")
+  expect_equal(tarjeta[[3]], "Quedan 28 días de campo")
+  expect_equal(.acav_tarjeta_cierre(cierre, cierre)[[3]], "Cierra hoy")
+  expect_equal(.acav_tarjeta_cierre(cierre, cierre + 2)[[3]], "Fecha ya cumplida")
+
+  serie <- data.frame(fecha = inicio + 0:1, completas = c(717, 53), acumulado = c(717, 770))
+  eje <- .acav_eje_hasta_cierre(serie, c("29/10", "30/10"), cierre)
+  expect_length(eje$etiquetas, 37L)
+  expect_equal(eje$acumulado[1:2], c(717, 770))
+  expect_true(all(is.na(eje$acumulado[-(1:2)])))
+  expect_true(all(eje$diarias[-(1:2)] == 0))
+  expect_equal(eje$marca$indice, 37L)
+  expect_equal(eje$marca$rotulo, "Cierre previsto 04/12")
+  # Sin cierre, el eje queda como estaba y sin marca.
+  expect_null(.acav_eje_hasta_cierre(serie, c("29/10", "30/10"), as.Date(NA))$marca)
+})
+
+test_that("el PDF con cierre previsto lo publica en la portada y en el ritmo", {
+  testthat::skip_if_not(nzchar(Sys.which("pdftotext")), "sin pdftotext")
+  pdf <- tempfile(fileext = ".pdf")
+  on.exit(unlink(pdf), add = TRUE)
+  modelo <- .acav_modelo_prueba()
+  modelo$cierre_previsto <- "2026-12-04"
+  monitoreo_acreditacion_client_report_pdf(modelo, pdf, include_targets = TRUE)
+  txt <- paste(system2("pdftotext", c("-layout", pdf, "-"), stdout = TRUE), collapse = "\n")
+  # La portada parte el periodo en líneas: se busca por tramos.
+  expect_match(txt, "Del 29 de octubre al 4 de")
+  expect_match(txt, "diciembre de 2026 \\(cierre")
+  expect_match(txt, "04/12/2026")
+  expect_match(txt, "Quedan 35 días de campo")
+  expect_match(txt, "Cierre previsto 04/12")
+})

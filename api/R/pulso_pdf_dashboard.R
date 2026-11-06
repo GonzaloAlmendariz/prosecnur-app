@@ -765,6 +765,9 @@ pulso_pdf_rotulo_seccion <- function(x, y, texto, bajada = "", ancho = 0.10,
 #' @param reparto proporción del alto que se lleva la caja del acumulado.
 #' @param formato función que escribe cada cifra. Por defecto la de miles con
 #'   coma; el avance de acreditación la pide sin separador de miles.
+#' @param marca `list(indice, rotulo)`: una línea vertical en ese día, como el
+#'   cierre previsto. Los días después del último dato llevan `diarias = 0` y
+#'   `acumulado = NA`.
 #' @export
 pulso_pdf_serie_partida <- function(x, y, w, h, dias, diarias, acumulado,
                                     metas = numeric(0),
@@ -775,7 +778,8 @@ pulso_pdf_serie_partida <- function(x, y, w, h, dias, diarias, acumulado,
                                     reparto = 0.60, hueco = 0.105,
                                     rotulo_acumulado = "", rotulo_diario = "",
                                     compacto = FALSE,
-                                    formato = .ppd_miles) {
+                                    formato = .ppd_miles,
+                                    marca = NULL) {
   pesos <- pulso_pdf_pesos()
   n <- length(dias)
   if (!n) return(invisible(NULL))
@@ -872,7 +876,10 @@ pulso_pdf_serie_partida <- function(x, y, w, h, dias, diarias, acumulado,
   for (i in vivos) {
     # El rótulo regular que cae a menos de un paso del último se calla: el
     # último se escribe siempre y los dos se montaban («3602 3606»).
-    if (i != n && ((i - 1L) %% salto != 0L || n - i < salto)) next
+    # El último es el último día CON dato: con el eje estirado hasta el cierre
+    # previsto, los días por venir no tienen acumulado.
+    ultimo_vivo <- max(vivos)
+    if (i != ultimo_vivo && ((i - 1L) %% salto != 0L || ultimo_vivo - i < salto)) next
     # Si la cifra cae sobre la regla de una meta, va bajo el punto: encima, la
     # línea punteada la tacha («3606» sobre el mínimo esperado).
     y_rot <- py_acu(acumulado[[i]]) + 0.013
@@ -918,6 +925,22 @@ pulso_pdf_serie_partida <- function(x, y, w, h, dias, diarias, acumulado,
   }
   grid::grid.lines(x = grid::unit(c(x, x + w), "npc"), y = grid::unit(y, "npc"),
                    gp = grid::gpar(col = tokens$tbl_frame, lwd = 0.7))
+
+  # --- Una marca vertical: el cierre previsto del campo ---------------------
+  # `marca = list(indice, rotulo)`. Cruza las dos cajas, porque es una fecha y
+  # no una cifra. El rótulo va al pie de la caja del acumulado, del lado que
+  # tenga sitio: arriba se montaba sobre el de la meta («Mínimo esperado»).
+  if (is.list(marca) && length(marca$indice) && marca$indice >= 1L && marca$indice <= n) {
+    xm <- px(marca$indice)
+    grid::grid.lines(x = grid::unit(c(xm, xm), "npc"), y = grid::unit(c(y, y_acu + h_acu), "npc"),
+                     gp = grid::gpar(col = tokens$danger, lwd = pesos$bloque, lty = 3))
+    if (nzchar(marca$rotulo %||% "")) {
+      a_la_izquierda <- marca$indice > n / 2
+      grid::grid.text(marca$rotulo, x = xm + if (a_la_izquierda) -0.004 else 0.004, y = y_acu + 0.008,
+                      just = c(if (a_la_izquierda) "right" else "left", "bottom"),
+                      gp = grid::gpar(col = tokens$danger, fontsize = fs, fontface = "bold"))
+    }
+  }
 
   # --- El eje de fechas, UNO solo al pie ------------------------------------
   # Toda barra lleva su fecha; lo que cede es el cuerpo (`pulso_pdf_eje_fechas.R`).
