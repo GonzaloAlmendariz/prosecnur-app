@@ -12,7 +12,6 @@
 
 import type { ReactNode } from "react";
 import { useState } from "react";
-import { ChevronDown } from "lucide-react";
 
 export type CollapsibleSectionProps = {
   title: string;
@@ -43,13 +42,6 @@ export function CollapsibleSection({
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
       >
-        <span
-          className="pulso-collapsible-chevron"
-          style={{ transform: open ? "rotate(0deg)" : "rotate(-90deg)" }}
-          aria-hidden="true"
-        >
-          <ChevronDown size={14} />
-        </span>
         {icon && (
           <span className="pulso-collapsible-icon" aria-hidden="true">
             {icon}

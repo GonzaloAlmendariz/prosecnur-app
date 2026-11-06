@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { ChevronRight } from "lucide-react";
 import { GlifoMarca, TypeIcon } from "../kit";
 import type { ClaveMarca } from "../kit/glifosMarca";
 import { TituloLegible } from "../kit/CuerpoPanelMarca";
@@ -131,7 +130,6 @@ export function PestanaReglas({ titulo, marca, total, grupos, seleccionada, onSe
                               if (!abierta(it.key)) onSeleccionar(it.miembros![0]!.key);
                             }}
                           >
-                            <ChevronRight size={13} className="xfp-familia__chev" aria-hidden="true" />
                             <span className="xfp-item__txt">
                               <span className="xfp-item__titulo">
                                 {it.titulo} <span className="xfp-familia__k">×{it.miembros.length}</span>

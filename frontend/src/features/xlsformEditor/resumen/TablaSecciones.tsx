@@ -147,7 +147,7 @@ export function TablaSecciones({ filas, kindDe, abierta, onAlternar, resaltada, 
                     <th scope="row" className="is-seccion">
                       <button type="button" className="pulso-xf-res-seccion" onClick={(e) => { e.stopPropagation(); onAlternar(clave); }}
                         aria-expanded={desplegada} aria-controls={desplegada ? idDetalle : undefined}>
-                        <ChevronRight size={13} aria-hidden="true" className="pulso-xf-res-seccion-chevron" />
+                        
                         <Sello baseType={kindDe(f.id) === "repeat" ? "begin_repeat" : "begin_group"} size={16} />
                         <span className="pulso-xf-res-seccion-texto">
                           <span title={f.rotulo} className={tituloTecnico(f.rotulo, f.name) ? "is-tecnico" : undefined}>{f.rotulo}</span>

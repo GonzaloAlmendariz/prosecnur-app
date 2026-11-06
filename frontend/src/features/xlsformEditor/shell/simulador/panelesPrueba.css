@@ -59,8 +59,6 @@
   background: transparent; color: var(--pulso-text-muted); font: inherit; font-size: var(--pulso-type-body-size); text-align: left; cursor: pointer; box-shadow: none; min-height: 0;
 }
 .xfsp-omitidas:hover { background: var(--pulso-surface-2); }
-.xfsp-omitidas svg { transition: transform var(--motion-dur-fast) ease; }
-.xfsp-omitidas[aria-expanded="true"] svg { transform: rotate(90deg); }
 @media (prefers-reduced-motion: reduce) { .xfsp-omitidas svg { transition: none; } }
 
 /* Finalizar: lo que falta, con enlace a cada pregunta. */

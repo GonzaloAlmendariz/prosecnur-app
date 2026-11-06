@@ -192,16 +192,14 @@
 }
 
 .pulso-xf-imp-sueltas > summary > span::before {
-  content: "▸";
+  content: none;
   display: inline-block;
   width: 1.1em;
   color: var(--pulso-text-soft);
   transition: transform var(--motion-dur-fast) var(--motion-ease-out);
 }
 
-.pulso-xf-imp-sueltas[open] > summary > span::before {
-  transform: rotate(90deg);
-}
+
 
 .pulso-xf-imp-sueltas > summary > small {
   padding-left: 1.1em;
