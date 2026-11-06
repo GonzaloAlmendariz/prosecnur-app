@@ -260,7 +260,7 @@ export function PanelBasePane() {
             <strong>Base panel</strong>
             <small>Une mediciones de la misma persona para comparar cambios y exportar una base lista.</small>
           </div>
-          <div className="analitica-report-overview analitica-report-overview--panel">
+          <div className="analitica-report-overview analitica-report-overview--panel" data-qa-geometry-group="analitica/panel-cifras" data-qa-geometry-contract="intrinsic">
             {panelStats.map((stat) => (
               <Metric key={stat.label} {...stat} />
             ))}
@@ -730,8 +730,10 @@ function Metric({
   suffix?: string;
   compact?: boolean;
 }) {
+  // El alto mínimo de la cifra (44 px en la banda de Panel) es un piso deliberado para que las cifras queden
+  // alineadas aunque una tenga menos texto: capacidad reservada, no hueco (contrato de superficie, 6 nov 2026).
   return (
-    <div className="analitica-stat">
+    <div className="analitica-stat" data-qa-geometry-capacity="owned">
       <span className="analitica-stat-label">{label}</span>
       <span className="analitica-stat-value" style={compact ? { fontSize: "var(--pulso-type-body-size)", paddingTop: 2 } : undefined}>
         {value}

@@ -44,7 +44,7 @@ export function BasesPane() {
 
   return (
     <Panel className="analitica-bases-panel">
-      <div className="analitica-report-shell analitica-bases-workbench">
+      <div className="analitica-report-shell analitica-bases-workbench" data-qa-geometry-group="analitica/bases-mesa" data-qa-geometry-contract="intrinsic">
         <div className="analitica-bases-docbar">
           <span className="analitica-bases-docbar-icon" aria-hidden="true">
             <Database size={16} />
@@ -141,7 +141,7 @@ function ArchivosFuenteSection() {
       }
       subtitle="Respuestas y formulario de la fuente activa, listos para revisar sin alterar el proyecto."
     >
-      <div className="analitica-bases-source-grid">
+      <div className="analitica-bases-source-grid" data-qa-geometry-group="analitica/bases-fuentes" data-qa-geometry-contract="equal">
         <SourceDataCard />
         <SourceInstrumentCard />
       </div>
@@ -294,7 +294,7 @@ function SavCard({
         </>
       }
     >
-      <div className="analitica-bases-format-stack">
+      <div className="analitica-bases-format-stack" data-qa-geometry-group="analitica/bases-formato-1" data-qa-geometry-contract="intrinsic">
         <div className="analitica-bases-file-note">
           <code>datos.sav</code>
           <div>
@@ -381,7 +381,7 @@ function CsvCard({
       }
       subtitle="Archivo plano para equipos que trabajan en R, Python, Stata o Excel."
     >
-      <div className="analitica-bases-format-stack">
+      <div className="analitica-bases-format-stack" data-qa-geometry-group="analitica/bases-formato-2" data-qa-geometry-contract="intrinsic">
         <RadioRow
           label="Contenido"
           value={cfg.valores}
@@ -476,7 +476,7 @@ function XlsxCard({
         ? "Un solo archivo con códigos y etiquetas para las encuestas y cada grupo repetible, enlazados por llaves públicas."
         : "Libro de trabajo para lectura rápida de códigos, etiquetas y preguntas de varias opciones."}
     >
-      <div className="analitica-bases-format-stack">
+      <div className="analitica-bases-format-stack" data-qa-geometry-group="analitica/bases-formato-3" data-qa-geometry-contract="intrinsic">
         {!relational && (
           <RadioRow
             label="Contenido"
@@ -548,7 +548,7 @@ function ScriptReplicaCard() {
       }
       subtitle="Entregable opcional para la reproducibilidad metodológica del cliente."
     >
-      <div className="analitica-bases-format-stack">
+      <div className="analitica-bases-format-stack" data-qa-geometry-group="analitica/bases-formato-4" data-qa-geometry-contract="intrinsic">
         <div className="analitica-bases-file-note">
           <code>replicar_base.R</code>
           <div>
