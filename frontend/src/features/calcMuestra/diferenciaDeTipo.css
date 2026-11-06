@@ -14,3 +14,16 @@
   gap: var(--pulso-space-2);
   margin-block-start: var(--pulso-space-2);
 }
+
+/* 5 nov 2026 (pulido de UI): las acciones al costado del texto cuando hay ancho, en vez de una fila propia;
+   el aviso pasa de tres renglones a dos. En angosto vuelven abajo. */
+@media (min-width: 1100px) {
+  .cmv2-diferencia-tipo { max-width: 1040px; }
+  .cmv2-diferencia-tipo .pulso-alert-content {
+    display: flex;
+    align-items: center;
+    gap: var(--pulso-space-4);
+  }
+  .cmv2-diferencia-tipo .pulso-alert-content > p { flex: 1 1 auto; min-width: 0; }
+  .cmv2-diferencia-tipo-acciones { flex: none; flex-wrap: nowrap; margin-block-start: 0; }
+}

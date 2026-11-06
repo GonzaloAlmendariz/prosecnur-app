@@ -487,7 +487,13 @@ export function ResumenDiseno({
           <span className="rec-resumen-item-icon" aria-hidden="true"><Sigma size={16} aria-hidden="true" /></span>
           <span className="rec-resumen-item-copy">
             <small>Sin cifra todavía</small>
-            <strong>{enumerar(indicadores.vacios.map((metric) => metric.label))}</strong>
+            {/* 5 nov 2026 (pulido de UI): con más de tres, la enumeración era una línea de ~10 nombres seguidos
+                que no se alcanzaba a leer. Se cuentan, y los nombres quedan en el `title`. */}
+            <strong title={enumerar(indicadores.vacios.map((metric) => metric.label))}>
+              {indicadores.vacios.length <= 3
+                ? enumerar(indicadores.vacios.map((metric) => metric.label))
+                : `${fmtInt(indicadores.vacios.length)} indicadores por calcular`}
+            </strong>
             <span>{notaResultado}</span>
           </span>
         </div>

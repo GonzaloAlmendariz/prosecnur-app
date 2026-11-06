@@ -26,8 +26,10 @@ describe("AvisoDiferenciaDeTipo (hallazgo 11)", () => {
     ));
     const texto = host.textContent ?? "";
     expect(texto).toContain("«Territorial presencial»");
-    expect(texto).toContain("la ficha todavía no declara el tipo");
-    expect(texto).toContain("El escenario guardado es «Conglomerados en aulas»");
+    // 5 nov 2026: una oración (pulido de UI); sigue nombrando las dos fuentes.
+    expect(texto).toContain("la ficha no declara el tipo");
+    expect(texto).toContain("que aquí es «Muestreo de áreas y viviendas»");
+    expect(texto).toContain("el escenario guardado es «Conglomerados en aulas»");
     const boton = [...host.querySelectorAll("button")].find((b) => b.textContent?.includes("Alinear con la ficha"));
     act(() => boton?.click());
     expect(onAlinear).toHaveBeenCalledWith("territorial_handoff");

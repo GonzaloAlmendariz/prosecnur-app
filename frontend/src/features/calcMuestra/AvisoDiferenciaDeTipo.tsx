@@ -14,14 +14,16 @@ export function AvisoDiferenciaDeTipo({ diferencia, onAlinear }: {
 }) {
   const navigate = useNavigate();
   const ficha = useRutaFichaDelEstudio();
+  // 5 nov 2026 (pulido de UI): una oración en vez de tres. Lo que importa es el choque entre lo que dice el
+  // estudio y lo que está guardado; el resto (de dónde sale el tipo) cabe en un paréntesis.
   const fuente = diferencia.origen === "declarado"
-    ? <>La ficha del estudio declara un estudio «{diferencia.tipo}»</>
-    : <>El estudio se lee como «{diferencia.tipo}» (la ficha todavía no declara el tipo)</>;
+    ? <>La ficha declara «{diferencia.tipo}»</>
+    : <>El estudio parece «{diferencia.tipo}» (la ficha no declara el tipo)</>;
   return (
     <div className="cmv2-diferencia-tipo" role="status" data-qa-diferencia-tipo={diferencia.desk}>
       <Alert kind="warn">
         <p>
-          {fuente}, que en Cálculo es «{diferencia.titulo}». El escenario guardado es «{diferencia.actual}».
+          {fuente}, que aquí es «{diferencia.titulo}», pero el escenario guardado es «{diferencia.actual}».
         </p>
         <div className="cmv2-diferencia-tipo-acciones">
           <PulsoButton variant="primary" size="sm" onClick={() => onAlinear(diferencia.desk)}>
