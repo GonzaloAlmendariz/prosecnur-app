@@ -35,7 +35,16 @@
 .pulso-sk.is-anillo { width: 120px; aspect-ratio: 1; border-radius: 50%; align-self: center; }
 .pulso-sk.is-icono { width: 36px; height: 36px; border-radius: 10px; }
 
+.pulso-sk.is-titulo.is-grande { width: min(360px, 70%); height: 26px; }
+.pulso-sk.is-ceja { width: 120px; height: 10px; background-color: color-mix(in srgb, var(--vista-sk-accent-soft) 80%, var(--vista-sk-bloque)); }
+.pulso-sk.is-linea.is-media { width: 58%; }
+.pulso-sk.is-herramienta.is-corta { width: 104px; }
+.pulso-sk.is-cifra { width: 46%; height: 26px; }
+.pulso-sk.is-rail { width: 100%; height: 34px; border-radius: 10px; }
+.pulso-sk.is-rail.is-activa { background-color: color-mix(in srgb, var(--vista-sk-accent-soft) 70%, var(--vista-sk-bloque)); }
+
 .pulso-vista-skeleton-bar {
+  flex: none;
   display: flex;
   align-items: center;
   gap: 18px;
@@ -52,9 +61,38 @@
 }
 
 .pulso-vista-skeleton-kpis {
+  flex: none;
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 12px;
+}
+
+/* --- Módulo: rail de pestañas a la izquierda y la mesa de trabajo, que baja
+       hasta el borde (los paneles se estiran; lo que no cabe se recorta). */
+.pulso-vista-skeleton-cuerpo {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 196px minmax(0, 1fr);
+  gap: 16px;
+}
+
+.pulso-vista-skeleton-rail {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 14px;
+  background: var(--pulso-surface);
+  overflow: hidden;
+}
+
+.pulso-vista-skeleton-trabajo {
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
 }
 
 .pulso-vista-skeleton-body {
@@ -63,28 +101,117 @@
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(220px, 0.42fr);
   gap: 16px;
-  align-items: start;
+  align-items: stretch;
 }
 
 .pulso-vista-skeleton-panel,
-.pulso-vista-skeleton-card {
+.pulso-vista-skeleton-card,
+.pulso-vista-skeleton-kpi {
   display: flex;
   flex-direction: column;
   gap: 10px;
+  min-height: 0;
+  overflow: hidden;
   padding: 14px 16px;
   border: 1px solid var(--pulso-border);
-  border-radius: 12px;
+  border-radius: 14px;
   background: var(--pulso-surface);
 }
 
+/* --- Inicio: la silueta del Home del proyecto. */
+.pulso-vista-skeleton.is-inicio {
+  gap: 18px;
+  padding: clamp(22px, 3.2vh, 36px) clamp(22px, 3.4vw, 48px);
+}
+
 .pulso-vista-skeleton-head {
+  flex: none;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.pulso-vista-skeleton-head-texto {
+  flex: 1 1 auto;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   gap: 10px;
 }
 
+.pulso-vista-skeleton-head-acciones {
+  flex: none;
+  display: flex;
+  gap: 10px;
+}
+
+.pulso-vista-skeleton-kpi {
+  gap: 12px;
+}
+
+/* Una tarjeta por módulo activo, con el tono del módulo: filete superior,
+   ícono en su color suave y una barra de avance que insinúa la tarjeta real. */
 .pulso-vista-skeleton-cards {
+  flex: none;
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 150px), 1fr));
+  grid-auto-rows: minmax(132px, auto);
   gap: 14px;
+}
+
+.pulso-vista-skeleton-card {
+  position: relative;
+  justify-content: flex-start;
+  gap: 12px;
+  padding-top: 18px;
+}
+
+.pulso-vista-skeleton-card::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  height: 3px;
+  background: var(--module-accent, var(--pulso-primary));
+  opacity: 0.5;
+}
+
+.pulso-vista-skeleton-card-icono {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 11px;
+  background: var(--module-accent-soft, var(--pulso-primary-soft));
+  color: var(--module-accent, var(--pulso-primary));
+}
+
+.pulso-vista-skeleton-card-icono svg {
+  opacity: 0.7;
+}
+
+.pulso-vista-skeleton-card-avance {
+  margin-top: auto;
+  height: 6px;
+  border-radius: 999px;
+  background: linear-gradient(
+    90deg,
+    var(--module-accent-soft, var(--pulso-primary-soft)) 0 42%,
+    var(--vista-sk-bloque) 42% 100%
+  );
+}
+
+.pulso-vista-skeleton-franja {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
+  gap: 14px;
+}
+
+@media (max-width: 900px) {
+  .pulso-vista-skeleton-cuerpo { grid-template-columns: minmax(0, 1fr); }
+  .pulso-vista-skeleton-rail { display: none; }
+  .pulso-vista-skeleton-franja { grid-template-columns: minmax(0, 1fr); }
+  .pulso-vista-skeleton-head-acciones { display: none; }
 }
