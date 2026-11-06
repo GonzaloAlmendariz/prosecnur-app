@@ -7,6 +7,7 @@ export function defaultLiteralForPredicate(
   predicate: PredicateKind,
   catalog?: LogicCatalog,
 ): string {
+  if (predicate.kind === "count") return "1";
   if (predicate.kind === "selected" || predicate.kind === "not_selected") {
     return catalog?.items[0]?.name ?? "";
   }
@@ -27,7 +28,13 @@ export function valueForPredicateTransition(
   catalog?: LogicCatalog,
 ): FlatCondition["value"] {
   if (next.kind === "presence") return { kind: "literal", raw: "" };
-  if (currentValue.kind === "ref") return currentValue;
+  if (currentValue.kind === "ref") return next.kind === "count" ? { kind: "literal", raw: "1" } : currentValue;
+  // Pasar de «incluye ‹opción›» a «tiene al menos N» (o al revés) cambia lo que significa el valor: un código no es
+  // un número ni un número es, por fuerza, un código de la lista.
+  if (next.kind === "count" && !/^\d+$/.test(currentValue.raw.trim())) return { kind: "literal", raw: "1" };
+  if ((next.kind === "selected" || next.kind === "not_selected") && catalog && !catalog.items.some((i) => i.name === currentValue.raw)) {
+    return { kind: "literal", raw: defaultLiteralForPredicate(baseType, next, catalog) };
+  }
   if (currentValue.raw.trim()) return currentValue;
   return {
     kind: "literal",

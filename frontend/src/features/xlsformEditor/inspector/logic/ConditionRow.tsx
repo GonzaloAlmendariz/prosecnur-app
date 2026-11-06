@@ -148,8 +148,9 @@ export function ConditionRow({
         <div className="pulso-logic-condition-piece pulso-logic-condition-value">
           <span className="pulso-logic-condition-label">Valor</span>
           <ValueInput
-            baseType={baseType}
-            catalog={catalog}
+            // «Tiene al menos N marcadas» pide un número, no una opción de la lista.
+            baseType={predicate.kind === "count" ? "integer" : baseType}
+            catalog={predicate.kind === "count" ? undefined : catalog}
             variables={scope.variables.filter(
               (v) => v.name !== condition.variableName,
             )}

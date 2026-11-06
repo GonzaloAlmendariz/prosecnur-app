@@ -11,6 +11,7 @@
 //   3. `${var} <op> ${otherVar}`        → kind=compare con ref como rhs
 //   4. `selected(${var}, 'value')`      → kind=selected
 //   5. `not(selected(${var}, 'value'))` → kind=not_selected
+//   6. `count-selected(${var}) <op> N`  → kind=count (cuántas opciones marcó)
 //
 // Cualquier otra forma se considera "compleja" y se trata con el árbol
 // AND/OR/NOT directamente — no se aplana.
@@ -62,6 +63,17 @@ export function tryFlattenCondition(expr: Expr): FlatCondition | null {
         value: { kind: "literal", raw: String(val.value) },
       };
     }
+  }
+  // Patrón 6: count-selected(${var}) <op> N
+  if (expr.kind === "compare" && expr.left.kind === "call" && expr.left.name === "count-selected" &&
+      expr.left.args.length === 1 && expr.left.args[0]!.kind === "ref" && expr.right.kind === "literal" &&
+      (expr.op === ">=" || expr.op === "<=" || expr.op === "=")) {
+    const label = { ">=": "marcó al menos", "<=": "marcó máximo", "=": "marcó exactamente" }[expr.op];
+    return {
+      variableName: (expr.left.args[0] as Extract<Expr, { kind: "ref" }>).name,
+      predicate: { kind: "count", op: expr.op, label },
+      value: { kind: "literal", raw: String(expr.right.value) },
+    };
   }
   // Patrones 1-3: compare con ref como lhs
   if (expr.kind === "compare" && expr.left.kind === "ref") {
@@ -115,6 +127,15 @@ export function expandCondition(cond: FlatCondition): Expr {
       kind: "call",
       name: "selected",
       args: [lhs, valueExpr(cond.value)],
+    };
+  }
+  if (cond.predicate.kind === "count") {
+    const n = cond.value.kind === "literal" && /^\d+$/.test(cond.value.raw.trim()) ? Number(cond.value.raw.trim()) : 1;
+    return {
+      kind: "compare",
+      op: cond.predicate.op,
+      left: { kind: "call", name: "count-selected", args: [lhs] },
+      right: { kind: "literal", value: n },
     };
   }
   if (cond.predicate.kind === "not_selected") {

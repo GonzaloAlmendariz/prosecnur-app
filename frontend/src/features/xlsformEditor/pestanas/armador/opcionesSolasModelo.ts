@@ -5,6 +5,7 @@
 
 import type { Expr } from "../../logic";
 import { parseExpression, serializeExpression } from "../../logic";
+import { unirConY } from "./cuantasOpcionesModelo";
 
 const esSeleccionActual = (e: Expr): e is Extract<Expr, { kind: "call" }> =>
   e.kind === "call" && e.name === "selected" && e.args.length === 2 && e.args[0]?.kind === "current" && e.args[1]?.kind === "literal";
@@ -65,11 +66,7 @@ export function reglaSolas(codigos: readonly string[]): string {
 /** La restricción con estas opciones como «van solas», conservando lo demás que ya exigía. */
 export function escribirSolas(constraint: string, codigos: readonly string[]): string {
   const { resto } = leerSolas(constraint);
-  const otras = resto.map((r) => r.trim()).filter(Boolean);
-  const nueva = reglaSolas(codigos);
-  // Una parte con «or» va entre paréntesis para que el «and» no le cambie el sentido.
-  const partes = [...otras.map((o) => (otras.length + (nueva ? 1 : 0) > 1 && /\sor\s/.test(o) && !/^\(.*\)$/.test(o) ? `(${o})` : o)), ...(nueva ? [nueva] : [])];
-  return partes.join(" and ");
+  return unirConY([...resto, reglaSolas(codigos)]);
 }
 
 const SUELE_IR_SOLA = /\b(ningun[oa]?|nada|no sab[ea]|no s[eé]|no respond[ea]|no responde|no precisa|no aplica|prefiere no|ninguna de las anteriores|no recuerda)\b/i;

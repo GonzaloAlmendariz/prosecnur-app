@@ -9,6 +9,7 @@ import { mensajeSugeridoDe } from "../../pestanas/armador/armadorModelo";
 import { alAplicarFormato, cambiosAlQuitarAtajo } from "./edicionValidacion";
 import { ArmadorFormatoEntrada } from "../../pestanas/armador/ArmadorFormatoEntrada";
 import { OpcionesSolasEntrada } from "../../pestanas/armador/OpcionesSolasEntrada";
+import { CuantasOpcionesEntrada } from "../../pestanas/armador/CuantasOpcionesEntrada";
 import { CustomValidationPanel, GuidedValidationNotice, ValidationSummary } from "./ValidacionPaneles";
 
 // Editor de «qué acepta» una pregunta (constraint + constraint_message) en la pestaña Restricciones.
@@ -66,6 +67,15 @@ export function EditorValidacion({ node, scope, onFieldChange, onFieldsChange }:
           key={`solas-${node.rowIndex}`}
           constraint={node.constraint}
           opciones={scope.catalogsByListName.get(node.typeInfo.listName)?.items ?? []}
+          onAplicar={(next, mensaje) => onFieldsChange(constraintMessage.trim() || !next ? { constraint: next } : { constraint: next, constraint_message: mensaje })}
+        />
+      )}
+      {/* E19 paso 2: cuántas opciones puede marcar, con número propio (el atajo traía el 3 fijo). */}
+      {node.typeInfo.base === "select_multiple" && (
+        <CuantasOpcionesEntrada
+          key={`cuantas-${node.rowIndex}`}
+          constraint={node.constraint}
+          totalOpciones={scope.catalogsByListName.get(node.typeInfo.listName)?.items.length ?? 0}
           onAplicar={(next, mensaje) => onFieldsChange(constraintMessage.trim() || !next ? { constraint: next } : { constraint: next, constraint_message: mensaje })}
         />
       )}

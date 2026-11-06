@@ -276,3 +276,15 @@
 .xfa-solas__sugeridas { justify-self: start; }
 .xfa-solas__lectura { margin: 0; padding: 6px 8px; border-radius: 8px; background: var(--pulso-surface-2); font-size: var(--pulso-type-caption-size); color: var(--pulso-text); }
 .xfa-solas__acciones { display: flex; justify-content: flex-end; gap: var(--pulso-space-2); }
+
+/* E19 paso 2: cuántas opciones puede marcar en una selección múltiple. */
+.xfa-cuantas__modos { display: flex; flex-wrap: wrap; gap: 6px; }
+.xfa-cuantas__modo { all: unset; box-sizing: border-box; padding: 4px 10px; border: 1px solid var(--pulso-border); border-radius: 999px; cursor: pointer; background: var(--pulso-surface); font-size: var(--pulso-type-caption-size); color: var(--pulso-text); }
+.xfa-cuantas__modo:hover { border-color: var(--pulso-border-strong); }
+.xfa-cuantas__modo:focus-visible { outline: var(--mov-foco, 2px solid var(--pulso-primary)); outline-offset: 1px; }
+.xfa-cuantas__modo.is-on { border-color: var(--module-accent-border, var(--pulso-primary-border)); background: var(--module-accent-soft, var(--pulso-primary-soft)); font-weight: var(--pulso-weight-semibold); }
+.xfa-cuantas__frase { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; font-size: var(--pulso-type-body-size); color: var(--pulso-text); }
+.xfa-cuantas__numero { width: 64px; }
+/* Bloques siempre abiertos (sin triángulo): cabeza con nombre y lectura vigente. */
+.xfa-bloque__cabeza { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.xfa-bloque__cabeza svg { width: 15px; height: 15px; color: var(--pulso-tipo-texto); flex-shrink: 0; }

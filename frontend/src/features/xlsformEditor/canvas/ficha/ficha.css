@@ -387,3 +387,21 @@ button.xfh-regla__fila:focus-visible { outline: var(--mov-foco, 2px solid var(--
 .xfh-regla__mas:hover { color: var(--pulso-text); }
 .xfh-regla__mas:focus-visible { outline: var(--mov-foco, 2px solid var(--pulso-primary)); outline-offset: 2px; border-radius: 4px; }
 .xfh-regla.is-abierta .xfh-regla__mas .xfh-regla__chev { transform: rotate(90deg); }
+
+/* El armador de condiciones dentro de la ficha (Obligatoria sólo si…) mide ~500 px: pregunta en la primera línea y
+   criterio + valor en la segunda, como en el Mapa de lógica. En una sola línea el criterio se partía sílaba a sílaba
+   («tiene al / menos / marca / das») y el valor quedaba cortado. */
+.xfh-regla .xfh-oblig .pulso-logic-condition-row:not(.is-headless) {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 6px 8px;
+}
+.xfh-regla .xfh-oblig .pulso-logic-condition-row:not(.is-headless) .pulso-logic-condition-var { grid-column: 1 / -1; }
+.xfh-regla .xfh-oblig .pulso-logic-condition-row:not(.is-headless) .pulso-logic-condition-piece { min-width: 0; }
+.xfh-regla .xfh-oblig .pulso-logic-condition-row:not(.is-headless) .pulso-logic-condition-value { grid-column: 2; }
+.xfh-regla .xfh-oblig .pulso-logic-condition-row:not(.is-headless) .pulso-logic-condition-remove { grid-column: 3; grid-row: 2; align-self: end; }
+.xfh-regla .xfh-oblig .pulso-logic-condition-row:not(.is-headless).has-presence { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto; }
+.xfh-regla .xfh-oblig .pulso-logic-condition-row:not(.is-headless).has-presence .pulso-logic-condition-piece:not(.pulso-logic-condition-var) { grid-column: 1 / 3; }
+.xfh-oblig .pulso-logic-predicate-copy { min-width: 0; }
+.xfh-oblig .pulso-logic-predicate-copy strong { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }

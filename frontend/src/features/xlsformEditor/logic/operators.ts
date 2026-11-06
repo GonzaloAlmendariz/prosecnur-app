@@ -8,6 +8,7 @@
 //   - "compare" — `<lhs> <op> <rhs>` con op ∈ {=, !=, <, <=, >, >=}.
 //   - "selected" — `selected(<lhs>, '<value>')` para select_multiple.
 //   - "not_selected" — `not(selected(<lhs>, '<value>'))`.
+//   - "count" — `count-selected(<lhs>) <op> N`: cuántas opciones marcó (E19 paso 2).
 // =============================================================================
 
 import type { CompareOp } from "./ast";
@@ -16,7 +17,8 @@ export type PredicateKind =
   | { kind: "compare"; op: CompareOp; label: string }
   | { kind: "presence"; mode: "answered" | "empty"; label: string }
   | { kind: "selected"; label: string }
-  | { kind: "not_selected"; label: string };
+  | { kind: "not_selected"; label: string }
+  | { kind: "count"; op: CompareOp; label: string };
 
 /**
  * Devuelve la lista de predicados disponibles para un tipo base. El orden
@@ -44,6 +46,9 @@ export function predicatesForType(
       return [
         { kind: "selected", label: "incluye" },
         { kind: "not_selected", label: "no incluye" },
+        { kind: "count", op: ">=", label: "marcó al menos" },
+        { kind: "count", op: "<=", label: "marcó máximo" },
+        { kind: "count", op: "=", label: "marcó exactamente" },
         ...presence,
       ];
     case "integer":
@@ -95,5 +100,6 @@ export function defaultPredicate(baseType: string): PredicateKind {
 export function predicateKey(p: PredicateKind): string {
   if (p.kind === "compare") return `cmp:${p.op}`;
   if (p.kind === "presence") return `presence:${p.mode}`;
+  if (p.kind === "count") return `count:${p.op}`;
   return p.kind;
 }

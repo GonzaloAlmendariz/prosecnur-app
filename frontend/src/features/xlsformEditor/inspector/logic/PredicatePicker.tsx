@@ -168,6 +168,9 @@ function predicateMeta(predicate: PredicateKind): { mark: string; hint: string }
   if (predicate.kind === "not_selected") {
     return { mark: "no", hint: "La opción no está marcada." };
   }
+  if (predicate.kind === "count") {
+    return { mark: "n.º", hint: "Cuántas opciones marcó: escribe el número." };
+  }
   if (predicate.kind === "presence") {
     return predicate.mode === "answered"
       ? { mark: "ok", hint: "Hay cualquier respuesta." }
