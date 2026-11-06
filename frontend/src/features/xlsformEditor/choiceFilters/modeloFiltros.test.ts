@@ -151,5 +151,8 @@ describe("nombre del tipo (E11b)", () => {
     expect(nombreDeTipo({ tipo: "cascada", cascada: marcada })).toBe("Lo marcado antes");
     expect(nombreDeTipo({ tipo: "cascada", cascada: leerCascada("region = ${region}") })).toBe("Cascada");
     expect(nombreDeTipo({ tipo: "fijo", cascada: null })).toBe("Fijo");
+    expect(nombreDeTipo({ tipo: "expresion", cascada: null, expresion: "edad_min <= ${edad}" })).toBe("Comparación");
+    expect(nombreDeTipo({ tipo: "expresion", cascada: null, expresion: "${edad} > minimo" })).toBe("Comparación");
+    expect(nombreDeTipo({ tipo: "expresion", cascada: null, expresion: "edad_min <= ${edad} and x = 1" })).toBe("Expresión");
   });
 });

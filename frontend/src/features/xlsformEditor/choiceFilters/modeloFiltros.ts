@@ -565,7 +565,11 @@ export function respuestasIniciales(a: AnalisisFiltro, choices: XlsformEditorShe
  * Nombre del tipo en la lista y en el detalle. `selected(${q}, name)` se lee con la maquinaria de la cascada, pero no
  * es una: repite las opciones que se marcaron en otra pregunta (E11b editor-conjoint, 2026-11-06).
  */
-export function nombreDeTipo(a: Pick<AnalisisFiltro, "tipo" | "cascada">): string {
+export function nombreDeTipo(a: Pick<AnalisisFiltro, "tipo" | "cascada"> & { expresion?: string }): string {
   if (a.tipo === "cascada" && a.cascada?.forma === "marcada" && a.cascada.columna === "name") return "Lo marcado antes";
+  // Una columna de la lista contra una respuesta o un número (`edad_min <= ${edad}`): se lee como comparación.
+  if (a.tipo === "expresion" && COMPARACION_SOLA.test((a.expresion ?? "").trim())) return "Comparación";
   return NOMBRE_TIPO[a.tipo];
 }
+
+const COMPARACION_SOLA = /^(?:[A-Za-z_][\w.-]*\s*(?:<=|>=|<|>)\s*(?:\$\{[^}]+\}|-?\d+(?:\.\d+)?)|(?:\$\{[^}]+\}|-?\d+(?:\.\d+)?)\s*(?:<=|>=|<|>)\s*[A-Za-z_][\w.-]*)$/;
