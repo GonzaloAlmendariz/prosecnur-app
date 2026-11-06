@@ -798,7 +798,8 @@
      fila con el alto (hasta 330 px), repartido entre las filas que hay. A 1710×1107 la grilla pasaba de
      1200×478 (30 % de la ventana) a ~1500×700. El piso sigue siendo el de cada densidad. */
   --home-ancho-col: clamp(400px, 28vw, 500px);
-  --home-fila: clamp(0px, calc((100vh - 330px) / var(--home-filas, 2) - 14px), 330px);
+  /* 350: el alto que no es grilla (barra, cabecera en dos niveles desde el 6 nov, pie). */
+  --home-fila: clamp(0px, calc((100vh - 350px) / var(--home-filas, 2) - 14px), 330px);
 }
 
 /* --- Métricas headline: banda única con divisores hairline ------------ */

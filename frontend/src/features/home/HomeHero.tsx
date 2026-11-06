@@ -61,9 +61,9 @@ export function HomeHero({ overview }: { overview: ProjectOverview }) {
       </div>
       <div className="home-hero-estado">
         {faltaOficial ? (
-          <p className="home-hero-aviso" role="note">
+          <p className="home-hero-aviso" role="note" title="La Ficha del estudio no declara su nombre oficial: arriba se muestra el del archivo.">
             <span className="home-hero-aviso-punto" aria-hidden="true" />
-            <span>Sin nombre oficial: se muestra el del archivo.</span>
+            <span>Sin nombre oficial</span>
             <button type="button" className="home-hero-aviso-accion" onClick={panelEstudio.abrir}>
               <FileText size={13} aria-hidden="true" /> Declararlo en la Ficha
             </button>
