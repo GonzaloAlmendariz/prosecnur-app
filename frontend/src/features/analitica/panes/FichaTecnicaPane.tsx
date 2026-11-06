@@ -161,7 +161,7 @@ export function FichaTecnicaPane() {
             <strong>Ficha técnica</strong>
             <small>Resume diseño, muestra, fuentes y base longitudinal en un documento editable.</small>
           </div>
-          <div className="analitica-report-overview analitica-report-overview--ficha">
+          <div className="analitica-report-overview analitica-report-overview--ficha" data-qa-geometry-group="analitica/ficha-cifras" data-qa-geometry-contract="equal">
             {fichaStats.map((stat) => (
               <FichaStat key={stat.label} {...stat} />
             ))}
@@ -211,7 +211,7 @@ export function FichaTecnicaPane() {
             </div>
 
             <div className="analitica-ficha-layout">
-              <div className="analitica-ficha-editor">
+              <div className="analitica-ficha-editor" data-qa-geometry-group="analitica/ficha-editor" data-qa-geometry-contract="intrinsic">
                 {fieldsByGroup.map(([group, groupFields]) => (
                   <Section
                     key={group}
@@ -270,10 +270,10 @@ export function FichaTecnicaPane() {
                 </Section>
               </div>
 
-              <aside className="analitica-ficha-side" aria-label="Evidencia metodológica">
+              <aside className="analitica-ficha-side" aria-label="Evidencia metodológica" data-qa-geometry-group="analitica/ficha-evidencia" data-qa-geometry-contract="intrinsic">
                 <Section title="Indicadores metodológicos" subtitle="Lectura automática desde las fuentes disponibles del proyecto.">
                   {info?.kpis?.length ? (
-                    <div className="analitica-ficha-kpi-list">
+                    <div className="analitica-ficha-kpi-list" data-qa-geometry-group="analitica/ficha-indicadores" data-qa-geometry-contract="intrinsic">
                       {info.kpis.map((kpi) => (
                         <div className="analitica-ficha-kpi" key={`${kpi.source}-${kpi.label}`}>
                           <span className="analitica-ficha-kpi-icon"><Gauge size={14} /></span>
@@ -291,7 +291,7 @@ export function FichaTecnicaPane() {
                 </Section>
 
                 <Section title="Fuentes de evidencia" subtitle="Contextos que alimentan la redacción sugerida.">
-                  <div className="analitica-ficha-source-list">
+                  <div className="analitica-ficha-source-list" data-qa-geometry-group="analitica/ficha-fuentes" data-qa-geometry-contract="intrinsic">
                     {(info?.sources ?? []).map((source) => (
                       <div className={`analitica-ficha-source ${source.available ? "is-on" : ""}`} key={source.key}>
                         <span>{source.available ? <CheckCircle2 size={13} /> : <BookOpenCheck size={13} />}</span>
@@ -332,7 +332,9 @@ function FichaLoadingState({ slow }: { slow: boolean }) {
   ];
 
   return (
-    <div className={`analitica-ficha-loading${slow ? " is-slow" : ""}`} role="status" aria-live="polite">
+    // `data-audit-ready="false"` mientras lee (patrón CargaDeBloque, readinessAnidada): el QA medía esta
+    // pantalla de espera creyendo que era la Ficha (6 nov 2026). Se desmonta al llegar el dato o el error.
+    <div className={`analitica-ficha-loading${slow ? " is-slow" : ""}`} role="status" aria-live="polite" data-audit-ready="false">
       <section className="analitica-ficha-loading-hero" aria-label="Preparando ficha técnica">
         <span className="analitica-ficha-loading-icon" aria-hidden="true">
           <FileText size={18} />
