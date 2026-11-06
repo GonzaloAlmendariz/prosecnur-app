@@ -16,6 +16,8 @@ import { fragmentoDe, insertarEnCursor, type Funcion } from "./catalogoModelo";
 import { ProbarCalculo } from "./ProbarCalculo";
 import { CatalogoFunciones } from "./CatalogoFunciones";
 import { CalculationRecipePanel } from "../canvas/constructor/CalculoRepeticionPaneles";
+import { valoresDeEjemplo } from "../cuestionario/ejemploSorteo";
+import { agruparEnFamilias } from "./familiasCalculo";
 
 import { EstadoChip } from "../../../components/EstadoChip";
 // Pestaña Cálculos (revamp 2026-10-16): cada `calculate` del formulario con su fórmula leída
@@ -39,6 +41,8 @@ export function PestanaCalculos({ structure, scope: scopeBase, seleccionada, onS
   const scope = useMemo(() => enriquecerAlcance(scopeBase, structure), [scopeBase, structure]);
   // «Lo usan» cuenta TODAS las columnas: también la etiqueta, la ayuda, los mensajes y las opciones (S1).
   const usos = useMemo(() => indiceDeUsos(structure, catalogs), [structure, catalogs]);
+  // Valores de una entrevista de ejemplo para los cálculos que dependen de un sorteo.
+  const ejemplo = useMemo(() => valoresDeEjemplo(structure?.outline ?? []), [structure]);
   const items = useMemo(
     () => calculosDelFormulario(structure).map((i) => ({ ...i, loUsan: usos.get(i.node.name) ?? [] })),
     [structure, usos],
@@ -59,12 +63,25 @@ export function PestanaCalculos({ structure, scope: scopeBase, seleccionada, onS
         aviso: i.vacio,
       };
     };
+    // Las fórmulas repetidas por tarea y perfil (un conjoint) se pliegan en una fila por familia (E10).
+    const conFamilias = (lista: typeof items) =>
+      agruparEnFamilias(lista, (i) => i.node.name).map((g) => {
+        if (g.tipo === "suelto") return item(g.item);
+        const miembros = g.items.map(item);
+        return { ...miembros[0]!, titulo: g.clave, resumen: miembros[0]!.resumen, miembros };
+      });
+    const sorteado = (i: (typeof items)[number]) => ejemplo.sorteados.has(i.node.name);
     return [
-      { titulo: "En uso", items: items.filter((i) => !i.enPregunta && i.loUsan.length > 0).map(item) },
-      { titulo: "Sólo para la base", items: items.filter((i) => !i.enPregunta && i.loUsan.length === 0).map(item) },
+      {
+        titulo: "Sorteos",
+        nota: "Se calculan una vez por entrevista a partir de números al azar: cada encuestado ve otro sorteo.",
+        items: conFamilias(items.filter((i) => !i.enPregunta && sorteado(i))),
+      },
+      { titulo: "En uso", items: conFamilias(items.filter((i) => !i.enPregunta && !sorteado(i) && i.loUsan.length > 0)) },
+      { titulo: "Sólo para la base", items: conFamilias(items.filter((i) => !i.enPregunta && !sorteado(i) && i.loUsan.length === 0)) },
       { titulo: "Preguntas con fórmula", items: items.filter((i) => i.enPregunta).map(item) },
     ];
-  }, [items, scope, structure]);
+  }, [items, scope, structure, ejemplo]);
   const lectura = useMemo(() => (actual && !actual.vacio ? leerRegla("calculation", actual.node.calculation, actual.node, scope) : null), [actual, scope]);
   const enPreguntas = items.filter((i) => i.enPregunta).length;
   const [editando, setEditando] = useState(false);
@@ -168,6 +185,15 @@ export function PestanaCalculos({ structure, scope: scopeBase, seleccionada, onS
               />
             ) : null}
           </PanelCard>
+          {ejemplo.sorteados.has(actual.node.name) ? (
+            <PanelCard title="En una entrevista de ejemplo" meta={<EstadoChip label="sorteo" tone="neutral" />}>
+              <p className="xfp-lectura">
+                {ejemplo.valores[actual.node.name] !== undefined && ejemplo.valores[actual.node.name] !== ""
+                  ? <>Vale <strong>{ejemplo.valores[actual.node.name]}</strong>. En otra entrevista el sorteo puede dar otro valor.</>
+                  : "Con este sorteo queda vacío."}
+              </p>
+            </PanelCard>
+          ) : null}
           <ProbarCalculo key={actual.node.rowIndex} node={actual.node} formula={formulaPrueba} usa={usaPrueba} structure={structure} opcionesDe={opcionesDe} />
           <div className="xfp-fila2" data-qa-geometry-group="xlsform/calculos-fila" data-qa-geometry-contract="equal">
             <PanelCard title="Usa" meta={actual.usa.length ? `${actual.usa.length}` : undefined} fill>

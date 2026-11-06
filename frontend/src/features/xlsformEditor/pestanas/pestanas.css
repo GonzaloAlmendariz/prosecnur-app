@@ -84,6 +84,16 @@
 .xfp-item__titulo { font-size: var(--pulso-type-body-size); color: var(--pulso-text); }
 .xfp-item__resumen { font-size: var(--pulso-type-caption-size); color: var(--pulso-text-muted); }
 .xfp-item__resumen.is-aviso { color: var(--pulso-accent-amber); }
+/* Familias de cálculos (E10 editor-conjoint): una fila plegable por fórmula repetida en tareas y perfiles. */
+.xfp-grupo__nota { margin: 0; padding: 0 10px 6px; font-size: var(--pulso-type-caption-size); color: var(--pulso-text-muted); line-height: 1.4; }
+.xfp-familia { border-top: 1px solid var(--pulso-border); }
+.xfp-familia:first-of-type { border-top: 0; }
+.xfp-familia .xfp-familia__cabeza { border-top: 0; }
+.xfp-familia__cabeza.is-dentro .xfp-item__titulo { color: var(--module-accent, var(--pulso-primary)); }
+.xfp-familia__chev { color: var(--pulso-text-muted); transition: transform var(--motion-dur-fast) var(--motion-ease-out); }
+.xfp-familia.is-abierta .xfp-familia__chev { transform: rotate(90deg); }
+.xfp-familia__k { margin-left: 4px; font-size: var(--pulso-type-caption-size); font-variant-numeric: tabular-nums; color: var(--pulso-text-muted); }
+.xfp-item.is-miembro { padding-left: 28px; }
 
 .xfp-reglas__detalle {
   min-width: 0;
