@@ -12,11 +12,6 @@
  * Namespace: `.pulso-xfsim-*`.
  * ========================================================================= */
 
-@keyframes pulso-xfsim-in {
-  from { opacity: 0; transform: translateY(6px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-
 /* Debe cubrir la command bar del editor (.pulso-page-frame-chrome, z-index
  * 1000) y el MoreViewsMenu (1200), igual que .pulso-graph-overlay (1400). El
  * overlay se portalea a document.body, así que sin este z-index la barra
@@ -120,7 +115,7 @@
 .pulso-xfsim-slot.is-visible {
   grid-template-rows: 1fr;
   opacity: 1;
-  animation: pulso-xfsim-in var(--motion-dur-base) var(--motion-ease-out) backwards;
+  animation: pulso-mov-sube var(--motion-dur-base) var(--motion-ease-out) backwards;
 }
 
 /* Stagger sutil al entrar a una página (máx ~6 cards). */

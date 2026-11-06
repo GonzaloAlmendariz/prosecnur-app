@@ -125,7 +125,7 @@
   border-radius: 14px;
   background: var(--pulso-surface);
   transform-origin: top left;
-  animation: pulso-xftr-pop-in var(--motion-dur-fast) var(--motion-ease-out) both;
+  animation: pulso-mov-emerge var(--motion-dur-fast) var(--motion-ease-out) both;
 }
 
 .pulso-xftr-cat {
@@ -179,7 +179,7 @@
   border-radius: 14px;
   background: var(--pulso-surface);
   transform-origin: top left;
-  animation: pulso-xftr-pop-in var(--motion-dur-fast) var(--motion-ease-out) both;
+  animation: pulso-mov-emerge var(--motion-dur-fast) var(--motion-ease-out) both;
 }
 
 .pulso-xftr-phrase {
@@ -394,17 +394,6 @@
 }
 
 /* ── Keyframes ────────────────────────────────────────────────────────── */
-
-@keyframes pulso-xftr-pop-in {
-  from {
-    opacity: 0;
-    transform: translateY(-6px) scale(0.97);
-  }
-  to {
-    opacity: 1;
-    transform: none;
-  }
-}
 
 @keyframes pulso-xftr-fade-up {
   from {

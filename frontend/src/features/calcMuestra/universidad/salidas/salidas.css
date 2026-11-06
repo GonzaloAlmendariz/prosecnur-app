@@ -91,7 +91,7 @@
    stagger de la fila de CifraMotor. Solo transform/opacity, ease-out. */
 @media (prefers-reduced-motion: no-preference) {
   .cmv2-sal-panel .cmv2-uni-flujo > * {
-    animation: cmv2-uni-enter-suave 220ms var(--cmv2-ease-out, ease-out) both;
+    animation: pulso-mov-aparece 220ms var(--cmv2-ease-out, ease-out) both;
   }
 
   .cmv2-sal-panel .cmv2-uni-flujo > :nth-child(2) { animation-delay: 12ms; }
@@ -106,7 +106,7 @@
   /* Mismos tiempos que .cmv2-uni-stagger (ui/ui.css); CifraFila no expone
      className, por eso el selector estructural. */
   .cmv2-sal-panel .cmv2-uni-cifra-fila > * {
-    animation: cmv2-uni-enter-suave 230ms var(--cmv2-ease-out, ease-out) both;
+    animation: pulso-mov-aparece 230ms var(--cmv2-ease-out, ease-out) both;
   }
 
   .cmv2-sal-panel .cmv2-uni-cifra-fila > :nth-child(2) { animation-delay: 25ms; }
@@ -117,28 +117,15 @@
   /* Tablas de Resultados: fade simple, sin stagger por fila (son largas).
      Las tablas del Pase a Monitoreo quedan sin animación a propósito. */
   .cmv2-sal-stack .cmv2-university-results .cmv2-table-wrap {
-    animation: cmv2-sal-fade 200ms var(--cmv2-ease-out, ease-out) both;
+    animation: pulso-mov-aparece 200ms var(--cmv2-ease-out, ease-out) both;
   }
 
   /* "Ver reporte" recién disponible: entra con fade + scale(0.97) y un único
      pulso de acento (300ms) para señalar que ya está. */
   .cmv2-sal-stack .cmv2-did-sal-row a.cmv2-ghost {
     animation:
-      cmv2-sal-reporte-in 200ms var(--cmv2-ease-out, ease-out) both,
+      pulso-mov-escala 200ms var(--cmv2-ease-out, ease-out) both,
       cmv2-sal-reporte-pulso 300ms var(--cmv2-ease-out, ease-out) 220ms 1;
-  }
-}
-
-@keyframes cmv2-sal-fade {
-  from {
-    opacity: 0;
-  }
-}
-
-@keyframes cmv2-sal-reporte-in {
-  from {
-    opacity: 0;
-    transform: scale(0.97);
   }
 }
 

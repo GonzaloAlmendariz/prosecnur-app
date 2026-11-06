@@ -400,16 +400,6 @@ button.pulso-ghost-nav:disabled {
 
 /* ── Keyframes ─────────────────────────────────────────────────────────── */
 
-@keyframes pulso-cv2-pop-in {
-  from { opacity: 0; transform: translateY(-6px) scale(0.97); }
-  to   { opacity: 1; transform: none; }
-}
-
-@keyframes pulso-cv2-overlay-in {
-  from { opacity: 0; }
-  to   { opacity: 1; }
-}
-
 /* ── Acento del módulo (teal) ──────────────────────────────────────────── */
 /* El chrome de Procesamiento (phase-dock, rail, tiles) ya habla teal, pero el
  * CONTENIDO de Codificación seguía en el navy global `--pulso-primary`. Aquí
@@ -585,11 +575,11 @@ button.pulso-ghost-nav:disabled {
 /* ── Diálogos (PairingDialog / RelationDialog) ─────────────────────────── */
 
 .pulso-cv2-overlay {
-  animation: pulso-cv2-overlay-in var(--motion-dur-fast) var(--motion-ease-out);
+  animation: pulso-mov-aparece var(--motion-dur-fast) var(--motion-ease-out);
 }
 
 .pulso-cv2-dialog {
-  animation: pulso-cv2-pop-in var(--motion-dur-fast) var(--motion-ease-out);
+  animation: pulso-mov-emerge var(--motion-dur-fast) var(--motion-ease-out);
   transform-origin: top center;
   border-radius: 16px !important;
 }

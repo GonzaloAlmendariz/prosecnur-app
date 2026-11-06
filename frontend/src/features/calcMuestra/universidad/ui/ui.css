@@ -33,7 +33,7 @@
 
   /* Cascada para grillas de tarjetas/cifras: aplicar a contenedores. */
   .cmv2-uni-stagger > * {
-    animation: cmv2-uni-enter-suave 230ms var(--cmv2-ease-out, ease-out) both;
+    animation: pulso-mov-aparece 230ms var(--cmv2-ease-out, ease-out) both;
   }
 
   .cmv2-uni-stagger > *:nth-child(2) { animation-delay: 35ms; }
@@ -44,7 +44,7 @@
   .cmv2-uni-stagger > *:nth-child(n + 7) { animation-delay: 200ms; }
 
   .cmv2-uni-flujo[data-orientacion="adaptive"] > .cmv2-uni-flujo-etapa {
-    animation: cmv2-uni-enter-suave 220ms var(--cmv2-ease-out, ease-out) both;
+    animation: pulso-mov-aparece 220ms var(--cmv2-ease-out, ease-out) both;
     animation-delay: min(calc(var(--cmv2-flujo-index, 0) * 28ms), 168ms);
   }
 }
@@ -59,12 +59,6 @@
 /* Variante fade-only para cascadas INTERNAS: el wrapper del tab ya desliza
    (motion en capas) — si el contenido también trasladara, el movimiento se
    duplicaría. Las cascadas internas solo funden. */
-@keyframes cmv2-uni-enter-suave {
-  from {
-    opacity: 0;
-  }
-}
-
 /* Crossfade con blur para cifras que cambian de valor: el blur funde ambos
    estados en una sola transformación en vez de dos objetos superpuestos. */
 .cmv2-uni-swap {

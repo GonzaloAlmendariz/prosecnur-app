@@ -542,7 +542,7 @@
  * acomodar la lista de chips agregados que componen el promedio. */
 .dashboard-scope .dash-foda-detail-backdrop {
   align-items: center;
-  animation: dashFodaDetailFadeIn 160ms cubic-bezier(0.23, 1, 0.32, 1);
+  animation: pulso-mov-aparece 160ms cubic-bezier(0.23, 1, 0.32, 1);
   background: rgba(15, 23, 42, 0.32);
   display: flex;
   inset: 0;
@@ -551,11 +551,6 @@
   position: fixed;
   z-index: 9000;
 }
-@keyframes dashFodaDetailFadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
 .dashboard-scope .dash-foda-detail-card {
   animation: dashFodaDetailPop 200ms cubic-bezier(0.23, 1, 0.32, 1);
   background: #ffffff;

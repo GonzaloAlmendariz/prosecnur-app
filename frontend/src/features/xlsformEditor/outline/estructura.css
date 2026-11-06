@@ -154,10 +154,8 @@
   flex: none; box-sizing: border-box; border-radius: 8px;
   background: color-mix(in srgb, var(--pulso-primary) 6%, transparent);
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--pulso-primary) 35%, transparent);
-  animation: xfe-hueco-entra var(--motion-dur-base) cubic-bezier(.22, 1, .36, 1);
+  animation: pulso-mov-aparece var(--motion-dur-base) cubic-bezier(.22, 1, .36, 1);
 }
-@keyframes xfe-hueco-entra { from { opacity: 0; } to { opacity: 1; } }
-
 .xfe-fantasma {
   position: fixed; z-index: var(--pulso-z-flyout, 1000); pointer-events: none; box-sizing: border-box; border-radius: 9px;
   background: var(--pulso-surface);

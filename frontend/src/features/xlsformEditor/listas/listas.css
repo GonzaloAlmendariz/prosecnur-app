@@ -501,10 +501,6 @@
   border-top-color: var(--pulso-warn-border);
 }
 
-@keyframes pulso-xf-listas-girar {
-  to { transform: rotate(360deg); }
-}
-
 @media (max-width: 720px) {
   .pulso-xf-listas-entre-fila {
     grid-template-columns: minmax(0, 1fr);

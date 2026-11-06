@@ -10,11 +10,6 @@
  * `.pulso-sheets-*` de theme.css (que esta vista ya no usa).
  * ========================================================================= */
 
-@keyframes pulso-xfs-in {
-  from { opacity: 0; transform: translateY(6px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-
 /* ── Contenedor ────────────────────────────────────────────────────────── */
 
 .pulso-xlsform-frame .pulso-xfs-view {
@@ -241,7 +236,7 @@
      Piso de 260px para que en alturas bajas (1024x600) no colapse en una
      franja inusable; el fallback vertical vive en .pulso-main. */
   max-height: max(260px, calc(100vh - 280px));
-  animation: pulso-xfs-in var(--motion-dur-fast) var(--motion-ease-out) both;
+  animation: pulso-mov-sube var(--motion-dur-fast) var(--motion-ease-out) both;
 }
 
 .pulso-xlsform-frame .pulso-xfs-table {

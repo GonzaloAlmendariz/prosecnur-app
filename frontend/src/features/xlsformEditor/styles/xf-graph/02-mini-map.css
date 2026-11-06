@@ -58,10 +58,6 @@
   to   { opacity: 1; transform: translateY(0); }
 }
 
-@keyframes pulso-xfg-edge-in {
-  from { opacity: 0; }
-}
-
 @keyframes pulso-xfg-dash-flow {
   to { stroke-dashoffset: -14; }
 }
@@ -71,11 +67,6 @@
    * coincidir con ese transform base para no saltar al terminar. */
   from { opacity: 0; transform: translateX(-50%) translateY(-6px); }
   to   { opacity: 1; transform: translateX(-50%) translateY(0); }
-}
-
-@keyframes pulso-xfg-fade-in-up {
-  from { opacity: 0; transform: translateY(6px); }
-  to   { opacity: 1; transform: translateY(0); }
 }
 
 /* ── Header del overlay ────────────────────────────────────────────────── */
@@ -281,14 +272,14 @@
 /* Ring primario del nodo seleccionado. */
 .pulso-graph-overlay .pulso-graph-node-ring {
   pointer-events: none;
-  animation: pulso-xfg-edge-in var(--motion-dur-fast) ease backwards;
+  animation: pulso-mov-aparece var(--motion-dur-fast) ease backwards;
 }
 
 /* ── Edges ─────────────────────────────────────────────────────────────── */
 
 /* Aparición con fade (el stagger viene del animation-delay inline). */
 .pulso-graph-overlay .pulso-graph-edge {
-  animation: pulso-xfg-edge-in var(--motion-dur-base) var(--motion-ease-out) backwards;
+  animation: pulso-mov-aparece var(--motion-dur-base) var(--motion-ease-out) backwards;
 }
 
 /* Dash-flow sutil sobre el edge seleccionado (overlay blanco punteado
@@ -314,7 +305,7 @@
   align-items: center;
   justify-content: center;
   height: 100%;
-  animation: pulso-xfg-fade-in-up var(--motion-dur-fast) var(--motion-ease-out);
+  animation: pulso-mov-sube var(--motion-dur-fast) var(--motion-ease-out);
 }
 .pulso-graph-overlay .pulso-graph-edge-label {
   max-width: 100%;

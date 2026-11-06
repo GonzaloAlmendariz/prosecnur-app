@@ -43,7 +43,7 @@
    y funde las aristas con un fade puro intercalado. Decorativa: nunca bloquea. */
 @media (prefers-reduced-motion: no-preference) {
   .cmv2-defi-stagger .cmv2-uni-flujo-etapa {
-    animation: cmv2-defi-enter 230ms var(--cmv2-ease-out, ease-out) both;
+    animation: pulso-mov-aparece 230ms var(--cmv2-ease-out, ease-out) both;
   }
 
   .cmv2-defi-stagger .cmv2-uni-flujo-etapa:nth-child(3) { animation-delay: 45ms; }
@@ -52,7 +52,7 @@
   .cmv2-defi-stagger .cmv2-uni-flujo-etapa:nth-child(n + 9) { animation-delay: 180ms; }
 
   .cmv2-defi-stagger .cmv2-uni-flujo-arista {
-    animation: cmv2-defi-fade 230ms var(--cmv2-ease-out, ease-out) both;
+    animation: pulso-mov-aparece 230ms var(--cmv2-ease-out, ease-out) both;
     animation-delay: 25ms;
   }
 
@@ -62,18 +62,6 @@
 }
 
 /* Fade-only: el wrapper del tab ya desliza (motion en capas, ui/ui.css). */
-@keyframes cmv2-defi-enter {
-  from {
-    opacity: 0;
-  }
-}
-
-@keyframes cmv2-defi-fade {
-  from {
-    opacity: 0;
-  }
-}
-
 /* Los campos del formulario transicionan borde y anillo de foco (el ring en sí
    lo da calcMuestra.css; aquí solo se suaviza la entrada/salida del foco). */
 .cmv2-defi-form .cmv2-compact-field input,

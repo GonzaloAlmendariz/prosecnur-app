@@ -1,0 +1,75 @@
+/* =============================================================================
+   Movimiento — el vocabulario común de la app (5 nov 2026)
+   =============================================================================
+   Gonzalo: «puede tener un sistema de animación más sofisticado y universal».
+   Los TIEMPOS y las CURVAS ya eran comunes (tokens --motion-* en tokens.css);
+   los GESTOS no: había 278 @keyframes con 177 cuerpos distintos, y los cuatro
+   más repetidos —aparecer, girar, subir 6 px, emerger escalando— eran 69
+   copias con 69 nombres. Aquí vive un gesto por propósito; las hojas de los
+   módulos los nombran en vez de redefinirlos.
+
+   Se carga con la suite (AppSuite.tsx), así que lo usa cualquier hoja de
+   features/. NO lo usan las hojas del chunk de arranque (boot.css,
+   pantalla-de-carga.css) ni las de components/ que el selector monta antes
+   de la suite: esas conservan sus keyframes.
+
+   Gestos (cada uno con su propósito nombrable, contrato de movimiento F6 §0):
+   - pulso-mov-aparece  algo que llega sin venir de un lugar (velo, contenido
+                        que reemplaza a otro).
+   - pulso-mov-sube     algo que entra en el flujo de la página (tarjeta,
+                        sección, fila). Distancia en --mov-dy (6 px).
+   - pulso-mov-emerge   algo que se abre desde su disparador (popover, menú):
+                        baja 6 px y escala desde .97. Nunca desde scale(0).
+   - pulso-mov-escala   un diálogo o lámina centrada que se presenta.
+   - pulso-mov-entra-lado  un panel lateral que entra desde su borde
+                        (--mov-dx, 24 px).
+   - pulso-mov-giro     el único bucle: un indicador de espera.
+
+   Utilidad por atributo, para lo que se monta y no tiene hoja propia:
+     <section data-entra="sube" style="--i: 2">
+   escalona 30 ms por índice con tope de 3 (90 ms, el techo del ratchet de
+   retardo en movimiento.contract.test.ts).
+
+   Movimiento reducido: los gestos con desplazamiento quedan en opacidad.
+   ============================================================================= */
+
+@keyframes pulso-mov-aparece {
+  from { opacity: 0; }
+}
+
+@keyframes pulso-mov-sube {
+  from { opacity: 0; transform: translateY(var(--mov-dy, 6px)); }
+}
+
+@keyframes pulso-mov-emerge {
+  from { opacity: 0; transform: translateY(-6px) scale(0.97); }
+}
+
+@keyframes pulso-mov-escala {
+  from { opacity: 0; transform: scale(0.97); }
+}
+
+@keyframes pulso-mov-entra-lado {
+  from { opacity: 0; transform: translateX(var(--mov-dx, 24px)); }
+}
+
+@keyframes pulso-mov-giro {
+  to { transform: rotate(360deg); }
+}
+
+[data-entra] {
+  animation-duration: var(--motion-dur-base);
+  animation-timing-function: var(--motion-ease-out);
+  animation-fill-mode: backwards;
+  animation-delay: calc(min(var(--i, 0), 3) * 30ms);
+}
+
+[data-entra="aparece"] { animation-name: pulso-mov-aparece; }
+[data-entra="sube"] { animation-name: pulso-mov-sube; }
+[data-entra="emerge"] { animation-name: pulso-mov-emerge; animation-duration: var(--motion-dur-fast); }
+[data-entra="escala"] { animation-name: pulso-mov-escala; }
+[data-entra="lado"] { animation-name: pulso-mov-entra-lado; animation-duration: var(--motion-dur-panel); animation-timing-function: var(--motion-ease-drawer); }
+
+@media (prefers-reduced-motion: reduce) {
+  [data-entra] { animation-name: pulso-mov-aparece; animation-delay: 0ms; }
+}

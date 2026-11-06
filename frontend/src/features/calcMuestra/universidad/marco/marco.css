@@ -555,18 +555,6 @@
    ============================================================================= */
 
 /* Fade-only: el wrapper del tab ya desliza (motion en capas, ui/ui.css). */
-@keyframes cmv2-marco-enter {
-  from {
-    opacity: 0;
-  }
-}
-
-@keyframes cmv2-marco-fade {
-  from {
-    opacity: 0;
-  }
-}
-
 @keyframes cmv2-marco-grow-x {
   from {
     transform: scaleX(0);
@@ -579,24 +567,17 @@
   }
 }
 
-@keyframes cmv2-marco-pop {
-  from {
-    opacity: 0;
-    transform: scale(0.97);
-  }
-}
-
 @media (prefers-reduced-motion: no-preference) {
   /* Población: cascada del flujo universo → elegibles → población. Variante
      propia (no .cmv2-uni-stagger): solo las etapas se desplazan; las aristas
      apenas funden en opacidad para no ver flechas "volando". El orden DOM es
      fijo: etapa(1) arista(2) etapa(3) arista(4) etapa(5). */
   .cmv2-marco-flujo-stagger .cmv2-uni-flujo > .cmv2-uni-flujo-etapa {
-    animation: cmv2-marco-enter 230ms var(--cmv2-ease-out, ease-out) both;
+    animation: pulso-mov-aparece 230ms var(--cmv2-ease-out, ease-out) both;
   }
 
   .cmv2-marco-flujo-stagger .cmv2-uni-flujo > .cmv2-uni-flujo-arista {
-    animation: cmv2-marco-fade 180ms var(--cmv2-ease-out, ease-out) both;
+    animation: pulso-mov-aparece 180ms var(--cmv2-ease-out, ease-out) both;
   }
 
   .cmv2-marco-flujo-stagger .cmv2-uni-flujo > :nth-child(2) { animation-delay: 60ms; }
@@ -621,7 +602,7 @@
 
   /* Población: el drill de carreras cambia seguido → solo fade corto. */
   .cmv2-marco-drill-swap {
-    animation: cmv2-marco-fade 150ms var(--cmv2-ease-out, ease-out) both;
+    animation: pulso-mov-aparece 150ms var(--cmv2-ease-out, ease-out) both;
   }
 
   /* Aulas: columnas del histograma suben desde la base, escalonadas 20ms
@@ -634,7 +615,7 @@
 
   /* Aulas: la línea del mínimo entra al final, funde y se dibuja hacia abajo. */
   .cmv2-marco-histo-minline {
-    animation: cmv2-marco-fade 200ms var(--cmv2-ease-out, ease-out) 300ms both;
+    animation: pulso-mov-aparece 200ms var(--cmv2-ease-out, ease-out) 300ms both;
   }
 
   .cmv2-marco-histo-minline i {
@@ -652,16 +633,16 @@
   /* Consistencia: la reconciliación entra con fade + scale sutil,
      apenas después de que el gauge arranque. */
   .cmv2-marco-reconciliation {
-    animation: cmv2-marco-pop 240ms var(--cmv2-ease-out, ease-out) 120ms both;
+    animation: pulso-mov-escala 240ms var(--cmv2-ease-out, ease-out) 120ms both;
   }
 
   /* Consistencia: micro-entrada del estado vacío (una sola base). */
   .cmv2-marco-vacio .pulso-empty-state {
-    animation: cmv2-marco-enter 220ms var(--cmv2-ease-out, ease-out) both;
+    animation: pulso-mov-aparece 220ms var(--cmv2-ease-out, ease-out) both;
   }
 
   .cmv2-marco-vacio .pulso-empty-state-icon {
-    animation: cmv2-marco-pop 260ms var(--cmv2-ease-out, ease-out) 80ms both;
+    animation: pulso-mov-escala 260ms var(--cmv2-ease-out, ease-out) 80ms both;
   }
 }
 

@@ -552,7 +552,7 @@
   /* Propuestas · cascada de etapas del flujo n fórmula → aulas. Las etapas son
      los hijos impares del flujo (los pares son aristas, que solo funden). */
   .cmv2-calc-stagger .cmv2-uni-flujo > .cmv2-uni-flujo-etapa {
-    animation: cmv2-calc-enter 220ms var(--cmv2-ease-out, cubic-bezier(0.23, 1, 0.32, 1)) both;
+    animation: pulso-mov-aparece 220ms var(--cmv2-ease-out, cubic-bezier(0.23, 1, 0.32, 1)) both;
   }
 
   .cmv2-calc-stagger .cmv2-uni-flujo > .cmv2-uni-flujo-etapa:nth-child(3) {
@@ -568,7 +568,7 @@
   }
 
   .cmv2-calc-stagger .cmv2-uni-flujo > .cmv2-uni-flujo-arista {
-    animation: cmv2-calc-fade 200ms ease-out both;
+    animation: pulso-mov-aparece 200ms ease-out both;
   }
 
   .cmv2-calc-stagger .cmv2-uni-flujo > .cmv2-uni-flujo-arista:nth-child(2) {
@@ -597,11 +597,11 @@
 
   /* Área ±z, marcas y puntos aparecen cuando la curva ya está trazada. */
   .cmv2-calc-svg-revela {
-    animation: cmv2-calc-fade 260ms ease-out 240ms both;
+    animation: pulso-mov-aparece 260ms ease-out 240ms both;
   }
 
   .cmv2-calc-svg-punto-movil {
-    animation: cmv2-calc-fade 200ms ease-out 360ms both;
+    animation: pulso-mov-aparece 200ms ease-out 360ms both;
     transition: transform 200ms var(--cmv2-ease-out, cubic-bezier(0.23, 1, 0.32, 1));
   }
 
@@ -797,18 +797,6 @@
 }
 
 /* Fade-only: el wrapper del tab ya desliza (motion en capas, ui/ui.css). */
-@keyframes cmv2-calc-enter {
-  from {
-    opacity: 0;
-  }
-}
-
-@keyframes cmv2-calc-fade {
-  from {
-    opacity: 0;
-  }
-}
-
 @keyframes cmv2-calc-trazo {
   to {
     stroke-dashoffset: 0;

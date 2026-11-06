@@ -12,7 +12,7 @@
   gap: 16px 32px;
   flex-wrap: wrap;
   padding: 4px 2px 6px;
-  animation: home-hero-entra var(--motion-dur-panel) var(--motion-ease-out) backwards;
+  animation: pulso-mov-sube var(--motion-dur-panel) var(--motion-ease-out) backwards;
 }
 
 .home-hero-estudio {
@@ -87,16 +87,8 @@
 
 .home-hero .home-hoy-texto { padding-top: 0; }
 
-@keyframes home-hero-entra {
-  from { opacity: 0; transform: translateY(6px); }
-}
-
 @media (prefers-reduced-motion: reduce) {
-  .home-hero { animation-name: home-hero-aparece; }
-}
-
-@keyframes home-hero-aparece {
-  from { opacity: 0; }
+  .home-hero { animation-name: pulso-mov-aparece; }
 }
 
 /* Ventanas bajas (≤ 820 px): la cabecera cede alto a las tarjetas. Sin ceja, y el nombre con su meta en una sola

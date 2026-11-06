@@ -370,7 +370,7 @@
  * imagen entera fade-in y los labels stagger. */
 @media (prefers-reduced-motion: no-preference) {
   .dashboard-scope .dash-dim-vis-body .js-plotly-plot .heatmaplayer image {
-    animation: dash-dim-fade-in-soft var(--motion-dur-slow) cubic-bezier(0.16, 1, 0.3, 1) both;
+    animation: pulso-mov-aparece var(--motion-dur-slow) cubic-bezier(0.16, 1, 0.3, 1) both;
   }
   .dashboard-scope .dash-dim-vis-body .js-plotly-plot .heatmaplayer .heatmap-label,
   .dashboard-scope .dash-dim-vis-body .js-plotly-plot .barlayer .point,
@@ -426,11 +426,6 @@
     opacity: 1;
     transform: scale(1) translateY(0);
   }
-}
-
-@keyframes dash-dim-fade-in-soft {
-  from { opacity: 0; }
-  to { opacity: 1; }
 }
 
 @keyframes dash-dim-fade-in {

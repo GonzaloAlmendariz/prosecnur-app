@@ -53,21 +53,6 @@
 
 /* ── Keyframes compartidos del módulo ──────────────────────────────────── */
 
-@keyframes pulso-xf-popover-in {
-  from { opacity: 0; transform: translateY(-6px) scale(0.97); }
-  to   { opacity: 1; transform: translateY(0) scale(1); }
-}
-
-@keyframes pulso-xf-fade-in-up {
-  from { opacity: 0; transform: translateY(6px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-
-@keyframes pulso-xf-overlay-in {
-  from { opacity: 0; }
-  to   { opacity: 1; }
-}
-
 @keyframes pulso-xf-sheet-in {
   from { opacity: 0; transform: translateY(10px) scale(0.99); }
   to   { opacity: 1; transform: translateY(0) scale(1); }
@@ -350,7 +335,7 @@
   backdrop-filter: blur(16px) saturate(1.08);
   -webkit-backdrop-filter: blur(16px) saturate(1.08);
   transform-origin: top right;
-  animation: pulso-xf-popover-in var(--motion-dur-fast) var(--motion-ease-out);
+  animation: pulso-mov-emerge var(--motion-dur-fast) var(--motion-ease-out);
 }
 
 .pulso-xlsform-frame .pulso-more-views-item {
@@ -364,7 +349,7 @@
 
 /* Stagger sutil de los ítems al abrir el menú. */
 .pulso-xlsform-frame .pulso-more-views-item {
-  animation: pulso-xf-fade-in-up var(--motion-dur-fast) var(--motion-ease-out) backwards;
+  animation: pulso-mov-sube var(--motion-dur-fast) var(--motion-ease-out) backwards;
 }
 .pulso-xlsform-frame .pulso-more-views-item:nth-child(2) { animation-delay: 30ms; }
 .pulso-xlsform-frame .pulso-more-views-item:nth-child(3) { animation-delay: 60ms; }

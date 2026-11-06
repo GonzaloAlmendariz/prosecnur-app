@@ -66,7 +66,7 @@
   border-left: 1px solid var(--pulso-border-strong);
   box-shadow: var(--pulso-shadow-high);
   color: var(--pulso-text);
-  animation: pulso-excluidas-entrada 180ms cubic-bezier(0.32, 0.72, 0, 1);
+  animation: pulso-mov-entra-lado 180ms cubic-bezier(0.32, 0.72, 0, 1);
 }
 
 .pulso-excluidas:focus {
@@ -349,11 +349,6 @@
 @keyframes pulso-excluidas-velo {
   from { opacity: 0; }
   to { opacity: 1; }
-}
-
-@keyframes pulso-excluidas-entrada {
-  from { transform: translateX(24px); opacity: 0; }
-  to { transform: translateX(0); opacity: 1; }
 }
 
 @media (max-height: 720px) {

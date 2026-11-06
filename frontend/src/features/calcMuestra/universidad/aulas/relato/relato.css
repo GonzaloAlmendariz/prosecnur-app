@@ -30,7 +30,7 @@
   border: 1px solid var(--cmv2-border);
   border-radius: 12px;
   background: var(--cmv2-surface);
-  animation: cmv2-relato-escena-entrada var(--motion-dur-panel) var(--motion-ease-out);
+  animation: pulso-mov-sube var(--motion-dur-panel) var(--motion-ease-out);
 }
 
 .cmv2-relato-escena-titulo {
@@ -857,17 +857,6 @@
    Cada keyframe de arriba corresponde a la ENTRADA de un hecho ya resuelto
    (nunca a un azar en curso). Bajo reduced-motion todo queda estático con el
    mismo contenido; además el JSX apaga el autoplay (data-relato-motion). */
-
-@keyframes cmv2-relato-escena-entrada {
-  from {
-    opacity: 0;
-    transform: translateY(6px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
 
 @keyframes cmv2-relato-item-entrada {
   from {

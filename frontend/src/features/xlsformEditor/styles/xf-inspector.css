@@ -41,11 +41,6 @@
 
 /* ── Keyframes propios ─────────────────────────────────────────────────── */
 
-@keyframes pulso-xfi-pop-in {
-  from { opacity: 0; transform: translateY(-6px) scale(0.97); }
-  to   { opacity: 1; transform: translateY(0) scale(1); }
-}
-
 @keyframes pulso-xfi-pop-in-up {
   from { opacity: 0; transform: translateY(6px) scale(0.97); }
   to   { opacity: 1; transform: translateY(0) scale(1); }
@@ -102,7 +97,7 @@ input.pulso-xfi-mono.is-invalid {
   align-items: center;
   gap: 4px;
   flex: 0 0 auto;
-  animation: pulso-xfi-pop-in var(--motion-dur-fast) var(--motion-ease-out);
+  animation: pulso-mov-emerge var(--motion-dur-fast) var(--motion-ease-out);
 }
 
 .pulso-xfi-namefield-apply {
@@ -432,7 +427,7 @@ input.pulso-xfi-mono.is-invalid {
   border-radius: 14px;
   box-shadow: var(--pulso-shadow-popover, 0 10px 30px rgba(15, 23, 42, 0.15));
   transform-origin: top center;
-  animation: pulso-xfi-pop-in var(--motion-dur-fast) var(--motion-ease-out) both;
+  animation: pulso-mov-emerge var(--motion-dur-fast) var(--motion-ease-out) both;
 }
 
 /* Stagger sutil de las familias de tipos al abrir (máx 6). */
@@ -474,7 +469,7 @@ input.pulso-xfi-mono.is-invalid {
   border-radius: 14px;
   box-shadow: var(--pulso-shadow-popover, 0 10px 30px rgba(15, 23, 42, 0.15));
   transform-origin: top center;
-  animation: pulso-xfi-pop-in var(--motion-dur-fast) var(--motion-ease-out) both;
+  animation: pulso-mov-emerge var(--motion-dur-fast) var(--motion-ease-out) both;
 }
 
 .pulso-inspector.pulso-xfi .pulso-catalogchip-pop-item {
@@ -515,7 +510,7 @@ input.pulso-xfi-mono.is-invalid {
   border-radius: 14px;
   box-shadow: var(--pulso-shadow-popover, 0 10px 30px rgba(15, 23, 42, 0.15));
   transform-origin: top center;
-  animation: pulso-xfi-pop-in var(--motion-dur-fast) var(--motion-ease-out) both;
+  animation: pulso-mov-emerge var(--motion-dur-fast) var(--motion-ease-out) both;
 }
 
 .pulso-inspector.pulso-xfi .pulso-logic-predicate-pop {
@@ -525,7 +520,7 @@ input.pulso-xfi-mono.is-invalid {
 
 .pulso-inspector.pulso-xfi .pulso-logic-predicate-pop.is-down {
   transform-origin: top center;
-  animation: pulso-xfi-pop-in var(--motion-dur-fast) var(--motion-ease-out) both;
+  animation: pulso-mov-emerge var(--motion-dur-fast) var(--motion-ease-out) both;
 }
 
 .pulso-inspector.pulso-xfi .pulso-logic-predicate-pop.is-up {

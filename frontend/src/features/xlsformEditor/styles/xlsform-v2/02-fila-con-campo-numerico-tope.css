@@ -340,7 +340,7 @@
 /* ── Overlays de vista completa (mapa de lógica, cuestionario, resumen) ── */
 
 .pulso-xf-overlay-enter {
-  animation: pulso-xf-overlay-in var(--motion-dur-fast) ease;
+  animation: pulso-mov-aparece var(--motion-dur-fast) ease;
 }
 
 .pulso-xf-overlay-enter > main,

@@ -603,11 +603,6 @@
 }
 
 .cmv2-spin {
-  animation: cmv2-did-spin 900ms linear infinite;
+  animation: pulso-mov-giro 900ms linear infinite;
 }
 
-@keyframes cmv2-did-spin {
-  to {
-    transform: rotate(360deg);
-  }
-}

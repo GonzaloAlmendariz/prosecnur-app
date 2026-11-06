@@ -649,11 +649,6 @@
  * superficie glass, entrada con stagger sutil. Sin cambios de layout.
  * ========================================================================= */
 
-@keyframes homev2-fade-in-up {
-  from { opacity: 0; transform: translateY(6px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-
 /* El panel se remonta en cada cambio de foco (key=slug); un fade+lift sutil lo
    re-revela como transición fluida en vez de un salto de contenido. */
 @keyframes homev2-panel-in {
@@ -692,7 +687,7 @@
 
 .home-wrap .home-cinema-dot {
   border-radius: 999px;
-  animation: homev2-fade-in-up var(--motion-dur-base) var(--motion-ease-out) both;
+  animation: pulso-mov-sube var(--motion-dur-base) var(--motion-ease-out) both;
 }
 
 .home-wrap .home-cinema-dot:nth-child(2) { animation-delay: 30ms; }
@@ -1694,12 +1689,7 @@
   padding: clamp(16px, 3vh, 30px) clamp(20px, 4vw, 60px) clamp(18px, 3vh, 34px);
   background: color-mix(in srgb, var(--pulso-surface) 86%, transparent);
   backdrop-filter: blur(16px) saturate(1.05);
-  animation: home-picker-in 200ms var(--motion-ease-out);
-}
-
-@keyframes home-picker-in {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  animation: pulso-mov-aparece 200ms var(--motion-ease-out);
 }
 
 .home-picker-bar {

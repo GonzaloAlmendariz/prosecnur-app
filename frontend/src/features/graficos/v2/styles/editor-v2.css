@@ -216,11 +216,6 @@
 
 /* ── Keyframes ─────────────────────────────────────────────────────────── */
 
-@keyframes pulso-gv2-fade-in-up {
-  from { opacity: 0; transform: translateY(6px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-
 @keyframes pulso-gv2-pulse-ring {
   0%   { box-shadow: 0 0 0 0 var(--pulso-primary-ring); }
   60%  { box-shadow: 0 0 0 6px transparent; }
@@ -2075,7 +2070,7 @@
   background: var(--pulso-surface);
   border: 1px dashed var(--pulso-border);
   border-radius: 10px;
-  animation: pulso-gv2-fade-in-up var(--motion-dur-fast) var(--gv2-press-ease);
+  animation: pulso-mov-sube var(--motion-dur-fast) var(--gv2-press-ease);
 }
 .pulso-gv2-timeline-empty-icon {
   width: 56px; height: 56px;
@@ -2767,7 +2762,7 @@
   box-shadow:
     0 12px 26px rgba(0,36,87,0.09),
     0 0 0 1px rgba(0,36,87,0.035);
-  animation: pulso-gv2-fade-in-up var(--motion-dur-fast) var(--gv2-press-ease);
+  animation: pulso-mov-sube var(--motion-dur-fast) var(--gv2-press-ease);
 }
 
 .pulso-gv2-layout-head {
@@ -4940,7 +4935,7 @@
     rgba(15, 23, 42, 0.46);
   backdrop-filter: blur(7px) saturate(0.98);
   -webkit-backdrop-filter: blur(7px) saturate(0.98);
-  animation: pulso-gv2-fade-in-up 200ms ease-out;
+  animation: pulso-mov-sube 200ms ease-out;
 }
 
 .pulso-gv2-graf-picker {
@@ -4959,7 +4954,7 @@
   box-shadow:
     0 30px 74px rgba(15, 23, 42, 0.24),
     var(--pulso-shadow-high);
-  animation: pulso-gv2-fade-in-up 280ms var(--motion-ease-standard);
+  animation: pulso-mov-sube 280ms var(--motion-ease-standard);
 }
 
 .pulso-gv2-graf-picker::after {
@@ -5585,7 +5580,7 @@
   border-radius: 10px;
   background: var(--pulso-surface);
   box-shadow: var(--pulso-shadow-med);
-  animation: pulso-gv2-fade-in-up var(--motion-dur-fast) var(--gv2-press-ease);
+  animation: pulso-mov-sube var(--motion-dur-fast) var(--gv2-press-ease);
 }
 
 .pulso-gv2-mode-popover-label {
@@ -5748,7 +5743,7 @@
   background: white;
   border: 1px solid var(--pulso-border);
   border-radius: 8px;
-  animation: pulso-gv2-fade-in-up 220ms ease-out;
+  animation: pulso-mov-sube 220ms ease-out;
 }
 
 .pulso-gv2-filter-row-conn {
@@ -5812,7 +5807,7 @@
   z-index: 50;
   max-height: 280px;
   overflow-y: auto;
-  animation: pulso-gv2-fade-in-up 180ms ease-out;
+  animation: pulso-mov-sube 180ms ease-out;
   min-width: 240px;
 }
 
@@ -5869,7 +5864,7 @@
     box-shadow var(--motion-dur-fast) var(--gv2-press-ease),
     transform var(--motion-dur-press) var(--gv2-press-ease),
     background var(--motion-dur-fast) ease;
-  animation: pulso-gv2-fade-in-up var(--motion-dur-fast) var(--gv2-press-ease) backwards;
+  animation: pulso-mov-sube var(--motion-dur-fast) var(--gv2-press-ease) backwards;
   position: relative;
 }
 
@@ -6073,7 +6068,7 @@
   align-items: flex-start;
   justify-content: center;
   padding: clamp(28px, 5vh, 54px) 24px 24px;
-  animation: pulso-gv2-fade-in-up 200ms ease-out;
+  animation: pulso-mov-sube 200ms ease-out;
 }
 
 .pulso-gv2-picker {
@@ -6091,7 +6086,7 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  animation: pulso-gv2-fade-in-up 280ms var(--motion-ease-standard);
+  animation: pulso-mov-sube 280ms var(--motion-ease-standard);
 }
 
 .pulso-gv2-picker-head {
@@ -6251,7 +6246,7 @@
     transform var(--motion-dur-press) var(--gv2-press-ease),
     box-shadow var(--motion-dur-fast) var(--gv2-press-ease),
     background var(--motion-dur-fast) ease;
-  animation: pulso-gv2-fade-in-up 240ms ease-out backwards;
+  animation: pulso-mov-sube 240ms ease-out backwards;
 }
 .pulso-gv2-picker-tile:hover {
   background:
@@ -9579,7 +9574,7 @@
   padding: 16px 18px 22px;
   background: color-mix(in srgb, var(--pulso-surface-2) 42%, var(--pulso-surface));
   scrollbar-gutter: stable;
-  animation: pulso-gv2-fade-in-up var(--motion-dur-fast) var(--gv2-press-ease);
+  animation: pulso-mov-sube var(--motion-dur-fast) var(--gv2-press-ease);
 }
 
 .pulso-gv2-inspector .pulso-primary,
@@ -9971,7 +9966,7 @@
   background: color-mix(in srgb, var(--pulso-surface) 74%, transparent);
   box-shadow: var(--pulso-shadow-low);
   pointer-events: none; /* clicks pasan a los slides */
-  animation: pulso-gv2-fade-in-up var(--motion-dur-panel) var(--gv2-press-ease);
+  animation: pulso-mov-sube var(--motion-dur-panel) var(--gv2-press-ease);
 }
 .pulso-gv2-section.is-named {
   border-color: var(--pulso-primary);
@@ -10011,7 +10006,7 @@
               left var(--motion-dur-panel) var(--motion-ease-standard),
               top var(--motion-dur-panel) var(--motion-ease-standard),
               box-shadow var(--motion-dur-base) ease;
-  animation: pulso-gv2-fade-in-up var(--motion-dur-panel) var(--gv2-press-ease);
+  animation: pulso-mov-sube var(--motion-dur-panel) var(--gv2-press-ease);
 }
 .pulso-gv2-slide-tile:active { cursor: grabbing; }
 .pulso-gv2-slide-tile.is-dragging {
@@ -10047,7 +10042,7 @@
   white-space: nowrap;
   box-shadow: 0 2px 8px rgba(0, 36, 87, 0.3);
   z-index: 50;
-  animation: pulso-gv2-fade-in-up 180ms ease-out;
+  animation: pulso-mov-sube 180ms ease-out;
 }
 
 @keyframes pulso-gv2-drop-pulse {
@@ -10081,7 +10076,7 @@
   box-shadow: var(--pulso-shadow-high);
   font-size: var(--pulso-type-body-size);
   z-index: 12;
-  animation: pulso-gv2-fade-in-up 240ms ease-out;
+  animation: pulso-mov-sube 240ms ease-out;
 }
 .pulso-gv2-canvas-bulk-count {
   padding: 0 4px;
@@ -10147,7 +10142,7 @@
   border: 1px solid var(--pulso-border);
   border-radius: 12px;
   box-shadow: var(--pulso-shadow-med);
-  animation: pulso-gv2-fade-in-up var(--motion-dur-base) var(--gv2-press-ease);
+  animation: pulso-mov-sube var(--motion-dur-base) var(--gv2-press-ease);
   z-index: 10;
 }
 
@@ -10359,7 +10354,7 @@
   box-shadow: var(--pulso-shadow-high);
   z-index: 100;
   padding: 8px;
-  animation: pulso-gv2-fade-in-up 200ms ease-out;
+  animation: pulso-mov-sube 200ms ease-out;
 }
 
 .pulso-gv2-diag-item {

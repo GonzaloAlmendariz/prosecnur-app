@@ -65,9 +65,8 @@
   from { opacity: 0; transform: translateX(12px); }
 }
 @media (prefers-reduced-motion: reduce) {
-  .rec-terr-inspector { animation-name: rec-inspector-aparece; }
-  @keyframes rec-inspector-aparece { from { opacity: 0; } }
-}
+  .rec-terr-inspector { animation-name: pulso-mov-aparece; }
+  }
 .rec-terr-inspector-cabeza {
   display: flex;
   align-items: flex-start;

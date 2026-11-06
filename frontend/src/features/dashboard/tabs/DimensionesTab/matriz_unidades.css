@@ -132,7 +132,7 @@
 }
 
 .dashboard-scope .dash-matriz-row {
-  animation: dash-matriz-row-in 360ms cubic-bezier(0.23, 1, 0.32, 1) backwards;
+  animation: pulso-mov-sube 360ms cubic-bezier(0.23, 1, 0.32, 1) backwards;
   animation-delay: var(--dash-matriz-row-delay, 0ms);
 }
 
@@ -318,17 +318,6 @@
   object-fit: contain;
   padding: 2px;
   width: 18px;
-}
-
-@keyframes dash-matriz-row-in {
-  from {
-    opacity: 0;
-    transform: translateY(6px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -160,10 +160,9 @@
 }
 
 /* — Movimiento — */
-@keyframes xfk-aparece { from { opacity: 0; } to { opacity: 1; } }
-.xfk-aparece { animation: xfk-aparece var(--motion-dur-fast) var(--motion-ease-out); }
+.pulso-mov-aparece { animation: pulso-mov-aparece var(--motion-dur-fast) var(--motion-ease-out); }
 @media (prefers-reduced-motion: reduce) {
-  .xfk-aparece { animation: none; }
+  .pulso-mov-aparece { animation: none; }
   .xfk-seg__opt, .xfk-prow--action { transition: none; }
 }
 

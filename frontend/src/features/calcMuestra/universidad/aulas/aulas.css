@@ -483,31 +483,6 @@
 }
 
 /* Fade-only: el wrapper del tab ya desliza (motion en capas, ui/ui.css). */
-@keyframes cmv2-aulas-enter {
-  from {
-    opacity: 0;
-  }
-}
-
-@keyframes cmv2-aulas-enter-izq {
-  from {
-    opacity: 0;
-  }
-}
-
-@keyframes cmv2-aulas-pop {
-  from {
-    opacity: 0;
-    transform: scale(0.97);
-  }
-}
-
-@keyframes cmv2-aulas-fade {
-  from {
-    opacity: 0;
-  }
-}
-
 @keyframes cmv2-aulas-crecer-x {
   from {
     transform: scaleX(0);
@@ -545,7 +520,7 @@
 
   /* Callout de recomendación del motor: fade + scale(0.97). */
   .cmv2-aulas-stack .cmv2-classroom-reco-panel {
-    animation: cmv2-aulas-pop 200ms var(--cmv2-ease-out, ease-out) both;
+    animation: pulso-mov-escala 200ms var(--cmv2-ease-out, ease-out) both;
   }
 
   /* --- Simulación: n_eff crece una vez; histograma π MC en cascada ----------- */
@@ -570,7 +545,7 @@
          crecen dentro (scaleX, stagger por fila). Las filas de la TABLA no se
          animan a propósito: lista larga = ruido. -------------------------------- */
   .cmv2-aulas-stack .cmv2-profile-track .cmv2-aulas-tol-banda {
-    animation: cmv2-aulas-fade 250ms var(--cmv2-ease-out, ease-out) both;
+    animation: pulso-mov-aparece 250ms var(--cmv2-ease-out, ease-out) both;
   }
 
   .cmv2-aulas-stack .cmv2-profile-track .is-frame,
@@ -596,7 +571,7 @@
 
   /* --- Reemplazos: olas M1 → M9 encendidas de izquierda a derecha ------------- */
   .cmv2-aulas-olas .cmv2-uni-flujo > * {
-    animation: cmv2-aulas-enter-izq 220ms var(--cmv2-ease-out, ease-out) both;
+    animation: pulso-mov-aparece 220ms var(--cmv2-ease-out, ease-out) both;
   }
 
   .cmv2-aulas-olas .cmv2-uni-flujo > *:nth-child(2) { animation-delay: 20ms; }
@@ -1085,7 +1060,7 @@
 /* --- Entrada de pestaña: un solo fade + translateY en el contenedor ---------- */
 @media (prefers-reduced-motion: no-preference) {
   .cmv2-aulas-stack {
-    animation: cmv2-aulas-enter 180ms var(--cmv2-ease-out, ease-out) both;
+    animation: pulso-mov-aparece 180ms var(--cmv2-ease-out, ease-out) both;
   }
 }
 

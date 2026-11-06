@@ -25,9 +25,6 @@
 @media (prefers-reduced-motion: reduce) {
   .rec-campana-menu[data-state="open"],
   .rec-tab-panel {
-    animation-name: rec-aparece;
+    animation-name: pulso-mov-aparece;
   }
-  @keyframes rec-aparece {
-    from { opacity: 0; }
   }
-}

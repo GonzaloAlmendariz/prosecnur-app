@@ -801,7 +801,7 @@
   inset: 0;
   z-index: var(--pulso-z-modal);
   background: color-mix(in srgb, var(--pulso-text) 28%, transparent);
-  animation: pulso-f6-lv-aparece var(--motion-dur-fast) var(--motion-ease-out);
+  animation: pulso-mov-aparece var(--motion-dur-fast) var(--motion-ease-out);
 }
 
 .pulso-f6-lv-dialogo {
@@ -824,7 +824,6 @@
   animation: pulso-f6-lv-entra var(--motion-dur-base) var(--motion-ease-out);
 }
 
-@keyframes pulso-f6-lv-aparece { from { opacity: 0; } }
 @keyframes pulso-f6-lv-entra { from { opacity: 0; transform: translate(-50%, -48%) scale(0.98); } }
 
 .pulso-f6-lv-dialogo-titulo {

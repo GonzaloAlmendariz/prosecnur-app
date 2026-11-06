@@ -30,7 +30,7 @@
   border-left: 1px solid var(--pulso-border-strong);
   box-shadow: var(--pulso-shadow-high);
   color: var(--pulso-text);
-  animation: pulso-plf-entrada 180ms cubic-bezier(0.32, 0.72, 0, 1);
+  animation: pulso-mov-entra-lado 180ms cubic-bezier(0.32, 0.72, 0, 1);
 }
 
 .pulso-plf.is-ancho {
@@ -39,17 +39,6 @@
 
 .pulso-plf:focus {
   outline: none;
-}
-
-@keyframes pulso-plf-entrada {
-  from {
-    transform: translateX(24px);
-    opacity: 0;
-  }
-  to {
-    transform: none;
-    opacity: 1;
-  }
 }
 
 @media (prefers-reduced-motion: reduce) {

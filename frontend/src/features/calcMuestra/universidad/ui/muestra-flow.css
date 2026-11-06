@@ -242,22 +242,10 @@
 /* --- Motion ---------------------------------------------------------------- */
 @media (prefers-reduced-motion: no-preference) {
   .cmv2-muestra-flow-node {
-    animation: cmv2-muestra-flow-in 260ms var(--cmv2-ease-out, cubic-bezier(0.23, 1, 0.32, 1)) both;
+    animation: pulso-mov-sube 260ms var(--cmv2-ease-out, cubic-bezier(0.23, 1, 0.32, 1)) both;
   }
   .cmv2-muestra-flow-link {
-    animation: cmv2-muestra-flow-fade 260ms var(--cmv2-ease-out, cubic-bezier(0.23, 1, 0.32, 1)) 180ms both;
+    animation: pulso-mov-aparece 260ms var(--cmv2-ease-out, cubic-bezier(0.23, 1, 0.32, 1)) 180ms both;
   }
 }
 
-@keyframes cmv2-muestra-flow-in {
-  from {
-    opacity: 0;
-    transform: translateY(6px);
-  }
-}
-
-@keyframes cmv2-muestra-flow-fade {
-  from {
-    opacity: 0;
-  }
-}

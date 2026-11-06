@@ -427,11 +427,7 @@
 }
 
 .is-girando {
-  animation: pulso-xf-smi-giro 900ms linear infinite;
-}
-
-@keyframes pulso-xf-smi-giro {
-  to { transform: rotate(360deg); }
+  animation: pulso-mov-giro 900ms linear infinite;
 }
 
 @media (prefers-reduced-motion: reduce) {

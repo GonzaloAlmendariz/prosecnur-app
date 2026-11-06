@@ -88,11 +88,6 @@
   transition: color 180ms ease;
 }
 
-@keyframes cmv2-cat-aparece {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
 /* El movimiento explica un cambio; quien lo desactiva no pierde información. */
 @media (prefers-reduced-motion: reduce) {
   .cmv2-cat-cifras strong { transition: none; }

@@ -1001,16 +1001,6 @@
 
 /* ── Keyframes ─────────────────────────────────────────────────────────── */
 
-@keyframes pulso-av2-pop-in {
-  from { opacity: 0; transform: translateY(-6px) scale(0.97); }
-  to   { opacity: 1; transform: none; }
-}
-
-@keyframes pulso-av2-fade-up {
-  from { opacity: 0; transform: translateY(6px); }
-  to   { opacity: 1; transform: none; }
-}
-
 /* ── 0. Acento del módulo (teal) ───────────────────────────────────────── */
 /* El chrome de Procesamiento (phase-dock, rail, tiles) ya habla teal, pero el
  * CONTENIDO de los reportes seguía en el navy global `--pulso-primary`. Aquí
@@ -1192,18 +1182,18 @@
   border-radius: 14px;
   box-shadow: var(--pulso-shadow-popover);
   transform-origin: top right;
-  animation: pulso-av2-pop-in var(--motion-dur-fast) var(--motion-ease-out);
+  animation: pulso-mov-emerge var(--motion-dur-fast) var(--motion-ease-out);
 }
 
 .pulso-analitica-frame .pulso-analitica-template-feedback {
   transform-origin: top right;
-  animation: pulso-av2-pop-in var(--motion-dur-fast) var(--motion-ease-out);
+  animation: pulso-mov-emerge var(--motion-dur-fast) var(--motion-ease-out);
 }
 
 /* Dropdown de VariableSelect (posicionamiento inline; aquí solo motion). */
 .pulso-analitica-frame .analitica-vselect-pop {
   transform-origin: top center;
-  animation: pulso-av2-pop-in var(--motion-dur-fast) var(--motion-ease-out);
+  animation: pulso-mov-emerge var(--motion-dur-fast) var(--motion-ease-out);
 }
 
 /* Paneles que aparecen al interactuar: entrada suave hacia arriba. */
@@ -1211,7 +1201,7 @@
 .pulso-analitica-frame .analitica-picker-edit-row,
 .pulso-analitica-frame .analitica-collapsible-body,
 .pulso-analitica-frame .analitica-per-base-card {
-  animation: pulso-av2-fade-up var(--motion-dur-fast) var(--motion-ease-out);
+  animation: pulso-mov-sube var(--motion-dur-fast) var(--motion-ease-out);
 }
 
 /* Controles de la caja de «Añadir…»: mismo alto y radio interno, también
@@ -1240,7 +1230,7 @@
 /* ── 4. Entrada del workbench con stagger (máx 6 ítems) ────────────────── */
 
 .pulso-analitica-frame .analitica-report-shell > * {
-  animation: pulso-av2-fade-up var(--motion-dur-base) var(--motion-ease-out) backwards;
+  animation: pulso-mov-sube var(--motion-dur-base) var(--motion-ease-out) backwards;
 }
 
 .pulso-analitica-frame .analitica-report-shell > :nth-child(2) { animation-delay: 30ms; }
