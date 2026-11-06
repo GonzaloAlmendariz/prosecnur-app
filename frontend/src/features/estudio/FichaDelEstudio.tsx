@@ -3,6 +3,7 @@
 // Monitoreo. Un estudio tiene un solo tipo; las poblaciones y los canales de
 // acreditación son de Monitoreo y de Material, no de aquí.
 
+import { Alert } from "../../components/Alert";
 import { useEffect, useMemo, useState } from "react";
 
 import { Dialog } from "../../components/Dialog";
@@ -85,6 +86,16 @@ export default function FichaDelEstudio() {
     >
       <div className="estudio-ficha" data-audit-ready={cargando ? "false" : "ficha-del-estudio"}>
         {error ? <p className="estudio-ficha__error" role="alert">{error}</p> : null}
+        {/* 6 nov 2026 (Gonzalo: «¿y el aviso no puede estar dentro del popup?»): el lunar amarillo del botón
+            «Ficha del estudio» trae aquí, donde se resuelve. Sólo mientras el nombre declarado esté vacío. */}
+        {estado && !base.nombre.trim() ? (
+          <Alert kind="warn">
+            <p className="estudio-ficha__aviso-nombre">
+              <strong>Falta el nombre oficial del estudio.</strong> Mientras tanto, el Home y los entregables usan el
+              nombre del archivo.
+            </p>
+          </Alert>
+        ) : null}
 
         <fieldset className="estudio-ficha__grupo" disabled={!estado || guardando}>
           <legend className="estudio-ficha__titulo">Identificación</legend>

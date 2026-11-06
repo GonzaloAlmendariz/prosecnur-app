@@ -1850,6 +1850,14 @@
   justify-content: flex-start;
 }
 
+/* 6 nov 2026: las cuatro cifras de la Ficha son tarjetas pares (contrato `equal`) y cada una medía lo que su
+ * texto (117–152 px). Columnas de igual ancho: el ancho de la más larga, sin estirarse a toda la banda. */
+.pulso-analitica-frame .pulso-analitica-content .analitica-ficha-docbar .analitica-report-overview--ficha {
+  display: inline-grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+}
+
 /* Base final usa el ProcessingSheetViewer compartido; dentro de analítica su
  * título/subtítulo duplican la identidad del panel-head. Ocultamos solo eso
  * (se conserva el contador filas/columnas y los controles Códigos/Etiquetas
