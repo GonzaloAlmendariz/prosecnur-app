@@ -15,6 +15,7 @@ import { formatRelativeDate } from "../components/RecentProjectCard";
 import { PROSECNUR_PRIMARY_ACTIVE_MODULES, moduleChromeVars } from "../lib/modules";
 import { VistaSkeleton } from "../components/VistaSkeleton";
 import { PantallaDeCarga } from "./PantallaDeCarga";
+import { fasesVisibles } from "./warmupFasesVisibles";
 import { useAhora } from "./WarmupReloj";
 import {
   TIEMPO_WARMUP_INICIAL,
@@ -398,6 +399,14 @@ function friendlyWarmupHeadline(raw: string | null | undefined, phase: GatePhase
     : headline;
 }
 
+function titularDeCierre(titular: string, pasos: WarmupDisplayStep[]) {
+  if (titular !== "Terminando preparación") return titular;
+  const enCurso = pasos.filter((paso) => paso.status === "running");
+  const propio = enCurso.find((paso) => paso.id !== "backend-progress");
+  if (propio) return propio.label;
+  return enCurso.length ? "Terminando los datos del proyecto" : titular;
+}
+
 function friendlyTaskLabel(raw: string | null | undefined, fallback: string) {
   const text = (raw ?? "").trim();
   if (!text) return fallback;
@@ -472,11 +481,8 @@ function warmupScopeSteps(task: BootWarmupTask): WarmupDisplayStep[] {
   });
 }
 
-/** Clave de la fase de backend en curso: una por tarea del job. */
-function backendFaseId(progress: BootJobProgress | null) {
-  const current = Number(progress?.current);
-  return `backend-progress:${Number.isFinite(current) ? Math.round(current) : 0}`;
-}
+/** Clave del reloj de la fase de datos: una sola para todo el job (ver `warmupDisplaySteps`). */
+const BACKEND_FASE_RELOJ = "backend-progress";
 
 /* Frontend, backend y scopes de backend son tres fuentes independientes, pero
  * sus etiquetas pasan por el mismo mapeo amigable, que a propósito colapsa
@@ -532,7 +538,7 @@ function warmupDisplaySteps({
   const steps: WarmupDisplayStep[] = [
     {
       id: "workspace",
-      label: "Abriendo workspace local",
+      label: projectPath ? "Proyecto abierto" : "Abriendo el proyecto",
       status: projectPath ? "ready" : "running",
       detail: projectName(projectPath),
     },
@@ -558,11 +564,14 @@ function warmupDisplaySteps({
   if (backendScopeSteps.length) steps.push(...backendScopeSteps);
   collapseStepsByLabel(steps);
   if (backendEnabled && !backend.length) {
+    // 5 nov 2026: la fila se rotula por lo que hace, no con el mensaje crudo del backend (que al final vale
+    // «Listo» mientras sigue girando), y su reloj cuenta desde que empezó la preparación de datos, no desde la
+    // tarea actual del job (por eso retrocedía de 4:00 a 0:25 al cambiar de tarea).
     steps.push({
       id: "backend-progress",
-      label: friendlyWarmupMessage(backendProgress?.message, "warming"),
+      label: "Datos del proyecto",
       status: "running",
-      detail: warmupStepDetail("running", undefined, undefined, { reloj, faseId: backendFaseId(backendProgress) }),
+      detail: warmupStepDetail("running", undefined, undefined, { reloj, faseId: BACKEND_FASE_RELOJ }),
     });
   }
   steps.push({
@@ -570,11 +579,7 @@ function warmupDisplaySteps({
     label: "Listo para trabajar",
     status: steps.some((item) => item.status === "running" || item.status === "pending") ? "pending" : "ready",
   });
-  const activeSteps = steps.filter((item) => item.status === "running" || item.status === "pending");
-  if (!activeSteps.length) return steps.slice(-6);
-  const activeIds = new Set(activeSteps.map((item) => item.id));
-  const settledSteps = steps.filter((item) => !activeIds.has(item.id));
-  return [...settledSteps.slice(-Math.max(1, 6 - activeSteps.length)), ...activeSteps].slice(-6);
+  return fasesVisibles(steps);
 }
 
 function rememberBootProject(path: string) {
@@ -748,7 +753,7 @@ export default function BootGate({ loadSuite }: BootGateProps) {
       const progress = snap.progress && "phase" in snap.progress ? snap.progress : null;
       setBackendProgress(progress);
       if (progress && progress.phase !== "done") {
-        despacharTiempo({ tipo: "fase", id: backendFaseId(progress), ahoraMs: Date.now() });
+        despacharTiempo({ tipo: "fase", id: BACKEND_FASE_RELOJ, ahoraMs: Date.now() });
       }
       if (progress?.message) setWarmupMessage(progress.message);
       if (isWarmupResult(snap.result_data)) {
@@ -1083,7 +1088,6 @@ export default function BootGate({ loadSuite }: BootGateProps) {
     : rawWarmupPercent;
   const ahoraMs = useAhora(isProgressPhase);
   const transcurridoMs = tiempo.inicioMs === null ? 0 : Math.max(0, ahoraMs - tiempo.inicioMs);
-  const warmupHeadline = friendlyWarmupHeadline(warmupMessage, phase, progressPercent);
   const displayWarmupSteps = warmupDisplaySteps({
     projectPath: activeProjectPath,
     frontendModules,
@@ -1092,6 +1096,9 @@ export default function BootGate({ loadSuite }: BootGateProps) {
     backendEnabled: backendWarmupEnabled,
     reloj: { ahoraMs, inicios: tiempo.inicios },
   });
+  // 5 nov 2026: al final del arranque la barra pasaba más de un minuto en 93 % con «Terminando preparación» sin
+  // decir qué faltaba. El titular nombra lo que de verdad se está esperando.
+  const warmupHeadline = titularDeCierre(friendlyWarmupHeadline(warmupMessage, phase, progressPercent), displayWarmupSteps);
   if (suite) {
     const Suite = suite;
     return (
