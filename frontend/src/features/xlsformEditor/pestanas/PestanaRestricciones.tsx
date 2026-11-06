@@ -37,12 +37,12 @@ export function PestanaRestricciones({ structure, scope: scopeBase, seleccionada
   const scope = useMemo(() => enriquecerAlcance(scopeBase, structure), [scopeBase, structure]);
   // Un «mensaje» que repite el nombre de la pregunta (fila rota) no es un mensaje: cuenta como que falta (S5).
   const items = useMemo(
-    () => restriccionesDelFormulario(structure).map((i) => {
+    () => restriccionesDelFormulario(structure, (lista) => catalogs.find((c) => c.listName === lista)?.items ?? []).map((i) => {
       const mensaje = (i.node.constraint_message ?? "").trim();
       const rota = esFilaRota(i.node);
       return { ...i, rota, usa: rota ? [] : i.usa, sinMensaje: i.sinMensaje || (i.estado === "con" && mensaje === i.node.name) };
     }),
-    [structure],
+    [structure, catalogs],
   );
   const con = useMemo(() => items.filter((i) => i.estado === "con"), [items]);
   const sugeridas = useMemo(() => items.filter((i) => i.estado === "sugerida"), [items]);
@@ -68,7 +68,7 @@ export function PestanaRestricciones({ structure, scope: scopeBase, seleccionada
         titulo: "Sugeridas",
         items: sugeridas.map((i) => ({
           key: i.node.name, baseType: i.node.typeInfo.base, numero: i.node.paperNumber ?? "", titulo: tituloDe(i.node),
-          resumen: "Acepta cualquier valor",
+          resumen: i.node.typeInfo.base === "select_multiple" ? "Tiene opciones que suelen ir solas" : "Acepta cualquier valor",
         })),
       },
     ];

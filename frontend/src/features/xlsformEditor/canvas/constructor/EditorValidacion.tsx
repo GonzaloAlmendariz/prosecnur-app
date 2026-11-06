@@ -8,6 +8,7 @@ import { ConstraintMessageField, constraintMessagePresetsFor } from "./MensajeVa
 import { mensajeSugeridoDe } from "../../pestanas/armador/armadorModelo";
 import { alAplicarFormato, cambiosAlQuitarAtajo } from "./edicionValidacion";
 import { ArmadorFormatoEntrada } from "../../pestanas/armador/ArmadorFormatoEntrada";
+import { OpcionesSolasEntrada } from "../../pestanas/armador/OpcionesSolasEntrada";
 import { CustomValidationPanel, GuidedValidationNotice, ValidationSummary } from "./ValidacionPaneles";
 
 // Editor de «qué acepta» una pregunta (constraint + constraint_message) en la pestaña Restricciones.
@@ -57,6 +58,15 @@ export function EditorValidacion({ node, scope, onFieldChange, onFieldsChange }:
             onFieldsChange(r.cambios);
             setOferta(r.ofrecer ? { fila: node.rowIndex, mensaje: r.ofrecer } : null);
           }}
+        />
+      )}
+      {/* E18: opciones que van solas (Ninguno, No sabe…) en selección múltiple, sin escribir la fórmula. */}
+      {node.typeInfo.base === "select_multiple" && (
+        <OpcionesSolasEntrada
+          key={`solas-${node.rowIndex}`}
+          constraint={node.constraint}
+          opciones={scope.catalogsByListName.get(node.typeInfo.listName)?.items ?? []}
+          onAplicar={(next, mensaje) => onFieldsChange(constraintMessage.trim() || !next ? { constraint: next } : { constraint: next, constraint_message: mensaje })}
         />
       )}
       {isGuidedPreset && validation ? (

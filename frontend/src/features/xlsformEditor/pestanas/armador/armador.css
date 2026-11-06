@@ -265,3 +265,14 @@
 }
 .xfa-entrada-caja { display: grid; gap: var(--pulso-space-2); min-width: 0; }
 .xfa-entrada__panel { min-width: 0; }
+
+/* Opciones que van solas (E18 editor-conjoint). */
+.xfa-solas { display: grid; gap: var(--pulso-space-2); padding: var(--pulso-space-3); border: 1px solid var(--pulso-border); border-radius: 10px; background: var(--pulso-surface); }
+.xfa-solas__explica { margin: 0; color: var(--pulso-text-soft); font-size: var(--pulso-type-caption-size); line-height: 1.45; }
+.xfa-solas__lista { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.xfa-solas__lista li { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.xfa-solas__codigo { font-size: var(--pulso-type-micro-size); color: var(--pulso-text-muted); }
+.xfa-solas__suele { font-size: var(--pulso-type-micro-size); color: var(--pulso-accent-amber); }
+.xfa-solas__sugeridas { justify-self: start; }
+.xfa-solas__lectura { margin: 0; padding: 6px 8px; border-radius: 8px; background: var(--pulso-surface-2); font-size: var(--pulso-type-caption-size); color: var(--pulso-text); }
+.xfa-solas__acciones { display: flex; justify-content: flex-end; gap: var(--pulso-space-2); }

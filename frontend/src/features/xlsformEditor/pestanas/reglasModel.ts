@@ -2,6 +2,7 @@
 // Lee la estructura derivada del survey; no muta nada. Las pestañas y el Constructor
 // consumen lo mismo, para que la regla se vea igual en los dos lugares.
 
+import { sugeridasSolas } from "./armador/opcionesSolasModelo";
 import type { BuilderNode, BuilderStructure } from "../types";
 
 const NUMERICOS = new Set(["integer", "decimal", "range"]);
@@ -24,7 +25,11 @@ export type RestriccionItem = {
   sinMensaje: boolean;
 };
 
-export function restriccionesDelFormulario(structure: BuilderStructure | null): RestriccionItem[] {
+export function restriccionesDelFormulario(
+  structure: BuilderStructure | null,
+  /** Opciones de una lista: una selección múltiple con «Ninguno», «No sabe»… es candidata a «van solas» (E18). */
+  opcionesDe: (listName: string) => readonly { name: string; label: string }[] = () => [],
+): RestriccionItem[] {
   if (!structure) return [];
   const items: RestriccionItem[] = [];
   for (const node of structure.outline) {
@@ -33,6 +38,8 @@ export function restriccionesDelFormulario(structure: BuilderStructure | null): 
     if (constraint) {
       items.push({ node, estado: "con", usa: referenciasDe(constraint).filter((v) => v !== node.name), sinMensaje: !(node.constraint_message ?? "").trim() });
     } else if (NUMERICOS.has(node.typeInfo.base) || FECHAS.has(node.typeInfo.base)) {
+      items.push({ node, estado: "sugerida", usa: [], sinMensaje: false });
+    } else if (node.typeInfo.base === "select_multiple" && sugeridasSolas(opcionesDe(node.typeInfo.listName)).length) {
       items.push({ node, estado: "sugerida", usa: [], sinMensaje: false });
     }
   }
