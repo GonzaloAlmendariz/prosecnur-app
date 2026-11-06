@@ -412,7 +412,7 @@ test_that("repeat_design identifica persona, umbral inferencial y fallback descr
   fallback <- .analitica_repeat_design(no_key, inst, min_clusters = 8L)
   expect_null(fallback$cluster_col)
   expect_false(isTRUE(fallback$inference_ok))
-  expect_match(fallback$reason, "llave|cluster|persona", ignore.case = TRUE)
+  expect_match(fallback$reason, "identifique al encuestado", fixed = TRUE)
 
   # Las bases normales mantienen el contrato legacy: no hay repeat_design.
   expect_null(.analitica_repeat_design(child, list(), min_clusters = 8L))

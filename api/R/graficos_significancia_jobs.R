@@ -27,7 +27,9 @@
 #' @keywords internal
 .sig_contexto_liviano <- function(ctx) {
   if (is.null(ctx)) return(NULL)
-  list(regla = ctx$regla, familia = ctx$familia, m = ctx$m, cruces = ctx$cruces)
+  out <- list(regla = ctx$regla, familia = ctx$familia, m = ctx$m, cruces = ctx$cruces)
+  if (!is.null(ctx$madre)) out$madre <- ctx$madre   # hija repeat: el contexto de su madre (reporte_cruces_grano.R)
+  out
 }
 
 #' Fija la regla y la familia en el worker; devuelve las opciones previas para `on.exit(options(...))`
@@ -45,7 +47,7 @@
   nombre <- if (nzchar(base %||% "") && base %in% names(ds)) base else names(ds)[[1]]
   .tarjetas_fuente_fijar(ds[[nombre]], is[[nombre]])   # ADR 0129: la tarjeta de ejemplo de la lectura
   ctx <- tryCatch(
-    .sig_contexto_estudio(ds[[nombre]], is[[nombre]], significancia$graficos_config, significancia$analitica_config),
+    .sig_contexto_de_base(ds, is, nombre, significancia),   # reporte_cruces_grano.R: hija repeat con su madre
     error = function(e) {
       message("[diferencias] no se pudo calcular la familia: ", conditionMessage(e))
       if (exists(".pulso_aviso", mode = "function")) {

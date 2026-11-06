@@ -148,7 +148,7 @@ test_that("la nota de significancia sigue la redacción de la maqueta", {
   ))
   expect_match(.notas_pie_significancia("z", 0.1), "nivel de significancia de 0.1)", fixed = TRUE)
   cl <- .notas_pie_significancia("cluster", 0.01)
-  expect_match(cl, "(contrastes cluster-robust por persona con corrección de Bonferroni, nivel de significancia de 0.01)", fixed = TRUE)
+  expect_match(cl, "(contraste con errores agrupados por encuestado y corrección de Bonferroni, nivel de significancia de 0.01)", fixed = TRUE)
   w <- .notas_pie_significancia("welch", 0.05)
   expect_identical(w, paste0(
     "Las letras comparan las columnas de una misma variable de cruce. Una letra en una celda ",

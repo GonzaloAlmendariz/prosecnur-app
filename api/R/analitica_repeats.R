@@ -86,10 +86,9 @@
     repeat_group = as.character(base_meta$repeat_group %||% base_meta$nombre %||% ""),
     parent_base  = as.character(base_meta$parent_base %||% ""),
     nota = paste0(
-      "El grano de esta base es la INSTANCIA del repeat, no la persona ",
-      "(1 fila = 1 registro del roster). La inferencia de proporciones usa ",
-      "clusters de persona cuando la llave y el numero minimo de personas ",
-      "estan disponibles."
+      "Cada fila de esta base es un registro del grupo repetido, no un encuestado. ",
+      "Las diferencias entre columnas se prueban con la regla del estudio cuando la base ",
+      "hereda su conglomerado y, si no, agrupando los registros de cada encuestado."
     )
   )
 }
@@ -125,7 +124,7 @@
       kind = "cluster_persona", cluster_col = NULL,
       n_instancias = n_instancias, n_personas = n_personas,
       min_clusters = min_clusters, inference_ok = FALSE,
-      reason = "No se encontro una llave de persona para formar clusters; resultados descriptivos sin letras."
+      reason = "La base no tiene una variable que identifique al encuestado de cada fila."
     ))
   }
 
@@ -135,7 +134,7 @@
     n_instancias = n_instancias, n_personas = n_personas,
     min_clusters = min_clusters, inference_ok = ok,
     reason = if (ok) "" else sprintf(
-      "Se requieren al menos %d clusters de persona; hay %d. Resultados descriptivos sin letras.",
+      "La prueba requiere al menos %d encuestados y la base tiene %d.",
       min_clusters, n_personas
     )
   )
@@ -349,28 +348,33 @@
     lns <- unique(as.character(add_rows$list_name))
     lns <- lns[!is.na(lns) & nzchar(lns)]
   }
-  if (length(lns) && !is.null(parent_inst$choices) && !is.null(child_inst$choices) &&
-      "list_name" %in% names(parent_inst$choices)) {
-    pch <- parent_inst$choices
-    ch_sel <- as.character(pch$list_name) %in% lns
-    existing <- if ("list_name" %in% names(child_inst$choices)) {
-      unique(as.character(child_inst$choices$list_name))
-    } else character(0)
-    ch_sel <- ch_sel & !(as.character(pch$list_name) %in% existing)
-    if (any(ch_sel)) {
-      child_inst$choices <- .analitica_repeat_rbind_fill(
-        child_inst$choices, pch[ch_sel, , drop = FALSE])
+  # La madre manda en los rótulos de sus listas. La hija copió las opciones de la madre al materializarse
+  # (carga_xlsx_repeats.R), y esa copia envejece: una corrección posterior del XLSForm de la madre no llegaba a la
+  # hija (CCSS 2026: «Entre una 1 hora y 30 minutos y 2 horas» seguía en la base de crianza). Las opciones de la
+  # madre reemplazan a las homónimas de la hija; las que sólo tiene la hija se conservan.
+  if (length(lns) && !is.null(parent_inst$choices) && "list_name" %in% names(parent_inst$choices)) {
+    pch <- parent_inst$choices[as.character(parent_inst$choices$list_name) %in% lns, , drop = FALSE]
+    cch <- child_inst$choices
+    if (is.data.frame(cch) && all(c("list_name", "name") %in% names(cch)) && "name" %in% names(pch)) {
+      clave <- function(df) paste(as.character(df$list_name), as.character(df$name), sep = "\r")
+      cch <- cch[!(clave(cch) %in% clave(pch)), , drop = FALSE]
     }
+    if (nrow(pch)) child_inst$choices <- .analitica_repeat_rbind_fill(cch, pch)
   }
 
-  # Diccionarios por list_name.
+  # Diccionarios por list_name: la entrada de la madre pisa la de la hija, código por código.
   for (fld in c("dicc_code_to_label", "dicc_label_to_code")) {
     pv <- parent_inst[[fld]]
     if (is.null(pv)) next
     child_inst[[fld]] <- child_inst[[fld]] %||% list()
     for (ln in lns) {
-      if (!is.null(pv[[ln]]) && is.null(child_inst[[fld]][[ln]])) {
+      if (is.null(pv[[ln]])) next
+      propia <- child_inst[[fld]][[ln]]
+      if (is.null(propia) || is.null(names(propia)) || is.null(names(pv[[ln]]))) {
         child_inst[[fld]][[ln]] <- pv[[ln]]
+      } else {
+        propia[names(pv[[ln]])] <- pv[[ln]]
+        child_inst[[fld]][[ln]] <- propia
       }
     }
   }
@@ -460,7 +464,10 @@
   ))
   car_vars <- setdiff(car_vars, existing)
   car_vars <- car_vars[!startsWith(car_vars, "_")]
-  if (!length(car_vars)) {
+  # El conglomerado y el estrato de la regla de diferencias son atributos del encuestado y se heredan como el peso
+  # (ADR 0127 §3, ADR 0128 §4 ter), aunque no estén en el XLSForm: sin ellos la hija no podía usar la regla del estudio.
+  diseno_cols <- setdiff(.analitica_repeat_columnas_diseno(sid, parent$data), c(existing, car_vars))
+  if (!length(car_vars) && !length(diseno_cols)) {
     return(list(data = child_data, inst = child_inst, grain = grain, enriched = FALSE))
   }
 
@@ -472,7 +479,7 @@
     return(list(data = child_data, inst = child_inst, grain = grain, enriched = FALSE))
   }
 
-  for (cc in car_vars) {
+  for (cc in c(car_vars, diseno_cols)) {
     col <- .analitica_repeat_take_rows(parent$data[[cc]], pos)
     attr(col, "repeat_inherited") <- TRUE
     attr(col, "repeat_parent_base") <- parent_base
@@ -481,7 +488,7 @@
   child_inst <- .analitica_repeat_merge_inst(child_inst, parent$inst, car_vars)
 
   list(data = child_data, inst = child_inst, grain = grain,
-       enriched = TRUE, inherited_vars = car_vars)
+       enriched = TRUE, inherited_vars = car_vars, design_cols = diseno_cols)
 }
 
 #' Hook de maps: enriquece toda base hija repeat presente en `data_sources`.

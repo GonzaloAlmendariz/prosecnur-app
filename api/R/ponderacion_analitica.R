@@ -313,7 +313,8 @@
       }
     }
 
-    design <- .analitica_repeat_design(child, inst)
+    design <- .analitica_repeat_design_hija(.analitica_repeat_design(child, inst), child, meta,
+                                            inst_sources[[parent_name]])   # analitica_repeats_grano.R
     if (!is.null(design)) {
       attr(child, "repeat_design") <- design
       attr(inst, "repeat_design") <- design

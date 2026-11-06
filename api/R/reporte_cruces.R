@@ -1150,6 +1150,9 @@ exportar_cruces_multi <- function(data,
     invisible(NULL)
   }
 
+  # Base hija repeat: cada tabla toma el grano de su fila (reporte_cruces_grano.R, ADR 0128 §4 ter).
+  grano <- .cruces_grano_preparar(data, repeat_design, CRUZAR_CON)
+
   # ================== LOOP POR SECCIONES ==================
   for (sec in names(SECCIONES)) {
     vars_sec <- SECCIONES[[sec]]
@@ -1165,6 +1168,8 @@ exportar_cruces_multi <- function(data,
 
     # ---------- loop por variable de la seccion ----------
     for (var in vars_sec) {
+      g_tabla <- .cruces_grano_tabla(grano, var, data, repeat_design, notas)
+      data <- g_tabla$data; repeat_design <- g_tabla$repeat_design; notas <- g_tabla$notas
 
       # ==========================
       # NUEVO: si es numerica → tabla de resumenes por estrato
@@ -1699,11 +1704,7 @@ exportar_cruces_multi <- function(data,
           metodos_sig <- vapply(bloques_sig, function(bl) as.character(bl$method %||% "descriptivo"), character(1))
           razones_sig <- unique(Filter(nzchar, vapply(bloques_sig, function(bl) as.character(bl$reason %||% ""), character(1))))
           pie_sig <- if (is.list(repeat_design) && all(metodos_sig == "descriptivo")) {
-            if (!length(razones_sig)) razones_sig <- "diseño repeat insuficiente"
-            paste0(
-              "No se ejecuta inferencia ni se asignan letras: ",
-              paste(razones_sig, collapse = " "), "."
-            )
+            .repeat_nota_descriptiva(razones_sig)   # reporte_cruces_cluster.R
           } else if (is.list(bloques_sig[[1]]$regla)) {
             .cruces_nota_regla(bloques_sig[[1]]$regla, razones_sig)
           } else {
@@ -1746,6 +1747,10 @@ exportar_cruces_multi <- function(data,
     }
 
     fila <- fila + 1
+  }
+  if (!is.null(grano)) {
+    data <- grano$hija; repeat_design <- grano$diseno
+    if (is.list(grano$ctx)) .sig_informe_activar(grano$ctx)
   }
   .xlsx_restaurar_estilos(wb, archivo_estilos)
 
@@ -2558,9 +2563,9 @@ exportar_dimensiones_multi <- function(data,
       data.frame(
         elemento = "Inferencia repeat",
         detalle = paste0(
-          "La base tiene grano de instancia y clusters de persona. Las comparaciones de medias ",
-          "se presentan de forma descriptiva, sin pruebas t de Welch ni letras, hasta contar ",
-          "con un contraste cluster-robust de medias. ", repeat_design$reason %||% ""
+          "Cada fila de la base es un registro del grupo repetido, no un encuestado. Las medias ",
+          "se presentan de forma descriptiva, sin pruebas t de Welch ni letras, porque el motor aún no ",
+          "compara medias con errores agrupados por encuestado. ", repeat_design$reason %||% ""
         ),
         tipo = "note",
         stringsAsFactors = FALSE
