@@ -184,15 +184,14 @@ describe("NotasPieEditor: render", () => {
     expect(html).not.toContain("Avisar base reducida");
   });
 
-  test("abierto en Cruces sin variables de cruce: vacío propio", () => {
+  test("abierto en Cruces sin variables de cruce: una pista, no un segundo vacío", () => {
     const html = renderToStaticMarkup(
       createElement(NotasPieEditor, { variante: "cruces", variables: [], crucesVars: [], defaultOpen: true }),
     );
-    expect(html).toContain("Sin variables de cruce");
+    // 6 nov 2026: el selector de Variables a cruzar ya dice «Sin variables de cruce»; aquí una línea.
+    expect(html).not.toContain("Sin variables de cruce");
+    expect(html).toContain("Las notas aparecen aquí al agregar una variable de cruce.");
     expect(html).toContain('data-qa-geometry-group="analitica-notas-pie-cruces"');
-    // El vacío es el componente compartido (P-M4): alto intrínseco, sin
-    // capacidad reservada que declarar.
-    expect(html).toContain('data-estado-vacio="compacto"');
     expect(html).toContain("Avisar base reducida");
   });
 

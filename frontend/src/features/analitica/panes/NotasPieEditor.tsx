@@ -1,5 +1,5 @@
 import { useEffect, useId, useMemo, useState, type ReactNode } from "react";
-import { ChevronDown, FileText, GitBranch, Plus, X } from "lucide-react";
+import { ChevronDown, FileText, Plus, X } from "lucide-react";
 import type { VariableInstrumento } from "../../../api/client";
 import { EstadoVacio } from "../../../components/EstadoVacio";
 import { InterruptorOpcion } from "../InterruptorOpcion";
@@ -376,11 +376,9 @@ function NotasPorCruce({
         <small>Va debajo de cada tabla, en el orden de las columnas.</small>
       </div>
       {filas.length === 0 ? (
-        <EstadoVacio
-          icono={<GitBranch size={15} />}
-          titulo="Sin variables de cruce"
-          descripcion="Agrega una en Variables a cruzar para anotarla."
-        />
+        // 6 nov 2026 (pulido de UI): una línea, no un segundo vacío. El selector de arriba ya dice «Sin
+        // variables de cruce»; repetirlo con el mismo título se leía como dos pantallas vacías en una.
+        <p className="analitica-notas-pie-hint">Las notas aparecen aquí al agregar una variable de cruce.</p>
       ) : (
         <ul className="analitica-notas-pie-list">
           {filas.map(({ variable, texto }) => (
