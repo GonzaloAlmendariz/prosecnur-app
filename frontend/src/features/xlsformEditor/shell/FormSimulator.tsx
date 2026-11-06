@@ -43,6 +43,7 @@ import { RecorridoPrueba, RespuestasPrueba } from "./simulador/PanelesPrueba";
 import { respuestasDadas, seccionesDelRecorrido } from "./simulador/modeloRecorrido";
 import { pendientesParaFinalizar, restriccionIncumplida, type Pendiente } from "./simulador/modeloFinalizar";
 import { FaltantesPrueba, PruebaFinalizada } from "./simulador/FinalizarPrueba";
+import { calcularValores, semillaNueva } from "./simulador/calculosPrueba";
 import { esNotaSinTexto, pistaLegible, textoPreguntaPlano, type LectorReferencias } from "../helpers/markdownPregunta";
 import { TextoPregunta } from "../helpers/markdownTexto";
 import { stripMarkdown } from "../helpers/markdown";
@@ -118,6 +119,13 @@ export function FormSimulator({
   onEditRow,
 }: FormSimulatorProps) {
   const [answers, setAnswers] = useState<Record<string, SimValue>>({});
+  // El sorteo de `once(random())` vale lo que dura la prueba; «Reiniciar» pide otra semilla.
+  const [semilla, setSemilla] = useState(semillaNueva);
+  // Respuestas más el valor de cada `calculate`: lo que leen las condiciones y las referencias `${x}`.
+  const contexto = useMemo<Record<string, SimValue>>(
+    () => ({ ...answers, ...calcularValores(structure?.outline ?? [], answers, semilla) }),
+    [structure, answers, semilla],
+  );
   const [pageIdx, setPageIdx] = useState(0);
   // E8: intentar finalizar marca las pendientes; con todo en regla la prueba queda finalizada.
   const [intentoFinalizar, setIntentoFinalizar] = useState(false);
@@ -173,7 +181,7 @@ export function FormSimulator({
       const parent = meta.parentId ? resolve(meta.parentId) : ALWAYS_VISIBLE;
       const node = meta.rowIndex != null ? structure.byRow.get(meta.rowIndex) : null;
       const own = node?.relevant
-        ? evaluateRelevance(node.relevant, answers)
+        ? evaluateRelevance(node.relevant, contexto)
         : ALWAYS_VISIBLE;
       const state: VisState = {
         visible: parent.visible && own.visible,
@@ -184,7 +192,7 @@ export function FormSimulator({
     };
     Array.from(structure.sections.keys()).forEach((id) => resolve(id));
     return map;
-  }, [structure, answers]);
+  }, [structure, contexto]);
 
   // Visibilidad efectiva por pregunta (sección ∧ relevant propio).
   const nodeState = useMemo(() => {
@@ -194,7 +202,7 @@ export function FormSimulator({
       if (!isRenderable(node)) return;
       const section = sectionState.get(node.sectionId) ?? ALWAYS_VISIBLE;
       const own = node.relevant
-        ? evaluateRelevance(node.relevant, answers)
+        ? evaluateRelevance(node.relevant, contexto)
         : ALWAYS_VISIBLE;
       map.set(node.rowIndex, {
         visible: section.visible && own.visible,
@@ -202,7 +210,7 @@ export function FormSimulator({
       });
     });
     return map;
-  }, [structure, sectionState, answers]);
+  }, [structure, sectionState, contexto]);
 
   const visiblePages = useMemo(
     () =>
@@ -241,6 +249,7 @@ export function FormSimulator({
 
   const reset = useCallback(() => {
     setAnswers({});
+    setSemilla(semillaNueva());
     setPageIdx(0);
     setIntentoFinalizar(false);
     setFinalizada(false);
@@ -264,14 +273,14 @@ export function FormSimulator({
   const lector = useMemo<LectorReferencias>(() => ({
     etiquetaDe: (name) => nodoDe.get(name)?.label,
     respuestaDe: (name) => {
-      const v = answers[name];
+      const v = contexto[name];
       if (!hasAnswer(v)) return undefined;
       const lista = nodoDe.get(name)?.typeInfo.listName;
       const ops = lista ? choicesByList.get(lista) ?? [] : [];
       const etiqueta = (c: string) => stripMarkdown(ops.find((o) => o.name === c)?.label || c);
       return Array.isArray(v) ? v.map(etiqueta).join(", ") : ops.length ? etiqueta(v as string) : (v as string);
     },
-  }), [nodoDe, answers, choicesByList]);
+  }), [nodoDe, contexto, choicesByList]);
 
   const esUltima = clampedIdx >= visiblePages.length - 1;
   const pendientes = pendientesParaFinalizar(visiblePages, esRespondible, (node) => nodeState.get(node.rowIndex)?.visible ?? false, answers);
@@ -354,7 +363,7 @@ export function FormSimulator({
                   onAnswer={setAnswer}
                   onEdit={handleEdit}
                   lector={lector}
-                  error={restriccionIncumplida(node, answers[node.name], answers)}
+                  error={restriccionIncumplida(node, answers[node.name], contexto)}
                   marcarPendiente={intentoFinalizar && pendientesSet.has(node.rowIndex)}
                 />
               ))}
