@@ -656,6 +656,11 @@ xlsform_editor_validate <- function(survey, choices, settings) {
     for (i in seq_along(col_data)) {
       raw <- trimws(col_data[i] %||% "")
       if (!nzchar(raw)) next
+      # Las fórmulas de cálculo no pasan por el parser de reglas: no modela aritmética (xlsform_editor_diag_calculos.R).
+      if (identical(field$col, "calculation")) {
+        out <- c(out, .xlsform_editor_diag_calculo(raw, i - 1L, valid_names, .xlsform_editor_diag))
+        next
+      }
       self_var <- if (field$context == "constraint") trimws(name_col[i] %||% "") else NULL
       parsed <- tryCatch(
         odk_parse_to_ast(raw, context = field$context, self_var = self_var),
