@@ -1274,7 +1274,8 @@
    es el elemento que la vista busca primero. */
 .home-mc-stat > strong {
   color: var(--home-mod-accent, var(--pulso-primary));
-  font-size: var(--pulso-type-kpi-size);
+  /* Crece con el alto de la ventana, como la fila (--home-fila): 21 px a 768 de alto, ~32 px a 1107. */
+  font-size: clamp(var(--pulso-type-kpi-size), 2.9vh, 32px);
   font-weight: var(--pulso-weight-semibold);
   font-variant-numeric: tabular-nums;
   line-height: 1.1;
@@ -1288,7 +1289,7 @@
 /* Cuando la "cifra" es una palabra ("Sin cálculo", "Campo") no puede ocupar el
    tamaño de un número: se lee como titular y desequilibra la grilla. */
 .home-mc-stat.is-text > strong {
-  font-size: var(--pulso-type-title-size);
+  font-size: clamp(var(--pulso-type-title-size), 1.9vh, 21px);
   letter-spacing: -0.012em;
 }
 
@@ -1316,7 +1317,10 @@
 
 /* Cuando la cifra no dice nada útil, la frase toma el rol primario sin
    cambiar la estructura del bloque. */
-.home-mc-viz.is-activity { flex-direction: column-reverse; justify-content: flex-end; }
+/* 5 nov 2026: centrada como las demás. Con flex-end (que en column-reverse es «arriba») estas tarjetas subían su
+   lectura mientras las vecinas la centraban, y con las filas más altas del Home la diferencia se leía como un
+   desnivel entre tarjetas de la misma fila. */
+.home-mc-viz.is-activity { flex-direction: column-reverse; justify-content: center; }
 .home-mc-viz.is-activity .home-mc-stat-sub {
   color: var(--pulso-text);
   font-size: var(--pulso-type-body-size);

@@ -164,6 +164,12 @@ function MissionControlSkeleton() {
   );
 }
 
+/** «app v0.9.6, prosecnur v0.9.6» se lee «v0.9.6» cuando las dos coinciden (5 nov 2026: el pie repetía la versión). */
+export function versionLegible(version: string): string {
+  const par = /^app v(\S+), prosecnur v(\S+)$/.exec(version.trim());
+  return par && par[1] === par[2] ? `v${par[1]}` : version;
+}
+
 // =====================================================================
 // Footer — versión + autor + abrir notas + cerrar app
 // =====================================================================
@@ -181,7 +187,7 @@ function HomeFooter({
   return (
     <footer className="home-footer">
       <div className="home-footer-attr">
-        <span>Prosecnur{version && version !== "…" ? ` ${version}` : ""}</span>
+        <span>Prosecnur{version && version !== "…" ? ` ${versionLegible(version)}` : ""}</span>
         <span className="home-footer-sep" aria-hidden="true" />
         <span>Hecho para el {PULSO_FULL_NAME}</span>
         <div style={{ flex: 1 }} />
