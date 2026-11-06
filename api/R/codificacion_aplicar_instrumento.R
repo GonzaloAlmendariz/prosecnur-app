@@ -1252,6 +1252,7 @@ ppra_adaptar_instrumento <- function(path_instrumento_in,
     openxlsx::setColWidths(wb, "survey",  cols = 1:ncol(survey),  widths = "auto")
     openxlsx::setColWidths(wb, "choices", cols = 1:ncol(choices), widths = "auto")
     openxlsx::saveWorkbook(wb, path_instrumento_out, overwrite = TRUE)
+    xlsx_quitar_relaciones_huerfanas(path_instrumento_out)
   }
 
   invisible(list(

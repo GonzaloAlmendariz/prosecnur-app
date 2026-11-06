@@ -1590,6 +1590,9 @@ mount_xlsform_editor <- function(pr) {
       tmp <- tempfile("xlsform_editor_", fileext = ".xlsx")
       on.exit(unlink(tmp), add = TRUE)
       openxlsx::saveWorkbook(wb, tmp, overwrite = TRUE)
+      # Kobo (pyxform/openpyxl) rechaza el .xlsx si quedan relaciones a dibujos
+      # que openxlsx no escribe. Ver xlsx_relaciones_huerfanas.R.
+      xlsx_quitar_relaciones_huerfanas(tmp)
       bytes <- readBin(tmp, what = "raw", n = file.info(tmp)$size)
       meta <- save_upload(sid, kind = "xlsform", original_name = filename, raw_bytes = bytes)
       if (length(source_meta %||% list())) {
