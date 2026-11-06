@@ -253,8 +253,6 @@ button.xfh-regla__fila:focus-visible { outline: var(--mov-foco, 2px solid var(--
 .xfh-regla.is-off .xfh-regla__lee, .xfh-regla.is-na .xfh-regla__lee { color: var(--pulso-text-faint); }
 .xfh-regla.is-on.is-abierta .xfh-regla__lee { opacity: 0; }
 .xfh-regla__acc { display: flex; align-items: center; color: var(--pulso-text-faint); }
-.xfh-regla__chev { transition: transform var(--motion-dur-base) var(--motion-ease-out); }
-.xfh-regla.is-abierta .xfh-regla__chev { transform: rotate(90deg); color: var(--xfh-c); }
 .xfh-regla__agregar { padding: 3px 9px; border-radius: 7px; font-size: var(--pulso-type-subtitle-size); font-weight: 600; color: var(--pulso-primary); transition: background-color var(--motion-dur-fast) var(--motion-ease-out); }
 .xfh-regla__fila:hover .xfh-regla__agregar, .xfh-regla.is-abierta .xfh-regla__agregar { background: var(--pulso-primary-soft); }
 .xfh-regla__det {
@@ -384,7 +382,7 @@ button.xfh-regla__fila:focus-visible { outline: var(--mov-foco, 2px solid var(--
 .xfh-regla__mas { all: unset; display: inline-flex; align-items: center; gap: 2px; margin-right: 8px; font-size: var(--pulso-type-caption-size); color: var(--pulso-text-soft); cursor: pointer; }
 .xfh-regla__mas:hover { color: var(--pulso-text); }
 .xfh-regla__mas:focus-visible { outline: var(--mov-foco, 2px solid var(--pulso-primary)); outline-offset: 2px; border-radius: 4px; }
-.xfh-regla.is-abierta .xfh-regla__mas .xfh-regla__chev { transform: rotate(90deg); }
+.xfh-regla.is-abierta .xfh-regla__mas { color: var(--xfh-c); font-weight: var(--pulso-weight-semibold); }
 
 /* El armador de condiciones dentro de la ficha (Obligatoria sólo si…) mide ~500 px: pregunta en la primera línea y
    criterio + valor en la segunda, como en el Mapa de lógica. En una sola línea el criterio se partía sílaba a sílaba

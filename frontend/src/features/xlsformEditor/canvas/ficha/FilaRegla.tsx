@@ -1,9 +1,9 @@
 // Una regla de la ficha (C15): una fila que se despliega. Activa muestra su lectura del motor; ausente dice qué hace
 // y lleva a su pestaña; «no aplica» queda deshabilitada con el porqué. La obligatoria lleva un interruptor en vez de
-// desplegarse (un botón no puede contener otro).
+// desplegarse (un botón no puede contener otro). Sin triángulo: lo pidió Gonzalo (E20, 2026-11-06); la fila se abre
+// al clicarla y el borde de color la marca abierta.
 
 import { useId, type CSSProperties, type ReactNode } from "react";
-import { ChevronRight } from "../../../../vendor/lucide-react";
 import { GlifoMarca } from "../../kit";
 import type { ClaveMarca } from "../../kit/glifosMarca";
 
@@ -50,7 +50,7 @@ export function FilaRegla({ glifo, tono, nombre, estado, resumen, resumenPlano, 
                 aria-controls={abierta ? idDetalle : undefined}
                 onClick={onAlternar}
               >
-                Opciones <ChevronRight size={13} aria-hidden="true" className="xfh-regla__chev" />
+                Opciones
               </button>
             ) : null}
             {control}
@@ -76,7 +76,6 @@ export function FilaRegla({ glifo, tono, nombre, estado, resumen, resumenPlano, 
       >
         {partes}
         <span className="xfh-regla__acc">
-          {estado === "on" ? <ChevronRight size={14} aria-hidden="true" className="xfh-regla__chev" /> : null}
           {estado === "off" ? <span className="xfh-regla__agregar">Agregar</span> : null}
         </span>
       </button>
