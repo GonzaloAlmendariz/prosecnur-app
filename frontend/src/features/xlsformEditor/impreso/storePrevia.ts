@@ -12,6 +12,7 @@
 // formulario. Caduca cuando cambian las opciones o el formulario.
 // =============================================================================
 
+import { conEjemploParaPapel } from "../cuestionario/ejemploSorteo";
 import { create } from "zustand";
 import { downloadUrl } from "../../../api/core";
 import {
@@ -129,7 +130,7 @@ export async function generarPrevia(
   if (lectura === "word") {
     try {
       let crudo: unknown = null;
-      const job = await deps.visorWord({ ...entrada.workbook, diagnostico: null }, entrada.filename.replace(/\.pdf$/i, ".docx"), entrada.opciones);
+      const job = await deps.visorWord(conEjemploParaPapel({ ...entrada.workbook, diagnostico: null }), entrada.filename.replace(/\.pdf$/i, ".docx"), entrada.opciones);
       const resultado = await deps.esperar(job.job_id, {
         onFase: (fase) => usePreviaImpreso.getState().parchar({ detalle: fase }),
         onCrudo: (r) => { crudo = r; },
@@ -154,7 +155,7 @@ export async function generarPrevia(
     return;
   }
   try {
-    const job = await deps.exportar({ ...entrada.workbook, diagnostico: null }, entrada.filename, entrada.opciones);
+    const job = await deps.exportar(conEjemploParaPapel({ ...entrada.workbook, diagnostico: null }), entrada.filename, entrada.opciones);
     const resultado = await deps.esperar(job.job_id, {
       onFase: (fase) => usePreviaImpreso.getState().parchar({ detalle: fase }),
     });

@@ -172,6 +172,7 @@ import { contextoResumen } from "./resumen/contextoResumen";
 import { PestanaImpreso } from "./impreso/PestanaImpreso";
 import { usePanelDireccionable } from "../../lib/navegacion/paneles";
 import { MontajeConjoint } from "./conjoint/MontajeConjoint";
+import { conEjemploParaPapel } from "./cuestionario/ejemploSorteo";
 import { itemAltaConjoint } from "./conjoint/altaConjoint";
 import { PANEL_EXPERIMENTO_CONJOINT } from "./conjoint/estadoPanelConjoint";
 import { esperarExportPapel, textoExportando } from "./shell/paperExportJob";
@@ -1820,7 +1821,8 @@ export default function XlsformEditorPage() {
     setArtifact(null);
     setBusy(textoExportando(label, ""));
     try {
-      const exportableWorkbook = { ...workbook, diagnostico: null };
+      // El papel lleva cada par de conjoint con un sorteo de ejemplo (E8c).
+      const exportableWorkbook = conEjemploParaPapel({ ...workbook, diagnostico: null });
       const exportFn = isWord ? apiXlsformEditorExportWord : apiXlsformEditorExportPdf;
       const filename = isWord
         ? wordFilenameFromSource(source?.original_name)
