@@ -199,24 +199,18 @@ function HomeFooter({
         <span>Hecho para el {PULSO_FULL_NAME}</span>
         <div style={{ flex: 1 }} />
         {/* 6 nov 2026 (Gonzalo: «es mejor que sea un pop up cuando Ficha de estudio tenga como un lunar
-            amarillo»): sin nombre oficial en la Ficha, el botón lleva un lunar amarillo y, al pasar el mouse o
-            enfocarlo, un pop-up dice qué falta. Pulsarlo abre la Ficha, como siempre. */}
+            amarillo» y «¿el aviso no puede estar dentro del popup?»): sin nombre oficial, el botón lleva un lunar
+            amarillo y el aviso vive DENTRO de la Ficha que abre (FichaDelEstudio), donde se resuelve. */}
         <span className={`home-footer-ficha${faltaNombreOficial ? " has-aviso" : ""}`}>
           <button
             type="button"
             className="home-footer-notes"
             onClick={onOpenEstudio}
-            aria-describedby={faltaNombreOficial ? "home-ficha-aviso" : undefined}
+            title={faltaNombreOficial ? "Falta el nombre oficial del estudio" : undefined}
           >
             <FileText size={14} aria-hidden="true" /> Ficha del estudio
-            {faltaNombreOficial ? <span className="home-footer-lunar" aria-hidden="true" /> : null}
+            {faltaNombreOficial ? <span className="home-footer-lunar"><span className="pulso-sr-only">Falta el nombre oficial</span></span> : null}
           </button>
-          {faltaNombreOficial ? (
-            <span id="home-ficha-aviso" role="tooltip" className="home-footer-popup">
-              <strong>Falta el nombre oficial del estudio.</strong>
-              Arriba se muestra el del archivo; declara el oficial en la Ficha.
-            </span>
-          ) : null}
         </span>
         <button
           type="button"

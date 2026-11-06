@@ -53,3 +53,8 @@
   color: var(--pulso-danger-fg);
   font-size: var(--pulso-type-body-size);
 }
+
+/* Aviso de nombre oficial dentro de la Ficha (6 nov 2026). */
+.estudio-ficha__aviso-nombre {
+  margin: 0;
+}

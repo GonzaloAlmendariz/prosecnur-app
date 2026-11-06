@@ -798,8 +798,10 @@
      fila con el alto (hasta 330 px), repartido entre las filas que hay. A 1710×1107 la grilla pasaba de
      1200×478 (30 % de la ventana) a ~1500×700. El piso sigue siendo el de cada densidad. */
   --home-ancho-col: clamp(400px, 28vw, 500px);
-  /* 350: el alto que no es grilla (barra, cabecera en dos niveles desde el 6 nov, pie). */
-  --home-fila: clamp(0px, calc((100vh - 350px) / var(--home-filas, 2) - 14px), 330px);
+  /* 6 nov 2026: sin restas fijas sobre 100vh (no conocían el alto real de la cabecera ni del pie y a ~823 px
+     de alto la grilla se pasaba y aparecía scroll). La grilla toma el espacio que queda (flex) y reparte sus
+     filas en partes iguales (1fr), con techo por fila para que en pantallas altas no queden tarjetas vacías. */
+  --home-fila-techo: 330px;
 }
 
 /* --- Métricas headline: banda única con divisores hairline ------------ */
@@ -836,9 +838,14 @@
   grid-template-columns: repeat(var(--home-cols, 4), minmax(0, 1fr));
   /* Todas las filas al alto de la más alta: el grupo declara contrato «equal» y una
      fila con el pie en dos renglones medía 2.7 px más que la otra (1024 px). */
-  grid-auto-rows: minmax(var(--home-fila, 0px), 1fr);
+  /* Piso = el de la tarjeta (densidad): si de verdad no cabe (1024×600), la suite hace scroll; nunca se pisan. */
+  grid-auto-rows: minmax(222px, 1fr);
   gap: 14px;
   width: 100%;
+  /* Ocupa lo que deja la cabecera dentro de .home-mission (flex columna) y no más que N filas de techo. */
+  flex: 1 1 auto;
+  min-height: 0;
+  max-height: calc(var(--home-filas, 2) * var(--home-fila-techo, 330px) + (var(--home-filas, 2) - 1) * 14px);
   /* Techo por columna: con dos módulos, repartir todo el ancho daba tarjetas
      de 715px con el contenido flotando en el medio. La tarjeta tiene un ancho
      cómodo (~400) y de ahí no crece; el sobrante se vuelve margen centrado. */
@@ -1277,7 +1284,7 @@
    es el elemento que la vista busca primero. */
 .home-mc-stat > strong {
   color: var(--home-mod-accent, var(--pulso-primary));
-  /* Crece con el alto de la ventana, como la fila (--home-fila): 21 px a 768 de alto, ~32 px a 1107. */
+  /* Crece con el alto de la ventana, como la fila: 21 px a 768 de alto, ~32 px a 1107. */
   font-size: clamp(var(--pulso-type-kpi-size), 2.9vh, 32px);
   font-weight: var(--pulso-weight-semibold);
   font-variant-numeric: tabular-nums;
@@ -2899,8 +2906,7 @@
 }
 
 /* Aviso de nombre oficial en el pie (6 nov 2026, Gonzalo: «un pop up cuando Ficha de estudio tenga como un
-   lunar amarillo»): el botón lleva un lunar amarillo y, al pasar el mouse o enfocarlo, un pop-up corto encima
-   dice qué falta. Sin botón aparte ni píldora en la cabecera. */
+   lunar amarillo»): el botón lleva un lunar amarillo; el aviso vive dentro de la Ficha que abre. */
 .home-footer-ficha {
   position: relative;
   display: inline-flex;
@@ -2922,43 +2928,3 @@
   box-shadow: 0 0 0 2px var(--pulso-surface);
 }
 
-.home-footer-popup {
-  position: absolute;
-  right: 0;
-  bottom: calc(100% + 10px);
-  z-index: 5;
-  width: max-content;
-  max-width: 280px;
-  padding: 9px 12px;
-  border: 1px solid var(--pulso-warn-border);
-  border-radius: 10px;
-  background: var(--pulso-surface);
-  box-shadow: var(--pulso-shadow-high);
-  color: var(--pulso-text-soft);
-  font-size: var(--pulso-type-caption-size);
-  line-height: 1.4;
-  text-align: left;
-  opacity: 0;
-  transform: translateY(4px);
-  pointer-events: none;
-  transition:
-    opacity var(--motion-dur-fast) var(--motion-ease-out),
-    transform var(--motion-dur-fast) var(--motion-ease-out);
-}
-
-.home-footer-popup strong {
-  display: block;
-  margin-bottom: 2px;
-  color: var(--pulso-warn-fg);
-  font-weight: var(--pulso-weight-semibold);
-}
-
-.home-footer-ficha.has-aviso:hover .home-footer-popup,
-.home-footer-ficha.has-aviso:focus-within .home-footer-popup {
-  opacity: 1;
-  transform: none;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .home-footer-popup { transition: none; transform: none; }
-}

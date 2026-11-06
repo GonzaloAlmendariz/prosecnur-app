@@ -98,9 +98,9 @@
   .home-hero { animation-name: pulso-mov-aparece; }
 }
 
-/* Ventanas bajas (≤ 820 px): la cabecera cede alto a las tarjetas. Sin ceja, y el nombre con su meta en una sola
+/* Ventanas bajas (≤ 940 px; antes 820, y a 823 la cabecera en dos niveles empujaba las tarjetas): la cabecera cede alto a las tarjetas. Sin ceja, y el nombre con su meta en una sola
    línea; a 1366×768 la fila pasaba de 82 a ~44 px y dos filas de tarjetas caben sin scroll. */
-@media (max-height: 820px) {
+@media (max-height: 940px) {
   .home-hero { flex-direction: row; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 24px; padding-block: 0; }
   .home-hero-estudio { flex: 1 1 auto; }
   .home-hero-ceja { display: none; }
