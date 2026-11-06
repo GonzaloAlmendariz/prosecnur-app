@@ -124,3 +124,32 @@
 @media (prefers-reduced-motion: reduce) {
   :where(button, [role="button"], [role="tab"], summary):active { transform: none; }
 }
+
+/* =============================================================================
+   Cambio de sección o pestaña (6 nov 2026)
+   =============================================================================
+   La ruta ya entra con `.pulso-route-surface`; la sección y la pestaña viven en la query y no re-montan nada,
+   así que el contenido saltaba. PageFrame marca su cuerpo con data-cambio-vista="a"|"b" (useCambioDeVista),
+   que alterna en cada cambio: dos keyframes iguales con distinto nombre reinician la entrada sin re-montar la
+   vista. Sólo el cuerpo: la barra de pestañas queda quieta. Breve (--motion-dur-fast) y sutil (4 px). */
+@keyframes pulso-mov-vista-a {
+  from { opacity: 0; transform: translateY(4px); }
+}
+
+@keyframes pulso-mov-vista-b {
+  from { opacity: 0; transform: translateY(4px); }
+}
+
+.pulso-page-frame-body[data-cambio-vista] {
+  animation-duration: var(--motion-dur-fast);
+  animation-timing-function: var(--motion-ease-out);
+  /* backwards, no both: un transform retenido haría del cuerpo el containing block de sus fixed. */
+  animation-fill-mode: backwards;
+}
+
+.pulso-page-frame-body[data-cambio-vista="a"] { animation-name: pulso-mov-vista-a; }
+.pulso-page-frame-body[data-cambio-vista="b"] { animation-name: pulso-mov-vista-b; }
+
+@media (prefers-reduced-motion: reduce) {
+  .pulso-page-frame-body[data-cambio-vista] { animation: none; }
+}
