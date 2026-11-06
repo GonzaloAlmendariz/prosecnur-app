@@ -5,7 +5,8 @@
 import type { XlsformEditorSheet, XlsformEditorWorkbook } from "../../../api/multiIntegrado";
 import { aplicarCascada, quitarCascada } from "./cascada";
 import { columnaPara, opcionesDeLista } from "./porOpcion";
-import type { FormaCascada, LecturaCascada, LecturaFijo } from "./modeloFiltros";
+import type { AnalisisFiltro, FormaCascada, LecturaCascada, LecturaFijo, TipoFiltro } from "./modeloFiltros";
+import { nombreDeTipo } from "./modeloFiltros";
 
 export { quitarCascada as quitarFiltro };
 
@@ -107,18 +108,47 @@ export function marcarFijo(wb: XlsformEditorWorkbook, fila: number, lista: strin
   return conExpresion(wb, fila, nuevos.length ? expresionNombres(nuevos) : "name = ''");
 }
 
+/**
+ * Formas del asistente. Además de los cuatro tipos que se analizan, dos que el editor ya leía y no dejaba crear
+ * (E19 paso 5 editor-conjoint, 2026-11-06): «lo marcado antes», `selected(${q}, name)`, y «según un número», una
+ * columna de la lista contra la respuesta numérica de otra pregunta (`edad_min <= ${edad}`).
+ */
+export type FormaIntento = TipoFiltro | "marcado" | "comparacion";
+
+export type OperadorComparacion = "<=" | ">=" | "<" | ">";
+
 /** Lo que pide cada forma al crear o cambiar un filtro. */
 export type Intento =
   | { forma: "cascada"; madre: string; columna: string }
   | { forma: "opcion"; preguntas: string[] }
   | { forma: "fijo"; columna: string; valor: string }
-  | { forma: "expresion"; texto: string };
+  | { forma: "expresion"; texto: string }
+  | { forma: "marcado"; madre: string }
+  | { forma: "comparacion"; columna: string; operador: OperadorComparacion; pregunta: string };
+
+/** La forma del asistente con que se muestra un filtro ya escrito. */
+export function formaDe(a: Pick<AnalisisFiltro, "tipo" | "cascada" | "expresion">): FormaIntento {
+  const nombre = nombreDeTipo(a);
+  if (nombre === "Lo marcado antes") return "marcado";
+  if (nombre === "Comparación" && leerComparacion(a.expresion)) return "comparacion";
+  return a.tipo;
+}
+
+const COMPARACION = /^([A-Za-z_][\w.-]*)\s*(<=|>=|<|>)\s*\$\{([^}]+)\}$/;
+
+/** `columna <op> ${pregunta}`; null si la expresión no tiene esa forma. */
+export function leerComparacion(expresion: string): { columna: string; operador: OperadorComparacion; pregunta: string } | null {
+  const m = COMPARACION.exec(expresion.trim());
+  return m ? { columna: m[1]!, operador: m[2] as OperadorComparacion, pregunta: m[3]! } : null;
+}
 
 /** ¿Tiene el intento lo mínimo para escribirse? */
 export function intentoCompleto(i: Intento): boolean {
   if (i.forma === "cascada") return !!i.madre && /^[A-Za-z_][\w.-]*$/.test(i.columna);
   if (i.forma === "opcion") return i.preguntas.length >= 2;
   if (i.forma === "fijo") return /^[A-Za-z_][\w.-]*$/.test(i.columna) && i.columna !== "name" && !!i.valor.trim();
+  if (i.forma === "marcado") return !!i.madre;
+  if (i.forma === "comparacion") return /^[A-Za-z_][\w.-]*$/.test(i.columna) && i.columna !== "name" && !!i.pregunta;
   return !!i.texto.trim();
 }
 
@@ -143,6 +173,12 @@ export function escribirIntento(wb: XlsformEditorWorkbook, fila: number, lista: 
     const nueva = !wb.choices.columns.includes(i.columna);
     const base = nueva ? editarCeldas(wb, lista, i.columna, () => i.valor.trim()) : wb;
     return conExpresion(base, fila, `${i.columna} = '${i.valor.trim().replace(/'/g, "")}'`);
+  }
+  if (i.forma === "marcado") return conExpresion(wb, fila, `selected(\${${i.madre}}, name)`);
+  if (i.forma === "comparacion") {
+    // La columna nueva se crea vacía: luego se escribe el número de cada opción en la lista.
+    const choices = conColumna(wb.choices, i.columna);
+    return conExpresion({ ...wb, choices }, fila, `${i.columna} ${i.operador} \${${i.pregunta}}`);
   }
   return conExpresion(wb, fila, i.texto.trim());
 }

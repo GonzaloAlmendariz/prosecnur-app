@@ -5,7 +5,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Dialog } from "../../../components/Dialog";
 import type { XlsformEditorWorkbook } from "../../../api/multiIntegrado";
-import { escribirIntento, intentoCompleto, type Intento } from "./escrituraFiltros";
+import { escribirIntento, intentoCompleto, type FormaIntento, type Intento } from "./escrituraFiltros";
 import { ConfigIntento, INTENCIONES, TarjetasIntencion, intentoInicial } from "./IntencionFiltro";
 import { NOMBRE_TIPO, type TipoFiltro } from "./modeloFiltros";
 import { SelectorPreguntaFiltro, type PreguntaElegible } from "./SelectorPreguntaFiltro";
@@ -16,6 +16,8 @@ export type PreguntaDestino = PreguntaElegible & { fila: number; lista: string; 
 type Props = {
   preguntas: readonly PreguntaDestino[];
   candidatasDe: (name: string) => PreguntaElegible[];
+  /** Preguntas numéricas anteriores a `name`, para el filtro «según un número». */
+  numericasDe?: (name: string) => PreguntaElegible[];
   workbook: XlsformEditorWorkbook;
   onCrear: (wb: XlsformEditorWorkbook, pregunta: string) => void;
   onAbrir: (pregunta: string) => void;
@@ -24,10 +26,10 @@ type Props = {
 
 const PASOS = ["Pregunta", "Forma", "Detalle"] as const;
 
-export function NuevoFiltroDialogo({ preguntas, candidatasDe, workbook, onCrear, onAbrir, onCerrar }: Props) {
+export function NuevoFiltroDialogo({ preguntas, candidatasDe, numericasDe, workbook, onCrear, onAbrir, onCerrar }: Props) {
   const [paso, setPaso] = useState(1);
   const [pregunta, setPregunta] = useState<string | null>(null);
-  const [forma, setForma] = useState<TipoFiltro | null>(null);
+  const [forma, setForma] = useState<FormaIntento | null>(null);
   const [intento, setIntento] = useState<Intento | null>(null);
   const caja = useRef<HTMLDivElement>(null);
   const destino = preguntas.find((p) => p.name === pregunta) ?? null;
@@ -37,7 +39,7 @@ export function NuevoFiltroDialogo({ preguntas, candidatasDe, workbook, onCrear,
     caja.current?.querySelector<HTMLElement>("input, [role='radio'][tabindex='0'], textarea")?.focus();
   }, [paso]);
 
-  const elegirForma = (f: TipoFiltro) => {
+  const elegirForma = (f: FormaIntento) => {
     setForma(f);
     if (destino) setIntento(intentoInicial(f, null, destino.name, workbook.choices));
   };
@@ -93,7 +95,7 @@ export function NuevoFiltroDialogo({ preguntas, candidatasDe, workbook, onCrear,
           {paso === 3 && destino && intento ? (
             <>
               <p className="xcf-nota">Filtro para <code>{destino.name}</code>, {INTENCIONES.find((x) => x.forma === forma)?.titulo.toLowerCase()}</p>
-              <ConfigIntento intento={intento} onCambio={setIntento} candidatas={candidatasDe(destino.name)} choices={workbook.choices} />
+              <ConfigIntento intento={intento} onCambio={setIntento} candidatas={candidatasDe(destino.name)} numericas={numericasDe?.(destino.name)} choices={workbook.choices} />
             </>
           ) : null}
       </div>

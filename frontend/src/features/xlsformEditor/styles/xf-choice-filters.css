@@ -467,7 +467,7 @@
 .xcf-editor__barra strong { min-width: 0; max-width: 40ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--pulso-text); font-weight: var(--pulso-weight-semibold); }
 .xcf-editor__cuerpo { display: flex; flex-direction: column; gap: 12px; padding: 12px; }
 
-.xcf-intenciones { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.xcf-intenciones { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
 .xcf-intenciones.is-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .xcf-intencion {
   display: flex;

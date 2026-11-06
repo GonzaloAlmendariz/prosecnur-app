@@ -6,20 +6,27 @@ import { useRef, type KeyboardEvent } from "react";
 import type { XlsformEditorSheet } from "../../../api/multiIntegrado";
 import { X } from "../../../vendor/lucide-react";
 import { columnaSugerida } from "./cascada";
-import type { Intento } from "./escrituraFiltros";
-import type { AnalisisFiltro, TipoFiltro } from "./modeloFiltros";
+import { leerComparacion, type FormaIntento, type Intento, type OperadorComparacion } from "./escrituraFiltros";
+import type { AnalisisFiltro } from "./modeloFiltros";
 import { SelectorPreguntaFiltro, type PreguntaElegible } from "./SelectorPreguntaFiltro";
 
-export const INTENCIONES: { forma: TipoFiltro; titulo: string; detalle: string }[] = [
+export const INTENCIONES: { forma: FormaIntento; titulo: string; detalle: string }[] = [
   { forma: "cascada", titulo: "Según una respuesta anterior", detalle: "La lista depende de otra pregunta." },
+  { forma: "marcado", titulo: "Lo marcado antes", detalle: "Sólo las opciones que se marcaron en otra pregunta." },
+  { forma: "comparacion", titulo: "Según un número", detalle: "Cada opción con su mínimo o máximo frente a una respuesta." },
   { forma: "opcion", titulo: "Cada opción según su pregunta", detalle: "Cada opción la habilita una pregunta distinta." },
   { forma: "fijo", titulo: "Siempre las mismas opciones", detalle: "Un subconjunto que no cambia." },
   { forma: "expresion", titulo: "Escribir la expresión", detalle: "Para casos que no encajan." },
 ];
 
 /** El intento con que arranca cada forma: lo que ya tiene el filtro si es de esa forma, o un punto de partida. */
-export function intentoInicial(forma: TipoFiltro, a: AnalisisFiltro | null, pregunta: string, choices: XlsformEditorSheet): Intento {
+export function intentoInicial(forma: FormaIntento, a: AnalisisFiltro | null, pregunta: string, choices: XlsformEditorSheet): Intento {
   if (forma === "cascada") return { forma, madre: a?.cascada?.madre ?? "", columna: a?.cascada?.columna ?? "" };
+  if (forma === "marcado") return { forma, madre: a?.cascada?.forma === "marcada" && a.cascada.columna === "name" ? a.cascada.madre : "" };
+  if (forma === "comparacion") {
+    const c = a ? leerComparacion(a.expresion) : null;
+    return { forma, columna: c?.columna ?? columnaLibre(choices, "minimo"), operador: c?.operador ?? "<=", pregunta: c?.pregunta ?? "" };
+  }
   if (forma === "opcion") return { forma, preguntas: a?.porOpcion ? [...new Set(a.porOpcion.terminos.map((t) => t.pregunta))] : [] };
   if (forma === "fijo") {
     if (a?.fijo?.forma === "columna") return { forma, columna: a.fijo.columna, valor: a.fijo.valor };
@@ -35,7 +42,7 @@ function columnaLibre(choices: XlsformEditorSheet, base: string): string {
   return n;
 }
 
-export function TarjetasIntencion({ valor, onCambio, columnas = 4 }: { valor: TipoFiltro | null; onCambio: (f: TipoFiltro) => void; columnas?: 2 | 4 }) {
+export function TarjetasIntencion({ valor, onCambio, columnas = 4 }: { valor: FormaIntento | null; onCambio: (f: FormaIntento) => void; columnas?: 2 | 4 }) {
   const refs = useRef<(HTMLButtonElement | null)[]>([]);
   const mover = (e: KeyboardEvent<HTMLButtonElement>, i: number) => {
     const d = e.key === "ArrowRight" || e.key === "ArrowDown" ? 1 : e.key === "ArrowLeft" || e.key === "ArrowUp" ? -1 : 0;
@@ -75,10 +82,60 @@ type ConfigProps = {
   onCambio: (i: Intento) => void;
   /** Preguntas de selección anteriores a la filtrada (madre o habilitadoras). */
   candidatas: readonly PreguntaElegible[];
+  /** Preguntas numéricas anteriores (entero, decimal o cálculo), para «según un número». */
+  numericas?: readonly PreguntaElegible[];
   choices: XlsformEditorSheet;
 };
 
-export function ConfigIntento({ intento, onCambio, candidatas, choices }: ConfigProps) {
+const OPERADORES: { op: OperadorComparacion; texto: string }[] = [
+  { op: "<=", texto: "es menor o igual que" },
+  { op: "<", texto: "es menor que" },
+  { op: ">=", texto: "es mayor o igual que" },
+  { op: ">", texto: "es mayor que" },
+];
+
+export function ConfigIntento({ intento, onCambio, candidatas, numericas = [], choices }: ConfigProps) {
+  if (intento.forma === "marcado") {
+    return (
+      <div className="xcf-config">
+        <div className="xcf-campo">
+          <span className="xcf-campo__rot">Pregunta donde se marcaron</span>
+          {candidatas.length
+            ? <SelectorPreguntaFiltro preguntas={candidatas} elegidas={intento.madre ? [intento.madre] : []} onElegir={(madre) => onCambio({ ...intento, madre })} etiqueta="Pregunta donde se marcaron" />
+            : <p className="xcf-nota">No hay preguntas de selección antes de esta.</p>}
+          <span className="xcf-nota">Se muestran sólo las opciones marcadas en esa pregunta. Las dos tienen que usar la misma lista de opciones.</span>
+        </div>
+      </div>
+    );
+  }
+  if (intento.forma === "comparacion") {
+    return (
+      <div className="xcf-config">
+        <p className="xcf-frase">
+          Muestra las opciones cuya columna <code>{intento.columna || "…"}</code> {OPERADORES.find((o) => o.op === intento.operador)?.texto} la respuesta de {intento.pregunta ? <code>{intento.pregunta}</code> : "…"}.
+        </p>
+        <div className="xcf-config is-fila">
+          <label className="xcf-campo">
+            <span className="xcf-campo__rot">Columna de la lista con el número</span>
+            <input className="xcf-input is-mono" value={intento.columna} spellCheck={false} onChange={(e) => onCambio({ ...intento, columna: e.target.value.trim() })} />
+          </label>
+          <label className="xcf-campo is-corto">
+            <span className="xcf-campo__rot">Comparación</span>
+            <select className="xcf-input" value={intento.operador} onChange={(e) => onCambio({ ...intento, operador: e.target.value as OperadorComparacion })}>
+              {OPERADORES.map((o) => <option key={o.op} value={o.op}>{o.texto}</option>)}
+            </select>
+          </label>
+        </div>
+        <div className="xcf-campo">
+          <span className="xcf-campo__rot">Respuesta numérica</span>
+          {numericas.length
+            ? <SelectorPreguntaFiltro preguntas={numericas} elegidas={intento.pregunta ? [intento.pregunta] : []} onElegir={(pregunta) => onCambio({ ...intento, pregunta })} etiqueta="Respuesta numérica" />
+            : <p className="xcf-nota">No hay preguntas numéricas antes de esta.</p>}
+          <span className="xcf-nota">{choices.columns.includes(intento.columna) ? "Ya existe en choices: se usan sus números." : "Se crea vacía en choices. Luego escribes el número de cada opción en la lista."}</span>
+        </div>
+      </div>
+    );
+  }
   if (intento.forma === "cascada") {
     const elegir = (madre: string) => {
       const auto = !intento.columna || intento.columna.startsWith("filtro_");

@@ -3,9 +3,9 @@
 
 import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 import type { XlsformEditorWorkbook } from "../../../api/multiIntegrado";
-import { conExpresion, escribirIntento, expresionCascada, intentoCompleto, quitarFiltro, type Intento } from "./escrituraFiltros";
+import { conExpresion, escribirIntento, expresionCascada, formaDe, intentoCompleto, quitarFiltro, type FormaIntento, type Intento } from "./escrituraFiltros";
 import { ConfigIntento, TarjetasIntencion, intentoInicial } from "./IntencionFiltro";
-import type { AnalisisFiltro, TipoFiltro } from "./modeloFiltros";
+import type { AnalisisFiltro } from "./modeloFiltros";
 import type { PreguntaElegible } from "./SelectorPreguntaFiltro";
 import { PulsoButton } from "../../../components/PulsoButton";
 
@@ -13,6 +13,7 @@ type Props = {
   analisis: AnalisisFiltro;
   workbook: XlsformEditorWorkbook;
   candidatas: readonly PreguntaElegible[];
+  numericas?: readonly PreguntaElegible[];
   onGuardar: (wb: XlsformEditorWorkbook) => void;
   onCancelar: () => void;
 };
@@ -20,6 +21,11 @@ type Props = {
 /** El workbook que resulta de guardar. null si no hay nada que escribir. */
 function escribir(wb: XlsformEditorWorkbook, a: AnalisisFiltro, i: Intento): XlsformEditorWorkbook | null {
   if (!intentoCompleto(i)) return null;
+  // «Lo marcado antes» y «según un número» se reescriben enteras; si la expresión no cambia, no hay nada que guardar.
+  if (i.forma === "marcado" || i.forma === "comparacion") {
+    const nuevo = escribirIntento(wb, a.fila, a.lista, i);
+    return formaDe(a) === i.forma && i.forma === "marcado" && a.cascada?.madre === i.madre ? null : nuevo;
+  }
   if (i.forma !== a.tipo) return escribirIntento(wb, a.fila, a.lista, i);
   if (i.forma === "cascada" && a.cascada) {
     if (i.madre === a.cascada.madre && i.columna === a.cascada.columna) return null;
@@ -34,12 +40,13 @@ function escribir(wb: XlsformEditorWorkbook, a: AnalisisFiltro, i: Intento): Xls
   return null;
 }
 
-export function EditorIntencion({ analisis, workbook, candidatas, onGuardar, onCancelar }: Props) {
-  const [forma, setForma] = useState<TipoFiltro>(analisis.tipo);
-  const [intentos, setIntentos] = useState<Partial<Record<TipoFiltro, Intento>>>({});
+export function EditorIntencion({ analisis, workbook, candidatas, numericas, onGuardar, onCancelar }: Props) {
+  const formaActual = formaDe(analisis);
+  const [forma, setForma] = useState<FormaIntento>(formaActual);
+  const [intentos, setIntentos] = useState<Partial<Record<FormaIntento, Intento>>>({});
   const raiz = useRef<HTMLDivElement>(null);
   const intento = intentos[forma] ?? intentoInicial(forma, analisis, analisis.pregunta, workbook.choices);
-  const cambia = forma !== analisis.tipo;
+  const cambia = forma !== formaActual;
   const resultado = escribir(workbook, analisis, intento);
   const mismaPorOpcion = !cambia && forma === "opcion";
 
@@ -66,7 +73,7 @@ export function EditorIntencion({ analisis, workbook, candidatas, onGuardar, onC
         {cambia ? <p className="xcf-aviso" role="status">Cambiar la forma reemplaza el filtro actual al guardar.</p> : null}
         {mismaPorOpcion
           ? <p className="xcf-nota">Cada opción se asigna en la matriz. Para sumar una pregunta usa «Agregar pregunta» en la matriz.</p>
-          : <ConfigIntento intento={intento} onCambio={(i) => setIntentos((p) => ({ ...p, [i.forma]: i }))} candidatas={candidatas} choices={workbook.choices} />}
+          : <ConfigIntento intento={intento} onCambio={(i) => setIntentos((p) => ({ ...p, [i.forma]: i }))} candidatas={candidatas} numericas={numericas} choices={workbook.choices} />}
       </div>
     </div>
   );
