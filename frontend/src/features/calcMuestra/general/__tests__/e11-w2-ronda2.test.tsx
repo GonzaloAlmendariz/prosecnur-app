@@ -96,15 +96,15 @@ describe("V15 · el pie de la meta baja por piezas, no por palabras", () => {
     expect(campo.tipo).toBe("respuesta");
     if (campo.tipo !== "respuesta") return;
     expect(campo.piezas).toEqual(["Respuesta", "margen ±5.0%"]);
-    expect(campo.detalle).toBe("Respuesta esperada · margen ±5.0%");
+    expect(campo.detalle).toBe("Respuesta esperada, margen ±5.0%");
     for (const pieza of campo.piezas) expect(pieza.length).toBeLessThanOrEqual(14);
   });
 
   it("con sobremuestra real siguen siendo dos piezas y el detalle la nombra", () => {
     const campo = campoMetaDelActor(docentes({ oversample_pct: 0.5 }));
     if (campo.tipo !== "respuesta") throw new Error("esperaba respuesta");
-    expect(campo.piezas).toEqual(["Respuesta", "±5.0% · +50.0%"]);
-    expect(campo.detalle).toBe("Respuesta esperada · margen ±5.0% · sobremuestra 50.0%");
+    expect(campo.piezas).toEqual(["Respuesta", "±5.0%, +50.0%"]);
+    expect(campo.detalle).toBe("Respuesta esperada, margen ±5.0%, sobremuestra 50.0%");
   });
 
   it("conglomerados, conveniencia y cuota también en piezas cortas", () => {
@@ -113,15 +113,15 @@ describe("V15 · el pie de la meta baja por piezas, no por palabras", () => {
     const conv = campoMetaDelActor(docentes({ n_minimo_estrato: 30, tope_operativo: 400 }, "no_prob_conveniencia"));
     expect(conv.tipo === "cobertura" && conv.piezas).toEqual(["Piso 30", "tope 400"]);
     expect(pieDeCuota(null)).toEqual({ detalle: "Cuota", piezas: ["Cuota"] });
-    expect(pieDeCuota(120)).toEqual({ detalle: "Cuota · vacía, el motor aplica 120", piezas: ["Cuota vacía", "motor: 120"] });
+    expect(pieDeCuota(120)).toEqual({ detalle: "Cuota vacía: el motor aplica 120", piezas: ["Cuota vacía", "motor: 120"] });
   });
 
   it("la tabla pinta piezas sin partir y deja la frase entera en título y texto accesible", () => {
     const html = actores([docentes({ oversample_pct: 0.5 })]);
-    expect(html).toContain('<small class="cmg-meta-pie" title="Respuesta esperada · margen ±5.0% · sobremuestra 50.0%">');
-    expect(html).toContain('<span class="cmg-sr-only">Respuesta esperada · margen ±5.0% · sobremuestra 50.0%</span>');
+    expect(html).toContain('<small class="cmg-meta-pie" title="Respuesta esperada, margen ±5.0%, sobremuestra 50.0%">');
+    expect(html).toContain('<span class="cmg-sr-only">Respuesta esperada, margen ±5.0%, sobremuestra 50.0%</span>');
     expect(html).toContain('<span class="cmg-meta-pieza" aria-hidden="true">Respuesta</span>');
-    expect(html).toContain('<span class="cmg-meta-pieza" aria-hidden="true">±5.0% · +50.0%</span>');
+    expect(html).toContain('<span class="cmg-meta-pieza" aria-hidden="true">±5.0%, +50.0%</span>');
     expect(css).toMatch(/\.cmg-tabla-actores \.cmg-meta-pieza \{\s*white-space: nowrap;/);
     expect(css).not.toMatch(/\.cmg-tabla-actores td\.cmg-num \.cmv2-target-stack small \{\s*white-space: normal;/);
     // «Por calcular» sigue en una sola línea.
@@ -137,7 +137,7 @@ describe("V9 · la divisoria recorre la fila entera", () => {
     expect(css).toMatch(/\.cmg-tabla-desplazable \.cmv2-table tbody tr:last-child > th\[scope="row"\] \{\s*border-bottom: 0;/);
     // El gris de las celdas vive en calcMuestra.css: si cambia, esta regla debe seguirlo.
     const base = fs.readFileSync(path.join(__dirname, "..", "..", "calcMuestra.css"), "utf8");
-    expect(base).toMatch(/\.cmv2-table td,\s*\.cmv2-variable-map-table td \{\s*border-bottom-color: color-mix\(in srgb, var\(--cmv2-border\) 86%, var\(--cmv2-accent-border\) 14%\);/);
+    expect(base).toMatch(/\.cmv2-table td \{\s*border-bottom-color: color-mix\(in srgb, var\(--cmv2-border\) 86%, var\(--cmv2-accent-border\) 14%\);/);
   });
 });
 

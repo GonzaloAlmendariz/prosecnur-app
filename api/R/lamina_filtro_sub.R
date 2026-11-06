@@ -1,5 +1,6 @@
-# Lámina de pregunta filtro y subpregunta (recetario p192–p194, recetario_m4.R:82-148): los dos gráficos normales y una
-# llave que sale de lo que habilita la subpregunta y llega a su título. El render lo arma graficos_filtro_subpregunta.R.
+# Lámina de pregunta filtro y subpregunta (recetario p192–p194, recetario_m4.R:82-148): los dos gráficos normales y, al
+# costado, una llave que sale de lo que habilita la subpregunta y llega a su título; con la subpregunta debajo de la
+# dicotomía no hay llave (G15, Arte 2026-10-28). El render lo arma graficos_filtro_subpregunta.R.
 
 #' Llave vertical al costado de [y0, y1] que sale en horizontal y sube o baja hasta el título (recetario_piezas.R:92)
 #' @keywords internal
@@ -13,24 +14,6 @@
   .lam_caja(lz, xt, min(yc, yt), t, abs(yc - yt) + t, color, nombre = "llave")
   .lam_caja(lz, xt, yt - t / 2, x_titulo - 0.06 - xt, t, color, nombre = "llave")
   invisible(yt)
-}
-
-#' Llave bajo un segmento [x0, x1] que baja hasta el título de abajo (recetario_piezas.R:98)
-#'
-#' Si el tallo cae más allá de donde termina el texto del título, dobla a su altura y llega hasta su última letra.
-#' @keywords internal
-.lam_llave_baja <- function(lz, x0, x1, y, x_titulo, y_titulo, t_titulo, color = .std_color("azul"), t = 0.022) {
-  .lam_caja(lz, x0, y, t, 0.1, color, nombre = "llave"); .lam_caja(lz, x1 - t, y, t, 0.1, color, nombre = "llave")
-  .lam_caja(lz, x0, y + 0.1 - t, x1 - x0, t, color, nombre = "llave")
-  xc <- (x0 + x1) / 2; ym <- y_titulo + 0.16
-  x_fin <- x_titulo + 0.05 + .lam_ancho_tinta(t_titulo, 13, bold = TRUE)
-  if (xc > x_fin + 0.15) {
-    .lam_caja(lz, xc - t / 2, y + 0.1 - t, t, ym - y - 0.1 + t, color, nombre = "llave")
-    .lam_caja(lz, x_fin + 0.1, ym - t / 2, xc - x_fin - 0.1 + t / 2, t, color, nombre = "llave")
-  } else {
-    .lam_caja(lz, xc - t / 2, y + 0.1 - t, t, y_titulo + 0.06 - y - 0.1 + t, color, nombre = "llave")
-  }
-  invisible(xc)
 }
 
 #' «Sólo los 20 estudiantes que respondieron «Sí»»: la base del dependiente dicha con lo que lo habilita
@@ -49,12 +32,26 @@
   trimws(sprintf("Sólo los %s%s %s", cuantos, publico, quienes))
 }
 
-#' El pie con las dos bases: «Base: 201 estudiantes. Sólo los 20 estudiantes que respondieron «Sí»»
+#' Base del dependiente por debajo de la cual sus cifras se leen como referenciales (plan de análisis CCSS 2026, sección 7)
+#' @keywords internal
+.LAM_FILTRO_SUB_BASE_MINIMA <- 30L
+
+#' El pie con las dos bases: «Base: 201 estudiantes. Sólo los 20 que respondieron «Sí». Fuente: …»
+#'
+#' La base del dependiente va antes de la fuente, que cierra el pie, y todo termina en punto (CCSS 2026, M1 y B15: el pie
+#' decía «… Fuente: PULSO PUCP 2026. Sólo los 96 que respondieron…», sin punto final). Con menos de
+#' `.LAM_FILTRO_SUB_BASE_MINIMA` casos el pie lo advierte (M3).
 #' @keywords internal
 .lam_filtro_sub_pie <- function(base, espec) {
   # PPT 23 (Renzo, v3): «Sólo los 77 que conocen el reglamento», una vez y sin «La subpregunta,» delante.
-  partes <- c(if (!is.null(base) && nzchar(trimws(base))) sub("\\.\\s*$", "", trimws(base)), .lam_filtro_sub_base(espec))
-  paste(partes, collapse = ". ")
+  b <- if (!is.null(base) && nzchar(trimws(base))) sub("\\.\\s*$", "", trimws(base)) else ""
+  corte <- regexpr("\\.\\s+Fuente:", b)
+  cuerpo <- if (corte > 0) substr(b, 1, corte - 1) else b
+  fuente <- if (corte > 0) trimws(substring(b, corte + 1)) else ""
+  n <- suppressWarnings(as.numeric(espec$n_sub)[1])
+  aviso <- if (length(n) && is.finite(n) && n < .LAM_FILTRO_SUB_BASE_MINIMA) "Base menor de 30 casos: cifras referenciales"
+  partes <- c(if (nzchar(cuerpo)) cuerpo, .lam_filtro_sub_base(espec), aviso, if (nzchar(fuente)) fuente)
+  paste0(paste(partes, collapse = ". "), ".")
 }
 
 #' La dicotomía del filtro con sus casos en el rótulo («Sí (20)»): son la base del dependiente (recetario p192–p193)
@@ -88,6 +85,7 @@
 .lam_filtro_sub_cabe_sub <- function(s) {
   if (is.null(s)) return(FALSE)
   if (identical(s$tipo, "categorica")) return(length(s$rotulos) >= 1L && length(s$rotulos) <= 8L)
+  if (.lam_filtro_sub_es_mapa(s)) return(TRUE)   # el mapa dependiente tiene su propia lámina (lamina_filtro_mapa.R)
   identical(s$tipo, "escala") && NROW(s$filas) >= 1L && NROW(s$filas) <= 8L
 }
 
@@ -97,9 +95,13 @@
 #' @keywords internal
 .lam_filtro_sub_barra_geo <- function(s, rotulo, x, w) {
   wl <- if (!is.null(rotulo) && nzchar(rotulo)) min(w * 0.3, max(1, .lam_ancho_tinta(rotulo, 10.5, TRUE) + 0.2)) else 0
-  wbox <- if (!is.null(s$box$unidades)) 1.3 else 0
+  wbox <- if (!is.null(s$box$unidades)) .std_comp("filtro", "columna_box") else 0
   list(x = x + wl, w = w - wl - wbox, wl = wl, wbox = wbox)
 }
+
+#' Alto máximo (in) de la fila de una barra del filtro o del dependiente: con pocas respuestas, las filas llenan el alto
+#' @keywords internal
+.LAM_FILTRO_SUB_FILA_MAX <- 1.0
 
 #' La subpregunta en su caja: barras de una serie o una escala al 100 % con su leyenda debajo
 #' @keywords internal
@@ -107,9 +109,11 @@
 #' Gonzalo (2026-10-14): «el gráfico dependiente no debe verse más pequeño del que depende». La subpregunta llena su
 #' columna: filas de hasta 0.75 in con barras gruesas; la escala de una fila, en una barra de 0.8 in con su leyenda en el
 #' ancho de la columna y, si se le da `yc`, centrada a esa altura (la del disco del filtro, de donde sale el conector).
-.lam_filtro_sub_dibujar_sub <- function(lz, s, x, y, w, alto, yc = NULL, rotulo = NULL, centro_ley = NULL, lim_ley = NULL) {
+.lam_filtro_sub_dibujar_sub <- function(lz, s, x, y, w, alto, yc = NULL, rotulo = NULL, centro_ley = NULL, lim_ley = NULL, n_encima = NULL) {
   if (identical(s$tipo, "categorica")) {
-    k <- length(s$rotulos); fila <- min(0.75, alto / max(1L, k)); g <- min(0.42, max(.std_grosor(k, "categorias"), fila * 0.55))
+    # Las filas se reparten en todo el alto de la columna (Gonzalo, 2026-11-03: «el gráfico que depende de otra pregunta
+    # no usa todo su alto»); el techo de 1 in por fila y el de 0.42 in de grosor evitan barras que parezcan bloques.
+    k <- length(s$rotulos); fila <- min(.LAM_FILTRO_SUB_FILA_MAX, alto / max(1L, k)); g <- min(0.42, max(.std_grosor(k, "categorias"), fila * 0.55))
     return(.lam_barras_h(lz, s, x, y, w, wlab = min(2.5, w * 0.4), g = g, fila = fila, size = 12))
   }
   if (NROW(s$filas) > 1L) {
@@ -133,10 +137,19 @@
   }
   # F5: con Top Two Box declarada, su columna a la derecha de la barra con su rótulo encima (p192).
   x <- geo$x; wb <- geo$w; wbox <- geo$wbox
+  desde <- length(lz$cajas)
   .lam_barra_apilada(lz, x, yb, wb, .lam_escala_seg(s, 1L), h)
+  if (!is.null(n_encima)) .lam_n_encima_barra(lz, n_encima, x + wb, yb, desde = desde)   # G16: «N = 77» sobre el extremo derecho
   if (wbox > 0) {
     verde <- .std_color("verde_top_two_box")
-    .lam_txt(lz, s$box$rotulo %||% .PPT_ROTULO_TOP_TWO_BOX, x + wb + 0.05, yb - 0.4, wbox - 0.05, 0.26, .std_pt("rotulo_top_two_box"),
+    rot <- .lam_rotulo_box(s$box$rotulo %||% .PPT_ROTULO_TOP_TWO_BOX)
+    # En una línea (a 12 pt «TOP TWO BOX» no cabe en la columna del filtro, 1,3 in, y la barra no cede: mide lo que la del filtro). La
+    # caja crece, centrada sobre su cifra; lo que no pasa del margen derecho es la tinta, no la caja (invisible).
+    tinta <- .lam_ancho_tinta(rot, .std_pt("rotulo_top_two_box"), TRUE)
+    wr <- max(wbox - 0.05, tinta + 0.35)
+    xc <- min(x + wb + 0.05 + (wbox - 0.05) / 2, .std_geom("ancho") - .std_geom("margen_der") - tinta / 2)
+    xr <- xc - wr / 2
+    .lam_txt(lz, rot, xr, yb - .std_comp("filtro", "rotulo_box_sobre"), wr, 0.26, .std_pt("rotulo_top_two_box"),
              verde, bold = TRUE, align = "center", nombre = "box:rotulo")
     .lam_etiqueta_box(lz, s, x + wb + 0.05, yb, h, 1L, con_n = FALSE, color = verde, w = wbox - 0.05)
   }
@@ -152,6 +165,10 @@
                                     layout = "Graficos2", master = "Office Theme", por_lamina = function(doc) doc) {
   force(folio)
   espec$unidad_n <- unidad_n
+  if (.lam_filtro_sub_es_mapa(espec$sub) && !is.null(espec$filtro)) {
+    return(.lam_laminas_filtro_mapa(doc, espec, titulo, ante = ante, base = base, folio = folio, sub = sub, layout = layout, master = master,
+                                    por_lamina = por_lamina))
+  }
   if (!isTRUE(.lam_filtro_sub_cabe_filtro(espec))) {
     return(.lam_laminas_filtro_sub_respaldo(doc, espec, titulo, ante = ante, base = base, folio = folio, sub = sub, unidad_n = unidad_n,
                                             layout = layout, master = master, por_lamina = por_lamina))
@@ -165,10 +182,11 @@
   if (!nzchar(espec$pregunta_sub %||% "")) { espec$pregunta_sub <- .lam_filtro_sub_base(espec); espec$base_en_titulo <- TRUE }
   # Respaldo parcial: si sólo el dependiente no tiene pieza nativa, el filtro sigue nativo y el dependiente va con su gráfico.
   sub_nativo <- isTRUE(.lam_filtro_sub_cabe_sub(s)); imagen <- NULL
-  dibujar_sub <- function(x, y, w, alto, yc = NULL, centro_ley = NULL, lim_ley = NULL) {
+  dibujar_sub <- function(x, y, w, alto, yc = NULL, centro_ley = NULL, lim_ley = NULL, n_encima = NULL) {
     # Una batería que no cabe en su alto (con aire para sus cifras chicas) va con su gráfico, no se sale de la lámina.
     cabe_alto <- !(identical(s$tipo, "escala") && NROW(s$filas) > 1L) || alto >= .lam_filtro_sub_alto_bateria(s)
-    if (sub_nativo && cabe_alto) return(.lam_filtro_sub_dibujar_sub(lz, s, x, y, w, alto, yc = yc, rotulo = espec$rotulo, centro_ley = centro_ley, lim_ley = lim_ley))
+    if (sub_nativo && cabe_alto) return(.lam_filtro_sub_dibujar_sub(lz, s, x, y, w, alto, yc = yc, rotulo = espec$rotulo, centro_ley = centro_ley,
+                                                                    lim_ley = lim_ley, n_encima = n_encima))
     imagen <<- c(x = x, y = y, w = w, h = alto); invisible(y + alto)
   }
   publico <- function(n) if (isTRUE(espec$mostrar_respuestas) && is.finite(n)) sprintf("%s %s", format(as.integer(n), big.mark = ","), unidad_n) else NULL
@@ -176,8 +194,14 @@
   doc <- .lam_titulo(doc, titulo, ante = ante, sub = sub)
   lz <- .lam_lienzo()
 
-  if (dico && identical(espec$disposicion, "abajo")) {
-    # p192: la dicotomía a todo el ancho; la llave baja desde lo que habilita hasta el título de la subpregunta.
+  una_barra_c <- sub_nativo && identical(s$tipo, "escala") && NROW(s$filas) == 1L
+  if (dico && identical(espec$disposicion, "abajo") && una_barra_c) {
+    # La Sí/No y su escala de una barra van como Contabilidad: dos filas de escala del estándar (lamina_filtro_sub_conta.R).
+    .lam_filtro_sub_como_conta(lz, espec, .lam_filtro_sub_dico(f), s, n_encima = if (!isTRUE(espec$base_en_titulo)) .lam_filtro_sub_n_texto(espec),
+                               publico_f = publico(espec$n_filtro))
+  } else if (dico && identical(espec$disposicion, "abajo")) {
+    # p192: la dicotomía a todo el ancho y la subpregunta debajo. G15 (Gabriela, Arte 2026-10-28: «no es necesario el
+    # corchete, se ve mal»): sin la llave que bajaba de lo que habilita al título; lo dice el «N = 77» y el pie.
     d <- .lam_filtro_sub_dico(f)
     wl <- 1.6; xb <- ml + wl + 0.12; wb <- ancho - wl - 0.12 - 1.1
     # PPT 23 (Renzo, v3): con la subpregunta en una barra de escala, las dos barras comparten columna (la del texto de las
@@ -188,16 +212,17 @@
     .lam_panel_titulo(lz, ml, yt, ancho, espec$pregunta_filtro, publico(espec$n_filtro))
     # F2: con una batería abajo, la dicotomía se compacta para dejarle el alto.
     bateria <- identical(s$tipo, "escala") && NROW(s$filas) > 1L
-    yb_fin <- .lam_dicotomia(lz, xb, yt + 0.55, wb, d$rotulos, d$cifras, d$largos, d$n, size = if (bateria) 20 else 26,
-                             g = if (bateria) 0.32 else 0.42, cols = d$colores)
-    w1 <- wb * d$largos[1] / sum(d$largos[1:2])
-    hab <- which(d$rotulos %in% espec$habilita)
-    x0 <- if (identical(hab, 2L)) xb + w1 else xb
-    x1 <- if (identical(hab, 1L)) xb + w1 else xb + wb
-    y2 <- yb_fin + (if (bateria) 0.5 else 0.75)
-    .lam_llave_baja(lz, x0, x1, yb_fin + 0.06, ml, y2, espec$pregunta_sub)
-    ys <- .lam_panel_titulo(lz, ml, y2, ancho, espec$pregunta_sub, if (isTRUE(espec$base_en_titulo)) NULL else .lam_filtro_sub_base(espec))
-    if (una_barra) dibujar_sub(xc, ys + 0.2, W - mr - xc, yf - ys - 0.4, centro_ley = W / 2, lim_ley = c(ml, W - mr))
+    # v7.23, ítem 11: ninguna franja dicotómica en el mazo; la Sí/No va como barra apilada clásica, cifras dentro y leyenda.
+    yb_fin <- .lam_dicotomia_estandar(lz, xb, yt + 0.55, wb, d$rotulos, d$cifras, d$largos, d$n,
+                                      g = .std_comp("filtro", if (bateria) "grosor_bateria" else "grosor"), cols = d$colores,
+                                      x_ley = ml, w_ley = ancho)
+    y2 <- yb_fin + .std_comp("filtro", if (bateria) "aire_sub_bateria" else "aire_sub")
+    # G16 (Gabriela: «ese n 77 ahí no se lee, mejor como estaba antes, encima de la barra»): con la escala de una barra la
+    # base va como «N = 77» sobre su extremo derecho (Contabilidad, lamina_filtro_sub_n.R), no en gris bajo la premisa.
+    n_encima <- if (una_barra && !isTRUE(espec$base_en_titulo)) .lam_filtro_sub_n_texto(espec)
+    base_sub <- if (isTRUE(espec$base_en_titulo) || !is.null(n_encima)) NULL else .lam_filtro_sub_base(espec)
+    ys <- .lam_panel_titulo(lz, ml, y2, ancho, espec$pregunta_sub, base_sub)
+    if (una_barra) dibujar_sub(xc, ys + 0.2, W - mr - xc, yf - ys - 0.4, centro_ley = W / 2, lim_ley = c(ml, W - mr), n_encima = n_encima)
     else dibujar_sub(ml, ys + 0.2, ancho, yf - ys - 0.4)
   } else {
     gap <- 0.6; col <- (ancho - gap) / 2; xr <- ml + col + gap
@@ -226,7 +251,7 @@
       # p194: el filtro en barras, las que habilitan en azul y el resto tenue; la llave las abraza.
       f2 <- f; f2$realce <- FALSE
       f2$colores <- stats::setNames(ifelse(f$rotulos %in% espec$habilita, azul, tenue), f$rotulos)
-      k <- length(f$rotulos); fila <- min(0.66, (yf - y0 - 0.3) / k); g <- min(0.36, fila * 0.6)
+      k <- length(f$rotulos); fila <- min(.LAM_FILTRO_SUB_FILA_MAX, (yf - y0 - 0.3) / k); g <- min(0.36, fila * 0.6)
       .lam_barras_h(lz, f2, ml, y0, col - 0.45, wlab = min(2.5, col * 0.4), g = g, fila = fila, size = 12)
       hab <- which(f$rotulos %in% espec$habilita)
       .lam_llave_a_titulo(lz, ml + col - 0.35, y0 + (min(hab) - 1) * fila + (fila - g) / 2,

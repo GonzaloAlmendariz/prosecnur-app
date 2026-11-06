@@ -22,6 +22,8 @@ export function SelectorDeFase({
   const boton = useRef<HTMLButtonElement | null>(null);
   const listaId = useId();
   const activa = opciones.find((item) => item.activa) ?? opciones[0];
+  // El «Alinear la fase / la ventana» con el Planner (2i) se retiró con el
+  // Planner (ADR 0124): la fase y su ventana las decide Monitoreo aquí.
 
   useEffect(() => {
     if (!abierto) return undefined;

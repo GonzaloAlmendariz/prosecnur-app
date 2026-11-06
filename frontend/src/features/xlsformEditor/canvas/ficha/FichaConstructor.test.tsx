@@ -35,8 +35,7 @@ const scope = alcanceDeLectura(idx.structure, idx.catalogs);
 const nada = () => undefined;
 const acciones: AccionesFicha = {
   campo: nada, tipo: nada, obligatoria: nada, asignarLista: nada, crearLista: nada, duplicar: nada, moverASeccion: nada,
-  mover: nada, eliminar: nada, alternarRepeticion: nada, seleccionarFila: nada, irPestana: nada, ajuste: nada, editarFormulario: nada,
-  puedeSubir: true, puedeBajar: true,
+  eliminar: nada, alternarRepeticion: nada, seleccionarFila: nada, irPestana: nada, ajuste: nada, editarFormulario: nada,
 };
 
 function ficha(name: string) {
@@ -61,6 +60,13 @@ function ficha(name: string) {
 }
 
 describe("FichaConstructor", () => {
+  test("la cabecera no ofrece ↑ ↓: el orden se cambia con el asa o Alt+↑ / Alt+↓ (decisión del 2026-11-01)", () => {
+    const html = ficha("edad");
+    expect(html).not.toContain("Subir un lugar");
+    expect(html).not.toContain("Bajar un lugar");
+    expect(html).toContain("Duplicar");
+  });
+
   test("pregunta: bloques de la propuesta, reglas leídas por el motor y sin «Formulario completo»", () => {
     const html = ficha("edad");
     for (const t of ["Texto", "Respuesta", "Reglas", "Apariencia en la plataforma", "Así se ve"]) expect(html).toContain(t);

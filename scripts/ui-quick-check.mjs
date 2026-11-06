@@ -1194,8 +1194,10 @@ async function runCaptures(opts, stack) {
   try {
     for (const viewport of opts.viewports) {
       const context = await browser.newContext({ viewport });
-      await context.addInitScript(({ layoutPreset, session, focusedWarmup, warmupModuleIds }) => {
+      await context.addInitScript(({ layoutPreset, session, focusedWarmup, warmupModuleIds, extraStorage }) => {
         window.localStorage.setItem("pulso.layoutPreset", layoutPreset);
+        // UI_QA_LOCAL_STORAGE='{"clave":"valor"}' siembra interruptores de vista (p. ej. el lienzo de Hojas de ruta).
+        for (const [k, v] of Object.entries(extraStorage || {})) window.localStorage.setItem(k, String(v));
         if (session) window.localStorage.setItem("pulso.sessionId", session);
         if (focusedWarmup) {
           window.localStorage.setItem("pulso.visualQaWarmup", "1");
@@ -1209,6 +1211,7 @@ async function runCaptures(opts, stack) {
       }, {
         layoutPreset: opts.layoutPreset,
         session: stack.session || "",
+        extraStorage: JSON.parse(process.env.UI_QA_LOCAL_STORAGE || "{}"),
         focusedWarmup: opts.focusedWarmup,
         warmupModuleIds: focusedWarmupModuleIds,
       });
@@ -1758,6 +1761,39 @@ async function inspectDomCajas(page, { projectMode, geometryGroups, geometryTole
       if (scrollJails.length >= 40) break;
     }
 
+    // ── Desborde hacia ARRIBA inalcanzable (L12) ───────────────────────────
+    //
+    // Un contenedor que centra en vertical (`justify-content: center` en una
+    // columna flex, `align-content: center` en un grid) reparte su desborde
+    // arriba y abajo. Lo de abajo se alcanza con scroll; lo de arriba queda
+    // ANTES del inicio del scroll y no se alcanza nunca. El detector de arriba
+    // no lo veía porque el ancestro sí tiene dueño de scroll: el Home a
+    // 1024×600 cortaba la primera fila de tarjetas con scrollJails=0 (censo
+    // 2026-10-10, hallazgo 15d). `safe center` es el arreglo en CSS.
+    for (const el of Array.from(document.querySelectorAll("body *"))) {
+      if (scrollJails.length >= 40) break;
+      if (!isVisibleElement(el)) continue;
+      const style = window.getComputedStyle(el);
+      const columna = style.display.includes("flex") && style.flexDirection.startsWith("column");
+      const centra = (columna && style.justifyContent === "center") ||
+        (style.display.includes("grid") && style.alignContent === "center");
+      if (!centra) continue;
+      const caja = el.getBoundingClientRect();
+      if (caja.height < 40) continue;
+      const primero = Array.from(el.children).find((hijo) => isVisibleElement(hijo));
+      if (!primero) continue;
+      const arriba = Math.round(caja.top - primero.getBoundingClientRect().top);
+      if (arriba <= 2) continue;
+      scrollJails.push({
+        type: "scroll-jail-arriba",
+        ...describeEl(el),
+        overflowY: style.overflowY,
+        recorteArribaPx: arriba,
+        scrollOwner: nearestScrollableY(el) ? describeEl(nearestScrollableY(el)) : null,
+        rect: { x: Math.round(caja.x), y: Math.round(caja.y), width: Math.round(caja.width), height: Math.round(caja.height) },
+      });
+    }
+
     // ── Paneles aplastados: el contenido se pinta FUERA de su marco ─────────
     //
     // `scrollJails` sólo mira una lista fija de contenedores de layout, así que
@@ -1951,6 +1987,9 @@ async function inspectDomCajas(page, { projectMode, geometryGroups, geometryTole
         "svg", "defs", "g",
         "[role='navigation']", "[role='tablist']", "[role='toolbar']",
         "[role='menu']", "[role='menubar']", "[role='listbox']",
+        // Maquetado interno de una librería que la app no compone (KaTeX en
+        // `components/Math.tsx`): el componente lo declara con su porqué.
+        "[data-qa-geometry-exento]",
       ].join(",");
       const interactiveGeometryMember = [
         "button", "a[href]", "input", "select", "textarea", "option",
@@ -2133,14 +2172,26 @@ async function inspectDomCajas(page, { projectMode, geometryGroups, geometryTole
       // coordenadas negativas y fabrica un `scroll-unreachable`, aunque el
       // usuario sí haya llegado al final. Dos frames permiten render + medida
       // sin relajar la comprobación del contenido terminal.
-      await new Promise((resolve) => window.requestAnimationFrame(() => (
+      const dosFrames = () => new Promise((resolve) => window.requestAnimationFrame(() => (
         window.requestAnimationFrame(resolve)
       )));
+      await dosFrames();
+      // Se mide con el scroll que hay AHORA, no con el que se pidió: si algo lo
+      // movió durante la espera (un efecto que lo resetea), se registra y se
+      // vuelve a llevar al final una vez, para que el informe diga qué pasó en
+      // vez de reportar `maxScroll` píxeles bajo el borde como inalcanzables.
+      let scrollReset = null;
+      if (Math.abs(owner.scrollTop - positions.end) > 1) {
+        scrollReset = { expected: positions.end, observed: owner.scrollTop };
+        setScrollTop(maxScroll);
+        await dosFrames();
+      }
+      const scrollTopAtMeasure = owner.scrollTop;
       const ownerRect = owner.getBoundingClientRect();
       const reachabilityEnd = resolveReachabilityEnd(owner, ownerRect);
       const lastContent = reachabilityEnd?.node ?? null;
       const lastRect = reachabilityEnd?.rect ?? null;
-      const atEnd = Math.abs(positions.end - maxScroll) <= 1;
+      const atEnd = Math.abs(scrollTopAtMeasure - maxScroll) <= 1;
       const lastContentReachable = !reachabilityEnd?.clippedBy && (!lastRect || (
         lastRect.bottom <= ownerRect.bottom + 2
         && lastRect.bottom >= ownerRect.top - 2
@@ -2152,6 +2203,8 @@ async function inspectDomCajas(page, { projectMode, geometryGroups, geometryTole
           maxScrollX,
           originalScrollTop,
           positions,
+          scrollTopAtMeasure,
+          scrollReset,
           atEnd,
           lastContentReachable,
           lastContent: lastContent ? elementHint(lastContent) : null,
@@ -2164,6 +2217,7 @@ async function inspectDomCajas(page, { projectMode, geometryGroups, geometryTole
       };
     };
 
+    const auditedScrollOwners = new Map();
     for (const spec of geometrySpecs) {
       const group = spec.group;
       if (auditedGroups.has(group) || !isVisibleElement(group)) continue;
@@ -2184,7 +2238,14 @@ async function inspectDomCajas(page, { projectMode, geometryGroups, geometryTole
       }
 
       const groupRect = group.getBoundingClientRect();
-      const memberMeasures = await Promise.all(members.map(async (member) => {
+      // En SERIE: cada auditoría mueve el scroll de su dueño, espera dos frames y
+      // lo devuelve. Con un miembro anidado en otro, los dos resuelven al mismo
+      // dueño; en paralelo, la primera lo devolvía a 0 mientras la segunda
+      // esperaba, y la segunda medía en 0 (falso `scroll-unreachable` en la tabla
+      // de distritos territorial y la ficha de aulas, 2026-11-01). Un dueño ya
+      // auditado reusa su evidencia y no se reporta dos veces.
+      const memberMeasures = [];
+      for (const member of members) memberMeasures.push(await (async () => {
         const rect = member.getBoundingClientRect();
         const style = window.getComputedStyle(member);
         const explicitContent = Array.from(member.querySelectorAll("[data-qa-geometry-content]"))
@@ -2211,9 +2272,11 @@ async function inspectDomCajas(page, { projectMode, geometryGroups, geometryTole
         const ownedCapacity = member.getAttribute("data-qa-geometry-capacity") === "owned"
           || Boolean(member.querySelector("[data-qa-geometry-capacity='owned']"));
         const scrollOwner = scrollOwnerInside(member);
-        const scrollEvidence = scrollOwner ? await auditScrollOwner(scrollOwner) : null;
+        const yaAuditado = scrollOwner ? auditedScrollOwners.get(scrollOwner) : undefined;
+        const scrollEvidence = scrollOwner ? (yaAuditado ?? await auditScrollOwner(scrollOwner)) : null;
+        if (scrollOwner && !yaAuditado) auditedScrollOwners.set(scrollOwner, scrollEvidence);
         const lastContent = contentNodes.at(-1) || null;
-        if (scrollOwner && scrollEvidence && (
+        if (scrollOwner && scrollEvidence && !yaAuditado && (
           !scrollEvidence.scrollAudit.atEnd
           || !scrollEvidence.scrollAudit.lastContentReachable
         )) {
@@ -2246,7 +2309,7 @@ async function inspectDomCajas(page, { projectMode, geometryGroups, geometryTole
           } : null,
           lastContent: lastContent ? elementHint(lastContent) : null,
         };
-      }));
+      })());
       const heights = memberMeasures.map((member) => member.rect.height);
       const widths = memberMeasures.map((member) => member.rect.width);
       const heightDelta = round2(Math.max(...heights) - Math.min(...heights));
@@ -2533,6 +2596,10 @@ export function summarize(results, opts) {
   const rotulosPartidos = results.flatMap((item) => (item.rotulosPartidos || []).map((d) => ({ ...d, route: item.route, viewport: item.viewport })));
   const textosFuera = results.flatMap((item) => (item.textosFuera || []).map((d) => ({ ...d, route: item.route, viewport: item.viewport })));
   const cabecerasQueTapan = results.flatMap((item) => (item.cabecerasQueTapan || []).map((d) => ({ ...d, route: item.route, viewport: item.viewport })));
+  // Tablas con cabeceras fuera de la vista. Desplazar es legítimo y sólo se
+  // informa; un marco que RECORTA las deja inalcanzables y eso sí falla.
+  const columnasOcultas = results.flatMap((item) => (item.columnasOcultas || []).map((d) => ({ ...d, route: item.route, viewport: item.viewport })));
+  const columnasRecortadas = columnasOcultas.filter((d) => !d.alcanzable);
   const geometryAudits = results.flatMap((item) => item.geometryAudits || []);
   const geometryIssues = results.flatMap((item) => item.geometryIssues || []);
   const geometryCoverageMisses = results.flatMap((item) => item.geometryCoverageMisses || []);
@@ -2604,6 +2671,9 @@ export function summarize(results, opts) {
     rotulosPartidos: rotulosPartidos.length,
     textosFuera: textosFuera.length,
     cabecerasQueTapan: cabecerasQueTapan.length,
+    columnasOcultas: columnasOcultas.length,
+    columnasRecortadas: columnasRecortadas.length,
+    columnasOcultasDetalle: columnasOcultas.slice(0, 5),
     rotuloPartidoDetalle: rotulosPartidos.slice(0, 5),
     textoFueraDetalle: textosFuera.slice(0, 5),
     cabeceraQueTapaDetalle: cabecerasQueTapan.slice(0, 5),
@@ -2633,6 +2703,7 @@ export function summarize(results, opts) {
       rotulosPartidos.length === 0 &&
       textosFuera.length === 0 &&
       cabecerasQueTapan.length === 0 &&
+      columnasRecortadas.length === 0 &&
       geometryIssues.length === 0 &&
       geometryCoverageMisses.length === 0 &&
       globalOverflow.length === 0 &&
@@ -2678,16 +2749,26 @@ async function main() {
   await fsp.mkdir(logDir, { recursive: true });
 
   const stack = await startStack(opts, logDir);
-  const cleanup = async () => {
-    if (opts.keepServers) return;
+  const stopStack = async () => {
     await stopProcess(stack.frontend);
     await stopProcess(stack.api);
   };
+  // --keep-servers deja la pila viva al TERMINAR de capturar, no al recibir una
+  // señal: quien manda SIGINT/SIGTERM quiere la pila abajo. Antes la señal
+  // también respetaba --keep-servers y el runner moría dejando la API y el
+  // vite huérfanos (ppid 1), que ningún prune veía.
+  const cleanup = async () => {
+    if (opts.keepServers) {
+      console.log(`[ui-quick-check] --keep-servers: la pila sigue viva (runner pid ${process.pid}). Ciérrala con \`kill ${process.pid}\` o \`make dev-prune\` al terminar.`);
+      return;
+    }
+    await stopStack();
+  };
   process.once("SIGINT", () => {
-    cleanup().finally(() => process.exit(130));
+    stopStack().finally(() => process.exit(130));
   });
   process.once("SIGTERM", () => {
-    cleanup().finally(() => process.exit(143));
+    stopStack().finally(() => process.exit(143));
   });
 
   try {
@@ -2753,7 +2834,7 @@ async function main() {
     for (const d of summary.routeDeviationDetalle || []) {
       console.log(`[ui-quick-check] ruta desviada: ${d.route} → ${d.finalUrl} (readiness=${d.readiness ?? "?"}) ${d.motivo}`);
     }
-    console.log(`[ui-quick-check] ok=${summary.ok} captures=${summary.captures} issues=${summary.visualIssues} popovers=${summary.popovers} popoverIssues=${summary.popoverIssues} scrollJails=${summary.scrollJails} desplazamientoH=${summary.desplazamientoH} derrames=${summary.derrames} solapes=${summary.solapes} desbordes=${summary.desbordes} rotulosPartidos=${summary.rotulosPartidos} textosFuera=${summary.textosFuera} cabecerasQueTapan=${summary.cabecerasQueTapan} geometryGroups=${summary.geometryGroups} geometryIssues=${summary.geometryIssues} geometryCoverageMisses=${summary.geometryCoverageMisses} overflow=${summary.globalOverflow} pageErrors=${summary.pageErrors} apiErrors=${summary.apiErrors} resourceErrors=${summary.resourceErrors} projectMisses=${summary.projectMisses} waitSelectorMisses=${summary.waitSelectorMisses} postClickWaitSelectorMisses=${summary.postClickWaitSelectorMisses} routeDeviations=${summary.routeDeviations}`);
+    console.log(`[ui-quick-check] ok=${summary.ok} captures=${summary.captures} issues=${summary.visualIssues} popovers=${summary.popovers} popoverIssues=${summary.popoverIssues} scrollJails=${summary.scrollJails} desplazamientoH=${summary.desplazamientoH} derrames=${summary.derrames} solapes=${summary.solapes} desbordes=${summary.desbordes} rotulosPartidos=${summary.rotulosPartidos} textosFuera=${summary.textosFuera} cabecerasQueTapan=${summary.cabecerasQueTapan} columnasOcultas=${summary.columnasOcultas} columnasRecortadas=${summary.columnasRecortadas} geometryGroups=${summary.geometryGroups} geometryIssues=${summary.geometryIssues} geometryCoverageMisses=${summary.geometryCoverageMisses} overflow=${summary.globalOverflow} pageErrors=${summary.pageErrors} apiErrors=${summary.apiErrors} resourceErrors=${summary.resourceErrors} projectMisses=${summary.projectMisses} waitSelectorMisses=${summary.waitSelectorMisses} postClickWaitSelectorMisses=${summary.postClickWaitSelectorMisses} routeDeviations=${summary.routeDeviations}`);
     if (!summary.ok && opts.failOnIssues) process.exitCode = 1;
   } finally {
     await cleanup();

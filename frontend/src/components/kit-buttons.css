@@ -70,7 +70,7 @@
 }
 
 .pulso-button.pulso-button--icon:active:not(:disabled) {
-  transform: scale(0.96);
+  transform: scale(var(--mov-press, 0.97));
 }
 
 /* ---------- K3 · botón de texto ----------

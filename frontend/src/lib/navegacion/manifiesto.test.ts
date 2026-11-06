@@ -5,6 +5,7 @@ import {
   MANIFIESTO_NAVEGACION,
   hijosDe,
   nodoPorClave,
+  nodoPorClaveOModoPorDefecto,
   nodosDe,
   recorridoCompleto,
 } from "./manifiesto";
@@ -72,7 +73,7 @@ describe("manifiesto de navegación", () => {
 
   it("aterriza los nodos de módulo en una sección real de ese módulo", () => {
     // El landing de un módulo puede coincidir con su primera sección
-    // (`/bitacora` es a la vez el módulo y su sección `bitacora`). Eso es
+    // (`/planner` es a la vez el módulo y su sección `estudio`). Eso es
     // correcto: lo que no puede pasar es que aterrice en una sección ajena.
     for (const nodo of MANIFIESTO_NAVEGACION) {
       if (nodo.nivel !== "modulo") continue;
@@ -229,12 +230,27 @@ describe("manifiesto de navegación", () => {
     ).toEqual(["barrido", "insistencia", "equipo", "discrepancias", "respuestas", "supervision", "avisos"]);
   });
 
+  it("Hojas de ruta por cuotas no tiene Manzanas y entrega en «seleccion», sin pestañas (ADR 0125 §2)", () => {
+    expect(hijosDe("hojas-ruta/cuotas").map((n) => n.direccion.seccion)).toEqual(["territorio", "poblacion", "muestra", "seleccion"]);
+    expect(nodoPorClave("hojas-ruta/cuotas/seleccion")?.label).toBe("Entrega");
+    expect(hijosDe("hojas-ruta/cuotas/seleccion")).toEqual([]);
+    expect(nodoPorClave("hojas-ruta/cuotas/manzanas")).toBeNull();
+  });
+
+  it("una clave de Hojas de ruta sin modo sigue llegando a la de UMP", () => {
+    expect(nodoPorClaveOModoPorDefecto("hojas-ruta/seleccion")?.clave).toBe("hojas-ruta/ump/seleccion");
+    expect(nodoPorClaveOModoPorDefecto("hojas-ruta/seleccion/titulares")?.clave).toBe("hojas-ruta/ump/seleccion/titulares");
+    expect(nodoPorClaveOModoPorDefecto("hojas-ruta/cuotas/muestra")?.clave).toBe("hojas-ruta/cuotas/muestra");
+    expect(nodoPorClaveOModoPorDefecto("hojas-ruta/inventada")).toBeNull();
+  });
+
   it("expone las pestañas de Selección de Hojas de ruta", () => {
-    const seleccion = nodoPorClave("hojas-ruta/seleccion");
+    const seleccion = nodoPorClave("hojas-ruta/ump/seleccion");
     expect(hijosDe(seleccion!.clave).map((n) => n.direccion.pestana)).toEqual([
       "cuotas",
       "titulares",
       "reemplazos",
+      "revision",
     ]);
   });
 

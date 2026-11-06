@@ -14,6 +14,9 @@
 
 import { AlertTriangle, MessageSquare, PhoneCall, ShieldAlert, Users } from "lucide-react";
 
+import { EstadoVacio } from "../../../components/EstadoVacio";
+import { formatoConteo } from "../../../lib/formatoNumero";
+
 import type {
   MonitoreoCalidadCampo,
   MonitoreoCalidadCampoAlerta,
@@ -138,7 +141,7 @@ function Grupo({
       <div className="mon-calidad-aviso-cuerpo">
         <p className="mon-calidad-aviso-rotulo">
           <span>{rotuloDeTipo(tipo)}</span>
-          {items.length > 1 ? <b>{items.length} casos</b> : null}
+          {items.length > 1 ? <b>{formatoConteo(items.length)} casos</b> : null}
           {bloqueante ? <em>no se corrige después</em> : null}
         </p>
         {visibles.map((alerta, index) => (
@@ -206,7 +209,7 @@ export default function CalidadDeCampo({
             className="mon-calidad-conteo"
             data-alta={bloqueantes > 0 ? "1" : undefined}
           >
-            {alertas.length} {alertas.length === 1 ? "aviso" : "avisos"}
+            {formatoConteo(alertas.length)} {alertas.length === 1 ? "aviso" : "avisos"}
           </span>
         ) : null}
       </header>
@@ -214,9 +217,8 @@ export default function CalidadDeCampo({
       {vacio ? (
         // C3 del Contrato de Superficie: la superficie contiene su propio vacío
         // y dice cuál de los vacíos es.
-        <div className="mon-calidad-vacio" role="note">
-          <strong>{vacio.titulo}</strong>
-          <span>{vacio.detalle}</span>
+        <div role="note">
+          <EstadoVacio icono={<Users size={15} />} titulo={vacio.titulo} descripcion={vacio.detalle} />
         </div>
       ) : (
         <ul className="mon-calidad-lista" aria-live="polite">

@@ -45,6 +45,8 @@ import {
   apiXlsformFormPublishRevision,
   apiXlsformFormSave,
   apiXlsformFormsList,
+  apiXlsformEditorImportInstrumentoEstudio,
+  type InstrumentoDelEstudio,
   downloadUrl,
   normalizeXlsformFormSource,
   type ChoiceCodeMap,
@@ -163,7 +165,7 @@ import { instrumentActorLabel } from "./shell/formWorkflowView";
 import { exportWarningDetail, pdfDialogStorageKey } from "./shell/pdfExportPreference";
 import { EditorPestanas } from "./shell/EditorPestanas";
 import { usePestanaEditor } from "./shell/pestanaEditor";
-import { PANEL_CATALOGOS, PANEL_LOGICA_SURVEYMONKEY } from "./shell/panelesEditor";
+import { PANEL_CATALOGOS, PANEL_IMPORTAR_SURVEYMONKEY, PANEL_LOGICA_SURVEYMONKEY } from "./shell/panelesEditor";
 import { VistaCuestionario } from "./shell/VistaCuestionario";
 import { deriveEditorHeaderStatus } from "./shell/editorHeaderStatus";
 import { contextoResumen } from "./resumen/contextoResumen";
@@ -177,6 +179,8 @@ import { useActivePublicationRefresh } from "./shell/useActivePublicationRefresh
 import { contarEscalasRepetidas, useListasOpcionesPanel } from "./listas";
 import { buildSuiteMetrics } from "./shell/editorMetrics";
 import { RestoreOfferBanner } from "./shell/RestoreOfferBanner";
+import { OfertaInstrumentoDelEstudio } from "./shell/OfertaInstrumentoDelEstudio";
+import { ofrecerInstrumentoDelEstudio } from "./shell/instrumentoDelEstudio";
 import { LogicaExternaDialogo, LogicaExternaDisparador } from "./shell/LogicaExterna";
 import { useLogicaExterna } from "./shell/useLogicaExterna";
 import { CollapsibleSection } from "./shell/CollapsibleSection";
@@ -255,6 +259,9 @@ export default function XlsformEditorPage() {
   // caliente, las tarjetas nacían sin su bloque de publicación y crecían al
   // llegar. Esperar una sola vez cuesta unos ms y entrega una sola superficie.
   const [libraryReady, setLibraryReady] = useState(false);
+  // Hallazgo 12: el instrumento vinculado al estudio, que la biblioteca puede no traer todavía.
+  const [instrumentoDelEstudio, setInstrumentoDelEstudio] = useState<InstrumentoDelEstudio | null>(null);
+  const [abriendoInstrumento, setAbriendoInstrumento] = useState(false);
   // El índice del proyecto no se pudo leer. Distinto de "no hay formularios":
   // afirmar el vacío sin saberlo es la misma mentira que producía el hero de
   // creación delante de un proyecto que sí tenía formularios.
@@ -328,12 +335,12 @@ export default function XlsformEditorPage() {
 	  const [smLogicRules, setSmLogicRules] = useState<ConfirmedRule[]>([]);
 	  const [smVisualLogicRules, setSmVisualLogicRules] = useState<SurveyMonkeyVisualLogicRule[]>([]);
 	  const [smLogicChoiceOverrides, setSmLogicChoiceOverrides] = useState<Record<string, string[]>>({});
-  /** Modal de importación SurveyMonkey vía API. El .sav queda solo como ruta
-   *  legacy opcional; el flujo principal ya no pide archivo. */
-  const [smImportDialog, setSmImportDialog] = useState<
-    | { fileId?: string | null; fileName: string }
-    | null
-  >(null);
+  /** Importación SurveyMonkey vía API → panel direccionable. El .sav quedó
+   *  como ruta legacy; el flujo abre siempre sin archivo. */
+  const smImportPanel = usePanelDireccionable(PANEL_IMPORTAR_SURVEYMONKEY);
+  // El cierre tras importar llega después de varios `await`: lee la dirección vigente.
+  const smImportPanelRef = useRef(smImportPanel);
+  smImportPanelRef.current = smImportPanel;
   /** Diálogo del importador de "Matriz PULSO IAC-CINDA". Se abre cuando el
    *  backend detecta que el .xlsx subido es una matriz por audiencia en vez de
    *  un XLSForm normal. */
@@ -433,6 +440,7 @@ export default function XlsformEditorPage() {
       });
     }
     setForms(listForms(projectScope));
+    setInstrumentoDelEstudio(backend.instrumento_del_estudio);
     setPublicationUi((prev) => ({
       ...prev,
       byFormId: Object.fromEntries(
@@ -755,6 +763,7 @@ export default function XlsformEditorPage() {
     let localActive = migrated.activeFormId;
     let formCount = migrated.forms.length;
     let backendFormIds = new Set<string>();
+    let instrumentoDelBackend: InstrumentoDelEstudio | null = null;
 
     let cancelled = false;
     void (async () => {
@@ -767,6 +776,7 @@ export default function XlsformEditorPage() {
         if (cancelled) return;
         setLibraryError(false);
         backendFormIds = new Set(backend.forms.map((form) => form.id));
+        instrumentoDelBackend = backend.instrumento_del_estudio;
         if (backend.active_form_id && !localActive) {
           localActive = backend.active_form_id;
         }
@@ -807,6 +817,9 @@ export default function XlsformEditorPage() {
           localActive
           && !hubElegidoRef.current
           && (formCount <= 1 || new URLSearchParams(window.location.search).has("pestana"))
+          // Con el instrumento del estudio fuera de la biblioteca se aterriza en ella, que lo ofrece:
+          // entrar directo al borrador escondía el instrumento (hallazgo 12).
+          && !ofrecerInstrumentoDelEstudio(instrumentoDelBackend, listForms(projectScope))
         ) {
           // Una dirección que pide una pestaña (`?pestana=impreso`) pide el
           // formulario, no la biblioteca: sin `form_id`, se abre el activo.
@@ -1422,11 +1435,29 @@ export default function XlsformEditorPage() {
     }
   }
 
+  async function onAbrirInstrumentoDelEstudio() {
+    if (!instrumentoDelEstudio || blockUntilRestoreDecision("abrir el instrumento del estudio") || blockIfAtFormLimit()) return;
+    resetMessages();
+    setAbriendoInstrumento(true);
+    try {
+      const out = await apiXlsformEditorImportInstrumentoEstudio();
+      const nombre = instrumentoDelEstudio.nombre || "el instrumento del estudio";
+      loadWorkbook(out.workbook, out.source, `Abrimos ${nombre}, el instrumento del estudio.`);
+      toasts.push({ kind: "success", title: "Instrumento del estudio abierto", detail: `${nombre} queda en la biblioteca como un formulario más.` });
+    } catch (e: unknown) {
+      const msg = (e as Error).message;
+      setError(msg);
+      toasts.push({ kind: "danger", title: "No se pudo abrir el instrumento", detail: msg });
+    } finally {
+      setAbriendoInstrumento(false);
+    }
+  }
+
   function onImportSurveyMonkey() {
     if (blockUntilRestoreDecision("traducir SurveyMonkey")) return;
     if (blockIfAtFormLimit()) return;
     resetMessages();
-    setSmImportDialog({ fileId: null, fileName: "SurveyMonkey API" });
+    smImportPanel.abrir();
   }
 
   // Confirmación del diálogo de Matriz PULSO: por cada audiencia elegida pide al
@@ -1458,7 +1489,7 @@ export default function XlsformEditorPage() {
           const res = await apiXlsformEditorImportMatrizPulso(dialog.fileId, audience);
           const formId = openWorkbookAsForm(
             res.workbook,
-            { kind: "matriz_pulso", original_name: `${dialog.fileName} · ${audience}` },
+            { kind: "matriz_pulso", original_name: `${dialog.fileName} (${audience})` },
             `Generamos el formulario de ${audience} desde la matriz PULSO.`,
             // Guarda cada formulario sin activarlo; el switchToForm de abajo
             // activa solo el primero, evitando la carrera de activaciones.
@@ -1492,7 +1523,7 @@ export default function XlsformEditorPage() {
     if (createdIds.length > 0) {
       toasts.push({
         kind: "success",
-        title: `Matriz PULSO · ${createdIds.length} formulario${createdIds.length === 1 ? "" : "s"}`,
+        title: `Matriz PULSO: ${createdIds.length} formulario${createdIds.length === 1 ? "" : "s"}`,
         detail: `Generamos ${plan.toCreate.slice(0, createdIds.length).join(", ")} desde ${dialog.fileName}.`,
       });
     }
@@ -1500,7 +1531,7 @@ export default function XlsformEditorPage() {
       toasts.push({
         kind: "info",
         title: "Escala inferida — revísala",
-        detail: `${scaleNotes.join(" · ")}. Revisa las preguntas antes de publicar.`,
+        detail: `${scaleNotes.join("; ")}. Revisa las preguntas antes de publicar.`,
         durationMs: 8000,
       });
     }
@@ -1531,7 +1562,7 @@ export default function XlsformEditorPage() {
     surveyMonkeyChoiceOverrides?: Record<string, string[]>;
     surveyMonkeyChoiceCodeMaps?: ChoiceCodeMap[];
   }) {
-    const fileName = smImportDialog?.fileName ?? payload.source.original_name ?? "archivo";
+    const fileName = payload.source.original_name ?? "SurveyMonkey API";
     const choiceCodeMaps = payload.surveyMonkeyChoiceCodeMaps ?? payload.workbook.surveyMonkeyLogic?.choice_code_maps ?? [];
     const workbookDraft = workbookWithSurveyMonkeyLogic(
       payload.workbook,
@@ -1552,7 +1583,7 @@ export default function XlsformEditorPage() {
       payload.surveyMonkeyChoiceOverrides ?? {},
       choiceCodeMaps,
     );
-    setSmImportDialog(null);
+    smImportPanelRef.current.cerrar();
     setHallazgos(payload.hallazgos);
     loadWorkbook(
       workbookWithLogic,
@@ -2494,8 +2525,9 @@ export default function XlsformEditorPage() {
       headerMode="sr-only"
       auditReady={workbook ? "xlsform-editor" : undefined /* el hub: lo decide FormsLibrary */}
       resetScrollKey={`${workbook ? "workbook" : "empty"}:${pestana}`}
-      toolbar={workbook ? (
+      chrome={workbook ? (
         <EditorCommandBar
+          pestana={pestana}
           switcher={{
             forms,
             activeFormId,
@@ -2605,6 +2637,13 @@ export default function XlsformEditorPage() {
                 snapshot={restoreOffer}
                 onAccept={acceptRestoreOffer}
                 onDismiss={dismissRestoreOffer}
+              />
+            ) : instrumentoDelEstudio && ofrecerInstrumentoDelEstudio(instrumentoDelEstudio, forms) ? (
+              <OfertaInstrumentoDelEstudio
+                instrumento={instrumentoDelEstudio}
+                abriendo={abriendoInstrumento}
+                puedeCrear={canCreateForm}
+                onAbrir={() => { void onAbrirInstrumentoDelEstudio(); }}
               />
             ) : null
           }
@@ -2736,8 +2775,6 @@ export default function XlsformEditorPage() {
                         onSelect={selectBuilderFocus}
                         onMoveUp={() => moveSelection("up")}
                         onMoveDown={() => moveSelection("down")}
-                        canMoveUp={!!movement.prevRow}
-                        canMoveDown={!!movement.nextRow}
                         onApplyMove={applyOutlineMove}
                         avisosPorFila={avisosPorFila}
                         onInsertar={insertarDesdeEstructura}
@@ -2790,14 +2827,11 @@ export default function XlsformEditorPage() {
                       obligatoria: (si) => selectedNode && toggleRequired(selectedNode.rowIndex, si),
                       asignarLista: (lista) => selectedNode && assignCatalogToQuestion(selectedNode.rowIndex, lista),
                       ...accionesNuevasFicha({ structure, workbook, selection, updateWorkbook, seleccionar: selectBuilderFocus, irALista: (l) => pestanaEditor.irConFoco("opciones", l) }),
-                      mover: (dir) => moveSelection(dir),
                       eliminar: deleteCurrentSelection,
                       seleccionarFila: (rowIndex) => selectBuilderFocus({ kind: "survey", rowIndex }),
                       irPestana: pestanaEditor.irConFoco,
                       ajuste: updateSettingsField,
                       editarFormulario: updateWorkbook,
-                      puedeSubir: movement.prevRow != null,
-                      puedeBajar: movement.nextRow != null,
                     }}
                   />
 
@@ -2989,14 +3023,14 @@ export default function XlsformEditorPage() {
       <ToastDeck items={toasts.items} onDismiss={toasts.dismiss} />
 
       {/* Diálogo de importación SurveyMonkey vía API. */}
-      {smImportDialog ? (
+      {smImportPanel.abierto ? (
         <ImportSurveyMonkeyDialog
-          fileId={smImportDialog.fileId}
-          fileName={smImportDialog.fileName}
-          onCancel={() => setSmImportDialog(null)}
+          fileId={null}
+          fileName="SurveyMonkey API"
+          onCancel={smImportPanel.cerrar}
           onComplete={onSurveyMonkeyImportComplete}
           onCampaignDeclared={({ formName }) => {
-            setSmImportDialog(null);
+            smImportPanel.cerrar();
             void refreshBackendFormIndex().catch(() => undefined);
             toasts.push({ kind: "success", title: "Campaña agregada", detail: `Quedó declarada en «${formName}».`, durationMs: 6000 });
           }}

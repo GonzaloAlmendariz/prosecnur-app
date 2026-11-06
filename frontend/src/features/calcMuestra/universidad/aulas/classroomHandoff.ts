@@ -272,7 +272,7 @@ export function classroomComparisonConfigDiff(
   const selector = comparison?.selector;
   if (!selector) return [];
   if (selector.schema !== CLASSROOM_COMPARISON_SELECTOR_SCHEMA) {
-    return [`schema (corrida ${String(selector.schema ?? "—")} · vigente ${CLASSROOM_COMPARISON_SELECTOR_SCHEMA})`];
+    return [`schema (corrida ${String(selector.schema ?? "—")}, vigente ${CLASSROOM_COMPARISON_SELECTOR_SCHEMA})`];
   }
   const esperado = sinCamposFueraDeVigencia(classroomComparisonSelectorSnapshot(config));
   const corrida = sinCamposFueraDeVigencia(selector as unknown as Record<string, unknown>);
@@ -288,7 +288,7 @@ export function classroomComparisonConfigDiff(
     const enCorrida = JSON.stringify(stableComparisonValue(corrida[clave]));
     const vigente = JSON.stringify(stableComparisonValue(esperado[clave]));
     if (enCorrida !== vigente) {
-      diferencias.push(`${clave} (corrida ${compacto(corrida[clave])} · vigente ${compacto(esperado[clave])})`);
+      diferencias.push(`${clave} (corrida ${compacto(corrida[clave])}, vigente ${compacto(esperado[clave])})`);
     }
   }
   return diferencias;

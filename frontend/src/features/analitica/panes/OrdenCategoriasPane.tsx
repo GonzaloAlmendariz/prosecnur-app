@@ -16,6 +16,7 @@ import { VariableSelect } from "../VariableSelect";
 import { OrdenCategoriasEditor } from "./OrdenCategoriasEditor";
 import { derivarCatalogoListas } from "./ordenCategoriasModel";
 
+import { EstadoVacio } from "../../../components/EstadoVacio";
 // Pane "Orden de categorías" (Analítica).
 //
 // Flujo: el analista elige una LISTA de opciones (list_name) del catálogo de
@@ -186,9 +187,7 @@ export function OrdenCategoriasPane() {
 
               <div className="analitica-orden-catalogo" role="listbox" aria-label="Listas de opciones">
                 {catalogoFiltrado.length === 0 ? (
-                  <div className="analitica-orden-catalogo-empty">
-                    Ninguna lista coincide con “{query}”.
-                  </div>
+                  <EstadoVacio icono={<Search size={16} />} titulo={`Ninguna lista coincide con «${query}»`} />
                 ) : (
                   catalogoFiltrado.map((e) => {
                     const selected = e.listName === listName;
@@ -212,11 +211,11 @@ export function OrdenCategoriasPane() {
                         )}
                         <span className="analitica-orden-lista-meta">
                           {e.nVariables} {e.nVariables === 1 ? "variable" : "variables"}
-                          {" · "}
+                          {", "}
                           {e.nCategorias} {e.nCategorias === 1 ? "categoría" : "categorías"}
                           {e.ordinalEfectivo && (
                             <>
-                              {" · "}
+                              {", "}
                               <span className="analitica-orden-lista-ordinal">ordinal</span>
                             </>
                           )}

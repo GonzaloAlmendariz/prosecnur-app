@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { CalendarDays } from "lucide-react";
 import { fmt } from "../formato";
-import { fechaCorta } from "../avance/graficosDeAvance";
+import { DIAS_MINIMOS_DE_LA_CURVA, fechaCorta, sumarDias } from "../avance/graficosDeAvance";
 import { posicion, type ModeloDeVentana } from "./ventanaModelo";
 import { CabeceraDeTarjeta } from "../navegacion/rotuloDePestana";
 import "../avance/avance.css";
@@ -20,7 +20,11 @@ function Banda({ desde, hasta, inicio, total, clase }: { desde: string; hasta: s
  * intensidad diaria; debajo, el plan de campo (`PlanDeCampo`).
  */
 export function VentanaDeCampo({ modelo, editorDelPlan }: { modelo: ModeloDeVentana; editorDelPlan?: ReactNode }) {
-  const { desde, hasta, diasDelCampo } = modelo;
+  const { desde, hasta } = modelo;
+  // El eje mide al menos dos semanas, como la curva del Resumen: con dos días de
+  // campo cada barra cubría todo el ancho y las seis se veían iguales (K1, 30/10).
+  const diasDelCampo = Math.max(modelo.diasDelCampo, DIAS_MINIMOS_DE_LA_CURVA);
+  const finDelEje = desde ? sumarDias(desde, diasDelCampo - 1) : null;
   const maximo = Math.max(1, ...modelo.publicos.flatMap((item) => item.serie.map((dia) => dia.efectivas)));
   return (
     <div className="acr-mo-ventana" data-qa-geometry-group="acreditacion-modelo-ventana" data-qa-geometry-contract="intrinsic">
@@ -29,7 +33,7 @@ export function VentanaDeCampo({ modelo, editorDelPlan }: { modelo: ModeloDeVent
         <div className="acr-cl-cifras acr-mo-cifras" data-qa-geometry-group="acreditacion-ventana-cifras" data-qa-geometry-contract="equal">
           <div className="acr-res-kpi" data-qa-geometry-member><small>Primer día con respuestas</small><b className="acr-av-num">{desde ? fechaCorta(desde) : "—"}</b></div>
           <div className="acr-res-kpi" data-qa-geometry-member><small>Último día</small><b className="acr-av-num">{hasta ? fechaCorta(hasta) : "—"}</b></div>
-          <div className="acr-res-kpi" data-qa-geometry-member><small>Días con efectivas</small><b className="acr-av-num">{diasDelCampo ? `${fmt(modelo.diasConEfectivas)} de ${fmt(diasDelCampo)}` : "—"}</b></div>
+          <div className="acr-res-kpi" data-qa-geometry-member><small>Días con efectivas</small><b className="acr-av-num">{modelo.diasDelCampo ? `${fmt(modelo.diasConEfectivas)} de ${fmt(modelo.diasDelCampo)}` : "—"}</b></div>
           <div className="acr-res-kpi" data-qa-geometry-member><small>Fases declaradas</small><b className="acr-av-num">{fmt(modelo.fasesDeclaradas)}</b></div>
         </div>
         {desde && hasta ? (
@@ -64,7 +68,7 @@ export function VentanaDeCampo({ modelo, editorDelPlan }: { modelo: ModeloDeVent
               <span />
               <span className="acr-mo-pista">
                 <span className="acr-mo-eje-texto" style={{ left: 0 }}>{fechaCorta(desde)}</span>
-                <span className="acr-mo-eje-texto is-fin" style={{ right: 0 }}>{fechaCorta(hasta)}</span>
+                <span className="acr-mo-eje-texto is-fin" style={{ right: 0 }}>{fechaCorta(finDelEje ?? hasta)}</span>
               </span>
               <span />
             </div>

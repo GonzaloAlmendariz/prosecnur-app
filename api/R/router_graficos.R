@@ -142,6 +142,7 @@
     s
   })
   plan$slides <- slides
+  plan$preguntas_clave <- .preguntas_clave_normalizar(plan$preguntas_clave)   # H14 (graficos_preguntas_clave.R)
   .graficos_migrar_plan(plan, avisar = avisar)   # la población antigua y las claves viejas de la barra extra salen del plan en todo camino que normaliza
 }
 
@@ -811,9 +812,12 @@
     .analitica_ponderacion_apply_sources(
       sid, src$data_sources, src$inst_sources, cfg %||% list()
     ),
-    error = function(e) NULL
+    error = function(e) e
   )
-  if (!is.list(weighted)) return(src)
+  # Una ponderacion mal declarada (peso base invalido, expansion sin total) es
+  # un error de configuracion E_*: sube, no deja el grafico sin ponderar mudo.
+  if (inherits(weighted, "api_error")) stop(weighted)
+  if (!is.list(weighted) || inherits(weighted, "error")) return(src)
 
   src$data_sources <- weighted$data_sources %||% src$data_sources
   src$inst_sources <- weighted$inst_sources %||% src$inst_sources
@@ -880,6 +884,7 @@
     # la fuente analítica/adaptada haya stripeado, para que la apertura por
     # servicio (filtros = list(current_code = ...)) no reviente el render.
     src <- tryCatch(.graficos_reanchor_repeat_service_cols(sid, src), error = function(e) src)
+    src <- .graficos_sig_adjuntar_config(sid, src)   # ADR 0127: misma prueba que la tabla (falla hacia la abstención)
     .txt_dic_adjuntar_fuentes(sid, src)   # TXT-6/7: el diccionario de cada pregunta viaja con el instrumento de su base (también al worker)
   }
 
@@ -1156,7 +1161,7 @@
   for (i in seq_along(slides)) {
     s <- as.list(slides[[i]])
     tipo <- as.character(s$tipo %||% "")
-    tag <- .aviso_lamina(i, .aviso_titulo_payload(s))   # «Lámina 3 · “Título”», sin ids ni tipos internos
+    tag <- .aviso_lamina(i, .aviso_titulo_payload(s))   # «Lámina 3, “Título”», sin ids ni tipos internos
     if (!nzchar(tipo)) { errs <- c(errs, sprintf("%s: no tiene tipo de lámina; elige uno en el editor", tag)); next }
     if (!(tipo %in% names(.SLIDE_REGISTRY))) {
       errs <- c(errs, sprintf("%s: es de %s; elige otro tipo en el editor", tag, .aviso_tipo_lamina(tipo))); next
@@ -1188,7 +1193,7 @@
       }
     }
   }
-  errs <- c(errs, .plan_errores_indice(slides), .plan_errores_tabla_tecnica(slides), .plan_errores_escalas(slides, inst_sources))   # graficos_plan_requisitos.R: lo que impide exportar
+  errs <- c(errs, .plan_errores_indice(slides), .plan_errores_tabla_tecnica(slides), .plan_errores_escalas(slides, inst_sources), .plan_errores_listas_texto(slides))   # graficos_plan_requisitos.R: lo que impide exportar
   list(ok = length(errs) == 0, errors = errs, warnings = warns, n_slides = length(slides))
 }
 
@@ -1440,7 +1445,7 @@
     "profile_id", "profileId", "template_id", "templateId",
     "auto_otros_slides", "autoOtrosSlides",
     "documento_word", "documentoWord", "estilo_cliente", "estiloCliente",
-    "equivalencias_revision", "equivalenciasRevision",
+    "equivalencias_revision", "equivalenciasRevision", "significancia",
     "_unknown"
   )
   if (!.graficos_is_obj(x)) return(list())
@@ -1519,6 +1524,7 @@
 
   plan <- .graficos_pick_alias(src, "plan")
   cfg$plan <- if (.graficos_is_obj(plan) && is.list(plan$slides)) .graficos_migrar_plan(plan, avisar = FALSE) else defaults$plan
+  cfg$plan$preguntas_clave <- .preguntas_clave_normalizar(cfg$plan$preguntas_clave)   # H14: siempre lista de textos, o fuera
 
   presets <- .graficos_pick_alias(src, "presets")
   cfg$presets <- if (.graficos_is_obj(presets)) {
@@ -1586,6 +1592,10 @@
   rev <- .graficos_pick_alias(src, "equivalencias_revision", "equivalenciasRevision")
   if (is.null(rev) || identical(rev, "")) rev <- (if (.graficos_is_obj(src$`_unknown`)) src$`_unknown`$equivalencias_revision) %||% rev
   cfg$equivalencias_revision <- if (is.character(rev) && length(rev) == 1L && !is.na(rev)) rev else ""
+
+  # Regla de diferencias del estudio (ADR 0128): sólo si viene; la normaliza el motor de significancia.
+  significancia <- .graficos_pick_alias(src, "significancia")
+  if (.graficos_is_obj(significancia)) cfg$significancia <- .sig_regla_normalizar(significancia)
 
   # Opciones del documento Word del recetario (F6.0b.4): se validan al exportar (.graficos_opciones_documento).
   documento_word <- .graficos_pick_alias(src, "documento_word", "documentoWord")
@@ -3146,7 +3156,7 @@ mount_graficos <- function(pr) {
           template_pptx = template_pptx_arg,
           template_id = delivery$template_id,
           auto_otros_slides = auto_otros_slides_arg
-        ) |> c(.graficos_estilo_cliente_arg(sid, cfg, "ppt")),   # D5: logos y letra del cliente, sólo si hay (como /word)
+        ) |> c(.graficos_estilo_cliente_arg(sid, cfg, "ppt"), .sig_arg_job(sid, cfg, plan)),   # D5 y ADR 0128 (regla de diferencias)
         result_filename = .graficos_export_filename(sid, "reporte_ppt", "pptx"),
         on_complete = function(j) {
           meta <- .register_output_file(j$sid, "reporte_ppt", j$result_path)
@@ -3352,6 +3362,7 @@ mount_graficos <- function(pr) {
       if (length(estilo_cliente)) args_word$estilo_cliente <- estilo_cliente
       # Decisión 21: la tabla «Otros» del recetario Word sigue la misma opción del proyecto que el PPT; sólo viaja encendida.
       if (isTRUE(.graficos_delivery_options(cfg)$auto_otros_slides)) args_word$auto_otros_slides <- TRUE
+      args_word <- c(args_word, .sig_arg_job(sid, cfg, plan))   # ADR 0128: regla de diferencias del estudio
 
       job_id <- job_submit(
         sid = sid,

@@ -39,12 +39,12 @@
   justify-content: space-between;
   border-top: 1px solid var(--pulso-border);
   color: var(--pulso-text-soft);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .mon-mapa-titulo {
   color: var(--pulso-text);
-  font-size: 13px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-bold);
 }
 
@@ -64,7 +64,7 @@
   background: transparent;
   color: var(--pulso-text-soft);
   font: inherit;
-  font-size: 13px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-semibold);
   cursor: pointer;
 }
@@ -80,7 +80,7 @@
   align-items: center;
   gap: var(--pulso-space-2);
   color: var(--pulso-text-soft);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .mon-mapa-ir select {
@@ -91,7 +91,7 @@
   background: var(--pulso-surface);
   color: var(--pulso-text);
   font: inherit;
-  font-size: 13px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .mon-mapa-zoom {
@@ -113,7 +113,7 @@
   background: var(--pulso-surface);
   color: var(--pulso-text);
   font: inherit;
-  font-size: 13px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-semibold);
   cursor: pointer;
 }
@@ -145,14 +145,6 @@
   height: 100%;
 }
 
-.mon-mapa-vacio {
-  margin: auto;
-  padding: var(--pulso-space-4);
-  color: var(--pulso-text-soft);
-  font-size: 13px;
-  text-align: center;
-}
-
 /* Contorno de distritos (PlanMet): relleno de superficie alterna y trazo
  * marcado, para que el territorio se lea antes que los puntos. */
 .mon-mapa-distritos path {
@@ -169,7 +161,7 @@
   stroke: var(--pulso-surface);
   stroke-width: 5px;
   stroke-linejoin: round;
-  font-size: 15px;
+  font-size: var(--pulso-type-title-size);
   font-weight: var(--pulso-weight-bold);
   letter-spacing: 0.01em;
   pointer-events: none;
@@ -234,7 +226,7 @@
   stroke: var(--pulso-surface);
   stroke-width: 4px;
   stroke-linejoin: round;
-  font-size: 12px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-bold);
   pointer-events: none;
 }
@@ -271,7 +263,7 @@
 
 .mon-mapa-flecha text {
   fill: var(--pulso-text);
-  font-size: 12px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-bold);
 }
 
@@ -292,7 +284,7 @@
   background: transparent;
   color: var(--pulso-text-soft);
   font: inherit;
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   cursor: pointer;
 }
 
@@ -380,13 +372,13 @@
 
 .mon-mapa-conteos dt {
   color: var(--pulso-text-soft);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .mon-mapa-conteos dd {
   margin: 0;
   color: var(--pulso-text);
-  font-size: 22px;
+  font-size: var(--pulso-type-kpi-size);
   font-weight: var(--pulso-weight-bold);
   font-variant-numeric: tabular-nums;
 }
@@ -433,7 +425,7 @@
   grid-template-columns: minmax(0, 1fr) minmax(56px, 0.7fr) auto;
   align-items: center;
   gap: var(--pulso-space-2);
-  font-size: 13px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .mon-mapa-distrito-nombre {
@@ -471,14 +463,14 @@
 
 .mon-mapa-distrito-cifra {
   color: var(--pulso-text-soft);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   font-variant-numeric: tabular-nums;
 }
 
 .mon-mapa-subtitulo {
   margin: 0 0 var(--pulso-space-2);
   color: var(--pulso-text-faint);
-  font-size: 10.5px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-bold);
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -487,7 +479,7 @@
 .mon-mapa-base {
   margin: 0;
   color: var(--pulso-text-soft);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .mon-mapa-lista {
@@ -510,7 +502,7 @@
   background: var(--pulso-surface);
   color: var(--pulso-text);
   font: inherit;
-  font-size: 13px;
+  font-size: var(--pulso-type-body-size);
   text-align: left;
   cursor: pointer;
 }
@@ -652,12 +644,12 @@
 
 .mon-mapa-tooltip text {
   fill: var(--pulso-text-soft);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .mon-mapa-tooltip text.is-titulo {
   fill: var(--pulso-text);
-  font-size: 13px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-bold);
 }
 

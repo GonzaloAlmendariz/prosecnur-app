@@ -22,5 +22,5 @@
   cuerpo <- round(40 * 0.85) * 1.25 / 72 + 0.38 + 0.7
   alto <- cuerpo + if (isTRUE(con_pregunta)) 0.8 else 0
   arranque <- if (isTRUE(con_pregunta)) 0.3 else 1.1
-  list(x = x, w = W - 2 * x, dy = max(0, (yf - yt - alto) / 2 - arranque))
+  list(x = x, w = W - 2 * x - .std_reserva_derecha(), dy = max(0, (yf - yt - alto) / 2 - arranque))   # un panel lateral (ADR 0129) acorta la barra
 }

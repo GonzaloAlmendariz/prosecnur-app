@@ -15,25 +15,50 @@ import type {
   TipoDeCampana,
 } from "../../../api/materialCampanas";
 import { NOMBRE_DE_PLATAFORMA } from "../correos/dialectos";
+import { enumerar } from "../../../lib/enumerar";
 
 /** La única campaña de aulas mientras `collection_state` sea singular (ADR 0111 §6). */
 export const ID_CAMPANA_AULAS = "aulas.principal";
 export const NOMBRE_CAMPANA_AULAS = "Campo en aulas";
 
-/** El motivo de `territorial` hasta que exista E2 (`ump_territorial_v1`). */
+/** El motivo de `territorial` en un backend sin la campaña habilitada (respaldo derivado). */
 export const MOTIVO_TERRITORIAL = "Requiere leer las UMP de Hojas de ruta";
+
+/** La única campaña territorial del proyecto (ADR 0118 §1). */
+export const ID_CAMPANA_TERRITORIAL = "territorial.principal";
+export const NOMBRE_CAMPANA_TERRITORIAL = "Campo territorial";
+
+/** La única campaña telefónica del proyecto (P10). */
+export const ID_CAMPANA_TELEFONICA = "telefonica.principal";
+export const NOMBRE_CAMPANA_TELEFONICA = "Barrido telefónico";
+
+/** ADR 0125 A4: en acreditación, «Solo indicando que es de acreditación» (Gonzalo). */
+export const NOMBRE_DE_ACREDITACION: Readonly<Partial<Record<TipoDeCampana, string>>> = {
+  telefonica: "Acreditación telefónica",
+  aulas: "Acreditación en aulas",
+};
+
+/** Cómo se dice cada fase de Hojas de ruta a quien elige la foto. */
+export const ROTULO_DE_FASE: Readonly<Record<"pilot" | "field", string>> = {
+  pilot: "Piloto",
+  field: "Campo real",
+};
 
 export const ROTULO_DEL_TIPO: Readonly<Record<TipoDeCampana, string>> = {
   aulas: "Campo en aulas",
   territorial: "Territorial",
   correo: "Correo",
+  telefonica: "Telefónica",
+  supervision: "Supervisión",
 };
 
 /** Qué es cada tipo, en una línea, para «Nueva campaña». */
 export const QUE_ES_EL_TIPO: Readonly<Record<TipoDeCampana, string>> = {
   aulas: "Fichas con QR por curso-horario, accesos, paquetes y entrega a Monitoreo.",
-  territorial: "Material por UMP para el recorrido en campo.",
+  territorial: "Fichas y hojas de zona por UMP desde la muestra de Hojas de ruta; el avance se sigue en Monitoreo.",
   correo: "Un correo para un grupo, con sus envíos, para Mailchimp o SurveyMonkey.",
+  telefonica: "La plantilla del barrido de un listado de casos; Monitoreo lee el Sheets que llena el equipo.",
+  supervision: "La base para volver a llamar a los casos de un lote que eligió Monitoreo; Monitoreo lee el veredicto.",
 };
 
 export function idDeCorreo(campaignId: string): string {
@@ -49,7 +74,7 @@ export function refDeCorreo(id: string | null | undefined): string | null {
 
 export function tipoDelId(id: string | null | undefined): TipoDeCampana | null {
   const prefijo = (id ?? "").split(".")[0];
-  return prefijo === "aulas" || prefijo === "territorial" || prefijo === "correo" ? prefijo : null;
+  return prefijo === "aulas" || prefijo === "territorial" || prefijo === "correo" || prefijo === "telefonica" || prefijo === "supervision" ? prefijo : null;
 }
 
 /** Las que se ven en la lista: todas menos las archivadas, en el orden del registro. */
@@ -165,9 +190,32 @@ export function conCorreosVivos(registro: RegistroDeCampanas, correos: readonly 
 export function ponerEnRegistro(registro: RegistroDeCampanas, campana: CampanaMaterial, registryRevision: number | null): RegistroDeCampanas {
   const existe = registro.campaigns.some((c) => c.id === campana.id);
   const campaigns = existe ? registro.campaigns.map((c) => (c.id === campana.id ? campana : c)) : [...registro.campaigns, campana];
-  const tipos = campana.tipo === "aulas"
-    ? registro.tipos.map((t) => (t.tipo === "aulas" ? { ...t, disponible: false, motivo: t.motivo ?? "El proyecto ya tiene su campaña de aulas." } : t))
-    : registro.tipos;
+  // En acreditación la telefónica no es única: hay una por público y ronda (ADR 0125 §5).
+  const porRonda = campana.tipo === "telefonica" && campana.relacion?.ronda != null;
+  const deCual = campana.tipo === "aulas" ? "de aulas" : campana.tipo === "territorial" ? "territorial" : campana.tipo === "telefonica" && !porRonda ? "telefónica" : null;
+  // Revisión con ojo de usuario (1 nov 2026): el motivo seguía diciendo el anterior tras archivar o
+  // reabrir. Es el mismo texto que publica el backend (collection_campaigns*.R), según su estado.
+  const unica = deCual
+    ? campana.archived
+      ? `El proyecto ya tiene su campaña ${deCual} (archivada): reábrela.`
+      : `El proyecto ya tiene su campaña ${deCual}.`
+    : null;
+  // Una supervisión toma su lote: deja de ofrecerse, y sin lotes libres el tipo se cierra como lo cierra el backend.
+  const sinSuLote = (t: RegistroDeCampanas["tipos"][number]) => {
+    const lotes_libres = (t.lotes_libres ?? []).filter((l) => `supervision.${l.lote_id}` !== campana.id);
+    return lotes_libres.length ? { ...t, lotes_libres } : { ...t, lotes_libres, disponible: false, motivo: "Cada lote de Monitoreo ya tiene su campaña de supervisión." };
+  };
+  const sinSuRonda = (t: RegistroDeCampanas["tipos"][number]) => {
+    const rondas_libres = (t.rondas_libres ?? []).filter((r) => r.id !== campana.id);
+    return rondas_libres.length ? { ...t, rondas_libres } : { ...t, rondas_libres, disponible: false, motivo: "Cada ronda telefónica del Modelo ya tiene su campaña." };
+  };
+  const tipos = unica
+    ? registro.tipos.map((t) => (t.tipo === campana.tipo ? { ...t, disponible: false, motivo: unica } : t))
+    : porRonda
+      ? registro.tipos.map((t) => (t.tipo === "telefonica" ? sinSuRonda(t) : t))
+      : campana.tipo === "supervision"
+      ? registro.tipos.map((t) => (t.tipo === "supervision" ? sinSuLote(t) : t))
+      : registro.tipos;
   return { ...registro, campaigns, tipos, registry_revision: registryRevision ?? registro.registry_revision };
 }
 
@@ -223,7 +271,7 @@ export type ResumenDeTarjeta = {
 };
 
 /** «20/10»: día y mes con dos cifras, sin depender del ICU del entorno. */
-function fechaCorta(iso: string): string | null {
+export function fechaCorta(iso: string): string | null {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return null;
   const dos = (n: number) => String(n).padStart(2, "0");
@@ -241,17 +289,16 @@ const ESTADO_DE_LOS_ACCESOS: Readonly<Record<string, string>> = {
 };
 
 /**
- * «Invitación exportada 02/09 · Recordatorio 1 pendiente» (ADR 0111 §8): cada
+ * «Invitación exportada 02/09 y Recordatorio 1 pendiente» (ADR 0111 §8): cada
  * envío dice si ya salió de la app. Sin detalle por envío no se inventa nada.
  */
 export function lineaDeEnvios(estado: Pick<EstadoCampanaCorreo, "envios_detalle">): string | null {
   if (!estado.envios_detalle.length) return null;
-  return estado.envios_detalle
-    .map((e) => {
-      const cuando = e.last_export_at ? fechaCorta(e.last_export_at) : null;
-      return cuando ? `${e.label} exportada ${cuando}` : `${e.label} pendiente`;
-    })
-    .join(" · ");
+  // Pasada de formato (P3): la frase se une con comas y «y», no con «·».
+  return enumerar(estado.envios_detalle.map((e) => {
+    const cuando = e.last_export_at ? fechaCorta(e.last_export_at) : null;
+    return cuando ? `${e.label} exportada ${cuando}` : `${e.label} pendiente`;
+  }));
 }
 
 export function resumenDeTarjeta(campana: CampanaMaterial): ResumenDeTarjeta {
@@ -292,7 +339,7 @@ export function resumenDeTarjeta(campana: CampanaMaterial): ResumenDeTarjeta {
     const exportados = estado.envios_detalle.filter((e) => e.last_export_at).length;
     const todos = estado.envios_detalle.length > 0 && exportados === estado.envios_detalle.length;
     // Los envíos van uno por línea con su estado; aquí, la salida y el tamaño.
-    const hechos = [`Sale por ${NOMBRE_DE_PLATAFORMA[estado.platform]} · ${estado.bloques} ${estado.bloques === 1 ? "bloque" : "bloques"}`];
+    const hechos = [`Sale por ${NOMBRE_DE_PLATAFORMA[estado.platform]}, con ${estado.bloques} ${estado.bloques === 1 ? "bloque" : "bloques"}`];
     const envios = estado.envios_detalle.map((e) => {
       const cuando = e.last_export_at ? fechaCorta(e.last_export_at) : null;
       return { label: e.label, exportado: Boolean(cuando), texto: cuando ? `exportado ${cuando}` : "pendiente" };
@@ -304,6 +351,59 @@ export function resumenDeTarjeta(campana: CampanaMaterial): ResumenDeTarjeta {
       tono: todos ? "listo" : "activo",
       avance: null,
       hechos,
+    };
+  }
+  if (campana.tipo === "territorial") {
+    if (!estado || estado.tipo !== "territorial") {
+      return { estado: "Sin muestra enviada", tono: "neutral", avance: null, hechos: ["Envía la muestra desde Hojas de ruta"], cifras: [], envios: [] };
+    }
+    const cuando = estado.enviado_at ? fechaCorta(estado.enviado_at) : null;
+    // Sin fecha de envío la foto ya no está: no hay unidades que pintar.
+    if (!cuando) {
+      return { estado: "Sin muestra enviada", tono: "aviso", avance: null, hechos: [`Vuelve a enviar la muestra de ${ROTULO_DE_FASE[estado.fase].toLowerCase()} desde Hojas de ruta`], cifras: [], envios: [] };
+    }
+    return {
+      estado: estado.stale ? "Desactualizada" : "Muestra recibida",
+      tono: estado.stale ? "aviso" : "activo",
+      avance: null,
+      cifras: [
+        { valor: estado.titulares, rotulo: "titulares" },
+        { valor: estado.reemplazos, rotulo: "reemplazos" },
+      ],
+      envios: [],
+      hechos: [
+        `${ROTULO_DE_FASE[estado.fase]}, enviada el ${cuando}`,
+        ...(estado.stale ? ["La muestra cambió en Hojas de ruta: reenvíala"] : []),
+      ],
+    };
+  }
+  if (campana.tipo === "telefonica") {
+    if (!estado || estado.tipo !== "telefonica" || !estado.configurada) {
+      return { estado: "Por configurar", tono: "neutral", avance: null, hechos: ["Declara los casos y la llave en Casos"], cifras: [], envios: [] };
+    }
+    return {
+      estado: "Configurada",
+      tono: "activo",
+      avance: null,
+      cifras: [
+        { valor: estado.muestra, rotulo: "muestra" },
+        { valor: estado.backup, rotulo: "backup" },
+      ],
+      envios: [],
+      hechos: [`Llave: ${estado.llave}`],
+    };
+  }
+  if (campana.tipo === "supervision") {
+    if (!estado || estado.tipo !== "supervision" || estado.sin_lote) {
+      return { estado: "Sin lote", tono: "neutral", avance: null, hechos: ["Monitoreo ya no tiene el lote de esta campaña"], cifras: [], envios: [] };
+    }
+    return {
+      estado: "Lista",
+      tono: "activo",
+      avance: null,
+      cifras: [{ valor: estado.casos, rotulo: estado.casos === 1 ? "caso" : "casos" }],
+      envios: [],
+      hechos: [`Lote ${estado.lote_id}${estado.criterio ? `, ${estado.criterio}` : ""}`],
     };
   }
   return { estado: "No disponible", tono: "neutral", avance: null, hechos: [], cifras: [], envios: [] };

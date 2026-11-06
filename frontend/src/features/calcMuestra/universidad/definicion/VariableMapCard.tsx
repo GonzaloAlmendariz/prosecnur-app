@@ -98,7 +98,9 @@ export function VariableMapCard({
           <span className="cmv2-defi-var-type-ic" aria-hidden="true">
             <TypeIcon size={13} />
           </span>
-          <strong>{base.label}</strong>
+          {/* «curso-horario» no se parte en el guion: a 13 px la tarjeta dejaba
+              «Matriculados del curso-» en una línea y «horario» en otra. */}
+          <strong>{base.label.replace(/-/g, "\u2011")}</strong>
         </span>
         <span className="cmv2-defi-var-card-meta">
           <span className="cmv2-defi-chip" data-tone={required ? "req" : undefined}>

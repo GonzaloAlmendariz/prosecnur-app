@@ -78,7 +78,12 @@
           "**/*",
           "!tests",
           "!.DS_Store",
-          "!outputs"
+          "!outputs",
+          "!man",
+          "!**/.Rhistory",
+          "!**/Rplots.pdf",
+          "!**/*.bak",
+          "!**/*.bak_*"
         ]
       },
       {

@@ -89,11 +89,11 @@ test_that("M1 multilista: un bloque que ya no comparte lámina con otra escala u
   expect_false(.lam_multilista_leyenda_compartida(lapply(items, `[[`, "espec")))
   expect_true(.lam_multilista_compartida_parte(items[1], FALSE))                   # un solo bloque: una sola leyenda
   expect_false(.lam_multilista_compartida_parte(items, FALSE))                     # dos escalas distintas: una cada una
-  disp <- .lam_multilista_disponible(FALSE)
+  disp <- .lam_multilista_disponible()
   expect_gt(.lam_multilista_alto_f(items[1], FALSE, 0), disp)                      # con leyenda propia no cabe (4,92 vs 4,62)
   expect_lte(.lam_multilista_alto_f(items[1], TRUE, 0), disp)                      # con leyenda de la lámina sí (4,42)
   o <- .ml1_lam(ml)
-  expect_identical(o$partes, 2L)                                                   # el bloque de 5 + el Sí/No
+  expect_identical(o$partes, 2L)                                                   # el bloque de 5 + el Sí/No, que no queda solo (ítem 17)
   expect_false(any(vapply(seq_len(o$partes), function(i) grepl("(cont.)", .ml1_texto(o$doc, i), fixed = TRUE), TRUE)))
   # apagado (N1 puro): como antes, se parte el bloque de 5 y la segunda lámina continúa
   options(prosecnur.evitar_cont = FALSE)
@@ -126,7 +126,7 @@ test_that("M1 multilista: 3 premisas x 2 públicos con cifras chicas caben en UN
   ml <- list(bloques = list(list(espec = .ml1_actores(), titulo = NULL)))
   items <- .lam_multilista_items(ml); op <- options(prosecnur.grosor_piso_cm = 1.12); on.exit(options(op))
   on.exit(options(prosecnur.evitar_cont = NULL), add = TRUE)
-  disp <- .lam_multilista_disponible(TRUE)
+  disp <- .lam_multilista_disponible()
   expect_gt(.lam_multilista_alto_f(items, TRUE, 0), disp)           # con el aire de siempre ni al mínimo cabe (5,29 vs 4,62)
   expect_true(.lam_multilista_apretar(items, TRUE))
   o <- .ml1_lam(ml)

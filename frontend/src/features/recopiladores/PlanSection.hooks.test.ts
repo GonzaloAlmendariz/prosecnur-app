@@ -3,7 +3,7 @@
  *
  * `PlanSection` tiene una guarda de «sin plan» que devuelve el vacío. Si un
  * `useMemo`/`useState` queda debajo, el número de hooks cambia cuando el plan
- * se siembra en el mismo montaje («Adaptar fuente disponible») y React tira
+ * se siembra en el mismo montaje («Sembrar las unidades») y React tira
  * #310. Ya mordió en esta app al cambiar de pestaña, y un test de render
  * estático no lo ve: pinta un solo render. Este entorno de Vitest no tiene DOM
  * (sin jsdom), así que se fija en el código fuente: ningún `use*(` ni `use*<…>(` después del

@@ -323,11 +323,11 @@ describe("A1/A2 · Acreditación", () => {
     const estudio = { titulo: "T", contexto: { cliente: "", tipo_cliente: "", descripcion_libre: "" } } as unknown as CalcMuestraEstudio;
     const workspace = { fuente_marco: "", marco_disponible: "", unidad_observacion: "", unidad_muestreo: "" } as unknown as CalcMuestraWorkspace;
     const props = { estudio, workspace, onTitulo: () => {}, onContexto: () => {}, onWorkspace: () => {} };
-    const acred = renderToStaticMarkup(<FichaEstudio variante="acreditacion" {...props} />);
+    const acred = renderToStaticMarkup(<MemoryRouter><FichaEstudio variante="acreditacion" {...props} /></MemoryRouter>);
     expect(acred).not.toContain("Unidad de muestreo");
     expect(acred).not.toContain("Marco disponible");
     expect(acred).toContain("Institución");
-    const general = renderToStaticMarkup(<FichaEstudio variante="general" {...props} />);
+    const general = renderToStaticMarkup(<MemoryRouter><FichaEstudio variante="general" {...props} /></MemoryRouter>);
     expect(general).toContain("Unidad de muestreo");
   });
 });

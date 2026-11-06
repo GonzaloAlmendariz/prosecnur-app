@@ -48,10 +48,10 @@ function Ficha({
         <strong>{ficha.facultad}</strong>
         <span className="cmv2-ficha-resumen">
           {paso5?.hoy != null ? <>necesita {fmtInt(paso5.hoy)}</> : null}
-          {paso3?.hoy != null ? <> · tiene {fmtInt(paso3.hoy)}</> : null}
+          {paso3?.hoy != null ? <>, tiene {fmtInt(paso3.hoy)}</> : null}
           {ficha.reservasSostenibles != null ? (
             <>
-              {" · "}
+              {", "}
               {/* Sin «de 11»: la profundidad de la cadena no es una meta. */}
               {ficha.reservasSostenibles === 0
                 ? "sin reservas"
@@ -69,7 +69,7 @@ function Ficha({
           <span className="cmv2-ficha-propios-titulo">Criterios propios:</span>{" "}
           {ficha.criteriosPropios.map((c, i) => (
             <span key={c.etiqueta} className="cmv2-ficha-propio" data-clase={c.clase}>
-              {i > 0 ? " · " : null}
+              {i > 0 ? ", " : null}
               {c.etiqueta} <small>({c.detalle})</small>
             </span>
           ))}

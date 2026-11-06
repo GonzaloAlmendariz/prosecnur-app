@@ -20,6 +20,7 @@ import { useReporteRun } from "../useReporteRun";
 import { useSession } from "../../../lib/SessionContext";
 import { NotasPieEditor } from "./NotasPieEditor";
 import { ALFA_CRUCES, detalleSignificancia, subtituloSignificancia } from "./crucesSignificancia";
+import { CrucesReglaEstudio } from "./CrucesReglaEstudio";
 
 // CrucesPane — configuración mínima.
 // 1. Variables a cruzar (con posibilidad de excluir categorías específicas).
@@ -240,8 +241,10 @@ export function CrucesPane() {
             checked={cruces.show_sig}
             onToggle={() => setCruces({ show_sig: !cruces.show_sig })}
             titulo="Mostrar diferencias significativas"
-            descripcion={detalleSignificancia(cruces.modo, ALFA_CRUCES)}
+            descripcion={detalleSignificancia(cruces.modo)}
           />
+          {/* ADR 0128: la prueba es la regla del estudio, no un ajuste de Analítica. */}
+          {cruces.show_sig && <CrucesReglaEstudio />}
         </Section>
 
         <NotasPieEditor variante="cruces" variables={variablesConTabla} crucesVars={crucesVarNames} />

@@ -77,6 +77,7 @@ import { rotuloDeMatriz } from "../../../lib/rotuloDeMatriz";
 import { mayuscula, nombreDeSerie, type NombreDeSerie } from "../../carga/nombreDeSerie";
 import "./ComparativosPane.css";
 import "./ComparativosPonderacion.css";
+import { Panel } from "../../../components/Panel";
 
 type Carga =
   | { estado: "cargando" }
@@ -318,24 +319,27 @@ function ComparativosMesa({ equivalencias }: { equivalencias: EquivalenciasEstad
  */
 function Presentacion({ serie }: { serie: NombreDeSerie }) {
   return (
-    <section className="pulso-comparativos-presentacion" aria-labelledby="comparativos-presentacion-titulo">
-      <GitCompare size={18} aria-hidden="true" />
-      <div>
-        <h2 id="comparativos-presentacion-titulo">Comparar una pregunta entre {serie.plural}</h2>
-        <p>
-          Un comparativo pone cada pregunta lado a lado en {serie.todas}, con una columna por {serie.singular},
-          y se descarga como Excel. El simple da la frecuencia de cada respuesta. El de cruces la abre además
-          por una variable de cruce.
-        </p>
-        <p>
-          Solo entran las preguntas armonizadas, es decir, las que tienen sus respuestas puestas en una misma
-          escala en todas las bases. Si falta una, armonízala en Equivalencias.
-        </p>
-      </div>
-      <Link className="pulso-comparativos-enlace" to={DIRECCION_EQUIVALENCIAS}>
-        Ir a Equivalencias <ArrowRight size={14} aria-hidden="true" />
-      </Link>
-    </section>
+    <Panel
+      variant="subtle"
+      className="pulso-comparativos-presentacion"
+      aria-labelledby="comparativos-presentacion-titulo"
+      title={<span id="comparativos-presentacion-titulo">Comparar una pregunta entre {serie.plural}</span>}
+      actions={
+        <Link className="pulso-comparativos-enlace" to={DIRECCION_EQUIVALENCIAS}>
+          Ir a Equivalencias <ArrowRight size={14} aria-hidden="true" />
+        </Link>
+      }
+    >
+      <p>
+        Un comparativo pone cada pregunta lado a lado en {serie.todas}, con una columna por {serie.singular},
+        y se descarga como Excel. El simple da la frecuencia de cada respuesta. El de cruces la abre además
+        por una variable de cruce.
+      </p>
+      <p>
+        Solo entran las preguntas armonizadas, es decir, las que tienen sus respuestas puestas en una misma
+        escala en todas las bases. Si falta una, armonízala en Equivalencias.
+      </p>
+    </Panel>
   );
 }
 
@@ -380,16 +384,21 @@ function ErrorConAccion({ error }: { error: ErrorComparativo }) {
 function Resultado({ tipo, datos }: { tipo: ComparativoTipo; datos: ComparativoResultado }) {
   const manifest = datos.artifacts.find((a) => a.role === "manifest");
   return (
-    <section className="pulso-comparativos-resultado" aria-labelledby="comparativos-resultado-titulo">
-      <header className="pulso-comparativos-bloque-head">
-        <h3 id="comparativos-resultado-titulo">
+    <Panel
+      className="pulso-comparativos-resultado"
+      aria-labelledby="comparativos-resultado-titulo"
+      title={
+        <span id="comparativos-resultado-titulo">
           {tipo === "cruces" ? "Comparativo de cruces generado" : "Comparativo simple generado"}
-        </h3>
-        <p>
+        </span>
+      }
+      hint={
+        <>
           {cantidad(datos.resumen.n_preguntas, "pregunta", "preguntas")} en {cantidad(datos.periodos.length, nombreDeSerie(datos.periodos.map((p) => p.rotulo)).singular, nombreDeSerie(datos.periodos.map((p) => p.rotulo)).plural)}
           {datos.periodos.length ? ` (${datos.periodos.map((p) => p.rotulo).join(", ")})` : ""}
-        </p>
-      </header>
+        </>
+      }
+    >
 
       <div className="pulso-comparativos-descargas">
         {datos.file_id ? (
@@ -470,7 +479,7 @@ function Resultado({ tipo, datos }: { tipo: ComparativoTipo; datos: ComparativoR
           </tbody>
         </table>
       </div>
-    </section>
+    </Panel>
   );
 }
 

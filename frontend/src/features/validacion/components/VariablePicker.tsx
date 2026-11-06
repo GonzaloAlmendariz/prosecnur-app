@@ -1,33 +1,26 @@
-import { useId, useMemo, useState } from "react";
-import { ChevronDown, ChevronRight, Search } from "lucide-react";
+import { useId, useMemo, useState, type ReactNode } from "react";
+import { ChevronDown, ChevronRight } from "../../../vendor/lucide-react";
+import { PulsoInput } from "../../../components/PulsoInput";
 import type { ExploradorSeccion, ExploradorVariable } from "../types";
+import ChipsTipo from "../tabs/explorar/ChipsTipo";
+import InsigniaTipo from "../tabs/explorar/InsigniaTipo";
+import {
+  UMBRAL_COMPLETITUD,
+  coincide,
+  completitud,
+  conteoPorFamilia,
+  enFamilia,
+  type FamiliaTipo,
+} from "../tabs/explorar/tiposVariable";
+import { formatoConteo } from "../../../lib/formatoNumero";
 
 // =============================================================================
-// VariablePicker — panel de navegación de variables (Sprint 3)
+// VariablePicker — lista de variables del explorador (E1, revamp 2026-11-02)
 // =============================================================================
-// Lista plegable de secciones con sus variables. Buscador arriba que
-// filtra por nombre/label. Al hacer click en una variable, dispara
-// onSelect con el nombre y el objeto meta.
-//
-// Cada variable muestra: chip de tipo (so/sm/num/fecha/texto), nombre
-// monoespaciado, label humano, y % missing si > 20% (warn).
-
-// Paleta oficial Pulso para tipos de variable:
-//   SO (select_one) → azul
-//   NUM (integer/decimal) → morado
-//   SM (select_multiple) → verde
-// fecha / texto / mixto mantienen colores neutrales de soporte.
-const TIPO_COLORS: Record<
-  string,
-  { bg: string; fg: string; label: string }
-> = {
-  so: { bg: "#dbeafe", fg: "#1e40af", label: "SO" },       // azul
-  num: { bg: "#ede9fe", fg: "#5b21b6", label: "123" },     // morado
-  sm: { bg: "#d1fae5", fg: "#065f46", label: "SM" },       // verde
-  fecha: { bg: "#ffedd5", fg: "#9a3412", label: "DATE" },
-  texto: { bg: "#f3f4f6", fg: "#374151", label: "TXT" },
-  mixto: { bg: "#f3f4f6", fg: "#6b7280", label: "?" },
-};
+// Texto de la pregunta primero y el código en mono debajo; el tipo como
+// etiqueta con el tono de su tipo; a la derecha, la completitud (casos con
+// dato / casos) en una barra que se pone ámbar bajo el 80 %. Arriba, un
+// buscador (texto o código, sin tildes) y chips de tipo con su conteo.
 
 type Props = {
   secciones: ExploradorSeccion[];
@@ -35,6 +28,12 @@ type Props = {
   onSelect: (v: ExploradorVariable) => void;
   repeatCode?: string | null;
   repeatLabel?: string | null;
+  /** Título de la lista («Variables», «Preguntas para …»). */
+  titulo?: string;
+  /** Control extra en la cabecera (p. ej. plegar la lista mientras se cruza). */
+  accion?: ReactNode;
+  /** Enfoca el buscador al montar (al desplegar desde el riel). */
+  autoFocusBusqueda?: boolean;
 };
 
 export default function VariablePicker({
@@ -43,136 +42,81 @@ export default function VariablePicker({
   onSelect,
   repeatCode = null,
   repeatLabel = null,
+  titulo = "Variables",
+  accion = null,
+  autoFocusBusqueda = false,
 }: Props) {
   const [query, setQuery] = useState("");
+  const [familia, setFamilia] = useState<FamiliaTipo>("todas");
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
   const listId = useId();
 
-  const filteredSecs = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    if (!q) return secciones;
-    return secciones
-      .map((s) => ({
-        ...s,
-        variables: s.variables.filter(
-          (v) =>
-            v.name.toLowerCase().includes(q) ||
-            v.label.toLowerCase().includes(q),
-        ),
-      }))
-      .filter((s) => s.variables.length > 0);
-  }, [secciones, query]);
+  const todas = useMemo(() => secciones.flatMap((s) => s.variables), [secciones]);
+  const conteo = useMemo(() => conteoPorFamilia(todas), [todas]);
+
+  const filteredSecs = useMemo(
+    () =>
+      secciones
+        .map((s) => ({ ...s, variables: s.variables.filter((v) => enFamilia(v, familia) && coincide(v, query)) }))
+        .filter((s) => s.variables.length > 0),
+    [secciones, query, familia],
+  );
+  const filtrando = query.trim() !== "" || familia !== "todas";
 
   if (!secciones.length) {
     return (
-      <div
-        style={{
-          padding: 16,
-          fontSize: 12,
-          color: "var(--pulso-text-soft)",
-          fontStyle: "italic",
-          textAlign: "center",
-        }}
-      >
-        Sin preguntas o campos en esta base.
+      <div className="pulso-variable-picker" role="status">
+        <p className="vx-barra-nota">Sin preguntas o campos en esta base.</p>
       </div>
     );
   }
 
   return (
     <div className="pulso-variable-picker">
-      {/* Buscador */}
-      <div style={{ position: "relative" }}>
-        <Search
-          size={14}
-          color="var(--pulso-text-soft)"
-          style={{
-            position: "absolute",
-            left: 10,
-            top: "50%",
-            transform: "translateY(-50%)",
-            pointerEvents: "none",
-          }}
-        />
-        <input
-          type="text"
-          aria-label="Buscar preguntas y campos"
-          aria-controls={listId}
-          placeholder="Buscar pregunta o campo…"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          style={{
-            width: "100%",
-            fontSize: 12,
-            padding: "8px 10px 8px 32px",
-            borderRadius: 8,
-            border: "1px solid var(--pulso-border)",
-            background: "white",
-            outline: "none",
-          }}
-        />
+      <div className="vx-lista-cab">
+        <strong>{titulo}</strong>
+        <span>
+          {formatoConteo(todas.length)} en {formatoConteo(secciones.length)} {secciones.length === 1 ? "sección" : "secciones"}
+        </span>
+        {accion}
       </div>
+      <PulsoInput
+        size="sm"
+        type="search"
+        aria-label="Buscar preguntas y campos"
+        aria-controls={listId}
+        placeholder="Buscar por texto o código"
+        value={query}
+        autoFocus={autoFocusBusqueda}
+        onChange={(e) => setQuery(e.target.value)}
+      />
+      <ChipsTipo valor={familia} conteo={conteo} onCambio={setFamilia} etiqueta="Filtrar la lista por tipo" />
 
-      {/* Secciones */}
       <div className="pulso-variable-picker-list" id={listId}>
-        {filteredSecs.length === 0 && query.trim() && (
-          <div
-            role="status"
-            style={{
-              padding: "18px 10px",
-              color: "var(--pulso-text-soft)",
-              fontSize: 11.5,
-              lineHeight: 1.4,
-              textAlign: "center",
-            }}
-          >
-            No hay preguntas o campos que coincidan con «{query.trim()}».
-          </div>
+        {filteredSecs.length === 0 && filtrando && (
+          <p role="status" className="vx-barra-nota">
+            {query.trim()
+              ? `No hay preguntas o campos que coincidan con «${query.trim()}».`
+              : "No hay preguntas de este tipo."}
+          </p>
         )}
         {filteredSecs.map((sec, sectionIndex) => {
-          const isCollapsed = !!collapsed[sec.nombre];
+          const isCollapsed = !filtrando && !!collapsed[sec.nombre];
           const sectionId = `${listId}-section-${sectionIndex}`;
           return (
             <div key={sec.nombre}>
               <button
                 type="button"
+                className="vx-seccion-btn"
                 aria-expanded={!isCollapsed}
                 aria-controls={sectionId}
-                onClick={() =>
-                  setCollapsed((c) => ({
-                    ...c,
-                    [sec.nombre]: !c[sec.nombre],
-                  }))
-                }
-                style={{
-                  width: "100%",
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 6,
-                  padding: "6px 8px",
-                  background: "transparent",
-                  border: "none",
-                  fontSize: 11,
-                  fontWeight: 700,
-                  textTransform: "uppercase",
-                  letterSpacing: 0.4,
-                  color: "var(--pulso-text-soft)",
-                  cursor: "pointer",
-                  borderRadius: 6,
-                }}
+                onClick={() => setCollapsed((c) => ({ ...c, [sec.nombre]: !c[sec.nombre] }))}
               >
-                {isCollapsed ? <ChevronRight size={12} /> : <ChevronDown size={12} />}
-                {sec.nombre}
-                <span
-                  style={{
-                    fontSize: 10,
-                    fontWeight: 500,
-                    color: "var(--pulso-text-soft)",
-                    fontFamily: "ui-monospace, monospace",
-                  }}
-                >
-                  · {sec.variables.length}
+                <span>
+                  {isCollapsed ? <ChevronRight size={12} aria-hidden /> : <ChevronDown size={12} aria-hidden />}
+                  {sec.nombre}
                 </span>
+                <span>{formatoConteo(sec.variables.length)}</span>
               </button>
               <div id={sectionId} hidden={isCollapsed}>
                 {sec.variables.map((v) => (
@@ -207,112 +151,40 @@ function VariableRow({
   repeatCode: string | null;
   repeatLabel: string | null;
 }) {
-  const tipoColors = TIPO_COLORS[v.tipo] ?? TIPO_COLORS.mixto;
-  const total = v.n_validos + v.n_nulos;
-  const pctMissing = total > 0 ? v.n_nulos / total : 0;
-  const showMissing = pctMissing > 0.2;
+  const frac = completitud(v);
+  const pct = frac === null ? null : Math.round(frac * 100);
+  const baja = frac !== null && frac < UMBRAL_COMPLETITUD;
+  const texto = v.label || v.name;
   return (
     <button
       type="button"
+      className="vx-fila-var"
+      aria-current={selected ? "true" : undefined}
       onClick={onClick}
-      style={{
-        width: "100%",
-        display: "flex",
-        alignItems: "flex-start",
-        gap: 8,
-        padding: "8px 10px",
-        background: selected
-          ? "color-mix(in srgb, var(--module-accent, #0f766e) 12%, transparent)"
-          : "transparent",
-        border: selected
-          ? "1px solid color-mix(in srgb, var(--module-accent, #0f766e) 34%, transparent)"
-          : "1px solid transparent",
-        borderRadius: 8,
-        textAlign: "left",
-        cursor: "pointer",
-        transition: "background 120ms ease, border-color 120ms ease",
-      }}
-      onMouseEnter={(e) => {
-        if (selected) return;
-        e.currentTarget.style.background = "var(--pulso-surface-2)";
-      }}
-      onMouseLeave={(e) => {
-        if (selected) return;
-        e.currentTarget.style.background = "transparent";
-      }}
+      title={texto}
     >
-      <span
-        style={{
-          flexShrink: 0,
-          fontSize: 10,
-          fontWeight: 700,
-          padding: "2px 6px",
-          borderRadius: 4,
-          background: tipoColors.bg,
-          color: tipoColors.fg,
-          fontFamily: "ui-monospace, monospace",
-          minWidth: 32,
-          textAlign: "center",
-        }}
-      >
-        {tipoColors.label}
-      </span>
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div
-          style={{
-            fontSize: 12,
-            fontWeight: 600,
-            lineHeight: 1.3,
-            color: selected ? "var(--module-accent, #0f766e)" : "var(--pulso-text)",
-            overflow: "hidden",
-            display: "-webkit-box",
-            WebkitLineClamp: 2,
-            WebkitBoxOrient: "vertical",
-          }}
-          title={v.label || v.name}
-        >
-          {v.label || v.name}
-        </div>
-        {v.label && v.label !== v.name && (
-          <div
-            style={{
-              fontSize: 10.5,
-              fontFamily: "ui-monospace, monospace",
-              color: "var(--pulso-text-faint)",
-              marginTop: 2,
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-              whiteSpace: "nowrap",
-            }}
-          >
-            {v.name}
-          </div>
-        )}
+      <InsigniaTipo tipo={v.tipo} />
+      <span className="vx-fila-var-texto">
+        <span>{texto}</span>
+        {texto !== v.name && <span className="vx-mono">{v.name}</span>}
         {v.repeat_scope === "conditional" && (
           <span
             className="pulso-variable-repeat-scope"
             title={repeatCode && repeatLabel ? `Variable específica de ${repeatLabel}` : "Variable condicional según el servicio"}
-            aria-label={repeatCode && repeatLabel ? `Específica del servicio ${repeatLabel}` : "Condicional por servicio"}
           >
             Específica
           </span>
         )}
-      </div>
-      {showMissing && (
+      </span>
+      {pct !== null && (
         <span
-          title={`${(pctMissing * 100).toFixed(1)}% sin respuesta`}
-          style={{
-            flexShrink: 0,
-            fontSize: 10,
-            fontWeight: 600,
-            padding: "2px 6px",
-            borderRadius: 4,
-            background: "var(--pulso-warn-bg)",
-            color: "var(--pulso-warn-fg)",
-            fontFamily: "ui-monospace, monospace",
-          }}
+          className={`vx-completitud${baja ? " is-baja" : ""}`}
+          aria-label={`${pct}% de casos con dato`}
         >
-          {(pctMissing * 100).toFixed(0)}%
+          {pct}%
+          <i aria-hidden>
+            <b style={{ width: `${pct}%` }} />
+          </i>
         </span>
       )}
     </button>

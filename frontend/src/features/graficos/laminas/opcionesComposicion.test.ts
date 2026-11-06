@@ -7,8 +7,8 @@ const lamina = (graficador: string, args: Record<string, unknown>) =>
 const vars = (n: number) => Object.fromEntries(Array.from({ length: n }, (_, i) => [`T${i}`, [`a$p${i}`]]));
 
 describe("opcionesDeComposicion", () => {
-  it("un radar entre públicos con 4 criterios se dibuja como líneas y puntos sin tabla", () => {
-    expect(Object.values(opcionesDeComposicion(lamina("p_radar", { modo: "publicos", vars: vars(4) })))[0]).toEqual({ formaRadar: "puntos", tabla: false, criterios: 4 });
+  it("un radar entre públicos con 4 criterios se dibuja como líneas y puntos, con su tabla (como el motor)", () => {
+    expect(Object.values(opcionesDeComposicion(lamina("p_radar", { modo: "publicos", vars: vars(4) })))[0]).toEqual({ formaRadar: "puntos", tabla: true, criterios: 4 });
   });
   it("con 5 criterios, la telaraña con su tabla", () => {
     expect(Object.values(opcionesDeComposicion(lamina("p_radar", { modo: "publicos", vars: vars(5) })))[0]).toEqual({ formaRadar: "radar", tabla: true, criterios: 5 });

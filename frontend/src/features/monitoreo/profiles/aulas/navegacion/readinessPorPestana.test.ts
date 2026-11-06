@@ -1,19 +1,19 @@
 import { describe, expect, it } from "vitest";
 
-import { AULAS_WORKBENCH_VIEWS } from "../../../core/monitoreoRegistry";
+import { AULAS_SECCIONES_PUBLICAS } from "../../../core/monitoreoRegistry";
 import { readinessDeAulas, seccionesDeAulas, vistasDeAulas } from "./readinessDeAulas";
 
 /**
  * Meta B, L10: Cursos-horario publicaba `monitoreo-aulas` en todas sus vistas.
- * Cada pestaña publica ahora la suya, con su dirección.
+ * Cada pestaña publica ahora la suya, con su dirección PÚBLICA (revamp del
+ * esqueleto común, 2026-10-23): Insumos, Modelo, Control y Avance.
  */
 describe("readiness por pestaña de cursos-horario", () => {
   const vistas = vistasDeAulas();
 
   it("cada vista principal publica una marca distinta", () => {
-    // 1 (Fuentes, sin pestañas) + 4 de Agenda + 5 de Validación + 5 de
-    // Consultas + 5 de Avance.
-    expect(vistas.length).toBeGreaterThanOrEqual(20);
+    // 3 de Insumos + 2 de Modelo + 8 de Control + 5 de Avance.
+    expect(vistas.length).toBe(18);
     expect(new Set(vistas.map((v) => v.marca)).size).toBe(vistas.length);
   });
 
@@ -25,8 +25,8 @@ describe("readiness por pestaña de cursos-horario", () => {
     }
   });
 
-  it("cubre todas las secciones que monta la página", () => {
-    const montadas = AULAS_WORKBENCH_VIEWS.map((def) => def.key).sort();
+  it("cubre todas las secciones que nombra la barra del modo", () => {
+    const montadas = AULAS_SECCIONES_PUBLICAS.map((def) => def.key).sort();
     expect([...seccionesDeAulas()].sort()).toEqual(montadas);
   });
 
@@ -35,7 +35,12 @@ describe("readiness por pestaña de cursos-horario", () => {
     expect(readinessDeAulas("avance", "no-existe")).not.toBe(readinessDeAulas("avance", "resumen"));
   });
 
-  it("Fuentes, que no tiene pestañas, publica la marca de la sección", () => {
-    expect(readinessDeAulas("fuentes", "")).toBe("monitoreo-aulas-fuentes");
+  it("una sección sin pestaña publica la marca de la sección", () => {
+    expect(readinessDeAulas("insumos", "")).toBe("monitoreo-aulas-insumos");
+  });
+
+  it("dos pestañas que montan la misma vista heredada publican marcas distintas", () => {
+    // Insumos › Fuentes e Insumos › Reglas montan hoy la hoja Fuentes.
+    expect(readinessDeAulas("insumos", "fuentes")).not.toBe(readinessDeAulas("insumos", "reglas"));
   });
 });

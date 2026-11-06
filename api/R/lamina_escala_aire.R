@@ -54,7 +54,7 @@
   g_ <- .std_geom; L <- g_("likert"); ex <- .std_enunciado_extra_in()
   L$x_barra <- L$x_barra + ex; L$ancho_barra <- L$ancho_barra - ex
   cb <- .lam_escala_columnas_box(espec, ex)
-  WB <- if (!is.null(espec$box$unidades)) cb$ancho_barra else g_("ancho") - g_("margen_der") - L$x_barra - 0.3
+  WB <- cb$ancho_barra   # la barra que se dibuja (toda barra mide lo mismo, con o sin box); antes medía la vieja de ~7,5 in
   vapply(premisas, function(p) any(vapply(p$filas, function(fl) .lam_tiene_peq(.lam_escala_seg(espec, fl$i), WB), TRUE)), TRUE)
 }
 .lam_escala_hay_chica <- function(espec, premisas) any(.lam_escala_chica_por_premisa(espec, premisas))
@@ -77,7 +77,7 @@
   nb <- .lam_multilista_filas(items)
   sum(vapply(items, function(it) .lam_multilista_cromo(it, compartida) +
                .lam_escala_alto_con_f(it$premisas, f, nb, .lam_escala_chica_por_premisa(it$espec, it$premisas)), 0)) +
-    .LAM_MULTILISTA_GAP * (length(items) - 1L)
+    .std_comp("multilista", "gap_bloques") * (length(items) - 1L)
 }
 
 #' Factor de aire (0 a 1) con el que los bloques de la multilista caben en `disp`; 1 si ya caben, 0 si ni así
@@ -111,14 +111,11 @@
 #  - holgura de la cifra chica con la barra de arriba 0,075 -> 0,03 in (la caja de la cifra mide 0,22 y su texto, menos);
 #  - aire del Top Two Box 0,35 -> 0,25 in (el rótulo conserva su posición absoluta: sube con la franja);
 #  - la franja de datos se extiende 0,30 in hacia el pie y la leyenda se pega a la última barra (queda >= 0,1 in sobre el «Base:»).
-# Una lámina que ya cabía no pasa por aquí: su geometría no cambia.
-.LAM_APRETADO_HOLGURA <- 0.03
-.LAM_APRETADO_AIRE_TTB <- 0.25
-.LAM_APRETADO_EXTRA_FRANJA <- 0.30
+# Una lámina que ya cabía no pasa por aquí: su geometría no cambia. Los tres valores: `ppt.composicion.apretada`.
 
 .lam_apretado <- function() isTRUE(getOption("prosecnur.lam_apretado", FALSE))
-.lam_holgura_chica <- function() if (.lam_apretado()) .LAM_APRETADO_HOLGURA else 0.075
-.lam_multilista_aire_ttb <- function() if (.lam_apretado()) .LAM_APRETADO_AIRE_TTB else .LAM_MULTILISTA_AIRE_TTB
+.lam_holgura_chica <- function() if (.lam_apretado()) .std_comp("apretada", "holgura_chica") else 0.075
+.lam_multilista_aire_ttb <- function() if (.lam_apretado()) .std_comp("apretada", "aire_ttb") else .std_comp("multilista", "aire_ttb")
 
 #' Alto mínimo de la multilista en modo apretado (o `Inf` si no aplica: más de seis barras)
 #'
@@ -138,15 +135,15 @@
 .lam_multilista_alto_min <- function(items, compartida) {
   base <- .lam_multilista_alto_f(items, compartida, 0)
   if (!.std_evitar_cont()) return(base)
-  min(base, .lam_multilista_alto_apretado(items, compartida) - .LAM_APRETADO_EXTRA_FRANJA)
+  min(base, .lam_multilista_alto_apretado(items, compartida) - .std_comp("apretada", "extra_franja"))
 }
 
 #' ¿Esta parte de la multilista se dibuja apretada? Solo si no cabe con el aire en su mínimo y sí apretada
 #' @keywords internal
 .lam_multilista_apretar <- function(items, compartida) {
   if (!.std_evitar_cont()) return(FALSE)
-  disp <- .lam_multilista_disponible(compartida)
+  disp <- .lam_multilista_disponible()
   .lam_multilista_alto(items, compartida) > disp &&   # lo que cabe al natural conserva su geometría
     .lam_multilista_alto_f(items, compartida, 0) > disp &&
-    .lam_multilista_alto_apretado(items, compartida) <= disp + .LAM_APRETADO_EXTRA_FRANJA
+    .lam_multilista_alto_apretado(items, compartida) <= disp + .std_comp("apretada", "extra_franja")
 }

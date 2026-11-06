@@ -423,17 +423,15 @@
   stats::setNames(.std_paleta_nominal(length(levels)), levels)
 }
 
-#' Ajusta el aviso interno de opción múltiple sin restar altura a las barras.
+#' Estilo del encabezado sobre las barras (el que escribe quien llama) sin restar altura a las barras.
 #'
 #' El título de la pregunta pertenece a la diapositiva, no al gráfico. Por eso
-#' este encabezado solo necesita alojar el aviso de una línea.
+#' este encabezado solo necesita alojar una línea. El texto no lo pone esta función: el motor ya no escribe
+#' «% de encuestados que marcó cada opción» de fábrica (Gonzalo, 2026-10-29); el encabezado lo decide el analista.
 #' @noRd
 .ppt_multiple_choice_notice_overrides <- function(overrides = list()) {
   if (!is.list(overrides)) overrides <- list()
 
-  # CCSS Perfil 2026 (CCSS-9b): el mismo encabezado que la lámina nativa de opción múltiple (recetario p72,
-  # lamina_compositor.R), para que todas las múltiples del mazo digan lo mismo.
-  overrides$subtitulo <- "% de encuestados que marcó cada opción"
   # Como la nativa (lamina_categorica.R, encabezado): negrita en el gris `texto_suave`, sin cursiva (CCSS-19).
   overrides$face_subtitulo <- "bold"
   overrides$color_subtitulo <- .std_color("texto_suave")

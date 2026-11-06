@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import { Loader2, Save } from "../../../../../vendor/lucide-react";
+import { CalendarClock, Loader2, Save } from "../../../../../vendor/lucide-react";
+import { EstadoVacio } from "../../../../../components/EstadoVacio";
 import type { MonitoreoAcreditacionReports, MonitoreoReportWeekday, MonitoreoState } from "../../../../../api/client";
 import { apiMonitoreoConfig } from "../../../../../api/monitoreo";
 import { NotaDelModo } from "../../../core/NotaDelModo";
@@ -17,9 +18,10 @@ import {
 import "../control/controlTelefonico.css";
 import "../insumos/insumosTelefonico.css";
 import "./modeloTelefonico.css";
+import { formatoConteo, formatoDecimal } from "../../../../../lib/formatoNumero";
 
 function n(valor: number) {
-  return valor.toLocaleString("es-PE");
+  return formatoConteo(valor);
 }
 
 type Estado = { tono: "info" | "exito" | "error"; texto: string } | null;
@@ -210,10 +212,11 @@ export function Calendario({
             </div>
           ) : (
             // C3: el vacío es de esta tarjeta y dice por qué.
-            <p className="mon-calendario-vacio">
-              El corte no trae efectivas de Kobo con fecha ni llamados fechados en la hoja de barrido: los días aparecen al actualizar
-              con el campo en marcha.
-            </p>
+            <EstadoVacio
+              icono={<CalendarClock size={15} />}
+              titulo="El corte no trae efectivas de Kobo con fecha ni llamados fechados en la hoja de barrido"
+              descripcion="Los días aparecen al actualizar con el campo en marcha."
+            />
           )}
           {nota ? <NotaDelModo tono="aviso" className="mon-calendario-estado">{nota}.</NotaDelModo> : null}
         </section>
@@ -221,11 +224,11 @@ export function Calendario({
 
       <aside className="mon-calendario-lateral">
         <section className="mon-ctl-panel mon-insumos-tarjeta mon-calendario-ritmo" aria-label="Ritmo observado">
-          <span className="mon-ctl-antetitulo">Ritmo observado</span>
+          <header className="mon-ctl-panel-cabecera"><b>Ritmo observado</b></header>
           {campo.promedio != null ? (
             <>
               <p className="mon-calendario-cifra">
-                <strong className="is-num">{campo.promedio.toLocaleString("es-PE", { maximumFractionDigits: 1 })}</strong>
+                <strong className="is-num">{formatoDecimal(campo.promedio, 1)}</strong>
                 <span>efectivas por día</span>
               </p>
               <dl className="mon-calendario-datos">

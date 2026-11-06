@@ -129,7 +129,7 @@ export function AulasEstadoPorRol({ dashboard, facultadEnFoco }: {
       <p className="mon-profile-muted" data-qa-geometry-capacity="owned" data-qa-geometry-member="true">
         {facultadEnFoco
           ? `El sorteo no dejó ningún curso-horario en ${facultadEnFoco}.`
-          : "Este tablero se generó con una versión anterior del cálculo, que todavía no reparte los cursos-horario por rol. Vuelve a traer respuestas para recalcularlo."}
+          : "Este tablero se generó con una versión anterior del cálculo, que todavía no reparte los cursos-horario por rol. Pulsa «Actualizar» para recalcularlo."}
       </p>
     );
   }

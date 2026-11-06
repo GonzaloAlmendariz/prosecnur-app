@@ -24,7 +24,7 @@ script_dir <- dirname(normalizePath(script_path, mustWork = FALSE))
 repo_root <- normalizePath(file.path(script_dir, "..", "..", ".."), mustWork = FALSE)
 drive_root <- Sys.getenv(
   "HOJAS_RUTA_INEI_DRIVE_ROOT",
-  "/Users/gonzaloalmendariz/Documents/Pulso/GIZ/drive_insumos_descarga_relevante"
+  "/Users/gonzaloalmendariz/Documents/Pulso/01_Estudios/2025_GIZ_Estudio_Institucional/drive_insumos_descarga_relevante"
 )
 
 carto_dir <- file.path(

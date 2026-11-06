@@ -7,7 +7,7 @@ export type AvisoFila = { nivel: "error" | "warn"; titulo: string };
 export function resumenAvisos(avisos: readonly AvisoFila[]): { nivel: AvisoFila["nivel"]; texto: string } {
   const nivel = avisos.some((a) => a.nivel === "error") ? "error" : "warn";
   const cab = avisos.length === 1 ? "1 aviso" : `${avisos.length} avisos`;
-  return { nivel, texto: `${cab}: ${avisos.map((a) => a.titulo).join(" · ")}` };
+  return { nivel, texto: `${cab}: ${avisos.map((a) => a.titulo).join("; ")}` };
 }
 
 export function PuntoAviso({ avisos }: { avisos: readonly AvisoFila[] }) {

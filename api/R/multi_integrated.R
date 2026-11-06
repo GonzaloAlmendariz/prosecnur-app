@@ -1037,6 +1037,9 @@
     origin_key_name = .mi_scalar(x$origin_key_name, "origen"),
     base_name = .mi_scalar(x$base_name, "base_integrada"),
     query = .mi_scalar(x$query, ""),
+    # L7: el perfil de SurveyMonkey elegido viaja con el proyecto. Es un id de
+    # perfil, no un secreto: el token sigue fuera del .pulso (ADR 0005).
+    sm_profile_id = .mi_scalar(x$sm_profile_id, ""),
     rows = x$rows %||% list(),
     audit = x$audit %||% NULL,
     decisions = x$decisions %||% list(resolved_ids = character(0)),
@@ -1468,20 +1471,8 @@ mount_multi_integrated <- function(pr) {
         res$setHeader("X-Pulso-Session", sid)
       }
       parsed <- .xlsform_editor_parse_body(req)
-      profile_id <- trimws(.mi_scalar(
-        parsed$connection_profile_id %||% parsed$connectionProfileId %||% parsed$profile_id %||% parsed$profileId,
-        ""
-      ))
-      if (!nzchar(profile_id)) profile_id <- NULL
-      multi_integrated_import(
-        sid = sid,
-        guide_xlsform_file_id = .mi_scalar(parsed$guide_xlsform_file_id, ""),
-        origins = parsed$origins %||% list(),
-        origin_key_name = .mi_scalar(parsed$origin_key_name, "origen"),
-        base_name = .mi_scalar(parsed$base_name, "base_integrada"),
-        decisions = parsed$decisions %||% list(),
-        profile_id = profile_id
-      )
+      # `async = TRUE` ⇒ job con progreso (L9); sin él, la respuesta síncrona de siempre.
+      .carga_platform_endpoint(sid, "multi_integrated_import", parsed)
     })) |>
     plumber::pr_post("/api/multi/integrated/decisions-docx", wrap_endpoint(function(req, res, ...) {
       sid <- session_header(req)

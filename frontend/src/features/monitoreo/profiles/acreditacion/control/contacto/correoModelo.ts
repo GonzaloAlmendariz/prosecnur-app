@@ -26,8 +26,8 @@ export type FilaDeSecuencia = {
 
 export type Secuencia = { columnas: number; filas: FilaDeSecuencia[] };
 
-/** Columnas mínimas: la invitación y dos recordatorios, aunque no hayan salido. */
-export const COLUMNAS_MINIMAS = 3;
+/** Columnas mínimas: la invitación y el siguiente envío, aunque no haya salido. */
+export const COLUMNAS_MINIMAS = 2;
 
 export function celdasDelPublico(envios: readonly MonitoreoMailchimpEnvio[], publico: string): CeldaDeEnvio[] {
   const tramos = tramosDelPublico(envios, publico);
@@ -125,6 +125,24 @@ export function campanas(publicos: readonly MonitoreoMailchimpPublico[], envios:
         papeles: papeles.sort((a, b) => a.publico.localeCompare(b.publico, "es")),
       };
     });
+}
+
+/**
+ * Sobre esta tasa de apertura el conteo no mide lectura: los filtros de
+ * seguridad del correo institucional abren cada mensaje al recibirlo
+ * (Acreditación 29/10: 92–96 % en los públicos con correo PUCP frente a 15–21 %
+ * en egresados, que usan correos personales, ya sin contar Apple). El clic es
+ * entonces la primera señal de que alguien leyó.
+ */
+export const APERTURA_AUTOMATICA = 0.85;
+
+export function aperturaAutomatica(aperturas: number | null | undefined, entregados: number | null | undefined) {
+  return aperturas != null && entregados != null && entregados > 0 && aperturas / entregados >= APERTURA_AUTOMATICA;
+}
+
+/** Una campaña dice su papel sólo si no es la invitación de un único público. */
+export function papelesQueInforman(campana: Campana) {
+  return campana.papeles.length > 1 || campana.papeles.some((papel) => papel.posicion > 1) ? campana.papeles : [];
 }
 
 /** Tasa sobre la base alcanzable, de mayor a menor; sin dato al final. */

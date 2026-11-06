@@ -18,6 +18,7 @@ import { DiagramaArbol } from "../dimensiones/shared/DiagramaArbol";
 import { useDimensionesWizardStore } from "../dimensiones/store";
 import { useAnaliticaStore } from "../store";
 
+import { EstadoVacio } from "../../../components/EstadoVacio";
 // Pane "Dimensiones" — orquestador delgado.
 //
 // Decide entre dos vistas:
@@ -159,20 +160,16 @@ function ResumenPostBuild({ onEditar }: { onEditar: () => void }) {
     // Edge case: state.analitica_dim_ok true pero el backend dice no built.
     // Lo tratamos como estado recuperable para no bloquear al analista.
     return (
-      <div className="analitica-dimensiones-empty">
-        <span className="analitica-dimensiones-empty-icon" aria-hidden="true">
-          <AlertTriangle size={16} />
-        </span>
-        <div className="analitica-dimensiones-empty-copy">
-          <strong>Aún no hay puntajes construidos</strong>
-          <span>
-            Abre el asistente para elegir preguntas, agruparlas en bloques y generar los puntajes que luego usarán Cruces, Gráficos y Dashboard.
-          </span>
-        </div>
-        <PulsoButton variant="primary" className="analitica-dimensiones-action" onClick={onEditar}>
-          <Edit3 size={13} aria-hidden="true" /> Abrir asistente
-        </PulsoButton>
-      </div>
+      <EstadoVacio
+        icono={<AlertTriangle size={16} />}
+        titulo="Aún no hay puntajes construidos"
+        descripcion="Abre el asistente para elegir preguntas, agruparlas en bloques y generar los puntajes que luego usarán Cruces, Gráficos y Dashboard."
+        accion={
+          <PulsoButton variant="primary" className="analitica-dimensiones-action" onClick={onEditar}>
+            <Edit3 size={13} aria-hidden="true" /> Abrir asistente
+          </PulsoButton>
+        }
+      />
     );
   }
 

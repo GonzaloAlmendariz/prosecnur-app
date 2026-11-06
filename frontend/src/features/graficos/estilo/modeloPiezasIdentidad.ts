@@ -5,7 +5,7 @@
 
 import type { EstadoParte, ParteDeLista } from "../../../components/listaPartesModelo";
 
-export type ClavePieza = "linea" | "colores" | "logos" | "letra" | "iconos";
+export type ClavePieza = "linea" | "colores" | "rotulos" | "logos" | "letra" | "iconos";
 
 export type EntradaPiezas = {
   /** Nombre de la línea visual aplicada, o `null` si no hay una. */
@@ -15,6 +15,8 @@ export type EntradaPiezas = {
   conLogos: boolean;
   conLetra: boolean;
   nIconos: number;
+  /** U3: rótulos cortos del estudio (`plan.rotulos_cortos`). */
+  nRotulos: number;
 };
 
 const POR_DEFECTO: EstadoParte = { tono: "neutro", texto: "Por defecto" };
@@ -25,6 +27,8 @@ export function piezasIdentidad(e: EntradaPiezas): ParteDeLista<ClavePieza>[] {
       estado: e.lineaNombre ? { tono: "listo", texto: "Aplicada" } : POR_DEFECTO },
     { clave: "colores", rotulo: "Colores", detalle: "Por escala",
       estado: e.faltanColores ? { tono: "aviso", texto: `${e.faltanColores} sin colores` } : { tono: "listo", texto: "Completos" } },
+    { clave: "rotulos", rotulo: "Rótulos cortos", detalle: "Respuestas largas",
+      estado: e.nRotulos ? { tono: "conteo", texto: String(e.nRotulos) } : POR_DEFECTO },
     { clave: "logos", rotulo: "Logos", detalle: e.conLogos ? "Logos propios" : "Los del recetario",
       estado: e.conLogos ? { tono: "listo", texto: "Propios" } : POR_DEFECTO },
     { clave: "letra", rotulo: "Letra", detalle: e.conLetra ? "Tamaño ajustado" : "Tamaño estándar",

@@ -70,6 +70,35 @@ export function variablesDeControl(
   }).sort((a, b) => a.actor.localeCompare(b.actor, "es") || a.variable.localeCompare(b.variable, "es"));
 }
 
+/**
+ * Las cuotas declaradas referenciales (ADR 0126) se leen igual que una variable
+ * de control: composición frente al universo, sin faltante. Las cifras salen
+ * del motor de cuotas (`pct_efectivas`, `pct_universo`, sobre las categorías
+ * conocidas); «Sin dato» no entra a la composición.
+ */
+export function referencialesDeCuotas(cuotas: readonly MonitoreoCuota[]): VariableDeControl[] {
+  return cuotas.filter((cuota) => cuota.caracter === "referencial").map((cuota) => {
+    const filas: FilaDePesa[] = cuota.categorias
+      .filter((categoria) => categoria.pct_universo != null || categoria.pct_efectivas != null)
+      .map((categoria) => {
+        const pctBase = categoria.pct_universo != null ? categoria.pct_universo * 100 : null;
+        const pctEfectivas = categoria.pct_efectivas != null ? categoria.pct_efectivas * 100 : null;
+        return {
+          categoria: categoria.categoria,
+          universo: categoria.universo ?? 0,
+          efectivas: categoria.efectivas ?? 0,
+          pctBase,
+          pctEfectivas,
+          delta: pctBase != null && pctEfectivas != null ? pctEfectivas - pctBase : null,
+        };
+      })
+      .sort((a, b) => b.universo - a.universo);
+    const deltas = filas.map((fila) => fila.delta).filter((valor): valor is number => valor != null);
+    const maxDelta = deltas.length ? deltas.reduce((mayor, valor) => (Math.abs(valor) > Math.abs(mayor) ? valor : mayor)) : null;
+    return { id: cuota.id, actor: cuota.actor, variable: cuota.variable, filas, maxDelta };
+  });
+}
+
 export type FranjaDeCuota = {
   efectivas: number;
   metaPorCategorias: number;

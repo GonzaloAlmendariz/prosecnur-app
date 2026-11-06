@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { EstadoChip } from "../../../../../../components/EstadoChip";
 import { Download, Loader2, Mail, RefreshCw } from "lucide-react";
 import type { MonitoreoMailchimpAudiencia, MonitoreoMailchimpEstado } from "../../../../../../api/monitoreoMailchimp";
 import { useFocoMonitoreo } from "../../../../useMonitoreoDireccion";
@@ -8,7 +9,8 @@ import { fechaCorta } from "../../avanceCorreoMatriz";
 import { tramosDelPublico } from "../../avanceCorreoEmbudoModelo";
 import { cifra, faseCorreo, marcaReadiness, motivoInvalido, nombreAudiencia, porcentaje, RITMO, type AvanceDeLectura } from "../../avanceCorreoModelo";
 import { descargarCsv } from "../casos/descargarCsv";
-import { campanas, csvDeInvalidos, rotuloDeColumna, secuenciaDeEnvios, tasasPorPublico } from "./correoModelo";
+import { pctConEspacio } from "../../../../core/formatoComun";
+import { aperturaAutomatica, campanas, csvDeInvalidos, papelesQueInforman, rotuloDeColumna, secuenciaDeEnvios, tasasPorPublico } from "./correoModelo";
 import { useCorreoMailchimp } from "./useCorreoMailchimp";
 import "../../avance/avance.css";
 import "../../paletaPublicos.css";
@@ -29,11 +31,14 @@ type PropsDeVista = {
   onCambiarAudiencia: () => void;
 };
 
-function Paso({ rotulo, valor, base }: { rotulo: string; valor: number | null; base: number | null }) {
+/** El tono que pintaba `.acr-co-ritmo.is-*` (contacto.css); «Sin envíos» iba sin color. */
+const TONO_DE_RITMO = { ready: "success", warning: "warn", danger: "danger", neutral: "neutral" } as const;
+
+function Paso({ rotulo, valor, base, aviso }: { rotulo: string; valor: number | null; base: number | null; aviso?: string }) {
   const ancho = valor != null && base ? Math.min(100, (valor / base) * 100) : 0;
   return (
-    <li>
-      <span>{rotulo}</span>
+    <li className={aviso ? "is-dudoso" : undefined}>
+      <span className="acr-co-paso">{rotulo}{aviso ? <span className="acr-co-chip is-warning" title={aviso} tabIndex={0} aria-label={`No mide lectura. ${aviso}`}>No mide lectura</span> : null}</span>
       <span className="acr-av-pista is-gruesa"><i style={{ width: `${ancho}%` }} /></span>
       <b className="acr-av-num">{valor == null ? "—" : cifra(valor)}</b>
       <span className="acr-av-tenue acr-av-num">{valor != null && base ? porcentaje(valor / base) : ""}</span>
@@ -72,8 +77,7 @@ export function CorreoVista({ estado, audiencias, foco, lectura, aviso, error, o
               <thead>
                 <tr>
                   <th scope="col">Público</th>
-                  <th scope="col" className="is-num">Universo</th>
-                  <th scope="col" className="is-num">Alcanzable</th>
+                  <th scope="col" className="is-num" title="Personas del universo con un correo válido en la audiencia">Alcanzable</th>
                   {Array.from({ length: secuencia.columnas }, (_, indice) => <th key={indice} scope="col" className="acr-co-col">{rotuloDeColumna(indice + 1)}</th>)}
                   <th scope="col">Ritmo</th>
                 </tr>
@@ -87,8 +91,13 @@ export function CorreoVista({ estado, audiencias, foco, lectura, aviso, error, o
                       <th scope="row">
                         <button type="button" className={`acr-co-publico ${clasePublico(paleta, fila.publico.actor)}`} aria-pressed={activa} onClick={() => onElegirPublico(fila.publico.actor)}><i className="mon-publico-punto" aria-hidden="true" />{fila.publico.actor}</button>
                       </th>
-                      <td className="is-num">{cifra(fila.publico.universo)}</td>
-                      <td className="is-num">{cifra(fila.publico.alcanzable)}</td>
+                      <td className="is-num">
+                        <span className="acr-celda-doble is-num">
+                          <span>{cifra(fila.publico.alcanzable)}</span>
+                          {fila.publico.universo != null && fila.publico.alcanzable != null && fila.publico.universo !== fila.publico.alcanzable
+                            ? <small>{`de ${cifra(fila.publico.universo)}`}</small> : null}
+                        </span>
+                      </td>
                       {fila.celdas.map((celda, indice) => (
                         <td key={indice} className="acr-co-col">
                           {celda ? (
@@ -96,10 +105,10 @@ export function CorreoVista({ estado, audiencias, foco, lectura, aviso, error, o
                               <b className="acr-av-num">{cifra(celda.entregados)}</b>
                               <small className="acr-av-num">{`${cifra(celda.respuestas)} resp.`}</small>
                             </span>
-                          ) : <span className="acr-co-celda is-vacia" aria-label="Sin envío" />}
+                          ) : <span className="acr-co-celda is-vacia">Por enviar</span>}
                         </td>
                       ))}
-                      <td><span className={`acr-co-ritmo is-${ritmo.tono}`} title={fila.publico.ritmo_motivo}>{ritmo.etiqueta}</span></td>
+                      <td><EstadoChip label={ritmo.etiqueta} tone={TONO_DE_RITMO[ritmo.tono]} detail={fila.publico.ritmo_motivo || undefined} /></td>
                     </tr>
                   );
                 })}
@@ -113,7 +122,7 @@ export function CorreoVista({ estado, audiencias, foco, lectura, aviso, error, o
               <h3><i className="mon-publico-punto" aria-hidden="true" />{elegido.actor}</h3>
               <span className="acr-co-chips">
                 <span className="acr-co-chip">{`Base alcanzable de ${cifra(elegido.alcanzable)}`}</span>
-                {elegido.efectivas != null ? <span className="acr-co-chip is-ok">{`${cifra(elegido.efectivas)} efectivas, el ${porcentaje(elegido.tasa_alcanzable)}`}</span> : null}
+                {elegido.efectivas != null ? <EstadoChip label={`${cifra(elegido.efectivas)} efectivas, el ${porcentaje(elegido.tasa_alcanzable)}`} tone="success" /> : null}
               </span>
             </header>
             {tramos.length ? (
@@ -123,10 +132,17 @@ export function CorreoVista({ estado, audiencias, foco, lectura, aviso, error, o
                   const sinApple = c.aperturas_sin_proxy;
                   return (
                     <article key={tramo.envio.campaign_id} className="acr-co-embudo">
-                      <h4>{indice === 0 ? "Invitación" : `Recordatorio ${indice}`} <span className="acr-av-tenue">{`${fechaCorta(tramo.envio.enviado_at)} · ${cifra(c.enviados)} enviados`}</span></h4>
+                      <h4>{indice === 0 ? "Invitación" : `Recordatorio ${indice}`} <span className="acr-av-tenue">{`${fechaCorta(tramo.envio.enviado_at)}, ${cifra(c.enviados)} enviados`}</span></h4>
                       <ul>
                         <Paso rotulo="Entregados" valor={c.entregados} base={c.entregados} />
-                        <Paso rotulo={sinApple == null ? "Abrieron, con Apple" : "Abrieron, sin contar Apple"} valor={sinApple ?? c.aperturas} base={c.entregados} />
+                        <Paso
+                          rotulo={sinApple == null ? "Aperturas" : "Aperturas sin Apple"}
+                          valor={sinApple ?? c.aperturas}
+                          base={c.entregados}
+                          aviso={aperturaAutomatica(sinApple ?? c.aperturas, c.entregados)
+                            ? "Casi todos los entregados figuran como abiertos: los filtros de seguridad del correo institucional abren cada mensaje al recibirlo. El clic es la primera señal de lectura."
+                            : undefined}
+                        />
                         <Paso rotulo="Clic en la encuesta" valor={c.clics} base={c.entregados} />
                         <Paso rotulo="Respondieron" valor={c.respuestas} base={c.entregados} />
                       </ul>
@@ -144,37 +160,46 @@ export function CorreoVista({ estado, audiencias, foco, lectura, aviso, error, o
           </section>
         ) : null}
         <section className="acr-av-panel" aria-label="Campañas">
-          <header className="acr-av-panel-cabecera"><h3>Campañas <span className="acr-av-tenue">Cada envío con su papel en cada público</span></h3></header>
+          <header className="acr-av-panel-cabecera"><h3>Campañas <span className="acr-av-tenue">En el orden en que salieron</span></h3></header>
           <div className="acr-pr-cola-marco" data-qa-geometry-capacity="owned">
             <table className="acr-pub-tabla">
               <thead>
                 <tr>
                   <th scope="col">Campaña</th>
                   <th scope="col">Salió</th>
-                  <th scope="col">Papel por público</th>
                   <th scope="col" className="is-num">Entregados</th>
                   <th scope="col" className="is-num">Respuestas</th>
+                  <th scope="col" className="is-num" title="Respuestas sobre entregados">Tasa</th>
                 </tr>
               </thead>
               <tbody>
-                {listaDeCampanas.map((campana) => (
-                  <tr key={campana.campaignId}>
-                    <th scope="row">{campana.titulo}{campana.etiqueta ? <small className="acr-av-tenue acr-co-etiqueta">{campana.etiqueta}</small> : null}</th>
-                    <td>{campana.fecha ? fechaCorta(campana.fecha) : "—"}</td>
-                    <td>
-                      <ul className="acr-co-papeles">
-                        {campana.papeles.map((papel) => (
-                          <li key={papel.publico}>
-                            <b>{papel.publico}</b>{`: ${papel.rotulo}`}
-                            {papel.recordatorioDe ? <span className="acr-av-tenue">{` de «${papel.recordatorioDe}»`}</span> : null}
-                          </li>
-                        ))}
-                      </ul>
-                    </td>
-                    <td className="is-num">{cifra(campana.entregados)}</td>
-                    <td className="is-num">{cifra(campana.respuestas)}</td>
-                  </tr>
-                ))}
+                {listaDeCampanas.map((campana) => {
+                  // El papel sólo se dice cuando no es la invitación de un único público: si no, repite el título.
+                  const papeles = papelesQueInforman(campana);
+                  return (
+                    <tr key={campana.campaignId}>
+                      <th scope="row">
+                        {campana.titulo}
+                        {/* La etiqueta sólo si dice algo que el título no dice. */}
+                        {campana.etiqueta && !campana.titulo.toLowerCase().includes(campana.etiqueta.toLowerCase()) ? <div className="acr-co-papeles">{campana.etiqueta}</div> : null}
+                        {papeles.length ? (
+                          <ul className="acr-co-papeles">
+                            {papeles.map((papel) => (
+                              <li key={papel.publico}>
+                                {`${papel.publico}: ${papel.rotulo.toLowerCase()}`}
+                                {papel.recordatorioDe ? ` de «${papel.recordatorioDe}»` : ""}
+                              </li>
+                            ))}
+                          </ul>
+                        ) : null}
+                      </th>
+                      <td>{campana.fecha ? fechaCorta(campana.fecha) : "—"}</td>
+                      <td className="is-num">{cifra(campana.entregados)}</td>
+                      <td className="is-num">{cifra(campana.respuestas)}</td>
+                      <td className="is-num">{campana.entregados && campana.respuestas != null ? pctConEspacio((campana.respuestas / campana.entregados) * 100) : "—"}</td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -184,13 +209,12 @@ export function CorreoVista({ estado, audiencias, foco, lectura, aviso, error, o
         <section className="acr-av-panel" aria-label="Audiencia">
           <header className="acr-av-panel-cabecera">
             <h3>Audiencia</h3>
-            <span className="acr-co-chip is-ok">Conectada</span>
+            <EstadoChip label="Conectada" tone="success" />
           </header>
           <div className="acr-co-cuerpo">
             {/* Sin la lista de audiencias de la cuenta no hay nombre que mostrar: no se pone el identificador en su lugar. */}
-            <strong className="acr-co-audiencia">{audiencias.some((item) => item.id === estado.list_id) ? nombreAudiencia(estado.list_id, audiencias) : "Audiencia de Mailchimp"}</strong>
+            <strong className="acr-co-audiencia" title={`Lista ${estado.list_id}`}>{audiencias.some((item) => item.id === estado.list_id) ? nombreAudiencia(estado.list_id, audiencias) : "Audiencia de Mailchimp"}</strong>
             <span className="acr-av-tenue">{estado.leido_at ? `Leída el ${corteCorto(estado.leido_at)}` : "Sin leer"}</span>
-            <span className="acr-av-tenue acr-av-num">{`Lista ${estado.list_id}`}</span>
             <dl className="acr-co-cifras">
               <div><dt>Envíos leídos</dt><dd className="acr-av-num">{cifra(estado.envios.length)}</dd></div>
               <div><dt>Respuestas atribuidas</dt><dd className="acr-av-num">{cifra(respuestasAtribuidas)}</dd></div>
@@ -206,22 +230,23 @@ export function CorreoVista({ estado, audiencias, foco, lectura, aviso, error, o
           </div>
         </section>
         <section className="acr-av-panel" aria-label="Umbrales de ritmo">
-          <header className="acr-av-panel-cabecera"><h3>Umbrales de ritmo</h3></header>
+          <header className="acr-av-panel-cabecera"><h3>Umbrales de ritmo <span className="acr-av-tenue">Sobre el último envío</span></h3></header>
           <ul className="acr-co-cuerpo acr-co-umbrales">
-            <li><span>Bajas del último envío</span><span className="acr-co-chip is-warning">{`Espaciar desde ${porcentaje(u.baja_espaciar)}`}</span></li>
-            <li><span>Quejas del último envío</span><span className="acr-co-chip is-warning">{`Espaciar desde ${porcentaje(u.queja_espaciar)}`}</span></li>
-            <li><span>Quejas del último envío</span><span className="acr-co-chip is-danger">{`Detener desde ${porcentaje(u.queja_detener)}`}</span></li>
-            <li><span>Respuestas menores que bajas</span><span className="acr-co-chip is-warning">Espaciar</span></li>
+            {/* Una fila por regla, con la acción en el chip: las quejas tienen dos umbrales y no se repite el rótulo. */}
+            <li><span>Bajas, para espaciar</span><EstadoChip label={`Desde ${porcentaje(u.baja_espaciar)}`} tone="warn" /></li>
+            <li><span>Quejas, para espaciar</span><EstadoChip label={`Desde ${porcentaje(u.queja_espaciar)}`} tone="warn" /></li>
+            <li><span>Quejas, para detener</span><EstadoChip label={`Desde ${porcentaje(u.queja_detener)}`} tone="danger" /></li>
+            <li><span>Respuestas menores que bajas</span><EstadoChip label="Espaciar" tone="warn" /></li>
           </ul>
         </section>
         <section className="acr-av-panel" aria-label="Tasa sobre la base alcanzable">
           <header className="acr-av-panel-cabecera"><h3>Tasa sobre la base alcanzable</h3></header>
           <ul className="acr-co-cuerpo acr-co-tasas">
             {tasas.map((item) => (
-              <li key={item.publico}>
-                <span>{item.publico}</span>
+              <li key={item.publico} className={clasePublico(paleta, item.publico)}>
+                <span><i className="mon-publico-punto" aria-hidden="true" />{item.publico}</span>
                 <span className="acr-av-pista"><i style={{ width: `${((item.tasa ?? 0) / maxTasa) * 100}%` }} /></span>
-                <b className="acr-av-num">{porcentaje(item.tasa)}</b>
+                <b className="acr-av-num">{item.tasa == null ? "—" : pctConEspacio(item.tasa * 100)}</b>
               </li>
             ))}
           </ul>
@@ -240,7 +265,7 @@ export function CorreoVista({ estado, audiencias, foco, lectura, aviso, error, o
           </header>
           {estado.invalidos.por_actor.some((item) => (item.n ?? 0) > 0) ? (
             <ul className="acr-co-cuerpo acr-co-umbrales">
-              {estado.invalidos.por_actor.filter((item) => (item.n ?? 0) > 0).map((item) => (
+              {estado.invalidos.por_actor.filter((item) => (item.n ?? 0) > 0).sort((a, b) => (b.n ?? 0) - (a.n ?? 0)).map((item) => (
                 <li key={item.actor}><span>{item.actor}</span><b className="acr-av-num">{cifra(item.n)}</b></li>
               ))}
             </ul>

@@ -6,9 +6,9 @@
    y rojo lo que sí es del operativo y no pasa. El orden de gravedad se lee sin
    leyenda. */
 .aulas-resp { display: flex; flex-direction: column; gap: 8px; }
-.aulas-resp-titular { margin: 0; font-size: 14px; color: var(--pulso-text-soft); }
+.aulas-resp-titular { margin: 0; font-size: var(--pulso-type-body-size); color: var(--pulso-text-soft); }
 .aulas-resp-titular strong {
-  font-size: 22px;
+  font-size: var(--pulso-type-kpi-size);
   font-weight: 500;
   color: var(--pulso-text);
   font-variant-numeric: tabular-nums;
@@ -32,7 +32,7 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  font-size: 12.5px;
+  font-size: var(--pulso-type-body-size);
   color: var(--pulso-text-soft);
 }
 .aulas-resp-sub strong { color: var(--pulso-text); font-variant-numeric: tabular-nums; }
@@ -41,7 +41,7 @@
   gap: 18px;
   flex-wrap: wrap;
   margin: 0;
-  font-size: 12.5px;
+  font-size: var(--pulso-type-body-size);
   color: var(--pulso-text-soft);
 }
 .aulas-resp-leyenda strong { color: var(--pulso-text); font-variant-numeric: tabular-nums; }
@@ -55,4 +55,4 @@
 }
 .aulas-resp-swatch[data-tramo="fuera"] { background: var(--pulso-warn-fg); }
 .aulas-resp-swatch[data-tramo="criterio"] { background: var(--pulso-danger-fg); }
-.aulas-resp-nota { margin: 0; font-size: 12px; color: var(--pulso-text-faint); }
+.aulas-resp-nota { margin: 0; font-size: var(--pulso-type-body-size); color: var(--pulso-text-faint); }

@@ -37,8 +37,8 @@
     items <- .lam_multilista_items(ml)
     if (is.null(items)) return(NULL)
     for (k in seq_along(items)) items[[k]]$.bloque <- k
-    .op <- .grosor_piso_slot(items[[1]]$espec$grosor_piso_cm); on.exit(options(.op), add = TRUE)
-    compartida <- .lam_multilista_leyenda_compartida(lapply(items, `[[`, "espec"))
+    .op <- c(.grosor_piso_slot(items[[1]]$espec$grosor_piso_cm), .lam_escala_ensanche_previa()); on.exit(options(.op), add = TRUE)
+    compartida <- .lam_multilista_leyenda_compartida(lapply(items, `[[`, "espec")); .lam_multilista_ensanche_fijar(items, compartida)
     partes <- .lam_multilista_planear(items, compartida)
     out <- lapply(seq_along(partes), function(j) do.call(rbind, lapply(partes[[j]], function(t) {
       .word_particion_filas(t$premisas, t$espec, j, t$.bloque)
@@ -47,8 +47,8 @@
   }
   espec <- attr(plot, "pulso_espec")
   if (is.null(espec) || !identical(espec$tipo, "escala") || !NROW(espec$filas) || .lam_escala_modo_filas(espec)) return(NULL)
-  .op <- .grosor_piso_slot(espec$grosor_piso_cm); on.exit(options(.op), add = TRUE)
-  premisas <- .lam_escala_premisas(espec)
+  .op <- c(.grosor_piso_slot(espec$grosor_piso_cm), .lam_escala_ensanche_previa()); on.exit(options(.op), add = TRUE)
+  premisas <- .lam_escala_premisas(espec); .lam_escala_ensanche_fijar(premisas, espec)   # la misma partición que el PPT
   partes <- .lam_escala_partir(premisas, aire_min_fn = function(p) .lam_escala_aire_minimo(p, chica = .lam_escala_chica_por_premisa(espec, p))$alto)
   out <- lapply(seq_along(partes), function(j) .word_particion_filas(partes[[j]], espec, j))
   .word_particion_ordenar(do.call(rbind, out))

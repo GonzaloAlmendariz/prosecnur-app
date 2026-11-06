@@ -265,7 +265,7 @@ export function EquivalenciasTabla({
                   <input
                     value={fila.etiqueta_estandar}
                     title={fila.etiqueta_estandar || undefined}
-                    placeholder="Cómo se llama esta pregunta en el informe"
+                    placeholder="Nombre en el informe"
                     aria-label={`Nombre estándar de la fila ${indice + 1}`}
                     onChange={(e) => onEditar(fila.id, "etiqueta_estandar", e.target.value)}
                   />

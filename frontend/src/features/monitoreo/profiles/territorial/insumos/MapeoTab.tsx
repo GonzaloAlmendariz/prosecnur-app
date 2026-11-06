@@ -1,4 +1,6 @@
 import { memo, useEffect, useMemo, useState } from "react";
+import { LoadingBlock } from "../../../../../components/States";
+import { EstadoChip } from "../../../../../components/EstadoChip";
 import {
   apiMonitoreoTerritorialMapeo,
   type MonitoreoState,
@@ -8,6 +10,7 @@ import {
 import { fmt } from "../rotulos";
 import { construirMapeo } from "./mapeoModel";
 import { RotuloDePestana } from "../navegacion/RotuloDePestana";
+import { BloqueDeMonitoreo } from "../../../core/BloqueDeMonitoreo";
 import { SiluetaDeDistrito } from "../avance/SiluetaDeDistrito";
 import "./insumos.css";
 
@@ -52,13 +55,17 @@ function MapeoTabImpl({
       data-qa-geometry-group="territorial-insumos-mapeo"
       data-qa-geometry-contract="intrinsic"
     >
-      <section className="mon-ins-panel" aria-labelledby="mon-ins-roles" data-qa-geometry-member="roles">
-        <header className="mon-ins-cabecera">
-          <RotuloDePestana />
-          <h3 id="mon-ins-roles" className="mon-ins-titulo">Roles del formulario</h3>
-          {modelo.roles ? <span className="mon-ins-base">{modelo.pendientes ? `${fmt(modelo.pendientes)} sin columna en la base` : "Todos con su columna"}</span> : null}
-          <button type="button" className="mon-ins-boton" onClick={onEditarMapeo}>Editar el mapeo</button>
-        </header>
+      <BloqueDeMonitoreo
+        marco="kit"
+        className="mon-ins-panel"
+        aria-labelledby="mon-ins-roles"
+        data-qa-geometry-member="roles"
+        antetitulo={<RotuloDePestana />}
+        titulo="Roles del formulario"
+        tituloId="mon-ins-roles"
+        bajada={modelo.roles ? (modelo.pendientes ? `${fmt(modelo.pendientes)} sin columna en la base` : "Todos con su columna") : undefined}
+        acciones={<button type="button" className="mon-ins-boton" onClick={onEditarMapeo}>Editar el mapeo</button>}
+      >
         {lectura.tipo === "error" ? (
           <p className="mon-ins-base">No se pudo leer el mapeo: {lectura.mensaje}</p>
         ) : modelo.roles ? (
@@ -71,24 +78,29 @@ function MapeoTabImpl({
                 {modelo.roles.map((rol) => (
                   <tr key={rol.campo} className={rol.estado === "encontrada" ? "" : "is-falta"}>
                     <th scope="row">{rol.rol}</th>
-                    <td>{rol.columna ? <code>{rol.columna}</code> : "—"}</td>
-                    <td><span className={`mon-ter-chip ${rol.estado === "encontrada" ? "is-ok" : "is-falta"}`}>{rol.rotuloDeEstado}</span></td>
+                    <td>{rol.columna ? <span className="mon-ins-clave">{rol.columna}</span> : "—"}</td>
+                    <td><EstadoChip label={rol.rotuloDeEstado} tone={rol.estado === "encontrada" ? "success" : "warn"} /></td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
         ) : (
-          <p className="mon-ins-base">Leyendo las columnas de la base…</p>
+          <LoadingBlock label="Leyendo las columnas de la base…" variant="inline" />
         )}
-      </section>
+      </BloqueDeMonitoreo>
 
       <div className="mon-ins-derecha" data-qa-geometry-member="reglas" data-qa-geometry-group="territorial-insumos-mapeo-reglas" data-qa-geometry-contract="intrinsic">
-        <section className="mon-ins-panel" aria-labelledby="mon-ins-filtro" data-qa-geometry-group="territorial-insumos-mapeo-filtro" data-qa-geometry-contract="intrinsic">
-          <header className="mon-ins-cabecera">
-            <h3 id="mon-ins-filtro" className="mon-ins-titulo">Filtro de efectivas</h3>
-            <button type="button" className="mon-ins-boton" onClick={onEditarFiltro}>Editar filtro y distritos</button>
-          </header>
+        <BloqueDeMonitoreo
+          marco="kit"
+          className="mon-ins-panel"
+          aria-labelledby="mon-ins-filtro"
+          data-qa-geometry-group="territorial-insumos-mapeo-filtro"
+          data-qa-geometry-contract="intrinsic"
+          titulo="Filtro de efectivas"
+          tituloId="mon-ins-filtro"
+          acciones={<button type="button" className="mon-ins-boton" onClick={onEditarFiltro}>Editar filtro y distritos</button>}
+        >
           {modelo.filtro ? (
             <>
               <p className="mon-ins-pregunta">«{modelo.filtro.pregunta || "Pregunta sin rótulo"}»</p>
@@ -103,31 +115,29 @@ function MapeoTabImpl({
           ) : (
             <p className="mon-ins-base">El corte no trae el filtro de efectivas.</p>
           )}
-        </section>
-        <section className="mon-ins-panel" aria-labelledby="mon-ins-umbrales">
-          <h3 id="mon-ins-umbrales" className="mon-ins-titulo">Umbrales de la Bandeja</h3>
+        </BloqueDeMonitoreo>
+        <BloqueDeMonitoreo marco="kit" className="mon-ins-panel" aria-labelledby="mon-ins-umbrales" titulo="Umbrales de la Bandeja" tituloId="mon-ins-umbrales">
           <dl className="mon-ins-cifras">
             {modelo.umbrales.map((umbral) => <div key={umbral.rotulo} title={umbral.ayuda}><dt>{umbral.rotulo}</dt><dd>{umbral.valor}</dd></div>)}
           </dl>
-        </section>
-        <section className="mon-ins-panel" aria-labelledby="mon-ins-distritos">
-          <h3 id="mon-ins-distritos" className="mon-ins-titulo">Distritos de Kobo y su ubigeo</h3>
+        </BloqueDeMonitoreo>
+        <BloqueDeMonitoreo marco="kit" className="mon-ins-panel" aria-labelledby="mon-ins-distritos" titulo="Distritos de Kobo y su ubigeo" tituloId="mon-ins-distritos">
           {modelo.distritos.length ? (
             <ul className="mon-ins-lista" data-qa-geometry-group="territorial-insumos-mapeo-distritos" data-qa-geometry-contract="equal">
               {modelo.distritos.map((fila) => (
                 <li key={fila.codigo} className={`mon-ins-distrito${fila.ok ? "" : " is-falta"}`}>
                   <span className="mon-ins-distrito-sello" aria-hidden="true"><SiluetaDeDistrito distrito={fila.ok ? fila.distrito : ""} lado={26} /></span>
-                  <span><code>{fila.codigo}</code> {fila.etiqueta}</span>
+                  <span><span className="mon-ins-clave">{fila.codigo}</span> {fila.etiqueta}</span>
                   {fila.ok
-                    ? <span className="mon-ins-distrito-destino">{fila.distrito} <code>{fila.ubigeo}</code></span>
-                    : <span className="mon-ter-chip is-falta">Sin ubigeo</span>}
+                    ? <span className="mon-ins-distrito-destino">{fila.distrito} <span className="mon-ins-ubigeo">{fila.ubigeo}</span></span>
+                    : <EstadoChip label="Sin ubigeo" tone="warn" />}
                 </li>
               ))}
             </ul>
           ) : (
             <p className="mon-ins-base">Sin cruce de distritos declarado.</p>
           )}
-        </section>
+        </BloqueDeMonitoreo>
       </div>
     </section>
   );

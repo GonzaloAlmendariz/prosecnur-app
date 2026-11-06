@@ -25,13 +25,13 @@ describe("el estrato se lee sin descifrar códigos", () => {
 
   it("compone la clave entera y respeta la facultad", () => {
     expect(etiquetaDeEstrato("GESTIÓN Y ALTA DIRECCIÓN / F / G3"))
-      .toBe("GESTIÓN Y ALTA DIRECCIÓN · mayoría mujeres · 31-40 alumnos");
+      .toBe("GESTIÓN Y ALTA DIRECCIÓN, mayoría mujeres, 31-40 alumnos");
   });
 
   it("un segmento que no reconoce lo deja pasar, no lo borra", () => {
     // Una lista cerrada que se traga lo que no entiende deja el estrato mudo y
     // nadie se entera: el defecto se ve como un hueco, no como un error.
-    expect(etiquetaDeEstrato("DERECHO / F / G9")).toBe("DERECHO · mayoría mujeres · G9");
+    expect(etiquetaDeEstrato("DERECHO / F / G9")).toBe("DERECHO, mayoría mujeres, G9");
     expect(etiquetaDeEstrato("global")).toBe("global");
   });
 

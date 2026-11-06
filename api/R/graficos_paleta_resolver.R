@@ -195,6 +195,9 @@
 .paleta_en_espec <- function(p, colores) {
   espec <- attr(p, "pulso_espec", exact = TRUE)
   if (is.null(espec) || is.null(espec$rotulos) || !.paleta_es_de_usuario(colores)) return(p)
+  # ADR 0130: una agrupada de una sola serie va en un color; la paleta de la lista sólo entra si el gráfico lo pide
+  # (`colorear_por_opcion`). Los graficadores que no declaran el campo siguen el ADR 0097 como antes.
+  if (identical(espec$tipo, "categorica") && identical(espec$colorear_por_opcion, FALSE)) return(p)
   attr(p, "pulso_espec") <- .espec_con_colores(espec, colores)
   p
 }
@@ -206,7 +209,18 @@
   if (is.null(cols) || !length(cols) || is.null(names(cols)) || !length(rotulos)) return(NULL)
   out <- unname(cols[as.character(rotulos)])
   out[is.na(out) | !nzchar(out)] <- .paleta_gris_residual()
-  out
+  # `residuales_gris` es una decisión explícita del analista: gana sobre la paleta de la lista («Otros» salía del color
+  # de su opción aunque el mando pidiera gris; CCSS 2026-11-04, lámina de agrupaciones).
+  .espec_residuales_en_gris(espec, rotulos, out)
+}
+
+#' Pinta de gris las opciones residuales («Otros», «No sabe», «Ninguna»…) cuando la espec pide `residuales_gris`
+#' @keywords internal
+.espec_residuales_en_gris <- function(espec, rotulos, colores) {
+  if (!isTRUE(espec[["residuales_gris"]]) || is.null(colores) || !length(rotulos)) return(colores)
+  es_res <- grepl(.CATEGORIAS_RESIDUALES, as.character(rotulos), ignore.case = TRUE)
+  colores[es_res] <- .graficos_no_sustantivo_color()
+  colores
 }
 
 #' Likert del recetario para una escala sin paleta (P4a), también cuando sus pasos son sólo números
@@ -221,9 +235,8 @@
   n <- .paleta_norm_etiqueta(levels)
   especial <- grepl(.DIVERGENTES_ESPECIAL, levels, ignore.case = TRUE) | grepl(.PALETA_ESCALA_ESPECIAL_EXTRA, n)
   k <- sum(!especial); base <- unname(.std_paleta("likert"))
-  rampa <- if (k == 4L) base[1:4] else if (k == 5L) unname(.std_paleta("likert_neutro"))[1:5] else
-    grDevices::colorRampPalette(base[1:4])(max(k, 1L))[seq_len(k)]
   pasos <- n[!especial]
+  rampa <- if (k >= 1L) .paleta_rampa_escala(k, pasos)[seq_len(k)] else character(0)   # medio neutro en gris (graficador_paleta.R)
   if (k >= 2L && grepl(.PALETA_ESCALA_NEGATIVO, pasos[k]) && !grepl(.PALETA_ESCALA_NEGATIVO, pasos[1])) rampa <- rev(rampa)
   vals <- character(length(levels)); vals[!especial] <- rampa; vals[especial] <- base[5]
   stats::setNames(vals, levels)

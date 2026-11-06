@@ -76,6 +76,12 @@ export type AulasOperationsPanelProps = {
    *  recuerda; `undefined` usa el destino ya recordado en el proyecto. */
   onPublicarASheets?: (enlace?: string) => void;
   /**
+   * R13: construir las tablas en el Sheets es de Material (Entrega › «Construir
+   * las tablas en Sheets», que llama al mismo motor). Con esto, el panel lleva
+   * allá en vez de publicar; Monitoreo se queda con leer y supervisar.
+   */
+  onIrAMaterial?: () => void;
+  /**
    * Releer el cruce con el otro estudio. **Ausente sin fuente declarada**: un
    * botón que sólo puede fallar ocupa sitio para no hacer nada, y la causa —que
    * el estudio no declara contra quién se cruza— no se arregla pulsándolo.
@@ -87,7 +93,7 @@ export type AulasOperationsPanelProps = {
 
 export function AulasOperationsPanel({
   config, sources, busy, origen = null, onImportPlan, onSyncField, onGenerarLibro, onImportarLibro,
-  onLeerDeSheets, onPublicarASheets, onRecalcularTraslape, traslapeDe = "",
+  onLeerDeSheets, onPublicarASheets, onIrAMaterial, onRecalcularTraslape, traslapeDe = "",
   selloDeLibro = null, sincronizadoEn = "",
 }: AulasOperationsPanelProps) {
   // Se calcula aquí y no en el render de abajo para que la frase exista una
@@ -123,7 +129,7 @@ export function AulasOperationsPanel({
   const esperando = !hayPlan && origen?.selection_run_id
     ? Number(origen.unidades_disponibles) || 0
     : 0;
-  const sourceKinds = Array.from(new Set(activeSources.map((source) => source.kind).filter(Boolean))).join(" · ") || "sin fuentes";
+  const sourceKinds = Array.from(new Set(activeSources.map((source) => source.kind).filter(Boolean))).join(", ") || "sin fuentes";
   const cards = [
     {
       key: "seleccion",
@@ -147,7 +153,7 @@ export function AulasOperationsPanel({
       hint: config?.selection_run_id
         ? aulasOpsShortId(config.selection_run_id)
         : hayPlan
-          ? `${filasDelPlan} del libro · sin corrida de cálculo`
+          ? `${filasDelPlan} del libro, sin corrida de cálculo`
           : esperando
             ? `${fmt(esperando)} cursos-horario sorteados sin traer`
             : "el cálculo de muestra todavía no sorteó aulas",
@@ -251,12 +257,10 @@ export function AulasOperationsPanel({
         >
           {busy ? <Loader2 size={14} className="pulso-spin" /> : <RefreshCw size={14} />}
           {/* **El rótulo promete lo que el botón hace, desde el 2026-09-09.**
-              Antes sólo recalculaba con el snapshot que ya había en la sesión, y
-              el nombre decía «sincronizar»: dos jornadas devolviendo las mismas
-              cifras de la víspera sin nada en pantalla que lo explicara. Ahora
-              baja primero de la plataforma; el rótulo se queda porque ya es
-              cierto. */}
-          <span>Traer respuestas</span>
+              Baja primero de la plataforma y después recalcula. Desde L38
+              (2026-11-01) se llama como el «Actualizar» de la barra del modo:
+              es el mismo acto, y un segundo nombre para él confundía. */}
+          <span>Actualizar</span>
         </button>
         {/* Lo que el botón deja detrás: si el Sheets quedó escrito con este
             mismo corte o se quedó en uno anterior. Sin esto, «se supone que
@@ -267,7 +271,7 @@ export function AulasOperationsPanel({
         {/* El ciclo del libro: la app lo produce, alguien lo llena en Excel y la
             app lo relee. Sin estos dos botones sólo se podía cerrar por API.
             Desde el 2026-09-08 «Publicar al Sheets» LEE antes de escribir, así
-            que el ciclo completo son dos clics —«Traer respuestas» para traer
+            que el ciclo completo son dos clics —«Actualizar» para traer
             las respuestas y «Publicar al Sheets» para el resto— y no hace falta
             acordarse de «Leer del Sheets» en medio. */}
         <button
@@ -345,6 +349,15 @@ export function AulasOperationsPanel({
             {busy ? <Loader2 size={14} className="pulso-spin" /> : <UploadCloud size={14} />}
             <span>Publicar al Sheets</span>
           </button>
+        ) : onIrAMaterial ? (
+          <button
+            type="button"
+            onClick={() => onIrAMaterial()}
+            title="Las tablas del Sheets se construyen en Material › Entrega; aquí se leen y se supervisan"
+          >
+            <UploadCloud size={14} />
+            <span>Construir en Material</span>
+          </button>
         ) : null}
         {/* **Releer el cruce con el otro estudio.** Va junto a las dos de Sheets
             porque es la misma familia —leer algo de fuera— y no junto a
@@ -382,7 +395,7 @@ export function AulasOperationsPanel({
         />
         {/* El plural iba fijo, y con una sola fuente —el caso corriente de un
             estudio de aulas— la barra decía «1 fuentes activas». */}
-        <em>{activeSources.length ? `${contar(activeSources.length, "fuente activa", "fuentes activas")} · ${sourceKinds}` : "Sin fuentes activas conectadas"}</em>
+        <em>{activeSources.length ? `${contar(activeSources.length, "fuente activa", "fuentes activas")}, ${sourceKinds}` : "Sin fuentes activas conectadas"}</em>
       </div>
       {/* El destino de las dos acciones de Sheets: se pega UNA vez y queda
           recordado en el proyecto (decisión textual de Gonzalo). Va después de

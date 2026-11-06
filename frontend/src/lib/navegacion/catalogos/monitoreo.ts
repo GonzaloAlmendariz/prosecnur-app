@@ -8,6 +8,7 @@ import {
   CalendarClock,
   CalendarRange,
   ClipboardCheck,
+  ClipboardList,
   Clock,
   Clock3,
   ContactRound,
@@ -206,164 +207,66 @@ export const MONITOREO_PESTANAS = {
       pestana("territorial", "control", "conciliacion", "Conciliación", "Códigos y UMP corregidos", Link2),
     ],
     avance: [
-      pestana("territorial", "avance", "faltante", "Faltante por UMP", "Qué celdas faltan y quién las cubre", Target),
+      // Resumen primero (Gonzalo, 2026-11-02: «resumen siempre va primero y
+      // cuotas después»); Faltante sirve a UMP y a cuotas (por zona).
       pestana("territorial", "avance", "resumen", "Resumen", "Cuánto cuenta y a qué ritmo", BarChart3),
+      pestana("territorial", "avance", "faltante", "Faltante", "Qué celdas faltan y dónde", Target),
       pestana("territorial", "avance", "mapa", "Mapa", "Dónde está el campo", MapPinned),
       pestana("territorial", "avance", "umps", "UMP", "Qué UMP están completas", Route),
       pestana("territorial", "avance", "salidas", "Salidas", "Qué se entrega", Download),
     ],
   },
+  // Esqueleto común de cuatro secciones (revamp de Monitoreo, 2026-10-23):
+  // Insumos, Modelo, Control y Avance, con las 18 pestañas de
+  // `docs/qa/revamp-monitoreo/aulas.md` §1. Lo que cada una absorbe de las cinco
+  // secciones anteriores (Fuentes, Agenda, Validación, Consultas y Avance) está
+  // en esa tabla, y la traducción a las vistas que la página todavía monta, en
+  // `features/monitoreo/profiles/aulas/navegacion/direccionAulas.ts`. Las claves
+  // viejas siguen declaradas en `MONITOREO_PESTANAS_INTERNAS_AULAS`, con los
+  // comentarios que registran por qué el dueño fijó cada una.
+  //
+  // Control agrupa sus pestañas en el rail en Agenda (agenda, contacto,
+  // distribución), Campo (registro, partes, calidad) y Casos (brechas,
+  // alumnos). «Alumnos» es condicional: sólo existe cuando el estudio pide el
+  // código del alumno y lo cruza con un padrón (Gonzalo, 2026-09-22: la
+  // encuesta confidencial pide código, la anónima no). «Buscar por código» deja
+  // de ser pestaña: será el inspector del curso-horario (`panel=aula`).
+  //
+  // El modo aterriza en Avance › Por facultad (P1 respondida: lo que falta por
+  // facultad o nivel, como los demás modos).
   aulas: {
-    fuentes: [],
-    // Agenda tiene dos superficies con funciones distintas: consultar el plan y
-    // registrar lo que pasó en el aula. Apiladas competían por el alto —a
-    // 1024x600 el registro quedaba recortado sin forma de alcanzarlo—; como
-    // pestañas cada una recibe la vista entera, igual que en telefónico y
-    // acreditación.
+    insumos: [
+      pestana("aulas", "insumos", "fuentes", "Fuentes", "Qué está conectado y qué dejó la última lectura", PlugZap),
+      pestana("aulas", "insumos", "reglas", "Reglas", "Qué cuenta como efectiva y cómo se atribuye", SlidersHorizontal),
+      pestana("aulas", "insumos", "aplicadores", "Aplicadores", "Quién está disponible y cuándo", ContactRound),
+    ],
     modelo: [
-      pestana("aulas", "modelo", "agenda", "Agenda", "Plan y enlaces por curso-horario", Table2),
-      // La agenda ordenada por curso-horario sirve para BUSCAR una fila cuando
-      // ya se sabe el código; la pregunta de campo es la contraria —«hoy toca
-      // esta facultad, ¿qué aulas son, a qué hora y en qué pabellón?»— y
-      // contestarla obligaba a rastrear las 196 filas y rehacer el grupo a mano,
-      // una vez por facultad y por día.
-      pestana("aulas", "modelo", "facultad", "Por facultad", "A dónde hay que ir cada día", Building2),
-      // «A quién llamo y por qué medio» es un trabajo distinto de consultar el
-      // plan, y la agenda no tiene sitio para un tercer panel: su stack reparte
-      // el alto entre dos.
-      pestana("aulas", "modelo", "contacto", "Contacto", "Qué medio agenda mejor", PhoneCall),
-      // Última de agendación a propósito: cierra el recorrido «qué aulas son →
-      // a dónde ir → a quién llamo → cuánta gente hace falta». Las tres
-      // anteriores listan el plan; ésta lo dimensiona, y sólo tiene sentido
-      // cuando ya se sabe qué aulas son.
-      //
-      // Es la única superficie que lee el RANGO horario y no la hora de inicio:
-      // sobre el plan de HSVG 2026 el pico contado por hora de inicio daba 8
-      // aulas simultáneas y contado por rango da 19, que es el número que
-      // dimensiona el equipo de campo.
-      pestana("aulas", "modelo", "carga", "Carga", "Cuántos aplicadores por franja", CalendarClock),
+      pestana("aulas", "modelo", "metas", "Metas", "Cuánto por grupo de la cuota y con qué tasa", Target),
+      pestana("aulas", "modelo", "muestra", "Muestra", "Titulares, reservas y banco", Layers3),
+    ],
+    control: [
+      pestana("aulas", "control", "agenda", "Agenda", "Quién tiene cita y qué falta agendar", CalendarRange),
+      pestana("aulas", "control", "contacto", "Contacto", "A qué docente hay que volver a llamar", PhoneCall),
+      pestana("aulas", "control", "distribucion", "Distribución", "Quién va a cada cita", CalendarClock),
+      pestana("aulas", "control", "registro", "Registro de campo", "Qué parte falta y qué caso es cada reserva", ClipboardCheck),
+      pestana("aulas", "control", "partes", "Partes", "Si cada parte cuadra con la plataforma", ClipboardList),
+      pestana("aulas", "control", "calidad", "Calidad", "Si hay respuestas o aulas sospechosas", ShieldAlert),
+      pestana("aulas", "control", "brechas", "Brechas", "Qué titular, aula o facultad necesita un relevo", AlertCircle),
+      pestana("aulas", "control", "alumnos", "Alumnos", "Quién respondió, por su código", Users, "condicional"),
     ],
     avance: [
-      // **El orden lo fijó Gonzalo el 2026-08-29**: «la pestaña más importante
-      // debería estar al inicio, entonces los cierres de cuota por facultad y
-      // el avance general deben estar al principio».
-      //
-      // Es su norte, y estaba tercero: «lo que me interesa es que TODAS LAS
-      // FACULTADES CUMPLAN CON SU CUOTA DE SEXO. Ese es lo fundamental de todo
-      // esto». Quien abre Avance se encontraba antes con dos pantallas del
-      // operativo —cuántas aulas se aplicaron, cómo va cada estrato del
-      // sorteo— y la pregunta que decide quedaba detrás.
-      // Se llama «Metas» y no «Cuotas» (Gonzalo, 2026-09-08). La pestaña habla de
-      // dos metas —muestra y sobremuestra— y de lo que falta para cada una; «cuota»
-      // era el vocabulario del diseño muestral, no el de quien mira el avance.
-      // La CLAVE sigue siendo `cuotas`: cambiarla rompería las direcciones ya
-      // enlazadas, los docs de direcciones y el recorrido de QA.
-      // **Reordenado el 2026-09-09 por Gonzalo, y con Estratos FUERA.** Su
-      // recorrido, textual: «resumen debería estar al inicio, seguido de metas,
-      // luego rendimiento, luego efectividad y luego salidas». Es el orden de
-      // las preguntas de quien entra: primero qué llevamos en total, después si
-      // cada facultad llega a su cuota de sexo, después qué rinde, después si
-      // el campo se comporta como el diseño supuso, y al final publicar.
-      //
-      // El orden anterior abría por Metas —decisión suya del 2026-08-29, cuando
-      // Resumen todavía no resumía— y esa razón se cayó sola: Resumen ahora abre
-      // con las respuestas efectivas, que es «el primer alcance que yo tengo
-      // cuando entro a avance».
-      pestana("aulas", "avance", "resumen", "Resumen", "Avance general del operativo", BarChart3),
-      pestana("aulas", "avance", "cuotas", "Metas", "Avance hacia la muestra y la sobremuestra, por cada grupo de la cuota", Target),
-      // El eje que sustituye a «aula válida / no válida», retirado por Gonzalo
-      // el 2026-08-18: la unidad es la encuesta conseguida, no un porcentaje
-      // contra un umbral. Va en pestaña propia y no apilada en Resumen, que ya
-      // lleva siete paneles.
-      pestana("aulas", "avance", "rendimiento", "Rendimiento", "Qué rinde más, por facultad", TrendingUp),
-      // **«Estratos» se retiró el 2026-09-09.** Gonzalo, tres veces y la última
-      // sin rodeos: «ya no entra porque, como ya te dije mil veces, yo no
-      // conceptualizo los avances ni las metas ni el desarrollo del campo en
-      // función de si hay una facultad donde la mayoría sea hombres o la
-      // mayoría sea mujeres. Yo no lo conceptualizo de esa forma».
-      //
-      // No es un problema de formato: la pestaña partía el operativo por un eje
-      // que él nunca usa para decidir. Sus dos paneles legítimos —cómo se
-      // repartió el sorteo y cuánto se ha movido la composición— son del DISEÑO
-      // muestral, no del avance, y si vuelven será a donde se decide la muestra.
-      // `AulasPestanaEstratos` sigue en el árbol, sin montar.
-      // **Pestaña propia, y no un panel dentro de Rendimiento** (ADR 0082,
-      // decisión de Gonzalo del 2026-08-26). Las dos miden efectivas sobre
-      // elegibles y ahí se acaba el parecido: Rendimiento ordena facultades por
-      // lo que deja cada visita —un ranking para decidir a dónde ir mañana, con
-      // el numerador del PARTE— y esto contrasta la τ que dimensionó la muestra
-      // contra la que rinde el campo, con el numerador de PLATAFORMA. Apiladas,
-      // los dos numeradores quedarían uno debajo del otro sin que nada los
-      // distinga, que es el defecto más caro de este perfil; y la tabla de
-      // decisión son quince filas con banda y reservas que necesitan la vista
-      // entera. El `detail` es el que las separa: los rótulos cortos son
-      // sinónimos en castellano.
-      pestana("aulas", "avance", "efectividad", "Efectividad", "La τ del diseño contra la del campo", Gauge),
-      pestana("aulas", "avance", "salidas", "Salidas", "Publicación a Sheets", Download),
-    ],
-    // Validación tenía las dos superficies apiladas y la hoja quedaba enterrada
-    // bajo los avisos: para llegar a la «Base de control» —210 filas y 26
-    // columnas— había que pasar seis alertas, un banner y tres KPIs. Es la misma
-    // razón por la que Agenda se partió en dos: apiladas compiten por el alto y
-    // una de las dos deja de existir en la práctica.
-    //
-    // Siguen en la MISMA sección porque las dos son control de calidad; lo que
-    // cambia es que cada una recibe la vista entera. Y no son la misma medida:
-    // arriba lo que deriva el motor, en la hoja lo que el equipo calcula en su
-    // Excel.
-    // **El registro de campo abre Validación, y ya no cuelga de Agenda.**
-    //
-    // Agendar es conseguir la cita con el docente; el control de campo empieza
-    // cuando se sale a campo. Son dos trabajos, dos momentos y dos personas, y
-    // tenerlos en la misma sección obligaba a quien registra a entrar por
-    // «Agenda de cursos-horario», que no es lo suyo. Gonzalo: «ni siquiera sé
-    // por qué registro de campo está en agenda… debería ser la primera sección
-    // de validación».
-    //
-    // Y va PRIMERO porque Validación es el instrumento de dos personas: el jefe
-    // de campo, que entra por lo que pasó en el aula, y el analista, que entra
-    // por los controles. Lo que se registra viene antes de lo que se valida.
-    calidad: [
-      pestana("aulas", "calidad", "registro", "Registro de campo", "Cómo fue cada aplicación", ClipboardCheck),
-      pestana("aulas", "calidad", "controles", "Controles", "Lo que el motor deriva del corte", ShieldAlert),
-      pestana("aulas", "calidad", "base", "Base de control", "La hoja que llena el equipo", Table2),
-      // **Pestaña propia, pedida asi**: «otra dimension de validacion que
-      // podria ser un tap o una pestaña en si misma». Vivia dentro de Registro
-      // de campo, apretada con otros seis paneles, y leer respuestas abiertas
-      // es un trabajo entero: se entra a hacer eso y no a mirarlo de paso.
-      // **Sólo existe en un estudio CONFIDENCIAL.** Gonzalo, 2026-09-22: «esta
-      // pestaña sólo está disponible si la encuesta, en vez de ser anónima, es
-      // confidencial» —las confidenciales piden un código identificador, las
-      // anónimas no—. El catálogo la declara y `railDeAulas` la retira cuando el
-      // estudio no pide código: el catálogo dice qué existe en el perfil, el
-      // rail qué existe en ESTE estudio.
-      pestana("aulas", "calidad", "alumnos", "Cruce de alumnos", "Quién respondió, por su código", Users),
-      pestana("aulas", "calidad", "abiertas", "Respuestas abiertas", "Lo que se escribió a mano", MessageSquare),
-    ],
-    consultas: [
-      // **La primera de Consultas, y a propósito.** Las otras cuatro contestan
-      // preguntas de conjunto —la cadena, las brechas, el parte, los extras— y
-      // ésta contesta por UNA fila concreta, que es lo que se pregunta cuando
-      // alguien llama con un código en la mano. Gonzalo la pidió el 2026-09-09.
-      pestana("aulas", "consultas", "ficha", "Buscar por código", "Un curso-horario, de CH o R a su ficha", Search),
-      pestana("aulas", "consultas", "reemplazos", "Reemplazos", "Cadena por curso-horario caído", Link2),
-      pestana("aulas", "consultas", "brechas", "Brechas", "Cursos-horario por debajo de su meta", AlertCircle),
-      pestana("aulas", "consultas", "parte", "Parte de campo", "Lo que se anotó en cada aula", ClipboardCheck),
-      // Aulas ADICIONALES, no reemplazos: existen para cerrar la cuota de
-      // hombres y mujeres de cada facultad. Estaban en el plan —639 en el
-      // estudio de 2026 contra 202 titulares— y no se veían en ninguna pantalla.
-      pestana("aulas", "consultas", "extras", "Extras", "Aulas adicionales para la cuota por facultad", Boxes),
-      // **Pestaña propia, y detrás de Extras, por pedido de Gonzalo del
-      // 2026-09-11**: «los refuerzos deberían tener su propia pestaña en
-      // Consultas luego de la pestaña Extras».
-      //
-      // Va después de Extras porque es su continuación: Extras dice qué
-      // inventario hay, y Refuerzos qué se hace con él —cuáles conviene pedir
-      // dentro de un techo, cuáles se pidieron ya y en qué punto está la
-      // gestión de cada una—. Y va en pestaña propia porque es un circuito
-      // entero con acciones: elegir el techo, marcar y seguir lo marcado no
-      // caben de paso en un panel de Resumen.
-      pestana("aulas", "consultas", "refuerzos", "Refuerzos", "Qué reforzar dentro del techo y en qué va lo pedido", LifeBuoy),
+      // El orden sigue el recorrido que fijó Gonzalo el 2026-09-09 para Avance
+      // —«resumen debería estar al inicio, seguido de metas, luego rendimiento
+      // […] y luego salidas»—: primero qué llevamos en total, después si cada
+      // grupo llega a su cuota, después qué rinde, al final publicar. «Por
+      // facultad» es la antigua «Metas» (la CLAVE vieja, `cuotas`, se lee como
+      // alias); su rótulo es el eje que declara el proyecto («Por nivel» en
+      // CCSS), que la pestaña nombrará cuando tenga contenido propio.
+      pestana("aulas", "avance", "resumen", "Resumen", "Si se llega a la muestra", BarChart3),
+      pestana("aulas", "avance", "porfacultad", "Por facultad", "Qué grupo de la cuota no llega", Building2),
+      pestana("aulas", "avance", "cursos", "Cursos-horario", "Cómo rindió cada aula", Table2),
+      pestana("aulas", "avance", "rendimiento", "Rendimiento", "Cuándo y quién rinde más", TrendingUp),
+      pestana("aulas", "avance", "salidas", "Salidas", "Qué se publica y si está al día", Download),
     ],
   },
 } as const satisfies Record<
@@ -519,6 +422,171 @@ export const MONITOREO_PESTANAS_INTERNAS_ACREDITACION = {
     pestana("acreditacion", "avance", "detalle", "Detalle", "Controles", Table2),
     pestana("acreditacion", "avance", "correo", "Correo", "Envíos de Mailchimp", Mail),
     pestana("acreditacion", "avance", "salidas", "Salidas", "PDF y Sheets", Download),
+  ],
+} as const;
+
+/**
+ * Vistas que la página de cursos-horario monta por dentro.
+ *
+ * No son navegación pública: la dirección del modo es la de
+ * `MONITOREO_PESTANAS.aulas` (Insumos, Modelo, Control y Avance), y
+ * `direccionAulas.ts` traduce cada pestaña pública a la vista que la absorbe
+ * mientras no tiene contenido propio. Se conservan con su clave histórica
+ * porque son las que la página sabe montar, porque los enlaces guardados con
+ * esas claves se leen como alias y porque sus comentarios registran las
+ * decisiones del dueño que explican cada vista. Nunca se escriben.
+ */
+export const MONITOREO_PESTANAS_INTERNAS_AULAS = {
+  fuentes: [],
+  // Agenda tiene dos superficies con funciones distintas: consultar el plan y
+  // registrar lo que pasó en el aula. Apiladas competían por el alto —a
+  // 1024x600 el registro quedaba recortado sin forma de alcanzarlo—; como
+  // pestañas cada una recibe la vista entera, igual que en telefónico y
+  // acreditación.
+  modelo: [
+    pestana("aulas", "modelo", "agenda", "Agenda", "Plan y enlaces por curso-horario", Table2),
+    // La agenda ordenada por curso-horario sirve para BUSCAR una fila cuando
+    // ya se sabe el código; la pregunta de campo es la contraria —«hoy toca
+    // esta facultad, ¿qué aulas son, a qué hora y en qué pabellón?»— y
+    // contestarla obligaba a rastrear las 196 filas y rehacer el grupo a mano,
+    // una vez por facultad y por día.
+    pestana("aulas", "modelo", "facultad", "Por facultad", "A dónde hay que ir cada día", Building2),
+    // «A quién llamo y por qué medio» es un trabajo distinto de consultar el
+    // plan, y la agenda no tiene sitio para un tercer panel: su stack reparte
+    // el alto entre dos.
+    pestana("aulas", "modelo", "contacto", "Contacto", "Qué medio agenda mejor", PhoneCall),
+    // Última de agendación a propósito: cierra el recorrido «qué aulas son →
+    // a dónde ir → a quién llamo → cuánta gente hace falta». Las tres
+    // anteriores listan el plan; ésta lo dimensiona, y sólo tiene sentido
+    // cuando ya se sabe qué aulas son.
+    //
+    // Es la única superficie que lee el RANGO horario y no la hora de inicio:
+    // sobre el plan de HSVG 2026 el pico contado por hora de inicio daba 8
+    // aulas simultáneas y contado por rango da 19, que es el número que
+    // dimensiona el equipo de campo.
+    pestana("aulas", "modelo", "carga", "Carga", "Cuántos aplicadores por franja", CalendarClock),
+  ],
+  avance: [
+    // **El orden lo fijó Gonzalo el 2026-08-29**: «la pestaña más importante
+    // debería estar al inicio, entonces los cierres de cuota por facultad y
+    // el avance general deben estar al principio».
+    //
+    // Es su norte, y estaba tercero: «lo que me interesa es que TODAS LAS
+    // FACULTADES CUMPLAN CON SU CUOTA DE SEXO. Ese es lo fundamental de todo
+    // esto». Quien abre Avance se encontraba antes con dos pantallas del
+    // operativo —cuántas aulas se aplicaron, cómo va cada estrato del
+    // sorteo— y la pregunta que decide quedaba detrás.
+    // Se llama «Metas» y no «Cuotas» (Gonzalo, 2026-09-08). La pestaña habla de
+    // dos metas —muestra y sobremuestra— y de lo que falta para cada una; «cuota»
+    // era el vocabulario del diseño muestral, no el de quien mira el avance.
+    // La CLAVE sigue siendo `cuotas`: cambiarla rompería las direcciones ya
+    // enlazadas, los docs de direcciones y el recorrido de QA.
+    // **Reordenado el 2026-09-09 por Gonzalo, y con Estratos FUERA.** Su
+    // recorrido, textual: «resumen debería estar al inicio, seguido de metas,
+    // luego rendimiento, luego efectividad y luego salidas». Es el orden de
+    // las preguntas de quien entra: primero qué llevamos en total, después si
+    // cada facultad llega a su cuota de sexo, después qué rinde, después si
+    // el campo se comporta como el diseño supuso, y al final publicar.
+    //
+    // El orden anterior abría por Metas —decisión suya del 2026-08-29, cuando
+    // Resumen todavía no resumía— y esa razón se cayó sola: Resumen ahora abre
+    // con las respuestas efectivas, que es «el primer alcance que yo tengo
+    // cuando entro a avance».
+    pestana("aulas", "avance", "resumen", "Resumen", "Avance general del operativo", BarChart3),
+    pestana("aulas", "avance", "cuotas", "Metas", "Avance hacia la muestra y la sobremuestra, por cada grupo de la cuota", Target),
+    // El eje que sustituye a «aula válida / no válida», retirado por Gonzalo
+    // el 2026-08-18: la unidad es la encuesta conseguida, no un porcentaje
+    // contra un umbral. Va en pestaña propia y no apilada en Resumen, que ya
+    // lleva siete paneles.
+    pestana("aulas", "avance", "rendimiento", "Rendimiento", "Qué rinde más, por facultad", TrendingUp),
+    // **«Estratos» se retiró el 2026-09-09.** Gonzalo, tres veces y la última
+    // sin rodeos: «ya no entra porque, como ya te dije mil veces, yo no
+    // conceptualizo los avances ni las metas ni el desarrollo del campo en
+    // función de si hay una facultad donde la mayoría sea hombres o la
+    // mayoría sea mujeres. Yo no lo conceptualizo de esa forma».
+    //
+    // No es un problema de formato: la pestaña partía el operativo por un eje
+    // que él nunca usa para decidir. Sus dos paneles legítimos —cómo se
+    // repartió el sorteo y cuánto se ha movido la composición— son del DISEÑO
+    // muestral, no del avance, y si vuelven será a donde se decide la muestra.
+    // `AulasPestanaEstratos` sigue en el árbol, sin montar.
+    // **Pestaña propia, y no un panel dentro de Rendimiento** (ADR 0082,
+    // decisión de Gonzalo del 2026-08-26). Las dos miden efectivas sobre
+    // elegibles y ahí se acaba el parecido: Rendimiento ordena facultades por
+    // lo que deja cada visita —un ranking para decidir a dónde ir mañana, con
+    // el numerador del PARTE— y esto contrasta la τ que dimensionó la muestra
+    // contra la que rinde el campo, con el numerador de PLATAFORMA. Apiladas,
+    // los dos numeradores quedarían uno debajo del otro sin que nada los
+    // distinga, que es el defecto más caro de este perfil; y la tabla de
+    // decisión son quince filas con banda y reservas que necesitan la vista
+    // entera. El `detail` es el que las separa: los rótulos cortos son
+    // sinónimos en castellano.
+    pestana("aulas", "avance", "efectividad", "Efectividad", "La τ del diseño contra la del campo", Gauge),
+    pestana("aulas", "avance", "salidas", "Salidas", "Publicación a Sheets", Download),
+  ],
+  // Validación tenía las dos superficies apiladas y la hoja quedaba enterrada
+  // bajo los avisos: para llegar a la «Base de control» —210 filas y 26
+  // columnas— había que pasar seis alertas, un banner y tres KPIs. Es la misma
+  // razón por la que Agenda se partió en dos: apiladas compiten por el alto y
+  // una de las dos deja de existir en la práctica.
+  //
+  // Siguen en la MISMA sección porque las dos son control de calidad; lo que
+  // cambia es que cada una recibe la vista entera. Y no son la misma medida:
+  // arriba lo que deriva el motor, en la hoja lo que el equipo calcula en su
+  // Excel.
+  // **El registro de campo abre Validación, y ya no cuelga de Agenda.**
+  //
+  // Agendar es conseguir la cita con el docente; el control de campo empieza
+  // cuando se sale a campo. Son dos trabajos, dos momentos y dos personas, y
+  // tenerlos en la misma sección obligaba a quien registra a entrar por
+  // «Agenda de cursos-horario», que no es lo suyo. Gonzalo: «ni siquiera sé
+  // por qué registro de campo está en agenda… debería ser la primera sección
+  // de validación».
+  //
+  // Y va PRIMERO porque Validación es el instrumento de dos personas: el jefe
+  // de campo, que entra por lo que pasó en el aula, y el analista, que entra
+  // por los controles. Lo que se registra viene antes de lo que se valida.
+  calidad: [
+    pestana("aulas", "calidad", "registro", "Registro de campo", "Cómo fue cada aplicación", ClipboardCheck),
+    pestana("aulas", "calidad", "controles", "Controles", "Lo que el motor deriva del corte", ShieldAlert),
+    pestana("aulas", "calidad", "base", "Base de control", "La hoja que llena el equipo", Table2),
+    // **Pestaña propia, pedida asi**: «otra dimension de validacion que
+    // podria ser un tap o una pestaña en si misma». Vivia dentro de Registro
+    // de campo, apretada con otros seis paneles, y leer respuestas abiertas
+    // es un trabajo entero: se entra a hacer eso y no a mirarlo de paso.
+    // **Sólo existe en un estudio CONFIDENCIAL.** Gonzalo, 2026-09-22: «esta
+    // pestaña sólo está disponible si la encuesta, en vez de ser anónima, es
+    // confidencial» —las confidenciales piden un código identificador, las
+    // anónimas no—. El catálogo la declara y `railDeAulas` la retira cuando el
+    // estudio no pide código: el catálogo dice qué existe en el perfil, el
+    // rail qué existe en ESTE estudio.
+    pestana("aulas", "calidad", "alumnos", "Cruce de alumnos", "Quién respondió, por su código", Users),
+    pestana("aulas", "calidad", "abiertas", "Respuestas abiertas", "Lo que se escribió a mano", MessageSquare),
+  ],
+  consultas: [
+    // **La primera de Consultas, y a propósito.** Las otras cuatro contestan
+    // preguntas de conjunto —la cadena, las brechas, el parte, los extras— y
+    // ésta contesta por UNA fila concreta, que es lo que se pregunta cuando
+    // alguien llama con un código en la mano. Gonzalo la pidió el 2026-09-09.
+    pestana("aulas", "consultas", "ficha", "Buscar por código", "Un curso-horario, de CH o R a su ficha", Search),
+    pestana("aulas", "consultas", "reemplazos", "Reemplazos", "Cadena por curso-horario caído", Link2),
+    pestana("aulas", "consultas", "brechas", "Brechas", "Cursos-horario por debajo de su meta", AlertCircle),
+    pestana("aulas", "consultas", "parte", "Parte de campo", "Lo que se anotó en cada aula", ClipboardCheck),
+    // Aulas ADICIONALES, no reemplazos: existen para cerrar la cuota de
+    // hombres y mujeres de cada facultad. Estaban en el plan —639 en el
+    // estudio de 2026 contra 202 titulares— y no se veían en ninguna pantalla.
+    pestana("aulas", "consultas", "extras", "Extras", "Aulas adicionales para la cuota por facultad", Boxes),
+    // **Pestaña propia, y detrás de Extras, por pedido de Gonzalo del
+    // 2026-09-11**: «los refuerzos deberían tener su propia pestaña en
+    // Consultas luego de la pestaña Extras».
+    //
+    // Va después de Extras porque es su continuación: Extras dice qué
+    // inventario hay, y Refuerzos qué se hace con él —cuáles conviene pedir
+    // dentro de un techo, cuáles se pidieron ya y en qué punto está la
+    // gestión de cada una—. Y va en pestaña propia porque es un circuito
+    // entero con acciones: elegir el techo, marcar y seguir lo marcado no
+    // caben de paso en un panel de Resumen.
+    pestana("aulas", "consultas", "refuerzos", "Refuerzos", "Qué reforzar dentro del techo y en qué va lo pedido", LifeBuoy),
   ],
 } as const;
 

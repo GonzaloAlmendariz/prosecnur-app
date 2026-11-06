@@ -49,20 +49,26 @@ v3) y gramática en `frontend/src/lib/navegacion/direccion.ts`. Sus cinco
 dimensiones son módulo → modo → sección → pestaña → panel; cada módulo declara
 slug, tono `--pulso-module-*`, secciones y, cuando aplican, modos y pestañas.
 
-Los ocho módulos del proyecto son:
+Los siete módulos del proyecto son:
 
 | Módulo | Ruta | Modos / secciones |
 |---|---|---|
-| Bitácora (`diseno-estudio`) | `/bitacora` | bitácora · cronograma · calendario · canvas |
 | Cálculo de muestra | `/calc-muestra` | modos `opinion-universitaria`, `marco-disponible`, `acreditacion`, `territorial-handoff` |
 | Formularios (`editor-xlsform`) | `/editor-xlsform` | formularios |
-| Hojas de ruta | `/hojas-ruta` | territorio · población · muestra · manzanas · entrega (tabs: cuotas, titulares, reemplazos) |
-| Recopiladores | `/recopiladores` | plan de recolección · accesos · materiales · entrega a campo |
+| Hojas de ruta | `/hojas-ruta` | territorio · población · muestra · manzanas · selección (`seccion=seleccion`; en modo cuotas se rotula «Entrega»; tabs: cuotas, titulares, reemplazos, revisión) |
+| Material de campo (`recopiladores`) | `/material-campo` | modos aulas · territorial · telefónica · correo · supervisión; en aulas: unidades, catálogo, paquetes, accesos y entrega |
 | Monitoreo | `/monitoreo` | modos acreditación · telefónico · territorial · cursos-horario (ADR 0022) |
 | Procesamiento | `/procesamiento` | carga · validación · codificación · analítica · gráficos |
 | Dashboard | `/tablero` | dashboard (code-split: plotly no entra al bundle principal) |
 
-Rutas legacy (`/diseno-estudio`, `/plan-trabajo`, `/diseno-muestra`, `/muestra-aulas`) redirigen; no reintroducirlas como destinos.
+La identidad del estudio no es un módulo: el nombre, el código, el cliente, el objetivo y el tipo único (que fija el
+modo de Cálculo, Monitoreo, Material y Hojas de ruta) se declaran una vez en el panel «Ficha del estudio» del Home
+(`/?panel=estudio`, `features/estudio/`). El ADR 0124 retiró el Planner y la Bitácora con su cronograma, calendario y
+lienzo; los demás módulos leen esa identidad y no la editan.
+
+Rutas legacy redirigen; no reintroducirlas como destinos: `/bitacora`, `/planner`, `/diseno-estudio` y
+`/plan-trabajo` van a la Ficha (`/?panel=estudio`); `/recopiladores` a `/material-campo`; `/diseno-muestra` y
+`/muestra-aulas` a Cálculo de muestra.
 
 ## Enrutamiento del agentic OS
 
@@ -187,9 +193,9 @@ Desarrollo:
 Verificación:
 
 - Front: `pnpm -C frontend typecheck` · `pnpm -C frontend test` · `pnpm -C frontend exec tsc --noEmit --pretty false`
-- **Front por área, que es lo que debe correrse al cerrar un cambio**: `make gate-front AREA=monitoreo/profiles/aulas`. Corre las suites del área **más los contratos transversales, siempre**: `tokensDefinidos` (un `var()` que no resuelve), `estadoQueNadieLee` (un `useState` que nadie pinta), `guardsQueGuardan` (un guard que dejó de guardar), `cssConcatenable`, `auditReadyRoutes`, `readinessAnidada` (un `false` terminal que cuelga el QA) y `modulesNavigation`. Mismo motivo que `gate-area` en R: esos contratos escanean todo el árbol y se rompen **desde otro archivo**, así que «las suites que toqué» no los alcanza. Sin `AREA` corre sólo los transversales (menos de 1 s).
+- **Front por área, que es lo que debe correrse al cerrar un cambio**: `make gate-front AREA=monitoreo/profiles/aulas`. Corre las suites del área **más los contratos transversales, siempre**: `tokensDefinidos` (un `var()` que no resuelve), `estadoQueNadieLee` (un `useState` que nadie pinta), `guardsQueGuardan` (un guard que dejó de guardar), `cssConcatenable`, `auditReadyRoutes`, `readinessAnidada` (un `false` terminal que cuelga el QA), `modulesNavigation`, `TabSemanticsAudit`, los ratchets del kit y los de letra y movimiento; la lista viva está en `scripts/gate-front.mjs` y `scripts/tests/gateFrontTransversales.test.mjs` falla si un contrato que escanea el árbol queda fuera. Mismo motivo que `gate-area` en R: esos contratos escanean todo el árbol y se rompen **desde otro archivo**, así que «las suites que toqué» no los alcanza. Sin `AREA` corre sólo los transversales (unos 5 s).
 - R focalizado: `Rscript -e 'pkgload::load_all("api"); testthat::test_file("api/tests/testthat/test-<X>.R")'`
-- **R por área, que es lo que debe correrse al cerrar un cambio**: `make gate-area AREA=aulas GATE_ARGS='--patron "refuerzo|reemplazo"'`. Corre las suites que casan el patrón **más los contratos transversales, siempre**: `errors-registry`, `namespace-contract`, `campos-declarados` y `estado-normalizado`. Existe porque «las suites que toqué» deja fuera justo a los contratos —se rompen desde OTRO archivo— y `test-errors-registry.R` llevó tres commits en rojo sin que nadie lo viera. Sin `GATE_ARGS` corre el área entera (250 suites en aulas: lento, para el cierre).
+- **R por área, que es lo que debe correrse al cerrar un cambio**: `make gate-area AREA=aulas GATE_ARGS='--patron "refuerzo|reemplazo"'`. Corre las suites que casan el patrón **más los contratos transversales, siempre**: los que vigilan el backend entero (`errors-registry`, `namespace-contract`, el transporte HTTP con timeout, los secretos de los jobs…). La lista viva está en `scripts/gate-area.R` (`TRANSVERSALES`, más `RECORREN_PERO_SON_DEL_AREA` para las suites que leen todo `api/R` pero vigilan un área) y `scripts/tests/gateAreaTransversales.test.mjs` falla si una suite que lee todos los `.R` no está en ninguna de las dos. Existe porque «las suites que toqué» deja fuera justo a los contratos —se rompen desde OTRO archivo— y `test-errors-registry.R` llevó tres commits en rojo sin que nadie lo viera. Sin `GATE_ARGS` corre el área entera (250 suites en aulas: lento, para el cierre).
 - R completo (igual que CI): `Rscript -e 'pkgload::load_all("api", quiet = TRUE); testthat::test_dir("api/tests/testthat", reporter = "summary")'`. Los tests que disparan jobs `callr` reales necesitan además instalar el paquete:
 
   ```bash

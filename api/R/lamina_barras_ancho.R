@@ -19,6 +19,11 @@
 .LAM_BARRAS_ANCHO <- list(aire = 1.15, tope_rotulo = 0.35, lineas = 3L, piso_pt = 11, pocas = 3L, frac_pocas = 0.75,
                           sep_barra = 0.12, sep_cifra = 0.04)
 
+#' Tope de la columna de rótulos (fracción del ancho útil): el 35 % de la norma; con un panel lateral (ADR 0129) el ancho
+#' útil se acorta y la columna puede llegar a la mitad (en pulgadas sigue siendo menos que la del mazo a lo ancho)
+#' @keywords internal
+.lam_barras_tope_rotulo <- function() if (.std_reserva_derecha() > 0) 0.5 else .LAM_BARRAS_ANCHO$tope_rotulo
+
 #' ¿El eje de la lámina completa escala al máximo? Sólo con el eje libre: con `escala_completa` (el defecto) va de 0 a 100 %
 #' @keywords internal
 .lam_barras_ancho_aplica <- function(espec) !isTRUE(espec$escala_completa)
@@ -33,18 +38,28 @@
 #' @param nb ¿Rótulos en negrita? @param previa Columna de antes (respaldo si con el tope no cabe).
 #' @return `list(wlab, size, acotada)`.
 #' @keywords internal
-.lam_barras_ancho_rotulos <- function(rotulos, ancho, size, fila, nb = FALSE, previa = NULL) {
-  U <- .LAM_BARRAS_ANCHO; tope <- U$tope_rotulo * ancho
+.lam_barras_ancho_rotulos <- function(rotulos, ancho, size, fila, nb = FALSE, previa = NULL, declarada = NULL) {
+  U <- .LAM_BARRAS_ANCHO; tope <- .lam_barras_tope_rotulo() * ancho
+  # v7.25, ítem 8: el ancho declarado por el gráfico (`canvas_w_etiquetas`, «Espacio para etiquetas») manda también en
+  # la lámina nativa de barras; si sus rótulos no caben ahí ni en tres líneas, se avisa y sigue el ancho automático.
+  if (!is.null(declarada) && is.finite(declarada) && declarada > 0) {
+    d <- .lam_barras_ancho_en(rotulos, max(0.8, declarada), size, fila, nb)
+    if (!is.null(d)) return(c(d, list(acotada = TRUE)))
+    if (exists(".pulso_aviso", mode = "function")) .pulso_aviso(sprintf("Barras: los rótulos no caben en el espacio para etiquetas declarado (%.1f cm); va el automático.", declarada * 2.54))
+  }
   natural <- max(1.4, max(.lam_ancho_tinta(rotulos, size, nb)) + 0.3)
   if (natural <= tope) return(list(wlab = natural, size = size, acotada = FALSE))
-  piso <- max(U$piso_pt, .std_valor("ppt", "tipografia", "cifra_minimo") %||% 8)
+  piso <- min(size, max(U$piso_pt, .std_valor("ppt", "tipografia", "cifra_minimo") %||% 8))   # un cuerpo declarado bajo el piso no sube
   for (s in unique(c(seq(size, piso, by = -0.5), piso))) {
     if (s < piso) next
     lin <- .lam_lineas_tinta(rotulos, tope, s, nb)
     # Cabe en su fila por la tinta y por la cuenta de `.lam_categorica_forma` (que no debe cambiar de forma por esto).
     if (all(lin <= U$lineas) && all(.lam_alto_tinta(rotulos, tope, s, nb) <= fila + 0.02) &&
         all(vapply(rotulos, function(r) .lam_alto_txt(r, tope, s) <= fila + 0.02, TRUE))) {
-      return(list(wlab = tope, size = s, acotada = TRUE))
+      # v7.25, ítem 8: la columna se ajusta a la tinta de los rótulos ya partidos, no al tope.
+      w_t <- .lam_barras_ancho_tinta_partida(rotulos, tope, s, nb)
+      if (w_t < tope && is.null(.lam_barras_ancho_en(rotulos, w_t, s, fila, nb))) w_t <- tope   # la cuenta de la fila manda
+      return(list(wlab = w_t, size = s, acotada = TRUE))
     }
   }
   list(wlab = previa %||% natural, size = size, acotada = FALSE)

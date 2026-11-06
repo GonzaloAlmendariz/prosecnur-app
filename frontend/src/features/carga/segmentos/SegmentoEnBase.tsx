@@ -32,6 +32,8 @@ import {
   type DestinoCodigo,
   type EntradaBorrador,
 } from "./segmentosModel";
+import { EstadoVacio } from "../../../components/EstadoVacio";
+import { Inbox } from "../../../vendor/lucide-react";
 
 /** Valor del selector que significa «sin dato» explícito (destino `""`). */
 const VALOR_SIN_DATO = "__sin_dato__";
@@ -223,7 +225,7 @@ export function SegmentoEnBase({
           <div className="pulso-armon-base-acciones">
             {resumen.total > 0 && (
               <span className={`pulso-armon-base-resumen${resumen.sinMapa ? " is-aviso" : ""}`} aria-live="polite">
-                {[textoResumenMapa(resumen), casosFaltan ? textoFaltanCasos(casosFaltan) : ""].filter(Boolean).join(" · ")}
+                {[textoResumenMapa(resumen), casosFaltan ? textoFaltanCasos(casosFaltan) : ""].filter(Boolean).join(", ")}
               </span>
             )}
             {obs && obs.n_sin_dato > 0 && (
@@ -232,13 +234,11 @@ export function SegmentoEnBase({
           </div>
 
           {escala.length === 0 ? (
-            <p className="pulso-armon-vacio">Define la escala estándar para asignar los códigos de {origen}.</p>
+            <EstadoVacio icono={<Inbox size={16} />} titulo={<>Define la escala estándar para asignar los códigos de {origen}</>} />
           ) : filas.length === 0 ? (
             lectura.tipo === "cargando" ? null : (
               // C5 categoría 1: la variable no trae valores en esta base.
-              <p className="pulso-armon-vacio">
-                {obs ? `${origen} no trae valores en ${base}.` : `${origen} no trae lista de respuestas.`}
-              </p>
+              <EstadoVacio icono={<Inbox size={16} />} titulo={obs ? `${origen} no trae valores en ${base}` : `${origen} no trae lista de respuestas`} />
             )
           ) : numerica ? (
             <MapaPorRangos

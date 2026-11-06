@@ -23,6 +23,7 @@ import {
   type CalculoDistribucionScenarioMeta,
 } from "./calculoDistribucionModel";
 import { CalculoComparacionEscenarios } from "./CalculoComparacionEscenarios";
+import { RazonesDelEstado } from "./RazonesDelEstado";
 import "./calculoDistribucion.css";
 
 const DECIMAL = new Intl.NumberFormat("es-PE", { maximumFractionDigits: 2 });
@@ -55,7 +56,7 @@ function fmtSensitivityValue(axis: CalcMuestraDistribucionI19SensitivityAxis, va
   return DECIMAL.format(value);
 }
 
-function DistributionState({ state }: { state: Exclude<CalcMuestraDistribucionI19State, { kind: "ready" }> }) {
+function DistributionState({ state, onIrAAlumnosPorCh }: { state: Exclude<CalcMuestraDistribucionI19State, { kind: "ready" }>; onIrAAlumnosPorCh?: () => void }) {
   const copy = state.kind === "empty"
     ? {
         title: "Aún no hay una distribución calculada",
@@ -96,9 +97,7 @@ function DistributionState({ state }: { state: Exclude<CalcMuestraDistribucionI1
       <div data-qa-geometry-member>
         <EmptyState icon={copy.icon} title={copy.title} hint={copy.hint} />
       </div>
-      <ul className="cmv2-dist-state-reasons" aria-label="Razones del estado" data-qa-geometry-member>
-        {state.reasons.map((reason) => <li key={reason}>{reason}</li>)}
-      </ul>
+      <RazonesDelEstado state={state} onIrAAlumnosPorCh={onIrAAlumnosPorCh} />
     </section>
   );
 }
@@ -124,7 +123,7 @@ function AuditHeader({
           <h3>{selection.longLabel}</h3>
           <p>Cuotas objetivo planificadas; no son respuestas recolectadas ni avance de campo.</p>
         </div>
-        <span className="cmv2-dist-owner"><Database size={14} aria-hidden="true" /> owner · engine_r</span>
+        <span className="cmv2-dist-owner"><Database size={14} aria-hidden="true" /> calculado por el motor R</span>
       </header>
       <dl
         className="cmv2-dist-kpis"
@@ -186,7 +185,7 @@ function CompositionTable({ data }: { data: CalcMuestraDistribucionUniversitaria
                   <th scope="rowgroup" rowSpan={faculty.cells.length}>
                     <strong>{faculty.faculty_label}</strong>
                     <small>
-                      N diseño {fmtInt(faculty.population_design_n)} · cuota {fmtInt(faculty.sample_n)}
+                      N diseño {fmtInt(faculty.population_design_n)}, cuota {fmtInt(faculty.sample_n)}
                     </small>
                   </th>
                 )}
@@ -267,7 +266,7 @@ function Sensitivity({ data }: { data: CalcMuestraDistribucionUniversitariaPaylo
       <header className="cmv2-dist-section-head">
         <div>
           <span className="cmv2-dist-eyebrow">Sensibilidad</span>
-          <h3>Una variable a la vez · OFAT</h3>
+          <h3>Una variable a la vez (OFAT)</h3>
           <p>Cada eje parte del n de fórmula y cambia un solo parámetro. La meta planificada se informa aparte y conserva el divisor Alumnos por CH firmado.</p>
         </div>
         <dl className="cmv2-dist-baseline" aria-label="Línea base de sensibilidad">
@@ -309,11 +308,13 @@ export function CalculoDistribucionTab({
   currentFrameHash,
   escenario,
   onEscenario,
+  onIrAAlumnosPorCh,
 }: {
   componentes: [CalcMuestraComponente, CalcMuestraComponente];
   currentFrameHash: string | null | undefined;
   escenario: UniversityAulasScenario;
   onEscenario: (escenario: UniversityAulasScenario) => void;
+  onIrAAlumnosPorCh?: () => void;
 }) {
   const [pasoActivo, setPasoActivo] = useState<DistribucionPasoId>("composicion");
   const model = buildCalculoDistribucionModel({ componentes, currentFrameHash, escenario });
@@ -336,11 +337,11 @@ export function CalculoDistribucionTab({
       <header className="cmv2-dist-toolbar">
         <div>
           <strong>Distribución universitaria</strong>
-          <span>{model.selection.shortLabel} · resultado vigente</span>
+          <span>{model.selection.shortLabel}, resultado vigente</span>
         </div>
       </header>
       {model.state.kind !== "ready" ? (
-        <DistributionState state={model.state} />
+        <DistributionState state={model.state} onIrAAlumnosPorCh={onIrAAlumnosPorCh} />
       ) : (
         <div
           className="cmv2-dist-sections"

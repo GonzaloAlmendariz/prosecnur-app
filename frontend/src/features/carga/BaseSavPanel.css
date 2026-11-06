@@ -47,7 +47,7 @@
 
 .pulso-base-sav-head h3 {
   margin: 0;
-  font-size: 14px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-semibold);
   color: var(--pulso-text);
 }
@@ -55,7 +55,7 @@
 .pulso-base-sav-head p {
   margin: 2px 0 0;
   max-width: 68ch;
-  font-size: 12.5px;
+  font-size: var(--pulso-type-body-size);
   line-height: 1.45;
   color: var(--pulso-text-soft);
 }
@@ -82,7 +82,7 @@
   display: flex;
   flex-direction: column;
   gap: 2px;
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   color: var(--pulso-text-soft);
 }
 
@@ -90,7 +90,7 @@
   width: 240px;
   max-width: 100%;
   height: 32px;
-  font-size: 13px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .pulso-base-sav-error {
@@ -100,7 +100,7 @@
   border-radius: var(--pulso-radius-chip);
   background: var(--pulso-danger-bg);
   color: var(--pulso-danger-fg);
-  font-size: 12.5px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .pulso-base-sav-sintesis {
@@ -112,6 +112,6 @@
   border-radius: var(--pulso-radius-chip);
   background: var(--pulso-success-bg);
   color: var(--pulso-success-fg);
-  font-size: 12.5px;
+  font-size: var(--pulso-type-body-size);
   line-height: 1.45;
 }

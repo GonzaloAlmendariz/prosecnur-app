@@ -13,7 +13,7 @@ import { useSession } from "../../lib/SessionContext";
 import { Alert } from "../../components/Alert";
 import { ResumenAvisosExportacion } from "./avisosExportacion/ResumenAvisosExportacion";
 import { usePanelDireccionable } from "../../lib/navegacion/paneles";
-import { PANEL_AVISOS_INFORME } from "./panelesGraficos";
+import { PANEL_ATAJOS_GRAFICOS, PANEL_AVISOS_INFORME } from "./panelesGraficos";
 import { useAvisosExportacion } from "./avisosExportacion/avisosExportacionStore";
 import { rotuloIrALamina } from "./avisosExportacion/avisosExportacionModel";
 import { LoadingBlock } from "../../components/States";
@@ -26,6 +26,7 @@ import { ChromeBaseSelector } from "../../components/ChromeBaseSelector";
 import { usePlanStore, type GraficosConfig } from "./store";
 import { useGraficosAutosave } from "./useGraficosAutosave";
 import { useGraficosShortcuts } from "./useGraficosShortcuts";
+import { useDeshacerPorCampo } from "./useDeshacerPorCampo";
 import { ShortcutsModal } from "./ShortcutsModal";
 import { humanizeGraficosExportError, HumanizedError } from "./humanizeExportError";
 import { GraficosHeader } from "./GraficosHeader";
@@ -49,6 +50,7 @@ import "./v2/styles/editor-v2.css";
 import "./graficosPestanas.css";
 import { resolverPestanaGraficos, PESTANAS_GRAFICOS, type GraficosTabId } from "./pestanaGraficos";
 import { useSeccion } from "../../lib/navegacion/useDireccion";
+import { CargaDeModulo } from "../../components/CargaDeModulo";
 const VistaGeneral = lazyWithReload(() => import("./vistaGeneral/VistaGeneral"), "graficos-vista-general");
 const PestanaEstilo = lazyWithReload(() => import("./estilo/PestanaEstilo"), "graficos-estilo");
 const PestanaEstiloInforme = lazyWithReload(() => import("./estiloInforme/PestanaEstiloInforme"), "graficos-estilo-informe");
@@ -81,8 +83,10 @@ export default function GraficosPage() {
     useGraficosAutosave(reportScope);
   const dirty = usePlanStore((s) => s.dirty);
   // Atajos: Cmd/Ctrl+Z (undo), +Shift+Z (redo), +D (duplicar), ? (ayuda).
-  const [shortcutsOpen, setShortcutsOpen] = useState(false);
-  useGraficosShortcuts({ onOpenHelp: () => setShortcutsOpen(true) });
+  const panelAtajos = usePanelDireccionable(PANEL_ATAJOS_GRAFICOS);
+  useGraficosShortcuts({ onOpenHelp: panelAtajos.abrir });
+  // H10: deshacer va por campo, no por letra.
+  useDeshacerPorCampo();
   // Atajos V2: J/K (nav), / (búsqueda), V/T (modo), 1-4 (tabs)
   useShortcutsV2();
 
@@ -301,8 +305,8 @@ export default function GraficosPage() {
                   <strong>Puedes diseñar el informe, pero todavía no exportarlo.</strong>
                   <span>
                     {pendingSharedRequirements.length
-                      ? pendingSharedRequirements.map((item) => `${item.actor}: ${item.detail}`).join(" · ")
-                      : sharedPreflight?.blockers.map((blocker) => blocker.message).join(" · ")}
+                      ? pendingSharedRequirements.map((item) => `${item.actor}: ${item.detail}`).join("; ")
+                      : sharedPreflight?.blockers.map((blocker) => blocker.message).join("; ")}
                   </span>
                 </div>
                 <div className="pulso-graficos-shared-gate-actions">
@@ -377,7 +381,7 @@ export default function GraficosPage() {
               <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                 <strong>{error.message}</strong>
                 {error.hint && (
-                  <div style={{ fontSize: 12, fontWeight: 400, lineHeight: 1.5 }}>
+                  <div style={{ fontSize: "var(--pulso-type-body-size)", fontWeight: 400, lineHeight: 1.5 }}>
                     {error.hint}
                   </div>
                 )}
@@ -438,13 +442,13 @@ export default function GraficosPage() {
               {pestana === "laminas"
                 ? <LaminasWorkbench />
                 : pestana === "informe"
-                  ? <Suspense fallback={<div data-audit-ready="false"><LoadingBlock label="Cargando la vista general…" /></div>}><VistaGeneral /></Suspense>
+                  ? <Suspense fallback={<div data-audit-ready="false"><CargaDeModulo label="Cargando la vista general…" /></div>}><VistaGeneral /></Suspense>
                   : pestana === "identidad"
-                    ? <Suspense fallback={<div data-audit-ready="false"><LoadingBlock label="Cargando la identidad…" /></div>}><PestanaEstilo /></Suspense>
+                    ? <Suspense fallback={<div data-audit-ready="false"><CargaDeModulo label="Cargando la identidad…" /></div>}><PestanaEstilo /></Suspense>
                   : pestana === "reglas"
-                    ? <Suspense fallback={<div data-audit-ready="false"><LoadingBlock label="Cargando las reglas…" /></div>}><PestanaEstiloInforme /></Suspense>
+                    ? <Suspense fallback={<div data-audit-ready="false"><CargaDeModulo label="Cargando las reglas…" /></div>}><PestanaEstiloInforme /></Suspense>
                   : pestana === "word"
-                    ? <Suspense fallback={<div data-audit-ready="false"><LoadingBlock label="Cargando el Word…" /></div>}><PestanaWord /></Suspense>
+                    ? <Suspense fallback={<div data-audit-ready="false"><CargaDeModulo label="Cargando el Word…" /></div>}><PestanaWord /></Suspense>
                   : <LaminasWorkbench />}
             </div>
           </AdaptiveSplitView>
@@ -454,7 +458,7 @@ export default function GraficosPage() {
       )}
     </PageFrame>
 
-      {shortcutsOpen && <ShortcutsModal onClose={() => setShortcutsOpen(false)} />}
+      {panelAtajos.abierto && <ShortcutsModal onClose={panelAtajos.cerrar} />}
     </>
     </GraficosReportScopeProvider>
   );

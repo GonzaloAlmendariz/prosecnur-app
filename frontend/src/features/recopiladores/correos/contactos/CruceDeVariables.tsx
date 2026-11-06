@@ -7,10 +7,12 @@ import type { CSSProperties } from "react";
 import type { CruceDelPerfil } from "../../../../api/mailContactos";
 import { PulsoButton } from "../../../../components/PulsoButton";
 import { formatoConteo } from "../../../../lib/formatoNumero";
-import { Grid3x3 } from "../../../../vendor/lucide-react";
+import { Grid3x3, Inbox } from "../../../../vendor/lucide-react";
 import { TableScroll } from "../../TableScroll";
 import { formatoPorcentaje, intensidadesDelCruce, proporcion, totalesDelCruce } from "./modeloContactos";
 import { useContactosStore, type VistaDelCruce } from "./store";
+import { EstadoVacio } from "../../../../components/EstadoVacio";
+import { CargaDeBloque } from "../../../../components/CargaDeBloque";
 
 type Props = {
   control: readonly string[];
@@ -88,9 +90,9 @@ export function CruceDeVariables({ control, etiquetas, par, cruce, cargando, onE
           <PulsoButton variant="secondary" size="sm" onClick={onElegirVariables}>Elegir variables</PulsoButton>
         </div>
       ) : !vigente ? (
-        <div className="rec-contactos-vacio-caja" data-qa-geometry-capacity="owned">
-          <p>{cargando ? "Leyendo el cruce…" : "El cruce no llegó con el perfil. Pulsa «Actualizar»."}</p>
-        </div>
+        cargando ? <CargaDeBloque label="Leyendo el cruce…" /> : (
+          <EstadoVacio icono={<Inbox size={16} aria-hidden />} titulo="El cruce no llegó con el perfil" descripcion="Pulsa «Actualizar» para pedirlo de nuevo." />
+        )
       ) : (
         <TablaDelCruce
           cruce={vigente}

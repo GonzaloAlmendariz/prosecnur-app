@@ -53,12 +53,12 @@ function FilaAula({
             { label: "Elegibles en lista", valor: fmtInt(el) },
             { label: `Tasa de su tramo (aula de ${fmtInt(el)})`, valor: `${Math.round(r * 100)} %` },
             ...(factor !== 1
-              ? [{ label: "Ajuste de su facultad", valor: `× ${factor.toFixed(2).replace(".", ",")}` }]
+              ? [{ label: "Ajuste de su facultad", valor: `× ${factor.toFixed(2)}` }]
               : []),
             { label: "Efectivas esperadas", valor: fmtInt(Math.round(esperadas)) },
           ],
-          nota: `${fmtInt(el)} × ${r.toFixed(2).replace(".", ",")}${
-            factor !== 1 ? ` × ${factor.toFixed(2).replace(".", ",")}` : ""
+          nota: `${fmtInt(el)} × ${r.toFixed(2)}${
+            factor !== 1 ? ` × ${factor.toFixed(2)}` : ""
           } → ${fmtInt(Math.round(esperadas))} — el valor de validez si el aula entra a campo${
             p != null
               ? `; su docente aplica el ${Math.round(p * 100)} % (operativo: anticipa cadena)`
@@ -79,8 +79,8 @@ function FilaAula({
       <span className="cmv2-selfac-curso">
         <b>{texto(fila.course_name) || texto(fila.course_id)}</b>
         <small>
-          {texto(fila.course_id)} · {texto(fila.schedule)}
-          {texto(fila.teacher) ? ` · ${texto(fila.teacher)}` : ""}
+          {texto(fila.course_id)}, {texto(fila.schedule)}
+          {texto(fila.teacher) ? `, ${texto(fila.teacher)}` : ""}
         </small>
       </span>
       <span
@@ -194,7 +194,7 @@ export function SeleccionPorFacultadCard({
       </nav>
       <div className="cmv2-selfac-head">
         <strong>
-          {facultadActiva.facultad}: {fmtInt(facultadActiva.titulares.length)} titulares ·{" "}
+          {facultadActiva.facultad}: {fmtInt(facultadActiva.titulares.length)} titulares,{" "}
           {fmtInt(facultadActiva.nReemplazos)} reemplazos en cadena
         </strong>
         <label className="cmv2-compact-field">

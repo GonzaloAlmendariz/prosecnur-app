@@ -52,7 +52,7 @@ function descripcionDeItem<K extends string>(item: ContextTabRailItem<K>) {
     item.description,
     item.badge ? `${item.badge} pendientes` : "",
     item.estadoLabel || (item.estado ? ETIQUETA_ESTADO_RAIL[item.estado] : ""),
-  ].filter(Boolean).join(" · ");
+  ].filter(Boolean).join(", ");
 }
 
 export type ContextTabRailProps<K extends string> = {
@@ -241,7 +241,7 @@ export function ContextTabRail<K extends string>({
                         <span className="pulso-context-tab-state">{estadoLabel}</span>
                       ) : null}
                       {estadoLabel && item.description ? (
-                        <span className="pulso-context-tab-separator" aria-hidden="true">·</span>
+                        <span className="pulso-context-tab-separator">, </span>
                       ) : null}
                       {item.description ? (
                         <span className="pulso-context-tab-description">{item.description}</span>

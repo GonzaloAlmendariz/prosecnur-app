@@ -1,3 +1,4 @@
+import { enumerar } from "../../../../lib/enumerar";
 import type { TonoAviso } from "./avisoLibroImportado";
 import { fmt } from "./kpisDeAulas";
 
@@ -144,7 +145,7 @@ export function fraseDeLecturaPrevia(lp: LecturaPreviaDelLibro | null | undefine
   return {
     texto:
       `No se pudo leer el Sheets antes de publicar${causa ? ` (${causa})` : ""}: ` +
-      "se publicó con lo que la app ya tenía. Para traer lo que el equipo tecleó, usa Traer respuestas cuando el enlace responda.",
+      "se publicó con lo que la app ya tenía. Para traer lo que el equipo tecleó, usa «Actualizar» cuando el enlace responda.",
     tono: "atencion",
   };
 }
@@ -241,7 +242,7 @@ export function avisoLibroPublicado(res: {
   const partes = [
     ...(lectura.texto ? [lectura.texto] : []),
     ...(adopcion.texto ? [adopcion.texto] : []),
-    `Libro publicado: ${hojas.map(fraseDeHoja).join(" · ")}.`,
+    `Libro publicado: ${enumerar(hojas.map(fraseDeHoja))}.`,
     // **Lo que encogió va con sus dos cifras.** «Se actualizó» sobre una hoja
     // que perdió la mitad del contenido es cierto y es inútil: lo que hay que
     // poder decidir es si tocaba revisar antes de que alguien lo note solo.

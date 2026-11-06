@@ -6,6 +6,7 @@ import type { GraficosCoverageSummary, GraficosCoverageVariable } from "../../ap
 import { usePlanStore } from "./store";
 import { usePlanCoverage, variableCoverageRef } from "./usePlanCoverage";
 import { basesSinCubrir, coberturaPorBase } from "./coberturaPorBase";
+import { formatoConteo } from "../../lib/formatoNumero";
 
 const STATUS_LABELS: Record<string, string> = {
   cubierta: "Incluidas",
@@ -149,7 +150,7 @@ export function PlanCoverageBadge({ conNombre = false }: { conNombre?: boolean }
               <strong>{coveragePhrase}</strong>
               <span>
                 {summary
-                  ? `${summary.total_variables} variables totales · ${summary.graphable_variables} graficables detectadas`
+                  ? `${summary.total_variables} variables totales, ${summary.graphable_variables} graficables detectadas`
                   : "Calculando inventario del instrumento"}
               </span>
             </div>
@@ -168,7 +169,7 @@ export function PlanCoverageBadge({ conNombre = false }: { conNombre?: boolean }
 
           {coverage?.warnings?.length ? (
             <div className="pulso-gv2-coverage-warning">
-              {coverage.warnings.join(" · ")}
+              {coverage.warnings.join("; ")}
             </div>
           ) : null}
 
@@ -206,7 +207,7 @@ export function PlanCoverageBadge({ conNombre = false }: { conNombre?: boolean }
                       <span className="pulso-gv2-coverage-bases-alert">
                         {sinCubrir.length === 1
                           ? `${sinCubrir[0]} no tiene ningún gráfico`
-                          : `${sinCubrir.length} bases sin ningún gráfico`}
+                          : `${formatoConteo(sinCubrir.length)} bases sin ningún gráfico`}
                       </span>
                     )}
                   </div>
@@ -306,7 +307,7 @@ function CoverageGroup({
     <section className="pulso-gv2-coverage-group" data-status={status} data-compact={compact ? "true" : "false"}>
       <div className="pulso-gv2-coverage-group-title">
         <span><Icon size={12} /> {STATUS_LABELS[status] ?? status}</span>
-        <small>{items.length}</small>
+        <small>{formatoConteo(items.length)}</small>
       </div>
       {STATUS_HINTS[status] && <p>{STATUS_HINTS[status]}</p>}
       <div className="pulso-gv2-coverage-list">

@@ -73,9 +73,9 @@ describe("dirección pública de Acreditación", () => {
   it("el rail de Control dice el grupo y deja fuera lo que el estudio no declara", () => {
     const rail = pestanasDelRail("control", () => [], disponibilidad({ correo: true, barrido: false }));
     expect(rail.map((tab) => tab.key)).toEqual(["correo", "resolver", "cruce", "calidad", "personas", "respuestas"]);
-    expect(rail[0].label).toBe("Contacto · Correo");
-    expect(rail[1].label).toBe("Casos · Por resolver");
-    expect(antetituloDePestana("control", "resolver")).toBe("Control · Casos");
+    expect(rail[0].label).toBe("Contacto › Correo");
+    expect(rail[1].label).toBe("Casos › Por resolver");
+    expect(antetituloDePestana("control", "resolver")).toBe("Control › Casos");
     expect(antetituloDePestana("avance", "publicos")).toBe("Avance");
   });
 

@@ -10,6 +10,7 @@ import {
   apiCargaImportSurveyMonkeySeparadaAsync,
 } from "../../../api/cargaPlataforma";
 import { iniciarJobPoll, type JobPollUpdate } from "../../../hooks/useJob";
+import { avisarCambioDelEstudio } from "../../../lib/avisoDeCambioDelEstudio";
 import {
   claveImport,
   clasificarErrorLanzamiento,
@@ -101,6 +102,8 @@ export type DepsPlataforma = {
   poll: (jobId: string, onUpdate: (update: JobPollUpdate<unknown>) => void) => () => void;
   cancelarJob: (jobId: string) => Promise<unknown>;
   ahora: () => number;
+  /** Avisa que el estudio cambió (una base llegó) a quien no está en Carga, p. ej. el Home. */
+  avisarCambio: () => void;
 };
 
 // Envoltorios perezosos: resuelven la función en cada llamada (mockeable).
@@ -112,6 +115,7 @@ const DEPS_REALES: DepsPlataforma = {
   poll: (jobId, onUpdate) => iniciarJobPoll<unknown>(jobId, onUpdate),
   cancelarJob: (jobId) => apiJobCancel(jobId),
   ahora: () => Date.now(),
+  avisarCambio: () => avisarCambioDelEstudio("carga-plataforma"),
 };
 
 function lanzar(deps: DepsPlataforma, p: PeticionImport): Promise<AsyncJobStart> {
@@ -161,6 +165,8 @@ export function crearStorePlataforma(depsParciales: Partial<DepsPlataforma> = {}
         vivos: sin(s.vivos, base.clave),
         terminados: { ...s.terminados, [base.clave]: terminado },
       }));
+      // L31b: si la base quedó (aunque se haya pedido cancelar), el Home relee sus tarjetas.
+      if (resultado.tipo === "importado" || resultado.tipo === "cancelado-importado") deps.avisarCambio();
     };
 
     const seguir = (clave: ClaveImport, jobId: string) => {

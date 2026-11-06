@@ -1,4 +1,5 @@
 import type { CalcMuestraCriteriosI18bSibling } from "../../../../api/calcMuestraCriteriosI18b";
+import { enumerar } from "../../../../lib/enumerar";
 
 /**
  * Qué parte del detalle de criterios no se pudo leer, dicho para quien diseña
@@ -12,10 +13,6 @@ const PIEZA: Record<CalcMuestraCriteriosI18bSibling, string> = {
   inventory: "el detalle de los criterios",
 };
 
-function enumerar(partes: string[]): string {
-  if (partes.length <= 1) return partes[0] ?? "";
-  return `${partes.slice(0, -1).join(", ")} y ${partes[partes.length - 1]}`;
-}
 
 export function avisoEvidenciaCriterios(invalid: readonly CalcMuestraCriteriosI18bSibling[]): string {
   const partes = Array.from(new Set(invalid)).map((id) => PIEZA[id] ?? "el detalle de los criterios");

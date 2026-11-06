@@ -38,7 +38,7 @@
 test_that("Escala de acuerdo (3 barras) + bloque Sí/No de una barra: una sola lámina cuando la alternativa es partir", {
   on.exit(options(prosecnur.evitar_cont = NULL, prosecnur.grosor_piso_cm = NULL))
   ml <- .sc_ml(c(2, 1)); items <- .lam_multilista_items(ml); options(prosecnur.grosor_piso_cm = 1.12)
-  disp <- .lam_multilista_disponible(FALSE)
+  disp <- .lam_multilista_disponible()
   expect_false(.lam_multilista_leyenda_compartida(lapply(items, `[[`, "espec")))     # dos escalas: una leyenda cada una
   expect_gt(.lam_multilista_alto_f(items, FALSE, 0), disp)                           # ni con el aire al mínimo cabe
   expect_true(.lam_multilista_apretar(items, FALSE))

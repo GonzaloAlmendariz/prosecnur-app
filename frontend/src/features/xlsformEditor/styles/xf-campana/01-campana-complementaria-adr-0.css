@@ -61,14 +61,14 @@
 
 .pulso-xf-campana-titulo {
   margin: 0;
-  font-size: 18px;
+  font-size: var(--pulso-type-title-size);
   line-height: 1.25;
   font-weight: var(--pulso-weight-semibold);
 }
 
 .pulso-xf-campana-descripcion {
   margin: 0;
-  font-size: 13px;
+  font-size: var(--pulso-type-body-size);
   line-height: 1.45;
   color: var(--pulso-text-soft);
 }
@@ -80,7 +80,7 @@
   align-items: center;
   gap: 4px 12px;
   margin: var(--pulso-space-1) 0 0;
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   color: var(--pulso-text-faint);
 }
 
@@ -111,7 +111,7 @@
   background: var(--pulso-surface-2);
   color: var(--pulso-text-soft);
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   cursor: pointer;
 }
 
@@ -121,7 +121,7 @@
 }
 
 .pulso-xf-campana-copiar:focus-visible {
-  outline: 2px solid var(--module-accent);
+  outline: var(--mov-foco, 2px solid var(--pulso-primary));
   outline-offset: 1px;
 }
 
@@ -144,7 +144,7 @@
 }
 
 .pulso-xf-campana-cerrar:focus-visible {
-  outline: 2px solid var(--module-accent);
+  outline: var(--mov-foco, 2px solid var(--pulso-primary));
   outline-offset: 2px;
 }
 
@@ -178,7 +178,7 @@
 .pulso-xf-campana-regla,
 .pulso-xf-campana-nota {
   margin: 0;
-  font-size: 12.5px;
+  font-size: var(--pulso-type-body-size);
   line-height: 1.45;
   color: var(--pulso-text-soft);
 }
@@ -192,7 +192,7 @@
 
 .pulso-xf-campana-subtitulo {
   margin: 0;
-  font-size: 14px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-semibold);
 }
 
@@ -208,7 +208,7 @@
   flex-direction: column;
   gap: var(--pulso-space-1);
   min-width: 0;
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   color: var(--pulso-text-soft);
 }
 
@@ -226,7 +226,7 @@
   border-radius: var(--pulso-radius);
   background: var(--pulso-surface);
   color: var(--pulso-text);
-  font-size: 13px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .pulso-xf-campana-campo input::placeholder {
@@ -235,7 +235,7 @@
 }
 
 .pulso-xf-campana-campo input:focus-visible {
-  outline: 2px solid var(--module-accent);
+  outline: var(--mov-foco, 2px solid var(--pulso-primary));
   outline-offset: 1px;
 }
 
@@ -259,13 +259,13 @@
 }
 
 .pulso-xf-campana-elegida-texto strong {
-  font-size: 13px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-semibold);
   overflow-wrap: anywhere;
 }
 
 .pulso-xf-campana-elegida-texto small {
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   color: var(--pulso-text-faint);
 }
 
@@ -318,7 +318,7 @@
 }
 
 .pulso-xf-campana-encuesta:focus-visible {
-  outline: 2px solid var(--module-accent);
+  outline: var(--mov-foco, 2px solid var(--pulso-primary));
   outline-offset: 2px;
 }
 
@@ -338,21 +338,21 @@
   border-radius: var(--pulso-radius-chip);
   background: var(--pulso-surface-3);
   color: var(--pulso-text-soft);
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   font-weight: var(--pulso-weight-semibold);
   white-space: nowrap;
 }
 
 .pulso-xf-campana-encuesta-titulo {
   max-width: 100%;
-  font-size: 13px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-semibold);
   overflow-wrap: anywhere;
 }
 
 .pulso-xf-campana-encuesta-id,
 .pulso-xf-campana-encuesta-elegida {
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   color: var(--pulso-text-faint);
 }
 
@@ -370,20 +370,6 @@
 /* La sección de coincidencia posee el espacio libre del cuerpo (C3). */
 .pulso-xf-campana .pulso-xf-campana-seccion.is-coincidencia {
   flex: 1 0 auto;
-}
-
-.pulso-xf-campana-vacio {
-  display: grid;
-  flex: 1 0 auto;
-  place-items: center;
-  min-height: 96px;
-  margin: 0;
-  padding: var(--pulso-space-4);
-  border: 1px dashed var(--pulso-border);
-  border-radius: var(--pulso-radius);
-  color: var(--pulso-text-faint);
-  font-size: 12.5px;
-  text-align: center;
 }
 
 .pulso-xf-campana-cargando {
@@ -454,7 +440,7 @@
   gap: var(--pulso-space-2);
   margin: 0;
   color: var(--xf-veredicto-fg);
-  font-size: 15px;
+  font-size: var(--pulso-type-title-size);
   line-height: 1.3;
 }
 
@@ -473,7 +459,7 @@
   align-items: baseline;
   justify-content: space-between;
   gap: var(--pulso-space-3);
-  font-size: 13px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .pulso-xf-campana-medidor-calce {

@@ -16,6 +16,7 @@ import { reintentarConFoco } from "./miniaturas/reintentarConFoco";
 import { rotuloEstado, vistaDeMiniatura } from "./miniaturas/vistaMiniatura";
 import { useMiniaturasLote } from "./miniaturas/useMiniaturasLote";
 import "./tiraMiniaturas.css";
+import { formatoConteo } from "../../../lib/formatoNumero";
 
 type Grupo = { id: string; rotulo: string; laminas: LaminaEnEstructura[] };
 
@@ -73,11 +74,11 @@ export function TiraMiniaturas({ estructura, posicionActiva, onIr }: Props) {
           <section
             key={g.id}
             className={`pulso-f6-tira-grupo${g.laminas.some((l) => l.posicion === posicionActiva) ? " is-actual" : ""}`}
-            aria-label={`${g.rotulo}, ${g.laminas.length} ${g.laminas.length === 1 ? "lámina" : "láminas"}`}
+            aria-label={`${g.rotulo}, ${formatoConteo(g.laminas.length)} ${g.laminas.length === 1 ? "lámina" : "láminas"}`}
           >
             <span className="pulso-f6-tira-cabeza">
               <span className="pulso-f6-tira-rotulo" title={g.rotulo}>{g.rotulo}</span>
-              <span className="pulso-f6-tira-cuenta" aria-hidden="true">{g.laminas.length}</span>
+              <span className="pulso-f6-tira-cuenta" aria-hidden="true">{formatoConteo(g.laminas.length)}</span>
             </span>
             <ul className="pulso-f6-tira-fila" data-qa-geometry-group="graficos/f6-tira" data-qa-geometry-contract="equal">
               {g.laminas.map((l) => {

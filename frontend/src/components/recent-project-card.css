@@ -108,7 +108,7 @@
 }
 
 .rpc-open:active:not(:disabled) {
-  transform: scale(0.97);
+  transform: scale(var(--mov-press, 0.97));
 }
 
 .rpc-open:disabled {
@@ -130,7 +130,7 @@
   }
 
   .rpc-open:hover:active:not(:disabled) {
-    transform: scale(0.97);
+    transform: scale(var(--mov-press, 0.97));
   }
 }
 

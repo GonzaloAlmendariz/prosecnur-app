@@ -123,7 +123,7 @@ export function AulasCroquisDeCampus({ lugarResaltado }: AulasCroquisDeCampusPro
             <g key={p.letra} className={clase}>
               <title>
                 {resaltado && aulas.length
-                  ? `Pabellón ${p.letra} — aula ${aulas.join(" · ")}`
+                  ? `Pabellón ${p.letra} — aula ${aulas.join(", ")}`
                   : `Pabellón ${p.letra}`}
               </title>
               {resaltado ? <circle className="aulas-croquis-anillo" cx={x} cy={y} r={LADO_CHIP * 0.92} /> : null}
@@ -152,11 +152,11 @@ export function AulasCroquisDeCampus({ lugarResaltado }: AulasCroquisDeCampusPro
           {[...resaltadas]
             .map((letra) => {
               const aulas = lugares.filter((lg) => letraDePabellon(lg) === letra);
-              return aulas.length ? `Pabellón ${letra} (${aulas.join(" · ")})` : `Pabellón ${letra}`;
+              return aulas.length ? `Pabellón ${letra} (${aulas.join(", ")})` : `Pabellón ${letra}`;
             })
             .join(" o ")}
           {resaltadas.size > 1 ? " — según el horario" : ""}
-          {fuera.length ? `${resaltadas.size ? " — " : ""}${fuera.join(" · ")} fuera del croquis` : ""}
+          {fuera.length ? `${resaltadas.size ? " — " : ""}${fuera.join(", ")} fuera del croquis` : ""}
         </figcaption>
       ) : null}
     </figure>

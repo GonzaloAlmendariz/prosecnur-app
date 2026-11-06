@@ -49,7 +49,7 @@ describe("variable calculada: fórmula", () => {
     expect(c?.especiales_na).toEqual(["P8"]);
     expect(borradorCalculadaDesde(c).formula.expresion).toBe("2026 - P8");
     const r = normalizarResumenCalculada({ por_codigo: [], n_sin_dato: 5, n_total: 105, n_validos: 100, minimo: 0, maximo: 9 });
-    expect(textoResumen(r)).toBe("Con valor 100 · de 0 a 9 · Sin dato 5");
+    expect(textoResumen(r)).toBe("Con valor 100, de 0 a 9, Sin dato 5");
   });
 
   it("puede partir de una calculada anterior, no de sí misma ni de las de después", () => {

@@ -177,9 +177,9 @@ export function AulasControles({ filas, plan = [] }: {
         {/* Concuerda, como sus dos vecinas. Con un solo control en rojo la
             lectura decía «1 piden revisión» mientras al lado escribía bien «1
             advertencia» y «1 correcto»: el ternario estaba en dos de las tres. */}
-        <strong>{revisar}</strong> {revisar === 1 ? "pide" : "piden"} revisión ·{" "}
+        <strong>{revisar}</strong> {revisar === 1 ? "pide" : "piden"} revisión,{" "}
         <strong>{advertencias}</strong>{" "}
-        {advertencias === 1 ? "advertencia" : "advertencias"} ·{" "}
+        {advertencias === 1 ? "advertencia" : "advertencias"},{" "}
         <strong>{correctos}</strong> {correctos === 1 ? "correcto" : "correctos"}
         {/* **Tres números, no dos.** El Contrato de Superficie lo pide para el
             gate visual —«conformes / no conformes / no declaradas»— y esta lista
@@ -187,10 +187,10 @@ export function AulasControles({ filas, plan = [] }: {
             iba en «correctos» y hacía que la pantalla se leyera más sana de lo
             que el corte permite afirmar. */}
         {sinComprobar ? (
-          <> · <strong>{sinComprobar}</strong> sin comprobar</>
+          <>, <strong>{sinComprobar}</strong> sin comprobar</>
         ) : null}
       </p>
-      <ul className="aulas-controles-lista">
+      <ul className="aulas-controles-lista" data-qa-geometry-group="aulas-controles-lista" data-qa-geometry-contract="intrinsic">
         {controles.map((control) => {
           const Icono = ICONO[control.severidad];
           return (

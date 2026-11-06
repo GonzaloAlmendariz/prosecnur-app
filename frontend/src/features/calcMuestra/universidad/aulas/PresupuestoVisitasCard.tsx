@@ -109,14 +109,14 @@ export function PresupuestoVisitasCard({
         </div>
       )}
       <p className="cmv2-presup-leyenda">
-        <i data-seg="titulares" /> {fmtInt(p.titulares)} titulares ·{" "}
+        <i data-seg="titulares" /> {fmtInt(p.titulares)} titulares,{" "}
         <i data-seg="activaciones" /> {fmtInt(p.reintentosEsperados)} reintentos en aula
         {p.visitasFisicas > p.techo ? (
           <>
-            {" "}· <i data-seg="exceso" /> {fmtInt(p.visitasFisicas - p.techo)} sobre el techo
+            {" "}y <i data-seg="exceso" /> {fmtInt(p.visitasFisicas - p.techo)} sobre el techo
           </>
         ) : (
-          <> · quedan {fmtInt(p.techo - p.visitasFisicas)} de holgura</>
+          <>, quedan {fmtInt(p.techo - p.visitasFisicas)} de holgura</>
         )}
       </p>
       {p.gestiones != null && (

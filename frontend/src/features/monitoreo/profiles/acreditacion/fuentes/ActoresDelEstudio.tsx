@@ -21,11 +21,15 @@ import {
   Trash2,
   Users,
 } from "../../../../../vendor/lucide-react";
+import { EstadoVacio } from "../../../../../components/EstadoVacio";
 import type { MonitoreoActorUnit, MonitoreoSource, MonitoreoState } from "../../../../../api/client";
 import { ACTORES_SEMILLA, claveDeActor, faltantesDelActor } from "../../../fuentes/rosterDeActores";
+import { CanalesDelPublico } from "./CanalesDelPublico";
 import { useElencoDeActores } from "./useElencoDeActores";
 import { actorInitialLabel } from "../formato";
+import { enumerar } from "../../../../../lib/enumerar";
 import "./actoresDelEstudio.css";
+import { Switch } from "../../../../../components/Switch";
 
 /**
  * Plural explícito, no un sufijo pegado.
@@ -51,7 +55,7 @@ export function ActoresDelEstudio({
   onStateChange?: (state: MonitoreoState) => void;
 }) {
   const {
-    borradores, guardando, error, duplicados, puedeGuardar, cuentas, editar, agregar, quitar, guardar,
+    borradores, guardando, error, duplicados, puedeGuardar, cuentas, editar, alternarCanalTelefonico, agregar, quitar, guardar,
   } = useElencoDeActores({ sources, unidades, onStateChange });
 
   const sinDeclarar = ACTORES_SEMILLA.filter((nombre) => (
@@ -126,18 +130,27 @@ export function ActoresDelEstudio({
                     </button>
                   </div>
 
-                  <label className="mon-switch-line mon-acr-actor-card-phone">
-                    <input
-                      type="checkbox"
+                  <div className="mon-switch-line mon-acr-actor-card-phone">
+                    <Switch
                       checked={fila.phone}
-                      onChange={(event) => editar(fila.key, { phone: event.currentTarget.checked })}
+                      onToggle={() => alternarCanalTelefonico(fila.key)}
+                      ariaLabel={`Canal telefónico de ${fila.actor || "este público"}`}
                       disabled={guardando}
                     />
                     <span>
                       <PhoneCall size={13} />
                       <strong>{fila.phone ? "Con canal telefónico" : "Sin canal telefónico"}</strong>
                     </span>
-                  </label>
+                  </div>
+
+                  {/* ADR 0125 §5: el switch crece hasta ser la declaración de
+                    * canales del público, por ronda. Material abre esas campañas. */}
+                  <CanalesDelPublico
+                    publico={fila.actor}
+                    canales={fila.canales}
+                    onCambio={(canales) => editar(fila.key, { canales })}
+                    deshabilitado={guardando}
+                  />
 
                   {/* Lo que este actor ya tiene conectado. Es el dato que decide
                     * si su avance se puede calcular, no un adorno de estado. */}
@@ -163,7 +176,7 @@ export function ActoresDelEstudio({
                         Al guardar, «{fila.guardadoComo}» pasa a llamarse así en {conFuentes === 1 ? "su única fuente" : `sus ${conFuentes} fuentes`}.
                       </span>
                     ) : faltan.length ? (
-                      <span className="is-missing">{faltan.join(" · ")}</span>
+                      <span className="is-missing">{enumerar(faltan)}</span>
                     ) : (
                       <span className="is-ready">Listo para medir avance</span>
                     )}
@@ -173,11 +186,11 @@ export function ActoresDelEstudio({
             })}
           </div>
         ) : (
-          <div className="mon-acr-empty-state">
-            <Users size={18} />
-            <strong>Este estudio todavía no declara sus actores</strong>
-            <span>Un actor es cada grupo que responde por separado y se mide contra su propia cuota. Empieza por los habituales y ajústalos.</span>
-          </div>
+          <EstadoVacio
+            icono={<Users size={15} />}
+            titulo="Este estudio todavía no declara sus actores"
+            descripcion="Un actor es cada grupo que responde por separado y se mide contra su propia cuota. Empieza por los habituales y ajústalos."
+          />
         )}
 
         <div className="mon-acr-actores-agregar">

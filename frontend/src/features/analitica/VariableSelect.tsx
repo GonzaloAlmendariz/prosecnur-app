@@ -79,7 +79,7 @@ export function VariableSelect({
           background: "white",
           border: `1px solid ${open ? "var(--pulso-primary)" : hover ? "var(--pulso-text-soft)" : "var(--pulso-border)"}`,
           borderRadius: "var(--pulso-radius)",
-          fontSize: 13,
+          fontSize: "var(--pulso-type-body-size)",
           cursor: "pointer",
           transition: "border-color 120ms ease",
         }}
@@ -87,11 +87,11 @@ export function VariableSelect({
         {selectedVar ? (
           <>
             {mostrarNombre && (
-              <code style={{ fontFamily: "monospace", fontWeight: 700, color: "var(--pulso-primary)" }}>
+              <code style={{ fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace", fontWeight: 700, color: "var(--pulso-primary)" }}>
                 {selectedVar.name}
               </code>
             )}
-            <span style={{ flex: 1, minWidth: 0, color: mostrarNombre ? "var(--pulso-text-soft)" : "var(--pulso-text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontSize: 12 }}>
+            <span style={{ flex: 1, minWidth: 0, color: mostrarNombre ? "var(--pulso-text-soft)" : "var(--pulso-text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontSize: "var(--pulso-type-body-size)" }}>
               {selectedVar.label}
             </span>
           </>
@@ -135,7 +135,7 @@ export function VariableSelect({
               value={q}
               onChange={(e) => setQ(e.target.value)}
               placeholder={mostrarNombre ? "Buscar por nombre o etiqueta…" : "Buscar por etiqueta…"}
-              style={{ flex: 1, border: "none", outline: "none", fontSize: 12, background: "transparent" }}
+              style={{ flex: 1, border: "none", outline: "none", fontSize: "var(--pulso-type-body-size)", background: "transparent" }}
             />
             {q && (
               <button type="button" onClick={() => setQ("")} className="pulso-icon" aria-label="Limpiar búsqueda">
@@ -151,7 +151,7 @@ export function VariableSelect({
             }}
           >
             {filtradas.length === 0 ? (
-              <div style={{ padding: "10px 12px", fontSize: 12, color: "var(--pulso-text-soft)", textAlign: "center" }}>
+              <div style={{ padding: "10px 12px", fontSize: "var(--pulso-type-body-size)", color: "var(--pulso-text-soft)", textAlign: "center" }}>
                 Sin resultados.
               </div>
             ) : (
@@ -175,7 +175,7 @@ export function VariableSelect({
                       background: isSelected ? "var(--pulso-primary-soft)" : "transparent",
                       borderRadius: 4,
                       cursor: "pointer",
-                      fontSize: 12,
+                      fontSize: "var(--pulso-type-body-size)",
                     }}
                     onMouseEnter={(e) => { if (!isSelected) e.currentTarget.style.background = "var(--pulso-surface-2)"; }}
                     onMouseLeave={(e) => { if (!isSelected) e.currentTarget.style.background = "transparent"; }}
@@ -183,7 +183,7 @@ export function VariableSelect({
                     <span>{isSelected && <Check size={12} color="var(--pulso-primary)" />}</span>
                     <div style={{ display: "flex", flexDirection: "column", minWidth: 0 }}>
                       {mostrarNombre && (
-                        <code style={{ fontFamily: "monospace", fontWeight: 700, color: isSelected ? "var(--pulso-primary)" : "var(--pulso-text)" }}>
+                        <code style={{ fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace", fontWeight: 700, color: isSelected ? "var(--pulso-primary)" : "var(--pulso-text)" }}>
                           {v.name}
                         </code>
                       )}
@@ -191,7 +191,7 @@ export function VariableSelect({
                         {v.label || <em>(sin etiqueta)</em>}
                       </span>
                     </div>
-                    <span style={{ fontSize: 10, color: "var(--pulso-text-soft)", textTransform: "uppercase", letterSpacing: 0.3, whiteSpace: "nowrap" }}>
+                    <span style={{ fontSize: "var(--pulso-type-micro-size)", color: "var(--pulso-text-soft)", textTransform: "uppercase", letterSpacing: 0.3, whiteSpace: "nowrap" }}>
                       {v.tipo}
                     </span>
                   </button>

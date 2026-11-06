@@ -57,6 +57,28 @@
   if (is.list(disp) && length(disp)) disp else NULL
 }
 
+# Los sellos de la última DESCARGA de cada fuente activa: «vencida» se juzga
+# contra el más viejo y no contra hoy (2g). No vale `snapshot$synced_at`: lo
+# adelantan también `/aulas/sync` cuando sólo recalcula y un sync con fuentes
+# vacías, y con Kobo caído cada pulsación devolvía el corte a hoy. `last_sync_at`
+# sólo lo escribe el sync para las fuentes que sí trajeron (revisión
+# metodológica, 2026-11-03). Cambia con cada sync real, que ya mueve el token.
+.mac_corte_sesion <- function(sid) {
+  if (!nzchar(sid)) return(NULL)
+  s <- session_get(sid, required = FALSE)
+  if (!is.list(s)) return(NULL)
+  .mac_corte_de_fuentes(s[["monitoreo_sources"]])
+}
+
+.mac_corte_de_fuentes <- function(sources) {
+  sellos <- vapply(Filter(is.list, sources %||% list()), function(src) {
+    if (!.monitoreo_bool(src[["enabled"]], TRUE)) return("")
+    .monitoreo_scalar(src[["last_sync_at"]], "")
+  }, character(1))
+  sellos <- sellos[nzchar(sellos)]
+  if (length(sellos)) sellos else NULL
+}
+
 # El padrón vigente de la sesión, por la misma vía y el mismo motivo que la
 # disponibilidad: el router está congelado y esta clave vive SOLO en la sesión.
 # Con `[[`, que el `$` parcial-matchea y `monitoreo_aulas_padron_corte` es una
@@ -295,6 +317,13 @@ monitoreo_aulas_dashboard_cached <- function(sid, plan, data, cfg, token) {
   token <- as.character(token %||% "")[1]
   disponibilidad <- .mac_disponibilidad_sesion(sid)
   padron <- .mac_padron_sesion(sid)
+  # F4 del ADR 0121: lo declarado en el Planner (universo y variables) viaja en
+  # la config del tablero y en su token, igual que el padrón.
+  planner_rep <- .mrpl_de_sesion(sid)
+  if (is.list(planner_rep) && is.list(cfg)) cfg$representatividad_planner <- planner_rep
+  # ADR 0125 §3: con marco de alumnos el anonimato lo fija el marco (monitoreo_aulas_anonimato_marco.R).
+  con_marco <- .maam_con_marco_sesion(sid)
+  cfg <- monitoreo_aulas_anonimato_por_marco(cfg, con_marco)
   # B29 + decisión del lead sobre el hueco de cache: el router (congelado)
   # deriva el token sin ver la sesión, y la disponibilidad vive SOLO en la
   # sesión. Este es el único punto sid-aware, así que aquí se completa el
@@ -307,11 +336,11 @@ monitoreo_aulas_dashboard_cached <- function(sid, plan, data, cfg, token) {
   # ausencia la que también tiene que invalidar, porque purgarlo cambia lo que
   # el tablero puede afirmar.
   if (nzchar(token)) {
-    token <- paste(token, .mac_padron_marca(padron), sep = "|")
+    token <- paste(token, .mac_padron_marca(padron), .mrpl_marca(planner_rep), paste0("marco:", con_marco), sep = "|")
   }
   construir <- function() {
     .mac_publicar_disponibilidad(
-      monitoreo_aulas_dashboard(plan, data, cfg, padron = padron), plan, disponibilidad,
+      monitoreo_aulas_dashboard(plan, data, cfg, padron = padron, corte = .mac_corte_sesion(sid)), plan, disponibilidad,
       fijadas = (if (is.list(cfg)) cfg[["reparto_fijado"]] else NULL) %||% list(),
       duracion_min = if (is.list(cfg)) cfg[["duracion_aplicacion_min"]] else NULL,
       rango = if (is.list(cfg)) cfg[["reparto_rango"]] else NULL,

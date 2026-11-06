@@ -46,6 +46,7 @@ canónica. Vuelva al [índice general](../README.md) para consultar la precedenc
 - [Mapa de lo pendiente — cursos-horario, 2026-08-24](mapa-pendientes-aulas-2026-08-24.md): relevo del loop de cálculo de muestra a monitoreo: qué queda y dónde vive.
 - [Censo de las cuatro cifras (A9-B7)](censo-cuatro-cifras-2026-09-01.md): cuatro conceptos repartidos en nueve claves del payload; insumo de diseño de B7.
 - [Pendientes al cierre del loop de mejora visual](pendientes-cierre-loop-2026-09-03.md): acta del cierre del 2026-09-03 con todo lo que quedó vivo.
+- [Pendientes al cerrar el loop de Monitoreo y Aulas](pendientes-cierre-loop-monitoreo-2026-10-28.md): acta del cierre del 2026-10-28: lo cerrado con su commit, A3 sin mergear y las decisiones abiertas.
 - [Traspaso — operativo de aulas, cierre del día 1](traspaso-operativo-aulas-2026-09-07.md): documentos vivos, lo cerrado con su commit y lo ya medido.
 - [Cómo encajan los dos Sheets y la app](operativa-aulas-dos-sheets-y-la-app-2026-09-08.md): quién es dueño de qué dato y en qué orden se sincroniza.
 - [Un ancho fijo acaba cortando un dato](anchos-que-cortan-datos-2026-09-09.md): lección del libro de aulas sobre anchos literales en el `.xlsx`.

@@ -88,6 +88,23 @@
 # `repeat_grain` o con `parent_base`/`repeat_group` es una base donde una misma
 # persona aporta varias filas. Se lee tanto del atributo como del campo porque
 # el runtime pobla uno u otro segun el camino de carga.
+# Diseño para las LETRAS de un gráfico (ADR 0127). La configuración de la
+# prueba viaja con el instrumento (`inst$cruces_significancia`, ver
+# `.graficos_sig_adjuntar_config`) y sale como atributo, para que el cálculo use
+# la misma prueba que la tabla. Con el estudio en modo diseño el gráfico se
+# abstiene ("muestral"); sin configuración legible también ("sin_config"), nunca
+# cae a la z simple. Las guardas de independencia de otros gráficos siguen
+# llamando a `.graficos_sig_diseno_de_fuente`, que no cambia.
+.graficos_sig_diseno_de_letras <- function(inst, var = NULL) {
+  diseno <- .graficos_sig_diseno_de_fuente(inst, var)
+  if (!identical(diseno, "independiente")) return(diseno)
+  if (is.list(inst) && isTRUE(inst$cruces_significancia_ilegible)) return("sin_config")
+  spec <- .cruces_significancia_normalizar(if (is.list(inst)) inst$cruces_significancia else NULL)
+  if (identical(spec$metodo, "diseno")) diseno <- "muestral"
+  if (identical(spec, .cruces_significancia_normalizar(NULL))) return(diseno)
+  structure(diseno, significancia = spec)
+}
+
 .graficos_sig_diseno_de_fuente <- function(inst, var = NULL) {
   if (is.null(inst)) return("desconocido")
 
@@ -217,6 +234,15 @@
   if (identical(diseno, "desconocido")) {
     return("No se asignan letras: no se pudo establecer si las observaciones son independientes.")
   }
+  if (identical(diseno, "sin_config")) {
+    return("No se asignan letras: no se pudo leer la configuración de la prueba de Analítica.")
+  }
+  if (identical(diseno, "muestral")) {
+    return(paste0(
+      "No se asignan letras en el gráfico: el estudio prueba las diferencias bajo el ",
+      "diseño muestral y esas letras se leen en la tabla de cruces."
+    ))
+  }
   if (identical(diseno, "dependiente")) {
     return(paste0(
       "No se asignan letras: las barras comparan preguntas respondidas por las ",
@@ -235,7 +261,7 @@
 
 # Calculo de letras. Delega en `comparar_columnas_sig()` — la MISMA funcion que
 # firma las letras del XLSX de cruces— y no reimplementa la prueba.
-.graficos_sig_calcular <- function(n_mat, N_vec, alpha = 0.05, diseno = "independiente") {
+.graficos_sig_calcular <- function(n_mat, N_vec, alpha = 0.05, diseno = "independiente", n_casos = NULL) {
   motivo <- .graficos_sig_motivo_abstencion(
     diseno = diseno,
     n_series = ncol(n_mat),
@@ -243,14 +269,26 @@
   )
   if (!is.null(motivo)) return(list(letras = NULL, motivo = motivo))
 
+  # Base mínima (ADR 0127): un grupo con menos casos no entra en la prueba. Se
+  # mide sobre `n_casos` (sin ponderar) cuando el llamador lo trae; agrupadas y
+  # apiladas solo conocen la base que dibujan y la usan en su lugar.
+  spec <- .cruces_significancia_normalizar(attr(diseno, "significancia", exact = TRUE))
+  base_umbral <- if (length(n_casos) == length(N_vec)) as.numeric(n_casos) else N_vec
+  excluidas <- which(N_vec > 0 & base_umbral < spec$base_minima)
+  if (length(excluidas)) {
+    n_mat[, excluidas] <- 0
+    N_vec[excluidas] <- 0
+  }
   res <- tryCatch(
-    comparar_columnas_sig(n_mat = n_mat, N_vec = N_vec, alpha = alpha),
+    comparar_columnas_sig(n_mat = n_mat, N_vec = N_vec, alpha = alpha,
+                          correccion = spec$correccion),
     error = function(e) NULL
   )
   if (is.null(res) || is.null(res$letras)) {
     return(list(letras = NULL, motivo = "No se asignan letras: la prueba no pudo ejecutarse."))
   }
-  list(letras = res$letras, motivo = NULL)
+  list(letras = res$letras, motivo = NULL, correccion = spec$correccion,
+       excluidas = length(excluidas), base_minima = spec$base_minima)
 }
 
 # Sufijos por celda para el graficador.
@@ -304,7 +342,14 @@
                                # en la lamina 16:9 con `size_nota_pie` de la
                                # casa; el motor puede subirlo si el slot es mas
                                # ancho.
-                               ancho = 72) {
+                               ancho = 72,
+                               correccion = "bonferroni",
+                               excluidas = 0L,
+                               base_minima = 30L) {
+  corr <- .cruces_sig_nombre_correccion(correccion)
+  aviso_base <- if (isTRUE(excluidas > 0L)) {
+    sprintf(" Los grupos con menos de %d casos no se comparan.", as.integer(base_minima))
+  } else ""
   envolver <- function(txt) {
     ancho <- suppressWarnings(as.integer(ancho)[1])
     if (!is.finite(ancho) || ancho < 20L) ancho <- 96L
@@ -320,7 +365,7 @@
   if (!isTRUE(hay_letras)) {
     return(envolver(paste0(
       "Ninguna diferencia entre grupos resultó significativa ",
-      "(prueba z, corrección de Bonferroni, α = ", alpha, ")."
+      "(prueba z, corrección de ", corr, ", α = ", alpha, ").", aviso_base
     )))
   }
   mapa <- vapply(
@@ -330,7 +375,7 @@
   )
   envolver(paste0(
     "Las letras marcan al grupo superado con diferencia significativa ",
-    "(prueba z, corrección de Bonferroni, α = ", alpha, ").\n",
+    "(prueba z, corrección de ", corr, ", α = ", alpha, ").", aviso_base, "\n",
     paste(mapa, collapse = "  |  ")
   ))
 }
@@ -351,6 +396,17 @@
                                   diseno = "independiente",
                                   var_categoria = "categoria") {
   if (!isTRUE(activo)) return(base_args)
+
+  # ADR 0128: con microdatos del render (`.sig_fuente_render`), la regla del estudio; si no, la prueba de siempre.
+  if (is.null(.graficos_sig_motivo_abstencion(.sig_diseno_texto(diseno), length(cols_porcentaje), 2L))) {
+    con_regla <- .sig_aplicar_regla_agrupadas(diseno, df_long, cols_n, cols_porcentaje, etiquetas_series, var_categoria)
+    if (!is.null(con_regla)) {
+      base_args$sufijos_etiqueta <- con_regla$sufijos
+      base_args$nota_pie_significancia <- con_regla$nota
+      return(.sig_letras_en_leyenda(base_args, con_regla, cols_porcentaje))
+    }
+  }
+  diseno <- .sig_diseno_texto(diseno)
 
   alpha <- suppressWarnings(as.numeric(alpha)[1])
   if (!is.finite(alpha) || alpha <= 0 || alpha >= 1) alpha <- 0.05
@@ -392,7 +448,10 @@
     etiquetas_series = etiquetas_txt,
     alpha = alpha,
     motivo = res$motivo,
-    hay_letras = !is.null(sufijos)
+    hay_letras = !is.null(sufijos),
+    correccion = res$correccion %||% "bonferroni",
+    excluidas = res$excluidas %||% 0L,
+    base_minima = res$base_minima %||% 30L
   )
   base_args
 }
@@ -428,6 +487,9 @@
     character(0)
   }
 
+  fuente <- diseno
+  diseno <- .sig_diseno_texto(diseno)
+
   # Antes de mirar los datos: si el diseño no admite el contraste, se dice y se
   # sale. Calcular para despues descartar seria gastar y arriesgar una letra.
   motivo_previo <- .graficos_sig_motivo_abstencion(
@@ -440,6 +502,15 @@
       etiquetas_series = grupos, alpha = alpha, motivo = motivo_previo
     )
     return(base_args)
+  }
+
+  # ADR 0128: la regla del estudio sobre los microdatos del render (el top two box, si la lámina lo muestra).
+  con_regla <- .sig_aplicar_regla_transpuesto(fuente, df_block, cols_n, cols_porcentaje, etiquetas_opciones,
+                                              top2box = fuente$top2box, var_categoria = var_categoria, var_n = var_n)
+  if (!is.null(con_regla)) {
+    base_args$sufijos_etiqueta <- con_regla$sufijos
+    base_args$nota_pie_significancia <- con_regla$nota
+    return(.sig_letras_en_filas(base_args, con_regla, var_categoria))
   }
 
   mats <- .graficos_sig_matrices_transpuesto(
@@ -481,7 +552,33 @@
     etiquetas_series = grupos,
     alpha = alpha,
     motivo = res$motivo,
-    hay_letras = !is.null(sufijos)
+    hay_letras = !is.null(sufijos),
+    correccion = res$correccion %||% "bonferroni",
+    excluidas = res$excluidas %||% 0L,
+    base_minima = res$base_minima %||% 30L
   )
   base_args
+}
+
+# Adjunta la configuración de las letras de Analítica (ADR 0127) a cada
+# instrumento de las fuentes de Gráficos. Viaja con el instrumento, como el
+# diccionario de texto abierto, y así llega también al worker del PPT.
+# Si la configuración no se puede leer, el instrumento queda marcado y el
+# gráfico se abstiene: fallar hacia la z simple contradiría una tabla en diseño.
+.graficos_sig_adjuntar_config <- function(sid, src) {
+  if (!is.list(src$inst_sources)) return(src)
+  # ADR 0128: la configuración que viaja es la de la regla del estudio (que absorbe la de Analítica como migración).
+  spec <- tryCatch({
+    ac <- .analitica_get_config(sid)
+    base1 <- if (length(src$data_sources)) src$data_sources[[1]] else NULL
+    .sig_spec_de_regla(.sig_regla_del_estudio(.graficos_config_get(sid), base1, ac)$regla)
+  }, error = function(e) e)
+  ilegible <- inherits(spec, "error")
+  if (ilegible) spec <- NULL
+  for (b in names(src$inst_sources)) {
+    if (!is.list(src$inst_sources[[b]])) next
+    src$inst_sources[[b]]$cruces_significancia <- spec
+    src$inst_sources[[b]]$cruces_significancia_ilegible <- if (ilegible) TRUE else NULL
+  }
+  src
 }

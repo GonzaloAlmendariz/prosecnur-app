@@ -10,6 +10,8 @@ import type { JobStart } from "./jobs";
 import type { WordFijado } from "./graficosWordFijado";
 
 export type { WordFijado, WordFijadoValor } from "./graficosWordFijado";
+// Diferencias entre grupos (ADR 0128 §5): la regla del estudio y el resultado por lámina viven en su propio módulo.
+export * from "./graficosDiferencias";
 
 // ---------- Gráficos (PPT/Word) ----------
 //
@@ -20,7 +22,7 @@ export type { WordFijado, WordFijadoValor } from "./graficosWordFijado";
 
 // Nombres canónicos de los tipos de slide en prosecnur (en español).
 // Reemplaza los nombres viejos en inglés (p_slide_title, p_slide_1, etc.).
-// Los 33 tipos de `.SLIDES_META` (api/R/graficos_metadata.R), espejo de api/inst/catalogos/graficos_tipos.json.
+// Los 36 tipos de `.SLIDES_META` (api/R/graficos_metadata.R), espejo de api/inst/catalogos/graficos_tipos.json.
 // `laminas/selectores/tiposLamina.test.ts` falla si el registro gana o pierde un tipo y este union no lo sigue.
 export type SlideType =
   // Estructurales (sin slots de gráfico)
@@ -39,6 +41,9 @@ export type SlideType =
   | "p_slide_1_grafico_narrativo"
   | "p_slide_grafico_texto_derecha"
   | "p_slide_grafico_texto_izquierda"
+  // Tabla y cifras del informe (fuera del selector hasta tener inspector; los planes que las traen se muestran)
+  | "p_slide_resumen_diferencias"
+  | "p_slide_hallazgos"
   // 2 gráficos
   | "p_slide_2_graficos"
   | "p_slide_2_graficos_narrativo"
@@ -188,6 +193,12 @@ export type Slide = {
 
 export type PlanJson = {
   slides: Slide[];
+  /** Rótulos cortos del estudio (rótulo completo → corto), aplicados en el job a datos, instrumento y plan. Las ediciones
+   * del editor conservan este y cualquier otro campo de la raíz del plan. */
+  rotulos_cortos?: Record<string, string>;
+  /** Preguntas clave del estudio (H14): referencias como las escriben los gráficos (`var` o `base$var`). El motor propone
+   * a partir de ellas los hallazgos del resumen ejecutivo. Vacía o ausente, ninguna. */
+  preguntas_clave?: string[];
 };
 
 // Tipos de input que el editor reconoce. Cada `tipo_input` mapea a un
@@ -242,6 +253,16 @@ export type ArgTipoInput =
   // criteria_config: editor visual de criterios/conductores, cada uno
   // con titulo y variables asociadas.
   | "criteria_config"
+  // partes: filas { rotulo, codigos, y?, color? } sobre las respuestas de la
+  // pregunta `var` del mismo gráfico (líneas y franja del total de
+  // p_lineas_nivel). `y` y `color` no se editan pero se conservan.
+  | "partes"
+  // hallazgos_capitulos: capítulos { titulo, titular?, cifras: [{ var, fila?, texto, comparacion, … }] } del resumen
+  // ejecutivo de «Hallazgos clave» (p_slide_hallazgos). Lo que el editor no maneja (`sumar`, `filtros`…) se conserva.
+  | "hallazgos_capitulos"
+  // resumen_capitulos: capítulos { titulo, filas: [{ var, fila?, rotulo, … }] } de «Resumen de diferencias»
+  // (p_slide_resumen_diferencias). Lo que el editor no maneja (`top2box`, `base_rotulo`…) se conserva.
+  | "resumen_capitulos"
   | "icono"
   | "overrides"
   | "filtros"

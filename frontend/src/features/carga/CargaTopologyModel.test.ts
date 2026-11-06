@@ -143,7 +143,8 @@ describe("resolveCargaTopology", () => {
       modeLocked: true,
       strategyLocked: true,
     });
-    expect(resolution.lockReason).toBeTruthy();
+    // Con una sola base, el aviso dice que hay una y cómo sumar la siguiente: «Varias bases» es la preparación.
+    expect(resolution.lockReason).toBe("El estudio está preparado para varias bases separadas y por ahora tiene una. Agrega la siguiente desde Fuentes.");
   });
 
   it.each([

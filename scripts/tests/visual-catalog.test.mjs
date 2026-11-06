@@ -323,15 +323,17 @@ test("documenta la jerarquía real de secciones y pestañas", () => {
     moduleSections("material-campo").map((section) => section.id),
     ["unidades", "accesos", "catalogo", "paquetes", "entrega"],
   );
-  assert.deepEqual(canonicalTabs("material-campo", "unidades"), ["Lista"]);
+  // Pestañas de PESTANAS_POR_SECCION (modo aulas) con los rótulos de lib/modules.ts.
+  assert.deepEqual(canonicalTabs("material-campo", "unidades"), ["Lista", "Origen"]);
   assert.deepEqual(canonicalTabs("material-campo", "accesos"), [
     "Canales",
     "Vinculación",
   ]);
-  assert.deepEqual(canonicalTabs("material-campo", "catalogo"), ["Editor"]);
+  assert.deepEqual(canonicalTabs("material-campo", "catalogo"), ["Tipos", "Editor"]);
   assert.deepEqual(canonicalTabs("material-campo", "paquetes"), ["Armado"]);
   assert.deepEqual(canonicalTabs("material-campo", "entrega"), [
     "Monitoreo",
+    "Plantillas del equipo",
   ]);
   assert.ok(
     canonicalTabs("calculo-muestra", "universidad-seleccion").includes(
@@ -375,30 +377,6 @@ test("cada ocurrencia usa una sección registrada en su módulo", () => {
 
 test("expande tuplas, records, factories y arrays de controles críticos", () => {
   assertExactLabels(
-    "frontend/src/features/bitacora/logbook/gramatica.ts",
-    "MODULOS_BITACORA",
-    [
-      "Bitácora",
-      "Muestra",
-      "Formulario",
-      "Rutas",
-      "Material",
-      "Monitoreo",
-      "Carga",
-      "Validación",
-      "Codificación",
-      "Analítica",
-      "Gráficos",
-      "Dashboard",
-      "Proyecto",
-    ],
-  );
-  assertExactLabels(
-    "frontend/src/features/bitacora/logbook/gramatica.ts",
-    "TONOS",
-    ["Nota", "Decisión", "Avance", "Riesgo", "Bloqueo"],
-  );
-  assertExactLabels(
     "frontend/src/lib/navegacion/catalogos/calcMuestra.ts",
     "CALC_MUESTRA_UNIVERSIDAD_PESTANAS.aulas",
     [
@@ -406,10 +384,12 @@ test("expande tuplas, records, factories y arrays de controles críticos", () =>
       "Comparar métodos",
       "Simulación",
       "Cursos-horario titulares",
+      "Solidez de la selección",
       "Perfil de la muestra",
       "Reemplazos por curso-horario",
       "Relato",
       "Sustento técnico",
+      "¿Este sorteo o otro?",
     ],
   );
   assertExactLabels(
@@ -425,10 +405,12 @@ test("expande tuplas, records, factories y arrays de controles críticos", () =>
       "Lógica de SurveyMonkey",
     ],
   );
+  // El menú «Agregar» se arma con `TIPOS_INSERTABLES.map(...)`: sus 16 tipos
+  // viven declarados en outline/tiposInsertables.ts, no en la página.
   assert.equal(
     declared(
-      "frontend/src/features/xlsformEditor/XlsformEditorPage.tsx",
-      "addMenuItems",
+      "frontend/src/features/xlsformEditor/outline/tiposInsertables.ts",
+      "TIPOS_INSERTABLES",
     ).length,
     16,
   );
@@ -442,6 +424,8 @@ test("expande tuplas, records, factories y arrays de controles críticos", () =>
       "Solo números",
       "Solo letras y espacios",
       "Sin números",
+      // Receta agregada en 018cbe160 (R4/R6).
+      'Debe contener “${readText(p, "texto", "@")}”',
       'Debe iniciar con “${readText(p, "texto", "PE-")}”',
       'Debe terminar en “${readText(p, "texto", ".pdf")}”',
       "Correo electrónico válido",
@@ -496,7 +480,12 @@ test("clasifica tipos y roles dinámicos con todas sus variantes semánticas", (
 test("traza hosts polimórficos e iconos dinámicos hasta su proveedor", () => {
   const expectedDynamicIconHosts = productionJsx.reduce(
     (total, relativeFile) => {
-      const source = fs.readFileSync(path.join(ROOT, relativeFile), "utf8");
+      // Sólo el código: un `<Icon …/>` citado en un comentario no es un host (el
+      // catálogo, que parsea el AST, tampoco lo cuenta).
+      const source = fs
+        .readFileSync(path.join(ROOT, relativeFile), "utf8")
+        .replace(/\/\*[\s\S]*?\*\//g, "")
+        .replace(/^\s*\/\/.*$/gm, "");
       return (
         total +
         [...source.matchAll(/<(?:Icon|ActiveIcon|SelectedIcon)\b/g)].length
@@ -550,39 +539,14 @@ test("traza hosts polimórficos e iconos dinámicos hasta su proveedor", () => {
     "div / h3 / h2 / p / span",
   );
   assert.ok(richTag.visualVariants.includes("role=textbox"));
-
-  const selectedIcon = dynamicIcons.find(
-    (entry) => entry.tag === "SelectedIcon",
-  );
-  assert.ok(selectedIcon);
-  assert.match(
-    selectedIcon.attributes.dynamicProvider,
-    /resolveGraphLucideIcon/,
-  );
-  assert.ok(selectedIcon.visualVariants.includes("icon-option=Sliders"));
+  // `SelectedIcon` (selector de íconos del editor anterior de Gráficos) se
+  // retiró en 85f5400f8; los hosts que quedan se verifican arriba uno por uno.
 });
 
-test("materializa navegación y estados de Hojas, Material de campo y Monitoreo", () => {
-  const hojasFile =
-    "frontend/src/features/hojasRuta/hojasRutaNavigation.ts";
-  const hojasSections = declared(hojasFile, "sections");
-  const hojasTabs = declared(hojasFile, "deliveryTabs");
-  assert.deepEqual(labels(hojasSections), [
-    "Territorio",
-    "Población",
-    "Muestra",
-    "Manzanas",
-    "Selección",
-  ]);
-  assert.deepEqual(labels(hojasTabs), [
-    "Cuotas",
-    "Titulares",
-    "Reemplazos",
-  ]);
-  for (const entry of [...hojasSections, ...hojasTabs]) {
-    assert.ok(entry.states.length >= 2, entry.label);
-    assert.ok(entry.stateModel);
-  }
+test("materializa navegación y estados de Material de campo y Monitoreo", () => {
+  // Hojas de ruta ya no declara navegación propia: la página clásica y su
+  // `hojasRutaNavigation.ts` se retiraron (ADR 0114 §8) y las secciones del
+  // lienzo salen del manifiesto v3 (`lib/modules.ts`).
 
   // La carpeta conserva el nombre `recopiladores`; el módulo es Material de
   // campo (ADR 0108).
@@ -602,11 +566,14 @@ test("materializa navegación y estados de Hojas, Material de campo y Monitoreo"
   );
   assert.deepEqual(labels(recopiladoresTabs), [
     "lista",
+    "origen",
     "canales",
     "vinculacion",
+    "tipos",
     "editor",
     "armado",
     "traspaso",
+    "plantillas",
   ]);
   assert.ok(
     recopiladoresTabs.every(
@@ -632,7 +599,8 @@ test("materializa navegación y estados de Hojas, Material de campo y Monitoreo"
     "UMPs",
     "Validación",
     "Agenda de cursos-horario",
-    "Llamadas",
+    // «Llamadas» pasó a ser la pestaña «Control» del telefónico (eda6f5742).
+    "Control",
   ]) {
     assert.ok(registryLabels.has(label), label);
   }
@@ -815,7 +783,7 @@ test("registra superficies dinámicas que el JSX no puede enumerar completo", ()
     "Mapa de Lima y Callao",
     "Código QR generado",
     "Visualizaciones Plotly de validación",
-    "Previews de slides",
+    "Lámina rasterizada por el motor",
     "Visuales de dimensiones",
   ]) {
     assert.ok(labels.has(label), label);

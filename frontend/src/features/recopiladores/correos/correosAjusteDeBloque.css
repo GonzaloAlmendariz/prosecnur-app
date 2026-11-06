@@ -11,7 +11,7 @@
 
 .rec-ajuste-rotulo {
   color: var(--pulso-text-soft);
-  font-size: 12.5px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .rec-ajuste-opciones {
@@ -20,7 +20,8 @@
   border-radius: 10px;
   display: grid;
   gap: 2px;
-  grid-template-columns: repeat(var(--rec-ajuste-columnas, 2), minmax(0, 1fr));
+  /* Iguales mientras quepan; ninguna baja de su rótulo: a 1024 «Original» salía «Origi…» en Proporción. */
+  grid-template-columns: repeat(var(--rec-ajuste-columnas, 2), minmax(min-content, 1fr));
   padding: 3px;
 }
 
@@ -34,7 +35,7 @@
   display: flex;
   flex-direction: column;
   font: inherit;
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   gap: 3px;
   justify-content: center;
   min-height: 46px;
@@ -63,7 +64,7 @@
 }
 
 .rec-ajuste-opcion:focus-visible {
-  outline: 2px solid var(--pulso-primary-focus);
+  outline: var(--mov-foco, 2px solid var(--pulso-primary));
   outline-offset: -2px;
 }
 
@@ -84,7 +85,7 @@
 /* Herencia: una línea gris, sólo cuando el bloque sigue la alineación de Identidad. */
 .rec-ajuste-aviso {
   color: var(--pulso-text-muted);
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;

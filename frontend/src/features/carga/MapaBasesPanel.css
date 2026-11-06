@@ -37,18 +37,18 @@
 }
 
 .pulso-mapa-resumen strong {
-  font-size: 14px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-semibold);
 }
 
 .pulso-mapa-resumen-total {
-  font-size: 12.5px;
+  font-size: var(--pulso-type-body-size);
   color: var(--pulso-text);
   font-variant-numeric: tabular-nums;
 }
 
 .pulso-mapa-resumen-reparto {
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   color: var(--pulso-text-soft);
   font-variant-numeric: tabular-nums;
 }
@@ -61,7 +61,7 @@
   background: none;
   color: var(--module-accent);
   font: inherit;
-  font-size: 12.5px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-semibold);
   cursor: pointer;
 }
@@ -78,7 +78,7 @@
 }
 
 .pulso-mapa-resumen-ir:focus-visible {
-  outline: 2px solid var(--module-accent);
+  outline: var(--mov-foco, 2px solid var(--pulso-primary));
   outline-offset: 2px;
   border-radius: var(--pulso-radius-chip);
 }
@@ -87,7 +87,7 @@
   display: inline-flex;
   align-items: center;
   gap: var(--pulso-space-1);
-  font-size: 12.5px;
+  font-size: var(--pulso-type-body-size);
   color: var(--pulso-text-soft);
 }
 
@@ -107,14 +107,14 @@
 }
 
 .pulso-mapa-tabla-wrap:focus-visible {
-  outline: 2px solid var(--module-accent);
+  outline: var(--mov-foco, 2px solid var(--pulso-primary));
   outline-offset: 2px;
 }
 
 .pulso-mapa-tabla {
   width: 100%;
   border-collapse: collapse;
-  font-size: 12.5px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .pulso-mapa-tabla th,
@@ -130,7 +130,7 @@
   top: calc(-1 * var(--pulso-space-4));
   z-index: 1;
   background: var(--pulso-surface);
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   font-weight: var(--pulso-weight-semibold);
   color: var(--pulso-text-soft);
 }
@@ -150,11 +150,19 @@
   gap: 4px;
   max-width: 100%;
   font-variant-numeric: tabular-nums;
-  overflow-wrap: anywhere;
 }
 
 .pulso-mapa-presencia > svg {
   flex: 0 0 auto;
+}
+
+/* El nombre de la variable es un código: no se parte a mitad («Variabl/e», «p7_oth/er»); se recorta con
+   puntos suspensivos y el título de la celda lo dice entero (4 nov 2026). */
+.pulso-mapa-presencia > span:not(.pulso-sr-only) {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .pulso-mapa-presencia.is-presente {
@@ -200,17 +208,17 @@
   background: var(--pulso-surface);
   color: var(--pulso-text);
   font: inherit;
-  font-size: 13px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .pulso-mapa-buscar input:focus-visible {
-  outline: 2px solid var(--module-accent);
+  outline: var(--mov-foco, 2px solid var(--pulso-primary));
   outline-offset: 1px;
 }
 
 .pulso-mapa-buscar-conteo {
   flex: 0 0 auto;
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   color: var(--pulso-text-soft);
   font-variant-numeric: tabular-nums;
 }
@@ -240,7 +248,7 @@
 .pulso-mapa-fuera code {
   flex: 0 0 auto;
   min-width: 9ch;
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   font-weight: var(--pulso-weight-semibold);
   overflow-wrap: anywhere;
 }
@@ -251,12 +259,12 @@
   flex-direction: column;
   gap: 2px;
   min-width: 0;
-  font-size: 12.5px;
+  font-size: var(--pulso-type-body-size);
   overflow-wrap: anywhere;
 }
 
 .pulso-mapa-fuera-texto small {
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   color: var(--pulso-text-soft);
 }
 
@@ -273,11 +281,11 @@
 
 .pulso-mapa-metadatos > summary {
   cursor: pointer;
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   color: var(--pulso-text-soft);
 }
 
 .pulso-mapa-metadatos > summary:focus-visible {
-  outline: 2px solid var(--module-accent);
+  outline: var(--mov-foco, 2px solid var(--pulso-primary));
   outline-offset: 2px;
 }

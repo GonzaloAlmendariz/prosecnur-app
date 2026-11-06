@@ -6,10 +6,10 @@ import { pctConEspacio } from "../../../core/formatoComun";
 import { fmt } from "../formato";
 import { AvanceCuotasDetalle } from "../AvanceCuotasDetalle";
 import { resumenCuota } from "../avanceCuotasModelo";
-import { paletaDePublicos } from "../paletaPublicos";
+import { clasePublico, paletaDePublicos } from "../paletaPublicos";
 import { useEstadoDeCuotas } from "../insumos/useEstadoDeCuotas";
 import { PesasDeComposicion } from "./PesasDeComposicion";
-import { franjaDeCuota, variablesDeControl, type VariableDeControl } from "./composicionModelo";
+import { franjaDeCuota, referencialesDeCuotas, variablesDeControl, type VariableDeControl } from "./composicionModelo";
 import "../paletaPublicos.css";
 import "../AvanceCuotas.css";
 import "./avance.css";
@@ -18,7 +18,7 @@ import "../control/casos/personas.css";
 import "../modelo/modelo.css";
 import "../insumos/insumos.css";
 import { CabeceraDeTarjeta } from "../navegacion/rotuloDePestana";
-import { AvisosDeTarjeta, PestanaSinContenido } from "../piezas/AvisoDeTarjeta";
+import { AvisosDeTarjeta, PestanaSinContenido, VacioDeBloque } from "../piezas/AvisoDeTarjeta";
 import { MarcaDeLectura } from "../navegacion/MarcaDeLectura";
 
 type PropsDeVista = {
@@ -31,16 +31,18 @@ type PropsDeVista = {
   onDefinirEnModelo: () => void;
   /** Avisos del estado de cuotas: van en la tarjeta de la lista, que es lo que afectan. */
   avisos?: ReadonlyArray<{ tono: "info" | "error"; texto: string }>;
+  /** Mientras se leen las cuotas: el mismo marco de dos columnas, para que el selector no cambie de lugar al llegar. */
+  leyendo?: boolean;
 };
 
-export function PorCuotaVista({ publicos, cuotas, controles, foco, onElegir, onEditarEnModelo, onDefinirEnModelo, avisos = [] }: PropsDeVista) {
+export function PorCuotaVista({ publicos, cuotas, controles, foco, onElegir, onEditarEnModelo, onDefinirEnModelo, avisos = [], leyendo = false }: PropsDeVista) {
   const paleta = useMemo(() => paletaDePublicos([...publicos.map((publico) => publico.actor), ...cuotas.map((cuota) => cuota.actor)]), [publicos, cuotas]);
   const cuota = cuotas.find((item) => item.id === foco) ?? null;
   const control = controles.find((item) => item.id === foco) ?? null;
   const elegidaCuota = cuota ?? (control ? null : cuotas[0] ?? null);
   const elegidoControl = control ?? (elegidaCuota ? null : controles[0] ?? null);
   const franja = elegidaCuota ? franjaDeCuota(elegidaCuota, publicos) : null;
-  if (!cuotas.length && !controles.length) {
+  if (!cuotas.length && !controles.length && !leyendo) {
     return (
       <PestanaSinContenido
         titulo="Variables"
@@ -54,22 +56,29 @@ export function PorCuotaVista({ publicos, cuotas, controles, foco, onElegir, onE
   return (
     <div className="acr-ps acr-pc" data-qa-geometry-group="acreditacion-avance-cuotas" data-qa-geometry-contract="intrinsic">
       <nav className="acr-av-panel acr-pr-filtros" aria-label="Variables">
-        <CabeceraDeTarjeta primera><h3>Variables</h3></CabeceraDeTarjeta>
+        {/* Sin título propio: el rótulo y el selector «Cuotas | Variables de control» ya nombran la tarjeta. */}
+        <CabeceraDeTarjeta primera>{null}</CabeceraDeTarjeta>
         <AvisosDeTarjeta avisos={avisos.map((aviso) => ({ kind: aviso.tono, texto: aviso.texto }))} />
         <div className="acr-pr-filtros-cuerpo" data-qa-geometry-capacity="owned">
+          {leyendo && !cuotas.length && !controles.length ? <VacioDeBloque vacio="cargando" icono={<Target size={15} />} titulo="Leyendo las cuotas del estudio." /> : null}
           {cuotas.length ? (
             <section className="acr-pr-grupo">
-              <h3 className="acr-av-antetitulo">Con meta <span className="acr-av-num">{fmt(cuotas.length)}</span></h3>
+              <h3 className="acr-av-antetitulo">Metas <span className="acr-av-num">{fmt(cuotas.length)}</span></h3>
               <ul>
                 {cuotas.map((item) => {
                   const resumen = resumenCuota(item);
                   const activa = elegidaCuota?.id === item.id;
                   return (
                     <li key={item.id}>
-                      <button type="button" className={`acr-in-fuente${activa ? " is-activo" : ""}`} aria-pressed={activa} onClick={() => onElegir(item.id)}>
+                      <button type="button" className={`acr-in-fuente acr-pc-fila${activa ? " is-activo" : ""}`} aria-pressed={activa} onClick={() => onElegir(item.id)}>
                         <span className="acr-in-fuente-nombre">
-                          <span>{`${item.actor}, ${item.variable}`}</span>
+                          <small className={`acr-pc-publico ${clasePublico(paleta, item.actor)}`}><i className="mon-publico-punto" aria-hidden="true" />{item.actor}</small>
+                          <span className="acr-pc-variable">{item.variable}</span>
                           <small className="acr-av-tenue">{resumen.cumplidas}</small>
+                          {/* El avance de la cuota de un vistazo, al pie de la fila (E2, 30/10). */}
+                          {resumen.meta > 0 && resumen.avance != null ? (
+                            <span className={`acr-av-pista acr-pc-pista ${clasePublico(paleta, item.actor)}`} aria-hidden="true"><i style={{ width: `${Math.min(100, resumen.avance * 100)}%` }} /></span>
+                          ) : null}
                         </span>
                         <b className="acr-av-num">{resumen.meta > 0 && resumen.avance != null ? pctConEspacio(resumen.avance * 100) : "—"}</b>
                       </button>
@@ -81,7 +90,7 @@ export function PorCuotaVista({ publicos, cuotas, controles, foco, onElegir, onE
           ) : null}
           {controles.length ? (
             <section className="acr-pr-grupo">
-              <h3 className="acr-av-antetitulo">Variables de control, sin meta <span className="acr-av-num">{fmt(controles.length)}</span></h3>
+              <h3 className="acr-av-antetitulo">Referenciales, sin meta <span className="acr-av-num">{fmt(controles.length)}</span></h3>
               <ul>
                 {controles.map((item) => {
                   const activa = elegidoControl?.id === item.id;
@@ -89,7 +98,8 @@ export function PorCuotaVista({ publicos, cuotas, controles, foco, onElegir, onE
                     <li key={item.id}>
                       <button type="button" className={`acr-in-fuente${activa ? " is-activo" : ""}`} aria-pressed={activa} onClick={() => onElegir(item.id)}>
                         <span className="acr-in-fuente-nombre">
-                          <span>{`${item.actor}, ${item.variable}`}</span>
+                          <small className={`acr-pc-publico ${clasePublico(paleta, item.actor)}`}><i className="mon-publico-punto" aria-hidden="true" />{item.actor}</small>
+                          <span className="acr-pc-variable">{item.variable}</span>
                           <small className="acr-av-tenue">{`${fmt(item.filas.length)} categorías`}</small>
                         </span>
                         <b className="acr-av-num">{item.maxDelta == null ? "—" : `${item.maxDelta > 0 ? "+" : ""}${item.maxDelta.toLocaleString("es-PE", { minimumFractionDigits: 1, maximumFractionDigits: 1 })} pp`}</b>
@@ -126,6 +136,7 @@ export function PorCuotaVista({ publicos, cuotas, controles, foco, onElegir, onE
           </>
         ) : null}
         {elegidoControl ? <PesasDeComposicion variable={elegidoControl} onDefinirCuota={onDefinirEnModelo} /> : null}
+        {leyendo && !elegidaCuota && !elegidoControl ? <div className="acr-av-panel acr-pc-detalle-cuota" data-vacio="cargando" aria-hidden="true" /> : null}
       </div>
     </div>
   );
@@ -141,15 +152,17 @@ export function PorCuotaVista({ publicos, cuotas, controles, foco, onElegir, onE
 export function PorCuota({ controles }: { controles: ReadonlyArray<Record<string, unknown>> }) {
   const { estado, error } = useEstadoDeCuotas();
   const [foco, escribirFoco] = useFocoMonitoreo();
-  const cuotas = estado?.cuotas ?? [];
-  const variables = useMemo(() => variablesDeControl(controles, cuotas), [controles, cuotas]);
-  if (!estado && !controles.length) {
-    return (
-      <>
-        <MarcaDeLectura leyendo={!error} />
-        <PestanaSinContenido vacio={error ? "error" : "cargando"} titulo="Variables" icono={<Target size={18} />} motivo={error || "Leyendo las cuotas del estudio."} />
-      </>
-    );
+  // ADR 0126: dos bloques fijos. Las metas se siguen con su faltante; las
+  // referenciales —cuotas declaradas así y variables de control sin meta— se
+  // describen frente al universo.
+  const todas = estado?.cuotas ?? [];
+  const cuotas = useMemo(() => todas.filter((cuota) => cuota.caracter === "meta"), [todas]);
+  const variables = useMemo(
+    () => [...referencialesDeCuotas(todas), ...variablesDeControl(controles, todas)],
+    [controles, todas],
+  );
+  if (!estado && !controles.length && error) {
+    return <PestanaSinContenido vacio="error" titulo="Variables" icono={<Target size={18} />} motivo={error} />;
   }
   const avisos = [
     ...(estado?.preparando ? [{ tono: "info" as const, texto: "El motor está preparando el cruce del padrón; las cuotas aparecen al terminar." }] : []),
@@ -164,6 +177,7 @@ export function PorCuota({ controles }: { controles: ReadonlyArray<Record<string
       controles={variables}
       foco={foco}
       avisos={avisos}
+      leyendo={!estado}
       onElegir={(id) => escribirFoco(id)}
       onEditarEnModelo={(id) => escribirFoco(id, { seccion: "modelo", pestana: "cuotas", panel: null })}
       onDefinirEnModelo={() => escribirFoco(null, { seccion: "modelo", pestana: "cuotas", panel: null })}

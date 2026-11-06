@@ -7,7 +7,7 @@ export function ResumenAvisosExportacion({ motor, previos, onVer }: { motor: num
     previos ? (previos === 1 ? "1 aviso antes de exportar" : `${previos} avisos antes de exportar`) : "",
     motor ? (motor === 1 ? "la última exportación dejó 1 aviso" : `la última exportación dejó ${motor} avisos`) : "",
   ].filter(Boolean);
-  const texto = partes.join(" · ");
+  const texto = partes.join(", ");
   const Icono = previos ? AlertTriangle : Info;
   return (
     <div className={`pulso-avexp-resumen${previos ? " is-warn" : ""}`} role="status">

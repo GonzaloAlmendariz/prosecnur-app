@@ -50,7 +50,7 @@ describe("textoDelRecordado", () => {
   });
 
   it("sin fecha sigue diciendo que está guardado", () => {
-    expect(textoDelRecordado({ spreadsheet_id: "SOLOID" })).toMatch(/^Guardado ·/);
+    expect(textoDelRecordado({ spreadsheet_id: "SOLOID" })).toMatch(/^Guardado,/);
   });
 
   it("sin recordado invita a pegarlo una vez", () => {

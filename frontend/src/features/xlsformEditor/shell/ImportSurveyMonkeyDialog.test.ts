@@ -37,20 +37,22 @@ describe("FinalImportReviewModal", () => {
 });
 
 describe("ImportSurveyMonkeyDialog", () => {
-  test("se renderiza por encima del chrome fijo del editor", () => {
-    const markup = renderToStaticMarkup(createElement(ImportSurveyMonkeyDialog, {
-      fileName: "",
-      onCancel: vi.fn(),
-      onComplete: vi.fn(),
-    }));
-
-    expect(markup).toContain("z-index:2300");
+  // Desde L1 monta el Dialog del kit: el portal a `body` y la capa los pone la
+  // primitiva. Lo que se fija aquí es la garantía, no el mecanismo viejo
+  // (z-index 2300 en línea + createPortal a mano).
+  test("monta el Dialog del kit, que sale por portal de los contextos de apilado del editor", () => {
+    const source = readFileSync(new URL("./ImportSurveyMonkeyDialog.tsx", import.meta.url), "utf8");
+    expect(source).toContain('from "../../../components/Dialog"');
+    expect(source).toMatch(/<Dialog\b/);
+    expect(source).toContain("closeOnOutside={false}");
+    expect(source).not.toContain('role="dialog"');
   });
 
-  test("escapa de los contextos de apilado del editor mediante un portal", () => {
-    const source = readFileSync(new URL("./ImportSurveyMonkeyDialog.tsx", import.meta.url), "utf8");
-
-    expect(source).toContain("createPortal(dialog, document.body)");
+  test("la capa modal del kit queda sobre la command bar y el overlay del grafo del editor", () => {
+    const tokens = readFileSync(new URL("../../../app/tokens.css", import.meta.url), "utf8");
+    const valor = (nombre: string) => Number(tokens.match(new RegExp(`--pulso-z-${nombre}:\\s*(\\d+)`))?.[1]);
+    expect(valor("modal")).toBeGreaterThan(valor("toolbar"));
+    expect(valor("modal")).toBeGreaterThan(valor("flyout"));
   });
 });
 

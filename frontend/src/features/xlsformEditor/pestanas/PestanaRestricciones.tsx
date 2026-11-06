@@ -15,6 +15,7 @@ import { PestanaReglas, type ReglaListaGrupo } from "./PestanaReglas";
 import { restriccionesDelFormulario } from "./reglasModel";
 import { ProbarRestriccion } from "./ProbarRestriccion";
 
+import { EstadoChip } from "../../../components/EstadoChip";
 // Pestaña Restricciones (revamp 2026-10-16): todas las reglas de «qué acepta» del formulario
 // en un solo lugar. El Constructor edita la misma regla en línea; aquí hay más espacio para
 // leerla, ver de qué otras preguntas depende y qué le falta.
@@ -90,7 +91,7 @@ export function PestanaRestricciones({ structure, scope: scopeBase, seleccionada
     <PestanaReglas
       titulo="Restricciones"
       marca="regla"
-      total={`${con.length} con regla · ${sugeridas.length} sugeridas`}
+      total={`${con.length} con regla, ${sugeridas.length} sugeridas`}
       grupos={grupos}
       seleccionada={actual?.node.name ?? null}
       onSeleccionar={onSeleccionar}
@@ -107,13 +108,13 @@ export function PestanaRestricciones({ structure, scope: scopeBase, seleccionada
       {actual ? (
         <>
           <div className="xfp-encabezado">
-            <span className="xfp-encabezado__ruta"><TypeIcon baseType={actual.node.typeInfo.base} boxed /> Restricción{actual.node.label ? <> · <code className="xfp-codigo">{actual.node.name}</code></> : null}</span>
+            <span className="xfp-encabezado__ruta"><TypeIcon baseType={actual.node.typeInfo.base} boxed /> Restricción{actual.node.label ? <> (<code className="xfp-codigo">{actual.node.name}</code></> : null}</span>
             <h2 className="xfp-encabezado__titulo">{actual.node.label ? <EtiquetaLegible texto={actual.node.label} etiquetaDe={etq} /> : <code className="xfp-var is-codigo">{actual.node.name}</code>}</h2>
             <span className="xfp-encabezado__accion"><EditarEnConstructor onEditar={() => onEditar(actual.node.rowIndex)} que={`la pregunta ${numero(actual.node)}`} /></span>
           </div>
           <PanelCard
             title="Regla"
-            meta={<span className={`xfp-insignia is-${estado.replace(/\s+/g, "-")}`}>{estado}</span>}
+            meta={<EstadoChip label={estado} tone={estado === "vigente" ? "success" : estado === "sin regla" ? "neutral" : "warn"} />}
             footer={actual.estado === "con" ? (
               <button type="button" className="xfp-boton" aria-expanded={editando} onClick={() => setEditando((v) => !v)}>
                 <Pencil size={13} aria-hidden="true" /> {editando ? "Cerrar el editor" : "Editar la regla"}

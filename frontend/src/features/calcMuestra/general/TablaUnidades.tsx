@@ -1,6 +1,7 @@
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Table2 } from "lucide-react";
 
 import type { CalcMuestraGeneralUnidad } from "../../../api/calcMuestraGeneral";
+import { Panel } from "../../../components/Panel";
 import { GlidingRadioGroup } from "../../../components/GlidingRadioGroup";
 import { fmtInt } from "../sharedCore";
 import "../universidad/shared/tablas.css";
@@ -13,6 +14,7 @@ import {
 } from "./modelo";
 import { useDesbordaHorizontal } from "./useDesbordaHorizontal";
 import "./general.css";
+import { EstadoVacio } from "../../../components/EstadoVacio";
 
 const FILTROS: Array<{ id: FiltroUnidades; label: string }> = [
   { id: "todas", label: "Todas" },
@@ -48,12 +50,13 @@ export function TablaUnidades({
   };
 
   return (
-    <section className="cmv2-panel cmg-unidades" aria-labelledby="cmg-unidades-titulo" data-qa-geometry-member>
-      <div className="cmv2-panel-head">
-        <div>
-          <span className="cmv2-eyebrow">Listado</span>
-          <h3 className="cmg-panel-titulo" id="cmg-unidades-titulo">Unidades seleccionadas</h3>
-        </div>
+    <Panel
+      className="cmg-unidades"
+      aria-labelledby="cmg-unidades-titulo"
+      data-qa-geometry-member
+      eyebrow="Listado"
+      title={<span id="cmg-unidades-titulo">Unidades seleccionadas</span>}
+      actions={(
         <GlidingRadioGroup<(typeof FILTROS)[number], FiltroUnidades>
           value={filtro}
           options={FILTROS}
@@ -65,12 +68,14 @@ export function TablaUnidades({
         >
           {(f) => <>{f.label} <span className="cmg-filtro-n">{fmtInt(conteo[f.id])}</span></>}
         </GlidingRadioGroup>
-      </div>
+      )}
+    >
 
       {filtradas.length === 0 ? (
-        <p className="cmg-vacio-tabla">
-          {filtro === "reserva" ? "Esta selección no incluyó reemplazos." : "El listado está vacío."}
-        </p>
+        <EstadoVacio
+          icono={<Table2 size={16} aria-hidden="true" />}
+          titulo={filtro === "reserva" ? "Esta selección no incluyó reemplazos" : "El listado está vacío"}
+        />
       ) : (
         <>
           <div
@@ -145,6 +150,6 @@ export function TablaUnidades({
           </div>
         </>
       )}
-    </section>
+    </Panel>
   );
 }

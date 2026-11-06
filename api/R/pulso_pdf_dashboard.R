@@ -581,34 +581,25 @@ pulso_pdf_barras_meta <- function(x, y, w, h, categorias, series, tope,
   v <- suppressWarnings(as.numeric(x)); v[!is.finite(v)] <- NA_real_; v
 }
 
-# Qué barras llevan su cifra encima. Sólo se cuentan las que EXISTEN —una
-# jornada sin efectivas no dibuja barra— porque contar sobre el calendario
-# dejaba mudas la mitad de las dibujadas para hacer sitio a otras que no
-# estaban (Gonzalo, 2026-09-18: «las barras siguen sin números»). Si caben
-# todas, van todas; si no, una de cada tantas y SIEMPRE la última, que es la
-# jornada que se busca.
-# Cuántas cifras caben en un carril de ancho `w` sin tocarse, medidas sobre la
-# MÁS LARGA de las que hay que escribir: es la que decide si se amontonan. El
-# 1,25 es el aire entre dos cifras vecinas. Sustituye al tope fijo de seis, que
-# silenciaba barras aunque sobrara papel (y que con cifras de cuatro dígitos en
-# un panel estrecho se habría quedado corto en el otro sentido).
-.ppd_cifras_que_caben <- function(diarias, w, fontsize) {
-  v <- suppressWarnings(as.numeric(diarias)); v <- v[is.finite(v) & v > 0]
-  if (!length(v)) return(1L)
-  digitos <- max(nchar(vapply(v, .ppd_miles, character(1))))
-  ancho_cifra <- digitos * fontsize * 0.00085 * 1.25
-  if (!is.finite(ancho_cifra) || ancho_cifra <= 0) return(length(v))
-  max(1L, as.integer(floor(w / ancho_cifra)))
-}
-
-.ppd_rotulos_de_barras <- function(diarias, tope) {
+# Las cifras sobre las barras del día. **Toda barra dibujada lleva su cifra
+# encima, siempre** (Gonzalo, 2026-10-30: «las barras del avance diario siempre
+# deben tener sus números arriba»). La versión anterior escribía una de cada
+# tantas cuando no cabían todas, y el panel salía con cifras intercaladas: el
+# lector no sabe si la barra muda es un dato que falta.
+#
+# Lo que cede es el CUERPO, no la cifra: si al tamaño normal se tocarían, la
+# cifra baja hasta un piso legible (4,6 pt); si ni así caben, se alternan dos
+# alturas, las dos por encima de la barra. Una jornada sin efectivas no dibuja
+# barra y tampoco cifra.
+.ppd_cifras_de_barras <- function(diarias, w, n, fontsize, formato = .ppd_miles) {
   v <- suppressWarnings(as.numeric(diarias)); v[!is.finite(v)] <- 0
   vivas <- which(v > 0)
-  if (!length(vivas)) return(integer(0))
-  tope <- max(1L, as.integer(tope))
-  if (length(vivas) <= tope) return(vivas)
-  salto <- max(1L, ceiling(length(vivas) / tope))
-  vivas[unique(c(seq(1L, length(vivas), by = salto), length(vivas)))]
+  if (!length(vivas)) return(list(indices = integer(0), fontsize = fontsize, escalonar = FALSE))
+  digitos <- max(nchar(vapply(v[vivas], formato, character(1))))
+  hueco <- w / max(1L, n)
+  cabe <- hueco / (digitos * 0.00085 * 1.15)
+  piso <- 4.6
+  list(indices = vivas, fontsize = max(piso, min(fontsize, cabe)), escalonar = cabe < piso)
 }
 
 # ¿Hay que marcar la cuota DENTRO de la barra? Sólo cuando se superó: si no se
@@ -715,18 +706,21 @@ pulso_pdf_pie <- function(pagina, de = NA_integer_, periodo = "",
                           geo = pulso_pdf_geo("landscape")) {
   pesos <- pulso_pdf_pesos()
   m <- geo$margin; right <- 1 - m
-  grid::grid.lines(x = grid::unit(c(m, right), "npc"), y = grid::unit(0.068, "npc"),
+  # La regla va a 0,080 y no a 0,068: con el texto «PULSO PUCP» del mismo
+  # tamaño de siempre, la insignia de contorno mide 0,061 de alto y tocaba la
+  # regla (2026-10-30). El contenido de las páginas termina en 0,108.
+  grid::grid.lines(x = grid::unit(c(m, right), "npc"), y = grid::unit(0.080, "npc"),
                    gp = grid::gpar(col = tokens$line, lwd = pesos$columna))
-  .pulso_pdf_draw_logo(m, 0.036, width_npc = 0.098, geo = geo, tokens = tokens)
+  .pulso_pdf_draw_logo(m, 0.040, width_npc = 0.098, geo = geo, tokens = tokens)
   if (nzchar(periodo)) {
-    grid::grid.text(periodo, x = 0.5, y = 0.036, just = c("centre", "centre"),
+    grid::grid.text(periodo, x = 0.5, y = 0.040, just = c("centre", "centre"),
                     gp = grid::gpar(fontsize = ty$caption, col = tokens$faint))
   }
   # Folio con el total: «03 / 09» dice cuánto queda; «Pág. 3» no.
   folio <- if (is.finite(de)) {
     sprintf("%02d / %02d", as.integer(pagina), as.integer(de))
   } else sprintf("%02d", as.integer(pagina))
-  grid::grid.text(folio, x = right, y = 0.036, just = c("right", "centre"),
+  grid::grid.text(folio, x = right, y = 0.040, just = c("right", "centre"),
                   gp = grid::gpar(fontsize = ty$caption, col = tokens$soft, fontface = "bold"))
   invisible(NULL)
 }
@@ -769,6 +763,8 @@ pulso_pdf_rotulo_seccion <- function(x, y, texto, bajada = "", ancho = 0.10,
 #'
 #' @inheritParams pulso_pdf_serie_diaria
 #' @param reparto proporción del alto que se lleva la caja del acumulado.
+#' @param formato función que escribe cada cifra. Por defecto la de miles con
+#'   coma; el avance de acreditación la pide sin separador de miles.
 #' @export
 pulso_pdf_serie_partida <- function(x, y, w, h, dias, diarias, acumulado,
                                     metas = numeric(0),
@@ -778,7 +774,8 @@ pulso_pdf_serie_partida <- function(x, y, w, h, dias, diarias, acumulado,
                                     color_linea = tokens$success,
                                     reparto = 0.60, hueco = 0.105,
                                     rotulo_acumulado = "", rotulo_diario = "",
-                                    compacto = FALSE) {
+                                    compacto = FALSE,
+                                    formato = .ppd_miles) {
   pesos <- pulso_pdf_pesos()
   n <- length(dias)
   if (!n) return(invisible(NULL))
@@ -817,18 +814,24 @@ pulso_pdf_serie_partida <- function(x, y, w, h, dias, diarias, acumulado,
   for (v in eje_acu) {
     grid::grid.lines(x = grid::unit(c(x, x + w), "npc"), y = grid::unit(py_acu(v), "npc"),
                      gp = grid::gpar(col = tokens$rule, lwd = 0.4, lty = if (v == 0) 1 else 3))
-    grid::grid.text(.ppd_miles(v), x = x - 0.008, y = py_acu(v), just = c("right", "centre"),
+    grid::grid.text(formato(v), x = x - 0.008, y = py_acu(v), just = c("right", "centre"),
                     gp = grid::gpar(col = tokens$faint, fontsize = fs))
   }
+  # Caja de cada rótulo de meta: una cifra del acumulado que cae dentro se monta
+  # sobre él («413» encima de «Previstas 400» en el último día del RMS).
+  cajas_meta <- list()
   for (k in seq_along(metas)) {
     yy <- py_acu(metas[[k]])
     grid::grid.lines(x = grid::unit(c(x, x + w), "npc"), y = grid::unit(yy, "npc"),
                      gp = grid::gpar(col = tokens$danger, lwd = pesos$bloque, lty = 2))
     nombre <- names(metas)[[k]] %||% ""
     if (nzchar(nombre)) {
-      grid::grid.text(paste0(nombre, " ", .ppd_miles(metas[[k]])), x = x + w, y = yy + 0.010,
-                      just = c("right", "bottom"),
-                      gp = grid::gpar(col = tokens$danger, fontsize = fs, fontface = "bold"))
+      rotulo_meta <- paste0(nombre, " ", formato(metas[[k]]))
+      gp_meta <- grid::gpar(col = tokens$danger, fontsize = fs, fontface = "bold")
+      grid::grid.text(rotulo_meta, x = x + w, y = yy + 0.010, just = c("right", "bottom"), gp = gp_meta)
+      ancho_meta <- grid::convertWidth(grid::grobWidth(grid::textGrob(rotulo_meta, gp = gp_meta)), "npc", valueOnly = TRUE)
+      alto_meta <- grid::convertHeight(grid::grobHeight(grid::textGrob(rotulo_meta, gp = gp_meta)), "npc", valueOnly = TRUE)
+      cajas_meta[[length(cajas_meta) + 1L]] <- c(x0 = x + w - ancho_meta, y0 = yy + 0.010, y1 = yy + 0.010 + alto_meta)
     }
   }
   vivos <- which(is.finite(acumulado))
@@ -865,12 +868,27 @@ pulso_pdf_serie_partida <- function(x, y, w, h, dias, diarias, acumulado,
   # es cuántos días hay sino cuántas cifras caben: el paso entre barras contra
   # el ancho de la cifra más larga. Con dos o tres dígitos en estos paneles
   # caben todas; con cifras de miles en un panel estrecho, el tope baja solo.
-  barras_rotuladas <- .ppd_rotulos_de_barras(
-    diarias, .ppd_cifras_que_caben(diarias, w, fs))
+  cifras_barra <- .ppd_cifras_de_barras(diarias, w, n, fs, formato)
   for (i in vivos) {
-    if ((i - 1L) %% salto != 0L && i != n) next
-    grid::grid.text(.ppd_miles(acumulado[[i]]), x = px(i), y = py_acu(acumulado[[i]]) + 0.013,
-                    just = c("centre", "bottom"),
+    # El rótulo regular que cae a menos de un paso del último se calla: el
+    # último se escribe siempre y los dos se montaban («3602 3606»).
+    if (i != n && ((i - 1L) %% salto != 0L || n - i < salto)) next
+    # Si la cifra cae sobre la regla de una meta, va bajo el punto: encima, la
+    # línea punteada la tacha («3606» sobre el mínimo esperado).
+    y_rot <- py_acu(acumulado[[i]]) + 0.013
+    tachada <- length(metas) && any(abs(py_acu(metas) - (y_rot + 0.007)) < 0.012)
+    if (!tachada && length(cajas_meta)) {
+      gp_cifra <- grid::gpar(fontsize = fs, fontface = "bold")
+      cifra <- grid::textGrob(formato(acumulado[[i]]), gp = gp_cifra)
+      medio <- grid::convertWidth(grid::grobWidth(cifra), "npc", valueOnly = TRUE) / 2
+      alto <- grid::convertHeight(grid::grobHeight(cifra), "npc", valueOnly = TRUE)
+      tachada <- any(vapply(cajas_meta, function(cm) {
+        px(i) + medio > cm[["x0"]] && y_rot < cm[["y1"]] && y_rot + alto > cm[["y0"]]
+      }, logical(1)))
+    }
+    grid::grid.text(formato(acumulado[[i]]), x = px(i),
+                    y = if (tachada) py_acu(acumulado[[i]]) - 0.010 else y_rot,
+                    just = c("centre", if (tachada) "top" else "bottom"),
                     gp = grid::gpar(col = color_linea, fontsize = fs, fontface = "bold"))
   }
   grid::grid.lines(x = grid::unit(c(x, x + w), "npc"), y = grid::unit(y_acu, "npc"),
@@ -882,7 +900,7 @@ pulso_pdf_serie_partida <- function(x, y, w, h, dias, diarias, acumulado,
   tope_dia <- max(eje_dia) * 1.22
   ancho_barra <- min((w / n) * 0.56, if (isTRUE(compacto)) 0.026 else 0.052)
   for (v in eje_dia[-1]) {
-    grid::grid.text(.ppd_miles(v), x = x - 0.008, y = y + h_dia * (v / tope_dia),
+    grid::grid.text(formato(v), x = x - 0.008, y = y + h_dia * (v / tope_dia),
                     just = c("right", "centre"),
                     gp = grid::gpar(col = tokens$faint, fontsize = fs))
   }
@@ -893,9 +911,10 @@ pulso_pdf_serie_partida <- function(x, y, w, h, dias, diarias, acumulado,
     grid::grid.rect(x = px(i), y = y, width = ancho_barra, height = alto,
                     just = c("centre", "bottom"),
                     gp = grid::gpar(fill = color_barra, col = NA, alpha = 0.9))
-    if (!(i %in% barras_rotuladas)) next
-    grid::grid.text(.ppd_miles(v), x = px(i), y = y + alto + 0.008, just = c("centre", "bottom"),
-                    gp = grid::gpar(col = color_barra, fontsize = fs, fontface = "bold"))
+    alterna <- isTRUE(cifras_barra$escalonar) && match(i, cifras_barra$indices) %% 2L == 0L
+    grid::grid.text(formato(v), x = px(i), y = y + alto + 0.008 + if (alterna) 0.013 else 0,
+                    just = c("centre", "bottom"),
+                    gp = grid::gpar(col = color_barra, fontsize = cifras_barra$fontsize, fontface = "bold"))
   }
   grid::grid.lines(x = grid::unit(c(x, x + w), "npc"), y = grid::unit(y, "npc"),
                    gp = grid::gpar(col = tokens$tbl_frame, lwd = 0.7))
@@ -903,7 +922,7 @@ pulso_pdf_serie_partida <- function(x, y, w, h, dias, diarias, acumulado,
   # --- El eje de fechas, UNO solo al pie ------------------------------------
   cada <- max(1L, ceiling(n / (if (isTRUE(compacto)) 6L else 14L)))
   for (i in seq_len(n)) {
-    if ((i - 1L) %% cada != 0L && i != n) next
+    if (i != n && ((i - 1L) %% cada != 0L || n - i < cada)) next
     grid::grid.text(dias[[i]], x = px(i), y = y - 0.014, just = c("centre", "top"),
                     gp = grid::gpar(col = tokens$soft, fontsize = fs))
   }

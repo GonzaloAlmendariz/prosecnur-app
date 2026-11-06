@@ -111,7 +111,7 @@ function TarjetaBase({ base, vinculo, comparables, ocupado, onRenombrar, onQuita
       {vinculo ? (
         <p className="pulso-bfp-vinculo">
           <FileCheck2 size={13} aria-hidden="true" />
-          <span>Formulario: <strong>{vinculo.formulario}</strong> · {vinculo.revision}</span>
+          <span>Formulario: <strong>{vinculo.formulario}</strong>, {vinculo.revision}</span>
           {vinculo.logicaExterna ? <span className="pulso-bfp-declarada">{rotuloBaseDeclarada(vinculo)}</span> : null}
           <span className="pulso-bfp-vinculo-acciones">
             <AbrirPanelFuentes

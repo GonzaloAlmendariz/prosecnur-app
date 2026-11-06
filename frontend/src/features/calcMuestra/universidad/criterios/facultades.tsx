@@ -18,6 +18,7 @@ import {
 } from "../../dominio";
 import { ControlRango } from "./ControlRango";
 import { Switch } from "../../../../components/Switch";
+import { fmtInt } from "../../sharedCore";
 
 export type FacultadRef = { key: string; label: string };
 
@@ -53,7 +54,7 @@ export function ControlRange({
       <p className="cmv2-crit-range-note" role="note">
         Sin rango, la facultad admite <strong>todos los niveles</strong> y no filtra.
         Activa una facultad para limitarla a un tramo de niveles.
-        {conRango > 0 ? <span className="cmv2-crit-range-note-count"> · {conRango} con rango propio</span> : null}
+        {conRango > 0 ? <span className="cmv2-crit-range-note-count">, {conRango} con rango propio</span> : null}
       </p>
       <div className="cmv2-crit-range-head" role="row">
         <span role="columnheader">Facultad</span>
@@ -175,8 +176,8 @@ export function ExcepcionesFacultad({
         <strong>Decisión por facultad</strong>
         <small>
           {entradas.length
-            ? `${entradas.length} de ${facultades.length} con criterio propio`
-            : `las ${facultades.length} aplican el criterio general`}
+            ? `${fmtInt(entradas.length)} de ${fmtInt(facultades.length)} con criterio propio`
+            : `las ${fmtInt(facultades.length)} aplican el criterio general`}
         </small>
       </div>
       <ul className="cmv2-crit-exc-list">

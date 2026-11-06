@@ -17,6 +17,7 @@ import { useDisenoVigente } from "./useDisenoVigente";
 import { usePestanaMesa } from "./usePestanaMesa";
 import "./mesa.css";
 import "./escala.css";
+import { Panel } from "../../../components/Panel";
 
 const SECCIONES = ["actores", "contexto", "seleccion", "resultados"];
 
@@ -127,9 +128,9 @@ export function MesaAcreditacion({
             data-qa-geometry-contract="intrinsic"
           >
             <ResultadosComponentes modo="acreditacion" componentes={estudio.componentes} calculando={calculando} onCalcular={calcular} />
-            <section className="cmv2-panel cmg-salida-acreditacion" aria-label="Reporte del diseño" data-qa-geometry-member>
+            <Panel className="cmg-salida-acreditacion" aria-label="Reporte del diseño" data-qa-geometry-member>
               <SalidaReporte reporte={reporte} />
-            </section>
+            </Panel>
           </section>
         )}
       </div>

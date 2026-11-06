@@ -9,6 +9,7 @@ import {
   initialIncluidas,
   toggleIncluida,
 } from "./reconciliacionModel";
+import { formatoConteo } from "../../lib/formatoNumero";
 
 // Diálogo de reconciliación de variables data ↔ XLSForm.
 //
@@ -122,7 +123,7 @@ export function ReconciliacionExtraDialog({
                   title={
                     isEmpty
                       ? "Columna sin datos en esta base"
-                      : `${extra.n_fill.toLocaleString("es-PE")} respuestas con dato`
+                      : `${formatoConteo(extra.n_fill)} respuestas con dato`
                   }
                 >
                   {isEmpty ? (

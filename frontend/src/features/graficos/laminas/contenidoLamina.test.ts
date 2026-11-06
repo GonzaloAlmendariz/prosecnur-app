@@ -22,6 +22,17 @@ describe("contenidoDeLamina", () => {
     expect(c.pendientes).toEqual(["FILAS", "ICONO"]);
   });
 
+  it("una lámina sin inspector nombra lo que todavía no se edita, sin perder sus textos", () => {
+    const args = [arg("titulo", "string"), arg("etiqueta", "string"), arg("base", "string"), arg("modo", "choice")];
+    const c = contenidoDeLamina(args, [], "p_slide_hallazgos");
+    expect(c.campos.map((x) => x.name)).toEqual(["titulo", "etiqueta", "base"]);
+    // «Hallazgos clave» ya tiene su bloque de ajustes: Contenido no lo nombra como pendiente.
+    expect(c.pendientes).toEqual([]);
+    // «Resumen de diferencias» también (resumenDiferencias/): ya no nombra pendientes.
+    expect(contenidoDeLamina(args, [], "p_slide_resumen_diferencias").pendientes).toEqual([]);
+    expect(contenidoDeLamina(args, [], "p_slide_texto").pendientes).toEqual([]);
+  });
+
   it("no ofrece args de estilo aunque sean texto", () => {
     const c = contenidoDeLamina([arg("font_family", "string", "estilo")], []);
     expect(c.campos.map((x) => x.name)).toEqual(["titulo"]);

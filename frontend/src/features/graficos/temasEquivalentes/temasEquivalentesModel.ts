@@ -9,6 +9,7 @@
 import type { VarWithSource } from "../useVariables";
 import { parseVarRef } from "../useVariables";
 import { buscar, nombrePublico, type TemaPublicos } from "../multiapiladas/temasPublicos";
+import { formatoConteo } from "../../../lib/formatoNumero";
 
 export type ArgsTemas = { vars: Record<string, string[]>; titulos_grupo: Record<string, string> };
 export type OpcionCorte = { codigo: string; etiqueta: string };
@@ -103,7 +104,7 @@ function faltaComun(temas: readonly TemaPublicos[], variables: readonly VarWithS
 /** Radar entre públicos: tres temas o más (uno por eje), preguntas de opción única y una escala por tema. */
 export function faltaEnRadarPublicos(temas: readonly TemaPublicos[], variables: readonly VarWithSource[]): string[] {
   const out: string[] = [];
-  if (temas.length < 3) out.push(`El radar necesita al menos tres temas, uno por eje; ${temas.length === 1 ? "hay uno" : `hay ${temas.length}`}.`);
+  if (temas.length < 3) out.push(`El radar necesita al menos tres temas, uno por eje; ${temas.length === 1 ? "hay uno" : `hay ${formatoConteo(temas.length)}`}.`);
   temas.forEach((t, i) => {
     if (!t.vars.length) out.push(`${nombreTema(t, i)} no tiene preguntas.`);
   });

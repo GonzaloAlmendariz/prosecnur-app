@@ -16,7 +16,7 @@ describe("resumenDeEquipo", () => {
 
     expect(resumen.personas).toBe(4);
     expect(resumen.asignaciones).toBe(8);
-    expect(resumen.etiqueta).toBe("4 responsables · 8 asignaciones");
+    expect(resumen.etiqueta).toBe("4 responsables, 8 asignaciones");
   });
 
   it("con una asignación por persona no nombra las asignaciones", () => {
@@ -26,7 +26,7 @@ describe("resumenDeEquipo", () => {
 
   it("una sola persona va en singular", () => {
     expect(resumenDeEquipo(["Ana"]).etiqueta).toBe("1 responsable");
-    expect(resumenDeEquipo(["Ana", "Ana"]).etiqueta).toBe("1 responsable · 2 asignaciones");
+    expect(resumenDeEquipo(["Ana", "Ana"]).etiqueta).toBe("1 responsable, 2 asignaciones");
   });
 
   it("el mismo nombre con otra caja o espacios es la misma persona", () => {

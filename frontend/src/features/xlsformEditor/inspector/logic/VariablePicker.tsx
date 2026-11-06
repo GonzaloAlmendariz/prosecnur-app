@@ -20,6 +20,7 @@ import { iconForType } from "../../helpers/icons";
 import { paletteForType, paletteSoftForType } from "../../helpers/paletteForType";
 import { typeLabel } from "../../parsing/parseType";
 import type { LogicVariable } from "../../logic";
+import { EstadoVacio } from "../../../../components/EstadoVacio";
 
 export type VariablePickerProps = {
   /** Variables disponibles para elegir. */
@@ -150,13 +151,9 @@ export function VariablePicker({
             />
           </div>
           {variables.length === 0 ? (
-            <div className="pulso-logic-varpicker-empty">
-              Aún no hay preguntas previas disponibles para esta condición.
-            </div>
+            <EstadoVacio icono={<Search size={14} />} titulo="Aún no hay preguntas previas disponibles para esta condición" />
           ) : filtered.length === 0 ? (
-            <div className="pulso-logic-varpicker-empty">
-              Ninguna pregunta coincide con <em>{query}</em>.
-            </div>
+            <EstadoVacio icono={<Search size={14} />} titulo={`Ninguna pregunta coincide con «${query}»`} />
           ) : (
             <ul className="pulso-logic-varpicker-list">
               {filtered.map((variable) => {
@@ -189,7 +186,7 @@ export function VariablePicker({
                         <em>
                           {variable.label || typeLabel(variable.baseType)}
                         </em>
-                        <code>${variable.name} · {typeLabel(variable.baseType)}</code>
+                        <code>${variable.name}</code> ({typeLabel(variable.baseType)})
                       </span>
                     </button>
                   </li>

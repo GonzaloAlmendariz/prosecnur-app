@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { EstadoChip } from "../../../../../../components/EstadoChip";
 import { Download, Inbox, Search, SearchX } from "lucide-react";
 import type { MonitoreoInternalQueries } from "../../../../../../api/client";
 import { fmt } from "../../formato";
@@ -29,6 +30,8 @@ export function Respuestas({ consultas }: { consultas: MonitoreoInternalQueries 
   const vista = pagina(filtradas, numero);
   const cuentan = respuestas.filter((respuesta) => respuesta.cuenta).length;
   const paleta = useMemo(() => paletaDePublicos(respuestas.map((respuesta) => respuesta.publico)), [respuestas]);
+  // Con un solo canal la columna repite lo mismo en cada fila (la faceta ya lo dice) y empuja la tabla a desplazarse a 1024.
+  const variosCanales = useMemo(() => new Set(respuestas.map((respuesta) => respuesta.canal)).size > 1, [respuestas]);
 
   if (!respuestas.length) {
     return (
@@ -39,11 +42,13 @@ export function Respuestas({ consultas }: { consultas: MonitoreoInternalQueries 
   return (
     <div className="acr-ps is-respuestas" data-qa-geometry-group="acreditacion-control-respuestas" data-qa-geometry-contract="intrinsic">
       <nav className="acr-av-panel acr-pr-filtros" aria-label="Facetas de las respuestas">
+        {/* El rótulo va en la primera tarjeta, la de la izquierda, como en el resto de Control (K6): en la cola saltaba al centro. */}
+        <CabeceraDeTarjeta primera>{null}</CabeceraDeTarjeta>
         <div className="acr-pr-filtros-cuerpo" data-qa-geometry-capacity="owned">
           <p className="acr-rs-total">
             <b className="acr-av-num">{fmt(respuestas.length)}</b>
             <span className="acr-av-tenue">respuestas</span>
-            <span className="acr-av-chip is-avance" title="Respuestas que cuentan en el avance">{`${fmt(cuentan)} cuentan`}</span>
+            <EstadoChip label={`${fmt(cuentan)} cuentan`} tone="info" detail="Respuestas que cuentan en el avance" />
           </p>
           {FACETAS.map(({ id, rotulo }) => (
             <section key={id} className="acr-pr-grupo">
@@ -71,7 +76,7 @@ export function Respuestas({ consultas }: { consultas: MonitoreoInternalQueries 
         </div>
       </nav>
       <section className="acr-av-panel acr-ps-tabla" aria-label="Respuestas recibidas">
-        <CabeceraDeTarjeta primera className="acr-ps-filtros">
+        <CabeceraDeTarjeta className="acr-ps-filtros">
           <label className="acr-pr-buscador">
             <Search size={14} aria-hidden="true" />
             <input type="search" value={busqueda} onChange={(event) => { setBusqueda(event.target.value); setNumero(1); }} placeholder="Respuesta, público o encuesta" aria-label="Buscar respuestas" />
@@ -88,7 +93,7 @@ export function Respuestas({ consultas }: { consultas: MonitoreoInternalQueries 
                 <tr>
                   <th scope="col">Respuesta</th>
                   <th scope="col">Público y encuesta</th>
-                  <th scope="col">Canal</th>
+                  {variosCanales ? <th scope="col">Canal</th> : null}
                   <th scope="col">Estado</th>
                   <th scope="col">Cruce</th>
                   <th scope="col">Avance</th>
@@ -109,10 +114,10 @@ export function Respuestas({ consultas }: { consultas: MonitoreoInternalQueries 
                         {respuesta.encuesta ? <small>{respuesta.encuesta}</small> : null}
                       </span>
                     </td>
-                    <td>{respuesta.canal}</td>
+                    {variosCanales ? <td>{respuesta.canal}</td> : null}
                     <td>{respuesta.estado}</td>
                     <td>{respuesta.cruce}</td>
-                    <td><span className={`acr-av-chip${respuesta.cuenta ? " is-cumple" : ""}`}>{respuesta.cuenta ? "Cuenta" : "No cuenta"}</span></td>
+                    <td><EstadoChip label={respuesta.cuenta ? "Cuenta" : "No cuenta"} tone={respuesta.cuenta ? "success" : "neutral"} /></td>
                   </tr>
                 ))}
               </tbody>

@@ -44,7 +44,7 @@ export function avisoMarcaPrevia(
   const todas = n >= total;
   return {
     todas,
-    etiqueta: todas ? "ya marcada" : `ya marcada · ${n} de ${total}`,
+    etiqueta: todas ? "ya marcada" : `ya marcada (${n} de ${total})`,
     detalle: todas
       ? total === 1
         ? "Esta persona ya marcó esta opción: mandarla acá no suma una mención."

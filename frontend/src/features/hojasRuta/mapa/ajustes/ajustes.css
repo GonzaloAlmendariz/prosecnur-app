@@ -1,0 +1,129 @@
+/* «Ajustes del diseño» (AjustesDiseno.tsx), maqueta aprobada lámina 6. Densidad pedida: tarjetas con
+   11–12 px de padding y gaps de 10 px. Velo con desenfoque, ventana que sube y contenido escalonado. */
+
+/* El marco, el velo, la cabecera y el pie los pone components/Dialog (kit): aquí sólo el interior. */
+.hr-ajustes .hr-ajustes-buscar { display: flex; align-items: center; gap: 6px; height: 32px; margin-bottom: 6px; padding: 0 10px; border: 1px solid var(--pulso-border); border-radius: 8px; color: var(--pulso-text-soft); background: var(--pulso-surface-2); }
+.hr-ajustes-buscar input { flex: 1; min-width: 0; border: 0; background: none; font: inherit; font-size: var(--pulso-type-body-size); color: var(--pulso-text); outline: none; }
+.hr-ajustes-buscar:focus-within { border-color: var(--pulso-module-routes); }
+
+/* El cuerpo del diálogo es este grid: una sola fila al alto del cuerpo, y scrollean la navegación y el
+   contenido por separado (sin la fila `auto`, la fila crecía con el contenido y los últimos 44 px quedaban
+   fuera de alcance: «scroll-unreachable» del QA). */
+.hr-ajustes-medio { display: grid; grid-template-columns: 250px minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); min-height: 0; overflow: hidden; }
+.hr-ajustes-nav { display: flex; flex-direction: column; gap: 2px; padding: 10px; border-right: 1px solid var(--pulso-border); overflow: auto; }
+.hr-ajustes-nav-item { display: flex; flex-direction: column; align-items: flex-start; gap: 1px; padding: 8px 10px; border: 0; border-radius: 9px; background: none; font: inherit; text-align: left; cursor: pointer; transition: background 0.18s ease; }
+.hr-ajustes-nav-item span { font-size: var(--pulso-type-body-size); font-weight: 600; color: var(--pulso-text); }
+.hr-ajustes-nav-item small { font-size: var(--pulso-type-caption-size); color: var(--pulso-text-soft); }
+.hr-ajustes-nav-item:hover { background: var(--pulso-surface-2); color: var(--pulso-text); }
+.hr-ajustes-nav-item[aria-current="true"] { background: var(--pulso-module-routes-soft); }
+.hr-ajustes-nav-item[aria-current="true"] span { color: var(--pulso-module-routes); }
+.hr-ajustes-nav-item:focus-visible { outline: 2px solid var(--pulso-module-routes); outline-offset: 1px; }
+.hr-ajustes-nada { margin: 6px 10px; font-size: var(--pulso-type-caption-size); color: var(--pulso-text-soft); }
+
+.hr-ajustes-cuerpo { display: flex; flex-direction: column; gap: 10px; padding: 12px 16px; overflow: auto; }
+.hr-ajustes-cuerpo > * { animation: hr-ajustes-aparecer 0.32s ease-out both; }
+.hr-ajustes-cuerpo > *:nth-child(2) { animation-delay: 30ms; }
+.hr-ajustes-cuerpo > *:nth-child(3) { animation-delay: 60ms; }
+.hr-ajustes-cuerpo > *:nth-child(4) { animation-delay: 90ms; }
+.hr-ajustes-grupo-cab h3 { margin: 0; font-size: var(--pulso-type-title-size); font-weight: 700; color: var(--pulso-text); }
+.hr-ajustes-grupo-cab p { margin: 2px 0 0; font-size: var(--pulso-type-body-size); color: var(--pulso-text-soft); }
+.hr-ajustes-vigente { display: flex; flex-direction: column; gap: 2px; margin: 0; padding: 11px 12px; border-radius: 10px; background: var(--pulso-surface-2); }
+.hr-ajustes-vigente dt { font-size: var(--pulso-type-micro-size); font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--pulso-text-soft); }
+.hr-ajustes-vigente dd { margin: 0; font-size: var(--pulso-type-body-size); font-weight: 600; color: var(--pulso-text); }
+.hr-ajustes-pendiente { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 11px 12px; border: 1px dashed var(--pulso-border); border-radius: 10px; font-size: var(--pulso-type-caption-size); color: var(--pulso-text-soft); }
+
+.hr-ajustes-vista { display: flex; gap: 18px; margin: 0; }
+.hr-ajustes-vista[data-desfasada] { opacity: 0.5; }
+.hr-ajustes-vista div { display: flex; flex-direction: column; }
+.hr-ajustes-vista dt { font-size: var(--pulso-type-micro-size); color: var(--pulso-text-soft); }
+.hr-ajustes-vista dd { margin: 0; font-size: var(--pulso-type-body-size); font-weight: 700; color: var(--pulso-text); font-variant-numeric: tabular-nums; }
+
+@media (max-width: 1100px) {
+  .hr-ajustes-medio { grid-template-columns: 210px minmax(0, 1fr); }
+  .hr-ajustes-vista { gap: 12px; }
+}
+
+@keyframes hr-ajustes-aparecer { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .hr-ajustes-cuerpo > * { animation: none; }
+}
+
+/* Botón «Diseño» de la barra (BotonDiseno.tsx, maqueta lámina 0). */
+.hr-boton-diseno { display: inline-flex; align-items: center; gap: 10px; height: var(--pulso-chrome-control-h, 38px); padding: 0 6px 0 12px; border: 1px solid color-mix(in srgb, var(--pulso-module-routes) 35%, transparent); border-radius: 10px; background: var(--pulso-module-routes-soft); color: var(--pulso-module-routes); font: inherit; cursor: pointer; transition: background-color 0.18s ease, box-shadow 0.18s ease, transform 0.12s ease; }
+.hr-boton-diseno:hover { background: var(--pulso-surface); color: var(--pulso-module-routes); box-shadow: 0 2px 10px color-mix(in srgb, var(--pulso-module-routes) 18%, transparent); }
+.hr-boton-diseno:active { transform: scale(var(--mov-press, 0.97)); }
+.hr-boton-diseno:focus-visible { outline: 2px solid var(--pulso-module-routes); outline-offset: 2px; }
+.hr-boton-diseno[data-compacto] { gap: 8px; padding: 0 10px; }
+.hr-boton-diseno-texto { display: flex; flex-direction: column; align-items: flex-start; line-height: 1.15; }
+.hr-boton-diseno-texto small { font-size: var(--pulso-type-micro-size); font-weight: 700; color: var(--pulso-module-routes); }
+.hr-boton-diseno b { font-size: var(--pulso-type-body-size); font-weight: 600; color: var(--pulso-text); white-space: nowrap; }
+.hr-boton-diseno-pendientes { padding: 3px 8px; border-radius: 7px; background: var(--pulso-module-routes); color: var(--pulso-on-primary, var(--pulso-surface)); font-size: var(--pulso-type-micro-size); font-weight: 700; white-space: nowrap; }
+.hr-boton-diseno-punto { width: 8px; height: 8px; border-radius: 50%; background: var(--pulso-module-routes); }
+
+/* Acceso contextual (AccesoAjustes.tsx): lo que queda en la sección cuando su configuración se muda. */
+.hr-acceso-ajustes { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 11px 12px; border-radius: 10px; background: var(--pulso-surface-2); }
+.hr-acceso-ajustes-texto { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.hr-acceso-ajustes-texto small { font-size: var(--pulso-type-micro-size); font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--pulso-text-soft); }
+.hr-acceso-ajustes-texto b { font-size: var(--pulso-type-body-size); font-weight: 600; color: var(--pulso-text); }
+.hr-acceso-ajustes-boton { display: inline-flex; align-items: center; gap: 2px; flex: none; padding: 4px 9px; border: 0; border-radius: 7px; background: var(--pulso-module-routes-soft); color: var(--pulso-module-routes); font: inherit; font-size: var(--pulso-type-caption-size); font-weight: 600; cursor: pointer; transition: background-color 0.15s ease; }
+.hr-acceso-ajustes-boton:hover { background: color-mix(in srgb, var(--pulso-module-routes) 16%, var(--pulso-surface)); color: var(--pulso-module-routes); }
+.hr-acceso-ajustes-boton:focus-visible { outline: 2px solid var(--pulso-module-routes); outline-offset: 2px; }
+
+/* Bloques del interior de un grupo (GrupoTamano y los que siguen): abiertos, densos, con su título. */
+.hr-ajustes-grupo-cuerpo { display: flex; flex-direction: column; gap: 10px; }
+.hr-ajustes-bloque { display: flex; flex-direction: column; gap: 10px; padding: 11px 12px; border: 1px solid var(--pulso-border); border-radius: 10px; }
+.hr-ajustes-bloque > h4 { margin: 0; font-size: var(--pulso-type-micro-size); font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--pulso-text-soft); }
+.hr-ajustes-bloque .hr-muestra-grupo { border-top: 0; padding-top: 0; }
+/* La curva del margen se dibuja a 640 de ancho en la ventana (`ancho` de MargenCurva): llena la tarjeta y
+   sus rótulos quedan del tamaño del texto, sin el tope de 360 px que la dejaba en media tarjeta. */
+.hr-ajustes .hr-margen-curva { width: 100%; max-width: none; }
+.hr-ajustes .hr-margen-curva-caja { max-width: none; }
+
+/* Tamaño y precisión, M2b: N como texto, k por divisores, fórmulas en contenedor formal. */
+.hr-campo-n label { font-size: var(--pulso-type-caption-size); font-weight: 600; color: var(--pulso-text-soft); }
+.hr-campo-n input { height: 36px; padding: 0 10px; border: 1px solid var(--pulso-border); border-radius: 8px; background: var(--pulso-surface); font: inherit; font-size: var(--pulso-type-subtitle-size); font-weight: 700; font-variant-numeric: tabular-nums; color: var(--pulso-text); }
+.hr-campo-n input:focus { outline: none; border-color: var(--pulso-module-routes); }
+.hr-campo-n input[aria-invalid="true"] { border-color: var(--pulso-warn-border); }
+.hr-campo-n-aviso { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 0; font-size: var(--pulso-type-caption-size); color: var(--pulso-warn-fg); }
+.hr-campo-n-opcion { padding: 3px 9px; border: 1px solid var(--pulso-warn-border); border-radius: 7px; background: var(--pulso-warn-bg); color: var(--pulso-warn-fg); font: inherit; font-weight: 700; font-variant-numeric: tabular-nums; cursor: pointer; }
+.hr-campo-n-opcion:hover { background: var(--pulso-surface); color: var(--pulso-warn-fg); }
+.hr-selector-k-otro { width: 64px; height: 30px; padding: 0 8px; border: 1px solid var(--pulso-module-routes); border-radius: 8px; font: inherit; font-variant-numeric: tabular-nums; }
+.hr-ajustes-formula { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; margin: 0; padding: 11px 12px; border-radius: 10px; background: var(--pulso-surface-2); }
+.hr-ajustes-formula div { display: flex; flex-direction: column; gap: 1px; }
+.hr-ajustes-formula dt { font-size: var(--pulso-type-micro-size); font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--pulso-text-soft); }
+.hr-ajustes-formula dd { margin: 0; font-size: var(--pulso-type-body-size); font-weight: 700; color: var(--pulso-text); font-variant-numeric: tabular-nums; }
+.hr-ajustes-formula dd small { font-weight: 500; color: var(--pulso-text-soft); }
+.hr-margen-curva-caja { display: flex; flex-direction: column; gap: 4px; max-width: 360px; }
+.hr-margen-curva[data-interactiva] { cursor: crosshair; }
+.hr-margen-curva-deslizador { width: 100%; accent-color: var(--pulso-module-routes); }
+/* Los rangos de edad dentro de la ventana: su cabecera de columna pierde el padding de columna. */
+.hr-ajustes-rangos .hr-mapa-cab { padding: 0; }
+.hr-ajustes-rangos .hr-mapa-ins-cuerpo { padding: 0; overflow: visible; }
+/* A 1024 la navegación mide ~190 px: el resumen se parte en vez de desbordar el ítem (overflow-x del QA). */
+.hr-ajustes-nav-item { width: 100%; min-width: 0; white-space: normal; }
+.hr-ajustes-nav-item small { display: block; max-width: 100%; overflow-wrap: anywhere; }
+/* Lo que Aplicar descartaría, en la pista del pie de la ventana. */
+.hr-ajustes-aviso { font-size: var(--pulso-type-caption-size); font-weight: 600; color: var(--pulso-warn-fg); }
+
+/* E12: pulido de la ventana.
+   El indicador deslizante se medía mientras la ventana entraba con su escala y la tarjeta del método
+   elegido quedaba más angosta que las otras; en la lista de métodos la opción marcada se pinta sola. */
+.hr-ajustes .hr-sorteo-metodos > .pulso-gliding-tab-indicator { display: none; }
+.hr-ajustes .hr-sorteo-metodos.pulso-gliding-tab-list > button[aria-checked="true"] { border-color: var(--pulso-module-routes); background: var(--pulso-module-routes-soft); box-shadow: inset 0 0 0 1px var(--pulso-module-routes); }
+.hr-ajustes .hr-sorteo-metodos.pulso-gliding-tab-list > button:not([aria-checked="true"]):hover { border-color: var(--pulso-border-strong); background: var(--pulso-surface-2); color: var(--pulso-text); }
+/* El anillo de foco global del input se sumaba al borde de la caja: un solo anillo, el de la caja. */
+.hr-ajustes .hr-ajustes-buscar input:focus, .hr-ajustes .hr-ajustes-buscar input:focus-visible { outline: none; box-shadow: none; border: 0; }
+.hr-ajustes .hr-ajustes-buscar:focus-within { background: var(--pulso-surface); box-shadow: 0 0 0 3px var(--pulso-module-routes-soft); }
+/* Contador de reemplazos: un solo control compacto (− número +), no un número estirado entre dos botones sueltos. */
+.hr-ajustes .hr-muestra-pasos { display: inline-flex; align-items: stretch; align-self: flex-start; width: max-content; height: 32px; border: 1px solid var(--pulso-border); border-radius: 8px; background: var(--pulso-surface); overflow: hidden; }
+.hr-ajustes .hr-muestra-pasos > button { width: 32px; height: 100%; min-height: 0; border: 0; border-radius: 0; background: var(--pulso-surface-2); color: var(--pulso-text); }
+.hr-ajustes .hr-muestra-pasos > button:hover:not(:disabled) { background: var(--pulso-module-routes-soft); color: var(--pulso-module-routes); }
+.hr-ajustes .hr-muestra-pasos > input { width: 52px; flex: none; height: 100%; padding: 0; border: 0; border-inline: 1px solid var(--pulso-border); border-radius: 0; background: var(--pulso-surface); text-align: center; font: inherit; font-size: var(--pulso-type-body-size); font-weight: 700; font-variant-numeric: tabular-nums; color: var(--pulso-text); -moz-appearance: textfield; appearance: textfield; }
+.hr-ajustes .hr-muestra-pasos > input::-webkit-inner-spin-button, .hr-ajustes .hr-muestra-pasos > input::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+.hr-ajustes .hr-muestra-pasos > input:focus-visible { outline: none; box-shadow: inset 0 0 0 2px var(--pulso-module-routes); }
+/* Interruptores con el tono del módulo, no el navy del kit: en la ventana conviven con segmentados y
+   botones del acento y el navy se leía como de otro módulo. */
+.hr-ajustes .pulso-switch { --pulso-switch-accent: var(--pulso-module-routes); --pulso-switch-accent-ring: var(--pulso-module-routes-soft); }
+/* «Rangos de edad» viene del inspector de Población con su h2; en la ventana se titula como los demás bloques. */
+.hr-ajustes-rangos .hr-mapa-cab-titulo h2 { margin: 0; font-size: var(--pulso-type-micro-size); font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--pulso-text-soft); }

@@ -18,6 +18,8 @@ export type OpcionDeFase = {
   /** Última lectura de la fuente de esa fase, «dd/mm». */
   fecha: string;
   activa: boolean;
+  /** Inicio de la fase que guarda Monitoreo (`phase_windows`), ISO; vacío si no lo tiene. */
+  inicio: string;
   /**
    * Las mismas cifras que `detalle`, una por celda rotulada (Modelo › Metas):
    * vacío si la fase no tiene respuestas, y entonces `detalle` dice por qué.
@@ -94,6 +96,7 @@ export function opcionesDeFase(
       detalle,
       fecha,
       activa: esActiva,
+      inicio: ventanas?.[fase]?.start_at ?? "",
       cifras,
     };
   });

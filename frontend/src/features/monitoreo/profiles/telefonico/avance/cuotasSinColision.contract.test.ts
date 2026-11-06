@@ -59,8 +59,11 @@ describe("Avance › Cuotas del telefónico: clases propias", () => {
   });
 
   it("el chip de estado no se parte aunque el nombre de la cuota sea largo", () => {
-    const css = fs.readFileSync(PROPIA, "utf8");
-    const regla = /\.mon-tel-cuotas-estado\s*\{([^}]*)\}/.exec(css)?.[1] ?? "";
+    // Desde el P6 el estado es `EstadoChip`: el no-partir lo pone el material del kit.
+    const tsx = fs.readFileSync(path.join(AQUI, "CuotasFaltante.tsx"), "utf8");
+    expect(tsx).toMatch(/<EstadoChip\b/);
+    const kit = fs.readFileSync(path.join(SRC, "components/chrome.css"), "utf8");
+    const regla = /\.pulso-chrome-status-chip\s*\{([^}]*)\}/.exec(kit)?.[1] ?? "";
     expect(regla).toMatch(/white-space:\s*nowrap/);
   });
 

@@ -71,6 +71,7 @@ import type { ServicioDeFuente } from "./direccionDeFuente";
 import { guionConEstado, piezaPorLaQueSeguir, piezaSiguienteTrasConectar } from "./guionDeConexion";
 import type { PapelDeFuente, PiezaConEstado } from "./guionDeConexion";
 import { actorQueContradiceElNombre, contar } from "./vocabulario";
+import { enumerar } from "../../../lib/enumerar";
 import { conflictoDeCardinalidad } from "./rosterDeActores";
 import "./conectarFuente.css";
 
@@ -552,7 +553,7 @@ export function ConectarFuente({
                     {item.porActor ? (
                       <i>
                         {item.actores.length
-                          ? `${contar(item.actores.length, "actor", "actores")}: ${item.actores.join(" · ")}`
+                          ? `${contar(item.actores.length, "actor", "actores")}: ${enumerar(item.actores)}`
                           : "Todavía sin actores"}
                       </i>
                     ) : null}

@@ -26,6 +26,25 @@ export type PadronDelPublico = {
 
 const SERVICIO: Record<string, string> = { google_sheets: "Google Sheets", surveymonkey: "SurveyMonkey", kobo: "Kobo" };
 
+/**
+ * El nombre de una fuente tal como se muestra: sin el prefijo de papel que lleva
+ * la etiqueta guardada («Universo · Profesores» -> «Profesores»). La etiqueta no se
+ * toca porque el motor lee de ella el público; lo que cambia es la lectura.
+ */
+export function nombreVisibleDeFuente(fuente: MonitoreoSource): string {
+  const crudo = [fuente.label, fuente.survey_title, fuente.id].map((valor) => String(valor ?? "").trim()).find(Boolean) ?? "";
+  // Sólo se quita el papel del inicio; el resto del nombre queda tal cual se escribió.
+  const papel = crudo.match(/^(universo|padr[oó]n|base)\s+[·•|]\s+/i);
+  const resto = papel ? crudo.slice(papel[0].length).trim() : "";
+  return resto || crudo;
+}
+
+/** ¿El nombre visible de la fuente no dice más que el público? Entonces basta el servicio. */
+export function fuenteRepiteAlPublico(fuente: MonitoreoSource, publico: string): boolean {
+  const normal = (texto: string) => texto.normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toLowerCase();
+  return normal(nombreVisibleDeFuente(fuente)) === normal(publico);
+}
+
 export function servicioDe(fuente: MonitoreoSource) {
   return SERVICIO[String(fuente.kind ?? "")] ?? "Fuente";
 }
@@ -37,19 +56,32 @@ export function canalDeFuente(fuente: MonitoreoSource): string {
   return rotulo && rotulo !== "Sin canal" ? rotulo : crudo || "Sin canal";
 }
 
+/** Los públicos a los que un padrón repartido manda filas (`actor_map`). */
+export function publicosDelMapa(fuente: MonitoreoSource): string[] {
+  const mapa = fuente.actor_map;
+  if (!mapa || Array.isArray(mapa) || typeof mapa !== "object") return [];
+  return [...new Set(Object.values(mapa).map((valor) => String(valor ?? "").trim()).filter(Boolean))];
+}
+
 export function padronesPorPublico(
   publicos: readonly string[],
   fuentes: readonly MonitoreoSource[],
   cuotas: readonly MonitoreoCuotaPublico[],
 ): PadronDelPublico[] {
+  const activas = fuentes.filter((fuente) => fuente.enabled !== false);
   return publicos.map((publico) => {
     const clave = claveDeActor(publico);
-    const propias = fuentes.filter((fuente) => fuente.enabled !== false && claveDeActor(actorDeLaFuente(fuente)) === clave);
-    const encuestas = propias.filter((fuente) => String(fuente.role ?? "") === "respuestas");
+    // Un padrón repartido (E10) también es el padrón de los públicos de su mapa, y
+    // la encuesta de su público que hereda el público de la fila los alimenta.
+    const repartidos = activas.filter((fuente) => String(fuente.role ?? "") === "universo" && publicosDelMapa(fuente).some((otro) => claveDeActor(otro) === clave));
+    const origenes = new Set(repartidos.map((fuente) => claveDeActor(actorDeLaFuente(fuente))));
+    const propias = activas.filter((fuente) => claveDeActor(actorDeLaFuente(fuente)) === clave);
+    const heredadas = activas.filter((fuente) => fuente.actor_por_padron && String(fuente.role ?? "") === "respuestas" && origenes.has(claveDeActor(actorDeLaFuente(fuente))));
+    const encuestas = [...propias, ...heredadas].filter((fuente) => String(fuente.role ?? "") === "respuestas");
     const cuota = cuotas.find((item) => claveDeActor(item.actor) === clave);
     return {
       publico,
-      padrones: propias.filter((fuente) => String(fuente.role ?? "") === "universo"),
+      padrones: [...propias.filter((fuente) => String(fuente.role ?? "") === "universo"), ...repartidos],
       encuestas,
       barridos: propias.filter((fuente) => String(fuente.role ?? "") === "barrido"),
       canales: [...new Set(encuestas.map(canalDeFuente))],

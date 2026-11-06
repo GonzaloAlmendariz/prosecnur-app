@@ -49,7 +49,7 @@ describe("un tope de presentación no se presenta como dato", () => {
 
 describe("cada UMP dice de qué fuente es", () => {
   it("el estado nombra la cuota operativa", () => {
-    expect(codigo).toContain('Estado UMP {operational ? "· cuota operativa" : ""}');
+    expect(codigo).toContain('Estado UMP {operational ? "de la cuota operativa" : ""}');
   });
 
   it("las prioridades nombran la hoja de ruta", () => {

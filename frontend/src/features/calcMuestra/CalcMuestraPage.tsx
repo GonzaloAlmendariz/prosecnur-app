@@ -104,7 +104,6 @@ import { conDivisorDelMarco } from "./universidad/marco/divisorDelMarco";
 import { avisoMarcoConstruido } from "./universidad/marco/avisoMarcoConstruido";
 import { avisoTrasCalcular } from "./universidad/calculo/avisoCalculo";
 import {
-  defaultTitleFor,
   filtrosLegacyPayload,
   hasUsefulResult,
   normalizeUniversityAulasConfig,
@@ -163,7 +162,10 @@ import { resolveUniversityClassroomTab, resolveUniversityLocalTab, universitySec
 import "./universidad/universidad-base.css";
 import "./calcMuestra.css";
 import { estrato, matrizEjemplo } from "./ComponenteTablas";
-import { SelectorTipo } from "./SelectorTipo";
+import { AterrizajeDelPlanner, decidirAterrizaje } from "./AterrizajeDelPlanner";
+import { usePlannerModos } from "../estudio/usePlannerModos";
+import { AvisoDiferenciaDeTipo } from "./AvisoDiferenciaDeTipo";
+import { diferenciaDeTipo } from "./diferenciaDeTipo";
 import { loQueSePierde } from "./modeloVistaPreviaTipo";
 import { MesaAcreditacion, MesaGeneral, TerritorialHandoff, labelMarcoOcasional, productoLabel, tecnicaCalculadaLabel, tecnicaLabel, tecnicaProducto, variableControl, type MarcoOcasional } from "./general";
 
@@ -495,7 +497,7 @@ export function chromeTokensForDesk({
     const withChannel = componentes.filter((comp) => comp.canal_recojo !== "sin_definir").length;
     return [
       { label: "Tipo", value: "Metas por grupo", tone: "path" },
-      { label: "Actores", value: componentes.length ? `${componentes.length} componentes` : "sin actores", tone: componentes.length ? "ready" : "working" },
+      { label: "Actores", value: componentes.length ? `${fmtInt(componentes.length)} componentes` : "sin actores", tone: componentes.length ? "ready" : "working" },
       { label: "Canales", value: `${withChannel}/${componentes.length || 0} definidos`, tone: componentes.length > 0 && withChannel === componentes.length ? "ready" : "working" },
       { label: "Salida", value: hasResult ? "metas listas" : productText, tone: hasResult ? "ready" : "neutral" },
     ];
@@ -514,7 +516,7 @@ export function chromeTokensForDesk({
     return [
       { label: "Tipo", value: "Sesión anterior", tone: "path" },
       { label: "Compatibilidad", value: "solo lectura", tone: "working" },
-      { label: "Componentes", value: `${componentes.length}`, tone: componentes.length ? "ready" : "neutral" },
+      { label: "Componentes", value: `${fmtInt(componentes.length)}`, tone: componentes.length ? "ready" : "neutral" },
       { label: "Salida", value: hasResult ? "conservada" : "migrar", tone: hasResult ? "ready" : "working" },
     ];
   }
@@ -615,7 +617,7 @@ function contextChecksForDesk({
   if (desk === "acreditacion") {
     const withChannel = componentes.filter((comp) => comp.canal_recojo !== "sin_definir").length;
     return [
-      { label: "Actores", value: componentes.length ? `${componentes.length} componentes` : "sin actores", ready: componentes.length > 0, icon: ClipboardList },
+      { label: "Actores", value: componentes.length ? `${fmtInt(componentes.length)} componentes` : "sin actores", ready: componentes.length > 0, icon: ClipboardList },
       { label: "Canales", value: `${withChannel}/${componentes.length || 0} definidos`, ready: componentes.length > 0 && withChannel === componentes.length, icon: Users },
       { label: "Contexto", value: hasSource ? "documentado" : "pendiente", ready: hasSource, icon: Database },
       { label: "Metas", value: hasResult ? "calculadas" : "por calcular", ready: hasResult, icon: BarChart3 },
@@ -769,6 +771,8 @@ export default function CalcMuestraPage() {
   // no perder el sitio al ir y volver; la dirección manda, la memoria restaura.
   const [activeLocalTabs, setActiveLocalTabs] = useState<Record<string, string>>({});
   const [choosingDesk, setChoosingDesk] = useState(false);
+  // ADR 0122 P2: el modo que fija el perfil de recojo declarado en el Planner.
+  const { modos: plannerModos, error: plannerError } = usePlannerModos();
   const [deskOverride, setDeskOverride] = useState<ActiveDesk | null>(null);
   const [pendingDeskReset, setPendingDeskReset] = useState<ActiveDesk | null>(null);
   const [aulasState, setAulasState] = useState<CalcMuestraAulasState | null>(null);
@@ -881,6 +885,7 @@ export default function CalcMuestraPage() {
     workspace.frame_mode !== "sin_definir" ||
     hasAulasDeskState
   );
+  const diferencia = diferenciaDeTipo(plannerModos, currentDesk, hasExistingDesk);
 
   // F9 (bug QA #4): resetear la sección del rail SOLO en cambio real de mesa.
   // La decisión vive en hooks/railReset.ts (pura, testeada); antes este efecto
@@ -1086,8 +1091,8 @@ export default function CalcMuestraPage() {
         ? universityWorkspace(nextWorkspace, componentes[0], componentes[1])
         : nextWorkspace;
       replaceEstudio({
+        // El título lo declara el Planner (ADR 0122): Cálculo ya no lo siembra.
         ...res.estudio,
-        titulo: defaultTitleFor(mode),
         componentes,
         workspace: finalWorkspace,
       });
@@ -1124,7 +1129,9 @@ export default function CalcMuestraPage() {
     setDeskOverride(null);
     setChoosingDesk(false);
     if (nextMode === "territorial_handoff") {
-      navigate("/hojas-ruta");
+      // Alinear con un estudio territorial deja Cálculo en su traspaso a Hojas de ruta: sin esto el
+      // escenario viejo seguía guardado y volvía a abrirse en la próxima visita (hallazgo 11).
+      replaceEstudio({ ...estudio, macro_familia: "territorial", componentes: [], workspace: EMPTY_WORKSPACE });
       return;
     }
     void iniciar(nextMode);
@@ -2236,16 +2243,18 @@ export default function CalcMuestraPage() {
     ? activeClassroomLabTab
     : localTabCandidato ?? sidebarTabs[0]?.id ?? "";
   const activeRailMeta = activeSectionMetaForDesk(desk, activeRailSection);
-  const universityContextItems = desk === "opinion_universitaria"
+  // Un solo rail de pestañas para todos los escritorios (L16): el que usaba el
+  // universitario. El de los demás era una copia propia del mismo patrón.
+  const contextItems = desk !== "sin_definir"
     ? sidebarTabs.map((tab) => ({
         key: tab.classroomTab ?? tab.id,
         label: tab.label,
-        description: `${tab.detail} · ${guidedStatusLabel(tab.status)}`,
+        description: `${tab.detail}, ${guidedStatusLabel(tab.status)}`,
         icon: tab.icon,
       }))
     : [];
 
-  function selectUniversityContextTab(key: string) {
+  function selectContextTab(key: string) {
     const tab = sidebarTabs.find((item) => (item.classroomTab ?? item.id) === key);
     if (!tab) return;
     if (tab.classroomTab) {
@@ -2287,7 +2296,7 @@ export default function CalcMuestraPage() {
       density="compact"
       headerMode="sr-only"
       title="Cálculo de muestra y marco muestral"
-      toolbar={
+      chrome={
         <div className={`cmv2-module-chrome ${desk === "sin_definir" ? "is-picker" : ""}`}>
           {/* La banda propia pasa al chrome compartido. Tenía su propio grid con
               dos formas —una para el selector de estudio y otra para el escritorio
@@ -2318,9 +2327,9 @@ export default function CalcMuestraPage() {
                   {desk === "opinion_universitaria" && (
                     <ChromeIndicator
                       label="Etapa"
-                      value={(workspace.etapa ?? "propuesta") === "campo" ? "Campo · DTI" : "Propuesta"}
+                      value={(workspace.etapa ?? "propuesta") === "campo" ? "Campo, DTI" : "Propuesta"}
                       prioridad="media"
-                      detalle="Etapa del estudio · se define en Datos → Estudio"
+                      detalle="Etapa del estudio, se define en Datos → Estudio"
                     />
                   )}
                 </ChromeIndicatorGroup>
@@ -2371,28 +2380,17 @@ export default function CalcMuestraPage() {
         data-audit-ready="calc-muestra"
         data-audit-desk={desk}
       />
-      <div className={`cmv2-workbench ${desk === "sin_definir" ? "is-pathway-picker" : ""}${desk === "opinion_universitaria" ? " pulso-context-tab-layout" : ""}${sinRailLocal ? " cmg-sin-rail" : ""}`}>
-        {desk === "opinion_universitaria" ? (
+      <div className={`cmv2-workbench ${desk === "sin_definir" ? "is-pathway-picker" : ""}${desk !== "sin_definir" && !sinRailLocal ? " pulso-context-tab-layout" : ""}${sinRailLocal ? " cmg-sin-rail" : ""}`}>
+        {desk !== "sin_definir" && contextItems.length ? (
           <ContextTabRail
             ariaLabel={`Pestañas de ${activeRailMeta?.label ?? "la sección"}`}
             activeKey={activeLocalTab}
-            items={universityContextItems}
-            panelId={activeRailMeta?.targetId ?? "cmv2-section-university-setup"}
+            items={contextItems}
+            panelId={desk === "opinion_universitaria"
+              ? activeRailMeta?.targetId ?? "cmv2-section-university-setup"
+              : (key) => sidebarTabs.find((tab) => (tab.classroomTab ?? tab.id) === key)?.targetId ?? activeRailMeta?.targetId ?? ""}
             tabId={(key) => universityContextTabId(activeRailSection, key)}
-            onChange={selectUniversityContextTab}
-          />
-        ) : desk !== "sin_definir" ? (
-          <CalcMuestraContextSidebar
-            desk={desk}
-            estudio={estudio}
-            workspace={workspace}
-            activeSection={activeRailSection}
-            activeLocalTab={activeLocalTab}
-            activeClassroomLabTab={activeClassroomLabTab}
-            aulasState={aulasState}
-            onClassroomLabTab={setActiveClassroomLabTab}
-            onLocalTab={seleccionarPestanaLocal}
-            onLocalTarget={navegarPestanaLocal}
+            onChange={selectContextTab}
           />
         ) : null}
 
@@ -2419,16 +2417,22 @@ export default function CalcMuestraPage() {
             />
           )}
 
+          {/* ADR 0122 P2: el tipo de estudio lo fija el perfil del Planner; aquí
+              sólo se empieza o se confirma el cambio. */}
           {desk === "sin_definir" && (
-            <SelectorTipo
-              currentDesk={currentDesk}
-              hasExistingStudy={hasExistingDesk}
-              pendingReset={pendingDeskReset}
-              onSelect={elegirEstudio}
-              onCancelReset={() => setPendingDeskReset(null)}
-              onConfirmReset={confirmarCambioEstudio}
+            <AterrizajeDelPlanner
+              decision={decidirAterrizaje(plannerModos, currentDesk, hasExistingDesk, plannerError)}
               perdidas={loQueSePierde({ titulo: estudio.titulo, componentes: estudio.componentes, tieneEstadoAulas: hasAulasDeskState })}
+              confirmando={pendingDeskReset != null}
+              onEmpezar={elegirEstudio}
+              onPedirCambio={elegirEstudio}
+              onCancelar={() => { setPendingDeskReset(null); setChoosingDesk(false); }}
+              onConfirmar={confirmarCambioEstudio}
             />
+          )}
+
+          {desk !== "sin_definir" && diferencia && (
+            <AvisoDiferenciaDeTipo diferencia={diferencia} onAlinear={(d) => { setChoosingDesk(true); setPendingDeskReset(d); }} />
           )}
 
           {desk === "legacy" && (
@@ -2566,7 +2570,7 @@ function CalcMuestraSectionRail({
                   data-gliding-key={item.id}
                   className={`pulso-phase-pill cmv2-section-pill ${active ? "is-active" : ""}${stateClass}`}
                   aria-pressed={active}
-                  title={`${item.label}: ${item.detail}${state ? ` · ${guidedStatusLabel(state)}` : ""}`}
+                  title={`${item.label}: ${item.detail}${state ? `, ${guidedStatusLabel(state)}` : ""}`}
                   onClick={() => onSection(item)}
                 >
                   <span className="pulso-phase-pill-circle" aria-hidden="true" />
@@ -2584,132 +2588,6 @@ function CalcMuestraSectionRail({
         </ol>
       </GlidingTabList>
     </div>
-  );
-}
-
-function CalcMuestraContextSidebar({
-  desk,
-  estudio,
-  workspace,
-  activeSection,
-  activeLocalTab,
-  activeClassroomLabTab,
-  aulasState,
-  onClassroomLabTab,
-  onLocalTab,
-  onLocalTarget,
-}: {
-  desk: ActiveDesk;
-  estudio: CalcMuestraEstudio;
-  workspace: CalcMuestraWorkspace;
-  activeSection: string;
-  activeLocalTab: string;
-  activeClassroomLabTab: ClassroomLabTab;
-  aulasState: CalcMuestraAulasState | null;
-  onClassroomLabTab: (tab: ClassroomLabTab) => void;
-  onLocalTab: (tab: CalcMuestraSidebarTab) => void;
-  onLocalTarget: (targetId?: string) => void;
-}) {
-  const activeMeta = activeSectionMetaForDesk(desk, activeSection);
-  const tabs = sidebarTabsForDeskSection({ desk, activeSection, estudio, workspace, aulasState });
-  if (tabs.length === 0) return null;
-  const firstTabId = tabs[0]?.id ?? "";
-  const activeTabId = activeSection === "aulas" ? activeClassroomLabTab : activeLocalTab || firstTabId;
-
-  function selectTab(tab: CalcMuestraSidebarTab) {
-    if (tab.classroomTab) {
-      onClassroomLabTab(tab.classroomTab);
-      return;
-    }
-    onLocalTab(tab);
-    onLocalTarget(tab.targetId);
-  }
-
-  return (
-    // Rail de tercer nivel (jerarquía canónica módulo → sección → pestaña):
-    // colapsado icon-only por defecto, se expande a --pulso-rail-width al
-    // hover/focus como overlay (sin reflujo del canvas). El shell absoluto
-    // carga el panel visual y la transición de ancho; el aside solo reserva
-    // el carril angosto en el grid del workbench.
-    <aside className="cmv2-rail cmv2-section-sidebar" aria-label="Pestañas de la sección activa">
-      <div className="cmv2-section-sidebar-shell">
-        <div className="cmv2-section-sidebar-head">
-          <span>{activeMeta?.label ?? railTitleForDesk(desk)}</span>
-          <strong>{desk === "opinion_universitaria" && activeSection === "definicion" ? "Preparación" : "Pestañas"}</strong>
-          <small>{activeMeta?.detail ?? deskSubtitleForDesk(desk)}</small>
-        </div>
-
-        <GlidingTabList
-          activeKey={activeTabId}
-          mode="tabs"
-          orientation="vertical"
-          className={`cmv2-section-local-tabs${desk === "opinion_universitaria" ? " is-guided" : ""}`}
-          role="radiogroup"
-          aria-label={`Pestañas de ${activeMeta?.label ?? "la sección"}`}
-          onRovingKeyChange={(key) => {
-            const tab = tabs.find((candidate) => (candidate.classroomTab ?? candidate.id) === key);
-            if (tab) selectTab(tab);
-          }}
-        >
-          {tabs.map((tab) => {
-            const Icon = tab.icon;
-            const active = activeTabId === (tab.classroomTab ?? tab.id);
-            // Recorrido guiado (desk universitario): badge de texto visible en
-            // vez del punto — "Siguiente" para el paso en curso y "Después"
-            // para lo aún pendiente. La pestaña sigue navegable siempre; el
-            // porqué del estado viaja en el title.
-            const guided = desk === "opinion_universitaria";
-            const showFlag = guided && tab.status !== "ready";
-            const statusLabel = guidedStatusLabel(tab.status);
-            return (
-              <button
-                key={tab.id}
-                type="button"
-                role="radio"
-                data-gliding-key={tab.classroomTab ?? tab.id}
-                aria-checked={active}
-                className={`cmv2-section-local-tab is-${tab.status}${active ? " is-active" : ""}`}
-                // Rail de íconos persistente: el detalle aparece como tooltip
-                // flotante ESTILIZADO en hover (patrón de los sidebars de
-                // Procesamiento vía data-rail-tooltip), no expandiendo el carril.
-                // NO usamos `title` nativo: dispararía el tooltip feo del browser
-                // encima del estilizado. La accesibilidad viaja en aria-label.
-                // (dec-sidebar-icon-tooltip, ADR 0038.)
-                aria-label={`${tab.label}. ${tab.detail}`}
-                data-rail-tooltip={guided ? `${tab.label}\n${tab.detail} · ${statusLabel}` : `${tab.label}\n${tab.detail}`}
-                // Contrato de `app/nav-states.css`: con el atributo puesto, el item
-                // toma el hover, el foco y el material de reposo compartidos. Este
-                // rail era el único de los cuatro que quedaba fuera del estándar
-                // —38px de ancho contra 40, radio 14 contra 10 y solo uno de sus
-                // cuatro items con material en reposo—.
-                data-nav-item=""
-                data-nav-shape="row"
-                data-nav-state={active ? "selected" : undefined}
-                onClick={() => selectTab(tab)}
-              >
-                <span className="cmv2-section-local-icon" aria-hidden="true">
-                  <Icon size={16} />
-                  <span className={`cmv2-section-local-dot is-${tab.status}`} />
-                </span>
-                <span className="cmv2-section-local-copy">
-                  <strong>{tab.label}</strong>
-                  <small>{tab.detail}</small>
-                </span>
-                {showFlag ? (
-                  <span className={`cmv2-section-local-flag is-${tab.status}`}>
-                    {tab.status === "working" ? "Siguiente" : "Después"}
-                  </span>
-                ) : (
-                  <span className="cmv2-section-local-state" title={statusLabel}>
-                    <span className="pulso-sr-only">{statusLabel}</span>
-                  </span>
-                )}
-              </button>
-            );
-          })}
-        </GlidingTabList>
-      </div>
-    </aside>
   );
 }
 

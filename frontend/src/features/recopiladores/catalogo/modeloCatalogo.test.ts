@@ -75,11 +75,11 @@ describe("textos de la tarjeta y del inspector", () => {
     expect(textoDeCopias(2)).toBe("2 por unidad");
     expect(textoDeCopias("por_lote")).toBe("por_lote");
     expect(textoDeCopias(null)).toBeNull();
-    expect(textoDeFormato(FICHA)).toBe("A4 · vertical");
+    expect(textoDeFormato(FICHA)).toBe("A4 vertical");
     expect(textoDeFormato(AFICHE)).toBe("Apaisado");
     expect(textoDeImpresion(2)).toBe("Frente y dorso");
     expect(textoDeImpresion(1)).toBe("Una cara");
-    expect(textoDeLectura(["classroom_course_schedule", "zzz"])).toBe("Cursos-horario · zzz");
+    expect(textoDeLectura(["classroom_course_schedule", "zzz"])).toBe("Cursos-horario, zzz");
     expect(textoDeLectura([])).toBe("Cualquier unidad");
   });
 });

@@ -30,8 +30,6 @@ function pintar(extra: Partial<Parameters<typeof SurveyOutline>[0]> = {}) {
       onSelect={nada}
       onMoveUp={nada}
       onMoveDown={nada}
-      canMoveUp={false}
-      canMoveDown={false}
       onApplyMove={nada}
       {...extra}
     />,

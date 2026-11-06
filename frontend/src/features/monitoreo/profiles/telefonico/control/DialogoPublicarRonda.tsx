@@ -9,6 +9,7 @@ import { useDialogoDeRonda } from "./useDialogoDeRonda";
 import "../insumos/insumosTelefonico.css";
 import "./supervision.css";
 import { mensajeDeError } from "./rondasModel";
+import { formatoConteo } from "../../../../../lib/formatoNumero";
 
 /**
  * «Publicar en el Sheets» de una ronda: qué preguntas de control de Kobo van
@@ -50,7 +51,7 @@ export function DialogoPublicarRonda({
     <div className="mon-sup-dialogo-fondo" onMouseDown={(event) => { if (event.target === event.currentTarget) onCerrar(); }}>
       <section ref={raiz} tabIndex={-1} className="mon-sup-dialogo" role="dialog" aria-modal="true" aria-labelledby="mon-sup-publicar-titulo">
         <header>
-          <h2 id="mon-sup-publicar-titulo">Publicar la Ronda {numero.toLocaleString("es-PE")} en el Sheets</h2>
+          <h2 id="mon-sup-publicar-titulo">Publicar la Ronda {formatoConteo(numero)} en el Sheets</h2>
           <button type="button" className="mon-sup-cerrar" aria-label="Cerrar" onClick={onCerrar}><X size={16} /></button>
         </header>
         <div className="mon-sup-dialogo-cuerpo">
@@ -58,7 +59,7 @@ export function DialogoPublicarRonda({
             <>
               <NotaDelModo tono="info">
                 <span title="No se toca ninguna otra pestaña de la hoja">
-                  Se crea la pestaña «Ronda {numero.toLocaleString("es-PE")}» en «{hoja.label || hoja.id}»
+                  Se crea la pestaña «Ronda {formatoConteo(numero)}» en «{hoja.label || hoja.id}»
                 </span>
               </NotaDelModo>
               <fieldset className="mon-sup-preguntas">
@@ -92,7 +93,7 @@ export function DialogoPublicarRonda({
           {hoja ? (
             <button type="button" className="mon-insumos-boton is-primario" disabled={envio.guardando} onClick={() => { void publicar(); }}>
               {envio.guardando ? <Loader2 size={14} className="pulso-spin" /> : <Upload size={14} />}
-              <span>{envio.guardando ? "Publicando…" : `Crear la pestaña «Ronda ${numero.toLocaleString("es-PE")}»`}</span>
+              <span>{envio.guardando ? "Publicando…" : `Crear la pestaña «Ronda ${formatoConteo(numero)}»`}</span>
             </button>
           ) : (
             <button type="button" className="mon-insumos-boton is-primario" onClick={onIrAFuentes}>Ir a Fuentes</button>

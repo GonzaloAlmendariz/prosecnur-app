@@ -1,0 +1,102 @@
+/* Modelo › Cuotas: la lista de la izquierda, un contenedor por público. */
+
+.acr-cu-lista {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-3);
+}
+
+.acr-cu-publico {
+  padding: var(--pulso-space-3) var(--pulso-space-2) var(--pulso-space-2);
+  border: 1px solid color-mix(in srgb, var(--pulso-border) 70%, var(--pulso-surface));
+  border-radius: var(--pulso-radius-card);
+  background: var(--pulso-surface);
+}
+
+.acr-cu-publico-cabecera {
+  display: flex;
+  align-items: center;
+  gap: var(--pulso-space-2);
+  margin: 0 0 var(--pulso-space-2);
+  padding: 0 var(--pulso-space-2);
+}
+
+.acr-cu-publico-cabecera strong {
+  min-width: 0;
+  font-size: var(--pulso-type-body-size);
+  overflow-wrap: anywhere;
+}
+
+.acr-cu-publico-cabecera > span {
+  margin-left: auto;
+  font-size: var(--pulso-type-body-size);
+  white-space: nowrap;
+}
+
+.acr-cu-publico .acr-cu-sub {
+  display: flex;
+  justify-content: space-between;
+  margin: var(--pulso-space-3) 0 4px;
+  padding: 0 var(--pulso-space-2);
+}
+
+.acr-cu-sin {
+  margin: 0;
+  padding: 4px var(--pulso-space-2);
+  font-size: var(--pulso-type-body-size);
+}
+
+/* Las variables sin cuota se leen como acción: el + y el texto en el color suave. */
+.acr-cu-publico button.is-libre {
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-body-size);
+}
+
+.acr-cu-publico button.is-libre > svg {
+  flex: 0 0 auto;
+  color: var(--pulso-text-faint);
+}
+
+.acr-cu-publico button.is-libre > .acr-av-tenue {
+  margin-left: auto;
+  white-space: nowrap;
+}
+
+.acr-cu-publico button.is-libre:hover,
+.acr-cu-publico button.is-libre:hover > svg {
+  color: var(--pulso-text);
+}
+
+/* Cabecera de la cuota elegida: el público arriba, la variable como título. */
+.acr-cu-encabezado {
+  display: flex;
+  align-items: center;
+  gap: var(--pulso-space-3);
+}
+
+.acr-cu-nombres {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.acr-av-panel-cabecera h3.acr-cu-encabezado > .acr-av-tenue {
+  align-self: center;
+}
+
+.acr-cu-publico button.is-seguida {
+  color: var(--pulso-text);
+}
+
+.acr-cu-publico button.is-seguida > svg {
+  color: var(--pulso-module-monitoring);
+}
+
+/* Cuota referencial (ADR 0126): su referencia es el peso en el universo. */
+.acr-cu-peso {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--pulso-space-2);
+  align-items: center;
+}

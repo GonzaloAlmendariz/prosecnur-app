@@ -17,6 +17,7 @@ import { ProbarCalculo } from "./ProbarCalculo";
 import { CatalogoFunciones } from "./CatalogoFunciones";
 import { CalculationRecipePanel } from "../canvas/constructor/CalculoRepeticionPaneles";
 
+import { EstadoChip } from "../../../components/EstadoChip";
 // Pestaña Cálculos (revamp 2026-10-16): cada `calculate` del formulario con su fórmula leída
 // en español, de qué respuestas sale y quién lo usa después.
 
@@ -104,7 +105,7 @@ export function PestanaCalculos({ structure, scope: scopeBase, seleccionada, onS
     <PestanaReglas
       titulo="Cálculos"
       marca="calc"
-      total={`${items.length} cálculo${items.length === 1 ? "" : "s"}${enPreguntas ? ` · ${enPreguntas} en preguntas` : ""}`}
+      total={`${items.length} cálculo${items.length === 1 ? "" : "s"}${enPreguntas ? `, ${enPreguntas} en preguntas` : ""}`}
       aviso={focoPerdido}
       grupos={grupos}
       seleccionada={actual?.node.name ?? null}
@@ -119,14 +120,14 @@ export function PestanaCalculos({ structure, scope: scopeBase, seleccionada, onS
           <div className="xfp-encabezado">
             <span className="xfp-encabezado__ruta">
               <TypeIcon baseType={actual.enPregunta ? actual.node.typeInfo.base : "calculate"} boxed /> {actual.enPregunta ? "Pregunta con fórmula" : "Cálculo"}
-              {actual.node.label ? <> · <code className="xfp-codigo">{actual.node.name}</code></> : null}
+              {actual.node.label ? <> (<code className="xfp-codigo">{actual.node.name}</code>)</> : null}
             </span>
             <h2 className="xfp-encabezado__titulo">{actual.node.label ? <EtiquetaLegible texto={actual.node.label} etiquetaDe={etiquetaDe} /> : <code className="xfp-var is-codigo">{actual.node.name}</code>}</h2>
             <span className="xfp-encabezado__accion"><EditarEnConstructor onEditar={() => onEditar(actual.node.rowIndex)} que={`el cálculo ${actual.node.name}`} /></span>
           </div>
           <PanelCard
             title="Fórmula"
-            meta={<span className={`xfp-insignia is-${actual.vacio ? "sin-regla" : lectura?.tecnica ? "sin-traducir" : "vigente"}`}>{actual.vacio ? "vacía" : lectura?.tecnica ? "sin traducir" : "vigente"}</span>}
+            meta={<EstadoChip label={actual.vacio ? "vacía" : lectura?.tecnica ? "sin traducir" : "vigente"} tone={actual.vacio ? "neutral" : lectura?.tecnica ? "warn" : "success"} />}
             footer={actual.vacio ? undefined : (
               <button type="button" className="xfp-boton" aria-expanded={editando} onClick={() => setEditando((v) => !v)}>
                 <Pencil size={13} aria-hidden="true" /> {editando ? "Cerrar el editor" : "Editar la fórmula"}

@@ -223,7 +223,7 @@
 }
 
 .pulso-xlsform-frame .pulso-logic-tree-count {
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   font-weight: var(--pulso-weight-bold);
   color: var(--pulso-text-soft);
   white-space: nowrap;
@@ -247,7 +247,7 @@
   min-width: 0;
   padding: 3px 10px;
   border-radius: 999px;
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
 }
 
 .pulso-xlsform-frame .pulso-logic-tree-main {
@@ -319,7 +319,7 @@
 }
 
 .pulso-xlsform-frame .pulso-logic-samevar-cols span {
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-heavy);
   letter-spacing: 0.4px;
   text-transform: uppercase;
@@ -383,7 +383,7 @@
 
 .pulso-xlsform-frame .pulso-logic-samevar .pulso-logic-valuemode-opt {
   padding: 3px 6px;
-  font-size: 10.5px;
+  font-size: var(--pulso-type-micro-size);
 }
 
 .pulso-xlsform-frame .pulso-logic-samevar .pulso-logic-valueinput-control {
@@ -432,13 +432,13 @@
   border-radius: 50%;
   background: var(--pulso-primary);
   color: var(--pulso-surface);
-  font-size: 10.5px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-heavy);
   line-height: 1;
 }
 
 .pulso-xlsform-frame .pulso-logic-ifstep-label {
-  font-size: 11px;
+  font-size: var(--pulso-type-eyebrow-size);
   font-weight: var(--pulso-weight-heavy);
   letter-spacing: 0.5px;
   text-transform: uppercase;
@@ -480,7 +480,7 @@
 }
 
 .pulso-xlsform-frame .pulso-logic-calc-readout dt {
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-heavy);
   letter-spacing: 0.4px;
   text-transform: uppercase;
@@ -493,13 +493,13 @@
   gap: 6px;
   margin: 0;
   min-width: 0;
-  font-size: 12.5px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-bold);
   color: var(--pulso-text);
 }
 
 .pulso-xlsform-frame .pulso-logic-calc-readout dd small {
-  font-size: 10.5px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-medium);
   color: var(--pulso-text-soft);
   white-space: nowrap;
@@ -507,7 +507,7 @@
 
 .pulso-xlsform-frame .pulso-logic-calc-readout dd code {
   font-family: ui-monospace, monospace;
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   padding: 1px 6px;
   border-radius: 5px;
   background: color-mix(in srgb, var(--pulso-primary) 8%, var(--pulso-surface));
@@ -581,7 +581,7 @@
 
 .pulso-xlsform-frame .pulso-logic-valuemode-opt {
   padding: 3px 7px;
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
 }
 
 .pulso-xlsform-frame .pulso-logic-valueinput-control {
@@ -594,6 +594,6 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   color: var(--pulso-text-soft);
 }

@@ -1,0 +1,59 @@
+/* Territorio · atlas de ciudades (dirección A del paquete por ciudades). */
+.hr-atlas-estructura { display: flex; flex-direction: column; min-height: 0; height: 100%; }
+.hr-atlas-cab { padding: 18px 18px 14px; border-bottom: 1px solid var(--pulso-border); }
+.hr-atlas-cab small { display: block; font-size: var(--pulso-type-micro-size); font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; color: var(--pulso-module-routes); }
+.hr-atlas-cab h2 { margin: 4px 0 2px; font-size: var(--pulso-type-kpi-size); font-weight: 700; letter-spacing: -0.01em; color: var(--pulso-text); }
+.hr-atlas-cab p { margin: 0; font-size: var(--pulso-type-body-size); color: var(--pulso-text-soft); }
+.hr-atlas-lista { flex: 1; min-height: 0; overflow: auto; padding: 4px 10px 16px; }
+.hr-atlas-lista h3 { display: flex; justify-content: space-between; margin: 14px 8px 6px; font-size: var(--pulso-type-micro-size); font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; color: var(--pulso-text-soft); }
+.hr-atlas-lista h3 { gap: 8px; }
+.hr-atlas-lista h3 span { flex: none; white-space: nowrap; letter-spacing: 0; font-variant-numeric: tabular-nums; }
+.hr-atlas-lista ul { list-style: none; margin: 0; padding: 0; }
+.hr-atlas-ciudad { width: 100%; display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 12px; padding: 8px; border: 0; border-radius: 10px; background: none; font: inherit; color: var(--pulso-text); text-align: left; cursor: pointer; }
+.hr-atlas-ciudad:hover { background: var(--pulso-surface-2); }
+.hr-atlas-ciudad[aria-current] { background: var(--pulso-module-routes-soft); }
+.hr-atlas-ciudad:focus-visible { outline: 2px solid var(--pulso-module-routes); outline-offset: -2px; }
+.hr-atlas-ciudad > span { min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.hr-atlas-ciudad strong { font-size: var(--pulso-type-subtitle-size); font-weight: 650; }
+.hr-atlas-ciudad small { font-size: var(--pulso-type-caption-size); color: var(--pulso-text-soft); font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hr-atlas-ciudad em { font-style: normal; font-size: var(--pulso-type-caption-size); font-weight: 600; color: var(--pulso-module-routes); }
+.hr-atlas-ciudad > svg:last-child { color: var(--pulso-text-soft); }
+.hr-atlas-ciudad--otra { grid-template-columns: auto minmax(0, 1fr); padding: 6px 8px; }
+.hr-atlas-ciudad--otra strong { font-weight: 600; }
+
+.hr-atlas-silueta { flex: none; }
+.hr-atlas-silueta path { fill: color-mix(in srgb, var(--pulso-module-routes) 14%, var(--pulso-surface)); stroke: color-mix(in srgb, var(--pulso-module-routes) 60%, var(--pulso-surface)); stroke-width: 0.8; }
+.hr-atlas-silueta[data-en-estudio] path { fill: var(--pulso-module-routes); stroke: color-mix(in srgb, var(--pulso-module-routes) 75%, var(--pulso-text)); }
+
+.hr-atlas-tarjeta { display: flex; flex-direction: column; align-items: center; gap: 14px; }
+.hr-atlas-cifras { width: 100%; display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 0; }
+.hr-atlas-cifras div { display: flex; flex-direction: column; gap: 2px; }
+.hr-atlas-cifras dt { font-size: var(--pulso-type-caption-size); color: var(--pulso-text-soft); }
+.hr-atlas-cifras dd { margin: 0; font-size: var(--pulso-type-title-size); font-weight: 700; font-variant-numeric: tabular-nums; color: var(--pulso-text); }
+.hr-atlas-nota { width: 100%; margin: 0; font-size: var(--pulso-type-body-size); line-height: 1.45; color: var(--pulso-text-soft); }
+.hr-atlas-nota[data-baja] { color: var(--pulso-warn-fg); }
+.hr-atlas-acciones { display: flex; flex-direction: column; gap: 8px; }
+.hr-atlas-pasos { counter-reset: paso; display: flex; flex-direction: column; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.hr-atlas-pasos li { counter-increment: paso; display: flex; align-items: center; gap: 10px; font-size: var(--pulso-type-body-size); font-weight: 600; color: var(--pulso-text); }
+.hr-atlas-pasos li::before { content: counter(paso); display: inline-grid; place-items: center; flex: none; width: 22px; height: 22px; border-radius: 999px; background: var(--pulso-module-routes-soft); color: var(--pulso-module-routes); font-size: var(--pulso-type-micro-size); font-weight: 700; }
+.hr-atlas-guia { margin: 0; font-size: var(--pulso-type-body-size); line-height: 1.5; color: var(--pulso-text-soft); }
+
+.hr-atlas-ciudad-cab { display: flex; flex-direction: column; gap: 10px; padding: 14px 16px 4px; }
+.hr-atlas-ciudad-cab > button { align-self: flex-start; display: inline-flex; align-items: center; gap: 4px; padding: 4px 8px 4px 4px; border: 0; border-radius: 8px; background: none; font: inherit; font-size: var(--pulso-type-subtitle-size); font-weight: 600; color: var(--pulso-module-routes); cursor: pointer; }
+.hr-atlas-ciudad-cab > button:hover { background: var(--pulso-module-routes-soft); }
+.hr-atlas-ciudad-cab > div { display: flex; align-items: center; gap: 10px; }
+.hr-atlas-ciudad-cab span { display: flex; flex-direction: column; }
+.hr-atlas-ciudad-cab small { font-size: var(--pulso-type-micro-size); font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; color: var(--pulso-module-routes); }
+.hr-atlas-ciudad-cab strong { font-size: var(--pulso-type-title-size); font-weight: 700; color: var(--pulso-text); }
+.hr-atlas-punto { display: inline-block; width: 11px; height: 11px; margin: 0 2px 0 8px; border-radius: 50%; vertical-align: -1px; background: color-mix(in srgb, var(--pulso-module-routes) 16%, var(--pulso-surface)); box-shadow: inset 0 0 0 1.4px color-mix(in srgb, var(--pulso-module-routes) 70%, var(--pulso-surface)); }
+.hr-atlas-punto:first-child { margin-left: 0; }
+.hr-atlas-punto[data-en-estudio] { background: var(--pulso-module-routes); box-shadow: none; }
+
+/* Atlas por niveles: volver del departamento o de la ciudad enfocada a todo el Perú. */
+.hr-atlas-volver { all: unset; box-sizing: border-box; display: inline-flex; align-items: center; gap: 4px; margin: 2px 0 6px; padding: 4px 6px; border-radius: 6px; font-size: var(--pulso-type-subtitle-size); font-weight: 600; color: var(--pulso-module-routes); cursor: pointer; }
+.hr-atlas-volver:hover { background: var(--pulso-surface-2); }
+.hr-atlas-volver:focus-visible { outline: 2px solid var(--pulso-module-routes-border); outline-offset: 1px; }
+/* Miga del atlas: cada nivel superior es un botón para volver a él. */
+.hr-miga-nivel { all: unset; cursor: pointer; font-weight: 600; color: var(--pulso-module-routes); }
+.hr-miga-nivel:hover { text-decoration: underline; }
+.hr-miga-nivel:focus-visible { outline: 2px solid var(--pulso-module-routes-border); outline-offset: 1px; border-radius: 3px; }

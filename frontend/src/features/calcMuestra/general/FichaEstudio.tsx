@@ -1,5 +1,9 @@
 import type { CalcMuestraEstudio, CalcMuestraWorkspace } from "../../../api/calcMuestra";
+
+import { Panel } from "../../../components/Panel";
 import { CambiarTipoEstudio } from "./CambiarTipoEstudio";
+import { EnlaceFichaDelEstudio } from "../../estudio/EnlaceFichaDelEstudio";
+import { usePlannerIdentidad } from "../usePlannerIdentidad";
 import "./general.css";
 
 type CampoContexto = "cliente" | "tipo_cliente" | "descripcion_libre";
@@ -14,7 +18,6 @@ export function FichaEstudio({
   variante,
   estudio,
   workspace,
-  onTitulo,
   onContexto,
   onWorkspace,
   onCambiarTipo,
@@ -22,35 +25,36 @@ export function FichaEstudio({
   variante: "general" | "acreditacion";
   estudio: CalcMuestraEstudio;
   workspace: CalcMuestraWorkspace;
-  onTitulo: (titulo: string) => void;
+  /** Ya no se usa: el título lo declara el Planner (ADR 0122). */
+  onTitulo?: (titulo: string) => void;
   onContexto: (campo: CampoContexto, valor: string) => void;
   onWorkspace: (workspace: CalcMuestraWorkspace) => void;
   /** Volver a elegir el tipo de estudio (antes era un atajo en la barra del módulo). */
   onCambiarTipo?: () => void;
 }) {
   const acreditacion = variante === "acreditacion";
+  // Nombre y cliente los declara el Planner; aquí se leen (ADR 0122).
+  const identidad = usePlannerIdentidad();
   return (
-    <section className="cmv2-panel cmv2-basics" aria-labelledby="cmg-ficha-estudio-titulo">
-      <div className="cmv2-panel-head">
-        <div>
-          <span className="cmv2-eyebrow">Ficha del estudio</span>
-          <h3 className="cmg-panel-titulo" id="cmg-ficha-estudio-titulo">{acreditacion ? "Proceso de acreditación" : "Contexto y marco"}</h3>
-        </div>
-        {onCambiarTipo && <CambiarTipoEstudio onCambiarTipo={onCambiarTipo} />}
-      </div>
+    <Panel
+      className="cmv2-basics"
+      aria-labelledby="cmg-ficha-estudio-titulo"
+      title={<span id="cmg-ficha-estudio-titulo">{acreditacion ? "Proceso de acreditación" : "Contexto y marco"}</span>}
+      actions={onCambiarTipo ? <CambiarTipoEstudio onCambiarTipo={onCambiarTipo} /> : undefined}
+    >
       <div className="cmv2-form-grid">
-        <label>
+        <div className="cmg-ficha-identidad">
           <span>Título</span>
-          <input value={estudio.titulo} placeholder="Nombre del estudio o propuesta" onChange={(e) => onTitulo(e.currentTarget.value)} />
-        </label>
-        <label>
+          <b>{identidad?.nombre || "sin título"}</b>
+        </div>
+        <div className="cmg-ficha-identidad">
           <span>{acreditacion ? "Institución" : "Cliente"}</span>
-          <input
-            value={estudio.contexto.cliente}
-            placeholder={acreditacion ? "Universidad o facultad" : "Institución o área solicitante"}
-            onChange={(e) => onContexto("cliente", e.currentTarget.value)}
-          />
-        </label>
+          <b>{identidad?.cliente || "sin declarar"}</b>
+        </div>
+        <p className="cmg-ficha-identidad-nota">
+          Nombre y {acreditacion ? "institución" : "cliente"} se declaran una vez, en la ficha del estudio.{" "}
+          <EnlaceFichaDelEstudio>Editar la ficha</EnlaceFichaDelEstudio>
+        </p>
         <label>
           <span>{acreditacion ? "Fuente de los marcos" : "Fuente del marco"}</span>
           <input
@@ -99,6 +103,6 @@ export function FichaEstudio({
         )}
       </div>
       {acreditacion && <p className="cmg-nota">El marco y la unidad de cada actor se declaran en Actores y Selección.</p>}
-    </section>
+    </Panel>
   );
 }

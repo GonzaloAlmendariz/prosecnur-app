@@ -1,5 +1,7 @@
 import { Check } from "lucide-react";
 
+import "./stage-stepper.css";
+
 export type StageStepperState = "completed" | "current" | "pending";
 
 export type StageStepperItem<K extends string = string> = {
@@ -99,7 +101,8 @@ export function StageStepper<K extends string = string>({
                 </span>
                 <span className="pulso-step-copy">
                   <span className="pulso-step-label">
-                    <span className="pulso-step-number">{index + 1}</span>
+                    {/* El número ya va en el círculo; aquí sólo cuando el círculo muestra un ícono o el check. */}
+                    {(isCompleted || Icon) && <span className="pulso-step-number">{index + 1}</span>}
                     {stage.label}
                   </span>
                   {stage.description && (

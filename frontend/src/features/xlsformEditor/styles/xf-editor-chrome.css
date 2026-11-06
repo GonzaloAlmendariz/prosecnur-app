@@ -70,7 +70,7 @@
   padding-left: 10px;
   border-left: 1px solid var(--pulso-border);
   color: var(--pulso-text-soft);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   white-space: nowrap;
 }
 
@@ -82,7 +82,7 @@
 
 .pulso-xlsform-frame .pulso-xf-cmd-secondary {
   color: var(--pulso-text-muted);
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
 }
 
 .pulso-xlsform-frame .pulso-xf-cmd-state {
@@ -170,7 +170,7 @@
     gap: 3px;
     min-height: 44px;
     padding: 6px 2px;
-    font-size: 10.5px;
+    font-size: var(--pulso-type-micro-size);
   }
 }
 
@@ -219,6 +219,17 @@
 
 /* ── Estado del formulario (U10) ─────────────────────────────────────────── */
 
+/* El panel del Popover del kit sin su relleno: la cabecera y la lista llevan
+ * el suyo, y la lista es la que desplaza. */
+.pulso-popover.pulso-diagnostics-panel {
+  display: flex;
+  flex-direction: column;
+  width: min(420px, calc(100vw - 24px));
+  max-height: min(560px, calc(100vh - 80px));
+  padding: 0;
+  overflow: hidden;
+}
+
 .pulso-diagnostics-popover-step {
   border: 1px solid var(--pulso-warn-border, var(--pulso-border));
   background: var(--pulso-warn-bg, var(--pulso-surface-2));
@@ -229,7 +240,7 @@
   min-height: 26px;
   padding: 3px 12px;
   border-radius: 999px;
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
 }
 
 /* ── Compacto (≤ 1280): rótulos secundarios a nombre accesible ───────────── */
@@ -449,7 +460,7 @@
   border: 1px solid var(--pulso-border);
   border-radius: 10px;
   background: var(--pulso-surface);
-  font-size: 12.5px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .pulso-xlsform-frame .pulso-xf-sm-pendientes-cuerpo {
@@ -506,4 +517,34 @@
   resize: none;
   field-sizing: content;
   max-height: 40vh;
+}
+
+/* ── L17 · D1: la banda es `ModuleCommandBar` ─────────────────────────────
+   El selector de formulario abre su menú dentro de la zona de contexto, y esa
+   zona recorta con `clip` en el canon. Aquí el menú no va en portal, así que la
+   zona deja ver lo que cae fuera; los hijos siguen sin envolver y en compacto
+   las métricas y la procedencia se recogen, que es lo que evita el desborde. */
+.pulso-xlsform-frame .pulso-xf-cmdbar > .pulso-command-bar-zone[data-zone="contexto"] {
+  overflow: visible;
+}
+
+/* El nombre de la pestaña activa del rail, al centro de la banda. */
+.pulso-xlsform-frame .pulso-xf-cmdbar .pulso-xf-cmd-pestana {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  padding: 3px 12px;
+  border-radius: 999px;
+  background: var(--module-accent-soft, var(--pulso-primary-soft));
+  color: var(--module-accent, var(--pulso-primary));
+  font-size: var(--pulso-type-subtitle-size);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* Mismo borde que el workbench de abajo: la clase vieja de la banda traía
+   `margin: 0 12px` y sin ella la barra sobresalía 12 px por cada lado. */
+.pulso-xlsform-frame .pulso-xf-cmdbar.pulso-module-command-bar {
+  margin-inline: 12px;
 }

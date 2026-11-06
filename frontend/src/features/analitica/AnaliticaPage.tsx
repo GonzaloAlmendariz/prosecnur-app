@@ -1,7 +1,10 @@
 import { useEffect, useState } from "react";
+import { TabHeading } from "../../components/TabHeading";
 import { UniversoAnalisis } from "./UniversoAnalisis";
 import { useLocation, useNavigate } from "react-router-dom";
 import { PARAMS_DIRECCION } from "../../lib/navegacion/direccion";
+import { toast } from "../../components/toasterStore";
+import { pestanaPedidaNoDisponible } from "./pestanaNoDisponible";
 import {
   BarChart2,
   Database,
@@ -120,6 +123,22 @@ export default function AnaliticaPage() {
   const activeMeta = reportes.find((r) => r.key === active) ?? reportes[0] ?? REPORTES[0];
   const ActiveIcon = activeMeta.icon;
 
+  // Una dirección que pide una pestaña que este estudio no ofrece (p. ej.
+  // Multibase con una sola base) no aterriza muda en Datos: se corrige la URL
+  // y se dice por qué (L10).
+  const noDisponible = state != null ? pestanaPedidaNoDisponible(raw, REPORTES, reportes) : null;
+  useEffect(() => {
+    if (!noDisponible) return;
+    const params = new URLSearchParams(location.search);
+    params.delete(PARAMS_DIRECCION.pestana);
+    params.delete("reporte");
+    const search = params.toString();
+    navigate({ pathname: location.pathname, search: search ? `?${search}` : "" }, { replace: true });
+    toast.info(`«${noDisponible.label}» no está en este estudio`, {
+      detalle: "Se ofrece cuando el estudio tiene varias bases. Te dejamos en Datos.",
+    });
+  }, [noDisponible, location.pathname, location.search, navigate]);
+
   // Readiness del QA visual a nivel de sección. Analítica solo la declaraba en
   // una pestaña suelta (Orden de categorías), así que cualquier proyecto que
   // aterrizara aquí sin esa pestaña dejaba la ruta sin marca y el recorrido de
@@ -236,21 +255,25 @@ export default function AnaliticaPage() {
             <>
               {/* Sección superior: identidad del reporte (ícono + título + desc)
                   a la izquierda y el control de fuente/plantilla a la derecha.
-                  La identidad vive aquí —no como header interno— y cada pane
+                  La identidad es el TabHeading del kit (L14) —no un header
+                  interno— y cada pane
                   deja su docbar como banda de stats (su -icon/-copy se ocultan
                   vía CSS). El rail sigue siendo el 3er nivel de navegación. */}
-              <header className="pulso-analitica-panel-head">
-                <span aria-hidden="true" className="pulso-analitica-panel-icon">
-                  <ActiveIcon size={17} />
-                </span>
-                <div className="pulso-analitica-panel-copy">
-                  <h2>{activeMeta.label}</h2>
-                  <p>{activeMeta.desc}</p>
-                  {/* Cuántos casos cuentan si Validación declara «Qué caso cuenta». */}
+              <div className="pulso-analitica-panel-head">
+                <TabHeading
+                  eyebrow="Analítica"
+                  titulo={activeMeta.label}
+                  icono={ActiveIcon}
+                  detalle={activeMeta.desc}
+                  pestanaN={reportes.findIndex((r) => r.key === activeMeta.key) + 1 || undefined}
+                  pestanaDe={reportes.length}
+                  control={<AnaliticaHeader prepBusy={prepBusy} prepError={prepError} variant="panel" />}
+                />
+                {/* Cuántos casos cuentan si Validación declara «Qué caso cuenta». */}
+                <div className="pulso-analitica-universo-banda">
                   <UniversoAnalisis />
                 </div>
-                <AnaliticaHeader prepBusy={prepBusy} prepError={prepError} variant="panel" />
-              </header>
+              </div>
 
               {independentSiblings ? <ProcessingReleasePanel activeBase={state?.active_base} /> : null}
 

@@ -13,11 +13,14 @@ import {
 } from "../lib/modules";
 import { ModuleNavigationRuntimeProvider } from "../lib/moduleNavigationRuntime";
 import { ModulePickerHost } from "../features/home/ModulePickerHost";
+import { ConfiguracionHost } from "../features/home/ConfiguracionHost";
+import { FichaDelEstudioHost } from "../features/estudio/FichaDelEstudioHost";
+import { PaletaDeComandosHost } from "../features/home/PaletaDeComandos";
 import { Toaster } from "../components/Toaster";
 import { TonoDePortales } from "../components/TonoDePortales";
 import { usePuenteNavegacion } from "../lib/navegacion/usePuenteNavegacion";
 import ModuleWarmupBoundary, { RouteLoadingFallback } from "./ModuleWarmupBoundary";
-import { GlidingTabList } from "../components/GlidingTabList";
+import { SectionPillbar } from "../components/SectionPillbar";
 import { ModuleCommandBar } from "../components/ModuleCommandBar";
 import { ChromeSlotHost, ModuleChromeSlotsProvider, useHayRanura } from "./ModuleChromeSlots";
 import { MultibaseReportMenu } from "../features/graficos/MultibaseReportMenu";
@@ -92,7 +95,7 @@ const VIEWPORT_PATHS = new Set([
   "/editor-xlsform",
   "/tablero",
   "/calc-muestra",
-  "/bitacora",
+  "/planner",
   "/material-campo",
   "/hojas-ruta",
   "/monitoreo",
@@ -172,68 +175,25 @@ function ProcessingPhaseDock({ items }: { items: NavItem[] }) {
   const activeItem = items.find(
     (item) => location.pathname === item.to || location.pathname.startsWith(`${item.to}/`),
   );
+  // El rail de secciones del kit (L15). Sin numeral: el orden ya se lee de
+  // izquierda a derecha y el chip costaba ~22 px por píldora, que es el ancho
+  // que el rail necesita para caber junto a los indicadores de los lados.
   return (
-    <nav
-      className="pulso-phase-rail pulso-processing-phase-dock"
-      aria-label="Secciones de procesamiento"
-    >
-      <GlidingTabList
-        activeKey={activeItem?.to}
-        mode="nav"
-        className="pulso-phase-pillbar pulso-processing-phase-bar"
-      >
-        <ol className="pulso-phase-pill-list pulso-processing-phase-list">
-          {items.map((it) => (
-            <ProcessingPhaseDockItem key={it.to} it={it} active={activeItem?.to === it.to} />
-          ))}
-        </ol>
-      </GlidingTabList>
-    </nav>
-  );
-}
-
-function ProcessingPhaseDockItem({ it, active }: { it: NavItem; active: boolean }) {
-  const blocked = !!it.blockedReason;
-  return (
-    <li className="pulso-processing-phase-item">
-      <NavLink
-        to={it.to}
-        data-gliding-key={it.to}
-        /* Adopta los estados compartidos de nav-states.css. Lo que cambia al
-         * emitirlo: la sección ACTIVA por fin reacciona al mouse, y el anillo de
-         * foco pasa a ser un `outline` teñido con el acento del módulo en vez de
-         * una sombra azul que el relieve de la píldora activa borraba. */
-        data-nav-item=""
-        data-nav-shape="pill"
-        data-nav-state={active ? "selected" : undefined}
-        aria-current={active ? "page" : undefined}
-        title={it.blockedReason ?? it.faltaReason ?? (it.done ? `${it.label}: sección lista` : `Abrir ${it.label}`)}
-        aria-label={
-          it.blockedReason
-            ? `${it.label}. ${it.blockedReason}`
-            : it.faltaReason
-              ? `${it.label}. ${it.faltaReason}`
-              : `${it.label}. ${it.done ? "Sección lista." : "Abrir sección."}`
-        }
-        className={({ isActive }) => [
-          "pulso-phase-pill",
-          "pulso-processing-phase-link",
-          isActive ? "is-active" : "",
-          it.done ? "is-done" : "",
-          blocked ? "is-blocked" : "",
-        ].filter(Boolean).join(" ")}
-      >
-        <span className="pulso-phase-pill-circle" aria-hidden="true" />
-        <span className="pulso-phase-pill-stack">
-          <span className="pulso-phase-pill-label">
-            {/* Sin numeral: el orden ya se lee de izquierda a derecha y el chip
-                costaba ~22px por píldora, que es el ancho que el rail necesita
-                para caber junto a los indicadores de los lados. */}
-            <span className="pulso-phase-pill-text">{it.label}</span>
-          </span>
-        </span>
-      </NavLink>
-    </li>
+    <SectionPillbar
+      modulo="procesamiento"
+      ariaLabel="Secciones de procesamiento"
+      navClassName="pulso-processing-phase-dock"
+      className="pulso-processing-phase-bar"
+      seccionActiva={activeItem?.to ?? null}
+      items={items.map((it) => ({
+        id: it.to,
+        label: it.label,
+        href: it.to,
+        done: it.done,
+        lockedReason: it.blockedReason ?? undefined,
+        nota: it.faltaReason ?? (it.done ? "Sección lista" : undefined),
+      }))}
+    />
   );
 }
 
@@ -249,13 +209,6 @@ function SessionErrorChip() {
 
 function activeModuleRoute(pathname: string): string {
   if (isProcesamientoRoute(pathname)) return "/procesamiento";
-  // Cronograma y Diseño del estudio se fusionaron en Bitácora.
-  if (
-    pathname === "/plan-trabajo" || pathname.startsWith("/plan-trabajo/") ||
-    pathname === "/diseno-estudio" || pathname.startsWith("/diseno-estudio/")
-  ) {
-    return "/bitacora";
-  }
   const match = MODULE_SWITCHER_ITEMS
     .filter((item) => item.to !== "/")
     .find((item) => pathname === item.to || pathname.startsWith(`${item.to}/`));
@@ -529,7 +482,7 @@ function SiblingWorkbenchSelector({
       <div
         className={`pulso-sibling-switcher ${inRow ? "is-row" : "is-compact"} is-progress-${done}${open ? " is-open" : ""}`}
         aria-label="Base activa"
-        title={`Base activa: ${activeBaseLabel} · ${progressLabel}`}
+        title={`Base activa: ${activeBaseLabel}, ${progressLabel}`}
         data-progress={`${done}/${steps.length}`}
       >
         <div className="pulso-sibling-switcher-top">
@@ -711,6 +664,9 @@ export default function Layout() {
         <div className="pulso-shell">{canvas}</div>
       </ModuleChromeSlotsProvider>
       <ModulePickerHost />
+      <ConfiguracionHost />
+      <FichaDelEstudioHost />
+      <PaletaDeComandosHost />
       {/* Los portales (diálogos, sideovers, popovers) viven fuera del frame del
           módulo: heredan su acento desde lo que esto publica en <body>. */}
       <TonoDePortales modulo={activeModule} />

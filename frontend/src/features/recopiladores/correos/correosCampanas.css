@@ -48,11 +48,11 @@
 .rec-camp-selector-rotulo {
   color: var(--pulso-text-muted);
   flex: none;
-  font-size: 12.5px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .rec-camp-selector-nombre {
-  font-size: 14.5px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-semibold);
   min-width: 0;
   overflow: hidden;
@@ -63,7 +63,7 @@
 .rec-camp-selector-actor {
   color: var(--pulso-text-soft);
   flex: none;
-  font-size: 13px;
+  font-size: var(--pulso-type-body-size);
   white-space: nowrap;
 }
 
@@ -144,7 +144,7 @@
 
 .rec-camp-menu-textos b {
   overflow-wrap: anywhere;
-  font-size: 13.5px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-semibold);
 }
 
@@ -152,7 +152,7 @@
   color: var(--pulso-text-muted);
   display: flex;
   flex-wrap: wrap;
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   gap: 2px var(--pulso-space-2);
   min-width: 0;
 }
@@ -188,7 +188,7 @@
   cursor: pointer;
   display: flex;
   font: inherit;
-  font-size: 13px;
+  font-size: var(--pulso-type-body-size);
   font-weight: var(--pulso-weight-medium);
   gap: var(--pulso-space-2);
   padding: var(--pulso-space-2);
@@ -204,7 +204,7 @@
 .rec-camp-menu-confirmar {
   display: flex;
   flex-direction: column;
-  font-size: 13px;
+  font-size: var(--pulso-type-body-size);
   gap: var(--pulso-space-3);
   line-height: 1.45;
   padding: var(--pulso-space-4);
@@ -266,7 +266,7 @@
 }
 
 .rec-camp-dialogo-titulo {
-  font-size: 17px;
+  font-size: var(--pulso-type-title-size);
   font-weight: var(--pulso-weight-semibold);
   line-height: 1.3;
   margin: 0;
@@ -274,7 +274,7 @@
 
 .rec-camp-dialogo-desc {
   color: var(--pulso-text-soft);
-  font-size: 13px;
+  font-size: var(--pulso-type-body-size);
   line-height: 1.45;
   margin: var(--pulso-space-1) 0 0;
 }
@@ -283,7 +283,7 @@
   display: flex;
   flex: 1 1 auto;
   flex-direction: column;
-  font-size: 13px;
+  font-size: var(--pulso-type-body-size);
   gap: var(--pulso-space-3);
   line-height: 1.45;
   min-height: 0;
@@ -333,7 +333,7 @@
 }
 
 .rec-camp-fila-nombre b {
-  font-size: 14px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-semibold);
 }
 
@@ -341,7 +341,7 @@
   color: var(--pulso-text-soft);
   display: flex;
   flex-wrap: wrap;
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   gap: 2px var(--pulso-space-3);
   min-width: 0;
 }
@@ -390,7 +390,7 @@
   border: 1px solid var(--pulso-success-border);
   border-radius: var(--pulso-radius-chip);
   color: var(--pulso-success-fg);
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   font-weight: var(--pulso-weight-medium);
   line-height: 1.5;
   padding: 0 7px;
@@ -421,7 +421,7 @@
 
 .rec-camp-campo > span {
   color: var(--pulso-text-soft);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   font-weight: var(--pulso-weight-medium);
 }
 
@@ -431,7 +431,7 @@
   border-radius: var(--pulso-radius);
   color: var(--pulso-text);
   font: inherit;
-  font-size: 13.5px;
+  font-size: var(--pulso-type-body-size);
   min-height: 34px;
   padding: 0 var(--pulso-space-3);
 }
@@ -461,7 +461,7 @@
 }
 
 .rec-camp-nueva-titulo {
-  font-size: 13.5px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-semibold);
   margin: 0;
 }
@@ -485,7 +485,7 @@
 
 .rec-camp-origen legend {
   color: var(--pulso-text-soft);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   font-weight: var(--pulso-weight-medium);
   margin-bottom: 3px;
   padding: 0;
@@ -519,13 +519,13 @@
 }
 
 .rec-camp-origen-op b {
-  font-size: 13px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-semibold);
 }
 
 .rec-camp-origen-op small {
   color: var(--pulso-text-muted);
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
 }
 
 .rec-camp-nueva-acciones {
@@ -537,13 +537,13 @@
 
 .rec-camp-nueva-problema {
   color: var(--pulso-danger-fg);
-  font-size: 12.5px;
+  font-size: var(--pulso-type-body-size);
   margin-right: auto;
 }
 
 .rec-camp-nueva-nota {
   color: var(--pulso-warn-fg);
-  font-size: 12.5px;
+  font-size: var(--pulso-type-body-size);
   margin-right: auto;
 }
 
@@ -552,7 +552,7 @@
 .rec-camp-mensaje {
   border: 1px solid var(--pulso-border);
   border-radius: var(--pulso-radius);
-  font-size: 13px;
+  font-size: var(--pulso-type-body-size);
   margin: 0;
   padding: var(--pulso-space-2) var(--pulso-space-3);
 }
@@ -635,11 +635,11 @@
 }
 
 .rec-camp-vacio .pulso-estado-vacio-titulo {
-  font-size: 16px;
+  font-size: var(--pulso-type-title-size);
 }
 
 .rec-camp-vacio .pulso-estado-vacio-descripcion {
-  font-size: 13px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .rec-camp-vacio-opciones {
@@ -678,7 +678,9 @@
 .rec-camp-vacio-op:hover:not(:disabled) {
   border-color: var(--pulso-module-fieldkit-border);
   box-shadow: var(--pulso-shadow-med);
-  transform: translateY(-1px);
+}
+@media (hover: hover) and (pointer: fine) {
+  .rec-camp-vacio-op:hover:not(:disabled) { transform: translateY(var(--mov-hover-lift, -1px)); }
 }
 
 .rec-camp-vacio-op:focus-visible {
@@ -704,13 +706,13 @@
 }
 
 .rec-camp-vacio-op-texto b {
-  font-size: 14px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-semibold);
 }
 
 .rec-camp-vacio-op-texto small {
   color: var(--pulso-text-muted);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
 }
 
 /* Miniatura del correo real: 600 px a 0,3, recortada por abajo. */

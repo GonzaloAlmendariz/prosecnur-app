@@ -13,6 +13,7 @@ import { iconForType } from "../helpers/icons";
 import { stripMarkdown } from "../helpers/markdown";
 import { paletteForType } from "../helpers/paletteForType";
 import { typeLabel } from "../parsing/parseType";
+import { EstadoVacio } from "../../../components/EstadoVacio";
 
 type SectionView = {
   id: string;
@@ -35,15 +36,12 @@ export function QuestionnaireProgressPanel({
 }) {
   if (!structure || structure.outline.length === 0) {
     return (
-      <div className="pulso-questionnaire-empty">
-        <span className="pulso-questionnaire-empty-icon" aria-hidden="true">
-          <Layers3 size={18} />
-        </span>
-        <div>
-          <strong>El cuestionario todavía no tiene preguntas</strong>
-          <p>Agrega una sección o una pregunta para empezar a ver el recorrido completo.</p>
-        </div>
-      </div>
+      <EstadoVacio
+        tamano="normal"
+        icono={<Layers3 size={18} />}
+        titulo="El cuestionario todavía no tiene preguntas"
+        descripcion="Agrega una sección o una pregunta para ver el recorrido completo."
+      />
     );
   }
 
@@ -210,8 +208,8 @@ function SectionCard({
           <strong>{label}</strong>
           <span>
             {kindLabel}
-            {range ? ` · ${range}` : ""}
-            {section.name ? ` · ${section.name}` : ""}
+            {range ? `, ${range}` : ""}
+            {section.name ? `, ${section.name}` : ""}
           </span>
         </span>
         {section.rowIndex != null ? <ChevronRight size={15} color="#9ca3af" /> : null}
@@ -224,10 +222,7 @@ function SectionCard({
       </div>
 
       {questions.length === 0 ? (
-        <div className="pulso-questionnaire-section-empty">
-          <AlertCircle size={14} />
-          Esta sección no tiene preguntas editables.
-        </div>
+        <EstadoVacio icono={<AlertCircle size={14} />} titulo="Esta sección no tiene preguntas editables" />
       ) : (
         <div className="pulso-questionnaire-question-list">
           {questions.map((node, index) => (

@@ -25,11 +25,11 @@ export function cadenaDelN(
     ? [
         "todo el marco",
         Number.isFinite(esperadas) ? `se esperan ${fmtInt(Math.round(esperadas))} completas` : null,
-      ].filter(Boolean).join(" · ")
+      ].filter(Boolean).join(", ")
     : [
         Number.isFinite(tasa) && tasa > 0 ? `÷ respuesta ${fmtPct(tasa)}` : null,
         sobre > 0 ? `+${fmtPct(sobre)} sobremuestra` : null,
-      ].filter(Boolean).join(" · ");
+      ].filter(Boolean).join(", ");
   return [
     {
       id: "N",

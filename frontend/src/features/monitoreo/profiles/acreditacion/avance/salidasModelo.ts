@@ -9,6 +9,7 @@
 import type { MonitoreoAcreditacion, MonitoreoLastSheetsPublication } from "../../../../../api/client";
 import type { AcreditacionAdvanceCard } from "./tarjetasDeAvance";
 import { tieneMeta } from "./avanceModelo";
+import { formatoConteo } from "../../../../../lib/formatoNumero";
 
 export type PublicacionFrenteAlCorte = {
   salida: string;
@@ -53,7 +54,7 @@ export type EstadoDelCierre = {
   puntos: PuntoDelCierre[];
 };
 
-const n = (valor: number) => valor.toLocaleString("es-PE");
+const n = (valor: number) => formatoConteo(valor);
 
 export function estadoDelCierre({
   tarjetas,
@@ -78,7 +79,7 @@ export function estadoDelCierre({
     metasDeclaradas: conMeta.length,
     puntos: [
       { rotulo: "Metas cumplidas", valor: conMeta.length ? `${n(cumplidas)} de ${n(conMeta.length)}` : "Sin metas declaradas", estado: conMeta.length && cumplidas === conMeta.length ? "ok" : "pendiente" },
-      { rotulo: "Casos por resolver", valor: esperan == null ? "Llegan con Control" : n(esperan), estado: esperan === 0 ? "ok" : "pendiente" },
+      { rotulo: "Casos por resolver", valor: esperan == null ? "Contando…" : n(esperan), estado: esperan === 0 ? "ok" : "pendiente" },
       { rotulo: "Sheets del cliente", valor: cliente?.alDia ? "Al día con el corte" : cliente?.fecha ? "Anterior al corte" : "Sin publicar", estado: cliente?.alDia ? "ok" : "pendiente" },
       { rotulo: "Aprobación metodológica", valor: aprobada ? "Aprobada" : "Sin aprobar", estado: aprobada ? "ok" : "pendiente" },
     ],

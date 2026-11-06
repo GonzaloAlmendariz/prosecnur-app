@@ -324,3 +324,10 @@ test_that("agrupadas vertical: el orden pedido sigue a invertir_barras como ante
   expect_identical(niv(FALSE), .oc_edad$etiqueta)
   expect_identical(niv(TRUE), rev(.oc_edad$etiqueta))
 })
+
+test_that("las fichas de una múltiple cuentan sus casos también con dummies separadas por punto (B3_recod.1)", {
+  # CCSS v7.23: la tarjeta mostraba «0» en todas las opciones de agrupaciones porque el conteo sólo buscaba «/» y «_».
+  d <- data.frame(`B3.1` = c(1, 0, 1, 1), `B3.2` = c(0, 0, 1, 0), check.names = FALSE)
+  expect_identical(.goc_frecuencias(d, "B3", c("1", "2"), "select_multiple"), c(3L, 1L))
+  expect_identical(.goc_respondentes(d, "B3", c("1", "2")), 3L)
+})

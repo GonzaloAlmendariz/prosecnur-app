@@ -70,7 +70,7 @@ export function AlumnosPorChTira({
     `mediana ${fmt(p50)}`,
     `media ${fmt(media)}`,
     `escala compartida ${fmt(dominio.low)}–${fmt(dominio.high)}`,
-  ].join(" · ");
+  ].join(", ");
 
   return (
     <div className="cmv2-alumnos-ch-tira">
@@ -95,7 +95,7 @@ export function AlumnosPorChTira({
         {media !== null ? <circle className="cmv2-alumnos-ch-tira-media" cx={x(media)} cy="13" r="3" data-mark="media" /> : null}
       </svg>
       <span className="cmv2-alumnos-ch-tira-cifras">
-        <em>P25</em> {fmt(p25)} · <em>med</em> {fmt(p50)} · <em>x̄</em> {fmt(media)}
+        <em>P25</em> {fmt(p25)}, <em>med</em> {fmt(p50)}, <em>x̄</em> {fmt(media)}
       </span>
     </div>
   );

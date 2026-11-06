@@ -10,6 +10,7 @@ import type {
   OrigenExternoEstado,
   OrigenExternoMotivoVariable,
 } from "../../api/cargaOrigenExterno";
+import { formatoConteo } from "../../lib/formatoNumero";
 
 /** Motivo elegido por variable; vacío = sin elegir (no se declara). */
 export type MotivosBorrador = Record<string, OrigenExternoMotivoVariable | "">;
@@ -135,7 +136,7 @@ export function desgloseVariables(datos: OrigenExterno): MotivoDesglose[] {
 }
 
 export function formatoEntero(n: number | null): string {
-  return n == null ? "—" : n.toLocaleString("es-PE");
+  return n == null ? "—" : formatoConteo(n);
 }
 
 export type TramoOrigen = {
@@ -186,7 +187,7 @@ export function procedenciaScript(datos: OrigenExterno): string {
   const bloque = datos.bloque;
   if (!bloque) return "";
   const partes = [bloque.script, bloque.version ? `versión ${bloque.version}` : ""].filter(Boolean);
-  return partes.join(" · ");
+  return partes.join(", ");
 }
 
 /**

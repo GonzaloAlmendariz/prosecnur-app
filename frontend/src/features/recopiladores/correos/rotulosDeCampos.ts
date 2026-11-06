@@ -14,12 +14,14 @@ export type RotulosDeCampos = {
   campoValido: (key: string) => boolean;
 };
 
-export function rotulosDeCampos(template: Pick<MailTemplate, "fields">): RotulosDeCampos {
+export function rotulosDeCampos(template: Pick<MailTemplate, "fields"> & Partial<Pick<MailTemplate, "constants">>): RotulosDeCampos {
   const declaradas = clavesDeclaradas(template);
-  const rotulo = (key: string) => (key === "nombre" ? "Nombre" : template.fields.find((f) => f.key === key)?.label || rotuloDeClave(key));
+  const constante = (key: string) => (template.constants ?? []).find((c) => c.key === key);
+  const rotulo = (key: string) => (key === "nombre" ? "Nombre"
+    : template.fields.find((f) => f.key === key)?.label || constante(key)?.label || rotuloDeClave(key));
   return {
     rotuloDeCampo: rotulo,
-    ayudaDeCampo: (key: string) => `${rotulo(key)}: cambia con cada persona`,
+    ayudaDeCampo: (key: string) => `${rotulo(key)}: ${constante(key) ? "igual para toda la campaña" : "cambia con cada persona"}`,
     campoValido: (key: string) => declaradas.has(key),
   };
 }

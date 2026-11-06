@@ -3,7 +3,7 @@ import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it } from "vitest";
 
 import type { CollectionPlan, CollectionStatePayload } from "../../api/recopiladores";
-import { paginatePlanUnits, PlanSection, unitRoleLabel } from "./PlanSection";
+import { paginatePlanUnits, PlanSection, planTraeDocente, unitRoleLabel } from "./PlanSection";
 
 function emptyPayload(seedAvailable: boolean): CollectionStatePayload {
   const state = {
@@ -50,7 +50,7 @@ describe("adaptación del plan legacy", () => {
     const markup = renderToStaticMarkup(
       <MemoryRouter><PlanSection payload={emptyPayload(false)} onState={() => undefined} /></MemoryRouter>,
     );
-    expect(markup).not.toContain("Adaptar fuente disponible");
+    expect(markup).not.toContain("Sembrar las unidades");
     expect(markup).toContain("Sin unidades en el plan");
     expect(markup).toContain("Llegan de la selección de la muestra");
   });
@@ -59,8 +59,8 @@ describe("adaptación del plan legacy", () => {
     const markup = renderToStaticMarkup(
       <MemoryRouter><PlanSection payload={emptyPayload(true)} onState={() => undefined} /></MemoryRouter>,
     );
-    expect(markup).toContain("Adaptar fuente disponible");
-    expect(markup).toContain("conserva una selección compatible");
+    expect(markup).toContain("Sembrar las unidades");
+    expect(markup).toContain("selección de cursos-horario lista");
   });
 });
 
@@ -158,7 +158,7 @@ describe("revisión del instrumento en la cabecera del plan", () => {
     const markup = renderToStaticMarkup(
       <MemoryRouter><PlanSection payload={payloadWithPlan(plan)} onState={() => undefined} /></MemoryRouter>,
     );
-    expect(markup).toContain("sin instrumento fijado");
+    expect(markup).toContain("Sin instrumento fijado");
     expect(markup).not.toContain("legacy-instrument-unpinned");
   });
 
@@ -167,6 +167,32 @@ describe("revisión del instrumento en la cabecera del plan", () => {
       <MemoryRouter><PlanSection payload={payloadWithPlan(BASE_PLAN)} onState={() => undefined} /></MemoryRouter>,
     );
     expect(markup).toContain("rev-1");
+  });
+});
+
+describe("la columna Docente (D17, C5)", () => {
+  const render = (plan: CollectionPlan) => renderToStaticMarkup(
+    <MemoryRouter><PlanSection payload={payloadWithPlan(plan)} onState={() => undefined} /></MemoryRouter>,
+  );
+
+  it("un plan sin docentes no pinta la columna ni un «sin docente» por fila", () => {
+    expect(planTraeDocente(BASE_PLAN.units)).toBe(false);
+    const markup = render(BASE_PLAN);
+    expect(markup).not.toContain(">Docente<");
+    expect(markup).not.toContain("sin docente");
+    expect(markup).toContain("rec-plan-tabla--sin-docente");
+  });
+
+  it("basta un docente para que la columna vuelva, con el vacío de los demás dicho", () => {
+    const plan: CollectionPlan = {
+      ...BASE_PLAN,
+      units: [{ ...BASE_PLAN.units[0], dimensions: { teacher: "  " } }, { unit_id: "u5", label: "AUL05", role: "titular", group: "M3", dimensions: { teacher: "ROSA PÉREZ" } }],
+    };
+    expect(planTraeDocente(plan.units)).toBe(true);
+    const markup = render(plan);
+    expect(markup).toContain(">Docente<");
+    expect(markup).toContain("sin docente");
+    expect(markup).not.toContain("rec-plan-tabla--sin-docente");
   });
 });
 

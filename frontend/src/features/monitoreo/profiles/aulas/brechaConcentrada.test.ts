@@ -13,7 +13,7 @@ describe("dónde se concentra lo que falta, por facultad y sexo", () => {
     // sorteo —`facultad / sexo dominante / tramo de tamaño`— y publicaba
     // «mayoría mujeres · 41 alumnos o más» como si fuera un estrato.
     const r = brechaConcentrada([celda("DERECHO", "F", 237)], 12);
-    expect(r.cabeza[0].etiqueta).toBe("DERECHO · Mujeres");
+    expect(r.cabeza[0].etiqueta).toBe("DERECHO, Mujeres");
   });
 
   test("ordena por lo que falta y recorta la cola", () => {
@@ -21,7 +21,7 @@ describe("dónde se concentra lo que falta, por facultad y sexo", () => {
       [celda("A", "M", 10), celda("B", "F", 50), celda("C", "M", 30), celda("D", "F", 5)],
       2,
     );
-    expect(r.cabeza.map((c) => c.etiqueta)).toEqual(["B · Mujeres", "C · Hombres"]);
+    expect(r.cabeza.map((c) => c.etiqueta)).toEqual(["B, Mujeres", "C, Hombres"]);
     expect(r.restantes).toBe(2);
     expect(r.faltaRestante).toBe(15);
     expect(r.faltaTotal).toBe(95);
@@ -33,12 +33,12 @@ describe("dónde se concentra lo que falta, por facultad y sexo", () => {
     // cuotas independientes y compensarlas escondería la que sigue abierta.
     const r = brechaConcentrada([celda("A", "M", 10, 25), celda("B", "F", 40, 10)], 12);
     expect(r.faltaTotal).toBe(30);
-    expect(r.cabeza.map((c) => c.etiqueta)).toEqual(["B · Mujeres"]);
+    expect(r.cabeza.map((c) => c.etiqueta)).toEqual(["B, Mujeres"]);
   });
 
   test("una celda ya cumplida NO entra en una lista de «dónde falta más»", () => {
     const r = brechaConcentrada([celda("A", "M", 10, 10), celda("B", "F", 20)], 12);
-    expect(r.cabeza.map((c) => c.etiqueta)).toEqual(["B · Mujeres"]);
+    expect(r.cabeza.map((c) => c.etiqueta)).toEqual(["B, Mujeres"]);
     expect(r.celdas).toBe(2);
   });
 
@@ -62,7 +62,7 @@ describe("dónde se concentra lo que falta, por facultad y sexo", () => {
 
   test("la celda sin facultad o sin sexo se nombra, no se publica en blanco", () => {
     const r = brechaConcentrada([{ cuota: 7 }], 12);
-    expect(r.cabeza[0].etiqueta).toBe("Sin facultad declarada · Sin sexo declarado");
+    expect(r.cabeza[0].etiqueta).toBe("Sin facultad declarada, Sin sexo declarado");
   });
 
   test("el sexo se traduce desde las formas que usa el motor", () => {

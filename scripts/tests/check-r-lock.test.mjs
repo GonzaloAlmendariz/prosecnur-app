@@ -409,8 +409,11 @@ test('el launcher compara versiones R canónicas y acepta guiones del lock', () 
   // `BalancedSampling`; 18 desde que `colorspace` (2.1-4) entra como `Imports` de
   // `ggwordcloud` (la nube del recetario, ADR 0093). El literal existe para que
   // sumar un paquete con version guionada sea deliberado:
-  // `canonical_package_version` las trata aparte.
-  assert.equal(hyphenVersions.length, 18)
+  // `canonical_package_version` las trata aparte. 22 desde que `survey` entra
+  // como Suggests (el oráculo de los tests de significancia bajo diseño) con su
+  // cierre: `Matrix` (1.7-6), `survival` (3.8-12), `lattice` (0.23-1) y
+  // `numDeriv` (2016.8-1.1).
+  assert.equal(hyphenVersions.length, 22)
 
   const probe = spawnSync(
     'Rscript',
@@ -430,6 +433,6 @@ test('el launcher compara versiones R canónicas y acepta guiones del lock', () 
     { encoding: 'utf8' }
   )
   assert.equal(probe.status, 0, `${probe.stdout}\n${probe.stderr}`)
-  assert.match(probe.stdout, /RAW_MISMATCHES 18/)
+  assert.match(probe.stdout, /RAW_MISMATCHES 22/)
   assert.match(probe.stdout, /CANONICAL_MISMATCHES 0/)
 })

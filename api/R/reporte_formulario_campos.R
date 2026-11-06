@@ -67,6 +67,10 @@
 
 # Clasifica las filas. Devuelve list(rol, control (rotulo del campo de control),
 # especifique (data.frame fila -> origen, codigo), avisos).
+# Grupos que arma el traductor de SurveyMonkey para la plataforma
+# (surveymonkey_traduccion.R): no tienen lugar en el papel (L36 · D-L36-1).
+.FORM_CAMPOS_GRUPOS_PLATAFORMA <- c("survey_monkey_metadata", "survey_monkey_auxiliary", "MetaSM", "AuxSM")
+
 .form_pdf_clasificar <- function(survey, choices_by_list, cabecera_n_cuestionario = TRUE) {
   n <- nrow(survey)
   rol <- rep("otra", n)
@@ -130,7 +134,35 @@
     esp <- rbind(esp, data.frame(fila = i, origen = ant, codigo = at$valor, stringsAsFactors = FALSE))
   }
 
+  # L36 · D-L36-1: los bloques que existen sólo para la plataforma (metadatos y
+  # variables auxiliares que arma el traductor de SurveyMonkey) no se preguntan
+  # en papel. Se omite el grupo entero, con su begin y su end, para que la
+  # estructura del cuestionario quede balanceada.
+  omit_plat <- character(0)
+  pila <- character(0)
+  for (i in seq_len(n)) {
+    t <- tipo[i]
+    if (t %in% c("begin_group", "begin_repeat")) {
+      pila <- c(pila, nombres[i])
+      if (any(pila %in% .FORM_CAMPOS_GRUPOS_PLATAFORMA)) {
+        rol[i] <- "omitida"
+        if (nombres[i] %in% .FORM_CAMPOS_GRUPOS_PLATAFORMA) {
+          omit_plat <- c(omit_plat, .form_pdf_first_nonempty(survey$label[i], nombres[i]))
+        }
+      }
+      next
+    }
+    if (t %in% c("end_group", "end_repeat")) {
+      if (any(pila %in% .FORM_CAMPOS_GRUPOS_PLATAFORMA)) rol[i] <- "omitida"
+      pila <- pila[-length(pila)]
+      next
+    }
+    if (any(pila %in% .FORM_CAMPOS_GRUPOS_PLATAFORMA)) rol[i] <- "omitida"
+  }
+
   avisos <- character(0)
+  if (length(omit_plat)) avisos <- c(avisos, sprintf(
+    "Bloques de la plataforma que no se preguntan en papel (se omiten): %s.", paste(unique(omit_plat), collapse = ", ")))
   if (length(omit_geo)) avisos <- c(avisos, sprintf(
     "Campos de ubicacion que no tienen lugar en el papel (se omiten): %s.", paste(unique(omit_geo), collapse = ", ")))
   if (length(omit_proc)) avisos <- c(avisos, sprintf(

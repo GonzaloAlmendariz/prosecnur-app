@@ -36,7 +36,7 @@ export function PanelFila({ hoja, celda, diagnosticos, onIrAFila, onArreglar }: 
           <p className="xfx-panel__nada">Elige una celda para ver su fila completa.</p>
         )}
       </PanelCard>
-      <PanelCard title="Revisión del archivo" meta={`${errores} errores · ${avisos} avisos`} flush fill>
+      <PanelCard title="Revisión del archivo" meta={`${errores} errores, ${avisos} avisos`} flush fill>
         {diagnosticos.length === 0 ? (
           <p className="xfx-panel__nada">Sin problemas detectados.</p>
         ) : (
@@ -51,7 +51,7 @@ export function PanelFila({ hoja, celda, diagnosticos, onIrAFila, onArreglar }: 
                     <button type="button" className="xfx-diag__fix" onClick={() => onArreglar(d)}>Cambiar por comillas rectas</button>
                   ) : null}
                   {typeof d.rowIndex === "number" ? (
-                    <button type="button" className="xfx-diag__ir" onClick={() => onIrAFila(d.rowIndex!)}>survey · fila {d.rowIndex + 1}</button>
+                    <button type="button" className="xfx-diag__ir" onClick={() => onIrAFila(d.rowIndex!)}>survey, fila {d.rowIndex + 1}</button>
                   ) : null}
                 </span>
               </li>

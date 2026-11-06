@@ -11,13 +11,13 @@
 #  - Un módulo partido en subtemas (dos o más etiquetas con la misma letra, «B. …») sale como una fila propia con el %
 #    de comentarios que tocan cualquiera de sus subtemas (personas, no suma de menciones) y, debajo, sus subtemas en el
 #    orden de los códigos con rótulo corto («B · Recursos de la Facultad»). Todo en el orden de los códigos.
-#  - El subtítulo avisa que los porcentajes suman más de 100 %; la base dice «comentarios con contenido».
+#  - Sin subtítulo de fábrica (Gonzalo, 2026-10-29): si el analista escribe uno, sale el suyo; la base dice «comentarios
+#    con contenido».
 #
 # Se engancha en `.render_barras_agrupadas` y en la base del elemento (reporte_plan_ppt.R) con una sustitución de línea
 # cada uno: el archivo está congelado a crecimiento.
 
 .PLAN_TT_UNIDAD <- "comentarios con contenido"
-.PLAN_TT_SUBTITULO <- "% de comentarios con contenido que toca cada tema (suman más de 100 %)"
 # «B. …» o «B · …»: Confirmar en Codificación deja los subtemas con el punto medio (TXT-23)
 .PLAN_TT_PATRON_LETRA <- "^\\s*([A-Za-z])\\s*(?:\\.|\u00b7)\\s+(.+)$"
 
@@ -32,16 +32,11 @@
 #' @keywords internal
 .plan_tt_texto_de <- function(ctx) ctx$var_requested %||% ctx$var
 
-#' Ajusta los overrides de la lámina cuando la opción está encendida: subtítulo de múltiple con la nota de más de
-#' 100 %, orden de los códigos (el de la tabla) y sin agrupar el resto en «Otros» salvo que el gráfico lo pida
+#' Ajusta los overrides de la lámina cuando la opción está encendida: orden de los códigos (el de la tabla) y sin agrupar el resto en «Otros» salvo que el gráfico lo pida
 #' @keywords internal
 .plan_tt_overrides <- function(overrides) {
   overrides <- overrides %||% list()
   if (is.null(.plan_tt_var(overrides))) return(overrides)
-  if (is.null(overrides$subtitulo)) {
-    overrides <- .ppt_multiple_choice_notice_overrides(overrides)
-    overrides$subtitulo <- .PLAN_TT_SUBTITULO
-  }
   overrides$orden_barras <- "instrumento"
   overrides$invertir_barras <- TRUE
   overrides$orden_categorias_manual <- NULL
@@ -50,15 +45,15 @@
   overrides
 }
 
-#' Encabezado de la lámina nativa (lamina_compositor.R) con la opción encendida: el % es de comentarios con contenido y
-#' suma más de 100 %. `NULL` si no aplica (y el compositor pone el de siempre).
+#' Encabezado de la lámina nativa (lamina_compositor.R) con la opción encendida: el subtítulo que escribió el analista.
+#' `NULL` si no aplica o si no escribió ninguno (el motor no pone uno de fábrica).
 #' @keywords internal
 .plan_tt_encabezado <- function(el) {
   if (!is.list(el) || !identical(el$.element_type %||% "", "barras_agrupadas")) return(NULL)
   ov <- el$overrides %||% list()
   if (is.null(.plan_tt_var(ov))) return(NULL)
   sub <- trimws(as.character(unlist(ov$subtitulo))[1])
-  if (length(sub) && !is.na(sub) && nzchar(sub)) sub else .PLAN_TT_SUBTITULO
+  if (length(sub) && !is.na(sub) && nzchar(sub)) sub else NULL
 }
 
 #' Nombre de un módulo por su letra, desde la etiqueta de su grupo («MÓDULO B. EXPERIENCIA UNIVERSITARIA» →

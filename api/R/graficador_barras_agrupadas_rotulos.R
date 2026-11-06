@@ -102,3 +102,18 @@
   resto <- cab + (if (isTRUE(con_leyenda)) num(h_leyenda) else 0) + (if (isTRUE(con_pie)) num(h_pie) else num(h_reserva)) + num(h_toprow)
   max(0.62, min(0.95, (a - resto) / a))
 }
+
+#' ¿La agrupada de una serie pone sus cifras fuera? Sí, salvo `cifras_dentro = TRUE`; con dos o más series no aplica
+#' @keywords internal
+.agrupadas_una_serie_fuera <- function(n_series, cifras_dentro = NULL) {
+  n <- suppressWarnings(as.integer(n_series)[1])
+  !is.na(n) && n == 1L && !isTRUE(as.logical(unlist(cifras_dentro))[1])
+}
+
+#' Cuerpo (mm, unidad de `geom_text`) de la cifra fuera de la barra en una agrupada de una serie: el de la lámina nativa
+#' (`.lam_barras_geo`): 12 pt, u 11 si algún rótulo pasa de 45 letras
+#' @keywords internal
+.agrupadas_cifra_una_serie_mm <- function(rotulos) {
+  pt <- if (any(nchar(as.character(rotulos)) > 45, na.rm = TRUE)) 11 else 12
+  pt / ggplot2::.pt
+}

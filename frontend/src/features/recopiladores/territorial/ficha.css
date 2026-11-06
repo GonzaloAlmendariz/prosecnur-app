@@ -1,0 +1,81 @@
+/* Territorial › Catálogo › Fichas (revamp v5): escenario con la ficha a la izquierda y
+   panel de acciones a la derecha; el PDF de prueba al pie del panel, en tono secundario. */
+
+.rec-terr-ficha {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  gap: var(--pulso-space-4);
+  align-items: stretch;
+  min-height: 520px;
+}
+@media (max-width: 1100px) {
+  .rec-terr-ficha { grid-template-columns: minmax(0, 1fr); }
+}
+.rec-terr-ficha-escenario {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--pulso-space-2);
+  margin: 0;
+  padding: var(--pulso-space-5);
+  overflow: auto;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-card);
+  background: var(--pulso-surface-3);
+}
+.rec-terr-ficha-escenario img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 4px;
+  background: var(--pulso-surface);
+  box-shadow: var(--pulso-shadow-soft);
+}
+.rec-terr-ficha-escenario figcaption {
+  font-size: var(--pulso-type-body-size);
+  color: var(--pulso-text-faint);
+}
+.rec-terr-ficha-panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-4);
+  padding: var(--pulso-space-4);
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-card);
+  background: var(--pulso-surface);
+}
+.rec-terr-ficha-panel h2 {
+  display: flex;
+  align-items: center;
+  gap: var(--pulso-space-2);
+  margin: 0;
+  font-size: var(--pulso-type-title-size);
+  font-weight: var(--pulso-type-title-weight);
+  color: var(--pulso-text);
+}
+.rec-terr-ficha-acciones {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-2);
+}
+.rec-terr-ficha-acciones > * { justify-content: center; }
+.rec-terr-ficha-prueba {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--pulso-space-2);
+  margin-top: auto;
+  padding: var(--pulso-space-3);
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius);
+  background: var(--pulso-surface-2);
+}
+.rec-terr-ficha-prueba h3 {
+  margin: 0;
+  font-size: var(--pulso-type-body-size);
+  font-weight: 650;
+  color: var(--pulso-text);
+}
+/* En el panel el campo no se estira: las acciones van pegadas al selector de UMP. */
+.rec-terr-ficha-panel .rec-terr-campo { flex: none; min-width: 0; }
+.rec-terr-ficha-prueba .rec-terr-opciones.pulso-gliding-tab-list { width: 100%; }
+.rec-terr-ficha-panel h2 svg { flex: none; color: var(--pulso-module-fieldkit); }

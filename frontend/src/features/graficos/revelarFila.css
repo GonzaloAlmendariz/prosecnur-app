@@ -1,0 +1,18 @@
+/* H10: la fila recién agregada o guardada se marca un momento con el acento del módulo, para que el ojo la encuentre
+   donde quedó. Sin movimiento: un filete fijo mientras dura la marca. */
+@keyframes pulso-fila-recien {
+  from { background-color: var(--module-accent-soft); }
+  to { background-color: transparent; }
+}
+
+[data-recien] {
+  animation: pulso-fila-recien calc(3 * var(--motion-dur-slow)) var(--motion-ease-out);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-recien] {
+    animation: none;
+    outline: 2px solid var(--module-accent-border);
+    outline-offset: 2px;
+  }
+}

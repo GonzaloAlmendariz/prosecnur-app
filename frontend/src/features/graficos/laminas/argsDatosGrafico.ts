@@ -13,7 +13,9 @@
 import type { ArgMetadata } from "../../../api/graficos";
 import { argAplica } from "../argDependencias";
 
-export type ControlDato = "variable" | "variable_opcional" | "variables" | "interruptor" | "numero" | "opciones" | "texto" | "codigos" | "nombres_base";
+export type ControlDato =
+  | "variable" | "variable_opcional" | "variables" | "interruptor" | "numero" | "opciones" | "texto" | "codigos" | "nombres_base"
+  | "partes";
 
 type Valores = Readonly<Record<string, unknown>>;
 
@@ -33,6 +35,8 @@ type Entrada = {
   excepto?: readonly string[];
   /** Condición extra sobre los valores actuales (p. ej. cuántas mediciones tiene la serie). */
   cuando?: (valores: Valores) => boolean;
+  /** Rótulo, ayuda y texto vacío propios de un graficador: el mismo arg se lee distinto ahí (con los valores actuales). */
+  textosEn?: Readonly<Record<string, (valores: Valores) => Pick<Entrada, "rotulo" | "ayuda" | "placeholder">>>;
   /** Guarda propia de un graficador: reemplaza `siActivo` y `cuando` ahí (el mismo arg se activa con otro control). */
   porGraficador?: Readonly<Record<string, Pick<Entrada, "siActivo" | "cuando" | "defecto">>>;
   /**
@@ -52,7 +56,9 @@ export const AYUDA_CEROS = "Las respuestas especiales 90–99 sin casos nunca se
 export const AYUDA_EJE_MIN =
   "0 = automático. Un piso alto acerca las diferencias; si deja fuera un dato, el eje baja solo y la lámina lo avisa.";
 export const AYUDA_TABLA =
-  "Con Líneas y puntos o Barras comparativas, elige “Sí” para ver la tabla; si no cabe al costado va debajo y, si tampoco, se omite con aviso.";
+  "Automática la pone junto al radar y a las líneas y puntos; con Barras comparativas, elige “Sí”. Si no cabe al costado va debajo y, si tampoco, se omite con aviso.";
+// Sin encabezado de fábrica (motor, graficos_radar_tabla.R): vacío queda vacío y el informe avisa.
+export const AYUDA_TABLA_TITULO = "Lo escribe el analista. Vacío, la celda queda vacía y el informe avisa.";
 export const AYUDA_BRECHA = "El primer grupo menos el segundo, restando las cifras ya rotuladas.";
 export const AYUDA_MIN_N = "Con menos casos válidos el distrito va como Sin encuestas y la lámina lo avisa.";
 export const AYUDA_CORTES = "Tres cortes dan cuatro clases. Vacío: 55, 65 y 75.";
@@ -124,6 +130,21 @@ const OTROS_POR_TOP_K = { siActivo: undefined, cuando: conTopK };
 export const tieneVars = (v: Valores) =>
   (Array.isArray(v.vars) && v.vars.length > 0) || (!!v.vars && typeof v.vars === "object" && Object.keys(v.vars as object).length > 0);
 
+/**
+ * Los cortes del mapa de distribución con la escala que el motor usa si quedan vacíos (graficos_mapa_distribucion_plan.R,
+ * `.MAPA_DIST$cortes_conteo`; personas: contrato del 2026-11-03).
+ */
+export function cortesDistribucion(v: Valores): Pick<Entrada, "rotulo" | "ayuda" | "placeholder"> {
+  if (v.medida === "tasa") return { rotulo: "Dónde empieza cada clase (por 10 000)", ayuda: "Desde la segunda clase.", placeholder: "0.5, 1, 2, 3" };
+  const personas = v.unidad === "personas";
+  const placeholder = personas ? "6, 11, 21, 51" : v.area === "peru" ? "3, 6, 11" : "3, 6, 11, 21";
+  return {
+    rotulo: `Dónde empieza cada clase (${personas ? "personas" : "estudiantes"})`,
+    ayuda: "Desde la segunda clase. Ninguna área queda fuera de la escala.",
+    placeholder,
+  };
+}
+
 const LISTA_BLANCA: Record<string, Entrada> = {
   // La pregunta filtro de «Filtro y subpregunta» se elige en su tarjeta, junto con lo que habilita.
   var: { rotulo: "Pregunta", cuando: (v) => !tieneVars(v), excepto: ["p_filtro_subpregunta"] },
@@ -141,11 +162,73 @@ const LISTA_BLANCA: Record<string, Entrada> = {
   },
   unit: { rotulo: "Unidad", soloEn: ["p_mapa_cobertura_territorial"] },
   coverage_mode: { rotulo: "Cobertura", soloEn: ["p_mapa_cobertura_territorial"] },
+  // Mapa de distribución (lámina aprobada por Gonzalo el 2026-11-03; contrato en
+  // docs/qa/contrato-ui-mapas-dependientes-2026-11-03.md). `juntar`, `unidad` y `otra_respuesta` sólo salen cuando el
+  // registro los declara: la tarjeta no promete lo que el motor todavía no dibuja.
+  area: { rotulo: "Mapa", soloEn: ["p_mapa_distribucion"] },
+  juntar: {
+    rotulo: "Juntar con",
+    ayuda: "Suma sus respuestas en el mismo mapa, como el distrito del Callao al de Lima.",
+    soloEn: ["p_mapa_distribucion"],
+  },
+  medida: { rotulo: "Qué se pinta", soloEn: ["p_mapa_distribucion"] },
+  unidad: { rotulo: "Se cuentan", soloEn: ["p_mapa_distribucion"] },
+  otra_respuesta: {
+    rotulo: "Áreas de otra respuesta",
+    ayuda: "Van en gris rayado, porque las cubre otra respuesta de la pregunta filtro.",
+    placeholder: "Lima Metropolitana, Callao, Lima provincias",
+    soloEn: ["p_mapa_distribucion"],
+    // Guardada como grupos con nombre ({"Lima provincias": [...]}) se edita en el plan: el campo de texto la borraría.
+    cuando: (v) => !v.otra_respuesta || Array.isArray(v.otra_respuesta) || typeof v.otra_respuesta === "string",
+  },
+  otra_respuesta_rotulo: {
+    rotulo: "Rótulo en la leyenda",
+    placeholder: "Lima y Callao",
+    soloEn: ["p_mapa_distribucion"],
+    cuando: (v) => Array.isArray(v.otra_respuesta) ? v.otra_respuesta.length > 0 : typeof v.otra_respuesta === "string" && v.otra_respuesta.trim() !== "",
+  },
+  encuadre: { rotulo: "Encuadre", soloEn: ["p_mapa_distribucion"] },
+  puntos: { rotulo: "Puntos de referencia", control: "texto", placeholder: "PUCP | -12.0693, -77.0794", soloEn: ["p_mapa_distribucion"] },
   // G12 (2026-10-13): en multiapiladas el grupo se elige dentro de su modo («Una pregunta por grupos»…); un «Dividir por»
   // suelto en la tarjeta era un segundo camino a lo mismo.
   cruces: { rotulo: "Dividir por", ayuda: "Sin dividir, el gráfico muestra una sola serie.", excepto: ["p_barras_multiapiladas"] },
   // G17: en la brecha el cruce, los grupos y el corte se eligen en su propia tarjeta (BrechaEntreGrupos).
-  cruce: { rotulo: "Dividir por", ayuda: "Sin dividir, el gráfico muestra una sola serie.", excepto: ["p_barras_multiapiladas", "p_dumbbell"] },
+  // En «Total y línea por nivel» el cruce no divide: es el eje, con un punto por nivel (registro: «Niveles del eje»).
+  cruce: {
+    rotulo: "Dividir por", ayuda: "Sin dividir, el gráfico muestra una sola serie.", excepto: ["p_barras_multiapiladas", "p_dumbbell"],
+    textosEn: { p_lineas_nivel: () => ({ rotulo: "Niveles del eje", ayuda: "Un punto por nivel, de menor a mayor." }) },
+  },
+  // U5 del checklist del mazo (2026-11-05): los textos y los niveles de la línea por nivel se escribían a mano en el plan.
+  // Formales de p_lineas_nivel (graficos_lineas_nivel.R) y declarados en el registro (graficos_metadata.R). El texto vacío
+  // dice lo que el motor escribe sin valor: «Total», «casos», «nivel» y, sobre las líneas, nada.
+  grupos: { rotulo: "Niveles que se muestran", soloEn: ["p_lineas_nivel"] },
+  titulo_seccion: {
+    rotulo: "Título de las líneas", control: "texto", soloEn: ["p_lineas_nivel"], placeholder: "Sin título", ayuda: "P. ej. «Según nivel curricular».",
+  },
+  publico: {
+    rotulo: "Cómo se nombran los casos", control: "texto", soloEn: ["p_lineas_nivel"], placeholder: "casos",
+    ayuda: "Va bajo cada nivel con su número: «estudiantes» escribe «119 estudiantes».",
+  },
+  nombre_nivel: {
+    rotulo: "Qué crece", control: "texto", soloEn: ["p_lineas_nivel"], placeholder: "nivel",
+    ayuda: "La palabra del aviso de cada línea: «Crece con el nivel».",
+  },
+  // Gonzalo (revisión del PPT v7.11, lámina 45): la nota en gris bajo la línea por nivel se escribía a mano en el plan.
+  lectura: {
+    rotulo: "Lectura", control: "texto", soloEn: ["p_lineas_nivel"],
+    ayuda: "Una o dos frases en gris junto al gráfico. Vacío, no se muestra.",
+    placeholder: "La diferencia por nivel se mantiene al comparar estudiantes de la misma edad.",
+  },
+  // Gonzalo (2026-11-04): las líneas y las partes de la franja del total se escribían a mano en el plan. Filas
+  // { rotulo, codigos } sobre las respuestas de la pregunta (PartesLineas.tsx); `y` y `color` se conservan sin editarse.
+  series: { rotulo: "Líneas", ayuda: "Hasta tres.", soloEn: ["p_lineas_nivel"] },
+  total_arriba: { rotulo: "Total arriba", ayuda: "La franja con el total de la pregunta.", soloEn: ["p_lineas_nivel"] },
+  rotulo_total: {
+    rotulo: "Título del total", control: "texto", soloEn: ["p_lineas_nivel"], siActivo: "total_arriba", placeholder: "Total",
+  },
+  segmentos_total: {
+    rotulo: "Partes del total", ayuda: "Vacío, la franja se arma sola.", soloEn: ["p_lineas_nivel"], siActivo: "total_arriba",
+  },
   corte: { rotulo: "Corte", excepto: ["p_dumbbell", "p_significancia_publicos"] },
   corte_etiqueta: { rotulo: "Rótulo del corte" },
   // C44: el radar «entre públicos» rotula cada columna de su tabla con el nombre técnico de la base.
@@ -160,7 +243,7 @@ const LISTA_BLANCA: Record<string, Entrada> = {
   eje_pocos_min: { rotulo: "Desde (%)", estricto: true, soloEn: ["p_radar"], cuando: (v) => v.modo === "publicos" },
   eje_pocos_max: { rotulo: "Hasta (%)", estricto: true, soloEn: ["p_radar"], cuando: (v) => v.modo === "publicos" },
   tabla: { rotulo: "Tabla de datos", ayuda: AYUDA_TABLA, estricto: true, soloEn: ["p_radar"] },
-  tabla_titulo: { rotulo: "Encabezado de la primera columna", ayuda: "Vacío: Tema.", estricto: true, soloEn: ["p_radar"] },
+  tabla_titulo: { rotulo: "Encabezado de la primera columna", ayuda: AYUDA_TABLA_TITULO, estricto: true, soloEn: ["p_radar"] },
   eje_min: { rotulo: "El eje arranca en (%)", ayuda: AYUDA_EJE_MIN, estricto: true, soloEn: ["p_radar"] },
   objetivo: { rotulo: "Objetivo" },
   metrica: { rotulo: "Métrica" },
@@ -229,7 +312,21 @@ const LISTA_BLANCA: Record<string, Entrada> = {
   // G15 (Gonzalo, 2026-10-13): el reparto de ancho por lámina, en tres pasos. Lo dibuja la lámina que compara públicos.
   // Sólo donde hace algo: la lámina que compara públicos (Gonzalo, 2026-10-13: «que sus opciones tengan sentido»).
   ancho_tema: { rotulo: "Ancho de los temas", soloEn: ["p_barras_multiapiladas"], cuando: comparaPublicos },
-  excluir_opciones: { rotulo: "Excluir respuestas", ayuda: "Escribe los códigos separados por comas, por ejemplo 88, 99." },
+  // v7.25, ítem 4 (Gonzalo: «la etiqueta arriba de la barra ¿es configurable?»): formal de p_barras_multiapiladas() que el
+  // constructor pasa a `overrides` (reporte_plan_slides.R). La lámina sólo lo aplica a una batería sin públicos ni grupos
+  // dentro del tema (`.lam_escala_arriba_aplica`, lamina_escala_premisa_arriba.R): ahí el enunciado va siempre a la izquierda.
+  premisa_posicion: {
+    rotulo: "Enunciado de cada barra",
+    ayuda: "Encima, la barra usa todo el ancho. Automático lo pone encima sólo cuando la lámina lleva tarjetas de diferencias.",
+    soloEn: ["p_barras_multiapiladas"],
+    cuando: (v) => !comparaPublicos(v) && v.modo !== "var_cruce",
+  },
+  excluir_opciones: {
+    rotulo: "Excluir respuestas",
+    ayuda: "Escribe los códigos separados por comas, por ejemplo 88, 99.",
+    // En el mapa no es un ajuste de categorías: define a quién retrata (nacidos fuera de Lima Metropolitana y el Callao).
+    textosEn: { p_mapa_distribucion: () => ({ rotulo: "Quitar del mapa", ayuda: "Salen del mapa y de su base." }) },
+  },
   // Histograma por grupos: la tarjeta no tenía dónde elegir la pregunta que divide, y «Excluir grupos» pedía elegirla
   // (pasada final 2026-10-15). Sin grupo elegido no hay grupos que excluir.
   // `grupo` salió de RETIRADOS: el histograma por grupos tiene su dibujo (c440f928b) y es el único que lo declara.
@@ -239,7 +336,8 @@ const LISTA_BLANCA: Record<string, Entrada> = {
   // `top_n` y `sm_omit_codes` siguen sin control: recortan antes del denominador (C40, D1).
   sm_omit_na: { rotulo: "Omitir sin respuesta", soloEn: TABLA, defecto: true },
   umbral_rojo_pct: { rotulo: "Resaltar en rojo bajo (%)", ayuda: "0 desactiva el resaltado.", soloEn: TABLA },
-  mostrar_significancia: { rotulo: "Marcar diferencias significativas" },
+  // `mostrar_significancia` y `significancia_alpha` salen de la lista: los lleva la sección «Diferencias entre grupos»
+  // (diferencias/DiferenciasInspector.tsx; ADR 0128). El nivel ya no es de cada lámina sino de la regla del estudio.
   // Pregunta filtro y subpregunta (recetario p192–p194): las preguntas y lo que habilita van en su tarjeta.
   grafico_sub: { rotulo: "Gráfico de la subpregunta", soloEn: ["p_filtro_subpregunta"] },
   disposicion: { rotulo: "Disposición", soloEn: ["p_filtro_subpregunta"], cuando: (v) => v.grafico_filtro !== "torta" && v.grafico_filtro !== "dona" },
@@ -247,7 +345,6 @@ const LISTA_BLANCA: Record<string, Entrada> = {
   alpha: { rotulo: "Nivel de significancia", soloEn: ["p_significancia_publicos"] },
   // Inventario de configuraciones, ítem 3 (recetario p74–p75): formal de p_barras_agrupadas() → overrides.
   marcas_eje: { rotulo: "Marcas del eje", ayuda: "0, 25, 50, 75 y 100 % bajo las barras.", soloEn: ["p_barras_agrupadas"] },
-  significancia_alpha: { rotulo: "Nivel de significancia", siActivo: "mostrar_significancia" },
   mostrar_brecha: { rotulo: "Mostrar la brecha", ayuda: AYUDA_BRECHA, soloEn: ["p_dumbbell"] },
   // Formal de p_dumbbell (e93c51d): sólo se escribe junto a la brecha, así que sin brecha no hay qué rotular.
   etiqueta_brecha: { rotulo: "Unidad de la brecha", placeholder: "pts", siActivo: "mostrar_brecha", soloEn: ["p_dumbbell"] },
@@ -280,9 +377,27 @@ const LISTA_BLANCA: Record<string, Entrada> = {
     cuando: serieEnMarco,
   },
   min_n: { rotulo: "Casos mínimos por distrito", ayuda: AYUDA_MIN_N, soloEn: ["p_mapa_resultado_distrital"] },
-  cortes: { rotulo: "Cortes de las clases (%)", ayuda: AYUDA_CORTES, placeholder: "55, 65, 75", soloEn: ["p_mapa_resultado_distrital"] },
+  cortes: {
+    rotulo: "Cortes de las clases (%)", ayuda: AYUDA_CORTES, placeholder: "55, 65, 75", soloEn: ["p_mapa_resultado_distrital", "p_mapa_distribucion"],
+    // En el mapa de distribución las clases se cuentan en estudiantes o personas, no en %: la ayuda anterior decía «55, 65 y 75».
+    textosEn: { p_mapa_distribucion: cortesDistribucion },
+  },
   // I-c: en la serie temporal los decimales son decisión del informe (Estilo del informe › Cálculos); sólo el radar.
   valores_decimales: { rotulo: "Decimales", soloEn: ["p_radar"] },
+  // U6 (checklist de mandos del mazo, 2026-11-05): `via_overrides` en el registro. La tarjeta los escribe en espejo en
+  // `args` y `overrides` (mandosPorOverrides.ts, desde `updateSlotArgs`); el motor los lee de `overrides`.
+  pista_barras: {
+    rotulo: "Pista gris hasta el 100%", ayuda: "Automática: en toda barra de una serie.",
+    soloEn: ["p_barras_agrupadas", "p_barras_categoricas"],
+  },
+  colorear_por_opcion: {
+    rotulo: "Un color por opción", ayuda: "Con una sola serie, cada barra con el color de su respuesta.", soloEn: ["p_barras_agrupadas"],
+  },
+  marca_mediana: { rotulo: "Marca de la mediana", soloEn: ["p_histograma"] },
+  // U10 (2026-11-05): la lámina nativa lo lee (graficador_histograma_recetario.R); viaja en espejo como los de U6.
+  // `ancho_bin` y `mostrar_bins_vacios` siguen en RETIRADOS: con un ancho declarado el histograma deja la lámina nativa y
+  // sale como imagen (`.histograma_recetario_aplica`), y los intervalos vacíos sólo existen en esa ruta.
+  mostrar_frecuencia: { rotulo: "Casos junto al %", ayuda: "Bajo cada porcentaje, cuántos casos son.", soloEn: ["p_histograma"] },
 };
 
 /**
@@ -329,6 +444,7 @@ const CONTROL_POR_TIPO: Partial<Record<ArgMetadata["tipo_input"], ControlDato>> 
   string: "texto",
   codigos_list: "codigos",
   base_labels: "nombres_base",
+  partes: "partes",
 };
 
 export type CampoDato = {
@@ -380,12 +496,29 @@ export function camposDeDatos(args: readonly ArgMetadata[], valores: Valores, gr
     const retiradas = e.opcionesRetiradas ?? {};
     const opciones = (arg.choices ?? []).filter((o) => !Object.hasOwn(retiradas, o.value) || o.value === guardado);
     const aviso = typeof guardado === "string" && Object.hasOwn(retiradas, guardado) ? retiradas[guardado] : null;
+    const t = { ...e, ...((graficador && e.textosEn?.[graficador]?.(valores)) || {}) };
     salida.push({
-      arg: conDefecto, rotulo: e.rotulo, ayuda: e.ayuda ?? null, detalle: arg.descripcion ?? "", control,
-      placeholder: e.placeholder ?? null, opciones, aviso,
+      arg: conDefecto, rotulo: t.rotulo, ayuda: t.ayuda ?? null, detalle: arg.descripcion ?? "", control,
+      placeholder: t.placeholder ?? null, opciones, aviso,
     });
   }
   return salida;
+}
+
+/**
+ * H2 (checklist de usabilidad, 2026-11-05): mandos de opciones cuya ayuda describe la opción ELEGIDA con el `hint` del
+ * registro («Nunca: la barra sola, sin pista»), no siempre la de por defecto. Sin `hint` para esa opción, la ayuda fija.
+ */
+const AYUDA_DE_LA_OPCION: ReadonlySet<string> = new Set(["pista_barras"]);
+
+/** La ayuda que va junto al control con el valor que rige (`valor`, o el `default` del registro si no hay). */
+export function ayudaDeLaOpcion(campo: Pick<CampoDato, "arg" | "ayuda" | "opciones">, valor: unknown): string | null {
+  if (!AYUDA_DE_LA_OPCION.has(campo.arg.name)) return campo.ayuda;
+  const elegida = typeof valor === "string" && valor !== "" ? valor : campo.arg.default;
+  const op = campo.opciones.find((o) => o.value === elegida);
+  const hint = op?.hint?.trim();
+  if (!op || !hint) return campo.ayuda;
+  return `${op.label}: ${hint.charAt(0).toLowerCase()}${hint.slice(1)}`;
 }
 
 /** El `depende` del arg se cumple con un valor ya elegido (sin `depende`, siempre). */
@@ -433,4 +566,75 @@ export function conEtiquetaCorta(args: Readonly<Record<string, unknown>>, variab
   if (Object.keys(mapa).length) overrides.etiquetas_vars = mapa;
   else delete overrides.etiquetas_vars;
   return overrides;
+}
+
+/** Tope de líneas de «Línea por nivel» (`.LINEAS_NIVEL_MAX_SERIES`, api/R/graficos_lineas_nivel.R). */
+export const MAX_LINEAS_NIVEL = 3;
+
+/**
+ * Una fila de `series` o `segmentos_total`. `resto` guarda lo que la tarjeta no edita (`y`, `color` y cualquier otra
+ * clave) tal como llegó: editar el rótulo o las respuestas no lo toca.
+ */
+export type FilaParte = { clave: string; rotulo: string; codigos: string[]; resto: Readonly<Record<string, unknown>> };
+
+const codigosDeParte = (v: unknown): string[] =>
+  typeof v === "number" ? [String(v)] : textoACodigos(codigosATexto(v));
+
+/** Lo guardado (lista, una parte suelta sin envolver o nada) como filas; lo que no es objeto no es una parte. */
+export function partesAFilas(valor: unknown): FilaParte[] {
+  if (!valor || typeof valor !== "object") return [];
+  const suelta = !Array.isArray(valor) && ("rotulo" in valor || "codigos" in valor);
+  const lista: unknown[] = Array.isArray(valor) ? valor : suelta ? [valor] : [];
+  return lista.flatMap((p, i) => {
+    if (!p || typeof p !== "object" || Array.isArray(p)) return [];
+    const { rotulo, codigos, ...resto } = p as Record<string, unknown>;
+    return [{ clave: `p${i}`, rotulo: typeof rotulo === "string" ? rotulo : rotulo == null ? "" : String(rotulo), codigos: codigosDeParte(codigos), resto }];
+  });
+}
+
+/** El motor rechaza una parte sin rótulo o sin respuestas: esa fila se muestra, pero no se guarda. */
+export function filaCompleta(f: Pick<FilaParte, "rotulo" | "codigos">): boolean {
+  return f.rotulo.trim() !== "" && f.codigos.length > 0;
+}
+
+/** Fuera del tope de líneas: el motor rechazaría la lista entera. */
+const fueraDelTope = (arg: string, indice: number) => arg === "series" && indice >= MAX_LINEAS_NIVEL;
+
+/**
+ * Lo que se guarda: sólo las filas que el motor acepta, con lo que la tarjeta no edita intacto. Sin ninguna, las partes
+ * del total van como `null` (la franja se arma sola); las líneas, como lista vacía.
+ */
+export function filasAPartes(filas: readonly FilaParte[], arg: string): Record<string, unknown>[] | null {
+  const partes = filas
+    .filter((f, i) => filaCompleta(f) && !fueraDelTope(arg, i))
+    .map((f) => ({ rotulo: f.rotulo.trim(), codigos: [...f.codigos], ...f.resto }));
+  return partes.length ? partes : arg === "segmentos_total" ? null : [];
+}
+
+/** El aviso discreto de una fila que no se guarda (o `null` si se guarda). */
+export function avisoParte(f: Pick<FilaParte, "rotulo" | "codigos">, indice: number, arg: string): string | null {
+  if (fueraDelTope(arg, indice)) return "Hasta tres líneas: esta no sale.";
+  const sinRotulo = f.rotulo.trim() === "";
+  const sinCodigos = f.codigos.length === 0;
+  if (sinRotulo && sinCodigos) return "Falta el rótulo y las respuestas: no sale.";
+  if (sinRotulo) return "Falta el rótulo: no sale.";
+  if (sinCodigos) return "Elige al menos una respuesta: no sale.";
+  return null;
+}
+
+/** Lo que la fila trae y la tarjeta no edita, dicho en una línea de solo lectura. */
+export function notaParte(f: Pick<FilaParte, "resto">): string | null {
+  const notas: string[] = [];
+  const y = f.resto.y;
+  if (y && typeof y === "object" && !Array.isArray(y)) {
+    const v = (y as Record<string, unknown>).var;
+    notas.push(`Suma una segunda pregunta: ${typeof v === "string" && v.trim() ? v.trim() : "sin nombre"}.`);
+  }
+  if (typeof f.resto.color === "string" && f.resto.color.trim()) notas.push(`Color: ${f.resto.color.trim()}.`);
+  return notas.length ? notas.join(" ") : null;
+}
+
+/** ¿Lo guardado y el borrador de la tarjeta dicen lo mismo al motor? Si no, cambió afuera (deshacer, el plan). */
+export function mismasPartes(valor: unknown, filas: readonly FilaParte[], arg: string): boolean {
+  return JSON.stringify(filasAPartes(partesAFilas(valor), arg)) === JSON.stringify(filasAPartes(filas, arg));
 }

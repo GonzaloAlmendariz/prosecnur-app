@@ -36,9 +36,15 @@ describe("gate de salidas", () => {
   it("los cuatro perfiles construyen el corte en vez de pasar n_rows a las salidas", () => {
     // Solo se inspecciona el bloque JSX del panel de salidas: la banda superior
     // del módulo sí muestra el conteo del snapshot, y con ese rótulo es correcto.
+    // Con el estándar de Salidas (4 nov 2026) las props del motor viajan en un objeto `motor` que se esparce
+    // (`{...motor}`): en ese caso lo que se inspecciona es ese objeto.
     const bloqueSalidas = (fuente: string) => {
       const inicio = fuente.search(/<(MonitoreoOutputsWorkbench|TerritorialOutputsPanel)\b/);
-      return inicio === -1 ? "" : fuente.slice(inicio, fuente.indexOf("/>", inicio) + 2);
+      if (inicio === -1) return "";
+      const jsx = fuente.slice(inicio, fuente.indexOf("/>", inicio) + 2);
+      if (!/\{\.\.\.motor\}/.test(jsx)) return jsx;
+      const objeto = fuente.lastIndexOf("const motor = {", inicio);
+      return objeto === -1 ? jsx : fuente.slice(objeto, fuente.indexOf("};", objeto) + 2).replace(/\bcorte: /, "corte={");
     };
 
     for (const [nombre, fuente] of [

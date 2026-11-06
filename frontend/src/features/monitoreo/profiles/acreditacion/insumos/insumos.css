@@ -31,6 +31,8 @@
   color: var(--pulso-text);
   font: inherit;
   font-weight: var(--pulso-weight-bold);
+  box-shadow: none; /* sin la sombra del button global */
+  transform: none;
 }
 
 .acr-in-nombre:hover,
@@ -50,7 +52,7 @@
 
 .acr-pub-tabla th .pulso-alert {
   margin-top: 6px;
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   font-weight: var(--pulso-weight-regular);
 }
 
@@ -83,7 +85,7 @@
   width: 100%;
   border-collapse: separate;
   border-spacing: 8px 6px;
-  font-size: 12.5px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .acr-in-matriz th {
@@ -115,8 +117,12 @@
   background: transparent;
 }
 
+/* Alto natural con tope en la columna (K1, Gonzalo 30/10): estirada al alto de la
+ * vista dejaba media tarjeta en blanco bajo el padrón. Como en Telefónico › Estados. */
 .acr-in-panel {
-  overflow: hidden;
+  align-self: start;
+  max-height: 100%;
+  overflow: hidden auto;
 }
 
 .acr-in-llave,
@@ -195,7 +201,7 @@
 }
 
 .acr-in-fuente-nombre small {
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   font-weight: var(--pulso-weight-regular);
 }
 
@@ -259,7 +265,8 @@
   box-shadow: var(--pulso-shadow-soft);
 }
 
-.is-acreditacion-profile .acr-in-barra .mon-acr-source-status-strip {
+.is-acreditacion-profile .acr-in-barra .mon-acr-source-status-strip,
+.is-acreditacion-profile .acr-vista-anterior .mon-acr-source-status-strip {
   padding: 0;
   border: 0;
   background: transparent;
@@ -275,6 +282,31 @@
 .acr-in-barra > :last-child {
   flex: 1 1 auto;
   min-width: 0;
+}
+
+/* Dos filas, como Recopiladores (Gonzalo, 30/10: el botón cambiaba de lugar
+ * entre las dos sub-vistas): arriba el rótulo, debajo el selector; abajo los
+ * chips y «Conectar fuente» al borde derecho. */
+.acr-in-barra > .acr-enc-barra {
+  flex: 1 1 100%;
+  flex-wrap: wrap;
+  justify-content: flex-start;
+  gap: 6px var(--pulso-space-3);
+}
+
+/* Como en el resto del perfil: el selector en su fila, bajo el rótulo. */
+.acr-in-barra > .acr-enc-barra > .acr-enc-rotulo {
+  flex: 1 1 100%;
+}
+
+.acr-in-barra > .mon-acr-source-status-strip {
+  flex: 1 1 100%;
+}
+
+/* «Conectar fuente» anclado al borde derecho: iba pegado a los chips, que cambian
+ * entre Fuentes y Recopiladores, y el botón saltaba de lugar (Gonzalo, 30/10). */
+.is-acreditacion-profile .mon-acr-source-status-strip > .pulso-button {
+  margin-left: auto;
 }
 
 /* Tarjetas de pocas filas: alto natural, sin vacío abajo. */
@@ -297,4 +329,47 @@
 .acr-ps.is-publicos .acr-pub-tabla tbody td:nth-child(2) {
   min-width: 160px;
   white-space: normal;
+}
+
+/* Servicio, papel y estado de la fuente como etiquetas separadas, sin «·». */
+.acr-in-fuente-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.acr-in-fuente-meta small {
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: var(--pulso-surface-3);
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+  line-height: 1.5;
+}
+
+.acr-in-fuente-meta small.is-apagada {
+  background: color-mix(in srgb, var(--pulso-warn-fg) 12%, var(--pulso-surface));
+  color: var(--pulso-warn-fg);
+}
+
+/* Públicos › columna Padrón: el servicio como etiqueta y, si hace falta, el nombre. */
+.acr-in-padrones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.acr-in-padron {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.acr-in-servicio {
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: var(--pulso-surface-3);
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+  line-height: 1.5;
 }

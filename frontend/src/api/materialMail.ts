@@ -24,7 +24,7 @@
 // Plataforma, envíos e importación (E1j·E1k·E1l):
 //   - cada campaña sale para Mailchimp o SurveyMonkey (`platform`); pasar a
 //     SurveyMonkey olvida sus destinatarios (`recipients_purged`);
-//   - una campaña tiene de 1 a 6 envíos (`sends`): la invitación y sus
+//   - una campaña tiene de 1 a 10 envíos (`sends`): la invitación y sus
 //     recordatorios, con asunto, preheader y apertura propios. PUT
 //     mail-template guarda plantilla y envíos juntos; preview, review y export
 //     aceptan `send_id` (o `send`, un borrador);
@@ -152,6 +152,8 @@ export type MailImageBlock = {
   crop?: MailCrop;
   /** Otra imagen para el celular (L12): bajo 480 px reemplaza a la de PC. */
   mobile_ref?: string;
+  /** Quita los márgenes blancos o transparentes del archivo (el render deriva el ajustado). */
+  image_trim?: boolean;
 };
 
 // ---- piezas gráficas (E1o) -------------------------------------------------------
@@ -189,8 +191,10 @@ export const MAIL_FEATURE_ALIGNS = ["left", "center"] as const;
 export type MailFeatureAlign = (typeof MAIL_FEATURE_ALIGNS)[number];
 export const MAIL_FEATURE_BUTTON_SIZES = ["normal", "grande"] as const;
 export type MailFeatureButtonSize = (typeof MAIL_FEATURE_BUTTON_SIZES)[number];
+export const MAIL_FEATURE_IMAGE_SIZES = ["completa", "tres_cuartos", "mitad"] as const;
+export type MailFeatureImageSize = (typeof MAIL_FEATURE_IMAGE_SIZES)[number];
 /** Recorte de la foto (`collection_mail_recorte.R`): proporción cerrada, centro 0–1, zoom 1–3. */
-export const MAIL_CROP_RATIOS = ["original", "1:1", "4:3", "2:1", "16:9"] as const;
+export const MAIL_CROP_RATIOS = ["original", "1:1", "4:3", "2:1", "16:9", "3:1"] as const;
 export type MailCropRatio = (typeof MAIL_CROP_RATIOS)[number];
 export type MailCrop = { ratio?: MailCropRatio; x?: number; y?: number; zoom?: number };
 /** Sin `image_ref` sale sin imagen; con imagen, `alt` es obligatorio. */
@@ -211,6 +215,10 @@ export type MailFeatureBlock = {
   button_size?: MailFeatureButtonSize;
   /** Color propio del botón (#rrggbb); sin él, el del tema. La letra la elige el render por contraste. */
   button_color?: string;
+  /** Ancho de la imagen en su ranura: completa (sin él), tres cuartos o la mitad. */
+  image_size?: MailFeatureImageSize;
+  /** Quita los márgenes blancos o transparentes del archivo. */
+  image_trim?: boolean;
   /** Sin él: 1:1 con la foto a un lado, 2:1 arriba. */
   crop?: MailCrop;
 };
@@ -255,12 +263,15 @@ export const MAIL_BOX_BORDERS = ["ninguno", "fino", "acento"] as const;
 export const MAIL_BOX_CORNERS = ["rectas", "suaves", "redondas"] as const;
 export const MAIL_BOX_SPACINGS = ["compacto", "normal", "amplio"] as const;
 export const MAIL_BOX_TEXTS = ["auto", "tinta", "acento", "blanco"] as const;
+/** L10: «siguiente» pega la caja a la que sigue, sin hueco y con esquinas rectas donde se tocan. */
+export const MAIL_BOX_JOINS = ["no", "siguiente"] as const;
 export type MailBlockBox = {
   bg?: MailBoxBgName | string;
   border?: (typeof MAIL_BOX_BORDERS)[number];
   corners?: (typeof MAIL_BOX_CORNERS)[number];
   spacing?: (typeof MAIL_BOX_SPACINGS)[number];
   text?: (typeof MAIL_BOX_TEXTS)[number];
+  join?: (typeof MAIL_BOX_JOINS)[number];
 };
 /** Todo bloque admite caja salvo el pie legal, que no se dibuja como bloque. */
 export type MailBoxed = { box?: MailBlockBox };
@@ -290,7 +301,15 @@ export function isOpaqueMailBlock(block: MailBlock): block is MailOpaqueBlock {
 }
 
 export type MailHeader =
-  | { kind: "logos"; logo_ids: string[]; background: "dark" | "light" }
+  | {
+      kind: "logos";
+      logo_ids: string[];
+      background: "dark" | "light";
+      /** Sólo con fondo oscuro: los logos salen en blanco (el render deriva cada PNG). */
+      logo_tone?: "original" | "blanco";
+      /** `false` quita la línea entre logos; sin él, la línea sigue. */
+      divider?: boolean;
+    }
   | { kind: "banner"; image_ref: string };
 
 /**
@@ -329,8 +348,12 @@ export type MailTemplate = {
   header: MailHeader;
   images: Record<string, MailImage>;
   fields: MailField[];
+  /** Datos fijos de la campaña (L6): `{{key}}` vale lo mismo para toda la campaña; el render lo escribe como texto. */
+  constants?: MailConstant[];
   blocks: MailBlock[];
 };
+
+export type MailConstant = { key: string; label: string; value: string };
 
 export type MailPreset = { preset_id: string; title: string; template: MailTemplate };
 
@@ -505,6 +528,8 @@ export const MAIL_CHECK_CODES = [
   "sm_custom_limit",
   "send_dates",
   "reminder_audience",
+  // Dos envíos con el mismo asunto: Gmail los agrupa (L7).
+  "send_subject_repeated",
   "sm_link_field_empty",
   // Saludo por sexo (C8).
   "greeting_trato",
@@ -857,9 +882,10 @@ export function normalizeMailBox(value: unknown): MailBlockBox | undefined {
   const corners = oneOf(value.corners, MAIL_BOX_CORNERS);
   const spacing = oneOf(value.spacing, MAIL_BOX_SPACINGS);
   const text = oneOf(value.text, MAIL_BOX_TEXTS);
+  const join = oneOf(value.join, MAIL_BOX_JOINS);
   const box: MailBlockBox = {
     ...(bg ? { bg } : {}), ...(border ? { border } : {}), ...(corners ? { corners } : {}),
-    ...(spacing ? { spacing } : {}), ...(text ? { text } : {}),
+    ...(spacing ? { spacing } : {}), ...(text ? { text } : {}), ...(join ? { join } : {}),
   };
   return box;
 }
@@ -936,6 +962,7 @@ function normalizeMailBlockSinCaja(value: unknown): MailBlock | null {
         ...(value.decorative !== undefined ? { decorative: bool(value.decorative) } : {}),
         ...(normalizeMailCrop(value.crop) ? { crop: normalizeMailCrop(value.crop) } : {}),
         ...(optStr(value.mobile_ref) !== undefined ? { mobile_ref: str(value.mobile_ref) } : {}),
+        ...(value.image_trim === true ? { image_trim: true } : {}),
       };
     }
     case "band": {
@@ -964,6 +991,7 @@ function normalizeMailBlockSinCaja(value: unknown): MailBlock | null {
       const layout = oneOf(value.layout, MAIL_FEATURE_LAYOUTS);
       const align = oneOf(value.align, MAIL_FEATURE_ALIGNS);
       const buttonSize = oneOf(value.button_size, MAIL_FEATURE_BUTTON_SIZES);
+      const imageSize = oneOf(value.image_size, MAIL_FEATURE_IMAGE_SIZES);
       const buttonColor = typeof value.button_color === "string" && /^#[0-9a-fA-F]{6}$/.test(value.button_color)
         ? value.button_color.toLowerCase() : undefined;
       const opcional = (k: string) => (optStr(value[k]) !== undefined ? { [k]: str(value[k]) } : {});
@@ -975,6 +1003,8 @@ function normalizeMailBlockSinCaja(value: unknown): MailBlock | null {
         ...(align ? { align } : {}),
         ...(buttonSize ? { button_size: buttonSize } : {}),
         ...(buttonColor ? { button_color: buttonColor } : {}),
+        ...(imageSize ? { image_size: imageSize } : {}),
+        ...(value.image_trim === true ? { image_trim: true } : {}),
         ...(normalizeMailCrop(value.crop) ? { crop: normalizeMailCrop(value.crop) } : {}),
       };
     }
@@ -1017,10 +1047,13 @@ function normalizeHeader(value: unknown): MailHeader {
     return { kind: "banner", image_ref: str(value.image_ref) };
   }
   const raw = isRecord(value) ? value : {};
+  const tono = str(raw.logo_tone);
   return {
     kind: "logos",
     logo_ids: strings(raw.logo_ids),
     background: str(raw.background) === "dark" ? "dark" : "light",
+    ...(tono === "blanco" || tono === "original" ? { logo_tone: tono } : {}),
+    ...(raw.divider === false ? { divider: false } : {}),
   };
 }
 
@@ -1123,6 +1156,11 @@ export function normalizeMailTemplate(value: unknown, opts: { lenient?: boolean 
     blocks.push(block);
   }
   const theme = normalizeMailTheme(value.theme);
+  // Sin esto, guardar desde el editor borraría los datos de la campaña (el normalizador descarta lo que no conoce).
+  const constantes: MailConstant[] = list(value.constants)
+    .filter(isRecord)
+    .map((c) => ({ key: str(c.key), label: str(c.label), value: str(c.value) }))
+    .filter((c) => c.key);
   const presetId = optStr(value.preset_id);
   const title = optStr(value.title);
   const sha = optStr(value.template_sha256);
@@ -1139,6 +1177,7 @@ export function normalizeMailTemplate(value: unknown, opts: { lenient?: boolean 
     header: normalizeHeader(value.header),
     images: normalizeImages(value.images),
     fields: normalizeFields(value.fields),
+    ...(constantes.length ? { constants: constantes } : {}),
     blocks,
   };
 }
@@ -1769,6 +1808,33 @@ export async function apiMailPresets(): Promise<MailPresetsPayload> {
   return normalizeMailPresets(await handleMail(await apiFetch(`${BASE}/mail-presets`, { headers: headers() })));
 }
 
+/** Vista para revisión (L9): un HTML con los correos de las campañas elegidas, para quien aprueba. */
+export type MailRevision = { file_id: string; filename: string; size_bytes: number };
+
+/** Qué envío de cada campaña muestra la vista para revisión (L17), sin numerar. */
+export const MAIL_REVISION_ENVIOS = ["primero", "recordatorio", "ultimo"] as const;
+export type MailRevisionEnvio = (typeof MAIL_REVISION_ENVIOS)[number];
+
+export async function apiMailRevision(input: {
+  campaign_ids: string[];
+  titulo?: string;
+  ejemplo?: "femenino" | "masculino";
+  envio?: MailRevisionEnvio;
+}): Promise<MailRevision> {
+  const raw = await handleMail(await apiFetch(`${BASE}/mail-revision`, json("POST", input)));
+  const file = isRecord(raw) && isRecord(raw.file) ? raw.file : null;
+  if (!file || !str(file.file_id)) throw contractError("la vista para revisión no devolvió el archivo.");
+  return { file_id: str(file.file_id), filename: str(file.filename) || "revision.html", size_bytes: int(file.size_bytes, 0) };
+}
+
+/** «Textos en Word» (L13): asuntos, vistas previas y cuerpos de las campañas elegidas, para validar. */
+export async function apiMailTextosWord(input: { campaign_ids: string[]; titulo?: string }): Promise<MailRevision> {
+  const raw = await handleMail(await apiFetch(`${BASE}/mail-textos-word`, json("POST", input)));
+  const file = isRecord(raw) && isRecord(raw.file) ? raw.file : null;
+  if (!file || !str(file.file_id)) throw contractError("los textos en Word no devolvieron el archivo.");
+  return { file_id: str(file.file_id), filename: str(file.filename) || "textos.docx", size_bytes: int(file.size_bytes, 0) };
+}
+
 export async function apiMailCampaigns(): Promise<MailCampaignsPayload> {
   return normalizeMailCampaigns(await handleMail(await apiFetch(`${BASE}/mail-campaigns`, { headers: headers() })));
 }
@@ -1862,12 +1928,15 @@ function conEnvio(body: Record<string, unknown>, pedido: MailSendPedido | null |
 export async function apiMailPreview(input: {
   mode: MailPreviewMode;
   recipient_index?: number | null;
+  /** Sin destinatarios: la persona de ejemplo (Ana o Luis) y su saludo (L8). */
+  ejemplo?: "femenino" | "masculino" | null;
   template?: MailTemplate | null;
   campaign_id?: string | null;
   envio?: MailSendPedido | null;
 }): Promise<MailPreview> {
   const body: Record<string, unknown> = conEnvio({ mode: input.mode }, input.envio);
   if (input.recipient_index) body.recipient_index = input.recipient_index;
+  else if (input.ejemplo) body.ejemplo = input.ejemplo;
   if (input.template) body.template = serializeMailTemplate(input.template);
   return normalizeMailPreview(await handleMail(await apiFetch(
     `${BASE}/mail-template/preview`,

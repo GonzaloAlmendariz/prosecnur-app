@@ -1,3 +1,4 @@
+import { formatoDecimal } from "../../../../../lib/formatoNumero";
 import type {
   MonitoreoTerritorialDashboard,
   MonitoreoTerritorialOperationalAdjustment,
@@ -77,7 +78,7 @@ function movimientosDe(item: MonitoreoTerritorialOperationalAdjustment): Movimie
 
 function distanciaDe(km: unknown): string {
   const valor = Number(km);
-  return km != null && Number.isFinite(valor) ? `${valor.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} km` : "Sin distancia";
+  return km != null && Number.isFinite(valor) ? `${formatoDecimal(valor, 2)} km` : "Sin distancia";
 }
 
 function textoDelAjuste(item: MonitoreoTerritorialOperationalAdjustment): string {

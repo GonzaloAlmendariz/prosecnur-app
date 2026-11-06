@@ -11,7 +11,7 @@
   height: 100%;
   min-height: 0;
   color: var(--pulso-text);
-  font-size: 13px;
+  font-size: var(--pulso-type-body-size);
   line-height: 1.35;
 }
 
@@ -48,12 +48,12 @@
 }
 
 .mon-metas-eje header > strong {
-  font-size: 14px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .mon-metas-eje header > span {
   color: var(--pulso-text-faint);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .mon-metas-eje header > button {
@@ -83,7 +83,7 @@
 
 .mon-metas-candidatas button em {
   color: var(--pulso-text-soft);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   font-style: normal;
 }
 
@@ -97,11 +97,13 @@
   outline-offset: 2px;
 }
 
+/* Sin el avance (ADR 0126: Modelo declara, Avance sigue), el panel de metas
+ * mide su tabla: estirado al pie dejaría un hueco entre la última fila y el
+ * total. Con muchas categorías desplaza la columna. */
 .mon-metas-modelo-columna > .mon-metas-metas {
   display: flex;
-  flex: 1 1 auto;
+  flex: none;
   flex-direction: column;
-  min-height: 280px;
   overflow: hidden;
 }
 
@@ -111,7 +113,7 @@
   gap: var(--pulso-space-2);
   margin-left: auto;
   color: var(--pulso-text-soft);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .mon-metas-confirmar {
@@ -135,6 +137,15 @@
   overflow-y: auto;
   scrollbar-width: thin;
   scrollbar-color: var(--pulso-border-strong) transparent;
+  /* Al soltar el desplazamiento, la fila que asoma queda entera bajo la
+   * cabecera pegajosa (~34 px), como en las demás tablas de la casa: a 1280 × 720
+   * la cabecera tapaba media fila de «San Martín de Porres». */
+  scroll-padding-top: 36px;
+  scroll-snap-type: y proximity;
+}
+
+.mon-metas-tabla tbody > tr {
+  scroll-snap-align: start;
 }
 
 .mon-metas-tabla thead th {
@@ -148,12 +159,80 @@
 .mon-metas-tabla th:nth-child(3) { width: 96px; }
 .mon-metas-tabla th:nth-child(4) { width: 112px; }
 .mon-metas-tabla th:nth-child(6) { width: 72px; }
-.mon-metas-tabla th:nth-child(7) { width: 40px; }
+.mon-metas-tabla th:nth-child(7) { width: 164px; }
+.mon-metas-tabla th:nth-child(8) { width: 40px; }
+
+/* Una referencial muestra su peso en el universo en lugar del reparto. */
+.mon-metas-peso {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--pulso-space-2);
+  align-items: center;
+}
+
+.mon-metas-peso > span {
+  color: var(--pulso-text-soft);
+  white-space: nowrap;
+}
+
+/* Meta o referencial (ADR 0126): el radio del kit, compacto dentro de la fila.
+ * Misma receta que los radios de Material, con el tono de Monitoreo. */
+.mon-metas-tabla .mon-metas-caracter.pulso-gliding-tab-list {
+  --pulso-gliding-indicator-bg: var(--pulso-surface);
+  --pulso-gliding-indicator-border: var(--pulso-border);
+  --pulso-gliding-indicator-shadow: 0 1px 3px color-mix(in srgb, var(--pulso-text) 14%, transparent);
+  display: inline-grid;
+  grid-auto-flow: column;
+  gap: 2px;
+  padding: 3px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--pulso-text) 6%, var(--pulso-surface));
+  box-shadow: inset 0 0 0 1px var(--pulso-border);
+}
+
+.mon-metas-tabla .mon-metas-caracter.pulso-gliding-tab-list > button {
+  min-height: 26px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  box-shadow: none;
+  color: var(--pulso-text-soft);
+  font: inherit;
+  font-size: var(--pulso-type-caption-size);
+  font-weight: var(--pulso-weight-semibold);
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.mon-metas-tabla .mon-metas-caracter.pulso-gliding-tab-list > button[aria-checked="true"] {
+  color: var(--pulso-module-monitoring);
+  font-weight: var(--pulso-weight-bold);
+}
+
+.mon-metas-tabla .mon-metas-caracter.pulso-gliding-tab-list > button:focus-visible {
+  outline: 2px solid var(--pulso-brand-navy);
+  outline-offset: -2px;
+}
+
+/* Con la columna de carácter, la tabla no cabe entera por debajo de 1500 px:
+ * «Sobre el universo» cede su lugar, porque la barra de al lado lo dibuja. */
+@media (max-width: 1500px) {
+  .mon-metas-tabla th:nth-child(4),
+  .mon-metas-tabla td:nth-child(4) {
+    display: none;
+  }
+}
 
 .mon-metas-tabla tbody th,
 .mon-metas-tabla tbody td {
   padding-block: var(--pulso-space-3);
   vertical-align: middle;
+}
+
+/* «Sin base» es `EstadoChip` (P6): va pegado al valor de la categoría. */
+.mon-metas-tabla tbody th > .pulso-estado-chip {
+  margin-left: 6px;
 }
 
 /* El campo de meta es el del kit (`PulsoInput numeric`, 88 px): aquí sólo
@@ -212,91 +291,6 @@
   outline: 2px solid var(--pulso-brand-navy);
 }
 
-.mon-metas-avance {
-  display: flex;
-  flex: 1 1 auto;
-  flex-direction: column;
-  gap: var(--pulso-space-2);
-  min-height: 140px;
-  padding: var(--pulso-space-3) var(--pulso-space-4);
-  border-top: 1px solid var(--pulso-border);
-  overflow: hidden;
-}
-
-.mon-metas-avance-lienzo {
-  display: grid;
-  flex: 1 1 0;
-  gap: var(--pulso-space-4);
-  min-height: 0;
-}
-
-.mon-metas-avance-columna {
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  gap: 4px;
-  min-width: 0;
-  min-height: 0;
-  text-align: center;
-}
-
-.mon-metas-modelo .mon-metas-avance-cifra,
-.mon-metas-modelo .mon-metas-avance-faltan {
-  text-align: center;
-}
-
-.mon-metas-avance-cifra {
-  font-weight: var(--pulso-weight-bold);
-}
-
-.mon-metas-avance-area {
-  position: relative;
-  display: flex;
-  flex: 1 1 0;
-  align-items: flex-end;
-  justify-content: center;
-  min-height: 48px;
-  border-bottom: 1px solid var(--pulso-border-strong);
-}
-
-.mon-metas-avance-area > i {
-  display: block;
-  width: min(72%, 96px);
-  min-height: 2px;
-  border-radius: 4px 4px 0 0;
-  background: var(--pulso-module-monitoring);
-}
-
-.mon-metas-avance-columna.is-cumple .mon-metas-avance-area > i {
-  background: var(--pulso-success-fg);
-}
-
-.mon-metas-avance-area > b {
-  position: absolute;
-  right: 8%;
-  left: 8%;
-  border-top: 2px dashed var(--pulso-text);
-}
-
-.mon-metas-avance-nombre {
-  min-height: 2.6em;
-  font-size: 12px;
-  font-weight: var(--pulso-weight-semibold);
-  line-height: 1.3;
-  overflow-wrap: anywhere;
-}
-
-.mon-metas-avance-faltan {
-  color: var(--pulso-module-monitoring);
-  font-size: 12px;
-  font-weight: var(--pulso-weight-bold);
-  text-align: center;
-}
-
-.mon-metas-avance-columna.is-cumple .mon-metas-avance-faltan {
-  color: var(--pulso-success-fg);
-}
-
 .mon-metas-pie {
   display: flex;
   flex-wrap: wrap;
@@ -320,7 +314,7 @@
 
 .mon-metas-total dt {
   color: var(--pulso-text-faint);
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-bold);
   letter-spacing: 0.09em;
   text-transform: uppercase;
@@ -328,7 +322,7 @@
 
 .mon-metas-total dd {
   margin: 0;
-  font-size: 15px;
+  font-size: var(--pulso-type-title-size);
   font-weight: var(--pulso-weight-heavy);
   text-align: left;
 }
@@ -441,18 +435,6 @@
 
 /* Sin días ni categorías, el vacío se dice en el sitio que ocuparían y ocupa
  * su alto: la tarjeta no cambia de marco entre cero y muchos. */
-.mon-metas-dias-vacio,
-.mon-metas-avance-vacio {
-  display: grid;
-  flex: 1 1 0;
-  place-items: center;
-  min-height: 0;
-  margin: 0;
-  color: var(--pulso-text-muted);
-  font-size: 12px;
-  text-align: center;
-}
-
 .mon-metas-sin-categorias {
   margin: var(--pulso-space-3) var(--pulso-space-4) 0;
 }
@@ -478,7 +460,7 @@
 }
 
 .mon-metas-dia-columna > strong {
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .mon-metas-dia-columna > i {
@@ -492,7 +474,7 @@
 
 .mon-metas-dias li > span {
   color: var(--pulso-text-soft);
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   white-space: nowrap;
 }
 
@@ -531,17 +513,10 @@
     height: 160px;
   }
 
-  .mon-metas-marco,
-  .mon-metas-avance,
-  .mon-metas-avance-lienzo {
+  .mon-metas-marco {
     flex: none;
     min-height: 0;
     overflow: visible;
-  }
-
-  .mon-metas-avance-area {
-    flex: none;
-    height: 120px;
   }
 
   .mon-metas-tabla th:nth-child(5),
@@ -554,6 +529,50 @@
   }
 }
 
+
+/* Pantalla baja (1280 × 720, 1366 × 768): el reparto del alto no alcanza para
+ * eje + metas + avance, y la tabla terminaba desplazando dentro con dos filas a
+ * la vista, la cabecera pegajosa tapando la que asomaba y el gráfico de días del
+ * Calendario recortado al pie. Ni `scroll-padding` ni el encaje lo arreglan
+ * (11fae58b9): el defecto es el desplazamiento anidado. Aquí cada tarjeta toma su
+ * alto natural y la vista crece y desplaza el contenedor de la pestaña, como
+ * Avance › Cuotas. `clip` conserva las esquinas sin volver al panel un marco que
+ * desplaza. */
+@media (min-width: 1181px) and (max-height: 820px) {
+  .mon-metas-modelo {
+    grid-template-rows: auto;
+    align-items: start;
+    height: auto;
+    min-height: 100%;
+  }
+
+  .mon-metas-modelo-columna,
+  .mon-metas-modelo-lateral {
+    overflow: visible;
+  }
+
+  .mon-metas-modelo-columna > .mon-metas-metas,
+  .mon-metas-modelo-lateral > .mon-metas-calendario {
+    flex: none;
+    min-height: 0;
+    overflow: clip;
+  }
+
+  .mon-metas-marco {
+    flex: none;
+    min-height: 0;
+    overflow: visible;
+  }
+
+  .mon-metas-tabla thead th {
+    position: static;
+  }
+
+  .mon-metas-dias {
+    flex: none;
+    height: 160px;
+  }
+}
 
 
 .mon-metas-metas > .mon-metas-estado {
@@ -573,7 +592,7 @@
   height: 100%;
   min-height: 0;
   color: var(--pulso-text);
-  font-size: 13px;
+  font-size: var(--pulso-type-body-size);
   line-height: 1.35;
 }
 
@@ -664,7 +683,7 @@
 
 .mon-calendario-lectura dt {
   color: var(--pulso-text-faint);
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-bold);
   letter-spacing: 0.09em;
   text-transform: uppercase;
@@ -672,13 +691,13 @@
 
 .mon-calendario-lectura dd {
   margin: 0;
-  font-size: 16px;
+  font-size: var(--pulso-type-title-size);
   font-weight: var(--pulso-weight-bold);
 }
 
 .mon-calendario-lectura > div > span {
   color: var(--pulso-text-soft);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .mon-calendario .is-tenue {
@@ -722,14 +741,6 @@
   height: 100%;
   border-radius: 5px;
   background: var(--pulso-brand-navy);
-}
-
-.mon-calendario-vacio {
-  margin: 0;
-  padding: var(--pulso-space-4);
-  color: var(--pulso-text-muted);
-  font-size: 12.5px;
-  text-align: center;
 }
 
 .mon-calendario-dias > .mon-calendario-estado {

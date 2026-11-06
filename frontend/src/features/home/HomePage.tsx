@@ -1,17 +1,16 @@
 import { type ReactNode, useEffect, useMemo, useState } from "react";
-import { Power, Settings2 } from "lucide-react";
+import { FileText, Power, Settings2 } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useLayoutPreset } from "../../lib/layoutPreference";
 import { useSession } from "../../lib/SessionContext";
 import { coberturaGraficos } from "../graficos/coberturaBases";
 import { useProjectShell } from "../project/ProjectShell";
 import { useProjectModules } from "../project/ProjectModulesContext";
-import { GlobalSettingsDialog } from "./GlobalSettingsDialog";
 import { usePanelDireccionable } from "../../lib/navegacion/paneles";
 import { PANEL_CONFIGURACION, PANEL_MODULOS } from "./panelesHome";
+import { PANEL_ESTUDIO } from "../estudio/panelEstudio";
 import { MissionControl, type ProcState } from "./MissionControl";
 import { ModuleCarousel } from "./ModuleCarousel";
-import { RELEASE_NOTES } from "./releaseNotes";
 import "./home-v2.css";
 
 // Home — menú principal de Prosecnur.
@@ -85,6 +84,7 @@ export default function HomePage() {
   // como alias.
   const panelConfiguracion = usePanelDireccionable(PANEL_CONFIGURACION);
   const panelModulos = usePanelDireccionable(PANEL_MODULOS);
+  const panelEstudio = usePanelDireccionable(PANEL_ESTUDIO);
   const { overview, loading, addedSlugs, addModule, removeModule } = useProjectModules();
 
   const hasModules = addedSlugs.length > 0;
@@ -138,14 +138,9 @@ export default function HomePage() {
         version={version}
         onClose={requestAppExit}
         onOpenSettings={panelConfiguracion.abrir}
+        onOpenEstudio={panelEstudio.abrir}
       />
 
-      <GlobalSettingsDialog
-        open={panelConfiguracion.abierto}
-        notes={RELEASE_NOTES}
-        pulsoName={PULSO_FULL_NAME}
-        onClose={panelConfiguracion.cerrar}
-      />
     </div>
   );
 }
@@ -169,6 +164,12 @@ function MissionControlSkeleton() {
   );
 }
 
+/** «app v0.9.6, prosecnur v0.9.6» se lee «v0.9.6» cuando las dos coinciden (5 nov 2026: el pie repetía la versión). */
+export function versionLegible(version: string): string {
+  const par = /^app v(\S+), prosecnur v(\S+)$/.exec(version.trim());
+  return par && par[1] === par[2] ? `v${par[1]}` : version;
+}
+
 // =====================================================================
 // Footer — versión + autor + abrir notas + cerrar app
 // =====================================================================
@@ -176,18 +177,23 @@ function HomeFooter({
   version,
   onClose,
   onOpenSettings,
+  onOpenEstudio,
 }: {
   version: string;
   onClose: () => void;
   onOpenSettings: () => void;
+  onOpenEstudio: () => void;
 }) {
   return (
     <footer className="home-footer">
       <div className="home-footer-attr">
-        <span>Prosecnur{version && version !== "…" ? ` · ${version}` : ""}</span>
-        <span aria-hidden="true">·</span>
+        <span>Prosecnur{version && version !== "…" ? ` ${versionLegible(version)}` : ""}</span>
+        <span className="home-footer-sep" aria-hidden="true" />
         <span>Hecho para el {PULSO_FULL_NAME}</span>
         <div style={{ flex: 1 }} />
+        <button type="button" className="home-footer-notes" onClick={onOpenEstudio}>
+          <FileText size={14} aria-hidden="true" /> Ficha del estudio
+        </button>
         <button
           type="button"
           className="home-footer-notes"

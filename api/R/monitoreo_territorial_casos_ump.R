@@ -193,12 +193,13 @@ monitoreo_territorial_casos_ump <- function(data, cfg, context = NULL, kobo_sche
   monitoreo_territorial_casos_ump_desde_auditoria(reporte$response_audit %||% list(), tcfg, phase, ump)
 }
 
-.casos_ump_cache_key <- function(data, synced_at, cfg, phase) {
+.casos_ump_cache_key <- function(data, synced_at, cfg, phase, route_sig = "") {
   territorial <- cfg$territorial %||% list()
   paste(
     monitoreo_data_fingerprint(data, synced_at),
     phase,
     digest::digest(territorial, algo = "xxhash64"),
+    route_sig,
     sep = "|"
   )
 }
@@ -219,7 +220,7 @@ monitoreo_territorial_casos_ump <- function(data, cfg, context = NULL, kobo_sche
   }
   phase <- .monitoreo_territorial_phase(cfg$territorial$active_route_phase, "pilot")
   data <- .monitoreo_territorial_filter_data_for_phase(data, cfg, phase = phase)
-  key <- .casos_ump_cache_key(data, .monitoreo_scalar(snapshot$synced_at, ""), cfg, phase)
+  key <- .casos_ump_cache_key(data, .monitoreo_scalar(snapshot$synced_at, ""), cfg, phase, .monitoreo_territorial_route_sig(sid, cfg))
   hit <- .monitoreo_territorial_casos_ump_cache[[sid]]
   auditoria <- if (is.list(hit) && identical(hit$key, key)) {
     hit$auditoria

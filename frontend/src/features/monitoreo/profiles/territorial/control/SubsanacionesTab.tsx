@@ -1,5 +1,7 @@
 import { memo, useMemo, useState } from "react";
-import { ArrowRight, Loader2, Scale } from "lucide-react";
+import { ArrowRight, Loader2, Scale, Undo2 } from "lucide-react";
+import { EstadoVacio } from "../../../../../components/EstadoVacio";
+import { EstadoChip } from "../../../../../components/EstadoChip";
 import type { MonitoreoTerritorialDashboard, MonitoreoTerritorialOperationalAdjustment, MonitoreoTerritorialPhase } from "../../../../../api/client";
 import { useFocoMonitoreo } from "../../../useMonitoreoDireccion";
 import { diaYMes, fmt } from "../rotulos";
@@ -9,6 +11,8 @@ import { useRechazos } from "./useRechazos";
 import { RotuloDePestana } from "../navegacion/RotuloDePestana";
 import { SiluetaDeDistrito } from "../avance/SiluetaDeDistrito";
 import "./subsanaciones.css";
+import { PulsoButton } from "../../../../../components/PulsoButton";
+import { BloqueDeMonitoreo } from "../../../core/BloqueDeMonitoreo";
 
 type Aviso = { tono: "ok" | "error"; texto: string } | null;
 
@@ -49,11 +53,14 @@ function SubsanacionesTabImpl({
   if (!modelo.disponible) {
     return (
       <section className="mon-sub mon-sub--vacio" data-audit-ready="vacio:sin-subsanaciones-en-el-corte" aria-label="Subsanaciones">
-        <div className="mon-sub-panel mon-sub-vacio">
+        <div className="mon-sub-panel">
           <RotuloDePestana />
-          <Scale size={20} aria-hidden="true" />
-          <strong>Este corte no trae las subsanaciones del motor</strong>
-          <span title="El corte de Consultas es el que calcula las subsanaciones">«Actualizar» pide el corte de Consultas</span>
+          <EstadoVacio
+            tamano="normal"
+            icono={<Scale size={18} />}
+            titulo="Este corte no trae las subsanaciones del motor"
+            descripcion={<span title="El corte de Consultas es el que calcula las subsanaciones">«Actualizar» pide el corte de Consultas</span>}
+          />
         </div>
       </section>
     );
@@ -109,12 +116,16 @@ function SubsanacionesTabImpl({
       data-qa-geometry-group="territorial-subsanaciones"
       data-qa-geometry-contract="intrinsic"
     >
-      <section className="mon-sub-panel" aria-labelledby="mon-sub-deficit" data-qa-geometry-member="deficit">
-        <header className="mon-sub-cabecera">
-          <RotuloDePestana />
-          <h3 id="mon-sub-deficit">Celdas con déficit</h3>
-          <span className="mon-sub-base">{fmt(modelo.celdas)} en {fmt(modelo.umps.length)} UMP</span>
-        </header>
+      <BloqueDeMonitoreo
+        marco="kit"
+        className="mon-sub-panel"
+        aria-labelledby="mon-sub-deficit"
+        data-qa-geometry-member="deficit"
+        antetitulo={<RotuloDePestana />}
+        titulo="Celdas con déficit"
+        tituloId="mon-sub-deficit"
+        bajada={<>{fmt(modelo.celdas)} en {fmt(modelo.umps.length)} UMP</>}
+      >
         {modelo.umps.length ? (
           <ul className="mon-sub-lista" data-qa-geometry-capacity="owned" data-qa-geometry-group="territorial-subsanaciones-deficit" data-qa-geometry-contract="intrinsic">
             {modelo.umps.map((item) => (
@@ -125,7 +136,7 @@ function SubsanacionesTabImpl({
                   <span>{item.distrito}{item.manzana ? `, manzana ${item.manzana}` : ""}</span>
                 </div>
                 <span className="mon-sub-chips">
-                  <span className={`mon-ter-chip ${item.elegible ? "is-info" : "is-aviso"}`}>{item.elegible ? "Con excedente compatible" : "Bloqueada"}</span>
+                  <EstadoChip label={item.elegible ? "Con excedente compatible" : "Bloqueada"} tone={item.elegible ? "info" : "warn"} />
                   {item.celdas.map((celda) => <span key={celda.texto} className="mon-sub-chip">Falta {fmt(celda.falta)}: {celda.texto}</span>)}
                 </span>
               </li>
@@ -134,13 +145,17 @@ function SubsanacionesTabImpl({
         ) : (
           <p className="mon-sub-base">Ninguna celda con déficit.</p>
         )}
-      </section>
+      </BloqueDeMonitoreo>
 
-      <section className="mon-sub-panel" aria-labelledby="mon-sub-paquetes" data-qa-geometry-member="paquetes">
-        <header className="mon-sub-cabecera">
-          <h3 id="mon-sub-paquetes">Paquete sugerido</h3>
-          <span className="mon-sub-base">{fmt(sugerencias.length)} del motor</span>
-        </header>
+      <BloqueDeMonitoreo
+        marco="kit"
+        className="mon-sub-panel"
+        aria-labelledby="mon-sub-paquetes"
+        data-qa-geometry-member="paquetes"
+        titulo="Paquete sugerido"
+        tituloId="mon-sub-paquetes"
+        bajada={<>{fmt(sugerencias.length)} del motor</>}
+      >
         {aviso ? <p className={`mon-sub-aviso is-${aviso.tono}`} role={aviso.tono === "error" ? "alert" : "status"}>{aviso.texto}</p> : null}
         {sugerencias.length ? (
           <ul className="mon-sub-paquetes" data-qa-geometry-capacity="owned">
@@ -188,21 +203,27 @@ function SubsanacionesTabImpl({
         ) : (
           <p className="mon-sub-base">Sin excedente compatible</p>
         )}
-      </section>
+      </BloqueDeMonitoreo>
 
       <div className="mon-sub-derecha" data-qa-geometry-member="derecha">
-      <section className="mon-sub-panel mon-sub-movimientos" aria-labelledby="mon-sub-movimientos">
-        <header className="mon-sub-cabecera">
-          <h3 id="mon-sub-movimientos">Movimientos en el territorio</h3>
-        </header>
+      <BloqueDeMonitoreo
+        marco="kit"
+        className="mon-sub-panel mon-sub-movimientos"
+        aria-labelledby="mon-sub-movimientos"
+        titulo="Movimientos en el territorio"
+        tituloId="mon-sub-movimientos"
+      >
         <MapaDeMovimientos activos={modelo.ajustesActivos} sugeridos={sugerencias.map((paquete) => paquete.ajuste)} />
-      </section>
+      </BloqueDeMonitoreo>
 
-      <section className="mon-sub-panel mon-sub-aplicadas" aria-labelledby="mon-sub-activas">
-        <header className="mon-sub-cabecera">
-          <h3 id="mon-sub-activas">Subsanaciones aplicadas</h3>
-          <span className="mon-sub-base">{fmt(modelo.activas)} activas, {fmt(modelo.revertidas)} revertidas y {fmt(modelo.rechazadas)} {modelo.rechazadas === 1 ? "paquete rechazado" : "paquetes rechazados"}</span>
-        </header>
+      <BloqueDeMonitoreo
+        marco="kit"
+        className="mon-sub-panel mon-sub-aplicadas"
+        aria-labelledby="mon-sub-activas"
+        titulo="Subsanaciones aplicadas"
+        tituloId="mon-sub-activas"
+        bajada={<>{fmt(modelo.activas)} activas, {fmt(modelo.revertidas)} revertidas y {fmt(modelo.rechazadas)} {modelo.rechazadas === 1 ? "paquete rechazado" : "paquetes rechazados"}</>}
+      >
         {modelo.activasPorDistrito.length ? (
           <ul className="mon-sub-distritos">
             {modelo.activasPorDistrito.map((item) => <li key={item.distrito}><span>{item.distrito}</span><b>{fmt(item.casos)}</b></li>)}
@@ -210,7 +231,7 @@ function SubsanacionesTabImpl({
         ) : null}
         <h4 className="mon-sub-subtitulo">Historial</h4>
         {modelo.historial.length ? (
-          <ol className="mon-sub-historial" data-qa-geometry-capacity="owned">
+          <ol className="mon-sub-historial" data-qa-geometry-group="territorial-subsanaciones-historial" data-qa-geometry-contract="intrinsic" data-qa-geometry-capacity="owned">
             {modelo.historial.map((entrada) => (
               <li key={entrada.id} className={`is-${entrada.estado}`}>
                 <small>{entrada.cuando}</small>
@@ -219,10 +240,10 @@ function SubsanacionesTabImpl({
                 {entrada.estado === "activa" && onRevert ? (
                   porRevertir === entrada.id ? (
                     <span className="mon-sub-confirmar">
-                      <button type="button" className="mon-sub-boton is-peligro" disabled={enCurso != null} onClick={() => { void revertir(entrada.id); }}>
-                        {enCurso === entrada.id ? <Loader2 size={14} className="pulso-spin" aria-hidden="true" /> : null}
+                      <PulsoButton variant="danger" confirm size="sm" disabled={enCurso != null} onClick={() => { void revertir(entrada.id); }}>
+                        {enCurso === entrada.id ? <Loader2 size={14} className="pulso-spin" aria-hidden="true" /> : <Undo2 size={14} aria-hidden="true" />}
                         Confirmar reversión
-                      </button>
+                      </PulsoButton>
                       <button type="button" className="mon-sub-boton" onClick={() => setPorRevertir(null)}>Cancelar</button>
                     </span>
                   ) : (
@@ -235,7 +256,7 @@ function SubsanacionesTabImpl({
         ) : (
           <p className="mon-sub-base">Todavía no se aplicó ninguna subsanación.</p>
         )}
-      </section>
+      </BloqueDeMonitoreo>
       </div>
     </section>
   );

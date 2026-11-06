@@ -292,16 +292,20 @@ test_that("handoff repetido es no-op y conserva revisión, timestamp y dirty", {
   session_set(sid, "project_path", tempfile(fileext = ".pulso"))
   session_set(sid, "project_dirty", FALSE)
 
+  plan_monitoreo <- session_get(sid)$monitoreo_aulas_plan
   first <- collection_handoff(sid, seeded$state_revision)
   first_time <- first$deployment$handoff$handed_off_at
   first_revision <- first$state_revision
+  # X8 (ADR 0122 §11): la entrega no escribe el plan de Monitoreo; la proyección
+  # viaja en la respuesta y Monitoreo la trae con su lector.
   first_rows <- session_get(sid)$monitoreo_aulas_plan
+  expect_identical(first_rows, plan_monitoreo)
   expect_identical(
-    first_rows[[1]]$access_id,
+    first$monitoring_rows[[1]]$access_id,
     seeded$deployment$bindings[[1]]$access_id
   )
   expect_identical(
-    first_rows[[1]]$collection_deployment_fingerprint,
+    first$monitoring_rows[[1]]$collection_deployment_fingerprint,
     seeded$deployment$deployment_fingerprint
   )
   expect_true(isTRUE(session_get(sid)$project_dirty))
@@ -331,7 +335,7 @@ test_that("handoff restricted proyecta solo referencia opaca, nunca row$link", {
   .session_env[[sid]] <- session
 
   handoff <- collection_handoff(sid, seeded$state_revision)
-  rows <- session_get(sid)$monitoreo_aulas_plan
+  rows <- handoff$monitoring_rows
   expect_false(handoff$noop)
   expect_true(all(vapply(rows, function(row) identical(row$link, ""), logical(1))))
   expect_true(all(vapply(rows, function(row) {

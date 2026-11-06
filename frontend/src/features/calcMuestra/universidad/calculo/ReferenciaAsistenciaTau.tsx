@@ -1,5 +1,7 @@
+import { History } from "lucide-react";
 import type { CalcMuestraReferenciaAsistencia } from "../../../../api/calcMuestra";
 import "./referenciaAsistenciaTau.css";
+import { EstadoVacio } from "../../../../components/EstadoVacio";
 
 const PERCENT = new Intl.NumberFormat("en-US", {
   style: "percent",
@@ -35,14 +37,13 @@ export function ReferenciaAsistenciaTau({
       data-qa-geometry-contract="intrinsic"
     >
       {referencia == null ? (
-        <p
-          className="cmv2-ref-tau-empty"
-          role="status"
-          data-qa-geometry-member
-          data-qa-geometry-capacity="owned"
-        >
-          Sin referencia histórica para calibrar τ
-        </p>
+        <div role="status" data-qa-geometry-member>
+          <EstadoVacio
+            icono={<History size={16} aria-hidden="true" />}
+            titulo="Sin referencia histórica para calibrar τ"
+            descripcion="Sube una base de control en Datos › Fuentes para comparar la tasa vigente con la del estudio anterior."
+          />
+        </div>
       ) : (
         <>
           <header className="cmv2-ref-tau-head" data-qa-geometry-member>

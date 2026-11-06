@@ -31,7 +31,7 @@
   }
 }
 .dashboard-scope .dash-fs-trigger:active {
-  transform: scale(0.96);
+  transform: scale(var(--mov-press, 0.97));
 }
 .dashboard-scope .dash-fs-trigger-label {
   letter-spacing: -0.005em;
@@ -67,7 +67,7 @@
   }
 }
 .dashboard-scope .dash-fs-copy-btn:active:not(:disabled) {
-  transform: scale(0.96);
+  transform: scale(var(--mov-press, 0.97));
 }
 .dashboard-scope .dash-fs-copy-btn:disabled {
   cursor: progress;
@@ -105,7 +105,7 @@
   padding: 0;
   position: fixed;
   z-index: 90;
-  animation: dash-fs-fade-in var(--dash-dur-modal) var(--dash-ease-out);
+  animation: pulso-mov-aparece var(--dash-dur-modal) var(--dash-ease-out);
 }
 
 .dashboard-scope .dash-fs-panel {
@@ -120,7 +120,7 @@
   height: 100dvh;
   padding: 0;
   width: 100vw;
-  animation: dash-fs-zoom-in var(--dash-dur-modal) var(--dash-ease-out);
+  animation: pulso-mov-escala var(--dash-dur-modal) var(--dash-ease-out);
 }
 
 .dashboard-scope .dash-fs-head {
@@ -188,15 +188,6 @@
 .dashboard-scope .dash-fs-body .dash-dim-radar-facet .dash-plotly-chart {
   height: min(42dvh, 360px) !important;
   min-height: 300px !important;
-}
-
-@keyframes dash-fs-fade-in {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-@keyframes dash-fs-zoom-in {
-  from { opacity: 0; transform: scale(0.97); }
-  to { opacity: 1; transform: scale(1); }
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -49,6 +49,43 @@ test("rótulo partido: el chip aplastado a una letra por línea y la palabra cor
   assert.match(chip.motivo, /más líneas que palabras/);
 });
 
+test("rótulo partido: una palabra cortada entre dos líneas largas se marca aunque haya menos líneas que palabras", async () => {
+  // Ritmo del telefónico, 2026-10-28: la banda de un día mostraba
+  // «Sin / registr / o en la / hoja». Cuatro líneas para cinco palabras y
+  // ningún pedazo de ≤ 3 letras: las dos reglas anteriores lo dejaban pasar.
+  const { rotulosPartidos } = await medir(`
+    <div style="width:44px"><span class="banda-cortada" style="overflow-wrap:anywhere">Sin registro en la hoja</span></div>
+    <div style="width:80px"><span class="banda-sana">Sin registro en la hoja</span></div>
+    <div style="width:44px"><span class="guionado-sano" lang="es" style="hyphens:auto">Sin registro en la hoja</span></div>
+  `);
+  assert.ok(marcado(rotulosPartidos, "banda-cortada"), "«registr / o» debió marcarse");
+  assert.equal(marcado(rotulosPartidos, "banda-sana"), false, "partir entre palabras es legítimo");
+  assert.equal(marcado(rotulosPartidos, "guionado-sano"), false, "el guionado automático parte con guion a propósito");
+});
+
+test("columnas ocultas: una tabla más ancha que su marco nombra las cabeceras que no se ven, y distingue desplazar de recortar", async () => {
+  // Equipo del telefónico a 1280 (2026-10-28): «Intentos por caso» quedaba
+  // detrás del borde y desplazamientoH decía 0, porque sólo mide los marcos
+  // de un grupo de geometría declarado.
+  const tabla = (clase) => `
+    <table class="${clase}" style="border-collapse:collapse;white-space:nowrap">
+      <thead><tr><th>Operador</th><th>Asignados</th><th>Llamados</th><th>Sin efectiva</th><th>Intentos por caso</th></tr></thead>
+      <tbody><tr><td>Ana Prueba</td><td>73</td><td>73</td><td>17.8 %</td><td>1.9</td></tr></tbody>
+    </table>`;
+  const { columnasOcultas } = await medir(`
+    <div style="width:260px;overflow:auto">${tabla("tabla-desplaza")}</div>
+    <div style="width:260px;overflow:hidden">${tabla("tabla-recorta")}</div>
+    <div style="width:700px;overflow:auto">${tabla("tabla-cabe")}</div>
+  `);
+  const de = (clase) => columnasOcultas.find((item) => item.className.includes(clase));
+  assert.ok(de("tabla-desplaza"), "la tabla que desplaza debió informarse");
+  assert.equal(de("tabla-desplaza").alcanzable, true);
+  assert.ok(de("tabla-desplaza").cabeceras.includes("Intentos por caso"));
+  assert.ok(de("tabla-recorta"), "la tabla recortada debió marcarse");
+  assert.equal(de("tabla-recorta").alcanzable, false);
+  assert.equal(de("tabla-cabe"), undefined, "la que cabe no se informa");
+});
+
 test("texto fuera de su tarjeta: la línea que cruza el borde se marca; la que cabe o se recorta, no", async () => {
   const { textosFuera } = await medir(`
     <ul style="list-style:none;padding:0;width:260px">
@@ -64,6 +101,49 @@ test("texto fuera de su tarjeta: la línea que cruza el borde se marca; la que c
   assert.ok(textosFuera.some((item) => item.contenedor.className.includes("tarjeta-rota")));
   assert.equal(textosFuera.some((item) => item.contenedor.className.includes("tarjeta-sana")), false);
   assert.equal(textosFuera.some((item) => item.contenedor.className.includes("tarjeta-recorta")), false);
+});
+
+test("texto fuera de su tarjeta: lo que esconde un <details> cerrado no se pinta y no se marca; abierto y desbordado, sí", async () => {
+  // Chromium da rectángulo al texto de un <details> cerrado aunque no se pinte:
+  // así salían 10 «textos fuera» en Configuración › Conexiones (2026-10-28).
+  const { textosFuera } = await medir(`
+    <details class="cerrado" style="display:grid;border:1px solid #ccc;width:260px">
+      <summary>Configurar credencial</summary>
+      <label><span>Alias del perfil</span></label>
+    </details>
+    <details class="abierto-roto" open style="border:1px solid #ccc;width:260px">
+      <summary>Configurar credencial</summary>
+      <small style="white-space:nowrap">9 casos · de 360 efectivas · 27/10/2026 · semilla 20261027</small>
+    </details>
+  `);
+  assert.equal(textosFuera.some((item) => item.contenedor.className.includes("cerrado")), false);
+  assert.ok(textosFuera.some((item) => item.contenedor.className.includes("abierto-roto")));
+});
+
+test("texto fuera de su tarjeta: lo oculto para lectores de pantalla (1 px recortado) no se marca; visible y desbordado, sí", async () => {
+  // Carga › Preguntas a 1024×600 esconde así su resumen «87 preguntas · 0 cálculos» (2026-10-28).
+  const { textosFuera } = await medir(`
+    <div class="solo-lector" style="position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap">
+      <span style="display:inline-flex;border:1px solid #ccc;width:20px"><strong>87</strong> <span>preguntas</span></span>
+    </div>
+    <div class="visible-roto">
+      <span style="display:inline-flex;border:1px solid #ccc;width:20px;white-space:nowrap"><strong>87</strong> <span>preguntas</span></span>
+    </div>
+  `);
+  assert.equal(textosFuera.length, 1);
+});
+
+test("rótulo partido: el rótulo aplastado dentro de un <details> cerrado no se marca; abierto, sí", async () => {
+  // Presets de DEFF de Hojas › Muestra: «Lige/ro» dentro de un details cerrado (2026-10-28).
+  const html = (abierto) => `
+    <details ${abierto ? "open" : ""} style="width:300px">
+      <summary>Ajustar supuestos</summary>
+      <div style="display:grid;grid-template-columns:repeat(4,28px)"><strong class="aplastado" style="min-width:0;overflow-wrap:anywhere">Conservador</strong></div>
+    </details>`;
+  const cerrado = await medir(html(false));
+  assert.equal(cerrado.rotulosPartidos.some((item) => item.texto === "Conservador"), false);
+  const abierto = await medir(html(true));
+  assert.ok(abierto.rotulosPartidos.some((item) => item.texto === "Conservador"));
 });
 
 test("cabecera tapa fila: tras desplazar, la tabla sin encaje deja una fila a medias; con encaje, no", async () => {

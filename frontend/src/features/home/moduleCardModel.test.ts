@@ -175,7 +175,7 @@ function makeOverview(): ProjectOverview {
       source("dashboard", "/tablero", "active"),
       source("calc-muestra", "/calc-muestra"),
       source("hojas-ruta", "/hojas-ruta"),
-      source("plan-trabajo", "/bitacora?seccion=cronograma", "pending"),
+      source("plan-trabajo", "/planner?seccion=cronograma", "pending"),
       source("material-campo", "/material-campo"),
       source("monitoreo", "/monitoreo"),
     ],
@@ -204,7 +204,6 @@ function view(
 describe("moduleCardModel", () => {
   it("mantiene una card contextual para cada módulo del carrusel", () => {
     expect(PROSECNUR_PRIMARY_ACTIVE_MODULES.map(({ slug }) => slug)).toEqual([
-      "diseno-estudio",
       "calc-muestra",
       "editor-xlsform",
       "hojas-ruta",
@@ -221,12 +220,6 @@ describe("moduleCardModel", () => {
         expect(card.action?.route, module.slug).toBe(module.to);
       }
     }
-  });
-
-  it("no declara lista una Bitácora vacía ni la resume con un guion", () => {
-    const card = view("diseno-estudio");
-    expect(card.state).toBe("pending");
-    expect(JSON.stringify(card)).not.toContain("—");
   });
 
   it("lee los hechos de un backend anterior al ADR 0108 (`facts.recopiladores`)", () => {
@@ -263,6 +256,16 @@ describe("moduleCardModel", () => {
     expect(hojas.facts).not.toContainEqual({ label: "entrevistas", value: "24" });
   });
 
+  it("Hojas de ruta en un territorial por conveniencia: «No aplica», sin pedirla (ADR 0122 P2)", () => {
+    const overview = makeOverview();
+    overview.facts.hojas = { ...overview.facts.hojas, aplica: false };
+    const hojas = view("hojas-ruta", overview);
+    expect(hojas.viz).toMatchObject({ kind: "stat", value: "No aplica", label: "en este estudio" });
+    expect(hojas.statusLabel).toBe("No aplica");
+    expect(hojas.alert).toBeNull();
+    expect(hojas.facts).toEqual([]);
+  });
+
   it("prioriza el avance accionable de Monitoreo y Procesamiento", () => {
     const monitoreo = view("monitoreo");
     expect(monitoreo.viz).toMatchObject({ kind: "stat", value: "8" });
@@ -271,7 +274,23 @@ describe("moduleCardModel", () => {
     const procesamiento = view("procesamiento");
     expect(["progress", "phases"]).toContain(procesamiento.viz.kind);
     expect(procesamiento.action).toMatchObject({ route: "/validacion" });
-    expect(JSON.stringify(procesamiento)).toContain("1/5");
+    // Cuatro fases listas según el motor (`overview.modules`); la que sigue es
+    // la primera que no lo está, aunque las de después ya lo estén.
+    expect(JSON.stringify(procesamiento)).toContain("4/5");
+  });
+
+  it("Procesamiento cuenta las fases del motor y no las banderas de la sesión (L31)", () => {
+    // Sesión multibase: `proc` no ve `state.xlsform` y daría 0/5 «Por iniciar».
+    const overview = makeOverview();
+    overview.modules = overview.modules.map((item) =>
+      ["carga", "validacion", "codificacion", "analitica"].includes(item.id)
+        ? { ...item, state: "ready" }
+        : item.id === "graficos" ? { ...item, state: "active" } : item,
+    );
+    const card = buildModuleCardView(PROSECNUR_PRIMARY_ACTIVE_MODULES.find((m) => m.slug === "procesamiento")!, overview, { ...proc, done: 0 });
+    expect(card.viz).toMatchObject({ kind: "progress", current: 4, total: 5 });
+    expect(card.sub).toBe("Sigue: Gráficos");
+    expect(card.state).toBe("active");
   });
 
   it("conserva advertencias y dirige a la revisión que las resuelve", () => {
@@ -298,24 +317,6 @@ describe("moduleCardModel", () => {
     }
   });
 
-  it("no presenta como próxima una fecha pasada del cronograma", () => {
-    const overview = makeOverview();
-    overview.facts.bitacora = {
-      ...overview.facts.bitacora,
-      next_title: "Entrega registrada",
-      next_date: "2026-07-10",
-      pending: 1,
-      total_tasks: 1,
-    };
-
-    const bitacora = view("diseno-estudio", overview);
-    expect(JSON.stringify(bitacora).toLocaleLowerCase("es")).not.toContain("próxim");
-    expect(bitacora.facts).toEqual(
-      expect.arrayContaining([expect.objectContaining({ label: "fecha de cronograma" })]),
-    );
-    expect(bitacora.facts.find(({ label }) => label === "fecha de cronograma")?.value).toContain("10");
-  });
-
   it("Material de campo resume por campaña cuando el inicio trae `campaigns` (ADR 0111 §9)", () => {
     const crudo = makeOverview() as unknown as { facts: Record<string, Record<string, unknown>> };
     crudo.facts["material-campo"] = {
@@ -340,7 +341,7 @@ describe("moduleCardModel", () => {
     expect(card.sub).toBe("2 campañas: campo en aulas y 1 correo");
     expect(card.facts).toEqual([
       { label: "Campo en aulas", value: "Accesos en borrador" },
-      { label: "Egresados 2026", value: "Invitación exportada 20/10 · Recordatorio 1 pendiente" },
+      { label: "Egresados 2026", value: "Invitación exportada 20/10 y Recordatorio 1 pendiente" },
     ]);
   });
 
@@ -398,37 +399,6 @@ describe("moduleCardModel", () => {
     expect(module?.tagline.length).toBeLessThanOrEqual(28);
   });
 
-  it("abre directamente el cronograma cuando la acción lo nombra", () => {
-    const overview = makeOverview();
-    overview.facts.bitacora = {
-      ...overview.facts.bitacora,
-      pending: 1,
-      total_tasks: 2,
-    };
-
-    expect(view("diseno-estudio", overview).action).toEqual({
-      label: "Continuar cronograma",
-      route: "/bitacora?seccion=cronograma",
-    });
-  });
-
-  it("calcula hoy y mañana con el calendario de Lima, no con la zona del host", () => {
-    const overview = makeOverview();
-    overview.facts.bitacora = {
-      ...overview.facts.bitacora,
-      next_title: "Entrega de mañana",
-      next_date: "2026-07-15",
-    };
-    const nearMidnightInLima = new Date("2026-07-14T23:30:00-05:00").getTime();
-
-    expect(view("diseno-estudio", overview, nearMidnightInLima).viz).toMatchObject({
-      kind: "date",
-      label: "próximo entregable",
-      countdown: "Mañana",
-      tone: "future",
-    });
-  });
-
   it("mide el avance por lo que falta para la meta, no por la base recorrida", () => {
     // Acreditación: la meta (287) manda; el universo contactado (519) es dato
     // secundario y baja a fact. Regresión: el home mostraba 444.9% contando
@@ -449,7 +419,7 @@ describe("moduleCardModel", () => {
     const monitoreo = view("monitoreo", overview);
     expect(monitoreo.viz).toMatchObject({
       kind: "stat",
-      value: "65.5%",
+      value: "66 %",
       label: "avance de meta",
     });
     expect(monitoreo.sub).toBe("188 de 287 efectivas, faltan 99");
@@ -477,7 +447,7 @@ describe("moduleCardModel", () => {
       avance_label: "avance de meta",
     };
     const monitoreo = view("monitoreo", overview);
-    expect(monitoreo.viz).toMatchObject({ kind: "stat", value: "105.8%" });
+    expect(monitoreo.viz).toMatchObject({ kind: "stat", value: "106 %" });
     expect(monitoreo.sub).toBe("423 de 400 efectivas, meta cumplida");
     expect(monitoreo.sub).not.toContain("Faltan");
     expect(monitoreo.facts).toContainEqual({ label: "universo", value: "2,296" });
@@ -568,7 +538,6 @@ describe("moduleCardModel", () => {
   it("marca la actividad como señal principal cuando una cifra no explica qué hacer", () => {
     expect(view("monitoreo").emphasis).toBe("activity");
     expect(view("calc-muestra").emphasis).toBe("activity");
-    expect(view("diseno-estudio").emphasis).toBe("activity");
     expect(view("editor-xlsform").emphasis).toBeUndefined();
   });
 });

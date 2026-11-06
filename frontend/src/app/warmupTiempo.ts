@@ -92,7 +92,9 @@ export function relojWarmup(estimacion: WarmupEstimacion, transcurridoMs: number
   return {
     transcurrido: formatReloj(transcurridoMs),
     restante: falta === null ? null : `~${formatReloj(falta)}`,
-    anterior: falta === null && estimacion.totalMs !== null ? formatReloj(estimacion.totalMs) : null,
+    // Una apertura anterior de menos de un segundo se escribiría «0:00»: un dato que no dice nada (y que se
+    // lee como inventado). Sólo se publica desde el segundo entero.
+    anterior: falta === null && estimacion.totalMs !== null && estimacion.totalMs >= 1000 ? formatReloj(estimacion.totalMs) : null,
   };
 }
 

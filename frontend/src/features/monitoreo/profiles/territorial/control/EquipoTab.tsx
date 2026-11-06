@@ -1,13 +1,18 @@
 import { memo, useMemo } from "react";
-import { Users, X } from "lucide-react";
+import { Ban, Users, X } from "lucide-react";
+import { EstadoVacio } from "../../../../../components/EstadoVacio";
 import type { MonitoreoState, MonitoreoTerritorialDashboard, MonitoreoTerritorialPhase } from "../../../../../api/client";
 import { usePanelDireccionable } from "../../../../../lib/navegacion/paneles";
 import { useFocoMonitoreo } from "../../../useMonitoreoDireccion";
 import { fmt } from "../rotulos";
 import { DialogoDeAnulacion, PANEL_ANULAR } from "./DialogoDeAnulacion";
 import { construirEquipo, type FilaDeEquipo } from "./equipoModel";
+import { controlDeCoordinacion, reportePorRegion, type ControlDeCodigo } from "./coordinacionModelo";
+import { ReportePorRegion } from "./ReportePorRegion";
+import { useAsignacionPlanificada } from "../avance/useAsignacionPlanificada";
 import { RotuloDePestana } from "../navegacion/RotuloDePestana";
 import "./equipo.css";
+import { PulsoButton } from "../../../../../components/PulsoButton";
 
 /**
  * Control › Equipo (territorial.md §3.8): una fila por código de aplicador con
@@ -27,6 +32,10 @@ function EquipoTabImpl({
   onStateChange?: (state: MonitoreoState) => void;
 }) {
   const modelo = useMemo(() => construirEquipo(consultas, validacion), [consultas, validacion]);
+  // 2h: el registro del coordinador, al lado de Kobo y nunca sumado.
+  const asignacion = useAsignacionPlanificada(phase);
+  const coordinacion = useMemo(() => controlDeCoordinacion(asignacion), [asignacion]);
+  const porRegion = useMemo(() => reportePorRegion(asignacion), [asignacion]);
   const [foco, escribirFoco] = useFocoMonitoreo();
   const anular = usePanelDireccionable(PANEL_ANULAR);
   const elegida = modelo.filas.find((fila) => fila.codigo === String(foco ?? "").toUpperCase()) ?? null;
@@ -38,11 +47,14 @@ function EquipoTabImpl({
   if (!modelo.filas.length) {
     return (
       <section className="mon-eq mon-eq--vacio" data-audit-ready="vacio:sin-equipo" aria-label="Equipo">
-        <div className="mon-eq-panel mon-eq-vacio">
+        <div className="mon-eq-panel">
           <RotuloDePestana />
-          <Users size={20} aria-hidden="true" />
-          <strong>Sin códigos de aplicador en el corte</strong>
-          <span>Los códigos salen del padrón de Insumos y de las respuestas de Kobo.</span>
+          <EstadoVacio
+            tamano="normal"
+            icono={<Users size={18} />}
+            titulo="Sin códigos de aplicador en el corte"
+            descripcion="Los códigos salen del padrón de Insumos y de las respuestas de Kobo."
+          />
         </div>
       </section>
     );
@@ -62,6 +74,10 @@ function EquipoTabImpl({
           <h3 id="mon-eq-titulo" className="pulso-sr-only">Equipo por código</h3>
           <span className="mon-eq-base" title="Señales sobre los casos del corte">{fmt(modelo.filas.length)} códigos</span>
         </header>
+        {coordinacion?.resumen ? (
+          <p className="mon-eq-coordinacion" data-tono={coordinacion.hayAlerta ? "aviso" : "ok"} role="status">{coordinacion.resumen}</p>
+        ) : null}
+        <ReportePorRegion filas={porRegion} />
         <div className="mon-eq-tabla-marco" data-qa-geometry-capacity="owned" tabIndex={0} aria-label="Equipo por código, con desplazamiento">
           <table className="mon-eq-tabla">
             <thead>
@@ -69,13 +85,21 @@ function EquipoTabImpl({
                 <th scope="col">Código</th>
                 <th scope="col">Estado</th>
                 <th scope="col" className="is-num">Recibidas</th>
-                <th scope="col" className="is-num">Cuentan</th>
+                <th scope="col" className="is-num" title="Efectivas de Kobo que no se anularon, en observación incluidas, por quien las envió: la base del avance">Cuentan</th>
                 <th scope="col" className="is-num">UMP</th>
-                <th scope="col">Distritos</th>
+                <th scope="col" className="is-distritos">Distritos</th>
                 <th scope="col">GPS observado</th>
                 <th scope="col" className="is-num">Menos de 5 min</th>
                 <th scope="col">Cuentan por día</th>
                 <th scope="col" className="is-num">En bandeja</th>
+                {coordinacion ? (
+                  <>
+                    <th scope="col" className="is-num" title="Efectivas que declara coordinación en su registro; no se suman a Kobo">Declaradas</th>
+                    <th scope="col" className="is-num" title="UMP donde lo declarado no coincide con Kobo validado">No cuadran</th>
+                    <th scope="col" className="is-num" title="Efectivas en sus UMP planificadas sobre los intentos que declara coordinación">Rendimiento</th>
+                    <th scope="col" title="Supervisión: aprobadas / no aprobadas">Supervisión</th>
+                  </>
+                ) : null}
                 <th scope="col">Último</th>
               </tr>
             </thead>
@@ -95,13 +119,14 @@ function EquipoTabImpl({
                   </th>
                   <td>{fila.anulado ? "Producción anulada" : "Activo"}</td>
                   <td className="is-num">{fmt(fila.recibidas)}</td>
-                  <td className="is-num">{fmt(fila.cuentan)}</td>
+                  <td className="is-num">{fila.cuentan == null ? "—" : fmt(fila.cuentan)}</td>
                   <td className="is-num">{fmt(fila.umps)}</td>
-                  <td>{fila.distritos.join(", ") || "—"}</td>
+                  <td className="is-distritos">{fila.distritos.join(", ") || "—"}</td>
                   <td>{fila.gpsObservado ? <BarraDeProporcion casos={fila.gpsObservado.casos} base={fila.gpsObservado.base} texto={fila.gpsObservado.texto} /> : "—"}</td>
                   <td className="is-num">{fila.cortas == null ? "—" : fmt(fila.cortas)}</td>
                   <td>{fila.porDia ? <Sparkline valores={fila.porDia} codigo={fila.codigo} /> : "—"}</td>
                   <td className="is-num">{fila.enBandeja == null ? "—" : fmt(fila.enBandeja)}</td>
+                  {coordinacion ? <CeldasDeCoordinacion control={coordinacion.porCodigo.get(fila.codigo.toUpperCase()) ?? null} /> : null}
                   <td>{fila.ultimo || "—"}</td>
                 </tr>
               ))}
@@ -123,6 +148,18 @@ function EquipoTabImpl({
         <DialogoDeAnulacion pedido={pedido} phase={phase} panel={anular.props} onCerrar={anular.cerrar} onAplicada={(state) => onStateChange?.(state)} />
       ) : null}
     </section>
+  );
+}
+
+function CeldasDeCoordinacion({ control }: { control: ControlDeCodigo | null }) {
+  if (!control) return <><td className="is-num">—</td><td className="is-num">—</td><td className="is-num">—</td><td>—</td></>;
+  return (
+    <>
+      <td className="is-num">{control.declaradas}</td>
+      <td className="is-num">{control.noCuadran ? <b className="mon-eq-no-cuadra">{fmt(control.noCuadran)}</b> : "0"}</td>
+      <td className="is-num" title={control.tituloRendimiento}>{control.rendimiento}</td>
+      <td>{control.supervision}</td>
+    </>
   );
 }
 
@@ -170,7 +207,7 @@ function InspectorDeCodigo({
         </button>
       </header>
       <dl className="mon-eq-cifras">
-        <div><dt>Cuentan</dt><dd>{fmt(fila.cuentan)}</dd></div>
+        <div><dt>Cuentan</dt><dd>{fila.cuentan == null ? "—" : fmt(fila.cuentan)}</dd></div>
         <div><dt>UMP</dt><dd>{fmt(fila.umps)}</dd></div>
         <div><dt>En bandeja</dt><dd>{fila.enBandeja == null ? "—" : fmt(fila.enBandeja)}</dd></div>
       </dl>
@@ -200,7 +237,7 @@ function InspectorDeCodigo({
         {fila.anulado ? (
           <p className="mon-eq-base" title="Se revierte en Control › Anulaciones">Producción anulada</p>
         ) : (
-          <button type="button" className="mon-eq-boton is-peligro" onClick={onAnular}>Anular producción</button>
+          <PulsoButton variant="danger" size="sm" onClick={onAnular}><Ban size={14} aria-hidden="true" />Anular producción</PulsoButton>
         )}
       </footer>
     </aside>

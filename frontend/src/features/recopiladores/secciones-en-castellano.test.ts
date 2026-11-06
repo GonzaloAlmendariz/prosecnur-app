@@ -68,6 +68,10 @@ describe("Accesos se explica sin jerga", () => {
     .replace(/\/\*[\s\S]*?\*\//g, "")
     .replace(/\/\/[^\n]*/g, "")
     .replace(/\s+/g, " ");
+  const tablero = fs.readFileSync(
+    path.join(path.dirname(fileURLToPath(import.meta.url)), "AccesosTablero.tsx"),
+    "utf8",
+  ).replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/[^\n]*/g, "").replace(/\s+/g, " ");
 
   it("no le pide al usuario «ejecutar el preflight»", () => {
     const frases = [
@@ -82,9 +86,12 @@ describe("Accesos se explica sin jerga", () => {
   it("los tres ejes del preflight se siguen diciendo, en castellano", () => {
     // Son tres de verdad —`supported`, `available` y la política de la versión—
     // y perderlos al traducir habría cambiado un texto ilegible por uno falso.
-    expect(visible).toContain("si la plataforma lo permite");
-    expect(visible).toContain("si Pulso ya sabe hacerlo");
-    expect(visible).toContain("si esta versión lo autoriza");
+    // Pasada de diseño (2 nov 2026): los tres ejes son ahora los títulos de los chequeos
+    // (AccesosTablero.tsx), uno por fila, en vez de una frase dentro de un vacío.
+    const conTablero = `${visible} ${tablero}`.toLowerCase();
+    expect(conTablero).toContain("la plataforma lo permite");
+    expect(conTablero).toContain("pulso ya sabe hacerlo");
+    expect(conTablero).toContain("esta versión lo autoriza");
   });
 
   it("la garantía de sólo lectura sigue dicha", () => {

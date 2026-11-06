@@ -132,6 +132,15 @@ describe("internalQueries", () => {
     expect(summary.duplicates).toBe(1);
   });
 
+  it("decodifica una sola vez el mismo payload y otro payload por separado", () => {
+    const primera = normalizeInternalQueries(model);
+    expect(normalizeInternalQueries(model)).toBe(primera);
+    const copia = structuredClone(model);
+    const otra = normalizeInternalQueries(copia);
+    expect(otra).not.toBe(primera);
+    expect(otra).toEqual(primera);
+  });
+
   it("filters by text and stable option sets", () => {
     const normalized = normalizeInternalQueries(model);
     const filtered = filterInternalQueryCases(normalized.cases, {
@@ -226,6 +235,15 @@ describe("internalQueries", () => {
     ]);
     // Los casos sin evidencia propia comparten la misma lista: no se copia el universo por caso.
     expect(normalized.cases[2].assisted_review?.assignment_candidates).toBe(sinEvidencia.assisted_review?.assignment_candidates);
+  });
+
+  it("conserva la llave del pool para pedir el padrón aparte cuando no viaja con el corte", () => {
+    const normalized = normalizeInternalQueries({
+      ...model,
+      cases: [{ ...model.cases[1], assisted_review: { eligible: "TRUE", assignment_candidates: [], assignment_pool_key: " docentes " } }],
+    } as unknown as MonitoreoInternalQueries);
+    expect(normalized.cases[0].assisted_review?.assignment_pool_key).toBe("docentes");
+    expect(normalized.cases[0].assisted_review?.assignment_candidates).toEqual([]);
   });
 
   it("normalizes assisted review evidence and searches declared fields", () => {
@@ -472,7 +490,7 @@ describe("internalQueries", () => {
       sourceActor: "Docentes",
       sourceChannel: "WhatsApp",
       channel: "WhatsApp",
-    })).toBe("Docentes · WhatsApp");
+    })).toBe("Docentes, WhatsApp");
     expect(collectorSecondaryDisplayMeta({ collector_id: "439964780", collector_name: "Enlace 439964780" })).toBe("ID técnico 439964780");
   });
 

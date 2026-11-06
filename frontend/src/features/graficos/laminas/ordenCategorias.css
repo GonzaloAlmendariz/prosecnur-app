@@ -15,7 +15,7 @@
   align-items: center;
   flex-wrap: wrap;
   gap: var(--pulso-space-1);
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   line-height: 1.4;
   color: var(--pulso-text-faint);
   overflow-wrap: anywhere;
@@ -44,7 +44,7 @@
   border: 1px solid var(--pulso-border);
   border-radius: var(--pulso-radius);
   background: var(--pulso-surface);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   color: var(--pulso-text);
   cursor: grab;
 }
@@ -81,7 +81,7 @@
 
 .pulso-f6-orden-sin-respuestas {
   display: block;
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   font-style: italic;
   color: var(--pulso-text-faint);
 }
@@ -102,7 +102,7 @@
   align-items: flex-start;
   gap: var(--pulso-space-1);
   min-width: 0;
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   line-height: 1.4;
   color: var(--pulso-text-muted);
   overflow-wrap: anywhere;

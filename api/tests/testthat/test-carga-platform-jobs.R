@@ -965,3 +965,78 @@ test_that("si el archivo de la base cambia, la marca de códigos aplicados deja 
   expect_true(.carga_codigos_ya_aplicados(list(data_file_id = "a", choice_codes_applied_data_file_id = "a")))
   expect_false(.carga_codigos_ya_aplicados(list(data_file_id = "a")))
 })
+
+test_that("L9: base integrada y paquete .sav pasan por el mismo dispatch que su endpoint síncrono", {
+  sid <- session_create()
+  on.exit(session_delete(sid), add = TRUE)
+
+  captured <- new.env(parent = emptyenv())
+  restores <- list(
+    .cpj_mock_binding("multi_integrated_import", function(sid, guide_xlsform_file_id, origins, origin_key_name,
+                                                          base_name, decisions, profile_id = NULL) {
+      captured$integrada <- list(
+        guide = guide_xlsform_file_id, origins = origins, key = origin_key_name,
+        base_name = base_name, decisions = decisions, profile_id = profile_id
+      )
+      list(ok = TRUE, via = "integrada")
+    }),
+    .cpj_mock_binding("sm_multibase_sav_bundle_import", function(sid, file_id, file_base_map = list(),
+                                                                 missing_policy = "fill_blank_warn",
+                                                                 expected_inspection_fingerprint = NULL) {
+      captured$sav <- list(
+        file_id = file_id, map = file_base_map, policy = missing_policy,
+        fingerprint = expected_inspection_fingerprint
+      )
+      list(ok = TRUE, via = "sav")
+    })
+  )
+  on.exit(lapply(rev(restores), function(restore) restore()), add = TRUE)
+
+  out <- .carga_platform_call_action(sid, "multi_integrated_import", list(
+    guide_xlsform_file_id = "guia-1",
+    origins = list(list(id = "o1")),
+    base_name = "conta_integrada",
+    connectionProfileId = "  perfil-b  "
+  ))
+  expect_equal(out$via, "integrada")
+  expect_equal(captured$integrada$guide, "guia-1")
+  expect_equal(captured$integrada$key, "origen")
+  expect_equal(captured$integrada$base_name, "conta_integrada")
+  expect_equal(captured$integrada$profile_id, "perfil-b")
+
+  .carga_platform_call_action(sid, "multi_integrated_import", list(profile_id = "   "))
+  expect_null(captured$integrada$profile_id)
+  expect_equal(captured$integrada$base_name, "base_integrada")
+
+  out_sav <- .carga_platform_call_action(sid, "sav_bundle_import", list(
+    sav_bundle_file_id = "zip-9",
+    sav_base_map = list(a = "base_a"),
+    missing_policy = "drop",
+    expected_inspection_fingerprint = "fp-1"
+  ))
+  expect_equal(out_sav$via, "sav")
+  expect_equal(captured$sav$file_id, "zip-9")
+  expect_equal(captured$sav$map, list(a = "base_a"))
+  expect_equal(captured$sav$policy, "drop")
+  expect_equal(captured$sav$fingerprint, "fp-1")
+
+  expect_true(all(c("multi_integrated_import", "sav_bundle_import") %in% .CARGA_PLATFORM_JOB_ACTIONS))
+})
+
+test_that("un timeout de la plataforma llega con código y texto, no como error crudo de curl (L5c)", {
+  crudo <- simpleError(paste(
+    "Timeout was reached [api.surveymonkey.com]:",
+    "Operation timed out after 20002 milliseconds with 0 bytes received"
+  ))
+  err <- .carga_platform_error_de_red(crudo, "surveymonkey_import_separate")
+  expect_identical(err$code, "E_CARGA_PLATAFORMA_SIN_RESPUESTA")
+  expect_identical(err$status, 504L)
+  expect_match(err$message, "^SurveyMonkey no respondió a tiempo")
+  expect_false(grepl("curl|callr|millisecond", err$message))
+
+  kobo <- .carga_platform_error_de_red(simpleError("Could not resolve host: kf.kobotoolbox.org"), "kobo_import_separate")
+  expect_match(kobo$message, "^KoboToolbox no respondió a tiempo")
+
+  # Lo que no es de red sigue su camino (el runner lo relanza).
+  expect_null(.carga_platform_error_de_red(simpleError("objeto 'x' no encontrado"), "surveymonkey_import"))
+})

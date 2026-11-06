@@ -1,0 +1,32 @@
+/* ContextLens sobre las primitivas del kit (L1): sólo lo propio del lens.
+   Los anchos son los de siempre (640 / 960 / 1180 px). */
+
+.pulso-sideover.pulso-lens--standard { width: min(640px, 92vw); }
+.pulso-sideover.pulso-lens--wide { width: min(960px, 94vw); }
+.pulso-sideover.pulso-lens--full { width: min(1180px, 96vw); }
+.pulso-dialog.pulso-lens--full { width: min(1180px, 96vw); }
+
+.pulso-lens-banda {
+  display: flex;
+  flex-direction: column;
+}
+
+.pulso-lens-acciones {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+  padding: 8px 20px 0;
+}
+
+.pulso-lens-pestanas {
+  display: flex;
+  gap: 2px;
+  padding: 0 20px;
+  border-bottom: 1px solid var(--pulso-border);
+  overflow-x: auto;
+}
+
+.pulso-lens-cuerpo {
+  padding: 18px 20px;
+}

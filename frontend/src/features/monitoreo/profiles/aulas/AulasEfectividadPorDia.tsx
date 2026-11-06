@@ -64,7 +64,7 @@ export function AulasEfectividadPorDia({ partes, plan }: {
           <strong>{pctPerfil(t.hasta.tau ?? 0)}</strong> de {etiquetaDeDia(t.hasta.fecha)}
           {t.hasta.aulas < 10 ? (
             <em>
-              {" "}· la última jornada son {fmt(t.hasta.aulas)}{" "}
+              ,{" "}la última jornada son {fmt(t.hasta.aulas)}{" "}
               {t.hasta.aulas === 1 ? "curso-horario" : "cursos-horario"}, así que es
               una señal, no todavía un hecho
             </em>

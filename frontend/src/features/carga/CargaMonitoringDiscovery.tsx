@@ -18,6 +18,7 @@ import {
   processingProfileFromMonitoring,
   type ProcessingSourcesProfile,
 } from "./CargaSourcesModel";
+import { formatoConteo } from "../../lib/formatoNumero";
 
 export type CargaMonitoringDiscoveryResult = {
   suggestions: EstudioProcessingSuggestions | null;
@@ -124,7 +125,7 @@ export function CargaMonitoringDiscovery({
               {groups.map((group) => (
                 <li key={group.id}>
                   <Database size={14} aria-hidden="true" />
-                  <span><strong>{group.actor || group.label}</strong><small>{group.sources[0]?.channel || group.platform} · {group.source_count} fuente{group.source_count === 1 ? "" : "s"} · {group.response_count ?? "—"} respuestas</small></span>
+                  <span><strong>{group.actor || group.label}</strong><small>{group.sources[0]?.channel || group.platform}, {group.source_count} fuente{group.source_count === 1 ? "" : "s"}, {group.response_count ?? "—"} respuestas</small></span>
                 </li>
               ))}
             </ul>
@@ -149,7 +150,7 @@ export function CargaMonitoringDiscovery({
                         onDiscovered(next);
                       }}
                     />
-                    <span><strong>{source.label}</strong><small>{source.kind} · {source.counts.processable}/{source.counts.total} procesables</small></span>
+                    <span><strong>{source.label}</strong><small>{source.kind}, {source.counts.processable}/{source.counts.total} procesables</small></span>
                   </label>
                 ))}
               </div>
@@ -158,9 +159,9 @@ export function CargaMonitoringDiscovery({
 
           {result.profile === "territorial" && counts ? (
             <dl className="pulso-carga-monitoring-counts" aria-label="Conteos territoriales">
-              <div><dt>Validadas</dt><dd>{counts.validada.toLocaleString("es-PE")}</dd></div>
-              <div><dt>En revisión</dt><dd>{counts.revision.toLocaleString("es-PE")}</dd></div>
-              <div className="is-excluded"><dt>No defendibles excluidas</dt><dd>{counts.no_defendible.toLocaleString("es-PE")}</dd></div>
+              <div><dt>Validadas</dt><dd>{formatoConteo(counts.validada)}</dd></div>
+              <div><dt>En revisión</dt><dd>{formatoConteo(counts.revision)}</dd></div>
+              <div className="is-excluded"><dt>No defendibles excluidas</dt><dd>{formatoConteo(counts.no_defendible)}</dd></div>
             </dl>
           ) : null}
         </div>

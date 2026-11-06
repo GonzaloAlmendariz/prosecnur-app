@@ -52,6 +52,11 @@
   v
 }
 
+#' Token del cuestionario impreso (L36 · DOC.1): `tipografia` (fuente, cuerpo, minimo, titulo) o `colores` (tinta,
+#' rejilla, banda, banda_sub, cebra). El motor de Word del cuestionario los leía de constantes propias.
+#' @keywords internal
+.std_cuestionario <- function(grupo, nombre) .std_valor("cuestionario", grupo, nombre)
+
 #' Color con nombre de la lámina PPT (`coral`, `azul`, `tenue`, `filete`...)
 #' @keywords internal
 .std_color <- function(nombre) .std_valor("ppt", "colores", nombre)
@@ -116,6 +121,51 @@
   if (identical(nombre, "zona_datos_y0")) v <- v + getOption("prosecnur.lam_desplazo", 0) + getOption("prosecnur.lam_desplazo_titulo", 0)
   # Una nota sobre «Base:» (la de significancia, lamina_nota_significancia.R) sube el fondo de la zona de datos lo que mide.
   if (nombre %in% c("zona_datos_y1", "leyenda_y", "contenido_y1")) v <- v - getOption("prosecnur.lam_reserva_pie", 0)
+  # Un panel a la derecha (las tarjetas de diferencias, ADR 0129) acorta el ancho del contenido: cada lámina nativa compone
+  # su gráfico con su estándar en el ancho que queda. El folio y la nota leen la geometría cruda (`.std_valor`).
+  der <- .std_reserva_derecha()
+  if (der > 0) v <- .std_geom_con_reserva(nombre, v, der)
+  v
+}
+
+#' Reserva a la derecha vigente (in): la que deja un panel lateral, o 0
+#' @keywords internal
+.std_reserva_derecha <- function() {
+  der <- getOption("prosecnur.lam_reserva_derecha", 0)
+  if (is.numeric(der) && length(der) == 1L && is.finite(der) && der > 0) der else 0
+}
+
+#' Medida de la geometría con una reserva a la derecha: márgenes y anchos
+#'
+#' En la escala likert la columna de premisas conserva su ancho (sus rótulos se parten como en el mazo y la lámina no se
+#' divide en «(cont.)»): lo que se acorta es lo que va desde el actor, la barra y el Top Two Box.
+#' @keywords internal
+.std_geom_con_reserva <- function(nombre, v, der) {
+  if (identical(nombre, "margen_der")) return(v + der)
+  if (identical(nombre, "ancho_contenido")) return(v - der)
+  if (identical(nombre, "likert")) {
+    # Gonzalo (v7.4): «menos barras por lámina si eso da barras más anchas; ahora están súper apretadas», y la distancia
+    # que se recorta es la del Top Two Box a la tarjeta, no la de la barra al Top Two Box.
+    #  - la columna de premisas se acota al 30 % del bloque (sus enunciados se parten en más líneas; si las filas no
+    #    caben, la escala se parte);
+    #  - el Top Two Box conserva su distancia a la barra y se arrima al borde que deja el panel;
+    #  - la barra gana lo que queda.
+    R <- .std_valor("ppt", "geometria", "ancho") - .std_valor("ppt", "geometria", "margen_der") - der
+    centro_std <- v$x_top_two_box + 0.75
+    hueco_barra_box <- centro_std - (v$x_barra + v$ancho_barra)
+    centro <- min(centro_std, R - 0.65)   # la tinta de «TOP TWO BOX» (12 pt) no pasa el borde
+    bloque <- R - v$x_premisa
+    # Hasta el 30 % del bloque, y menos si la barra no llegaría al 45 % (con un piso de 1.5 in para el enunciado).
+    fijo <- (R - centro) + hueco_barra_box + 0.25
+    wp <- min(v$x_barra - v$x_premisa - 0.25, 0.30 * bloque, max(1.5, 0.55 * bloque - fijo))
+    xb <- v$x_premisa + wp + 0.25
+    dx <- v$x_barra - xb
+    v$x_barra <- xb
+    v$x_actor <- max(v$x_premisa + 0.5, v$x_actor - dx)
+    v$ancho_premisa <- min(v$ancho_premisa, v$x_actor - v$x_premisa - 0.05)
+    v$x_top_two_box <- centro - 0.75
+    v$ancho_barra <- centro - hueco_barra_box - xb
+  }
   v
 }
 
@@ -152,6 +202,13 @@
   if (length(v) != 1L || !is.finite(v) || v <= 0) return(0)
   v / 2.54
 }
+
+#' Piso de la barra de escala dentro de un panel (media lámina), en pulgadas: `ppt.grosor.piso_panel_cm`
+#'
+#' El mínimo de Contabilidad (0,66 cm). No lo cambia el piso del informe ni del slot: ese es el de la escala a lámina
+#' entera, que en media lámina no cabe.
+#' @keywords internal
+.std_piso_panel_in <- function() .std_valor("ppt", "grosor", "piso_panel_cm") / 2.54
 
 #' Fija el piso del slot mientras se compone su lámina (gana al del informe; 0 lo quita); NULL no toca nada
 #' @return Las opciones anteriores, para `on.exit(options(...))`.
@@ -196,6 +253,13 @@
 #' Aire extra por fila cuando sus cifras chicas suben con guía, en pulgadas
 #' @keywords internal
 .std_aire_chica <- function() .std_geom("aire_cifra_chica")
+
+#' Medida de composición del estándar (`ppt.composicion`): `.std_comp("escala", "aire_tema")`
+#'
+#' Las decisiones de composición de las láminas de escala, medidas sobre Contabilidad (GOAL estándar de composición,
+#' 2026-10-29), viven con nombre en el JSON y no como constantes sueltas en cada archivo.
+#' @keywords internal
+.std_comp <- function(...) .std_valor("ppt", "composicion", ...)
 
 #' Tipo de lámina del estándar por id (`p_slide_1_grafico`...), con sus ranuras
 #' @keywords internal

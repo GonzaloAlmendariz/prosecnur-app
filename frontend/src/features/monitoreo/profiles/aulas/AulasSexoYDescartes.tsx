@@ -95,7 +95,7 @@ export function AulasSexoYDescartes({
 
   return (
     <div className="aulas-sexo-descartes">
-      <div className="aulas-sexo-valores">
+      <div className="aulas-sexo-valores" data-qa-geometry-group="aulas-sexo-valores" data-qa-geometry-contract="intrinsic">
         {!variableDeSexo ? (
           <em>Declara primero la variable que dice el sexo: sin ella no hay valores que repartir.</em>
         ) : !valoresDeLaVariable.length ? (
@@ -104,11 +104,11 @@ export function AulasSexoYDescartes({
           <>
             <div className="aulas-sexo-grupo">
               <span>Cuentan como mujeres</span>
-              <div className="aulas-sexo-chips">{chips("mujeres", esMujer)}</div>
+              <div className="aulas-sexo-chips" data-qa-geometry-group="aulas-sexo-chips-mujeres" data-qa-geometry-contract="equal">{chips("mujeres", esMujer)}</div>
             </div>
             <div className="aulas-sexo-grupo">
               <span>Cuentan como hombres</span>
-              <div className="aulas-sexo-chips">{chips("hombres", esHombre)}</div>
+              <div className="aulas-sexo-chips" data-qa-geometry-group="aulas-sexo-chips-hombres" data-qa-geometry-contract="equal">{chips("hombres", esHombre)}</div>
             </div>
             <em>
               {sinSexo.length
@@ -126,7 +126,7 @@ export function AulasSexoYDescartes({
           el interno): pasan los filtros y por eso hay que descartarlas aquí. Se sugieren los códigos de
           colector que no casan con ningún curso-horario del plan.
         </em>
-        <div className="aulas-sexo-chips">
+        <div className="aulas-sexo-chips" data-qa-geometry-group="aulas-sexo-chips-descartes" data-qa-geometry-contract="equal">
           {descartes.length ? descartes.map((d) => (
             <span key={d} className="aulas-sexo-chip aulas-descarte" aria-pressed="true">
               {d}

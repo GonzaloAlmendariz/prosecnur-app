@@ -23,7 +23,7 @@ import {
   MANIFIESTO_NAVEGACION,
   PANELES_POR_MODULO,
   hijosDe,
-  nodoPorClave,
+  nodoPorClaveOModoPorDefecto,
   recorridoCompleto,
   type NodoNavegacion,
 } from "./manifiesto";
@@ -313,7 +313,7 @@ export function instalarPuenteNavegacion(navegar: NavegadorRuntime): () => void 
       const clave = typeof destino === "string"
         ? destino
         : describirDireccion(destino);
-      const nodoDestino = nodoPorClave(clave) ??
+      const nodoDestino = nodoPorClaveOModoPorDefecto(clave) ??
         // Compatibilidad defensiva para contribuciones runtime antiguas.
         [...PESTANAS_EN_RUNTIME.values()]
           .flat()

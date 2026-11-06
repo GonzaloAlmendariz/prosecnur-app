@@ -4,6 +4,7 @@
 // vista Estilo del inspector; «Guardar» la deja en «Mis secciones» del estudio
 // (L9, ADR 0113).
 
+import { rotuloDeAtajo } from "./atajosDelEditor";
 import { useEffect, useRef, useState } from "react";
 
 import { useMisSecciones } from "./misSeccionesStore";
@@ -59,7 +60,7 @@ export function AccionesDeSeccion({ template, block, onDuplicar, onEditarBloque,
   return (
     <span ref={raiz} className="rec-capa-acciones-grupo">
       {puedeDuplicar(template, block.block_id) ? (
-        <button type="button" className="rec-capa-accion" aria-label="Duplicar el bloque (⌘D)" title="Duplicar (⌘D)" onClick={() => onDuplicar(block.block_id)}>
+        <button type="button" className="rec-capa-accion" aria-label={rotuloDeAtajo("Duplicar el bloque", "D")} title={rotuloDeAtajo("Duplicar", "D")} onClick={() => onDuplicar(block.block_id)}>
           <Copy size={14} aria-hidden />
         </button>
       ) : null}

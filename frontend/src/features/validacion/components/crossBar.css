@@ -1,0 +1,178 @@
+/* CrossBar sobre el Popover del kit (L1): el panel trae su propio relleno por
+   bloque (búsqueda + chips, lista), así que el del popover se anula. */
+.pulso-popover.pulso-crossbar-popover {
+  padding: 0;
+  overflow: hidden;
+}
+
+.crossbar {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.crossbar-activa {
+  display: inline-flex;
+  align-items: center;
+  max-width: 260px;
+  height: 28px;
+  padding: 0 10px;
+  overflow: hidden;
+  border-radius: 8px;
+  background: var(--module-accent, var(--pulso-primary));
+  color: var(--pulso-surface);
+  font-size: var(--pulso-type-caption-size);
+  font-weight: var(--pulso-weight-semibold);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.crossbar-panel {
+  width: min(460px, calc(100vw - 32px));
+  max-height: min(560px, calc(100dvh - 120px));
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.crossbar-panel-cab {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px 16px 12px;
+  border-bottom: 1px solid var(--pulso-border);
+}
+
+.crossbar-panel-lista {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 6px 0 10px;
+  scrollbar-gutter: stable;
+}
+
+.crossbar-grupo {
+  display: flex;
+  flex-direction: column;
+}
+
+.crossbar-grupo > .vx-eyebrow {
+  padding: 10px 16px 4px;
+  white-space: normal;
+}
+
+.crossbar-opcion {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 8px 16px;
+  border: 0;
+  background: transparent;
+  color: var(--pulso-text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.crossbar-opcion:hover,
+.crossbar-opcion:focus-visible {
+  background: var(--pulso-surface-3);
+}
+
+.crossbar-opcion:focus-visible {
+  outline: 2px solid var(--module-accent-border, var(--pulso-primary-ring));
+  outline-offset: -2px;
+}
+
+.crossbar-opcion.is-sin-cruce {
+  cursor: default;
+}
+
+.crossbar-opcion.is-sin-cruce:hover {
+  background: transparent;
+}
+
+.crossbar-opcion.is-sin-cruce .crossbar-opcion-texto > span:first-child,
+.crossbar-opcion.is-sin-cruce .crossbar-opcion-texto > span:last-child {
+  color: var(--pulso-text-faint);
+}
+
+.crossbar-opcion.is-sin-cruce > :first-child {
+  opacity: 0.55;
+}
+
+.crossbar-limite {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 0;
+  padding: 10px 16px 12px;
+  border-top: 1px solid var(--pulso-border);
+  background: var(--pulso-surface-2);
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+  line-height: 1.4;
+}
+
+.crossbar-limite > svg {
+  flex: none;
+  margin-top: 1px;
+  color: var(--module-accent, var(--pulso-primary));
+}
+
+.crossbar-opcion[aria-current="true"] {
+  background: color-mix(in srgb, var(--module-accent, var(--pulso-primary)) 11%, var(--pulso-surface));
+}
+
+.crossbar-opcion-texto {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.crossbar-opcion-texto > span:first-child {
+  overflow: hidden;
+  font-size: var(--pulso-type-body-size);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.crossbar-opcion-texto > span:last-child {
+  overflow: hidden;
+  color: var(--pulso-text-faint);
+  font-size: var(--pulso-type-caption-size);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.crossbar-grafico {
+  flex: 0 1 170px;
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+  line-height: 1.3;
+}
+
+/* El texto del gráfico va en su propio elemento y se parte en dos líneas si no cabe. La opción
+   hereda `white-space: nowrap`, y por eso «% que marca, por categoría» medía 151 px dentro de 109:
+   la opción desbordaba de 17 a 106 px con rótulos largos (medido en vivo con acnur_acg). */
+.crossbar-grafico-texto {
+  min-width: 0;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.crossbar-grafico > svg {
+  flex: none;
+  color: var(--pulso-text-faint);
+}
+

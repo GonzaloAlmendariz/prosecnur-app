@@ -274,6 +274,8 @@
 #'   entre graficos. Si `TRUE`, ajusta el maximo al valor observado.
 #' @param marcas_eje Con la escala de 0 a 100 %, escribe las marcas 0, 25, 50, 75 y 100 % bajo las barras (variante
 #'   del recetario; Gonzalo, 2026-10-09: «Opcional brindar ambas opciones»). Sin efecto con el eje libre.
+#' @param pista_barras Pista gris hasta el 100% bajo cada barra de la lámina nativa: `"auto"` (con la escala de 0 a
+#'   100% y en las láminas de población), `"siempre"` o `"nunca"` (lamina_barras_pista.R).
 #' @param color_fondo Color de fondo del grafico. Por defecto es transparente (`NA`).
 #'
 #' @param grosor_barras Grosor de las barras (ancho en `geom_col()`).
@@ -309,6 +311,9 @@
 #'
 #' @param usar_canvas Si `TRUE`, arma el grafico mediante `cowplot` separando encabezado,
 #'   panel, leyenda y pie en bloques.
+#' @param cifras_dentro Con una sola serie, `NULL` o `FALSE` pone las cifras fuera de la barra con el cuerpo de la lámina
+#'   nativa (12 pt; 11 con rótulos de más de 45 letras); `TRUE` las mete dentro cuando caben. Con dos o más series no
+#'   interviene.
 #' @param preservar_tamanos_texto Si `TRUE`, conserva los tamanos solicitados
 #'   para categorias y valores aunque el grafico tenga muchas categorias o series.
 #' @param canvas_w_adaptativo Si `TRUE`, reparte el ancho entre etiquetas y barras
@@ -384,6 +389,7 @@ graficar_barras_agrupadas <- function(
     mostrar_n_en_etiquetas    = NA,   # NA: lo decide «Casos junto al porcentaje» del informe
     resaltar_mayor            = FALSE,   # en la lámina nativa, la barra más alta en otro tono (opción del gráfico)
     residuales_gris           = FALSE,   # residuales en gris en Word y lámina; apagado por defecto
+    colorear_por_opcion       = FALSE,   # ADR 0130: con una serie, un color; la paleta de la lista sólo si se pide
     resaltar_opciones         = NULL,    # D1: las respuestas que el analista resalta, por rótulo (lámina nativa)
     escala_valor              = c("proporcion_1", "proporcion_100"),
     orientacion               = c("horizontal", "vertical"),
@@ -446,6 +452,7 @@ graficar_barras_agrupadas <- function(
     lineheight_eje_y          = NULL,
     usar_eje_libre            = FALSE,
     marcas_eje                = FALSE,
+    pista_barras              = "auto",   # v7.11: pista gris hasta el 100% en la lámina nativa (lamina_barras_pista.R)
     color_fondo               = NA,
     font_family               = "Arial",
 
@@ -474,6 +481,7 @@ graficar_barras_agrupadas <- function(
     # ==========================
     usar_canvas               = FALSE,
     preservar_tamanos_texto   = FALSE,
+    cifras_dentro             = NULL,
     canvas_w_adaptativo       = FALSE,
     alinear_etiquetas         = c("derecha", "izquierda"),
 
@@ -971,7 +979,7 @@ graficar_barras_agrupadas <- function(
   }, error = function(e) { message("[espec agrupada] ", conditionMessage(e)); NULL }) else NULL
   # Gonzalo (2026-10-09): «si vamos a usar barras agrupadas es mejor que por defecto vayan de 0 a 100%». La lámina
   # nativa escala a 100 % salvo que se pida el eje libre, como ya hacía el eje de este ggplot.
-  if (!is.null(espec_agrupada)) { espec_agrupada$escala_completa <- !isTRUE(usar_eje_libre); espec_agrupada$marcas_eje <- isTRUE(marcas_eje) && !isTRUE(usar_eje_libre) }
+  if (!is.null(espec_agrupada)) { espec_agrupada$escala_completa <- !isTRUE(usar_eje_libre); espec_agrupada$marcas_eje <- isTRUE(marcas_eje) && !isTRUE(usar_eje_libre); espec_agrupada$colorear_por_opcion <- isTRUE(colorear_por_opcion); espec_agrupada$pista <- pista_barras }
   n_categorias <- length(cat_lvls)
   canvas_min_filas_eff <- suppressWarnings(as.numeric(canvas_min_filas)[1])
   if (!is.finite(canvas_min_filas_eff) || is.na(canvas_min_filas_eff) || canvas_min_filas_eff < 1) {
@@ -1123,6 +1131,10 @@ graficar_barras_agrupadas <- function(
     if (!is.null(aj_cruce)) {
       size_ejes_eff <- aj_cruce$size; ancho_max_eje_y_eff <- aj_cruce$wrap
       canvas_w_etiquetas <- aj_cruce$w_etiquetas; canvas_w_bars <- aj_cruce$w_bars
+      # El hueco del preset entre rótulos y barras (~0.37 in) dejaba «Bus» suelto, lejos de su par (CCSS 2026, cruces de
+      # respuesta múltiple): en un cruce pasa a las barras y queda un aire mínimo.
+      aire_buf <- .agrupadas_cruce_aire_rotulos(canvas_w_buf_etq_bars)
+      canvas_w_bars <- canvas_w_bars + (canvas_w_buf_etq_bars - aire_buf); canvas_w_buf_etq_bars <- aire_buf
     } else if (!forzar_ancho_max_eje_y && size_ejes_eff < size_previo_eje) {
       aj_rot <- .agrupadas_rotulos_ajustar(
         cat_lvls, ancho, canvas_w_etiquetas, canvas_w_bars,
@@ -1139,8 +1151,14 @@ graficar_barras_agrupadas <- function(
 
   usar_color_categorias <- !is.null(colores_categorias) &&
     length(cols_porcentaje) == 1L &&
-    is.null(colores_series)
-  if (isTRUE(usar_color_categorias)) {
+    is.null(colores_series) &&
+    isTRUE(colorear_por_opcion)   # ADR 0130: la paleta de la lista no colorea una sola serie si no se pide
+  # `residuales_gris` en la agrupada de una serie sin leyenda: el relleno va por categoría para poder pintar de gris
+  # «Otros», «No sabe» o «Ninguna». Sin esto el mando sólo llegaba a la espec nativa y la ruta ggplot (la que toma una
+  # categórica que no cabe en columnas ni barras nativas) lo ignoraba (CCSS 2026-11-04, lámina de agrupaciones).
+  residuales_gris_1s <- isTRUE(residuales_gris) && length(cols_porcentaje) == 1L && !isTRUE(mostrar_leyenda) &&
+    any(grepl(.CATEGORIAS_RESIDUALES, as.character(cat_lvls), ignore.case = TRUE))
+  if (isTRUE(usar_color_categorias) || residuales_gris_1s) {
     df_long$.fill_key <- factor(as.character(df_long[[var_categoria]]), levels = cat_lvls)
   } else {
     df_long$.fill_key <- df_long$.serie
@@ -1159,6 +1177,12 @@ graficar_barras_agrupadas <- function(
     )
   }
 
+  # Una sola serie: la cifra va fuera de la barra y con el cuerpo de la lámina nativa, que es por donde salen casi todas
+  # las agrupadas; dentro y en blanco sólo si el gráfico lo pide (CCSS 2026: 11 opciones salían dentro y grandes, 10
+  # opciones fuera y chicas, según la ruta). graficador_barras_agrupadas_rotulos.R
+  una_serie_fuera <- .agrupadas_una_serie_fuera(length(cols_porcentaje), cifras_dentro)
+  if (una_serie_fuera && !isTRUE(preservar_tamanos_texto)) size_texto_barras_eff <- .agrupadas_cifra_una_serie_mm(cat_lvls)
+
   # Ancho del grupo dentro de la unidad de categoria. 0.70 deja un 30 % de aire
   # ENTRE categorias, que con una sola barra por categoria separa bien. Con dos
   # series ese aire es lo unico que sobra: las barras se parten en dos y el
@@ -1175,7 +1199,9 @@ graficar_barras_agrupadas <- function(
   if (isTRUE(comparativo_activo)) grosor_barras_eff <- width_dodge_eff
   # CCSS-7: el par del cruce va pegado como el del comparativo, la cifra cabe en su barra y la primera serie va arriba.
   cruce_agr <- if (.agrupadas_es_cruce(n_series, comparativo_activo, orientacion, usar_canvas)) {
-    .agrupadas_cruce_par(size_texto_barras_eff, length(cat_lvls), n_series, alto,
+    # La cifra parte del cuerpo declarado, no del escalado por número de series: el par la baja si no cabe en su barra,
+    # y con el panel a todo el alto (`.agrupadas_cruce_barras_por_fila`) suele caber entera.
+    .agrupadas_cruce_par(suppressWarnings(as.numeric(size_texto_barras)[1]), length(cat_lvls), n_series, alto,
                          frac_panel = if (exists("frac_panel_agr", inherits = FALSE)) frac_panel_agr else 0.62)
   }
   if (!is.null(cruce_agr)) {
@@ -1302,13 +1328,21 @@ graficar_barras_agrupadas <- function(
     if (!is.null(sufijos_etiqueta) && is.data.frame(sufijos_etiqueta) &&
         nrow(sufijos_etiqueta) && all(c(".col_pct", ".sufijo") %in% names(sufijos_etiqueta)) &&
         var_categoria %in% names(sufijos_etiqueta)) {
+      # El rótulo puede llegar partido en líneas para el eje: se compara sin los saltos (ADR 0128).
+      clave_sig <- function(x) gsub("\\s+", " ", trimws(as.character(x)))
       idx <- match(
-        paste0(df_lab[[var_categoria]], "\r", df_lab$.col_pct),
-        paste0(sufijos_etiqueta[[var_categoria]], "\r", sufijos_etiqueta$.col_pct)
+        paste0(clave_sig(df_lab[[var_categoria]]), "\r", df_lab$.col_pct),
+        paste0(clave_sig(sufijos_etiqueta[[var_categoria]]), "\r", sufijos_etiqueta$.col_pct)
       )
       extra <- sufijos_etiqueta$.sufijo[idx]
       con_extra <- !is.na(extra) & nzchar(df_lab$lab)
-      df_lab$lab[con_extra] <- paste0(df_lab$lab[con_extra], extra[con_extra])
+      if (".letras" %in% names(sufijos_etiqueta) && is.null(espec_agrupada)) {
+        # ADR 0128: la marca es una cápsula aparte, no texto pegado a la cifra (lamina_significancia_capsula.R).
+        df_lab$.sig_txt <- ifelse(con_extra, trimws(extra), "")
+        df_lab$.sig_fragil <- sufijos_etiqueta$.fragil[idx] %in% TRUE
+      } else {
+        df_lab$lab[con_extra] <- paste0(df_lab$lab[con_extra], extra[con_extra])
+      }
     }
     if (isTRUE(mostrar_n_en_etiquetas) && ".n_label_val" %in% names(df_lab)) {
       n_val <- suppressWarnings(as.numeric(df_lab$.n_label_val))
@@ -1330,7 +1364,7 @@ graficar_barras_agrupadas <- function(
                             if (".n_label_val" %in% names(df_lab)) df_lab$.n_label_val[o_lab] else NULL, residuales_al_final = FALSE, sin_ceros = sin_ceros_espec,
                             n_base_casos = if (length(n_base_casos_agr) == 1L) n_base_casos_agr, casos = mostrar_n_en_etiquetas, resaltar = resaltar_mayor, resaltar_opciones = resaltar_opciones, residuales_gris = isTRUE(residuales_gris)),
         error = function(e) espec_agrupada)
-      if (!is.null(espec_agrupada)) { espec_agrupada$escala_completa <- !isTRUE(usar_eje_libre); espec_agrupada$marcas_eje <- isTRUE(marcas_eje) && !isTRUE(usar_eje_libre) }
+      if (!is.null(espec_agrupada)) { espec_agrupada$escala_completa <- !isTRUE(usar_eje_libre); espec_agrupada$marcas_eje <- isTRUE(marcas_eje) && !isTRUE(usar_eje_libre); espec_agrupada$colorear_por_opcion <- isTRUE(colorear_por_opcion); espec_agrupada$pista <- pista_barras }
     }
 
     umbral_posicion_eff <- umbral_posicion
@@ -1396,6 +1430,7 @@ graficar_barras_agrupadas <- function(
         (df_lab$.valor_plot >= umbral_inside | cabe_texto_inside)
     }
 
+    if (una_serie_fuera) df_lab$inside <- rep(FALSE, nrow(df_lab))
     df_lab$valor_label <- df_lab$.valor_plot
     mask_inside <- df_lab$inside & !is.na(df_lab$inside)
     if (identical(orientacion, "horizontal")) {
@@ -1442,6 +1477,9 @@ graficar_barras_agrupadas <- function(
         show.legend = FALSE
       ) +
       ggplot2::scale_colour_identity(guide = "none")
+    p <- .sig_capa_capsula(p, df_lab, var_categoria, width_dodge, isTRUE(cruce_agr$dodge_invertido), base_max,
+                           ancho_texto_datos, size_texto_barras_eff, font_family,   # ADR 0128: cápsula ▲A
+                           panel_in = ancho * (if (isTRUE(usar_canvas)) canvas_w_bars else 1 - canvas_w_etiquetas))
   }
 
   # ---------------------------------------------------------------------------
@@ -1490,6 +1528,12 @@ graficar_barras_agrupadas <- function(
     )
   }
   if (length(cruce_agr$colores)) pal_fill <- cruce_agr$colores
+  if (residuales_gris_1s) {
+    base_col <- if (isTRUE(usar_color_categorias)) pal_fill else stats::setNames(rep(.PULSO_PPT_COLORS$azul, length(cat_lvls)), as.character(cat_lvls))
+    es_res <- grepl(.CATEGORIAS_RESIDUALES, names(base_col), ignore.case = TRUE)
+    base_col[es_res] <- .graficos_no_sustantivo_color()
+    pal_fill <- base_col
+  }
   p <- p + ggplot2::scale_fill_manual(values = pal_fill)
 
   if (!is.null(ancho_max_eje_y_eff)) {
@@ -1755,6 +1799,18 @@ graficar_barras_agrupadas <- function(
       plot.background  = ggplot2::element_rect(fill = color_fondo, color = NA),
       panel.background = ggplot2::element_rect(fill = color_fondo, color = NA)
     )
+  # «Marcas del eje» en el lienzo: theme_void() borraba eje y guías y el mando no cambiaba el PPT (banco de mutación de
+  # mandos, CCSS 2026-11-04). Con escala completa de 0 a 100 % se escriben 0, 25, 50, 75 y 100 % con sus guías, como en la
+  # lámina nativa (lamina_categorica.R).
+  if (isTRUE(marcas_eje) && !isTRUE(usar_eje_libre) && escala_valor %in% c("proporcion_1", "proporcion_100")) {
+    tope_marcas <- if (identical(escala_valor, "proporcion_100")) 100 else 1
+    p_panel <- p_panel +
+      ggplot2::scale_y_continuous(limits = c(0, max(base_max, tope_marcas)), breaks = seq(0, tope_marcas, length.out = 5),
+                                  labels = function(z) .pulso_fmt_pct_half_up(z * (100 / tope_marcas) / 100, 0),
+                                  expand = ggplot2::expansion(mult = c(0, 0.02))) +
+      ggplot2::theme(panel.grid.major.x = ggplot2::element_line(color = .std_color("filete"), linewidth = 0.3),
+                     axis.text.x = ggplot2::element_text(size = 8, color = .std_color("texto_tenue"), family = font_family))
+  }
 
   # leyenda grob (con separacion real)
   n_por_fila <- as.integer(legend_n_por_fila)
@@ -1890,14 +1946,19 @@ graficar_barras_agrupadas <- function(
       is.finite(alto_hueco) && alto_hueco > 0 &&
       h_total_in > 0 && h_total_in < alto_hueco) {
     panel_disponible <- alto_hueco - h_header_in - h_legend_in - h_caption_in
-    panel_nuevo <- min(panel_disponible, h_panel_in * .AGRUPADAS_PANEL_ESTIRA_MAX)
+    # En un cruce cada fila lleva una barra por grupo: el estirado y el techo cuentan barras, no filas (CCSS 2026, lámina 46).
+    barras_fila <- .agrupadas_cruce_barras_por_fila(cruce_agr, n_series)
+    panel_nuevo <- min(panel_disponible, h_panel_in * .AGRUPADAS_PANEL_ESTIRA_MAX * barras_fila)
     # El estirado engorda la barra: la fraccion no cambia, pero la fila si. Sin
     # tope, el cuadrante de dos barras de un perfil salia a 1.68 cm y el de
     # cinco a 0.70, sobre la misma lamina. Se limita para que la barra no pase
     # del techo; el panel queda mas corto que su hueco, que es preferible a que
     # dos cuadrantes hermanos no midan lo mismo.
     if (is.finite(grosor_barras_eff) && grosor_barras_eff > 0) {
-      panel_techo <- (.GROSOR_TECHO_IN / grosor_barras_eff) * n_filas_panel
+      # En un cruce el techo es por BARRA y más bajo que el del perfil: con 2 opciones × 2 grupos las barras llenaban la
+      # lámina y con 1 × 2 medían 0.7 in (CCSS 2026, mazo de 97 láminas). Un solo grosor máximo para todo el mazo.
+      techo_barra <- if (barras_fila > 1L) .AGRUPADAS_CRUCE_BARRA_MAX_IN else .GROSOR_TECHO_IN
+      panel_techo <- (techo_barra / grosor_barras_eff) * n_filas_panel * barras_fila
       if (is.finite(panel_techo) && panel_techo > 0) {
         panel_nuevo <- min(panel_nuevo, max(h_panel_in, panel_techo))
       }
@@ -1908,22 +1969,27 @@ graficar_barras_agrupadas <- function(
       h_total_in <- h_header_in + h_panel_in + h_legend_in + h_caption_in
     }
   }
+  # El bloque del cruce (barras y leyenda) se centra en el alto que sobra, en vez de quedar pegado arriba: con el grosor
+  # topado el panel es más corto que su hueco (CCSS 2026: «barras que ocupan sólo la mitad superior»).
+  h_pad_in <- .agrupadas_cruce_relleno(cruce_agr, usar_canvas, panel_fijado_in, alto_hueco, h_total_in)
+  h_total_in <- h_total_in + 2 * h_pad_in
   if (h_total_in <= 0) h_total_in <- 1
 
   header_h  <- h_header_in  / h_total_in
   panel_h   <- h_panel_in   / h_total_in
   legend_h  <- h_legend_in  / h_total_in
   caption_h <- h_caption_in / h_total_in
+  pad_h     <- h_pad_in     / h_total_in
 
   y_header0 <- 1 - header_h
   if (has_legend && legend_is_top && !legend_is_side) {
-    y_legend0  <- y_header0 - legend_h
+    y_legend0  <- y_header0 - pad_h - legend_h
     y_panel0   <- y_legend0 - panel_h
-    y_caption0 <- y_panel0 - caption_h
+    y_caption0 <- y_panel0 - pad_h - caption_h
   } else {
-    y_panel0   <- y_header0 - panel_h
+    y_panel0   <- y_header0 - pad_h - panel_h
     y_legend0  <- y_panel0  - legend_h
-    y_caption0 <- y_legend0 - caption_h
+    y_caption0 <- y_legend0 - pad_h - caption_h
   }
 
   # widths
@@ -2231,6 +2297,7 @@ graficar_barras_agrupadas <- function(
       grosor_eff = grosor_barras_eff,
       canvas_min_filas = canvas_min_filas_eff,
       h_panel_in = h_panel_in, h_total_in = h_total_in, h_top_in = top_in,   # A12: la fila real (lamina_titulo_lienzo.R)
+      h_pad_in = h_pad_in, h_header_in = h_header_in, h_legend_in = h_legend_in, h_caption_in = h_caption_in,
       size_ejes_eff = size_ejes_eff,
       size_texto_barras_eff = size_texto_barras_eff,
       lineheight_eje_y_eff = lineheight_eje_y_eff,

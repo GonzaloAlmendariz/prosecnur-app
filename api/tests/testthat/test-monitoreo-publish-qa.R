@@ -1,6 +1,19 @@
 source("setup-load-all.R")
 
 .monitoreo_publish_qa_pdf_text <- function(pdf_path) {
+  # Primero poppler (`pdftotext`), que es lo que instala el CI y lo que usan las
+  # demás suites de PDF. Antes sólo se probaba pypdf: el CI no lo tiene, así que
+  # estos dos tests se saltaban con «No PDF text extractor available» teniendo
+  # poppler a mano (auditoría de skips, 4 nov 2026).
+  if (nzchar(Sys.which("pdftotext"))) {
+    txt <- tempfile(fileext = ".txt")
+    on.exit(unlink(txt, force = TRUE), add = TRUE)
+    status <- system2("pdftotext", c("-enc", "UTF-8", shQuote(normalizePath(pdf_path, mustWork = TRUE)), shQuote(txt)),
+                      stdout = FALSE, stderr = FALSE)
+    if (identical(as.integer(status), 0L) && file.exists(txt)) {
+      return(paste(readLines(txt, warn = FALSE, encoding = "UTF-8"), collapse = "\n"))
+    }
+  }
   candidates <- c(
     Sys.getenv("PROSECNUR_PDF_PYTHON", ""),
     file.path(Sys.getenv("HOME", ""), ".cache", "codex-runtimes", "codex-primary-runtime", "dependencies", "python", "bin", "python3"),
@@ -30,6 +43,23 @@ source("setup-load-all.R")
   }
   NULL
 }
+
+# La primera cifra entera que sigue a cada aparición de `rotulo` en el texto del PDF.
+.monitoreo_publish_qa_cifras_tras <- function(texto, rotulo) {
+  trozos <- strsplit(texto, rotulo, fixed = TRUE)[[1]][-1]
+  as.integer(vapply(trozos, function(t) {
+    m <- regmatches(t, regexpr("(?<![0-9.,%/])[0-9]+(?![0-9.,%/])", t, perl = TRUE))
+    if (length(m)) m else NA_character_
+  }, character(1), USE.NAMES = FALSE))
+}
+
+test_that("la cifra que sigue al rótulo no depende del extractor", {
+  expect_identical(.monitoreo_publish_qa_cifras_tras("ENCUESTAS\n22\nCUOTA\n31", "ENCUESTAS"), 22L)
+  expect_identical(.monitoreo_publish_qa_cifras_tras("ENCUESTAS\n\nCUOTA\n\n22\n\n31", "ENCUESTAS"), 22L)
+  # Un porcentaje no es la cifra de la tarjeta; cada rótulo da la suya.
+  expect_identical(.monitoreo_publish_qa_cifras_tras("ENCUESTAS\n71.0%\n9\nENCUESTAS\n6", "ENCUESTAS"), c(9L, 6L))
+  expect_identical(.monitoreo_publish_qa_cifras_tras("ENCUESTAS\nsin cifra", "ENCUESTAS"), NA_integer_)
+})
 
 test_that("publicacion Sheets no reutiliza fuentes Google Sheets como destino", {
   source_sheet <- "1SOURCEaaaaaaaaaaaaaaaaaaaaaa"
@@ -75,7 +105,7 @@ test_that("publicacion Sheets no reutiliza fuentes Google Sheets como destino", 
   expect_equal(.monitoreo_extract_spreadsheet_id(paste0("https://docs.google.com/open?id=", client_sheet)), client_sheet)
 })
 
-test_that("PDF cliente acreditacion declara corte, fuentes y criterio canonico", {
+test_that("PDF cliente acreditacion declara corte y criterio sin texto interno", {
   fixture <- monitoreo_publish_qa_fixture("acreditacion")
   model <- monitoreo_acreditacion_client_report_model(fixture$data, fixture$config)
   model$sheets <- monitoreo_acreditacion_client_report_sheets(model, include_targets = FALSE)
@@ -88,12 +118,12 @@ test_that("PDF cliente acreditacion declara corte, fuentes y criterio canonico",
 
   pdf_text <- .monitoreo_publish_qa_pdf_text(pdf_path)
   testthat::skip_if(is.null(pdf_text), "No PDF text extractor available")
-  expect_true(grepl("Corte y fuentes", pdf_text, fixed = TRUE))
-  expect_true(grepl("Fuente de verdad", pdf_text, fixed = TRUE))
-  expect_true(grepl("Fuentes de respuestas", pdf_text, fixed = TRUE))
-  expect_true(grepl("SurveyMonkey", pdf_text, fixed = TRUE))
-  expect_true(grepl("base oficial", pdf_text, ignore.case = TRUE))
-  expect_true(grepl("Apps Script viejo", pdf_text, fixed = TRUE))
+  # El corte y el criterio se declaran en lenguaje del cliente; la mecánica
+  # interna (caso canónico, Apps Script, workbook) no cruza al documento.
+  expect_true(grepl("Corte", pdf_text, fixed = TRUE))
+  expect_true(grepl("Resumen del avance", pdf_text, fixed = TRUE))
+  expect_true(grepl("Resumen del avance", pdf_text, fixed = TRUE))
+  expect_false(grepl("Apps Script|can[oó]nico|Fuente de verdad|workbook|source_id|collector|Ver detalle", pdf_text))
 })
 
 test_that("ACRDCONTA compacto genera 270/157/5/0/108 desde base canonica", {
@@ -592,9 +622,20 @@ test_that("PDF cliente territorial usa conteos del Sheets cliente", {
   expect_true(grepl("10 jun. 2026", pdf_text, fixed = TRUE))
   expect_true(grepl("16 jun. 2026", pdf_text, fixed = TRUE))
   expect_true(grepl("PULSO PUCP", pdf_text, fixed = TRUE))
-  expect_true(grepl(paste0("ENCUESTAS\n", expected_total), pdf_text, fixed = TRUE))
-  for (value in district_effective) {
-    expect_true(grepl(paste0("ENCUESTAS\n", as.integer(value)), pdf_text, fixed = TRUE))
+  # La cifra de cada tarjeta es la primera que sigue a su rótulo «ENCUESTAS». pypdf
+  # la lee pegada («ENCUESTAS\n22») y pdftotext lee primero los rótulos de la fila
+  # («ENCUESTAS\nCUOTA\n22\n31»): se compara la cifra, no el salto de línea.
+  # Cada cifra va atada a su tarjeta: la primera es el total y la de cada distrito
+  # es la que sigue a «ENCUESTAS» después de su nombre, así que dos distritos que
+  # intercambian sus cifras dan rojo.
+  encuestas <- .monitoreo_publish_qa_cifras_tras(pdf_text, "ENCUESTAS")
+  expect_identical(encuestas[[1]], as.integer(expected_total))
+  expect_length(encuestas, 1L + length(district_rows))
+  for (row in district_rows) {
+    seg <- strsplit(pdf_text, toupper(row[["Distrito"]]), fixed = TRUE)[[1]]
+    expect_gte(length(seg), 2L)
+    expect_identical(.monitoreo_publish_qa_cifras_tras(seg[[length(seg)]], "ENCUESTAS")[[1]],
+                     as.integer(row[["Efectivas"]]), info = row[["Distrito"]])
   }
   expect_false(grepl("TER-RAW|GPS y territorio|Casos accionables|Auditoría técnica|_uuid|\\.source_id", pdf_text))
 })

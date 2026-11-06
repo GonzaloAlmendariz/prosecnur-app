@@ -3,6 +3,7 @@ import { Calculator, Loader2 } from "lucide-react";
 import type { CalcMuestraComponente } from "../../../api/calcMuestra";
 import { normalizeCalcMuestraMemoriaCalculo } from "../../../api/calcMuestraGeneral";
 import { Math as LatexMath } from "../../../components/Math";
+import { Panel } from "../../../components/Panel";
 import { EmptyState } from "../../../components/States";
 import { FormulaLatex } from "../universidad/ui";
 import { latexDeFormula, terminosDeMemoria } from "./memoriaLatex";
@@ -10,6 +11,7 @@ import { esTecnicaDeElementos } from "./modelo";
 import { lineaDeAsignacion } from "./modeloParametros";
 import "./general.css";
 import "./mesa.css";
+import { fmtInt } from "../sharedCore";
 
 /**
  * Método › Memoria de cálculo: la cadena que va de Cochran al n a campo y al
@@ -43,14 +45,13 @@ export function MemoriaCalculoGeneral({
   const latexPrincipal = principal ? latexDeFormula(principal.formula) : null;
 
   return (
-    <section className="cmv2-panel cmg-memoria" aria-labelledby="cmg-memoria-titulo">
-      <div className="cmv2-panel-head">
-        <div>
-          <span className="cmv2-eyebrow">Memoria de cálculo</span>
-          <h3 id="cmg-memoria-titulo" className="cmg-panel-titulo">Cómo se calcula el n</h3>
-        </div>
-        {pasos.length > 0 && <span className="cmv2-pill-soft">{pasos.length} pasos</span>}
-      </div>
+    <Panel
+      className="cmg-memoria"
+      aria-labelledby="cmg-memoria-titulo"
+      eyebrow="Memoria de cálculo"
+      title={<span id="cmg-memoria-titulo">Cómo se calcula el n</span>}
+      actions={pasos.length > 0 ? <span className="cmv2-pill-soft">{fmtInt(pasos.length)} pasos</span> : undefined}
+    >
       {asignacion && <p className="cmg-nota">{asignacion}</p>}
       {pasos.length === 0 ? (
         <EmptyState
@@ -117,6 +118,6 @@ export function MemoriaCalculoGeneral({
           </ol>
         </div>
       )}
-    </section>
+    </Panel>
   );
 }

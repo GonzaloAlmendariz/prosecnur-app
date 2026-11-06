@@ -21,17 +21,13 @@ const srcDir = path.resolve(appDir, "..");
 /** Tokens usados sin definir a fecha de 2026-07-30. Solo se quitan nombres. */
 const DEUDA_CONOCIDA = new Set([
   "--pulso-border-soft",
-  "--pulso-chrome-pad",
-  "--pulso-chrome-radius",
   "--pulso-danger-soft",
   "--pulso-focus-ring",
   "--pulso-ink",
   "--pulso-material-thin",
   "--pulso-muted",
   "--pulso-muted-fg",
-  "--pulso-on-primary",
   "--pulso-primary-bg",
-  "--pulso-primary-hover",
   "--pulso-radius-control",
   "--pulso-radius-lg",
   "--pulso-radius-md",

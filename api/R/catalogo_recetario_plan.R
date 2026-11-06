@@ -443,6 +443,10 @@
         .cr_g("p_mapa_resultado_distrital", var = "egresados$satisf_general", cruces = "egresados$distrito",
               corte = "3,4", rotulo = "Satisfechos o muy satisfechos"),
         "Mapa de Lima por distrito", "un resultado se compara entre distritos de Lima", 107),
+    uno("La mayoría de los egresados vive en Lima Centro y Lima Moderna",
+        "¿En qué distrito vive?",
+        .cr_g("p_mapa_distribucion", var = "egresados$distrito", area = "lima_callao", puntos = "Facultad | -12.0693, -77.0794"),
+        "Mapa de distribución por distrito", "muestras dónde están los encuestados, con su número y porcentaje"),
 
     # ---- 11. Diferencias significativas ------------------------------------------------------------------------------
     cap("Diferencias significativas", NULL, 11, "Qué diferencias entre grupos no son azar", "Capítulo con rótulo", "abres un capítulo del informe"),
@@ -495,6 +499,22 @@
                     dimensiones = c("Los propósitos", "La gestión", "La docencia", "Los servicios")),
         estilo = "Objetivo con dimensiones", uso = "el objetivo se abre en dimensiones del estudio", pagina = 28,
         opciones = "meta$variante = \"dimensiones\", meta$actores, meta$dimensiones"),
+    # Revisión del PPT v7.23 (ítem 15): la línea por nivel y los dos resúmenes se ofrecen en el editor, así que el
+    # catálogo los muestra (antes faltaban y test-catalogo-recetario.R estaba en rojo).
+    subcap("Resumen del informe"),
+    uno("El acuerdo con que la Unidad informa a tiempo, ciclo por ciclo", NULL,
+        .cr_g("p_lineas_nivel", var = "estudiantes$gestion_1", cruce = "estudiantes$ciclo",
+              series = list(list(rotulo = "De acuerdo o totalmente de acuerdo", codigos = c("3", "4"))),
+              titulo_seccion = "Según nivel curricular", publico = "estudiantes", nombre_nivel = "ciclo"),
+        estilo = "Total arriba y línea por nivel", uso = "una pregunta sigue un orden de niveles (ciclo, año) y se quiere ver si crece"),
+    lam("p_slide_hallazgos", titulo = "Principales hallazgos", etiqueta = "Resumen ejecutivo", modo = "resumen", seleccion = "auto",
+        cruces = list("estudiantes$ciclo", "estudiantes$sexo"), publico = "estudiantes",
+        estilo = "Resumen ejecutivo por capítulo", uso = "cierra el informe con las cifras de cada capítulo y su diferencia principal",
+        opciones = "modo = \"resumen\", seleccion = \"auto\", cruces"),
+    lam("p_slide_resumen_diferencias", titulo = "¿En qué se diferencian los grupos?", etiqueta = "Resumen de diferencias",
+        seleccion = "auto", cruces = list("estudiantes$ciclo", "estudiantes$sexo"), publico = "estudiantes",
+        estilo = "Resumen de diferencias", uso = "una tabla dice qué grupos difieren del resto en cada pregunta del informe",
+        opciones = "seleccion = \"auto\", cruces"),
     subcap("Cierres"),
     lam("p_slide_cierre", variante = "banda_azul", correo = CIERRE$correo, web = CIERRE$web,
         estilo = "Cierre con banda azul", uso = "el cierre lleva sólo el contacto sobre una banda de la marca", opciones = "variante = \"banda_azul\""),

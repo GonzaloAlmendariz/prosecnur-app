@@ -4,7 +4,7 @@ import { MONITOREO_PESTANAS } from "../../../../lib/navegacion/catalogos/monitor
 import { describe, expect, it } from "vitest";
 
 import type { MonitoreoAulasDashboard } from "../../../../api/monitoreo";
-import { railDeAulas } from "./railDeAulas";
+import { railDeAulas, rotuloDePestanaAulas } from "./railDeAulas";
 
 /**
  * **Un badge es un número desnudo al lado de una etiqueta.**
@@ -19,8 +19,9 @@ import { railDeAulas } from "./railDeAulas";
 const dashboard = (reemplazos: Array<Record<string, unknown>>) =>
   ({ kpis: {}, reemplazos } as unknown as MonitoreoAulasDashboard);
 
+// Reemplazos es hoy Modelo › Muestra (revamp del esqueleto común, 2026-10-23).
 const badgeDe = (d: MonitoreoAulasDashboard, key: string) =>
-  railDeAulas("consultas", d).find((p) => p.key === key)?.badge;
+  railDeAulas("modelo", d).find((p) => p.key === key)?.badge;
 
 describe("el badge de Reemplazos cuenta cadenas movidas", () => {
   it("no cuenta las filas de la lista, que son el plan entero", () => {
@@ -33,14 +34,14 @@ describe("el badge de Reemplazos cuenta cadenas movidas", () => {
       { sample_status: "agendada" },
       { sample_status: "sin_contactar" },
     ]);
-    expect(badgeDe(d, "reemplazos")).toBe("2");
+    expect(badgeDe(d, "muestra")).toBe("2");
   });
 
   it("sin ninguna movida no hay nada que revisar", () => {
     const d = dashboard([
       { sample_status: "en_reserva" }, { sample_status: "agendada" },
     ]);
-    const tab = railDeAulas("consultas", d).find((p) => p.key === "reemplazos");
+    const tab = railDeAulas("modelo", d).find((p) => p.key === "muestra");
     expect(tab?.badge).toBeUndefined();
     expect(tab?.estado).toBe("listo");
   });
@@ -52,7 +53,7 @@ describe("el badge de Reemplazos cuenta cadenas movidas", () => {
       { sample_status: "reemplazada por caída" },
       { sample_status: "reagendada" },
     ]);
-    expect(badgeDe(d, "reemplazos")).toBe("1");
+    expect(badgeDe(d, "muestra")).toBe("1");
   });
 });
 
@@ -67,7 +68,7 @@ describe("el badge de Registro cuenta lo que espera parte", () => {
    * cierre y en el resumen que va al cliente.
    */
   const conKpis = (kpis: Record<string, number>) =>
-    railDeAulas("calidad", { kpis } as unknown as MonitoreoAulasDashboard)
+    railDeAulas("control", { kpis } as unknown as MonitoreoAulasDashboard)
       .find((p) => p.key === "registro")?.badge;
 
   it("el universo son los titulares, no el plan con sus reservas", () => {
@@ -115,7 +116,7 @@ describe("todas las ramas del rail apuntan a una pestaña que existe", () => {
  */
 describe("sin tablero el rail no mide", () => {
   it("ninguna pestaña publica estado ni contador mientras carga", () => {
-    for (const seccion of ["modelo", "calidad", "consultas", "avance"]) {
+    for (const seccion of ["insumos", "modelo", "control", "avance"]) {
       for (const pestana of railDeAulas(seccion, null)) {
         expect(pestana.estado, `${seccion}/${pestana.key}`).toBeUndefined();
         expect(pestana.badge, `${seccion}/${pestana.key}`).toBeUndefined();
@@ -126,5 +127,22 @@ describe("sin tablero el rail no mide", () => {
   it("con tablero vacío sí mide: el cero ya es un conteo", () => {
     const d = { kpis: {}, brechas: [], reemplazos: [] } as unknown as MonitoreoAulasDashboard;
     expect(railDeAulas("avance", d).find((p) => p.key === "resumen")?.estado).toBe("listo");
+  });
+});
+
+describe("el rótulo de Avance › Por facultad sigue al eje (A2)", () => {
+  const conEje = (etiqueta: string) => ({
+    kpis: {}, brechas: [], reemplazos: [], avance_cuota: { eje: { etiqueta } },
+  }) as unknown as MonitoreoAulasDashboard;
+
+  it("en un estudio por nivel se llama «Por nivel», en el rail y en la cabecera", () => {
+    expect(rotuloDePestanaAulas("avance", "porfacultad", conEje("Nivel"))).toBe("Por nivel");
+    expect(railDeAulas("avance", conEje("Nivel")).find((p) => p.key === "porfacultad")?.label).toBe("Por nivel");
+  });
+
+  it("sin eje declarado, o en otra pestaña, vale el rótulo del catálogo", () => {
+    expect(rotuloDePestanaAulas("avance", "porfacultad", null)).toBeNull();
+    expect(rotuloDePestanaAulas("avance", "resumen", conEje("Nivel"))).toBeNull();
+    expect(railDeAulas("avance", null).find((p) => p.key === "porfacultad")?.label).toBe("Por facultad");
   });
 });

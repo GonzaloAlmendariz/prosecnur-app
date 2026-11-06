@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useLocation } from "react-router-dom";
-import { AlertTriangle, Check, Loader2 } from "lucide-react";
 import { apiJobStatus, apiProjectWarmup } from "../api/client";
 import { VistaSkeleton } from "../components/VistaSkeleton";
 import {
@@ -15,9 +14,9 @@ import {
   warmupModulesComplete,
   type WarmupModuleProgress,
 } from "./warmupRegistry";
-import { WarmupReloj, useAhora } from "./WarmupReloj";
+import { useAhora } from "./WarmupReloj";
 import { SIN_ESTIMACION, duracionFase } from "./warmupTiempo";
-import "./module-warmup.css";
+import { PantallaDeCarga } from "./PantallaDeCarga";
 
 type ModuleWarmupProfile = {
   key: string;
@@ -200,14 +199,6 @@ const MODULE_PROFILES: ModuleWarmupProfile[] = [
     backend: ["project", "editor_xlsform"],
     messages: ["Preparando formulario", "Leyendo estructura", "Abriendo editor"],
   },
-  {
-    key: "bitacora",
-    title: "Bitácora",
-    moduleTo: "/bitacora",
-    frontend: ["diseno_estudio"],
-    backend: ["project"],
-    messages: ["Leyendo bitácora", "Preparando cronograma", "Abriendo módulo"],
-  },
 ];
 
 function cleanPathname(pathname: string) {
@@ -230,9 +221,6 @@ function warmupProfileForPath(pathname: string) {
   }
   if (path === "/material-campo" || path === "/recopiladores") {
     return MODULE_PROFILES.find((profile) => profile.key === "material-campo") ?? null;
-  }
-  if (path === "/bitacora" || path === "/plan-trabajo" || path === "/diseno-estudio") {
-    return MODULE_PROFILES.find((profile) => profile.key === "bitacora") ?? null;
   }
   if (path === "/tablero") return MODULE_PROFILES.find((profile) => profile.key === "dashboard") ?? null;
   if (path === "/editor-xlsform") return MODULE_PROFILES.find((profile) => profile.key === "editor-xlsform") ?? null;
@@ -448,15 +436,9 @@ export default function ModuleWarmupBoundary({ children }: { children: ReactNode
       inicioMs={propio ? state.inicioMs : undefined}
       fases={propio ? state.fases : undefined}
       error={propio ? state.error : undefined}
+      percent={propio ? state.percent : undefined}
     />
   );
-}
-
-function FaseIcono({ status }: { status: ModuleWarmupFase["status"] }) {
-  if (status === "ready") return <Check size={12} strokeWidth={3} aria-hidden="true" />;
-  if (status === "running") return <Loader2 size={12} strokeWidth={2.6} className="pulso-module-warmup-spin" aria-hidden="true" />;
-  if (status === "error") return <AlertTriangle size={11} strokeWidth={2.4} aria-hidden="true" />;
-  return null;
 }
 
 function ModuleWarmupScreen({
@@ -465,9 +447,12 @@ function ModuleWarmupScreen({
   inicioMs,
   fases,
   error,
+  percent,
 }: {
   profile: ModuleWarmupProfile;
   message: string;
+  /** Avance medido por el boundary (0–100); sin él la barra es indeterminada. */
+  percent?: number;
   inicioMs?: number;
   fases?: ModuleWarmupFase[];
   error?: string;
@@ -479,49 +464,29 @@ function ModuleWarmupScreen({
   const ahoraMs = useAhora(true);
   const desde = inicioMs ?? montadoMs;
   return (
-    <section
+    <PantallaDeCarga
       className="pulso-module-warmup"
       style={module ? moduleChromeVars(module) : undefined}
-      role="status"
-      aria-live="polite"
-      data-module-warmup={profile.key}
-    >
-      <div className="pulso-module-warmup-destino" aria-hidden="true">
-        <VistaSkeleton variante="modulo" secciones={module?.sections.length ?? 5} />
-      </div>
-      <div className="pulso-module-warmup-card">
-        <div className="pulso-module-warmup-mark" aria-hidden="true">
-          <span />
-          <span />
-          <span />
-        </div>
-        <div className="pulso-module-warmup-copy">
-          <p>{profile.title}</p>
-          <h2>{message || "Preparando módulo"}</h2>
-        </div>
-        <WarmupReloj transcurridoMs={Math.max(0, ahoraMs - desde)} estimacion={SIN_ESTIMACION} />
-        {fases?.length ? (
-          <ol className="pulso-module-warmup-fases" aria-label="Fases" aria-live="off">
-            {fases.map((fase) => (
-              <li className={`pulso-module-warmup-fase is-${fase.status}`} key={fase.id}>
-                <span className="pulso-module-warmup-fase-icono" aria-hidden="true">
-                  <FaseIcono status={fase.status} />
-                </span>
-                <strong>{fase.label}</strong>
-                <small>
-                  {duracionFase({
-                    status: fase.status,
-                    elapsedMs: fase.elapsedMs,
-                    inicioMs: fase.inicioMs,
-                    ahoraMs,
-                  }) || (fase.status === "pending" ? "En espera" : "")}
-                </small>
-              </li>
-            ))}
-          </ol>
-        ) : null}
-        {error ? <small className="pulso-module-warmup-error">{error}</small> : null}
-      </div>
-    </section>
+      conTono={Boolean(module)}
+      datos={{ "data-module-warmup": profile.key }}
+      fondo={<VistaSkeleton variante="modulo" secciones={module?.sections.length ?? 5} />}
+      ceja={`Abriendo ${profile.title}`}
+      titulo={message || "Preparando módulo"}
+      porcentaje={percent !== undefined && percent < 100 ? percent : undefined}
+      transcurridoMs={Math.max(0, ahoraMs - desde)}
+      estimacion={SIN_ESTIMACION}
+      error={error}
+      fases={fases?.map((fase) => ({
+        id: fase.id,
+        label: fase.label,
+        status: fase.status,
+        lectura: duracionFase({
+          status: fase.status,
+          elapsedMs: fase.elapsedMs,
+          inicioMs: fase.inicioMs,
+          ahoraMs,
+        }) || (fase.status === "pending" ? "En espera" : ""),
+      }))}
+    />
   );
 }

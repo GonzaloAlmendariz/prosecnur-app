@@ -1,3 +1,5 @@
+import { formatoDecimal } from "../../../../lib/formatoNumero";
+
 /**
  * Qué lleva dentro el libro que se acaba de generar.
  *
@@ -9,7 +11,7 @@
  * omite, qué se dice cuando no hay nada— y una frase con reglas se prueba.
  */
 
-const miles = (n: number) => n.toLocaleString("es-PE");
+const miles = (n: number) => formatoDecimal(n, 3);
 
 export function avisoLibroGenerado(res: {
   unidades: number;

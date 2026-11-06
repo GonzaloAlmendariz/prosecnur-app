@@ -12,6 +12,7 @@ import type { EstudioBase } from "../../api/client";
 import type { CargaTopologyResolution } from "./CargaTopologyModel";
 import { coverageSummary, type CoverageRow } from "./CargaPlanCoverageModel";
 
+import { EstadoVacio } from "../../components/EstadoVacio";
 function statusLabel(row: CoverageRow) {
   if (row.state === "ready") return "Completa";
   if (row.state === "attention") return "Incompleta";
@@ -23,7 +24,7 @@ function topologyTitle(resolution: CargaTopologyResolution) {
   if (resolution.mode === "undecided") return "Topología por definir";
   if (resolution.mode === "single") return "Una base";
   if (resolution.status === "planned" && !resolution.strategy) {
-    return "Varias bases en preparación · organización por definir";
+    return "Varias bases en preparación, organización por definir";
   }
   const label = resolution.strategy === "integrated"
     ? "Base integrada"
@@ -165,29 +166,21 @@ export function CargaPlanOverview({
               </li>
             )) : (
               <li className="is-empty">
-                <span className="pulso-carga-plan-row-state" aria-hidden="true">
-                  <Database size={16} />
-                </span>
-                <span className="pulso-carga-plan-row-copy">
-                  <strong>{topologyDefined ? "Aún no hay bases creadas" : "Aún no hay una base definida"}</strong>
-                  <small>
-                    {topology.mode === "multi"
-                      ? "Ve a Fuentes para crear la primera base y asignarle formulario y respuestas."
-                      : topologyDefined
-                        ? "Ve a Fuentes para añadir el formulario y las respuestas de la base."
-                        : "Define arriba la topología; después añade el formulario y las respuestas desde Fuentes."}
-                  </small>
-                </span>
-                {topologyDefined && onOpenSources ? (
-                  <button
-                    type="button"
-                    className="pulso-carga-plan-empty-action"
-                    onClick={onOpenSources}
-                  >
-                    Añadir fuentes
-                    <ArrowRight size={14} aria-hidden="true" />
-                  </button>
-                ) : null}
+                <EstadoVacio
+                  icono={<Database size={16} />}
+                  titulo={topologyDefined ? "Aún no hay bases creadas" : "Aún no hay una base definida"}
+                  descripcion={topology.mode === "multi"
+                    ? "Ve a Fuentes para crear la primera base y asignarle formulario y respuestas."
+                    : topologyDefined
+                      ? "Ve a Fuentes para añadir el formulario y las respuestas de la base."
+                      : "Define arriba la topología; después añade el formulario y las respuestas desde Fuentes."}
+                  accion={topologyDefined && onOpenSources ? (
+                    <button type="button" className="pulso-primary" onClick={onOpenSources}>
+                      Añadir fuentes
+                      <ArrowRight size={14} aria-hidden="true" />
+                    </button>
+                  ) : undefined}
+                />
               </li>
             )}
           </ul>

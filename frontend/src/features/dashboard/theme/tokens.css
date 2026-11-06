@@ -206,7 +206,7 @@
   }
 }
 .dashboard-scope .dash-header-action:active:not(:disabled) {
-  transform: scale(0.97);
+  transform: scale(var(--mov-press, 0.97));
 }
 .dashboard-scope .dash-header-action:disabled {
   cursor: not-allowed;
@@ -633,7 +633,7 @@
     0 0 0 3px color-mix(in srgb, var(--dash-primario) 22%, transparent);
 }
 .dashboard-scope .dash-section-select:active {
-  transform: scale(0.995);
+  transform: scale(var(--mov-press-tarjeta, 0.985));
 }
 
 .dashboard-scope .dash-resumen-filter-panel {
@@ -768,7 +768,7 @@
   transform: translateX(20px);
 }
 .dashboard-scope .dash-switch:active .dash-switch-slider {
-  transform: scale(0.97);
+  transform: scale(var(--mov-press, 0.97));
 }
 .dashboard-scope .dash-switch input:focus-visible + .dash-switch-slider {
   box-shadow:
@@ -885,7 +885,7 @@
     0 0 0 3px color-mix(in srgb, var(--dash-primario) 22%, transparent);
 }
 .dashboard-scope .dash-select:active {
-  transform: scale(0.995);
+  transform: scale(var(--mov-press-tarjeta, 0.985));
 }
 /* Skeleton shimmer para categorías de filtro mientras hidratan. */
 .dashboard-scope .dash-filtro-cats-skeleton {
@@ -974,7 +974,7 @@
   }
 }
 .dashboard-scope .dash-quick-btn:active:not(:disabled) {
-  transform: scale(0.97);
+  transform: scale(var(--mov-press, 0.97));
 }
 .dashboard-scope .dash-quick-btn:disabled {
   opacity: 0.45;
@@ -1234,6 +1234,15 @@
 }
 .dashboard-scope .dash-source.is-compact {
   margin-bottom: 16px;
+}
+/* Dentro del marco del editor (alto de ventana, sin scroll propio) la fuente desplaza su contenido: más alta que el
+   marco, su pie («Cargar fuente», «Subir y cargar») quedaba fuera de alcance a 1024 (C4, visto al abrirla por
+   `?panel=fuente`). */
+.pulso-main--viewport .dashboard-scope > .dash-source {
+  flex: 0 1 auto;
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
 }
 .dashboard-scope .dash-source-current {
   align-items: center;
@@ -1555,7 +1564,7 @@
   }
 }
 .dashboard-scope .dash-icon-btn:active:not(:disabled) {
-  transform: scale(0.96);
+  transform: scale(var(--mov-press, 0.97));
 }
 .dashboard-scope .dash-subtle-btn {
   align-items: center;
@@ -1588,7 +1597,7 @@
   }
 }
 .dashboard-scope .dash-subtle-btn:active:not(:disabled) {
-  transform: scale(0.97);
+  transform: scale(var(--mov-press, 0.97));
 }
 .dashboard-scope .dash-subtle-btn:disabled {
   box-shadow: none;
@@ -1643,11 +1652,6 @@
 }
 .dashboard-scope .dash-palette-search input::placeholder {
   color: var(--dash-texto-suave);
-}
-.dashboard-scope .dash-palette-list-empty {
-  color: var(--dash-texto-suave);
-  font-size: 12px;
-  padding: 10px 8px;
 }
 .dashboard-scope .dash-palette-list-item {
   align-items: center;
@@ -1771,7 +1775,7 @@
   }
 }
 .dashboard-scope .dash-preset-btn:active {
-  transform: scale(0.97);
+  transform: scale(var(--mov-press, 0.97));
 }
 .dashboard-scope .dash-preset-swatches {
   display: inline-flex;
@@ -1908,7 +1912,7 @@
   }
 }
 .dashboard-scope .dash-primary-btn:active:not(:disabled) {
-  transform: scale(0.97);
+  transform: scale(var(--mov-press, 0.97));
 }
 .dashboard-scope .dash-primary-btn:disabled {
   cursor: not-allowed;
@@ -2690,4 +2694,15 @@
     background: var(--dash-primario-soft);
     color: var(--dash-primario);
   }
+}
+
+/* L16 · D2 — administración con el rail de 56 px. El split ocupa el alto que
+   deja la barra de mando y la pestaña activa se desplaza dentro de su panel. */
+.dashboard-scope > .dash-admin-split {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+.dashboard-scope .dash-admin-split > .dash-admin-main {
+  box-sizing: border-box;
+  padding: 12px 16px;
 }

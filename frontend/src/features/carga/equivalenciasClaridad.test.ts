@@ -75,7 +75,7 @@ describe("chip de armonización", () => {
       ],
       por_base: {},
     };
-    expect(resumenDeEscala({ armonizacion: tramos })).toBe("Primer año · 1 a 2 años · 5");
+    expect(resumenDeEscala({ armonizacion: tramos })).toBe("Primer año, 1 a 2 años, 5");
     expect(resumenDeEscala({ armonizacion: null })).toBe("");
   });
 

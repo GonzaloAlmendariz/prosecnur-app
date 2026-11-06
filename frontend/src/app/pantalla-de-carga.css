@@ -1,0 +1,289 @@
+/* =============================================================================
+   PantallaDeCarga — la única pantalla de carga de la app (5 nov 2026)
+   =============================================================================
+   La montan el arranque del proyecto (BootGate) y el arranque de un módulo
+   (ModuleWarmupBoundary). Se pinta desde el chunk de arranque: sólo tokens que
+   boot.css replica, con respaldo donde no los replica. El tono llega por
+   `--module-accent*` (moduleChromeVars); sin módulo, el azul de marca.
+
+   Composición: silueta de la vista destino al fondo (atenuada, sin eventos) y
+   una lámina de vidrio encima. Movimiento: la lámina entra una vez (sube 8 px
+   y aparece, curva de salida fuerte); las fases NO animan su entrada (la lista
+   se rehace en cada sondeo y parpadearía), sólo el ícono de la fase lista hace un pop corto. Con movimiento
+   reducido, sólo la opacidad. */
+
+.pulso-carga {
+  --carga-tono: var(--module-accent, var(--pulso-primary));
+  --carga-tono-suave: var(--module-accent-soft, var(--pulso-primary-soft));
+  --carga-tono-borde: var(--module-accent-border, var(--pulso-primary-border));
+  --carga-tono-texto: color-mix(in srgb, var(--carga-tono) 72%, var(--pulso-text));
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+  padding: clamp(24px, 6vh, 72px) clamp(20px, 5vw, 72px);
+  color: var(--pulso-text);
+  background: var(--pulso-bg);
+}
+
+.pulso-carga.is-ventana { width: 100%; min-height: 100vh; }
+.pulso-carga.is-area { flex: 1 1 auto; width: 100%; min-height: 100%; }
+
+.pulso-carga-fondo {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  opacity: 0.62;
+  pointer-events: none;
+}
+
+/* Un velo radial detrás de la lámina: la silueta se lee en los bordes y se
+   apaga donde está la lectura. */
+.pulso-carga-fondo::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    ellipse 46% 58% at 50% 50%,
+    color-mix(in srgb, var(--pulso-bg) 88%, transparent),
+    transparent 100%
+  );
+}
+
+.pulso-carga-lamina {
+  width: min(520px, 100%);
+  display: grid;
+  gap: 20px;
+  padding: clamp(24px, 3.2vw, 36px) clamp(22px, 3vw, 36px);
+  border: 1px solid color-mix(in srgb, var(--pulso-border) 80%, transparent);
+  border-radius: 20px;
+  background: color-mix(in srgb, var(--pulso-surface) 92%, transparent);
+  backdrop-filter: blur(14px) saturate(1.08);
+  box-shadow:
+    0 1px 0 color-mix(in srgb, var(--pulso-surface) 70%, transparent) inset,
+    var(--pulso-shadow-high);
+  animation: pulso-carga-entra var(--motion-dur-panel, 280ms) var(--motion-ease-out, cubic-bezier(0.23, 1, 0.32, 1)) both;
+}
+
+.pulso-carga-resumen {
+  display: grid;
+  justify-items: center;
+  gap: 14px;
+  text-align: center;
+}
+
+.pulso-carga-resumen .boot-eq svg { width: 60px; height: 60px; }
+
+.pulso-carga-cabeza {
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.pulso-carga-ceja {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+  font-weight: var(--pulso-weight-bold, 700);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.pulso-carga.has-tono .pulso-carga-ceja { color: var(--carga-tono-texto); }
+
+.pulso-carga.has-tono .pulso-carga-ceja::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: var(--carga-tono);
+  box-shadow: 0 0 0 3px var(--carga-tono-suave);
+}
+
+.pulso-carga-sujeto {
+  max-width: min(440px, 100%);
+  margin: 0;
+  overflow: hidden;
+  color: var(--pulso-text);
+  font-size: 15px;
+  font-weight: var(--pulso-weight-bold, 700);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pulso-carga-titulo {
+  margin: 0;
+  color: var(--pulso-text);
+  font-size: clamp(22px, 2.6vw, 28px);
+  font-weight: var(--pulso-weight-heavy, 800);
+  letter-spacing: -0.01em;
+  line-height: 1.15;
+  text-wrap: balance;
+}
+
+.pulso-carga-resumen .pulso-barra-avance {
+  width: 100%;
+  margin-top: 2px;
+}
+
+.pulso-carga-lectura {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 12px;
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.pulso-carga-lectura .pulso-warmup-reloj { justify-content: flex-start; }
+.pulso-carga-lectura .pulso-warmup-reloj-item { justify-items: start; }
+.pulso-carga-lectura .pulso-warmup-reloj dd { font-size: 15px; line-height: 1.2; }
+
+.pulso-carga-cifra {
+  color: var(--pulso-text);
+  font-size: 15px;
+  font-weight: var(--pulso-weight-heavy, 800);
+}
+
+/* --- Fases: una lista con raya, no una pila de tarjetas -------------------- */
+
+.pulso-carga-fases {
+  margin: 0;
+  padding: 4px 0 0;
+  list-style: none;
+  display: grid;
+  border-top: 1px solid var(--pulso-border);
+}
+
+.pulso-carga-fase {
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  min-height: 36px;
+  padding: 6px 2px;
+  border-bottom: 1px solid color-mix(in srgb, var(--pulso-border) 60%, transparent);
+}
+
+.pulso-carga-fase:last-child { border-bottom: 0; }
+
+.pulso-carga-fase strong {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--pulso-text);
+  font-size: 13px;
+  font-weight: var(--pulso-weight-bold, 700);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pulso-carga-fase small {
+  color: var(--pulso-text-faint);
+  font-size: 12px;
+  font-weight: var(--pulso-weight-bold, 700);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.pulso-carga-fase.is-pending strong { color: var(--pulso-text-soft); }
+.pulso-carga-fase.is-running strong { color: var(--carga-tono-texto); }
+
+.pulso-carga-fase-icono {
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 999px;
+  background: var(--pulso-surface-2);
+  color: var(--pulso-text-faint);
+  box-shadow: inset 0 0 0 1px var(--pulso-border);
+  transition:
+    background-color var(--motion-dur-base, 220ms) var(--motion-ease-out, ease-out),
+    color var(--motion-dur-base, 220ms) var(--motion-ease-out, ease-out);
+}
+
+.pulso-carga-fase.is-running .pulso-carga-fase-icono {
+  background: var(--carga-tono-suave);
+  color: var(--carga-tono);
+  box-shadow: inset 0 0 0 1px var(--carga-tono-borde);
+}
+
+.pulso-carga-fase.is-ready .pulso-carga-fase-icono {
+  background: var(--pulso-success-bg);
+  color: var(--pulso-success-fg);
+  box-shadow: none;
+}
+
+.pulso-carga-fase.is-ready .pulso-carga-fase-icono svg {
+  animation: pulso-carga-pop var(--motion-dur-base, 220ms) var(--motion-ease-out, ease-out) both;
+}
+
+.pulso-carga-fase.is-skipped .pulso-carga-fase-icono { color: var(--pulso-text-soft); }
+
+.pulso-carga-fase.is-timeout .pulso-carga-fase-icono,
+.pulso-carga-fase.is-error .pulso-carga-fase-icono {
+  background: var(--pulso-danger-bg);
+  color: var(--pulso-danger-fg);
+  box-shadow: inset 0 0 0 1px var(--pulso-danger-border);
+}
+
+.pulso-carga-fase-giro { animation: pulso-carga-giro 0.9s linear infinite; }
+
+.pulso-carga-error {
+  margin: 0;
+  color: var(--pulso-danger-fg);
+  font-size: 12px;
+  text-align: center;
+}
+
+/* Ventanas bajas: resumen y fases lado a lado, las fases con su propio scroll. */
+@media (max-height: 820px) and (min-width: 860px) {
+  .pulso-carga-lamina:has(.pulso-carga-fases) {
+    width: min(940px, 100%);
+    grid-template-columns: minmax(0, 0.9fr) minmax(0, 1fr);
+    align-items: center;
+    gap: clamp(24px, 3.4vw, 48px);
+  }
+
+  .pulso-carga-fases {
+    max-height: min(62vh, 420px);
+    overflow-y: auto;
+    padding-top: 0;
+    border-top: 0;
+    scrollbar-width: thin;
+  }
+
+  .pulso-carga-error { grid-column: 1 / -1; }
+}
+
+@keyframes pulso-carga-entra {
+  from { opacity: 0; transform: translateY(8px) scale(0.985); }
+}
+
+@keyframes pulso-carga-pop {
+  from { opacity: 0; transform: scale(0.6); }
+}
+
+@keyframes pulso-carga-giro {
+  to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pulso-carga-lamina { animation-name: pulso-carga-aparece; }
+  .pulso-carga-fase.is-ready .pulso-carga-fase-icono svg,
+  .pulso-carga-fase-giro { animation: none; }
+}
+
+@keyframes pulso-carga-aparece {
+  from { opacity: 0; }
+}

@@ -168,6 +168,8 @@
                             "«Sin información» reúne a quienes no respondieron o respondieron «No sabe». Va al final de la barra, en gris, y cuenta en la base: así se ve cuántos no pudieron opinar.",
                             "Cada gráfico dice su base debajo. Si una pregunta sólo se hizo a una parte, la base lo indica, por ejemplo «Base: 20 estudiantes que respondieron Sí en la pregunta anterior»."))
   }
+  # ADR 0129: con tarjetas de diferencias en el informe, sus pautas de lectura van aquí, una sola vez (reporte_word_tarjetas.R).
+  if (!is.null(.tarjetas_lectura_vigente())) { s <- s + 1L; doc <- .word_tarjetas_pautas(doc, .tarjetas_lectura_vigente(), paste0(numero, ".", s)) }
   doc <- .word_recuadro(doc, "Cómo leer este informe", c(
     "Los porcentajes se calculan sobre quienes respondieron cada pregunta. La base va debajo de cada gráfico.",
     if (isTRUE(ponderada)) .WORD_COMO_LEER_PONDERADA,

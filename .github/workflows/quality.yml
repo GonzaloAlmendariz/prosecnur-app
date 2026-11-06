@@ -102,9 +102,6 @@ jobs:
         run: |
           node --test $(ls scripts/tests/*.test.mjs | grep -vE 'check-r-lock|ui-quick-check-|visual-qa-readiness')
 
-      - name: Check product and system vaults
-        run: node scripts/vaults-check.mjs --check
-
       - name: Check technical-debt baseline
         run: node scripts/debt-audit.mjs --check
 
@@ -336,6 +333,30 @@ jobs:
           path: ${{ env.R_LIBS_USER }}
           key: r-library-${{ runner.os }}-${{ env.R_VERSION }}-${{ hashFiles('api/renv.lock') }}
           fail-on-cache-miss: true
+
+      # Sin estas dos herramientas, 18 tests de render real se saltaban en el CI
+      # y sólo corrían en una Mac (docs/qa/auditoria-saltos-tests-2026-11-04.md):
+      # Quarto (reportes de Cálculo de muestra, sustento, territorial y
+      # enumeradores) y LibreOffice headless (vistas previas de láminas, visor
+      # Word, miniaturas y Word del editor de formularios). Quarto va fijado a
+      # la misma versión que se usa en local y se verifica contra el digest
+      # que publica GitHub para ese asset.
+      - name: Install render tools (Quarto, LibreOffice)
+        env:
+          QUARTO_VERSION: 1.9.37
+          QUARTO_SHA256: 98aad03c8ce11705caa7c48b8f6ea59f6ab02d1579e754ddb530c0f2e7b471c6
+        run: |
+          sudo apt-get install -y --no-install-recommends \
+            libreoffice-core \
+            libreoffice-writer \
+            libreoffice-impress
+          deb="${RUNNER_TEMP}/quarto-${QUARTO_VERSION}-linux-amd64.deb"
+          curl -fsSL -o "$deb" \
+            "https://github.com/quarto-dev/quarto-cli/releases/download/v${QUARTO_VERSION}/quarto-${QUARTO_VERSION}-linux-amd64.deb"
+          echo "${QUARTO_SHA256}  ${deb}" | sha256sum -c -
+          sudo dpkg -i "$deb"
+          quarto --version
+          soffice --version
 
       # Los workers callr de jobs deserializan closures contra el paquete
       # INSTALADO (trampa conocida: jobs.R re-resuelve por nombre en el

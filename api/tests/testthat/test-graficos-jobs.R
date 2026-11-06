@@ -430,7 +430,7 @@ test_that("graficos_job_worker_ppt_all nombra la base en los avisos de líneas",
     warning = function(w) invokeRestart("muffleWarning"))
   titulo <- grep("el título ocupa", avisos, value = TRUE, fixed = TRUE)
   expect_length(titulo, 2L)
-  expect_match(titulo[1], "^Lámina 2 de «docentes» · ")
-  expect_match(titulo[2], "^Lámina 2 de «estudiantes» · ")
+  expect_match(titulo[1], "^Lámina 2 de «docentes», ")
+  expect_match(titulo[2], "^Lámina 2 de «estudiantes», ")
   expect_identical(getOption("prosecnur.lam_avisos_base"), NULL)                     # no queda puesta
 })

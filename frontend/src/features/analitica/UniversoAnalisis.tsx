@@ -11,6 +11,7 @@ import { usePanelDireccionable } from "../../lib/navegacion/paneles";
 import { PANEL_UNIVERSO } from "./panelesAnalitica";
 import { lineasUniverso, type LineaUniverso } from "./universoModel";
 import "./universoAnalisis.css";
+import { EstadoChip } from "../../components/EstadoChip";
 
 function AbrirPanel({ texto, onAbrir }: { texto: string; onAbrir: () => void }) {
   return (
@@ -47,9 +48,11 @@ function UniversoLinea({ onAbrir, abierto }: { onAbrir?: () => void; abierto: bo
   if (lineas === null) return null;
   return (
     <div className="pulso-universo" role="status" aria-label="Casos que cuentan en el análisis">
+      {/* 5 nov 2026 (pulido de UI): cada línea es un estado del análisis y se dibuja con el chip del kit
+          (EstadoChip), no como texto suelto bajo la cabecera; en ámbar si trae aviso. */}
       {lineas.length
-        ? lineas.map((l) => <p key={l.base} className={l.aviso ? "is-aviso" : undefined}>{l.texto}</p>)
-        : <p>Cuentan todos los casos.</p>}
+        ? lineas.map((l) => <EstadoChip key={l.base} label={l.texto} tone={l.aviso ? "warn" : "info"} />)
+        : <EstadoChip label="Cuentan todos los casos" tone="neutral" />}
       {onAbrir ? <AbrirPanel texto={lineas.length ? "Cambiar" : "Definir"} onAbrir={onAbrir} /> : null}
     </div>
   );

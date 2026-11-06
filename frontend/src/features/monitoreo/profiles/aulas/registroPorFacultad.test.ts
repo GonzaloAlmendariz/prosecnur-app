@@ -36,7 +36,7 @@ describe("etiquetaSinRepetir", () => {
   it("cuando el curso NO lo lleva, se dicen los dos", () => {
     // El control: si siempre devolviera el curso, un estudio con nombres
     // propios perdería el código, que es por lo que el equipo busca.
-    expect(etiquetaSinRepetir("CH 1", "Cálculo 1")).toBe("CH 1 · Cálculo 1");
+    expect(etiquetaSinRepetir("CH 1", "Cálculo 1")).toBe("CH 1, Cálculo 1");
   });
 
   it("con uno solo de los dos, ese", () => {

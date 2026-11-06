@@ -1722,7 +1722,7 @@
   }
   grupo[is.na(grupo) | !nzchar(grupo)] <- "general"
   ok <- !is.na(survey$name) & nzchar(survey$name)
-  tapply(survey$name[ok], grupo[ok], function(v) unique(v), simplify = FALSE) |>
+  tapply(survey$name[ok], factor(grupo[ok], levels = unique(grupo[ok])), function(v) unique(v), simplify = FALSE) |>
     as.list()
 }
 
@@ -3309,6 +3309,7 @@
       orden = "original",
       show_sig = TRUE,
       alpha = 0.05,
+      significancia = .cruces_significancia_normalizar(NULL),
       incluir_total = TRUE,
       incluir_titulos = TRUE,
       incluir_secciones = TRUE,
@@ -3769,7 +3770,11 @@ mount_analitica <- function(pr) {
 	      # nunca desde la madre. No se lee el attr del inst: `.load_rp_data` entrega
 	      # la base "first"/madre en estudios repeat y su grano quedaría mal.
 	      grain <- .analitica_active_repeat_grain(sid)
-	      list(ok = TRUE, variables = variables, grain = grain)
+	      # Columnas de la base activa, estén o no en el instrumento: el
+	      # conglomerado del diseño (id de aula) suele venir solo en la data
+	      # (ADR 0127).
+	      columnas_base <- as.list(as.character(names(reviewed$data %||% list())))
+	      list(ok = TRUE, variables = variables, grain = grain, columnas_base = columnas_base)
 	    })) |>
 	    plumber::pr_get("/api/analitica/data-review", wrap_endpoint(function(req, res) {
 	      sid <- session_header(req)
@@ -4374,6 +4379,7 @@ mount_analitica <- function(pr) {
       show_sig <- isTRUE(cc$show_sig %||% TRUE)
       alpha <- suppressWarnings(as.numeric(cc$alpha %||% 0.05))
       if (!is.finite(alpha)) alpha <- 0.05
+      significancia <- .cruces_significancia_normalizar(cc$significancia)
       incluir_total <- isTRUE(cc$incluir_total %||% TRUE)
       # Orden por frecuencia marginal de las filas nominales (las columnas /
       # estratos nunca se reordenan). Ordinales conservan orden fijo.
@@ -4446,10 +4452,11 @@ mount_analitica <- function(pr) {
         func = function(rp_data_path, rp_inst_path, repeat_design_path, cruces_val, modo, secs, numericas_arg,
                         show_sig, alpha, incluir_total,
                         incluir_titulos, incluir_secciones,
+                        significancia = NULL,
                         brecha_filas, brecha_cols,
                         aplicar_sem, sem_modo, sem_cortes, sem_colores,
                         orden_cruces, ordinal_lists_by_base,
-                        notas = NULL,
+                        notas = NULL, sig_estudio = NULL,
                         api_path, result_path, progress_path = NULL) {
           if (requireNamespace("pkgload", quietly = TRUE)) {
             pkgload::load_all(api_path, quiet = TRUE)
@@ -4471,6 +4478,10 @@ mount_analitica <- function(pr) {
           base_names <- names(data_sources)
 
           run_one <- function(nombre, out_path) {
+            # ADR 0128: la regla de diferencias del estudio y su familia de BH, calculadas sobre esta base.
+            sig_previa <- .sig_informe_preparar(sig_estudio, data_sources, inst_sources, nombre)
+            on.exit(options(sig_previa), add = TRUE)
+            significancia <- .cruces_significancia_normalizar(.sig_spec_vigente(significancia))   # la ficha dice la regla usada
             args <- list(
               data = data_sources[[nombre]],
               instrumento = inst_sources[[nombre]],
@@ -4481,6 +4492,7 @@ mount_analitica <- function(pr) {
               numericas = if (length(numericas_arg) > 0L) numericas_arg else NULL,
               show_sig = show_sig,
               alpha = alpha,
+              significancia = significancia,
               incluir_total = incluir_total,
               incluir_titulos = incluir_titulos,
               incluir_secciones = incluir_secciones,
@@ -4504,10 +4516,12 @@ mount_analitica <- function(pr) {
                   } else if (is.list(repeat_design_by_base[[nombre]]) &&
                              !isTRUE(repeat_design_by_base[[nombre]]$inference_ok)) {
                     paste0("Descriptiva; ", repeat_design_by_base[[nombre]]$reason %||% "clusters insuficientes")
+                  } else if (identical(significancia$metodo, "diseno")) {
+                    .cruces_sig_ficha(significancia, alpha)
                   } else if (is.list(repeat_design_by_base[[nombre]])) {
                     paste0("Cluster-robust por persona; alpha = ", alpha)
                   } else {
-                    paste0("Activada; alpha = ", alpha)
+                    .cruces_sig_ficha(significancia, alpha)
                   }
                 )
               )
@@ -4566,6 +4580,7 @@ mount_analitica <- function(pr) {
           numericas_arg = numericas_arg,
           show_sig = show_sig,
           alpha = alpha,
+          significancia = significancia,
           incluir_total = incluir_total,
           incluir_titulos = incluir_titulos,
           incluir_secciones = incluir_secciones,
@@ -4578,6 +4593,7 @@ mount_analitica <- function(pr) {
           orden_cruces = orden_cruces,
           ordinal_lists_by_base = ordinal_lists_by_base,
           notas = .notas_pie_normalizar(cfg$notas),
+          sig_estudio = .sig_arg_job(sid, .graficos_config_get(sid))$significancia,   # ADR 0128: regla del estudio
           api_path = api_path
         ),
         result_filename = if (length(data_sources_filt) > 1L) {
@@ -4670,11 +4686,10 @@ mount_analitica <- function(pr) {
 	      ds <- sources$data_sources
 	      is_ <- sources$inst_sources
 	      if (length(ds) == 0L) stop_api(409, "E_NO_RP_DATA", "Estudio sin bases.")
-		      excluidas <- .as_chr_vec(cfg$variables_excluidas)
 		      for (nombre in names(ds)) {
 		        reviewed <- .analitica_apply_data_review(ds[[nombre]], is_[[nombre]], cfg)
 		        reviewed$data <- .bases_normalize_other_selects(reviewed$data, reviewed$inst)
-		        ds[[nombre]] <- .excluir_cols(reviewed$data, excluidas)
+		        ds[[nombre]] <- .excluir_cols(reviewed$data, .analitica_bases_cols_fuera(reviewed$data, reviewed$inst, cfg))
 		        is_[[nombre]] <- reviewed$inst
 		      }
 
@@ -4755,7 +4770,7 @@ mount_analitica <- function(pr) {
 		        fn = function(rp_data, rp_inst, out_path) {
 		          reviewed <- .analitica_apply_data_review(rp_data, rp_inst, cfg)
 		          reviewed$data <- .bases_normalize_other_selects(reviewed$data, reviewed$inst)
-		          rp_data <- .excluir_cols(reviewed$data, .as_chr_vec(cfg$variables_excluidas))
+		          rp_data <- .excluir_cols(reviewed$data, .analitica_bases_cols_fuera(reviewed$data, reviewed$inst, cfg))
 		          rp_inst <- reviewed$inst
 		          df <- rp_data
 	          if (multi_select == "dummy_01") df <- .expand_multiselect(df, rp_inst)
@@ -4849,15 +4864,7 @@ mount_analitica <- function(pr) {
 		          # plataforma) se excluyen; solo sobreviven las que el usuario
 		          # incluyó (`variables_extra_incluidas`). El include manda sobre el
 		          # empty-drop: una extra incluida-pero-vacía NO se dropea por vacía.
-		          recon <- .reconciliacion_export_plan(reviewed$data, reviewed$inst, cfg)
-		          empty_cols <- setdiff(.analitica_base_empty_cols(reviewed$data), recon$extra_incluidas)
-		          rp_data <- .excluir_cols(
-		            reviewed$data,
-		            c(.as_chr_vec(cfg$variables_excluidas),
-		              .analitica_base_internal_cols(reviewed$data),
-		              empty_cols,
-		              recon$extra_a_excluir)
-		          )
+		          rp_data <- .excluir_cols(reviewed$data, .analitica_bases_cols_fuera(reviewed$data, reviewed$inst, cfg))
 		          rp_inst <- reviewed$inst
 		          df_base <- rp_data
           if (multi_select == "dummy_01") df_base <- .expand_multiselect(df_base, rp_inst)
@@ -4936,7 +4943,7 @@ mount_analitica <- function(pr) {
 		      overrides <- .bases_overrides_parse((cfg$bases %||% list())$overrides)
 		      reviewed <- .analitica_apply_data_review(ctx$rp_data, ctx$rp_inst, cfg)
 		      reviewed$data <- .bases_normalize_other_selects(reviewed$data, reviewed$inst)
-		      reviewed$data <- .excluir_cols(reviewed$data, .as_chr_vec(cfg$variables_excluidas))
+		      reviewed$data <- .excluir_cols(reviewed$data, .analitica_bases_cols_fuera(reviewed$data, reviewed$inst, cfg))
 		      td <- tempfile()
       dir.create(td)
       on.exit(unlink(td, recursive = TRUE), add = TRUE)

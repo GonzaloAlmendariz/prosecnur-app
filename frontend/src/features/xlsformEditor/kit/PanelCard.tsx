@@ -4,6 +4,8 @@ import "./kit.css";
 // Contenedor canónico del módulo: cabecera (título + meta/acciones), cuerpo y pie opcional.
 // `fill` lo deja crecer hasta llenar la columna (el último contenedor de cada pantalla),
 // pero nunca encoger por debajo de su contenido: es lo que evitaba los recortes del canvas.
+// Ese alto sobrante es deliberado, y lo declara al QA visual (`capacity="owned"`): sin eso
+// el detector lo leía como tarjeta inflada (Listas de opciones, 504 px).
 
 export type PanelCardProps = {
   title: ReactNode;
@@ -20,7 +22,7 @@ export type PanelCardProps = {
 export function PanelCard({ title, icon, meta, footer, fill, flush, className, children, ...rest }: PanelCardProps) {
   const cls = ["xfk-card", fill ? "xfk-card--fill" : "", className ?? ""].filter(Boolean).join(" ");
   return (
-    <section className={cls} aria-label={rest["aria-label"]}>
+    <section className={cls} aria-label={rest["aria-label"]} data-qa-geometry-capacity={fill ? "owned" : undefined}>
       <header className="xfk-card__head">
         <span className="xfk-card__title">
           {icon}

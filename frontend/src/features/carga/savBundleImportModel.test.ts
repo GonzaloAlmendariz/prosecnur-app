@@ -118,7 +118,7 @@ describe("ZIP SAV inspection contract", () => {
   test("presents published, legacy and blocked revision evidence", () => {
     expect(savBundleRevisionView(savFile("healthy.sav", "civil"))).toMatchObject({
       tone: "success",
-      label: "Publicada · revision…7890",
+      label: "Publicada (revision…7890)",
     });
     expect(savBundleRevisionView(savFile("legacy.sav", "civil", {
       status: "legacy_unpinned",

@@ -5,6 +5,7 @@ import type { SmSugerenciaLogica } from "../../../api/xlsformSmSugerencias";
 import type { VisualLogicQuestion } from "./RuleWizard";
 import { claveSugerencia, sugerenciaYaAplicada, textoSugerencia } from "./smImportModel";
 import "../styles/xfSmImport";
+import { LoadingBlock } from "../../../components/States";
 
 // Aviso honesto de la sección de lógica (H4/U7) y las sugerencias del servidor
 // como tarjetas. Ninguna se aplica sola: «Aplicar» crea la regla en la lógica
@@ -63,7 +64,7 @@ export function SmLogicaSugerencias({
         <span>{aviso}</span>
       </p>
       {estado.fase === "cargando" ? (
-        <p className="pulso-xf-smi-sug-cargando" aria-live="polite">Buscando saltos evidentes en la encuesta…</p>
+        <LoadingBlock variant="inline" label="Buscando saltos evidentes en la encuesta…" />
       ) : null}
       {sugerencias.length ? (
         <ul

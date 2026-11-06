@@ -88,12 +88,12 @@ describe("esperarResultadoImport", () => {
     ).rejects.toThrow("sin conexión con Kobo");
   });
 
-  it("rechaza cuando el job fue cancelado", async () => {
+  it("rechaza cuando el job fue cancelado, diciendo que el estudio no cambió (L9)", async () => {
     await expect(
       esperarResultadoImport("job-1", {
         pollDeps: depsConSecuencia([snapshot({ status: "cancelled" })]),
       }),
-    ).rejects.toThrow(/cancelado/);
+    ).rejects.toThrow("Cancelaste la importación. El estudio no cambió.");
   });
 
   it("rechaza con terminal del poll cuando el job se pierde (backend reiniciado)", async () => {
@@ -119,13 +119,13 @@ describe("textoDeProgresoImport", () => {
       percent: 42.4,
       phase: "fetch",
       message: "Kobo: descargando...",
-    })).toBe("Importando PDM — Kobo: descargando... · 42%");
+    })).toBe("Importando PDM — Kobo: descargando..., 42%");
   });
 
   it("degrada con elegancia sin progreso o sin mensaje", () => {
     expect(textoDeProgresoImport("Importando PDM", null)).toBe("Importando PDM...");
     expect(textoDeProgresoImport("Importando PDM", { percent: 10, phase: "prepare", message: "" }))
-      .toBe("Importando PDM... · 10%");
+      .toBe("Importando PDM..., 10%");
   });
 });
 

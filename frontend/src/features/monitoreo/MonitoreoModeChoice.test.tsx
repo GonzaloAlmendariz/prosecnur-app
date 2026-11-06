@@ -11,7 +11,10 @@ describe("MonitoreoModeChoice", () => {
 
     const activeModes = MONITOREO_MODOS.filter((mode) => mode.status === "active");
     expect(html.match(/class="mon-mode-choice__option"/g)).toHaveLength(activeModes.length);
-    expect(html).toContain("Declara el propósito de Monitoreo");
+    // D7: un solo titular, el de la página; sin promesas de otro modo.
+    expect(html).toContain("¿Qué tipo de estudio vas a monitorear?");
+    expect(html).not.toContain("Declara el propósito de Monitoreo");
+    expect(html).not.toContain("opciones específicas de");
     expect(html).toContain("Acreditación institucional");
     expect(html).not.toContain("aria-pressed");
   });

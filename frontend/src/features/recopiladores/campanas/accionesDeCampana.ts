@@ -10,7 +10,7 @@ import type { CampanaMaterial } from "../../../api/materialCampanas";
 import { LIMITE_CAMPANAS } from "../correos/modeloCampanas";
 import type { FuenteDelRegistro } from "./useRegistroDeCampanas";
 
-export type IdDeAccion = "renombrar" | "duplicar" | "borrar" | "archivar" | "reabrir";
+export type IdDeAccion = "renombrar" | "duplicar" | "borrar" | "archivar" | "reabrir" | "ver-lote";
 
 export type AccionDeCampana = {
   id: IdDeAccion;
@@ -27,7 +27,19 @@ export function accionesDeCampana(
   contexto: { fuente: FuenteDelRegistro | null; correos: number },
 ): AccionDeCampana[] {
   const conRegistro = contexto.fuente === "registro";
-  if (campana.tipo === "aulas") {
+  // Supervisión (revamp v5, ADR 0125 A3): una por lote; se renombra, se archiva y lleva al lote en Monitoreo.
+  if (campana.tipo === "supervision") {
+    if (campana.archived) {
+      return [{ id: "reabrir", label: "Reabrir", motivo: conRegistro ? null : SIN_REGISTRO, peligrosa: false }];
+    }
+    return [
+      { id: "renombrar", label: "Renombrar…", motivo: conRegistro ? null : SIN_REGISTRO, peligrosa: false },
+      { id: "ver-lote", label: "Ver el lote en Monitoreo", motivo: null, peligrosa: false },
+      { id: "archivar", label: "Archivar", motivo: conRegistro ? null : SIN_REGISTRO, peligrosa: false },
+    ];
+  }
+  // Aulas, territorial (ADR 0118) y telefónica (P10): una por proyecto, se archivan en vez de borrarse.
+  if (campana.tipo === "aulas" || campana.tipo === "territorial" || campana.tipo === "telefonica") {
     if (campana.archived) {
       return [{ id: "reabrir", label: "Reabrir", motivo: conRegistro ? null : SIN_REGISTRO, peligrosa: false }];
     }

@@ -6,11 +6,12 @@ import { useState } from "react";
 import type { CalculadaADeclarar, ResumenCalculada, VariableCalculada } from "../../../api/baseVariables";
 import type { VariableDeBase } from "../../../api/equivalencias";
 import { PulsoButton } from "../../../components/PulsoButton";
-import { Pencil, Plus, Sigma, Trash2 } from "../../../vendor/lucide-react";
+import { Pencil, Plus, Sigma, Trash2, Inbox } from "../../../vendor/lucide-react";
 import { CalculadaEditor } from "./CalculadaEditor";
-import { preguntasUsables } from "./variablesBaseModel";
+import { preguntasUsables, reglaLegible, textoResumen } from "./variablesBaseModel";
 import type { MensajeVariablesBase } from "./useVariablesBase";
-import { reglaLegible, textoResumen } from "./variablesBaseModel";
+import { EstadoVacio } from "../../../components/EstadoVacio";
+import { Panel } from "../../../components/Panel";
 
 export type VariablesCalculadasProps = {
   /** La base del panel: el editor lee de ella los códigos observados. */
@@ -56,22 +57,22 @@ export function VariablesCalculadas({
   };
 
   return (
-    <section className="pulso-armon-seccion" aria-labelledby="pulso-vb-calculadas" data-qa-geometry-member>
-      <div className="pulso-armon-seccion-head">
-        <div className="pulso-armon-seccion-titulo">
-          <h3 id="pulso-vb-calculadas">
-            Variables calculadas
-            {calculadas.length > 0 && <small>{calculadas.length}</small>}
-          </h3>
-          <p className="pulso-armon-ayuda">Se calculan al leer la base; la data no se modifica.</p>
-        </div>
-        {edicion === null && (
+    <Panel
+      className="pulso-armon-seccion"
+      aria-labelledby="pulso-vb-calculadas" data-qa-geometry-member
+      title={<span id="pulso-vb-calculadas">Variables calculadas
+            {calculadas.length > 0 && <small>{calculadas.length}</small>}</span>}
+      hint={<>Se calculan al leer la base; la data no se modifica.</>}
+      actions={<>
+{edicion === null && (
           <PulsoButton variant="secondary" size="sm" className="pulso-armon-btn" onClick={() => setEdicion("")}>
             <Plus size={14} aria-hidden="true" />
             Nueva variable calculada
           </PulsoButton>
         )}
-      </div>
+    </>}
+    >
+      
 
       {edicion === "" && (
         <CalculadaEditor
@@ -89,7 +90,7 @@ export function VariablesCalculadas({
 
       {calculadas.length === 0 ? (
         // C3: el vacío es de esta sección y dice cómo se llena.
-        edicion === null && <p className="pulso-armon-vacio">Ninguna todavía. Combina varias preguntas, recodifica una o escribe una fórmula.</p>
+        edicion === null && <EstadoVacio icono={<Inbox size={16} />} titulo="Todavía no hay variables calculadas" descripcion="Combina varias preguntas, recodifica una o escribe una fórmula." />
       ) : (
         <ul className="pulso-vb-calculadas" aria-label="Variables calculadas de la base">
           {calculadas.map((c) =>
@@ -178,6 +179,6 @@ export function VariablesCalculadas({
           {avisoDeLista.texto}
         </p>
       )}
-    </section>
+    </Panel>
   );
 }

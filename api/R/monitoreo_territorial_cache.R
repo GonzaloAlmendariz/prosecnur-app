@@ -129,7 +129,7 @@
     "tipo_manzana", "titular_id_manzana", "replacement_order",
     "hoja_num", "rango_inicio", "rango_fin", "territorio_muestral", "ump"
   )
-  .monitoreo_cache_digest(list(
+  partes <- list(
     schema = .monitoreo_territorial_map_cache_schema,
     layer = "route_geometry",
     phase = .monitoreo_territorial_phase(phase %||% context$phase, "pilot"),
@@ -137,7 +137,13 @@
     total_replacement_interviews = as.integer(context$total_replacement_interviews %||% 0L),
     run_locked = isTRUE(context$run_locked),
     blocks = .monitoreo_territorial_hashable_df(blocks, cols)
-  ))
+  )
+  # Sólo con la foto enviada (I4 paso 2): un reenvío con los mismos bloques y
+  # otra config también invalida. Sin envío la lista —y el hash— es la de siempre.
+  if (identical(context$sample_source, "envio")) {
+    partes$envio <- list(fingerprint = context$sample_fingerprint, config = .monitoreo_cache_digest(context$config))
+  }
+  .monitoreo_cache_digest(partes)
 }
 
 .monitoreo_territorial_gps_hash <- function(data, cfg, context, route_hash, phase = NULL) {
@@ -834,7 +840,8 @@
     if (!is.list(dashboard)) return(invisible(NULL))
     cache_field <- paste("monitoreo_dashboard_cache", scope, sep = "_")
     cache_token_field <- paste("monitoreo_dashboard_cache_token", scope, sep = "_")
-    cache_token <- .monitoreo_dashboard_cache_token(snapshot_box$value, display_data, cfg, report_scope = scope)
+    cache_token <- .monitoreo_dashboard_cache_token(snapshot_box$value, display_data, cfg, report_scope = scope,
+                                                    route_sig = .monitoreo_territorial_route_sig(sid, cfg))
     s_cache <- session_get(sid)
     s_cache[[cache_field]] <- dashboard
     s_cache[[cache_token_field]] <- cache_token

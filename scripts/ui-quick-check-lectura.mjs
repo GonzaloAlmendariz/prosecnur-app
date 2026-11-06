@@ -17,11 +17,11 @@
 // Viven en su propio archivo porque `ui-quick-check.mjs` ya pasa las 2.700
 // líneas; `inspectDom` los llama y suma sus hallazgos al resultado.
 
-/** Corre los tres detectores en la página y devuelve sus hallazgos. */
+/** Corre los detectores de lectura en la página y devuelve sus hallazgos. */
 export async function medirLectura(page, { rootSelector = "" } = {}) {
   return page.evaluate(async ({ alcance }) => {
     const raiz = alcance ? document.querySelector(alcance) : document.body;
-    const vacio = { rotulosPartidos: [], textosFuera: [], cabecerasQueTapan: [] };
+    const vacio = { rotulosPartidos: [], textosFuera: [], cabecerasQueTapan: [], columnasOcultas: [] };
     if (!raiz) return vacio;
     const TOPE = 20;
     const NO_TEXTO = new Set(["SCRIPT", "STYLE", "NOSCRIPT", "TEXTAREA", "INPUT", "SELECT", "OPTION", "TEMPLATE", "SVG"]);
@@ -30,10 +30,23 @@ export async function medirLectura(page, { rootSelector = "" } = {}) {
       if (!(el instanceof Element)) return false;
       const r = el.getBoundingClientRect();
       if (r.width < 1 || r.height < 1) return false;
+      // Lo que esconde un <details> cerrado tiene rectángulo pero no se pinta:
+      // sin esto salían «textos fuera» en Conexiones y rótulos partidos en los
+      // presets de Hojas › Muestra que nadie ve.
+      if (typeof el.checkVisibility === "function" && !el.checkVisibility()) return false;
       let actual = el;
       while (actual instanceof Element) {
         const st = window.getComputedStyle(actual);
         if (st.display === "none" || st.visibility === "hidden" || Number.parseFloat(st.opacity) === 0) return false;
+        // El patrón «sólo lectores de pantalla» (caja de 1 px recortada) tampoco
+        // se pinta y checkVisibility() no lo ve: Carga › Preguntas a 1024×600
+        // esconde así su resumen y salían «87 preguntas» fuera de su tarjeta.
+        if (/^rect\(\s*0(px)?[\s,]+0(px)?[\s,]+0(px)?[\s,]+0(px)?\s*\)$/.test(st.clip)) return false;
+        if (st.clipPath === "inset(50%)") return false;
+        if (st.overflow === "hidden") {
+          const caja = actual.getBoundingClientRect();
+          if (caja.width <= 1 && caja.height <= 1) return false;
+        }
         actual = actual.parentElement;
       }
       return true;
@@ -118,15 +131,14 @@ export async function medirLectura(page, { rootSelector = "" } = {}) {
       });
       if (lineas.length < 2) continue;
       const letra = (indice) => caracteres[indice] && caracteres[indice].c !== " ";
-      const partida = lineas.find((linea, i) => {
-        const limpio = linea.texto.trim();
-        if (!limpio || limpio.length > 3) return false;
-        // ¿Esta línea empieza pegada al final de la anterior o termina pegada
-        // al inicio de la siguiente? Entonces está dentro de una palabra.
-        const pegadaAntes = i > 0 && letra(linea.desde) && letra(lineas[i - 1].hasta) && lineas[i - 1].hasta === linea.desde - 1;
-        const pegadaDespues = i < lineas.length - 1 && letra(linea.hasta) && letra(lineas[i + 1].desde) && lineas[i + 1].desde === linea.hasta + 1;
-        return pegadaAntes || pegadaDespues;
-      });
+      // Una línea que termina en letra y sigue pegada a la siguiente corta una
+      // palabra, mida lo que mida el pedazo: «Sin / registr / o en la / hoja»
+      // tiene menos líneas que palabras y ningún pedazo corto, y es igual de
+      // ilegible. El guionado automático parte con guion a propósito: no cuenta.
+      const guionado = st.hyphens === "auto";
+      const partida = guionado ? null : lineas.find((linea, i) => (
+        i < lineas.length - 1 && letra(linea.hasta) && letra(lineas[i + 1].desde) && lineas[i + 1].desde === linea.hasta + 1
+      ));
       if (lineas.length > palabras || partida) {
         rotulosPartidos.push({
           type: "rotulo-partido",
@@ -280,6 +292,44 @@ export async function medirLectura(page, { rootSelector = "" } = {}) {
       }
     }
 
-    return { rotulosPartidos, textosFuera, cabecerasQueTapan };
+    // ── Columnas ocultas ────────────────────────────────────────────────────
+    //
+    // Una tabla más ancha que el ancestro que la recorta deja cabeceras fuera
+    // de la vista. `desplazamientoH` sólo mide los marcos de un grupo de
+    // geometría declarado, y en Equipo del telefónico a 1280 «Intentos por
+    // caso» quedaba detrás del borde con desplazamientoH=0. Se nombran las
+    // cabeceras que no se ven y se dice si el marco DESPLAZA (alcanzable,
+    // aunque en macOS la barra no se vea) o RECORTA (inalcanzable).
+    const columnasOcultas = [];
+    for (const tabla of raiz.querySelectorAll("table")) {
+      if (columnasOcultas.length >= TOPE) break;
+      if (!visible(tabla)) continue;
+      let marco = tabla.parentElement;
+      let stMarco = null;
+      while (marco && marco !== document.documentElement) {
+        stMarco = window.getComputedStyle(marco);
+        if (stMarco.overflowX !== "visible") break;
+        marco = marco.parentElement;
+      }
+      if (!marco || marco === document.documentElement || !stMarco) continue;
+      const rm = marco.getBoundingClientRect();
+      const borde = rm.left + marco.clientLeft + marco.clientWidth;
+      const fila = tabla.tHead?.rows[tabla.tHead.rows.length - 1] ?? tabla.rows[0];
+      if (!fila) continue;
+      const cabeceras = [...fila.cells]
+        .filter((celda) => celda.getBoundingClientRect().right - (marco.scrollLeft || 0) > borde + 2)
+        .map((celda) => (celda.textContent || "").replace(/\s+/g, " ").trim() || `columna ${celda.cellIndex + 1}`);
+      if (!cabeceras.length) continue;
+      columnasOcultas.push({
+        type: "columnas-ocultas",
+        ...describir(tabla),
+        cabeceras,
+        alcanzable: stMarco.overflowX === "auto" || stMarco.overflowX === "scroll",
+        oculto: Math.round(tabla.getBoundingClientRect().right - borde),
+        marco: describir(marco).className,
+      });
+    }
+
+    return { rotulosPartidos, textosFuera, cabecerasQueTapan, columnasOcultas };
   }, { alcance: rootSelector });
 }

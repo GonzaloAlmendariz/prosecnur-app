@@ -21,21 +21,35 @@ import {
 } from "./direccion";
 import type { PanelDeclarado } from "./paneles";
 import {
+  PANEL_ATAJOS_APP,
   PANEL_CONFIGURACION,
   PANEL_MODULOS,
+  PANEL_PALETA,
 } from "../../features/home/panelesHome";
+import { PANEL_ESTUDIO } from "../../features/estudio/panelEstudio";
 import { PANELES_GRAFICOS } from "../../features/graficos/panelesGraficos";
 import { PANELES_CARGA } from "../../features/carga/panelesCarga";
+import { PANELES_VALIDACION } from "../../features/validacion/panelesValidacion";
 import { PANELES_ANALITICA } from "../../features/analitica/panelesAnalitica";
 import { PANELES_CODIFICACION } from "../../features/codificacion/panelesCodificacion";
+import { PANELES_DASHBOARD } from "../../features/dashboard/panelesDashboard";
 import { PANELES_CORREOS } from "../../features/recopiladores/correos/panelesCorreos";
 import { PANEL_REHACER_PLAN } from "../../features/recopiladores/resembrado";
 import { PANELES_CAMPANAS } from "../../features/recopiladores/campanas/panelesCampanas";
 import { PANEL_EDITOR_BLOQUE } from "../../features/recopiladores/editor/panelesEditor";
+import { PANELES_TERRITORIAL } from "../../features/recopiladores/territorial/panelesTerritorial";
+import { PANEL_SALIDAS_SELECCION } from "../../features/hojasRuta/seleccion/panelesSeleccion";
+import { PANEL_AJUSTES_DISENO } from "../../features/hojasRuta/mapa/ajustes/panelAjustes";
+import { PANEL_CONTACTOS_VARIABLES } from "../../features/recopiladores/correos/contactos/panelesContactos";
+import { PANEL_NUEVO_FILTRO } from "../../features/xlsformEditor/choiceFilters/panelesFiltros";
 import { PANEL_CAMPANA_COMPLEMENTARIA } from "../../features/xlsformEditor/shell/campanaComplementariaModel";
 import { PANEL_LISTAS_OPCIONES } from "../../features/xlsformEditor/listas/panelListas";
 import { PANEL_LOGICA_EXTERNA } from "../../features/xlsformEditor/shell/logicaExternaModel";
-import { PANEL_CATALOGOS, PANEL_LOGICA_SURVEYMONKEY } from "../../features/xlsformEditor/shell/panelesEditor";
+import {
+  PANEL_CATALOGOS,
+  PANEL_IMPORTAR_SURVEYMONKEY,
+  PANEL_LOGICA_SURVEYMONKEY,
+} from "../../features/xlsformEditor/shell/panelesEditor";
 
 export type NivelNodo = "modulo" | "modo" | "seccion" | "pestana" | "panel";
 
@@ -179,17 +193,25 @@ export const PANEL_REEMPLAZO_AULAS: PanelDeclarado = {
   clase: "popover",
 };
 
-/** Centro de avisos del cronograma (ADR 0047). */
-export const PANEL_AVISOS: PanelDeclarado = {
-  id: "avisos",
-  label: "Centro de avisos",
-  clase: "sideover",
+/**
+ * Ensayo «Revisar → Aplicar» de Avance › Salidas a Google Sheets (Meta B, L38):
+ * dice qué filas se añaden, cambian y borran antes de escribir el libro.
+ * Abrirlo por `?panel=revisar-publicacion` lanza el ensayo; no escribe nada.
+ */
+export const PANEL_REVISAR_PUBLICACION: PanelDeclarado = {
+  id: "revisar-publicacion",
+  label: "Revisar publicación",
+  clase: "dialogo",
 };
 
-/** Importación del grafo con vista previa (ADR 0047). */
-export const PANEL_IMPORTAR: PanelDeclarado = {
-  id: "importar",
-  label: "Importar mapa del estudio",
+/**
+ * «Revisar cambios» del libro del operativo, en Monitoreo › Cursos-horario ›
+ * Avance › Salidas (ficha A5, P2): qué hojas escribe Publicar y cuáles nunca.
+ * Abrirlo no escribe nada.
+ */
+export const PANEL_REVISAR_LIBRO: PanelDeclarado = {
+  id: "revisar-libro",
+  label: "Revisar cambios del libro",
   clase: "dialogo",
 };
 
@@ -197,9 +219,8 @@ export const PANEL_IMPORTAR: PanelDeclarado = {
 export const PANELES_POR_MODULO: Readonly<
   Partial<Record<ProsecnurModuleSlug | "global", readonly PanelDeclarado[]>>
 > = {
-  global: [PANEL_MODULOS, PANEL_CONFIGURACION],
-  monitoreo: [PANEL_CONECTAR_FUENTE, PANEL_REEMPLAZO_AULAS],
-  "diseno-estudio": [PANEL_AVISOS, PANEL_IMPORTAR],
+  global: [PANEL_MODULOS, PANEL_CONFIGURACION, PANEL_PALETA, PANEL_ATAJOS_APP, PANEL_ESTUDIO],
+  monitoreo: [PANEL_CONECTAR_FUENTE, PANEL_REEMPLAZO_AULAS, PANEL_REVISAR_PUBLICACION, PANEL_REVISAR_LIBRO],
   // Se abre sobre un formulario: `?panel=campana-complementaria&foco=<id>`.
   // `?panel=logica-externa&foco=<id>`: lógica y limpieza hechas fuera.
   // `?panel=catalogos`: el editor de listas; `?panel=logica-surveymonkey`: el borrador de saltos de SurveyMonkey.
@@ -209,15 +230,33 @@ export const PANELES_POR_MODULO: Readonly<
     PANEL_LOGICA_EXTERNA,
     PANEL_CATALOGOS,
     PANEL_LOGICA_SURVEYMONKEY,
+    PANEL_NUEVO_FILTRO,
+    PANEL_IMPORTAR_SURVEYMONKEY,
   ],
-  procesamiento: [...PANELES_GRAFICOS, ...PANELES_CARGA, ...PANELES_ANALITICA, ...PANELES_CODIFICACION],
+  procesamiento: [...PANELES_GRAFICOS, ...PANELES_CARGA, ...PANELES_VALIDACION, ...PANELES_ANALITICA, ...PANELES_CODIFICACION],
   // Lista de campañas (ADR 0111): `?panel=nueva-campana` y
   // `?panel=campana-renombrar&foco=<campaña>`; borrar un correo es
   // `?panel=correo-campana-borrar`. La campaña de correo abierta: el inspector
   // del correo y sus paneles (ADR 0110 §2).
   // Aulas › Unidades: `?panel=rehacer-plan` confirma rehacer el plan (H26).
   // Aulas › Catálogo › Editor: el inspector del bloque, siempre abierto; lo elige `foco` (E1b).
-  "material-campo": [...PANELES_CAMPANAS, ...PANELES_CORREOS, PANEL_REHACER_PLAN, PANEL_EDITOR_BLOQUE],
+  // Selección › salidas: `?seccion=seleccion&panel=salidas`. Sideover bajo 1280 px en la página clásica;
+  // en el lienzo (ADR 0114) siempre sideover, disparado desde el pie del inspector.
+  // `?panel=personalizar`: el editor de marca, color, vistas y pestañas del dashboard; `?panel=paletas`: las
+  // paletas por lista; `?panel=publicar`: el despliegue (abrirlo no publica); `?panel=fuente`: «Datos», la fuente
+  // del tablero, que lo reemplaza en la página.
+  dashboard: [...PANELES_DASHBOARD],
+  // `?panel=ajustes&foco=<grupo>`: «Ajustes del diseño», los ocho grupos de la configuración (maqueta 2026-11-05).
+  "hojas-ruta": [PANEL_SALIDAS_SELECCION, PANEL_AJUSTES_DISENO],
+  "material-campo": [
+    ...PANELES_CAMPANAS,
+    ...PANELES_CORREOS,
+    PANEL_CONTACTOS_VARIABLES,
+    PANEL_REHACER_PLAN,
+    PANEL_EDITOR_BLOQUE,
+    // Territorial › Unidades (ADR 0118 §4): `?panel=hoja&foco=<id_manzana>`, la hoja de la UMP en grande.
+    ...PANELES_TERRITORIAL,
+  ],
 };
 
 export function nodosDe(modulo: ProsecnurModuleSlug): NodoNavegacion[] {
@@ -232,6 +271,20 @@ export function hijosDe(clave: string): NodoNavegacion[] {
 
 export function nodoPorClave(clave: string): NodoNavegacion | null {
   return MANIFIESTO_NAVEGACION.find((item) => item.clave === clave) ?? null;
+}
+
+/**
+ * Como `nodoPorClave`, pero una clave sin modo de un módulo que los tiene cae en su primer modo: así
+ * `hojas-ruta/seleccion` sigue llegando a la selección por UMP desde que Hojas de ruta declaró sus modos
+ * (ADR 0125 §2). Lo usa el puente; los contratos siguen leyendo la clave exacta.
+ */
+export function nodoPorClaveOModoPorDefecto(clave: string): NodoNavegacion | null {
+  const exacto = nodoPorClave(clave);
+  if (exacto) return exacto;
+  const [modulo, ...resto] = clave.split("/");
+  const primerModo = PROSECNUR_MODULES.find((m) => m.slug === modulo)?.modos?.[0]?.id;
+  if (!primerModo || !resto.length || resto[0] === primerModo) return null;
+  return nodoPorClave([modulo, primerModo, ...resto].join("/"));
 }
 
 /**

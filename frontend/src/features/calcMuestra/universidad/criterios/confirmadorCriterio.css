@@ -11,7 +11,7 @@
   gap: 10px;
   flex-wrap: wrap;
   margin: 8px 0 0;
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
 }
 
 .cmv2-confirmar[data-estado="al-dia"] {
@@ -32,7 +32,7 @@
 .cmv2-confirmar-texto { display: grid; gap: 1px; min-width: 0; }
 .cmv2-confirmar-texto strong { color: var(--pulso-warn-fg, var(--pulso-text)); font-weight: var(--pulso-weight-semibold); }
 /* Lo que está en juego: sin esto, «confirmar» parece un trámite. */
-.cmv2-confirmar-texto em { font-style: normal; font-size: 10.5px; color: var(--pulso-text-muted); }
+.cmv2-confirmar-texto em { font-style: normal; font-size: var(--pulso-type-micro-size); color: var(--pulso-text-muted); }
 
 .cmv2-confirmar-acciones { display: inline-flex; gap: 6px; flex: none; }
 
@@ -43,7 +43,7 @@
   gap: 5px;
   padding: 4px 11px;
   border-radius: 7px;
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   font-weight: var(--pulso-weight-semibold);
   cursor: pointer;
   transition: background 160ms ease, border-color 160ms ease;
@@ -65,9 +65,7 @@
 .cmv2-confirmar-btn:focus-visible,
 .cmv2-confirmar-descartar:focus-visible { outline: 2px solid var(--cmv2-accent); outline-offset: 2px; }
 
-.cmv2-confirmar-girando { animation: cmv2-confirmar-giro 900ms linear infinite; }
-@keyframes cmv2-confirmar-giro { to { transform: rotate(360deg); } }
-
+.cmv2-confirmar-girando { animation: pulso-mov-giro 900ms linear infinite; }
 /*
  * F121 · El realce del embudo vivo.
  *

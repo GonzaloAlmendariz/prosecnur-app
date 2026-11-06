@@ -56,9 +56,12 @@ type Props = {
   plataforma?: MailPlatform;
 };
 
-function Imagen({ src, alt, banner }: { src: string | undefined; alt: string; banner?: boolean }) {
+function Imagen({ src, alt, banner, fondo }: { src: string | undefined; alt: string; banner?: boolean; fondo?: string }) {
   return (
-    <span className={`rec-mail-img${banner ? " rec-mail-img--banner" : ""}${src ? "" : " is-vacia"}`}>
+    <span
+      className={`rec-mail-img${banner ? " rec-mail-img--banner" : ""}${src ? "" : " is-vacia"}`}
+      style={fondo && src ? { backgroundColor: fondo } : undefined}
+    >
       {src ? <img src={src} alt={alt} /> : <ImagePlus size={banner ? 20 : 15} aria-hidden />}
     </span>
   );
@@ -97,6 +100,7 @@ export function PanelIdentidad({ template, imagenesLocales, htmlDeLaVista, sinAr
   const logos = logosDeLaFranja(template);
   const tieneArchivo = (id: string) => Boolean(imagenesLocales[id]) || (!sinArchivo.includes(id) && id in template.images);
   const fondo = template.header.kind === "logos" ? template.header.background : "dark";
+  const logosBlancos = template.header.kind === "logos" && template.header.background === "dark" && template.header.logo_tone === "blanco";
   // El banner que ya se ve: el recién subido, el de la vista previa o su URL pública.
   const srcDelBanner = conBanner
     ? imagenesLocales[bannerId] ?? srcDeImagenDelBloque(htmlDeLaVista, CABECERA) ?? template.images[bannerId]?.url ?? null
@@ -249,6 +253,36 @@ export function PanelIdentidad({ template, imagenesLocales, htmlDeLaVista, sinAr
             />
           ) : null}
         </span>
+        {!conBanner && template.header.kind === "logos" ? (
+          <span className="rec-mail-franja-opciones">
+            {fondo === "dark" ? (
+              <Segmented
+                aria-label="Color de los logos"
+                size="sm"
+                value={template.header.logo_tone === "blanco" ? "blanco" : "original"}
+                options={[{ value: "original", label: "Logos a color" }, { value: "blanco", label: "Logos en blanco" }]}
+                onChange={(tono) => onEditar((t) => {
+                  if (t.header.kind !== "logos") return t;
+                  const { logo_tone: _tono, ...resto } = t.header;
+                  return { ...t, header: tono === "blanco" ? { ...resto, logo_tone: "blanco" } : resto };
+                })}
+              />
+            ) : null}
+            {logos.length > 1 ? (
+              <Segmented
+                aria-label="Línea entre logos"
+                size="sm"
+                value={template.header.divider === false ? "sin" : "con"}
+                options={[{ value: "con", label: "Con línea" }, { value: "sin", label: "Sin línea" }]}
+                onChange={(linea) => onEditar((t) => {
+                  if (t.header.kind !== "logos") return t;
+                  const { divider: _linea, ...resto } = t.header;
+                  return { ...t, header: linea === "sin" ? { ...resto, divider: false } : resto };
+                })}
+              />
+            ) : null}
+          </span>
+        ) : null}
 {logos.length ? (
         <FranjaDeLogos
           logoIds={logos}
@@ -258,6 +292,8 @@ export function PanelIdentidad({ template, imagenesLocales, htmlDeLaVista, sinAr
           imagenesLocales={imagenesLocales}
           htmlDeLaVista={conBanner ? null : htmlDeLaVista}
           enReserva={conBanner}
+          blancos={logosBlancos}
+          conLinea={!(template.header.kind === "logos" && template.header.divider === false)}
         />
         ) : (
           <p className="rec-mail-vacio">La cabecera es el banner. Si vuelves a la franja, aquí van los logos del estudio.</p>
@@ -271,7 +307,8 @@ export function PanelIdentidad({ template, imagenesLocales, htmlDeLaVista, sinAr
             const falta = !tieneArchivo(id) && !img.url;
             return (
               <li key={id} className="rec-mail-logo">
-                <Imagen src={srcDelLogo(id)} alt={img.alt} />
+                {/* Con los logos en blanco la miniatura es el derivado blanco: va sobre el acento, como en el correo. */}
+                <Imagen src={srcDelLogo(id)} alt={img.alt} fondo={logosBlancos ? template.theme.accent : undefined} />
                 <span className="rec-mail-logo-id">
                   <b title={nombre}>{nombre}</b>
                   {falta ? <span className="rec-mail-chip is-warning">falta subirlo</span> : null}

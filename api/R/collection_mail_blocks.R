@@ -293,7 +293,7 @@
     steps = , deadline = , benefits = , quote = , faq = , contact = .cmail_block_section(b, type, ctx),
     ""
   )
-  if (!is.null(box)) html <- .cmail_box_wrap(html, box, ctx)
+  if (!is.null(box)) html <- .cmail_box_wrap(html, box, ctx, pegada_arriba = isTRUE(b$.pegada_arriba))
   mark_type <- if (identical(b$block_id, .CMAIL_OPENING_ID)) "opening" else type
   .cmail_mark_row(html, ctx, as.character(b$block_id %||% ""), mark_type)
 }

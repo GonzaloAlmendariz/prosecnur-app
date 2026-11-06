@@ -21,6 +21,7 @@ import { useEffect, useRef, useState } from "react";
 import { ChevronDown, ListChecks, PencilLine, Plus } from "lucide-react";
 import type { CatalogSummary } from "../types";
 import TechTerm from "../helpers/TechTerm";
+import { EstadoVacio } from "../../../components/EstadoVacio";
 
 export type CatalogChipProps = {
   /** Nombre del catálogo actualmente asignado, o vacío si no hay. */
@@ -141,9 +142,7 @@ export function CatalogChip({
           </div>
 
           {catalogs.length === 0 ? (
-            <div className="pulso-catalogchip-pop-empty">
-              Todavía no hay listas. Crea la primera para asignarla.
-            </div>
+            <EstadoVacio icono={<ListChecks size={14} />} titulo="Todavía no hay listas" descripcion="Crea la primera para asignarla." />
           ) : (
             <ul className="pulso-catalogchip-pop-list">
               {catalogs.map((catalog) => {

@@ -15,20 +15,22 @@
 #     (`.tabla_nativa_geom` / `.tabla_nativa_flextable`).
 # Los dos deciden con `.lam_tabla_costado_decidir()`, que es pura sobre medidas.
 
-.LAM_TABLA_COSTADO <- list(col1 = 2.2, col = 1.15, fila = 0.5, fila_min = 0.4, hueco = 0.3, hueco_v = 0.2,
-                           min_graf_w = 3.6, dy = 0.6, cuerpo_pt = 13, enc_pt = 11, relleno_in = 12 / 72)
+#' Medidas de una tabla de datos del estándar (`ppt.composicion.tabla_costado` o `tabla_general`), con su margen en in
+#' @keywords internal
+.lam_tabla_m <- function(cual = "tabla_costado") {
+  m <- .std_comp(cual); m$relleno_in <- m$relleno_pt / 72; m
+}
 
 # Camino general: la tabla nativa genérica (letra de 12 pt, fila fija de 0,42 in) no se comprime.
-.LAM_TABLA_COSTADO_GENERAL <- list(col1 = 2.2, col = 1.15, fila = 0.42, cuerpo_pt = 12, enc_pt = 11, relleno_in = 14 / 72)
 
 #' Medidas de la tabla: anchos de columna y altos de encabezado y fila
 #'
 #' @param ejes,grupos,encabezado Textos de la tabla (criterios, públicos y encabezado de la primera columna).
-#' @param M Constantes (`.LAM_TABLA_COSTADO` o `.LAM_TABLA_COSTADO_GENERAL`).
+#' @param M Constantes (`.lam_tabla_m()` o `.lam_tabla_m("tabla_general")`).
 #' @param comprimible Si la fila puede bajar de `fila` hasta `fila_min` (la tabla `ttb`); el camino general no.
 #' @return `list(ws, h_enc, nat, need)`: anchos (in), alto del encabezado, alto natural de la fila y el mínimo.
 #' @keywords internal
-.lam_tabla_costado_medidas <- function(ejes, grupos, encabezado, M = .LAM_TABLA_COSTADO, comprimible = TRUE) {
+.lam_tabla_costado_medidas <- function(ejes, grupos, encabezado, M = .lam_tabla_m(), comprimible = TRUE) {
   pt <- function(n, size) n * size * 1.2 / 72 + M$relleno_in
   ws <- c(M$col1, pmax(M$col, .lam_ancho_tinta(grupos, M$enc_pt, TRUE) + 0.25))
   lin_c <- if (length(ejes)) max(.lam_lineas_tinta(ejes, M$col1, M$cuerpo_pt, TRUE)) else 1L
@@ -53,8 +55,8 @@
 #' @param M Constantes.
 #' @return `list(lugar, x, y, w, h, h_enc, fila, graf_x1, graf_y1)`; `lugar` es `costado`, `debajo` u `omitir` (sin medidas).
 #' @keywords internal
-.lam_tabla_costado_decidir <- function(n_filas, med, caja, min_graf_w = .LAM_TABLA_COSTADO$min_graf_w, min_graf_h = 2.4,
-                                       M = .LAM_TABLA_COSTADO, dy = M$dy) {
+.lam_tabla_costado_decidir <- function(n_filas, med, caja, min_graf_w = .lam_tabla_m()$min_graf_w, min_graf_h = 2.4,
+                                       M = .lam_tabla_m(), dy = M$dy) {
   n <- max(1L, as.integer(n_filas)); w <- sum(med$ws); cw <- caja$x1 - caja$x0; ch <- caja$y1 - caja$y0
   eps <- 1e-6
   if (w + M$hueco + min_graf_w <= cw + 0.01) {
@@ -106,11 +108,24 @@
 .lam_pesas_tabla_plan <- function(espec) {
   t <- espec[["tabla"]]
   if (!is.list(t) || !length(t$ejes)) return(NULL)
-  k <- length(t$ejes)
-  med <- .lam_tabla_costado_medidas(t$ejes, t$grupos, t$encabezado)
-  d <- .lam_tabla_costado_decidir(k, med, .lam_pesas_caja(), min_graf_w = .LAM_TABLA_COSTADO$min_graf_w + 3.4,
-                                  min_graf_h = 1.35 + 0.45 * k)
-  d$med <- med
+  k <- length(t$ejes); caja <- .lam_pesas_caja(); min_w <- .lam_tabla_m()$min_graf_w + 3.4
+  decidir <- function(M) {
+    med <- .lam_tabla_costado_medidas(t$ejes, t$grupos, t$encabezado, M = M)
+    d <- .lam_tabla_costado_decidir(k, med, caja, min_graf_w = min_w, min_graf_h = 1.35 + 0.45 * k, M = M)
+    d$med <- med
+    d
+  }
+  d <- decidir(.lam_tabla_m())
+  # G18 (Gabriela, 2026-10-28): seis competencias de dos o tres líneas no cabían de alto y la tabla se omitía. Si al
+  # gráfico le sobra ancho, la columna de criterios se ensancha lo justo para caber (de 0,1 en 0,1 in): menos líneas por
+  # fila, sin bajar la letra, y el resto del ancho sigue siendo del gráfico.
+  if (!identical(d$lugar, "costado")) {
+    sobra <- (caja$x1 - caja$x0) - .lam_tabla_m()$hueco - min_w - sum(d$med$ws[-1L])
+    for (c1 in seq(.lam_tabla_m()$col1 + 0.1, sobra, by = 0.1)[seq_len(max(0L, floor((sobra - .lam_tabla_m()$col1) / 0.1)))]) {
+      d2 <- decidir(utils::modifyList(.lam_tabla_m(), list(col1 = c1)))
+      if (identical(d2$lugar, "costado")) { d <- d2; break }
+    }
+  }
   d
 }
 
@@ -137,16 +152,32 @@
 .lam_tabla_costado_geom <- function(estilo, loc) {
   l <- suppressWarnings(as.numeric(c(loc$left, loc$top, loc$width, loc$height)))
   if (length(l) != 4L || any(!is.finite(l))) return(NULL)
-  M <- .LAM_TABLA_COSTADO_GENERAL
+  M <- .lam_tabla_m("tabla_general")
   ejes <- estilo$tabla_ejes; grupos <- estilo$tabla_grupos
   k <- length(ejes); p <- length(grupos)
   med <- .lam_tabla_costado_medidas(ejes, grupos, estilo$tabla_encabezado, M = M, comprimible = FALSE)
   caja <- list(x0 = l[1], y0 = l[2], x1 = l[1] + l[3], y1 = l[2] + l[4])
   min_h <- if (identical(estilo$tabla_dibuja, "barras")) 0.9 + 0.17 * k * p else 1.35 + 0.45 * k
-  d <- .lam_tabla_costado_decidir(k, med, caja, min_graf_w = .LAM_TABLA_COSTADO$min_graf_w + 1.5, min_graf_h = min_h,
-                                  M = .LAM_TABLA_COSTADO, dy = 0.1)
+  d <- .lam_tabla_costado_decidir(k, med, caja, min_graf_w = .lam_tabla_m()$min_graf_w + 1.5, min_graf_h = min_h,
+                                  M = .lam_tabla_m(), dy = 0.1)
   .lam_tabla_costado_avisar(d)
   if (identical(d$lugar, "omitir")) return(NULL)
   list(left = d$x, top = d$y, width = d$w, height = d$h, lugar = d$lugar, ws = med$ws,
        graf_w = d$graf_x1 - caja$x0, graf_h = d$graf_y1 - caja$y0)
+}
+
+#' Alinea la tabla al costado con las filas del gráfico de líneas y puntos
+#'
+#' Gonzalo, 2026-10-28 («puede ocupar mejor el alto en el PPT»): la tabla de cuatro competencias ocupaba la mitad de
+#' arriba con filas de 0,5 in y el gráfico, a su lado, todo el alto con filas de ~1 in. Al costado, el encabezado queda a
+#' la altura del eje y cada fila de la tabla a la altura de los puntos de su criterio. Si la fila del gráfico es más baja
+#' que la que pide el texto de la tabla, la tabla queda como estaba.
+#' @param tp Plan de la tabla (`.lam_pesas_tabla_plan()`). @param yb Borde superior de la primera fila del gráfico.
+#' @param fila Alto de cada fila del gráfico.
+#' @keywords internal
+.lam_pesas_tabla_alinear <- function(tp, yb, fila) {
+  if (is.null(tp) || !identical(tp$lugar, "costado") || !is.finite(fila) || fila < (tp$med$need %||% tp$fila)) return(tp)
+  k <- round((tp$h - tp$h_enc) / tp$fila)
+  tp$fila <- fila; tp$y <- yb - tp$h_enc; tp$h <- tp$h_enc + k * fila
+  tp
 }

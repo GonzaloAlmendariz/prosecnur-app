@@ -34,6 +34,47 @@
   gap: 10px;
 }
 
+/* Sección (L14 opción a, estándar §2b G1): 44 px, antetítulo «SECCIÓN · GRUPO»
+   y título, sin detalle. Vive dentro del marco de la sección, así que no trae
+   borde, fondo ni relleno propios. Misma geometría que
+   features/monitoreo/core/cabeceraDePestana (tile 36 px de radio 11, antetítulo
+   10/700 en versalitas, título 18/700); TabHeading.seccion.contract.test.ts
+   falla si las dos se separan mientras convivan. */
+.pulso-tab-heading[data-variante="seccion"] {
+  block-size: 44px;
+  min-block-size: 44px;
+  padding: 0;
+  border-bottom: 0;
+  background: transparent;
+}
+
+.pulso-tab-heading[data-variante="seccion"] .pulso-tab-heading-icon {
+  inline-size: 36px;
+  block-size: 36px;
+  border-radius: 11px;
+}
+
+.pulso-tab-heading[data-variante="seccion"] .pulso-tab-heading-copy {
+  justify-content: center;
+  gap: 2px;
+}
+
+.pulso-tab-heading[data-variante="seccion"] .pulso-tab-heading-eyebrow {
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-micro-size);
+  font-weight: var(--pulso-weight-bold);
+  letter-spacing: 0.09em;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+.pulso-tab-heading[data-variante="seccion"] .pulso-tab-heading-title h2 {
+  font-size: 18px;
+  font-weight: var(--pulso-weight-bold);
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+}
+
 /* 1 · Tile: el mismo ícono que la pestaña activa del rail, con el acento. */
 .pulso-tab-heading-icon {
   flex: none;
@@ -110,7 +151,8 @@
   white-space: nowrap;
 }
 
-.pulso-tab-heading-estado[data-estado="parcial"] {
+.pulso-tab-heading-estado[data-estado="parcial"],
+.pulso-tab-heading-estado[data-estado="atencion"] {
   border-color: var(--pulso-warn-border);
   background: var(--pulso-warn-bg);
   color: var(--pulso-warn-fg);

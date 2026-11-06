@@ -2,31 +2,8 @@
 # lamina_numericos.R — gráficos de números del recetario, con formas nativas (ADR 0093, N4)
 # =============================================================================
 #
-# Histograma (lámina 79, recetario_graficos2.R:4-18): una barra azul por valor que
-# ocupa su columna menos 0.04 in de aire, la cifra encima a 12 pt en negrita, el
-# valor debajo, el triángulo coral de la mediana bajo su valor y la cifra de la
-# mediana arriba a la derecha. Sin eje Y ni título del eje.
-
-#' Histograma del recetario en un rectángulo
-#'
-#' @param espec Especificación `histograma/1` (adjunta por `.histograma_recetario`).
-#' @param hb Alto máximo de las barras. `espec$x_mediana` es la posición de la mediana en columnas desde 0 (la primera barra).
-#' @keywords internal
-.lam_histograma <- function(lz, espec, x, y, w, hb) {
-  azul <- .std_color("azul"); coral <- .std_color("coral")
-  n <- length(espec$valores); wcol <- w / n; vmax <- max(espec$valores)
-  for (k in seq_len(n)) {
-    hk <- if (vmax > 0) hb * espec$valores[k] / vmax else 0; xk <- x + (k - 1) * wcol
-    if (hk > 0) {
-      .lam_caja(lz, xk + 0.02, y + hb - hk, wcol - 0.04, hk, azul, nombre = "histograma:barra")
-      .lam_txt(lz, espec$cifras[k], xk, y + hb - hk - 0.3, wcol, 0.28, 12, azul, bold = TRUE, align = "center", nombre = "histograma:cifra")
-    }
-    .lam_txt(lz, espec$rotulos[k], xk, y + hb + 0.06, wcol, 0.28, 12, azul, align = "center", nombre = "histograma:valor")
-  }
-  xm <- x + (espec$x_mediana + 0.5) * wcol
-  .lam_caja(lz, xm - 0.08, y + hb + 0.4, 0.16, 0.13, coral, nombre = "histograma:mediana", geom = "triangle")
-  invisible(y + hb + 0.53)
-}
+# Histograma (lámina 79, recetario_graficos2.R:4-18): lo dibuja graficador_histograma_lamina.R, con
+# las barras contiguas sobre su base y la mediana como línea fina rotulada (revisión del PPT v7 de CCSS).
 
 #' Lámina de un histograma (lámina 79 del recetario)
 #' @keywords internal
@@ -38,9 +15,8 @@
   doc <- officer::add_slide(doc, layout = layout, master = master)
   doc <- .lam_titulo(doc, titulo, ante = ante, sub = sub)
   lz <- .lam_lienzo()
-  .lam_histograma(lz, espec, ml + .LAM_SANGRIA_TXT, yt + 0.55, W - 2 * (ml + .LAM_SANGRIA_TXT), yf - yt - 1.25)   # mismo margen a ambos lados (lamina_dicotomia_margenes.R)
-  .lam_txt(lz, espec$texto_mediana, W - g_("margen_der") - 3.2, yt, 3.2, 0.3, 12, .std_color("coral"), bold = TRUE, align = "right",
-           nombre = "histograma:texto_mediana")
+  # Barras contiguas, base y la mediana como línea rotulada (graficador_histograma_lamina.R); mismo margen a ambos lados.
+  .lam_histograma_distribucion(lz, espec, ml + .LAM_SANGRIA_TXT, yt, W - 2 * (ml + .LAM_SANGRIA_TXT), yf - 0.05)
   doc <- .lam_agrupar(doc, lz, nombre = "prosecnur:grafico:histograma")
   doc <- .lam_pie(doc, base, folio)
   list(doc = por_lamina(doc), partes = 1L)
@@ -268,6 +244,7 @@
   wrot0 <- .lam_pesas_ancho_rotulo(espec$rotulos, con_dif); if (!is.finite(wrot0)) wrot0 <- if (con_dif) 2.8 else 2.2   # L10-1
   xl <- ml + wrot0 + 0.2; wl <- x_der - xl - (if (con_dif) 2.4 else 1.0)
   yb <- yt + 0.75; fila <- (yf - yb - 0.6) / k
+  tp <- .lam_pesas_tabla_alinear(tp, yb, fila)   # la tabla al costado ocupa el alto del gráfico, fila con fila (lamina_tabla_costado.R)
   lo <- espec$eje[["lo"]]; hi <- espec$eje[["hi"]]; paso <- espec$eje[["paso"]]
   px <- function(v) xl + wl * (v - lo) / (hi - lo)
   doc <- officer::add_slide(doc, layout = layout, master = master)
@@ -386,7 +363,9 @@
   switch(espec$tipo,
     histograma = {
       n <- length(espec$valores); wcol <- ancho / n
-      n >= 2L && n <= 30L && all(.lam_ancho_txt(c(espec$cifras, espec$rotulos), 12, TRUE) <= wcol - 0.02)
+      n >= 2L && n <= 30L && all(.lam_ancho_txt(espec$rotulos, 12, TRUE) <= wcol - 0.02) &&
+        all(.lam_ancho_txt(unlist(strsplit(.histograma_cifras_en_columna(espec$cifras, wcol)$textos, "\n", fixed = TRUE)), 12, TRUE) <=
+              wcol - (if (any(grepl(" (", espec$cifras, fixed = TRUE))) 0.22 else 0.02))
     },
     numerico = {
       k <- length(espec$valores); paso <- (ancho - 1.2) / k; wr <- min(paso * 0.56 + 0.8, paso - 0.05)

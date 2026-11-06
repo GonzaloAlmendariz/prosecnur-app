@@ -139,3 +139,16 @@ describe("OrdenCategoriasGrafico · avisos de la pregunta (decisión 4, §7)", (
     expect(nota(con1, "categorias_sin_respuestas")?.[3]).toBe("Una categoría del instrumento no tiene respuestas en esta base («Gama»).");
   });
 });
+
+describe("OrdenCategoriasGrafico · orden elegido antes (U4)", () => {
+  it("dice con palabras qué orden trae el gráfico y deja elegir otro", () => {
+    const html = renderToStaticMarkup(
+      <OrdenCategoriasGrafico variable="docentes$p7" graficador="p_barras_agrupadas" args={{ var: "p7", overrides: { orden_barras: "mayor_menor" } }}
+        scope="active" onCambio={() => undefined} />,
+    );
+    expect(html).toContain(">De mayor a menor, elegido antes</option>");
+    expect(html).toContain("Este gráfico trae el orden «De mayor a menor», elegido antes; manda mientras no elijas otro.");
+    expect(html).not.toContain("Por defecto, orden elegido antes");
+    expect(html).toContain('<option value="frecuencia">De mayor a menor (frecuencia)</option>');
+  });
+});

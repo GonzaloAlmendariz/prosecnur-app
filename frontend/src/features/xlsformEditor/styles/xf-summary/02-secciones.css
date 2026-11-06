@@ -15,7 +15,7 @@
   width: 100%;
   border-collapse: separate;
   border-spacing: 0;
-  font-size: 12.5px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .pulso-xf-res-tabla thead th {
@@ -26,7 +26,7 @@
   border-bottom: 1px solid var(--pulso-border);
   background: var(--pulso-surface-2);
   color: var(--pulso-text-soft);
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   font-weight: var(--pulso-weight-semibold);
   text-align: left;
   white-space: nowrap;
@@ -132,16 +132,17 @@
 .pulso-xf-res-seccion-texto > small {
   display: none;
   color: var(--pulso-text-soft);
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
 }
 
 .pulso-xf-res-pesada {
+  flex: none;
   margin-left: auto;
   padding: 1px 8px;
   border-radius: 999px;
   background: var(--xf-res-acento-suave);
   color: var(--xf-res-acento);
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   font-weight: var(--pulso-weight-semibold);
   white-space: nowrap;
 }
@@ -181,7 +182,7 @@
   display: inline-block;
   width: 38px;
   color: var(--pulso-text-soft);
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   font-variant-numeric: tabular-nums;
   text-align: right;
   vertical-align: middle;
@@ -192,7 +193,7 @@
   padding: var(--pulso-space-2) var(--pulso-space-4);
   border-top: 1px solid var(--pulso-border);
   color: var(--pulso-text-soft);
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   flex: 0 0 auto;
 }
 
@@ -220,6 +221,28 @@
   .pulso-xf-res-seccion-texto > small {
     display: block;
   }
+
+  /* La columna de la sección mide 140 px a 1440: la chapa «Pesada» se comía el nombre (o, encogida, se salía 30 px).
+     Sigue para el lector de pantalla, y a la vista la marca un filete del acento junto al nombre, además de su barra
+     de peso llena. El botón la ancla: sin un ancestro posicionado, la chapa oculta escapaba del recorte de la tabla
+     y estiraba el desplazamiento de la pestaña. */
+  .pulso-xf-res-seccion {
+    position: relative;
+  }
+
+  .pulso-xf-res-pesada {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+
+  .pulso-xf-res-tabla tbody tr.is-pesada > th.is-seccion {
+    box-shadow: inset 3px 0 0 var(--xf-res-acento);
+  }
 }
 
 /* ── Compacto: columnas apiladas, un solo dueño de scroll ──────────────── */
@@ -244,13 +267,13 @@
 
 .pulso-xf-res-tiempo-cabeza h3 {
   margin: 0;
-  font-size: 14px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-semibold);
 }
 
 .pulso-xf-res-tiempo-cabeza span {
   color: var(--pulso-text-soft);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .pulso-xf-res-tiempo-barra {
@@ -291,7 +314,7 @@
   background: color-mix(in srgb, var(--xf-res-acento) 30%, var(--pulso-surface));
   color: var(--pulso-text);
   font: inherit;
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   font-weight: var(--pulso-weight-semibold);
   cursor: pointer;
   transition: filter var(--motion-dur-fast) var(--motion-ease-out);
@@ -326,7 +349,7 @@
   height: 18px;
   margin-top: 4px;
   color: var(--pulso-text-soft);
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   font-variant-numeric: tabular-nums;
 }
 
@@ -441,7 +464,7 @@
   align-items: center;
   gap: var(--pulso-space-3);
   padding: var(--pulso-space-2) 0;
-  font-size: 12.5px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .pulso-xf-res-preguntas li + li {
@@ -463,7 +486,7 @@
 .pulso-xf-res-preg-tipo,
 .pulso-xf-res-preg-min {
   color: var(--pulso-text-soft);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   white-space: nowrap;
 }
 
@@ -494,10 +517,16 @@
   }
 }
 
-/* La cabecera de la tabla es fija: una fila traída a la vista (tramo del recorrido, foco del teclado) queda debajo
-   de ella, no tapada. */
+/* La cabecera de la tabla es fija y sus rótulos parten en dos líneas: con su alto REAL (`useAltoDeCabecera`, el patrón
+   de la grilla de bases) una fila traída a la vista (tramo del recorrido, foco del teclado) queda debajo de ella, y al
+   soltar el desplazamiento las filas encajan bajo la cabecera en vez de quedar tapadas a medias (23 px a 1440). */
 .pulso-xf-res-tabla-marco {
-  scroll-padding-top: var(--pulso-space-8);
+  scroll-padding-top: var(--sheet-cabecera, var(--pulso-space-8));
+  scroll-snap-type: y mandatory;
+}
+
+.pulso-xf-res-tabla tbody tr {
+  scroll-snap-align: start;
 }
 
 /* Sección sin título legible (M16): su rótulo técnico atenuado, el mismo criterio que la Vista del cuestionario. */

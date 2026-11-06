@@ -27,21 +27,29 @@
       .lam_txt(lz, sprintf("%s %s", format(as.integer(nk), big.mark = ","), unidad_n), xk - 0.4, ybase - hk - 0.68,
                wcol + 0.8, 0.26, .std_pt("n"), tenue, align = "center", nombre = "n")
     }
-    .lam_txt(lz, espec$rotulos[k], xk - 0.4, ybase + 0.1, wcol + 0.8, max(0.3, .lam_alto_txt(espec$rotulos[k], wcol + 0.8, 12, TRUE)), 12,
+    .lam_txt(lz, espec$rotulos[k], xk - 0.4, ybase + 0.1, wcol + 0.8, max(0.3, .lam_alto_txt(espec$rotulos[k], wcol + 0.8, .std_pt("rotulo_categoria"), TRUE)), .std_pt("rotulo_categoria"),
              azul, bold = TRUE, align = "center", nombre = "rotulo")
   }
   invisible(lz)
 }
 
+#' Márgenes internos (in) que la caja de una cifra suma a su columna para no partirla en dos líneas
+#' @keywords internal
+.LAM_CIFRA_MARGEN_CAJA <- 0.2
+
 #' Barras horizontales de una serie: rótulo a la derecha, barra y cifra; la mayor en navy y negrita y el resto
 #' tenue cuando la especificación pide realce
 #' @keywords internal
-.lam_barras_h <- function(lz, espec, x, y, w, wlab, g, fila, size = 12, escala = NULL) {
+.lam_barras_h <- function(lz, espec, x, y, w, wlab, g, fila, size = .std_pt("rotulo_categoria"), escala = NULL) {
   v <- espec$largos; et <- espec$rotulos
   # Las agrupadas van de 0 a 100 % por defecto (`escala_completa`); el resto, al máximo con aire, como el recetario.
   escala <- escala %||% (if (isTRUE(espec$escala_completa)) max(1, v) else max(v) * 1.12)
-  # La cifra lleva su propia columna: 0.8 in, o lo que mida si trae «(n)» o letras (no se parte en dos líneas).
-  wcif <- max(0.8, max(.lam_ancho_txt(espec$cifras, size, TRUE)) + 0.12)
+  pista <- .lam_barras_pista_activa(espec)   # v7.11, lámina 9: la barra sobre su pista hasta el 100% (lamina_barras_pista.R)
+  if (pista) escala <- max(1, v)
+  # La cifra lleva su propia columna: 0.8 in, o lo que mida si trae «(n)» o letras (no se parte en dos líneas). Su cuerpo
+  # es el de los rótulos salvo que el gráfico declare `size_texto_barras` (lamina_tamanos_declarados.R).
+  size_cif <- (espec$tamanos %||% list())$cifra_pt %||% size
+  wcif <- max(0.8, max(.lam_ancho_txt(espec$cifras, size_cif, TRUE)) + 0.12)
   wbar <- w - wlab - wcif; yy <- y
   azul <- .std_color("azul"); tenue <- .std_color("tenue")
   cols <- .espec_colores_de(espec, et)   # ADR 0097: con paleta del usuario cada barra lleva su color (y no hay tenue)
@@ -52,9 +60,15 @@
     h <- .lam_alto_tinta(et[k], wlab, size, .std_negrita_forzada("categorias") || isTRUE(st$bold))   # tinta medida: la estimación por carácter subía el rótulo de una línea
     .lam_txt(lz, et[k], x, yy + (fila - h) / 2, wlab, h, size, st$color_rotulo %||% azul, bold = st$bold %||% es_max, align = "right", nombre = "rotulo")
     yb <- yy + (fila - g) / 2; bw <- if (escala > 0) wbar * v[k] / escala else 0
-    fill <- st$fill %||% (if (!is.null(cols) && !length(elegidas)) cols[k] else if ((isTRUE(espec$realce) || length(elegidas)) && !es_max) tenue else azul)
+    fill <- st$fill %||% (if (isTRUE(espec[["residuales_gris"]]) && grepl(.CATEGORIAS_RESIDUALES, et[k], ignore.case = TRUE)) .graficos_no_sustantivo_color() else
+      if (!is.null(cols) && !length(elegidas)) cols[k] else if ((isTRUE(espec$realce) || length(elegidas)) && !es_max) tenue else azul)
+    if (pista) .lam_barras_pista(lz, x + wlab + 0.12, yb, wbar / escala, g)
     if (bw > 0.004) .lam_caja(lz, x + wlab + 0.12, yb, bw, g, fill, nombre = "barra")
-    .lam_txt(lz, espec$cifras[k], x + wlab + 0.16 + bw, yb + (g - 0.3) / 2, wcif, 0.3, size, azul, bold = st$cifra_bold %||% TRUE, nombre = "cifra")
+    h_cif <- max(0.3, size_cif * 1.25 / 72)
+    # La caja de la cifra suma sus márgenes internos (0.1 in por lado) a la columna: con 0.12 de holgura «60% (12)» se partía
+    # en dos líneas (CCSS 2026, B3). La columna, que decide el largo de las barras, no cambia.
+    .lam_txt(lz, espec$cifras[k], x + wlab + 0.16 + bw, yb + (g - h_cif) / 2, wcif + .LAM_CIFRA_MARGEN_CAJA, h_cif, size_cif, azul,
+             bold = st$cifra_bold %||% TRUE, nombre = "cifra")
     yy <- yy + fila
   }
   # Marcas 0-25-50-75-100 % bajo las barras, opcionales con la escala de 0 a 100 % (Gonzalo, 2026-10-09: «A,bas y en
@@ -72,13 +86,16 @@
 .lam_barras_geo <- function(espec) {
   g_ <- .std_geom; yt <- g_("zona_datos_y0"); yf <- g_("contenido_y1")
   n <- max(1L, length(espec$largos))
-  size <- if (any(nchar(espec$rotulos) > 45)) 11 else 12
-  uf <- .lam_uso_area_fila(n, yf - yt - 0.45); fila <- uf$fila; g <- uf$g   # lamina_uso_area.R: crece hasta el tope
+  # El cuerpo que declare el gráfico (`size_ejes`, lamina_tamanos_declarados.R) manda sobre el del recetario.
+  size <- (espec$tamanos %||% list())$rotulo_pt %||% (if (any(nchar(espec$rotulos) > 45)) 11 else 12)
+  uf <- .lam_uso_area_fila(n, yf - yt - .LAM_USO_AREA$reserva); fila <- uf$fila; g <- uf$g   # lamina_uso_area.R: crece hasta el tope
   nb <- .std_negrita_forzada("categorias") || .lam_jer_activa(espec)   # TXT-26: con jerarquía, la columna se mide en negrita
   wlab <- min(6.3, max(1.4, max(.lam_ancho_tinta(espec$rotulos, size, nb)) + 0.3))
   ancho <- g_("ancho") - g_("margen_izq") - g_("margen_der")   # CCSS-8 (lamina_barras_ancho.R): columna acotada y bloque a lo ancho
-  r <- .lam_barras_ancho_rotulos(espec$rotulos, ancho, size, fila, nb, previa = wlab); wlab <- r$wlab; size <- r$size
-  list(size = size, fila = fila, g = g, wlab = wlab, ancho_geo = .lam_barras_ancho_geo(espec, ancho, wlab, size))
+  w_decl <- (espec$tamanos %||% list())$w_etiquetas   # `canvas_w_etiquetas`, fracción del ancho útil (v7.25, ítem 8)
+  r <- .lam_barras_ancho_rotulos(espec$rotulos, ancho, size, fila, nb, previa = wlab, declarada = if (is.null(w_decl)) NULL else w_decl * ancho)
+  wlab <- r$wlab; size <- r$size
+  list(size = size, fila = fila, g = g, wlab = wlab, ancho_geo = .lam_barras_ancho_geo(espec, ancho, wlab, (espec$tamanos %||% list())$cifra_pt %||% size))
 }
 
 #' ¿En qué forma cabe la categórica? Columnas (lámina 68), barras (lámina 73) o ninguna (`NA`)
@@ -92,27 +109,54 @@
   k <- length(espec$largos); if (!k) return(NA_character_)
   g_ <- .std_geom; ancho <- g_("ancho") - g_("margen_izq") - g_("margen_der")
   wbox <- (ancho - 1.2) / k * 0.56 + 0.8
-  cols_ok <- k <= 10L && all(vapply(espec$rotulos, function(r) .lam_alto_txt(r, wbox, 12, TRUE) <= 0.62, TRUE))
+  cols_ok <- k <= 10L && all(vapply(espec$rotulos, function(r) .lam_alto_txt(r, wbox, .std_pt("rotulo_categoria"), TRUE) <= 0.62, TRUE))
+  # Con el panel de tarjetas al lado el paso de cada columna se achica: se mide con tinta en el paso real (v7.13,
+  # lámina 25: «Voluntariado» invadía a «Académica», «Entretenimiento» se partía y los «N respuestas» se montaban).
+  if (cols_ok && .std_reserva_derecha() > 0) cols_ok <- .lam_columnas_caben(espec, ancho - 1.2)
   geo <- .lam_barras_geo(espec)
-  barras_ok <- geo$fila >= 0.26 && all(.lam_jer_altos(espec, geo$wlab, geo$size) <= geo$fila + 0.02)   # TXT-26: con jerarquía, por tinta
+  altos <- if (.std_reserva_derecha() > 0 && !.lam_jer_activa(espec)) {
+    # Con el panel de tarjetas, por tinta como la columna de rótulos (que se ajusta a la tinta): contando letras,
+    # «Política universitaria» salía en dos líneas en una columna hecha para una y la lámina caía al respaldo.
+    vapply(espec$rotulos, function(r) .lam_alto_tinta(r, geo$wlab, geo$size, .std_negrita_forzada("categorias")), 0)
+  } else .lam_jer_altos(espec, geo$wlab, geo$size)
+  barras_ok <- geo$fila >= 0.26 && all(altos <= geo$fila + 0.02)   # TXT-26: con jerarquía, por tinta
   if (identical(preferida, "columnas") && cols_ok) return("columnas")
   if (barras_ok) return("barras")
   if (cols_ok) return("columnas")
   NA_character_
 }
 
+#' ¿Caben las columnas en su paso, medidas con tinta? Cada palabra del rótulo en el paso (no se parte a media palabra),
+#' el rótulo en dos líneas y el «N respuestas» de encima sin tocar al vecino
+#' @param wv Ancho de las columnas (in), el mismo que recibe `.lam_columnas`.
+#' @keywords internal
+.lam_columnas_caben <- function(espec, wv, unidad_n = "respuestas") {
+  k <- length(espec$largos); if (!k) return(FALSE)
+  util <- wv / k - 0.08
+  pt <- .std_pt("rotulo_categoria")
+  palabras <- unlist(strsplit(as.character(espec$rotulos), "\\s+"))
+  if (any(.lam_ancho_tinta(palabras[nzchar(palabras)], pt, TRUE) > util)) return(FALSE)
+  if (any(vapply(as.character(espec$rotulos), function(r) .lam_lineas_tinta(r, util + 0.2, pt, TRUE), 0) > 2)) return(FALSE)
+  nk <- .espec_casos(espec)
+  if (any(is.finite(nk))) {
+    txt <- sprintf("%s %s", format(as.integer(nk[is.finite(nk)]), big.mark = ","), unidad_n)
+    if (any(.lam_ancho_tinta(txt, .std_pt("n"), FALSE) > util + 0.04)) return(FALSE)
+  }
+  TRUE
+}
+
 #' Lámina de una categórica, en columnas (pregunta categórica) o en barras (una serie)
 #'
 #' Barras: la geometría de la lámina 73 del recetario (recetario_m3a.R:98-101): fila = (6.72 − 1.65 − 0.45) / n
 #' con un tope de 0.62 in, barra = mín(0.42, fila × 0.62), rótulo de hasta 6.3 in (11 pt si los rótulos son largos)
-#' y, en selección múltiple, el encabezado «% de encuestados que marcó cada opción».
+#' y el encabezado que escriba el analista (el motor no pone uno de fábrica).
 #' @keywords internal
 .lam_laminas_categorica <- function(doc, espec, titulo, ante = NULL, base = NULL, folio = NULL, sub = NULL,
                                     forma = c("columnas", "barras"), unidad_n = "respuestas", encabezado = NULL,
                                     layout = "Graficos2", master = "Office Theme", por_lamina = function(doc) doc) {
   force(folio); forma <- match.arg(forma)
   g_ <- .std_geom; ml <- g_("margen_izq"); ancho <- g_("ancho") - ml - g_("margen_der")
-  yt <- g_("zona_datos_y0"); yf <- g_("contenido_y1")
+  yt <- g_("zona_datos_y0")
   doc <- officer::add_slide(doc, layout = layout, master = master)
   doc <- .lam_titulo(doc, titulo, ante = ante, sub = sub)
   lz <- .lam_lienzo()
@@ -249,42 +293,31 @@
     paste(format(round(n_pub), big.mark = ",", trim = TRUE), base_var)
 }
 
-#' Ancho (in) de la barra de una lámina con UNA sola pregunta Sí/No: la fracción del lienzo, acotada por márgenes simétricos
-#' @keywords internal
-.LAM_DICOTOMIA_UNICA_FRAC <- 0.85
-.lam_dicotomia_unica_ancho <- function() {
-  W <- .std_geom("ancho"); min(.LAM_DICOTOMIA_UNICA_FRAC * W, W - 2 * max(.std_geom("margen_izq"), .std_geom("margen_der")))
-}
 
 #' Lámina de una dicotomía a todo el ancho (lámina 74 del recetario, recetario_graficos2.R:20-25)
 #'
 #' La pregunta encabeza el panel con su público («176 egresados») y la barra partida va debajo, con cifras
-#' de 40 pt y 0.7 in de grosor.
+#' de 40 pt y 0.7 in de grosor. Con el estilo `barra_estandar` la Sí/No sale como una fila de escala
+#' (lamina_dicotomia_como_escala.R); `actor` es su rótulo de fila.
 #' @keywords internal
 .lam_laminas_dicotomia <- function(doc, espec, titulo, ante = NULL, pregunta = NULL, publico = NULL, base = NULL,
                                    folio = NULL, sub = NULL, layout = "Graficos2", master = "Office Theme",
-                                   por_lamina = function(doc) doc, vertical = FALSE) {
+                                   por_lamina = function(doc) doc, vertical = FALSE, actor = NULL) {
   force(folio)
+  if (identical(.lam_estilo_dicotomia(espec), "barra_estandar")) {
+    # Una sola pregunta Sí/No se dibuja como una fila de escala, como Contabilidad y Arte (lamina_dicotomia_como_escala.R).
+    # «Respuestas por público» encendido (el compositor sólo arma `publico` entonces): la escala dice el N de su barra.
+    e <- .lam_dicotomia_como_escala(espec, pregunta, actor); e$mostrar_respuestas <- !is.null(publico) && nzchar(publico)
+    return(.lam_laminas_multilista(doc, list(bloques = list(list(espec = e))), titulo, ante = ante, base = base,
+                               folio = folio, sub = sub, layout = layout, master = master, por_lamina = por_lamina))
+  }
   g_ <- .std_geom; ml <- g_("margen_izq"); ancho <- g_("ancho") - ml - g_("margen_der"); yt <- g_("zona_datos_y0")
   d <- .lam_dicotomia_datos(espec)
   doc <- officer::add_slide(doc, layout = layout, master = master)
   doc <- .lam_titulo(doc, titulo, ante = ante, sub = sub)
   lz <- .lam_lienzo()
   y <- yt + 1.1
-  est <- identical(.lam_estilo_dicotomia(espec), "barra_estandar")
-  if (est) {
-    # Una sola pregunta Sí/No: el bloque (enunciado, barra, leyenda) se centra en la lámina y la barra aprovecha el ancho
-    # (`.LAM_DICOTOMIA_UNICA_FRAC` de la lámina, sin pasar del margen izquierdo del estándar simétrico); el enunciado se alinea
-    # al borde izquierdo de la barra y la leyenda va centrada a toda la lámina.
-    W <- g_("ancho"); wb <- .lam_dicotomia_unica_ancho(); xb <- (W - wb) / 2
-    hp <- if (!is.null(pregunta) && nzchar(pregunta)) 0.3 + 0.22 * (.lam_lineas(pregunta, wb, 13, TRUE) - 1) + (if (!is.null(publico) && nzchar(publico)) 0.26 else 0) else 0
-    bloque <- hp + (if (hp > 0) 0.25 else 0) + 0.5 + 0.12 + 0.3
-    yp <- yt + max(0, (g_("contenido_y1") - yt - bloque) / 2)
-    if (hp > 0) .lam_panel_titulo(lz, xb, yp, wb, pregunta, publico)
-    y <- yp + hp + (if (hp > 0) 0.25 else 0)
-    .lam_dicotomia_estandar(lz, xb, y, wb, d$rotulos, d$cifras, d$largos, d$n, g = 0.5, size = .std_pt("cifra"), cols = d$colores,
-                            x_ley = ml, w_ley = ancho, centro_ley = W / 2)
-  } else if (isTRUE(vertical)) {
+  if (isTRUE(vertical)) {
     if (!is.null(pregunta) && nzchar(pregunta)) .lam_panel_titulo(lz, ml, yt + 0.3, ancho, pregunta, publico)
     .lam_dicotomia_vertical(lz, ml + 0.4, y, g_("contenido_y1") - y - 0.15, d$rotulos, d$cifras, d$largos, d$n,
                             size = 40, cols = d$colores)
@@ -336,10 +369,10 @@
 #' Aquí se prueban, antes de caer, filas que usan todo el alto del panel (piso 0.20 in), barras del 70 % de la fila y
 #' rótulos a 11, 10.5 o 10 pt con su columna hasta el 55 % del panel. Sólo para celdas chicas sin receta propia.
 #' @param barras La geometría que no cupo (`.lam_panel_geo`).
-#' @param fin Borde inferior del panel. @param x,y,w,h El panel.
+#' @param fin Borde inferior del panel. @param w,h Ancho y alto del panel.
 #' @return La geometría compacta si cabe; si no, `NULL` (y el panel sigue a su ruta anterior).
 #' @keywords internal
-.lam_panel_barras_compactas <- function(espec, barras, fin, w, h, x = NULL, y = NULL) {
+.lam_panel_barras_compactas <- function(espec, barras, fin, w, h) {
   if (!is.list(barras) || isTRUE(barras$cabe) || !is.null(barras$receta) || !is.finite(h) || h >= 2.5 || w >= 6) return(NULL)
   # Acotado a las celdas ANGOSTAS (hasta 4.5 in, un tercio de lámina), donde el respaldo de columnas se aplasta. No a una
   # geometría fija: con un título de tres líneas (CCSS-25) la grilla de seis baja sus paneles y la celda deja de coincidir
@@ -361,10 +394,3 @@
   NULL
 }
 
-#' ¿El panel es una celda de la grilla `tipo` (`.lam_mixta_geo`)? Misma comparación que `.lam_circular_d_grilla`
-#' @keywords internal
-.lam_panel_en_grilla <- function(x, y, w, h, tipo = "poblacion_6") {
-  if (is.null(x) || is.null(y)) return(FALSE)
-  P <- tryCatch(.lam_mixta_geo(tipo)$paneles, error = function(e) NULL)
-  length(P) > 0L && any(vapply(P, function(p) abs(p$x - x) < 1e-3 && abs(p$y - y) < 1e-3 && abs(p$w - w) < 1e-3 && abs(p$h - h) < 1e-3, TRUE))
-}

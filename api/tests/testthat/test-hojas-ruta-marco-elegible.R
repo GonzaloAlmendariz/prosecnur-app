@@ -1,0 +1,422 @@
+# Marco elegible de Hojas de ruta (ADR 0115): normalización, filtro y resumen.
+
+me_frame <- function() {
+  data.frame(
+    ubigeo = c("150101", "150101", "150101", "150101", "150102", "150102"),
+    distrito = c("LIMA", "LIMA", "LIMA", "LIMA", "ANCON", "ANCON"),
+    zona = c("00100", "00100", "00200", "00200", "00100", "00100"),
+    id_manzana = c("m1", "m2", "m3", "m4", "m5", "m6"),
+    viviendas = c(40, 0, 0, 12, 30, 5),
+    poblacion = c(150, 0, 0, 45, 100, 0),
+    match_level = c("cartografia_key", "sin_conteo_redatam", "cartografia_key", "cartografia_key", "cartografia_key", "cartografia_key"),
+    stringsAsFactors = FALSE
+  )
+}
+
+# Puntos interiores inyectados: m1 dentro del área, m4 sobre su borde, m6 sin geometría.
+me_puntos <- data.frame(
+  id_manzana = c("m1", "m2", "m3", "m4", "m5"),
+  lon = c(-77.005, -77.020, -77.030, -77.000, -77.100),
+  lat = c(-12.055, -12.055, -12.070, -12.055, -11.800),
+  nse_nivel = c("3 Medio", "4 Medio bajo", "4 Medio bajo", "2 Medio alto", "5 Bajo"),
+  stringsAsFactors = FALSE
+)
+
+# Reemplazo plano: modifyList mezclaría las listas de vértices en vez de reemplazarlas.
+me_area <- function(...) {
+  a <- list(
+    id = "a1", motivo = "no_residencial", detalle = "Zona industrial",
+    poligono = list(c(-77.010, -12.050), c(-77.000, -12.050), c(-77.000, -12.060), c(-77.010, -12.060))
+  )
+  cambios <- list(...)
+  a[names(cambios)] <- cambios
+  a
+}
+
+test_that("sin la clave la corrida es legacy y su marco no cambia", {
+  me <- hojas_ruta_marco_elegible_normalizar(NULL)
+  expect_false(me$declarado)
+  expect_identical(me$minimo_viviendas, 0L)
+  expect_length(me$areas_excluidas, 0)
+  r <- hojas_ruta_marco_elegible_aplicar(me_frame(), me)
+  expect_identical(r$frame, me_frame())
+})
+
+test_that("mínimo 0 y lista de áreas vacía dejan el marco idéntico", {
+  me <- hojas_ruta_marco_elegible_normalizar(list(minimo_viviendas = 0, areas_excluidas = list()))
+  expect_true(me$declarado)
+  expect_identical(hojas_ruta_marco_elegible_aplicar(me_frame(), me)$frame, me_frame())
+})
+
+test_that("un mínimo inválido cae al de corridas nuevas con aviso", {
+  me <- hojas_ruta_marco_elegible_normalizar(list(minimo_viviendas = -3))
+  expect_identical(me$minimo_viviendas, 1L)
+  expect_identical(attr(me, "alertas")[[1]]$code, "W_ELIGIBILITY_MINIMUM_INVALID")
+})
+
+test_that("las áreas se validan: motivo cerrado, detalle con «otro», evidencia con inseguridad", {
+  me <- hojas_ruta_marco_elegible_normalizar(list(areas_excluidas = list(
+    me_area(id = "x", motivo = "basural"),
+    me_area(id = "o", motivo = "otro", detalle = ""),
+    me_area(id = "s", motivo = "inseguridad"),
+    me_area(id = "ok", motivo = "inseguridad", fuente = "Supervisión 2025", fecha_evidencia = "2025-11-14")
+  )))
+  expect_identical(vapply(me$areas_excluidas, `[[`, character(1), "id"), "ok")
+  codigos <- vapply(attr(me, "alertas"), `[[`, character(1), "code")
+  expect_identical(codigos, rep("W_EXCLUDED_AREA_DISCARDED", 3))
+})
+
+test_that("el polígono se canoniza: cerrado, a 1e-6, y con lon/lat corregido si venía invertido", {
+  me <- hojas_ruta_marco_elegible_normalizar(list(areas_excluidas = list(
+    me_area(poligono = list(c(-12.05, -77.0100000004), c(-12.05, -77.0), c(-12.06, -77.0)))
+  )))
+  pol <- me$areas_excluidas[[1]]$poligono
+  expect_length(pol, 4)
+  expect_identical(pol[[1]], pol[[4]])
+  expect_identical(pol[[1]], c(-77.01, -12.05))
+  expect_identical(attr(me, "alertas")[[1]]$code, "W_EXCLUDED_AREA_SWAPPED")
+})
+
+test_that("un polígono con menos de tres vértices se descarta y uno fuera de Lima avisa", {
+  me <- hojas_ruta_marco_elegible_normalizar(list(areas_excluidas = list(
+    me_area(id = "corto", poligono = list(c(-77.01, -12.05), c(-77.00, -12.05))),
+    me_area(id = "lejos", poligono = list(c(-70, -15), c(-69.9, -15), c(-69.9, -15.1)))
+  )))
+  expect_identical(vapply(me$areas_excluidas, `[[`, character(1), "id"), "lejos")
+  expect_setequal(vapply(attr(me, "alertas"), `[[`, character(1), "code"), c("W_EXCLUDED_AREA_DISCARDED", "W_EXCLUDED_AREA_OUTSIDE"))
+})
+
+test_that("precedencia área > mínimo, borde excluye y sin geometría se queda", {
+  me <- hojas_ruta_marco_elegible_normalizar(list(minimo_viviendas = 1, areas_excluidas = list(me_area())))
+  r <- hojas_ruta_marco_elegible_aplicar(me_frame(), me, puntos = me_puntos)
+  expect_identical(r$criterio, c("area", "minimo", "minimo", "area", "elegible", "elegible"))
+  expect_identical(r$frame$id_manzana, c("m5", "m6"))
+  lima <- r$por_distrito[[1]]
+  expect_identical(lima$excluida_area$manzanas, 2L)
+  expect_identical(lima$excluida_minimo$manzanas, 2L)
+  # m2 es cero por falta de conteo; m3 es cero censal.
+  expect_identical(lima$excluida_minimo_sin_conteo, 1L)
+  ancon <- r$por_distrito[[2]]
+  expect_identical(ancon$sin_geometria, 1L)
+})
+
+test_that("conservación: elegibles más excluidas es el marco, por distrito y por zona, sin tolerancia", {
+  me <- hojas_ruta_marco_elegible_normalizar(list(minimo_viviendas = 1, areas_excluidas = list(me_area())))
+  r <- hojas_ruta_marco_elegible_aplicar(me_frame(), me, puntos = me_puntos)
+  for (fila in c(r$por_distrito, r$por_zona)) {
+    for (k in c("manzanas", "viviendas", "poblacion")) {
+      expect_identical(fila$elegible[[k]] + fila$excluida_area[[k]] + fila$excluida_minimo[[k]] + fila$excluida_piloto[[k]], fila$total[[k]])
+    }
+  }
+  expect_length(r$por_zona, 3)
+  # Sin nombres: en el JSON tienen que salir como arreglos, no como objetos.
+  expect_null(names(r$por_distrito))
+  expect_null(names(r$por_zona))
+})
+
+test_that("la cobertura es NA cuando el distrito no tiene población, no una división por cero", {
+  f <- me_frame()
+  f$poblacion[f$ubigeo == "150102"] <- 0
+  r <- hojas_ruta_marco_elegible_aplicar(f, hojas_ruta_marco_elegible_normalizar(list(minimo_viviendas = 1)))
+  expect_true(is.na(r$por_distrito[[2]]$cobertura_poblacion))
+  expect_equal(r$por_distrito[[1]]$cobertura_poblacion, 1)
+})
+
+test_that("el punto interior cae dentro aunque la manzana sea cóncava", {
+  # Una «U»: el centroide de área cae en el hueco.
+  u <- rbind(c(0, 0), c(3, 0), c(3, 3), c(2, 3), c(2, 1), c(1, 1), c(1, 3), c(0, 3), c(0, 0))
+  p <- hojas_ruta_marco_elegible_punto_interior(u)
+  expect_true(.hojas_ruta_me_punto_en_anillo(p[1], p[2], u))
+  expect_false(.hojas_ruta_me_en_borde(p[1], p[2], u))
+  cuadrado <- rbind(c(0, 0), c(2, 0), c(2, 2), c(0, 2))
+  expect_equal(hojas_ruta_marco_elegible_punto_interior(cuadrado), c(1, 1))
+})
+
+# ---------- Enganches en el motor (ADR 0115 §2) ----------
+
+test_that("el normalizador del motor conserva marco_elegible y es idempotente", {
+  cfg <- hojas_ruta_integrada_normalize_config(list(territorios = list("150102"), marco_elegible = list(minimo_viviendas = 3)))
+  expect_true(cfg$marco_elegible$declarado)
+  expect_identical(cfg$marco_elegible$minimo_viviendas, 3L)
+  otra <- hojas_ruta_integrada_normalize_config(cfg)
+  expect_identical(otra$marco_elegible[c("declarado", "minimo_viviendas", "areas_excluidas")], cfg$marco_elegible[c("declarado", "minimo_viviendas", "areas_excluidas")])
+  legacy <- hojas_ruta_integrada_normalize_config(hojas_ruta_integrada_normalize_config(list(territorios = list("150102"))))
+  expect_false(legacy$marco_elegible$declarado)
+  expect_identical(legacy$marco_elegible$minimo_viviendas, 0L)
+})
+
+test_that("una corrida legacy sortea sobre el mismo marco de siempre; el mínimo 1 saca sólo las manzanas sin viviendas", {
+  completo <- hojas_ruta_inei_frame("current")
+  completo <- completo[completo$ubigeo %in% "150102", , drop = FALSE]
+  legacy <- .hojas_ruta_filter_frame(list(territorios = list("150102")))
+  expect_identical(legacy, completo)
+  con_minimo <- .hojas_ruta_filter_frame(list(territorios = list("150102"), marco_elegible = list(minimo_viviendas = 1)))
+  expect_identical(nrow(con_minimo), sum(as.numeric(completo$viviendas) >= 1))
+  expect_true(all(as.numeric(con_minimo$viviendas) >= 1))
+})
+
+# ---------- Reparto, vista previa y posproceso (ADR 0115 §3, §5) ----------
+
+me_cfg_ancon <- function(...) {
+  base <- list(territorios = list("150102"), n_objetivo = 80, sample_size_mode = "external_total", n_mode = "total",
+               entrevistas_por_manzana = 8, max_per_manzana = 8, seed = 2017, replacements_per_titular = 1,
+               marco_elegible = list(minimo_viviendas = 1))
+  cambios <- list(...)
+  base[names(cambios)] <- cambios
+  base
+}
+me_sin_puntos <- data.frame(id_manzana = character(0), lon = numeric(0), lat = numeric(0), nse_nivel = character(0))
+
+test_that("paridad: la vista previa reparte por zona exactamente las titulares que sortea el motor", {
+  cfg <- me_cfg_ancon()
+  s <- hojas_ruta_sample_preview_integrado(cfg)
+  b <- .hojas_ruta_rows_df(s$blocks)
+  sorteadas <- table(as.character(b$zona))
+  p <- hojas_ruta_marco_elegible_preview(cfg, puntos = me_sin_puntos)
+  previstas <- unlist(lapply(p$capacidad, function(z) stats::setNames(z$rutas, z$zona)))
+  # ADR 0117: con un sistemático por distrito la zona recibe ⌊Σπ⌋ o ⌈Σπ⌉ rutas.
+  n_z <- as.integer(sorteadas[names(previstas)])
+  n_z[is.na(n_z)] <- 0L
+  expect_true(all(n_z >= floor(previstas - 0.01) & n_z <= ceiling(previstas + 0.01)))
+  expect_true(all(names(sorteadas) %in% names(previstas)))
+  expect_equal(sum(previstas), s$n_blocks, tolerance = 0.05)
+  # Con el mínimo activo ninguna titular cae en una manzana sin viviendas.
+  expect_true(all(as.numeric(b$viviendas) >= 1))
+})
+
+test_that("un distrito sin manzanas elegibles no pierde sus entrevistas en silencio", {
+  s <- hojas_ruta_sample_preview_integrado(me_cfg_ancon())
+  vacio <- me_cfg_ancon(marco_elegible = list(minimo_viviendas = 1e6))
+  p <- hojas_ruta_marco_elegible_preview(vacio, puntos = me_sin_puntos)
+  expect_true("W_ZONE_SHORT_BEFORE_DRAW" %in% vapply(p$alerts, `[[`, character(1), "code"))
+  comp <- hojas_ruta_marco_elegible_completar(s, vacio)
+  e <- Filter(function(a) identical(a$code, "E_UNASSIGNED_INTERVIEWS"), comp$alerts)
+  expect_length(e, 1)
+  expect_match(e[[1]]$message, "^80 entrevista")
+  expect_identical(e[[1]]$sin_manzanas_elegibles[[1]]$causa, "distrito_sin_manzanas")
+})
+
+test_that("el posproceso deja lo necesario para reconstruir π por zona y verificar el marco", {
+  cfg <- me_cfg_ancon()
+  comp <- hojas_ruta_marco_elegible_completar(hojas_ruta_sample_preview_integrado(cfg), cfg)
+  me <- comp$marco_elegible
+  expect_identical(me$criterios$minimo_viviendas, 1L)
+  con_sorteo <- Filter(function(z) z$sorteadas > 0L, me$zonas)
+  expect_identical(sum(vapply(con_sorteo, `[[`, integer(1), "sorteadas")), as.integer(comp$n_blocks))
+  pis <- unlist(lapply(con_sorteo, function(z) vapply(z$seleccionadas, `[[`, numeric(1), "pi")))
+  expect_true(all(pis > 0 & pis <= 1))
+  expect_match(me$hash_marco, "^[0-9a-f]{64}$")
+  # La misma config da los mismos hashes: el marco elegible es reproducible.
+  otra <- hojas_ruta_marco_elegible_completar(hojas_ruta_sample_preview_integrado(cfg), cfg)$marco_elegible
+  expect_identical(otra$hash_criterios, me$hash_criterios)
+  expect_identical(otra$hash_elegibles_por_distrito, me$hash_elegibles_por_distrito)
+})
+
+# ---------- HTTP (ADR 0115 §3) ----------
+
+test_that("POST /api/hojas-ruta/marco-elegible/preview está montado, pide distritos y no guarda nada", {
+  expect_true(grepl("mount_hojas_ruta_marco_elegible(pr)", paste(deparse(body(build_plumber_app)), collapse = " "), fixed = TRUE))
+  pr <- mount_hojas_ruta_marco_elegible(plumber::pr())
+  ep <- Find(function(e) identical(e$verbs, "POST"), unlist(pr$endpoints, recursive = FALSE))
+  sid <- session_create()
+  on.exit(session_delete(sid), add = TRUE)
+  llamar <- function(body) ep$getFunc()(
+    req = list(HTTP_X_PULSO_SESSION = sid, bodyRaw = charToRaw(enc2utf8(jsonlite::toJSON(body, auto_unbox = TRUE, null = "null")))),
+    res = plumber:::PlumberResponse$new()
+  )
+  sin <- llamar(list(config = list(territorios = list())))
+  expect_identical(sin$error$code %||% sin$code %||% "", "E_NO_TERRITORY")
+  ok <- llamar(list(config = me_cfg_ancon(marco_elegible = list(minimo_viviendas = 1e6))))
+  expect_true(isTRUE(ok$ok))
+  expect_identical(ok$marco_elegible$minimo_viviendas, 1000000L)
+  expect_true("W_ZONE_SHORT_BEFORE_DRAW" %in% vapply(ok$alerts, `[[`, character(1), "code"))
+  expect_null(session_get(sid)$hojas_ruta_workspace_outputs$sample)
+})
+
+# ---------- Revisión de la implementación (D1, D2) ----------
+
+test_that("π sigue la fórmula del sorteo (ADR 0117): n·M_i/ΣM con certezas, M ≤ 0 da 0, igual probabilidad en sistemático", {
+  df <- data.frame(id_manzana = c("a", "b", "c", "d"), viviendas = c(30, 10, 0, NA), stringsAsFactors = FALSE)
+  pps <- .hojas_ruta_me_pi(df, c("a", "b"), list(sampling_method = "pps", measure_var = "viviendas"))
+  expect_identical(pps$regla_pi, "pps_sistematico_distrito")
+  expect_identical(pps$probability_source, "formula")
+  expect_identical(pps$medida_total_ambito, 40)
+  expect_identical(pps$ambito, "distrito")
+  expect_identical(pps$manzanas_sin_medida, 2L)
+  # n = 2 con dos manzanas de medida > 0: las dos son certeza.
+  expect_equal(vapply(pps$seleccionadas, `[[`, numeric(1), "pi"), c(1, 1))
+  uno <- .hojas_ruta_me_pi(df, "a", list(sampling_method = "pps", measure_var = "viviendas"), "zona")
+  expect_identical(uno$regla_pi, "pps_sistematico_zona")
+  expect_equal(uno$seleccionadas[[1]]$pi, 30 / 40)
+  sis <- .hojas_ruta_me_pi(df, c("a", "c"), list(sampling_method = "sistematico", measure_var = "viviendas"))
+  expect_identical(sis$regla_pi, "igual_probabilidad_distrito")
+  expect_equal(vapply(sis$seleccionadas, `[[`, numeric(1), "pi"), c(0.5, 0.5))
+})
+
+test_that("el sorteo sistemático da a cada manzana π = n/N, sin repetir ni quedarse corto", {
+  # El arranque runif(1, 1, step) dejaba manzanas con π = 0 (N = 9, n = 3: π = .5, .5, 0, ...).
+  cfg <- list(sampling_method = "sistematico")
+  veces <- 20000L
+  for (caso in list(c(N = 9L, n = 3L), c(N = 10L, n = 4L), c(N = 7L, n = 3L))) {
+    N <- caso[["N"]]
+    n <- caso[["n"]]
+    df <- data.frame(ubigeo = "150101", zona = "001", manzana = sprintf("%03d", seq_len(N)),
+                     id_manzana = sprintf("m%02d", seq_len(N)), stringsAsFactors = FALSE)
+    set.seed(2017L)
+    sorteos <- replicate(veces, .hojas_ruta_sample_indices(df, n, cfg), simplify = FALSE)
+    expect_true(all(lengths(sorteos) == n), info = sprintf("N = %d, n = %d", N, n))
+    pi_hat <- tabulate(unlist(sorteos), nbins = N) / veces
+    expect_true(all(abs(pi_hat - n / N) < 0.02), info = sprintf("N = %d, n = %d: π = %s", N, n, paste(round(pi_hat, 3), collapse = ", ")))
+  }
+})
+
+test_that("los reemplazos puntuales salen del marco con el que se sorteó, y avisan si cambió", {
+  muestra <- list(marco_elegible = list(criterios = list(declarado = TRUE, minimo_viviendas = 1L, areas_excluidas = list())))
+  cfg <- hojas_ruta_integrada_normalize_config(me_cfg_ancon(marco_elegible = list(minimo_viviendas = 5)))
+  r <- hojas_ruta_marco_elegible_de_la_muestra(cfg, muestra)
+  expect_identical(r$config$marco_elegible$minimo_viviendas, 1L)
+  expect_identical(r$alertas[[1]]$code, "W_ELIGIBILITY_DIFFERS_FROM_SAMPLE")
+  igual <- hojas_ruta_marco_elegible_de_la_muestra(hojas_ruta_integrada_normalize_config(me_cfg_ancon()), muestra)
+  expect_length(igual$alertas, 0)
+  sin <- hojas_ruta_marco_elegible_de_la_muestra(cfg, list())
+  expect_identical(sin$config$marco_elegible$minimo_viviendas, 5L)
+  # Una muestra sorteada antes del ADR (con bloques y sin marco) usa el marco legacy y avisa.
+  vieja <- hojas_ruta_marco_elegible_de_la_muestra(cfg, list(blocks = list(list(id_manzana = "x"))))
+  expect_false(vieja$config$marco_elegible$declarado)
+  expect_identical(vieja$alertas[[1]]$code, "W_ELIGIBILITY_DIFFERS_FROM_SAMPLE")
+})
+
+test_that("D3: en Campo real la vista previa descuenta el piloto y sigue repartiendo como el sorteo", {
+  base <- me_cfg_ancon()
+  piloto_ids <- as.character(.hojas_ruta_rows_df(hojas_ruta_sample_preview_integrado(base)$blocks)$id_manzana)[1:3]
+  cfg <- me_cfg_ancon(excluded_titular_ids = as.list(piloto_ids), seed = 99)
+  s <- hojas_ruta_sample_preview_integrado(cfg)
+  expect_false(any(as.character(.hojas_ruta_rows_df(s$blocks)$id_manzana) %in% piloto_ids))
+  p <- hojas_ruta_marco_elegible_preview(cfg, puntos = me_sin_puntos)
+  expect_identical(sum(vapply(p$por_distrito, function(d) d$excluida_piloto$manzanas, integer(1))), 3L)
+  sorteadas <- table(as.character(.hojas_ruta_rows_df(s$blocks)$zona))
+  previstas <- unlist(lapply(p$capacidad, function(z) stats::setNames(z$rutas, z$zona)))
+  n_z <- as.integer(sorteadas[names(previstas)])
+  n_z[is.na(n_z)] <- 0L
+  expect_true(all(n_z >= floor(previstas - 0.01) & n_z <= ceiling(previstas + 0.01)))
+})
+
+test_that("D5: el sorteo guarda el resumen por criterio y no pierde el aviso de un área descartada", {
+  s <- hojas_ruta_sample_preview_integrado(me_cfg_ancon())
+  crudo <- me_cfg_ancon(marco_elegible = list(minimo_viviendas = 1, areas_excluidas = list(list(id = "sin-fuente", motivo = "inseguridad", poligono = list(c(-77.18, -11.77), c(-77.17, -11.77), c(-77.17, -11.78))))))
+  comp <- hojas_ruta_marco_elegible_completar(s, crudo)
+  expect_true("W_EXCLUDED_AREA_DISCARDED" %in% vapply(comp$alerts, `[[`, character(1), "code"))
+  me <- comp$marco_elegible
+  expect_length(me$por_distrito, 1)
+  expect_identical(me$por_distrito[[1]]$excluida_minimo$manzanas, me$por_distrito[[1]]$total$manzanas - me$por_distrito[[1]]$elegible$manzanas)
+  expect_true(length(me$por_zona) > 1)
+  # Sin áreas válidas no hay firma de cartografía que guardar.
+  expect_null(me$firma_cartografia)
+  # Las rutas previstas por zona viajan con π.
+  expect_true(all(vapply(me$zonas, function(z) is.numeric(z$rutas) || is.integer(z$rutas), logical(1))))
+})
+
+test_that("D5: el aviso de un área descartada llega aunque la config se re-normalice por la fase", {
+  crudo <- me_cfg_ancon(marco_elegible = list(minimo_viviendas = 1, areas_excluidas = list(list(id = "sin-fuente", motivo = "inseguridad", poligono = list(c(-77.18, -11.77), c(-77.17, -11.77), c(-77.17, -11.78))))))
+  limpia <- hojas_ruta_integrada_normalize_config(hojas_ruta_integrada_normalize_config(crudo))
+  expect_length(attr(limpia$marco_elegible, "alertas"), 0)
+  avisos <- attr(hojas_ruta_marco_elegible_normalizar(crudo$marco_elegible), "alertas")
+  comp <- hojas_ruta_marco_elegible_completar(hojas_ruta_sample_preview_integrado(limpia), limpia, avisos = avisos)
+  expect_true("W_EXCLUDED_AREA_DISCARDED" %in% vapply(comp$alerts, `[[`, character(1), "code"))
+})
+
+test_that("D4: sin cartografía se usa la lat/lon del marco, y lo que queda sin ubicación se avisa", {
+  f <- me_frame()
+  f$lon <- c(NA, NA, NA, NA, NA, "-77.005")
+  f$lat <- c(NA, NA, NA, NA, NA, "-12.055")
+  me <- hojas_ruta_marco_elegible_normalizar(list(minimo_viviendas = 0, areas_excluidas = list(me_area())))
+  r <- hojas_ruta_marco_elegible_aplicar(f, me, puntos = me_puntos)
+  # m6 no estaba en la cartografía, pero su lat/lon del marco cae dentro del área.
+  expect_identical(r$criterio[6], "area")
+  expect_false("W_ELIGIBILITY_NO_GEOMETRY" %in% vapply(r$alertas, `[[`, character(1), "code"))
+  sin <- hojas_ruta_marco_elegible_aplicar(me_frame(), me, puntos = me_puntos)
+  aviso <- Filter(function(a) identical(a$code, "W_ELIGIBILITY_NO_GEOMETRY"), sin$alertas)
+  expect_identical(aviso[[1]]$manzanas, 1L)
+})
+
+test_that("(c) Campo real desde el piloto escribe el marco explícito y avisa si el piloto era legacy", {
+  legacy <- hojas_ruta_marco_elegible_para_campo(NULL)
+  expect_true(legacy$marco$declarado)
+  expect_identical(legacy$marco$minimo_viviendas, 1L)
+  expect_identical(legacy$alertas[[1]]$code, "W_FRAME_DIFFERS_PILOT_FIELD")
+  declarado <- hojas_ruta_marco_elegible_para_campo(list(minimo_viviendas = 2, areas_excluidas = list(me_area())))
+  expect_identical(declarado$marco$minimo_viviendas, 2L)
+  expect_length(declarado$marco$areas_excluidas, 1)
+  expect_length(declarado$alertas, 0)
+  cfg <- .hojas_ruta_field_config_from_pilot(list(territorios = list("150102")))
+  expect_true(cfg$marco_elegible$declarado)
+  expect_identical(cfg$marco_elegible$minimo_viviendas, 1L)
+})
+
+test_that("(d) adoptar el marco elegible avisa una vez; seguir con él no", {
+  a <- hojas_ruta_marco_elegible_aviso_adopcion(NULL, list(minimo_viviendas = 1))
+  expect_identical(a[[1]]$code, "W_FRAME_CHANGED_BY_ELIGIBILITY")
+  expect_length(hojas_ruta_marco_elegible_aviso_adopcion(list(minimo_viviendas = 1), list(minimo_viviendas = 2)), 0)
+  expect_length(hojas_ruta_marco_elegible_aviso_adopcion(NULL, NULL), 0)
+})
+
+test_that("D7: cada área cuenta lo que saca y un área que no toca nada se avisa", {
+  lejos <- me_area(id = "lejos", poligono = list(c(-76.80, -12.20), c(-76.79, -12.20), c(-76.79, -12.21)))
+  me <- hojas_ruta_marco_elegible_normalizar(list(minimo_viviendas = 0, areas_excluidas = list(me_area(), lejos)))
+  r <- hojas_ruta_marco_elegible_aplicar(me_frame(), me, puntos = me_puntos)
+  expect_identical(vapply(r$por_area, `[[`, integer(1), "manzanas"), c(2L, 0L))
+  expect_identical(r$por_area[[1]]$poblacion, 195)
+  avisos <- Filter(function(a) identical(a$code, "W_EXCLUDED_AREA_EMPTY"), r$alertas)
+  expect_identical(avisos[[1]]$area, "lejos")
+})
+
+test_that("D7: completar suma sobre `unassigned` del motor, marca la muestra incompleta y es idempotente", {
+  s <- hojas_ruta_sample_preview_integrado(me_cfg_ancon())
+  vacio <- me_cfg_ancon(marco_elegible = list(minimo_viviendas = 1e6))
+  una <- hojas_ruta_marco_elegible_completar(s, vacio)
+  expect_identical(una$unassigned, as.integer(s$unassigned) + 80L)
+  expect_false(una$ok)
+  dos <- hojas_ruta_marco_elegible_completar(una, vacio)
+  expect_identical(dos$unassigned, una$unassigned)
+  expect_identical(dos$marco_elegible$perdidas_sumadas, 80L)
+  e <- Filter(function(a) identical(a$code, "E_UNASSIGNED_INTERVIEWS"), dos$alerts)
+  expect_length(e, 1)
+  expect_match(e[[1]]$message, sprintf("^%d entrevista", una$unassigned))
+})
+
+test_that("D7: el NSE de lo excluido se mide en población por distrito", {
+  territorio <- me_frame()
+  crit <- c("area", "minimo", "minimo", "area", "elegible", "elegible")
+  nse <- .hojas_ruta_me_nse_por_distrito(territorio, crit, me_puntos)
+  lima <- Filter(function(d) identical(d$ubigeo, "150101"), nse)[[1]]
+  expect_identical(lima$excluida[["3 Medio"]], 150)
+  expect_identical(lima$excluida[["2 Medio alto"]], 45)
+})
+
+test_that("re-revisión: los avisos calculados al aplicar llegan a la muestra, sin duplicar fuera/vacía", {
+  s <- hojas_ruta_sample_preview_integrado(me_cfg_ancon())
+  cfg <- me_cfg_ancon(marco_elegible = list(minimo_viviendas = 1, areas_excluidas = list(me_area(id = "lejos", poligono = list(c(-76.70, -12.40), c(-76.69, -12.40), c(-76.69, -12.41))))))
+  comp <- hojas_ruta_marco_elegible_completar(s, cfg)
+  codigos <- vapply(comp$alerts, `[[`, character(1), "code")
+  expect_true("W_EXCLUDED_AREA_EMPTY" %in% codigos)
+  afuera <- me_cfg_ancon(marco_elegible = list(minimo_viviendas = 1, areas_excluidas = list(me_area(id = "afuera", poligono = list(c(-70, -15), c(-69.9, -15), c(-69.9, -15.1))))))
+  codigos2 <- vapply(hojas_ruta_marco_elegible_completar(s, afuera)$alerts, `[[`, character(1), "code")
+  expect_false("W_EXCLUDED_AREA_EMPTY" %in% codigos2)
+})
+
+test_that("ADR 0117: la capacidad publica como falta sólo lo que falta con ⌊E⌋ rutas; lo que falta con ⌈E⌉ es posible y lleva su probabilidad", {
+  sin_reemplazo <- me_cfg_ancon(replacements_per_titular = 0)
+  p <- hojas_ruta_marco_elegible_preview(sin_reemplazo, puntos = me_sin_puntos)
+  # Sin reemplazos y con π ≤ 1 por manzana, ninguna zona puede quedarse sin titulares.
+  expect_false(any(vapply(p$capacidad, function(z) !is.na(z$falta %||% NA), logical(1))))
+  expect_false("W_ZONE_SHORT_BEFORE_DRAW" %in% vapply(p$alerts, `[[`, character(1), "code"))
+  pareado <- hojas_ruta_marco_elegible_preview(me_cfg_ancon(replacements_per_titular = 3, replacement_policy = "paired_by_titular_zone"), puntos = me_sin_puntos)
+  for (z in pareado$capacidad) {
+    r_min <- floor(z$rutas + 1e-9)
+    if (!is.na(z$falta %||% NA)) expect_true(z$manzanas < r_min * 4, info = z$zona)
+    if (!is.na(z$falta_posible %||% NA)) expect_true(z$probabilidad_falta > 0 && z$probabilidad_falta < 1, info = z$zona)
+  }
+  # Con reemplazo en otra zona la capacidad de la zona no cuenta reemplazos.
+  otra <- hojas_ruta_marco_elegible_preview(me_cfg_ancon(replacements_per_titular = 3, replacement_policy = "alternate_zone_same_district"), puntos = me_sin_puntos)
+  expect_true(all(vapply(otra$capacidad, function(z) z$necesita == ceiling(z$rutas - 1e-9), logical(1))))
+})

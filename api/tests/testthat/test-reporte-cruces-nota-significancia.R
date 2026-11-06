@@ -40,13 +40,15 @@ test_that("la nota de significancia de cruces sale con la redacción de la maque
 
   expect_length(nota, 1L)
   # Redacción de la maqueta HSyVBG 2026 (checklist 1e): sin «Letras por
-  # estrato» ni «Fuente», alpha con punto decimal.
+  # estrato» ni «Fuente», alpha con punto decimal. ADR 0127 agrega el supuesto
+  # de la prueba y la base mínima (".b").
   expect_identical(nota, paste0(
     "Las letras comparan las columnas de una misma variable de cruce. Una letra en una celda ",
     "indica que esa proporción es significativamente mayor que la de la columna identificada ",
     "con esa letra (prueba z de diferencia de proporciones con corrección de Bonferroni, ",
-    "nivel de significancia de 0.05). \".a\" indica una columna excluida de la comparación ",
-    "porque su proporción es 0 % o 100 %."
+    "nivel de significancia de 0.05). La prueba supone muestreo aleatorio simple. ",
+    "\".a\" indica una columna excluida de la comparación porque su proporción es 0 % o 100 %. ",
+    "\".b\" indica una columna con menos de 30 casos, que no se compara."
   ))
   expect_false(grepl("Letras por estrato", nota, fixed = TRUE))
   expect_false(grepl("Fuente", nota, fixed = TRUE))

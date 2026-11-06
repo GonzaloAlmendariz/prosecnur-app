@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { EstadoChip } from "../../../../../components/EstadoChip";
 import { Check, Loader2, Plus, Trash2, X } from "lucide-react";
 import { Alert } from "../../../../../components/Alert";
 import { Switch } from "../../../../../components/Switch";
@@ -10,7 +11,7 @@ import { claveDeActor } from "../../../fuentes/rosterDeActores";
 import { fmt } from "../formato";
 import { corteCorto } from "../../../core/barraComun";
 import { useElencoDeActores } from "../fuentes/useElencoDeActores";
-import { canalesDeLaMatriz, celda, padronesPorPublico, servicioDe, type PadronDelPublico } from "./publicosModelo";
+import { canalesDeLaMatriz, celda, fuenteRepiteAlPublico, nombreVisibleDeFuente, padronesPorPublico, servicioDe, type PadronDelPublico } from "./publicosModelo";
 import { useEstadoDeCuotas } from "./useEstadoDeCuotas";
 import "../avance/avance.css";
 import "../control/casos/personas.css";
@@ -20,10 +21,6 @@ import { MarcaDeLectura } from "../navegacion/MarcaDeLectura";
 
 /** El padrón de un público es un panel direccionable: `panel=publico&foco=<público>`. */
 export const PANEL_PADRON: PanelDeclarado = { id: "publico", label: "Padrón del público", clase: "inspector" };
-
-function nombreDeFuente(fuente: MonitoreoSource) {
-  return fuente.label || fuente.survey_title || fuente.id;
-}
 
 function PanelDelPadron({
   fila,
@@ -51,7 +48,7 @@ function PanelDelPadron({
           <span className="acr-av-antetitulo">Fuente del padrón</span>
           {fila.padrones.length ? fila.padrones.map((fuente) => (
             <dl key={fuente.id} className="acr-pr-datos">
-              <div className="acr-pr-dato"><dt>Fuente</dt><dd>{nombreDeFuente(fuente)}</dd></div>
+              <div className="acr-pr-dato"><dt>Fuente</dt><dd>{nombreVisibleDeFuente(fuente)}</dd></div>
               <div className="acr-pr-dato"><dt>Servicio</dt><dd>{servicioDe(fuente)}</dd></div>
               <div className="acr-pr-dato"><dt>Personas</dt><dd className="acr-av-num">{fila.personas == null ? "—" : fmt(fila.personas)}</dd></div>
               <div className="acr-pr-dato"><dt>Última lectura</dt><dd>{fuente.last_sync_at ? corteCorto(fuente.last_sync_at) : "Sin leer"}</dd></div>
@@ -60,7 +57,10 @@ function PanelDelPadron({
         </section>
         <section className="acr-pub-bloque" aria-label="Llave de cruce">
           <span className="acr-av-antetitulo">Llave de cruce</span>
-          {llave.length ? (
+          {llave.length === 1 ? (
+            // Una sola columna no necesita su número de orden.
+            <ol className="acr-in-llave"><li><span className="acr-in-columna">{llave[0]}</span></li></ol>
+          ) : llave.length ? (
             <ol className="acr-in-llave">
               {llave.map((columna, indice) => (
                 <li key={columna}><span className="acr-av-tenue acr-av-num">{fmt(indice + 1)}</span><span className="acr-in-columna">{columna}</span></li>
@@ -87,7 +87,7 @@ function PanelDelPadron({
             <ul className="acr-in-variables">
               {[...fila.encuestas, ...fila.barridos].map((fuente) => (
                 <li key={fuente.id}>
-                  <span>{nombreDeFuente(fuente)}</span>
+                  <span>{nombreVisibleDeFuente(fuente)}</span>
                   <span className="acr-av-tenue">{servicioDe(fuente)}</span>
                 </li>
               ))}
@@ -193,19 +193,31 @@ export function Publicos({
                         {repetido ? <Alert kind="warn">Ya hay otro público con este nombre.</Alert> : null}
                         {renombrado ? <Alert kind="info">{`Al guardar, «${borrador.guardadoComo}» pasa a llamarse así en ${fuentes === 1 ? "su única fuente" : `sus ${fmt(fuentes)} fuentes`}.`}</Alert> : null}
                       </th>
-                      <td>{fila?.padrones.length ? fila.padrones.map(nombreDeFuente).join(", ") : <span className="acr-av-chip is-falta">Sin padrón</span>}</td>
+                      <td>
+                        {/* Cada padrón como etiqueta de su servicio; el nombre sólo si dice algo más que el público. */}
+                        {fila?.padrones.length ? (
+                          <span className="acr-in-padrones">
+                            {fila.padrones.map((fuente) => (
+                              <span key={fuente.id} className="acr-in-padron">
+                                <small className="acr-in-servicio">{servicioDe(fuente)}</small>
+                                {fuenteRepiteAlPublico(fuente, fila.publico) ? null : <span>{nombreVisibleDeFuente(fuente)}</span>}
+                              </span>
+                            ))}
+                          </span>
+                        ) : <EstadoChip label="Sin padrón" tone="warn" />}
+                      </td>
                       <td className="is-num">{fila?.personas == null ? "—" : fmt(fila.personas)}</td>
                       <td>
                         <span className="acr-in-canales">
                           <b className="acr-av-num">{fmt(fila?.encuestas.length ?? 0)}</b>
                           {(fila?.canales ?? []).map((canal) => <span key={canal} className="acr-av-chip">{canal}</span>)}
-                          {fila?.barridos.length ? <span className="acr-av-chip is-avance">Barrido</span> : null}
+                          {fila?.barridos.length ? <EstadoChip label="Barrido" tone="info" /> : null}
                         </span>
                       </td>
                       <td>
                         <Switch
                           checked={borrador.phone}
-                          onToggle={() => elenco.editar(borrador.key, { phone: !borrador.phone })}
+                          onToggle={() => elenco.alternarCanalTelefonico(borrador.key)}
                           ariaLabel={`Canal telefónico de ${borrador.actor || "este público"}`}
                           disabled={elenco.guardando}
                           className="acr-in-switch"
@@ -232,7 +244,8 @@ export function Publicos({
             {!elenco.borradores.length ? <div className="acr-pr-cola-vacia" data-vacio><Alert kind="info">El estudio todavía no declara sus públicos. Agrega el primero.</Alert></div> : null}
           </div>
         </section>
-        <section className="acr-av-panel acr-in-matriz-panel" aria-label="Por dónde entra cada público">
+        {/* Con un solo canal la matriz es una columna de «1 fuente»: lo dice ya la tabla (K1). */}
+        {canales.length > 1 || !canales.length ? <section className="acr-av-panel acr-in-matriz-panel" aria-label="Por dónde entra cada público">
           <header className="acr-av-panel-cabecera"><h3>Por dónde entra cada público</h3></header>
           {canales.length ? (
             <div className="acr-in-matriz-marco">
@@ -263,7 +276,7 @@ export function Publicos({
               </table>
             </div>
           ) : <div className="acr-ct-cuerpo"><Alert kind="info">Ningún público tiene encuestas conectadas todavía.</Alert></div>}
-        </section>
+        </section> : null}
       </div>
       {enPanel ? (
         <PanelDelPadron fila={enPanel} llave={llave} elegido={Boolean(elegida)} onCerrar={() => escribirFoco(null, { panel: null })} />

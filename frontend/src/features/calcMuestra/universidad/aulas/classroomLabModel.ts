@@ -138,6 +138,10 @@ export function buildClassroomLabModel({
    * recomendación es una sugerencia y se avisa cuando difieren.
    */
   const metodoParaSortear = resolverMetodoParaSortear(String(config.selector_engine ?? ""), recommendedMethodId);
+  // Hay método elegido cuando la configuración nombra uno de los cuatro. Con él,
+  // Selección sortea sin pedir la comparación (Gonzalo, 2026-11-01: «Sí, que
+  // deje sortear»); la comparación sigue en Método como evidencia, no candado.
+  const metodoElegido = UNIVERSITY_AULAS_SELECTOR_OPTIONS.some((o) => o.id === String(config.selector_engine ?? ""));
   const recomendacionDifiere = Boolean(
     comparison?.recommendation?.method_id
     && metodoParaSortear
@@ -247,6 +251,7 @@ export function buildClassroomLabModel({
     extraReserveRows,
     recommendedMethodId,
     metodoParaSortear,
+    metodoElegido,
     recomendacionDifiere,
     recommendedMethod,
     facultades,

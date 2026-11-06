@@ -21,6 +21,6 @@
   border-radius: var(--pulso-radius);
   background: var(--pulso-danger-bg);
   color: var(--pulso-danger-fg);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   line-height: 1.45;
 }

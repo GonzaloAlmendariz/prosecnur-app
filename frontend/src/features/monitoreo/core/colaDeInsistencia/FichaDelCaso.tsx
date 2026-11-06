@@ -2,6 +2,7 @@ import { X } from "lucide-react";
 import type { CasoDeCola } from "../colaDeInsistenciaModel";
 import { fechaDeCola } from "../colaDeInsistenciaModel";
 import { telefonoDelCaso } from "./TablaDeCola";
+import { formatoConteo } from "../../../../lib/formatoNumero";
 
 function Dato({ etiqueta, valor }: { etiqueta: string; valor: string }) {
   return (
@@ -58,7 +59,7 @@ export function FichaDelCaso({
           <b>{caso.codigo}</b>
           {caso.intentos != null ? (
             <span className="mon-cola-ficha-chip">
-              {caso.intentos.toLocaleString("es-PE")} {caso.intentos === 1 ? "intento" : "intentos"} en la hoja
+              {formatoConteo(caso.intentos)} {caso.intentos === 1 ? "intento" : "intentos"} en la hoja
             </span>
           ) : null}
         </span>
@@ -76,7 +77,7 @@ export function FichaDelCaso({
           <Dato etiqueta={etiquetaCategoria} valor={caso.cuota} />
           {caso.origen != null ? <Dato etiqueta="Origen" valor={caso.origen} /> : null}
           <Dato etiqueta="Último resultado" valor={caso.status} />
-          <Dato etiqueta="Intentos" valor={caso.intentos == null ? "Sin dato" : caso.intentos.toLocaleString("es-PE")} />
+          <Dato etiqueta="Intentos" valor={caso.intentos == null ? "Sin dato" : formatoConteo(caso.intentos)} />
           <Dato etiqueta="Fecha" valor={fechaDeCola(caso.fecha) || "Sin fecha"} />
           {telefono ? <Dato etiqueta="Teléfono en uso" valor={telefono} /> : null}
           {caso.telefonosIntentados ? <Dato etiqueta="Teléfonos intentados" valor={caso.telefonosIntentados} /> : null}
@@ -94,7 +95,7 @@ export function FichaDelCaso({
           <Dato etiqueta={`Envío en ${plataforma}`} valor={caso.efectivaKobo ? "Efectiva" : "Sin efectiva"} />
           <Dato
             etiqueta="Días sin registro"
-            valor={dias == null ? "Sin fecha" : dias < 0 ? `fecha posterior al corte del ${corte}` : `${dias.toLocaleString("es-PE")} al corte del ${corte}`}
+            valor={dias == null ? "Sin fecha" : dias < 0 ? `fecha posterior al corte del ${corte}` : `${formatoConteo(dias)} al corte del ${corte}`}
           />
         </dl>
       </section>

@@ -16,6 +16,7 @@ import {
   rotuloCorto,
 } from "./armadorModelo";
 import "./armador.css";
+import { EstadoVacio } from "../../../../components/EstadoVacio";
 
 // Armador de patrones (G2): arma una regla regex de pregunta de texto por partes y la escribe al aplicar.
 // Nada se toca hasta «Aplicar»: cancelar deja la constraint como estaba.
@@ -138,7 +139,7 @@ export function ArmadorPatron({ constraint, onAplicar, onCancelar }: Props) {
             ))}
           </ol>
         ) : (
-          <p className="xfa-vacio">Sin partes</p>
+          <EstadoVacio icono={<Plus size={14} />} titulo="Sin partes" />
         )}
         <div className="xfa-agregar">
           <button

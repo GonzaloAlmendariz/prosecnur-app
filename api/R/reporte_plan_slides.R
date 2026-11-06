@@ -1628,6 +1628,88 @@ p_slide_cifras_y_graficos <- function(
   ))
 }
 
+#' Resumen de diferencias por capítulo
+#'
+#' Una tabla de resumen ejecutivo: filas agrupadas por capítulo, la columna «Total» y una columna por grupo de los
+#' cruces del estudio. Cada celda dice los puntos de diferencia del grupo frente al resto, con la prueba de las tarjetas
+#' y la familia del informe (▲▼ al 99%, △▽ al 95%); sin diferencia, un punto gris. Ver
+#' `graficos_resumen_diferencias.R`.
+#'
+#' @param capitulos Lista de `list(titulo, filas)`; cada fila es `list(var, fila | filas | top2box, rotulo, base_rotulo)`.
+#' @param titulo Título de la lámina.
+#' @param etiqueta Antetítulo («Resumen de diferencias»).
+#' @param cruces Cruces de las columnas; `NULL` usa los de las tarjetas del plan o los del estudio.
+#' @param seleccion «manual» (las filas de `capitulos`) o «auto» (las filas del plan con diferencias, con tope).
+#' @param rotulos,cortos Rótulo de cada cruce y rótulo corto de cada grupo; `NULL` toma los de las tarjetas del plan.
+#' @param tautologicos Cruces que se derivan de una variable (`{"primera_gen": ["educ_padre"]}`), además de los de la
+#'   convención del plan de análisis.
+#' @param publico Nombre de quienes respondieron («estudiantes»).
+#' @param max_filas,max_por_capitulo Topes de la selección automática (18 y 4).
+#' @param fuente Base del informe (multibase); por defecto, la primera.
+#' @param base Nota de base, texto.
+#' @param meta Metadatos de la lámina.
+#' @family reporte
+#' @export
+p_slide_resumen_diferencias <- function(capitulos = list(), titulo = NULL, etiqueta = NULL, cruces = NULL, seleccion = c("manual", "auto"),
+                                        rotulos = list(), cortos = list(), tautologicos = list(), publico = NULL,
+                                        max_filas = NULL, max_por_capitulo = NULL, fuente = NULL, base = NULL, meta = list()) {
+  seleccion <- match.arg(as.character(unlist(seleccion))[1], c("manual", "auto"))
+  .ppt_chk_meta(meta)
+  if (!is.list(capitulos)) .plan_spec_abort("p_slide_resumen_diferencias(): `capitulos` debe ser una lista.")
+  if (identical(seleccion, "manual") && !length(capitulos)) .plan_spec_abort("Resumen de diferencias: ", .RESUMEN_DIF_SIN_FILAS)
+  etiqueta <- .ppt_norm_text1(etiqueta, blank = NULL)
+  if (!is.null(etiqueta)) meta$antetitulo <- meta$antetitulo %||% etiqueta
+  el <- .el_resumen_diferencias(capitulos = capitulos, cruces = cruces, seleccion = seleccion, rotulos = rotulos, cortos = cortos,
+                                tautologicos = tautologicos, publico = publico, max_filas = max_filas,
+                                max_por_capitulo = max_por_capitulo, fuente = fuente)
+  p_slide_1_grafico(el, titulo = titulo %||% "¿En qué se diferencian los grupos?", base = base, meta = meta)
+}
+
+#' Hallazgos clave
+#'
+#' Cifras destacadas con su intervalo de 95% bajo el diseño del estudio y su comparación frente al resto. Modo `cifras`:
+#' hasta seis en cuadrícula. Modo `cifras_con_graficos`: hasta tres con su gráfico de apoyo debajo, o un solo gráfico de
+#' ancho completo (`grafico_ancho`). Modo `resumen`: el resumen ejecutivo en tabla por capítulo, hasta 8 hallazgos y 4
+#' capítulos por lámina, con paginación que no parte un capítulo. Modo `titulares`: un titular por capítulo en una
+#' lámina. Ver `graficos_hallazgos.R` y `graficos_hallazgos_resumen.R`.
+#'
+#' @param cifras Lista de `list(var, fila | filas | top2box, texto, comparacion, grafico, base, filtros)`.
+#' @param titulo Título de la lámina.
+#' @param etiqueta Antetítulo («Capítulo 4»). En los modos de resumen, «Resumen ejecutivo» por defecto.
+#' @param modo «cifras», «cifras_con_graficos», «resumen» o «titulares».
+#' @param grafico_ancho En el modo con gráficos, un gráfico de ancho completo `list(graficador, args, titulo, base)`.
+#' @param capitulos Modos de resumen con selección manual: lista de `list(titulo, titular, cifras)`.
+#' @param seleccion Modos de resumen: «manual» (los `capitulos`) o «auto» (por capítulo del plan, la diferencia más
+#'   fuerte y la cifra más rotunda sin diferencia).
+#' @param max_por_capitulo,max_por_lamina Topes del resumen (3 y 8; la selección automática propone 2 por capítulo).
+#' @param tambien Si el resumen escribe la línea «También» cuando otro cruce difiere (por defecto no: sólo la principal).
+#' @param titulos Un título por lámina cuando el resumen se pagina.
+#' @param cruces,rotulos,cortos,tautologicos,publico,fuente Como en [p_slide_resumen_diferencias()].
+#' @param base Nota de base, texto.
+#' @param meta Metadatos de la lámina.
+#' @family reporte
+#' @export
+p_slide_hallazgos <- function(cifras = list(), titulo = NULL, etiqueta = NULL, modo = c("cifras", "cifras_con_graficos", "resumen", "titulares"),
+                              grafico_ancho = NULL, cruces = NULL, rotulos = list(), cortos = list(), tautologicos = list(),
+                              publico = NULL, fuente = NULL, base = NULL, meta = list(), capitulos = list(), seleccion = c("manual", "auto"),
+                              max_por_capitulo = NULL, max_por_lamina = NULL, tambien = FALSE, titulos = NULL) {
+  modo <- match.arg(as.character(unlist(modo))[1], c("cifras", "cifras_con_graficos", "resumen", "titulares"))
+  seleccion <- match.arg(as.character(unlist(seleccion))[1], c("manual", "auto"))
+  .ppt_chk_meta(meta)
+  resumen <- modo %in% c("resumen", "titulares")
+  if (resumen) {
+    if (!is.list(capitulos)) .plan_spec_abort("p_slide_hallazgos(): `capitulos` debe ser una lista.")
+    if (identical(seleccion, "manual") && !length(capitulos)) .plan_spec_abort("Hallazgos clave: ", .HALLAZGOS_SIN_CAPITULOS)
+  } else if (!is.list(cifras) || !length(cifras)) .plan_spec_abort("p_slide_hallazgos(): declara al menos una cifra en `cifras`.")
+  etiqueta <- .ppt_norm_text1(etiqueta, blank = NULL) %||% if (resumen) "Resumen ejecutivo"
+  if (!is.null(etiqueta)) meta$antetitulo <- meta$antetitulo %||% etiqueta
+  el <- .el_hallazgos(cifras = cifras, modo = modo, grafico_ancho = grafico_ancho, cruces = cruces, rotulos = rotulos,
+                      cortos = cortos, tautologicos = tautologicos, publico = publico, fuente = fuente, capitulos = capitulos,
+                      seleccion = seleccion, max_por_capitulo = max_por_capitulo, max_por_lamina = max_por_lamina,
+                      tambien = isTRUE(as.logical(unlist(tambien))[1]), titulos = titulos)
+  p_slide_1_grafico(el, titulo = titulo %||% if (resumen) "Principales hallazgos" else "Hallazgos clave", base = base, meta = meta)
+}
+
 #' Lámina de perfil con tres gráficos: dos apilados y uno alto
 #'
 #' Dos paneles a la izquierda, uno arriba y otro abajo, y un tercero a la
@@ -1889,10 +1971,32 @@ p_slide_6_graficos_poblacion <- function(
   filtros
 }
 
+#' Lista de textos de un arg del slot: `character()` o el arreglo JSON que llega como lista de escalares
+#'
+#' El export parsea el body con `simplifyVector = FALSE` (`.graficos_body_sin_simplificar`), así que un arreglo
+#' `["NS/NR"]` llega como `list("NS/NR")`. Se acepta todo lo que sea texto o número escalar (un código numérico cuenta
+#' como su texto); cualquier otra forma devuelve NULL. `/validar` usa el mismo criterio (`.validar_plan_json`), así que un
+#' plan que valida no cae en el job.
+#' @keywords internal
+.ppt_chr_vec_coercionar <- function(x) {
+  if (is.list(x)) {
+    if (!all(vapply(x, function(v) is.null(v) || ((is.character(v) || is.numeric(v) || is.logical(v)) && length(v) <= 1L), TRUE))) return(NULL)
+    x <- unlist(x, use.names = FALSE)
+    if (is.null(x)) return(character(0))
+  }
+  if (is.factor(x)) x <- as.character(x)
+  if (!is.character(x) && !is.numeric(x)) {
+    if (is.logical(x) && all(is.na(x))) return(character(0))
+    return(NULL)
+  }
+  as.character(x)
+}
+
 .ppt_norm_chr_vec_arg <- function(x, nm) {
   if (is.null(x)) return(NULL)
-  if (!is.character(x)) .plan_spec_abort("`", nm, "` debe ser NULL o character().")
-  x <- trimws(as.character(x))
+  x <- .ppt_chr_vec_coercionar(x)
+  if (is.null(x)) .plan_spec_abort("`", nm, "` debe ser NULL o una lista de textos.")
+  x <- trimws(x)
   x <- x[!is.na(x) & nzchar(x)]
   if (!length(x)) return(NULL)
   unique(x)
@@ -1996,6 +2100,7 @@ p_barras_agrupadas <- function(var, titulo = NULL, cruces = NULL, overrides = li
                                   opciones = eval(formals(graficar_barras_agrupadas)$normalizar_etiquetas))
   # TXT-20: el texto abierto que se codificó en `var` (temas); apagado por defecto. reporte_plan_temas_texto.R
   overrides <- .ppt_slot_override(overrides, "temas_de_texto", temas_de_texto, "texto")
+  overrides <- .agrupadas_tamanos_declarados_mandan(overrides)   # CCSS 2026, lámina 64 (lamina_tamanos_declarados.R)
 
   el <- list(
     .element_type = "barras_agrupadas",
@@ -2147,11 +2252,16 @@ p_barras_apiladas <- function(var, titulo = NULL, cruces = NULL, overrides = lis
 #'   `altura_rel`, `overrides`, `base` y `filtros`.
 #' @param invertir_barras Da la vuelta al orden de las filas (O7c). Va a `overrides`, así que en `multilista` lo
 #'   heredan los bloques; `NULL` hereda el preset.
+#' @param mostrar_significancia,significancia_alpha Marcar diferencias significativas entre los grupos del cruce y su
+#'   nivel (U11). Van a `overrides`; sólo los lee `modo = "cruce"`. `NULL` hereda el preset.
 #' @param word_multiapiladas Figuras del Word (W6/D6): `"un_grafico"`, `"por_tema"` o `"por_barra"`; `NULL` o `""`
 #'   hereda `w_presets$chart_options$multiapiladas_word`. En `multilista` vale
 #'   para cada bloque. La lámina del PPT no cambia.
 #' @param word_titulo_figura Título de la figura única del Word (`modo = "var"` con `un_grafico` o
 #'   `un_grafico_mismo_publico`); `NULL` o `""` la deja sin título. No cambia el PPT ni los demás modos.
+#'   Es la ÚNICA vía para titular esa figura: el `titulo` de la lámina no la titula a propósito (D-b, decisión del
+#'   usuario del 2026-10-22: con el título de lámina salían varios «Gráfico N» idénticos). Sin declarar, el rótulo queda
+#'   «Gráfico N° N» (fijado en test-word-multiapiladas-modos.R).
 #' @examples
 #' p_barras_multiapiladas(
 #'   modo = "cruce",
@@ -2189,8 +2299,9 @@ p_barras_multiapiladas <- function(
     ancho_tema = NULL,
     mostrar_respuestas = NULL,
     filete_temas = NULL,
-    grosor_piso_cm = NULL,
+    grosor_piso_cm = NULL, premisa_posicion = NULL,
     invertir_barras = NULL,
+    mostrar_significancia = NULL, significancia_alpha = NULL,   # U11: sólo los lee el modo `cruce`
     word_multiapiladas = NULL,
     word_titulo_figura = NULL
 ) {
@@ -2295,7 +2406,10 @@ p_barras_multiapiladas <- function(
   overrides <- .ppt_slot_override(overrides, "mostrar_respuestas", mostrar_respuestas, "bool")
   overrides <- .ppt_slot_override(overrides, "filete_temas", filete_temas, "bool")   # N2
   overrides <- .ppt_slot_override(overrides, "grosor_piso_cm", grosor_piso_cm, "numero", min = 0)   # N1
+  overrides <- .ppt_slot_override(overrides, "premisa_posicion", premisa_posicion, "opcion", opciones = c("auto", "arriba", "izquierda"))   # v7.25, ítem 4
   overrides <- .ppt_slot_override(overrides, "invertir_barras", invertir_barras, "bool"); overrides <- .barra_extra_en_overrides(overrides, barra_extra)   # O7c; la barra extra del nivel manda sobre la heredada
+  overrides <- .ppt_slot_override(overrides, "mostrar_significancia", mostrar_significancia, "bool")   # U11
+  overrides <- .ppt_slot_override(overrides, "significancia_alpha", significancia_alpha, "numero", min = 0)
   # W6/D6: cuántas figuras Word sale de esta lámina; NULL hereda el informe (reporte_word_multi_modos.R)
   word_multiapiladas <- .word_multi_modo_normalizar(word_multiapiladas, "la lámina")
   word_titulo_figura <- .word_titulo_figura_normalizar(word_titulo_figura)   # reporte_word_multi_modos.R

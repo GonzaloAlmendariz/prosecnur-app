@@ -1,0 +1,72 @@
+/* Menú plegado del cajón de Población: la agrupación y las descargas en un botón
+ * que dice lo elegido; el panel, una opción por fila con su marca. */
+
+.hr-cajon-menu-boton {
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.hr-cajon-menu {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  padding: 4px;
+  list-style: none;
+}
+
+.hr-cajon-menu-item {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 8px;
+  width: 100%;
+  min-height: 32px;
+  padding: 6px 10px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--pulso-text);
+  font: inherit;
+  font-size: var(--pulso-type-body-size);
+  text-align: left;
+  white-space: normal;
+  cursor: pointer;
+}
+
+.hr-cajon-menu-item:hover:not(:disabled) {
+  background: var(--pulso-surface-2);
+}
+
+.hr-cajon-menu-item:focus-visible {
+  outline: 2px solid var(--pulso-module-routes-border);
+  outline-offset: -2px;
+}
+
+.hr-cajon-menu-item:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.hr-cajon-menu-marca {
+  flex: none;
+  visibility: hidden;
+  color: var(--pulso-module-routes);
+}
+
+.hr-cajon-menu-item[aria-pressed="true"] {
+  color: var(--pulso-module-routes);
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.hr-cajon-menu-item[aria-pressed="true"] .hr-cajon-menu-marca {
+  visibility: visible;
+}
+
+/* Cajón angosto: el botón con ícono (Descargar) se queda en su ícono; la agrupación conserva su rótulo, que dice
+   lo elegido. */
+@container hr-cajon (max-width: 620px) {
+  .hr-cajon-menu-boton[data-con-icono] .hr-cajon-menu-rotulo {
+    display: none;
+  }
+}

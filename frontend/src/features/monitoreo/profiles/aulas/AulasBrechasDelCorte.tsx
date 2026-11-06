@@ -70,7 +70,7 @@ export function AulasBrechasDelCorte({ filas, onRelevo }: {
     return (
       <p className="mon-profile-muted" data-qa-geometry-capacity="owned" data-qa-geometry-member>
         Ningún curso-horario aplicado se quedó por debajo de lo previsto
-        {r.sinAplicar ? <> · quedan {fmt(r.sinAplicar)} sin aplicar, que se resuelven agendando</> : null}.
+        {r.sinAplicar ? <>, quedan {fmt(r.sinAplicar)} sin aplicar, que se resuelven agendando</> : null}.
       </p>
     );
   }
@@ -84,15 +84,15 @@ export function AulasBrechasDelCorte({ filas, onRelevo }: {
         <strong>{fmt(rindenMal.length)}</strong> cursos-horario aplicados rinden por debajo
         {" y suman "}<strong>{fmt(rindenMal.reduce((n, b) => n + Math.max(0, b.faltan), 0))}</strong>
         {" respuestas por conseguir"}
-        {r.muyPorDebajo ? <> · <strong>{fmt(r.muyPorDebajo)}</strong> rinden menos de la mitad de lo previsto</> : null}
+        {r.muyPorDebajo ? <>, <strong>{fmt(r.muyPorDebajo)}</strong> rinden menos de la mitad de lo previsto</> : null}
         {r.sinAplicar ? (
-          <> · aparte, <strong>{fmt(r.sinAplicar)}</strong> todavía sin aplicar: ésos se agendan, no se complementan</>
+          <>, aparte, <strong>{fmt(r.sinAplicar)}</strong> todavía sin aplicar: ésos se agendan, no se complementan</>
         ) : null}
         {/* **El conflicto va con nombre propio.** No es un aplicado que rinde
             mal ni uno sin aplicar: es un registro que no se sostiene, y ya pilló
             un duplicado del coordinador el 2026-09-11. */}
         {enConflicto.length ? (
-          <> · <strong>{fmt(enConflicto.length)}</strong>{" "}
+          <>, <strong>{fmt(enConflicto.length)}</strong>{" "}
             {enConflicto.length === 1
               ? "tiene el parte en conflicto y encabeza la tabla: revísalo antes de decidir"
               : "tienen el parte en conflicto y encabezan la tabla: revísalos antes de decidir"}</>
@@ -155,9 +155,9 @@ function Fila({ b, onRelevo }: { b: BrechaDeCurso; onRelevo?: (codigo: string) =
                 escribe en mayúsculas y en la misma pantalla convivían las dos
                 grafías. La decisión vive en `facultadEnPalabras`. */}
             {facultadCorta(b.facultad) || "Sin facultad"}
-            {b.donde ? ` · ${b.donde}` : ""}
+            {b.donde ? `, ${b.donde}` : ""}
             {/* Su composición: decide si un relevo suyo cerraría lo que falta. */}
-            {b.mujeres || b.hombres ? ` · ${fmt(b.mujeres)} M · ${fmt(b.hombres)} H` : ""}
+            {b.mujeres || b.hombres ? `, ${fmt(b.mujeres)} M, ${fmt(b.hombres)} H` : ""}
           </em>
         </span>
       </th>
@@ -169,7 +169,7 @@ function Fila({ b, onRelevo }: { b: BrechaDeCurso; onRelevo?: (codigo: string) =
           // Elegir un lado en silencio esconde que alguien marcó esa casilla.
           <span className="aulas-brc-conflicto">
             revisar el parte
-            {b.enElAula != null ? <em>dice aplicada · {fmt(b.enElAula)} en el aula · 0 válidas</em> : null}
+            {b.enElAula != null ? <em>dice aplicada, {fmt(b.enElAula)} en el aula, 0 válidas</em> : null}
           </span>
         ) : b.severidad === "sin_aplicar" ? (
           <span className="aulas-brc-nada">sin campo</span>
@@ -185,7 +185,7 @@ function Fila({ b, onRelevo }: { b: BrechaDeCurso; onRelevo?: (codigo: string) =
             {b.efectivas === 0 && b.enElAula != null ? (
               <em>{b.enElAula === 0
                 ? "el parte no encontró a nadie"
-                : `${fmt(b.enElAula)} en el aula · ninguna válida`}</em>
+                : `${fmt(b.enElAula)} en el aula, ninguna válida`}</em>
             ) : (
               // Contra lo que preveía SU facultad: sin esa referencia, el
               // porcentaje no dice si es bueno o malo.

@@ -8,14 +8,14 @@
 }
 
 .rec-trato-titulo {
-  font-size: 13px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-semibold);
   margin: 0;
 }
 
 .rec-trato-campo {
   display: grid;
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   gap: 3px;
   min-width: 0;
 }
@@ -33,7 +33,7 @@
 .rec-trato-sin-lista,
 .rec-trato-lectura {
   color: var(--pulso-text-soft);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   line-height: 1.4;
   margin: 0;
 }
@@ -46,7 +46,7 @@
   background: var(--pulso-module-fieldkit-soft);
   border-radius: var(--pulso-radius);
   color: var(--pulso-text);
-  font-size: 12.5px;
+  font-size: var(--pulso-type-body-size);
   font-variant-numeric: tabular-nums;
   margin: 0;
   padding: 6px 8px;
@@ -57,7 +57,7 @@
   border: 1px solid var(--pulso-warn-border);
   border-radius: var(--pulso-radius);
   color: var(--pulso-warn-fg);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   margin: 0;
   padding: 6px 8px;
 }

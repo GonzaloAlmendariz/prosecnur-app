@@ -23,6 +23,10 @@
   gap: var(--pulso-space-3);
   min-width: 0;
   min-height: 0;
+}
+
+/* El material sólo para el panel que no es un bloque del kit (P2: el `Panel` pone el suyo). */
+.mon-falt-panel:not(.mon-bloque) {
   padding: var(--pulso-space-4);
   border: 1px solid var(--pulso-border);
   border-radius: var(--pulso-radius-panel);
@@ -41,13 +45,13 @@
 .mon-falt-cabecera h3 {
   margin: 0;
   color: var(--pulso-text);
-  font-size: 14px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-bold);
 }
 
 .mon-falt-base {
   color: var(--pulso-text-soft);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   font-variant-numeric: tabular-nums;
 }
 
@@ -58,12 +62,17 @@
   margin-left: auto;
 }
 
-/* El alto de la fila lo pone el mapa de calor: el panel de pendientes no
- * aporta alto propio (alto 0, mínimo 100 %) y desplaza sus tarjetas dentro.
- * Con 29 pendientes empujaba la cuota de cada UMP fuera de la vista. */
+/* Las pendientes miden lo que traen. Atadas al alto del mapa de calor (alto 0,
+ * mínimo 100 %) cortaban la tercera tarjeta a la mitad, que se leía como render
+ * roto (formato, vista 5). Con muchas —29 en un estudio— las tarjetas desplazan
+ * bajo un tope de unas tres y se desvanecen al pie mientras quede algo
+ * abajo; así la cuota de cada UMP no sale de la vista. */
 .mon-falt-pendientes {
-  height: 0;
-  min-height: 100%;
+  min-height: 0;
+}
+
+.mon-falt-pendientes .mon-falt-aviso {
+  margin-top: auto;
 }
 
 /* Tarjetas de las UMP con falta en la manzana en uso. */
@@ -71,13 +80,20 @@
   display: grid;
   gap: var(--pulso-space-2);
   align-content: start;
-  flex: 1 1 auto;
+  flex: 0 1 auto;
   min-height: 0;
+  max-height: 300px;
   margin-right: calc(-1 * var(--pulso-space-2));
   padding-right: var(--pulso-space-2);
   overflow: auto;
+  overscroll-behavior: contain;
   scrollbar-width: thin;
   scrollbar-color: var(--pulso-border-strong) transparent;
+}
+
+/* El pie se desvanece sólo mientras queda algo abajo (`useQuedanMasAbajo`). */
+.mon-falt-tarjetas.quedan-mas {
+  mask-image: linear-gradient(to bottom, black calc(100% - 40px), transparent);
 }
 
 /* Tarjeta de UMP (§2a-bis): contorno del distrito como sello a la izquierda,
@@ -116,7 +132,7 @@
 
 .mon-falt-tarjeta-accion > small {
   color: var(--pulso-text-soft);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
@@ -129,21 +145,30 @@
   min-width: 0;
 }
 
+/* Un chip largo («Sugerencia desde la UMP 2 sobrantes, a 3.56 km») parte en
+ * dos líneas dentro de su tarjeta en vez de salirse por la derecha (1280). */
+.mon-falt-tarjeta-linea > .pulso-estado-chip {
+  max-width: 100%;
+  height: auto;
+  white-space: normal;
+  text-align: left;
+}
+
 .mon-falt-tarjeta-linea > strong {
-  font-size: 17px;
+  font-size: var(--pulso-type-title-size);
   font-weight: var(--pulso-weight-bold);
   font-variant-numeric: tabular-nums;
 }
 
 .mon-falt-tarjeta-linea > span {
   color: var(--pulso-text-soft);
-  font-size: 13px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .mon-falt-tarjeta-linea > small {
   margin-left: auto;
   color: var(--pulso-text-soft);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   font-variant-numeric: tabular-nums;
 }
 
@@ -153,7 +178,7 @@
   gap: 6px;
   padding: 2px 9px;
   border-radius: var(--pulso-radius-chip);
-  font-size: 12px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-semibold);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
@@ -180,7 +205,7 @@
 
 .mon-falt-sin {
   color: var(--pulso-text-soft);
-  font-size: 12.5px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .mon-falt-boton {
@@ -194,7 +219,7 @@
   background: var(--pulso-surface);
   color: var(--pulso-text);
   font: inherit;
-  font-size: 13px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-semibold);
   cursor: pointer;
 }
@@ -232,7 +257,7 @@
   border-radius: 10px;
   background: var(--pulso-info-bg);
   color: var(--pulso-text);
-  font-size: 12.5px;
+  font-size: var(--pulso-type-body-size);
   font-variant-numeric: tabular-nums;
 }
 
@@ -261,7 +286,7 @@
 .mon-falt-calor-tabla thead th {
   padding: 0 0 var(--pulso-space-1);
   color: var(--pulso-text-soft);
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   font-weight: var(--pulso-weight-bold);
   text-align: center;
   white-space: nowrap;
@@ -270,7 +295,7 @@
 .mon-falt-calor-tabla tbody th {
   padding-right: var(--pulso-space-2);
   color: var(--pulso-text);
-  font-size: 12.5px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-semibold);
   text-align: left;
   white-space: nowrap;
@@ -280,13 +305,28 @@
   padding: 0;
 }
 
+/* Cada celda en dos pisos: lo logrado manda y «de N» va debajo, en chico. En
+ * una línea («103 de 96») seis columnas no cabían a 1440 y la última quedaba
+ * pegada al borde de la tarjeta. */
 .mon-falt-calor-celda {
-  display: block;
-  padding: 7px 4px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 5px 4px 4px;
   border-radius: 6px;
-  font-size: 12px;
+  line-height: 1.15;
   text-align: center;
   white-space: nowrap;
+}
+
+.mon-falt-calor-celda b {
+  font-size: var(--pulso-type-subtitle-size);
+  font-weight: var(--pulso-weight-bold);
+}
+
+.mon-falt-calor-celda small {
+  font-size: var(--pulso-type-caption-size);
+  opacity: 0.82;
 }
 
 .mon-falt-calor-celda.is-clara {
@@ -297,8 +337,10 @@
   color: var(--pulso-text);
 }
 
-/* Cuota de cada UMP. */
-.mon-falt-cuotas {
+/* Cuota de cada UMP: la tabla llega al pie de la tarjeta. `.mon-bloque` sube la especificidad sobre
+ * el padding del bloque del kit. */
+.mon-falt-cuotas,
+.mon-falt-cuotas.mon-bloque {
   padding-bottom: 0;
 }
 
@@ -322,7 +364,7 @@
   background: transparent;
   color: var(--pulso-text-soft);
   font: inherit;
-  font-size: 12.5px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-semibold);
   cursor: pointer;
 }
@@ -342,7 +384,7 @@
   display: inline-flex;
   align-items: center;
   gap: var(--pulso-space-2);
-  font-size: 13px;
+  font-size: var(--pulso-type-body-size);
   white-space: nowrap;
 }
 
@@ -357,7 +399,14 @@
   overflow: auto;
   scrollbar-gutter: stable;
   scrollbar-width: thin;
-  scrollbar-color: var(--pulso-border-strong) transparent;
+  scrollbar-color: var(--pulso-border-strong) transparent;  /* La cabecera fija mide 36 px: al desplazar, cada fila encaja debajo de
+   * ella en vez de quedar tapada a medias. */
+  scroll-padding-top: 36px;
+  scroll-snap-type: y mandatory;
+}
+
+.mon-falt-tabla > tbody > tr {
+  scroll-snap-align: start;
 }
 
 .mon-falt-tabla-marco::-webkit-scrollbar {
@@ -373,7 +422,7 @@
 .mon-falt-tabla {
   width: 100%;
   border-collapse: collapse;
-  font-size: 13px;
+  font-size: var(--pulso-type-body-size);
   font-variant-numeric: tabular-nums;
 }
 
@@ -385,7 +434,7 @@
   border-bottom: 1px solid var(--pulso-border);
   background: var(--pulso-surface);
   color: var(--pulso-text-soft);
-  font-size: 10.5px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-bold);
   letter-spacing: 0.06em;
   text-align: left;
@@ -460,7 +509,7 @@
   gap: 4px;
   padding: 2px 8px;
   border-radius: 6px;
-  font-size: 12.5px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-semibold);
 }
 
@@ -476,7 +525,7 @@
 
 .mon-falt-celda b,
 .mon-falt-cruce b {
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   font-weight: var(--pulso-weight-bold);
 }
 
@@ -531,7 +580,7 @@
 
 .mon-falt-detalle-titulo small {
   color: var(--pulso-text-faint);
-  font-size: 10.5px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-bold);
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -539,7 +588,7 @@
 
 .mon-falt-detalle-titulo strong {
   color: var(--pulso-text);
-  font-size: 17px;
+  font-size: var(--pulso-type-title-size);
   font-weight: var(--pulso-weight-bold);
 }
 
@@ -563,7 +612,7 @@
 .mon-falt-encuestadores h5 {
   margin: 0;
   color: var(--pulso-text-faint);
-  font-size: 10.5px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-bold);
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -573,7 +622,7 @@
   overflow: hidden;
   margin: 0;
   color: var(--pulso-text);
-  font-size: 13px;
+  font-size: var(--pulso-type-body-size);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
@@ -611,7 +660,7 @@
   justify-content: space-between;
   gap: var(--pulso-space-3);
   color: var(--pulso-text-soft);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .mon-falt-capas {
@@ -647,12 +696,12 @@
   gap: 2px;
   margin: 0;
   color: var(--pulso-text-soft);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .mon-falt-capas dd b {
   color: var(--pulso-text);
-  font-size: 18px;
+  font-size: var(--pulso-type-kpi-size);
   font-variant-numeric: tabular-nums;
 }
 
@@ -662,7 +711,7 @@
 
 .mon-falt-cruce {
   border-collapse: collapse;
-  font-size: 12.5px;
+  font-size: var(--pulso-type-body-size);
   font-variant-numeric: tabular-nums;
 }
 
@@ -676,7 +725,7 @@
 
 .mon-falt-cruce thead th {
   color: var(--pulso-text-soft);
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   font-weight: var(--pulso-weight-bold);
 }
 
@@ -708,33 +757,12 @@
   border: 1px dashed var(--pulso-border-strong);
   border-radius: 8px;
   color: var(--pulso-text-soft);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   font-variant-numeric: tabular-nums;
 }
 
 .mon-falt-otras li b {
   color: var(--pulso-text);
-}
-
-.mon-falt-detalle-vacio,
-.mon-falt-vacio-tabla {
-  margin: 0;
-  padding: var(--pulso-space-4);
-  color: var(--pulso-text-soft);
-  font-size: 13px;
-}
-
-.mon-falt-vacio {
-  align-items: center;
-  justify-content: center;
-  height: 100%;
-  text-align: center;
-  color: var(--pulso-text-soft);
-}
-
-.mon-falt-vacio strong {
-  color: var(--pulso-text);
-  font-size: 15px;
 }
 
 /* 1024 × 600: los dos paneles de arriba se apilan y la página desplaza; la
@@ -750,12 +778,11 @@
     grid-template-columns: minmax(0, 1fr);
   }
 
-  /* Apiladas, las pendientes ya no toman el alto del mapa de calor (que va
-   * debajo): miden lo que traen, hasta 380 px, y desplazan sus tarjetas. */
+  /* Apiladas, las pendientes miden lo que traen (el tope de sus tarjetas
+   * está arriba) y el mapa de calor va debajo. */
   .mon-falt-pendientes {
     height: auto;
     min-height: 0;
-    max-height: 380px;
   }
 
   .mon-falt-cuotas {
@@ -777,8 +804,8 @@
   }
 }
 
-/* La fila de arriba mide al menos 380 px para que las pendientes muestren dos
- * tarjetas y media; el mapa de calor reparte ese alto entre sus filas. */
+/* La fila de arriba mide al menos 380 px; el mapa de calor reparte ese alto
+ * entre sus filas y las pendientes ponen el suyo si traen más. */
 @media (min-width: 1181px) {
   .mon-falt-arriba {
     min-height: 380px;
@@ -794,11 +821,23 @@
  * líneas con un ancho tope y las cabeceras son cortas. Si aun así no cabe
  * (1024), desplaza dentro de su marco con la columna UMP fija; la tarjeta
  * desplegada ocupa el ancho completo de la fila. */
-.mon-falt-tabla tbody td:is(.is-distrito, .is-aplicador, .is-cubre) {
+/* Formato de Monitoreo, vista 7: aplicador y «cubre» van en un renglón (nombre corto, frase corta; lo
+ * completo en el título); sólo el distrito, que es un nombre propio largo, puede partir. */
+.mon-falt-tabla tbody td.is-distrito {
   min-width: 96px;
-  max-width: 190px;
   white-space: normal;
   line-height: 1.3;
+}
+
+.mon-falt-tabla tbody td:is(.is-aplicador, .is-cubre) {
+  white-space: nowrap;
+}
+
+.mon-falt-codigo {
+  margin-inline-end: 6px;
+  color: var(--pulso-text-faint);
+  font-size: var(--pulso-type-caption-size);
+  font-variant-numeric: tabular-nums;
 }
 
 .mon-falt-tabla tbody td.is-distrito {
@@ -838,11 +877,6 @@
 }
 
 @media (max-width: 1180px) {
-  .mon-falt-tabla tbody td:is(.is-aplicador, .is-cubre) {
-    min-width: 0;
-    max-width: 132px;
-  }
-
   .mon-falt-tabla tbody td.is-distrito {
     min-width: 0;
     max-width: 96px;
@@ -859,10 +893,32 @@
   white-space: normal;
 }
 
-/* Partido, el chip no se vuelve óvalo: dos líneas con esquinas de tarjeta. */
+/* Partido, el chip no se vuelve óvalo: dos líneas con esquinas de tarjeta.
+ * A 1024 la tabla entera cabe en su marco (antes Saldo y Cubre quedaban 164 px
+ * a la derecha, tras un desplazamiento sin indicio): la manzana y «cubre»
+ * parten en dos líneas, las cabeceras de celda también, y los chips de celda
+ * se ciñen. Las filas crecen en alto, pero ninguna columna queda escondida. */
 @media (max-width: 1180px) {
   .mon-falt-tabla tbody td.is-cubre {
-    min-width: 124px;
+    min-width: 100px;
+  }
+
+  .mon-falt-tabla tbody td.is-manzana {
+    white-space: normal;
+  }
+
+  .mon-falt-tabla thead th.is-celda {
+    white-space: normal;
+    line-height: 1.2;
+  }
+
+  .mon-falt-tabla :is(thead th, tbody td).is-celda {
+    padding-inline: 3px;
+  }
+
+  .mon-falt-tabla .mon-falt-celda {
+    gap: 2px;
+    padding-inline: 3px;
   }
 
   .mon-falt-tabla td.is-cubre .mon-falt-chip {
@@ -873,4 +929,35 @@
 /* La fila que trae `foco` llega a la vista bajo la cabecera fija de la tabla. */
 .mon-falt-tabla tbody tr.is-abierta {
   scroll-margin-top: 44px;
+}
+
+/* «Logrado frente a la cuota» a 1280: la columna «60 o más» quedaba cortada
+ * contra el borde de su tarjeta (62 px ocultos; detector de columnas ocultas,
+ * 2026-10-28). Hasta 1400 los distritos largos parten en dos líneas y las
+ * celdas pierden relleno lateral; ninguna columna se esconde. */
+@media (max-width: 1400px) {
+  .mon-falt-calor-tabla {
+    border-spacing: 2px;
+  }
+
+  .mon-falt-calor-tabla tbody th {
+    max-width: 118px;
+    white-space: normal;
+    line-height: 1.2;
+  }
+
+  /* La etiqueta con silueta es `nowrap` en todas las tablas territoriales;
+   * aquí el nombre parte junto a su silueta en vez de montarse sobre las celdas. */
+  .mon-falt-calor-tabla tbody th .mon-ter-con-silueta {
+    min-width: 0;
+    white-space: normal;
+  }
+
+  .mon-falt-calor-celda {
+    padding-inline: 2px;
+  }
+
+  .mon-falt-calor-celda b {
+    font-size: var(--pulso-type-body-size);
+  }
 }

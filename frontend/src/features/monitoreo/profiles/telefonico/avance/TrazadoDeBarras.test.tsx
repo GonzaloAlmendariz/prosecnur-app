@@ -7,6 +7,30 @@ const columnas = [
   { fecha: "2026-07-03", total: 1100, titulo: "", segmentos: [{ clase: "is-serie-0", valor: 1100 }] },
 ];
 
+describe("banda de días sin registro", () => {
+  const cinco = ["01", "02", "03", "04", "05"].map((d) => ({
+    fecha: `2026-07-${d}`, total: 10, titulo: "", segmentos: [{ clase: "is-serie-0", valor: 10 }],
+  }));
+
+  it("angosta (uno o dos días) usa el rótulo corto y deja el completo como título", () => {
+    const html = renderToStaticMarkup(
+      <TrazadoDeBarras columnas={cinco} tituloIzquierdo="Llamados" banda={{ desde: 4, rotulo: "Sin registro en la hoja", rotuloCorto: "Sin hoja" }} />,
+    );
+    expect(html).toContain("mon-trazado-banda is-angosta");
+    expect(html).toContain('title="Sin registro en la hoja"');
+    expect(html).toContain(">Sin hoja<");
+  });
+
+  it("ancha conserva el rótulo completo en horizontal", () => {
+    const html = renderToStaticMarkup(
+      <TrazadoDeBarras columnas={cinco} tituloIzquierdo="Llamados" banda={{ desde: 1, rotulo: "Sin registro en la hoja", rotuloCorto: "Sin hoja" }} />,
+    );
+    expect(html).not.toContain("is-angosta");
+    expect(html).toContain(">Sin registro en la hoja<");
+    expect(html).not.toContain(">Sin hoja<");
+  });
+});
+
 describe("trazado de barras con dos ejes", () => {
   it("pinta el eje izquierdo con título y marcas en es-PE", () => {
     const html = renderToStaticMarkup(<TrazadoDeBarras columnas={columnas} tituloIzquierdo="Efectivas por día" />);

@@ -207,7 +207,7 @@ describe("Acreditación › Selección", () => {
     expect(html).not.toContain('id="cmv2-section-general-seleccion"');
     // El archivo del actor vive en su pestaña (E15 · P1), no encima del sorteo.
     expect(html).not.toContain("cmg-archivo");
-    expect(vista("cmp-adm", undefined, true, "seleccion-marco")).toContain('class="cmv2-panel cmg-archivo"');
+    expect(vista("cmp-adm", undefined, true, "seleccion-marco")).toContain('class="pulso-panel pulso-panel--content cmg-archivo"');
     // Un solo dueño de scroll y una sola sección, nombrada por el encabezado;
     // dentro, UN tabpanel real, nombrado por la pestaña que lo controla.
     expect(html.match(/aria-labelledby="cmg-seccion-titulo"/g)).toHaveLength(1);
@@ -238,7 +238,7 @@ describe("Acreditación › Selección", () => {
     expect(html).not.toContain("Sortear");
     // El archivo sigue a una pestaña: la de «Archivo del marco».
     expect(html).toContain('id="cmg-tab-seleccion-seleccion-marco"');
-    expect(vista("cmp-doc", actoresCon({ "cmp-doc": MARCO }, {}), true, "seleccion-marco")).toContain('class="cmv2-panel cmg-archivo"');
+    expect(vista("cmp-doc", actoresCon({ "cmp-doc": MARCO }, {}), true, "seleccion-marco")).toContain('class="pulso-panel pulso-panel--content cmg-archivo"');
   });
 
   it("sin actores contiene su propio vacío", () => {

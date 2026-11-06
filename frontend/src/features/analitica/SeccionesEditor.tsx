@@ -81,13 +81,13 @@ export function SeccionesEditor() {
             type="button"
             onClick={() => detectar()}
             disabled={busy}
-            style={{ fontSize: 12, display: "inline-flex", alignItems: "center", gap: 4 }}
+            style={{ fontSize: "var(--pulso-type-body-size)", display: "inline-flex", alignItems: "center", gap: 4 }}
             title="Re-detecta desde el instrumento; preserva renames/merges manuales."
           >
             <RefreshCw size={12} /> {busy ? "Detectando…" : "Detectar de nuevo"}
           </button>
-          <span style={{ fontSize: 11, color: "var(--pulso-text-soft)" }}>
-            {secciones.length} {secciones.length === 1 ? "sección" : "secciones"} · {secciones.filter((s) => !s.oculto).reduce((sum, s) => sum + s.variables.length, 0)} variables activas
+          <span style={{ fontSize: "var(--pulso-type-caption-size)", color: "var(--pulso-text-soft)" }}>
+            {secciones.length} {secciones.length === 1 ? "sección" : "secciones"}, {secciones.filter((s) => !s.oculto).reduce((sum, s) => sum + s.variables.length, 0)} variables activas
           </span>
         </div>
 
@@ -211,26 +211,26 @@ function SeccionRow({
               if (e.key === "Enter") commit();
               if (e.key === "Escape") onEndEdit();
             }}
-            style={{ width: "100%", fontSize: 13, fontWeight: 600 }}
+            style={{ width: "100%", fontSize: "var(--pulso-type-subtitle-size)", fontWeight: 600 }}
           />
         ) : (
           <div
             onClick={onStartEdit}
             role="button"
             tabIndex={0}
-            style={{ cursor: "pointer", fontSize: 13, fontWeight: 600, color: seccion.oculto ? "var(--pulso-text-soft)" : "var(--pulso-text)" }}
+            style={{ cursor: "pointer", fontSize: "var(--pulso-type-subtitle-size)", fontWeight: 600, color: seccion.oculto ? "var(--pulso-text-soft)" : "var(--pulso-text)" }}
             title="Click para renombrar"
           >
             {seccion.nombre}
             {seccion.manual && (
-              <span style={{ marginLeft: 6, fontSize: 10, color: "var(--pulso-text-soft)", fontWeight: 500, textTransform: "uppercase", letterSpacing: 0.3 }}>
+              <span style={{ marginLeft: 6, fontSize: "var(--pulso-type-micro-size)", color: "var(--pulso-text-soft)", fontWeight: 500, textTransform: "uppercase", letterSpacing: 0.3 }}>
                 editado
               </span>
             )}
           </div>
         )}
-        <div style={{ fontSize: 11, color: "var(--pulso-text-soft)", marginTop: 2 }}>
-          <code style={{ fontFamily: "monospace" }}>{seccion.id}</code>
+        <div style={{ fontSize: "var(--pulso-type-caption-size)", color: "var(--pulso-text-soft)", marginTop: 2 }}>
+          <code style={{ fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace" }}>{seccion.id}</code>
           <span style={{ marginLeft: 8 }}>{seccion.variables.length} {seccion.variables.length === 1 ? "variable" : "variables"}</span>
         </div>
       </div>

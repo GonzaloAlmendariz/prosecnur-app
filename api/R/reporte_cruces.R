@@ -851,7 +851,7 @@ write_one_numeric_cross <- function(wb, sheet, data, var, dic_vars,
 # Significancia (z + Bonferroni)
 # =============================================================================
 
-comparar_columnas_sig <- function(n_mat, N_vec, alpha = 0.05) {
+comparar_columnas_sig <- function(n_mat, N_vec, alpha = 0.05, correccion = "bonferroni") {
   K <- ncol(n_mat)
   R <- nrow(n_mat)
 
@@ -877,7 +877,7 @@ comparar_columnas_sig <- function(n_mat, N_vec, alpha = 0.05) {
         z <- (pa - pb) / se
         2 * stats::pnorm(-abs(z))
       })
-      padj <- stats::p.adjust(pvals, method = "bonferroni")
+      padj <- stats::p.adjust(pvals, method = correccion)
       for (k in seq_along(padj)) {
         if (is.na(padj[k]) || padj[k] >= alpha) next
         a <- pairs[1, k]; b <- pairs[2, k]
@@ -896,7 +896,7 @@ comparar_columnas_sig <- function(n_mat, N_vec, alpha = 0.05) {
   list(letras = letras, sig = sig)
 }
 
-comparar_medias_sig <- function(medias_mat, ns_mat, sds_mat, alpha = 0.05) {
+comparar_medias_sig <- function(medias_mat, ns_mat, sds_mat, alpha = 0.05, correccion = "bonferroni") {
   K <- ncol(medias_mat)
   R <- nrow(medias_mat)
 
@@ -937,7 +937,7 @@ comparar_medias_sig <- function(medias_mat, ns_mat, sds_mat, alpha = 0.05) {
       2 * stats::pt(-abs(t_stat), df = df)
     })
 
-    padj <- stats::p.adjust(pvals, method = "bonferroni")
+    padj <- stats::p.adjust(pvals, method = correccion)
     for (k in seq_along(padj)) {
       if (is.na(padj[k]) || padj[k] >= alpha) next
       a <- pairs[1, k]
@@ -1043,9 +1043,12 @@ exportar_cruces_multi <- function(data,
                                   ordinal_lists    = character(),
                                   repeat_design    = NULL,
                                   ficha_tecnica = NULL,
-                                  notas         = NULL) {
+                                  notas         = NULL,
+                                  significancia = NULL) {
 
   numericas <- if (is.null(numericas)) character(0) else as.character(numericas)
+  # Prueba de las letras (ADR 0127): simple o bajo el diseño muestral.
+  sig_spec <- .cruces_significancia_normalizar(.sig_spec_vigente(significancia))   # ADR 0128: manda la regla del estudio
   # Notas al pie (reporte_notas_pie.R). Sin `notas` el pie es «Fuente: X».
   notas <- .notas_pie_normalizar(notas, fuente_defecto = fuente)
   fuente <- notas$fuente
@@ -1581,27 +1584,12 @@ exportar_cruces_multi <- function(data,
             )
           )
 
-          nn <- nN_para_sig_simple(
-            data            = data,
-            var             = var,
-            opciones_labels = opciones,
-            codes_row       = codes_row,
-            estratos        = estr_codes,
-            var_estrato     = s,
-            tp              = tp,
-            weight_col      = weight_col
+          cmp <- .cruces_sig_comparar(
+            data = data, var = var, codes_row = codes_row,
+            estratos = estr_codes, var_estrato = s, tp = tp,
+            spec = sig_spec, alpha = alpha, weight_col = weight_col,
+            repeat_design = repeat_design, opciones = opciones   # ADR 0128: rótulos para «No sé» y afines
           )
-
-          cmp <- if (is.list(repeat_design)) {
-            .repeat_compare_columns_cluster(
-              data = data, var = var, codes_row = codes_row,
-              estratos = estr_codes, var_estrato = s, tp = tp,
-              weight_col = weight_col, repeat_design = repeat_design,
-              alpha = alpha
-            )
-          } else {
-            comparar_columnas_sig(nn$n_mat, nn$N_vec, alpha = alpha)
-          }
 
           bloques_sig[[s]] <- list(
             opciones    = opciones,
@@ -1609,8 +1597,10 @@ exportar_cruces_multi <- function(data,
             estr_labels = estr_labels,
             letras      = cmp$letras,
             sig         = cmp$sig,
-            method      = cmp$method %||% "z_legacy",
-            reason      = cmp$reason %||% ""
+            method      = cmp$method %||% "z_simple",
+            reason      = cmp$reason %||% "",
+            solitario   = isTRUE(cmp$solitario),
+            regla       = cmp$regla
           )
         }
 
@@ -1706,22 +1696,23 @@ exportar_cruces_multi <- function(data,
             }
           }
 
-          metodos_repeat <- if (is.list(repeat_design)) {
-            vapply(bloques_sig, function(bl) as.character(bl$method %||% "descriptivo"), character(1))
-          } else character(0)
-          razones_repeat <- if (is.list(repeat_design)) {
-            unique(Filter(nzchar, vapply(bloques_sig, function(bl) as.character(bl$reason %||% ""), character(1))))
-          } else character(0)
-          pie_sig <- if (is.list(repeat_design) && all(metodos_repeat == "cluster_robust")) {
-            .notas_pie_significancia("cluster", alpha)
-          } else if (is.list(repeat_design)) {
-            if (!length(razones_repeat)) razones_repeat <- "diseño repeat insuficiente"
+          metodos_sig <- vapply(bloques_sig, function(bl) as.character(bl$method %||% "descriptivo"), character(1))
+          razones_sig <- unique(Filter(nzchar, vapply(bloques_sig, function(bl) as.character(bl$reason %||% ""), character(1))))
+          pie_sig <- if (is.list(repeat_design) && all(metodos_sig == "descriptivo")) {
+            if (!length(razones_sig)) razones_sig <- "diseño repeat insuficiente"
             paste0(
               "No se ejecuta inferencia ni se asignan letras: ",
-              paste(razones_repeat, collapse = " "), "."
+              paste(razones_sig, collapse = " "), "."
             )
+          } else if (is.list(bloques_sig[[1]]$regla)) {
+            .cruces_nota_regla(bloques_sig[[1]]$regla, razones_sig)
           } else {
-            .notas_pie_significancia("z", alpha)
+            .cruces_sig_nota(
+              sig_spec, alpha = alpha, metodos = metodos_sig, razones = razones_sig,
+              solitario = any(vapply(bloques_sig, function(bl) isTRUE(bl$solitario), logical(1))),
+              etiquetas = function(x) label_variable(x, dic_vars, labels_override, data),
+              ponderado = .cruces_sig_ponderado(data, weight_col)
+            )
           }
 
           # Cierra el cuadro de la sub-tabla BAJO la ultima categoria (no bajo la nota),
@@ -2165,7 +2156,8 @@ exportar_dimensiones_multi <- function(data,
                                        ),
                                        brecha_cortes = c(0, 30),
                                        repeat_design = NULL,
-                                       ficha_tecnica = NULL) {
+                                       ficha_tecnica = NULL,
+                                       significancia = NULL) {
   estilo_metodologia <- match.arg(estilo_metodologia)
   semaforo_modo <- .dim_normalize_semaforo_modo(semaforo_modo)
   semaforo_anclas_degradado <- .dim_normalize_degradado_anclas(
@@ -2463,6 +2455,22 @@ exportar_dimensiones_multi <- function(data,
   }
 
   w <- get_pesos(data, weight_col)
+  # Prueba de las letras de medias (ADR 0127). El diseño se valida una vez.
+  sig_spec <- .cruces_significancia_normalizar(.sig_spec_vigente(significancia))   # ADR 0128: manda la regla del estudio
+  sig_dis <- if (identical(sig_spec$metodo, "diseno")) {
+    .cruces_sig_diseno_base(data, sig_spec, weight_col = weight_col)
+  } else NULL
+  sig_solitario <- FALSE
+  sig_nota_medias <- function() {
+    metodo <- if (is.null(sig_dis)) "welch" else if (isTRUE(sig_dis$ok)) "diseno" else "descriptivo"
+    .cruces_sig_nota(
+      sig_spec, alpha = alpha, metodos = metodo,
+      razones = (sig_dis %||% list())$reason %||% character(0),
+      solitario = sig_solitario,
+      etiquetas = function(x) label_variable(x, dic_vars, labels_override, data),
+      ponderado = .cruces_sig_ponderado(data, weight_col), tipo = "media"
+    )
+  }
   st <- mk_styles_cruces()
   style_num_dim <- openxlsx::createStyle(
     fontSize = 10,
@@ -3025,8 +3033,12 @@ exportar_dimensiones_multi <- function(data,
               colnames(medias_mat) <- estr_lbl_s
               colnames(ns_mat) <- estr_lbl_s
               colnames(sds_mat) <- estr_lbl_s
-              cmp_i <- comparar_medias_sig(medias_mat, ns_mat, sds_mat, alpha = alpha)
-              letras_mat[i, ] <- as.character(cmp_i$letras[1, ])
+              cmp_i <- .cruces_sig_medias(
+                x_cache[[i]], w, lapply(idx_cv, function(ix) blocks_t[[ix]]$mask),
+                medias_mat, ns_mat, sds_mat, sig_spec, sig_dis, alpha = alpha
+              )
+              sig_solitario <- sig_solitario || isTRUE(cmp_i$solitario)
+              letras_mat[i, ] <- as.character(cmp_i$letras)
             }
           }
 
@@ -3087,7 +3099,7 @@ exportar_dimensiones_multi <- function(data,
         openxlsx::addStyle(wb, hoja_tb, st$table_end, rows = sig_fin, cols = 1:ncols_sig, gridExpand = TRUE, stack = TRUE)
         fila_excel <- sig_fin + 1L
 
-        pie_sig <- .notas_pie_significancia("welch", alpha)
+        pie_sig <- sig_nota_medias()
         openxlsx::writeData(wb, hoja_tb, pie_sig, startRow = fila_excel, startCol = 1, colNames = FALSE)
         openxlsx::mergeCells(wb, hoja_tb, rows = fila_excel, cols = 1:ncols_tbl)
         openxlsx::addStyle(wb, hoja_tb, st$note, rows = fila_excel, cols = 1:ncols_tbl, gridExpand = TRUE, stack = TRUE)
@@ -3626,7 +3638,17 @@ exportar_dimensiones_multi <- function(data,
           colnames(medias_mat) <- estr_lbl_s
           colnames(ns_mat) <- estr_lbl_s
           colnames(sds_mat) <- estr_lbl_s
-          cmp_s[[i]] <- comparar_medias_sig(medias_mat, ns_mat, sds_mat, alpha = alpha)
+          letras_ri <- matrix("", nrow = R, ncol = length(idx_s),
+                              dimnames = list(as.character(row_labels), estr_lbl_s))
+          for (r in seq_len(R)) {
+            cm <- .cruces_sig_medias(
+              x_cache[[i]], w, lapply(idx_s, function(ix) row_masks[[r]] & as.logical(blocks[[ix]]$mask)),
+              medias_mat[r, ], ns_mat[r, ], sds_mat[r, ], sig_spec, sig_dis, alpha = alpha
+            )
+            sig_solitario <- sig_solitario || isTRUE(cm$solitario)
+            letras_ri[r, ] <- as.character(cm$letras)
+          }
+          cmp_s[[i]] <- list(letras = letras_ri)
         }
         idx_by_var[[s_chr]] <- idx_s
         cmp_by_var[[s_chr]] <- cmp_s
@@ -3749,7 +3771,7 @@ exportar_dimensiones_multi <- function(data,
 
         fila_excel <- sig_fin + 1L
 
-        pie_sig <- .notas_pie_significancia("welch", alpha)
+        pie_sig <- sig_nota_medias()
         openxlsx::writeData(wb, hoja_tb, pie_sig, startRow = fila_excel, startCol = 1, colNames = FALSE)
         openxlsx::mergeCells(wb, hoja_tb, rows = fila_excel, cols = 1:ncols_tbl)
         openxlsx::addStyle(wb, hoja_tb, st$note, rows = fila_excel, cols = 1:ncols_tbl, gridExpand = TRUE, stack = TRUE)
@@ -3972,7 +3994,8 @@ reporte_cruces <- function(
     tablas           = NULL,
     repeat_design    = attr(data, "repeat_design", exact = TRUE),
     ficha_tecnica    = NULL,
-    notas            = NULL
+    notas            = NULL,
+    significancia    = NULL
 ) {
   modo <- match.arg(modo)
   estilo_metodologia <- match.arg(estilo_metodologia)
@@ -4079,7 +4102,8 @@ reporte_cruces <- function(
         brecha_colores = brecha_colores,
         brecha_cortes = brecha_cortes,
         repeat_design = repeat_design,
-        ficha_tecnica = ficha_tecnica
+        ficha_tecnica = ficha_tecnica,
+        significancia = significancia
       )
     )
   }
@@ -4109,6 +4133,7 @@ reporte_cruces <- function(
     ordinal_lists             = ordinal_lists,
     repeat_design             = repeat_design,
     ficha_tecnica             = ficha_tecnica,
-    notas                     = notas
+    notas                     = notas,
+    significancia             = significancia
   )
 }

@@ -1,3 +1,4 @@
+import { formatoDecimal } from "../../../lib/formatoNumero";
 import { AlertTriangle, Info, X } from "lucide-react";
 import type { Hallazgo } from "../../../api/client";
 
@@ -55,7 +56,7 @@ export function HallazgosPanel({
         <div>
           <h3 style={{ margin: 0, fontSize: 14, fontWeight: 600 }}>Hallazgos del validador</h3>
           <p style={{ margin: "2px 0 0", fontSize: 11, color: "var(--pulso-muted, #6b7280)" }}>
-            {warns.length > 0 ? `${warns.length} alerta(s) · ` : ""}
+            {warns.length > 0 ? `${warns.length} ${warns.length === 1 ? "alerta" : "alertas"} y ` : ""}
             {infos.length} {infos.length === 1 ? "sugerencia" : "sugerencias"}
           </p>
         </div>
@@ -125,10 +126,10 @@ function HallazgoItem({
         </div>
         <div style={{ marginTop: 6, display: "flex", gap: 10, flexWrap: "wrap", fontSize: 11, color: "var(--pulso-muted, #6b7280)" }}>
           {hallazgo.coverage_oculta != null ? (
-            <span>cobertura oculta: <strong>{(hallazgo.coverage_oculta * 100).toFixed(0)}%</strong></span>
+            <span>cobertura oculta: <strong>{formatoDecimal(hallazgo.coverage_oculta * 100, 0)} %</strong></span>
           ) : null}
           {hallazgo.tasa_respuesta != null ? (
-            <span>tasa respuesta: <strong>{(hallazgo.tasa_respuesta * 100).toFixed(0)}%</strong></span>
+            <span>tasa respuesta: <strong>{formatoDecimal(hallazgo.tasa_respuesta * 100, 0)} %</strong></span>
           ) : null}
           {hallazgo.inconsistencias.length > 0 ? (
             <span>{hallazgo.inconsistencias.length} fila(s)</span>

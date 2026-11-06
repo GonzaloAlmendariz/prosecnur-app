@@ -37,7 +37,12 @@ import {
   type MonitoreoPublicationEvidencePackResult,
   type MonitoreoTerritorialOperationalPackageReviewResult,
 } from "../../../api/client";
+import { apiMonitoreoPublicationSheetsRevisar } from "../../../api/monitoreoPublicarEnsayo";
 import { GlidingTabList } from "../../../components/GlidingTabList";
+import { PANEL_REVISAR_PUBLICACION } from "../../../lib/navegacion/manifiesto";
+import { usePanelDireccionable } from "../../../lib/navegacion/paneles";
+import { formatoConteo, formatoDecimal } from "../../../lib/formatoNumero";
+import { EnsayoPublicacionDialog, type EstadoEnsayo } from "./EnsayoPublicacionDialog";
 import { Switch } from "../../../components/Switch";
 import { readinessDeSalidas, type MonitoreoCorte } from "../corte/corteContract";
 import { MonitoreoOutputsReadiness } from "./MonitoreoOutputsReadiness";
@@ -140,6 +145,8 @@ export type MonitoreoOutputsWorkbenchProps = {
    * telefónico («69 con cuota y 1 sin actor»); los demás modos no cambian.
    */
   notaDeValidas?: string;
+  /** El embudo propio del perfil para el bloque de publicación (ver MonitoreoOutputsReadiness). */
+  embudo?: ReactNode;
   /**
    * Cabecera como primera tarjeta de una ficha (§2a-bis del estándar de
    * Monitoreo): antetítulo sin píldora, el corte en una sola línea (los granos
@@ -173,9 +180,9 @@ function fmt(value: unknown, fallback = "0") {
 function formatBytes(value?: number) {
   if (!Number.isFinite(value)) return "";
   const n = Number(value);
-  if (n >= 1024 * 1024) return `${(n / (1024 * 1024)).toFixed(1)} MB`;
-  if (n >= 1024) return `${Math.round(n / 1024)} KB`;
-  return `${n} B`;
+  if (n >= 1024 * 1024) return `${formatoDecimal(n / (1024 * 1024), 1)} MB`;
+  if (n >= 1024) return `${formatoConteo(n / 1024)} KB`;
+  return `${formatoConteo(n)} B`;
 }
 
 function formatDate(value?: string) {
@@ -260,7 +267,8 @@ function copyForFamily(family: OutputFamily) {
     progress: "Generando PDF ejecutivo",
     ready: "PDF ejecutivo listo para descargar.",
     download: "Descargar PDF ejecutivo",
-    sheetsTitle: "Salidas de acreditación a Sheets",
+    // Reúne Sheets, PDF ejecutivo y producción: no sólo «a Sheets».
+    sheetsTitle: "Entregables del corte",
   };
 }
 
@@ -301,7 +309,8 @@ function productionCopyForFamily(family: OutputFamily) {
   return {
     eyebrow: "Producción",
     title: "Producción por responsable",
-    detail: "Resumen por apellido y detalle de producción telefónica por responsable.",
+    // Rama de acreditación: sin «telefónica», que el estudio puede ser sólo de correo (#21, 29/10).
+    detail: "Respuestas del corte por responsable o recopilador, en orden alfabético.",
     button: "Generar PDF de producción",
     progress: "Generando PDF de producción",
     ready: "PDF de producción listo para descargar.",
@@ -356,9 +365,9 @@ function preflightDetail(preflight?: MonitoreoDeliverablesPreflight | null) {
   const blocking = preflight.scorecard?.blocking_count ?? preflight.blocking_issues?.length ?? 0;
   const warnings = preflight.scorecard?.warning_count ?? preflight.warnings?.length ?? 0;
   if (preflightHasOnlyColdPerformanceWarnings(preflight)) {
-    return `${Math.round(Number(preflight.score) || 0)}/100 · sin bloqueos · la generación en frío tardó más de lo esperado`;
+    return `${Math.round(Number(preflight.score) || 0)}/100, sin bloqueos, la generación en frío tardó más de lo esperado`;
   }
-  return `${Math.round(Number(preflight.score) || 0)}/100 · ${blocking} bloqueos · ${warnings} advertencias`;
+  return `${Math.round(Number(preflight.score) || 0)}/100, ${blocking} bloqueos, ${warnings} advertencias`;
 }
 
 export function preflightHasOnlyColdPerformanceWarnings(preflight?: MonitoreoDeliverablesPreflight | null) {
@@ -453,7 +462,7 @@ export function monitoreoProcessingHandoffDetail(result?: MonitoreoProcessingHan
     `${fmt(counts.exported_rows ?? 0)} filas`,
     statusLabel ? `estatus ${statusLabel}` : "",
     formatBytes(result?.size),
-  ].filter(Boolean).join(" · ");
+  ].filter(Boolean).join(", ");
 }
 
 export function monitoreoProcessingHandoffFileLinks(result?: MonitoreoProcessingHandoffResult | null): ProcessingHandoffFileLink[] {
@@ -522,7 +531,7 @@ export function monitoreoOperationalPackageDetail(result?: MonitoreoTerritorialO
     `${fmt(incompleteRows)} filas incompletas`,
     applyBlockedRows > 0 ? `${fmt(applyBlockedRows)} filas sin payload aplicable` : "",
     payloadLabel,
-  ].filter(Boolean).join(" · ");
+  ].filter(Boolean).join(", ");
 }
 
 export function monitoreoOperationalPackageApplyBlocked(result: MonitoreoTerritorialOperationalPackageReviewResult) {
@@ -649,15 +658,17 @@ export function MonitoreoOutputsWorkbench({
   className = "",
   onPublished,
   notaDeValidas,
+  embudo,
   variante,
   rotulo,
 }: MonitoreoOutputsWorkbenchProps) {
   const ficha = variante === "ficha" || family !== "aulas";
   const pdfDeLaFamilia = PDF_POR_FAMILIA[family] ?? { client: true, production: true };
   const ofreceClientPdf = pdfSupport?.client ?? pdfDeLaFamilia.client;
-  // La portada existe sólo en el renderizador de aulas. Ofrecer sus campos en un
-  // perfil cuyo PDF no la dibuja sería prometer un control que no hace nada.
-  const ofrecePortada = ofreceClientPdf && family === "aulas";
+  // La portada existe en los renderizadores de aulas y telefónico
+  // (`monitoreo_telefonico_avance_pdf.R`). Ofrecer sus campos en un perfil cuyo
+  // PDF no la dibuja sería prometer un control que no hace nada.
+  const ofrecePortada = ofreceClientPdf && (family === "aulas" || family === "telefonico");
   // **«Incluir metas» no hace nada en cursos-horario.** Su reporte se define
   // contra la cuota del diseño —«1.390 de 2.500», «faltan 1.110»— y apagarla lo
   // dejaría sin objeto, así que el motor ignora el parámetro. Ofrecer la casilla
@@ -946,7 +957,7 @@ export function MonitoreoOutputsWorkbench({
           : statusKind === "warnings"
             ? "Soporte generado con advertencias."
             : "Soporte de publicación listo.",
-          detail: [result.filename, formatBytes(result.size)].filter(Boolean).join(" · "),
+          detail: [result.filename, formatBytes(result.size)].filter(Boolean).join(", "),
         },
       }));
     } catch (e) {
@@ -1037,8 +1048,13 @@ export function MonitoreoOutputsWorkbench({
     }
   };
 
+  // Entre el clic y el job, el servidor arma el modelo del reporte (~15 s en
+  // Acreditación): sin este estado el botón no decía nada (Gonzalo, 30/10).
+  const [pdfPreparando, setPdfPreparando] = useState(false);
+  const [productionPdfPreparando, setProductionPdfPreparando] = useState(false);
   const generatePdf = async () => {
-    if (!canGeneratePdf) return;
+    if (!canGeneratePdf || pdfPreparando || pdfJobId) return;
+    setPdfPreparando(true);
     setPdfReady(false);
     setPdfProgress(3);
     setPdfMessage("");
@@ -1053,11 +1069,14 @@ export function MonitoreoOutputsWorkbench({
     } catch (e) {
       setPdfProgress(null);
       setPdfError((e as Error).message);
+    } finally {
+      setPdfPreparando(false);
     }
   };
 
   const generateProductionPdf = async () => {
-    if (!canGenerateProductionPdf) return;
+    if (!canGenerateProductionPdf || productionPdfPreparando || productionPdfJobId) return;
+    setProductionPdfPreparando(true);
     setProductionPdfReady(false);
     setProductionPdfProgress(3);
     setProductionPdfMessage("");
@@ -1073,6 +1092,8 @@ export function MonitoreoOutputsWorkbench({
     } catch (e) {
       setProductionPdfProgress(null);
       setProductionPdfError((e as Error).message);
+    } finally {
+      setProductionPdfPreparando(false);
     }
   };
 
@@ -1099,19 +1120,56 @@ export function MonitoreoOutputsWorkbench({
     }
   };
 
-  const publishSheets = async () => {
-    if (!canPublishSheets) return;
+  // Revisar y Aplicar mandan el MISMO body: el backend arma el destino con el
+  // mismo helper en los dos, así que el ensayo describe lo que Aplicar escribe.
+  const publicationOptions = (audience: OutputAudience) => ({
+    audience,
+    includeTargets,
+    confirmedFullData: audience === "internal" ? internalConfirmed : undefined,
+    ...publicationOperationalEvidence(audience),
+    ...(config ? { config } : {}),
+  });
+
+  // El mismo orden que `canPublishSheets`: se nombra la PRIMERA condición que
+  // falta, no una lista genérica que mezcle públicos.
+  const motivoSinPublicar = () => {
+    if (!hasSnapshot) return "Sincroniza un corte antes de publicar.";
+    if (sheetsClienteBloqueado) return "La salida a cliente todavía no está habilitada: revisa la preparación de Salidas.";
+    if (!activeTarget.trim()) return "Configura el spreadsheet destino.";
+    if (activeAudience === "internal" && !internalConfirmed) return "Confirma la salida interna para habilitar la publicación.";
+    return "Hay otra operación de Salidas en curso; espera a que termine y vuelve a revisar.";
+  };
+
+  const revisarPanel = usePanelDireccionable(PANEL_REVISAR_PUBLICACION);
+  const [ensayo, setEnsayo] = useState<EstadoEnsayo | null>(null);
+  const revisarSheets = async () => {
+    setEnsayo({ kind: "cargando" });
+    try {
+      const out = await apiMonitoreoPublicationSheetsRevisar(activeTarget.trim(), publicationOptions(activeAudience));
+      setEnsayo({ kind: "listo", ensayo: out });
+    } catch (e) {
+      setEnsayo({ kind: "error", message: (e as Error).message });
+    }
+  };
+  // Abrir el panel (por click o por `?panel=revisar-publicacion`) lanza el
+  // ensayo; cerrarlo lo descarta, para que reabrir siempre lea el libro de hoy.
+  useEffect(() => {
+    // Abierto por dirección sin poder publicar: dice por qué, no gira para siempre.
+    if (revisarPanel.abierto && ensayo === null) {
+      if (canPublishSheets) void revisarSheets();
+      else setEnsayo({ kind: "bloqueado", message: motivoSinPublicar() });
+    }
+    if (!revisarPanel.abierto && ensayo !== null) setEnsayo(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [revisarPanel.abierto, ensayo, canPublishSheets]);
+
+  const publishSheets = async (): Promise<boolean> => {
+    if (!canPublishSheets) return false;
     const audience = activeAudience;
     setPublishing(audience);
     updateStatus(audience, { kind: "publishing", message: `Validando y actualizando Sheets ${audienceLabel(audience).toLowerCase()}...` });
     try {
-      const out = await apiMonitoreoPublicationSheetsPublish(activeTarget.trim(), {
-        audience,
-        includeTargets,
-        confirmedFullData: audience === "internal" ? internalConfirmed : undefined,
-        ...publicationOperationalEvidence(audience),
-        ...(config ? { config } : {}),
-      });
+      const out = await apiMonitoreoPublicationSheetsPublish(activeTarget.trim(), publicationOptions(audience));
       if (out.preflight) {
         setPreflights((current) => ({ ...current, [audience]: out.preflight ?? null }));
       }
@@ -1135,11 +1193,18 @@ export function MonitoreoOutputsWorkbench({
       });
       onPublished?.();
       window.dispatchEvent(new CustomEvent("pulso:project-status-changed"));
+      return true;
     } catch (e) {
       updateStatus(audience, { kind: "error", message: (e as Error).message });
+      return false;
     } finally {
       setPublishing(null);
     }
+  };
+
+  const aplicarEnsayo = async () => {
+    const ok = await publishSheets();
+    if (ok) revisarPanel.cerrar();
   };
 
   // Antes decía solo "N registros", y ese N era la ingesta cruda: el usuario leía
@@ -1151,20 +1216,26 @@ export function MonitoreoOutputsWorkbench({
   // contrato de honestidad defiende es que el conteo crudo no se confunda con
   // las válidas, y «recibidas» lo distingue igual de bien sin hablar de la
   // implementación.
-  const snapshotHint = hasSnapshot
+  // Cada dato del corte en su propio elemento, no unidos por «·» (Gonzalo, 30/10).
+  const piezasDelCorte = hasSnapshot
     ? [
         `${fmt(corte.ingesta)} recibidas`,
         corte.procesable != null ? `${fmt(corte.procesable)} procesables` : null,
         `${corte.oficial == null ? "efectivas sin determinar" : `${fmt(corte.oficial)} válidas`}`,
         syncedAt ? `corte ${formatDate(syncedAt)}` : null,
-      ].filter(Boolean).join(" · ")
+      ].filter((pieza): pieza is string => Boolean(pieza))
+    : [];
+  const snapshotHint = hasSnapshot
+    ? <span className="mon-outputs-corte-datos">{piezasDelCorte.map((pieza) => <span key={pieza}>{pieza}</span>)}</span>
     : "Sin corte sincronizado";
-  const pdfButtonProgress = pdfJobId ? Math.max(8, Math.min(100, pdfProgress ?? 35)) : pdfReady ? 100 : 0;
+  const pdfButtonProgress = pdfJobId ? Math.max(8, Math.min(100, pdfProgress ?? 35)) : pdfPreparando ? 6 : pdfReady ? 100 : 0;
   const productionPdfButtonProgress = productionPdfJobId
     ? Math.max(8, Math.min(100, productionPdfProgress ?? 35))
-    : productionPdfReady
-      ? 100
-      : 0;
+    : productionPdfPreparando
+      ? 6
+      : productionPdfReady
+        ? 100
+        : 0;
   const publishRunning = publishing === activeAudience || preflighting === activeAudience;
   const publishProgress = publishRunning
     ? activeStatus.kind === "publishing"
@@ -1178,8 +1249,8 @@ export function MonitoreoOutputsWorkbench({
       ? `Publicando Sheets ${audienceLabel(activeAudience).toLowerCase()}`
       : `Validando salida ${audienceLabel(activeAudience).toLowerCase()}`
     : activeReady
-      ? `Actualizar Sheets ${audienceLabel(activeAudience).toLowerCase()}`
-      : `Publicar Sheets ${audienceLabel(activeAudience).toLowerCase()}`;
+      ? `Revisar y actualizar Sheets ${audienceLabel(activeAudience).toLowerCase()}`
+      : `Revisar y publicar Sheets ${audienceLabel(activeAudience).toLowerCase()}`;
   const operationalFiles = [
     { key: "template", label: "Plantilla", file: operationalReview?.files?.template },
     { key: "review_csv", label: "Revisión CSV", file: operationalReview?.files?.review_csv },
@@ -1227,7 +1298,7 @@ export function MonitoreoOutputsWorkbench({
         ) : null}
       </header>
 
-      <MonitoreoOutputsReadiness corte={corte} readiness={readiness} notaDeValidas={notaDeValidas} />
+      <MonitoreoOutputsReadiness corte={corte} readiness={readiness} notaDeValidas={notaDeValidas} embudo={embudo} />
 
       <div className="mon-outputs-grid">
         <div className="mon-outputs-side-stack">
@@ -1289,14 +1360,15 @@ export function MonitoreoOutputsWorkbench({
               <span className="mon-outputs-action-motivo" title={motivoPdfBloqueado}>
                 <button
                   type="button"
-                  className={`mon-outputs-primary mon-outputs-action-progress${pdfJobId ? " is-running" : ""}${pdfReady ? " is-complete" : ""}`}
+                  className={`mon-outputs-primary mon-outputs-action-progress${pdfJobId || pdfPreparando ? " is-running" : ""}${pdfReady ? " is-complete" : ""}`}
                   onClick={() => { void generatePdf(); }}
-                  disabled={!canGeneratePdf}
+                  disabled={!canGeneratePdf || pdfPreparando}
+                  aria-busy={pdfPreparando || Boolean(pdfJobId)}
                   aria-describedby={motivoPdfBloqueado ? "mon-outputs-pdf-motivo" : undefined}
                   style={{ "--mon-output-action-progress": `${pdfButtonProgress}%` } as CSSProperties}
                 >
-                  {pdfJobId ? <Loader2 size={14} className="pulso-spin" /> : pdfReady ? <CheckCircle2 size={14} /> : <Download size={14} />}
-                  {pdfJobId ? copy.progress : pdfReady ? copy.ready : copy.button}
+                  {pdfJobId || pdfPreparando ? <Loader2 size={14} className="pulso-spin" /> : pdfReady ? <CheckCircle2 size={14} /> : <Download size={14} />}
+                  {pdfPreparando ? "Preparando el reporte…" : pdfJobId ? copy.progress : pdfReady ? copy.ready : copy.button}
                 </button>
                 {motivoPdfBloqueado ? (
                   <span id="mon-outputs-pdf-motivo" className="pulso-sr-only">{motivoPdfBloqueado}</span>
@@ -1362,13 +1434,14 @@ export function MonitoreoOutputsWorkbench({
               ) : null}
               <button
                 type="button"
-                className={`mon-outputs-primary mon-outputs-action-progress${productionPdfJobId ? " is-running" : ""}${productionPdfReady ? " is-complete" : ""}`}
+                className={`mon-outputs-primary mon-outputs-action-progress${productionPdfJobId || productionPdfPreparando ? " is-running" : ""}${productionPdfReady ? " is-complete" : ""}`}
                 onClick={() => { void generateProductionPdf(); }}
-                disabled={!canGenerateProductionPdf}
+                disabled={!canGenerateProductionPdf || productionPdfPreparando}
+                aria-busy={productionPdfPreparando || Boolean(productionPdfJobId)}
                 style={{ "--mon-output-action-progress": `${productionPdfButtonProgress}%` } as CSSProperties}
               >
-                {productionPdfJobId ? <Loader2 size={14} className="pulso-spin" /> : productionPdfReady ? <CheckCircle2 size={14} /> : <UsersRound size={14} />}
-                {productionPdfJobId ? productionCopy.progress : productionPdfReady ? productionCopy.ready : productionCopy.button}
+                {productionPdfJobId || productionPdfPreparando ? <Loader2 size={14} className="pulso-spin" /> : productionPdfReady ? <CheckCircle2 size={14} /> : <UsersRound size={14} />}
+                {productionPdfPreparando ? "Preparando el reporte…" : productionPdfJobId ? productionCopy.progress : productionPdfReady ? productionCopy.ready : productionCopy.button}
               </button>
               <JobStatusLine
                 jobId={productionPdfJobId}
@@ -1633,7 +1706,7 @@ export function MonitoreoOutputsWorkbench({
                       <strong>Drift / referencia validada</strong>
                       <small>
                         {operationalDriftUpload
-                          ? [operationalDriftUpload.filename, formatBytes(operationalDriftUpload.size)].filter(Boolean).join(" · ")
+                          ? [operationalDriftUpload.filename, formatBytes(operationalDriftUpload.size)].filter(Boolean).join(", ")
                           : "CSV/XLSX requerido para contrastar el paquete."}
                       </small>
                     </div>
@@ -1660,7 +1733,7 @@ export function MonitoreoOutputsWorkbench({
                       <strong>Paquete operacional completado</strong>
                       <small>
                         {operationalPackageUpload
-                          ? [operationalPackageUpload.filename, formatBytes(operationalPackageUpload.size)].filter(Boolean).join(" · ")
+                          ? [operationalPackageUpload.filename, formatBytes(operationalPackageUpload.size)].filter(Boolean).join(", ")
                           : "CSV/XLSX para revisar contra el drift validado."}
                       </small>
                     </div>
@@ -1719,8 +1792,8 @@ export function MonitoreoOutputsWorkbench({
               <button
                 type="button"
                 className={`mon-outputs-publish-button mon-outputs-action-progress${publishRunning ? " is-running" : ""}${activeStatus.kind === "success" ? " is-complete" : ""}`}
-                onClick={() => { void publishSheets(); }}
-                disabled={!canPublishSheets}
+                onClick={() => { setEnsayo(null); revisarPanel.abrir(); }}
+                disabled={!canPublishSheets || publishRunning}
                 style={{ "--mon-output-action-progress": `${publishProgress}%` } as CSSProperties}
               >
                 {publishing === activeAudience ? <Loader2 size={14} className="pulso-spin" /> : <Table2 size={14} />}
@@ -1733,6 +1806,13 @@ export function MonitoreoOutputsWorkbench({
                 </a>
               ) : null}
             </div>
+            <EnsayoPublicacionDialog
+              destino={audienceLabel(activeAudience).toLowerCase()}
+              estado={ensayo ?? { kind: "cargando" }}
+              aplicando={publishing === activeAudience}
+              onAplicar={() => { void aplicarEnsayo(); }}
+              onReintentar={() => { void revisarSheets(); }}
+            />
             <div className={`mon-outputs-status is-${activeStatus.kind}`} role="status" aria-live="polite">
               <span>{activeStatus.message || (!hasSnapshot ? "Sincroniza un corte antes de publicar." : !activeTarget.trim() ? "Configura el spreadsheet destino." : activeAudience === "internal" && !internalConfirmed ? "Confirma la salida interna para habilitar la publicación." : activeReady ? "Publicación previa lista para actualizar." : "Lista para publicar.")}</span>
               {activePublished?.tabs.length ? <small>{activePublished.tabs.length} pestañas controladas</small> : null}

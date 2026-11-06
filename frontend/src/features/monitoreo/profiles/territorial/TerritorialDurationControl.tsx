@@ -1,6 +1,7 @@
 import { memo, useEffect, useMemo, useRef, useState } from "react";
 import type { CSSProperties } from "react";
 import { CalendarRange, Clock, ContactRound, MapPin, ShieldAlert } from "lucide-react";
+import { EstadoVacio } from "../../../../components/EstadoVacio";
 import type {
   MonitoreoTerritorialConfig,
   MonitoreoTerritorialDashboard,
@@ -143,7 +144,7 @@ function TerritorialDurationOverview({ model }: { model: TerritorialDurationMode
       <div>
         <span><Clock size={14} /> Duración de encuestas</span>
         <strong>
-          {formatMetric(model.rowsWithDuration.length)} entrevistas con tiempo · {formatMetric(model.normalRows.length)} normales · {formatMetric(model.shortRows.length)} cortas · {formatMetric(model.veryShortRows.length)} muy cortas
+          {formatMetric(model.rowsWithDuration.length)} entrevistas con tiempo, {formatMetric(model.normalRows.length)} normales, {formatMetric(model.shortRows.length)} cortas, {formatMetric(model.veryShortRows.length)} muy cortas
         </strong>
       </div>
       <dl>
@@ -162,7 +163,7 @@ function TerritorialDurationCategoriesPanel({ model }: { model: TerritorialDurat
       <header>
         <div>
           <span><Clock size={14} /> Calidad del tiempo</span>
-          <strong>Normal · Corta (&lt;5 min) · Muy corta (&lt;2 min)</strong>
+          <strong>Normal, corta (&lt;5 min) y muy corta (&lt;2 min)</strong>
         </div>
         <em>{model.reviewRows.length ? `${formatMetric(model.reviewRows.length)} cortas/muy cortas` : "todo normal"}</em>
       </header>
@@ -219,7 +220,7 @@ function TerritorialDurationDailyCard({ rows }: { rows: TerritorialDurationDaily
       <header>
         <div>
           <span><CalendarRange size={14} /> Ritmo por estado</span>
-          <strong>{formatMetric(periodTotals.normal)} normales · {formatMetric(periodTotals.short)} cortas · {formatMetric(periodTotals.veryShort)} muy cortas</strong>
+          <strong>{formatMetric(periodTotals.normal)} normales, {formatMetric(periodTotals.short)} cortas, {formatMetric(periodTotals.veryShort)} muy cortas</strong>
         </div>
         <em>{formatMetric(ordered.length)} días</em>
       </header>
@@ -262,7 +263,7 @@ function TerritorialDurationDailyCard({ rows }: { rows: TerritorialDurationDaily
                 </div>
                 <div className="mon-duration-daily-value">
                   <strong>{formatMetric(total)}</strong>
-                  <small>{formatMetric(normal)} N · {formatMetric(short)} C · {formatMetric(veryShort)} MC</small>
+                  <small>{formatMetric(normal)} N, {formatMetric(short)} C, {formatMetric(veryShort)} MC</small>
                 </div>
                 <em className={veryShort ? "is-danger" : short ? "is-warning" : "is-ready"}>{stateLabel}</em>
               </article>
@@ -388,7 +389,7 @@ function TerritorialDurationReviewTable({
                     <td>
                       {durationBand.hasDuration
                         ? <span className={`mon-territorial-band ${durationBand.className}`}><Clock size={13} /> {durationBand.label}</span>
-                        : <span className="mon-territorial-duration-empty">No registrada</span>}
+                        : <span className="mon-territorial-duration--vacio">No registrada</span>}
                       <small>{formatDurationLabel(row.duration_seconds)}</small>
                     </td>
                     <td>
@@ -403,7 +404,7 @@ function TerritorialDurationReviewTable({
           </table>
         </div>
       ) : (
-        <div className="mon-territorial-audit-empty">Sin entrevistas cortas o muy cortas en este corte.</div>
+        <EstadoVacio icono={<Clock size={15} />} titulo="Sin entrevistas cortas o muy cortas en este corte." />
       )}
     </section>
   );
@@ -682,7 +683,7 @@ function territorialResolvedResponsibleLabel(row: TerritorialResponseAuditRow, i
 function territorialCaseResponsibleLabel(row: TerritorialResponseAuditRow, includeCode = false) {
   const name = stringOrEmpty(row.enumerator_assigned).trim();
   const code = territorialPulsoCodeLabel(row);
-  if (name && includeCode && code !== "S/D") return `${code} · ${name}`;
+  if (name && includeCode && code !== "S/D") return `${code}, ${name}`;
   if (name) return name;
   if (code !== "S/D") return "Responsable no identificado";
   return "Sin responsable asignado";

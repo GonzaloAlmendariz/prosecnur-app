@@ -486,6 +486,13 @@
   unique(nums)
 }
 
+# ¿La banda de sección tiene algo que decir? (L36 · D-L36-2)
+.form_pdf_seccion_dice_algo <- function(seccion) {
+  texto <- function(x) nzchar(trimws(paste(as.character(x %||% ""), collapse = "")))
+  isTRUE(seccion$repeatable) || texto(seccion$title) || texto(seccion$hint) ||
+    texto(seccion$skip) || texto(seccion$opening_condition)
+}
+
 formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper = NULL, options = list()) {
   # Item 46: NFC al leer (la tilde combinada salia con otra fuente).
   survey <- .form_pdf_nfc(survey); choices <- .form_pdf_nfc(choices)
@@ -643,7 +650,10 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
 
   # Portada: titulo prominente centrado en la primera pagina, sobre las
   # instrucciones (jerarquia tipo referencia Word).
-  add_block(list(kind = "cover", title = title, full_width = TRUE))
+  # L36 · D-L36-5: subtítulo (institución · periodo) y bloque de control (reporte_formulario_portada.R).
+  portada <- .form_portada_opciones(options)
+  add_block(list(kind = "cover", title = title, full_width = TRUE,
+                 subtitle = portada$subtitulo, control = portada$control))
 
   if (nrow(paper)) {
     pos <- suppressWarnings(as.numeric(paper$position))
@@ -861,7 +871,7 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
       # begin_group para marcar la sección como repetible (one-to-many/roster) y,
       # si el instrumento lo trae, su repeat_count.
       is_repeat <- identical(base, "begin_repeat")
-      add_block(list(
+      seccion <- list(
         kind = "section",
         number = numbers[i],
         name = .form_pdf_chr(survey$name[i]),
@@ -875,7 +885,11 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
         repeatable = is_repeat,
         repeat_count = if (is_repeat) .form_pdf_clean_text(survey$repeat_count[i]) else "",
         full_width = TRUE
-      ))
+      )
+      # L36 · D-L36-2: un grupo que no dice nada (sin título, pista, salto ni
+      # condición, y que no se repite) no dibuja banda. Los grupos de matriz que
+      # llegan de SurveyMonkey sin etiqueta dejaban marcos grises vacíos en papel.
+      if (.form_pdf_seccion_dice_algo(seccion)) add_block(seccion)
       i <- i + 1L
       next
     }
@@ -1175,8 +1189,9 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
     # margenes—. Antes eran 0.056 + lineas * 0.026: 90.9 pt reservados para
     # dibujar 61.5.
     lay <- .form_pdf_rt_si(.form_rt_campo(block, "title"), width, 15, 0.023, base_b = TRUE)
-    if (!is.null(lay)) return(0.027 + lay$alto)
-    return(0.027 + length(.form_pdf_wrap(block$title, 46)) * 0.023)
+    extra <- .form_pdf_portada_extra_alto(block)
+    if (!is.null(lay)) return(0.027 + lay$alto + extra)
+    return(0.027 + length(.form_pdf_wrap(block$title, 46)) * 0.023 + extra)
   }
   if (identical(block$kind, "section")) {
     # L19 — LA RESERVA SIGUE AL DIBUJO. Aqui habia un `0.058` fijo (48.8 pt) mas
@@ -1488,7 +1503,7 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
   }
   grid::grid.lines(x = grid::unit(c(cx - 0.055, cx + 0.055), "npc"),
                    y = grid::unit(y, "npc"), gp = grid::gpar(col = tk$ink, lwd = 1.2))
-  y - 0.011
+  .form_pdf_draw_portada_extra(block, x, y - 0.011, w)
 }
 
 .form_pdf_draw_paper <- function(block, x, y, w) {

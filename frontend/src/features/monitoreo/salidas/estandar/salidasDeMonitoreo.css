@@ -1,0 +1,265 @@
+/* Avance › Salidas, estándar de los cuatro modos (`SalidasDeMonitoreo`): la lista de salidas a la izquierda y
+ * la hoja del cliente a la derecha, que es la que pide más alto y desplaza dentro de su mesa. */
+
+.mon-sal {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
+  gap: var(--pulso-space-3);
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  color: var(--pulso-text);
+  font-size: var(--pulso-type-body-size);
+}
+
+.mon-sal-izquierda {
+  display: flex;
+  flex-direction: column;
+  align-self: start;
+  gap: var(--pulso-space-3);
+  min-width: 0;
+  min-height: 0;
+  max-height: 100%;
+  overflow-y: auto;
+}
+
+.mon-sal-vista.mon-bloque {
+  min-height: 0;
+  padding-bottom: 0;
+}
+
+/* La lista: una fila por entregable, con su ícono, su estado y una sola acción. */
+.mon-sal-filas {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.mon-sal-fila {
+  display: grid;
+  grid-template-columns: 36px minmax(0, 1fr) auto;
+  gap: var(--pulso-space-3);
+  align-items: center;
+  padding: var(--pulso-space-3) 0;
+  border-top: 1px solid var(--pulso-surface-3);
+}
+
+.mon-sal-fila:first-child {
+  border-top: 0;
+  padding-top: 0;
+}
+
+.mon-sal-icono {
+  display: grid;
+  width: 36px;
+  height: 36px;
+  place-items: center;
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-module-monitoring-soft);
+  color: var(--pulso-module-monitoring);
+}
+
+.mon-sal-texto {
+  min-width: 0;
+}
+
+.mon-sal-nombre {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--pulso-space-2);
+}
+
+.mon-sal-texto p {
+  margin: 2px 0 0;
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+}
+
+.mon-sal-accion {
+  display: flex;
+  justify-content: flex-end;
+}
+
+/* La hoja del cliente sobre su mesa: centrada, con sombra de papel; si es más alta que el panel, la mesa
+ * desplaza. */
+.mon-sal-mesa {
+  flex: 1 1 0;
+  min-height: 0;
+  margin: 0 calc(-1 * var(--pulso-space-4));
+  padding: var(--pulso-space-5);
+  overflow-y: auto;
+  border-top: 1px solid var(--pulso-border);
+  background: color-mix(in srgb, var(--pulso-border) 55%, var(--pulso-surface-2));
+}
+
+.mon-sal-hoja {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-3);
+  max-width: 680px;
+  margin: 0 auto;
+  padding: var(--pulso-space-6);
+  border: 1px solid var(--pulso-border);
+  border-radius: 6px;
+  background: var(--pulso-surface);
+  box-shadow: var(--pulso-shadow-med);
+}
+
+.mon-sal-hoja > header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--pulso-space-3);
+  padding-bottom: var(--pulso-space-2);
+  border-bottom: 2px solid var(--pulso-brand-navy);
+}
+
+.mon-sal-hoja > header strong {
+  color: var(--pulso-brand-navy);
+  font-size: var(--pulso-type-title-size);
+}
+
+.mon-sal-hoja > header span {
+  color: var(--pulso-text-soft);
+  white-space: nowrap;
+}
+
+.mon-sal-hoja h3 {
+  margin: var(--pulso-space-2) 0 0;
+  font-size: var(--pulso-type-kpi-size);
+}
+
+.mon-sal-hoja-tabla {
+  width: 100%;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+
+.mon-sal-hoja-tabla th,
+.mon-sal-hoja-tabla td {
+  padding: 9px var(--pulso-space-2);
+  border-bottom: 1px solid var(--pulso-surface-3);
+  text-align: left;
+}
+
+/* Las cabeceras parten en renglones, como en el PDF: acreditación lleva siete columnas (universo y mínimo). */
+.mon-sal-hoja-tabla thead th {
+  color: var(--pulso-text-faint);
+  font-size: var(--pulso-type-micro-size);
+  font-weight: var(--pulso-weight-bold);
+  letter-spacing: 0.04em;
+  line-height: 1.25;
+  text-transform: uppercase;
+  vertical-align: bottom;
+}
+
+.mon-sal-hoja-tabla tbody th {
+  font-weight: var(--pulso-weight-regular);
+}
+
+.mon-sal-hoja-tabla tfoot th,
+.mon-sal-hoja-tabla tfoot td {
+  border-bottom: 0;
+  font-weight: var(--pulso-weight-bold);
+}
+
+.mon-sal-hoja-tabla tbody .is-num,
+.mon-sal-hoja-tabla tfoot .is-num {
+  white-space: nowrap;
+}
+
+.mon-sal-hoja-tabla .is-num {
+  text-align: right;
+}
+
+.mon-sal-hoja-ritmo h4 {
+  margin: var(--pulso-space-3) 0 var(--pulso-space-2);
+  font-size: var(--pulso-type-title-size);
+}
+
+.mon-sal-hoja-ritmo ul {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.mon-sal-hoja-ritmo li {
+  display: grid;
+  grid-template-columns: 56px minmax(0, 1fr) 48px;
+  align-items: center;
+  gap: var(--pulso-space-3);
+}
+
+.mon-sal-hoja-ritmo li > i {
+  display: block;
+  height: 10px;
+  overflow: hidden;
+  border-radius: 5px;
+  background: var(--pulso-surface-3);
+}
+
+.mon-sal-hoja-ritmo li > i > i {
+  display: block;
+  height: 100%;
+  border-radius: 5px;
+  background: var(--pulso-brand-navy);
+}
+
+.mon-sal-hoja-ritmo .is-num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Compacto: una columna; la lista primero y la hoja debajo, con su alto propio. */
+@media (max-width: 1180px) {
+  .mon-sal {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto;
+    height: auto;
+  }
+
+  /* Cada fila de la rejilla mide su contenido: con `min-height: 0` la fila `auto` se encogía bajo la lista
+   * y la hoja se le montaba encima (medido a 1024 × 600). */
+  .mon-sal > *,
+  .mon-sal-vista.mon-bloque {
+    min-height: auto;
+  }
+
+  .mon-sal-izquierda {
+    max-height: none;
+    overflow: visible;
+  }
+
+  /* Un solo dueño del desplazamiento: la página. La hoja va con su alto. */
+  .mon-sal-mesa {
+    flex: none;
+    overflow: visible;
+  }
+
+  .mon-sal-fila {
+    grid-template-columns: 36px minmax(0, 1fr);
+  }
+
+  .mon-sal-accion {
+    grid-column: 2;
+    justify-content: flex-start;
+  }
+}
+
+/* «PDF y cliente»: el motor completo con su vuelta a la portada. */
+.mon-sal-motor {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-2);
+  min-height: 0;
+}
+
+.mon-sal-volver {
+  display: flex;
+}

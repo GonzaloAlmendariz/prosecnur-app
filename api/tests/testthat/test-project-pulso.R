@@ -1112,6 +1112,25 @@ test_that("project_status refleja correctamente los estados", {
   expect_true(nzchar(st2$last_saved_at))
 })
 
+test_that("project_status nombra el estudio por la Ficha y, sin declarar, por su archivo (ADR 0124)", {
+  setup <- .fake_session_with_state()
+  on.exit(session_delete(setup$sid))
+  expect_true(is.na(project_status(setup$sid)$nombre_estudio))
+
+  tmp <- file.path(tempdir(), "Padron 2026.pulso")
+  build_pulso(setup$sid, tmp)
+  on.exit(unlink(tmp, force = TRUE), add = TRUE)
+
+  # Sin declaración: el chip dice el nombre del archivo.
+  expect_equal(project_status(setup$sid)$nombre_estudio, "Padron 2026")
+
+  # Con declaración: el declarado; `name` sigue siendo el del archivo.
+  .planner_declarar(setup$sid, "estudio", list(nombre = "Percepción del servicio"), 0L)
+  st <- project_status(setup$sid)
+  expect_equal(st$nombre_estudio, "Percepción del servicio")
+  expect_equal(st$name, "Padron 2026")
+})
+
 # ----- project_close ---------------------------------------------------------
 
 test_that("project_close limpia path/dirty pero mantiene la sesión y datos", {
@@ -1670,4 +1689,25 @@ test_that("un proyecto sano no reporta referencias perdidas", {
 
   r <- build_pulso(sid, tempfile(fileext = ".pulso"), project_name = "Sano")
   expect_length(as.character(r$refs_perdidas), 0L)
+})
+
+test_that("round-trip .pulso conserva la configuración de significancia de Cruces (ADR 0127)", {
+  setup <- .fake_session_with_state()
+  tmp <- tempfile(fileext = ".pulso")
+  on.exit({ unlink(tmp, force = TRUE); session_delete(setup$sid) })
+  cfg <- .analitica_get_config(setup$sid)
+  cfg$cruces$significancia <- list(metodo = "diseno", conglomerado = "aula",
+                                   estrato = "nivel_curso", correccion = "holm")
+  .analitica_config_set(setup$sid, cfg)
+
+  expect_true(build_pulso(setup$sid, tmp, project_name = "Test Demo")$ok)
+  res_load <- load_pulso(tmp)
+  on.exit(session_delete(res_load$session_id), add = TRUE)
+  sig <- .cruces_significancia_normalizar(
+    .analitica_get_config(res_load$session_id)$cruces$significancia
+  )
+  expect_identical(sig$metodo, "diseno")
+  expect_identical(sig$conglomerado, "aula")
+  expect_identical(sig$estrato, "nivel_curso")
+  expect_identical(sig$correccion, "holm")
 })

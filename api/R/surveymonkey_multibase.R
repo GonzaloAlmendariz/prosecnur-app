@@ -975,7 +975,7 @@ sm_multibase_inspect_survey <- function(survey_id,
     stop_api(
       504,
       "E_SM_TIMEOUT",
-      "SurveyMonkey no respondio dentro del tiempo de espera. Revisa tu conexion y vuelve a buscar."
+      "SurveyMonkey no respondió dentro del tiempo de espera. Revisa tu conexión y vuelve a buscar."
     )
   }
   stop_api(400, "E_SM_SURVEY_CATALOG", message)
@@ -5135,13 +5135,8 @@ mount_surveymonkey_multibase <- function(pr) {
         stop_api(404, "E_NO_SESSION", "Sin sesión.")
       }
       parsed <- .xlsform_editor_parse_body(req)
-      sm_multibase_sav_bundle_import(
-        sid = sid,
-        file_id = parsed$file_id %||% parsed$sav_bundle_file_id,
-        file_base_map = parsed$file_base_map %||% parsed$sav_base_map %||% list(),
-        missing_policy = .sm_mb_scalar(parsed$missing_required_policy %||% parsed$missing_policy, "fill_blank_warn"),
-        expected_inspection_fingerprint = parsed$expected_inspection_fingerprint
-      )
+      # `async = TRUE` ⇒ job con progreso (L9); sin él, la respuesta síncrona de siempre.
+      .carga_platform_endpoint(sid, "sav_bundle_import", parsed)
     })) |>
     plumber::pr_post("/api/surveymonkey/multibase/decision-preview", wrap_endpoint(function(req, res, ...) {
       sid <- session_header(req)

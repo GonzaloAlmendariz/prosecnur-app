@@ -1,3 +1,4 @@
+import { formatoDecimal } from "../../../../../lib/formatoNumero";
 import type { CasoDeUmpConGps, EstadoDeCasoUmp } from "../../../../../api/monitoreoCasosUmp";
 import { diaYMes, fmt } from "../rotulos";
 
@@ -136,5 +137,5 @@ export function separarEnEspiral(puntos: readonly PuntoEnPantalla[], paso = 9, t
 
 export function textoDeDistancia(metros: number | null): string {
   if (metros == null) return "Sin GPS";
-  return metros >= 1000 ? `${(metros / 1000).toLocaleString("es-PE", { maximumFractionDigits: 1 })} km de su manzana` : `${fmt(Math.round(metros))} m de su manzana`;
+  return metros >= 1000 ? `${formatoDecimal(metros / 1000, 1)} km de su manzana` : `${fmt(Math.round(metros))} m de su manzana`;
 }

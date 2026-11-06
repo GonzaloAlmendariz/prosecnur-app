@@ -1,7 +1,11 @@
-import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { EstadoChip } from "../../../../components/EstadoChip";
+import { tonoDeCruce, tonoDeLectura, tonoDeRespuesta } from "../../core/tonosDeCaso";
 import type { CSSProperties, ReactNode } from "react";
 import { AlertCircle, BarChart3, CalendarRange, CheckCircle2, ChevronDown, ClipboardCheck, Clock3, ContactRound, Download, Eye, FileCheck2, Filter, KeyRound, Layers3, Link2, Loader2, Mail, PhoneCall, PlugZap, Plus, ListChecks, QrCode, RefreshCw, Route, Save, Search, ShieldAlert, SlidersHorizontal, Table2, Target, X, XCircle } from "lucide-react";
 import { PageFrame } from "../../../../components/PageFrame";
+import { LoadingBlock } from "../../../../components/States";
+import { EstadoVacio } from "../../../../components/EstadoVacio";
 import { pctDecimal } from "../../core/formatoComun";
 import { GlidingTabList } from "../../../../components/GlidingTabList";
 import {
@@ -69,13 +73,13 @@ import {
   useMonitoreoDireccionTraducida,
 } from "../../useMonitoreoDireccion";
 import { PANELES_DEL_PERFIL, direccionDeVista, panelesSuperpuestos, readinessDeTelefonico, pestanaDeEntrada, pideOtraVista, vistaDeSeccionPedida, vistaInicial, vistaPedida, vistaPrincipal, vistaDeDestino } from "./navegacion/direccionTelefonica";
-import { pestanasDelRail } from "./navegacion/modeloDelRail";
+import { antetituloDePestana, pestanasDelRail } from "./navegacion/modeloDelRail";
 import { RailTelefonico } from "./navegacion/RailTelefonico";
 import { CabeceraTelefonica } from "./navegacion/CabeceraTelefonica";
 import { SubvistasDePestana } from "./navegacion/SubvistasDePestana";
 import { RotuloDePestana, RotuloDePestanaProvider } from "./navegacion/RotuloDePestana";
-import { antetituloDePestana } from "./navegacion/modeloDelRail";
-import { CuotasFaltante } from "./avance/CuotasFaltante";
+import { formatoDecimal } from "../../../../lib/formatoNumero";
+import { CuotasFaltanteDelCorte } from "./avance/CuotasFaltanteDelCorte";
 import { entradaDeCuotasFaltante } from "./avance/entradaDeCuotas";
 import { Insistencia } from "./control/Insistencia";
 import { BarridoDeLaHoja, RespuestasDelCorte } from "./control/montaje";
@@ -95,7 +99,7 @@ import { acreditacionPrimarySchedulePhase, acreditacionScheduleDraftFromPhases, 
 import { Calendario } from "./modelo/Calendario";
 import { Salvedades, type FilaDeSalvedad } from "./control/Salvedades";
 import { Ritmo } from "./avance/Ritmo";
-import { Entregas } from "./avance/Entregas";
+import { SalidasTelefonicas } from "./avance/SalidasTelefonicas";
 import { chipsDeCabecera, pestanaConLienzo, rotuloEnLaPestana, corteCorto, estadoDelModo, indicadoresDelModo, insigniasDelModo, useResumenDelModo } from "./navegacion/barraTelefonica";
 import { useRegistrarPestanasMonitoreo } from "../../useRegistrarPestanas";
 import { buildCaseCrossingExplanation } from "../../core/acreditacionActorCases";
@@ -148,7 +152,7 @@ import { sourceRowCount, sourceSheetField, sourceSyncLabel } from "./fuentes/cam
 import { sourcePayloadFromExisting } from "./fuentes/payloadDeFuente";
 import { efectivasDeLaEncuesta, eslabonesDelContrato } from "./fuentes/eslabonesDelContrato";
 import { filasDeCruceDeCasos, lecturaDeCruceDeCasos } from "../../core/crucesDeCasos";
-import { MonitoreoWorkbenchChrome, MonitoreoWorkbenchHead, MonitoreoWorkbenchRail, type MonitoreoWorkbenchRailTab } from "../../components";
+import { MonitoreoWorkbenchChrome, MonitoreoWorkbenchRail, type MonitoreoWorkbenchRailTab } from "../../components";
 import {
   filterInternalQueryCases,
   compareInternalQueryDateValues,
@@ -201,7 +205,6 @@ import {
   acreditacionSourceChannel,
   acreditacionSourceResponseCount,
   acreditacionSourceWithOperationalMetadata,
-  acreditacionSweepSourceForChannel,
   acreditacionSweepSources,
   buildAcreditacionPhoneSourceContract,
   buildAcreditacionTelephoneChannels,
@@ -210,7 +213,6 @@ import {
   type AcreditacionCollectorRow,
   type AcreditacionPhoneSourceContract,
   type AcreditacionPhoneSourceSlot,
-  type AcreditacionTelephoneChannel,
 } from "./TelefonicoSourcesModel";
 import { CadenaDeFuentes } from "./fuentes/CadenaDeFuentes";
 import type { EslabonDeFuente } from "./fuentes/modeloDeCadena";
@@ -224,7 +226,7 @@ import { PanelConectarFuente } from "../../fuentes/PanelConectarFuente";
 import { useAbrirConectarFuente } from "../../fuentes/abrirConectarFuente";
 import { DefinidorDeEstados } from "../../estados/DefinidorDeEstados";
 import { criteriosDesdeFiltro, filtroDesdeCriterios, resumenDeCriterios } from "../../filtroEfectiva/criterios";
-import { contarSegmentos, nombreDelSegmento, pluralDelSegmento } from "./segmentoDeCuotas";
+import { contarSegmentos, pluralDelSegmento, variableDeCuotas } from "./segmentoDeCuotas";
 import { TelefonicoEffectiveConsultedFilters } from "./TelefonicoEffectiveConsultedFilters";
 import { GraficoDeEstadosPorDia } from "../../estados/GraficoDeEstadosPorDia";
 import { estadosPorDiaDeLaCuota } from "../../estados/estadosPorCuota";
@@ -263,7 +265,6 @@ import {
   KOBO_DEFAULT_BASE_URL,
   TELEFONICO_ROUTE,
   columnLabel,
-  cumplimientoLabel,
   draftFromComponent,
   formatCaseLabel,
   isTelefonicoMonitoreoState,
@@ -291,6 +292,16 @@ import type {
   AcreditacionSourcePresetKey,
   SeguimientoDraft,
 } from "./telefonicoBase";
+import { compactSelectLabel, calendarWeekWindowLabel, calendarDateWindowLabel, parseCalendarIsoDate, calendarDateDiffDays, calendarDurationLabel, prettyModelLabel, phonePercentLabel, phoneLooksLikeTechnicalSourceLabel, phoneOpsPercent, phoneAttemptCountLabel, sourceProviderLabel, sourceActorLabel, mostRecentSyncLabel, dimensionLabel, collectorNumber, caseResponseDateTimeLabel, caseResponseTimeDetailLabel, explicitBoolean, caseCountsInAdvance, caseCountsLabel, cleanCaseKeyText, advancementLabel, formatPercentLabel, formatSignedPp, normalizeReportMatch, reportNumberValue, reportPercentValue, normalizeAcreditacionDailyDateLabel, isTechnicalAcreditacionCollectorLabel, compactMechanismLabel, shortColumnLabel, formatReportCell } from "../../core/rotulosComunes";
+import { calendarAddDaysIso, calendarReportExceptions, calendarWeekRange, calendarReportDateForWeek, reportsFromState, normalizeAcreditacionReports, rowValue, rowsFromSheets, rowsForSheetBlock, phoneDisplayRowsWithBaseColumn, acreditacionPhoneControlSampleRows, caseDisplayName, caseWithoutCrossing, responseCounts, groupedCaseRows, caseDimensionRows, reportBlockForSheet, reportBlockColumns, reportStateTone, acreditacionReportRowValue, acreditacionReportColumn, acreditacionReportBlockDateColumns, reportPanelSheetTitle, reportBlockTone, reportBlockMetric } from "../../core/tablasComunes";
+import { caseIdentity, countCaseOptions, caseChannelValue, caseSourceValue, caseCollectorValue, caseToneClass, assistedReviewCandidateCountForCase, caseNeedsReconciliationReview, acreditacionSurveyStateTone, caseDailyTone } from "../../core/casosComunes";
+import { preferredPhoneEffectiveValue, splitListInput, calendarPhaseDurationDays, calendarPhaseWeekDurationDays, calendarPhaseOverlapCount, calendarBasePhase, distributeCalendarDatesByWeek, inferCalendarModality, calendarGoalActor, calendarGoalForActor, calendarTargetRule, splitCalendarTokens, phoneQuotaGoalValue, statusValueOptions, phoneIsUnassignedResponsible, phoneQuotaStatusTone, phoneDailyBlockForPanel, uniqueDisplayValues, isPlatformResponseSource, isSurveyMonkeyResponseSource, isKoboResponseSource, shortenMiddle, sourceFlatField, presetSourceStatus, cleanSourceDimensions, sourceDimensionEntries, collectorDisplayName, countFromRecord, inferAcreditacionSurveyChannel, surveyMonkeyDisplayTitle, csvCell, platformToneValue, crossingToneValue, acreditacionQueryDonutBackground, uniqueNormalizedKeys, addAcreditacionDailyValue, dailySeriesTotals, collectorDisplayLookupKey, sourceRoleForActor, surveySourceForAcreditacionId, surveySourceForAcreditacionTitle, sheetTitleIcon } from "../../core/helpersComunesTelAcr";
+import { caracterDeCuotas, phoneQuotaGoalHasActor, phoneQuotaGoalTotal, phoneQuotaRemoveGoal, phoneQuotaGoalVariables, phoneQuotaUpsertGoal } from "../../core/cuotasTelefonicasComunes";
+import { phoneRowNumber, phoneRowOptionalNumber, phoneRowRatioPct, phoneAttemptValue, phoneDurationAlertThreshold, phoneDurationAlertDisplayDetail, phoneAlertCaseCount, phoneContractReadyCount, acreditacionPhoneAlertSignalRows } from "../../core/alertasTelefonicasComunes";
+import { useSubvistaEnFoco } from "../../core/subvistaEnFoco";
+import { BloqueDeMonitoreo } from "../../core/BloqueDeMonitoreo";
+const VISTAS_DE_SUPERVISION = ["tiempo", "muestra", "prioridad"] as const;
+export { caseResponseDateTimeLabel, caseResponseTimeDetailLabel } from "../../core/rotulosComunes";
 export { TELEFONICO_VISIBLE_PHONE_TABS, TELEFONICO_VISIBLE_ADVANCE_TABS } from "./telefonicoBase";
 
 function AcreditacionModelActorSummaryCard({
@@ -483,13 +494,6 @@ function phoneEffectiveFilterLabel(option: PhoneEffectiveFilterQuestionOption) {
   return option.label && option.label !== option.value ? `${option.label} (${option.value})` : option.value;
 }
 
-function preferredPhoneEffectiveValue(choices: string[]) {
-  return choices.find((choice) => ["yes", "si", "sí", "1", "true"].includes(normalizeSourceMatch(choice)))
-    ?? choices.find((choice) => normalizeSourceMatch(choice).includes("consent"))
-    ?? choices[0]
-    ?? "";
-}
-
 function phoneEffectiveFilterQuestionScore(option: PhoneEffectiveFilterQuestionOption) {
   const haystack = normalizeSourceMatch(`${option.value} ${option.label} ${option.type}`);
   if (haystack.includes("consent")) return 0;
@@ -596,12 +600,6 @@ function platformQuestionLabel(variable: MonitoreoVariable) {
   return rawLabel ? humanizeQuestionSlug(rawLabel) : code;
 }
 
-function compactSelectLabel(value: string, maxLength = 68) {
-  const text = String(value ?? "").replace(/\s+/g, " ").trim();
-  if (text.length <= maxLength) return text;
-  return `${text.slice(0, Math.max(0, maxLength - 3)).trimEnd()}...`;
-}
-
 function platformQuestionOptions(variables: MonitoreoVariable[]): PlatformRejectionQuestionOption[] {
   return variables
     .map((variable) => {
@@ -640,13 +638,6 @@ function platformAnswerOptions(options: PlatformRejectionQuestionOption[], draft
   const choices = selected?.choices ?? [];
   const current = draft.answers.trim();
   return current && !choices.includes(current) ? [current, ...choices] : choices;
-}
-
-function splitListInput(value: string) {
-  return value
-    .split(/[,;\n]/)
-    .map((item) => item.trim())
-    .filter(Boolean);
 }
 
 function AcreditacionPlatformRejectionEditor({
@@ -1097,7 +1088,7 @@ function AcreditacionPhoneModelReadingPanel({
     ? `${filter.label || phoneQuotaVariableLabel(filter.variable)} = ${filter.value_label || filter.values[0]}`
     : "Filtro de consentimiento pendiente";
   const categoryLabel = quotaVariable
-    ? `${phoneQuotaVariableLabel(quotaVariable)} · ${fmt(quotaRows.length)} categorías`
+    ? `${phoneQuotaVariableLabel(quotaVariable)}, ${fmt(quotaRows.length)} categorías`
     : "Variable rectora pendiente";
   const packageTone = contract.ready && filterConfigured && quotaVariable ? "ready" : "warning";
   const decisionItems = [
@@ -1370,10 +1361,10 @@ function AcreditacionFieldSchedulePanel({
             <strong>{evidenceWindow}</strong>
             <p>{fmt(evidence.totalKobo)} efectivas Kobo en {fmt(evidence.koboDays.length)} día{evidence.koboDays.length === 1 ? "" : "s"} con respuesta.</p>
             <div>
-              <em>Promedio <b>{evidence.averageKobo ? `${evidence.averageKobo.toLocaleString("es-PE", { maximumFractionDigits: 1 })}/día` : "S/D"}</b></em>
-              <em>Mejor día <b>{evidence.bestDay ? `${fmt(evidence.bestDay.kobo)} · ${evidence.bestDay.label}` : "S/D"}</b></em>
+              <em>Promedio <b>{evidence.averageKobo ? `${formatoDecimal(evidence.averageKobo, 1)}/día` : "S/D"}</b></em>
+              <em>Mejor día <b>{evidence.bestDay ? `${fmt(evidence.bestDay.kobo)}, ${evidence.bestDay.label}` : "S/D"}</b></em>
               <em className={evidence.phoneNoDate || evidence.sweptNoDate ? "is-warning" : ""}>
-                Sin fecha tel. <b>{fmt(evidence.phoneNoDate)} efectivas · {fmt(evidence.sweptNoDate)} barridos</b>
+                Sin fecha tel. <b>{fmt(evidence.phoneNoDate)} efectivas, {fmt(evidence.sweptNoDate)} barridos</b>
               </em>
             </div>
           </section>
@@ -1387,7 +1378,7 @@ function AcreditacionFieldSchedulePanel({
                 <i aria-hidden="true">
                   <b style={{ width: `${Math.max(day.kobo ? 5 : 0, Math.min(100, (day.kobo / evidence.maxKobo) * 100))}%` }} />
                 </i>
-                <small>{fmt(day.kobo)} Kobo · {fmt(day.phone)} tel. efectivas · {fmt(day.swept)} barridos</small>
+                <small>{fmt(day.kobo)} Kobo, {fmt(day.phone)} tel. efectivas, {fmt(day.swept)} barridos</small>
               </article>
             ))}
           </section>
@@ -1529,24 +1520,6 @@ function AcreditacionModelWorkbench({
 
   const canClose = Boolean(acreditacion.dashboard.cierre_habilitado || planRefuerzo.trim() || aprobarBrechas);
   const cierreDisabled = saving || acreditacion.modo_trabajo === "cierre_campo" || !canClose;
-  const strategyRows = (state?.config.strategy_phases ?? []).map((phase) => ({
-    ID: phase.id || "sin_id",
-    Estrato: phase.stratum || "Todo",
-    Modalidad: phase.modality,
-    Inicio: phase.start_week,
-    Fin: phase.end_week,
-    "Fecha inicio": phase.start_date || "S/F",
-    "Fecha fin": phase.end_date || "S/F",
-    Regla: phase.target_rule || "Sin regla",
-    KPI: Array.isArray(phase.kpi_focus) ? phase.kpi_focus.join(", ") : "",
-  }));
-  const sourceRows = (state?.sources ?? []).map((source) => ({
-    Fuente: source.label || source.id,
-    Tipo: source.kind,
-    Rol: source.role || "respuestas",
-    Estado: source.enabled ? "Activa" : "Inactiva",
-    ID: source.id,
-  }));
   const saveSelected = () => {
     if (!selected || !onSaveSeguimiento) return;
     const intentos_canal = CANALES.reduce<Partial<MonitoreoAcreditacionIntentos>>((acc, canal) => {
@@ -1560,166 +1533,6 @@ function AcreditacionModelWorkbench({
       intentos_canal,
     });
   };
-
-  if (activeTab === "casos") {
-    const bolsaRows = componentes.flatMap((component) => (
-      component.seguimiento.bolsa_operativa.map((row) => ({ Actor: component.actor, ...row }))
-    )) as unknown as Array<Record<string, unknown>>;
-    const seguimientoRows = componentes.map((component) => ({
-      Actor: component.actor,
-      Tecnica: component.tecnica,
-      "n efectivo": component.seguimiento.n_efectivo,
-      "Meta": component.meta.n_objetivo ?? "S/M",
-      "Email": component.seguimiento.intentos_canal.email,
-      "Enlace": component.seguimiento.intentos_canal.whatsapp,
-      "SMS": component.seguimiento.intentos_canal.sms,
-      "Teléfono": component.seguimiento.intentos_canal.telefono,
-      "Presencial": component.seguimiento.intentos_canal.presencial,
-      Estado: cumplimientoLabel(component.seguimiento.cumplimiento.estado),
-    }));
-    return (
-      <div className="mon-acr-model">
-        <div className="mon-profile-stat-row">
-          <StatTile label="Actores" value={fmt(componentes.length)} tone={componentes.length ? "good" : "neutral"} />
-          <StatTile label="Bolsa operativa" value={fmt(bolsaRows.length)} tone={bolsaRows.length ? "good" : "neutral"} />
-          <StatTile label="Bloqueos" value={fmt(acreditacion.dashboard.bloqueos)} tone={acreditacion.dashboard.bloqueos ? "warn" : "good"} />
-          <StatTile label="Modo" value={acreditacion.modo_trabajo === "cierre_campo" ? "Cierre" : "Campo"} />
-        </div>
-        <div className="mon-profile-grid">
-          <section className="mon-profile-panel">
-            <div className="mon-profile-panel-head">
-              <h3>Base de barrido y seguimiento</h3>
-              <span>{fmt(seguimientoRows.length)} actores</span>
-            </div>
-            <DataTable rows={seguimientoRows} empty="No hay actores para seguimiento." />
-          </section>
-          <section className="mon-profile-panel">
-            <div className="mon-profile-panel-head">
-              <h3>Bolsa operativa</h3>
-              <span>{fmt(bolsaRows.length)} filas</span>
-            </div>
-            <DataTable rows={bolsaRows} empty="No hay bolsa operativa normalizada." />
-          </section>
-        </div>
-      </div>
-    );
-  }
-
-  if (activeTab === "enlaces") {
-    return (
-      <div className="mon-acr-model">
-        <div className="mon-profile-stat-row">
-          <StatTile label="Fuentes" value={fmt(sourceRows.length)} tone={sourceRows.length ? "good" : "warn"} />
-          <StatTile label="Activas" value={fmt(sourceRows.filter((row) => row.Estado === "Activa").length)} tone="good" />
-          <StatTile label="Canales" value={fmt(CANALES.length)} />
-          <StatTile label="Componentes" value={fmt(componentes.length)} />
-        </div>
-        <div className="mon-profile-grid">
-          <section className="mon-profile-panel">
-            <div className="mon-profile-panel-head">
-              <h3>Fuentes, links y recopiladores</h3>
-              <span>{fmt(sourceRows.length)} fuentes</span>
-            </div>
-            <DataTable rows={sourceRows} empty="No hay fuentes conectadas para enlaces/envíos." />
-          </section>
-          <section className="mon-profile-panel">
-            <div className="mon-profile-panel-head">
-              <h3>Intentos por canal</h3>
-              <span>{fmt(componentes.length)} actores</span>
-            </div>
-            <DataTable
-              rows={componentes.map((component) => ({
-                Actor: component.actor,
-                Email: component.seguimiento.intentos_canal.email,
-                Enlace: component.seguimiento.intentos_canal.whatsapp,
-                SMS: component.seguimiento.intentos_canal.sms,
-                Telefono: component.seguimiento.intentos_canal.telefono,
-                Presencial: component.seguimiento.intentos_canal.presencial,
-              }))}
-              empty="No hay intentos por canal."
-            />
-          </section>
-        </div>
-      </div>
-    );
-  }
-
-  if (activeTab === "reglas") {
-    const ruleRows = cards.map((card) => ({
-      Actor: card.actor,
-      Estado: cumplimientoLabel(card.estado),
-      "n efectivo": card.n_efectivo,
-      Meta: card.n_objetivo ?? "S/M",
-      Brecha: card.brecha_absoluta ?? 0,
-      "% avance": card.avance_pct == null ? "S/D" : pct(card.avance_pct),
-    }));
-    return (
-      <div className="mon-acr-model">
-        {acreditacion.dashboard.alertas.length ? (
-          <section className="mon-acr-model-alerts" aria-label="Alertas de reglas de avance">
-            {acreditacion.dashboard.alertas.slice(0, 8).map((alerta, index) => (
-              <div key={`${alerta.componente_id}-${alerta.tipo}-${index}`} className={`is-${alerta.severidad}`}>
-                <AlertCircle size={14} />
-                <span><strong>{alerta.actor}</strong>: {alerta.mensaje}</span>
-              </div>
-            ))}
-          </section>
-        ) : null}
-        <section className="mon-profile-panel">
-          <div className="mon-profile-panel-head">
-            <h3>Estados válidos, metas y brechas</h3>
-            <span>{fmt(ruleRows.length)} reglas</span>
-          </div>
-          <DataTable rows={ruleRows} empty="No hay reglas de cumplimiento para este modelo." />
-        </section>
-      </div>
-    );
-  }
-
-  if (String(activeTab) === "__legacy_estrategias__") {
-    return (
-      <div className="mon-acr-model">
-        <div className="mon-profile-stat-row">
-          <StatTile label="Fases" value={fmt(strategyRows.length)} tone={strategyRows.length ? "good" : "warn"} />
-          <StatTile label="Plan refuerzo" value={planRefuerzo.trim() ? "Activo" : "Pendiente"} tone={planRefuerzo.trim() ? "good" : "warn"} />
-          <StatTile label="Aprobación" value={aprobarBrechas ? "Sí" : "No"} tone={aprobarBrechas ? "good" : "neutral"} />
-          <StatTile label="Cierre" value={acreditacion.modo_trabajo === "cierre_campo" ? "Marcado" : "Editable"} />
-        </div>
-        <section className="mon-profile-panel">
-          <div className="mon-profile-panel-head">
-            <h3>Calendario y mecanismos por semana</h3>
-            <span>{fmt(strategyRows.length)} fases</span>
-          </div>
-          <DataTable rows={strategyRows} empty="No hay fases estratégicas configuradas." />
-        </section>
-        <section className="mon-acr-model-close" aria-label="Cierre de acreditación">
-          <div>
-            <span>Cierre metodológico</span>
-            <input
-              value={planRefuerzo}
-              disabled={saving || acreditacion.modo_trabajo === "cierre_campo"}
-              onChange={(event) => setPlanRefuerzo(event.target.value)}
-              placeholder="Plan de refuerzo o justificación de cierre"
-            />
-          </div>
-          <label>
-            <input
-              type="checkbox"
-              checked={aprobarBrechas}
-              disabled={saving || acreditacion.modo_trabajo === "cierre_campo"}
-              onChange={(event) => setAprobarBrechas(event.target.checked)}
-            />
-            Aprobación metodológica
-          </label>
-          <button type="button" disabled={cierreDisabled || !onCerrar} onClick={() => void onCerrar?.(planRefuerzo, aprobarBrechas)}>
-            <FileCheck2 size={14} />
-            {acreditacion.modo_trabajo === "cierre_campo" ? "Cierre marcado" : "Marcar cierre"}
-          </button>
-        </section>
-        {actionStatus ? <span className={`mon-acr-model-action-status is-${actionStatus.tone}`}>{actionStatus.message}</span> : null}
-      </div>
-    );
-  }
 
   return (
     <div className="mon-acr-model">
@@ -1776,7 +1589,7 @@ function AcreditacionModelWorkbench({
                 <div>
                   <span>Componente seleccionado</span>
                   <strong>{selected.actor}</strong>
-                  <p>{selected.tecnica || "Sin técnica"} · {selected.variable_control || "Sin variable de control"}</p>
+                  <p>{selected.tecnica || "Sin técnica"}, {selected.variable_control || "Sin variable de control"}</p>
                 </div>
                 <AcreditacionCumplimientoBadge estado={selected.seguimiento.cumplimiento.estado} />
               </header>
@@ -1859,26 +1672,24 @@ function AcreditacionModelWorkbench({
               </section>
 
               {Object.keys(selected.seguimiento.sub_cuotas_progreso).length ? (
-                <section className="mon-profile-panel">
-                  <div className="mon-profile-panel-head">
-                    <h3>Subcuotas</h3>
-                    <span>{fmt(Object.keys(selected.seguimiento.sub_cuotas_progreso).length)} celdas</span>
-                  </div>
+                <BloqueDeMonitoreo
+                  titulo="Subcuotas"
+                  bajada={<>{fmt(Object.keys(selected.seguimiento.sub_cuotas_progreso).length)} celdas</>}
+                >
                   <DataTable
                     rows={Object.entries(selected.seguimiento.sub_cuotas_progreso).map(([celda, row]) => ({ Celda: celda, ...row }))}
                     empty="Sin subcuotas para este componente."
                   />
-                </section>
+                </BloqueDeMonitoreo>
               ) : null}
 
               {selected.seguimiento.bolsa_operativa.length ? (
-                <section className="mon-profile-panel">
-                  <div className="mon-profile-panel-head">
-                    <h3>Bolsa operativa</h3>
-                    <span>{fmt(selected.seguimiento.bolsa_operativa.length)} filas</span>
-                  </div>
+                <BloqueDeMonitoreo
+                  titulo="Bolsa operativa"
+                  bajada={<>{fmt(selected.seguimiento.bolsa_operativa.length)} filas</>}
+                >
                   <DataTable rows={selected.seguimiento.bolsa_operativa as unknown as Array<Record<string, unknown>>} empty="Sin bolsa operativa para este componente." />
-                </section>
+                </BloqueDeMonitoreo>
               ) : null}
             </>
           ) : (
@@ -1931,13 +1742,6 @@ const MODEL_COLLECTOR_USE_OPTIONS: Array<{
   { value: "sin_clasificar", label: "Sin clasificar", modality: "mixto", channel: "Correo", icon: SlidersHorizontal },
 ];
 
-const MODEL_ROSTER_SOURCE_OPTIONS = [
-  { value: "none", label: "Sin barrido" },
-  { value: "source", label: "Fuente configurada" },
-  { value: "uploaded", label: "Archivo cargado" },
-  { value: "external_local", label: "Base local externa" },
-] as const;
-
 const MODEL_FINAL_STATE_OPTIONS = [
   { value: "complete", label: "Completa" },
   { value: "partial", label: "Parcial" },
@@ -1955,31 +1759,6 @@ type AcreditacionCalendarActorPlan = {
   startWeek: number;
   endWeek: number;
 };
-
-function calendarWeekWindowLabel(phases: MonitoreoStrategyPhase[], fallbackEnd: number | null) {
-  const weeks = phases.flatMap((phase) => [
-    Number(phase.start_week),
-    Number(phase.end_week ?? phase.start_week),
-  ]).filter((week) => Number.isFinite(week) && week > 0);
-  if (weeks.length) {
-    const min = Math.min(...weeks);
-    const max = Math.max(...weeks);
-    return min === max ? `Semana ${fmt(min)}` : `Semanas ${fmt(min)}-${fmt(max)}`;
-  }
-  if (fallbackEnd && fallbackEnd > 0) return `Sugerido S1-S${fmt(fallbackEnd)}`;
-  return "Pendiente";
-}
-
-function calendarDateWindowLabel(phases: MonitoreoStrategyPhase[]) {
-  const dates = phases.flatMap((phase) => [
-    phase.start_date ?? "",
-    phase.end_date ?? phase.start_date ?? "",
-  ]).filter(Boolean).sort();
-  if (!dates.length) return "Por definir";
-  const start = dates[0];
-  const end = dates[dates.length - 1];
-  return start === end ? start : `${start} a ${end}`;
-}
 
 type AcreditacionCalendarPhaseDateState = "ready" | "partial" | "empty" | "invalid";
 
@@ -2021,39 +1800,6 @@ type AcreditacionCalendarReportRow = {
 const CALENDAR_DATE_FORMATTER = new Intl.DateTimeFormat("es-PE", { day: "2-digit", month: "short" });
 const CALENDAR_WEEKDAY_FORMATTER = new Intl.DateTimeFormat("es-PE", { weekday: "short" });
 
-function parseCalendarIsoDate(value: string | null | undefined) {
-  const match = String(value ?? "").trim().match(/^(\d{4})-(\d{2})-(\d{2})$/);
-  if (!match) return null;
-  const year = Number(match[1]);
-  const month = Number(match[2]) - 1;
-  const day = Number(match[3]);
-  const date = new Date(year, month, day);
-  if (
-    Number.isNaN(date.getTime()) ||
-    date.getFullYear() !== year ||
-    date.getMonth() !== month ||
-    date.getDate() !== day
-  ) {
-    return null;
-  }
-  return date;
-}
-
-function calendarAddDaysIso(value: string, days: number) {
-  const date = parseCalendarIsoDate(value);
-  if (!date) return "";
-  const next = new Date(date);
-  next.setDate(next.getDate() + days);
-  return calendarIsoDate(next);
-}
-
-function calendarDateDiffDays(start: string, end: string) {
-  const startDate = parseCalendarIsoDate(start);
-  const endDate = parseCalendarIsoDate(end);
-  if (!startDate || !endDate) return null;
-  return Math.round((endDate.getTime() - startDate.getTime()) / CALENDAR_DAY_MS);
-}
-
 function formatCalendarDateLabel(value: string | null | undefined) {
   const date = parseCalendarIsoDate(value);
   return date ? CALENDAR_DATE_FORMATTER.format(date).replace(".", "") : "";
@@ -2062,58 +1808,6 @@ function formatCalendarDateLabel(value: string | null | undefined) {
 function formatCalendarWeekdayLabel(value: string | null | undefined) {
   const date = parseCalendarIsoDate(value);
   return date ? CALENDAR_WEEKDAY_FORMATTER.format(date).replace(".", "") : "";
-}
-
-function calendarPhaseDurationDays(phase: MonitoreoStrategyPhase) {
-  const start = phase.start_date ?? "";
-  const end = phase.end_date || start;
-  if (!start || !end) return null;
-  const diff = calendarDateDiffDays(start, end);
-  return diff != null && diff >= 0 ? diff + 1 : null;
-}
-
-function calendarPhaseWeekDurationDays(phase: MonitoreoStrategyPhase) {
-  const startWeek = Number(phase.start_week);
-  const endWeek = Number(phase.end_week ?? phase.start_week);
-  if (!Number.isFinite(startWeek) || startWeek <= 0) return 1;
-  if (!Number.isFinite(endWeek) || endWeek < startWeek) return 7;
-  return Math.max(1, endWeek - startWeek + 1) * 7;
-}
-
-function calendarDurationLabel(days: number | null) {
-  if (!days || days <= 0) return "Duración pendiente";
-  return days === 1 ? "1 día" : `${fmt(days)} días`;
-}
-
-function calendarReportExceptions(phase: MonitoreoStrategyPhase): MonitoreoStrategyReportException[] {
-  return (phase.client_report_exceptions ?? []).map((item) => ({
-    week: Number.isFinite(Number(item.week)) && Number(item.week) > 0 ? Number(item.week) : null,
-    weekday: normalizeCalendarReportWeekday(item.weekday),
-    date: item.date ?? "",
-    note: item.note ?? "",
-  })).filter((item) => item.week || item.date || item.weekday || item.note);
-}
-
-function calendarWeekRange(phase: MonitoreoStrategyPhase) {
-  const start = Number(phase.start_week);
-  const end = Number(phase.end_week ?? phase.start_week);
-  const startWeek = Number.isFinite(start) && start > 0 ? start : 1;
-  const endWeek = Number.isFinite(end) && end >= startWeek ? end : startWeek;
-  return { startWeek, endWeek };
-}
-
-function calendarReportDateForWeek(phase: MonitoreoStrategyPhase, week: number | null, weekday: MonitoreoReportWeekday | "", overrideDate = "") {
-  if (overrideDate) return overrideDate;
-  if (!phase.start_date || !week || !weekday) return "";
-  const { startWeek } = calendarWeekRange(phase);
-  const weekStart = calendarAddDaysIso(phase.start_date, Math.max(0, week - startWeek) * 7);
-  const weekStartDate = parseCalendarIsoDate(weekStart);
-  const weekdayIndex = CALENDAR_REPORT_WEEKDAY_INDEX.get(weekday);
-  if (!weekStartDate || weekdayIndex == null) return "";
-  const delta = (weekdayIndex - weekStartDate.getDay() + 7) % 7;
-  const date = calendarAddDaysIso(weekStart, delta);
-  if (phase.end_date && date > phase.end_date) return "";
-  return date;
 }
 
 function calendarReportScheduleRows(phase: MonitoreoStrategyPhase): AcreditacionCalendarReportRow[] {
@@ -2175,7 +1869,7 @@ function acreditacionReportCutsFromPhases(phases: MonitoreoStrategyPhase[] = [])
   rows.forEach((row) => {
     if (!row.date) return;
     const weekday = calendarReportWeekdayLabel(row.weekday);
-    const label = row.week ? `S${fmt(row.week)} · ${weekday}` : weekday;
+    const label = row.week ? `S${fmt(row.week)}, ${weekday}` : weekday;
     byDate.set(row.date, { date: row.date, label });
   });
   return Array.from(byDate.values()).sort((a, b) => {
@@ -2198,22 +1892,6 @@ function calendarPhaseDateRangeLabel(phase: MonitoreoStrategyPhase) {
   if (start) return `Desde ${formatCalendarDateLabel(start)}`;
   if (end) return `Hasta ${formatCalendarDateLabel(end)}`;
   return "Sin fecha";
-}
-
-function calendarPhaseOverlapCount(phase: MonitoreoStrategyPhase, index: number, phases: MonitoreoStrategyPhase[]) {
-  const start = phase.start_date ?? "";
-  const end = phase.end_date || start;
-  if (!start || !end || calendarDateDiffDays(start, end) == null) return 0;
-  return phases.reduce((count, candidate, candidateIndex) => {
-    if (candidateIndex === index) return count;
-    const candidateStart = candidate.start_date ?? "";
-    const candidateEnd = candidate.end_date || candidateStart;
-    if (!candidateStart || !candidateEnd) return count;
-    const validCandidate = calendarDateDiffDays(candidateStart, candidateEnd);
-    if (validCandidate == null || validCandidate < 0) return count;
-    const overlaps = start <= candidateEnd && candidateStart <= end;
-    return overlaps ? count + 1 : count;
-  }, 0);
 }
 
 function calendarPhaseDateStatus(phase: MonitoreoStrategyPhase, index: number, phases: MonitoreoStrategyPhase[]): AcreditacionCalendarPhaseDateStatus {
@@ -2256,29 +1934,6 @@ function calendarPhaseDateStatus(phase: MonitoreoStrategyPhase, index: number, p
     durationLabel: "Pendiente",
     overlapCount,
   };
-}
-
-function calendarBasePhase(phases: MonitoreoStrategyPhase[]) {
-  return phases.find((phase) => parseCalendarIsoDate(phase.start_date));
-}
-
-function distributeCalendarDatesByWeek(phases: MonitoreoStrategyPhase[]) {
-  const basePhase = calendarBasePhase(phases);
-  const baseDate = basePhase?.start_date ?? "";
-  if (!basePhase || !baseDate) return null;
-  const baseWeek = Number(basePhase.start_week) > 0 ? Number(basePhase.start_week) : 1;
-  return phases.map((phase) => {
-    const startWeek = Number(phase.start_week) > 0 ? Number(phase.start_week) : baseWeek;
-    const endWeek = Number(phase.end_week ?? phase.start_week) >= startWeek ? Number(phase.end_week ?? phase.start_week) : startWeek;
-    const startOffset = Math.max(0, startWeek - baseWeek) * 7;
-    const durationDays = Math.max(1, endWeek - startWeek + 1) * 7;
-    const startDate = calendarAddDaysIso(baseDate, startOffset);
-    return {
-      ...phase,
-      start_date: startDate,
-      end_date: startDate ? calendarAddDaysIso(startDate, durationDays - 1) : phase.end_date,
-    };
-  });
 }
 
 function buildCalendarTimeline(phases: MonitoreoStrategyPhase[]) {
@@ -2370,7 +2025,7 @@ function AcreditacionFieldCalendarTimeline({ phases }: { phases: MonitoreoStrate
                     style={{ gridColumn: `${item.startIndex + 1} / ${item.endIndex + 2}` }}
                   >
                     <strong>{item.phase.stratum || `Fase ${fmt(item.index + 1)}`}</strong>
-                    <span>{item.rangeLabel} · {item.durationLabel}</span>
+                    <span>{item.rangeLabel}, {item.durationLabel}</span>
                   </div>
                 </div>
               ))}
@@ -2378,47 +2033,13 @@ function AcreditacionFieldCalendarTimeline({ phases }: { phases: MonitoreoStrate
           </div>
         </div>
       ) : (
-        <p className="mon-calendar-timeline-empty">Las fases existen, pero ninguna tiene fecha de campo definida.</p>
+        <EstadoVacio icono={<CalendarRange size={15} />} titulo="Las fases existen, pero ninguna tiene fecha de campo definida." />
       )}
       {timeline.missingDates > 0 ? (
         <p className="mon-calendar-timeline-note">{fmt(timeline.missingDates)} fase{timeline.missingDates === 1 ? "" : "s"} sin fecha completa todavía.</p>
       ) : null}
     </div>
   );
-}
-
-function inferCalendarModality(channels: string[], sources: MonitoreoSource[]): MonitoreoStrategyPhase["modality"] {
-  const text = [...channels, ...sources.map((source) => source.label), ...sources.map((source) => source.role)]
-    .map(normalizeSourceMatch)
-    .join(" ");
-  const hits: MonitoreoStrategyPhase["modality"][] = [];
-  if (text.includes("telefon") || text.includes("phone") || text.includes("call")) hits.push("telefono");
-  if (text.includes("whatsapp") || text.includes("wa ")) hits.push("whatsapp");
-  if (text.includes("sms")) hits.push("sms");
-  if (text.includes("presencial") || text.includes("qr")) hits.push("presencial");
-  if (text.includes("correo") || text.includes("email") || text.includes("mail") || text.includes("survey") || text.includes("web")) hits.push("email");
-  const uniqueHits = Array.from(new Set(hits));
-  if (uniqueHits.length > 1) return "mixto";
-  return uniqueHits[0] ?? (channels.length > 1 ? "mixto" : "email");
-}
-
-function calendarGoalActor(goal: MonitoreoGoal, preferredKey: string) {
-  const filters = goal.filters ?? {};
-  const preferred = preferredKey ? filters[preferredKey] : "";
-  const fallback = Object.values(filters).find((value) => String(value ?? "").trim());
-  return String(preferred || fallback || "").trim();
-}
-
-function calendarGoalForActor(actor: string, goals: MonitoreoGoal[], preferredKey: string) {
-  const actorKey = normalizeSourceMatch(actor);
-  const goal = goals.find((item) => normalizeSourceMatch(calendarGoalActor(item, preferredKey)) === actorKey);
-  const meta = goal ? Number(goal.meta) : NaN;
-  return Number.isFinite(meta) && meta > 0 ? meta : null;
-}
-
-function calendarTargetRule(actor: string, meta: number | null) {
-  if (meta && meta > 0) return `Cubrir ${fmt(meta)} efectivas de ${actor}`;
-  return `Cubrir meta y faltantes de ${actor}`;
 }
 
 function calendarPhaseFromPlan(plan: AcreditacionCalendarActorPlan, index: number): MonitoreoStrategyPhase {
@@ -2441,18 +2062,6 @@ function calendarPhaseFromPlan(plan: AcreditacionCalendarActorPlan, index: numbe
   };
 }
 
-function splitCalendarTokens(value: string) {
-  return value.split(",").map((item) => item.trim()).filter(Boolean);
-}
-
-const PHONE_QUOTA_ACTOR_FILTER_KEYS = new Set([
-  "actor",
-  "dim actor",
-  "unidad",
-  "publico objetivo",
-  "público objetivo",
-]);
-
 export type AcreditacionPhoneQuotaEditorRow = {
   key: string;
   variable: string;
@@ -2470,55 +2079,11 @@ export type AcreditacionPhoneQuotaEditorRow = {
   source: "base" | "configured";
 };
 
-function phoneQuotaIsActorFilterKey(key: string) {
-  return PHONE_QUOTA_ACTOR_FILTER_KEYS.has(normalizeSourceMatch(key));
-}
 
-function phoneQuotaGoalHasActor(goal: MonitoreoGoal) {
-  return Object.keys(goal.filters ?? {}).some(phoneQuotaIsActorFilterKey);
-}
 
-function phoneQuotaGoalValue(goal: MonitoreoGoal, variable: string) {
-  return String(goal.filters?.[variable] ?? "").trim();
-}
 
-function phoneQuotaGoalTotal(goals: MonitoreoGoal[], variable: string) {
-  return goals.reduce((sum, goal) => (
-    !phoneQuotaGoalHasActor(goal) && phoneQuotaGoalValue(goal, variable)
-      ? sum + Math.max(0, Number(goal.meta) || 0)
-      : sum
-  ), 0);
-}
 
-function phoneQuotaGoalVariables(goals: MonitoreoGoal[] = []) {
-  const names = goals.flatMap((goal) => (
-    phoneQuotaGoalHasActor(goal)
-      ? []
-      : Object.keys(goal.filters ?? {}).filter((key) => String(goal.filters?.[key] ?? "").trim())
-  ));
-  return uniqueDisplayValues(names);
-}
 
-function phoneQuotaUpsertGoal(goals: MonitoreoGoal[], variable: string, value: string, meta: number, keepZero = false) {
-  const cleanValue = value.trim();
-  const cleanMeta = Math.max(0, Number(meta) || 0);
-  const next = goals.filter((goal) => {
-    if (phoneQuotaGoalHasActor(goal)) return true;
-    return phoneQuotaGoalValue(goal, variable) !== cleanValue;
-  });
-  if (cleanValue && (cleanMeta > 0 || keepZero)) {
-    next.push({ filters: { [variable]: cleanValue }, meta: cleanMeta });
-  }
-  return next;
-}
-
-function phoneQuotaRemoveGoal(goals: MonitoreoGoal[], variable: string, value: string) {
-  const cleanValue = value.trim();
-  return goals.filter((goal) => {
-    if (phoneQuotaGoalHasActor(goal)) return true;
-    return phoneQuotaGoalValue(goal, variable) !== cleanValue;
-  });
-}
 
 function phoneQuotaVariableOptions(variables: MonitoreoVariable[], controlVars: string[], rows: Array<Record<string, unknown>>, goals: MonitoreoGoal[] = []) {
   const names = uniqueDisplayValues([
@@ -2793,8 +2358,8 @@ function AcreditacionPhoneQuotaEditor({
       etiquetaConfirmar={etiquetaDeConfirmacion(metasCambiadas.length)}
       onConfirmar={confirmarMetas}
       onDescartar={descartarMetas}
-      onQuitar={removeValue}
-      onAgregar={addCategory}
+      onQuitar={removeValue} onAgregar={addCategory}
+      {...caracterDeCuotas(draft.goals, activeVariable, patchGoals)}
       objetivoTotal={draft.objetivo_total ?? (quotaTotal || null)}
       onObjetivoTotal={(valor) => onPatchConfig({ objetivo_total: valor })}
       filtro={filtroTexto}
@@ -2883,9 +2448,6 @@ function AcreditacionModelConfigWorkbench({
       operational_model: { ...current.operational_model, ...patch },
     } : current);
   };
-  const patchCases = (patch: Partial<MonitoreoConfig["operational_model"]["cases"]>) => {
-    patchModel({ cases: { ...model.cases, ...patch } });
-  };
 
   const saveConfig = async () => {
     if (!draft) return;
@@ -2971,64 +2533,6 @@ function AcreditacionModelConfigWorkbench({
     </section>
   );
 
-  if (activeTab === "casos") {
-    return (
-      <div className="mon-acr-model mon-acr-model-config">
-        {showHeader ? header : null}
-        <AcreditacionSweepBaseWorkbench
-          sources={sources}
-          config={draft}
-          cases={model.cases}
-          variableNames={variableNames}
-          onCasesChange={patchCases}
-          onStateChange={onStateChange}
-        />
-      </div>
-    );
-  }
-
-  if (activeTab === "enlaces") {
-    const collectorSummary = buildAcreditacionActiveSourcesSummary(sources, draft.operational_model.link_collectors);
-    return (
-      <div className="mon-acr-model mon-acr-model-config">
-        {showHeader ? header : null}
-        <section className="mon-profile-panel mon-acr-model-router-note">
-          <div className="mon-profile-panel-head">
-            <h3>Enlaces operativos</h3>
-            <span>{fmt(collectorSummary.includedCollectors)} recopiladores incluidos</span>
-          </div>
-          <p className="mon-profile-muted">
-            La clasificacion editable de recopiladores vive en Fuentes, dentro de la pestaña Recopiladores. Este modelo conserva la relacion guardada para metas, reglas y avance.
-          </p>
-          <div className="mon-acr-active-kpis">
-            <StatTile label="Encuestas activas" value={fmt(collectorSummary.activeSurveys)} tone={collectorSummary.activeSurveys ? "good" : "warn"} />
-            <StatTile label="Actores con encuesta" value={fmt(collectorSummary.actorsWithSurvey.length)} tone={collectorSummary.actorsWithSurvey.length ? "good" : "warn"} />
-            <StatTile label="Incluidos" value={fmt(collectorSummary.includedCollectors)} tone={collectorSummary.includedCollectors ? "good" : "neutral"} />
-            <StatTile label="Sin metadata" value={fmt(collectorSummary.missingCollectorMetadata)} tone={collectorSummary.missingCollectorMetadata ? "warn" : "good"} />
-          </div>
-        </section>
-        <section className="mon-profile-panel">
-          <div className="mon-profile-panel-head">
-            <h3>Fuentes disponibles para mecanismos</h3>
-            <span>{fmt(activeSources.length)} activas</span>
-          </div>
-          <DataTable
-            rows={activeSources.map((source) => ({
-              Fuente: source.label || source.id,
-              Servicio: source.kind,
-              Rol: source.role || "respuestas",
-              Actor: sourceActorLabel(source),
-              Canal: acreditacionChannelLabel(sourceChannelLabel(source)),
-              ID: source.id,
-            }))}
-            empty="Sin fuentes activas para enlazar mecanismos."
-            preferredColumns={["Fuente", "Servicio", "Rol", "Actor", "Canal", "ID"]}
-          />
-        </section>
-      </div>
-    );
-  }
-
   if (activeTab === "reglas") {
     return (
       <div className="mon-acr-model mon-acr-model-config">
@@ -3036,7 +2540,7 @@ function AcreditacionModelConfigWorkbench({
         <section className="mon-contract-block mon-contract-block--wide">
           <div className="mon-contract-block-head">
             <span>Estados válidos y reglas de avance</span>
-            <span className="mon-contract-counter">{fmt(model.events.length)} eventos · {fmt(model.state_rules.length)} reglas</span>
+            <span className="mon-contract-counter">{fmt(model.events.length)} eventos, {fmt(model.state_rules.length)} reglas</span>
           </div>
           <div className="mon-form mon-form--two">
             <AcreditacionVarSelect label="Variable de estado" value={draft.status_var} vars={variableNames} onChange={(status_var) => patchConfig({ status_var })} />
@@ -3165,7 +2669,7 @@ function AcreditacionModelConfigWorkbench({
                   <span><Route size={12} /> {MODEL_MODALITY_OPTIONS.find((option) => option.value === plan.modality)?.label ?? plan.modality}</span>
                   <span><PlugZap size={12} /> {fmt(plan.sourceCount)}</span>
                 </div>
-                <p>{plan.channels.length ? plan.channels.slice(0, 3).join(" · ") : "Canal por definir"}</p>
+                <p>{plan.channels.length ? plan.channels.slice(0, 3).join(", ") : "Canal por definir"}</p>
                 <button type="button" onClick={() => addPhaseForPlan(plan)}>Usar fase</button>
               </article>
             ))}
@@ -3201,7 +2705,7 @@ function AcreditacionModelConfigWorkbench({
                     <span>{dateStatus.durationLabel}</span>
                     <em>
                       {dateStatus.detail}
-                      {reportWeekday ? ` · Reporte ${calendarReportWeekdayLabel(reportWeekday).toLowerCase()}` : ""}
+                      {reportWeekday ? `, reporte ${calendarReportWeekdayLabel(reportWeekday).toLowerCase()}` : ""}
                     </em>
                   </div>
                   <div className="mon-calendar-phase-grid">
@@ -3308,7 +2812,7 @@ function AcreditacionModelConfigWorkbench({
                           {reportRows.length > 6 ? <span><strong>+{fmt(reportRows.length - 6)}</strong><em>más</em><small>reporte</small></span> : null}
                         </div>
                       ) : (
-                        <p className="mon-calendar-report-empty">Define un día semanal o una excepción para programar reportes al cliente.</p>
+                        <EstadoVacio icono={<CalendarRange size={15} />} titulo="Define un día semanal o una excepción para programar reportes al cliente." />
                       )}
                       {reportExceptions.length ? (
                         <div className="mon-calendar-report-exceptions" aria-label={`Excepciones de reporte al cliente para ${phase.stratum || `fase ${index + 1}`}`}>
@@ -3392,7 +2896,7 @@ function AcreditacionModelConfigWorkbench({
       <section className="mon-contract-block mon-contract-block--wide">
         <div className="mon-contract-block-head">
           <span>Cortes, metas y variables</span>
-          <span className="mon-contract-counter">{fmt(configuredGoals)}/{fmt(draft.goals.length)} metas · total {goalTotal ? fmt(goalTotal) : "S/M"}</span>
+          <span className="mon-contract-counter">{fmt(configuredGoals)}/{fmt(draft.goals.length)} metas, total {goalTotal ? fmt(goalTotal) : "S/M"}</span>
         </div>
         <div className="mon-form mon-form--two">
           <AcreditacionVarSelect label="Enumerador" value={draft.enumerator_var} vars={variableNames} onChange={(enumerator_var) => patchConfig({ enumerator_var })} />
@@ -3435,210 +2939,6 @@ function AcreditacionModelConfigWorkbench({
         <AcreditacionGoalsEditor goals={draft.goals} vars={variableNames} onUpdate={updateGoal} onRemove={removeGoal} />
       </section>
     </div>
-  );
-}
-
-function AcreditacionSweepBaseWorkbench({
-  sources,
-  config,
-  cases,
-  variableNames,
-  onCasesChange,
-  onStateChange,
-}: {
-  sources: MonitoreoSource[];
-  config: MonitoreoConfig;
-  cases: MonitoreoConfig["operational_model"]["cases"];
-  variableNames: string[];
-  onCasesChange: (patch: Partial<MonitoreoConfig["operational_model"]["cases"]>) => void;
-  onStateChange?: (state: MonitoreoState) => void;
-}) {
-  const [selectedByChannel, setSelectedByChannel] = useState<Record<string, string>>({});
-  const [savingKey, setSavingKey] = useState("");
-  const [status, setStatus] = useState<AcreditacionActionStatus>(null);
-  const sweepPreset = ACREDITACION_SOURCE_PRESETS.find((preset) => preset.key === "barrido_telefonico") ?? ACREDITACION_SOURCE_PRESETS[1];
-  const telephoneChannels = useMemo(
-    () => buildAcreditacionTelephoneChannels(sources, config.operational_model.link_collectors),
-    [config.operational_model.link_collectors, sources],
-  );
-  const sweepSourceCandidates = useMemo(() => acreditacionSweepSources(sources), [sources]);
-  const selectableSweepSources = sweepSourceCandidates.filter((source) => source.enabled);
-  const confirmedChannels = telephoneChannels.filter((channel) => (
-    Boolean(acreditacionSweepSourceForChannel(sweepSourceCandidates, channel))
-  ));
-  const sourceOptions = selectableSweepSources.length ? selectableSweepSources : sweepSourceCandidates;
-
-  const confirmSweepBase = async (channel: AcreditacionTelephoneChannel) => {
-    const matched = acreditacionSweepSourceForChannel(sweepSourceCandidates, channel);
-    const sourceId = selectedByChannel[channel.key] ?? matched?.id ?? "";
-    const source = sweepSourceCandidates.find((item) => item.id === sourceId) ?? null;
-    if (!source) {
-      setStatus({ tone: "error", message: "Selecciona o registra una hoja de barrido antes de confirmar." });
-      return;
-    }
-    setSavingKey(channel.key);
-    setStatus({ tone: "info", message: `Confirmando barrido para ${channel.actor}...` });
-    try {
-      const result = await apiMonitoreoSource(sourcePayloadFromExisting(source, {
-        enabled: true,
-        role: "barrido",
-        integration_mode: source.integration_mode || "connected_read",
-        dimensions: cleanSourceDimensions({
-          ...source.dimensions,
-          actor: channel.actor,
-          segmento: channel.actor,
-          canal: "Telefónico",
-          channel: "Telefónico",
-          servicio: "Barrido telefónico",
-          sheet_name: source.sheet_binding?.sheet_name ?? source.dimensions?.sheet_name,
-          survey_id: channel.surveyId || undefined,
-          survey_source_id: channel.sourceId || undefined,
-          source_id: channel.sourceId || undefined,
-          collector_id: channel.collectorId || undefined,
-          collector_name: channel.collectorName || undefined,
-        }),
-      }));
-      onStateChange?.(result.state);
-      setSelectedByChannel((current) => ({ ...current, [channel.key]: result.source.id }));
-      onCasesChange({ enabled: true, roster_source: "external_local" });
-      setStatus({ tone: "success", message: `Base de barrido confirmada para ${channel.actor}.` });
-    } catch (error) {
-      setStatus({ tone: "error", message: (error as Error).message });
-    } finally {
-      setSavingKey("");
-    }
-  };
-
-  return (
-    <>
-      <section className="mon-contract-block mon-contract-block--wide">
-        <div className="mon-contract-block-head">
-          <span>Base de barrido</span>
-          <label className="mon-switch-line">
-            <input
-              type="checkbox"
-              checked={Boolean(cases.enabled)}
-              onChange={(event) => onCasesChange({ enabled: event.target.checked })}
-            />
-            <span>Usar barrido operativo</span>
-          </label>
-        </div>
-        <div className="mon-acr-active-kpis" aria-label="Resumen de base de barrido">
-          <StatTile label="Canales telefónicos" value={fmt(telephoneChannels.length)} tone={telephoneChannels.length ? "good" : "warn"} />
-          <StatTile label="Bases de barrido" value={fmt(sweepSourceCandidates.length)} tone={sweepSourceCandidates.length ? "good" : "warn"} />
-          <StatTile label="Confirmadas" value={`${fmt(confirmedChannels.length)}/${fmt(telephoneChannels.length)}`} tone={telephoneChannels.length && confirmedChannels.length === telephoneChannels.length ? "good" : "warn"} />
-        </div>
-        <p className="mon-profile-muted">
-          Los canales telefónicos salen de Enlaces y envíos. La base de barrido se confirma contra una fuente Google Sheets con rol barrido para que el modelo sepa qué hoja alimenta responsables, intentos y estados.
-        </p>
-        {status ? <div className={status.tone === "error" ? "mon-sm-error" : "mon-sm-meta"}>{status.message}</div> : null}
-        <div className="mon-profile-grid">
-          <AcreditacionSheetSourceEditor preset={sweepPreset} sources={sweepSourceCandidates} onStateChange={onStateChange} />
-          <section className="mon-profile-panel">
-            <div className="mon-profile-panel-head">
-              <h3>Campos operativos</h3>
-              <span>{cases.enabled ? "Activo" : "Pendiente"}</span>
-            </div>
-            <div className="mon-form mon-form--two">
-              <AcreditacionVarSelect label="Identificador" value={cases.case_id_var} vars={variableNames} onChange={(value) => onCasesChange({ case_id_var: value })} />
-              <AcreditacionVarSelect label="Persona o caso" value={cases.person_label_var} vars={variableNames} onChange={(value) => onCasesChange({ person_label_var: value })} />
-              <AcreditacionVarSelect label="Estado reportado" value={cases.status_var} vars={variableNames} onChange={(value) => onCasesChange({ status_var: value })} />
-              <label>
-                <span>Origen del barrido</span>
-                <select
-                  value={cases.roster_source}
-                  onChange={(event) => onCasesChange({ roster_source: event.target.value as MonitoreoConfig["operational_model"]["cases"]["roster_source"] })}
-                >
-                  {MODEL_ROSTER_SOURCE_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-                </select>
-              </label>
-            </div>
-            <div className="mon-profile-grid">
-              <AcreditacionVariableChipPicker label="Campos de contacto" vars={variableNames} selected={cases.contact_vars} onChange={(contact_vars) => onCasesChange({ contact_vars })} />
-              <AcreditacionVariableChipPicker label="Campos sensibles" vars={variableNames} selected={cases.sensitive_vars} onChange={(sensitive_vars) => onCasesChange({ sensitive_vars })} />
-            </div>
-          </section>
-        </div>
-      </section>
-      <section className="mon-contract-block mon-contract-block--wide mon-channel-selector-matrix" aria-label="Canales telefónicos con base de barrido">
-        <div className="mon-contract-block-head">
-          <span>Canales telefónicos definidos en Enlaces y envíos</span>
-          <span className="mon-contract-counter">{fmt(confirmedChannels.length)} confirmados</span>
-        </div>
-        {!telephoneChannels.length ? (
-          <EmptyPanel title="Sin canales telefónicos" detail="Clasifica al menos un recopilador como Teléfono asistido o Barrido en Enlaces y envíos." />
-        ) : (
-          <div className="mon-collector-list">
-            {telephoneChannels.map((channel) => {
-              const matched = acreditacionSweepSourceForChannel(sweepSourceCandidates, channel);
-              const selectedId = selectedByChannel[channel.key] ?? matched?.id ?? "";
-              const selectedSource = sourceOptions.find((source) => source.id === selectedId) ?? matched ?? null;
-              const dimensions = sourceDimensionEntries(selectedSource?.dimensions).slice(0, 5);
-              return (
-                <article key={channel.key} className={`mon-collector-card mon-collector-card--channel is-${matched ? "telefono" : "mixto"}`}>
-                  <div className="mon-collector-title">
-                    <span className="mon-collector-use-icon"><PhoneCall size={14} /></span>
-                    <div>
-                      <strong>{channel.actor}</strong>
-                      <em>{channel.collectorName} · {channel.sourceName}</em>
-                    </div>
-                    <span className="mon-collector-chip">{matched ? "Base confirmada" : "Por confirmar"}</span>
-                  </div>
-                  <div className="mon-collector-metrics">
-                    <AcreditacionCollectorMetric label="Respuestas" value={channel.responseCount} tone={channel.responseCount ? "ready" : "neutral"} />
-                    <AcreditacionCollectorMetric label="Barrido" value={matched ? 1 : 0} tone={matched ? "ready" : "warning"} />
-                    <AcreditacionCollectorMetric label="Hoja" value={selectedSource?.sheet_binding?.sheet_name ? 1 : 0} tone={selectedSource?.sheet_binding?.sheet_name ? "ready" : "neutral"} />
-                  </div>
-                  <div className="mon-collector-controls mon-collector-controls--channel">
-                    <label>
-                      <span>Base de barrido</span>
-                      <select
-                        value={selectedId}
-                        onChange={(event) => setSelectedByChannel((current) => ({ ...current, [channel.key]: event.currentTarget.value }))}
-                        disabled={Boolean(savingKey)}
-                      >
-                        <option value="">Sin base confirmada</option>
-                        {sourceOptions.map((source) => (
-                          <option key={source.id} value={source.id}>
-                            {[source.label || source.id, source.sheet_binding?.sheet_name, sourceActorLabel(source)].filter(Boolean).join(" · ")}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-                    <button
-                      type="button"
-                      className="pulso-primary"
-                      onClick={() => { void confirmSweepBase(channel); }}
-                      disabled={savingKey === channel.key || !selectedId}
-                    >
-                      {savingKey === channel.key ? <Loader2 size={13} className="pulso-spin" /> : <CheckCircle2 size={13} />}
-                      Confirmar selección
-                    </button>
-                  </div>
-                  <div className="mon-collector-channel-line">
-                    <AcreditacionChannelBadge channel={channel.channel} />
-                    <span>{channel.collectorId || channel.sourceId} · {channel.collectorType}</span>
-                  </div>
-                  {selectedSource ? (
-                    <div className="mon-source-dim-badges">
-                      <span>{selectedSource.sheet_binding?.sheet_name || "Pestaña pendiente"}</span>
-                      {sourceSpreadsheetUrl(selectedSource) ? (
-                        <a href={sourceSpreadsheetUrl(selectedSource)} target="_blank" rel="noreferrer">
-                          {sourceSpreadsheetDisplay(selectedSource)}
-                        </a>
-                      ) : null}
-                      {dimensions.map(([key, value]) => <span key={`${channel.key}-${key}`}>{dimensionLabel(key)}: {value}</span>)}
-                    </div>
-                  ) : (
-                    <div className="mon-sm-empty">Registra una hoja de barrido arriba para asociarla a este canal.</div>
-                  )}
-                </article>
-              );
-            })}
-          </div>
-        )}
-      </section>
-    </>
   );
 }
 
@@ -3785,10 +3085,11 @@ function AcreditacionEventsEditor({
     onChange(events.map((event, itemIndex) => itemIndex === index ? { ...event, ...patch } : event));
   };
   return (
-    <section className="mon-profile-panel">
-      <div className="mon-profile-panel-head">
-        <h3>Eventos operativos</h3>
-        <button type="button" onClick={() => onChange([...events, {
+    <BloqueDeMonitoreo
+      titulo="Eventos operativos"
+      acciones={(
+      <>
+<button type="button" onClick={() => onChange([...events, {
           id: `evento-${Date.now()}`,
           label: "Completa",
           modality: "email",
@@ -3800,7 +3101,9 @@ function AcreditacionEventsEditor({
         }])}>
           <Plus size={13} /> Agregar
         </button>
-      </div>
+      </>
+    )}
+    >
       <div className="mon-contract-list">
         {events.map((event, index) => (
           <article key={event.id || index} className="mon-event-row">
@@ -3817,7 +3120,7 @@ function AcreditacionEventsEditor({
         ))}
         {!events.length ? <p className="mon-profile-muted">Sin eventos configurados.</p> : null}
       </div>
-    </section>
+    </BloqueDeMonitoreo>
   );
 }
 
@@ -3834,10 +3137,11 @@ function AcreditacionStateRulesEditor({
     onChange(rules.map((rule, itemIndex) => itemIndex === index ? { ...rule, ...patch } : rule));
   };
   return (
-    <section className="mon-profile-panel">
-      <div className="mon-profile-panel-head">
-        <h3>Reglas de estado final</h3>
-        <button type="button" onClick={() => onChange([...rules, {
+    <BloqueDeMonitoreo
+      titulo="Reglas de estado final"
+      acciones={(
+      <>
+<button type="button" onClick={() => onChange([...rules, {
           id: `regla-${Date.now()}`,
           label: "Completa válida",
           final_state: "complete",
@@ -3847,7 +3151,9 @@ function AcreditacionStateRulesEditor({
         }])}>
           <Plus size={13} /> Agregar
         </button>
-      </div>
+      </>
+    )}
+    >
       <div className="mon-contract-list">
         {rules.map((rule, index) => (
           <article key={rule.id || index} className="mon-rule-row">
@@ -3869,24 +3175,8 @@ function AcreditacionStateRulesEditor({
         ))}
         {!rules.length ? <p className="mon-profile-muted">Sin reglas de avance configuradas.</p> : null}
       </div>
-    </section>
+    </BloqueDeMonitoreo>
   );
-}
-
-function statusValueOptions(variables: MonitoreoVariable[], statusVar: string, current: string[]) {
-  const variableValues = variables.find((variable) => variable.name === statusVar)?.values ?? [];
-  return Array.from(new Set([
-    ...current,
-    ...variableValues,
-    "completed",
-    "complete",
-    "valid",
-    "approved",
-    "submitted",
-    "rechazo",
-    "rejected",
-    "partial",
-  ].map((value) => String(value ?? "").trim()).filter(Boolean)));
 }
 
 function preferredGoalVariable(vars: string[]) {
@@ -3895,15 +3185,6 @@ function preferredGoalVariable(vars: string[]) {
     ?? vars.find((variable) => normalizeSourceMatch(variable).includes("segment"))
     ?? vars[0]
     ?? "";
-}
-
-function prettyModelLabel(value: string) {
-  return String(value || "")
-    .replace(/_/g, " ")
-    .replace(/\bcompleted\b/i, "Completa")
-    .replace(/\bapproved\b/i, "Aprobada")
-    .replace(/\brejected\b/i, "Rechazo")
-    .replace(/\bpartial\b/i, "Parcial");
 }
 
 function scopeForView(requestedSection: MonitoreoSeccion, profileFamily?: string): MonitoreoReportScope {
@@ -3941,43 +3222,6 @@ function backgroundScopesForView(view: MonitoreoSeccion, family?: string): Monit
   return ACREDITACION_BACKGROUND_SCOPES;
 }
 
-function reportsFromState(state: MonitoreoState | null) {
-  return normalizeAcreditacionReports(state?.dashboard?.acreditacion_reports ?? null);
-}
-
-function normalizeAcreditacionReports(reports: MonitoreoAcreditacionReports | null | undefined): MonitoreoAcreditacionReports | null {
-  if (!reports) return null;
-  const client = reports.client_report ?? null;
-  return {
-    ...reports,
-    schema: reports.schema || "apps_script_acreditacion_v1",
-    generated_at: reports.generated_at || "",
-    reference_tabs: Array.isArray(reports.reference_tabs) ? reports.reference_tabs : [],
-    internal_queries: reports.internal_queries ?? null,
-    client_report: client
-      ? {
-        ...client,
-        summary: Array.isArray(client.summary) ? client.summary : [],
-        actors: Array.isArray(client.actors) ? client.actors : [],
-        daily_general: Array.isArray(client.daily_general) ? client.daily_general : [],
-        daily_actor: Array.isArray(client.daily_actor) ? client.daily_actor : [],
-        sources: Array.isArray(client.sources) ? client.sources : [],
-        collector_sources: Array.isArray(client.collector_sources) ? client.collector_sources : [],
-        controls: Array.isArray(client.controls) ? client.controls : [],
-        sheets: Array.isArray(client.sheets) ? client.sheets : [],
-      }
-      : null,
-    sheets: Array.isArray(reports.sheets) ? reports.sheets : [],
-  };
-}
-
-function rowValue(row: Record<string, unknown>, key: string) {
-  const value = row[key];
-  if (value == null) return "";
-  if (typeof value === "boolean") return value ? "Sí" : "No";
-  return String(value);
-}
-
 function compactColumns(rows: Array<Record<string, unknown>>, preferred: string[] = [], maxColumns = 8) {
   const seen = new Set<string>();
   const keys = [...preferred, ...rows.flatMap((row) => Object.keys(row))]
@@ -3985,56 +3229,12 @@ function compactColumns(rows: Array<Record<string, unknown>>, preferred: string[
   return keys.slice(0, maxColumns);
 }
 
-function rowsFromSheets(sheets: MonitoreoReportSheet[] = [], terms: string[] = []) {
-  const filters = terms.map((term) => term.toLowerCase());
-  return sheets.flatMap((sheet) => (
-    sheet.blocks.flatMap((block) => {
-      const haystack = `${sheet.id} ${sheet.title} ${block.id} ${block.title}`.toLowerCase();
-      if (filters.length && !filters.some((term) => haystack.includes(term))) return [];
-      return block.rows.map((row) => ({
-        _sheet: sheet.title,
-        _block: block.title,
-        ...row,
-      }));
-    })
-  ));
-}
-
-function rowsForSheetBlock(
-  reports: MonitoreoAcreditacionReports,
-  sheetId: string,
-  blockIds: string[] = [],
-) {
-  const sheet = reports.sheets.find((item) => item.id === sheetId) ?? null;
-  if (!sheet) return [];
-  const wanted = new Set(blockIds.map((id) => id.toLowerCase()));
-  return sheet.blocks.flatMap((block) => {
-    if (wanted.size && !wanted.has(String(block.id).toLowerCase())) return [];
-    return block.rows.map((row) => ({
-      _block: block.title,
-      ...row,
-    }));
-  }) as Array<Record<string, unknown>>;
-}
-
 function phoneRowValue(row: Record<string, unknown>, keys: string[], fallback = "") {
   return rowText(row, keys, fallback).trim();
 }
 
-function phoneRowNumber(row: Record<string, unknown>, keys: string[], fallback = 0) {
-  return rowNumber(row, keys, fallback);
-}
 
-function phoneRowOptionalNumber(row: Record<string, unknown>, keys: string[]) {
-  const value = rowNumber(row, keys, Number.NaN);
-  return Number.isFinite(value) ? value : null;
-}
 
-function phoneRowRatioPct(row: Record<string, unknown>, keys: string[]) {
-  const value = phoneRowOptionalNumber(row, keys);
-  if (value == null) return null;
-  return Math.abs(value) <= 1 ? value * 100 : value;
-}
 
 function phoneQuotaVariableLabel(value: string) {
   return rotuloDeVariable(value);
@@ -4046,10 +3246,6 @@ function phoneSummaryValue(rows: Array<Record<string, unknown>>, labelNeedle: st
   if (!row) return null;
   const value = rowNumber(row, ["Valor", "Casos", "Total"], NaN);
   return Number.isFinite(value) ? value : null;
-}
-
-function phonePercentLabel(value: number | null | undefined) {
-  return formatPercentLabel(value);
 }
 
 /**
@@ -4099,23 +3295,6 @@ function phoneStatusIsEffective(label: string) {
   return key.includes("efectiv") || key.includes("completa") || key.includes("completo");
 }
 
-function phoneLooksLikeTechnicalSourceLabel(value: string) {
-  const key = normalizeSourceMatch(value);
-  if (!key) return false;
-  return (
-    key.includes("base de barrido")
-    || key.includes("base barrido")
-    || key.includes("barrido telefon")
-    || key.includes("_base")
-    || key.includes("_pdm")
-    || key.includes("spreadsheet")
-    || key.includes("google sheets")
-    || key.includes("kobotoolbox")
-    || key.includes("surveymonkey")
-    || /^\d+[_-]/.test(key)
-  );
-}
-
 function phoneCleanResponsibleDisplayName(value: string) {
   const cleanValue = String(value ?? "").trim();
   const parts = cleanValue.split(/\s+(?:·|-)\s+/).map((part) => part.trim()).filter(Boolean);
@@ -4145,13 +3324,8 @@ function phoneResponsibleName(row: Record<string, unknown>, index = 0) {
   const base = phoneResponsibleBaseName(row, index);
   const actor = phoneResponsibleActorName(row);
   const actorKey = normalizeSourceMatch(actor);
-  if (actorKey && !actorKey.includes("sin actor") && normalizeSourceMatch(base) !== actorKey) return `${base} · ${actor}`;
+  if (actorKey && !actorKey.includes("sin actor") && normalizeSourceMatch(base) !== actorKey) return `${base}, ${actor}`;
   return base;
-}
-
-function phoneIsUnassignedResponsible(value: string) {
-  const key = normalizeSourceMatch(value);
-  return !key || key.includes("sin responsable") || key.includes("sin asignar") || key.includes("no asignad");
 }
 
 function phoneResponsibleMetrics(row: Record<string, unknown>) {
@@ -4576,7 +3750,7 @@ function phoneTimeDateLabel(value: string) {
 
 function phoneTimeCaseContextLabel(item: AcreditacionPhoneTimeCase) {
   const parts = [item.responsible, item.actor].map((part) => part.trim()).filter(Boolean);
-  if (parts.length) return parts.join(" · ");
+  if (parts.length) return parts.join(", ");
   return "No informado";
 }
 
@@ -4607,21 +3781,7 @@ function phoneTimeCaseSort(a: AcreditacionPhoneTimeCase, b: AcreditacionPhoneTim
     || a.code.localeCompare(b.code, "es", { numeric: true });
 }
 
-function phoneDurationAlertThreshold(alert: AcreditacionQualityAlertItem) {
-  const text = normalizeSourceMatch(`${alert.title} ${alert.type} ${alert.detail} ${alert.signal.detail}`);
-  const explicit = text.match(/(?:menor(?:es)?\s*a|menos\s*de|<)\s*(\d+(?:[.,]\d+)?)\s*(?:min|minuto|minutos)?/);
-  if (explicit) {
-    const parsed = Number(explicit[1].replace(",", "."));
-    if (Number.isFinite(parsed)) return parsed;
-  }
-  if (text.includes("2 min") || text.includes("2 minuto") || text.includes("extremadamente")) return 2;
-  if (text.includes("5 min") || text.includes("5 minuto")) return 5;
-  return 5;
-}
 
-function phoneAlertCaseCount(alert: AcreditacionQualityAlertItem) {
-  return Math.max(1, Math.round(alert.count ?? alert.total ?? 1));
-}
 
 function phoneSupervisionBaseResponsibleName(row: Record<string, unknown>, index: number) {
   const raw = phoneRowValue(row, ["Responsable", "Encuestador", "Operador", "Agente", "Owner"], "") || `Responsable ${index + 1}`;
@@ -4674,14 +3834,6 @@ function mergeAcreditacionPhoneResponsibleRows(...rowGroups: Array<Array<Record<
       || (bMetrics.assigned ?? 0) - (aMetrics.assigned ?? 0)
       || (bMetrics.unswept ?? 0) - (aMetrics.unswept ?? 0)
       || phoneResponsibleName(a).localeCompare(phoneResponsibleName(b), "es");
-  });
-}
-
-function phoneDisplayRowsWithBaseColumn(rows: Array<Record<string, unknown>>) {
-  return rows.map((row) => {
-    if (!Object.prototype.hasOwnProperty.call(row, "Actor")) return row;
-    const { Actor: actor, ...rest } = row;
-    return { Base: actor, ...rest };
   });
 }
 
@@ -4824,7 +3976,7 @@ export function phoneQuotaRowsForPanel(rows: Array<Record<string, unknown>>): Ac
     };
   }).filter((row) => row.value && (row.universe > 0 || (row.meta != null && row.meta > 0)));
   const totalKeys = new Set(mapped
-    .filter((row) => ["total", "todos"].includes(normalizeSourceMatch(row.actor)) && row.meta != null)
+    .filter((row) => ["total", "todos"].includes(normalizeSourceMatch(row.actor))) // ADR 0126: una referencial declarada trae Meta vacía
     .map((row) => `${normalizeSourceMatch(row.variable)}\r${normalizeSourceMatch(row.value)}`));
   return mapped
     .filter((row) => !totalKeys.has(`${normalizeSourceMatch(row.variable)}\r${normalizeSourceMatch(row.value)}`) || ["total", "todos"].includes(normalizeSourceMatch(row.actor)))
@@ -4837,13 +3989,6 @@ export function phoneQuotaRowsForPanel(rows: Array<Record<string, unknown>>): Ac
       || b.universe - a.universe
       || a.value.localeCompare(b.value, "es", { numeric: true })
     ));
-}
-
-function phoneQuotaStatusTone(status: string, gap: number | null) {
-  const key = normalizeSourceMatch(status);
-  if (key.includes("cumple") || key.includes("completa") || gap === 0) return "ready";
-  if (key.includes("sin meta")) return "base";
-  return "warning";
 }
 
 function AcreditacionPhoneQuotaPanel({ rows }: { rows: Array<Record<string, unknown>> }) {
@@ -4960,7 +4105,7 @@ function AcreditacionPhoneQuotaPanel({ rows }: { rows: Array<Record<string, unkn
               <article key={group.variable} className="mon-phone-quota-actor mon-phone-quota-variable">
                 <header>
                   <strong>{group.variable}</strong>
-                  <em>{formatMetric(group.rows.length)} categoría{group.rows.length === 1 ? "" : "s"} · {formatMetric(group.rows.reduce((sum, row) => sum + row.universe, 0))} base</em>
+                  <em>{formatMetric(group.rows.length)} categoría{group.rows.length === 1 ? "" : "s"}, {formatMetric(group.rows.reduce((sum, row) => sum + row.universe, 0))} base</em>
                 </header>
                 <div className="mon-phone-quota-rows">
                   {group.rows.map((row) => {
@@ -5021,7 +4166,7 @@ function AcreditacionPhoneStorage({ totals }: { totals: ReturnType<typeof phoneO
     { key: "unswept", label: "Por barrer", value: totals.unswept, pct: totals.unsweptPct, hint: "de la base", tone: "unswept", detail: "Casos de la base que todavía nadie llamó.", available: totals.hasUnswept },
   ];
   const operationTooltip = (item: typeof operationItems[number]) => (
-    `${item.label}: ${formatMetric(item.value)} casos · ${phonePercentLabel(item.pct)} ${item.hint}. ${item.detail}`
+    `${item.label}: ${formatMetric(item.value)} casos, ${phonePercentLabel(item.pct)} ${item.hint}. ${item.detail}`
   );
   return (
     <div className="mon-phone-storage mon-phone-storage--operation" aria-label="Cobertura del barrido telefónico">
@@ -5213,7 +4358,7 @@ function AcreditacionPhoneResponsibleCards({ rows }: { rows: Array<Record<string
         const pendingPct = safePercentValue(metrics.unswept ?? 0, total);
         const incidencePct = metrics.incidencePct ?? nonEffectivePct;
         return (
-          <article key={`${name}-${index}`} className="mon-phone-responsible" title={actor ? `${displayName} · ${actor}` : displayName}>
+          <article key={`${name}-${index}`} className="mon-phone-responsible" title={actor ? `${displayName}, ${actor}` : displayName}>
             <header>
               <div className="mon-phone-responsible-title">
                 <strong>{displayName}</strong>
@@ -5349,9 +4494,6 @@ function AcreditacionPhoneIncidenceSection({
   );
 }
 
-function phoneAttemptValue(row: Record<string, unknown>, label: string) {
-  return phoneRowNumber(row, [label], 0);
-}
 
 const ACREDITACION_PHONE_ATTEMPT_BUCKETS = [
   { key: "1", label: "1", detail: "1 intento", candidates: ["1 intento"] },
@@ -5371,11 +4513,6 @@ type AcreditacionPhoneAttemptBucket = typeof ACREDITACION_PHONE_ATTEMPT_BUCKETS[
 
 function phoneAttemptBucketValue(row: Record<string, unknown>, bucket: AcreditacionPhoneAttemptBucket) {
   return bucket.candidates.reduce((sum, candidate) => sum + phoneAttemptValue(row, candidate), 0);
-}
-
-function phoneOpsPercent(value: number, total: number) {
-  if (!total || total <= 0) return 0;
-  return Math.max(0, Math.min(100, (value / total) * 100));
 }
 
 /**
@@ -5444,10 +4581,6 @@ function phoneNoAnswerCaseFromRow(row: Record<string, unknown>, index: number, o
     dateLabel: phoneCaseDateLabel(row),
     intensity: phoneAttemptIntensity(attempts || null),
   };
-}
-
-function phoneAttemptCountLabel(value: number) {
-  return value === 1 ? "1 intento" : `${formatMetric(value)} intentos`;
 }
 
 function AcreditacionPhoneTimeWorkbench({
@@ -5522,7 +4655,7 @@ function AcreditacionPhoneSupervisionBoard({
   totals: ReturnType<typeof phoneOperationTotals>;
   platformEffective: number | null;
 }) {
-  const [activeSupervisionTab, setActiveSupervisionTab] = useState<"tiempo" | "muestra" | "prioridad">("tiempo");
+  const [activeSupervisionTab, setActiveSupervisionTab] = useSubvistaEnFoco(VISTAS_DE_SUPERVISION, "tiempo"); // L19: viaja en el foco
   const sampleRows = acreditacionPhoneControlSampleRows(reports);
   const model = buildAcreditacionPhoneSupervisionModel({ alertRows, pendingRows, insistenceRows, reattemptRows });
   const koboEffectiveTotal = platformEffective ?? totals.effective;
@@ -5735,18 +4868,13 @@ function phoneTimeCaseGroups(cases: AcreditacionPhoneTimeCase[]) {
 function phoneTimeCaseSourceLabel(item: AcreditacionPhoneTimeCase) {
   const source = item.source.trim();
   const normalizedSource = normalizeSourceMatch(source);
-  if (normalizedSource.includes("start") && normalizedSource.includes("end")) return "Kobo · inicio a fin";
-  if (normalizedSource.includes("duration")) return "Kobo · duración calculada";
+  if (normalizedSource.includes("start") && normalizedSource.includes("end")) return "Kobo, inicio a fin";
+  if (normalizedSource.includes("duration")) return "Kobo, duración calculada";
   if (source) return source.replaceAll("_", " ");
   if (item.survey) return item.survey;
   return "KoboToolbox";
 }
 
-function phoneDurationAlertDisplayDetail(alert: AcreditacionQualityAlertItem) {
-  return (alert.detail || "Revisar duración y consistencia de la respuesta.")
-    .replace(/\s*Fuente:.*$/i, "")
-    .trim();
-}
 
 function AcreditacionPhoneSupervisionSamplePlan({
   plan,
@@ -5946,15 +5074,6 @@ function AcreditacionPhoneQualityAlertsPanel({
   );
 }
 
-function acreditacionPhoneAlertSignalRows(alerts: AcreditacionQualityAlertItem[]) {
-  const rows = new Map<string, { kind: string; label: string; count: number }>();
-  alerts.forEach((alert) => {
-    const current = rows.get(alert.signal.kind) ?? { kind: alert.signal.kind, label: alert.signal.label, count: 0 };
-    current.count += alert.count ?? 1;
-    rows.set(alert.signal.kind, current);
-  });
-  return Array.from(rows.values()).sort((a, b) => b.count - a.count || a.label.localeCompare(b.label, "es"));
-}
 
 function AcreditacionPhoneQualityAlertCard({ alert }: { alert: AcreditacionQualityAlertItem }) {
   const displayCode = alert.code.replace(/^(codpulso|cod pulso|codigo|código|id|cv_id|custom_value):/i, "");
@@ -5980,10 +5099,6 @@ function AcreditacionPhoneQualityAlertCard({ alert }: { alert: AcreditacionQuali
       </div>
     </article>
   );
-}
-
-function acreditacionPhoneControlSampleRows(reports: MonitoreoAcreditacionReports) {
-  return rowsForSheetBlock(reports, "monitoreo_telefonico", ["muestra_control", "muestra_supervision", "control_sample"]);
 }
 
 function AcreditacionPhonePendingInsistence({
@@ -6092,8 +5207,8 @@ function AcreditacionPhonePendingInsistence({
         ) : null}
         <span className={totalPending ? "is-warning" : "is-ok"}><strong>{formatMetric(totalPending)}</strong><em>por llamar, ya asignados</em></span>
         <span><strong>{formatMetric(totalNoAnswer)}</strong><em>no contestan</em></span>
-        <span><strong>{totalAssigned == null ? "S/D" : formatMetric(totalAssigned)}</strong><em>casos repartidos{sinAsignadas ? ` · ${formatMetric(sinAsignadas)} sin dato` : ""}</em></span>
-        <span><strong>{avgAttempts == null ? "—" : avgAttempts.toLocaleString("es-PE", { maximumFractionDigits: 1 })}</strong><em>intentos en promedio</em></span>
+        <span><strong>{totalAssigned == null ? "S/D" : formatMetric(totalAssigned)}</strong><em>casos repartidos{sinAsignadas ? `, ${formatMetric(sinAsignadas)} sin dato` : ""}</em></span>
+        <span><strong>{avgAttempts == null ? "—" : formatoDecimal(avgAttempts, 1)}</strong><em>intentos en promedio</em></span>
       </div>
       <div className="mon-phone-attempt-scale" aria-label="Escala de insistencia por intentos">
         {totalBuckets.map((bucket, index) => (
@@ -6114,7 +5229,7 @@ function AcreditacionPhonePendingInsistence({
               <header>
                 <div>
                   <strong>{row.name}</strong>
-                  <em>{assigned == null ? "S/D" : formatMetric(assigned)} casos asignados · {formatMetric(row.noAnswer)} sin respuesta</em>
+                  <em>{assigned == null ? "S/D" : formatMetric(assigned)} casos asignados, {formatMetric(row.noAnswer)} sin respuesta</em>
                 </div>
                 <span className={row.pending ? "is-warning" : "is-ok"}>
                   <strong>{formatMetric(row.pending)}</strong>
@@ -6149,7 +5264,7 @@ function AcreditacionPhonePendingInsistence({
               </div>
               <div className="mon-phone-attempt-track-block">
                 <div className="mon-phone-track-labels">
-                  <span><strong>{row.avg == null ? "S/D" : row.avg.toLocaleString("es-PE", { maximumFractionDigits: 1 })}</strong><em>promedio de intentos</em></span>
+                  <span><strong>{row.avg == null ? "S/D" : formatoDecimal(row.avg, 1)}</strong><em>promedio de intentos</em></span>
                   <span><strong>{formatMetric(row.reattemptable ?? 0)}</strong><em>casos reintentables</em></span>
                 </div>
                 <div className="mon-phone-attempt-track" aria-label={`${row.name}: distribución de intentos en casos que no contestan`}>
@@ -6201,7 +5316,7 @@ function AcreditacionPhonePendingInsistence({
                             <em>{[
                               item.code && item.code !== item.name ? `CodPulso ${item.code}` : "",
                               item.dateLabel,
-                            ].filter(Boolean).join(" · ") || "sin fecha"}</em>
+                            ].filter(Boolean).join(", ") || "sin fecha"}</em>
                           </div>
                           <span><strong>{phoneAttemptCountLabel(item.attempts)}</strong><em>de {formatMetric(item.target)}</em></span>
                           <i title={`${item.status}: ${phoneAttemptCountLabel(item.attempts)} de ${formatMetric(item.target)}`}>
@@ -6341,7 +5456,7 @@ function TelefonicoPendingOperationalTable({
                   <small>{row.detailCount ? `${formatMetric(row.detailCount)} casos con detalle` : "sin detalle individual"}</small>
                 </td>
                 <td>
-                  <strong>{row.avgAttempts == null ? "S/D" : row.avgAttempts.toLocaleString("es-PE", { maximumFractionDigits: 1 })}</strong>
+                  <strong>{row.avgAttempts == null ? "S/D" : formatoDecimal(row.avgAttempts, 1)}</strong>
                   <small>{row.attemptSum == null ? "sin suma" : `${formatMetric(row.attemptSum)} intentos`}</small>
                 </td>
                 <td>
@@ -6355,35 +5470,6 @@ function TelefonicoPendingOperationalTable({
       </div>
     </section>
   );
-}
-
-function phoneDailyBlockForPanel(reports: MonitoreoAcreditacionReports): MonitoreoReportBlock | null {
-  const phoneEffective = reportBlockForSheet(reports, "monitoreo_telefonico", "avance_efectivo_dia");
-  if (phoneEffective?.rows.length) return phoneEffective;
-
-  const summaryEffective = reportBlockForSheet(reports, "resumen", "avance_efectivo_dia");
-  if (summaryEffective?.rows.length) {
-    const columns = reportBlockColumns(summaryEffective);
-    const dateColumns = columns.filter((column) => {
-      const key = normalizeReportMatch(column);
-      return key && !["unidad", "actor", "estado", "estatus", "total"].includes(key);
-    });
-    const rows = dateColumns.map((column) => ({
-      Fecha: column,
-      Efectivas: summaryEffective.rows.reduce((sum, row) => sum + reportNumberValue(row[column]), 0),
-    })).filter((row) => row.Efectivas > 0);
-    if (rows.length) {
-      return {
-        id: "avance_efectivo_dia",
-        title: "Avance efectivo por día",
-        columns: ["Fecha", "Efectivas"],
-        rows,
-        note: "Corte diario consolidado desde el avance efectivo.",
-      };
-    }
-  }
-
-  return reportBlockForSheet(reports, "monitoreo_telefonico", "produccion_dia");
 }
 
 function phoneBooleanValue(row: Record<string, unknown>, keys: string[]) {
@@ -6427,7 +5513,7 @@ export function phoneCodPulsoDifferenceHint(comparison: Pick<PhonePlatformCompar
   if (comparison.platformWithoutPhone) parts.push(`${fmt(comparison.platformWithoutPhone)} Kobo con telefono pendiente`);
   if (comparison.phoneWithoutPlatform) parts.push(`${fmt(comparison.phoneWithoutPlatform)} tel. sin Kobo`);
   if (comparison.withoutCode) parts.push(`${fmt(comparison.withoutCode)} sin CodPulso`);
-  return parts.length ? parts.join(" · ") : `${fmt(comparison.mismatch)} diferencias`;
+  return parts.length ? parts.join(", ") : `${fmt(comparison.mismatch)} diferencias`;
 }
 
 export function phoneCodPulsoDifferenceSentence(comparison: Pick<PhonePlatformComparisonTotals, "mismatch" | "phoneWithoutPlatform" | "platformWithoutPhone" | "withoutCode" | "total">) {
@@ -6618,7 +5704,7 @@ function AcreditacionPhoneComparisonEvidenceItem({
       </span>
       <span className="mon-phone-compare-evidence-note">
         <em>{phonePlatformComparisonLabel(row)}</em>
-        <strong>{[responsible, date ? formatDate(date) : ""].filter(Boolean).join(" · ") || "Sin responsable/fecha"}</strong>
+        <strong>{[responsible, date ? formatDate(date) : ""].filter(Boolean).join(", ") || "Sin responsable/fecha"}</strong>
       </span>
     </article>
   );
@@ -6724,7 +5810,7 @@ function AcreditacionPhonePlatformComparison({ rows }: { rows: Array<Record<stri
             <strong>{formatMetric(item.value)}</strong>
             <em>{item.key === "matched" ? "alineadas" : item.key === "mismatch" ? "por revisar" : "casos"}</em>
             <i aria-hidden="true" />
-            <small>{item.key === "matched" || item.key === "mismatch" ? item.hint : `${phonePercentLabel(item.pct)} · ${item.hint}`}</small>
+            <small>{item.key === "matched" || item.key === "mismatch" ? item.hint : `${phonePercentLabel(item.pct)}, ${item.hint}`}</small>
           </section>
         ))}
       </div>
@@ -6743,7 +5829,7 @@ function AcreditacionPhonePlatformComparison({ rows }: { rows: Array<Record<stri
       <details className="mon-phone-compare-evidence">
         <summary>
           <span><FileCheck2 size={13} /> Evidencia por llave</span>
-          <em>{formatMetric(evidenceRows.length)} visibles{hiddenEvidenceCount ? ` · ${formatMetric(hiddenEvidenceCount)} más` : ""}</em>
+          <em>{formatMetric(evidenceRows.length)} visibles{hiddenEvidenceCount ? `, ${formatMetric(hiddenEvidenceCount)} más` : ""}</em>
         </summary>
         <div className="mon-phone-compare-evidence-list" aria-label="Evidencia visual de comparación por CodPulso">
           {evidenceRows.map((row, index) => (
@@ -6781,7 +5867,7 @@ function AcreditacionPhoneOperationsWorkbench({
   const quotaRows = rowsForSheetBlock(reports, "monitoreo_telefonico", ["cuotas_variable", "cuotas_telefonicas", "cuotas_por_variable"]);
   // Mismo origen que en la vista de cuotas: el nombre lo declara el estudio en
   // `control_vars` y viaja en la columna `Variable` de cada fila.
-  const segmentoDeLasCuotas = nombreDelSegmento(phoneQuotaRowsForPanel(quotaRows).map((row) => row.variable));
+  const segmentoDeLasCuotas = variableDeCuotas(phoneQuotaRowsForPanel(quotaRows));
   const responsibleRows = mergeAcreditacionPhoneResponsibleRows(
     rowsForSheetBlock(reports, "monitoreo_telefonico", ["operacion_responsable"]),
     rowsForSheetBlock(reports, "monitoreo_telefonico", ["efectivos_responsable"]),
@@ -6965,36 +6051,6 @@ function renderPhoneView(
   return <AcreditacionPhoneOperationsWorkbench reports={reports} activeTab={activeTab} fallbackEffective={fallbackEffective} standalone={standalone} corte={corte} goals={goals} />;
 }
 
-function uniqueDisplayValues(values: unknown[]) {
-  const seen = new Set<string>();
-  const out: string[] = [];
-  for (const value of values) {
-    const label = String(value ?? "").trim();
-    const key = normalizeSourceMatch(label);
-    if (!label || !key || key === "sin dato" || key === "sin actor" || seen.has(key)) continue;
-    seen.add(key);
-    out.push(label);
-  }
-  return out;
-}
-
-function sourceProviderLabel(kind: MonitoreoSource["kind"]) {
-  if (kind === "google_sheets") return "Google Sheets";
-  if (kind === "surveymonkey") return "SurveyMonkey";
-  if (kind === "kobo") return "KoboToolbox";
-  return kind;
-}
-
-function sourceActorLabel(source: MonitoreoSource) {
-  return String(
-    source.dimensions?.actor
-    ?? source.dimensions?.carrera
-    ?? source.dimensions?.segmento
-    ?? source.dimensions?.unidad
-    ?? "",
-  ).trim() || "Sin actor";
-}
-
 function sourceChannelLabel(source: MonitoreoSource) {
   return acreditacionSourceChannel(source) || (source.kind === "google_sheets" ? "Base" : "Sin canal");
 }
@@ -7006,32 +6062,6 @@ function sourceExternalId(source: MonitoreoSource) {
     sourceSheetField(source, "spreadsheet_id"),
     sourceSheetField(source, "sheet_name"),
   ].filter(Boolean).join(" / ") || source.id;
-}
-
-function isPlatformResponseSource(source: MonitoreoSource) {
-  return (source.kind === "surveymonkey" || source.kind === "kobo")
-    && (source.role === "respuestas" || !source.role || Boolean(source.survey_id) || Boolean(source.asset_uid));
-}
-
-function isSurveyMonkeyResponseSource(source: MonitoreoSource) {
-  return source.kind === "surveymonkey"
-    && (source.role === "respuestas" || !source.role || Boolean(source.survey_id));
-}
-
-function isKoboResponseSource(source: MonitoreoSource) {
-  return source.kind === "kobo"
-    && (source.role === "respuestas" || !source.role || Boolean(source.asset_uid));
-}
-
-function shortenMiddle(value: string, maxLength: number) {
-  if (value.length <= maxLength) return value;
-  const edge = Math.max(6, Math.floor((maxLength - 3) / 2));
-  return `${value.slice(0, edge)}...${value.slice(-edge)}`;
-}
-
-function sourceFlatField(source: MonitoreoSource, key: string) {
-  const value = (source as unknown as Record<string, unknown>)[key];
-  return String(value ?? "").trim();
 }
 
 function sourceSpreadsheetUrl(source: MonitoreoSource) {
@@ -7071,25 +6101,6 @@ function sourcesForPreset(sources: MonitoreoSource[], preset: AcreditacionSource
   return sources.filter((source) => source.kind === "google_sheets" && source.role === preset.role);
 }
 
-function presetSourceStatus(sources: MonitoreoSource[]) {
-  if (!sources.length) return "Pendiente";
-  if (sources.some((source) => source.enabled)) return "Lista";
-  return "Inactiva";
-}
-
-function mostRecentSyncLabel(sources: MonitoreoSource[]) {
-  const stamps = sources
-    .map((source) => source.last_sync_at)
-    .filter((value): value is string => Boolean(value));
-  if (!stamps.length) return "Sin sync";
-  const sorted = stamps.sort((a, b) => {
-    const left = new Date(a).getTime();
-    const right = new Date(b).getTime();
-    return (Number.isFinite(right) ? right : 0) - (Number.isFinite(left) ? left : 0);
-  });
-  return formatDate(sorted[0]);
-}
-
 function sourceRowsForTable(sources: MonitoreoSource[], { phoneMode = false }: { phoneMode?: boolean } = {}) {
   return sources.map((source) => ({
     Fuente: source.label || source.id,
@@ -7120,36 +6131,6 @@ function sourcePackageRows(sources: MonitoreoSource[]) {
     };
   });
 }
-
-function cleanSourceDimensions(dimensions: Record<string, string | undefined>) {
-  return Object.fromEntries(
-    Object.entries(dimensions)
-      .map(([key, value]) => [key, String(value ?? "").trim()] as const)
-      .filter(([, value]) => value.length > 0),
-  );
-}
-
-function sourceDimensionEntries(dimensions: Record<string, string> | undefined) {
-  return Object.entries(dimensions ?? {})
-    .filter(([, value]) => String(value ?? "").trim())
-    .slice(0, 8);
-}
-
-function dimensionLabel(key: string) {
-  const labels: Record<string, string> = {
-    actor: "Actor",
-    carrera: "Carrera",
-    canal: "Canal",
-    channel: "Canal",
-    segmento: "Segmento",
-    servicio: "Servicio",
-    territorio: "Territorio",
-    sheet_name: "Pestaña",
-    survey_title: "Encuesta",
-  };
-  return labels[key] ?? key.replaceAll("_", " ");
-}
-
 
 function normalizeCollectorUse(value: unknown): MonitoreoCollectorUse {
   return MODEL_COLLECTOR_USE_OPTIONS.some((option) => option.value === value)
@@ -7287,23 +6268,6 @@ function collectorTypeLabel(value: string) {
   if (normalized === "weblink" || normalized === "web_link" || normalized === "web link") return "Link abierto";
   if (normalized === "sms") return "SMS";
   return value || "Enlace";
-}
-
-function collectorDisplayName(item: MonitoreoSurveyMonkeyCollector | MonitoreoLinkCollector) {
-  const raw = String(item.collector_name || item.collector_id || "Recopilador").trim();
-  if (/^collector\s+/i.test(raw)) return raw.replace(/^collector/i, "Recopilador");
-  if (/^colector\s+/i.test(raw)) return raw.replace(/^colector/i, "Recopilador");
-  return raw;
-}
-
-function collectorNumber(value: unknown) {
-  const n = Number(value);
-  return Number.isFinite(n) ? n : 0;
-}
-
-function countFromRecord(record: Record<string, number> | undefined, keys: string[]) {
-  if (!record) return 0;
-  return keys.reduce((sum, key) => sum + collectorNumber(record[key]), 0);
 }
 
 function collectorConfigFromDiscovery(item: MonitoreoSurveyMonkeyCollector | MonitoreoLinkCollector): MonitoreoLinkCollector {
@@ -7594,7 +6558,7 @@ function AcreditacionChannelSelectorMatrix({
                     <AcreditacionChannelBadge channel={selected} />
                     <div>
                       <strong>{source.survey_title || source.label || source.id}</strong>
-                      <em>{sourceActorLabel(source)} · {sourceExternalId(source)}</em>
+                      <em>{sourceActorLabel(source)}, {sourceExternalId(source)}</em>
                     </div>
                   </div>
                   <AcreditacionChannelSelect
@@ -7606,23 +6570,20 @@ function AcreditacionChannelSelectorMatrix({
               );
             })}
             {!surveySources.length ? (
-              <div className="mon-sm-empty">Conecta una fuente SurveyMonkey para clasificar canales y recopiladores.</div>
+              <EstadoVacio icono={<PlugZap size={15} />} titulo="Conecta una fuente SurveyMonkey para clasificar canales y recopiladores." />
             ) : null}
           </div>
         </div>
 
         <div className="mon-collector-body mon-collector-body--matrix" aria-label="Canal por recopilador">
           {loading ? (
-            <div className="mon-collector-loading">
-              <Loader2 size={16} className="pulso-spin" />
-              <span>Leyendo recopiladores locales...</span>
-            </div>
+            <LoadingBlock variant="inline" label="Leyendo recopiladores locales..." />
           ) : null}
           {!loading && sourceIds.length > 0 && !mergedItems.length ? (
-            <div className="mon-sm-empty">Sin recopiladores detectados. Revisa el snapshot local o lee SurveyMonkey de forma explícita.</div>
+            <EstadoVacio icono={<ListChecks size={15} />} titulo="Sin recopiladores detectados" descripcion="Revisa el snapshot local o lee SurveyMonkey de forma explícita." />
           ) : null}
           {!sourceIds.length ? (
-            <div className="mon-sm-empty">No hay encuestas SurveyMonkey activas para descubrir recopiladores.</div>
+            <EstadoVacio icono={<ListChecks size={15} />} titulo="No hay encuestas SurveyMonkey activas para descubrir recopiladores." />
           ) : null}
           <div className="mon-collector-list">
             {mergedItems.map((item) => {
@@ -7688,7 +6649,7 @@ function AcreditacionChannelSelectorMatrix({
 
                   <div className="mon-collector-channel-line">
                     <AcreditacionChannelBadge channel={channel} />
-                    <span>{collectorDisplayName(item)} · {item.collector_id}</span>
+                    <span>{collectorDisplayName(item)}, {item.collector_id}</span>
                   </div>
 
                   {(item.warnings?.length || item.recipient_summary?.truncated) ? (
@@ -7707,28 +6668,12 @@ function AcreditacionChannelSelectorMatrix({
   );
 }
 
-function inferAcreditacionSurveyChannel(survey: SurveyMonkeyMultibaseListItem) {
-  const text = normalizeSourceMatch(`${survey.title} ${survey.nickname ?? ""}`);
-  const institutionalActor = text.includes("docent") || text.includes("administr");
-  if (text.includes("correo") || text.includes("email") || text.includes("mail")) return "Correo";
-  if (text.includes("telefon")) return "Telefónico";
-  if (text.includes("presencial") || text.includes("qr")) return "Presencial (Ficha QR)";
-  if (institutionalActor && !text.includes("whatsapp") && !text.includes("sms")) return "Correo";
-  if (text.includes("whatsapp") || text.includes("sms") || text.includes("web") || text.includes("link") || text.includes("enlace")) return "Enlace personalizado (Whatsapp)";
-  if (text.includes("egresad")) return "Telefónico";
-  return "Correo";
-}
-
 function inferAcreditacionSurveyActor(survey: SurveyMonkeyMultibaseListItem) {
   const text = normalizeSourceMatch(`${survey.title} ${survey.nickname ?? ""}`);
   const actor = ACREDITACION_DEFAULT_ACTORS.find((option) => (
     text.includes(normalizeSourceMatch(option))
   ));
   return actor ?? "Sin actor";
-}
-
-function surveyMonkeyDisplayTitle(survey: SurveyMonkeyMultibaseListItem) {
-  return survey.nickname || survey.title || survey.id;
 }
 
 function AcreditacionSourceStatusStrip({
@@ -7787,7 +6732,7 @@ function AcreditacionSourceStatusStrip({
       <header>
         <span>Fuentes</span>
         <strong>{phoneContract ? "Paquete telefónico" : "Paquete de acreditación"}</strong>
-        <p>{fmt(packageTotalCount)} operativas · {fmt(packageActiveCount)} listas · corte {formatDate(reports.generated_at)}</p>
+        <p>{fmt(packageTotalCount)} operativas, {fmt(packageActiveCount)} listas, corte {formatDate(reports.generated_at)}</p>
       </header>
       {/* En telefónico esta franja no lleva métricas.
         *
@@ -8195,7 +7140,7 @@ function AcreditacionSheetSourceEditor({
         <div className="mon-acr-sheet-inspection">
           <div className="mon-acr-sheet-inspection-head">
             <strong>{inspection.title || inspection.spreadsheet_id}</strong>
-            <span>{fmt(inspection.sheets.length)} pestañas · {fmt(inspection.headers.length)} encabezados</span>
+            <span>{fmt(inspection.sheets.length)} pestañas, {fmt(inspection.headers.length)} encabezados</span>
           </div>
           <div className="mon-acr-sheet-tabs">
             {inspection.sheets.slice(0, 14).map((sheet) => (
@@ -8410,8 +7355,8 @@ function AcreditacionSurveySourcePicker({
       </div>
       {meta ? (
         <div className="mon-sm-meta">
-          {fmt(results.length)} visibles · {fmt(meta.totalRecent)} recientes en {meta.months === 1 ? "el último mes" : `los últimos ${fmt(meta.months)} meses`}
-          {meta.fromCache ? " · catálogo local" : " · SurveyMonkey"}
+          {fmt(results.length)} visibles, {fmt(meta.totalRecent)} recientes en {meta.months === 1 ? "el último mes" : `los últimos ${fmt(meta.months)} meses`}
+          {meta.fromCache ? ", catálogo local" : ", SurveyMonkey"}
         </div>
       ) : null}
       {status ? <div className={status.tone === "error" ? "mon-sm-error" : "mon-sm-meta"}>{status.message}</div> : null}
@@ -8445,7 +7390,7 @@ function AcreditacionSurveySourcePicker({
                   >
                     <span className="pulso-sm-survey-card-copy">
                       <strong>{surveyMonkeyDisplayTitle(survey)}</strong>
-                      <small>{survey.id}{survey.date_modified ? ` · ${formatDate(survey.date_modified)}` : ""}</small>
+                      <small>{survey.id}{survey.date_modified ? `, ${formatDate(survey.date_modified)}` : ""}</small>
                       <span className="pulso-sm-survey-card-meta">
                         {survey.pais_guess ? <b>{survey.pais_guess}</b> : null}
                         {survey.response_count != null ? <i>{fmt(survey.response_count)} respuestas</i> : null}
@@ -8462,7 +7407,7 @@ function AcreditacionSurveySourcePicker({
             <div className="mon-sm-selected-survey">
               <div className="pulso-sm-selected-head">
                 <strong>Encuesta seleccionada</strong>
-                <span>{surveyMonkeyDisplayTitle(selectedSurvey)} · {selectedSurvey.id}</span>
+                <span>{surveyMonkeyDisplayTitle(selectedSurvey)}, {selectedSurvey.id}</span>
               </div>
               <div className="mon-sm-result">
                 <div className="mon-sm-result-main">
@@ -8556,7 +7501,7 @@ function AcreditacionKoboSourcePicker({
   const resolvedProfile = requestedProfile ?? compatibleProfile ?? (!requestedProfileId ? preferredKoboProfile : null);
   const resolvedProfileId = resolvedProfile?.id ?? requestedProfileId;
   const resolvedProfileLabel = resolvedProfile
-    ? `${resolvedProfile.alias || resolvedProfile.id}${resolvedProfile.server_label || resolvedProfile.base_url ? ` · ${resolvedProfile.server_label || resolvedProfile.base_url}` : ""}`
+    ? `${resolvedProfile.alias || resolvedProfile.id}${resolvedProfile.server_label || resolvedProfile.base_url ? `, ${resolvedProfile.server_label || resolvedProfile.base_url}` : ""}`
     : requestedProfileId || "Automático por servidor";
   const hasAnyKoboToken = Boolean(koboConnection?.has_token || profiles.some((profile) => profile.has_token));
   const portabilityNotice = useMemo((): { tone: "info" | "warning"; title: string; text: string } | null => {
@@ -8768,12 +7713,12 @@ function AcreditacionKoboSourcePicker({
               {profiles.map((profile) => (
                 <option key={profile.id} value={profile.id}>
                   {profile.alias || profile.id}
-                  {profile.server_label || profile.base_url ? ` · ${profile.server_label || profile.base_url}` : ""}
-                  {profile.has_token ? "" : " · sin token"}
+                  {profile.server_label || profile.base_url ? `, ${profile.server_label || profile.base_url}` : ""}
+                  {profile.has_token ? "" : ", sin token"}
                 </option>
               ))}
               {configuredProfileId && !profiles.some((profile) => profile.id === configuredProfileId) ? (
-                <option value={configuredProfileId}>Perfil del proyecto · {shortenMiddle(configuredProfileId, 18)}</option>
+                <option value={configuredProfileId}>Perfil del proyecto, {shortenMiddle(configuredProfileId, 18)}</option>
               ) : null}
             </select>
           ) : (
@@ -8849,7 +7794,7 @@ function AcreditacionKoboSourcePicker({
                   >
                     <span className="pulso-sm-survey-card-copy">
                       <strong>{asset.name || asset.uid}</strong>
-                      <small>{asset.uid}{asset.date_modified ? ` · ${formatDate(asset.date_modified)}` : ""}</small>
+                      <small>{asset.uid}{asset.date_modified ? `, ${formatDate(asset.date_modified)}` : ""}</small>
                       <span className="pulso-sm-survey-card-meta">
                         <b>{asset.deployment_active ? "Deploy activo" : "Sin deploy activo"}</b>
                         {asset.version_id ? <i>{asset.version_id}</i> : null}
@@ -8866,7 +7811,7 @@ function AcreditacionKoboSourcePicker({
             <div className="mon-sm-selected-survey">
               <div className="pulso-sm-selected-head">
                 <strong>Encuesta Kobo seleccionada</strong>
-                <span>{selectedAsset.name || selectedAsset.uid} · {shortenMiddle(selectedAsset.uid, 34)}</span>
+                <span>{selectedAsset.name || selectedAsset.uid}, {shortenMiddle(selectedAsset.uid, 34)}</span>
               </div>
               <div className="mon-sm-result">
                 <label className="mon-source-name-field">
@@ -8924,10 +7869,7 @@ function AcreditacionSurveyInspectionCard({
   if (!inspection) return null;
   if (inspection.loading && !inspection.data) {
     return (
-      <div className="mon-sm-inspection">
-        <Loader2 size={14} className="pulso-spin" />
-        <span>Cargando estructura y respuestas...</span>
-      </div>
+      <LoadingBlock variant="inline" label="Cargando estructura y respuestas..." />
     );
   }
   if (inspection.error && !inspection.data) {
@@ -8956,7 +7898,7 @@ function AcreditacionSurveyInspectionCard({
       {columns.length ? (
         <div className="mon-sm-column-list">
           {columns.map((column) => (
-            <span key={column.name} title={column.examples.join(" · ")}>
+            <span key={column.name} title={column.examples.join(", ")}>
               {column.name}
               <em>{fmt(column.non_empty)}</em>
             </span>
@@ -8969,7 +7911,7 @@ function AcreditacionSurveyInspectionCard({
             <div key={`${question.qid}-${question.pos}`}>
               <strong>Q{question.pos}</strong>
               <span>{question.heading || question.family}</span>
-              <em>{question.family}{question.n_choices ? ` · ${fmt(question.n_choices)} opciones` : ""}</em>
+              <em>{question.family}{question.n_choices ? `, ${fmt(question.n_choices)} opciones` : ""}</em>
             </div>
           ))}
         </div>
@@ -9237,11 +8179,7 @@ function AcreditacionPlatformSurveySourcesView({
             );
           })}
           {!platformSources.length ? (
-            <div className="mon-acr-empty-state">
-              <ListChecks size={18} />
-              <strong>Sin encuestas conectadas</strong>
-              <span>Agrega SurveyMonkey o selecciona una encuesta Kobo de plataforma y después asigna cada una al actor correcto.</span>
-            </div>
+            <EstadoVacio icono={<ListChecks size={15} />} titulo="Sin encuestas conectadas" descripcion="Agrega SurveyMonkey o selecciona una encuesta Kobo de plataforma y después asigna cada una al actor correcto." />
           ) : null}
         </div>
       </section>
@@ -9398,7 +8336,7 @@ function AcreditacionSheetsByActorView({
               );
             })}
             {!actorOptions.length ? (
-              <div className="mon-sm-empty">Configura actores en Encuestas en plataforma o agrega uno manualmente.</div>
+              <EstadoVacio icono={<ContactRound size={15} />} titulo="Configura actores en Encuestas en plataforma o agrega uno manualmente." />
             ) : null}
           </div>
           <div className="mon-acr-actor-sheet-editor">
@@ -9439,7 +8377,7 @@ function AcreditacionSheetsByActorView({
               <div className="mon-acr-sheet-inspection">
                 <div className="mon-acr-sheet-inspection-head">
                   <strong>{inspection.title || inspection.spreadsheet_id}</strong>
-                  <span>{fmt(inspection.sheets.length)} pestañas · {fmt(inspection.headers.length)} encabezados</span>
+                  <span>{fmt(inspection.sheets.length)} pestañas, {fmt(inspection.headers.length)} encabezados</span>
                 </div>
                 <div className="mon-acr-sheet-tabs">
                   {inspection.sheets.slice(0, 14).map((sheet) => (
@@ -9574,13 +8512,13 @@ function AcreditacionCollectorsSourceView({
                 <AcreditacionChannelBadge channel={channel} />
                 <span>
                   <strong>{acreditacionSurveySourceName(source)}</strong>
-                  <em>{sourceActorLabel(source)} · {sourceExternalId(source)}</em>
+                  <em>{sourceActorLabel(source)}, {sourceExternalId(source)}</em>
                 </span>
                 <b>{hasMetadata ? `${fmt(count)} recopiladores` : "Sin metadata"}</b>
               </button>
             );
           })}
-          {!surveySources.length ? <div className="mon-sm-empty">No hay encuestas SurveyMonkey activas.</div> : null}
+          {!surveySources.length ? <EstadoVacio icono={<ListChecks size={15} />} titulo="No hay encuestas SurveyMonkey activas." /> : null}
         </div>
         {selectedSource && !selectedHasMetadata ? (
           <div className="mon-acr-metadata-missing">
@@ -9653,7 +8591,7 @@ function AcreditacionCollectorsSourceView({
             );
           })}
           {selectedHasMetadata && !collectorRows.length ? (
-            <div className="mon-sm-empty">Esta encuesta no tiene recopiladores persistidos.</div>
+            <EstadoVacio icono={<ListChecks size={15} />} titulo="Esta encuesta no tiene recopiladores persistidos." />
           ) : null}
         </div>
       </section>
@@ -9738,11 +8676,11 @@ function AcreditacionActiveSourcesView({
               {phoneSheetSources.map((source) => (
                 <article key={source.id}>
                   <strong>{source.label || source.sheet_binding?.sheet_name || source.id}</strong>
-                  <span>{source.role === "barrido" ? "Barrido telefónico" : "Base telefónica"} · {source.sheet_binding?.sheet_name || "Sin pestaña"}</span>
+                  <span>{source.role === "barrido" ? "Barrido telefónico" : "Base telefónica"}, {source.sheet_binding?.sheet_name || "Sin pestaña"}</span>
                   <em>{sourceSyncLabel(source)}</em>
                 </article>
               ))}
-              {!phoneSheetSources.length ? <div className="mon-sm-empty">Sin Sheets telefónicas activas.</div> : null}
+              {!phoneSheetSources.length ? <EstadoVacio icono={<Table2 size={15} />} titulo="Sin Sheets telefónicas activas." /> : null}
             </div>
           </section>
           <section className="mon-acr-object-surface">
@@ -9757,11 +8695,11 @@ function AcreditacionActiveSourcesView({
               {koboSources.map((source) => (
                 <article key={source.id}>
                   <strong>{acreditacionSurveySourceName(source)}</strong>
-                  <span>{sourceProviderLabel(source.kind)} · {shortenMiddle(sourceExternalId(source), 34)}</span>
+                  <span>{sourceProviderLabel(source.kind)}, {shortenMiddle(sourceExternalId(source), 34)}</span>
                   <em>{fmt(acreditacionSourceResponseCount(source))} respuestas</em>
                 </article>
               ))}
-              {!koboSources.length ? <div className="mon-sm-empty">Sin Kobo activo.</div> : null}
+              {!koboSources.length ? <EstadoVacio icono={<PlugZap size={15} />} titulo="Sin Kobo activo." /> : null}
             </div>
           </section>
         </div>
@@ -9771,20 +8709,18 @@ function AcreditacionActiveSourcesView({
             <em>{fmt(activeRows.length)} activas</em>
           </summary>
           <div className="mon-profile-grid">
-            <section className="mon-profile-panel">
-              <div className="mon-profile-panel-head">
-                <h3>Fuentes activas</h3>
-                <span>{fmt(activeRows.length)} filas</span>
-              </div>
+            <BloqueDeMonitoreo
+              titulo="Fuentes activas"
+              bajada={<>{fmt(activeRows.length)} filas</>}
+            >
               <DataTable rows={activeRows} empty="No hay fuentes activas." preferredColumns={["Fuente", "Servicio", "Rol", "Estado", "Ultimo sync", "ID"]} />
-            </section>
-            <section className="mon-profile-panel">
-              <div className="mon-profile-panel-head">
-                <h3>Fuentes del corte</h3>
-                <span>{fmt(reportSources.length)} filas</span>
-              </div>
+            </BloqueDeMonitoreo>
+            <BloqueDeMonitoreo
+              titulo="Fuentes del corte"
+              bajada={<>{fmt(reportSources.length)} filas</>}
+            >
               <DataTable rows={reportSources} empty="El corte no declaró fuentes." />
-            </section>
+            </BloqueDeMonitoreo>
           </div>
           <AcreditacionConfiguredSourcesList
             sources={sources}
@@ -9833,14 +8769,14 @@ function AcreditacionActiveSourcesView({
                 </article>
               );
             })}
-            {!summary.actorsWithSurvey.length ? <div className="mon-sm-empty">Sin actores activos desde encuestas.</div> : null}
+            {!summary.actorsWithSurvey.length ? <EstadoVacio icono={<ContactRound size={15} />} titulo="Sin actores activos desde encuestas." /> : null}
           </div>
         </section>
         <section className="mon-acr-object-surface">
           <div className="mon-acr-object-surface-head">
             <div>
               <span>Recopiladores</span>
-              <strong>{fmt(summary.includedCollectors)} incluidos · {fmt(summary.excludedCollectors)} excluidos</strong>
+              <strong>{fmt(summary.includedCollectors)} incluidos, {fmt(summary.excludedCollectors)} excluidos</strong>
             </div>
             <em>{summary.missingCollectorMetadata ? `${fmt(summary.missingCollectorMetadata)} sin metadata` : "Metadata real lista"}</em>
           </div>
@@ -9850,12 +8786,12 @@ function AcreditacionActiveSourcesView({
               return (
                 <article key={source.id}>
                   <strong>{acreditacionSurveySourceName(source)}</strong>
-                  <span>{sourceActorLabel(source)} · {fmt(rows.filter((row) => row.enabled).length)} incluidos</span>
+                  <span>{sourceActorLabel(source)}, {fmt(rows.filter((row) => row.enabled).length)} incluidos</span>
                   <em>{source.collectors?.length ? `${fmt(source.collectors.length)} nombres reales` : "Falta Actualizar todo"}</em>
                 </article>
               );
             })}
-            {!surveySources.length ? <div className="mon-sm-empty">Sin encuestas activas.</div> : null}
+            {!surveySources.length ? <EstadoVacio icono={<ListChecks size={15} />} titulo="Sin encuestas activas." /> : null}
           </div>
         </section>
         <section className="mon-acr-object-surface">
@@ -9870,11 +8806,11 @@ function AcreditacionActiveSourcesView({
             {sheetSources.map((source) => (
               <article key={source.id}>
                 <strong>{source.label || sourceActorLabel(source)}</strong>
-                <span>{source.sheet_binding?.sheet_name || "Sin pestaña"} · {sourceActorLabel(source)}</span>
+                <span>{source.sheet_binding?.sheet_name || "Sin pestaña"}, {sourceActorLabel(source)}</span>
                 <em>{sourceSyncLabel(source)}</em>
               </article>
             ))}
-            {!sheetSources.length ? <div className="mon-sm-empty">Sin bases Sheets activas.</div> : null}
+            {!sheetSources.length ? <EstadoVacio icono={<Table2 size={15} />} titulo="Sin bases Sheets activas." /> : null}
           </div>
         </section>
       </div>
@@ -9884,27 +8820,24 @@ function AcreditacionActiveSourcesView({
           <em>{fmt(activeRows.length)} fuentes activas</em>
         </summary>
         <div className="mon-profile-grid">
-          <section className="mon-profile-panel">
-            <div className="mon-profile-panel-head">
-              <h3>Cobertura fija</h3>
-              <span>{fmt(packageRows.length)} piezas</span>
-            </div>
+          <BloqueDeMonitoreo
+            titulo="Cobertura fija"
+            bajada={<>{fmt(packageRows.length)} piezas</>}
+          >
             <DataTable rows={packageRows} empty="No hay cobertura de fuentes para acreditacion." preferredColumns={["Pieza", "Servicio", "Configuradas", "Activas", "Estado", "Ultimo sync"]} />
-          </section>
-          <section className="mon-profile-panel">
-            <div className="mon-profile-panel-head">
-              <h3>Fuentes configuradas</h3>
-              <span>{fmt(activeRows.length)} activas</span>
-            </div>
+          </BloqueDeMonitoreo>
+          <BloqueDeMonitoreo
+            titulo="Fuentes configuradas"
+            bajada={<>{fmt(activeRows.length)} activas</>}
+          >
             <DataTable rows={activeRows} empty="No hay fuentes activas." preferredColumns={["Fuente", "Servicio", "Actor", "Canal", "Estado", "Ultimo sync", "ID"]} />
-          </section>
-          <section className="mon-profile-panel">
-            <div className="mon-profile-panel-head">
-              <h3>Fuentes del reporte</h3>
-              <span>{fmt(reportSources.length)} filas</span>
-            </div>
+          </BloqueDeMonitoreo>
+          <BloqueDeMonitoreo
+            titulo="Fuentes del reporte"
+            bajada={<>{fmt(reportSources.length)} filas</>}
+          >
             <DataTable rows={reportSources} empty="El reporte no declaro fuentes para este corte." />
-          </section>
+          </BloqueDeMonitoreo>
         </div>
         <AcreditacionConfiguredSourcesList
           sources={sources}
@@ -10032,7 +8965,7 @@ function AcreditacionConfiguredSourcesList({
             </div>
           );
         })}
-        {!sources.length ? <div className="mon-sm-empty">Aún no hay fuentes configuradas</div> : null}
+        {!sources.length ? <EstadoVacio icono={<PlugZap size={15} />} titulo="Aún no hay fuentes configuradas" /> : null}
       </div>
     </aside>
   );
@@ -10574,7 +9507,7 @@ function DataTable({
         </tbody>
       </table>
       {avisos.length ? (
-        <p className="mon-profile-table-recorte">{avisos.join(" · ")}</p>
+        <p className="mon-profile-table-recorte">{avisos.join(", ")}</p>
       ) : null}
     </div>
   );
@@ -10594,11 +9527,6 @@ function downloadRowsAsCsv(rows: Array<Record<string, unknown>>, filename: strin
   anchor.download = filename;
   anchor.click();
   URL.revokeObjectURL(url);
-}
-
-function csvCell(value: unknown) {
-  const raw = value == null ? "" : String(value);
-  return `"${raw.replace(/"/g, "\"\"")}"`;
 }
 
 type AcreditacionCaseFilters = {
@@ -10634,16 +9562,6 @@ function normalizeCaseSearch(value: unknown) {
     .trim();
 }
 
-function caseIdentity(item: MonitoreoInternalQueryCase) {
-  return item.response_id || item.case_key || `${item.actor}-${item.response_row}-${item.person_label}`;
-}
-
-function caseDisplayName(item: MonitoreoInternalQueryCase) {
-  return String(item.person_label || item.case_key || item.response_id || "Caso sin llave")
-    .toLocaleLowerCase("es-PE")
-    .replace(/(^|[\s,.'’()-])(\p{L})/gu, (_match, prefix: string, letter: string) => `${prefix}${letter.toLocaleUpperCase("es-PE")}`);
-}
-
 function caseMatchesFilters(item: MonitoreoInternalQueryCase, filters: AcreditacionCaseFilters) {
   return filterInternalQueryCases([item], {
     search: filters.search,
@@ -10670,36 +9588,6 @@ function consultaFiltersForTab(filters: AcreditacionCaseFilters, tab: Acreditaci
   return filters;
 }
 
-function countCaseOptions(
-  cases: MonitoreoInternalQueryCase[],
-  valueForCase: (item: MonitoreoInternalQueryCase) => string,
-  labelForValue: (value: string) => string = (value) => value,
-  order: string[] = [],
-) {
-  const counts = new Map<string, number>();
-  cases.forEach((item) => {
-    const value = valueForCase(item);
-    if (!value) return;
-    counts.set(value, (counts.get(value) ?? 0) + 1);
-  });
-  return Array.from(counts.entries())
-    .map(([value, count]) => ({ value, label: labelForValue(value), count }))
-    .sort((a, b) => {
-      const aIndex = order.indexOf(a.value);
-      const bIndex = order.indexOf(b.value);
-      if (aIndex !== -1 || bIndex !== -1) return (aIndex === -1 ? 999 : aIndex) - (bIndex === -1 ? 999 : bIndex);
-      return a.label.localeCompare(b.label, "es");
-    });
-}
-
-function caseChannelValue(item: MonitoreoInternalQueryCase) {
-  return item.channel || "";
-}
-
-function caseSourceValue(item: MonitoreoInternalQueryCase) {
-  return item.source_label || item.source_id || item.base_source || "";
-}
-
 function telefonicoCaseActorValue(item: MonitoreoInternalQueryCase) {
   const value = String(item.actor ?? "").trim();
   if (!value) return "";
@@ -10722,23 +9610,6 @@ function telefonicoBaseLocationLabel(value: string) {
   return internalCaseCrossingLabel(value);
 }
 
-function caseCollectorValue(item: MonitoreoInternalQueryCase) {
-  return internalQueryCollectorValue(item) || item.collector_id || "";
-}
-
-function caseToneClass(item: MonitoreoInternalQueryCase) {
-  const response = internalCaseResponseStateValue(item);
-  if (response === "complete") return "is-effective";
-  if (response === "partial") return "is-partial";
-  if (response === "refusal") return "is-refusal";
-  return "is-muted";
-}
-
-function caseWithoutCrossing(item: MonitoreoInternalQueryCase) {
-  const crossing = internalCaseCrossingValue(item);
-  return crossing === "sin_cruce" || crossing === "sin_llave" || crossing === "sin_base";
-}
-
 function caseHasPlatformResponse(item: MonitoreoInternalQueryCase) {
   if (String(item.response_id || "").trim()) return true;
   const responseMarker = String(item.source_id || item.source_label || "").trim() || Number(item.response_row ?? 0) > 0;
@@ -10754,28 +9625,6 @@ function caseResponseSortTime(item: MonitoreoInternalQueryCase) {
   if (!raw || normalizeCaseSearch(raw).includes("sin fecha")) return 0;
   const date = raw.includes("T") || raw.includes(":") ? new Date(raw) : new Date(`${raw}T00:00:00`);
   return Number.isNaN(date.getTime()) ? 0 : date.getTime();
-}
-
-export function caseResponseDateTimeLabel(item: MonitoreoInternalQueryCase) {
-  const rawDateTime = String(item.response_datetime || "").trim();
-  if (rawDateTime) {
-    const date = new Date(rawDateTime);
-    if (!Number.isNaN(date.getTime())) {
-      return date.toLocaleString("es-PE", { dateStyle: "short", timeStyle: "short" });
-    }
-    return rawDateTime;
-  }
-  const rawDate = String(item.date || "").trim();
-  if (!rawDate) return "Sin fecha";
-  return formatInternalQueryDateLabel(rawDate);
-}
-
-export function caseResponseTimeDetailLabel(item: MonitoreoInternalQueryCase) {
-  const rawDateTime = String(item.response_datetime || "").trim();
-  if (!rawDateTime) return "Sin hora registrada";
-  const date = new Date(rawDateTime);
-  if (Number.isNaN(date.getTime())) return "Hora no normalizada";
-  return date.toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit" });
 }
 
 function comparePlatformCases(a: MonitoreoInternalQueryCase, b: MonitoreoInternalQueryCase) {
@@ -10798,37 +9647,6 @@ function caseSubsanacionActionLabel(item: MonitoreoInternalQueryCase) {
   if (internalCaseResponseStateValue(item) === "refusal") return "No accionable";
   if (internalCaseResponseStateValue(item) === "pending") return "Sin respuesta";
   return assistedReviewVisible(item) ? "Revisar" : "Explicar";
-}
-
-function caseIsAuditable(item: MonitoreoInternalQueryCase) {
-  return (
-    item.advancement !== "effective" ||
-    caseWithoutCrossing(item) ||
-    Number(item.duplicate_count ?? item.duplicate_group_size ?? 0) > 1 ||
-    caseCountsInAdvance(item) === false ||
-    Boolean(casePhoneAction(item)) ||
-    Boolean(String(item.issue_type || "").trim())
-  );
-}
-
-function explicitBoolean(value: unknown): boolean | null {
-  if (typeof value === "boolean") return value;
-  const normalized = String(value ?? "").trim().toLowerCase();
-  if (!normalized) return null;
-  if (["true", "1", "si", "sí", "yes", "cuenta", "cuenta en avance"].includes(normalized)) return true;
-  if (["false", "0", "no", "no cuenta", "no cuenta en avance"].includes(normalized)) return false;
-  return null;
-}
-
-function caseCountsInAdvance(item: MonitoreoInternalQueryCase): boolean | null {
-  const explicit = explicitBoolean(item.counts_in_advance);
-  if (explicit !== null) return explicit;
-  const status = String(item.duplicate_counting_status ?? "").toLowerCase();
-  if (status.includes("no cuenta")) return false;
-  if (status.includes("cuenta")) return true;
-  if (item.advancement === "effective") return true;
-  if (["partial", "refusal", "pending", "excluded"].includes(item.advancement)) return false;
-  return null;
 }
 
 function telefonicoCaseHasEffectiveCaveat(item: MonitoreoInternalQueryCase) {
@@ -11108,48 +9926,6 @@ function telefonicoConsultedEffectiveCasesFromSources(
   return comparisonEffective.length > queryEffective.length ? comparisonEffective : queryEffective;
 }
 
-function caseCountsLabel(item: MonitoreoInternalQueryCase) {
-  const counts = caseCountsInAdvance(item);
-  if (counts === true) return "Cuenta";
-  if (counts === false) return "No cuenta";
-  return "Revisar";
-}
-
-function caseDuplicateLabel(item: MonitoreoInternalQueryCase) {
-  const duplicateCount = Number(item.duplicate_count ?? item.duplicate_group_size ?? 0);
-  if (duplicateCount > 1) return item.duplicate_counting_status || `${fmt(duplicateCount)} respuestas`;
-  return item.duplicate_counting_status || "Sin duplicado";
-}
-
-function casePartialLabel(item: MonitoreoInternalQueryCase) {
-  const answered = Number(item.partial_answered_questions ?? Number.NaN);
-  const total = Number(item.partial_total_questions ?? Number.NaN);
-  const pctValue = Number(item.partial_completion_pct ?? Number.NaN);
-  if (Number.isFinite(answered) && Number.isFinite(total) && total > 0) {
-    const percent = Number.isFinite(pctValue) ? pctValue : (answered / total) * 100;
-    return `${fmt(answered)}/${fmt(total)} (${pct(percent)})`;
-  }
-  if (Number.isFinite(pctValue)) return pct(pctValue);
-  return internalCaseResponseStateValue(item) === "partial" ? "Parcial sin detalle" : "";
-}
-
-function casePrimaryEvidence(item: MonitoreoInternalQueryCase) {
-  const label = item.primary_identity_label || item.identity_label || item.channel_key_strategy_label || "Llave";
-  const value = item.primary_identity_value || item.case_key || item.phone_audit?.cv_id || item.response_id || "";
-  return value ? `${label}: ${value}` : "Sin evidencia primaria";
-}
-
-function caseSecondaryEvidence(item: MonitoreoInternalQueryCase) {
-  const phone = item.phone_audit;
-  if (item.secondary_identity_value) {
-    return `${item.secondary_identity_label || "Evidencia secundaria"}: ${item.secondary_identity_value}`;
-  }
-  if (phone?.final_codpulso) return `Código final: ${phone.final_codpulso}`;
-  if (phone?.declared_phone) return `Celular declarado: ${phone.declared_phone}`;
-  if (phone?.manual_code_base?.case_key) return `Código manual: ${phone.manual_code_base.case_key}`;
-  return "";
-}
-
 type AcreditacionCaseKeyEvidenceTone = "primary" | "secondary" | "base";
 
 type AcreditacionCaseKeyEvidenceRow = {
@@ -11157,10 +9933,6 @@ type AcreditacionCaseKeyEvidenceRow = {
   value: string;
   tone: AcreditacionCaseKeyEvidenceTone;
 };
-
-function cleanCaseKeyText(value: unknown) {
-  return String(value ?? "").trim();
-}
 
 function caseKeyStrategyFallbackLabel(item: MonitoreoInternalQueryCase) {
   const key = normalizeCaseSearch([
@@ -11251,15 +10023,6 @@ export function caseKeyTraceSummary(item: MonitoreoInternalQueryCase) {
 
 type AcreditacionSubsanacionGuideTone = "ready" | "warning" | "blocked" | "done";
 
-function assistedReviewCandidateCountForCase(item: MonitoreoInternalQueryCase) {
-  const seen = new Set<string>();
-  [...(item.assisted_review?.candidates ?? []), ...(item.assisted_review?.assignment_candidates ?? [])].forEach((candidate) => {
-    const id = cleanCaseKeyText(candidate.candidate_id || candidate.case_key || candidate.base_record || candidate.person_label);
-    if (id) seen.add(id);
-  });
-  return seen.size;
-}
-
 export function acreditacionSubsanacionCaseGuide(item: MonitoreoInternalQueryCase | null) {
   if (!item) {
     return {
@@ -11334,20 +10097,6 @@ export function acreditacionSubsanacionCaseGuide(item: MonitoreoInternalQueryCas
     primaryAction: "Revisar sin incluir",
     steps: ["Leer estado", "Revisar evidencia", "Mantener fuera del avance"],
   };
-}
-
-function casePhoneAction(item: MonitoreoInternalQueryCase) {
-  return String(item.phone_audit?.recommended_action || "").trim();
-}
-
-function caseNeedsReconciliationReview(item: MonitoreoInternalQueryCase) {
-  return (
-    caseCountsInAdvance(item) !== true ||
-    Number(item.duplicate_count ?? item.duplicate_group_size ?? 0) > 1 ||
-    internalCaseResponseStateValue(item) === "partial" ||
-    Boolean(casePhoneAction(item)) ||
-    Boolean(String(item.issue_type || "").trim())
-  );
 }
 
 function assistedReviewFlagTruthy(value: unknown) {
@@ -11604,7 +10353,7 @@ function AcreditacionAssistedReviewBlock({
         <div><dt>Correo declarado</dt><dd>{declaredEmail}</dd></div>
       </div>
       <div className="mon-assisted-evidence-found" aria-label="Evidencia encontrada">
-        <span>Evidencia encontrada · no asigna automáticamente</span>
+        <span>Evidencia encontrada, no asigna automáticamente</span>
         {visibleEvidenceRows.length ? (
           <div>
             {visibleEvidenceRows.map((candidate) => {
@@ -11612,7 +10361,7 @@ function AcreditacionAssistedReviewBlock({
               return (
                 <article key={assistedCandidateId(candidate)} className={alreadyCovered ? "is-covered" : ""}>
                   <strong>{assistedCandidateEvidenceLabel(candidate)}</strong>
-                  <small>{[candidate.person_label || candidate.base_record, candidate.case_key || "Sin código oficial"].filter(Boolean).join(" · ")}</small>
+                  <small>{[candidate.person_label || candidate.base_record, candidate.case_key || "Sin código oficial"].filter(Boolean).join(", ")}</small>
                   {alreadyCovered ? <em>Ya asignada</em> : null}
                 </article>
               );
@@ -11641,7 +10390,7 @@ function AcreditacionAssistedReviewBlock({
               {unavailableMatches.slice(0, 4).map((candidate) => (
                 <article key={`unavailable-${assistedCandidateId(candidate)}`}>
                   <strong>{candidate.person_label || candidate.base_record || "Persona del universo"}</strong>
-                  <small>{[candidate.case_key || "Sin código oficial", "No está en pendientes"].join(" · ")}</small>
+                  <small>{[candidate.case_key || "Sin código oficial", "No está en pendientes"].join(", ")}</small>
                   <em>Ya asignada</em>
                 </article>
               ))}
@@ -11663,7 +10412,7 @@ function AcreditacionAssistedReviewBlock({
                   >
                     <span>
                       <strong>{candidate.person_label || candidate.base_record || "Persona del universo"}</strong>
-                      <small>{[candidate.case_key || "Sin código oficial", candidate.current_status || candidate.base_status || "Pendiente en universo/base", candidate.base_source].filter(Boolean).join(" · ")}</small>
+                      <small>{[candidate.case_key || "Sin código oficial", candidate.current_status || candidate.base_status || "Pendiente en universo/base", candidate.base_source].filter(Boolean).join(", ")}</small>
                     </span>
                     <em className={`is-${level}`}>{assistedCandidateEvidenceLabel(candidate)}</em>
                   </button>
@@ -11673,7 +10422,7 @@ function AcreditacionAssistedReviewBlock({
               {assignmentQuery && !visibleAssignmentOptions.length ? <small>No hay personas pendientes que coincidan con la búsqueda.</small> : null}
             </div>
           ) : (
-            <p className="mon-assisted-review-empty">No hay personas pendientes disponibles en el universo de este actor.</p>
+            <EstadoVacio icono={<ContactRound size={15} />} titulo="No hay personas pendientes disponibles en el universo de este actor." />
           )}
         </div>
       ) : null}
@@ -11681,7 +10430,7 @@ function AcreditacionAssistedReviewBlock({
         <div className="mon-assisted-selected">
           <span>Persona seleccionada</span>
           <strong>{selectedCandidate.person_label || selectedCandidate.base_record || "Persona del universo"}</strong>
-          <small>{[selectedCandidate.case_key || "Sin código oficial", item.actor].filter(Boolean).join(" · ")}</small>
+          <small>{[selectedCandidate.case_key || "Sin código oficial", item.actor].filter(Boolean).join(", ")}</small>
           <p>La asignación no se aplica hasta guardar.</p>
         </div>
       ) : null}
@@ -11709,7 +10458,7 @@ function AcreditacionAssistedReviewBlock({
         <div className="mon-assisted-manual">
           <span>Decisión registrada</span>
           <strong>{manual.action === "include_with_caveat" ? "Incluida con salvedad" : "Mantener excluida"}</strong>
-          <small>{[manual.assigned_person_label, manual.assigned_case_key, manual.match_type].filter(Boolean).join(" · ") || "Sin asignación al universo"}</small>
+          <small>{[manual.assigned_person_label, manual.assigned_case_key, manual.match_type].filter(Boolean).join(", ") || "Sin asignación al universo"}</small>
           {manual.note ? <p>{manual.note}</p> : null}
         </div>
       ) : null}
@@ -11739,78 +10488,6 @@ function AcreditacionAssistedReviewBlock({
       ) : null}
     </section>
   );
-}
-
-function responseCounts(cases: MonitoreoInternalQueryCase[]) {
-  return cases.reduce(
-    (acc, item) => {
-      const response = internalCaseResponseStateValue(item);
-      acc.total += 1;
-      if (response === "complete") acc.complete += 1;
-      else if (response === "partial") acc.partial += 1;
-      else if (response === "refusal") acc.refusal += 1;
-      else acc.pending += 1;
-      if (caseWithoutCrossing(item)) acc.withoutCrossing += 1;
-      return acc;
-    },
-    { total: 0, complete: 0, partial: 0, refusal: 0, pending: 0, withoutCrossing: 0 },
-  );
-}
-
-function groupedCaseRows(
-  cases: MonitoreoInternalQueryCase[],
-  groupValue: (item: MonitoreoInternalQueryCase) => string,
-  groupLabel: (value: string) => string,
-) {
-  const groups = new Map<string, MonitoreoInternalQueryCase[]>();
-  cases.forEach((item) => {
-    const value = groupValue(item) || "Sin dato";
-    const bucket = groups.get(value) ?? [];
-    bucket.push(item);
-    groups.set(value, bucket);
-  });
-  return Array.from(groups.entries())
-    .map(([value, rows]) => {
-      const counts = responseCounts(rows);
-      return {
-        Grupo: groupLabel(value),
-        Casos: counts.total,
-        Completas: counts.complete,
-        Parciales: counts.partial,
-        Rechazos: counts.refusal,
-        "Sin respuesta": counts.pending,
-        "Sin cruce": counts.withoutCrossing,
-      };
-    })
-    .sort((a, b) => Number(b.Casos) - Number(a.Casos) || String(a.Grupo).localeCompare(String(b.Grupo), "es"));
-}
-
-function caseAuditRows(cases: MonitoreoInternalQueryCase[]) {
-  return cases.filter(caseIsAuditable).map((item) => ({
-    Actor: item.actor || "Sin actor",
-    Persona: caseDisplayName(item),
-    "Estado respuesta": internalCaseResponseStateLabel(internalCaseResponseStateValue(item)),
-    "Cuenta avance": caseCountsLabel(item),
-    Cruce: internalCaseCrossingLabel(internalCaseCrossingValue(item)),
-    Decisión: item.decision || advancementLabel(item.advancement),
-    Motivo: item.decision_reason || item.rule || item.issue_type || "Regla estándar",
-    "Evidencia primaria": casePrimaryEvidence(item),
-    "Evidencia secundaria": caseSecondaryEvidence(item),
-    "Acción telefónica": casePhoneAction(item),
-    Duplicados: caseDuplicateLabel(item),
-    Parcial: casePartialLabel(item),
-    "Response ID": item.response_id || "",
-  }));
-}
-
-function advancementLabel(value: string) {
-  if (value === "effective") return "Efectiva";
-  if (value === "included_review") return "Incluida auditada";
-  if (value === "partial") return "Parcial";
-  if (value === "refusal") return "Rechazo";
-  if (value === "pending") return "Sin respuesta";
-  if (value === "excluded") return "Excluida";
-  return value || "Revisión";
 }
 
 function AcreditacionCaseFilterChips({
@@ -11854,19 +10531,11 @@ function AcreditacionCaseFilterChips({
 }
 
 function CaseStatusPill({ value }: { value: string }) {
-  return (
-    <span className={`mon-acr-status-pill is-${value}`}>
-      {internalCaseResponseStateLabel(value)}
-    </span>
-  );
+  return <EstadoChip label={internalCaseResponseStateLabel(value)} tone={tonoDeRespuesta(value)} />;
 }
 
 function CaseCrossingPill({ value }: { value: string }) {
-  return (
-    <span className={`mon-acr-cross-pill is-${value}`}>
-      {internalCaseCrossingLabel(value)}
-    </span>
-  );
+  return <EstadoChip label={internalCaseCrossingLabel(value)} tone={tonoDeCruce(value)} />;
 }
 
 function AcreditacionCaseDonut({ summary }: { summary: ReturnType<typeof summarizeInternalCases> }) {
@@ -11963,179 +10632,6 @@ function AcreditacionConsultaTabs({
         );
       })}
     </GlidingTabList>
-  );
-}
-
-function AcreditacionCrucesView({ cases }: { cases: MonitoreoInternalQueryCase[] }) {
-  const crossingRows = groupedCaseRows(cases, internalCaseCrossingValue, internalCaseCrossingLabel);
-  const actorRows = groupedCaseRows(cases, (item) => item.actor || "Sin actor", (value) => value);
-  const sourceRows = groupedCaseRows(cases, (item) => item.source_label || acreditacionChannelDisplay(item.channel, "Sin fuente"), (value) => value);
-  return (
-    <div className="mon-acr-insight-grid">
-      <section className="mon-profile-panel">
-        <div className="mon-profile-panel-head">
-          <h3>Cruce por llave</h3>
-          <span>{fmt(crossingRows.length)} tipos</span>
-        </div>
-        <DataTable rows={crossingRows} empty="No hay cruces para los filtros activos." />
-      </section>
-      <section className="mon-profile-panel">
-        <div className="mon-profile-panel-head">
-          <h3>Actor y estado</h3>
-          <span>{fmt(actorRows.length)} actores</span>
-        </div>
-        <DataTable rows={actorRows} empty="No hay actores para los filtros activos." />
-      </section>
-      <section className="mon-profile-panel mon-acr-insight-wide">
-        <div className="mon-profile-panel-head">
-          <h3>Fuente y respuesta</h3>
-          <span>{fmt(sourceRows.length)} fuentes</span>
-        </div>
-        <DataTable rows={sourceRows} empty="No hay fuentes para los filtros activos." />
-      </section>
-    </div>
-  );
-}
-
-function AcreditacionAuditoriaView({
-  cases,
-  issues,
-}: {
-  cases: MonitoreoInternalQueryCase[];
-  issues: Array<Record<string, unknown>>;
-}) {
-  const auditRows = caseAuditRows(cases);
-  const noCrossing = cases.filter(caseWithoutCrossing).length;
-  const duplicates = cases.filter((item) => Number(item.duplicate_count ?? item.duplicate_group_size ?? 0) > 1).length;
-  const partials = cases.filter((item) => internalCaseResponseStateValue(item) === "partial").length;
-  return (
-    <div className="mon-profile-stack">
-      <div className="mon-profile-stat-row">
-        <StatTile label="Casos auditables" value={fmt(auditRows.length)} tone={auditRows.length ? "warn" : "good"} />
-        <StatTile label="Sin cruce" value={fmt(noCrossing)} tone={noCrossing ? "warn" : "good"} />
-        <StatTile label="Duplicados" value={fmt(duplicates)} tone={duplicates ? "warn" : "neutral"} />
-        <StatTile label="Parciales" value={fmt(partials)} tone={partials ? "warn" : "neutral"} />
-      </div>
-      <section className="mon-profile-panel">
-        <div className="mon-profile-panel-head">
-          <h3>Casos que explican diferencias</h3>
-          <span>{fmt(auditRows.length)} filas</span>
-        </div>
-        <DataTable rows={auditRows} empty="No hay casos auditables con los filtros activos." />
-      </section>
-      <section className="mon-profile-panel">
-        <div className="mon-profile-panel-head">
-          <h3>Alertas internas</h3>
-          <span>{fmt(issues.length)} alertas</span>
-        </div>
-        <DataTable rows={issues} empty="No hay alertas internas para este corte." />
-      </section>
-    </div>
-  );
-}
-
-function AcreditacionReconciliacionView({
-  cases,
-  busyId = "",
-  status = null,
-  onDecision,
-}: {
-  cases: MonitoreoInternalQueryCase[];
-  busyId?: string;
-  status?: AcreditacionActionStatus;
-  onDecision?: (payload: AcreditacionCaseReconciliationPayload) => void;
-}) {
-  const reviewCases = cases.filter(caseNeedsReconciliationReview);
-  const assistedCases = cases.filter(assistedReviewVisible);
-  const visible = (assistedCases.length ? assistedCases : reviewCases.length ? reviewCases : cases).slice(0, 120);
-  const countsAdvance = cases.filter((item) => caseCountsInAdvance(item) === true).length;
-  const notCounting = cases.filter((item) => caseCountsInAdvance(item) === false).length;
-  const duplicates = cases.filter((item) => Number(item.duplicate_count ?? item.duplicate_group_size ?? 0) > 1).length;
-  const phoneActions = cases.filter((item) => Boolean(casePhoneAction(item))).length;
-  const visibleTotal = assistedCases.length || reviewCases.length || cases.length;
-
-  return (
-    <div className="mon-acr-recon">
-      <section className="mon-profile-stat-row" aria-label="Resumen de reconciliación">
-        <StatTile label="Cuentan" value={fmt(countsAdvance)} tone={countsAdvance ? "good" : "neutral"} />
-        <StatTile label="No cuentan" value={fmt(notCounting)} tone={notCounting ? "warn" : "good"} />
-        <StatTile label="Duplicados" value={fmt(duplicates)} tone={duplicates ? "warn" : "good"} />
-        <StatTile label="Revisión asistida" value={fmt(assistedCases.length)} tone={assistedCases.length ? "warn" : "neutral"} />
-        <StatTile label="Acción tel." value={fmt(phoneActions)} tone={phoneActions ? "warn" : "neutral"} />
-      </section>
-      {status ? <span className={`mon-acr-model-action-status is-${status.tone}`}>{status.message}</span> : null}
-
-      <section className="mon-profile-panel mon-acr-recon-panel">
-        <div className="mon-profile-panel-head">
-          <h3>Reconciliación persona · respuesta · barrido</h3>
-          <span>{fmt(visible.length)} de {fmt(visibleTotal)} casos</span>
-        </div>
-        {visible.length ? (
-          <div className="mon-acr-recon-table-wrap">
-            <table className="mon-acr-recon-table">
-              <thead>
-                <tr>
-                  <th>Persona / código</th>
-                  <th>Cuenta</th>
-                  <th>Evidencia</th>
-                  <th>Teléfono / acción</th>
-                  <th>Duplicado y parcial</th>
-                </tr>
-              </thead>
-              <tbody>
-                {visible.map((item) => {
-                  const counts = caseCountsInAdvance(item);
-                  const phoneAction = casePhoneAction(item);
-                  const reviewVisible = assistedReviewVisible(item);
-                  const id = caseIdentity(item);
-                  return (
-                    <Fragment key={id}>
-                      <tr className={counts === true ? "is-counting" : counts === false ? "is-not-counting" : "is-review"}>
-                        <td>
-                          <strong>{caseDisplayName(item)}</strong>
-                          <small>{item.actor || "Sin actor"} · {item.case_key || "sin llave"} · {item.response_id || "sin response_id"}</small>
-                        </td>
-                        <td>
-                          <span className={`mon-acr-count-pill ${counts === true ? "is-yes" : counts === false ? "is-no" : "is-review"}`}>
-                            {caseCountsLabel(item)}
-                          </span>
-                          <small>{item.decision || advancementLabel(item.advancement)}</small>
-                        </td>
-                        <td>
-                          <strong>{casePrimaryEvidence(item)}</strong>
-                          <small>{caseSecondaryEvidence(item) || internalCaseCrossingLabel(internalCaseCrossingValue(item))}</small>
-                        </td>
-                        <td>
-                          <strong>{phoneAction || item.base_status || acreditacionChannelDisplay(item.channel, "Sin acción telefónica")}</strong>
-                          <small>{item.source_label || "Sin fuente"} · {internalQueryCollectorDisplayLabel(item)}</small>
-                        </td>
-                        <td>
-                          <strong>{caseDuplicateLabel(item)}</strong>
-                          <small>{casePartialLabel(item) || item.rule || item.issue_type || "Sin parcialidad reportada"}</small>
-                        </td>
-                      </tr>
-                      {reviewVisible ? (
-                        <tr className="mon-acr-recon-review-row">
-                          <td colSpan={5}>
-                            <AcreditacionAssistedReviewBlock
-                              item={item}
-                              busy={busyId === item.response_id}
-                              onDecision={onDecision}
-                            />
-                          </td>
-                        </tr>
-                      ) : null}
-                    </Fragment>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        ) : (
-          <p className="mon-profile-muted">No hay casos de reconciliación para los filtros activos.</p>
-        )}
-      </section>
-    </div>
   );
 }
 
@@ -12269,54 +10765,11 @@ function caseToneValue(item: MonitoreoInternalQueryCase): "effective" | "partial
   return "muted";
 }
 
-function platformToneValue(item: MonitoreoInternalQueryCase): "effective" | "partial" | "refusal" | "warning" | "muted" {
-  const response = internalCaseResponseStateValue(item);
-  if (response === "complete") return "effective";
-  if (response === "partial") return "partial";
-  if (response === "refusal") return "refusal";
-  if (response === "pending") return "muted";
-  return "warning";
-}
-
-function crossingToneValue(item: MonitoreoInternalQueryCase): "effective" | "partial" | "refusal" | "warning" | "muted" {
-  const crossing = internalCaseCrossingValue(item);
-  if (crossing === "cruzo_llave" || crossing === "cruzo_correo") return "effective";
-  if (crossing === "sin_cruce" || crossing === "sin_llave") return "warning";
-  return "muted";
-}
-
 function issueToneValue(issue: MonitoreoInternalQueryIssue): "danger" | "warning" | "info" {
   const severity = normalizeCaseSearch(issue.severity);
   if (severity.includes("alta")) return "danger";
   if (severity.includes("media")) return "warning";
   return "info";
-}
-
-function caseDimensionRows(
-  cases: MonitoreoInternalQueryCase[],
-  dimension: "actor" | "source_label" | "channel" | "date",
-  label: string,
-) {
-  const groups = new Map<string, MonitoreoInternalQueryCase[]>();
-  cases.forEach((item) => {
-    const key = String(item[dimension] || "Sin dato");
-    const bucket = groups.get(key) ?? [];
-    bucket.push(item);
-    groups.set(key, bucket);
-  });
-  return Array.from(groups.entries())
-    .map(([group, rows]) => {
-      const summary = summarizeInternalCases(rows);
-      return {
-        [label]: group,
-        Total: summary.total,
-        Efectivas: summary.effective,
-        Parciales: summary.partial,
-        Rechazos: summary.refusal,
-        "Sin respuesta": summary.pending,
-      };
-    })
-    .sort((a, b) => Number(b.Total) - Number(a.Total) || String(a[label]).localeCompare(String(b[label]), "es"));
 }
 
 type AcreditacionCaseBreakdownDimension = "actor" | "source" | "channel" | "date" | "collector";
@@ -12377,21 +10830,6 @@ function acreditacionCaseBreakdownRows(
     .sort((a, b) => b.total - a.total || a.label.localeCompare(b.label, "es"));
 }
 
-function acreditacionQueryDonutBackground(segments: Array<{ value: number; color: string }>) {
-  const total = segments.reduce((sum, segment) => sum + Math.max(0, segment.value), 0);
-  if (!total) return "conic-gradient(#dbe2ec 0deg 360deg)";
-  let start = 0;
-  const parts = segments
-    .filter((segment) => segment.value > 0)
-    .map((segment) => {
-      const end = start + (segment.value / total) * 360;
-      const part = `${segment.color} ${start.toFixed(2)}deg ${end.toFixed(2)}deg`;
-      start = end;
-      return part;
-    });
-  return `conic-gradient(${parts.join(", ")})`;
-}
-
 function AcreditacionConsultaStatusStrip({
   reports,
   model,
@@ -12415,7 +10853,7 @@ function AcreditacionConsultaStatusStrip({
       <header>
         <span>Estado del corte</span>
         <strong>Corte listo para explorar casos</strong>
-        <p>{`Corte ${formatDate(reports.generated_at)}. ${fmt(sourceCount)} fuentes · ${formatCaseLabel(officialCases.length)} en universo · ${formatCaseLabel(model.cases.length)} auditables.`}</p>
+        <p>{`Corte ${formatDate(reports.generated_at)}. ${fmt(sourceCount)} fuentes, ${formatCaseLabel(officialCases.length)} en universo, ${formatCaseLabel(model.cases.length)} auditables.`}</p>
       </header>
       <div className="mon-query-status-metrics">
         <span className={officialCases.length ? "is-base" : "is-warning"}>
@@ -12428,7 +10866,7 @@ function AcreditacionConsultaStatusStrip({
           <Search size={14} />
           <em>Casos</em>
           <strong>{fmt(summary.total)}</strong>
-          <small>{fmt(summary.pending)} sin respuesta · {fmt(missingKey)} sin llave</small>
+          <small>{fmt(summary.pending)} sin respuesta, {fmt(missingKey)} sin llave</small>
         </span>
         <span className={sourceCount ? "is-base" : "is-warning"}>
           <PlugZap size={14} />
@@ -12649,7 +11087,7 @@ function AcreditacionPendingRiskStrip({
           <li key={actor}><b>{actor}</b><em>{fmt(count)}</em></li>
         ))}
       </ul>
-      <small>{fmt(exactCount)} exactas · {fmt(possibleCount)} similares</small>
+      <small>{fmt(exactCount)} exactas, {fmt(possibleCount)} similares</small>
       <button type="button" onClick={onReview}>
         Ver casos revisables
       </button>
@@ -12800,20 +11238,20 @@ function AcreditacionCasesTable({
                 <td>
                   <button type="button" onClick={() => onCaseSelect(item)}>
                     <strong>{caseDisplayName(item)}</strong>
-                    <small>{item.actor || "Sin actor"} · {item.case_key || "sin llave"}</small>
+                    <small>{item.actor || "Sin actor"}, {item.case_key || "sin llave"}</small>
                   </button>
                 </td>
                 <td>
-                  <span className={`mon-query-badge is-${platformToneValue(item)}`}>{internalCaseResponseStateLabel(responseValue)}</span>
+                  <EstadoChip label={internalCaseResponseStateLabel(responseValue)} tone={tonoDeLectura(platformToneValue(item))} />
                   <small>Avance: {advancementLabel(item.advancement)}</small>
                 </td>
                 <td>
-                  <span className={`mon-query-badge is-${crossingToneValue(item)}`}>{internalCaseCrossingLabel(crossingValue)}</span>
+                  <EstadoChip label={internalCaseCrossingLabel(crossingValue)} tone={tonoDeLectura(crossingToneValue(item))} />
                   <small>{item.base_record || item.base_source || item.base_result || "Sin base"}</small>
                 </td>
                 <td>
                   <span>{item.response_id || "sin response_id"}</span>
-                  <small>{item.date || "sin fecha"} · {item.source_label || "SurveyMonkey"}</small>
+                  <small>{item.date || "sin fecha"}, {item.source_label || "SurveyMonkey"}</small>
                 </td>
                 <td>
                   <span>{internalQueryCollectorDisplayLabel(item)}</span>
@@ -12882,7 +11320,7 @@ function AcreditacionCaseDetail({
   const telefonicoHeaderMeta = [
     item.base_status || item.secondary_identity_value,
     internalQueryCollectorDisplayLabel(item),
-  ].filter(Boolean).join(" · ");
+  ].filter(Boolean).join(", ");
   const telefonicoHeaderStatus = telefonicoPlatformEffective
     ? "Kobo efectiva"
     : telefonicoPhoneEffective
@@ -12893,8 +11331,8 @@ function AcreditacionCaseDetail({
       <header>
         <span>
           {isTelefonicoCase
-            ? `Ficha CodPulso${telefonicoHeaderMeta ? ` · ${telefonicoHeaderMeta}` : ""}`
-            : `Ficha 360 del caso · ${item.actor || "Sin actor"}`}
+            ? `Ficha CodPulso${telefonicoHeaderMeta ? `, ${telefonicoHeaderMeta}` : ""}`
+            : `Ficha 360 del caso, ${item.actor || "Sin actor"}`}
         </span>
         <strong>{isTelefonicoCase ? telefonicoCaseCodPulsoLabel(item) : caseDisplayName(item)}</strong>
         <em>{isTelefonicoCase ? telefonicoHeaderStatus : advancementLabel(item.advancement)}</em>
@@ -12937,13 +11375,13 @@ function AcreditacionCaseDetail({
           icon={<Layers3 size={14} />}
           label={isTelefonicoCase ? "CodPulso/base" : "Universo / base oficial"}
           value={isTelefonicoCase ? telefonicoBaseLabel : item.base_record || item.case_key || "Sin registro en base"}
-          hint={isTelefonicoCase ? telefonicoBaseTrace?.detail ?? "Sin detalle de base" : `${item.base_source || "Sin fuente"} · ${item.base_status || item.base_result || "Sin estado"}`}
+          hint={isTelefonicoCase ? telefonicoBaseTrace?.detail ?? "Sin detalle de base" : `${item.base_source || "Sin fuente"}, ${item.base_status || item.base_result || "Sin estado"}`}
         />
         <AcreditacionTraceStep
           icon={<ClipboardCheck size={14} />}
           label="Respuesta"
           value={item.response_id || "Sin response_id"}
-          hint={`${internalCaseResponseStateLabel(responseValue)} · ${item.date || "Sin fecha"}`}
+          hint={`${internalCaseResponseStateLabel(responseValue)}, ${item.date || "Sin fecha"}`}
         />
         <AcreditacionTraceStep
           icon={<Route size={14} />}
@@ -13009,9 +11447,7 @@ function AcreditacionQueryBreakdownCard({
     return (
       <section className="mon-query-chart-card">
         <header><span>{icon}{title}</span></header>
-        <div className="mon-query-breakdown-empty">
-          <EmptyPanel title="Sin casos para este filtro" detail="El filtro actual no devuelve casos. Ajusta los criterios para ampliar la lectura." />
-        </div>
+        <EmptyPanel title="Sin casos para este filtro" detail="El filtro actual no devuelve casos. Ajusta los criterios para ampliar la lectura." />
       </section>
     );
   }
@@ -13355,7 +11791,7 @@ function AcreditacionPlatformRecordsView({
                       <td>
                         <button type="button" onClick={() => onCaseSelect(item)}>
                           <strong>{caseDisplayName(item)}</strong>
-                          <small>{item.actor || "Sin actor"} · {item.case_key || "sin llave"}</small>
+                          <small>{item.actor || "Sin actor"}, {item.case_key || "sin llave"}</small>
                         </button>
                       </td>
                       <td>
@@ -13368,7 +11804,7 @@ function AcreditacionPlatformRecordsView({
 	                      </td>
                       <td>
                         <span>{acreditacionChannelLabel(item.channel || item.source_label)}</span>
-                        <small>{[trace.strategyLabel, item.source_label, internalQueryCollectorDisplayLabel(item)].filter(Boolean).join(" · ")}</small>
+                        <small>{[trace.strategyLabel, item.source_label, internalQueryCollectorDisplayLabel(item)].filter(Boolean).join(", ")}</small>
                       </td>
                       <td>
                         <CaseCrossingPill value={internalCaseCrossingValue(item)} />
@@ -13705,7 +12141,7 @@ function AcreditacionCrossingsView({
                   const phoneCaseDetail = [
                     phoneStatus,
                     caseResponseDateTimeLabel(item),
-                  ].filter((value) => value && value !== "Sin respuesta").join(" · ");
+                  ].filter((value) => value && value !== "Sin respuesta").join(", ");
                   const baseTrace = isPhoneMode ? telefonicoCaseBaseTrace(item) : null;
                   const reasonTitle = isPhoneMode
                     ? phonePlatformOk && !phoneSweepOk
@@ -13749,7 +12185,7 @@ function AcreditacionCrossingsView({
                           <small>
                             {isPhoneMode
                               ? phoneCaseDetail || "Efectiva Kobo"
-                              : `${item.actor || "Sin actor"} · ${item.response_id || item.case_key || "sin llave"}`}
+                              : `${item.actor || "Sin actor"}, ${item.response_id || item.case_key || "sin llave"}`}
                           </small>
                         </button>
                       </td>
@@ -13770,7 +12206,7 @@ function AcreditacionCrossingsView({
                       {isPhoneMode ? null : (
                         <td>
                           <span>{trace.primaryEvidence}</span>
-                          <small>{[trace.strategyLabel, trace.secondaryEvidence || explanation.evidenceDetail].filter(Boolean).join(" · ")}</small>
+                          <small>{[trace.strategyLabel, trace.secondaryEvidence || explanation.evidenceDetail].filter(Boolean).join(", ")}</small>
                         </td>
                       )}
                       <td>
@@ -13842,8 +12278,8 @@ function AcreditacionSubsanacionView({
                       <strong>{caseDisplayName(item)}</strong>
                       <span className="mon-acr-motivo">{motivo.etiqueta}</span>
                       {/* Sin `title` el texto recortado se pierde del todo. */}
-                      <small title={`${item.actor || "Sin actor"} · ${formatInternalQueryDateLabel(item.date)} · ${internalQueryCollectorDisplayLabel(item)}`}>
-                        {item.actor || "Sin actor"} · {formatInternalQueryDateLabel(item.date)} · {internalQueryCollectorDisplayLabel(item)}
+                      <small title={`${item.actor || "Sin actor"}, ${formatInternalQueryDateLabel(item.date)}, ${internalQueryCollectorDisplayLabel(item)}`}>
+                        {item.actor || "Sin actor"}, {formatInternalQueryDateLabel(item.date)}, {internalQueryCollectorDisplayLabel(item)}
                       </small>
                       <em>{caseSubsanacionActionLabel(item)}</em>
                     </button>
@@ -14626,61 +13062,6 @@ function safePercentValue(value: number | null | undefined, total: number | null
   return (Number(value) / Number(total)) * 100;
 }
 
-function formatPercentLabel(value: number | null | undefined) {
-  return pctDecimal(value);
-}
-
-function formatSignedPp(value: number | null | undefined) {
-  if (value == null || !Number.isFinite(value)) return "S/D";
-  const sign = value > 0 ? "+" : "";
-  return `${sign}${value.toLocaleString("es-PE", { maximumFractionDigits: 1 })} pp`;
-}
-
-function normalizeReportMatch(value: unknown) {
-  return normalizeSourceMatch(value);
-}
-
-function reportBlockForSheet(
-  reports: MonitoreoAcreditacionReports | null | undefined,
-  sheetId: string,
-  blockId?: string,
-) {
-  const sheetKey = normalizeReportMatch(sheetId);
-  const sheet = reports?.sheets.find((item) => normalizeReportMatch(item.id) === sheetKey) ?? null;
-  if (!sheet) return null;
-  if (!blockId) return sheet.blocks[0] ?? null;
-  const blockKey = normalizeReportMatch(blockId);
-  return sheet.blocks.find((block) => normalizeReportMatch(block.id) === blockKey) ?? null;
-}
-
-function reportBlockColumns(block: MonitoreoReportBlock | null | undefined) {
-  if (!block) return [];
-  return block.columns.length ? block.columns : Array.from(new Set(block.rows.flatMap((row) => Object.keys(row))));
-}
-
-function reportNumberValue(value: unknown) {
-  if (typeof value === "number" && Number.isFinite(value)) return value;
-  const parsed = Number(String(value ?? "").replace(/%/g, "").replace(/\s/g, "").replace(",", "."));
-  return Number.isFinite(parsed) ? parsed : 0;
-}
-
-function reportPercentValue(value: unknown, column: string) {
-  const normalized = normalizeReportMatch(column);
-  if (!normalized.includes("avance") && !String(column).includes("%") && !normalized.includes("porcentaje") && !normalized.includes("del total") && !normalized.includes("ratio")) return null;
-  if (value == null || value === "") return null;
-  const parsed = reportNumberValue(value);
-  if (!Number.isFinite(parsed)) return null;
-  return Math.abs(parsed) <= 10 ? parsed * 100 : parsed;
-}
-
-function reportStateTone(value: string) {
-  const normalized = normalizeReportMatch(value);
-  if (normalized.includes("alta") || normalized.includes("rechazo") || normalized.includes("riesgo") || normalized.includes("no ")) return "risk";
-  if (normalized.includes("media") || normalized.includes("parcial") || normalized.includes("contactar") || normalized.includes("pendiente")) return "warn";
-  if (normalized.includes("ok") || normalized.includes("efectiv") || normalized.includes("completa")) return "good";
-  return "muted";
-}
-
 function advanceGoalForActor(actor: string, goals: MonitoreoGoal[]) {
   const actorKey = normalizeSourceMatch(actor);
   const direct = goals.find((goal) => Object.values(goal.filters ?? {}).some((value) => normalizeSourceMatch(value) === actorKey));
@@ -14742,13 +13123,9 @@ export function advanceCardsFromRows(rows: Array<Record<string, unknown>>, goals
   });
 }
 
-function preferredPhoneAdvanceQuotaVariable(rows: AcreditacionPhoneQuotaRow[]) {
-  const withMeta = rows.filter((row) => row.meta != null && row.meta > 0);
-  const variables = uniqueDisplayValues((withMeta.length ? withMeta : rows).map((row) => row.variable));
-  const priority = ["sede", "distrito", "grupo", "segmento", "actor"];
-  return variables.find((variable) => priority.includes(normalizeSourceMatch(variable)))
-    ?? variables[0]
-    ?? "";
+function preferredPhoneAdvanceQuotaVariable(rows: AcreditacionPhoneQuotaRow[], elegida?: string | null) {
+  // La misma variable que Ritmo y la barra: una sola regla (`segmentoDeCuotas.ts`), y la elegida (R5).
+  return variableDeCuotas(rows, "", elegida);
 }
 
 function phoneQuotaCategoryNoun(variable: string) {
@@ -14764,9 +13141,9 @@ function phoneQuotaCategoryNoun(variable: string) {
   return "categoría";
 }
 
-export function phoneQuotaAdvanceCardsFromRows(rows: Array<Record<string, unknown>>): AcreditacionAdvanceCard[] {
+export function phoneQuotaAdvanceCardsFromRows(rows: Array<Record<string, unknown>>, elegida?: string | null): AcreditacionAdvanceCard[] {
   const quotaRows = phoneQuotaRowsForPanel(rows);
-  const variable = preferredPhoneAdvanceQuotaVariable(quotaRows);
+  const variable = preferredPhoneAdvanceQuotaVariable(quotaRows, elegida);
   const sourceRows = (variable ? quotaRows.filter((row) => row.variable === variable) : quotaRows)
     .filter((row) => row.meta != null || row.universe > 0);
   return sourceRows.map((row, index) => {
@@ -14825,11 +13202,6 @@ function isDatedAcreditacionDailyPoint(point: AcreditacionAdvanceDailyPoint) {
   return !isAcreditacionNoDateLabel(point.date) && Boolean(parseAcreditacionDailyDate(point.date));
 }
 
-function normalizeAcreditacionDailyDateLabel(value: unknown) {
-  const text = String(value ?? "").trim();
-  return isAcreditacionNoDateLabel(text) ? ACREDITACION_DAILY_NO_DATE_LABEL : text;
-}
-
 export function dailyPointsFromRows(rows: Array<Record<string, unknown>>): AcreditacionAdvanceDailyPoint[] {
   return rows.flatMap((row) => {
     const rawDate = rowText(row, ["Fecha", "Dia", "Día", "Date"], "");
@@ -14862,119 +13234,6 @@ function phoneKoboDailyPointsFromRows(rows: Array<Record<string, unknown>>): Acr
     if (!effective) return [];
     return [{ date, effective, partial: 0, refusals: 0, total: effective }];
   });
-}
-
-function acreditacionReportRowValue(row: Record<string, unknown>, candidates: string[]) {
-  const normalized = new Map(Object.keys(row).map((key) => [normalizeSourceMatch(key), key]));
-  for (const candidate of candidates) {
-    const hit = normalized.get(normalizeSourceMatch(candidate));
-    if (hit) return row[hit];
-  }
-  return null;
-}
-
-function acreditacionReportColumn(block: MonitoreoReportBlock | null | undefined, candidates: string[]) {
-  const wanted = candidates.map(normalizeSourceMatch);
-  return reportBlockColumns(block).find((column) => wanted.includes(normalizeSourceMatch(column))) ?? null;
-}
-
-function acreditacionReportBlockDateColumns(block: MonitoreoReportBlock | null | undefined) {
-  const excluded = new Set([
-    "unidad",
-    "actor",
-    "corte",
-    "carrera",
-    "canal",
-    "modalidad",
-    "estado",
-    "estatus",
-    "total",
-    "fecha",
-    "dia",
-    "día",
-    "fuente",
-    "source",
-    "source_id",
-    "source id",
-    "id fuente",
-    "encuesta",
-    "survey_id",
-    "survey id",
-    "id encuesta",
-    "recopilador",
-    "collector",
-    "collector_id",
-    "collector id",
-    "id recopilador",
-    "tipo recopilador",
-    "tipo_recopilador",
-    "efectivas",
-    "validas",
-    "válidas",
-    "completas",
-    "completed",
-    "parciales",
-    "partial",
-    "rechazo",
-    "rechazos",
-    "rechazos plataforma",
-    "refusals",
-    "respuestas",
-    "total respuestas",
-    "acumulado",
-    "avance",
-    "porcentaje",
-  ]);
-  return reportBlockColumns(block).filter((column) => {
-    const key = normalizeSourceMatch(column);
-    if (!key || excluded.has(key)) return false;
-    return /\d/.test(column) || (block?.rows ?? []).some((row) => reportNumberValue(row[column]) > 0);
-  });
-}
-
-function acreditacionSurveyStateTone(state: string): "completed" | "partial" | "refusals" | "pending" {
-  const key = normalizeSourceMatch(state);
-  if (key.includes("completa") || key.includes("efectiva") || key.includes("valida")) return "completed";
-  if (key.includes("parcial")) return "partial";
-  if (key.includes("rechazo") || key.includes("rechaz")) return "refusals";
-  return "pending";
-}
-
-function uniqueNormalizedKeys(values: unknown[]) {
-  const seen = new Set<string>();
-  const out: string[] = [];
-  values.forEach((value) => {
-    const key = normalizeSourceMatch(value);
-    if (!key || seen.has(key)) return;
-    seen.add(key);
-    out.push(key);
-  });
-  return out;
-}
-
-function addAcreditacionDailyValue(
-  points: Map<string, AcreditacionAdvanceDailyPoint>,
-  date: string,
-  tone: ReturnType<typeof acreditacionSurveyStateTone>,
-  value: number,
-) {
-  if (!value) return;
-  const point = points.get(date) ?? { date, effective: 0, partial: 0, refusals: 0, total: 0 };
-  if (tone === "completed") point.effective += value;
-  if (tone === "partial") point.partial += value;
-  if (tone === "refusals") point.refusals += value;
-  point.total += value;
-  points.set(date, point);
-}
-
-function dailySeriesTotals(points: AcreditacionAdvanceDailyPoint[]) {
-  const totals = dailyPointTotals(points);
-  return {
-    completed: totals.effective,
-    partial: totals.partial,
-    refusals: totals.refusals,
-    total: totals.total,
-  };
 }
 
 function buildAcreditacionAdvanceDailySeries(
@@ -15351,13 +13610,6 @@ function buildAcreditacionDailyCollectorSeriesFromRows(
     .sort((a, b) => b.total - a.total || (a.collector ?? "").localeCompare(b.collector ?? "", "es"));
 }
 
-function caseDailyTone(item: MonitoreoInternalQueryCase): ReturnType<typeof acreditacionSurveyStateTone> {
-  if (item.advancement === "effective") return "completed";
-  if (item.advancement === "partial") return "partial";
-  if (item.advancement === "refusal") return "refusals";
-  return acreditacionSurveyStateTone(item.platform_state);
-}
-
 function buildAcreditacionDailyCollectorSeriesFromInternalQueries(
   reports: MonitoreoAcreditacionReports | null | undefined,
 ): AcreditacionAdvanceDailySeries[] {
@@ -15424,21 +13676,6 @@ function groupAcreditacionCollectorsBySource(series: AcreditacionAdvanceDailySer
     });
   });
   return grouped;
-}
-
-function collectorDisplayLookupKey(sourceKey: string, collectorKey: string) {
-  return `${sourceKey}\r${collectorKey}`;
-}
-
-function isTechnicalAcreditacionCollectorLabel(value: unknown) {
-  const text = String(value ?? "").trim();
-  if (!text) return false;
-  const key = normalizeSourceMatch(text);
-  return /^\d{6,}$/.test(text)
-    || /^[a-f0-9]{10,}$/i.test(text)
-    || /^(collector|colector|web|link)[-_]?\d+$/i.test(text)
-    || key === "web link"
-    || key === "weblink";
 }
 
 function acreditacionCollectorDisplayFromRow(row: AcreditacionCollectorRow) {
@@ -15575,7 +13812,7 @@ function actorGoalValue(summary: ReturnType<typeof actorGoalSummary>) {
 
 function actorGoalHint(summary: ReturnType<typeof actorGoalSummary>) {
   if (!summary.configured) return "metas pendientes";
-  if (summary.gaps) return `${fmt(summary.gaps)} con brecha · ${fmt(summary.totalGap)} faltan`;
+  if (summary.gaps) return `${fmt(summary.gaps)} con brecha, ${fmt(summary.totalGap)} faltan`;
   if (summary.missingMeta) return `${fmt(summary.missingMeta)} sin meta`;
   return "metas cubiertas";
 }
@@ -15583,14 +13820,6 @@ function actorGoalHint(summary: ReturnType<typeof actorGoalSummary>) {
 function actorGoalTone(summary: ReturnType<typeof actorGoalSummary>): "base" | "target" | "ready" | "warning" {
   if (!summary.configured) return "target";
   return summary.gaps ? "warning" : "ready";
-}
-
-function sourceRoleForActor(source: MonitoreoSource) {
-  const role = normalizeSourceMatch(source.role);
-  const label = normalizeSourceMatch(source.label);
-  if (role.includes("universo") || role.includes("base")) return "Universo";
-  if (role.includes("barrido") || label.includes("barrido") || label.includes("telefon")) return "Barrido";
-  return "Respuestas";
 }
 
 function sourceModalityForActor(source: MonitoreoSource): AcreditacionActorMechanism["modality"] {
@@ -15617,14 +13846,6 @@ function mechanismIcon(value: AcreditacionActorMechanism["modality"]) {
   if (value === "presencial") return ContactRound;
   if (value === "email") return Link2;
   return ListChecks;
-}
-
-function compactMechanismLabel(label: string) {
-  return String(label || "Fuente")
-    .replace(/\s+/g, " ")
-    .replace(/^respuestas?\s+/i, "")
-    .replace(/^base\s+/i, "Base ")
-    .trim();
 }
 
 function actorMechanismObserved(
@@ -15779,9 +14000,9 @@ function actorCardsForDashboard({
 
 function phoneQuotaDailyPointsByValue(
   reports: MonitoreoAcreditacionReports,
-  quotaRows: AcreditacionPhoneQuotaRow[],
+  quotaRows: AcreditacionPhoneQuotaRow[], elegida?: string | null,
 ) {
-  const variable = preferredPhoneAdvanceQuotaVariable(quotaRows);
+  const variable = preferredPhoneAdvanceQuotaVariable(quotaRows, elegida); // la variable elegida (R5) trae su serie
   const variableLabel = phoneQuotaVariableLabel(variable);
   const valueKeys = new Set(quotaRows.map((row) => normalizeSourceMatch(row.value)).filter(Boolean));
   const out = new Map<string, Map<string, AcreditacionAdvanceDailyPoint>>();
@@ -15845,11 +14066,11 @@ function phoneQuotaDailyPointsByValue(
   return new Map(Array.from(out.entries()).map(([key, points]) => [key, sortAcreditacionDailyPoints(Array.from(points.values()))]));
 }
 
-export function phoneQuotaCardsForDashboard(reports: MonitoreoAcreditacionReports): AcreditacionActorCard[] {
+export function phoneQuotaCardsForDashboard(reports: MonitoreoAcreditacionReports, elegida?: string | null): AcreditacionActorCard[] {
   const quotaRows = rowsForSheetBlock(reports, "monitoreo_telefonico", ["cuotas_variable", "cuotas_telefonicas", "cuotas_por_variable"]);
   const parsedQuotaRows = phoneQuotaRowsForPanel(quotaRows);
-  const dailyByValue = phoneQuotaDailyPointsByValue(reports, parsedQuotaRows);
-  return phoneQuotaAdvanceCardsFromRows(quotaRows).map((card) => ({
+  const dailyByValue = phoneQuotaDailyPointsByValue(reports, parsedQuotaRows, elegida);
+  return phoneQuotaAdvanceCardsFromRows(quotaRows, elegida).map((card) => ({
     ...card,
     status: actorStatusLabel(card),
     mechanisms: [],
@@ -15930,7 +14151,7 @@ function AcreditacionAdvanceStorage({
   const [hoveredStorageSegmentKey, setHoveredStorageSegmentKey] = useState("");
   const hoveredStorageSegment = positionedStorageSegments.find((segment) => segment.key === hoveredStorageSegmentKey) ?? null;
   const storageSegmentTooltip = (segment: { label: string; value: number; pct: number | null | undefined; hint: string; detail?: string }) => (
-    `${segment.label}: ${fmt(segment.value)} casos · ${pct(segment.pct)} ${segment.hint}.${segment.detail ? ` ${segment.detail}` : ""}`
+    `${segment.label}: ${fmt(segment.value)} casos, ${pct(segment.pct)} ${segment.hint}.${segment.detail ? ` ${segment.detail}` : ""}`
   );
   const actorUniverse = [...cards].filter((card) => card.universe > 0).sort((a, b) => b.universe - a.universe).slice(0, 4);
   const storageAriaLabel = isPhoneScope ? "Base telefónica y estados de llamada" : "Universo y avance de acreditación";
@@ -16334,7 +14555,7 @@ function AcreditacionActorMechanismRow({
       <span className="mon-actor-mechanism-icon"><Icon size={13} /></span>
       <div>
         <strong>{item.label}</strong>
-        <span>{item.provider} · {item.role}{visibleChannel ? ` · ${visibleChannel}` : ""}</span>
+        <span>{item.provider}, {item.role}{visibleChannel ? `, ${visibleChannel}` : ""}</span>
       </div>
       <em>
         {item.observed == null ? "S/D" : fmt(item.observed)}
@@ -16461,7 +14682,7 @@ function AcreditacionActorProgressCardView({
           {baseMechanisms.length ? baseMechanisms.map((item) => (
             <AcreditacionActorMechanismRow key={item.id} item={item} universe={card.universe} />
           )) : (
-            <div className="mon-actor-mechanism-empty">Sin base registrada para esta unidad.</div>
+            <EstadoVacio icono={<Table2 size={15} />} titulo="Sin base registrada para esta unidad." />
           )}
         </AcreditacionActorMechanismGroup>
         <AcreditacionActorMechanismGroup
@@ -16473,7 +14694,7 @@ function AcreditacionActorProgressCardView({
           {responseMechanisms.length ? responseMechanisms.map((item) => (
             <AcreditacionActorMechanismRow key={item.id} item={item} universe={card.universe} />
           )) : (
-            <div className="mon-actor-mechanism-empty">Sin respuestas conectadas para este actor.</div>
+            <EstadoVacio icono={<PlugZap size={15} />} titulo="Sin respuestas conectadas para este actor." />
           )}
         </AcreditacionActorMechanismGroup>
       </div>
@@ -16513,10 +14734,10 @@ function AcreditacionAdvanceActorsWorkbench({
   // PDM MedVida el segmento es `Actor`.
   const esCuotaTelefonica = isPhoneModel && phoneQuotaCards.length > 0;
   const segmentoDeLasCuotas = useMemo(
-    () => nombreDelSegmento(
+    () => variableDeCuotas(
       phoneQuotaRowsForPanel(
         rowsForSheetBlock(reports, "monitoreo_telefonico", ["cuotas_variable", "cuotas_telefonicas", "cuotas_por_variable"]),
-      ).map((row) => row.variable),
+      ),
     ),
     [reports],
   );
@@ -16580,10 +14801,10 @@ function AcreditacionAdvanceActorsWorkbench({
       reservaTitulo: reserva.necesariaEstimada != null && reserva.suficiente === false
         ? `No alcanza: se estiman ${fmt(reserva.necesariaEstimada)} para cerrar`
         : "Casos de la base todavía sin trabajar",
-      porDia: ritmo ? ritmo.porDia.toLocaleString("es-PE", { maximumFractionDigits: 1 }) : null,
+      porDia: ritmo ? formatoDecimal(ritmo.porDia, 1) : null,
       diasProyectados: ritmo?.diasProyectados ?? null,
       costoPorEfectiva: reserva.costoPorEfectiva != null
-        ? reserva.costoPorEfectiva.toLocaleString("es-PE", { maximumFractionDigits: 1 })
+        ? formatoDecimal(reserva.costoPorEfectiva, 1)
         : null,
     };
   }, [cards, esCuotaTelefonica]);
@@ -16658,7 +14879,7 @@ function AcreditacionAdvanceActorsWorkbench({
           <AcreditacionAdvanceMetric
             label={isPhoneModel ? "Por barrer" : "Pendientes"}
             value={fmt(totals.pending)}
-            hint={isPhoneModel ? "estado telefónico pendiente" : `${fmt(totals.partial)} parciales · ${fmt(totals.refusals)} rechazos`}
+            hint={isPhoneModel ? "estado telefónico pendiente" : `${fmt(totals.partial)} parciales, ${fmt(totals.refusals)} rechazos`}
             tone={totals.pending ? "warning" : "base"}
           />
         </div>
@@ -16722,28 +14943,6 @@ function AcreditacionChannelBadge({ channel }: { channel: string }) {
       {option?.label ?? acreditacionChannelLabel(channel)}
     </span>
   );
-}
-
-function surveySourceForAcreditacionId(sourceId: string, sources: MonitoreoSource[]) {
-  const key = normalizeSourceMatch(sourceId);
-  if (!key) return null;
-  return sources.find((source) => normalizeSourceMatch(source.id) === key || normalizeSourceMatch(source.survey_id) === key) ?? null;
-}
-
-function surveySourceForAcreditacionTitle(title: string, sources: MonitoreoSource[]) {
-  const key = normalizeSourceMatch(title);
-  if (!key) return null;
-  return sources.find((source) => [
-    source.label,
-    source.survey_title,
-    source.dimensions?.survey_title,
-    source.survey_id,
-  ].some((value) => normalizeSourceMatch(value) === key))
-    ?? sources.find((source) => {
-      const label = normalizeSourceMatch(source.survey_title || source.dimensions?.survey_title || source.label);
-      return label && (label.includes(key) || key.includes(label));
-    })
-    ?? null;
 }
 
 function addAcreditacionSurveyState(row: AcreditacionAdvanceSurveyRow, label: string, value: number) {
@@ -16948,15 +15147,15 @@ function AcreditacionAdvanceSurveyDailyChart({
             {daily ? <option value="total">Encuesta completa</option> : null}
             {collectors.map((item) => (
               <option key={item.id} value={item.id} title={item.collectorId ? `ID ${item.collectorId}` : undefined}>
-                {acreditacionCollectorSeriesDisplayName(item)} · {fmt(item.total)}
+                {acreditacionCollectorSeriesDisplayName(item)}, {fmt(item.total)}
               </option>
             ))}
           </select>
-          <em>{fmt(collectors.length)} recopilador{collectors.length === 1 ? "" : "es"} · {fmt(collectorTotal)} respuestas</em>
+          <em>{fmt(collectors.length)} recopilador{collectors.length === 1 ? "" : "es"}, {fmt(collectorTotal)} respuestas</em>
         </label>
       ) : null}
       <AcreditacionAdvanceDailyMini
-        title={isCollector ? `${acreditacionCollectorSeriesDisplayName(active)} · ${row.title}` : row.title}
+        title={isCollector ? `${acreditacionCollectorSeriesDisplayName(active)}, ${row.title}` : row.title}
         points={active.points}
         variant="source"
         cutDate={cutDate}
@@ -16964,7 +15163,7 @@ function AcreditacionAdvanceSurveyDailyChart({
         reportWeekday={reportWeekday}
       />
       <div className="mon-advance-daily-foot">
-        <span><strong>{actor}</strong> · {acreditacionChannelLabel(row.channel)}</span>
+        <span><strong>{actor}</strong>, {acreditacionChannelLabel(row.channel)}</span>
         <span><strong>{fmt(datedDays)}</strong> días con fecha</span>
       </div>
     </div>
@@ -16995,7 +15194,7 @@ function AcreditacionAdvanceSurveyCard({
         <header>
           <AcreditacionChannelBadge channel={row.channel} />
           <strong>{row.title}</strong>
-          <span>{acreditacionChannelLabel(row.channel)}{row.surveyId ? ` · ${row.surveyId}` : ""}</span>
+          <span>{acreditacionChannelLabel(row.channel)}{row.surveyId ? `, ${row.surveyId}` : ""}</span>
         </header>
         <div className="mon-advance-survey-meter" aria-label={`Respuestas de ${row.title}`}>
           <strong>{fmt(row.total)}</strong>
@@ -17067,7 +15266,7 @@ function AcreditacionAdvancePhoneKoboCard({
       <div className="mon-advance-survey-chart-stack">
         {daily ? (
           <AcreditacionAdvanceDailyMini
-            title={`Efectivas por día · ${row.title}`}
+            title={`Efectivas por día, ${row.title}`}
             points={daily.points}
             variant="source"
             cutDate={cutDate}
@@ -17205,7 +15404,7 @@ function AcreditacionAdvancePhoneKoboWorkbench({
               <div>
                 <span>Instrumentos Kobo</span>
                 <strong>Efectivas filtradas</strong>
-                <em>{fmt(totalResponses)} respuestas Kobo leídas · {filterConfigured ? `${filter.variable} = ${filter.values[0]}` : "elige filtro de consentimiento"}</em>
+                <em>{fmt(totalResponses)} respuestas Kobo leídas, {filterConfigured ? `${filter.variable} = ${filter.values[0]}` : "elige filtro de consentimiento"}</em>
               </div>
               <div className="mon-advance-survey-actor-kpis mon-advance-survey-actor-kpis--phone">
                 <span className="is-effective"><em>Efectivas</em><strong>{fmt(totalEffective)}</strong></span>
@@ -17330,7 +15529,7 @@ function AcreditacionAdvanceSurveysWorkbench({
           <p>Integra la producción por encuesta, canal y recopilador para distinguir qué plataforma sostiene el avance de cada actor.</p>
         </div>
         <div className="mon-advance-hero-kpis">
-          <AcreditacionAdvanceMetric label="Fuentes" value={fmt(rows.length)} hint={`${fmt(channelCount)} canales · ${fmt(groups.length)} actores`} tone="base" />
+          <AcreditacionAdvanceMetric label="Fuentes" value={fmt(rows.length)} hint={`${fmt(channelCount)} canales, ${fmt(groups.length)} actores`} tone="base" />
           <AcreditacionAdvanceMetric label="Efectivas" value={fmt(totalEffective)} hint={`${fmt(totalPartial)} parciales`} tone="ready" />
           <AcreditacionAdvanceMetric label="Rechazos" value={fmt(totalRefusals)} hint={totalCollectors ? `${fmt(totalCollectors)} recopiladores` : "sin serie por recopilador"} tone={totalRefusals ? "warning" : "base"} />
           <AcreditacionAdvanceMetric label="Recopiladores" value={fmt(totalCollectors)} hint={totalCollectors ? "selección diaria disponible" : `${fmt(totalResponses)} respuestas`} tone={totalCollectors ? "ready" : "target"} />
@@ -17344,7 +15543,7 @@ function AcreditacionAdvanceSurveysWorkbench({
                 <div>
                   <span>Actor</span>
                   <strong>{group.actor}</strong>
-                  <em>{fmt(group.rows.length)} fuentes exactas · {fmt(group.total)} respuestas</em>
+                  <em>{fmt(group.rows.length)} fuentes exactas, {fmt(group.total)} respuestas</em>
                 </div>
                 <div className="mon-advance-survey-actor-kpis">
                   <span className="is-effective"><em>Efectivas</em><strong>{fmt(group.effective)}</strong></span>
@@ -17406,7 +15605,7 @@ function AcreditacionAdvanceFocus({ cards, scopeLabel = "Actor" }: { cards: Acre
             <article key={card.id} className={`is-${card.statusTone}`}>
               <div>
                 <strong>{card.actor}</strong>
-                <span>{fmt(card.effective)} efectivas · {fmt(card.universe)} universo</span>
+                <span>{fmt(card.effective)} efectivas, {fmt(card.universe)} universo</span>
               </div>
               <em>{metaLabel}</em>
               <i style={{ "--advance-focus-pct": `${Math.max(0, Math.min(100, progress))}%` } as CSSProperties} />
@@ -17589,7 +15788,7 @@ function AcreditacionControlVariableComparisonRow({ row }: { row: AcreditacionCo
     <div className={`mon-control-variable-row is-${tone}`}>
       <div className="mon-control-variable-label">
         <strong>{row.value}</strong>
-        <span>{formatMetric(row.effective)} efectivas · {formatMetric(row.universe)} en universo</span>
+        <span>{formatMetric(row.effective)} efectivas, {formatMetric(row.universe)} en universo</span>
       </div>
       <div className="mon-control-variable-bars" aria-label={`${row.value}: ${formatPercentLabel(basePct)} del universo y ${formatPercentLabel(effectivePct)} del corte efectivo`}>
         <span className="is-base">
@@ -17696,12 +15895,6 @@ function reportSheetsForPanel(reports: MonitoreoAcreditacionReports | null | und
   return panelSheets.length ? panelSheets : clientReportSheetsForPanel(reports?.client_report);
 }
 
-function reportPanelSheetTitle(sheet: MonitoreoReportSheet) {
-  if (normalizeReportMatch(sheet.id) === "reporte" || normalizeReportMatch(sheet.id) === "resumen") return "Reporte";
-  if (normalizeReportMatch(sheet.id) === "avance_encuesta") return "Encuestas";
-  return sheet.title.replace(/\binterno\b/gi, "").replace(/\s{2,}/g, " ").trim();
-}
-
 function reportPanelSheetDescription(sheet: MonitoreoReportSheet) {
   if (normalizeReportMatch(sheet.id) === "reporte" || normalizeReportMatch(sheet.id) === "resumen") {
     return "Integra avance por actor, cortes diarios, distribución y brechas de respuesta en una sola lectura.";
@@ -17734,24 +15927,6 @@ function reportSheetTone(id: string) {
   return "summary";
 }
 
-function reportBlockTone(blockId: string, sheetId: string) {
-  const id = normalizeReportMatch(`${sheetId} ${blockId}`);
-  if (id.includes("alert")) return "risk";
-  if (id.includes("telefon") || id.includes("estatus") || id.includes("responsable")) return "phone";
-  if (id.includes("encuesta")) return "survey";
-  if (id.includes("dia") || id.includes("avance")) return "trend";
-  return "summary";
-}
-
-function sheetTitleIcon(id: string) {
-  const key = normalizeReportMatch(id);
-  if (key.includes("alert")) return <ShieldAlert size={14} />;
-  if (key.includes("telefon")) return <PhoneCall size={14} />;
-  if (key.includes("reporte")) return <FileCheck2 size={14} />;
-  if (key.includes("encuesta")) return <BarChart3 size={14} />;
-  return <ClipboardCheck size={14} />;
-}
-
 function buildReportSheetStats(sheet: MonitoreoReportSheet) {
   const totalRows = sheet.blocks.reduce((sum, block) => sum + block.rows.length, 0);
   const mainMetric = sheet.blocks.map(reportBlockMetric).find((metric) => metric.tone !== "neutral") ?? reportBlockMetric(sheet.blocks[0]);
@@ -17760,51 +15935,6 @@ function buildReportSheetStats(sheet: MonitoreoReportSheet) {
     { label: "Filas", value: fmt(totalRows) },
     { label: mainMetric.label, value: mainMetric.value },
   ];
-}
-
-function shortColumnLabel(column: string) {
-  return column.replace(/^% del /i, "% ").replace(/^Avance /i, "").slice(0, 18);
-}
-
-function reportBlockMetric(block?: MonitoreoReportBlock) {
-  if (!block || !block.rows.length) return { label: "Filas", value: "0", tone: "neutral" };
-  const cols = reportBlockColumns(block);
-  const pick = (candidates: string[]) => cols.find((column) => {
-    const normalized = normalizeReportMatch(column);
-    return candidates.some((candidate) => normalized.includes(candidate));
-  });
-  const pctCol = pick(["avance total", "avance minimo", "porcentaje", "del total", "universo", "efectivas"]);
-  if (pctCol) {
-    const values = block.rows.map((row) => reportPercentValue(row[pctCol], pctCol)).filter((value): value is number => value != null);
-    if (values.length) {
-      const value = values.reduce((sum, item) => sum + item, 0) / values.length;
-      return { label: shortColumnLabel(pctCol), value: formatPercentLabel(value), tone: value >= 70 ? "good" : value > 0 ? "warn" : "neutral" };
-    }
-  }
-  const numericCol = pick(["total", "casos", "respuestas", "completas", "efectivas", "alerta"]);
-  if (numericCol) {
-    const total = block.rows.reduce((sum, row) => sum + reportNumberValue(row[numericCol]), 0);
-    return { label: shortColumnLabel(numericCol), value: fmt(total), tone: total > 0 ? "good" : "neutral" };
-  }
-  return { label: "Filas", value: fmt(block.rows.length), tone: "neutral" };
-}
-
-function formatReportCell(value: unknown, column: string) {
-  if (value == null || value === "") return "";
-  if (typeof value === "number") {
-    const normalized = normalizeReportMatch(column);
-    if (normalized.includes("avance") || String(column).includes("%") || normalized.includes("ratio")) {
-      const pctValue = Math.abs(value) <= 10 ? value * 100 : value;
-      return pctDecimal(pctValue);
-    }
-    return Number.isInteger(value) ? fmt(value) : value.toLocaleString("es-PE", { maximumFractionDigits: 1 });
-  }
-  const text = String(value);
-  if (normalizeReportMatch(column).includes("fecha")) return text;
-  const normalized = normalizeReportMatch(text);
-  if (normalized === "no barridos") return "Por barrer";
-  if (normalized === "casos barridos") return "Barridos";
-  return text;
 }
 
 function ReportTableCell({ value, column, rowContext = "" }: { value: unknown; column: string; rowContext?: string }) {
@@ -17836,7 +15966,7 @@ function GsReportBlockTable({ sheet, block }: { sheet: MonitoreoReportSheet; blo
       <header>
         <div>
           <strong>{block.title}</strong>
-          <small>{fmt(columns.length)} columnas · {fmt(block.rows.length)} filas</small>
+          <small>{fmt(columns.length)} columnas, {fmt(block.rows.length)} filas</small>
         </div>
         <span className={`mon-gs-block-metric is-${metric.tone}`}>
           <em>{metric.label}</em>
@@ -18027,10 +16157,10 @@ function AcreditacionAdvanceSummaryWorkbench({
   // El nombre del segmento lo declara el estudio, no la vista. Ver
   // `segmentoDeCuotas.ts`.
   const segmentoDeLasCuotas = useMemo(
-    () => nombreDelSegmento(
+    () => variableDeCuotas(
       phoneQuotaRowsForPanel(
         rowsForSheetBlock(reports, "monitoreo_telefonico", ["cuotas_variable", "cuotas_telefonicas", "cuotas_por_variable"]),
-      ).map((row) => row.variable),
+      ),
     ),
     [reports],
   );
@@ -18150,7 +16280,7 @@ function AcreditacionAdvanceSummaryWorkbench({
                     : "Kobo y barrido coinciden"}
                 </strong>
               </div>
-              <em>{fmt(dailySignalDays)} día{dailySignalDays === 1 ? "" : "s"} con efectivas{undatedPhoneEffective ? ` · ${fmt(undatedPhoneEffective)} sin fecha` : ""}</em>
+              <em>{fmt(dailySignalDays)} día{dailySignalDays === 1 ? "" : "s"} con efectivas{undatedPhoneEffective ? `, ${fmt(undatedPhoneEffective)} sin fecha` : ""}</em>
             </header>
             <div className="mon-phone-advance-parallel-grid">
               <article>
@@ -18225,7 +16355,7 @@ function AcreditacionAdvanceSummaryWorkbench({
           <AcreditacionAdvanceMetric
             label={isPhoneModel ? "Por barrer" : "Pendientes"}
             value={fmt(totals.pending)}
-            hint={isPhoneModel ? "estado telefónico pendiente" : `${fmt(totals.partial)} parciales · ${fmt(totals.refusals)} rechazos`}
+            hint={isPhoneModel ? "estado telefónico pendiente" : `${fmt(totals.partial)} parciales, ${fmt(totals.refusals)} rechazos`}
             tone={totals.pending ? "warning" : "base"}
           />
         </div>
@@ -18336,30 +16466,28 @@ function renderAcreditacionView(
   if (view === "avance" && options.activeAdvanceTab === "salidas") {
     const outputState = options.state;
     const isPhoneOutputs = isTelefonicoMonitoreoState(outputState);
-    const salidas = (
-      <MonitoreoOutputsWorkbench
-        family={isPhoneOutputs ? "telefonico" : "acreditacion"}
-        routeLabel={isPhoneOutputs ? "Monitoreo telefónico" : options.routeLabel ?? "Acreditación"}
-        defaultTitle={isPhoneOutputs ? "" : outputState?.config?.acreditacion?.estudio?.titulo || "reporte-monitoreo"}
-        config={outputState?.config}
-        clientSheets={outputState?.publication?.client_last_sheets ?? null}
-        internalSheets={outputState?.publication?.internal_last_sheets ?? null}
-        corte={corteTelefonicoDeReports(outputState, reports)}
-        syncedAt={outputState?.synced_at ?? ""}
-        onPublished={options.onPublished}
-        notaDeValidas={isPhoneOutputs ? notaDeValidasTelefonica(reports) : undefined}
-        variante={isPhoneOutputs ? "ficha" : undefined}
-      />
-    );
-    // Avance › Entregas (T8): la vista del PDF del cliente junto a las salidas de siempre.
-    if (!isPhoneOutputs) return salidas;
+    const motor = {
+      family: isPhoneOutputs ? "telefonico" as const : "acreditacion" as const,
+      routeLabel: isPhoneOutputs ? "Monitoreo telefónico" : options.routeLabel ?? "Acreditación",
+      defaultTitle: isPhoneOutputs ? "" : outputState?.config?.acreditacion?.estudio?.titulo || "reporte-monitoreo",
+      config: outputState?.config,
+      clientSheets: outputState?.publication?.client_last_sheets ?? null,
+      internalSheets: outputState?.publication?.internal_last_sheets ?? null,
+      corte: corteTelefonicoDeReports(outputState, reports),
+      syncedAt: outputState?.synced_at ?? "",
+      onPublished: options.onPublished,
+      notaDeValidas: isPhoneOutputs ? notaDeValidasTelefonica(reports) : undefined,
+      variante: isPhoneOutputs ? "ficha" as const : undefined,
+    };
+    if (!isPhoneOutputs) return <MonitoreoOutputsWorkbench {...motor} />;
+    // Avance › Entregas sobre el estándar de Salidas (4 nov 2026): lista de salidas y hoja del cliente.
     return (
-      <Entregas
+      <SalidasTelefonicas
+        motor={motor}
         modelo={reports ? entradaDeCuotasFaltante(reports, outputState, phoneQuotaCardsForDashboard(reports)).modelo : null}
         corte={outputState?.synced_at ? formatDate(outputState.synced_at) : ""}
         dias={efectivasPorDia(reports)}
         nota={notaDeLaSerie(reports)}
-        salidas={salidas}
       />
     );
   }
@@ -18388,8 +16516,7 @@ function renderAcreditacionView(
     );
   }
   if (view === "avance" && options.activeAdvanceTab === "actores" && isTelefonicoMonitoreoState(options.state)) {
-    const { modelo, cadena } = entradaDeCuotasFaltante(reports, options.state, phoneQuotaCardsForDashboard(reports));
-    return <CuotasFaltante modelo={modelo} cadena={cadena} />; // Avance › Cuotas del revamp (T3).
+    return <CuotasFaltanteDelCorte reports={reports} state={options.state} tarjetas={phoneQuotaCardsForDashboard} />; // Avance › Cuotas (T3), con su variable elegible (R5).
   }
   if (view === "avance" && options.activeAdvanceTab === "resumen" && isTelefonicoMonitoreoState(options.state)) {
     return <Ritmo reports={reports} state={options.state} />; // Avance › Ritmo (T8).
@@ -18513,31 +16640,10 @@ function renderAcreditacionView(
       />
     );
   }
-  return (
-    <div className="mon-profile-stack">
-      <div className="mon-profile-grid">
-        <section className="mon-profile-panel">
-          <div className="mon-profile-panel-head">
-            <h3>Avance por actor</h3>
-            <span>{fmt(actorRows.length)} filas</span>
-          </div>
-          <DataTable rows={actorRows as Array<Record<string, unknown>>} empty="No hay avance por actor preparado." />
-        </section>
-        <section className="mon-profile-panel">
-          <div className="mon-profile-panel-head">
-            <h3>Ritmo diario</h3>
-            <span>{fmt(dailyRows.length)} dias</span>
-          </div>
-          <DataTable rows={dailyRows as Array<Record<string, unknown>>} empty="No hay serie diaria preparada." />
-        </section>
-      </div>
-    </div>
-  );
+  // Ninguna sección interna llega aquí: cada una se despachó arriba.
+  return null;
 }
 
-function phoneContractReadyCount(contract: AcreditacionPhoneSourceContract) {
-  return [contract.universe, contract.sweep, contract.platform].filter((slot) => slot.ready).length;
-}
 
 function activeSourceCount(state: MonitoreoState | null) {
   if (isTelefonicoMonitoreoState(state)) {
@@ -18602,7 +16708,7 @@ function acreditacionRailModelStats(state: MonitoreoState | null, reports: Monit
     goals,
     phases: phases.length,
     schedule: scheduleDraft.durationWeeks
-      ? `${fmt(scheduleDraft.durationWeeks)} sem · ${calendarReportWeekdayLabel(scheduleDraft.reportWeekday)}`
+      ? `${fmt(scheduleDraft.durationWeeks)} sem, ${calendarReportWeekdayLabel(scheduleDraft.reportWeekday)}`
       : phases.length
         ? countText(phases.length, "fase")
         : "sin cronograma",
@@ -18756,18 +16862,18 @@ export function localTabsForTelefonicoView(
       // decisión en el orden en que dependen una de otra.
       return [
         railTab(active, {
-          detail: `${phoneStats.sourceReady}/3 conectadas · de dónde salen los números`,
+          detail: `${phoneStats.sourceReady}/3 conectadas, de dónde salen los números`,
           badge: `${phoneStats.sourceReady}/3`,
           estado: readyStatus(phoneStats.sourceReady === 3),
         }),
         railTab(sheets, {
-          detail: `${phoneStats.sheetReady}/2 hojas · a quién llamar y qué pasó`,
+          detail: `${phoneStats.sheetReady}/2 hojas, a quién llamar y qué pasó`,
           badge: `${phoneStats.sheetReady}/2`,
           estado: readyStatus(phoneStats.sheetReady === 2),
         }),
         railTab(survey, {
           detail: phoneStats.contract.platform.ready
-            ? `${countText(phoneStats.koboSources, "encuesta")} · ${phoneStats.phoneFilterConfigured ? "filtro listo" : "elige filtro"}`
+            ? `${countText(phoneStats.koboSources, "encuesta")}, ${phoneStats.phoneFilterConfigured ? "filtro listo" : "elige filtro"}`
             : "elige encuesta y filtro de efectiva",
           badge: phoneStats.koboSources ? fmt(phoneStats.koboSources) : undefined,
           estado: readyStatus(phoneStats.contract.platform.ready && phoneStats.phoneFilterConfigured),
@@ -18778,25 +16884,25 @@ export function localTabsForTelefonicoView(
     return [
       railTab(survey, {
         label: "Encuestas",
-        detail: sourceStats.platform ? `${countText(sourceStats.platformEnabled, "activa")} · respuestas` : "conecta encuestas",
+        detail: sourceStats.platform ? `${countText(sourceStats.platformEnabled, "activa")}, respuestas` : "conecta encuestas",
         badge: sourceStats.platform ? fmt(sourceStats.platform) : undefined,
         estado: readyStatus(sourceStats.platformEnabled > 0),
       }),
       railTab(sheets, {
         label: "Universo",
-        detail: sourceStats.sheets ? `${countText(sourceStats.sheetsEnabled, "activa")} · universo` : "conecta Sheets",
+        detail: sourceStats.sheets ? `${countText(sourceStats.sheetsEnabled, "activa")}, universo` : "conecta Sheets",
         badge: sourceStats.sheets ? fmt(sourceStats.sheets) : undefined,
         estado: readyStatus(sourceStats.sheetsEnabled > 0),
       }),
       railTab(collectors, {
         label: "Recopiladores",
-        detail: sourceStats.collectors ? `${countText(sourceStats.collectors, "enlace")} · inclusión` : "vincula enlaces",
+        detail: sourceStats.collectors ? `${countText(sourceStats.collectors, "enlace")}, inclusión` : "vincula enlaces",
         badge: sourceStats.collectors ? fmt(sourceStats.collectors) : undefined,
         estado: readyStatus(sourceStats.collectors > 0),
       }),
       railTab(active, {
         label: "Fuentes activas",
-        detail: `${sourceStats.enabled}/${sourceStats.total || 0} fuentes · ${countText(sourceStats.reportSources, "fila")}`,
+        detail: `${sourceStats.enabled}/${sourceStats.total || 0} fuentes, ${countText(sourceStats.reportSources, "fila")}`,
         badge: sourceStats.total ? `${sourceStats.enabled}/${sourceStats.total}` : undefined,
         estado: readyStatus(sourceStats.total > 0 && sourceStats.enabled === sourceStats.total),
       }),
@@ -18810,7 +16916,7 @@ export function localTabsForTelefonicoView(
       return [
         railTab(structure, {
           detail: modelStats.phoneQuotaRows
-            ? `${countText(modelStats.phoneQuotaVariables, "variable")} · metas Kobo`
+            ? `${countText(modelStats.phoneQuotaVariables, "variable")}, metas Kobo`
             : "define metas por variable",
           badge: modelStats.phoneQuotaRows ? fmt(modelStats.phoneQuotaRows) : undefined,
           estado: readyStatus(modelStats.phoneQuotaRows > 0),
@@ -18824,7 +16930,7 @@ export function localTabsForTelefonicoView(
     }
     return [
       railTab(structure, {
-        detail: modelStats.actors ? `${countText(modelStats.actors, "actor")} · ${countText(modelStats.goals, "meta")}` : "define actores y metas",
+        detail: modelStats.actors ? `${countText(modelStats.actors, "actor")}, ${countText(modelStats.goals, "meta")}` : "define actores y metas",
         badge: modelStats.actors ? fmt(modelStats.actors) : undefined,
         estado: readyStatus(modelStats.actors > 0 || modelStats.goals > 0),
       }),
@@ -18835,7 +16941,7 @@ export function localTabsForTelefonicoView(
       }),
       railTab(summary, {
         label: "Lectura",
-        detail: `${sourceStats.enabled}/${sourceStats.total || 0} fuentes · sin editar`,
+        detail: `${sourceStats.enabled}/${sourceStats.total || 0} fuentes, sin editar`,
         badge: sourceStats.total ? `${sourceStats.enabled}/${sourceStats.total}` : undefined,
         estado: readyStatus(sourceStats.enabled > 0),
       }),
@@ -18861,21 +16967,21 @@ export function localTabsForTelefonicoView(
       const caveatCases = effectiveCases.filter(telefonicoCaseHasEffectiveCaveat);
       const phoneConsultaTabs = [
         railTab(platform, {
-          detail: effectiveCases.length ? `${countText(effectiveCases.length, "caso efectivo", "casos efectivos")} · pasan filtro` : "sin efectivas Kobo",
+          detail: effectiveCases.length ? `${countText(effectiveCases.length, "caso efectivo", "casos efectivos")}, pasan filtro` : "sin efectivas Kobo",
           badge: effectiveCases.length ? fmt(effectiveCases.length) : undefined,
           estado: readyStatus(effectiveCases.length > 0),
         }),
         railTab(crosses, {
           detail: crossingComparable
-            ? `${crossingMatchLabel} coinciden${crossingReview ? ` · ${fmt(crossingReview)} revisar` : ""}`
-            : `${countText(effectiveCases.length, "efectiva")} · sin cruce`,
+            ? `${crossingMatchLabel} coinciden${crossingReview ? `, ${fmt(crossingReview)} revisar` : ""}`
+            : `${countText(effectiveCases.length, "efectiva")}, sin cruce`,
           badge: crossingComparable && crossingMatchLabel !== "S/D" ? crossingMatchLabel : undefined,
           estado: readyStatus(crossingComparable > 0 && crossingReview === 0, crossingReview > 0),
         }),
       ];
       if (caveatCases.length) {
         phoneConsultaTabs.push(railTab(fixes, {
-          detail: `${countText(caveatCases.length, "caso")} · no identificable`,
+          detail: `${countText(caveatCases.length, "caso")}, no identificable`,
           badge: fmt(caveatCases.length),
           estado: "parcial",
         }));
@@ -18885,22 +16991,22 @@ export function localTabsForTelefonicoView(
     }
     return [
       railTab(platform, {
-        detail: cases.length ? `${countText(cases.length, "caso")} · respuestas` : "sin casos trazados",
+        detail: cases.length ? `${countText(cases.length, "caso")}, respuestas` : "sin casos trazados",
         badge: cases.length ? fmt(cases.length) : undefined,
         estado: readyStatus(cases.length > 0),
       }),
       railTab(base, {
-        detail: `${countText(caseSummary.pending, "pendiente")} · base`,
+        detail: `${countText(caseSummary.pending, "pendiente")}, base`,
         badge: caseSummary.pending ? fmt(caseSummary.pending) : undefined,
         estado: readyStatus(cases.length > 0),
       }),
       railTab(crosses, {
-        detail: `${countText(caseSummary.effective, "efectiva")} · cruce`,
+        detail: `${countText(caseSummary.effective, "efectiva")}, cruce`,
         badge: caseSummary.effective ? fmt(caseSummary.effective) : undefined,
         estado: readyStatus(caseSummary.effective > 0),
       }),
       railTab(fixes, {
-        detail: issues ? `${countText(issues, "alerta")} · revisar` : "sin alertas",
+        detail: issues ? `${countText(issues, "alerta")}, revisar` : "sin alertas",
         badge: issues ? fmt(issues) : undefined,
         estado: readyStatus(!issues, issues > 0),
       }),
@@ -18913,30 +17019,30 @@ export function localTabsForTelefonicoView(
     void day;
     return [
       railTab(summary, {
-        detail: `${fmt(phoneStats.totals.effective)} efectivas tel. · ${fmt(phoneStats.totals.unswept)} por barrer`,
+        detail: `${fmt(phoneStats.totals.effective)} efectivas tel., ${fmt(phoneStats.totals.unswept)} por barrer`,
         badge: phoneStats.totals.total ? fmt(phoneStats.totals.total) : undefined,
         estado: readyStatus(phoneStats.totals.total > 0, phoneStats.totals.unswept > 0),
       }),
       railTab(times, {
         detail: phoneStats.timeRows
-          ? `${fmt(phoneStats.timeRows)} efectivas · ${fmt(phoneStats.timeUnder2 + phoneStats.timeUnder5)} revisar`
+          ? `${fmt(phoneStats.timeRows)} efectivas, ${fmt(phoneStats.timeUnder2 + phoneStats.timeUnder5)} revisar`
           : "sin tabla de duración",
         badge: phoneStats.timeRows ? fmt(phoneStats.timeRows) : undefined,
         estado: readyStatus(phoneStats.timeRows > 0, phoneStats.timeUnder2 + phoneStats.timeUnder5 + phoneStats.timeMissing > 0),
       }),
       railTab(incidence, {
-        detail: `${fmt(phoneStats.totals.incidents)} sin efectiva · ${fmt(phoneStats.totals.unswept)} por barrer`,
+        detail: `${fmt(phoneStats.totals.incidents)} sin efectiva, ${fmt(phoneStats.totals.unswept)} por barrer`,
         badge: phoneStats.pendingRows ? fmt(phoneStats.pendingRows) : undefined,
         estado: phoneStats.totals.incidents || phoneStats.totals.unswept ? "parcial" : "listo",
       }),
       railTab(responsible, {
-        detail: `${countText(phoneStats.totals.responsables || phoneStats.responsibleRows, "persona")} · carga`,
+        detail: `${countText(phoneStats.totals.responsables || phoneStats.responsibleRows, "persona")}, carga`,
         badge: phoneStats.totals.responsables ? fmt(phoneStats.totals.responsables) : undefined,
         estado: readyStatus(phoneStats.responsibleRows > 0),
       }),
       railTab(alerts, {
         detail: phoneStats.alertObservations
-          ? `${countText(phoneStats.alertObservations, "observación", "observaciones")} · ${fmt(phoneStats.alerts)} casos`
+          ? `${countText(phoneStats.alertObservations, "observación", "observaciones")}, ${fmt(phoneStats.alerts)} casos`
           : "sin observaciones activas",
         badge: phoneStats.alertObservations ? fmt(phoneStats.alertObservations) : undefined,
         estado: readyStatus(!phoneStats.alertObservations, phoneStats.alertObservations > 0),
@@ -18953,13 +17059,13 @@ export function localTabsForTelefonicoView(
       void detail;
       return [
         railTab(summary, {
-          detail: `${countText(phoneStats.platformEffective, "efectiva")} · ritmo Kobo`,
+          detail: `${countText(phoneStats.platformEffective, "efectiva")}, ritmo Kobo`,
           badge: phoneStats.platformEffective ? fmt(phoneStats.platformEffective) : undefined,
           estado: readyStatus(phoneStats.platformEffective > 0 && phoneStats.phoneFilterConfigured),
         }),
         railTab(actors, {
           detail: phoneStats.quotaCategoryRows
-            ? `${countText(phoneStats.quotaCategoryRows, phoneStats.quotaCategoryNoun)} · ${fmt(phoneStats.quotaEffective)} efectivas${phoneStats.quotaGap ? ` · ${fmt(phoneStats.quotaGap)} faltan` : ""}`
+            ? `${countText(phoneStats.quotaCategoryRows, phoneStats.quotaCategoryNoun)}, ${fmt(phoneStats.quotaEffective)} efectivas${phoneStats.quotaGap ? `, ${fmt(phoneStats.quotaGap)} faltan` : ""}`
             : "sin cuotas leídas",
           badge: phoneStats.quotaCategoryRows ? fmt(phoneStats.quotaCategoryRows) : undefined,
           estado: readyStatus(phoneStats.quotaCategoryRows > 0),
@@ -18972,22 +17078,22 @@ export function localTabsForTelefonicoView(
     }
     return [
       railTab(summary, {
-        detail: `${fmt(advanceStats.summary.effective)} efectivas · ${fmt(advanceStats.summary.universe)} universo`,
+        detail: `${fmt(advanceStats.summary.effective)} efectivas, ${fmt(advanceStats.summary.universe)} universo`,
         badge: advanceStats.summary.effective ? fmt(advanceStats.summary.effective) : undefined,
         estado: readyStatus(advanceStats.summary.effective > 0),
       }),
       railTab(actors, {
-        detail: `${countText(advanceStats.actors, "actor")} · brechas`,
+        detail: `${countText(advanceStats.actors, "actor")}, brechas`,
         badge: advanceStats.actors ? fmt(advanceStats.actors) : undefined,
         estado: readyStatus(advanceStats.actors > 0),
       }),
       railTab(surveys, {
-        detail: `${countText(advanceStats.sources, "fuente")} · canales`,
+        detail: `${countText(advanceStats.sources, "fuente")}, canales`,
         badge: advanceStats.sources ? fmt(advanceStats.sources) : undefined,
         estado: readyStatus(advanceStats.sources > 0),
       }),
       railTab(detail, {
-        detail: `${countText(advanceStats.controls, "control")} · reglas`,
+        detail: `${countText(advanceStats.controls, "control")}, reglas`,
         badge: advanceStats.controls ? fmt(advanceStats.controls) : undefined,
         estado: readyStatus(advanceStats.controls > 0),
       }),

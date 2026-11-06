@@ -39,7 +39,7 @@
 
 .pulso-comparativos-bloque-head h3 {
   margin: 0;
-  font-size: 14px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-semibold);
   color: var(--pulso-text);
 }
@@ -47,50 +47,30 @@
 .pulso-comparativos-bloque-head p {
   flex: 1 1 280px;
   margin: 0;
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   line-height: 1.45;
   color: var(--pulso-text-soft);
 }
 
-/* Presentación: qué produce la pestaña y qué entra. Sección independiente de
- * alto intrínseco; el enlace a Equivalencias envuelve debajo en compacto. */
-.pulso-comparativos-presentacion {
+/* Presentación: qué produce la pestaña y qué entra. Es un Panel sutil del kit (P2, 4 nov 2026);
+ * el enlace a Equivalencias va de acción en la cabecera. */
+.pulso-panel.pulso-comparativos-presentacion {
   display: flex;
-  flex-wrap: wrap;
-  align-items: flex-start;
-  gap: var(--pulso-space-2) var(--pulso-space-3);
-  padding: var(--pulso-space-3) var(--pulso-space-4);
-  border: 1px solid var(--pulso-border);
-  border-radius: var(--pulso-radius-panel);
-  background: var(--pulso-surface-2);
-  color: var(--pulso-module-processing);
-}
-
-.pulso-comparativos-presentacion > div {
-  display: flex;
-  flex: 1 1 360px;
   flex-direction: column;
   gap: 4px;
-  min-width: 0;
+  margin-bottom: 0;
 }
 
-.pulso-comparativos-presentacion h2 {
-  margin: 0;
-  font-size: 14px;
-  font-weight: var(--pulso-weight-semibold);
-  color: var(--pulso-text);
+.pulso-panel.pulso-comparativos-presentacion > .pulso-panel-header {
+  margin-bottom: 2px;
 }
 
 .pulso-comparativos-presentacion p {
   margin: 0;
   max-width: 80ch;
-  font-size: 12.5px;
+  font-size: var(--pulso-type-body-size);
   line-height: 1.5;
   color: var(--pulso-text-soft);
-}
-
-.pulso-comparativos-presentacion .pulso-comparativos-enlace {
-  align-self: center;
 }
 
 /* Columnas del comparativo: una fila por base (orden, base, título, ponderación).
@@ -101,7 +81,7 @@
   align-items: center;
   gap: 4px;
   margin-left: auto;
-  font-size: 12px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: 600;
   color: var(--pulso-primary);
   text-decoration: none;
@@ -112,7 +92,7 @@
 }
 
 .pulso-comparativos-columnas-enlace:focus-visible {
-  outline: 2px solid var(--module-accent);
+  outline: var(--mov-foco, 2px solid var(--pulso-primary));
   outline-offset: 2px;
   border-radius: var(--pulso-radius-chip);
 }
@@ -122,7 +102,7 @@
   max-width: 880px;
   border-collapse: collapse;
   table-layout: fixed;
-  font-size: 13px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .pulso-comparativos-columnas col.is-pos { width: 32px; }
@@ -132,7 +112,7 @@
 .pulso-comparativos-columnas thead th {
   padding: 0 var(--pulso-space-2) 6px;
   border-bottom: 1px solid var(--pulso-border);
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   font-weight: 600;
   text-align: left;
   color: var(--pulso-text-soft);
@@ -152,7 +132,7 @@
 
 .pulso-comparativos-columnas-pos {
   color: var(--pulso-text-faint);
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   font-variant-numeric: tabular-nums;
 }
 
@@ -165,12 +145,12 @@
 .pulso-comparativos-columnas input {
   width: 100%;
   min-width: 0;
-  font-size: 13px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .pulso-comparativos-columnas-peso {
   overflow-wrap: anywhere;
-  font-size: 12.5px;
+  font-size: var(--pulso-type-body-size);
   color: var(--pulso-text-soft);
 }
 
@@ -192,7 +172,7 @@
   border-radius: var(--pulso-radius-chip);
   background: var(--pulso-warn-bg);
   color: var(--pulso-warn-fg);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
 }
 
 /* Listas de filas armonizadas. */
@@ -236,11 +216,11 @@
   outline: none;
   background: transparent;
   color: var(--pulso-text);
-  font-size: 13px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .pulso-comparativos-contador {
-  font-size: 12.5px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-semibold);
   font-variant-numeric: tabular-nums;
   color: var(--pulso-text);
@@ -277,7 +257,7 @@
   border-radius: var(--pulso-radius-chip);
   background: var(--pulso-surface);
   color: var(--pulso-text-soft);
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   line-height: 18px;
   overflow-wrap: anywhere;
 }
@@ -344,7 +324,7 @@
   border-radius: var(--pulso-radius-chip);
   background: transparent;
   color: var(--pulso-text);
-  font-size: 13px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-semibold);
   text-align: left;
   cursor: pointer;
@@ -368,7 +348,7 @@
 }
 
 .pulso-comparativos-grupo-toggle small {
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   font-weight: var(--pulso-weight-regular);
   color: var(--pulso-text-soft);
 }
@@ -458,13 +438,13 @@
 
 .pulso-comparativos-fila-copy strong {
   overflow-wrap: anywhere;
-  font-size: 13px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-semibold);
   color: var(--pulso-text);
 }
 
 .pulso-comparativos-fila-copy small {
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   line-height: 1.4;
   color: var(--pulso-text-soft);
 }
@@ -477,7 +457,7 @@
   border-radius: var(--pulso-radius-chip);
   background: var(--pulso-info-bg);
   color: var(--pulso-info-fg);
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   white-space: nowrap;
 }
 
@@ -505,7 +485,7 @@
 
 .pulso-comparativos-bloqueo {
   margin: 0;
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   color: var(--pulso-text-soft);
 }
 
@@ -525,7 +505,7 @@
   border-radius: var(--pulso-radius);
   background: var(--pulso-surface);
   color: var(--pulso-primary);
-  font-size: 13px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-semibold);
   text-decoration: none;
 }
@@ -541,14 +521,25 @@
 }
 
 /* Resultado. */
-.pulso-comparativos-resultado {
+.pulso-panel.pulso-comparativos-resultado {
   display: flex;
   flex-direction: column;
   gap: var(--pulso-space-3);
-  padding: var(--pulso-space-4);
-  border: 1px solid var(--pulso-success-border);
-  border-radius: var(--pulso-radius-panel);
-  background: var(--pulso-surface);
+  margin-bottom: 0;
+  border-color: var(--pulso-success-border);
+}
+
+/* Columnas del comparativo y el resultado son Panel: la cabecera y la nota las pone el kit, el
+   aire entre bloques el gap de la columna. */
+.pulso-panel.pulso-comparativos-bloque {
+  margin-bottom: 0;
+}
+
+.pulso-panel.pulso-comparativos-bloque > .pulso-panel-header,
+.pulso-panel.pulso-comparativos-bloque > .pulso-panel-hint,
+.pulso-panel.pulso-comparativos-resultado > .pulso-panel-header,
+.pulso-panel.pulso-comparativos-resultado > .pulso-panel-hint {
+  margin-bottom: 0;
 }
 
 .pulso-comparativos-descargas {
@@ -571,7 +562,7 @@
   border: 1px solid var(--pulso-border);
   border-radius: var(--pulso-radius-chip);
   color: var(--pulso-text-soft);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   text-decoration: none;
 }
 
@@ -608,7 +599,7 @@
   border-radius: var(--pulso-radius-card);
   list-style: none;
   cursor: pointer;
-  font-size: 12.5px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .pulso-comparativos-aviso-grupo > summary::-webkit-details-marker {
@@ -678,7 +669,7 @@
   /* Concéntrico con el grupo: radio de tarjeta menos el relleno de la lista. */
   border-radius: calc(var(--pulso-radius-card) - var(--pulso-space-2));
   background: var(--pulso-surface);
-  font-size: 12.5px;
+  font-size: var(--pulso-type-body-size);
   line-height: 1.45;
 }
 
@@ -691,7 +682,7 @@
 .pulso-comparativos-aviso-accion--grupo {
   display: inline-block;
   margin: 0 var(--pulso-space-3) var(--pulso-space-3);
-  font-size: 12.5px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .pulso-comparativos-aviso-accion {
@@ -710,7 +701,7 @@
 
 .pulso-comparativos-sin-avisos {
   margin: 0;
-  font-size: 12.5px;
+  font-size: var(--pulso-type-body-size);
   color: var(--pulso-success-fg);
 }
 
@@ -724,7 +715,7 @@
 .pulso-comparativos-tabla {
   width: 100%;
   border-collapse: collapse;
-  font-size: 12.5px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .pulso-comparativos-tabla th,
@@ -737,7 +728,7 @@
 
 .pulso-comparativos-tabla thead th {
   background: var(--pulso-surface-2);
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   font-weight: var(--pulso-weight-semibold);
   color: var(--pulso-text-soft);
   white-space: nowrap;
@@ -760,7 +751,7 @@
 .pulso-comparativos-reducidas {
   display: block;
   margin-top: 2px;
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   font-weight: var(--pulso-weight-regular);
   color: var(--pulso-text-soft);
 }
@@ -804,26 +795,26 @@
 
 .pulso-comparativos-omitidas h4 {
   margin: 0;
-  font-size: 14px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-semibold);
 }
 
 .pulso-comparativos-omitidas > header p {
   margin: 0;
-  font-size: 12.5px;
+  font-size: var(--pulso-type-body-size);
   color: var(--pulso-text-soft);
 }
 
 .pulso-comparativos-omitidas-grupo h5 {
   margin: 0 0 4px;
-  font-size: 12.5px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-semibold);
 }
 
 .pulso-comparativos-omitidas-grupo ul {
   margin: 0;
   padding-left: var(--pulso-space-4);
-  font-size: 12.5px;
+  font-size: var(--pulso-type-body-size);
   line-height: 1.5;
 }
 
@@ -851,7 +842,7 @@
   /* Concéntrico con el bloque: radio de tarjeta menos su relleno. */
   border-radius: calc(var(--pulso-radius-card) - var(--pulso-space-2));
   background: var(--pulso-surface);
-  font-size: 12.5px;
+  font-size: var(--pulso-type-body-size);
   line-height: 1.45;
 }
 
@@ -864,7 +855,7 @@
 
 .pulso-comparativos-omitida-cabeza strong {
   overflow-wrap: anywhere;
-  font-size: 13px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .pulso-comparativos-omitida-tipo {
@@ -872,7 +863,7 @@
   border: 1px solid var(--pulso-border);
   border-radius: var(--pulso-radius-chip);
   color: var(--pulso-text-soft);
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
 }
 
 .pulso-comparativos-omitida-motivo {

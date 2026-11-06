@@ -28,7 +28,7 @@ export function ListaFija({ a, choices, editable, onMarcar }: Props) {
     <div className="xcf-matriz">
       <div className="xcf-matriz__cab">
         <h4>Opciones que se muestran</h4>
-        <span className="xcf-nota">{marcadas.size} de {a.opciones.length} · {regla}</span>
+        <span className="xcf-nota">{marcadas.size} de {a.opciones.length}, {regla}</span>
       </div>
       <div className="xcf-matriz__herr">
         <label className="xcf-busca">

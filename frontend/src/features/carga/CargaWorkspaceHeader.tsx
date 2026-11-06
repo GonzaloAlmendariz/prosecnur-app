@@ -1,7 +1,9 @@
+import { TabHeading, type TabHeadingEstado } from "../../components/TabHeading";
 import { ClipboardList } from "../../vendor/lucide-react";
 import {
   cargaWorkspaceItems,
   type CargaWorkspaceContext,
+  type CargaWorkspaceState,
   type CargaWorkspaceTab,
 } from "./CargaWorkspaceModel";
 
@@ -9,6 +11,18 @@ export type CargaWorkspaceHeaderProps = {
   active: CargaWorkspaceTab;
   context: CargaWorkspaceContext;
 };
+
+/**
+ * Carga usa la cabecera única de pestaña del kit (L14): «Pestaña n de m» porque
+ * Carga sí es un recorrido con orden, el estado como palabra fuera del h2 y el
+ * detalle de la pestaña. Neutral y «Revisando…» no llevan palabra de estado.
+ */
+export function estadoDeCabecera(estado: CargaWorkspaceState): TabHeadingEstado | undefined {
+  if (estado === "ready") return "listo";
+  if (estado === "attention") return "atencion";
+  if (estado === "pending") return "parcial";
+  return undefined;
+}
 
 export function CargaWorkspaceHeader({
   active,
@@ -19,25 +33,14 @@ export function CargaWorkspaceHeader({
   const activeItem = items[activeIndex] ?? items[0];
 
   return (
-    <header
-      className="pulso-carga-workspace-header"
-      data-workspace-state={activeItem.state}
-    >
-      <span className="pulso-carga-workspace-header-icon" aria-hidden="true">
-        <ClipboardList size={17} />
-      </span>
-      <div className="pulso-carga-workspace-header-copy">
-        <span className="pulso-carga-workspace-header-kicker">
-          Pestaña {activeIndex + 1} de {items.length}
-        </span>
-        <div className="pulso-carga-workspace-header-title">
-          <h2>{activeItem.label}</h2>
-          <span className="pulso-carga-workspace-header-state">
-            {activeItem.statusLabel}
-          </span>
-        </div>
-        <p>{activeItem.description}</p>
-      </div>
-    </header>
+    <TabHeading
+      eyebrow="Carga"
+      titulo={activeItem.label}
+      icono={ClipboardList}
+      estado={estadoDeCabecera(activeItem.state)}
+      detalle={activeItem.description}
+      pestanaN={activeIndex + 1}
+      pestanaDe={items.length}
+    />
   );
 }

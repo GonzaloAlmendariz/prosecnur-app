@@ -1,0 +1,76 @@
+/* tokens-datos.css — secuencia de datos de la dirección creativa v3 (§ Color:
+ * «Datos secuenciales: #DBE8FF → #7AA2F8 → #2457D6 → #002457»), en seis
+ * escalones para coropletas. Los datos no se pintan con el acento del módulo.
+ * Vive aparte porque tokens.css está congelado a crecimiento. Un solo tema. */
+:root {
+  --pulso-data-seq-0: #dbe8ff;
+  --pulso-data-seq-1: #aac4fb;
+  --pulso-data-seq-2: #7aa2f8;
+  --pulso-data-seq-3: #4f7ce7;
+  --pulso-data-seq-4: #2457d6;
+  --pulso-data-seq-5: #002457;
+}
+
+/* Lienzo cartográfico de Hojas de ruta (ADR 0114). El Canvas lee estos tokens
+ * con getComputedStyle: el mapa no lleva hex propios. NSE con los mismos tonos
+ * que la leyenda vigente del módulo (Alto violeta … Bajo rojo). */
+:root {
+  --pulso-mapa-fondo: #fafbff;
+  --pulso-mapa-distrito: #e6eaf0;
+  --pulso-mapa-distrito-borde: #bcc5d1;
+  /* Manzanas en blanco con borde casi negro (pedido de Gonzalo, 1 nov): en gris sobre el
+     tono del distrito no se distinguían. */
+  --pulso-mapa-manzana: #ffffff;
+  --pulso-mapa-manzana-lejos: #ffffff;
+  --pulso-mapa-manzana-borde: #1f2328;
+  --pulso-mapa-zona: #b9c2cf;
+  --pulso-mapa-via: #ffffff;
+  --pulso-mapa-via-borde: #cfd6e0;
+  --pulso-mapa-reemplazo: #c4ccd8;
+  --pulso-mapa-reemplazo-borde: #6b7686;
+  --pulso-nse-0: #94a3b8;
+  --pulso-nse-1: #7c3aed;
+  --pulso-nse-2: #2563eb;
+  --pulso-nse-3: #0f766e;
+  --pulso-nse-4: #d97706;
+  --pulso-nse-5: #dc2626;
+}
+
+/* Identidad por distrito en el lienzo de Hojas de ruta (brecha B9): el distrito
+ * confirmado N toma el tono N (en el orden de confirmación), en el relleno y en la
+ * franja de su rótulo. Ocho matices bien separados (azul, verde azulado, ciruela, oliva,
+ * violeta, mostaza, celeste, marrón): la paleta anterior tenía cuatro azules que en el
+ * mapa no se distinguían (Gonzalo). Ninguno es terracota ni naranja, que son del módulo y
+ * de la capa Viviendas. Del noveno en adelante el tono se genera (lienzo/tonos.ts). */
+:root {
+  --pulso-mapa-tono-0: #2f6fd6;
+  --pulso-mapa-tono-1: #16998a;
+  --pulso-mapa-tono-2: #b0458f;
+  --pulso-mapa-tono-3: #6e9a2c;
+  --pulso-mapa-tono-4: #7a52c7;
+  --pulso-mapa-tono-5: #c99a12;
+  --pulso-mapa-tono-6: #3aa3cf;
+  --pulso-mapa-tono-7: #8a6142;
+}
+
+/* Viviendas por manzana como escala de INTENSIDAD naranja (Gonzalo: la intensidad
+ * le sirve para una cantidad, no para el NSE, que es categórico y usa --pulso-nse-*).
+ * 1 = pocas viviendas, 6 = muchas; la manzana sin viviendas va en --pulso-surface. */
+:root {
+  --pulso-mapa-viv-1: #fdebdc;
+  --pulso-mapa-viv-2: #fbcfa8;
+  --pulso-mapa-viv-3: #f6a46a;
+  --pulso-mapa-viv-4: #e57a3a;
+  --pulso-mapa-viv-5: #bd551d;
+  --pulso-mapa-viv-6: #7c2d12;
+}
+
+/* Diferencias entre grupos (ADR 0128; propuesta de significancia §4.3): la cápsula ▲A de la lámina, en los mismos
+ * colores en la UI para que se reconozca. Fondo `banda_clara` y texto `azul` (12.45:1); la frágil en el azul medio
+ * de contorno punteado (≈5.3:1); el grupo chico, la trama de #8E9DBD. */
+:root {
+  --pulso-sig-capsula-fondo: #e3e7ef;
+  --pulso-sig-capsula-texto: #081f5c;
+  --pulso-sig-fragil: #3a6591;
+  --pulso-sig-trama: #8e9dbd;
+}

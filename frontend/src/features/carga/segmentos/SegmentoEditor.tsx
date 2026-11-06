@@ -8,7 +8,7 @@ import type { BaseVariables } from "../../../api/baseVariables";
 import type { VariableDeBase } from "../../../api/equivalencias";
 import type { Segmento, SegmentoADeclarar } from "../../../api/segmentos";
 import { PulsoButton } from "../../../components/PulsoButton";
-import { Copy, Plus, Save, Trash2, Wand2, X } from "../../../vendor/lucide-react";
+import { Copy, Plus, Save, Trash2, Wand2, X, Inbox } from "../../../vendor/lucide-react";
 import { etiquetaLegible } from "../preguntaEquivalenteModel";
 import { observadosListos, useCodigosObservadosPorBase } from "../useCodigosObservados";
 import { BuscadorPreguntas } from "../variablesBase/SelectorPreguntas";
@@ -29,6 +29,8 @@ import {
   type CodigoDeOrigen,
 } from "./segmentosModel";
 import type { CatalogoSegmentos } from "./useSegmentos";
+import { EstadoVacio } from "../../../components/EstadoVacio";
+import { Panel } from "../../../components/Panel";
 
 export type SegmentoEditorProps = {
   inicial: Segmento | null;
@@ -119,13 +121,13 @@ export function SegmentoEditor({
       data-qa-geometry-group="carga/segmentos"
       data-qa-geometry-contract="intrinsic"
     >
-      <section className="pulso-armon-seccion" aria-labelledby={`${id}-titulo`} data-qa-geometry-member>
-        <div className="pulso-armon-seccion-head">
-          <div className="pulso-armon-seccion-titulo">
-            <h3 id={`${id}-titulo`}>{inicial ? `Editar «${inicial.nombre}»` : "Nuevo segmento"}</h3>
-            <p className="pulso-armon-ayuda">Se llama igual y usa la misma escala en todas las bases.</p>
-          </div>
-        </div>
+      <Panel
+        className="pulso-armon-seccion"
+        aria-labelledby={`${id}-titulo`} data-qa-geometry-member
+        title={<span id={`${id}-titulo`}>{inicial ? `Editar «${inicial.nombre}»` : "Nuevo segmento"}</span>}
+        hint={<>Se llama igual y usa la misma escala en todas las bases.</>}
+      >
+        
         <div className="pulso-vb-campos">
           <label className="pulso-compuesto-campo">
             <span>Etiqueta</span>
@@ -161,18 +163,16 @@ export function SegmentoEditor({
             onChange={(e) => despachar({ tipo: "nota", valor: e.target.value })}
           />
         </label>
-      </section>
+      </Panel>
 
-      <section className="pulso-armon-seccion" aria-labelledby={`${id}-escala`} data-qa-geometry-member>
-        <div className="pulso-armon-seccion-head">
-          <div className="pulso-armon-seccion-titulo">
-            <h3 id={`${id}-escala`}>
-              Escala estándar
-              {escala.length > 0 && <small>{escala.length}</small>}
-            </h3>
-            <p className="pulso-armon-ayuda">Las categorías en que se lee el segmento en todas las bases.</p>
-          </div>
-          <span className="pulso-vb-subtitulo-acciones">
+      <Panel
+        className="pulso-armon-seccion"
+        aria-labelledby={`${id}-escala`} data-qa-geometry-member
+        title={<span id={`${id}-escala`}>Escala estándar
+              {escala.length > 0 && <small>{escala.length}</small>}</span>}
+        hint={<>Las categorías en que se lee el segmento en todas las bases.</>}
+        actions={<>
+<span className="pulso-vb-subtitulo-acciones">
             {emparejar.codigos > 0 && (
               <PulsoButton
                 variant="secondary"
@@ -200,7 +200,9 @@ export function SegmentoEditor({
               Agregar categoría
             </PulsoButton>
           </span>
-        </div>
+      </>}
+      >
+        
 
         {partirDe !== null && (
           <div className="pulso-seg-partir" role="group" aria-label="Partir de las opciones de una variable">
@@ -262,7 +264,7 @@ export function SegmentoEditor({
 
         {b.escala.length === 0 ? (
           // C3: el vacío es de la escala y dice cómo se llena.
-          <p className="pulso-armon-vacio">Agrega las categorías o parte de las opciones de una variable.</p>
+          <EstadoVacio icono={<Inbox size={16} />} titulo="Agrega las categorías o parte de las opciones de una variable" />
         ) : (
           <ol className="pulso-armon-escala">
             {b.escala.map((c, i) => (
@@ -291,7 +293,7 @@ export function SegmentoEditor({
             ))}
           </ol>
         )}
-      </section>
+      </Panel>
 
       {bases.map((base) => (
         <SegmentoEnBase

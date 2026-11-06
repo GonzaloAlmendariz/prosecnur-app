@@ -54,9 +54,9 @@ describe("historia de una UMP", () => {
 
   it("los capítulos se leen en lenguaje llano", () => {
     expect(historia?.capitulos.map((capitulo) => capitulo.texto)).toEqual([
-      `${A} levanta 4 formularios en la manzana de reemplazo 0600: 2 cuentan.`,
-      `Se anula la producción de ${A}: salen 4 formularios, 2 que contaban.`,
-      `${B} levanta 7 formularios en la manzana titular 0590: 7 cuentan.`,
+      `P900, Aplicador A levanta 4 formularios en la manzana de reemplazo 0600: 2 cuentan.`,
+      `Se anula la producción de P900, Aplicador A: salen 4 formularios, 2 que contaban.`,
+      `P901, Aplicador B levanta 7 formularios en la manzana titular 0590: 7 cuentan.`,
       "Una subsanación trae 1 caso (mujer de 60 o más años) desde la UMP 101.",
     ]);
   });

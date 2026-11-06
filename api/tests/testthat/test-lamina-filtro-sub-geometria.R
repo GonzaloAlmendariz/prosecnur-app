@@ -47,16 +47,17 @@
                                   overrides = list(barra_extra_preset = "top2box", top2box_labels = c("De acuerdo", "Totalmente de acuerdo")), ...))
 }
 
-test_that("PPT 23: las dos barras de la dependencia miden y arrancan igual, en la columna de texto de la lámina", {
+test_that("PPT 23: las dos barras de la dependencia miden y arrancan igual, donde arranca toda barra de escala (Conta)", {
   skip_if_not_installed("officer")
   for (rot in list(NULL, "Participaron")) {
     xml <- if (is.null(rot)) .fg_dependencia() else .fg_dependencia(rotulo = rot)
-    arriba <- .fg_span(.fg_ext(xml, "dicotomia:segmento"))
-    abajo <- .fg_span(.fg_ext(xml, "segmento"))
+    seg <- .fg_ext(xml, "segmento"); filas <- sort(unique(round(seg$y, 3)))
+    expect_length(filas, 2L)   # la Sí/No es una barra apilada más, no la dicotomía especial
+    arriba <- .fg_span(seg[round(seg$y, 3) == filas[1], ]); abajo <- .fg_span(seg[round(seg$y, 3) == filas[2], ])
     expect_lt(abs(arriba[["x0"]] - abajo[["x0"]]), 0.02)
     expect_lt(abs(arriba[["x1"]] - abajo[["x1"]]), 0.02)
-    # Sin rótulo, arranca donde arranca el texto de las demás láminas (margen izquierdo + inset de 0,1 in), no en el borde.
-    if (is.null(rot)) expect_gte(abajo[["x0"]], .std_geom("margen_izq") + 0.1 - 0.02)
+    expect_lt(abs(abajo[["x0"]] - .std_geom("likert")$x_barra), 0.02)
+    expect_equal(nrow(.fg_ext(xml, "dicotomia:segmento")), 0L)
   }
 })
 

@@ -3,7 +3,7 @@ import type { MonitoreoFamilyModule } from "../types";
 const acreditacionProfile: MonitoreoFamilyModule = {
   family: "acreditacion",
   chunk: "monitoreo-acreditacion",
-  label: "Acreditacion",
+  label: "Acreditación",
   views: ["fuentes", "modelo", "consultas", "telefonico", "avance"],
   loadPage: () => import("./AcreditacionMonitoreoPage"),
   warmupScopes: ["source", "advance_summary", "queries_summary", "phone_summary"],

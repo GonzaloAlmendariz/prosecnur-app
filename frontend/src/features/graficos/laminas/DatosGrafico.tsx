@@ -4,7 +4,7 @@
 // (bloques de multiapiladas, filtros) se edita en un panel ancho. Cierran la tarjeta el Top/Bottom Two Box de las
 // escalas y «En el Word» (F6.2, F-d; tarjetaGrafico/).
 
-import { Fragment, useId, type ReactNode } from "react";
+import { Fragment, useEffect, useId, useRef, type ReactNode } from "react";
 import { useLocation } from "react-router-dom";
 import { Filter, Rows3 } from "../../../vendor/lucide-react";
 import { AyudaGlobo } from "./AyudaGlobo";
@@ -14,14 +14,13 @@ import { usePlanStore } from "../store";
 import { useGraficosRegistry } from "../useGraficosRegistry";
 import VariablePicker from "../VariablePicker";
 import {
+  ayudaDeLaOpcion,
   camposDeDatos,
   codigosATexto,
   codigosEmitidos,
   textoACodigos,
   CORTE_EN_CADENA,
-  conEtiquetaCorta,
   interruptorEncendido,
-  leerEtiquetaCorta,
   type CampoDato,
 } from "./argsDatosGrafico";
 import { useLaminasUi } from "./laminasStore";
@@ -41,19 +40,29 @@ import { DonaCentro } from "./DonaCentro";
 import { PublicoGrafico } from "./PublicoGrafico";
 import { SignificanciaPublicos } from "./SignificanciaPublicos";
 import { ResaltarGrafico } from "./ResaltarGrafico";
+import { EtiquetaCortaPregunta, EtiquetasCortasPreguntas } from "./EtiquetasCortas";
+import { PreguntaClave } from "./preguntasClave/PreguntaClave";
+import { LetraYEjeAgrupadas } from "./tarjetaGrafico/LetraYEjeAgrupadas";
+import { valorDeMando } from "./mandosPorOverrides";
 import { EnElWord } from "./tarjetaGrafico/EnElWord";
 import { ColoresGrafico } from "./colores/ColoresGrafico";
 import { PaletaDelGrafico } from "./colores/PaletaDelGrafico";
+import { AvisoColorPorOpcion } from "./colores/AvisoColorPorOpcion";
 import { NombresPorBase } from "./datosBase/NombresPorBase";
 import { RedondeoDelGrafico } from "./RedondeoDelGrafico";
-import { grupoDeCampo, TITULO_GRUPO, type GrupoTarjeta } from "./gruposTarjeta";
+import { grupoDeCampo, seccionAbierta, type GrupoTarjeta } from "./gruposTarjeta";
+import { SeccionPlegable } from "./tarjetaGrafico/SeccionPlegable";
+import { IndiceSecciones } from "./tarjetaGrafico/IndiceSecciones";
+import { irASeccion } from "./tarjetaGrafico/irASeccion";
 import { esPropio, ranurasDelTipo, SIN_ALCANCE, valorDelTipo } from "./modeloAlcance";
 import { SelloAlcance } from "./SelloAlcance";
 import { SelectorCategorias } from "./SelectorCategorias";
+import { GRUPO, NIVEL, type Sustantivo } from "./modeloSelectorCategorias";
 import { CifraGrafico } from "./CifraGrafico";
 import { CitasAprobadas } from "./citas/CitasAprobadas";
 import { ObjetivoDimension } from "./ObjetivoDimension";
 import { CortesNumericos } from "./CortesNumericos";
+import { PartesLineas } from "./PartesLineas";
 import { Segmentado } from "../subpestanas/Segmentado";
 import { opcionesNumeroEnBotones } from "./numerosEnBotones";
 import { graficadorToPresetType } from "../graficadorPresetMap";
@@ -67,7 +76,14 @@ import { EditorTemasEquivalentes } from "../temasEquivalentes/EditorTemasEquival
 import { argsATemas, codigosComunes, patchModoRadar } from "../temasEquivalentes/temasEquivalentesModel";
 import { useVariables } from "../useVariables";
 import { NumeroAcotado, tieneRango } from "./NumeroAcotado";
+import { DiferenciasInspector } from "./diferencias/DiferenciasInspector";
+import { TarjetasDiferencias } from "./diferencias/TarjetasDiferencias";
+import { admiteTarjetas } from "./diferencias/modeloTarjetas";
+import { argDeCruce, valorDeCruce } from "./diferencias/modeloDiferencias";
+import { interruptorAplica, interruptorGuardado, parcheInterruptor } from "./diferencias/interruptorDelGrafico";
+import { revelarYEnfocar } from "../revelarFila";
 import "./datosGrafico.css";
+import { formatoConteo } from "../../../lib/formatoNumero";
 
 type Props = { slideId: string; slot: string; valor: GraficadorRef };
 
@@ -122,7 +138,9 @@ export function DatosGrafico({ slideId, slot, valor }: Props) {
   const nombreTipo = graficadorDisplayName(valor.graficador, meta).toLowerCase();
   const alcance = (c: CampoDato) => {
     const name = c.arg.name;
-    if (!tipo || grupoDeCampo(name) === "datos" || SIN_ALCANCE.has(name)) return { valor: args[name], sello: undefined, propio: false };
+    // U6/U10: un mando que el motor lee de `overrides` muestra lo de `overrides` si está (lo que la lámina dibuja).
+    const guardado = valorDeMando(args, name);
+    if (!tipo || grupoDeCampo(name) === "datos" || SIN_ALCANCE.has(name)) return { valor: guardado, sello: undefined, propio: false };
     const delTipo = valorDelTipo(presets, tipo, name, c.arg.default);
     const enPreset = presets[tipo]?.[name];
     const sello = esPropio(args, name, delTipo) ? (
@@ -135,28 +153,36 @@ export function DatosGrafico({ slideId, slot, valor }: Props) {
         }}
         onVolver={() => set({ [name]: enPreset === undefined || enPreset === null ? undefined : enPreset })} />
     ) : undefined;
-    return { valor: args[name] ?? (enPreset === null ? undefined : enPreset), sello, propio: !!sello };
+    return { valor: guardado ?? (enPreset === null ? undefined : enPreset), sello, propio: !!sello };
   };
   // El pie de la tarjeta lleva todos los cambios propios de una vez (los mismos que muestran la marca).
   const propios = tipo ? campos.filter((c) => alcance(c).propio) : [];
   const aplicarTodos = () => {
     if (!tipo || !propios.length) return;
     aplicarAlTipo(tipo, Object.fromEntries(propios.map((c) => [c.arg.name, args[c.arg.name]])));
-    toast.exito(`${propios.length === 1 ? "Un cambio aplicado" : `${propios.length} cambios aplicados`} a los gráficos de ${nombreTipo}`, {
+    toast.exito(`${propios.length === 1 ? "Un cambio aplicado" : `${formatoConteo(propios.length)} cambios aplicados`} a los gráficos de ${nombreTipo}`, {
       accion: { label: "Deshacer", onSelect: () => undo() },
     });
   };
   // Excluir respuestas y Corte usan las categorías de la pregunta; Excluir grupos, las de la variable de grupo.
   const grupoVar = typeof args.grupo === "string" ? args.grupo : "";
   const categoriasDe = (name: string): CategoriasFila | undefined => {
-    if (name === "excluir_opciones" || name === "corte") {
+    if (name === "excluir_opciones" || name === "corte" || name === "series" || name === "segmentos_total") {
       // Varias preguntas de la misma escala (radar, divergentes): las categorías de la primera, que todas comparten.
       // Con temas por público (objeto, no lista) no hay una sola lista: queda el texto.
       const primera = !variable && Array.isArray(args.vars) && typeof args.vars[0] === "string" ? args.vars[0] : "";
       if (!variable && !primera) return nVars > 0 ? undefined : { variable: "", scope, modo: name === "corte" ? "elegir" : "excluir" };
       return { variable: varCalificada(variable || primera, baseActiva, scope), scope, modo: name === "corte" ? "elegir" : "excluir" };
     }
-    if (name === "excluir_grupos") return { variable: grupoVar ? varCalificada(grupoVar, baseActiva, scope) : "", scope, modo: "excluir" };
+    if (name === "excluir_grupos") return { variable: grupoVar ? varCalificada(grupoVar, baseActiva, scope) : "", scope, modo: "excluir", sustantivo: GRUPO };
+    // Línea por nivel: los niveles del eje son las categorías de su `cruce` (U5).
+    if (name === "grupos" && valor.graficador === "p_lineas_nivel") {
+      const niveles = typeof args.cruce === "string" ? args.cruce : "";
+      return {
+        variable: niveles ? varCalificada(niveles, baseActiva, scope) : "", scope, modo: "elegir", vacioEsTodos: true, sustantivo: NIVEL,
+        nota: "Quita un nivel para sacarlo del gráfico.",
+      };
+    }
     return undefined;
   };
   const filaDe = (c: CampoDato) => c.arg.name === "objetivo" && valor.graficador.startsWith("p_dim_") ? (
@@ -165,18 +191,57 @@ export function DatosGrafico({ slideId, slot, valor }: Props) {
       onCambio={(v) => set({ objetivo: v })} />
   ) : (
     <Fragment key={c.arg.name}>
-      <Fila campo={c} graficador={valor.graficador} valor={alcance(c).valor} sello={alcance(c).sello} categorias={categoriasDe(c.arg.name)}
+      {/* H2: la ayuda de «Pista gris» describe la opción elegida, no siempre «Automática». */}
+      <Fila campo={{ ...c, ayuda: ayudaDeLaOpcion(c, alcance(c).valor) }} graficador={valor.graficador} valor={alcance(c).valor} sello={alcance(c).sello} categorias={categoriasDe(c.arg.name)}
             onCambio={(v) => set(valor.graficador === "p_radar" && c.arg.name === "modo" && typeof v === "string" ? patchModoRadar(args.modo, v) : { [c.arg.name]: v })} />
+      {/* H2: «Un color por opción» encendido sobre una lista sin colores dice por qué no se ve. */}
+      {c.arg.name === "colorear_por_opcion" && interruptorEncendido(c.arg, alcance(c).valor) && <AvisoColorPorOpcion valor={valor} />}
       {radarPublicos && c.arg.name === "forma" && <NotaFormaRadar args={args} />}
       {radarPublicos && c.arg.name === "modo" && <EditorTemasEquivalentes tipo="radar" args={args} onCambio={set} />}
     </Fragment>
   );
   const delGrupo = (g: GrupoTarjeta) => campos.filter((c) => grupoDeCampo(c.arg.name) === g).map(filaDe);
 
+  // ADR 0128: «Diferencias entre grupos» reemplaza al nivel de significancia de Cifras. El interruptor es el
+  // `mostrar_significancia` del gráfico (guardado, del tipo o el default del registro); el nivel es de la regla del estudio.
+  const tarjetaRef = useRef<HTMLDivElement>(null);
+  const argSig = (meta?.args ?? []).find((a) => a.name === "mostrar_significancia");
+  const argCruce = argDeCruce((meta?.args ?? []).map((a) => a.name));
+  const cruce = argCruce ? valorDeCruce(args[argCruce]) : "";
+  const nombreCruce = cruce.includes("$") ? cruce.slice(cruce.lastIndexOf("$") + 1) : cruce;
+  const etiquetaCruce = cruce ? variables.find((v) => v.name === nombreCruce || `${v.source}$${v.name}` === cruce)?.label ?? null : null;
+  // U11: un `overrides.mostrar_significancia` viejo manda, como en el motor; en multiapiladas sólo el modo «cruce» marca.
+  const sigGuardada = interruptorGuardado(args) ?? (tipo ? presets[tipo]?.mostrar_significancia : undefined);
+  const sigAplica = !!argSig && interruptorAplica(argSig, meta?.args ?? [], args);
+  // ADR 0129: una lámina de total (un gráfico, sin cruce) puede llevar tarjetas de diferencias en vez de marcas; en la
+  // de dos gráficos, cada uno las suyas (U2 del checklist del mazo).
+  const conTarjetas = admiteTarjetas(slidesPlan.find((x) => x.id === slideId)?.tipo ?? "", valor.graficador, cruce, slot);
+  const abrirSeccion = useLaminasUi((s) => s.abrirSeccionTarjeta);
+  const agregarCruce = () => {
+    // H4: «Dividir por» vive en Datos, que puede estar plegada; se abre antes de llevar el foco.
+    abrirSeccion("datos");
+    requestAnimationFrame(() => {
+      const campo = argCruce ? tarjetaRef.current?.querySelector<HTMLElement>(`[data-campo="${argCruce}"]`) : null;
+      if (!campo?.querySelector("button, input, [tabindex]")) {
+        toast.info("Elige la pregunta que divide en «Dividir por», en Datos.");
+        return;
+      }
+      revelarYEnfocar(campo);
+    });
+  };
+  // H4: al volver a la tarjeta (de Identidad › Colores, de otra lámina) se vuelve a la sección que se abrió por última vez.
+  useEffect(() => {
+    const { seccionReciente, seccionesTarjeta } = useLaminasUi.getState();
+    if (seccionReciente && seccionReciente !== "datos" && seccionAbierta(seccionesTarjeta, seccionReciente)) {
+      irASeccion(tarjetaRef.current, seccionReciente, { enfocar: false, instantaneo: true });
+    }
+  }, [slideId, slot]);
+
   // O7b: la tarjeta en grupos; cada uno se oculta si ese tipo no tiene nada en él (`.pulso-f6-grupo:not(:has(...))`).
   return (
-    <div className="pulso-f6-datos" data-qa-geometry-group="graficos/f6-datos" data-qa-geometry-contract="intrinsic">
-      <GrupoDeTarjeta titulo={TITULO_GRUPO.datos}>
+    <div className="pulso-f6-datos" ref={tarjetaRef} data-qa-geometry-group="graficos/f6-datos" data-qa-geometry-contract="intrinsic">
+      <IndiceSecciones tarjeta={tarjetaRef} />
+      <SeccionPlegable seccion="datos">
         {esMulti && (
           <div className="pulso-f6-dato">
             <span className="pulso-f6-dato-rotulo">Bloques</span>
@@ -199,14 +264,11 @@ export function DatosGrafico({ slideId, slot, valor }: Props) {
         {cifra && <CifraGrafico args={args} variable={variable && !sinBaseCompartido ? varCalificada(variable, baseActiva, scope) : ""} scope={scope} onCambio={set} />}
         {citas && <CitasAprobadas args={args} variable={variable && !sinBaseCompartido ? varCalificada(variable, baseActiva, scope) : ""} onCambio={set} />}
         {sinBaseCompartido && <NotaBaseCompartido />}
-        {variable && !cifra && (
-          <FilaTexto
-            rotulo="Etiqueta corta"
-            ayuda="Nombre breve de la pregunta en la lámina y el Word. Vacío, usa el del instrumento."
-            valor={leerEtiquetaCorta(args, variable)}
-            onCambio={(t) => set({ overrides: conEtiquetaCorta(args, variable, t) })}
-          />
-        )}
+        {variable && !cifra && <EtiquetaCortaPregunta args={args} variable={variable} onCambio={(ov) => set({ overrides: ov })} />}
+        {/* U9: en la multiapilada de una barra por pregunta, una etiqueta corta por pregunta. */}
+        {esMulti && !variable && <EtiquetasCortasPreguntas slideId={slideId} args={args} onCambio={(ov) => set({ overrides: ov })} />}
+        {/* H14: marca la pregunta (o cada pregunta de la batería) como clave del estudio, de donde propone el resumen. */}
+        <PreguntaClave slideId={slideId} graficador={valor.graficador} args={args} />
         {admiteFiltros && (
           <div className="pulso-f6-dato">
             <span className="pulso-f6-dato-rotulo">Filtrar respuestas</span>
@@ -217,32 +279,54 @@ export function DatosGrafico({ slideId, slot, valor }: Props) {
           </div>
         )}
         <PublicoGrafico slideId={slideId} slot={slot} valor={valor} />
-      </GrupoDeTarjeta>
-      <GrupoDeTarjeta titulo={TITULO_GRUPO.orden}>
+      </SeccionPlegable>
+      <SeccionPlegable seccion="orden">
         {conOrden && variable && !sinBaseCompartido && (
           <OrdenCategoriasGrafico variable={varCalificada(variable, baseActiva, scope)} graficador={valor.graficador} args={args} scope={scope} onCambio={(o) => set({ orden_categorias: o })} />
         )}
         {delGrupo("orden")}
         <ResaltarGrafico slideId={slideId} slot={slot} valor={valor} />
         <DestacarRespuestas slideId={slideId} slot={slot} valor={valor} />
-      </GrupoDeTarjeta>
-      <GrupoDeTarjeta titulo={TITULO_GRUPO.cifras}>
+      </SeccionPlegable>
+      <SeccionPlegable seccion="cifras">
         {delGrupo("cifras")}
+        {/* U12: letra de categorías y cifras y eje libre, que la lámina nativa lee de `overrides`. */}
+        <LetraYEjeAgrupadas graficador={valor.graficador} args={args} onCambio={(ov) => set({ overrides: ov })} />
         <TwoBoxGrafico slideId={slideId} slot={slot} valor={valor} onAbrirBloques={() => abrirEditorAmplio({ tipo: "bloques", slideId, slot })} />
         <CasosGrafico slideId={slideId} slot={slot} valor={valor} />
         {/* R4: método y decimales propios, como excepción a la regla del informe. */}
         <RedondeoDelGrafico graficador={valor.graficador} args={args} onCambio={(ov) => set({ overrides: ov })} />
         <DonaCentro slideId={slideId} slot={slot} valor={valor} />
-      </GrupoDeTarjeta>
-      <GrupoDeTarjeta titulo={TITULO_GRUPO.colores}>
+      </SeccionPlegable>
+      {conTarjetas && (
+        <SeccionPlegable seccion="diferencias">
+          <TarjetasDiferencias slideId={slideId} slot={slot} />
+        </SeccionPlegable>
+      )}
+      {argSig && sigAplica && argCruce && !conTarjetas && (
+        <SeccionPlegable seccion="diferencias">
+          <DiferenciasInspector
+            slideId={slideId}
+            encendido={interruptorEncendido(argSig, sigGuardada)}
+            cruce={cruce}
+            etiquetaCruce={etiquetaCruce}
+            onAlternar={(v) => set(parcheInterruptor(args, v))}
+            onAgregarCruce={agregarCruce}
+            onQuitarCruce={() => set({ [argCruce]: null })}
+          />
+        </SeccionPlegable>
+      )}
+      <SeccionPlegable seccion="colores">
         <ColoresGrafico slideId={slideId} slot={slot} valor={valor} argsDelRegistro={meta?.args ?? []} />
         <PaletaDelGrafico valor={valor} />
-      </GrupoDeTarjeta>
-      <EnElWord slideId={slideId} slot={slot} valor={valor} argsDelRegistro={meta?.args ?? []} />
+      </SeccionPlegable>
+      <SeccionPlegable seccion="word">
+        <EnElWord slideId={slideId} slot={slot} valor={valor} argsDelRegistro={meta?.args ?? []} />
+      </SeccionPlegable>
       {propios.length > 0 && (
         <div className="pulso-f6-dato pulso-f6-alcance-pie" data-qa="ajustes-del-tipo">
           <span className="pulso-f6-dato-rotulo">
-            {propios.length === 1 ? "Un ajuste es sólo de este gráfico" : `${propios.length} ajustes son sólo de este gráfico`}
+            {propios.length === 1 ? "Un ajuste es sólo de este gráfico" : `${formatoConteo(propios.length)} ajustes son sólo de este gráfico`}
           </span>
           <button type="button" className="pulso-f6-boton pulso-f6-dato-accion" onClick={aplicarTodos}>
             Aplicar a {nTipo > 1 ? `los ${nTipo} gráficos` : "todos los gráficos"} de {nombreTipo}
@@ -253,24 +337,24 @@ export function DatosGrafico({ slideId, slot, valor }: Props) {
   );
 }
 
-/** Un grupo de la tarjeta con su título; el cuerpo vacío lo oculta por CSS. */
-function GrupoDeTarjeta({ titulo, children }: { titulo: string; children: ReactNode }) {
-  const id = useId();
-  return (
-    <section className="pulso-f6-grupo" aria-labelledby={id}>
-      <h4 id={id} className="pulso-f6-grupo-titulo">{titulo}</h4>
-      <div className="pulso-f6-grupo-cuerpo" data-qa-geometry-group="graficos/f6-grupo-cuerpo" data-qa-geometry-contract="intrinsic">{children}</div>
-    </section>
-  );
-}
-
-const ORDEN_ANTERIOR = new Set(["orden_barras", "ordenar_categorias"]);
+// H5 (checklist de usabilidad, 2026-11-05): donde rige el orden por gráfico, `invertir_barras` es un segundo «Invertir»
+// que el motor no lee para el orden pedido: `.goc_traducir` escribe el orden ya invertido según
+// `orden_categorias.invertir`, y con un orden pedido en horizontal la agrupada fuerza `invertir_barras` a TRUE
+// (graficador_barras_agrupadas.R, F1). Queda un solo mando, el «Invertir» de «Orden»; el valor guardado no se toca.
+const ORDEN_ANTERIOR = new Set(["orden_barras", "ordenar_categorias", "invertir_barras"]);
 
 function Ayuda({ rotulo, detalle }: { rotulo: string; detalle: string }) {
   return <AyudaGlobo rotulo={rotulo} detalle={detalle} />;
 }
 
-type CategoriasFila = { variable: string; scope: "active" | "consolidated"; modo: "excluir" | "elegir" };
+type CategoriasFila = {
+  variable: string; scope: "active" | "consolidated"; modo: "excluir" | "elegir";
+  /** Lo que dice la marca, si no es «se excluye» ni «forma el corte». */
+  nota?: string;
+  /** «elegir» donde nada guardado es todos (H9). */
+  vacioEsTodos?: boolean;
+  sustantivo?: Sustantivo;
+};
 
 function Fila({ campo, graficador, valor, onCambio, sello, categorias }: {
   campo: CampoDato; graficador: string; valor: unknown; onCambio: (v: unknown) => void; sello?: ReactNode;
@@ -292,7 +376,7 @@ function Fila({ campo, graficador, valor, onCambio, sello, categorias }: {
   );
   if (control === "variable" || control === "variable_opcional") {
     return (
-      <div className="pulso-f6-dato is-apilado">
+      <div className="pulso-f6-dato is-apilado" data-campo={arg.name}>
         {etiqueta}
         <div id={id} className="pulso-f6-dato-control">
           <VariablePicker
@@ -384,6 +468,10 @@ function Fila({ campo, graficador, valor, onCambio, sello, categorias }: {
       </div>
     );
   }
+  if (control === "partes") {
+    return <PartesLineas id={id} arg={arg.name} etiqueta={etiqueta} nota={nota} valor={valor} variable={categorias?.variable ?? ""}
+      scope={categorias?.scope ?? "active"} graficador={graficador} onCambio={onCambio} />;
+  }
   if (control === "codigos" && (arg.name === "cortes" || arg.name === "cortes_chip") && placeholder) {
     return <CortesNumericos id={id} etiqueta={etiqueta} nota={nota} describe={describe} defectos={textoACodigos(placeholder)} valor={valor} onCambio={onCambio} />;
   }
@@ -400,8 +488,8 @@ function Fila({ campo, graficador, valor, onCambio, sello, categorias }: {
     if (!categorias) return comoTexto;
     return (
       <SelectorCategorias id={id} etiqueta={etiqueta} variable={categorias.variable} scope={categorias.scope} graficador={graficador}
-        valor={valor} modo={categorias.modo} textoRespaldo={comoTexto}
-        nota={<span className="pulso-f6-dato-ayuda">{categorias.modo === "excluir" ? "Las marcadas no salen en el gráfico." : "Las marcadas forman el corte."}</span>}
+        valor={valor} modo={categorias.modo} vacioEsTodos={categorias.vacioEsTodos} sustantivo={categorias.sustantivo} textoRespaldo={comoTexto}
+        nota={<span className="pulso-f6-dato-ayuda">{categorias.nota ?? (categorias.modo === "excluir" ? "Las marcadas no salen en el gráfico." : "Las marcadas forman el corte.")}</span>}
         onCambio={(cods) => onCambio(arg.name === "corte" && CORTE_EN_CADENA.has(graficador) ? cods.join(",") : cods)} />
     );
   }

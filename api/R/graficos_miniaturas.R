@@ -104,8 +104,16 @@
   )
   template_pptx <- .graficos_resolve_template_pptx(config = cfg, profile_id = delivery$profile_id,
                                                    template_id = delivery$template_id)
+  # H1 (usabilidad del editor): la regla inclusiva y los rótulos cortos del estudio, como el job de PPT y Word de la base
+  # activa (graficos_inclusivo.R). El export consolidado no la aplica, así que su vista previa tampoco.
+  inc <- .inclusivo_preparar_preview(fuentes$data_sources, fuentes$inst_sources, cfg$paletas %||% list(),
+                                     cfg$plan$rotulos_cortos, activo = !isTRUE(fuentes$consolidado))
+  fuentes$data_sources <- inc$data_sources; fuentes$inst_sources <- inc$inst_sources
   list(
     plan_slides = cfg$plan$slides %||% list(),
+    rotulos_cortos_mapa = inc$mapa,
+    inclusivo = !isTRUE(fuentes$consolidado),
+    antetitulo_seccion = isTRUE(unlist(.graficos_estilo_cliente_validos(cfg$estilo_cliente)$antetitulo_seccion)),
     scope = if (isTRUE(fuentes$consolidado)) "consolidated" else "active_base",
     base = if (isTRUE(fuentes$consolidado)) "" else .graficos_active_base_name(sid),
     data_sources = fuentes$data_sources,
@@ -113,10 +121,10 @@
     huella_fuentes = .mini_huella_fuentes(fuentes$data_sources, fuentes$inst_sources),
     huella_estandar = .mini_huella_estandar(),
     version_paquete = .mini_version_paquete(),
-    opciones_motor = .mini_opciones_motor(),
+    opciones_motor = .graficos_preview_opciones_motor(sid, cfg$plan$preguntas_clave, if (isTRUE(fuentes$consolidado)) "" else .graficos_active_base_name(sid)),
     # Presets con canvas y SIN las guías heredadas: las del visor son una capa aparte (ver cabecera).
     presets_json = .enriquecer_presets(cfg$presets %||% list(), NULL),
-    paletas = cfg$paletas %||% list(),
+    paletas = inc$paletas %||% list(),
     icon_registry = .graficos_icon_registry(sid, cfg),
     template_pptx = template_pptx,
     template_id = delivery$template_id,
@@ -148,7 +156,7 @@
 #' @keywords internal
 .graficos_preview_lamina_ctx <- function(comun, slide, folio_pedido = NULL) {
   # El mini-plan no tiene el separador vigente: sin esto la lámina salía sin antetítulo (F6.0b.2, inventario parte C).
-  slide <- .preview_con_antetitulo(slide, comun$plan_slides)
+  slide <- .preview_con_antetitulo(slide, comun$plan_slides, isTRUE(comun$antetitulo_seccion))
   # G2: un índice sin capítulos escritos los toma de los separadores del plan; el mini-plan no los tiene y caía a la
   # lámina antigua de cinco focos, distinta de la que exporta.
   slide <- .preview_con_capitulos(slide, comun$plan_slides)
@@ -170,6 +178,7 @@
     ))
   }
   slide <- .graficos_calificar_refs_plan(list(slides = list(slide)), comun$base)$slides[[1]]
+  if (isTRUE(comun$inclusivo)) slide <- .inclusivo_preparar_lamina(slide, comun$rotulos_cortos_mapa %||% character(0))   # H1
   ctx <- .mini_contexto(
     slide = slide, folio = folio, scope = comun$scope, base = comun$base,
     data_sources = comun$data_sources, inst_sources = comun$inst_sources,
@@ -283,6 +292,8 @@
 #' @keywords internal
 .mini_render_pptx <- function(ctx, out_path) {
   presets <- if (length(ctx$presets_json)) .build_presets(ctx$presets_json) else NULL
+  sig_previa <- .sig_informe_activar(ctx$opciones_motor[["prosecnur.sig_informe"]]); on.exit(options(sig_previa), add = TRUE)   # ADR 0128
+  ctx$slide <- .sig_slide_como_leer(ctx$slide)
   palette_env <- .graficos_palette_env(ctx$paletas %||% list(), parent = environment())
   conteo <- new.env(parent = emptyenv())
   slide_r <- .mini_rebuild_slide(ctx$slide, icon_registry = ctx$icon_registry, conteo = conteo,

@@ -31,7 +31,7 @@
   align-items: center;
   gap: var(--pulso-space-1);
   min-width: 0;
-  font-size: 12px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-semibold);
   color: var(--pulso-text-soft);
   overflow-wrap: anywhere;
@@ -77,7 +77,7 @@
   background: var(--pulso-surface);
   box-shadow: var(--pulso-shadow-popover);
   color: var(--pulso-text);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   font-weight: var(--pulso-weight-medium);
   line-height: 1.45;
   white-space: normal;
@@ -104,10 +104,13 @@
 }
 
 .pulso-f6-dato-ayuda {
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   line-height: 1.4;
   color: var(--pulso-text-faint);
   overflow-wrap: anywhere;
+  /* La caja termina donde termina la letra: sin el medio interlineado bajo la última línea (2,09 px a 11,5 px con 1,4),
+     que el QA de geometría contaba como capacidad sin usar en Orden, En el Word y los hallazgos (capacity-drift). */
+  text-box: trim-end text;
 }
 
 .pulso-f6-dato-control {
@@ -176,7 +179,7 @@
 .pulso-f6-preguntas-quitar { padding: 4px; }
 .pulso-f6-preguntas.is-temas li { display: grid; gap: 2px; padding: 6px 8px; border: 1px solid var(--pulso-border); border-radius: 8px; }
 .pulso-f6-preguntas-tema { font-weight: 600; color: var(--pulso-text); }
-.pulso-f6-preguntas-refs { font-size: 12px; color: var(--pulso-text-muted); overflow-wrap: anywhere; }
+.pulso-f6-preguntas-refs { font-size: var(--pulso-type-body-size); color: var(--pulso-text-muted); overflow-wrap: anywhere; }
 
 /* «Destacar» del ranking con puntos (I4): las respuestas de la pregunta como botones que se encienden. */
 .pulso-f6-destacar { display: flex; flex-wrap: wrap; gap: 6px; }
@@ -187,7 +190,7 @@
   background: var(--pulso-surface);
   color: var(--pulso-text);
   font: inherit;
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   cursor: pointer;
   transition: background-color 160ms ease-out, border-color 160ms ease-out, color 160ms ease-out;
 }
@@ -220,40 +223,108 @@
   border-radius: 999px;
   background: var(--pulso-primary-soft);
   color: var(--pulso-primary);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
 }
 .pulso-f6-criterio-pregunta { min-width: 0; }
 .pulso-f6-criterio-pregunta span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .pulso-f6-criterio-quitar { display: inline-grid; place-items: center; padding: 2px; border: 0; border-radius: 999px; background: transparent; color: inherit; cursor: pointer; }
 .pulso-f6-criterio-quitar:hover { background: var(--pulso-surface); }
 
-/* O7b: la tarjeta en grupos con un título discreto. Un grupo cuyo cuerpo quedó vacío para ese tipo no se muestra. */
-.pulso-f6-grupo { display: grid; gap: 0; min-width: 0; padding-top: var(--pulso-space-3); }
-.pulso-f6-grupo:first-child { padding-top: 0; }
+/* O7b: la tarjeta en grupos con un título discreto. Un grupo cuyo cuerpo quedó vacío para ese tipo no se muestra.
+   H4: cada grupo se pliega; su cabecera es un botón a lo ancho con el chevron a la derecha y un filete arriba. */
+.pulso-f6-grupo { display: grid; gap: 0; min-width: 0; border-top: 1px solid var(--pulso-border); }
+.pulso-f6-indice-tarjeta + .pulso-f6-grupo { border-top: 0; }
 .pulso-f6-grupo:not(:has(> .pulso-f6-grupo-cuerpo > *)) { display: none; }
 .pulso-f6-grupo-titulo {
-  margin: 0 0 var(--pulso-space-1);
+  margin: 0;
   color: var(--module-accent);
-  font-size: 11px;
+  font-size: var(--pulso-type-eyebrow-size);
   font-weight: var(--pulso-weight-semibold);
   letter-spacing: 0.06em;
   text-transform: uppercase;
 }
+.pulso-f6-grupo-boton {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--pulso-space-2);
+  width: 100%;
+  min-height: var(--pulso-control-height-md);
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.pulso-f6-grupo-boton:focus-visible {
+  outline: var(--pulso-nav-focus-outline-width) solid var(--module-accent);
+  outline-offset: var(--pulso-nav-focus-offset);
+  border-radius: var(--pulso-radius);
+}
+.pulso-f6-grupo-rotulo { min-width: 0; overflow-wrap: anywhere; }
+.pulso-f6-grupo-chevron {
+  flex: none;
+  color: var(--pulso-text-soft);
+  transform: rotate(-90deg);
+  transition: transform var(--motion-dur-fast) var(--motion-ease-out);
+}
+.pulso-f6-grupo.is-abierta .pulso-f6-grupo-chevron { transform: none; }
+@media (hover: hover) and (pointer: fine) {
+  .pulso-f6-grupo-boton:hover .pulso-f6-grupo-chevron { color: var(--module-accent); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pulso-f6-grupo-chevron { transition: none; }
+}
 .pulso-f6-grupo-cuerpo { display: grid; gap: 0; min-width: 0; }
+.pulso-f6-grupo.is-abierta > .pulso-f6-grupo-cuerpo { padding-bottom: var(--pulso-space-2); }
+/* Plegado sin «until-found» (navegador sin soporte): el `display: grid` de arriba no debe ganarle a `hidden`. */
+.pulso-f6-grupo-cuerpo[hidden]:not([hidden="until-found"]) { display: none; }
 .pulso-f6-grupo-cuerpo > .pulso-f6-dato:first-child { border-top: 0; }
+/* En el Word: su cabecera es la de la sección; sin filete ni aire propios arriba. */
+.pulso-f6-grupo-cuerpo > .pulso-f6-word { border-top: 0; padding-top: 0; }
+
+/* H4: índice de la tarjeta, pegado arriba del cuerpo del inspector (su dueño de scroll) mientras se recorre la tarjeta.
+   Cada botón salta a su sección; el de una sección que este gráfico no tiene se oculta con la misma regla que la oculta. */
+.pulso-f6-indice-tarjeta {
+  position: sticky;
+  /* El borde pegado es el del contenido del cuerpo: se sube su padding para que no asome nada encima. */
+  top: calc(-1 * var(--pulso-space-3));
+  z-index: 1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--pulso-space-1);
+  min-width: 0;
+  padding: var(--pulso-space-2) 0;
+  background: var(--pulso-surface);
+  box-shadow: inset 0 -1px 0 var(--pulso-border);
+}
+.pulso-f6-indice-tarjeta-ir { flex: none; }
+.pulso-f6-datos:not(:has(> [data-seccion-tarjeta="datos"] > .pulso-f6-grupo-cuerpo > *)) [data-ir="datos"],
+.pulso-f6-datos:not(:has(> [data-seccion-tarjeta="orden"] > .pulso-f6-grupo-cuerpo > *)) [data-ir="orden"],
+.pulso-f6-datos:not(:has(> [data-seccion-tarjeta="cifras"] > .pulso-f6-grupo-cuerpo > *)) [data-ir="cifras"],
+.pulso-f6-datos:not(:has(> [data-seccion-tarjeta="diferencias"] > .pulso-f6-grupo-cuerpo > *)) [data-ir="diferencias"],
+.pulso-f6-datos:not(:has(> [data-seccion-tarjeta="colores"] > .pulso-f6-grupo-cuerpo > *)) [data-ir="colores"],
+.pulso-f6-datos:not(:has(> [data-seccion-tarjeta="word"] > .pulso-f6-grupo-cuerpo > *)) [data-ir="word"] {
+  display: none;
+}
 
 /* O7b: marca de alcance. Discreta; el menú dice qué pasa con cada opción. */
 .pulso-f6-alcance {
   display: inline-flex; align-items: center; height: 20px; padding: 0 var(--pulso-space-2);
   border: 1px solid var(--pulso-warn-border); border-radius: var(--pulso-radius-chip);
   background: var(--pulso-warn-bg); color: var(--pulso-warn-fg);
-  font: inherit; font-size: 11px; font-weight: var(--pulso-weight-semibold); white-space: nowrap; cursor: pointer;
+  font: inherit; font-size: var(--pulso-type-caption-size); font-weight: var(--pulso-weight-semibold); white-space: nowrap; cursor: pointer;
 }
-.pulso-f6-alcance:focus-visible { outline: 2px solid var(--module-accent); outline-offset: 1px; }
+.pulso-f6-alcance:focus-visible { outline: var(--mov-foco, 2px solid var(--pulso-primary)); outline-offset: 1px; }
 .pulso-f6-alcance-opciones { display: flex; flex-direction: column; gap: 2px; padding: var(--pulso-space-1); min-width: 220px; }
 .pulso-f6-alcance-opciones button {
   padding: var(--pulso-space-2) var(--pulso-space-3); border: 0; border-radius: 6px; background: transparent;
-  color: var(--pulso-text); font: inherit; font-size: 12.5px; text-align: left; cursor: pointer;
+  color: var(--pulso-text); font: inherit; font-size: var(--pulso-type-body-size); text-align: left; cursor: pointer;
 }
 .pulso-f6-alcance-opciones button:hover, .pulso-f6-alcance-opciones button:focus-visible { background: var(--pulso-surface-2); outline: none; }
 .pulso-f6-alcance-opciones button.is-principal { color: var(--module-accent); font-weight: var(--pulso-weight-semibold); }
@@ -263,18 +334,18 @@
 /* Categorías de la pregunta como fichas (en lugar de códigos separados por comas). Excluir: la ficha marcada se apaga
    y se tacha. Elegir (corte): la marcada toma el color del módulo. */
 .pulso-f6-cats-cabeza { display: flex; align-items: baseline; justify-content: space-between; gap: var(--pulso-space-2); }
-.pulso-f6-cats-resumen { color: var(--pulso-text-soft); font-size: 11.5px; white-space: nowrap; }
+.pulso-f6-cats-resumen { color: var(--pulso-text-soft); font-size: var(--pulso-type-caption-size); white-space: nowrap; }
 .pulso-f6-cats { display: flex; flex-wrap: wrap; gap: 6px; }
 .pulso-f6-cat {
   display: inline-flex; align-items: center; gap: 6px; max-width: 100%; min-height: 28px; padding: 3px 10px;
   border: 1px solid var(--pulso-border); border-radius: var(--pulso-radius-chip); background: var(--pulso-surface);
-  color: var(--pulso-text); font: inherit; font-size: 12.5px; text-align: left; cursor: pointer;
+  color: var(--pulso-text); font: inherit; font-size: var(--pulso-type-body-size); text-align: left; cursor: pointer;
   transition: background var(--motion-dur-fast) var(--motion-ease-out), border-color var(--motion-dur-fast) var(--motion-ease-out), color var(--motion-dur-fast) var(--motion-ease-out);
 }
 .pulso-f6-cat:hover { border-color: var(--module-accent-border); }
-.pulso-f6-cat:focus-visible { outline: 2px solid var(--module-accent); outline-offset: 1px; }
+.pulso-f6-cat:focus-visible { outline: var(--mov-foco, 2px solid var(--pulso-primary)); outline-offset: 1px; }
 .pulso-f6-cat-texto { min-width: 0; overflow-wrap: anywhere; }
-.pulso-f6-cat-n { color: var(--pulso-text-soft); font-size: 11px; font-variant-numeric: tabular-nums; }
+.pulso-f6-cat-n { color: var(--pulso-text-soft); font-size: var(--pulso-type-caption-size); font-variant-numeric: tabular-nums; }
 .pulso-f6-cat.is-residual { border-style: dashed; }
 .pulso-f6-cats.is-excluir .pulso-f6-cat.is-activa { background: var(--pulso-surface-2); color: var(--pulso-text-soft); }
 .pulso-f6-cats.is-excluir .pulso-f6-cat.is-activa .pulso-f6-cat-texto { text-decoration: line-through; }
@@ -307,7 +378,47 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* «Espacio para las etiquetas» (U-c): vacío dice «Automático», que no cabe en los 64px de una cifra. */
+.pulso-f6-dato.is-automatico .pulso-f6-numero-fila .pulso-f6-dato-numero {
+  width: 13ch;
+  min-width: 13ch;
+}
+
 .pulso-f6-numero-paso:disabled {
   opacity: 0.4;
   cursor: not-allowed;
+}
+
+/* U9: una etiqueta corta por pregunta en las multiapiladas. El enunciado entero, envuelto, y su campo al lado. */
+.pulso-f6-etiquetas-preguntas { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.pulso-f6-etiqueta-pregunta {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+.pulso-f6-etiqueta-pregunta-texto {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-size: var(--pulso-type-body-size);
+  line-height: 1.3;
+  color: var(--pulso-text-muted);
+}
+.pulso-f6-etiqueta-pregunta .pulso-f6-input { min-width: 0; width: 100%; }
+
+/* Un enlace dentro de una ayuda o un aviso de la tarjeta («asígnalos en Identidad › Colores»): es navegación, así que
+   es un <a> con su subrayado, no un botón disfrazado. */
+.pulso-f6-enlace-ayuda {
+  color: var(--module-accent);
+  font: inherit;
+  font-weight: var(--pulso-weight-semibold);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.pulso-f6-enlace-ayuda:focus-visible {
+  outline: var(--pulso-nav-focus-outline-width) solid var(--module-accent);
+  outline-offset: var(--pulso-nav-focus-offset);
+  border-radius: var(--pulso-radius);
 }

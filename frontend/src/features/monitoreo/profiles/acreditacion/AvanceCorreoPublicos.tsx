@@ -107,7 +107,7 @@ export function AvanceCorreoPublicos({
         <div>
           <h3 id={`${ids}-t`}>Públicos</h3>
           <p className="mon-correo-bloque-meta">
-            {cifra(publicos.length)} {publicos.length === 1 ? "público" : "públicos"} · {cifra(totalEfectivas)} efectivas de {cifra(totalUniverso)} en el universo
+            {cifra(publicos.length)} {publicos.length === 1 ? "público" : "públicos"}, {cifra(totalEfectivas)} efectivas de {cifra(totalUniverso)} en el universo
           </p>
         </div>
         {umbralesLeyenda.length && !colapsado ? (

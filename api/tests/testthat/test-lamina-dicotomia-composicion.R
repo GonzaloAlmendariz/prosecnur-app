@@ -23,20 +23,18 @@ source("setup-load-all.R")
   preparar_escala(d, "item", "N", c("t1", "t2"), niv, var_etiqueta_categoria = "rotulo", colores_grupos = as.list(setNames(.std_paleta("dicotomica"), niv)))
 }
 
-test_that("una pregunta Sí/No en barra estándar: barra no más ancha que la de 4 preguntas, centrada y con la leyenda a la lámina", {
+test_that("una pregunta Sí/No en barra estándar: la barra de la escala de 4 preguntas, en su columna, con la leyenda a la lámina", {
   o4 <- suppressMessages(.lam_laminas_escala(.dc_doc(), .dc_cuatro(), "Mecanismos", base = "Base: 115 docentes", folio = 1))
   seg4 <- .dc_formas(o4$doc, "segmento"); ancho4 <- max(seg4$x + seg4$w) - min(seg4$x)
 
   o1 <- .lam_laminas_dicotomia(.dc_doc(), .dc_espec(), "Perfil de egreso", pregunta = "¿Conoce los objetivos formativos de Formación General?",
                                publico = "279 estudiantes", base = "Base: 279 estudiantes", folio = 1)
-  seg1 <- .dc_formas(o1$doc, "barra:segmento")
+  seg1 <- .dc_formas(o1$doc, "segmento")
   ancho1 <- max(seg1$x + seg1$w) - min(seg1$x)
-  expect_gt(ancho1, ancho4)   # el usuario (v6): la barra única aprovecha el ancho (test-lamina-dicotomia-unica-ancho.R)
-  # centrada a la lámina
-  expect_lt(abs((min(seg1$x) + max(seg1$x + seg1$w)) / 2 - .std_geom("ancho") / 2), 0.03)
-  # centro vertical del bloque dentro del área de datos ±0,3 in
-  centro_area <- (.std_geom("zona_datos_y0") + .std_geom("contenido_y1")) / 2
-  expect_lt(abs((min(seg1$y) + max(seg1$y + seg1$h)) / 2 - centro_area), 0.3)
+  # Gonzalo (2026-10-29, «Sí, como C»): la Sí/No sola es una fila de escala, del mismo largo y en la misma columna que
+  # las barras de la escala (G17: todas las barras miden lo mismo), como Contabilidad y la lámina 47 de Arte.
+  expect_equal(ancho1, ancho4, tolerance = 0.02)
+  expect_equal(min(seg1$x), min(seg4$x), tolerance = 0.02)
   # leyenda centrada a toda la lámina
   cua <- .dc_formas(o1$doc, "leyenda:cuadro"); expect_equal(nrow(cua), 2L)
   plan <- .lam_leyenda_plan(c("Sí", "No"), 12)

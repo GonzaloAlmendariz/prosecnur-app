@@ -30,7 +30,8 @@ test_that("las disposiciones tienen los rectángulos del recetario y sus filetes
   expect_null(.lam_mixta_geo("graficos_3_fila"))
 })
 
-test_that("en la cuadrícula las categóricas van en barras de 0.42 in y una categórica de dos opciones va partida", {
+# Revisión del PPT v7.23 de CCSS, ítem 11: la Sí/No de un panel va como barra apilada clásica (`barra:segmento`), no partida.
+test_that("en la cuadrícula las categóricas van en barras de 0.42 in y una Sí/No va apilada clásica (v7.23 ítem 11)", {
   e <- list(.mx_cat(c("Bachiller", "Magister", "Doctor"), c(.19, .73, .08)), .mx_cat(c("A", "B", "C", "D"), c(.4, .3, .2, .1)),
             .mx_cat(c("x", "y", "z"), c(.5, .3, .2)), .mx_cat(c("Sí", "No"), c(.98, .02), c(51, 1)))
   doc <- officer::read_pptx(system.file("plantillas", "plantilla_16_9.pptx", package = "prosecnurapp"))
@@ -41,7 +42,8 @@ test_that("en la cuadrícula las categóricas van en barras de 0.42 in y una cat
   b <- .mx_off(xml, "barra")
   expect_equal(nrow(b), 10L)                                       # 3 + 4 + 3; la cuarta es dicotomía
   expect_equal(diff(sort(unique(round(b$y[1:3], 3)))), c(.42, .42), tolerance = 1e-3)
-  expect_equal(nrow(.mx_off(xml, "dicotomia:segmento")), 2L)
+  expect_equal(nrow(.mx_off(xml, "dicotomia:segmento")), 0L)
+  expect_equal(nrow(.mx_off(xml, "barra:segmento")), 2L)
   expect_equal(nrow(.mx_off(xml, "separador")), 2L)
   expect_identical(xml2::xml_text(xml2::xml_find_all(xml, "//p:sp[p:nvSpPr/p:cNvPr[@name='panel:pregunta']]")),
                    c("Grado", "Dpto", "Edad", "¿Conoce la misión?"))
@@ -143,7 +145,7 @@ test_that("la categórica nativa conserva su base; rótulos largos van en barras
   expect_true(any(c("prosecnur:grafico:categorica") %in% .vn_grupos(.vn_xml(out, 1))))
 })
 
-test_that("una agrupada Sí/No con (n) sale como dicotomía con la frecuencia una sola vez y la cifra limpia", {
+test_that("una agrupada Sí/No con (n) sale apilada clásica con la frecuencia una sola vez y la cifra limpia (v7.23 ítem 11)", {
   withr::local_options(prosecnur.casos_junto = list(cuando = "siempre"))   # la dicotomía con «(n)» es el modo «siempre» del ajuste
   skip_if_not_installed("officer"); skip_if_not_installed("rvg")
   dat <- data.frame(qsn = rep(c("Sí", "No"), c(124, 76)), stringsAsFactors = FALSE)
@@ -154,8 +156,11 @@ test_that("una agrupada Sí/No con (n) sale como dicotomía con la frecuencia un
   out <- tempfile(fileext = ".pptx")
   suppressMessages(suppressWarnings(reporte_ppt_plan(data = dat, instrumento = inst, plan = plan, path_ppt = out, mensajes_progreso = FALSE)))
   xml <- .vn_xml(out, 1)
-  expect_identical(.vn_txt(xml, "dicotomia:cifra"), c("62%", "38%"))              # hallazgo 4
-  expect_identical(.vn_txt(xml, "dicotomia:rotulo"), c("Sí (124)", "No (76)"))
+  expect_setequal(.vn_txt(xml, "cifra"), c("62%", "38%"))                         # hallazgo 4: la cifra, limpia
+  # La lámina sola de la Sí/No es la fila de escala (lamina_dicotomia_como_escala.R): su leyenda nombra las opciones; la
+  # frecuencia no se repite en ninguna parte.
+  expect_identical(.vn_txt(xml, "leyenda:texto"), c("Sí", "No"))
+  expect_false(any(grepl("\\(124\\).*\\(124\\)", paste(.vn_txt(xml, "cifra"), collapse = " "))))
 })
 
 test_that("en barras la cifra con (n) tiene su columna medida y no se parte", {
@@ -205,12 +210,14 @@ test_that("el realce exige un máximo único en la cifra rotulada", {
   expect_false(preparar_categorica(c("a", "b", "c"), c(.5, .3, .2), c("50%", "30%", "20%"))$realce)   # por defecto, un color
 })
 
-test_that("en la dicotomía de un panel los rótulos van sin frecuencia, como la cuarta celda de la lámina 160", {
+test_that("en la Sí/No de un panel la leyenda va sin frecuencia, como la cuarta celda de la lámina 160 (v7.23 ítem 11)", {
   doc <- officer::read_pptx(system.file("plantillas", "plantilla_16_9.pptx", package = "prosecnurapp"))
   e <- list(.mx_cat(c("a", "b", "c"), c(.5, .3, .2)), .mx_cat(c("a", "b", "c"), c(.5, .3, .2)), .mx_cat(c("a", "b", "c"), c(.5, .3, .2)),
             .mx_cat(c("Sí", "No"), c(.98, .02), c(51, 1)))
   o <- .lam_laminas_mixta(doc, e, "paneles_4", preguntas = list("A", "B", "C", "D"), titulo = "Perfil", folio = 1)
-  expect_identical(.vn_txt(.mx_xml(o$doc), "dicotomia:rotulo"), c("Sí", "No"))
+  xml <- .mx_xml(o$doc)
+  expect_length(.vn_txt(xml, "dicotomia:rotulo"), 0L)
+  expect_identical(tail(.vn_txt(xml, "leyenda:texto"), 2L), c("Sí", "No"))
 })
 
 test_that("las bases de una lámina mixta no se pierden: sólo se omite la que otra contiene", {

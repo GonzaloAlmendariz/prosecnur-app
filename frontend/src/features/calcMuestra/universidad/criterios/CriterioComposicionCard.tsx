@@ -126,7 +126,7 @@ function RecorteDelPaso({
   if (!recorte.aplicado) {
     return (
       <p className="cmv2-crit-paso-recorte" data-estado="sin-aplicar" role="note">
-        <strong>{fmtInt(recorte.llegan)}</strong> llegan hasta aquí ·{" "}
+        <strong>{fmtInt(recorte.llegan)}</strong> llegan hasta aquí,{" "}
         {!activo
           ? "el paso está apagado, así que no deja fuera a ninguno"
           : recorte.sinRecorridoVivo
@@ -137,7 +137,7 @@ function RecorteDelPaso({
   }
   return (
     <p className="cmv2-crit-paso-recorte" data-estado="aplicado" role="note">
-      <strong>{fmtInt(recorte.llegan)}</strong> llegan hasta aquí ·{" "}
+      <strong>{fmtInt(recorte.llegan)}</strong> llegan hasta aquí,{" "}
       {fuera > 0 ? (
         <>
           deja fuera <strong>{fmtInt(fuera)}</strong> y quedan <strong>{fmtInt(recorte.quedan)}</strong>
@@ -324,12 +324,12 @@ export function CriterioComposicionCard({
           </span>
           <strong>Composición del curso-horario</strong>
           <span className="cmv2-crit-card-meta">
-            <span className="cmv2-crit-col">regla común · dos pasos en orden</span>
+            <span className="cmv2-crit-col">regla común, dos pasos en orden</span>
           </span>
         </div>
         <div className="cmv2-crit-card-state">
           <span className="cmv2-crit-head-count">
-            {activos === 0 ? "apagado · no filtra" : `${activos} de 2 pasos activos`}
+            {activos === 0 ? "apagado, no filtra" : `${activos} de 2 pasos activos`}
           </span>
         </div>
       </button>
@@ -451,7 +451,7 @@ export function CriterioComposicionCard({
           */}
         <div className="cmv2-crit-otra-regla">
           <p className="cmv2-crit-otra-regla-eyebrow">
-            Otra regla · mide la matrícula, no la homogeneidad
+            Otra regla, mide la matrícula, no la homogeneidad
           </p>
           {/*
             * Clase propia y no `cmv2-crit-paso`: comparte el layout pero **no es

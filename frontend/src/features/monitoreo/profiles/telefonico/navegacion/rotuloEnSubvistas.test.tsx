@@ -15,7 +15,7 @@ import { Salvedades } from "../control/Salvedades";
 import { Calendario } from "../modelo/Calendario";
 import { RotuloDePestanaProvider } from "./RotuloDePestana";
 
-const VALOR = { antetitulo: "Control · Llamadas", titulo: "Insistencia", chips: [] as string[] };
+const VALOR = { antetitulo: "Control › Llamadas", titulo: "Insistencia", chips: [] as string[] };
 
 function pintar(nodo: ReactNode, conRotulo = true, url = "/monitoreo?modo=telefonico") {
   return renderToStaticMarkup(

@@ -10,9 +10,12 @@
 
 import { Link } from "react-router-dom";
 
+import { BarraDeAvance } from "../../../components/BarraDeAvance";
+import { formatoConteo } from "../../../lib/formatoNumero";
+
 import type { CampanaMaterial } from "../../../api/materialCampanas";
 import type { LucideIcon } from "../../../vendor/lucide-react";
-import { Backpack, Mail, MapPinned } from "../../../vendor/lucide-react";
+import { Backpack, Mail, MapPinned, PhoneCall, ShieldCheck } from "../../../vendor/lucide-react";
 import type { AccionDeCampana, IdDeAccion } from "./accionesDeCampana";
 import type { MiniaturaDeCorreo } from "./miniaturaDeCorreo";
 import { MenuDeCampana } from "./MenuDeCampana";
@@ -23,6 +26,8 @@ export const ICONO_DEL_TIPO: Readonly<Record<CampanaMaterial["tipo"], LucideIcon
   aulas: Backpack,
   territorial: MapPinned,
   correo: Mail,
+  telefonica: PhoneCall,
+  supervision: ShieldCheck,
 };
 
 type Props = {
@@ -33,15 +38,14 @@ type Props = {
   miniatura?: MiniaturaDeCorreo | null;
   /** El asunto del correo: distingue a dos campañas del mismo nombre cuando no hay actor (F1). */
   asunto?: string | null;
+  /** Ronda y de qué campaña viene (acreditación, supervisión), ya redactado. */
+  procedencia?: string | null;
 };
 
-export function TarjetaDeCampana({ campana, href, acciones, onAccion, miniatura = null, asunto = null }: Props) {
+export function TarjetaDeCampana({ campana, href, acciones, onAccion, miniatura = null, asunto = null, procedencia = null }: Props) {
   const resumen = resumenDeTarjeta(campana);
   const subtitulo = subtituloDeCampana(campana, asunto);
   const Icono = ICONO_DEL_TIPO[campana.tipo];
-  const pct = resumen.avance && resumen.avance.total > 0
-    ? Math.round((resumen.avance.actual / resumen.avance.total) * 100)
-    : 0;
   return (
     <article
       className={`rec-campana-tarjeta is-${campana.tipo}${campana.archived ? " is-archivada" : ""}`}
@@ -58,12 +62,13 @@ export function TarjetaDeCampana({ campana, href, acciones, onAccion, miniatura 
             {campana.archived ? campana.name : <Link className="rec-campana-abrir" to={href}>{campana.name}</Link>}
           </h3>
           {subtitulo ? <span className="rec-campana-actor" title={subtitulo}>{subtitulo}</span> : null}
+          {procedencia ? <span className="rec-campana-procedencia" title={procedencia}>{procedencia}</span> : null}
         </span>
         <MenuDeCampana campana={campana} acciones={acciones} onAccion={onAccion} subtitulo={subtitulo} />
       </header>
 
-      <span className={`rec-campana-estado is-${campana.archived ? "neutral" : resumen.tono}`}>
-        {campana.archived ? "Archivada" : resumen.estado}
+      <span className={`rec-campana-estado is-${campana.archived || campana.fuera_del_estudio ? "neutral" : resumen.tono}`}>
+        {campana.archived ? "Archivada" : campana.fuera_del_estudio ? "Fuera del estudio" : resumen.estado}
       </span>
 
       {resumen.cifras.length ? (
@@ -71,7 +76,7 @@ export function TarjetaDeCampana({ campana, href, acciones, onAccion, miniatura 
           {resumen.cifras.map((c) => (
             <div key={c.rotulo} className="rec-campana-cifra" data-qa-geometry-member>
               <dt>{c.rotulo}</dt>
-              <dd>{c.valor.toLocaleString("es-PE")}</dd>
+              <dd>{formatoConteo(c.valor)}</dd>
             </div>
           ))}
         </dl>
@@ -79,18 +84,9 @@ export function TarjetaDeCampana({ campana, href, acciones, onAccion, miniatura 
 
       {resumen.avance ? (
         <div className="rec-campana-avance">
-          <div
-            className="rec-campana-avance-barra"
-            role="progressbar"
-            aria-label={resumen.avance.rotulo}
-            aria-valuemin={0}
-            aria-valuemax={resumen.avance.total}
-            aria-valuenow={resumen.avance.actual}
-          >
-            <span style={{ width: `${pct}%` }} />
-          </div>
+          <BarraDeAvance valor={resumen.avance.actual} total={resumen.avance.total} etiqueta={resumen.avance.rotulo} />
           <span className="rec-campana-avance-texto">
-            {resumen.avance.actual.toLocaleString("es-PE")}/{resumen.avance.total.toLocaleString("es-PE")} {resumen.avance.rotulo}
+            {formatoConteo(resumen.avance.actual)} de {formatoConteo(resumen.avance.total)} {resumen.avance.rotulo}
           </span>
         </div>
       ) : null}
@@ -100,7 +96,7 @@ export function TarjetaDeCampana({ campana, href, acciones, onAccion, miniatura 
           {resumen.envios.map((e) => (
             <li key={e.label} className={e.exportado ? "is-exportado" : undefined}>
               <span className="rec-campana-punto" aria-hidden />
-              <span>{e.label} · {e.texto}</span>
+              <span><b>{e.label}</b> {e.texto}</span>
             </li>
           ))}
         </ul>

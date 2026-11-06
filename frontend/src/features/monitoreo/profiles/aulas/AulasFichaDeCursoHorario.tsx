@@ -9,6 +9,8 @@ import {
 import { ChipDato, ChipLugar } from "./AulasSistemaPabellon";
 import { porDondeEmpezarLaFicha } from "./porDondeEmpezarLaFicha";
 import { fmt, pctPerfil } from "./kpisDeAulas";
+import { CitaDeLaFicha } from "./cita/CitaDeLaFicha";
+import { lecturaDeCita } from "./cita/lecturaDeCita";
 import "./fichaDeCursoHorario.css";
 
 /**
@@ -45,7 +47,7 @@ const NOMBRE: Record<EstadoDeCursoHorario, string> = {
 function Valor({ children }: { children: React.ReactNode }) {
   const vacio = children == null || children === "" || children === false;
   return vacio
-    ? <span className="aulas-ficha-valor aulas-ficha-vacio">sin dato</span>
+    ? <span className="aulas-ficha-valor aulas-ficha-valor--vacio">sin dato</span>
     : <span className="aulas-ficha-valor">{children}</span>;
 }
 
@@ -162,7 +164,7 @@ function Ficha({ f }: { f: FichaDeCursoHorario }) {
         {/* El literal del plan al lado del estado derivado: si dicen cosas
             distintas —y lo hacen, `operational_status` no se actualiza— quien
             lee tiene que poder verlo, no descubrirlo por su cuenta. */}
-        <span className="aulas-ficha-sub">{f.rol} · el plan lo declara «{f.estadoOperativo}»</span>
+        <span className="aulas-ficha-sub">{f.rol}, el plan lo declara «{f.estadoOperativo}»</span>
       </div>
 
       {/* **El estado y su fecha, en UNA frase.** Antes el chip decía AGENDADO y
@@ -266,7 +268,7 @@ function Ficha({ f }: { f: FichaDeCursoHorario }) {
 }
 
 export function AulasFichaDeCursoHorario({
-  agenda, partes, bandas, control = [], codigoEnFoco = "", onElegir,
+  agenda, partes, bandas, control = [], codigoEnFoco = "", onElegir, onReemplazar, hoy,
 }: {
   /** El plan entero. */
   agenda: ReadonlyArray<Record<string, unknown>>;
@@ -290,6 +292,10 @@ export function AulasFichaDeCursoHorario({
   codigoEnFoco?: string;
   /** Se avisa al elegir, para que la dirección siga a la selección. */
   onElegir?: (codigo: string) => void;
+  /** P4: activa el reemplazo de una cita vencida (el popover de relevo del padre). */
+  onReemplazar?: ((codigo: string) => void) | null;
+  /** `YYYY-MM-DD`; por defecto, hoy en la hora local. */
+  hoy?: string;
 }) {
   // **La dirección manda DESDE EL PRIMER RENDER**, con el mismo initializer que
   // usa `RegistroDeCampo` y por el mismo motivo: un efecto recién corre tras el
@@ -357,6 +363,13 @@ export function AulasFichaDeCursoHorario({
   // quien teclea «CH 43» ve la ficha y copia una URL que no lleva a ella, que es
   // la avería que este tick vino a cerrar. Se escribe con `replace` —lo hace
   // `useFocoMonitoreo`—, así que teclear no llena el historial.
+  const lecturaCita = useMemo(() => {
+    if (!fila) return null;
+    const d = new Date();
+    const hoyLocal = hoy ?? `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    return lecturaDeCita(fila, porCodigo.get(claveDeBusqueda(fila.operational_code)), hoyLocal);
+  }, [fila, porCodigo, hoy]);
+
   const codigoVisible = ficha?.codigo ?? "";
   useEffect(() => {
     if (!codigoVisible || !onElegir) return;
@@ -375,7 +388,7 @@ export function AulasFichaDeCursoHorario({
           aria-label="Buscar un curso-horario por su código"
         />
         <span className="aulas-ficha-pista">
-          {fmt(agenda.length)} cursos-horario del plan · da igual el espacio y las mayúsculas
+          {fmt(agenda.length)} cursos-horario del plan, da igual el espacio y las mayúsculas
         </span>
       </div>
 
@@ -388,7 +401,7 @@ export function AulasFichaDeCursoHorario({
             <section key={a.clave}>
               <p className="aulas-ficha-atajo-titulo">
                 <strong>{a.titulo}</strong>
-                <em>{fmt(a.codigos.length)} · {a.motivo}</em>
+                <em>{fmt(a.codigos.length)}, {a.motivo}</em>
               </p>
               <div className="aulas-ficha-atajo-codigos">
                 {a.codigos.map((c) => (
@@ -431,6 +444,7 @@ export function AulasFichaDeCursoHorario({
       ) : null}
 
       {ficha ? <Ficha f={ficha} /> : null}
+      {lecturaCita && ficha ? <CitaDeLaFicha lectura={lecturaCita} codigo={ficha.codigo} onReemplazar={onReemplazar} /> : null}
 
       {!consulta.trim() ? (
         <p className="mon-profile-muted" data-qa-geometry-capacity="owned" data-qa-geometry-member>

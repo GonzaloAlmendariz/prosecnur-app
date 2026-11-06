@@ -26,7 +26,7 @@
   border: none;
   background: transparent;
   outline: none;
-  font-size: 12.5px;
+  font-size: var(--pulso-type-body-size);
   color: var(--pulso-text);
 }
 
@@ -83,7 +83,7 @@
 }
 
 .pulso-cataloglibrary-item-meta strong {
-  font-size: 12.5px;
+  font-size: var(--pulso-type-body-size);
   color: var(--pulso-text);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -91,12 +91,12 @@
 }
 
 .pulso-cataloglibrary-item-meta span {
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   color: var(--pulso-text-soft);
 }
 
 .pulso-cataloglibrary-item-unused {
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-bold);
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -108,36 +108,6 @@
   flex-shrink: 0;
 }
 
-.pulso-cataloglibrary-empty,
-.pulso-catalogworkspace-empty {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  padding: 24px 16px;
-  text-align: center;
-  border: 1px dashed var(--pulso-border);
-  border-radius: 12px;
-  background: var(--pulso-surface-2);
-  color: var(--pulso-text-soft);
-  min-height: 180px;
-}
-
-.pulso-cataloglibrary-empty strong,
-.pulso-catalogworkspace-empty strong {
-  font-size: 13px;
-  color: var(--pulso-text);
-}
-
-.pulso-cataloglibrary-empty p {
-  font-size: 12px;
-  color: var(--pulso-text-soft);
-  margin: 0;
-  line-height: 1.5;
-  max-width: 240px;
-}
-
 .pulso-cataloglibrary-create {
   display: inline-flex;
   align-items: center;
@@ -147,7 +117,7 @@
   border-radius: 8px;
   background: var(--pulso-primary);
   color: white;
-  font-size: 12px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-semibold);
   cursor: pointer;
   transition: background 140ms ease;
@@ -158,7 +128,7 @@
 }
 
 .pulso-cataloglibrary-empty-search {
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   color: var(--pulso-text-soft);
   padding: 14px 12px;
   text-align: center;
@@ -198,7 +168,7 @@
 }
 
 .pulso-catalogworkspace-listname-label {
-  font-size: 11px;
+  font-size: var(--pulso-type-eyebrow-size);
   font-weight: var(--pulso-weight-bold);
   text-transform: uppercase;
   letter-spacing: 0.4px;
@@ -208,7 +178,7 @@
 .pulso-catalogworkspace-name {
   flex: 1;
   font-family: ui-monospace, monospace;
-  font-size: 13px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-semibold);
   color: var(--pulso-text);
   background: rgba(0, 0, 0, 0.04);
@@ -247,7 +217,7 @@
   border-radius: 999px;
   background: color-mix(in srgb, var(--pulso-warn-bg) 34%, #ffffff);
   color: color-mix(in srgb, var(--pulso-warn-fg) 82%, #253149);
-  font-size: 10.5px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-heavy);
   line-height: 1;
   overflow: hidden;
@@ -263,7 +233,7 @@
   gap: 4px;
   height: 28px;
   border-radius: 7px;
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   font-weight: var(--pulso-weight-bold);
   cursor: pointer;
   transition:
@@ -309,7 +279,7 @@
 
 .pulso-catalogdraft-apply:active:not(:disabled),
 .pulso-catalogdraft-revert:active {
-  transform: scale(0.97);
+  transform: scale(var(--mov-press, 0.97));
 }
 
 .pulso-catalogworkspace-draft-note {
@@ -324,7 +294,7 @@
     linear-gradient(180deg, rgba(255, 255, 255, 0.88), rgba(246, 249, 253, 0.82)),
     color-mix(in srgb, var(--pulso-primary) 4%, #ffffff);
   color: #5b6677;
-  font-size: 11.8px;
+  font-size: var(--pulso-type-caption-size);
   font-weight: var(--pulso-weight-semibold);
   line-height: 1.35;
 }
@@ -357,7 +327,7 @@
   border-radius: 7px;
   background: var(--pulso-primary);
   color: white;
-  font-size: 12px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-semibold);
   cursor: pointer;
   flex-shrink: 0;
@@ -372,7 +342,7 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   color: var(--pulso-text-soft);
 }
 
@@ -386,7 +356,7 @@
   border: 1px solid var(--pulso-danger-border, #fecaca);
   border-radius: 5px;
   color: var(--pulso-danger-fg, #b91c1c);
-  font-size: 10.5px;
+  font-size: var(--pulso-type-micro-size);
   cursor: pointer;
   transition: background 140ms ease;
 }
@@ -396,42 +366,13 @@
 }
 
 .pulso-catalogworkspace-search-count {
-  font-size: 10.5px;
+  font-size: var(--pulso-type-micro-size);
   color: var(--pulso-text-soft);
   background: white;
   padding: 2px 6px;
   border-radius: 4px;
   border: 1px solid var(--pulso-border);
   font-variant-numeric: tabular-nums;
-}
-
-.pulso-catalogworkspace-emptylist {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding: 18px 14px;
-  text-align: center;
-  border: 1px dashed var(--pulso-border);
-  border-radius: 10px;
-  background: var(--pulso-surface-2);
-  color: var(--pulso-text-soft);
-  font-size: 12px;
-  line-height: 1.5;
-}
-
-.pulso-catalogworkspace-emptylist strong {
-  font-size: 13px;
-  color: var(--pulso-text);
-}
-
-.pulso-catalogworkspace-emptylist code {
-  font-family: ui-monospace, monospace;
-  font-size: 11.5px;
-  background: white;
-  padding: 1px 5px;
-  border-radius: 4px;
-  border: 1px solid var(--pulso-border);
-  color: var(--pulso-primary);
 }
 
 .pulso-catalogworkspace-list {
@@ -464,7 +405,7 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-bold);
   text-transform: uppercase;
   letter-spacing: 0.4px;
@@ -480,7 +421,7 @@
 
 .pulso-choice-row-fields-header span {
   flex: 1;
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-bold);
   text-transform: uppercase;
   letter-spacing: 0.4px;

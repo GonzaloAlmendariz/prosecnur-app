@@ -101,7 +101,7 @@ export function AulasAvanceEnRespuestas({ filas, resumen, validasTotales = 0 }: 
             respuesta que no existe (1 306,3 pintado «1 307», contradiciendo al
             «1 306 cubren meta» de dos líneas más abajo). */}
         <strong>{fmt(a.cubierto)}</strong> de <strong>{fmt(a.meta)}</strong> respuestas que pide
-        el plan · <span className="aulas-avance-pct">{a.avance}%</span>
+        el plan, <span className="aulas-avance-pct">{a.avance}%</span>
       </p>
       {/* El hueco entre lo recogido y lo atribuido, DICHO. Hay estudios donde
           llegan miles de respuestas y ninguna se puede colgar de un aula

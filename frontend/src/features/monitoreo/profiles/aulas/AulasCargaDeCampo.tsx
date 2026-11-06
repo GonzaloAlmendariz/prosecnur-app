@@ -1,7 +1,8 @@
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import type { MonitoreoAulasSincronizacion, MonitoreoAulasTramo } from "../../../../api/monitoreo";
 
-import { Check, Pencil } from "../../../../vendor/lucide-react";
+import { Check, Pencil, CalendarClock, MousePointer2 } from "../../../../vendor/lucide-react";
+import { EstadoVacio } from "../../../../components/EstadoVacio";
 
 import type {
   MonitoreoAulasDisponibilidad,
@@ -76,7 +77,7 @@ const tituloDeCelda = (fila: string, hora: string, firme: number, plausible: num
     `${fmt(enCurso)} cursos-horario en curso`,
   ]
     .filter(Boolean)
-    .join(" · ");
+    .join(", ");
 
 /** «2026-09-12» → «sáb 12/09»: la fecha exacta, corta para una línea de detalle. */
 const fechaCorta = (iso: string): string => {
@@ -364,10 +365,13 @@ export function AulasCargaDeCampo({
         {/* La rama vacía declara lo mismo que la de datos: es donde el grupo
             se quedaba sin contenedor declarado y el `header` entraba en la
             medida con sus 4 px. */}
-        <p className="aulas-carga-vacio" data-qa-geometry-capacity="owned" data-qa-geometry-member="true">
-          El plan no trae el horario de los cursos-horario. Se completa al construir el marco desde el catálogo
-          de Cursos-Horarios, que es de donde sale el rango de cada sesión.
-        </p>
+        <div data-qa-geometry-capacity="owned" data-qa-geometry-member="true">
+          <EstadoVacio
+            icono={<CalendarClock size={15} />}
+            titulo="El plan no trae el horario de los cursos-horario."
+            descripcion="Se completa al construir el marco desde el catálogo de Cursos-Horarios, que es de donde sale el rango de cada sesión."
+          />
+        </div>
       </section>
     );
   }
@@ -516,10 +520,13 @@ export function AulasCargaDeCampo({
         // El mismo vacío declarado del atajo compacto, dentro del marco
         // completo: la demanda no tiene malla, pero la oferta cargada sigue a
         // un click en su botón.
-        <p className="aulas-carga-vacio" data-qa-geometry-capacity="owned" data-qa-geometry-member="true">
-          El plan no trae el horario de los cursos-horario. Se completa al construir el marco
-          desde el catálogo de Cursos-Horarios, que es de donde sale el rango de cada sesión.
-        </p>
+        <div data-qa-geometry-capacity="owned" data-qa-geometry-member="true">
+          <EstadoVacio
+            icono={<CalendarClock size={15} />}
+            titulo="El plan no trae el horario de los cursos-horario."
+            descripcion="Se completa al construir el marco desde el catálogo de Cursos-Horarios, que es de donde sale el rango de cada sesión."
+          />
+        </div>
       ) : null}
       {esDemanda && hayMalla ? (<>
       <div className="aulas-carga-controles" data-qa-geometry-capacity="owned" data-qa-geometry-member="true">
@@ -644,8 +651,8 @@ export function AulasCargaDeCampo({
           <button type="button" onClick={() => paginar(-1)} aria-label="Semana anterior">‹</button>
           <strong>
             {semanaIdx === null || !semanas[semanaIdx]
-              ? `Todas las semanas · ${fmt(semanas.length)}`
-              : `Semana ${fmt(semanaIdx + 1)} de ${fmt(semanas.length)} · ${semanas[semanaIdx].etiqueta}`}
+              ? `Todas las semanas (${fmt(semanas.length)})`
+              : `Semana ${fmt(semanaIdx + 1)} de ${fmt(semanas.length)}, ${semanas[semanaIdx].etiqueta}`}
           </strong>
           <button type="button" onClick={() => paginar(1)} aria-label="Semana siguiente">›</button>
           <button type="button" onClick={() => setSemanaIdx(semanaInicial(semanas, hoyISO()))}>Hoy</button>
@@ -734,7 +741,7 @@ export function AulasCargaDeCampo({
                     const esPico = Boolean(malla.pico && malla.pico.dia === d && malla.pico.franja === malla.franjas[j]);
                     const activa = celdaActiva?.d === d && celdaActiva?.j === j;
                     const titulo = tituloDeCelda(fila.etiqueta, comoHora(malla.franjas[j]), firme, plausible, malla.aulas[d][j])
-                      + (esPico ? " · pico del operativo" : "");
+                      + (esPico ? ", pico del operativo" : "");
                     return (
                       <td key={j} className={malla.franjas[j] % 60 === 0 ? "es-hora" : undefined}>
                         {n ? (
@@ -808,7 +815,7 @@ export function AulasCargaDeCampo({
           // scroll lo tiene mon-workbench-content.
           const grupo = (lista: OcupanteDeCelda[], rotulo: string) => (lista.length ? (
             <div className="aulas-carga-detalle-grupo">
-              <h4>{rotulo} · {fmt(lista.length)}</h4>
+              <h4>{rotulo} ({fmt(lista.length)})</h4>
               <ul>
                 {/* Las tres señas de la cita (dictado: «ni la fecha exacta ni
                     la hora en la que se acordó ir ni qué etapa de la clase»):
@@ -840,7 +847,7 @@ export function AulasCargaDeCampo({
                           /* Como BOX del sistema (dictado 2026-09-03: «esto
                              debería salir como un box como el resto»). */
                           <ChipPrep>
-                            recojo {o.recojo}{o.salida ? ` · sale ${o.salida}` : ""}
+                            recojo {o.recojo}{o.salida ? `, sale ${o.salida}` : ""}
                           </ChipPrep>
                         ) : null}
                         {o.rango
@@ -861,7 +868,7 @@ export function AulasCargaDeCampo({
                 <p className="aulas-carga-detalle-titulo">
                   <strong>{malla.filas[activa.d].etiqueta}</strong>{" "}
                   <ChipHora>{comoHora(malla.franjas[activa.j])}–{comoHora(malla.franjas[activa.j] + 30)}</ChipHora>
-                  {fijada ? <em> · fijada; otro click la suelta</em> : null}
+                  {fijada ? <em>, fijada; otro click la suelta</em> : null}
                 </p>
                 {grupo(ocupantes.filter((o) => o.confirmada), "Confirmados")}
                 {grupo(ocupantes.filter((o) => !o.confirmada), "Por agendar (toda su clase es posible)")}
@@ -877,7 +884,7 @@ export function AulasCargaDeCampo({
                 <>
                   <p className="aulas-carga-detalle-titulo">
                     <strong>{malla.filas[diaActivo].etiqueta}</strong>{" "}
-                    <ChipDato>día completo · {fmt(delDia.length)} cursos-horario</ChipDato>
+                    <ChipDato>día completo, {fmt(delDia.length)} cursos-horario</ChipDato>
                     {/* A qué edificios se va ese día — en palabras del lector
                         (dictado 2026-09-03: «no me gusta el A×3, debe ser
                         3 aplicaciones en A»): la primera entrada lleva la
@@ -895,7 +902,7 @@ export function AulasCargaDeCampo({
                             </>}
                       </span>
                     ))}
-                    <em> · otro click en la fecha lo suelta</em>
+                    <em>, otro click en la fecha lo suelta</em>
                   </p>
                   {grupo(delDia.filter((o) => o.confirmada), "Confirmados")}
                   {grupo(delDia.filter((o) => !o.confirmada), "Por agendar (toda su clase es posible)")}
@@ -906,19 +913,19 @@ export function AulasCargaDeCampo({
           // «La malla» y no «una celda»: el guard del perfil reserva esa
           // palabra para la hoja de cálculo del equipo.
           return (
-            <p className="aulas-carga-detalle-vacio">
-              Pasa el puntero o el foco por la malla para ver qué cursos-horario caen en cada
-              franja de 30 minutos; un click deja la franja fijada. Click en una fecha deja su
-              día completo.
-            </p>
+            <EstadoVacio
+              icono={<MousePointer2 size={15} />}
+              titulo="Pasa el puntero o el foco por la malla para ver qué cursos-horario caen en cada franja de 30 minutos."
+              descripcion="Un click deja la franja fijada. Click en una fecha deja su día completo."
+            />
           );
         })()}
       </div>
 
       <div className="aulas-carga-pie">
         <ul className="aulas-carga-leyenda">
-          <li><i style={celda(topeFirme, 0)} aria-hidden="true" />Confirmado · su hora completa, del recojo de materiales al fin de la aplicación</li>
-          <li><i style={celda(0, topePlausible)} aria-hidden="true" />Por agendar · toda su clase es posible; sobre una franja verde se ve al pasar el puntero</li>
+          <li><i style={celda(topeFirme, 0)} aria-hidden="true" />Confirmado, su hora completa, del recojo de materiales al fin de la aplicación</li>
+          <li><i style={celda(0, topePlausible)} aria-hidden="true" />Por agendar, toda su clase es posible; sobre una franja verde se ve al pasar el puntero</li>
           {eje === "calendario" ? (
             <li><span className="aulas-carga-toca">próxima salida</span> el primer día de campo que viene: ahí se despliega el equipo</li>
           ) : null}

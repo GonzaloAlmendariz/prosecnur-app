@@ -494,6 +494,17 @@ test_that("propone el rango recortando la cola aislada", {
   expect_identical(p$params$max, "2026-08-02")
   expect_identical(p$semilla$n_casos_afectados, 1L)
   expect_no_error(.validar_regla_custom(p))
+  # El nombre se pinta tal cual en Criterios: sin « · » como separador (4 nov 2026).
+  expect_match(p$nombre, "^Periodo de campo: ")
+  expect_false(grepl("·", p$nombre, fixed = TRUE))
+})
+
+test_that("ningún sembrador arma su nombre o su lista con « · »", {
+  # Los nombres de las semillas llegan sin tocar a la UI (Criterios de revisión), que no pinta
+  # el punto medio como separador. Se mira el código, porque cada sembrador pide un fixture propio.
+  fuente <- readLines(test_path("..", "..", "R", "reglas_custom_semilla.R"), encoding = "UTF-8")
+  codigo <- sub("#.*$", "", fuente)
+  expect_identical(grep("·", codigo, fixed = TRUE, value = TRUE), character(0))
 })
 
 test_that("no recorta si eso dejaría fuera a demasiados casos", {

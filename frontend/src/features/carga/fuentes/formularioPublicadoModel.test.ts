@@ -45,7 +45,7 @@ const VP: VistaPreviaFormularioPublicado = {
 
 describe("rótulos", () => {
   it("describe el formulario con campos, campañas y lógica externa", () => {
-    expect(detallesFormulario(ARTE)).toEqual(["42 campos", "1 campaña", "Lógica: fuera de Prosecnur · SPSS"]);
+    expect(detallesFormulario(ARTE)).toEqual(["42 campos", "1 campaña", "Lógica: fuera de Prosecnur, en SPSS"]);
   });
 
   it("SurveyMonkey sólo se ofrece si la revisión trae su encuesta", () => {

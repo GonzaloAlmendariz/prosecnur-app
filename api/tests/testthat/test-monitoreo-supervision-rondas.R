@@ -293,11 +293,14 @@ test_that("HTTP: rondas vacías, ronda sin datos y publicar una ronda que no exi
   sin_datos <- http_post_json(srv, "/api/monitoreo/telefonico/supervision/ronda", sid = sid, body = list(porcentaje = 10))
   expect_identical(sin_datos$status, 409L)
   expect_identical(sin_datos$json$error$code, "E_MONITOREO_NO_SNAPSHOT")
+  # ADR 0125 A3: la base de supervisión la arma Material; Monitoreo ya no publica «Ronda N».
   pub <- http_post_json(srv, "/api/monitoreo/telefonico/supervision/ronda/publicar", sid = sid, body = list(numero = 1))
-  expect_identical(pub$status, 409L) # sin datos, antes de buscar la ronda
+  expect_identical(pub$status, 409L)
+  expect_identical(pub$json$error$code, "E_MONITOREO_SUPERVISION_EN_MATERIAL")
+  # Sin rondas no hay nada que leer, y no es un error.
   leer <- http_post_json(srv, "/api/monitoreo/telefonico/supervision/resultados/leer", sid = sid, body = list())
-  expect_identical(leer$status, 409L)
-  expect_identical(leer$json$error$code, "E_MONITOREO_SUPERVISION_HOJA")
+  expect_identical(leer$status, 200L)
+  expect_identical(as.integer(leer$json$leidas), 0L)
 })
 
 # --- Lectura de las pestañas «Ronda N» ----------------------------------------

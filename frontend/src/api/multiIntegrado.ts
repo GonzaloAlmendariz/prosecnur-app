@@ -3,6 +3,7 @@
 // importan del barrel ./client; este módulo no cambia el contrato.
 
 import { apiFetch, downloadFailedMessage, handle, headers } from "./core";
+import type { AsyncJobStart } from "./jobs";
 import type { EstudioBase, EstudioPayload } from "./estudio";
 import type { MonitoreoSheetsConnectResult } from "./monitoreo";
 import { type ChoiceCodeMap, normalizeFueraDelFormulario, normalizeSurveyMonkeyLogicState, normalizeXlsformFormSource } from "./xlsformEditor";
@@ -67,6 +68,8 @@ export type MultiIntegratedDraft = {
   origin_key_name?: string;
   base_name?: string;
   query?: string;
+  /** Perfil de SurveyMonkey elegido (L7): se recuerda por proyecto. */
+  sm_profile_id?: string;
   rows?: Array<MultiIntegratedOrigin & {
     localId?: string;
     local_id?: string;
@@ -192,7 +195,7 @@ export async function apiMultiIntegratedAudit(payload: {
   return normalizeMultiIntegratedAudit(raw);
 }
 
-export async function apiMultiIntegratedImport(payload: {
+export type MultiIntegratedImportPayload = {
   guide_xlsform_file_id: string;
   origin_key_name: string;
   origins: MultiIntegratedOrigin[];
@@ -200,19 +203,17 @@ export async function apiMultiIntegratedImport(payload: {
   decisions?: MultiIntegratedDecisions;
   profile_id?: string;
   connection_profile_id?: string;
-}) {
+};
+
+function cuerpoImportIntegrado(payload: MultiIntegratedImportPayload): Record<string, unknown> {
   const { profile_id, connection_profile_id, ...requestPayload } = payload;
   const profileId = profile_id?.trim() || connection_profile_id?.trim();
-  const raw = await handle<unknown>(
-    await apiFetch("/api/multi/integrated/import", {
-      method: "POST",
-      headers: headers({ "Content-Type": "application/json" }),
-      body: JSON.stringify({
-        ...requestPayload,
-        ...(profileId ? { profile_id: profileId } : {}),
-      }),
-    }),
-  ) as Record<string, unknown>;
+  return { ...requestPayload, ...(profileId ? { profile_id: profileId } : {}) };
+}
+
+/** Respuesta del import integrado: la misma forma por el camino síncrono y por el job (L9). */
+export function normalizeMultiIntegratedImport(rawValue: unknown) {
+  const raw = (rawValue ?? {}) as Record<string, unknown>;
   return {
     ok: true as const,
     base: raw.base as EstudioBase,
@@ -221,6 +222,28 @@ export async function apiMultiIntegratedImport(payload: {
     n_filas: Number(raw.n_filas ?? 0),
     n_columnas: Number(raw.n_columnas ?? 0),
   };
+}
+
+export async function apiMultiIntegratedImport(payload: MultiIntegratedImportPayload) {
+  const raw = await handle<unknown>(
+    await apiFetch("/api/multi/integrated/import", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify(cuerpoImportIntegrado(payload)),
+    }),
+  );
+  return normalizeMultiIntegratedImport(raw);
+}
+
+/** Lo mismo como job en segundo plano (L9): devuelve el handle; el resultado se normaliza al llegar. */
+export async function apiMultiIntegratedImportAsync(payload: MultiIntegratedImportPayload) {
+  return handle<AsyncJobStart>(
+    await apiFetch("/api/multi/integrated/import", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ ...cuerpoImportIntegrado(payload), async: true }),
+    }),
+  );
 }
 
 export async function apiMultiIntegratedDecisionsDocx(payload: {

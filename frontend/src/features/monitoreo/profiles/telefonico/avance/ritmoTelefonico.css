@@ -10,7 +10,7 @@
   height: 100%;
   min-height: 0;
   color: var(--pulso-text);
-  font-size: 13px;
+  font-size: var(--pulso-type-body-size);
   line-height: 1.35;
 }
 
@@ -38,10 +38,13 @@
   padding: var(--pulso-space-3) var(--pulso-space-4) var(--pulso-space-3);
 }
 
-/* Las dos gráficas reparten el alto que el mapa de calor no pide. */
+/* Las dos gráficas reparten el alto que el mapa de calor no pide, pero nunca
+ * bajan de lo que miden: con `flex-shrink` y el `min-height` explícito, a
+ * 1280×720 la tarjeta se encogía bajo su contenido y la siguiente tapaba el eje
+ * de fechas. Si no caben, desplaza la columna. */
 .mon-cadencia-columna > .mon-cadencia-grafico {
   display: flex;
-  flex: 1 1 auto;
+  flex: 1 0 auto;
   flex-direction: column;
   min-height: 240px;
 }
@@ -59,7 +62,7 @@
 }
 
 .mon-cadencia-cabecera > strong {
-  font-size: 14px;
+  font-size: var(--pulso-type-body-size);
 }
 
 /* Leyenda al pie del gráfico, centrada en la tarjeta: rótulos cortos. */
@@ -72,7 +75,7 @@
   margin: 0;
   padding: var(--pulso-space-2) 0 0;
   color: var(--pulso-text-soft);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   list-style: none;
 }
 
@@ -119,7 +122,7 @@
 .mon-cadencia-nota {
   margin: var(--pulso-space-2) 0 0;
   color: var(--pulso-danger-fg);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .mon-cadencia-columna > .mon-cadencia-calor {
@@ -183,7 +186,7 @@
 
 .mon-cadencia-dia-a-dia .mon-cadencia-cabecera > span {
   color: var(--pulso-text-faint);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
 }
 
 /* Como las tablas de Control: al soltar el scroll la fila queda entera bajo
@@ -194,6 +197,13 @@
   overflow-y: auto;
   scroll-padding-top: var(--mon-ctl-cabecera-alto);
   scroll-snap-type: y proximity;
+}
+
+/* Cuatro columnas en un lateral de 280–320 px: con el relleno de la tabla de la
+ * casa «Hoja» quedaba cortada contra el borde. */
+.mon-cadencia-dia-a-dia .mon-ctl-tabla th,
+.mon-cadencia-dia-a-dia .mon-ctl-tabla td {
+  padding-inline: 6px;
 }
 
 .mon-cadencia-dia-a-dia tr.is-pico th,
@@ -234,7 +244,7 @@
 .mon-cadencia-secundaria {
   margin: -4px 0 0;
   color: var(--pulso-text-faint);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .mon-cadencia-formatos {
@@ -273,16 +283,21 @@
 
 /* Sin serie, el panel de la serie ocupa la columna entera y centra el aviso;
  * la tarjeta lateral también llega al pie para que ambas columnas terminen juntas. */
-.mon-cadencia-vacio {
-  display: grid;
+/* La tarjeta sin serie: el rótulo arriba y el cuerpo al centro del resto. */
+.mon-cadencia-sin-serie {
+  display: flex;
+  flex-direction: column;
   height: 100%;
   min-height: 0;
-  place-items: center;
   padding: var(--pulso-space-6);
 }
 
+.mon-cadencia-sin-serie > :last-child {
+  margin: auto;
+}
+
 /* El cuerpo mide lo que el aviso: la lista de estados se alinea a su ancho. */
-.mon-cadencia-vacio-cuerpo {
+.mon-cadencia-sin-serie-cuerpo {
   display: flex;
   flex-direction: column;
   align-items: stretch;
@@ -291,7 +306,7 @@
   max-width: 100%;
 }
 
-.mon-cadencia-vacio-cuerpo > p {
+.mon-cadencia-sin-serie-cuerpo > p {
   text-align: center;
 }
 

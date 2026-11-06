@@ -41,7 +41,7 @@ function EstadoPrueba({ status, probando, conConteo }: { status: SurveyMonkeyTok
   return (
     <span className="pulso-xf-smi-prueba is-lista" role="status" aria-live="polite">
       <Check size={12} aria-hidden /> Conexión lista
-      {conConteo && n != null && n >= 0 ? ` · ${n} ${n === 1 ? "encuesta visible" : "encuestas visibles"}` : ""}
+      {conConteo && n != null && n >= 0 ? ` (${n} ${n === 1 ? "encuesta visible" : "encuestas visibles"})` : ""}
     </span>
   );
 }
@@ -175,9 +175,9 @@ export function SmConexionSection({
           </label>
           {tokenUi.hasUsableToken ? (
             <span className="pulso-xf-smi-token-activo">
-              {tokenState.active_profile_alias ? `Perfil ${tokenState.active_profile_alias} · ` : ""}
+              {tokenState.active_profile_alias ? `Perfil ${tokenState.active_profile_alias}, ` : ""}
               <code>{tokenUi.displayMask}</code>
-              {tokenUi.storageLabel ? ` · ${tokenUi.storageLabel}` : ""}
+              {tokenUi.storageLabel ? `, ${tokenUi.storageLabel}` : ""}
               <button
                 type="button"
                 className="pulso-xf-smi-enlace is-peligro"
@@ -249,7 +249,7 @@ export function SmConexionSection({
             <span>
               <strong>{encuestaCargada.titulo}</strong>
               <span className="pulso-xf-smi-cargada-conteo">
-                {textoSeccionesSm(encuestaCargada.secciones)} ·{" "}
+                {textoSeccionesSm(encuestaCargada.secciones)},{" "}
                 <SmConteo preguntas={encuestaCargada.preguntas} campos={encuestaCargada.campos} />
               </span>
               {reglasTraidas ? <small>{reglasTraidas} Se aplican al crear el borrador.</small> : null}

@@ -7,15 +7,28 @@
 # (recetario_m2.R:9-16, lámina 133): cada panel lleva su pregunta encima, su Likert
 # compacto debajo, un filete vertical entre columnas y UNA leyenda para la lámina.
 
-#' Encabezado de panel: la pregunta en negrita y, debajo, su base en gris
+#' Líneas que compone la pregunta de un panel de ancho `w`: una sola cuenta para dibujarla y para reservar su alto
+#'
+#' Corte por palabras sobre la tinta (`.lam_lineas_tinta`), como PowerPoint. La reserva de `.lam_panel_geo` dividía la
+#' tinta por el ancho y quedaba una línea corta en 64 de 369 preguntas de las muestras a 4 in: el gráfico arrancaba
+#' bajo la última línea de la pregunta.
 #' @keywords internal
-.lam_panel_titulo <- function(lz, x, y, w, texto, base = NULL) {
-  nl <- .lam_lineas(texto, w, 13, TRUE)
-  .lam_txt(lz, texto, x, y, w, 0.3 + 0.22 * (nl - 1), 13, .std_color("azul"), bold = TRUE, nombre = "panel:pregunta")
+.lam_panel_lineas <- function(texto, w, size = .std_pt("pregunta")) .lam_lineas_tinta(texto, w, size, TRUE)
+
+#' Encabezado de panel: la pregunta en negrita y, debajo, su base en gris
+#'
+#' @param size,align Tamaño y alineación de la pregunta. Por defecto la del recetario (13 pt a la izquierda); las láminas
+#'   mixtas y de perfil la piden a 16 pt y centrada sobre su panel, como Contabilidad (lamina_perfil_panel.R, ítem 20).
+#'   La caja crece con el tamaño (0.3 in la primera línea y 0.22 cada una más, a 13 pt).
+#' @keywords internal
+.lam_panel_titulo <- function(lz, x, y, w, texto, base = NULL, size = .std_pt("pregunta"), align = "left") {
+  nl <- .lam_panel_lineas(texto, w, size); k <- size / .std_pt("pregunta")
+  alto <- (0.3 + 0.22 * (nl - 1)) * k
+  .lam_txt(lz, texto, x, y, w, alto, size, .std_color("azul"), bold = TRUE, align = align, nombre = "panel:pregunta")
   if (!is.null(base) && nzchar(base)) {
-    .lam_txt(lz, base, x, y + 0.26 + 0.22 * (nl - 1), w, 0.26, .std_pt("n"), .std_color("texto_tenue"), nombre = "panel:base")
+    .lam_txt(lz, base, x, y + alto - 0.04, w, 0.26, .std_pt("n"), .std_color("texto_tenue"), align = align, nombre = "panel:base")
   }
-  invisible(y + 0.3 + 0.22 * (nl - 1) + (if (!is.null(base) && nzchar(base)) 0.26 else 0))
+  invisible(y + alto + (if (!is.null(base) && nzchar(base)) 0.26 else 0))
 }
 
 .lam_separador_v <- function(lz, x, y0, y1) .lam_caja(lz, x, y0, 0.008, y1 - y0, .std_color("filete"), nombre = "separador")
@@ -30,8 +43,14 @@
   verde <- .std_color("verde_top_two_box")
   wttb <- if (ttb_col) .std_geom("columna_top_two_box") else 0
   xb <- x + wlab + 0.12; wb <- w - wlab - 0.12 - wttb - (if (ttb_col) 0.1 else 0)
-  if (ttb_col) .lam_txt(lz, espec$box$rotulo, x + w - wttb - 0.1, y - 0.05, wttb + 0.2, 0.24, .std_pt("rotulo_top_two_box"), verde,
-                        bold = TRUE, align = "center", nombre = "box:rotulo")
+  if (ttb_col) {
+    # En mayúsculas, como en la escala de lámina entera; la caja crece con la tinta (más sus márgenes internos) para que
+    # «TOP TWO BOX» quepa en una línea, siempre centrada sobre la columna de cifras.
+    rot <- .lam_rotulo_box(espec$box$rotulo %||% .PPT_ROTULO_TOP_TWO_BOX)
+    wr <- max(wttb + 0.2, .lam_ancho_tinta(rot, .std_pt("rotulo_top_two_box"), TRUE) + 0.25)
+    .lam_txt(lz, rot, x + w - wttb / 2 - wr / 2, y - 0.05, wr, 0.24, .std_pt("rotulo_top_two_box"), verde,
+             bold = TRUE, align = "center", nombre = "box:rotulo")
+  }
   yy <- y + 0.3
   if (any(vapply(filas, function(i) .lam_tiene_peq(.lam_escala_seg(espec, i), wb), TRUE)) && fila - g < .std_geom("aire_cifra_chica")) {
     fila <- g + .std_geom("aire_cifra_chica")
@@ -76,9 +95,9 @@
     .lam_panel_titulo(lz, r$x, y0, r$w, preguntas[[k]])
     filas <- e$orden$aplicado
     # Recetario: g 0.46 y fila 0.9 con cuatro públicos; con más filas la fila se acorta para caber sobre la
-    # leyenda, y la barra nunca baja de 0.24 in.
+    # leyenda, y la barra nunca baja del piso de panel (`ppt.grosor.piso_panel_cm`, 0,66 cm como Contabilidad).
     disp <- (g_("leyenda_y") - 0.1) - (y0 + 0.5 + 0.3)
-    fila <- min(0.9, disp / max(1L, length(filas))); g <- max(0.24, min(0.46, fila - 0.36))
+    fila <- min(0.9, disp / max(1L, length(filas))); g <- max(.std_piso_panel_in(), min(0.46, fila - .std_geom("aire_cifra_chica")))
     .lam_likert_panel(lz, e, r$x, y0 + 0.5, r$w, filas, g = g, fila = fila)
   }
   if (length(ranuras) >= 2L) {

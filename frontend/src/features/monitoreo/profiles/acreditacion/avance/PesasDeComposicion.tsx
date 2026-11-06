@@ -1,6 +1,6 @@
 import { Plus } from "lucide-react";
-import { fmt } from "../formato";
-import { marcasDeEje } from "./avanceModelo";
+import { EstadoChip } from "../../../../../components/EstadoChip";
+import { PesasReferenciales } from "../../../core/PesasReferenciales";
 import type { VariableDeControl } from "./composicionModelo";
 
 const UNA_DECIMAL = (valor: number) => valor.toLocaleString("es-PE", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
@@ -11,58 +11,41 @@ function pp(valor: number | null) {
 }
 
 /**
- * Composición de una variable de control sin meta: por categoría, el % del
- * universo (anillo) frente al % de las efectivas (punto lleno), en la misma
- * escala, con la diferencia en puntos al lado.
+ * Composición de una referencial —variable de control sin meta o cuota
+ * declarada referencial—: su cabecera de acreditación y, dentro, las pesas
+ * comunes del núcleo (ADR 0126), con el % del universo escrito al lado.
  */
 export function PesasDeComposicion({ variable, onDefinirCuota }: { variable: VariableDeControl; onDefinirCuota: () => void }) {
-  const maximo = Math.max(1, ...variable.filas.flatMap((fila) => [fila.pctBase ?? 0, fila.pctEfectivas ?? 0]));
-  const marcas = marcasDeEje(maximo);
-  const tope = marcas.at(-1) ?? 100;
-  const x = (valor: number) => `${Math.min(100, (valor / tope) * 100)}%`;
   return (
     <section className="acr-av-panel acr-ps-tabla acr-pc-detalle" aria-label={`Composición de ${variable.actor} por ${variable.variable}`}>
       <header className="acr-av-panel-cabecera">
         <h3>
-          {`${variable.actor}, ${variable.variable}`}
-          <span className="acr-av-chip">Sin meta</span>
+          <span className="acr-pc-titulo">
+            <small className="acr-av-antetitulo">{variable.actor}</small>
+            <span>{variable.variable}</span>
+          </span>
+          <EstadoChip label="Referencial" tone="neutral" />
           <span className="acr-av-tenue" title="Mayor diferencia entre el % de las efectivas y el % del universo">{`Máx. ${pp(variable.maxDelta)}`}</span>
         </h3>
         <button type="button" className="acr-av-boton" onClick={onDefinirCuota}><Plus size={14} aria-hidden="true" /> Definir cuota en Modelo</button>
       </header>
-      <div className="acr-pr-cola-marco" data-qa-geometry-capacity="owned">
-        <div className="acr-pc-pesas" role="table" aria-label={`% del universo frente a % de las efectivas por ${variable.variable}`}>
-          <div className="acr-pc-fila is-eje" role="row">
-            <span role="columnheader">Categoría</span>
-            <span role="columnheader" className="acr-pc-escala">
-              <span className="acr-pc-eje-titulo">% del público</span>
-              {marcas.map((valor, indice) => <span key={valor} className="acr-pc-marca" style={{ left: x(valor), transform: indice === 0 ? "none" : indice === marcas.length - 1 ? "translateX(-100%)" : undefined }}>{fmt(valor)}</span>)}
-            </span>
-            <span role="columnheader" className="is-num">Diferencia</span>
-          </div>
-          {variable.filas.map((fila) => (
-            <div key={fila.categoria} className="acr-pc-fila" role="row">
-              <span role="rowheader" title={fila.categoria}>{fila.categoria}</span>
-              <span
-                role="cell"
-                className="acr-pc-pista"
-                aria-label={`${fila.pctBase == null ? "—" : `${UNA_DECIMAL(fila.pctBase)} %`} del universo, ${fila.pctEfectivas == null ? "—" : `${UNA_DECIMAL(fila.pctEfectivas)} %`} de las efectivas`}
-              >
-                {fila.pctBase != null && fila.pctEfectivas != null ? (
-                  <i className="acr-pc-tramo" style={{ left: x(Math.min(fila.pctBase, fila.pctEfectivas)), width: `calc(${x(Math.abs(fila.pctEfectivas - fila.pctBase))})` }} />
-                ) : null}
-                {fila.pctBase != null ? <i className="acr-pc-anillo" style={{ left: x(fila.pctBase) }} /> : null}
-                {fila.pctEfectivas != null ? <i className="acr-pc-punto" style={{ left: x(fila.pctEfectivas) }} /> : null}
-              </span>
-              <b role="cell" className={`is-num acr-av-num${fila.delta != null && Math.abs(fila.delta) >= 2 ? " is-marcada" : ""}`}>{pp(fila.delta)}</b>
-            </div>
-          ))}
-        </div>
+      <div className="acr-pr-cola-marco acr-pc-pesas" data-qa-geometry-capacity="owned">
+        {/* La gramática común de las referenciales (ADR 0126): la misma pieza en
+            telefónico y territorial, con el % del universo escrito al lado. */}
+        <PesasReferenciales
+          titulo={`% del universo frente a % de las efectivas por ${variable.variable}`}
+          referencia="universo"
+          grupo="acreditacion-referenciales-pesas"
+          filas={variable.filas.map((fila) => ({
+            clave: fila.categoria,
+            nombre: fila.categoria,
+            n: fila.efectivas,
+            obtenida: fila.pctEfectivas,
+            esperada: fila.pctBase,
+            celdaVacia: fila.universo > 0 && fila.efectivas <= 0,
+          }))}
+        />
       </div>
-      <ul className="acr-pc-leyenda" aria-label="Lectura">
-        <li><i className="acr-pc-anillo" aria-hidden="true" /> % del universo</li>
-        <li><i className="acr-pc-punto" aria-hidden="true" /> % de las efectivas</li>
-      </ul>
     </section>
   );
 }

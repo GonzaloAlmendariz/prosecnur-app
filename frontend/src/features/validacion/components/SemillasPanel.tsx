@@ -1,6 +1,8 @@
 import { useId, useState } from "react";
-import { Check, Lightbulb } from "lucide-react";
+import { Check } from "lucide-react";
+import { Panel } from "../../../components/Panel";
 import type { ReglaSemilla } from "../types";
+import { formatoConteo } from "../../../lib/formatoNumero";
 
 // =============================================================================
 // SemillasPanel — criterios que Prosecnur propone a partir de la base
@@ -46,25 +48,21 @@ export default function SemillasPanel({ semillas, onAdoptar, disabled }: Props) 
   }
 
   return (
-    <section
+    <Panel
+      variant="subtle"
       className="pulso-criterios-semillas"
       data-audit-ready="validacion-semillas"
+      eyebrow="Sugeridos"
       aria-labelledby={`${baseId}-titulo`}
+      title={
+        <span id={`${baseId}-titulo`}>
+          {semillas.length === 1
+            ? "Hay 1 criterio sugerido para esta base"
+            : `Hay ${formatoConteo(semillas.length)} criterios sugeridos para esta base`}
+        </span>
+      }
+      hint="Salen de mirar la base, no el formulario. Revísalos y adopta los que correspondan; mientras no los adoptes, no se guardan ni se ejecutan."
     >
-      <header className="pulso-criterios-semillas-head">
-        <Lightbulb size={14} aria-hidden="true" focusable="false" />
-        <div>
-          <h3 id={`${baseId}-titulo`}>
-            {semillas.length === 1
-              ? "Hay 1 criterio sugerido para esta base"
-              : `Hay ${semillas.length} criterios sugeridos para esta base`}
-          </h3>
-          <p>
-            Salen de mirar la base, no el formulario. Revísalos y adopta los que
-            correspondan; mientras no los adoptes, no se guardan ni se ejecutan.
-          </p>
-        </div>
-      </header>
 
       <ul className="pulso-criterios-semillas-lista">
         {semillas.map((s, i) => {
@@ -109,6 +107,6 @@ export default function SemillasPanel({ semillas, onAdoptar, disabled }: Props) 
       <p aria-live="polite" className="pulso-sr-only">
         {anuncio}
       </p>
-    </section>
+    </Panel>
   );
 }

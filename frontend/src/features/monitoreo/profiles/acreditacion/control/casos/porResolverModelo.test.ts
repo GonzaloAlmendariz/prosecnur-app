@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { MonitoreoAssistedReviewCandidate, MonitoreoInternalQueryCase, MonitoreoInternalQueryIssue } from "../../../../../../api/client";
-import { avisoSinExplicacion, filasDeCola, filtrarCola, modeloDeDecision, payloadDeDecision, tipoInicial } from "./porResolverModelo";
+import { avisoSinExplicacion, filasDeCola, filtrarCola, MAX_OPCIONES_VISIBLES, modeloDeDecision, payloadDeDecision, tipoInicial } from "./porResolverModelo";
 
 function candidato(parcial: Partial<MonitoreoAssistedReviewCandidate>): MonitoreoAssistedReviewCandidate {
   return {
@@ -108,5 +108,71 @@ describe("avisos del motor en el caso", () => {
     );
     const modelo = modeloDeDecision(caso({ assisted_review: { warnings: [aviso] } }), { seleccion: "", confirmado: false, nota: "", busqueda: "" });
     expect(modelo.avisos).toEqual(["Hay personas pendientes del universo con correo, código o nombre compatible."]);
+  });
+});
+
+describe("padrón grande: se pintan las primeras y la búsqueda alcanza al resto", () => {
+  const padron = Array.from({ length: 300 }, (_, i) => candidato({
+    candidate_id: `p-${String(i).padStart(3, "0")}`,
+    person_label: `Persona ${String(i).padStart(3, "0")}`,
+    case_key: `cód. ${i}`,
+    evidence_level: "manual",
+  }));
+  const grande = caso({ assisted_review: { candidates: [], assignment_candidates: padron } });
+  const vacio = { seleccion: "", confirmado: false, nota: "", busqueda: "" };
+
+  it("pinta MAX_OPCIONES_VISIBLES en orden y cuenta las ocultas", () => {
+    const modelo = modeloDeDecision(grande, vacio);
+    expect(modelo.opciones).toHaveLength(300);
+    expect(modelo.opcionesVisibles).toHaveLength(MAX_OPCIONES_VISIBLES);
+    expect(modelo.opcionesVisibles[0].candidate_id).toBe("p-000");
+    expect(modelo.opcionesOcultas).toBe(300 - MAX_OPCIONES_VISIBLES);
+  });
+
+  it("la persona elegida sigue visible aunque quede fuera de las primeras", () => {
+    const modelo = modeloDeDecision(grande, { ...vacio, seleccion: "p-250" });
+    expect(modelo.opcionesVisibles.at(-1)?.candidate_id).toBe("p-250");
+    expect(modelo.seleccionada?.candidate_id).toBe("p-250");
+  });
+
+  it("la búsqueda encuentra a quien no estaba entre las primeras", () => {
+    const modelo = modeloDeDecision(grande, { ...vacio, busqueda: "Persona 287" });
+    expect(modelo.opcionesVisibles.map((item) => item.candidate_id)).toEqual(["p-287"]);
+    expect(modelo.opcionesOcultas).toBe(0);
+  });
+});
+
+describe("el padrón llega aparte del caso (ya no viaja con queries_summary)", () => {
+  const padron = Array.from({ length: 300 }, (_, i) => candidato({
+    candidate_id: `p-${String(i).padStart(3, "0")}`,
+    person_label: `Persona ${String(i).padStart(3, "0")}`,
+    case_key: `cód. ${i}`,
+    evidence_level: "manual",
+  }));
+  const propio = candidato({ candidate_id: "p-123", person_label: "Persona 123", case_key: "cód. 123", evidence_level: "exact" });
+  const conEvidencia = caso({ assisted_review: { candidates: [], assignment_candidates: [propio], assignment_pool_key: "docentes" } });
+  const vacio = { seleccion: "", confirmado: false, nota: "", busqueda: "" };
+
+  it("ofrece lo mismo que cuando el padrón venía unido al caso", () => {
+    const unido = modeloDeDecision(caso({ assisted_review: { candidates: [], assignment_candidates: [propio, ...padron.filter((p) => p.candidate_id !== "p-123")] } }), vacio);
+    const aparte = modeloDeDecision(conEvidencia, vacio, padron);
+    expect(aparte.opciones.map((item) => item.candidate_id)).toEqual(unido.opciones.map((item) => item.candidate_id));
+    // La copia genérica del padrón no le quita al caso su evidencia exacta.
+    expect(aparte.opciones.find((item) => item.candidate_id === "p-123")?.evidence_level).toBe("exact");
+  });
+
+  it("la búsqueda alcanza a todo el padrón y se puede asignar a quien no estaba entre las primeras", () => {
+    const modelo = modeloDeDecision(conEvidencia, { ...vacio, busqueda: "Persona 287", seleccion: "p-287", confirmado: true, nota: "Confirmado por correo" }, padron);
+    expect(modelo.opcionesVisibles.map((item) => item.candidate_id)).toEqual(["p-287"]);
+    expect(modelo.puedeAsignar).toBe(true);
+    expect(modelo.candidatoId).toBe("p-287");
+  });
+
+  it("«lo que encontró el motor» es sólo lo del caso, no el padrón entero", () => {
+    expect(modeloDeDecision(conEvidencia, vacio, padron).evidencia.map((item) => item.candidate_id)).toEqual(["p-123"]);
+  });
+
+  it("mientras el padrón carga sólo se ofrece lo propio del caso", () => {
+    expect(modeloDeDecision(conEvidencia, vacio).opciones.map((item) => item.candidate_id)).toEqual(["p-123"]);
   });
 });

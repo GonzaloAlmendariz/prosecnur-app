@@ -54,8 +54,8 @@ export function ProcessingReleasePanel({ activeBase }: { activeBase?: string | n
         </span>
         <div>
           <span>Aprobación para informe</span>
-          <strong>{active?.actor || active?.base_label || "Base activa"} · {view.label}</strong>
-          <small>{counts.approved} de {counts.total} bases aprobadas{counts.stale ? ` · ${counts.stale} desactualizada(s)` : ""}</small>
+          <strong>{active?.actor || active?.base_label || "Base activa"}, {view.label}</strong>
+          <small>{counts.approved} de {counts.total} bases aprobadas{counts.stale ? `, ${counts.stale} desactualizada(s)` : ""}</small>
         </div>
       </div>
 

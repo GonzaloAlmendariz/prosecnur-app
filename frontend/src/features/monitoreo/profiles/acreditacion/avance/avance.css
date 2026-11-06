@@ -27,7 +27,7 @@
   height: 100%;
   min-height: 0;
   color: var(--pulso-text);
-  font-size: 13px;
+  font-size: var(--pulso-type-body-size);
   line-height: 1.35;
 }
 
@@ -45,7 +45,7 @@
 
 .acr-av-antetitulo {
   color: var(--pulso-text-faint);
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-bold);
   letter-spacing: 0.09em;
   text-transform: uppercase;
@@ -79,12 +79,12 @@
   gap: var(--pulso-space-2);
   margin: 0;
   min-width: 0;
-  font-size: 14px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-bold);
 }
 
 .acr-av-panel-cabecera h3 .acr-av-tenue {
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .acr-av-chip {
@@ -96,7 +96,7 @@
   border-radius: var(--pulso-radius-chip);
   background: var(--pulso-surface-3);
   color: var(--pulso-text-soft);
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   font-weight: var(--pulso-weight-semibold);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
@@ -114,29 +114,41 @@
   color: var(--pulso-warn-fg);
 }
 
-.acr-av-chip.is-avance {
-  border-color: color-mix(in srgb, var(--acr-efectiva) 24%, var(--pulso-surface));
-  background: color-mix(in srgb, var(--acr-efectiva) 8%, var(--pulso-surface));
-  color: var(--acr-efectiva);
-}
-
 .acr-av-boton {
   display: inline-flex;
   align-items: center;
   gap: var(--pulso-space-1);
   min-height: 30px;
   padding: 0 var(--pulso-space-3);
-  border: 1px solid var(--pulso-border);
-  border-radius: var(--pulso-radius-chip);
-  background: var(--pulso-surface);
+  /* Relieve en todo el borde, como el botón de la app (theme.css): un botón de
+   * verdad, no un texto con fondo (Gonzalo, 30/10). */
+  border: 1px solid color-mix(in srgb, var(--pulso-border) 70%, var(--pulso-border-strong));
+  border-radius: 8px;
+  background: linear-gradient(180deg, var(--pulso-surface) 0%, color-mix(in srgb, var(--pulso-surface-2) 70%, var(--pulso-surface)) 100%);
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, var(--pulso-surface) 85%, transparent),
+    0 1px 2px color-mix(in srgb, var(--pulso-text) 8%, transparent);
   color: var(--pulso-text);
   font: inherit;
-  font-size: 12.5px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-semibold);
   cursor: pointer;
+  transition: box-shadow 120ms ease, transform 120ms ease, border-color 120ms ease;
 }
 
-.acr-av-boton:hover,
+.acr-av-boton:hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--module-accent, var(--pulso-module-monitoring)) 30%, var(--pulso-border));
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, var(--pulso-surface) 90%, transparent),
+    0 3px 10px color-mix(in srgb, var(--pulso-text) 9%, transparent);
+  transform: translateY(-1px);
+}
+
+.acr-av-boton:active:not(:disabled) {
+  box-shadow: inset 0 1px 3px color-mix(in srgb, var(--pulso-text) 14%, transparent);
+  transform: translateY(0);
+}
+
 .acr-av-icono:hover {
   background: var(--pulso-surface-3);
 }
@@ -219,7 +231,7 @@
   border: 1px solid var(--pulso-border);
   border-radius: var(--pulso-radius-chip);
   color: var(--pulso-text-soft);
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   font-weight: var(--pulso-weight-semibold);
 }
 
@@ -245,17 +257,25 @@
   border-radius: 7px;
 }
 
+/* El ancho de cada tramo es su proporción (flexGrow sobre base 0). El relleno
+   lateral va solo en los tramos que llevan cifra: en uno vacío fijaba 12 px
+   mínimos y un 0.0 % se dibujaba como un tramo visible. */
 .acr-av-apilada > span {
   display: flex;
+  flex-basis: 0;
   align-items: center;
   min-width: 3px;
-  padding: 0 6px;
+  padding: 0;
   overflow: hidden;
   color: var(--pulso-surface);
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   font-weight: var(--pulso-weight-bold);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
+}
+
+.acr-av-apilada > span:not(:empty) {
+  padding: 0 6px;
 }
 
 .acr-av-apilada > .is-efectiva,
@@ -285,7 +305,7 @@
   flex-wrap: wrap;
   gap: var(--pulso-space-3);
   color: var(--pulso-text-soft);
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   font-weight: var(--pulso-weight-semibold);
 }
 
@@ -316,15 +336,21 @@
 .acr-av-eje,
 .acr-av-eje-titulo {
   fill: var(--pulso-text-faint);
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   font-variant-numeric: tabular-nums;
 }
 
 .acr-av-eje-titulo {
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-bold);
   letter-spacing: 0.06em;
   text-transform: uppercase;
+}
+
+/* La segunda línea del eje de fechas: el mes, sólo donde empieza. */
+.acr-av-eje.is-mes {
+  fill: var(--pulso-text-soft);
+  font-weight: var(--pulso-weight-bold);
 }
 
 .acr-av-eje.is-cifra {
@@ -373,7 +399,7 @@
 .acr-av-meta-texto,
 .acr-av-hito-texto {
   fill: var(--acr-meta);
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   font-weight: var(--pulso-weight-bold);
   font-variant-numeric: tabular-nums;
 }
@@ -384,13 +410,27 @@
   stroke-width: 2;
 }
 
+/* Proyección al ritmo de la última semana: punteada y en el tono de la serie,
+ * para no confundirse con lo ya ocurrido ni con la meta. */
+.acr-av-proyeccion {
+  stroke: var(--acr-efectiva);
+  stroke-width: 1.5;
+  stroke-dasharray: 2 4;
+  stroke-linecap: round;
+  opacity: 0.7;
+}
+
+.acr-av-hito.is-proyectado {
+  stroke-dasharray: 2 2;
+}
+
 .acr-av-final {
   fill: var(--acr-efectiva);
 }
 
 .acr-av-final-texto {
   fill: var(--acr-efectiva);
-  font-size: 12px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-bold);
   font-variant-numeric: tabular-nums;
 }
@@ -473,7 +513,7 @@
   white-space: nowrap;
 }
 
-.acr-res-kpi-linea > .acr-av-chip {
+.acr-res-kpi-linea > .pulso-estado-chip {
   flex: none;
 }
 
@@ -486,7 +526,7 @@
 
 .acr-res-kpi-meta {
   color: var(--pulso-text-soft);
-  font-size: 15px;
+  font-size: var(--pulso-type-title-size);
   font-weight: var(--pulso-weight-semibold);
 }
 
@@ -506,7 +546,7 @@
   display: inline-flex;
   align-items: center;
   color: var(--pulso-text-soft);
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   font-weight: var(--pulso-weight-semibold);
   white-space: nowrap;
 }
@@ -516,7 +556,7 @@
 }
 
 .acr-res-kpi b {
-  font-size: 18px;
+  font-size: var(--pulso-type-kpi-size);
   font-weight: var(--pulso-weight-bold);
 }
 
@@ -555,7 +595,7 @@
 }
 
 .acr-av-universo-leyenda b {
-  font-size: 15px;
+  font-size: var(--pulso-type-title-size);
 }
 
 .acr-res-ultimos {
@@ -578,11 +618,11 @@
 }
 
 .acr-res-ultimos-cifras b {
-  font-size: 15px;
+  font-size: var(--pulso-type-title-size);
 }
 
 .acr-res-ultimos-cifras .acr-av-tenue {
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .acr-res-embudo {
@@ -613,14 +653,12 @@
   flex: none;
   min-height: 0;
   overflow: hidden;
+  /* Sin franja lateral (Gonzalo, 30/10: «este resaltado de la izquierda no me
+   * gusta»): el estado lo dice el chip «Faltan N» / «Cumple». */
   border: 1px solid color-mix(in srgb, var(--pulso-border) 80%, var(--pulso-surface));
-  border-left: 3px solid var(--pulso-border);
   border-radius: var(--pulso-radius);
   background: var(--pulso-surface);
 }
-
-.acr-res-publico.is-falta { border-left-color: var(--pulso-warn-fg); }
-.acr-res-publico.is-cumple { border-left-color: var(--pulso-success-fg); }
 
 .acr-res-publico .acr-av-pista > i {
   background: var(--publico, var(--acr-efectiva));
@@ -656,6 +694,8 @@
   font: inherit;
   text-align: left;
   cursor: pointer;
+  box-shadow: none; /* sin la sombra del button global */
+  transform: none;
 }
 
 .acr-res[data-density="comoda"] .acr-res-publico {
@@ -668,11 +708,11 @@
 }
 
 .acr-res[data-density="comoda"] .acr-res-publico-nombre {
-  font-size: 13.5px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .acr-res[data-density="comoda"] .acr-res-publico-cifra b {
-  font-size: 16px;
+  font-size: var(--pulso-type-title-size);
 }
 
 .acr-res[data-density="comoda"] .acr-res-publico .acr-av-pista {
@@ -680,7 +720,7 @@
 }
 
 .acr-res[data-density="compacta"] .acr-res-publico-nombre {
-  font-size: 12.5px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .acr-res-publico-boton:hover {
@@ -696,7 +736,7 @@
 
 .acr-res-publico-nombre {
   min-width: 0;
-  font-size: 13px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .acr-res-publico-cifra {
@@ -714,7 +754,7 @@
 
 .acr-res-publico-pie {
   display: block;
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   font-variant-numeric: tabular-nums;
 }
 
@@ -766,6 +806,8 @@
   font: inherit;
   text-align: left;
   cursor: pointer;
+  box-shadow: none; /* sin la sombra del button global */
+  transform: none;
 }
 
 .acr-res-resolver-lista b {
@@ -840,15 +882,23 @@
   min-height: 0;
 }
 
+/* Al soltar el scroll la fila queda entera bajo la cabecera pegajosa, como en
+ * las tablas de Control telefónico (detector «cabecera tapa fila», QA 30/10). */
 .acr-pub-tabla-marco {
   min-height: 0;
   overflow: auto;
+  scroll-padding-top: 34px;
+  scroll-snap-type: y proximity;
+}
+
+.acr-pub-tabla-marco tbody tr {
+  scroll-snap-align: start;
 }
 
 .acr-pub-tabla {
   width: 100%;
   border-collapse: collapse;
-  font-size: 13px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .acr-pub-tabla th,
@@ -865,7 +915,7 @@
   z-index: 1;
   background: var(--pulso-surface);
   color: var(--pulso-text-faint);
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-bold);
   letter-spacing: 0.07em;
   text-transform: uppercase;
@@ -909,6 +959,8 @@
   font-weight: var(--pulso-weight-bold);
   text-align: left;
   cursor: pointer;
+  box-shadow: none; /* sin la sombra del button global */
+  transform: none;
 }
 
 .acr-pub-avance {
@@ -945,7 +997,7 @@
   flex: 0 0 auto;
   min-height: 44px;
   display: grid;
-  grid-template-columns: 200px minmax(0, 1fr) 60px;
+  grid-template-columns: 200px minmax(0, 1fr) 128px;
   align-items: center;
   gap: var(--pulso-space-3);
 }
@@ -969,7 +1021,7 @@
 
 .acr-pub-panel .acr-av-panel-cabecera h3 {
   align-items: center;
-  font-size: 15px;
+  font-size: var(--pulso-type-title-size);
 }
 
 .acr-pub-panel-cuerpo {
@@ -1026,6 +1078,13 @@
 
 /* ------------------------------------------------------------- Ventanas */
 
+/* A 1366 la tabla de Por público con el panel abierto no alcanza para la
+ * columna de 14 días (QA 30/10: «columnas ocultas» a 1366x768); a 1440 cabe.
+ * Se esconde hasta 1400 px; la serie está en el panel del público. */
+@media (max-width: 1400px) {
+  .acr-pub-col-ultimos { display: none; }
+}
+
 @media (max-width: 1365px) {
   .acr-res { grid-template-columns: minmax(0, 1fr) 360px; }
   .acr-pub { grid-template-columns: minmax(0, 1fr) 340px; }
@@ -1060,7 +1119,7 @@
   .acr-res-kpi-principal { grid-column: 1 / -1; }
   .acr-res-kpis > .acr-res-kpi:nth-child(2) { border-left: 0; padding-left: 0; }
   .acr-pub-col-ultimos { display: none; }
-  .acr-pub-estados-lista > li { grid-template-columns: 160px minmax(0, 1fr) 56px; }
+  .acr-pub-estados-lista > li { grid-template-columns: 160px minmax(0, 1fr) 116px; }
 }
 
 /* Dentro del Resumen el embudo es una tira de tres pasos también a 1024. */
@@ -1121,6 +1180,10 @@
   padding: var(--pulso-space-2) var(--pulso-space-4) 0;
 }
 
+/* Un público se pinta con su color de toda la app (paletaPublicos.css); la
+ * escala `is-capa-N` queda para «Otros» y para quien no pase la paleta. */
+.acr-av-capa.con-publico { fill: var(--publico); }
+.acr-av-capa-muestra.con-publico { background: var(--publico); }
 .acr-av-capa.is-capa-1, .acr-av-capa-muestra.is-capa-1 { fill: var(--acr-capa-1); background: var(--acr-capa-1); }
 .acr-av-capa.is-capa-2, .acr-av-capa-muestra.is-capa-2 { fill: var(--acr-capa-2); background: var(--acr-capa-2); }
 .acr-av-capa.is-capa-3, .acr-av-capa-muestra.is-capa-3 { fill: var(--acr-capa-3); background: var(--acr-capa-3); }
@@ -1135,7 +1198,7 @@
 
 .acr-av-fase-texto {
   fill: var(--pulso-text);
-  font-size: 10.5px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-semibold);
 }
 
@@ -1146,7 +1209,7 @@
   margin: 0;
   padding: var(--pulso-space-2) var(--pulso-space-4) var(--pulso-space-4);
   list-style: none;
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .acr-ri-leyenda li {
@@ -1187,12 +1250,12 @@
 
 .acr-ri-cifras dt {
   color: var(--pulso-text-soft);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .acr-ri-cifras dd {
   margin: 2px 0 0;
-  font-size: 16px;
+  font-size: var(--pulso-type-title-size);
   font-weight: var(--pulso-weight-bold);
 }
 
@@ -1269,22 +1332,55 @@ ul.acr-sa-puntos:not(.acr-sa-cuerpo) {
   gap: var(--pulso-space-3);
   min-height: 32px;
   padding: 0 var(--pulso-space-3);
-  border-left: 3px solid var(--pulso-border);
-  border-radius: 4px;
+  border-radius: 6px;
   background: var(--pulso-surface-3);
 }
 
-.acr-sa-puntos li.is-ok {
-  border-left-color: var(--pulso-success-fg);
+/* El estado en un punto junto al rótulo, no en una franja lateral (K2). */
+.acr-sa-puntos li > span::before {
+  content: "";
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  margin-right: 6px;
+  border-radius: 50%;
+  background: var(--acr-sa-estado, var(--pulso-border-strong));
+  vertical-align: 1px;
 }
 
-.acr-sa-puntos li.is-pendiente {
-  border-left-color: var(--pulso-warn-fg);
-}
+.acr-sa-puntos li.is-ok { --acr-sa-estado: var(--pulso-success-fg); }
+.acr-sa-puntos li.is-pendiente { --acr-sa-estado: var(--pulso-warn-fg); }
 
 .acr-sa-puntos b {
   font-variant-numeric: tabular-nums;
   text-align: right;
+}
+
+/* El cierre como franja: cada condición en su columna, rótulo arriba y valor debajo. */
+.acr-sa-puntos.is-franja {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: var(--pulso-space-2);
+  padding: 0;
+}
+
+.acr-sa-puntos.is-franja li {
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 2px;
+  min-height: 54px;
+  padding: var(--pulso-space-2) var(--pulso-space-3);
+}
+
+.acr-sa-puntos.is-franja li > span {
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-body-size);
+}
+
+.acr-sa-puntos.is-franja b {
+  font-size: var(--pulso-type-title-size);
+  text-align: left;
 }
 
 .acr-sa-dialogo {
@@ -1377,28 +1473,7 @@ ul.acr-sa-puntos:not(.acr-sa-cuerpo) {
 }
 
 .acr-pc-detalle-cuota .mon-cuotas-detalle-titulo h3 {
-  font-size: 16px;
-}
-
-.acr-pc-leyenda {
-  display: flex;
-  gap: var(--pulso-space-4);
-  margin: 0;
-  padding: var(--pulso-space-2) var(--pulso-space-4) 0;
-  list-style: none;
-  font-size: 12px;
-}
-
-.acr-pc-leyenda li {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.acr-pc-leyenda .acr-pc-anillo,
-.acr-pc-leyenda .acr-pc-punto {
-  position: static;
-  transform: none;
+  font-size: var(--pulso-type-title-size);
 }
 
 .acr-pc-pesas {
@@ -1413,10 +1488,6 @@ ul.acr-sa-puntos:not(.acr-sa-cuerpo) {
 .acr-pc-derecha > .acr-pc-detalle {
   flex: 0 1 auto;
   min-height: 0;
-}
-
-.acr-pc-detalle > .acr-pc-leyenda {
-  padding: var(--pulso-space-2) var(--pulso-space-4) var(--pulso-space-4);
 }
 
 .acr-pc-fila {
@@ -1434,63 +1505,13 @@ ul.acr-sa-puntos:not(.acr-sa-cuerpo) {
 .acr-pc-fila.is-eje {
   min-height: 34px;
   color: var(--pulso-text-faint);
-  font-size: 11px;
-}
-
-.acr-pc-escala {
-  position: relative;
-  height: 28px;
-}
-
-/* Centrado sobre la escala: en la esquina izquierda quedaba montado sobre el «0». */
-.acr-pc-eje-titulo {
-  position: absolute;
-  top: 0;
-  left: 50%;
-  transform: translateX(-50%);
-  font-weight: var(--pulso-weight-bold);
-  white-space: nowrap;
-}
-
-.acr-pc-marca {
-  position: absolute;
-  bottom: 0;
-  transform: translateX(-50%);
-  white-space: nowrap;
-  font-variant-numeric: tabular-nums;
+  font-size: var(--pulso-type-caption-size);
 }
 
 .acr-pc-pista {
   position: relative;
   height: 14px;
   border-bottom: 1px solid var(--pulso-border);
-}
-
-.acr-pc-tramo {
-  position: absolute;
-  top: 6px;
-  height: 2px;
-  background: var(--acr-serie-suave);
-}
-
-.acr-pc-anillo,
-.acr-pc-punto {
-  position: absolute;
-  top: 1px;
-  display: inline-block;
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  transform: translateX(-50%);
-}
-
-.acr-pc-anillo {
-  border: 2px solid var(--pulso-accent-steel);
-  background: var(--pulso-surface);
-}
-
-.acr-pc-punto {
-  background: var(--acr-efectiva);
 }
 
 .acr-pc-fila b.is-marcada {
@@ -1568,8 +1589,8 @@ ul.acr-sa-puntos:not(.acr-sa-cuerpo) {
   max-width: 230px;
 }
 
-/* Una celda de fila que es flex (Personas) deja de ser celda: el alto fijo la
- * recortaría con nombres de dos líneas. */
+/* El nombre y la barra de Personas se apilan dentro de la celda: con alto fijo
+ * se recortarían los nombres de dos líneas. */
 .acr-ps-estados tbody th[scope="row"] {
   height: auto;
   min-height: 42px;
@@ -1611,14 +1632,38 @@ ul.acr-sa-puntos:not(.acr-sa-cuerpo) {
   border-bottom: 0;
 }
 
+/* Filas de cifras planas (K4, 30/10): sin una caja por cifra dentro de la tarjeta;
+ * una línea fina entre ellas, como Metas y Correo. */
+.acr-cl-cifras,
+.acr-pc-franja {
+  column-gap: 0;
+}
+
 .acr-cl-cifras > .acr-res-kpi,
 .acr-pc-franja > .acr-res-kpi,
-.acr-ri-cifras > div,
-.acr-co-cifras > div {
-  padding: var(--pulso-space-3) var(--pulso-space-4);
-  border: 1px solid color-mix(in srgb, var(--pulso-border) 70%, var(--pulso-surface));
-  border-radius: var(--pulso-radius-card);
-  background: var(--pulso-surface-2);
+.acr-ri-cifras > div {
+  padding: 4px var(--pulso-space-4);
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+.acr-cl-cifras > .acr-res-kpi + .acr-res-kpi,
+.acr-pc-franja > .acr-res-kpi + .acr-res-kpi,
+.acr-ri-cifras > div + div {
+  border-left: 1px solid color-mix(in srgb, var(--pulso-border) 60%, var(--pulso-surface));
+}
+
+.acr-cl-cifras > .acr-res-kpi:first-child,
+.acr-pc-franja > .acr-res-kpi:first-child {
+  padding-left: 0;
+}
+
+@media (max-width: 1100px) {
+  .acr-pc-franja > .acr-res-kpi:nth-child(odd) {
+    padding-left: 0;
+    border-left: 0;
+  }
 }
 
 /* Leyendas (regla de Gonzalo para los tres modos, 2026-10-24): rótulos cortos,
@@ -1628,8 +1673,7 @@ ul.acr-sa-puntos:not(.acr-sa-cuerpo) {
   padding: var(--pulso-space-2) var(--pulso-space-4) var(--pulso-space-4);
 }
 
-.acr-ri-leyenda,
-.acr-pc-leyenda {
+.acr-ri-leyenda {
   justify-content: center;
 }
 
@@ -1643,17 +1687,14 @@ ul.acr-sa-puntos:not(.acr-sa-cuerpo) {
   box-shadow: var(--pulso-shadow-soft);
 }
 
-.is-acreditacion-profile .acr-sa .mon-outputs-readiness {
+/* Clase repetida a propósito: gana a la base `.mon-outputs-workbench--ficha …is-listo`
+ * (que pinta el borde izquierdo) sin depender del orden de carga de los CSS. */
+.is-acreditacion-profile .acr-sa .mon-outputs-readiness.mon-outputs-readiness {
+  /* El estado lo dice su chip («Listo», «Bloqueado»…), sin franja lateral (K2). */
   border: 1px solid color-mix(in srgb, var(--pulso-border) 80%, var(--pulso-surface));
-  border-left: 4px solid var(--pulso-state-unchecked-border);
   background: var(--pulso-surface);
   box-shadow: var(--pulso-shadow-soft);
 }
-
-.is-acreditacion-profile .acr-sa .mon-outputs-readiness.is-listo { border-left-color: var(--pulso-state-ready-fg); }
-.is-acreditacion-profile .acr-sa .mon-outputs-readiness.is-bloqueado { border-left-color: var(--pulso-state-blocked-fg); }
-.is-acreditacion-profile .acr-sa .mon-outputs-readiness.is-parcial { border-left-color: var(--pulso-state-partial-fg); }
-.is-acreditacion-profile .acr-sa .mon-outputs-readiness.is-sin-configurar { border-left-color: var(--pulso-state-unset-fg); }
 
 /* Avance › Por cuota › Variables de control (ronda 4): la tabla de la
  * composición en su tarjeta, con una fila de grupo por público y variable, y
@@ -1680,7 +1721,7 @@ ul.acr-sa-puntos:not(.acr-sa-cuerpo) {
   padding-top: var(--pulso-space-3);
   background: var(--pulso-surface-2);
   color: var(--pulso-text);
-  font-size: 12.5px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-bold);
 }
 
@@ -1736,7 +1777,7 @@ ul.acr-sa-puntos:not(.acr-sa-cuerpo) {
 
 .acr-vc-pct {
   color: var(--pulso-text-soft);
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   text-align: right;
 }
 
@@ -1759,4 +1800,350 @@ ul.acr-sa-puntos:not(.acr-sa-cuerpo) {
 
 .acr-vc-reporte .mon-gs-report-body {
   padding: var(--pulso-space-3) var(--pulso-space-4) var(--pulso-space-4);
+}
+
+/* Por público con pocos públicos: cabecera estática (ver FILAS_SIN_CABECERA_FIJA). */
+.acr-pub-tabla.is-corta thead th {
+  position: static;
+}
+
+/* Salidas: el corte y el antetítulo ya los dice la franja de cierre de arriba;
+ * el bloque de entregables no los repite. */
+.is-acreditacion-profile .acr-sa .mon-outputs-workbench--ficha .mon-outputs-workbench__antetitulo,
+.is-acreditacion-profile .acr-sa .mon-outputs-workbench--ficha .mon-outputs-workbench__head small {
+  display: none;
+}
+
+/* Avance › Ritmo: el selector de gráfico y «Por fuente y recopilador» juntos, a
+ * la misma altura y alineados al borde derecho de la cabecera (E4, 30/10). */
+.acr-ri-acciones {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--pulso-space-2);
+  margin-left: auto;
+}
+
+/* «Diario y acumulado»: barras del día en el tono de la serie; el acumulado y
+ * su eje en el acento del módulo, para leer qué eje es de quién. */
+.acr-av-linea.is-acumulado {
+  stroke: var(--pulso-module-monitoring);
+  stroke-width: 2.25;
+  fill: none;
+}
+
+.acr-av-final.is-acumulado {
+  fill: var(--pulso-surface);
+  stroke: var(--pulso-module-monitoring);
+  stroke-width: 2;
+}
+
+.acr-av-eje.is-acumulado,
+.acr-av-eje-titulo.is-acumulado {
+  fill: var(--pulso-module-monitoring);
+}
+
+.acr-av-capa-muestra.is-dia { background: var(--acr-efectiva); }
+.acr-av-capa-muestra.is-acumulado { background: var(--pulso-module-monitoring); border-radius: 999px; height: 3px; }
+.acr-av-capa-muestra.is-meta { background: transparent; border-top: 2px dashed var(--acr-meta); height: 0; }
+
+/* La cifra del acumulado puede caer sobre una barra: halo del color del fondo. */
+.acr-av-final-texto.is-acumulado {
+  fill: var(--pulso-module-monitoring);
+  paint-order: stroke;
+  stroke: var(--pulso-surface);
+  stroke-width: 4px;
+  stroke-linejoin: round;
+}
+
+/* Pulso del campo como lista de datos: rótulo a la izquierda, cifra a la derecha. */
+.acr-ri-datos {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+}
+
+.acr-ri-datos > div {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--pulso-space-3);
+  padding: 8px 0;
+}
+
+.acr-ri-datos > div + div {
+  border-top: 1px solid var(--pulso-surface-3);
+}
+
+.acr-ri-datos dt {
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-body-size);
+}
+
+.acr-ri-datos dd {
+  margin: 0;
+  font-size: var(--pulso-type-title-size);
+  font-weight: var(--pulso-weight-bold);
+  text-align: right;
+}
+
+.acr-ri-comun {
+  margin: 4px 0 0;
+  font-size: var(--pulso-type-subtitle-size);
+  font-weight: var(--pulso-weight-semibold);
+}
+
+/* Panel del público: los casos agrupados, rótulo a la izquierda y cuántos a la
+ * derecha; los que esperan decisión con su punto de aviso (E1). */
+.acr-pub-casos {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-2);
+  margin: 0;
+}
+
+.acr-pub-casos-grupo dt {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 2px;
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.acr-pub-casos-grupo dd {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--pulso-space-2);
+  margin: 0;
+  padding: 5px 0;
+  font-size: var(--pulso-type-body-size);
+}
+
+.acr-pub-casos-grupo dd + dd {
+  border-top: 1px solid var(--pulso-surface-3);
+}
+
+.acr-pub-casos-grupo.is-espera dd > span::before {
+  content: "";
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  margin-right: 6px;
+  border-radius: 50%;
+  background: var(--pulso-warn-fg);
+  vertical-align: 1px;
+}
+
+/* La curva del público, a un alto acotado: estirada al panel quedaba casi vacía. */
+.acr-pub-acumulado .acr-av-grafico {
+  height: 240px;
+  min-height: 0;
+  flex: none;
+}
+
+.acr-pub-panel-cuerpo .acr-pub-acumulado {
+  min-height: 0;
+  flex: none;
+}
+
+/* Un solo canal no lleva pista: la cifra se alinea a la derecha como las demás. */
+.acr-pub-embudo-fila.is-sin-pista {
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+/* Por cuota: cada cuota con el punto de su público y una pista de avance (E2). */
+.acr-pc-fila .acr-in-fuente-nombre {
+  gap: 4px;
+}
+
+.acr-pc-pista {
+  display: block;
+  width: 100%;
+  height: 4px;
+}
+
+.acr-pc-pista > i {
+  background: var(--publico, var(--acr-efectiva));
+}
+
+/* «Cómo respondió cada público»: a la derecha cuántos respondieron y su parte del universo. */
+.acr-pub-estados-pct {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  line-height: 1.2;
+}
+
+.acr-pub-estados-pct small {
+  font-size: var(--pulso-type-caption-size);
+  white-space: nowrap;
+}
+
+/* Ritmo: la leyenda de públicos es la botonera que aísla uno (Gonzalo, 30/10). Píldoras
+ * planas con el relieve sólo en la elegida; nada de botón dentro de botón. */
+.acr-ri-filtro {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--pulso-space-2);
+  padding: var(--pulso-space-2) var(--pulso-space-4) var(--pulso-space-4);
+}
+
+.acr-ri-filtro-boton {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 30px;
+  padding: 4px 12px;
+  border: 1px solid color-mix(in srgb, var(--pulso-border) 70%, var(--pulso-surface));
+  border-radius: 999px;
+  background: var(--pulso-surface);
+  box-shadow: none;
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-body-size);
+  font-weight: var(--pulso-weight-medium);
+  transform: none;
+  white-space: nowrap;
+}
+
+.acr-ri-filtro-boton:hover {
+  border-color: var(--pulso-border);
+  background: var(--pulso-surface-2);
+  box-shadow: none;
+  color: var(--pulso-text);
+  transform: none;
+}
+
+.acr-ri-filtro-boton.is-activo {
+  border-color: color-mix(in srgb, var(--pulso-module-monitoring) 45%, var(--pulso-surface));
+  background: color-mix(in srgb, var(--pulso-module-monitoring) 9%, var(--pulso-surface));
+  box-shadow: inset 0 1px 2px color-mix(in srgb, var(--pulso-text) 10%, transparent);
+  color: var(--pulso-text);
+}
+
+.acr-ri-filtro-boton:focus-visible {
+  outline: 2px solid var(--pulso-module-monitoring);
+  outline-offset: 2px;
+}
+
+/* Variables de control: cada tabla se abre con su público (color y nombre en pequeño)
+ * y la variable como título. */
+.acr-vc-grupo-nombre {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.acr-vc-grupo-publico {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--publico-texto);
+  font-size: var(--pulso-type-eyebrow-size);
+  font-weight: var(--pulso-weight-semibold);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.acr-vc-grupo-nombre strong {
+  font-size: var(--pulso-type-body-size);
+}
+
+/* Variables de control › Tablas del reporte (30/10): las pestañas son el mismo
+ * control con relieve del resto del perfil, a la medida de su contenido; nada de
+ * una barra roja de ancho completo (botón dentro de botón). Conservan su tablist. */
+.mon-profile-canonical-shell .acr-vc-reporte .mon-gs-report-tabs.pulso-gliding-tab-list {
+  /* El indicador deslizante pinta la elegida: tono suave del módulo y texto oscuro. */
+  --pulso-gliding-indicator-bg: color-mix(in srgb, var(--pulso-module-monitoring) 11%, var(--pulso-surface-2));
+  --pulso-gliding-indicator-border: transparent;
+  --pulso-gliding-indicator-shadow: inset 0 1px 3px color-mix(in srgb, var(--pulso-text) 14%, transparent);
+  --pulso-gliding-active-color: color-mix(in srgb, var(--pulso-module-monitoring) 72%, var(--pulso-text));
+  display: inline-flex;
+  align-self: flex-start;
+  width: auto;
+  max-width: calc(100% - 2 * var(--pulso-space-4));
+  gap: 0;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--pulso-border) 70%, var(--pulso-border-strong));
+  border-radius: 8px;
+  background: linear-gradient(180deg, var(--pulso-surface) 0%, color-mix(in srgb, var(--pulso-surface-2) 70%, var(--pulso-surface)) 100%);
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, var(--pulso-surface) 85%, transparent),
+    0 1px 2px color-mix(in srgb, var(--pulso-text) 8%, transparent);
+}
+
+.mon-profile-canonical-shell .acr-vc-reporte .mon-gs-report-tabs button {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 6px;
+  min-height: 30px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-subtitle-size);
+  font-weight: var(--pulso-weight-semibold);
+  transform: none;
+}
+
+.mon-profile-canonical-shell .acr-vc-reporte .mon-gs-report-tabs button + button {
+  border-left: 1px solid var(--pulso-border);
+}
+
+/* El activo también reacciona al mouse (contrato de estados de navegación).
+   Velo gris en los demás. El activo no puede pintar su propio fondo: en las
+   listas horizontales theme.css lo fuerza transparente (!important) porque lo
+   pinta el indicador deslizante. Así que es el indicador el que sube un punto
+   de tinte mientras el activo tiene el mouse encima. */
+.mon-profile-canonical-shell .acr-vc-reporte .mon-gs-report-tabs button:hover {
+  background: color-mix(in srgb, var(--pulso-surface-3) 70%, transparent);
+  color: var(--pulso-text);
+}
+
+.mon-profile-canonical-shell .acr-vc-reporte .mon-gs-report-tabs.pulso-gliding-tab-list:has(button.is-active:hover) {
+  --pulso-gliding-indicator-bg: color-mix(in srgb, var(--pulso-module-monitoring) 16%, var(--pulso-surface-2));
+}
+
+.mon-profile-canonical-shell .acr-vc-reporte .mon-gs-report-tabs button:focus-visible {
+  outline: 2px solid var(--pulso-brand-navy);
+  outline-offset: -2px;
+}
+
+/* Una tabla debajo de otra, a todo el ancho: lado a lado se cortaba la de la izquierda. */
+.mon-profile-canonical-shell .acr-vc-reporte .mon-gs-report-blocks {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--pulso-space-3);
+}
+
+/* Por cuota: el público en su línea (color y nombre en pequeño) y la variable debajo;
+ * nunca «público, variable» (Gonzalo, 30/10). */
+.acr-pc-publico {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--publico-texto);
+  font-size: var(--pulso-type-caption-size);
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.acr-pc-variable {
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.acr-pc-titulo {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+/* ADR 0126: las pesas de composición son la pieza común del núcleo
+ * (core/PesasReferenciales); aquí sólo se les da la serie de efectivas del modo. */
+.acr-pc-detalle {
+  --mon-pesas-obtenida: var(--acr-efectiva);
 }

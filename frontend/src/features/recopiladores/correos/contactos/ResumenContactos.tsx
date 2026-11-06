@@ -1,4 +1,4 @@
-// Las cifras de la lista, arriba del tablero. Cinco tarjetas pares: mismo
+// Las cifras de la lista, arriba del tablero. Cuatro tarjetas pares: mismo
 // marco pase lo que pase con sus cifras (C2, grupo `equal`).
 
 import type { ResumenDeContactos } from "../../../../api/mailContactos";
@@ -6,11 +6,10 @@ import { tarjetasDeResumen } from "./modeloContactos";
 
 type Props = {
   resumen: ResumenDeContactos;
-  respuestasLeidas: boolean;
 };
 
-export function ResumenContactos({ resumen, respuestasLeidas }: Props) {
-  const tarjetas = tarjetasDeResumen(resumen, respuestasLeidas);
+export function ResumenContactos({ resumen }: Props) {
+  const tarjetas = tarjetasDeResumen(resumen);
   return (
     <ul
       className="rec-contactos-resumen"

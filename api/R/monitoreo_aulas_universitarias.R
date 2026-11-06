@@ -1410,7 +1410,7 @@ monitoreo_aulas_normalize_plan <- function(plan = list()) {
 }
 
 monitoreo_aulas_from_calc <- function(estudio = NULL, selection = NULL, frame = NULL, config = list(),
-                                      referencia_asistencia = NULL) {
+                                      referencia_asistencia = NULL, representatividad = NULL) {
   sel <- selection$selection %||% selection
   plan <- monitoreo_aulas_normalize_plan(sel)
   cfg <- monitoreo_aulas_normalize_config(config)
@@ -1468,6 +1468,17 @@ monitoreo_aulas_from_calc <- function(estudio = NULL, selection = NULL, frame = 
     # qué eje son esas filas. Un `design_targets` viejo no lo trae y se lee como
     # facultad, que es lo que es.
     metas$eje <- monitoreo_aulas_eje_declaracion(monitoreo_aulas_eje(cfg))
+    # ADR 0123 Q1: universo y variables que declaró Cálculo viajan en la foto;
+    # Monitoreo los lee de aquí, no del estado vivo de Cálculo.
+    # Sólo si se declaró sobre este mismo sorteo (o antes de que la declaración
+    # guardara el suyo): una declaración de otro sorteo no viaja bajo este sello.
+    sorteo_decl <- .monitoreo_scalar((representatividad %||% list())$selection_run_id, "")
+    mismo_sorteo <- !nzchar(sorteo_decl) || identical(sorteo_decl, .monitoreo_scalar(cfg$selection_run_id, ""))
+    if (mismo_sorteo && is.list(representatividad) && is.list(representatividad$universo) && length(representatividad$variables)) {
+      metas$representatividad <- list(schema = "representatividad_v1", universo = representatividad$universo,
+                                      variables = representatividad$variables,
+                                      declarado_en = .monitoreo_scalar(representatividad$declarado_en, ""))
+    }
     cfg$design_targets <- metas
     cfg$plan <- .monitoreo_aulas_aplicar_meta_tau(cfg$plan, metas)
   }
@@ -1574,7 +1585,8 @@ monitoreo_aulas_from_calc <- function(estudio = NULL, selection = NULL, frame = 
   tapply(fecha[ok], aulas[ok], min, simplify = TRUE)
 }
 
-.monitoreo_aulas_course_status <- function(plan_df, responses, cfg, valid_response, response_classroom) {
+.monitoreo_aulas_course_status <- function(plan_df, responses, cfg, valid_response, response_classroom,
+                                          hoy = Sys.Date(), corte = NULL) {
   if (!is.data.frame(plan_df) || !nrow(plan_df)) return(list())
   total_counts <- .monitoreo_aulas_named_counts(response_classroom)
   valid_counts <- .monitoreo_aulas_named_counts(response_classroom, valid_response)
@@ -1894,7 +1906,7 @@ monitoreo_aulas_from_calc <- function(estudio = NULL, selection = NULL, frame = 
   # Aplicadas (Campo)» va por bloques —TITULAR, REEMPLAZO 1…11— con su propio
   # `STATUS DE APLICACION`. Se calcula sobre `out`, que ya tiene el
   # `application_state` derivado y el estado operativo cruzado con los partes.
-  attr(recortado, "rol_y_estado") <- monitoreo_aulas_rol_y_estado(out)
+  attr(recortado, "rol_y_estado") <- monitoreo_aulas_rol_y_estado(out, hoy = hoy, corte = corte)
   # **Y el mismo reparto POR FACULTAD.** Gonzalo, 2026-09-10: «el selector de
   # facultad que está en el encabezado no hace que los gráficos actualicen…
   # cuando yo selecciono una facultad, debería mostrarme sólo la de esa
@@ -1907,7 +1919,7 @@ monitoreo_aulas_from_calc <- function(estudio = NULL, selection = NULL, frame = 
   fac_cs <- trimws(as.character(out$faculty %||% rep("", nrow(out))))
   attr(recortado, "rol_y_estado_por_facultad") <- stats::setNames(
     lapply(sort(unique(fac_cs[nzchar(fac_cs)])), function(f)
-      monitoreo_aulas_rol_y_estado(out[fac_cs == f, , drop = FALSE])),
+      monitoreo_aulas_rol_y_estado(out[fac_cs == f, , drop = FALSE], hoy = hoy, corte = corte)),
     sort(unique(fac_cs[nzchar(fac_cs)]))
   )
   # **La efectividad al grano de FACULTAD x SEXO**, aqui y no fuera por la misma
@@ -2214,7 +2226,11 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
                                       # Corte de «cita vencida»: la hoja de riesgo
                                       # pasa el suyo para que conteos y fechas
                                       # hablen del mismo día.
-                                      hoy = Sys.Date()) {
+                                      hoy = Sys.Date(),
+                                      # Sellos de la última descarga de las
+                                      # fuentes: una cita posterior no se juzga
+                                      # vencida (2g).
+                                      corte = NULL) {
   cfg <- monitoreo_aulas_normalize_config(config)
   # **El plan se normaliza UNA vez, no dos.**
   #
@@ -2260,7 +2276,7 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
         plan_df, plan_df, responses, cfg,
         .monitoreo_aulas_valid_response(responses, cfg),
         .monitoreo_aulas_response_classroom(responses, cfg),
-        hoy = hoy
+        hoy = .marye_limite_de_vencida(hoy, corte)
       ),
       # Y las dos tasas por AULA tambien (C2): sin plan viaja vacio y con su
       # criterio declarado. La logica vive en monitoreo_aulas_dos_tasas.R.
@@ -2381,7 +2397,8 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
   if (!nrow(seguidas)) seguidas <- plan_df
   tracked_df <- seguidas[monitoreo_aulas_en_juego(seguidas), , drop = FALSE]
   if (!nrow(tracked_df)) tracked_df <- seguidas
-  course_status <- .monitoreo_aulas_course_status(plan_df, responses, cfg, valid_response, response_classroom)
+  course_status <- .monitoreo_aulas_course_status(plan_df, responses, cfg, valid_response, response_classroom,
+                                                  hoy = hoy, corte = corte)
   # Los TARGETS sobre `tracked_df`, no sobre el plan entero: la cuota cuenta las
   # PERSONAS que hay que recoger, y las del banco no se van a recoger —son
   # respaldo del estrato—. Con el plan entero, la tarjeta «Cuota por recoger»
@@ -2440,7 +2457,8 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
   # mismo numerador con el que se mide el cumplimiento.
   efectividad_seguimiento <- .monitoreo_aulas_efectividad_seguimiento(
     plan_df, tracked_df, responses, cfg, valid_response, response_classroom,
-    avance_cuota = avance_cuota, hoy = hoy
+    # `hoy` aquí sólo decide qué cita está vencida: se juzga al corte (2g).
+    avance_cuota = avance_cuota, hoy = .marye_limite_de_vencida(hoy, corte)
   )
 
   # **Los refuerzos y el techo** (dictado 2026-09-18), calculados UNA vez.
@@ -2894,7 +2912,7 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
   validation <- data.frame(
     check = c("anonymous_responses", "personal_identifiers", "unmapped_valid_responses", "duplicate_responses", "effective_representativity", "sex_faculty_quota", "field_report_reconciliation", "book_sheets_cross_check", "unnamed_control_columns", "unknown_sample_status", "valid_response_criterion", "shared_collector_link"),
     status = c(
-      if (isTRUE(cfg$anonymous_responses)) "ok" else "review",
+      monitoreo_aulas_control_anonimato(cfg)$status,
       identificadores$status,
       monitoreo_aulas_estado_control(length(huerfanas) > 0L, any(huerfanas), "warning"),
       # **«No se puede comprobar» NO es «correcto».**
@@ -2967,7 +2985,7 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
       monitoreo_aulas_estado_control(enlaces$comprobable, enlaces$enlaces > 0L, "warning")
     ),
     detail = c(
-      "El tablero agrega por curso-horario, recopilador y enlace.",
+      monitoreo_aulas_control_anonimato(cfg)$detail,
       identificadores$detail,
       if (any(huerfanas)) {
         # La causa, no sólo el hecho: sin recopilador y con uno ajeno son dos
@@ -3117,7 +3135,7 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
   # pueda compartir su eje de dias: dos series temporales del mismo operativo, una
   # encima de la otra, con calendarios distintos, no se pueden comparar.
   ritmo_global <- monitoreo_aulas_ritmo_diario(
-    responses, valid_response,
+    responses, valid_response, con_hora = TRUE,
     meta = {
       m <- suppressWarnings(as.numeric(avance_cuota$total$cuota))
       if (length(m) == 1L && is.finite(m)) m else 0
@@ -3296,6 +3314,11 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
     # El resumen es lo PUBLICABLE del padrón: conteos, sin un solo código. Es lo
     # mismo que queda cuando se purga, así que publicarlo no reabre el F114.
     padron = monitoreo_aulas_padron_resumen(padron %||% list()),
+    # La representatividad que el estudio prometió (ADR 0121): universo,
+    # variables de cuota y celdas. En F1 se traduce del contrato v1; ninguna
+    # cifra del tablero sale de aquí todavía.
+    representatividad_declarada = monitoreo_aulas_representatividad_declarada(
+      cfg, plan = plan_df, padron = monitoreo_aulas_padron_resumen(padron %||% list())),
     ritmo_diario = ritmo_global,
     # **La misma serie, repartida por facultad.** Con una facultad en el selector
     # del encabezado, «Ritmo de la recoleccion» seguia dibujando el operativo

@@ -3,19 +3,20 @@ import {
   Archive,
   BarChart3,
   CalendarDays,
-  CalendarRange,
   CheckCircle2,
   ClipboardCheck,
   ClipboardList,
   DatabaseZap,
+  FileSpreadsheet,
   FileText,
+  Hash,
   Link2,
   LayoutGrid,
   Layers,
   Mail,
   ListChecks,
+  ListOrdered,
   MapPinned,
-  Network,
   PhoneCall,
   PlugZap,
   Route,
@@ -42,7 +43,6 @@ import {
   IconSample,
   IconStudyDesign,
   IconTemplate,
-  IconWorkPlan,
 } from "./icons";
 import { MONITOREO_PESTANAS } from "./navegacion/catalogos/monitoreo";
 import {
@@ -86,6 +86,12 @@ export type ProsecnurNavigationLeafMeta = {
 
 export type ProsecnurModuleSectionMeta = ProsecnurNavigationLeafMeta & {
   tabs?: readonly ProsecnurNavigationLeafMeta[];
+  /**
+   * Rótulo de la sección según una variante del modo que decide el estudio, no un
+   * click: en Material territorial, el tipo de envío (`cuotas` → «Zonas»). La
+   * dirección (`seccion=`) no cambia; sólo lo que se lee en la píldora.
+   */
+  labelsPorVariante?: Readonly<Record<string, string>>;
 };
 
 /**
@@ -209,6 +215,8 @@ export const MODULE_TONES: Record<ProsecnurModuleSlug, ProsecnurModuleTone> = {
     accentSoft: "var(--pulso-module-workplan-soft)",
     accentBorder: "var(--pulso-module-workplan-border)",
   },
+  // ADR 0124: el Planner (antes Bitácora) dejó de ser módulo; el slug queda
+  // por los .pulso que lo traen en sus módulos agregados.
   "diseno-estudio": {
     accent: "var(--pulso-module-encyclopedia)",
     accentSoft: "var(--pulso-module-encyclopedia-soft)",
@@ -227,62 +235,77 @@ export const MODULE_TONES: Record<ProsecnurModuleSlug, ProsecnurModuleTone> = {
   },
 };
 
-export const PROSECNUR_MODULES: ProsecnurModuleMeta[] = [
+/** Hojas de ruta por UMP (aleatorio): el juego completo, con el sorteo de manzanas y la selección. */
+const HOJAS_RUTA_SECCIONES_UMP: readonly ProsecnurModuleSectionMeta[] = [
   {
-    slug: "diseno-estudio",
-    chrome: {
-      progreso: "none",
-      densidad: "normal",
-      rail: false,
-      chromeOwner: "page",
-    },
-    title: "Bitácora",
-    shortLabel: "Bitácora",
-    tagline: "Bitácora, cronograma y calendario del estudio",
-    blurb:
-      "Registro operativo del estudio en un solo lugar: decisiones, riesgos, bloqueos y avances, con el cronograma de actividades y entregables organizado en un calendario mensual.",
-    features: [
-      "Registro editable por módulo, decisión, riesgo o avance",
-      "Cronograma con diagrama de Gantt e hitos",
-      "Calendario mensual de actividades y entregables",
-      "Importación de cronogramas en Excel",
-      "Exportación del plan a formato XLSX",
-    ],
-    icon: IconStudyDesign,
-    tone: MODULE_TONES["diseno-estudio"],
-    to: "/bitacora",
-    landingKind: "section",
-    sections: [
+    id: "territorio",
+    label: "Territorio",
+    icon: MapPinned,
+    to: "/hojas-ruta?seccion=territorio",
+    layoutPolicy: "viewport",
+  },
+  {
+    id: "poblacion",
+    label: "Población",
+    icon: BarChart3,
+    to: "/hojas-ruta?seccion=poblacion",
+    layoutPolicy: "viewport",
+  },
+  {
+    id: "muestra",
+    label: "Muestra",
+    icon: Target,
+    to: "/hojas-ruta?seccion=muestra",
+    layoutPolicy: "viewport",
+  },
+  {
+    id: "manzanas",
+    label: "Manzanas",
+    icon: Shuffle,
+    to: "/hojas-ruta?seccion=manzanas",
+    layoutPolicy: "viewport",
+  },
+  {
+    id: "seleccion",
+    label: "Selección",
+    icon: FileText,
+    to: "/hojas-ruta?seccion=seleccion",
+    layoutPolicy: "viewport",
+    tabs: [
       {
-        id: "bitacora",
-        label: "Bitácora",
-        icon: IconStudyDesign,
-        to: "/bitacora",
+        id: "cuotas",
+        label: "Cuotas",
+        icon: BarChart3,
+        to: "/hojas-ruta?seccion=seleccion&pestana=cuotas",
         layoutPolicy: "viewport",
       },
       {
-        id: "cronograma",
-        label: "Cronograma",
-        icon: IconWorkPlan,
-        to: "/bitacora?seccion=cronograma",
+        id: "titulares",
+        label: "Titulares",
+        icon: MapPinned,
+        to: "/hojas-ruta?seccion=seleccion&pestana=titulares",
         layoutPolicy: "viewport",
       },
       {
-        id: "calendario",
-        label: "Calendario",
-        icon: CalendarDays,
-        to: "/bitacora?seccion=calendario",
+        id: "reemplazos",
+        label: "Reemplazos",
+        icon: Shuffle,
+        to: "/hojas-ruta?seccion=seleccion&pestana=reemplazos",
         layoutPolicy: "viewport",
       },
       {
-        id: "canvas",
-        label: "Lienzo",
-        icon: Network,
-        to: "/bitacora?seccion=canvas",
+        // Cada UMP cruzada con las viviendas censales de su manzana.
+        id: "revision",
+        label: "Revisión",
+        icon: ShieldAlert,
+        to: "/hojas-ruta?seccion=seleccion&pestana=revision",
         layoutPolicy: "viewport",
       },
     ],
   },
+];
+
+export const PROSECNUR_MODULES: ProsecnurModuleMeta[] = [
   {
     slug: "calc-muestra",
     chrome: {
@@ -295,13 +318,13 @@ export const PROSECNUR_MODULES: ProsecnurModuleMeta[] = [
     shortLabel: "Cálculo de muestra",
     tagline: "Marco muestral, escenarios y selección de unidades",
     blurb:
-      "Construcción del marco muestral, cálculo de escenarios de tamaño y selección de unidades —estudiantes, cursos-horario, actores, manzanas o viviendas—. El plan resultante se enlaza con Monitoreo para el seguimiento de campo.",
+      "Construcción del marco muestral, cálculo de escenarios de tamaño y selección de unidades —estudiantes, cursos-horario o actores—. El muestreo territorial aleatorio (zonas, manzanas y viviendas) se hace en Hojas de ruta. La selección pasa a Material de campo y las metas, a Monitoreo.",
     features: [
       "Construcción y auditoría del marco muestral",
       "Escenarios de tamaño, cuotas, estratos y conglomerados",
       "Selección aleatoria, sistemática o por reglas operativas",
-      "Procedimientos por estudiantes, cursos-horario, actores y territorio",
-      "Reporte metodológico y enlace con Monitoreo",
+      "Procedimientos por estudiantes, cursos-horario y actores",
+      "Reporte metodológico; la selección pasa a Material y las metas a Monitoreo",
     ],
     icon: IconSample,
     tone: MODULE_TONES["calc-muestra"],
@@ -380,15 +403,6 @@ export const PROSECNUR_MODULES: ProsecnurModuleMeta[] = [
       densidad: "compact",
       rail: true,
       chromeOwner: "page",
-      chromeExcepcion: {
-        adr: "0042-chrome-modulo-uniforme-topbar.md",
-        motivo:
-          "Su banda es del formulario abierto: selector de formulario, metricas, " +
-          "estado, listas, avisos y exportar .xlsx. Las vistas (Constructor, Hojas, " +
-          "Mapa de logica, Impreso…) son pestañas del rail izquierdo desde el " +
-          "2026-10-15, no controles de la banda. Conserva el material, el radio, " +
-          "el acento y los estados del canon.",
-      },
     },
     title: "Editor de formularios",
     shortLabel: "Formularios",
@@ -430,75 +444,31 @@ export const PROSECNUR_MODULES: ProsecnurModuleMeta[] = [
     shortLabel: "Hojas de ruta",
     tagline: "Cuotas, rutas y cartografía para el equipo de campo",
     blurb:
-      "Hojas de ruta imprimibles para el equipo de campo: cuotas por conglomerado, rutas de visita y puntos de muestra georreferenciados, consolidados en un paquete listo para impresión.",
+      "Muestreo territorial aleatorio: sortea zonas, manzanas y viviendas sobre la cartografía, arma cuotas y rutas por conglomerado y envía la selección a Material de campo, que imprime las hojas de zona. Monitoreo recibe las metas.",
     features: [
       "Cuotas por conglomerado (UPM)",
-      "Rutas de visita imprimibles",
+      "Rutas de visita por conglomerado",
       "Puntos de muestra georreferenciados",
       "Validación de territorio (UBIGEO)",
-      "Paquete de PDF listo para impresión",
+      "Envío de la selección a Material de campo",
     ],
     icon: IconRoutes,
     tone: MODULE_TONES["hojas-ruta"],
     to: "/hojas-ruta",
     landingKind: "entrypoint",
-    sections: [
+    sections: HOJAS_RUTA_SECCIONES_UMP,
+    // ADR 0125 §2: el Planner fija el modo. Por cuotas no hay sorteo de manzanas: la cuarta sección es la
+    // entrega de las zonas a Material (id `seleccion`, el canónico de la entrega; `entrega` es su alias viejo).
+    modos: [
+      { id: "ump", label: "Muestra por manzanas", sections: HOJAS_RUTA_SECCIONES_UMP },
       {
-        id: "territorio",
-        label: "Territorio",
-        icon: MapPinned,
-        to: "/hojas-ruta?seccion=territorio",
-        layoutPolicy: "viewport",
-      },
-      {
-        id: "poblacion",
-        label: "Población",
-        icon: BarChart3,
-        to: "/hojas-ruta?seccion=poblacion",
-        layoutPolicy: "viewport",
-      },
-      {
-        id: "muestra",
-        label: "Muestra",
-        icon: Target,
-        to: "/hojas-ruta?seccion=muestra",
-        layoutPolicy: "viewport",
-      },
-      {
-        id: "manzanas",
-        label: "Manzanas",
-        icon: Shuffle,
-        to: "/hojas-ruta?seccion=manzanas",
-        layoutPolicy: "viewport",
-      },
-      {
-        id: "seleccion",
-        label: "Selección",
-        icon: FileText,
-        to: "/hojas-ruta?seccion=seleccion",
-        layoutPolicy: "viewport",
-        tabs: [
-          {
-            id: "cuotas",
-            label: "Cuotas",
-            icon: BarChart3,
-            to: "/hojas-ruta?seccion=seleccion&pestana=cuotas",
-            layoutPolicy: "viewport",
-          },
-          {
-            id: "titulares",
-            label: "Titulares",
-            icon: MapPinned,
-            to: "/hojas-ruta?seccion=seleccion&pestana=titulares",
-            layoutPolicy: "viewport",
-          },
-          {
-            id: "reemplazos",
-            label: "Reemplazos",
-            icon: Shuffle,
-            to: "/hojas-ruta?seccion=seleccion&pestana=reemplazos",
-            layoutPolicy: "viewport",
-          },
+        id: "cuotas",
+        label: "Muestra por cuotas",
+        sections: [
+          { id: "territorio", label: "Territorio", icon: MapPinned, to: "/hojas-ruta?modo=cuotas&seccion=territorio", layoutPolicy: "viewport" },
+          { id: "poblacion", label: "Población", icon: BarChart3, to: "/hojas-ruta?modo=cuotas&seccion=poblacion", layoutPolicy: "viewport" },
+          { id: "muestra", label: "Muestra", icon: Target, to: "/hojas-ruta?modo=cuotas&seccion=muestra", layoutPolicy: "viewport" },
+          { id: "seleccion", label: "Entrega", icon: FileText, to: "/hojas-ruta?modo=cuotas&seccion=seleccion", layoutPolicy: "viewport" },
         ],
       },
     ],
@@ -516,12 +486,13 @@ export const PROSECNUR_MODULES: ProsecnurModuleMeta[] = [
     cardTitle: "Material de campo",
     tagline: "Fichas, accesos y paquetes",
     blurb:
-      "Produce y entrega el material de campo de cada unidad que otro módulo decidió: accesos, fichas imprimibles y paquetes listos para el equipo, con constancia de qué recibió cada unidad.",
+      "Produce el material de campo de cada unidad que decidieron Cálculo de muestra u Hojas de ruta: accesos, fichas imprimibles, paquetes y las tablas de seguimiento en el Sheets del estudio, que campo llena al inicio. No hace seguimiento: entrega a Monitoreo, con constancia de qué recibió cada unidad.",
     features: [
       "Lista de unidades tomada de la muestra decidida",
       "Un acceso trazable por unidad",
       "Fichas imprimibles con los datos de cada unidad",
       "Paquetes agrupados para el reparto en campo",
+      "Tablas de seguimiento en el Sheets del estudio",
       "Entrega registrada para Monitoreo",
     ],
     icon: IconFieldKit,
@@ -531,8 +502,8 @@ export const PROSECNUR_MODULES: ProsecnurModuleMeta[] = [
     // ADR 0111: el módulo aterriza en la lista de campañas y el MODO es el tipo
     // de la campaña abierta (`?modo=aulas&campana=aulas.principal`). La sección
     // de primer nivel es la lista: es el landing, como «Monitoreo» lo es de su
-    // módulo. `territorial` no se declara hasta E2: en «Nueva campaña» aparece
-    // deshabilitado con su motivo.
+    // módulo. `territorial` (ADR 0118, F2) se abre cuando Hojas de ruta envió su
+    // muestra; antes aparece deshabilitado en «Nueva campaña» con su motivo.
     sections: [
       {
         id: "campanas",
@@ -603,6 +574,133 @@ export const PROSECNUR_MODULES: ProsecnurModuleMeta[] = [
             layoutPolicy: "viewport",
             tabs: [
               { id: "traspaso", label: "Monitoreo", icon: CalendarDays, to: "/material-campo?modo=aulas&seccion=entrega&pestana=traspaso", layoutPolicy: "viewport" },
+              // Etapa 3: las plantillas del equipo de aulas salen de Material (ADR 0122 §11).
+              { id: "plantillas", label: "Plantillas del equipo", icon: FileSpreadsheet, to: "/material-campo?modo=aulas&seccion=entrega&pestana=plantillas", layoutPolicy: "viewport" },
+            ],
+          },
+        ],
+      },
+      {
+        // ADR 0118 §1 y §4: la campaña territorial lee la foto de la muestra que
+        // Hojas de ruta envió (`ump_territorial_v1`). Sin Accesos: la UMP se
+        // recorre con la hoja impresa. El traspaso a Monitoreo no aplica todavía
+        // (Monitoreo territorial sigue leyendo la muestra viva, ADR 0118 §3).
+        id: "territorial",
+        label: "Territorial",
+        sections: [
+          {
+            id: "unidades",
+            label: "Unidades",
+            // Revamp v5: con envío por cuotas la unidad es la zona (ADR 0125 A1), no la UMP.
+            labelsPorVariante: { cuotas: "Zonas" },
+            icon: ClipboardList,
+            to: "/material-campo?modo=territorial&seccion=unidades",
+            layoutPolicy: "viewport",
+            tabs: [
+              { id: "lista", label: "Lista", icon: ClipboardList, to: "/material-campo?modo=territorial&seccion=unidades&pestana=lista", layoutPolicy: "viewport" },
+            ],
+          },
+          {
+            id: "catalogo",
+            label: "Catálogo",
+            icon: IconTemplate,
+            to: "/material-campo?modo=territorial&seccion=catalogo",
+            layoutPolicy: "viewport",
+            tabs: [
+              { id: "fichas", label: "Ficha por UMP", icon: FileText, to: "/material-campo?modo=territorial&seccion=catalogo&pestana=fichas", layoutPolicy: "viewport" },
+              { id: "zonas", label: "Hoja de zona", icon: MapPinned, to: "/material-campo?modo=territorial&seccion=catalogo&pestana=zonas", layoutPolicy: "viewport" },
+              // D1: el papel que campo llena, con los códigos de resultado del estudio.
+              { id: "ruteo", label: "Hoja de ruteo", icon: ListOrdered, to: "/material-campo?modo=territorial&seccion=catalogo&pestana=ruteo", layoutPolicy: "viewport" },
+              { id: "consolidados", label: "Hoja de consolidados", icon: Table2, to: "/material-campo?modo=territorial&seccion=catalogo&pestana=consolidados", layoutPolicy: "viewport" },
+              { id: "codigos", label: "Códigos de resultado", icon: Hash, to: "/material-campo?modo=territorial&seccion=catalogo&pestana=codigos", layoutPolicy: "viewport" },
+            ],
+          },
+          {
+            id: "paquetes",
+            label: "Paquetes",
+            icon: Archive,
+            to: "/material-campo?modo=territorial&seccion=paquetes",
+            layoutPolicy: "viewport",
+            tabs: [
+              { id: "armado", label: "Armado", icon: Archive, to: "/material-campo?modo=territorial&seccion=paquetes&pestana=armado", layoutPolicy: "viewport" },
+            ],
+          },
+          {
+            id: "entrega",
+            label: "Entrega",
+            icon: CheckCircle2,
+            to: "/material-campo?modo=territorial&seccion=entrega",
+            layoutPolicy: "viewport",
+            tabs: [
+              { id: "plan", label: "Plan de campo", icon: CalendarDays, to: "/material-campo?modo=territorial&seccion=entrega&pestana=plan", layoutPolicy: "viewport" },
+            ],
+          },
+        ],
+      },
+      {
+        // P10 (etapa 4): el barrido telefónico de un listado de casos. Material
+        // guarda sólo la configuración; nombres y teléfonos viven en el archivo
+        // del operativo, que Monitoreo telefónico sigue leyendo como hoy.
+        id: "telefonica",
+        label: "Telefónica",
+        sections: [
+          {
+            id: "casos",
+            label: "Casos",
+            icon: ClipboardList,
+            to: "/material-campo?modo=telefonica&seccion=casos",
+            layoutPolicy: "viewport",
+            tabs: [
+              { id: "configuracion", label: "Configuración", icon: ClipboardList, to: "/material-campo?modo=telefonica&seccion=casos&pestana=configuracion", layoutPolicy: "viewport" },
+            ],
+          },
+          {
+            id: "barrido",
+            label: "Barrido",
+            icon: PhoneCall,
+            to: "/material-campo?modo=telefonica&seccion=barrido",
+            layoutPolicy: "viewport",
+            tabs: [
+              { id: "plantilla", label: "Plantilla", icon: Table2, to: "/material-campo?modo=telefonica&seccion=barrido&pestana=plantilla", layoutPolicy: "viewport" },
+              { id: "status", label: "Status", icon: ListChecks, to: "/material-campo?modo=telefonica&seccion=barrido&pestana=status", layoutPolicy: "viewport" },
+            ],
+          },
+          {
+            id: "entrega",
+            label: "Entrega",
+            icon: CheckCircle2,
+            to: "/material-campo?modo=telefonica&seccion=entrega",
+            layoutPolicy: "viewport",
+            tabs: [
+              { id: "monitoreo", label: "Monitoreo", icon: CalendarDays, to: "/material-campo?modo=telefonica&seccion=entrega&pestana=monitoreo", layoutPolicy: "viewport" },
+            ],
+          },
+        ],
+      },
+      {
+        // ADR 0125 A3: la supervisión de un lote que arma Monitoreo. Material elige las columnas del
+        // barrido y de los resultados, añade las tres que lee Monitoreo y entrega la base del lote.
+        id: "supervision",
+        label: "Supervisión",
+        sections: [
+          {
+            id: "columnas",
+            label: "Columnas",
+            icon: ListChecks,
+            to: "/material-campo?modo=supervision&seccion=columnas",
+            layoutPolicy: "viewport",
+            tabs: [
+              { id: "seleccion", label: "Selección", icon: ListChecks, to: "/material-campo?modo=supervision&seccion=columnas&pestana=seleccion", layoutPolicy: "viewport" },
+            ],
+          },
+          {
+            id: "entrega",
+            label: "Entrega",
+            icon: CheckCircle2,
+            to: "/material-campo?modo=supervision&seccion=entrega",
+            layoutPolicy: "viewport",
+            tabs: [
+              { id: "base", label: "Base del lote", icon: CalendarDays, to: "/material-campo?modo=supervision&seccion=entrega&pestana=base", layoutPolicy: "viewport" },
             ],
           },
         ],
@@ -644,9 +742,9 @@ export const PROSECNUR_MODULES: ProsecnurModuleMeta[] = [
     shortLabel: "Monitoreo",
     tagline: "Seguimiento del trabajo de campo",
     blurb:
-      "Seguimiento del trabajo de campo a partir de Kobo y SurveyMonkey: cumplimiento de metas, control de calidad, producción y supervisión durante el levantamiento.",
+      "Seguimiento del trabajo de campo: avance contra las metas, control del equipo y de calidad, ritmo y reporte de avance. Lee las respuestas de Kobo y SurveyMonkey y las tablas que Material de campo dejó en el Sheets del estudio.",
     features: [
-      "Sincronización con Kobo y SurveyMonkey",
+      "Sincronización con Kobo, SurveyMonkey y el Sheets de Material",
       "Cumplimiento de metas por variables de control",
       "Detección de inconsistencias y tiempos atípicos",
       "Muestra para supervisión telefónica",
@@ -709,11 +807,14 @@ export const PROSECNUR_MODULES: ProsecnurModuleMeta[] = [
         id: "aulas",
         label: "Cursos-horario",
         sections: [
-          { id: "fuentes", label: "Fuentes", icon: PlugZap, to: "/monitoreo?seccion=fuentes", layoutPolicy: "viewport", tabs: MONITOREO_PESTANAS.aulas.fuentes },
-          { id: "modelo", label: "Agenda de cursos-horario", icon: CalendarRange, to: "/monitoreo?seccion=modelo", layoutPolicy: "viewport", tabs: MONITOREO_PESTANAS.aulas.modelo },
+          // Esqueleto común de cuatro secciones (revamp, 2026-10-23). Las
+          // direcciones anteriores (`fuentes`, `calidad`, `consultas` y las
+          // pestañas viejas de `modelo` y `avance`) se leen como alias en
+          // `direccionAulas.ts`; nunca se escriben.
+          { id: "insumos", label: "Insumos", icon: PlugZap, to: "/monitoreo?seccion=insumos", layoutPolicy: "viewport", tabs: MONITOREO_PESTANAS.aulas.insumos },
+          { id: "modelo", label: "Modelo", icon: ListChecks, to: "/monitoreo?seccion=modelo", layoutPolicy: "viewport", tabs: MONITOREO_PESTANAS.aulas.modelo },
+          { id: "control", label: "Control", icon: ShieldAlert, to: "/monitoreo?seccion=control", layoutPolicy: "viewport", tabs: MONITOREO_PESTANAS.aulas.control },
           { id: "avance", label: "Avance", icon: BarChart3, to: "/monitoreo?seccion=avance", layoutPolicy: "viewport", tabs: MONITOREO_PESTANAS.aulas.avance },
-          { id: "calidad", label: "Validación", icon: ShieldAlert, to: "/monitoreo?seccion=calidad", layoutPolicy: "viewport", tabs: MONITOREO_PESTANAS.aulas.calidad },
-          { id: "consultas", label: "Consultas", icon: Search, to: "/monitoreo?seccion=consultas", layoutPolicy: "viewport", tabs: MONITOREO_PESTANAS.aulas.consultas },
         ],
       },
     ],

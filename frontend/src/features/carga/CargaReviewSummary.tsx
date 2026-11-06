@@ -251,10 +251,10 @@ export function CargaReviewSummary({
                 </strong>
                 <small
                   title={ordenEditor.omitidas.length > OMITIDAS_VISIBLES
-                    ? ordenEditor.omitidas.map((o) => `${o.variable}: ${o.motivo}`).join(" · ")
+                    ? ordenEditor.omitidas.map((o) => `${o.variable}: ${o.motivo}`).join(", ")
                     : undefined}
                 >
-                  {ordenEditor.omitidas.slice(0, OMITIDAS_VISIBLES).map((o) => `${o.variable}: ${o.motivo}`).join(" · ")}
+                  {ordenEditor.omitidas.slice(0, OMITIDAS_VISIBLES).map((o) => `${o.variable}: ${o.motivo}`).join(", ")}
                   {ordenEditor.omitidas.length > OMITIDAS_VISIBLES ? ` +${ordenEditor.omitidas.length - OMITIDAS_VISIBLES}` : ""}
                 </small>
               </span>

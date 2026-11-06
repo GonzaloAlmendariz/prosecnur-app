@@ -94,7 +94,8 @@ const tabla = crearTablaDeDirecciones<SeccionAcreditacion>({
     // El desglose por fuente y recopilador de Avance › Ritmo, en un sideover.
     "avance/ritmo": ["fuentes"],
     // El diálogo «Cerrar campo» de Avance › Salidas.
-    "avance/salidas": ["cerrar-campo"],
+    // y el motor completo de salidas, «PDF y cliente» (estándar de Salidas, 4 nov 2026).
+    "avance/salidas": ["cerrar-campo", "herramientas"],
     // Editor de una cuota (`AvanceCuotasPanel`): se abre en Modelo › Cuotas (M2).
     // Avance › Por cuota (A8) solo lee y «Editar en Modelo» lleva allá; el panel
     // sigue declarado en Avance para el estudio telefónico, que monta la vista

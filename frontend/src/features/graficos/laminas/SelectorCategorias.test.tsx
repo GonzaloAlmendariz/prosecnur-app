@@ -8,6 +8,9 @@ const estado = { valor: { fase: "lista", datos: { categorias: [
   { codigo: "99", etiqueta: "No sabe", n: 5, pct: 5, residual: true },
 ] } } as unknown };
 vi.mock("./useCategoriasGrafico", () => ({ useCategoriasGrafico: () => ({ ...(estado.valor as object), reintentar: () => undefined }) }));
+// El render en servidor lee el estado inicial del store: los cortos del estudio se dan por el hook.
+const cortos: { mapa: Record<string, string> | undefined } = { mapa: undefined };
+vi.mock("./useRotulosCortos", () => ({ useRotulosCortos: () => cortos.mapa }));
 const { SelectorCategorias } = await import("./SelectorCategorias");
 
 const pintar = (variable: string, valor: unknown, modo: "excluir" | "elegir" = "excluir") => renderToStaticMarkup(createElement(SelectorCategorias, {
@@ -23,6 +26,13 @@ describe("selector de categorías", () => {
     expect(html).toMatch(/aria-pressed="true"[^>]*title="Código 99/);
     expect(html).toContain("Una excluida");
     expect(html).not.toContain("data-respaldo");
+  });
+  it("U14: con el rótulo corto del estudio la ficha lo muestra y deja el completo en el title; guarda el código", () => {
+    cortos.mapa = { "No sabe": "NS" };
+    const html = pintar("b$p1", ["99"]);
+    cortos.mapa = undefined;
+    expect(html).toMatch(/title="No sabe\. Código 99, 5 casos"[^>]*><span class="pulso-f6-cat-texto">NS</);
+    expect(html).toContain(">Sí<");
   });
   it("sin pregunta pide elegirla; sin lista cae al texto de respaldo", () => {
     expect(pintar("", [])).toContain("Elige primero la pregunta");

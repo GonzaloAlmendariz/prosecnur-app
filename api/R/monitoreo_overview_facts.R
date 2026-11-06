@@ -51,8 +51,22 @@
 # KPIs minimos que consume la tarjeta de Monitoreo territorial del home. Deben
 # coincidir con las llaves que lee .overview_monitoreo_facts (project_overview.R).
 .MONITOREO_OVERVIEW_TERRITORIAL_KEYS <- c(
-  "total_respuestas", "validas", "meta", "avance_pct", "revision", "geo_no_defendible"
+  "total_respuestas", "validas", "efectivas", "meta", "avance_pct", "revision", "geo_no_defendible"
 )
+
+# Efectivas territoriales de un juego de KPIs, nuevo o de un corte anterior.
+# Con `efectivas` es esa cifra; sin ella, el corte es anterior a la cuenta
+# única (2026-11-02) y su `validas` era sólo «validada»: las efectivas son
+# `validas + revision`, porque las en observación también cuentan.
+monitoreo_territorial_efectivas_de_kpis <- function(k) {
+  num <- function(x) {
+    x <- suppressWarnings(as.integer(unlist(x %||% 0L))[1])
+    if (is.na(x)) 0L else x
+  }
+  k <- k %||% list()
+  if (!is.null(k$efectivas)) return(num(k$efectivas))
+  num(k$validas) + num(k$revision)
+}
 
 # Extrae del tablero servido los KPIs territoriales que la tarjeta del home
 # necesita. Devuelve NULL si el tablero no trae KPIs territoriales utilizables

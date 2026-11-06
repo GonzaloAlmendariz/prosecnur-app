@@ -26,3 +26,13 @@ export function filasDeHoja(
     buscados.has(String(bloque.id).toLowerCase()) ? bloque.rows as Array<Record<string, unknown>> : []
   ));
 }
+
+/**
+ * Los avisos del numerador (`avisos_numerador`): llaves repetidas en la base y completas de Kobo que no se
+ * suman, cada uno con su causa. Ritmo y Avance › Cuotas los muestran igual: nada del conteo se pierde en silencio.
+ */
+export function avisosDelNumerador(reports: MonitoreoAcreditacionReports | null | undefined): string[] {
+  return filasDeBloque(reports, ["avisos_numerador"])
+    .map((fila) => String(fila.Detalle ?? "").trim())
+    .filter(Boolean);
+}

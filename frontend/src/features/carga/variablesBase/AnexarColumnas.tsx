@@ -7,6 +7,7 @@ import { apiUpload, uploadKindForDataFile } from "../../../api/client";
 import { apiAnexarColumnas, apiAnexarVista, type AnexarVista } from "../../../api/estudio";
 import { PulsoButton } from "../../../components/PulsoButton";
 import { formatoConteo, formatoConteoDe } from "../../../lib/formatoNumero";
+import { Panel } from "../../../components/Panel";
 
 export function AnexarColumnas({ base, onAnexadas }: { base: string; onAnexadas: () => Promise<void> | void }) {
   const id = useId();
@@ -51,18 +52,24 @@ export function AnexarColumnas({ base, onAnexadas }: { base: string; onAnexadas:
   const k = vista?.claves.find((c) => c.clave === clave);
 
   return (
-    <section className="pulso-armon-seccion" aria-labelledby={`${id}-t`} data-qa-geometry-member>
-      <div className="pulso-armon-seccion-titulo">
-        <h3 id={`${id}-t`}>Columnas desde otro archivo</h3>
-        <p className="pulso-armon-ayuda">Variables que vienen creadas aparte (por ejemplo, de cruce). Se unen por un identificador común.</p>
-      </div>
-      {!vista ? (
-        <label className="pulso-button pulso-button--secondary pulso-button--sm" aria-disabled={ocupado}>
-          {ocupado ? "Leyendo…" : "Elegir archivo"}
-          <input type="file" accept=".xlsx,.xls,.csv,.sav" className="pulso-sr-only" disabled={ocupado}
-                 onChange={(e) => void leer(e.target.files?.[0] ?? null)} />
-        </label>
-      ) : !vista.claves.length ? (
+    <Panel
+      className="pulso-armon-seccion"
+      aria-labelledby={`${id}-t`}
+      data-qa-geometry-member
+      title={<span id={`${id}-t`}>Columnas desde otro archivo</span>}
+      hint="Variables que vienen creadas aparte (por ejemplo, de cruce). Se unen por un identificador común."
+      actions={
+        // Sin archivo, elegirlo es la acción de la sección: va en la cabecera, no suelta al pie de una caja vacía.
+        !vista ? (
+          <label className="pulso-button pulso-button--secondary pulso-button--sm" aria-disabled={ocupado}>
+            {ocupado ? "Leyendo…" : "Elegir archivo"}
+            <input type="file" accept=".xlsx,.xls,.csv,.sav" className="pulso-sr-only" disabled={ocupado}
+                   onChange={(e) => void leer(e.target.files?.[0] ?? null)} />
+          </label>
+        ) : undefined
+      }
+    >
+      {!vista ? null : !vista.claves.length ? (
         <p className="pulso-armon-error" role="alert">
           «{vista.archivo}» no comparte un identificador con la base (_uuid, respondent_id, código PULSO…).
           <PulsoButton variant="ghost" size="sm" onClick={() => setVista(null)}>Elegir otro</PulsoButton>
@@ -74,8 +81,8 @@ export function AnexarColumnas({ base, onAnexadas }: { base: string; onAnexadas:
             <select value={clave} aria-label="Identificador común" onChange={(e) => setClave(e.target.value)}>
               {vista.claves.map((c) => <option key={c.clave} value={c.clave}>{c.clave}</option>)}
             </select>
-            {k ? ` · coinciden ${formatoConteo(k.n_coinciden)} de ${formatoConteoDe(k.n_base, "caso")} de la base` : ""}
-            {k && k.repetidas_en_archivo ? ` · ${formatoConteoDe(k.repetidas_en_archivo, "identificador repetido", "identificadores repetidos")} en el archivo (se usa el primero)` : ""}
+            {k ? `, coinciden ${formatoConteo(k.n_coinciden)} de ${formatoConteoDe(k.n_base, "caso")} de la base` : ""}
+            {k && k.repetidas_en_archivo ? `, ${formatoConteoDe(k.repetidas_en_archivo, "identificador repetido", "identificadores repetidos")} en el archivo (se usa el primero)` : ""}
           </p>
           <ul className="pulso-vb-anexar-lista">
             {vista.columnas.map((c) => (
@@ -84,7 +91,7 @@ export function AnexarColumnas({ base, onAnexadas }: { base: string; onAnexadas:
                   <input type="checkbox" disabled={c.ya_en_la_base} checked={elegidas.includes(c.nombre)}
                          onChange={() => setElegidas((x) => x.includes(c.nombre) ? x.filter((n) => n !== c.nombre) : [...x, c.nombre])} />
                   <code>{c.nombre}</code>
-                  <small>{c.ya_en_la_base ? "la base ya la tiene" : `${formatoConteoDe(c.n_valores, "valor", "valores")} · ${formatoConteo(c.n_con_dato)} con dato`}</small>
+                  <small>{c.ya_en_la_base ? "la base ya la tiene" : `${formatoConteoDe(c.n_valores, "valor", "valores")}, ${formatoConteo(c.n_con_dato)} con dato`}</small>
                 </label>
               </li>
             ))}
@@ -98,6 +105,6 @@ export function AnexarColumnas({ base, onAnexadas }: { base: string; onAnexadas:
         </div>
       )}
       {mensaje ? <p className={mensaje.ok ? "pulso-armon-ayuda" : "pulso-armon-error"} role={mensaje.ok ? "status" : "alert"}>{mensaje.texto}</p> : null}
-    </section>
+    </Panel>
   );
 }

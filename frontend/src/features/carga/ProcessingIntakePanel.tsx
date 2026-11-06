@@ -37,6 +37,8 @@ import {
   type ProcessingIntakeGuidedPlan,
 } from "./processingIntakeModel";
 
+import { EstadoVacio } from "../../components/EstadoVacio";
+import { LoadingBlock } from "../../components/States";
 type Props = {
   sessionId: string | null;
   suggestions?: EstudioProcessingSuggestionGroup[];
@@ -240,8 +242,7 @@ export function ProcessingIntakePanel({ sessionId, suggestions = [], onPlanSaved
   if (loading && !payload) {
     return (
       <section className="pulso-processing-intake is-loading" aria-label="Plan de ingreso de instrumentos">
-        <Loader2 size={17} className="pulso-spin" aria-hidden="true" />
-        <span>Leyendo instrumentos publicados…</span>
+        <LoadingBlock variant="inline" label="Leyendo instrumentos publicados…" />
       </section>
     );
   }
@@ -367,7 +368,7 @@ export function ProcessingIntakePanel({ sessionId, suggestions = [], onPlanSaved
               <li key={link.actor_key} className={`is-${link.status}`}>
                 {link.status === "ready" ? <CheckCircle2 size={13} aria-hidden="true" /> : <AlertTriangle size={13} aria-hidden="true" />}
                 <span>
-                  <b>{link.actor}</b> · {link.status === "ready" && link.revision
+                  <b>{link.actor}</b>: {link.status === "ready" && link.revision
                     ? `Asignado al formulario ${link.revision.form_name || link.revision.form_id}.`
                     : link.detail}
                 </span>
@@ -467,7 +468,7 @@ export function ProcessingIntakePanel({ sessionId, suggestions = [], onPlanSaved
                         key={revision.revision_id}
                         disabled={!revision.available}
                       >
-                        {processingIntakeRevisionLabel(revision)}{revision.available ? "" : " · no disponible"}
+                        {processingIntakeRevisionLabel(revision)}{revision.available ? "" : ", no disponible"}
                       </option>
                     ))}
                   </select>
@@ -529,16 +530,14 @@ export function ProcessingIntakePanel({ sessionId, suggestions = [], onPlanSaved
       </div>
 
       {draft.length === 0 && (
-        <div className="pulso-processing-intake-empty">
-          <ShieldCheck size={18} aria-hidden="true" />
-          <div>
-            <strong>Aún no hay públicos asignados</strong>
-            <span>{revisions.length > 0
-              ? "Agrega un público y elige el formulario que le corresponde."
-              : "Si el instrumento ya existe, confirma su lógica y publícalo desde el Editor XLSForm."}</span>
-          </div>
-          {revisions.length === 0 && <Link to="/editor-xlsform">Ir al Editor</Link>}
-        </div>
+        <EstadoVacio
+          icono={<ShieldCheck size={18} />}
+          titulo="Aún no hay públicos asignados"
+          descripcion={revisions.length > 0
+            ? "Agrega un público y elige el formulario que le corresponde."
+            : "Si el instrumento ya existe, confirma su lógica y publícalo desde el Editor XLSForm."}
+          accion={revisions.length === 0 ? <Link to="/editor-xlsform">Ir al Editor</Link> : undefined}
+        />
       )}
 
       <footer className="pulso-processing-intake-actions">

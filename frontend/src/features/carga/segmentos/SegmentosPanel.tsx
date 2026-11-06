@@ -14,7 +14,7 @@ import { PulsoButton } from "../../../components/PulsoButton";
 import { usePanelDireccionable } from "../../../lib/navegacion/paneles";
 import { conNivel } from "../../../lib/navegacion/direccion";
 import { useSeccion } from "../../../lib/navegacion/useDireccion";
-import { ArrowLeft, Pencil, Plus, Split, Trash2 } from "../../../vendor/lucide-react";
+import { ArrowLeft, Pencil, Plus, Split, Trash2, Inbox } from "../../../vendor/lucide-react";
 import { PanelLateralFuentes } from "../fuentes/PanelLateralFuentes";
 import { searchSinPanelYFoco } from "../fuentes/compararFuentesModel";
 import { PANEL_SEGMENTOS } from "../panelesCarga";
@@ -28,7 +28,10 @@ import "../IndicadorCompuestoEditor.css";
 import "../MapaBasesPanel.css";
 import "../variablesBase/variablesBase.css";
 import "./segmentos.css";
+import { EstadoVacio } from "../../../components/EstadoVacio";
 
+import { LoadingBlock, ErrorBlock } from "../../../components/States";
+import { Panel } from "../../../components/Panel";
 // ---- Abrir --------------------------------------------------------------------
 
 export function SegmentosBoton({ disabled }: { disabled?: boolean }) {
@@ -112,17 +115,16 @@ export function SegmentosCuerpo({ control, foco, ordenBases, onIr }: SegmentosCu
 
   if (lectura.tipo === "cargando") {
     return (
-      <div className="pulso-plf-estado" role="status" data-qa-geometry-capacity="owned">
-        <p>Leyendo los segmentos del estudio…</p>
+      <div data-qa-geometry-capacity="owned">
+        <LoadingBlock variant="inline" label="Leyendo los segmentos del estudio…" />
       </div>
     );
   }
   if (lectura.tipo === "error") {
     // C5 categoría 3: desconexión; el mensaje del backend lo dice.
     return (
-      <div className="pulso-plf-estado is-error" role="alert" data-qa-geometry-capacity="owned">
-        <strong>No se pudieron leer los segmentos de cruce.</strong>
-        <p>{lectura.mensaje}</p>
+      <div data-qa-geometry-capacity="owned">
+        <ErrorBlock label="No se pudieron leer los segmentos de cruce" detail={lectura.mensaje} />
       </div>
     );
   }
@@ -130,9 +132,9 @@ export function SegmentosCuerpo({ control, foco, ordenBases, onIr }: SegmentosCu
   if (!datos.disponible) {
     // C5 categoría 1: el estudio no tiene bases que comparar.
     return (
-      <div className="pulso-plf-estado" role="status" data-qa-geometry-capacity="owned">
-        <p>Este estudio no tiene bases separadas: los segmentos de cruce se declaran para comparar bases.</p>
-      </div>
+      <div data-qa-geometry-capacity="owned">
+          <EstadoVacio icono={<Inbox size={16} />} titulo="Este estudio no tiene bases separadas" descripcion="los segmentos de cruce se declaran para comparar bases." />
+        </div>
     );
   }
 
@@ -159,7 +161,7 @@ export function SegmentosCuerpo({ control, foco, ordenBases, onIr }: SegmentosCu
   if (foco && !enEdicion && !nuevo) {
     return (
       <section className="pulso-armon-seccion" data-qa-geometry-capacity="owned">
-        <p className="pulso-armon-vacio">El estudio no tiene un segmento «{foco}».</p>
+        <EstadoVacio icono={<Inbox size={16} />} titulo={<>El estudio no tiene un segmento «{foco}»</>} />
         <div>
           <PulsoButton variant="secondary" size="sm" className="pulso-armon-btn" onClick={() => onIr(null)}>
             <ArrowLeft size={13} aria-hidden="true" />
@@ -228,26 +230,24 @@ function TablaSegmentos({
   const [marcoRef, desborda] = useDesbordeHorizontal();
   const segmentos = datos.segmentos;
   return (
-    <section className="pulso-armon-seccion" aria-labelledby="pulso-seg-lista" data-qa-geometry-member>
-      <div className="pulso-armon-seccion-head">
-        <div className="pulso-armon-seccion-titulo">
-          <h3 id="pulso-seg-lista">
-            Segmentos del estudio
-            {segmentos.length > 0 && <small>{segmentos.length}</small>}
-          </h3>
-          <p className="pulso-armon-ayuda">{resumenSegmentos(datos)}</p>
-        </div>
-        <PulsoButton variant="secondary" size="sm" className="pulso-armon-btn" onClick={onNuevo}>
+    <Panel
+      className="pulso-armon-seccion"
+      aria-labelledby="pulso-seg-lista" data-qa-geometry-member
+      title={<span id="pulso-seg-lista">Segmentos del estudio
+            {segmentos.length > 0 && <small>{segmentos.length}</small>}</span>}
+      hint={<>{resumenSegmentos(datos)}</>}
+      actions={<>
+<PulsoButton variant="secondary" size="sm" className="pulso-armon-btn" onClick={onNuevo}>
           <Plus size={14} aria-hidden="true" />
           Nuevo segmento
         </PulsoButton>
-      </div>
+    </>}
+    >
+      
 
       {segmentos.length === 0 ? (
         // C3: el vacío es de esta sección y dice cómo se llena.
-        <p className="pulso-armon-vacio">
-          Declara una vez la edad, el sexo o la facultad: cada base dice de qué variable sale y la app lo arma en todas.
-        </p>
+        <EstadoVacio icono={<Inbox size={16} />} titulo="Todavía no hay segmentos" descripcion="Declara una vez la edad, el sexo o la facultad: cada base dice de qué variable sale y la app lo arma en todas." />
       ) : (
         <div
           ref={marcoRef}
@@ -328,6 +328,6 @@ function TablaSegmentos({
           </table>
         </div>
       )}
-    </section>
+    </Panel>
   );
 }

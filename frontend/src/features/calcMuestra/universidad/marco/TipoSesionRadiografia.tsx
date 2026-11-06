@@ -4,6 +4,7 @@
  * filas. Frames anteriores conservan la tabla/boxplot legacy, rotulada como tal
  * y sin acreditar cuantiles, contraste total ni deltas que no existen.
  */
+import { BarChart3 } from "lucide-react";
 import type {
   CalcMuestraAulasCriterioRadiografiaAccion,
   CalcMuestraAulasCriteriosRadiografia,
@@ -19,6 +20,7 @@ import {
 } from "./exploradorModel";
 import { BoxplotElegibles } from "./BoxplotElegibles";
 import "./tipoSesionRadiografia.css";
+import { EstadoVacio } from "../../../../components/EstadoVacio";
 
 export type TipoSesionRadiografiaContexto = "ejecutado" | "editable";
 
@@ -49,9 +51,13 @@ function LegacyTipoSesion({ facultad }: { facultad: CalcMuestraAulasExploracionF
   );
   if (!tipos.length) {
     return (
-      <p className="cmv2-explorador-card-vacio" data-qa-geometry-member>
-        El resumen legacy no trae distribución por tipo de sesión para esta facultad.
-      </p>
+      <div data-qa-geometry-member>
+        <EstadoVacio
+          icono={<BarChart3 size={16} aria-hidden="true" />}
+          titulo="Sin distribución por tipo de sesión"
+          descripcion="El resumen de esta facultad no la trae; reconstruye el marco para publicarla."
+        />
+      </div>
     );
   }
 
@@ -68,7 +74,7 @@ function LegacyTipoSesion({ facultad }: { facultad: CalcMuestraAulasExploracionF
         <thead>
           <tr>
             <th>Tipo</th>
-            <th data-numeric="true">CH · eleg.</th>
+            <th data-numeric="true">CH, eleg.</th>
             <th data-numeric="true">Elegibles</th>
             <th data-numeric="true">Elegibles/aula</th>
             {hayBoxplot && <th className="cmv2-boxplot-col">Distribución</th>}
@@ -91,7 +97,7 @@ function LegacyTipoSesion({ facultad }: { facultad: CalcMuestraAulasExploracionF
                 title={`${fmtInt(tipo.chElegibles)} de ${fmtInt(tipo.ch)} cursos-horario con ≥1 elegible`}
               >
                 {fmtInt(tipo.ch)}
-                <span className="cmv2-dist-sub"> · {fmtInt(tipo.chElegibles)}</span>
+                <span className="cmv2-dist-sub">, {fmtInt(tipo.chElegibles)}</span>
               </td>
               <td data-numeric="true">{fmtInt(tipo.elegibles)}</td>
               <td data-numeric="true" title={medianaTitle(tipo.medianaElegibles)}>
@@ -99,7 +105,7 @@ function LegacyTipoSesion({ facultad }: { facultad: CalcMuestraAulasExploracionF
                   <>
                     <strong>{fmtDec(tipo.medianaElegibles, 0)}</strong>
                     {tipo.caja?.media != null ? (
-                      <span className="cmv2-dist-sub"> · μ{fmtDec(tipo.caja.media, 0)}</span>
+                      <span className="cmv2-dist-sub">, μ{fmtDec(tipo.caja.media, 0)}</span>
                     ) : null}
                     {tipo.caja ? (
                       <span className="cmv2-dist-rango">
@@ -189,7 +195,7 @@ export function TipoSesionRadiografia({
     (f) => f.categoria_label,
   );
   const procedencia = contexto === "editable"
-    ? "Exploración previa · último marco ejecutado"
+    ? "Exploración previa, último marco ejecutado"
     : "Marco ejecutado";
   const filasOwner = radiografia?.schema === "calc_muestra_aulas_criterios_radiografia_v2"
     ? radiografia.filas_owner
@@ -210,7 +216,7 @@ export function TipoSesionRadiografia({
           <header className="cmv2-tsr-head">
             <div>
               <span className="cmv2-tsr-chip">{procedencia}</span>
-              <strong>Tipo de sesión · radiografía por categoría</strong>
+              <strong>Tipo de sesión, radiografía por categoría</strong>
             </div>
             <dl className="cmv2-tsr-provenance" aria-label="Procedencia de la radiografía">
               <div><dt>Motor</dt><dd>{filasOwner}</dd></div>
@@ -241,8 +247,8 @@ export function TipoSesionRadiografia({
             */}
           {filasVacias.length ? (
             <p className="cmv2-tsr-vacias" role="note">
-              <strong>Sin cursos-horario en esta facultad ({filasVacias.length}):</strong>{" "}
-              {filasVacias.map((f) => f.categoria_label).join(" · ")}
+              <strong>Sin cursos-horario en esta facultad ({fmtInt(filasVacias.length)}):</strong>{" "}
+              {filasVacias.map((f) => f.categoria_label).join(", ")}
             </p>
           ) : null}
           {filasConDato.length ? (
@@ -272,7 +278,7 @@ export function TipoSesionRadiografia({
                       <small>{fmtInt(fila.distribucion_elegible.n_ch_con_dato)} CH con dato</small>
                     </div>
                     <div data-secondary>
-                      <span>Media total · contraste</span>
+                      <span>Media total, contraste</span>
                       <strong>{fmtDec(fila.contraste_total.media, 1)}</strong>
                       <small>{fmtInt(fila.contraste_total.n_ch_con_dato)} CH con dato</small>
                     </div>
@@ -298,9 +304,13 @@ export function TipoSesionRadiografia({
               ))}
             </div>
           ) : (
-            <p className="cmv2-tsr-empty" data-qa-geometry-member>
-              El contrato ejecutado no trae categorías de tipo de sesión para esta facultad.
-            </p>
+            <div data-qa-geometry-member>
+              <EstadoVacio
+                icono={<BarChart3 size={16} aria-hidden="true" />}
+                titulo="Sin categorías de tipo de sesión"
+                descripcion="El marco ejecutado no las trae para esta facultad."
+              />
+            </div>
           )}
         </>
       )}

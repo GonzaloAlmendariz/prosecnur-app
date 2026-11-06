@@ -130,3 +130,30 @@ describe("aplicadas sin agenda y lo que hay que hacer hoy (2026-09-24)", () => {
     expect(tit.tramos.some((t) => t.clave === "aplicado_sin_agenda")).toBe(false);
   });
 });
+
+describe("«vencida» al día de la última sincronización (2g)", () => {
+  const CORTE = {
+    vencida_al: "2026-09-18",
+    acciones: { agendado_vencido: "CH 1", agendado_tras_corte: ["CH 2", "CH 3"], sin_agendar: [], rechazado: [] },
+    titulares: { total: 4, aplicado: 0, agendado: 4, sin_agendar: 0, rechazado: 0, reemplazado: 0,
+                 aplicado_sin_agenda: 0, agendado_vencido: 1, agendado_tras_corte: 2 },
+    reemplazos: { total: 0, utilizado: 0, en_cadena: 0, al_aire: 0 },
+    banco: { total: 0, utilizado: 0, disponible: 0 },
+  };
+
+  it("parte «Agendados» en fecha pasada y sin datos desde el corte, sin mover la suma", () => {
+    const tit = estadoPorRol(tablero(CORTE))![0];
+    expect(tit.tramos.find((t) => t.clave === "agendado")?.aulas).toBe(1);
+    expect(tit.tramos.find((t) => t.clave === "agendado_vencido")?.aulas).toBe(1);
+    expect(tit.tramos.find((t) => t.clave === "agendado_tras_corte")?.aulas).toBe(2);
+    expect(tit.tramos.find((t) => t.clave === "agendado_vencido")?.detalle).toContain("18/09");
+    expect(sinColocar(tit)).toBe(0);
+  });
+
+  it("pide traer respuestas para las citas posteriores al corte, con sus códigos", () => {
+    const acciones = accionesDeHoy(tablero(CORTE));
+    expect(acciones.map((a) => a.clave)).toEqual(["agendado_vencido", "agendado_tras_corte"]);
+    expect(acciones[1].codigos).toEqual(["CH 2", "CH 3"]);
+    expect(acciones[1].hacer).toContain("del 18/09");
+  });
+});

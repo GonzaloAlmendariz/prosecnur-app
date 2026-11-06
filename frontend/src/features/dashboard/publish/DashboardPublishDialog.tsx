@@ -221,8 +221,8 @@ export function DashboardPublishDialog({ defaultTitle, lastDeploy, onClose }: Pr
                 <option value="">Usar otro token...</option>
                 {savedTokens.map((saved) => (
                   <option key={saved.id} value={saved.id}>
-                    {saved.name} · {saved.hf_username ? `cuenta ${saved.hf_username}` : "sin cuenta verificada"} · {saved.masked_token}
-                    {saved.requires_reauth ? " · volver a autenticar" : ""}
+                    {saved.name}, {saved.hf_username ? `cuenta ${saved.hf_username}` : "sin cuenta verificada"}, {saved.masked_token}
+                    {saved.requires_reauth ? " (volver a autenticar)" : ""}
                   </option>
                 ))}
               </select>
@@ -235,7 +235,7 @@ export function DashboardPublishDialog({ defaultTitle, lastDeploy, onClose }: Pr
               <small>
                 {selectedSavedToken.requires_reauth
                   ? "Esta referencia requiere volver a autenticarla antes de publicar."
-                  : `${selectedSavedToken.hf_username ? `Cuenta/alias ${selectedSavedToken.hf_username}` : "Cuenta HF no verificada"} · el valor permanece en el proceso principal.`}
+                  : `${selectedSavedToken.hf_username ? `Cuenta/alias ${selectedSavedToken.hf_username}` : "Cuenta HF no verificada"}. El valor permanece en el proceso principal.`}
               </small>
             </div>
           ) : null}

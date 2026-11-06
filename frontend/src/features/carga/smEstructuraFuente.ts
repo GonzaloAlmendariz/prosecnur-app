@@ -87,7 +87,7 @@ function smDiffRef(diff: SurveyMonkeyMultibaseDiff): string {
 function smDiffTitle(diffs: readonly SurveyMonkeyMultibaseDiff[]): string {
   return diffs
     .map((diff) => `${smDiffRef(diff)}: ${smDiffKindLabel(diff.kind)} - ${diff.message}`)
-    .join(" · ");
+    .join(", ");
 }
 
 /** «a, b, c +2»: los primeros nombres y cuántos quedan. */
@@ -119,8 +119,8 @@ export function smRefreshStructureDetail(
   }
   if (row.issues?.length) {
     return {
-      label: row.issues.join(" · "),
-      title: row.issues.join(" · "),
+      label: row.issues.join(", "),
+      title: row.issues.join(", "),
     };
   }
   const review = diffs.filter((diff) => diff.severity === "review");
@@ -145,7 +145,7 @@ export function smRefreshStructureDetail(
     } else if (metadataReview.length) {
       segments.push(`metadata opcional ${smListaAcotada(metadataVars)}`);
     }
-    return { label: segments.join(" · "), title: smDiffTitle(review) };
+    return { label: segments.join(", "), title: smDiffTitle(review) };
   }
   // Emparejada en otro orden: informativo, no pide nada.
   const reordered = diffs.filter((diff) => diff.kind === "question_order");

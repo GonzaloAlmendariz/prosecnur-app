@@ -38,7 +38,8 @@ function Barras({ titulo, filas }: { titulo: string; filas: Array<{ rotulo: stri
           {filas.map((fila) => (
             <li key={fila.rotulo}>
               <span>{fila.rotulo}</span>
-              <span className="acr-av-pista"><i style={{ width: `${(fila.casos / maximo) * 100}%` }} /></span>
+              {/* Con una sola categoría la barra siempre está llena: no dice nada (K1). */}
+              {filas.length > 1 ? <span className="acr-av-pista"><i style={{ width: `${(fila.casos / maximo) * 100}%` }} /></span> : null}
               <b className="acr-av-num">{fmt(fila.casos)}</b>
             </li>
           ))}
@@ -66,6 +67,11 @@ export function Personas({ consultas }: { consultas: MonitoreoInternalQueries })
   const [numero, setNumero] = useState(1);
   const delPublico = useMemo(() => (publico ? personas.filter((persona) => persona.publico === publico) : personas), [personas, publico]);
   const filtradas = useMemo(() => filtrarPersonas(personas, { publico, estado, busqueda }), [personas, publico, estado, busqueda]);
+  // Si todos los que respondieron entraron por el mismo canal y cruzaron igual, la columna repetiría lo mismo en cada fila.
+  const canalVaria = useMemo(() => {
+    const vistos = new Set(personas.filter((persona) => persona.canal || persona.comoCruzo).map((persona) => `${persona.canal}|${persona.comoCruzo}`));
+    return vistos.size > 1;
+  }, [personas]);
   const vista = pagina(filtradas, numero);
   const columnas = ORDEN_DE_ESTADOS.filter((clave) => COLUMNAS_FIJAS.includes(clave) || filas[0]?.porEstado[clave]);
   const elegir = (valor: string | null) => {
@@ -149,7 +155,7 @@ export function Personas({ consultas }: { consultas: MonitoreoInternalQueries })
                   <th scope="col">Llave</th>
                   <th scope="col">Público</th>
                   <th scope="col">Estado</th>
-                  <th scope="col">Canal y cruce</th>
+                  {canalVaria ? <th scope="col">Canal y cruce</th> : null}
                   <th scope="col" className="is-num">Fecha</th>
                 </tr>
               </thead>
@@ -159,12 +165,14 @@ export function Personas({ consultas }: { consultas: MonitoreoInternalQueries })
                     <th scope="row" className="acr-av-num">{persona.llave}</th>
                     <td><span className={`acr-celda-publico ${clasePublico(paleta, persona.publico)}`}><i className="mon-publico-punto" aria-hidden="true" />{persona.publico}</span></td>
                     <td><span className="acr-ps-estado"><i className={`acr-av-punto is-${persona.estado}`} aria-hidden="true" />{ROTULO_DE_ESTADO[persona.estado]}</span></td>
-                    <td>
-                      <span className="acr-celda-doble">
-                        <span>{persona.canal || "—"}</span>
-                        {persona.comoCruzo ? <small>{persona.comoCruzo}</small> : null}
-                      </span>
-                    </td>
+                    {canalVaria ? (
+                      <td>
+                        <span className="acr-celda-doble">
+                          <span>{persona.canal || "—"}</span>
+                          {persona.comoCruzo ? <small>{persona.comoCruzo}</small> : null}
+                        </span>
+                      </td>
+                    ) : null}
                     <td className="is-num">{persona.fecha ? fechaCorta(persona.fecha) : "—"}</td>
                   </tr>
                 ))}

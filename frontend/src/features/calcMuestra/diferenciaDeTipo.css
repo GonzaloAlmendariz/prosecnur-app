@@ -1,0 +1,11 @@
+/* Aviso de diferencia entre el tipo del estudio y el escenario guardado (hallazgo 11). */
+.cmv2-diferencia-tipo {
+  max-width: 880px;
+  margin-block-end: var(--pulso-space-3);
+}
+
+.cmv2-diferencia-tipo p {
+  margin: 0;
+}
+
+

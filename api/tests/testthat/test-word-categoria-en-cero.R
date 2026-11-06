@@ -15,14 +15,15 @@ withr::local_options(prosecnur.casos_junto = list(cuando = "nunca"))
 .wc_word <- function(g) {
   w <- .word_grafico(g); expect_identical(attr(w, "renderer"), "categorica")
   b <- suppressWarnings(ggplot2::ggplot_build(w))
-  cif <- b$data[[2]]; rot <- b$data[[3]]; rot <- rot[order(-rot$y), ]
+  tx <- Filter(function(d) "label" %in% names(d), b$data); cif <- tx[[1]]; rot <- tx[[2]]; rot <- rot[order(-rot$y), ]   # por contenido: la pista (v7.11) agrega una capa debajo
   setNames(vapply(rot$y, function(y) as.character(cif$label[which.min(abs(cif$y - y))]), ""), gsub("\n", " ", rot$label))
 }
 
 test_that("el Word muestra la categoría con casos cuya cifra redondea a 0 %", {
   w <- .wc_word(.wc_graf(c(1000, 200, 1)))
   expect_identical(names(w), c("A", "B", "C"))
-  expect_identical(unname(w), c("83%", "17%", "0%"))
+  # Revisión v7.23, ítem 1: con casos, la cifra que redondea a 0 se escribe «<1%» (U5), como en la lámina.
+  expect_identical(unname(w), c("83%", "17%", "<1%"))
 })
 
 test_that("la categoría con casos en 0 % conserva su lugar entre las demás, también en la espec", {

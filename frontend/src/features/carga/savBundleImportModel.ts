@@ -185,7 +185,7 @@ export function smSavBundleVariableSummary(file: SurveyMonkeySavBundleFileInspec
 
 export function smSavBundleImpactLabel(file: SurveyMonkeySavBundleFileInspection) {
   const delta = file.change_plan?.impact?.rows_delta;
-  const prefix = delta == null ? "" : delta > 0 ? `+${delta} filas · ` : `${delta} filas · `;
+  const prefix = delta == null ? "" : delta > 0 ? `+${delta} filas, ` : `${delta} filas, `;
   return `${prefix}${file.n_output_columns} columnas finales`;
 }
 
@@ -207,7 +207,7 @@ export function savBundleRevisionView(file: SurveyMonkeySavBundleFileInspection)
   if (revision.status === "pinned_healthy") {
     return {
       tone: "success",
-      label: revisionId ? `Publicada · ${revisionId}` : "Revisión publicada",
+      label: revisionId ? `Publicada (${revisionId})` : "Revisión publicada",
       detail: "La base está fijada a una revisión publicada saludable.",
     };
   }
@@ -220,7 +220,7 @@ export function savBundleRevisionView(file: SurveyMonkeySavBundleFileInspection)
   }
   return {
     tone: "danger",
-    label: revisionId ? `Revisión bloqueada · ${revisionId}` : "Revisión bloqueada",
+    label: revisionId ? `Revisión bloqueada (${revisionId})` : "Revisión bloqueada",
     detail: revision.reasons[0] || "La revisión publicada no pudo acreditarse.",
   };
 }

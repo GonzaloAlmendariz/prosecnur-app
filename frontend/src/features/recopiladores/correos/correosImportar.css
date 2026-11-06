@@ -63,7 +63,7 @@
   border-radius: var(--pulso-radius-panel);
   color: var(--pulso-text-soft);
   display: flex;
-  font-size: 13px;
+  font-size: var(--pulso-type-body-size);
   gap: var(--pulso-space-3);
   min-height: 88px;
   padding: var(--pulso-space-4);
@@ -86,7 +86,7 @@
 }
 
 .rec-imp-archivo:focus-within .rec-imp-archivo-caja {
-  outline: 2px solid var(--pulso-primary-focus);
+  outline: var(--mov-foco, 2px solid var(--pulso-primary));
   outline-offset: 2px;
 }
 
@@ -98,7 +98,7 @@
 }
 
 .rec-imp-pegar textarea {
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   min-height: 160px;
   resize: vertical;
 }
@@ -150,19 +150,19 @@
 
 .rec-imp-resumen dt {
   color: var(--pulso-text-muted);
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
 }
 
 .rec-imp-resumen dd {
   display: flex;
   flex-direction: column;
-  font-size: 14px;
+  font-size: var(--pulso-type-body-size);
   margin: 0;
 }
 
 .rec-imp-evidencia {
   color: var(--pulso-text-muted);
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
 }
 
 .rec-imp-evidencia.is-aviso {
@@ -170,7 +170,7 @@
 }
 
 .rec-imp-titulo {
-  font-size: 13px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-semibold);
   margin: var(--pulso-space-1) 0 0;
 }
@@ -206,7 +206,7 @@
 }
 
 .rec-imp-item-cabeza b {
-  font-size: 12.5px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-semibold);
 }
 
@@ -214,13 +214,13 @@
   align-items: center;
   display: inline-flex;
   flex: none;
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   gap: 4px;
 }
 
 .rec-imp-item-motivo {
   color: var(--pulso-text-soft);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   line-height: 1.45;
 }
 
@@ -230,7 +230,7 @@
   color: var(--pulso-text-muted);
   display: block;
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   overflow: hidden;
   padding: 2px 6px;
   text-overflow: ellipsis;
@@ -291,7 +291,7 @@
 .rec-imp-plataforma legend {
   color: var(--pulso-text-soft);
   float: left;
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   font-weight: var(--pulso-weight-medium);
   margin-right: var(--pulso-space-1);
 }
@@ -303,7 +303,7 @@
   border-radius: 999px;
   cursor: pointer;
   display: inline-flex;
-  font-size: 13px;
+  font-size: var(--pulso-type-body-size);
   gap: 6px;
   min-height: 32px;
   padding: 0 12px 0 8px;

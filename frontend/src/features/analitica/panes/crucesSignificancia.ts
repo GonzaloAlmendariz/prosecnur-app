@@ -1,10 +1,7 @@
-// Texto de la sección «Significancia estadística» de Cruces (P-A9). Describe lo
-// que hace el motor (`api/R/reporte_cruces.R`): letras por par de columnas de
-// una misma variable de cruce, con corrección de Bonferroni. En el modo
-// estándar compara proporciones con una prueba z (`comparar_columnas_sig`) y,
-// en preguntas de grupos repetidos, con contrastes cluster-robust por persona;
-// en el modo de dimensiones compara promedios con t de Welch
-// (`comparar_medias_sig`). Nunca asteriscos ni chi².
+// Texto de la sección «Significancia estadística» de Cruces (P-A9). Las letras comparan las columnas de cada variable
+// de cruce, par por par. La prueba, la corrección, el nivel, el umbral y la base mínima ya no se eligen aquí: los fija
+// la regla del estudio (ADR 0126/0128, `graficos_config$significancia`), la misma de las láminas y el Word. Se resume
+// en `CrucesReglaEstudio`. Nunca asteriscos ni chi².
 
 export type ModoCruces = "estandar" | "dimensiones";
 
@@ -19,13 +16,8 @@ export function subtituloSignificancia(): string {
   return "Compara las columnas de cada variable de cruce, par por par, y marca con letras las diferencias significativas.";
 }
 
-export function detalleSignificancia(modo: ModoCruces, alfa: number = ALFA_CRUCES): string {
-  const nivel = formatoAlfa(alfa);
-  if (modo === "dimensiones") {
-    return `Prueba t de Welch con corrección de Bonferroni, nivel de significancia ${nivel}. `
-      + "Una letra en la celda indica que ese promedio es mayor que el de la columna con esa letra.";
-  }
-  return `Prueba z de diferencia de proporciones con corrección de Bonferroni, nivel de significancia ${nivel}. `
-    + "Una letra en la celda indica que esa proporción es mayor que la de la columna con esa letra. "
-    + "En preguntas de grupos repetidos el contraste es cluster-robust por persona.";
+export function detalleSignificancia(modo: ModoCruces): string {
+  const objeto = modo === "dimensiones" ? "ese promedio es mayor que el" : "esa proporción es mayor que la";
+  return `Una letra en la celda indica que ${objeto} de la columna con esa letra. `
+    + "La prueba, la corrección y el nivel son los de la regla del estudio.";
 }

@@ -253,7 +253,7 @@ export function ControlFlat({
                     <span
                       className="cmv2-crit-item-agrupa"
                       data-agrupa={etiquetaAgrupada(cat.label).agrupadas.length}
-                      title={etiquetaAgrupada(cat.label).agrupadas.join(" · ")}
+                      title={etiquetaAgrupada(cat.label).agrupadas.join(", ")}
                     >
                       agrupa {etiquetaAgrupada(cat.label).agrupadas.length}
                     </span>
@@ -262,7 +262,7 @@ export function ControlFlat({
               </div>
               {etiquetaAgrupada(cat.label).agrupadas.length ? (
                 <span className="cmv2-crit-item-agrupadas">
-                  {etiquetaAgrupada(cat.label).agrupadas.join(" · ")}
+                  {etiquetaAgrupada(cat.label).agrupadas.join(", ")}
                 </span>
               ) : null}
               <span className="cmv2-crit-item-count">
@@ -278,14 +278,14 @@ export function ControlFlat({
                 // corregido en F51 tras la observación de Gonzalo.
                 return (
                   <span className="cmv2-crit-item-aporte" data-aporta={dato.ch === 0 ? "cero" : "si"}>
-                    {dato.elegibles === null ? "—" : fmtInt(dato.elegibles)} elegibles ·{" "}
+                    {dato.elegibles === null ? "—" : fmtInt(dato.elegibles)} elegibles,{" "}
                     {dato.ch === null ? "—" : fmtInt(dato.ch)} CH <em>en el marco</em>
                   </span>
                 );
               })()}
               {variantes.length ? (
-                <span className="cmv2-crit-item-variants" title={variantes.join(" · ")}>
-                  {variantes.join(" · ")}
+                <span className="cmv2-crit-item-variants" title={variantes.join(", ")}>
+                  {variantes.join(", ")}
                 </span>
               ) : null}
             </li>

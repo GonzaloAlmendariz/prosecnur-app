@@ -309,3 +309,31 @@ test_that("el plan y el arranque del warmup publican la estimación", {
   json <- jsonlite::toJSON(plan$estimacion, auto_unbox = TRUE, null = "null")
   expect_match(as.character(json), '"tareas_ms":\\{\\}')
 })
+
+test_that("el mismo warm start pedido dos veces corre una sola vez (checklist F20)", {
+  lanzados <- 0L
+  testthat::local_mocked_bindings(
+    r_bg = function(...) {
+      lanzados <<- lanzados + 1L
+      p <- new.env(parent = emptyenv())
+      p$is_alive <- function() TRUE
+      p$get_result <- function() list(ok = TRUE)
+      p$kill <- function() invisible(TRUE)
+      p
+    },
+    .package = "callr"
+  )
+  withr::defer(jobs_kill_all())
+  sid <- session_create()
+  on.exit(session_delete(sid), add = TRUE)
+  session_set(sid, "project_path", tempfile(fileext = ".pulso"))
+  a <- .project_warmup_start(sid, modules = list("hojas-ruta"))
+  b <- .project_warmup_start(sid, modules = list("hojas-ruta"))
+  expect_identical(as.character(b$job_id), as.character(a$job_id))
+  expect_true(isTRUE(b$ya_en_curso))
+  expect_identical(lanzados, 1L)
+  # Otros módulos son otro warm start.
+  c3 <- .project_warmup_start(sid, modules = list("monitoreo"))
+  expect_false(identical(as.character(c3$job_id), as.character(a$job_id)))
+  expect_identical(lanzados, 2L)
+})

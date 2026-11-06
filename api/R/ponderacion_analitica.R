@@ -11,6 +11,10 @@
 # analitica_config_por_base[[base]]$ponderacion):
 #   { enabled, design:{var, pop_sizes:{cat:n}}, rake:{margins:[{var, targets:{cat:p}}]},
 #     trim:{cap} }
+#   ADR 0131 §6 (opcional): design:{peso_columna:"peso_diseno"} parte del peso de
+#   diseno por caso y luego calibra; escala:"expansion" (+ total_poblacion) da
+#   Σw = N̂; trim:{cap, recalibrar:true, max_ciclos, tol_margen} recorta y
+#   recalibra en ciclo.
 #   { enabled, modo:"columna", peso_columna:"factor_ponderacion" }
 # =============================================================================
 
@@ -45,7 +49,11 @@
   if (is.list(d)) {
     var <- as.character(.analitica_ponderacion_scalar(d$var, ""))
     pop <- .analitica_ponderacion_named_num(d$pop_sizes)
-    if (nzchar(var) && !is.null(pop)) out$design <- list(var = var, pop_sizes = pop)
+    design <- list()
+    if (nzchar(var) && !is.null(pop)) design <- list(var = var, pop_sizes = pop)
+    col <- trimws(as.character(.analitica_ponderacion_scalar(d$peso_columna, "")))
+    if (length(col) && !is.na(col) && nzchar(col)) design$peso_columna <- col
+    if (length(design)) out$design <- design
   }
 
   rk <- pond$rake %||% list()
@@ -64,13 +72,47 @@
         max_iter = as.integer(.analitica_ponderacion_scalar(rk$max_iter, 50L)),
         tol = as.numeric(.analitica_ponderacion_scalar(rk$tol, 1e-7))
       )
+      # NA/98/99: "excluir" (por defecto en el motor) o "imputar" (hot-deck bajo umbral).
+      falt <- tolower(as.character(.analitica_ponderacion_scalar(rk$faltantes, "")))
+      if (length(falt) && falt %in% c("excluir", "imputar")) out$rake$faltantes <- falt
+      imp <- rk$imputacion
+      if (is.list(imp)) {
+        imp_out <- list()
+        um <- suppressWarnings(as.numeric(.analitica_ponderacion_scalar(imp$umbral, NA)))
+        if (length(um) && is.finite(um) && um > 0 && um <= 1) imp_out$umbral <- um
+        se <- suppressWarnings(as.integer(.analitica_ponderacion_scalar(imp$semilla, NA)))
+        if (length(se) && !is.na(se)) imp_out$semilla <- se
+        if (length(imp_out)) out$rake$imputacion <- imp_out
+      }
+      cods <- rk$codigos_faltantes
+      if (length(cods)) {
+        cods <- trimws(as.character(unlist(cods)))
+        cods <- cods[!is.na(cods) & nzchar(cods)]
+        if (length(cods)) out$rake$codigos_faltantes <- cods
+      }
     }
   }
 
   tr <- pond$trim
   cap <- .analitica_ponderacion_scalar(if (is.list(tr)) tr$cap else tr, NA)
   cap <- suppressWarnings(as.numeric(cap))
-  if (is.finite(cap) && cap > 1) out$trim <- list(cap = cap)
+  if (is.finite(cap) && cap > 1) {
+    out$trim <- list(cap = cap)
+    if (is.list(tr) && isTRUE(.analitica_ponderacion_scalar(tr$recalibrar, FALSE))) {
+      out$trim$recalibrar <- TRUE
+      mc <- suppressWarnings(as.integer(.analitica_ponderacion_scalar(tr$max_ciclos, NA)))
+      if (length(mc) && !is.na(mc) && mc >= 1L) out$trim$max_ciclos <- mc
+      tm <- suppressWarnings(as.numeric(.analitica_ponderacion_scalar(tr$tol_margen, NA)))
+      if (length(tm) && is.finite(tm) && tm > 0) out$trim$tol_margen <- tm
+    }
+  }
+
+  escala <- tolower(as.character(.analitica_ponderacion_scalar(pond$escala, "")))
+  if (identical(escala, "expansion")) {
+    out$escala <- "expansion"
+    tot <- suppressWarnings(as.numeric(.analitica_ponderacion_scalar(pond$total_poblacion, NA)))
+    if (length(tot) && is.finite(tot) && tot > 0) out$total_poblacion <- tot
+  }
   out
 }
 
@@ -102,7 +144,10 @@
   if (!isTRUE(norm$enabled) || (is.null(norm$design) && is.null(norm$rake))) {
     return(fallback("configuración incompleta (sin diseño ni márgenes utilizables)"))
   }
+  # Un error de configuracion declarado (peso base invalido, expansion sin
+  # total) sube como E_*: no es un fallback que el reporte pueda tragarse.
   res <- tryCatch(ponderacion_compute(data, norm), error = function(e) e)
+  if (inherits(res, "api_error")) stop(res)
   if (inherits(res, "error")) {
     return(fallback(sprintf("el cálculo de pesos falló (%s)", conditionMessage(res))))
   }
@@ -116,13 +161,35 @@
     return(fallback("ninguna variable de calibración existe en la base"))
   }
   data[["peso"]] <- as.numeric(res$peso)
-  attr(data, "ponderacion_estado") <- reporte_ponderacion_estado(
+  # Los avisos del motor no se callan: los de nivel warn salen por el mismo
+  # warning() del fallback y todos viajan en el estado para el sello.
+  for (a in Filter(function(a) identical(a$level, "warn"), res$avisos %||% list())) {
+    warning(sprintf("Ponderación: %s", a$message), call. = FALSE)
+  }
+  estado <- reporte_ponderacion_estado(
     "aplicada",
     diagnostics = res$diagnostics,
     design_applied = res$design_applied,
     rake_applied = res$rake_applied,
     converged = res$converged
   )
+  if (length(res$avisos)) estado$avisos <- res$avisos
+  if (!is.null(res$peso_base)) estado$peso_base <- res$peso_base
+  if (identical(res$escala, "expansion")) {
+    estado$escala <- "expansion"
+    estado$total_poblacion <- res$total_poblacion
+  }
+  if (!is.null(res$recorte)) estado$recorte <- res$recorte
+  if (!is.null(res$faltantes)) estado$faltantes <- res$faltantes
+  if (!is.null(res$imputacion)) {
+    # El estado lleva el resumen; la marca por caso viaja en su propio atributo.
+    # La imputacion solo sirvio para el peso: las columnas de `data` no cambian.
+    estado$imputacion <- res$imputacion[c("semilla", "umbral", "metodo", "rng", "variables")]
+    if (length(res$imputacion$marca)) {
+      attr(data, "ponderacion_imputados") <- as.data.frame(res$imputacion$marca, check.names = FALSE)
+    }
+  }
+  attr(data, "ponderacion_estado") <- estado
   data
 }
 
@@ -268,7 +335,11 @@
   out <- list()
   add <- function(level, code, message) out[[length(out) + 1L]] <<- list(level = level, code = code, message = message)
   d <- res$diagnostics
-  if (isTRUE(res$rake_applied) && !isTRUE(res$converged)) {
+  # Avisos del motor (categoria sin casos, estrato sin poblacion, no converge,
+  # recorte...): van primero y con su detalle.
+  for (a in res$avisos %||% list()) out[[length(out) + 1L]] <- a
+  ya <- vapply(out, function(a) as.character(a$code %||% ""), character(1))
+  if (isTRUE(res$rake_applied) && !isTRUE(res$converged) && !"no_converge" %in% ya) {
     add("warn", "no_converge",
         "El raking no convergio. Suele deberse a objetivos incompatibles o categorias sin casos en la muestra.")
   }
@@ -305,7 +376,15 @@
 
   pond_cfg <- pond %||% cfg$ponderacion %||% list()
   norm <- .analitica_ponderacion_normalize(pond_cfg)
-  res <- tryCatch(ponderacion_compute(data, norm), error = function(e) NULL)
+  res <- tryCatch(ponderacion_compute(data, norm),
+                  api_error = function(e) e,
+                  error = function(e) NULL)
+  # Una config candidata invalida (peso base, expansion sin total) se explica en
+  # el preview en vez de quedar como un compute_error mudo.
+  if (inherits(res, "api_error")) {
+    return(list(ok = FALSE, reason = res$code, message = conditionMessage(res),
+                details = res$details))
+  }
   if (is.null(res)) return(list(ok = FALSE, reason = "compute_error"))
 
   list(
@@ -318,6 +397,12 @@
     iterations = res$iterations,
     diagnostics = res$diagnostics,
     margins = res$margins,
+    escala = res$escala,
+    total_poblacion = res$total_poblacion,
+    peso_base = res$peso_base,
+    recorte = res$recorte,
+    faltantes = res$faltantes,
+    imputacion = if (is.null(res$imputacion)) NULL else res$imputacion[c("semilla", "umbral", "metodo", "rng", "variables")],
     warnings = .analitica_ponderacion_warnings(res)
   )
 }

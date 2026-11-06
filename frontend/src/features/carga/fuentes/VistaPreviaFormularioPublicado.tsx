@@ -78,7 +78,7 @@ export function VistaPreviaFormularioPublicado({ vistaPrevia, grupoQa = "carga/f
           <span>{veredicto.detalle}</span>
           {vistaPrevia.fuentes.length > 1 ? (
             <span className="pulso-bfp-fuentes">
-              {vistaPrevia.fuentes.map((f) => `${f.titulo || f.survey_id || f.tipo}: ${formatoConteoDe(f.n_filas, "respuesta")}`).join(" · ")}
+              {vistaPrevia.fuentes.map((f) => `${f.titulo || f.survey_id || f.tipo}: ${formatoConteoDe(f.n_filas, "respuesta")}`).join(", ")}
             </span>
           ) : null}
         </div>

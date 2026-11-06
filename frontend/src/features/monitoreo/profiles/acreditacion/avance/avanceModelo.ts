@@ -1,5 +1,6 @@
 import { normalizeSourceMatch } from "../formato";
 import { rowNumber, rowText, type AcreditacionAdvanceCard } from "./tarjetasDeAvance";
+import { formatoConteo } from "../../../../../lib/formatoNumero";
 
 /**
  * Modelo puro de Avance › Resumen y Avance › Por público (A1 y A2 del diseño).
@@ -149,12 +150,15 @@ export function efectivasPorCanal(fuentes: ReadonlyArray<Record<string, unknown>
 }
 
 /** Marcas «redondas» para un eje de 0 a `maximo` (4 o 5 intervalos). */
-export function marcasDeEje(maximo: number): number[] {
-  if (!(maximo > 0)) return [0, 1];
-  const crudo = maximo / 4;
-  const potencia = 10 ** Math.floor(Math.log10(crudo));
-  const paso = [1, 1.25, 1.5, 2, 2.5, 3, 4, 5, 7.5, 10].map((factor) => factor * potencia).find((valor) => valor >= crudo) ?? crudo;
-  const marcas: number[] = [];
-  for (let valor = 0; valor < maximo + paso * 0.999; valor += paso) marcas.push(Math.round(valor * 1000) / 1000);
-  return marcas;
+export { marcasDeValores as marcasDeEje } from "../../../core/marcasDeValores";
+
+/**
+ * Los días que faltan a la meta al ritmo actual, en palabras. Más allá de tres
+ * meses la cifra exacta ya no informa —«≈ 693 días» se leía como un error— y
+ * se dice el orden de magnitud; la cifra queda en el tooltip.
+ */
+export const DIAS_PROYECCION_LEJANA = 90;
+export function rotuloDeDiasALaMeta(dias: number): string {
+  if (dias > DIAS_PROYECCION_LEJANA) return "Más de 3 meses";
+  return `≈ ${formatoConteo(dias)} ${dias === 1 ? "día" : "días"}`;
 }

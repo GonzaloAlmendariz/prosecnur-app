@@ -168,6 +168,14 @@ elegante.
   innecesaria y se ve fuera, como si no estuviera bien integrada»). El rótulo «SECCIÓN · GRUPO / Pestaña» comparte fila
   con la barra de herramientas de la pestaña (filtros, chips, acciones). Si la pestaña no tiene barra, el rótulo es el
   encabezado de su primera tarjeta. El rail ya indica la pestaña activa; no se repite un bloque suelto con ícono.
+- **Declaración L14 (2026-11-01): las dos formas de nombrar la pestaña y cuál manda.** El rótulo en la pestaña
+  (`telefonico/navegacion/RotuloDePestana`, que también usa Territorial) es la forma de esta regla y la que se busca.
+  La cabecera común en fila propia (`core/cabeceraDePestana`, 44 px) es el **respaldo** de las pestañas que aún no
+  componen su rótulo —la página la monta sólo cuando la pestaña no lo trae (`head={conRotulo ? null : …}`)—; no es un
+  patrón competidor y no se fusiona con el rótulo, porque devolvería la fila que esta regla quitó. Divergencia
+  pendiente: Acreditación tiene su propia implementación (`acreditacion/navegacion/rotuloDePestana.tsx`,
+  `CabeceraDeTarjeta`) que pinta sólo el antetítulo, sin el nombre de la pestaña; unificarla con la del telefónico es
+  el lote siguiente de L14.
 
 ## 2b. Un lenguaje de diseño común a los cuatro modos
 

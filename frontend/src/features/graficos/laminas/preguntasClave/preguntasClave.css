@@ -1,0 +1,62 @@
+/* «Pregunta clave del estudio» en la tarjeta del gráfico (PreguntaClave.tsx). Mide lo que su contenido pide: una fila
+   con su interruptor o, en las de varias preguntas, una lista de interruptores con el enunciado cortado por palabra. */
+
+.pulso-f6-clave-n {
+  margin-left: auto;
+  color: var(--pulso-text-faint);
+  font-size: var(--pulso-type-caption-size);
+  font-weight: var(--pulso-weight-regular);
+  font-variant-numeric: tabular-nums;
+}
+
+.pulso-f6-clave-lista {
+  display: grid;
+  gap: var(--pulso-space-1);
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pulso-f6-clave-fila {
+  min-width: 0;
+}
+
+.pulso-f6-clave-fila .pulso-switch-field-label,
+.pulso-f6-clave .pulso-switch-field-copy {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+/* Las de varias preguntas sin lista de nombres cortos: el enunciado largo se parte por palabra (el kit no lo parte). */
+.pulso-f6-clave .pulso-switch-field {
+  flex: 1 1 auto;
+  max-width: 100%;
+}
+
+.pulso-f6-clave .pulso-switch-field-label {
+  white-space: normal;
+}
+
+/* En «Nombre corto de cada pregunta» (EtiquetasCortas.tsx), una tercera columna con el interruptor «Clave». */
+.pulso-f6-etiquetas-cabeza {
+  display: flex;
+  align-items: baseline;
+  gap: var(--pulso-space-2);
+  min-width: 0;
+}
+
+.pulso-f6-etiquetas-cabeza .pulso-f6-dato-rotulo {
+  flex: 1 1 auto;
+}
+
+.pulso-f6-etiquetas-col-clave {
+  flex: none;
+  color: var(--pulso-text-faint);
+  font-size: var(--pulso-type-caption-size);
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.pulso-f6-etiqueta-pregunta.is-con-clave {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+}

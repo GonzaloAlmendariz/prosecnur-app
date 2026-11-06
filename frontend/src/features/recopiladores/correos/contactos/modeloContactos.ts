@@ -236,21 +236,24 @@ export function intensidadesDelCruce(cruce: CruceDelPerfil, vista: "casos" | "fi
 // ---- Resumen ------------------------------------------------------------------
 
 export type TarjetaDeResumen = {
-  id: "importados" | "efectivos" | "fuera" | "enlace" | "respondieron";
+  id: "importados" | "efectivos" | "fuera" | "enlace";
   titulo: string;
   valor: string;
   detalle: string;
   tono: "neutro" | "acento" | "aviso" | "exito";
 };
 
-export function tarjetasDeResumen(r: ResumenDeContactos, respuestasLeidas: boolean): TarjetaDeResumen[] {
+/**
+ * Las cifras de la lista a la que se escribe. «Respondieron» salió de aquí (R8 del mapa de
+ * responsabilidades, 2 nov 2026): cómo rinde el envío es avance y se sigue en Monitoreo.
+ */
+export function tarjetasDeResumen(r: ResumenDeContactos): TarjetaDeResumen[] {
   const fuera = r.sin_correo + r.correo_invalido + r.repetidos;
   const partesFuera = [
     r.sin_correo ? `${formatoConteo(r.sin_correo)} sin correo` : "",
     r.correo_invalido ? `${formatoConteo(r.correo_invalido)} con correo inválido` : "",
     r.repetidos ? `${formatoConteoDe(r.repetidos, "repetido")}` : "",
   ].filter(Boolean);
-  const leidas = respuestasLeidas && r.respondieron !== null;
   return [
     {
       id: "importados",
@@ -281,15 +284,6 @@ export function tarjetasDeResumen(r: ResumenDeContactos, respuestasLeidas: boole
         ? `${formatoPorcentaje(proporcion(r.con_enlace, r.efectivos))} de ${formatoConteo(r.efectivos)} efectivos`
         : "Todavía sin enlaces",
       tono: r.efectivos > 0 && r.con_enlace >= r.efectivos ? "exito" : "neutro",
-    },
-    {
-      id: "respondieron",
-      titulo: "Respondieron",
-      valor: leidas ? formatoConteo(r.respondieron) : "—",
-      detalle: leidas
-        ? `${formatoPorcentaje(proporcion(r.respondieron ?? 0, r.efectivos))} de ${formatoConteo(r.efectivos)} efectivos${r.leido_en ? ` · ${fechaLegible(r.leido_en)}` : ""}`
-        : "Aún no se lee quién respondió",
-      tono: leidas ? "exito" : "neutro",
     },
   ];
 }

@@ -6,12 +6,14 @@
 // quien la mira, y eso no se puede parametrizar desde aquí sin volver a
 // escribir una frase que valga para todas y no sirva para ninguna.
 //
-// De ahí el reparto: este componente pone el recuadro, el icono, la jerarquía y
-// la acción; quien lo usa pone el título, el dato y el destino.
+// De ahí el reparto: este componente pone la receta del kit (`EstadoVacio` en
+// tamaño `normal`, porque ocupa la sección entera) y la acción; quien lo usa
+// pone el título, el dato y el destino.
 
 import type { ReactNode } from "react";
 import type { LucideIcon } from "../../../vendor/lucide-react";
-import "./vacioConSalida.css";
+import { EstadoVacio } from "../../../components/EstadoVacio";
+import { PulsoButton } from "../../../components/PulsoButton";
 
 export function VacioConSalida({
   icon: Icon,
@@ -28,15 +30,16 @@ export function VacioConSalida({
   accion?: { label: string; onClick: () => void };
 }) {
   return (
-    <div className="mon-profile-empty mon-vacio-con-salida">
-      <span className="mon-profile-empty__icon"><Icon size={18} /></span>
-      <strong>{titulo}</strong>
-      <p>{dato}</p>
-      {accion ? (
-        <button type="button" className="mon-vacio-con-salida__accion" onClick={accion.onClick}>
+    <EstadoVacio
+      tamano="normal"
+      icono={<Icon size={18} />}
+      titulo={titulo}
+      descripcion={dato}
+      accion={accion ? (
+        <PulsoButton type="button" variant="secondary" size="sm" onClick={accion.onClick}>
           {accion.label}
-        </button>
-      ) : null}
-    </div>
+        </PulsoButton>
+      ) : undefined}
+    />
   );
 }

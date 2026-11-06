@@ -2,7 +2,7 @@
 // uso), dónde está la pieza, su código y las acciones: mover, duplicar, llevar a otra sección y eliminar.
 
 import { useRef, useState, type CSSProperties } from "react";
-import { ArrowDown, ArrowRightLeft, ArrowUp, ChevronDown, Copy } from "../../../../vendor/lucide-react";
+import { ArrowRightLeft, ChevronDown, Copy } from "../../../../vendor/lucide-react";
 import { Sello, TIPOS_PREGUNTA, TONO_FAMILIA, tipoPregunta } from "../../kit";
 import { referenciasRotasAlEliminar, seccionesDestino, type SeccionDestino } from "../../state/accionesConstructor";
 import { corto } from "../../kit/CuerpoPanelMarca";
@@ -22,10 +22,7 @@ export type CabeceraFichaProps = {
   posicion: string;
   usosDeLaLista: number;
   destinos: SeccionDestino[];
-  puedeSubir: boolean;
-  puedeBajar: boolean;
   onTipo?: (base: string) => void;
-  onMover: (dir: "up" | "down") => void;
   onDuplicar: () => void;
   onMoverASeccion: (fila: number | null) => void;
   onEliminar: () => void;
@@ -33,7 +30,7 @@ export type CabeceraFichaProps = {
   referencias?: number;
 };
 
-export function CabeceraFicha({ node, posicion, usosDeLaLista, destinos, puedeSubir, puedeBajar, onTipo, onMover, onDuplicar, onMoverASeccion, onEliminar, referencias = 0 }: CabeceraFichaProps) {
+export function CabeceraFicha({ node, posicion, usosDeLaLista, destinos, onTipo, onDuplicar, onMoverASeccion, onEliminar, referencias = 0 }: CabeceraFichaProps) {
   const base = node.kind === "repeat" ? "begin_repeat" : node.kind === "section" ? "begin_group" : node.typeInfo.base;
   const tipo = tipoPregunta(base);
   const [menu, setMenu] = useState<"tipo" | "mover" | null>(null);
@@ -88,8 +85,8 @@ export function CabeceraFicha({ node, posicion, usosDeLaLista, destinos, puedeSu
       <div className="xfh-cab__der">
         {node.name ? <code className="xfh-cab__code" title="Código en la base">{node.name}</code> : null}
         <div className="xfh-cab__acc" role="group" aria-label="Acciones">
-          <button type="button" className="xfh-icono" onClick={() => onMover("up")} disabled={!puedeSubir} aria-label="Subir un lugar" title="Subir un lugar"><ArrowUp size={14} aria-hidden="true" /></button>
-          <button type="button" className="xfh-icono" onClick={() => onMover("down")} disabled={!puedeBajar} aria-label="Bajar un lugar" title="Bajar un lugar"><ArrowDown size={14} aria-hidden="true" /></button>
+          {/* Sin ↑ ↓ (decisión de Gonzalo, 2026-11-01): el orden se cambia con un solo gesto, el asa de la
+              Estructura o Alt+↑ / Alt+↓ en su fila, como desde 45b5cc1a4. */}
           <button type="button" className="xfh-icono" onClick={onDuplicar} aria-label="Duplicar" title="Duplicar"><Copy size={14} aria-hidden="true" /></button>
           <span className="xfh-cab__mover">
             <button
@@ -153,10 +150,7 @@ export function CabeceraDesdeDatos({ datos, posicion, conTipo }: { datos: DatosF
       posicion={posicion}
       usosDeLaLista={usosPorLista.get(node.typeInfo.listName) ?? 0}
       destinos={destinos}
-      puedeSubir={acciones.puedeSubir}
-      puedeBajar={acciones.puedeBajar}
       onTipo={conTipo ? acciones.tipo : undefined}
-      onMover={acciones.mover}
       onDuplicar={acciones.duplicar}
       onMoverASeccion={acciones.moverASeccion}
       onEliminar={acciones.eliminar}

@@ -1,3 +1,4 @@
+import { enumerar } from "../../../../lib/enumerar";
 import type { MonitoreoAulasLibroConversacion } from "../../../../api/monitoreo";
 import type { TonoAviso } from "./avisoLibroImportado";
 import { fraseDeHoja } from "./avisoLibroPublicado";
@@ -52,6 +53,10 @@ export function avisoConversacion(
         tono: "atencion",
       };
     }
+    // ADR 0125: el documento vacío ya no se siembra desde aquí; lo construye Material.
+    if (motivo === "sin_construir") {
+      return { texto: "El libro todavía no se construyó en el Sheets: se construye en Material › Entrega.", tono: "atencion" };
+    }
     if (motivo === "publicacion_fallo") {
       const partes: string[] = [];
       // Solo se afirma que algo entró si de verdad se leyó algo: en un
@@ -93,7 +98,7 @@ export function avisoConversacion(
   const hojas = res.publicado?.hojas ?? [];
   if (hojas.length) mitades.push(...hojas.map(fraseDeHoja));
 
-  const frases: string[] = [`Libro conversado con el Sheets: ${mitades.join(" · ")}.`];
+  const frases: string[] = [`Libro conversado con el Sheets: ${enumerar(mitades)}.`];
   const ausentes = res.leido?.hojas_ausentes ?? [];
   if (ausentes.length) {
     // La causa, no solo el hecho: «sin partes nuevas» con la hoja ausente

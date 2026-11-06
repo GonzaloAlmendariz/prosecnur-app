@@ -21,16 +21,7 @@ import { FichasPruebaHistorico } from "./FichasPruebaHistorico";
 import { JobProgress } from "../../components/JobProgress";
 import { Panel } from "../../components/Panel";
 import { PulsoButton } from "../../components/PulsoButton";
-import {
-  Archive,
-  CheckCircle2,
-  Download,
-  UploadCloud,
-  FileText,
-  Image,
-  Layers,
-  Loader2,
-} from "../../vendor/lucide-react";
+import { Archive, CheckCircle2, Download, FileText, Image, Layers, Loader2, UploadCloud } from "../../vendor/lucide-react";
 import type { RecopiladoresPestana } from "./navegacion";
 import { deploymentStatusLabel } from "./providerRules";
 import { VacioSinPlanCard } from "./VacioSinPlanCard";
@@ -39,6 +30,13 @@ import "./styles/materials.css";
 import "./driveDeFichas.css";
 import { composicionDelPlan, unidadesDelPlan } from "./codigoOperativo";
 import { fichasAlDia, fichasHechasDelEstado, instanciaReutilizable } from "./fichasDelEstado";
+import { nombreDeReceta } from "./editor/modeloEditor";
+import { LoadingBlock } from "../../components/States";
+import { Alert } from "../../components/Alert";
+import { CifrasEnTarjeta } from "../../components/CifrasEnTarjeta";
+import { serializarDireccion } from "../../lib/navegacion/direccion";
+import { FormatoDeSalida, FormatosDeSalida } from "./PaquetesAulasTablero";
+import { enumerar } from "../../lib/enumerar";
 
 type Props = {
   payload: CollectionStatePayload | null;
@@ -67,6 +65,9 @@ export { bindingLabel, materialFieldBinding, materialFieldCanvasLabel } from "./
  * Sin plan no se inventa un denominador: se dice la cuenta a secas, porque «0
  * de 0» promete una comparación que no se puede hacer.
  */
+const A_ACCESOS = serializarDireccion({ modulo: "material-campo", seccion: "accesos" });
+const conMayuscula = (t: string) => (t ? t.charAt(0).toLocaleUpperCase("es-PE") + t.slice(1) : t);
+
 export function cuentaDeFichas(hechas: number, delPlan: number): string {
   const n = (v: number) => v.toLocaleString("es-PE");
   return delPlan > 0 ? `${n(hechas)} de ${n(delPlan)}` : n(hechas);
@@ -129,14 +130,14 @@ export function MaterialsSection({ payload, activeTab, onStateRefresh, onArtifac
   // creaba 2.616.
   const aulasDelPlan = unidadesDelPlan(payload?.state.plan);
   const composicion = composicionDelPlan(payload?.state.plan);
-  // Por que estan apagados los tres botones de render. `null` cuando no lo
-  // estan: asi el vacio y los `title` preguntan lo mismo en un solo sitio.
+  // Por qué están apagados los botones de render y «Crear las fichas». `null` cuando no lo
+  // están: así el vacío y los `title` preguntan lo mismo en un solo sitio.
   const motivoBloqueo = deployment
     ? null
-    : "Todavia no hay accesos preparados, asi que la ficha no tiene enlace que codificar.";
+    : "Todavía no hay accesos preparados, así que la ficha no tiene enlace que codificar.";
   // Del estado persistido: una instancia cubre muchas unidades y sobrevive a
   // la visita, así que contar las creadas en esta sesión daba «0 de 2,373».
-  const fichasHechas = cuentaDeFichas(fichasHechasDelEstado(payload?.state), aulasDelPlan);
+  const hechas = fichasHechasDelEstado(payload?.state);
   // Con todas las unidades cubiertas, crear de nuevo sólo duplicaría la instancia.
   const alDia = fichasAlDia(payload?.state);
 
@@ -279,10 +280,35 @@ export function MaterialsSection({ payload, activeTab, onStateRefresh, onArtifac
     return <VacioSinPlanCard vacio={vacioSinPlan("paquetes")} icono={<Archive size={18} />} onIr={onIr} />;
   }
 
-  if (loading) return <div className="rec-loading">Leyendo la plantilla de la ficha…</div>;
+  if (loading) return <LoadingBlock label="Leyendo la plantilla de la ficha…" />;
 
   if (activeTab === "armado") {
     return (
+      <div className="rec-paquetes-pagina">
+      {/* Pasada de diseño (2 nov 2026): las cifras del lote arriba, en tarjetas; el motivo del bloqueo una
+          sola vez, con su acción, y no repetido en un vacío al pie del panel de render. */}
+      <CifrasEnTarjeta
+        cifras={[
+          {
+            id: "fichas", rotulo: "Fichas creadas", valor: hechas.toLocaleString("es-PE"), de: aulasDelPlan,
+            avance: { valor: hechas, total: aulasDelPlan, etiqueta: "Fichas creadas del plan" },
+          },
+          { id: "titulares", rotulo: "Titulares", valor: composicion.titulares.toLocaleString("es-PE"), nota: "las aulas que se visitan" },
+          { id: "reemplazos", rotulo: "Reemplazos", valor: composicion.reemplazos.toLocaleString("es-PE"), nota: "si una titular no se puede" },
+          { id: "adicionales", rotulo: "Adicionales", valor: composicion.adicionales.toLocaleString("es-PE"), nota: "el banco de reserva" },
+        ]}
+      />
+      {motivoBloqueo ? (
+        <Alert
+          kind="warn"
+          acciones={onIr ? <PulsoButton variant="secondary" size="sm" onClick={() => onIr(A_ACCESOS)}>Ir a Accesos</PulsoButton> : undefined}
+        >
+          <span className="rec-paq-bloqueo">
+            <strong>{motivoBloqueo}</strong>{" "}
+            Los accesos se preparan en la sección Accesos: cada curso-horario recibe ahí el enlace que va en su QR.
+          </span>
+        </Alert>
+      ) : null}
       <div className="rec-package-layout">
         <Panel
           className="rec-package-card"
@@ -290,38 +316,15 @@ export function MaterialsSection({ payload, activeTab, onStateRefresh, onArtifac
           title={<><Archive size={18} aria-hidden /> La ficha de estos accesos</>}
         >
           <dl>
-            <div><dt>Plantilla</dt><dd>{template.template_id}</dd></div>
-            <div><dt>Accesos</dt><dd>{deployment?.deployment_id ?? "pendiente"}</dd></div>
-            {/* Con su denominador: «Fichas 0» no dice de cuántas, y las que
-                hay que hacer son las aulas que se van a visitar. Es el mismo
-                ancla que ya lleva el vacío de Accesos —«Ninguna de las 193
-                aulas del plan tiene acceso todavía»— y aquí faltaba. */}
-            <div>
-              <dt>Fichas</dt>
-              <dd>
-                {fichasHechas}
-                {/* El total con su composición: «2.616» a secas no dice que ahí
-                    dentro van los tres cajones que el paquete reparte por
-                    facultad, y sin eso se lee como si se fuera a visitar 2.616
-                    aulas. */}
-                {aulasDelPlan > 0 && composicion.titulares > 0 ? (
-                  <small className="rec-cuenta-composicion">
-                    {composicion.titulares.toLocaleString("es-PE")} titulares
-                    {composicion.reemplazos > 0
-                      ? ` · ${composicion.reemplazos.toLocaleString("es-PE")} reemplazos` : ""}
-                    {composicion.adicionales > 0
-                      ? ` · ${composicion.adicionales.toLocaleString("es-PE")} adicionales` : ""}
-                  </small>
-                ) : null}
-              </dd>
-            </div>
-            <div><dt>Estado</dt><dd>{deployment ? deploymentStatusLabel(deployment.status) : "sin preparar"}</dd></div>
+            {/* El nombre del catálogo, no el id interno («template-ficha-aplicacion-a4-v1»). */}
+            <div><dt>Plantilla</dt><dd title={template.template_id}>{nombreDeReceta(template)}</dd></div>
+            <div><dt>Accesos</dt><dd title={deployment?.deployment_id ?? undefined}>{deployment ? conMayuscula(deploymentStatusLabel(deployment.status)) : "Sin preparar"}</dd></div>
           </dl>
           <PulsoButton
             variant="secondary"
             onClick={() => { void createInstances(); }}
             disabled={!deployment || instanceBusy || alDia}
-            title={alDia ? "Las fichas vigentes ya cubren todas las unidades del plan." : undefined}
+            title={alDia ? "Las fichas vigentes ya cubren todas las unidades del plan." : motivoBloqueo ?? undefined}
           >
             {instanceBusy ? <Loader2 size={15} className="pulso-spin" /> : alDia ? <CheckCircle2 size={15} /> : <Layers size={15} />}
             {alDia ? " Fichas al día" : " Crear las fichas"}
@@ -338,11 +341,17 @@ export function MaterialsSection({ payload, activeTab, onStateRefresh, onArtifac
               que meter en el QR— y el motivo vivia arriba a la derecha, en otra
               banda, como «accesos sin preparar». Quien pulsa mira el boton, no
               la esquina opuesta. */}
-          <div className="rec-render-actions">
-            <PulsoButton variant="secondary" title={motivoBloqueo ?? undefined} onClick={() => { void render("png"); }} disabled={!deployment || Boolean(jobId)}><Image size={15} /> Ver imagen</PulsoButton>
-            <PulsoButton variant="primary" title={motivoBloqueo ?? undefined} onClick={() => { void render("pdf"); }} disabled={!deployment || Boolean(jobId)}><FileText size={15} /> Generar PDF</PulsoButton>
-            <PulsoButton variant="secondary" title={motivoBloqueo ?? undefined} onClick={() => { void render("bundle"); }} disabled={!deployment || Boolean(jobId)}><Archive size={15} /> Generar el paquete</PulsoButton>
-          </div>
+          <FormatosDeSalida>
+            <FormatoDeSalida icono={<Image size={16} />} titulo="Imagen de una ficha" descripcion="La primera ficha en PNG, para revisarla antes de generar el lote.">
+              <PulsoButton variant="secondary" size="sm" title={motivoBloqueo ?? undefined} onClick={() => { void render("png"); }} disabled={!deployment || Boolean(jobId)}><Image size={15} /> Ver imagen</PulsoButton>
+            </FormatoDeSalida>
+            <FormatoDeSalida principal icono={<FileText size={16} />} titulo="PDF del lote" descripcion="Todas las fichas del plan en un solo PDF, listo para imprimir.">
+              <PulsoButton variant="primary" size="sm" title={motivoBloqueo ?? undefined} onClick={() => { void render("pdf"); }} disabled={!deployment || Boolean(jobId)}><FileText size={15} /> Generar PDF</PulsoButton>
+            </FormatoDeSalida>
+            <FormatoDeSalida icono={<Archive size={16} />} titulo="Paquete por facultad" descripcion="Un ZIP con las fichas repartidas en carpetas, titulares y reservas aparte.">
+              <PulsoButton variant="secondary" size="sm" title={motivoBloqueo ?? undefined} onClick={() => { void render("bundle"); }} disabled={!deployment || Boolean(jobId)}><Archive size={15} /> Generar el paquete</PulsoButton>
+            </FormatoDeSalida>
+          </FormatosDeSalida>
           {/* **La ficha de ensayo no es un formato mas, por eso va aparte.**
               No sale del plan ni deja instancia: es una hoja con el MISMO
               enlace del operativo y un colector inventado, para escanearla
@@ -373,7 +382,7 @@ export function MaterialsSection({ payload, activeTab, onStateRefresh, onArtifac
               {renderResult.media_type === "image/png" ? (
                 <img src={downloadUrl(renderResult.file_id)} alt="La ficha tal como la genera Pulso" />
               ) : null}
-              <div><strong>{renderResult.filename}</strong><span>{renderResult.media_type} · {renderResult.page_count} páginas · {renderResult.size_bytes} bytes</span><code>{renderResult.sha256}</code></div>
+              <div><strong>{renderResult.filename}</strong><span>{enumerar([renderResult.media_type, `${renderResult.page_count} páginas`, `${renderResult.size_bytes.toLocaleString("es-PE")} bytes`])}</span><code>{renderResult.sha256}</code></div>
               <a href={downloadUrl(renderResult.file_id)}><Download size={14} /> Descargar la ficha</a>
               <div className="rec-drive">
                 <button type="button" onClick={() => { void enviarAlDrive(); }} disabled={driveBusy}>
@@ -395,23 +404,13 @@ export function MaterialsSection({ payload, activeTab, onStateRefresh, onArtifac
                se pueden generar: informacion correcta contestando otra
                pregunta. Con accesos listos vuelve a ser esa nota, que ahi si es
                lo unico que queda por decir. */
-            <div className="rec-contained-empty">
-              {motivoBloqueo ? (
-                <>
-                  <strong>{motivoBloqueo}</strong>
-                  <span>
-                    Los accesos se preparan en la seccion Accesos: cada
-                    curso-horario recibe su enlace y ese enlace es lo que va
-                    dentro del QR de su ficha.
-                  </span>
-                </>
-              ) : (
-                "El archivo y su vista previa los genera Pulso, y no se guardan dentro del proyecto."
-              )}
-            </div>
+            motivoBloqueo ? null : (
+              <p className="rec-render-nota">El archivo y su vista previa los genera Pulso, y no se guardan dentro del proyecto.</p>
+            )
           )}
           {error ? <p className="rec-inline-error" role="alert">{error}</p> : null}
         </Panel>
+      </div>
       </div>
     );
   }

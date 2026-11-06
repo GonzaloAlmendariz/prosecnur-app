@@ -213,3 +213,23 @@ test_that("la caja no se lee como texto del usuario ni como campo", {
   expect_true("box" %in% .CMAIL_NON_TEXT_KEYS)
   expect_false(any(vapply(.cmail_key_targets(t, c("tinte", "auto")), function(x) identical(x$prop, "box"), logical(1))))
 })
+
+test_that("join «siguiente» (L10): sin el hueco de 16 px y esquinas rectas donde se tocan; sin join, como siempre", {
+  t <- .cmail_template_normalize(.cmail_preset_invitacion_encuesta())
+  caja <- list(bg = "acento", corners = "suaves")
+  t$blocks <- append(t$blocks, list(
+    list(block_id = "img-sorteo", type = "paragraph", text = "Arriba", box = c(caja, list(join = "siguiente"))),
+    list(block_id = "txt-sorteo", type = "paragraph", text = "Abajo", box = caja)), after = 1L)
+  expect_true(collection_mail_template_validate(t)$ok)
+  html <- collection_mail_render(t, mode = "export", dialect = "mailchimp")$html
+  expect_match(html, 'style="padding:0 24px 0px 24px;"', fixed = TRUE)
+  expect_match(html, "border-radius:8px 8px 0px 0px;", fixed = TRUE)
+  expect_match(html, "border-radius:0px 0px 8px 8px;", fixed = TRUE)
+  # Sin join no cambia nada.
+  t$blocks[[2]]$box$join <- NULL
+  html2 <- collection_mail_render(t, mode = "export", dialect = "mailchimp")$html
+  expect_false(grepl("0px 0px 8px 8px", html2, fixed = TRUE))
+  expect_false(grepl('padding:0 24px 0px 24px;', html2, fixed = TRUE))
+  t$blocks[[2]]$box$join <- "anterior"
+  expect_true("bad_box_join" %in% vapply(collection_mail_template_validate(t)$problems, `[[`, "", "code"))
+})

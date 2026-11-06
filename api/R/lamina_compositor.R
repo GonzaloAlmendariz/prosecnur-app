@@ -25,19 +25,19 @@
   .lam_txt(lz, titulo, ml, yt + 0.06, 10.4, 0.5, .std_pt("titulo"), .std_color("coral"), bold = TRUE, nombre = "Titulo lamina")
   # P8: un título de dos o más líneas empuja el subtítulo lo que miden las líneas de más (lamina_titulo_alto.R).
   baja <- (max(1L, .lam_lineas_tinta(trimws(as.character(titulo %||% "")[1]), 10.4, .std_pt("titulo"), TRUE)) - 1L) * .std_pt("titulo") * 1.2 / 72
-  if (!is.null(sub) && nzchar(sub)) .lam_txt(lz, sub, ml, yt + 0.55 + baja, 10.4, 0.32, 12.5, .std_color("texto_suave"), nombre = "Subtitulo lamina")
+  if (!is.null(sub) && nzchar(sub)) .lam_txt(lz, sub, ml, yt + 0.55 + baja, 10.4, 0.4, .std_pt("subtitulo"), .std_color("azul"), nombre = "Subtitulo lamina")   # 18 pt azul, como Conta
   .lam_agrupar(doc, lz, nombre = "prosecnur:titulo")
 }
 
-#' Pie de la lámina: base en negrita y folio a la derecha
+#' Pie de la lámina: base en peso normal y folio a la derecha
 #' @keywords internal
 .lam_pie <- function(doc, base, folio) {
   g <- .std_geom; lz <- .lam_lienzo()
   # La vista previa arma un mini-plan de una lámina y la corre a su lugar en el plan (K2, graficos_preview_lamina.R).
   desplazo <- getOption("prosecnur.lam_folio_desplazo", 0L)
   if (!is.null(folio) && desplazo != 0L) folio <- folio + desplazo
-  if (!is.null(base) && nzchar(base)) .lam_txt(lz, base, g("margen_izq"), g("base_y"), 10.5, 0.4, .std_pt("base"), .std_color("azul"), bold = TRUE, nombre = "Base lamina")
-  if (!is.null(folio)) .lam_txt(lz, as.character(folio), g("ancho") - g("margen_der") - 0.6, g("base_y"), 0.6, 0.3, .std_pt("base"),
+  if (!is.null(base) && nzchar(base)) .lam_txt(lz, base, .std_comp("pie", "base_x"), .std_comp("pie", "base_y"), 10.5, 0.4, .std_pt("base"), .std_color("azul"), bold = isTRUE(.std_comp("pie", "base_negrita")), nombre = "Base lamina")   # ítem 24: como Conta (composicion.pie del estándar)
+  if (!is.null(folio)) .lam_txt(lz, as.character(folio), .std_valor("ppt", "geometria", "ancho") - .std_valor("ppt", "geometria", "margen_der") - 0.6, .std_comp("pie", "base_y"), 0.6, 0.3, .std_pt("base"),   # en la línea de «Base:»; folio crudo: un panel a la derecha (tarjetas) no lo corre
                                 .std_color("texto_suave"), align = "right", nombre = "Folio lamina")
   .lam_agrupar(doc, lz, nombre = "prosecnur:pie")
 }
@@ -54,23 +54,31 @@
   # El documento officer se modifica en sitio: un folio perezoso (`length(doc) + 1L`) se evaluaría después del
   # primer add_slide y saldría corrido. Se fuerza antes de tocar el documento (verificador de N1).
   force(folio)
-  .op_piso <- .grosor_piso_slot(espec$grosor_piso_cm); on.exit(options(.op_piso), add = TRUE)   # N1: piso del slot
+  .op_piso <- c(.grosor_piso_slot(espec$grosor_piso_cm), .lam_escala_ensanche_previa()); on.exit(options(.op_piso), add = TRUE)   # N1: piso del slot; ensanche justo
+  .op_ley <- options(prosecnur.lam_filas_leyenda = .lam_escala_filas_leyenda(espec)); on.exit(options(.op_ley), add = TRUE)   # la leyenda de varias filas reserva su alto
   # Un título de más de tres líneas baja la zona de datos antes de planear las partes (lamina_titulo_alto.R).
   .lam_con_titulo(c(titulo, .particion_titulo_cont(titulo)), {
-  premisas <- .lam_escala_premisas(espec)
+  premisas <- .lam_escala_premisas(espec); if (!.lam_escala_modo_filas(espec)) .lam_escala_ensanche_fijar(premisas, espec)   # lamina_escala_ensanche_justo.R
   # Con fila Total o Bottom Two Box el recetario compone filas bajo cada pregunta (lámina 77); se parte por
   # bloques y, si hace falta, por filas repitiendo la Total (verificador de N2).
   en_filas <- .lam_escala_modo_filas(espec)
   partes <- if (en_filas) .lam_filas_planear(espec, premisas) else
     .lam_escala_partir(premisas, aire_min_fn = function(p) .lam_escala_aire_minimo(p, chica = .lam_escala_chica_por_premisa(espec, p))$alto)   # M1 con piso
   .lam_aviso_partes(titulo, list(premisas), length(partes))
+  arriba_ok <- !en_filas && .lam_escala_arriba_partes(espec, partes)   # v7.23, ítem 7: todas las partes con tarjetas, o ninguna
   for (k in seq_along(partes)) {
     doc <- officer::add_slide(doc, layout = layout, master = master)
     # El subtítulo sólo en la primera parte, bajo el título (recetario.R:122); el aviso del título, una vez por lámina.
     doc <- .lam_titulo(doc, if (k > 1) .particion_titulo_cont(titulo) else titulo, ante = ante, sub = if (k == 1L) sub else NULL, avisar = k == 1L)   # «(cont.)» una sola vez
     lz <- .lam_lienzo()
-    if (en_filas) .lam_bloque_filas(lz, espec, partes[[k]]) else .lam_bloque_escala(lz, espec, partes[[k]], solo = length(partes) == 1L,
-                                                                                  titulo_lamina = titulo, encabezar_tema = length(premisas) == 1L)
+    tp <- if (en_filas) NULL else .lam_escala_tarjetas_parte(partes[[k]], espec)   # v7.23, ítems 7 y 12 (lamina_escala_premisa_arriba.R)
+    op_tp <- if (!is.null(tp)) options(prosecnur.lam_reserva_derecha = tp$reserva, prosecnur.lam_leyenda_ancho_completo = FALSE) else list()
+    bloque <- function(lz, desplazar = 0) .lam_bloque_escala(lz, espec, partes[[k]], solo = length(partes) == 1L, titulo_lamina = titulo,
+                                                            encabezar_tema = length(premisas) == 1L, desplazar = desplazar,
+                                                            negrita = !nzchar(sub %||% ""))   # lámina por público: preguntas sin negrita, como Conta
+    if (en_filas) .lam_bloque_filas(lz, espec, partes[[k]]) else if (isTRUE(tp$arriba) && arriba_ok) .lam_bloque_escala_arriba(lz, espec, partes[[k]], negrita = !nzchar(sub %||% "")) else
+      bloque(lz, .lam_escala_centrar(bloque(.lam_lienzo())))   # centrado si sobra alto
+    options(op_tp)
     doc <- .lam_agrupar(doc, lz, nombre = "prosecnur:grafico:escala")
     doc <- .lam_pie(doc, if (en_filas) base else .lam_base_de_parte_escala(base, espec, partes, k), if (is.null(folio)) NULL else folio + k - 1L)
     doc <- por_lamina(doc)
@@ -96,12 +104,12 @@
       vigente <<- as.character(t)[1]
       # Subcapítulo sin lámina (G8, recetario 58): su primera lámina lo anuncia con «n.m  Título».
       info <- secciones[[k]]
-      anuncio <<- if (identical(info$variante, "sin_lamina")) paste0(info$numero, "  ", vigente) else NULL
+      anuncio <<- if (identical(info$variante, "sin_lamina") && .lam_antetitulo_seccion_activo()) paste0(info$numero, "  ", vigente) else NULL
       return(as.character((slide$meta %||% list())$antetitulo %||% vigente)[1])
     }
     propio <- (slide$meta %||% list())$antetitulo
     if (is.null(propio) && !is.null(anuncio)) { a <- anuncio; anuncio <<- NULL; return(a) }
-    as.character(propio %||% vigente)[1]
+    as.character(propio %||% if (.lam_antetitulo_seccion_activo()) vigente else NA_character_)[1]   # lamina_antetitulo_seccion.R
   }, character(1))
 }
 
@@ -116,6 +124,8 @@
   if (!is.null(ml)) return(!identical((slide$meta %||% list())$motor_nativo, FALSE) && isTRUE(.lam_multilista_cabe(ml)))
   espec <- if (inherits(p, "ggplot")) attr(p, "pulso_espec") else NULL
   if (is.null(espec)) return(FALSE)
+  if (identical(espec$tipo, "total_y_cruce")) return(.lam_total_y_cruce_aplica(espec, slide))   # total arriba y cruce abajo (lamina_total_y_cruce.R)
+  if (.lam_dif_es(p)) return(!identical((slide$meta %||% list())$motor_nativo, FALSE))   # resumen de diferencias y hallazgos (lamina_resumen_diferencias.R)
   # N4: los gráficos de números son nativos cuando traen su especificación con grupos que dibujar.
   # N4: los gráficos de números son nativos cuando caben (rótulos, cifras, series que no se encimen); lo que no
   # cabe sigue por la ruta anterior (verificador de N4).
@@ -194,6 +204,7 @@
                                 titulo_de_var = NULL) {
   # G4: una lámina apaga la leyenda en el antetítulo con `meta$leyenda_antetitulo = FALSE` (lamina_antetitulo_leyenda.R).
   if (identical((slide$meta %||% list())$leyenda_antetitulo, FALSE)) { op <- options(prosecnur.lam_leyenda_antetitulo = FALSE); on.exit(options(op), add = TRUE) }
+  if (.lam_dif_es(p)) return(.lam_dif_slide_1(doc, p, slide, titulo, antetitulo, layout, master, por_lamina, sin_base))   # lamina_resumen_diferencias.R
   slots <- slide$slots %||% list()
   como_texto <- function(x) if (inherits(x, "ppt_element_text")) x$text else if (is.character(x)) x else NULL
   base <- if (isTRUE(sin_base)) NULL else como_texto(slots$base)
@@ -212,6 +223,7 @@
   }
   espec <- .lam_con_estilo_dicotomia(attr(p, "pulso_espec"), el_plot)   # el slot pide el estilo de la dicotómica
   espec <- .lam_espec_menor_uno(espec)   # U5: «0%» con casos se escribe «<1%» (lamina_cifra_menor_uno.R)
+  espec <- .lam_espec_con_tamanos(espec, el_plot)   # los tamaños que declara el gráfico (lamina_tamanos_declarados.R)
   base_var <- .base_nombre_visible(sub("\\$.*$", "", as.character(el_plot$var %||% "")[1]))   # «default» no se nombra (graficos_base_por_base.R)
   texto <- function(x) if (is.null(x) || !length(x) || is.na(x[1]) || !nzchar(trimws(as.character(x)[1]))) NULL else trimws(as.character(x)[1])
   # La base de una categórica viaja en la nota del gráfico (su caption en la ruta anterior).
@@ -271,6 +283,10 @@
       serie2 = do.call(.lam_laminas_serie2, comunes))
     return(o$doc)
   }
+  if (identical(espec$tipo, "total_y_cruce")) {   # total arriba y cruce abajo (lamina_total_y_cruce.R)
+    return(.lam_laminas_total_y_cruce(doc, espec, titulo = texto(titulo) %||% "", ante = texto(antetitulo), base = .lam_unir_base(texto(base), texto(pie)),
+                                      folio = length(doc) + 1L, layout = layout, master = master, por_lamina = por_lamina)$doc)
+  }
   if (identical(espec$tipo, "ggplot_marco")) {
     return(.lam_laminas_ggplot(doc, p, espec, titulo = texto(titulo) %||% "", ante = texto(antetitulo),
                                base = .lam_unir_base(texto(base), texto(pie), espec$lectura), folio = length(doc) + 1L, sub = texto(subtitulo),
@@ -322,24 +338,28 @@
                                     layout = layout, master = master, por_lamina = por_lamina)$doc)
   }
   if (identical(espec$tipo, "categorica") && identical(espec$forma, "lollipop")) {
-    # Ranking con puntos (lámina 72); en selección múltiple lleva el encabezado del recetario.
+    # Ranking con puntos (lámina 72). El encabezado sobre los puntos lo escribe el analista; el motor no pone uno de
+    # fábrica (Gonzalo, 2026-10-29: «% de encuestados que marcó cada opción» deja de salir por defecto).
     # La nota del recorte («Se muestran 5 de 12 categorías.») va siempre en el pie, junto a la base.
     return(.lam_laminas_lollipop(doc, espec, titulo = texto(titulo) %||% "", ante = texto(antetitulo),
                                  base = paste(c(texto(base), texto(pie), texto(espec$nota_recorte)), collapse = ". "), folio = length(doc) + 1L, sub = texto(subtitulo),
-                                 encabezado = espec$encabezado %||% (if (sum(espec$valores) > 1.02) "% de encuestados que marcó cada opción" else NULL),
+                                 encabezado = espec$encabezado,
                                  layout = layout, master = master, por_lamina = por_lamina)$doc)
   }
   if (.lam_dicotomia_cabe(espec, .std_geom("ancho") - .std_geom("margen_izq") - .std_geom("margen_der"))) {
     # Dos categorías que reparten el 100 % de un público: la dicotomía partida a todo el ancho (lámina 74). La
     # pregunta encabeza el panel cuando la lámina tiene su propio título; si no, el título ya es la pregunta.
     pregunta <- if (!is.null(slide$title)) .lam_pregunta_dicotomia(el_plot, titulo_de_var)   # lamina_pregunta_dicotomia.R
+    # B6 (CCSS 2026, láminas 73 y 78): la pregunta que ya es el título de la lámina no se repite encima de la barra.
+    if (.lam_mismo_texto(pregunta, texto(titulo))) pregunta <- NULL
     n_pub <- .espec_n_base(espec)
     publico <- .lam_dicotomia_publico(n_pub, base_var, el_plot$var, el_plot$overrides, espec)
     return(.lam_laminas_dicotomia(doc, espec, titulo = texto(titulo) %||% "", ante = texto(antetitulo), pregunta = pregunta,
                                   publico = publico, base = paste(c(texto(base), texto(pie)), collapse = ". "),
                                   folio = length(doc) + 1L, sub = texto(subtitulo), layout = layout, master = master,
                                   por_lamina = por_lamina,
-                                  vertical = identical((el_plot$overrides %||% list())$orientacion_dicotomica, "vertical"))$doc)
+                                  vertical = identical((el_plot$overrides %||% list())$orientacion_dicotomica, "vertical"),
+                                  actor = .crc_mayuscula_inicial(base_var))$doc)   # rótulo de fila de la Sí/No como escala
   }
   if (identical(espec$tipo, "categorica")) {
     # La pregunta categórica va en columnas (lámina 68); «N estudiantes» nombra al público de la base.
@@ -351,7 +371,7 @@
     return(.lam_laminas_categorica(doc, espec, titulo = texto(titulo) %||% "", ante = texto(antetitulo),
                                    base = paste(c(texto(base), texto(pie)), collapse = ". "), folio = length(doc) + 1L,
                                    sub = texto(subtitulo), forma = forma, unidad_n = unidad,
-                                   encabezado = .plan_tt_encabezado(el_plot) %||% (if (identical(forma, "barras") && multiple) "% de encuestados que marcó cada opción" else NULL),   # TXT-20
+                                   encabezado = .plan_tt_encabezado(el_plot),   # TXT-20; sin encabezado de fábrica en opción múltiple (Gonzalo, 2026-10-29)
                                    layout = layout, master = master, por_lamina = por_lamina)$doc)
   }
   # Una batería de afirmaciones se ordena por Top Two Box (lámina 221); los niveles de un cruce no.
@@ -407,7 +427,10 @@
   # La apilada mide con su propia geometría: los bloques van uno bajo otro (verificador de N2).
   if (identical(tipo, "p_slide_2_graficos_vertical")) return(isTRUE(.lam_vertical_geo(especs)$cabe))
   disp <- (.std_geom("leyenda_y") - 0.1) - (.std_geom("zona_datos_y0") + 0.8)
-  all(vapply(especs, function(e) disp / NROW(e$filas) >= 0.24 + 0.36, TRUE))
+  # Cada fila pide el piso de panel (0,66 cm, como Contabilidad) más el aire de una cifra chica: con 6 públicos, el tope
+  # de un estudio, cabe (0,645 in por fila); con más, la lámina va por la ruta anterior.
+  piso_fila <- .std_piso_panel_in() + .std_geom("aire_cifra_chica")
+  all(vapply(especs, function(e) disp / NROW(e$filas) >= piso_fila, TRUE))
 }
 
 #' La rama `slide_2` del motor, en nativo (enganche de `reporte_ppt_plan`)

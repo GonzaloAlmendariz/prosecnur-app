@@ -7,6 +7,7 @@ import { TypeIcon } from "../kit";
 import { IconoRegla } from "./ListaLogica";
 import { vistaListaLogica, type LecturaFila } from "./vistaListaModel";
 import "./vistaLista.css";
+import { EstadoVacio } from "../../../components/EstadoVacio";
 
 // Forma «Lista» de la pestaña Lógica (E1, 2026-10-20): la misma lógica que el mapa, en orden del formulario y agrupada
 // por sección. Filas con línea fina, sin cajas. Un clic abre el mismo detalle del nodo que el mapa.
@@ -23,10 +24,10 @@ function Lectura({ lecturas }: { lecturas: LecturaFila[] }) {
   const depende = [...new Set(lecturas.flatMap((l) => l.depende))].map((d) => stripMarkdown(d)).join(", ");
   return (
     <>
-      <span className="xfv-fila__lee" title={lecturas.map((l) => l.texto).join(" · ")}>
+      <span className="xfv-fila__lee" title={lecturas.map((l) => l.texto).join("; ")}>
         {lecturas.map((l, i) => (
           <span key={l.tipo} className={l.tecnica ? "is-tecnica" : undefined}>
-            {i > 0 ? " · " : ""}
+            {i > 0 ? "; " : ""}
             {l.texto}
           </span>
         ))}
@@ -48,7 +49,12 @@ export function VistaListaLogica({ structure, scope, seleccionada, onElegir }: V
       data-qa-geometry-contract="intrinsic"
     >
       {vista.grupos.length === 0 ? (
-        <p className="xfv-vacio">Este formulario no tiene reglas de cuándo aparece una pregunta ni de qué opciones se muestran.</p>
+        <EstadoVacio
+          tamano="normal"
+          icono={<Folder size={18} />}
+          titulo="Este formulario no tiene lógica"
+          descripcion="Ninguna regla dice cuándo aparece una pregunta ni qué opciones se muestran."
+        />
       ) : (
         <>
           <div className="xfv-cols" aria-hidden="true">

@@ -8,11 +8,11 @@ import ProjectShell from "../features/project/ProjectShell";
 import { ProjectModulesProvider } from "../features/project/ProjectModulesContext";
 import { AppErrorBoundary } from "../components/AppErrorBoundary";
 import LogsPanel from "../components/LogsPanel";
-import { LoadingBlock } from "../components/States";
 import { install as installLogSink, note as logNote } from "../lib/logSink";
 import { lazyWithReload } from "../lib/lazyWithReload";
 import { isPublicMode } from "../lib/runtime";
 import { useApplyLayoutPreset } from "../lib/layoutPreference";
+import { CargaDeModulo } from "../components/CargaDeModulo";
 
 // Dashboard — code-split para no arrastrar plotly al bundle principal.
 // Su payload solo se carga cuando el usuario entra a /tablero. La ruta
@@ -69,17 +69,14 @@ const GraficosPage = lazyWithReload(
   () => import("../features/graficos/GraficosPage"),
   "GraficosPage",
 );
+// El lienzo es la única página de Hojas de ruta: la clásica se retiró (ADR 0114 §8).
 const HojasRutaPage = lazyWithReload(
-  () => import("../features/hojasRuta/HojasRutaPage"),
-  "HojasRutaPage",
+  () => import("../features/hojasRuta/mapa/HojasRutaMapaPage"),
+  "HojasRutaMapaPage",
 );
 const MuestraHub = lazyWithReload(
   () => import("../features/muestra/MuestraHub"),
   "MuestraHub",
-);
-const BitacoraPage = lazyWithReload(
-  () => import("../features/bitacora/BitacoraPage"),
-  "BitacoraPage",
 );
 const CalcMuestraPage = lazyWithReload(
   () => import("../features/calcMuestra/CalcMuestraPage"),
@@ -115,7 +112,7 @@ export default function App() {
         <SessionProvider>
           <SessionLostBanner />
           <div className="pulso-public-shell">
-            <Suspense fallback={<LoadingBlock label="Cargando publicacion..." />}>
+            <Suspense fallback={<CargaDeModulo label="Cargando la publicación…" />}>
               <PublicArtifactApp />
             </Suspense>
             <footer className="pulso-public-footer">
@@ -137,7 +134,7 @@ export default function App() {
           <SessionLostBanner />
           <BrowserRouter basename={ROUTER_BASENAME}>
             <ProjectModulesProvider>
-            <Suspense fallback={<LoadingBlock label="Abriendo modulo..." />}>
+            <Suspense fallback={<CargaDeModulo label="Abriendo el módulo…" />}>
               <Routes>
                 <Route element={<Layout />}>
                   <Route path="/" element={<HomePage />} />
@@ -152,11 +149,14 @@ export default function App() {
                   <Route path="/graficos" element={<GraficosPage />} />
                   <Route path="/hojas-ruta" element={<HojasRutaPage />} />
                   <Route path="/calc-muestra" element={<CalcMuestraPage />} />
-                  <Route path="/bitacora" element={<BitacoraPage />} />
+                  {/* ADR 0124: el Planner y la Bitácora ya no son módulo; sus enlaces abren la
+                      Ficha del estudio sobre el Home. */}
+                  <Route path="/planner" element={<Navigate to="/?panel=estudio" replace />} />
+                  <Route path="/bitacora" element={<Navigate to="/?panel=estudio" replace />} />
                   <Route path="/material-campo" element={<RecopiladoresPage />} />
                   <Route path="/recopiladores" element={<RedireccionConQuery to="/material-campo" />} />
-                  <Route path="/diseno-estudio" element={<Navigate to="/bitacora" replace />} />
-                  <Route path="/plan-trabajo" element={<Navigate to="/bitacora?seccion=cronograma" replace />} />
+                  <Route path="/diseno-estudio" element={<Navigate to="/?panel=estudio" replace />} />
+                  <Route path="/plan-trabajo" element={<Navigate to="/?panel=estudio" replace />} />
                   <Route path="/diseno-muestra" element={<Navigate to="/calc-muestra" replace />} />
                   <Route path="/diseno-muestra/metodologia/:metodologia" element={<Navigate to="/calc-muestra" replace />} />
                   <Route path="/muestra" element={<MuestraHub />} />

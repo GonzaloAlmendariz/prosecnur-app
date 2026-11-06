@@ -11,7 +11,7 @@ export function ResumenMarcoDeclarado({ marco }: { marco: CalcMuestraGeneralMarc
   const conEstrato = Boolean(marco.columnas.estrato);
   const visibles = marco.estratos.slice(0, ESTRATOS_VISIBLES);
   const resto = marco.estratos.slice(ESTRATOS_VISIBLES);
-  const columnas = [marco.columnas.id, marco.columnas.estrato, marco.columnas.tamano].filter(Boolean).join(" · ");
+  const columnas = [marco.columnas.id, marco.columnas.estrato, marco.columnas.tamano].filter(Boolean).join(", ");
   return (
     <div className="cmg-resumen-marco">
       <CifraFila>
@@ -21,7 +21,7 @@ export function ResumenMarcoDeclarado({ marco }: { marco: CalcMuestraGeneralMarc
           value={conEstrato ? fmtInt(marco.estratos.length) : "Sin estrato"}
           detalle={conEstrato ? `columna ${marco.columnas.estrato}` : "un solo grupo"}
         />
-        <CifraMotor label="Columnas" value={columnas} detalle="id · estrato · tamaño" monospace />
+        <CifraMotor label="Columnas" value={columnas} detalle="id, estrato y tamaño" monospace />
         <CifraMotor
           label="Declarado"
           value={formatearFechaLocal(marco.declarado_at)}
@@ -29,7 +29,7 @@ export function ResumenMarcoDeclarado({ marco }: { marco: CalcMuestraGeneralMarc
         />
       </CifraFila>
       <p className="cmg-nota">
-        Huella <code className="cmg-huella" title={marco.marco_hash}>{hashCorto(marco.marco_hash)}</code>
+        Huella <span className="cmg-huella" title={marco.marco_hash}>{hashCorto(marco.marco_hash)}</span>
         {" "}(SHA-256). El N del cálculo sale de este archivo.
       </p>
       {conEstrato && marco.estratos.length > 0 && (
@@ -47,7 +47,7 @@ export function ResumenMarcoDeclarado({ marco }: { marco: CalcMuestraGeneralMarc
           </table>
           {resto.length > 0 && (
             <details className="cmg-mas">
-              <summary>Ver {resto.length} estratos más</summary>
+              <summary>Ver {fmtInt(resto.length)} estratos más</summary>
               <table className="cmg-tabla cmg-tabla--compacta">
                 <caption className="cmg-sr-only">N por estrato del marco (continuación)</caption>
                 <tbody>

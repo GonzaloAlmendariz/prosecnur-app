@@ -132,8 +132,8 @@ export function AulasRitmoDiario({ ritmo, hasta }: {
             día» son personas partidas. Tercera vez que aparece el mismo defecto
             en una jornada, así que va con `fmtCuenta`, que redondea y no
             inventa medias encuestas. */}
-        {media > 0 ? <> · {fmtCuenta(media)} al día</> : null}
-        {mejor ? <> · el mejor, {etiquetaDeDia(mejor.fecha)} con <strong>{fmt(mejor.validas)}</strong></> : null}
+        {media > 0 ? <>, {fmtCuenta(media)} al día</> : null}
+        {mejor ? <>, el mejor, {etiquetaDeDia(mejor.fecha)} con <strong>{fmt(mejor.validas)}</strong></> : null}
       </p>
       {/* **El gráfico del boceto, no la tabla que lo sustituía.** Aquí había
           una lista de diez filas —fecha, barra, cifra del día y acumulado en una
@@ -177,7 +177,7 @@ export function AulasRitmoDiario({ ritmo, hasta }: {
             // «al ritmo de estos 1» salía con una facultad de un solo día de
             // campo, que es el caso normal en cuanto el panel se filtra. Con un
             // solo día la referencia es ese día, no «estos uno».
-            ? ` · ${diasAlRitmo} ${diasAlRitmo === 1 ? "día más" : "días más"} al ritmo ${conCampo === 1 ? "de ese día" : `de estos ${fmt(conCampo)}`}`
+            ? `, ${diasAlRitmo} ${diasAlRitmo === 1 ? "día más" : "días más"} al ritmo ${conCampo === 1 ? "de ese día" : `de estos ${fmt(conCampo)}`}`
             : ""}
         </p>
       ) : null}

@@ -1,7 +1,14 @@
+import { Users } from "lucide-react";
+import { EstadoVacio } from "../../../../../components/EstadoVacio";
+import { EstadoChip } from "../../../../../components/EstadoChip";
+import type { ChromeStatusTone } from "../../../../../components/ModuleCommandBar";
 import type { TerritorialQuotaProgressBlock } from "../../../../../api/client";
+import type { UmpPlanificada } from "../../../../../api/monitoreoAsignacionPlanificada";
 import { diaYMes, fmt, fmtConSigno, rotuloDeCelda } from "../rotulos";
 import type { FilaDeUmp } from "./faltanteModel";
 import { CuotaPorVariable } from "./CuotaPorVariable";
+import { CruceConCoordinacion } from "./CruceConCoordinacion";
+import { construirCruceConCoordinacion } from "./cruceConCoordinacionModelo";
 import { SiluetaDeDistrito } from "./SiluetaDeDistrito";
 
 /**
@@ -13,9 +20,13 @@ import { SiluetaDeDistrito } from "./SiluetaDeDistrito";
  * otras manzanas de la UMP.
  */
 const ROTULO_DE_ESTADO = { pendiente: "Cuota pendiente", subsanada: "Completa con subsanación", completa: "Completa" } as const;
-const TONO_DE_ESTADO = { pendiente: "is-falta", subsanada: "is-info", completa: "is-ok" } as const;
+const TONO_DE_ESTADO = { pendiente: "warn", subsanada: "info", completa: "success" } as const satisfies Record<string, ChromeStatusTone>;
 
-export function DetalleDeUmp({ fila }: { fila: FilaDeUmp }) {
+export function DetalleDeUmp({ fila, coordinacion = null }: {
+  fila: FilaDeUmp;
+  /** 2h: el registro del coordinador de esta manzana; `null` mientras no hay asignación comparable. */
+  coordinacion?: UmpPlanificada | null;
+}) {
   const bloque = fila.bloque;
   const cruce = bloque.observed_cross ?? null;
   const columnas = cruce?.columns ?? [];
@@ -37,7 +48,7 @@ export function DetalleDeUmp({ fila }: { fila: FilaDeUmp }) {
           <small>{ubicacion}</small>
           <strong>UMP {fila.ump}</strong>
         </span>
-        <span className={`mon-ter-chip ${TONO_DE_ESTADO[fila.estado]}`}>{ROTULO_DE_ESTADO[fila.estado]}</span>
+        <EstadoChip label={ROTULO_DE_ESTADO[fila.estado]} tone={TONO_DE_ESTADO[fila.estado]} />
       </header>
 
       <dl className="mon-falt-detalle-meta">
@@ -110,9 +121,14 @@ export function DetalleDeUmp({ fila }: { fila: FilaDeUmp }) {
             </tbody>
           </table>
         ) : (
-          <p className="mon-falt-detalle-vacio">La manzana en uso no tiene casos con consentimiento.</p>
+          <EstadoVacio icono={<Users size={15} />} titulo="La manzana en uso no tiene casos con consentimiento." />
         )}
       </section>
+
+      {/* Sin `observed_valid_cross` (un corte anterior al 1 nov) no se cruza: daría diferencias contra 0. */}
+      {coordinacion && bloque.observed_valid_cross ? (
+        <CruceConCoordinacion modelo={construirCruceConCoordinacion(bloque.observed_valid_cross, coordinacion)} ump={String(fila.ump)} />
+      ) : null}
 
       {fila.otras.length ? (
         <ul className="mon-falt-otras" aria-label="Otras manzanas de la UMP">

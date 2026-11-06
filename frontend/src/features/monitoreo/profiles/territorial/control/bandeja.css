@@ -49,7 +49,7 @@
 .mon-ban-subtitulo {
   margin: 0;
   color: var(--pulso-text-faint);
-  font-size: 10.5px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-bold);
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -99,7 +99,7 @@
   background: transparent;
   color: var(--pulso-text);
   font: inherit;
-  font-size: 13px;
+  font-size: var(--pulso-type-body-size);
   text-align: left;
   cursor: pointer;
 }
@@ -152,7 +152,7 @@
   background: transparent;
   color: var(--pulso-text-soft);
   font: inherit;
-  font-size: 13px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-semibold);
   cursor: pointer;
 }
@@ -166,15 +166,21 @@
 .mon-ban-base {
   margin: 0;
   color: var(--pulso-text-soft);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   font-variant-numeric: tabular-nums;
 }
 
+/* El marco es el que desplaza: encaja por fila con un margen igual al alto de
+ * la cabecera fija, 36 px (medido en el bundle: la fija la regla de tabla del
+ * kit). Sin él la cabecera tapaba 21 px de la fila al desplazar (28/10). */
 .mon-ban-tabla-marco {
+  --mon-ban-cabecera: 36px;
   flex: 1 1 auto;
   min-height: 0;
   margin: 0 calc(-1 * var(--pulso-space-4)) calc(-1 * var(--pulso-space-4));
   overflow: auto;
+  scroll-padding-top: var(--mon-ban-cabecera);
+  scroll-snap-type: y proximity;
   scrollbar-gutter: stable;
   scrollbar-width: thin;
   scrollbar-color: var(--pulso-border-strong) transparent;
@@ -197,7 +203,7 @@
 .mon-ban-tabla {
   width: 100%;
   border-collapse: collapse;
-  font-size: 13px;
+  font-size: var(--pulso-type-body-size);
   font-variant-numeric: tabular-nums;
 }
 
@@ -209,7 +215,7 @@
   border-bottom: 1px solid var(--pulso-border);
   background: var(--pulso-surface);
   color: var(--pulso-text-soft);
-  font-size: 10.5px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-bold);
   letter-spacing: 0.06em;
   text-align: left;
@@ -251,6 +257,23 @@
 .mon-ban-tabla.is-casos col.is-motivo { width: 21%; }
 .mon-ban-tabla.is-casos col.is-cifra { width: 92px; }
 
+/* 1280–1440: con los anchos de arriba al aplicador le quedaban ~100 px y se
+ * partía en tres líneas («P132 · Venturo / Perales Rosa / Magda»). Distrito y
+ * motivo ceden un poco y las columnas cortas se ajustan, para que el aplicador
+ * quepa en una o dos. Con el inspector abierto la tabla no baja de 820 px:
+ * desplaza dentro de su marco antes que aplastar al aplicador. */
+@media (min-width: 1181px) and (max-width: 1440px) {
+  .mon-ban-tabla.is-casos {
+    min-width: 820px;
+  }
+
+  .mon-ban-tabla.is-casos col.is-caso { width: 92px; }
+  .mon-ban-tabla.is-casos col.is-dia { width: 96px; }
+  .mon-ban-tabla.is-casos col.is-distrito { width: 14%; }
+  .mon-ban-tabla.is-casos col.is-motivo { width: 16%; }
+  .mon-ban-tabla.is-casos col.is-cifra { width: 84px; }
+}
+
 /* Sin elipsis (§2a, g): el aplicador, el distrito y el motivo largos pasan a
  * una segunda línea dentro de su columna. */
 .mon-ban-tabla.is-casos tbody td {
@@ -284,7 +307,7 @@
   margin: 0;
   padding: var(--pulso-space-4);
   color: var(--pulso-text-soft);
-  font-size: 13px;
+  font-size: var(--pulso-type-body-size);
 }
 
 /* Inspector del caso. */
@@ -304,7 +327,7 @@
 .mon-ban-inspector-cabecera h3 {
   margin: 0;
   color: var(--pulso-text);
-  font-size: 15px;
+  font-size: var(--pulso-type-title-size);
   font-weight: var(--pulso-weight-bold);
 }
 
@@ -343,7 +366,7 @@
 
 .mon-ban-esquema text {
   fill: var(--pulso-text-soft);
-  font-size: 9px;
+  font-size: var(--pulso-type-micro-size);
 }
 
 .mon-ban-esquema-manzana {
@@ -358,7 +381,7 @@
 
 .mon-ban-senal {
   margin: var(--pulso-space-1) 0 0;
-  font-size: 13px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .mon-ban-pie {
@@ -376,14 +399,9 @@
   background: var(--pulso-surface);
   color: var(--pulso-text);
   font: inherit;
-  font-size: 13px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-semibold);
   cursor: pointer;
-}
-
-.mon-ban-boton.is-peligro {
-  border-color: var(--pulso-danger-fg);
-  color: var(--pulso-danger-fg);
 }
 
 .mon-ban-lista-filtros button:focus-visible,
@@ -403,19 +421,6 @@
   grid-template-columns: minmax(0, 1fr);
 }
 
-.mon-ban-vacio {
-  align-items: center;
-  justify-content: center;
-  height: 100%;
-  text-align: center;
-  color: var(--pulso-text-soft);
-}
-
-.mon-ban-vacio strong {
-  color: var(--pulso-text);
-  font-size: 15px;
-}
-
 /* 1024 de ancho: el inspector toma el lugar de los filtros. */
 @media (max-width: 1180px) {
   .mon-ban.con-inspector {
@@ -429,18 +434,27 @@
 
 @media (max-width: 1180px) {
   .mon-ban {
-    grid-template-columns: 216px minmax(0, 1fr);
+    grid-template-columns: 184px minmax(0, 1fr);
   }
 
-  /* Compacto: la tabla conserva un ancho legible y desplaza en horizontal
-   * dentro de su marco, en vez de aplastar al aplicador letra por letra. */
-  .mon-ban-tabla.is-casos {
-    min-width: 960px;
-  }
+  /* Compacto: las ocho columnas caben en el marco (728 px a 1024). Antes la
+   * tabla medía 960 px y escondía Motivo, Distancia y Duración tras un
+   * desplazamiento horizontal sin indicio. El día parte en fecha y hora, y
+   * distrito, aplicador y motivo en dos líneas. */
+  .mon-ban-tabla.is-casos col.is-caso { width: 94px; }
+  .mon-ban-tabla.is-casos col.is-dia { width: 64px; }
+  .mon-ban-tabla.is-casos col.is-distrito { width: 98px; }
+  .mon-ban-tabla.is-casos col.is-ump { width: 56px; }
+  .mon-ban-tabla.is-casos col.is-motivo { width: 108px; }
+  .mon-ban-tabla.is-casos col.is-cifra { width: 76px; }
 
-  .mon-ban-tabla.is-casos col.is-caso { width: 92px; }
-  .mon-ban-tabla.is-casos col.is-dia { width: 100px; }
-  .mon-ban-tabla.is-casos col.is-distrito { width: 150px; }
-  .mon-ban-tabla.is-casos col.is-motivo { width: 170px; }
-  .mon-ban-tabla.is-casos col.is-cifra { width: 84px; }
+  /* Con el inspector abierto le quedan unos 600 px: ahí sí conserva un ancho
+   * legible y desplaza dentro de su marco antes que aplastar al aplicador. */
+  .mon-ban.con-inspector .mon-ban-tabla.is-casos {
+    min-width: 760px;
+  }
+}
+
+.mon-ban-tabla > tbody > tr {
+  scroll-snap-align: start;
 }

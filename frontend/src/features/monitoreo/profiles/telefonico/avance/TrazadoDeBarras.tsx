@@ -1,8 +1,10 @@
 import { escalaDeEje } from "./escalaDeEje";
-import { fechaCorta } from "./ritmoModel";
+import { ejeDeFechas } from "../../../core/ejeDeFechas";
+import { useAnchoMedido } from "../../../core/useAnchoMedido";
+import { formatoConteo } from "../../../../../lib/formatoNumero";
 
 function n(valor: number) {
-  return valor.toLocaleString("es-PE");
+  return formatoConteo(valor);
 }
 
 /** Alto aproximado de la cifra sobre la barra, en % del área (16 px sobre ~180–250 px). */
@@ -64,7 +66,8 @@ export function TrazadoDeBarras({
   derecho?: EjeDerecho | null;
   bajo?: boolean;
   /** Desde qué columna se sombrea una banda (por ejemplo, la hoja ya no registra). */
-  banda?: { desde: number; rotulo: string } | null;
+  /** `rotuloCorto` se usa cuando la banda mide uno o dos días (va en vertical). */
+  banda?: { desde: number; rotulo: string; rotuloCorto?: string } | null;
 }) {
   const izquierda = escalaDeEje(Math.max(0, ...columnas.map((columna) => columna.total)));
   const maximoDerecho = derecho
@@ -72,6 +75,9 @@ export function TrazadoDeBarras({
     : 0;
   const derecha = derecho ? escalaDeEje(maximoDerecho) : null;
   const columnasCss = `repeat(${Math.max(1, columnas.length)}, minmax(0, 1fr))`;
+  // Eje de fechas común de Monitoreo: el día en su columna y el mes debajo donde empieza.
+  const [refFechas, anchoFechas] = useAnchoMedido<HTMLDivElement>();
+  const rotulos = new Map(ejeDeFechas(columnas.map((columna) => columna.fecha), (anchoFechas || 600) / Math.max(1, columnas.length)).map((rotulo) => [rotulo.indice, rotulo]));
   const x = (i: number) => ((i + 0.5) / Math.max(1, columnas.length)) * 100;
   const puntos = derecho && derecha
     ? derecho.valores
@@ -96,8 +102,15 @@ export function TrazadoDeBarras({
         ))}
         <div className="mon-trazado-columnas" style={{ gridTemplateColumns: columnasCss }}>
           {banda && banda.desde < columnas.length ? (
-            <div className="mon-trazado-banda" style={{ gridColumn: `${banda.desde + 1} / -1` }}>
-              <span>{banda.rotulo}</span>
+            <div
+              className={`mon-trazado-banda${columnas.length - banda.desde <= 2 ? " is-angosta" : ""}`}
+              style={{ gridColumn: `${banda.desde + 1} / -1` }}
+            >
+              {columnas.length - banda.desde <= 2 ? (
+                <span title={banda.rotulo}>{banda.rotuloCorto ?? banda.rotulo}</span>
+              ) : (
+                <span>{banda.rotulo}</span>
+              )}
             </div>
           ) : null}
           {columnas.map((columna, i) => {
@@ -149,8 +162,11 @@ export function TrazadoDeBarras({
         </div>
       ) : null}
 
-      <div className="mon-trazado-fechas" style={{ gridTemplateColumns: columnasCss }}>
-        {columnas.map((columna) => <span key={columna.fecha}>{fechaCorta(columna.fecha)}</span>)}
+      <div ref={refFechas} className="mon-trazado-fechas" style={{ gridTemplateColumns: columnasCss }}>
+        {columnas.map((columna, i) => {
+          const rotulo = rotulos.get(i);
+          return <span key={columna.fecha} className="mon-eje-fecha-html">{rotulo ? <>{rotulo.dia}{rotulo.mes ? <b>{rotulo.mes}</b> : null}</> : null}</span>;
+        })}
       </div>
     </div>
   );

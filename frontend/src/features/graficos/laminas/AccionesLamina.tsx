@@ -2,6 +2,7 @@
 // eliminar (con deshacer). Siempre visibles para la lámina activa, no sólo al pasar el mouse: se alcanzan con teclado.
 // Atajos equivalentes del editor: Alt+↑/↓ mueve, Cmd/Ctrl+D duplica, Cmd/Ctrl+Z deshace.
 
+import { nombreDeAtajo, rotuloDeAtajo } from "../../../lib/teclado";
 import { ArrowDown, ArrowUp, Copy, Plus, Trash2 } from "../../../vendor/lucide-react";
 
 type Props = {
@@ -13,8 +14,6 @@ type Props = {
   onEliminar: () => void;
 };
 
-const esMac = typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigator.platform);
-const MOD = esMac ? "⌘" : "Ctrl+";
 
 export function AccionesLamina({ posicion, total, onInsertar, onDuplicar, onMover, onEliminar }: Props) {
   return (
@@ -25,7 +24,7 @@ export function AccionesLamina({ posicion, total, onInsertar, onDuplicar, onMove
         <Plus size={16} aria-hidden="true" />
       </button>
       <button type="button" className="pulso-f6-icono-boton" onClick={onDuplicar}
-        aria-label="Duplicar" title={`Duplicar (${MOD}D)`}>
+        aria-label="Duplicar" title={rotuloDeAtajo("Duplicar", "D")}>
         <Copy size={15} aria-hidden="true" />
       </button>
       <button type="button" className="pulso-f6-icono-boton" onClick={() => onMover("up")} disabled={posicion <= 1}
@@ -37,7 +36,7 @@ export function AccionesLamina({ posicion, total, onInsertar, onDuplicar, onMove
         <ArrowDown size={16} aria-hidden="true" />
       </button>
       <button type="button" className="pulso-f6-icono-boton is-peligro" onClick={onEliminar}
-        aria-label="Eliminar" title={`Eliminar (se deshace con ${MOD}Z)`}>
+        aria-label="Eliminar" title={`Eliminar (se deshace con ${nombreDeAtajo("Z")})`}>
         <Trash2 size={15} aria-hidden="true" />
       </button>
     </div>

@@ -331,10 +331,43 @@ export function normalizeFormLibraryEntry(value: unknown): FormLibraryEntry | nu
   };
 }
 
+/**
+ * El instrumento vinculado al estudio (el XLSForm de su base), que el editor puede abrir como un
+ * formulario más (auditoría visual del 4 nov 2026, hallazgo 12).
+ */
+export type InstrumentoDelEstudio = { file_id: string; nombre: string; base: string; n_questions: number };
+
+export function normalizarInstrumentoDelEstudio(value: unknown): InstrumentoDelEstudio | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  const r = value as Record<string, unknown>;
+  const fileId = typeof r.file_id === "string" ? r.file_id : "";
+  if (!fileId) return null;
+  const n = Number(r.n_questions);
+  return {
+    file_id: fileId,
+    nombre: typeof r.nombre === "string" ? r.nombre : "",
+    base: typeof r.base === "string" ? r.base : "",
+    n_questions: Number.isFinite(n) && n > 0 ? Math.round(n) : 0,
+  };
+}
+
+/** Abre el instrumento del estudio con la misma forma que `/import`. */
+export async function apiXlsformEditorImportInstrumentoEstudio(): Promise<XlsformEditorPayload> {
+  const raw = await handle<unknown>(
+    await apiFetch("/api/xlsform-editor/import-instrumento-estudio", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: "{}",
+    }),
+  );
+  return normalizeEditorPayload(raw);
+}
+
 export async function apiXlsformFormsList(): Promise<{
   ok: true;
   forms: FormLibraryEntry[];
   active_form_id: string | null;
+  instrumento_del_estudio: InstrumentoDelEstudio | null;
 }> {
   const raw = await handle<unknown>(
     await apiFetch("/api/xlsform-editor/forms", { method: "GET", headers: headers() }),
@@ -347,6 +380,7 @@ export async function apiXlsformFormsList(): Promise<{
     ok: true,
     forms,
     active_form_id: typeof r.active_form_id === "string" ? r.active_form_id : null,
+    instrumento_del_estudio: normalizarInstrumentoDelEstudio(r.instrumento_del_estudio),
   };
 }
 
@@ -890,6 +924,11 @@ export async function apiXlsformEditorExport(
  */
 export type XlsformPaperExportOptions = {
   title?: string;
+  /** Portada (L36 · D-L36-5): «institución · periodo» bajo el título. */
+  institution?: string;
+  period?: string;
+  /** Portada: encuestador, fecha y supervisor con línea para escribir. */
+  control_block?: boolean;
   footer_title?: string;
   columns?: 1 | 2 | "auto";
   logic_language?: "saltos" | "condiciones";
@@ -975,7 +1014,7 @@ export function normalizeXlsformPaperExportResult(data: unknown): XlsformPaperEx
 }
 
 async function startPaperExport(
-  path: "/api/xlsform-editor/export-pdf" | "/api/xlsform-editor/export-word",
+  path: "/api/xlsform-editor/export-pdf" | "/api/xlsform-editor/export-word" | "/api/xlsform-editor/word-visor",
   workbook: XlsformEditorWorkbook,
   filename: string | undefined,
   options: XlsformPaperExportOptions,
@@ -1015,6 +1054,64 @@ export async function apiXlsformEditorExportWord(
   options: XlsformPaperExportOptions = {},
 ) {
   return startPaperExport("/api/xlsform-editor/export-word", workbook, filename, options);
+}
+
+/**
+ * L36 · DOC.2: el Word del cuestionario como páginas reales y el mapa pregunta → página. Mismo cuerpo y misma forma
+ * de job que export-word; el `result_data` trae además `paginas` (data URI PNG) y `mapa`.
+ */
+export async function apiXlsformEditorWordVisor(
+  workbook: XlsformEditorWorkbook,
+  filename?: string,
+  options: XlsformPaperExportOptions = {},
+) {
+  return startPaperExport("/api/xlsform-editor/word-visor", workbook, filename, options);
+}
+
+export type XlsformWordVisor = {
+  paginas: string[];
+  /** Página (desde 1) en que empieza cada número impreso; `null` si no se encontró. */
+  mapa: XlsformWordVisorPregunta[];
+};
+
+export type XlsformWordVisorPregunta = {
+  numero: string;
+  pagina: number | null;
+  /** Variable de la pregunta (L36 · DOC.3): con ella se abre su fila en el editor. */
+  nombre: string;
+  /** Dónde está sobre su página, en fracciones (0–1) del ancho y el alto; `null` si no se ubicó. */
+  caja: { x: number; y: number; ancho: number; alto: number } | null;
+};
+
+function cajaValida(raw: unknown): XlsformWordVisorPregunta["caja"] {
+  if (!raw || typeof raw !== "object") return null;
+  const c = raw as Record<string, unknown>;
+  const n = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? v : NaN);
+  const caja = { x: n(c.x), y: n(c.y), ancho: n(c.ancho), alto: n(c.alto) };
+  const ok = Object.values(caja).every((v) => v >= 0 && v <= 1.01) && caja.ancho > 0 && caja.alto > 0;
+  return ok ? caja : null;
+}
+
+/** Normalizador defensivo de las páginas y el mapa del visor del Word. */
+export function normalizeXlsformWordVisor(raw: unknown): XlsformWordVisor {
+  const r = (raw && typeof raw === "object" ? raw : {}) as Record<string, unknown>;
+  const paginas = Array.isArray(r.paginas)
+    ? r.paginas.filter((p): p is string => typeof p === "string" && p.startsWith("data:image/"))
+    : [];
+  const mapa = Array.isArray(r.mapa)
+    ? r.mapa.flatMap((m) => {
+        if (!m || typeof m !== "object") return [];
+        const o = m as Record<string, unknown>;
+        const numero = typeof o.numero === "string" ? o.numero.trim() : "";
+        if (!numero) return [];
+        const pagina = typeof o.pagina === "number" && Number.isInteger(o.pagina) && o.pagina >= 1 && o.pagina <= paginas.length
+          ? o.pagina
+          : null;
+        const nombre = typeof o.nombre === "string" ? o.nombre.trim() : "";
+        return [{ numero, pagina, nombre, caja: pagina === null ? null : cajaValida(o.caja) }];
+      })
+    : [];
+  return { paginas, mapa };
 }
 
 /**

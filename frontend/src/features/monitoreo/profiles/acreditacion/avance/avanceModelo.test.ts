@@ -7,8 +7,7 @@ import {
   rezagadosPrimero,
   serieDiaria,
   totalesDeAvance,
-  ultimosDias,
-} from "./avanceModelo";
+  ultimosDias, rotuloDeDiasALaMeta } from "./avanceModelo";
 import { advanceCardsFromRows } from "./tarjetasDeAvance";
 import { casosDelCorte } from "../control/casos/tiposDeCaso";
 import { insigniasDeAcreditacion, valorDePublicos } from "../navegacion/barraAcreditacion";
@@ -106,5 +105,14 @@ describe("casos por resolver", () => {
     ]);
     expect(casos.porTipo.find((tipo) => tipo.tipo === "incluido_con_salvedad")?.etiqueta).toBe("Asignadas por el supervisor");
     expect(insigniasDeAcreditacion(null, casos)).toEqual({ control: "23" });
+  });
+});
+
+describe("rotuloDeDiasALaMeta", () => {
+  it("dice los días cuando son pocos y el orden de magnitud cuando pasan de tres meses", () => {
+    expect(rotuloDeDiasALaMeta(1)).toBe("≈ 1 día");
+    expect(rotuloDeDiasALaMeta(45)).toBe("≈ 45 días");
+    expect(rotuloDeDiasALaMeta(90)).toBe("≈ 90 días");
+    expect(rotuloDeDiasALaMeta(693)).toBe("Más de 3 meses");
   });
 });

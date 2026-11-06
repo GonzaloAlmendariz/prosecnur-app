@@ -106,7 +106,7 @@ rm -rf "$STAGING" "$OUT_DIR" "$ZIP_PATH" "$INSTALLER_PATH"
 mkdir -p "$STAGING/Internals" "$STAGING/runtime/electron" "$STAGING/runtime/r-installer" "$STAGING/runtime/r-packages" "$STAGING/assets"
 
 echo "[Prosecnur] Armando Internals..."
-bash "$COPY_TREE" api "$STAGING/Internals/api" ".DS_Store" "tests"
+bash "$ROOT/scripts/stage-api.sh" api "$STAGING/Internals/api"
 bash "$COPY_TREE" launcher "$STAGING/Internals/launcher" ".DS_Store"
 bash "$COPY_TREE" desktop "$STAGING/Internals/desktop" ".DS_Store" "node_modules"
 

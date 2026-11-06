@@ -37,14 +37,14 @@
 .mon-eq-inspector-cabecera h3 {
   margin: 0;
   color: var(--pulso-text);
-  font-size: 14px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-bold);
 }
 
 .mon-eq-base {
   margin: 0;
   color: var(--pulso-text-soft);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   font-variant-numeric: tabular-nums;
 }
 
@@ -56,6 +56,15 @@
   scrollbar-gutter: stable;
   scrollbar-width: thin;
   scrollbar-color: var(--pulso-border-strong) transparent;
+  /* Al soltar el scroll, la primera fila que asoma queda entera bajo la
+   * cabecera pegajosa (mismo arreglo que Control del telefónico). El relleno
+   * es el alto de la cabecera. */
+  scroll-padding-top: 36px;
+  scroll-snap-type: y proximity;
+}
+
+.mon-eq-tabla tbody > tr {
+  scroll-snap-align: start;
 }
 
 .mon-eq-tabla-marco::-webkit-scrollbar,
@@ -73,7 +82,7 @@
 .mon-eq-tabla {
   width: 100%;
   border-collapse: collapse;
-  font-size: 13px;
+  font-size: var(--pulso-type-body-size);
   font-variant-numeric: tabular-nums;
 }
 
@@ -85,7 +94,7 @@
   border-bottom: 1px solid var(--pulso-border);
   background: var(--pulso-surface);
   color: var(--pulso-text-soft);
-  font-size: 10.5px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-bold);
   letter-spacing: 0.06em;
   text-align: left;
@@ -110,6 +119,42 @@
 
 .mon-eq-tabla .is-num {
   text-align: right;
+}
+
+/* Los distritos de un código parten en dos líneas con un ancho tope, para que
+ * «En bandeja» y «Último» quepan a 1440. Si aun así no cabe (1024), la tabla
+ * desplaza dentro de su marco con la columna Código fija, como Faltante. */
+.mon-eq-tabla tbody td.is-distritos {
+  min-width: 140px;
+  max-width: 230px;
+  white-space: normal;
+  line-height: 1.3;
+}
+
+.mon-eq-tabla tbody th:first-child,
+.mon-eq-tabla thead th:first-child {
+  position: sticky;
+  left: 0;
+  background: var(--pulso-surface);
+}
+
+.mon-eq-tabla tbody th:first-child {
+  z-index: 1;
+}
+
+.mon-eq-tabla thead th:first-child {
+  z-index: 2;
+}
+
+@media (max-width: 1180px) {
+  .mon-eq-tabla tbody td.is-distritos {
+    min-width: 0;
+    max-width: 150px;
+  }
+
+  .mon-eq-tabla :is(thead th, tbody td, tbody th) {
+    padding-inline: 6px;
+  }
 }
 
 .mon-eq-tabla tr.is-anulado td,
@@ -216,7 +261,7 @@
 .mon-eq-subtitulo {
   margin: 0 0 var(--pulso-space-1);
   color: var(--pulso-text-faint);
-  font-size: 10.5px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-bold);
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -225,7 +270,7 @@
 .mon-eq-cifras dd {
   margin: 0;
   color: var(--pulso-text);
-  font-size: 20px;
+  font-size: var(--pulso-type-kpi-size);
   font-weight: var(--pulso-weight-bold);
   font-variant-numeric: tabular-nums;
 }
@@ -236,7 +281,7 @@
   margin: 0;
   padding: 0;
   list-style: none;
-  font-size: 13px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .mon-eq-lista li {
@@ -266,7 +311,7 @@
   background: var(--pulso-surface);
   color: var(--pulso-text);
   font: inherit;
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   cursor: pointer;
 }
 
@@ -285,14 +330,9 @@
   background: var(--pulso-surface);
   color: var(--pulso-text);
   font: inherit;
-  font-size: 13px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-semibold);
   cursor: pointer;
-}
-
-.mon-eq-boton.is-peligro {
-  border-color: var(--pulso-danger-fg);
-  color: var(--pulso-danger-fg);
 }
 
 .mon-eq-tabla tbody th button:focus-visible,
@@ -304,22 +344,40 @@
   outline-offset: 2px;
 }
 
-.mon-eq-vacio {
-  align-items: center;
-  justify-content: center;
-  height: 100%;
-  text-align: center;
-  color: var(--pulso-text-soft);
-}
-
-.mon-eq-vacio strong {
-  color: var(--pulso-text);
-  font-size: 15px;
-}
-
 /* Ronda 3: la última columna lleva el mismo aire que la primera (16 px) y no
  * queda pegada al borde de la tarjeta. */
 .mon-eq-tabla th:last-child,
 .mon-eq-tabla td:last-child {
   padding-right: var(--pulso-space-4);
+}
+
+/* 2h: el registro del coordinador al lado de Kobo (nunca sumado). */
+.mon-eq-coordinacion {
+  margin: 0;
+  padding: var(--pulso-space-2) var(--pulso-space-3);
+  border-radius: var(--pulso-radius-card);
+  background: var(--pulso-surface-2);
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+}
+
+.mon-eq-coordinacion[data-tono="aviso"] {
+  background: var(--pulso-warn-bg);
+  color: var(--pulso-warn-fg);
+}
+
+.mon-eq-no-cuadra {
+  color: var(--pulso-warn-fg);
+}
+
+/* 2h · El control por región, plegable bajo la línea de coordinación. */
+.mon-eq-region > summary {
+  cursor: pointer;
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.mon-eq-region[open] > summary {
+  margin-bottom: var(--pulso-space-2);
 }

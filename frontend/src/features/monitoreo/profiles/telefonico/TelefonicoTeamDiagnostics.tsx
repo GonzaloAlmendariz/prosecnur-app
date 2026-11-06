@@ -1,4 +1,6 @@
 import type { CSSProperties } from "react";
+import { Users } from "lucide-react";
+import { EstadoVacio } from "../../../../components/EstadoVacio";
 
 import { pctDecimal } from "../../core/formatoComun";
 import type {
@@ -29,9 +31,9 @@ function deviationLabel(value: number | null | undefined) {
 }
 
 function cellTitle(cell: TelefonicoStatusCell, responsable: string) {
-  const base = `${responsable} · ${cell.estado}: ${metric(cell.casos)} casos (${pctLabel(cell.pct)} de su carga)`;
+  const base = `${responsable}, ${cell.estado}: ${metric(cell.casos)} casos (${pctLabel(cell.pct)} de su carga)`;
   const dev = deviationLabel(cell.desviacion);
-  return dev ? `${base} · ${dev}` : base;
+  return dev ? `${base}, ${dev}` : base;
 }
 
 /**
@@ -41,9 +43,12 @@ function cellTitle(cell: TelefonicoStatusCell, responsable: string) {
 export function TelefonicoStatusMatrixPanel({ matrix }: { matrix: TelefonicoStatusMatrix }) {
   if (!matrix.responsables.length || !matrix.estados.length) {
     return (
-      <div className="mon-team-empty" aria-label="Sin estados por encuestador">
-        <strong>Sin estados por encuestador</strong>
-        <span>El corte todavía no trae la distribución de estados desagregada por responsable.</span>
+      <div aria-label="Sin estados por encuestador">
+        <EstadoVacio
+          icono={<Users size={15} />}
+          titulo="Sin estados por encuestador"
+          descripcion="El corte todavía no trae la distribución de estados desagregada por responsable."
+        />
       </div>
     );
   }
@@ -132,9 +137,12 @@ export function TelefonicoPlatformGapPanel({
 }) {
   if (!gap.filas.length) {
     return (
-      <div className="mon-team-empty" aria-label="Sin comparación plataforma y barrido">
-        <strong>Sin comparación por responsable</strong>
-        <span>El corte todavía no trae el cruce de efectivas entre {plataformaLabel} y la hoja de barrido.</span>
+      <div aria-label="Sin comparación plataforma y barrido">
+        <EstadoVacio
+          icono={<Users size={15} />}
+          titulo="Sin comparación por responsable"
+          descripcion={`El corte todavía no trae el cruce de efectivas entre ${plataformaLabel} y la hoja de barrido.`}
+        />
       </div>
     );
   }

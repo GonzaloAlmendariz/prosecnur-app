@@ -40,7 +40,7 @@
 }
 
 .rec-handoff-status p {
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   margin-top: 3px;
 }
 
@@ -51,9 +51,17 @@
   padding: 12px;
 }
 
+/* El paso siguiente del traspaso: quién sigue y dónde (responsabilidades, 2026-11-02). */
+.rec-receipt-siguiente {
+  margin: 10px 0 0;
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+  line-height: 1.45;
+}
+
 .rec-receipt > strong {
   font-family: ui-monospace, monospace;
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .rec-receipt dl {
@@ -69,12 +77,12 @@
 
 .rec-receipt dt {
   color: var(--pulso-text-faint);
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   text-transform: uppercase;
 }
 
 .rec-receipt dd {
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   margin: 2px 0 0;
   overflow-wrap: anywhere;
 }
@@ -93,7 +101,7 @@
   border-radius: var(--pulso-radius-panel);
   background: var(--pulso-warn-bg);
   color: var(--pulso-warn-fg);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   line-height: 1.45;
 }
 
@@ -135,7 +143,7 @@
 .rec-artifact-list article span,
 .rec-artifact-list article code {
   color: var(--pulso-text-soft);
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   overflow-wrap: anywhere;
 }
 
@@ -161,7 +169,7 @@
   background: var(--pulso-bg);
   color: var(--pulso-text);
   padding: 2px 9px;
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   font-variant-numeric: tabular-nums;
   cursor: pointer;
   transition: border-color var(--motion-dur-fast) ease, background var(--motion-dur-fast) ease;
@@ -181,7 +189,7 @@
    esa aula cae hay que ir al banco. */
 .rec-plan-sin-reservas {
   color: var(--pulso-text-soft);
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
 }
 
 /* Las reservas desplegadas van sangradas y en tono menor: cuelgan de la fila de
@@ -214,20 +222,48 @@
   color: var(--pulso-text);
 }
 
-/* H25 — sin traspaso, el recibo es un vacío que dice qué falta: dos lecturas
-   (qué pasa y qué hacer), apiladas; `.rec-contained-empty` es flex en fila. */
-.rec-receipt-card .rec-receipt-empty {
+/* R13: la columna izquierda lleva la entrega y, debajo, las tablas en Sheets. */
+.rec-delivery-columna {
+  align-content: start;
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}
+
+.rec-tablas-sheets-hojas {
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+  margin: 0;
+  padding-left: 18px;
+}
+
+
+.rec-tablas-sheets-acciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--pulso-space-2);
+}
+
+.rec-tablas-sheets-cuerpo {
+  display: grid;
+  gap: var(--pulso-space-3);
+}
+
+/* Revamp v5: lo que bloquea la entrega, arriba y con su acción. */
+.rec-delivery {
+  display: flex;
   flex-direction: column;
-  gap: 6px;
-  min-height: 0;
-  padding: 18px 20px;
+  gap: var(--pulso-space-4);
 }
-
-.rec-receipt-card .rec-receipt-empty strong {
-  color: var(--pulso-text);
-  font-weight: 600;
+.rec-delivery-bloqueo {
+  display: flex;
+  align-items: center;
+  gap: var(--pulso-space-3);
+  padding: var(--pulso-space-3) var(--pulso-space-4);
+  border: 1px solid var(--pulso-warn-border);
+  border-radius: var(--pulso-radius-card);
+  background: var(--pulso-warn-bg);
+  color: var(--pulso-warn-fg);
+  font-size: var(--pulso-type-body-size);
 }
-
-.rec-receipt-card .rec-receipt-empty span {
-  max-width: 46ch;
-}
+.rec-delivery-bloqueo > span { margin-right: auto; }

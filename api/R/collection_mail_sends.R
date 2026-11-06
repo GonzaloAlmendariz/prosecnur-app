@@ -5,7 +5,7 @@
 # puede cambiar solo su asunto, su preheader y sumar una apertura; la plantilla
 # efectiva sale de `.cmail_template_for_send()` sin un segundo render.
 #
-# Modelo (`campaign.sends`, entre 1 y 6):
+# Modelo (`campaign.sends`, entre 1 y 10; antes 6, loop editor de correos L7: ~8 recordatorios en 4 semanas):
 #   { send_id, kind, label, date?, audience, subject?, preheader?, opening?, collector_label?,
 #     last_export_at?, last_export_platform? }   (las dos últimas, del servidor: ADR 0111 §8,
 #                                                 collection_mail_export_registro.R)
@@ -29,7 +29,7 @@
 #   invitación: es una lectura, no se escribe nada.
 
 .CMAIL_OPENING_ID <- "__apertura"
-.CMAIL_SENDS_MAX <- 6L
+.CMAIL_SENDS_MAX <- 10L
 .CMAIL_SEND_KEYS <- c("send_id", "kind", "label", "date", "audience", "subject", "preheader", "opening", "collector_label")
 .CMAIL_SEND_AUDIENCES <- c("sin_respuesta", "parcial", "ambos")
 .CMAIL_SEND_INVITATION <- "invitacion"
@@ -179,7 +179,7 @@
 #' @return list(ok, sends, problems, warnings, seq).
 #' @keywords internal
 .cmail_sends_validate <- function(sends, template, previous = NULL, seq = 0L) {
-  keys <- vapply(template$fields %||% list(), function(f) as.character(f$key %||% ""), "")
+  keys <- .cmail_declared_keys(template)
   if (!is.list(sends) || !length(sends) || !is.null(names(sends))) {
     return(list(ok = FALSE, sends = list(), warnings = list(), seq = seq,
                 problems = list(.cmail_problem("sends", "not_list", "sends es una lista de 1 a 6 envíos; el primero es la invitación."))))
@@ -243,7 +243,9 @@
 #' del saludo (o al inicio), con la alineación del primer párrafo.
 #' @keywords internal
 .cmail_template_for_send <- function(tpl, send) {
-  if (is.null(send)) return(tpl)
+  # Los datos fijos de la campaña se escriben en el texto al final, también en lo
+  # que trae el envío (collection_mail_constantes.R).
+  if (is.null(send)) return(.cmail_constants_apply(tpl))
   t <- tpl
   if (!is.null(.cmail_opt_text(send$subject))) t$subject <- send$subject
   if (!is.null(.cmail_opt_text(send$preheader))) t$preheader <- send$preheader
@@ -251,13 +253,20 @@
   if (!is.null(opening)) {
     blocks <- t$blocks %||% list()
     types <- vapply(blocks, function(b) as.character(b$type %||% ""), "")
-    first_par <- which(types == "paragraph")[1]
+    # Un párrafo que solo trae un campo (el nombre bajo el saludo, Acreditación
+    # 2026) es parte del vocativo: la apertura va después y no copia su alineación.
+    solo_campo <- vapply(blocks, function(b) {
+      identical(b$type, "paragraph") && !nzchar(trimws(gsub("[*_]", "", gsub(.CMAIL_TOKEN_RE, "", .cmail_one(b$text) %||% "", perl = TRUE)))) &&
+        grepl(.CMAIL_TOKEN_RE, .cmail_one(b$text) %||% "", perl = TRUE)
+    }, NA)
+    first_par <- which(types == "paragraph" & !solo_campo)[1]
     align <- if (!is.na(first_par)) .cmail_one(blocks[[first_par]]$align) else NULL
     block <- .cmc_drop_nulls_deep(list(block_id = .CMAIL_OPENING_ID, type = "paragraph", text = opening, align = align))
     at <- which(types == "greeting")[1]
+    if (!is.na(at)) while (at < length(blocks) && isTRUE(solo_campo[[at + 1L]])) at <- at + 1L
     t$blocks <- append(blocks, list(block), after = if (is.na(at)) 0L else at)
   }
-  t
+  .cmail_constants_apply(t)
 }
 
 #' Envío de un pedido: un borrador (`send`) o uno guardado (`send_id`; sin él, la invitación).
@@ -269,7 +278,7 @@
     id <- .cmail_one(send$send_id)
     kind <- .cmail_one(send$kind)
     invitation <- identical(id, .CMAIL_SEND_INVITATION) || identical(kind, "invitacion")
-    keys <- vapply(template$fields %||% list(), function(f) as.character(f$key %||% ""), "")
+    keys <- .cmail_declared_keys(template)
     pos <- if (!is.null(id)) match(id, vapply(sends, function(s) s$send_id, "")) else NA_integer_
     r <- .cmail_send_check(send, if (invitation) 1L else 2L, keys, if (is.na(pos)) length(sends) else pos - 1L)
     if (length(r$problems)) {
@@ -285,4 +294,51 @@
   stop_api(404, "E_COLLECTION_MAIL_SEND_NOT_FOUND", "El envío no existe en esta campaña.",
            details = list(send_id = if (grepl("^[a-z0-9-]{1,40}$", id)) id else NULL,
                           sends = as.list(vapply(sends, function(s) s$send_id, ""))))
+}
+
+# ---- asunto repetido (L7) ---------------------------------------------------------
+
+#' Aviso si el asunto efectivo de este envío es el de otro envío de la campaña:
+#' Gmail agrupa los dos en un hilo y esconde lo repetido tras «•••».
+#' `tpl` es la plantilla efectiva que se revisa (el borrador del editor con este
+#' envío aplicado): su asunto es el propio, y el asunto base que heredan los
+#' envíos sin asunto propio es el de ese borrador.
+#' @keywords internal
+.cmail_subject_repeat_check <- function(campaign, send, tpl) {
+  sends <- .cmail_sends_of(campaign %||% list())
+  if (is.null(send) || length(sends) < 2L || !is.list(tpl)) return(NULL)
+  limpio <- function(x) tolower(trimws(.cmail_one(x) %||% ""))
+  propio <- limpio(tpl$subject)
+  base_subject <- if (is.null(.cmail_opt_text(send$subject))) tpl$subject else campaign$template$subject %||% ""
+  escrito <- function(x) .cmail_constants_apply(list(subject = x, constants = tpl$constants))$subject
+  asunto <- function(s) limpio(escrito(.cmail_opt_text(s$subject) %||% base_subject))
+  otros <- Filter(function(s) !identical(.cmail_one(s$send_id), .cmail_one(send$send_id)), sends)
+  iguales <- Filter(function(s) nzchar(propio) && identical(asunto(s), propio), otros)
+  if (!length(iguales)) {
+    return(.cmail_check("send_subject_repeated", "ok", 0L, "El asunto no repite el de otro envío."))
+  }
+  nombres <- vapply(iguales, function(s) .cmail_one(s$label) %||% .cmail_one(s$send_id) %||% "", "")
+  .cmail_check("send_subject_repeated", "warning", length(iguales),
+    sprintf("El asunto es el mismo que en %s: Gmail los agrupa en un hilo y esconde lo repetido.",
+            paste(nombres, collapse = ", ")))
+}
+
+# ---- nombre del envío en los archivos (L23) ------------------------------------
+
+#' Cómo se llama el envío en el nombre de un archivo exportado: `invitacion`,
+#' `recordatorio-N` por su ORDEN entre los recordatorios y `ultimo` para el
+#' último. El `send_id` no sirve: no se renumera al quitar un envío, y el último
+#' de Acreditación 2026 salía `recordatorio-6` siendo el quinto. `ultimo` y no
+#' `ultimo-recordatorio`: el nombre tiene tope de 80 y el largo cortaba el de la
+#' campaña («estudiantes-de-pregr»); además ordena detrás de los recordatorios.
+#' @keywords internal
+.cmail_send_tag <- function(campaign, send) {
+  id <- .cmail_one(send$send_id) %||% ""
+  if (identical(.cmail_one(send$kind) %||% "invitacion", "invitacion")) return(.CMAIL_SEND_INVITATION)
+  recs <- Filter(function(s) identical(.cmail_one(s$kind), "recordatorio"), .cmail_sends_of(campaign %||% list()))
+  ids <- vapply(recs, function(s) .cmail_one(s$send_id) %||% "", "")
+  pos <- match(id, ids)
+  if (is.na(pos)) return(if (nzchar(id)) id else "recordatorio")
+  if (length(recs) > 1L && pos == length(recs)) return("ultimo")
+  sprintf("recordatorio-%d", pos)
 }

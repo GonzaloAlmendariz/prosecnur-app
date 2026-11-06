@@ -35,7 +35,7 @@ test_that("monitoreo_territorial_overview_facts degrada a NULL sin KPIs territor
 test_that("monitoreo_snapshot_refresh_territorial_facts solo marca changed cuando cambia", {
   snapshot <- list(dashboard = list())
   dashboard <- list(territorial_reports = list(kpis = list(
-    total_respuestas = 100L, validas = 80L, meta = 200L, avance_pct = 40,
+    total_respuestas = 100L, validas = 80L, efectivas = 80L, meta = 200L, avance_pct = 40,
     revision = 5L, geo_no_defendible = 2L
   )))
   first <- monitoreo_snapshot_refresh_territorial_facts(snapshot, dashboard)
@@ -60,7 +60,7 @@ test_that("el home refleja el avance vivo tras refrescar el fact territorial", {
 
   # Tablero "full" congelado en el snapshot (lo que el home leia antes del fix).
   stale_dashboard <- list(territorial_reports = list(kpis = list(
-    total_respuestas = 1200L, validas = 1028L, meta = 1351L, avance_pct = 85.7,
+    total_respuestas = 1200L, validas = 1028L, efectivas = 1028L, meta = 1351L, avance_pct = 85.7,
     revision = 6L, geo_no_defendible = 3L
   )))
   session_set(sid, "monitoreo_snapshot", list(
@@ -70,15 +70,18 @@ test_that("el home refleja el avance vivo tras refrescar el fact territorial", {
 
   # Sin fact fresco, el home cae al tablero congelado (compat hacia atras).
   mon_stale <- .project_overview_payload(sid)$facts$monitoreo
-  # Levantadas = validadas (1028) + en revision (6).
-  expect_equal(mon_stale$valid, 1034L)
+  # Numerador = `validas` del tablero (aqui un corte viejo con 1028), el mismo
+  # criterio que avance_pct; las en observacion van ademas como alerta.
+  expect_equal(mon_stale$valid, 1028L)
   expect_equal(mon_stale$target, 1351L)
-  expect_equal(mon_stale$avance_pct, 85.7)
+  # El 85.7 congelado es 1028 sobre OTRA meta (1200), no sobre la 1351 que trae:
+  # la tarjeta deriva el porcentaje del par que muestra (auditoría visual, 4 nov).
+  expect_equal(mon_stale$avance_pct, round(100 * 1028 / 1351, 1))
 
   # La vista viva de "Avance territorial" sirve un tablero fresco (scope
   # advance_summary): esto es exactamente lo que el modulo muestra al usuario.
   live_dashboard <- list(territorial_reports = list(kpis = list(
-    total_respuestas = 1693L, validas = 1283L, meta = 1200L, avance_pct = 107,
+    total_respuestas = 1693L, validas = 1283L, efectivas = 1283L, meta = 1200L, avance_pct = 107,
     revision = 11L, geo_no_defendible = 4L
   )))
   module_kpis <- .monitoreo_public_dashboard(live_dashboard)$territorial_reports$kpis
@@ -91,7 +94,7 @@ test_that("el home refleja el avance vivo tras refrescar el fact territorial", {
 
   # Ahora el home debe coincidir EXACTAMENTE con lo que sirve el modulo.
   mon_live <- .project_overview_payload(sid)$facts$monitoreo
-  expect_equal(mon_live$valid, as.integer(module_kpis$validas + module_kpis$revision))
+  expect_equal(mon_live$valid, as.integer(module_kpis$validas))
   expect_equal(mon_live$target, as.integer(module_kpis$meta))
   expect_equal(mon_live$collected, as.integer(module_kpis$total_respuestas))
   expect_equal(mon_live$avance_pct, module_kpis$avance_pct)

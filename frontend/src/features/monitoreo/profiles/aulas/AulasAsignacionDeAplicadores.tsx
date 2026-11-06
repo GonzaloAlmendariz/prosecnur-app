@@ -1,7 +1,10 @@
+import { enumerar } from "../../../../lib/enumerar";
+import { formatoConteoDe } from "../../../../lib/formatoNumero";
 import { useEffect, useState } from "react";
 import type { MonitoreoAulasSincronizacion, MonitoreoAulasTramo } from "../../../../api/monitoreo";
 
-import { AlertTriangle, Check, CheckCircle2, Copy, Info, Pin, Shuffle } from "../../../../vendor/lucide-react";
+import { AlertTriangle, Check, CheckCircle2, Copy, Info, Pin, Shuffle, Users } from "../../../../vendor/lucide-react";
+import { EstadoVacio } from "../../../../components/EstadoVacio";
 import {
   avisoDistribucion, enlaceDeDistribucion,
   type DistribucionSheetsRecordada, type DistribucionVigente,
@@ -275,11 +278,14 @@ export function AulasAsignacionDeAplicadores({
 
   if (!reparto) {
     return (
-      <p className="aulas-carga-vacio" data-qa-geometry-member="true" data-qa-geometry-capacity="owned">
-        El reparto sale de la disponibilidad de los aplicadores, que este estudio todavía no
-        tiene cargada. Con el libro de disponibilidad del equipo (Excel) en la sesión, cada cita
-        pactada recibe su aplicador: parejo, sin solapes y repetible con cada Recargar.
-      </p>
+      <div data-qa-geometry-member="true" data-qa-geometry-capacity="owned">
+        <EstadoVacio
+          tamano="normal"
+          icono={<Users size={18} />}
+          titulo="El reparto sale de la disponibilidad de los aplicadores, que este estudio todavía no tiene cargada."
+          descripcion="Con el libro de disponibilidad del equipo (Excel) en la sesión, cada cita pactada recibe su aplicador: parejo, sin solapes y repetible con cada Recargar."
+        />
+      </div>
     );
   }
 
@@ -340,7 +346,7 @@ export function AulasAsignacionDeAplicadores({
     <>
       {reparto.equidad.map((e) => (
         <option key={e.aplicador} value={e.aplicador}>
-          {nombreDeAplicador(e.aplicador)} · {fmt(e.asignadas)}
+          {nombreDeAplicador(e.aplicador)} ({fmt(e.asignadas)})
         </option>
       ))}
       <optgroup label="Si no hay nadie del equipo">
@@ -348,7 +354,7 @@ export function AulasAsignacionDeAplicadores({
           {INTERNO_PULSO}
           {(() => {
             const n = reparto.equidad.find((e) => e.aplicador === INTERNO_PULSO)?.asignadas ?? 0;
-            return n > 0 ? ` · ${fmt(n)}` : "";
+            return n > 0 ? ` (${fmt(n)})` : "";
           })()}
         </option>
       </optgroup>
@@ -375,10 +381,10 @@ export function AulasAsignacionDeAplicadores({
   const hayQueSincronizar = cambiosSincronizacion > 0;
   const resumenSincronizacion = [
     sincronizacion?.anadidas.length
-      ? `${sincronizacion.anadidas.length} ${sincronizacion.anadidas.length === 1 ? "fila" : "filas"}`
+      ? formatoConteoDe(sincronizacion.anadidas.length, "fila")
       : "",
     sincronizacion?.estado.cambios.length
-      ? `${sincronizacion.estado.cambios.length} ${sincronizacion.estado.cambios.length === 1 ? "estado" : "estados"}`
+      ? formatoConteoDe(sincronizacion.estado.cambios.length, "estado")
       : "",
   ].filter(Boolean).join(" y ");
 
@@ -427,13 +433,10 @@ export function AulasAsignacionDeAplicadores({
               <button
                 type="button"
                 className="aulas-asigna-rango-boton"
-                disabled={!hayDestinoDistribucion}
-                title={hayDestinoDistribucion
-                  ? "Escribe el reparto vigente en el Sheets de los aplicadores"
-                  : "Pega el enlace del Sheets de los aplicadores: sin él no hay dónde publicar"}
+                title="La distribución se construye en Material › Entrega; aquí se sigue"
                 onClick={() => { void onPublicarDistribucion(escritoDistribucion || undefined); }}
               >
-                Publicar distribución
+                Construir en Material
               </button>
               {recordadoUrl ? (
                 <a className="aulas-asigna-sheets-enlace" href={recordadoUrl} target="_blank" rel="noreferrer">
@@ -595,7 +598,7 @@ export function AulasAsignacionDeAplicadores({
             /* El KPI del despliegue va PRIMERO: cuánta gente mueve el día que
                toca es la cifra con la que se abre la vista. */
             <div>
-              <dt>{diaQueToca.etiqueta} · próxima salida</dt>
+              <dt>{diaQueToca.etiqueta}, próxima salida</dt>
               <dd>{fmt(diaQueToca.asignaciones.length)}</dd>
             </div>
           ) : null}
@@ -644,7 +647,7 @@ export function AulasAsignacionDeAplicadores({
                 <h4>
                   {d.etiqueta}
                   <span className="aulas-asigna-conteo">
-                    {" "}· {fmt(d.asignaciones.length)}{" "}
+                    ,{" "}{fmt(d.asignaciones.length)}{" "}
                     {d.asignaciones.length === 1 ? "aplicación repartida" : "aplicaciones repartidas"}
                   </span>
                   {esElQueToca ? (
@@ -682,7 +685,7 @@ export function AulasAsignacionDeAplicadores({
                         : <><Copy size={12} aria-hidden="true" /> copiar aviso del día</>}
                     </button>
                   ) : null}
-                  {esPasado ? <em className="aulas-asigna-ya-paso"> · ya pasó</em> : null}
+                  {esPasado ? <em className="aulas-asigna-ya-paso">, ya pasó</em> : null}
                 </h4>
                 {esElQueToca && textoRevelado ? (
                   /* El peldaño manual: el portapapeles se negó y el texto se
@@ -751,10 +754,10 @@ export function AulasAsignacionDeAplicadores({
                                       const n = s.ocupados.length;
                                       const lista = s.ocupados
                                         .map((o) => `${nombreDeAplicador(o.aplicador)} (${o.porCodigo})`)
-                                        .join(" · ");
+                                        .join(", ");
                                       const desde = `libres desde las ${s.desdeRecojo}`;
                                       return n === 0
-                                        ? `${fmt(s.conHorario.length)} ${desde}: ${s.conHorario.map(nombreDeAplicador).join(" · ")}`
+                                        ? `${fmt(s.conHorario.length)} ${desde}: ${enumerar(s.conHorario.map(nombreDeAplicador))}`
                                         : `${fmt(s.conHorario.length)} ${desde}, ${n === 1 ? "y está" : "y están"} en otra aplicación a esa hora: ${lista}. Soltando una de ésas se abre.`;
                                     })()}
                               </span>
@@ -992,7 +995,7 @@ export function AulasAsignacionDeAplicadores({
                             : "no declaró ninguna hora en el libro de disponibilidad"
                           : l.cubre
                             .map((c) => `${c.dia} ${c.desde} a ${c.hasta}`)
-                            .join(" · ")}
+                            .join(", ")}
                       </li>
                     ))}
                   </ul>
@@ -1089,12 +1092,12 @@ export function AulasAsignacionDeAplicadores({
                                         dos puntas son cosas distintas y cada
                                         una lleva su verbo. */}
                                     {d.oficina ? `en oficina ${d.oficina}` : ""}
-                                    {d.oficina && d.termina ? " · " : ""}
+                                    {d.oficina && d.termina ? ", " : ""}
                                     {d.termina ? `termina ${d.termina}` : ""}
                                   </em>
                                 ) : null}
                                 <span className="aulas-asigna-agenda-horas">
-                                  {d.horas.join(" · ")}
+                                  {d.horas.join(", ")}
                                 </span>
                               </span>
                             ))}

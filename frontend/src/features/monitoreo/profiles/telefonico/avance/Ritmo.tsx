@@ -16,6 +16,9 @@ import {
   type FamiliaDeLlamada,
 } from "./ritmoModel";
 import { metaDelProyecto } from "./metaDelProyecto";
+import { origenDeEfectivas } from "./origenDeEfectivas";
+import { useVariableDeCuotasElegida } from "./variableElegida";
+import { avisosDelNumerador, filasDeBloque } from "../navegacion/bloques";
 import { TrazadoDeBarras } from "./TrazadoDeBarras";
 import { NotaDelModo } from "../../../core/NotaDelModo";
 import { RotuloDePestana, useHayRotulo } from "../navegacion/RotuloDePestana";
@@ -23,6 +26,7 @@ import "./trazadoDeBarras.css";
 import "../control/controlTelefonico.css";
 import "../insumos/insumosTelefonico.css";
 import "./ritmoTelefonico.css";
+import { formatoConteo } from "../../../../../lib/formatoNumero";
 
 const ETIQUETA_DE_FAMILIA: Record<FamiliaDeLlamada, string> = {
   efectiva: "Efectiva",
@@ -36,7 +40,7 @@ const ETIQUETA_DE_FAMILIA: Record<FamiliaDeLlamada, string> = {
 const SERIES = 6;
 
 function n(valor: number) {
-  return valor.toLocaleString("es-PE");
+  return formatoConteo(valor);
 }
 
 function decimal(valor: number) {
@@ -64,8 +68,11 @@ export function Ritmo({
 }) {
   const reglas = state?.config?.operational_model?.state_rules;
   // La misma serie que leen el calendario de Cuotas, la vista del PDF y los chips.
-  const { segmento, serie: kobo, sinCategoria, fueraDeCuota, sinFecha } = useMemo(() => serieDiariaDelCorte(reports), [reports]);
+  const { elegida } = useVariableDeCuotasElegida();
+  const { segmento, serie: kobo, sinCategoria, fueraDeCuota, sinFecha } = useMemo(() => serieDiariaDelCorte(reports, elegida), [reports, elegida]);
   const notaDeSerie = notaSinCategoria(sinCategoria, rotuloDelSegmento(segmento), fueraDeCuota, sinFecha);
+  // Lo que el conteo no suma o no asigna (llaves repetidas, completas sin caso), con la causa que da el motor.
+  const avisos = useMemo(() => avisosDelNumerador(reports), [reports]);
   const hoja = useMemo(() => serieHoja(reports, reglas ?? []), [reports, reglas]);
   const fechasDeLaHoja = useMemo(() => formatosDeFecha(reports), [reports]);
   const meta = metaDelProyecto(state);
@@ -88,6 +95,9 @@ export function Ritmo({
   const hojaSeDetiene = hoja.ultima && ultimoKobo && hoja.ultima < ultimoKobo ? hoja.ultima : null;
   const maximoCelda = Math.max(1, ...kobo.categorias.flatMap((categoria) => kobo.fechas.map((iso) => kobo.celdas[categoria.nombre]?.[iso] ?? 0)));
   const rotulo = rotuloDelSegmento(segmento);
+  // El origen lo publica cada fila de cuota (por actor); la serie lo confirma cuando no trae una sola de Kobo.
+  const origenDeCuotas = origenDeEfectivas(filasDeBloque(reports, ["cuotas_variable", "cuotas_telefonicas", "cuotas_por_variable"]));
+  const deOrigen = kobo.origen === "hoja" || origenDeCuotas === "hoja" ? "de la hoja" : origenDeCuotas === "mixto" ? "de Kobo y de la hoja" : "de Kobo";
   // Un día sin efectivas de Kobo conserva el acumulado del día anterior (RMS
   // ficticio mostraba «—» el 15/10 y el 16/10 entre 1 y 36).
   const acumuladoAl = (iso: string) => {
@@ -102,11 +112,11 @@ export function Ritmo({
   return (
     <div className="mon-cadencia" data-qa-geometry-group="telefonico-avance-ritmo" data-qa-geometry-contract="intrinsic">
       <div className="mon-cadencia-columna">
-        <section className="mon-ctl-panel mon-cadencia-grafico" aria-label={`Efectivas de Kobo por día y ${nombreDeSegmento}`}>
+        <section className="mon-ctl-panel mon-cadencia-grafico" aria-label={`Efectivas ${deOrigen} por día y ${nombreDeSegmento}`}>
           {/* §2a-bis: el rótulo de la pestaña encabeza su primera tarjeta. */}
           <RotuloDeTarjeta />
           <header className="mon-cadencia-cabecera">
-            <strong>Efectivas de Kobo por día{segmento ? ` y ${nombreDeSegmento}` : ""}</strong>
+            <strong>Efectivas {deOrigen} por día{segmento ? ` y ${nombreDeSegmento}` : ""}</strong>
           </header>
           <TrazadoDeBarras
             tituloIzquierdo="Efectivas por día"
@@ -139,7 +149,7 @@ export function Ritmo({
           <TrazadoDeBarras
             bajo
             tituloIzquierdo="Llamados por día"
-            banda={hojaSeDetiene ? { desde: fechas.findIndex((iso) => iso > hojaSeDetiene), rotulo: "Sin registro en la hoja" } : null}
+            banda={hojaSeDetiene ? { desde: fechas.findIndex((iso) => iso > hojaSeDetiene), rotulo: "Sin registro en la hoja", rotuloCorto: "Sin hoja" } : null}
             columnas={fechas.map((iso) => {
               const familias = hoja.porFecha[iso];
               const total = hoja.totalPorFecha[iso] ?? 0;
@@ -190,7 +200,7 @@ export function Ritmo({
 
       <div className="mon-cadencia-lateral">
         <section className="mon-ctl-panel mon-insumos-tarjeta" aria-label="Promedio">
-          <span className="mon-ctl-antetitulo">Promedio</span>
+          <header className="mon-ctl-panel-cabecera"><b>Promedio</b></header>
           <p className="mon-cadencia-grande"><strong>{resumen.promedio == null ? "—" : decimal(resumen.promedio)}</strong> efectivas por día</p>
           <p
             title={[
@@ -201,6 +211,7 @@ export function Ritmo({
             {n(kobo.total)} en {n(resumen.dias)} {resumen.dias === 1 ? "día" : "días"}
           </p>
           {notaDeSerie ? <NotaDelModo tono="aviso">{notaDeSerie}.</NotaDelModo> : null}
+          {avisos.map((aviso) => <NotaDelModo key={aviso} tono="aviso">{aviso}</NotaDelModo>)}
         </section>
 
         <section className="mon-ctl-panel mon-cadencia-dia-a-dia" aria-label="Día a día" data-qa-geometry-capacity="owned">
@@ -287,9 +298,9 @@ function RitmoSinSerie({
   // Un solo panel: con dos líneas de estado, una tarjeta lateral estirada al
   // alto de la columna era un vacío dentro de una tarjeta (chequeo f).
   return (
-    <section className="mon-ctl-panel mon-cadencia-vacio mon-tel-vacio" aria-label="Efectivas y llamados por día" data-qa-geometry-capacity="owned">
+    <section className="mon-ctl-panel mon-cadencia-sin-serie" aria-label="Efectivas y llamados por día" data-qa-geometry-capacity="owned">
       <RotuloDeTarjeta />
-      <div className="mon-cadencia-vacio-cuerpo">
+      <div className="mon-cadencia-sin-serie-cuerpo">
         <EstadoVacio
           tamano="normal"
           icono={<CalendarClock size={22} />}
@@ -297,7 +308,7 @@ function RitmoSinSerie({
           descripcion={motivoSinSerie(hoja, sinFecha)}
         />
         {hoja.estados.length ? (
-          <ul className="mon-cadencia-formatos mon-cadencia-vacio-estados" aria-label="Estado de la hoja de barrido">
+          <ul className="mon-cadencia-formatos" aria-label="Estado de la hoja de barrido">
             {hoja.estados.map((item) => (
               <li key={item.estado}>
                 <i className="mon-cadencia-punto" aria-hidden="true" />

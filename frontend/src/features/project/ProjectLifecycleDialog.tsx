@@ -13,6 +13,9 @@ import {
   X,
 } from "lucide-react";
 import { copiarTexto } from "../../lib/portapapeles";
+import { MotivosSinGuardar } from "./MotivosSinGuardar";
+import { projectRelTime } from "./tiempoRelativo";
+import type { MotivoSinGuardar } from "./modeloMotivosSinGuardar";
 
 export type ProjectLifecycleIntent = "manage" | "selector" | "appExit";
 
@@ -25,17 +28,7 @@ export type ProjectLifecycleAction =
   | "exit"
   | null;
 
-export function projectRelTime(iso: string | null): string {
-  if (!iso) return "nunca";
-  const t = new Date(iso).getTime();
-  if (Number.isNaN(t)) return "-";
-  const diff = (Date.now() - t) / 1000;
-  if (diff < 30) return "hace un momento";
-  if (diff < 90) return "hace un minuto";
-  if (diff < 60 * 60) return `hace ${Math.floor(diff / 60)} min`;
-  if (diff < 60 * 60 * 24) return `hace ${Math.floor(diff / 3600)} h`;
-  return new Date(iso).toLocaleDateString("es-PE");
-}
+export { projectRelTime } from "./tiempoRelativo";
 
 /**
  * ADR 0112 §5: quien recibe el `.pulso` recibe los contactos de las campañas
@@ -59,6 +52,7 @@ export default function ProjectLifecycleDialog({
   error,
   notice,
   contactosCampanas,
+  motivos = [],
   onCancel,
   onSave,
   onSaveAs,
@@ -72,6 +66,8 @@ export default function ProjectLifecycleDialog({
   lastSavedAt: string | null;
   /** Campañas de correo cuyos contactos viajan en el `.pulso`. */
   contactosCampanas?: number;
+  /** Qué dejó el proyecto «sin guardar» (L22). */
+  motivos?: readonly MotivoSinGuardar[];
   busy: boolean;
   action: ProjectLifecycleAction;
   error: string;
@@ -185,6 +181,7 @@ export default function ProjectLifecycleDialog({
               <span>{dirty ? "Cambios sin guardar" : `Guardado ${projectRelTime(lastSavedAt)}`}</span>
             </div>
             <p>{lead}</p>
+            {dirty ? <MotivosSinGuardar motivos={motivos} /> : null}
             {avisoDeContactos(contactosCampanas) ? (
               <p data-testid="proyecto-contactos" role="note">{avisoDeContactos(contactosCampanas)}.</p>
             ) : null}

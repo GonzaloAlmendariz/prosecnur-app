@@ -12,12 +12,12 @@
   display: grid; grid-template-columns: 14px minmax(0, 1fr) auto; align-items: center; gap: var(--pulso-space-2);
   min-height: 34px; padding: 6px var(--pulso-space-3);
   border: 0; border-top: 1px solid var(--pulso-border); background: transparent;
-  color: var(--pulso-text); font: inherit; font-size: 12.5px; text-align: left; cursor: pointer;
+  color: var(--pulso-text); font: inherit; font-size: var(--pulso-type-body-size); text-align: left; cursor: pointer;
   transition: background var(--motion-dur-fast) var(--motion-ease-out);
 }
 .pulso-f6-cifra-cat:first-child { border-top: 0; }
 .pulso-f6-cifra-cat:hover { background: var(--pulso-surface-2); }
-.pulso-f6-cifra-cat:focus-visible { outline: 2px solid var(--module-accent); outline-offset: -2px; }
+.pulso-f6-cifra-cat:focus-visible { outline: var(--mov-foco, 2px solid var(--pulso-primary)); outline-offset: -2px; }
 .pulso-f6-cifra-cat-marca {
   width: 14px; height: 14px; border-radius: 50%;
   box-shadow: inset 0 0 0 1.5px var(--pulso-border-strong);
@@ -27,7 +27,7 @@
 .pulso-f6-cifra-cat.is-activa .pulso-f6-cifra-cat-marca { box-shadow: inset 0 0 0 4px var(--module-accent); }
 .pulso-f6-cifra-cat.is-residual .pulso-f6-cifra-cat-texto { color: var(--pulso-text-soft); }
 .pulso-f6-cifra-cat-texto { min-width: 0; overflow-wrap: anywhere; }
-.pulso-f6-cifra-cat-n { color: var(--pulso-text-soft); font-size: 11.5px; font-variant-numeric: tabular-nums; }
+.pulso-f6-cifra-cat-n { color: var(--pulso-text-soft); font-size: var(--pulso-type-caption-size); font-variant-numeric: tabular-nums; }
 
 .pulso-f6-cifra-textos {
   display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--pulso-space-3);

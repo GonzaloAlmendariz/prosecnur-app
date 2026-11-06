@@ -80,7 +80,7 @@ describe("PestanaEstilo · markup", () => {
     expect(html.match(/pulso-f6-estilo-modificado/g)).toHaveLength(2);
     expect(html).toContain("Ahora: <strong>PUCP</strong>");
     expect(html).toContain('src="/logos-estandar/pucp.png"');
-    expect(html).toContain("11,5 pt = 9,5 + 2");
+    expect(html).toContain("11.5 pt = 9.5 + 2");
   });
 
   it("la subida es un botón real y el selector de archivos sólo pide PNG", () => {
@@ -93,18 +93,18 @@ describe("PestanaEstilo · markup", () => {
     expect(html).toContain('class="pulso-lista-partes" role="group" aria-label="Piezas de la identidad"');
   });
 
-  // L2 (2026-10-14): en el compartido sólo logos y letra dicen por qué no; colores e íconos se ajustan.
-  it("en el informe compartido los logos no se ajustan y dicen por qué", () => {
+  // Gonzalo (2026-10-29): el PowerPoint del compartido recibe logos y letra (graficos_consolidado_start), así que se
+  // ajustan también ahí; antes la pieza decía por qué no.
+  it("en el informe compartido los logos se ajustan", () => {
     const html = pintar("?pestana=identidad&scope=consolidado");
-    expect(html).toContain("Los logos y la letra hoy sólo se aplican al Word");
-    expect(html).toContain('role="status"');
+    expect(html).not.toContain("todavía sale con los logos y la letra de la plantilla");
     expect(html).toContain('data-audit-ready="graficos-estilo"');
-    expect(html).not.toContain("Subir PNG");
+    expect(html).toContain("Subir PNG");
   });
 
   it("en el informe compartido los colores de las respuestas sí se ajustan", () => {
     const html = pintar("?pestana=identidad&scope=consolidado&foco=colores");
-    expect(html).not.toContain("hoy sólo se aplican al Word");
+    expect(html).not.toContain("todavía sale con los logos y la letra de la plantilla");
     expect(html).toContain("Colores de las respuestas");
   });
 });

@@ -9,6 +9,8 @@ export type TablasDeAvance = {
   tablas: MonitoreoAulasAvanceTabla[] | null;
   titular: string;
   error: string;
+  /** Sin plan de aulas: la causa que da el motor (vacío legítimo, no un error). */
+  sinPlan: string;
 };
 
 /**
@@ -25,7 +27,7 @@ export type TablasDeAvance = {
  * sesión nueva pide de nuevo). `invalidarTablasDeAvance()` la tira cuando algo
  * las deja viejas, como una sincronización.
  */
-let enVuelo: Promise<{ tablas: MonitoreoAulasAvanceTabla[]; titular: string }> | null = null;
+let enVuelo: Promise<{ tablas: MonitoreoAulasAvanceTabla[]; titular: string; sinPlan: string }> | null = null;
 
 export function invalidarTablasDeAvance(): void {
   enVuelo = null;
@@ -34,7 +36,11 @@ export function invalidarTablasDeAvance(): void {
 function pedir() {
   if (!enVuelo) {
     enVuelo = apiMonitoreoAulasAvanceTablas()
-      .then((res) => ({ tablas: res.tablas ?? [], titular: res.titular || res.corte || "" }))
+      .then((res) => ({
+        tablas: res.tablas ?? [],
+        titular: res.titular || res.corte || "",
+        sinPlan: res.sin_plan ? (res.vacio || "Todavía no hay plan de cursos-horario.") : "",
+      }))
       .catch((e) => {
         // Un fallo no se cachea: si se guardara, la pantalla se quedaría rota
         // hasta cambiar de proyecto aunque el backend se recupere al instante.
@@ -46,13 +52,13 @@ function pedir() {
 }
 
 export function useTablasDeAvance(): TablasDeAvance {
-  const [estado, setEstado] = useState<TablasDeAvance>({ tablas: null, titular: "", error: "" });
+  const [estado, setEstado] = useState<TablasDeAvance>({ tablas: null, titular: "", error: "", sinPlan: "" });
 
   useEffect(() => {
     let vivo = true;
     pedir()
-      .then((r) => { if (vivo) setEstado({ tablas: r.tablas, titular: r.titular, error: "" }); })
-      .catch((e: Error) => { if (vivo) setEstado({ tablas: [], titular: "", error: e.message }); });
+      .then((r) => { if (vivo) setEstado({ tablas: r.tablas, titular: r.titular, error: "", sinPlan: r.sinPlan }); })
+      .catch((e: Error) => { if (vivo) setEstado({ tablas: [], titular: "", error: e.message, sinPlan: "" }); });
     return () => { vivo = false; };
   }, []);
 

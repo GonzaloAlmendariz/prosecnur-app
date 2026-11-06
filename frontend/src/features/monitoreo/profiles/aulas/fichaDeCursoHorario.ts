@@ -293,6 +293,6 @@ export function cuandoEnPalabras(
   const cuando = dia ? `${dia}${h ? `, ${h}` : ""}` : "";
   if (estado === "aplicado") return cuando ? `Se aplicó el ${cuando}` : "Aplicado, sin fecha registrada";
   if (estado === "agendado") return cuando ? `Agendado para el ${cuando}` : "Agendado, sin fecha registrada";
-  if (estado === "retirado") return cuando ? `Retirado del plan · tenía fecha el ${cuando}` : "Retirado del plan";
+  if (estado === "retirado") return cuando ? `Retirado del plan, tenía fecha el ${cuando}` : "Retirado del plan";
   return "Todavía sin fecha en la agenda";
 }

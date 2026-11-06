@@ -1,5 +1,8 @@
 import { memo, useMemo } from "react";
 import { Target } from "lucide-react";
+import { EstadoVacio } from "../../../../../components/EstadoVacio";
+import { EstadoChip } from "../../../../../components/EstadoChip";
+import type { ChromeStatusTone } from "../../../../../components/ModuleCommandBar";
 import type { MonitoreoState, MonitoreoTerritorialDashboard } from "../../../../../api/client";
 import { useFocoMonitoreo } from "../../../useMonitoreoDireccion";
 import { fmt } from "../rotulos";
@@ -7,15 +10,16 @@ import { construirCuotas } from "./cuotasModel";
 import { RotuloDePestana } from "../navegacion/RotuloDePestana";
 import { SiluetaDeDistrito } from "../avance/SiluetaDeDistrito";
 import "./modelo.css";
+import { BloqueDeMonitoreo } from "../../../core/BloqueDeMonitoreo";
 
 function textoDeRegla(valor: boolean | null): string {
   if (valor == null) return "Sin dato en este corte";
   return valor ? "Sí" : "No";
 }
 
-function claseDeRegla(valor: boolean | null): string {
-  if (valor == null) return "";
-  return valor ? "is-ok" : "is-aviso";
+function tonoDeRegla(valor: boolean | null): ChromeStatusTone {
+  if (valor == null) return "neutral";
+  return valor ? "success" : "warn";
 }
 
 /**
@@ -39,12 +43,17 @@ function CuotasTabImpl({
   if (!modelo.disponible) {
     return (
       <section className="mon-mod mon-mod--vacio" data-audit-ready="vacio:sin-cuota" aria-label="Cuotas">
-        <div className="mon-mod-panel mon-mod-vacio">
+        <div className="mon-mod-panel">
           <RotuloDePestana />
-          <Target size={20} aria-hidden="true" />
-          <strong>Sin cuota territorial configurada</strong>
-          <span>La cuota por UMP sale de la muestra de Hojas de ruta.</span>
-          <button type="button" className="mon-mod-boton" onClick={() => escribirFoco(null, { seccion: "insumos", pestana: "mapeo", panel: null })}>Revisar el mapeo de variables</button>
+          <EstadoVacio
+            tamano="normal"
+            icono={<Target size={18} />}
+            titulo="Sin cuota territorial configurada"
+            descripcion="La cuota por UMP sale de la muestra de Hojas de ruta."
+            accion={
+              <button type="button" className="mon-mod-boton" onClick={() => escribirFoco(null, { seccion: "insumos", pestana: "mapeo", panel: null })}>Revisar el mapeo de variables</button>
+            }
+          />
         </div>
       </section>
     );
@@ -59,12 +68,18 @@ function CuotasTabImpl({
       data-qa-geometry-contract="intrinsic"
     >
       <div className="mon-mod-izquierda" data-qa-geometry-member="definicion" data-qa-geometry-group="territorial-modelo-definicion" data-qa-geometry-contract="intrinsic">
-        <section className="mon-mod-panel" aria-labelledby="mon-mod-variables">
-          <header className="mon-mod-cabecera is-inicio"><RotuloDePestana /><h3 id="mon-mod-variables" className="mon-mod-titulo">Variables de cuota</h3></header>
+        <BloqueDeMonitoreo
+          marco="kit"
+          className="mon-mod-panel"
+          aria-labelledby="mon-mod-variables"
+          antetitulo={<RotuloDePestana />}
+          titulo="Variables de cuota"
+          tituloId="mon-mod-variables"
+        >
           <dl className="mon-mod-variables">
             {modelo.variables.map((variable) => (
               <div key={variable.rotulo}>
-                <dt>{variable.rotulo} <code>{variable.columna || "sin columna"}</code></dt>
+                <dt>{variable.rotulo} <span className="mon-mod-columna">{variable.columna || "sin columna"}</span></dt>
                 <dd>{variable.categorias.map((categoria) => <span key={categoria} className="mon-ter-chip">{categoria}</span>)}</dd>
               </div>
             ))}
@@ -81,19 +96,30 @@ function CuotasTabImpl({
           <p className="mon-mod-base">
             {fmt(modelo.conPlantilla)} manzanas con esta plantilla{modelo.conOtra ? <span className="mon-ter-cuenta">{fmt(modelo.conOtra)} con otra</span> : null}
           </p>
-        </section>
+        </BloqueDeMonitoreo>
 
-        <section className="mon-mod-panel" aria-labelledby="mon-mod-reglas">
-          <h3 id="mon-mod-reglas" className="mon-mod-titulo">Reglas para cubrir una celda</h3>
+        <BloqueDeMonitoreo
+          marco="kit"
+          className="mon-mod-panel"
+          aria-labelledby="mon-mod-reglas"
+          titulo="Reglas para cubrir una celda"
+          tituloId="mon-mod-reglas"
+        >
           <dl className="mon-mod-reglas">
-            <div><dt>El sexo puede cambiar al subsanar</dt><dd><span className={`mon-ter-chip ${claseDeRegla(modelo.reglas.sexoFlexible)}`}>{textoDeRegla(modelo.reglas.sexoFlexible)}</span></dd></div>
-            <div><dt>La edad puede cambiar al subsanar</dt><dd><span className={`mon-ter-chip ${claseDeRegla(modelo.reglas.edadFlexible)}`}>{textoDeRegla(modelo.reglas.edadFlexible)}</span></dd></div>
+            <div><dt>El sexo puede cambiar al subsanar</dt><dd><EstadoChip label={textoDeRegla(modelo.reglas.sexoFlexible)} tone={tonoDeRegla(modelo.reglas.sexoFlexible)} /></dd></div>
+            <div><dt>La edad puede cambiar al subsanar</dt><dd><EstadoChip label={textoDeRegla(modelo.reglas.edadFlexible)} tone={tonoDeRegla(modelo.reglas.edadFlexible)} /></dd></div>
           </dl>
-        </section>
+        </BloqueDeMonitoreo>
       </div>
 
-      <section className="mon-mod-panel" aria-labelledby="mon-mod-distrito" data-qa-geometry-member="distritos">
-        <h3 id="mon-mod-distrito" className="mon-mod-titulo">Cuota por distrito</h3>
+      <BloqueDeMonitoreo
+        marco="kit"
+        className="mon-mod-panel"
+        aria-labelledby="mon-mod-distrito"
+        data-qa-geometry-member="distritos"
+        titulo="Cuota por distrito"
+        tituloId="mon-mod-distrito"
+      >
         <div className="mon-mod-tabla-marco" data-qa-geometry-capacity="owned" tabIndex={0} aria-label="Cuota por distrito, con desplazamiento">
           <table className="mon-mod-tabla">
             <thead>
@@ -122,7 +148,7 @@ function CuotasTabImpl({
           </table>
         </div>
         <p className="mon-mod-base" title="Cada uno suma la meta del distrito por separado">Sexo y edad, marginales</p>
-      </section>
+      </BloqueDeMonitoreo>
     </section>
   );
 }

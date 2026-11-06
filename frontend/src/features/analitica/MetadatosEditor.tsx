@@ -78,7 +78,7 @@ export function MetadatosEditor() {
 
   if (variables.length === 0) {
     return (
-      <div style={{ fontSize: 12, color: "var(--pulso-text-soft)", padding: "12px 0" }}>
+      <div style={{ fontSize: "var(--pulso-type-body-size)", color: "var(--pulso-text-soft)", padding: "12px 0" }}>
         No hay variables que mostrar. ¿Ya se preparó la data?
       </div>
     );
@@ -88,7 +88,7 @@ export function MetadatosEditor() {
     <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
       {/* Resumen + acciones */}
       <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-        <div style={{ fontSize: 11, color: "var(--pulso-text-soft)", lineHeight: 1.5, flex: 1, minWidth: 240 }}>
+        <div style={{ fontSize: "var(--pulso-type-caption-size)", color: "var(--pulso-text-soft)", lineHeight: 1.5, flex: 1, minWidth: 240 }}>
           {overrideCount === 0 ? (
             <>
               Inferencia automática activa sobre <strong>{variables.length} variables</strong>. El formato SPSS se elige por el sistema; solo la medida (nominal/ordinal/escala) es editable.
@@ -96,7 +96,7 @@ export function MetadatosEditor() {
           ) : (
             <>
               <strong>{overrideCount} {overrideCount === 1 ? "medida editada" : "medidas editadas"}</strong>
-              {" · "}
+              {", "}
               <span style={{ color: "var(--pulso-text-soft)" }}>
                 el resto usa la inferencia automática.
               </span>
@@ -108,7 +108,7 @@ export function MetadatosEditor() {
             type="button"
             onClick={clearAll}
             style={{
-              fontSize: 11, padding: "4px 10px",
+              fontSize: "var(--pulso-type-caption-size)", padding: "4px 10px",
               display: "inline-flex", alignItems: "center", gap: 4,
             }}
           >
@@ -134,7 +134,7 @@ export function MetadatosEditor() {
           placeholder="Buscar por nombre o etiqueta…"
           style={{
             flex: 1, border: "none", outline: "none",
-            fontSize: 12, padding: "2px 0",
+            fontSize: "var(--pulso-type-body-size)", padding: "2px 0",
           }}
         />
         {query && (
@@ -159,7 +159,7 @@ export function MetadatosEditor() {
           background: "white",
         }}
       >
-        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 11 }}>
+        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "var(--pulso-type-caption-size)" }}>
           <thead>
             <tr
               style={{
@@ -194,7 +194,7 @@ export function MetadatosEditor() {
         </table>
       </div>
       {filtered.length === 0 && (
-        <div style={{ fontSize: 11, color: "var(--pulso-text-soft)", textAlign: "center", padding: "8px 0" }}>
+        <div style={{ fontSize: "var(--pulso-type-caption-size)", color: "var(--pulso-text-soft)", textAlign: "center", padding: "8px 0" }}>
           No hay variables que coincidan con "{query}".
         </div>
       )}
@@ -208,7 +208,7 @@ function Th({ children, style }: { children?: React.ReactNode; style?: React.CSS
       style={{
         textAlign: "left",
         padding: "8px 10px",
-        fontSize: 10, fontWeight: 700,
+        fontSize: "var(--pulso-type-micro-size)", fontWeight: 700,
         textTransform: "uppercase", letterSpacing: 0.3,
         color: "var(--pulso-text-soft)",
         ...style,
@@ -256,7 +256,7 @@ function VariableRow({
         <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
           <code
             style={{
-              fontFamily: "monospace", fontSize: 11, fontWeight: 600,
+              fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace", fontSize: "var(--pulso-type-caption-size)", fontWeight: 600,
               color: "var(--pulso-text)",
             }}
           >
@@ -264,7 +264,7 @@ function VariableRow({
           </code>
           {v.label && (
             <div
-              style={{ fontSize: 10, color: "var(--pulso-text-soft)", lineHeight: 1.4 }}
+              style={{ fontSize: "var(--pulso-type-micro-size)", color: "var(--pulso-text-soft)", lineHeight: 1.4 }}
               title={v.label}
             >
               {truncate(v.label, 60)}
@@ -274,14 +274,14 @@ function VariableRow({
       </td>
 
       {/* Tipo XLSForm */}
-      <td style={{ padding: "8px 10px", verticalAlign: "top", fontSize: 10, color: "var(--pulso-text-soft)" }}>
+      <td style={{ padding: "8px 10px", verticalAlign: "top", fontSize: "var(--pulso-type-micro-size)", color: "var(--pulso-text-soft)" }}>
         {v.tipo_xlsform ? (
-          <code style={{ fontFamily: "monospace" }}>{v.tipo_xlsform}</code>
+          <code style={{ fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace" }}>{v.tipo_xlsform}</code>
         ) : (
           <span style={{ fontStyle: "italic" }}>—</span>
         )}
         {v.has_labels && (
-          <div style={{ fontSize: 10, color: "var(--pulso-text-soft)", marginTop: 2 }}>
+          <div style={{ fontSize: "var(--pulso-type-micro-size)", color: "var(--pulso-text-soft)", marginTop: 2 }}>
             con value-labels
           </div>
         )}
@@ -340,7 +340,7 @@ function MeasureSelector({
         onChange={(e) => onChange(e.target.value as MeasureSpss)}
         aria-label="Nivel de medida SPSS"
         style={{
-          fontSize: 11, padding: "5px 8px", borderRadius: 4,
+          fontSize: "var(--pulso-type-caption-size)", padding: "5px 8px", borderRadius: 4,
           border: `1px solid ${isOverride ? "var(--pulso-primary)" : info.border}`,
           background: info.bg,
           color: info.color,
@@ -354,11 +354,11 @@ function MeasureSelector({
           <option key={m} value={m}>{MEASURE_COPY[m].label}</option>
         ))}
       </select>
-      <div style={{ fontSize: 10, color: "var(--pulso-text-soft)", display: "flex", alignItems: "center", gap: 3 }}>
+      <div style={{ fontSize: "var(--pulso-type-micro-size)", color: "var(--pulso-text-soft)", display: "flex", alignItems: "center", gap: 3 }}>
         {isOverride ? (
           <>
             <PencilLine size={9} />
-            <span>editado · auto: {MEASURE_COPY[inferred].label.toLowerCase()}</span>
+            <span>editado, auto: {MEASURE_COPY[inferred].label.toLowerCase()}</span>
           </>
         ) : (
           <>
@@ -392,8 +392,8 @@ function FormatBadge({ value }: { value: string }) {
         padding: "3px 8px", borderRadius: 4,
         background: "var(--pulso-surface)",
         border: "1px solid var(--pulso-border)",
-        fontFamily: "monospace",
-        fontSize: 10, fontWeight: 600,
+        fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
+        fontSize: "var(--pulso-type-micro-size)", fontWeight: 600,
         color: "var(--pulso-text-soft)",
         cursor: "help",
       }}

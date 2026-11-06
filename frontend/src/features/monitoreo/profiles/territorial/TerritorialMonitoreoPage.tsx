@@ -1,3 +1,4 @@
+import { formatoDecimal } from "../../../../lib/formatoNumero";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Activity,
@@ -28,6 +29,7 @@ import {
   Target,
   Trash2,
 } from "lucide-react";
+import { EstadoVacio } from "../../../../components/EstadoVacio";
 import {
   apiMonitoreoState,
   apiMonitoreoTerritorialOperationalAdjustmentApply,
@@ -335,11 +337,7 @@ function StatTile({ label, value, tone = "neutral" }: { label: string; value: st
 
 function EmptyPanel({ icon: Icon, title, detail }: { icon: typeof Route; title: string; detail: string }) {
   return (
-    <div className="ter-empty">
-      <span className="ter-empty__icon"><Icon size={18} /></span>
-      <strong>{title}</strong>
-      <p>{detail}</p>
-    </div>
+    <EstadoVacio tamano="normal" icono={<Icon size={18} />} titulo={title} descripcion={detail} />
   );
 }
 
@@ -531,7 +529,7 @@ function TerritorialLoadingView({
             </span>
           ))}
         </div>
-        <small className="mon-territorial-loading-foot">{meta.status} · preparación local</small>
+        <small className="mon-territorial-loading-foot">{meta.status}, preparación local</small>
       </div>
     </section>
   );
@@ -611,7 +609,7 @@ function makeBlockMapPoints(blocks: TerritorialBlockProgress[]): LightMapPoint[]
     const pending = Number(block.validas || 0) <= 0;
     return [{
       id: block.id_manzana || `block-${index}`,
-      label: `UMP ${block.ump || "S/D"} · ${block.zona || ""}${block.manzana ? `-${block.manzana}` : ""}`,
+      label: `UMP ${block.ump || "S/D"}, ${block.zona || ""}${block.manzana ? `-${block.manzana}` : ""}`,
       lat,
       lon,
       kind: isReplacementBlock(block) ? "replacement" : pending ? "pending" : "block",
@@ -628,7 +626,7 @@ function makeGpsMapPoints(reports: MonitoreoTerritorialDashboard): LightMapPoint
     const status = String(point.geo_estado || point.gps_effective_estado || point.gps_primary_estado || "").toLowerCase();
     return [{
       id: point.response_id || `gps-${index}`,
-      label: `${point.declared_ump_normalized || point.advance_block_ump || "UMP S/D"} · ${point.responsible_display || point.submitted_by || "Sin responsable"}`,
+      label: `${point.declared_ump_normalized || point.advance_block_ump || "UMP S/D"}, ${point.responsible_display || point.submitted_by || "Sin responsable"}`,
       lat,
       lon,
       kind: status.includes("revision") || status.includes("fuera") || status.includes("sin cruce") ? "review" : "gps",
@@ -682,7 +680,7 @@ function LightTerritorialMap({
           <button type="button" aria-label="Acercar" onClick={() => setZoom((value) => Math.min(3.6, value * 1.35))}><Plus size={13} /></button>
           <button type="button" aria-label="Alejar" onClick={() => setZoom((value) => Math.max(1, value / 1.35))}><Minus size={13} /></button>
           <button type="button" aria-label="Ver todo" onClick={() => setZoom(1)}><Maximize2 size={13} /></button>
-          <span>{zoom.toFixed(1)}x</span>
+          <span>{formatoDecimal(zoom, 1)}x</span>
         </div>
       ) : null}
       {hasCoordinates ? (
@@ -701,7 +699,7 @@ function LightTerritorialMap({
                 cy={point.y}
                 r={point.kind === "gps" || point.kind === "review" ? 3.4 : 5.6}
               >
-                <title>{`${point.label}${point.district ? ` · ${point.district}` : ""}`}</title>
+                <title>{`${point.label}${point.district ? `, ${point.district}` : ""}`}</title>
               </circle>
             ))}
           </g>
@@ -786,7 +784,7 @@ function RouteView({ reports }: { reports: MonitoreoTerritorialDashboard | null 
       <section className="ter-panel">
         <div className="ter-panel-head">
           <h3>Mapa general de Lima</h3>
-          <span>Vista ligera · {fmt(blocks.length)} manzanas</span>
+          <span>Vista ligera, {fmt(blocks.length)} manzanas</span>
         </div>
         <LightTerritorialMap blocks={blocks} />
       </section>
@@ -800,7 +798,7 @@ function RouteView({ reports }: { reports: MonitoreoTerritorialDashboard | null 
           empty="No hay manzanas hidratadas para esta fase."
           columns={[
             { key: "ump", label: "UMP", render: (row) => row.ump || "" },
-            { key: "mz", label: "Manzana", render: (row) => `${row.zona || ""} · ${row.manzana || row.id_manzana || ""}` },
+            { key: "mz", label: "Manzana", render: (row) => `${row.zona || ""}, ${row.manzana || row.id_manzana || ""}` },
             { key: "distrito", label: "Distrito", render: (row) => row.distrito },
             { key: "tipo", label: "Tipo", render: (row) => row.tipo_manzana },
             { key: "validas", label: "Válidas", render: (row) => fmt(row.validas) },
@@ -919,7 +917,7 @@ function ValidationView({
       <section className="ter-panel">
         <div className="ter-panel-head">
           <h3>Mapa operativo único</h3>
-          <span>{fmt(visibleBlocks.length)} de {fmt(routeBlocks.length)} manzanas visibles · {fmt(notStarted)} no iniciadas</span>
+          <span>{fmt(visibleBlocks.length)} de {fmt(routeBlocks.length)} manzanas visibles, {fmt(notStarted)} no iniciadas</span>
         </div>
         <div className="ter-map-toolbar">
           <button
@@ -968,7 +966,7 @@ function ValidationView({
           empty="No hay manzanas disponibles para el mapa de validación."
           columns={[
             { key: "ump", label: "UMP", render: (row) => row.ump || "" },
-            { key: "mz", label: "Manzana", render: (row) => `${row.zona || ""} · ${row.manzana || row.id_manzana || ""}` },
+            { key: "mz", label: "Manzana", render: (row) => `${row.zona || ""}, ${row.manzana || row.id_manzana || ""}` },
             { key: "tipo", label: "Tipo", render: (row) => row.tipo_manzana || "titular" },
             { key: "validas", label: "Válidas", render: (row) => fmt(row.validas) },
             { key: "responsable", label: "Responsable", render: (row) => row.responsable || "" },
@@ -1135,6 +1133,7 @@ function renderView(
         internalSheets={state?.publication?.internal_last_sheets ?? null}
         corte={corteTerritorial(state, reports)}
         syncedAt={state?.synced_at ?? ""}
+        reports={reports}
         onPublished={options.onPublished}
       />
     );

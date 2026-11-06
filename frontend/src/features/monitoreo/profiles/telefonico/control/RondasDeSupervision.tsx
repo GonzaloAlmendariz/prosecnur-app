@@ -1,5 +1,7 @@
 import { useState } from "react";
-import { Loader2, Plus, RefreshCw, Save, Upload } from "../../../../../vendor/lucide-react";
+import { Link } from "react-router-dom";
+import { ExternalLink, Loader2, Plus, RefreshCw, Save, Upload } from "../../../../../vendor/lucide-react";
+import { EstadoVacio } from "../../../../../components/EstadoVacio";
 import { apiSupervisionLeerResultados, apiSupervisionNuevaRonda, type RondaDeSupervisionApi } from "../../../../../api/monitoreoTelefonico";
 import type { MonitoreoState } from "../../../../../api/client";
 import type { PanelDeclarado } from "../../../../../lib/navegacion/paneles";
@@ -7,12 +9,13 @@ import { NotaDelModo } from "../../../core/NotaDelModo";
 import { pctConEspacio } from "../../../core/formatoComun";
 import { RotuloDePestana } from "../navegacion/RotuloDePestana";
 import { mensajeDeError, type FilaDeRonda } from "./rondasModel";
+import { formatoConteo } from "../../../../../lib/formatoNumero";
 
 export const PANEL_NUEVA_RONDA: PanelDeclarado = { id: "nueva-ronda", label: "Nueva ronda", clase: "dialogo" };
 export const PANEL_PUBLICAR_RONDA: PanelDeclarado = { id: "publicar-ronda", label: "Publicar ronda", clase: "dialogo" };
 
 function n(valor: number) {
-  return valor.toLocaleString("es-PE");
+  return formatoConteo(valor);
 }
 
 function fecha(iso: string) {
@@ -44,7 +47,6 @@ export function RondasDeSupervision({
   nuevas,
   onElegir,
   onNueva,
-  onPublicar,
   onGuardada,
   hojaConectada = false,
   avisos = [],
@@ -55,7 +57,8 @@ export function RondasDeSupervision({
   nuevas: number | null;
   onElegir: (numero: number) => void;
   onNueva: () => void;
-  onPublicar: (numero: number) => void;
+  /** Ya no se usa: la base de supervisión la arma Material (ADR 0125 A3). */
+  onPublicar?: (numero: number) => void;
   onGuardada: (rondas: RondaDeSupervisionApi[], state: MonitoreoState) => void;
   /** Hay hoja de supervisión conectada: se pueden leer los resultados de sus pestañas. */
   hojaConectada?: boolean;
@@ -167,16 +170,18 @@ export function RondasDeSupervision({
                 </em>
                 {ronda.lectura === "leida" && ronda.leidaEl ? <small className="mon-sup-ronda-lectura">Resultados leídos el {fecha(ronda.leidaEl)}</small> : null}
               </button>
+              {/* ADR 0125 A3: la base de supervisión la arma Material por lote, en su
+                  propio documento; Monitoreo lee los resultados de ahí. */}
               {ronda.guardada && !ronda.publicadaEn ? (
-                <button type="button" className="mon-insumos-boton" onClick={() => onPublicar(ronda.numero)}>
-                  <Upload size={13} /> Publicar en el Sheets
-                </button>
+                <Link className="mon-insumos-boton" to={`/material-campo?modo=supervision&campana=supervision.ronda-${ronda.numero}`}>
+                  <ExternalLink size={13} /> Armar la base en Material
+                </Link>
               ) : null}
             </li>
           ))}
         </ul>
       ) : (
-        <p className="mon-sup-rondas-vacio">Todavía no hay rondas. La primera sale de todas las efectivas; la Ronda {n(proxima)} se genera con «Nueva ronda».</p>
+        <EstadoVacio icono={<RefreshCw size={15} />} titulo="Todavía no hay rondas" descripcion={`La primera sale de todas las efectivas; la Ronda ${n(proxima)} se genera con «Nueva ronda».`} />
       )}
     </section>
   );

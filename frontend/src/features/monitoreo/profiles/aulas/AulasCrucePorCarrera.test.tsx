@@ -38,7 +38,8 @@ describe("cruce de alumnos por carrera", () => {
     const t = texto(renderToStaticMarkup(<AulasCrucePorCarrera bloque={BLOQUE} />));
     expect(t).toContain("1 persona respondió dos veces");
     // Y en su fila: en el total sola no se puede ir a buscar.
-    expect(t).toContain("ECONOMÍA · 1 repetida");
+    // `texto()` cambia cada etiqueta por un espacio: en pantalla la coma va pegada.
+    expect(t).toMatch(/ECONOMÍA ?, 1 repetida/);
   });
 
   it("sin población del padrón pone un guion, no un cero", () => {
@@ -97,21 +98,21 @@ describe("la pestaña sólo existe en un estudio confidencial", () => {
     ({ cruce_por_carrera: aplica === undefined ? undefined : { aplica } } as unknown as MonitoreoAulasDashboard);
 
   it("con estudio confidencial la pestaña está", () => {
-    const claves = railDeAulas("calidad", tablero(true)).map((t) => t.key);
+    const claves = railDeAulas("control", tablero(true)).map((t) => t.key);
     expect(claves).toContain("alumnos");
   });
 
   it("con estudio anónimo la pestaña NO está", () => {
-    const claves = railDeAulas("calidad", tablero(false)).map((t) => t.key);
+    const claves = railDeAulas("control", tablero(false)).map((t) => t.key);
     expect(claves).not.toContain("alumnos");
     // Y las demás siguen enteras: retirar una no puede llevarse las otras.
-    expect(claves).toEqual(expect.arrayContaining(["registro", "controles", "base", "abiertas"]));
+    expect(claves).toEqual(expect.arrayContaining(["registro", "partes", "calidad", "brechas"]));
   });
 
   it("un payload anterior sin el bloque tampoco la ofrece", () => {
     // Es el estado en el que estaban todos los estudios hasta hoy.
-    expect(railDeAulas("calidad", tablero(undefined)).map((t) => t.key)).not.toContain("alumnos");
-    expect(railDeAulas("calidad", null).map((t) => t.key)).not.toContain("alumnos");
+    expect(railDeAulas("control", tablero(undefined)).map((t) => t.key)).not.toContain("alumnos");
+    expect(railDeAulas("control", null).map((t) => t.key)).not.toContain("alumnos");
   });
 
   it("el filtro es de ESA pestaña: no toca las otras secciones", () => {
@@ -154,7 +155,7 @@ describe("el detalle: quién respondió, cuándo y desde dónde", () => {
     const t = texto(renderToStaticMarkup(<AulasCrucePorCarrera bloque={conDetalle} />));
     expect(t).toContain("20243380");
     expect(t).toContain("nivel 6");
-    expect(t).toContain("2026-09-22 · 11:40");
+    expect(t).toContain("2026-09-22, 11:40");
     expect(t).toContain("CH 7");
   });
 

@@ -1,0 +1,559 @@
+/* Avance › Por facultad (Por nivel) de Cursos-horario (aulas.md, ficha A2).
+ * Izquierda, la cuota del eje; derecha, 440 px apilados. Altura intrínseca:
+ * el scroll es de `.mon-profile-content`, el dueño declarado del perfil (C4).
+ * Escala 4/8/12/16. Paleta de datos G10 sólo con tokens. */
+
+/* La vista del perfil es una rejilla de una fila `minmax(0, 1fr)` que estira la
+ * tabla de cada pestaña; esta pestaña mide por contenido, igual que Resumen. */
+.mon-profile-page.is-aulas-flow .aulas-mon-view:has(> .aulas-pf) {
+  flex: 0 0 auto;
+  grid-template-rows: auto;
+}
+
+.aulas-pf {
+  --aulas-pf-efectivas: var(--pulso-brand-navy);
+  --aulas-pf-reserva: color-mix(in srgb, var(--pulso-brand-navy) 30%, var(--pulso-surface));
+  --aulas-pf-usadas: var(--pulso-warn-accent);
+  --aulas-pf-pista: var(--pulso-surface-3);
+
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 440px;
+  gap: var(--pulso-space-3);
+  align-items: start;
+  min-width: 0;
+  color: var(--pulso-text);
+  font-size: var(--pulso-type-body-size);
+}
+
+.aulas-pf--vacio {
+  display: block;
+}
+
+.aulas-pf-izquierda,
+.aulas-pf-derecha {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-3);
+  min-width: 0;
+}
+
+/* La columna izquierda llega al pie de la fila y su último panel se estira con
+ * ella: con la columna lateral más alta, la izquierda dejaba
+ * un hueco en la página bajo su tarjeta (auditoría visual a 1280). El espacio
+ * libre queda dentro de la tarjeta, que es la que lo explica. */
+.aulas-pf-izquierda {
+  align-self: stretch;
+}
+
+.aulas-pf-izquierda > :last-child {
+  flex: 1 1 auto;
+}
+
+.aulas-pf-panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-3);
+  min-width: 0;
+  padding: var(--pulso-space-4);
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-panel);
+  background: var(--pulso-surface);
+  box-shadow: var(--pulso-shadow-low);
+}
+
+.aulas-pf-cabecera {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--pulso-space-1) var(--pulso-space-2);
+}
+
+.aulas-pf-titulo {
+  margin: 0;
+  color: var(--pulso-text);
+  font-size: var(--pulso-type-subtitle-size);
+  font-weight: var(--pulso-weight-bold);
+}
+
+.aulas-pf-sub {
+  color: var(--pulso-text-faint);
+  font-size: var(--pulso-type-caption-size);
+  font-variant-numeric: tabular-nums;
+}
+
+.aulas-pf-num {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Pie de un panel: lo que la tabla no debe leerse como (A2, tipos no
+   comparables). */
+.aulas-pf-pie {
+  margin: var(--pulso-space-2) 0 0;
+  color: var(--pulso-text-faint);
+  font-size: var(--pulso-type-caption-size);
+}
+
+.aulas-pf-nota {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--pulso-space-2);
+  margin: 0;
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+}
+
+.aulas-pf-nota.is-aviso {
+  color: var(--pulso-warn-fg);
+}
+
+.aulas-pf-procedencia {
+  margin-left: auto;
+}
+
+.aulas-pf-nota svg {
+  flex: 0 0 auto;
+  margin-top: 1px;
+}
+
+.aulas-pf-oculto {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* Leyendas de color. */
+.aulas-pf-leyenda {
+  display: inline-flex;
+  gap: var(--pulso-space-3);
+  margin-left: auto;
+  color: var(--pulso-text-faint);
+  font-size: var(--pulso-type-caption-size);
+}
+
+.aulas-pf-leyenda span {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--pulso-space-1);
+}
+
+.aulas-pf-leyenda span::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.aulas-pf-leyenda .is-padron::before,
+.aulas-pf-leyenda .is-libres::before {
+  background: var(--aulas-pf-reserva);
+}
+
+.aulas-pf-leyenda .is-efectivas::before {
+  background: var(--aulas-pf-efectivas);
+}
+
+.aulas-pf-leyenda .is-usadas::before {
+  background: var(--aulas-pf-usadas);
+}
+
+/* Tablas. `table-layout: fixed` con `colgroup`: el ancho lo decide la
+ * columna, no el texto más largo de una celda. */
+.aulas-pf-tabla-marco {
+  min-width: 0;
+  margin: 0 calc(-1 * var(--pulso-space-4)) calc(-1 * var(--pulso-space-2));
+}
+
+.aulas-pf-tabla {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  font-size: var(--pulso-type-body-size);
+  font-variant-numeric: tabular-nums;
+}
+
+.aulas-pf-tabla th,
+.aulas-pf-tabla td {
+  padding: 7px var(--pulso-space-2);
+  border-bottom: 1px solid var(--pulso-border);
+  text-align: left;
+  vertical-align: middle;
+  overflow-wrap: anywhere;
+}
+
+.aulas-pf-tabla-marco .aulas-pf-tabla :is(th, td):first-child {
+  padding-left: var(--pulso-space-4);
+}
+
+/* En la tabla por sexo la facultad ocupa la primera celda con `rowSpan`: en la
+ * segunda fila de cada grupo el sexo pasa a ser `:first-child` y heredaba el
+ * margen del borde, 8 px más a la derecha que el de la fila de arriba. */
+.aulas-pf-tabla-marco .aulas-pf-tabla.is-sexo tbody tr:not(:first-child) > td:first-child {
+  padding-left: var(--pulso-space-2);
+}
+
+.aulas-pf-tabla-marco .aulas-pf-tabla :is(th, td):last-child {
+  padding-right: var(--pulso-space-4);
+}
+
+.aulas-pf-tabla thead th {
+  padding-top: var(--pulso-space-2);
+  padding-bottom: var(--pulso-space-2);
+  background: var(--pulso-surface-2);
+  color: var(--pulso-text-faint);
+  font-size: var(--pulso-type-micro-size);
+  font-weight: var(--pulso-weight-bold);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  overflow-wrap: normal;
+  white-space: nowrap;
+}
+
+.aulas-pf-tabla tbody th {
+  font-weight: var(--pulso-weight-regular);
+}
+
+.aulas-pf-tabla tbody tr:last-child > *,
+.aulas-pf-tabla.is-sexo tbody:last-of-type tr:last-child > * {
+  border-bottom: 0;
+}
+
+.aulas-pf-tabla.is-sexo tbody:not(:last-of-type) tr:last-child > * {
+  border-bottom: 1px solid var(--pulso-border);
+}
+
+.aulas-pf-tabla.is-sexo tbody tr:first-child > * {
+  border-top: 0;
+}
+
+.aulas-pf-tabla.is-sexo tbody tr:not(:last-child) > td {
+  border-bottom-color: color-mix(in srgb, var(--pulso-border) 55%, var(--pulso-surface));
+}
+
+.aulas-pf-tabla .is-num {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.aulas-pf-tabla col.is-grupo { width: auto; }
+.aulas-pf-tabla col.is-sexo { width: 84px; }
+.aulas-pf-tabla col.is-cifra { width: 84px; }
+.aulas-pf-tabla col.is-cifra-corta { width: 56px; }
+.aulas-pf-tabla col.is-cifra-ancha { width: 96px; }
+.aulas-pf-tabla col.is-pct { width: 64px; }
+.aulas-pf-tabla col.is-estado { width: 150px; }
+
+.aulas-pf-tabla.is-sexo col.is-grupo { width: 26%; }
+.aulas-pf-tabla.is-sexo col.is-barra { width: 14%; }
+.aulas-pf-tabla.is-sexo col.is-lectura { width: 30%; }
+.aulas-pf-tabla.is-eje col.is-grupo { width: 22%; }
+.aulas-pf-tabla.is-eje col.is-barra { width: auto; }
+.aulas-pf-tabla.is-rinde col.is-grupo { width: auto; }
+.aulas-pf-tabla.is-rinde col.is-cifra { width: 76px; }
+.aulas-pf-tabla.is-consumo col.is-grupo { width: auto; }
+.aulas-pf-tabla.is-consumo col.is-barra { width: 34%; }
+.aulas-pf-tabla.is-alcance col.is-grupo { width: 38%; }
+.aulas-pf-tabla.is-alcance col.is-barra { width: auto; }
+
+/* La facultad agrupa sus dos filas y es el botón del foco. */
+.aulas-pf-celda-grupo {
+  vertical-align: top;
+}
+
+.aulas-pf-tabla.is-sexo .aulas-pf-celda-grupo {
+  padding-top: 9px;
+}
+
+.aulas-pf-grupo {
+  display: block;
+  align-items: stretch;
+  width: 100%;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 4px;
+  background: none;
+  box-shadow: none;
+  color: var(--pulso-text);
+  font-size: inherit;
+  font-weight: var(--pulso-weight-bold);
+  line-height: 1.3;
+  text-align: left;
+  white-space: normal;
+  transform: none;
+}
+
+.aulas-pf-grupo:hover {
+  background: none;
+  box-shadow: none;
+  color: var(--pulso-module-monitoring);
+  text-decoration: underline;
+  transform: none;
+}
+
+.aulas-pf-grupo:focus-visible {
+  outline: 2px solid var(--pulso-brand-navy);
+  outline-offset: 2px;
+  box-shadow: none;
+}
+
+.aulas-pf-grupo[aria-pressed="true"] {
+  color: var(--pulso-module-monitoring);
+}
+
+.aulas-pf-tabla tbody.is-foco > tr > *,
+.aulas-pf-tabla tr.is-foco > * {
+  background: var(--pulso-module-monitoring-soft);
+}
+
+/* Barras de avance. */
+.aulas-pf-barra {
+  display: block;
+  height: 8px;
+  overflow: hidden;
+  border-radius: 99px;
+  background: var(--aulas-pf-pista);
+}
+
+.aulas-pf-barra.is-gruesa {
+  height: 10px;
+}
+
+.aulas-pf-barra.is-fina {
+  height: 5px;
+}
+
+.aulas-pf-barra i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--aulas-pf-efectivas);
+}
+
+.aulas-pf-barra[data-tono="ok"] i {
+  background: var(--pulso-success-fg);
+}
+
+.aulas-pf-barra[data-tono="aviso"] i {
+  background: var(--pulso-warn-accent);
+}
+
+.aulas-pf-barra.is-padron i {
+  background: var(--aulas-pf-reserva);
+}
+
+.aulas-pf-pareja {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.aulas-pf-lectura {
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+  font-weight: var(--pulso-weight-semibold);
+  line-height: 1.3;
+}
+
+.aulas-pf-lectura[data-tono="ok"] {
+  color: var(--pulso-success-fg);
+}
+
+.aulas-pf-lectura[data-tono="aviso"] {
+  color: var(--pulso-warn-fg);
+}
+
+.aulas-pf-lectura[data-tono="riesgo"] {
+  color: var(--pulso-danger-fg);
+}
+
+.aulas-pf-chip {
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  padding: 2px 9px;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-surface-3);
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+  font-weight: var(--pulso-weight-semibold);
+  white-space: nowrap;
+}
+
+.aulas-pf-chip[data-tono="aviso"] {
+  border-color: var(--pulso-warn-border);
+  background: var(--pulso-warn-bg);
+  color: var(--pulso-warn-fg);
+}
+
+.aulas-pf-tabla tr.is-fuera > *,
+.aulas-pf-tabla tr.is-sin-aulas > *,
+.aulas-pf-tenue {
+  color: var(--pulso-text-faint);
+}
+
+.aulas-pf-tabla tr.is-fuera .aulas-pf-grupo {
+  color: var(--pulso-text-faint);
+  font-weight: var(--pulso-weight-semibold);
+}
+
+/* Franja de cuatro cifras. */
+/* Cada cifra mide lo que su rótulo y el sobrante se reparte entre ellas: con
+ * cuatro columnas iguales, a 1280 la columna lateral de 440 px dejaba ~100 px a
+ * cada una y «Caídos sin relevo» partía en dos renglones (auditoría visual a
+ * 1280). Medidos, los cuatro rótulos suman ~390 px y caben en un renglón. */
+.aulas-pf-cifras {
+  display: grid;
+  grid-template-columns: repeat(4, max-content);
+  justify-content: space-between;
+  gap: var(--pulso-space-2) var(--pulso-space-3);
+  margin: 0;
+}
+
+/* La cifra se apoya al pie: un rótulo de dos líneas («Caídos sin relevo»)
+ * bajaba la suya y las cuatro dejaban de leerse en una fila. */
+.aulas-pf-cifras > div {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: var(--pulso-space-1);
+  min-width: 0;
+}
+
+.aulas-pf-cifras dt {
+  white-space: nowrap;
+  color: var(--pulso-text-faint);
+  font-size: var(--pulso-type-micro-size);
+  font-weight: var(--pulso-weight-bold);
+  letter-spacing: 0.06em;
+  line-height: 1.25;
+  text-transform: uppercase;
+}
+
+.aulas-pf-cifras dd {
+  margin: 0;
+  font-size: var(--pulso-type-kpi-size);
+  font-weight: var(--pulso-weight-heavy);
+  line-height: 1.1;
+}
+
+/* Consumo de la reserva: el carril mide la reserva del grupo contra la
+ * mayor; dentro, usadas y libres. */
+.aulas-pf-reserva {
+  display: flex;
+  min-width: 4px;
+  max-width: 100%;
+  height: 8px;
+  overflow: hidden;
+  border-radius: 4px;
+  background: var(--aulas-pf-pista);
+}
+
+.aulas-pf-reserva i {
+  flex-basis: 0;
+  min-width: 0;
+}
+
+.aulas-pf-reserva .is-usadas {
+  background: var(--aulas-pf-usadas);
+}
+
+.aulas-pf-reserva .is-libres {
+  background: var(--aulas-pf-reserva);
+}
+
+.aulas-pf-tabla.is-consumo th,
+.aulas-pf-tabla.is-consumo td {
+  padding-top: 6px;
+  padding-bottom: 6px;
+  font-size: var(--pulso-type-caption-size);
+}
+
+.aulas-pf-tabla.is-rinde th,
+.aulas-pf-tabla.is-rinde td,
+.aulas-pf-tabla.is-alcance th,
+.aulas-pf-tabla.is-alcance td,
+.aulas-pf-tabla.is-consumo th,
+.aulas-pf-tabla.is-consumo td {
+  padding-left: 0;
+}
+
+.aulas-pf-tabla.is-rinde :is(th, td):last-child,
+.aulas-pf-tabla.is-alcance :is(th, td):last-child,
+.aulas-pf-tabla.is-consumo :is(th, td):last-child {
+  padding-right: 0;
+}
+
+.aulas-pf-tabla.is-rinde thead th,
+.aulas-pf-tabla.is-alcance thead th {
+  background: none;
+}
+
+.aulas-pf-dimensiones {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-4);
+}
+
+.aulas-pf-tabla.is-alcance caption {
+  padding-bottom: var(--pulso-space-1);
+  color: var(--pulso-text);
+  font-size: var(--pulso-type-caption-size);
+  font-weight: var(--pulso-weight-bold);
+  text-align: left;
+}
+
+/* S1: silueta de la misma pestaña mientras se prepara el corte. */
+.aulas-pf-silueta {
+  background: var(--pulso-surface-2);
+  box-shadow: none;
+}
+
+.aulas-pf-silueta.is-cuota {
+  justify-content: center;
+  min-height: 520px;
+}
+
+.aulas-pf-silueta.is-franja {
+  min-height: 88px;
+}
+
+.aulas-pf-silueta.is-lateral {
+  min-height: 420px;
+}
+
+.aulas-pf-preparando {
+  margin: 0;
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-body-size);
+  font-weight: var(--pulso-weight-semibold);
+  text-align: center;
+}
+
+/* Compacto: las dos columnas se apilan; la cuota primero. */
+@media (max-width: 1180px) {
+  .aulas-pf {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .aulas-pf-izquierda {
+    align-self: start;
+  }
+
+  .aulas-pf-izquierda > :last-child {
+    flex: 0 0 auto;
+  }
+
+  .aulas-pf-silueta.is-cuota {
+    min-height: 320px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .aulas-pf-grupo {
+    transition: none;
+  }
+}

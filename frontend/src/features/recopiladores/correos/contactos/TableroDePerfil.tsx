@@ -12,6 +12,7 @@ import { DistribucionDeVariable } from "./DistribucionDeVariable";
 import { FiltrosActivos } from "./FiltrosActivos";
 import type { VacioDelPerfil } from "./modeloContactos";
 import type { Carga } from "./store";
+import { CargaDeBloque } from "../../../../components/CargaDeBloque";
 
 type Props = {
   perfil: PerfilDeContactos | null;
@@ -30,7 +31,6 @@ type Props = {
 
 export function TableroDePerfil(p: Props) {
   const perfil = p.perfil;
-  const conRespuestas = Boolean(perfil?.respuestas_leidas);
   return (
     <section className="rec-contactos-seccion" aria-labelledby="rec-contactos-perfil-titulo" data-testid="contactos-perfil">
       <header className="rec-contactos-seccion-cabecera">
@@ -79,13 +79,11 @@ export function TableroDePerfil(p: Props) {
           aria-busy={p.carga === "cargando" || undefined}
         >
           {perfil.variables.map((variable) => (
-            <DistribucionDeVariable key={variable.key} variable={variable} base={perfil.base} conRespuestas={conRespuestas} />
+            <DistribucionDeVariable key={variable.key} variable={variable} base={perfil.base} />
           ))}
         </div>
       ) : (
-        <div className="rec-contactos-vacio-caja" data-qa-geometry-capacity="owned">
-          <p>Leyendo el perfil…</p>
-        </div>
+        <CargaDeBloque label="Leyendo el perfil…" />
       )}
     </section>
   );

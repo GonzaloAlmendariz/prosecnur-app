@@ -33,7 +33,7 @@ const tabla = (conCompuesto: boolean) => renderToStaticMarkup(createElement(Equi
 describe("la fila compuesta en la tabla", () => {
   it("muestra los componentes legibles, no la expresión, y reabre el editor", () => {
     const html = tabla(true);
-    expect(html).toContain("Alguna de: P28_1, P28_2 · código 1");
+    expect(html).toContain("Alguna de: P28_1, P28_2, código 1");
     expect(html).not.toContain("alguna(P28_1,P28_2)");
     expect(html).toContain('data-compuesto-abrir="0"');
     expect(html).toContain("Sin declarar");
@@ -58,14 +58,14 @@ describe("una base del editor", () => {
   }));
 
   it("los conteos de lo guardado van bajo las preguntas; sin ellos, nada de relleno", () => {
-    expect(render(["P28_1"], "Sí 120 · No 80 · Sin dato 5")).toContain('<p class="pulso-compuesto-conteos">Sí 120 · No 80 · Sin dato 5</p>');
+    expect(render(["P28_1"], "Sí 120, No 80, Sin dato 5")).toContain('<p class="pulso-compuesto-conteos">Sí 120, No 80, Sin dato 5</p>');
     expect(render(["P28_1"], null)).not.toContain("pulso-compuesto-conteos");
-    expect(render([], "Sí 1 · No 0 · Sin dato 0")).not.toContain("pulso-compuesto-conteos");
+    expect(render([], "Sí 1, No 0, Sin dato 0")).not.toContain("pulso-compuesto-conteos");
   });
 
   it("C3: sin preguntas elegidas, el vacío vive en su sección", () => {
     const html = render([]);
-    expect(html).toContain("Sin preguntas elegidas: 2024 queda sin declarar.");
+    expect(html).toContain("Sin preguntas elegidas: 2024 queda sin declarar");
     expect(html).toContain("is-vacia");
     expect(html).not.toContain("Códigos «sí»");
   });

@@ -134,7 +134,7 @@ export function AulasFacultadesEnRiesgo({ bloque, celdasDeCuota, plan, facultadE
                   {f.aplicados === 0
                     ? "sin cursos-horario aplicados"
                     : `${fmt(f.aplicados)} ${f.aplicados === 1 ? "aplicado" : "aplicados"}`}
-                  {" · "}{fmt(f.logrado)} de {fmt(f.meta)} respuestas
+                  {", "}{fmt(f.logrado)} de {fmt(f.meta)} respuestas
                 </em>
               </span>
               <span className="aulas-riesgo-dice">

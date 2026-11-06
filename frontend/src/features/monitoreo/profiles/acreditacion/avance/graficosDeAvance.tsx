@@ -2,6 +2,7 @@ import { useLayoutEffect, useRef, useState } from "react";
 import { flushSync } from "react-dom";
 import { fmt } from "../formato";
 import { marcasDeEje, type DiaDeAvance } from "./avanceModelo";
+import { ALTO_DEL_EJE_DE_FECHAS, EjeDeFechas as EjeDeFechasComun } from "../../../core/ejeDeFechas";
 
 /**
  * Gráficos de Avance dibujados en SVG con los datos del corte. Todos llevan
@@ -48,84 +49,152 @@ export function useTamano<T extends HTMLElement>() {
   return [ref, tamano] as const;
 }
 
-/** Hasta `cuantas` etiquetas de fecha repartidas, siempre con la primera y la última. */
-function indicesDeFecha(total: number, cuantas: number): number[] {
-  if (total <= cuantas) return Array.from({ length: total }, (_, indice) => indice);
-  const paso = (total - 1) / (cuantas - 1);
-  return [...new Set(Array.from({ length: cuantas }, (_, indice) => Math.round(indice * paso)))];
+/**
+ * Una barra es un día: su ancho no crece porque falten días. Repartir el ancho
+ * entre los días que hay hacía que el primer día de campo ocupara el gráfico
+ * entero y se leyera como un bloque. Las vistas de «últimos 14 días» reservan
+ * sus 14 casillas; las de todo el campo ponen un tope al ancho de cada día.
+ */
+export const DIAS_DE_LA_VENTANA = 14;
+export const PASO_MAXIMO_POR_DIA = 44;
+
+/** Ancho de la casilla de un día: `ranuras` reserva una ventana fija; `tope` limita el ancho cuando la ventana es todo el campo. */
+export function anchoPorDia(ancho: number, dias: number, { ranuras = 1, tope = Infinity }: { ranuras?: number; tope?: number } = {}): number {
+  return Math.min(tope, ancho / Math.max(1, ranuras, dias));
+}
+
+/** Ancho que pide un rótulo de una línea («30 oct») con su aire. */
+export const ANCHO_DE_ROTULO_DE_FECHA = 44;
+
+// El eje de fechas de dos líneas vive en core/ejeDeFechas: lo comparten todos los gráficos diarios de Monitoreo.
+export { ALTO_DEL_EJE_DE_FECHAS, ANCHO_DEL_DIA, ejeDeFechas, rotulosDeFecha, type RotuloDeDia } from "../../../core/ejeDeFechas";
+
+export function EjeDeFechas(props: { fechas: readonly string[]; paso: number; x: (indice: number) => number; alto: number }) {
+  return <EjeDeFechasComun {...props} clase="acr-av-eje" />;
+}
+
+/** Días que abarca el eje: el campo, su proyección hasta la meta y nunca menos de dos semanas. */
+export const DIAS_MINIMOS_DE_LA_CURVA = 14;
+export const DIAS_MAXIMOS_DE_PROYECCION = 60;
+
+/** La fecha `dias` días después de `fecha` (YYYY-MM-DD), en el calendario y sin zona. */
+export function sumarDias(fecha: string, dias: number): string {
+  const [a, m, d] = fecha.slice(0, 10).split("-").map(Number);
+  const instante = new Date(Date.UTC(a, (m || 1) - 1, d || 1) + dias * 86_400_000);
+  return instante.toISOString().slice(0, 10);
 }
 
 /**
- * Efectivas acumuladas (eje izquierdo) con las efectivas de cada día en barras
- * (eje derecho), la meta en la escala del acumulado y el día en que se cumplió.
+ * Hasta dónde llega la proyección: al ritmo de la última semana, el día en que
+ * se cruzaría la meta, o el borde de la ventana si queda más lejos. Puro.
+ */
+export function tramoProyectado(final: number, meta: number, ritmo: number | null, diasReales: number, diasDados: number | null = null) {
+  if (!(meta > final) || !ritmo || !(ritmo > 0)) return null;
+  // `diasDados`: los del chip de la cabecera (sobre todas las efectivas, también las sin fecha), para que digan lo mismo.
+  const dias = diasDados ?? Math.ceil((meta - final) / ritmo);
+  const visibles = Math.min(dias, DIAS_MAXIMOS_DE_PROYECCION);
+  return { dias, visibles, alcanzaLaMeta: dias <= DIAS_MAXIMOS_DE_PROYECCION, valor: Math.min(meta, final + ritmo * visibles), span: Math.max(DIAS_MINIMOS_DE_LA_CURVA, diasReales + visibles) };
+}
+
+/**
+ * Efectivas acumuladas contra la meta, en un solo eje (Gonzalo, 29/10: con dos
+ * ejes la línea quedaba pegada al piso y las barras del día dominaban). Las
+ * efectivas de cada día van en una franja baja con su cifra, sin eje propio; y
+ * al ritmo de la última semana, una línea punteada dice cuándo se llegaría a
+ * la meta. La ventana mide al menos dos semanas para que un campo que empieza
+ * no se estire a todo el ancho.
  */
 export function CurvaAcumulada({
   serie,
   meta,
   diaDeMeta,
+  ritmo = null,
+  diasALaMeta = null,
 }: {
   serie: readonly DiaDeAvance[];
   meta: number;
   diaDeMeta: string | null;
+  /** Efectivas diarias de la última semana: con él se dibuja la proyección. */
+  ritmo?: number | null;
+  /** Días a la meta que ya dice el chip; si llega, la fecha punteada sale de él. */
+  diasALaMeta?: number | null;
 }) {
   const [ref, { ancho, alto }] = useTamano<HTMLDivElement>();
   const izquierda = 52;
-  const derecha = 92;
+  const derecha = 24;
   const arriba = 30;
-  const abajo = 26;
+  const abajo = ALTO_DEL_EJE_DE_FECHAS + 4;
+  // La banda del día va bajo el eje, fuera de la escala del acumulado.
+  const banda = 46;
   const w = Math.max(0, ancho - izquierda - derecha);
-  const h = Math.max(0, alto - arriba - abajo);
+  const h = Math.max(0, alto - arriba - abajo - banda);
+  const n = serie.length;
   const final = serie.at(-1)?.acumulado ?? 0;
+  const tramo = tramoProyectado(final, meta, ritmo, n, diasALaMeta);
+  const span = tramo?.span ?? Math.max(DIAS_MINIMOS_DE_LA_CURVA, n);
   const marcasAcum = marcasDeEje(Math.max(final, meta) * 1.08);
   const maxAcum = marcasAcum.at(-1) ?? 1;
-  const maxDia = Math.max(1, ...serie.map((dia) => dia.efectivas));
-  const marcasDia = marcasDeEje(maxDia * 2.4);
-  const maxDiaEje = marcasDia.at(-1) ?? 1;
-  const n = serie.length;
-  const x = (indice: number) => izquierda + (n <= 1 ? w / 2 : (indice / (n - 1)) * w);
+  const paso = w / Math.max(1, span);
+  const x = (indice: number) => izquierda + (indice + 0.5) * paso;
   const yAcum = (valor: number) => arriba + h - (valor / maxAcum) * h;
-  const yDia = (valor: number) => arriba + h - (valor / maxDiaEje) * h;
-  const anchoBarra = Math.max(2, Math.min(18, (w / Math.max(1, n)) * 0.62));
+  const pieDeBanda = arriba + h + banda - 4;
+  const franja = banda - 18;
+  const maxDia = Math.max(1, ...serie.map((dia) => dia.efectivas));
+  const altoDia = (valor: number) => (valor / maxDia) * franja;
+  const anchoBarra = Math.max(2, Math.min(28, paso * 0.62));
+  const cifraEnBarra = paso >= 22;
   const linea = serie.map((dia, indice) => `${indice ? "L" : "M"}${x(indice).toFixed(1)},${yAcum(dia.acumulado).toFixed(1)}`).join(" ");
   const area = n ? `${linea} L${x(n - 1).toFixed(1)},${yAcum(0)} L${x(0).toFixed(1)},${yAcum(0)} Z` : "";
   const indiceDeMeta = diaDeMeta ? serie.findIndex((dia) => dia.fecha === diaDeMeta) : -1;
   const listo = ancho > 0 && alto > 0 && n > 0;
-  // Si el rótulo de la meta quedaría sobre el del último acumulado, va bajo la línea.
+  const finProyeccion = tramo ? n - 1 + tramo.visibles : null;
   const metaAbajo = Math.abs(yAcum(final) - yAcum(meta)) < 22 && yAcum(meta) + 18 < arriba + h;
   return (
-    <div ref={ref} className="acr-av-grafico" role="img" aria-label={`Efectivas acumuladas: ${fmt(final)}${meta > 0 ? ` de una meta de ${fmt(meta)}` : ""}`}>
+    <div ref={ref} className="acr-av-grafico" role="img" aria-label={`Efectivas acumuladas: ${fmt(final)}${meta > 0 ? ` de una meta de ${fmt(meta)}` : ""}${tramo?.alcanzaLaMeta ? `; al ritmo actual la meta llega en ${fmt(tramo.dias)} días` : ""}`}>
       {listo ? (
         <svg width={ancho} height={alto} aria-hidden="true">
           <text className="acr-av-eje-titulo" x={4} y={11}>Acumulado</text>
-          <text className="acr-av-eje-titulo" x={izquierda + w + 8} y={11}>Por día</text>
+          <text className="acr-av-eje-titulo" x={4} y={pieDeBanda - 4}>Por día</text>
+          <line className="acr-av-reticula" x1={izquierda} x2={izquierda + w} y1={pieDeBanda} y2={pieDeBanda} />
           {marcasAcum.map((valor) => (
             <g key={`a${valor}`}>
               <line className="acr-av-reticula" x1={izquierda} x2={izquierda + w} y1={yAcum(valor)} y2={yAcum(valor)} />
               <text className="acr-av-eje" x={izquierda - 8} y={yAcum(valor) + 4} textAnchor="end">{fmt(valor)}</text>
             </g>
           ))}
-          {marcasDia.map((valor) => (
-            <text key={`d${valor}`} className="acr-av-eje is-secundario" x={izquierda + w + 8} y={yDia(valor) + 4}>{fmt(valor)}</text>
-          ))}
           {serie.map((dia, indice) => (
             dia.efectivas > 0 ? (
-              <rect
-                key={dia.fecha}
-                className="acr-av-barra-dia"
-                x={x(indice) - anchoBarra / 2}
-                y={yDia(dia.efectivas)}
-                width={anchoBarra}
-                height={yDia(0) - yDia(dia.efectivas)}
-                rx={1.5}
-              />
+              <g key={dia.fecha}>
+                <rect className="acr-av-barra-dia" x={x(indice) - anchoBarra / 2} y={pieDeBanda - altoDia(dia.efectivas)} width={anchoBarra} height={altoDia(dia.efectivas)} rx={1.5}>
+                  <title>{`${fechaCorta(dia.fecha)}: ${fmt(dia.efectivas)} efectivas`}</title>
+                </rect>
+                {cifraEnBarra ? <text className="acr-av-eje is-secundario" x={x(indice)} y={pieDeBanda - altoDia(dia.efectivas) - 3} textAnchor="middle">{fmt(dia.efectivas)}</text> : null}
+              </g>
             ) : null
           ))}
           <path className="acr-av-area" d={area} />
           <path className="acr-av-linea" d={linea} />
+          {tramo && finProyeccion != null ? (
+            <g>
+              <line className="acr-av-proyeccion" x1={x(n - 1)} y1={yAcum(final)} x2={x(finProyeccion)} y2={yAcum(tramo.valor)} />
+              {tramo.alcanzaLaMeta ? (
+                <>
+                  <circle className="acr-av-hito is-proyectado" cx={x(finProyeccion)} cy={yAcum(meta)} r={4} />
+                  <text className="acr-av-hito-texto" x={x(finProyeccion) - 8} y={yAcum(meta) - 8} textAnchor="end">
+                    {`≈ ${fechaCorta(sumarDias(serie[n - 1].fecha, tramo.dias))} al ritmo actual`}
+                  </text>
+                </>
+              ) : (
+                <text className="acr-av-hito-texto" x={x(finProyeccion)} y={yAcum(tramo.valor) - 8} textAnchor="end">
+                  {`A este ritmo, ${fmt(Math.round(tramo.valor))} en ${fmt(tramo.visibles)} días`}
+                </text>
+              )}
+            </g>
+          ) : null}
           {meta > 0 ? (
             <g>
               <line className="acr-av-meta" x1={izquierda} x2={izquierda + w} y1={yAcum(meta)} y2={yAcum(meta)} />
-              <text className="acr-av-meta-texto" x={izquierda + w - 6} y={metaAbajo ? yAcum(meta) + 15 : yAcum(meta) - 6} textAnchor="end">{`Meta ${fmt(meta)}`}</text>
+              <text className="acr-av-meta-texto" x={izquierda + 6} y={metaAbajo ? yAcum(meta) + 15 : yAcum(meta) - 6}>{`Meta ${fmt(meta)}`}</text>
             </g>
           ) : null}
           {indiceDeMeta >= 0 ? (
@@ -137,12 +206,8 @@ export function CurvaAcumulada({
             </g>
           ) : null}
           <circle className="acr-av-final" cx={x(n - 1)} cy={yAcum(final)} r={4} />
-          <text className="acr-av-final-texto" x={x(n - 1) - 8} y={yAcum(final) - 9} textAnchor="end">{fmt(final)}</text>
-          {indicesDeFecha(n, Math.max(2, Math.min(9, Math.floor(w / 90)))).map((indice) => (
-            <text key={serie[indice].fecha} className="acr-av-eje" x={x(indice)} y={alto - 6} textAnchor={indice === 0 ? "start" : indice === n - 1 ? "end" : "middle"}>
-              {fechaCorta(serie[indice].fecha)}
-            </text>
-          ))}
+          <text className="acr-av-final-texto" x={x(n - 1)} y={yAcum(final) - 10} textAnchor="middle">{fmt(final)}</text>
+          <EjeDeFechas fechas={serie.map((dia) => dia.fecha)} paso={paso} x={x} alto={alto} />
         </svg>
       ) : null}
     </div>
@@ -159,7 +224,7 @@ export function BarrasPorDia({ dias, etiqueta }: { dias: readonly DiaDeAvance[];
   const h = Math.max(0, alto - arriba - abajo);
   const marcas = marcasDeEje(Math.max(1, ...dias.map((dia) => dia.efectivas)));
   const maximo = marcas.at(-1) ?? 1;
-  const paso = w / Math.max(1, dias.length);
+  const paso = anchoPorDia(w, dias.length, { ranuras: DIAS_DE_LA_VENTANA });
   const y = (valor: number) => arriba + h - (valor / maximo) * h;
   return (
     <div ref={ref} className="acr-av-grafico is-compacto" role="img" aria-label={etiqueta}>
@@ -183,8 +248,11 @@ export function BarrasPorDia({ dias, etiqueta }: { dias: readonly DiaDeAvance[];
               rx={1.5}
             />
           ))}
-          <text className="acr-av-eje" x={izquierda} y={alto - 4}>{fechaCorta(dias[0].fecha)}</text>
-          <text className="acr-av-eje" x={izquierda + w} y={alto - 4} textAnchor="end">{fechaCorta(dias.at(-1)?.fecha ?? "")}</text>
+          {/* Primero y último bajo su barra, sólo si caben sin montarse («29 30oct»). */}
+          {/* El día del corte siempre lleva fecha; el primero, sólo si no se monta con él («29 30oct»). */}
+          {[...new Set([...(dias.length > 1 && (dias.length - 1) * paso >= ANCHO_DE_ROTULO_DE_FECHA ? [0] : []), dias.length - 1])].map((indice) => (
+            <text key={dias[indice].fecha} className="acr-av-eje" x={izquierda + indice * paso + paso / 2} y={alto - 4} textAnchor="middle">{fechaCorta(dias[indice].fecha)}</text>
+          ))}
         </svg>
       ) : null}
     </div>
@@ -293,11 +361,11 @@ export function BarrasSuperpuestas({
 }
 
 /** Miniatura de barras dentro de una celda o una fila: sin ejes, con su lectura en `aria-label`. */
-export function Minibarras({ valores, etiqueta }: { valores: readonly number[]; etiqueta: string }) {
+export function Minibarras({ valores, etiqueta, ranuras = DIAS_DE_LA_VENTANA }: { valores: readonly number[]; etiqueta: string; ranuras?: number }) {
   const maximo = Math.max(1, ...valores);
   const ancho = 84;
   const alto = 18;
-  const paso = ancho / Math.max(1, valores.length);
+  const paso = anchoPorDia(ancho, valores.length, { ranuras });
   return (
     <svg className="acr-av-minibarras" width={ancho} height={alto} role="img" aria-label={etiqueta}>
       <line className="acr-av-minibarras-base" x1={0} x2={ancho} y1={alto - 0.5} y2={alto - 0.5} />
@@ -319,30 +387,38 @@ export function BarrasApiladas({
   totales,
   fases,
   etiqueta,
+  clasesDeCapa,
 }: {
   fechas: readonly string[];
   capas: ReadonlyArray<{ publico: string; valores: readonly number[] }>;
   totales: readonly number[];
   fases: ReadonlyArray<{ id: string; rotulo: string; desde: string; hasta: string }>;
   etiqueta: string;
+  /** Clase de color de cada capa (la del público en toda la app); sin ella, la escala `is-capa-N`. */
+  clasesDeCapa?: readonly string[];
 }) {
   const [ref, { ancho, alto }] = useTamano<HTMLDivElement>();
   const izquierda = 44;
   const franja = fases.length ? 22 : 0;
   const arriba = 22 + franja;
-  const abajo = 22;
+  const abajo = ALTO_DEL_EJE_DE_FECHAS;
   const w = Math.max(0, ancho - izquierda - 6);
   const h = Math.max(0, alto - arriba - abajo);
   const marcas = marcasDeEje(Math.max(1, ...totales) * 1.05);
   const maximo = marcas.at(-1) ?? 1;
   const n = fechas.length;
-  const paso = w / Math.max(1, n);
+  const paso = anchoPorDia(w, n, { tope: PASO_MAXIMO_POR_DIA });
   const y = (valor: number) => arriba + h - (valor / maximo) * h;
   const posicion = new Map(fechas.map((fecha, indice) => [fecha, indice]));
   const xDeFecha = (fecha: string, final: boolean) => {
     const indice = posicion.get(fecha) ?? (fecha < (fechas[0] ?? "") ? 0 : n - 1);
     return izquierda + (indice + (final ? 1 : 0)) * paso;
   };
+  // Todos los totales con la misma letra o ninguno: la más grande (11 a 10 px, el piso) en
+  // la que la cifra más larga cabe en el ancho del día (≈0,6 em por carácter).
+  const caracteres = Math.max(1, ...totales.map((total) => fmt(total).length));
+  const letraQueCabe = Math.min(11, (paso - 2) / (caracteres * 0.6));
+  const letraDelTotal = letraQueCabe >= 10 ? Math.floor(letraQueCabe) : null;
   return (
     <div ref={ref} className="acr-av-grafico" role="img" aria-label={etiqueta}>
       {ancho > 0 && alto > 0 && n ? (
@@ -374,7 +450,7 @@ export function BarrasApiladas({
                   const rect = (
                     <rect
                       key={capa.publico}
-                      className={`acr-av-capa is-capa-${capaIndice + 1}`}
+                      className={`acr-av-capa ${clasesDeCapa?.[capaIndice] ?? `is-capa-${capaIndice + 1}`}`}
                       x={izquierda + indice * paso + paso * 0.12}
                       y={y(base + valor)}
                       width={Math.max(1, paso * 0.76)}
@@ -384,14 +460,14 @@ export function BarrasApiladas({
                   base += valor;
                   return rect;
                 })}
+                {/* El total del día sobre la barra: la suma de sus públicos, sin sumar a ojo. */}
+                {letraDelTotal && totales[indice] > 0 ? (
+                  <text className="acr-av-eje is-cifra" x={izquierda + indice * paso + paso / 2} y={y(totales[indice]) - 4} textAnchor="middle" style={{ fontSize: letraDelTotal }}>{fmt(totales[indice])}</text>
+                ) : null}
               </g>
             );
           })}
-          {indicesDeFecha(n, Math.max(2, Math.min(10, Math.floor(w / 80)))).map((indice) => (
-            <text key={fechas[indice]} className="acr-av-eje" x={izquierda + indice * paso + paso / 2} y={alto - 6} textAnchor={indice === 0 ? "start" : indice === n - 1 ? "end" : "middle"}>
-              {fechaCorta(fechas[indice])}
-            </text>
-          ))}
+          <EjeDeFechas fechas={fechas} paso={paso} x={(indice) => izquierda + indice * paso + paso / 2} alto={alto} />
         </svg>
       ) : null}
     </div>

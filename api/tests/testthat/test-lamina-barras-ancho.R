@@ -12,6 +12,9 @@
 }
 
 .lamina_una_serie <- function(niveles, conteos, overrides = list()) {
+  # Revisión del PPT v7.23, ítem 8: la pista gris va en toda barra de una serie y fija la escala en 0 a 100 %. Estas pruebas
+  # miden el reparto del ancho y el eje libre, así que la apagan; con pista la mayor no llega al borde (es lo pedido).
+  overrides <- utils::modifyList(list(pista_barras = "nunca"), overrides)
   dat <- data.frame(p1 = rep(niveles, conteos), stringsAsFactors = FALSE)
   inst <- list(survey = data.frame(name = "p1", type = "select_one l", list_name = "l", label = "Pregunta", stringsAsFactors = FALSE),
                choices = data.frame(list_name = "l", name = niveles, label = niveles, stringsAsFactors = FALSE), orders_list = NULL)

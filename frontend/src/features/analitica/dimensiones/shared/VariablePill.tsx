@@ -153,7 +153,7 @@ export function VariablePill({
         {esCombinado ? <Sigma size={12} /> : <GripVertical size={12} />}
       </span>
       {faltante && (
-        <span style={{ fontSize: 11, fontWeight: 700, marginTop: 2 }} aria-label="Variable no encontrada">
+        <span style={{ fontSize: "var(--pulso-type-caption-size)", fontWeight: 700, marginTop: 2 }} aria-label="Variable no encontrada">
           ⚠
         </span>
       )}
@@ -170,7 +170,7 @@ export function VariablePill({
             }}
             placeholder="Nombre humano…"
             style={{
-              fontSize: 12,
+              fontSize: "var(--pulso-type-subtitle-size)",
               fontWeight: 600,
               border: "none",
               outline: "none",
@@ -184,7 +184,7 @@ export function VariablePill({
         ) : (
           <span
             style={{
-              fontSize: 12,
+              fontSize: "var(--pulso-type-subtitle-size)",
               fontWeight: 600,
               overflow: "hidden",
               textOverflow: "ellipsis",
@@ -198,8 +198,8 @@ export function VariablePill({
         {tieneLabelHumano && !editingLabel && (
           <span
             style={{
-              fontFamily: "ui-monospace, monospace",
-              fontSize: 10,
+              fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
+              fontSize: "var(--pulso-type-micro-size)",
               color: palette.fg,
               opacity: 0.65,
             }}
@@ -293,7 +293,7 @@ export function VariablePill({
             marginLeft: 2,
             color: "inherit",
             opacity: 0.7,
-            fontSize: 14,
+            fontSize: "var(--pulso-type-body-size)",
             lineHeight: 1,
           }}
         >

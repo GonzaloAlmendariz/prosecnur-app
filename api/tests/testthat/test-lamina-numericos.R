@@ -26,17 +26,29 @@ test_that("preparar_boxplot calcula cuartiles, bigotes a 1.5 RIC acotados y atí
   expect_equal(e$rango, c(19, 40))
 })
 
-test_that("el histograma nativo pone una barra por valor y el triángulo de la mediana bajo su valor (lámina 79)", {
+test_that("el histograma nativo pone barras contiguas sobre su base y la mediana como línea rotulada (revisión del v7)", {
   x <- c(rep(19, 9), rep(20, 30), rep(21, 35), rep(22, 32), rep(23, 25))
   e <- attr(.histograma_recetario(x, modo = "conteo", unidad = "años"), "pulso_espec")
   expect_identical(e$cifras, c("9", "30", "35", "32", "25")); expect_equal(e$x_mediana, 2)   # mediana 21: tercera columna
   o <- .lam_laminas_histograma(.nm_doc(), e, "Edad", folio = 79)
   xml <- .nm_xml(.nm_print(o$doc), length(o$doc))
-  b <- .nm_ext(xml, "histograma:barra"); tri <- .nm_ext(xml, "histograma:mediana")
+  b <- .nm_ext(xml, "histograma:barra"); lin <- .nm_ext(xml, "histograma:mediana")
   expect_equal(nrow(b), 5L)
-  expect_equal(max(b$h), .std_geom("contenido_y1") - .std_geom("zona_datos_y0") - 1.25, tolerance = 1e-3)
-  expect_equal(tri$x + tri$w / 2, b$x[3] + b$w[3] / 2, tolerance = 1e-3)
+  expect_equal(diff(b$x) - b$w[-5], rep(.LAM_HIST_HUECO, 4), tolerance = 1e-3)      # contiguas, hueco uniforme
+  expect_equal(b$y + b$h, rep(b$y[1] + b$h[1], 5), tolerance = 1e-3)                 # todas sobre la misma base
+  expect_gt(nrow(lin), 0L)
+  expect_true(all(abs(lin$x - (b$x[3] + b$w[3] / 2)) < 1e-3))                        # la línea pasa por la barra de 21
+  expect_true(all(lin$w < 1e-3))                                                     # vertical
+  cif <- .nm_ext(xml, "histograma:cifra")[3, ]
+  expect_true(all(lin$y + lin$h <= cif$y + 1e-3 | lin$y >= cif$y + cif$h - 1e-3))    # no tacha la cifra de su barra
   expect_identical(.nm_txt(xml, "histograma:texto_mediana"), "Mediana: 21 años")
+  expect_false(any(grepl("triangle", as.character(xml))))                            # sin el triángulo bajo el eje
+})
+
+test_that("una barra de un caso que redondea a 0 % dice «<1%»", {
+  expect_identical(.histograma_cifra_con_frecuencia(c(1, 399)), c("1 (<1%)", "399 (100%)"))
+  e <- attr(.histograma_recetario(c(18, rep(20, 399))), "pulso_espec")
+  expect_identical(e$cifras[1], "<1%")
 })
 
 test_that("el indicador numérico va en columnas desde cero con cifra de punto decimal y los casos del grupo (lámina 80)", {

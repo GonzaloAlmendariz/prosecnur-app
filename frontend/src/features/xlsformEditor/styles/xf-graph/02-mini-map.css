@@ -24,8 +24,10 @@
   transition: fill 140ms ease;
 }
 
+/* Llama la atención al colapsarse y después se queda quieta: un pulso sin fin
+ * sólo distrae (L37). */
 .pulso-graph-legend.is-collapsed .pulso-graph-legend-toggle {
-  animation: pulso-graph-legend-attention 2.4s ease-in-out infinite;
+  animation: pulso-graph-legend-attention 2.4s ease-in-out 3;
   animation-delay: 1.5s;
 }
 
@@ -51,15 +53,6 @@
 
 /* ── Keyframes locales ─────────────────────────────────────────────────── */
 
-@keyframes pulso-xfg-node-in {
-  from { opacity: 0; transform: translateY(5px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-
-@keyframes pulso-xfg-edge-in {
-  from { opacity: 0; }
-}
-
 @keyframes pulso-xfg-dash-flow {
   to { stroke-dashoffset: -14; }
 }
@@ -69,11 +62,6 @@
    * coincidir con ese transform base para no saltar al terminar. */
   from { opacity: 0; transform: translateX(-50%) translateY(-6px); }
   to   { opacity: 1; transform: translateX(-50%) translateY(0); }
-}
-
-@keyframes pulso-xfg-fade-in-up {
-  from { opacity: 0; transform: translateY(6px); }
-  to   { opacity: 1; transform: translateY(0); }
 }
 
 /* ── Header del overlay ────────────────────────────────────────────────── */
@@ -101,18 +89,18 @@
     transform var(--motion-dur-press) var(--motion-ease-out);
 }
 .pulso-graph-overlay .pulso-graph-back:active {
-  transform: scale(0.97);
+  transform: scale(var(--mov-press, 0.97));
 }
 
 /* Título + subtítulo compactos. */
 .pulso-graph-overlay .pulso-graph-header-title strong {
-  font-size: 13.5px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-bold);
   letter-spacing: -0.01em;
   line-height: 1.2;
 }
 .pulso-graph-overlay .pulso-graph-header-title span {
-  font-size: 10.5px;
+  font-size: var(--pulso-type-micro-size);
 }
 
 .pulso-graph-overlay .pulso-graph-header-right {
@@ -134,7 +122,7 @@
     transform var(--motion-dur-press) var(--motion-ease-out);
 }
 .pulso-graph-overlay .pulso-graph-allbutton:active {
-  transform: scale(0.97);
+  transform: scale(var(--mov-press, 0.97));
 }
 
 /* Segmented glass con los icon-buttons redondos (zoom − / + / ajustar /
@@ -166,7 +154,7 @@
 }
 .pulso-graph-overlay .pulso-graph-iconseg .pulso-icon:active,
 .pulso-graph-overlay .pulso-graph-header-right > .pulso-icon:active {
-  transform: scale(0.94);
+  transform: scale(var(--mov-press, 0.97));
 }
 .pulso-graph-overlay .pulso-graph-iconseg .pulso-icon.is-on {
   background: var(--pulso-primary);
@@ -200,7 +188,7 @@
     transform var(--motion-dur-press) var(--motion-ease-out);
 }
 .pulso-graph-overlay .pulso-graph-toolbar-btn:active:not(:disabled) {
-  transform: scale(0.96);
+  transform: scale(var(--mov-press, 0.97));
 }
 
 /* Filtro de tipos de relación → fila de chips con la muestra del trazo
@@ -220,7 +208,7 @@
   border: 1px solid var(--pulso-border);
   border-radius: 999px;
   background: var(--pulso-surface);
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   font-weight: var(--pulso-weight-semibold);
   color: var(--pulso-text-muted);
   transition:
@@ -230,7 +218,7 @@
     transform var(--motion-dur-press) var(--motion-ease-out);
 }
 .pulso-graph-overlay .pulso-graph-toolbar-segment button:active {
-  transform: scale(0.96);
+  transform: scale(var(--mov-press, 0.97));
 }
 .pulso-graph-overlay .pulso-graph-toolbar-segment button.is-on {
   background: color-mix(in srgb, var(--xfg-chip, var(--pulso-primary)) 10%, #ffffff);
@@ -245,7 +233,7 @@
   opacity: 1;
 }
 .pulso-graph-overlay .pulso-graph-toolbar-segment button .pulso-xf-tech {
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
 }
 
 /* ── Nodos ─────────────────────────────────────────────────────────────── */
@@ -253,7 +241,7 @@
 /* Entrada fade-in-up sutil + elevación al hover: se anima el <g> interno
  * (`node-inner`) para no pisar el translate(x, y) del <g> raíz del nodo. */
 .pulso-graph-overlay .pulso-graph-node-inner {
-  animation: pulso-xfg-node-in var(--motion-dur-base) var(--motion-ease-out) backwards;
+  animation: pulso-mov-sube-corto var(--motion-dur-base) var(--motion-ease-out) backwards;
   transition: transform var(--motion-dur-fast) var(--motion-ease-out);
 }
 
@@ -279,14 +267,14 @@
 /* Ring primario del nodo seleccionado. */
 .pulso-graph-overlay .pulso-graph-node-ring {
   pointer-events: none;
-  animation: pulso-xfg-edge-in var(--motion-dur-fast) ease backwards;
+  animation: pulso-mov-aparece var(--motion-dur-fast) ease backwards;
 }
 
 /* ── Edges ─────────────────────────────────────────────────────────────── */
 
 /* Aparición con fade (el stagger viene del animation-delay inline). */
 .pulso-graph-overlay .pulso-graph-edge {
-  animation: pulso-xfg-edge-in var(--motion-dur-base) var(--motion-ease-out) backwards;
+  animation: pulso-mov-aparece var(--motion-dur-base) var(--motion-ease-out) backwards;
 }
 
 /* Dash-flow sutil sobre el edge seleccionado (overlay blanco punteado
@@ -312,7 +300,7 @@
   align-items: center;
   justify-content: center;
   height: 100%;
-  animation: pulso-xfg-fade-in-up var(--motion-dur-fast) var(--motion-ease-out);
+  animation: pulso-mov-sube var(--motion-dur-fast) var(--motion-ease-out);
 }
 .pulso-graph-overlay .pulso-graph-edge-label {
   max-width: 100%;
@@ -323,7 +311,7 @@
   box-shadow: 0 2px 10px rgba(15, 23, 42, 0.14);
   backdrop-filter: blur(6px) saturate(1.1);
   -webkit-backdrop-filter: blur(6px) saturate(1.1);
-  font-size: 10.5px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-semibold);
   line-height: 1.5;
   color: var(--pulso-text);
@@ -356,6 +344,6 @@
     transform var(--motion-dur-press) var(--motion-ease-out);
 }
 .pulso-graph-overlay .pulso-graph-edge-panel-btn:active {
-  transform: scale(0.97);
+  transform: scale(var(--mov-press, 0.97));
 }
 

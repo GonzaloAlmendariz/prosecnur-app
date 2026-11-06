@@ -6,10 +6,11 @@
 import { useState } from "react";
 import type { VariableDeBase } from "../../../api/equivalencias";
 import { formatoConteo } from "../../../lib/formatoNumero";
-import { Plus, Search, X } from "../../../vendor/lucide-react";
+import { Plus, Search, X, Inbox } from "../../../vendor/lucide-react";
 import { opcionesDeAyuda, parsearCodigos, resultadosBusqueda, type AccionCompuesto } from "../indicadorCompuestoModel";
 import { etiquetaLegible } from "../preguntaEquivalenteModel";
 import "../IndicadorCompuestoEditor.css";
+import { EstadoVacio } from "../../../components/EstadoVacio";
 
 /** El buscador de preguntas de una base; también lo usan los segmentos de cruce (ADR 0107). */
 export function BuscadorPreguntas({
@@ -42,7 +43,7 @@ export function BuscadorPreguntas({
                 <button
                   type="button"
                   onClick={() => { onElegir(o.name); setConsulta(""); }}
-                  title={`${o.name} · ${etiquetaLegible(o.label)}`}
+                  title={`${o.name}: ${etiquetaLegible(o.label)}`}
                   aria-label={`Elegir ${etiquetaLegible(o.label) || o.name} (${o.name})`}
                 >
                   <Plus size={12} aria-hidden="true" />
@@ -79,7 +80,7 @@ export function PreguntasAlguna({
   return (
     <div className="pulso-vb-bloque" role="group" aria-label="Preguntas y códigos «sí»">
       {variables.length === 0 ? (
-        <p className="pulso-armon-vacio">Busca las preguntas que forman la variable.</p>
+        <EstadoVacio icono={<Inbox size={16} />} titulo="Busca las preguntas que forman la variable" />
       ) : (
         <ul className="pulso-compuesto-elegidas" aria-label="Preguntas elegidas">
           {variables.map((v) => (

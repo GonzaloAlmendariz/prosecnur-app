@@ -21,12 +21,12 @@
       "aire_cifra_chica": 0.36,
       "likert": {
         "x_premisa": 0.495,
-        "ancho_premisa": 3.3,
-        "x_actor": 3.6,
+        "ancho_premisa": 3,
+        "x_actor": 3.45,
         "ancho_actor": 1.5,
         "x_barra": 5.2,
-        "ancho_barra": 6,
-        "x_top_two_box": 11.4
+        "ancho_barra": 6.2,
+        "x_top_two_box": 11.5
       },
       "cifra_pieza": {
         "valor_h": 0.62,
@@ -42,17 +42,19 @@
       "unidad": "pt",
       "titulo": 24,
       "antetitulo": 10,
+      "subtitulo": 18,
       "pregunta": 13,
       "cifra": 14,
       "cifra_fuera": 12,
       "leyenda": 12,
       "actor": 12,
+      "rotulo_categoria": 12,
       "base": 10,
       "n": 10,
       "cuerpo": 14,
       "narrativa": 15,
       "cifra_destacada": 34,
-      "rotulo_top_two_box": 10,
+      "rotulo_top_two_box": 12,
       "cifra_minimo": 8,
       "portada_rotulo": 13,
       "portada_titulo": 30,
@@ -73,7 +75,7 @@
       "filete": "#D5D9DF",
       "cebra": "#E9ECF1",
       "fondo": "#F2F2F2",
-      "verde_top_two_box": "#4E9438",
+      "verde_top_two_box": "#70AD47",
       "naranja_bottom_two_box": "#B4541F",
       "naranja_bottom_two_box_texto": "#A44A1F",
       "azul_medio": "#4F7FAF",
@@ -85,7 +87,42 @@
       "mapa_borde": "#B8C2D3",
       "numero_fondo": "#DCE2EC",
       "banda_clara": "#E3E7EF",
-      "fondo_destacado": "#F8E3E2"
+      "fondo_destacado": "#F8E3E2",
+      "tarjeta_borde": "#D9DEE8",
+      "tarjeta_fondo": "#FFFFFF",
+      "tarjeta_fondo_95": "#F8F9FB",
+      "tarjeta_borde_95": "#3A6591",
+      "tarjeta_barra_95": "#6F8FC4",
+      "tarjeta_total": "#B7BECC",
+      "tarjeta_barra_neutra": "#C3CFE2",
+      "verde_acuerdo": "#3B7A2A",
+      "mapa_clase_1": "#C6DBEF",
+      "mapa_clase_2": "#9ECAE1",
+      "mapa_clase_3": "#6BAED6",
+      "mapa_clase_4": "#3182BD",
+      "mapa_clase_5": "#08519C",
+      "mapa_clase4_3": "#4292C6",
+      "mapa_vacio": "#FAF9F6",
+      "mapa_vacio_borde": "#C9CED6",
+      "mapa_punto": "#C8463D",
+      "mapa_borde_area": "#5A6478",
+      "mapa_borde_area_oscura": "#FFFFFF",
+      "mapa_contorno": "#8E98A8",
+      "mapa_mar": "#E6EEF5",
+      "mapa_oceano": "#7A8AA0",
+      "mapa_tierra": "#EEECE7",
+      "mapa_tierra_borde": "#D9D5CD",
+      "mapa_pais": "#A39E94",
+      "mapa_texto": "#14213D",
+      "mapa_guia": "#3C4658",
+      "mapa_otra": "#E4E7EC",
+      "mapa_otra_raya": "#B3BAC6",
+      "mapa_pista": "#EDEFF3",
+      "mapa_otros_barra": "#AEB5C1",
+      "mapa_otros_texto": "#6B7486",
+      "mapa_tarjeta_borde": "#DDE1E7",
+      "mapa_zona_texto": "#2A3448",
+      "mapa_zona_filete": "#E3E6EB"
     },
     "paletas": {
       "likert": {
@@ -151,6 +188,7 @@
       "unidad": "in",
       "nota": "por número de filas de la lámina; la barra no adelgaza por cifras chicas, la fila gana aire",
       "piso_escala_cm": 1.12,
+      "piso_panel_cm": 0.66,
       "escala_apilada": [
         {
           "filas_hasta": 2,
@@ -191,6 +229,136 @@
           "grosor": 0.32
         }
       ]
+    },
+    "composicion": {
+      "unidad": "in",
+      "escala": {
+        "aire_tema": 0.14,
+        "aire_entre_temas_max": 0.9,
+        "aire_leyenda": 0.3,
+        "aire_leyenda_multilista": 0.09,
+        "aire_leyenda_apretada": 0.12,
+        "aire_leyenda_fila": 0.17,
+        "aire_leyenda_solo": 0.55,
+        "rotulo_box_sobre": 0.45,
+        "primera_chica": 0.18,
+        "columna_box": 1.5,
+        "columna_box_con_btb": 1.25
+      },
+      "filtro": {
+        "columna_box": 1.3,
+        "rotulo_box_sobre": 0.4,
+        "cifra_pt": 26,
+        "cifra_pt_bateria": 20,
+        "grosor": 0.42,
+        "grosor_bateria": 0.32,
+        "aire_sub": 0.75,
+        "aire_sub_bateria": 0.5,
+        "conta_grosor": 0.71,
+        "conta_aire_leyenda": 0.45,
+        "conta_y": 0.25,
+        "conta_paso": 2.78
+      },
+      "filas": {
+        "ancho_rotulo": 1.8,
+        "lineas_max": 2
+      },
+      "tabla_costado": {
+        "col1": 2.2,
+        "col": 1.15,
+        "fila": 0.5,
+        "fila_min": 0.4,
+        "hueco": 0.3,
+        "hueco_v": 0.2,
+        "min_graf_w": 3.6,
+        "dy": 0.6,
+        "cuerpo_pt": 13,
+        "enc_pt": 11,
+        "relleno_pt": 12
+      },
+      "tabla_general": {
+        "col1": 2.2,
+        "col": 1.15,
+        "fila": 0.42,
+        "cuerpo_pt": 12,
+        "enc_pt": 11,
+        "relleno_pt": 14
+      },
+      "multilista": {
+        "gap_bloques": 0.27,
+        "aire_titulo": 0.1,
+        "aire_ttb": 0.35,
+        "rotulo_box_sobre": 0.37,
+        "alto_leyenda": 0.5
+      },
+      "apretada": {
+        "holgura_chica": 0.03,
+        "aire_ttb": 0.25,
+        "extra_franja": 0.3
+      },
+      "perfil": {
+        "titulo_pt": 16,
+        "rotulo_pt": [13, 12.5, 12, 11.5, 11],
+        "rotulo_pt_con_tarjetas": [10.5, 10],
+        "grosor_max_cm": 0.99,
+        "grosor_frac": 0.7,
+        "aire_fila": 0.06,
+        "aire_titulo": 0.18,
+        "margen_inf": 0.03
+      },
+      "pie": {
+        "base_x": 0.35,
+        "base_y": 7.06,
+        "base_negrita": true
+      },
+      "portada_plantilla": {
+        "encargo": {
+          "left": 3.3,
+          "top": 5.5,
+          "width": 6.75,
+          "height": 0.56
+        },
+        "fecha": {
+          "left": 9.17,
+          "top": 6.21,
+          "width": 3.06,
+          "height": 0.4
+        },
+        "encargo_pt": 18,
+        "fecha_pt": 18
+      },
+      "llenar": {
+        "aire_leyenda": 0.45,
+        "aire_entre_temas_max": 1,
+        "aire_publicos_max": 0.65,
+        "piso_leyenda": 0.32,
+        "grosor": [
+          {
+            "filas_hasta": 2,
+            "grosor": 0.7
+          },
+          {
+            "filas_hasta": 3,
+            "grosor": 0.66
+          },
+          {
+            "filas_hasta": 4,
+            "grosor": 0.58
+          },
+          {
+            "filas_hasta": 6,
+            "grosor": 0.51
+          },
+          {
+            "filas_hasta": 9,
+            "grosor": 0.38
+          },
+          {
+            "filas_hasta": 999,
+            "grosor": 0.32
+          }
+        ]
+      }
     },
     "reglas": {
       "leyenda": "centrada en todo el bloque, incluida la columna Top Two Box; en mapas, al lado y centrada en vertical",
@@ -1011,5 +1179,21 @@
     },
     "rotulo": "«Gráfico N» en negrita con campo SEQ y, en la línea siguiente, el título en cursiva; la base y la fuente centradas debajo, sin la palabra Nota",
     "documento": ["portada tipográfica sola en su página", "resumen", "índice, índice de gráficos e índice de tablas en página propia", "una sección de Word por capítulo con su encabezado escrito", "apertura de capítulo con número grande, título, entrada y secciones", "Cómo leer este informe", "referencias con sangría francesa", "contraportada sin encabezado"]
+  },
+  "cuestionario": {
+    "tipografia": {
+      "unidad": "pt",
+      "fuente": "Arial Narrow",
+      "cuerpo": 10,
+      "minimo": 8,
+      "titulo": 20
+    },
+    "colores": {
+      "tinta": "#000000",
+      "rejilla": "#000000",
+      "banda": "#D9D9D9",
+      "banda_sub": "#E8E8E8",
+      "cebra": "#F2F2F2"
+    }
   }
 }

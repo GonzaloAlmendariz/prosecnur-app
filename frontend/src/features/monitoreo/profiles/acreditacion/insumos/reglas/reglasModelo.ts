@@ -7,15 +7,17 @@
  */
 
 import type { MonitoreoConfig, MonitoreoProfile } from "../../../../../../api/client";
+import { formatoDecimal } from "../../../../../../lib/formatoNumero";
 
 export type ClaveDeAlerta = "no_answer_min_attempts" | "unassigned_cases_min" | "no_sweep_min_cases" | "no_sweep_pct" | "daily_effective_diff_min";
 
 /** Las cinco alertas del perfil, con sus valores del motor cuando el proyecto no declara otro. */
-export const ALERTAS: ReadonlyArray<{ clave: ClaveDeAlerta; rotulo: string; unidad: string; porDefecto: number; proporcion?: boolean }> = [
-  { clave: "no_answer_min_attempts", rotulo: "Caso que no contesta, desde", unidad: "intentos", porDefecto: 4 },
-  { clave: "unassigned_cases_min", rotulo: "Casos sin responsable, desde", unidad: "casos", porDefecto: 5 },
-  { clave: "no_sweep_min_cases", rotulo: "Responsable con casos sin barrer, desde", unidad: "casos", porDefecto: 20 },
-  { clave: "no_sweep_pct", rotulo: "Responsable con casos sin barrer, desde", unidad: "% de su carga", porDefecto: 0.5, proporcion: true },
+/** `telefono`: la alerta mira llamadas, responsables o barrido; un estudio sin teléfono no la usa. */
+export const ALERTAS: ReadonlyArray<{ clave: ClaveDeAlerta; rotulo: string; unidad: string; porDefecto: number; proporcion?: boolean; telefono?: boolean }> = [
+  { clave: "no_answer_min_attempts", rotulo: "Caso que no contesta, desde", unidad: "intentos", porDefecto: 4, telefono: true },
+  { clave: "unassigned_cases_min", rotulo: "Casos sin responsable, desde", unidad: "casos", porDefecto: 5, telefono: true },
+  { clave: "no_sweep_min_cases", rotulo: "Responsable con casos sin barrer, desde", unidad: "casos", porDefecto: 20, telefono: true },
+  { clave: "no_sweep_pct", rotulo: "Responsable con casos sin barrer, desde", unidad: "% de su carga", porDefecto: 0.5, proporcion: true, telefono: true },
   { clave: "daily_effective_diff_min", rotulo: "Diferencia diaria de efectivas, desde", unidad: "efectivas", porDefecto: 1 },
 ];
 
@@ -143,5 +145,5 @@ export function enMinutos(segundos: string): string {
   const n = numero(segundos);
   if (n == null) return "";
   const minutos = n / 60;
-  return `${minutos.toLocaleString("es-PE", { maximumFractionDigits: 1 })} min`;
+  return `${formatoDecimal(minutos, 1)} min`;
 }

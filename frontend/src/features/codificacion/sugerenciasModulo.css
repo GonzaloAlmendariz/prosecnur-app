@@ -8,7 +8,7 @@
   border: 1px dashed var(--pulso-primary-border);
   border-radius: var(--pulso-radius-card);
   background: var(--pulso-surface);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   color: var(--pulso-text);
 }
 .pulso-cv2-modsug-banda-head {
@@ -18,16 +18,16 @@
   gap: 4px 10px;
 }
 .pulso-cv2-modsug-banda-head strong {
-  font-size: 12px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-bold);
 }
 .pulso-cv2-modsug-banda-head span {
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   color: var(--pulso-text-soft);
 }
 .pulso-cv2-modsug-banda-vacia {
   margin: 6px 0 0;
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   color: var(--pulso-text-soft);
 }
 .pulso-cv2-modsug-banda-lista {
@@ -80,7 +80,7 @@
   white-space: nowrap;
 }
 .pulso-cv2-modsug-banda-n {
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   color: var(--pulso-text-soft);
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
@@ -97,7 +97,7 @@
   background: var(--pulso-surface);
   color: var(--pulso-primary);
   font: inherit;
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   font-weight: var(--pulso-weight-semibold);
   cursor: pointer;
 }
@@ -113,7 +113,7 @@
 .pulso-cv2-modsug-banda-accion:focus-visible,
 .pulso-cv2-modsug-deshacer:focus-visible,
 .pulso-cv2-modsug-chip:focus-visible {
-  outline: 2px solid var(--pulso-primary);
+  outline: var(--mov-foco, 2px solid var(--pulso-primary));
   outline-offset: 1px;
 }
 .pulso-cv2-modsug-banda-estado {
@@ -122,7 +122,7 @@
   align-items: center;
   gap: 6px;
   margin: 8px 0 0;
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   color: var(--pulso-text-soft);
 }
 
@@ -135,7 +135,7 @@
   min-width: 0;
 }
 .pulso-cv2-modsug-eyebrow {
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   color: var(--pulso-text-soft);
 }
 .pulso-cv2-modsug-item {
@@ -154,7 +154,7 @@
   background: transparent;
   color: var(--pulso-primary);
   font: inherit;
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-semibold);
   line-height: 1;
   cursor: pointer;
@@ -180,7 +180,7 @@
   padding: 0 7px;
   border: 1px dashed var(--pulso-border);
   border-radius: var(--pulso-radius-chip);
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   color: var(--pulso-text-soft);
 }
 

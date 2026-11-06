@@ -20,6 +20,7 @@ import { ListaUnicaFila } from "./ListaUnicaFila";
 import { EntreFormulariosSeccion } from "./EntreFormulariosSeccion";
 import type { EstadoHermanos } from "./useFormulariosHermanos";
 import "./listas.css";
+import { EstadoVacio } from "../../../components/EstadoVacio";
 
 const SIN_OTROS: EstadoHermanos = { estado: "sin-otros" };
 
@@ -54,13 +55,11 @@ export function ListasOpcionesPanel({
           <span className="pulso-xf-listas-contador">{grupos.length}</span>
         </h3>
         {grupos.length === 0 ? (
-          <div className="pulso-xf-listas-vacio" data-qa-geometry-capacity="owned">
-            <CheckCheck size={18} aria-hidden="true" />
-            <p>
-              <strong>No hay escalas repetidas.</strong>{" "}
-              Cada lista de opciones del formulario es distinta de las demás.
-            </p>
-          </div>
+          <EstadoVacio
+            icono={<CheckCheck size={18} />}
+            titulo="No hay escalas repetidas"
+            descripcion="Cada lista de opciones del formulario es distinta de las demás."
+          />
         ) : (
           <div
             className="pulso-xf-listas-grupos"

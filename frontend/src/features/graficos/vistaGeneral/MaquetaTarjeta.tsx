@@ -14,6 +14,8 @@ import { useVariables } from "../useVariables";
 import { ajustesDelGlifo, coloresDeEscala } from "../laminas/maqueta/fichaModelo";
 import { datosEstructura } from "../laminas/maqueta/datosEstructura";
 import { ranurasDeMaqueta } from "../laminas/modeloMaqueta";
+import { antetituloQueSale, useAntetituloSeccionActivo } from "../laminas/antetituloQueSale";
+import { leerSlideMeta } from "../slideMeta";
 import { varianteDe } from "../laminas/selectores/tiposLamina";
 import { tituloQueSale } from "../laminas/tituloQueSale";
 import "../iconos/glifoGrafico.css";
@@ -21,6 +23,7 @@ import "../iconos/glifoGrafico.css";
 type Props = { slide: Slide; tipoLabel: string; antetitulo: string | null };
 
 function MaquetaTarjetaBase({ slide, tipoLabel, antetitulo }: Props) {
+  const seccionActiva = useAntetituloSeccionActivo();
   const { variables } = useVariables();
   const presets = usePlanStore((s) => s.presets);
   const paletas = usePlanStore((s) => s.paletas);
@@ -60,7 +63,7 @@ function MaquetaTarjetaBase({ slide, tipoLabel, antetitulo }: Props) {
   const titulo = tituloQueSale(slide, variables, tipoLabel);
   return (
     <span className="pulso-f6-vg-maqueta" data-maqueta-tipo={slide.tipo}>
-      <span className="pulso-f6-vg-maqueta-ante">{antetitulo || ""}</span>
+      <span className="pulso-f6-vg-maqueta-ante">{antetituloQueSale(leerSlideMeta(slide).antetitulo, antetitulo, seccionActiva) || ""}</span>
       <span className={`pulso-f6-vg-maqueta-titulo${titulo ? "" : " is-vacio"}`}>{titulo || "Sin título"}</span>
       {ranuras.map((r, i) => {
         const estilo = { left: `${r.rect.x * 100}%`, top: `${r.rect.y * 100}%`, width: `${r.rect.w * 100}%`, height: `${r.rect.h * 100}%` };

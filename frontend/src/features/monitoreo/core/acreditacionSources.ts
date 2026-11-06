@@ -69,7 +69,7 @@ export function collectorPrimaryDisplayName(
   const sourceChannel = cleanText(context.sourceChannel);
   const operationalPieces = [actor, channel || sourceChannel].filter(Boolean);
   if (operationalPieces.length) {
-    return operationalPieces.join(" · ");
+    return operationalPieces.join(", ");
   }
   if (sourceWithoutProvider && !technicalCollectorLabel(sourceWithoutProvider, collectorId)) {
     return sourceWithoutProvider;

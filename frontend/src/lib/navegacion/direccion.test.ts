@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   conCampana,
+  conCiudad,
   conNivel,
   describirDireccion,
   hrefSinParamDeProyecto,
@@ -42,9 +43,7 @@ describe("gramática de direcciones", () => {
   it("acepta los alias legacy de cada módulo", () => {
     expect(parsearDireccion("/calc-muestra", "?mesa=aulas")?.modo).toBe("aulas");
     expect(parsearDireccion("/calc-muestra", "?desk=aulas")?.modo).toBe("aulas");
-    expect(parsearDireccion("/bitacora", "?tab=cronograma")?.seccion).toBe(
-      "cronograma",
-    );
+    expect(parsearDireccion("/hojas-ruta", "?stage=seleccion")?.seccion).toBe("seleccion");
     expect(parsearDireccion("/monitoreo", "?perfil=aulas")?.modo).toBe("aulas");
   });
 
@@ -132,7 +131,6 @@ describe("gramática de direcciones", () => {
       "/monitoreo?modo=territorial&seccion=avance",
       "/hojas-ruta?seccion=seleccion&pestana=titulares",
       "/carga",
-      "/bitacora?seccion=cronograma",
       "/calc-muestra?modo=aulas",
     ];
     for (const href of casos) {
@@ -239,6 +237,30 @@ describe("gramática de direcciones", () => {
     it("`conCampana` es su único escritor y conserva lo demás", () => {
       expect(conCampana("?modo=correo&seccion=correo", "correo.a")).toBe("?modo=correo&seccion=correo&campana=correo.a");
       expect(conCampana("?campana=correo.a&foco=x", null)).toBe("?foco=x");
+    });
+  });
+  describe("`ciudad`: parámetro de alcance del mapa nacional de Hojas de ruta", () => {
+    it("se lee tipado, junto al `foco` de la UMP, y no cae en `extra`", () => {
+      const d = parsearDireccion("/hojas-ruta", "?seccion=seleccion&ciudad=0401&foco=ump-7");
+      expect(d).toMatchObject({ modulo: "hojas-ruta", seccion: "seleccion", ciudad: "0401", foco: "ump-7" });
+      expect(d?.extra).toBeUndefined();
+    });
+
+    it("sobrevive al ida y vuelta y es reservado frente a `extra`", () => {
+      const href = serializarDireccion({ modulo: "hojas-ruta", seccion: "muestra", ciudad: "lima" });
+      const url = new URL(href, "http://x");
+      expect(parsearDireccion(url.pathname, url.search)?.ciudad).toBe("lima");
+      expect(serializarDireccion({ modulo: "hojas-ruta", seccion: "muestra", extra: { ciudad: "lima" } })).not.toContain("ciudad=");
+    });
+
+    it("es encuadre: la misma sección desde otra ciudad es la misma vista", () => {
+      const a = { modulo: "hojas-ruta", seccion: "muestra", ciudad: "lima" } as const;
+      expect(mismaDireccion(a, { ...a, ciudad: "0401" })).toBe(true);
+    });
+
+    it("`conCiudad` es su único escritor y conserva lo demás", () => {
+      expect(conCiudad("?seccion=muestra", "0401")).toBe("?seccion=muestra&ciudad=0401");
+      expect(conCiudad("?ciudad=0401&foco=x", null)).toBe("?foco=x");
     });
   });
 });

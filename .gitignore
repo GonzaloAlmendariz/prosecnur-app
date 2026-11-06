@@ -51,8 +51,6 @@ api/inst/standalone/
 
 # La bóveda de producto es un contrato documental versionado. Solo el estado
 # local del editor y los metadatos del sistema operativo quedan fuera.
-/Obsidian_Prosecnur/.obsidian/
-/Obsidian_Prosecnur/.DS_Store
 
 # Tests
 /tests/e2e/results/

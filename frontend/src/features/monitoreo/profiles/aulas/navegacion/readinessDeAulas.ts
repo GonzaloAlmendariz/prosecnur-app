@@ -7,8 +7,14 @@ import { MONITOREO_PESTANAS } from "../../../../../lib/navegacion/catalogos/moni
  * secciones y diecinueve pestañas: el QA sabía que la página había montado,
  * pero no a qué vista había llegado. Una dirección muda que aterrizaba en la
  * sección por defecto salía aprobada con la marca de otra. Ahora la marca es la
- * dirección: `monitoreo-aulas-<sección>-<pestaña>`, y `monitoreo-aulas-fuentes`
- * para la sección que no tiene pestañas.
+ * dirección: `monitoreo-aulas-<sección>-<pestaña>`.
+ *
+ * Desde el revamp del esqueleto común (2026-10-23) la dirección es la PÚBLICA
+ * —`monitoreo-aulas-control-registro`, `monitoreo-aulas-avance-porfacultad`—,
+ * no la vista heredada que se monta: dos pestañas públicas que todavía montan
+ * la misma vista (Insumos › Fuentes e Insumos › Reglas) publican marcas
+ * distintas. Las sub-vistas (`panel`) comparten la marca de su pestaña, como
+ * en Telefónico (estándar G5).
  *
  * Es el mismo patrón que telefónico (`readinessDeTelefonico`), acreditación
  * (`readinessDeAcreditacion`) y territorial.
@@ -17,12 +23,12 @@ export const PREFIJO_READINESS_AULAS = "monitoreo-aulas";
 
 const PESTANAS = MONITOREO_PESTANAS.aulas as Record<string, ReadonlyArray<{ key: string }>>;
 
-/** Secciones del perfil en el orden del catálogo de navegación. */
+/** Secciones públicas del perfil en el orden del catálogo de navegación. */
 export function seccionesDeAulas(): string[] {
   return Object.keys(PESTANAS);
 }
 
-/** Claves de pestaña de una sección; vacío si la sección es una hoja. */
+/** Claves de pestaña de una sección pública; vacío si no existe. */
 export function pestanasDeAulas(seccion: string): string[] {
   return (PESTANAS[seccion] ?? []).map((item) => item.key);
 }

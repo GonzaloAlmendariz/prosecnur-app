@@ -135,7 +135,7 @@ export function AulasAlcanceDelBanco({ banco, control, quotas, agenda, partes }:
                 </span>
                 <span className="aulas-alcance-n"><strong>−{fmt(f.deficit)}</strong></span>
                 <span className="aulas-alcance-por">
-                  faltan {fmt(f.falta)} · su reserva adicional rinde {fmt(f.rinde)}
+                  faltan {fmt(f.falta)}, su reserva adicional rinde {fmt(f.rinde)}
                 </span>
               </li>
             ))}

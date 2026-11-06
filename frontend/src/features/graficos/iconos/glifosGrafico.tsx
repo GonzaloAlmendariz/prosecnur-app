@@ -20,7 +20,7 @@ export type OpcionesGlifo = {
   mayor?: boolean;
   /** Dividido por un cruce: dos series lado a lado con su leyenda. */
   grupos?: boolean;
-  /** Letras de diferencias significativas sobre las barras. */
+  /** Diferencias entre grupos (ADR 0128): la cápsula ▲ de la lámina junto a las barras que difieren, no un punto rojo. */
   significancia?: boolean;
   /** Ranking en barras: las marcas 0–100 % bajo las barras, con sus guías. */
   marcas?: boolean;
@@ -91,6 +91,21 @@ function Trazo({ d, t = "a", ancho = 2 }: { d: string; t?: Tono; ancho?: number 
 function Punto({ cx, cy, r = 3.5, t = "a" }: { cx: number; cy: number; r?: number; t?: Tono }) {
   const g = { cx: r2(cx), cy: r2(cy), r };
   return <circle {...g} style={g} className={`pulso-glifo__${t}`} />;
+}
+
+/** Filas que llevan la cápsula en el dibujo: sólo las que difieren, como en la lámina (no todas). */
+const FILAS_CON_DIFERENCIA: ReadonlySet<number> = new Set([0, 2]);
+
+/** La cápsula ▲A de la lámina en miniatura: banda clara con el triángulo en azul (tokens --pulso-sig-*). */
+function CapsulaGlifo({ x, y }: { x: number; y: number }) {
+  const g = geom(x, y, 12, 5.6);
+  return (
+    <g className="pulso-glifo__sig">
+      <rect {...g} style={g} rx={2.8} className="pulso-glifo__sig-capsula" />
+      <path d={`M${r2(x + 2)} ${r2(y + 4.3)}L${r2(x + 3.9)} ${r2(y + 1.3)}L${r2(x + 5.8)} ${r2(y + 4.3)}Z`} className="pulso-glifo__sig-tri" />
+      <rect x={r2(x + 7)} y={r2(y + 1.6)} width={3} height={2.4} rx={0.6} className="pulso-glifo__sig-tri" />
+    </g>
+  );
 }
 
 function Cifra({ x, y, tam, texto, anclaje = "middle" }: { x: number; y: number; tam: number; texto: string; anclaje?: "start" | "middle" }) {
@@ -173,7 +188,7 @@ const GLIFOS: Readonly<Record<string, DibujoGlifo>> = {
               <Barra x={x} y={84 - h} w={g ? 9 : 18} h={h} t={g ? "p" : o?.resaltar ? (i === 2 ? "p" : "n") : i === 0 && (o?.mayor ?? true) ? "p" : "a"} />
               {g && <Barra x={x + 9.6} y={84 - h2} w={8.4} h={h2} t="a" />}
               {!g && <Valor x={x + 3} y={84 - h - 7} w={12} />}
-              {o?.significancia && <Punto cx={x + 4.5} cy={84 - h - 5} r={1.8} t="r" />}
+              {o?.significancia && FILAS_CON_DIFERENCIA.has(i) && <CapsulaGlifo x={x - 1.5} y={84 - h - 8} />}
               <Rotulo x={x + 2} y={88} w={14} />
             </g>
           );
@@ -211,7 +226,7 @@ const GLIFOS: Readonly<Record<string, DibujoGlifo>> = {
               <Barra x={42} y={y} w={w} h={g ? 4.6 : 9} t={otros ? "n" : g ? "p" : o?.resaltar ? (i === 2 ? "p" : "n") : i === 0 && (o?.mayor ?? true) ? "p" : "a"} />
               {g && <Barra x={42} y={y + 5.2} w={segundo[i]} h={4.6} t="a" />}
               <Valor x={46 + Math.max(w, g ? segundo[i] : 0)} y={y + 2.75} />
-              {o?.significancia && <Punto cx={42 + w + 18} cy={y + 4.5} r={1.8} t="r" />}
+              {o?.significancia && FILAS_CON_DIFERENCIA.has(i) && <CapsulaGlifo x={46 + Math.max(w, g ? segundo[i] : 0) + 13} y={y + 1.7} />}
             </g>
           );
         })}
@@ -538,6 +553,33 @@ const GLIFOS: Readonly<Record<string, DibujoGlifo>> = {
       </>
     );
   },
+  // Total y línea por nivel (CCSS 2026): arriba la franja del total partida en sus segmentos; abajo, una línea por serie
+  // con un punto por nivel del eje, la primera en el principal. Con `cifras`, un rótulo sobre cada punto de esa línea.
+  p_lineas_nivel: (o) => {
+    const xs = [28, 62, 96, 130];
+    const p = [70, 62, 52, 44];
+    const a = [80, 78, 74, 70];
+    const linea = (ys: readonly number[]) => xs.map((x, i) => `${i ? "L" : "M"}${x} ${ys[i]}`).join("");
+    return (
+      <>
+        <Rotulo x={16} y={10} w={36} />
+        <rect x={16} y={16} width={62} height={12} className="pulso-glifo__p" />
+        <rect x={78} y={16} width={36} height={12} className="pulso-glifo__a" />
+        <rect x={114} y={16} width={32} height={12} className="pulso-glifo__n" />
+        <Eje d="M16 88H146" />
+        <Trazo d={linea(a)} t="a" ancho={2} />
+        <Trazo d={linea(p)} t="p" ancho={2.5} />
+        {xs.map((x, i) => (
+          <g key={x}>
+            <Punto cx={x} cy={a[i]} r={2.5} t="a" />
+            <Punto cx={x} cy={p[i]} r={3} t="p" />
+            {o?.cifras && <Valor x={x - 5} y={p[i] - 9} w={10} />}
+            <Rotulo x={x - 6} y={92} w={12} />
+          </g>
+        ))}
+      </>
+    );
+  },
   // Serie: mediciones en el tiempo, la vigente en el principal (p91).
   // Con cifras (maqueta, por defecto), un rótulo sobre cada punto de la serie vigente.
   p_serie_temporal: (o) => {
@@ -725,6 +767,21 @@ const GLIFOS: Readonly<Record<string, DibujoGlifo>> = {
       <Leyenda x={128} y={20} tonos={["p"]} />
       <Leyenda x={128} y={32} tonos={["e2"]} />
       <Leyenda x={128} y={44} tonos={["e4"]} />
+    </>
+  ),
+  // Distribución de encuestados: el mapa por zonas, un punto de referencia y las áreas en barras al costado (CCSS 2026).
+  p_mapa_distribucion: () => (
+    <>
+      <path d="M22 26L48 14L54 46L16 48Z" className="pulso-glifo__p" />
+      <path d="M16 48L54 46L50 84L30 80Z" className="pulso-glifo__e2" />
+      <path d="M48 14L74 22L80 50L54 46Z" className="pulso-glifo__e4" />
+      <path d="M54 46L80 50L72 82L50 84Z" className="pulso-glifo__e3" />
+      <path d="M22 26L48 14L74 22L80 50L72 82L50 84L30 80L16 48Z" className="pulso-glifo__contorno" />
+      <circle cx={44} cy={52} r={4} className="pulso-glifo__p" />
+      <rect x={98} y={20} width={56} height={9} className="pulso-glifo__p" />
+      <rect x={98} y={36} width={40} height={9} className="pulso-glifo__e4" />
+      <rect x={98} y={52} width={28} height={9} className="pulso-glifo__e3" />
+      <rect x={98} y={68} width={16} height={9} className="pulso-glifo__e2" />
     </>
   ),
   // Cifra destacada: el número manda y su rótulo lo explica (p17–18, 172–175).

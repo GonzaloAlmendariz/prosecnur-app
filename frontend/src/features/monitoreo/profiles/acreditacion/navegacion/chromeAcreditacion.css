@@ -12,6 +12,9 @@
 }
 
 .is-acreditacion-profile .mon-workbench > .pulso-context-tab-rail {
+  /* El borde de la tarjeta sale del padding: con el padding entero la lista
+   * medía 38 px y recortaba 1 px a cada lado de los botones de 40. */
+  padding-inline: calc(var(--pulso-rail-bubble-offset) - 1px);
   border: 1px solid var(--pulso-border);
   border-radius: var(--pulso-radius-panel);
   background: var(--pulso-surface);
@@ -45,17 +48,19 @@
  * pestaña de Casos es siempre Por resolver. */
 .is-acreditacion-profile .pulso-context-tab-rail.con-contacto [id="monitoreo-control-tab-resolver"] {
   position: relative;
-  margin-top: var(--pulso-space-4);
+  margin-top: var(--pulso-space-3);
 }
 
 .is-acreditacion-profile .pulso-context-tab-rail.con-contacto [id="monitoreo-control-tab-resolver"]::before {
   content: "";
   position: absolute;
-  top: calc(-1 * var(--pulso-space-2) - 1px);
-  left: 8px;
-  right: 8px;
+  /* A media distancia entre los dos grupos y del ancho del botón: a 24 px y en
+   * el gris del borde no se veía, y el hueco se leía como separación dispareja. */
+  top: calc(-1 * (var(--pulso-space-3) + var(--pulso-chrome-commandbar-gap)) / 2 - 1px);
+  left: 2px;
+  right: 2px;
   height: 1px;
-  background: var(--pulso-border);
+  background: var(--pulso-border-strong);
 }
 
 /* Pie del rail: «CORTE» en gris, fecha y hora en dos líneas. */
@@ -70,16 +75,17 @@
 .is-acreditacion-profile .pulso-context-tab-rail-meta > span > span {
   display: block;
   color: var(--pulso-text-faint);
-  font-size: 9px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-semibold);
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  /* En caja normal: en versalitas, a 10 px (el piso) «CORTE» no cabía en los
+     40 px de la cápsula y se partía «Cort/e» (P1 de la pasada de formato). */
+  white-space: nowrap;
 }
 
 .is-acreditacion-profile .pulso-context-tab-rail-meta strong,
 .is-acreditacion-profile .pulso-context-tab-rail-meta .mon-rail-sync-time {
   color: var(--pulso-text-soft);
-  font-size: 10.5px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-bold);
 }
 
@@ -103,9 +109,13 @@
 }
 
 .acr-enc-rotulo {
-  flex: 0 0 auto;
+  flex: 0 1 auto;
+  min-width: 0;
   color: var(--pulso-module-monitoring);
-  white-space: nowrap;
+  /* En una tarjeta angosta (filtros de Por resolver a 1280) el rótulo envuelve
+   * en vez de cortarse («POR RESOLVI…», QA 30/10). */
+  white-space: normal;
+  overflow-wrap: break-word;
 }
 
 .acr-enc-derecha,
@@ -122,6 +132,15 @@
   margin-right: auto;
 }
 
+/* El selector de sub-vistas va en su propia fila bajo el rótulo, alineado a la
+ * izquierda (Gonzalo, 30/10: «no me gusta que cambie de lugar conforme aprieto»).
+ * Anclado al borde derecho dependía del ancho de la primera tarjeta, que cambia
+ * entre sub-vistas: en Por cuota saltaba de x=139 a 1114 y en Calidad de 727 a
+ * 1158. Bajo el rótulo cae en el mismo punto en todas. */
+.acr-enc-linea > .acr-enc-derecha {
+  justify-content: flex-start;
+}
+
 .acr-enc-chip {
   display: inline-flex;
   align-items: center;
@@ -131,7 +150,7 @@
   border-radius: 999px;
   background: var(--pulso-surface);
   color: var(--pulso-text-soft);
-  font-size: 12px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-semibold);
   white-space: nowrap;
 }
@@ -145,9 +164,9 @@
 .acr-enc-linea {
   display: flex;
   flex: 0 0 100%;
-  flex-wrap: wrap; /* en una tarjeta angosta el selector baja bajo el antetítulo */
-  align-items: center;
-  justify-content: space-between;
+  /* Columna: el selector va siempre en su fila bajo el rótulo (ver .acr-enc-derecha). */
+  flex-direction: column;
+  align-items: flex-start;
   gap: 6px var(--pulso-space-3);
   min-height: 26px;
 }
@@ -191,14 +210,14 @@
   background: var(--pulso-surface);
 }
 
+/* Sin franja lateral (K2): el estado de la cifra va en el color de la cifra. */
 .is-acreditacion-profile .acr-vista-anterior .mon-profile-stat {
   border-color: color-mix(in srgb, var(--pulso-border) 80%, var(--pulso-surface));
-  border-left: 3px solid var(--pulso-border);
 }
 
-.is-acreditacion-profile .acr-vista-anterior .mon-profile-stat--good { border-left-color: var(--pulso-success-fg); }
-.is-acreditacion-profile .acr-vista-anterior .mon-profile-stat--warn { border-left-color: var(--pulso-warn-fg); }
-.is-acreditacion-profile .acr-vista-anterior .mon-profile-stat--bad { border-left-color: var(--pulso-danger-fg); }
+.is-acreditacion-profile .acr-vista-anterior .mon-profile-stat--good strong { color: var(--pulso-success-fg); }
+.is-acreditacion-profile .acr-vista-anterior .mon-profile-stat--warn strong { color: var(--pulso-warn-fg); }
+.is-acreditacion-profile .acr-vista-anterior .mon-profile-stat--bad strong { color: var(--pulso-danger-fg); }
 
 /* La franja de lectura de Recopiladores: sin fondo teñido, y el grupo de
  * botones sin su banda blanca, que dejaba un vacío sin motivo entre las cifras
@@ -232,6 +251,7 @@
   box-shadow: none;
 }
 
-.is-acreditacion-profile .acr-vista-anterior :is(.mon-phone-supervision-hero, .mon-phone-time-control).is-danger { border-left: 4px solid var(--pulso-danger-fg); }
-.is-acreditacion-profile .acr-vista-anterior :is(.mon-phone-supervision-hero, .mon-phone-time-control).is-warn { border-left: 4px solid var(--pulso-warn-fg); }
-.is-acreditacion-profile .acr-vista-anterior :is(.mon-phone-supervision-hero, .mon-phone-time-control).is-ok { border-left: 4px solid var(--pulso-success-fg); }
+/* El estado tiñe el borde entero, no una franja a la izquierda (K2). */
+.is-acreditacion-profile .acr-vista-anterior :is(.mon-phone-supervision-hero, .mon-phone-time-control).is-danger { border-color: var(--pulso-danger-border); }
+.is-acreditacion-profile .acr-vista-anterior :is(.mon-phone-supervision-hero, .mon-phone-time-control).is-warn { border-color: var(--pulso-warn-border); }
+.is-acreditacion-profile .acr-vista-anterior :is(.mon-phone-supervision-hero, .mon-phone-time-control).is-ok { border-color: var(--pulso-success-border); }

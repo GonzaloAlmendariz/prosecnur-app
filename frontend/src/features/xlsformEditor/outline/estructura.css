@@ -22,7 +22,9 @@
   min-height: 0;
   max-height: none;
   gap: 2px;
-  padding: 0 4px 10px 6px;
+  /* 20 px a la izquierda: es la sangría donde vive el asa de arrastre (abajo, «Aire horizontal»). Con 6 px la lista,
+   * que tiene su propio scroll, recortaba el asa contra su borde y sólo asomaban los puntos aplastados. */
+  padding: 0 4px 10px 20px;
 }
 /* Sin el marco de viewport (documento largo) la columna no tiene alto propio: la lista conserva un tope. */
 .pulso-xlsform-frame:not(:where(.pulso-main--viewport *)) .pulso-xlsform-sidebar-panel .xfe-estructura > .pulso-outline-scroll.xfe-arbol {
@@ -46,12 +48,12 @@
 .xfe-buscar:focus-within { border-color: var(--pulso-primary-border); box-shadow: var(--xls-ring, 0 0 0 3px var(--pulso-primary-focus)); }
 .pulso-xlsform-frame .xfe-buscar input {
   flex: 1 1 auto; min-width: 0; height: 28px; padding: 0; border: 0; outline: none; box-shadow: none; background: transparent;
-  color: var(--pulso-text); font-size: 12.5px;
+  color: var(--pulso-text); font-size: var(--pulso-type-body-size);
 }
 .xfe-buscar input::placeholder { color: var(--pulso-text-faint); }
 .pulso-xlsform-frame select.xfe-filtro {
   flex: 0 1 104px; min-width: 70px; max-width: 124px; height: 30px; padding: 0 22px 0 8px; border: 1px solid var(--pulso-border);
-  border-radius: 8px; background-color: var(--pulso-surface); color: var(--pulso-text-soft); font-size: 12px; text-overflow: ellipsis;
+  border-radius: 8px; background-color: var(--pulso-surface); color: var(--pulso-text-soft); font-size: var(--pulso-type-body-size); text-overflow: ellipsis;
 }
 .pulso-xlsform-frame select.xfe-filtro[data-activo="true"] {
   border-color: var(--pulso-primary-border); color: var(--pulso-primary); background-color: var(--pulso-primary-soft); font-weight: 600;
@@ -62,15 +64,15 @@
 }
 .pulso-xlsform-frame .xfe-barra__icono:hover:not(:disabled) { color: var(--pulso-text); border-color: var(--pulso-border-strong); }
 .pulso-xlsform-frame .xfe-barra__icono:disabled { opacity: 0.45; cursor: default; }
-.xfe-barra__icono:focus-visible, .xfe-filtro:focus-visible { outline: 2px solid var(--pulso-primary); outline-offset: 1px; }
+.xfe-barra__icono:focus-visible, .xfe-filtro:focus-visible { outline: var(--mov-foco, 2px solid var(--pulso-primary)); outline-offset: 1px; }
 .xfe-barra__estado {
-  display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 11.5px; color: var(--pulso-text-faint);
+  display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: var(--pulso-type-caption-size); color: var(--pulso-text-faint);
   font-variant-numeric: tabular-nums;
 }
 .xfe-barra__estado b { color: var(--pulso-text); font-weight: 700; }
 .pulso-xlsform-frame .xfe-barra__limpiar {
   display: inline-flex; align-items: center; gap: 4px; min-height: 0; height: 22px; padding: 0 8px; border: 0; border-radius: 6px;
-  background: color-mix(in srgb, var(--pulso-text) 6%, transparent); color: var(--pulso-text-soft); font-size: 11.5px; font-weight: 600; cursor: pointer;
+  background: color-mix(in srgb, var(--pulso-text) 6%, transparent); color: var(--pulso-text-soft); font-size: var(--pulso-type-caption-size); font-weight: 600; cursor: pointer;
 }
 .pulso-xlsform-frame .xfe-barra__limpiar:hover { color: var(--pulso-text); background: color-mix(in srgb, var(--pulso-text) 10%, transparent); }
 
@@ -109,9 +111,9 @@
   border-color: var(--pulso-primary-border);
 }
 .xfe-sec-cab__cuerpo { gap: 7px; }
-.pulso-xlsform-frame .xfe-sec-cab .xfe-sec-cab__titulo { flex: 1 1 auto; min-width: 0; font-size: 12.5px; font-weight: 700; color: var(--pulso-text); }
+.pulso-xlsform-frame .xfe-sec-cab .xfe-sec-cab__titulo { flex: 1 1 auto; min-width: 0; font-size: var(--pulso-type-subtitle-size); font-weight: 700; color: var(--pulso-text); }
 .xfe-sec-cab__conteo {
-  flex: none; min-width: 18px; text-align: right; font-size: 11px; color: var(--pulso-text-faint); font-variant-numeric: tabular-nums;
+  flex: none; min-width: 18px; text-align: right; font-size: var(--pulso-type-caption-size); color: var(--pulso-text-faint); font-variant-numeric: tabular-nums;
 }
 .xfe-sec-cond {
   display: grid; place-items: center; flex: none; width: 18px; height: 18px; border-radius: 5px;
@@ -133,13 +135,13 @@
 }
 .xfe-seccion__hijos[hidden] { display: none; }
 .xfe-seccion.is-active > .xfe-seccion__hijos { border-left-color: color-mix(in srgb, var(--pulso-primary) 45%, transparent); }
-.xfe-seccion__vacia { margin: 0; padding: 6px 8px; font-size: 11.5px; color: var(--pulso-text-faint); }
+.xfe-seccion__vacia { margin: 0; padding: 6px 8px; font-size: var(--pulso-type-caption-size); color: var(--pulso-text-faint); }
 
 /* Mover el cierre desde la sección elegida. */
 .xfe-seccion__limite { display: flex; flex-wrap: wrap; gap: 6px; margin-left: 25px; padding: 2px 0 4px; }
 .pulso-xlsform-frame .xfe-seccion__limite button {
   min-height: 0; height: 24px; padding: 0 9px; border: 1px solid var(--pulso-border); border-radius: 7px; background: var(--pulso-surface);
-  color: var(--pulso-text-soft); font-size: 11.5px; font-weight: 600; cursor: pointer;
+  color: var(--pulso-text-soft); font-size: var(--pulso-type-caption-size); font-weight: 600; cursor: pointer;
 }
 .pulso-xlsform-frame .xfe-seccion__limite button:hover:not(:disabled) { color: var(--pulso-primary); border-color: var(--pulso-primary-border); }
 .pulso-xlsform-frame .xfe-seccion__limite button:disabled { opacity: 0.45; cursor: default; }
@@ -152,10 +154,8 @@
   flex: none; box-sizing: border-box; border-radius: 8px;
   background: color-mix(in srgb, var(--pulso-primary) 6%, transparent);
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--pulso-primary) 35%, transparent);
-  animation: xfe-hueco-entra var(--motion-dur-base) cubic-bezier(.22, 1, .36, 1);
+  animation: pulso-mov-aparece var(--motion-dur-base) cubic-bezier(.22, 1, .36, 1);
 }
-@keyframes xfe-hueco-entra { from { opacity: 0; } to { opacity: 1; } }
-
 .xfe-fantasma {
   position: fixed; z-index: var(--pulso-z-flyout, 1000); pointer-events: none; box-sizing: border-box; border-radius: 9px;
   background: var(--pulso-surface);
@@ -165,7 +165,15 @@
 .xfe-fantasma.is-alzado { transform: scale(1.015); box-shadow: var(--pulso-shadow-popover), 0 0 0 1px var(--pulso-border-strong); }
 .xfe-fantasma.is-asentando { box-shadow: 0 0 0 1px var(--pulso-border); }
 .xfe-fantasma > .pulso-outline-row { margin: 0; background: var(--pulso-surface); border-color: transparent; }
-.xfe-fantasma .pulso-outline-grip { opacity: 1; color: var(--pulso-primary); }
+/* El asa del fantasma es la misma que se tomó: mismo sitio en la sangría y el mismo estado que con el mouse encima.
+ * La copia vive fuera de `.xfe-arbol`, así que sin esto el asa caía dentro de la tarjeta, empujaba el sello y se veía
+ * otra al empezar a arrastrar. */
+.pulso-xlsform-frame .xfe-fantasma .pulso-outline-row { position: relative; }
+.pulso-xlsform-frame .xfe-fantasma .pulso-outline-grip:not(.is-decor) {
+  position: absolute; left: -19px; top: 50%; width: 16px; height: 24px; margin: 0; transform: translateY(-50%);
+  opacity: 1; color: var(--pulso-primary); background: var(--pulso-primary-soft);
+}
+.pulso-xlsform-frame .xfe-fantasma .pulso-outline-grip.is-decor { display: none; }
 .xfe-fantasma .xfe-mas { display: none; }
 
 /* ── «+» entre líneas (C18) ─────────────────────────────────────────────── */
@@ -181,7 +189,7 @@
   opacity: 1; transform: none; pointer-events: auto;
 }
 .pulso-xlsform-frame .xfe-mas:hover { background: var(--pulso-primary); color: var(--pulso-surface); }
-.xfe-mas:focus-visible { outline: 2px solid var(--pulso-primary); outline-offset: 1px; }
+.xfe-mas:focus-visible { outline: var(--mov-foco, 2px solid var(--pulso-primary)); outline-offset: 1px; }
 .xfe-seccion__pie > .xfe-mas { bottom: -7px; }
 .xfe-arbol.is-arrastrando .xfe-mas { display: none; }
 
@@ -194,14 +202,14 @@
 .xfe-aviso.is-warn { background: var(--pulso-warn-accent); }
 
 /* ── Vacíos y pie ───────────────────────────────────────────────────────── */
-.xfe-sin-resultados { margin: 0; padding: 18px 12px; font-size: 12.5px; color: var(--pulso-text-faint); text-align: center; }
+.xfe-sin-resultados { margin: 0; padding: 18px 12px; font-size: var(--pulso-type-body-size); color: var(--pulso-text-faint); text-align: center; }
 .xfe-pie {
-  flex: none; margin: 0; padding: 6px 10px; border-top: 1px solid var(--pulso-border); font-size: 10.5px; line-height: 1.7;
+  flex: none; margin: 0; padding: 6px 10px; border-top: 1px solid var(--pulso-border); font-size: var(--pulso-type-micro-size); line-height: 1.7;
   color: var(--pulso-text-faint);
 }
 .xfe-pie kbd {
   display: inline-block; min-width: 14px; padding: 0 3px; margin: 0 1px; border: 1px solid var(--pulso-border); border-radius: 4px;
-  background: var(--pulso-surface); font-family: inherit; font-size: 10px; line-height: 14px; text-align: center; color: var(--pulso-text-soft);
+  background: var(--pulso-surface); font-family: inherit; font-size: var(--pulso-type-micro-size); line-height: 14px; text-align: center; color: var(--pulso-text-soft);
 }
 /* «Añadir pieza» de la barra: sólo en pantallas bajas, donde la cabecera «Estructura» (que lo trae) se esconde. */
 .pulso-xlsform-frame .xfe-barra .xfe-barra__solo-bajo { display: none; }
@@ -244,7 +252,7 @@
   .xfe-seccion__pie { margin-left: 9px; }
   .xfe-seccion__limite { margin-left: 13px; gap: 4px; }
   /* Los dos botones del cierre caben en una línea (antes saltaban a dos y se comían dos filas de la lista). */
-  .pulso-xlsform-frame .xfe-seccion__limite button { padding: 0 7px; font-size: 11px; }
+  .pulso-xlsform-frame .xfe-seccion__limite button { padding: 0 7px; font-size: var(--pulso-type-caption-size); }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -257,13 +265,14 @@
  * sombreado izquierdo es cliché») ──────────────────────────────────────────────────────────────────────────── */
 /* La fila elegida se distingue por fondo y borde finos, sin barra interna ni sombra (theme.css pone ambas). */
 .pulso-xlsform-frame .xfe-arbol .pulso-outline-row.is-active { box-shadow: none; border-color: var(--pulso-primary-border); }
-/* El asa ya no reserva 16 px en cada fila: aparece en la sangría, a la izquierda del sello. */
+/* El asa ya no reserva 16 px en cada fila: aparece en la sangría, a la izquierda del sello. Mide 16 px para que su
+ * ícono de 14 quepa entero (con 12 se salía) y queda 2 px fuera del borde de la fila, dentro de los 20 px de relleno
+ * de la lista (arriba): así ni la lista la recorta ni toca la tarjeta. */
 .pulso-xlsform-frame .xfe-arbol .pulso-outline-row { position: relative; }
 .pulso-xlsform-frame .xfe-arbol .pulso-outline-grip:not(.is-decor) {
-  position: absolute; left: -13px; top: 50%; width: 12px; height: 22px; margin: 0; transform: translateY(-50%);
+  position: absolute; left: -19px; top: 50%; width: 16px; height: 24px; margin: 0; transform: translateY(-50%);
 }
 .pulso-xlsform-frame .xfe-arbol .pulso-outline-grip.is-decor { display: none; }
-.xfe-arbol { padding-left: 12px; }
 /* Sin sangría (Gonzalo, 2026-10-17: «la sangría hace que todo se vea desordenado»): todas las piezas alinean su sello
  * en una sola columna. La jerarquía la dicen las cabeceras de sección: una banda tenue en el tono de la familia, y
  * cada nivel de anidación corre sólo la cabecera 12 px. */

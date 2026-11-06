@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { detalleDelCatalogo, ordenarYBuscar, type EncuestaDelCatalogo } from "./modeloDeCatalogo";
+import { formatoConteo } from "../../../lib/formatoNumero";
 
 /**
  * Lista de encuestas de una cuenta con búsqueda por nombre o código, de la
@@ -23,7 +24,7 @@ export function CatalogoDeEncuestas({
       <input
         value={busqueda}
         onChange={(event) => setBusqueda(event.currentTarget.value)}
-        placeholder={`Buscar por nombre o código entre ${items.length.toLocaleString("es-PE")} ${cosa}`}
+        placeholder={`Buscar por nombre o código entre ${formatoConteo(items.length)} ${cosa}`}
         aria-label={`Buscar ${cosa} por nombre o código`}
       />
       <div className="fuentes-conectar-catalogo" data-qa-geometry-capacity="owned">

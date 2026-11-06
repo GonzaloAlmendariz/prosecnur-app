@@ -15,7 +15,7 @@
 @media (prefers-reduced-motion: no-preference) {
   /* Entrada del panel al cambiar de pestaña: sutil (se ve decenas de veces). */
   .cmv2-tab-panel {
-    animation: cmv2-uni-enter 180ms var(--cmv2-ease-out, ease-out) both;
+    animation: pulso-mov-sube-corto 180ms var(--cmv2-ease-out, ease-out) both;
   }
 
   /* En el desk universitario el contenido local se re-monta al cambiar de
@@ -28,12 +28,12 @@
   }
 
   .cmv2-university-workbench .cmv2-tab-panel > * {
-    animation: cmv2-uni-enter 180ms var(--cmv2-ease-out, ease-out) both;
+    animation: pulso-mov-sube-corto 180ms var(--cmv2-ease-out, ease-out) both;
   }
 
   /* Cascada para grillas de tarjetas/cifras: aplicar a contenedores. */
   .cmv2-uni-stagger > * {
-    animation: cmv2-uni-enter-suave 230ms var(--cmv2-ease-out, ease-out) both;
+    animation: pulso-mov-aparece 230ms var(--cmv2-ease-out, ease-out) both;
   }
 
   .cmv2-uni-stagger > *:nth-child(2) { animation-delay: 35ms; }
@@ -44,27 +44,14 @@
   .cmv2-uni-stagger > *:nth-child(n + 7) { animation-delay: 200ms; }
 
   .cmv2-uni-flujo[data-orientacion="adaptive"] > .cmv2-uni-flujo-etapa {
-    animation: cmv2-uni-enter-suave 220ms var(--cmv2-ease-out, ease-out) both;
+    animation: pulso-mov-aparece 220ms var(--cmv2-ease-out, ease-out) both;
     animation-delay: min(calc(var(--cmv2-flujo-index, 0) * 28ms), 168ms);
-  }
-}
-
-@keyframes cmv2-uni-enter {
-  from {
-    opacity: 0;
-    transform: translateY(4px);
   }
 }
 
 /* Variante fade-only para cascadas INTERNAS: el wrapper del tab ya desliza
    (motion en capas) — si el contenido también trasladara, el movimiento se
    duplicaría. Las cascadas internas solo funden. */
-@keyframes cmv2-uni-enter-suave {
-  from {
-    opacity: 0;
-  }
-}
-
 /* Crossfade con blur para cifras que cambian de valor: el blur funde ambos
    estados en una sola transformación en vez de dos objetos superpuestos. */
 .cmv2-uni-swap {
@@ -112,11 +99,11 @@
 }
 
 .cmv2-uni-resync-copy strong {
-  font-size: 12.5px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .cmv2-uni-resync-copy span {
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   line-height: 1.45;
   color: var(--pulso-text-muted);
 }
@@ -176,13 +163,13 @@
 }
 
 .cmv2-uni-term-pop strong {
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   color: var(--cmv2-accent);
 }
 
 .cmv2-uni-term-pop p {
   margin: 0;
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   line-height: 1.5;
 }
 
@@ -198,7 +185,7 @@
   border-radius: 8px;
   border: 1px solid var(--cmv2-accent-border);
   background: var(--cmv2-accent-soft);
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
 }
 
 .cmv2-uni-term-valor strong {
@@ -227,7 +214,7 @@
 }
 
 .cmv2-uni-formula-caption {
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   font-weight: var(--pulso-weight-semibold);
   color: var(--pulso-text-muted);
 }
@@ -242,14 +229,14 @@
 }
 
 .cmv2-uni-formula-body .pulso-math {
-  font-size: 15px;
+  font-size: var(--pulso-type-title-size);
 }
 
 /* El pie de la formula: lo que dice en llano. Vivia como parrafo suelto
    despues de la figura, flotando entre la formula y el bloque siguiente. */
 .cmv2-uni-formula-nota {
   margin: 8px 0 0;
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   line-height: 1.55;
   color: var(--cmv2-text-soft, var(--pulso-text-muted));
   max-width: 84ch;
@@ -276,7 +263,7 @@
   border-radius: 999px;
   background: var(--cmv2-surface);
   padding: 3px 10px;
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   color: var(--pulso-text);
   cursor: help;
   transition:
@@ -328,6 +315,14 @@
   gap: 0;
   overflow-x: auto;
   padding-bottom: 2px;
+}
+
+/* Una cadena horizontal declarada (C1) estira sus etapas a la más alta; el
+ * contenido de cada una llena ese alto (el detalle baja al pie) para que no
+ * quede interior sin usar. */
+.cmv2-uni-flujo[data-orientacion="horizontal"][data-qa-geometry-group] > .cmv2-uni-flujo-etapa > .cmv2-uni-flujo-copy {
+  align-self: stretch;
+  align-content: space-between;
 }
 
 /* Los flujos largos se leen como una secuencia compacta, no como una cinta
@@ -497,12 +492,29 @@ button.cmv2-uni-flujo-etapa:focus-visible {
 
 .cmv2-uni-flujo-label {
   /* Eyebrow unificado del desk: 10.5px / 650 / 0.06em / muted. */
-  font-size: 10.5px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-semibold);
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--pulso-text-muted);
   white-space: nowrap;
+}
+
+/* A 1024 las etapas de un flujo horizontal miden ~110 px y una etiqueta como
+ * «② Redondeo de diseño» (141 px) se salía de su etapa: parte en dos líneas por
+ * palabras enteras, nunca a media palabra. */
+@media (max-width: 1180px) {
+  .cmv2-uni-flujo[data-orientacion="horizontal"] .cmv2-uni-flujo-label {
+    white-space: normal;
+    overflow-wrap: normal;
+    word-break: normal;
+    line-height: 1.25;
+  }
+
+  /* «⑤ Cuadratura» es una palabra sola: con 13 px de relleno se salía 5 px. */
+  .cmv2-uni-flujo[data-orientacion="horizontal"] > .cmv2-uni-flujo-etapa {
+    padding-inline: 9px;
+  }
 }
 
 .cmv2-uni-flujo[data-orientacion="adaptive"] .cmv2-uni-flujo-label {
@@ -514,7 +526,7 @@ button.cmv2-uni-flujo-etapa:focus-visible {
 }
 
 .cmv2-uni-flujo-valor {
-  font-size: 16px;
+  font-size: var(--pulso-type-title-size);
   font-weight: var(--pulso-weight-bold);
   font-variant-numeric: tabular-nums;
   color: var(--pulso-text);
@@ -522,14 +534,14 @@ button.cmv2-uni-flujo-etapa:focus-visible {
 }
 
 .cmv2-uni-flujo-detalle {
-  font-size: 10.5px;
+  font-size: var(--pulso-type-micro-size);
   color: var(--pulso-text-muted);
 }
 
 .cmv2-uni-flujo-merma-inline {
   overflow: hidden;
   color: var(--pulso-warn-fg, var(--pulso-text-muted));
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-semibold);
   line-height: 1.25;
   text-overflow: ellipsis;
@@ -570,7 +582,7 @@ button.cmv2-uni-flujo-etapa:focus-visible {
 }
 
 .cmv2-uni-flujo-merma {
-  font-size: 10.5px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-semibold);
   padding: 2px 8px;
   border-radius: 999px;
@@ -595,7 +607,7 @@ button.cmv2-uni-flujo-etapa:focus-visible {
   border-radius: inherit;
   cursor: pointer;
   list-style: none;
-  font-size: 12px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-semibold);
   color: var(--pulso-text);
   user-select: none;
@@ -624,7 +636,7 @@ button.cmv2-uni-flujo-etapa:focus-visible {
 .cmv2-uni-avanzado-desc {
   font-weight: var(--pulso-weight-regular);
   color: var(--pulso-text-muted);
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
 }
 
 .cmv2-uni-avanzado-chevron {
@@ -699,7 +711,7 @@ button.cmv2-uni-flujo-etapa:focus-visible {
 
 .cmv2-uni-cifra-label {
   /* Eyebrow unificado del desk: 10.5px / 650 / 0.06em / muted. */
-  font-size: 10.5px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-semibold);
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -707,7 +719,7 @@ button.cmv2-uni-flujo-etapa:focus-visible {
 }
 
 .cmv2-uni-cifra-valor {
-  font-size: 20px;
+  font-size: var(--pulso-type-kpi-size);
   font-weight: var(--pulso-weight-heavy);
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.01em;
@@ -726,8 +738,28 @@ button.cmv2-uni-flujo-etapa:focus-visible {
 }
 
 .cmv2-uni-cifra-detalle {
-  font-size: 10.5px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px var(--pulso-space-2);
+  font-size: var(--pulso-type-micro-size);
   color: var(--pulso-text-muted);
+}
+
+/* Sin cifra todavía: rótulo apagado en la letra del cuerpo, no un valor de 21 px
+   que compite con las cifras reales de la fila. La tarjeta pierde el acento. */
+.cmv2-uni-cifra[data-sin-cifra="true"] .cmv2-uni-cifra-valor,
+.cmv2-uni-cifra[data-sin-cifra="true"][data-hero="true"] .cmv2-uni-cifra-valor {
+  padding-block: 4px;
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-body-size);
+  font-weight: var(--pulso-weight-semibold);
+  letter-spacing: 0;
+}
+
+.cmv2-uni-cifra[data-sin-cifra="true"][data-hero="true"] {
+  border-color: var(--cmv2-border);
+  background: var(--cmv2-surface);
 }
 
 .cmv2-uni-cifra-fila {

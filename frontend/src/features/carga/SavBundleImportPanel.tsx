@@ -10,7 +10,8 @@ import {
   Upload,
 } from "../../vendor/lucide-react";
 import {
-  apiSurveyMonkeyMultibaseSavBundleImport,
+  apiSurveyMonkeyMultibaseSavBundleImportAsync,
+  normalizeSavBundleImport,
   apiSurveyMonkeyMultibaseSavBundleInspect,
   apiUpload,
   type EstudioBase,
@@ -38,6 +39,8 @@ import {
   type SavBundleInspectionCredit,
 } from "./savBundleImportModel";
 import { SavNormalizationReviewDialog } from "./SavNormalizationReviewDialog";
+import { esperarResultadoImport, textoDeProgresoImport } from "./importEnSegundoPlano";
+import { BotonCancelarImport, useCancelarImport } from "./cancelarImport";
 import {
   savNormalizationApplyReason,
   savNormalizationConfirmationState,
@@ -51,7 +54,7 @@ type Props = {
 
 function savBundleBaseLabel(base: EstudioBase) {
   const actor = String(base.source_alias || base.source_title || "").trim();
-  return actor && actor !== base.nombre ? `${actor} · ${base.nombre}` : base.nombre;
+  return actor && actor !== base.nombre ? `${actor}, ${base.nombre}` : base.nombre;
 }
 
 export function savFirstReviewableEntryName(
@@ -69,6 +72,9 @@ export function SavBundleImportPanel({ bases, disabled = false, onImported }: Pr
   const [fileBaseMap, setFileBaseMap] = useState<SavBundleFileBaseMap>({});
   const [credit, setCredit] = useState<SavBundleInspectionCredit | null>(null);
   const [busy, setBusy] = useState<"" | "inspect" | "import">("");
+  /** Avance del job de importación (L9): el import corre en segundo plano y dice en qué va. */
+  const [progresoImport, setProgresoImport] = useState("");
+  const importEnCurso = useCancelarImport();
   const [error, setError] = useState("");
   const [reviewDialogOpen, setReviewDialogOpen] = useState(false);
   const [reviewEntryName, setReviewEntryName] = useState("");
@@ -204,12 +210,19 @@ export function SavBundleImportPanel({ bases, disabled = false, onImported }: Pr
     setError("");
     setImportResult(null);
     try {
-      const result = await apiSurveyMonkeyMultibaseSavBundleImport({
+      const payload = {
         file_id: fileId,
         file_base_map: credit.fileBaseMap,
         missing_required_policy: credit.policy,
         expected_inspection_fingerprint: credit.backendFingerprint,
+      };
+      const start = await apiSurveyMonkeyMultibaseSavBundleImportAsync(payload);
+      importEnCurso.registrar(start.job_id);
+      setProgresoImport(textoDeProgresoImport("Aplicando el SAV", null));
+      const raw = await esperarResultadoImport<{ ok: boolean }>(start.job_id, {
+        onProgress: (p) => setProgresoImport(textoDeProgresoImport("Aplicando el SAV", p)),
       });
+      const result = normalizeSavBundleImport(raw, payload);
       setImportResult(result);
       setInspection(result.inspection);
       await onImported(result.estudio);
@@ -220,7 +233,9 @@ export function SavBundleImportPanel({ bases, disabled = false, onImported }: Pr
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "No se pudo aplicar el SAV.");
     } finally {
+      importEnCurso.limpiar();
       setBusy("");
+      setProgresoImport("");
     }
   }
 
@@ -256,12 +271,20 @@ export function SavBundleImportPanel({ bases, disabled = false, onImported }: Pr
         </div>
       </div>
       <p id="sav-import-apply-reason" className="pulso-sr-only" aria-live="polite">{applyDisabledReason}</p>
+      {busy === "import" && progresoImport ? (
+        <div className="pulso-sm-status" role="status">
+          <Loader2 size={13} className="pulso-spin" /> {progresoImport}
+          {importEnCurso.jobId && (
+            <BotonCancelarImport cancelando={importEnCurso.cancelando} onCancelar={() => void importEnCurso.cancelar()} />
+          )}
+        </div>
+      ) : null}
 
       <div className="pulso-sav-import-commandbar">
         <label className={`pulso-base-file-picker${file ? " is-ready" : ""}`}>
           {file ? <Check size={18} /> : <Upload size={18} />}
           <span className="pulso-base-file-picker-title"><Database size={13} />{file ? file.name : "SAV o ZIP con SAV"}</span>
-          <span className="pulso-base-file-picker-accept">.sav · .zip</span>
+          <span className="pulso-base-file-picker-accept">.sav o .zip</span>
           <input
             type="file"
             accept=".sav,.zip,application/x-spss-sav,application/octet-stream,application/zip,application/x-zip-compressed"
@@ -300,8 +323,8 @@ export function SavBundleImportPanel({ bases, disabled = false, onImported }: Pr
                 {inspection.ok ? <CheckCircle2 size={12} /> : <AlertTriangle size={12} />}
                 {inspection.n_matched}/{inspection.n_files} archivos listos
               </span>
-              <small>{smSavBundleInspectionWarningCount(inspection)} advertencias · {inspection.filename}</small>
-              <small>{policy === "strict" ? "Política estricta" : "Compatibilidad con blancos"} · formulario preservado</small>
+              <small>{smSavBundleInspectionWarningCount(inspection)} advertencias, {inspection.filename}</small>
+              <small>{policy === "strict" ? "Política estricta" : "Compatibilidad con blancos"}, formulario preservado</small>
             </>
           ) : (
             <>
@@ -355,7 +378,7 @@ export function SavBundleImportPanel({ bases, disabled = false, onImported }: Pr
               >
                 <div className="pulso-sm-family-origin-cell">
                   <strong>{inspectedFile.file_name || inspectedFile.entry_name}</strong>
-                  <small>{inspectedFile.n_rows} filas · {inspectedFile.n_columns} columnas SAV</small>
+                  <small>{inspectedFile.n_rows} filas, {inspectedFile.n_columns} columnas SAV</small>
                 </div>
                 <label className="pulso-sav-base-select">
                   <span className="pulso-sr-only">Base para {inspectedFile.file_name || inspectedFile.entry_name}</span>

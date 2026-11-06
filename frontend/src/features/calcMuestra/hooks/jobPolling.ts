@@ -238,7 +238,7 @@ export function cmTextoProgreso(args: {
   if (elapsedMs > avisoLargoMs) {
     partes.push(`más de ${Math.round(avisoLargoMs / 60_000)} min, sigue trabajando`);
   }
-  return partes.join(" · ");
+  return partes.join(", ");
 }
 
 export function cmJobErrorText(snap: JobSnapshot): string {

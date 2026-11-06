@@ -64,7 +64,7 @@ export function MatrizPulsoDialog({
         position: "fixed",
         inset: 0,
         // Mismo criterio que el overlay de SurveyMonkey: por encima del chrome
-        // del módulo (`.pulso-page-frame-toolbar` es z-index 1000).
+        // del módulo (`.pulso-page-frame-chrome` es z-index 1000).
         zIndex: 1400,
         background: "rgba(15, 23, 42, 0.45)",
         display: "flex",

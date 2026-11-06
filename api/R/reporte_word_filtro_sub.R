@@ -18,6 +18,9 @@
   pz <- tryCatch(.fsub_elementos(el), error = function(e) NULL)
   if (is.null(pz)) return(NULL)
   espec <- attr(plot, "pulso_espec") %||% list()
-  list(list(el = pz$el_f, plot = espec$plot_filtro %||% plot),
-       list(el = pz$el_s, plot = espec$plot_sub %||% plot))
+  piezas <- list(list(el = pz$el_f, plot = espec$plot_filtro %||% plot),
+                 list(el = pz$el_s, plot = espec$plot_sub %||% plot))
+  # El segundo dependiente (filtro con dos mapas, lamina_filtro_mapa.R): su propia figura.
+  if (!is.null(pz$el_s2) && !is.null(espec$plot_sub2)) piezas[[3]] <- list(el = pz$el_s2, plot = espec$plot_sub2)
+  piezas
 }

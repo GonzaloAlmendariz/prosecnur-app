@@ -1,3 +1,4 @@
+import { formatoConteo } from "../../../../lib/formatoNumero";
 export type AcreditacionQualityAlertTone = "danger" | "warning" | "info" | "ok";
 
 export type AcreditacionPhoneAlertSignalKind =
@@ -149,7 +150,7 @@ export function acreditacionQualityPriorityValue(tone: AcreditacionQualityAlertT
 
 export function acreditacionQualityHeroTitle(activeAlerts: number, tone: AcreditacionQualityAlertTone) {
   if (!activeAlerts || tone === "ok") return "No hay alertas reales activas";
-  return `${activeAlerts.toLocaleString("es-PE")} alerta${activeAlerts === 1 ? "" : "s"} localizada${activeAlerts === 1 ? "" : "s"}`;
+  return `${formatoConteo(activeAlerts)} alerta${activeAlerts === 1 ? "" : "s"} localizada${activeAlerts === 1 ? "" : "s"}`;
 }
 
 export function acreditacionQualityHeroCopy(activeAlerts: number, locations: number) {
@@ -700,5 +701,5 @@ function normalizeAcreditacionAlertMatch(value: unknown) {
 }
 
 function formatAlertMetric(value: number) {
-  return value.toLocaleString("es-PE", { maximumFractionDigits: 0 });
+  return formatoConteo(value);
 }

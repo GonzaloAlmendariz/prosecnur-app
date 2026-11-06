@@ -10,6 +10,7 @@ import type { CalcMuestraAulasMethodComparison } from "../../../api/client";
 import { BadgeMotor } from "./PasoDidactico";
 import { rowsFrom, rowText, safeNum } from "./didacticaData";
 import { classroomMethodLabel } from "../universidad/aulas/classroomLabels";
+import { fmtInt } from "../sharedCore";
 
 /**
  * Fortaleza y riesgo en llano por método. El NOMBRE no se declara aquí: lo
@@ -90,7 +91,7 @@ function metricasDe(row: Record<string, unknown>): Metrica[] {
     {
       etiqueta: "Estudiantes repetidos",
       keys: ["repeated_students"],
-      formato: (n) => Math.round(n).toLocaleString("es-PE"),
+      formato: (n) => fmtInt(n),
     },
     { etiqueta: "Estabilidad de pesos", keys: ["n_eff_ratio", "reserve_score"] },
   ];

@@ -80,15 +80,15 @@ function CeldaSexo({
 }) {
   const celda = fila.sexo.find((c) => c.sexo === sexo);
   if (!celda || celda.margen == null) return <td>—</td>;
-  const detalle = `${sexo === "F" ? "Mujeres" : "Hombres"}: cuota ${celda.cuota ?? "—"} · ${celda.elegibles ?? "—"} elegibles · ${celda.esperadas ?? "—"} esperadas${ref2025 != null ? ` · 2025 realizó ${ref2025.toFixed(2).replace(".", ",")}× (referencial, agregado por facultad)` : ""}`;
+  const detalle = `${sexo === "F" ? "Mujeres" : "Hombres"}: cuota ${celda.cuota ?? "—"}, ${celda.elegibles ?? "—"} elegibles, ${celda.esperadas ?? "—"} esperadas${ref2025 != null ? `, 2025 realizó ${ref2025.toFixed(2)}× (referencial, agregado por facultad)` : ""}`;
   return (
     <td title={detalle}>
       <span className="cmv2-cert-sexo" data-cubre={celda.cubre === true ? "si" : celda.cubre === false ? "no" : "sin_tasa"}>
-        {celda.margen.toFixed(2).replace(".", ",")}×
+        {celda.margen.toFixed(2)}×
       </span>
       {ref2025 != null ? (
         <small className="cmv2-cert-sexo-ref" data-corto={ref2025 < 1 || undefined}>
-          2025 {ref2025.toFixed(2).replace(".", ",")}×
+          2025 {ref2025.toFixed(2)}×
         </small>
       ) : null}
     </td>
@@ -152,7 +152,7 @@ export function CertificacionFacultadCard({
               {certificacion.filas.some((f) => f.metodo === "suma_esperadas")
                 ? ", sumando las efectivas esperadas de sus aulas (aula por aula, según su tamaño y su facultad)"
                 : tasa_esperada != null
-                  ? `, con la tasa de asistencia esperada de ${(tasa_esperada * 100).toFixed(1).replace(".", ",")} %`
+                  ? `, con la tasa de asistencia esperada de ${(tasa_esperada * 100).toFixed(1)} %`
                   : ""}
               .
             </>
@@ -226,7 +226,7 @@ export function CertificacionFacultadCard({
                 <td className="cmv2-cert-margen-celda">
                   {f.margen != null ? (
                     <>
-                      <span>{f.margen.toFixed(2).replace(".", ",")}×</span>
+                      <span>{f.margen.toFixed(2)}×</span>
                       {/* La barra del margen contra la marca de 1,0x (la cuota
                           justa): bajo la marca es deficit, sobre la marca es
                           colchon. Escala fija 0-2,2x para que las 15 filas

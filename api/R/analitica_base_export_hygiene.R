@@ -143,3 +143,21 @@
   for (nm in keep_attrs) attr(data, nm) <- top_attrs[[nm]]
   data
 }
+
+# Columnas que NO viajan en la BBDD entregada, sea cual sea el formato (Excel, SAV,
+# CSV). Es el criterio que antes vivía sólo en /bases/xlsx: lo internas de
+# plumbing, las 100% vacías, la exclusión de la config y las «extra» que el
+# instrumento no declara —ahí cae la PII de SurveyMonkey (ip_address,
+# email_address, first_name, last_name)— salvo las que el analista incluyó a mano.
+# El SAV y el CSV sólo aplicaban la exclusión de la config y sacaban la PII al
+# cliente (Arte 2026, 2026-11-04). El include manda sobre el empty-drop: una extra
+# incluida-pero-vacía no se dropea por vacía.
+.analitica_bases_cols_fuera <- function(data, inst, cfg) {
+  recon <- .reconciliacion_export_plan(data, inst, cfg)
+  unique(c(
+    .as_chr_vec((cfg %||% list())$variables_excluidas),
+    .analitica_base_internal_cols(data),
+    setdiff(.analitica_base_empty_cols(data), recon$extra_incluidas),
+    recon$extra_a_excluir
+  ))
+}

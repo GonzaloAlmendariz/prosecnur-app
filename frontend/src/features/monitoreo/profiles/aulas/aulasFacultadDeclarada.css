@@ -17,11 +17,11 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   color: var(--pulso-text);
 }
 .mon-profile-page.is-aulas-flow .aulas-facultad-declarada em {
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   line-height: 1.45;
   color: var(--pulso-text-soft);
   font-style: normal;
@@ -42,7 +42,7 @@
   border-radius: 7px;
   background: var(--pulso-surface-raised);
   color: var(--pulso-text);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   cursor: pointer;
 }
 .mon-profile-page.is-aulas-flow .aulas-facultad-mandos button:disabled,
@@ -51,7 +51,7 @@
   color: var(--pulso-text-faint);
 }
 .mon-profile-page.is-aulas-flow .aulas-facultad-faltan {
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   color: var(--pulso-text-soft);
 }
 
@@ -76,8 +76,8 @@
   border-radius: 5px;
   background: var(--pulso-surface-raised);
   border: 1px solid var(--pulso-border);
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  font-size: var(--pulso-type-caption-size);
   text-align: right;
   color: var(--pulso-text-soft);
 }
@@ -89,7 +89,7 @@
   border-radius: 6px;
   background: var(--pulso-surface);
   color: var(--pulso-text);
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
 }
 
 .mon-profile-page.is-aulas-flow .aulas-facultad-acciones {
@@ -105,7 +105,7 @@
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   line-height: 1.4;
 }
 .mon-profile-page.is-aulas-flow .aulas-facultad-veredicto.es-ok {
@@ -113,12 +113,4 @@
 }
 .mon-profile-page.is-aulas-flow .aulas-facultad-veredicto.es-atencion {
   color: var(--pulso-danger-fg);
-}
-.mon-profile-page.is-aulas-flow .aulas-facultad-vacio {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin: 0;
-  font-size: 11px;
-  color: var(--pulso-text-soft);
 }

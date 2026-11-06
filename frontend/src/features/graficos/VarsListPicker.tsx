@@ -4,6 +4,9 @@ import { createPortal } from "react-dom";
 import { Check, Database, Plus, Search, X } from "lucide-react";
 import { useVariables, parseVarRef, formatVarRef, type VarWithSource } from "./useVariables";
 import { safeText } from "./safeText";
+import { formatoConteo } from "../../lib/formatoNumero";
+import { CargaDeBloque } from "../../components/CargaDeBloque";
+import { textoPlano } from "./textoPlano";
 
 type Props = {
   value: string[] | null | undefined;
@@ -71,7 +74,7 @@ export default function VarsListPicker({ value, onChange }: Props) {
   const visibleOptions = options.slice(0, 160);
   const selectedVars = vals.map((ref) => selectedInfo(ref, variables, multi));
 
-  if (loading) return <span className="pulso-gv2-variable-status">Cargando variables…</span>;
+  if (loading) return <CargaDeBloque label="Cargando variables…" />;
 
   function toggleOpen() {
     if (open) {
@@ -148,7 +151,7 @@ export default function VarsListPicker({ value, onChange }: Props) {
         </span>
         <span>
           <strong>Agregar variable</strong>
-          <small>{variables.length} disponibles</small>
+          <small>{formatoConteo(variables.length)} disponibles</small>
         </span>
       </button>
 
@@ -165,7 +168,7 @@ export default function VarsListPicker({ value, onChange }: Props) {
             <span aria-hidden="true"><Database size={15} /></span>
             <div>
               <strong>Agregar variables</strong>
-              <small>{vals.length} seleccionadas · {variables.length} disponibles</small>
+              <small>{formatoConteo(vals.length)} seleccionadas de {formatoConteo(variables.length)} disponibles</small>
             </div>
           </div>
 
@@ -208,7 +211,7 @@ export default function VarsListPicker({ value, onChange }: Props) {
                     </span>
                     <span className="pulso-gv2-vars-option-meta">
                       {multi && variable.source && <em>{variable.source}</em>}
-                      {variable.seccion && <em>{variable.seccion}</em>}
+                      {variable.seccion && <em>{textoPlano(variable.seccion)}</em>}
                       {variable.tipo && <em>{friendlyVarType(variable.tipo)}</em>}
                       {typeof variable.n_non_empty === "number" && <em>{variable.n_non_empty} respuestas</em>}
                     </span>
@@ -225,7 +228,7 @@ export default function VarsListPicker({ value, onChange }: Props) {
 
             {options.length > visibleOptions.length && (
               <div className="pulso-gv2-variable-more">
-                Mostrando {visibleOptions.length} de {options.length}. Afina la búsqueda para ver resultados más precisos.
+                Mostrando {formatoConteo(visibleOptions.length)} de {formatoConteo(options.length)}. Afina la búsqueda para ver resultados más precisos.
               </div>
             )}
           </div>

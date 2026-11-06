@@ -87,7 +87,7 @@ test_that("la multilista sale nativa, con los títulos de bloque y sin guías de
   expect_false(grepl(sub("#", "", .GUIA_COL), xml, ignore.case = TRUE))
   expect_false(grepl("FF00FF", xml, ignore.case = TRUE))
   # Las filas en el orden del plan; una sola leyenda (los dos bloques usan la misma escala); Top Two Box por bloque.
-  expect_equal(sum(textos == "Top Two Box"), 2L)
+  expect_equal(sum(textos == "TOP TWO BOX"), 2L)   # G20: mayúsculas en la lámina
   expect_equal(sum(textos == "Totalmente de acuerdo"), 1L)
 })
 
@@ -201,9 +201,10 @@ test_that("salto sin actores: la fila con menos respuestas que su público dice 
   # Sólo esa fila: las que cuadran con su base (120) no se anotan.
   expect_equal(sum(grepl("^N = ", textos)), 1L)
   expect_false("N = 120" %in% textos)
-  # La anotación va con su premisa (la de a3).
-  nota <- regmatches(xml, gregexpr('name="premisa:n".*?</p:sp>', xml))[[1]]
+  # La anotación va con su barra, en azul, como el «N = 77» de la lámina de filtro (G16; Gonzalo, 2026-10-29).
+  nota <- regmatches(xml, gregexpr('name="filtro_sub:n".*?</p:sp>', xml))[[1]]
   expect_length(nota, 1L)
+  expect_match(nota, toupper(sub("#", "", .std_color("azul"))), ignore.case = TRUE)
   # El Word da esa misma base para la variable.
   expect_true("Base: 80" %in% sub("\\s*respuestas$", "", .mlt_word_textos(d)))
 })
@@ -266,4 +267,15 @@ test_that("en una lámina multilista todas las barras tienen el mismo grosor y c
   expect_lte(abs(min(f$y[f$nombre == "leyenda:texto"]) - 6.26), tol)
   # El rótulo «Top Two Box» del bloque 1 (p144: 1.95), sin mover la primera barra.
   expect_lte(abs(min(f$y[f$nombre == "box:rotulo"]) - 1.95), tol)
+})
+
+test_that("un título de bloque que repite su única premisa no se escribe dos veces (Arte, lám. 14)", {
+  e <- list(tipo = "escala")
+  pr <- list(list(texto = "¿Qué tan satisfecho(a) se encuentra con las asesorías?"))
+  local_mocked_bindings(.lam_escala_premisas = function(espec) pr, .lam_escala_en_filas = function(e) FALSE)
+  e$filas <- data.frame(x = 1)
+  it <- .lam_multilista_items(list(bloques = list(list(espec = e, titulo = "¿Qué tan satisfecho(a) se encuentra con las asesorías?"))))
+  expect_length(it, 1L); expect_null(it[[1]]$titulo)
+  it2 <- .lam_multilista_items(list(bloques = list(list(espec = e, titulo = "Asesorías de matrícula"))))
+  expect_identical(it2[[1]]$titulo, "Asesorías de matrícula")
 })

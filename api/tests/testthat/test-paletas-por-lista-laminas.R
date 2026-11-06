@@ -36,6 +36,9 @@ skip_if_not_installed("officer"); skip_if_not_installed("rvg")
 .pll_slide_txt <- function(f, k) paste(readLines(unz(f, sprintf("ppt/slides/slide%d.xml", k)), warn = FALSE), collapse = "\n")
 
 test_that("sin colores en la espec, las láminas categóricas y circulares salen byte a byte como antes (golden)", {
+  # Las huellas se midieron en Linux (el CI, shard 1): el ancho de la tinta sale de systemfonts y en macOS otras fuentes mueven
+  # la geometría, y con ella el hash. En otra plataforma el rojo es falso; el CI sigue vigilándolas.
+  skip_if_not(identical(Sys.info()[["sysname"]], "Linux"), "huellas del XML medidas con las fuentes de Linux (CI)")
   # Huellas del XML medidas con el código anterior al ADR 0097 (commit 4330de9): un cambio aquí es un cambio visible.
   e3 <- preparar_categorica(c("Quinto", "Sexto", "Séptimo"), c(.32, .28, .40), c("32%", "28%", "40%"), c(32, 28, 40), resaltar = TRUE)   # golden con realce
   e2 <- preparar_categorica(c("Sí", "No"), c(.62, .38), c("62%", "38%"), c(62, 38))
@@ -46,7 +49,10 @@ test_that("sin colores en la espec, las láminas categóricas y circulares salen
                    "c2057c23e6f8219cc1b0be9eed3b5cd11a3c146fdb82309d6ff86d4eb35d7848")
   # 2026-10-25 (CCSS-8, lamina_barras_ancho.R): cambio deliberado de geometría, sin tocar colores, cifras ni orden. Las barras
   # escalan al máximo × 1.15 y, con tres categorías, el bloque mide el 75 % del ancho útil y se centra. Arte: 0 distintas.
-  expect_identical(.pll_hash(.lam_laminas_categorica(.pll_doc(), e3, "Nivel", base = "Base: 100", folio = 68, forma = "barras")),
+  # Revisión v7.23, ítem 8: la pista gris va en toda barra de una serie (tiene sus propios tests en
+  # test-lamina-revision-v723-ccss.R); aquí se apaga para que la huella siga midiendo sólo la paleta.
+  e3b <- e3; e3b$pista <- "nunca"
+  expect_identical(.pll_hash(.lam_laminas_categorica(.pll_doc(), e3b, "Nivel", base = "Base: 100", folio = 68, forma = "barras")),
                    "c371afccd1e75ba1007eae0e439557b7fc0585e82ab5635993aa7eaf2f49eae3")
   # 2026-10-24 (loop motor PPT ↔ CCSS), cambios deliberados de geometría sin tocar colores: las barras usan el alto del área
   # (98e6690db), la dicotomía partida deja el mismo margen a ambos lados (7e10765b8) y la torta saca sus cifras chicas con
@@ -54,8 +60,10 @@ test_that("sin colores en la espec, las láminas categóricas y circulares salen
   # La dicotomía rotulaba «Sí (62)» siempre; desde «Casos junto al porcentaje» eso es el modo «siempre».
   # 2026-10-14 (Gonzalo): en la lámina completa el rótulo pasa de 10.5 pt a 14 pt en negrita; cambio deliberado de la
   # huella (los colores por defecto no cambian: azul y azul medio del recetario).
-  expect_identical(withr::with_options(list(prosecnur.casos_junto = list(cuando = "siempre")), .pll_hash(.lam_laminas_dicotomia(.pll_doc(), e2, "Dico", base = "Base: 100", folio = 74))),
-                   "68e290e289d34e76215fbd62c79d60344da8888c23adadcd246d2e513df0a839")
+  # Revisión v7.23, ítem 11: la lámina de la Sí/No ya no es la franja partida de la huella anterior (68e290e2…) sino la
+  # apilada clásica; sin paleta del usuario sus segmentos llevan la dicotómica de la casa.
+  d2 <- withr::with_options(list(prosecnur.casos_junto = list(cuando = "siempre")), .lam_laminas_dicotomia(.pll_doc(), e2, "Dico", base = "Base: 100", folio = 74))
+  expect_identical(.pll_fill(.pll_xml(d2), "segmento"), .pll_hex(.std_paleta("dicotomica")[1:2]))
   expect_identical(.pll_hash(.lam_laminas_torta(.pll_doc(), pie3, "Torta", folio = 69, unidad_n = "egresados")),
                    "1aca84665e354a72cdc3fc04319262a6c3706b6921f246b6a3cfe4c25b79adba")
   expect_identical(.pll_hash(.lam_laminas_dona(.pll_doc(), dona2, "Dona", folio = 70, unidad_n = "estudiantes", rotulo_centro = "conoce")),
@@ -87,7 +95,7 @@ test_that("categórica, dicotomía y torta usan la paleta del usuario (por nombr
   expect_identical(.pll_fill(.pll_slide(f, 1), "columna"), c("AA0000", "00AA00", "0000AA"))
   torta <- .pll_fill(.pll_slide(f, 2), "torta:porcion")
   expect_setequal(torta, c("123456", "654321"))
-  expect_setequal(.pll_fill(.pll_slide(f, 3), "dicotomia:segmento"), c("123456", "654321"))
+  expect_setequal(.pll_fill(.pll_slide(f, 3), "segmento"), c("123456", "654321"))   # v7.23 ítem 11: apilada clásica
 })
 
 test_that("la opción sin color en la paleta del usuario sale gris residual, con aviso, y no por posición", {
@@ -101,11 +109,16 @@ test_that("la opción sin color en la paleta del usuario sale gris residual, con
   expect_true(any(grepl("La opción «Otros» no tiene color en la paleta de «cic»", msgs, fixed = TRUE)))
 })
 
-test_that("la agrupada de una serie y el ranking con puntos llevan la paleta del usuario en su espec y su lámina", {
+test_that("la agrupada de una serie lleva la paleta del usuario sólo si la pide; el ranking con puntos, siempre", {
   pal <- .pll_usuario(c(B = "#0000AA", A = "#AA0000", C = "#00AA00", Otros = "#777777"))
   d <- data.frame(categoria = c("A", "B", "Otros", "C"), N = 100, s1 = c(.2, .5, .05, .25))
-  g <- .paleta_en_espec(suppressWarnings(graficar_barras_agrupadas(d, "categoria", "N", "s1", c(s1 = "Serie"), orden_barras = "mayor_menor",
-                                                                    invertir_barras = TRUE, exportar = "rplot", decimales = 0)), pal)
+  agrupada <- function(...) .paleta_en_espec(suppressWarnings(graficar_barras_agrupadas(d, "categoria", "N", "s1", c(s1 = "Serie"),
+    orden_barras = "mayor_menor", invertir_barras = TRUE, exportar = "rplot", decimales = 0, ...)), pal)
+  # ADR 0130: con una serie el color no codifica nada; sin pedirlo, la espec no trae colores y la lámina es monocroma.
+  e0 <- attr(agrupada(), "pulso_espec")
+  expect_null(e0$colores)
+  expect_length(unique(.pll_fill(.pll_xml(.lam_laminas_categorica(.pll_doc(), e0, "Agrupada", forma = "barras")), "barra")), 1L)
+  g <- agrupada(colorear_por_opcion = TRUE)
   e <- attr(g, "pulso_espec")
   expect_identical(unname(e$colores[e$rotulos]), unname(pal[e$rotulos]) |> as.vector())
   x <- .pll_xml(.lam_laminas_categorica(.pll_doc(), e, "Agrupada", forma = "barras"))

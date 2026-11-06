@@ -262,15 +262,11 @@ describe("revisión", () => {
 });
 
 describe("vista previa", () => {
-  test("el modo oscuro oscurece los fondos claros y respeta los de marca", () => {
+  test("el srcdoc sólo quita el margen del body; el modo oscuro va aparte (modoOscuro.ts, L21)", () => {
     const html = "<html><head><title>x</title></head><body></body></html>";
-    const oscuro = htmlParaLaVista(html, "oscuro", { papel: "P", tinta: "T", suave: "S" });
-    expect(oscuro).toContain('[style*="background-color:#ffffff"]{background-color:P!important}');
-    expect(oscuro).toContain("color:T!important");
-    // El acento de la cabecera y del botón no se toca.
-    expect(oscuro).not.toContain("#0b1f54");
-    expect(oscuro.indexOf("<style data-pulso-vista>")).toBeLessThan(oscuro.indexOf("</head>"));
-    expect(htmlParaLaVista(html, "escritorio")).not.toContain("!important");
+    const vista = htmlParaLaVista(html);
+    expect(vista.indexOf("<style data-pulso-vista>")).toBeLessThan(vista.indexOf("</head>"));
+    expect(vista).not.toContain("!important");
   });
 
   test("el correo se muestra a escala cuando el lienzo no alcanza, nunca agrandado", () => {

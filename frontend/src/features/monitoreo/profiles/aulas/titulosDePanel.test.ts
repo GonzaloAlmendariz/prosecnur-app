@@ -23,9 +23,12 @@ function fuente(nombre: string) {
   return fs.readFileSync(path.join(aqui, nombre), "utf8");
 }
 
-/** Los `<h3>` de texto literal de un componente. */
+/** Los títulos de texto literal de un componente: los `<h3>` sueltos y los `titulo="…"` de los bloques del kit. */
 function titulos(tsx: string) {
-  return [...tsx.matchAll(/<h3>([^<{]+)<\/h3>/g)].map((m) => m[1].trim());
+  return [
+    ...[...tsx.matchAll(/<h3>([^<{]+)<\/h3>/g)].map((m) => m[1].trim()),
+    ...[...tsx.matchAll(/\btitulo="([^"]+)"/g)].map((m) => m[1].trim()),
+  ];
 }
 
 // El page y sus trozos, más los otros dos de siempre. Las pestañas y las

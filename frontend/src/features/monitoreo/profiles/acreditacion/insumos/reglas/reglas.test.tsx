@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { Alertas } from "./Alertas";
 import { renderToStaticMarkup } from "react-dom/server";
 import type { MonitoreoConfig } from "../../../../../../api/client";
 import { borradorDeReglas, configuracionConReglas, frasesDeEfectiva, hayCambios, mover, problemasDelBorrador } from "./reglasModelo";
@@ -72,5 +73,25 @@ describe("Insumos › Reglas", () => {
     );
     expect(html).toContain("Código PUCP declarado");
     expect(html).toContain("233");
+  });
+
+  it("sin teléfono, Alertas muestra sólo las que aplican al correo", () => {
+    const valores = { no_answer_min_attempts: "4", unassigned_cases_min: "5", no_sweep_min_cases: "20", no_sweep_pct: "50", daily_effective_diff_min: "1" };
+    const sinTelefono = renderToStaticMarkup(<Alertas valores={valores} onCambiar={() => {}} bloqueada={false} conTelefono={false} />);
+    expect(sinTelefono).toContain("Diferencia diaria de efectivas");
+    expect(sinTelefono).not.toContain("no contesta");
+    expect(sinTelefono).not.toContain("sin barrer");
+    const conTelefono = renderToStaticMarkup(<Alertas valores={valores} onCambiar={() => {}} bloqueada={false} />);
+    expect(conTelefono).toContain("no contesta");
+  });
+
+  it("en la vista, una fuente telefónica sin barrido mantiene las alertas de llamadas y el modelo heredado va plegado", () => {
+    const conPublicos = { ...config, monitoreo_profile: { ...config.monitoreo_profile, units: [{ actor: "Egresados", phone: { enabled: false } }] } } as unknown as MonitoreoConfig;
+    const props = { config: conPublicos, borrador: borradorDeReglas(conPublicos), cruces: null, onCambiar: () => {}, onGuardar: () => {}, guardando: false, eventos: <p>Editor heredado</p> };
+    const soloCorreo = renderToStaticMarkup(<ReglasVista {...props} fuentes={[{ role: "respuestas", dimensions: { canal: "Correo" } }] as never} />);
+    expect(soloCorreo).not.toContain("no contesta");
+    expect(soloCorreo).toMatch(/<details[^>]*acr-rg-plegable[\s\S]*<summary>[\s\S]*Editor heredado/);
+    const conTelefono = renderToStaticMarkup(<ReglasVista {...props} fuentes={[{ role: "respuestas", dimensions: { canal: "Teléfono (CATI)" } }] as never} />);
+    expect(conTelefono).toContain("no contesta");
   });
 });

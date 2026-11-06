@@ -1,5 +1,7 @@
 import { memo, useMemo, useState } from "react";
 import { CalendarRange, Clock, ContactRound, ListChecks, Search, Table2, Target, XCircle } from "lucide-react";
+import { EstadoVacio } from "../../../../components/EstadoVacio";
+import { Switch } from "../../../../components/Switch";
 import type {
   MonitoreoTerritorialDashboard,
   TerritorialQuotaProgressBlock,
@@ -96,7 +98,7 @@ function TerritorialQuotaConsistencyPanelImpl({ reports }: { reports: MonitoreoT
       <header className="mon-territorial-quota-commandbar">
         <div className="mon-territorial-quota-command-title">
           <span><Target size={14} /> Cuotas por manzana</span>
-          <strong>{quota?.configured ? `${formatMetric(summary.total)} UMP · ${formatMetric(visibleBlocks.length)} ${showReplacements ? "manzanas" : "titulares"}` : "Cuotas no disponibles"}</strong>
+          <strong>{quota?.configured ? `${formatMetric(summary.total)} UMP, ${formatMetric(visibleBlocks.length)} ${showReplacements ? "manzanas" : "titulares"}` : "Cuotas no disponibles"}</strong>
         </div>
         <label className="mon-territorial-quota-search">
           <Search size={13} />
@@ -107,19 +109,19 @@ function TerritorialQuotaConsistencyPanelImpl({ reports }: { reports: MonitoreoT
           />
         </label>
         <div className="mon-territorial-quota-command-actions">
-          <label
+          <div
             className={`mon-territorial-quota-replacement-toggle ${showReplacements ? "is-active" : ""}`}
             title={showReplacements ? "Ocultar manzanas de reemplazo" : "Incluir manzanas de reemplazo"}
           >
-            <input
-              type="checkbox"
+            <Switch
               checked={showReplacements}
-              onChange={(event) => setShowReplacements(event.currentTarget.checked)}
+              onToggle={() => setShowReplacements(!showReplacements)}
+              ariaLabel="Incluir manzanas de reemplazo"
             />
             <ListChecks size={13} />
             <span>Reemplazos</span>
             <strong>{showReplacements ? "Sí" : formatMetric(replacementCount)}</strong>
-          </label>
+          </div>
           <div role="group" aria-label="Filtrar cuotas por estado">
             {filterOptions.map((option) => (
               <button
@@ -150,11 +152,12 @@ function TerritorialQuotaConsistencyPanelImpl({ reports }: { reports: MonitoreoT
           ))}
         </div>
       ) : (
-        <div className="mon-territorial-quota-empty">
-          <Target size={18} />
-          <strong>{quota?.configured ? "Sin manzanas con esos filtros" : "Sin cuota territorial configurada"}</strong>
-          <span>{quota?.configured ? "Prueba otro distrito, UMP o estado de cuota." : "Cuando Hojas de Ruta tenga sexo y rangos de edad, Monitoreo evaluará los márgenes por manzana."}</span>
-        </div>
+        <EstadoVacio
+          tamano="normal"
+          icono={<Target size={18} />}
+          titulo={quota?.configured ? "Sin manzanas con esos filtros" : "Sin cuota territorial configurada"}
+          descripcion={quota?.configured ? "Prueba otro distrito, UMP o estado de cuota." : "Cuando Hojas de Ruta tenga sexo y rangos de edad, Monitoreo evaluará los márgenes por manzana."}
+        />
       )}
     </section>
   );
@@ -220,7 +223,7 @@ function TerritorialQuotaObservedCrossMatrix({ block }: { block: TerritorialQuot
         <span className={adjustmentClass}>
           <b>{layers.adjustment < 0 ? "Ajuste" : "Subsanado"}</b>
           <strong>{formatSignedMetric(layers.adjustment)}</strong>
-          <em>{adjustmentLabels.length ? `${layers.adjustment < 0 ? "Resta de" : "Aporta a"} ${adjustmentLabels.join(" · ")}` : "sin ajuste aplicado"}</em>
+          <em>{adjustmentLabels.length ? `${layers.adjustment < 0 ? "Resta de" : "Aporta a"} ${adjustmentLabels.join(", ")}` : "sin ajuste aplicado"}</em>
         </span>
         <span className={layers.realMissing > 0 ? "is-real-missing" : "is-real-ready"}>
           <b>Falta real</b>
@@ -257,7 +260,7 @@ function TerritorialQuotaObservedCrossMatrix({ block }: { block: TerritorialQuot
                         <td
                           key={`${row.label}-${column.label}`}
                           className={`${value > 0 || adjustmentDelta !== 0 ? "" : "is-empty"} ${territorialQuotaAdjustmentClass(adjustmentDelta)}`}
-                          title={adjustmentDelta !== 0 ? `${row.label} ${column.label}: ${formatMetric(value)} observado · ajuste ${formatSignedMetric(adjustmentDelta)} · efectivo ${formatMetric(adjustedValue)}` : undefined}
+                          title={adjustmentDelta !== 0 ? `${row.label} ${column.label}: ${formatMetric(value)} observado, ajuste ${formatSignedMetric(adjustmentDelta)}, efectivo ${formatMetric(adjustedValue)}` : undefined}
                         >
                           {value > 0 ? <strong>{formatMetric(value)}</strong> : adjustmentDelta === 0 ? formatMetric(value) : null}
                           {adjustmentDelta !== 0 ? <QuotaAdjustmentPill value={adjustmentDelta} compact /> : null}
@@ -297,7 +300,7 @@ function TerritorialQuotaObservedCrossMatrix({ block }: { block: TerritorialQuot
           </table>
         </div>
       ) : (
-        <p className="mon-territorial-quota-observed-empty">Sin registros consentidos asociados a esta UMP.</p>
+        <EstadoVacio icono={<Table2 size={15} />} titulo="Sin registros consentidos asociados a esta UMP." />
       )}
       <p>La matriz separa lo levantado por encuestadores y los ajustes operativos; la falta real se calcula después de aplicarlos.</p>
     </section>
@@ -575,9 +578,9 @@ function territorialQuotaItemMissingTotal(rows: TerritorialQuotaProgressBlock["s
 function territorialQuotaBlockPrimaryLabel(block: TerritorialQuotaProgressBlock) {
   const ump = territorialQuotaPrimaryUmpLabel(block);
   const replacementLabel = territorialQuotaBlockIsReplacement(block) ? territorialQuotaReplacementShortLabel(block) : "";
-  if (replacementLabel) return ump ? `${ump} · ${replacementLabel}` : replacementLabel;
+  if (replacementLabel) return ump ? `${ump}, ${replacementLabel}` : replacementLabel;
   if (ump) return ump;
-  if (block.zona || block.manzana) return `Z${block.zona || "S/D"} · M${block.manzana || "S/D"}`;
+  if (block.zona || block.manzana) return `Z${block.zona || "S/D"}, M${block.manzana || "S/D"}`;
   return block.id_manzana || "Manzana sin código";
 }
 
@@ -591,7 +594,7 @@ function territorialQuotaBlockSecondaryLabel(block: TerritorialQuotaProgressBloc
     blockLabel,
     territorialQuotaBlockTypeLabel(block),
   ].filter(Boolean);
-  return parts.join(" · ");
+  return parts.join(", ");
 }
 
 function territorialQuotaBlockIsReplacement(block: TerritorialQuotaProgressBlock) {

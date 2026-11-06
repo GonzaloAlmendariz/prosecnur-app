@@ -28,7 +28,7 @@ describe("una multiapilada lleva hasta seis barras", () => {
   test("seis preguntas exportan; siete bloquean con la cifra y lo que hay que hacer", () => {
     expect(tope({ modo: "var", vars: refs(6) })).toBeUndefined();
     const error = tope({ modo: "var", vars: refs(7) });
-    expect(error?.message).toBe("Lámina 1 · “Servicios” (Un gráfico), espacio «Gráfico»: tiene 7 barras y una multiapilada lleva hasta 6. Divídela en dos láminas.");
+    expect(error?.message).toBe("Lámina 1, “Servicios” (Un gráfico), espacio «Gráfico»: tiene 7 barras y una multiapilada lleva hasta 6. Divídela en dos láminas.");
     expect(error?.slideId).toBe("s1");
     expect(validarPlan(entrada({ modo: "var", vars: refs(7) })).canExport).toBe(false);
   });

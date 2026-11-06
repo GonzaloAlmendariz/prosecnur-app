@@ -64,14 +64,14 @@ describe("avanceCuota", () => {
     // La letra griega no se publica: es la misma decisión que Cálculo de
     // muestra ya tomó para esta cifra, y en porcentaje se entiende sin
     // definición.
-    expect(vista.procedencia.chip).toBe("cuota del diseño · tasa de efectividad 53.0 %");
+    expect(vista.procedencia.chip).toBe("cuota del diseño, tasa de efectividad 53.0 %");
     expect(vista.procedencia.degradada).toBe(false);
     expect(vista.vacio).toBeNull();
     // La CANTIDAD se llama igual salga de donde salga; el chip de arriba dice
     // de dónde. El otro caso lo comprueba con el denominador degradado.
     expect(vista.total?.etiqueta).toBe("Cuota del estudio");
     // Y quien no ve el chip lo oye: la procedencia entra en el aria.
-    expect(vista.total?.aria).toContain("cuota del diseño · tasa de efectividad 53.0 %");
+    expect(vista.total?.aria).toContain("cuota del diseño, tasa de efectividad 53.0 %");
   });
 
   test("degradado a obsoleta: el chip cambia de denominador y el motivo viaja", () => {
@@ -168,11 +168,11 @@ describe("avanceCuota", () => {
     // notaciones para la misma cifra.
     expect(vista.total?.avanceTexto).toBe("137.5 %");
     expect(vista.filas[0].avance).toBe(137.5);
-    // El contrato anterior era `"cuota cumplida · 137.5 %"`, sin la fracción.
+    // El contrato anterior era `"cuota cumplida, 137.5 %"`, sin la fracción.
     // Se cambió a pedido de Gonzalo (2026-09-08): un porcentaje se publica con
     // la frecuencia que lo produce, y esta fila es justo la que lo necesita
     // —522 de 380 explica por qué el avance pasa de 100—.
-    expect(vista.filas[0].lectura).toBe("cuota cumplida · 137.5 % (522 de 380)");
+    expect(vista.filas[0].lectura).toBe("cuota cumplida, 137.5 % (522 de 380)");
     // El ancho sí se capa: una barra al 137 % rompería el carril (C2).
     expect(vista.total?.relleno).toBe(100);
     expect(vista.filas[0].relleno).toBe(100);
@@ -221,7 +221,7 @@ describe("avanceCuota", () => {
     const vista = avanceCuota(bloque({ tasa_esperada: null }));
     // Sin una tasa única el motor deja NA para no promediar a escondidas; el
     // chip lo dice en vez de pintar un guion.
-    expect(vista.procedencia.chip).toBe("cuota del diseño · tasa de efectividad sin valor único");
+    expect(vista.procedencia.chip).toBe("cuota del diseño, tasa de efectividad sin valor único");
   });
 
   test("un sello sin verificar se declara en el chip, no se calla", () => {
@@ -232,7 +232,7 @@ describe("avanceCuota", () => {
       vigencia: "no_verificable",
       motivo: "El sello del diseño no se pudo verificar contra el marco.",
     }));
-    expect(vista.procedencia.chip).toBe("cuota del diseño · tasa de efectividad 53.0 % (sello sin verificar)");
+    expect(vista.procedencia.chip).toBe("cuota del diseño, tasa de efectividad 53.0 % (sello sin verificar)");
     expect(vista.procedencia.detalle).toContain("no se pudo verificar");
   });
 
@@ -243,10 +243,10 @@ describe("avanceCuota", () => {
     // «0 faltan» es una resta que nadie preguntó; lo que se lee es que cerró.
     expect(vista.filas[0].cifra).toBeNull();
     expect(vista.filas[0].cumplida).toBe(true);
-    // Antes: `"cuota cumplida · 102.6 %"`. La fracción se le añadió con el
+    // Antes: `"cuota cumplida, 102.6 %"`. La fracción se le añadió con el
     // resto de las filas; la parte que este test fija —que una fila cerrada no
     // publica resta— sigue igual.
-    expect(vista.filas[0].lectura).toBe("cuota cumplida · 102.6 % (390 de 380)");
+    expect(vista.filas[0].lectura).toBe("cuota cumplida, 102.6 % (390 de 380)");
     expect(vista.cumplidas).toBe(1);
   });
 });

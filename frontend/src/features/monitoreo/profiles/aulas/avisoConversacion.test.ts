@@ -240,4 +240,9 @@ describe("el aviso cuando el «Plan del día» queda en error", () => {
     const aviso = avisoConversacion(conversacion({ plan_dia_formula_error: "" }));
     expect(aviso?.texto ?? "").not.toContain("Plan del día» quedó");
   });
+  it("sin_construir manda a Material, que es quien construye el libro (ADR 0125)", () => {
+    const aviso = avisoConversacion({ conversado: false, motivo: "sin_construir", mensaje: "x" } as MonitoreoAulasLibroConversacion);
+    expect(aviso?.texto).toContain("Material › Entrega");
+    expect(aviso?.tono).toBe("atencion");
+  });
 });

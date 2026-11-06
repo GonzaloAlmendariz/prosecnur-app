@@ -28,6 +28,7 @@ import ProjectLifecycleDialog, {
 import { useProject, type UseProjectReturn } from "./useProject";
 import { useSession } from "../../lib/SessionContext";
 import { useStoreResetOnSessionChange } from "../../lib/useStoreResetOnSessionChange";
+import { normalizarMotivosSinGuardar } from "./modeloMotivosSinGuardar";
 
 type ProjectShellCtx = {
   project: UseProjectReturn;
@@ -300,6 +301,7 @@ export default function ProjectShell({ children }: { children: React.ReactNode }
           dirty={project.status.dirty}
           lastSavedAt={project.status.last_saved_at}
           contactosCampanas={project.status.contactos_campanas}
+          motivos={normalizarMotivosSinGuardar(project.status.dirty_reasons)}
           busy={project.busy || !!dialogAction}
           action={dialogAction}
           error={dialogError || project.error}

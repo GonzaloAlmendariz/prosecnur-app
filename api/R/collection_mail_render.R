@@ -137,6 +137,10 @@
   }
   out <- .cmail_marks_html(out)
   for (i in seq_along(anchors)) out <- sub(sprintf("\u0005%d\u0005", i), anchors[[i]], out, fixed = TRUE)
+  # `.cmail_esc` escapa con `attribute = TRUE`: el salto ya llega como `&#10;`
+  # (el saludo en dos líneas de Acreditación 2026 salía en una sola).
+  out <- gsub("&#13;", "", out, fixed = TRUE)
+  out <- gsub("&#10;", "<br>", out, fixed = TRUE)
   out <- gsub("\n", "<br>", out, fixed = TRUE)
   keys <- .cmail_tokens(out)
   for (k in keys) {
@@ -238,8 +242,10 @@
   divider <- if (dark) "#5a6a94" else .CMAIL_BORDER
   height <- if (dark) 46L else 40L
   ids <- as.character(unlist(h$logo_ids, use.names = FALSE))
+  blancos <- dark && identical(.cmail_one(h$logo_tone), "blanco")
+  con_linea <- !isFALSE(unlist(h$divider)[1])
   logos <- lapply(ids, function(id) {
-    img <- ctx$images[[id]]
+    img <- .cmail_header_logo(ctx, id, blancos)
     size <- img$size
     # El logo conserva su proporción: si a esta altura pasaría de 200 px de ancho, se achica la altura, nunca se
     # aplasta (un logo de 10:1 a 40 px de alto se veía deformado al cortarle el ancho).
@@ -259,9 +265,13 @@
   cells <- character(0)
   for (i in seq_along(logos)) {
     if (i > 1L) {
-      cells <- c(cells, sprintf(
+      cells <- c(cells, if (con_linea) sprintf(
         '<td%s valign="middle" style="padding:0 18px;"><div style="width:1px;height:%dpx;background-color:%s;line-height:%dpx;font-size:0;">&nbsp;</div></td>',
         .cmail_class_attr(if (stack) .CMAIL_LOGO_DIV_CLASS else ""), height, divider, height
+      ) else sprintf(
+        # Sin línea, el mismo aire (36 px) para que los logos no se peguen.
+        '<td%s valign="middle" style="padding:0 18px;"><div style="width:1px;height:%dpx;line-height:%dpx;font-size:0;">&nbsp;</div></td>',
+        .cmail_class_attr(if (stack) .CMAIL_LOGO_DIV_CLASS else ""), height, height
       ))
     }
     cell_class <- .cmail_class_attr(if (stack) .CMAIL_LOGO_CELL_CLASS else "", if (stack && i > 1L) .CMAIL_LOGO_NEXT_CLASS else "")
@@ -294,7 +304,7 @@
     if (!is.null(address)) sprintf("<span%s>%s</span>", .cmail_prop(ctx, "address"), .cmail_inline(address, ctx))
   )
   d <- .cmail_dialect(ctx)
-  legal <- if (isTRUE(ctx$export)) d$footer() else d$footer_preview()
+  legal <- if (isTRUE(ctx$export)) d$footer(direccion_propia = !is.null(address)) else d$footer_preview()
   # Los enlaces del pie de la plataforma van en gris (#555555): sobre el fondo
   # de campaña, o el `page_bg` propio de sobrio (E1p), se pintan del tono del
   # pie, que sí llega a 4,5:1.
@@ -331,11 +341,14 @@
 #' @param dialect "mailchimp" o "surveymonkey" (collection_mail_dialects.R).
 #' @param values list(nombre, fields = list(key = valor)) para preview.
 #' @param images salida de `.cmail_images_resolve()`.
+#' @param marks `FALSE` quita, en la vista previa, las marcas del editor (zonas y
+#'   el tinte de los campos): la vista para revisión (L9). Sin él, las lleva la
+#'   vista previa y no la exportación, como siempre.
 #' @return list(html, subject, preheader, bytes).
 #' @keywords internal
 collection_mail_render <- function(template, mode = c("preview", "export", "mailchimp"),
                                    dialect = c("mailchimp", "surveymonkey"), values = list(), images = list(),
-                                   known = list()) {
+                                   known = list(), marks = NULL) {
   mode <- match.arg(mode)
   dialect <- match.arg(dialect)
   if (identical(mode, "mailchimp")) { mode <- "export"; dialect <- "mailchimp" }
@@ -346,7 +359,7 @@ collection_mail_render <- function(template, mode = c("preview", "export", "mail
     values = values,
     fields = .cmail_field_index(template),
     images = images,
-    marks = identical(mode, "preview"),
+    marks = if (is.logical(marks) && length(marks) == 1L) marks && identical(mode, "preview") else identical(mode, "preview"),
     # Lo que la audiencia exportada garantiza para TODA persona (`fname`,
     # `saludo`, `fields`): con eso el saludo y los campos salen planos, sin condicionales de Mailchimp
     # que el editor muestra crudas. Sin audiencia (scope «plantilla») no se
@@ -366,7 +379,15 @@ collection_mail_render <- function(template, mode = c("preview", "export", "mail
   }
   subject <- .cmail_plain(template$subject, ctx)
   preheader <- .cmail_plain(template$preheader, ctx)
-  body_rows <- vapply(template$blocks %||% list(), .cmail_block_html, "", ctx = ctx)
+  # Una caja «unida a la siguiente» (L10) avisa a la que sigue que va pegada arriba.
+  bloques <- template$blocks %||% list()
+  previa <- NULL
+  for (i in seq_along(bloques)) {
+    caja <- .cmail_box_of(bloques[[i]])
+    if (!is.null(caja) && identical(previa$join, "siguiente")) bloques[[i]]$.pegada_arriba <- TRUE
+    previa <- caja
+  }
+  body_rows <- vapply(bloques, .cmail_block_html, "", ctx = ctx)
   pal <- ctx$pal
   campana <- isTRUE(pal$campana)
   card <- paste0(

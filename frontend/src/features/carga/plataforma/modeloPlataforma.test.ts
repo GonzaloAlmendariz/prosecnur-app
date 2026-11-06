@@ -11,6 +11,8 @@ import {
   cuerpoSurveyMonkeySeparada,
   cuerpoSurveyMonkeyUnica,
   filtrarCatalogo,
+  filtroDeRespuestas,
+  textoDeExcluidas,
   formatoTranscurrido,
   indiceFase,
   normalizarAssetKobo,
@@ -276,5 +278,67 @@ describe("clasificación del desenlace", () => {
     });
     expect(clasificarErrorLanzamiento(new ApiError("E_CARGA_JOB_STALE_SESSION", "x")).tipo).toBe("sesion-obsoleta");
     expect(clasificarErrorLanzamiento(new TypeError("Failed to fetch"))).toMatchObject({ tipo: "error", codigo: null, mensaje: "Failed to fetch" });
+  });
+});
+
+describe("filtro de respuestas (L5b)", () => {
+  // Medido el 2026-11-01 con una encuesta real: el catálogo decía 69 y la base guardó 59.
+  const base = {
+    response_filter: {
+      original_rows: 69,
+      kept_rows: 59,
+      excluded_rows: 10,
+      original_status_counts: { completed: 61, partial: 8 },
+      kept_status_counts: { completed: 59 },
+      consent_excluded_rows: 2,
+    },
+  };
+
+  it("reparte lo excluido entre parciales y sin consentimiento", () => {
+    expect(filtroDeRespuestas(base)).toEqual({
+      originales: 69, conservadas: 59, excluidas: 10, parciales: 8, sinConsentimiento: 2, otras: 0,
+    });
+    expect(textoDeExcluidas(filtroDeRespuestas(base)!)).toBe("fuera: 8 parciales, 2 sin consentimiento");
+  });
+
+  it("el import separado lleva el filtro hasta el desenlace", () => {
+    const r = clasificarResultadoJob({
+      estrategia: "separada",
+      status: "done",
+      resultData: { ...separadoOk, base: { nombre: "percepcion_2026", ...base } },
+      cancelSolicitado: false,
+    });
+    expect(r?.tipo === "importado" && r.filtro?.excluidas).toBe(10);
+  });
+
+  it("si las causas se solapan, no inventa un reparto", () => {
+    const solapado = { response_filter: { ...base.response_filter, excluded_rows: 8, kept_rows: 61 } };
+    expect(filtroDeRespuestas(solapado)).toMatchObject({ excluidas: 8, parciales: 0, sinConsentimiento: 0, otras: 8 });
+    expect(textoDeExcluidas(filtroDeRespuestas(solapado)!)).toBe("fuera: 8 por otras reglas");
+  });
+
+  it("sin response_filter o con cifras imposibles ⇒ null", () => {
+    expect(filtroDeRespuestas({})).toBeNull();
+    expect(filtroDeRespuestas(null)).toBeNull();
+    expect(filtroDeRespuestas({ response_filter: { original_rows: 5, kept_rows: 9 } })).toBeNull();
+  });
+});
+
+describe("plataforma sin respuesta (L5c)", () => {
+  it("un timeout llega con título propio y el texto del backend, sin el error crudo", () => {
+    const r = clasificarResultadoJob({
+      estrategia: "separada",
+      status: "done",
+      resultData: {
+        ok: false,
+        error: {
+          code: "E_CARGA_PLATAFORMA_SIN_RESPUESTA",
+          message: "SurveyMonkey no respondió a tiempo. El estudio no cambió; revisa la conexión y vuelve a importar.",
+        },
+      },
+      cancelSolicitado: false,
+    });
+    expect(r).toMatchObject({ tipo: "error", codigo: "E_CARGA_PLATAFORMA_SIN_RESPUESTA", titulo: "La plataforma no respondió a tiempo" });
+    expect(r?.tipo === "error" && r.mensaje).toMatch(/^SurveyMonkey no respondió a tiempo/);
   });
 });

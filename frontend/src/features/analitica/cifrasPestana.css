@@ -32,7 +32,7 @@
 }
 
 .analitica-cifra-etiqueta {
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-heavy);
   letter-spacing: 0.04em;
   line-height: 1;
@@ -44,7 +44,7 @@
   overflow: hidden;
   text-overflow: ellipsis;
   color: var(--pulso-text);
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   font-weight: var(--pulso-weight-heavy);
   letter-spacing: 0;
   line-height: 1;

@@ -10,9 +10,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 
-import type { CampanaMaterial } from "../../../api/materialCampanas";
+import type { CampanaMaterial, TipoDeCampana } from "../../../api/materialCampanas";
 import type { MailPlatform } from "../../../api/materialMail";
-import { conNivel } from "../../../lib/navegacion/direccion";
+import { conNivel, serializarDireccion } from "../../../lib/navegacion/direccion";
 import { usePanelDireccionable } from "../../../lib/navegacion/paneles";
 import { useDireccion } from "../../../lib/navegacion/useDireccion";
 import { ConfirmarBorrarCampana } from "../correos/ConfirmarBorrarCampana";
@@ -23,6 +23,11 @@ import { PANEL_CORREO_CAMPANA_BORRAR, PANEL_CORREO_IDENTIDAD, PANEL_CORREO_IMPOR
 import { useCorreosStore } from "../correos/store";
 import { useCampanas, type AccionesDeCampanas } from "../correos/useCampanas";
 import { RecopiladoresShell } from "../RecopiladoresShell";
+import { usePlannerModos } from "../../estudio/usePlannerModos";
+import { CampanaSupervisionShell } from "../supervision/CampanaSupervisionShell";
+import { CampanaTelefonicaShell } from "../telefonica/CampanaTelefonicaShell";
+import { CampanaTerritorialShell } from "../territorial/CampanaTerritorialShell";
+import type { FaseTerritorial } from "../../../api/materialTerritorial";
 import { accionesDeCampana, type IdDeAccion } from "./accionesDeCampana";
 import { CabeceraDeCampana } from "./CabeceraDeCampana";
 import { CampanaCorreoShell } from "./CampanaCorreoShell";
@@ -33,6 +38,10 @@ import { ListaDeCampanas, type AvisoDeLaLista } from "./ListaDeCampanas";
 import { useMiniaturasDeCorreo } from "./miniaturaDeCorreo";
 import { ID_CAMPANA_AULAS, campanaPorId, exportadosDe, idDeCorreo, refDeCorreo } from "./modeloRegistro";
 import { subtituloDeCampana } from "./nombreUnico";
+import "./movimiento.css";
+
+/** Donde Monitoreo calcula y sigue los lotes de supervisión (ADR 0125 A3). */
+const A_MONITOREO_SUPERVISION = serializarDireccion({ modulo: "monitoreo", modo: "telefonico", seccion: "control", pestana: "supervision" });
 import { PANEL_NUEVA_CAMPANA, PANEL_RENOMBRAR_CAMPANA } from "./panelesCampanas";
 import { resolverVistaDeCampanas } from "./redirecciones";
 import { useRegistroDeCampanas } from "./useRegistroDeCampanas";
@@ -83,10 +92,14 @@ export function MaterialCampoShell() {
   const exportacion = useCorreosStore((s) => s.exportacion);
   const correoAbierto = useCorreosStore((s) => s.campana);
   const nueva = usePanelDireccionable(PANEL_NUEVA_CAMPANA);
+  // El tipo elegido en el vacío de la lista: el diálogo se abre con él marcado (5 nov 2026).
+  const [tipoInicial, setTipoInicial] = useState<TipoDeCampana | null>(null);
   const renombrar = usePanelDireccionable(PANEL_RENOMBRAR_CAMPANA);
   const borrar = usePanelDireccionable(PANEL_CORREO_CAMPANA_BORRAR);
   const [aviso, setAviso] = useState<AvisoDeLaLista | null>(null);
   const [plataformaImportar, setPlataformaImportar] = useState<MailPlatform>("mailchimp");
+  // ADR 0125 A4: en acreditación, «Nueva campaña» nombra «Acreditación telefónica» / «Acreditación en aulas».
+  const { modos: modosDelEstudio } = usePlannerModos();
 
   const registro = reg.registro;
   const resolucion = useMemo(() => (registro
@@ -103,10 +116,19 @@ export function MaterialCampoShell() {
   // Una dirección vieja o en desacuerdo se reescribe a la canónica, sin historial.
   useEffect(() => {
     if (!resolucion?.reescribir) return;
+    // Checklist F17: la campaña territorial pedida (p. ej. desde Hojas de ruta) que aún no existe no
+    // se descarta en silencio: la lista dice cómo nace y lleva a donde se envía la muestra.
+    if (direccion?.modo === "territorial" && !(registro?.campaigns ?? []).some((c) => c.tipo === "territorial")) {
+      // M1: con la muestra ya enviada (el tipo territorial está disponible) falta crear la campaña, no volver a enviar.
+      const enviada = (registro?.tipos ?? []).some((t) => t.tipo === "territorial" && t.disponible);
+      setAviso(enviada
+        ? { tono: "ok", texto: "La muestra ya se envió desde Hojas de ruta: falta crear su campaña territorial.", enlace: { href: "/material-campo?panel=nueva-campana", texto: "Crear la campaña" } }
+        : { tono: "ok", texto: "La campaña territorial nace al enviar la muestra desde Hojas de ruta.", enlace: { href: "/hojas-ruta?seccion=seleccion&panel=salidas", texto: "Ir a Entrega" } });
+    }
     const search = searchDeCampanas(location.search, resolucion.reescribir);
     if (search === location.search || search === `?${location.search.replace(/^\?/, "")}`) return;
     navigate({ pathname: location.pathname, search }, { replace: true });
-  }, [location.pathname, location.search, navigate, resolucion]);
+  }, [location.pathname, location.search, navigate, resolucion, direccion?.modo, registro]);
 
   const vista = resolucion && !resolucion.reescribir ? resolucion.vista : null;
   const abierta = vista?.vista === "campana" ? vista.campana : null;
@@ -155,6 +177,7 @@ export function MaterialCampoShell() {
     setAviso(null);
     if (accion === "renombrar") return abrirPanelSobre(PANEL_RENOMBRAR_CAMPANA.id, campana);
     if (accion === "borrar") return abrirPanelSobre(PANEL_CORREO_CAMPANA_BORRAR.id, campana);
+    if (accion === "ver-lote") return navigate(A_MONITOREO_SUPERVISION);
     if (accion === "duplicar") {
       const resumen = correos.find((c) => idDeCorreo(c.campaign_id) === campana.id);
       if (!resumen) return;
@@ -172,15 +195,19 @@ export function MaterialCampoShell() {
       setAviso({
         tono: "ok",
         texto: archivar
-          ? `«${campana.name}» se archivó: sale de la lista sin perder plan, fichas ni traspaso. Se reabre desde «Archivadas».`
+          ? campana.tipo === "territorial"
+            ? `«${campana.name}» se archivó: sale de la lista sin tocar la muestra enviada. Se reabre desde «Archivadas».`
+            : campana.tipo === "telefonica" || campana.tipo === "supervision"
+            ? `«${campana.name}» se archivó: sale de la lista con su configuración intacta. Se reabre desde «Archivadas».`
+            : `«${campana.name}» se archivó: sale de la lista sin perder plan, fichas ni traspaso. Se reabre desde «Archivadas».`
           : `«${campana.name}» volvió a la lista.`,
       });
       if (archivar && direccion?.campana === campana.id) aLaLista();
     });
-  }, [aLaLista, abrirPanelSobre, campanasAcc, correos, direccion?.campana, reg]);
+  }, [aLaLista, abrirPanelSobre, campanasAcc, correos, direccion?.campana, navigate, reg]);
 
   const guardarNombre = useCallback(async (campana: CampanaMaterial, cambio: { name: string; actor: string; platform?: MailPlatform }): Promise<Resultado> => {
-    if (campana.tipo === "aulas") {
+    if (campana.tipo === "aulas" || campana.tipo === "territorial" || campana.tipo === "telefonica" || campana.tipo === "supervision") {
       const out = await reg.cambiarAulas(campana.id, { name: cambio.name });
       if (!out.ok) return out;
     } else {
@@ -212,6 +239,27 @@ export function MaterialCampoShell() {
       return { ok: true };
     }
     const out = await reg.crearAulas(name);
+    if (!out.ok) return out;
+    navigate(hrefDeCampana(out.campana));
+    return { ok: true };
+  }, [navigate, reg]);
+
+  const crearTerritorial = useCallback(async (name: string, fase: FaseTerritorial | null): Promise<Resultado> => {
+    const out = await reg.crearTerritorial(name, fase);
+    if (!out.ok) return out;
+    navigate(hrefDeCampana(out.campana));
+    return { ok: true };
+  }, [navigate, reg]);
+
+  const crearTelefonica = useCallback(async (name: string, ronda?: { publico: string; ronda: number }): Promise<Resultado> => {
+    const out = await reg.crearTelefonica(name, ronda);
+    if (!out.ok) return out;
+    navigate(hrefDeCampana(out.campana));
+    return { ok: true };
+  }, [navigate, reg]);
+
+  const crearSupervision = useCallback(async (name: string, lote: string): Promise<Resultado> => {
+    const out = await reg.crearSupervision(name, lote);
     if (!out.ok) return out;
     navigate(hrefDeCampana(out.campana));
     return { ok: true };
@@ -267,6 +315,33 @@ export function MaterialCampoShell() {
     );
   }
 
+  if (vista?.vista === "campana" && vista.modo === "territorial") {
+    return (
+      <>
+        <CampanaTerritorialShell key={vista.campana.id} campana={vista.campana} cabecera={cabecera} />
+        {dialogosComunes}
+      </>
+    );
+  }
+
+  if (vista?.vista === "campana" && vista.modo === "telefonica") {
+    return (
+      <>
+        <CampanaTelefonicaShell key={vista.campana.id} campana={vista.campana} cabecera={cabecera} />
+        {dialogosComunes}
+      </>
+    );
+  }
+
+  if (vista?.vista === "campana" && vista.modo === "supervision") {
+    return (
+      <>
+        <CampanaSupervisionShell key={vista.campana.id} campana={vista.campana} cabecera={cabecera} />
+        {dialogosComunes}
+      </>
+    );
+  }
+
   if (vista?.vista === "campana" && vista.modo === "correo") {
     return (
       <>
@@ -295,7 +370,7 @@ export function MaterialCampoShell() {
         hrefDe={hrefDeCampana}
         accionesDe={accionesDe}
         onAccion={onAccion}
-        onNueva={nueva.abrir}
+        onNueva={(tipo) => { setTipoInicial(tipo ?? null); nueva.abrir(); }}
         onReintentar={() => { void recargar(false); }}
         miniaturas={miniaturasDeCorreo}
         asuntos={asuntos}
@@ -304,12 +379,17 @@ export function MaterialCampoShell() {
         <>
           <DialogoNuevaCampana
             panel={nueva}
+            tipoInicial={tipoInicial}
             registro={registro}
             fuente={reg.fuente}
             presets={presets}
             miniaturas={miniaturas}
             ocupado={reg.ocupado || ocupadoCorreos}
             onCrearAulas={crearAulas}
+            onCrearTerritorial={crearTerritorial}
+            onCrearTelefonica={crearTelefonica}
+            onCrearSupervision={crearSupervision}
+            proposito={modosDelEstudio?.material.proposito ?? null}
             onCrearCorreo={crearCorreo}
             onImportar={(platform) => {
               setPlataformaImportar(platform);

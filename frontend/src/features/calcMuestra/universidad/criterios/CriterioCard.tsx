@@ -70,7 +70,7 @@ function RecorteMedido({
     >
       {capaNoRecorta ? (
         <>
-          Deja pasar <strong>{fmtInt(recorte.pasan)}</strong> · en capa{" "}
+          Deja pasar <strong>{fmtInt(recorte.pasan)}</strong>, en capa{" "}
           <em>{recorte.layer}</em> no recorta el marco, se valida después
         </>
       ) : recorte.noRecorta ? (
@@ -82,14 +82,14 @@ function RecorteMedido({
         <>
           En el marco construido dejó fuera a <strong>{fmtInt(recorte.recorta)}</strong>
           {recorte.pctRecorte != null ? <> ({(recorte.pctRecorte * 100).toFixed(1)}%)</> : null}
-          {" · "}pasan {fmtInt(recorte.pasan)}
+          {", "}pasan {fmtInt(recorte.pasan)}
         </>
       ) : (
         <>
           Dejó pasar <strong>{fmtInt(recorte.pasan)}</strong> en el marco construido
         </>
       )}
-      {desactualizado ? " · del marco anterior, la selección cambió" : null}
+      {desactualizado ? ", del marco anterior, la selección cambió" : null}
     </p>
   );
 }
@@ -126,7 +126,7 @@ function ResumenCabecera({
   if (variable.kind === "ordinal") {
     return (
       <span className="cmv2-crit-head-count">
-        {r.seleccionadas} de {r.total} valores{noRestringe ? " · no filtra" : ""}
+        {r.seleccionadas} de {r.total} valores{noRestringe ? ", no filtra" : ""}
       </span>
     );
   }
@@ -134,10 +134,10 @@ function ResumenCabecera({
     <span className="cmv2-crit-head-count">
       {r.seleccionadas} de {r.total}
       {noRestringe ? (
-        " · no filtra"
+        ", no filtra"
       ) : r.aulasTotales > 0 ? (
         <>
-          {" · "}
+          {", "}
           <strong>~{fmtInt(r.aulasCubiertas)}</strong> {unidadCriterio(variable)}
         </>
       ) : null}

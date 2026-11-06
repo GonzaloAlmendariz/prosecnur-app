@@ -6,6 +6,8 @@ import { Grupo, RespuestaUnica } from "../../api/client";
 import { displayCodificacionValueLabel } from "./codificacionLabels";
 import { grupoAccentColor } from "./codificacionGrupoColor";
 import { formatoConteo } from "../../lib/formatoNumero";
+import { EstadoChip } from "../../components/EstadoChip";
+import { EstadoVacio } from "../../components/EstadoVacio";
 
 // Classic Levenshtein edit distance (iterative, O(n*m) space O(n)).
 function levenshtein(a: string, b: string): number {
@@ -123,7 +125,7 @@ export function GrupoCodificacionCard({
           <>
             {groupDisplay.code && <span className="pulso-cv2-grupo-code is-static">{groupDisplay.code}</span>}
             <span className="pulso-cv2-grupo-label is-static" title={groupDisplay.title}>{groupDisplay.label}</span>
-            <span className="pulso-cv2-badge is-existente">Existente</span>
+            <EstadoChip label="Existente" tone="neutral" detail="Categoría que ya trae la pregunta" />
             <MoveButtons onMoveUp={onMoveUp} onMoveDown={onMoveDown} isFirst={isFirst} isLast={isLast} />
           </>
         ) : (
@@ -144,7 +146,7 @@ export function GrupoCodificacionCard({
               className="pulso-cv2-grupo-label"
               aria-label="Etiqueta del grupo"
             />
-            <span className="pulso-cv2-badge is-nuevo">Nuevo</span>
+            <EstadoChip label="Nuevo" tone="info" detail="Grupo creado en Codificación" />
             <MoveButtons onMoveUp={onMoveUp} onMoveDown={onMoveDown} isFirst={isFirst} isLast={isLast} />
             <button
               type="button"
@@ -162,8 +164,8 @@ export function GrupoCodificacionCard({
       {!empty && (
         <div className="pulso-cv2-grupo-meta">
           <span>
-            <strong>{grupo.respuestas.length}</strong> {grupo.respuestas.length === 1 ? "respuesta" : "respuestas"}
-            {" · "}
+            <strong>{formatoConteo(grupo.respuestas.length)}</strong> {grupo.respuestas.length === 1 ? "respuesta" : "respuestas"}
+            {", "}
             <strong>{formatoConteo(total)}</strong> {total === 1 ? "caso" : "casos"}
           </span>
           {active && <span className="pulso-cv2-grupo-active-flag">Activo</span>}
@@ -171,14 +173,12 @@ export function GrupoCodificacionCard({
       )}
 
       {empty ? (
-        <div className="pulso-cv2-grupo-empty">
-          <span className="pulso-cv2-grupo-empty-icon" aria-hidden="true"><Inbox size={16} /></span>
-          <span className="pulso-cv2-grupo-empty-copy">
-            {active
-              ? "Marca respuestas de la izquierda para agruparlas aquí."
-              : "Selecciona este grupo y marca respuestas para asignarlas."}
-          </span>
-        </div>
+        <EstadoVacio
+          icono={<Inbox size={16} />}
+          titulo={active
+            ? "Marca respuestas de la izquierda para agruparlas aquí"
+            : "Selecciona este grupo y marca respuestas para asignarlas"}
+        />
       ) : (
         // C1: chips de respuesta, cada uno de su ancho.
         <div className="pulso-cv2-chips" data-qa-geometry-group="codificacion/grupo-chips" data-qa-geometry-contract="intrinsic">

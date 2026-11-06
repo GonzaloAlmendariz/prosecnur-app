@@ -127,8 +127,18 @@ describe("el puente y el runner aplican el mismo contrato", () => {
  * archivo aquí exige comprobar que el `false` es una carga, no un vacío.
  */
 const FALSE_TRANSITORIO: Record<string, string> = {
+  "features/estudio/FichaDelEstudio.tsx":
+    "lectura de GET /api/planner (ADR 0124): el `finally` apaga la carga con la ficha o con el error, que se pinta dentro",
+  "features/calcMuestra/universidad/salidas/DeclararRepresentatividad.tsx":
+    "lectura del escenario y del Planner (ADR 0121 F4): el `finally` apaga la carga con datos o con error",
+  "features/calcMuestra/AterrizajeDelPlanner.tsx":
+    "lectura de GET /api/planner/modos (ADR 0122 P2): con los modos decide el aterrizaje y con el error publica vacio:planner-ilegible",
+  "features/hojasRuta/mapa/HojasRutaMapaPage.tsx":
+    "lectura de /api/hojas-ruta/state del lienzo (ADR 0114): con el estado o con el error de lectura publica hojas-ruta",
   "features/recopiladores/ConfirmarResembrado.tsx":
     "previsualización dry_run del resembrado: en error y con la previsualización cargada publica true",
+  "components/CargaDeBloque.tsx":
+    "carga de un bloque dentro de una vista lista (kit, nacida en Material P5b): quien la monta la quita al llegar el dato o el error, así que la marca desaparece",
   "components/PageFrame.tsx":
     "`auditReady={false}` de la página: la página lo levanta al terminar su lectura (Carga › Revisión)",
   "features/carga/EquivalenciasEsqueleto.tsx":
@@ -139,10 +149,14 @@ const FALSE_TRANSITORIO: Record<string, string> = {
     "`loading` de la revisión de datos; el error es terminal y publica true",
   "features/carga/MapaBasesPanel.tsx":
     "mapa de bases: sólo mientras lee lo que cada base tiene fuera de la matriz; al terminar (o fallar) publica true",
+  "features/analitica/panes/CrucesReglaEstudio.tsx":
+    "lectura de GET /api/graficos/diferencias/regla; con la regla o su error (también los 422) publica analitica-regla-estudio",
   "features/analitica/PanelUniverso.tsx":
     "panel «Qué casos cuentan»: sólo mientras lee el universo de las bases; el error es terminal y publica true",
   "features/analitica/PanelVariablesExcluidas.tsx":
     "panel «Variables excluidas»: config de Analítica sin hidratar, variables cargando o cambio de base en curso; en error publica true",
+  "features/procesamiento/ProcessingSheetViewer.tsx":
+    "sin datos ni error: `load` siempre termina en payload o en un error con texto (nunca vacío); deshabilitado no publica",
   "features/graficos/GraficosPage.tsx":
     "fallbacks de Suspense de las pestañas perezosas: los reemplaza el chunk al cargar",
   "features/graficos/estilo/PestanaEstilo.tsx": "listo al llegar las opciones o su error",
@@ -150,6 +164,14 @@ const FALSE_TRANSITORIO: Record<string, string> = {
     "vista previa pedida («Previsualizar») mientras el motor dibuja; lista o en error (también desactualizada) publica true",
   "features/graficos/estiloInforme/PestanaEstiloInforme.tsx": "`cargando` de la lectura del estilo del informe",
   "features/graficos/indice/BibliotecaIconos.tsx": "listo al llegar los nombres de íconos o su error",
+  "features/graficos/laminas/diferencias/DiferenciasInspector.tsx":
+    "«calculando» mientras GET /api/graficos/diferencias?slide= responde; con la lámina o su error publica graficos-diferencias",
+  "features/graficos/laminas/diferencias/ReglaDiferenciasDialog.tsx":
+    "lectura de GET /api/graficos/diferencias/regla al abrir el diálogo; con la regla o su error publica graficos-diferencias-regla",
+  "features/graficos/laminas/diferencias/PorQuePopover.tsx":
+    "lectura de las diferencias de la lámina; con la lámina o su error publica graficos-diferencias-lamina",
+  "features/graficos/laminas/diferencias/RevisionDiferenciasPanel.tsx":
+    "lectura de GET /api/graficos/diferencias/informe; con el informe o su error publica graficos-diferencias-informe",
   "features/calcMuestra/CalcMuestraPage.tsx":
     "`calc-muestra-hidratando`: la rehidratación del estado del proyecto",
   "features/calcMuestra/general/ArchivoMarcoGeneral.tsx":

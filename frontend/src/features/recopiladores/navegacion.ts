@@ -31,7 +31,7 @@ export const PESTANAS_POR_SECCION = {
   // viejos los resuelve `campanas/redirecciones.ts`.
   catalogo: ["tipos", "editor"],
   paquetes: ["armado"],
-  entrega: ["traspaso"],
+  entrega: ["traspaso", "plantillas"],
 } as const satisfies Record<RecopiladoresSeccion, readonly string[]>;
 
 export type RecopiladoresPestana =

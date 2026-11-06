@@ -3,6 +3,7 @@
 
 import type { AnalisisFiltro } from "./modeloFiltros";
 
+import { EstadoChip } from "../../../components/EstadoChip";
 export function OpcionesDeExpresion({ a, resaltadas }: { a: AnalisisFiltro; resaltadas: ReadonlySet<string> }) {
   const nunca = new Set(a.diagnosticos.flatMap((d) => (d.clase === "nunca" ? d.opciones : [])));
   return (
@@ -17,7 +18,7 @@ export function OpcionesDeExpresion({ a, resaltadas }: { a: AnalisisFiltro; resa
               <span className="xcf-casillas__fila" title={o.etiqueta}>
                 <code>{o.codigo}</code>
                 <span>{o.etiqueta}</span>
-                {nunca.has(o.codigo) ? <span className="xcf-chip is-nunca is-mini">nunca visible</span> : null}
+                {nunca.has(o.codigo) ? <EstadoChip label="nunca visible" tone="warn" /> : null}
               </span>
             </li>
           ))}

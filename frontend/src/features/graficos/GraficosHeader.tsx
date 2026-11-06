@@ -1,3 +1,4 @@
+import { teclaMod } from "../../lib/teclado";
 import { type CSSProperties, useEffect, useRef, useState } from "react";
 import { AlertCircle, AlertTriangle, AlignJustify, Check, CheckCircle2, ChevronDown, FileText, GanttChart, Layers3, LayoutGrid, RotateCcw, Rows3, Undo2, Redo2, PanelTopDashed, Ruler, SlidersHorizontal, X } from "lucide-react";
 import { ContextBar } from "../../components/ContextBar";
@@ -17,6 +18,7 @@ import { PlanPortatilContenido } from "./compartir/PlanPortatilContenido";
 import { SeccionesJsonContenido } from "./compartir/SeccionesJsonContenido";
 import { useCompartirPlan } from "./compartir/useCompartirPlan";
 import { useVaciarPlan } from "./compartir/useVaciarPlan";
+import { formatoConteo } from "../../lib/formatoNumero";
 
 const jsonIoStyles: Record<string, CSSProperties> = {
   wrap: {
@@ -35,7 +37,7 @@ const jsonIoStyles: Record<string, CSSProperties> = {
     display: "inline-flex",
     alignItems: "center",
     justifyContent: "center",
-    fontSize: 10,
+    fontSize: "var(--pulso-type-micro-size)",
     fontWeight: 800,
   },
   popover: {
@@ -86,7 +88,7 @@ const jsonIoStyles: Record<string, CSSProperties> = {
     justifyContent: "center",
     gap: 6,
     padding: "0 13px",
-    fontSize: 11.2,
+    fontSize: "var(--pulso-type-caption-size)",
     fontWeight: 800,
     cursor: "pointer",
     whiteSpace: "nowrap",
@@ -103,7 +105,7 @@ const jsonIoStyles: Record<string, CSSProperties> = {
     justifyContent: "center",
     gap: 6,
     padding: "0 13px",
-    fontSize: 11.2,
+    fontSize: "var(--pulso-type-caption-size)",
     fontWeight: 800,
     cursor: "pointer",
     whiteSpace: "nowrap",
@@ -120,7 +122,7 @@ const jsonIoStyles: Record<string, CSSProperties> = {
     border: "1px solid var(--pulso-info-border)",
     background: "var(--pulso-info-bg)",
     color: "var(--pulso-info-fg)",
-    fontSize: 11,
+    fontSize: "var(--pulso-type-caption-size)",
     fontWeight: 700,
   },
   planTable: {
@@ -137,12 +139,12 @@ const jsonIoStyles: Record<string, CSSProperties> = {
     alignItems: "start",
     padding: "9px 10px",
     borderBottom: "1px solid var(--pulso-border)",
-    fontSize: 11,
+    fontSize: "var(--pulso-type-caption-size)",
   },
   planRowHead: {
     background: "var(--pulso-header-row)",
     color: "var(--pulso-text-soft)",
-    fontSize: 10,
+    fontSize: "var(--pulso-type-micro-size)",
     fontWeight: 800,
     letterSpacing: "0.08em",
     textTransform: "uppercase",
@@ -150,7 +152,7 @@ const jsonIoStyles: Record<string, CSSProperties> = {
   cellTitle: {
     display: "block",
     color: "var(--pulso-text)",
-    fontSize: 12,
+    fontSize: "var(--pulso-type-subtitle-size)",
     fontWeight: 800,
     lineHeight: 1.2,
   },
@@ -158,7 +160,7 @@ const jsonIoStyles: Record<string, CSSProperties> = {
     display: "block",
     marginTop: 3,
     color: "var(--pulso-text-soft)",
-    fontSize: 10.5,
+    fontSize: "var(--pulso-type-micro-size)",
     lineHeight: 1.3,
     fontWeight: 600,
   },
@@ -178,7 +180,7 @@ const jsonIoStyles: Record<string, CSSProperties> = {
     alignItems: "center",
     justifyContent: "space-between",
     padding: "9px 11px",
-    fontSize: 11.2,
+    fontSize: "var(--pulso-type-caption-size)",
     fontWeight: 800,
     cursor: "pointer",
     boxShadow: "inset 0 1px 0 rgba(255,255,255,0.72)",
@@ -229,14 +231,14 @@ const jsonIoStyles: Record<string, CSSProperties> = {
   },
   title: {
     display: "block",
-    fontSize: 14.5,
+    fontSize: "var(--pulso-type-body-size)",
     lineHeight: 1.15,
     color: "var(--pulso-text)",
   },
   lead: {
     margin: "4px 0 0",
     color: "var(--pulso-text-soft)",
-    fontSize: 11.1,
+    fontSize: "var(--pulso-type-caption-size)",
     lineHeight: 1.4,
     fontWeight: 600,
   },
@@ -254,7 +256,7 @@ const jsonIoStyles: Record<string, CSSProperties> = {
     justifyContent: "center",
   },
   smallButton: {
-    fontSize: 10,
+    fontSize: "var(--pulso-type-micro-size)",
     padding: "4px 8px",
     borderRadius: 999,
     border: "1px solid var(--pulso-border)",
@@ -299,14 +301,14 @@ const jsonIoStyles: Record<string, CSSProperties> = {
   optionTitle: {
     display: "block",
     color: "var(--pulso-text)",
-    fontSize: 12,
+    fontSize: "var(--pulso-type-subtitle-size)",
     lineHeight: 1.15,
     fontWeight: 700,
     letterSpacing: "-0.01em",
   },
   optionHelp: {
     color: "var(--pulso-text-soft)",
-    fontSize: 10.1,
+    fontSize: "var(--pulso-type-micro-size)",
     lineHeight: 1.25,
     fontWeight: 500,
     letterSpacing: "-0.005em",
@@ -360,7 +362,7 @@ const jsonIoStyles: Record<string, CSSProperties> = {
     alignItems: "stretch",
     flexDirection: "column",
     gap: 8,
-    fontSize: 11,
+    fontSize: "var(--pulso-type-caption-size)",
   },
   modeLabel: {
     color: "var(--pulso-text-soft)",
@@ -368,7 +370,7 @@ const jsonIoStyles: Record<string, CSSProperties> = {
     flexBasis: "auto",
     textTransform: "uppercase",
     letterSpacing: "0.08em",
-    fontSize: 10,
+    fontSize: "var(--pulso-type-micro-size)",
   },
   radio: {
     display: "inline-flex",
@@ -399,11 +401,11 @@ const jsonIoStyles: Record<string, CSSProperties> = {
     alignItems: "center",
     justifyContent: "center",
     gap: 6,
-    fontSize: 11,
+    fontSize: "var(--pulso-type-caption-size)",
     fontWeight: 700,
   },
   msg: {
-    fontSize: 11,
+    fontSize: "var(--pulso-type-caption-size)",
     fontWeight: 700,
     color: "var(--pulso-success-fg)",
     display: "inline-flex",
@@ -411,7 +413,7 @@ const jsonIoStyles: Record<string, CSSProperties> = {
     gap: 4,
   },
   error: {
-    fontSize: 11,
+    fontSize: "var(--pulso-type-caption-size)",
     fontWeight: 600,
     padding: "3px 8px",
     borderRadius: 999,
@@ -693,7 +695,7 @@ function PlanSnapshotBadge({
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
         aria-haspopup="dialog"
-        title={`${nSlides} ${nSlides === 1 ? "slide" : "slides"} · ${saveLabel}`}
+        title={`${nSlides} ${nSlides === 1 ? "slide" : "slides"}, ${saveLabel}`}
       >
         <FileText size={13} />
         <strong>{nSlides}</strong>
@@ -755,8 +757,8 @@ function ConstructorViewControls({ issueCount }: { issueCount: number }) {
   const currentSlideLabel = slides.length === 0
     ? "Plan nuevo"
     : selectedIndex >= 0
-      ? `Lámina ${selectedIndex + 1}/${slides.length}`
-      : `${slides.length} ${slides.length === 1 ? "lámina" : "láminas"}`;
+      ? `Lámina ${selectedIndex + 1}/${formatoConteo(slides.length)}`
+      : `${formatoConteo(slides.length)} ${slides.length === 1 ? "lámina" : "láminas"}`;
   const densityLabel = density === "compact" ? "Compacto" : "Cómodo";
 
   return (
@@ -990,8 +992,7 @@ function UndoRedoButtons() {
   const future = usePlanStore((s) => s.future);
   const undo = usePlanStore((s) => s.undo);
   const redo = usePlanStore((s) => s.redo);
-  const isMac = typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigator.platform);
-  const mod = isMac ? "⌘" : "Ctrl";
+  const mod = teclaMod();
   return (
     <div className="pulso-gv2-undo-redo">
       <button
@@ -1001,7 +1002,7 @@ function UndoRedoButtons() {
         className="pulso-gv2-icon-button"
         title={past.length === 0
           ? "Nada que deshacer"
-          : `Deshacer (${mod}+Z) — ${past.length} ${past.length === 1 ? "acción disponible" : "acciones disponibles"}`}
+          : `Deshacer (${mod}+Z) — ${formatoConteo(past.length)} ${past.length === 1 ? "acción disponible" : "acciones disponibles"}`}
         aria-label="Deshacer"
       >
         <Undo2 size={13} />
@@ -1013,7 +1014,7 @@ function UndoRedoButtons() {
         className="pulso-gv2-icon-button"
         title={future.length === 0
           ? "Nada que rehacer"
-          : `Rehacer (${mod}+Shift+Z) — ${future.length} ${future.length === 1 ? "acción disponible" : "acciones disponibles"}`}
+          : `Rehacer (${mod}+Shift+Z) — ${formatoConteo(future.length)} ${future.length === 1 ? "acción disponible" : "acciones disponibles"}`}
         aria-label="Rehacer"
       >
         <Redo2 size={13} />

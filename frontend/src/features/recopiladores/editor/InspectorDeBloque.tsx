@@ -1,11 +1,12 @@
 import type { CollectionMaterialBlock } from "../../../api/recopiladores";
 import type { MaterialPreviewZone } from "../../../api/materialPreview";
 import { PulsoButton } from "../../../components/PulsoButton";
-import { ArrowDown, ArrowUp, Trash2 } from "../../../vendor/lucide-react";
+import { ArrowDown, ArrowUp, Layers, Trash2 } from "../../../vendor/lucide-react";
 import { PropRow } from "../../xlsformEditor/kit";
 import { rotuloDeBloque } from "../bloquesDeMaterial";
 import { AjustesDelBloque } from "./AjustesDelBloque";
 import { loLlena, procedencia, puedeQuitar, siFalta, type NotasDeBloque } from "./modeloEditor";
+import { EstadoVacio } from "../../../components/EstadoVacio";
 
 type Props = {
   /** La cara del bloque: `block_id` sólo es único dentro de ella. */
@@ -43,7 +44,7 @@ export function InspectorDeBloque({
   if (!block) {
     return (
       <aside className="rec-ed-columna rec-ed-inspector" aria-label="Bloque elegido" {...panelProps}>
-        <div className="rec-contained-empty" data-qa-geometry-capacity="owned">Esta cara no tiene bloques.</div>
+        <EstadoVacio icono={<Layers size={16} aria-hidden />} titulo="Esta cara no tiene bloques" />
       </aside>
     );
   }

@@ -132,7 +132,138 @@ mount_recopiladores <- function(pr) {
                                  platform = body$platform, preset_id = body$preset_id, template = body$template,
                                  import_id = body$import_id,
                                  expected_state_revision = body$expected_state_revision,
-                                 expected_registry_revision = body$expected_registry_revision)
+                                 expected_registry_revision = body$expected_registry_revision,
+                                 fase = body$fase, lote = body$lote, publico = body$publico, ronda = body$ronda)
+    })) |>
+    # Unidades de la campaña territorial: la foto enviada desde Hojas de ruta
+    # (ADR 0118 §3). Lectura pura.
+    plumber::pr_get("/api/recopiladores/campaigns/territorial/unidades", wrap_endpoint(function(req, res, id = NULL, ...) {
+      collection_territorial_unidades(session_header(req), id)
+    })) |>
+    # Qué encuestador (del equipo de Monitoreo) va a cada UMP de la campaña territorial
+    # (decisión I3; collection_territorial_asignacion.R). GET puro, lo lee también Monitoreo.
+    plumber::pr_get("/api/recopiladores/campaigns/territorial/asignacion", wrap_endpoint(function(req, res, id = NULL, ...) {
+      collection_territorial_asignacion_get(session_header(req), id)
+    })) |>
+    plumber::pr_handle("PUT", "/api/recopiladores/campaigns/territorial/asignacion", wrap_endpoint(function(req, res, ...) {
+      body <- .collection_parse_body(req)
+      collection_territorial_asignacion_put(session_header(req), campaign_id = body$id, asignacion = body$asignacion,
+                                            expected_revision = body$expected_revision, estados = body[["estados"]])
+    })) |>
+    # El Excel con el que campo asigna y reasigna (C1/C3, collection_territorial_excel.R):
+    # generarlo y leerlo de vuelta. Leer es puro; guarda el PUT de arriba.
+    plumber::pr_post("/api/recopiladores/campaigns/territorial/asignacion/excel", wrap_endpoint(function(req, res, ...) {
+      body <- .collection_parse_body(req)
+      collection_territorial_asignacion_excel(session_header(req), body$id)
+    })) |>
+    plumber::pr_post("/api/recopiladores/campaigns/territorial/asignacion/importar", wrap_endpoint(function(req, res, ...) {
+      input <- .mtx_import_request(req)
+      collection_territorial_asignacion_importar(session_header(req), input$id, file_raw = input$file_raw,
+                                                 file_name = input$file_name, content_base64 = input$content_base64)
+    })) |>
+    # Plan de campo y Hoja del día sobre la foto enviada (P6, collection_territorial_plan.R).
+    plumber::pr_post("/api/recopiladores/campaigns/territorial/plan", wrap_endpoint(function(req, res, ...) {
+      body <- .collection_parse_body(req)
+      collection_territorial_plan(session_header(req), campaign_id = body[["id"]], supuestos = body[["supuestos"]])
+    })) |>
+    plumber::pr_post("/api/recopiladores/campaigns/territorial/hoja-dia", wrap_endpoint(function(req, res, ...) {
+      body <- .collection_parse_body(req)
+      collection_territorial_hoja_dia(session_header(req), campaign_id = body[["id"]], jornada = body[["jornada"]],
+                                      supuestos = body[["supuestos"]])
+    })) |>
+    # Campaña telefónica (P10, collection_campaigns_telefonica.R): su configuración y la
+    # plantilla del barrido armada con ella.
+    plumber::pr_get("/api/recopiladores/campaigns/telefonica/config", wrap_endpoint(function(req, res, id = NULL, ...) {
+      collection_telefonica_config_get(session_header(req), id)
+    })) |>
+    plumber::pr_handle("PUT", "/api/recopiladores/campaigns/telefonica/config", wrap_endpoint(function(req, res, ...) {
+      body <- .collection_parse_body(req)
+      collection_telefonica_config_put(session_header(req), campaign_id = body[["id"]], llave = body[["llave"]],
+                                       estratos = body[["estratos"]], telefonos = body[["telefonos"]],
+                                       reemplazo = body[["reemplazo"]], muestra = body[["muestra"]], backup = body[["backup"]],
+                                       responsables = body[["responsables"]], status = body[["status"]],
+                                       expected_revision = body[["expected_revision"]],
+                                       observacion = body[["observacion"]], sensibles = body[["sensibles"]])
+    })) |>
+    plumber::pr_post("/api/recopiladores/campaigns/telefonica/plantilla", wrap_endpoint(function(req, res, ...) {
+      body <- .collection_parse_body(req)
+      collection_telefonica_plantilla(session_header(req), body[["id"]])
+    })) |>
+    # La base de barrido construida en el Sheets del estudio (collection_barrido_sheets.R): sólo
+    # siembra las pestañas que faltan; una que existe es del equipo y no se toca.
+    plumber::pr_post("/api/recopiladores/campaigns/telefonica/sheets", wrap_endpoint(function(req, res, ...) {
+      body <- .collection_parse_body(req)
+      collection_telefonica_sheets_sembrar(session_header(req), body[["id"]], body[["enlace"]])
+    })) |>
+    # La base de supervisión de un lote de Monitoreo (collection_supervision_base.R, ADR 0125 A3): qué
+    # columnas lleva y el Excel con una fila por caso del lote.
+    plumber::pr_get("/api/recopiladores/campaigns/supervision/columnas", wrap_endpoint(function(req, res, id = NULL, ...) {
+      collection_supervision_columnas_get(session_header(req), id)
+    })) |>
+    plumber::pr_handle("PUT", "/api/recopiladores/campaigns/supervision/columnas", wrap_endpoint(function(req, res, ...) {
+      body <- .collection_parse_body(req)
+      collection_supervision_columnas_put(session_header(req), body[["id"]], barrido = body[["barrido"]],
+                                          resultados = body[["resultados"]], expected_revision = body[["expected_revision"]])
+    })) |>
+    plumber::pr_post("/api/recopiladores/campaigns/supervision/excel", wrap_endpoint(function(req, res, ...) {
+      body <- .collection_parse_body(req)
+      collection_supervision_excel(session_header(req), body[["id"]])
+    })) |>
+    # La base en su propio Sheets, con nombre y teléfono por fórmula desde el barrido
+    # (collection_supervision_sheets.R); y los documentos que Monitoreo lee en vez de sus «Ronda N».
+    plumber::pr_post("/api/recopiladores/campaigns/supervision/sheets", wrap_endpoint(function(req, res, ...) {
+      body <- .collection_parse_body(req)
+      collection_supervision_sheets_sembrar(session_header(req), body[["id"]], body[["enlace"]])
+    })) |>
+    plumber::pr_get("/api/recopiladores/campaigns/supervision/documentos", wrap_endpoint(function(req, res, ...) {
+      list(ok = TRUE, documentos = collection_supervision_documentos(session_get(session_header(req))))
+    })) |>
+    # Plantilla del barrido telefónico (C8, collection_barrido_plantilla.R): sólo genera el
+    # libro; dónde vive el barrido en Material (P10) está por decidir.
+    # Etapa 3 (collection_aulas_material.R): la entrega de aulas de solo lectura, para
+    # Monitoreo, y las plantillas del equipo de aulas.
+    plumber::pr_get("/api/recopiladores/campaigns/aulas/entrega", wrap_endpoint(function(req, res, ...) {
+      collection_aulas_entrega_get(session_header(req))
+    })) |>
+    plumber::pr_get("/api/recopiladores/campaigns/aulas/siembra", wrap_endpoint(function(req, res, ...) {
+      collection_aulas_siembra_get(session_header(req))
+    })) |>
+    plumber::pr_handle("PUT", "/api/recopiladores/campaigns/aulas/siembra", wrap_endpoint(function(req, res, ...) {
+      body <- .collection_parse_body(req)
+      collection_aulas_siembra_put(session_header(req), modo = body[["modo"]])
+    })) |>
+    plumber::pr_post("/api/recopiladores/campaigns/aulas/plantilla", wrap_endpoint(function(req, res, ...) {
+      body <- .collection_parse_body(req)
+      collection_aulas_plantilla(session_header(req), pieza = body[["pieza"]], body = body)
+    })) |>
+    plumber::pr_post("/api/recopiladores/barrido/plantilla", wrap_endpoint(function(req, res, ...) {
+      body <- .collection_parse_body(req)
+      collection_barrido_plantilla(session_header(req), estudio = body[["estudio"]], llave = body[["llave"]],
+                                   estratos = body[["estratos"]], telefonos = body[["telefonos"]], reemplazo = body[["reemplazo"]],
+                                   responsables = body[["responsables"]], status = body[["status"]], filas = body[["filas"]],
+                                   observacion = body[["observacion"]], sensibles = body[["sensibles"]])
+    })) |>
+    # El Estado que declara campo en el Excel, por UMP, para Monitoreo (C7, collection_territorial_estado.R).
+    plumber::pr_get("/api/recopiladores/campaigns/territorial/asignacion/estado", wrap_endpoint(function(req, res, id = NULL, ...) {
+      collection_territorial_estado_get(session_header(req), id)
+    })) |>
+    # Hoja de ruteo y hoja de consolidados por UMP (D1, collection_territorial_papel.R).
+    plumber::pr_post("/api/recopiladores/campaigns/territorial/papel", wrap_endpoint(function(req, res, ...) {
+      body <- .collection_parse_body(req)
+      collection_territorial_papel(session_header(req), campaign_id = body[["id"]], pieza = body[["pieza"]],
+                                   unidad = body[["unidad"]], alcance = body[["alcance"]])
+    })) |>
+    # Códigos de resultado del estudio y formato de las hojas de campo (D1,
+    # collection_territorial_formatos.R). GET puro: lo leen las hojas y Monitoreo.
+    plumber::pr_get("/api/recopiladores/campaigns/territorial/formatos", wrap_endpoint(function(req, res, id = NULL, ...) {
+      collection_territorial_formatos_get(session_header(req), id)
+    })) |>
+    plumber::pr_handle("PUT", "/api/recopiladores/campaigns/territorial/formatos", wrap_endpoint(function(req, res, ...) {
+      body <- .collection_parse_body(req)
+      collection_territorial_formatos_put(session_header(req), campaign_id = body[["id"]], rotulos = body[["rotulos"]],
+                                          con_99 = body[["con_99"]], columna_criterio = body[["columna_criterio"]],
+                                          caras_ruteo = body[["caras_ruteo"]], expected_revision = body[["expected_revision"]],
+                                          extras_consolidado = body[["extras_consolidado"]], extras_ruteo = body[["extras_ruteo"]])
     })) |>
     plumber::pr_handle("PUT", "/api/recopiladores/campaigns/meta", wrap_endpoint(function(req, res, ...) {
       body <- .collection_parse_body(req)
@@ -246,7 +377,18 @@ mount_recopiladores <- function(pr) {
       body <- .collection_parse_body(req)
       collection_mail_preview(session_header(req), mode = body$mode %||% "preview",
                               recipient_index = body$recipient_index, template = body$template,
-                              campaign_id = body$campaign_id, send_id = body$send_id, send = body$send)
+                              campaign_id = body$campaign_id, send_id = body$send_id, send = body$send,
+                              ejemplo = body$ejemplo)
+    })) |>
+    # Vista para revisión (L9): HTML con los correos de las campañas elegidas, para quien aprueba.
+    plumber::pr_post("/api/recopiladores/mail-revision", wrap_endpoint(function(req, res, ...) {
+      body <- .collection_parse_body(req)
+      collection_mail_revision(session_header(req), campaign_ids = body$campaign_ids,
+                               ejemplo = body$ejemplo, titulo = body$titulo, envio = body$envio)
+    })) |>
+    plumber::pr_post("/api/recopiladores/mail-textos-word", wrap_endpoint(function(req, res, ...) {
+      body <- .collection_parse_body(req)
+      collection_mail_textos_word(session_header(req), campaign_ids = body$campaign_ids, titulo = body$titulo)
     })) |>
     plumber::pr_post("/api/recopiladores/mail-template/review", wrap_endpoint(function(req, res, ...) {
       body <- .collection_parse_body(req)

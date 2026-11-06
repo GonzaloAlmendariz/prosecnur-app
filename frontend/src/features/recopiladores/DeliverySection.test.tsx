@@ -176,4 +176,57 @@ describe("H25 — el recibo sólo se firma si hubo traspaso", () => {
     expect(markup).toContain("<dd>5</dd>");
     expect(markup).toContain(">fp-plan<");
   });
+
+  it("con traspaso, dice que el seguimiento sigue en Monitoreo y lleva allá si el shell sabe ir (R10)", () => {
+    const deployment: CollectionDeployment = { ...BASE_DEPLOYMENT, status: "handed_off", handoff: RECIBO };
+    const conIr = renderToStaticMarkup(
+      <DeliverySection payload={payloadWithDeployment(deployment)} latestArtifact={null} onState={() => undefined} onIr={() => undefined} />,
+    );
+    // Revamp v5: sin el remate «Material termina aquí»; el enlace dice a dónde va la entrega.
+    expect(conIr).toContain("Monitoreo la trae en Insumos › Fuentes");
+    expect(conIr).toContain("Abrir Monitoreo");
+    const sinIr = renderToStaticMarkup(
+      <DeliverySection payload={payloadWithDeployment(deployment)} latestArtifact={null} onState={() => undefined} />,
+    );
+    expect(sinIr).toContain("Monitoreo la trae en Insumos › Fuentes");
+    expect(sinIr).not.toContain("Material termina aquí");
+    expect(sinIr).not.toContain("Abrir Monitoreo");
+  });
 });
+
+describe("entrega bloqueada sin accesos", () => {
+  beforeEach(() => {
+    vi.stubGlobal("localStorage", { getItem: () => null, setItem: () => undefined, removeItem: () => undefined });
+  });
+  afterEach(() => { vi.unstubAllGlobals(); });
+
+  it("dice qué falta y lleva a Accesos, sólo si el shell sabe ir", () => {
+    // Con un material generado la sección se pinta aunque no haya accesos (sin él, es el vacío sin plan).
+    const base = payloadWithReceipts([receipt("x")]);
+    const sinAccesos = { ...base, state: { ...base.state, deployment: null } } as CollectionStatePayload;
+    const html = (onIrAAccesos?: () => void) => renderToStaticMarkup(
+      <DeliverySection payload={sinAccesos} latestArtifact={null} onState={() => undefined} onIrAAccesos={onIrAAccesos} />,
+    );
+    expect(html(() => undefined)).toContain("Ir a Accesos");
+    expect(html()).not.toContain("Ir a Accesos");
+  });
+});
+
+describe("las tablas en Sheets se construyen desde Material (R13)", () => {
+  beforeEach(() => {
+    vi.stubGlobal("localStorage", { getItem: () => null, setItem: () => undefined, removeItem: () => undefined });
+  });
+  afterEach(() => { vi.unstubAllGlobals(); });
+
+  it("la acción está y dice qué hace; sin entregar, apagada y con su motivo", () => {
+    const base = payloadWithReceipts([receipt("x")]);
+    const sinEntregar = { ...base, state: { ...base.state, deployment: null } } as CollectionStatePayload;
+    const html = renderToStaticMarkup(<DeliverySection payload={sinEntregar} latestArtifact={null} onState={() => undefined} />);
+    expect(html).toContain("Construir las tablas en Sheets");
+    expect(html).toContain("no pisa sus hojas");
+    expect(html).toContain("Monitoreo las lee para el seguimiento");
+    expect(html).toContain("Construir la distribución en Sheets");
+    expect(html).toMatch(/disabled=""[^>]*title="Primero entrega a Monitoreo/);
+  });
+});
+

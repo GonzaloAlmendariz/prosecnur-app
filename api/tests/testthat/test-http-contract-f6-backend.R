@@ -63,8 +63,9 @@ test_that("GET /registry dice el tipo del estándar de cada lámina y null en la
   expect_identical(por$p_slide_3_graficos_poblacion_corona$estandar$nombre, .std_tipo_lamina("p_slide_3_graficos_poblacion_corona")$nombre)
   expect_null(por$p_slide_portada$estandar)
   # 4360e2b26 sumó p_slide_estandar («Reglas de la identidad»): lámina estructural del catálogo, sin tipo en
-  # ppt.tipos_lamina; por eso las de estructura/población sin tipo pasan de 11 a 12.
-  expect_identical(lengths(regmatches(rawToChar(r$raw), gregexpr('"estandar":null', rawToChar(r$raw), fixed = TRUE))), 12L)
+  # ppt.tipos_lamina; por eso las de estructura/población sin tipo pasan de 11 a 12. El resumen de diferencias y los
+  # hallazgos clave (2026-11-04) tampoco tienen tipo en el estándar: 14.
+  expect_identical(lengths(regmatches(rawToChar(r$raw), gregexpr('"estandar":null', rawToChar(r$raw), fixed = TRUE))), 14L)
 })
 
 test_that("GET /registry publica familia del editor y salida de cada graficador, con las familias en orden (K4)", {

@@ -84,10 +84,6 @@ mount_proyecto <- function(pr) {
       if (file.exists(requested_target) && !should_overwrite) {
         stop_api(409, "E_TARGET_EXISTS", sprintf("Ya existe '%s'. Pasa overwrite=true para reemplazarlo.", requested_target))
       }
-      if (file.exists(requested_target) && should_overwrite) {
-        unlink(requested_target, force = TRUE)
-      }
-
       proj_name <- as.character(project_name %||% body$project_name %||% body$projectName %||% NA_character_)
       if (is.na(proj_name) || !nzchar(proj_name)) {
         proj_name <- tools::file_path_sans_ext(basename(requested_target))
@@ -104,6 +100,12 @@ mount_proyecto <- function(pr) {
         s_current <- session_get(current_sid)
         source_for_response <- as.character(s_current$project_path %||% "")
       }
+      # ADR 0122 §7: el candado decide ANTES de borrar el destino; si no, un 409
+      # de build_pulso llegaría con el archivo ya perdido.
+      .pulso_version_exigir_guardado(sid_to_save)
+      if (file.exists(requested_target) && should_overwrite) {
+        unlink(requested_target, force = TRUE)
+      }
 
       result <- build_pulso(
         sid_to_save,
@@ -119,6 +121,7 @@ mount_proyecto <- function(pr) {
           if (!is.null(loaded_copy)) {
             loaded_copy$id <- current_sid
             .session_env[[current_sid]] <- loaded_copy
+            .pulso_version_mover(sid_to_save, current_sid)
             if (exists(sid_to_save, envir = .session_env, inherits = FALSE)) {
               rm(list = sid_to_save, envir = .session_env)
             }
@@ -160,6 +163,7 @@ mount_proyecto <- function(pr) {
           .cmail_purge_personal_data(session_get(current_sid, required = FALSE))
           loaded$id <- current_sid
           .session_env[[current_sid]] <- loaded
+          .pulso_version_mover(result$session_id, current_sid)
           result$session_id <- current_sid
           result$project_path <- loaded$project_path
         }

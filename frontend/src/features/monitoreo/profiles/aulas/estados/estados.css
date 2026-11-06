@@ -1,0 +1,128 @@
+/* S3 · Falló: el error con su código y lo que sigue valiendo. */
+.aulas-s3 {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--pulso-space-2);
+}
+
+.aulas-s3 > span {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.aulas-s3-codigo,
+.aulas-s3-vigente {
+  font-size: var(--pulso-type-caption-size);
+  opacity: 0.85;
+}
+
+/* P1c · Recibo de Actualizar. */
+.aulas-recibo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-2);
+  margin-bottom: var(--pulso-space-3);
+  padding: var(--pulso-space-3) var(--pulso-space-4);
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-panel);
+  background: var(--pulso-surface);
+  font-size: var(--pulso-type-caption-size);
+}
+
+.aulas-recibo > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.aulas-recibo-cerrar {
+  border: 0;
+  background: transparent;
+  color: var(--pulso-text-soft);
+  cursor: pointer;
+}
+
+.aulas-recibo-pasos {
+  display: grid;
+  gap: var(--pulso-space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.aulas-recibo-pasos li {
+  display: flex;
+  align-items: center;
+  gap: var(--pulso-space-2);
+}
+
+.aulas-recibo-pasos li[data-tono="ok"] svg { color: var(--pulso-success-fg); }
+.aulas-recibo-pasos li[data-tono="aviso"] svg { color: var(--pulso-warn-fg); }
+
+.aulas-recibo-cambios {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--pulso-space-2);
+  margin: 0;
+}
+
+.aulas-recibo-cambios dt {
+  color: var(--pulso-text-faint);
+}
+
+.aulas-recibo-cambios dd {
+  margin: 0;
+  font-weight: var(--pulso-weight-bold);
+}
+
+.aulas-recibo-cambios small {
+  color: var(--pulso-text-soft);
+  font-weight: var(--pulso-weight-regular);
+}
+
+.aulas-recibo-notoca {
+  margin: 0;
+  color: var(--pulso-text-faint);
+}
+
+/* P1a/P1b · Actualizar abierto y corriendo: el mismo marco que el recibo. */
+.aulas-actualizar-pasos li[data-en-curso] {
+  color: var(--pulso-text);
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.aulas-actualizar-pasos li:not([data-tono]):not([data-en-curso]) {
+  color: var(--pulso-text-faint);
+}
+
+.aulas-actualizar-n {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  background: var(--pulso-surface-2);
+  font-weight: var(--pulso-weight-bold);
+}
+
+.aulas-actualizar-acciones {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--pulso-space-2);
+}
+
+.aulas-actualizar-giro {
+  animation: aulas-actualizar-giro 1s linear infinite;
+}
+
+@keyframes aulas-actualizar-giro {
+  to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .aulas-actualizar-giro { animation: none; }
+}

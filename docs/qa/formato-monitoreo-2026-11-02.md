@@ -1,0 +1,204 @@
+# Formato en Monitoreo (2 nov 2026, noche)
+
+Gonzalo: «no es solo un pequeño ajuste, es un tema sistemático que debe solucionarse», y para esta noche «Formato
+en Monitoreo». El método es el de Material de campo (`revamp-material-de-campo-construccion-2026-11-02.md`, sección
+«Causas compartidas»): por cada patrón, su fuente, su conteo y un guard que impide que vuelva. Alcance de escritura:
+`frontend/src/features/monitoreo/` y este doc. El kit (`components/`) y `lib/` se piden a coordinación.
+
+## Medición (2 nov, 22:10)
+
+Script de medición en el scratchpad de la sesión (`medir.mjs`): recorre `features/monitoreo`, separa por perfil
+(`profiles/<perfil>/`; el resto es «núcleo»: shell, core, salidas, sync, public…) y no cuenta comentarios.
+
+| # | Patrón | Núcleo | Acreditación | Aulas (cursos-horario) | Telefónico | Territorial | Total | Dónde nace |
+|---|---|---|---|---|---|---|---|---|
+| P1 | `font-size: Npx` en CSS | 2,024 | 278 | 384 | 367 | 877 | **3,930** | `monitoreo.css` 1,102 y `profiles/profilePage.css` 718 (hojas madre congeladas a crecimiento), `territorialProfile.css` 564, `telefonicoProfile.css` 186. Ninguna hoja usa los roles de `app/tipografia.css` salvo aulas (114) y territorial (32). Aulas tiene además su propia escala (`--aulas-txt/sec/min`, 415 usos) |
+| P1 | tamaños más frecuentes | | | | | | | 10 px ×1,155 · 12 ×598 · 11 ×499 · 10.5 ×356 · 13 ×303 · 11.5 ×236 · 12.5 ×161 · 14 ×135 |
+| P2 | `<Panel>` del kit / `h2–h4` sueltos | 0 / 3 | 0 / 106 | 5 / 130 | 0 / 44 | 2 / 92 | 7 / 375 | Cada vista arma su cabecera de bloque; las páginas madre (`AcreditacionMonitoreoPage` 32, `TelefonicoMonitoreoPage` 38) concentran los de sus perfiles |
+| P3 | « · » en código (sin comentarios) | 42 | 157 | 363 | 159 | 242 | 963 | Frases cosidas en páginas madre (`TelefonicoMonitoreoPage` 137, `AcreditacionMonitoreoPage` 118) y en aulas repartido (`AulasSerieDeRendimiento` 17, `AulasAgendacion` 14…). Los 1,672 del encargo incluían 260 en comentarios y los `.join(" · ")` |
+| P4 | `{x.length}` crudo / `toFixed(` | 15 / 5 | 15 / 12 | 17 / 43 | 15 / 6 | 11 / 57 | 73 / 123 | Ya hay guard de porcentaje (`formateadorUnico.contract.test.ts`); los `toFixed` restantes son sobre todo geometría de SVG (`AulasMapaDeLaDeuda` 27, `TerritorialValidationGeoWorkbench` 18), no cifras visibles |
+| P5 | Clases propias de vacío o carga (usos en JSX) | 4 | 57 | 34 | 60 | 93 | ~250 | ~70 recetas distintas. Las más repetidas: `mon-sm-empty` 25, `mon-profile-empty` (vía `EmptyPanel` ×2 copias y `VacioConSalida`), `mon-territorial-audit-empty` 7, `mon-territorial-source-empty` 6, `mon-territorial-route-map-loading` 6. `EstadoVacio` del kit: 22 usos (acreditación 16, telefónico 6); `LoadingBlock`: 3 |
+| P5 | Reglas CSS de vacío o carga | 77 | 17 | 32 | 22 | 72 | 220 | |
+| P6 | Clases propias de chip o estado | 13 | 53 | 43 | 26 | 21 | 156 | Espera a `EstadoChip` y al slot de estado de `ModuleCommandBar` (Material) |
+| P8 | `<code>` / reglas `monospace` | 0 / 1 | 0 / 6 | 1 / 6 | 7 / 0 | 6 / 0 | 14 / 13 | `telefonico/insumos/Llave.tsx` 6, `territorial/insumos/MapeoTab.tsx` 3 |
+
+### Decisiones de alcance (reversibles)
+
+- **`public/` queda fuera de P1**, como Dashboard: `monitoreoPublic.css` es el informe público que ve el cliente y su
+  letra es la del artefacto publicado (38 literales).
+- **Excepciones de P1 que se declaran y no se convierten**: los `font-size` menores de 9 px son unidades de un
+  `viewBox` SVG escalado (rótulos de calles del mapa, el donut de validación), no píxeles de pantalla; los de 24 px o
+  más son cifras héroe (40 px del resumen de acreditación y de aulas, 44 px del faltante telefónico) que el rol `kpi`
+  (21 px) achicaría. Son 33 en 20 hojas y quedan como línea base del ratchet.
+- **Escala propia de aulas** (`--aulas-txt: 12px`, `--aulas-sec: 11px`, `--aulas-min: 10px`): no la cuenta el ratchet
+  porque no son literales en reglas. Se anota para la pasada de aulas; reasignarla a roles cambia 415 usos de un golpe.
+
+### Orden de trabajo (decisión de la noche)
+
+La línea base visual tarda ~50 min (40 capturas con warm start) y el checkout no puede cambiar mientras corre. Por eso
+P5 se hace primero en dos worktrees aislados (telefónico, acreditación y núcleo / territorial y aulas) y se fusiona
+después; P1 es un script determinista (`p1.mjs`, regla de Material) que se corre sobre el árbol ya fusionado, así que
+no choca con las reglas CSS que P5 borra.
+
+## Estado
+
+| Paso | Estado | Commit | Nota |
+|---|---|---|---|
+| Medición | ☑ | (este doc) | |
+| Línea base visual «antes» (5 copias D1 × 4 secciones × 1440 y 1280) | ☑ | — | `cap/antes-*` en el scratchpad: 40 capturas, 40 md5 distintos. Antes de tocar nada: UMP `textosFuera=2 columnasOcultas=1`; cuotas `desplazamientoH=1` (la columna «Por día» de Distritos, cortada a 1280); telefónico `textosFuera=1` y, según la corrida, `cabecerasQueTapan=1` en Modelo a 1280; aulas y acreditación limpias. Acreditación sale de `acrconta` (referencia), copiada con permiso de escritura |
+| P1 letra por rol | ☑ | 179b89015, 848fca579 | 3,930 → 69, línea por línea con la regla de Material (`p1.mjs`): ≥18 px → kpi; 15–17 → title; 12–14.5 → subtitle si seminegrita, body si no; 10.6–11.5 → eyebrow si versalitas, caption si no; ≤10.5 → micro. `features/monitoreo` entra en `letraPorRol` y deja de estar fuera de `pisoTipografico`. Quedan declarados 31 (SVG con `viewBox` y cifras héroe de 24–44 px) y `public/` (38). Gate 630 suites |
+| P5 vacíos y cargas por el kit | ☑ | f727e832c y e9c25e1e3 (barridos, ver abajo) + el cierre | ~360 recetas propias → 0. Todo vacío va por `EstadoVacio` y toda carga por `LoadingBlock` o `CargaDeBloque` (kit, 651a38e23). `EmptyPanel` ×2 y `VacioConSalida` pintan `EstadoVacio` por dentro, así que arreglan a todos sus llamadores. Las tarjetas vacías de territorial y la Semana vacía de la Agenda de aulas miden su contenido en vez de estirarse (`align-self: start`). −183 líneas de reglas huérfanas en `monitoreo.css` y `profilePage.css`, y −237/−229 en `territorialProfile.css` y `aulasMonitoreo.css`. Declaradas: la pantalla de preparación del perfil (`mon-territorial-loading*`, `mon-acr-loading-card*`) y las fichas de capa del mapa. Guard: `features/monitoreo/vaciosYCargasDelKit.contract.test.ts` con meta 0. Gate: tsc 0, `gate-front monitoreo` 630 suites y 6,615 tests, audit OK |
+| P2 cabecera de bloque | ☑ telefónico | f8bf56a1f | La cabecera de PESTAÑA ya era una (L14, `a517d2ece`; el rótulo en la tarjeta es el §2a-bis, `93d3e1615`). La deuda estaba en la cabecera de BLOQUE de telefónico: 22 bloques con un antetítulo en versalitas como título («STATUS DEL CLIENTE» junto a «Listado por sede») pasan a `mon-ctl-panel-cabecera` (`<b>título</b><span>meta</span>`). Guard `profiles/telefonico/cabeceraDeBloque.contract.test.ts` (meta 0; detecta los 22 sobre 179b89015). Acreditación y aulas usan el antetítulo como rótulo de sub-bloque dentro de una tarjeta con título: se quedan. Candidatos no tocados: Equipo «Sin barrer», CuotasFaltante «Listado por…», Ritmo «Fecha de la hoja», FaltanteDiario, Cuotas «Avance de cada meta» |
+| P3 / P4 / P8 | ☑ | (fusión de las 00:15) | « · » en código: ~963 → 29 líneas: los que LEEN el punto medio de un dato del backend o del Sheets, el que marca una celda vacía y dos que lo ESCRIBEN en un dato que después se lee como contrato (`TerritorialSourceConsole` arma el `name` de la fuente que guarda el backend; `TerritorialProductionAnnulmentWorkspace` une los distritos que `equipoModel` vuelve a partir). Los dos del informe público se quitaron en el cierre. Listas por `lib/enumerar`, jerarquía de dirección con « › » en los tres rieles («Control › Casos»), «P884, Norma Flores Bustamante» por `rotuloDeAplicador`; la copia local de `enumerar` en `territorial/rotulos.ts` se borra. Cifras por `lib/formatoNumero` (~180 `toLocaleString`/`toFixed` visibles); sólo cambia el cero de relleno («2.0 s» → «2 s»). `<code>` de metadatos 14 → 0 (`<data>` o `<span>` con la letra del sistema). Guard `features/monitoreo/formatoDeTexto.contract.test.ts`: ratchet por archivo de « · » (31), `toLocaleString` (39) y `{x.length}` crudo (63), y `<code>` con meta 0. Pendiente: `content: "·"` en tres hojas de aulas y los decimales fijos («3.0») que `formatoNumero` no ofrece |
+| P6 estado frente a acción | ☑ | 5bb924281, f8bf56a1f, 707b8fa1e (anidados) | Regla: chip con modificador de tono = estado = `EstadoChip` (00281fc94, span desde ccb72d437); chip sin tono = etiqueta de dato y se queda. Territorial 32, cursos-horario 20, acreditación ~33, telefónico y núcleo ~20, más las píldoras de caso de las páginas congeladas (`core/tonosDeCaso.ts`). Se quedan: etiquetas, filtros, el color de identidad del canal, el Sistema Pabellón (`aulas-chip`), `aulas-estado-chip` (colores de resultado de los gráficos, B33) y los estados anidados en un botón o disparador de popover (esperan `forwardRef` en el kit). El cruce logrado va en `info` en todas partes (en Consultas una regla local lo pintaba verde). La barra del modo NO suma `estado` al slot de `ModuleCommandBar`: su píldora ya vive aparte de «Actualizar» en `BarraDelModo` |
+
+## Pendientes de UI conocidos
+
+| Pendiente | Estado | Nota |
+|---|---|---|
+| Vacíos de aulas que estiran su marco (Agenda, Cursos-horario) | ☑ | cdf9c1b29 y P5 (la Semana mide su nota). Reverificado el 3/11 sobre d1_aulas a 1440 y 1280 (Control › Agenda, Avance › Cursos y Resumen): `ok=true`, 6 capturas y 6 md5 distintos; la Semana vacía mide su nota y no llega al pie |
+| «Sin act.» cortado al pie del riel de aulas | ☑ | 8fafef653: «Sin / corte» en dos líneas. Se ve bien en la captura D1 de aulas |
+| A 1024, Bandeja y Faltante territoriales esconden columnas | ☑ | 192274eb8 (Bandeja) y 62361f04e (Faltante). Reverificado el 3/11 en d1_ump a 1440, 1280 y 1024: `columnasOcultas=0`, las ocho columnas de Bandeja a la vista. Lo que quedaba a 1024 en territorial se cerró en el commit «Faltante, Resumen y UMP a 1024»: Resumen se apila y Distritos ya no esconde columnas (250 px antes); en UMP, las tarjetas de zona dejan de encogerse al alto de la ventana (6 `scroll-unreachable` antes); en Faltante por zona, el mapa y las celdas ya no se salen de su panel. **Excepción declarada**: en d1_cuotas a 1024 queda un `scroll-unreachable` en el mapa de Faltante por zona. Su último contenido es la capa decorativa de distritos vecinos, que el SVG recorta a propósito: `getBoundingClientRect` de un trazo SVG ignora el recorte (trazo 907–1229 px, SVG 942–1222 px). No hay contenido inalcanzable |
+| A 1280, la columna «Por día» de Avance › Resumen territorial deja 43 px tras un desplazamiento | ☑ | 11fae58b9: barra de «Cuentan / meta» a 48 px y cabeceras numéricas en dos líneas en 1181–1365; captura d1_cuotas sin hallazgos |
+| `.cmg-metodos` y `.cmv2-aulas-modalidad` fuera del ratchet `indicadorDelKit` | fuera de alcance | Viven en `features/calcMuestra/`: son de la sesión de Cálculo de muestra (avisado a coordinación) |
+
+## Incidente: P5 entró en commits ajenos (2 nov, 22:35–22:40)
+
+`git apply --3way` deja en el índice todo lo que aplica, y el índice es compartido entre sesiones. Al fusionar
+los dos worktrees de P5 en `main` quedaron ~130 archivos staged, y los dos `git commit -m` siguientes de la
+sesión de Cálculo se los llevaron: `f727e832c` (telefónico, acreditación y núcleo) y `e9c25e1e3` (territorial y
+aulas). El segundo dejó HEAD sin compilar: tres imports apuntaban a `recopiladores/CargaDeBloque`, que el kit ya
+había mudado a `components/` (651a38e23). No se revirtió nada; el commit de cierre de P5 corrige los imports.
+**Regla desde aquí: nada queda staged. Se fusiona con `git apply` sin `--3way` (o se resuelve y se commitea
+en el mismo paso) y se commitea con `git commit -m "…" -- <rutas>`.**
+
+## Aprendido
+
+- **vitest no ve una clave duplicada en un objeto literal; tsc sí (TS1117).** P1 se cerró con `gate-front` verde y
+  sin `tsc` porque «sólo tocaba CSS», pero también tocaba el `.ts` del ratchet: la excepción de `public/` entró dos
+  veces y el árbol entero dejó de compilar hasta 848fca579 (lo avisó la sesión de Cálculo). Si el diff toca un
+  `.ts`, aunque sea un test de contrato, `tsc` va en el gate.
+- **`git apply --3way` deja staged lo que aplica** (ver «Incidente»).
+
+## Vistas sin terminar, de la más fea a la menos (40 capturas D1, 1440 y 1280)
+
+| # | Vista | Qué se ve | Estado |
+|---|---|---|---|
+| 1 | Territorial › Insumos › Conexiones | Cada fuente Kobo es un formulario plano de 7 pares rótulo/valor («Fase desde» cae sola a una segunda fila a 1280); la serie de lecturas de Piloto son 7 bloques iguales de 220×55 px; tres botones sueltos; subtítulo en MAYÚSCULAS crudas del formulario; «Muestra de campo» con otra receta de mini tarjeta; vacío grande al pie | ☑ 0f00167ff (Panel por fuente, CifrasEnTarjeta, tira de lecturas de 28 px, una sola primaria, Piloto discreta al final; captura 1440/1280 ok=true) y 98a9df7c6: `.mon-page .pulso-panel button` pintaba de blanco TODO botón dentro de un Panel, así que ninguna primaria de Monitoreo se veía primaria (P7) |
+| 2 | Telefónico › Avance › Cuotas a 1280×720 | La columna derecha recortaba sus tres tarjetas | ☑ 11fae58b9 |
+| 3 | Aulas › Modelo › Metas y Avance › Por facultad sin plan | Una franja de una línea sobre una superficie en blanco; la Semana vacía de la Agenda estirada hasta el pie | ☑ P5 (EstadoVacio normal; la Semana mide su nota) y 8d758e801 (44 px a 1280) |
+| 4 | Acreditación › Avance › Resumen, cinta «Respuestas → Cruzan → Efectivas» | Las celdas de descuento (−276, −24) llevan tres líneas de texto apretadas en ~150 px («265 sin llave (pruebas o enlace sin id) / 11 con llave fuera de las bases») | ☑ libro de mermas: cada motivo en un renglón con la cifra en su columna (alineada a la derecha) y un rótulo corto («sin llave», «fuera de las bases», «no cuentan»); el detalle del motivo va en el título del botón, y el tramo pasa de 150 a 176 px mínimo |
+| 5 | Territorial › Avance › Faltante por UMP (envío UMP) | La lista de tarjetas por UMP se corta a media tarjeta dentro de su caja («UMP 4» partida) antes de la nota «Las otras 50 UMP…» | ☑ (3/11): las pendientes miden lo que traen, con un tope de unas tres tarjetas, y el pie se desvanece sólo mientras queda algo abajo (`core/useQuedanMasAbajo`). El mapa de calor pasa a celdas de dos pisos («103» y debajo «de 96»), así que a 1440 ya no pega la columna «60 o más» al borde; el chip largo de sugerencia parte dentro de su tarjeta a 1280 (antes se salía 32 px). Captura d1_ump a 1440, 1280 y 1024: `ok=true` |
+| 6 | Telefónico › Modelo › Cuotas a 1280×720 | La tabla de metas muestra dos filas y desplaza por dentro, y su cabecera pegajosa tapa 34 px de la fila que asoma (`cabecerasQueTapan=1`, sale en unas corridas y en otras no); la tarjeta Calendario recorta su gráfico al pie | ☑ (3 nov, commit «Cuotas a pantalla baja»): el defecto era el desplazamiento anidado, no el relleno. En pantalla baja (≥1181 px de ancho y ≤820 px de alto) cada tarjeta toma su alto natural, la tabla deja de ser marco que desplaza (cabecera estática) y la vista crece y desplaza el contenedor de la pestaña, como Avance › Cuotas en 11fae58b9. Captura d1_telefonico 1280×720, 1366×768 y 1440×1000: `ok=true`, `cabecerasQueTapan=0`, cinco filas a la vista, 3 md5 distintos; la pestaña desplaza (scrollTop 211/284) |
+| 7 | Territorial › Avance › Cuota de cada UMP | El aplicador va en dos líneas («P884, Norma Flores / Bustamante») y «Sin excedente compatible cerca» también; «Saldo» es una columna entera de «—» | ☑ el aplicador va en un renglón con su código tenue y el nombre corto (nombre de pila y apellido paterno; el completo en el título); «cubre» dice «Sin excedente» con la frase entera en el título; «Saldo» sólo se pinta si alguna UMP recibió o cedió una subsanación (`celdasDeCuotaUmp.ts`, con test) |
+| 8 | Telefónico › Control › Barrido | Ya tiene cabecera de bloque única (P2); queda la mezcla de dos gramáticas de mini cifra (franja de 4 con barra frente a «Asignados / Sin asignar» al pie de «Sin llamar») | ☑ una sola gramática, la de la tarjeta del embudo: el pie «Asignados / Sin asignar» repetía la nota de la tarjeta «Sin llamar» con antetítulo sobre cifra; se va, y la barra de esa tarjeta se parte en asignados y sin asignar |
+
+## Cierre (3 nov, ~07:30): veredicto del verificador
+
+**APROBADO CON PENDIENTES.** tsc 0 y `gate-front monitoreo` 637 suites (6,652 tests) sobre un snapshot limpio de HEAD;
+los cinco guards bloquean de verdad (mutación: 5 de 5 en rojo y cada uno nombra su hallazgo); mediciones iguales a
+este doc; ninguna línea añadida esta noche escribe « · » visible; sin hallazgos nuevos respecto de la línea base.
+
+| Pendiente | Por qué sigue abierto |
+|---|---|
+| Captura final de acr, telefónico, cuotas y UMP | ☑ 3 nov, ~08:00 (`cap/final-*`, 4 secciones × 1440/1280, sobre HEAD 6e5dbbb04 con el árbol compilando): 32 capturas, 32 md5 distintos. acr ok=true; cuotas ok=true; UMP ok=true con `columnasOcultas=1` (Modelo, «Población», de la línea base); telefónico `cabecerasQueTapan=1` (Modelo › Cuotas, de la línea base). Ningún hallazgo nuevo frente a `antes-*` |
+| `columnasOcultas=1` en Territorial › Modelo a 1280 (`mon-mod-tabla`, «Población» 6 px detrás del desplazamiento, alcanzable) | Ya estaba en la línea base |
+| ~~`cabecerasQueTapan=1` en Telefónico › Modelo › Cuotas a 1280~~ | ☑ 3 nov: cerrado (ver ranking, fila 6) |
+| P2 en territorial, aulas y acreditación | ☑ 4 nov (noche): `core/BloqueDeMonitoreo.tsx` es el `Panel` del kit con título, bajada, lectura, antetítulo y acciones. Marco «perfil» (conserva `mon-profile-panel`, de la que cuelgan pilas y gráficos) y marco «kit» (territorial: el `Panel` pone el material; la clase de la vista, sólo su layout). Ratchet `cajasPropias.contract.test.ts`, por perfil, sólo baja: aulas 126→80 títulos sueltos y 57→12 cabeceras propias; acreditación 106→80 y 26→0; telefónico 44→18 y 26→0; territorial 94→59. Quedan: los sub-rótulos dentro de un bloque (correctos), las vistas nuevas de aulas con diseño propio (`avance/*`), las 12 cabeceras de aulas con comentarios dentro de la etiqueta y las vistas nuevas de acreditación. Commits b193865db, df108b32d, 4686b08bf, 14cc7c8b3, a934ed636, a212b7b58, 7a1411951, 64240946c, bf7696e4e, 2746b584b, 7350410d7 |
+| Guard de `content: "·"` en el CSS de Monitoreo y caso sintético en `letraPorRol` y `pisoTipografico` | Menores; hoy hay 0 y la mutación del verificador los respalda |
+| `.acr-av-chip.is-cumple` e `.is-falta` en `acreditacion/avance/avance.css` | Huérfanas; la hoja la estaba editando otra sesión |
+
+## Ramas de las páginas madre que ninguna dirección alcanza (4 nov, noche) — pendiente de Gonzalo
+
+Los 26 bloques convertidos a `BloqueDeMonitoreo` en cada página madre (P2) no se vieron en ninguna captura. Medición: una
+sola carga por perfil (`d1_acr`, `d1_telefonico`), navegación con `window.__pulsoNav.ir` por TODAS las direcciones
+canónicas, subvistas incluidas (`insumos/fuentes/recopiladores`, `modelo/cuotas/variables`, `control/barrido/ritmo`,
+`control/calidad/supervision`…), y conteo de `.mon-bloque` en el DOM: **cero en todas**. Las claves viejas de Fuentes
+(`fuentes/survey`, `collectors`…) se resuelven a las pestañas de hoy y no reabren estas ramas. Nada se borra sin la doble
+confirmación de Gonzalo (gate 3).
+
+Las dos páginas llevan las mismas funciones copiadas (`AcreditacionMonitoreoPage.tsx` y `TelefonicoMonitoreoPage.tsx`).
+Líneas de acreditación; en telefónico, entre paréntesis.
+
+| Función | Líneas | Bloques | Por qué no se alcanza | Se podría quitar |
+|---|---|---|---|---|
+| `AcreditacionCrucesView` | 9957–9985 (11113–11141) | 3 | Sin ningún uso: nadie la monta | 29 líneas por página |
+| `AcreditacionAuditoriaView` | 9986–10020 (11142–11176) | 2 | Sin ningún uso | 35 |
+| `AcreditacionReconciliacionView` | 10021–10123 (11177–11279) | 1 | Sin ningún uso | 103 |
+| `AcreditacionModelWorkbench`, pestañas internas `casos`, `enlaces`, `reglas` y `__legacy_estrategias__` | dentro de 1526–1906 (1449–1878) | 6 | La tabla de direcciones (`direccionAcreditacion.ts`) sólo lleva Modelo a `estructura`, `resumen`, `distribucion` y `estrategias`; las tres primeras van a las vistas nuevas antes de llegar aquí y `distribucion` cae en la rama que no tiene estos bloques | las cuatro ramas, ~150 líneas por página |
+| `AcreditacionModelConfigWorkbench`, pestañas `casos` y `enlaces` (incluye `AcreditacionSweepBaseWorkbench`, 3468–3670) | dentro de 2836–3467 (2554–3186) | 3 | Sólo se monta con `activeTab="reglas"` (Insumos › Reglas) | `casos` + `enlaces` + `SweepBase`, ~350 líneas por página |
+| `renderAcreditacionView`, retorno final | 14772–14792 (17287–17307) | 2 | Cada vista interna se despacha antes; el retorno final no lo alcanza ninguna | 21 |
+
+Alcanzables sólo con condiciones; no son código muerto y se quedan:
+
+- `AcreditacionEventsEditor` y `AcreditacionStateRulesEditor` (3803–3907; 2 bloques): dentro del plegable «Eventos de contacto y reglas de estado final» de Insumos › Reglas, en un estudio que no es telefónico. Medidos en `d1_acr` (que es de acreditación, no telefónico): se pintan al abrir el plegable; la primera medición no esperó a que la sección terminara de leer el corte.
+
+Corrección (misma noche): `AcreditacionActiveSourcesView` (8112–8372; 5 bloques; en telefónico 9047–9296) **no es condicional sino inalcanzable**. `AcreditacionSourcesWorkbench` devuelve la vista nueva (`<Fuentes>`) cuando el modelo de fuentes no es telefónico, y la monta sólo en la rama contraria del mismo ternario. Suma unas 260 líneas por página a la lista de arriba.
+
+Orden de magnitud: unas 950 líneas por página madre, ~1.900 entre las dos. **Pendiente de Gonzalo**: confirmar el borrado.
+Después del borrado, los bloques de las ramas condicionales se capturan con un `.pulso` de acreditación por correo.
+
+## Estándar de Salidas (4 nov, noche): decidido por coordinación a pedido de Gonzalo, revisable
+
+Pedido de Gonzalo: «¿Por qué todas las vistas de salidas de Monitoreo tienen diseños diferentes? ¿No se pueden
+estandarizar en el mejor?». Las cuatro corrían el mismo motor (`salidas/MonitoreoOutputsWorkbench`), pero cada modo le había
+puesto una portada distinta. Antes del cambio:
+
+| Modo | Portada |
+|---|---|
+| Acreditación | Franja «Cierre del campo» con cuatro cifras, barra «Entregables del corte» y el motor debajo |
+| Telefónico | Vista del PDF del cliente a la izquierda y el motor a la derecha |
+| Territorial | Sólo el motor |
+| Cursos-horario | Lista «Salidas del corte», vista previa del libro y «Qué toca Publicar»; el motor en la sub-vista «PDF y cliente» |
+
+El estándar (`salidas/estandar/`) toma lo mejor de dos: la lista de cursos-horario (una fila por entregable, con su estado y
+una sola acción) y la hoja del telefónico (lo que recibe el cliente).
+
+- Portada (`PortadaDeSalidas`): a la izquierda «Salidas del corte», con el estado del corte en una línea; a la derecha
+  «Así se verá», con la `HojaDelCliente` del modo.
+- Filas comunes (`filasDeSalidas.ts`): PDF del cliente, Producción, Sheets del cliente, Sheets interno y Base final. Se
+  derivan de lo mismo que lee el motor (corte, readiness y últimas publicaciones), sin recalcular nada.
+- Filas propias: el cierre del campo en acreditación (primera fila, con su diálogo `panel=cerrar-campo`), y en cursos-horario
+  el libro y el Excel con sus acciones.
+- El motor completo queda en «PDF y cliente» (`panel=herramientas`), un panel superpuesto con dirección y vuelta a la portada.
+
+| Modo | Commit | Hoja del cliente | Captura (1440 y 1024, portada y «PDF y cliente») |
+|---|---|---|---|
+| Núcleo | 4f5266da0, b66479aff | — | — |
+| Telefónico | f454611f3 | Avance por cuota y ritmo diario | `ok=true` |
+| Territorial | 03f164cbf | Avance por distrito | `ok=true` |
+| Acreditación | f04bc0cfd | Avance por público | `ok=true` |
+| Cursos-horario | 54ee4d1da | Avance de campo | `ok=true` |
+
+Pendiente de Gonzalo (borrado con doble confirmación): `profiles/telefonico/avance/Entregas.tsx` y su
+`entregasTelefonico.css` quedaron sin uso, reemplazados por `SalidasTelefonicas.tsx`.
+
+### Revisión metodológica de las hojas del cliente (4 nov, noche)
+
+La revisión (agente revisor-metodológico, sólo lectura) rechazó la primera versión: «Así se verá» promete reproducir el
+entregable, y en los tres modos el total, o la columna de avance, no coincidía con el PDF. Lo que se corrigió en el front:
+
+- **Acreditación:** el columnado y el vocabulario del PDF (`monitoreo_acreditacion_avance_pdf.R`).
+  - Columnas: Universo, Completas y Avance sobre el universo (el `progress` de la tarjeta, que es la cifra principal).
+  - Mínimo esperado, Cumplimiento del mínimo y Faltan para el mínimo, sólo si algún público declara mínimo.
+  - El cumplimiento total cuenta sólo los públicos con mínimo, y «Faltan» suma por público sin compensar.
+- **Territorial:** el avance del total sale de las mismas sumas de la tabla, y la tabla usa el vocabulario del PDF («Meta
+  encuestas», «Encuestas válidas»).
+
+Pendiente, revisable por Gonzalo (fuera del alcance del front):
+
+1. **Los PDF de acreditación y territorial compensan sobrantes en su total**. Acreditación lo hace en `pdf:318` y en la
+   fila Total (`pdf:371,400`); territorial en `monitoreo_engine.R:20533`. Pueden decir «0 por recoger» con públicos o
+   distritos todavía bajo su mínimo, y declarar el cierre antes de tiempo. **Es el riesgo más alto que salió de la
+   revisión.** La vista previa ya suma sin compensar, así que hoy no coincide con esos totales del PDF.
+2. **Territorial tiene tres «Faltan» para el mismo corte**: por UMP en el Sheets (`engine:26451`), por distrito en la
+   vista previa y global en el PDF. Hay que fijar un grano y alinear los tres.
+3. **Telefónico:** el total de la vista previa es lo cubierto de la meta, acotado. El PDF divide todas las válidas, sin
+   acotar y con las que no tienen grupo, entre las previstas (`monitoreo_telefonico_avance_pdf.R:197,207`). Hay que
+   elegir una de las dos definiciones.
+4. **La meta de la vista previa no sigue el interruptor «Incluir metas»** (`include_targets`), y el PDF sí.
+5. **Territorial:** un distrito con meta nula sale con «0», porque `resumenModel.ts:164` convierte NA en 0. Debería decir
+   «—» y quedar fuera del total.
+
+Pendiente de otra tanda (Meta B): las vistas de cursos-horario `avance/*` y las vistas propias de acreditación, contra
+el Sistema Pabellón y el kit.

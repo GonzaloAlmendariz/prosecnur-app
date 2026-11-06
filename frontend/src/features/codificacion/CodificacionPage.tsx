@@ -9,6 +9,7 @@ import { ChromeSlotPortal } from "../../app/ModuleChromeSlots";
 import { BaseSelectorTrigger, BasesInspectorMenu } from "../../components/BasesInspectorMenu";
 import { AdaptiveSplitView } from "../../components/AdaptiveSplitView";
 import { ContextTabRail } from "../../components/ContextTabRail";
+import { TabHeading } from "../../components/TabHeading";
 import {
   PROCESAMIENTO_PESTANAS,
   type CodificacionTabId,
@@ -46,6 +47,7 @@ export default function CodificacionPage() {
     rawStep === "matrices" ? "matrices" :
     rawStep === "adaptar" ? "adaptar" :
     "organizar";
+  const pasoActivo = CODIFICACION_STEPS.find((paso) => paso.key === step) ?? CODIFICACION_STEPS[0];
 
   function goStep(next: Step) {
     const sp = new URLSearchParams(location.search);
@@ -107,7 +109,7 @@ export default function CodificacionPage() {
       >
         <main
           id="codificacion-panel"
-          className="pulso-codificacion-content pulso-content-area"
+          className={`pulso-codificacion-content pulso-content-area${prereqOk ? " con-cabecera" : ""}`}
           role="tabpanel"
           aria-labelledby={`codificacion-step-${step}`}
           data-audit-ready={
@@ -143,6 +145,22 @@ export default function CodificacionPage() {
             />
           ) : (
             <>
+              {/* La cabecera única de pestaña (L14), la misma de Carga, Validación
+                  y Analítica: la base activa va en el control porque es un nombre. */}
+              <TabHeading
+                eyebrow="Codificación"
+                titulo={pasoActivo.label}
+                icono={pasoActivo.icon}
+                detalle={pasoActivo.detail}
+                pestanaN={CODIFICACION_STEPS.findIndex((paso) => paso.key === step) + 1}
+                pestanaDe={CODIFICACION_STEPS.length}
+                control={codifSource.active ? (
+                  <span className="pulso-codificacion-base-actual">
+                    <Database size={12} aria-hidden="true" />
+                    {codifSource.labelFor(codifSource.active)}
+                  </span>
+                ) : undefined}
+              />
               {codifSource.loading && (
                 <LoadingBlock label="Cargando base de codificación…" />
               )}

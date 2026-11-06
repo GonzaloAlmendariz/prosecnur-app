@@ -131,6 +131,12 @@ describe("C40 · ASIGNAR", () => {
     expect(t?.rotulo).toBe("Tabla de datos");
     expect(t?.ayuda).toBe(AYUDA_TABLA);
     expect(t?.opciones.map((o) => o.value)).toEqual(["auto", "si", "no"]);
+    // La regla del motor (.radar_mb_tabla_procede): Automática ya la pone con líneas y puntos; sólo barras pide «Sí».
+    expect(AYUDA_TABLA).toMatch(/^Automática la pone junto al radar y a las líneas y puntos/);
+    // Sin encabezado de fábrica: vacío queda vacío y avisa; la ayuda no promete «Tema».
+    const enc = campo(radar, { modo: "publicos" }, "p_radar", "tabla_titulo")?.ayuda ?? "";
+    expect(enc).toContain("Vacío, la celda queda vacía");
+    expect(enc).not.toMatch(/Tema/);
     expect(esRetirado("mostrar_tabla", "p_radar")).toBe(true);
     expect(nombres(radar, {}, "p_radar")).not.toContain("tabla");
     expect(campo(radar, { modo: "publicos" }, "p_radar", "eje_min")?.ayuda).toBe(AYUDA_EJE_MIN);

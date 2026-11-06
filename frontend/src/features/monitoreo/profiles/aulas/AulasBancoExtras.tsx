@@ -169,8 +169,8 @@ export function AulasBancoExtras({ banco, facultadEnFoco = "", eje }: {
         <strong>{fmt(grupos.filter((f) => f.extras > 0).length)}</strong>{" "}
         {grupos.filter((f) => f.extras > 0).length === 1
           ? etiquetaDelEje(eje).toLocaleLowerCase("es")
-          : etiquetaPluralDelEje(eje).toLocaleLowerCase("es")} ·{" "}
-        <strong>{fmt(banco.elegibles)}</strong> alumnos ·{" "}
+          : etiquetaPluralDelEje(eje).toLocaleLowerCase("es")},{" "}
+        <strong>{fmt(banco.elegibles)}</strong> alumnos,{" "}
         <strong>{fmt(banco.mujeres)}</strong> mujeres y{" "}
         <strong>{fmt(banco.hombres)}</strong> hombres
         {/* El resto, DICHO. La línea enseñaba «1 345 alumnos · 580 mujeres y
@@ -185,7 +185,7 @@ export function AulasBancoExtras({ banco, facultadEnFoco = "", eje }: {
             Enseñar los dos primeros números y callar el tercero deja creer
             que la reserva adicional cubre más de lo que puede. */}
         {resto > 0 ? (
-          <> · <strong>{fmt(resto)}</strong> sin sexo declarado</>
+          <>, <strong>{fmt(resto)}</strong> sin sexo declarado</>
         ) : null}
         {/* **El orden, dicho donde se ordena.**
             La lista va por mujeres descendente —el caso que motiva la vista es
@@ -195,7 +195,7 @@ export function AulasBancoExtras({ banco, facultadEnFoco = "", eje }: {
             Sin decirlo, el filtro parece roto.
             Va en ESTE componente y no en el subtítulo del panel de fuera: aquí
             está el `sort` y no pueden separarse. */}
-        <em>{" "}· los que más mujeres traen primero</em>
+        <em>,{" "}los que más mujeres traen primero</em>
       </p>
 
       {/* Las facultades como filtro Y como resumen a la vez: la misma fila dice
@@ -222,7 +222,7 @@ export function AulasBancoExtras({ banco, facultadEnFoco = "", eje }: {
             <span className="aulas-banco-nombre">Todas</span>
             <span className="aulas-banco-cuenta">{fmt(banco.total)}</span>
             <span className="aulas-banco-sexos">
-              {fmt(banco.mujeres)} M · {fmt(banco.hombres)} H
+              {fmt(banco.mujeres)} M, {fmt(banco.hombres)} H
             </span>
           </button>
         </li>
@@ -245,7 +245,7 @@ export function AulasBancoExtras({ banco, facultadEnFoco = "", eje }: {
               <span className="aulas-banco-nombre">{f.faculty || etiquetaSinValorDelEje(eje)}</span>
               <span className="aulas-banco-cuenta">{fmt(f.extras)}</span>
               <span className="aulas-banco-sexos">
-                {fmt(f.mujeres)} M · {fmt(f.hombres)} H
+                {fmt(f.mujeres)} M, {fmt(f.hombres)} H
               </span>
             </button>
           </li>

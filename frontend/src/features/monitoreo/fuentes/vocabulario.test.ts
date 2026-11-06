@@ -14,16 +14,16 @@ import {
 
 describe("textoDeHerencia", () => {
   test("reemplaza «20 heredan · 0 excepciones»", () => {
-    expect(textoDeHerencia(20, 0)).toBe("20 recopiladores usan este canal · ninguno con excepción");
+    expect(textoDeHerencia(20, 0)).toBe("20 recopiladores usan este canal, ninguno con excepción");
   });
 
   test("mantiene la excepción visible cuando la hay", () => {
-    expect(textoDeHerencia(4, 1)).toBe("4 recopiladores usan este canal · 1 con excepción");
-    expect(textoDeHerencia(4, 3)).toBe("4 recopiladores usan este canal · 3 con excepción");
+    expect(textoDeHerencia(4, 1)).toBe("4 recopiladores usan este canal, 1 con excepción");
+    expect(textoDeHerencia(4, 3)).toBe("4 recopiladores usan este canal, 3 con excepción");
   });
 
   test("singular y estado vacío", () => {
-    expect(textoDeHerencia(1, 0)).toBe("1 recopilador usa este canal · ninguno con excepción");
+    expect(textoDeHerencia(1, 0)).toBe("1 recopilador usa este canal, ninguno con excepción");
     expect(textoDeHerencia(0, 0)).toBe("Sin recopiladores");
   });
 });

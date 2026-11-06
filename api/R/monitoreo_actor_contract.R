@@ -1,3 +1,43 @@
+# Canales de un público en acreditación (ADR 0125 §5): una lista que CRECE
+# —ronda 1, 2, 3…— con lo que se va abriendo, no un plan cerrado (Gonzalo,
+# 2026-11-02: «hacemos llamada y no llegamos a la meta y se decide después
+# iniciar una campaña de correo»). `canal` es correo, telefonico o presencial;
+# la ronda empieza en 1 y no se repite dentro del público.
+#
+# Migración: un público sin `canales` que ya tenía el switch telefónico
+# encendido (`phone$enabled`) queda con [correo, telefonico]; sin el switch no
+# se inventa nada y el Planner sigue abriendo sólo correo.
+.MONITOREO_CANALES <- c("correo", "telefonico", "presencial")
+
+.monitoreo_canal_clave <- function(x) {
+  k <- .monitoreo_text_key(.monitoreo_scalar(x, ""))
+  if (k %in% c("correo", "email", "mail", "e_mail", "correo_electronico")) return("correo")
+  if (k %in% c("telefonico", "telefono", "telefonica", "phone", "llamada", "llamadas")) return("telefonico")
+  if (k %in% c("presencial", "aula", "aulas", "presencial_en_aula", "qr", "fichas_qr")) return("presencial")
+  ""
+}
+
+.monitoreo_normalize_canales <- function(raw = NULL, phone_enabled = FALSE) {
+  items <- if (is.list(raw)) raw else if (length(raw)) as.list(raw) else list()
+  out <- list()
+  usadas <- integer(0)
+  siguiente <- 1L
+  for (it in items) {
+    canal <- .monitoreo_canal_clave(if (is.list(it)) it$canal %||% it$channel %||% it$tipo else it)
+    if (!nzchar(canal)) next
+    ronda <- suppressWarnings(as.integer(.monitoreo_scalar(if (is.list(it)) it$ronda %||% it$round else NA, NA)))
+    if (is.na(ronda) || ronda < 1L) ronda <- max(c(usadas, 0L)) + 1L
+    if (ronda %in% usadas) next
+    usadas <- c(usadas, ronda)
+    out[[length(out) + 1L]] <- list(ronda = ronda, canal = canal)
+  }
+  if (!length(out) && isTRUE(phone_enabled)) {
+    out <- list(list(ronda = 1L, canal = "correo"), list(ronda = 2L, canal = "telefonico"))
+  }
+  if (length(out)) out <- out[order(vapply(out, function(r) r$ronda, integer(1)))]
+  out
+}
+
 .monitoreo_normalize_model_units <- function(units = list()) {
   items <- .monitoreo_normalize_profile_list(units)
   normalized <- list()
@@ -28,6 +68,9 @@
     phone <- item$phone %||% item$telefono %||% list()
     if (!is.list(phone)) phone <- list()
     phone_enabled <- .monitoreo_bool(phone$enabled %||% phone$activo, FALSE)
+    canales <- .monitoreo_normalize_canales(item$canales %||% item$channels, phone_enabled)
+    # Declarados los canales, el switch telefónico se lee de ellos.
+    if (length(canales)) phone_enabled <- any(vapply(canales, function(r) identical(r$canal, "telefonico"), logical(1)))
     unit_type <- trimws(.monitoreo_scalar(item$type %||% item$tipo, "actor"))
     if (!nzchar(unit_type)) unit_type <- "actor"
 
@@ -49,7 +92,8 @@
       phone = list(
         enabled = phone_enabled,
         role = if (isTRUE(phone_enabled)) "target" else "none"
-      )
+      ),
+      canales = canales
     )
   }
 

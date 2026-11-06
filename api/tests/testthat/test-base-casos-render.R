@@ -206,7 +206,7 @@ test_that("ficha PPT: la fila «Ponderación» con el texto S4; el texto del usu
   expect_null(.lam_ficha_con_ponderacion(NULL, list(default = .bcr_pond())))
   # Multibase: uno por base.
   fm <- .lam_ficha_con_ponderacion(.bcr_ficha(), list(docentes = .bcr_pond(10), estudiantes = .bcr_pond(150.4)))
-  expect_identical(fm$Detalle[3], "docentes: Resultados ponderados (n efectivo = 10); estudiantes: Resultados ponderados (n efectivo = 150)")
+  expect_identical(fm$Detalle[3], "docentes: Resultados ponderados (n efectivo = 10) y estudiantes: Resultados ponderados (n efectivo = 150)")
 })
 
 test_that("D-b PPT: un mazo ponderado sin ficha técnica avisa al exportar; con ficha o sin peso, no", {

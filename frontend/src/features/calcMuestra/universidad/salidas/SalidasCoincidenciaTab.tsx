@@ -13,6 +13,7 @@
  * para todas las facultades; debajo la ficha de cada una con sus criterios
  * propios y sus seis cuentas. Las dos con la columna de 2025 al lado.
  */
+import { Scale } from "lucide-react";
 import type {
   CalcMuestraAulasSelection,
   CalcMuestraCertificacionFacultad,
@@ -27,6 +28,7 @@ import { SeleccionComparadaCard } from "./SeleccionComparadaCard";
 import { FichaPorFacultadCard } from "../criterios/FichaPorFacultadCard";
 import type { FichaFacultad } from "../criterios/fichaFacultadModel";
 import "./coincidencia.css";
+import { EstadoVacio } from "../../../../components/EstadoVacio";
 
 export function SalidasCoincidenciaTab({
   criteriosGenerales,
@@ -111,11 +113,11 @@ export function SalidasCoincidenciaTab({
             rótulo que anuncia contenido seguido de nada. Un vacío se declara,
             no se deja en blanco (C3). */}
         {grupoResultadoVacio && (
-          <p className="cmv2-coincidencia-vacio" role="note">
-            Todavía no hay nada que comparar acá: este bloque muestra el embudo por facultad, la
-            garantía de la selección y su rendimiento esperado, y los tres se construyen sobre una
-            selección corrida. Sale de <i>Selección → Cursos-horario titulares</i>.
-          </p>
+          <EstadoVacio
+            icono={<Scale size={16} aria-hidden="true" />}
+            titulo="Todavía no hay una selección que comparar"
+            descripcion={<>El embudo por facultad, la garantía y el rendimiento esperado salen de una selección corrida en <i>Selección › Cursos-horario titulares</i>.</>}
+          />
         )}
         {/* El gráfico que faltaba: las quince facultades, hoy contra 2025, a la
             misma escala y paso por paso. Va antes de las fichas porque es el

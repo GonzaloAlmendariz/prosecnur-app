@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 import { RouteLoadingFallback } from "./ModuleWarmupBoundary";
 import { WarmupReloj } from "./WarmupReloj";
 import { VistaSkeleton } from "../components/VistaSkeleton";
+import { PROSECNUR_ACTIVE_MODULES } from "../lib/modules";
 import { SIN_ESTIMACION, normalizarEstimacionWarmup } from "./warmupTiempo";
 
 function fallback(path: string) {
@@ -15,19 +16,27 @@ function fallback(path: string) {
 }
 
 describe("warm start de módulo (L23)", () => {
-  it("muestra tiempo y la silueta de la vista destino, no un porcentaje", () => {
+  it("muestra tiempo, la silueta de la vista destino y la barra en el color del módulo, no un porcentaje", () => {
     const html = fallback("/monitoreo?modo=territorial&seccion=avance");
-    expect(html).toContain('class="pulso-module-warmup"');
+    // 5 nov 2026: una sola pantalla de carga para el proyecto y el módulo.
+    expect(html).toContain('class="pulso-carga is-area has-tono pulso-module-warmup"');
+    expect(html).toContain('data-module-warmup="monitoreo"');
     expect(html).toContain("Transcurrido");
     expect(html).toContain("0:00");
     expect(html).toContain('data-vista-skeleton="modulo"');
     expect(html).not.toMatch(/\d+%/);
-    expect(html).not.toContain('role="progressbar"');
+    // Gonzalo, 3 nov 2026: la carga lleva la barra animada en el color del módulo; sigue sin
+    // pintar un porcentaje. Sin avance medido (fallback) es indeterminada.
+    expect(html).toContain("pulso-barra-avance pulso-barra-avance--indeterminada");
+    expect(html).toContain('style="--module-accent:');
+    // 4 nov 2026: el mismo isotipo que la carga del proyecto, no las tres pastillas propias.
+    expect(html).toContain('class="boot-eq"');
+    expect(html).not.toContain("pulso-module-warmup-mark");
   });
 
   it("la silueta no es la vista: oculta a lectores y sin marca de readiness", () => {
     const html = fallback("/monitoreo");
-    expect(html).toMatch(/class="pulso-module-warmup-destino" aria-hidden="true"/);
+    expect(html).toMatch(/class="pulso-carga-fondo" aria-hidden="true"/);
     expect(html).not.toContain("data-audit-ready");
   });
 
@@ -68,9 +77,11 @@ describe("VistaSkeleton", () => {
     expect(renderToStaticMarkup(<VistaSkeleton secciones={40} />).match(/is-pill/g)).toHaveLength(8);
   });
 
-  it("la variante de inicio es la grilla de tarjetas", () => {
+  it("la variante de inicio es el Home: una tarjeta por módulo activo, con su tono", () => {
     const html = renderToStaticMarkup(<VistaSkeleton variante="inicio" />);
     expect(html).toContain('data-vista-skeleton="inicio"');
-    expect(html.match(/pulso-vista-skeleton-card"/g)).toHaveLength(8);
+    expect(html.match(/pulso-vista-skeleton-card"/g)).toHaveLength(PROSECNUR_ACTIVE_MODULES.length);
+    expect(html.match(/--module-accent:/g)).toHaveLength(PROSECNUR_ACTIVE_MODULES.length);
+    expect(html).toContain("pulso-vista-skeleton-franja");
   });
 });

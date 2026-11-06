@@ -1,3 +1,4 @@
+import { formatoDecimal } from "../../../../lib/formatoNumero";
 import { useMemo } from "react";
 
 import type { MonitoreoAulasPlanRow } from "../../../../api/monitoreo";
@@ -60,10 +61,10 @@ export function AulasRitmoDeAgendacion({ filas }: {
         <strong>{fmt(ritmo.jornadas.length)}</strong>{" "}
         {ritmo.jornadas.length === 1 ? "jornada" : "jornadas"} de gestión
         {ritmo.porJornada !== null && ritmo.jornadas.length > 1
-          ? <> · ~<strong>{ritmo.porJornada.toLocaleString("es-PE")}</strong> por jornada</>
+          ? <>, ~<strong>{formatoDecimal(ritmo.porJornada, 3)}</strong> por jornada</>
           : null}
         {ritmo.pico
-          ? <> · la mejor: {etiquetaCorta(ritmo.pico.fecha)} con <strong>{fmt(ritmo.pico.nuevas)}</strong></>
+          ? <>, la mejor: {etiquetaCorta(ritmo.pico.fecha)} con <strong>{fmt(ritmo.pico.nuevas)}</strong></>
           : null}
         {/* La proyección dice su denominador: la cola REAL (sin rechazos,
             dormidas ni aplicadas) al ritmo de las jornadas con actividad. */}
@@ -73,7 +74,7 @@ export function AulasRitmoDeAgendacion({ filas }: {
             {faltantes === 1 ? "jornada más" : "jornadas más"}</>
           : null}
         {ritmo.sinFechaDeGestion
-          ? <em> · {fmt(ritmo.sinFechaDeGestion)}{" "}
+          ? <em>, {fmt(ritmo.sinFechaDeGestion)}{" "}
             {ritmo.sinFechaDeGestion === 1 ? "cita agendada" : "citas agendadas"} sin fecha de
             gestión no {ritmo.sinFechaDeGestion === 1 ? "entra" : "entran"} al ritmo</em>
           : null}

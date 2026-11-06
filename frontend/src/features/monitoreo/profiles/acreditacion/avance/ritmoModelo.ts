@@ -10,10 +10,8 @@ import { normalizeSourceMatch } from "../formato";
 import { serieDiaria, seriesPorPublico } from "./avanceModelo";
 import { rowNumber, rowText } from "./tarjetasDeAvance";
 
-/** Cuántos públicos se apilan con color propio; el resto va junto en «Otros públicos». */
-export const CAPAS_CON_COLOR = 6;
-
-export type Capa = { publico: string; valores: number[]; total: number; otros?: boolean };
+/** Cada público es su propia capa, con su color: no se junta ninguno en «Otros» (Gonzalo, 2/11). */
+export type Capa = { publico: string; valores: number[]; total: number };
 
 export type SerieApilada = { fechas: string[]; capas: Capa[]; totales: number[] };
 
@@ -34,12 +32,18 @@ export function seriesApiladas(
   diarioPorPublico: ReadonlyArray<Record<string, unknown>>,
   diarioGeneral: ReadonlyArray<Record<string, unknown>>,
   nombres: ReadonlyMap<string, string> = new Map(),
+  /** Fecha del corte: el calendario llega hasta ella aunque los últimos días no traigan efectivas. */
+  hasta?: string | null,
 ): SerieApilada {
   const porPublico = seriesPorPublico(diarioPorPublico);
   const general = serieDiaria(diarioGeneral);
   const todas = [...general.map((dia) => dia.fecha), ...[...porPublico.values()].flatMap((serie) => serie.map((dia) => dia.fecha))].sort();
   if (!todas.length) return { fechas: [], capas: [], totales: [] };
-  const fechas = calendario(todas[0], todas.at(-1) as string);
+  const ultima = todas.at(-1) as string;
+  // Un campo detenido son días en cero hasta el corte, no una serie que termina
+  // en el último día con efectivas (eso inflaba el ritmo). Tope de 60 días.
+  const fin = hasta && /^\d{4}-\d{2}-\d{2}$/.test(hasta) && hasta > ultima && hasta <= sumarDia(ultima, 60) ? hasta : ultima;
+  const fechas = calendario(todas[0], fin);
   const indice = new Map(fechas.map((fecha, posicion) => [fecha, posicion]));
   const capas: Capa[] = [...porPublico].map(([clave, serie]) => {
     const valores = fechas.map(() => 0);
@@ -50,11 +54,6 @@ export function seriesApiladas(
     return { publico: nombres.get(clave) ?? clave, valores, total: valores.reduce((suma, valor) => suma + valor, 0) };
   }).filter((capa) => capa.total > 0).sort((a, b) => b.total - a.total);
   let finales = capas;
-  if (capas.length > CAPAS_CON_COLOR + 1) {
-    const resto = capas.slice(CAPAS_CON_COLOR);
-    const valores = fechas.map((_, posicion) => resto.reduce((suma, capa) => suma + capa.valores[posicion], 0));
-    finales = [...capas.slice(0, CAPAS_CON_COLOR), { publico: `Otros ${resto.length} públicos`, valores, total: valores.reduce((suma, valor) => suma + valor, 0), otros: true }];
-  }
   // Sin desglose por público, la serie general va como una sola capa.
   if (!finales.length && general.length) {
     const valores = fechas.map(() => 0);
@@ -66,6 +65,23 @@ export function seriesApiladas(
   }
   const totales = fechas.map((_, posicion) => finales.reduce((suma, capa) => suma + capa.valores[posicion], 0));
   return { fechas, capas: finales, totales };
+}
+
+/**
+ * Lo que se dibuja: el calendario hasta el último día con efectivas. La serie
+ * llega hasta el corte para que el ritmo de la última semana sepa que el campo
+ * se detuvo, pero en el gráfico esa cola en cero sólo alargaba el eje con días
+ * vacíos (Gonzalo, 3/11). Los días sin efectivas entre medio sí se quedan. Puro.
+ */
+export function serieDelGrafico(serie: SerieApilada): SerieApilada {
+  let fin = serie.totales.length;
+  while (fin > 1 && !serie.totales[fin - 1]) fin -= 1;
+  if (fin === serie.totales.length) return serie;
+  return {
+    fechas: serie.fechas.slice(0, fin),
+    totales: serie.totales.slice(0, fin),
+    capas: serie.capas.map((capa) => ({ ...capa, valores: capa.valores.slice(0, fin) })),
+  };
 }
 
 /** Los nombres del público como los dice el corte, por clave normalizada. */

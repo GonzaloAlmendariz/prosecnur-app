@@ -63,11 +63,11 @@ export function AulasDesenlacesDelLibro({ desenlaces }: {
                 <span className="aulas-abc-facultades">
                   {t.porFacultad.slice(0, 4).map((f, i) => (
                     <span key={f.facultad}>
-                      {i ? " · " : ""}<b>{fmt(f.aulas)}</b> {f.facultad}
+                      {i ? ", " : ""}<b>{fmt(f.aulas)}</b> {f.facultad}
                     </span>
                   ))}
                   {t.porFacultad.length > 4
-                    ? <> · y {fmt(t.porFacultad.length - 4)} facultades más</>
+                    ? <>, y {fmt(t.porFacultad.length - 4)} facultades más</>
                     : null}
                 </span>
               ) : null}
@@ -100,7 +100,7 @@ export function AulasDesenlacesDelLibro({ desenlaces }: {
                 : "cursos-horario cayeron y todavía no tienen relevo activado: su hueco sigue abierto."}
             </>
           ) : null}
-          {d.caidosSinRelevo && d.sinAulaUtilizada ? " · " : null}
+          {d.caidosSinRelevo && d.sinAulaUtilizada ? ", " : null}
           {d.sinAulaUtilizada ? (
             <>
               {/* «Reemplazada POR» y «complementada CON» terminan en preposición

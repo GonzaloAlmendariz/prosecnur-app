@@ -127,8 +127,10 @@ describe("semántica de navegación de Monitoreo", () => {
     expect(updated).toContain('class="mon-rail-sync-date">09/07</span>');
     expect(updated).toContain('09/07/26');
     expect(updated).toContain('class="mon-rail-sync-time">07:24</span>');
-    expect(empty).toContain('class="mon-rail-sync-date">Sin act.</span>');
-    expect(empty).not.toContain("Sin hora");
+    // La ausencia va en dos líneas, como fecha y hora: en una sola se cortaba.
+    expect(empty).toContain('class="mon-rail-sync-date">Sin</span>');
+    expect(empty).toContain('class="mon-rail-sync-time">corte</span>');
+    expect(empty).toContain('Sin actualización');
   });
 
   test("el adaptador conserva los dos eventos de sincronización local", () => {
@@ -186,7 +188,8 @@ describe("semántica de navegación de Monitoreo", () => {
       nRows: 0,
       hasSnapshot: false,
     }));
-    const sourceLink = html.match(/<a[^>]*data-view-key="fuentes"[^>]*>/)?.[0];
+    // Cursos-horario abre por Insumos desde el revamp del esqueleto común.
+    const sourceLink = html.match(/<a[^>]*data-view-key="insumos"[^>]*>/)?.[0];
 
     expect(sourceLink).toBeDefined();
     expect(sourceLink).not.toContain("href=");

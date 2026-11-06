@@ -38,7 +38,8 @@ test_that("cuatro gráficos con una dona de seis categorías y un histograma: l�
   x <- lam[[1]]; nm <- .gd_nombres(x)
   expect_identical(.gd_degeneradas(x), 0L)
   expect_true("Titulo lamina" %in% nm)
-  expect_equal(sum(nm == "dona:cifra"), 3L)                       # las tres donas, nativas
+  # Las tres donas, nativas: sus porciones con la cifra encima o fuera con su guía y sin cifra al centro (revisión del v7).
+  expect_gte(sum(nm == "dona:porcion"), 6L); expect_true(any(nm == "dona:cifra_aro")); expect_false("dona:cifra" %in% nm)
   rot <- xml2::xml_text(xml2::xml_find_all(x, "//p:sp[p:nvSpPr/p:cNvPr[@name='circular:rotulo']]"))
   expect_true(all(c("Economía", "Sociología", "Femenino", "IX") %in% rot))
 })
@@ -52,5 +53,5 @@ test_that("seis paneles de población con una dona de cuatro categorías (una en
   expect_identical(.gd_degeneradas(x), 0L)
   expect_true("Titulo lamina" %in% nm)                             # el marco del recetario, con su barra
   expect_true("titulo:barra" %in% nm)
-  expect_equal(sum(nm == "dona:cifra"), 2L)
+  expect_gte(sum(nm == "dona:porcion"), 4L); expect_false("dona:cifra" %in% nm)
 })

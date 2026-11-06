@@ -468,8 +468,8 @@ export function EquivalenciasPanel({ onDeclaradas }: EquivalenciasPanelProps) {
               />
               <span className="pulso-equiv-pie-resumen">
                 {`${formatoConteo(resumen.confirmadas)} confirmadas`
-                  + (resumen.sugeridas ? ` · ${formatoConteo(resumen.sugeridas)} sin confirmar` : "")
-                  + (resumen.sinEtiqueta ? ` · ${formatoConteo(resumen.sinEtiqueta)} sin nombre estándar` : "")}
+                  + (resumen.sugeridas ? `, ${formatoConteo(resumen.sugeridas)} sin confirmar` : "")
+                  + (resumen.sinEtiqueta ? `, ${formatoConteo(resumen.sinEtiqueta)} sin nombre estándar` : "")}
               </span>
               <PulsoButton
                 variant="primary"
@@ -548,9 +548,9 @@ export function EquivalenciasPanel({ onDeclaradas }: EquivalenciasPanelProps) {
             <p className="pulso-equiv-pie">
               {formatoConteoDe(estado?.n_filas, "pregunta declarada", "preguntas declaradas")}
               {typeof estado?.n_sin_etiqueta === "number" && estado.n_sin_etiqueta > 0
-                ? ` · ${estado.n_sin_etiqueta} todavía sin etiqueta estándar`
+                ? `, ${estado.n_sin_etiqueta} todavía sin etiqueta estándar`
                 : ""}
-              {estado?.importada_en ? ` · importada el ${estado.importada_en.slice(0, 10)}` : ""}
+              {estado?.importada_en ? `, importada el ${estado.importada_en.slice(0, 10)}` : ""}
             </p>
           </>
         )}

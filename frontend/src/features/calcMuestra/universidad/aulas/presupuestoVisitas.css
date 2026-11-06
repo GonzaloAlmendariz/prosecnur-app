@@ -48,7 +48,7 @@
   top: -13px;
   left: 50%;
   transform: translateX(-50%);
-  font-size: 9px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-semibold);
   color: var(--pulso-text);
   white-space: nowrap;
@@ -56,7 +56,7 @@
 
 .cmv2-presup-leyenda {
   margin: 8px 0 0;
-  font-size: 10.5px;
+  font-size: var(--pulso-type-micro-size);
   color: var(--pulso-text-muted);
 }
 
@@ -85,7 +85,7 @@
 /* Las gestiones de contacto: otra cuenta que la vara del techo (2026-08-20). */
 .cmv2-presup-gestiones {
   margin: 8px 0 0;
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   line-height: 1.5;
   color: var(--pulso-text-muted);
   max-width: 78ch;

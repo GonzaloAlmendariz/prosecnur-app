@@ -27,7 +27,7 @@
 
 .pulso-focus-data-contract-head strong {
   color: #1f2a3d;
-  font-size: 12.8px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-heavy);
   line-height: 1.25;
 }
@@ -36,7 +36,7 @@
 .pulso-focus-data-principle {
   margin: 0;
   color: var(--pulso-text-soft);
-  font-size: 11.4px;
+  font-size: var(--pulso-type-caption-size);
   font-weight: var(--pulso-weight-semibold);
   line-height: 1.45;
 }
@@ -91,7 +91,7 @@
 
 .pulso-focus-select-data-guide-head strong {
   color: #1f2a3d;
-  font-size: 12px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-heavy);
   line-height: 1.25;
 }
@@ -104,14 +104,14 @@
 
 .pulso-focus-select-data-guide-grid strong {
   color: #253149;
-  font-size: 11.2px;
+  font-size: var(--pulso-type-caption-size);
   font-weight: var(--pulso-weight-heavy);
   line-height: 1.2;
 }
 
 .pulso-focus-select-data-guide-grid em {
   color: var(--pulso-text-soft);
-  font-size: 10.8px;
+  font-size: var(--pulso-type-caption-size);
   font-style: normal;
   font-weight: var(--pulso-weight-semibold);
   line-height: 1.32;
@@ -173,7 +173,7 @@
 
 .pulso-focus-name-assistant-head strong {
   color: #1f2a3d;
-  font-size: 12.7px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-heavy);
   line-height: 1.25;
 }
@@ -182,7 +182,7 @@
 .pulso-focus-name-tip {
   margin: 0;
   color: var(--pulso-text-soft);
-  font-size: 11.2px;
+  font-size: var(--pulso-type-caption-size);
   font-weight: var(--pulso-weight-semibold);
   line-height: 1.42;
 }
@@ -215,7 +215,7 @@
 .pulso-focus-disclosure summary {
   cursor: pointer;
   color: #253149;
-  font-size: 12px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-heavy);
 }
 
@@ -274,7 +274,7 @@
   padding: 0 8px;
   border-radius: 7px;
   white-space: nowrap;
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
 }
 
 .pulso-focus-overview-toolbar span {
@@ -336,13 +336,13 @@
 
 .pulso-focus-empty strong {
   color: var(--pulso-text);
-  font-size: 15px;
+  font-size: var(--pulso-type-title-size);
 }
 
 .pulso-focus-empty p {
   max-width: 360px;
   margin: 0;
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   line-height: 1.45;
 }
 
@@ -355,7 +355,7 @@
 .pulso-add-element-menu-head-copy small {
   overflow: hidden;
   color: var(--pulso-text-soft);
-  font-size: 10.8px;
+  font-size: var(--pulso-type-caption-size);
   font-weight: var(--pulso-weight-semibold);
   line-height: 1.25;
   text-overflow: ellipsis;
@@ -380,7 +380,7 @@
 .pulso-add-element-menu-group-title {
   padding: 1px 3px 0;
   color: #667386;
-  font-size: 10.5px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-heavy);
   letter-spacing: 0.04em;
   line-height: 1.2;
@@ -405,7 +405,7 @@
 
 .pulso-add-element-menu-copy strong {
   display: block;
-  font-size: 12.8px;
+  font-size: var(--pulso-type-body-size);
   color: var(--pulso-text);
   line-height: 1.15;
   overflow-wrap: break-word;
@@ -420,7 +420,7 @@
   border-radius: 999px;
   background: color-mix(in srgb, var(--pulso-primary-soft) 48%, #ffffff);
   color: color-mix(in srgb, var(--pulso-primary) 88%, #253149);
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-heavy);
   line-height: 1.15;
   text-overflow: ellipsis;
@@ -429,7 +429,7 @@
 
 .pulso-add-element-menu-copy > span:not(.pulso-add-element-menu-item-topline) {
   display: block;
-  font-size: 10.5px;
+  font-size: var(--pulso-type-micro-size);
   color: var(--pulso-text-soft);
   font-weight: var(--pulso-weight-semibold);
   line-height: 1.34;
@@ -449,7 +449,7 @@
 .pulso-add-element-menu-copy small {
   display: block;
   color: #596679;
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-semibold);
   line-height: 1.34;
   overflow-wrap: break-word;
@@ -474,35 +474,6 @@
   color: color-mix(in srgb, var(--pulso-success-fg) 78%, var(--pulso-primary));
 }
 
-.pulso-add-element-menu-empty {
-  grid-column: 1 / -1;
-  min-height: 150px;
-  display: grid;
-  place-items: center;
-  align-content: center;
-  gap: 6px;
-  padding: 18px;
-  border: 1px dashed color-mix(in srgb, var(--xls-border) 80%, transparent);
-  border-radius: 14px;
-  background: color-mix(in srgb, var(--xls-content-soft) 86%, #ffffff);
-  color: var(--pulso-text-soft);
-  text-align: center;
-}
-
-.pulso-add-element-menu-empty strong {
-  color: var(--pulso-text);
-  font-size: 13px;
-  font-weight: var(--pulso-weight-heavy);
-}
-
-.pulso-add-element-menu-empty span {
-  max-width: 360px;
-  color: var(--pulso-text-soft);
-  font-size: 11px;
-  font-weight: var(--pulso-weight-semibold);
-  line-height: 1.4;
-}
-
 .pulso-add-element-menu-footer {
   display: flex;
   flex-wrap: wrap;
@@ -511,7 +482,7 @@
   gap: 6px;
   padding: 0 2px 1px;
   color: #667386;
-  font-size: 10.5px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-bold);
 }
 
@@ -572,3 +543,8 @@
 /* Resguardo: el dibujo nunca sale de su recuadro, aunque otra regla cambie la columna. */
 .pulso-add-element-menu-maqueta { overflow: hidden; }
 .pulso-add-element-menu-maqueta .xfk-maqueta { max-width: 100%; max-height: 100%; }
+
+/* El vacío del menú de piezas (`EstadoVacio`) cruza todas las columnas de la grilla. */
+.pulso-add-element-menu-ancho {
+  grid-column: 1 / -1;
+}

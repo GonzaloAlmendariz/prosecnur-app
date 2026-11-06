@@ -236,12 +236,12 @@ export function BolaGoo({
     bola.etiqueta,
     bola.facultad,
     bola.elegibles != null ? `${fmtInt(bola.elegibles)} elegibles` : "elegibles no publicados",
-    bola.certeza ? "certeza · sin sorteo" : bola.pi != null ? `π ${fmtPct(bola.pi)}` : "",
+    bola.certeza ? "certeza, sin sorteo" : bola.pi != null ? `π ${fmtPct(bola.pi)}` : "",
     anillo != null && anillo > 0 ? `${fmtInt(anillo)} ya cubiertos` : "",
     etiquetaExtra ?? "",
   ]
     .filter(Boolean)
-    .join(" · ");
+    .join(", ");
   const bobbing = bobbingDeBola(index);
   return (
     // Posición y animación viven en grupos DISTINTOS: un transform de CSS
@@ -260,7 +260,7 @@ export function BolaGoo({
         ["--wob-delay" as string]: bobbing.fase,
       }}
     >
-      <title>{`${bola.code} · ${descripcion}`}</title>
+      <title>{`${bola.code}, ${descripcion}`}</title>
       <circle className="cmv2-relato-goo-cuerpo" r={r.toFixed(2)} />
       <circle
         className="cmv2-relato-goo-brillo"
@@ -277,14 +277,14 @@ export function BolaGoo({
       {bola.seleccionada ? (
         <text className="cmv2-relato-goo-rotulo" y={r + 2.6}>
           {bola.code}
-          {bola.certeza ? " · sin sorteo" : bola.pi != null ? ` · π ${fmtPct(bola.pi)}` : ""}
+          {bola.certeza ? ", sin sorteo" : bola.pi != null ? `, π ${fmtPct(bola.pi)}` : ""}
         </text>
       ) : (
         /* Bola viva (c): hover/focus revela el marcador y su cifra AL INSTANTE
            (opacity sin transición); el nombre accesible ya viaja en <title>. */
         <text className="cmv2-relato-goo-rotulo is-hover" y={r + 2.6}>
           {bola.code}
-          {bola.elegibles != null ? ` · ${fmtInt(bola.elegibles)} elegibles` : ""}
+          {bola.elegibles != null ? `, ${fmtInt(bola.elegibles)} elegibles` : ""}
         </text>
       )}
     </g>
@@ -306,13 +306,13 @@ export function MasaGoo({ masa }: { masa: RelatoMasaBombo[] }) {
               Va primero porque es lo que cambia la lectura de la escena. */}
           {item.sorteadas > 0 ? (
             <>
-              {" · "}
+              {", "}
               <strong>{fmtInt(item.sorteadas)} sorteadas</strong>
             </>
           ) : (
             ""
           )}
-          {item.elegibles != null ? ` · ${fmtInt(item.elegibles)} elegibles` : ""}
+          {item.elegibles != null ? `, ${fmtInt(item.elegibles)} elegibles` : ""}
         </li>
       ))}
     </ul>

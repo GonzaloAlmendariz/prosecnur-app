@@ -1,3 +1,4 @@
+import type { PasoIndependiente } from "./independiente/pasosAsistente";
 import { create } from "zustand";
 import { normalizePlannedInputCount } from "./CargaSourcesModel";
 
@@ -78,6 +79,8 @@ type CargaUiSlice = {
   smScopeDrafts: Record<string, SmImportScopeDraft>;
   smSharedLogicRules: string;
   smCanonicalFileId: string;
+  /** Paso elegido en el stepper del asistente independiente (L6); `null` = el sugerido. */
+  smPasoIndependiente: PasoIndependiente | null;
 };
 
 type CargaActions = {
@@ -91,6 +94,7 @@ type CargaActions = {
   setSmScopeDrafts: (next: Updater<Record<string, SmImportScopeDraft>>) => void;
   setSmSharedLogicRules: (next: Updater<string>) => void;
   setSmCanonicalFileId: (next: Updater<string>) => void;
+  setSmPasoIndependiente: (next: Updater<PasoIndependiente | null>) => void;
   /** Vuelve el módulo a defaults al cambiar de proyecto (.pulso distinto). */
   resetForSession: () => void;
 };
@@ -106,6 +110,7 @@ const DEFAULTS: CargaUiSlice = {
   smScopeDrafts: {},
   smSharedLogicRules: "",
   smCanonicalFileId: "",
+  smPasoIndependiente: null,
 };
 
 export const useCargaStore = create<CargaUiSlice & CargaActions>((set) => ({
@@ -126,6 +131,7 @@ export const useCargaStore = create<CargaUiSlice & CargaActions>((set) => ({
   })),
   setShowNewIntegration: (next) => set((s) => ({ showNewIntegration: resolveUpdate(next, s.showNewIntegration) })),
   setSmShowSurveyCatalog: (next) => set((s) => ({ smShowSurveyCatalog: resolveUpdate(next, s.smShowSurveyCatalog) })),
+  setSmPasoIndependiente: (next) => set((s) => ({ smPasoIndependiente: resolveUpdate(next, s.smPasoIndependiente) })),
   setSmCatalogQuery: (next) => set((s) => ({ smCatalogQuery: resolveUpdate(next, s.smCatalogQuery) })),
   setSmSelectedIds: (next) => set((s) => ({ smSelectedIds: resolveUpdate(next, s.smSelectedIds) })),
   setSmScopeDrafts: (next) => set((s) => ({ smScopeDrafts: resolveUpdate(next, s.smScopeDrafts) })),

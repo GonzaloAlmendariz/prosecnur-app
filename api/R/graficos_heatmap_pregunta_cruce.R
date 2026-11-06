@@ -143,7 +143,7 @@ graficar_heatmap_pregunta_cruce <- function(data, instrumento, var, cruce, filtr
   lo <- max(0, floor(min(crudo) / 5) * 5); hi <- min(100, ceiling(max(crudo) / 5) * 5)
   if (hi <= lo) { lo <- max(0, lo - 5); hi <- min(100, hi + 5) }
   nota <- paste0("Base: ", .dumbbell_fmt_casos(total$casos), " casos que respondieron. Entre paréntesis, los casos de cada fila",
-                 if (any(chica)) "; * menos de 15 casos" else "", ".")
+                 if (any(chica)) ". * Menos de 15 casos" else "", ".")
   e <- list(version = "heatmap/1", tipo = "heatmap_dim", variante = "pregunta_cruce", filas = rot,
             columnas = data.frame(rotulo = total$opciones, n = NA_real_, stringsAsFactors = FALSE),
             valores = v, valores_crudos = crudo, col_total = NA_integer_, bloques = list(), rango = c(lo, hi),

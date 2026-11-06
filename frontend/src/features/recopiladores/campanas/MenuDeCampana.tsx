@@ -10,6 +10,7 @@ import { PulsoButton } from "../../../components/PulsoButton";
 import { MoreHorizontal } from "../../../vendor/lucide-react";
 import type { AccionDeCampana, IdDeAccion } from "./accionesDeCampana";
 import { rotuloDelMenu } from "./nombreUnico";
+import "./movimiento.css";
 
 type Props = {
   campana: CampanaMaterial;

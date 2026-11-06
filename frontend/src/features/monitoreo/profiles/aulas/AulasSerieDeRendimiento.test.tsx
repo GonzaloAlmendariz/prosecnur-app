@@ -156,7 +156,7 @@ describe("los dos gráficos se leen como uno", () => {
     // que seguir viva en el `aria-label`: si el color sustituye al texto, el
     // lector de pantalla no puede quedarse sin el.
     expect(acumulado).toMatch(/aria-label="\d{2}\/\d{2}, \d+ \/ \d+/);
-    expect(acumulado).toContain("· inferido");
+    expect(acumulado).toContain(", inferido");
   });
 
   it("los dos lienzos tienen el mismo carril de eje, o el mismo día no cae en la misma vertical", () => {
@@ -213,7 +213,7 @@ describe("las dos líneas de sexo no suman la verde, y hay que decirlo", () => {
     // es un render estático—; sus puntos de color se verifican en pantalla. Lo
     // que este archivo sujeta es que la información no se pierda al quitar las
     // palabras, que es el riesgo del cambio.
-    expect(html).toMatch(/aria-label="[^"]*8 mujeres · 6 hombres/);
+    expect(html).toMatch(/aria-label="[^"]*8 mujeres, 6 hombres/);
     // 14 de 49: las dos cifras de sexo NO suman lo conseguido.
     expect(html).toMatch(/aria-label="[^"]*sexo en 14 de 49/);
   });

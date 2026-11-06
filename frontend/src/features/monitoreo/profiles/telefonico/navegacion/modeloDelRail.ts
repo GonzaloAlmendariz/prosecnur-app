@@ -68,5 +68,5 @@ const NOMBRE_DE_SECCION: Record<SeccionTelefonica, string> = {
 
 export function antetituloDePestana(seccion: SeccionTelefonica, pestana: string): string {
   const grupo = seccion === "control" ? GRUPOS_DE_CONTROL[pestana] : undefined;
-  return grupo ? `${NOMBRE_DE_SECCION[seccion]} · ${grupo}` : NOMBRE_DE_SECCION[seccion];
+  return grupo ? `${NOMBRE_DE_SECCION[seccion]} › ${grupo}` : NOMBRE_DE_SECCION[seccion];
 }

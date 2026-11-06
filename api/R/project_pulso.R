@@ -700,7 +700,10 @@
   # referencia de auditoría— y lo borraría al reabrir. Con la captura, ese flag
   # se promueve al mapa por base y `apply` lo devuelve idéntico, mientras los
   # flags que sí viven por base se siguen reproyectando.
-  restored <- .estudio_capture_stage_flags(s, active)
+  # Con config global de Analítica el espejo manda sobre la foto por base:
+  # estudio_stage_flags_global.R explica por qué.
+  restored <- .estudio_stage_flags_espejo_global(sid, s, active)
+  restored <- .estudio_capture_stage_flags(restored, active)
   restored <- .estudio_apply_stage_flags(restored, active)
   .session_env[[sid]] <- restored
   invisible(TRUE)
@@ -777,7 +780,9 @@
     n_questions = as.integer(legacy$n_questions %||% length(legacy$maps)),
     maps = legacy$maps
   )
-  s <- .mark_project_dirty(s)
+  # Deliberado (test-carga-review.R): migrar el mapa legacy al abrir es un cambio
+  # que hay que guardar. El motivo lo dice para que «sin guardar» no parezca falso.
+  s <- .mark_project_dirty(s, "choice_code_mapping (migrado al abrir un .pulso antiguo)")
   .session_env[[sid]] <- s
   legacy$maps
 }
@@ -848,6 +853,7 @@
         if (isTRUE(migrated_mapping$confirmed) && length(migrated_mapping$maps %||% list())) {
           base$choice_code_mapping <- migrated_mapping
           s$project_dirty <- isTRUE(s$project_dirty) || isTRUE(latest$project_dirty)
+          s$project_dirty_reasons <- latest$project_dirty_reasons %||% s$project_dirty_reasons
         }
         norm_ok <- TRUE
         data_norm <- tryCatch(
@@ -2528,6 +2534,7 @@ build_pulso <- function(sid, dest_path, project_name = NULL, allow_empty_overwri
   }
 
   s <- session_get(sid)
+  .pulso_version_exigir_guardado(sid)   # ADR 0122 §7: no pisar un .pulso que exige algo que esta app no conoce
   .pulso_refuse_empty_project_overwrite(s, dest_path, allow_empty_overwrite = allow_empty_overwrite)
   # Convierte referencias legacy path-only a file_id antes de decidir qué
   # inputs viajan. Opera sobre una copia y no altera la sesión abierta.
@@ -2584,6 +2591,7 @@ build_pulso <- function(sid, dest_path, project_name = NULL, allow_empty_overwri
   s_clean$dir <- NULL                # tempdir cambia entre sesiones
   s_clean$project_path <- NULL        # lo setea el load
   s_clean$project_dirty <- NULL
+  s_clean$project_dirty_reasons <- NULL
   s_clean$project_last_saved_at <- NULL
   saveRDS(s_clean, file = file.path(stage_dir, "state.rds"),
           version = 3, compress = "xz")
@@ -2608,6 +2616,7 @@ build_pulso <- function(sid, dest_path, project_name = NULL, allow_empty_overwri
   )
   modules_summary <- .pulso_manifest_modules_summary(s)
   if (!is.null(modules_summary)) manifest$modules_summary <- modules_summary
+  manifest <- .pulso_version_al_guardar(manifest, s)   # ADR 0122 §7: requiere + min_app_version
   # Contactos de las campañas de correo (ADR 0112): files/contactos/, fuera de state.rds.
   contactos <- .cmail_contactos_pack(s, stage_dir)
   if (length(contactos)) manifest$contactos <- contactos
@@ -2639,6 +2648,7 @@ build_pulso <- function(sid, dest_path, project_name = NULL, allow_empty_overwri
   now_iso <- format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC")
   s$project_path <- dest_path
   s$project_dirty <- FALSE
+  s$project_dirty_reasons <- NULL
   s$project_last_saved_at <- now_iso
   .session_env[[sid]] <- s
 
@@ -2743,6 +2753,7 @@ load_pulso <- function(src_path) {
   s_saved$dir <- new_sess$dir      # preservar tempdir nuevo
   s_saved$project_path <- normalizePath(src_path, mustWork = FALSE)
   s_saved$project_dirty <- FALSE
+  s_saved$project_dirty_reasons <- NULL
   s_saved$project_last_saved_at <- as.character(
     manifest$saved_at %||% format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC")
   )
@@ -2753,6 +2764,7 @@ load_pulso <- function(src_path) {
   # `_strip_caches` lo invalidara.
   s_saved$dashboard_dim_ctx <- NULL
   .session_env[[new_sid]] <- s_saved
+  .pulso_version_al_abrir(new_sid, manifest, s_saved)   # ADR 0122 §7: candado y aviso, en memoria
 
   # Publica el override de etiquetas del proyecto en el env ambiente ANTES de
   # reconstruir las fuentes runtime (rebuild llama reporte_data/instrumento, que
@@ -2810,6 +2822,7 @@ load_pulso <- function(src_path) {
   local({
     s_collection <- collection_state_migrate_legacy(session_get(new_sid))
     s_collection$project_dirty <- FALSE
+    s_collection$project_dirty_reasons <- NULL
     .session_env[[new_sid]] <- s_collection
   })
   .pulso_repair_multibase_variant_xlsforms(new_sid)
@@ -2836,6 +2849,12 @@ load_pulso <- function(src_path) {
 # -----------------------------------------------------------------------------
 # project_status — lectura ligera del estado del proyecto activo
 # -----------------------------------------------------------------------------
+.project_status_nombre_estudio <- function(s) {
+  declarado <- tryCatch(trimws(.planner_identidad(s)$nombre %||% ""), error = function(e) "")
+  if (length(declarado) == 1L && nzchar(declarado)) return(declarado)
+  tools::file_path_sans_ext(basename(s$project_path))
+}
+
 project_status <- function(sid) {
   s <- session_get(sid, required = FALSE)
   if (is.null(s)) {
@@ -2852,9 +2871,15 @@ project_status <- function(sid) {
     path          = if (has) as.character(s$project_path) else NA_character_,
     name          = if (has) tools::file_path_sans_ext(basename(s$project_path))
                      else NA_character_,
+    # ADR 0124: lo que el chip enseña. El nombre declarado en la Ficha del
+    # estudio; sin declarar, el del archivo. `name` sigue siendo el del archivo:
+    # es el nombre por defecto al guardar como y en los recientes.
+    nombre_estudio = if (has) .project_status_nombre_estudio(s) else NA_character_,
     dirty         = isTRUE(s$project_dirty),
+    dirty_reasons = if (isTRUE(s$project_dirty)) .project_dirty_reasons_payload(s) else list(),
     last_saved_at = s$project_last_saved_at %||% NA_character_,
-    contactos_campanas = .cmail_contactos_count(s)
+    contactos_campanas = .cmail_contactos_count(s),
+    guardado = .pulso_version_para_status(sid)   # ADR 0122 §7: el candado, antes del 409
   )
 }
 
@@ -2865,6 +2890,7 @@ project_close <- function(sid) {
   s <- session_get(sid)
   s$project_path <- NULL
   s$project_dirty <- FALSE
+  s$project_dirty_reasons <- NULL
   s$project_last_saved_at <- NULL
   .session_env[[sid]] <- s
   invisible(TRUE)

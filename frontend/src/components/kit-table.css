@@ -1,0 +1,105 @@
+/* PulsoTable (L28): anchos declarados, una línea por celda, cifras a la
+   derecha, cabecera pegada. Sólo tokens de la casa. */
+
+.pulso-table-scroll {
+  overflow: auto;
+  max-width: 100%;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius);
+  background: var(--pulso-surface);
+}
+
+.pulso-table {
+  table-layout: fixed;
+  border-collapse: separate;
+  border-spacing: 0;
+  min-width: 100%;
+  font-size: var(--pulso-type-body-size);
+  color: var(--pulso-text);
+}
+
+.pulso-table th,
+.pulso-table td {
+  overflow: hidden;
+  padding: 0 var(--pulso-space-3);
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  border-bottom: 1px solid var(--pulso-border);
+}
+
+/* La fila mide lo que diga la densidad (L29): 36 cómoda, 30 compacta. */
+.pulso-table td {
+  height: var(--pulso-density-row);
+}
+
+.pulso-table th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  height: 32px;
+  background: var(--pulso-surface-2);
+  color: var(--pulso-text-muted);
+  font-size: var(--pulso-type-eyebrow-size);
+  font-weight: var(--pulso-type-eyebrow-weight);
+  letter-spacing: 0.02em;
+}
+
+.pulso-table [data-tipo="cifra"] {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.pulso-table-orden {
+  display: inline-flex;
+  gap: 4px;
+  align-items: center;
+  max-width: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.pulso-table th[data-tipo="cifra"] .pulso-table-orden {
+  justify-content: flex-end;
+  width: 100%;
+}
+
+.pulso-table tbody tr[tabindex] {
+  cursor: pointer;
+}
+
+.pulso-table tbody tr[tabindex]:hover td {
+  background: var(--pulso-surface-2);
+}
+
+.pulso-table tbody tr[data-selected="true"] td {
+  background: var(--pulso-primary-soft);
+}
+
+.pulso-table tbody tr[tabindex]:focus-visible {
+  outline: var(--mov-foco, 2px solid var(--pulso-primary));
+  outline-offset: -2px;
+}
+
+.pulso-table-vacio {
+  height: 72px;
+  color: var(--pulso-text-muted);
+  text-align: center;
+  white-space: normal;
+}
+
+/* La cabecera pegada no tapa la fila que asoma: al desplazar, el scroll encaja
+   al inicio de una fila y deja libre el alto de la cabecera (32 px). Sin esto,
+   la primera fila visible quedaba media escondida bajo los encabezados. */
+.pulso-table-scroll {
+  scroll-padding-top: 32px;
+  scroll-snap-type: y proximity;
+}
+
+.pulso-table tbody tr {
+  scroll-snap-align: start;
+}

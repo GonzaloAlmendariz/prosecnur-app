@@ -94,8 +94,8 @@ export function TitularesFacultadEditor({
       {pendiente && (
         <small className="cmv2-titulares-pendiente">
           la fórmula calcula {fmtInt(calculadas)}
-          {origen === "certificacion" && " · lo pide la certificación"}
-          {esOperativa && " · agregación operativa"}
+          {origen === "certificacion" && ", lo pide la certificación"}
+          {esOperativa && ", agregación operativa"}
         </small>
       )}
       {/* El motivo de una agregación operativa. Se declara faltante en vez de

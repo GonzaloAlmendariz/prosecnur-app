@@ -76,7 +76,7 @@ function hallazgoDeFuente(fuente: CargaReviewFuente, index: number): CargaReview
       surveyId,
       fuenteNombre: nombre,
       tono: "incompatible",
-      titulo: fuente.excluida ? `${nombre} · no entró a la base` : `${nombre} · es otro instrumento`,
+      titulo: fuente.excluida ? `${nombre}, no entró a la base` : `${nombre}, es otro instrumento`,
       lineas,
     };
   }
@@ -85,7 +85,7 @@ function hallazgoDeFuente(fuente: CargaReviewFuente, index: number): CargaReview
   const nBase = fuente.sin_par_base.length;
   const nAmbiguas = fuente.ambiguas.length;
   const nOpciones = fuente.n_opciones_sin_par;
-  const titulo = coinciden ? `${nombre} · ${coinciden} emparejadas` : nombre;
+  const titulo = coinciden ? `${nombre}, ${coinciden} emparejadas` : nombre;
   // Una fuente recién agregada puede no tener aún ninguna respuesta: se dice,
   // para que «emparejadas» no se lea como datos que ya entraron.
   const sinRespuestas: CargaReviewHallazgoLinea[] = fuente.n_filas_incorporadas === 0

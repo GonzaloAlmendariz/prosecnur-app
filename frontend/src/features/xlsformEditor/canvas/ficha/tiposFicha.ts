@@ -12,15 +12,12 @@ export type AccionesFicha = {
   crearLista: () => void;
   duplicar: () => void;
   moverASeccion: (seccionFila: number | null) => void;
-  mover: (dir: "up" | "down") => void;
   eliminar: () => void;
   alternarRepeticion: () => void;
   seleccionarFila: (rowIndex: number) => void;
   irPestana: (pestana: EditorFormulariosPestanaId, foco: string | null) => void;
   ajuste: (field: string, value: string) => void;
   editarFormulario: (mutar: (draft: XlsformEditorWorkbook) => void) => void;
-  puedeSubir: boolean;
-  puedeBajar: boolean;
 };
 
 export type DatosFicha = {

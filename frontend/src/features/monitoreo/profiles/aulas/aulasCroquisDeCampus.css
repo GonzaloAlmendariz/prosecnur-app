@@ -35,7 +35,7 @@
 }
 
 .aulas-croquis-hito {
-  font-size: 22px;
+  font-size: var(--pulso-type-kpi-size);
   fill: var(--pulso-text-soft);
 }
 
@@ -83,7 +83,7 @@
 }
 
 .aulas-croquis-nota {
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   color: var(--pulso-text-soft);
 }
 
@@ -100,7 +100,7 @@
 }
 
 .aulas-croquis-base-rotulo {
-  font-size: 22px;
+  font-size: var(--pulso-type-kpi-size);
   font-weight: 700;
   fill: var(--pulso-primary, #002457);
   paint-order: stroke;

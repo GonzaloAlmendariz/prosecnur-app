@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { EstadoChip } from "../../../../../../components/EstadoChip";
 import { CheckCircle2, SearchX } from "lucide-react";
 import type { MonitoreoInternalQueries } from "../../../../../../api/client";
 import { usePanelDireccionable, type PanelDeclarado } from "../../../../../../lib/navegacion/paneles";
@@ -76,6 +77,8 @@ export function PorResolver({
   return (
     <div className="acr-pr" data-qa-geometry-group="acreditacion-control-resolver" data-qa-geometry-contract="intrinsic">
       <nav className="acr-av-panel acr-pr-filtros" aria-label="Tipos de caso">
+        {/* El rótulo va en la primera tarjeta, la de la izquierda, como en el resto de Control (K6): en la cola saltaba al centro. */}
+        <CabeceraDeTarjeta primera>{null}</CabeceraDeTarjeta>
         <div className="acr-pr-filtros-cuerpo" data-qa-geometry-capacity="owned">
           {GRUPOS.map(({ grupo, titulo }) => {
             const tipos = resumen.porTipo.filter((item) => item.grupo === grupo);
@@ -131,7 +134,7 @@ export function PorResolver({
       </nav>
 
       <section className="acr-av-panel acr-pr-cola" aria-label="Cola del tipo elegido">
-        <CabeceraDeTarjeta primera>
+        <CabeceraDeTarjeta>
           <h3>
             {tipoActual?.etiqueta ?? "Casos"}
             <span className="acr-av-tenue">
@@ -182,10 +185,10 @@ export function PorResolver({
                       </td>
                       <td>
                         {fila.decision
-                          ? <span className={`acr-av-chip${fila.decision === "asignada" ? " is-cumple" : ""}`}>{ROTULO_DE_DECISION[fila.decision]}</span>
+                          ? <EstadoChip label={ROTULO_DE_DECISION[fila.decision]} tone={fila.decision === "asignada" ? "success" : "neutral"} />
                           : fila.grupo === "espera"
-                            ? <span className="acr-av-chip is-falta">Espera</span>
-                            : <span className="acr-av-chip">Por regla</span>}
+                            ? <EstadoChip label="Espera" tone="warn" />
+                            : <EstadoChip label="Por regla" tone="neutral" />}
                       </td>
                     </tr>
                   );
@@ -201,6 +204,7 @@ export function PorResolver({
       {enPanel ? (
         <PanelCaso
           fila={enPanel}
+          corte={consultas}
           elegido={Boolean(elegida)}
           ocupado={Boolean(ocupadoId) && ocupadoId === enPanel.responseId}
           estado={estado ?? null}

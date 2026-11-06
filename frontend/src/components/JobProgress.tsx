@@ -170,14 +170,14 @@ export function JobProgress<T = unknown>({ label, jobId, onDone, onError, onCanc
              aria-valuemin={0} aria-valuemax={100} aria-valuenow={percent ?? undefined}>
           <div
             className={`job-progress-bar-fill${percent == null ? " is-indeterminate" : ""}`}
-            style={percent != null ? { width: `${percent}%` } : undefined}
+            style={percent != null ? { transform: `translateX(${Math.min(100, Math.max(0, percent)) - 100}%)` } : undefined}
           />
         </div>
         <div className="job-progress-foot">
           <span className="job-progress-message">{messageTxt || "Trabajando…"}</span>
           <span className="job-progress-percent">
             {percent != null ? `${Math.round(percent)}%` : "…"}
-            {counterTxt ? <em> · {counterTxt}</em> : null}
+            {counterTxt ? <em>, {counterTxt}</em> : null}
           </span>
         </div>
       </div>

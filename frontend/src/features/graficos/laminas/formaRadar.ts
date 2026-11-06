@@ -1,7 +1,7 @@
 // Qué dibuja de verdad el motor para un `p_radar` entre públicos (modo «publicos»). Réplica pura de `.radar_mb_forma`
 // (api/R/graficos_radar_multibase.R; `.RADAR_MIN_CRITERIOS` = 5, `.RADAR_MAX_CRITERIOS` = 8) y de la regla de `tabla`
-// (graficos_metadata.R). La maqueta y la nota de la tarjeta leen de aquí: sin esto la maqueta promete un radar con tabla
-// cuando el motor, con menos de 5 criterios, dibuja líneas y puntos sin tabla.
+// (graficos_radar_tabla.R `.radar_mb_tabla_procede`: con «Automática», tabla junto al radar y a las líneas y puntos; con
+// barras, no). La maqueta y la nota de la tarjeta leen de aquí; si el motor cambia la regla, cambia aquí también.
 
 export const RADAR_MIN_CRITERIOS = 5;
 export const RADAR_MAX_CRITERIOS = 8;
@@ -46,11 +46,11 @@ export function formaEfectivaRadar(e: EntradaForma): FormaEfectiva {
   else if (pedida === "radar" && n < 3) aviso = "Con menos de 3 criterios el radar no se puede dibujar";
   else if (pedida === "radar" && n < RADAR_MIN_CRITERIOS) aviso = `Con ${n} criterios el radar queda como ${n === 3 ? "triángulo" : "rombo"}`;
 
-  const conTabla = tabla === "si" ? true : tabla === "no" ? false : forma === "radar";
+  const conTabla = tabla === "si" ? true : tabla === "no" ? false : forma !== "barras";
   return { forma, conTabla, nota, aviso };
 }
 
-/** Rótulo de la opción «Automática» de la tabla: con una forma que no es radar no promete «junto al radar». */
+/** Rótulo de la opción «Automática» de la tabla: con barras, que no llevan tabla, no promete ninguna. */
 export function rotuloTablaAuto(forma: FormaDibujada, rotulo: string): string {
-  return forma === "radar" ? rotulo : rotulo.split(":")[0];
+  return forma !== "barras" ? rotulo : rotulo.split(":")[0];
 }

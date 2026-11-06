@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
-import { Loader2, Save } from "../../../../../vendor/lucide-react";
+import { EstadoChip } from "../../../../../components/EstadoChip";
+import { Loader2, Save, Table2 } from "../../../../../vendor/lucide-react";
+import { EstadoVacio } from "../../../../../components/EstadoVacio";
 import { apiMonitoreoConfig } from "../../../../../api/monitoreo";
 import type { MonitoreoAcreditacionReports, MonitoreoState } from "../../../../../api/client";
 import { NotaDelModo } from "../../../core/NotaDelModo";
@@ -17,6 +19,7 @@ import {
   type BorradorDeOrigen,
   type RolDeOrigen,
 } from "./origenModel";
+import { formatoConteo } from "../../../../../lib/formatoNumero";
 
 const ROLES: ReadonlyArray<{ id: RolDeOrigen; etiqueta: string }> = [
   { id: "titular", etiqueta: "Titular" },
@@ -25,7 +28,7 @@ const ROLES: ReadonlyArray<{ id: RolDeOrigen; etiqueta: string }> = [
 ];
 
 function n(valor: number) {
-  return valor.toLocaleString("es-PE");
+  return formatoConteo(valor);
 }
 
 function casos(valor: number | null) {
@@ -100,7 +103,7 @@ export function OrigenDeLaMuestra({
       <header className="mon-insumos-cabecera">
         <strong>Origen de la muestra</strong>
         {inicial.declarado || inicial.sugerido ? (
-          <span className="mon-insumos-estado">{inicial.declarado ? "Declarado" : "Sugerido por el nombre"}</span>
+          <EstadoChip label={inicial.declarado ? "Declarado" : "Sugerido por el nombre"} tone="neutral" />
         ) : null}
         <button
           type="button"
@@ -158,7 +161,7 @@ export function OrigenDeLaMuestra({
               </tbody>
             </table>
           ) : (
-            borrador.origen.columna ? <p className="mon-origen-vacio">La columna no trae valores en este corte.</p> : null
+            borrador.origen.columna ? <EstadoVacio icono={<Table2 size={15} />} titulo="La columna no trae valores en este corte." /> : null
           )}
         </div>
 
@@ -198,7 +201,7 @@ export function OrigenDeLaMuestra({
               </tbody>
             </table>
           ) : (
-            borrador.marca.columna ? <p className="mon-origen-vacio">La columna no trae valores en este corte.</p> : null
+            borrador.marca.columna ? <EstadoVacio icono={<Table2 size={15} />} titulo="La columna no trae valores en este corte." /> : null
           )}
         </div>
       </div>

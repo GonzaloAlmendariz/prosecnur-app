@@ -87,6 +87,8 @@ describe("exploración de una UMP", () => {
     estado = { tipo: "error", ump: "143", mensaje: "sin conexión" };
     const html = pintar();
     expect(html).toContain('data-audit-ready="vacio:sin-casos-de-ump"');
-    expect(html).toContain("No se pudieron traer los casos de la UMP: sin conexión");
+    // P5: el fallo va por ErrorBlock del kit, con la causa como detalle.
+    expect(html).toContain("No se pudieron traer los casos de la UMP");
+    expect(html).toContain("sin conexión");
   });
 });

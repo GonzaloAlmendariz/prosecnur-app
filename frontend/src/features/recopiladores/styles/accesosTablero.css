@@ -1,0 +1,100 @@
+/* Aulas › Accesos con el kit de tablero (AccesosTablero.tsx). */
+
+.rec-access-pagina {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-4);
+  min-height: 100%;
+}
+.rec-access-pagina > .rec-access-layout { flex: 1 1 auto; min-height: 0; }
+
+.rec-acc-canal {
+  font-size: var(--pulso-type-title-size);
+  font-weight: var(--pulso-type-title-weight);
+}
+
+/* —— Los tres chequeos —— */
+.rec-acc-chequeos {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-3);
+}
+.rec-acc-chequeos ol {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-panel);
+  background: var(--pulso-surface);
+}
+.rec-acc-chequeos li {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--pulso-space-3);
+  padding: var(--pulso-space-3) var(--pulso-space-4);
+  border-top: 1px solid var(--pulso-border);
+}
+.rec-acc-chequeos li:first-child { border-top: 0; }
+.rec-acc-paso {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--pulso-module-fieldkit) 12%, var(--pulso-surface));
+  color: var(--pulso-module-fieldkit);
+  font-size: var(--pulso-type-caption-size);
+  font-weight: var(--pulso-weight-bold);
+}
+.rec-acc-chequeo-texto {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.rec-acc-chequeo-texto strong {
+  font-size: var(--pulso-type-body-size);
+  font-weight: var(--pulso-weight-semibold);
+  color: var(--pulso-text);
+}
+.rec-acc-chequeo-texto small {
+  font-size: var(--pulso-type-caption-size);
+  color: var(--pulso-text-soft);
+}
+.rec-acc-estado {
+  padding: 2px var(--pulso-space-2);
+  border: 1px dashed var(--pulso-border-strong);
+  border-radius: 999px;
+  font-size: var(--pulso-type-caption-size);
+  color: var(--pulso-text-soft);
+  white-space: nowrap;
+}
+.rec-acc-chequeos-pie {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--pulso-space-3);
+}
+
+/* —— Aulas que esperan enlace —— */
+.rec-acc-fichas {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(68px, 1fr));
+  gap: var(--pulso-space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.rec-acc-fichas li {
+  padding: var(--pulso-space-2) var(--pulso-space-1);
+  border: 1px dashed var(--pulso-border-strong);
+  border-radius: var(--pulso-radius-panel);
+  background: var(--pulso-surface);
+  font-size: var(--pulso-type-caption-size);
+  font-weight: var(--pulso-weight-semibold);
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+  color: var(--pulso-text-soft);
+}

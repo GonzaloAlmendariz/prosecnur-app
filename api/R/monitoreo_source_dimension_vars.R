@@ -42,6 +42,37 @@
   )
 }
 
+# Un padrón compartido por dos públicos (Gonzalo, 30/10: «CENTRUM y Campus son
+# dos perfiles separados a pesar de que pertenecen a una misma base»). Con
+# `actor_var` sola, cada valor de la columna sería un público (TPA, DTC, CENTRUM,
+# TPC20). `actor_map` dice cuáles valores van a qué público; los que no están en
+# el mapa —y las celdas vacías— se quedan en el público constante de la fuente.
+# Las claves se comparan sin mayúsculas ni tildes.
+.monitoreo_source_actor_map <- function(source = list()) {
+  raw <- source$actor_map %||% source$actorMap %||% list()
+  if (is.data.frame(raw)) raw <- as.list(raw[1, , drop = FALSE])
+  if (!is.list(raw) && !is.character(raw)) return(character(0))
+  nombres <- names(raw)
+  if (is.null(nombres) || !length(raw)) return(character(0))
+  out <- character(0)
+  for (i in seq_along(raw)) {
+    clave <- .monitoreo_text_key(nombres[[i]])
+    publico <- trimws(.monitoreo_scalar(raw[[i]], ""))
+    if (!nzchar(clave) || !nzchar(publico)) next
+    out[[clave]] <- publico
+  }
+  out
+}
+
+# Una fuente de respuestas puede declarar que el público de cada respuesta sale de
+# SU FILA en el padrón, la que cruza por la llave, y no de la encuesta: una sola
+# encuesta de Profesores alimenta a CENTRUM y a Campus. Opt-in por fuente; ver
+# monitoreo_actor_por_padron.R.
+.monitoreo_source_actor_por_padron <- function(source = list()) {
+  valor <- source$actor_por_padron %||% source$actorPorPadron %||% FALSE
+  isTRUE(as.logical(.monitoreo_scalar(valor, "FALSE")))
+}
+
 #' Dimensiones por columna declaradas en una fuente.
 #'
 #' Devuelve un mapa `dim_<clave> -> nombre de columna`. Hoy solo el actor tiene
@@ -73,14 +104,23 @@ monitoreo_source_dimension_vars <- function(source = list()) {
 #' usuario sin poder guardar su configuracion.
 monitoreo_apply_source_dimension_vars <- function(data, source = list()) {
   if (is.null(data) || !is.data.frame(data) || !nrow(data)) return(data)
+  if (.monitoreo_source_actor_por_padron(source)) data$.actor_por_padron <- TRUE
   mapping <- monitoreo_source_dimension_vars(source)
   if (!length(mapping)) return(data)
   variable_labels <- .monitoreo_variable_label_map(data)
+  mapa_actor <- .monitoreo_source_actor_map(source)
   for (dim_col in names(mapping)) {
     column <- mapping[[dim_col]]
     if (!column %in% names(data)) next
     values <- trimws(as.character(data[[column]]))
     values[is.na(values)] <- ""
+    if (identical(dim_col, "dim_actor") && length(mapa_actor)) {
+      constante <- if ("dim_actor" %in% names(data)) trimws(as.character(data$dim_actor)) else rep("", nrow(data))
+      constante[is.na(constante)] <- ""
+      mapeado <- unname(mapa_actor[.monitoreo_text_key(values)])
+      data[[dim_col]] <- ifelse(is.na(mapeado), constante, mapeado)
+      next
+    }
     data[[dim_col]] <- values
   }
   .monitoreo_restore_variable_labels(data, variable_labels)

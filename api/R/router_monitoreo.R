@@ -624,8 +624,10 @@
   outputs <- run$workspace_outputs %||% run$outputs %||% list()
   population <- outputs$population %||% outputs$population_preview %||% outputs$populationPreview %||% NULL
   sample_size_preview <- outputs$sample_size_preview %||% outputs$sampleSizePreview %||% NULL
-  quota <- outputs$quota %||% outputs$quota_preview %||% outputs$quotaPreview %||% NULL
-  sample <- outputs$sample %||% outputs$sample_preview %||% outputs$samplePreview %||% run$sample %||% list()
+  # I4 paso 2: la foto enviada a Material si existe; si no, la viva (monitoreo_territorial_fuente_muestra.R).
+  fuente <- .monitoreo_territorial_fuente_muestra(run, tryCatch(.mcamp_territorial_envio(s, requested_phase), error = function(e) NULL))
+  quota <- fuente$quota
+  sample <- fuente$sample
   blocks <- tryCatch(.monitoreo_territorial_rows_df(sample$blocks %||% list()), error = function(e) data.frame())
   replacements <- tryCatch(.monitoreo_territorial_rows_df(sample$replacement_blocks %||% list()), error = function(e) data.frame())
   phase_note <- if (identical(requested_phase, "pilot") && !is.null(runs$field)) {
@@ -640,7 +642,9 @@
     phase_note = phase_note,
     run_locked = isTRUE(run$locked),
     phases_available = names(runs),
-    config = run$config %||% list(),
+    config = fuente$config,
+    sample_source = fuente$source,
+    sample_fingerprint = fuente$sample_fingerprint,
     blocks = blocks,
     replacement_blocks = replacements,
     population = population,
@@ -650,7 +654,10 @@
     total_entrevistas = as.integer(sample$total_entrevistas %||% sum(suppressWarnings(as.integer(blocks$entrevistas)), na.rm = TRUE)),
     total_replacement_interviews = as.integer(sample$total_replacement_interviews %||% sum(suppressWarnings(as.integer(replacements$entrevistas)), na.rm = TRUE)),
     n_blocks = as.integer(nrow(blocks)),
-    n_replacement_blocks = as.integer(nrow(replacements))
+    n_replacement_blocks = as.integer(nrow(replacements)),
+    # ADR 0125 A1: por cuotas, zonas y su asignación por persona (Material) en vez de UMP.
+    envio_kind = fuente$kind %||% "ump", zonas = fuente$zonas %||% list(),
+    asignacion_zonas = if (identical(fuente$kind, "cuotas")) tryCatch(.mta_guardada(s)$asignacion, error = function(e) list()) else list()
   )
 }
 
@@ -933,6 +940,7 @@
   # Unidad 3.1: token barato ANTES de anotar/normalizar; hit = derivados cacheados (monitoreo_state_cache.R).
   derived <- monitoreo_state_derived(sid, s, sources)
   data <- derived$data; cfg <- .monitoreo_supervision_rondas_en_cfg(derived$cfg, s); family <- derived$family # rondas guardadas: monitoreo_supervision_rondas.R
+  if (isTRUE(include_reports) && identical(family, "aulas_universitarias")) report_scope <- "full" # su tablero no depende del scope: uno para los cinco (2k, test-monitoreo-aulas-cache-entre-scopes.R)
   territorial_light_state <- identical(family, "territorial") && !isTRUE(include_reports)
   display_data <- derived$display_data
   if (isTRUE(include_reports) && identical(family, "territorial") && !identical(report_scope, "light")) {
@@ -944,7 +952,8 @@
   if (.monitoreo_acr_cache_aplica(family, report_scope, include_reports)) {
     acr_cache_info <- .monitoreo_acr_cache_key_info(snapshot %||% list(), display_data, cfg, report_scope = report_scope)
   }
-  cache_token <- .monitoreo_dashboard_cache_token(snapshot %||% list(), display_data, cfg, report_scope = report_scope)
+  route_sig <- .monitoreo_territorial_route_sig(sid, cfg)
+  cache_token <- .monitoreo_dashboard_cache_token(snapshot %||% list(), display_data, cfg, report_scope = report_scope, route_sig = route_sig)
   dashboard <- if (isTRUE(territorial_light_state)) NULL else snapshot$dashboard %||% NULL
   cached_acreditacion_reports <- if (
     isTRUE(include_reports) &&
@@ -957,7 +966,7 @@
         snapshot,
         display_data,
         cfg,
-        .monitoreo_dashboard_cache_token(snapshot %||% list(), display_data, cfg, report_scope = "full"),
+        .monitoreo_dashboard_cache_token(snapshot %||% list(), display_data, cfg, report_scope = "full", route_sig = route_sig),
         report_scope = "full"
       )
   ) {
@@ -1113,7 +1122,7 @@
     dashboard$territorial_reports$map_cache <- territorial_map_cache$active %||% territorial_map_cache
   }
   if (family %in% c("acreditacion", "telefonico")) {
-    dashboard <- .monitoreo_acreditacion_dashboard_para_cliente(dashboard)
+    dashboard <- .monitoreo_acreditacion_dashboard_para_cliente(dashboard, family)
   }
   if (identical(family, "aulas_universitarias")) {
     aulas_cfg <- cfg$aulas_universitarias %||% monitoreo_aulas_default_config()
@@ -1166,8 +1175,8 @@
     # tablero general venia de cache. Medido: 6,6 s por request sobre 2.616
     # cursos-horario x 6 requests que dispara abrir un proyecto = ~40 s con
     # Plumber bloqueado. Detalle y token en `monitoreo_aulas_cache.R`.
-    aulas_cache_token <- monitoreo_aulas_cache_token(
-      cache_token, aulas_plan, aulas_cfg, scope = report_scope
+    aulas_cache_token <- monitoreo_aulas_cache_token( # base SIN scope: con `cache_token` cada scope expulsaba al anterior (11 s por pedido, test-monitoreo-aulas-cache-entre-scopes.R)
+      .monitoreo_dashboard_cache_token(snapshot %||% list(), display_data, cfg, report_scope = "full", route_sig = route_sig), aulas_plan, aulas_cfg, scope = report_scope
     )
     aulas_cache <- monitoreo_aulas_dashboard_cached(
       sid, aulas_plan, display_data, aulas_cfg, aulas_cache_token
@@ -2288,6 +2297,7 @@
     actor_var = parsed$actor_var %||% parsed$actorVar %||%
       parsed$actor_column %||% parsed$actorColumn %||% "",
     dimension_vars = parsed$dimension_vars %||% parsed$dimensionVars %||% list(),
+    actor_map = parsed$actor_map %||% parsed$actorMap %||% list(), actor_por_padron = isTRUE(parsed$actor_por_padron %||% parsed$actorPorPadron),
     dimensions = parsed$dimensions %||% parsed$dimensiones %||% list(
       actor = parsed$actor %||% "",
       servicio = parsed$servicio %||% "",
@@ -2491,6 +2501,8 @@
   }
   model$sheets <- monitoreo_acreditacion_client_report_sheets(model, include_targets = isTRUE(include_targets))
   model$report_kind <- "acreditacion_client_report_pdf"
+  # El corte que publica el PDF es la sincronización, no la hora de generarlo.
+  model$synced_at <- .monitoreo_scalar(snapshot$synced_at %||% "", "")
   model
 }
 
@@ -2797,7 +2809,7 @@ monitoreo_client_report_pdf_job_runner <- function(model_path,
     monitoreo_territorial_advance_report_pdf(model, result_path, include_targets = include_targets)
   } else if (identical(report_kind, "telefonico_advance_pdf") || identical(family, "telefonico")) {
     report("render", percent = 55, message = "Renderizando avance telefónico...")
-    monitoreo_telefonico_advance_report_pdf(model, result_path, include_targets = include_targets)
+    monitoreo_telefonico_advance_report_pdf(model, result_path, include_targets = include_targets, portada = portada)
   } else if (identical(report_kind, "aulas_advance_pdf") || identical(family, "aulas_universitarias")) {
     report("render", percent = 55, message = "Renderizando avance de cursos-horario...")
     monitoreo_aulas_advance_report_pdf(model, result_path, include_targets = include_targets,
@@ -3047,35 +3059,17 @@ mount_monitoreo <- function(pr) {
     plumber::pr_post("/api/monitoreo/sheets/publish", wrap_endpoint(function(req, res, ...) {
       sid <- .monitoreo_session(req, res)
       parsed <- .monitoreo_parse_body(req)
-      s <- session_get(sid)
-      snapshot <- s$monitoreo_snapshot %||% NULL
-      if (is.null(snapshot) || !is.data.frame(snapshot$data)) {
-        stop_api(409, "E_NO_MONITOREO_DATA", "Sincroniza datos antes de publicar pestanas Prosecnur.")
-      }
-      cfg <- monitoreo_normalize_config(parsed$config %||% s$monitoreo_config %||% list(), snapshot$data)
-      spreadsheet_id <- .monitoreo_resolve_publication_spreadsheet_id(parsed, s, "internal")
-      if (!nzchar(spreadsheet_id)) stop_api(400, "E_SHEETS_SPREADSHEET", "Falta spreadsheet_id destino.")
-      tabs <- .monitoreo_sheets_publish_payload(snapshot, cfg)
-      monitoreo_sheets_publish_dispatch(sid, spreadsheet_id, tabs, parsed,
-        event_key = "monitoreo_sheet_publish_events",
-        event_extra = list(tabs = names(tabs)))
+      # El destino lo arma el mismo helper que su ensayo (monitoreo_publicar_ensayo.R).
+      d <- monitoreo_publicar_destino_interno(sid, session_get(sid), parsed)
+      monitoreo_sheets_publish_dispatch(sid, d$spreadsheet_id, d$tabs, parsed,
+        event_key = d$event_key, event_extra = d$event_extra)
     })) |>
     plumber::pr_post("/api/monitoreo/client-report/sheets/publish", wrap_endpoint(function(req, res, ...) {
       sid <- .monitoreo_session(req, res)
       parsed <- .monitoreo_parse_body(req)
-      s <- session_get(sid)
-      snapshot <- s$monitoreo_snapshot %||% NULL
-      snapshot <- monitoreo_client_snapshot_with_carga_universe(snapshot, s)
-      cfg <- monitoreo_normalize_config(parsed$config %||% s$monitoreo_config %||% list(), snapshot$data %||% data.frame())
-      include_targets <- .monitoreo_bool(parsed$include_targets %||% parsed$includeTargets, FALSE)
-      model <- .monitoreo_client_report_model_for_snapshot(snapshot, cfg, include_targets = include_targets,
-                                                          padron = s[["monitoreo_aulas_padron"]])
-      spreadsheet_id <- .monitoreo_resolve_publication_spreadsheet_id(parsed, s, "client")
-      if (!nzchar(spreadsheet_id)) stop_api(400, "E_SHEETS_SPREADSHEET", "Falta spreadsheet_id destino para el reporte a cliente.")
-      tabs <- .monitoreo_client_report_tabs_payload(model)
-      monitoreo_sheets_publish_dispatch(sid, spreadsheet_id, tabs, parsed,
-        event_key = "monitoreo_client_report_sheet_events",
-        event_extra = list(tabs = names(tabs), include_targets = include_targets))
+      d <- monitoreo_publicar_destino_cliente(sid, session_get(sid), parsed)
+      monitoreo_sheets_publish_dispatch(sid, d$spreadsheet_id, d$tabs, parsed,
+        event_key = d$event_key, event_extra = d$event_extra)
     })) |>
     plumber::pr_post("/api/monitoreo/publish", wrap_endpoint(function(req, res, ...) {
       stop_api(
@@ -3156,41 +3150,10 @@ mount_monitoreo <- function(pr) {
     plumber::pr_post("/api/monitoreo/publication/sheets", wrap_endpoint(function(req, res, ...) {
       sid <- .monitoreo_session(req, res)
       parsed <- .monitoreo_parse_body(req)
-      s <- session_get(sid)
-      snapshot <- s$monitoreo_snapshot %||% NULL
-      if (is.null(snapshot) || !is.data.frame(snapshot$data) || !nrow(snapshot$data)) {
-        stop_api(409, "E_NO_MONITOREO_DATA", "Sincroniza datos antes de publicar el ejecutivo en Sheets.")
-      }
-      audience <- .monitoreo_public_audience(parsed$audience %||% parsed$public_audience %||% parsed$publicAudience)
-      spreadsheet_id <- .monitoreo_resolve_publication_spreadsheet_id(parsed, s, audience)
-      if (!nzchar(spreadsheet_id)) stop_api(400, "E_SHEETS_SPREADSHEET", "Falta spreadsheet_id destino para publicar el ejecutivo en Sheets.")
-      bundle <- .monitoreo_publication_preflight_bundle(
-        sid,
-        s,
-        snapshot,
-        parsed,
-        audience = audience,
-        spreadsheet_id = spreadsheet_id
-      )
-      if (identical(bundle$preflight$status, "blocked")) {
-        stop_api(
-          409,
-          "E_MONITOREO_PREFLIGHT_BLOCKED",
-          "El preflight de entregables bloquea esta publicación.",
-          details = list(preflight = bundle$preflight)
-        )
-      }
-      tabs <- bundle$tabs
-      published <- monitoreo_sheets_publish_dispatch(sid, spreadsheet_id, tabs, parsed,
-        event_key = paste0("monitoreo_publication_sheet_events_", audience),
-        event_extra = list(
-          audience = audience,
-          tabs = names(tabs),
-          include_targets = bundle$include_targets,
-          confirmed_full_data = .monitoreo_publication_confirmed_full_data(parsed),
-          preflight = bundle$preflight$scorecard
-        ))
-      c(published, list(audience = audience, preflight = bundle$preflight))
+      d <- monitoreo_publicar_destino_publicacion(sid, session_get(sid), parsed)
+      published <- monitoreo_sheets_publish_dispatch(sid, d$spreadsheet_id, d$tabs, parsed,
+        event_key = d$event_key, event_extra = d$event_extra)
+      c(published, list(audience = d$audience, preflight = d$preflight))
     })) |>
     plumber::pr_post("/api/monitoreo/client-report/pdf", wrap_endpoint(function(req, res, ...) {
       sid <- .monitoreo_session(req, res)
@@ -3689,7 +3652,7 @@ mount_monitoreo <- function(pr) {
       }
       current_roster <- cfg$territorial$enumerator_roster %||% list()
       roster <- tryCatch(
-        monitoreo_territorial_enumerator_roster_from_excel(
+        monitoreo_territorial_enumerator_roster_desde_excel(
           .monitoreo_scalar(meta$path, ""),
           previous = current_roster,
           file_name = .monitoreo_scalar(meta$original_name, original),
@@ -5502,7 +5465,7 @@ mount_monitoreo <- function(pr) {
       cfg <- monitoreo_normalize_config(s$monitoreo_config %||% list(), data)
       aulas <- tryCatch(
         monitoreo_aulas_from_calc(estudio, selection, frame, parsed$config %||% cfg$aulas_universitarias %||% list(),
-                                  s$calc_muestra_referencia_asistencia %||% NULL),
+                                  s$calc_muestra_referencia_asistencia %||% NULL, s$calc_muestra_representatividad %||% NULL),
         error = function(e) stop_api(400, "E_AULAS_IMPORT", conditionMessage(e))
       )
       cfg$monitoreo_profile <- monitoreo_normalize_profile(list(

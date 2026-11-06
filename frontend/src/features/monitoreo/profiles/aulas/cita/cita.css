@@ -1,0 +1,50 @@
+/* P4 · La cita vencida o reagendada dentro de la ficha del curso-horario. */
+.aulas-cita {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-2);
+  margin-top: var(--pulso-space-3);
+  padding: var(--pulso-space-3);
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-card);
+  background: var(--pulso-surface);
+  font-size: var(--pulso-type-caption-size);
+}
+
+.aulas-cita[data-caso="vencida"] {
+  border-color: var(--pulso-danger-border);
+  background: var(--pulso-danger-bg);
+}
+
+.aulas-cita > header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--pulso-space-1) var(--pulso-space-2);
+}
+
+.aulas-cita > header > span {
+  flex: 1 1 100%;
+  color: var(--pulso-text-soft);
+}
+
+.aulas-cita[data-caso="vencida"] > header svg { color: var(--pulso-danger-fg); }
+
+.aulas-cita-salidas {
+  display: grid;
+  gap: var(--pulso-space-2);
+  margin: 0;
+  padding-left: var(--pulso-space-4);
+}
+
+.aulas-cita-salidas li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--pulso-space-1) var(--pulso-space-2);
+}
+
+.aulas-cita-salidas li > span {
+  flex: 1 1 260px;
+  color: var(--pulso-text-soft);
+}

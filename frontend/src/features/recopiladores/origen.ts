@@ -14,6 +14,7 @@ import type {
   CollectionOrigenUnidad,
 } from "../../api/recopiladores";
 import { fechaDeCorrida } from "./fechaDeCorrida";
+import { enumerar } from "../../lib/enumerar";
 
 export const DIRECCION_ORIGEN = "/material-campo?modo=aulas&seccion=unidades&pestana=origen";
 export const DIRECCION_LISTA = "/material-campo?modo=aulas&seccion=unidades&pestana=lista";
@@ -23,7 +24,7 @@ export const DIRECCION_SELECCION_CALC = "/calc-muestra?modo=opinion-universitari
 export const DIRECCION_ENTREGA_CALC =
   "/calc-muestra?modo=opinion-universitaria&seccion=salidas&pestana=salidas-monitoreo";
 /** La agenda de cursos-horario de Monitoreo, cuando es la fuente que manda. */
-export const DIRECCION_AGENDA_MONITOREO = "/monitoreo?seccion=modelo";
+export const DIRECCION_AGENDA_MONITOREO = "/monitoreo?modo=aulas&seccion=control&pestana=agenda";
 
 function n(valor: number): string {
   return valor.toLocaleString("es-PE");
@@ -69,25 +70,26 @@ const ORIGEN: Readonly<Record<string, string>> = {
 };
 
 export function nombreDelModulo(slug: string): string {
-  return MODULO[slug] ?? slug;
+  // `calc-muestra-aulas` y demás variantes del adaptador siguen siendo Cálculo de muestra.
+  return MODULO[slug] ?? (slug.startsWith("calc-muestra") ? MODULO["calc-muestra"] : slug);
 }
 
-/** «Selección de cursos-horario · Cálculo de muestra». */
+/** «Selección de cursos-horario, de Cálculo de muestra». */
 export function tituloDeLaFuente(origen: CollectionOrigen): string {
   const que = ORIGEN[origen.fuente.origen] ?? "";
   const modulo = origen.fuente.modulo ? nombreDelModulo(origen.fuente.modulo) : "";
-  if (que && modulo) return `${que} · ${modulo}`;
+  if (que && modulo) return `${que}, de ${modulo}`;
   return que || modulo || "Sin fuente";
 }
 
-/** «2.616 unidades · sorteo del 21/8/2026 · la lista no se edita aquí». */
+/** «2,616 unidades, sorteo del 21/8/2026 y la lista no se edita aquí». */
 export function detalleDeLaFuente(origen: CollectionOrigen): string {
   const partes: string[] = [];
   if (origen.fuente.unidades !== null) partes.push(plural(origen.fuente.unidades, "unidad", "unidades"));
   const fecha = fechaDelSorteo(origen.fuente.fecha || origen.fuente.run_id);
   if (fecha) partes.push(`sorteo del ${fecha}`);
   partes.push("la lista no se edita aquí");
-  return partes.join(" · ");
+  return enumerar(partes);
 }
 
 /** Adónde lleva «Abrir en …» y «Abrir la selección», según quién manda. */
@@ -334,7 +336,7 @@ function deUnidad(u: CollectionOrigenUnidad, tipo: "alta" | "baja"): FilaDeDifer
     tipo,
     rotulo: tipo === "alta" ? "Entra" : "Sale",
     codigo: u.codigo || u.clave,
-    que: [rol, u.curso, u.facultad].filter(Boolean).join(" · "),
+    que: [rol, u.curso, u.facultad].filter(Boolean).join(", "),
     antes: "",
     despues: "",
   };
@@ -423,6 +425,18 @@ export function vacioDeLaLista(origen: CollectionOrigen, filtro: FiltroDeDiferen
  *
  * `null` = nada que avisar. Sin origen leído todavía, sólo cuenta el sorteo.
  */
+/**
+ * El plan coincide con la selección vigente (revamp v5): verde por conformidad, no por
+ * ausencia. Sólo se afirma con los DOS veredictos del backend a la vista —el sorteo
+ * vigente es el del plan y la huella de la fuente no cambió—; sin uno de ellos, no se dice.
+ */
+export function planVigente(
+  sourceVigente: { desfasado: boolean } | null | undefined,
+  origen: CollectionOrigen | null,
+): boolean {
+  return sourceVigente?.desfasado === false && origen?.estado === "al_dia";
+}
+
 export function avisoDeLaLista(
   sourceVigente: { selection_run_id: string; desfasado: boolean } | null | undefined,
   origen: CollectionOrigen | null,

@@ -17,6 +17,7 @@ import {
   classroomScore,
   selectorFieldLabelTitulo,
 } from "./classroomLabels";
+import { EstadoVacio } from "../../../../components/EstadoVacio";
 
 /** Etiquetas en español para los grupos de métricas que reporta el motor R. */
 const METRIC_GROUP_LABELS: Record<string, string> = {
@@ -142,13 +143,12 @@ export function ProfileBalanceChart({ rows }: { rows?: CalcMuestraAulasProfileDi
     .slice(0, 12);
   if (!visible.length) {
     return (
-      <div className="cmv2-classroom-empty is-compact">
-        <span><BarChart3 size={16} /></span>
-        <div>
-          <strong>Sin perfil calculado</strong>
-          <em>Construye el marco y corre comparación o selección para ver el ajuste frente al marco.</em>
-        </div>
-      </div>
+      <EstadoVacio
+        tamano="compacto"
+        icono={<BarChart3 size={16} aria-hidden="true" />}
+        titulo="Sin perfil calculado"
+        descripcion="Construye el marco y corre comparación o selección para ver el ajuste frente al marco."
+      />
     );
   }
   return (
@@ -189,8 +189,8 @@ function ProfileBalanceRow({ row }: { row: CalcMuestraAulasProfileDistribution }
         <strong>{row.category}</strong>
         {/* Marco y muestra solo vivían en el aria-label de la barra: se leían
             con lector de pantalla y no con los ojos. */}
-        <span>marco {fmtPct(frame)} · muestra {fmtPct(selected)}</span>
-        <em>{fmtPct(gap)} de brecha{hasTolerance ? ` · tolerancia ±${fmtPct(tolerance)}` : ""}</em>
+        <span>marco {fmtPct(frame)}, muestra {fmtPct(selected)}</span>
+        <em>{fmtPct(gap)} de brecha{hasTolerance ? `, tolerancia ±${fmtPct(tolerance)}` : ""}</em>
       </div>
       {/* Barras PAREADAS (2026-08-20): las dos superpuestas desde cero se
           leian como un grafico «partido a la mitad» (Gonzalo). Marco arriba
@@ -305,16 +305,12 @@ export function SimulationSummaryPanel({ rows }: { rows?: CalcMuestraAulasSimula
     && summaryRows.every((row) => safeNumber(row.executed_runs, 0) <= 0);
   if (!summaryRows.length || ningunaCorrida) {
     return (
-      <div className="cmv2-classroom-empty is-compact">
-        <span><BarChart3 size={16} /></span>
-        <div>
-          <strong>Todavía no se ha repetido el sorteo</strong>
-          <em>
-            Cada método se sortea muchas veces con semillas distintas para ver cuánto cambia
-            el resultado de una vez a otra. Pulsa <b>Medir estabilidad</b> arriba para correrlo.
-          </em>
-        </div>
-      </div>
+      <EstadoVacio
+        tamano="compacto"
+        icono={<BarChart3 size={16} aria-hidden="true" />}
+        titulo="Todavía no se ha repetido el sorteo"
+        descripcion={<>Cada método se sortea muchas veces con semillas distintas para ver cuánto cambia el resultado de una vez a otra. Pulsa <b>Medir estabilidad</b> arriba para correrlo.</>}
+      />
     );
   }
   return (
@@ -400,7 +396,7 @@ export function ClassroomRecommendation({
       <div className="cmv2-classroom-reco-panel">
         <small>Método configurado</small>
         <strong>{fallbackMethod}</strong>
-        <span>No es una recomendación del engine. Corre el comparador para acreditarla con métricas del marco vigente.</span>
+        <span>No es una recomendación del motor. Corre el comparador para acreditarla con métricas del marco vigente.</span>
       </div>
     );
   }
@@ -409,7 +405,7 @@ export function ClassroomRecommendation({
       <small>Recomendación del laboratorio</small>
       <strong>{classroomMethodLabel(comparison.recommendation.method_id ?? "") || comparison.recommendation.method_label}</strong>
       <span>{classroomMethodReasonVisible(String(comparison.recommendation.method_id ?? ""), comparison.recommendation.operational_reason)}</span>
-      <b>Calidad {classroomScore(comparison.recommendation.representativity_score ?? comparison.recommendation.overall_score)} · distancia {classroomNumberText(comparison.recommendation as Record<string, unknown>, ["representativity_distance"])}</b>
+      <b>Calidad {classroomScore(comparison.recommendation.representativity_score ?? comparison.recommendation.overall_score)}, distancia {classroomNumberText(comparison.recommendation as Record<string, unknown>, ["representativity_distance"])}</b>
       <em>{comparison.recommendation.methodological_reason}</em>
     </div>
   );
@@ -437,13 +433,12 @@ export function ClassroomBalanceTable({ rows, methodId }: { rows?: Array<Record<
   const dimensiones = new Set(delMetodo.map((row) => classroomRowText(row, ["variable"])));
   if (!visible.length) {
     return (
-      <div className="cmv2-classroom-empty is-compact">
-        <span><BarChart3 size={16} /></span>
-        <div>
-          <strong>Sin diagnóstico de balance visible</strong>
-          <em>El comparador no devolvió filas de balance para este método.</em>
-        </div>
-      </div>
+      <EstadoVacio
+        tamano="compacto"
+        icono={<BarChart3 size={16} aria-hidden="true" />}
+        titulo="Sin diagnóstico de balance visible"
+        descripcion="El comparador no devolvió filas de balance para este método."
+      />
     );
   }
   return (
@@ -472,8 +467,8 @@ export function ClassroomBalanceTable({ rows, methodId }: { rows?: Array<Record<
       </table>
       {delMetodo.length > visible.length && (
         <p className="cmv2-classroom-table-pie">
-          Se muestran las <b>{visible.length} categorías con mayor diferencia</b> de las{" "}
-          {delMetodo.length} que se comparan, repartidas en {dimensiones.size}{" "}
+          Se muestran las <b>{fmtInt(visible.length)} categorías con mayor diferencia</b> de las{" "}
+          {fmtInt(delMetodo.length)} que se comparan, repartidas en {dimensiones.size}{" "}
           {dimensiones.size === 1 ? "variable" : "variables"}. El detalle completo está en
           Auditoría.
         </p>

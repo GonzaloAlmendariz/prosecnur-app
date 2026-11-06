@@ -1,6 +1,7 @@
 import { Plus } from "lucide-react";
 
 import type { CalcMuestraWorkspace, CalcMuestraWorkspaceVariableControl } from "../../../api/calcMuestra";
+import { Panel } from "../../../components/Panel";
 import { Switch } from "../../../components/Switch";
 import { uid } from "../sharedCore";
 import { variableControl } from "./catalogos";
@@ -22,13 +23,11 @@ export function VariablesControl({
     });
   }
   return (
-    <section className="cmv2-panel" aria-labelledby="cmg-variables-titulo">
-      <div className="cmv2-panel-head">
-        <div>
-          <span className="cmv2-eyebrow">Control</span>
-          <h3 className="cmg-panel-titulo" id="cmg-variables-titulo">Variables disponibles</h3>
-        </div>
-      </div>
+    <Panel
+      aria-labelledby="cmg-variables-titulo"
+      eyebrow="Control"
+      title={<span id="cmg-variables-titulo">Variables disponibles</span>}
+    >
       <div
         className="cmv2-variable-list"
         data-qa-geometry-group="calc-muestra/general-variables"
@@ -69,6 +68,6 @@ export function VariablesControl({
       >
         <Plus size={14} aria-hidden="true" /> Agregar variable
       </button>
-    </section>
+    </Panel>
   );
 }

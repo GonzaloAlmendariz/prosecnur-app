@@ -19,6 +19,7 @@ import {
 import { PANEL_REHACER_PLAN } from "./resembrado";
 import { useOrigen } from "./useOrigen";
 import "./styles/origen.css";
+import { LoadingBlock } from "../../components/States";
 
 type Props = {
   payload: CollectionStatePayload | null;
@@ -61,7 +62,7 @@ export function OrigenSection({ payload, onState, onCargando }: Props) {
         </div>
       );
     }
-    return <div className="rec-loading" data-qa-geometry-capacity="owned">Comparando la lista con su fuente…</div>;
+    return <LoadingBlock label="Comparando la lista con su fuente…" />;
   }
 
   return (

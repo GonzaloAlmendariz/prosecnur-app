@@ -49,7 +49,7 @@ export function tasaConBase(
 ): string {
   const p = porcentaje(proporcion);
   if (frecuencia == null || base == null) return p;
-  return `${p} · ${cifra(frecuencia)} de ${cifra(base)}`;
+  return `${p}, ${cifra(frecuencia)} de ${cifra(base)}`;
 }
 
 // ---------- Rótulos ----------

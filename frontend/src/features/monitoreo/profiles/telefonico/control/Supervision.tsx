@@ -13,9 +13,10 @@ import { RotuloDePestana, useHayRotulo } from "../navegacion/RotuloDePestana";
 import { construirSupervision, porcentajeLegible } from "./supervisionModel";
 import "./controlTelefonico.css";
 import "./supervision.css";
+import { formatoConteo } from "../../../../../lib/formatoNumero";
 
 function n(valor: number) {
-  return valor.toLocaleString("es-PE");
+  return formatoConteo(valor);
 }
 
 /**
@@ -77,7 +78,7 @@ export function Supervision({
 
   if (!modelo || !modelo.base) {
     return (
-      <section className="mon-ctl-panel mon-sup-vacio mon-tel-vacio" aria-label="Supervisión" data-qa-geometry-capacity="owned">
+      <section className="mon-ctl-panel is-vacio" aria-label="Supervisión" data-qa-geometry-capacity="owned">
         {hayRotulo ? <header className="mon-ctl-panel-cabecera"><RotuloDePestana /></header> : null}
         <EstadoVacio
           tamano="normal"
@@ -141,7 +142,7 @@ export function Supervision({
             * no hace falta leyenda al pie. */}
           <div className="mon-sup-lista-cabeza" aria-hidden="true">
             <span>Enumerador</span>
-            <span>Efectivas · <b>sorteados</b></span>
+            <span>Efectivas y <b>sorteados</b></span>
           </div>
           <ul className="mon-sup-lista">
             {repartoVisible.map((fila) => (
@@ -154,7 +155,7 @@ export function Supervision({
                   <i className="is-efectivas" style={{ width: `${(fila.efectivas / maximo) * 100}%` }} />
                   <i className="is-casos" style={{ width: `${(fila.casos / maximo) * 100}%` }} />
                 </i>
-                <span className="mon-sup-cifras is-num" aria-label={`${n(fila.efectivas)} efectivas, ${n(fila.casos)} sorteados`}>{n(fila.efectivas)} · <b>{n(fila.casos)}</b></span>
+                <span className="mon-sup-cifras is-num" aria-label={`${n(fila.efectivas)} efectivas, ${n(fila.casos)} sorteados`}>{n(fila.efectivas)} y <b>{n(fila.casos)}</b></span>
               </li>
             ))}
           </ul>
@@ -162,7 +163,7 @@ export function Supervision({
           {/* Sin hoja, la explicación vive una sola vez, en la tarjeta de casos. */}
           {modelo.hojaConectada ? (
           <section className="mon-ctl-panel mon-insumos-tarjeta" aria-label="Resultados de la rellamada">
-            <span className="mon-ctl-antetitulo">Resultados de la rellamada</span>
+            <header className="mon-ctl-panel-cabecera"><b>Resultados de la rellamada</b></header>
               <dl className="mon-sup-sorteo">
                 {modelo.enHoja != null ? <div><dt>En la hoja</dt><dd className="is-num">{n(modelo.enHoja)} de {n(modelo.casos)}</dd></div> : null}
               <div><dt>Coinciden con Kobo</dt><dd className="is-num">{n(modelo.resultados.coinciden)}</dd></div>
@@ -212,7 +213,7 @@ export function Supervision({
                       caso.resultado || caso.statusFinal ? (
                         <span className={`mon-sup-resultado${caso.coincide === "No" ? " is-no" : caso.coincide === "Sí" ? " is-si" : ""}`} title={caso.observacion || undefined}>
                           {/* Dato, no explicación: resultado, status y si coincide (P7). */}
-                          {[caso.resultado, caso.statusFinal].filter(Boolean).join(" · ")}
+                          {[caso.resultado, caso.statusFinal].filter(Boolean).join(", ")}
                           {caso.coincide ? ` (${caso.coincide === "Sí" ? "coincide" : "no coincide"})` : ""}
                         </span>
                       ) : <span className="mon-sup-pendiente">Sin rellamar</span>

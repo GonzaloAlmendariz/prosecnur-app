@@ -44,6 +44,12 @@ const n = (v: unknown) => {
   return Number.isFinite(x) && x > 0 ? Math.round(x) : 0;
 };
 
+/** «2026-09-18» → «18/09»; vacío si el motor no publica el día. */
+const diaLegible = (v: unknown): string => {
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(typeof v === "string" ? v : "");
+  return m ? `${m[3]}/${m[2]}` : "";
+};
+
 /** `null` cuando el motor no lo publica (plan sin fecha agendada). */
 const opcional = (v: unknown): number | null => {
   if (v === null || v === undefined || typeof v === "object") return null;
@@ -93,6 +99,9 @@ export function estadoPorRol(
   const t = bloque.titulares ?? {};
   const r = bloque.reemplazos ?? {};
   const b = bloque.banco ?? {};
+  // Campos de 2g que el tipo del cliente aún no declara: se leen sin afirmarlos.
+  const tRegistro = t as Record<string, unknown>;
+  const venceAl = diaLegible((bloque as Record<string, unknown>).vencida_al);
 
   return [
     {
@@ -126,9 +135,18 @@ export function estadoPorRol(
               clave: "aplicado_sin_agenda", etiqueta: "Aplicados sin agenda", tono: "efectiva",
               detalle: "se aplicaron sin fecha en el libro: anótalos en la agenda" })
           : x.clave === "agendado"
+            // 2g: «Fecha pasada» se juzga al día de la última sincronización;
+            // las citas entre ese día y hoy van aparte, sin juzgar.
             ? partir(x, opcional(t.agendado_vencido), {
                 clave: "agendado_vencido", etiqueta: "Fecha pasada", tono: "parcial",
-                detalle: "su fecha ya pasó y no llegó ninguna respuesta" })
+                detalle: venceAl
+                  ? `su fecha es anterior a la última sincronización (${venceAl}) y no llegó ninguna respuesta`
+                  : "su fecha ya pasó y no llegó ninguna respuesta" })
+              .flatMap((y) => y.clave === "agendado"
+                ? partir(y, opcional(tRegistro.agendado_tras_corte), {
+                    clave: "agendado_tras_corte", etiqueta: "Sin datos desde el corte", tono: "pendiente",
+                    detalle: "su fecha pasó después de la última sincronización: trae respuestas antes de juzgarlas" })
+                : [y])
             : [x])
         // Sin el subconjunto publicado, «Aplicados» conserva su nombre corto.
         .map((x) => x.clave === "aplicado" && opcional(t.aplicado_sin_agenda) === null
@@ -184,7 +202,7 @@ export function sinColocar(grupo: GrupoDeRol): number {
 }
 
 export type AccionDeHoy = {
-  clave: "aplicado_sin_agenda" | "agendado_vencido" | "sin_agendar" | "rechazado";
+  clave: "aplicado_sin_agenda" | "agendado_vencido" | "agendado_tras_corte" | "sin_agendar" | "rechazado";
   titulo: string;
   /** Qué hacer, en una línea. */
   hacer: string;
@@ -213,6 +231,7 @@ export function accionesDeHoy(
     : dashboard?.course_status_rol_y_estado;
   const a = bloque?.acciones;
   if (!a) return [];
+  const venceAl = diaLegible((bloque as Record<string, unknown>).vencida_al);
   const todas: AccionDeHoy[] = [
     { clave: "aplicado_sin_agenda", titulo: "Aplicados sin agenda", tono: "efectiva", rayado: true,
       hacer: "Ya tienen respuestas y el libro no les puso fecha: anótalos en la agenda.",
@@ -220,6 +239,9 @@ export function accionesDeHoy(
     { clave: "agendado_vencido", titulo: "Fecha pasada sin respuestas", tono: "parcial", rayado: true,
       hacer: "Tenían fecha y no llegó nada: confirma con el aplicador o reagenda.",
       codigos: lista(a.agendado_vencido) },
+    { clave: "agendado_tras_corte", titulo: "Fecha pasada después del corte", tono: "pendiente",
+      hacer: `La última sincronización es ${venceAl ? `del ${venceAl}` : "anterior a su fecha"}: trae respuestas antes de reagendar.`,
+      codigos: lista((a as Record<string, unknown>).agendado_tras_corte) },
     { clave: "sin_agendar", titulo: "Titulares sin agendar", tono: "pendiente",
       hacer: "Todavía no tienen fecha: hay que llamar al docente.",
       codigos: lista(a.sin_agendar) },

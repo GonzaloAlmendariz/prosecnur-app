@@ -33,6 +33,9 @@
 # "overrides"        → editor especial de overrides (delta vs preset tipo)
 # "filtros"          → editor de filtros por variable (avanzado)
 # "base_config"      → editor de la base automática/manual (avanzado)
+# "resumen_capitulos" → capítulos {titulo, filas: [{var, fila, rotulo}]} del resumen de diferencias
+# "hallazgos_capitulos" → capítulos {titulo, titular, cifras: [{var, fila, texto, comparacion}]} del resumen ejecutivo
+# "partes"           → filas {rotulo, codigos} de la pregunta elegida (líneas por nivel); conserva `y` y `color`
 # "meta"             → objeto libre; casi nunca se expone en UI
 
 # ---- Grupos semánticos ----------------------------------------------------
@@ -90,7 +93,7 @@
 # Args compartidos por TODOS los graficadores.
 .args_graf_comunes <- function() list(
   list(name = "titulo",     label = "Título del gráfico", tipo_input = "string",      grupo = "textos",
-       descripcion = "Título que aparece sobre el gráfico. Si lo dejas vacío, se usa la etiqueta de la variable."),
+       descripcion = "Rótulo sobre el gráfico en las láminas de varios gráficos y en las barras agrupadas. En las apiladas de un solo gráfico no se dibuja, porque el título es el de la lámina. Si lo dejas vacío, se usa la etiqueta de la variable."),
   list(name = "overrides",  label = "Overrides de estilo",tipo_input = "overrides",   grupo = "estilo",
        descripcion = "Ajustes visuales sólo para este gráfico (tamaños, colores, márgenes); mandan sobre el estilo del informe."),
   list(name = "filtros",    label = "Filtros",            tipo_input = "filtros",     grupo = "filtro",
@@ -462,8 +465,8 @@
     args = list(
       list(name = "titulo",             label = "Título de la sección", tipo_input = "string",   grupo = "textos",
            descripcion = "Nombre del bloque que empieza (ej. 'Satisfacción con el servicio')."),
-      list(name = "subtitulo",          label = "Subtítulo (solo Word)", tipo_input = "string",  grupo = "textos",
-           descripcion = "La plantilla PPT no tiene espacio para subtítulo en el separador; este texto solo aparece en el export a Word."),
+      list(name = "subtitulo",          label = "Subtítulo", tipo_input = "string",  grupo = "textos",
+           descripcion = "Línea bajo el título del separador, en el PPT y en el Word. Sólo el separador de plantilla (el que sale cuando el título no cabe en el nativo) no la lleva."),
       list(name = "introduccion_word",  label = "Intro (solo Word)",    tipo_input = "textarea", grupo = "textos",
            descripcion = "Párrafo introductorio que solo aparece en el export a Word, no en PPT.")
     )
@@ -1057,6 +1060,82 @@
            ),
            descripcion = "Qué parte de estandar_pulso.json dibuja la lámina.")
     )
+  ),
+
+  # Láminas de diferencias (especificación CCSS del 2026-11-04): el resumen por capítulo y los hallazgos clave. Las dos
+  # son nativas y se componen como un `slide_1` (graficos_resumen_diferencias.R, graficos_hallazgos.R). Sus listas
+  # (`capitulos`, `cifras`): los dos se arman en Inspector › Lámina (resumenDiferencias/ y hallazgos/) y se ofrecen en el
+  # selector (ítem 15 de la revisión del PPT v7.23). Las `cifras` de los modos «cifras» de hallazgos siguen en el plan.
+  p_slide_resumen_diferencias = list(
+    titulo_humano = "Resumen de diferencias",
+    descripcion   = "Tabla por capítulo con los puntos de diferencia de cada grupo frente al resto, con la prueba del informe.",
+    icono_ui      = "Table",
+    categoria     = "1grafico",
+    render_key    = "resumen_diferencias",
+    en_selector   = TRUE,
+    blueprint     = list(kind = "single", ppt_layout = "Graficos2", structure_label = "Resumen de diferencias"),
+    slot_specs    = list(),
+    args = c(.args_slide_titulos_base(c("titulo", "etiqueta", "base")), list(
+      list(name = "seleccion", label = "Selección de filas", tipo_input = "choice", grupo = "textos", default = "manual",
+           choices = list(list(value = "manual", label = "Las escribo yo"),
+                          list(value = "auto", label = "Las propone el motor")),
+           descripcion = "Si las propone el motor, toma las filas con diferencias entre grupos: primero las de las preguntas clave del estudio, luego las del 99% y luego las más grandes, sin repetir pregunta, hasta 4 por capítulo y 18 en total."),
+      # Ítem 15 de la revisión del PPT v7.23 («todo configurable en la UI»): la lámina se escribía entera en el plan.
+      list(name = "cruces", label = "Cruces", tipo_input = "variables_list", grupo = "datos",
+           descripcion = "Los grupos de las columnas. Si lo dejas vacío, van los que la lámina rotula o, si no hay, los de las tarjetas de diferencias del informe."),
+      list(name = "publico", label = "Cómo se nombran los casos", tipo_input = "string", grupo = "textos",
+           descripcion = "Plural de la unidad («estudiantes»). Vacío, «personas encuestadas»."),
+      list(name = "max_filas", label = "Filas en total", tipo_input = "number", grupo = "textos", default = 18, min = 4, max = 30, step = 1,
+           depende = list(arg = "seleccion", valores = list("auto")),
+           descripcion = "Tope de filas que propone el motor. Con más de las que caben, la tabla sigue en otra lámina sin partir un capítulo."),
+      list(name = "max_por_capitulo", label = "Filas por capítulo", tipo_input = "number", grupo = "textos", default = 4, min = 1, max = 8, step = 1,
+           depende = list(arg = "seleccion", valores = list("auto")),
+           descripcion = "Tope de filas por capítulo que propone el motor."),
+      list(name = "capitulos", label = "Capítulos y filas", tipo_input = "resumen_capitulos", grupo = "datos",
+           descripcion = "Por capítulo, sus filas: la pregunta, la respuesta que se cuenta y el rótulo de la fila.")
+    ))
+  ),
+
+  p_slide_hallazgos = list(
+    titulo_humano = "Hallazgos clave",
+    descripcion   = "Cifras destacadas con su intervalo de 95% calculado con el diseño y su diferencia frente al resto, con o sin gráfico de apoyo, o como resumen ejecutivo por capítulo.",
+    icono_ui      = "LayoutGrid",
+    categoria     = "1grafico",
+    render_key    = "hallazgos",
+    en_selector   = TRUE,
+    blueprint     = list(kind = "single", ppt_layout = "Graficos2", structure_label = "Hallazgos clave"),
+    slot_specs    = list(),
+    args = c(.args_slide_titulos_base(c("titulo", "etiqueta", "base")), list(
+      list(name = "modo", label = "Modo", tipo_input = "choice", grupo = "textos", default = "cifras",
+           choices = list(list(value = "cifras", label = "Hasta seis cifras"),
+                          list(value = "cifras_con_graficos", label = "Hasta tres cifras con su gráfico"),
+                          list(value = "resumen", label = "Resumen ejecutivo en tabla por capítulo"),
+                          list(value = "titulares", label = "Un titular por capítulo")),
+           descripcion = "Las cifras solas, con su gráfico de apoyo o, al final del mazo, el resumen ejecutivo: una tabla por capítulo o un titular por capítulo."),
+      # Revisión del PPT v7.11 de CCSS, ítem 2: el resumen ejecutivo (graficos_hallazgos_resumen.R, maqueta V1 y V3).
+      list(name = "seleccion", label = "Selección de hallazgos", tipo_input = "choice", grupo = "textos", default = "manual",
+           depende = list(arg = "modo", valores = list("resumen", "titulares")),
+           choices = list(list(value = "manual", label = "Los escribo yo"),
+                          list(value = "auto", label = "Los propone el motor")),
+           # H14 (usabilidad del editor): el criterio con palabras de analista. Las preguntas clave son `plan$preguntas_clave`.
+           descripcion = "Los propone el motor: por capítulo, la diferencia más fuerte entre grupos y una cifra de las preguntas clave del estudio, sin repetir pregunta. Si el capítulo no tiene preguntas clave, la cifra que más se aparta del 50%."),
+      list(name = "max_por_capitulo", label = "Hallazgos por capítulo", tipo_input = "number", grupo = "textos", default = 3, min = 1, max = 3, step = 1,
+           depende = list(arg = "modo", valores = list("resumen")),
+           descripcion = "Tope por capítulo. Si los propone el motor, son dos."),
+      list(name = "max_por_lamina", label = "Hallazgos por lámina", tipo_input = "number", grupo = "textos", default = 8, min = 4, max = 8, step = 1,
+           depende = list(arg = "modo", valores = list("resumen", "titulares")),
+           descripcion = "Con más, el motor abre otra lámina sin partir un capítulo. Hasta cuatro capítulos por lámina."),
+      list(name = "tambien", label = "Mostrar «También»", tipo_input = "bool", grupo = "textos", default = FALSE,
+           depende = list(arg = "modo", valores = list("resumen")),
+           descripcion = "Si otro cruce también difiere, una línea corta bajo la diferencia principal."),
+      # Ítem 2 de la v7.11 RV: «la UI pueda generarlos». Capítulos y cruces se escribían a mano en el plan.
+      list(name = "cruces", label = "Cruces", tipo_input = "variables_list", grupo = "datos",
+           depende = list(arg = "modo", valores = list("resumen", "titulares")),
+           descripcion = "Contra qué grupos se busca la diferencia principal. Si lo dejas vacío, van los que la lámina rotula o, si no hay, los de las tarjetas de diferencias del informe."),
+      list(name = "capitulos", label = "Capítulos y hallazgos", tipo_input = "hallazgos_capitulos", grupo = "datos",
+           depende = list(arg = "modo", valores = list("resumen", "titulares")),
+           descripcion = "Por capítulo, sus hallazgos: la pregunta, la respuesta que se cuenta, el texto que sigue a la cifra y la comparación (automática, ninguna o escrita).")
+    ))
   )
 )
 
@@ -1128,6 +1207,11 @@
       list(name = "residuales_gris", label = "Residuales en gris", tipo_input = "bool", grupo = "estilo",
            default = FALSE,
            descripcion = "Pinta de gris “Prefiero no responder”, “No sabe”, “Otros”…; apagado por defecto. Siguen al final de la lista, con o sin gris."),
+      # ADR 0130 (Gonzalo, 2026-11-04: «no entiendo por qué usamos paleta de colores y es barras agrupadas»).
+      # `p_barras_agrupadas()` no lo tiene como formal: viaja por overrides (test-graficos-controles-llegan.R).
+      list(name = "colorear_por_opcion", label = "Un color por opción", tipo_input = "bool", grupo = "estilo",
+           default = FALSE, via_overrides = TRUE,
+           descripcion = "Con una sola serie, pinta cada barra con el color que la paleta del estudio da a su opción. Apagado, todas van en un color."),
       list(name = "invertir_barras", label = "Invertir el orden de las barras", tipo_input = "bool", grupo = "filtro",
            default = TRUE, descripcion = "Dibuja las barras en el orden contrario."),   # O7c: formal del constructor desde 383c1fe2b
       list(name = "excluir_opciones", label = "Opciones a ocultar", tipo_input = "codigos_list", grupo = "filtro",
@@ -1174,9 +1258,19 @@
       list(name = "marcas_eje", label = "Marcas del eje", tipo_input = "bool", grupo = "estilo",
            default = FALSE,
            descripcion = "Escribe 0, 25, 50, 75 y 100 % bajo las barras, con líneas guía. Sin ellas, cada barra lleva sólo su cifra."),
+      # Revisión del PPT v7.11 de CCSS (lámina 9): «un gris suave que muestre el 100%». Lo dibuja la lámina nativa
+      # (lamina_barras_pista.R). `p_*()` no lo tiene como formal: viaja por overrides hasta el graficador.
+      list(name = "pista_barras", label = "Pista hasta el 100%", tipo_input = "choice", grupo = "estilo", default = "auto",
+           via_overrides = TRUE,
+           choices = list(
+             list(value = "auto", label = "Automática", hint = "En toda barra de una serie, como el resto del mazo."),
+             list(value = "siempre", label = "Siempre", hint = "La escala pasa a ir de 0 a 100%."),
+             list(value = "nunca", label = "Nunca", hint = "La barra sola, sin pista.")),
+           descripcion = "Pinta bajo cada barra una pista gris suave que llega al 100%, para leer cada parte frente al total."),
+      # U-c (checklist de mandos del mazo, 2026-11-05): sin `default`. La lámina nativa sin el valor ajusta la columna a
+      # la tinta de los rótulos (lamina_barras_ancho.R) y el 0.36 que se anunciaba aquí no lo usaba nadie: vacío = automático.
       list(name = "canvas_w_etiquetas", label = "Espacio para etiquetas", tipo_input = "number", grupo = "canvas",
-           default = 0.36,
-           descripcion = "Ancho relativo reservado para textos largos a la izquierda del gráfico.")
+           descripcion = "Ancho relativo reservado para textos largos a la izquierda del gráfico. Vacío, automático: la columna se ajusta a los rótulos.")
     ), .args_graf_comunes())
   ),
 
@@ -1213,6 +1307,15 @@
       list(name = "residuales_gris", label = "Residuales en gris", tipo_input = "bool", grupo = "estilo",
            default = FALSE,
            descripcion = "Pinta de gris “Prefiero no responder”, “No sabe”, “Otros”…; apagado por defecto. Siguen al final de la lista, con o sin gris."),
+      # Revisión del PPT v7.11 de CCSS (lámina 9): «un gris suave que muestre el 100%». Lo dibuja la lámina nativa
+      # (lamina_barras_pista.R). `p_*()` no lo tiene como formal: viaja por overrides hasta el graficador.
+      list(name = "pista_barras", label = "Pista hasta el 100%", tipo_input = "choice", grupo = "estilo", default = "auto",
+           via_overrides = TRUE,
+           choices = list(
+             list(value = "auto", label = "Automática", hint = "En toda barra de una serie, como el resto del mazo."),
+             list(value = "siempre", label = "Siempre", hint = "La escala pasa a ir de 0 a 100%."),
+             list(value = "nunca", label = "Nunca", hint = "La barra sola, sin pista.")),
+           descripcion = "Pinta bajo cada barra una pista gris suave que llega al 100%, para leer cada parte frente al total."),
       list(name = "excluir_opciones", label = "Opciones a ocultar", tipo_input = "codigos_list", grupo = "filtro",
            descripcion = "Etiquetas/códigos que no deben aparecer en el gráfico. Los porcentajes se recalculan sobre las opciones visibles."),
       list(name = "max_categorias", label = "Máximo de categorías", tipo_input = "number", grupo = "filtro",
@@ -1336,6 +1439,14 @@
       list(name = "cruces",        label = "Dividir por", tipo_input = "variable_opt", grupo = "datos",
            depende = list(arg = "modo", valores = list("cruce", "var_cruce")),
            descripcion = "Cada grupo de esta variable abre su propia barra."),
+      # U11 (checklist de mandos del mazo, 2026-11-05): el render por cruce ya marcaba las diferencias
+      # (`.graficos_sig_aplicar_transpuesto`, reporte_plan_ppt.R) pero el mando no se ofrecía ni era formal.
+      list(name = "mostrar_significancia", label = "Marcar diferencias significativas", tipo_input = "bool", grupo = "datos",
+           default = FALSE, depende = list(arg = "modo", valores = list("cruce")),
+           descripcion = "Agrega a cada segmento la letra de los grupos a los que supera de forma significativa, con la misma prueba que usan las tablas de cruces. Necesita un cruce con dos o más grupos."),
+      list(name = "significancia_alpha", label = "Nivel de significancia", tipo_input = "number", grupo = "datos",
+           default = 0.05, min = 0.001, max = 0.2, step = 0.005, depende = list(arg = "modo", valores = list("cruce")),
+           descripcion = "Umbral del contraste. 0.05 es el estándar; bajarlo exige diferencias más grandes para marcar."),
       list(name = "titulos_grupo", label = "Títulos por bloque", tipo_input = "textarea",  grupo = "textos",
            depende = list(arg = "modo", valores = list("var_cruce")),
            descripcion = "Formato: 'clave=Título'. Una línea por bloque."),
@@ -1371,7 +1482,14 @@
       # N1 (Renzo, 2026-10-22): piso de grosor de la barra de escala; con piso la lámina se parte en vez de adelgazar.
       list(name = "grosor_piso_cm", label = "Grosor mínimo de barra (cm)", tipo_input = "number", grupo = "valores",
            min = 0, max = 3, step = 0.01,
-           descripcion = "Las barras de la escala no bajan de este grosor; si no caben, la lámina se parte en dos. Vacío hereda el del informe; 0 lo quita."),
+           descripcion = "Las barras de la escala no bajan de este grosor: si no caben, primero se acorta el aire entre ellas y sólo después la lámina se parte. Con alto de sobra, la barra engrosa por encima de este mínimo. Vacío hereda el del informe; 0 lo quita."),
+      # v7.25, ítem 4 (Gonzalo: «la etiqueta arriba de la barra ¿es configurable?»): dónde va el enunciado de cada barra.
+      list(name = "premisa_posicion", label = "Enunciado de cada barra", tipo_input = "choice", grupo = "valores", default = "auto",
+           choices = list(
+             list(value = "auto", label = "Automático", hint = "Encima de su barra cuando la lámina lleva tarjetas de diferencias; si no, a la izquierda."),
+             list(value = "arriba", label = "Encima de la barra", hint = "La barra usa todo el ancho y el enunciado va sobre ella."),
+             list(value = "izquierda", label = "A la izquierda", hint = "El enunciado en su columna, a la izquierda de la barra.")),
+           descripcion = "Dónde va el enunciado de cada barra en la lámina."),
       # G15 (Gonzalo, 2026-10-13): el reparto de ancho por lámina, en tres pasos y no en proporciones. Sólo lo usa la
       # lámina que compara públicos; «Automático» es el reparto del estilo del informe.
       list(name = "ancho_tema", label = "Ancho de los temas", tipo_input = "choice", grupo = "valores", default = "auto",
@@ -1384,7 +1502,7 @@
       # (`w_presets$chart_options$multiapiladas_word`). Sólo lo lee el Word (reporte_word_multi_modos.R).
       list(name = "word_multiapiladas", label = "En el Word", tipo_input = "choice", grupo = "word", default = "",
            choices = list(
-             list(value = "", label = "Como el informe", hint = "Lo que diga Word › Gráficos; si no dice nada, por actor y escala: junta los temas seguidos con los mismos públicos y la misma escala."),
+             list(value = "", label = "Como el informe", hint = "Lo que diga Word › Gráficos; si no dice nada, por pregunta: una figura por pregunta, con una fila por actor; un mismo actor con varias preguntas va en una sola figura, con las preguntas en el eje."),
              list(value = "un_grafico", label = "Un gráfico", hint = "La lámina entera en una sola figura, con sus temas dentro."),
              list(value = "por_tema", label = "Por tema", hint = "Una figura por tema."),
              list(value = "por_barra", label = "Por barra", hint = "Una figura por barra, con el título del tema y el de la barra.")),
@@ -1515,7 +1633,7 @@
       list(name = "var", label = "Variable", tipo_input = "variable", grupo = "datos"),
       # Recetario p70: la respuesta del centro y su frase. La pestaña Gráfico los edita con su tarjeta (DonaCentro).
       list(name = "al_centro", label = "Al centro", tipo_input = "string", grupo = "valores",
-           descripcion = "La respuesta cuya cifra va al centro de la dona y abre la lectura. Vacío: la primera."),
+           descripcion = "La respuesta cuya cifra va al centro de la dona y abre la lectura. Vacío: en lámina completa, la primera; en un panel, ninguna (cada cifra va en su porción)."),
       list(name = "frase_centro", label = "Frase del centro", tipo_input = "string", grupo = "textos",
            descripcion = "Lo que se lee bajo la cifra del centro («conoce la misión»). Vacío: el nombre de la respuesta."),
       list(name = "top_k", label = "Top K + Otros", tipo_input = "number", grupo = "filtro",
@@ -1584,8 +1702,16 @@
            default = TRUE,
            descripcion = "Si se desactiva, oculta rangos sin casos para compactar el histograma."),
       list(name = "mostrar_frecuencia", label = "Mostrar frecuencia junto al %", tipo_input = "bool", grupo = "valores",
-           default = FALSE,
+           default = FALSE, via_overrides = TRUE,
            descripcion = "Agrega el conteo al porcentaje: 42% (76) en vez de 42%. Apagado por defecto."),
+      # Revisión del PPT v7.11 de CCSS (lámina 11): Gonzalo aún no elige entre la línea y el triángulo; la línea es el
+      # defecto. Lo dibuja la lámina nativa (graficador_histograma_lamina.R) y viaja por overrides.
+      list(name = "marca_mediana", label = "Marca de la mediana", tipo_input = "choice", grupo = "valores", default = "linea",
+           via_overrides = TRUE,
+           choices = list(
+             list(value = "linea", label = "Línea", hint = "Una línea fina sube desde la base hasta su rótulo, por el borde de la barra."),
+             list(value = "triangulo", label = "Triángulo", hint = "Un triángulo bajo el eje con el rótulo a su lado.")),
+           descripcion = "Cómo se marca la mediana en el histograma de una barra por valor."),
       list(name = "mostrar_resumen_grupos_subtitulo", label = "Resumen de grupos en subtítulo", tipo_input = "bool", grupo = "valores",
            default = FALSE,
            descripcion = "Agrega al subtítulo la distribución general de los grupos visibles. Ejemplo: Sexo: Hombre 82% · Mujer 18%."),
@@ -1773,6 +1899,47 @@
            descripcion = "Respuestas que no cuentan en el total (ej. No sabe); no pueden ser también respuestas que suman."),
       list(name = "orden_grupos", label = "Orden completo de grupos", tipo_input = "codigos_list", grupo = "estilo",
            descripcion = "Opcional. Todos los grupos, en el orden en que deben salir; vacío conserva el orden del cuestionario.")
+    ), .args_graf_comunes())
+  ),
+
+  # CCSS Perfil 2026: dónde están los encuestados, por distrito de Lima y Callao o por departamento del Perú.
+  p_mapa_distribucion = list(
+    titulo_humano = "Mapa de distribución de encuestados",
+    descripcion   = "Pinta cuántos encuestados hay en cada distrito de Lima y Callao o en cada departamento del Perú y los lista con su número y porcentaje.",
+    icono_ui      = "Map",
+    categoria     = "territory",
+    blueprint     = "territory-map",
+    args = c(list(
+      list(name = "var", label = "Área del encuestado", tipo_input = "variable", grupo = "datos",
+           descripcion = "Pregunta con el distrito o el departamento: códigos UBIGEO o nombres."),
+      list(name = "area", label = "Mapa", tipo_input = "choice", grupo = "datos", default = "lima_callao",
+           choices = list(list(value = "lima_callao", label = "Distritos de Lima y Callao"),
+                           list(value = "peru", label = "Departamentos del Perú"))),
+      list(name = "medida", label = "Qué se pinta", tipo_input = "choice", grupo = "datos", default = "conteo",
+           choices = list(list(value = "conteo", label = "Número de encuestados"),
+                          list(value = "tasa", label = "Encuestados por 10 000 habitantes (sólo Lima y Callao)"))),
+      list(name = "encuadre", label = "Encuadre", tipo_input = "choice", grupo = "estilo", default = "datos",
+           choices = list(list(value = "datos", label = "Acercar a las áreas con datos"),
+                           list(value = "completo", label = "Todo el territorio"))),
+      # Especificación aprobada de los mapas (Gonzalo, 2026-11-03; contrato docs/qa/contrato-ui-mapas-dependientes-2026-11-03.md).
+      list(name = "juntar", label = "Juntar con", tipo_input = "variables_list", grupo = "datos",
+           descripcion = "Otras preguntas de área de la misma base cuyos conteos se suman (ej. el distrito del Callao con el de Lima)."),
+      list(name = "unidad", label = "Se cuentan", tipo_input = "choice", grupo = "datos", default = "estudiantes",
+           choices = list(list(value = "estudiantes", label = "Estudiantes"), list(value = "personas", label = "Personas (ej. madres y padres)")),
+           descripcion = "Personas: leyenda «Personas por…» y clases 1–5, 6–10, 11–20, 21–50 y 51 o más."),
+      list(name = "excluir_opciones", label = "Excluir del total", tipo_input = "codigos_list", grupo = "filtro"),
+      list(name = "otra_respuesta", label = "Áreas de otra respuesta", tipo_input = "codigos_list", grupo = "filtro",
+           descripcion = "Áreas que pertenecen a otra respuesta del filtro (ej. Lima y Callao): van en gris con rayado y lo que caiga en ellas va a la fila «otros»."),
+      list(name = "otra_respuesta_rotulo", label = "Rótulo en la leyenda", tipo_input = "string", grupo = "textos",
+           descripcion = "Vacío: «Lima y Callao»."),
+      list(name = "cortes", label = "Dónde empieza cada clase", tipo_input = "codigos_list", grupo = "estilo",
+           descripcion = "Desde la segunda clase, en la unidad de la medida. Vacío usa 3, 6, 11 y 21 encuestados (Perú: 3, 6 y 11), 6, 11, 21 y 51 personas o 0.5, 1, 2 y 3 por 10 000."),
+      list(name = "puntos", label = "Puntos de referencia", tipo_input = "textarea", grupo = "textos",
+           descripcion = "Uno por línea: Etiqueta | latitud, longitud o enlace de Google Maps | color opcional. Ej.: PUCP | -12.0693, -77.0794"),
+      list(name = "ancho_mapa", label = "Ancho del mapa", tipo_input = "number", grupo = "estilo", min = 0.25, max = 0.8, step = 0.05,
+           descripcion = "Fracción de la tarjeta que toma el mapa (0.25 a 0.8); el resto es de la lista. Vacío: automático, el mapa toma el ancho que su alto pide."),
+      list(name = "agrupar_lista", label = "Agrupar en la lista", tipo_input = "textarea", grupo = "datos",
+           descripcion = "Una fila de la lista que suma todos los distritos de una pregunta del mapa, con su rótulo. Una línea por fila: Rótulo | preguntas. Ej.: Callao | A6_2. El mapa no cambia.")
     ), .args_graf_comunes())
   ),
 
@@ -2112,8 +2279,8 @@
       list(name = "tabla", label = "Tabla de datos", tipo_input = "choice", grupo = "datos",
            default = "auto",
            depende = list(arg = "modo", valores = list("publicos")),
-           descripcion = "Da la cifra exacta de cada celda: lo que reporta el indicador, un criterio por fila y un público por columna. Automática: junto al radar y ninguna con líneas y puntos o barras. Sí: en cualquiera de las tres formas; en el PPT va al costado del gráfico y, si no cabe, debajo (y si tampoco, se omite, y se avisa). No: nunca. En el Word no va salvo que lo pidas aparte.",
-           choices = list(list(value = "auto", label = "Automática: junto al radar"),
+           descripcion = "Da la cifra exacta de cada celda: lo que reporta el indicador, un criterio por fila y un público por columna. Automática: junto al radar y a las líneas y puntos; con barras, no. Sí: en cualquiera de las tres formas; en el PPT va al costado del gráfico y, si no cabe, debajo (y si tampoco, se omite, y se avisa). No: nunca. El Word sigue esta misma opción salvo que la cambies en «Tabla encima de la figura en el Word».",
+           choices = list(list(value = "auto", label = "Automática: radar y líneas y puntos"),
                           list(value = "si", label = "Sí, en cualquier forma"), list(value = "no", label = "No"))),
       # Heredada: `tabla` la reemplaza (TRUE -> auto, FALSE -> no). Se migra al abrir el plan (graficos_radar_tabla.R).
       list(name = "mostrar_tabla", label = "Tabla al costado", tipo_input = "bool", grupo = "datos",
@@ -2124,10 +2291,10 @@
       list(name = "word_tabla", label = "Tabla encima de la figura en el Word", tipo_input = "bool", grupo = "word",
            default = FALSE,
            depende = list(arg = "modo", valores = list("publicos")),
-           descripcion = "Pone en el Word una tabla nativa con las cifras del indicador, centrada y encima del gráfico. Por defecto no va y no depende de «Tabla de datos». La lámina del PPT no cambia."),
+           descripcion = "Pone en el Word una tabla nativa con las cifras del indicador, centrada y encima del gráfico. Marcada va siempre; sin marcar sigue a «Tabla de datos» (con «No» no va en ninguno). La lámina del PPT no cambia."),
       list(name = "tabla_titulo", label = "Encabezado de la primera columna", tipo_input = "string", grupo = "datos",
            depende = list(arg = "modo", valores = list("publicos")),
-           descripcion = "Vacío = «Tema». El nombre del indicador no va aquí sino en el subtítulo del gráfico, donde se lee aunque la tabla esté apagada."),
+           descripcion = "Lo escribe el analista (por ejemplo, «TOP TWO BOX»). Vacío, la celda queda vacía y el informe avisa."),
       list(name = "tabla_encabezados", label = "Nombres de las columnas", tipo_input = "base_labels", grupo = "datos",
            depende = list(arg = "modo", valores = list("publicos")),
            descripcion = "Una caja por base del estudio. Lo que dejes vacío conserva el nombre técnico con el que llega («docentes», «egresados»)."),
@@ -2357,6 +2524,42 @@
            ),
            descripcion = "Si un criterio no es una pregunta de escala, se usa el índice lineal en todos.")
     ), .args_graf_comunes())
+  ),
+
+  # Lámina «total arriba y protagonista abajo», variante 05 (Gonzalo, 2026-11-04): graficos_lineas_nivel.R,
+  # lamina_total_y_cruce.R y lamina_lineas_nivel.R.
+  p_lineas_nivel = list(
+    titulo_humano = "Total y línea por nivel",
+    descripcion   = "Arriba, el total de la pregunta en una franja. Abajo, una línea por serie con un punto por nivel (nivel curricular, ciclo, grupo de edad). Cada nivel que se aparta del resto lleva su marca, y cada serie que crece o baja con el nivel lleva su aviso, con la regla de diferencias del estudio.",
+    icono_ui      = "TrendingUp",
+    categoria     = "comparison",
+    blueprint     = "line-series",
+    args = c(list(
+      list(name = "var", label = "Pregunta", tipo_input = "variable", grupo = "datos",
+           descripcion = "La pregunta que se muestra en el total y en las líneas."),
+      list(name = "cruce", label = "Niveles del eje", tipo_input = "variable", grupo = "datos",
+           descripcion = "Pregunta con niveles ordenados (ej. nivel curricular). Un punto por nivel, de menor a mayor."),
+      list(name = "series", label = "Líneas", tipo_input = "partes", grupo = "datos",
+           descripcion = "Una lista de líneas, hasta tres. Cada una tiene su rótulo y las respuestas de la pregunta que cuentan. Una línea puede sumar una segunda pregunta (ej. «trabaja y lo hace medio tiempo o más»). Todas se calculan sobre todos los casos de cada nivel."),
+      list(name = "total_arriba", label = "Total arriba", tipo_input = "bool", grupo = "datos", default = TRUE,
+           descripcion = "Muestra arriba la franja con el total de la pregunta."),
+      list(name = "segmentos_total", label = "Partes del total", tipo_input = "partes", grupo = "datos",
+           descripcion = "Cómo se parte la franja del total, con la misma forma que las líneas. Vacío: si las líneas van una dentro de otra, la interior, lo que falta para la exterior y el resto; si no, una parte por respuesta."),
+      list(name = "mostrar_significancia", label = "Marcar diferencias", tipo_input = "bool", grupo = "datos", default = TRUE,
+           descripcion = "Marca el nivel que se aparta del resto y avisa si la línea crece o baja con el nivel, con la regla de diferencias del estudio."),
+      list(name = "grupos", label = "Niveles que se muestran", tipo_input = "codigos_list", grupo = "datos",
+           descripcion = "Opcional. Los códigos de los niveles que entran al eje; vacío, todos los que tienen casos."),
+      list(name = "titulo_seccion", label = "Título de las líneas", tipo_input = "string", grupo = "textos",
+           descripcion = "Texto sobre las líneas. Ej. «Según nivel curricular»."),
+      list(name = "rotulo_total", label = "Título del total", tipo_input = "string", grupo = "textos",
+           descripcion = "Texto sobre la franja del total. Ej. «Total de estudiantes»."),
+      list(name = "publico", label = "Cómo se nombran los casos", tipo_input = "string", grupo = "textos",
+           descripcion = "Va bajo cada nivel con su número. Ej. «estudiantes» escribe «119 estudiantes»."),
+      list(name = "nombre_nivel", label = "Qué crece", tipo_input = "string", grupo = "textos",
+           descripcion = "La palabra del aviso de cada línea. Ej. «nivel» escribe «Crece con el nivel»."),
+      list(name = "lectura", label = "Lectura al margen", tipo_input = "textarea", grupo = "textos",
+           descripcion = "Texto en gris a la derecha, sin marcas. Sirve para un análisis complementario.")
+    ), .args_graf_comunes())
   )
 )
 
@@ -2384,6 +2587,7 @@
   p_barras_divergentes = list("escalas", "nativa"),
   p_puntos_comparativos = list("comparar", "nativa", condicion = "Sale como ranking con puntos; si los rótulos no caben, sale como imagen."),
   p_mapa_resultado_distrital = list("territorio", "nativa", condicion = "Si el mapa no cabe en la lámina, sale por la ruta anterior."),
+  p_mapa_distribucion = list("territorio", "nativa"),
   p_cifra = list("numeros", "nativa", condicion = "Va en las ranuras de cifra; en una ranura de gráfico sale por la ruta anterior."),
   p_dumbbell = list("comparar", "nativa"),
   p_significancia_publicos = list("comparar", "nativa", condicion = "Dos o tres públicos y hasta diez temas."),
@@ -2400,7 +2604,8 @@
   # Fuera del selector (Gonzalo, 2026-10-10: «sí, sácalo»): no está en el recetario. Sigue registrado y renderizable
   # para los planes que ya lo usan.
   p_dim_foda = list("dimensiones", "ruta_anterior", motivo = "No hay pieza propia para la matriz FODA.", en_selector = FALSE),
-  p_dim_heatmap_criterios = list("dimensiones", "nativa", condicion = "Si no cabe en la lámina, sale por la ruta anterior.")
+  p_dim_heatmap_criterios = list("dimensiones", "nativa", condicion = "Si no cabe en la lámina, sale por la ruta anterior."),
+  p_lineas_nivel = list("comparar", "nativa", condicion = "Con dos niveles o más; en el Word sale como figura.")
 )
 stopifnot(setequal(names(.GRAFICOS_SALIDA_EDITOR), names(.GRAFICADORES_META)))
 .GRAFICADORES_META <- Map(function(meta, s) {
@@ -2435,6 +2640,7 @@ stopifnot(setequal(names(.GRAFICOS_SALIDA_EDITOR), names(.GRAFICADORES_META)))
   p_barras_divergentes = "barras_divergentes",
   p_puntos_comparativos = "puntos_comparativos",
   p_mapa_resultado_distrital = "",
+  p_mapa_distribucion = "",
   p_cifra = "",
   p_dumbbell = "dumbbell",
   p_filtro_subpregunta = "",
@@ -2447,7 +2653,8 @@ stopifnot(setequal(names(.GRAFICOS_SALIDA_EDITOR), names(.GRAFICADORES_META)))
   p_dim_heatmap = "dim_heatmap",
   p_dim_comparativo_radarbar = "",
   p_dim_foda = "dim_foda",
-  p_dim_heatmap_criterios = "dim_heatmap_criterios"
+  p_dim_heatmap_criterios = "dim_heatmap_criterios",
+  p_lineas_nivel = ""
 )
 
 .graf_operational_contract <- function(name, meta) {
@@ -3409,7 +3616,7 @@ stopifnot(setequal(names(.GRAFICOS_SALIDA_EDITOR), names(.GRAFICADORES_META)))
 
       list(name = "mostrar_valores", label = "Mostrar etiquetas", tipo_input = "bool", grupo = "valores", default = TRUE),
       list(name = "mostrar_frecuencia", label = "Mostrar frecuencia junto al %", tipo_input = "bool", grupo = "valores", default = FALSE,
-           descripcion = "Agrega el conteo al porcentaje: 42% (76) en vez de 42%. Apagado por defecto."),
+           descripcion = "Rotula conteo y porcentaje: 76 (42%) con una barra por valor; 42% (76) con intervalos o grupos. Apagado por defecto."),
       list(name = "mostrar_resumen_grupos_subtitulo", label = "Resumen de grupos en subtítulo", tipo_input = "bool", grupo = "valores",
            default = FALSE,
            descripcion = "Agrega al subtítulo la distribución general de los grupos visibles. Ejemplo: Sexo: Hombre 82% · Mujer 18%."),
@@ -4171,7 +4378,7 @@ stopifnot(setequal(names(.GRAFICOS_SALIDA_EDITOR), names(.GRAFICADORES_META)))
   ),
 
   barras_apiladas = list(
-    color_barra_extra        = "#4E9438",  # ADR 0092: verde_top_two_box del estándar
+    color_barra_extra        = "#70AD47",  # ADR 0092: verde_top_two_box del estándar (Conta, 2026-10-29)
 
     canvas_w_etiquetas       = 0.18,
     canvas_w_buf_etq_bars    = 0.03,
@@ -4217,7 +4424,7 @@ stopifnot(setequal(names(.GRAFICOS_SALIDA_EDITOR), names(.GRAFICADORES_META)))
     size_texto_barras_peq    = 4.92,
     size_leyenda             = 12,
     size_barra_extra         = 14,  # ADR 0092: cifra de la columna Top Two Box
-    size_titulo_extra        = 10,  # ADR 0092: rótulo «Top Two Box»
+    size_titulo_extra        = 12,  # ADR 0092: rótulo «Top Two Box»; 12 como Contabilidad (token rotulo_top_two_box)
     # 22 partia las preguntas largas en 6+ lineas (feedback directo B36).
     ancho_max_eje_y          = 34,
     prefijo_barra_extra      = "",
@@ -4270,7 +4477,7 @@ stopifnot(setequal(names(.GRAFICOS_SALIDA_EDITOR), names(.GRAFICADORES_META)))
     legend_gap_npc           = 0.012,
 
     color_texto_barras       = "white",
-    color_barra_extra        = "#4E9438",  # ADR 0092: verde_top_two_box del estándar
+    color_barra_extra        = "#70AD47",  # ADR 0092: verde_top_two_box del estándar (Conta, 2026-10-29)
     # Mismo criterio que en apiladas: la columna extra de una multiapilada es
     # el Top 2 Box. `mostrar_barra_extra` lo enciende el plan con `top2box` o
     # el propio preset; el preset del indicador tiene que estar puesto para que
@@ -4278,7 +4485,7 @@ stopifnot(setequal(names(.GRAFICOS_SALIDA_EDITOR), names(.GRAFICADORES_META)))
     barra_extra_preset       = "top2box",
     size_texto_barras        = 4.92,
     size_texto_barras_peq    = 4.92,
-    size_titulo_extra        = 10,  # ADR 0092: rótulo «Top Two Box»
+    size_titulo_extra        = 12,  # ADR 0092: rótulo «Top Two Box»; 12 como Contabilidad (token rotulo_top_two_box)
     color_texto_barras_fuera = .PULSO_PPT_COLORS$azul,
     size_titulos_grupo       = 14,
     size_ejes                = 12,

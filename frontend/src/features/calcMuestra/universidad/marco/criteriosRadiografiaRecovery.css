@@ -29,7 +29,7 @@
 
 .cmv2-crc-recovery-eyebrow {
   color: var(--cmv2-accent-fg);
-  font-size: 11px;
+  font-size: var(--pulso-type-eyebrow-size);
   font-weight: var(--pulso-weight-black);
   letter-spacing: 0.07em;
   text-transform: uppercase;
@@ -42,13 +42,13 @@
 
 .cmv2-crc-recovery h3 {
   color: var(--pulso-text);
-  font-size: 16px;
+  font-size: var(--pulso-type-title-size);
   line-height: 1.3;
 }
 
 .cmv2-crc-recovery p {
   color: var(--pulso-text-muted);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   line-height: 1.5;
 }
 
@@ -71,14 +71,16 @@
   background: var(--cmv2-accent);
   color: var(--pulso-surface);
   font: inherit;
-  font-size: 12px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-bold);
   cursor: pointer;
 }
 
 .cmv2-crc-recovery-action button:hover:not(:disabled) {
   box-shadow: var(--pulso-shadow-soft);
-  transform: translateY(-1px);
+}
+@media (hover: hover) and (pointer: fine) {
+  .cmv2-crc-recovery-action button:hover:not(:disabled) { transform: translateY(var(--mov-hover-lift, -1px)); }
 }
 
 .cmv2-crc-recovery-action button:focus-visible {
@@ -93,7 +95,7 @@
 
 .cmv2-crc-recovery-action small {
   color: var(--pulso-text-muted);
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   line-height: 1.4;
   text-align: center;
 }

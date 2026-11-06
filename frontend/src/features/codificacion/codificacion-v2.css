@@ -13,7 +13,7 @@
 }
 
 .pulso-codificacion-matrix-focus-chip:active {
-  transform: scale(0.98);
+  transform: scale(var(--mov-press, 0.97));
 }
 
 .pulso-codificacion-matrix-search:focus-within {
@@ -27,7 +27,7 @@
   outline: 0;
   background: transparent;
   color: var(--pulso-text);
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   font-weight: var(--pulso-weight-semibold);
 }
 
@@ -53,7 +53,7 @@
 }
 
 .pulso-codificacion-matrix-case-row:active {
-  transform: scale(0.992);
+  transform: scale(var(--mov-press-tarjeta, 0.985));
 }
 
 .pulso-codificacion-matrix-case-row > span:nth-child(2) {
@@ -75,7 +75,7 @@
   background: var(--pulso-primary-soft);
   color: var(--pulso-primary);
   padding: 3px 7px;
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   font-style: normal;
   font-weight: var(--pulso-weight-heavy);
   white-space: nowrap;
@@ -108,7 +108,7 @@
   background: #fff;
   color: var(--pulso-text);
   padding: 5px 8px;
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   font-weight: var(--pulso-weight-bold);
 }
 
@@ -128,7 +128,7 @@
   background: #fff;
   color: var(--pulso-text-soft);
   padding: 4px 9px;
-  font-size: 10.5px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-heavy);
 }
 
@@ -144,7 +144,7 @@
 }
 
 .pulso-codificacion-matrix-variable-row:active {
-  transform: scale(0.992);
+  transform: scale(var(--mov-press-tarjeta, 0.985));
 }
 
 .pulso-codificacion-matrix-variable-row input {
@@ -162,7 +162,7 @@
   background:
     linear-gradient(180deg, #fff, color-mix(in srgb, var(--pulso-surface-2) 72%, #fff));
   color: var(--pulso-text-soft);
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-black);
   line-height: 1.1;
   text-align: left;
@@ -203,30 +203,23 @@
   background: color-mix(in srgb, var(--pulso-surface-2) 82%, #fff 18%);
 }
 
-.pulso-codificacion-matrix-empty svg {
-  color: var(--pulso-primary);
-}
 
-.pulso-codificacion-matrix-empty strong {
-  color: var(--pulso-text);
-  font-size: 13px;
-}
 
 .pulso-codificacion-matrix-standard strong {
   color: var(--pulso-text);
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
 }
 
 .pulso-codificacion-import-head h2 {
   margin: 1px 0 2px;
   color: var(--pulso-text);
-  font-size: 17px;
+  font-size: var(--pulso-type-title-size);
   line-height: 1.2;
 }
 
 .pulso-codificacion-import-picker strong {
   color: var(--pulso-text);
-  font-size: 13px;
+  font-size: var(--pulso-type-body-size);
   line-height: 1.25;
 }
 
@@ -243,7 +236,7 @@
   border-bottom: 1px solid var(--pulso-border);
   background: var(--pulso-header-row);
   color: var(--pulso-text-soft);
-  font-size: 10.5px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-heavy);
   letter-spacing: 0.4px;
   text-align: left;
@@ -268,7 +261,7 @@
   white-space: nowrap;
   color: var(--pulso-primary);
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   font-weight: var(--pulso-weight-heavy);
 }
 
@@ -283,42 +276,7 @@
   width: 100%;
   min-width: 150px;
   min-height: 30px;
-  font-size: 11.5px;
-}
-
-.pulso-codificacion-sidebar-head strong {
-  color: var(--pulso-text);
-  font-size: 14px;
-  line-height: 1.25;
-}
-
-.pulso-codificacion-nav-copy strong {
-  color: var(--pulso-text);
-  font-size: 12px;
-  line-height: 1.2;
-}
-
-.pulso-codificacion-nav-item:hover:not(:disabled) .pulso-codificacion-nav-copy span,
-.pulso-codificacion-nav-item:focus-visible .pulso-codificacion-nav-copy span,
-.pulso-codificacion-nav-item.is-active .pulso-codificacion-nav-copy span {
-  max-height: 14px;
-  opacity: 1;
-}
-
-.pulso-codificacion-nav-item.is-active .pulso-codificacion-nav-copy strong,
-.pulso-codificacion-nav-item.is-active .pulso-codificacion-nav-copy span {
-  color: #fff;
-}
-
-.pulso-codificacion-panel-copy h2 {
-  margin: 0;
-  color: var(--pulso-text);
-  font-size: 13.5px;
-  font-weight: var(--pulso-weight-heavy);
-  line-height: 1.2;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  font-size: var(--pulso-type-caption-size);
 }
 
 .pulso-codificacion-panel-body .pulso-codificacion-section-head {
@@ -337,10 +295,8 @@
     color-mix(in srgb, var(--pulso-module-processing-soft) 28%, transparent);
   opacity: 0;
   transition: opacity var(--motion-dur-fast) ease;
-}
-
-.pulso-codificacion-question-card:hover {
-  transform: translateY(-1px);
+}@media (hover: hover) and (pointer: fine) {
+  .pulso-codificacion-question-card:hover { transform: translateY(var(--mov-hover-lift, -1px)); }
 }
 
 .pulso-codificacion-question-grid > article:hover {
@@ -355,7 +311,7 @@
 .pulso-codificacion-adaptar-bridge-copy strong {
   display: block;
   color: var(--pulso-text);
-  font-size: 14px;
+  font-size: var(--pulso-type-body-size);
   line-height: 1.2;
 }
 
@@ -385,19 +341,6 @@ button.pulso-ghost-nav:disabled {
   cursor: not-allowed;
 }
 
-.pulso-codificacion-status {
-  flex: 1 1 auto;
-}
-
-.pulso-codificacion-config-actions {
-  flex: 0 0 auto;
-}
-
-.pulso-codificacion-panel-copy h2 {
-  font-size: 16px;
-  font-weight: var(--pulso-weight-heavy);
-}
-
 .pulso-codificacion-loading-step > span {
   grid-area: icon;
   width: 30px;
@@ -416,7 +359,7 @@ button.pulso-ghost-nav:disabled {
 .pulso-codificacion-loading-step strong {
   grid-area: label;
   color: var(--pulso-text);
-  font-size: 12px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-heavy);
   line-height: 1.2;
 }
@@ -424,7 +367,7 @@ button.pulso-ghost-nav:disabled {
 .pulso-codificacion-loading-step small {
   grid-area: hint;
   color: var(--pulso-text-soft);
-  font-size: 10.8px;
+  font-size: var(--pulso-type-caption-size);
   font-weight: var(--pulso-weight-semibold);
   line-height: 1.25;
 }
@@ -438,7 +381,6 @@ button.pulso-ghost-nav:disabled {
 }
 
 .pulso-codificacion-sections-grid .pulso-codificacion-question-card {
-  min-height: 206px;
   border-radius: 14px;
 }
 
@@ -455,16 +397,6 @@ button.pulso-ghost-nav:disabled {
  * ========================================================================= */
 
 /* ── Keyframes ─────────────────────────────────────────────────────────── */
-
-@keyframes pulso-cv2-pop-in {
-  from { opacity: 0; transform: translateY(-6px) scale(0.97); }
-  to   { opacity: 1; transform: none; }
-}
-
-@keyframes pulso-cv2-overlay-in {
-  from { opacity: 0; }
-  to   { opacity: 1; }
-}
 
 /* ── Acento del módulo (teal) ──────────────────────────────────────────── */
 /* El chrome de Procesamiento (phase-dock, rail, tiles) ya habla teal, pero el
@@ -492,70 +424,29 @@ button.pulso-ghost-nav:disabled {
     align-content: start;
   }
 
-  .pulso-main--processing .pulso-codificacion-frame .pulso-adaptive-rail > .pulso-codificacion-sidebar {
-    width: 100%;
-    justify-items: center;
-  }
-
-  :root[data-pulso-layout-mode="short"] .pulso-main--processing .pulso-codificacion-frame .pulso-codificacion-nav.pulso-gliding-tab-list,
-  .pulso-main--processing .pulso-codificacion-frame .pulso-codificacion-nav.pulso-gliding-tab-list {
-    display: grid !important;
-    grid-template-columns: 1fr !important;
-    grid-auto-flow: row;
-    justify-items: center !important;
-    align-items: center !important;
-    gap: 7px !important;
-    width: 100% !important;
-    max-width: none !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    overflow: visible !important;
-    border: 0 !important;
-    border-radius: 0 !important;
-    background: transparent !important;
-    box-shadow: none !important;
-  }
-
-  .pulso-main--processing .pulso-codificacion-frame .pulso-codificacion-nav > .pulso-gliding-tab-indicator {
-    display: none;
-  }
-
-  .pulso-main--processing .pulso-codificacion-frame .pulso-codificacion-nav .pulso-codificacion-nav-item,
-  .pulso-main--processing .pulso-codificacion-frame .pulso-codificacion-nav .pulso-codificacion-nav-item:is(:hover, :focus-visible, :active, .is-active) {
-    width: var(--pulso-processing-rail-item-width, 42px) !important;
-    min-width: var(--pulso-processing-rail-item-width, 42px) !important;
-    max-width: var(--pulso-processing-rail-item-width, 42px) !important;
-    height: var(--pulso-processing-rail-item-height, 42px) !important;
-    min-height: var(--pulso-processing-rail-item-height, 42px) !important;
-    display: grid !important;
-    grid-template-columns: 1fr !important;
-    place-items: center;
-    gap: 0 !important;
-    padding: 0 !important;
-    flex: 0 0 var(--pulso-processing-rail-item-width, 42px) !important;
-    overflow: visible;
-  }
-
-  .pulso-main--processing .pulso-codificacion-frame .pulso-codificacion-nav .pulso-codificacion-nav-item[aria-selected="true"] {
-    border-color: color-mix(in srgb, var(--pulso-module-processing) 86%, var(--pulso-surface)) !important;
-    background:
-      linear-gradient(180deg, color-mix(in srgb, var(--pulso-module-processing) 90%, var(--pulso-surface) 10%), var(--pulso-module-processing)) !important;
-    color: var(--pulso-surface) !important;
-    box-shadow:
-      inset 0 1px 0 color-mix(in srgb, var(--pulso-surface) 22%, transparent),
-      inset 0 -7px 11px rgba(0, 0, 0, 0.07),
-      0 8px 16px color-mix(in srgb, var(--pulso-module-processing) 22%, transparent) !important;
-  }
-
-  .pulso-main--processing .pulso-codificacion-frame .pulso-codificacion-nav .pulso-codificacion-nav-item[aria-selected="true"] .pulso-codificacion-nav-icon {
-    background: color-mix(in srgb, var(--pulso-surface) 14%, transparent);
-    border-color: color-mix(in srgb, var(--pulso-surface) 26%, transparent);
-    color: var(--pulso-surface);
-  }
 }
 
 .pulso-codificacion-frame .pulso-codificacion-content {
   grid-template-rows: minmax(0, 1fr);
+}
+
+/* L14: con la cabecera única de pestaña, la primera fila es la cabecera y el
+   cuerpo (que es quien desplaza) se queda con el resto. Sin insumos (la puerta
+   de Carga) no hay cabecera y sigue la fila única. */
+.pulso-codificacion-frame .pulso-codificacion-content.con-cabecera {
+  grid-template-rows: auto minmax(0, 1fr);
+}
+
+.pulso-codificacion-base-actual {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-inline-size: 260px;
+  overflow: hidden;
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .pulso-codificacion-frame .pulso-codificacion-panel-body,
@@ -639,7 +530,7 @@ button.pulso-ghost-nav:disabled {
 }
 
 .pulso-codificacion-frame .pulso-codificacion-config-button:active:not(:disabled) {
-  transform: scale(0.97);
+  transform: scale(var(--mov-press, 0.97));
 }
 
 /* Chips de filtro de la matriz: feedback de presión coherente con gv2. */
@@ -652,7 +543,7 @@ button.pulso-ghost-nav:disabled {
 }
 
 .pulso-codificacion-frame .pulso-codificacion-matrix-focus-chip:active:not(:disabled) {
-  transform: scale(0.97);
+  transform: scale(var(--mov-press, 0.97));
 }
 
 /* ── DataSurface de la matriz ──────────────────────────────────────────── */
@@ -682,11 +573,11 @@ button.pulso-ghost-nav:disabled {
 /* ── Diálogos (PairingDialog / RelationDialog) ─────────────────────────── */
 
 .pulso-cv2-overlay {
-  animation: pulso-cv2-overlay-in var(--motion-dur-fast) var(--motion-ease-out);
+  animation: pulso-mov-aparece var(--motion-dur-fast) var(--motion-ease-out);
 }
 
 .pulso-cv2-dialog {
-  animation: pulso-cv2-pop-in var(--motion-dur-fast) var(--motion-ease-out);
+  animation: pulso-mov-emerge var(--motion-dur-fast) var(--motion-ease-out);
   transform-origin: top center;
   border-radius: 16px !important;
 }
@@ -737,10 +628,10 @@ button.pulso-ghost-nav:disabled {
   width: 28px;
   height: 28px;
   border-radius: 8px;
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
 }
 .pulso-codificacion-frame .pulso-codificacion-coder-title {
-  font-size: 15px;
+  font-size: var(--pulso-type-title-size);
   font-weight: var(--pulso-weight-bold);
   line-height: 1.3;
 }
@@ -779,7 +670,7 @@ button.pulso-ghost-nav:disabled {
 }
 .pulso-cv2-statband-eyebrow {
   margin-bottom: 8px;
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-bold);
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -790,7 +681,7 @@ button.pulso-ghost-nav:disabled {
 }
 .pulso-cv2-statband-eyebrow code {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
 }
 .pulso-cv2-statrow {
   display: flex;
@@ -811,7 +702,7 @@ button.pulso-ghost-nav:disabled {
   border-left: none;
 }
 .pulso-cv2-stat-val {
-  font-size: 21px;
+  font-size: var(--pulso-type-kpi-size);
   font-weight: var(--pulso-weight-semibold);
   line-height: 1.12;
   letter-spacing: -0.01em;
@@ -819,7 +710,7 @@ button.pulso-ghost-nav:disabled {
   font-variant-numeric: tabular-nums;
 }
 .pulso-cv2-stat-label {
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   font-weight: var(--pulso-weight-medium);
   color: var(--pulso-text-soft);
 }
@@ -858,16 +749,22 @@ button.pulso-ghost-nav:disabled {
 }
 .pulso-cv2-col-head {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: 4px 8px;
   margin-bottom: 10px;
 }
 .pulso-cv2-col-title {
   display: inline-flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 6px;
-  font-size: 12px;
+  gap: 4px 6px;
+  min-width: 0;
+  /* Se envuelve por palabras: a 1024 la columna mide ~240 px y el global
+     `overflow-wrap: anywhere` partía «Respuest/as» (pasada de formato). */
+  overflow-wrap: normal;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-bold);
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -880,7 +777,7 @@ button.pulso-ghost-nav:disabled {
   color: var(--pulso-module-processing);
 }
 .pulso-cv2-col-count {
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   font-weight: var(--pulso-weight-medium);
   color: var(--pulso-text-soft);
   white-space: nowrap;
@@ -914,7 +811,7 @@ button.pulso-ghost-nav:disabled {
   border: none;
   outline: none;
   background: transparent;
-  font-size: 13px;
+  font-size: var(--pulso-type-body-size);
   color: var(--pulso-text);
 }
 
@@ -940,12 +837,6 @@ button.pulso-ghost-nav:disabled {
   scrollbar-width: thin;
   scrollbar-color: var(--pulso-border) transparent;
 }
-.pulso-cv2-resp-empty {
-  padding: 16px;
-  font-size: 13px;
-  color: var(--pulso-text-soft);
-  text-align: center;
-}
 .pulso-cv2-resp-row {
   display: grid;
   grid-template-columns: 16px minmax(0, 1fr) auto;
@@ -965,7 +856,7 @@ button.pulso-ghost-nav:disabled {
   min-width: 0;
 }
 .pulso-cv2-resp-text {
-  font-size: 13px;
+  font-size: var(--pulso-type-body-size);
   font-weight: var(--pulso-weight-medium);
   line-height: 1.3;
   color: var(--pulso-text);
@@ -981,15 +872,8 @@ button.pulso-ghost-nav:disabled {
   flex-wrap: wrap;
   gap: 8px;
   margin-top: 2px;
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   color: var(--pulso-text-soft);
-}
-.pulso-cv2-resp-assigned {
-  display: inline-flex;
-  align-items: center;
-  gap: 2px;
-  font-weight: var(--pulso-weight-semibold);
-  color: var(--pulso-success-fg);
 }
 
 /* Chips de color de las categorías a las que pertenece la respuesta.
@@ -1011,7 +895,7 @@ button.pulso-ghost-nav:disabled {
   border: 1px solid color-mix(in srgb, var(--cv2-chip-accent, var(--pulso-border)) 42%, var(--pulso-border));
   background: color-mix(in srgb, var(--cv2-chip-accent, var(--pulso-surface)) 12%, var(--pulso-surface));
   color: var(--pulso-text);
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-semibold);
   line-height: 1;
   max-width: 168px;
@@ -1035,14 +919,16 @@ button.pulso-ghost-nav:disabled {
   display: inline-flex;
   align-items: center;
   gap: 3px;
+  flex-shrink: 0;
   height: 17px;
   margin-left: 6px;
   padding: 0 6px;
+  white-space: nowrap;
   border-radius: var(--pulso-radius-chip);
   border: 1px solid var(--pulso-primary-border);
   background: var(--pulso-primary-soft);
   color: var(--pulso-primary);
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-bold);
   letter-spacing: 0.4px;
   text-transform: uppercase;
@@ -1099,7 +985,7 @@ button.pulso-ghost-nav:disabled {
   border-radius: var(--pulso-radius-chip);
   background: var(--pulso-surface);
   color: var(--pulso-text-soft);
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-heavy);
   letter-spacing: 0;
   cursor: pointer;
@@ -1136,7 +1022,7 @@ button.pulso-ghost-nav:disabled {
   border-radius: 6px;
   background: var(--pulso-surface);
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 13px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-bold);
   text-align: center;
   color: var(--pulso-text);
@@ -1161,7 +1047,7 @@ button.pulso-ghost-nav:disabled {
   border: 1px solid var(--pulso-border);
   border-radius: 6px;
   background: var(--pulso-surface);
-  font-size: 13px;
+  font-size: var(--pulso-type-body-size);
   font-weight: var(--pulso-weight-medium);
   color: var(--pulso-text);
 }
@@ -1185,34 +1071,12 @@ button.pulso-ghost-nav:disabled {
   flex-shrink: 0;
   gap: 2px;
 }
-.pulso-cv2-badge {
-  flex-shrink: 0;
-  display: inline-flex;
-  align-items: center;
-  height: 20px;
-  padding: 0 7px;
-  border-radius: var(--pulso-radius-chip);
-  font-size: 10px;
-  font-weight: var(--pulso-weight-semibold);
-  text-transform: uppercase;
-  letter-spacing: 0.4px;
-}
-.pulso-cv2-badge.is-nuevo {
-  color: var(--pulso-success-fg);
-  background: var(--pulso-success-bg);
-  border: 1px solid var(--pulso-success-border);
-}
-.pulso-cv2-badge.is-existente {
-  color: var(--pulso-primary);
-  background: var(--pulso-primary-soft);
-  border: 1px solid var(--pulso-primary-border);
-}
 .pulso-cv2-grupo-meta {
   display: flex;
   align-items: center;
   gap: 8px;
   margin-top: 8px;
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   color: var(--pulso-text-soft);
 }
 .pulso-cv2-grupo-active-flag {
@@ -1221,7 +1085,7 @@ button.pulso-ghost-nav:disabled {
   height: 16px;
   padding: 0 6px;
   border-radius: var(--pulso-radius-chip);
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-bold);
   text-transform: uppercase;
   letter-spacing: 0.4px;
@@ -1230,33 +1094,6 @@ button.pulso-ghost-nav:disabled {
 }
 
 /* Empty-state de la tarjeta de grupo (sin la línea "0 respuestas · 0 casos") */
-.pulso-cv2-grupo-empty {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-top: 8px;
-  padding: 10px 12px;
-  border: 1px dashed var(--pulso-border-strong);
-  border-radius: 8px;
-  background: color-mix(in srgb, var(--pulso-surface-2) 60%, transparent);
-  color: var(--pulso-text-soft);
-}
-.pulso-cv2-grupo.is-active .pulso-cv2-grupo-empty {
-  border-color: var(--pulso-primary-border);
-  background: color-mix(in srgb, var(--pulso-primary-soft) 45%, var(--pulso-surface));
-}
-.pulso-cv2-grupo-empty-icon {
-  display: inline-flex;
-  flex-shrink: 0;
-  color: var(--pulso-text-faint);
-}
-.pulso-cv2-grupo.is-active .pulso-cv2-grupo-empty-icon {
-  color: var(--pulso-primary);
-}
-.pulso-cv2-grupo-empty-copy {
-  font-size: 11.5px;
-  line-height: 1.35;
-}
 
 /* Chips de respuestas asignadas dentro de la tarjeta */
 .pulso-cv2-chips {
@@ -1274,7 +1111,7 @@ button.pulso-ghost-nav:disabled {
   border: 1px solid var(--pulso-border);
   border-radius: var(--pulso-radius-chip);
   background: var(--pulso-surface);
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   color: var(--pulso-text);
 }
 .pulso-cv2-chip-text {
@@ -1284,7 +1121,9 @@ button.pulso-ghost-nav:disabled {
   white-space: nowrap;
 }
 .pulso-cv2-chip-freq {
-  font-size: 10px;
+  flex-shrink: 0;
+  white-space: nowrap;
+  font-size: var(--pulso-type-micro-size);
   color: var(--pulso-text-soft);
   font-variant-numeric: tabular-nums;
 }
@@ -1318,7 +1157,7 @@ button.pulso-ghost-nav:disabled {
   align-items: center;
   gap: 4px;
   margin-bottom: 6px;
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-bold);
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -1338,7 +1177,7 @@ button.pulso-ghost-nav:disabled {
   border: 1px dashed var(--pulso-warn-border);
   border-radius: var(--pulso-radius-chip);
   background: var(--pulso-warn-bg);
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   color: var(--pulso-text);
   cursor: pointer;
   transition: background var(--motion-dur-fast) ease;
@@ -1347,7 +1186,7 @@ button.pulso-ghost-nav:disabled {
   background: color-mix(in srgb, var(--pulso-warn-bg) 78%, var(--pulso-warn-border));
 }
 .pulso-cv2-sug-pct {
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-bold);
   font-variant-numeric: tabular-nums;
 }
@@ -1368,7 +1207,7 @@ button.pulso-ghost-nav:disabled {
   border: 1px solid var(--pulso-border);
   border-radius: var(--pulso-radius-chip);
   background: var(--pulso-surface);
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-medium);
   color: var(--pulso-text-soft);
   white-space: nowrap;
@@ -1406,12 +1245,6 @@ button.pulso-ghost-nav:disabled {
   background: var(--pulso-surface);
   box-shadow: var(--pulso-shadow-med);
 }
-.pulso-cv2-qa-empty {
-  padding: 6px 8px;
-  font-size: 11px;
-  font-style: italic;
-  color: var(--pulso-text-soft);
-}
 .pulso-cv2-qa-item {
   display: flex;
   align-items: center;
@@ -1422,7 +1255,7 @@ button.pulso-ghost-nav:disabled {
   border-radius: 4px;
   background: transparent;
   text-align: left;
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   color: var(--pulso-text);
   cursor: pointer;
 }
@@ -1470,7 +1303,7 @@ button.pulso-ghost-nav:disabled {
   border-radius: var(--pulso-radius-chip);
   background: var(--pulso-primary);
   color: var(--pulso-surface);
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-bold);
   font-variant-numeric: tabular-nums;
 }
@@ -1519,7 +1352,7 @@ button.pulso-ghost-nav:disabled {
   border: 1px solid var(--pulso-warn-border);
   background: var(--pulso-warn-bg);
   color: var(--pulso-warn-fg);
-  font-size: 9px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: 800;
   letter-spacing: 0.2px;
   white-space: nowrap;
@@ -1553,14 +1386,14 @@ button.pulso-ghost-nav:disabled {
 
 .pulso-codificacion-relation-target-head h2 {
   margin: 0;
-  font-size: 15px;
+  font-size: var(--pulso-type-title-size);
   font-weight: var(--pulso-weight-heavy);
 }
 
 .pulso-codificacion-relation-target-head p {
   margin: 2px 0 0;
   color: var(--pulso-text-soft);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   line-height: 1.35;
 }
 
@@ -1579,12 +1412,12 @@ button.pulso-ghost-nav:disabled {
 .pulso-codificacion-relation-source span,
 .pulso-codificacion-relation-source small {
   color: var(--pulso-text-soft);
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
 }
 
 .pulso-codificacion-relation-source strong {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .pulso-codificacion-relation-search {
@@ -1623,8 +1456,11 @@ button.pulso-ghost-nav:disabled {
   overflow: hidden;
 }
 
+/* 5 nov 2026 (pulido de UI): `auto-fill`, no `auto-fit`. Con auto-fit las columnas vacías se colapsaban y una
+   sección de 2 preguntas estiraba sus tarjetas al doble de ancho que la de 5 de abajo (660 vs 330 px a 1440):
+   el mismo listado con dos tamaños de tarjeta. Así todas las secciones comparten columnas. */
 .pulso-codificacion-frame .pulso-codificacion-sections-grid .pulso-codificacion-question-grid {
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr));
   align-items: stretch;
 }
 
@@ -1670,20 +1506,15 @@ button.pulso-ghost-nav:disabled {
 
 .pulso-codificacion-relation-target-option span {
   color: var(--pulso-text);
-  font-size: 12px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-semibold);
 }
 
-.pulso-codificacion-relation-target-option small,
-.pulso-codificacion-relation-empty {
+.pulso-codificacion-relation-target-option small {
   color: var(--pulso-text-soft);
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
 }
 
-.pulso-codificacion-relation-empty {
-  padding: 18px;
-  text-align: center;
-}
 
 /* =========================================================================
    Movido desde app/theme.css (refactor 2026-07: theme.css = tokens + kit).
@@ -1692,7 +1523,7 @@ button.pulso-ghost-nav:disabled {
 
 .pulso-codificacion-matrix-hero-copy h3 {
   color: var(--pulso-text);
-  font-size: 15px;
+  font-size: var(--pulso-type-title-size);
   line-height: 1.22;
 }
 
@@ -1702,7 +1533,7 @@ button.pulso-ghost-nav:disabled {
   border-radius: var(--pulso-radius-chip);
   background: #fff;
   color: var(--pulso-text-soft);
-  font-size: 10.5px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-heavy);
   padding: 3px 8px;
 }
@@ -1727,7 +1558,7 @@ button.pulso-ghost-nav:disabled {
 .pulso-codificacion-matrix-base-card header strong {
   overflow: hidden;
   color: var(--pulso-text);
-  font-size: 13px;
+  font-size: var(--pulso-type-body-size);
   line-height: 1.18;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -1765,12 +1596,12 @@ button.pulso-ghost-nav:disabled {
   outline: none;
   background: transparent;
   color: var(--pulso-text);
-  font-size: 13px;
+  font-size: var(--pulso-type-body-size);
   padding: 4px 0;
 }
 
 .pulso-codificacion-search-clear:active {
-  transform: scale(0.94);
+  transform: scale(var(--mov-press, 0.97));
 }
 
 .pulso-codificacion-sidebar-question:hover {
@@ -1779,7 +1610,7 @@ button.pulso-ghost-nav:disabled {
 }
 
 .pulso-codificacion-sidebar-question:active {
-  transform: scale(0.99);
+  transform: scale(var(--mov-press-tarjeta, 0.985));
 }
 
 .pulso-codificacion-sidebar-question.is-active {
@@ -1829,4 +1660,24 @@ button.pulso-ghost-nav:disabled {
 .pulso-codificacion-switch {
   --pulso-switch-accent: var(--module-accent, var(--pulso-module-processing, var(--pulso-primary)));
   --pulso-switch-accent-ring: color-mix(in srgb, var(--pulso-switch-accent) 18%, transparent);
+}
+
+/* P6 (4 nov 2026): el chip de decisión es el EstadoChip del kit; su motivo o lo
+   que falta va al lado, en texto apagado, y se recorta antes que el chip. */
+.pulso-codif-decision {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.pulso-codif-decision-coletilla {
+  min-width: 0;
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
 }

@@ -5,16 +5,17 @@
 // en línea; la lógica vive una sola vez en `../compartir/`. En el informe compartido lo que escribe la base activa queda
 // deshabilitado con motivo (decisión 20); vaciar no, porque escribe en el borrador de ese informe.
 
+import { teclaMod } from "../../../lib/teclado";
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent, type RefObject } from "react";
 import { useLocation } from "react-router-dom";
-import { AlertTriangle, Archive, FileJson, Layers3, MoreHorizontal, Palette, Redo2, RotateCcw, Undo2 } from "../../../vendor/lucide-react";
+import { AlertTriangle, Archive, FileJson, Layers3, MoreHorizontal, Palette, Redo2, RotateCcw, Scale, Undo2 } from "../../../vendor/lucide-react";
 import { SaveStatusIndicator } from "../../../components/SaveStatusIndicator";
 import { useSession } from "../../../lib/SessionContext";
 import { usePanelDireccionable } from "../../../lib/navegacion/paneles";
 import { useSeccion } from "../../../lib/navegacion/useDireccion";
 import { ExportarInformeMenu, type ExportarInformeMenuProps } from "../ExportarInformeMenu";
 import { modoMultibaseDelPlan } from "../modoMultibase";
-import { PANEL_AVISOS_INFORME, PANEL_PLAN_PORTATIL, PANEL_SECCIONES_JSON } from "../panelesGraficos";
+import { PANEL_AVISOS_INFORME, PANEL_DIFERENCIAS_INFORME, PANEL_PLAN_PORTATIL, PANEL_SECCIONES_JSON } from "../panelesGraficos";
 import { DialogoCompartir } from "../compartir/DialogoCompartir";
 import { itemsCompartirMenu, type ItemCompartirMenu } from "../compartir/menuCompartir";
 import { PlanPortatilContenido } from "../compartir/PlanPortatilContenido";
@@ -43,8 +44,10 @@ type Props = Omit<ExportarInformeMenuProps, "canExportFinal"> & {
   onIrEditorAnterior?: () => void;
 };
 
-const esMac = typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigator.platform);
-const MOD = esMac ? "⌘" : "Ctrl";
+const MOD = teclaMod();
+
+/** Qué dice «Aplicado» (H10): el informe está en el proyecto abierto; el archivo se guarda desde el proyecto. */
+const TITULO_APLICADO = "Tus cambios del informe ya están en el proyecto abierto. Para llevarlos al archivo, guarda el proyecto desde su nombre, arriba a la derecha.";
 
 export function BarraLaminas({ canExport, onIrEditorAnterior: _sinUso, ...exportar }: Props) {
   const { state } = useSession();
@@ -61,6 +64,7 @@ export function BarraLaminas({ canExport, onIrEditorAnterior: _sinUso, ...export
   const avisosPanel = usePanelDireccionable(PANEL_AVISOS_INFORME);
   const planPortatilPanel = usePanelDireccionable(PANEL_PLAN_PORTATIL);
   const seccionesJsonPanel = usePanelDireccionable(PANEL_SECCIONES_JSON);
+  const diferenciasPanel = usePanelDireccionable(PANEL_DIFERENCIAS_INFORME);
   const compartir = useCompartirPlan(reportScope);
   const vaciar = useVaciarPlan(reportScope);
   const { irA } = useSeccion("procesamiento");
@@ -111,8 +115,11 @@ export function BarraLaminas({ canExport, onIrEditorAnterior: _sinUso, ...export
             </button>
           </span>
         ) : (
-          <span className="pulso-f6-barra-ancho">
-            <SaveStatusIndicator state={!hydrated ? "loading" : dirty ? "dirty" : "saved"} savedLabel="Guardado" />
+          // H10: «Guardado» aquí y «sin guardar» en el proyecto se leían como contradicción. Esta marca dice si el
+          // informe ya llegó al proyecto abierto; si el archivo está guardado lo dice sólo el chip del proyecto.
+          <span className="pulso-f6-barra-ancho" title={TITULO_APLICADO}>
+            <SaveStatusIndicator state={!hydrated ? "loading" : dirty ? "dirty" : "saved"} savedLabel="Aplicado" dirtyLabel="Aplicando…" />
+            <span className="pulso-sr-only">{TITULO_APLICADO}</span>
           </span>
         )}
       </div>
@@ -150,6 +157,7 @@ export function BarraLaminas({ canExport, onIrEditorAnterior: _sinUso, ...export
           }))}
           vaciar={{ ...itemVaciarMenu(vaciar.disponibilidad), abrir: vaciar.pedir }}
           onIrEstilo={() => irA("pestana", "identidad")}
+          onDiferencias={diferenciasPanel.abrir}
           disparadorRef={masRef}
         />
       </div>
@@ -202,7 +210,7 @@ export function indiceMenuTrasTecla(tecla: string, actual: number, total: number
   }
 }
 
-function MenuMas({ undo, redo, compartir, vaciar, onIrEstilo, disparadorRef }: {
+function MenuMas({ undo, redo, compartir, vaciar, onIrEstilo, onDiferencias, disparadorRef }: {
   undo: { disabled: boolean; run: () => void };
   redo: { disabled: boolean; run: () => void };
   /** Plan portátil (C11) y secciones JSON (C12), cada uno con su panel. */
@@ -211,6 +219,8 @@ function MenuMas({ undo, redo, compartir, vaciar, onIrEstilo, disparadorRef }: {
   vaciar: ItemVaciarMenu & { abrir: () => void };
   /** La pestaña «Estilo del cliente» de Procesamiento > Gráficos. */
   onIrEstilo: () => void;
+  /** «Diferencias del informe» (ADR 0128): la revisión en lote de las láminas con cruce, `?panel=diferencias`. */
+  onDiferencias: () => void;
   disparadorRef: RefObject<HTMLButtonElement>;
 }) {
   const [abierto, setAbierto] = useState(false);
@@ -265,6 +275,10 @@ function MenuMas({ undo, redo, compartir, vaciar, onIrEstilo, disparadorRef }: {
           <button type="button" role="menuitem" onClick={item(onIrEstilo)}>
             <Palette size={14} aria-hidden="true" />
             <span>Identidad<small>Su pestaña: logos, letra e íconos</small></span>
+          </button>
+          <button type="button" role="menuitem" data-pulso-abre-panel={PANEL_DIFERENCIAS_INFORME.id} onClick={item(onDiferencias)}>
+            <Scale size={14} aria-hidden="true" />
+            <span>Diferencias del informe<small>Revisa las marcas de las láminas con cruce</small></span>
           </button>
           {compartir.map((accion) => (
             <button key={accion.clave} type="button" role="menuitem" data-pulso-abre-panel={accion.panel.id} {...itemCompartir(accion)}>

@@ -1,5 +1,6 @@
 import { memo, useMemo, useState, type CSSProperties } from "react";
-import { Inbox, X } from "lucide-react";
+import { Ban, Inbox, X } from "lucide-react";
+import { EstadoVacio } from "../../../../../components/EstadoVacio";
 import type { MonitoreoState, MonitoreoTerritorialDashboard, MonitoreoTerritorialPhase } from "../../../../../api/client";
 import { usePanelDireccionable } from "../../../../../lib/navegacion/paneles";
 import { useFocoMonitoreo } from "../../../useMonitoreoDireccion";
@@ -14,6 +15,7 @@ import {
 import { DialogoDeAnulacion, PANEL_ANULAR } from "./DialogoDeAnulacion";
 import { RotuloDePestana } from "../navegacion/RotuloDePestana";
 import "./bandeja.css";
+import { PulsoButton } from "../../../../../components/PulsoButton";
 
 type Vista = "bandeja" | "anulados";
 
@@ -57,11 +59,14 @@ function BandejaTabImpl({
   if (!modelo.disponible) {
     return (
       <section className="mon-ban mon-ban--vacio" data-audit-ready="vacio:sin-bandeja" aria-label="Bandeja">
-        <div className="mon-ban-panel mon-ban-vacio">
+        <div className="mon-ban-panel">
           <RotuloDePestana />
-          <Inbox size={20} aria-hidden="true" />
-          <strong>La bandeja se está preparando</strong>
-          <span>Los casos por revisar llegan con el corte de Consultas.</span>
+          <EstadoVacio
+            tamano="normal"
+            icono={<Inbox size={18} />}
+            titulo="La bandeja se está preparando"
+            descripcion="Los casos por revisar llegan con el corte de Consultas."
+          />
         </div>
       </section>
     );
@@ -257,7 +262,7 @@ function InspectorDeCaso({ caso, onCerrar, onAnular }: { caso: CasoDeBandeja; on
       </section>
       <footer className="mon-ban-pie">
         {onAnular ? (
-          <button type="button" className="mon-ban-boton is-peligro" onClick={onAnular}>Anular caso</button>
+          <PulsoButton variant="danger" size="sm" onClick={onAnular}><Ban size={14} aria-hidden="true" />Anular caso</PulsoButton>
         ) : (
           <p className="mon-ban-base" title="Sin identificador de respuesta no se puede anular desde aquí">Sin identificador de respuesta</p>
         )}

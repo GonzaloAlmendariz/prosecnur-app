@@ -45,7 +45,7 @@
 
    Motion (glow-up 2026-07): entradas ease-out < 300ms con cascada corta,
    swaps con .cmv2-uni-swap, hover solo bajo (hover:hover) y todo respetando
-   prefers-reduced-motion. Los keyframes cmv2-uni-enter viven en ui/ui.css.
+   prefers-reduced-motion. Los keyframes pulso-mov-sube-corto viven en ui/ui.css.
    ============================================================================= */
 
 .cmv2-sal-stack {
@@ -73,7 +73,7 @@
 
 .cmv2-sal-nota {
   margin: 0;
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   line-height: 1.55;
   color: var(--pulso-text-muted);
   max-width: 72ch;
@@ -91,54 +91,41 @@
    stagger de la fila de CifraMotor. Solo transform/opacity, ease-out. */
 @media (prefers-reduced-motion: no-preference) {
   .cmv2-sal-panel .cmv2-uni-flujo > * {
-    animation: cmv2-uni-enter-suave 220ms var(--cmv2-ease-out, ease-out) both;
+    animation: pulso-mov-aparece 220ms var(--cmv2-ease-out, ease-out) both;
   }
 
-  .cmv2-sal-panel .cmv2-uni-flujo > :nth-child(2) { animation-delay: 25ms; }
-  .cmv2-sal-panel .cmv2-uni-flujo > :nth-child(3) { animation-delay: 50ms; }
-  .cmv2-sal-panel .cmv2-uni-flujo > :nth-child(4) { animation-delay: 75ms; }
-  .cmv2-sal-panel .cmv2-uni-flujo > :nth-child(5) { animation-delay: 100ms; }
-  .cmv2-sal-panel .cmv2-uni-flujo > :nth-child(6) { animation-delay: 125ms; }
-  .cmv2-sal-panel .cmv2-uni-flujo > :nth-child(7) { animation-delay: 150ms; }
-  .cmv2-sal-panel .cmv2-uni-flujo > :nth-child(8) { animation-delay: 175ms; }
-  .cmv2-sal-panel .cmv2-uni-flujo > :nth-child(n + 9) { animation-delay: 200ms; }
+  .cmv2-sal-panel .cmv2-uni-flujo > :nth-child(2) { animation-delay: 12ms; }
+  .cmv2-sal-panel .cmv2-uni-flujo > :nth-child(3) { animation-delay: 24ms; }
+  .cmv2-sal-panel .cmv2-uni-flujo > :nth-child(4) { animation-delay: 36ms; }
+  .cmv2-sal-panel .cmv2-uni-flujo > :nth-child(5) { animation-delay: 48ms; }
+  .cmv2-sal-panel .cmv2-uni-flujo > :nth-child(6) { animation-delay: 60ms; }
+  .cmv2-sal-panel .cmv2-uni-flujo > :nth-child(7) { animation-delay: 72ms; }
+  .cmv2-sal-panel .cmv2-uni-flujo > :nth-child(8) { animation-delay: 84ms; }
+  .cmv2-sal-panel .cmv2-uni-flujo > :nth-child(n + 9) { animation-delay: 90ms; }
 
   /* Mismos tiempos que .cmv2-uni-stagger (ui/ui.css); CifraFila no expone
      className, por eso el selector estructural. */
   .cmv2-sal-panel .cmv2-uni-cifra-fila > * {
-    animation: cmv2-uni-enter-suave 230ms var(--cmv2-ease-out, ease-out) both;
+    animation: pulso-mov-aparece 230ms var(--cmv2-ease-out, ease-out) both;
   }
 
-  .cmv2-sal-panel .cmv2-uni-cifra-fila > :nth-child(2) { animation-delay: 35ms; }
-  .cmv2-sal-panel .cmv2-uni-cifra-fila > :nth-child(3) { animation-delay: 70ms; }
-  .cmv2-sal-panel .cmv2-uni-cifra-fila > :nth-child(4) { animation-delay: 105ms; }
-  .cmv2-sal-panel .cmv2-uni-cifra-fila > :nth-child(n + 5) { animation-delay: 140ms; }
+  .cmv2-sal-panel .cmv2-uni-cifra-fila > :nth-child(2) { animation-delay: 25ms; }
+  .cmv2-sal-panel .cmv2-uni-cifra-fila > :nth-child(3) { animation-delay: 50ms; }
+  .cmv2-sal-panel .cmv2-uni-cifra-fila > :nth-child(4) { animation-delay: 75ms; }
+  .cmv2-sal-panel .cmv2-uni-cifra-fila > :nth-child(n + 5) { animation-delay: 90ms; }
 
   /* Tablas de Resultados: fade simple, sin stagger por fila (son largas).
      Las tablas del Pase a Monitoreo quedan sin animación a propósito. */
   .cmv2-sal-stack .cmv2-university-results .cmv2-table-wrap {
-    animation: cmv2-sal-fade 200ms var(--cmv2-ease-out, ease-out) both;
+    animation: pulso-mov-aparece 200ms var(--cmv2-ease-out, ease-out) both;
   }
 
   /* "Ver reporte" recién disponible: entra con fade + scale(0.97) y un único
      pulso de acento (300ms) para señalar que ya está. */
   .cmv2-sal-stack .cmv2-did-sal-row a.cmv2-ghost {
     animation:
-      cmv2-sal-reporte-in 200ms var(--cmv2-ease-out, ease-out) both,
+      pulso-mov-escala 200ms var(--cmv2-ease-out, ease-out) both,
       cmv2-sal-reporte-pulso 300ms var(--cmv2-ease-out, ease-out) 220ms 1;
-  }
-}
-
-@keyframes cmv2-sal-fade {
-  from {
-    opacity: 0;
-  }
-}
-
-@keyframes cmv2-sal-reporte-in {
-  from {
-    opacity: 0;
-    transform: scale(0.97);
   }
 }
 
@@ -183,20 +170,35 @@
 }
 
 .cmv2-sal-panel .cmv2-uni-flujo-label {
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-bold);
   letter-spacing: 0.06em;
   white-space: normal;
 }
 
+/* A 1024 la etapa mide su mínimo (148 px) y «CURSOS‑HORARIO» en versalitas no
+ * cabía: se partía a media palabra («CURSOS‑HORARI | O»). Menos relleno y
+ * espaciado, y nunca un corte dentro de la palabra. */
+@media (max-width: 1180px) {
+  .cmv2-sal-panel .cmv2-uni-flujo[data-orientacion="horizontal"] .cmv2-uni-flujo-etapa {
+    padding-inline: 10px;
+  }
+
+  .cmv2-sal-panel .cmv2-uni-flujo-label {
+    letter-spacing: 0.03em;
+    overflow-wrap: normal;
+    word-break: normal;
+  }
+}
+
 .cmv2-sal-panel .cmv2-uni-flujo-valor {
-  font-size: 20px;
+  font-size: var(--pulso-type-kpi-size);
   font-weight: var(--pulso-weight-heavy);
   letter-spacing: -0.01em;
 }
 
 .cmv2-sal-panel .cmv2-uni-flujo-detalle {
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
 }
 
 .cmv2-sal-panel .cmv2-uni-flujo[data-orientacion="horizontal"] .cmv2-uni-flujo-linea {
@@ -214,24 +216,24 @@
 }
 
 .cmv2-sal-panel .cmv2-uni-cifra-label {
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-bold);
   letter-spacing: 0.06em;
 }
 
 .cmv2-sal-panel .cmv2-uni-cifra-valor {
-  font-size: 21px;
+  font-size: var(--pulso-type-kpi-size);
   font-weight: var(--pulso-weight-black);
   white-space: normal;
   line-height: 1.12;
 }
 
-.cmv2-sal-panel .cmv2-uni-cifra[data-hero="true"] .cmv2-uni-cifra-valor {
-  font-size: 21px;
+.cmv2-sal-panel .cmv2-uni-cifra[data-hero="true"]:not([data-sin-cifra="true"]) .cmv2-uni-cifra-valor {
+  font-size: var(--pulso-type-kpi-size);
 }
 
 .cmv2-sal-panel .cmv2-uni-cifra-detalle {
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
 }
 
 .cmv2-sal-panel .cmv2-uni-cifra-fila {
@@ -252,27 +254,6 @@
   pointer-events: none;
 }
 
-/* Estado de la ficha: tono éxito cuando el diseño está cerrado. */
-.cmv2-sal-estado[data-cerrado="true"] {
-  border-color: var(--pulso-success-border, var(--cmv2-accent-border));
-  background: color-mix(in srgb, var(--pulso-success-bg, var(--cmv2-accent-soft)) 55%, transparent);
-  color: var(--pulso-success-fg, var(--cmv2-accent-fg));
-}
-
-/* Salud del diseño: tonos semánticos (no el acento del módulo) cuando hay
-   observaciones o riesgos derivados de las cifras del motor. */
-.cmv2-sal-estado[data-salud="observaciones"] {
-  border-color: var(--pulso-warn-border);
-  background: color-mix(in srgb, var(--pulso-warn-bg) 70%, transparent);
-  color: var(--pulso-warn-fg);
-}
-
-.cmv2-sal-estado[data-salud="riesgos"] {
-  border-color: var(--pulso-danger-border);
-  background: color-mix(in srgb, var(--pulso-danger-bg) 70%, transparent);
-  color: var(--pulso-danger-fg);
-}
-
 /* Lista compacta de observaciones al pie de la ficha ejecutiva. */
 .cmv2-sal-observaciones {
   margin: 0;
@@ -290,7 +271,7 @@
   border: 1px solid var(--pulso-warn-border);
   border-radius: 10px;
   background: color-mix(in srgb, var(--pulso-warn-bg) 55%, transparent);
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   line-height: 1.5;
 }
 
@@ -303,7 +284,7 @@
 .cmv2-sal-observaciones li strong {
   display: block;
   color: var(--pulso-warn-fg);
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
 }
 
 .cmv2-sal-observaciones li span {
@@ -336,7 +317,7 @@
   border: 1px solid var(--cmv2-border);
   border-radius: 10px;
   background: var(--cmv2-surface-tint);
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   color: var(--pulso-text);
 }
 
@@ -350,7 +331,7 @@
 
 .cmv2-sal-meta b {
   color: var(--pulso-text-soft);
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-black);
   text-transform: uppercase;
   letter-spacing: 0.04em;
@@ -359,12 +340,13 @@
 .cmv2-sal-meta em {
   flex-basis: 100%;
   font-style: normal;
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   color: var(--pulso-text-muted);
 }
 
-/* Dentro de la ficha, la reproducibilidad se lee como sello: valores en mono
-   con tracking, etiquetas más comprimidas y borde discontinuo discreto. */
+/* Dentro de la ficha, la reproducibilidad se lee como sello: borde discontinuo
+   discreto y etiquetas comprimidas. Los valores van en la letra del sistema con
+   cifras tabulares (P8): método, semilla y firma son metadatos, no código. */
 .cmv2-sal-ficha .cmv2-sal-meta {
   border-style: dashed;
   border-color: var(--cmv2-border-strong);
@@ -372,19 +354,12 @@
 }
 
 .cmv2-sal-ficha .cmv2-sal-meta span {
-  font-family: var(--pulso-font-mono, ui-monospace, "SF Mono", Menlo, monospace);
-  font-size: 11px;
-  letter-spacing: 0.02em;
+  font-size: var(--pulso-type-caption-size);
 }
 
 .cmv2-sal-ficha .cmv2-sal-meta b {
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   letter-spacing: 0.09em;
-}
-
-.cmv2-sal-ficha .cmv2-sal-meta em {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
-  letter-spacing: normal;
 }
 
 /* --- Entregables: política PII -----------------------------------------------
@@ -405,7 +380,7 @@
   position: relative;
   z-index: 1;
   padding: 0 14px;
-  font-size: 12px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-bold);
   cursor: pointer;
   color: var(--pulso-text-muted);
@@ -421,7 +396,7 @@
 }
 
 .pulso-segmented.cmv2-sal-pii-segment > button:active {
-  transform: scale(0.96);
+  transform: scale(var(--mov-press, 0.97));
 }
 
 .pulso-segmented.cmv2-sal-pii-segment > button:focus-visible {
@@ -455,7 +430,7 @@
 
 .cmv2-sal-pii-pop strong {
   color: var(--pulso-text);
-  font-size: 12px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-black);
   line-height: 1.3;
 }
@@ -463,14 +438,14 @@
 .cmv2-sal-pii-pop p {
   margin: 0;
   color: var(--pulso-text-muted);
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   line-height: 1.5;
 }
 
 .cmv2-sal-pii-pop table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   line-height: 1.4;
 }
 
@@ -485,7 +460,7 @@
 
 .cmv2-sal-pii-pop th {
   color: var(--pulso-text-soft);
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-black);
   text-transform: uppercase;
   letter-spacing: 0.03em;
@@ -542,7 +517,7 @@
 }
 
 .cmv2-sal-stack .cmv2-did-segment button:active {
-  transform: scale(0.96);
+  transform: scale(var(--mov-press, 0.97));
 }
 
 .cmv2-sal-stack .cmv2-did-segment button:focus-visible {
@@ -613,13 +588,13 @@
 }
 
 .cmv2-sal-destino > header strong {
-  font-size: 13px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-black);
   color: var(--pulso-text);
 }
 
 .cmv2-sal-destino > header small {
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   color: var(--pulso-text-muted);
 }
 
@@ -697,14 +672,14 @@
   border: 1px solid var(--cmv2-border);
   border-radius: 999px;
   background: var(--cmv2-surface-tint);
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   color: var(--pulso-text-muted);
   font-variant-numeric: tabular-nums;
 }
 
 .cmv2-sal-profundidad b {
   color: var(--pulso-text);
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   font-weight: var(--pulso-weight-heavy);
 }
 
@@ -762,7 +737,7 @@
   background: var(--cmv2-surface-tint);
   color: var(--pulso-text);
   font: inherit;
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   text-align: left;
   cursor: pointer;
   transition:
@@ -853,7 +828,7 @@
   display: flex;
   align-items: center;
   gap: 7px;
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   color: var(--pulso-text);
 }
 
@@ -865,7 +840,7 @@
 .cmv2-sal-historial-comparacion table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   font-variant-numeric: tabular-nums;
 }
 
@@ -879,7 +854,7 @@
 .cmv2-sal-historial-comparacion thead th {
   border-top: 0;
   color: var(--pulso-text-muted);
-  font-size: 10.5px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-bold);
   text-transform: uppercase;
   letter-spacing: 0.04em;
@@ -941,13 +916,13 @@
   display: flex;
   align-items: baseline;
   gap: 8px;
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   color: var(--pulso-text);
 }
 
 .cmv2-sal-paquete-lista li strong em {
   font-style: normal;
-  font-size: 10.5px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-bold);
   text-transform: uppercase;
   letter-spacing: 0.04em;
@@ -955,7 +930,7 @@
 }
 
 .cmv2-sal-paquete-lista li small {
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   color: var(--pulso-text-muted);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1001,7 +976,7 @@
    ----------------------------------------------------------------------------- */
 
 .cmv2-sal-stack .cmv2-table th {
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   font-weight: var(--pulso-weight-bold);
   letter-spacing: 0.05em;
   color: var(--pulso-text-muted);
@@ -1071,32 +1046,6 @@
   }
 }
 
-/* --- Reporte desactualizado (meta reporte.stale, Oleada III) ------------------ */
-/* Badge no bloqueante bajo la tarjeta del reporte: la descarga sigue viva. */
-.cmv2-sal-reporte-stale {
-  display: flex;
-  gap: 7px;
-  align-items: flex-start;
-  margin: -4px 0 0;
-  padding: 8px 10px;
-  border: 1px solid var(--pulso-warn-border);
-  border-radius: var(--pulso-radius);
-  background: var(--pulso-warn-bg);
-  color: var(--pulso-text-muted);
-  font-size: 11.5px;
-  line-height: 1.5;
-}
-
-.cmv2-sal-reporte-stale svg {
-  flex: none;
-  margin-top: 2px;
-  color: var(--pulso-warn-fg);
-}
-
-.cmv2-sal-reporte-stale strong {
-  color: var(--pulso-warn-fg);
-}
-
 /* El cierre del diseño: saca al estudio de «propuesta preliminar», que es lo
    que decide con qué plantilla sale el reporte. Va al pie de la ficha, antes de
    las observaciones de salud, porque cerrar no las resuelve. */
@@ -1113,9 +1062,9 @@
 
 .cmv2-sal-validar > svg { flex: 0 0 auto; margin-top: 1px; color: var(--pulso-text-muted); }
 .cmv2-sal-validar > div { display: grid; gap: 3px; min-width: 0; flex: 1 1 auto; }
-.cmv2-sal-validar strong { font-size: 12px; color: var(--pulso-text); }
-.cmv2-sal-validar span { font-size: 11px; line-height: 1.5; color: var(--pulso-text-soft); }
-.cmv2-sal-validar em { font-size: 10.5px; line-height: 1.45; color: var(--pulso-text-muted); font-style: normal; }
+.cmv2-sal-validar strong { font-size: var(--pulso-type-body-size); color: var(--pulso-text); }
+.cmv2-sal-validar span { font-size: var(--pulso-type-caption-size); line-height: 1.5; color: var(--pulso-text-soft); }
+.cmv2-sal-validar em { font-size: var(--pulso-type-micro-size); line-height: 1.45; color: var(--pulso-text-muted); font-style: normal; }
 .cmv2-sal-validar button { flex: 0 0 auto; align-self: center; }
 
 .cmv2-sal-validar[data-validado] {
@@ -1138,11 +1087,44 @@
   background: var(--pulso-surface-2, var(--pulso-surface));
 }
 
-.cmv2-sal-neto strong { font-size: 12px; color: var(--pulso-text); }
-.cmv2-sal-neto p { margin: 0; font-size: 11px; line-height: 1.55; color: var(--pulso-text-soft); }
+.cmv2-sal-neto strong { font-size: var(--pulso-type-body-size); color: var(--pulso-text); }
+.cmv2-sal-neto p { margin: 0; font-size: var(--pulso-type-caption-size); line-height: 1.55; color: var(--pulso-text-soft); }
 .cmv2-sal-neto b { color: var(--pulso-text); font-weight: 600; }
 
 .cmv2-sal-neto[data-cubre="no"] {
   border-color: color-mix(in srgb, var(--pulso-danger-fg) 38%, var(--pulso-border));
   background: color-mix(in srgb, var(--pulso-danger-bg) 40%, var(--pulso-surface));
+}
+
+/* Representatividad del estudio (ADR 0121 F4): universo y variables de cuota
+   que se declaran en el Planner. */
+.cmv2-sal-rep-datos {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, max-content));
+  gap: var(--pulso-space-2) var(--pulso-space-6);
+  margin: 0;
+}
+
+.cmv2-sal-rep-datos dt {
+  color: var(--pulso-text-muted);
+  font-size: var(--pulso-type-eyebrow-size);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.cmv2-sal-rep-datos dd {
+  margin: 2px 0 0;
+  font-weight: 600;
+}
+
+.cmv2-sal-rep-ok {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--pulso-space-1);
+  color: var(--pulso-success-fg);
+}
+
+.cmv2-sal-rep-accion {
+  display: flex;
+  justify-content: flex-start;
 }

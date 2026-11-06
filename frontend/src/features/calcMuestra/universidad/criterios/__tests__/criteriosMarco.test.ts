@@ -29,12 +29,12 @@ describe("criterios del marco", () => {
   it("resume el nivel sin enumerar las quince facultades", () => {
     // Una tabla que lista quince rangos iguales no se lee.
     expect(busca(criteriosMarcoDeEstudio(SEL, {}), "Nivel del curso"))
-      .toBe("niveles 2–10 · 2 facultades exentas");
+      .toBe("niveles 2–10, 2 facultades exentas");
   });
 
   it("el mínimo dice el general Y cuántas tienen el suyo", () => {
-    expect(busca(criteriosMarcoDeEstudio(SEL, {}), "Mínimo por curso-horario"))
-      .toBe("15 elegibles · 2 facultades con mínimo propio");
+    expect(busca(criteriosMarcoDeEstudio(SEL, {}), "Mínimo por curso‑horario"))
+      .toBe("15 elegibles, 2 facultades con mínimo propio");
   });
 
   it("un criterio sin declarar dice «no se aplica», no desaparece", () => {

@@ -46,6 +46,19 @@ describe("blockFromArgs", () => {
     expect(blockFromArgs({ modo: "var" }, ["a", "b"], "")).toEqual({ modo: "var", vars: ["a", "b"] });
   });
 
+  it("el bloque sembrado conserva el Top Two Box de la lámina y sus categorías (D1, unión de láminas)", () => {
+    const args = { modo: "var", overrides: { barra_extra: "top2box" }, top2box_labels: ["De acuerdo", "Totalmente de acuerdo"] };
+    expect(blockFromArgs(args, ["p20_1", "p20_2"], "")).toEqual({
+      modo: "var", vars: ["p20_1", "p20_2"], barra_extra: ["top2box"], top2box_labels: ["De acuerdo", "Totalmente de acuerdo"],
+    });
+  });
+
+  it("una lámina que hereda el Top Two Box (no lo declara) lo pasa declarado al bloque 1: en Bloques no se hereda", () => {
+    const args = { modo: "var", top2box_labels: ["De acuerdo", "Totalmente de acuerdo"] };
+    expect(blockFromArgs(args, ["p20_1"], "", ["top2box"])).toMatchObject({ barra_extra: ["top2box"], top2box_labels: ["De acuerdo", "Totalmente de acuerdo"] });
+    expect(blockFromArgs(args, ["p20_1"], "", false)).not.toHaveProperty("barra_extra");
+  });
+
   it("conserva el cruce cuando la lectura lo usaba", () => {
     expect(blockFromArgs({ modo: "cruce" }, ["a"], "sexo")).toEqual({ modo: "cruce", var: "a", cruces: "sexo" });
     expect(blockFromArgs({ modo: "var_cruce" }, ["a", "b"], "sexo")).toEqual({ modo: "var_cruce", vars: ["a", "b"], cruces: "sexo" });

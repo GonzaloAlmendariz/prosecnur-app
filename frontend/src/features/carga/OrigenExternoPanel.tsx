@@ -32,6 +32,10 @@ import {
 } from "./origenExternoModel";
 import "./OrigenExternoPanel.css";
 
+import { EstadoVacio } from "../../components/EstadoVacio";
+import { Inbox } from "../../vendor/lucide-react";
+import { EstadoChip } from "../../components/EstadoChip";
+import { LoadingBlock } from "../../components/States";
 // «Base preparada fuera de la plataforma» (ADR 0100, P2 y Enmienda 1 / P2b): la
 // base que llegó con menos casos o menos variables que el instrumento declara
 // qué se retiró y por qué. De los casos sólo se muestra el agregado; los
@@ -161,28 +165,25 @@ export function OrigenExternoVista({
           <small>Si la base llega con menos casos o menos variables que el instrumento, declara qué se retiró y por qué.</small>
         </div>
         {carga.tipo === "listo" && (
-          <span className={`pulso-origen-externo-estado${estado ? ` is-${estado}` : ""}`}>
-            {rotuloEstado(estado)}
-          </span>
+          <EstadoChip
+            label={rotuloEstado(estado)}
+            tone={estado === "vigente" ? "success" : estado === "otra_base" ? "warn" : "neutral"}
+          />
         )}
       </header>
 
       <div className="pulso-origen-externo-cuerpo">
         <div className="pulso-origen-externo-resultado" data-qa-geometry-capacity="owned">
           {carga.tipo === "leyendo" ? (
-            <p className="pulso-origen-externo-nota" role="status">
-              <Loader2 size={14} className="pulso-spin" aria-hidden="true" /> Leyendo la declaración de la base…
-            </p>
+            <LoadingBlock variant="inline" label="Leyendo la declaración de la base…" />
           ) : carga.tipo === "error" ? (
             <p className="pulso-origen-externo-error" role="alert">{carga.mensaje}</p>
           ) : !datos?.bloque ? (
-            <div className="pulso-origen-externo-vacio">
-              <strong>Esta base no declara una preparación externa.</strong>
-              <span>
-                Si la recibiste con menos casos o menos variables, declara qué se retiró: así la ficha explica
-                el paso de la base recibida a la cargada. Si se depuró solo en la app, no hace falta.
-              </span>
-            </div>
+            <EstadoVacio
+              icono={<Inbox size={16} />}
+              titulo="Esta base no declara una preparación externa"
+              descripcion="Si la recibiste con menos casos o menos variables, declara qué se retiró: así la ficha explica el paso de la base recibida a la cargada. Si se depuró solo en la app, no hace falta."
+            />
           ) : (
             <OrigenExternoResultado datos={datos} />
           )}
@@ -302,7 +303,7 @@ type VariablesFaltantesProps = {
 
 function VariablesFaltantes({ carga, motivos, onMotivo }: VariablesFaltantesProps) {
   if (carga.tipo === "leyendo") {
-    return <p className="pulso-origen-externo-nota">Leyendo las variables del instrumento…</p>;
+    return <LoadingBlock variant="inline" label="Leyendo las variables del instrumento…" />;
   }
   if (carga.tipo === "error") {
     return <p className="pulso-origen-externo-nota">No se pudo comparar la base con el instrumento.</p>;
@@ -429,7 +430,7 @@ function OrigenExternoResultado({ datos }: { datos: OrigenExterno }) {
       {(procedencia || datos.bloque?.declarado_at) && (
         <p className="pulso-origen-externo-procedencia">
           {procedencia || "Script sin nombre declarado"}
-          {datos.bloque?.declarado_at ? ` · declarada el ${datos.bloque.declarado_at.slice(0, 10)}` : ""}
+          {datos.bloque?.declarado_at ? `, declarada el ${datos.bloque.declarado_at.slice(0, 10)}` : ""}
         </p>
       )}
     </div>

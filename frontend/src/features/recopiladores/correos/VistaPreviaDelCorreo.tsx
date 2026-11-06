@@ -11,6 +11,7 @@ import {
 } from "./modeloCorreo";
 import { esHex } from "./modeloEstilo";
 import { crearMedidorDeLaHoja } from "./medidaDeLaHoja";
+import { aplicarModoOscuro } from "./modoOscuro";
 import { avisoDeVistaRetenida, camposNoDeclarados, rotuloDeClave } from "./camposDeclarados";
 import { envioElegido, useCorreosStore } from "./store";
 
@@ -77,9 +78,12 @@ export function VistaPreviaDelCorreo({ html, template, vista, cargando, error, c
   // Ancho que el correo pide de verdad: una franja de logos ancha puede exigir
   // más que el dispositivo simulado, y entonces se escala en vez de recortarse.
   const [anchoContenido, setAnchoContenido] = useState(0);
-  const srcDoc = useMemo(() => (html ? htmlParaLaVista(html, vista, paletaOscura()) : ""), [html, vista]);
+  // La vista va en la clave: cambiar a oscuro (o volver) recarga el documento limpio.
+  const srcDoc = useMemo(() => (html ? `${htmlParaLaVista(html)}<!--${vista}-->` : ""), [html, vista]);
   const templateRef = useRef(template);
   templateRef.current = template;
+  const vistaRef = useRef(vista);
+  vistaRef.current = vista;
 
   // Cada vista previa reemplaza el documento del iframe (H-b): la capa vuelve a
   // medir sobre el nuevo. Nada del documento recibe oyentes: la capa del padre
@@ -101,6 +105,8 @@ export function VistaPreviaDelCorreo({ html, template, vista, cargando, error, c
   const alCargar = useCallback(() => {
     const d = marco.current?.contentDocument;
     if (!d || !templateRef.current) return;
+    const paleta = vistaRef.current === "oscuro" ? paletaOscura() : undefined;
+    if (paleta) aplicarModoOscuro(d, paleta);
     medirLienzo.current();
     setDoc(d);
     setMedida((m) => m + 1);

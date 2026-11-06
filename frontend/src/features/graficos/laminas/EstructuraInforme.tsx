@@ -3,7 +3,7 @@
 // acciones de la lámina activa (`acciones`, ver AccionesLamina). «/» enfoca la búsqueda (useAtajosLaminas.ts).
 
 import { useEffect, useMemo, useRef, type ReactNode } from "react";
-import { ChevronRight, PanelLeftClose, Search } from "../../../vendor/lucide-react";
+import { ChevronRight, PanelLeftClose, Presentation, Search, SearchX } from "../../../vendor/lucide-react";
 import { IconoTipo } from "../iconos/IconoTipo";
 import {
   contarLaminas,
@@ -17,6 +17,8 @@ import { useLaminasUi, type ResumenLamina } from "./laminasStore";
 import { ID_BUSQUEDA_ESTRUCTURA } from "./useAtajosLaminas";
 import { rolDeEstructura } from "./rolEstructura";
 import "./estructuraInforme.css";
+import { EstadoVacio } from "../../../components/EstadoVacio";
+import { formatoConteo } from "../../../lib/formatoNumero";
 
 export type MarcaValidacion = "error" | "warning";
 
@@ -69,7 +71,7 @@ export function EstructuraInforme({ onCerrar, acciones, estructura, posicionActi
     <aside className="pulso-f6-estructura" aria-label="Estructura del informe">
       <header className="pulso-f6-col-head">
         <h2>Estructura</h2>
-        <span className="pulso-f6-col-meta">{estructura.laminas.length} láminas</span>
+        <span className="pulso-f6-col-meta">{formatoConteo(estructura.laminas.length)} láminas</span>
         <span className="pulso-f6-col-sp" />
         <button
           type="button"
@@ -109,9 +111,10 @@ export function EstructuraInforme({ onCerrar, acciones, estructura, posicionActi
       {acciones}
       <nav ref={cuerpoRef} className="pulso-f6-estructura-cuerpo" aria-label="Láminas del informe" data-qa-scroll-owner="estructura">
         {estructura.laminas.length === 0 ? (
-          <p className="pulso-f6-vacio-col">El informe todavía no tiene láminas. Inserta la primera o arma el informe desde un plan sugerido.</p>
+          // 5 nov 2026 (pulido de UI): sin la guía; la da el lienzo de al lado, que repetía la misma frase.
+          <EstadoVacio icono={<Presentation size={16} aria-hidden="true" />} titulo="Todavía no hay láminas" />
         ) : nodos.length === 0 ? (
-          <p className="pulso-f6-vacio-col">Ninguna lámina coincide con “{consulta.trim()}”.</p>
+          <EstadoVacio icono={<SearchX size={16} aria-hidden="true" />} titulo={`Ninguna lámina coincide con «${consulta.trim()}»`} />
         ) : (
           <ul className="pulso-f6-arbol" data-qa-geometry-group="graficos/f6-estructura-nodos" data-qa-geometry-contract="intrinsic">
             {nodos.map((nodo) => (

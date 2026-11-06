@@ -36,7 +36,7 @@ describe("resumen antes de crear (C1 xlsform-import-sm-resumen)", () => {
     const html = renderToStaticMarkup(<FinalImportReviewModal {...resumenBase} pendingSuggestionCount={1} />);
     expect(html).toContain('data-qa-geometry-group="xlsform-import-sm-resumen"');
     expect(html).toContain('data-qa-geometry-contract="intrinsic"');
-    expect(html).toContain("26 preguntas · 74 campos");
+    expect(html).toContain("26 preguntas, 74 campos");
     expect(html).toContain("cada fila de una matriz es un campo propio");
     expect(html).toContain("17 secciones");
   });
@@ -88,7 +88,7 @@ describe("pasos de la cabecera (U4)", () => {
         encuestaCargada
       />,
     );
-    expect(html).toContain("26 preguntas · 74 campos");
+    expect(html).toContain("26 preguntas, 74 campos");
     expect(html).toMatch(/is-alerta[^]*Sin saltos/);
   });
 });
@@ -224,7 +224,7 @@ describe("buscador de encuestas (U5)", () => {
     expect(html).toContain("27 preguntas");
     expect(html).toContain("modificada 12 oct 2026");
     expect(html).toContain('aria-pressed="true"');
-    expect(html).toContain("Mostrando 2 de 2 modificadas en los últimos 6 meses · 531 en la cuenta");
+    expect(html).toContain("Mostrando 2 de 2 modificadas en los últimos 6 meses, 531 en la cuenta");
     expect(html).toContain('data-qa-geometry-group="xlsform-import-sm-encuestas"');
   });
 
@@ -266,8 +266,8 @@ describe("secciones de la encuesta (U6/U8)", () => {
         onUpdate={vi.fn()}
       />,
     );
-    expect(html).toContain("1 pregunta · 2 campos");
-    expect(html).toContain("Matriz · 2 filas");
+    expect(html).toContain("1 pregunta, 2 campos");
+    expect(html).toContain("Matriz (2 filas)");
     expect(html).not.toMatch(JERGA);
     expect(html).not.toContain("overflow");
   });

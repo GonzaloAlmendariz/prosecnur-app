@@ -11,6 +11,7 @@
 //
 // Este es el mismo recorrido para el operativo de campo: del plan a las
 // encuestas que cuentan.
+import { formatoConteo } from "../../../../lib/formatoNumero";
 import type { FlujoEtapa } from "../../../calcMuestra/universidad/ui/FlujoVertical";
 import { fmt } from "./kpisDeAulas";
 import { entero, mermaDeRespuestas } from "./mermaDeRespuestas";
@@ -107,7 +108,7 @@ export function embudoDelOperativo(
       valor: fmt(titulares),
       // La procedencia pegada a la cifra, patrón 1 del catálogo.
       detalle: reemplazos
-        ? `titulares sorteados · ${fmt(reemplazos)} con reemplazo activado`
+        ? `titulares sorteados, ${fmt(reemplazos)} con reemplazo activado`
         : "titulares sorteados",
       estado: "ready",
       // Lo que todavía no se ha aplicado no es una pérdida: es trabajo por
@@ -160,7 +161,7 @@ export function embudoDelOperativo(
         ? {
             n: rechazadas,
             label: fueraDelOperativo
-              ? `no cuentan: ${fmt(fueraDelOperativo)} fuera del operativo · `
+              ? `no cuentan: ${fmt(fueraDelOperativo)} fuera del operativo, `
                 + `${fmt(noPasanElCriterio)} no pasan el criterio`
               : "no pasan el criterio de efectividad",
           }
@@ -235,10 +236,10 @@ export function explicacionDelEmbudo(
   frases.push(
     reemplazos
       ? `Las reservas no aparecen en este recorrido: entran sólo cuando su titular se cae, `
-        + `y ya han entrado ${reemplazos}. Aun así el plan sigue teniendo ${titulares.toLocaleString("es-PE")} `
+        + `y ya han entrado ${reemplazos}. Aun así el plan sigue teniendo ${formatoConteo(titulares)} `
         + `cursos-horario que visitar — una reserva sustituye a su titular, no se suma a él.`
       : `Las reservas no aparecen en este recorrido: entran sólo cuando su titular se cae, `
-        + `y entonces lo sustituyen — el plan sigue teniendo ${titulares.toLocaleString("es-PE")} `
+        + `y entonces lo sustituyen — el plan sigue teniendo ${formatoConteo(titulares)} `
         + `cursos-horario que visitar, no uno más.`,
   );
 

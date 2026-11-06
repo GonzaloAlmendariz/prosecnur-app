@@ -1,0 +1,53 @@
+/* Aulas › Paquetes con el kit (PaquetesAulasTablero.tsx). */
+
+.rec-paquetes-pagina {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-4);
+}
+
+.rec-paq-formatos {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--pulso-space-3);
+}
+@media (max-width: 1100px) {
+  .rec-paq-formatos { grid-template-columns: minmax(0, 1fr); }
+}
+.rec-paq-formato {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-2);
+  padding: var(--pulso-space-4);
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-panel);
+  background: var(--pulso-surface);
+}
+.rec-paq-formato[data-principal] {
+  border-color: color-mix(in srgb, var(--module-accent, var(--pulso-primary)) 40%, var(--pulso-border));
+  background: color-mix(in srgb, var(--module-accent, var(--pulso-primary)) 5%, var(--pulso-surface));
+}
+.rec-paq-formato-icono {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--pulso-radius-chip);
+  background: color-mix(in srgb, var(--module-accent, var(--pulso-primary)) 12%, var(--pulso-surface));
+  color: var(--module-accent, var(--pulso-primary));
+}
+.rec-paq-formato strong {
+  font-size: var(--pulso-type-subtitle-size);
+  font-weight: var(--pulso-type-subtitle-weight);
+  color: var(--pulso-text);
+}
+.rec-paq-formato p {
+  flex: 1 1 auto;
+  margin: 0;
+  font-size: var(--pulso-type-caption-size);
+  color: var(--pulso-text-soft);
+}
+.rec-paq-formato-accion { display: flex; }
+
+
+.rec-paq-bloqueo strong { color: var(--pulso-text); }

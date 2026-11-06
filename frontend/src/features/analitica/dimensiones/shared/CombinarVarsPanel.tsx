@@ -177,7 +177,7 @@ export function CombinarVarsPanel({
         <Sigma size={11} color="var(--pulso-text-soft)" />
         <span
           style={{
-            fontSize: 10,
+            fontSize: "var(--pulso-type-micro-size)",
             fontWeight: 700,
             textTransform: "uppercase",
             letterSpacing: 0.4,
@@ -202,7 +202,7 @@ export function CombinarVarsPanel({
               alignItems: "center",
               gap: 4,
               padding: "3px 8px",
-              fontSize: 10,
+              fontSize: "var(--pulso-type-micro-size)",
               fontWeight: 600,
               borderRadius: 6,
               border: "1px solid var(--pulso-primary)",
@@ -244,7 +244,7 @@ export function CombinarVarsPanel({
                   borderRadius: 6,
                   background: "white",
                   border: "1px solid var(--pulso-primary-border, #c7d6ee)",
-                  fontSize: 11,
+                  fontSize: "var(--pulso-type-caption-size)",
                 }}
               >
                 <Sigma size={11} color="var(--pulso-primary)" />
@@ -253,8 +253,8 @@ export function CombinarVarsPanel({
                 </strong>
                 <code
                   style={{
-                    fontFamily: "ui-monospace, monospace",
-                    fontSize: 10,
+                    fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
+                    fontSize: "var(--pulso-type-micro-size)",
                     color: "var(--pulso-text-soft)",
                   }}
                   title={`avg(${fuentesSinPrefijo.join(", ")})`}
@@ -286,7 +286,7 @@ export function CombinarVarsPanel({
       )}
 
       {edit.kind === "idle" && subcriterios.length === 0 && candidatas.length >= 2 && (
-        <p style={{ margin: "6px 0 0", fontSize: 10, color: "var(--pulso-text-soft)", lineHeight: 1.45 }}>
+        <p style={{ margin: "6px 0 0", fontSize: "var(--pulso-type-micro-size)", color: "var(--pulso-text-soft)", lineHeight: 1.45 }}>
           Si una idea (ej. <em>"Diligencia"</em>) se mide con 2 preguntas (ej. <code>p17</code>{" "}
           + <code>p17.1</code>), combínalas en un indicador único antes de armar bloques.
         </p>
@@ -297,7 +297,7 @@ export function CombinarVarsPanel({
         <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 4 }}>
           <label
             style={{
-              fontSize: 10,
+              fontSize: "var(--pulso-type-micro-size)",
               fontWeight: 700,
               textTransform: "uppercase",
               letterSpacing: 0.4,
@@ -313,7 +313,7 @@ export function CombinarVarsPanel({
             autoFocus
             style={{
               padding: "6px 10px",
-              fontSize: 13,
+              fontSize: "var(--pulso-type-subtitle-size)",
               fontWeight: 600,
               border: "1px solid var(--pulso-primary)",
               borderRadius: 6,
@@ -324,7 +324,7 @@ export function CombinarVarsPanel({
 
           <label
             style={{
-              fontSize: 10,
+              fontSize: "var(--pulso-type-micro-size)",
               fontWeight: 700,
               textTransform: "uppercase",
               letterSpacing: 0.4,
@@ -348,7 +348,7 @@ export function CombinarVarsPanel({
             }}
           >
             {poolEnEdicion.length === 0 ? (
-              <p style={{ margin: 0, padding: 8, fontSize: 11, color: "var(--pulso-text-soft)" }}>
+              <p style={{ margin: 0, padding: 8, fontSize: "var(--pulso-type-caption-size)", color: "var(--pulso-text-soft)" }}>
                 No hay preguntas disponibles para combinar.
               </p>
             ) : (
@@ -375,13 +375,13 @@ export function CombinarVarsPanel({
                       style={{ marginTop: 2 }}
                     />
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 12, fontWeight: 500 }}>
+                      <div style={{ fontSize: "var(--pulso-type-body-size)", fontWeight: 500 }}>
                         {v.label || v.name}
                       </div>
                       <code
                         style={{
-                          fontFamily: "ui-monospace, monospace",
-                          fontSize: 10,
+                          fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
+                          fontSize: "var(--pulso-type-micro-size)",
                           color: "var(--pulso-text-soft)",
                         }}
                       >
@@ -400,7 +400,7 @@ export function CombinarVarsPanel({
               onClick={cancelar}
               style={{
                 padding: "6px 12px",
-                fontSize: 12,
+                fontSize: "var(--pulso-type-body-size)",
                 borderRadius: 6,
                 border: "1px solid var(--pulso-border)",
                 background: "white",
@@ -419,7 +419,7 @@ export function CombinarVarsPanel({
               className="pulso-primary"
               style={{
                 padding: "6px 12px",
-                fontSize: 12,
+                fontSize: "var(--pulso-type-subtitle-size)",
                 fontWeight: 600,
                 flex: 1,
                 display: "inline-flex",
@@ -433,7 +433,7 @@ export function CombinarVarsPanel({
             </button>
           </div>
           {edit.seleccionadas.length < 2 && (
-            <p style={{ margin: 0, fontSize: 10, color: "var(--pulso-warn-fg, #b45309)" }}>
+            <p style={{ margin: 0, fontSize: "var(--pulso-type-micro-size)", color: "var(--pulso-warn-fg, #b45309)" }}>
               Necesitas al menos 2 preguntas para promediar.
             </p>
           )}

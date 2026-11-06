@@ -63,15 +63,15 @@ describe("resúmenes de una línea", () => {
   const ctx = { candidatas: [], consentimiento: [{ name: "consent", label: "¿Acepta?" }], filasPapel: 3 };
 
   test("formato, lógica, contenido y papel dicen lo elegido", () => {
-    expect(resumenDeParte("formato", estado, ctx)).toBe("Dos columnas · con N.º");
+    expect(resumenDeParte("formato", estado, ctx)).toBe("Dos columnas, con N.º");
     expect(resumenDeParte("formato", { ...estado, columns: "auto", showQuestionnaireNumber: false }, ctx))
-      .toBe("Columnas automáticas · sin N.º");
-    expect(resumenDeParte("logica", estado, ctx)).toBe("Saltos · sin consentimiento");
+      .toBe("Columnas automáticas, sin N.º");
+    expect(resumenDeParte("logica", estado, ctx)).toBe("Saltos, sin consentimiento");
     expect(resumenDeParte("logica", { ...estado, logicLanguage: "condiciones", consentVar: "consent" }, ctx))
-      .toBe("Condiciones · con consentimiento");
+      .toBe("Condiciones, con consentimiento");
     // Una variable que ya no está entre las candidatas no cuenta como consentimiento.
-    expect(resumenDeParte("logica", { ...estado, consentVar: "ya_no_existe" }, ctx)).toBe("Saltos · sin consentimiento");
-    expect(resumenDeParte("contenido", estado, ctx)).toBe("Instrucciones · 18 opciones");
+    expect(resumenDeParte("logica", { ...estado, consentVar: "ya_no_existe" }, ctx)).toBe("Saltos, sin consentimiento");
+    expect(resumenDeParte("contenido", estado, ctx)).toBe("Instrucciones, 18 opciones");
     expect(resumenDeParte("papel", estado, ctx)).toBe("3 filas con ajustes");
     expect(resumenDeParte("papel", estado, { ...ctx, filasPapel: 1 })).toBe("1 fila con ajustes");
     expect(resumenDeParte("papel", estado, { ...ctx, filasPapel: 0 })).toBe("Ninguna fila con ajustes");
@@ -121,14 +121,15 @@ describe("cifras de la previa", () => {
 
   test("la cabecera no inventa cifras sin previa", () => {
     expect(resumenCabecera(null)).toBe("A4");
-    expect(resumenCabecera({ paginas: 12, preguntas: 87 })).toBe("A4 · 12 páginas · 87 preguntas");
-    expect(resumenCabecera({ paginas: null, preguntas: 1 })).toBe("A4 · 1 pregunta");
+    expect(resumenCabecera({ paginas: 12, preguntas: 87 })).toBe("A4, 12 páginas, 87 preguntas");
+    expect(resumenCabecera({ paginas: null, preguntas: 1 })).toBe("A4, 1 pregunta");
   });
 });
 
 describe("previa", () => {
   afterEach(() => usePreviaImpreso.setState({
     formId: null, fase: "inactiva", detalle: "", url: null, cifras: null, firma: null, workbook: null, error: "",
+    lectura: "pdf", lecturaGenerada: null, word: null,
   }));
 
   const workbook = { survey: { columns: [], rows: [] } } as never;
@@ -139,6 +140,7 @@ describe("previa", () => {
     const unsub = usePreviaImpreso.subscribe((s) => fases.push(s.fase));
     await generarPrevia({ formId: "f1", workbook, filename: "x.pdf", opciones }, {
       exportar: vi.fn(async () => ({ ok: true as const, job_id: "j1" })) as never,
+      visorWord: vi.fn() as never,
       esperar: vi.fn(async (_id, o) => {
         o?.onFase?.("Dibujando");
         return { ok: true as const, file_id: "file1", original_name: "x.pdf", size: 10, warnings: [],
@@ -159,9 +161,45 @@ describe("previa", () => {
     expect(previaVieja(s, opciones, { ...(workbook as object) } as never)).toBe(true);
   });
 
+  test("la lectura Word arma las páginas y el mapa del visor, sin descargar ni URL de objeto (L36 · DOC.2)", async () => {
+    usePreviaImpreso.setState({ lectura: "word" });
+    const visorWord = vi.fn(async (..._args: unknown[]) => ({ ok: true as const, job_id: "j2" }));
+    const descargar = vi.fn(async () => new Uint8Array());
+    await generarPrevia({ formId: "f1", workbook, filename: "cuestionario.pdf", opciones }, {
+      exportar: vi.fn() as never,
+      visorWord: visorWord as never,
+      esperar: vi.fn(async (_id, o) => {
+        o?.onCrudo?.({
+          paginas: ["data:image/png;base64,AAA", "data:image/png;base64,BBB", "texto suelto"],
+          mapa: [
+            { numero: "1", pagina: 1, nombre: "p1", caja: { x: 0.1, y: 0.2, ancho: 0.4, alto: 0.1 } },
+            { numero: "8.1", pagina: 2, nombre: "p8_1", caja: { x: 2, y: 0.2, ancho: 0.4, alto: 0.1 } },
+            { numero: "9", pagina: null, caja: { x: 0.1, y: 0.2, ancho: 0.4, alto: 0.1 } },
+            { numero: "", pagina: 1 },
+          ],
+        });
+        return { ok: true as const, file_id: "w1", original_name: "cuestionario.docx", size: 10, warnings: [],
+          summary: { n_blocks: 4, n_questions: 32, n_sections: 2, n_matrices: 15 } };
+      }),
+      descargar,
+      crearUrl: () => "",
+    });
+    const s = usePreviaImpreso.getState();
+    expect(visorWord.mock.calls[0]?.[1]).toBe("cuestionario.docx");
+    expect(descargar).not.toHaveBeenCalled();
+    expect(s).toMatchObject({ fase: "lista", lecturaGenerada: "word", url: null, cifras: { paginas: 2, preguntas: 32 } });
+    // Una caja fuera de la página o de una pregunta sin página no llega: no se dibuja un bloque donde no está.
+    expect(s.word?.mapa).toEqual([
+      { numero: "1", pagina: 1, nombre: "p1", caja: { x: 0.1, y: 0.2, ancho: 0.4, alto: 0.1 } },
+      { numero: "8.1", pagina: 2, nombre: "p8_1", caja: null },
+      { numero: "9", pagina: null, nombre: "", caja: null },
+    ]);
+  });
+
   test("un error del job queda dicho, no se traga", async () => {
     await generarPrevia({ formId: "f1", workbook, filename: "x.pdf", opciones }, {
       exportar: vi.fn(async () => ({ ok: true as const, job_id: "j1" })) as never,
+      visorWord: vi.fn() as never,
       esperar: vi.fn(async () => { throw new Error("El worker murió."); }),
       descargar: async () => new Uint8Array(),
       crearUrl: () => "",

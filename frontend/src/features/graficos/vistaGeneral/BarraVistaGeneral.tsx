@@ -2,6 +2,7 @@
 // estado de «Otros» con enlace a su regla (`EnlaceOtros`; R7: el interruptor pasó a Reglas). Las acciones sobre la selección (inventario A0 C31) viven en
 // la barra flotante `BarraSeleccion`; aquí, sin láminas elegidas, sólo se explica cómo elegir.
 
+import { teclaMod } from "../../../lib/teclado";
 import { EnlaceOtros } from "./EnlaceOtros";
 import { ResumenInforme } from "./ResumenInforme";
 import { Segmentado } from "../subpestanas/Segmentado";
@@ -49,7 +50,7 @@ export function BarraVistaGeneral({ cobertura, conteos, filtro, onFiltro, selecc
       </div>
       <span className="pulso-f6-col-sp" />
       {/* I7: las acciones sobre la selección viven en la barra flotante (BarraSeleccion); aquí sólo cómo elegir. */}
-      {seleccionadas === 0 && !word && <span className="pulso-f6-vg-seleccion">Clic para elegir; Mayús o Ctrl/⌘ para varias</span>}
+      {seleccionadas === 0 && !word && <span className="pulso-f6-vg-seleccion">Clic para elegir; Mayús o {teclaMod()} para varias</span>}
       {/* I10: el tamaño de las tarjetas; la maqueta escala sola (cqw) y las filas de un capítulo se llenan solas. */}
       {!word && <Segmentado etiqueta="Tamaño de las tarjetas" opciones={TAMANOS} valor={tamano} onCambiar={onTamano} />}
     </header>

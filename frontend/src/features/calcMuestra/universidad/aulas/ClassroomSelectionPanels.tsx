@@ -19,6 +19,7 @@ import {
   classroomOperationalCode,
   classroomPlanLabel,
 } from "./classroomLabels";
+import { EstadoVacio } from "../../../../components/EstadoVacio";
 
 function classroomExpectedSexLabel(row: Record<string, unknown>, workspace?: CalcMuestraWorkspace) {
   const parts = [
@@ -27,7 +28,7 @@ function classroomExpectedSexLabel(row: Record<string, unknown>, workspace?: Cal
   ]
     .filter(([label, value]) => String(label ?? "").trim() && safeNumber(value, 0) > 0)
     .map(([label, value]) => `${workspaceCategoryLabel(workspace, "sex", String(label ?? ""))}: ${fmtInt(safeNumber(value, 0))}`);
-  return parts.length ? parts.join(" · ") : "sexo esperado pendiente";
+  return parts.length ? parts.join(", ") : "sexo esperado pendiente";
 }
 
 function classroomSelectionReason(row: Record<string, unknown>) {
@@ -125,13 +126,12 @@ export function ClassroomSelectionTable({
   const conDescuento = hasDiscountColumns(tableRows);
   if (!tableRows.length) {
     return (
-      <div className="cmv2-classroom-empty is-compact">
-        <span><Table2 size={16} /></span>
-        <div>
-          <strong>Sin filas para mostrar</strong>
-          <em>Ajusta el filtro o genera una selección.</em>
-        </div>
-      </div>
+      <EstadoVacio
+        tamano="compacto"
+        icono={<Table2 size={16} aria-hidden="true" />}
+        titulo="Sin filas para mostrar"
+        descripcion="Ajusta el filtro o genera una selección."
+      />
     );
   }
   return (
@@ -312,22 +312,18 @@ export function ClassroomSelectionPreparationPanel({
   const pasoMetodo = pasoMetodoElegido(metodoVigenteLabel, comparisonReady);
   return (
     <div className="cmv2-classroom-preparation-panel">
-      <div className="cmv2-classroom-tab-note">
-        <span><Table2 size={15} /></span>
-        <div>
-          <strong>Esta pestaña se llena recién cuando existe una selección.</strong>
-          <em>Antes de seleccionar, muestra el estado de preparación sin repetir los gráficos de Marco. La revisión descriptiva vive en Marco; aquí se decide qué cursos-horario serán titulares.</em>
-        </div>
-      </div>
+      {/* La nota «Esta pestaña se llena recién cuando existe una selección» se
+          fue: el aviso de etapa de arriba ya enseña el recorrido y lo que se
+          verá aquí (P9, cada cosa en un solo sitio). */}
       <div className="cmv2-classroom-readiness-map">
         <article className={frameReady ? "is-ready" : "is-pending"}>
           <small>1. Marco listo</small>
-          <strong>{frameCount ? `${fmtInt(frameCount)} cursos-horario` : "pendiente"}</strong>
+          <strong>{frameCount ? `${fmtInt(frameCount)} cursos-horario` : "Pendiente"}</strong>
           <span>Una fila por curso-horario seleccionable.</span>
         </article>
         <article className={targetForDisplay ? "is-ready" : "is-working"}>
           <small>2. Tamaño definido</small>
-          <strong>{targetForDisplay ? `${fmtInt(targetForDisplay)} entrevistas` : "pendiente"}</strong>
+          <strong>{targetForDisplay ? `${fmtInt(targetForDisplay)} entrevistas` : "Pendiente"}</strong>
           <span>El cálculo fija cuánto se necesita representar.</span>
         </article>
         {/* Decía «3. Método comparado», marcaba «por comparar» mientras no
@@ -343,7 +339,7 @@ export function ClassroomSelectionPreparationPanel({
         </article>
         <article className={m1ForDisplay ? "is-ready" : "is-working"}>
           <small>4. Cursos-horario titulares</small>
-          <strong>{m1ForDisplay ? fmtInt(m1ForDisplay) : "pendiente"}</strong>
+          <strong>{m1ForDisplay ? fmtInt(m1ForDisplay) : "Pendiente"}</strong>
           <span>Después aparecerán códigos CH n y sus razones de selección.</span>
         </article>
       </div>

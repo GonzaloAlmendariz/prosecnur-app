@@ -30,6 +30,7 @@ import {
 import { ClassroomRiskList } from "./ClassroomRiskList";
 import "../../didactica/didactica.css";
 import "./aulas.css";
+import { EstadoVacio } from "../../../../components/EstadoVacio";
 
 export function AulasAuditoriaTab({
   model,
@@ -96,13 +97,12 @@ export function AulasAuditoriaTab({
               no dispara condición de etapa— y las fórmulas quedarían sin
               explicar por qué están sin valores. */}
           {!hasEvidence && !stageNotice && (
-            <div className="cmv2-classroom-empty is-compact">
-              <span><FileText size={16} /></span>
-              <div>
-                <strong>Sustento en construcción</strong>
-                <em>Compara métodos o genera una selección para que las fórmulas muestren los valores reales del estudio.</em>
-              </div>
-            </div>
+            <EstadoVacio
+              tamano="compacto"
+              icono={<FileText size={16} aria-hidden="true" />}
+              titulo="Sustento en construcción"
+              descripcion="Compara métodos o genera una selección para que las fórmulas muestren los valores reales del estudio."
+            />
           )}
           <div
             key={corridaKey}

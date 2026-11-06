@@ -57,7 +57,7 @@
 
 .acr-cl-detalle {
   color: var(--pulso-text-soft);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
 }
 
 @media (max-width: 1365px) {
@@ -76,4 +76,16 @@
 .acr-res-kpi.is-neutra b {
   color: var(--pulso-text-soft);
   font-weight: var(--pulso-weight-semibold);
+}
+
+/* Mientras la bandeja no llega, o si falló, la tarjeta lo dice una vez. */
+.acr-cal-union {
+  margin: 0;
+  padding: var(--pulso-space-2) var(--pulso-space-4);
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-body-size);
+}
+
+.acr-cal-union.is-fallo {
+  color: var(--pulso-warn-fg);
 }

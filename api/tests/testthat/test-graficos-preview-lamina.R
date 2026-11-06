@@ -127,6 +127,7 @@ test_that("con LibreOffice y sin rasterizador, la vista previa no se declara dis
 })
 
 test_that("la vista previa hereda el antetítulo del separador vigente, como el export (F6.0b.2)", {
+  withr::local_options(prosecnur.lam_antetitulo_seccion = TRUE)   # modo activado (lamina_antetitulo_seccion.R)
   plan <- list(
     list(id = "s1", tipo = "p_slide_portada", payload = list(titulo = "Estudio")),
     list(id = "s2", tipo = "p_slide_seccion", payload = list(titulo = "PERFIL DEL ENCUESTADO")),

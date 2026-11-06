@@ -12,7 +12,7 @@ export const ROTULO_RESERVAS_TOTALES = "Reservas totales";
 
 export function detalleReemplazosEnCadena(extra: number): string {
   return extra > 0
-    ? `en cadena tras cada titular · sin los ${fmtInt(extra)} de bolsa extra`
+    ? `en cadena tras cada titular, sin los ${fmtInt(extra)} de bolsa extra`
     : "en cadena tras cada titular";
 }
 

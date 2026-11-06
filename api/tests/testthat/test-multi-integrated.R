@@ -129,6 +129,15 @@ test_that("el .pulso conserva insumos del borrador multi integrado", {
   expect_true(all(c("guide-file", "guide-option", "xls-a", "data-a", "xls-b", "data-b") %in% fids))
 })
 
+test_that("el borrador multi integrado recuerda el perfil de SurveyMonkey (L7)", {
+  payload <- .mi_draft_payload(list(source_mode = "surveymonkey", sm_profile_id = "perfil_acnur"))
+  expect_identical(payload$sm_profile_id, "perfil_acnur")
+  # Sin perfil elegido queda vacio, no NULL: el frontend cae al perfil activo.
+  expect_identical(.mi_draft_payload(list(source_mode = "manual"))$sm_profile_id, "")
+  # Es un id de perfil, nunca el token: el payload no trae ningun campo de credencial.
+  expect_false(any(grepl("token|secret", names(payload))))
+})
+
 test_that("alineador multi ignora nombres vacios del XLSForm", {
   rp_inst <- list(survey = data.frame(
     type = c("text", "note", "text", "text"),

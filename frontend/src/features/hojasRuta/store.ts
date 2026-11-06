@@ -35,7 +35,7 @@ import type {
 export type HojasRutaMapLevel = HojasRutaUiState["map_level"];
 export type HojasRutaStage = "territorio" | "poblacion" | "muestra" | "manzanas" | "seleccion";
 export type HojasRutaBlockLayerMode = "field" | "nse";
-export type HojasRutaDeliveryTab = "cuotas" | "titulares" | "reemplazos";
+export type HojasRutaDeliveryTab = "cuotas" | "titulares" | "reemplazos" | "revision";
 export type HojasRutaSampleListTab = "titulares" | "reemplazos";
 
 type Updater<T> = T | ((prev: T) => T);
@@ -56,7 +56,6 @@ type HojasRutaUiSlice = {
   routeHistory: HojasRutaRouteSnapshot[];
   // --- UI efímera de módulo (no persistida) ---
   deliveryReviewTab: HojasRutaDeliveryTab;
-  sampleListTab: HojasRutaSampleListTab;
   blockLayerMode: HojasRutaBlockLayerMode;
   samplingInspectorCollapsed: boolean;
   deliveryBlocksPage: number;
@@ -83,7 +82,6 @@ type HojasRutaActions = {
   setMapSelectionMode: (next: Updater<boolean>) => void;
   setRouteHistory: (next: Updater<HojasRutaRouteSnapshot[]>) => void;
   setDeliveryReviewTab: (next: Updater<HojasRutaDeliveryTab>) => void;
-  setSampleListTab: (next: Updater<HojasRutaSampleListTab>) => void;
   setBlockLayerMode: (next: Updater<HojasRutaBlockLayerMode>) => void;
   setSamplingInspectorCollapsed: (next: Updater<boolean>) => void;
   setDeliveryBlocksPage: (next: Updater<number>) => void;
@@ -112,7 +110,6 @@ const DEFAULTS: HojasRutaUiSlice = {
   mapSelectionMode: false,
   routeHistory: [],
   deliveryReviewTab: "cuotas",
-  sampleListTab: "titulares",
   blockLayerMode: "field",
   samplingInspectorCollapsed: false,
   deliveryBlocksPage: 0,
@@ -140,7 +137,6 @@ export const useHojasRutaStore = create<HojasRutaUiSlice & HojasRutaActions>((se
   setMapSelectionMode: (next) => set((s) => ({ mapSelectionMode: resolveUpdate(next, s.mapSelectionMode) })),
   setRouteHistory: (next) => set((s) => ({ routeHistory: resolveUpdate(next, s.routeHistory) })),
   setDeliveryReviewTab: (next) => set((s) => ({ deliveryReviewTab: resolveUpdate(next, s.deliveryReviewTab) })),
-  setSampleListTab: (next) => set((s) => ({ sampleListTab: resolveUpdate(next, s.sampleListTab) })),
   setBlockLayerMode: (next) => set((s) => ({ blockLayerMode: resolveUpdate(next, s.blockLayerMode) })),
   setSamplingInspectorCollapsed: (next) => set((s) => ({ samplingInspectorCollapsed: resolveUpdate(next, s.samplingInspectorCollapsed) })),
   setDeliveryBlocksPage: (next) => set((s) => ({ deliveryBlocksPage: resolveUpdate(next, s.deliveryBlocksPage) })),

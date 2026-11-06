@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { NotaDelModo } from "../../../core/NotaDelModo";
 import type { CSSProperties } from "react";
 import { Search } from "../../../../../vendor/lucide-react";
+import { EstadoVacio } from "../../../../../components/EstadoVacio";
 import {
   DOS_HORAS,
   ETIQUETA_DE_MARCA,
@@ -15,9 +16,10 @@ import {
 } from "./respuestasModel";
 import { RotuloDePestana, useHayRotulo } from "../navegacion/RotuloDePestana";
 import "./controlTelefonico.css";
+import { formatoConteo } from "../../../../../lib/formatoNumero";
 
 function n(valor: number | null | undefined) {
-  return valor == null ? "—" : valor.toLocaleString("es-PE");
+  return valor == null ? "—" : formatoConteo(valor);
 }
 
 function fechaCorta(fecha: string | null) {
@@ -108,7 +110,7 @@ export function Respuestas({
           </div>
         </section>
         <section className="mon-ctl-panel mon-respuestas-reglas" aria-label="Qué cuenta">
-          <header className="mon-ctl-panel-cabecera"><span className="mon-ctl-antetitulo">Qué cuenta</span></header>
+          <header className="mon-ctl-panel-cabecera"><b>Qué cuenta</b></header>
           <ul>
             {reglas.map((regla) => (
               <li key={regla.texto}>
@@ -182,7 +184,7 @@ export function Respuestas({
               ))}
             </tbody>
           </table>
-          {!visibles.length ? <NotaDelModo tono="neutro" className="mon-respuestas-vacio">Ninguna efectiva cumple el filtro.</NotaDelModo> : null}
+          {!visibles.length ? <EstadoVacio icono={<Search size={15} />} titulo="Ninguna efectiva cumple el filtro." /> : null}
         </div>
         {/* Que marcar no excluye ya lo dice «Qué cuenta» (Aviso, no excluye): el pie sólo cuenta. */}
         <footer className="mon-respuestas-pie">

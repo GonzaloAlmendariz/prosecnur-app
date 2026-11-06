@@ -177,20 +177,32 @@
   if (identical(fam, "territorial")) {
     k <- snap$territorial_overview_facts %||% (dash$territorial_reports %||% list())$kpis %||% list()
     collected <- as.integer(.diseno_num(k$total_respuestas, 0))
-    # El numerador del avance es lo LEVANTADO: validadas + en revision, el mismo
-    # criterio que publica el KPI del modulo y el PDF de avance. Mostrar aqui
-    # solo las validadas hacia que la tarjeta se contradijera sola: "106.9%"
-    # encima de "975 de 1.200".
-    valid <- as.integer(.diseno_num(k$validas, 0) + .diseno_num(k$revision, 0))
+    # El numerador del avance son las EFECTIVAS de Kobo, las en observacion
+    # incluidas (Gonzalo, 2026-11-02: «Ambos deben contar las efectivas de
+    # Kobo, las observadas están en observación pero no quitan la cuenta»).
+    # `k$validas` sale de `.monitoreo_territorial_efectivas`, la misma funcion
+    # que `advance$validas` de Avance, asi que Home y Avance dicen la misma
+    # cifra. Las en observacion siguen en la tarjeta como marca («N por revisar»).
+    valid <- monitoreo_territorial_efectivas_de_kpis(k)
     target <- as.integer(.diseno_num(k$meta, 0))
+    # El porcentaje se deriva del MISMO par que la tarjeta escribe (efectivas
+    # sobre meta): `k$avance_pct` puede venir de otro numerador y la tarjeta
+    # decía «1,283 de 1,200, meta cumplida» con «86 % avance de meta»
+    # (auditoría visual 4 nov, hallazgo 9).
+    # Se respeta el del módulo si cuadra con ese par (±1 punto, su redondeo).
     avance <- .overview_pct(k$avance_pct)
-    # Solo `revision`: validas + revision + no_defendibles particionan el total,
+    if (target > 0L) {
+      derivado <- round(100 * valid / target, 1)
+      if (avance < 0 || abs(avance - derivado) > 1) avance <- derivado
+    }
+    # Solo `revision`: es el subconjunto de las efectivas en observacion
+    # (efectivas + no_defendibles particionan el total),
     # mientras que los `geo_*` son un eje ortogonal de geolocalizacion. Sumarlos
     # daba mas "alertas" que casos no validos en el estudio.
     # Los casos en revision cuentan para el avance Y siguen pidiendo revision:
     # son dos lecturas distintas del mismo caso, no una contradiccion.
     alerts <- as.integer(.diseno_num(k$revision, 0))
-    valid_label <- "levantadas"
+    valid_label <- "efectivas"
     # Territorial ya mide validas sobre meta; se nombra igual que las demas
     # familias para que "avance" signifique lo mismo en toda la app.
     if (target > 0L) avance_label <- "avance de meta"
@@ -327,6 +339,16 @@
   )
 }
 
+# ¿Aplica Hojas de ruta en este estudio? Lo dice el Planner (ADR 0122 P2,
+# `modos$hojas_ruta$aplica`): todo territorial, por UMP o por cuotas (ADR 0125 §2);
+# un estudio sin territorial, no. Sin perfiles en el Planner
+# no se sabe, y se asume que aplica, como antes.
+.overview_hojas_aplica <- function(s) {
+  modos <- tryCatch(.planner_modos(s), error = function(e) NULL)
+  if (!is.list(modos) || !length(modos$perfiles)) return(TRUE)
+  isTRUE(modos$hojas_ruta$aplica)
+}
+
 # Hojas de ruta: fase + salidas territoriales reales (distritos, manzanas,
 # entrevistas, cuotas). Sustituye al enganoso "bloques de salida".
 .overview_hojas_facts <- function(s) {
@@ -343,7 +365,8 @@
     replacement_blocks_count = as.integer(.diseno_num(sample$n_replacement_blocks, 0)),
     interviews_count = as.integer(.diseno_num(sample$total_entrevistas, 0)),
     quota_assigned = as.integer(.diseno_num(quota$total_asignado, 0)),
-    from_pilot = .diseno_has_content(runs$pilot) && .diseno_has_content(runs$field)
+    from_pilot = .diseno_has_content(runs$pilot) && .diseno_has_content(runs$field),
+    aplica = .overview_hojas_aplica(s)
   )
 }
 
@@ -461,7 +484,12 @@
   # El instrumento vinculado describe el estudio; el borrador del editor solo
   # describe lo que se esta editando. Cuando hay vinculado, manda ese.
   vinculado <- .overview_instrumento_conteos(.overview_instrumento_vinculado(s))
+  # Lo que tiene abierto el editor, aparte: si la cifra sale del instrumento
+  # vinculado, la tarjeta no puede decir «en edición» de un borrador distinto.
+  draft_questions <- questions
+  from_instrument <- FALSE
   if (!is.null(vinculado) && vinculado$questions_count > questions) {
+    from_instrument <- TRUE
     questions <- vinculado$questions_count
     sections <- vinculado$sections_count
     catalogs <- vinculado$catalogs_count
@@ -475,7 +503,9 @@
     # Cuantos instrumentos hay vinculados al estudio: el borrador del editor es
     # UNO de ellos, asi que con varios la cuenta de preguntas de arriba no
     # describe el estudio y la tarjeta debe decir cuantos hay.
-    instruments_count = as.integer(.diseno_instruments_count(s))
+    instruments_count = as.integer(.diseno_instruments_count(s)),
+    draft_questions_count = as.integer(draft_questions),
+    from_instrument = isTRUE(from_instrument)
   )
 }
 
@@ -589,7 +619,7 @@
     hojas = safe(.overview_hojas_facts(s),
                  list(phase = "", districts_count = 0L, n_objetivo = 0L, blocks_count = 0L,
                       replacement_blocks_count = 0L, interviews_count = 0L,
-                      quota_assigned = 0L, from_pilot = FALSE)),
+                      quota_assigned = 0L, from_pilot = FALSE, aplica = TRUE)),
     "material-campo" = c(
       safe(.overview_fichas_facts(s),
            list(total = 0L, titulares = 0L, with_link = 0L, without_link = 0L,
@@ -599,7 +629,8 @@
     ),
     editor = safe(.overview_form_facts(s),
                   list(source_kind = "", questions_count = 0L, sections_count = 0L,
-                       catalogs_count = 0L, instruments_count = 0L)),
+                       catalogs_count = 0L, instruments_count = 0L,
+                       draft_questions_count = 0L, from_instrument = FALSE)),
     procesamiento = safe(.overview_procesamiento_facts(s, protocol),
                          list(processing_mode = "multibase", bases_count = 0L,
                               bases_con_analitica = 0L)),
@@ -615,7 +646,7 @@
 # placeholder genérico. Solo si tampoco hay archivo cae al sentinel.
 .overview_project_name <- function(protocol, project_path) {
   title <- trimws(.diseno_scalar(protocol$title, ""))
-  if (nzchar(title) && !identical(title, "Estudio sin título")) return(title)
+  if (nzchar(title) && !title %in% c("Estudio sin título", "Proyecto sin titulo")) return(title)
   path <- .diseno_scalar(project_path, "")
   if (!nzchar(path)) path <- .diseno_scalar(protocol$project_file, "")
   path <- gsub("\\\\", "/", path)
@@ -628,10 +659,19 @@
   s <- session_get(sid)
   protocol <- .diseno_protocol_summary(s)
   statuses <- .diseno_module_statuses(s, protocol)
-  weights <- vapply(statuses, function(item) .diseno_state_weight(item$state), numeric(1))
-  score <- as.integer(round(100 * sum(weights) / max(length(statuses), 1L)))
-  risks <- .diseno_risks(statuses, protocol)
-  maturity <- .overview_maturity(statuses, score)
+  # Un módulo que no aplica en el estudio (Hojas de ruta en conveniencia) no es un
+  # pendiente: no entra al puntaje, a la madurez, a las siguientes acciones ni a los riesgos.
+  if (!isTRUE(tryCatch(.overview_hojas_aplica(s), error = function(e) TRUE))) {
+    statuses <- lapply(statuses, function(item) {
+      if (identical(item$id, "hojas-ruta")) { item$aplica <- FALSE; item$summary <- "No aplica en este estudio" }
+      item
+    })
+  }
+  cuentan <- Filter(function(item) !identical(item$aplica, FALSE), statuses)
+  weights <- vapply(cuentan, function(item) .diseno_state_weight(item$state), numeric(1))
+  score <- as.integer(round(100 * sum(weights) / max(length(cuentan), 1L)))
+  risks <- .diseno_risks(cuentan, protocol)
+  maturity <- .overview_maturity(cuentan, score)
   has_project <- nzchar(.diseno_scalar(s$project_path, ""))
 
   payload <- list(
@@ -641,6 +681,7 @@
     project = list(
       name = .overview_project_name(protocol, s$project_path),
       client = .diseno_scalar(protocol$client, ""),
+      code = .diseno_scalar(protocol$code, ""),   # ADR 0122: código del estudio, del Planner
       project_file = .diseno_scalar(protocol$project_file, ""),
       has_project = isTRUE(has_project),
       processing_mode = .diseno_scalar(protocol$processing_mode, "multibase"),
@@ -651,7 +692,7 @@
     protocol = protocol,
     facts = .overview_facts(s, protocol),
     modules = statuses,
-    next_actions = .diseno_next_actions(statuses),
+    next_actions = .diseno_next_actions(cuentan),
     risks = risks
   )
   # added_modules solo se incluye cuando el proyecto YA curó su lista (lista,

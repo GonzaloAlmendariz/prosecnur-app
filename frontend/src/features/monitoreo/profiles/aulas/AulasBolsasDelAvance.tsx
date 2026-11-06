@@ -43,12 +43,12 @@ export function AulasBolsasDelAvance({ total }: { total: TotalDeAvanceCuota }) {
           <strong>{fmt(total.fueraDeCelda)}</strong>{" "}
           {total.fueraDeCelda === 1 ? "respuesta más llegó" : "respuestas más llegaron"} y no{" "}
           {total.fueraDeCelda === 1 ? "entra" : "entran"} en ninguna meta:{" "}
-          {total.notas.join(" · ")}
+          {total.notas.join(", ")}
         </>
       ) : null}
       {total.descuadre ? (
         <strong className="aulas-cuota-descuadre" role="status">
-          {total.fueraDeCelda > 0 ? " · " : null}
+          {total.fueraDeCelda > 0 ? ", " : null}
           {total.descuadre}
         </strong>
       ) : null}

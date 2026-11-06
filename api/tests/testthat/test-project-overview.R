@@ -58,20 +58,31 @@ test_that("facts.monitoreo despacha KPIs por familia (territorial vs generico)",
 
   session_set(sid, "monitoreo_config", list(monitoreo_profile = list(family = "territorial")))
   session_set(sid, "monitoreo_snapshot", list(dashboard = list(territorial_reports = list(kpis = list(
-    total_respuestas = 100L, validas = 80L, meta = 200L, avance_pct = 40,
+    total_respuestas = 100L, validas = 80L, efectivas = 80L, meta = 200L, avance_pct = 40,
     revision = 5L, geo_no_defendible = 2L
   )))))
   mon_t <- .project_overview_payload(sid)$facts$monitoreo
   expect_equal(mon_t$family, "territorial")
   expect_equal(mon_t$collected, 100L)
-  # Numerador = lo levantado: validadas (80) + en revision (5). La revision es
-  # trabajo de campo hecho pendiente de aprobar, no trabajo faltante.
-  expect_equal(mon_t$valid, 85L)
-  expect_equal(mon_t$valid_label, "levantadas")
+  # Numerador = las efectivas (80, en observacion incluidas: el motor ya las
+  # cuenta en `validas`), el mismo criterio que avance_pct (80/200 = 40 %). Las
+  # en observacion (5) van ademas como alerta (Gonzalo, 2026-11-02).
+  expect_equal(mon_t$valid, 80L)
+  expect_equal(mon_t$valid_label, "efectivas")
   expect_equal(mon_t$avance_pct, 40)
+  expect_equal(mon_t$avance_pct, round(100 * mon_t$valid / mon_t$target, 1))
   # Alertas = casos en revision, sin sumar el eje geo (ver
   # test-monitoreo-overview-facts.R).
   expect_equal(mon_t$alerts, 5L)
+
+  # Un `avance_pct` de otro numerador no se cuela: la tarjeta decía «1,283 de
+  # 1,200, meta cumplida» con «86 % avance de meta» (auditoría visual, 4 nov).
+  session_set(sid, "monitoreo_snapshot", list(dashboard = list(territorial_reports = list(kpis = list(
+    total_respuestas = 1693L, validas = 1283L, efectivas = 1283L, meta = 1200L, avance_pct = 86,
+    revision = 89L
+  )))))
+  mon_d <- .project_overview_payload(sid)$facts$monitoreo
+  expect_equal(mon_d$avance_pct, round(100 * 1283 / 1200, 1))
 
   # Telefonico sin modelo de efectividad todavia: se degrada a un conteo
   # honesto (cuantas respuestas hay) en vez de publicar el avance del bloque
@@ -177,9 +188,9 @@ test_that("facts de campo/formulario/dashboard se extraen de sus claves de sesio
 test_that("overview de proyecto reporta madurez 'in_progress' con trabajo real", {
   sid <- session_create()
   on.exit(session_delete(sid), add = TRUE)
-  session_set(sid, "project_path", tempfile(fileext = ".pulso"))
+  session_set(sid, "project_path", file.path(tempdir(), "Estudio de prueba.pulso"))
   session_set(sid, "calc_muestra_estudio", list(
-    titulo = "Estudio de prueba",
+    titulo = "Título del diseño en Cálculo",
     contexto = list(cliente = "Cliente"),
     componentes = list(
       list(actor = "estudiantes", resultado = list(n_objetivo = 200L))
@@ -193,7 +204,13 @@ test_that("overview de proyecto reporta madurez 'in_progress' con trabajo real",
   expect_true(overview$maturity$has_any_work)
   expect_equal(overview$metrics$sample_target_n, 200L)
   expect_equal(overview$metrics$monitoreo_last_cut, "2026-07-01T10:00:00Z")
+  # Sin identidad declarada en el Planner, el Home nombra el proyecto por su
+  # archivo y no por el título de Cálculo (ADR 0123 §5).
   expect_equal(overview$project$name, "Estudio de prueba")
+  expect_equal(overview$project$client, "")
+  .planner_declarar(sid, "estudio", list(nombre = "Percepción del servicio", cliente = "Cliente"), 0L)
+  overview <- .project_overview_payload(sid)
+  expect_equal(overview$project$name, "Percepción del servicio")
   expect_equal(overview$project$client, "Cliente")
 })
 
@@ -269,4 +286,21 @@ test_that("sin instrumento vinculado, facts.editor sigue leyendo el borrador", {
   expect_equal(editor$questions_count, 2L)
   expect_equal(editor$sections_count, 1L)
   expect_equal(editor$instruments_count, 0L)
+})
+
+test_that("Hojas de ruta aplica a todo territorial, también por cuotas, y no a otro tipo (ADR 0125 §2)", {
+  sid <- session_create(); on.exit(session_delete(sid), add = TRUE)
+  antes <- .project_overview_payload(sid)
+  expect_true(antes$facts$hojas$aplica)  # sin perfiles en el Planner no se sabe: aplica
+  .planner_declarar(sid, "perfiles", list(list(tipo = "territorial", seleccion = "conveniencia")), 0L)
+  expect_true(.project_overview_payload(sid)$facts$hojas$aplica)
+  .planner_declarar(sid, "perfiles", list(list(tipo = "telefonico")), 1L)
+  o <- .project_overview_payload(sid)
+  expect_false(o$facts$hojas$aplica)
+  hr <- Filter(function(m) identical(m$id, "hojas-ruta"), o$modules)
+  if (length(hr)) expect_false(hr[[1]]$aplica)
+  expect_identical(o$maturity$total_count, antes$maturity$total_count - length(hr))
+  expect_false(any(grepl("hojas-ruta", vapply(o$next_actions, function(a) as.character(a$id %||% a$module %||% ""), ""))))
+  .planner_declarar(sid, "perfiles", list(list(tipo = "territorial", seleccion = "ump_aleatoria")), 2L)
+  expect_true(.project_overview_payload(sid)$facts$hojas$aplica)
 })

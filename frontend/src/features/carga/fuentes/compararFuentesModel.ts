@@ -193,7 +193,7 @@ export function rotuloCasos(casos: CasosComparados | null, lados: { a: string; b
   if (casos.en_ambas != null) partes.push(`${formatoConteo(casos.en_ambas)} en ambas`);
   if (casos.solo_a) partes.push(`${formatoConteo(casos.solo_a)} solo en ${lados.a}`);
   if (casos.solo_b) partes.push(`${formatoConteo(casos.solo_b)} solo en ${lados.b}`);
-  return partes.length ? partes.join(" · ") : null;
+  return partes.length ? partes.join(", ") : null;
 }
 
 /** «SurveyMonkey trae 10 respuestas más», «Mismo número de respuestas». */
@@ -293,7 +293,7 @@ export function partirCategorias(categorias: readonly CategoriaComparada[]): {
 
 /** «No binario (3)»: una categoría exclusiva como chip. */
 export function rotuloExclusiva(c: { codigo: string; etiqueta: string }): string {
-  if (c.etiqueta && c.codigo) return `${c.etiqueta} · ${c.codigo}`;
+  if (c.etiqueta && c.codigo) return `${c.etiqueta} (${c.codigo})`;
   return c.etiqueta || c.codigo;
 }
 

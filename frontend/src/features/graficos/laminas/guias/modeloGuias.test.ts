@@ -38,8 +38,8 @@ const LAMINA: PreviewFormas = {
 };
 
 describe("conversión de pulgadas a % del lienzo", () => {
-  // Mutante que mata: dividir x por el alto (o y por el ancho) — 0.495/7.5 da 6,6 % en vez de 3,71 %.
-  it("x y ancho van contra el ancho de 13,333 in; y y alto, contra los 7,5 in", () => {
+  // Mutante que mata: dividir x por el alto (o y por el ancho) — 0.495/7.5 da 6.6 % en vez de 3.71 %.
+  it("x y ancho van contra el ancho de 13.333 in; y y alto, contra los 7.5 in", () => {
     const p = aPorcentaje({ x: 0.495, y: 1.65, w: 12.523, h: 4.6 });
     expect(p.left).toBeCloseTo(3.7126, 3);
     expect(p.top).toBeCloseTo(22, 3);
@@ -60,9 +60,9 @@ describe("conversión de pulgadas a % del lienzo", () => {
   });
 
   // Mutante que mata: 2.5 en vez de 2.54, o formatear con punto.
-  it("los cm son pulgadas × 2,54 con coma decimal", () => {
+  it("los cm son pulgadas × 2.54 con punto decimal (es-PE)", () => {
     expect(aCm(1)).toBe(2.54);
-    expect(formatoCm(0.46)).toBe("1,17 cm");
+    expect(formatoCm(0.46)).toBe("1.17 cm");
   });
 });
 
@@ -76,7 +76,7 @@ describe("espacios entre cajas y a los bordes", () => {
     expect(sep).toHaveLength(1);
     expect(sep[0].eje).toBe("v");
     expect(sep[0].valor).toBeCloseTo(0.395, 6);
-    expect(formatoCm(sep[0].valor)).toBe("1,00 cm");
+    expect(formatoCm(sep[0].valor)).toBe("1.00 cm");
   });
 
   // Mutante que mata: margen derecho calculado como el x de la caja (sin restarlo del ancho de la lámina).
@@ -133,7 +133,7 @@ describe("tipografía contra el recetario", () => {
 
   it("el rótulo dice el cuerpo, o el rango si el texto mezcla tamaños", () => {
     expect(rotuloPt({ ptMin: 24, ptMax: 24 })).toBe("24 pt");
-    expect(rotuloPt({ ptMin: 10.5, ptMax: 10.5 })).toBe("10,5 pt");
+    expect(rotuloPt({ ptMin: 10.5, ptMax: 10.5 })).toBe("10.5 pt");
     expect(rotuloPt({ ptMin: 12, ptMax: 14 })).toBe("12–14 pt");
     expect(rotuloPt({ ptMin: null, ptMax: null })).toBeNull();
   });

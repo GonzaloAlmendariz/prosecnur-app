@@ -2,6 +2,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import type { MonitoreoCorte } from "../../corte/corteContract";
 
 import "./embudoDeCorte.css";
+import { formatoConteo } from "../../../../lib/formatoNumero";
 
 /**
  * Embudo de efectividad del corte. Vive en Avance y solo en Avance.
@@ -21,6 +22,8 @@ import "./embudoDeCorte.css";
  * quedó del corte, así que pertenece a Avance, que es donde se pregunta cuánto
  * se lleva. Fuera de ahí desordenaba la lectura en vez de guiarla.
  */
+// ⚠ SIN MONTAR desde el 2026-10-29: Avance cuenta el embudo por respuestas
+// (avance/EmbudoDeRespuestas.tsx, pedido de Gonzalo). Retirarlo pide doble confirmación.
 export function AcreditacionEmbudoCorte({ corte }: { corte: MonitoreoCorte }) {
   const navigate = useNavigate();
   const location = useLocation();
@@ -53,7 +56,7 @@ export function AcreditacionEmbudoCorte({ corte }: { corte: MonitoreoCorte }) {
       <ol className="mon-acr-embudo-pasos">
         {pasos.map((paso, index) => (
           <li key={paso.key} className={`is-${paso.key}`}>
-            <strong>{paso.value.toLocaleString("es-PE")}</strong>
+            <strong>{formatoConteo(paso.value)}</strong>
             <em>{paso.label}</em>
             <small>{paso.hint}</small>
             {index < pasos.length - 1 ? <i aria-hidden="true" /> : null}
@@ -65,7 +68,7 @@ export function AcreditacionEmbudoCorte({ corte }: { corte: MonitoreoCorte }) {
           {corte.saltos.map((salto) => {
             const contenido = (
               <>
-                <strong>&minus;{salto.descartados.toLocaleString("es-PE")}</strong>
+                <strong>&minus;{formatoConteo(salto.descartados)}</strong>
                 <span>{salto.regla}</span>
               </>
             );

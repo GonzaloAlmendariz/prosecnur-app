@@ -209,10 +209,10 @@ describe("textoDelDespliegue — el despliegue del día listo para el chat", () 
       // Jerga fuera (dictado 2026-09-03): «A×1» pasó a palabras del lector.
       // Dictado 2026-09-04: sin em dashes, y el nombre escrito como se
       // escribe un nombre: el aviso se pega en el chat del equipo.
-      "Despliegue Lunes 07/09 · 1 aplicación en A",
+      "Despliegue Lunes 07/09, 1 aplicación en A",
       "Materiales se recogen 30 min antes; salida al aula 15 min antes de la hora pactada.",
-      "• 11:30 a 12:00 A703 · CH 7 · Aguilar Cuya, Renzo (recojo 11:00)",
-      "• 19:45 a 20:15 CH 9 · Nolasco Rivera, Diego (recojo 19:15)",
+      "• 11:30 a 12:00 CH 7 en A703: Aguilar Cuya, Renzo (recojo 11:00)",
+      "• 19:45 a 20:15 CH 9: Nolasco Rivera, Diego (recojo 19:15)",
       "Sin nadie asignado: CH 55",
     ].join("\n"));
   });

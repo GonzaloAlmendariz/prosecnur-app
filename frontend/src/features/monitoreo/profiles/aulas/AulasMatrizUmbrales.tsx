@@ -82,7 +82,7 @@ export function AulasMatrizUmbrales({ v, aulas }: { v: VeredictoDeControl; aulas
               nombre en un perfil cuya unidad es el curso-horario». Medido sobre
               `campo_malo`: 304 filas de la hoja contra 152 partes de campo. */}
           {v.indeterminadas === 1 ? "fila sin sus dos umbrales" : "filas sin sus dos umbrales"} en
-          la hoja · {aulas ? Math.round((100 * v.indeterminadas) / aulas) : 0} %
+          la hoja, {aulas ? Math.round((100 * v.indeterminadas) / aulas) : 0} %
         </p>
       ) : null}
       {/* DE QUIÉN es este corte, y qué NO decide.

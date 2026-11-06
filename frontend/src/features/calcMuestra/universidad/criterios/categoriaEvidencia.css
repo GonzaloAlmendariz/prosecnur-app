@@ -44,7 +44,7 @@
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 2px 10px;
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   color: var(--pulso-text-muted);
   min-height: 30px;
   align-content: start;
@@ -57,12 +57,12 @@
 }
 /* La cifra arriba y su nombre debajo: dos filas iguales en todas las tarjetas. */
 .cmv2-cat-cifras > span > strong {
-  font-size: 14px;
+  font-size: var(--pulso-type-body-size);
   line-height: 1.15;
 }
 .cmv2-cat-cifras > span > em {
   font-style: normal;
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   opacity: 0.85;
 }
 @media (max-width: 620px) {
@@ -88,11 +88,6 @@
   transition: color 180ms ease;
 }
 
-@keyframes cmv2-cat-aparece {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
 /* El movimiento explica un cambio; quien lo desactiva no pierde información. */
 @media (prefers-reduced-motion: reduce) {
   .cmv2-cat-cifras strong { transition: none; }
@@ -101,13 +96,13 @@
 /* Categoría sin cursos-horario aquí: una línea, no cinco guiones. */
 .cmv2-cat-sin-cursos {
   margin: 0;
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   color: var(--pulso-text-muted);
   font-style: italic;
 }
 .cmv2-cat-escala-nota {
   margin: 2px 0 6px;
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   color: var(--pulso-text-muted);
   line-height: 1.45;
 }
@@ -122,7 +117,7 @@
   margin: 0 0 4px;
   padding: 0;
   list-style: none;
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   color: var(--pulso-text-muted);
 }
 .cmv2-cat-leyenda li { display: flex; align-items: center; gap: 5px; }
@@ -154,7 +149,7 @@
  */
 .cmv2-cat-efecto {
   margin: 0;
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   color: var(--pulso-text-muted);
 }
 .cmv2-cat-efecto strong {

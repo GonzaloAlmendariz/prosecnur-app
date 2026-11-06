@@ -1,12 +1,12 @@
 // =============================================================================
-// LogsPanel.tsx — overlay accesible con Cmd/Ctrl+Shift+L
+// LogsPanel.tsx — registro de la sesión, con ⌘⇧L (macOS) o Ctrl+Shift+L
 // =============================================================================
-// Modal flotante que muestra las últimas entradas del logSink. Útil para
-// inspeccionar errores o warnings que pasaron sin tirar la app.
+// Muestra las últimas entradas del logSink. Útil para inspeccionar errores o
+// warnings que pasaron sin tirar la app.
 //
-// Atajos:
-//   - Cmd/Ctrl+Shift+L → toggle abrir/cerrar.
-//   - Esc cierra cuando está abierto.
+// Monta el Dialog del kit (L1): velo, Escape, foco y portal vienen de él. Vive
+// fuera del router (para que funcione con la sesión rota), así que el acento
+// es el global (`module={null}`).
 //
 // Acciones:
 //   - "Copiar diagnóstico" → mismo formato que el ErrorBoundary.
@@ -14,8 +14,7 @@
 // =============================================================================
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { createPortal } from "react-dom";
-import { Clipboard, Check, Trash2, X } from "lucide-react";
+import { Clipboard, Check, Trash2 } from "../vendor/lucide-react";
 import {
   buildDiagnostic,
   clear as clearSink,
@@ -24,6 +23,15 @@ import {
   type LogEntry,
   type LogLevel,
 } from "../lib/logSink";
+import { conModificador, nombreDeAtajo } from "../lib/teclado";
+import { Dialog } from "./Dialog";
+import { PulsoButton } from "./PulsoButton";
+import "./logs-panel.css";
+
+/** ⌘⇧L en macOS, Ctrl+Shift+L en Windows. */
+export function esAtajoDeLogs(evento: Pick<KeyboardEvent, "key" | "shiftKey" | "metaKey" | "ctrlKey">, mac?: boolean): boolean {
+  return conModificador(evento, mac) && evento.shiftKey && (evento.key === "L" || evento.key === "l");
+}
 
 export default function LogsPanel() {
   const [open, setOpen] = useState(false);
@@ -32,32 +40,17 @@ export default function LogsPanel() {
   const [copied, setCopied] = useState(false);
   const scrollRef = useRef<HTMLDivElement | null>(null);
 
-  // Suscripción al sink + Esc para cerrar.
+  // Suscripción al sink mientras está abierto.
   useEffect(() => {
     if (!open) return;
     setEntries(getEntries());
-    const unsub = subscribe(setEntries);
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        e.preventDefault();
-        setOpen(false);
-      }
-    };
-    window.addEventListener("keydown", onKey);
-    return () => {
-      unsub();
-      window.removeEventListener("keydown", onKey);
-    };
+    return subscribe(setEntries);
   }, [open]);
 
-  // Shortcut global Cmd/Ctrl+Shift+L.
+  // Atajo global para alternar.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      const isToggle =
-        (e.metaKey || e.ctrlKey) &&
-        e.shiftKey &&
-        (e.key === "L" || e.key === "l");
-      if (isToggle) {
+      if (esAtajoDeLogs(e)) {
         e.preventDefault();
         setOpen((v) => !v);
       }
@@ -99,147 +92,48 @@ export default function LogsPanel() {
     clearSink();
   }, []);
 
-  if (!open) return null;
-
-  return createPortal(
-    <div
-      role="dialog"
-      aria-label="Panel de logs"
-      style={{
-        position: "fixed",
-        inset: 0,
-        zIndex: 9000,
-        background: "rgba(15,23,42,0.42)",
-        backdropFilter: "blur(2px)",
-        WebkitBackdropFilter: "blur(2px)",
-        display: "flex",
-        alignItems: "flex-end",
-      }}
-      onClick={(e) => {
-        if (e.target === e.currentTarget) setOpen(false);
-      }}
+  return (
+    <Dialog
+      open={open}
+      onOpenChange={setOpen}
+      module={null}
+      size="lg"
+      title={`Registro de la sesión, ${filtered.length} de ${entries.length}`}
+      stepper={<FilterChips current={filter} onPick={setFilter} entries={entries} />}
+      flush
+      footerHint={<span>{nombreDeAtajo("⇧L")} abre y cierra, Esc cierra</span>}
+      footer={(
+        <>
+          <PulsoButton variant="secondary" size="md" onClick={handleClear}>
+            <Trash2 size={13} aria-hidden="true" /> Limpiar
+          </PulsoButton>
+          <PulsoButton variant="primary" size="md" onClick={() => void handleCopy()}>
+            {copied ? <Check size={13} aria-hidden="true" /> : <Clipboard size={13} aria-hidden="true" />}
+            {copied ? "Copiado" : "Copiar diagnóstico"}
+          </PulsoButton>
+        </>
+      )}
     >
-      <div
-        style={{
-          width: "100%",
-          maxHeight: "70vh",
-          background: "#fff",
-          borderTop: "1px solid #d8e0ef",
-          boxShadow: "0 -12px 32px rgba(15,23,42,0.18)",
-          display: "flex",
-          flexDirection: "column",
-          fontFamily:
-            "-apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif",
-        }}
-      >
-        {/* Header */}
-        <header
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 12,
-            padding: "10px 16px",
-            borderBottom: "1px solid #d8e0ef",
-            background: "#f8faff",
-          }}
-        >
-          <strong style={{ fontSize: 13, color: "#0f172a" }}>
-            Logs · {filtered.length} de {entries.length}
-          </strong>
-          <FilterChips current={filter} onPick={setFilter} entries={entries} />
-          <div style={{ flex: 1 }} />
-          <button type="button" onClick={handleCopy} style={btnPrimary}>
-            {copied ? <Check size={12} /> : <Clipboard size={12} />}
-            {copied ? "Copiado" : "Copiar"}
-          </button>
-          <button type="button" onClick={handleClear} style={btnSecondary}>
-            <Trash2 size={12} /> Limpiar
-          </button>
-          <button
-            type="button"
-            onClick={() => setOpen(false)}
-            aria-label="Cerrar panel"
-            style={btnIcon}
-          >
-            <X size={14} />
-          </button>
-        </header>
-
-        {/* Lista */}
-        <div
-          ref={scrollRef}
-          style={{
-            flex: 1,
-            overflowY: "auto",
-            fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
-            fontSize: 11,
-            lineHeight: 1.55,
-            background: "#0f172a",
-            color: "#e2e8f0",
-            padding: "10px 16px",
-          }}
-        >
-          {filtered.length === 0 ? (
-            <div style={{ color: "#94a3b8", padding: "12px 0" }}>
-              Sin entradas para este filtro.
-            </div>
-          ) : (
-            filtered.map((e, i) => (
-              <LogRow key={`${e.ts}-${i}`} entry={e} />
-            ))
-          )}
-        </div>
-
-        <footer
-          style={{
-            padding: "6px 16px",
-            fontSize: 10,
-            color: "#474f5b",
-            borderTop: "1px solid #d8e0ef",
-            background: "#f8faff",
-          }}
-        >
-          Cmd/Ctrl + Shift + L para alternar · Esc para cerrar
-        </footer>
+      <div ref={scrollRef} className="pulso-logs-lista">
+        {filtered.length === 0 ? (
+          <div className="pulso-logs-vacio">Sin entradas para este filtro.</div>
+        ) : (
+          filtered.map((e, i) => <LogRow key={`${e.ts}-${i}`} entry={e} />)
+        )}
       </div>
-    </div>,
-    document.body,
+    </Dialog>
   );
 }
 
 function LogRow({ entry }: { entry: LogEntry }) {
-  const tone = LEVEL_TONE[entry.level] ?? LEVEL_TONE.log;
   const ts = new Date(entry.ts).toLocaleTimeString("es-PE", { hour12: false });
   return (
-    <div style={{ marginBottom: 6 }}>
-      <span style={{ color: "#94a3b8" }}>[{ts}]</span>{" "}
-      <span
-        style={{
-          color: tone.fg,
-          fontWeight: 700,
-          textTransform: "uppercase",
-        }}
-      >
-        {entry.level}
-      </span>{" "}
-      <span style={{ color: "#94a3b8" }}>({entry.source})</span>{" "}
-      <span style={{ color: "#e2e8f0", whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
-        {entry.message}
-      </span>
-      {entry.stack && (
-        <div
-          style={{
-            marginTop: 4,
-            paddingLeft: 14,
-            color: "#cbd5e1",
-            whiteSpace: "pre-wrap",
-            wordBreak: "break-word",
-            opacity: 0.85,
-          }}
-        >
-          {entry.stack}
-        </div>
-      )}
+    <div className="pulso-logs-fila" data-nivel={entry.level}>
+      <span className="pulso-logs-tenue">[{ts}]</span>{" "}
+      <span className="pulso-logs-nivel">{entry.level}</span>{" "}
+      <span className="pulso-logs-tenue">({entry.source})</span>{" "}
+      <span className="pulso-logs-mensaje">{entry.message}</span>
+      {entry.stack && <div className="pulso-logs-stack">{entry.stack}</div>}
     </div>
   );
 }
@@ -260,28 +154,17 @@ function FilterChips({
   }, [entries]);
   const items: Array<LogLevel | "all"> = ["all", "error", "warn", "info", "log", "debug"];
   return (
-    <div style={{ display: "inline-flex", gap: 4 }}>
+    <div className="pulso-logs-filtros" role="group" aria-label="Filtrar por nivel">
       {items.map((l) => {
-        const active = current === l;
         const n = counts[l] ?? 0;
         if (l !== "all" && n === 0) return null;
         return (
           <button
             key={l}
             type="button"
+            className="pulso-logs-filtro"
+            aria-pressed={current === l}
             onClick={() => onPick(l)}
-            style={{
-              fontSize: 10,
-              fontWeight: 700,
-              padding: "3px 8px",
-              borderRadius: 999,
-              border: `1px solid ${active ? "#2457d6" : "#d8e0ef"}`,
-              background: active ? "#dbeafe" : "#fff",
-              color: active ? "#1e40af" : "#0f172a",
-              cursor: "pointer",
-              textTransform: "uppercase",
-              letterSpacing: 0.4,
-            }}
           >
             {l} {n}
           </button>
@@ -290,52 +173,3 @@ function FilterChips({
     </div>
   );
 }
-
-const LEVEL_TONE: Record<LogLevel, { fg: string }> = {
-  error: { fg: "#fca5a5" },
-  warn: { fg: "#fcd34d" },
-  info: { fg: "#7dd3fc" },
-  log: { fg: "#cbd5e1" },
-  debug: { fg: "#a5b4fc" },
-};
-
-const btnPrimary: React.CSSProperties = {
-  display: "inline-flex",
-  alignItems: "center",
-  gap: 4,
-  fontSize: 11,
-  fontWeight: 700,
-  padding: "5px 10px",
-  borderRadius: 6,
-  background: "#2457d6",
-  color: "#fff",
-  border: "1px solid #1e40af",
-  cursor: "pointer",
-};
-
-const btnSecondary: React.CSSProperties = {
-  display: "inline-flex",
-  alignItems: "center",
-  gap: 4,
-  fontSize: 11,
-  fontWeight: 700,
-  padding: "5px 10px",
-  borderRadius: 6,
-  background: "#fff",
-  color: "#0f172a",
-  border: "1px solid #d8e0ef",
-  cursor: "pointer",
-};
-
-const btnIcon: React.CSSProperties = {
-  display: "inline-flex",
-  alignItems: "center",
-  justifyContent: "center",
-  width: 26,
-  height: 26,
-  border: "1px solid #d8e0ef",
-  background: "#fff",
-  borderRadius: 6,
-  cursor: "pointer",
-  color: "#0f172a",
-};

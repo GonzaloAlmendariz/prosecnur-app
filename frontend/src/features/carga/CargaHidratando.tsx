@@ -1,6 +1,7 @@
 import { AdaptiveSplitView } from "../../components/AdaptiveSplitView";
 import { ContextTabRail, type ContextTabRailItem } from "../../components/ContextTabRail";
 import { PulsoButton } from "../../components/PulsoButton";
+import { TabHeading } from "../../components/TabHeading";
 import { Skeleton, SkeletonVista, type SkeletonVistaVariante } from "../../components/Skeleton";
 import { ErrorBlock } from "../../components/States";
 import { ClipboardList, Loader2, RefreshCw } from "../../vendor/lucide-react";
@@ -96,19 +97,16 @@ export function CargaHidratando({
         className="pulso-carga-content pulso-content-area pulso-carga-content--multi pulso-carga-content--framed"
         data-carga-hidratacion={hidratacion.fase}
       >
-        <header className="pulso-carga-workspace-header" data-workspace-state="neutral">
-          <span className="pulso-carga-workspace-header-icon" aria-hidden="true">
-            <ClipboardList size={17} />
-          </span>
-          <div className="pulso-carga-workspace-header-copy">
-            <span className="pulso-carga-workspace-header-kicker">Carga</span>
-            <div className="pulso-carga-workspace-header-title">
-              <h2>{metadata.label}</h2>
-              {leyendo && <Skeleton forma="texto" ancho={58} alto={16} className="pulso-skeleton--pastilla" />}
-            </div>
-            <p>{metadata.summary}</p>
-          </div>
-        </header>
+        {/* La misma cabecera que pinta CargaWorkspaceHeader al terminar (L14):
+            mientras hidrata no hay estado que declarar, y la espera la dice el
+            renglón «Leyendo…» de abajo. Sin «pestaña N de M»: con bases
+            separadas Equivalencias aún no se sabe y el total saldría falso. */}
+        <TabHeading
+          eyebrow="Carga"
+          titulo={metadata.label}
+          icono={ClipboardList}
+          detalle={metadata.summary}
+        />
         <div className="pulso-carga-scrollarea">
           {leyendo ? (
             <div className="pulso-carga-hidratando-cuerpo">
@@ -116,7 +114,7 @@ export function CargaHidratando({
                 <Loader2 size={14} className="pulso-spin" aria-hidden="true" />
                 <span className="pulso-sr-only">{`${texto}…`}</span>
                 <span aria-hidden="true">
-                  {texto} · <strong>{formatoTranscurrido(segundos)}</strong>
+                  {texto}, <strong>{formatoTranscurrido(segundos)}</strong>
                 </span>
               </div>
               {pestana === "fuentes" ? (

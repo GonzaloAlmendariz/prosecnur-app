@@ -595,6 +595,11 @@
     # distintas y el consumidor tiene que adivinar cuál: un contrato viejo sin
     # `eje` se lee como `facultad`, que es lo que es.
     eje = monitoreo_aulas_eje_declaracion(eje),
+    # **El avance por celdas de las variables que declara el estudio** (ADR
+    # 0121, F2): facultad × sexo, nivel, nivel × sexo… Cuenta lo mismo que este
+    # bloque; sólo lo reparte. Ver `monitoreo_aulas_avance_celdas.R`.
+    celdas_declaradas = monitoreo_aulas_avance_por_celdas(
+      cfg, eje, eje_atr, sexo_key, atr, plan_df, responses = responses, padron = padron),
     # **Por qué el eje no puede resolver, cuando no puede.** El satélite lo
     # diagnostica y lo escribía en un atributo que NADIE leía: ni este motor, ni
     # el payload, ni la pantalla. Un aviso escrito, correcto y sin consumidor no
@@ -690,8 +695,17 @@
     meta_diseno = if (length(vig$facultades)) .monitoreo_num(vig$dt$meta_diseno, NA_real_) else NA_real_,
     sobremuestra = if (length(vig$facultades)) .monitoreo_num(vig$dt$sobremuestra, NA_real_) else NA_real_,
     meta_operativa = if (length(vig$facultades)) .monitoreo_num(vig$dt$meta_operativa, NA_real_) else NA_real_,
+    # ADR 0126 (aditivo): la meta de aulas tiene dos niveles con nombre, la
+    # muestra (`meta_diseno`, 2.500 en HSVG) y la sobremuestra TOTAL (3.750). El
+    # campo `sobremuestra` del diseño es el EXCEDENTE (1.250): el nivel se juzga
+    # contra `meta_operativa` = meta + excedente (`.monitoreo_aulas_sobremuestra_diseno`).
+    niveles = .monitoreo_aulas_niveles_de_meta(
+      if (length(vig$facultades)) .monitoreo_num(vig$dt$meta_diseno, NA_real_) else NA_real_,
+      if (length(vig$facultades)) .monitoreo_num(vig$dt$meta_operativa, NA_real_) else NA_real_,
+      total
+    ),
     total = total,
-    facultades = filas
+    facultades = .monitoreo_cuotas_marcar_aulas(filas)
   )
 }
 

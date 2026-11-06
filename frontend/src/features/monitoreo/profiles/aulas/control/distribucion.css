@@ -1,0 +1,188 @@
+/* Control › Distribución (aulas.md, ficha Ctl3; maqueta v3). El reparto del
+ * día por aplicador sobre la escala de 7:00 a 22:00; a la derecha (340 px), la
+ * hoja de los aplicadores, el cruce con la agenda y las citas por aplicador. */
+
+.aulas-ins--dist {
+  grid-template-columns: minmax(0, 1fr) 340px;
+}
+
+.aulas-dist-marco {
+  max-height: 560px;
+  overflow: auto;
+  scrollbar-gutter: stable;
+}
+
+.aulas-dist-escala,
+.aulas-dist-fila {
+  display: grid;
+  grid-template-columns: 180px minmax(0, 1fr);
+  gap: var(--pulso-space-2);
+  min-width: 720px;
+}
+
+.aulas-dist-escala {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding-bottom: var(--pulso-space-1);
+  background: var(--pulso-surface);
+}
+
+.aulas-dist-horas {
+  position: relative;
+  height: 14px;
+  color: var(--pulso-text-faint);
+  font-size: var(--pulso-type-caption-size);
+}
+
+.aulas-dist-horas > i {
+  position: absolute;
+  font-style: normal;
+  transform: translateX(-50%);
+}
+
+.aulas-dist-fila {
+  align-items: center;
+  padding: var(--pulso-space-1) 0;
+  border-top: 1px solid var(--pulso-surface-3);
+}
+
+.aulas-dist-nombre {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  font-size: var(--pulso-type-caption-size);
+}
+
+.aulas-dist-nombre b {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.aulas-dist-nombre small {
+  color: var(--pulso-text-faint);
+}
+
+.aulas-dist-linea {
+  position: relative;
+  height: 44px;
+  overflow: hidden;
+  border-radius: var(--pulso-radius-card);
+  background: var(--pulso-surface-2);
+}
+
+.aulas-dist-linea i,
+.aulas-dist-leyenda i {
+  font-style: normal;
+}
+
+.aulas-dist-linea .is-disponible {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  background: var(--pulso-success-bg);
+}
+
+.aulas-dist-linea .is-recojo {
+  position: absolute;
+  top: 20px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--pulso-border-strong);
+}
+
+.aulas-dist-cita {
+  position: absolute;
+  top: 4px;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--pulso-space-1);
+  height: 22px;
+  padding: 0 var(--pulso-space-2);
+  border-radius: var(--pulso-radius-card);
+  background: var(--pulso-brand-navy);
+  color: var(--pulso-surface);
+  font-size: var(--pulso-type-caption-size);
+  white-space: nowrap;
+}
+
+.aulas-dist-cita.is-fijada {
+  background: var(--pulso-module-monitoring);
+}
+
+.aulas-dist-cita .aulas-chip {
+  margin-left: var(--pulso-space-1);
+}
+
+.aulas-dist-sin {
+  position: absolute;
+  top: 50%;
+  right: var(--pulso-space-2);
+  color: var(--pulso-text-faint);
+  font-size: var(--pulso-type-caption-size);
+  transform: translateY(-50%);
+}
+
+.aulas-dist-leyenda {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--pulso-space-1) var(--pulso-space-3);
+}
+
+.aulas-dist-leyenda i {
+  display: inline-block;
+  width: 12px;
+  height: 8px;
+  margin-right: 4px;
+  border-radius: 2px;
+}
+
+.aulas-dist-leyenda .is-cita { background: var(--pulso-brand-navy); }
+.aulas-dist-leyenda .is-fijada { background: var(--pulso-module-monitoring); }
+.aulas-dist-leyenda .is-recojo { background: var(--pulso-border-strong); }
+.aulas-dist-leyenda .is-disponible { background: var(--pulso-success-bg); }
+
+.aulas-dist-hoja-acciones {
+  margin-left: 0;
+}
+
+.aulas-dist-equidad {
+  display: grid;
+  gap: var(--pulso-space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--pulso-type-caption-size);
+}
+
+.aulas-dist-equidad li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 80px 28px;
+  align-items: center;
+  gap: var(--pulso-space-2);
+}
+
+.aulas-dist-equidad li > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.aulas-dist-equidad li > i {
+  height: 8px;
+  border-radius: 4px;
+  background: var(--pulso-brand-navy);
+}
+
+.aulas-dist-equidad li > b {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 1366px) {
+  .aulas-ins--dist {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

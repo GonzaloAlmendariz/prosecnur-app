@@ -18,14 +18,14 @@
 .pulso-bde-encabezado h3 {
   margin: 0;
   color: var(--pulso-text);
-  font-size: 16px;
+  font-size: var(--pulso-type-title-size);
   font-weight: var(--pulso-weight-semibold);
 }
 
 .pulso-bde-encabezado p {
   margin: 2px 0 0;
   color: var(--pulso-text-soft);
-  font-size: 13px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .pulso-bde-grilla {
@@ -68,7 +68,7 @@
   margin: 0;
   min-width: 0;
   color: var(--pulso-text);
-  font-size: 15px;
+  font-size: var(--pulso-type-title-size);
   font-weight: var(--pulso-weight-semibold);
   overflow-wrap: anywhere;
 }
@@ -78,7 +78,7 @@
   border-radius: 999px;
   background: var(--pulso-surface-2);
   color: var(--pulso-text-soft);
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   font-weight: var(--pulso-weight-medium);
 }
 
@@ -106,7 +106,7 @@
   gap: 6px;
   margin: 0;
   color: var(--pulso-text-soft);
-  font-size: 12.5px;
+  font-size: var(--pulso-type-body-size);
   line-height: 1.4;
 }
 
@@ -115,7 +115,7 @@
   border-radius: 999px;
   border: 1px solid var(--pulso-border);
   color: var(--pulso-text-muted);
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
 }
 
 .pulso-bde-cifras {
@@ -125,8 +125,8 @@
 }
 
 .pulso-bde-cifras div { display: flex; flex-direction: column; }
-.pulso-bde-cifras dt { color: var(--pulso-text-muted); font-size: 11px; }
-.pulso-bde-cifras dd { margin: 0; color: var(--pulso-text); font-size: 18px; font-weight: var(--pulso-weight-semibold); font-variant-numeric: tabular-nums; }
+.pulso-bde-cifras dt { color: var(--pulso-text-muted); font-size: var(--pulso-type-caption-size); }
+.pulso-bde-cifras dd { margin: 0; color: var(--pulso-text); font-size: var(--pulso-type-kpi-size); font-weight: var(--pulso-weight-semibold); font-variant-numeric: tabular-nums; }
 
 .pulso-bde-acciones,
 .pulso-bde-confirmar {
@@ -143,7 +143,7 @@
   border-radius: 10px;
   background: var(--pulso-danger-bg);
   color: var(--pulso-danger-fg);
-  font-size: 12.5px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .pulso-bde-error {
@@ -172,8 +172,8 @@
   padding-right: 32px;
 }
 
-.pulso-bde-agregar-cabecera strong { color: var(--pulso-text); font-size: 15px; }
-.pulso-bde-agregar-cabecera span { color: var(--pulso-text-soft); font-size: 13px; }
+.pulso-bde-agregar-cabecera strong { color: var(--pulso-text); font-size: var(--pulso-type-title-size); }
+.pulso-bde-agregar-cabecera span { color: var(--pulso-text-soft); font-size: var(--pulso-type-body-size); }
 
 .pulso-bde-cerrar {
   position: absolute;
@@ -217,8 +217,8 @@
    recortaba en columnas angostas (1024 px, cinco orígenes): aquí envuelve. */
 .pulso-bde-origen-opcion { min-width: 0; white-space: normal; justify-content: flex-start; }
 .pulso-bde-origen-opcion span { display: flex; flex-direction: column; min-width: 0; }
-.pulso-bde-origen-opcion strong { color: var(--pulso-text); font-size: 13px; }
-.pulso-bde-origen-opcion small { font-size: 11.5px; }
+.pulso-bde-origen-opcion strong { color: var(--pulso-text); font-size: var(--pulso-type-body-size); }
+.pulso-bde-origen-opcion small { font-size: var(--pulso-type-caption-size); }
 .pulso-bde-origen-opcion:hover { border-color: var(--pulso-border-strong); }
 .pulso-bde-origen-opcion.is-activa { border-color: var(--pulso-primary); box-shadow: 0 0 0 3px var(--pulso-primary-ring); color: var(--pulso-primary); }
 
@@ -236,7 +236,7 @@
   gap: 4px;
   max-width: 420px;
   color: var(--pulso-text-soft);
-  font-size: 12.5px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .pulso-bde-nueva-nombre span { color: var(--pulso-text); font-weight: var(--pulso-weight-medium); }
@@ -272,8 +272,8 @@
 }
 
 .pulso-bde-archivo span { display: flex; flex-direction: column; min-width: 0; }
-.pulso-bde-archivo strong { color: var(--pulso-text); font-size: 13px; }
-.pulso-bde-archivo small { overflow: hidden; font-size: 11.5px; text-overflow: ellipsis; white-space: nowrap; }
+.pulso-bde-archivo strong { color: var(--pulso-text); font-size: var(--pulso-type-body-size); }
+.pulso-bde-archivo small { overflow: hidden; font-size: var(--pulso-type-caption-size); text-overflow: ellipsis; white-space: nowrap; }
 .pulso-bde-archivo:hover { border-color: var(--pulso-primary-border); }
 .pulso-bde-archivo.is-listo { border-style: solid; border-color: var(--pulso-success-border); background: var(--pulso-success-bg); }
 .pulso-bde-archivo:focus-within { box-shadow: 0 0 0 3px var(--pulso-primary-ring); }
@@ -286,7 +286,7 @@
   padding: 0;
   list-style: none;
   color: var(--pulso-text-soft);
-  font-size: 12.5px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .pulso-bde-fuentes li { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
@@ -300,12 +300,12 @@
   border-radius: 12px;
   background: var(--pulso-surface);
   color: var(--pulso-text);
-  font-size: 13px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .pulso-bde-previa p { margin: 0; color: var(--pulso-text-soft); }
 .pulso-bde-previa ul { margin: 4px 0 0; padding-left: 18px; }
-.pulso-bde-previa-rotulo { color: var(--pulso-text-muted); font-size: 11.5px; font-weight: var(--pulso-weight-semibold); }
+.pulso-bde-previa-rotulo { color: var(--pulso-text-muted); font-size: var(--pulso-type-caption-size); font-weight: var(--pulso-weight-semibold); }
 
 /* ADR 0102: «Comparar fuentes» junto a «Agregar base». */
 .pulso-bde-encabezado-acciones {
@@ -328,7 +328,7 @@
   border: 1px solid var(--pulso-border);
   border-radius: 10px;
   background: var(--pulso-surface-2);
-  font-size: 12.5px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .pulso-bde-version-resultado {
@@ -381,7 +381,7 @@
   display: flex;
   flex-direction: column;
   gap: 6px;
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   color: var(--pulso-text-soft);
 }
 .pulso-resp-resumen > p { margin: 0; }
@@ -389,10 +389,10 @@
   display: flex;
   align-items: baseline;
   gap: 6px;
-  font-size: 13px;
+  font-size: var(--pulso-type-body-size);
   font-variant-numeric: tabular-nums;
 }
-.pulso-resp-cifras strong { font-size: 15px; font-weight: 600; color: var(--pulso-text); }
+.pulso-resp-cifras strong { font-size: var(--pulso-type-title-size); font-weight: 600; color: var(--pulso-text); }
 .pulso-resp-linea { line-height: 1.45; }
 .pulso-resp-linea.is-bad { color: var(--pulso-danger-fg); }
 .pulso-resp-descargas {

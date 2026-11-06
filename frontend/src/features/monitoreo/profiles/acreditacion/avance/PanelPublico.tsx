@@ -1,11 +1,12 @@
 import { X } from "lucide-react";
+import { EstadoChip } from "../../../../../components/EstadoChip";
 import { Alert } from "../../../../../components/Alert";
 import { fmt, normalizeSourceMatch } from "../formato";
 import { casosDelCorte } from "../control/casos/tiposDeCaso";
 import type { BarridoDelPublico } from "../navegacion/resumenDelCorte";
 import type { MonitoreoInternalQueryIssue } from "../../../../../api/client";
-import { efectivasPorCanal, tieneMeta, type DiaDeAvance } from "./avanceModelo";
-import { AreaAcumulada } from "./graficosDeAvance";
+import { diaDeMetaCumplida, efectivasPorCanal, tieneMeta, type DiaDeAvance } from "./avanceModelo";
+import { CurvaAcumulada } from "./graficosDeAvance";
 import type { AcreditacionAdvanceCard } from "./tarjetasDeAvance";
 
 function Fila({ etiqueta, valor, total, clase }: { etiqueta: string; valor: number; total: number; clase: string }) {
@@ -67,8 +68,8 @@ export function PanelPublico({
           <b className="acr-av-num">{fmt(tarjeta.effective)}</b>
           <span className="acr-av-tenue">{conMeta ? `de ${fmt(meta)} meta` : `de ${fmt(tarjeta.universe)} personas`}</span>
           {avance != null
-            ? <span className={`acr-av-chip ${avance >= 100 ? "is-cumple" : "is-falta"}`}>{fmt(avance)} % de la meta</span>
-            : <span className="acr-av-chip">Sin meta</span>}
+            ? <EstadoChip label={`${fmt(avance)} % de la meta`} tone={avance >= 100 ? "success" : "warn"} />
+            : <EstadoChip label="Sin meta" tone="neutral" />}
         </p>
         <div className="acr-pub-bloque">
           <span className="acr-av-antetitulo">Del universo a la efectiva</span>
@@ -79,16 +80,17 @@ export function PanelPublico({
         <div className="acr-pub-bloque acr-pub-acumulado" data-qa-geometry-capacity="owned">
           <span className="acr-av-antetitulo">Efectivas acumuladas</span>
           {serie.length
-            ? <AreaAcumulada serie={serie} meta={conMeta ? meta : null} etiqueta={`Efectivas acumuladas de ${tarjeta.actor}`} />
+            // La misma curva del Resumen (un eje, proyección al ritmo de 7 días): el área con la meta arriba quedaba pegada al piso (K1).
+            ? <CurvaAcumulada serie={serie} meta={conMeta ? meta : 0} diaDeMeta={conMeta ? diaDeMetaCumplida(serie, meta) : null} ritmo={serie.length ? serie.slice(-7).reduce((suma, dia) => suma + dia.efectivas, 0) / serie.slice(-7).length : null} />
             : <Alert kind="info">Este público aún no tiene efectivas con fecha.</Alert>}
         </div>
         {canales.length ? (
           <div className="acr-pub-bloque">
             <span className="acr-av-antetitulo">Por canal</span>
             {canales.map((canal) => (
-              <div key={canal.canal} className="acr-pub-embudo-fila">
+              <div key={canal.canal} className={`acr-pub-embudo-fila${canales.length > 1 ? "" : " is-sin-pista"}`}>
                 <span>{canal.canal}</span>
-                <span className="acr-av-pista"><i className="is-canal" style={{ width: `${(canal.efectivas / maxCanal) * 100}%` }} /></span>
+                {canales.length > 1 ? <span className="acr-av-pista"><i className="is-canal" style={{ width: `${(canal.efectivas / maxCanal) * 100}%` }} /></span> : null}
                 <b className="acr-av-num">{fmt(canal.efectivas)}</b>
               </div>
             ))}
@@ -108,11 +110,25 @@ export function PanelPublico({
           <span className="acr-av-antetitulo">Casos de este público</span>
           {casos ? (
             casos.porTipo.length ? (
-              <div className="acr-res-chips">
-                {casos.porTipo.map((tipo) => (
-                  <span key={tipo.tipo} className={`acr-av-chip${tipo.grupo === "espera" ? " is-falta" : ""}`}>{tipo.etiqueta} {fmt(tipo.casos)}</span>
-                ))}
-              </div>
+              // Lista agrupada como en Por resolver, no chips de dos colores (E1, 30/10).
+              <dl className="acr-pub-casos">
+                {[
+                  { grupo: "espera", titulo: "Esperan decisión" },
+                  { grupo: "decidido", titulo: "Decididos" },
+                  { grupo: "regla", titulo: "Resueltos por regla" },
+                ].map(({ grupo, titulo }) => {
+                  const tipos = casos.porTipo.filter((tipo) => tipo.grupo === grupo);
+                  if (!tipos.length) return null;
+                  return (
+                    <div key={grupo} className={`acr-pub-casos-grupo is-${grupo}`}>
+                      <dt>{titulo} <span className="acr-av-num">{fmt(tipos.reduce((suma, tipo) => suma + tipo.casos, 0))}</span></dt>
+                      {tipos.map((tipo) => (
+                        <dd key={tipo.tipo}><span>{tipo.etiqueta}</span><b className="acr-av-num">{fmt(tipo.casos)}</b></dd>
+                      ))}
+                    </div>
+                  );
+                })}
+              </dl>
             ) : <span className="acr-av-tenue">Sin casos marcados en el corte.</span>
           ) : <Alert kind="info">Los casos se están preparando con el cruce del padrón.</Alert>}
         </div>

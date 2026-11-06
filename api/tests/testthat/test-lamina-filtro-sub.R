@@ -42,9 +42,11 @@ test_that("p192: filtro dicotómico arriba y la subpregunta abajo, con la base d
   skip_if_not_installed("officer")
   r <- .fsub_render(p_filtro_subpregunta("inter", habilita = "Sí", subpregunta = "util", grafico_sub = "escala", disposicion = "abajo"))
   expect_true("prosecnur:grafico:filtro_sub" %in% r$nombres)
-  expect_true("llave" %in% r$nombres)
+  expect_false("llave" %in% r$nombres)                         # G15 (Arte 2026-10-28): sin corchete con la subpregunta debajo
   n_si <- sum(r$fx$df$inter == "1")
   expect_true(any(grepl(sprintf("Sólo los %d que respondieron «Sí»", n_si), r$textos, fixed = TRUE)), info = paste(r$textos, collapse = " | "))
+  expect_true(sprintf("N = %d", n_si) %in% r$textos)          # G16: la base encima de la barra, como Contabilidad
+  expect_false("panel:base" %in% r$nombres)                    # y ya no en gris bajo la premisa
   expect_true(any(grepl("Los intercambios fortalecen mis competencias", r$textos, fixed = TRUE)))
 })
 
@@ -222,13 +224,15 @@ test_that("F4: el conteo lee filtros de selección múltiple y dependientes de v
        por_nombre = function(nm) xml2::xml_text(formas[xml2::xml_attr(xml2::xml_find_first(formas, ".//p:cNvPr"), "name") == nm]))
 }
 
-test_that("F5: el pie lleva las dos bases y el filtro dicotómico sus casos en el rótulo", {
+test_that("F5: el pie lleva las dos bases y el filtro dicotómico es una barra apilada con su leyenda Sí/No", {
   skip_if_not_installed("officer")
   r <- .fsub_textos_de(p_filtro_subpregunta("inter", habilita = "Sí", subpregunta = "util", grafico_sub = "escala", disposicion = "abajo"),
                        base = "Base: 120 estudiantes")
   n_si <- sum(r$fx$df$inter == "1")
-  expect_equal(r$por_nombre("Base lamina"), sprintf("Base: 120 estudiantes. Sólo los %d que respondieron «Sí»", n_si))
-  expect_true(any(r$textos == sprintf("Sí (%d)", n_si)), info = paste(r$textos, collapse = " | "))
+  expect_equal(r$por_nombre("Base lamina"), sprintf("Base: 120 estudiantes. Sólo los %d que respondieron «Sí». Base menor de 30 casos: cifras referenciales.", n_si))   # B15 y M3 (n_si < 30)
+  # Como Contabilidad: sin «Sí (77)» sobre la barra; los casos van en el pie y en el «N = 77» del dependiente.
+  expect_false(any(r$textos == sprintf("Sí (%d)", n_si)), info = paste(r$textos, collapse = " | "))
+  expect_true(all(c("Sí", "No") %in% r$textos), info = paste(r$textos, collapse = " | "))
 })
 
 test_that("F5: quien arma la lámina dice quiénes son, y la frase llega del meta de la dependencia", {
@@ -252,7 +256,7 @@ test_that("F5: la escala dependiente de una fila lleva su columna Top Two Box", 
   sub <- r$fx$df$util[!is.na(r$fx$df$util)]
   # La columna suma lo que se ve en la barra: los dos segmentos ya redondeados.
   esperado <- sprintf("%d%%", sum(round(100 * c(mean(sub == "3"), mean(sub == "4")))))
-  expect_true("Top Two Box" %in% r$textos, info = paste(r$textos, collapse = " | "))
+  expect_true("TOP TWO BOX" %in% r$textos, info = paste(r$textos, collapse = " | "))
   expect_true(esperado %in% r$por_nombre("box:cifra"), info = paste(r$por_nombre("box:cifra"), collapse = " | "))
 })
 

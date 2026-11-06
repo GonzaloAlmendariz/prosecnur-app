@@ -554,14 +554,14 @@ export function campoMetaDelActor(comp: Pick<CalcMuestraComponente, "tecnica" | 
       tipo: "cobertura",
       clave: "cobertura_objetivo",
       rotulo: "Cobertura",
-      detalle: `${piso} · ${tope}`,
+      detalle: `${piso}, ${tope}`,
       piezas: [piso, tope],
     };
   }
   if (TECNICAS_DE_RESPUESTA.has(comp.tecnica)) {
     const margen = Number.isFinite(p.e) && p.e > 0 ? fmtPct(p.e) : "";
     const extra = Number.isFinite(p.oversample_pct) && p.oversample_pct > 0 ? fmtPct(p.oversample_pct) : "";
-    const cifras = margen && extra ? `±${margen} · +${extra}` : margen ? `margen ±${margen}` : extra ? `+${extra}` : "";
+    const cifras = margen && extra ? `±${margen}, +${extra}` : margen ? `margen ±${margen}` : extra ? `+${extra}` : "";
     return {
       tipo: "respuesta",
       clave: "tasa_respuesta",
@@ -570,7 +570,7 @@ export function campoMetaDelActor(comp: Pick<CalcMuestraComponente, "tecnica" | 
         "Respuesta esperada",
         margen ? `margen ±${margen}` : "",
         extra ? `sobremuestra ${extra}` : "",
-      ].filter(Boolean).join(" · "),
+      ].filter(Boolean).join(", "),
       piezas: ["Respuesta", cifras].filter(Boolean),
     };
   }
@@ -584,7 +584,7 @@ export function campoMetaDelActor(comp: Pick<CalcMuestraComponente, "tecnica" | 
 export function pieDeCuota(sugerido: number | null): { detalle: string; piezas: readonly string[] } {
   if (sugerido == null) return { detalle: "Cuota", piezas: ["Cuota"] };
   return {
-    detalle: `Cuota · vacía, el motor aplica ${fmtInt(sugerido)}`,
+    detalle: `Cuota vacía: el motor aplica ${fmtInt(sugerido)}`,
     piezas: ["Cuota vacía", `motor: ${fmtInt(sugerido)}`],
   };
 }

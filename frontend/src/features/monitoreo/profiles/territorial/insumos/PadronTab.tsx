@@ -1,10 +1,13 @@
 import { memo, useMemo } from "react";
 import { Users } from "lucide-react";
+import { EstadoVacio } from "../../../../../components/EstadoVacio";
+import { EstadoChip } from "../../../../../components/EstadoChip";
 import type { MonitoreoState, MonitoreoTerritorialDashboard } from "../../../../../api/client";
 import { useFocoMonitoreo } from "../../../useMonitoreoDireccion";
 import { fmt } from "../rotulos";
 import { construirPadron, ROTULO_DE_ESTADO } from "./padronModel";
 import { RotuloDePestana } from "../navegacion/RotuloDePestana";
+import { BloqueDeMonitoreo } from "../../../core/BloqueDeMonitoreo";
 import "./insumos.css";
 
 /**
@@ -34,21 +37,21 @@ function PadronTabImpl({
       data-qa-geometry-contract="intrinsic"
     >
       {modelo.disponible ? (
-        <section className="mon-ins-panel" aria-labelledby="mon-ins-padron" data-qa-geometry-member="padron">
-          <header className="mon-ins-cabecera">
-            <RotuloDePestana />
-            <div>
-              <h3 id="mon-ins-padron" className="mon-ins-titulo">{modelo.archivo.nombre || "Padrón de aplicadores"}</h3>
-              <span className="mon-ins-base">
-                {[
-                  `${fmt(modelo.archivo.personas)} personas`,
-                  modelo.archivo.formato ? `códigos ${modelo.archivo.formato}` : "",
-                  modelo.archivo.subido ? `subido el ${modelo.archivo.subido}` : "",
-                ].filter(Boolean).join(", ")}
-              </span>
-            </div>
-            <button type="button" className="mon-ins-boton" onClick={onReemplazar}>Reemplazar padrón…</button>
-          </header>
+        <BloqueDeMonitoreo
+          marco="kit"
+          className="mon-ins-panel"
+          aria-labelledby="mon-ins-padron"
+          data-qa-geometry-member="padron"
+          antetitulo={<RotuloDePestana />}
+          titulo={modelo.archivo.nombre || "Padrón de aplicadores"}
+          tituloId="mon-ins-padron"
+          bajada={[
+            `${fmt(modelo.archivo.personas)} personas`,
+            modelo.archivo.formato ? `códigos ${modelo.archivo.formato}` : "",
+            modelo.archivo.subido ? `subido el ${modelo.archivo.subido}` : "",
+          ].filter(Boolean).join(", ")}
+          acciones={<button type="button" className="mon-ins-boton" onClick={onReemplazar}>Reemplazar padrón…</button>}
+        >
           <div className="mon-ins-tabla-marco" data-qa-geometry-capacity="owned" tabIndex={0} aria-label="Padrón, con desplazamiento">
             <table className="mon-ins-tabla">
               <thead>
@@ -71,7 +74,7 @@ function PadronTabImpl({
                     <td>{fila.ultimo || "—"}</td>
                     <td>
                       {modelo.conCasos ? (
-                        <span className={`mon-ter-chip ${fila.estado === "con-casos" ? "is-ok" : fila.estado === "anulado" ? "is-error" : ""}`}>{ROTULO_DE_ESTADO[fila.estado]}</span>
+                        <EstadoChip label={ROTULO_DE_ESTADO[fila.estado]} tone={fila.estado === "con-casos" ? "success" : fila.estado === "anulado" ? "danger" : "neutral"} />
                       ) : "—"}
                     </td>
                   </tr>
@@ -79,22 +82,33 @@ function PadronTabImpl({
               </tbody>
             </table>
           </div>
-        </section>
+        </BloqueDeMonitoreo>
       ) : (
-        <section className="mon-ins-panel mon-ins-vacio" aria-label="Sin padrón">
+        <section className="mon-ins-panel" aria-label="Sin padrón">
           <RotuloDePestana />
-          <Users size={20} aria-hidden="true" />
-          <strong>Sin padrón de aplicadores</strong>
-          <span>Con el padrón, cada código de la base se lee con su nombre.</span>
-          <button type="button" className="mon-ins-boton is-primario" onClick={onReemplazar}>Subir padrón</button>
+          <EstadoVacio
+            tamano="normal"
+            icono={<Users size={18} />}
+            titulo="Sin padrón de aplicadores"
+            descripcion="Con el padrón, cada código de la base se lee con su nombre."
+            accion={
+              <button type="button" className="mon-ins-boton is-primario" onClick={onReemplazar}>Subir padrón</button>
+            }
+          />
         </section>
       )}
 
-      <aside className="mon-ins-panel mon-ins-lateral" aria-labelledby="mon-ins-fuera" data-qa-geometry-member="fuera">
-        <h3 id="mon-ins-fuera" className="mon-ins-titulo">Códigos fuera del padrón <span className="mon-ter-cuenta">{fmt(modelo.fueraDelPadron.length)}</span></h3>
+      <BloqueDeMonitoreo
+        marco="kit"
+        className="mon-ins-panel mon-ins-lateral"
+        aria-labelledby="mon-ins-fuera"
+        data-qa-geometry-member="fuera"
+        titulo={<>Códigos fuera del padrón <span className="mon-ter-cuenta">{fmt(modelo.fueraDelPadron.length)}</span></>}
+        tituloId="mon-ins-fuera"
+      >
         {modelo.fueraDelPadron.length ? (
           <ul className="mon-ins-lista">
-            {modelo.fueraDelPadron.map((item) => <li key={item.codigo}><code>{item.codigo}</code><span className="mon-ins-lista-cifra">{fmt(item.casos)} {item.casos === 1 ? "caso" : "casos"}</span></li>)}
+            {modelo.fueraDelPadron.map((item) => <li key={item.codigo}><span className="mon-ins-clave">{item.codigo}</span><span className="mon-ins-lista-cifra">{fmt(item.casos)} {item.casos === 1 ? "caso" : "casos"}</span></li>)}
           </ul>
         ) : (
           <p className="mon-ins-base">Todos los códigos de la base están en el padrón.</p>
@@ -102,7 +116,7 @@ function PadronTabImpl({
         {modelo.fueraDelPadron.length ? (
           <button type="button" className="mon-ins-boton" onClick={() => escribirFoco(null, { seccion: "control", pestana: "conciliacion", panel: null })}>Conciliar en Control › Conciliación</button>
         ) : null}
-      </aside>
+      </BloqueDeMonitoreo>
     </section>
   );
 }

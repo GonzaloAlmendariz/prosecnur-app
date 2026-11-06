@@ -42,7 +42,7 @@ describe("evidencia almacenada", () => {
 
 // El chequeo de frescura comparaba contra un numero que nadie eligio: con
 // `config.n_aulas` ausente, el snapshot escribia `safeNumber(config.n_aulas, 30)`
-// = 30. Sobre HSVG2026 el aviso decia «n_aulas (corrida 30 · vigente 165)» y ese
+// = 30. Sobre HSVG2026 el aviso decia «n_aulas (corrida 30, vigente 165)» y ese
 // 30 era el default de esa linea, no un valor guardado por nadie. Un aviso que
 // nombra una cifra fabricada manda a buscar donde no hay nada.
 //

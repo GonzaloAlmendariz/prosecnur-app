@@ -1,29 +1,29 @@
 // =============================================================================
 // shell/DiagnosticsPopover.tsx — badge + floater de advertencias del editor
 // =============================================================================
-// Reemplaza al panel "Sugerencias y advertencias" que vivía en una columna
-// dentro del `BuilderToolsDeck`. Ahora es un ícono compacto con número que,
-// al hacer click, despliega un popover flotante (estilo "ventana cómic") con
-// la lista. Click fuera o Escape cierra.
+// Un ícono compacto con el estado del formulario que, al hacer click, abre la
+// lista de sugerencias y advertencias en el Popover del kit (L1): portal,
+// posición con clamping al viewport, Escape y click fuera vienen de él.
 //
 // Anatomía:
 //   <DiagnosticsBadge diagnostics onSelectRow onFocusCatalog />
 //     ├── botón con icono + count (badge rojo si hay errores)
-//     └── al click: <DiagnosticsPopover> en portal con la lista
+//     └── al click: <Popover> con <DiagnosticsContenido>
 //
-// El popover se posiciona relativo al botón, anclado por debajo a la derecha.
-// Si está cerca del borde derecho, se ajusta al extremo de la viewport.
+// El Popover del kit no es controlado: elegir una fila, revisar la lógica o
+// abrir el diálogo de lógica externa lo cierran subiendo `cierres`.
 // =============================================================================
 
-import { useEffect, useRef, useState } from "react";
-import { createPortal } from "react-dom";
-import { AlertTriangle, CheckCircle2, Info, X } from "lucide-react";
+import { useState } from "react";
+import { AlertTriangle, CheckCircle2, Info, X } from "../../../vendor/lucide-react";
+import { Popover } from "../../../components/Popover";
 import { IconConditionalLogic } from "../../../lib/icons";
 import type { BuilderDiagnostic, BuilderSelection } from "../types";
 import type { EditorHeaderStatus } from "./editorHeaderStatus";
 import { LogicaExternaDeshacer, LogicaExternaDisparador } from "./LogicaExterna";
 import { CONSECUENCIA_LOGICA_EXTERNA, rotuloLogicaExterna } from "./logicaExternaModel";
 import type { AccionesLogicaExterna } from "./useLogicaExterna";
+import { EstadoVacio } from "../../../components/EstadoVacio";
 
 /** Formulario abierto y acciones para declarar/deshacer la lógica hecha fuera. */
 export type LogicaExternaCabecera = { formId: string; acciones: AccionesLogicaExterna };
@@ -49,75 +49,75 @@ export function DiagnosticsBadge({
   onReviewLogic,
   logicaExterna,
 }: DiagnosticsBadgeProps) {
-  const [open, setOpen] = useState(false);
-  const triggerRef = useRef<HTMLButtonElement | null>(null);
+  const [cierres, setCierres] = useState(0);
+  const cerrar = () => setCierres((n) => n + 1);
   const { tone } = status;
 
   return (
-    <>
-      <button
-        ref={triggerRef}
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        className={`pulso-diagnostics-badge tone-${tone}`}
-        title={status.title}
-        aria-expanded={open}
-        aria-haspopup="dialog"
-        aria-label={`Estado del formulario: ${status.label}`}
-      >
-        {tone === "neutral"
-          ? <IconConditionalLogic size={14} />
-          : tone === "ok"
-          ? <CheckCircle2 size={14} />
-          : tone === "info"
-            ? <Info size={14} />
-            : status.logicStepPending && tone === "warn"
-              ? <IconConditionalLogic size={14} />
-              : <AlertTriangle size={14} />}
-        <span className="pulso-diagnostics-badge-label">{status.label}</span>
-      </button>
-      {open && triggerRef.current && (
-        <DiagnosticsPopover
-          anchor={triggerRef.current}
-          diagnostics={diagnostics}
-          status={status}
-          selection={selection}
-          onSelectRow={(rowIndex) => {
-            onSelectRow(rowIndex);
-            setOpen(false);
-          }}
-          onFocusCatalog={(name) => {
-            onFocusCatalog(name);
-            setOpen(false);
-          }}
-          onReviewLogic={onReviewLogic ? () => {
-            setOpen(false);
-            onReviewLogic();
-          } : undefined}
-          logicaExterna={logicaExterna ? {
-            formId: logicaExterna.formId,
-            // Abrir el diálogo cierra el popover: el diálogo vive en su portal.
-            acciones: {
-              ...logicaExterna.acciones,
-              abrirPara: (id) => {
-                setOpen(false);
-                logicaExterna.acciones.abrirPara(id);
-              },
-            },
-          } : undefined}
-          onClose={() => setOpen(false)}
-        />
+    <Popover
+      align="end"
+      maxWidth={420}
+      className="pulso-diagnostics-panel"
+      ariaLabel="Sugerencias y advertencias del formulario"
+      cerrarAlCambiar={cierres}
+      trigger={(
+        <button
+          type="button"
+          className={`pulso-diagnostics-badge tone-${tone}`}
+          title={status.title}
+          aria-label={`Estado del formulario: ${status.label}`}
+        >
+          {tone === "neutral"
+            ? <IconConditionalLogic size={14} />
+            : tone === "ok"
+            ? <CheckCircle2 size={14} />
+            : tone === "info"
+              ? <Info size={14} />
+              : status.logicStepPending && tone === "warn"
+                ? <IconConditionalLogic size={14} />
+                : <AlertTriangle size={14} />}
+          <span className="pulso-diagnostics-badge-label">{status.label}</span>
+        </button>
       )}
-    </>
+    >
+      <DiagnosticsContenido
+        diagnostics={diagnostics}
+        status={status}
+        selection={selection}
+        onSelectRow={(rowIndex) => {
+          onSelectRow(rowIndex);
+          cerrar();
+        }}
+        onFocusCatalog={(name) => {
+          onFocusCatalog(name);
+          cerrar();
+        }}
+        onReviewLogic={onReviewLogic ? () => {
+          cerrar();
+          onReviewLogic();
+        } : undefined}
+        logicaExterna={logicaExterna ? {
+          formId: logicaExterna.formId,
+          // Abrir el diálogo cierra el popover: el diálogo vive en su portal.
+          acciones: {
+            ...logicaExterna.acciones,
+            abrirPara: (id) => {
+              cerrar();
+              logicaExterna.acciones.abrirPara(id);
+            },
+          },
+        } : undefined}
+        onClose={cerrar}
+      />
+    </Popover>
   );
 }
 
 // -----------------------------------------------------------------------------
-// Popover en portal
+// Contenido del popover
 // -----------------------------------------------------------------------------
 
-function DiagnosticsPopover({
-  anchor,
+function DiagnosticsContenido({
   diagnostics,
   status,
   selection,
@@ -127,7 +127,6 @@ function DiagnosticsPopover({
   logicaExterna,
   onClose,
 }: {
-  anchor: HTMLElement;
   diagnostics: BuilderDiagnostic[];
   status: EditorHeaderStatus;
   onReviewLogic?: () => void;
@@ -137,50 +136,6 @@ function DiagnosticsPopover({
   onFocusCatalog: (name: string) => void;
   onClose: () => void;
 }) {
-  const cardRef = useRef<HTMLDivElement | null>(null);
-
-  // Click fuera = cerrar. Listener en document; pone un timeout cero para
-  // que el click que abrió el popover no lo cierre inmediatamente.
-  useEffect(() => {
-    const t = window.setTimeout(() => {
-      function onDocDown(e: MouseEvent) {
-        const target = e.target as Node | null;
-        if (!target) return;
-        if (cardRef.current?.contains(target)) return;
-        if (anchor.contains(target)) return;
-        onClose();
-      }
-      document.addEventListener("mousedown", onDocDown);
-      const cleanup = () => document.removeEventListener("mousedown", onDocDown);
-      // Guardamos el cleanup en el closure exterior — workaround para
-      // setTimeout + useEffect cleanup.
-      cleanupFn.current = cleanup;
-    }, 0);
-    const cleanupFn: { current: (() => void) | null } = { current: null };
-    return () => {
-      window.clearTimeout(t);
-      if (cleanupFn.current) cleanupFn.current();
-    };
-  }, [anchor, onClose]);
-
-  // Esc cierra.
-  useEffect(() => {
-    function onKey(e: KeyboardEvent) {
-      if (e.key === "Escape") {
-        e.preventDefault();
-        onClose();
-      }
-    }
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [onClose]);
-
-  // Posición: por debajo del botón, alineada a la derecha (anclada al borde
-  // derecho del trigger).
-  const rect = anchor.getBoundingClientRect();
-  const top = rect.bottom + 8;
-  const right = Math.max(12, window.innerWidth - rect.right);
-
   // Severidad ordering: error > warn > info, y dentro de cada nivel,
   // mantenemos el orden de detección para que la primera fila problemática
   // quede arriba. Lo que bloquea la publicación va primero siempre.
@@ -198,14 +153,8 @@ function DiagnosticsPopover({
   const sorted = [...remote, ...diagnostics].sort((a, b) => rank(a.level) - rank(b.level));
   const blockingCount = sorted.filter((d) => d.level === "error").length;
 
-  return createPortal(
-    <div
-      ref={cardRef}
-      role="dialog"
-      aria-label="Sugerencias y advertencias del formulario"
-      className="pulso-diagnostics-popover"
-      style={{ top, right }}
-    >
+  return (
+    <>
       <header className="pulso-diagnostics-popover-header">
         <div>
           <strong style={{ fontSize: 13 }}>Sugerencias y advertencias</strong>
@@ -275,12 +224,12 @@ function DiagnosticsPopover({
           </div>
         )}
         {sorted.length === 0 && !status.logicStepPending && !status.logicaExterna ? (
-          <div className="pulso-diagnostics-popover-empty">
-            <CheckCircle2 size={32} color="var(--pulso-success-fg)" />
-            <p style={{ margin: "8px 0 0", fontSize: 12, color: "var(--pulso-text-soft)" }}>
-              No detectamos problemas estructurales. Buen trabajo.
-            </p>
-          </div>
+          <EstadoVacio
+            tamano="normal"
+            icono={<CheckCircle2 size={20} />}
+            titulo="Sin problemas estructurales"
+            descripcion="El validador no encontró nada que corregir."
+          />
         ) : (
           sorted.map((diag) => (
             <DiagnosticItem
@@ -293,8 +242,7 @@ function DiagnosticsPopover({
           ))
         )}
       </div>
-    </div>,
-    document.body,
+    </>
   );
 }
 

@@ -3,9 +3,9 @@ import { useLocation, useNavigate } from "react-router-dom";
 
 import { apiRecopiladoresState, type CollectionArtifactReceipt, type CollectionStatePayload } from "../../api/recopiladores";
 import { AdaptiveSplitView } from "../../components/AdaptiveSplitView";
-import { ChromeIndicator, ChromeIndicatorGroup } from "../../components/ChromeIndicator";
 import { ContextTabRail, type ContextTabRailItem } from "../../components/ContextTabRail";
 import { ModuleCommandBar } from "../../components/ModuleCommandBar";
+import { useDensidadDelChrome } from "./useDensidadDelChrome";
 import { PageFrame } from "../../components/PageFrame";
 import { SectionPillbar } from "../../components/SectionPillbar";
 import { PROSECNUR_MODULES } from "../../lib/modules";
@@ -13,6 +13,7 @@ import { RefreshCw } from "../../vendor/lucide-react";
 import { AccessSection } from "./AccessSection";
 import { CatalogoTipos } from "./catalogo/CatalogoTipos";
 import { DeliverySection } from "./DeliverySection";
+import { PlantillasDelEquipo } from "./PlantillasDelEquipo";
 import { EditorDeMaterial } from "./editor/EditorDeMaterial";
 import { MaterialsSection } from "./MaterialsSection";
 import { OrigenSection } from "./OrigenSection";
@@ -25,10 +26,12 @@ import {
   type RecopiladoresSeccion,
 } from "./navegacion";
 import { deploymentStatusLabel } from "./providerRules";
+import { ChipDeEntrada } from "./campanas/ChipDeEntrada";
 import { origenDelPlan } from "./vacioSinPlan";
 import { TIPO_DE_UNIDAD } from "./tipoDeUnidad";
 import { useProjectModules } from "../project/ProjectModulesContext";
 import "./styles/recopiladores-shell.css";
+import { LoadingBlock } from "../../components/States";
 
 const MODULE = PROSECNUR_MODULES.find((item) => item.slug === "material-campo")!;
 /** El juego de secciones del modo aulas (ADR 0111 §3): la campaña de aulas abierta. */
@@ -72,7 +75,8 @@ const SECTION_COPY: Record<RecopiladoresSeccion, { title: string; lead: string }
   },
   entrega: {
     title: "Entrega",
-    lead: "Cierra el plan y deja constancia de qué se entregó. Repetirla no duplica nada, y Monitoreo la lee de ahí.",
+    // R6 del mapa de responsabilidades (2 nov 2026): qué se entrega, de dónde salen las metas y quién sigue.
+    lead: "Entrega el registro que campo llena al inicio (aulas, accesos y fichas) y deja constancia de qué se entregó. Repetirla no duplica nada. Las metas salen de Cálculo de muestra y el seguimiento lo hace Monitoreo.",
   },
 };
 
@@ -97,13 +101,14 @@ type Props = {
 
 /** La campaña de aulas abierta: sus cinco secciones (ADR 0108 §5, ADR 0111 §3). */
 export function RecopiladoresShell({ cabecera = null }: Props = {}) {
+  const densidadChrome = useDensidadDelChrome();
   const location = useLocation();
   const navigate = useNavigate();
   const { overview, addedSlugs } = useProjectModules();
   // De dónde sale la lista de unidades: el destino del vacío de Unidades.
   const origen = useMemo(
-    () => origenDelPlan({ modoDelCalculo: overview?.facts.calc.mode, modulos: addedSlugs }),
-    [overview?.facts.calc.mode, addedSlugs],
+    () => origenDelPlan({ modoDelCalculo: overview?.facts.calc.mode, macroFamilia: overview?.facts.calc.macro_familia, modulos: addedSlugs }),
+    [overview?.facts.calc.mode, overview?.facts.calc.macro_familia, addedSlugs],
   );
   const irA = useCallback((to: string) => navigate(to), [navigate]);
   const params = useMemo(() => new URLSearchParams(location.search), [location.search]);
@@ -243,7 +248,7 @@ export function RecopiladoresShell({ cabecera = null }: Props = {}) {
           id,
           label: section.label,
           href: `${location.pathname}${searchFor(location.search, id, PESTANAS_POR_SECCION[id][0] as RecopiladoresPestana)}`,
-          done: pasosHechos[id],
+          lista: pasosHechos[id],
         };
       })}
     />
@@ -251,6 +256,7 @@ export function RecopiladoresShell({ cabecera = null }: Props = {}) {
 
   const panel = (
     <section
+      key={direction.seccion}
       id={tabs.length > 1 ? `rec-tab-panel-${direction.pestana}` : undefined}
       className="rec-tab-panel"
       role={tabs.length > 1 ? "tabpanel" : undefined}
@@ -259,9 +265,7 @@ export function RecopiladoresShell({ cabecera = null }: Props = {}) {
       data-qa-geometry-contract="intrinsic"
     >
       {loading && !state ? (
-        <div className="rec-loading" data-qa-geometry-capacity="owned">
-          Leyendo el estado del despliegue…
-        </div>
+        <LoadingBlock label="Leyendo el estado del despliegue…" />
       ) : null}
       {sinCambios ? (
         <div
@@ -280,7 +284,7 @@ export function RecopiladoresShell({ cabecera = null }: Props = {}) {
         <OrigenSection payload={payload} onState={aplicarMutacion} onCargando={setSeccionCargando} />
       ) : null}
       {!loading && direction.seccion === "accesos" ? (
-        <AccessSection payload={payload} activeTab={direction.pestana} onState={aplicarMutacion} onIr={irA} />
+        <AccessSection payload={payload} activeTab={direction.pestana} onState={aplicarMutacion} onIr={irA} onVerVinculacion={() => selectTab("vinculacion")} />
       ) : null}
       {!loading && direction.seccion === "catalogo" && direction.pestana === "tipos" ? (
         <CatalogoTipos
@@ -308,9 +312,10 @@ export function RecopiladoresShell({ cabecera = null }: Props = {}) {
           onIr={irA}
         />
       ) : null}
-      {!loading && direction.seccion === "entrega" ? (
-        <DeliverySection payload={payload} latestArtifact={latestArtifact} onState={aplicarMutacion} onIr={irA} />
+      {!loading && direction.seccion === "entrega" && direction.pestana === "traspaso" ? (
+        <DeliverySection payload={payload} latestArtifact={latestArtifact} onState={aplicarMutacion} onIr={irA} onIrAAccesos={() => navigate(`${location.pathname}${searchFor(location.search, "accesos", "canales")}`)} />
       ) : null}
+      {!loading && direction.seccion === "entrega" && direction.pestana === "plantillas" ? <PlantillasDelEquipo /> : null}
     </section>
   );
 
@@ -327,37 +332,23 @@ export function RecopiladoresShell({ cabecera = null }: Props = {}) {
       className="rec-page"
       chrome={(
         <ModuleCommandBar
+          densidad={densidadChrome}
           modulo="material-campo"
           contexto={cabecera || state?.plan ? (
             <>
             {cabecera}
             {state?.plan ? (
-            // La zona de contexto lleva el dato, no el nombre del módulo: eso ya
-            // lo dice el ícono activo del rail y repetirlo desperdicia el único
-            // hueco donde los demás módulos ponen su cifra —Bitácora pone
-            // entradas, Hojas de ruta distritos, Cálculo la mesa—. Aquí el dato
-            // es la forma del plan: cuántas unidades y de qué tipo.
-            <ChromeIndicatorGroup ariaLabel="Contexto de Material de campo">
-              {/* Los cursos-horario que hay que visitar, no el total de filas
-                  del plan. Decía «2 468 unidades» mientras el resumen de abajo
-                  decía «175 cursos-horario»: la diferencia son las reservas y el
-                  banco, que no son visitas. Dos cifras para lo mismo en la misma
-                  pantalla es justo lo que este módulo lleva corrigiendo. */}
-              <ChromeIndicator
-                label="Cursos-horario"
-                value={String(
-                  state.plan.units.filter((u) => (u.role ?? "") === "titular").length
-                  || state.plan.units.length,
-                )}
-                prioridad="alta"
-              />
-              {state.plan.unit_type ? (
-                <ChromeIndicator
-                  label="Tipo"
-                  value={TIPO_DE_UNIDAD[state.plan.unit_type] ?? state.plan.unit_type}
-                />
-              ) : null}
-            </ChromeIndicatorGroup>
+            // Revamp v5: la zona de contexto dice de dónde entra el plan (el sorteo de Cálculo de muestra
+            // o el plan de Monitoreo) y cuántos cursos-horario hay que visitar: titulares, no filas del plan
+            // con reservas y banco, que no son visitas.
+            <ChipDeEntrada
+              origen={state.plan.source_ref?.module === "monitoreo" ? "monitoreo" : "calculo"}
+              dato={`${(state.plan.units.filter((u) => (u.role ?? "") === "titular").length || state.plan.units.length).toLocaleString("es-PE")} ${state.plan.unit_type ? (TIPO_DE_UNIDAD[state.plan.unit_type] ?? state.plan.unit_type).toLocaleLowerCase("es-PE") : "unidades"}`}
+              aviso={payload?.source_vigente?.desfasado === true}
+              detalle={payload?.source_vigente?.desfasado
+                ? "La selección cambió desde que se sembró el plan: revisa Unidades › Origen"
+                : "Cursos-horario titulares del plan, sembrados desde la selección"}
+            />
             ) : null}
             </>
           ) : null}
@@ -365,17 +356,18 @@ export function RecopiladoresShell({ cabecera = null }: Props = {}) {
           acciones={[{
             id: "refresh",
             label: "Actualizar",
-            shortLabel: "Actualizar",
             icon: RefreshCw,
             onSelect: () => { void refresh(); },
             kind: "ghost",
             rank: 2,
             busy: loading,
           }]}
+          slotDeEstado
           estado={[{
             id: "deployment-status",
-            label: deploymentStatusLabel(status),
+            label: status === "handed_off" ? "Entregada a Monitoreo" : deploymentStatusLabel(status),
             tone: status === "handed_off" ? "success" : status === "stale" ? "danger" : "neutral",
+            detail: "Lo que Monitoreo lee de esta campaña: la entrega de aulas, en Insumos › Fuentes",
           }]}
           ariaLabel="Controles de Material de campo"
         />

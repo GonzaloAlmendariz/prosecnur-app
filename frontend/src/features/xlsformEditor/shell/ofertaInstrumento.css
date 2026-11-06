@@ -1,0 +1,6 @@
+/* La oferta del instrumento del estudio: el nombre del archivo se parte si no cabe. Las acciones al costado
+   las da el kit (Alert `acciones`, 6 nov 2026). */
+.pulso-xf-home-instrumento strong {
+  font-weight: var(--pulso-weight-semibold);
+  overflow-wrap: anywhere;
+}

@@ -79,8 +79,12 @@ monitoreo_cuotas_proponer_sesion <- function(sid, actor, variable, cobertura = N
     }
     id <- .mcm_chr(q$id)
     if (!nzchar(id)) id <- paste0("cuota-", substr(digest::digest(paste(actor, variable, Sys.time())), 1, 8))
-    out[[length(out) + 1L]] <- list(id = id, actor = actor, variable = variable, cobertura = cobertura,
-                                    metas = metas, actualizada_at = format(Sys.time(), "%Y-%m-%dT%H:%M:%S%z"))
+    cuota <- list(id = id, actor = actor, variable = variable, cobertura = cobertura,
+                  metas = metas, actualizada_at = format(Sys.time(), "%Y-%m-%dT%H:%M:%S%z"))
+    # ADR 0126: meta o referencial. Sin declarar se omite (no se escribe NULL).
+    caracter <- .monitoreo_cuota_caracter_declarado(q$caracter)
+    if (nzchar(caracter)) cuota$caracter <- caracter
+    out[[length(out) + 1L]] <- cuota
   }
   ids <- vapply(out, function(q) q$id, character(1))
   if (anyDuplicated(ids)) stop_api(400, "E_MONITOREO_CUOTA_VARIABLE", "Hay dos cuotas con el mismo identificador.")

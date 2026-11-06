@@ -5,6 +5,7 @@
 // Dirección: `/graficos?pestana=informe&foco=<id de lámina>` (`vista-general` se lee como alias). El `foco` es el id (no la posición): reordenar no
 // lo cambia de lámina. Cada cambio del plan es UN paso deshacible (`loadPlan`), así que Ctrl/⌘+Z lo revierte entero.
 
+import { LayoutGrid } from "lucide-react";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, type DragEvent, type KeyboardEvent, type MouseEvent } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import type { Slide } from "../../../api/graficos";
@@ -55,6 +56,7 @@ import "../laminas/laminasWorkbench.css";
 import "../laminas/estructuraInforme.css";
 import "../laminas/tiraMiniaturas.css";
 import "./vistaGeneral.css";
+import { EstadoVacio } from "../../../components/EstadoVacio";
 
 const SIN_NOMBRES: string[] = [];
 const plural = (n: number, uno: string, varios: string) => `${n} ${n === 1 ? uno : varios}`;
@@ -398,13 +400,19 @@ export default function VistaGeneral() {
     return (
       <div className="pulso-f6-vg" data-audit-ready="graficos-vista-general" data-qa-surface="graficos/f6-vista-general">
         <div className="pulso-f6-vg-cuerpo is-vacio" data-qa-scroll-owner="vista-general">
-          <div className="pulso-f6-vacio-informe pulso-f6-vg-vacio" role="status">
-            <strong>El informe todavía no tiene láminas</strong>
-            <p>Aquí verás el informe por capítulos, con cada lámina como tarjeta, para ordenarlo de un vistazo. Empieza por insertar la primera lámina en Láminas o arma el informe desde un plan sugerido.</p>
-            <div className="pulso-f6-vacio-acciones">
-              <button type="button" className="pulso-f6-boton" onClick={() => direccion.irA("pestana", "laminas")}>Ir a Láminas</button>
-              <BotonArmarDesdeVacio />
-            </div>
+          <div className="pulso-f6-vg-vacio" role="status">
+            <EstadoVacio
+              tamano="normal"
+              icono={<LayoutGrid size={18} aria-hidden="true" />}
+              titulo="El informe todavía no tiene láminas"
+              descripcion="Aquí verás el informe por capítulos, con cada lámina como tarjeta. Empieza por insertar la primera o arma el informe desde un plan sugerido."
+              accion={
+                <div className="pulso-f6-vacio-acciones">
+                  <button type="button" className="pulso-f6-boton" onClick={() => direccion.irA("pestana", "laminas")}>Ir a Láminas</button>
+                  <BotonArmarDesdeVacio />
+                </div>
+              }
+            />
           </div>
         </div>
       </div>

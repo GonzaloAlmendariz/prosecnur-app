@@ -31,7 +31,7 @@ test_that("la lamina real del estudiante avisa de la variable repetida y del tit
   # El aviso nombra el espacio como el selector: sin eso hay que abrir los cuatro para encontrarlo. Sin ids internos.
   expect_true(any(grepl("«Inferior derecha»", av, fixed = TRUE)))
   expect_false(any(grepl("inferior_derecha", av, fixed = TRUE)))
-  expect_true(all(startsWith(av, "Lámina 9 · “Perfil del estudiante”: ")))
+  expect_true(all(startsWith(av, "Lámina 9, “Perfil del estudiante”: ")))
   expect_true(any(grepl("«p5» de la base «estudiantes»", av, fixed = TRUE)))
 })
 

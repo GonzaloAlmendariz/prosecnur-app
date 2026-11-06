@@ -1,0 +1,95 @@
+/* Maqueta de la ficha de una UMP: su estructura, sin generar nada en el servidor. */
+.rec-maqueta {
+  display: grid;
+  grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+  gap: var(--pulso-space-3);
+  align-items: start;
+}
+
+.rec-maqueta-cara {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-2);
+  padding: var(--pulso-space-4) var(--pulso-space-3) var(--pulso-space-3);
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-card);
+  background: var(--pulso-surface);
+}
+
+.rec-maqueta-cara-rotulo {
+  position: absolute;
+  top: 6px;
+  left: var(--pulso-space-3);
+  font-size: var(--pulso-type-micro-size);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--pulso-text-soft);
+}
+
+.rec-maqueta-cab {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--pulso-space-2);
+  padding-bottom: var(--pulso-space-2);
+  border-bottom: 2px solid var(--pulso-text);
+}
+
+.rec-maqueta-cab strong { display: block; font-size: var(--pulso-type-title-size); color: var(--pulso-text); }
+.rec-maqueta-cab small { display: block; font-size: var(--pulso-type-caption-size); color: var(--pulso-text-soft); }
+
+.rec-maqueta-codigo {
+  flex: none;
+  padding: 4px 10px;
+  border: 1px solid var(--pulso-text);
+  border-radius: 8px;
+  text-align: center;
+}
+
+.rec-maqueta-codigo b { display: block; font-size: var(--pulso-type-body-size); color: var(--pulso-text); }
+
+.rec-maqueta-bloque {
+  padding: var(--pulso-space-2);
+  border: 1px dashed var(--pulso-border);
+  border-radius: 8px;
+}
+
+.rec-maqueta-bloque h4 {
+  margin: 0 0 2px;
+  font-size: var(--pulso-type-subtitle-size);
+  font-weight: 700;
+  color: var(--pulso-text);
+}
+
+.rec-maqueta-bloque p {
+  margin: 0;
+  font-size: var(--pulso-type-caption-size);
+  line-height: 1.4;
+  color: var(--pulso-text-soft);
+}
+
+.rec-maqueta-bloque dl {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--pulso-space-2);
+  margin: 4px 0 0;
+}
+
+.rec-maqueta-bloque dt { font-size: var(--pulso-type-micro-size); font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--pulso-text-soft); }
+.rec-maqueta-bloque dd { margin: 0; font-size: var(--pulso-type-subtitle-size); font-weight: 600; color: var(--pulso-text); font-variant-numeric: tabular-nums; }
+.rec-maqueta-bloque dd.is-mano { font-weight: 400; font-style: italic; color: var(--pulso-text-soft); }
+
+.rec-maqueta-dos {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: var(--pulso-space-2);
+}
+
+.rec-maqueta-mapa {
+  min-height: 220px;
+}
+
+@media (max-width: 900px) {
+  .rec-maqueta { grid-template-columns: minmax(0, 1fr); }
+}

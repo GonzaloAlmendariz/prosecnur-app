@@ -12,6 +12,8 @@ import { normalizeEstiloCliente, type EstiloCliente } from "../../api/graficosEs
 import { conVinculo, vinculosDecisiones } from "./paletasResolver";
 import { sinEstiloDePerfil } from "./estiloInforme/quitarLineaVisual";
 import { conAjusteEnElTipo } from "./laminas/modeloAlcance";
+import { conEspejoEnOverrides } from "./laminas/mandosPorOverrides";
+import { agrupadorDelPlan } from "./historialAgrupado";
 
 // Store del plan de gráficos. Sigue el mismo patrón que el store de
 // Analítica: hidrata desde backend al montar, marca `dirty` con cada
@@ -236,6 +238,10 @@ type PlanStore = {
   resetPreset: (tipo: string) => void;
   select: (id: string | null) => void;
   loadPlan: (plan: PlanJson) => void;
+  /** U3: rótulos cortos del estudio (`plan.rotulos_cortos`); un mapa vacío quita la clave. Un paso deshacible. */
+  setRotulosCortos: (mapa: Record<string, string>) => void;
+  /** H14: preguntas clave del estudio (`plan.preguntas_clave`); una lista vacía quita la clave. Un paso deshacible. */
+  setPreguntasClave: (refs: string[]) => void;
   reset: () => void;
 
   // --- Setters de configuración global (Bloque 2) ---
@@ -308,6 +314,10 @@ const DEFAULT_PAYLOADS: Record<SlideType, Record<string, unknown>> = {
   p_slide_1_grafico_narrativo: { titulo: "", grafico: null, texto: "", base: "", pie: "", etiqueta: "" },
   p_slide_grafico_texto_derecha:    { titulo: "", grafico: null, texto: "", base: "", pie: "", etiqueta: "" },
   p_slide_grafico_texto_izquierda:  { titulo: "", grafico: null, texto: "", base: "", pie: "", etiqueta: "" },
+  // Sin ranuras: se arman en Inspector › Lámina. Nacen con la selección del motor, que no exige capítulos ni cifras escritas
+  // (con «manual» sin capítulos, o «cifras» sin cifras, el motor rechaza la lámina recién insertada).
+  p_slide_resumen_diferencias: { titulo: "", etiqueta: "", base: "", seleccion: "auto" },
+  p_slide_hallazgos:           { titulo: "", etiqueta: "", base: "", modo: "resumen", seleccion: "auto" },
 
   // ---- 2 gráficos -----------------------------------------------------
   p_slide_2_graficos:              { titulo: "", izquierda: null, derecha: null, base: "", pie: "", etiqueta: "" },
@@ -412,7 +422,8 @@ function dirty<T extends object>(state: PlanStore, partial: T): T & {
   past: Snapshot[];
   future: Snapshot[];
 } {
-  const past = [...state.past, snapshotFromState(state)].slice(-MAX_HISTORY);
+  // H10: las ediciones seguidas del mismo control van en un paso (historialAgrupado.ts).
+  const past = agrupadorDelPlan.agrupa() && state.past.length > 0 ? state.past : [...state.past, snapshotFromState(state)].slice(-MAX_HISTORY);
   return { ...partial, dirty: true, past, future: [] };
 }
 
@@ -546,6 +557,7 @@ export const usePlanStore = create<PlanStore>((set) => ({
   // Undo: aplica el último snapshot del past, guardando el estado actual
   // en future para poder rehacer. Si past está vacío, no-op.
   undo: () => {
+    agrupadorDelPlan.cortar();
     set((state) => {
       if (state.past.length === 0) return state;
       const prev = state.past[state.past.length - 1];
@@ -561,6 +573,7 @@ export const usePlanStore = create<PlanStore>((set) => ({
   },
 
   redo: () => {
+    agrupadorDelPlan.cortar();
     set((state) => {
       if (state.future.length === 0) return state;
       const next = state.future[state.future.length - 1];
@@ -575,7 +588,7 @@ export const usePlanStore = create<PlanStore>((set) => ({
     });
   },
 
-  hydrate: (cfg) => set({
+  hydrate: (cfg) => { agrupadorDelPlan.cortar(); set({
     plan: cfg.plan ?? { slides: [] },
     presets: cfg.presets ?? {},
     wPresets: normalizeWordPresets(cfg.w_presets),
@@ -600,14 +613,14 @@ export const usePlanStore = create<PlanStore>((set) => ({
     // historizamos el estado pre-hidratación porque era placeholder vacío.
     past: [],
     future: [],
-  }),
+  }); },
 
   markClean: () => set({ dirty: false }),
 
   addSlide: (tipo) => {
     const s: Slide = { id: nuevoIdLamina(), tipo, payload: { ...DEFAULT_PAYLOADS[tipo] } };
     set((state) => dirty(state, {
-      plan: { slides: [...state.plan.slides, s] },
+      plan: { ...state.plan, slides: [...state.plan.slides, s] },
       selectedSlideId: s.id,
     }));
   },
@@ -616,7 +629,7 @@ export const usePlanStore = create<PlanStore>((set) => ({
     set((state) => {
       const slides = state.plan.slides.filter((s) => s.id !== id);
       const nextSelected = state.selectedSlideId === id ? (slides[0]?.id ?? null) : state.selectedSlideId;
-      return dirty(state, { plan: { slides }, selectedSlideId: nextSelected });
+      return dirty(state, { plan: { ...state.plan, slides }, selectedSlideId: nextSelected });
     });
   },
 
@@ -639,7 +652,7 @@ export const usePlanStore = create<PlanStore>((set) => ({
         copy,
         ...state.plan.slides.slice(i + 1),
       ];
-      return dirty(state, { plan: { slides }, selectedSlideId: copy.id });
+      return dirty(state, { plan: { ...state.plan, slides }, selectedSlideId: copy.id });
     });
   },
 
@@ -651,14 +664,15 @@ export const usePlanStore = create<PlanStore>((set) => ({
       if (j < 0 || j >= state.plan.slides.length) return state;
       const slides = [...state.plan.slides];
       [slides[i], slides[j]] = [slides[j], slides[i]];
-      return dirty(state, { plan: { slides } });
+      return dirty(state, { plan: { ...state.plan, slides } });
     });
   },
 
-  transformarLaminas: (f) => set((state) => { const slides = f(state.plan.slides); return slides === state.plan.slides ? {} : dirty(state, { plan: { slides } }); }),
+  transformarLaminas: (f) => set((state) => { const slides = f(state.plan.slides); return slides === state.plan.slides ? {} : dirty(state, { plan: { ...state.plan, slides } }); }),
   updateSlidePayload: (id, patch) => {
     set((state) => dirty(state, {
       plan: {
+        ...state.plan,
         slides: state.plan.slides.map((s) =>
           s.id === id ? { ...s, payload: { ...s.payload, ...patch } } : s
         ),
@@ -668,7 +682,7 @@ export const usePlanStore = create<PlanStore>((set) => ({
 
   setSlideTipo: (id, tipo, payload) => {
     set((state) => dirty(state, {
-      plan: { slides: state.plan.slides.map((s) => (s.id === id ? { ...s, tipo, payload } : s)) },
+      plan: { ...state.plan, slides: state.plan.slides.map((s) => (s.id === id ? { ...s, tipo, payload } : s)) },
     }));
   },
 
@@ -677,7 +691,7 @@ export const usePlanStore = create<PlanStore>((set) => ({
     set((state) => {
       const i = Math.max(0, Math.min(state.plan.slides.length, Math.floor(index)));
       const slides = [...state.plan.slides.slice(0, i), s, ...state.plan.slides.slice(i)];
-      return dirty(state, { plan: { slides }, selectedSlideId: s.id });
+      return dirty(state, { plan: { ...state.plan, slides }, selectedSlideId: s.id });
     });
     return s.id;
   },
@@ -685,6 +699,7 @@ export const usePlanStore = create<PlanStore>((set) => ({
   setSlot: (id, slot, graf) => {
     set((state) => dirty(state, {
       plan: {
+        ...state.plan,
         slides: state.plan.slides.map((s) =>
           s.id === id
             ? { ...s, payload: { ...s.payload, [slot]: graf ?? undefined } }
@@ -697,13 +712,15 @@ export const usePlanStore = create<PlanStore>((set) => ({
   updateSlotArgs: (id, slot, patch) => {
     set((state) => dirty(state, {
       plan: {
+        ...state.plan,
         slides: state.plan.slides.map((s) => {
           if (s.id !== id) return s;
           const current = s.payload[slot] as GraficadorRef | undefined;
           if (!current) return s;
           const merged: GraficadorRef = {
             graficador: current.graficador,
-            args: mergeSlotArgsPatch(current.args, patch),
+            // U6: los mandos que el motor lee sólo de `overrides` van en espejo (laminas/mandosPorOverrides.ts).
+            args: mergeSlotArgsPatch(current.args, conEspejoEnOverrides(current.args, patch)),
           };
           return { ...s, payload: { ...s.payload, [slot]: merged } };
         }),
@@ -773,6 +790,19 @@ export const usePlanStore = create<PlanStore>((set) => ({
   loadPlan: (plan) => set((state) => dirty(state, {
     plan, selectedSlideId: plan.slides[0]?.id ?? null,
   })),
+
+  setRotulosCortos: (mapa) => set((state) => {
+    const plan: PlanJson = { ...state.plan, rotulos_cortos: { ...mapa } };
+    if (!Object.keys(mapa).length) delete plan.rotulos_cortos;
+    return dirty(state, { plan });
+  }),
+
+  setPreguntasClave: (refs) => set((state) => {
+    const limpias = [...new Set(refs.map((r) => r.trim()).filter(Boolean))];
+    const plan: PlanJson = { ...state.plan, preguntas_clave: limpias };
+    if (!limpias.length) delete plan.preguntas_clave;
+    return dirty(state, { plan });
+  }),
 
   reset: () => set((state) => dirty(state, {
     plan: { slides: [] }, selectedSlideId: null, presets: {}, wPresets: createDefaultWordPresets(),
@@ -918,7 +948,7 @@ export const usePlanStore = create<PlanStore>((set) => ({
       const [moved] = slides.splice(i, 1);
       const target = Math.max(0, Math.min(slides.length, newIndex));
       slides.splice(target, 0, moved);
-      return dirty(state, { plan: { slides } });
+      return dirty(state, { plan: { ...state.plan, slides } });
     });
   },
 }));
@@ -941,6 +971,8 @@ export const SLIDE_LABELS: Record<SlideType, string> = {
   p_slide_1_grafico_narrativo:          "Un gráfico + narrativa",
   p_slide_grafico_texto_derecha:        "Gráfico + texto derecha",
   p_slide_grafico_texto_izquierda:      "Gráfico + texto izquierda",
+  p_slide_resumen_diferencias:          "Resumen de diferencias",
+  p_slide_hallazgos:                    "Hallazgos clave",
   p_slide_2_graficos:                   "Dos gráficos",
   p_slide_2_graficos_narrativo:         "Dos gráficos + narrativa",
   p_slide_2_graficos_texto_izquierda:   "Dos gráficos + texto izquierda",
@@ -980,6 +1012,8 @@ export const SLIDE_GRAF_SLOTS: Record<SlideType, string[]> = {
   p_slide_1_grafico_narrativo:          ["grafico"],
   p_slide_grafico_texto_derecha:        ["grafico"],
   p_slide_grafico_texto_izquierda:      ["grafico"],
+  p_slide_resumen_diferencias:          [],
+  p_slide_hallazgos:                    [],
   p_slide_2_graficos:                   ["izquierda", "derecha"],
   p_slide_2_graficos_narrativo:         ["izquierda", "derecha"],
   p_slide_2_graficos_texto_izquierda:   ["grafico_1", "grafico_2"],

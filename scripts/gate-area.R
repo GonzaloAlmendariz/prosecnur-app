@@ -32,7 +32,20 @@ TRANSVERSALES <- c(
   "test-monitoreo-aulas-campos-declarados.R",   # un campo que el normalizador se traga
   "test-monitoreo-aulas-estado-normalizado.R",  # un motor que compara el estado en crudo
   "test-helpers-sin-duplicar.R",                # un micro-helper redefinido por módulo
-  "test-guards-que-guardan.R"                   # un guard que dejó de encontrar su objeto
+  "test-guards-que-guardan.R",                  # un guard que dejó de encontrar su objeto
+  "test-session-schema.R",                      # una clave de sesión nueva sin censar (persistencia del .pulso)
+  # Recorren todo api/R y vigilan el backend entero, pero ningún área los corría (2026-11-04):
+  "test-api-http-transporte.R",                 # una llamada HTTP nueva sin timeout, en cualquier módulo
+  "test-jobs-secretos-limpieza.R",              # un job que guarda un secreto sin limpiarlo al terminar
+  "test-sin-rutas-personales.R"                 # una ruta de usuario (/Users/<nombre>/) en código de producto
+)
+
+# Recorren todo api/R pero lo que vigilan es de UN área, y su área ya los corre: no son transversales.
+# `scripts/tests/gateAreaTransversales.test.mjs` exige que toda suite que lee todos los .R esté en una de
+# las dos listas, para que un contrato nuevo no quede fuera de los gates sin que nadie lo decida.
+RECORREN_PERO_SON_DEL_AREA <- c(
+  "test-hojas-ruta-bitacora.R",   # cada acción del vocabulario de la bitácora tiene quien la emita
+  "test-hojas-ruta-ficha-pdf.R"   # un asset retirado de la ficha que nadie vuelva a referir
 )
 
 dir_tests <- file.path("api", "tests", "testthat")

@@ -102,7 +102,7 @@
 
 # `ancho_actual` en pulgadas (0.4 vertical / 0.28 horizontal). Devuelve
 # list(width = pulgadas, size = pt).
-.form_word_codigo_geom <- function(codes, ancho_actual, size = .FORM_WORD_SZ) {
+.form_word_codigo_geom <- function(codes, ancho_actual, size = .std_cuestionario("tipografia", "cuerpo")) {
   codes <- as.character(codes)
   codes <- codes[nzchar(codes)]
   out <- list(width = ancho_actual, size = size)

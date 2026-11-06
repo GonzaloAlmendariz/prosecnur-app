@@ -1,0 +1,189 @@
+/* Modelo › Cuotas: el recuadro del color del público y su popover. */
+
+.acr-color {
+  position: relative;
+  display: inline-flex;
+  flex: 0 0 auto;
+}
+
+/* El recuadro es un botón entero, sin el relieve del botón global: el color es el botón. */
+button.acr-color-muestra {
+  inline-size: 22px;
+  block-size: 22px;
+  min-height: 0;
+  padding: 0;
+  border: 2px solid var(--pulso-surface);
+  border-radius: 6px;
+  background: var(--publico);
+  box-shadow: 0 0 0 1px var(--pulso-border), var(--pulso-shadow-soft);
+  transform: none;
+  cursor: pointer;
+}
+
+button.acr-color-muestra:hover {
+  box-shadow: 0 0 0 1px var(--publico), 0 0 0 4px var(--publico-suave);
+  transform: none;
+}
+
+button.acr-color-muestra:focus-visible {
+  outline: 2px solid var(--pulso-module-monitoring);
+  outline-offset: 2px;
+}
+
+/* El marco lo pone la primitiva (.pulso-popover); aquí sólo el contenido. */
+.acr-color-cuerpo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-3);
+  inline-size: 100%;
+  min-inline-size: 0;
+  padding: 4px;
+}
+
+.acr-color-cabecera {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.acr-color-cabecera strong {
+  font-size: var(--pulso-type-body-size);
+}
+
+.acr-color-vista {
+  display: flex;
+  align-items: center;
+  gap: var(--pulso-space-3);
+  font-size: var(--pulso-type-body-size);
+  font-variant-numeric: tabular-nums;
+  color: var(--pulso-text-soft);
+}
+
+.acr-color-vista i {
+  inline-size: 100%;
+  max-inline-size: 120px;
+  block-size: 28px;
+  border-radius: 6px;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--pulso-text) 12%, transparent);
+}
+
+.acr-color-muestras {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.acr-color-muestras button {
+  display: grid;
+  place-items: center;
+  inline-size: 100%;
+  aspect-ratio: 1;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--pulso-text) 12%, transparent);
+  color: var(--pulso-surface);
+  transform: none;
+}
+
+.acr-color-muestras button:hover {
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--pulso-text) 12%, transparent), 0 0 0 2px var(--pulso-border);
+  transform: none;
+}
+
+.acr-color-muestras button.is-activo {
+  box-shadow: 0 0 0 2px var(--pulso-surface), 0 0 0 4px var(--pulso-text);
+}
+
+.acr-color-campos {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--pulso-space-2);
+}
+
+.acr-color-sistema {
+  display: inline-flex;
+  flex: 0 0 auto;
+  cursor: pointer;
+}
+
+/* El input nativo a su tamaño exacto, con la muestra a ras: nada que recortar. */
+.acr-color-sistema input {
+  inline-size: 34px;
+  block-size: 34px;
+  padding: 0;
+  border: 1px solid var(--pulso-border);
+  border-radius: 6px;
+  background: var(--pulso-surface);
+  cursor: pointer;
+  appearance: none;
+}
+
+.acr-color-sistema input::-webkit-color-swatch-wrapper {
+  padding: 3px;
+}
+
+.acr-color-sistema input::-webkit-color-swatch {
+  border: 0;
+  border-radius: 4px;
+}
+
+.acr-color-hex {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.acr-color-hex input {
+  block-size: 34px;
+  padding: 0 10px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 6px;
+  color: var(--pulso-text);
+  font: inherit;
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: var(--pulso-type-body-size);
+  text-transform: lowercase;
+}
+
+.acr-color-hex input[aria-invalid="true"] {
+  border-color: var(--pulso-warn-fg);
+}
+
+.acr-color-hex input:focus-visible {
+  border-color: var(--pulso-brand-navy);
+  outline: 0;
+}
+
+.acr-color-error {
+  margin: 0;
+  color: var(--pulso-danger-fg);
+  font-size: var(--pulso-type-body-size);
+}
+
+.acr-color-pie {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: var(--pulso-space-2);
+  padding-top: var(--pulso-space-3);
+  border-top: 1px solid color-mix(in srgb, var(--pulso-border) 60%, var(--pulso-surface));
+}
+
+/* En la cabecera de la cuota el recuadro va antes del nombre, centrado con él. */
+.acr-av-panel-cabecera h3 > .acr-color {
+  align-self: center;
+  margin-inline-end: 4px;
+}
+
+.acr-color-pie .acr-av-boton {
+  justify-content: center;
+  min-width: 0;
+  padding-inline: 10px;
+  font-size: var(--pulso-type-body-size);
+}
+

@@ -268,7 +268,7 @@ Excel, reemplazos manuales, titular, coincidencias, cantidad, ubicación, chips,
 PDF unificado, PDF aleatorio y descargas históricas.
 
 Fuente de todas las secciones:
-`frontend/src/features/hojasRuta/HojasRutaPage.tsx`.
+`frontend/src/features/hojasRuta/mapa/HojasRutaMapaPage.tsx` (la página clásica se retiró el 2026-11-01, ADR 0114 §8).
 
 ## Recopiladores
 

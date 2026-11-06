@@ -32,9 +32,15 @@ type Registro = Readonly<Record<string, unknown>>;
 const registro = (v: unknown): Registro => (v && typeof v === "object" && !Array.isArray(v) ? (v as Registro) : {});
 const esBox = (o: OpcionBarraExtra) => o === "top2box" || o === "bottom2box";
 
-/** Lee un valor guardado. `undefined`: no declara nada (hereda). Un arreglo sin opciones válidas equivale a `false`. */
+/**
+ * Lee un valor guardado. `undefined`: no declara nada (hereda). Un arreglo sin opciones válidas equivale a `false`.
+ * Una sola opción puede llegar como texto (`"top2box"`): el JSON del motor des-encajona los vectores de largo 1
+ * (`auto_unbox`). Leerla como «no declara» mostraba apagado en el editor un Top Two Box que la lámina sí dibujaba.
+ */
 export function normalizarBarraExtra(v: unknown): BarraExtra | undefined {
   if (v === false) return false;
+  // Un texto desconocido no declara nada, como en el motor (`.barra_extra_normalizar("raro")` es NULL).
+  if (typeof v === "string") v = (OPCIONES_BARRA_EXTRA as readonly string[]).includes(v) ? [v] : undefined;
   if (!Array.isArray(v)) return undefined;
   const pedidas = OPCIONES_BARRA_EXTRA.filter((o) => v.includes(o));
   const boxes = pedidas.filter(esBox);
@@ -84,8 +90,11 @@ export function barraExtraDeTarjeta(args: Registro): BarraExtra | undefined {
   return normalizarBarraExtra(registro(args.overrides).barra_extra) ?? normalizarBarraExtra(args.barra_extra);
 }
 
+/** `barra_extra` de un bloque: la suya y, si no declara, la de sus `overrides` (el motor la deja ahí al armar el plan,
+ *  `.barra_extra_en_overrides`; la declarada manda, como en el motor). */
 export function barraExtraDeBloque(bloque: unknown): BarraExtra | undefined {
-  return normalizarBarraExtra(registro(bloque).barra_extra);
+  const b = registro(bloque);
+  return normalizarBarraExtra(b.barra_extra) ?? normalizarBarraExtra(registro(b.overrides).barra_extra);
 }
 
 /**

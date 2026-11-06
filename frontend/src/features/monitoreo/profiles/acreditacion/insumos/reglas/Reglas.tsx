@@ -4,6 +4,7 @@ import { apiMonitoreoConfig, type MonitoreoConfig, type MonitoreoState } from ".
 import { useResumenDelCorte } from "../../navegacion/resumenDelCorte";
 import { RotuloEnBarra } from "../../navegacion/rotuloDePestana";
 import { Alertas } from "./Alertas";
+import { estudioUsaTelefono } from "../../sync/estudioUsaTelefono";
 import { LlaveDeCruce } from "./LlaveDeCruce";
 import { QueCuentaComoEfectiva } from "./QueCuentaComoEfectiva";
 import {
@@ -33,12 +34,16 @@ type PropsDeVista = {
   estadosDelBarrido?: ReactNode;
   /** «Eventos de contacto» y reglas de estado final, con su propio guardado. */
   eventos?: ReactNode;
+  /** Fuentes del estudio: una con canal telefónico también activa las alertas de llamadas. */
+  fuentes?: MonitoreoState["sources"];
 };
 
-export function ReglasVista({ config, borrador, cruces, onCambiar, onGuardar, guardando, mensaje, estadosDelBarrido, eventos }: PropsDeVista) {
+export function ReglasVista({ config, borrador, cruces, onCambiar, onGuardar, guardando, mensaje, estadosDelBarrido, eventos, fuentes }: PropsDeVista) {
   const perfil = config.monitoreo_profile;
   const problemas = problemasDelBorrador(borrador);
   const cambiado = hayCambios(config, borrador);
+  // Con barrido o algún público con teléfono, las alertas de llamadas aplican.
+  const conTelefono = Boolean(estadosDelBarrido) || estudioUsaTelefono({ config: { monitoreo_profile: perfil }, sources: fuentes ?? [] });
   return (
     <div className="acr-rg">
       <section className="acr-av-panel acr-rg-barra-tarjeta" aria-label="Reglas del estudio">
@@ -80,11 +85,19 @@ export function ReglasVista({ config, borrador, cruces, onCambiar, onGuardar, gu
           valores={borrador.alertas}
           onCambiar={(clave, valor) => onCambiar({ alertas: { ...borrador.alertas, [clave]: valor } })}
           bloqueada={guardando}
+          conTelefono={conTelefono}
         />
         </div>
       </div>
       {estadosDelBarrido ? <section className="acr-av-panel acr-rg-ancha" aria-label="Estados del barrido telefónico">{estadosDelBarrido}</section> : null}
-      {eventos ? <section className="acr-av-panel acr-rg-ancha" aria-label="Eventos de contacto">{eventos}</section> : null}
+      {/* El modelo operativo heredado (eventos de contacto y reglas de estado final) sigue
+          editable pero plegado: dominaba la vista y en un estudio de correo casi no se toca (#14). */}
+      {eventos ? (
+        <details className="acr-av-panel acr-rg-ancha acr-rg-plegable" aria-label="Eventos de contacto">
+          <summary><b>Eventos de contacto y reglas de estado final</b><span className="acr-av-tenue">Diccionario de resultados y prioridad de cada estado</span></summary>
+          {eventos}
+        </details>
+      ) : null}
     </div>
   );
 }
@@ -149,6 +162,7 @@ export function Reglas({
       mensaje={mensaje}
       estadosDelBarrido={estadosDelBarrido}
       eventos={eventos}
+      fuentes={state?.sources}
     />
   );
 }

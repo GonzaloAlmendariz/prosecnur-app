@@ -30,7 +30,6 @@ const SNAPSHOT_PROP_PANEL: Record<string, number> = {
 
 /** Selectores CSS `.pulso-empty-state--panel` fuera del kit, a 2026-10-11. Solo baja. */
 const SNAPSHOT_CSS_PANEL: Record<string, number> = {
-  "features/bitacora/logbook/logbook.css": 1,
   "features/calcMuestra/universidad/calculo/calculo.css": 4,
 };
 

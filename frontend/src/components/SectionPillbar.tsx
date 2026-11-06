@@ -8,7 +8,7 @@
  *
  * Tres decisiones que el componente impone y el marcado copiado no podía:
  *
- * - **Es navegación, no un tablist.** Cada sección es un `<NavLink>` con
+ * - **Es navegación, no un tablist.** Cada sección es un `<Link>` con
  *   `aria-current="page"`. Un `role="tab"` sobre rutas es una promesa falsa al
  *   lector de pantalla —no hay `tabpanel` que le corresponda— y además dejaría
  *   estas píldoras bajo la regla `!important` de `aria-selected` que impide el
@@ -24,7 +24,7 @@
  * por nueve contract tests. Esto lo envuelve; no lo reescribe.
  */
 
-import { NavLink } from "react-router-dom";
+import { Link } from "react-router-dom";
 
 import { GlidingTabList } from "./GlidingTabList";
 import type { ProsecnurModuleSlug } from "../lib/modules";
@@ -46,16 +46,36 @@ export type SectionPillbarItem = {
    * bloquear la navegación esconde el problema en vez de explicarlo.
    */
   lockedReason?: string;
+  /**
+   * Una línea más para el tooltip y el lector de pantalla cuando la sección
+   * no está bloqueada («falta la base», «sección lista»).
+   */
+  nota?: string;
+  /**
+   * Cuántas cosas faltan por hacer en la sección. Se pinta como número en ámbar;
+   * con 0 o sin valor no se pinta nada. Es la única cifra que lleva la píldora:
+   * ni fracciones ni totales, para que el número signifique siempre lo mismo.
+   */
+  pendientes?: number;
+  /** La sección quedó lista: se pinta un ✓. Cede ante `pendientes`. */
+  lista?: boolean;
 };
 
 export type SectionPillbarProps = {
   modulo: ProsecnurModuleSlug;
   items: readonly SectionPillbarItem[];
+  /**
+   * La sección activa la decide el llamador, no la ruta: con secciones en la query
+   * (`?seccion=`) un `NavLink` marcaba `aria-current` en TODAS (brecha B3).
+   */
   seccionActiva: string | null;
   progreso?: SectionPillbarProgreso;
   densidad?: "normal" | "compact";
   ariaLabel: string;
+  /** Clase de la píldora deslizante (GlidingTabList). */
   className?: string;
+  /** Clase del `<nav>`: ubicación en el chrome y tokens del módulo. */
+  navClassName?: string;
 };
 
 export function SectionPillbar({
@@ -66,12 +86,13 @@ export function SectionPillbar({
   densidad = "normal",
   ariaLabel,
   className,
+  navClassName,
 }: SectionPillbarProps) {
   if (items.length === 0) return null;
 
   return (
     <nav
-      className="pulso-phase-rail pulso-section-pillbar"
+      className={["pulso-phase-rail pulso-section-pillbar", navClassName].filter(Boolean).join(" ")}
       data-modulo={modulo}
       data-progreso={progreso}
       data-densidad={densidad}
@@ -90,19 +111,22 @@ export function SectionPillbar({
           {items.map((item, indice) => {
             const activa = item.id === seccionActiva;
             const texto = densidad === "compact" ? (item.shortLabel ?? item.label) : item.label;
+            const pendientes = item.pendientes && item.pendientes > 0 ? item.pendientes : 0;
+            const marca = pendientes
+              ? `${pendientes.toLocaleString("es-PE")} ${pendientes === 1 ? "pendiente" : "pendientes"}`
+              : item.lista ? "lista" : "";
+            const detalle = [item.lockedReason ?? item.nota, marca].filter(Boolean).join(". ");
             return (
               <li key={item.id} className="pulso-phase-pill-item">
-                <NavLink
+                <Link
                   to={item.href}
                   data-gliding-key={item.id}
                   data-nav-item=""
                   data-nav-shape="pill"
                   data-nav-state={activa ? "selected" : undefined}
                   aria-current={activa ? "page" : undefined}
-                  title={item.lockedReason ?? item.label}
-                  aria-label={
-                    item.lockedReason ? `${item.label}. ${item.lockedReason}` : undefined
-                  }
+                  title={item.lockedReason ?? item.nota ?? item.label}
+                  aria-label={detalle ? `${item.label}. ${detalle}` : undefined}
                   className={[
                     "pulso-phase-pill",
                     activa ? "is-active" : "",
@@ -118,7 +142,14 @@ export function SectionPillbar({
                       <span className="pulso-phase-pill-text">{texto}</span>
                     </span>
                   </span>
-                </NavLink>
+                  {pendientes ? (
+                    <span className="pulso-phase-pill-badge" data-estado="pendiente" aria-hidden="true">
+                      {pendientes.toLocaleString("es-PE")}
+                    </span>
+                  ) : item.lista ? (
+                    <span className="pulso-phase-pill-badge" data-estado="lista" aria-hidden="true">✓</span>
+                  ) : null}
+                </Link>
               </li>
             );
           })}
