@@ -2928,3 +2928,15 @@
   box-shadow: 0 0 0 2px var(--pulso-surface);
 }
 
+
+/* Ventanas muy bajas (≤ 640 px, 6 nov 2026): a 1024×600 quedaban 432 px útiles y dos filas pedían 458 (la
+   tarjeta medía 230 con 157 de contenido). La tarjeta se compacta —menos relleno y separación, sin la línea
+   descriptiva bajo el nombre del módulo, que ya lo identifica— y la fila baja su piso a 180 px: las dos filas
+   entran sin scroll. */
+@media (max-height: 640px) {
+  .home-mission-grid { grid-auto-rows: minmax(180px, 1fr); gap: 10px; }
+  .home-mission-grid[data-density] .home-mc-card { min-height: 0; }
+  .home-mission-grid .home-mc-enter { gap: 6px; padding: 10px 14px 9px; }
+  .home-mission-grid .home-mc-tagline { display: none; }
+  .home-mission-grid .home-mc-head { min-height: 26px; }
+}
