@@ -68,6 +68,8 @@ export type BuilderNode = {
   sectionId: string;
   typeInfo: TypeInfo;
   required: boolean;
+  /** La columna `required` tal como viene: una expresión es «obligatoria sólo si …» (E19-1b). */
+  requiredRaw?: string;
   relevant: string;
   constraint: string;
   constraint_message?: string;

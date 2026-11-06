@@ -4,6 +4,8 @@
 
 import type { BuilderNode } from "../../types";
 import { evaluarRestriccion } from "../../logic/probarRestriccion";
+import { evaluateRelevance, type SimAnswers } from "../../logic/evaluate";
+import { lecturaRequired } from "../../parsing/parseType";
 import { esFilaRota } from "../../reglas/motor/filaRota";
 import type { SimValue } from "./modeloRecorrido";
 
@@ -32,6 +34,18 @@ export function restriccionIncumplida(
   return (node.constraint_message ?? "").trim() || MENSAJE_REGLA_POR_DEFECTO;
 }
 
+/**
+ * ¿Es obligatoria AHORA? «Siempre» lo es; una expresión («obligatoria sólo si …») se evalúa con las respuestas de la
+ * prueba. Si el editor no sabe evaluarla no se inventa la obligación: eso se comprueba en el teléfono.
+ */
+export function esObligatoria(node: Pick<BuilderNode, "required" | "requiredRaw">, contexto: SimAnswers): boolean {
+  if (node.required) return true;
+  const raw = node.requiredRaw ?? "";
+  if (lecturaRequired(raw) !== "expresion") return false;
+  const r = evaluateRelevance(raw, contexto);
+  return r.visible && !r.advanced;
+}
+
 export type Pendiente = { name: string; rowIndex: number; numero: string; enunciado: string; pagina: number; motivo: "falta" | "regla" };
 
 /** Lo que impide finalizar, en el orden del formulario: obligatorias visibles sin respuesta y reglas incumplidas. */
@@ -40,13 +54,14 @@ export function pendientesParaFinalizar(
   esRespondible: (n: BuilderNode) => boolean,
   esVisible: (n: BuilderNode) => boolean,
   respuestas: Readonly<Record<string, SimValue>>,
+  obligatoria: (n: BuilderNode) => boolean = (n) => n.required,
 ): Pendiente[] {
   const out: Pendiente[] = [];
   paginasVisibles.forEach((p, pagina) => {
     for (const n of p.nodes) {
       if (!esRespondible(n) || !esVisible(n)) continue;
       const v = respuestas[n.name];
-      const motivo = n.required && !tieneRespuesta(v) ? "falta" : restriccionIncumplida(n, v, respuestas) ? "regla" : null;
+      const motivo = obligatoria(n) && !tieneRespuesta(v) ? "falta" : restriccionIncumplida(n, v, respuestas) ? "regla" : null;
       if (motivo) out.push({ name: n.name, rowIndex: n.rowIndex, numero: n.paperNumber || "", enunciado: n.label || n.name, pagina, motivo });
     }
   });

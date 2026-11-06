@@ -1,7 +1,7 @@
 // Mata: finalizar con obligatorias vacías, no avisar una edad fuera de rango o inventar un rechazo que no se evalúa.
 import { describe, expect, it } from "vitest";
 import type { BuilderNode } from "../../types";
-import { MENSAJE_REGLA_POR_DEFECTO, pendientesParaFinalizar, restriccionIncumplida } from "./modeloFinalizar";
+import { esObligatoria, MENSAJE_REGLA_POR_DEFECTO, pendientesParaFinalizar, restriccionIncumplida } from "./modeloFinalizar";
 
 const n = (name: string, extra: Partial<BuilderNode> = {}) =>
   ({ name, rowIndex: 1, label: `¿${name}?`, required: false, constraint: "", relevant: "", calculation: "", choiceFilter: "", paperNumber: "", typeInfo: { raw: "integer", base: "integer", listName: "" }, ...extra }) as BuilderNode;
@@ -27,5 +27,21 @@ describe("finalizar", () => {
     const p = [{ nodes: [n("a", { required: true }), n("b", { required: true })] }, { nodes: [n("c", { constraint: ". < 5" }), n("d", { required: true })] }];
     const r = pendientesParaFinalizar(p, () => true, (x) => x.name !== "b", { c: "9" });
     expect(r.map((x) => [x.name, x.pagina, x.motivo])).toEqual([["a", 0, "falta"], ["c", 1, "regla"], ["d", 1, "falta"]]);
+  });
+});
+
+describe("obligatoria sólo si … (E19-1b)", () => {
+  const apoyo = n("apoyo", { requiredRaw: "selected(${medios}, 'tv')" });
+  it("se exige cuando se cumple la condición y no cuando no", () => {
+    expect(esObligatoria(apoyo, { medios: ["tv", "radio"] })).toBe(true);
+    expect(esObligatoria(apoyo, { medios: ["radio"] })).toBe(false);
+    expect(esObligatoria(n("x", { required: true }), {})).toBe(true);
+    expect(esObligatoria(n("y", { requiredRaw: "no" }), {})).toBe(false);
+  });
+  it("finalizar la cuenta como pendiente sólo si aplica", () => {
+    const p = [{ nodes: [apoyo] }];
+    const con = (medios: string[]) => pendientesParaFinalizar(p, () => true, () => true, {}, (x) => esObligatoria(x, { medios }));
+    expect(con(["tv"]).map((x) => x.motivo)).toEqual(["falta"]);
+    expect(con(["radio"])).toEqual([]);
   });
 });

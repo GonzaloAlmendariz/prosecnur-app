@@ -41,7 +41,7 @@ import { appearanceTokens, rangeParamsForNode } from "../canvas/previewInputs";
 import "../styles/xf-simulator.css";
 import { RecorridoPrueba, RespuestasPrueba } from "./simulador/PanelesPrueba";
 import { respuestasDadas, seccionesDelRecorrido } from "./simulador/modeloRecorrido";
-import { pendientesParaFinalizar, restriccionIncumplida, type Pendiente } from "./simulador/modeloFinalizar";
+import { esObligatoria, pendientesParaFinalizar, restriccionIncumplida, type Pendiente } from "./simulador/modeloFinalizar";
 import { FaltantesPrueba, PruebaFinalizada } from "./simulador/FinalizarPrueba";
 import { calcularValores, semillaNueva } from "./simulador/calculosPrueba";
 import { grillasDelFormulario, notasQueIntroducenGrilla, tituloSinRotulo } from "./simulador/modeloGrilla";
@@ -301,7 +301,7 @@ export function FormSimulator({
   }), [nodoDe, contexto, choicesByList]);
 
   const esUltima = clampedIdx >= visiblePages.length - 1;
-  const pendientes = pendientesParaFinalizar(visiblePages, esRespondible, (node) => nodeState.get(node.rowIndex)?.visible ?? false, answers);
+  const pendientes = pendientesParaFinalizar(visiblePages, esRespondible, (node) => nodeState.get(node.rowIndex)?.visible ?? false, answers, (node) => esObligatoria(node, contexto));
   const pendientesSet = new Set(pendientes.map((p) => p.rowIndex));
   const irAPendiente = (p: Pendiente) => {
     setPageIdx(p.pagina);
@@ -391,6 +391,7 @@ export function FormSimulator({
                   lector={lector}
                   error={restriccionIncumplida(node, answers[node.name], contexto)}
                   marcarPendiente={intentoFinalizar && pendientesSet.has(node.rowIndex)}
+                  obligatoria={esObligatoria(node, contexto)}
                 />
               ))}
             </div>
@@ -454,6 +455,7 @@ function QuestionSlot({
   lector,
   error,
   marcarPendiente,
+  obligatoria,
 }: {
   node: BuilderNode;
   state: VisState;
@@ -466,12 +468,14 @@ function QuestionSlot({
   error: string | null;
   /** Al intentar finalizar: esta pregunta impide terminar. */
   marcarPendiente: boolean;
+  /** Obligatoria ahora: siempre, o porque se cumple su «obligatoria sólo si …». */
+  obligatoria: boolean;
 }) {
   const visible = state.visible;
   const accent = paletteForType(node.typeInfo.base);
   const Icon = iconForType(node.typeInfo.base);
   const answered = hasAnswer(value);
-  const pendingRequired = node.required && !answered && node.kind === "question";
+  const pendingRequired = obligatoria && !answered && node.kind === "question";
 
   return (
     <div

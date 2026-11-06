@@ -269,6 +269,7 @@ export function parseBuilderStructure(survey: XlsformEditorSheet): BuilderStruct
       sectionId,
       typeInfo,
       required: asRequired(record.required ?? ""),
+      requiredRaw: (record.required ?? "").trim(),
       relevant: (record.relevant ?? "").trim(),
       constraint: (record.constraint ?? "").trim(),
       constraint_message: (record.constraint_message ?? "").trim(),
