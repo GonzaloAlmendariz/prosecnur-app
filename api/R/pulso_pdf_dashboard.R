@@ -920,11 +920,13 @@ pulso_pdf_serie_partida <- function(x, y, w, h, dias, diarias, acumulado,
                    gp = grid::gpar(col = tokens$tbl_frame, lwd = 0.7))
 
   # --- El eje de fechas, UNO solo al pie ------------------------------------
-  cada <- max(1L, ceiling(n / (if (isTRUE(compacto)) 6L else 14L)))
+  # Toda barra lleva su fecha; lo que cede es el cuerpo (`pulso_pdf_eje_fechas.R`).
+  eje <- .ppd_rotulos_de_fecha(dias, w / n, fs)
   for (i in seq_len(n)) {
-    if (i != n && ((i - 1L) %% cada != 0L || n - i < cada)) next
-    grid::grid.text(dias[[i]], x = px(i), y = y - 0.014, just = c("centre", "top"),
-                    gp = grid::gpar(col = tokens$soft, fontsize = fs))
+    grid::grid.text(eje$textos[[i]], x = px(i), y = y - 0.014,
+                    just = if (isTRUE(eje$rotar)) c("right", "centre") else c("centre", "top"),
+                    rot = if (isTRUE(eje$rotar)) 90 else 0,
+                    gp = grid::gpar(col = tokens$soft, fontsize = eje$fontsize))
   }
   invisible(NULL)
 }

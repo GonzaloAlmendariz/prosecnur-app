@@ -168,3 +168,43 @@ test_that("toda barra del dia lleva su cifra; lo que cede es el cuerpo", {
   expect_equal(prosecnurapp:::.ppd_cifras_de_barras(rep(0, 5), 0.42, 5L, 5.8)$indices, integer(0))
   expect_equal(prosecnurapp:::.ppd_cifras_de_barras(c(NA, NA), 0.42, 2L, 5.8)$indices, integer(0))
 })
+
+test_that("toda barra del dia lleva su fecha; lo que cede es el cuerpo", {
+  # Gonzalo, 2026-11-06: «la fecha del pdf puede hacerse mas pequena pero no
+  # debe dejar de mostrarse». Antes el eje rotulaba como mucho 14 dias (6 en
+  # los paneles) y el resto de barras salia sin fecha.
+  # Medidor falso: 0.001 npc por caracter y punto de la linea mas larga; una
+  # linea mide 0.0012 npc de alto por punto.
+  medir <- function(texto, f) {
+    lineas <- strsplit(texto, "\n", fixed = TRUE)[[1]]
+    c(ancho = max(nchar(lineas)) * 0.001 * f, alto_en_x = 0.0012 * f)
+  }
+  dias <- paste0(sprintf("%02d/10", 1:20), "\n", rep(c("lun", "mar", "mié", "jue", "vie"), 4))
+  dias[[20]] <- "20/10\nhasta 11:40"
+  rotulos <- function(hueco) prosecnurapp:::.ppd_rotulos_de_fecha(dias, hueco, 5.8, medir = medir)
+
+  # Con aire, todo va completo y al cuerpo de partida.
+  r <- rotulos(0.08)
+  expect_equal(r$textos, dias)
+  expect_equal(r$fontsize, 5.8)
+  expect_false(r$rotar)
+
+  # Mas estrecho: baja el cuerpo, la fecha sigue en todas; «hasta 11:40» no
+  # cabe y se queda solo la fecha.
+  r <- rotulos(0.03)
+  expect_length(r$textos, 20L)
+  expect_true(all(startsWith(r$textos, sprintf("%02d/10", 1:20))))
+  expect_lt(r$fontsize, 5.8)
+  expect_gte(r$fontsize, 4.6)
+  expect_equal(r$textos[[20]], "20/10")
+  expect_equal(r$textos[[1]], dias[[1]])
+  expect_false(r$rotar)
+
+  # Ni al piso cabe en horizontal: se gira, y ninguna barra queda sin fecha.
+  r <- rotulos(0.012)
+  expect_true(r$rotar)
+  expect_equal(r$textos, sprintf("%02d/10", 1:20))
+  expect_gte(r$fontsize, 4.6)
+
+  expect_length(prosecnurapp:::.ppd_rotulos_de_fecha(character(0), 0.05, 5.8, medir = medir)$textos, 0L)
+})
