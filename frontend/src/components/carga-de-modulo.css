@@ -1,17 +1,46 @@
-/* CargaDeModulo.tsx — rótulo y barra indeterminada en el color del módulo, centrados en
-   el hueco que deja la vista que todavía no llega. */
+/* CargaDeModulo.tsx — el salto corto dentro de la app (fallback de Suspense) con el lenguaje de PantallaDeCarga
+   en pequeño: isotipo que late, ceja con el punto del tono del módulo, rótulo y barra indeterminada.
+   Aparece con un retardo corto para no parpadear cuando el código ya estaba en caché. */
 .pulso-carga-modulo {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: var(--pulso-space-3);
+  gap: var(--pulso-space-2);
   min-height: 260px;
   padding: var(--pulso-space-5);
+  animation: pulso-carga-modulo-aparece var(--motion-dur-base) var(--motion-ease-out) 90ms backwards;
+}
+.pulso-carga-modulo .boot-eq svg { width: 36px; height: 36px; }
+.pulso-carga-modulo .boot-eq { margin-bottom: var(--pulso-space-1); }
+.pulso-carga-modulo-ceja {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: color-mix(in srgb, var(--module-accent, var(--pulso-primary)) 72%, var(--pulso-text));
+  font-size: var(--pulso-type-eyebrow-size);
+  font-weight: var(--pulso-weight-bold);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+.pulso-carga-modulo-ceja::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--module-accent, var(--pulso-primary));
 }
 .pulso-carga-modulo-rotulo {
   font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-type-subtitle-weight);
   color: var(--pulso-text-soft);
 }
-.pulso-carga-modulo .pulso-barra-avance { width: min(240px, 60%); }
+.pulso-carga-modulo .pulso-barra-avance { width: min(240px, 60%); margin-top: var(--pulso-space-1); }
+
+@keyframes pulso-carga-modulo-aparece {
+  from { opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pulso-carga-modulo { animation: none; }
+}

@@ -10,6 +10,7 @@
 import { moduleChromeVars, PROSECNUR_MODULES, type ProsecnurModuleSlug } from "../lib/modules";
 import { moduloDesdePathname } from "../lib/navegacion/direccion";
 import { BarraDeAvance } from "./BarraDeAvance";
+import { BootEcualizador } from "../app/BootEcualizador";
 import "./carga-de-modulo.css";
 
 function moduloActivo(slug?: ProsecnurModuleSlug) {
@@ -21,6 +22,10 @@ export function CargaDeModulo({ label, modulo }: { label: string; modulo?: Prose
   const meta = moduloActivo(modulo);
   return (
     <div className="pulso-carga-modulo" role="status" style={meta ? moduleChromeVars(meta) : undefined}>
+      {/* 5 nov 2026: el mismo lenguaje que la pantalla de carga grande (PantallaDeCarga) en pequeño: el
+          isotipo que late, el módulo en su tono, el rótulo y la barra. */}
+      <BootEcualizador />
+      {meta ? <span className="pulso-carga-modulo-ceja">{meta.cardTitle ?? meta.shortLabel}</span> : null}
       <span className="pulso-carga-modulo-rotulo">{label}</span>
       <BarraDeAvance indeterminada etiqueta={label} />
     </div>
