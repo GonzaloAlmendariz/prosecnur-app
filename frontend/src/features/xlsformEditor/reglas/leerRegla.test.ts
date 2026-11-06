@@ -149,6 +149,14 @@ describe("M4 · filtros de opciones", () => {
   test("selected(${pregunta}, <columna>) → marcada en la pregunta", () => {
     expect(texto("choice_filter", "selected(${gasto},filter_Spent)", cascada)).toBe("Muestra las opciones cuya columna filter_Spent está marcada en En qué gastó");
   });
+  test("selected(${pregunta}, name) → las opciones que se marcaron antes (concordancia)", () => {
+    expect(texto("choice_filter", "selected(${gasto}, name)", cascada)).toBe("Muestra las opciones que se marcaron en En qué gastó");
+  });
+  test("<columna> <= ${pregunta} y sus variantes se leen como comparación", () => {
+    expect(texto("choice_filter", "edad_min <= ${region}", cascada)).toBe("Muestra las opciones cuya columna edad_min es menor o igual que la respuesta de Región");
+    expect(texto("choice_filter", "${region} >= edad_min", cascada)).toBe(texto("choice_filter", "edad_min <= ${region}", cascada));
+    expect(texto("choice_filter", "edad_min > 17", cascada)).toBe("Muestra las opciones cuya columna edad_min es mayor que 17");
+  });
   test("<columna> = literal", () => {
     expect(texto("choice_filter", "REF05CO= 'pp'", cascada)).toBe("Muestra siempre las mismas opciones: las marcadas con pp en la columna REF05CO");
   });

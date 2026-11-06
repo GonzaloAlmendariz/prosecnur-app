@@ -147,7 +147,7 @@ export function DetalleFiltro({ id, a, frase, workbook, porNombre, candidatas, o
         </div>
         <h3 className="xcf-detalle__titulo">{a.etiqueta}</h3>
         <p id={`${id}-frase`} className={fraseLarga && !fraseEntera ? "xcf-detalle__frase is-recortada" : "xcf-detalle__frase"}>
-          {frase?.piezas ? <><PiezasLectura piezas={frase.piezas} />.</> : frase?.texto}
+          {frase?.piezas ? <><PiezasLectura piezas={frase.piezas} />{/[?!…»]$/.test(frase.texto.trim()) ? null : "."}</> : frase?.texto}
           {frase?.tecnica ? <code className="xcf-detalle__raw">{a.expresion}</code> : null}
         </p>
         {fraseLarga ? (
