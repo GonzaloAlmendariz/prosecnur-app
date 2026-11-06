@@ -495,13 +495,6 @@
   }
 }
 
-@keyframes cmv2-aulas-tick-on {
-  from {
-    opacity: 0;
-    transform: scale(0.6);
-  }
-}
-
 @keyframes cmv2-aulas-desplegar {
   from {
     opacity: 0;

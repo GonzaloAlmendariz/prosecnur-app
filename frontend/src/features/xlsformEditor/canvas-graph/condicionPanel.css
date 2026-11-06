@@ -86,7 +86,6 @@
   display: flex; align-items: center; justify-content: center; box-sizing: border-box; width: 100%; height: 100%;
   padding: 0 10px; border: 1px solid var(--pulso-success-border); border-radius: 999px;
   background: var(--pulso-success-bg); color: var(--pulso-success-fg); font-size: var(--pulso-type-caption-size); font-weight: var(--pulso-weight-semibold);
-  white-space: nowrap; box-shadow: var(--pulso-shadow-low); animation: xfg-insignia-in var(--motion-dur-fast) var(--motion-ease-out) both;
+  white-space: nowrap; box-shadow: var(--pulso-shadow-low); animation: pulso-mov-escala var(--motion-dur-fast) var(--motion-ease-out) both;
 }
-@keyframes xfg-insignia-in { from { opacity: 0; transform: scale(0.96); } to { opacity: 1; transform: none; } }
 @media (prefers-reduced-motion: reduce) { .xfg-insignia { animation: none; } }

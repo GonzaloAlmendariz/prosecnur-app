@@ -45,7 +45,7 @@
 
    Motion (glow-up 2026-07): entradas ease-out < 300ms con cascada corta,
    swaps con .cmv2-uni-swap, hover solo bajo (hover:hover) y todo respetando
-   prefers-reduced-motion. Los keyframes cmv2-uni-enter viven en ui/ui.css.
+   prefers-reduced-motion. Los keyframes pulso-mov-sube-corto viven en ui/ui.css.
    ============================================================================= */
 
 .cmv2-sal-stack {

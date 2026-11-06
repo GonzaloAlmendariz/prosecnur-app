@@ -53,11 +53,6 @@
 
 /* ── Keyframes locales ─────────────────────────────────────────────────── */
 
-@keyframes pulso-xfg-node-in {
-  from { opacity: 0; transform: translateY(5px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-
 @keyframes pulso-xfg-dash-flow {
   to { stroke-dashoffset: -14; }
 }
@@ -246,7 +241,7 @@
 /* Entrada fade-in-up sutil + elevación al hover: se anima el <g> interno
  * (`node-inner`) para no pisar el translate(x, y) del <g> raíz del nodo. */
 .pulso-graph-overlay .pulso-graph-node-inner {
-  animation: pulso-xfg-node-in var(--motion-dur-base) var(--motion-ease-out) backwards;
+  animation: pulso-mov-sube-corto var(--motion-dur-base) var(--motion-ease-out) backwards;
   transition: transform var(--motion-dur-fast) var(--motion-ease-out);
 }
 

@@ -171,8 +171,11 @@ describe("M9 · contrato de movimiento de movimiento.css", () => {
   it("los keyframes sólo tocan opacity y transform, y sólo declaran `from`", () => {
     // 5 nov 2026: el fundido (`cmg-funde`) pasó al gesto común `pulso-mov-aparece` de app/movimiento.css;
     // quedan aquí los propios del módulo (entradas de 4 px y el reparto que crece/reescala).
-    expect(keyframes.length).toBeGreaterThanOrEqual(5);
+    // 5 nov 2026, segundo lote: también las entradas de 4 px (`cmg-entra-a/b`) pasaron al gesto común
+    // `pulso-mov-sube-corto`; quedan aquí los del reparto (crece y reescala), que son propios del módulo.
+    expect(keyframes.length).toBeGreaterThanOrEqual(3);
     expect(css).toContain("pulso-mov-aparece");
+    expect(css).toContain("pulso-mov-sube-corto");
     for (const k of keyframes) {
       expect(k).not.toMatch(/\bto\b\s*\{|%\s*\{/);
       const props = [...k.matchAll(/^\s*([a-z-]+):/gm)].map((m) => m[1]);

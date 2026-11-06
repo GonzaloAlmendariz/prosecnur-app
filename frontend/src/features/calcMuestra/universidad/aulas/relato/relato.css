@@ -131,7 +131,7 @@
   align-items: center;
   gap: 8px;
   font-size: var(--pulso-type-caption-size);
-  animation: cmv2-relato-item-entrada var(--motion-dur-base) var(--motion-ease-out) both;
+  animation: pulso-mov-sube-corto var(--motion-dur-base) var(--motion-ease-out) both;
   animation-delay: calc(var(--relato-i, 0) * 30ms);
 }
 
@@ -206,7 +206,7 @@
 }
 
 .cmv2-relato-fila-anim {
-  animation: cmv2-relato-item-entrada var(--motion-dur-base) var(--motion-ease-out) both;
+  animation: pulso-mov-sube-corto var(--motion-dur-base) var(--motion-ease-out) both;
   animation-delay: calc(var(--relato-i, 0) * 30ms);
 }
 
@@ -230,7 +230,7 @@
   border-radius: 8px;
   background: var(--cmv2-surface-raised);
   font-size: var(--pulso-type-caption-size);
-  animation: cmv2-relato-item-entrada var(--motion-dur-base) var(--motion-ease-out) both;
+  animation: pulso-mov-sube-corto var(--motion-dur-base) var(--motion-ease-out) both;
   animation-delay: calc(var(--relato-i, 0) * 25ms);
 }
 
@@ -275,7 +275,7 @@
   border: 1px solid var(--cmv2-border);
   border-radius: 8px;
   background: var(--cmv2-surface-raised);
-  animation: cmv2-relato-item-entrada var(--motion-dur-base) var(--motion-ease-out) both;
+  animation: pulso-mov-sube-corto var(--motion-dur-base) var(--motion-ease-out) both;
   animation-delay: calc(var(--relato-i, 0) * 35ms);
 }
 
@@ -446,7 +446,7 @@
 .cmv2-relato-goo-bola {
   transform-box: fill-box;
   transform-origin: center;
-  animation: cmv2-relato-goo-entrada var(--motion-dur-base) var(--motion-ease-out) both;
+  animation: pulso-mov-pop var(--motion-dur-base) var(--motion-ease-out) both;
   animation-delay: calc(var(--relato-i, 0) * 40ms);
   /* Profundidad por tamaño: --goo-sombra la fija cada bola según su radio. */
   filter: drop-shadow(0 var(--goo-sombra, 0.6px) calc(var(--goo-sombra, 0.6px) * 1.8) color-mix(in srgb, var(--pulso-text) 22%, transparent));
@@ -512,7 +512,7 @@
   will-change: transform;
 }
 
-/* Igual que `cmv2-relato-goo-entrada` pero SIN tocar transform. */
+/* Igual que `pulso-mov-pop` pero SIN tocar transform. */
 @keyframes cmv2-relato-goo-entrada-motor {
   from {
     opacity: 0;
@@ -776,7 +776,7 @@
   gap: 0;
   transform-origin: top center;
   animation:
-    cmv2-relato-item-entrada var(--motion-dur-base) var(--motion-ease-out) both,
+    pulso-mov-sube-corto var(--motion-dur-base) var(--motion-ease-out) both,
     cmv2-relato-cadena-sway 4.6s ease-in-out infinite;
   animation-delay: calc(var(--relato-i, 0) * 30ms), calc(var(--relato-i, 0) * -0.9s);
 }
@@ -858,29 +858,7 @@
    (nunca a un azar en curso). Bajo reduced-motion todo queda estático con el
    mismo contenido; además el JSX apaga el autoplay (data-relato-motion). */
 
-@keyframes cmv2-relato-item-entrada {
-  from {
-    opacity: 0;
-    transform: translateY(4px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
 /* La bola se ensambla creciendo hasta su tamaño REAL (el dato publicado). */
-@keyframes cmv2-relato-goo-entrada {
-  from {
-    opacity: 0;
-    transform: scale(0.6);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-
 /* Aterrizaje bola por bola. Coordenadas = vars del dato (--ox/--mx/--tx) y el
    ángulo del arco (--rot) orienta el estiramiento en vuelo; nunca un azar.
    Contacto al 52 % y luego la senoide amortiguada con intervalos CRECIENTES:

@@ -15,12 +15,8 @@
 
 /* La sección nueva entra con un fundido corto (el panel lleva `key` por sección). */
 .rec-tab-panel {
-  animation: rec-seccion-entra var(--motion-dur-fast) var(--motion-ease-out) both;
+  animation: pulso-mov-sube-corto var(--motion-dur-fast) var(--motion-ease-out) both;
 }
-@keyframes rec-seccion-entra {
-  from { opacity: 0; transform: translateY(4px); }
-}
-
 /* Movimiento reducido: sin desplazamiento ni escala; queda el fundido, que ayuda a leer el cambio. */
 @media (prefers-reduced-motion: reduce) {
   .rec-campana-menu[data-state="open"],

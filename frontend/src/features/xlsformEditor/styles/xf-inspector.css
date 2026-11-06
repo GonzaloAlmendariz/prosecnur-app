@@ -46,11 +46,6 @@
   to   { opacity: 1; transform: translateY(0) scale(1); }
 }
 
-@keyframes pulso-xfi-fade-up {
-  from { opacity: 0; transform: translateY(5px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-
 /* ── Utilidades nuevas (sin scope: también sirven en el lienzo enfocado) ── */
 
 /* Input monoespaciado para campos técnicos (name, parameters, repeat_count). */
@@ -289,12 +284,12 @@ input.pulso-xfi-mono.is-invalid {
 
 /* Entrada suave del contenido de la tab activa. */
 .pulso-inspector.pulso-xfi .pulso-inspector-tab {
-  animation: pulso-xfi-fade-up var(--motion-dur-base) var(--motion-ease-out) both;
+  animation: pulso-mov-sube-corto var(--motion-dur-base) var(--motion-ease-out) both;
 }
 
-.pulso-inspector.pulso-xfi .pulso-inspector-tab > .pulso-inspector-block:nth-child(2) { animation: pulso-xfi-fade-up var(--motion-dur-base) var(--motion-ease-out) 40ms both; }
-.pulso-inspector.pulso-xfi .pulso-inspector-tab > .pulso-inspector-block:nth-child(3) { animation: pulso-xfi-fade-up var(--motion-dur-base) var(--motion-ease-out) 80ms both; }
-.pulso-inspector.pulso-xfi .pulso-inspector-tab > .pulso-inspector-block:nth-child(4) { animation: pulso-xfi-fade-up var(--motion-dur-base) var(--motion-ease-out) 120ms both; }
+.pulso-inspector.pulso-xfi .pulso-inspector-tab > .pulso-inspector-block:nth-child(2) { animation: pulso-mov-sube-corto var(--motion-dur-base) var(--motion-ease-out) 40ms both; }
+.pulso-inspector.pulso-xfi .pulso-inspector-tab > .pulso-inspector-block:nth-child(3) { animation: pulso-mov-sube-corto var(--motion-dur-base) var(--motion-ease-out) 80ms both; }
+.pulso-inspector.pulso-xfi .pulso-inspector-tab > .pulso-inspector-block:nth-child(4) { animation: pulso-mov-sube-corto var(--motion-dur-base) var(--motion-ease-out) 120ms both; }
 
 /* ── Inputs: transición de borde + focus ring coherente ────────────────── */
 
@@ -432,7 +427,7 @@ input.pulso-xfi-mono.is-invalid {
 
 /* Stagger sutil de las familias de tipos al abrir (máx 6). */
 .pulso-inspector.pulso-xfi .pulso-typepicker-family {
-  animation: pulso-xfi-fade-up var(--motion-dur-base) var(--motion-ease-out) both;
+  animation: pulso-mov-sube-corto var(--motion-dur-base) var(--motion-ease-out) both;
 }
 .pulso-inspector.pulso-xfi .pulso-typepicker-family:nth-child(2) { animation-delay: 30ms; }
 .pulso-inspector.pulso-xfi .pulso-typepicker-family:nth-child(3) { animation-delay: 60ms; }

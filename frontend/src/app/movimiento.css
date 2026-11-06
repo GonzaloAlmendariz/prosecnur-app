@@ -23,6 +23,10 @@
    - pulso-mov-escala   un diálogo o lámina centrada que se presenta.
    - pulso-mov-entra-lado  un panel lateral que entra desde su borde
                         (--mov-dx, 24 px).
+   - pulso-mov-sube-corto  lo mismo, a 4 px: entradas sutiles dentro de un
+                        panel que ya entró (segundo lote, 5 nov 2026).
+   - pulso-mov-pop      una marca que se confirma (un check, un punto): desde
+                        .6, nunca desde 0.
    - pulso-mov-giro     el único bucle: un indicador de espera.
 
    Utilidad por atributo, para lo que se monta y no tiene hoja propia:
@@ -39,6 +43,14 @@
 
 @keyframes pulso-mov-sube {
   from { opacity: 0; transform: translateY(var(--mov-dy, 6px)); }
+}
+
+@keyframes pulso-mov-sube-corto {
+  from { opacity: 0; transform: translateY(4px); }
+}
+
+@keyframes pulso-mov-pop {
+  from { opacity: 0; transform: scale(0.6); }
 }
 
 @keyframes pulso-mov-emerge {

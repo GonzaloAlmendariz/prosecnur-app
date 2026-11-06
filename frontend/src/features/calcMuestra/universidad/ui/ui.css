@@ -15,7 +15,7 @@
 @media (prefers-reduced-motion: no-preference) {
   /* Entrada del panel al cambiar de pestaña: sutil (se ve decenas de veces). */
   .cmv2-tab-panel {
-    animation: cmv2-uni-enter 180ms var(--cmv2-ease-out, ease-out) both;
+    animation: pulso-mov-sube-corto 180ms var(--cmv2-ease-out, ease-out) both;
   }
 
   /* En el desk universitario el contenido local se re-monta al cambiar de
@@ -28,7 +28,7 @@
   }
 
   .cmv2-university-workbench .cmv2-tab-panel > * {
-    animation: cmv2-uni-enter 180ms var(--cmv2-ease-out, ease-out) both;
+    animation: pulso-mov-sube-corto 180ms var(--cmv2-ease-out, ease-out) both;
   }
 
   /* Cascada para grillas de tarjetas/cifras: aplicar a contenedores. */
@@ -46,13 +46,6 @@
   .cmv2-uni-flujo[data-orientacion="adaptive"] > .cmv2-uni-flujo-etapa {
     animation: pulso-mov-aparece 220ms var(--cmv2-ease-out, ease-out) both;
     animation-delay: min(calc(var(--cmv2-flujo-index, 0) * 28ms), 168ms);
-  }
-}
-
-@keyframes cmv2-uni-enter {
-  from {
-    opacity: 0;
-    transform: translateY(4px);
   }
 }
 

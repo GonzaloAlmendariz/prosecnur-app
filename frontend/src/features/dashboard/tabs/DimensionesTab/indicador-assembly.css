@@ -64,7 +64,7 @@
 /* ──────────────────────────────────────────────────────────────────────── */
 
 .dashboard-scope .dash-assembly-index {
-  animation: dash-assembly-index-in 280ms cubic-bezier(0.23, 1, 0.32, 1) both;
+  animation: pulso-mov-pop 280ms cubic-bezier(0.23, 1, 0.32, 1) both;
   transform-origin: center;
   transform-box: fill-box;
 }
@@ -90,17 +90,6 @@
   font-weight: var(--pulso-weight-black);
   letter-spacing: -0.02em;
   pointer-events: none;
-}
-
-@keyframes dash-assembly-index-in {
-  from {
-    opacity: 0;
-    transform: scale(0.6);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
 }
 
 @keyframes dash-assembly-index-pulse {
