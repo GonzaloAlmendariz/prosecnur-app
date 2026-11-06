@@ -132,7 +132,7 @@ export function PestanaReglas({ titulo, marca, total, grupos, seleccionada, onSe
                           >
                             <span className="xfp-item__txt">
                               <span className="xfp-item__titulo">
-                                {it.titulo} <span className="xfp-familia__k">×{it.miembros.length}</span>
+                                {it.titulo} <span className="xfp-familia__k" title={`${it.miembros.length} filas`}>{it.miembros.length}</span>
                               </span>
                               <span className="xfp-item__resumen">{it.resumen}</span>
                             </span>

@@ -18,7 +18,7 @@ import { CatalogoFunciones } from "./CatalogoFunciones";
 import { CalculationRecipePanel } from "../canvas/constructor/CalculoRepeticionPaneles";
 import { ArmadorCalculo } from "./armadorCalculo/ArmadorCalculo";
 import { valoresDeEjemplo } from "../cuestionario/ejemploSorteo";
-import { agruparEnFamilias } from "./familiasCalculo";
+import { agruparEnFamilias, tituloFamilia } from "./familiasCalculo";
 
 import { EstadoChip } from "../../../components/EstadoChip";
 // Pestaña Cálculos (revamp 2026-10-16): cada `calculate` del formulario con su fórmula leída
@@ -71,7 +71,7 @@ export function PestanaCalculos({ structure, scope: scopeBase, seleccionada, onS
       agruparEnFamilias(lista, (i) => i.node.name).map((g) => {
         if (g.tipo === "suelto") return item(g.item);
         const miembros = g.items.map(item);
-        return { ...miembros[0]!, titulo: g.clave, resumen: miembros[0]!.resumen, miembros };
+        return { ...miembros[0]!, titulo: tituloFamilia(g.clave), resumen: miembros[0]!.resumen, miembros };
       });
     const sorteado = (i: (typeof items)[number]) => ejemplo.sorteados.has(i.node.name);
     return [

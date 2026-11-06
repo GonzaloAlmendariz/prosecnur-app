@@ -7,6 +7,16 @@ export function claveFamilia(nombre: string): string {
   return nombre.replace(/(^|_)t\d+[AB](?=_|$)/g, "$1t#P").replace(/\d+/g, "#");
 }
 
+/**
+ * Título legible de una familia: sin el patrón `t#P` ni los `#` («cj_t#P_edad_r» → «edad_r, en cada tarea y perfil»).
+ * Pedido de Gonzalo, 2026-11-06: rótulos sin códigos de patrón ni «×».
+ */
+export function tituloFamilia(clave: string): string {
+  const m = /(?:^|_)t#P_(.+)$/.exec(clave);
+  if (m) return `${m[1]!.replace(/#/g, "…")}, en cada tarea y perfil`;
+  return clave.replace(/_?#/g, "…");
+}
+
 export type Agrupado<T> = { tipo: "suelto"; item: T } | { tipo: "familia"; clave: string; items: T[] };
 
 /**

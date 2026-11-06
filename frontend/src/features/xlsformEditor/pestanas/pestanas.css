@@ -91,7 +91,13 @@
 .xfp-familia .xfp-familia__cabeza { border-top: 0; }
 .xfp-familia__cabeza.is-dentro .xfp-item__titulo { color: var(--module-accent, var(--pulso-primary)); }
 .xfp-familia__chev { color: var(--pulso-text-muted); transition: transform var(--motion-dur-fast) var(--motion-ease-out); }
-.xfp-familia__k { margin-left: 4px; font-size: var(--pulso-type-caption-size); font-variant-numeric: tabular-nums; color: var(--pulso-text-muted); }
+.xfp-familia__k {
+  display: inline-block; margin-left: 6px; padding: 0 6px; border-radius: 999px; background: var(--pulso-surface-3);
+  font-size: var(--pulso-type-micro-size); font-weight: var(--pulso-weight-semibold); font-variant-numeric: tabular-nums; color: var(--pulso-text-soft);
+  vertical-align: 1px;
+}
+/* Sin chevron (E20): la cabecera de familia es una sola columna; antes el texto caía en la de 14 px del ícono. */
+.xfp-item.sin-num.xfp-familia__cabeza { grid-template-columns: minmax(0, 1fr); }
 .xfp-item.is-miembro { padding-left: 28px; }
 
 .xfp-reglas__detalle {
