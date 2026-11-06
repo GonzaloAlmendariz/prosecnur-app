@@ -438,7 +438,9 @@
 .pulso-sm-token-profiles button:hover:not(:disabled) {
   border-color: var(--pulso-primary-border);
   color: var(--pulso-primary);
-  transform: translateY(-1px);
+}
+@media (hover: hover) and (pointer: fine) {
+  .pulso-sm-token-profiles button:hover:not(:disabled) { transform: translateY(var(--mov-hover-lift, -1px)); }
 }
 
 .pulso-sm-primary,
@@ -784,11 +786,9 @@
   border: 1px solid var(--pulso-border);
   background: var(--pulso-surface);
   color: var(--pulso-text-soft);
-}
-
-.pulso-kobo-detected-primary:hover:not(:disabled),
-.pulso-kobo-detected-secondary:hover:not(:disabled) {
-  transform: translateY(-1px);
+}@media (hover: hover) and (pointer: fine) {
+  .pulso-kobo-detected-primary:hover:not(:disabled),
+.pulso-kobo-detected-secondary:hover:not(:disabled) { transform: translateY(var(--mov-hover-lift, -1px)); }
 }
 
 .pulso-kobo-detected-primary:disabled,
@@ -920,12 +920,10 @@
   flex-basis: auto;
   gap: 6px;
   justify-content: flex-start;
-}
-
-.pulso-compact-tabs .pulso-compact-tab:hover:not(:disabled) svg,
+}@media (hover: hover) and (pointer: fine) {
+  .pulso-compact-tabs .pulso-compact-tab:hover:not(:disabled) svg,
 .pulso-compact-tabs .pulso-compact-tab:focus-visible svg,
-.pulso-compact-tabs .pulso-compact-tab.is-active svg {
-  transform: scale(1.03);
+.pulso-compact-tabs .pulso-compact-tab.is-active svg { transform: scale(1.03); }
 }
 
 .pulso-compact-tabs .pulso-compact-tab:hover:not(:disabled)::after,

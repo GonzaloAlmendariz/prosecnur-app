@@ -222,10 +222,12 @@
 }
 
 .home-cinema-cta:hover {
-  transform: translateY(-1px);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.32),
     0 13px 26px color-mix(in srgb, var(--home-mod-accent, var(--pulso-primary)) 24%, transparent);
+}
+@media (hover: hover) and (pointer: fine) {
+  .home-cinema-cta:hover { transform: translateY(var(--mov-hover-lift, -1px)); }
 }
 
 .home-cinema-cta:hover svg {

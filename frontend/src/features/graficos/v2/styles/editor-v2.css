@@ -2110,7 +2110,10 @@
   box-shadow: 0 2px 6px rgba(0, 36, 87, 0.18);
   transition: transform var(--motion-dur-press) var(--gv2-press-ease), filter var(--motion-dur-press) ease;
 }
-.pulso-gv2-timeline-empty-cta:hover { transform: translateY(-1px); filter: brightness(1.08); }
+.pulso-gv2-timeline-empty-cta:hover {  filter: brightness(1.08); }
+@media (hover: hover) and (pointer: fine) {
+  .pulso-gv2-timeline-empty-cta:hover { transform: translateY(var(--mov-hover-lift, -1px)); }
+}
 
 .pulso-kbd {
   font-family: ui-monospace, monospace;
@@ -2322,13 +2325,11 @@
 .pulso-gv2-style-flow-step.is-custom .pulso-gv2-style-flow-step-icon {
   color: var(--pulso-success-fg);
   border-color: color-mix(in srgb, var(--pulso-success-fg) 30%, var(--pulso-border));
-}
-
-.pulso-gv2-style-flow-step.is-active:hover,
+}@media (hover: hover) and (pointer: fine) {
+  .pulso-gv2-style-flow-step.is-active:hover,
 .pulso-gv2-style-flow-step.is-mode.is-active:hover,
 .pulso-gv2-style-flow-step.is-custom.is-active:hover,
-.pulso-gv2-style-flow-step.is-muted:hover {
-  transform: translateY(-1px);
+.pulso-gv2-style-flow-step.is-muted:hover { transform: translateY(var(--mov-hover-lift, -1px)); }
 }
 
 .pulso-gv2-style-flow-step-icon {
@@ -3762,7 +3763,11 @@
   box-shadow:
     inset 0 1px 0 rgba(255,255,255,0.82),
     0 6px 12px rgba(0, 36, 87, 0.07);
-  transform: translateY(-1px);
+}
+@media (hover: hover) and (pointer: fine) {
+  .pulso-arg-preset-button:hover,
+.pulso-gv2-choice-pill:hover,
+.pulso-gv2-multiflag-chip:hover { transform: translateY(var(--mov-hover-lift, -1px)); }
 }
 
 .pulso-arg-preset-button[aria-pressed="true"],
@@ -3970,11 +3975,13 @@
 }
 
 .pulso-gv2-color-swatch:hover {
-  transform: translateY(-1px);
   border-color: var(--pulso-primary-border) !important;
   box-shadow:
     inset 0 0 0 1px rgba(255,255,255,0.6),
     0 10px 20px rgba(0,36,87,0.12);
+}
+@media (hover: hover) and (pointer: fine) {
+  .pulso-gv2-color-swatch:hover { transform: translateY(var(--mov-hover-lift, -1px)); }
 }
 
 .pulso-gv2-color-swatch:active {
@@ -4442,7 +4449,9 @@
 }
 .pulso-gv2-override-chip:hover {
   border-color: var(--pulso-primary);
-  transform: translateY(-1px);
+}
+@media (hover: hover) and (pointer: fine) {
+  .pulso-gv2-override-chip:hover { transform: translateY(var(--mov-hover-lift, -1px)); }
 }
 .pulso-gv2-override-chip.is-active {
   background: var(--pulso-primary);
@@ -4839,10 +4848,12 @@
   border-color: var(--pulso-primary-border);
   background:
     linear-gradient(180deg, var(--pulso-surface), color-mix(in srgb, var(--pulso-primary-soft) 34%, var(--pulso-surface) 66%));
-  transform: translateY(-1px);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.9),
     0 10px 22px rgba(0, 36, 87, 0.075);
+}
+@media (hover: hover) and (pointer: fine) {
+  .pulso-gv2-multi-intent:hover:not(:disabled) { transform: translateY(var(--mov-hover-lift, -1px)); }
 }
 
 .pulso-gv2-multi-intent:active:not(:disabled) {
@@ -5266,10 +5277,12 @@
   border-color: color-mix(in srgb, var(--gv2-graf-kind) 34%, var(--pulso-border));
   background:
     linear-gradient(180deg, var(--pulso-surface), color-mix(in srgb, var(--gv2-graf-kind-soft) 42%, var(--pulso-surface)));
-  transform: translateY(-2px);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.9),
     0 12px 26px color-mix(in srgb, var(--gv2-graf-kind) 14%, transparent);
+}
+@media (hover: hover) and (pointer: fine) {
+  .pulso-gv2-graf-card:hover { transform: translateY(-2px); }
 }
 
 .pulso-gv2-graf-card:active {
@@ -5870,8 +5883,10 @@
 
 .pulso-gv2-slide-card:hover {
   border-color: var(--pulso-primary);
-  transform: translateY(-1px);
   box-shadow: var(--pulso-shadow-soft);
+}
+@media (hover: hover) and (pointer: fine) {
+  .pulso-gv2-slide-card:hover { transform: translateY(var(--mov-hover-lift, -1px)); }
 }
 
 .pulso-gv2-slide-card.is-active {
@@ -6045,11 +6060,13 @@
   color: inherit !important;
 }
 .pulso-gv2-picker-trigger:hover {
-  transform: translateY(-1px);
   background: var(--pulso-primary);
   border-color: var(--pulso-primary);
   box-shadow: var(--pulso-shadow-soft);
   color: white !important;
+}
+@media (hover: hover) and (pointer: fine) {
+  .pulso-gv2-picker-trigger:hover { transform: translateY(var(--mov-hover-lift, -1px)); }
 }
 .pulso-gv2-picker-trigger:hover svg,
 .pulso-gv2-picker-trigger:hover span { color: white !important; }
@@ -6252,10 +6269,12 @@
   background:
     linear-gradient(180deg, var(--pulso-surface), color-mix(in srgb, var(--pulso-primary-soft) 34%, var(--pulso-surface) 66%));
   border-color: var(--pulso-primary-border);
-  transform: translateY(-2px);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.9),
     0 12px 26px rgba(0, 36, 87, 0.09);
+}
+@media (hover: hover) and (pointer: fine) {
+  .pulso-gv2-picker-tile:hover { transform: translateY(-2px); }
 }
 .pulso-gv2-picker-tile:active { transform: translateY(0); }
 
@@ -7545,11 +7564,13 @@
 }
 
 .pulso-gv2-icon-card:hover {
-  transform: translateY(-1px);
   border-color: color-mix(in srgb, var(--gv2-accent-border, var(--pulso-primary-border)) 70%, var(--pulso-border));
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.9),
     0 12px 26px rgba(15, 23, 42, 0.075);
+}
+@media (hover: hover) and (pointer: fine) {
+  .pulso-gv2-icon-card:hover { transform: translateY(var(--mov-hover-lift, -1px)); }
 }
 
 .pulso-gv2-icon-card-preview {
@@ -8876,10 +8897,8 @@
   place-items: center;
   cursor: pointer;
   box-shadow: inset 0 1px 0 rgba(255,255,255,0.28);
-}
-
-.pulso-gv2-debug-border-swatches button:hover {
-  transform: translateY(-1px);
+}@media (hover: hover) and (pointer: fine) {
+  .pulso-gv2-debug-border-swatches button:hover { transform: translateY(var(--mov-hover-lift, -1px)); }
 }
 
 .pulso-gv2-debug-border-swatches button.is-selected {
@@ -10124,7 +10143,9 @@
 }
 .pulso-gv2-canvas-add-section:hover {
   background: var(--pulso-primary-soft);
-  transform: translateY(-1px);
+}
+@media (hover: hover) and (pointer: fine) {
+  .pulso-gv2-canvas-add-section:hover { transform: translateY(var(--mov-hover-lift, -1px)); }
 }
 
 .pulso-gv2-canvas-toolbar {
@@ -10233,7 +10254,9 @@
 .pulso-gv2-node-card:hover {
   border-color: var(--pulso-primary);
   box-shadow: var(--pulso-shadow-med);
-  transform: translateY(-1px);
+}
+@media (hover: hover) and (pointer: fine) {
+  .pulso-gv2-node-card:hover { transform: translateY(var(--mov-hover-lift, -1px)); }
 }
 
 .pulso-gv2-node-card.is-selected {
@@ -10827,7 +10850,9 @@
     0 1px 0 rgba(255, 255, 255, 0.92) inset,
     0 0 0 3px color-mix(in srgb, var(--layout-accent) 10%, transparent),
     0 12px 24px rgba(15, 23, 42, 0.075);
-  transform: translateY(-1px);
+}
+@media (hover: hover) and (pointer: fine) {
+  .pulso-gv2-layout-frame:hover { transform: translateY(var(--mov-hover-lift, -1px)); }
 }
 
 .pulso-gv2-layout-frame::after {
@@ -11196,7 +11221,9 @@
   box-shadow:
     0 0 0 3px color-mix(in srgb, var(--layout-accent) 8%, transparent),
     0 8px 18px rgba(17, 24, 39, 0.075);
-  transform: translateY(-1px);
+}
+@media (hover: hover) and (pointer: fine) {
+  .pulso-gv2-layout-frame:hover { transform: translateY(var(--mov-hover-lift, -1px)); }
 }
 
 .pulso-gv2-layout-frame span {
@@ -13386,10 +13413,8 @@
   height: 4px;
   border-radius: 12px 12px 0 0;
   background: color-mix(in srgb, var(--layout-accent) 68%, var(--pulso-surface) 32%);
-}
-
-.pulso-gv2-layout-frame:hover {
-  transform: translateY(-1px);
+}@media (hover: hover) and (pointer: fine) {
+  .pulso-gv2-layout-frame:hover { transform: translateY(var(--mov-hover-lift, -1px)); }
 }
 
 .pulso-gv2-layout-frame span {
@@ -14659,11 +14684,13 @@
 }
 
 .pulso-gv2-start-action:hover {
-  transform: translateY(-1px);
   border-color: color-mix(in srgb, var(--start-tone, var(--gv2-accent, var(--pulso-primary))) 42%, var(--pulso-border));
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.9),
     0 12px 26px rgba(15, 23, 42, 0.08);
+}
+@media (hover: hover) and (pointer: fine) {
+  .pulso-gv2-start-action:hover { transform: translateY(var(--mov-hover-lift, -1px)); }
 }
 
 .pulso-gv2-start-action:focus-visible {
@@ -15163,11 +15190,13 @@
 }
 
 .pulso-gv2-canvas-empty-action:hover {
-  transform: translateY(-1px);
   border-color: color-mix(in srgb, var(--canvas-action-tone, var(--gv2-accent, var(--pulso-primary))) 42%, var(--pulso-border));
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.88),
     0 10px 22px rgba(15, 23, 42, 0.075);
+}
+@media (hover: hover) and (pointer: fine) {
+  .pulso-gv2-canvas-empty-action:hover { transform: translateY(var(--mov-hover-lift, -1px)); }
 }
 
 .pulso-gv2-canvas-empty-action:focus-visible {
@@ -15748,10 +15777,12 @@
 }
 
 .pulso-gv2-slide-card:hover {
-  transform: translateY(-0.5px);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.8),
     0 6px 14px rgba(15, 23, 42, 0.055);
+}
+@media (hover: hover) and (pointer: fine) {
+  .pulso-gv2-slide-card:hover { transform: translateY(-0.5px); }
 }
 
 .pulso-gv2-slide-card.is-active {
@@ -17595,9 +17626,11 @@
 }
 
 .pulso-gv2-number-stepper .pulso-arg-stepper-button:hover:not(:disabled) {
-  transform: translateY(-1px);
   background:
     linear-gradient(180deg, color-mix(in srgb, var(--gv2-accent-soft, var(--pulso-primary-soft)) 64%, white), var(--gv2-accent-soft, var(--pulso-primary-soft))) !important;
+}
+@media (hover: hover) and (pointer: fine) {
+  .pulso-gv2-number-stepper .pulso-arg-stepper-button:hover:not(:disabled) { transform: translateY(var(--mov-hover-lift, -1px)); }
 }
 
 .pulso-gv2-stepper-glyph {
@@ -19624,7 +19657,9 @@
   background:
     linear-gradient(180deg, var(--pulso-surface), color-mix(in srgb, var(--gv2-accent-soft, var(--pulso-primary-soft)) 18%, var(--pulso-surface)));
   box-shadow: 0 10px 20px color-mix(in srgb, var(--gv2-accent, var(--pulso-primary)) 10%, transparent);
-  transform: translateY(-1px);
+}
+@media (hover: hover) and (pointer: fine) {
+  .pulso-gv2-export-menu-actions button:hover:not(:disabled) { transform: translateY(var(--mov-hover-lift, -1px)); }
 }
 
 .pulso-gv2-export-menu-actions button:disabled {
@@ -20745,10 +20780,8 @@
 .pulso-gv2-picker-tile-action {
   appearance: none;
   cursor: pointer;
-}
-
-.pulso-gv2-picker-tile-action:hover {
-  transform: translateY(-1px);
+}@media (hover: hover) and (pointer: fine) {
+  .pulso-gv2-picker-tile-action:hover { transform: translateY(var(--mov-hover-lift, -1px)); }
 }
 
 .pulso-gv2-picker-tab-copy small {
@@ -20962,10 +20995,12 @@
 }
 
 .pulso-gv2-picker-insert-primary:hover {
-  transform: translateY(-1px);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.25),
     0 18px 34px color-mix(in srgb, var(--gv2-picker-cat) 22%, transparent);
+}
+@media (hover: hover) and (pointer: fine) {
+  .pulso-gv2-picker-insert-primary:hover { transform: translateY(var(--mov-hover-lift, -1px)); }
 }
 
 .pulso-gv2-picker-insert-primary:active {
@@ -27666,7 +27701,9 @@
 
 .pulso-graficos-prep-cta:hover {
   filter: brightness(1.06);
-  transform: translateY(-1px);
+}
+@media (hover: hover) and (pointer: fine) {
+  .pulso-graficos-prep-cta:hover { transform: translateY(var(--mov-hover-lift, -1px)); }
 }
 
 .pulso-graficos-prep-cta:focus-visible {

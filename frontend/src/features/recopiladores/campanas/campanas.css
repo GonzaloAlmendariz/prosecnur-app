@@ -119,7 +119,11 @@
 .rec-campana-tarjeta:not(.is-archivada):has(.rec-campana-abrir:focus-visible) {
   border-color: var(--pulso-module-fieldkit-border);
   box-shadow: var(--pulso-shadow-med);
-  transform: translateY(-2px);
+}
+@media (hover: hover) and (pointer: fine) {
+  /* Elevación sutil al pasar el cursor o con el foco dentro. */
+.rec-campana-tarjeta:not(.is-archivada):hover,
+.rec-campana-tarjeta:not(.is-archivada):has(.rec-campana-abrir:focus-visible) { transform: translateY(-2px); }
 }
 
 .rec-campana-tarjeta:has(.rec-campana-abrir:focus-visible) {

@@ -78,7 +78,9 @@
 
 .cmv2-crc-recovery-action button:hover:not(:disabled) {
   box-shadow: var(--pulso-shadow-soft);
-  transform: translateY(-1px);
+}
+@media (hover: hover) and (pointer: fine) {
+  .cmv2-crc-recovery-action button:hover:not(:disabled) { transform: translateY(var(--mov-hover-lift, -1px)); }
 }
 
 .cmv2-crc-recovery-action button:focus-visible {

@@ -295,10 +295,8 @@
     color-mix(in srgb, var(--pulso-module-processing-soft) 28%, transparent);
   opacity: 0;
   transition: opacity var(--motion-dur-fast) ease;
-}
-
-.pulso-codificacion-question-card:hover {
-  transform: translateY(-1px);
+}@media (hover: hover) and (pointer: fine) {
+  .pulso-codificacion-question-card:hover { transform: translateY(var(--mov-hover-lift, -1px)); }
 }
 
 .pulso-codificacion-question-grid > article:hover {

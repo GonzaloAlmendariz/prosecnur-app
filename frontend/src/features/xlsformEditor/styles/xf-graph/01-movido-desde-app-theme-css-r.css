@@ -304,7 +304,9 @@
 .pulso-graph-zoom-indicator:hover {
   background: var(--pulso-surface-2);
   opacity: 1;
-  transform: translateY(-1px);
+}
+@media (hover: hover) and (pointer: fine) {
+  .pulso-graph-zoom-indicator:hover { transform: translateY(var(--mov-hover-lift, -1px)); }
 }
 
 .pulso-graph-zoom-indicator:active {

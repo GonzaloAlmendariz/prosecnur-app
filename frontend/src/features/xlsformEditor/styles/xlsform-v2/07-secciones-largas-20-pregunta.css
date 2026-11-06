@@ -296,8 +296,10 @@
 }
 
 .pulso-md-color-swatch:hover {
-  transform: scale(1.12);
   box-shadow: 0 0 0 2px var(--pulso-primary-soft);
+}
+@media (hover: hover) and (pointer: fine) {
+  .pulso-md-color-swatch:hover { transform: scale(1.12); }
 }
 
 .pulso-md-color-swatch[data-clear="true"] {
@@ -382,7 +384,9 @@
 
 .pulso-form-canvas-empty-cta:hover {
   background: #0d6660;
-  transform: translateY(-1px);
+}
+@media (hover: hover) and (pointer: fine) {
+  .pulso-form-canvas-empty-cta:hover { transform: translateY(var(--mov-hover-lift, -1px)); }
 }
 
 /* === FormCanvas: lienzo único scrollable con todo el formulario === */

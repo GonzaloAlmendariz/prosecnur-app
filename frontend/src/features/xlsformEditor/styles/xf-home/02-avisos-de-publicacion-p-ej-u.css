@@ -420,10 +420,12 @@
 }
 
 .pulso-xf-home-add--tile:hover {
-  transform: translateY(-2px);
   border-color: var(--pulso-module-editor);
   background: var(--pulso-module-editor-soft);
   box-shadow: var(--pulso-shadow-soft);
+}
+@media (hover: hover) and (pointer: fine) {
+  .pulso-xf-home-add--tile:hover { transform: translateY(-2px); }
 }
 
 .pulso-xf-home-add-plus {

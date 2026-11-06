@@ -100,9 +100,11 @@
 }
 
 .pulso-xf-home-action:hover {
-  transform: translateY(-2px);
   box-shadow: var(--pulso-shadow-soft);
   border-color: var(--pulso-border-strong);
+}
+@media (hover: hover) and (pointer: fine) {
+  .pulso-xf-home-action:hover { transform: translateY(-2px); }
 }
 
 .pulso-xf-home-action-icon {

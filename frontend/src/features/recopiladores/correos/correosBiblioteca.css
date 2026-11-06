@@ -159,7 +159,10 @@
 .rec-bib-tipo:focus-visible {
   border-color: var(--pulso-module-fieldkit-border);
   box-shadow: var(--pulso-shadow-low);
-  transform: translateY(-1px);
+}
+@media (hover: hover) and (pointer: fine) {
+  .rec-bib-tipo:hover:not(:disabled),
+.rec-bib-tipo:focus-visible { transform: translateY(var(--mov-hover-lift, -1px)); }
 }
 
 /* #18: anillo de foco con contraste ≥ 3:1 (el acento del módulo sobre blanco). */

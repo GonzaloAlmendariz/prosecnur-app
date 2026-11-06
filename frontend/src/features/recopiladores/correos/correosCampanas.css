@@ -678,7 +678,9 @@
 .rec-camp-vacio-op:hover:not(:disabled) {
   border-color: var(--pulso-module-fieldkit-border);
   box-shadow: var(--pulso-shadow-med);
-  transform: translateY(-1px);
+}
+@media (hover: hover) and (pointer: fine) {
+  .rec-camp-vacio-op:hover:not(:disabled) { transform: translateY(var(--mov-hover-lift, -1px)); }
 }
 
 .rec-camp-vacio-op:focus-visible {

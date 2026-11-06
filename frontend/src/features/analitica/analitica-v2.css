@@ -2511,9 +2511,11 @@
 }
 
 .analitica-plantilla-card:hover:not(:disabled) {
-  transform: translateY(-2px);
   border-color: var(--plantilla-accent);
   box-shadow: var(--pulso-shadow-med);
+}
+@media (hover: hover) and (pointer: fine) {
+  .analitica-plantilla-card:hover:not(:disabled) { transform: translateY(-2px); }
 }
 
 .analitica-plantilla-card:active:not(:disabled) {

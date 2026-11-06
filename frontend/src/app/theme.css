@@ -15957,7 +15957,9 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-card:hover:not
 }
 .pulso-logic-calc-template:hover {
   border-color: var(--pulso-primary);
-  transform: translateY(-1px);
+}
+@media (hover: hover) and (pointer: fine) {
+  .pulso-logic-calc-template:hover { transform: translateY(var(--mov-hover-lift, -1px)); }
 }
 .pulso-logic-calc-template strong {
   font-size: 12px;
@@ -16850,7 +16852,9 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-card:hover:not
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.92),
     0 6px 14px rgba(0, 36, 87, 0.08);
-  transform: translateY(-1px);
+}
+@media (hover: hover) and (pointer: fine) {
+  .home-recent-item:hover:not(:disabled) { transform: translateY(var(--mov-hover-lift, -1px)); }
 }
 
 .home-recent-item:active:not(:disabled) {
@@ -18161,9 +18165,11 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-card:hover:not
 }
 
 .home-detail-cta:hover {
-  transform: translateY(-1px);
   box-shadow: var(--pulso-shadow-med);
   filter: brightness(1.04);
+}
+@media (hover: hover) and (pointer: fine) {
+  .home-detail-cta:hover { transform: translateY(var(--mov-hover-lift, -1px)); }
 }
 
 .home-detail-cta:active {
@@ -19789,8 +19795,10 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-card:hover:not
 }
 .pulso-graph-edge-panel-btn:hover {
   background: #1f47b3;
-  transform: translateY(-1px);
   box-shadow: 0 4px 12px rgba(36, 87, 214, 0.28);
+}
+@media (hover: hover) and (pointer: fine) {
+  .pulso-graph-edge-panel-btn:hover { transform: translateY(var(--mov-hover-lift, -1px)); }
 }
 
 /* Confirmación inline de borrado — ocupa el lugar de las acciones. */
@@ -20150,10 +20158,13 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-card:hover:not
 }
 .pulso-graph-node-anchor:hover circle:nth-of-type(2) {
   /* El círculo principal del anchor crece sutilmente al hover. */
-  transform: scale(1.18);
+  
   transform-origin: center;
   transform-box: fill-box;
   transition: transform 140ms ease;
+}
+@media (hover: hover) and (pointer: fine) {
+  .pulso-graph-node-anchor:hover circle:nth-of-type(2) { transform: scale(1.18); }
 }
 
 /* ─── Ghost edge (drag-arrow en progreso) ──────────────────────── */
@@ -21839,7 +21850,9 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-outline-grip:hover:no
   border-color: color-mix(in srgb, var(--pulso-primary) 22%, var(--xls-border));
   background: rgba(255, 255, 255, 0.92);
   box-shadow: 0 8px 18px rgba(15, 23, 42, 0.06);
-  transform: translateY(-1px);
+}
+@media (hover: hover) and (pointer: fine) {
+  .pulso-add-element-menu-item:hover { transform: translateY(var(--mov-hover-lift, -1px)); }
 }
 
 @media (max-width: 900px) {

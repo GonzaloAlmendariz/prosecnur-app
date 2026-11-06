@@ -215,9 +215,11 @@
 }
 
 .pulso-xf-home-card:hover {
-  transform: translateY(-2px);
   box-shadow: var(--pulso-shadow-soft);
   border-color: var(--pulso-border-strong);
+}
+@media (hover: hover) and (pointer: fine) {
+  .pulso-xf-home-card:hover { transform: translateY(-2px); }
 }
 
 /* Un popover abierto (menú o campañas) se pinta sobre las tarjetas vecinas:
