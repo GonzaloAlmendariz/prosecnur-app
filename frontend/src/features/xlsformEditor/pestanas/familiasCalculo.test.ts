@@ -2,7 +2,7 @@
 // y un orden que cambia.
 import { describe, expect, it } from "vitest";
 import { agruparEnFamilias, claveFamilia } from "./familiasCalculo";
-import { valorLegible } from "./PestanaCalculos";
+import { pistaDistinta, valorLegible } from "./PestanaCalculos";
 
 describe("familias de cálculos", () => {
   it("la tarea y el perfil se vuelven t#P y los números #", () => {
@@ -24,5 +24,13 @@ describe("valor de ejemplo legible", () => {
     expect(valorLegible("0.231999499")).toBe("0.232");
     expect(valorLegible("42")).toBe("42");
     expect(valorLegible("Realizado en el Perú")).toBe("Realizado en el Perú");
+  });
+});
+
+describe("código y etiqueta en los tokens", () => {
+  it("no repite el código como etiqueta", () => {
+    expect(pistaDistinta("t1A_r_curso", "t1A_r_curso")).toBeUndefined();
+    expect(pistaDistinta("", "edad")).toBeUndefined();
+    expect(pistaDistinta("Edad del encuestado", "edad")).toBe("Edad del encuestado");
   });
 });

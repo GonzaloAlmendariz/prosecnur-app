@@ -132,6 +132,25 @@ describe("M3 · vocabulario por tipo (los fallos medidos en la línea base)", ()
   });
 });
 
+describe("E13 · sorteos de nivel", () => {
+  const calc = nodo("t1A_curso", "calculate", "");
+  test("int(${r} * k) en cadena → sortea con la misma probabilidad", () => {
+    expect(texto("calculation", "if(int(${region} * 3) = 0, 'a', if(int(${region} * 3) = 1, 'b', 'c'))", calc))
+      .toBe("Sortea con la misma probabilidad entre «a», «b» o «c» con el número al azar de Región");
+  });
+  test("umbrales acumulados → sortea con sus porcentajes", () => {
+    expect(texto("calculation", "if(${region} < 0.2, 'no', if(${region} < 0.5, 'mae', 'pme'))", calc))
+      .toBe("Sortea entre «no» (20 %), «mae» (30 %) o «pme» (50 %) con el número al azar de Región");
+  });
+  test("un condicional delante se dice al final", () => {
+    expect(texto("calculation", "if(${gasto} = 'x', 'NA', if(int(${region} * 2) = 0, 'a', 'b'))", calc))
+      .toMatch(/^Sortea con la misma probabilidad entre «a» o «b» con el número al azar de Región; vale «NA» cuando /);
+  });
+  test("una cadena que no es sorteo sigue con la lectura de siempre", () => {
+    expect(texto("calculation", "if(int(${region} * 3) = 0, 'a', 'b')", calc)).not.toMatch(/^Sortea/);
+  });
+});
+
 describe("M4 · filtros de opciones", () => {
   const cascada = nodo("distrito", "select_one", "distritos");
   test("<columna> = ${pregunta} → coincide con la respuesta", () => {

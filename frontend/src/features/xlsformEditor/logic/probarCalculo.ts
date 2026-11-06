@@ -3,7 +3,7 @@
 // coalesce, number, int) la resuelve un evaluador acotado de descenso recursivo, sin eval().
 
 import { UnsupportedExpressionError, evaluateExpr, type SimAnswers } from "./evaluate";
-import { parseExpression } from "./parse";
+import { parseExpressionLectura } from "./parse";
 
 export type ResultadoCalculo = { estado: "ok"; valor: string } | { estado: "no-evaluable" };
 
@@ -86,7 +86,8 @@ export function evaluarAritmetica(texto: string, respuestas: SimAnswers): number
 export function evaluarCalculo(expresion: string, respuestas: SimAnswers): ResultadoCalculo {
   const raw = expresion.trim();
   if (!raw) return { estado: "ok", valor: "" };
-  const ast = parseExpression(raw);
+  // Modo lectura: entiende la aritmética dentro de if() (`int(${r} * 5)`), que el evaluador ya resuelve (E13).
+  const ast = parseExpressionLectura(raw);
   try {
     if (ast && ast.kind !== "raw") return { estado: "ok", valor: formatear(evaluateExpr(ast, respuestas)) };
     return { estado: "ok", valor: formatear(evaluarAritmetica(raw, respuestas)) };

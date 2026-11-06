@@ -201,7 +201,7 @@ export function PestanaCalculos({ structure, scope: scopeBase, seleccionada, onS
                 <div className="xfp-toks">
                   {actual.usa.map((v) => {
                     const n = porNombre(v);
-                    return <QuestionToken key={v} baseType={n?.typeInfo.base ?? ""} label={n ? numero(n) : v} hint={n?.label ? etiquetaPlana(n.label, etiquetaDe) : undefined} variable={v} />;
+                    return <QuestionToken key={v} baseType={n?.typeInfo.base ?? ""} label={n ? numero(n) : v} hint={pistaDistinta(n?.label ? etiquetaPlana(n.label, etiquetaDe) : "", n ? numero(n) : v)} variable={v} />;
                   })}
                 </div>
               ) : <p className="xfp-nota">No lee ninguna respuesta.</p>}
@@ -211,7 +211,7 @@ export function PestanaCalculos({ structure, scope: scopeBase, seleccionada, onS
                 <ul className="xfp-usos">
                   {actual.loUsan.map((u) => (
                     <li key={`${u.node.rowIndex}-${u.columna}-${u.opcion?.valor ?? ""}`}>
-                      <QuestionToken baseType={u.node.typeInfo.base} label={numero(u.node)} hint={etiquetaPlana(u.node.label, etiquetaDe)} variable={u.node.name} />
+                      <QuestionToken baseType={u.node.typeInfo.base} label={numero(u.node)} hint={pistaDistinta(etiquetaPlana(u.node.label, etiquetaDe), numero(u.node))} variable={u.node.name} />
                       {/* M2: el sufijo es corto para no comerse el título; qué opción, en el tooltip y sin `${x}` crudo. */}
                       <span className="xfp-usos__col" title={u.opcion ? `Opción de la lista ${u.opcion.lista}: ${etiquetaPlana(u.opcion.etiqueta, etiquetaDe)}` : undefined}>
                         {DONDE_SE_USA[u.columna]}
@@ -275,4 +275,10 @@ function CalculosVacio() {
 /** Un número al azar se lee con tres decimales («0.232», no «0.231999499»); un texto o un entero, tal cual. */
 export function valorLegible(valor: string): string {
   return /^-?\d+\.\d{4,}$/.test(valor) ? String(Math.round(Number(valor) * 1000) / 1000) : valor;
+}
+
+/** La etiqueta junto al código sólo si dice algo más: un cálculo sin rótulo repetía su código dos veces. */
+export function pistaDistinta(etiqueta: string, codigo: string): string | undefined {
+  const e = etiqueta.trim();
+  return e && e !== codigo.trim() ? e : undefined;
 }

@@ -1,6 +1,7 @@
 // Motor de lectura de reglas: parsea en modo lectura, normaliza y elige la voz según la columna.
 // Si algo no se reconoce, la lectura es técnica (piezas vacías) y `depende`/`lista` se llenan igual.
 
+import { leerSorteo } from "./sorteo";
 import { lecturaRequired } from "../../parsing/parseType";
 import type { ColumnaRegla, LecturaRegla, Pieza } from "../piezas";
 import { etiquetaDe, type Contexto } from "./contexto";
@@ -70,7 +71,7 @@ export function leerConContexto(columna: ColumnaRegla, raw: string, ctx: Context
       frase = esBooleana(norm) ? leerCondicion(norm, ctx) : null;
       break;
     case "calculation":
-      frase = esBooleana(norm) ? leerCondicion(norm, ctx) : leerValor(norm, ctx);
+      frase = esBooleana(norm) ? leerCondicion(norm, ctx) : leerSorteo(norm, ctx) ?? leerValor(norm, ctx);
       break;
   }
   if (!frase || !frase.length) return { ...base, piezas: [], tecnica: true, depende, ...conAvisos([]) };
