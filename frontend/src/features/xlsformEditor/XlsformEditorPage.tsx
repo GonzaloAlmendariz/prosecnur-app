@@ -172,6 +172,8 @@ import { contextoResumen } from "./resumen/contextoResumen";
 import { PestanaImpreso } from "./impreso/PestanaImpreso";
 import { usePanelDireccionable } from "../../lib/navegacion/paneles";
 import { MontajeConjoint } from "./conjoint/MontajeConjoint";
+import { itemAltaConjoint } from "./conjoint/altaConjoint";
+import { PANEL_EXPERIMENTO_CONJOINT } from "./conjoint/estadoPanelConjoint";
 import { esperarExportPapel, textoExportando } from "./shell/paperExportJob";
 import { ToastDeck, useToastDeck } from "./shell/ToastDeck";
 import { EditorCommandBar } from "./shell/EditorCommandBar";
@@ -321,6 +323,7 @@ export default function XlsformEditorPage() {
   const fijarFocoEnSitio = useCallback((valor: string | null) => fijarFoco(valor, { replace: true }), [fijarFoco]);
   /** Editor de listas (ContextLens de catálogos): panel direccionable. */
   const catalogosPanel = usePanelDireccionable(PANEL_CATALOGOS);
+  const conjointPanel = usePanelDireccionable(PANEL_EXPERIMENTO_CONJOINT);
   const catalogsLensOpen = catalogosPanel.abierto;
   // Los atajos de teclado se registran una vez: leen la pestaña por ref.
   const irPestanaRef = useRef(irPestana);
@@ -2508,6 +2511,7 @@ export default function XlsformEditorPage() {
       action: t.key === "section" || t.key === "repeat" ? () => addSection(undefined, t.base) : () => addQuestion(t.base),
       group: t.group,
     })),
+    itemAltaConjoint(conjointPanel.abrir),
     {
       key: "section_end",
       label: "Cerrar sección",

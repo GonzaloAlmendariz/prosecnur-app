@@ -241,6 +241,12 @@ export function describeAddMenuItem(item: AddMenuItem): {
         tone: "logic",
         searchTerms: ["grupo", "seccion", "end", "cerrar", "cierre", "bloque"],
       };
+    case "conjoint":
+      return {
+        tag: "Bloque",
+        tone: "logic",
+        searchTerms: ["conjoint", "experimento", "perfiles", "sorteo", "aleatorio", "atributos", "eleccion"],
+      };
     case "note":
       return {
         tag: "Sin respuesta",
