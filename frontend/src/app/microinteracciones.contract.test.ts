@@ -1,0 +1,90 @@
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import { describe, expect, test } from "vitest";
+
+/**
+ * **Microinteracciones: dos presiones con nombre** (5 nov 2026; pedido de Gonzalo: «¿y qué hay de las
+ * animaciones al pasar por un botón, apretarlo y todo eso?»).
+ *
+ * Ese día había 296 reglas `:active` con 11 escalas distintas (0.94 a 0.995). El estándar vive en
+ * `app/movimiento.css`: `--mov-press` (0.97, controles) y `--mov-press-tarjeta` (0.985, superficies), más una
+ * regla base que hace ceder a todo botón que no declare su presión. Este ratchet cuenta, por hoja, las escalas
+ * LITERALES que quedan en reglas `:active` (las compuestas, como `translateY(0) scale(.97)`, y las de las zonas
+ * de otras sesiones) y sólo deja que bajen. Una presión nueva se escribe con el token.
+ */
+
+const SRC = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+
+/** Foto del 5 nov 2026, tras migrar 162 escalas en 41 hojas. Sólo baja. */
+const SNAPSHOT: Record<string, number> = {
+  "app/boot.css": 6,
+  "app/theme.css": 2,
+  "components/recent-project-card.css": 1,
+  "features/calcMuestra/didactica/didactica.css": 1,
+  "features/dashboard/customize/customize.css": 2,
+  "features/dashboard/tabs/BaseDatosTab/baseDatos.css": 1,
+  "features/dashboard/tabs/DimensionesTab/dimensiones.css": 3,
+  "features/dashboard/theme/tokens.css": 4,
+  "features/graficos/v2/styles/editor-v2.css": 6,
+  "features/monitoreo/MonitoreoShell.css": 1,
+  "features/monitoreo/monitoreo.css": 10,
+  "features/monitoreo/profiles/profilePage.css": 9,
+  "features/monitoreo/profiles/telefonico/telefonicoProfile.css": 3,
+  "features/monitoreo/profiles/territorial/territorialProfile.css": 3,
+  "features/monitoreo/salidas/outputsWorkbench.css": 1,
+  "features/monitoreo/shell/monitoreoShell.css": 1,
+  "features/validacion/validacion-v2.css": 3,
+};
+
+function hojas(dir: string): string[] {
+  return fs.readdirSync(dir, { withFileTypes: true }).flatMap((e) => {
+    const completo = path.join(dir, e.name);
+    if (e.isDirectory()) return hojas(completo);
+    return e.name.endsWith(".css") ? [completo] : [];
+  });
+}
+
+function escalasLiteralesEnActive(css: string): number {
+  const limpio = css.replace(/\/\*[\s\S]*?\*\//g, "");
+  let n = 0;
+  for (const m of limpio.matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
+    if (!m[1].includes(":active")) continue;
+    n += [...m[2].matchAll(/scale\([0-9.]+\)/g)].length;
+  }
+  return n;
+}
+
+describe("microinteracciones · presión con nombre", () => {
+  const conteo = Object.fromEntries(
+    hojas(SRC)
+      .map((f) => [path.relative(SRC, f).split(path.sep).join("/"), escalasLiteralesEnActive(fs.readFileSync(f, "utf8"))] as const)
+      .filter(([, n]) => n > 0),
+  );
+
+  test("el censo encuentra lo que vigila (si el filtro deja de casar, no pasa en verde sin mirar)", () => {
+    expect(hojas(SRC).length).toBeGreaterThan(300);
+    expect(Object.keys(conteo).length).toBeGreaterThan(5);
+  });
+
+  test("ninguna hoja suma escalas de presión literales ni aparece una nueva", () => {
+    const regresiones = Object.entries(conteo)
+      .filter(([archivo, n]) => n > (SNAPSHOT[archivo] ?? 0))
+      .map(([archivo, n]) => `${archivo}: ${SNAPSHOT[archivo] ?? 0} → ${n}`);
+    expect(regresiones, "Usa scale(var(--mov-press, 0.97)) o scale(var(--mov-press-tarjeta, 0.985)).").toEqual([]);
+  });
+
+  test("el snapshot no guarda conteos que ya bajaron", () => {
+    const viejos = Object.entries(SNAPSHOT)
+      .filter(([archivo, n]) => (conteo[archivo] ?? 0) < n)
+      .map(([archivo, n]) => `${archivo}: ${n} → ${conteo[archivo] ?? 0}`);
+    expect(viejos).toEqual([]);
+  });
+
+  test("los tokens y la regla base existen", () => {
+    const mov = fs.readFileSync(path.join(SRC, "app/movimiento.css"), "utf8");
+    expect(mov).toMatch(/--mov-press:\s*0\.97/);
+    expect(mov).toMatch(/--mov-press-tarjeta:\s*0\.985/);
+    expect(mov).toMatch(/:where\(button[^)]*\)[\s\S]*?:active\s*\{\s*transform: scale\(var\(--mov-press\)\)/);
+  });
+});

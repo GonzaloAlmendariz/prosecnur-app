@@ -396,7 +396,7 @@
 }
 
 .pulso-segmented.cmv2-sal-pii-segment > button:active {
-  transform: scale(0.96);
+  transform: scale(var(--mov-press, 0.97));
 }
 
 .pulso-segmented.cmv2-sal-pii-segment > button:focus-visible {
@@ -517,7 +517,7 @@
 }
 
 .cmv2-sal-stack .cmv2-did-segment button:active {
-  transform: scale(0.96);
+  transform: scale(var(--mov-press, 0.97));
 }
 
 .cmv2-sal-stack .cmv2-did-segment button:focus-visible {

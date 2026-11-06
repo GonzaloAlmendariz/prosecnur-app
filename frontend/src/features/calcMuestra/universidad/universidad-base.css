@@ -308,7 +308,7 @@
 }
 
 .cmv2-classroom-method-card:active:not(:disabled) {
-  transform: scale(0.98);
+  transform: scale(var(--mov-press, 0.97));
 }
 
 .cmv2-classroom-method-card.is-active {

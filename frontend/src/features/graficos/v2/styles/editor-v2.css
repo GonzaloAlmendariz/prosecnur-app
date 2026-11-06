@@ -160,7 +160,7 @@
 .pulso-gv2-pill-button:active:not(:disabled),
 .pulso-gv2-icon-button:active:not(:disabled),
 .pulso-gv2-segmented button:active:not(:disabled) {
-  transform: scale(0.97);
+  transform: scale(var(--mov-press, 0.97));
 }
 
 .pulso-gv2-pill-button--primary {
@@ -384,7 +384,7 @@
 }
 
 .pulso-gv2-health-trigger:active {
-  transform: scale(0.97);
+  transform: scale(var(--mov-press, 0.97));
 }
 
 @media (hover: hover) and (pointer: fine) {
@@ -3978,7 +3978,7 @@
 }
 
 .pulso-gv2-color-swatch:active {
-  transform: scale(0.96);
+  transform: scale(var(--mov-press, 0.97));
 }
 
 .pulso-gv2-color-clear {
@@ -4335,7 +4335,7 @@
   background: var(--pulso-surface-2);
   color: var(--pulso-text);
 }
-.pulso-gv2-style-reset:active:not(:disabled) { transform: scale(0.97); }
+.pulso-gv2-style-reset:active:not(:disabled) { transform: scale(var(--mov-press, 0.97)); }
 .pulso-gv2-style-reset:disabled { opacity: 0.4; cursor: not-allowed; }
 
 .pulso-arg-stepper-button,
@@ -4366,7 +4366,7 @@
 
 .pulso-arg-stepper-button:active:not(:disabled),
 .pulso-arg-preset-button:active:not(:disabled) {
-  transform: scale(0.97);
+  transform: scale(var(--mov-press, 0.97));
 }
 
 .pulso-arg-range::-webkit-slider-thumb {
@@ -5056,7 +5056,7 @@
 }
 
 .pulso-gv2-graf-picker-close:active {
-  transform: scale(0.96);
+  transform: scale(var(--mov-press, 0.97));
 }
 
 .pulso-gv2-graf-picker-search-wrap {
@@ -5563,7 +5563,7 @@
 }
 
 .pulso-gv2-mode-trigger:active {
-  transform: scale(0.97);
+  transform: scale(var(--mov-press, 0.97));
 }
 
 .pulso-gv2-mode-popover {
@@ -6134,7 +6134,7 @@
   border-color: var(--pulso-primary-border);
   color: var(--pulso-text);
 }
-.pulso-gv2-picker-close:active { transform: scale(0.96); }
+.pulso-gv2-picker-close:active { transform: scale(var(--mov-press, 0.97)); }
 
 .pulso-gv2-picker-search-wrap {
   position: relative;
@@ -6437,7 +6437,7 @@
 }
 
 .pulso-gv2-paleta-row:active {
-  transform: scale(0.99);
+  transform: scale(var(--mov-press-tarjeta, 0.985));
 }
 
 .pulso-gv2-paleta-row[data-active="true"] {
@@ -6817,7 +6817,7 @@
 }
 
 .pulso-gv2-paleta-clear-button:active {
-  transform: scale(0.98);
+  transform: scale(var(--mov-press, 0.97));
 }
 
 .pulso-gv2-paletas-suggestions,
@@ -6918,7 +6918,7 @@
 }
 
 .pulso-gv2-sugerido-card:active {
-  transform: scale(0.995);
+  transform: scale(var(--mov-press-tarjeta, 0.985));
 }
 
 .pulso-gv2-sugerido-card[data-inverted="true"] {
@@ -7432,7 +7432,7 @@
 }
 
 .pulso-gv2-iconos-dropzone:active {
-  transform: scale(0.995);
+  transform: scale(var(--mov-press-tarjeta, 0.985));
 }
 
 .pulso-gv2-iconos-dropzone[data-uploading="true"] {
@@ -7652,7 +7652,7 @@
 }
 
 .pulso-gv2-iconos-action:active {
-  transform: scale(0.96);
+  transform: scale(var(--mov-press, 0.97));
 }
 
 .pulso-gv2-icon-card-edit input {
@@ -7979,7 +7979,7 @@
 }
 
 .pulso-gv2-ppt-style-card button:active {
-  transform: scale(0.97);
+  transform: scale(var(--mov-press, 0.97));
 }
 
 .pulso-gv2-ppt-style-card button.is-applied {
@@ -8299,7 +8299,7 @@
 }
 
 .pulso-gv2-mode-list-item:active {
-  transform: scale(0.985);
+  transform: scale(var(--mov-press-tarjeta, 0.985));
 }
 
 .pulso-gv2-mode-list-item.is-active {
@@ -8512,7 +8512,7 @@
 }
 
 .pulso-gv2-override-action-button:active {
-  transform: scale(0.97);
+  transform: scale(var(--mov-press, 0.97));
 }
 
 .pulso-gv2-override-description {
@@ -9376,7 +9376,7 @@
 
 .pulso-slide-preview-download:active,
 .pulso-slide-preview-close:active {
-  transform: scale(0.96);
+  transform: scale(var(--mov-press, 0.97));
 }
 
 .pulso-slide-preview-bubble-stale {
@@ -13103,7 +13103,7 @@
 }
 
 .pulso-gv2-preset-nav-item:active {
-  transform: scale(0.985);
+  transform: scale(var(--mov-press-tarjeta, 0.985));
 }
 
 .pulso-gv2-preset-nav-item.is-active {
@@ -13269,7 +13269,7 @@
 }
 
 .pulso-gv2-preset-reset:active {
-  transform: scale(0.97);
+  transform: scale(var(--mov-press, 0.97));
 }
 
 .pulso-gv2-layout-panel {

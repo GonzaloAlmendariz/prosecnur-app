@@ -379,7 +379,7 @@
 }
 
 .dashboard-scope .dash-assembly-legend-item:active {
-  transform: scale(0.97);
+  transform: scale(var(--mov-press, 0.97));
 }
 
 /* ──────────────────────────────────────────────────────────────────────── */

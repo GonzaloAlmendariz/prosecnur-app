@@ -84,7 +84,7 @@
 }
 
 .pulso-logic-group-connector button:active {
-  transform: scale(0.97);
+  transform: scale(var(--mov-press, 0.97));
 }
 
 .pulso-logic-group-body {

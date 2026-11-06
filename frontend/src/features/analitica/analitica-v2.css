@@ -103,7 +103,7 @@
 }
 
 .analitica-control-card:active {
-  transform: scale(0.99);
+  transform: scale(var(--mov-press-tarjeta, 0.985));
 }
 
 .analitica-control-card input[type="checkbox"] {
@@ -167,7 +167,7 @@
 }
 
 .analitica-segmented button:active:not(:disabled) {
-  transform: scale(0.98);
+  transform: scale(var(--mov-press, 0.97));
 }
 
 .analitica-segmented button.is-on {
@@ -226,7 +226,7 @@
 }
 
 .analitica-add-inline:active:not(:disabled) {
-  transform: scale(0.98);
+  transform: scale(var(--mov-press, 0.97));
 }
 
 @media (hover: hover) and (pointer: fine) {
@@ -301,7 +301,7 @@
 }
 
 .analitica-frecuencias-clear:active {
-  transform: scale(0.98);
+  transform: scale(var(--mov-press, 0.97));
 }
 
 .analitica-cruces-summary {
@@ -1134,7 +1134,7 @@
 .pulso-analitica-frame .analitica-download-pill:active,
 .pulso-analitica-frame .analitica-codebook-download:active,
 .pulso-analitica-frame .analitica-codebook-base-link:active {
-  transform: scale(0.97);
+  transform: scale(var(--mov-press, 0.97));
 }
 
 .pulso-analitica-frame .analitica-download-pill:focus-visible,
@@ -2192,7 +2192,7 @@
 }
 
 .analitica-suggestion-chip:active {
-  transform: scale(0.98);
+  transform: scale(var(--mov-press, 0.97));
 }
 
 
@@ -2318,7 +2318,7 @@
 }
 
 .analitica-bases-source-card:active {
-  transform: scale(0.995);
+  transform: scale(var(--mov-press-tarjeta, 0.985));
 }
 
 .analitica-bases-check-option input {
@@ -2416,7 +2416,7 @@
 }
 
 .analitica-cruces-filter-chip:active {
-  transform: scale(0.98);
+  transform: scale(var(--mov-press, 0.97));
 }
 
 .analitica-cruces-mode-option {
@@ -2517,7 +2517,7 @@
 }
 
 .analitica-plantilla-card:active:not(:disabled) {
-  transform: scale(0.99);
+  transform: scale(var(--mov-press-tarjeta, 0.985));
 }
 
 .analitica-plantilla-card:focus-visible {
@@ -2649,7 +2649,7 @@
 }
 
 .analitica-codebook-code:active {
-  transform: scale(0.98);
+  transform: scale(var(--mov-press, 0.97));
 }
 
 .analitica-ficha-loading-step > span {

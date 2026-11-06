@@ -225,7 +225,7 @@
 }
 
 .pulso-xfsim-edit:active {
-  transform: scale(0.94);
+  transform: scale(var(--mov-press, 0.97));
 }
 
 .pulso-xfsim-hint {
@@ -264,7 +264,7 @@
 }
 
 .pulso-xfsim-option:active:not(:disabled) {
-  transform: scale(0.985);
+  transform: scale(var(--mov-press-tarjeta, 0.985));
 }
 
 .pulso-xfsim-option:disabled {
@@ -596,7 +596,7 @@ input[type="range"].pulso-xfsim-range-input::-moz-range-thumb {
 }
 
 .pulso-xfsim-pill:active:not(:disabled) {
-  transform: scale(0.97);
+  transform: scale(var(--mov-press, 0.97));
 }
 
 .pulso-xfsim-pill:disabled {

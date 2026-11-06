@@ -272,7 +272,7 @@
 }
 
 .aulas-flow-action:active:not(.is-disabled) {
-  transform: scale(0.98);
+  transform: scale(var(--mov-press, 0.97));
 }
 
 .aulas-flow-action:focus-visible {

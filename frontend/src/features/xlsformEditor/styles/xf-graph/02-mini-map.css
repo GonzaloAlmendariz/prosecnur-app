@@ -89,7 +89,7 @@
     transform var(--motion-dur-press) var(--motion-ease-out);
 }
 .pulso-graph-overlay .pulso-graph-back:active {
-  transform: scale(0.97);
+  transform: scale(var(--mov-press, 0.97));
 }
 
 /* Título + subtítulo compactos. */
@@ -122,7 +122,7 @@
     transform var(--motion-dur-press) var(--motion-ease-out);
 }
 .pulso-graph-overlay .pulso-graph-allbutton:active {
-  transform: scale(0.97);
+  transform: scale(var(--mov-press, 0.97));
 }
 
 /* Segmented glass con los icon-buttons redondos (zoom − / + / ajustar /
@@ -154,7 +154,7 @@
 }
 .pulso-graph-overlay .pulso-graph-iconseg .pulso-icon:active,
 .pulso-graph-overlay .pulso-graph-header-right > .pulso-icon:active {
-  transform: scale(0.94);
+  transform: scale(var(--mov-press, 0.97));
 }
 .pulso-graph-overlay .pulso-graph-iconseg .pulso-icon.is-on {
   background: var(--pulso-primary);
@@ -188,7 +188,7 @@
     transform var(--motion-dur-press) var(--motion-ease-out);
 }
 .pulso-graph-overlay .pulso-graph-toolbar-btn:active:not(:disabled) {
-  transform: scale(0.96);
+  transform: scale(var(--mov-press, 0.97));
 }
 
 /* Filtro de tipos de relación → fila de chips con la muestra del trazo
@@ -218,7 +218,7 @@
     transform var(--motion-dur-press) var(--motion-ease-out);
 }
 .pulso-graph-overlay .pulso-graph-toolbar-segment button:active {
-  transform: scale(0.96);
+  transform: scale(var(--mov-press, 0.97));
 }
 .pulso-graph-overlay .pulso-graph-toolbar-segment button.is-on {
   background: color-mix(in srgb, var(--xfg-chip, var(--pulso-primary)) 10%, #ffffff);
@@ -344,6 +344,6 @@
     transform var(--motion-dur-press) var(--motion-ease-out);
 }
 .pulso-graph-overlay .pulso-graph-edge-panel-btn:active {
-  transform: scale(0.97);
+  transform: scale(var(--mov-press, 0.97));
 }
 

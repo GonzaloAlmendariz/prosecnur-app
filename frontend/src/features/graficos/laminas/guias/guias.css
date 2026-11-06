@@ -377,7 +377,7 @@
 }
 
 .pulso-f6-guias-rol:active {
-  transform: scale(0.97);
+  transform: scale(var(--mov-press, 0.97));
 }
 
 .pulso-f6-guias-rol-n {

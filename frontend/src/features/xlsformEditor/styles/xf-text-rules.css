@@ -64,7 +64,7 @@
 .pulso-xftr-apply:active:not(:disabled),
 .pulso-xftr-chip:active:not(:disabled),
 .pulso-xftr-sample:active:not(:disabled) {
-  transform: scale(0.97);
+  transform: scale(var(--mov-press, 0.97));
 }
 
 .pulso-xftr-cta:focus-visible,

@@ -874,7 +874,7 @@
 .cmv2-crit-discard-btn:hover { border-color: var(--pulso-border-strong); color: var(--pulso-text); }
 .cmv2-crit-confirm-btn:hover { background: color-mix(in srgb, var(--cmv2-accent) 88%, var(--pulso-text)); }
 .cmv2-crit-discard-btn:active,
-.cmv2-crit-confirm-btn:active { transform: scale(0.97); }
+.cmv2-crit-confirm-btn:active { transform: scale(var(--mov-press, 0.97)); }
 .cmv2-crit-discard-btn:focus-visible,
 .cmv2-crit-confirm-btn:focus-visible {
   outline: 2px solid color-mix(in srgb, var(--cmv2-accent) 48%, transparent);

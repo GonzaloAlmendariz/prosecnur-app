@@ -45,7 +45,7 @@
 }
 
 .home-cinema-arrow:active {
-  transform: scale(0.96);
+  transform: scale(var(--mov-press, 0.97));
 }
 
 .home-cinema-arrow:focus-visible,
@@ -233,7 +233,7 @@
 }
 
 .home-cinema-cta:active {
-  transform: scale(0.97);
+  transform: scale(var(--mov-press, 0.97));
 }
 
 .home-cinema-dot::after {
@@ -276,7 +276,7 @@
 }
 
 .home-cinema-dot:active {
-  transform: scale(0.97);
+  transform: scale(var(--mov-press, 0.97));
 }
 
 .home-footer-quit:hover {
@@ -286,7 +286,7 @@
 }
 
 .home-footer-quit:active {
-  transform: scale(0.97);
+  transform: scale(var(--mov-press, 0.97));
 }
 
 .home-footer-notes:hover {
@@ -296,7 +296,7 @@
 }
 
 .home-footer-notes:active {
-  transform: scale(0.97);
+  transform: scale(var(--mov-press, 0.97));
 }
 
 :root[data-pulso-layout-preset="portable-compact"] .home-cinema,
@@ -562,7 +562,7 @@
 }
 
 .home-layout-preset:active {
-  transform: scale(0.99);
+  transform: scale(var(--mov-press-tarjeta, 0.985));
 }
 
 .home-layout-preset.is-active {
@@ -676,7 +676,7 @@
 }
 
 .home-wrap .home-cinema-cta:active {
-  transform: scale(0.97);
+  transform: scale(var(--mov-press, 0.97));
 }
 
 /* ── Strip de módulos → contenedor y dots pill ─────────────────────────── */
@@ -697,7 +697,7 @@
 .home-wrap .home-cinema-dot:nth-child(n + 6) { animation-delay: 150ms; }
 
 .home-wrap .home-cinema-dot:active {
-  transform: scale(0.97);
+  transform: scale(var(--mov-press, 0.97));
 }
 
 .home-wrap .home-cinema-arrow {
@@ -724,7 +724,7 @@
 
 .home-wrap .home-footer-notes:active,
 .home-wrap .home-footer-quit:active {
-  transform: scale(0.97);
+  transform: scale(var(--mov-press, 0.97));
 }
 
 /* ── Accesibilidad ─────────────────────────────────────────────────────── */
@@ -915,7 +915,7 @@
 /* +22 px desde L31: el renglón de la siguiente acción, reservado en todas. */
 .home-mission-grid[data-density="dense"] .home-mc-card { min-height: 222px; }
 
-.home-mc-card:active { transform: scale(0.995); }
+.home-mc-card:active { transform: scale(var(--mov-press-tarjeta, 0.985)); }
 
 /* El estado NO tiñe el marco. Pintar el borde completo de verde/ámbar hacía
    que ocho tarjetas juntas se leyeran como un semáforo desordenado y competía
@@ -2628,7 +2628,7 @@
 }
 
 .home-connection-actions button:not(:disabled):active {
-  transform: scale(0.98);
+  transform: scale(var(--mov-press, 0.97));
 }
 
 .home-connection-verify-note {

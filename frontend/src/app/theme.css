@@ -208,7 +208,7 @@ button:where(:hover:not(:disabled):not(.is-active):not(.is-on):not([aria-selecte
     0 4px 12px rgba(0, 36, 87, 0.07);
 }
 button:where(:active:not(:disabled)) {
-  transform: scale(0.97);
+  transform: scale(var(--mov-press, 0.97));
 }
 button:where(:focus-visible) {
   outline: none;
@@ -355,7 +355,7 @@ button.pulso-secondary:hover:not(:disabled) {
 }
 
 .pulso-button:active:not(:disabled) {
-  transform: scale(0.98);
+  transform: scale(var(--mov-press, 0.97));
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -995,7 +995,7 @@ a { color: var(--pulso-primary); }
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--pulso-primary-border) 72%, #fff 28%);
 }
 .pulso-brand-link:active {
-  transform: scale(0.985);
+  transform: scale(var(--mov-press-tarjeta, 0.985));
 }
 .pulso-brand-wordmark {
   color: var(--pulso-primary);
@@ -1081,7 +1081,7 @@ a { color: var(--pulso-primary); }
 }
 
 .pulso-project-switch:active:not(:disabled) {
-  transform: scale(0.94);
+  transform: scale(var(--mov-press, 0.97));
 }
 
 .pulso-project-switch:disabled {
@@ -1182,7 +1182,7 @@ a { color: var(--pulso-primary); }
 }
 
 .pulso-project-chip:active:not(:disabled) {
-  transform: scale(0.97);
+  transform: scale(var(--mov-press, 0.97));
 }
 
 .pulso-project-chip--empty {
@@ -1483,7 +1483,7 @@ a { color: var(--pulso-primary); }
 }
 
 .pulso-project-confirm-copy:active:not(:disabled) {
-  transform: scale(0.98);
+  transform: scale(var(--mov-press, 0.97));
 }
 
 .pulso-project-confirm-copy:disabled {
@@ -1646,7 +1646,7 @@ a { color: var(--pulso-primary); }
 }
 
 .pulso-project-confirm-button:active:not(:disabled) {
-  transform: scale(0.98);
+  transform: scale(var(--mov-press, 0.97));
 }
 
 .pulso-project-confirm-button:disabled {
@@ -1772,7 +1772,7 @@ a { color: var(--pulso-primary); }
     0 0 0 4px var(--pulso-primary-ring);
 }
 .pulso-sibling-trigger:active:not(:disabled) {
-  transform: scale(0.992);
+  transform: scale(var(--mov-press-tarjeta, 0.985));
 }
 .pulso-sibling-trigger:disabled {
   cursor: wait;
@@ -2268,7 +2268,7 @@ a { color: var(--pulso-primary); }
 }
 
 .pulso-phase-pill:active:not(.is-disabled) {
-  transform: scale(0.985);
+  transform: scale(var(--mov-press-tarjeta, 0.985));
 }
 
 /* Blocked: fase navegable, pero con prerequisito explícito en tooltip/label. */
@@ -3269,7 +3269,7 @@ a { color: var(--pulso-primary); }
 }
 
 .pulso-step-chip:active:not(:disabled) {
-  transform: scale(0.98);
+  transform: scale(var(--mov-press, 0.97));
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -6052,7 +6052,7 @@ a { color: var(--pulso-primary); }
   color: var(--pulso-primary);
 }
 .pulso-codificacion-soft-button:active:not(:disabled) {
-  transform: scale(0.97);
+  transform: scale(var(--mov-press, 0.97));
 }
 .pulso-codificacion-autosave-card {
   margin-top: 10px;
@@ -6857,7 +6857,7 @@ h1.pulso-page-title {
 }
 
 .pulso-carga-source-switch button:active {
-  transform: scale(0.97);
+  transform: scale(var(--mov-press, 0.97));
 }
 
 .pulso-sm-multibase-icon {
@@ -9598,7 +9598,7 @@ h1.pulso-page-title {
     0 0 0 4px var(--pulso-switch-accent-ring);
 }
 .pulso-switch:active:not(:disabled) {
-  transform: scale(0.97);
+  transform: scale(var(--mov-press, 0.97));
 }
 .pulso-switch:disabled {
   opacity: 0.7;
@@ -10236,7 +10236,7 @@ h1.pulso-page-title {
   border-color: #013371;
 }
 .pulso-continue-cta-link:active {
-  transform: scale(0.97);
+  transform: scale(var(--mov-press, 0.97));
 }
 
 @media (max-width: 1180px) {
@@ -10593,7 +10593,7 @@ h1.pulso-page-title {
   border-color: var(--pulso-border);
 }
 .pulso-analitica-source-option:active:not(:disabled) {
-  transform: scale(0.97);
+  transform: scale(var(--mov-press, 0.97));
 }
 .pulso-analitica-source-option:disabled:not(.is-active) {
   flex-basis: auto;
@@ -15612,7 +15612,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-card:hover:not
 }
 
 .pulso-constraint-shortcut:active {
-  transform: scale(0.98);
+  transform: scale(var(--mov-press, 0.97));
 }
 
 .pulso-logic-builder-raw {
@@ -16714,7 +16714,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-card:hover:not
 }
 
 .home-proj-btn:active:not(:disabled) {
-  transform: scale(0.97);
+  transform: scale(var(--mov-press, 0.97));
 }
 
 .home-proj-btn:focus-visible {
@@ -16854,7 +16854,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-card:hover:not
 }
 
 .home-recent-item:active:not(:disabled) {
-  transform: scale(0.985);
+  transform: scale(var(--mov-press-tarjeta, 0.985));
 }
 
 .home-recent-item:focus-visible {
@@ -21575,7 +21575,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-card:hover:not
 .pulso-xlsform-frame .pulso-xlsform-history-button:active:not(:disabled),
 .pulso-xlsform-frame .pulso-more-views-trigger:active:not(:disabled),
 .pulso-xlsform-frame .pulso-diagnostics-badge:active:not(:disabled) {
-  transform: scale(0.97);
+  transform: scale(var(--mov-press, 0.97));
 }
 
 body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-outline-row:hover:not(.is-active):not(.is-dragging) {

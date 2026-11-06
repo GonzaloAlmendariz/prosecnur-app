@@ -1320,7 +1320,7 @@
 .pulso-slide-library-filter:active,
 .pulso-slide-library-card:active,
 .pulso-slide-library-trigger:active {
-  transform: scale(0.985);
+  transform: scale(var(--mov-press-tarjeta, 0.985));
 }
 
 @media (max-width: 1180px), (max-height: 720px) {

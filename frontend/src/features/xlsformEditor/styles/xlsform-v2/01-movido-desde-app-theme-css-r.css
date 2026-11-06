@@ -100,7 +100,7 @@
 }
 
 .pulso-xlsform-frame .pulso-mode-toggle button:active:not(:disabled) {
-  transform: scale(0.97);
+  transform: scale(var(--mov-press, 0.97));
 }
 
 .pulso-xlsform-frame .pulso-mode-toggle button.is-on {
@@ -145,7 +145,7 @@
 }
 
 .pulso-xlsform-frame .pulso-xlsform-toolbar-button:active:not(:disabled) {
-  transform: scale(0.97);
+  transform: scale(var(--mov-press, 0.97));
 }
 
 .pulso-xlsform-frame .pulso-xlsform-toolbar-button.pulso-primary {
@@ -301,7 +301,7 @@
 }
 
 .pulso-xlsform-frame .pulso-xlsform-history-button:active:not(:disabled) {
-  transform: scale(0.97);
+  transform: scale(var(--mov-press, 0.97));
 }
 
 /* ── Menú "Más vistas" → popover glass animado ─────────────────────────── */
@@ -322,7 +322,7 @@
 }
 
 .pulso-xlsform-frame .pulso-more-views-trigger:active {
-  transform: scale(0.97);
+  transform: scale(var(--mov-press, 0.97));
 }
 
 .pulso-xlsform-frame .pulso-more-views-menu {
@@ -344,7 +344,7 @@
 }
 
 .pulso-xlsform-frame .pulso-more-views-item:active {
-  transform: scale(0.985);
+  transform: scale(var(--mov-press-tarjeta, 0.985));
 }
 
 /* Stagger sutil de los ítems al abrir el menú. */

@@ -635,7 +635,7 @@
   color: var(--dash-primario);
 }
 .dashboard-scope .dash-dim-radar-alt-chip:active {
-  transform: scale(0.97);
+  transform: scale(var(--mov-press, 0.97));
 }
 .dashboard-scope .dash-dim-radar-alt-dot {
   border-radius: 50%;

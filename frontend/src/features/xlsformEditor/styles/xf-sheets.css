@@ -62,7 +62,7 @@
     box-shadow var(--motion-dur-fast) ease;
 }
 .pulso-xlsform-frame .pulso-xfs-tab:active:not(:disabled) {
-  transform: scale(0.97);
+  transform: scale(var(--mov-press, 0.97));
 }
 .pulso-xlsform-frame .pulso-xfs-tab:focus-visible {
   outline: none;
@@ -139,7 +139,7 @@
     box-shadow var(--motion-dur-fast) ease;
 }
 .pulso-xlsform-frame .pulso-xfs-pill:active:not(:disabled) {
-  transform: scale(0.97);
+  transform: scale(var(--mov-press, 0.97));
 }
 .pulso-xlsform-frame .pulso-xfs-pill:disabled {
   opacity: 0.5;
@@ -372,7 +372,7 @@
     opacity var(--motion-dur-fast) ease;
 }
 .pulso-xlsform-frame .pulso-xfs-iconbtn:active:not(:disabled) {
-  transform: scale(0.97);
+  transform: scale(var(--mov-press, 0.97));
 }
 .pulso-xlsform-frame .pulso-xfs-iconbtn:disabled {
   opacity: 0.3;

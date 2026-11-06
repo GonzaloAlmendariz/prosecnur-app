@@ -33,6 +33,7 @@ const TRANSVERSALES = [
   "src/app/letraPorRol.contract.test.ts",          // font-size en px en los módulos sin dueño (L29)
   "src/app/pisoTipografico.contract.test.ts",      // letra bajo el piso de 10 px
   "src/app/movimiento.contract.test.ts",           // transiciones de layout y animaciones sin motivo
+  "src/app/microinteracciones.contract.test.ts",   // presión con nombre (--mov-press), sin escalas sueltas
   "src/components/ModuleChrome.contract.test.ts",  // estados de navegación del chrome
   "src/components/toaster.contract.test.ts",       // avisos fuera del toaster
   "src/lib/teclado.contract.test.ts",              // atajos de teclado en conflicto

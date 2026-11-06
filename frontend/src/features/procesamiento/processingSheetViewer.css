@@ -202,7 +202,7 @@
 
 .pulso-processing-sheet-mode button:active:not(:disabled),
 .pulso-processing-sheet-icon-button:active:not(:disabled) {
-  transform: scale(0.97);
+  transform: scale(var(--mov-press, 0.97));
 }
 
 .pulso-processing-sheet-legend {

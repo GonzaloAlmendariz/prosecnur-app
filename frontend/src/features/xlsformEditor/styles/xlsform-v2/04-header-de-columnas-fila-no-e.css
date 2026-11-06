@@ -279,7 +279,7 @@
 
 .pulso-catalogdraft-apply:active:not(:disabled),
 .pulso-catalogdraft-revert:active {
-  transform: scale(0.97);
+  transform: scale(var(--mov-press, 0.97));
 }
 
 .pulso-catalogworkspace-draft-note {

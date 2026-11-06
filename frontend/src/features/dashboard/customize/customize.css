@@ -886,7 +886,7 @@
   }
 }
 .dashboard-scope .dash-preview-exit:active {
-  transform: scale(0.97);
+  transform: scale(var(--mov-press, 0.97));
 }
 
 /* ── Marca → presets de color principal del dashboard. */
@@ -923,7 +923,7 @@
   border-color: var(--dash-primario);
 }
 .dashboard-scope .dash-customize-theme-card:active {
-  transform: scale(0.98);
+  transform: scale(var(--mov-press, 0.97));
 }
 .dashboard-scope .dash-customize-theme-swatch {
   border-radius: 8px;

@@ -121,7 +121,7 @@ input.pulso-xfi-mono.is-invalid {
 }
 
 .pulso-xfi-namefield-apply:active:not(:disabled) {
-  transform: scale(0.97);
+  transform: scale(var(--mov-press, 0.97));
 }
 
 .pulso-xfi-namefield-revert {
@@ -142,7 +142,7 @@ input.pulso-xfi-mono.is-invalid {
 }
 
 .pulso-xfi-namefield-revert:active {
-  transform: scale(0.97);
+  transform: scale(var(--mov-press, 0.97));
 }
 
 @media (hover: hover) and (pointer: fine) {
@@ -263,7 +263,7 @@ input.pulso-xfi-mono.is-invalid {
 }
 
 .pulso-inspector.pulso-xfi .pulso-inspector-tab-trigger:active:not(:disabled) {
-  transform: scale(0.97);
+  transform: scale(var(--mov-press, 0.97));
 }
 
 .pulso-inspector.pulso-xfi .pulso-inspector-tab-trigger.is-active {
@@ -366,7 +366,7 @@ input.pulso-xfi-mono.is-invalid {
 .pulso-inspector.pulso-xfi .pulso-catalogchip-empty:active:not(:disabled),
 .pulso-inspector.pulso-xfi .pulso-catalogchip-pop-create:active:not(:disabled),
 .pulso-inspector.pulso-xfi .pulso-inspector-conditional-required-trigger:active:not(:disabled) {
-  transform: scale(0.97);
+  transform: scale(var(--mov-press, 0.97));
 }
 
 .pulso-inspector.pulso-xfi button:focus-visible {
@@ -405,7 +405,7 @@ input.pulso-xfi-mono.is-invalid {
 }
 
 .pulso-inspector.pulso-xfi .pulso-typepicker-trigger:active:not(:disabled) {
-  transform: scale(0.98);
+  transform: scale(var(--mov-press, 0.97));
 }
 
 .pulso-inspector.pulso-xfi .pulso-typepicker-trigger:focus-visible {
@@ -443,7 +443,7 @@ input.pulso-xfi-mono.is-invalid {
 }
 
 .pulso-inspector.pulso-xfi .pulso-typepicker-item:active {
-  transform: scale(0.97);
+  transform: scale(var(--mov-press, 0.97));
 }
 
 /* ── CatalogChip ───────────────────────────────────────────────────────── */
@@ -475,7 +475,7 @@ input.pulso-xfi-mono.is-invalid {
 }
 
 .pulso-inspector.pulso-xfi .pulso-catalogchip-pop-item:active {
-  transform: scale(0.98);
+  transform: scale(var(--mov-press, 0.97));
 }
 
 /* ── Builder de lógica ─────────────────────────────────────────────────── */

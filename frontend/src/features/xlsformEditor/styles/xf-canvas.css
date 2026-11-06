@@ -167,7 +167,7 @@
 }
 
 .pulso-xlsform-frame .pulso-canvas-addbetween-trigger:active:not(:disabled) {
-  transform: scale(0.97);
+  transform: scale(var(--mov-press, 0.97));
 }
 
 /* Menú de inserción: entrada tipo popover gv2 (fade + translate + scale,
@@ -235,7 +235,7 @@
 }
 
 .pulso-xlsform-frame .pulso-focus-mode-toggle button:active:not(:disabled) {
-  transform: scale(0.97);
+  transform: scale(var(--mov-press, 0.97));
 }
 
 /* --- 5 · Accesibilidad: focus-visible + reduced motion -------------------- */

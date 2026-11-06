@@ -1424,7 +1424,7 @@
 
 @media (prefers-reduced-motion: no-preference) {
   .cmv2-did-chain-toggle:active {
-    transform: scale(0.97);
+    transform: scale(var(--mov-press, 0.97));
   }
 
   .cmv2-did-chain-toggle {

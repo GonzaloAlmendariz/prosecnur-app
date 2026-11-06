@@ -153,7 +153,8 @@ describe("M6/M7 · actores y chips de estado", () => {
     const general = leer("general.css");
     const regla = general.slice(general.indexOf(".cmg-actor {"), general.indexOf("}", general.indexOf(".cmg-actor {")));
     expect(regla).toContain("transform var(--motion-dur-press) var(--motion-ease-out)");
-    expect(leer("movimiento.css")).toMatch(/\.cmg-actor:active:not\(:disabled\) \{\s*transform: scale\(0\.97\);/);
+    // 5 nov 2026: la presión se escribe con el token común (`--mov-press`, 0.97) de app/movimiento.css.
+    expect(leer("movimiento.css")).toMatch(/\.cmg-actor:active:not\(:disabled\) \{\s*transform: scale\(var\(--mov-press, 0\.97\)\);/);
   });
 });
 

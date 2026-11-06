@@ -14,7 +14,7 @@
     transform var(--motion-dur-press) var(--motion-ease-out);
 }
 .pulso-graph-overlay .pulso-graph-legend-toggle:active {
-  transform: scale(0.94);
+  transform: scale(var(--mov-press, 0.97));
 }
 
 .pulso-graph-overlay .pulso-graph-minimap {

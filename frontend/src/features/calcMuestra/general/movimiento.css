@@ -99,7 +99,7 @@
 
   /* --- M6 · Press de la tarjeta de actor -------------------------------------- */
   .cmg-actor:active:not(:disabled) {
-    transform: scale(0.97);
+    transform: scale(var(--mov-press, 0.97));
   }
 }
 

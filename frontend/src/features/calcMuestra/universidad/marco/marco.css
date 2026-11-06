@@ -832,7 +832,7 @@
 }
 
 .cmv2-marco-stack .cmv2-native-bar-row.is-interactive:active {
-  transform: scale(0.98);
+  transform: scale(var(--mov-press, 0.97));
 }
 
 /* --- Insight tiles → patrón stat-tile: eyebrow / cifra / detalle. --- */

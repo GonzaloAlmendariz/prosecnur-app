@@ -13,7 +13,7 @@
 }
 
 .pulso-codificacion-matrix-focus-chip:active {
-  transform: scale(0.98);
+  transform: scale(var(--mov-press, 0.97));
 }
 
 .pulso-codificacion-matrix-search:focus-within {
@@ -53,7 +53,7 @@
 }
 
 .pulso-codificacion-matrix-case-row:active {
-  transform: scale(0.992);
+  transform: scale(var(--mov-press-tarjeta, 0.985));
 }
 
 .pulso-codificacion-matrix-case-row > span:nth-child(2) {
@@ -144,7 +144,7 @@
 }
 
 .pulso-codificacion-matrix-variable-row:active {
-  transform: scale(0.992);
+  transform: scale(var(--mov-press-tarjeta, 0.985));
 }
 
 .pulso-codificacion-matrix-variable-row input {
@@ -532,7 +532,7 @@ button.pulso-ghost-nav:disabled {
 }
 
 .pulso-codificacion-frame .pulso-codificacion-config-button:active:not(:disabled) {
-  transform: scale(0.97);
+  transform: scale(var(--mov-press, 0.97));
 }
 
 /* Chips de filtro de la matriz: feedback de presión coherente con gv2. */
@@ -545,7 +545,7 @@ button.pulso-ghost-nav:disabled {
 }
 
 .pulso-codificacion-frame .pulso-codificacion-matrix-focus-chip:active:not(:disabled) {
-  transform: scale(0.97);
+  transform: scale(var(--mov-press, 0.97));
 }
 
 /* ── DataSurface de la matriz ──────────────────────────────────────────── */
@@ -1603,7 +1603,7 @@ button.pulso-ghost-nav:disabled {
 }
 
 .pulso-codificacion-search-clear:active {
-  transform: scale(0.94);
+  transform: scale(var(--mov-press, 0.97));
 }
 
 .pulso-codificacion-sidebar-question:hover {
@@ -1612,7 +1612,7 @@ button.pulso-ghost-nav:disabled {
 }
 
 .pulso-codificacion-sidebar-question:active {
-  transform: scale(0.99);
+  transform: scale(var(--mov-press-tarjeta, 0.985));
 }
 
 .pulso-codificacion-sidebar-question.is-active {

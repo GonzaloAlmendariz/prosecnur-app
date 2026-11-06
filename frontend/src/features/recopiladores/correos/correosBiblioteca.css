@@ -169,7 +169,7 @@
 }
 
 .rec-bib-tipo:active:not(:disabled) {
-  transform: scale(0.98);
+  transform: scale(var(--mov-press, 0.97));
   transition-duration: var(--motion-dur-press);
 }
 

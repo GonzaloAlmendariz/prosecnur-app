@@ -622,7 +622,7 @@
 }
 
 .cmv2-defi-dropzone:active:not(.is-disabled) {
-  transform: scale(0.995);
+  transform: scale(var(--mov-press-tarjeta, 0.985));
 }
 
 .cmv2-defi-dropzone:focus-within {

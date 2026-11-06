@@ -85,3 +85,38 @@
 @media (prefers-reduced-motion: reduce) {
   [data-entra] { animation-name: pulso-mov-aparece; animation-delay: 0ms; }
 }
+
+/* =============================================================================
+   Microinteracciones: pasar, presionar (5 nov 2026)
+   =============================================================================
+   Gonzalo: «¿y qué hay de las animaciones al pasar por un botón, apretarlo y todo eso?». Medido ese día: 296
+   reglas :active con 11 escalas distintas (0.94 a 0.995) y hover que levanta −1 o −2 px según el módulo. El
+   estándar son DOS presiones con nombre:
+   - --mov-press: 0.97, controles (botones, chips, pestañas): se siente el clic.
+   - --mov-press-tarjeta: 0.985, superficies grandes (tarjetas, filas clicables): escalar una tarjeta a .97
+     la encoge de golpe; a .985 sólo «cede».
+   Y un hover que, si levanta, levanta 1 px (--mov-hover-lift), siempre bajo (hover: hover) para que en
+   pantalla táctil no quede pegado.
+
+   Regla base: todo botón habilitado que NO declare su propia presión cede a --mov-press al apretarlo. Va en
+   :where() (especificidad 0): cualquier regla de un módulo —incluida una que fije su transform para
+   posicionar— gana sin pelear, así que no mueve nada que ya estuviera puesto. */
+:root {
+  --mov-press: 0.97;
+  --mov-press-tarjeta: 0.985;
+  --mov-hover-lift: -1px;
+}
+
+:where(button, [role="button"], [role="tab"], summary):where(:not(:disabled, [aria-disabled="true"])) {
+  transition-property: transform, background-color, border-color, color, box-shadow, opacity;
+  transition-duration: var(--motion-dur-press);
+  transition-timing-function: var(--motion-ease-out);
+}
+
+:where(button, [role="button"], [role="tab"], summary):where(:not(:disabled, [aria-disabled="true"])):active {
+  transform: scale(var(--mov-press));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :where(button, [role="button"], [role="tab"], summary):active { transform: none; }
+}

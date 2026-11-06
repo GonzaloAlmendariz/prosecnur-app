@@ -221,7 +221,7 @@
 }
 
 .cmv2-section-pill.pulso-phase-pill:active:not(:disabled) {
-  transform: scale(0.97);
+  transform: scale(var(--mov-press, 0.97));
 }
 
 .cmv2-section-pill.pulso-phase-pill.is-active {
@@ -445,7 +445,7 @@
 }
 
 .cmv2-source-mode-card:active:not(:disabled) {
-  transform: scale(0.98);
+  transform: scale(var(--mov-press, 0.97));
 }
 
 .cmv2-source-mode-card:focus-visible {
@@ -1651,7 +1651,7 @@
 .cmv2-ghost:active:not(:disabled),
 .cmv2-link-button:active:not(:disabled),
 .cmv2-icon-button:active:not(:disabled) {
-  transform: scale(0.97);
+  transform: scale(var(--mov-press, 0.97));
 }
 
 .cmv2-ghost,
@@ -1968,7 +1968,7 @@
 }
 
 .cmv2-section-local-tab:active:not(:disabled) {
-  transform: scale(0.98);
+  transform: scale(var(--mov-press, 0.97));
 }
 
 .cmv2-section-local-tab:focus-visible {
@@ -2582,7 +2582,7 @@
 }
 
 .cmv2-frame-card:active {
-  transform: scale(0.98);
+  transform: scale(var(--mov-press, 0.97));
 }
 
 @media (hover: hover) and (pointer: fine) {
@@ -3177,7 +3177,7 @@
 
 .cmv2-shape:active:not(:disabled),
 .cmv2-method:active:not(:disabled) {
-  transform: scale(0.98);
+  transform: scale(var(--mov-press, 0.97));
 }
 
 .cmv2-shape > svg {

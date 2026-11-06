@@ -90,7 +90,7 @@
 }
 
 .dashboard-scope .dash-foda-group-filter button:active {
-  transform: scale(0.97);
+  transform: scale(var(--mov-press, 0.97));
 }
 
 .dashboard-scope .dash-foda-group-filter button.is-active {

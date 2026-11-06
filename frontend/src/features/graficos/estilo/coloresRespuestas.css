@@ -434,7 +434,7 @@
 }
 
 .pulso-cr-combo:hover { box-shadow: inset 0 0 0 1px var(--pulso-border-strong), var(--pulso-shadow-low); }
-.pulso-cr-combo:active { transform: scale(0.99); }
+.pulso-cr-combo:active { transform: scale(var(--mov-press-tarjeta, 0.985)); }
 .pulso-cr-combo.is-aplicada { box-shadow: inset 0 0 0 1.5px var(--pulso-primary); }
 
 .pulso-cr-combo-tira {

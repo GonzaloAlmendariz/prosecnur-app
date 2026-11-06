@@ -206,7 +206,7 @@
   }
 }
 .dashboard-scope .dash-header-action:active:not(:disabled) {
-  transform: scale(0.97);
+  transform: scale(var(--mov-press, 0.97));
 }
 .dashboard-scope .dash-header-action:disabled {
   cursor: not-allowed;
@@ -633,7 +633,7 @@
     0 0 0 3px color-mix(in srgb, var(--dash-primario) 22%, transparent);
 }
 .dashboard-scope .dash-section-select:active {
-  transform: scale(0.995);
+  transform: scale(var(--mov-press-tarjeta, 0.985));
 }
 
 .dashboard-scope .dash-resumen-filter-panel {
@@ -768,7 +768,7 @@
   transform: translateX(20px);
 }
 .dashboard-scope .dash-switch:active .dash-switch-slider {
-  transform: scale(0.97);
+  transform: scale(var(--mov-press, 0.97));
 }
 .dashboard-scope .dash-switch input:focus-visible + .dash-switch-slider {
   box-shadow:
@@ -885,7 +885,7 @@
     0 0 0 3px color-mix(in srgb, var(--dash-primario) 22%, transparent);
 }
 .dashboard-scope .dash-select:active {
-  transform: scale(0.995);
+  transform: scale(var(--mov-press-tarjeta, 0.985));
 }
 /* Skeleton shimmer para categorías de filtro mientras hidratan. */
 .dashboard-scope .dash-filtro-cats-skeleton {
@@ -974,7 +974,7 @@
   }
 }
 .dashboard-scope .dash-quick-btn:active:not(:disabled) {
-  transform: scale(0.97);
+  transform: scale(var(--mov-press, 0.97));
 }
 .dashboard-scope .dash-quick-btn:disabled {
   opacity: 0.45;
@@ -1564,7 +1564,7 @@
   }
 }
 .dashboard-scope .dash-icon-btn:active:not(:disabled) {
-  transform: scale(0.96);
+  transform: scale(var(--mov-press, 0.97));
 }
 .dashboard-scope .dash-subtle-btn {
   align-items: center;
@@ -1597,7 +1597,7 @@
   }
 }
 .dashboard-scope .dash-subtle-btn:active:not(:disabled) {
-  transform: scale(0.97);
+  transform: scale(var(--mov-press, 0.97));
 }
 .dashboard-scope .dash-subtle-btn:disabled {
   box-shadow: none;
@@ -1775,7 +1775,7 @@
   }
 }
 .dashboard-scope .dash-preset-btn:active {
-  transform: scale(0.97);
+  transform: scale(var(--mov-press, 0.97));
 }
 .dashboard-scope .dash-preset-swatches {
   display: inline-flex;
@@ -1912,7 +1912,7 @@
   }
 }
 .dashboard-scope .dash-primary-btn:active:not(:disabled) {
-  transform: scale(0.97);
+  transform: scale(var(--mov-press, 0.97));
 }
 .dashboard-scope .dash-primary-btn:disabled {
   cursor: not-allowed;
