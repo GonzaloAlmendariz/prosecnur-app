@@ -429,7 +429,7 @@ export function MarcoEstructuraControles({
     next: "Si existe ciclo, asígnalo en Definición > Variables.",
   });
   return (
-    <div className="cmv2-dashboard-chart-grid">
+    <div className="cmv2-dashboard-chart-grid" data-qa-geometry-group="calc-muestra/marco-graficos" data-qa-geometry-contract="intrinsic">
       <ClassroomPlotCard title="Facultad por ciclo" subtitle="mapa de calor de estudiantes elegibles por avance académico" wide>
         <ClassroomHeatmapPlot table={levelTable} ariaLabel="Mapa de calor facultad por ciclo" minColumnWidth={56} emptyState={levelEmptyState} />
       </ClassroomPlotCard>

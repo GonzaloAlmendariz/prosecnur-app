@@ -878,7 +878,7 @@ export function ClassroomFunnelStrip({ title, steps }: { title: string; steps: C
 
 export function ClassroomInsightGrid({ items }: { items: ClassroomInsight[] }) {
   return (
-    <section className="cmv2-dashboard-insights cmv2-uni-stagger" aria-label="Lecturas del marco">
+    <section className="cmv2-dashboard-insights cmv2-uni-stagger" aria-label="Lecturas del marco" data-qa-geometry-group="calc-muestra/marco-lecturas" data-qa-geometry-contract="equal">
       {items.map((item) => {
         const Icon = item.icon ?? Gauge;
         return (

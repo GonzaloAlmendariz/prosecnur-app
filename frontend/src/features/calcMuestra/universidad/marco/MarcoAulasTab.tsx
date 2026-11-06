@@ -186,7 +186,7 @@ export function MarcoAulasTab({
         onDecisiones={(next) => updateConfig({ particularidades_decisiones: next })}
       />
 
-      <div className="cmv2-dashboard-chart-grid">
+      <div className="cmv2-dashboard-chart-grid" data-qa-geometry-group="calc-muestra/marco-aulas-graficos" data-qa-geometry-contract="intrinsic">
         <ClassroomPlotCard
           title="Tamaño de los cursos-horario"
           subtitle={`elegibles por curso-horario, con bandas ${(config.grupos_tamano ?? []).map((g) => g.id).join("-") || "G1-G4"} y mínimo operativo`}

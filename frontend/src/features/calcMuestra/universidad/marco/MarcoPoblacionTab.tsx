@@ -114,6 +114,8 @@ export function MarcoPoblacionTab({
         <div className="cmv2-marco-flujo-layout">
           <div className="cmv2-marco-flujo-main cmv2-marco-flujo-stagger">
             <FlujoVertical
+              geometryGroup="calc-muestra/marco-poblacion-flujo"
+              geometryContract="equal"
               etapas={etapas}
               orientacion="adaptive"
               ariaLabel="Del universo a la población objetivo"
@@ -135,7 +137,7 @@ export function MarcoPoblacionTab({
       {hasMarco ? (
         <>
           <MarcoPoblacionInsights frame={frame} totalComp={totalComp} workspace={workspace} />
-          <div className="cmv2-dashboard-chart-grid">
+          <div className="cmv2-dashboard-chart-grid" data-qa-geometry-group="calc-muestra/marco-poblacion-graficos" data-qa-geometry-contract="intrinsic">
             <MarcoPoblacionFacultades frame={frame} totalComp={totalComp} workspace={workspace} />
             <MarcoPoblacionSexo frame={frame} totalComp={totalComp} workspace={workspace} />
           </div>

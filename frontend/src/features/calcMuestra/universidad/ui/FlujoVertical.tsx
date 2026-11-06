@@ -38,6 +38,7 @@ export function FlujoVertical({
   onEtapaClick,
   ariaLabel,
   geometryGroup,
+  geometryContract = "intrinsic",
 }: {
   etapas: FlujoEtapa[];
   orientacion?: "vertical" | "horizontal" | "adaptive";
@@ -45,6 +46,8 @@ export function FlujoVertical({
   ariaLabel?: string;
   /** Grupo de geometría (C1) si el llamador lo declara; sin él no cambia nada. */
   geometryGroup?: string;
+  /** `equal` cuando las etapas van en columnas parejas y se estiran a la misma altura (6 nov 2026). */
+  geometryContract?: "intrinsic" | "equal";
 }) {
   const Etapa = onEtapaClick ? "button" : "div";
   return (
@@ -56,7 +59,7 @@ export function FlujoVertical({
       role="list"
       aria-label={ariaLabel}
       data-qa-geometry-group={geometryGroup}
-      data-qa-geometry-contract={geometryGroup ? "intrinsic" : undefined}
+      data-qa-geometry-contract={geometryGroup ? geometryContract : undefined}
     >
       {etapas.map((etapa, i) => (
         <Fragment key={etapa.id}>
