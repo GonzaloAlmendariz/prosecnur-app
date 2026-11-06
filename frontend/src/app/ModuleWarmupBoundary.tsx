@@ -457,7 +457,7 @@ function ModuleWarmupScreen({
       data-module-warmup={profile.key}
     >
       <CargaDeModulo label={message || "Preparando módulo"} modulo={module?.slug} />
-      {error ? <p className="pulso-module-warmup-error">{error}</p> : null}
+      {error ? <p className="pulso-module-warmup-error" role="alert">{error}</p> : null}
     </div>
   );
 }

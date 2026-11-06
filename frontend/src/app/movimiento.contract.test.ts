@@ -59,7 +59,8 @@ const SNAPSHOT: Record<"layout" | "infinitas" | "retardo", Record<string, number
     // reemplaza late mientras se prepara el proyecto: es el indicador de espera, como un spinner.
     "app/boot-ecualizador.css": 1,
     "app/boot.css": 3,
-    // 5 nov 2026: module-warmup.css se retiró; la carga de módulo y la de proyecto son PantallaDeCarga (su giro de fase).
+    // 5 nov 2026: la carga de proyecto es PantallaDeCarga (su giro de fase). module-warmup.css volvió el 6 nov sólo
+    // como contenedor de CargaDeModulo, sin animaciones propias.
     "app/pantalla-de-carga.css": 1,
     "app/theme.css": 6,
     "components/bases-inspector.css": 1,

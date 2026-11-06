@@ -4,8 +4,8 @@
 // de Suspense que antes pintaban un LoadingBlock gris genérico: el rótulo y la barra
 // indeterminada en el color del módulo activo, que se lee de la ruta si no se pasa.
 //
-// La pantalla completa de arranque es otra (ModuleWarmupScreen, con reloj y fases);
-// ésta es la de los saltos cortos dentro de la app.
+// Desde el 6 nov 2026 también es la apertura de un módulo (ModuleWarmupScreen); la
+// pantalla con lámina, reloj y fases queda sólo para el inicio y carga del proyecto.
 
 import { moduleChromeVars, PROSECNUR_MODULES, type ProsecnurModuleSlug } from "../lib/modules";
 import { moduloDesdePathname } from "../lib/navegacion/direccion";
