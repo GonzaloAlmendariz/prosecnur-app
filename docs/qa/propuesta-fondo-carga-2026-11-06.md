@@ -1,6 +1,6 @@
 # Propuesta: pantalla de inicio y carga de Prosecnur — 2026-11-06
 
-Artefacto: https://claude.ai/artifact/3cVPEhL8NGz3Nem4vSM5jg (versión 8). Propuesta visual; no se tocó código
+Artefacto: https://claude.ai/artifact/3cVPEhL8NGz3Nem4vSM5jg (versión 9). Propuesta visual; no se tocó código
 de la app.
 
 ## Decisión de Gonzalo
@@ -15,7 +15,7 @@ módulos y sus vistas, y dejamos la animación elegante sólo para la pantalla d
 
 | Carga | Duración típica | Qué se ve |
 |---|---|---|
-| Inicio y carga del proyecto (`BootGate`) | decenas de segundos a minutos | Lámina de `PantallaDeCarga` al centro. A la izquierda, un panel de la app con la escena del módulo en bucle; a la derecha, su identidad (ícono, «Módulo n de 7», nombre, qué hace, acción); abajo, barra segmentada de siete módulos que se llena con el tiempo. |
+| Inicio y carga del proyecto (`BootGate`) | decenas de segundos a minutos | Lámina de `PantallaDeCarga` angosta (372 px) a la izquierda, con la barra segmentada de los siete módulos debajo. El resto de la ventana es del módulo: «Módulo n de 7», su nombre a 50 px y qué hace; debajo, su escena a 2× sobre una superficie de la app que se sale por el borde derecho e inferior. |
 | Módulos y vistas (`ModuleWarmupBoundary`, `LoadingBlock` «panel») | segundos | El isotipo de la app latiendo en el tono del módulo, el rótulo de lo que se prepara y una barra indeterminada, dentro del espacio de trabajo. Es lo que ya hace `LoadingBlock`; sólo la apertura de módulo deja de usar la lámina del proyecto (fases y reloj). |
 
 ## Recorrido del proyecto
@@ -25,8 +25,11 @@ módulos y sus vistas, y dejamos la animación elegante sólo para la pantalla d
 - Tiempo: cada tramo dura la apertura anterior entre siete (3 a 9 s), así que el recorrido termina cuando la carga
   debería terminar. Si se alarga, vuelve a empezar y cada módulo muestra otra de sus cinco escenas. Sin apertura
   anterior, 4 s por tramo.
-- Geometría: panel de 336 × 286 px con rótulo de la vista y título; la escena a su tamaño natural (320 × 200). Sin
-  velo encima de los laterales. Al cambiar de módulo, el anterior se apaga antes de que entre el siguiente.
+- Geometría (v9, tras «la animación está atrapada en un bloque»): la escena se dibuja a 640 × 400 sobre una superficie
+  de 880 × 600 que nace a 500 px del borde izquierdo y se sale por la derecha y por abajo, como una ventana de la app
+  vista de cerca. Sin inclinar: las escenas son detalladas y se leen mejor rectas.
+- Transición: la superficie del módulo que sale sube 14 px y se funde; la que entra sube 46 px desde abajo. El nombre
+  cambia con un fundido corto y el ambiente de fondo toma el tono del módulo.
 - Variante quieta: cambia de módulo sin deslizarse y cada escena se muestra en su cuadro final.
 
 ## Escenas (35, cinco por módulo)
