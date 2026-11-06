@@ -1,6 +1,7 @@
 import { fmt } from "../formato";
 import { marcasDeEje } from "./avanceModelo";
-import { ALTO_DEL_EJE_DE_FECHAS, anchoPorDia, EjeDeFechas, fechaCorta, PASO_MAXIMO_POR_DIA, useTamano } from "./graficosDeAvance";
+import { ALTO_DEL_EJE_DE_FECHAS, anchoPorDia, CifraDeBarra, EjeDeFechas, fechaCorta, PASO_MAXIMO_POR_DIA, useTamano } from "./graficosDeAvance";
+import { letraQueCabe } from "./letraQueCabe";
 
 /** El acumulado día a día de una serie de totales diarios. */
 export function acumulado(totales: readonly number[]): number[] {
@@ -44,6 +45,8 @@ export function DiarioYAcumulado({
   const yDia = (valor: number) => arriba + h - (valor / maxDia) * h;
   const yAcum = (valor: number) => arriba + h - (valor / maxAcum) * h;
   const linea = acum.map((valor, indice) => `${indice ? "L" : "M"}${x(indice).toFixed(1)},${yAcum(valor).toFixed(1)}`).join(" ");
+  // Toda barra con su cifra (Gonzalo, 2026-11-06): lo que cede es la letra.
+  const letraDia = letraQueCabe(paso, totales.map((valor) => fmt(valor)));
   const listo = ancho > 0 && alto > 0 && n > 0;
   return (
     <div ref={ref} className="acr-av-grafico" role="img" aria-label={etiqueta}>
@@ -66,6 +69,9 @@ export function DiarioYAcumulado({
                 <title>{`${fechaCorta(fechas[indice])}: ${fmt(valor)} efectivas, ${fmt(acum[indice])} acumuladas`}</title>
               </rect>
             ) : null
+          ))}
+          {totales.map((valor, indice) => (
+            valor > 0 ? <CifraDeBarra key={`c${fechas[indice]}`} x={x(indice)} y={yDia(valor) - 4} texto={fmt(valor)} letra={letraDia} /> : null
           ))}
           {meta && meta > 0 ? (
             <g>

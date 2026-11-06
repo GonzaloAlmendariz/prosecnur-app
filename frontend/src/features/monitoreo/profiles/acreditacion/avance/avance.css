@@ -607,8 +607,9 @@
   padding: var(--pulso-space-3) var(--pulso-space-4) var(--pulso-space-4);
 }
 
+/* Cada día lleva cifra y fecha (dos líneas): con 76 px las barras quedaban planas. */
 .acr-res-ultimos .acr-av-grafico {
-  min-height: 76px;
+  min-height: 140px;
 }
 
 .acr-res-ultimos-cifras {
