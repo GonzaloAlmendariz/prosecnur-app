@@ -1458,8 +1458,11 @@ button.pulso-ghost-nav:disabled {
   overflow: hidden;
 }
 
+/* 5 nov 2026 (pulido de UI): `auto-fill`, no `auto-fit`. Con auto-fit las columnas vacías se colapsaban y una
+   sección de 2 preguntas estiraba sus tarjetas al doble de ancho que la de 5 de abajo (660 vs 330 px a 1440):
+   el mismo listado con dos tamaños de tarjeta. Así todas las secciones comparten columnas. */
 .pulso-codificacion-frame .pulso-codificacion-sections-grid .pulso-codificacion-question-grid {
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr));
   align-items: stretch;
 }
 
