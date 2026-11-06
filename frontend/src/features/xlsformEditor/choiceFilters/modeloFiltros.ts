@@ -560,3 +560,12 @@ export function respuestasIniciales(a: AnalisisFiltro, choices: XlsformEditorShe
   }
   return out;
 }
+
+/**
+ * Nombre del tipo en la lista y en el detalle. `selected(${q}, name)` se lee con la maquinaria de la cascada, pero no
+ * es una: repite las opciones que se marcaron en otra pregunta (E11b editor-conjoint, 2026-11-06).
+ */
+export function nombreDeTipo(a: Pick<AnalisisFiltro, "tipo" | "cascada">): string {
+  if (a.tipo === "cascada" && a.cascada?.forma === "marcada" && a.cascada.columna === "name") return "Lo marcado antes";
+  return NOMBRE_TIPO[a.tipo];
+}

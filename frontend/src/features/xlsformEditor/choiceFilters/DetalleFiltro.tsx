@@ -14,7 +14,7 @@ import { ChipEstado } from "./ListaFiltros";
 import { ListaFija } from "./ListaFija";
 import { MatrizCascada } from "./MatrizCascada";
 import { MatrizPorOpcion } from "./MatrizPorOpcion";
-import { NOMBRE_TIPO, respuestasIniciales, type AnalisisFiltro, type Diagnostico, type Respuestas } from "./modeloFiltros";
+import { nombreDeTipo, respuestasIniciales, type AnalisisFiltro, type Diagnostico, type Respuestas } from "./modeloFiltros";
 import { OpcionesDeExpresion } from "./OpcionesDeExpresion";
 import type { PreguntaElegible } from "./SelectorPreguntaFiltro";
 import { VistaEncuestado } from "./VistaEncuestado";
@@ -138,7 +138,7 @@ export function DetalleFiltro({ id, a, frase, workbook, porNombre, candidatas, o
       <header className="xcf-detalle__cab">
         <div className="xcf-detalle__meta">
           <code className="xcf-detalle__codigo">{a.pregunta}</code>
-          <span className="xcf-chip">{NOMBRE_TIPO[a.tipo]}</span>
+          <span className="xcf-chip">{nombreDeTipo(a)}</span>
           <span className="xcf-nota">lista <code>{a.lista || "—"}</code></span>
           <span className="xcf-esp" />
           <ChipEstado estado={a.estado} />
