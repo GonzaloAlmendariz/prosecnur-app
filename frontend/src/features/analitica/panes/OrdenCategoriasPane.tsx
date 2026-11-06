@@ -9,6 +9,7 @@ import {
 } from "../../../api/client";
 import { Alert } from "../../../components/Alert";
 import { Panel } from "../../../components/Panel";
+import "./ordenCategorias.css";
 import { ErrorBlock, LoadingBlock } from "../../../components/States";
 import { useAnaliticaStore } from "../store";
 import { Section } from "../PaneKit";
@@ -128,7 +129,9 @@ export function OrdenCategoriasPane() {
   }
 
   return (
-    <Panel>
+    // El panel es dueño de su scroll (6 nov 2026): a 1024×600 el catálogo de listas no cabe y, con el overflow
+    // oculto del panel, lo de abajo quedaba inalcanzable (C4).
+    <Panel className="analitica-orden-panel" data-qa-scroll-owner="analitica-orden">
       <div className="analitica-report-shell" data-audit-ready="analitica-orden">
         <div className="analitica-dimensiones-docbar">
           <span className="analitica-dimensiones-docbar-icon" aria-hidden="true">
@@ -244,11 +247,9 @@ export function OrdenCategoriasPane() {
           </Alert>
         )}
 
-        {!listName && catalogo.length > 0 && (
-          <Alert kind="info">
-            Selecciona una lista del catálogo para ordenar sus categorías.
-          </Alert>
-        )}
+        {/* 6 nov 2026 (pulido de UI): sin lista elegida no va un segundo aviso. «Lista a ordenar» ya dice «Elige una
+            lista de opciones del catálogo…» justo encima, y este repetido quedaba cortado al pie del panel a
+            1280×720 (470 px de contenido en 444). */}
       </div>
     </Panel>
   );
