@@ -21,7 +21,10 @@ export function MissionControl({
   proc,
   addedSlugs,
   onRemoveModule,
+  nombreOficial,
 }: {
+  /** El nombre de la Ficha (`undefined` mientras se lee, `""` si no está declarado). */
+  nombreOficial?: string;
   overview: ProjectOverview;
   proc: ProcState;
   addedSlugs: string[];
@@ -91,7 +94,7 @@ export function MissionControl({
     >
       {/* 5 nov 2026: la cabecera del estudio (nombre, meta y «desde tu última apertura») en la fila que antes
           ocupaba sólo la franja. El chip del topbar dice qué ARCHIVO está abierto; la cabecera, qué ESTUDIO. */}
-      <HomeHero overview={overview} />
+      <HomeHero overview={overview} nombreOficial={nombreOficial} />
 
       {/* Las columnas las decide la cantidad de módulos, no el ancho: con
           `auto-fill` seis tarjetas caían como 4+2 y la fila huérfana se leía

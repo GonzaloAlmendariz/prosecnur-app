@@ -7,10 +7,6 @@
 import type { ProjectOverview } from "../../api/client";
 import { BloqueHoy } from "./BloqueHoy";
 import { formatSavedAt } from "./moduleCardModel";
-import { useNombreOficial } from "./useNombreOficial";
-import { usePanelDireccionable } from "../../lib/navegacion/paneles";
-import { PANEL_ESTUDIO } from "../estudio/panelEstudio";
-import { FileText } from "../../vendor/lucide-react";
 import "./home-hero.css";
 
 export function metaDelEstudio(project: ProjectOverview["project"]): string[] {
@@ -34,17 +30,15 @@ export function nombreDelEstudio(oficial: string | undefined, project: ProjectOv
   return { nombre: oficial || respaldo, faltaOficial: oficial === "" };
 }
 
-export function HomeHero({ overview }: { overview: ProjectOverview }) {
-  // 6 nov 2026 (Gonzalo: «la ficha del estudio debería avisar cuando no hay nombre oficial y el nombre oficial
-  // debería estar arriba del aviso de forma elegante»): el nombre oficial es el de la Ficha. Arriba va ese
-  // nombre en grande; si la Ficha no lo declara, arriba va el del archivo y debajo un aviso que lleva a la
-  // Ficha. La línea «desde tu última apertura» queda al final, como estado.
-  const oficial = useNombreOficial();
-  const panelEstudio = usePanelDireccionable(PANEL_ESTUDIO);
+export function HomeHero({ overview, nombreOficial }: { overview: ProjectOverview; nombreOficial?: string }) {
+  // 6 nov 2026: el nombre oficial es el de la Ficha y encabeza el Home; si falta, arriba va el del archivo y el
+  // aviso es un botón pequeño en el pie, junto a «Ficha del estudio» (no una píldora aquí: Gonzalo, «el aviso
+  // no puede ser tan grande»). La línea «desde tu última apertura» queda debajo, como estado.
+  const oficial = nombreOficial;
   const { nombre, faltaOficial } = nombreDelEstudio(oficial, overview.project);
   const meta = metaDelEstudio({ ...overview.project, name: nombre });
   return (
-    <header className={`home-hero${faltaOficial ? " is-sin-nombre-oficial" : ""}`}>
+    <header className="home-hero" data-nombre-oficial={faltaOficial ? "falta" : undefined}>
       <div className="home-hero-estudio">
         <p className="home-hero-ceja">Estudio</p>
         <h1 className="home-hero-nombre" title={nombre}>{nombre}</h1>
@@ -60,15 +54,6 @@ export function HomeHero({ overview }: { overview: ProjectOverview }) {
         ) : null}
       </div>
       <div className="home-hero-estado">
-        {faltaOficial ? (
-          <p className="home-hero-aviso" role="note" title="La Ficha del estudio no declara su nombre oficial: arriba se muestra el del archivo.">
-            <span className="home-hero-aviso-punto" aria-hidden="true" />
-            <span>Sin nombre oficial</span>
-            <button type="button" className="home-hero-aviso-accion" onClick={panelEstudio.abrir}>
-              <FileText size={13} aria-hidden="true" /> Declararlo en la Ficha
-            </button>
-          </p>
-        ) : null}
         <BloqueHoy overview={overview} />
       </div>
     </header>

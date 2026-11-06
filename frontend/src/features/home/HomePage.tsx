@@ -11,6 +11,7 @@ import { PANEL_CONFIGURACION, PANEL_MODULOS } from "./panelesHome";
 import { PANEL_ESTUDIO } from "../estudio/panelEstudio";
 import { MissionControl, type ProcState } from "./MissionControl";
 import { ModuleCarousel } from "./ModuleCarousel";
+import { useNombreOficial } from "./useNombreOficial";
 import "./home-v2.css";
 
 // Home — menú principal de Prosecnur.
@@ -86,6 +87,8 @@ export default function HomePage() {
   const panelModulos = usePanelDireccionable(PANEL_MODULOS);
   const panelEstudio = usePanelDireccionable(PANEL_ESTUDIO);
   const { overview, loading, addedSlugs, addModule, removeModule } = useProjectModules();
+  // El nombre oficial de la Ficha: encabeza el Home y, si falta, el pie lo avisa junto a «Ficha del estudio».
+  const nombreOficial = useNombreOficial();
 
   const hasModules = addedSlugs.length > 0;
 
@@ -108,6 +111,7 @@ export default function HomePage() {
     content = (
       <div className="home-suite">
         <MissionControl
+          nombreOficial={nombreOficial}
           overview={overview}
           proc={proc}
           addedSlugs={addedSlugs}
@@ -139,6 +143,7 @@ export default function HomePage() {
         onClose={requestAppExit}
         onOpenSettings={panelConfiguracion.abrir}
         onOpenEstudio={panelEstudio.abrir}
+        faltaNombreOficial={nombreOficial === ""}
       />
 
     </div>
@@ -178,8 +183,10 @@ function HomeFooter({
   onClose,
   onOpenSettings,
   onOpenEstudio,
+  faltaNombreOficial = false,
 }: {
   version: string;
+  faltaNombreOficial?: boolean;
   onClose: () => void;
   onOpenSettings: () => void;
   onOpenEstudio: () => void;
@@ -191,6 +198,19 @@ function HomeFooter({
         <span className="home-footer-sep" aria-hidden="true" />
         <span>Hecho para el {PULSO_FULL_NAME}</span>
         <div style={{ flex: 1 }} />
+        {/* 6 nov 2026 (Gonzalo: «el aviso no puede ser tan grande; debe ser un botón, un aviso sencillo al lado
+            de Ficha del estudio»): sin nombre oficial en la Ficha, un botón pequeño que lleva a declararlo. */}
+        {faltaNombreOficial ? (
+          <button
+            type="button"
+            className="home-footer-aviso"
+            onClick={onOpenEstudio}
+            title="La Ficha del estudio no declara su nombre oficial; arriba se muestra el del archivo."
+          >
+            <span className="home-footer-aviso-punto" aria-hidden="true" />
+            Falta el nombre oficial
+          </button>
+        ) : null}
         <button type="button" className="home-footer-notes" onClick={onOpenEstudio}>
           <FileText size={14} aria-hidden="true" /> Ficha del estudio
         </button>

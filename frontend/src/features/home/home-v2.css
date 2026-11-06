@@ -2897,3 +2897,32 @@
 .home-hoy-cambios li {
   color: var(--pulso-text);
 }
+
+/* Aviso de nombre oficial en el pie (6 nov 2026): un botón pequeño junto a «Ficha del estudio», no una
+   píldora en la cabecera. Punto ámbar, texto corto; lleva a la Ficha. */
+.home-wrap .home-footer-aviso {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border: 1px solid var(--pulso-warn-border);
+  border-radius: 999px;
+  background: var(--pulso-warn-bg);
+  color: var(--pulso-warn-fg);
+  font-size: var(--pulso-type-caption-size);
+  font-weight: var(--pulso-weight-semibold);
+  cursor: pointer;
+}
+
+.home-footer-aviso-punto {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--pulso-warn-fg);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .home-wrap .home-footer-aviso:hover {
+    background: color-mix(in srgb, var(--pulso-warn-bg) 70%, var(--pulso-warn-border));
+  }
+}

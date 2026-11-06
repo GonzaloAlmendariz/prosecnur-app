@@ -73,50 +73,6 @@
   gap: 8px 10px;
 }
 
-/* Sin nombre oficial en la Ficha: un aviso sereno en la misma familia de píldoras que «desde tu última
-   apertura», con su punto ámbar y la acción dentro. */
-.home-hero-aviso {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  margin: 0;
-  padding: 4px 4px 4px 12px;
-  border: 1px solid var(--pulso-warn-border);
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--pulso-warn-bg) 70%, var(--pulso-surface));
-  color: var(--pulso-warn-fg);
-  font-size: var(--pulso-type-body-size);
-}
-
-.home-hero-aviso-punto {
-  width: 7px;
-  height: 7px;
-  border-radius: 999px;
-  background: var(--pulso-warn-fg);
-}
-
-.home-hero-aviso-accion {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 4px 10px;
-  border: 0;
-  border-radius: 999px;
-  background: var(--pulso-surface);
-  color: var(--pulso-text);
-  font: inherit;
-  font-weight: var(--pulso-weight-semibold);
-  cursor: pointer;
-}
-
-@media (hover: hover) and (pointer: fine) {
-  .home-hero-aviso-accion:hover { background: var(--pulso-surface-2); }
-}
-
-.home-hero.is-sin-nombre-oficial .home-hero-nombre {
-  color: var(--pulso-text-soft);
-}
-
 /* La franja «desde tu última apertura» deja de ser una caja propia: es la línea de estado de la cabecera. */
 .home-hero .home-hoy {
   flex: 0 1 auto;
