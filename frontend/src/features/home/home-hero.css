@@ -6,18 +6,18 @@
   width: 100%;
   max-width: calc(var(--home-cols, 4) * var(--home-ancho-col, 400px));
   margin-inline: auto;
+  /* 6 nov 2026: el nombre arriba y, debajo, la línea de estado (aviso de nombre oficial + desde tu última
+     apertura). En ventanas bajas vuelve a una fila (ver el @media del final). */
   display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 16px 32px;
-  flex-wrap: wrap;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 12px;
   padding: 4px 2px 6px;
   animation: pulso-mov-sube var(--motion-dur-panel) var(--motion-ease-out) backwards;
 }
 
 .home-hero-estudio {
   min-width: 0;
-  flex: 1 1 420px;
   display: grid;
   gap: 4px;
 }
@@ -66,6 +66,57 @@
   background: var(--pulso-text-faint);
 }
 
+.home-hero-estado {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 10px;
+}
+
+/* Sin nombre oficial en la Ficha: un aviso sereno en la misma familia de píldoras que «desde tu última
+   apertura», con su punto ámbar y la acción dentro. */
+.home-hero-aviso {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  padding: 4px 4px 4px 12px;
+  border: 1px solid var(--pulso-warn-border);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--pulso-warn-bg) 70%, var(--pulso-surface));
+  color: var(--pulso-warn-fg);
+  font-size: var(--pulso-type-body-size);
+}
+
+.home-hero-aviso-punto {
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: var(--pulso-warn-fg);
+}
+
+.home-hero-aviso-accion {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--pulso-surface);
+  color: var(--pulso-text);
+  font: inherit;
+  font-weight: var(--pulso-weight-semibold);
+  cursor: pointer;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .home-hero-aviso-accion:hover { background: var(--pulso-surface-2); }
+}
+
+.home-hero.is-sin-nombre-oficial .home-hero-nombre {
+  color: var(--pulso-text-soft);
+}
+
 /* La franja «desde tu última apertura» deja de ser una caja propia: es la línea de estado de la cabecera. */
 .home-hero .home-hoy {
   flex: 0 1 auto;
@@ -94,7 +145,8 @@
 /* Ventanas bajas (≤ 820 px): la cabecera cede alto a las tarjetas. Sin ceja, y el nombre con su meta en una sola
    línea; a 1366×768 la fila pasaba de 82 a ~44 px y dos filas de tarjetas caben sin scroll. */
 @media (max-height: 820px) {
-  .home-hero { align-items: center; padding-block: 0; }
+  .home-hero { flex-direction: row; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 24px; padding-block: 0; }
+  .home-hero-estudio { flex: 1 1 auto; }
   .home-hero-ceja { display: none; }
   .home-hero-estudio { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; }
   .home-hero-nombre { font-size: calc(var(--pulso-type-display-size) * 0.8); }
