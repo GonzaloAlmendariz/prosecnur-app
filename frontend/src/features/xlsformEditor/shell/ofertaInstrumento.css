@@ -1,0 +1,22 @@
+/* La oferta del instrumento del estudio en una línea (5 nov 2026, pulido de UI): el texto a la izquierda y la
+   acción al costado cuando hay ancho; en angosto la acción baja. Se suma a la regla base de xf-home. */
+@media (min-width: 1000px) {
+  .pulso-xf-home-instrumento .pulso-alert-content {
+    display: flex;
+    align-items: center;
+    gap: var(--pulso-space-4);
+  }
+  .pulso-xf-home-instrumento .pulso-alert-content > p {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+  .pulso-xf-home-instrumento-acciones {
+    flex: none;
+    margin-block-start: 0;
+  }
+}
+
+.pulso-xf-home-instrumento strong {
+  font-weight: var(--pulso-weight-semibold);
+  overflow-wrap: anywhere;
+}
