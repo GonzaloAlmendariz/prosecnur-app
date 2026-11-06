@@ -10,7 +10,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 
-import type { CampanaMaterial } from "../../../api/materialCampanas";
+import type { CampanaMaterial, TipoDeCampana } from "../../../api/materialCampanas";
 import type { MailPlatform } from "../../../api/materialMail";
 import { conNivel, serializarDireccion } from "../../../lib/navegacion/direccion";
 import { usePanelDireccionable } from "../../../lib/navegacion/paneles";
@@ -92,6 +92,8 @@ export function MaterialCampoShell() {
   const exportacion = useCorreosStore((s) => s.exportacion);
   const correoAbierto = useCorreosStore((s) => s.campana);
   const nueva = usePanelDireccionable(PANEL_NUEVA_CAMPANA);
+  // El tipo elegido en el vacío de la lista: el diálogo se abre con él marcado (5 nov 2026).
+  const [tipoInicial, setTipoInicial] = useState<TipoDeCampana | null>(null);
   const renombrar = usePanelDireccionable(PANEL_RENOMBRAR_CAMPANA);
   const borrar = usePanelDireccionable(PANEL_CORREO_CAMPANA_BORRAR);
   const [aviso, setAviso] = useState<AvisoDeLaLista | null>(null);
@@ -368,7 +370,7 @@ export function MaterialCampoShell() {
         hrefDe={hrefDeCampana}
         accionesDe={accionesDe}
         onAccion={onAccion}
-        onNueva={nueva.abrir}
+        onNueva={(tipo) => { setTipoInicial(tipo ?? null); nueva.abrir(); }}
         onReintentar={() => { void recargar(false); }}
         miniaturas={miniaturasDeCorreo}
         asuntos={asuntos}
@@ -377,6 +379,7 @@ export function MaterialCampoShell() {
         <>
           <DialogoNuevaCampana
             panel={nueva}
+            tipoInicial={tipoInicial}
             registro={registro}
             fuente={reg.fuente}
             presets={presets}

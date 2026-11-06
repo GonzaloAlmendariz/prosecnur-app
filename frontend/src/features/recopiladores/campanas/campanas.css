@@ -944,3 +944,27 @@
 .rec-campana-tarjeta.is-supervision .rec-campana-emblema { background: var(--pulso-surface); color: var(--pulso-accent-violet); }
 .rec-campana-tarjeta.is-archivada .rec-campana-franja { background: var(--pulso-surface-2); }
 .rec-campana-tarjeta.is-archivada .rec-campana-emblema { background: var(--pulso-surface-2); color: var(--pulso-text-soft); }
+
+/* El vacío de la lista con los tipos a la vista (5 nov 2026, pulido de UI): el título arriba y los tipos que
+   el estudio admite como tarjetas que se eligen. Reusa .rec-nueva-tipos del diálogo; aquí van en fila ancha. */
+.rec-campanas-vacio.is-con-tipos {
+  display: grid;
+  gap: var(--pulso-space-4);
+  padding-block-end: var(--pulso-space-5);
+}
+
+.rec-campanas-vacio.is-con-tipos .rec-nueva-tipos {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+  padding-inline: var(--pulso-space-4);
+}
+
+.rec-campanas-vacio.is-con-tipos > .pulso-estado-vacio {
+  border: 0;
+  background: transparent;
+  padding-block-end: 0;
+}
+
+.rec-campanas-vacio.is-con-tipos .rec-nueva-ir-hojas {
+  margin: 0;
+  padding-inline: var(--pulso-space-4);
+}

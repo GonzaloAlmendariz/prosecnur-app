@@ -14,7 +14,8 @@
 import type { ReactNode } from "react";
 import { Link } from "react-router-dom";
 
-import type { CampanaMaterial, RegistroDeCampanas } from "../../../api/materialCampanas";
+import type { CampanaMaterial, RegistroDeCampanas, TipoDeCampana } from "../../../api/materialCampanas";
+import { TiposDeCampana } from "./DialogoNuevaCampana";
 import { EstadoVacio } from "../../../components/EstadoVacio";
 import { PageFrame } from "../../../components/PageFrame";
 import { PulsoButton } from "../../../components/PulsoButton";
@@ -41,7 +42,8 @@ type Props = {
   hrefDe: (campana: CampanaMaterial) => string;
   accionesDe: (campana: CampanaMaterial) => readonly AccionDeCampana[];
   onAccion: (accion: IdDeAccion, campana: CampanaMaterial) => void;
-  onNueva: () => void;
+  /** Abre «Nueva campaña»; con un tipo, el diálogo llega con ese tipo elegido (vacío de la lista). */
+  onNueva: (tipo?: TipoDeCampana) => void;
   onReintentar: () => void;
   /** Miniatura real de cada correo, por id de campaña. */
   miniaturas?: Record<string, MiniaturaDeCorreo | null>;
@@ -107,7 +109,7 @@ export function ListaDeCampanas({
             {/* El h1 lo pone PageFrame (sr-only) con el mismo título: este no se repite al lector. */}
             <p className="rec-campanas-titulo" aria-hidden>Campañas</p>
             {/* D8 (checklist visual 2/11): sin campañas el primario es el del vacío; aquí queda secundario, en su sitio. */}
-            <PulsoButton variant={registro && !visibles.length ? "secondary" : "primary"} size="sm" onClick={onNueva} disabled={!registro} data-retorno="nueva-campana">
+            <PulsoButton variant={registro && !visibles.length ? "secondary" : "primary"} size="sm" onClick={() => onNueva()} disabled={!registro} data-retorno="nueva-campana">
               <Plus size={14} aria-hidden /> Nueva campaña
             </PulsoButton>
           </div>
@@ -147,19 +149,22 @@ export function ListaDeCampanas({
                 <Grilla campanas={g.campanas} grupo={`material-campo/campanas/${g.publico}`}>{tarjeta}</Grilla>
               </section>
             ))}
-            <Grilla campanas={porPublico.sueltas} grupo="material-campo/campanas" extra={<TarjetaNueva onNueva={onNueva} />}>{tarjeta}</Grilla>
+            <Grilla campanas={porPublico.sueltas} grupo="material-campo/campanas" extra={<TarjetaNueva onNueva={() => onNueva()} />}>{tarjeta}</Grilla>
           </>
         ) : visibles.length ? (
-          <Grilla campanas={visibles} grupo="material-campo/campanas" extra={<TarjetaNueva onNueva={onNueva} />}>{tarjeta}</Grilla>
+          <Grilla campanas={visibles} grupo="material-campo/campanas" extra={<TarjetaNueva onNueva={() => onNueva()} />}>{tarjeta}</Grilla>
         ) : (
-          <div className="rec-campanas-vacio" data-qa-geometry-capacity="owned">
+          <div className="rec-campanas-vacio is-con-tipos" data-qa-geometry-capacity="owned">
+            {/* 5 nov 2026 (pulido de UI): el vacío ya muestra los tipos que el estudio admite, con su qué-es, y
+                elegir uno abre «Nueva campaña» con ese tipo marcado. Antes era una caja chica con una frase de
+                cuatro tipos seguidos y un botón que llevaba a ver esos mismos tipos en el diálogo. */}
             <EstadoVacio
               tamano="normal"
               icono={<Layers size={18} />}
               titulo="Todavía no hay campañas"
-              descripcion="Un campo en aulas con fichas QR, el material territorial de la muestra de Hojas de ruta, el barrido de una campaña telefónica o un correo para un grupo: elige el tipo y empieza."
-              accion={<PulsoButton variant="primary" size="sm" onClick={onNueva} data-retorno="nueva-campana"><Plus size={14} aria-hidden /> Nueva campaña</PulsoButton>}
+              descripcion="Elige el tipo para empezar."
             />
+            <TiposDeCampana registro={registro} elegido={null} ocupado={false} onElegir={(tipo) => onNueva(tipo)} />
           </div>
         )}
 

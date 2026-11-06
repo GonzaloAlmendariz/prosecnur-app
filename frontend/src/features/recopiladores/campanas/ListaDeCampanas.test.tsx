@@ -42,8 +42,10 @@ describe("la lista de campañas (ADR 0111 §2)", () => {
   it("sin campañas: el vacío vive en su caja y ofrece «Nueva campaña» (C3)", () => {
     const html = lista(VACIO);
     expect(html).toContain("Todavía no hay campañas");
+    // 5 nov 2026: el vacío ya muestra los tipos para elegir (abre «Nueva campaña» con ese tipo marcado).
+    expect(html).toContain('data-qa-geometry-group="material-campo/campanas/nueva-tipos"');
     expect(html).toContain('data-audit-ready="vacio:sin-campanas"');
-    expect(html).toContain('class="rec-campanas-vacio" data-qa-geometry-capacity="owned"');
+    expect(html).toContain('class="rec-campanas-vacio is-con-tipos" data-qa-geometry-capacity="owned"');
     expect(html).not.toContain('data-qa-geometry-group="material-campo/campanas"');
   });
 

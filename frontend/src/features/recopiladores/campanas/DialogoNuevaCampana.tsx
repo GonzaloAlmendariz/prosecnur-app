@@ -61,6 +61,8 @@ type Props = {
   onCrearCorreo: (input: { name: string; actor: string; origen: string; platform: MailPlatform }) => Promise<Resultado>;
   /** «Desde un correo existente…»: cambia este diálogo por el de importar. */
   onImportar: (platform: MailPlatform) => void;
+  /** El tipo con que se abre (elegido en el vacío de la lista); sin él, el diálogo empieza por elegir. */
+  tipoInicial?: TipoDeCampana | null;
 };
 
 const TIPOS: readonly TipoDeCampana[] = ["aulas", "territorial", "telefonica", "supervision", "correo"];
@@ -123,7 +125,7 @@ export function TiposDeCampana({ registro, elegido, ocupado, onElegir }: {
   );
 }
 
-export function DialogoNuevaCampana({ panel, registro, fuente, presets, miniaturas, ocupado, onCrearAulas, onCrearTerritorial, onCrearTelefonica, proposito = null, onCrearSupervision, onCrearCorreo, onImportar }: Props) {
+export function DialogoNuevaCampana({ panel, registro, fuente, presets, miniaturas, ocupado, onCrearAulas, onCrearTerritorial, onCrearTelefonica, proposito = null, onCrearSupervision, onCrearCorreo, onImportar, tipoInicial = null }: Props) {
   const ids = useId();
   const { abierto, cerrar } = panel;
   const [tipo, setTipo] = useState<TipoDeCampana | null>(null);
@@ -171,6 +173,11 @@ export function DialogoNuevaCampana({ panel, registro, fuente, presets, miniatur
     // Con un solo lote libre, ya está elegido.
     if (t === "supervision" && lotesLibres.length === 1) elegirLote(lotesLibres[0].lote_id);
   };
+  // Abierto desde el vacío de la lista con un tipo ya elegido: se elige al abrir, una vez.
+  useEffect(() => {
+    if (abierto && tipoInicial && !tipo) elegir(tipoInicial);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- sólo al abrir
+  }, [abierto, tipoInicial]);
   const elegirLote = (id: string) => {
     setLote(id);
     setNombre((n) => (n.trim() && !n.startsWith("Supervisión ") ? n : `Supervisión ${id.replace(/^ronda-/, "ronda ")}`));
