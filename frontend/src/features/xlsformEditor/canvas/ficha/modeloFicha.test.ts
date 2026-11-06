@@ -2,7 +2,7 @@
 // (`horizontal`) que no se reconoce como «En una fila», un cambio de tipo que no avisa que la lista queda sin uso y un
 // conteo de referencias que no coincide con lo que reescribe el renombre.
 import { describe, expect, test } from "vitest";
-import { aparienciaActiva, aparienciaAjena, aparienciasDe, avisosDeFicha, conApariencia, contarReferencias, focoParaPestana, listaQueSePierde } from "./modeloFicha";
+import { aparienciaActiva, aparienciaAjena, aparienciasDe, avisosDeFicha, conApariencia, contarReferencias, etiquetaEscrita, focoParaPestana, listaQueSePierde } from "./modeloFicha";
 
 describe("apariencia en la plataforma", () => {
   test("cada tipo ofrece sus opciones; uno sin variantes, ninguna", () => {
@@ -47,5 +47,14 @@ describe("avisos de la ficha (E11b)", () => {
   });
   test("en otro tipo se muestran todos", () => {
     expect(avisosDeFicha(avisos, "text")).toHaveLength(3);
+  });
+});
+
+describe("etiqueta escrita en la fila", () => {
+  test("no muestra el código como etiqueta cuando la fila no tiene", () => {
+    const survey = { columns: ["type", "name", "label"], rows: [["calculate", "cj_t1A_edad", ""], ["text", "p1", "¿Nombre?"]] };
+    expect(etiquetaEscrita(survey, { rowIndex: 0, label: "cj_t1A_edad" })).toBe("");
+    expect(etiquetaEscrita(survey, { rowIndex: 1, label: "¿Nombre?" })).toBe("¿Nombre?");
+    expect(etiquetaEscrita({ columns: ["type", "name", "label::English (en)"], rows: [["text", "p1", "Name?"]] }, { rowIndex: 0, label: "Name?" })).toBe("Name?");
   });
 });

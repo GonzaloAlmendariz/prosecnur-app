@@ -7,6 +7,7 @@ import { BloqueFicha, CampoTexto } from "./piezasFicha";
 import { ReglasFicha } from "./ReglasFicha";
 import type { DatosFicha } from "./tiposFicha";
 import { VistaPregunta } from "./VistaPregunta";
+import { etiquetaEscrita } from "./modeloFicha";
 
 export function FichaNota({ datos }: { datos: DatosFicha }) {
   const { node, structure, survey, scope, requiredRaw, avisos, acciones } = datos;
@@ -17,7 +18,7 @@ export function FichaNota({ datos }: { datos: DatosFicha }) {
         <CabeceraDesdeDatos datos={datos} posicion={`Sin respuesta, ${donde}`} conTipo />
         <AvisosFicha avisos={avisos} />
         <BloqueFicha titulo="Texto">
-          <CampoTexto etiqueta="Texto de la nota" valor={node.label} onCambio={(v) => acciones.campo("label", v)} multilinea grande placeholder="Lo que se lee en pantalla" />
+          <CampoTexto etiqueta="Texto de la nota" valor={etiquetaEscrita(survey, node)} onCambio={(v) => acciones.campo("label", v)} multilinea grande placeholder="Lo que se lee en pantalla" />
           <div className="xfh-dos-campos">
             <CampoTexto etiqueta="Texto secundario" valor={node.hint} onCambio={(v) => acciones.campo("hint", v)} multilinea placeholder="Opcional" />
             <CampoCodigo valor={node.name} survey={survey} onCambio={(v) => acciones.campo("name", v)} />

@@ -6,7 +6,7 @@ import { AparienciaFicha } from "./AparienciaFicha";
 import { AvisosFicha } from "./AvisosFicha";
 import { CabeceraDesdeDatos, dondeEsta } from "./CabeceraFicha";
 import { CampoCodigo } from "./CampoCodigo";
-import { avisosDeFicha, numeroDePregunta } from "./modeloFicha";
+import { avisosDeFicha, etiquetaEscrita, numeroDePregunta } from "./modeloFicha";
 import { BloqueFicha, CampoTexto } from "./piezasFicha";
 import { ReglasFicha } from "./ReglasFicha";
 import { RespuestaFicha } from "./RespuestaFicha";
@@ -24,7 +24,7 @@ export function FichaPregunta({ datos }: { datos: DatosFicha }) {
         <CabeceraDesdeDatos datos={datos} posicion={posicion} conTipo />
         <AvisosFicha avisos={avisosDeFicha(avisos, node.typeInfo.base)} />
         <BloqueFicha titulo="Texto">
-          <CampoTexto etiqueta="Pregunta" valor={node.label} onCambio={(v) => acciones.campo("label", v)} multilinea grande placeholder="¿Qué se le pregunta al encuestado?" />
+          <CampoTexto etiqueta="Pregunta" valor={etiquetaEscrita(survey, node)} onCambio={(v) => acciones.campo("label", v)} multilinea grande placeholder="¿Qué se le pregunta al encuestado?" />
           <div className="xfh-dos-campos">
             <CampoTexto etiqueta="Ayuda para quien responde" valor={node.hint} onCambio={(v) => acciones.campo("hint", v)} multilinea placeholder="Opcional" />
             <CampoCodigo valor={node.name} survey={survey} onCambio={(v) => acciones.campo("name", v)} />

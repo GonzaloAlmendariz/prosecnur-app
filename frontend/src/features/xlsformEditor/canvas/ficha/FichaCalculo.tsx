@@ -9,7 +9,7 @@ import { leerRegla } from "../../reglas/leerRegla";
 import { AvisosFicha } from "./AvisosFicha";
 import { CabeceraDesdeDatos, dondeEsta } from "./CabeceraFicha";
 import { CampoCodigo } from "./CampoCodigo";
-import { plural } from "./modeloFicha";
+import { etiquetaEscrita, plural } from "./modeloFicha";
 import { BloqueFicha, BotonIr, CampoTexto, CodigoXlsform, Lectura } from "./piezasFicha";
 import { ReglasFicha } from "./ReglasFicha";
 import type { DatosFicha } from "./tiposFicha";
@@ -63,7 +63,7 @@ export function FichaCalculo({ datos }: { datos: DatosFicha }) {
       </BloqueFicha>
       <BloqueFicha titulo="Etiqueta y código">
         <div className="xfh-dos-campos">
-          <CampoTexto etiqueta="Etiqueta" valor={node.label} onCambio={(v) => acciones.campo("label", v)} placeholder="Opcional" />
+          <CampoTexto etiqueta="Etiqueta" valor={etiquetaEscrita(survey, node)} onCambio={(v) => acciones.campo("label", v)} placeholder="Opcional" />
           <CampoCodigo valor={node.name} survey={survey} onCambio={(v) => acciones.campo("name", v)} />
         </div>
       </BloqueFicha>

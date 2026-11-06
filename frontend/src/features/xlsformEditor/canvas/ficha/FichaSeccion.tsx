@@ -10,7 +10,7 @@ import { AvisosFicha } from "./AvisosFicha";
 import { CabeceraDesdeDatos } from "./CabeceraFicha";
 import { CampoCodigo } from "./CampoCodigo";
 import { FilaRegla } from "./FilaRegla";
-import { contenidoDeBloque, plural } from "./modeloFicha";
+import { contenidoDeBloque, etiquetaEscrita, plural } from "./modeloFicha";
 import { BloqueFicha, CampoTexto, CodigoXlsform } from "./piezasFicha";
 import { ReglasFicha } from "./ReglasFicha";
 import type { DatosFicha } from "./tiposFicha";
@@ -32,7 +32,7 @@ export function FichaSeccion({ datos }: { datos: DatosFicha }) {
         <BloqueFicha titulo="Título">
           <CampoTexto
             etiqueta="Lo que ve el encuestado al entrar"
-            valor={node.label}
+            valor={etiquetaEscrita(survey, node)}
             onCambio={(v) => acciones.campo("label", v)}
             multilinea
             grande

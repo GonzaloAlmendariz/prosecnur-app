@@ -4,6 +4,7 @@
 // Restricciones y Cálculos: las listas a la izquierda, sus opciones al centro y, al lado, dónde se usa y si se repite.
 // La lista elegida vive en `?foco=` (su código): enlazable.
 
+import { stripMarkdown } from "../helpers/markdown";
 import { useCallback, useMemo, useState } from "react";
 import { ListChecks, Plus } from "../../../vendor/lucide-react";
 import type { XlsformEditorWorkbook } from "../../../api/multiIntegrado";
@@ -92,7 +93,7 @@ export function PestanaOpciones(p: PestanaOpcionesProps) {
                   {usos.map((n, i) => (
                     <li key={`${n.name}-${i}`}>
                       <button type="button" className="xfo-uso" onClick={() => p.onIrAPregunta(n.name)}>
-                        <QuestionToken baseType={n.typeInfo.base} label={n.paperNumber || n.name} hint={n.label} variable={n.name} />
+                        <QuestionToken baseType={n.typeInfo.base} label={n.paperNumber || n.name} hint={stripMarkdown(n.label)} variable={n.name} />
                       </button>
                       {n.choiceFilter ? <span className="xfo-uso-filtro">Con filtro de opciones</span> : null}
                     </li>
