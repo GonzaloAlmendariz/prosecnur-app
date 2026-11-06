@@ -1,6 +1,6 @@
 # Propuesta: pantalla de inicio y carga de Prosecnur — 2026-11-06
 
-Artefacto: https://claude.ai/artifact/3cVPEhL8NGz3Nem4vSM5jg (versión 9). Propuesta visual; no se tocó código
+Artefacto: https://claude.ai/artifact/3cVPEhL8NGz3Nem4vSM5jg (versión 10). Propuesta visual; no se tocó código
 de la app.
 
 ## Decisión de Gonzalo
@@ -31,6 +31,22 @@ módulos y sus vistas, y dejamos la animación elegante sólo para la pantalla d
 - Transición: la superficie del módulo que sale sube 14 px y se funde; la que entra sube 46 px desde abajo. El nombre
   cambia con un fundido corto y el ambiente de fondo toma el tono del módulo.
 - Variante quieta: cambia de módulo sin deslizarse y cada escena se muestra en su cuadro final.
+
+## Contrato de armonía (v10)
+
+Tras «no hay elevaciones muy armónicas, ni una estructura o disposición de los elementos muy bien ordenada», la
+composición sigue reglas medibles, recuperadas de los tokens de la app (`tokens.css`: escala `--pulso-space-*` sobre 4 px,
+radios `--pulso-radius*`, sombras `--pulso-shadow-*`). Se verificaron midiendo el DOM del artefacto.
+
+| Regla | Valor |
+|---|---|
+| Grilla | 12 columnas de 74 px, canal 24, margen 64 sobre 1280 × 800. Lámina en 1–4 (368 px), columna 5 libre, módulo desde la 6 (x 554). |
+| Un solo borde | Rótulo «Módulo n de 7», nombre, descripción y superficie comparten x 554. |
+| Rieles | 112 (arriba de la lámina y del rótulo) · 288 (superficie) · 736 (margen inferior). |
+| Espacios | Sólo de la escala: 16 dentro de un grupo, 24 entre bloques cercanos, 40 entre secciones (lámina → barra de módulos, descripción → superficie). |
+| Elevación | 0 fondo plano con ambiente · 1 superficie del módulo `--pulso-shadow-med` · 2 lámina de estado `--pulso-shadow-high`. Antes la superficie tenía una sombra propia mayor que la de la lámina e invertía la jerarquía. |
+| Radios | 20 (`--pulso-radius-lens`) en las dos superficies grandes; 10 (`--pulso-radius`) en los chips. |
+| Tipo | 12 rótulos en versalitas · 15 cuerpo · 18 entrada · 24 título de fase · 48 nombre; interlineados múltiplos de 8. |
 
 ## Escenas (35, cinco por módulo)
 
