@@ -147,19 +147,6 @@ input {
   padding: 30px;
 }
 
-.boot-panel-warmup {
-  width: 100%;
-  min-height: 100vh;
-  display: grid;
-  place-items: center;
-  border: 0;
-  border-radius: 0;
-  box-shadow: none;
-  padding: clamp(24px, 5vw, 72px);
-  background: transparent;
-  backdrop-filter: none;
-}
-
 /* --- Chooser: ventana de bienvenida (dos columnas) ----------------------- */
 
 .boot-welcome {
@@ -892,30 +879,8 @@ input {
   }
 }
 
-/* --- Warmup: anillo de progreso ------------------------------------------ */
-
-.boot-warmup {
-  width: min(740px, 100%);
-  display: grid;
-  justify-items: center;
-  gap: clamp(16px, 2.6vw, 30px);
-  text-align: center;
-}
-
-/* Envoltura de marca + anillo + texto de progreso. `display: contents` en
-   altura normal: no cambia el grid de una sola columna que ya tenían estos
-   tres hijos como items directos de .boot-warmup. */
-.boot-warmup-summary {
-  display: contents;
-}
-
-.boot-progress {
-  width: min(620px, 100%);
-  display: grid;
-  justify-items: center;
-  gap: 8px;
-}
-
+/* Piezas del selector que vivían junto al warm start viejo (retirado el 5 nov 2026: el arranque es
+   PantallaDeCarga, con su propia hoja). */
 .boot-project-name {
   max-width: min(440px, 100%);
   margin: 0;
@@ -927,226 +892,16 @@ input {
   white-space: nowrap;
 }
 
-.boot-progress h1 {
-  margin: 0;
-  color: var(--pulso-text);
-  font-size: clamp(28px, 4.4vw, 48px);
-  font-weight: var(--pulso-weight-heavy);
-  letter-spacing: 0;
-  line-height: 1.04;
-  text-wrap: balance;
-}
-
-.boot-warmup-reloj {
-  margin-top: 6px;
-}
-
-/* Silueta de la vista destino detrás del indicador (L23): ocupa la ventana,
-   no recibe eventos y queda atenuada; el indicador va encima en una lámina. */
-.boot-warmup-destino {
-  position: fixed;
-  inset: 0;
-  z-index: 0;
-  overflow: hidden;
-  opacity: 0.6;
-  pointer-events: none;
-}
-
-.boot-shell.is-warmup .boot-panel-warmup {
-  position: relative;
-  z-index: 1;
-}
-
-.boot-shell.is-warmup .boot-warmup {
-  padding: clamp(20px, 3vw, 36px);
-  border: 1px solid var(--pulso-border);
-  border-radius: 20px;
-  background: color-mix(in srgb, var(--pulso-surface) 90%, transparent);
-  backdrop-filter: blur(10px) saturate(1.05);
-  box-shadow: var(--pulso-shadow-high);
-}
-
-/* --- Warmup: pasos --------------------------------------------------------- */
-
-.boot-warmup-steps {
-  width: min(640px, 100%);
-  display: grid;
-  gap: 8px;
-  text-align: left;
-}
-
-.boot-warmup-step {
-  display: grid;
-  grid-template-columns: 20px minmax(0, 1fr);
-  gap: 10px;
-  align-items: flex-start;
-  min-height: 46px;
-  border: 1px solid rgba(0, 36, 87, 0.1);
-  border-radius: 12px;
-  padding: 9px 11px;
-  background: color-mix(in srgb, var(--pulso-surface) 88%, transparent);
-  color: var(--pulso-text-soft);
-  box-shadow: 0 10px 28px rgba(0, 36, 87, 0.05);
-  transition: background var(--motion-dur-base) ease, border-color var(--motion-dur-base) ease;
-}
-
-.boot-step-icon {
-  display: grid;
-  place-items: center;
-  width: 20px;
-  height: 20px;
-  margin-top: 1px;
-  border-radius: 999px;
-  background: var(--pulso-surface-2);
-  color: var(--pulso-text-faint);
-  box-shadow: inset 0 0 0 1px var(--pulso-border);
-  transition: background var(--motion-dur-base) ease, color var(--motion-dur-base) ease, box-shadow var(--motion-dur-base) ease;
-}
-
-.boot-warmup-step strong,
-.boot-warmup-step small {
-  display: block;
-  min-width: 0;
-  overflow-wrap: anywhere;
-}
-
-.boot-warmup-step strong {
-  color: var(--pulso-text);
-  font-size: 13px;
-  font-weight: var(--pulso-weight-heavy);
-  line-height: 1.22;
-}
-
-.boot-warmup-step small {
-  margin-top: 2px;
-  color: var(--pulso-text-faint);
-  font-size: 11px;
-  font-weight: var(--pulso-weight-bold);
-  line-height: 1.2;
-}
-
-.boot-warmup-step.is-running {
-  border-color: var(--pulso-primary-border);
-  background: color-mix(in srgb, var(--pulso-surface) 94%, var(--pulso-primary));
-}
-
-.boot-warmup-step.is-running .boot-step-icon {
-  background: var(--pulso-primary-soft);
-  color: var(--pulso-primary);
-  box-shadow: inset 0 0 0 1px var(--pulso-primary-border);
-}
-
-.boot-step-spin {
-  animation: boot-spin 0.9s linear infinite;
-}
-
-.boot-warmup-step.is-ready .boot-step-icon {
-  background: var(--pulso-success-bg);
-  color: var(--pulso-success-fg);
-  box-shadow: inset 0 0 0 1px rgba(22, 101, 52, 0.24);
-}
-
-.boot-warmup-step.is-ready .boot-step-icon svg {
-  animation: boot-check-in var(--motion-dur-base) var(--motion-ease-out) backwards;
-}
-
-.boot-warmup-step.is-skipped .boot-step-icon {
-  background: var(--pulso-surface-2);
-  color: var(--pulso-text-soft);
-}
-
-.boot-warmup-step.is-timeout .boot-step-icon,
-.boot-warmup-step.is-error .boot-step-icon {
-  background: var(--pulso-danger-bg);
-  color: var(--pulso-danger-fg);
-  box-shadow: inset 0 0 0 1px var(--pulso-danger-border);
-}
-
 @keyframes boot-spin {
   to {
     transform: rotate(360deg);
   }
 }
 
-@keyframes boot-check-in {
-  from {
-    opacity: 0;
-    transform: scale(0.5);
-  }
-
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-
-/* Alto de viewport reducido (laptops compactas, ventanas achicadas): la pila
-   vertical marca→anillo→título→pasos ya no cabe sin scroll. Se pasa a un
-   layout horizontal — resumen a la izquierda, pasos a la derecha con scroll
-   propio — en vez de comprimir o cortar la lista. Guard de ancho para no
-   activarlo en ventanas angostas pero altas. */
-@media (max-height: 820px) and (min-width: 860px) {
-  .boot-panel-warmup {
-    padding: clamp(18px, 3vh, 40px) clamp(28px, 4vw, 56px);
-  }
-
-  .boot-warmup {
-    width: min(1120px, 100%);
-    grid-template-columns: minmax(0, 0.86fr) minmax(0, 1fr);
-    align-items: center;
-    justify-items: stretch;
-    gap: clamp(24px, 3.4vw, 56px);
-    text-align: left;
-  }
-
-  .boot-warmup-summary {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: clamp(10px, 1.6vh, 20px);
-    text-align: center;
-  }
-
-  .boot-progress {
-    width: 100%;
-  }
-
-  .boot-warmup-steps {
-    width: 100%;
-    max-height: min(64vh, 440px);
-    overflow-y: auto;
-    align-content: start;
-    padding-right: 6px;
-    margin-right: -6px;
-    scrollbar-width: thin;
-    scrollbar-color: var(--pulso-border-strong) transparent;
-  }
-
-  .boot-warmup-steps::-webkit-scrollbar {
-    width: 6px;
-  }
-
-  .boot-warmup-steps::-webkit-scrollbar-thumb {
-    border-radius: 999px;
-    background: color-mix(in srgb, var(--pulso-primary) 18%, transparent);
-  }
-}
-
 @media (prefers-reduced-motion: reduce) {
-  .boot-step-spin {
-    animation: none;
-  }
-
-  .boot-warmup-step.is-ready .boot-step-icon svg {
-    animation: none;
-  }
-
-  .boot-warmup-step,
-.boot-step-icon,
-.boot-path-field input {
+  .boot-path-field input {
     transition: none;
   }
-
 }
 
 .boot-background-warmup {

@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useLocation } from "react-router-dom";
-import { AlertTriangle, Check, Loader2 } from "lucide-react";
 import { apiJobStatus, apiProjectWarmup } from "../api/client";
 import { VistaSkeleton } from "../components/VistaSkeleton";
 import {
@@ -15,11 +14,9 @@ import {
   warmupModulesComplete,
   type WarmupModuleProgress,
 } from "./warmupRegistry";
-import { WarmupReloj, useAhora } from "./WarmupReloj";
+import { useAhora } from "./WarmupReloj";
 import { SIN_ESTIMACION, duracionFase } from "./warmupTiempo";
-import "./module-warmup.css";
-import { BarraDeAvance } from "../components/BarraDeAvance";
-import { BootEcualizador } from "./BootEcualizador";
+import { PantallaDeCarga } from "./PantallaDeCarga";
 
 type ModuleWarmupProfile = {
   key: string;
@@ -444,13 +441,6 @@ export default function ModuleWarmupBoundary({ children }: { children: ReactNode
   );
 }
 
-function FaseIcono({ status }: { status: ModuleWarmupFase["status"] }) {
-  if (status === "ready") return <Check size={12} strokeWidth={3} aria-hidden="true" />;
-  if (status === "running") return <Loader2 size={12} strokeWidth={2.6} className="pulso-module-warmup-spin" aria-hidden="true" />;
-  if (status === "error") return <AlertTriangle size={11} strokeWidth={2.4} aria-hidden="true" />;
-  return null;
-}
-
 function ModuleWarmupScreen({
   profile,
   message,
@@ -474,50 +464,29 @@ function ModuleWarmupScreen({
   const ahoraMs = useAhora(true);
   const desde = inicioMs ?? montadoMs;
   return (
-    <section
+    <PantallaDeCarga
       className="pulso-module-warmup"
       style={module ? moduleChromeVars(module) : undefined}
-      role="status"
-      aria-live="polite"
-      data-module-warmup={profile.key}
-    >
-      <div className="pulso-module-warmup-destino" aria-hidden="true">
-        <VistaSkeleton variante="modulo" secciones={module?.sections.length ?? 5} />
-      </div>
-      <div className="pulso-module-warmup-card">
-        <BootEcualizador detenido={Boolean(error)} />
-        <div className="pulso-module-warmup-copy">
-          <p>{profile.title}</p>
-          <h2>{message || "Preparando módulo"}</h2>
-        </div>
-        {/* La barra en el color del módulo: determinada con el avance del boundary e
-            indeterminada mientras no hay uno (fallback de Suspense, o 0 %). */}
-        {percent !== undefined && percent > 0 && percent < 100
-          ? <BarraDeAvance valor={percent} total={100} etiqueta="Avance de la carga del módulo" />
-          : <BarraDeAvance indeterminada etiqueta="Cargando el módulo" />}
-        <WarmupReloj transcurridoMs={Math.max(0, ahoraMs - desde)} estimacion={SIN_ESTIMACION} />
-        {fases?.length ? (
-          <ol className="pulso-module-warmup-fases" aria-label="Fases" aria-live="off">
-            {fases.map((fase) => (
-              <li className={`pulso-module-warmup-fase is-${fase.status}`} key={fase.id}>
-                <span className="pulso-module-warmup-fase-icono" aria-hidden="true">
-                  <FaseIcono status={fase.status} />
-                </span>
-                <strong>{fase.label}</strong>
-                <small>
-                  {duracionFase({
-                    status: fase.status,
-                    elapsedMs: fase.elapsedMs,
-                    inicioMs: fase.inicioMs,
-                    ahoraMs,
-                  }) || (fase.status === "pending" ? "En espera" : "")}
-                </small>
-              </li>
-            ))}
-          </ol>
-        ) : null}
-        {error ? <small className="pulso-module-warmup-error">{error}</small> : null}
-      </div>
-    </section>
+      conTono={Boolean(module)}
+      datos={{ "data-module-warmup": profile.key }}
+      fondo={<VistaSkeleton variante="modulo" secciones={module?.sections.length ?? 5} />}
+      ceja={`Abriendo ${profile.title}`}
+      titulo={message || "Preparando módulo"}
+      porcentaje={percent !== undefined && percent < 100 ? percent : undefined}
+      transcurridoMs={Math.max(0, ahoraMs - desde)}
+      estimacion={SIN_ESTIMACION}
+      error={error}
+      fases={fases?.map((fase) => ({
+        id: fase.id,
+        label: fase.label,
+        status: fase.status,
+        lectura: duracionFase({
+          status: fase.status,
+          elapsedMs: fase.elapsedMs,
+          inicioMs: fase.inicioMs,
+          ahoraMs,
+        }) || (fase.status === "pending" ? "En espera" : ""),
+      }))}
+    />
   );
 }

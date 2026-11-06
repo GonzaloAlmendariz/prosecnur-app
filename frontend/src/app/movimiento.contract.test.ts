@@ -58,8 +58,9 @@ const SNAPSHOT: Record<"layout" | "infinitas" | "retardo", Record<string, number
     // 4 nov 2026: el anillo del warm start (su órbita giraba sin fin) se retiró; el isotipo que lo
     // reemplaza late mientras se prepara el proyecto: es el indicador de espera, como un spinner.
     "app/boot-ecualizador.css": 1,
-    "app/boot.css": 4,
-    "app/module-warmup.css": 1,
+    "app/boot.css": 3,
+    // 5 nov 2026: module-warmup.css se retiró; la carga de módulo y la de proyecto son PantallaDeCarga (su giro de fase).
+    "app/pantalla-de-carga.css": 1,
     "app/theme.css": 6,
     "components/bases-inspector.css": 1,
     // Barra indeterminada del kit (3 nov 2026): es un indicador de carga, como el spinner.

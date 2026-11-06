@@ -1,14 +1,12 @@
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState, type ComponentType, type CSSProperties } from "react";
 import { hrefSinParamDeProyecto } from "../lib/navegacion/direccion";
 import {
-  AlertTriangle,
   Check,
   Clock,
   Folder,
   FolderOpen,
   FolderSearch,
   Loader2,
-  Minus,
   Pencil,
   Plus,
   X,
@@ -16,7 +14,8 @@ import {
 import { formatRelativeDate } from "../components/RecentProjectCard";
 import { PROSECNUR_PRIMARY_ACTIVE_MODULES, moduleChromeVars } from "../lib/modules";
 import { VistaSkeleton } from "../components/VistaSkeleton";
-import { WarmupReloj, useAhora } from "./WarmupReloj";
+import { PantallaDeCarga } from "./PantallaDeCarga";
+import { useAhora } from "./WarmupReloj";
 import {
   TIEMPO_WARMUP_INICIAL,
   duracionFase,
@@ -54,10 +53,7 @@ import {
   WARMUP_MODULES,
   type WarmupModuleProgress,
 } from "./warmupRegistry";
-import { BarraDeAvance } from "../components/BarraDeAvance";
-import { BootEcualizador } from "./BootEcualizador";
 import { destinoWarmup } from "./destinoWarmup";
-import "./boot-destino.css";
 
 type AppSuiteModule = {
   default: ComponentType;
@@ -1119,18 +1115,18 @@ export default function BootGate({ loadSuite }: BootGateProps) {
       data-boot-phase={phase}
       data-boot-progress={isWarmupPhase ? progressPercent : undefined}
     >
-      {isWarmupPhase ? <WarmupDestino /> : null}
-      <section className={`boot-panel ${isWarmupPhase ? "boot-panel-warmup" : ""}`} aria-live="polite">
-        {isWarmupPhase ? (
-          <WarmupView
-            projectPath={activeProjectPath}
-            message={warmupHeadline}
-            transcurridoMs={transcurridoMs}
-            estimacion={tiempo.estimacion}
-            progressPercent={progressPercent}
-            steps={displayWarmupSteps}
-          />
-        ) : (
+      {isWarmupPhase ? (
+        <WarmupView
+          projectPath={activeProjectPath}
+          message={warmupHeadline}
+          transcurridoMs={transcurridoMs}
+          estimacion={tiempo.estimacion}
+          progressPercent={progressPercent}
+          steps={displayWarmupSteps}
+        />
+      ) : (
+      <section className="boot-panel" aria-live="polite">
+        {(
           <>
             <ChooserView
               phase={phase}
@@ -1153,6 +1149,7 @@ export default function BootGate({ loadSuite }: BootGateProps) {
           </>
         )}
       </section>
+      )}
     </main>
   );
 }
@@ -1480,31 +1477,7 @@ function BootRecentRow({
   );
 }
 
-function WarmupStepIcon({ status }: { status: WarmupDisplayStepStatus }) {
-  if (status === "ready") return <Check size={12} strokeWidth={3} aria-hidden="true" />;
-  if (status === "running") return <Loader2 size={12} strokeWidth={2.6} className="boot-step-spin" aria-hidden="true" />;
-  if (status === "skipped") return <Minus size={12} strokeWidth={2.6} aria-hidden="true" />;
-  if (status === "timeout" || status === "error") return <AlertTriangle size={11} strokeWidth={2.4} aria-hidden="true" />;
-  return null;
-}
-
-
-function WarmupDestino() {
-  const module = useMemo(
-    () => (typeof window === "undefined" ? null : destinoWarmup(window.location.pathname)?.modulo ?? null),
-    [],
-  );
-  return (
-    <div className="boot-warmup-destino" aria-hidden="true">
-      {module ? (
-        <VistaSkeleton variante="modulo" secciones={module.sections.length} style={moduleChromeVars(module)} />
-      ) : (
-        <VistaSkeleton variante="inicio" />
-      )}
-    </div>
-  );
-}
-
+/** El arranque del proyecto dibuja la pantalla de carga de la app (PantallaDeCarga), la misma del módulo. */
 function WarmupView({
   projectPath,
   message,
@@ -1520,50 +1493,28 @@ function WarmupView({
   progressPercent: number;
   steps: WarmupDisplayStep[];
 }) {
-  const clampedPercent = Math.min(100, progressPercent);
-  // 3 nov 2026 (Gonzalo): la preparación toma el color del módulo de destino y suma la barra
-  // del kit; en el Home o sin módulo queda el azul de marca.
+  // 3 nov 2026 (Gonzalo): la preparación toma el color del módulo de destino; en el Home queda el azul de marca.
   const destino = useMemo(
     () => (typeof window === "undefined" ? null : destinoWarmup(window.location.pathname)),
     [],
   );
+  const modulo = destino?.modulo ?? null;
   return (
-    <div
-      className="boot-warmup"
-      data-boot-message={message}
-      data-modulo-destino={destino?.modulo.slug}
-      style={destino ? moduleChromeVars(destino.modulo) : undefined}
-    >
-      <div className="boot-warmup-summary">
-        {/* 4 nov 2026: el isotipo hace de indicador y la cifra pasa a la barra (dirección A de la
-            maqueta «Pantalla de carga de proyecto», revisable por Gonzalo). */}
-        <BootEcualizador detenido={steps.some((step) => step.status === "error")} />
-        <div className="boot-progress">
-          <div className="boot-warmup-cabeza">
-            <p className="boot-warmup-destino-rotulo">{destino ? `Abriendo ${destino.rotulo}` : "Abriendo el proyecto"}</p>
-            <p className="boot-project-name" title={projectPath ?? undefined}>{projectName(projectPath)}</p>
-          </div>
-          <h1>{message}</h1>
-          <BarraDeAvance valor={clampedPercent} total={100} etiqueta="Avance de preparación del proyecto" />
-          <div className="boot-warmup-lectura">
-            <WarmupReloj className="boot-warmup-reloj" transcurridoMs={transcurridoMs} estimacion={estimacion} />
-            <span className="boot-warmup-cifra">{clampedPercent}%</span>
-          </div>
-        </div>
-      </div>
-      <div className="boot-warmup-steps" aria-label="Fases de preparación" aria-live="off">
-        {steps.map((step) => (
-          <div className={`boot-warmup-step is-${step.status}`} key={step.id}>
-            <span className="boot-step-icon" aria-hidden="true">
-              <WarmupStepIcon status={step.status} />
-            </span>
-            <div>
-              <strong>{step.label}</strong>
-              {step.detail ? <small>{step.detail}</small> : null}
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
+    <PantallaDeCarga
+      alto="ventana"
+      style={modulo ? moduleChromeVars(modulo) : undefined}
+      conTono={Boolean(modulo)}
+      datos={{ "data-boot-message": message, "data-modulo-destino": modulo?.slug }}
+      fondo={modulo
+        ? <VistaSkeleton variante="modulo" secciones={modulo.sections.length} />
+        : <VistaSkeleton variante="inicio" />}
+      ceja={destino ? `Abriendo ${destino.rotulo}` : "Abriendo el proyecto"}
+      sujeto={projectName(projectPath)}
+      titulo={message}
+      porcentaje={Math.min(100, progressPercent)}
+      transcurridoMs={transcurridoMs}
+      estimacion={estimacion}
+      fases={steps.map((step) => ({ id: step.id, label: step.label, status: step.status, lectura: step.detail }))}
+    />
   );
 }

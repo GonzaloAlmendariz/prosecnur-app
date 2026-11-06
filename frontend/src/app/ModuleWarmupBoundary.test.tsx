@@ -18,7 +18,9 @@ function fallback(path: string) {
 describe("warm start de módulo (L23)", () => {
   it("muestra tiempo, la silueta de la vista destino y la barra en el color del módulo, no un porcentaje", () => {
     const html = fallback("/monitoreo?modo=territorial&seccion=avance");
-    expect(html).toContain('class="pulso-module-warmup"');
+    // 5 nov 2026: una sola pantalla de carga para el proyecto y el módulo.
+    expect(html).toContain('class="pulso-carga is-area has-tono pulso-module-warmup"');
+    expect(html).toContain('data-module-warmup="monitoreo"');
     expect(html).toContain("Transcurrido");
     expect(html).toContain("0:00");
     expect(html).toContain('data-vista-skeleton="modulo"');
@@ -34,7 +36,7 @@ describe("warm start de módulo (L23)", () => {
 
   it("la silueta no es la vista: oculta a lectores y sin marca de readiness", () => {
     const html = fallback("/monitoreo");
-    expect(html).toMatch(/class="pulso-module-warmup-destino" aria-hidden="true"/);
+    expect(html).toMatch(/class="pulso-carga-fondo" aria-hidden="true"/);
     expect(html).not.toContain("data-audit-ready");
   });
 
