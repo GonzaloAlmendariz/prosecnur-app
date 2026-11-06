@@ -171,6 +171,7 @@ import { deriveEditorHeaderStatus } from "./shell/editorHeaderStatus";
 import { contextoResumen } from "./resumen/contextoResumen";
 import { PestanaImpreso } from "./impreso/PestanaImpreso";
 import { usePanelDireccionable } from "../../lib/navegacion/paneles";
+import { MontajeConjoint } from "./conjoint/MontajeConjoint";
 import { esperarExportPapel, textoExportando } from "./shell/paperExportJob";
 import { ToastDeck, useToastDeck } from "./shell/ToastDeck";
 import { EditorCommandBar } from "./shell/EditorCommandBar";
@@ -2992,6 +2993,13 @@ export default function XlsformEditorPage() {
           contenido editable y el flag `firstUseDone` no está seteado. */}
       {workbook && hasEditableContent && <Coachmarks />}
 
+      <MontajeConjoint
+        workbook={workbook}
+        structure={structure}
+        selection={selection}
+        updateWorkbook={updateWorkbook}
+        onInsertado={(rowIndex) => selectBuilderFocus({ kind: "survey", rowIndex })}
+      />
       <LogicaExternaDialogo control={logicaExterna} formName={forms.find((f) => f.id === logicaExterna.formId)?.name ?? null} />
 	      {smLogicDialogOpen && workbook ? createPortal((
 	        <SurveyMonkeyLogicPopup

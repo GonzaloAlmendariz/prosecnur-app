@@ -45,6 +45,7 @@ import { PANEL_NUEVO_FILTRO } from "../../features/xlsformEditor/choiceFilters/p
 import { PANEL_CAMPANA_COMPLEMENTARIA } from "../../features/xlsformEditor/shell/campanaComplementariaModel";
 import { PANEL_LISTAS_OPCIONES } from "../../features/xlsformEditor/listas/panelListas";
 import { PANEL_LOGICA_EXTERNA } from "../../features/xlsformEditor/shell/logicaExternaModel";
+import { PANEL_EXPERIMENTO_CONJOINT } from "../../features/xlsformEditor/conjoint/estadoPanelConjoint";
 import {
   PANEL_CATALOGOS,
   PANEL_IMPORTAR_SURVEYMONKEY,
@@ -228,6 +229,7 @@ export const PANELES_POR_MODULO: Readonly<
     PANEL_CAMPANA_COMPLEMENTARIA,
     PANEL_LISTAS_OPCIONES,
     PANEL_LOGICA_EXTERNA,
+    PANEL_EXPERIMENTO_CONJOINT,
     PANEL_CATALOGOS,
     PANEL_LOGICA_SURVEYMONKEY,
     PANEL_NUEVO_FILTRO,
