@@ -5,6 +5,7 @@
 
 import type { XlsformEditorWorkbook } from "../../../api/multiIntegrado";
 import { stripMarkdown } from "../helpers/markdown";
+import { partirEnBloques } from "../helpers/markdownTabla";
 import { esCierre, esMetadato } from "../kit/tiposPregunta";
 import { extractChoiceItems } from "../parsing/buildIndex";
 import type { BuilderStructure } from "../types";
@@ -58,7 +59,7 @@ export function primeraPagina(
     const base = nodo.typeInfo.base;
     if (esMetadato(base) || esCierre(base)) continue;
     if ((nodo.paperSkip ?? "").trim().toLowerCase() === "yes") continue;
-    const texto = stripMarkdown(nodo.paperLabel || nodo.label || nodo.name).trim();
+    const texto = textoImpreso(nodo.paperLabel || nodo.label || nodo.name);
     if (!texto) continue;
     const esNota = nodo.kind === "note";
     if (!esNota) correlativo += 1;
@@ -101,4 +102,20 @@ export function partirEnLineas(texto: string, porLinea: number, maxLineas: numbe
     lineas[lineas.length - 1] = ultima.endsWith("…") ? ultima : `${ultima.slice(0, Math.max(1, porLinea - 1))}…`;
   }
   return lineas.slice(0, maxLineas);
+}
+
+/**
+ * Texto de una pieza en el esquema de página. Una tabla markdown (los perfiles de un par de conjoint) no se dibuja
+ * con sus barras: se resume por sus columnas y filas, que es lo que cabe en el esquema.
+ */
+export function textoImpreso(label: string): string {
+  return partirEnBloques(label)
+    .map((b) => {
+      if (b.tipo === "texto") return stripMarkdown(b.texto);
+      const columnas = b.encabezado.map((c) => stripMarkdown(c).trim()).filter(Boolean);
+      return `Tabla: ${columnas.join(", ")} (${b.filas.length} ${b.filas.length === 1 ? "fila" : "filas"})`;
+    })
+    .join(" ")
+    .replace(/\s+/g, " ")
+    .trim();
 }

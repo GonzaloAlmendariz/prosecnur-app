@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { XlsformEditorWorkbook } from "../../../api/multiIntegrado";
 import type { BuilderNode, BuilderStructure } from "../types";
-import { partirEnLineas, primeraPagina } from "./primeraPagina";
+import { partirEnLineas, primeraPagina, textoImpreso } from "./primeraPagina";
 
 function nodo(p: Partial<BuilderNode> & { base: string; listName?: string }): BuilderNode {
   return {
@@ -71,5 +71,13 @@ describe("partirEnLineas", () => {
     const dos = partirEnLineas("uno dos tres cuatro cinco seis siete ocho", 10, 2);
     expect(dos).toHaveLength(2);
     expect(dos[1]!.endsWith("…")).toBe(true);
+  });
+});
+
+describe("tablas markdown en el esquema (E8 editor-conjoint)", () => {
+  it("una tabla de perfiles se resume por columnas y filas, sin barras ni referencias", () => {
+    const t = textoImpreso("Elija:\n| | Perfil A | Perfil B |\n|---|---|---|\n| Edad | ${a} | ${b} |\n| Sexo | ${c} | ${d} |");
+    expect(t).toBe("Elija: Tabla: Perfil A, Perfil B (2 filas)");
+    expect(textoImpreso("**¿Edad?**")).toBe("¿Edad?");
   });
 });
