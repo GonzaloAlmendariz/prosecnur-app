@@ -314,6 +314,33 @@
   overflow-wrap: break-word;
 }
 
+/* Escala (appearance likert): en fila, el punto arriba y el rótulo debajo, como en la plataforma (E4). */
+.pulso-xfsim-options.is-escala {
+  flex-direction: row;
+  gap: 4px;
+}
+
+.pulso-xfsim-options.is-escala .pulso-xfsim-option {
+  flex: 1 1 0;
+  min-width: 0;
+  flex-direction: column;
+  justify-content: flex-start;
+  gap: 6px;
+  padding: 8px 4px;
+  text-align: center;
+}
+
+.pulso-xfsim-options.is-escala .pulso-xfsim-option-label {
+  font-size: var(--pulso-type-caption-size);
+  line-height: 1.25;
+}
+
+/* columns: varias columnas de opciones. */
+.pulso-xfsim-options.is-columnas {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+}
+
 .pulso-xfsim-options-empty {
   margin: 10px 0 0 21px;
   font-size: 11px;

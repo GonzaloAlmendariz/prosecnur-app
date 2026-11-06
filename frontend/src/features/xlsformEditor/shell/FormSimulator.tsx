@@ -46,6 +46,7 @@ import { FaltantesPrueba, PruebaFinalizada } from "./simulador/FinalizarPrueba";
 import { calcularValores, semillaNueva } from "./simulador/calculosPrueba";
 import { grillasDelFormulario, notasQueIntroducenGrilla, tituloSinRotulo } from "./simulador/modeloGrilla";
 import { GrillaPrueba } from "./simulador/GrillaPrueba";
+import { CLASE_DISPOSICION, disposicionOpciones } from "./simulador/disposicionOpciones";
 import { esNotaSinTexto, pistaLegible, textoPreguntaPlano, type LectorReferencias } from "../helpers/markdownPregunta";
 import { TextoPregunta } from "../helpers/markdownTexto";
 import { stripMarkdown } from "../helpers/markdown";
@@ -617,7 +618,7 @@ function QuestionControl({
         : [];
     return (
       <div
-        className="pulso-xfsim-options"
+        className={`pulso-xfsim-options${CLASE_DISPOSICION[disposicionOpciones(node)]}`}
         role={multi ? "group" : "radiogroup"}
         aria-label={nombre}
       >
