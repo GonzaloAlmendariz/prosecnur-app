@@ -597,3 +597,23 @@
   font-size: var(--pulso-type-body-size);
   color: var(--pulso-text-soft);
 }
+
+/* E19 paso 6: una fecha escrita o «Hoy» (today()) como valor de la condición. */
+.pulso-xlsform-frame .pulso-logic-valueinput-fecha { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.pulso-xlsform-frame .pulso-logic-valueinput-fecha > input { flex: 1; min-width: 0; }
+.pulso-xlsform-frame .pulso-logic-valueinput-hoy {
+  flex: 1; min-width: 0; padding: 5px 9px; border-radius: 7px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  background: var(--module-accent-soft, var(--pulso-primary-soft)); color: var(--module-accent, var(--pulso-primary));
+  font-size: var(--pulso-type-body-size); font-weight: var(--pulso-weight-semibold);
+}
+.pulso-xlsform-frame .pulso-logic-valueinput-hoy-boton {
+  flex: none; height: 28px; padding: 0 10px; border: 1px solid var(--pulso-border); border-radius: 8px;
+  background: var(--pulso-surface); color: var(--pulso-text-soft); cursor: pointer; white-space: nowrap;
+  font-size: var(--pulso-type-caption-size); font-weight: var(--pulso-weight-medium);
+}
+.pulso-xlsform-frame .pulso-logic-valueinput-hoy-boton:hover:not(:disabled) { border-color: var(--pulso-border-strong); color: var(--pulso-text); }
+.pulso-xlsform-frame .pulso-logic-valueinput-hoy-boton:focus-visible { outline: var(--mov-foco, 2px solid var(--pulso-primary)); outline-offset: 1px; }
+/* Con fecha, el control va en su propia línea bajo «Valor | Pregunta»: en la columna angosta «Hoy, el día de la
+   entrevista» quedaba en «H». */
+.pulso-xlsform-frame .pulso-logic-valueinput:has(.pulso-logic-valueinput-fecha) { flex-wrap: wrap; }
+.pulso-xlsform-frame .pulso-logic-valueinput:has(.pulso-logic-valueinput-fecha) > .pulso-logic-valueinput-control { flex: 1 0 100%; min-width: 0; }

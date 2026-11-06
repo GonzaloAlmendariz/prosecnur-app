@@ -31,4 +31,11 @@ describe("cuántas marcó como condición", () => {
     const sinComillas = tryFlattenCondition(parseExpression("not(selected(${medios}, 1))")!)!;
     expect(serializeExpression(expandCondition(sinComillas))).toBe("not(selected(${medios}, '1'))");
   });
+  test("una fecha frente a hoy se aplana y vuelve igual", () => {
+    for (const raw of ["${nac} < today()", "${visita} >= today()"]) {
+      const flat = tryFlattenCondition(parseExpression(raw)!)!;
+      expect(flat.value).toEqual({ kind: "literal", raw: "today()" });
+      expect(serializeExpression(expandCondition(flat))).toBe(raw);
+    }
+  });
 });

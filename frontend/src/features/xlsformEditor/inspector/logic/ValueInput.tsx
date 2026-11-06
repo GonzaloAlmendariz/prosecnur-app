@@ -17,6 +17,7 @@
 
 import type { FlatCondition, LogicCatalog, LogicVariable } from "../../logic";
 import { VariablePicker } from "./VariablePicker";
+import { HOY } from "../../logic/conditionAdapter";
 
 export type ValueInputProps = {
   /** Tipo base de la variable del lhs (determina el control). */
@@ -164,16 +165,32 @@ function LiteralControl({
     );
   }
 
-  // Fechas.
+  // Fechas: una fecha escrita o «hoy» (today()), la que sea el día de la entrevista (E19 paso 6).
   if (baseType === "date") {
+    const esHoy = raw === HOY;
     return (
-      <input
-        type="date"
-        className="pulso-logic-valueinput-date"
-        value={raw}
-        onChange={(event) => onChange(event.target.value)}
-        disabled={disabled}
-      />
+      <span className="pulso-logic-valueinput-fecha">
+        {esHoy ? (
+          <span className="pulso-logic-valueinput-hoy" title="La fecha del día de la entrevista">Hoy</span>
+        ) : (
+          <input
+            type="date"
+            className="pulso-logic-valueinput-date"
+            value={raw}
+            onChange={(event) => onChange(event.target.value)}
+            disabled={disabled}
+          />
+        )}
+        <button
+          type="button"
+          className="pulso-logic-valueinput-hoy-boton"
+          aria-pressed={esHoy}
+          onClick={() => onChange(esHoy ? "" : HOY)}
+          disabled={disabled}
+        >
+          {esHoy ? "Otra fecha" : "Hoy"}
+        </button>
+      </span>
     );
   }
   if (baseType === "datetime") {

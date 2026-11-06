@@ -103,9 +103,20 @@ export function tryFlattenCondition(expr: Expr): FlatCondition | null {
         value: { kind: "ref", variableName: expr.right.name },
       };
     }
+    // `${fecha} < today()`: la fecha de hoy viaja como el literal HOY (E19 paso 6).
+    if (expr.right.kind === "call" && expr.right.name === "today" && expr.right.args.length === 0) {
+      return {
+        variableName,
+        predicate: { kind: "compare", op: expr.op, label: opLabel(expr.op) },
+        value: { kind: "literal", raw: HOY },
+      };
+    }
   }
   return null;
 }
+
+/** Valor literal que representa «hoy» (`today()`) en una condición sobre una fecha. */
+export const HOY = "today()";
 
 /**
  * Convierte una `FlatCondition` de vuelta al AST. Inversa exacta de
@@ -345,6 +356,7 @@ function valueExpr(v: FlatCondition["value"]): Expr {
   // sin perder precisión, lo emitimos como número; si es 'true'/'false'
   // lo emitimos boolean; si no, string.
   const raw = v.raw;
+  if (raw === HOY) return { kind: "call", name: "today", args: [] };
   if (raw === "true" || raw === "false") {
     return { kind: "literal", value: raw === "true" };
   }
