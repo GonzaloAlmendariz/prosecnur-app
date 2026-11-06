@@ -54,8 +54,12 @@ export function MatrizCascada({ a, choices, actual, resaltadas, editable, onMarc
   return (
     <div className="xcf-matriz">
       <div className="xcf-matriz__cab">
-        <h4>Opción × respuesta de <code>{c.madre}</code></h4>
-        <span className="xcf-nota">columna <code>{c.columna}</code></span>
+        {/* Rótulo en castellano y con el texto de la pregunta, no su código (pedido de Gonzalo, 2026-11-06). */}
+        <div className="xcf-matriz__titulos">
+          <h4>Opciones por respuesta</h4>
+          <span className="xcf-matriz__sub">{madre?.etiqueta || c.madre}</span>
+        </div>
+        {c.columna !== "name" ? <span className="xcf-nota">Columna <code>{c.columna}</code></span> : null}
       </div>
       {a.opciones.length > 12 || muchas ? (
         <div className="xcf-matriz__herr">
@@ -75,7 +79,7 @@ export function MatrizCascada({ a, choices, actual, resaltadas, editable, onMarc
         <table className="xcf-mx">
           <thead>
             <tr>
-              <th scope="col" className="xcf-mx__esquina">Opción de <code>{a.pregunta}</code></th>
+              <th scope="col" className="xcf-mx__esquina">Opción</th>
               {columnas.map((r) => {
                 const vacia = !conOpciones.has(r.codigo);
                 const enVista = actual.includes(r.codigo);

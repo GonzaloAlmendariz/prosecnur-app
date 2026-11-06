@@ -217,15 +217,19 @@
 /* ── Matriz ───────────────────────────────────────────────────────────────── */
 .xcf-matriz { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
 .xcf-matriz__cab { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 28px; }
+/* Títulos de matriz en castellano normal, sin versalitas ni códigos: «Opciones por respuesta» y debajo la pregunta. */
 .xcf-matriz__cab h4 {
   margin: 0;
-  font-size: var(--pulso-type-eyebrow-size);
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-semibold);
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  color: var(--pulso-text-muted);
+  color: var(--pulso-text);
+  line-height: 1.3;
 }
-.xcf-matriz__cab h4 code { text-transform: none; letter-spacing: 0; }
+.xcf-matriz__titulos { display: grid; gap: 1px; min-width: 0; }
+.xcf-matriz__sub {
+  min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  font-size: var(--pulso-type-caption-size); color: var(--pulso-text-muted);
+}
 .xcf-matriz__herr { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 .xcf-matriz__agregar { max-width: 520px; }
 .xcf-matriz__marco {
@@ -414,11 +418,10 @@
   align-items: center;
   min-height: 28px;
   margin: 0;
-  font-size: var(--pulso-type-eyebrow-size);
+  /* Mismo título que las matrices: castellano normal, sin versalitas (2026-11-06). */
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-semibold);
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  color: var(--pulso-text-muted);
+  color: var(--pulso-text);
 }
 .xcf-vista__caja {
   display: flex;

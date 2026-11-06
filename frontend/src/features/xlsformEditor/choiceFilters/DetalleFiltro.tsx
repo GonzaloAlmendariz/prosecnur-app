@@ -85,7 +85,7 @@ export function DetalleFiltro({ id, a, frase, workbook, porNombre, candidatas, o
       const e = a.entradas.find((x) => x.nombre === d.entrada);
       const nombres = d.respuestas.map((r) => e?.respuestas?.find((x) => x.codigo === r)?.etiqueta ?? r);
       return {
-        titulo: d.respuestas.length === 1 ? <>Con <b>{nombres[0]}</b> la lista queda vacía</> : <>Con {d.respuestas.length} respuestas de <code>{d.entrada}</code> la lista queda vacía</>,
+        titulo: d.respuestas.length === 1 ? <>Con <b>{nombres[0]}</b> la lista queda vacía</> : <>La lista queda vacía con {d.respuestas.length} respuestas</>,
         sub: d.respuestas.length === 1 ? <>Ninguna opción tiene <code>{d.respuestas[0]}</code>.</> : lista(nombres, 4),
         arreglo: null,
         ver: true,
