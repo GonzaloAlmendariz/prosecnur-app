@@ -198,22 +198,26 @@ function HomeFooter({
         <span className="home-footer-sep" aria-hidden="true" />
         <span>Hecho para el {PULSO_FULL_NAME}</span>
         <div style={{ flex: 1 }} />
-        {/* 6 nov 2026 (Gonzalo: «el aviso no puede ser tan grande; debe ser un botón, un aviso sencillo al lado
-            de Ficha del estudio»): sin nombre oficial en la Ficha, un botón pequeño que lleva a declararlo. */}
-        {faltaNombreOficial ? (
+        {/* 6 nov 2026 (Gonzalo: «es mejor que sea un pop up cuando Ficha de estudio tenga como un lunar
+            amarillo»): sin nombre oficial en la Ficha, el botón lleva un lunar amarillo y, al pasar el mouse o
+            enfocarlo, un pop-up dice qué falta. Pulsarlo abre la Ficha, como siempre. */}
+        <span className={`home-footer-ficha${faltaNombreOficial ? " has-aviso" : ""}`}>
           <button
             type="button"
-            className="home-footer-aviso"
+            className="home-footer-notes"
             onClick={onOpenEstudio}
-            title="La Ficha del estudio no declara su nombre oficial; arriba se muestra el del archivo."
+            aria-describedby={faltaNombreOficial ? "home-ficha-aviso" : undefined}
           >
-            <span className="home-footer-aviso-punto" aria-hidden="true" />
-            Falta el nombre oficial
+            <FileText size={14} aria-hidden="true" /> Ficha del estudio
+            {faltaNombreOficial ? <span className="home-footer-lunar" aria-hidden="true" /> : null}
           </button>
-        ) : null}
-        <button type="button" className="home-footer-notes" onClick={onOpenEstudio}>
-          <FileText size={14} aria-hidden="true" /> Ficha del estudio
-        </button>
+          {faltaNombreOficial ? (
+            <span id="home-ficha-aviso" role="tooltip" className="home-footer-popup">
+              <strong>Falta el nombre oficial del estudio.</strong>
+              Arriba se muestra el del archivo; declara el oficial en la Ficha.
+            </span>
+          ) : null}
+        </span>
         <button
           type="button"
           className="home-footer-notes"

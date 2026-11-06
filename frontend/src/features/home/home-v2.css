@@ -2898,31 +2898,67 @@
   color: var(--pulso-text);
 }
 
-/* Aviso de nombre oficial en el pie (6 nov 2026): un botón pequeño junto a «Ficha del estudio», no una
-   píldora en la cabecera. Punto ámbar, texto corto; lleva a la Ficha. */
-.home-wrap .home-footer-aviso {
+/* Aviso de nombre oficial en el pie (6 nov 2026, Gonzalo: «un pop up cuando Ficha de estudio tenga como un
+   lunar amarillo»): el botón lleva un lunar amarillo y, al pasar el mouse o enfocarlo, un pop-up corto encima
+   dice qué falta. Sin botón aparte ni píldora en la cabecera. */
+.home-footer-ficha {
+  position: relative;
   display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 4px 10px;
+}
+
+.home-wrap .home-footer-ficha .home-footer-notes {
+  position: relative;
+}
+
+.home-footer-lunar {
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  width: 9px;
+  height: 9px;
+  border-radius: 999px;
+  /* Amarillo: el acento de aviso aclarado con su borde (un dorado que se lee como «lunar amarillo»). */
+  background: color-mix(in srgb, var(--pulso-warn-accent) 55%, var(--pulso-warn-border));
+  box-shadow: 0 0 0 2px var(--pulso-surface);
+}
+
+.home-footer-popup {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 10px);
+  z-index: 5;
+  width: max-content;
+  max-width: 280px;
+  padding: 9px 12px;
   border: 1px solid var(--pulso-warn-border);
-  border-radius: 999px;
-  background: var(--pulso-warn-bg);
-  color: var(--pulso-warn-fg);
+  border-radius: 10px;
+  background: var(--pulso-surface);
+  box-shadow: var(--pulso-shadow-high);
+  color: var(--pulso-text-soft);
   font-size: var(--pulso-type-caption-size);
+  line-height: 1.4;
+  text-align: left;
+  opacity: 0;
+  transform: translateY(4px);
+  pointer-events: none;
+  transition:
+    opacity var(--motion-dur-fast) var(--motion-ease-out),
+    transform var(--motion-dur-fast) var(--motion-ease-out);
+}
+
+.home-footer-popup strong {
+  display: block;
+  margin-bottom: 2px;
+  color: var(--pulso-warn-fg);
   font-weight: var(--pulso-weight-semibold);
-  cursor: pointer;
 }
 
-.home-footer-aviso-punto {
-  width: 6px;
-  height: 6px;
-  border-radius: 999px;
-  background: var(--pulso-warn-fg);
+.home-footer-ficha.has-aviso:hover .home-footer-popup,
+.home-footer-ficha.has-aviso:focus-within .home-footer-popup {
+  opacity: 1;
+  transform: none;
 }
 
-@media (hover: hover) and (pointer: fine) {
-  .home-wrap .home-footer-aviso:hover {
-    background: color-mix(in srgb, var(--pulso-warn-bg) 70%, var(--pulso-warn-border));
-  }
+@media (prefers-reduced-motion: reduce) {
+  .home-footer-popup { transition: none; transform: none; }
 }
