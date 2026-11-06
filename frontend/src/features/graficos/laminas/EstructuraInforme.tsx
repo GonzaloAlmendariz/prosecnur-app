@@ -111,11 +111,8 @@ export function EstructuraInforme({ onCerrar, acciones, estructura, posicionActi
       {acciones}
       <nav ref={cuerpoRef} className="pulso-f6-estructura-cuerpo" aria-label="Láminas del informe" data-qa-scroll-owner="estructura">
         {estructura.laminas.length === 0 ? (
-          <EstadoVacio
-            icono={<Presentation size={16} aria-hidden="true" />}
-            titulo="Todavía no hay láminas"
-            descripcion="Inserta la primera o arma el informe desde un plan sugerido."
-          />
+          // 5 nov 2026 (pulido de UI): sin la guía; la da el lienzo de al lado, que repetía la misma frase.
+          <EstadoVacio icono={<Presentation size={16} aria-hidden="true" />} titulo="Todavía no hay láminas" />
         ) : nodos.length === 0 ? (
           <EstadoVacio icono={<SearchX size={16} aria-hidden="true" />} titulo={`Ninguna lámina coincide con «${consulta.trim()}»`} />
         ) : (

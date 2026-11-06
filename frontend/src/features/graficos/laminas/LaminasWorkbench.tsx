@@ -273,6 +273,9 @@ export function LaminasWorkbench({ onIrEditorAnterior }: Props) {
       <div className="pulso-f6-laminas is-vacia" data-qa-surface="graficos/f6-laminas">
         <EstructuraInforme onCerrar={() => undefined} estructura={estructura} posicionActiva={null} onSeleccionar={irA} validacion={validacion} />
         <div className="pulso-f6-laminas-vacio" role="status">
+          {/* 5 nov 2026 (pulido de UI): el vacío dentro del marco de una lámina 16:9 — «aquí verás cada lámina tal
+              como sale» dicho con la forma, no sólo con la frase. */}
+          <div className="pulso-f6-lamina-fantasma">
           <EstadoVacio
             tamano="normal"
             icono={<Presentation size={18} aria-hidden="true" />}
@@ -285,6 +288,7 @@ export function LaminasWorkbench({ onIrEditorAnterior }: Props) {
               </div>
             }
           />
+          </div>
         </div>
       </div>
       {avisos.abierto && <PanelAvisos panel={avisos} grupos={grupos} estructura={estructura} onIr={irA} coloresPendientes={coloresPendientes} baseImplicita={baseImplicita} />}

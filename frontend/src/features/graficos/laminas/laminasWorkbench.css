@@ -323,3 +323,23 @@
   background: var(--module-accent-soft);
   color: var(--module-accent);
 }
+
+/* El vacío del lienzo dentro del marco de una lámina (5 nov 2026, pulido de UI). */
+.pulso-f6-lamina-fantasma {
+  box-sizing: border-box;
+  width: min(100%, 820px);
+  aspect-ratio: 16 / 9;
+  display: grid;
+  place-items: center;
+  padding: var(--pulso-space-5);
+  border: 1.5px dashed color-mix(in srgb, var(--module-accent, var(--pulso-primary)) 28%, var(--pulso-border));
+  border-radius: 14px;
+  background: var(--pulso-surface);
+  box-shadow: 0 18px 40px -24px color-mix(in srgb, var(--pulso-text) 30%, transparent);
+}
+
+.pulso-f6-lamina-fantasma > .pulso-estado-vacio {
+  width: min(100%, 520px);
+  border: 0;
+  background: transparent;
+}
