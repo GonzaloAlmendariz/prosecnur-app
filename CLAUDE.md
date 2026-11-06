@@ -165,6 +165,15 @@ Regla transversal: **toda rama que toque código termina en el agente `verificad
 - Funciones nuevas de API en su módulo de dominio de `src/api/` (`monitoreo.ts`, `graficos.ts`, …; `client.ts` es solo el barrel de compatibilidad y no crece); si el payload es crítico, normalizador defensivo (patrón `normalizeGraficosShareInspect`).
 - Si la vista participa del QA visual, registrar su readiness en el QA contract (`data-audit-ready`).
 
+## Redacción (UI, entregables, propuestas)
+
+Gonzalo lo ha pedido muchas veces: **las cosas se nombran como son, sin sobreabstracción**. Rige para títulos, rótulos, avisos, textos de propuestas y artefactos.
+
+- Nombre directo del objeto o la operación, en sustantivo: «Condiciones de apertura», «Avisos de consistencia», «Materiales por campaña», «Fichas con QR por unidad». Nunca la paráfrasis de lo que hace: «Qué pregunta abre a cuál», «Avisos que se resuelven», «Cada campaña con su material», «Una unidad, una ficha con su acceso».
+- Sin fórmulas cliché ni giros publicitarios: «lo que se hace», «lo que se muestra», «lo que se dice», «de lo crudo a…», «X se cruza», «sale lista para…».
+- No suponer la plataforma cuando el dato puede venir de varias: «plataforma» o «reportado en campo», no «Kobo».
+- Si hace falta aclarar qué mide una superficie, que lo diga el título; nada de líneas que lo parafrasean.
+
 ## Comandos
 
 Desarrollo:

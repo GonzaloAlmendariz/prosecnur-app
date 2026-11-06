@@ -1,6 +1,6 @@
 # Propuesta: pantalla de inicio y carga de Prosecnur — 2026-11-06
 
-Artefacto: https://claude.ai/artifact/3cVPEhL8NGz3Nem4vSM5jg (versión 10). Propuesta visual; no se tocó código
+Artefacto: https://claude.ai/artifact/3cVPEhL8NGz3Nem4vSM5jg (versión 11). Propuesta visual; no se tocó código
 de la app.
 
 ## Decisión de Gonzalo
@@ -55,13 +55,16 @@ la carpeta de notas compartidas de la sesión (`ficha-ui-<slug>.md`). La primera
 
 | Módulo | Escenas (vista de la que sale) |
 |---|---|
-| Cálculo de muestra | Del marco a los titulares (Marco › Selección) · La cadena del n (Cálculo) · Universo, elegibles y muestra (Datos) · Cadenas de reemplazo (Selección › Reemplazos) · Perfil por facultad (Selección › Perfil) |
-| Formularios | El formulario se arma (Constructor) · La hoja que lee Kobo (Editor XLSForm) · Así lo verá quien responde (Probar) · Qué pregunta abre a cuál (Mapa de lógica) · Avisos que se resuelven (Resumen) |
-| Hojas de ruta | El sorteo cae sobre las manzanas (Manzanas) · Distritos del estudio (Territorio) · Pirámide (Población) · Reparto del N (Muestra) · Recorrido de la UMP (Selección › Titulares) |
-| Material de campo | Una unidad, una ficha con su acceso (Paquetes) · Receta de ocho bloques (Catálogo › Editor) · Tipos de material (Catálogo › Tipos) · Paquetes listos · Campañas |
-| Monitoreo | La meta se cruza (Avance › Resumen) · Del Kobo a la meta · Cuotas contra su meta (Por cuota) · Embudo del correo (Correo) · Dónde falta (Mapa territorial) |
-| Procesamiento | De lo crudo a la tabla (Codificación › Codificar) · La lámina sale lista (Gráficos › Láminas) · 94 reglas (Validación) · Frecuencias en escala (Analítica) · Formulario y respuestas cruzados (Carga) |
-| Dashboard | El tablero se publica · Pregunta por fila (Resumen) · Perfil de la muestra · FODA (Dimensiones) · Construcción del indicador |
+| Cálculo de muestra | Marco y sorteo de titulares (Marco › Selección) · Tamaño de muestra y cursos-horario (Cálculo) · Universo, elegibles y muestra (Datos) · Cadenas de reemplazo (Selección › Reemplazos) · Perfil por facultad: muestra y marco (Selección › Perfil) |
+| Formularios | Secciones y preguntas (Constructor) · Hoja survey del XLSForm (Editor XLSForm) · Vista del encuestado (Probar) · Condiciones de apertura (Mapa de lógica) · Avisos de consistencia (Resumen) |
+| Hojas de ruta | Manzanas sorteadas por distrito (Manzanas) · Distritos del estudio (Territorio) · Población por sexo y edad (Población) · Puntos GPS por manzana (Manzanas) · Recorrido de la UMP (Selección › Titulares) |
+| Material de campo | Fichas con QR por unidad (Paquetes) · Ficha de aula: ocho bloques (Catálogo › Editor) · Fichas, croquis y hojas de ruteo (Catálogo › Tipos) · Paquetes de la campaña · Materiales por campaña |
+| Monitoreo | Avance contra la meta (Avance › Resumen) · Plataforma frente a lo reportado en campo (Control) · Avance por cuota · Envíos, aperturas y respuestas (Correo) · Pendientes por distrito (Mapa territorial) |
+| Procesamiento | Respuestas abiertas y sus códigos (Codificación) · Láminas del informe (Gráficos) · Reglas del formulario: 94 (Validación) · Frecuencias en escala de acuerdo (Analítica) · Variables del formulario y la base (Carga) |
+| Dashboard | Edición y publicación del tablero · Cruce con selector de variables (Relaciones) · Cruce de cruces · Resumen por pregunta · Perfil de la muestra |
+
+Nombres directos, sin paráfrasis ni clichés (regla en `CLAUDE.md` › «Redacción»; checklist
+`docs/qa/checklist-escenas-carga-2026-11-06.md`).
 
 Repertorio común de movimientos (sólo `transform` y `opacity`, tokens `--motion-*`): caer, subir, encender, trazar,
 crecer, viajar, girar, barrer y atenuar. Cada escena dura un ciclo de diez veces `--motion-dur-slow` (4,2 s).
