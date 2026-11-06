@@ -77,3 +77,11 @@ describe("guion bajo dentro de una palabra", () => {
     expect(stripMarkdown("(_nota_)")).toBe("(nota)");
   });
 });
+
+describe("stripMarkdown con una tabla", () => {
+  test("resume la tabla por sus columnas y conserva el texto de alrededor", () => {
+    const nota = "Compare a estas dos personas.\n| | Persona A | Persona B |\n|---|---|---|\n| Edad | 42 | 62 |";
+    expect(stripMarkdown(nota)).toBe("Compare a estas dos personas. Tabla: Persona A, Persona B");
+    expect(stripMarkdown("Una nota con | barras sueltas | sin separadora.")).toBe("Una nota con | barras sueltas | sin separadora.");
+  });
+});

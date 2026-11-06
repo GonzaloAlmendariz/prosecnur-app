@@ -61,9 +61,9 @@ export function FichaCalculo({ datos }: { datos: DatosFicha }) {
         )}
         {usos.length ? <small className="xfh-det__sub">{plural(usos.length, "uso", "usos")} en el formulario</small> : null}
       </BloqueFicha>
-      <BloqueFicha titulo="Nombre">
+      <BloqueFicha titulo="Etiqueta y código">
         <div className="xfh-dos-campos">
-          <CampoTexto etiqueta="Nombre para reconocerlo" valor={node.label} onCambio={(v) => acciones.campo("label", v)} placeholder="Opcional" />
+          <CampoTexto etiqueta="Etiqueta" valor={node.label} onCambio={(v) => acciones.campo("label", v)} placeholder="Opcional" />
           <CampoCodigo valor={node.name} survey={survey} onCambio={(v) => acciones.campo("name", v)} />
         </div>
       </BloqueFicha>
