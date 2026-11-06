@@ -1,0 +1,111 @@
+/* HomeHero — cabecera del estudio en el Home (5 nov 2026). Mismo techo y centrado que la grilla
+   (--home-ancho-col × --home-cols): cabecera y tarjetas alinean sus bordes. */
+
+.home-hero {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: calc(var(--home-cols, 4) * var(--home-ancho-col, 400px));
+  margin-inline: auto;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px 32px;
+  flex-wrap: wrap;
+  padding: 4px 2px 6px;
+  animation: home-hero-entra var(--motion-dur-panel) var(--motion-ease-out) backwards;
+}
+
+.home-hero-estudio {
+  min-width: 0;
+  flex: 1 1 420px;
+  display: grid;
+  gap: 4px;
+}
+
+.home-hero-ceja {
+  margin: 0;
+  color: var(--pulso-text-faint);
+  font-size: var(--pulso-type-eyebrow-size);
+  font-weight: var(--pulso-weight-semibold);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.home-hero-nombre {
+  margin: 0;
+  overflow: hidden;
+  color: var(--pulso-text);
+  font-size: clamp(var(--pulso-type-display-size), 2.2vw, 34px);
+  font-weight: var(--pulso-weight-heavy);
+  letter-spacing: -0.015em;
+  line-height: 1.12;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.home-hero-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px 0;
+  margin: 2px 0 0;
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-body-size);
+}
+
+.home-hero-meta > span {
+  display: inline-flex;
+  align-items: center;
+}
+
+.home-hero-sep {
+  width: 3px;
+  height: 3px;
+  margin-inline: 10px;
+  border-radius: 999px;
+  background: var(--pulso-text-faint);
+}
+
+/* La franja «desde tu última apertura» deja de ser una caja propia: es la línea de estado de la cabecera. */
+.home-hero .home-hoy {
+  flex: 0 1 auto;
+  width: auto;
+  max-width: min(100%, 620px);
+  margin: 0;
+  padding: 8px 12px;
+  border-color: color-mix(in srgb, var(--pulso-border) 70%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--pulso-surface) 80%, transparent);
+  align-items: center;
+}
+
+.home-hero .home-hoy-icono {
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+}
+
+.home-hero .home-hoy-texto { padding-top: 0; }
+
+@keyframes home-hero-entra {
+  from { opacity: 0; transform: translateY(6px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .home-hero { animation-name: home-hero-aparece; }
+}
+
+@keyframes home-hero-aparece {
+  from { opacity: 0; }
+}
+
+/* Ventanas bajas (≤ 820 px): la cabecera cede alto a las tarjetas. Sin ceja, y el nombre con su meta en una sola
+   línea; a 1366×768 la fila pasaba de 82 a ~44 px y dos filas de tarjetas caben sin scroll. */
+@media (max-height: 820px) {
+  .home-hero { align-items: center; padding-block: 0; }
+  .home-hero-ceja { display: none; }
+  .home-hero-estudio { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; }
+  .home-hero-nombre { font-size: calc(var(--pulso-type-display-size) * 0.8); }
+  .home-hero-meta { margin: 0; }
+  .home-hero .home-hoy { padding-block: 5px; }
+}

@@ -2,7 +2,7 @@ import { useLayoutEffect, useRef } from "react";
 import { PROSECNUR_PRIMARY_ACTIVE_MODULES } from "../../lib/modules";
 import type { ProjectOverview } from "../../api/client";
 import { ModuleStatusCard } from "./ModuleStatusCard";
-import { BloqueHoy } from "./BloqueHoy";
+import { HomeHero } from "./HomeHero";
 import { buildModuleCardView, formatSavedAt, type ProcState } from "./moduleCardModel";
 
 export type { ProcState } from "./moduleCardModel";
@@ -84,18 +84,14 @@ export function MissionControl({
       data-audit-ready="home"
       // Las columnas viven en la sección: la franja «desde tu última apertura»
       // toma el mismo techo que la rejilla y no queda más ancha que las tarjetas.
-      style={{ ["--home-cols" as string]: gridColumns(cards.length) }}
+      style={{
+        ["--home-cols" as string]: gridColumns(cards.length),
+        ["--home-filas" as string]: Math.max(1, Math.ceil(cards.length / gridColumns(cards.length))),
+      }}
     >
-      {/* Sin franja de título. El nombre del proyecto, su archivo y el estado
-          de guardado ya viven en el chip del topbar, y la norma del sistema es
-          explícita: la identidad va en el chrome de la app, no en una fila
-          introductoria que consume el primer viewport. Queda el h1 para
-          lectores de pantalla, que sí necesitan encabezado. */}
-      <h1 className="pulso-sr-only">{[overview.project.name, ...metaLine].join(", ")}</h1>
-
-      {/* L31: lo que cambió desde la última apertura en este equipo, en el
-          hueco que dejaba el centrado sobre las tarjetas. */}
-      <BloqueHoy overview={overview} />
+      {/* 5 nov 2026: la cabecera del estudio (nombre, meta y «desde tu última apertura») en la fila que antes
+          ocupaba sólo la franja. El chip del topbar dice qué ARCHIVO está abierto; la cabecera, qué ESTUDIO. */}
+      <HomeHero overview={overview} />
 
       {/* Las columnas las decide la cantidad de módulos, no el ancho: con
           `auto-fill` seis tarjetas caían como 4+2 y la fila huérfana se leía
