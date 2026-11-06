@@ -1219,6 +1219,11 @@ formulario_word_render <- function(model, output_file) {
           ft_md <- .form_md_tabla_word(block$tabla_md, usable = usable)
           if (!is.null(ft_md)) {
             doc <- flextable::body_add_flextable(doc, ft_md, align = "left")
+            if (nzchar(block$tabla_md$despues %||% "")) {
+              doc <- .form_word_par(doc, block$tabla_md$despues, size = .std_cuestionario("tipografia", "minimo"),
+                                    italic = TRUE, color = .std_cuestionario("colores", "tinta"),
+                                    space_before = 3, space_after = 4)
+            }
             doc <- .form_word_blank(doc)
           }
         }

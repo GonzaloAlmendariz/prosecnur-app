@@ -22,8 +22,8 @@
 #' Parte el texto de una nota en su tabla markdown y el resto.
 #'
 #' @param x Texto crudo de la nota (con saltos de linea).
-#' @return `NULL` si no hay tabla; si la hay, `list(texto, encabezado, filas)`: `texto` es lo que va
-#'   antes y despues de la tabla, `encabezado` un vector y `filas` una lista de vectores, todos con
+#' @return `NULL` si no hay tabla; si la hay, `list(texto, antes, despues, encabezado, filas)`:
+#'   `antes` va como enunciado de la nota y `despues` se imprime bajo la tabla, `encabezado` un vector y `filas` una lista de vectores, todos con
 #'   el mismo numero de celdas.
 #' @keywords internal
 .form_md_tabla_partir <- function(x) {
@@ -41,9 +41,13 @@
     ancho <- max(length(encabezado), vapply(filas, length, integer(1)), 1L)
     completar <- function(v) c(v, rep("", ancho - length(v)))[seq_len(ancho)]
     limpio <- function(v) vapply(completar(v), .form_pdf_paper_text, character(1), USE.NAMES = FALSE)
-    resto <- c(if (i > 1L) lineas[seq_len(i - 1L)], if (fin < n) lineas[(fin + 1L):n])
+    antes <- if (i > 1L) trimws(paste(lineas[seq_len(i - 1L)], collapse = "\n")) else ""
+    despues <- if (fin < n) trimws(paste(lineas[(fin + 1L):n], collapse = "\n")) else ""
     return(list(
-      texto = trimws(paste(resto, collapse = "\n")),
+      texto = trimws(paste(c(antes, despues)[nzchar(c(antes, despues))], collapse = "\n")),
+      antes = antes,
+      # Lo que va DEBAJO de la tabla (p. ej. el rotulo «Ejemplo: ...»), ya limpio para imprimirse.
+      despues = .form_md_texto_bajo(despues),
       encabezado = limpio(encabezado),
       filas = lapply(filas, limpio)
     ))
@@ -62,10 +66,16 @@
     col <- if ("paper_label" %in% names(survey) && nzchar(.form_pdf_chr(survey$paper_label[i]))) "paper_label" else "label"
     t <- .form_md_tabla_partir(survey[[col]][i])
     if (is.null(t)) next
-    survey[[col]][i] <- t$texto
+    survey[[col]][i] <- t$antes
     tablas[i] <- list(t)
   }
   list(survey = survey, tablas = tablas)
+}
+
+# Texto bajo la tabla: sin las marcas de cursiva `_..._` ni `*...*` (se imprime en cursiva entero).
+.form_md_texto_bajo <- function(x) {
+  x <- gsub("(^|\\s)[_*]([^_*\n]+)[_*](?=\\s|$)", "\\1\\2", .form_pdf_chr(x), perl = TRUE)
+  .form_pdf_paper_text(x)
 }
 
 # --- PDF ---------------------------------------------------------------------------------------------
@@ -96,7 +106,11 @@
   altos <- vapply(lineas, function(celdas) {
     max(1L, vapply(celdas, length, integer(1))) * .FORM_MD_PDF_LINEA + 2 * .FORM_MD_PDF_RELLENO
   }, numeric(1))
-  list(anchos = anchos, lineas = lineas, altos = altos, h = sum(altos) + 0.006)
+  bajo <- if (nzchar(tabla$despues %||% "")) {
+    .form_pdf_wrap_fit(tabla$despues, w, fontsize = .FORM_MD_PDF_FUENTE, fontface = "italic")
+  } else character(0)
+  bajo_h <- if (length(bajo)) 0.004 + length(bajo) * .FORM_MD_PDF_LINEA else 0
+  list(anchos = anchos, lineas = lineas, altos = altos, bajo = bajo, h = sum(altos) + 0.006 + bajo_h)
 }
 
 # Dibuja la tabla con su esquina superior izquierda en (x, y); devuelve la `y` de abajo.
@@ -118,6 +132,10 @@
       cx <- cx + cw
     }
     y <- y - h
+  }
+  if (length(g$bajo)) {
+    y <- .form_pdf_text("", x, y - 0.004, w, lines = g$bajo, fontsize = .FORM_MD_PDF_FUENTE,
+                        fontface = "italic", line_h = .FORM_MD_PDF_LINEA)
   }
   y - 0.003
 }

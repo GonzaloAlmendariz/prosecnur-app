@@ -31,6 +31,8 @@ test_that("la tabla se separa del texto y conserva sus celdas", {
   expect_identical(t$filas[[2]], c("Formación", "Realizado en el Perú", "Ninguno"))
   expect_match(t$texto, "Compare a estas dos personas.", fixed = TRUE)
   expect_match(t$texto, "Ejemplo: los niveles", fixed = TRUE)
+  expect_identical(t$antes, "Compare a estas dos personas.")
+  expect_identical(t$despues, "Ejemplo: los niveles se sortean en cada entrevista.")
   expect_false(grepl("|", t$texto, fixed = TRUE))
   expect_null(.form_md_tabla_partir("Una nota con | barras sueltas | sin separadora."))
 })
@@ -64,6 +66,9 @@ test_that("el Word imprime la tabla como tabla, sin barras", {
   # La celda «Realizado en el Perú» vive en una fila de tabla (<w:tr>) junto a «Ninguno».
   filas <- regmatches(xml, gregexpr("<w:tr[ >].*?</w:tr>", xml, perl = TRUE))[[1]]
   expect_true(any(grepl("Realizado en el Perú", filas, fixed = TRUE) & grepl("Ninguno", filas, fixed = TRUE)))
+  # El rotulo de ejemplo va DEBAJO de la tabla.
+  expect_gt(regexpr("Ejemplo: los niveles", texto, fixed = TRUE), regexpr("Ninguno", texto, fixed = TRUE))
+  expect_lt(regexpr("Compare a estas dos personas", texto, fixed = TRUE), regexpr("Persona A", texto, fixed = TRUE))
 })
 
 test_that("el PDF se genera con la tabla", {
