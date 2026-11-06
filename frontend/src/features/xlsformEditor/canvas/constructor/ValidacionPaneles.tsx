@@ -1,7 +1,7 @@
 // Paneles de «Qué acepta» en Restricciones: fórmula escrita a mano, atajo aplicado y atajos comunes.
 // La lectura de la regla vive en la cabecera de la pestaña: aquí no se repite.
 
-import { useEffect, useReducer, useState } from "react";
+import { useEffect, useReducer } from "react";
 import { CheckCircle2, Trash2 } from "lucide-react";
 import { borradorCampo } from "../ficha/modeloFicha";
 import type { BuilderNode } from "../../types";
@@ -10,7 +10,6 @@ import { validationPresetsFor, type HumanizedExpression } from "../reglasHumanas
 
 export function CustomValidationPanel({
   node,
-  validation,
   onFieldChange,
 }: {
   node: BuilderNode;
@@ -18,13 +17,6 @@ export function CustomValidationPanel({
   onFieldChange: (field: string, value: string) => void;
   onFieldsChange: (updates: Record<string, string>) => void;
 }) {
-  const openByDefault = Boolean(
-    node.constraint.trim() &&
-      validation?.status !== "Preset claro" &&
-      validation?.status !== "Editable visualmente",
-  );
-  // El panel no se pliega solo: antes cada tecla reinterpretaba la regla, el panel se cerraba y se perdía el foco.
-  const [abierto, setAbierto] = useState(openByDefault);
   // Borrador mientras se escribe: la regla se aplica al salir del campo, con «Aplicar» o con Ctrl/⌘+Enter.
   const [borrador, enviar] = useReducer(borradorCampo, { texto: node.constraint, enFoco: false });
   useEffect(() => enviar({ tipo: "valor", valor: node.constraint }), [node.constraint]);
@@ -36,8 +28,9 @@ export function CustomValidationPanel({
   };
 
   return (
-    <details className="pulso-focus-custom-validation" open={abierto} onToggle={(e) => setAbierto(e.currentTarget.open)}>
-      <summary>Escribir la regla a mano</summary>
+    // Siempre abierto: sin triángulo que despliega (E20).
+    <section className="pulso-focus-custom-validation" aria-label="Escribir la regla a mano">
+      <h4 className="pulso-focus-custom-validation-titulo">Escribir la regla a mano</h4>
       <InspectorField label="Expresión XLSForm" hint="Acepta la respuesta cuando da verdadero">
         {(campo) => (
           <>
@@ -65,7 +58,7 @@ export function CustomValidationPanel({
           </>
         )}
       </InspectorField>
-    </details>
+    </section>
   );
 }
 

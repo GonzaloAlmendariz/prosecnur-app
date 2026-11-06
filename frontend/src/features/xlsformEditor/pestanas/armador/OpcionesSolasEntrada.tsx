@@ -2,8 +2,8 @@
 // opción, las habituales sugeridas («Ninguno», «No sabe»…), la lectura de lo que quedará y el mensaje propuesto. Al
 // aplicar se escribe la regla en la restricción, junto con lo que ya exigía. Mismo formato que la entrada «Formato».
 
-import { useState } from "react";
-import { ListChecks } from "../../../../vendor/lucide-react";
+import { useId, useState } from "react";
+import { CheckCircle2, ListChecks } from "../../../../vendor/lucide-react";
 import { PulsoSwitch } from "../../../../components/PulsoSwitch";
 import { stripMarkdown } from "../../helpers/markdown";
 import {
@@ -27,15 +27,13 @@ export function OpcionesSolasEntrada({
   opciones,
   onAplicar,
 }: Props) {
+  const tituloId = useId();
   const vigentes = leerSolas(constraint).solas;
   const [elegidas, setElegidas] = useState<string[] | null>(null);
   const marcadas = elegidas ?? vigentes;
   const sugeridas = sugeridasSolas(opciones);
   const etiqueta = (c: string) =>
     stripMarkdown(opciones.find((o) => o.name === c)?.label || c);
-  const resumen = vigentes.length
-    ? mensajeSolas(vigentes.map(etiqueta)).replace(/\.$/, "")
-    : "Ninguna opción va sola";
   const cambiar = (c: string, si: boolean) =>
     setElegidas((prev) => {
       const base = prev ?? vigentes;
@@ -51,52 +49,70 @@ export function OpcionesSolasEntrada({
   return (
     // Siempre abierta: Gonzalo no quiere triángulos que despliegan (2026-11-06).
     <section
-      className="xfa-solas"
+      className="xfa-bloque"
       data-testid="opciones-solas"
-      aria-label="Opciones que van solas"
+      aria-labelledby={tituloId}
     >
       <header className="xfa-bloque__cabeza">
-        <ListChecks aria-hidden="true" />
-        <span className="xfa-entrada__nombre">Opciones que van solas</span>
-        <span className="xfa-entrada__lectura">{resumen}</span>
+        <span className="xfa-bloque__icono" aria-hidden="true">
+          <ListChecks />
+        </span>
+        <div className="xfa-bloque__titulos">
+          <h4 id={tituloId} className="xfa-bloque__titulo">
+            Opciones que van solas
+          </h4>
+          <p className="xfa-bloque__sub">
+            Quien marca una de estas no puede marcar nada más.
+          </p>
+        </div>
+        {sugeridas.some((c) => !marcadas.includes(c)) ? (
+          <button
+            type="button"
+            className="xfa-bloque__accion"
+            onClick={() =>
+              setElegidas([...new Set([...marcadas, ...sugeridas])])
+            }
+          >
+            Activar las habituales
+          </button>
+        ) : null}
       </header>
-      <p className="xfa-solas__explica">
-        Una opción que va sola no se puede marcar junto con otras: si la persona
-        marca «Ninguno», no puede marcar nada más. Activa las que deben ir
-        solas.
-      </p>
-      <ul className="xfa-solas__lista">
-        {opciones.map((o) => (
-          <li key={o.name}>
-            <PulsoSwitch
-              size="sm"
-              label={stripMarkdown(o.label || o.name)}
-              checked={marcadas.includes(o.name)}
-              onCheckedChange={(si) => cambiar(o.name, si)}
-            />
-            <code className="xfa-solas__codigo">{o.name}</code>
-            {sugeridas.includes(o.name) && !marcadas.includes(o.name) ? (
-              <span className="xfa-solas__suele">suele ir sola</span>
-            ) : null}
-          </li>
-        ))}
+      <ul className="xfa-opciones">
+        {opciones.map((o) => {
+          const on = marcadas.includes(o.name);
+          const texto = stripMarkdown(o.label || o.name);
+          return (
+            <li key={o.name} className={on ? "is-on" : undefined}>
+              <span className="xfa-opciones__texto">
+                {texto}
+                {sugeridas.includes(o.name) && !on ? (
+                  <span className="xfa-opciones__suele">Suele ir sola</span>
+                ) : null}
+              </span>
+              <code className="xfa-opciones__codigo">{o.name}</code>
+              <PulsoSwitch
+                size="sm"
+                ariaLabel={`${texto} va sola`}
+                checked={on}
+                onCheckedChange={(si) => cambiar(o.name, si)}
+              />
+            </li>
+          );
+        })}
       </ul>
-      {sugeridas.some((c) => !marcadas.includes(c)) ? (
-        <button
-          type="button"
-          className="xfa-solas__sugeridas"
-          onClick={() => setElegidas([...new Set([...marcadas, ...sugeridas])])}
-        >
-          Activar las que suelen ir solas
-        </button>
-      ) : null}
-      <p className="xfa-solas__lectura" role="status">
-        {enOrden.length
-          ? mensajeSolas(enOrden.map(etiqueta))
-          : "Ninguna opción va sola: se pueden marcar todas juntas."}
+      <p
+        className={`xfa-bloque__resultado${enOrden.length ? " is-on" : ""}`}
+        role="status"
+      >
+        {enOrden.length ? <CheckCircle2 aria-hidden="true" /> : null}
+        <span>
+          {enOrden.length
+            ? mensajeSolas(enOrden.map(etiqueta))
+            : "Ninguna opción va sola: se pueden marcar todas juntas."}
+        </span>
       </p>
       {cambio ? (
-        <div className="xfa-solas__acciones">
+        <div className="xfa-bloque__acciones">
           <button type="button" onClick={() => setElegidas(null)}>
             Deshacer
           </button>

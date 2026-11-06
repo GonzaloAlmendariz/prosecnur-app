@@ -2,7 +2,7 @@
 // exactamente, con el número que se escriba. Misma forma que «Opciones que van solas»: entrada plegada con la lectura,
 // panel con la frase que se arma y Aplicar, que conserva lo demás que la restricción exija.
 
-import { useState } from "react";
+import { useId, useState } from "react";
 import { Hash } from "../../../../vendor/lucide-react";
 import { PulsoInput } from "../../../../components/PulsoInput";
 import {
@@ -11,7 +11,6 @@ import {
   mensajeCuantas,
   MODOS_CUANTAS,
   problemaCuantas,
-  resumenCuantas,
   type LimiteCuantas,
   type ModoCuantas,
 } from "./cuantasOpcionesModelo";
@@ -31,6 +30,7 @@ export function CuantasOpcionesEntrada({
   totalOpciones,
   onAplicar,
 }: Props) {
+  const tituloId = useId();
   const vigente = leerCuantas(constraint).limite;
   const [borrador, setBorrador] = useState<LimiteCuantas | null>(null);
   const l = borrador ?? vigente;
@@ -69,14 +69,23 @@ export function CuantasOpcionesEntrada({
   return (
     // Siempre abierta: Gonzalo no quiere triángulos que despliegan (2026-11-06).
     <section
-      className="xfa-solas"
+      className="xfa-bloque"
       data-testid="cuantas-opciones"
-      aria-label="Cuántas opciones"
+      aria-labelledby={tituloId}
     >
       <header className="xfa-bloque__cabeza">
-        <Hash aria-hidden="true" />
-        <span className="xfa-entrada__nombre">Cuántas opciones</span>
-        <span className="xfa-entrada__lectura">{resumenCuantas(vigente)}</span>
+        <span className="xfa-bloque__icono" aria-hidden="true">
+          <Hash />
+        </span>
+        <div className="xfa-bloque__titulos">
+          <h4 id={tituloId} className="xfa-bloque__titulo">
+            Cuántas opciones
+          </h4>
+          <p className="xfa-bloque__sub">
+            Límite de opciones que puede marcar
+            {totalOpciones ? `, de ${totalOpciones}` : ""}.
+          </p>
+        </div>
       </header>
       <div
         className="xfa-cuantas__modos"
@@ -127,16 +136,16 @@ export function CuantasOpcionesEntrada({
               onChange={(e) => cambiarNumero("max", e.target.value)}
             />
           ) : null}
-          <span>opciones{totalOpciones ? ` de ${totalOpciones}` : ""}.</span>
+          <span>opciones.</span>
         </div>
       ) : null}
       {problema ? (
-        <p className="xfa-solas__lectura" role="status">
-          {problema}
+        <p className="xfa-bloque__resultado is-aviso" role="status">
+          <span>{problema}</span>
         </p>
       ) : null}
       {cambio ? (
-        <div className="xfa-solas__acciones">
+        <div className="xfa-bloque__acciones">
           <button type="button" onClick={() => setBorrador(null)}>
             Deshacer
           </button>

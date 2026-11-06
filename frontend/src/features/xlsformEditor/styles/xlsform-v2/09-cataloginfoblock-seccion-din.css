@@ -489,9 +489,9 @@
   line-height: 1.45;
 }
 
-.pulso-focus-custom-validation summary {
-  cursor: pointer;
-  color: #253149;
+.pulso-focus-custom-validation-titulo {
+  margin: 0 0 6px;
+  color: var(--pulso-text);
   font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-heavy);
 }

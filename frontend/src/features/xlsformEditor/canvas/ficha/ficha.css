@@ -276,14 +276,12 @@ button.xfh-regla__fila:focus-visible { outline: var(--mov-foco, 2px solid var(--
 .xfh-lectura { margin: 0; font-size: var(--pulso-type-body-size); line-height: 1.75; overflow-wrap: anywhere; }
 .xfh-lectura.is-grande { font-size: var(--pulso-type-title-size); line-height: 1.7; }
 .xfh-lectura__tecnica { color: var(--pulso-text-soft); }
-.xfh-codigo summary { cursor: pointer; list-style: none; font-size: var(--pulso-type-body-size); color: var(--pulso-text-faint); }
-.xfh-codigo summary::-webkit-details-marker { display: none; }
-.xfh-codigo summary:hover { color: var(--pulso-text); }
-.xfh-codigo code {
-  display: block; margin-top: 6px; padding: 7px 9px; border-radius: 7px; background: var(--pulso-surface-3);
+.xfh-codigo-xls { display: grid; gap: 4px; min-width: 0; flex-basis: 100%; }
+.xfh-codigo-xls__rot { font-size: var(--pulso-type-caption-size); color: var(--pulso-text-faint); }
+.xfh-codigo-xls code {
+  display: block; margin-top: 0; padding: 7px 9px; border-radius: 7px; background: var(--pulso-surface-3);
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: var(--pulso-type-caption-size); overflow-wrap: anywhere;
 }
-.xfh-det__pie .xfh-codigo[open] { flex-basis: 100%; }
 .xfh-switch { display: grid; padding: 0; border: 0; background: none; cursor: pointer; border-radius: 999px; }
 .xfh-switch__pista { position: relative; width: 34px; height: 20px; border-radius: 999px; background: var(--pulso-border-strong); transition: background-color var(--motion-dur-fast) var(--motion-ease-out); }
 .xfh-switch__pista::after {

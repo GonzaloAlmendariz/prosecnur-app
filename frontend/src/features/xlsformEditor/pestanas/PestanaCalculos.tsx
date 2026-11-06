@@ -161,10 +161,11 @@ export function PestanaCalculos({ structure, scope: scopeBase, seleccionada, onS
               </p>
               {actual.enPregunta ? <p className="xfp-nota">La respuesta de esta pregunta sale de la fórmula: quien encuesta no la escribe.</p> : null}
               {!actual.vacio && !editorAbierto ? (
-                <details className="xfp-codigo-xls" open={Boolean(lectura?.tecnica)}>
-                  <summary>Expresión en XLSForm</summary>
+                // Siempre a la vista: sin triángulo que despliega (E20).
+                <div className="xfp-codigo-xls">
+                  <span className="xfp-codigo-xls__rot">Expresión en XLSForm</span>
                   <code>{actual.node.calculation.trim()}</code>
-                </details>
+                </div>
               ) : null}
             </div>
             {actual.vacio ? (

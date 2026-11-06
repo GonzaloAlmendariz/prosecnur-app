@@ -59,7 +59,7 @@ export function ReglasFicha({ node, structure, scope, requiredRaw, filas, onObli
     return (
       <div className="xfh-det__pie">
         <BotonIr onClick={() => onIr(d.pestana, focoParaPestana(d.pestana, node))}>Editar en {d.nombrePestana}</BotonIr>
-        <CodigoXlsform lineas={codigo} abierto={tecnica} />
+        <CodigoXlsform lineas={codigo} />
       </div>
     );
   };

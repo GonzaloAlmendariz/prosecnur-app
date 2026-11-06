@@ -237,9 +237,9 @@
 .xfp-def dt { font-size: var(--pulso-type-eyebrow-size); font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--pulso-text-faint); padding-top: 2px; }
 .xfp-def dd { margin: 0; color: var(--pulso-text-soft); overflow-wrap: anywhere; }
 .xfp-codigo-xls { font-size: var(--pulso-type-body-size); color: var(--pulso-text-muted); }
-.xfp-codigo-xls summary { cursor: pointer; width: max-content; }
-.xfp-codigo-xls summary:focus-visible { outline: var(--mov-foco, 2px solid var(--pulso-primary)); outline-offset: 2px; border-radius: 4px; }
-.xfp-codigo-xls code { display: block; margin-top: 6px; padding: 8px 10px; border: 1px solid var(--pulso-border); border-radius: 6px; background: var(--pulso-surface-2); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: var(--pulso-type-body-size); line-height: 1.5; color: var(--pulso-text); white-space: pre-wrap; overflow-wrap: anywhere; }
+.xfp-codigo-xls { display: grid; gap: 4px; }
+.xfp-codigo-xls__rot { font-size: var(--pulso-type-caption-size); color: var(--pulso-text-muted); }
+.xfp-codigo-xls code { display: block; margin-top: 0; padding: 8px 10px; border: 1px solid var(--pulso-border); border-radius: 6px; background: var(--pulso-surface-2); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: var(--pulso-type-body-size); line-height: 1.5; color: var(--pulso-text); white-space: pre-wrap; overflow-wrap: anywhere; }
 .xfp-editor-regla { display: flex; flex-direction: column; gap: 12px; max-width: 880px; padding-top: 12px; border-top: 1px solid var(--pulso-border); }
 .xfp-boton {
   display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 30px; padding: 0 12px;
@@ -288,3 +288,5 @@
   color: var(--pulso-text); font: inherit; font-size: var(--pulso-type-body-size); cursor: pointer;
 }
 .pulso-focus-aviso-mensaje button:hover { border-color: var(--pulso-primary); color: var(--pulso-primary); }
+/* E20: «Se acepta» / «Pide corregir» en una línea; se partía en dos en la columna angosta. */
+.xfp-prueba td:last-child, .xfp-prueba th:last-child { white-space: nowrap; }

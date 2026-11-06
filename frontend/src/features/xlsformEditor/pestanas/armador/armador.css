@@ -277,14 +277,75 @@
 .xfa-solas__lectura { margin: 0; padding: 6px 8px; border-radius: 8px; background: var(--pulso-surface-2); font-size: var(--pulso-type-caption-size); color: var(--pulso-text); }
 .xfa-solas__acciones { display: flex; justify-content: flex-end; gap: var(--pulso-space-2); }
 
-/* E19 paso 2: cuántas opciones puede marcar en una selección múltiple. */
-.xfa-cuantas__modos { display: flex; flex-wrap: wrap; gap: 6px; }
-.xfa-cuantas__modo { all: unset; box-sizing: border-box; padding: 4px 10px; border: 1px solid var(--pulso-border); border-radius: 999px; cursor: pointer; background: var(--pulso-surface); font-size: var(--pulso-type-caption-size); color: var(--pulso-text); }
-.xfa-cuantas__modo:hover { border-color: var(--pulso-border-strong); }
+/* E19 paso 2 y E20: bloques «Opciones que van solas» y «Cuántas opciones», siempre abiertos. Tarjeta con encabezado
+   (ícono en chip, título, una línea de qué hace), filas alineadas con el interruptor a la derecha, control segmentado y
+   una línea de resultado. */
+.xfa-bloque {
+  display: grid; gap: 12px; min-width: 0; padding: 14px 16px;
+  border: 1px solid var(--pulso-border); border-radius: var(--pulso-radius-card);
+  background: var(--pulso-surface); box-shadow: var(--pulso-shadow-low);
+}
+.xfa-bloque__cabeza { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.xfa-bloque__icono {
+  display: grid; place-items: center; flex: none; width: 32px; height: 32px; border-radius: 9px;
+  background: var(--module-accent-soft, var(--pulso-primary-soft)); color: var(--module-accent, var(--pulso-primary));
+}
+.xfa-bloque__icono svg { width: 16px; height: 16px; }
+.xfa-bloque__titulos { display: grid; gap: 1px; flex: 1; min-width: 0; }
+.xfa-bloque__titulo { margin: 0; font-size: var(--pulso-type-subtitle-size); font-weight: var(--pulso-weight-semibold); color: var(--pulso-text); line-height: 1.3; }
+.xfa-bloque__sub { margin: 0; font-size: var(--pulso-type-caption-size); color: var(--pulso-text-muted); line-height: 1.4; }
+.xfa-bloque__accion {
+  all: unset; box-sizing: border-box; flex: none; padding: 5px 10px; border-radius: 8px; cursor: pointer;
+  font-size: var(--pulso-type-caption-size); font-weight: var(--pulso-weight-semibold);
+  color: var(--module-accent, var(--pulso-primary)); white-space: nowrap;
+}
+.xfa-bloque__accion:hover { background: var(--module-accent-soft, var(--pulso-primary-soft)); }
+.xfa-bloque__accion:focus-visible { outline: var(--mov-foco, 2px solid var(--pulso-primary)); outline-offset: 1px; }
+
+.xfa-opciones { display: grid; margin: 0; padding: 0; list-style: none; border: 1px solid var(--pulso-border); border-radius: 10px; overflow: hidden; }
+.xfa-opciones li {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: center; column-gap: 10px;
+  min-height: 40px; padding: 6px 12px; transition: background var(--motion-dur-fast, 120ms) ease;
+}
+.xfa-opciones li + li { border-top: 1px solid var(--pulso-border); }
+.xfa-opciones li:hover { background: var(--pulso-surface-2); }
+.xfa-opciones li.is-on { background: var(--module-accent-soft, var(--pulso-primary-soft)); }
+.xfa-opciones__texto { display: flex; align-items: center; gap: 8px; min-width: 0; overflow: hidden; white-space: nowrap; font-size: var(--pulso-type-body-size); color: var(--pulso-text); }
+.xfa-opciones li.is-on .xfa-opciones__texto { font-weight: var(--pulso-weight-semibold); }
+.xfa-opciones__codigo {
+  justify-self: end; padding: 1px 7px; border-radius: 6px; background: var(--pulso-surface-3);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: var(--pulso-type-micro-size); color: var(--pulso-text-muted);
+}
+.xfa-opciones__suele {
+  flex: none; padding: 1px 7px; border-radius: 999px; font-size: var(--pulso-type-micro-size); font-weight: var(--pulso-weight-medium);
+  color: var(--pulso-accent-amber); background: color-mix(in srgb, var(--pulso-accent-amber) 12%, transparent);
+}
+
+.xfa-bloque__resultado {
+  display: flex; align-items: flex-start; gap: 8px; margin: 0; padding: 9px 12px; border-radius: 9px;
+  background: var(--pulso-surface-2); font-size: var(--pulso-type-body-size); color: var(--pulso-text-soft); line-height: 1.45;
+}
+.xfa-bloque__resultado svg { flex: none; width: 16px; height: 16px; margin-top: 2px; }
+.xfa-bloque__resultado.is-on { background: var(--pulso-success-bg); color: var(--pulso-success-fg); }
+.xfa-bloque__resultado.is-aviso { background: var(--pulso-warn-bg); color: var(--pulso-warn-fg); }
+.xfa-bloque__acciones { display: flex; justify-content: flex-end; gap: var(--pulso-space-2); }
+
+/* Control segmentado: una sola pieza, la opción elegida elevada. */
+.xfa-cuantas__modos {
+  display: flex; flex-wrap: wrap; gap: 2px; justify-self: start; max-width: 100%; padding: 3px;
+  border-radius: 10px; background: var(--pulso-surface-2); border: 1px solid var(--pulso-border);
+}
+.xfa-cuantas__modo {
+  all: unset; box-sizing: border-box; padding: 5px 12px; border-radius: 7px; cursor: pointer; white-space: nowrap;
+  font-size: var(--pulso-type-caption-size); font-weight: var(--pulso-weight-medium, 500); color: var(--pulso-text-soft);
+  transition: background var(--motion-dur-fast, 120ms) ease, color var(--motion-dur-fast, 120ms) ease;
+}
+.xfa-cuantas__modo:hover { color: var(--pulso-text); }
 .xfa-cuantas__modo:focus-visible { outline: var(--mov-foco, 2px solid var(--pulso-primary)); outline-offset: 1px; }
-.xfa-cuantas__modo.is-on { border-color: var(--module-accent-border, var(--pulso-primary-border)); background: var(--module-accent-soft, var(--pulso-primary-soft)); font-weight: var(--pulso-weight-semibold); }
-.xfa-cuantas__frase { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; font-size: var(--pulso-type-body-size); color: var(--pulso-text); }
-.xfa-cuantas__numero { width: 64px; }
-/* Bloques siempre abiertos (sin triángulo): cabeza con nombre y lectura vigente. */
-.xfa-bloque__cabeza { display: flex; align-items: center; gap: 8px; min-width: 0; }
-.xfa-bloque__cabeza svg { width: 15px; height: 15px; color: var(--pulso-tipo-texto); flex-shrink: 0; }
+.xfa-cuantas__modo.is-on {
+  background: var(--pulso-surface); color: var(--module-accent, var(--pulso-primary)); font-weight: var(--pulso-weight-semibold);
+  box-shadow: 0 0 0 1px var(--pulso-border-strong), var(--pulso-shadow-low);
+}
+.xfa-cuantas__frase { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-size: var(--pulso-type-body-size); color: var(--pulso-text); }
+.xfa-cuantas__numero { width: 64px; text-align: center; font-variant-numeric: tabular-nums; font-weight: var(--pulso-weight-semibold); }
+@media (prefers-reduced-motion: reduce) { .xfa-opciones li, .xfa-cuantas__modo { transition: none; } }

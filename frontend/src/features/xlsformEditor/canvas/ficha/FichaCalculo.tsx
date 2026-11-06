@@ -33,7 +33,7 @@ export function FichaCalculo({ datos }: { datos: DatosFicha }) {
             ) : null}
             <div className="xfh-det__pie">
               <BotonIr onClick={irCalculos}>Editar en Cálculos</BotonIr>
-              <CodigoXlsform lineas={[{ columna: "calculation", raw: formula }]} abierto={lectura.tecnica} />
+              <CodigoXlsform lineas={[{ columna: "calculation", raw: formula }]} />
             </div>
           </>
         ) : (

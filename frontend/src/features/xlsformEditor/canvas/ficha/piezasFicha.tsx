@@ -95,15 +95,15 @@ const NOMBRE_COLUMNA: Readonly<Record<ColumnaRegla, string>> = {
   required: "required",
 };
 
-/** Código XLSForm plegado; abierto de entrada si el motor no tradujo la regla. */
-export function CodigoXlsform({ lineas, abierto }: { lineas: { columna: ColumnaRegla | string; raw: string }[]; abierto?: boolean }) {
+/** Código XLSForm de la regla, siempre a la vista con su rótulo: sin triángulo que despliega (E20). */
+export function CodigoXlsform({ lineas }: { lineas: { columna: ColumnaRegla | string; raw: string }[] }) {
   if (!lineas.length) return null;
   return (
-    <details className="xfh-codigo" open={abierto || undefined}>
-      <summary>Ver código XLSForm</summary>
+    <div className="xfh-codigo-xls">
+      <span className="xfh-codigo-xls__rot">Código XLSForm</span>
       {lineas.map((l, i) => (
         <code key={i}>{`${NOMBRE_COLUMNA[l.columna as ColumnaRegla] ?? l.columna}: ${l.raw}`}</code>
       ))}
-    </details>
+    </div>
   );
 }

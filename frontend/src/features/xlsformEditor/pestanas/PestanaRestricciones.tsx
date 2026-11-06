@@ -140,10 +140,11 @@ export function PestanaRestricciones({ structure, scope: scopeBase, seleccionada
                 </dd>
               </dl>}
               {actual.node.constraint.trim() ? (
-                <details className="xfp-codigo-xls" open={Boolean(lectura?.tecnica)}>
-                  <summary>Expresión en XLSForm</summary>
+                // Siempre a la vista: sin triángulo que despliega (E20).
+                <div className="xfp-codigo-xls">
+                  <span className="xfp-codigo-xls__rot">Expresión en XLSForm</span>
                   <code>{actual.node.constraint.trim()}</code>
-                </details>
+                </div>
               ) : null}
             </div>
             {editando || actual.estado !== "con" ? (
