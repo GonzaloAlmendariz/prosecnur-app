@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 import { formatRelativeDate } from "../components/RecentProjectCard";
 import { PROSECNUR_PRIMARY_ACTIVE_MODULES, moduleChromeVars } from "../lib/modules";
-import { VistaSkeleton } from "../components/VistaSkeleton";
+import { RecorridoCarga, SegmentosRecorrido } from "./carga/RecorridoCarga";
 import { PantallaDeCarga } from "./PantallaDeCarga";
 import "./selector-proyecto.css";
 import { fasesVisibles } from "./warmupFasesVisibles";
@@ -1493,7 +1493,7 @@ function BootRecentRow({
   );
 }
 
-/** El arranque del proyecto dibuja la pantalla de carga de la app (PantallaDeCarga), la misma del módulo. */
+/** El arranque del proyecto dibuja la pantalla de carga de la app (PantallaDeCarga) en disposición «recorrido». */
 function WarmupView({
   projectPath,
   message,
@@ -1521,9 +1521,11 @@ function WarmupView({
       style={modulo ? moduleChromeVars(modulo) : undefined}
       conTono={Boolean(modulo)}
       datos={{ "data-boot-message": message, "data-modulo-destino": modulo?.slug }}
-      fondo={modulo
-        ? <VistaSkeleton variante="modulo" secciones={modulo.sections.length} />
-        : <VistaSkeleton variante="inicio" />}
+      // 6 nov 2026 (Gonzalo, propuesta «Fondo de carga de Prosecnur»): la carga del proyecto es el Recorrido de
+      // los siete módulos, con la lámina angosta a la izquierda y la barra de módulos debajo.
+      disposicion="recorrido"
+      fondo={<RecorridoCarga transcurridoMs={transcurridoMs} estimacion={estimacion} />}
+      bajoLamina={<SegmentosRecorrido transcurridoMs={transcurridoMs} estimacion={estimacion} />}
       ceja={destino ? `Abriendo ${destino.rotulo}` : "Abriendo el proyecto"}
       sujeto={projectName(projectPath)}
       titulo={message}

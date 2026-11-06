@@ -16,28 +16,22 @@ function fallback(path: string) {
 }
 
 describe("warm start de módulo (L23)", () => {
-  it("muestra tiempo, la silueta de la vista destino y la barra en el color del módulo, no un porcentaje", () => {
+  it("es la carga corta de la app: isotipo, módulo en su tono, rótulo y barra; sin reloj ni fases", () => {
     const html = fallback("/monitoreo?modo=territorial&seccion=avance");
-    // 5 nov 2026: una sola pantalla de carga para el proyecto y el módulo.
-    expect(html).toContain('class="pulso-carga is-area has-tono pulso-module-warmup"');
+    // 6 nov 2026 (Gonzalo): abrir un módulo dura segundos; la lámina con fases y reloj queda para el proyecto.
+    expect(html).toContain('class="pulso-module-warmup"');
     expect(html).toContain('data-module-warmup="monitoreo"');
-    expect(html).toContain("Transcurrido");
-    expect(html).toContain("0:00");
-    expect(html).toContain('data-vista-skeleton="modulo"');
-    expect(html).not.toMatch(/\d+%/);
-    // Gonzalo, 3 nov 2026: la carga lleva la barra animada en el color del módulo; sigue sin
-    // pintar un porcentaje. Sin avance medido (fallback) es indeterminada.
+    expect(html).toContain('class="pulso-carga-modulo"');
+    expect(html).toContain('class="boot-eq"');
     expect(html).toContain("pulso-barra-avance pulso-barra-avance--indeterminada");
     expect(html).toContain('style="--module-accent:');
-    // 4 nov 2026: el mismo isotipo que la carga del proyecto, no las tres pastillas propias.
-    expect(html).toContain('class="boot-eq"');
-    expect(html).not.toContain("pulso-module-warmup-mark");
+    expect(html).not.toContain("Transcurrido");
+    expect(html).not.toContain("pulso-carga-fases");
+    expect(html).not.toMatch(/\d+%/);
   });
 
-  it("la silueta no es la vista: oculta a lectores y sin marca de readiness", () => {
-    const html = fallback("/monitoreo");
-    expect(html).toMatch(/class="pulso-carga-fondo" aria-hidden="true"/);
-    expect(html).not.toContain("data-audit-ready");
+  it("la carga no es la vista: sin marca de readiness", () => {
+    expect(fallback("/monitoreo")).not.toContain("data-audit-ready");
   });
 
   it("una ruta sin módulo no pinta warm start", () => {

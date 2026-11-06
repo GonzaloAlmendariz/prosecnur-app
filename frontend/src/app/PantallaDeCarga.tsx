@@ -50,6 +50,8 @@ export function PantallaDeCarga({
   style,
   conTono = false,
   datos,
+  disposicion = "centro",
+  bajoLamina,
 }: {
   /** Qué se abre, en versalitas y en el tono del módulo: «Abriendo Validación». */
   ceja: string;
@@ -74,46 +76,100 @@ export function PantallaDeCarga({
   conTono?: boolean;
   /** Atributos `data-*` que leen los runners de QA y el puente de navegación. */
   datos?: Record<`data-${string}`, string | number | undefined>;
+  /**
+   * `centro`: la lámina al medio sobre la silueta. `recorrido` (inicio y carga del proyecto, 6 nov 2026): la lámina
+   * en una columna angosta a la izquierda, `bajoLamina` debajo, y el fondo ocupa el resto de la ventana.
+   */
+  disposicion?: "centro" | "recorrido";
+  /** Lo que va debajo de la lámina en la disposición `recorrido` (la barra de módulos). */
+  bajoLamina?: ReactNode;
 }) {
   const medido = porcentaje !== undefined && porcentaje > 0;
   const cifra = medido ? Math.min(100, Math.round(porcentaje)) : null;
   const detenido = Boolean(error) || Boolean(fases?.some((fase) => fase.status === "error"));
-  const clase = ["pulso-carga", `is-${alto}`, conTono ? "has-tono" : null, className].filter(Boolean).join(" ");
+  const clase = ["pulso-carga", `is-${alto}`, disposicion === "recorrido" ? "is-recorrido" : null, conTono ? "has-tono" : null, className].filter(Boolean).join(" ");
+  const lamina = (
+    <LaminaDeCarga
+      ceja={ceja}
+      sujeto={sujeto}
+      titulo={titulo}
+      medido={medido}
+      cifra={cifra}
+      detenido={detenido}
+      transcurridoMs={transcurridoMs}
+      estimacion={estimacion}
+      fases={fases}
+      error={error}
+    />
+  );
   return (
     <section className={clase} style={style} role="status" aria-live="polite" {...datos}>
       {fondo ? <div className="pulso-carga-fondo" aria-hidden="true">{fondo}</div> : null}
-      <div className="pulso-carga-lamina">
-        <div className="pulso-carga-resumen">
-          <BootEcualizador detenido={detenido} />
-          <div className="pulso-carga-cabeza">
-            <p className="pulso-carga-ceja">{ceja}</p>
-            {sujeto ? <p className="pulso-carga-sujeto" title={sujeto}>{sujeto}</p> : null}
-            <h1 className="pulso-carga-titulo">{titulo}</h1>
-          </div>
-          {medido && cifra !== null && cifra < 100
-            ? <BarraDeAvance valor={cifra} total={100} etiqueta={`Avance: ${ceja}`} />
-            : <BarraDeAvance indeterminada etiqueta={ceja} />}
-          <div className="pulso-carga-lectura">
-            <WarmupReloj className="pulso-carga-reloj" transcurridoMs={transcurridoMs} estimacion={estimacion} />
-            {cifra !== null ? <span className="pulso-carga-cifra">{cifra}%</span> : null}
-          </div>
+      {disposicion === "recorrido" ? (
+        <div className="pulso-carga-columna">
+          {lamina}
+          {bajoLamina}
         </div>
-        {fases?.length ? (
-          <ol className="pulso-carga-fases" aria-label="Fases" aria-live="off">
-            {fases.map((fase) => (
-              <li className={`pulso-carga-fase is-${fase.status}`} key={fase.id}>
-                <span className="pulso-carga-fase-icono" aria-hidden="true">
-                  <IconoFase status={fase.status} />
-                </span>
-                <strong>{fase.label}</strong>
-                <small>{fase.lectura ?? ""}</small>
-              </li>
-            ))}
-          </ol>
-        ) : null}
-        {error ? <p className="pulso-carga-error">{error}</p> : null}
-      </div>
+      ) : lamina}
     </section>
+  );
+}
+
+function LaminaDeCarga({
+  ceja,
+  sujeto,
+  titulo,
+  medido,
+  cifra,
+  detenido,
+  transcurridoMs,
+  estimacion,
+  fases,
+  error,
+}: {
+  ceja: string;
+  sujeto?: string | null;
+  titulo: string;
+  medido: boolean;
+  cifra: number | null;
+  detenido: boolean;
+  transcurridoMs: number;
+  estimacion: WarmupEstimacion;
+  fases?: FaseDeCarga[];
+  error?: string;
+}) {
+  return (
+    <div className="pulso-carga-lamina">
+      <div className="pulso-carga-resumen">
+        <BootEcualizador detenido={detenido} />
+        <div className="pulso-carga-cabeza">
+          <p className="pulso-carga-ceja">{ceja}</p>
+          {sujeto ? <p className="pulso-carga-sujeto" title={sujeto}>{sujeto}</p> : null}
+          <h1 className="pulso-carga-titulo">{titulo}</h1>
+        </div>
+        {medido && cifra !== null && cifra < 100
+          ? <BarraDeAvance valor={cifra} total={100} etiqueta={`Avance: ${ceja}`} />
+          : <BarraDeAvance indeterminada etiqueta={ceja} />}
+        <div className="pulso-carga-lectura">
+          <WarmupReloj className="pulso-carga-reloj" transcurridoMs={transcurridoMs} estimacion={estimacion} />
+          {cifra !== null ? <span className="pulso-carga-cifra">{cifra}%</span> : null}
+        </div>
+      </div>
+      {fases?.length ? (
+        <ol className="pulso-carga-fases" aria-label="Fases" aria-live="off">
+          {fases.map((fase) => (
+            <li className={`pulso-carga-fase is-${fase.status}`} key={fase.id}>
+              <span className="pulso-carga-fase-icono" aria-hidden="true">
+                <IconoFase status={fase.status} />
+              </span>
+              <strong>{fase.label}</strong>
+              <small>{fase.lectura ?? ""}</small>
+            </li>
+          ))}
+        </ol>
+      ) : null}
+      {error ? <p className="pulso-carga-error">{error}</p> : null}
+    </div>
   );
 }
 

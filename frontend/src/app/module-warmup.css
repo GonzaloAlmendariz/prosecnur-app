@@ -1,0 +1,19 @@
+/* Apertura de un módulo (6 nov 2026): la carga corta de la app (CargaDeModulo) centrada en el área del módulo. */
+.pulso-module-warmup {
+  flex: 1 1 auto;
+  width: 100%;
+  min-height: 100%;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 12px;
+  padding: 48px 24px;
+}
+
+.pulso-module-warmup-error {
+  margin: 0;
+  max-width: 420px;
+  color: var(--pulso-danger-fg);
+  font-size: 12px;
+  text-align: center;
+}

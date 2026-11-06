@@ -287,3 +287,56 @@
 @keyframes pulso-carga-aparece {
   from { opacity: 0; }
 }
+
+/* --- Disposición «recorrido»: inicio y carga del proyecto (6 nov 2026) ------
+   La lámina pasa a una columna angosta a la izquierda (columnas 1–4 de la grilla
+   de 12 sobre 1280: margen 64, columna 368) con la barra de módulos debajo; el
+   fondo (RecorridoCarga) ocupa el resto, sin velo. Elevación: la lámina es la
+   capa más alta (sombra alta); la superficie del módulo va debajo (sombra media).
+   Por debajo de 1080 px de ancho no cabe el escaparate: vuelve la lámina centrada. */
+.pulso-carga.is-recorrido {
+  --rc-margen: clamp(24px, 5vw, 64px);
+  --rc-top: clamp(40px, 12vh, 112px);
+  --rc-col: 368px;
+  --rc-respiro: clamp(32px, 9.5vw, 122px);
+  --rc-x: calc(var(--rc-margen) + var(--rc-col) + var(--rc-respiro));
+  --rc-escena-ancho: clamp(480px, min(44vw, (100vh - var(--rc-top) - 300px) * 1.6), 640px);
+  place-items: start;
+  align-content: start;
+  padding: 0;
+}
+
+.pulso-carga.is-recorrido .pulso-carga-fondo { opacity: 1; }
+.pulso-carga.is-recorrido .pulso-carga-fondo::after { content: none; }
+
+.pulso-carga-columna {
+  width: var(--rc-col);
+  margin: var(--rc-top) 0 var(--rc-top) var(--rc-margen);
+  display: grid;
+  gap: 40px;
+}
+
+.pulso-carga.is-recorrido .pulso-carga-lamina {
+  width: 100%;
+  gap: 16px;
+  padding: 32px 32px 24px;
+}
+
+.pulso-carga.is-recorrido .pulso-carga-sujeto { max-width: 100%; }
+.pulso-carga.is-recorrido .pulso-carga-titulo { font-size: 24px; line-height: 32px; }
+
+@media (max-height: 820px) and (min-width: 860px) {
+  .pulso-carga.is-recorrido .pulso-carga-lamina:has(.pulso-carga-fases) {
+    width: 100%;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 16px;
+  }
+
+  .pulso-carga.is-recorrido .pulso-carga-fases { max-height: min(30vh, 220px); }
+}
+
+@media (max-width: 1080px) {
+  .pulso-carga.is-recorrido { place-items: center; }
+  .pulso-carga.is-recorrido .pulso-carga-fondo { display: none; }
+  .pulso-carga.is-recorrido .pulso-carga-columna { margin: var(--rc-top) auto; }
+}

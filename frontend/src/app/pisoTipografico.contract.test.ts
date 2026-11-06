@@ -13,7 +13,9 @@ import { describe, expect, test } from "vitest";
  * Foto del 2026-10-28: 36 archivos, 90 declaraciones. Monitoreo entra el
  * 2026-11-02 con P1 de su pasada de formato: quedan cuatro rótulos de SVG con
  * `viewBox` escalado (el donut de validación y las calles del mapa), cuyos
- * «px» son unidades de usuario y no píxeles de pantalla.
+ * «px» son unidades de usuario y no píxeles de pantalla. Las escenas de la
+ * pantalla de carga entran el 2026-11-06 por la misma razón: viewBox 320×200
+ * dibujado a 480–640 px, el rótulo más chico (6,8) mide 10,2 px o más.
  */
 
 const SRC = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -21,6 +23,7 @@ const FUERA_DE_ALCANCE: string[] = [];
 const BAJO_EL_PISO = /font-size\s*:\s*(\d+(?:\.\d+)?)px/g;
 
 const SNAPSHOT_BAJO_10PX: Record<string, number> = {
+  "app/carga/recorrido-carga.css": 4,
   "features/graficos/estilo/estilo.css": 1,
   "features/graficos/graficadorPicker.css": 2,
   "features/graficos/v2/styles/editor-v2.css": 2,

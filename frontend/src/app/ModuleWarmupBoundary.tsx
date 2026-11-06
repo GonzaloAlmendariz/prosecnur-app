@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useLocation } from "react-router-dom";
 import { apiJobStatus, apiProjectWarmup } from "../api/client";
-import { VistaSkeleton } from "../components/VistaSkeleton";
+import { CargaDeModulo } from "../components/CargaDeModulo";
 import {
   PROSECNUR_ACTIVE_MODULES,
   moduleChromeVars,
@@ -14,9 +14,7 @@ import {
   warmupModulesComplete,
   type WarmupModuleProgress,
 } from "./warmupRegistry";
-import { useAhora } from "./WarmupReloj";
-import { SIN_ESTIMACION, duracionFase } from "./warmupTiempo";
-import { PantallaDeCarga } from "./PantallaDeCarga";
+import "./module-warmup.css";
 
 type ModuleWarmupProfile = {
   key: string;
@@ -433,10 +431,7 @@ export default function ModuleWarmupBoundary({ children }: { children: ReactNode
     <ModuleWarmupScreen
       profile={profile}
       message={propio ? state.message : profile.messages[0]}
-      inicioMs={propio ? state.inicioMs : undefined}
-      fases={propio ? state.fases : undefined}
       error={propio ? state.error : undefined}
-      percent={propio ? state.percent : undefined}
     />
   );
 }
@@ -444,49 +439,25 @@ export default function ModuleWarmupBoundary({ children }: { children: ReactNode
 function ModuleWarmupScreen({
   profile,
   message,
-  inicioMs,
-  fases,
   error,
-  percent,
 }: {
   profile: ModuleWarmupProfile;
   message: string;
-  /** Avance medido por el boundary (0–100); sin él la barra es indeterminada. */
-  percent?: number;
-  inicioMs?: number;
-  fases?: ModuleWarmupFase[];
   error?: string;
 }) {
+  // 6 nov 2026 (Gonzalo: «por su sencillez, la carga de módulos sea sólo el ícono de logo de la app haciendo la misma
+  // apertura que ahora, en todos los módulos y sus vistas; la animación elegante sólo para la pantalla de inicio y
+  // carga»): abrir un módulo dura segundos y ya no monta la lámina del proyecto (fases y reloj), sino la carga corta
+  // de la app (CargaDeModulo: isotipo, módulo en su tono, rótulo y barra) dentro del espacio de trabajo.
   const module = moduleForProfile(profile);
-  // Sin inicio del boundary (fallback de Suspense) el reloj cuenta desde que
-  // esta pantalla apareció.
-  const [montadoMs] = useState(() => Date.now());
-  const ahoraMs = useAhora(true);
-  const desde = inicioMs ?? montadoMs;
   return (
-    <PantallaDeCarga
+    <div
       className="pulso-module-warmup"
       style={module ? moduleChromeVars(module) : undefined}
-      conTono={Boolean(module)}
-      datos={{ "data-module-warmup": profile.key }}
-      fondo={<VistaSkeleton variante="modulo" secciones={module?.sections.length ?? 5} />}
-      ceja={`Abriendo ${profile.title}`}
-      titulo={message || "Preparando módulo"}
-      porcentaje={percent !== undefined && percent < 100 ? percent : undefined}
-      transcurridoMs={Math.max(0, ahoraMs - desde)}
-      estimacion={SIN_ESTIMACION}
-      error={error}
-      fases={fases?.map((fase) => ({
-        id: fase.id,
-        label: fase.label,
-        status: fase.status,
-        lectura: duracionFase({
-          status: fase.status,
-          elapsedMs: fase.elapsedMs,
-          inicioMs: fase.inicioMs,
-          ahoraMs,
-        }) || (fase.status === "pending" ? "En espera" : ""),
-      }))}
-    />
+      data-module-warmup={profile.key}
+    >
+      <CargaDeModulo label={message || "Preparando módulo"} modulo={module?.slug} />
+      {error ? <p className="pulso-module-warmup-error">{error}</p> : null}
+    </div>
   );
 }
