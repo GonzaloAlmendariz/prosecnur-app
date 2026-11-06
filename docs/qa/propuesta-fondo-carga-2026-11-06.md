@@ -4,8 +4,14 @@ Pedido de Gonzalo, textual: «No es que no me guste el fondo pero lo siento muy
 sencillo y plano, quizás podemos decirle a otra sesión independiente que diseñe
 uno más creativo con más énfasis en los distintos módulos en un artefacto».
 
-Artefacto para elegir (tres direcciones, dos casos cada una, fases y variante
-quieta): https://claude.ai/artifact/3cVPEhL8NGz3Nem4vSM5jg
+Segunda indicación, el mismo día: todos los fondos animados y que se vayan
+construyendo según el tiempo de la carga anterior; y una dirección nueva, con un
+módulo a la derecha y su acción animada a la izquierda, en bucle, pasando de un
+módulo a otro.
+
+Artefacto para elegir (cuatro direcciones, dos casos cada una, carga simulada
+con cuatro escenarios de tiempo y variante quieta):
+https://claude.ai/artifact/3cVPEhL8NGz3Nem4vSM5jg
 
 Esta es sólo la propuesta visual. No se tocó código de la app. La decisión es de
 Gonzalo.
@@ -32,7 +38,73 @@ Lo que se mantiene en las tres: la lámina sin cambios, el velo radial detrás d
 ella, sólo `transform`/`opacity` con tokens `--motion-*`, variante quieta para
 `prefers-reduced-motion` y el fondo `aria-hidden`.
 
-## Dirección A · Constelación (recomendada)
+## Construcción por tiempo (común a las cuatro)
+
+El fondo no sigue las fases de la lámina: sigue un avance de construcción
+`pc` (0 a 1) que sale del tiempo transcurrido y de la apertura anterior.
+`PantallaDeCarga` ya recibe los dos datos (`transcurridoMs` y `estimacion`,
+cuyo `totalMs` es la duración de la apertura anterior del mismo proyecto,
+`warmupTiempo.ts`).
+
+- Con apertura anterior: `pc = min(t / totalMs, 0.92)`. El fondo se completa a
+  la hora prevista; si la carga se alarga, se queda en el 92 % y sigue vivo
+  (flota, respira o deriva) sin prometer un final.
+- Sin apertura anterior (primera vez): `pc = 0.88 · (1 − e^(−t/12 s))`, que se
+  frena y no pasa del 88 %.
+- Al terminar de verdad (cuando la lámina pasa a «Listo para trabajar»), lo que
+  falta se completa en 900 ms, sin saltos.
+
+Cada pieza del fondo declara su umbral (`data-vis`, `data-on`) o su tramo
+(`data-a`/`data-b`, con las piezas internas ordenadas por `data-o`), y la
+transición de entrada es CSS (opacity + transform). En la app esto se hace con un
+`style={{ "--pc": pc }}` en el contenedor y un solo `useEffect` que alterna
+clases cuando `pc` cruza un umbral; no hay re-render por cuadro. La variante
+quieta sigue construyéndose (es estado) sin transiciones ni bucles.
+
+## Dirección D · Recorrido (recomendada, pedido de Gonzalo)
+
+**Idea.** A la derecha, un módulo: su ícono en un bloque de su color, «Módulo 3
+de 7», su nombre y una línea de lo que hace. A la izquierda, en una tarjeta de su
+tono, la acción del módulo animada en bucle: sortear la muestra (puntos que se
+eligen), armar el instrumento (campos que caen y se llenan), trazar la ruta
+(tramos que se dibujan y puntos que caen), generar las fichas (QR que se arma en
+diagonal), seguir el avance (columnas que suben hacia la meta), procesar la base
+(filas que entran y barras que crecen) y publicar el tablero (teselas, anillo y
+columnas). Cada cambio de módulo desliza la pareja (28 px, entra por la derecha y
+sale por la izquierda) y cambia el ambiente de fondo a su tono. Abajo, un riel con
+los siete íconos marca los vistos y el actual.
+
+**Tiempo.** Cada tramo dura `totalMs / pasos`, entre 3 y 9 s (4 s sin apertura
+anterior). El recorrido termina cuando la carga debería terminar; si se alarga,
+vuelve a empezar. La acción de cada escena es un ciclo de nueve veces
+`--motion-dur-slow` (3,8 s) que se repite mientras dura su tramo: cada pieza
+entra con un desfase `--k` y sale en el mismo orden, como una ola.
+
+**Abriendo un módulo.** Recorre las secciones del destino en vez de los siete
+módulos. Para Hojas de ruta: delimitar el territorio, leer la población
+(pirámide), sortear las manzanas y trazar la ruta; el riel muestra las secciones
+por nombre.
+
+**Implementación.**
+- Nuevo `frontend/src/components/fondo/FondoRecorrido.tsx` + `fondo-recorrido.css`.
+- Nuevo `frontend/src/components/fondo/escenas.tsx`: una escena SVG por acción
+  (viewBox 280×300, `currentColor`, piezas con `--k`). Siete del proyecto y las
+  secciones de cada módulo que tenga recorrido propio (empezar con Hojas de ruta
+  y, para los demás destinos, caer al recorrido de los siete con el destino
+  primero).
+- Las acciones y textos salen de un catálogo junto a `PROSECNUR_MODULES` (no se
+  duplican nombres ni tonos).
+- El índice del tramo se calcula en React desde `transcurridoMs` (ya se
+  actualiza cada segundo); el bucle de la escena es CSS puro.
+
+**Costo.** 2 a 2,5 días.
+
+**Riesgos.** Es la que más movimiento tiene a los dos lados de la lámina; hay que
+probar en la app que no distraiga de la lectura. Once escenas que mantener. En
+ventanas bajas o angostas, la tarjeta de acción se oculta y queda el módulo a la
+derecha con el riel.
+
+## Dirección A · Constelación (alternativa tranquila)
 
 **Idea.** Los siete módulos orbitan el isotipo en el orden real del trabajo
 (Cálculo de muestra → Formularios → Hojas de ruta → Material de campo →
@@ -128,15 +200,21 @@ costo de pintura en Windows.
 
 ## Recomendación
 
-A · Constelación. Responde al pedido (cada módulo con color, ícono, nombre y su
-naturaleza) sin pelear con la lámina, porque vive en la periferia y deja el
-centro en calma. El orden de la órbita es el orden real del trabajo, así que el
-fondo cuenta cómo está armado Prosecnur. Es la más barata y la que tiene una
-respuesta más clara para «abriendo un módulo». Toma de B lo mejor: el motivo de
-cada módulo como nebulosa.
+D · Recorrido, con el riel de A. Es la que más protagonismo da a cada módulo:
+durante unos segundos la ventana es de un solo módulo, con su color, su ícono, su
+nombre y lo que hace en movimiento. Su ritmo sale de la apertura anterior, así
+que termina cuando la carga debería terminar y, si se alarga, vuelve a empezar
+sin prometer nada. El riel de siete módulos conserva la idea de A (el proyecto
+entero y en qué parte va).
+
+Si en la app el movimiento a los dos lados distrae de la lámina, A · Constelación
+es la alternativa tranquila con la misma construcción por tiempo.
 
 ## Pendiente de decisión
 
 - Gonzalo elige dirección (o mezcla).
+- Si es D: confirmar qué módulos tienen recorrido por secciones en la primera
+  entrega (propuesta: sólo Hojas de ruta; los demás destinos usan el recorrido de
+  los siete con el destino primero).
 - Si es A: confirmar si el territorio grande se hace para los siete módulos o
-  sólo para Hojas de ruta en la primera entrega.
+  sólo para Hojas de ruta.
