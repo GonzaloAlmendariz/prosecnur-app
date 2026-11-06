@@ -1,6 +1,7 @@
 // Pinta el texto de una pregunta, nota u opción con la regla de markdownPregunta.ts (Cuestionario y Probar).
 
 import { textoPreguntaHtml, type LectorReferencias } from "./markdownPregunta";
+import "./markdownTabla.css";
 
 const SIN_REFERENCIAS: LectorReferencias = { etiquetaDe: () => undefined };
 

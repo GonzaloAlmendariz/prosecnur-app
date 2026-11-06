@@ -5,6 +5,7 @@
 
 import type { BuilderNode } from "../types";
 import { renderMarkdownInline, stripMarkdown } from "./markdown";
+import { conTablasHtml } from "./markdownTabla";
 
 /** Cómo se lee una referencia `${x}`: su respuesta (si la hay) y su etiqueta. */
 export type LectorReferencias = {
@@ -36,7 +37,8 @@ export function conReferencias(texto: string, lector: LectorReferencias): string
 
 /** HTML seguro (escapado por renderMarkdownInline) del texto de una pregunta, nota u opción. */
 export function textoPreguntaHtml(texto: string, lector: LectorReferencias): string {
-  return renderMarkdownInline(conSaltos(conReferencias(texto, lector)));
+  // Una tabla markdown (`| a | b |` + `|---|`) se pinta como <table>; el resto, en línea.
+  return conTablasHtml(conSaltos(conReferencias(texto, lector)), renderMarkdownInline);
 }
 
 /** El mismo texto sin marcas, para `aria-label`, `<option>` y `title`. */
