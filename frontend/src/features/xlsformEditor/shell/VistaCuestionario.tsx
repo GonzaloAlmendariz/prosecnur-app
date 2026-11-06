@@ -18,10 +18,11 @@
 import { TituloSeccion } from "./TituloSeccion";
 import { createContext, useContext, useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import { AlertTriangle, ArrowRight, FileText, Repeat } from "../../../vendor/lucide-react";
-import type { BuilderStructure, XlsformEditorWorkbook } from "../types";
+import type { BuilderNode, BuilderStructure, XlsformEditorWorkbook } from "../types";
 import { buildCatalogs } from "../parsing/buildIndex";
 import { detectMatrixCandidates } from "../parsing/detectMatrixCandidates";
 import { pistaLegible, type LectorReferencias } from "../helpers/markdownPregunta";
+import { citaSorteo, valoresDeEjemplo } from "../cuestionario/ejemploSorteo";
 import { TextoPregunta } from "../helpers/markdownTexto";
 import { duracion, minutos, resumirFormulario } from "../resumen/modeloResumen";
 import { IndiceCuestionario } from "../cuestionario/IndiceCuestionario";
@@ -70,6 +71,26 @@ const Lector = createContext<LectorReferencias>({ etiquetaDe: () => undefined })
 
 function Markdown({ texto, como = "span", className }: { texto: string; como?: "span" | "p" | "h3"; className?: string }) {
   return <TextoPregunta texto={texto} lector={useContext(Lector)} como={como} className={className} />;
+}
+
+/**
+ * Texto de una nota. Si cita valores sorteados (la tabla de un par de conjoint) se pinta con el texto original de la
+ * fila —el modelo del documento ya cambió sus `${x}` por rótulos— para que el lector ponga el ejemplo, y se rotula.
+ */
+const Sorteados = createContext<{ sorteados: ReadonlySet<string>; originales: ReadonlyMap<number, string> }>({
+  sorteados: new Set(),
+  originales: new Map(),
+});
+function TextoDeNota({ nodo }: { nodo: BuilderNode }) {
+  const { sorteados, originales } = useContext(Sorteados);
+  const original = originales.get(nodo.rowIndex) ?? nodo.label;
+  const ejemplo = citaSorteo(original, sorteados);
+  return (
+    <>
+      <Markdown como="p" texto={ejemplo ? original : nodo.label || nodo.name} />
+      {ejemplo ? <p className="pulso-xf-cue-ejemplo">Ejemplo: los niveles se sortean en cada entrevista.</p> : null}
+    </>
+  );
 }
 
 function Marca({ forma }: { forma: "una" | "varias" }) {
@@ -249,7 +270,7 @@ function Seccion({ seccion, marcarOpcionales: opcionales, fichas, registrar, onT
             return (
               <aside key={`n-${i}`} className="pulso-xf-cue-nota" data-qa-geometry-member="">
                 {b.condicion && <p className="pulso-xf-cue-condicion">Aparece si {b.condicion}</p>}
-                <Markdown como="p" texto={b.nodo.label || b.nodo.name} />
+                <TextoDeNota nodo={b.nodo} />
               </aside>
             );
           }
@@ -276,7 +297,16 @@ export function VistaCuestionario({ workbook, structure, logicaPendiente, onRevi
   const [actual, setActual] = useState<string>(secciones[0]?.clave ?? "");
   const saltando = useRef<string | null>(null);
   const etiquetaDeNombre = useMemo(() => new Map((structure?.outline ?? []).map((n) => [n.name, n.label])), [structure]);
-  const lector = useMemo<LectorReferencias>(() => ({ etiquetaDe: (n) => etiquetaDeNombre.get(n) }), [etiquetaDeNombre]);
+  // Los valores sorteados (un par de conjoint) se ven con un ejemplo fijo; lo que depende de respuestas, como referencia.
+  const ejemplo = useMemo(() => valoresDeEjemplo(structure?.outline ?? []), [structure]);
+  const sorteo = useMemo(
+    () => ({ sorteados: ejemplo.sorteados, originales: new Map((structure?.outline ?? []).map((n) => [n.rowIndex, n.label])) }),
+    [ejemplo, structure],
+  );
+  const lector = useMemo<LectorReferencias>(
+    () => ({ etiquetaDe: (n) => etiquetaDeNombre.get(n), respuestaDe: (n) => ejemplo.valores[n] }),
+    [etiquetaDeNombre, ejemplo],
+  );
   const registrar = (clave: string, el: HTMLElement | null) => {
     if (el) anclas.current.set(clave, el);
     else anclas.current.delete(clave);
@@ -395,9 +425,11 @@ export function VistaCuestionario({ workbook, structure, logicaPendiente, onRevi
                 </div>
               )}
               <Lector.Provider value={lector}>
+              <Sorteados.Provider value={sorteo}>
                 {secciones.map((s) => (
                   <Seccion key={s.clave} seccion={s} marcarOpcionales={opcionales} fichas={fichas} registrar={registrar} onTitular={onTitular} />
                 ))}
+              </Sorteados.Provider>
               </Lector.Provider>
             </div>
           </div>

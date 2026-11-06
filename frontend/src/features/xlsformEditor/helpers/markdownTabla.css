@@ -16,6 +16,7 @@
 
 .pulso-md-tabla {
   width: 100%;
+  table-layout: fixed;
   border-collapse: collapse;
   font-size: 0.95em;
   line-height: 1.4;
@@ -25,6 +26,7 @@
 .pulso-md-tabla th,
 .pulso-md-tabla td {
   padding: 8px 12px;
+  overflow-wrap: break-word;
   text-align: left;
   vertical-align: top;
   border-bottom: 1px solid var(--pulso-border);
@@ -35,6 +37,10 @@
   border-bottom: 0;
 }
 
+.pulso-md-tabla thead th:first-child {
+  width: 30%;
+}
+
 .pulso-md-tabla thead th {
   background: var(--pulso-surface-2);
   font-weight: var(--pulso-weight-semibold);
@@ -42,7 +48,6 @@
 }
 
 .pulso-md-tabla tbody th {
-  width: 32%;
   font-weight: var(--pulso-weight-medium);
   color: var(--pulso-text-soft);
   background: var(--pulso-surface-2);

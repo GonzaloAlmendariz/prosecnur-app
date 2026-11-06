@@ -474,6 +474,14 @@
   line-height: 1.55;
 }
 
+/* Nota con niveles sorteados (E8 editor-conjoint): lo que se ve es un ejemplo. */
+.pulso-xf-cue-ejemplo {
+  margin: var(--pulso-space-2) 0 0;
+  font-size: var(--pulso-type-caption-size);
+  color: var(--pulso-text-muted);
+  font-style: italic;
+}
+
 .pulso-xf-cue-nota p {
   margin: 0;
 }
