@@ -1,6 +1,6 @@
 # Propuesta: pantalla de inicio y carga de Prosecnur — 2026-11-06
 
-Artefacto: https://claude.ai/artifact/3cVPEhL8NGz3Nem4vSM5jg (versión 11). Propuesta visual; no se tocó código
+Artefacto: https://claude.ai/artifact/3cVPEhL8NGz3Nem4vSM5jg (versión 16). Propuesta visual; no se tocó código
 de la app.
 
 ## Decisión de Gonzalo
@@ -23,8 +23,9 @@ módulos y sus vistas, y dejamos la animación elegante sólo para la pantalla d
 - Orden: Cálculo de muestra → Formularios → Hojas de ruta → Material de campo → Monitoreo → Procesamiento →
   Dashboard.
 - Tiempo: cada tramo dura la apertura anterior entre siete (3 a 9 s), así que el recorrido termina cuando la carga
-  debería terminar. Si se alarga, vuelve a empezar y cada módulo muestra otra de sus cinco escenas. Sin apertura
-  anterior, 4 s por tramo.
+  debería terminar; si se alarga, vuelve a empezar. Sin apertura anterior, 4 s por tramo.
+- Escena: los módulos van siempre en orden; la escena de cada módulo se elige al azar entre sus cinco, sin repetir la
+  última que mostró ese módulo.
 - Geometría (v9, tras «la animación está atrapada en un bloque»): la escena se dibuja a 640 × 400 sobre una superficie
   de 880 × 600 que nace a 500 px del borde izquierdo y se sale por la derecha y por abajo, como una ventana de la app
   vista de cerca. Sin inclinar: las escenas son detalladas y se leen mejor rectas.
