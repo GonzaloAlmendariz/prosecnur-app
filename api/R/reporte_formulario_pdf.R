@@ -516,6 +516,10 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
   # Item 19: el formato del instrumento (HTML, entidades, `#`, `**`) se
   # INTERPRETA antes de leer ningun texto: las columnas quedan planas y el crudo
   # se guarda para los tramos de cada bloque (reporte_formulario_ricotexto.R).
+  # Las tablas markdown de las notas (E8c editor-conjoint) se apartan ANTES: el texto rico junta las
+  # lineas y la tabla dejaria de reconocerse (reporte_formulario_tabla_md.R).
+  md <- .form_md_tablas_del_survey(survey)
+  survey <- md$survey
   rti <- .form_rt_instrumento(survey, choices, paper, settings)
   survey <- rti$survey; choices <- rti$choices
   paper <- rti$paper; settings <- rti$settings
@@ -917,6 +921,8 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
         opt
       })
     }
+    # La tabla markdown de una nota (los perfiles de un conjoint), apartada antes del texto rico.
+    tabla_md <- md$tablas[[i]]
     label <- .form_pdf_first_nonempty(survey$paper_label[i], survey$label[i])
     label <- .form_pdf_strip_leading_number(label, numbers[i])
     label <- .form_pdf_paper_text(label)
@@ -971,7 +977,7 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
         max(1L, length(.form_pdf_wrap(paste(opt$label, opt$paper_skip), 44L)))
       }, numeric(1)))
     } else 0
-    full <- (base == "note" && nchar(label) > 90) ||
+    full <- !is.null(tabla_md) || (base == "note" && nchar(label) > 90) ||
       layout %in% c("full", "wide") ||
       nchar(label) > 230 ||
       length(opts) > 10L ||
@@ -991,6 +997,7 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
       layout = layout,
       coded_list = coded_list,
       var_tag = num$tags[i],
+      tabla_md = tabla_md,
       full_width = full
     ))
     i <- i + 1L
@@ -1894,7 +1901,8 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
                     gp = grid::gpar(fill = NA, col = tk$tbl_frame, lwd = 0.5))
     y <- y - h
   } else if (identical(block$type, "note")) {
-    # Solo texto informativo.
+    # Texto informativo; si trae una tabla markdown, la tabla debajo (E8c editor-conjoint).
+    if (!is.null(block$tabla_md)) y <- .form_md_tabla_pdf_dibujar(block$tabla_md, x + 0.006, y, w - 0.012, tk)
   } else {
     grid::grid.rect(x = grid::unit(x + 0.006 + (w - 0.012) / 2, "npc"), y = grid::unit(y - 0.0125, "npc"),
                     width = grid::unit(w - 0.012, "npc"), height = grid::unit(0.025, "npc"),

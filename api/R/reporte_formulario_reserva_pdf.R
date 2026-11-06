@@ -92,7 +92,7 @@
   } else if (type %in% .FORM_PDF_TIPOS_CAMPO) {
     if (identical(type, "text")) 0.034 else 0.025
   } else if (is_note) {
-    0
+    if (is.null(block$tabla_md)) 0 else .form_md_tabla_pdf_geom(block$tabla_md, w - 0.012)$h
   } else {
     0.025
   }

@@ -1212,8 +1212,16 @@ formulario_word_render <- function(model, output_file) {
         doc <- .form_word_par(doc, block$label %||% "", size = .std_cuestionario("tipografia", "cuerpo"), bold = TRUE,
                               color = .std_cuestionario("colores", "tinta"), align = "justify",
                               space_before = 4, space_after = 6,
-                              keep_with_next = isTRUE(block$keep_with_next),
+                              keep_with_next = isTRUE(block$keep_with_next) || !is.null(block$tabla_md),
                               rt = .form_rt_campo(block, "label"))
+        # Tabla markdown de la nota (los perfiles de un conjoint), como tabla (E8c editor-conjoint).
+        if (!is.null(block$tabla_md)) {
+          ft_md <- .form_md_tabla_word(block$tabla_md, usable = usable)
+          if (!is.null(ft_md)) {
+            doc <- flextable::body_add_flextable(doc, ft_md, align = "left")
+            doc <- .form_word_blank(doc)
+          }
+        }
       } else {
         num <- .form_pdf_clean_text(block$number %||% "")
         lbl <- if (nzchar(num)) paste0(num, ".  ", block$label) else (block$label %||% "")
