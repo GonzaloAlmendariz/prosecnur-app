@@ -44,6 +44,8 @@ import { respuestasDadas, seccionesDelRecorrido } from "./simulador/modeloRecorr
 import { pendientesParaFinalizar, restriccionIncumplida, type Pendiente } from "./simulador/modeloFinalizar";
 import { FaltantesPrueba, PruebaFinalizada } from "./simulador/FinalizarPrueba";
 import { calcularValores, semillaNueva } from "./simulador/calculosPrueba";
+import { grillasDelFormulario, notasQueIntroducenGrilla, tituloSinRotulo } from "./simulador/modeloGrilla";
+import { GrillaPrueba } from "./simulador/GrillaPrueba";
 import { esNotaSinTexto, pistaLegible, textoPreguntaPlano, type LectorReferencias } from "../helpers/markdownPregunta";
 import { TextoPregunta } from "../helpers/markdownTexto";
 import { stripMarkdown } from "../helpers/markdown";
@@ -109,6 +111,12 @@ function readFormTitle(workbook: XlsformEditorWorkbook): string {
 
 const ALWAYS_VISIBLE: VisState = { visible: true, advanced: false };
 
+/** Rótulo de la sección que contiene a un grupo sin rótulo (una batería), si lo tiene. */
+function rotuloDe(structure: BuilderStructure, parentId: string | null): string | null {
+  const padre = parentId ? structure.sections.get(parentId) : undefined;
+  return padre && padre.kind !== "root" && stripMarkdown(padre.label ?? "").trim() ? padre.label : null;
+}
+
 // -----------------------------------------------------------------------------
 // Componente principal
 // -----------------------------------------------------------------------------
@@ -143,13 +151,20 @@ export function FormSimulator({
     return map;
   }, [workbook]);
 
+  // Baterías table-list: se pintan como grilla y se llevan la nota que las presenta.
+  const grillas = useMemo(
+    () => (structure ? grillasDelFormulario(structure, (lista) => choicesByList.get(lista) ?? []) : new Map()),
+    [structure, choicesByList],
+  );
+
   // Páginas: una por sección con contenido renderizable (root incluido).
   const pages = useMemo<SimPage[]>(() => {
     if (!structure) return [];
+    const intros = notasQueIntroducenGrilla(grillas);
     const out: SimPage[] = [];
     Array.from(structure.sections.values()).forEach((meta) => {
       const nodes = structure.outline.filter(
-        (node) => node.sectionId === meta.id && isRenderable(node),
+        (node) => node.sectionId === meta.id && isRenderable(node) && !intros.has(node.rowIndex),
       );
       if (!nodes.length) return;
       out.push({
@@ -157,14 +172,16 @@ export function FormSimulator({
         title:
           meta.kind === "root"
             ? formTitle || "Inicio"
-            : stripMarkdown(meta.label ?? "").trim() && meta.label.trim() !== meta.name ? meta.label : "Sección sin título",
+            : stripMarkdown(meta.label ?? "").trim() && meta.label.trim() !== meta.name
+              ? meta.label
+              : tituloSinRotulo(rotuloDe(structure, meta.parentId), grillas.get(meta.id)?.intro ?? null),
         kind: meta.kind,
         nodes,
         order: meta.rowIndex ?? Math.min(...nodes.map((node) => node.rowIndex)),
       });
     });
     return out.sort((a, b) => a.order - b.order);
-  }, [structure, formTitle]);
+  }, [structure, formTitle, grillas]);
 
   // Visibilidad efectiva por sección: propia ∧ todos los ancestros.
   const sectionState = useMemo(() => {
@@ -353,7 +370,15 @@ export function FormSimulator({
             </header>
 
             <div className="pulso-xfsim-cards" data-qa-geometry-group="xlsform/prueba-preguntas" data-qa-geometry-contract="intrinsic">
-              {currentPage.nodes.map((node) => (
+              {grillas.get(currentPage.id) ? (
+                <GrillaPrueba
+                  grilla={grillas.get(currentPage.id)!}
+                  valores={answers}
+                  onAnswer={setAnswer}
+                  lector={lector}
+                  visible={(node) => nodeState.get(node.rowIndex)?.visible ?? true}
+                />
+              ) : currentPage.nodes.map((node) => (
                 <QuestionSlot
                   key={node.rowIndex}
                   node={node}
