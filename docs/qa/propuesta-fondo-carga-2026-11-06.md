@@ -1,21 +1,22 @@
-# Propuesta: cargas de Prosecnur (proyecto, módulo y vista) — 2026-11-06
+# Propuesta: pantalla de inicio y carga de Prosecnur — 2026-11-06
 
-Artefacto: https://claude.ai/artifact/3cVPEhL8NGz3Nem4vSM5jg (versión 7). Propuesta visual; no se tocó código
+Artefacto: https://claude.ai/artifact/3cVPEhL8NGz3Nem4vSM5jg (versión 8). Propuesta visual; no se tocó código
 de la app.
 
 ## Decisión de Gonzalo
 
 **Recorrido.** El Mosaico vivo queda descartado («Al final nos quedamos con Recorrido, no Mosaico»). La carga de los
 módulos «no tiene por qué ser tan compleja»: los módulos cargan rápido y basta con una animación sencilla en bucle.
-A veces la carga es de una vista (Monitoreo › Correo: «Leyendo el estado de Mailchimp…»).
+A veces la carga es de una vista (Monitoreo › Control: «Leyendo el estado de Mailchimp…»). Y al final: «por su
+sencillez, la carga de módulos sea sólo el ícono de logo de la app haciendo la misma apertura que ahora, en todos los
+módulos y sus vistas, y dejamos la animación elegante sólo para la pantalla de inicio y carga».
 
-## Tres niveles, un mismo lenguaje
+## Dos niveles
 
 | Carga | Duración típica | Qué se ve |
 |---|---|---|
-| Abrir el proyecto (`BootGate`) | decenas de segundos a minutos | Lámina de `PantallaDeCarga` al centro. A la izquierda, un panel de la app con la escena del módulo en bucle; a la derecha, su identidad (ícono, «Módulo n de 7», nombre, qué hace, acción); abajo, barra segmentada de siete módulos que se llena con el tiempo. |
-| Abrir un módulo (`ModuleWarmupBoundary`) | un par de segundos | Chrome del módulo visible y, en el área, su escena marca en bucle, «Abriendo Hojas de ruta…» y una barra indeterminada. Sin lámina, fases ni reloj. |
-| Cargar una vista (`LoadingBlock` «panel», `components/States.tsx`, 94 usos) | variable | El mismo bloque de hoy (rótulo de la vista y barra) con la escena de esa vista en lugar del isotipo, cuando la tiene. |
+| Inicio y carga del proyecto (`BootGate`) | decenas de segundos a minutos | Lámina de `PantallaDeCarga` al centro. A la izquierda, un panel de la app con la escena del módulo en bucle; a la derecha, su identidad (ícono, «Módulo n de 7», nombre, qué hace, acción); abajo, barra segmentada de siete módulos que se llena con el tiempo. |
+| Módulos y vistas (`ModuleWarmupBoundary`, `LoadingBlock` «panel») | segundos | El isotipo de la app latiendo en el tono del módulo, el rótulo de lo que se prepara y una barra indeterminada, dentro del espacio de trabajo. Es lo que ya hace `LoadingBlock`; sólo la apertura de módulo deja de usar la lámina del proyecto (fases y reloj). |
 
 ## Recorrido del proyecto
 
@@ -52,14 +53,13 @@ Cifras ilustrativas; vocabulario real de la UI.
 - `frontend/src/components/escenas/<modulo>.tsx`: una escena por vista (SVG 320×200, `currentColor`, piezas con
   `--k`), y `escenas/movimientos.css` con el repertorio. Pintable desde el chunk de arranque (sólo tokens de `boot.css`).
 - `FondoRecorrido.tsx` (proyecto): recibe `transcurridoMs` y `estimacion`; reemplaza a `VistaSkeleton` en `BootGate`.
-- `ModuleWarmupBoundary`: deja de montar `PantallaDeCarga` y monta un bloque corto (escena marca + rótulo + barra) en
-  el área del módulo.
-- `LoadingBlock`: prop opcional `escena`; sin ella, el isotipo de hoy.
-- Costo estimado: 3 a 4 días (35 escenas, recorrido, bloque corto y la prop de `LoadingBlock`).
+- `ModuleWarmupBoundary`: deja de montar `PantallaDeCarga` y usa el mismo bloque de `LoadingBlock` «panel» (isotipo
+  en el tono del módulo, rótulo, barra) en el área del módulo. `LoadingBlock` no cambia.
+- Costo estimado: 3 días (35 escenas, recorrido y el cambio de `ModuleWarmupBoundary`).
 - Riesgos: mantener las escenas al día con la UI real; peso de las 35 escenas en el chunk de arranque (cargar sólo
   las marcas en el arranque y el resto bajo demanda).
 
 ## Pendiente
 
-- Pulido del recorrido completo y de cada escena marca a 336 px (loop de 3 minutos en curso).
+- Pulido del recorrido y de cada escena a 332 px (loop de 3 minutos en curso).
 - Decisión final de Gonzalo sobre el detalle.
