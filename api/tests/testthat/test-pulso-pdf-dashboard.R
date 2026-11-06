@@ -191,11 +191,11 @@ test_that("toda barra del dia lleva su fecha; lo que cede es el cuerpo", {
 
   # Mas estrecho: baja el cuerpo, la fecha sigue en todas; «hasta 11:40» no
   # cabe y se queda solo la fecha.
-  r <- rotulos(0.03)
+  r <- rotulos(0.032)
   expect_length(r$textos, 20L)
   expect_true(all(startsWith(r$textos, sprintf("%02d/10", 1:20))))
   expect_lt(r$fontsize, 5.8)
-  expect_gte(r$fontsize, 4.6)
+  expect_gte(r$fontsize, 5.6)
   expect_equal(r$textos[[20]], "20/10")
   expect_equal(r$textos[[1]], dias[[1]])
   expect_false(r$rotar)
@@ -204,7 +204,25 @@ test_that("toda barra del dia lleva su fecha; lo que cede es el cuerpo", {
   r <- rotulos(0.012)
   expect_true(r$rotar)
   expect_equal(r$textos, sprintf("%02d/10", 1:20))
-  expect_gte(r$fontsize, 4.6)
+  expect_gte(r$fontsize, 5.6)
 
   expect_length(prosecnurapp:::.ppd_rotulos_de_fecha(character(0), 0.05, 5.8, medir = medir)$textos, 0L)
+})
+
+test_that("con muchos dias los paneles pierden columnas antes que la fecha se vuelva diminuta", {
+  # Gonzalo, 2026-11-06: «si los dias ya son demasiados, en vez de 3 en fila que
+  # sean 2; tampoco debe verse diminuto».
+  tres <- list(columnas = 3L, hojas = 1L, por_hoja = 6L)
+  ancho <- 1 - 2 * 0.048
+  # Dos semanas caben de a tres.
+  expect_identical(prosecnurapp:::.ppd_rejilla_que_cabe(tres, 6L, 14L, ancho), tres)
+  # Cuarenta dias no: pasan a dos por fila, dos filas por hoja, reparto parejo.
+  r <- prosecnurapp:::.ppd_rejilla_que_cabe(tres, 6L, 40L, ancho)
+  expect_equal(r$columnas, 2L)
+  expect_equal(r$por_hoja, 3L)
+  expect_equal(r$hojas, 2L)
+  # Y a dos por fila, cada fecha cabe girada al piso.
+  panel <- (ancho - 0.030) / 2 - 0.026
+  expect_true(prosecnurapp:::.ppd_eje_cabe(panel, 40L))
+  expect_false(prosecnurapp:::.ppd_eje_cabe((ancho - 0.060) / 3 - 0.026, 40L))
 })

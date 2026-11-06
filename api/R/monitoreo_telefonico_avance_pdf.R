@@ -165,6 +165,9 @@ monitoreo_telefonico_advance_report_pdf <- function(model, path, include_targets
   # --- Plan del documento: el folio necesita el total desde la primera hoja.
   rejilla <- .marp_rejilla_de_paneles(nrow(grupos))
   if (nrow(grupos) %in% 5:6) rejilla <- list(columnas = 3L, hojas = 1L, por_hoja = nrow(grupos))
+  # Con muchos días, tres paneles por fila dejan la fecha diminuta: se pasa a
+  # menos columnas (`pulso_pdf_eje_fechas.R`).
+  rejilla <- .ppd_rejilla_que_cabe(rejilla, nrow(grupos), n_dias, ancho)
   hojas_paneles <- if (hay_paneles) split(seq_len(nrow(grupos)), ceiling(seq_len(nrow(grupos)) / rejilla$por_hoja)) else list()
   cabida_tabla <- 20L
   n_hojas_tabla <- max(1L, ceiling(n_dias / cabida_tabla))

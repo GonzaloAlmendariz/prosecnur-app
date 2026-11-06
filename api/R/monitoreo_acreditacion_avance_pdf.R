@@ -263,6 +263,9 @@ monitoreo_acreditacion_client_report_pdf <- function(model, output_file, include
   # Cinco o seis públicos caben en una hoja de tres por dos; la rejilla de aulas
   # (dos columnas) los partiría en dos hojas con un cuadrante vacío cada una.
   if (nrow(pub) %in% 5:6) rejilla <- list(columnas = 3L, hojas = 1L, por_hoja = nrow(pub))
+  # Con muchos días, tres paneles por fila dejan la fecha diminuta: se pasa a
+  # menos columnas (`pulso_pdf_eje_fechas.R`).
+  rejilla <- .ppd_rejilla_que_cabe(rejilla, nrow(pub), n_dias, ancho)
   hay_paneles <- n_dias > 0 && nrow(pub) > 1L
   hojas_paneles <- if (hay_paneles) split(seq_len(nrow(pub)), ceiling(seq_len(nrow(pub)) / rejilla$por_hoja)) else list()
   # Veinte días caben en una hoja. Si hay que abrir otra, el reparto es parejo:
