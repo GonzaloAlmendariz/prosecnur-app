@@ -15,6 +15,7 @@ import { formatRelativeDate } from "../components/RecentProjectCard";
 import { PROSECNUR_PRIMARY_ACTIVE_MODULES, moduleChromeVars } from "../lib/modules";
 import { VistaSkeleton } from "../components/VistaSkeleton";
 import { PantallaDeCarga } from "./PantallaDeCarga";
+import "./selector-proyecto.css";
 import { fasesVisibles } from "./warmupFasesVisibles";
 import { useAhora } from "./WarmupReloj";
 import {
@@ -1257,7 +1258,7 @@ function ChooserView({
         </div>
         <p className="boot-hero-tagline">
           Tu suite de proyectos de investigación. Cada proyecto vive en un
-          archivo <code>.pulso</code> con su avance, bitácora y entregables.
+          archivo <code>.pulso</code> con su instrumento, sus datos y su avance.
         </p>
 
         {error && <div className="boot-error">{error}</div>}
@@ -1349,9 +1350,17 @@ function ChooserView({
           </div>
         ) : (
           <div className="boot-empty">
-            <FolderSearch size={22} aria-hidden="true" />
-            <strong>Sin proyectos recientes</strong>
-            <span>Abre o crea un proyecto y aparecerá aquí para volver rápido.</span>
+            {/* La silueta de las tarjetas que van a llegar (5 nov 2026): el vacío dice qué forma tendrá. */}
+            <div className="boot-empty-fantasmas" aria-hidden="true">
+              {Array.from({ length: 6 }, (_, idx) => (
+                <span className="boot-empty-fantasma" key={idx}><i /><i /><b /></span>
+              ))}
+            </div>
+            <div className="boot-empty-mensaje">
+              <FolderSearch size={22} aria-hidden="true" />
+              <strong>Sin proyectos recientes</strong>
+              <span>Abre o crea un proyecto y aparecerá aquí para volver rápido.</span>
+            </div>
           </div>
         )}
       </div>
