@@ -4,6 +4,7 @@ import { fmt } from "../formato";
 import { marcasDeEje, type DiaDeAvance } from "./avanceModelo";
 import { ALTO_DEL_EJE_DE_FECHAS, ANCHO_DEL_DIA, ejeDeFechas as ejeDeFechasComun } from "../../../core/ejeDeFechas";
 import { altoDeCifras, letraQueCabe, type LetraDeRotulos } from "./letraQueCabe";
+import { ejeHastaCierre } from "./cierrePrevisto";
 
 /**
  * Gráficos de Avance dibujados en SVG con los datos del corte. Todos llevan
@@ -113,6 +114,16 @@ export function CifraDeBarra({ x, y, texto, letra, className = "acr-av-eje is-ci
     return <text className={className} style={{ fontSize: letra.letra }} transform={`translate(${x} ${y}) rotate(-90)`} textAnchor="start" dominantBaseline="central">{texto}</text>;
   }
   return <text className={className} style={{ fontSize: letra.letra }} x={x} y={y} textAnchor="middle">{texto}</text>;
+}
+
+/** La línea del cierre previsto, de arriba abajo del área del gráfico, con su fecha al pie del lado que tenga sitio. */
+export function MarcaDeCierre({ x, arriba, abajo, fecha, alLado }: { x: number; arriba: number; abajo: number; fecha: string; alLado: "izquierda" | "derecha" }) {
+  return (
+    <g>
+      <line className="acr-av-cierre" x1={x} x2={x} y1={arriba} y2={abajo} />
+      <text className="acr-av-meta-texto" x={x + (alLado === "izquierda" ? -6 : 6)} y={abajo - 6} textAnchor={alLado === "izquierda" ? "end" : "start"}>{`Cierre previsto ${fechaCorta(fecha)}`}</text>
+    </g>
+  );
 }
 
 /** Días que abarca el eje: el campo, su proyección hasta la meta y nunca menos de dos semanas. */
@@ -434,8 +445,11 @@ export function BarrasApiladas({
   fases,
   etiqueta,
   clasesDeCapa,
+  cierre = null,
 }: {
   fechas: readonly string[];
+  /** Cierre previsto (ISO): el eje llega hasta él y lo marca. */
+  cierre?: string | null;
   capas: ReadonlyArray<{ publico: string; valores: readonly number[] }>;
   totales: readonly number[];
   fases: ReadonlyArray<{ id: string; rotulo: string; desde: string; hasta: string }>;
@@ -446,23 +460,26 @@ export function BarrasApiladas({
   const [ref, { ancho, alto }] = useTamano<HTMLDivElement>();
   const izquierda = 44;
   const franja = fases.length ? 22 : 0;
-  const arriba = 22 + franja;
   const abajo = ALTO_DEL_EJE_DE_FECHAS;
   const w = Math.max(0, ancho - izquierda - 6);
-  const h = Math.max(0, alto - arriba - abajo);
   const marcas = marcasDeEje(Math.max(1, ...totales) * 1.05);
   const maximo = marcas.at(-1) ?? 1;
-  const n = fechas.length;
+  const eje = ejeHastaCierre(fechas, cierre);
+  const n = eje.fechas.length;
   const paso = anchoPorDia(w, n, { tope: PASO_MAXIMO_POR_DIA });
+  // Todos los totales con la misma letra, y todos con cifra: si no cabe ni al
+  // piso, se gira (`letraQueCabe`). Antes, bajo 10 px no se escribía ninguno.
+  const cifras = totales.map((total) => fmt(total));
+  const letraDelTotal = letraQueCabe(paso, cifras);
+  // Girada, la cifra del día más alto necesita su largo encima: se reserva.
+  const arriba = 22 + franja + (letraDelTotal.girar ? Math.max(0, altoDeCifras(letraDelTotal, cifras) - 12) : 0);
+  const h = Math.max(0, alto - arriba - abajo);
   const y = (valor: number) => arriba + h - (valor / maximo) * h;
-  const posicion = new Map(fechas.map((fecha, indice) => [fecha, indice]));
+  const posicion = new Map(eje.fechas.map((fecha, indice) => [fecha, indice]));
   const xDeFecha = (fecha: string, final: boolean) => {
     const indice = posicion.get(fecha) ?? (fecha < (fechas[0] ?? "") ? 0 : n - 1);
     return izquierda + (indice + (final ? 1 : 0)) * paso;
   };
-  // Todos los totales con la misma letra, y todos con cifra: si no cabe ni al
-  // piso, se gira (`letraQueCabe`). Antes, bajo 10 px no se escribía ninguno.
-  const letraDelTotal = letraQueCabe(paso, totales.map((total) => fmt(total)));
   return (
     <div ref={ref} className="acr-av-grafico" role="img" aria-label={etiqueta}>
       {ancho > 0 && alto > 0 && n ? (
@@ -511,7 +528,10 @@ export function BarrasApiladas({
               </g>
             );
           })}
-          <EjeDeFechas fechas={fechas} paso={paso} x={(indice) => izquierda + indice * paso + paso / 2} alto={alto} />
+          {eje.indiceDelCierre !== null && cierre ? (
+            <MarcaDeCierre x={izquierda + eje.indiceDelCierre * paso + paso / 2} arriba={arriba} abajo={y(0)} fecha={cierre} alLado={eje.indiceDelCierre > n / 2 ? "izquierda" : "derecha"} />
+          ) : null}
+          <EjeDeFechas fechas={eje.fechas} paso={paso} x={(indice) => izquierda + indice * paso + paso / 2} alto={alto} />
         </svg>
       ) : null}
     </div>

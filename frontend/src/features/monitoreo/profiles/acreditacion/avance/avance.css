@@ -396,6 +396,13 @@
   stroke-dasharray: 6 4;
 }
 
+/* El cierre previsto del campo (fin del plan): una fecha, no una cifra. */
+.acr-av-cierre {
+  stroke: var(--acr-meta);
+  stroke-width: 1.5;
+  stroke-dasharray: 2 3;
+}
+
 .acr-av-meta-texto,
 .acr-av-hito-texto {
   fill: var(--acr-meta);

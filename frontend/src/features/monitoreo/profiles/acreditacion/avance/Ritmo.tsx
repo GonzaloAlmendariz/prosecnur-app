@@ -7,6 +7,7 @@ import { SuperficieFlotante } from "../../../core/superficieFlotante/SuperficieF
 import { fmt } from "../formato";
 import { BarrasApiladas, fechaCorta } from "./graficosDeAvance";
 import { DiarioYAcumulado } from "./DiarioYAcumulado";
+import { cierreDelPlan } from "./cierrePrevisto";
 import { SelectorDeSubvistas } from "../../../core/selectorDeSubvistas/SelectorDeSubvistas";
 import { mapaPorSemana } from "./mapaDeCalor";
 import { fasesConFechas, nombresDePublicos, pulsoDelCampo, serieDelGrafico, seriesApiladas } from "./ritmoModelo";
@@ -49,6 +50,7 @@ export function RitmoVista({ actores, diarioGeneral, diarioPorPublico, fuentes, 
     [diarioPorPublico, diarioGeneral, actores, fechaDelCorte],
   );
   const plan = fasesConFechas(fases);
+  const cierre = cierreDelPlan(plan);
   const pulso = pulsoDelCampo(serie, fuentes, actores);
   const mapa = mapaPorSemana(serie);
   const maxSemana = Math.max(1, ...pulso.porDiaDeLaSemana.map((dia) => dia.promedio));
@@ -105,11 +107,11 @@ export function RitmoVista({ actores, diarioGeneral, diarioPorPublico, fuentes, 
           )}
           {grafico === "publico" ? (
             <>
-              <BarrasApiladas fechas={dibujada.fechas} capas={capasVisibles} totales={totalesVisibles} fases={plan} etiqueta={`Efectivas por día de ${fmt(dibujada.fechas.length)} días, ${capaSola ? capaSola.publico : "por público"}`} clasesDeCapa={clasesVisibles} />
+              <BarrasApiladas cierre={cierre} fechas={dibujada.fechas} capas={capasVisibles} totales={totalesVisibles} fases={plan} etiqueta={`Efectivas por día de ${fmt(dibujada.fechas.length)} días, ${capaSola ? capaSola.publico : "por público"}`} clasesDeCapa={clasesVisibles} />
             </>
           ) : (
             <>
-              <DiarioYAcumulado fechas={dibujada.fechas} totales={totalesVisibles} meta={metaDelEstudio} etiqueta={`Efectivas por día y acumuladas de ${fmt(dibujada.fechas.length)} días`} />
+              <DiarioYAcumulado cierre={cierre} fechas={dibujada.fechas} totales={totalesVisibles} meta={metaDelEstudio} etiqueta={`Efectivas por día y acumuladas de ${fmt(dibujada.fechas.length)} días`} />
               <ul className="acr-ri-leyenda" aria-label="Series">
                 <li><i className="acr-av-capa-muestra is-dia" aria-hidden="true" />Efectivas del día</li>
                 <li><i className="acr-av-capa-muestra is-acumulado" aria-hidden="true" />Acumulado <b className="acr-av-num">{fmt(totalesVisibles.reduce((a, b) => a + b, 0))}</b></li>

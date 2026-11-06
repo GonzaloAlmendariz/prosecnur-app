@@ -1,7 +1,8 @@
 import { fmt } from "../formato";
 import { marcasDeEje } from "./avanceModelo";
-import { ALTO_DEL_EJE_DE_FECHAS, anchoPorDia, CifraDeBarra, EjeDeFechas, fechaCorta, PASO_MAXIMO_POR_DIA, useTamano } from "./graficosDeAvance";
-import { letraQueCabe } from "./letraQueCabe";
+import { ALTO_DEL_EJE_DE_FECHAS, anchoPorDia, CifraDeBarra, EjeDeFechas, fechaCorta, MarcaDeCierre, PASO_MAXIMO_POR_DIA, useTamano } from "./graficosDeAvance";
+import { ejeHastaCierre } from "./cierrePrevisto";
+import { altoDeCifras, letraQueCabe } from "./letraQueCabe";
 
 /** El acumulado día a día de una serie de totales diarios. */
 export function acumulado(totales: readonly number[]): number[] {
@@ -20,8 +21,11 @@ export function DiarioYAcumulado({
   totales,
   meta,
   etiqueta,
+  cierre = null,
 }: {
   fechas: readonly string[];
+  /** Cierre previsto (ISO): el eje llega hasta él y lo marca. */
+  cierre?: string | null;
   totales: readonly number[];
   meta: number | null;
   etiqueta: string;
@@ -29,11 +33,12 @@ export function DiarioYAcumulado({
   const [ref, { ancho, alto }] = useTamano<HTMLDivElement>();
   const izquierda = 48;
   const derecha = 56;
-  const arriba = 26;
+  const arribaBase = 26;
   const abajo = ALTO_DEL_EJE_DE_FECHAS;
   const w = Math.max(0, ancho - izquierda - derecha);
-  const h = Math.max(0, alto - arriba - abajo);
-  const n = fechas.length;
+  // Con cierre previsto el eje se estira; las series siguen siendo sólo los días con dato.
+  const eje = ejeHastaCierre(fechas, cierre);
+  const n = eje.fechas.length;
   const acum = acumulado(totales);
   const final = acum.at(-1) ?? 0;
   const marcasDia = marcasDeEje(Math.max(1, ...totales) * 1.05);
@@ -41,12 +46,16 @@ export function DiarioYAcumulado({
   const marcasAcum = marcasDeEje(Math.max(1, final, meta ?? 0) * 1.05);
   const maxAcum = marcasAcum.at(-1) ?? 1;
   const paso = anchoPorDia(w, n, { tope: PASO_MAXIMO_POR_DIA });
+  // Toda barra con su cifra (Gonzalo, 2026-11-06): lo que cede es la letra.
+  const cifrasDia = totales.map((valor) => fmt(valor));
+  const letraDia = letraQueCabe(paso, cifrasDia);
+  // Girada, la cifra del día más alto necesita su largo encima: se reserva.
+  const arriba = arribaBase + (letraDia.girar ? Math.max(0, altoDeCifras(letraDia, cifrasDia) - 12) : 0);
+  const h = Math.max(0, alto - arriba - abajo);
   const x = (indice: number) => izquierda + indice * paso + paso / 2;
   const yDia = (valor: number) => arriba + h - (valor / maxDia) * h;
   const yAcum = (valor: number) => arriba + h - (valor / maxAcum) * h;
   const linea = acum.map((valor, indice) => `${indice ? "L" : "M"}${x(indice).toFixed(1)},${yAcum(valor).toFixed(1)}`).join(" ");
-  // Toda barra con su cifra (Gonzalo, 2026-11-06): lo que cede es la letra.
-  const letraDia = letraQueCabe(paso, totales.map((valor) => fmt(valor)));
   const listo = ancho > 0 && alto > 0 && n > 0;
   return (
     <div ref={ref} className="acr-av-grafico" role="img" aria-label={etiqueta}>
@@ -81,10 +90,13 @@ export function DiarioYAcumulado({
           ) : null}
           <path className="acr-av-linea is-acumulado" d={linea} />
           {acum.map((valor, indice) => (
-            <circle key={`p${fechas[indice]}`} className="acr-av-final is-acumulado" cx={x(indice)} cy={yAcum(valor)} r={indice === n - 1 ? 4 : 2.5} />
+            <circle key={`p${fechas[indice]}`} className="acr-av-final is-acumulado" cx={x(indice)} cy={yAcum(valor)} r={indice === acum.length - 1 ? 4 : 2.5} />
           ))}
-          <text className="acr-av-final-texto is-acumulado" x={x(n - 1) + 8} y={yAcum(final) - 8}>{fmt(final)}</text>
-          <EjeDeFechas fechas={fechas} paso={paso} x={x} alto={alto} />
+          <text className="acr-av-final-texto is-acumulado" x={x(acum.length - 1) + 8} y={yAcum(final) - 8}>{fmt(final)}</text>
+          {eje.indiceDelCierre !== null && cierre ? (
+            <MarcaDeCierre x={x(eje.indiceDelCierre)} arriba={arriba} abajo={arriba + h} fecha={cierre} alLado={eje.indiceDelCierre > n / 2 ? "izquierda" : "derecha"} />
+          ) : null}
+          <EjeDeFechas fechas={eje.fechas} paso={paso} x={x} alto={alto} />
         </svg>
       ) : null}
     </div>
