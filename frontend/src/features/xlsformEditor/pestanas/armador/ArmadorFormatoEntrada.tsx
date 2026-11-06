@@ -1,5 +1,5 @@
 import { useId, useState } from "react";
-import { ChevronRight, Wand2 } from "../../../../vendor/lucide-react";
+import { Wand2 } from "../../../../vendor/lucide-react";
 import { textoDePiezas } from "../../reglas/piezas";
 import { ArmadorPatron } from "./ArmadorPatron";
 import { bloquesDesdePatron, cuerpoDeConstraint, lecturaDe } from "./armadorModelo";
@@ -15,18 +15,24 @@ type Props = {
 export function ArmadorFormatoEntrada({ constraint, onAplicar }: Props) {
   const [abierto, setAbierto] = useState(false);
   const panelId = useId();
+  const tituloId = useId();
   const cuerpo = cuerpoDeConstraint(constraint);
   const leido = cuerpo !== null ? bloquesDesdePatron(cuerpo) : null;
   const lectura = leido ? lecturaDe(leido.bloques) : null;
 
   return (
-    <div className="xfa-entrada-caja" data-testid="armador-formato">
-      <button type="button" className="xfa-entrada" aria-expanded={abierto} aria-controls={panelId} onClick={() => setAbierto((v) => !v)}>
-        <Wand2 aria-hidden="true" />
-        <span className="xfa-entrada__nombre">Formato</span>
-        <span className="xfa-entrada__lectura">{lectura ? textoDePiezas(lectura) : ""}</span>
-        <ChevronRight aria-hidden="true" style={{ transform: abierto ? "rotate(90deg)" : undefined }} />
-      </button>
+    // Tarjeta sin triángulo (E20): el armador es grande, así que se abre con un botón con verbo, no queda abierto.
+    <section className="xfa-bloque" data-testid="armador-formato" aria-labelledby={tituloId}>
+      <header className="xfa-bloque__cabeza">
+        <span className="xfa-bloque__icono" aria-hidden="true"><Wand2 /></span>
+        <div className="xfa-bloque__titulos">
+          <h4 id={tituloId} className="xfa-bloque__titulo">Formato</h4>
+          <p className="xfa-bloque__sub">{lectura ? textoDePiezas(lectura) : "Cómo debe escribirse la respuesta: dígitos, letras, largo, prefijo."}</p>
+        </div>
+        <button type="button" className="xfa-bloque__accion" aria-expanded={abierto} aria-controls={panelId} onClick={() => setAbierto((v) => !v)}>
+          {abierto ? "Cerrar" : lectura ? "Cambiar formato" : "Armar formato"}
+        </button>
+      </header>
       {abierto && (
         <div id={panelId} className="xfa-entrada__panel">
           <ArmadorPatron
@@ -39,6 +45,6 @@ export function ArmadorFormatoEntrada({ constraint, onAplicar }: Props) {
           />
         </div>
       )}
-    </div>
+    </section>
   );
 }

@@ -1,5 +1,5 @@
 import { useEffect, useId, useReducer, useRef, useState, type KeyboardEvent } from "react";
-import { Check, ChevronRight, Plus, X } from "../../../../vendor/lucide-react";
+import { Check, Plus, X } from "../../../../vendor/lucide-react";
 import { ArmadorBloque } from "./ArmadorBloque";
 import { PruebaValor } from "./PruebaValor";
 import {
@@ -224,12 +224,11 @@ export function ArmadorPatron({ constraint, onAplicar, onCancelar }: Props) {
       </section>
 
       {codigo && (
-        <details className="xfa-codigo">
-          <summary>
-            <ChevronRight aria-hidden="true" /> Ver código
-          </summary>
+        // Siempre a la vista: sin triángulo que despliega (E20).
+        <div className="xfa-codigo">
+          <span className="xfa-codigo__rot">Expresión en XLSForm</span>
           <pre>{codigo}</pre>
-        </details>
+        </div>
       )}
 
       <div className="xfa-acciones">

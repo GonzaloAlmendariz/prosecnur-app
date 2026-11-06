@@ -214,20 +214,10 @@
   border-radius: 2px;
 }
 
-.xfa-codigo summary {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  font-size: var(--pulso-type-body-size);
-  color: var(--pulso-text-soft);
-  cursor: pointer;
-  list-style: none;
-}
-.xfa-codigo summary::-webkit-details-marker { display: none; }
-.xfa-codigo summary svg { width: 14px; height: 14px; transition: transform 120ms ease; }
-.xfa-codigo[open] summary svg { transform: rotate(90deg); }
+.xfa-codigo { display: grid; gap: 4px; }
+.xfa-codigo__rot { font-size: var(--pulso-type-caption-size); color: var(--pulso-text-muted); }
 .xfa-codigo pre {
-  margin: var(--pulso-space-2) 0 0;
+  margin: 0;
   padding: var(--pulso-space-2);
   border-radius: var(--pulso-radius-chip);
   background: var(--pulso-surface-2);
@@ -261,7 +251,6 @@
 .xfa-entrada__lectura { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--pulso-text-soft); }
 
 @media (prefers-reduced-motion: reduce) {
-  .xfa-codigo summary svg { transition: none; }
 }
 .xfa-entrada-caja { display: grid; gap: var(--pulso-space-2); min-width: 0; }
 .xfa-entrada__panel { min-width: 0; }

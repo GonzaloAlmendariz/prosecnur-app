@@ -548,3 +548,19 @@
 .pulso-add-element-menu-ancho {
   grid-column: 1 / -1;
 }
+
+/* E20 editor-conjoint (2026-11-06): ningún <details> del editor muestra el triángulo nativo. Pedido de Gonzalo: «No me
+   gusta la idea de siempre tener un triángulo que expanda las cosas»; y, para los que alargarían la vista, «Quita sólo
+   el triángulo». El rótulo queda como enlace con verbo. :where() deja la especificidad en cero para que el estilo
+   propio de cada resumen siga mandando. */
+:where(.pulso-xlsform-frame) summary { list-style: none; }
+:where(.pulso-xlsform-frame) summary::-webkit-details-marker { display: none; }
+:where(.pulso-xlsform-frame) :where(summary) {
+  cursor: pointer;
+  width: max-content;
+  max-width: 100%;
+  color: var(--module-accent, var(--pulso-primary));
+  font-weight: var(--pulso-weight-semibold);
+}
+:where(.pulso-xlsform-frame) :where(summary):hover { text-decoration: underline; text-underline-offset: 2px; }
+:where(.pulso-xlsform-frame) :where(summary):focus-visible { outline: var(--mov-foco, 2px solid var(--pulso-primary)); outline-offset: 2px; border-radius: 4px; }
