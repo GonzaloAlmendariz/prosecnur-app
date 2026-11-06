@@ -633,6 +633,10 @@ function warmupPercent({
 
 export default function BootGate({ loadSuite }: BootGateProps) {
   const [phase, setPhase] = useState<GatePhase>("initializing");
+  // 6 nov 2026 (Gonzalo: «por un milisegundo apareció la pantalla de carga antigua»): mientras inicializa, el
+  // arranque que ya sabe que abre un proyecto (deep-link de dev o archivo de lanzamiento) pinta la pantalla de
+  // carga desde el primer cuadro, no el selector de proyectos.
+  const [arranqueDirecto, setArranqueDirecto] = useState(() => Boolean(readDevProjectPath()));
   const [error, setError] = useState("");
   const [appVersion, setAppVersion] = useState("");
   const [manualPath, setManualPath] = useState("");
@@ -977,6 +981,13 @@ export default function BootGate({ loadSuite }: BootGateProps) {
         // propio (nunca rechaza); si health cae, el await de abajo lleva al
         // mismo estado de error de siempre sin unhandled rejection.
         const bootstrapPromise = bootApiSystemBootstrap().catch(() => ({ sid: null as string | null }));
+        // El archivo de lanzamiento se pide una sola vez, al inicio, y se reutiliza abajo: así se sabe temprano
+        // si el arranque abre un proyecto sin consumir la respuesta dos veces.
+        const launchPathPromise: Promise<string | null | undefined> =
+          window.prosecnurApi?.getLaunchProject?.().catch(() => null) ?? Promise.resolve(null);
+        void launchPathPromise.then((ruta) => {
+          if (ruta && !cancelled && mountedRef.current) setArranqueDirecto(true);
+        });
         // Los recientes viven en IPC de Electron (o localStorage en dev) y
         // no dependen de la sesión: se refrescan en paralelo con toda la
         // cadena bootstrap→status→session. refreshRecents nunca rechaza.
@@ -996,7 +1007,7 @@ export default function BootGate({ loadSuite }: BootGateProps) {
         if (cancelled || !mountedRef.current) return;
 
         const devPath = readDevProjectPath();
-        const launchPath = await window.prosecnurApi?.getLaunchProject?.().catch(() => null);
+        const launchPath = await launchPathPromise;
         const autoPath = devPath || launchPath || "";
         if (autoPath) {
           // El deep-link de dev (?pulso=) trae la ruta a propósito; el resto
@@ -1042,6 +1053,7 @@ export default function BootGate({ loadSuite }: BootGateProps) {
       setBackendWarmupEnabled(true);
       setBackgroundWarmup(false);
       setDeadlineReached(false);
+      setArranqueDirecto(false);
       setWarmupMessage("Selecciona un proyecto .pulso para continuar.");
       setDisplayProgressPercent(0);
       setPhase("choose");
@@ -1115,7 +1127,8 @@ export default function BootGate({ loadSuite }: BootGateProps) {
     );
   }
 
-  const isWarmupPhase = phase === "warming" || phase === "loading";
+  const isWarmupPhase =
+    phase === "warming" || phase === "loading" || ((phase === "initializing" || phase === "opening") && arranqueDirecto);
 
   return (
     <main

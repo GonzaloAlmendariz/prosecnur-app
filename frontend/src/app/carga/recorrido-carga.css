@@ -190,7 +190,7 @@
 /* =============================================================================
    Escenas (SVG 320×200). Clases de forma y color + repertorio de movimientos.
    Los font-size de las escenas son unidades del viewBox 320×200, no píxeles de
-   pantalla: la escena se dibuja a 480–640 px de ancho (1,5–2×), así que el más
+   pantalla: la escena se dibuja a 480–760 px de ancho (1,5–2,4×), así que el más
    chico (6,8) mide 10,2 px o más. Por eso están en el snapshot del piso de 10 px.
    ============================================================================= */
 .escena-carga {

@@ -15,7 +15,7 @@ import { describe, expect, test } from "vitest";
  * `viewBox` escalado (el donut de validación y las calles del mapa), cuyos
  * «px» son unidades de usuario y no píxeles de pantalla. Las escenas de la
  * pantalla de carga entran el 2026-11-06 por la misma razón: viewBox 320×200
- * dibujado a 480–640 px, el rótulo más chico (6,8) mide 10,2 px o más.
+ * dibujado a 480–760 px, el rótulo más chico (6,8) mide 10,2 px o más.
  */
 
 const SRC = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");

@@ -300,7 +300,7 @@
   --rc-col: 368px;
   --rc-respiro: clamp(32px, 9.5vw, 122px);
   --rc-x: calc(var(--rc-margen) + var(--rc-col) + var(--rc-respiro));
-  --rc-escena-ancho: clamp(480px, min(44vw, (100vh - var(--rc-top) - 300px) * 1.6), 640px);
+  --rc-escena-ancho: clamp(480px, min(44vw, (100vh - var(--rc-top) - 340px) * 1.6), 760px);
   place-items: start;
   align-content: start;
   padding: 0;
