@@ -66,11 +66,15 @@
 #' @param otra_respuesta_rotulo Rótulo de esa entrada en la leyenda; vacío, «Lima y Callao».
 #' @param ancho_mapa Fracción de la tarjeta (0.25 a 0.8) que toma el mapa; el resto es de la lista. Vacío: la elige el
 #'   motor: el mapa toma el ancho que su alto pide y deja el resto a las barras (Gonzalo, 2026-11-04).
+#' @param agrupar_lista Filas de la lista que suman todas las áreas de una o más preguntas del mapa (`var` o `juntar`), con
+#'   su rótulo: `list(Callao = "A6_2")` o texto «Callao | A6_2», una línea por grupo. El mapa no cambia
+#'   (graficos_mapa_distribucion_agrupar.R).
 #' @export
 p_mapa_distribucion <- function(var, area = c("lima_callao", "peru"), medida = c("conteo", "tasa"), titulo = NULL, filtros = list(),
                                 excluir_opciones = NULL, cortes = NULL, rotulo = NULL, encuadre = c("datos", "completo"), puntos = NULL,
                                 zona_lima = NULL, juntar = NULL, unidad = c("estudiantes", "personas"), otra_respuesta = NULL,
-                                otra_respuesta_rotulo = NULL, ancho_mapa = NULL, overrides = list(), base = list()) {
+                                otra_respuesta_rotulo = NULL, ancho_mapa = NULL, agrupar_lista = NULL, overrides = list(),
+                                base = list()) {
   var <- .puntos_comparativos_ref(var, "var")
   area <- match.arg(as.character(unlist(area %||% "lima_callao"))[1], .MAPA_DISTRIBUCION_AREAS)
   medida <- match.arg(as.character(unlist(medida %||% "conteo"))[1], c("conteo", "tasa"))
@@ -90,6 +94,8 @@ p_mapa_distribucion <- function(var, area = c("lima_callao", "peru"), medida = c
   if (length(ancho_mapa) && (!is.finite(ancho_mapa) || ancho_mapa < 0.25 || ancho_mapa > 0.8)) {
     .plan_spec_abort("p_mapa_distribucion(): `ancho_mapa` es la fracción de la tarjeta que toma el mapa, entre 0.25 y 0.8.")
   }
+  agrupar <- .mapa_dist_agrupar_normalizar(agrupar_lista)
+  .mapa_dist_agrupar_validar(agrupar, var, juntar)
   el <- list(.element_type = "mapa_distribucion", var = var, area = area, medida = medida, title_slide = .ppt_norm_text1(titulo, blank = NULL),
              juntar = if (length(juntar)) vapply(juntar, .puntos_comparativos_ref, "", argumento = "juntar", USE.NAMES = FALSE) else NULL,
              unidad = unidad, otra_respuesta = if (length(otra)) otra else NULL,   # grupos con su rótulo (.mapa_dist_otra_grupos)
@@ -98,7 +104,7 @@ p_mapa_distribucion <- function(var, area = c("lima_callao", "peru"), medida = c
              excluir_opciones = if (length(excluir_opciones)) .puntos_comparativos_codigos(excluir_opciones, "excluir_opciones") else NULL,
              cortes = cortes, rotulo = .ppt_norm_text1(rotulo, blank = NULL), encuadre = encuadre,
              puntos = .mapa_puntos_normalizar(puntos),
-             ancho_mapa = ancho_mapa,
+             ancho_mapa = ancho_mapa, agrupar_lista = if (length(agrupar)) agrupar else NULL,
              zona_lima = if (is.null(zona_lima) || !length(zona_lima)) NULL else isTRUE(as.logical(unlist(zona_lima))[1]),
              overrides = overrides, base = base)
   class(el) <- c("ppt_element", "list")
@@ -341,11 +347,14 @@ graficar_mapa_distribucion <- function(espec) {
   }, ""))
   filas <- do.call(rbind, lapply(vars, function(v) {
     f <- .mapa_distribucion_calcular(data_sources[[fuente]], instrument_sources[[fuente]], v, el$filtros %||% list(), el$excluir_opciones)
-    .mapa_distribucion_casar(f, carto, area)
+    f <- .mapa_distribucion_casar(f, carto, area)
+    if (length(el$agrupar_lista)) f$.var <- rep(v, nrow(f))   # la lista agrupa por pregunta (graficos_mapa_distribucion_agrupar.R)
+    f
   }))
   espec <- .espec_mapa_distribucion(filas, carto, area, el$medida %||% "conteo", el$cortes, el$encuadre %||% "datos", el$puntos, el$rotulo,
                                     el$zona_lima, unidad = el$unidad %||% "estudiantes", otra_respuesta = el$otra_respuesta,
                                     otra_rotulo = el$otra_respuesta_rotulo)
+  espec <- .mapa_dist_agrupar_lista(espec, filas, el$agrupar_lista)
   # La pregunta encima de la tarjeta (lamina_mapa_distribucion.R); el plan la guarda en `overrides$titulo`.
   espec$ancho_mapa <- el$ancho_mapa
   espec$pregunta <- .ppt_norm_text1((el$overrides %||% list())$titulo %||% el$title_slide, blank = NULL)
