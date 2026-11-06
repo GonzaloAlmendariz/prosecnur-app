@@ -50,10 +50,4 @@
 .rec-paq-formato-accion { display: flex; }
 
 
-.rec-paq-bloqueo {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--pulso-space-3);
-}
 .rec-paq-bloqueo strong { color: var(--pulso-text); }

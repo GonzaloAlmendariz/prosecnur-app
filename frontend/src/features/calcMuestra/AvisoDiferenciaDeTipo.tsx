@@ -21,16 +21,20 @@ export function AvisoDiferenciaDeTipo({ diferencia, onAlinear }: {
     : <>El estudio parece «{diferencia.tipo}» (la ficha no declara el tipo)</>;
   return (
     <div className="cmv2-diferencia-tipo" role="status" data-qa-diferencia-tipo={diferencia.desk}>
-      <Alert kind="warn">
+      <Alert
+        kind="warn"
+        acciones={
+          <>
+            <PulsoButton variant="primary" size="sm" onClick={() => onAlinear(diferencia.desk)}>
+              Alinear con la ficha
+            </PulsoButton>
+            <PulsoButton variant="secondary" size="sm" nav onClick={() => navigate(ficha)}>Ver la ficha</PulsoButton>
+          </>
+        }
+      >
         <p>
           {fuente}, que aquí es «{diferencia.titulo}», pero el escenario guardado es «{diferencia.actual}».
         </p>
-        <div className="cmv2-diferencia-tipo-acciones">
-          <PulsoButton variant="primary" size="sm" onClick={() => onAlinear(diferencia.desk)}>
-            Alinear con la ficha
-          </PulsoButton>
-          <PulsoButton variant="secondary" size="sm" nav onClick={() => navigate(ficha)}>Ver la ficha</PulsoButton>
-        </div>
       </Alert>
     </div>
   );

@@ -55,19 +55,23 @@ export function FijarEnOtraBase({ estado, baseActiva, onFijar }: FijarProps) {
   if (estado.tipo !== "en-otra-base") return null;
   return (
     <div className="pulso-base-ref-aviso" role="status">
-      <Alert kind="warn">
-        <span className="pulso-base-ref-texto">
-          {baseActiva ? `No está en la base «${baseActiva}». ` : ""}
-          Está en {estado.otras.length > 1 ? "las bases " : "la base "}
-          {estado.otras.map((b) => `«${b}»`).join(" y ")}.
-        </span>
-        <span className="pulso-base-ref-acciones">
+      <Alert
+        kind="warn"
+        acciones={
+          <>
           {estado.otras.map((base) => (
             <PulsoButton key={base} variant="secondary" size="sm" onClick={() => onFijar(base)}>
               <Pin size={12} aria-hidden="true" />
               Fijar en {base}
             </PulsoButton>
           ))}
+          </>
+        }
+      >
+        <span className="pulso-base-ref-texto">
+          {baseActiva ? `No está en la base «${baseActiva}». ` : ""}
+          Está en {estado.otras.length > 1 ? "las bases " : "la base "}
+          {estado.otras.map((b) => `«${b}»`).join(" y ")}.
         </span>
       </Alert>
     </div>

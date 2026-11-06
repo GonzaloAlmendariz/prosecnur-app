@@ -299,14 +299,14 @@ export function MaterialsSection({ payload, activeTab, onStateRefresh, onArtifac
         ]}
       />
       {motivoBloqueo ? (
-        <Alert kind="warn">
-          <div className="rec-paq-bloqueo">
-            <span>
-              <strong>{motivoBloqueo}</strong>{" "}
-              Los accesos se preparan en la sección Accesos: cada curso-horario recibe ahí el enlace que va en su QR.
-            </span>
-            {onIr ? <PulsoButton variant="secondary" size="sm" onClick={() => onIr(A_ACCESOS)}>Ir a Accesos</PulsoButton> : null}
-          </div>
+        <Alert
+          kind="warn"
+          acciones={onIr ? <PulsoButton variant="secondary" size="sm" onClick={() => onIr(A_ACCESOS)}>Ir a Accesos</PulsoButton> : undefined}
+        >
+          <span className="rec-paq-bloqueo">
+            <strong>{motivoBloqueo}</strong>{" "}
+            Los accesos se preparan en la sección Accesos: cada curso-horario recibe ahí el enlace que va en su QR.
+          </span>
         </Alert>
       ) : null}
       <div className="rec-package-layout">

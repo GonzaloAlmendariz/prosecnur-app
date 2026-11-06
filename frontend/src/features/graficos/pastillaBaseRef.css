@@ -33,8 +33,3 @@
   overflow-wrap: anywhere;
 }
 
-.pulso-base-ref-acciones {
-  display: inline-flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
