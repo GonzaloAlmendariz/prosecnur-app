@@ -60,6 +60,8 @@ export type LogicBuilderProps = {
    *  `IfBlock` la cabecera propia duplicaba el eyebrow y dejaba dos botones
    *  "Quitar" idénticos con alcances distintos a 40 px uno del otro. */
   chrome?: "card" | "bare";
+  /** Texto cuando todavía no hay condición. Por defecto, el de «Cuándo aparece». */
+  vacio?: string;
   /** Callback con la expresión ODK serializada. */
   onChange: (next: string) => void;
 };
@@ -72,6 +74,7 @@ export function LogicBuilder({
   targetNoun = "esta pregunta",
   techTerm,
   chrome = "card",
+  vacio,
   onChange,
 }: LogicBuilderProps) {
   const bare = chrome === "bare";
@@ -156,7 +159,7 @@ export function LogicBuilder({
     }
 
     const emptyText = hasVariables
-      ? `Sin condición — ${targetNoun} siempre se muestra.`
+      ? vacio ?? `Sin condición — ${targetNoun} siempre se muestra.`
       : `Sin preguntas previas para armar una regla guiada. ${capitalizeFirst(targetNoun)} puede condicionarse con una fórmula XLSForm.`;
     return (
       <div className="pulso-logic-builder">

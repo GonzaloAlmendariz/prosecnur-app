@@ -49,6 +49,7 @@ export function FichaPregunta({ datos }: { datos: DatosFicha }) {
             requiredRaw={requiredRaw}
             filas={["oblig", "cond", "regla", "calc", "filtro", "repite"]}
             onObligatoria={acciones.obligatoria}
+            onRequired={(raw) => acciones.campo("required", raw)}
             onIr={acciones.irPestana}
             onSeleccionarFila={acciones.seleccionarFila}
           />

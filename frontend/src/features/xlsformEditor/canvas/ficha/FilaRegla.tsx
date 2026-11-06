@@ -35,12 +35,32 @@ export function FilaRegla({ glifo, tono, nombre, estado, resumen, resumenPlano, 
     </>
   );
   if (control) {
+    // Con interruptor y además detalle (la obligatoria «sólo si…»): el interruptor sigue siendo el atajo y un botón
+    // aparte abre el detalle (E19-1).
     return (
-      <li className={`xfh-regla is-${estado}`} style={estilo} data-qa-geometry-member="">
+      <li className={`xfh-regla is-${estado}${abierta ? " is-abierta" : ""}`} style={estilo} data-qa-geometry-member="">
         <div className="xfh-regla__fila">
           {partes}
-          <span className="xfh-regla__acc">{control}</span>
+          <span className="xfh-regla__acc">
+            {onAlternar ? (
+              <button
+                type="button"
+                className="xfh-regla__mas"
+                aria-expanded={abierta}
+                aria-controls={abierta ? idDetalle : undefined}
+                onClick={onAlternar}
+              >
+                Opciones <ChevronRight size={13} aria-hidden="true" className="xfh-regla__chev" />
+              </button>
+            ) : null}
+            {control}
+          </span>
         </div>
+        {abierta && onAlternar ? (
+          <div className="xfh-regla__det" id={idDetalle}>
+            {children}
+          </div>
+        ) : null}
       </li>
     );
   }

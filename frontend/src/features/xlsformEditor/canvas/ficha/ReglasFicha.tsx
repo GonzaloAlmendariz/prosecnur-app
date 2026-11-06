@@ -12,6 +12,7 @@ import { textoDePiezas, type ColumnaRegla, type LecturaRegla } from "../../regla
 import type { EditorFormulariosPestanaId } from "../../shell/pestanaEditor";
 import type { BuilderNode, BuilderStructure } from "../../types";
 import { FilaRegla } from "./FilaRegla";
+import { ObligatoriaSegun } from "./ObligatoriaSegun";
 import { DESTINO_REGLA, esSeleccion, focoParaPestana, type ClaveReglaFicha } from "./modeloFicha";
 import { BotonIr, CodigoXlsform, Lectura } from "./piezasFicha";
 
@@ -24,13 +25,15 @@ export type ReglasFichaProps = {
   requiredRaw?: string;
   filas: readonly FilaVisible[];
   onObligatoria?: (si: boolean) => void;
+  /** Escribe la columna `required` (siempre, nunca o una condición): abre «Obligatoria sólo si…» (E19-1). */
+  onRequired?: (raw: string) => void;
   onIr: (pestana: EditorFormulariosPestanaId, foco: string | null) => void;
   onSeleccionarFila: (rowIndex: number) => void;
 };
 
 const plano = (l: LecturaRegla) => (l.tecnica ? `${l.raw}` : textoDePiezas(l.piezas));
 
-export function ReglasFicha({ node, structure, scope, requiredRaw, filas, onObligatoria, onIr, onSeleccionarFila }: ReglasFichaProps) {
+export function ReglasFicha({ node, structure, scope, requiredRaw, filas, onObligatoria, onRequired, onIr, onSeleccionarFila }: ReglasFichaProps) {
   const [abierta, setAbierta] = useState<FilaVisible | null>(null);
   useEffect(() => setAbierta(null), [node.rowIndex]);
   const m: MarcasNodo = marcasNodo(node, structure, requiredRaw);
@@ -76,6 +79,8 @@ export function ReglasFicha({ node, structure, scope, requiredRaw, filas, onObli
           estado={on ? "on" : "off"}
           resumen={resumen}
           resumenPlano={lect ? plano(lect) : undefined}
+          abierta={onRequired ? abierta === k : undefined}
+          onAlternar={onRequired ? () => alternar(k) : undefined}
           control={
             <button
               type="button"
@@ -89,7 +94,9 @@ export function ReglasFicha({ node, structure, scope, requiredRaw, filas, onObli
               <span className="xfh-switch__pista" aria-hidden="true" />
             </button>
           }
-        />,
+        >
+          {onRequired ? <ObligatoriaSegun requiredRaw={requiredRaw ?? ""} scope={scope} onCambio={onRequired} /> : null}
+        </FilaRegla>,
       );
     } else if (k === "cond") {
       const propia = m.cond ? leer("relevant", m.cond) : null;

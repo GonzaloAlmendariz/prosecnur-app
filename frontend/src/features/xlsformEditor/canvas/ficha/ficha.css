@@ -373,3 +373,17 @@ button.xfh-regla__fila:focus-visible { outline: var(--mov-foco, 2px solid var(--
   .xfh-pila, .xfh-menu, .xfh-regla__det, .xfh-elegir, .xfh-cab__aviso { animation: none; }
   .xfh *, .xfh *::after { transition: none !important; }
 }
+
+/* «Obligatoria» en tres modos (E19-1 editor-conjoint): siempre, nunca o sólo si … con el armador de condiciones. */
+.xfh-oblig { display: grid; gap: var(--pulso-space-2); }
+.xfh-oblig__modos { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 6px; }
+.xfh-oblig__modo { all: unset; box-sizing: border-box; display: grid; gap: 2px; padding: 8px 10px; border: 1px solid var(--pulso-border); border-radius: 8px; cursor: pointer; background: var(--pulso-surface); }
+.xfh-oblig__modo strong { font-size: var(--pulso-type-body-size); font-weight: var(--pulso-weight-semibold); color: var(--pulso-text); }
+.xfh-oblig__modo span { font-size: var(--pulso-type-caption-size); color: var(--pulso-text-muted); line-height: 1.35; }
+.xfh-oblig__modo:hover { border-color: var(--pulso-border-strong); }
+.xfh-oblig__modo:focus-visible { outline: var(--mov-foco, 2px solid var(--pulso-primary)); outline-offset: 1px; }
+.xfh-oblig__modo.is-on { border-color: var(--module-accent-border, var(--pulso-primary-border)); background: var(--module-accent-soft, var(--pulso-primary-soft)); }
+.xfh-regla__mas { all: unset; display: inline-flex; align-items: center; gap: 2px; margin-right: 8px; font-size: var(--pulso-type-caption-size); color: var(--pulso-text-soft); cursor: pointer; }
+.xfh-regla__mas:hover { color: var(--pulso-text); }
+.xfh-regla__mas:focus-visible { outline: var(--mov-foco, 2px solid var(--pulso-primary)); outline-offset: 2px; border-radius: 4px; }
+.xfh-regla.is-abierta .xfh-regla__mas .xfh-regla__chev { transform: rotate(90deg); }
