@@ -5,7 +5,8 @@
 
 export type Operador = "=" | "!=" | "<" | "<=" | ">" | ">=" | "marcó";
 
-export type Caso = { pregunta: string; operador: Operador; valor: string; resultado: string };
+/** `codigo`: el valor es el código de una opción de la lista; va siempre entre comillas aunque sea «1». */
+export type Caso = { pregunta: string; operador: Operador; valor: string; resultado: string; codigo?: boolean };
 
 export type Intencion =
   | { tipo: "segun"; casos: Caso[]; siNo: string }
@@ -52,9 +53,12 @@ export function literalDe(valor: string): string {
   return valor.includes("'") ? `"${valor.replace(/"/g, "”")}"` : `'${valor}'`;
 }
 
+/** Código de opción como texto XPath: `'1'`, nunca el número 1 (selected() y las listas comparan texto). */
+const textoDe = (v: string) => (v.includes("'") ? `"${v}"` : `'${v}'`);
+
 function condicion(c: Caso): string {
-  if (c.operador === "marcó") return `selected(${ref(c.pregunta)}, ${literalDe(c.valor)})`;
-  return `${ref(c.pregunta)} ${c.operador} ${literalDe(c.valor)}`;
+  if (c.operador === "marcó") return `selected(${ref(c.pregunta)}, ${textoDe(c.valor)})`;
+  return `${ref(c.pregunta)} ${c.operador} ${c.codigo ? textoDe(c.valor) : literalDe(c.valor)}`;
 }
 
 /** Lo que falta para que la intención dé una fórmula, en castellano. Vacío si está completa. */

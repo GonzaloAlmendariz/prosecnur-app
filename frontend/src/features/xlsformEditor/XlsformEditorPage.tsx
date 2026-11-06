@@ -217,6 +217,7 @@ import "./styles/xlsformV2";
 import "./styles/xf-logic.css";
 import { PestanaRestricciones } from "./pestanas/PestanaRestricciones";
 import { PestanaCalculos } from "./pestanas/PestanaCalculos";
+import { aplicarArmado } from "./pestanas/armadorCalculo/aplicarArmado";
 import { ListaLogica } from "./canvas-graph/ListaLogica";
 import { workbookWithSurveyMonkeyLogic, refreshSurveyMonkeyAdvancedRules, extractExistingKoboLogic, visualActionCountForFooter, mergeAdvancedLogicRules, mergeVisualLogicRules, choiceCodeMapsWithOverrides, mergeChoiceCodeMaps, sectionIdForRow, findNextSiblingAfterSection, findLastDirectChildInSection, buildSectionBoundaryState } from "./state/editorHelpers";
 import { SurveyMonkeyLogicPopup } from "./shell/SurveyMonkeyLogicPopup";
@@ -2905,7 +2906,8 @@ export default function XlsformEditorPage() {
             )}
             {pestana === "calculos" && (
               <PestanaCalculos structure={structure} scope={logicScope} seleccionada={pestanaEditor.foco} onSeleccionar={fijarFocoEnSitio} onEditar={irAFila} onCampo={updateSurveyField} catalogs={catalogs}
-                onNuevo={workbook ? () => { const nombre = addQuestion("calculate", workbook.survey.rows.length - 1); if (nombre) fijarFocoEnSitio(nombre); } : undefined} />
+                onNuevo={workbook ? () => { const nombre = addQuestion("calculate", workbook.survey.rows.length - 1); if (nombre) fijarFocoEnSitio(nombre); } : undefined}
+                onArmar={(fila, formula, aux) => { let motivo: string | null = null; updateWorkbook((d) => { const r = aplicarArmado(d, fila, formula, aux); if (!r.ok) motivo = r.motivo; }); return motivo; }} />
             )}
             {pestana === "opciones" && workbook && (
               <PestanaOpciones

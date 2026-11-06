@@ -16,6 +16,7 @@ import { fragmentoDe, insertarEnCursor, type Funcion } from "./catalogoModelo";
 import { ProbarCalculo } from "./ProbarCalculo";
 import { CatalogoFunciones } from "./CatalogoFunciones";
 import { CalculationRecipePanel } from "../canvas/constructor/CalculoRepeticionPaneles";
+import { ArmadorCalculo } from "./armadorCalculo/ArmadorCalculo";
 import { valoresDeEjemplo } from "../cuestionario/ejemploSorteo";
 import { agruparEnFamilias } from "./familiasCalculo";
 
@@ -33,9 +34,11 @@ export type PestanaCalculosProps = {
   catalogs: { listName: string; items: { name: string; label: string }[] }[];
   /** M5: crea un cálculo al final del formulario y lo deja abierto aquí (cada pestaña deja crear lo que muestra). */
   onNuevo?: () => void;
+  /** E19-3: escribe lo que arma el armador por intención (fórmula y filas auxiliares); devuelve el motivo si no pudo. */
+  onArmar?: (rowIndex: number, formula: string, auxiliares: { name: string; calculation: string }[]) => string | null;
 };
 
-export function PestanaCalculos({ structure, scope: scopeBase, seleccionada, onSeleccionar, onEditar, onCampo, catalogs, onNuevo }: PestanaCalculosProps) {
+export function PestanaCalculos({ structure, scope: scopeBase, seleccionada, onSeleccionar, onEditar, onCampo, catalogs, onNuevo, onArmar }: PestanaCalculosProps) {
   const opcionesDe = useCallback((listName: string) => catalogs.find((c) => c.listName === listName)?.items ?? [], [catalogs]);
   // Con la estructura el motor cita grupos y repeticiones por su etiqueta (indexed-repeat, sum, join).
   const scope = useMemo(() => enriquecerAlcance(scopeBase, structure), [scopeBase, structure]);
@@ -114,6 +117,8 @@ export function PestanaCalculos({ structure, scope: scopeBase, seleccionada, onS
     setBorrador({ fila: clave, texto: r.texto });
     cursorPendiente.current = r.cursor;
   };
+  // El armador sube su fórmula como borrador: «Probar con respuestas» la evalúa mientras se arma.
+  const alArmar = useCallback((f: string | null) => setBorrador(f ? { fila: clave, texto: f } : null), [clave]);
   const focoPerdido = seleccionada && actual && actual.node.name !== seleccionada
     ? <>No hay un cálculo llamado <code>{seleccionada}</code>: se muestra el primero de la lista.</>
     : null;
@@ -168,7 +173,20 @@ export function PestanaCalculos({ structure, scope: scopeBase, seleccionada, onS
                 </div>
               ) : null}
             </div>
-            {actual.vacio ? (
+            {actual.vacio && onArmar ? (
+              <ArmadorCalculo
+                // Clave propia: el editor de fórmula, hermano en la misma tarjeta, ya usa el número de fila.
+                key={`armador-${actual.node.rowIndex}`}
+                scope={scope}
+                nombre={actual.node.name}
+                onBorrador={alArmar}
+                onAplicar={(f, aux) => {
+                  const motivo = onArmar(actual.node.rowIndex, f, aux);
+                  if (!motivo) setBorrador(null);
+                  return motivo;
+                }}
+              />
+            ) : actual.vacio ? (
               <CalculationRecipePanel
                 expression={actual.node.calculation}
                 scope={scope}

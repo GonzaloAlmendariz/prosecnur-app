@@ -61,4 +61,14 @@ describe("armador de cálculos por intención", () => {
     expect(literalDe("12")).toBe("12");
     expect(literalDe("l'atelier")).toBe(`"l'atelier"`);
   });
+
+  it("un código de opción va entre comillas aunque sea un número", () => {
+    const base = { tipo: "segun" as const, siNo: "otro" };
+    expect(aFormula({ ...base, casos: [{ pregunta: "medios", operador: "marcó", valor: "1", resultado: "tv" }] }))
+      .toBe("if(selected(${medios}, '1'), 'tv', 'otro')");
+    expect(aFormula({ ...base, casos: [{ pregunta: "sexo", operador: "=", valor: "2", resultado: "m", codigo: true }] }))
+      .toBe("if(${sexo} = '2', 'm', 'otro')");
+    expect(aFormula({ ...base, casos: [{ pregunta: "edad", operador: "<", valor: "18", resultado: "menor" }] }))
+      .toBe("if(${edad} < 18, 'menor', 'otro')");
+  });
 });
