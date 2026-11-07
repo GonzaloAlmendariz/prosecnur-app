@@ -21,6 +21,8 @@
 #'   primero de la escala. `NULL`: la mitad de las opciones sustantivas, con neutro si son impares
 #'   (4 y 5 puntos: 2; 3: 1; 7: 3; 11: 5).
 #' @param regla Cómo se eligen las preguntas entre las de `vars` (ADR 0135); sólo en el estilo resumen.
+#' @param abreviaturas Con preguntas de varios públicos, la abreviatura de cada uno en el rótulo de su fila
+#'   («Docentes: Doc.; Administrativos: Adm.»); sin declarar, las tres primeras letras de la base y punto.
 #' @export
 p_barras_divergentes <- function(vars = NULL,
                                  var = NULL,
@@ -36,7 +38,8 @@ p_barras_divergentes <- function(vars = NULL,
                                  direccion_escala = c("negativo_positivo", "positivo_negativo"),
                                  estilo = NULL,
                                  orden = NULL,
-                                 regla = NULL) {
+                                 regla = NULL,
+                                 abreviaturas = NULL) {
   direccion_escala <- match.arg(direccion_escala)
   refs <- as.character(unlist(vars %||% var %||% character(0)))
   refs <- refs[!is.na(refs) & nzchar(trimws(refs))]
@@ -68,6 +71,8 @@ p_barras_divergentes <- function(vars = NULL,
     base = base,
     filtros = .ppt_norm_filters(filtros)
   )
+  # Con preguntas de varios públicos cada fila lleva su abreviatura (graficos_divergentes_publicos.R).
+  if (length(.divergentes_abreviaturas_leer(abreviaturas))) el$abreviaturas <- .divergentes_abreviaturas_leer(abreviaturas)
   class(el) <- c("ppt_element", "list")
   .regla_preguntas_en_constructor(el, regla, "p_barras_divergentes()")   # ADR 0135
 }
@@ -518,7 +523,8 @@ p_barras_divergentes <- function(vars = NULL,
     direccion_escala = args_usuario$direccion_escala %||% "negativo_positivo"
   )
 
-  tabla$data$categoria <- .ola4_rotulos_preguntas(el$vars, tabla$data$categoria)
+  refs_filas <- tabla$data$categoria
+  tabla$data$categoria <- .divergentes_rotulos_publicos(.ola4_rotulos_preguntas(el$vars, refs_filas), refs_filas, el$abreviaturas)
 
   args_usuario$excluir_opciones <- NULL
   args_usuario$direccion_escala <- NULL

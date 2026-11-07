@@ -293,6 +293,10 @@
   med <- .regla_div_medidas(refs[aptas], el, sources, preset = preset)
   motivos <- c(motivos, med$motivos)
   filas <- list(); refs_tema <- list(); datos_cache <- list()
+  # Con varios públicos, el rótulo lleva su abreviatura, como la fila de la lámina (graficos_divergentes_publicos.R).
+  etq_publico <- stats::setNames(.divergentes_rotulos_publicos(
+    vapply(refs[aptas], function(r) { cx <- info[[match(r, refs)]]$ctx; .regla_preguntas_rotulo(cx$inst, cx$resolved_variable) }, ""),
+    refs[aptas], el$abreviaturas), refs[aptas])
   for (i in aptas) {
     j <- match(refs[i], med$medidas$ref)
     if (is.na(j)) next
@@ -300,7 +304,7 @@
     if (is.null(datos_cache[[ctx$source]])) datos_cache[[ctx$source]] <- .regla_preguntas_datos_base(ctx$source, sources, el$filtros)
     datos <- datos_cache[[ctx$source]]
     tema <- original[i]
-    filas[[length(filas) + 1L]] <- data.frame(tema = tema, etiqueta = .regla_preguntas_rotulo(ctx$inst, ctx$resolved_variable),
+    filas[[length(filas) + 1L]] <- data.frame(tema = tema, etiqueta = unname(etq_publico[refs[i]]),
                                               grupo = ctx$source, valor = med$medidas$valor[j], sin_info = med$medidas$sin_info[j],
                                               n = .dumbbell_casos(datos[[ctx$resolved_variable]], .radar_mb_pesos(datos)), orden = i,
                                               stringsAsFactors = FALSE)
