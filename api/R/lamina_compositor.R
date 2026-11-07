@@ -159,8 +159,9 @@
   # ADR 0134: el contraste de públicos y el panorama del resumen ejecutivo, si caben.
   if (identical(espec$tipo, "contraste")) return(!identical((slide$meta %||% list())$motor_nativo, FALSE) && isTRUE(.lam_contraste_cabe(espec)))
   if (identical(espec$tipo, "panorama")) return(!identical((slide$meta %||% list())$motor_nativo, FALSE) && isTRUE(.lam_panorama_cabe(espec)))
-  # ADR 0135: fortalezas y alertas, si cabe.
+  # ADR 0135: fortalezas y alertas, y cobertura y participación, si caben.
   if (identical(espec$tipo, "fortalezas")) return(!identical((slide$meta %||% list())$motor_nativo, FALSE) && isTRUE(.lam_fortalezas_cabe(espec)))
+  if (identical(espec$tipo, "cobertura")) return(!identical((slide$meta %||% list())$motor_nativo, FALSE) && isTRUE(.lam_cobertura_cabe(espec)))
   if (identical(espec$tipo, "categorica") && identical(espec$forma, "lollipop")) {
     return(!identical((slide$meta %||% list())$motor_nativo, FALSE) && isTRUE(.lam_lollipop_cabe(espec)))
   }
@@ -345,11 +346,12 @@
     return(f(doc, espec, titulo = texto(titulo) %||% "", ante = texto(antetitulo), base = .lam_unir_base(texto(base), texto(pie)),
              folio = length(doc) + 1L, sub = texto(subtitulo), layout = layout, master = master, por_lamina = por_lamina)$doc)
   }
-  if (identical(espec$tipo, "fortalezas")) {   # ADR 0135 (lamina_fortalezas.R)
-    # La base es la del público, en el pie: la automática de la encuesta entera se descarta y una base escrita en la
-    # lámina se respeta.
+  if (espec$tipo %in% c("fortalezas", "cobertura")) {   # ADR 0135 (lamina_fortalezas.R, lamina_cobertura.R)
+    # La base es la del público (fortalezas) o la de cada público (cobertura): la automática de la encuesta entera se
+    # descarta y una base escrita en la lámina se respeta.
     if (is.null(como_texto(slots$base))) base <- NULL
-    return(.lam_laminas_fortalezas(doc, espec, titulo = texto(titulo) %||% "", ante = texto(antetitulo), base = .lam_unir_base(texto(base), texto(pie)),
+    f <- if (identical(espec$tipo, "fortalezas")) .lam_laminas_fortalezas else .lam_laminas_cobertura
+    return(f(doc, espec, titulo = texto(titulo) %||% "", ante = texto(antetitulo), base = .lam_unir_base(texto(base), texto(pie)),
              folio = length(doc) + 1L, sub = texto(subtitulo), layout = layout, master = master, por_lamina = por_lamina)$doc)
   }
   if (identical(espec$tipo, "divergentes")) {

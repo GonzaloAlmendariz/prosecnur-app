@@ -2134,6 +2134,28 @@
     ), .args_graf_comunes())
   ),
 
+  # =========================================================================
+  # COBERTURA Y PARTICIPACIÓN (ADR 0135): casos, padrón, tasa y meta por público
+  # =========================================================================
+  p_cobertura = list(
+    titulo_humano = "Cobertura y participación",
+    descripcion   = "Por público, los casos con su padrón y, al lado, la tasa de respuesta junto a la meta de la propuesta.",
+    icono_ui      = "Users",
+    categoria     = "comparison",
+    blueprint     = "bars-grouped",
+    requisito     = "Los públicos (las bases); el padrón y la meta se proponen desde Cálculo de muestra o Monitoreo y los confirmas.",
+    args = c(list(
+      list(name = "bases", label = "Públicos", tipo_input = "codigos_list", grupo = "datos",
+           descripcion = "Bases que entran, en su orden. Vacío: todas."),
+      list(name = "universos", label = "Padrón de cada público", tipo_input = "string", grupo = "datos",
+           descripcion = "«Docentes: 123; Estudiantes: 327». Sin padrón, sólo n y sin tasa."),
+      list(name = "metas", label = "Meta de cada público", tipo_input = "string", grupo = "datos",
+           descripcion = "En % del padrón («Docentes: 60%») o en casos («Docentes: 74»)."),
+      list(name = "extras", label = "Filas extra", tipo_input = "textarea", grupo = "datos",
+           descripcion = "Sin barra, una por línea: cifra | rótulo | detalle. Ej. 34 | egresados(as) | en 4 grupos focales.")
+    ), .args_graf_comunes())
+  ),
+
   # Recetario p192–p194 (inventario de configuraciones, ítem 20): la pregunta filtro, lo que habilita y la subpregunta con
   # su propia base, unidas por una llave. Se arma en su tarjeta (FiltroSubpregunta en la pestaña Gráfico).
   p_filtro_subpregunta = list(
@@ -2687,6 +2709,7 @@
   p_dumbbell = list("comparar", "nativa", condicion = "En «Contraste de públicos», hasta 14 preguntas con dos grupos o 24 sub-filas con tres o cuatro; si no caben, va dibujado."),
   p_panorama = list("comparar", "nativa", condicion = "Hasta cinco públicos; con más, va dibujado."),   # ADR 0134
   p_fortalezas = list("comparar", "nativa", condicion = "Hasta ocho preguntas por columna; con más, va dibujado."),   # ADR 0135
+  p_cobertura = list("comparar", "nativa", condicion = "Hasta siete filas; con más, va dibujado."),   # ADR 0135
   p_significancia_publicos = list("comparar", "nativa", condicion = "Dos o tres públicos y hasta diez temas."),
   # Pieza interna de la dependencia entre los dos gráficos de una lámina (graficos_dependencia.R): no se elige como tipo.
   p_filtro_subpregunta = list("categorias", "nativa", condicion = "Hasta siete respuestas en el filtro; «Abajo» pide un filtro de dos respuestas.", en_selector = FALSE),
@@ -2742,6 +2765,7 @@ stopifnot(setequal(names(.GRAFICOS_SALIDA_EDITOR), names(.GRAFICADORES_META)))
   p_dumbbell = "dumbbell",
   p_panorama = "",
   p_fortalezas = "",
+  p_cobertura = "",
   p_filtro_subpregunta = "",
   p_significancia_publicos = "",
   p_lollipop = "lollipop",
@@ -2788,6 +2812,8 @@ stopifnot(setequal(names(.GRAFICOS_SALIDA_EDITOR), names(.GRAFICADORES_META)))
     "Elige la pregunta, la del distrito y las respuestas que suman, de la base activa."
   } else if (identical(name, "p_fortalezas")) {
     "Elige las preguntas de escala de un público y las respuestas que suman."
+  } else if (identical(name, "p_cobertura")) {
+    "Elige los públicos y confirma su padrón y su meta."
   } else if (identical(name, "p_filtro_subpregunta")) {
     "Elige la pregunta filtro, las respuestas que habilitan y la subpregunta, de la misma base."
   } else {

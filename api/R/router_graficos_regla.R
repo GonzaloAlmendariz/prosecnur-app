@@ -11,6 +11,11 @@
 #
 # `scope` es el de la vista previa (`consolidated` o vacío): las fuentes salen de `.graficos_preview_fuentes`, que en
 # multibase trae todas las bases del estudio.
+#
+#   GET /api/graficos/resumenes/padron?scope=
+#     -> {ok, bases: [{base, padron, padron_origen, meta, meta_unidad, meta_origen, motivo}]}
+#   Propuesta de padrón y meta por base para la lámina de cobertura (graficos_padron_por_base.R). Sólo lectura: la UI
+#   la muestra y, al confirmarla, escribe `universos` y `metas` en el payload.
 
 mount_graficos_regla <- function(pr) {
   pr |>
@@ -26,5 +31,20 @@ mount_graficos_regla <- function(pr) {
       if (!is.list(args)) .regla_preguntas_falla("`args` debe ser un objeto.")
       fuentes <- .graficos_preview_fuentes(sid, parsed)
       .regla_preguntas_conteo(graficador, args, fuentes)
+    })) |>
+    plumber::pr_get("/api/graficos/resumenes/padron", wrap_endpoint(function(req, res, ...) {
+      sid <- session_header(req)
+      s <- session_get(sid)
+      scope <- as.character((req$argsQuery %||% list())$scope %||% "")[1]
+      fuentes <- .graficos_preview_fuentes(sid, list(scope = scope))
+      .graficos_padron_respuesta(.graficos_padron_por_base(s, names(fuentes$data_sources)))
     }))
+}
+
+#' La propuesta de padrón como JSON: un NA sale como null (el serializador escribe `na = "null"`)
+#' @keywords internal
+.graficos_padron_respuesta <- function(filas) {
+  list(ok = TRUE, bases = lapply(filas, function(f) list(
+    base = f$base, padron = f$padron, padron_origen = f$padron_origen, meta = f$meta,
+    meta_unidad = f$meta_unidad, meta_origen = f$meta_origen, motivo = f$motivo)))
 }
