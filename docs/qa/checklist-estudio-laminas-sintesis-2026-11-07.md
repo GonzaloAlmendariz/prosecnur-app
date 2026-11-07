@@ -28,9 +28,9 @@ Decisiones de Gonzalo al empezar (2026-11-07):
 | 7 | Selector por intención con miniaturas y la clase de cada tipo; «Ver por tipo de gráfico» como entrada secundaria | `laminas/selectores/intencionesContar.ts` (acdb1f589) | Hecho; falta QA visual |
 | 8 | Inspector uniforme Datos, Cálculo, Aspecto: primero los del resumen, luego los de uso general; cada control con rótulo y «?» | `DatosGrafico.tsx`, `gruposTarjeta.ts` (e7cc5e4fe); quedan ayudas por pasar al «?» | Hecho en parte; falta QA visual |
 | 9 | Control de regla con conteo en vivo y ajuste a mano de la lista | `laminas/reglaPreguntas/` (703a4a64a) | Hecho; falta QA interactiva |
-| 10 | Grupos internos hasta cuatro, con padrón e interruptor de padrón confiable | `laminas/gruposPadron/`, arg `universos_no_confiables` | En curso |
+| 10 | Grupos internos hasta cuatro, con padrón e interruptor de padrón confiable | `laminas/gruposPadron/` (4076c434b, e718eec9f); arg `universos_no_confiables` en motor en curso | Hecho en UI; falta QA visual |
 | 11 | Revisión del emparejado entre públicos: matriz de equivalencias, sugerido por texto para confirmar, sin par | Gráficos, ADR 0135 §7 (enmienda 0104) | Pendiente |
-| 12 | Mazo «Resumen ejecutivo»: propone las láminas en orden con sus reglas; aceptar, editar o quitar | Gráficos, por definir | Pendiente |
+| 12 | Mazo «Resumen ejecutivo»: propone las láminas en orden con sus reglas; aceptar, editar o quitar | `laminas/mazoResumen/`, `panel=resumen-ejecutivo` | En curso |
 | 13 | Mejoras a la maqueta que aparezcan al construir, dichas a Gonzalo; si cambia, publicar y regenerar la copia local | Maqueta `graficos-sintesis` | Pendiente |
 | 14 | Renderizar láminas reales con las cifras de Arte y compararlas al lado del PDF | QA | Pendiente |
 | 15 | Armar el resumen desde cero con `/ver-ui` en acrconta y otro proyecto de referencia | QA | Pendiente |
