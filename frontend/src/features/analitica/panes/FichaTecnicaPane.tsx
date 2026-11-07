@@ -48,7 +48,7 @@ export function FichaTecnicaPane() {
   const config = useAnaliticaStore((s) => s.config);
   const ficha = useAnaliticaStore((s) => s.config.ficha_tecnica);
   const setFichaTecnica = useAnaliticaStore((s) => s.setFichaTecnica);
-  const run = useReporteRun();
+  const run = useReporteRun("Ficha técnica", { articulo: "la", formato: "docx" });
   const [info, setInfo] = useState<AnaliticaFichaTecnicaInfo | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadingSlow, setLoadingSlow] = useState(false);
@@ -256,17 +256,8 @@ export function FichaTecnicaPane() {
                 <Section title="Exportar ficha" subtitle="La ficha se genera como documento Word independiente.">
                   <GenerateFooter
                     label="Generar ficha"
-                    busy={run.busy}
-                    jobId={run.jobId}
-                    fileId={run.fileId}
-                    guardado={run.guardado}
-                    downloadName={run.filename ?? "ficha_tecnica.docx"}
-                    error={run.error}
+                    run={run}
                     onGenerate={onGenerate}
-                    perBase={run.perBase}
-                    onJobDone={run.onJobDone}
-                    onJobError={run.onJobError}
-                    onJobCancelled={run.onJobCancelled}
                   />
                 </Section>
               </div>

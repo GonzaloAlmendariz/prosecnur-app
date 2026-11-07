@@ -1,0 +1,420 @@
+/* Kit de entregables (ADR 0133, fase 4): contenedor de archivo y bandeja.
+   Neutro de punta a punta: sin botones resaltados ni enlaces subrayados. El
+   único color con intención es la línea de avance (acento del módulo) y los
+   iconos de estado (éxito, error). Una sola cosa se mueve: la línea. */
+
+/* ---------- Contenedor (formas bloque y anclada) ---------- */
+
+.pulso-entregable {
+  position: relative;
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid var(--pulso-border);
+  border-radius: 10px;
+  background: var(--pulso-surface);
+  box-shadow: var(--pulso-shadow-low);
+  color: var(--pulso-text);
+  font-size: var(--pulso-type-body-size);
+  text-align: left;
+}
+
+/* Bloque: al ancho del contenedor y con su alto propio en cualquier padre. En una columna flex no crece
+   (un `flex: 1` lo estiraba al alto del pane y dejaba la línea de avance a media tarjeta); en una fila flex
+   ocupa la fila entera y su alto es el de su contenido. */
+.pulso-entregable[data-entregable-forma="bloque"] {
+  box-sizing: border-box;
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: 100%;
+  height: auto;
+}
+
+.pulso-entregable[data-entregable-fase="fallo"] {
+  border-color: color-mix(in srgb, var(--pulso-danger-border) 70%, var(--pulso-border));
+}
+
+/* Flota bajo el disparador sin mover la página: el padre es position: relative. */
+.pulso-entregable[data-entregable-forma="anclada"] {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: var(--pulso-z-flyout);
+  width: min(380px, calc(100vw - 28px));
+  box-shadow: var(--pulso-shadow-popover);
+}
+
+.pulso-entregable-archivos {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pulso-entregable-archivos > li + li {
+  border-top: 1px solid var(--pulso-border);
+}
+
+/* Flex con wrap: si el contenedor es angosto, las acciones bajan bajo el nombre en vez de apretarlo. */
+.pulso-entregable-fila {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  padding: 11px 40px 11px 12px;
+}
+
+.pulso-entregable-fila > .pulso-entregable-cuerpo {
+  flex: 1 1 180px;
+}
+
+.pulso-entregable-fila > .pulso-entregable-acciones {
+  margin-left: auto;
+}
+
+.pulso-entregable[data-entregable-fase="en_curso"] .pulso-entregable-fila {
+  padding-right: 12px;
+}
+
+.pulso-entregable-cuerpo {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.pulso-entregable-nombre {
+  overflow-wrap: anywhere;
+  font-weight: var(--pulso-weight-semibold);
+  line-height: 1.35;
+}
+
+/* Metadatos separados por un filete fino, nunca por «·». El filete viaja con el dato anterior: si la fila
+   parte, la línea siguiente empieza limpia. */
+.pulso-entregable-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  row-gap: 2px;
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+  line-height: 1.4;
+}
+
+.pulso-entregable-meta > :not(:last-child) {
+  margin-right: 8px;
+  padding-right: 8px;
+  border-right: 1px solid var(--pulso-border);
+}
+
+.pulso-entregable-meta--fallo {
+  flex-wrap: nowrap;
+  align-items: flex-start;
+  gap: 6px;
+  color: var(--pulso-text);
+}
+
+.pulso-entregable-meta--fallo > :not(:last-child) {
+  margin-right: 0;
+  padding-right: 0;
+  border-right: 0;
+}
+
+.pulso-entregable-meta--fallo > svg {
+  flex: none;
+  margin-top: 2px;
+}
+
+.pulso-entregable-ok {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.pulso-entregable-ok > svg {
+  color: var(--pulso-success-fg);
+}
+
+.pulso-entregable-alerta {
+  flex: none;
+  color: var(--pulso-danger-fg);
+}
+
+.pulso-entregable-carpeta {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.pulso-entregable-nota {
+  margin: 2px 0 0;
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+  line-height: 1.4;
+}
+
+/* Ícono del formato: hoja con la esquina doblada y la sigla. */
+.pulso-entregable-tile {
+  box-sizing: border-box;
+  flex: none;
+  width: 36px;
+  height: 40px;
+  display: grid;
+  align-items: end;
+  justify-items: center;
+  padding-bottom: 5px;
+  border: 1px solid var(--pulso-border-strong);
+  border-radius: 4px;
+  background: var(--pulso-surface-2);
+  clip-path: polygon(0 0, 72% 0, 100% 20%, 100% 100%, 0 100%);
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-micro-size);
+  font-weight: var(--pulso-weight-bold);
+  letter-spacing: 0;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+/* Cuatro letras (XLSX, PPTX, DOCX) caben en una línea: se aprieta el tracking, no se parte la sigla. */
+.pulso-entregable-tile[data-letras="4"] {
+  letter-spacing: -0.03em;
+}
+
+.pulso-entregable-tile[data-chico="true"] {
+  width: 32px;
+  height: 34px;
+  padding-bottom: 4px;
+}
+
+.pulso-entregable-acciones {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Botones de texto del contenedor (Cancelar, Reintentar, Descargar otra vez): neutros. */
+.pulso-button.pulso-entregable-texto {
+  border-color: var(--pulso-border);
+  background: var(--pulso-surface);
+  color: var(--pulso-text);
+  box-shadow: none;
+  white-space: nowrap;
+}
+
+.pulso-button.pulso-entregable-texto:hover:not(:disabled) {
+  border-color: var(--pulso-border-strong);
+  background: var(--pulso-surface-2);
+  color: var(--pulso-text);
+}
+
+.pulso-entregable-cerrar {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 24px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--pulso-text-faint);
+  cursor: pointer;
+}
+
+/* Foco visible en todo lo que se pulsa dentro del contenedor, su menú y la bandeja: el anillo del kit
+   (acento del módulo al 24 %), que el `box-shadow: none` de los botones neutros apagaba. */
+.pulso-entregable .pulso-button:focus-visible,
+.pulso-entregable-bandeja .pulso-button:focus-visible,
+.pulso-entregable-cerrar:focus-visible,
+.pulso-entregable-menu-item:focus-visible,
+.pulso-entregable-bandeja-boton:focus-visible {
+  outline: none;
+  border-color: var(--pulso-button-accent, var(--pulso-primary-border));
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--module-accent, var(--pulso-primary)) 24%, transparent);
+}
+
+.pulso-entregable-cerrar:hover {
+  background: var(--pulso-surface-2);
+  color: var(--pulso-text);
+}
+
+.pulso-entregable-pie {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  border-top: 1px solid var(--pulso-border);
+  background: var(--pulso-surface-2);
+}
+
+.pulso-entregable-crece {
+  flex: 1 1 auto;
+}
+
+.pulso-entregable-codigo {
+  color: var(--pulso-text-soft);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: var(--pulso-type-caption-size);
+}
+
+/* La línea de avance del borde inferior: la única señal en movimiento. */
+.pulso-entregable-linea .pulso-barra-avance {
+  height: 3px;
+  border-radius: 0;
+  background: var(--pulso-surface-2);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* Con movimiento reducido la línea indeterminada se detiene. */
+  .pulso-entregable .pulso-barra-avance--indeterminada > span {
+    animation: none;
+    opacity: 0.6;
+  }
+}
+
+/* ---------- Forma fila (celda de acción de una tabla) ---------- */
+
+.pulso-entregable[data-entregable-forma="fila"] {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 28px;
+  overflow: visible;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+}
+
+.pulso-entregable[data-entregable-forma="fila"][data-entregable-fase="en_curso"] {
+  display: grid;
+  gap: 4px;
+}
+
+.pulso-entregable[data-entregable-forma="fila"] .pulso-barra-avance {
+  border-radius: 2px;
+}
+
+.pulso-entregable[data-entregable-forma="fila"][data-entregable-fase="fallo"] {
+  color: var(--pulso-danger-fg);
+}
+
+.pulso-entregable-fila-texto {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ---------- Menú «Más» ---------- */
+
+.pulso-entregable-menu {
+  min-width: 180px;
+  display: grid;
+  gap: 2px;
+}
+
+.pulso-entregable-menu-item {
+  padding: 7px 10px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--pulso-text);
+  font: inherit;
+  font-size: var(--pulso-type-body-size);
+  text-align: left;
+  cursor: pointer;
+}
+
+.pulso-entregable-menu-item:hover {
+  background: var(--pulso-surface-2);
+  transform: none;
+}
+
+/* ---------- Bandeja de la barra superior ---------- */
+
+.pulso-entregable-bandeja-boton {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: var(--pulso-control-height-sm);
+  padding: 0 10px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 8px;
+  background: var(--pulso-surface);
+  color: var(--pulso-text);
+  font: inherit;
+  font-size: var(--pulso-type-body-size);
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.pulso-entregable-bandeja-boton:hover {
+  border-color: var(--pulso-border-strong);
+  background: var(--pulso-surface-2);
+}
+
+/* Punto de estado quieto: no pulsa ni anima. */
+.pulso-entregable-punto {
+  width: 7px;
+  height: 7px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--pulso-text-faint);
+}
+
+.pulso-entregable-bandeja-boton[data-punto="en_curso"] .pulso-entregable-punto {
+  background: var(--module-accent, var(--pulso-primary));
+}
+
+.pulso-entregable-bandeja-boton[data-punto="lista"] .pulso-entregable-punto {
+  background: var(--pulso-success-fg);
+}
+
+.pulso-entregable-bandeja-boton[data-punto="fallo"] .pulso-entregable-punto {
+  background: var(--pulso-danger-fg);
+}
+
+.pulso-entregable-bandeja-n {
+  color: var(--pulso-text-soft);
+  font-variant-numeric: tabular-nums;
+}
+
+.pulso-entregable-bandeja {
+  width: min(360px, calc(100vw - 40px));
+  display: grid;
+  gap: 4px;
+}
+
+.pulso-entregable-bandeja-titulo {
+  margin: 4px 8px;
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-eyebrow-size);
+  font-weight: var(--pulso-weight-semibold);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.pulso-entregable-bandeja-lista {
+  max-height: min(60vh, 420px);
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  list-style: none;
+}
+
+.pulso-entregable-bandeja-item {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  padding: 8px;
+  border-radius: 8px;
+}
+
+.pulso-entregable-bandeja-item:hover {
+  background: var(--pulso-surface-2);
+}

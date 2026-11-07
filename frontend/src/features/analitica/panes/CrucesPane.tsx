@@ -42,7 +42,7 @@ export function CrucesPane() {
   const addCruceVar = useAnaliticaStore((s) => s.addCruceVar);
   const removeCruceVar = useAnaliticaStore((s) => s.removeCruceVar);
   const setCruceVarExcluidas = useAnaliticaStore((s) => s.setCruceVarExcluidas);
-  const run = useReporteRun();
+  const run = useReporteRun("Cruces", { articulo: "los", formato: "xlsx" });
   const { state } = useSession();
   const dimOk = !!state?.analitica_dim_ok;
 
@@ -251,19 +251,10 @@ export function CrucesPane() {
 
         <GenerateFooter
           label="Generar cruces"
-          busy={run.busy}
-          jobId={run.jobId}
-          fileId={run.fileId}
-          guardado={run.guardado}
-          downloadName={run.filename ?? "cruces.xlsx"}
-          error={run.error}
+          run={run}
           onGenerate={onGenerate}
           disabled={nVars === 0}
           disabledHint={nVars === 0 ? "Agrega al menos una variable a cruzar arriba." : undefined}
-          onJobDone={run.onJobDone}
-          onJobError={run.onJobError}
-          onJobCancelled={run.onJobCancelled}
-          perBase={run.perBase}
         />
       </div>
     </Panel>

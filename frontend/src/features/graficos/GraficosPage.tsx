@@ -7,8 +7,6 @@ import {
   apiGraficosConsolidadoPreflight,
   apiGraficosWord,
   apiGraficosValidar,
-  normalizeEntregableGuardado,
-  type EntregableGuardado,
   type GraficosConsolidadoPreflight,
 } from "../../api/client";
 import { useSession } from "../../lib/SessionContext";
@@ -21,7 +19,8 @@ import { rotuloIrALamina } from "./avisosExportacion/avisosExportacionModel";
 import { LoadingBlock } from "../../components/States";
 import { graficosBodyLoadingLabel, graficosBodyState } from "./graficosBodyState";
 import { fijarAvisosSiembraCompartido } from "./useDeclaracionAplicada";
-import { JobProgress } from "../../components/JobProgress";
+import { PulsoButton } from "../../components/PulsoButton";
+import { useGeneracion } from "../../components/entregables/useGeneracion";
 import { PageFrame } from "../../components/PageFrame";
 import { ChromeSlotPortal } from "../../app/ModuleChromeSlots";
 import { ChromeBaseSelector } from "../../components/ChromeBaseSelector";
@@ -30,7 +29,10 @@ import { useGraficosAutosave } from "./useGraficosAutosave";
 import { useGraficosShortcuts } from "./useGraficosShortcuts";
 import { useDeshacerPorCampo } from "./useDeshacerPorCampo";
 import { ShortcutsModal } from "./ShortcutsModal";
-import { humanizeGraficosExportError, HumanizedError } from "./humanizeExportError";
+import {
+  avisosDelResultado, describirFalloDeInforme, ErrorDeInforme, formatoDeExportacion, tituloDeExportacion,
+  type FormatoInforme,
+} from "./exportacionInforme";
 import { GraficosHeader } from "./GraficosHeader";
 import { useShortcutsV2 } from "./v2/shortcuts/useShortcutsV2";
 import { buildGraficosConfigFromStore } from "./configSnapshot";
@@ -58,12 +60,6 @@ const PestanaEstilo = lazyWithReload(() => import("./estilo/PestanaEstilo"), "gr
 const PestanaEstiloInforme = lazyWithReload(() => import("./estiloInforme/PestanaEstiloInforme"), "graficos-estilo-informe");
 const PestanaWord = lazyWithReload(() => import("./word/PestanaWord"), "graficos-word");
 
-type ExportResult = {
-  ok: true; file_id: string; filename?: string; size: number; n_slides: number;
-  /** Arreglos automáticos que el motor aplicó al renderizar. Ausente en
-   *  backends viejos. Ver `.pulso_aviso()` en el motor. */
-  avisos?: string[];
-};
 export default function GraficosPage() {
   const location = useLocation();
   const direccion = useSeccion("procesamiento");
@@ -92,8 +88,6 @@ export default function GraficosPage() {
   // Atajos V2: J/K (nav), / (búsqueda), V/T (modo), 1-4 (tabs)
   useShortcutsV2();
 
-  const [busyValidating, setBusyValidating] = useState("");
-  const [error, setError] = useState<HumanizedError | null>(null);
   const [warns, setWarns] = useState<string[]>([]);
   const select = usePlanStore((s) => s.select);
   // Avisos del motor tras el último export. Se limpian al empezar otro.
@@ -104,13 +98,21 @@ export default function GraficosPage() {
   const ponerPrevios = useAvisosExportacion((st) => st.ponerPrevios);
   useEffect(() => { ponerMotor(avisosDelMotor); }, [avisosDelMotor, ponerMotor]);
   useEffect(() => { ponerPrevios(warns); }, [warns, ponerPrevios]);
-  const [pptFileId, setPptFileId] = useState<string | null>(null);
-  const [docxFileId, setDocxFileId] = useState<string | null>(null);
-  const [pptFilename, setPptFilename] = useState<string | null>(null);
-  const [docxFilename, setDocxFilename] = useState<string | null>(null);
-  // Copia de cada informe junto al proyecto (ADR 0133); se fija con su file_id.
-  const [guardados, setGuardados] = useState<{ ppt: EntregableGuardado | null; docx: EntregableGuardado | null }>({ ppt: null, docx: null });
-  const [exportJob, setExportJob] = useState<{ kind: "ppt" | "word"; id: string } | null>(null);
+  // La exportación (validar, lanzar el job, seguirlo y entregar el archivo) va en el kit de entregables: su
+  // contenedor cuelga del botón «Exportar» (ADR 0133, fase 4). Si un fallo nombra la lámina que lo provocó, el
+  // contenedor ofrece ir a ella.
+  const [laminaConError, setLaminaConError] = useState<{ id: string; label: string } | null>(null);
+  const exportacion = useGeneracion({
+    titulo: "Informe",
+    modulo: "Procesamiento",
+    articulo: "el",
+    describirError: (e) => {
+      const fallo = describirFalloDeInforme(e, usePlanStore.getState().plan);
+      setLaminaConError(fallo.lamina);
+      return fallo.legible;
+    },
+  });
+  const cerrarExportacion = exportacion.cerrar;
   const [sharedPreflight, setSharedPreflight] = useState<GraficosConsolidadoPreflight | null>(null);
   const [sharedPreflightStatus, setSharedPreflightStatus] = useState<SharedReportPreflightStatus>("idle");
   const [sharedPreflightError, setSharedPreflightError] = useState("");
@@ -190,84 +192,65 @@ export default function GraficosPage() {
 
   useEffect(() => {
     function onActiveBaseChanged() {
-      setPptFileId(null);
-      setDocxFileId(null);
-      setPptFilename(null);
-      setDocxFilename(null);
-      setGuardados({ ppt: null, docx: null });
-      setError(null);
+      cerrarExportacion();
+      setLaminaConError(null);
       setWarns([]);
     }
     window.addEventListener("pulso:active-base-changed", onActiveBaseChanged);
     return () => window.removeEventListener("pulso:active-base-changed", onActiveBaseChanged);
-  }, [reportScope]);
+  }, [reportScope, cerrarExportacion]);
 
-  async function onExport(kind: "ppt" | "word") {
+  async function onExport(kind: FormatoInforme) {
     if (isSharedReport && kind === "word") return;
-    setError(null); setWarns([]); setBusyValidating(`validando ${kind}…`);
-    try {
+    setWarns([]);
+    setAvisosDelMotor([]);
+    setLaminaConError(null);
+    const r = await exportacion.ejecutar(async () => {
       if (isSharedReport) {
         const readiness = await loadSharedPreflight();
         if (!readiness?.ready) {
-          setError({
+          throw new ErrorDeInforme({
             message: "El informe compartido todavía no está listo para exportarse.",
             hint: "Puedes seguir configurando sus láminas. Completa y aprueba cada base en Analítica, luego vuelve a comprobar.",
           });
-          return;
         }
       }
       const v = await apiGraficosValidar(plan);
       setWarns(v.warnings);
-      if (!v.ok) {
-        setError(humanizeGraficosExportError(v.errors.join("; "), plan));
-        return;
-      }
+      if (!v.ok) throw new Error(v.errors.join("; "));
       const config = buildGraficosConfigFromStore();
       const sharedRevision = isSharedReport
         ? await saveConsolidatedNow(config)
         : null;
-      const out = isSharedReport
-        ? await apiGraficosPptConsolidado(presets, sharedRevision ?? undefined)
+      return isSharedReport
+        ? apiGraficosPptConsolidado(presets, sharedRevision ?? undefined)
         : kind === "ppt"
-          ? await apiGraficosPpt(plan, presets, wPresets, config)
-          : await apiGraficosWord(plan, presets, wPresets, config);
-      setExportJob({ kind, id: out.job_id });
-    } catch (e: unknown) {
-      setError(humanizeGraficosExportError((e as Error).message, plan));
-    } finally {
-      setBusyValidating("");
-    }
-  }
-
-  function onExportDone(data: ExportResult) {
-    if (!exportJob) return;
+          ? apiGraficosPpt(plan, presets, wPresets, config)
+          : apiGraficosWord(plan, presets, wPresets, config);
+    }, { titulo: tituloDeExportacion(kind, isSharedReport), formato: formatoDeExportacion(kind) });
+    if (!r.ok) return;
     // El motor toma decisiones automáticas al renderizar —achica la letra del
     // eje cuando no cabe, apaga el Top 2 Box en una escala de dos categorías—
-    // y hasta ahora no las contaba. Quien declaró 14 pt y vio 9,5 creía
-    // haberse equivocado.
-    setAvisosDelMotor(Array.isArray(data.avisos) ? data.avisos.filter(Boolean) : []);
-    if (exportJob.kind === "ppt") {
-      setPptFileId(data.file_id);
-      setPptFilename(data.filename ?? null);
-      setGuardados((g) => ({ ...g, ppt: normalizeEntregableGuardado(data) }));
-    } else if (exportJob.kind === "word") {
-      setDocxFileId(data.file_id);
-      setDocxFilename(data.filename ?? null);
-      setGuardados((g) => ({ ...g, docx: normalizeEntregableGuardado(data) }));
-    }
-    setExportJob(null);
+    // y las cuenta en `avisos`. Quien declaró 14 pt y vio 9,5 creía haberse
+    // equivocado.
+    setAvisosDelMotor(avisosDelResultado(r.datos));
     void refresh();
   }
 
-  function onExportError(message: string) {
-    setError(humanizeGraficosExportError(message, plan));
-    setExportJob(null);
-    setAvisosDelMotor([]);
-  }
-
-  function onExportCancelled() {
-    setExportJob(null);
-  }
+  const pieDelFallo = laminaConError ? (
+    <PulsoButton
+      variant="secondary"
+      size="sm"
+      className="pulso-entregable-texto"
+      onClick={() => {
+        select(laminaConError.id);
+        exportacion.cerrar();
+        setLaminaConError(null);
+      }}
+    >
+      {rotuloIrALamina(laminaConError.label)}
+    </PulsoButton>
+  ) : undefined;
 
   return (
     <GraficosReportScopeProvider scope={reportScope}>
@@ -339,14 +322,8 @@ export default function GraficosPage() {
             <BarraLaminas
               onExportPpt={() => onExport("ppt")}
               onExportWord={() => onExport("word")}
-              pptFileId={pptFileId}
-              docxFileId={docxFileId}
-              pptFilename={pptFilename}
-              docxFilename={docxFilename}
-              pptGuardado={guardados.ppt}
-              docxGuardado={guardados.docx}
-              exportBusy={!!busyValidating || !!exportJob}
-              exportJobKind={exportJob?.kind ?? null}
+              generacion={exportacion}
+              pieDelFallo={pieDelFallo}
               canExport={canExport}
               isSharedReport={isSharedReport}
               prepBlocked={!isSharedReport && !prepOk}
@@ -355,62 +332,15 @@ export default function GraficosPage() {
             <GraficosHeader
               onExportPpt={() => onExport("ppt")}
               onExportWord={() => onExport("word")}
-              pptFileId={pptFileId}
-              docxFileId={docxFileId}
-              pptFilename={pptFilename}
-              docxFilename={docxFilename}
-              pptGuardado={guardados.ppt}
-              docxGuardado={guardados.docx}
-              exportBusy={!!busyValidating || !!exportJob}
-              exportJobKind={exportJob?.kind ?? null}
+              generacion={exportacion}
+              pieDelFallo={pieDelFallo}
               canExport={canExport}
               prepReady={prepOk}
               reportScope={reportScope}
             />
           )}
 
-          {exportJob && (
-            <JobProgress<ExportResult>
-              label={
-                exportJob.kind === "ppt"
-                  ? isSharedReport ? "Exportando informe compartido" : "Exportando PPT"
-                  : "Exportando Word"
-              }
-              jobId={exportJob.id}
-              onDone={onExportDone}
-              onError={onExportError}
-              onCancelled={onExportCancelled}
-            />
-          )}
-
-
-
-          {busyValidating && <Alert kind="info">{busyValidating}</Alert>}
           <ResumenAvisosExportacion motor={avisosDelMotor.length} previos={warns.length} onVer={() => panelAvisos.abrir()} />
-          {error && (
-            <Alert kind="error">
-              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                <strong>{error.message}</strong>
-                {error.hint && (
-                  <div style={{ fontSize: "var(--pulso-type-body-size)", fontWeight: 400, lineHeight: 1.5 }}>
-                    {error.hint}
-                  </div>
-                )}
-                {error.slideRef && (
-                  <button
-                    type="button"
-                    className="pulso-irlamina"
-                    onClick={() => {
-                      if (error.slideRef) select(error.slideRef.id);
-                      setError(null);
-                    }}
-                  >
-                    {rotuloIrALamina(error.slideRef.label)}
-                  </button>
-                )}
-              </div>
-            </Alert>
-          )}
         </>
       }
     >

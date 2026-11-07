@@ -8,8 +8,9 @@ import { describe, expect, it } from "vitest";
  * (`app/letraPorRol`, 196 → 0 el 1 nov); faltaba lo demás (`docs/qa/formato-analitica-2026-11-04.md`):
  *
  * - P1: 170 `fontSize` numéricos en estilos en línea pasan a `var(--pulso-type-<rol>-size)`.
- * - P3: el « · » no se pinta como separador (33 líneas). Quedan tres que LEEN el formato del
- *   backend («… · E_CODIGO»): `PaneKit`, `CrucesReglaEstudio` y `comparativosModel`.
+ * - P3: el « · » no se pinta como separador (33 líneas). Quedan dos que LEEN el formato del
+ *   backend («… · E_CODIGO»): `CrucesReglaEstudio` y `comparativosModel` (`PaneKit` dejó de leerlo el
+ *   2026-11-07: el pie «Generar» pasó al kit de entregables, que separa el código con `splitErrorDetail`).
  * - P4: ninguna cifra con `toLocaleString` suelto.
  * - P5: el vacío es `EstadoVacio`. Se declara la pantalla de preparación de la Ficha técnica
  *   (`analitica-ficha-loading*`): enseña los pasos y una silueta.
@@ -52,7 +53,7 @@ const DECLARADAS = /^(?:analitica-ficha-loading(?=$|-)|analitica-vacio$)/;
 const BADGE = /\banalitica-panel-badge\b/g;
 
 /** Los que LEEN el punto medio de un dato del backend. Sólo baja. */
-const PUNTO_QUE_LEE: Record<string, number> = { "PaneKit.tsx": 1, "panes/CrucesReglaEstudio.tsx": 1, "panes/comparativosModel.ts": 1 };
+const PUNTO_QUE_LEE: Record<string, number> = { "panes/CrucesReglaEstudio.tsx": 1, "panes/comparativosModel.ts": 1 };
 
 const todas = (re: RegExp) => (l: string) => [...l.matchAll(re)].map((m) => m[0]);
 

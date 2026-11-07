@@ -1,125 +1,75 @@
 import { useState } from "react";
-import {
-  normalizeEntregableGuardado, type BasePerOutput, type EntregableGuardado, type FileJobResult, type MultiBaseResult,
-} from "../../api/client";
+import type { BasePerOutput, MultiBaseResult } from "../../api/client";
+import type { Articulo } from "../../components/entregables/generacionModelo";
+import { useGeneracion, type Generacion } from "../../components/entregables/useGeneracion";
 import { useSession } from "../../lib/SessionContext";
 
-// Estandariza la mecánica "Generar" de cada pane analítico.
+// Estandariza la mecánica «Generar» de cada pane analítico sobre el kit de
+// entregables (ADR 0133, fase 4): la espera, el resultado, el fallo y la
+// descarga los lleva `useGeneracion`; aquí solo queda lo propio de Analítica.
 //
-// Con v0.2+ (multi-base), cada reporte sincrónico puede devolver:
+// Con v0.2+ (multi-base), cada reporte puede devolver:
 //  - Single base: `file_id` directo al archivo.
 //  - Multi base (N>1): `zip.file_id` + `bases[]` con archivos individuales.
+// `lastResult` conserva la forma completa para lo que el pane lee aparte
+// (el XLSForm final del libro de códigos, el resumen de la unión de bases) y
+// `perBase` los archivos de cada base.
 //
-// El state expone `lastResult` con la forma completa para que el pane
-// muestre tanto el zip principal como los descargables por base.
-// `fileId` legacy apunta al archivo principal (file_id directo o zip)
-// para back-compat con los consumidores que ya leían solo eso.
+// `runSync` y `runAsync` son la misma operación: si la respuesta es el arranque
+// de un job, `useGeneracion` lo sigue hasta el archivo.
 
-type AsyncStart = { ok: true; job_id: string; kind: string };
-
-type ReporteRunState = {
+export type ReporteRunState = {
+  /** Estado de la generación y su cierre, para `GenerateFooter`. */
+  generacion: Pick<Generacion, "estado" | "cerrar">;
   busy: boolean;
-  jobId: string | null;
-  fileId: string | null;       // archivo principal (single) o zip (multi)
-  filename: string | null;     // nombre sugerido por backend para el archivo principal
-  // Copia del archivo principal junto al proyecto (ADR 0133). Se fija en el
-  // mismo lote que `fileId`: si llegara un render después, GenerateFooter ya
-  // habría abierto el diálogo de guardado.
-  guardado: EntregableGuardado | null;
   lastResult: MultiBaseResult | null;
-  perBase: BasePerOutput[];    // vacío en single-base
-  error: string;
-  runSync: (fn: () => Promise<MultiBaseResult>) => Promise<void>;
-  runAsync: (fn: () => Promise<AsyncStart>) => Promise<void>;
-  onJobDone: (d: FileJobResult | MultiBaseResult) => void;
-  onJobError: (msg: string) => void;
-  onJobCancelled: () => void;
-  clearError: () => void;
+  perBase: BasePerOutput[];
+  runSync: (fn: () => Promise<unknown>) => Promise<void>;
+  runAsync: (fn: () => Promise<unknown>) => Promise<void>;
 };
 
-// Extrae el file_id principal: zip si multi, file_id directo si single.
-function primaryFileId(r: MultiBaseResult): string | null {
-  if (r.zip) return r.zip.file_id;
-  return r.file_id ?? null;
+function comoResultado(datos: unknown): MultiBaseResult | null {
+  return datos && typeof datos === "object" && !Array.isArray(datos) ? (datos as MultiBaseResult) : null;
 }
 
-function primaryFilename(r: MultiBaseResult): string | null {
-  if (r.zip) return r.zip.filename;
-  return r.filename ?? null;
-}
+export type OpcionesReporte = {
+  /** Artículo del título, para nombrar el fallo: «No se pudieron generar las frecuencias». */
+  articulo?: Articulo;
+  /** Formato del archivo con una base («xlsx», «pdf»): el ícono del contenedor mientras se genera. */
+  formato?: string;
+  /**
+   * El reporte sale por base y, con más de una, llega como ZIP. Entonces el formato no se sabe de antemano y
+   * el ícono va sin sigla hasta que llega el archivo. `false` para los que siempre dan un solo archivo.
+   */
+  porBase?: boolean;
+};
 
-export function useReporteRun(): ReporteRunState {
-  const { refresh } = useSession();
-  const [busy, setBusy] = useState(false);
-  const [jobId, setJobId] = useState<string | null>(null);
-  const [fileId, setFileId] = useState<string | null>(null);
-  const [filename, setFilename] = useState<string | null>(null);
-  const [guardado, setGuardado] = useState<EntregableGuardado | null>(null);
+/** `titulo`: el entregable en palabras («Frecuencias»); lo dice el contenedor mientras se genera. */
+export function useReporteRun(titulo: string, { articulo, formato, porBase = true }: OpcionesReporte = {}): ReporteRunState {
+  const { refresh, state } = useSession();
+  const variasBases = (state?.n_bases ?? 0) > 1;
+  const { estado, ejecutar, cerrar } = useGeneracion({
+    titulo,
+    modulo: "Procesamiento",
+    articulo: articulo ?? null,
+    formato: porBase && variasBases ? null : formato ?? null,
+  });
   const [lastResult, setLastResult] = useState<MultiBaseResult | null>(null);
-  const [error, setError] = useState("");
 
-  async function runSync(fn: () => Promise<MultiBaseResult>) {
-    setError("");
-    setBusy(true);
-    try {
-      const out = await fn();
-      setLastResult(out);
-      setFileId(primaryFileId(out));
-      setFilename(primaryFilename(out));
-      setGuardado(normalizeEntregableGuardado(out));
-      await refresh();
-    } catch (e) {
-      setError((e as Error).message);
-    } finally {
-      setBusy(false);
-    }
+  async function correr(fn: () => Promise<unknown>) {
+    setLastResult(null);
+    const r = await ejecutar(fn);
+    if (!r.ok) return;
+    setLastResult(comoResultado(r.datos));
+    await refresh();
   }
-
-  async function runAsync(fn: () => Promise<AsyncStart>) {
-    setError("");
-    setBusy(true);
-    try {
-      const out = await fn();
-      setJobId(out.job_id);
-    } catch (e) {
-      setError((e as Error).message);
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  function onJobDone(d: FileJobResult | MultiBaseResult) {
-    // Puede venir como result multi-base (cruces/enumeradores multi) o
-    // como FileJobResult legacy (single base). Normalizamos.
-    const multi = d as MultiBaseResult;
-    setGuardado(normalizeEntregableGuardado(d));
-    if (multi && (multi.zip || multi.bases)) {
-      setLastResult(multi);
-      setFileId(primaryFileId(multi));
-      setFilename(primaryFilename(multi));
-    } else {
-      // Legacy FileJobResult { file_id, size, ...}
-      const legacy = d as FileJobResult;
-      setFileId(legacy.file_id);
-      setFilename(legacy.filename ?? null);
-      setLastResult(null);
-    }
-    setJobId(null);
-    void refresh();
-  }
-  function onJobError(msg: string) {
-    setError(msg);
-    setJobId(null);
-  }
-  function onJobCancelled() {
-    setJobId(null);
-  }
-  function clearError() { setError(""); }
-
-  const perBase = lastResult?.bases ?? [];
 
   return {
-    busy, jobId, fileId, filename, guardado, lastResult, perBase, error,
-    runSync, runAsync, onJobDone, onJobError, onJobCancelled, clearError,
+    generacion: { estado, cerrar },
+    busy: estado.fase === "en_curso",
+    lastResult,
+    perBase: lastResult?.bases ?? [],
+    runSync: correr,
+    runAsync: correr,
   };
 }

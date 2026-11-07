@@ -22,6 +22,7 @@ import { usePuenteNavegacion } from "../lib/navegacion/usePuenteNavegacion";
 import ModuleWarmupBoundary, { RouteLoadingFallback } from "./ModuleWarmupBoundary";
 import { SectionPillbar } from "../components/SectionPillbar";
 import { ModuleCommandBar } from "../components/ModuleCommandBar";
+import { BandejaEntregables } from "../components/entregables/BandejaEntregables";
 import { ChromeSlotHost, ModuleChromeSlotsProvider, useHayRanura } from "./ModuleChromeSlots";
 import { MultibaseReportMenu } from "../features/graficos/MultibaseReportMenu";
 import { coberturaGraficos } from "../features/graficos/coberturaBases";
@@ -607,6 +608,8 @@ export default function Layout() {
         </div>
         <div className="pulso-app-header-spacer" />
         <div className="pulso-app-header-actions">
+          {/* Lo generado en la sesión (ADR 0133, fase 4): aparece con la primera generación. */}
+          <BandejaEntregables />
           {projectIndicator}
           <SessionErrorChip />
         </div>

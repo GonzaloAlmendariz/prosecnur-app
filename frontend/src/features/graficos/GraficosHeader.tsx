@@ -430,7 +430,7 @@ const jsonIoStyles: Record<string, CSSProperties> = {
 // - Badge "Autoguardado" con estado (guardando / guardado / sin conexión).
 // - Botones Export / Import del plan como JSON.
 // - Botón Reset (con confirmación).
-// - Botones de exportación .pptx / .docx con JobProgress delegado al padre.
+// - Botones de exportación .pptx / .docx; la espera y el resultado van en el contenedor anclado del menú.
 //
 // El componente NO hace el autosave — eso lo hace `useGraficosAutosave`
 // en GraficosPage. Acá solo reflejamos el estado.
@@ -438,26 +438,14 @@ const jsonIoStyles: Record<string, CSSProperties> = {
 export function GraficosHeader({
   onExportPpt,
   onExportWord,
-  pptFileId,
-  docxFileId,
-  pptFilename,
-  docxFilename,
-  pptGuardado,
-  docxGuardado,
-  exportBusy,
-  exportJobKind,
+  generacion,
+  pieDelFallo,
   canExport,
   prepReady,
   reportScope,
-}: Pick<ExportarInformeMenuProps, "pptGuardado" | "docxGuardado"> & {
+}: Pick<ExportarInformeMenuProps, "generacion" | "pieDelFallo"> & {
   onExportPpt: () => void;
   onExportWord: () => void;
-  pptFileId: string | null;
-  docxFileId: string | null;
-  pptFilename: string | null;
-  docxFilename: string | null;
-  exportBusy: boolean;
-  exportJobKind: "ppt" | "word" | null;
   canExport: boolean;
   prepReady: boolean;
   reportScope: GraficosReportScope;
@@ -594,14 +582,8 @@ export function GraficosHeader({
           <ExportarInformeMenu
             onExportPpt={onExportPpt}
             onExportWord={onExportWord}
-            pptFileId={pptFileId}
-            docxFileId={docxFileId}
-            pptFilename={pptFilename}
-            docxFilename={docxFilename}
-            pptGuardado={pptGuardado}
-            docxGuardado={docxGuardado}
-            exportBusy={exportBusy}
-            exportJobKind={exportJobKind}
+            generacion={generacion}
+            pieDelFallo={pieDelFallo}
             canExportFinal={canExportFinal}
             isSharedReport={isSharedReport}
             prepBlocked={prepBlocked}

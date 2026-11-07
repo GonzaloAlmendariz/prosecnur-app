@@ -1,13 +1,11 @@
-import { useCallback, useEffect, useRef, useState } from "react";
-import { CheckCircle2, ChevronDown, Download, Loader2, Play } from "../../vendor/lucide-react";
-import { JobProgress } from "../../components/JobProgress";
+import { useState } from "react";
+import { ChevronDown, Download, Play } from "../../vendor/lucide-react";
 import { PulsoButton } from "../../components/PulsoButton";
 import { ErrorBlock } from "../../components/States";
-import {
-  apiSaveFileAs, carpetaDelEntregable, downloadUrl, fileIdPrincipal, normalizeEntregableGuardado,
-  type EntregableGuardado, type FileJobResult,
-} from "../../api/client";
-import { useProjectShell } from "../project/ProjectShell";
+import { ContenedorEntregable } from "../../components/entregables/ContenedorEntregable";
+import { descargarDelServidor } from "../../components/entregables/entregaArchivo";
+import type { BasePerOutput } from "../../api/client";
+import type { ReporteRunState } from "./useReporteRun";
 
 // Toolkit compartido por los 5 panes de analítica (Codebook, Bases,
 // Frecuencias, Cruces, Enumeradores). Mantiene consistencia visual —
@@ -92,103 +90,29 @@ export function Collapsible({ title, summary, defaultOpen, children }: { title: 
 }
 
 // ---- GenerateFooter -------------------------------------------------------
-// Footer estandarizado: botón primario "Generar" + JobProgress (si async)
-// + link de descarga inline + bloque de error. El botón muestra spinner
-// Loader2 girando mientras está busy (feedback inmediato; JobProgress
-// cubre el async detallado).
+// Pie estandarizado de «Generar» sobre el kit de entregables (ADR 0133, fase
+// 4), en forma «bloque»: el botón solo se deshabilita mientras se genera (sin
+// spinner ni cambio de rótulo) y debajo, al ancho del pane, el contenedor del
+// archivo lleva la espera, el resultado o el fallo. Sin diálogo de guardado:
+// el backend ya copió el archivo a `Entregables\<Módulo>` o se descargó;
+// «Guardar como…» vive en «Más» del contenedor.
 export function GenerateFooter({
-  label, busy, jobId, fileId, downloadName, error,
-  onGenerate, disabled, disabledHint,
-  onJobDone, onJobError, onJobCancelled,
-  perBase,
+  label, run, onGenerate, disabled, disabledHint, error,
   variant = "primary",
-  guardado,
 }: {
   label: string;
-  busy: boolean;
-  jobId?: string | null;
-  fileId: string | null;
-  downloadName: string;
-  error: string;
+  /** El `useReporteRun` del pane: su generación y, si es multibase, los archivos de cada base. */
+  run: Pick<ReporteRunState, "generacion" | "perBase">;
   onGenerate: () => void;
   disabled?: boolean;
   disabledHint?: string;
-  onJobDone?: (d: FileJobResult) => void;
-  onJobError?: (m: string) => void;
-  onJobCancelled?: () => void;
-  // v0.2+: cuando el reporte es multi-base, el backend devuelve
-  // `bases[]` con cada archivo individual. El footer muestra el zip
-  // principal (via fileId) + una lista discreta con los archivos por
-  // base abajo para descarga individual.
-  perBase?: {
-    nombre: string;
-    file_id?: string;
-    filename: string;
-    size: number;
-    skipped?: boolean;
-    reason?: string;
-  }[];
+  /** Un error del pane que no viene de la generación (p. ej. no se pudo leer la configuración). */
+  error?: string;
   variant?: "primary" | "secondary";
-  /** Copia junto al proyecto del archivo `fileId` (ADR 0133), si el llamador
-   *  la conoce. Los resultados que llegan por job se leen aquí mismo. */
-  guardado?: EntregableGuardado | null;
 }) {
-  const running = busy || !!jobId;
-  const multi = (perBase?.length ?? 0) > 1;
-  const { project } = useProjectShell();
-  const autoSavedRef = useRef<string | null>(null);
-  const [saveStatus, setSaveStatus] = useState("");
-  // ADR 0133: el backend ya copió el archivo a `Entregables/<Módulo>`. Con
-  // esa copia el diálogo de guardado sobra: lo duplicaría.
-  const [guardadoDelJob, setGuardadoDelJob] = useState<{ fileId: string; guardado: EntregableGuardado } | null>(null);
-  const guardadoActual = guardado ?? (guardadoDelJob && guardadoDelJob.fileId === fileId ? guardadoDelJob.guardado : null);
-  const guardadoEn = guardadoActual?.guardadoEn ?? null;
-  const avisoGuardado = guardadoActual?.avisoGuardado ?? null;
-  const onDone = useCallback((d: FileJobResult) => {
-    const id = fileIdPrincipal(d);
-    if (id) setGuardadoDelJob({ fileId: id, guardado: normalizeEntregableGuardado(d) });
-    onJobDone?.(d);
-  }, [onJobDone]);
-
-  useEffect(() => {
-    if (!fileId || running || autoSavedRef.current === fileId || !window.prosecnurApi) return;
-    if (guardadoEn) {
-      autoSavedRef.current = fileId;
-      setSaveStatus("");
-      return;
-    }
-    const generatedFileId = fileId;
-    autoSavedRef.current = generatedFileId;
-    const ext = downloadName.includes(".") ? downloadName.split(".").pop() || "*" : "*";
-    const defaultPath = project.status.path
-      ? (() => {
-          const sep = project.status.path!.includes("\\") ? "\\" : "/";
-          return `${project.status.path!.replace(/[/\\][^/\\]+$/, "")}${sep}${downloadName}`;
-        })()
-      : undefined;
-    let cancelled = false;
-    async function saveGeneratedFile() {
-      try {
-        const target = await window.prosecnurApi!.saveEntregableDialog({
-          defaultName: downloadName,
-          defaultPath,
-          filters: [{ name: ext.toUpperCase(), extensions: [ext] }, { name: "Todos", extensions: ["*"] }],
-        });
-        if (!target || cancelled) return;
-        const saved = await apiSaveFileAs(generatedFileId, target, { overwrite: true });
-        if (!cancelled) setSaveStatus(`Guardado como ${saved.filename}`);
-      } catch (e) {
-        if (!cancelled) {
-          autoSavedRef.current = null;
-          setSaveStatus((e as Error).message);
-        }
-      }
-    }
-    void saveGeneratedFile();
-    return () => { cancelled = true; };
-  }, [fileId, running, downloadName, project.status.path, guardadoEn]);
-
-  const saveStatusIsError = saveStatus.startsWith("[") || /\s·\s(?:E_|HTTP_)[A-Z0-9_]+$/.test(saveStatus);
+  const { estado, cerrar } = run.generacion;
+  const running = estado.fase === "en_curso";
+  const porBase = run.perBase.length > 1 ? run.perBase : [];
 
   return (
     <>
@@ -200,89 +124,55 @@ export function GenerateFooter({
           size="lg"
           onClick={onGenerate}
           disabled={running || !!disabled}
-          aria-busy={running}
         >
-          {running ? (
-            <Loader2 size={14} className="pulso-spin" aria-hidden="true" />
-          ) : (
-            <Play size={14} aria-hidden="true" />
-          )}
-          {running ? "Generando…" : label}
+          <Play size={14} aria-hidden="true" />
+          {label}
         </PulsoButton>
         {disabled && disabledHint && (
           <span className="analitica-generate-hint">
             {disabledHint}
           </span>
         )}
-        {fileId && (
-          <a
-            href={downloadUrl(fileId)}
-            className="analitica-download-pill"
-          >
-            <Download size={12} />
-            {multi ? `${downloadName} (zip, ${perBase!.length} bases)` : downloadName}
-          </a>
-        )}
-        {fileId && guardadoEn && (
-          <span className="analitica-generate-save" title={guardadoEn}>
-            <CheckCircle2 size={12} aria-hidden="true" />
-            Guardado en {carpetaDelEntregable(guardadoEn, project.status.path)}
-          </span>
-        )}
-        {fileId && avisoGuardado && (
-          <span className="analitica-generate-hint">{avisoGuardado}</span>
-        )}
-        {saveStatus && !guardadoEn && (
-          <span className={`analitica-generate-save${saveStatusIsError ? " is-error" : ""}`}>
-            {!saveStatusIsError && <CheckCircle2 size={12} aria-hidden="true" />}
-            {saveStatus}
-          </span>
-        )}
       </div>
 
-      {multi && (
-        <div className="analitica-per-base-card">
-          <div className="analitica-per-base-title">
-            Descarga individual por base:
-          </div>
-          <div className="analitica-per-base-list">
-            {perBase!.map((b) => (
-              b.skipped ? (
-                <span
-                  key={b.nombre}
-                  title={b.reason ?? "Omitida"}
-                  className="analitica-per-base-chip is-skipped"
-                >
-                  {b.nombre} (omitida)
-                </span>
-              ) : b.file_id ? (
-                <a
-                  key={b.nombre}
-                  href={downloadUrl(b.file_id)}
-                  className="analitica-per-base-chip is-link"
-                >
-                  <Download size={10} aria-hidden="true" /> {b.nombre}
-                </a>
-              ) : (
-                <span key={b.nombre} className="analitica-per-base-chip">
-                  {b.nombre}
-                </span>
-              )
-            ))}
-          </div>
-        </div>
-      )}
+      <ContenedorEntregable
+        estado={estado}
+        forma="bloque"
+        onCerrar={cerrar}
+        pie={porBase.length > 0 ? <ArchivosPorBase bases={porBase} /> : undefined}
+      />
 
-      {jobId && onJobDone && onJobError && onJobCancelled && (
-        <JobProgress<FileJobResult>
-          label={label}
-          jobId={jobId}
-          onDone={onDone}
-          onError={onJobError}
-          onCancelled={onJobCancelled}
-        />
-      )}
       {error && <ErrorBlock label="No se pudo generar" detail={error} />}
     </>
+  );
+}
+
+// Con varias bases el entregable es el ZIP; cada base se puede bajar suelta.
+function ArchivosPorBase({ bases }: { bases: BasePerOutput[] }) {
+  return (
+    <div className="analitica-per-base-list" role="group" aria-label="Archivo de cada base">
+      {bases.map((b) => {
+        const fileId = b.skipped ? null : b.file_id ?? null;
+        if (!fileId) {
+          return (
+            <span key={b.nombre} title={b.reason ?? undefined} className="analitica-per-base-chip is-skipped">
+              {b.nombre}{b.skipped ? " (omitida)" : ""}
+            </span>
+          );
+        }
+        return (
+          <PulsoButton
+            key={b.nombre}
+            variant="secondary"
+            size="sm"
+            className="pulso-entregable-texto"
+            title={b.filename}
+            onClick={() => descargarDelServidor(fileId, b.filename)}
+          >
+            <Download size={12} aria-hidden="true" /> {b.nombre}
+          </PulsoButton>
+        );
+      })}
+    </div>
   );
 }

@@ -150,7 +150,7 @@ function ArchivosFuenteSection() {
 }
 
 function SourceDataCard() {
-  const run = useReporteRun();
+  const run = useReporteRun("Respuestas", { articulo: "las", formato: "xlsx" });
 
   async function onGenerate() {
     await run.runSync(apiAnaliticaBasesData);
@@ -171,20 +171,15 @@ function SourceDataCard() {
       </div>
       <GenerateFooter
         label="Descargar respuestas"
-        busy={run.busy}
-        fileId={run.fileId}
-        guardado={run.guardado}
-        downloadName={run.filename ?? "data_codificada.xlsx"}
-        error={run.error}
+        run={run}
         onGenerate={onGenerate}
-        perBase={run.perBase}
       />
     </div>
   );
 }
 
 function SourceInstrumentCard() {
-  const run = useReporteRun();
+  const run = useReporteRun("Formulario", { articulo: "el", formato: "xlsx" });
 
   async function onGenerate() {
     await run.runSync(apiAnaliticaBasesInstrumento);
@@ -205,13 +200,8 @@ function SourceInstrumentCard() {
       </div>
       <GenerateFooter
         label="Descargar formulario"
-        busy={run.busy}
-        fileId={run.fileId}
-        guardado={run.guardado}
-        downloadName={run.filename ?? "instrumento_codificado.xlsx"}
-        error={run.error}
+        run={run}
         onGenerate={onGenerate}
-        perBase={run.perBase}
       />
     </div>
   );
@@ -261,7 +251,7 @@ function SavCard({
   cfg: { incluir_sps: boolean };
   onChange: (patch: Partial<{ incluir_sps: boolean }>) => void;
 }) {
-  const run = useReporteRun();
+  const run = useReporteRun("Base en SAV", { articulo: "la", formato: cfg.incluir_sps ? "zip" : "sav" });
   const [writer, setWriter] = useState<BasesSavWriterInfo | null>(null);
 
   useEffect(() => {
@@ -317,13 +307,8 @@ function SavCard({
 
         <GenerateFooter
           label="Descargar SAV para SPSS"
-          busy={run.busy}
-          fileId={run.fileId}
-          guardado={run.guardado}
-          downloadName={run.filename ?? downloadName}
-          error={run.error}
+          run={run}
           onGenerate={onGenerate}
-          perBase={run.perBase}
         />
       </div>
     </Section>
@@ -363,7 +348,7 @@ function CsvCard({
   };
   onChange: (patch: Partial<typeof cfg>) => void;
 }) {
-  const run = useReporteRun();
+  const run = useReporteRun("Base en CSV", { articulo: "la", formato: "csv" });
 
   async function onGenerate() {
     await run.runSync(() =>
@@ -423,13 +408,8 @@ function CsvCard({
 
         <GenerateFooter
           label="Descargar CSV"
-          busy={run.busy}
-          fileId={run.fileId}
-          guardado={run.guardado}
-          downloadName={run.filename ?? "datos.csv"}
-          error={run.error}
+          run={run}
           onGenerate={onGenerate}
-          perBase={run.perBase}
         />
       </div>
     </Section>
@@ -449,7 +429,7 @@ function XlsxCard({
   };
   onChange: (patch: Partial<typeof cfg>) => void;
 }) {
-  const run = useReporteRun();
+  const run = useReporteRun("Base en Excel", { articulo: "la", formato: "xlsx" });
   const { state } = useSession();
   const relational = state?.estudio_processing_mode === "multibase" && (state?.n_bases ?? 0) > 1;
 
@@ -522,13 +502,8 @@ function XlsxCard({
 
         <GenerateFooter
           label="Descargar Excel"
-          busy={run.busy}
-          fileId={run.fileId}
-          guardado={run.guardado}
-          downloadName={run.filename ?? "datos.xlsx"}
-          error={run.error}
+          run={run}
           onGenerate={onGenerate}
-          perBase={run.perBase}
         />
       </div>
     </Section>
@@ -538,7 +513,7 @@ function XlsxCard({
 // ---- Script de replicación (.R) -------------------------------------------
 
 function ScriptReplicaCard() {
-  const run = useReporteRun();
+  const run = useReporteRun("Script de replicación", { articulo: "el", formato: "r" });
 
   async function onGenerate() {
     await run.runSync(apiAnaliticaBasesScriptR);
@@ -563,13 +538,8 @@ function ScriptReplicaCard() {
 
         <GenerateFooter
           label="Descargar script de replicación"
-          busy={run.busy}
-          fileId={run.fileId}
-          guardado={run.guardado}
-          downloadName={run.filename ?? "replicar_base.R"}
-          error={run.error}
+          run={run}
           onGenerate={onGenerate}
-          perBase={run.perBase}
         />
       </div>
     </Section>
@@ -585,8 +555,8 @@ function UnifiedSiblingsCard({
     incluir_madre_sm?: boolean;
   };
 }) {
-  const cleanRun = useReporteRun();
-  const metadataRun = useReporteRun();
+  const cleanRun = useReporteRun("Bases unidas en Excel", { articulo: "las", formato: "xlsx", porBase: false });
+  const metadataRun = useReporteRun("Bases unidas con trazabilidad", { articulo: "las", formato: "xlsx", porBase: false });
   const { state } = useSession();
   const enabled = state?.estudio_processing_mode === "independent_siblings" && (state?.n_bases ?? 0) > 1;
 
@@ -657,26 +627,16 @@ function UnifiedSiblingsCard({
         <div className="analitica-bases-unified-actions">
           <GenerateFooter
             label="Descargar Excel limpio"
-            busy={cleanRun.busy}
-            fileId={cleanRun.fileId}
-            guardado={cleanRun.guardado}
-            downloadName={cleanRun.filename ?? "bases_unificadas.xlsx"}
-            error={cleanRun.error}
+            run={cleanRun}
             onGenerate={onGenerateClean}
-            perBase={cleanRun.perBase}
           />
           <div title="Incluye variables identificadoras y metadatos operativos como survey_id, response_id, collector_id, estado y fechas.">
             <GenerateFooter
               label="Descargar Excel trazable"
-              busy={metadataRun.busy}
-              fileId={metadataRun.fileId}
-              guardado={metadataRun.guardado}
-              downloadName={metadataRun.filename ?? "bases_unificadas_con_metadata.xlsx"}
-              error={metadataRun.error}
+              run={metadataRun}
               onGenerate={onGenerateWithMetadata}
               disabled={cleanRun.busy}
               disabledHint={cleanRun.busy ? "Espera a que termine el Excel limpio." : undefined}
-              perBase={metadataRun.perBase}
               variant="secondary"
             />
           </div>

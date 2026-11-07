@@ -73,6 +73,9 @@ function manualChunks(id: string) {
   // el manifiesto.
   if (normalized.endsWith("/src/features/estudio/panelEstudio.ts")) return "app-core";
   if (normalized.includes("/src/components/") || normalized.includes("/src/lib/")) {
+    // Kit de entregables (ADR 0133, fase 4): importa api/jobs, api/core y
+    // api/workspace por valor; en app-core cerraría el mismo ciclo con api-client.
+    if (normalized.includes("/src/components/entregables/")) return undefined;
     if (APP_CORE_VALUE_COUPLED_EXCLUDED.some((suffix) => normalized.endsWith(suffix))) {
       return undefined;
     }

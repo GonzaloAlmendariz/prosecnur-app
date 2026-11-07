@@ -1,32 +1,22 @@
 // @vitest-environment happy-dom
 /**
- * ADR 0133: el informe que el backend ya copió a `Entregables/<Módulo>` no
- * abre el diálogo de guardado al aparecer (lo duplicaría); el menú dice en qué
- * carpeta quedó. Sin `guardado_en`, el diálogo se abre como antes.
+ * ADR 0133, fases 2 y 4: el menú «Exportar» de Gráficos lleva la espera y el
+ * resultado en el contenedor de entregables, en forma «anclada»: al elegir un
+ * formato el menú se cierra y el contenedor queda colgado del disparador con la
+ * fase del job y «Cancelar»; el resultado se ve sin reabrir el menú. Nunca abre
+ * el diálogo de guardado: el informe ya quedó en `Entregables/<Módulo>` o se
+ * descargó.
  */
+import { readFileSync } from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ProsecnurApi } from "../project/types";
-import type { EntregableGuardado } from "../../api/client";
+import type { EstadoGeneracion } from "../../components/entregables/tipos";
 import type { ExportarInformeMenuProps } from "./ExportarInformeMenu";
-
-const PROYECTO = "/Users/ana/Estudios/HSVG2026/HSVG2026.pulso";
-
-const espia = vi.hoisted(() => ({
-  saveFileAs: vi.fn(async (_fileId: string, path: string) => ({ ok: true as const, path, filename: path.split("/").pop() ?? path, size: 1 })),
-}));
-
-vi.mock("../project/ProjectShell", () => ({
-  useProjectShell: () => ({ project: { status: { path: PROYECTO } } }),
-}));
-
-vi.mock("../../api/client", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("../../api/client")>()),
-  apiSaveFileAs: espia.saveFileAs,
-  downloadUrl: (fileId: string) => `/api/files/${fileId}/download`,
-}));
 
 vi.mock("./estilo/ColoresPendientesAviso", () => ({
   ColoresPendientesAviso: () => null,
@@ -35,7 +25,9 @@ vi.mock("./estilo/ColoresPendientesAviso", () => ({
 }));
 
 const { ExportarInformeMenu } = await import("./ExportarInformeMenu");
-const { normalizeEntregableGuardado } = await import("../../api/client");
+const { archivoDesdeRespuesta } = await import("../../components/entregables/archivoDesdeRespuesta");
+
+const CARPETA = "C:\\Users\\ana\\Estudios\\HSVG2026\\Entregables\\Procesamiento";
 
 let host: HTMLDivElement;
 let root: Root;
@@ -46,9 +38,12 @@ beforeEach(() => {
   host = document.createElement("div");
   document.body.appendChild(host);
   root = createRoot(host);
-  dialogo = vi.fn(async () => "/Users/ana/Estudios/HSVG2026/reporte.pptx");
-  window.prosecnurApi = { saveEntregableDialog: dialogo } as unknown as ProsecnurApi;
-  espia.saveFileAs.mockClear();
+  dialogo = vi.fn(async () => "C:\\Users\\ana\\reporte.pptx");
+  window.prosecnurApi = {
+    saveEntregableDialog: dialogo,
+    abrirArchivo: vi.fn(async () => ({ ok: true })),
+    mostrarEnCarpeta: vi.fn(async () => ({ ok: true })),
+  } as unknown as ProsecnurApi;
 });
 
 afterEach(() => {
@@ -58,20 +53,12 @@ afterEach(() => {
   delete window.prosecnurApi;
 });
 
-function guardado(parcial: Partial<EntregableGuardado>): EntregableGuardado {
-  return { guardadoEn: null, avisoGuardado: null, modulo: null, rotulo: null, ...parcial };
-}
-
-async function montar(props: Partial<ExportarInformeMenuProps>) {
+async function montar(props: Partial<ExportarInformeMenuProps> & { estado?: EstadoGeneracion; cerrar?: () => void }) {
+  const { estado = { fase: "inactiva" }, cerrar = vi.fn(), ...resto } = props;
   const base: ExportarInformeMenuProps = {
     onExportPpt: vi.fn(),
     onExportWord: vi.fn(),
-    pptFileId: null,
-    docxFileId: null,
-    pptFilename: null,
-    docxFilename: null,
-    exportBusy: false,
-    exportJobKind: null,
+    generacion: { estado, cerrar },
     canExportFinal: true,
     isSharedReport: false,
     prepBlocked: false,
@@ -79,79 +66,98 @@ async function montar(props: Partial<ExportarInformeMenuProps>) {
   await act(async () => {
     root.render(
       <MemoryRouter>
-        <ExportarInformeMenu {...base} {...props} />
+        <ExportarInformeMenu {...base} {...resto} />
       </MemoryRouter>,
     );
   });
 }
 
-async function abrirMenu() {
-  const boton = host.querySelector<HTMLButtonElement>(".pulso-gv2-export-menu-trigger");
-  expect(boton).not.toBeNull();
-  await act(async () => { boton?.click(); });
+function disparador() {
+  return host.querySelector<HTMLButtonElement>(".pulso-gv2-export-menu-trigger");
 }
 
-describe("ExportarInformeMenu con la copia junto al proyecto (ADR 0133)", () => {
-  it("con guardado_en no abre el diálogo y el menú dice la carpeta", async () => {
-    await montar({
-      pptFileId: "ppt-guardado",
-      pptFilename: "HSVG2026_Reporte_07_11_26.pptx",
-      pptGuardado: guardado({ guardadoEn: "/Users/ana/Estudios/HSVG2026/Entregables/Dashboard/HSVG2026_Reporte_07_11_26.pptx" }),
-    });
-    expect(dialogo).not.toHaveBeenCalled();
-    expect(espia.saveFileAs).not.toHaveBeenCalled();
-    await abrirMenu();
-    const archivos = host.querySelector(".pulso-gv2-export-menu-files");
-    expect(archivos?.textContent).toMatch(/Guardado en Entregables[\\/]Dashboard/);
-    expect(archivos?.textContent).not.toContain("Guardado como");
+function boton(texto: string) {
+  return Array.from(host.querySelectorAll<HTMLButtonElement>("button")).find((b) => b.textContent?.includes(texto) || b.getAttribute("aria-label") === texto) ?? null;
+}
+
+describe("ExportarInformeMenu con el contenedor anclado (ADR 0133)", () => {
+  it("al elegir PowerPoint el menú se cierra y se pide la exportación", async () => {
+    const onExportPpt = vi.fn();
+    const cerrar = vi.fn();
+    await montar({ onExportPpt, cerrar });
+    await act(async () => { disparador()?.click(); });
+    expect(host.querySelector(".pulso-gv2-export-menu-popover")).not.toBeNull();
+    await act(async () => { boton("PowerPoint")?.click(); });
+    expect(onExportPpt).toHaveBeenCalledTimes(1);
+    expect(cerrar).toHaveBeenCalled();
+    expect(host.querySelector(".pulso-gv2-export-menu-popover")).toBeNull();
   });
 
-  it("PPT de Gráficos: el result_data de graficos.ppt llega con su file_id y no abre el diálogo", async () => {
-    // Lo que hace GraficosPage.onExportDone: fija file_id y la copia en el mismo lote.
+  it("en curso: el disparador solo se deshabilita y el contenedor cuelga de él con la fase y Cancelar", async () => {
+    const cancelar = vi.fn();
+    await montar({ estado: { fase: "en_curso", titulo: "Informe en PowerPoint", paso: 3, pasos: 5, mensaje: "Dibujando láminas", porcentaje: 60, cancelar } });
+    const t = disparador();
+    expect(t?.disabled).toBe(true);
+    expect(t?.querySelector(".pulso-spin")).toBeNull();
+    expect(t?.textContent).toContain("Exportar");
+    // A ≤1180 px el `:disabled` se compacta a ícono; exportando no (editor-v2.css lo excluye por este atributo).
+    expect(t?.getAttribute("data-exportando")).toBe("true");
+    const contenedor = host.querySelector(".pulso-gv2-export-menu > [data-entregable-forma='anclada']");
+    expect(contenedor?.getAttribute("data-entregable-fase")).toBe("en_curso");
+    expect(contenedor?.textContent).toContain("Paso 3 de 5: dibujando láminas");
+    expect(host.querySelectorAll("[role='progressbar']")).toHaveLength(1);
+    await act(async () => { boton("Cancelar")?.click(); });
+    expect(cancelar).toHaveBeenCalled();
+  });
+
+  it("listo con guardado_en: no abre el diálogo y el resultado se ve sin reabrir el menú", async () => {
     const resultData = {
       ok: true, file_id: "ppt-job", filename: "HSVG2026_Reporte_de_graficos_07_11_26.pptx", size: 99, avisos: [],
       modulo: "Procesamiento", rotulo: "Reporte de gráficos",
-      guardado_en: "/Users/ana/Estudios/HSVG2026/Entregables/Procesamiento/HSVG2026_Reporte_de_graficos_07_11_26.pptx",
-      aviso_guardado: null,
+      guardado_en: `${CARPETA}\\HSVG2026_Reporte_de_graficos_07_11_26.pptx`, aviso_guardado: null,
     };
-    await montar({ exportBusy: true, exportJobKind: "ppt" });
-    await montar({ pptFileId: resultData.file_id, pptFilename: resultData.filename, pptGuardado: normalizeEntregableGuardado(resultData) });
+    const cerrar = vi.fn();
+    await montar({ estado: { fase: "lista", titulo: "Informe en PowerPoint", archivos: archivoDesdeRespuesta(resultData) }, cerrar });
     expect(dialogo).not.toHaveBeenCalled();
-    await abrirMenu();
-    expect(host.querySelector(".pulso-gv2-export-menu-files")?.textContent).toMatch(/Guardado en Entregables[\\/]Procesamiento/);
+    expect(host.querySelector(".pulso-gv2-export-menu-popover")).toBeNull();
+    const contenedor = host.querySelector("[data-entregable-forma='anclada']");
+    expect(contenedor?.textContent).toContain("HSVG2026_Reporte_de_graficos_07_11_26.pptx");
+    expect(contenedor?.textContent).toContain("Entregables\\Procesamiento");
+    expect(host.querySelector(".pulso-entregable-tile")?.textContent).toBe("PPTX");
+    expect(host.querySelectorAll("a")).toHaveLength(0);
+    expect(disparador()?.disabled).toBe(false);
+    await act(async () => { boton("Cerrar")?.click(); });
+    expect(cerrar).toHaveBeenCalled();
   });
 
-  it("el PPT y el Word copiados a la misma carpeta la dicen una vez", async () => {
+  it("fallo: causa, código y la acción extra del pie (ir a la lámina)", async () => {
     await montar({
-      pptFileId: "ppt-par",
-      docxFileId: "docx-par",
-      pptGuardado: guardado({ guardadoEn: "/Users/ana/Estudios/HSVG2026/Entregables/Dashboard/a.pptx" }),
-      docxGuardado: guardado({ guardadoEn: "/Users/ana/Estudios/HSVG2026/Entregables/Dashboard/a.docx" }),
+      estado: { fase: "fallo", titulo: "Informe en PowerPoint", causa: "Lámina 3: su gráfico no se puede dibujar.", codigo: "E_GRAFICOS_RENDER", reintentar: vi.fn() },
+      pieDelFallo: <button type="button">Ir a la lámina 3</button>,
     });
-    expect(dialogo).not.toHaveBeenCalled();
-    await abrirMenu();
-    const textos = host.querySelector(".pulso-gv2-export-menu-files")?.textContent ?? "";
-    expect(textos.match(/Guardado en/g)).toHaveLength(1);
+    const contenedor = host.querySelector("[data-entregable-forma='anclada']");
+    expect(contenedor?.getAttribute("role")).toBe("alert");
+    expect(contenedor?.textContent).toContain("Lámina 3: su gráfico no se puede dibujar.");
+    expect(contenedor?.textContent).toContain("E_GRAFICOS_RENDER");
+    expect(boton("Ir a la lámina 3")).not.toBeNull();
+    expect(boton("Reintentar")).not.toBeNull();
   });
 
-  it("sin guardado_en abre el diálogo como hoy", async () => {
-    await montar({ pptFileId: "ppt-sin-copia", pptFilename: "reporte.pptx", pptGuardado: guardado({}) });
-    expect(dialogo).toHaveBeenCalledTimes(1);
-    expect(dialogo.mock.calls[0][0]).toMatchObject({
-      defaultName: "reporte.pptx",
-      defaultPath: "/Users/ana/Estudios/HSVG2026/reporte.pptx",
-    });
-    expect(espia.saveFileAs).toHaveBeenCalledWith("ppt-sin-copia", "/Users/ana/Estudios/HSVG2026/reporte.pptx", { overwrite: true });
-    await abrirMenu();
-    expect(host.textContent).toContain("Guardado como reporte.pptx");
+  it("sin plan exportable el disparador queda deshabilitado (y ese sí puede compactarse)", async () => {
+    await montar({ canExportFinal: false });
+    expect(disparador()?.disabled).toBe(true);
+    expect(disparador()?.hasAttribute("data-exportando")).toBe(false);
   });
 
-  it("el aviso de guardado se muestra como nota neutra junto al archivo", async () => {
-    const aviso = "La ruta pasa de 240 caracteres: el archivo no se copió junto al proyecto.";
-    await montar({ pptFileId: "ppt-aviso", pptFilename: "reporte.pptx", pptGuardado: guardado({ avisoGuardado: aviso }) });
-    expect(dialogo).toHaveBeenCalledTimes(1);
-    await abrirMenu();
-    const nota = Array.from(host.querySelectorAll(".pulso-gv2-export-menu-files small")).map((n) => n.textContent);
-    expect(nota).toEqual([aviso]);
+  it("editor-v2.css: el colapso a ícono del disparador deshabilitado no alcanza a una exportación en curso", () => {
+    const css = readFileSync(path.join(path.dirname(fileURLToPath(import.meta.url)), "v2/styles/editor-v2.css"), "utf8");
+    // Las reglas que esconden el rótulo o achican el disparador deshabilitado a un ícono.
+    const colapsan = [...css.replace(/\/\*[\s\S]*?\*\//g, "").matchAll(/([^{}]+)\{([^}]*)\}/g)]
+      .filter(([, sel, cuerpo]) => sel.includes("export-menu-trigger:disabled")
+        && /display:\s*(?:none|block)|width:\s*var\(--gv2-command-control-h\)/.test(cuerpo));
+    expect(colapsan.length).toBeGreaterThanOrEqual(3);
+    for (const [, sel] of colapsan) {
+      for (const s of sel.split(",")) expect(s.trim()).toContain(":disabled:not([data-exportando])");
+    }
   });
 });

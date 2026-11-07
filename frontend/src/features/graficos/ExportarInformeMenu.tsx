@@ -1,64 +1,41 @@
-// Menú «Exportar ▾» del informe (PowerPoint y Word) con el guardado al lado del proyecto. Extraído de GraficosHeader
-// (F6.1, parte 2) para que lo usen tanto la barra del Editor anterior como la barra de la pestaña Láminas, con el
-// mismo comportamiento: un solo lugar decide qué se exporta, qué se guarda y qué se avisa.
+// Menú «Exportar ▾» del informe (PowerPoint y Word). Extraído de GraficosHeader (F6.1, parte 2) para que lo usen tanto
+// la barra del Editor anterior como la barra de la pestaña Láminas, con el mismo comportamiento.
+//
+// La espera y el resultado van en el contenedor de entregables, en forma «anclada» (ADR 0133, fase 4): al elegir
+// un formato el menú se cierra y el contenedor queda colgado del disparador con la fase del job y «Cancelar»; el
+// resultado se ve ahí mismo sin reabrir el menú. Sin diálogo de guardado: el archivo ya quedó en
+// `Entregables\<Módulo>` o se descargó; «Guardar como…» vive en «Más» del contenedor.
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
-import { ArrowRight, CheckCircle2, ChevronDown, Database, Download, FileText, Loader2 } from "../../vendor/lucide-react";
-import { apiSaveFileAs, carpetaDelEntregable, downloadUrl, type EntregableGuardado } from "../../api/client";
-import { useProjectShell } from "../project/ProjectShell";
+import { ArrowRight, ChevronDown, Database, Download, FileText } from "../../vendor/lucide-react";
+import { ContenedorEntregable } from "../../components/entregables/ContenedorEntregable";
+import type { Generacion } from "../../components/entregables/useGeneracion";
 import { ColoresPendientesAviso, ID_COLORES_PENDIENTES, useColoresPendientes } from "./estilo/ColoresPendientesAviso";
 import { puedeGenerarInforme } from "./exportarInformeRegla";
 
 export type ExportarInformeMenuProps = {
   onExportPpt: () => void;
   onExportWord: () => void;
-  pptFileId: string | null;
-  docxFileId: string | null;
-  pptFilename: string | null;
-  docxFilename: string | null;
-  exportBusy: boolean;
-  exportJobKind: "ppt" | "word" | null;
+  /** La exportación en curso o su resultado (`useGeneracion` de GraficosPage). */
+  generacion: Pick<Generacion, "estado" | "cerrar">;
+  /** Acción extra al pie del contenedor cuando la exportación falla (p. ej. ir a la lámina que la detuvo). */
+  pieDelFallo?: ReactNode;
   /** El padre lo permite Y el validador del plan no tiene errores. */
   canExportFinal: boolean;
   isSharedReport: boolean;
   prepBlocked: boolean;
-  /** Copia junto al proyecto de cada archivo (ADR 0133). Con `guardadoEn` no se
-   *  abre el diálogo de guardado: el backend ya dejó el archivo en
-   *  `Entregables/<Módulo>`. */
-  pptGuardado?: EntregableGuardado | null;
-  docxGuardado?: EntregableGuardado | null;
 };
 
-// Archivos cuyo diálogo de guardado ya se ofreció. Vive fuera del componente: al cambiar de pestaña el menú se
-// vuelve a montar y no debe volver a ofrecer guardar un archivo que ya se ofreció.
-const ofrecidos = new Set<string>();
-
 export function ExportarInformeMenu({
-  onExportPpt, onExportWord, pptFileId, docxFileId, pptFilename, docxFilename,
-  exportBusy, exportJobKind, canExportFinal, isSharedReport, prepBlocked,
-  pptGuardado = null, docxGuardado = null,
+  onExportPpt, onExportWord, generacion, pieDelFallo, canExportFinal, isSharedReport, prepBlocked,
 }: ExportarInformeMenuProps) {
   const [exportMenuOpen, setExportMenuOpen] = useState(false);
   const exportMenuRef = useRef<HTMLDivElement>(null);
-  const { project } = useProjectShell();
-  const [saveStatus, setSaveStatus] = useState("");
-  const generatedReports = Number(Boolean(pptFileId)) + Number(Boolean(!isSharedReport && docxFileId));
+  const exportBusy = generacion.estado.fase === "en_curso";
   // P8: un gráfico que pinta cada respuesta con su color no se exporta con respuestas sin color (exportarInformeRegla.ts).
   const { pendientes: coloresPendientes, completar: completarColores } = useColoresPendientes();
   const puedeGenerar = puedeGenerarInforme({ planSinErrores: canExportFinal, coloresPendientes: coloresPendientes.length });
-  const pptGuardadoEn = pptFileId ? pptGuardado?.guardadoEn ?? null : null;
-  const docxGuardadoEn = !isSharedReport && docxFileId ? docxGuardado?.guardadoEn ?? null : null;
-  const avisosGuardado = [
-    pptFileId ? pptGuardado?.avisoGuardado : null,
-    !isSharedReport && docxFileId ? docxGuardado?.avisoGuardado : null,
-  ].filter((a): a is string => Boolean(a));
-  // Las dos copias suelen caer en la misma carpeta (Entregables/Procesamiento): se dice una vez.
-  const carpetasGuardado = Array.from(new Set(
-    [pptGuardadoEn, docxGuardadoEn]
-      .filter((g): g is string => Boolean(g))
-      .map((g) => carpetaDelEntregable(g, project.status.path)),
-  ));
 
   useEffect(() => {
     if (!exportMenuOpen) return;
@@ -76,43 +53,11 @@ export function ExportarInformeMenu({
     };
   }, [exportMenuOpen]);
 
-  useEffect(() => {
-    const candidate = [
-      { fileId: pptFileId, filename: pptFilename ?? "reporte.pptx", guardadoEn: pptGuardado?.guardadoEn ?? null },
-      { fileId: docxFileId, filename: docxFilename ?? "reporte.docx", guardadoEn: docxGuardado?.guardadoEn ?? null },
-    ].find((item) => item.fileId && !item.guardadoEn && !ofrecidos.has(item.fileId));
-    if (!candidate?.fileId || exportBusy || !window.prosecnurApi) return;
-    const fileId = candidate.fileId;
-    const filename = candidate.filename;
-    ofrecidos.add(fileId);
-    const ext = filename.split(".").pop() || "*";
-    const defaultPath = project.status.path
-      ? (() => {
-          const sep = project.status.path!.includes("\\") ? "\\" : "/";
-          return `${project.status.path!.replace(/[/\\][^/\\]+$/, "")}${sep}${filename}`;
-        })()
-      : undefined;
-    let cancelled = false;
-    async function saveGeneratedReport() {
-      try {
-        const target = await window.prosecnurApi!.saveEntregableDialog({
-          defaultName: filename,
-          defaultPath,
-          filters: [{ name: ext.toUpperCase(), extensions: [ext] }, { name: "Todos", extensions: ["*"] }],
-        });
-        if (!target || cancelled) return;
-        const saved = await apiSaveFileAs(fileId, target, { overwrite: true });
-        if (!cancelled) setSaveStatus(`Guardado como ${saved.filename}`);
-      } catch (e) {
-        if (!cancelled) {
-          ofrecidos.delete(fileId);
-          setSaveStatus((e as Error).message);
-        }
-      }
-    }
-    void saveGeneratedReport();
-    return () => { cancelled = true; };
-  }, [pptFileId, docxFileId, pptFilename, docxFilename, exportBusy, project.status.path, pptGuardado?.guardadoEn, docxGuardado?.guardadoEn]);
+  function elegir(exportar: () => void) {
+    setExportMenuOpen(false);
+    generacion.cerrar();
+    exportar();
+  }
 
   return (
     <>
@@ -132,16 +77,18 @@ export function ExportarInformeMenu({
                 type="button"
                 className="pulso-primary pulso-gv2-pill-button pulso-gv2-pill-button--primary pulso-gv2-export-menu-trigger"
                 onClick={() => setExportMenuOpen((v) => !v)}
-                disabled={!canExportFinal && !pptFileId && (isSharedReport || !docxFileId)}
+                disabled={!canExportFinal || exportBusy}
+                // Mientras exporta, el disparador solo se deshabilita: conserva rótulo y forma (a ≤1180 px el
+                // `:disabled` sin exportación se compacta a ícono, editor-v2.css).
+                data-exportando={exportBusy ? "true" : undefined}
                 aria-haspopup="dialog"
                 aria-expanded={exportMenuOpen}
                 title={!canExportFinal ? "Revisa el estado del plan antes de exportar"
                   : coloresPendientes.length ? "Faltan colores: complétalos para exportar"
                   : isSharedReport ? "Exportar el informe compartido en PowerPoint" : "Exportar el reporte en PowerPoint o Word"}
               >
-                {exportBusy ? <Loader2 size={13} className="pulso-spin" /> : <Download size={13} />}
+                <Download size={13} />
                 <span>Exportar</span>
-                {generatedReports > 0 && <b>{generatedReports}</b>}
                 <ChevronDown size={13} />
               </button>
 
@@ -157,27 +104,18 @@ export function ExportarInformeMenu({
                     </div>
                   </div>
 
-                  {!canExportFinal && (
-                    <div className="pulso-gv2-export-menu-warning">
-                      Revisa el estado del plan antes de generar archivos.
-                    </div>
-                  )}
-
                   {/* El motivo y el arreglo en un clic antes de las acciones que deshabilita (P8, U9). */}
                   <ColoresPendientesAviso pendientes={coloresPendientes} onCompletar={completarColores} onVer={() => setExportMenuOpen(false)} />
 
                   <div className="pulso-gv2-export-menu-actions">
                     <button
                       type="button"
-                      onClick={() => {
-                        setExportMenuOpen(false);
-                        onExportPpt();
-                      }}
+                      onClick={() => elegir(onExportPpt)}
                       disabled={!puedeGenerar || exportBusy}
                       aria-describedby={coloresPendientes.length ? ID_COLORES_PENDIENTES : undefined}
                     >
                       <span className="pulso-gv2-export-menu-action-icon" aria-hidden="true">
-                        {exportJobKind === "ppt" ? <Loader2 size={14} className="pulso-spin" /> : <FileText size={14} />}
+                        <FileText size={14} />
                       </span>
                       <span>
                         <strong>PowerPoint</strong>
@@ -186,15 +124,12 @@ export function ExportarInformeMenu({
                     </button>
                     {!isSharedReport && <button
                       type="button"
-                      onClick={() => {
-                        setExportMenuOpen(false);
-                        onExportWord();
-                      }}
+                      onClick={() => elegir(onExportWord)}
                       disabled={!puedeGenerar || exportBusy}
                       aria-describedby={coloresPendientes.length ? ID_COLORES_PENDIENTES : undefined}
                     >
                       <span className="pulso-gv2-export-menu-action-icon" aria-hidden="true">
-                        {exportJobKind === "word" ? <Loader2 size={14} className="pulso-spin" /> : <FileText size={14} />}
+                        <FileText size={14} />
                       </span>
                       <span>
                         <strong>Word</strong>
@@ -203,36 +138,15 @@ export function ExportarInformeMenu({
                     </button>}
                   </div>
 
-                  {(pptFileId || docxFileId || saveStatus || carpetasGuardado.length > 0 || avisosGuardado.length > 0) && (
-                    <div className="pulso-gv2-export-menu-files">
-                      {pptFileId && !exportBusy && (
-                        <a href={downloadUrl(pptFileId)}>
-                          <Download size={12} /> {pptFilename ?? "reporte.pptx"}
-                        </a>
-                      )}
-                      {!isSharedReport && docxFileId && !exportBusy && (
-                        <a href={downloadUrl(docxFileId)}>
-                          <Download size={12} /> {docxFilename ?? "reporte.docx"}
-                        </a>
-                      )}
-                      {!exportBusy && carpetasGuardado.map((carpeta) => (
-                        <span key={carpeta} className="is-ok">
-                          <CheckCircle2 size={12} /> Guardado en {carpeta}
-                        </span>
-                      ))}
-                      {!exportBusy && avisosGuardado.map((aviso) => (
-                        <small key={aviso}>{aviso}</small>
-                      ))}
-                      {saveStatus && (
-                        <span className={saveStatus.startsWith("[") || /\s·\s(?:E_|HTTP_)[A-Z0-9_]+$/.test(saveStatus) ? "is-error" : "is-ok"}>
-                          {!(saveStatus.startsWith("[") || /\s·\s(?:E_|HTTP_)[A-Z0-9_]+$/.test(saveStatus)) && <CheckCircle2 size={12} />}
-                          {saveStatus}
-                        </span>
-                      )}
-                    </div>
-                  )}
                 </div>
               )}
+
+              <ContenedorEntregable
+                estado={generacion.estado}
+                forma="anclada"
+                onCerrar={generacion.cerrar}
+                pie={generacion.estado.fase === "fallo" ? pieDelFallo : undefined}
+              />
             </div>
           )}
 

@@ -51,7 +51,7 @@ function detectarModo(
 export function EnumeradoresPane() {
   const enumer = useAnaliticaStore((s) => s.config.enumeradores);
   const setEnumer = useAnaliticaStore((s) => s.setEnumeradores);
-  const run = useReporteRun();
+  const run = useReporteRun("Reporte de enumeradores", { articulo: "el", formato: "pdf" });
 
   // Quarto es dependencia opcional para PDF de enumeradores. Lo
   // chequeamos al montar la pantalla para mostrar un banner claro y
@@ -293,12 +293,7 @@ export function EnumeradoresPane() {
         {/* 5. Generar */}
         <GenerateFooter
           label="Generar reporte"
-          busy={run.busy}
-          jobId={run.jobId}
-          fileId={run.fileId}
-          guardado={run.guardado}
-          downloadName={run.filename ?? "enumeradores.pdf"}
-          error={run.error}
+          run={run}
           onGenerate={onGenerate}
           disabled={!puedeGenerar || quartoOk === false}
           disabledHint={
@@ -307,10 +302,6 @@ export function EnumeradoresPane() {
               : !enumer.col_enumerador
               ? "Selecciona primero la columna del enumerador."
               : "Agrega al menos una regla o cambia el modo a «Sin modalidad» / «Por columna»."}
-          onJobDone={run.onJobDone}
-          onJobError={run.onJobError}
-          onJobCancelled={run.onJobCancelled}
-          perBase={run.perBase}
         />
       </div>
     </Panel>
