@@ -173,6 +173,7 @@ function SourceDataCard() {
         label="Descargar respuestas"
         busy={run.busy}
         fileId={run.fileId}
+        guardado={run.guardado}
         downloadName={run.filename ?? "data_codificada.xlsx"}
         error={run.error}
         onGenerate={onGenerate}
@@ -206,6 +207,7 @@ function SourceInstrumentCard() {
         label="Descargar formulario"
         busy={run.busy}
         fileId={run.fileId}
+        guardado={run.guardado}
         downloadName={run.filename ?? "instrumento_codificado.xlsx"}
         error={run.error}
         onGenerate={onGenerate}
@@ -317,6 +319,7 @@ function SavCard({
           label="Descargar SAV para SPSS"
           busy={run.busy}
           fileId={run.fileId}
+          guardado={run.guardado}
           downloadName={run.filename ?? downloadName}
           error={run.error}
           onGenerate={onGenerate}
@@ -422,6 +425,7 @@ function CsvCard({
           label="Descargar CSV"
           busy={run.busy}
           fileId={run.fileId}
+          guardado={run.guardado}
           downloadName={run.filename ?? "datos.csv"}
           error={run.error}
           onGenerate={onGenerate}
@@ -520,6 +524,7 @@ function XlsxCard({
           label="Descargar Excel"
           busy={run.busy}
           fileId={run.fileId}
+          guardado={run.guardado}
           downloadName={run.filename ?? "datos.xlsx"}
           error={run.error}
           onGenerate={onGenerate}
@@ -560,6 +565,7 @@ function ScriptReplicaCard() {
           label="Descargar script de replicación"
           busy={run.busy}
           fileId={run.fileId}
+          guardado={run.guardado}
           downloadName={run.filename ?? "replicar_base.R"}
           error={run.error}
           onGenerate={onGenerate}
@@ -653,6 +659,7 @@ function UnifiedSiblingsCard({
             label="Descargar Excel limpio"
             busy={cleanRun.busy}
             fileId={cleanRun.fileId}
+            guardado={cleanRun.guardado}
             downloadName={cleanRun.filename ?? "bases_unificadas.xlsx"}
             error={cleanRun.error}
             onGenerate={onGenerateClean}
@@ -663,6 +670,7 @@ function UnifiedSiblingsCard({
               label="Descargar Excel trazable"
               busy={metadataRun.busy}
               fileId={metadataRun.fileId}
+              guardado={metadataRun.guardado}
               downloadName={metadataRun.filename ?? "bases_unificadas_con_metadata.xlsx"}
               error={metadataRun.error}
               onGenerate={onGenerateWithMetadata}

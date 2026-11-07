@@ -45,7 +45,93 @@ export function jobResultDomainError(data: unknown): JobResultError | null {
 
 export type JobStatus = "running" | "done" | "error" | "cancelled";
 export type JobStart = { ok: true; job_id: string; kind: string };
-export type FileJobResult = { ok: true; file_id: string; filename?: string; size: number };
+export type FileJobResult = { ok: true; file_id: string; filename?: string; size: number } & EntregableGuardadoMeta;
+
+// ---------- Copia del entregable junto al proyecto (ADR 0133) ----------
+
+/** Campos que el registro de entregables agrega al meta de un archivo
+ *  (ADR 0133 §1). Faltan en backends anteriores y el unboxed-JSON de R puede
+ *  entregar un NULL como {}: se leen con `normalizeEntregableGuardado`. */
+export type EntregableGuardadoMeta = {
+  /** Carpeta de módulo dentro de `Entregables` (ADR 0133 §4). */
+  modulo?: string | null;
+  /** Nombre del entregable en palabras («Frecuencias»). */
+  rotulo?: string | null;
+  /** Ruta absoluta de la copia junto al proyecto, o null si no se copió. */
+  guardado_en?: string | null;
+  /** Por qué no se guardó la copia, o null. */
+  aviso_guardado?: string | null;
+};
+
+export type EntregableGuardado = {
+  guardadoEn: string | null;
+  avisoGuardado: string | null;
+  modulo: string | null;
+  rotulo: string | null;
+};
+
+function textoDelMeta(valor: unknown): string | null {
+  const v = Array.isArray(valor) && valor.length === 1 ? valor[0] : valor;
+  return typeof v === "string" && v.trim() ? v : null;
+}
+
+/** Lee la copia junto al proyecto del meta de un archivo. Si el resultado es
+ *  multibase, el archivo principal es el zip. Cualquier forma inesperada
+ *  queda en null: sin `guardado_en` la UI se comporta como antes. */
+export function normalizeEntregableGuardado(raw: unknown): EntregableGuardado {
+  const obj = raw && typeof raw === "object" && !Array.isArray(raw) ? (raw as Record<string, unknown>) : {};
+  const zip = obj.zip && typeof obj.zip === "object" && !Array.isArray(obj.zip) ? (obj.zip as Record<string, unknown>) : null;
+  const meta = zip ?? obj;
+  return {
+    guardadoEn: textoDelMeta(meta.guardado_en),
+    avisoGuardado: textoDelMeta(meta.aviso_guardado),
+    modulo: textoDelMeta(meta.modulo),
+    rotulo: textoDelMeta(meta.rotulo),
+  };
+}
+
+/** file_id del archivo principal de un resultado (el zip si es multibase). */
+export function fileIdPrincipal(raw: unknown): string | null {
+  const obj = raw && typeof raw === "object" && !Array.isArray(raw) ? (raw as Record<string, unknown>) : {};
+  const zip = obj.zip && typeof obj.zip === "object" && !Array.isArray(obj.zip) ? (obj.zip as Record<string, unknown>) : null;
+  return textoDelMeta((zip ?? obj).file_id);
+}
+
+type NavegadorRutas = { platform?: string; userAgent?: string; userAgentData?: { platform?: string } };
+
+/** Separador de rutas del sistema en que corre la app: «\» en Windows, «/» en
+ *  macOS; null si el navegador no lo dice. */
+export function separadorDelSistema(
+  nav: NavegadorRutas | undefined = typeof navigator === "undefined" ? undefined : (navigator as NavegadorRutas),
+): "\\" | "/" | null {
+  if (!nav) return null;
+  const plataforma = nav.userAgentData?.platform || nav.platform || nav.userAgent || "";
+  if (/mac|iphone|ipad/i.test(plataforma)) return "/";
+  if (/\bwin/i.test(plataforma)) return "\\";
+  return null;
+}
+
+/** Carpeta de la copia relativa a la carpeta del proyecto
+ *  («Entregables\Procesamiento»), con el separador del sistema o, si no se
+ *  sabe, el que trae `guardadoEn`. Si la copia no cuelga del proyecto, desde
+ *  `Entregables`; si tampoco, la carpeta completa. */
+export function carpetaDelEntregable(
+  guardadoEn: string,
+  projectPath: string | null | undefined,
+  separador: "\\" | "/" | null = separadorDelSistema(),
+): string {
+  const sep = separador ?? (guardadoEn.includes("\\") ? "\\" : "/");
+  const partes = guardadoEn.split(/[\\/]+/).filter(Boolean).slice(0, -1);
+  const proyecto = projectPath ? projectPath.split(/[\\/]+/).filter(Boolean).slice(0, -1) : [];
+  const igual = (a: string, b: string) => a.toLocaleLowerCase() === b.toLocaleLowerCase();
+  if (proyecto.length > 0 && partes.length > proyecto.length && proyecto.every((p, i) => igual(p, partes[i]))) {
+    return partes.slice(proyecto.length).join(sep);
+  }
+  let desde = -1;
+  partes.forEach((p, i) => { if (igual(p, "Entregables")) desde = i; });
+  if (desde >= 0) return partes.slice(desde).join(sep);
+  return guardadoEn.replace(/[\\/][^\\/]*$/, "");
+}
 
 // The API unboxed-JSON serializer turns R's NULL into {}.
 // result_data / error are therefore either the real payload or an empty object.

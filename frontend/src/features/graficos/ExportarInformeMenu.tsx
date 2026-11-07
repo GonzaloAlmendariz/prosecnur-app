@@ -5,7 +5,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { ArrowRight, CheckCircle2, ChevronDown, Database, Download, FileText, Loader2 } from "../../vendor/lucide-react";
-import { apiSaveFileAs, downloadUrl } from "../../api/client";
+import { apiSaveFileAs, carpetaDelEntregable, downloadUrl, type EntregableGuardado } from "../../api/client";
 import { useProjectShell } from "../project/ProjectShell";
 import { ColoresPendientesAviso, ID_COLORES_PENDIENTES, useColoresPendientes } from "./estilo/ColoresPendientesAviso";
 import { puedeGenerarInforme } from "./exportarInformeRegla";
@@ -23,6 +23,11 @@ export type ExportarInformeMenuProps = {
   canExportFinal: boolean;
   isSharedReport: boolean;
   prepBlocked: boolean;
+  /** Copia junto al proyecto de cada archivo (ADR 0133). Con `guardadoEn` no se
+   *  abre el diálogo de guardado: el backend ya dejó el archivo en
+   *  `Entregables/<Módulo>`. */
+  pptGuardado?: EntregableGuardado | null;
+  docxGuardado?: EntregableGuardado | null;
 };
 
 // Archivos cuyo diálogo de guardado ya se ofreció. Vive fuera del componente: al cambiar de pestaña el menú se
@@ -32,6 +37,7 @@ const ofrecidos = new Set<string>();
 export function ExportarInformeMenu({
   onExportPpt, onExportWord, pptFileId, docxFileId, pptFilename, docxFilename,
   exportBusy, exportJobKind, canExportFinal, isSharedReport, prepBlocked,
+  pptGuardado = null, docxGuardado = null,
 }: ExportarInformeMenuProps) {
   const [exportMenuOpen, setExportMenuOpen] = useState(false);
   const exportMenuRef = useRef<HTMLDivElement>(null);
@@ -41,6 +47,18 @@ export function ExportarInformeMenu({
   // P8: un gráfico que pinta cada respuesta con su color no se exporta con respuestas sin color (exportarInformeRegla.ts).
   const { pendientes: coloresPendientes, completar: completarColores } = useColoresPendientes();
   const puedeGenerar = puedeGenerarInforme({ planSinErrores: canExportFinal, coloresPendientes: coloresPendientes.length });
+  const pptGuardadoEn = pptFileId ? pptGuardado?.guardadoEn ?? null : null;
+  const docxGuardadoEn = !isSharedReport && docxFileId ? docxGuardado?.guardadoEn ?? null : null;
+  const avisosGuardado = [
+    pptFileId ? pptGuardado?.avisoGuardado : null,
+    !isSharedReport && docxFileId ? docxGuardado?.avisoGuardado : null,
+  ].filter((a): a is string => Boolean(a));
+  // Las dos copias suelen caer en la misma carpeta (Entregables/Procesamiento): se dice una vez.
+  const carpetasGuardado = Array.from(new Set(
+    [pptGuardadoEn, docxGuardadoEn]
+      .filter((g): g is string => Boolean(g))
+      .map((g) => carpetaDelEntregable(g, project.status.path)),
+  ));
 
   useEffect(() => {
     if (!exportMenuOpen) return;
@@ -60,9 +78,9 @@ export function ExportarInformeMenu({
 
   useEffect(() => {
     const candidate = [
-      { fileId: pptFileId, filename: pptFilename ?? "reporte.pptx" },
-      { fileId: docxFileId, filename: docxFilename ?? "reporte.docx" },
-    ].find((item) => item.fileId && !ofrecidos.has(item.fileId));
+      { fileId: pptFileId, filename: pptFilename ?? "reporte.pptx", guardadoEn: pptGuardado?.guardadoEn ?? null },
+      { fileId: docxFileId, filename: docxFilename ?? "reporte.docx", guardadoEn: docxGuardado?.guardadoEn ?? null },
+    ].find((item) => item.fileId && !item.guardadoEn && !ofrecidos.has(item.fileId));
     if (!candidate?.fileId || exportBusy || !window.prosecnurApi) return;
     const fileId = candidate.fileId;
     const filename = candidate.filename;
@@ -94,7 +112,7 @@ export function ExportarInformeMenu({
     }
     void saveGeneratedReport();
     return () => { cancelled = true; };
-  }, [pptFileId, docxFileId, pptFilename, docxFilename, exportBusy, project.status.path]);
+  }, [pptFileId, docxFileId, pptFilename, docxFilename, exportBusy, project.status.path, pptGuardado?.guardadoEn, docxGuardado?.guardadoEn]);
 
   return (
     <>
@@ -185,7 +203,7 @@ export function ExportarInformeMenu({
                     </button>}
                   </div>
 
-                  {(pptFileId || docxFileId || saveStatus) && (
+                  {(pptFileId || docxFileId || saveStatus || carpetasGuardado.length > 0 || avisosGuardado.length > 0) && (
                     <div className="pulso-gv2-export-menu-files">
                       {pptFileId && !exportBusy && (
                         <a href={downloadUrl(pptFileId)}>
@@ -197,6 +215,14 @@ export function ExportarInformeMenu({
                           <Download size={12} /> {docxFilename ?? "reporte.docx"}
                         </a>
                       )}
+                      {!exportBusy && carpetasGuardado.map((carpeta) => (
+                        <span key={carpeta} className="is-ok">
+                          <CheckCircle2 size={12} /> Guardado en {carpeta}
+                        </span>
+                      ))}
+                      {!exportBusy && avisosGuardado.map((aviso) => (
+                        <small key={aviso}>{aviso}</small>
+                      ))}
                       {saveStatus && (
                         <span className={saveStatus.startsWith("[") || /\s·\s(?:E_|HTTP_)[A-Z0-9_]+$/.test(saveStatus) ? "is-error" : "is-ok"}>
                           {!(saveStatus.startsWith("[") || /\s·\s(?:E_|HTTP_)[A-Z0-9_]+$/.test(saveStatus)) && <CheckCircle2 size={12} />}

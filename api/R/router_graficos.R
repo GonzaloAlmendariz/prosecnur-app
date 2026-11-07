@@ -3163,9 +3163,9 @@ mount_graficos <- function(pr) {
           .graficos_status_set(j$sid, "graficos_ppt_ok", TRUE)
           # Los arreglos automáticos del motor viajan al analista: sin esto,
           # quien declaró 14 pt y vio 9,5 cree que se equivocó.
-          list(ok = TRUE, file_id = meta$file_id, filename = meta$original_name,
+          entregable_respuesta(list(ok = TRUE, file_id = meta$file_id, filename = meta$original_name,
                size = meta$size, n_slides = j$result_data$n_slides,
-               avisos = I(.graficos_avisos_job(j$sid, j$id, plan)))
+               avisos = I(.graficos_avisos_job(j$sid, j$id, plan))), meta)
         }
       )
       list(ok = TRUE, job_id = job_id, kind = "graficos.ppt")
@@ -3261,7 +3261,7 @@ mount_graficos <- function(pr) {
         on_complete = function(j) {
           meta <- .register_output_file(j$sid, "graficos_ppt_zip", j$result_path)
           .graficos_status_set(j$sid, "graficos_ppt_ok", TRUE)
-          list(
+          entregable_respuesta(list(
             ok = TRUE,
             file_id = meta$file_id,
             filename = meta$original_name,
@@ -3273,7 +3273,7 @@ mount_graficos <- function(pr) {
             # esconde mejor —el mazo de todas las bases—. Sin esto, el aviso de
             # «lámina degradada a canvas Sin datos» moría en el stderr.
             avisos = I(.graficos_avisos_job(j$sid, j$id, s))
-          )
+          ), meta)
         }
       )
       list(ok = TRUE, job_id = job_id, kind = "graficos.ppt_all")
@@ -3377,8 +3377,8 @@ mount_graficos <- function(pr) {
           # Word renderiza con los mismos graficadores que el PPT y toma las
           # mismas decisiones automaticas, pero solo el PPT las contaba. El
           # `onExportDone` del front ya es generico: con esto las pinta igual.
-          list(ok = TRUE, file_id = meta$file_id, filename = meta$original_name, size = meta$size, n_slides = j$result_data$n_slides,
-               avisos = I(.graficos_avisos_job(j$sid, j$id, plan)))
+          entregable_respuesta(list(ok = TRUE, file_id = meta$file_id, filename = meta$original_name, size = meta$size,
+               n_slides = j$result_data$n_slides, avisos = I(.graficos_avisos_job(j$sid, j$id, plan))), meta)
         }
       )
       list(ok = TRUE, job_id = job_id, kind = "graficos.word")

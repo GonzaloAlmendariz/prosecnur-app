@@ -296,6 +296,7 @@ export function EnumeradoresPane() {
           busy={run.busy}
           jobId={run.jobId}
           fileId={run.fileId}
+          guardado={run.guardado}
           downloadName={run.filename ?? "enumeradores.pdf"}
           error={run.error}
           onGenerate={onGenerate}

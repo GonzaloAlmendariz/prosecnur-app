@@ -448,6 +448,7 @@ export function PanelBasePane() {
                         busy={codebookRun.busy}
                         jobId={codebookRun.jobId}
                         fileId={codebookRun.fileId}
+                        guardado={codebookRun.guardado}
                         downloadName={codebookRun.filename ?? "base_panel_libro_codigos.xlsx"}
                         error={codebookRun.error}
                         onGenerate={onGenerateCodebook}
@@ -475,6 +476,7 @@ export function PanelBasePane() {
                         busy={codebookPdfRun.busy}
                         jobId={codebookPdfRun.jobId}
                         fileId={codebookPdfRun.fileId}
+                        guardado={codebookPdfRun.guardado}
                         downloadName={codebookPdfRun.filename ?? "base_panel_libro_codigos.pdf"}
                         error={codebookPdfRun.error}
                         onGenerate={onGenerateCodebookPdf}
@@ -502,6 +504,7 @@ export function PanelBasePane() {
                         busy={freqRun.busy}
                         jobId={freqRun.jobId}
                         fileId={freqRun.fileId}
+                        guardado={freqRun.guardado}
                         downloadName={freqRun.filename ?? "base_panel_frecuencias.xlsx"}
                         error={freqRun.error}
                         onGenerate={onGenerateFrecuencias}
@@ -529,6 +532,7 @@ export function PanelBasePane() {
                         busy={crossesRun.busy}
                         jobId={crossesRun.jobId}
                         fileId={crossesRun.fileId}
+                        guardado={crossesRun.guardado}
                         downloadName={crossesRun.filename ?? "base_panel_cruces.xlsx"}
                         error={crossesRun.error}
                         onGenerate={onGenerateCruces}
@@ -556,6 +560,7 @@ export function PanelBasePane() {
                         busy={auditRun.busy}
                         jobId={auditRun.jobId}
                         fileId={auditRun.fileId}
+                        guardado={auditRun.guardado}
                         downloadName={auditRun.filename ?? "base_panel_auditoria.xlsx"}
                         error={auditRun.error}
                         onGenerate={onGenerateAuditoria}
@@ -576,6 +581,7 @@ export function PanelBasePane() {
                     busy={fichaRun.busy}
                     jobId={fichaRun.jobId}
                     fileId={fichaRun.fileId}
+                    guardado={fichaRun.guardado}
                     downloadName={fichaRun.filename ?? "ficha_tecnica_panel.docx"}
                     error={fichaRun.error}
                     onGenerate={onGenerateFichaTecnica}
@@ -617,6 +623,7 @@ export function PanelBasePane() {
                         busy={xlsxRun.busy}
                         jobId={xlsxRun.jobId}
                         fileId={xlsxRun.fileId}
+                        guardado={xlsxRun.guardado}
                         downloadName={xlsxRun.filename ?? "base_panel_wide.xlsx"}
                         error={xlsxRun.error}
                         onGenerate={onGenerateXlsx}
@@ -663,6 +670,7 @@ export function PanelBasePane() {
                         busy={csvRun.busy}
                         jobId={csvRun.jobId}
                         fileId={csvRun.fileId}
+                        guardado={csvRun.guardado}
                         downloadName={csvRun.filename ?? "base_panel_wide.csv"}
                         error={csvRun.error}
                         onGenerate={onGenerateCsv}
@@ -697,6 +705,7 @@ export function PanelBasePane() {
                         busy={savRun.busy}
                         jobId={savRun.jobId}
                         fileId={savRun.fileId}
+                        guardado={savRun.guardado}
                         downloadName={savRun.filename ?? (panel.formatos.sav.incluir_sps ? "base_panel_sav.zip" : "base_panel_wide.sav")}
                         error={savRun.error}
                         onGenerate={onGenerateSav}

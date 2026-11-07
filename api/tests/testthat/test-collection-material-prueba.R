@@ -71,7 +71,7 @@ test_that("los tres nombres del operativo salen con su propio colector", {
     # Y el nombre del archivo dice que es una prueba: una hoja indistinguible de
     # las 1.512 puede colarse en el reparto, y entonces alguien aplica un aula
     # entera contra un colector que no existe en el plan.
-    expect_match(snap$output_filename, "ficha_prueba_", fixed = TRUE)
+    expect_match(snap$output_filename, "_Ficha_de_prueba_", fixed = TRUE)
   }
 })
 

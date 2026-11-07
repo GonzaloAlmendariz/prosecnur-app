@@ -220,6 +220,7 @@ export function CodebookPane() {
               label="Generar Excel"
               busy={run.busy}
               fileId={run.fileId}
+              guardado={run.guardado}
               downloadName={run.filename ?? "libro_de_codigos.xlsx"}
               error={run.error}
               onGenerate={onGenerate}
@@ -241,6 +242,7 @@ export function CodebookPane() {
               label="Generar PDF"
               busy={runPdf.busy}
               fileId={runPdf.fileId}
+              guardado={runPdf.guardado}
               downloadName={runPdf.filename ?? "libro_de_codigos.pdf"}
               error={runPdf.error}
               onGenerate={onGeneratePdf}

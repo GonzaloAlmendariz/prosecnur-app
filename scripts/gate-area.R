@@ -38,7 +38,8 @@ TRANSVERSALES <- c(
   "test-api-http-transporte.R",                 # una llamada HTTP nueva sin timeout, en cualquier módulo
   "test-jobs-secretos-limpieza.R",              # un job que guarda un secreto sin limpiarlo al terminar
   "test-sin-rutas-personales.R",                # una ruta de usuario (/Users/<nombre>/) en código de producto
-  "test-descargas-entrega.R"                    # un Content-Disposition a mano o un entregable escrito relativo al cwd
+  "test-descargas-entrega.R",                   # un Content-Disposition a mano o un entregable escrito relativo al cwd
+  "test-entregables-catalogo.R"                 # un kind registrado en cualquier módulo sin entrada en el catálogo (ADR 0133)
 )
 
 # Recorren todo api/R pero lo que vigilan es de UN área, y su área ya los corre: no son transversales.

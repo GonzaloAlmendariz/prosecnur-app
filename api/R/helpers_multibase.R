@@ -100,14 +100,15 @@ run_report_per_base <- function(sid, base_filename, ext, kind_single, fn) {
                sprintf("La generación del reporte para la base '%s' no produjo archivo.", nombre))
     }
 
-    meta <- .register_output_file(sid, kind_single, path, original_name = fname)
-    list(
+    # Con más de una base se copia a Entregables sólo el ZIP, que es lo que se entrega.
+    meta <- .register_output_file(sid, kind_single, path, original_name = fname, copiar = length(ds) == 1L)
+    entregable_respuesta(list(
       nombre   = nombre,
       file_id  = meta$file_id,
       filename = fname,
       size     = meta$size,
       path     = path
-    )
+    ), meta)
   })
 }
 
@@ -116,7 +117,9 @@ run_report_per_base <- function(sid, base_filename, ext, kind_single, fn) {
   if (length(outputs) == 0L) {
     stop_api(500, "E_NO_OUTPUTS", "Sin archivos para empaquetar.")
   }
-  zip_name <- .export_filename(sid, zip_basename, "zip")
+  # El nombre sale del kind del ZIP (ADR 0133): el de CSV y el de Excel comparten
+  # `zip_basename` («datos») pero no contenido.
+  zip_name <- .export_filename(sid, kind_multi, "zip")
   zip_path <- .session_tmp(sid, sprintf("%s_%s", uuid::UUIDgenerate(), zip_name))
   # `zip::zip` requiere rutas relativas; usamos el basename para que el
   # zip no contenga la jerarquía temp completa.
@@ -135,13 +138,13 @@ run_report_per_base <- function(sid, base_filename, ext, kind_single, fn) {
   setwd(old_wd)
 
   meta <- .register_output_file(sid, kind_multi, zip_path, original_name = zip_name)
-  list(
+  entregable_respuesta(list(
     file_id  = meta$file_id,
     # El nombre limpio, no el de la ruta temporal: ésa lleva un uuid delante y
     # se veía en la pantalla («b26f3766-…_libro_de_codigos.zip»).
     filename = zip_name,
     size     = meta$size
-  )
+  ), meta)
 }
 
 # Orquestador principal. Decide single vs multi según n_bases.
@@ -163,14 +166,14 @@ run_report_multibase <- function(sid, base_filename, ext, kind_single, kind_mult
 
   if (length(outputs) == 1L) {
     o <- outputs[[1]]
-    return(list(
+    return(entregable_respuesta(list(
       ok       = TRUE,
       n_bases  = 1L,
       file_id  = o$file_id,
       filename = o$filename,
       size     = o$size,
       bases    = outputs
-    ))
+    ), o))
   }
 
   zip_meta <- .zip_outputs(sid, outputs, base_filename, kind_multi)

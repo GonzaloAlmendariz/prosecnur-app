@@ -259,6 +259,7 @@ export function FichaTecnicaPane() {
                     busy={run.busy}
                     jobId={run.jobId}
                     fileId={run.fileId}
+                    guardado={run.guardado}
                     downloadName={run.filename ?? "ficha_tecnica.docx"}
                     error={run.error}
                     onGenerate={onGenerate}

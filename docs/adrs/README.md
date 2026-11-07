@@ -208,5 +208,6 @@ identidad; no debe usarse como precedente para IDs nuevos.
 | [0129](0129-tarjetas-de-diferencias-junto-al-total.md) | Aceptado | 2026-11-04 | Tarjetas de diferencias junto al gráfico del total (propuesta P08): opción `meta.tarjetas_diferencias` de la lámina, cada grupo frente al resto con la regla del 0128, dos niveles solo por p, tope de 6, PPT nativo y Word A4, lectura una sola vez |
 | [0130](0130-una-serie-un-color.md) | Aceptado | 2026-11-04 | Una serie, un color: la agrupada de una sola serie va monocroma aunque la lista tenga paleta; `colorear_por_opcion` la recupera; acota el 0097 |
 | [0132](0132-isotipo-trenza.md) | Aceptado | 2026-11-07 | Isotipo «Trenza», Cuerda abierta: siete hilos torcidos en un huso diagonal, geometría única en `app/marca/trenzaGeometria.ts`; el contenedor toma el acento del módulo en su pantalla de carga; la cuerda gira sin desaparecer; reemplaza la geometría del 0038 |
+| [0133](0133-entregables-un-registro-un-nombre-una-carpeta.md) | Aceptado | 2026-11-07 | Entregables: un registro (`entregable_registrar`), un catálogo por `kind`, un nombre `Estudio_Entregable[_Base][_Detalle]_dd_mm_yy.ext` transliterado y de hasta 80 caracteres, y copia sin diálogo a `Entregables\<Módulo>\` junto al .pulso, sin sobrescribir (`_2`) |
 
 Ver tambien la [guia arquitectonica canonica](../arquitectura-prosecnur.md).

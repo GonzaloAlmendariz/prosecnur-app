@@ -161,6 +161,7 @@ export function MultibaseTablasPane() {
           busy={run.busy}
           jobId={run.jobId}
           fileId={run.fileId}
+          guardado={run.guardado}
           downloadName={run.filename ?? "tablas_multibase.xlsx"}
           error={run.error || infoError}
           onGenerate={onGenerate}

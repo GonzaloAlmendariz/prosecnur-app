@@ -1,5 +1,7 @@
 import { useState } from "react";
-import { FileJobResult, MultiBaseResult, BasePerOutput } from "../../api/client";
+import {
+  normalizeEntregableGuardado, type BasePerOutput, type EntregableGuardado, type FileJobResult, type MultiBaseResult,
+} from "../../api/client";
 import { useSession } from "../../lib/SessionContext";
 
 // Estandariza la mecánica "Generar" de cada pane analítico.
@@ -20,6 +22,10 @@ type ReporteRunState = {
   jobId: string | null;
   fileId: string | null;       // archivo principal (single) o zip (multi)
   filename: string | null;     // nombre sugerido por backend para el archivo principal
+  // Copia del archivo principal junto al proyecto (ADR 0133). Se fija en el
+  // mismo lote que `fileId`: si llegara un render después, GenerateFooter ya
+  // habría abierto el diálogo de guardado.
+  guardado: EntregableGuardado | null;
   lastResult: MultiBaseResult | null;
   perBase: BasePerOutput[];    // vacío en single-base
   error: string;
@@ -48,6 +54,7 @@ export function useReporteRun(): ReporteRunState {
   const [jobId, setJobId] = useState<string | null>(null);
   const [fileId, setFileId] = useState<string | null>(null);
   const [filename, setFilename] = useState<string | null>(null);
+  const [guardado, setGuardado] = useState<EntregableGuardado | null>(null);
   const [lastResult, setLastResult] = useState<MultiBaseResult | null>(null);
   const [error, setError] = useState("");
 
@@ -59,6 +66,7 @@ export function useReporteRun(): ReporteRunState {
       setLastResult(out);
       setFileId(primaryFileId(out));
       setFilename(primaryFilename(out));
+      setGuardado(normalizeEntregableGuardado(out));
       await refresh();
     } catch (e) {
       setError((e as Error).message);
@@ -84,6 +92,7 @@ export function useReporteRun(): ReporteRunState {
     // Puede venir como result multi-base (cruces/enumeradores multi) o
     // como FileJobResult legacy (single base). Normalizamos.
     const multi = d as MultiBaseResult;
+    setGuardado(normalizeEntregableGuardado(d));
     if (multi && (multi.zip || multi.bases)) {
       setLastResult(multi);
       setFileId(primaryFileId(multi));
@@ -110,7 +119,7 @@ export function useReporteRun(): ReporteRunState {
   const perBase = lastResult?.bases ?? [];
 
   return {
-    busy, jobId, fileId, filename, lastResult, perBase, error,
+    busy, jobId, fileId, filename, guardado, lastResult, perBase, error,
     runSync, runAsync, onJobDone, onJobError, onJobCancelled, clearError,
   };
 }

@@ -739,7 +739,9 @@ attr(graficos_consolidado_job_runner, "prosecnur_job_function_name") <- "grafico
   s$files[[manifest_meta$file_id]]$sha256 <- manifest_sha
   s$files[[manifest_meta$file_id]]$role <- "manifest"
   .session_env[[sid]] <- s
-  list(
+  # ADR 0133: la copia junto al proyecto viaja en la respuesta; sin ella el front
+  # abría además el diálogo de guardado y el informe quedaba duplicado.
+  entregable_respuesta(list(
     ok = TRUE,
     file_id = ppt_meta$file_id,
     filename = ppt_meta$original_name,
@@ -750,7 +752,7 @@ attr(graficos_consolidado_job_runner, "prosecnur_job_function_name") <- "grafico
       list(role = "deliverable", file_id = ppt_meta$file_id, sha256 = ppt_sha),
       list(role = "manifest", file_id = manifest_meta$file_id, sha256 = manifest_sha)
     )
-  )
+  ), ppt_meta)
 }
 
 graficos_consolidado_start <- function(sid, config = NULL, presets = NULL, expected_revision = NULL) {

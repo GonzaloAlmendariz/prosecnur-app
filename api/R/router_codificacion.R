@@ -176,82 +176,27 @@
   invisible(TRUE)
 }
 
+# Nombres y registro de exports: envoltorios de entregables_registro.R (ADR 0133).
 .export_slug <- function(x, fallback = "Prosecnur") {
-  x <- as.character(x %||% fallback)[1]
-  if (is.na(x) || !nzchar(trimws(x))) x <- fallback
-  x <- stringi::stri_trans_general(trimws(x), "Latin-ASCII")
-  x <- gsub("[^A-Za-z0-9]+", "_", x)
-  x <- gsub("_+", "_", x)
-  x <- gsub("^_|_$", "", x)
-  if (!nzchar(x)) x <- fallback
-  substr(x, 1L, 80L)
+  y <- .entregable_slug(x)
+  if (!nzchar(y)) y <- .entregable_slug(fallback)
+  if (!nzchar(y)) y <- fallback
+  substr(y, 1L, 80L)
 }
 
 .export_project_slug <- function(sid) {
-  s <- session_get(sid)
-  if (!is.null(s$project_path) && nzchar(s$project_path)) {
-    return(.export_slug(tools::file_path_sans_ext(basename(s$project_path))))
-  }
-  if (!is.null(s$estudio$nombre) && nzchar(s$estudio$nombre)) {
-    return(.export_slug(s$estudio$nombre))
-  }
-  "Prosecnur"
+  .entregable_estudio(session_get(sid, required = FALSE))
 }
 
-.export_date_slug <- function() {
-  format(Sys.Date(), "%d_%m_%y")
-}
-
+# Rótulo del catálogo en minúsculas («codebook» → «libro_de_codigos»).
 .export_label_for_kind <- function(kind, fallback = NULL) {
-  fallback <- fallback %||% kind
-  switch(as.character(kind %||% fallback),
-    codebook = "libro_de_codigos",
-    codebook_zip = "libro_de_codigos",
-    frecuencias = "frecuencias",
-    frecuencias_zip = "frecuencias",
-    cruces = "cruces",
-    cruces_zip = "cruces",
-    bases_csv = "datos",
-    bases_csv_zip = "datos",
-    bases_xlsx = "datos",
-    bases_xlsx_zip = "datos",
-    bases_sav = "datos_spss",
-    bases_data = "data",
-    bases_data_zip = "data",
-    bases_data_codificada = "data_codificada",
-    bases_data_codificada_zip = "data_codificada",
-    bases_instrumento = "instrumento",
-    bases_instrumento_zip = "instrumentos",
-    bases_instrumento_codificado = "instrumento_codificado",
-    bases_instrumento_codificado_zip = "instrumentos_codificados",
-    data_normalizada = "base_normalizada",
-    bases_sav_bundle = "datos_spss",
-    spss_bundle = "datos_spss",
-    enumeradores = "enumeradores",
-    enumeradores_zip = "enumeradores",
-    reporte_ppt = "reporte",
-    reporte_word = "reporte",
-    hojas_ruta_zip = "hojas_de_ruta",
-    hojas_ruta_population_matrix = "matriz_poblacional",
-    familias_template = "familias",
-    plantilla_codif_template = "plantilla_codificacion",
-    data_adaptada = "data_adaptada",
-    instrumento_adaptado = "instrumento_adaptado",
-    plan_limpieza_export = "plan_limpieza",
-    validacion_report_html = "reporte_validacion",
-    reporte_validacion = "reporte_validacion",
-    .export_slug(fallback)
-  )
+  fila <- .entregable_fila(kind %||% fallback)
+  if (isTRUE(fila$catalogado)) tolower(.export_slug(fila$rotulo)) else .export_slug(fallback %||% kind)
 }
 
 .export_filename <- function(sid, label, ext, base = NULL) {
-  parts <- c(.export_project_slug(sid))
-  base_chr <- as.character(base %||% "")[1]
-  if (!is.na(base_chr) && nzchar(base_chr)) {
-    parts <- c(parts, .export_slug(base_chr))
-  }
-  parts <- c(parts, .export_label_for_kind(label, fallback = label), .export_date_slug())
-  paste0(paste(parts, collapse = "_"), ".", .export_slug(ext, fallback = "bin"))
+  e <- .entregable_por_label(label)
+  entregable_nombre(sid, e$rotulo, ext, base = if (isTRUE(e$por_base)) base else NULL)
 }
 
 .strip_internal_prefix <- function(filename) {
@@ -261,26 +206,8 @@
   sub("^[0-9a-fA-F-]{36}_", "", filename)
 }
 
-.register_output_file <- function(sid, kind, path, original_name = NULL) {
-  s <- session_get(sid)
-  file_id <- uuid::UUIDgenerate()
-  if (is.null(original_name) || !nzchar(as.character(original_name)[1])) {
-    original_name <- .strip_internal_prefix(basename(path))
-  }
-  if (grepl("[0-9a-fA-F-]{36}", original_name)) {
-    original_name <- .export_filename(sid, kind, tools::file_ext(path))
-  }
-  meta <- list(
-    file_id = file_id, kind = kind,
-    original_name = original_name, path = path,
-    size = as.integer(file.info(path)$size),
-    ext = tools::file_ext(path),
-    uploaded_at = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC")
-  )
-  files <- s$files
-  files[[file_id]] <- meta
-  session_set(sid, "files", files)
-  meta
+.register_output_file <- function(sid, kind, path, original_name = NULL, copiar = TRUE) {
+  entregable_registrar(sid, path, kind, original_name = original_name, copiar = copiar)
 }
 
 # ---- Canonical familias draft ---------------------------------------------

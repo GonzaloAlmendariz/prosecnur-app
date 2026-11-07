@@ -1,9 +1,12 @@
-import { useEffect, useRef, useState } from "react";
-import { CheckCircle2, ChevronDown, Download, Loader2, Play } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { CheckCircle2, ChevronDown, Download, Loader2, Play } from "../../vendor/lucide-react";
 import { JobProgress } from "../../components/JobProgress";
 import { PulsoButton } from "../../components/PulsoButton";
 import { ErrorBlock } from "../../components/States";
-import { apiSaveFileAs, downloadUrl, FileJobResult } from "../../api/client";
+import {
+  apiSaveFileAs, carpetaDelEntregable, downloadUrl, fileIdPrincipal, normalizeEntregableGuardado,
+  type EntregableGuardado, type FileJobResult,
+} from "../../api/client";
 import { useProjectShell } from "../project/ProjectShell";
 
 // Toolkit compartido por los 5 panes de analítica (Codebook, Bases,
@@ -99,6 +102,7 @@ export function GenerateFooter({
   onJobDone, onJobError, onJobCancelled,
   perBase,
   variant = "primary",
+  guardado,
 }: {
   label: string;
   busy: boolean;
@@ -125,15 +129,34 @@ export function GenerateFooter({
     reason?: string;
   }[];
   variant?: "primary" | "secondary";
+  /** Copia junto al proyecto del archivo `fileId` (ADR 0133), si el llamador
+   *  la conoce. Los resultados que llegan por job se leen aquí mismo. */
+  guardado?: EntregableGuardado | null;
 }) {
   const running = busy || !!jobId;
   const multi = (perBase?.length ?? 0) > 1;
   const { project } = useProjectShell();
   const autoSavedRef = useRef<string | null>(null);
   const [saveStatus, setSaveStatus] = useState("");
+  // ADR 0133: el backend ya copió el archivo a `Entregables/<Módulo>`. Con
+  // esa copia el diálogo de guardado sobra: lo duplicaría.
+  const [guardadoDelJob, setGuardadoDelJob] = useState<{ fileId: string; guardado: EntregableGuardado } | null>(null);
+  const guardadoActual = guardado ?? (guardadoDelJob && guardadoDelJob.fileId === fileId ? guardadoDelJob.guardado : null);
+  const guardadoEn = guardadoActual?.guardadoEn ?? null;
+  const avisoGuardado = guardadoActual?.avisoGuardado ?? null;
+  const onDone = useCallback((d: FileJobResult) => {
+    const id = fileIdPrincipal(d);
+    if (id) setGuardadoDelJob({ fileId: id, guardado: normalizeEntregableGuardado(d) });
+    onJobDone?.(d);
+  }, [onJobDone]);
 
   useEffect(() => {
     if (!fileId || running || autoSavedRef.current === fileId || !window.prosecnurApi) return;
+    if (guardadoEn) {
+      autoSavedRef.current = fileId;
+      setSaveStatus("");
+      return;
+    }
     const generatedFileId = fileId;
     autoSavedRef.current = generatedFileId;
     const ext = downloadName.includes(".") ? downloadName.split(".").pop() || "*" : "*";
@@ -163,7 +186,7 @@ export function GenerateFooter({
     }
     void saveGeneratedFile();
     return () => { cancelled = true; };
-  }, [fileId, running, downloadName, project.status.path]);
+  }, [fileId, running, downloadName, project.status.path, guardadoEn]);
 
   const saveStatusIsError = saveStatus.startsWith("[") || /\s·\s(?:E_|HTTP_)[A-Z0-9_]+$/.test(saveStatus);
 
@@ -200,7 +223,16 @@ export function GenerateFooter({
             {multi ? `${downloadName} (zip, ${perBase!.length} bases)` : downloadName}
           </a>
         )}
-        {saveStatus && (
+        {fileId && guardadoEn && (
+          <span className="analitica-generate-save" title={guardadoEn}>
+            <CheckCircle2 size={12} aria-hidden="true" />
+            Guardado en {carpetaDelEntregable(guardadoEn, project.status.path)}
+          </span>
+        )}
+        {fileId && avisoGuardado && (
+          <span className="analitica-generate-hint">{avisoGuardado}</span>
+        )}
+        {saveStatus && !guardadoEn && (
           <span className={`analitica-generate-save${saveStatusIsError ? " is-error" : ""}`}>
             {!saveStatusIsError && <CheckCircle2 size={12} aria-hidden="true" />}
             {saveStatus}
@@ -245,7 +277,7 @@ export function GenerateFooter({
         <JobProgress<FileJobResult>
           label={label}
           jobId={jobId}
-          onDone={onJobDone}
+          onDone={onDone}
           onError={onJobError}
           onCancelled={onJobCancelled}
         />

@@ -59,21 +59,7 @@
 }
 
 .limpieza_register_download <- function(sid, kind, original_name, path, ext = NULL) {
-  s <- session_get(sid)
-  file_id <- uuid::UUIDgenerate()
-  meta <- list(
-    file_id = file_id,
-    kind = kind,
-    original_name = original_name,
-    path = path,
-    size = as.integer(file.info(path)$size %||% 0L),
-    ext = ext %||% tolower(tools::file_ext(original_name %||% path)),
-    uploaded_at = .limpieza_now_utc()
-  )
-  files <- s$files
-  files[[file_id]] <- meta
-  session_set(sid, "files", files)
-  meta
+  entregable_registrar(sid, path, kind, original_name = original_name)
 }
 
 .limpieza_uuid_candidates <- function() {

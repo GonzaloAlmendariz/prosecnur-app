@@ -820,19 +820,19 @@
       }
     }
 
-    meta_out <- .register_output_file(sid, kind, path_out, original_name = fname)
-    outputs[[length(outputs) + 1L]] <- list(
+    meta_out <- .register_output_file(sid, kind, path_out, original_name = fname, copiar = length(pairs) == 1L)
+    outputs[[length(outputs) + 1L]] <- entregable_respuesta(list(
       nombre = nombre,
       file_id = meta_out$file_id,
       filename = meta_out$original_name,
       size = meta_out$size,
       path = path_out
-    )
+    ), meta_out)
   }
 
   if (length(outputs) == 1L) {
     o <- outputs[[1]]
-    return(list(
+    return(entregable_respuesta(list(
       ok = TRUE,
       n_bases = 1L,
       fuente = resolved$fuente,
@@ -840,7 +840,7 @@
       filename = o$filename,
       size = o$size,
       bases = list(o[setdiff(names(o), "path")])
-    ))
+    ), o))
   }
 
   zip_kind <- .analitica_source_zip_kind(kinds, role)
@@ -856,7 +856,7 @@
     ok = TRUE,
     n_bases = length(outputs),
     fuente = resolved$fuente,
-    zip = list(file_id = meta_zip$file_id, filename = meta_zip$original_name, size = meta_zip$size),
+    zip = entregable_respuesta(list(file_id = meta_zip$file_id, filename = meta_zip$original_name, size = meta_zip$size), meta_zip),
     bases = lapply(outputs, function(o) o[setdiff(names(o), "path")])
   )
 }
@@ -1690,7 +1690,7 @@
                                 color_recod = .analitica_color_recod_enabled(cfg),
                                 type_map = unified_type_map)
   meta <- .register_output_file(sid, "bases_unificadas", out_path, original_name = out_name)
-  list(
+  entregable_respuesta(list(
     ok = TRUE,
     n_bases = length(bases),
     fuente = fuente,
@@ -1707,7 +1707,7 @@
       n_variables_comunes = as.integer(nrow(common_df)),
       n_variables_no_comunes = as.integer(nrow(omitted_df))
     )
-  )
+  ), meta)
 }
 
 .secciones_desde_instrumento <- function(rp_inst) {
@@ -3941,13 +3941,13 @@ mount_analitica <- function(pr) {
       )
       meta <- .register_output_file(sid, "ficha_tecnica", out_path, original_name = out_name)
       .analitica_status_set(sid, "analitica_ficha_tecnica_ok", TRUE)
-      list(
+      entregable_respuesta(list(
         ok = TRUE,
         n_bases = 1L,
         file_id = meta$file_id,
         filename = meta$original_name,
         size = meta$size
-      )
+      ), meta)
     })) |>
     plumber::pr_post("/api/analitica/preparar", wrap_endpoint(function(req, res) {
       sid <- session_header(req)
@@ -4111,7 +4111,7 @@ mount_analitica <- function(pr) {
           session_set(j$sid, "analitica_multibase_available", TRUE)
           out_name <- .export_filename(j$sid, "tablas_multibase", "xlsx")
           meta <- .register_output_file(j$sid, "tablas_multibase", j$result_path, original_name = out_name)
-          list(
+          entregable_respuesta(list(
             ok = TRUE,
             n_bases = 1L,
             file_id = meta$file_id,
@@ -4123,7 +4123,7 @@ mount_analitica <- function(pr) {
               filename = meta$original_name,
               size = meta$size
             ))
-          )
+          ), meta)
         }
       )
       list(ok = TRUE, job_id = job_id, kind = "analitica.multibase.tablas")
@@ -4215,13 +4215,13 @@ mount_analitica <- function(pr) {
         )
       )
       meta <- .register_output_file(sid, "ficha_tecnica_panel", out_path, original_name = out_name)
-      list(
+      entregable_respuesta(list(
         ok = TRUE,
         file_id = meta$file_id,
         filename = meta$original_name,
         size = meta$size,
         summary = built$summary
-      )
+      ), meta)
     })) |>
     plumber::pr_post("/api/analitica/panel/export", wrap_endpoint(function(req, res, ...) {
       sid <- session_header(req)
@@ -4319,7 +4319,7 @@ mount_analitica <- function(pr) {
           .analitica_status_set(j$sid, "analitica_panel_ok", TRUE)
           out_name <- .export_filename(j$sid, result_kind, result_ext)
           meta <- .register_output_file(j$sid, result_kind, j$result_path, original_name = out_name)
-          list(
+          entregable_respuesta(list(
             ok = TRUE,
             n_bases = n_panel_bases,
             file_id = meta$file_id,
@@ -4327,7 +4327,7 @@ mount_analitica <- function(pr) {
             size = meta$size,
             formato = j$result_data$formato %||% panel_options$formato,
             summary = j$result_data$summary %||% j$result_data
-          )
+          ), meta)
         }
       )
       list(ok = TRUE, job_id = job_id, kind = "analitica.panel.export")
@@ -4608,16 +4608,16 @@ mount_analitica <- function(pr) {
             return(list(
               ok = TRUE,
               n_bases = length(j$result_data$bases),
-              zip = list(file_id = zip_meta$file_id, filename = zip_meta$original_name,
-                         size = zip_meta$size),
+              zip = entregable_respuesta(list(file_id = zip_meta$file_id, filename = zip_meta$original_name,
+                                              size = zip_meta$size), zip_meta),
               bases = lapply(j$result_data$bases, function(o) list(
                 nombre = o$nombre, filename = o$filename, size = o$size
               ))
             ))
           }
           meta <- .register_output_file(j$sid, "cruces", j$result_path)
-          list(ok = TRUE, n_bases = 1L, file_id = meta$file_id,
-               filename = meta$original_name, size = meta$size)
+          entregable_respuesta(list(ok = TRUE, n_bases = 1L, file_id = meta$file_id,
+                                    filename = meta$original_name, size = meta$size), meta)
         }
       )
       list(ok = TRUE, job_id = job_id, kind = "analitica.cruces")
@@ -4703,8 +4703,8 @@ mount_analitica <- function(pr) {
         .bases_export_sav(ds[[1]], is_[[1]], sav_path, NULL, overrides = overrides)
         meta <- .register_output_file(sid, "bases_sav", sav_path, original_name = sav_name)
         .analitica_status_set(sid, "analitica_bases_sav_ok", TRUE)
-        return(list(ok = TRUE, n_bases = 1L, file_id = meta$file_id,
-                    filename = meta$original_name, size = meta$size))
+        return(entregable_respuesta(list(ok = TRUE, n_bases = 1L, file_id = meta$file_id,
+                                         filename = meta$original_name, size = meta$size), meta))
       }
 
       # Multi-base o con sps: zip.
@@ -4740,8 +4740,8 @@ mount_analitica <- function(pr) {
       meta <- .register_output_file(sid, "bases_sav_bundle", zip_path, original_name = zip_name)
       .analitica_status_set(sid, "analitica_bases_sav_ok", TRUE)
       list(ok = TRUE, n_bases = length(ds),
-           zip = list(file_id = meta$file_id, filename = meta$original_name,
-                      size = meta$size),
+           zip = entregable_respuesta(list(file_id = meta$file_id, filename = meta$original_name,
+                                           size = meta$size), meta),
            bases = per_base)
     })) |>
 	    plumber::pr_post("/api/analitica/bases/csv", wrap_endpoint(function(req, res, ...) {
@@ -4831,7 +4831,7 @@ mount_analitica <- function(pr) {
           sid, "bases_xlsx_relacional", out_path, original_name = out_name
         )
         .analitica_status_set(sid, "analitica_bases_xlsx_ok", TRUE)
-        return(list(
+        return(entregable_respuesta(list(
           ok = TRUE,
           relational = TRUE,
           n_bases = built$n_bases,
@@ -4841,7 +4841,7 @@ mount_analitica <- function(pr) {
           size = meta$size,
           sheets = built$sheets,
           rows = built$rows
-        ))
+        ), meta))
       }
 
       result <- run_report_multibase(
@@ -5191,14 +5191,14 @@ mount_analitica <- function(pr) {
             return(list(
               ok = TRUE,
               n_bases = length(Filter(function(o) !isTRUE(o$skipped), j$result_data$bases)),
-              zip = list(file_id = zip_meta$file_id, filename = zip_meta$original_name,
-                         size = zip_meta$size),
+              zip = entregable_respuesta(list(file_id = zip_meta$file_id, filename = zip_meta$original_name,
+                                              size = zip_meta$size), zip_meta),
               bases = j$result_data$bases
             ))
           }
           meta <- .register_output_file(j$sid, "enumeradores", j$result_path)
-          list(ok = TRUE, n_bases = 1L, file_id = meta$file_id,
-               filename = meta$original_name, size = meta$size)
+          entregable_respuesta(list(ok = TRUE, n_bases = 1L, file_id = meta$file_id,
+                                    filename = meta$original_name, size = meta$size), meta)
         }
       )
       list(ok = TRUE, job_id = job_id, kind = "analitica.enumeradores")

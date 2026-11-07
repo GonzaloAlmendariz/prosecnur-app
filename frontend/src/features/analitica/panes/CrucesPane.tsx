@@ -254,6 +254,7 @@ export function CrucesPane() {
           busy={run.busy}
           jobId={run.jobId}
           fileId={run.fileId}
+          guardado={run.guardado}
           downloadName={run.filename ?? "cruces.xlsx"}
           error={run.error}
           onGenerate={onGenerate}

@@ -8,7 +8,7 @@ import { PlanHealthBadge } from "./PlanHealthBadge";
 import { PlanCoverageBadge } from "./PlanCoverageBadge";
 import { SuggestedPlanButton } from "./SuggestedPlanButton";
 import { usePlanValidator } from "./usePlanValidator";
-import { ExportarInformeMenu } from "./ExportarInformeMenu";
+import { ExportarInformeMenu, type ExportarInformeMenuProps } from "./ExportarInformeMenu";
 import { useSession } from "../../lib/SessionContext";
 import { modoMultibaseDelPlan } from "./modoMultibase";
 import type { GraficosReportScope } from "./reportScope";
@@ -442,12 +442,14 @@ export function GraficosHeader({
   docxFileId,
   pptFilename,
   docxFilename,
+  pptGuardado,
+  docxGuardado,
   exportBusy,
   exportJobKind,
   canExport,
   prepReady,
   reportScope,
-}: {
+}: Pick<ExportarInformeMenuProps, "pptGuardado" | "docxGuardado"> & {
   onExportPpt: () => void;
   onExportWord: () => void;
   pptFileId: string | null;
@@ -596,6 +598,8 @@ export function GraficosHeader({
             docxFileId={docxFileId}
             pptFilename={pptFilename}
             docxFilename={docxFilename}
+            pptGuardado={pptGuardado}
+            docxGuardado={docxGuardado}
             exportBusy={exportBusy}
             exportJobKind={exportJobKind}
             canExportFinal={canExportFinal}

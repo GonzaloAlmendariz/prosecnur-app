@@ -7,6 +7,8 @@ import {
   apiGraficosConsolidadoPreflight,
   apiGraficosWord,
   apiGraficosValidar,
+  normalizeEntregableGuardado,
+  type EntregableGuardado,
   type GraficosConsolidadoPreflight,
 } from "../../api/client";
 import { useSession } from "../../lib/SessionContext";
@@ -106,6 +108,8 @@ export default function GraficosPage() {
   const [docxFileId, setDocxFileId] = useState<string | null>(null);
   const [pptFilename, setPptFilename] = useState<string | null>(null);
   const [docxFilename, setDocxFilename] = useState<string | null>(null);
+  // Copia de cada informe junto al proyecto (ADR 0133); se fija con su file_id.
+  const [guardados, setGuardados] = useState<{ ppt: EntregableGuardado | null; docx: EntregableGuardado | null }>({ ppt: null, docx: null });
   const [exportJob, setExportJob] = useState<{ kind: "ppt" | "word"; id: string } | null>(null);
   const [sharedPreflight, setSharedPreflight] = useState<GraficosConsolidadoPreflight | null>(null);
   const [sharedPreflightStatus, setSharedPreflightStatus] = useState<SharedReportPreflightStatus>("idle");
@@ -190,6 +194,7 @@ export default function GraficosPage() {
       setDocxFileId(null);
       setPptFilename(null);
       setDocxFilename(null);
+      setGuardados({ ppt: null, docx: null });
       setError(null);
       setWarns([]);
     }
@@ -244,9 +249,11 @@ export default function GraficosPage() {
     if (exportJob.kind === "ppt") {
       setPptFileId(data.file_id);
       setPptFilename(data.filename ?? null);
+      setGuardados((g) => ({ ...g, ppt: normalizeEntregableGuardado(data) }));
     } else if (exportJob.kind === "word") {
       setDocxFileId(data.file_id);
       setDocxFilename(data.filename ?? null);
+      setGuardados((g) => ({ ...g, docx: normalizeEntregableGuardado(data) }));
     }
     setExportJob(null);
     void refresh();
@@ -336,6 +343,8 @@ export default function GraficosPage() {
               docxFileId={docxFileId}
               pptFilename={pptFilename}
               docxFilename={docxFilename}
+              pptGuardado={guardados.ppt}
+              docxGuardado={guardados.docx}
               exportBusy={!!busyValidating || !!exportJob}
               exportJobKind={exportJob?.kind ?? null}
               canExport={canExport}
@@ -350,6 +359,8 @@ export default function GraficosPage() {
               docxFileId={docxFileId}
               pptFilename={pptFilename}
               docxFilename={docxFilename}
+              pptGuardado={guardados.ppt}
+              docxGuardado={guardados.docx}
               exportBusy={!!busyValidating || !!exportJob}
               exportJobKind={exportJob?.kind ?? null}
               canExport={canExport}

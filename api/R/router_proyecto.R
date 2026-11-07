@@ -219,8 +219,8 @@ mount_proyecto <- function(pr) {
     plumber::pr_post("/api/fs/save-to-project", wrap_endpoint(function(req, res, file_id = NULL, filename = NULL, subdir = NULL, overwrite = FALSE, ...) {
       # Copia un archivo del file store (sess$dir/uploads o downloads) al
       # directorio del .pulso activo, con el nombre que el user eligió en
-      # el FilenameInput. Si el user pasa filename con extensión, se usa
-      # tal cual; si no, se infiere de meta$ext.
+      # el FilenameInput, limpio con las reglas del ADR 0133 §3; la extensión
+      # es la del archivo (meta$ext) y un repetido sin overwrite sale con _2.
       sid <- session_header(req)
       body_raw <- if (!is.null(req$bodyRaw)) rawToChar(req$bodyRaw) else (req$postBody %||% "")
       body <- if (nzchar(body_raw)) {
@@ -240,12 +240,16 @@ mount_proyecto <- function(pr) {
         stop_api(400, "E_NO_FILENAME", "Falta 'filename' en el body.")
       }
 
-      # Validación del nombre — espejo del FilenameInput del frontend.
-      # Permitimos letras, dígitos, guion, underscore, punto (para extensión).
-      # Rechazamos paths (slashes), espacios, y caracteres exóticos.
-      if (!grepl("^[A-Za-z0-9_.\\-]{1,80}$", filename)) {
+      # ADR 0133 §5: el nombre se limpia con las reglas del §3 (tildes, espacios,
+      # largo) en vez de rechazarse; lo que sigue rechazado es una ruta.
+      if (.entregable_es_ruta(filename)) {
         stop_api(400, "E_INVALID_FILENAME",
-                 "El nombre del archivo debe contener solo letras, dígitos, guion, underscore y punto. Sin espacios ni paths.")
+                 "El nombre del archivo no puede contener barras, '..' ni una ruta.")
+      }
+      subdir_rel <- .entregable_subdir_valido(subdir)
+      if (is.null(subdir_rel)) {
+        stop_api(400, "E_INVALID_SUBDIR",
+                 "La subcarpeta debe ser un nombre simple, «Entregables» o «Entregables/<Módulo>».")
       }
 
       s <- session_get(sid)
@@ -258,44 +262,23 @@ mount_proyecto <- function(pr) {
         stop_api(404, "E_FILE_NOT_FOUND",
                  sprintf("El file_id %s no está disponible en disco.", file_id))
       }
-
-      # Si filename no trae extensión, la inferimos del meta.
-      has_ext <- grepl("\\.", filename, fixed = TRUE)
-      final_name <- if (has_ext) filename else paste0(filename, ".", meta$ext)
-
-      project_dir <- dirname(s$project_path)
-      target_dir <- if (!is.na(subdir) && nzchar(subdir)) {
-        # Validar subdir: solo nombre simple (sin paths anidados).
-        if (!grepl("^[A-Za-z0-9_\\-]{1,40}$", subdir)) {
-          stop_api(400, "E_INVALID_SUBDIR",
-                   "Subdir solo puede contener letras, dígitos, guion y underscore.")
-        }
-        file.path(project_dir, subdir)
-      } else {
-        project_dir
-      }
-      if (!dir.exists(target_dir)) {
-        dir.create(target_dir, recursive = TRUE, showWarnings = FALSE)
-      }
-      target_path <- file.path(target_dir, final_name)
-
-      if (file.exists(target_path) && !overwrite) {
-        stop_api(409, "E_FILE_EXISTS",
-                 sprintf("Ya existe '%s' en el proyecto. Pasa overwrite=true para sobrescribir.",
-                          final_name))
+      final_name <- .entregable_archivo_limpio(filename, meta$ext %||% tools::file_ext(meta$path))
+      if (!nzchar(final_name)) {
+        stop_api(400, "E_INVALID_FILENAME",
+                 "El nombre del archivo no deja letras ni dígitos después de limpiarlo.")
       }
 
-      ok <- file.copy(meta$path, target_path, overwrite = overwrite)
-      if (!isTRUE(ok)) {
+      target_dir <- if (nzchar(subdir_rel)) file.path(dirname(s$project_path), subdir_rel) else dirname(s$project_path)
+      target_path <- .entregable_copiar_a_mano(meta$path, target_dir, final_name, overwrite)
+      if (is.null(target_path)) {
         stop_api(500, "E_COPY_FAILED",
-                 sprintf("No se pudo copiar a %s.", target_path))
+                 sprintf("No se pudo copiar a %s.", file.path(target_dir, final_name)))
       }
-      size <- as.integer(file.info(target_path)$size)
       list(
         ok          = TRUE,
         path        = target_path,
-        filename    = final_name,
-        size        = size
+        filename    = basename(target_path),
+        size        = as.integer(file.info(target_path)$size)
       )
     })) |>
     plumber::pr_post("/api/fs/save-file-as", wrap_endpoint(function(req, res, file_id = NULL, path = NULL, overwrite = TRUE, ...) {

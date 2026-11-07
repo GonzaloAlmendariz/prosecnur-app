@@ -117,9 +117,10 @@ test_that("nomenclatura de exports: slugs ASCII, mapeo por kind y fecha; jamás 
   sid <- session_create()
   fname <- .export_filename(sid, "codebook", "xlsx")
   fecha <- format(Sys.Date(), "%d_%m_%y")
-  expect_identical(fname, paste0("Prosecnur_libro_de_codigos_", fecha, ".xlsx"))
+  # ADR 0133 §3: <Estudio>_<Entregable>[_<Base>]_<dd_mm_yy>; la base sólo con más de una base.
+  expect_identical(fname, paste0("Prosecnur_Libro_de_codigos_", fecha, ".xlsx"))
   con_base <- .export_filename(sid, "frecuencias", "xlsx", base = "Base Niñez")
-  expect_identical(con_base, paste0("Prosecnur_Base_Ninez_frecuencias_", fecha, ".xlsx"))
+  expect_identical(con_base, paste0("Prosecnur_Frecuencias_", fecha, ".xlsx"))
 
   uuid <- "9f2b7c1e-1111-2222-3333-444455556666"
   expect_identical(.strip_internal_prefix(paste0(uuid, "__resultado.xlsx")), "resultado.xlsx")
@@ -136,7 +137,8 @@ test_that("register_output_file: registra el artefacto en la sesión y limpia el
 
   meta <- .register_output_file(sid, "data_adaptada", out_path)
   expect_identical(meta$kind, "data_adaptada")
-  expect_identical(meta$original_name, "data_adaptada.xlsx")
+  # ADR 0133 §3: sin original_name, el nombre del catálogo («Data adaptada»).
+  expect_identical(meta$original_name, paste0("Prosecnur_Data_adaptada_", format(Sys.Date(), "%d_%m_%y"), ".xlsx"))
   expect_false(grepl("[0-9a-fA-F-]{36}", meta$original_name))
   expect_identical(session_get(sid)$files[[meta$file_id]]$path, out_path)
 })
