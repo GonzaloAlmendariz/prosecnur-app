@@ -11,7 +11,26 @@ guardado. Orden: censo → prototipo (artifact) → implementación.
 | 3 | Unificar el nombrado de los archivos | `Estudio_Entregable[_Base][_Detalle]_Fecha.ext`, rótulo por salida en el prototipo (vista «Nombre»); extiende `.export_filename()`. Decidido: palabras `Frecuencias_por_base`, tildes y ñ transliteradas, fecha `07_11_26` (la de `.export_filename()`) | decidido; espera implementación |
 | 4 | Unificar la ubicación del guardado | Decidido: `Entregables\<Módulo>\` junto al .pulso en escritorio, sin diálogo; descargas en navegador (vista «Ubicación») | decidido |
 | 5 | Prototipo como artifact | https://claude.ai/artifact/8S4BRaszzE1tChaRcAUVRk | publicado; espera revisión |
-| 6 | Implementar | Fases en la vista «Decisiones»: defectos → `entregable_registrar()` + ADR → Electron → `useGeneracion` → migración con ratchet | listo para empezar: decisiones cerradas el 2026-11-07 |
+| 6 | Implementar | Fases en la vista «Decisiones»: defectos → `entregable_registrar()` + ADR → Electron → `useGeneracion` → migración con ratchet | en curso: fase 1 hecha (`318e66b33`), fases 2 a 5 pendientes |
+
+## Fase 1: defectos (commit `318e66b33`)
+
+| Defecto | Dónde vive | Estado |
+|---|---|---|
+| 26 `window.open` de descargas que Electron niega | `frontend/src/lib/descargas.ts` (`descargarArchivo`) + 17 componentes | hecho; Electron en runtime sin verificar |
+| UUID del job en el nombre y tildes sin codificar (10 cabeceras) | `api/R/helpers_descarga.R` (`.content_disposition`) | hecho; probado por HTTP en proceso |
+| Evidencia de Monitoreo escrita en `tmp/qa` relativo al cwd; el cliente elegía `out_dir` | `.session_downloads_dir()`; routers de Monitoreo | hecho |
+| Dashboard › Base de datos falla en silencio y se ofrece en modo público | `BaseDatosTab` (`ErrorBlock`, `publicMode`) | hecho; QA visual pendiente |
+| Clase `spin` inexistente (Ocurrencias) | `pulso-spin` | hecho |
+| Portapapeles sin respaldo de Electron (8 sitios) | `copiarTexto` | hecho |
+| URL a `/api/muestra-aulas/reporte/descargar`, ruta inexistente | borrada de `api/calcMuestra.ts` | hecho |
+| «Ver el informe» de Hojas de ruta que ahora descarga | rótulo «Descargar el informe» | hecho |
+| Archivos de «Cerrar y generar base» que la UI nunca ofrece | Validación | pasa a la fase 5 (migración) |
+| «Actualizar» de aulas que también publica en Sheets | Monitoreo aulas | pasa a la fase 5; pide decisión de rótulo o flujo |
+| `save-to-project` rechaza tildes y más de 80 caracteres | `router_proyecto.R` | pasa a la fase 2 (regla de nombre) |
+| Nombres iguales para contenidos distintos | rótulos por salida | pasa a la fase 2 |
+
+Gates: `test-descargas-entrega.R` 29 OK; gate R del área 1711 pass, 0 fail; 3 tests front nuevos 15 OK; `make gate-front` 743 OK; `tsc` limpio; auditoría sin hallazgos. Quedan 4 rojos que no son de esta fase (PulsoButton, StageStepper y PulsoSwitch por 2afac10cb y 7ba64a57b; `estadosAtadosAlMotor` por ea4473e15). Hallazgos para fases siguientes: el paquete de evidencia devuelve rutas absolutas del temporal de sesión, y el cuerpo de la petición elige el PDF que se copia al paquete (`monitoreo_router_publicacion.R` ~373).
 
 ## Notas
 
