@@ -14,6 +14,8 @@ import type { LecturaVersiones } from "./leerVersiones";
 import { generarVersiones, validarVersiones, type DisenoVersiones } from "./modeloVersiones";
 import type { LecturaLista } from "./leerLista";
 import { generarLista, validarLista, type DisenoLista } from "./modeloLista";
+import type { LecturaRespaldo } from "./leerRespaldo";
+import { generarRespaldo, validarRespaldo, type DisenoRespaldo } from "./modeloRespaldo";
 
 export type ResultadoConjoint =
   | { ok: true; rowIndex: number; filas: number; calculos: number }
@@ -186,4 +188,21 @@ export function reemplazarLista(draft: XlsformEditorWorkbook, lectura: LecturaLi
   const problemas = validarLista(diseno);
   if (problemas.length) return { ok: false, motivos: problemas };
   return reemplazarBloque(draft, { filas: lectura.filas, ancla: lectura.filas[0]!, lista: "", fiel: true, motivo: null }, generarLista(diseno), []);
+}
+
+/** Un experimento de respaldo nuevo, en el lugar del «+» (C15). */
+export function insertarRespaldo(draft: XlsformEditorWorkbook, structure: BuilderStructure, destino: DestinoInsercion, diseno: DisenoRespaldo): ResultadoConjoint {
+  const problemas = validarRespaldo(diseno);
+  if (problemas.length) return { ok: false, motivos: problemas };
+  const { survey, choices } = generarRespaldo(diseno);
+  return insertarBloque(draft, structure, destino, survey, choices, diseno.prefijo);
+}
+
+/** El experimento de respaldo ya escrito, con el diseño editado. */
+export function reemplazarRespaldo(draft: XlsformEditorWorkbook, lectura: LecturaRespaldo, diseno: DisenoRespaldo): ResultadoConjoint {
+  if (!lectura.fiel) return { ok: false, motivos: [lectura.motivo ?? "El experimento no se puede editar desde aquí."] };
+  const problemas = validarRespaldo(diseno);
+  if (problemas.length) return { ok: false, motivos: problemas };
+  const { survey, choices } = generarRespaldo(diseno);
+  return reemplazarBloque(draft, { filas: lectura.filas, ancla: lectura.filas[0]!, lista: `${diseno.prefijo}_apoyo`, fiel: true, motivo: null }, survey, choices);
 }

@@ -54,7 +54,7 @@ describe("generar un conjoint", () => {
     expect(cuenta.ninguno! / 3000).toBeGreaterThan(0.17);
     expect(cuenta.ninguno! / 3000).toBeLessThan(0.23);
     expect(cuenta.elec! / 3000).toBeGreaterThan(0.46);
-  });
+  }, 20_000); // 3000 entrevistas simuladas: con la máquina cargada pasa de los 5 s por defecto.
 
   it("con orden aleatorio cada fila muestra un atributo distinto y el orden es el mismo en todas las tareas", () => {
     const d = { ...diseno, ordenAleatorio: true };

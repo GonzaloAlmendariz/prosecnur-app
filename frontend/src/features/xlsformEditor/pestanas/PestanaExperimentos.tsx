@@ -1,11 +1,14 @@
 // Pestaña Experimentos del editor (checklist elección por pares C8 y C10, 2026-11-07). A la izquierda, los experimentos
-// que ya tiene el formulario y los que se pueden agregar; a la derecha, el diseño del elegido. Hay cuatro tipos:
-// elección por pares (conjoint), viñetas (encuesta factorial), versiones al azar (split-sample, C12) y lista (técnica
-// de conteo de ítems, C14).
+// que ya tiene el formulario y los que se pueden agregar; a la derecha, el diseño del elegido. Hay cinco tipos:
+// elección por pares (conjoint), viñetas (encuesta factorial), versiones al azar (split-sample, C12), lista (técnica
+// de conteo de ítems, C14) y respaldo (endorsement, C15).
 
 import { useMemo } from "react";
 import { leerConjoint } from "../conjoint/leerConjoint";
-import { insertarConjoint, insertarLista, insertarVersiones, insertarVinetas, listasDe, prefijoLibre, reemplazarConjoint, reemplazarLista, reemplazarVersiones, reemplazarVinetas } from "../conjoint/insertarConjoint";
+import { insertarConjoint, insertarLista, insertarRespaldo, insertarVersiones, insertarVinetas, listasDe, prefijoLibre, reemplazarConjoint, reemplazarLista, reemplazarRespaldo, reemplazarVersiones, reemplazarVinetas } from "../conjoint/insertarConjoint";
+import { leerRespaldo } from "../conjoint/leerRespaldo";
+import type { DisenoRespaldo } from "../conjoint/modeloRespaldo";
+import { DisenoRespaldo as DisenoRespaldoPanel } from "../conjoint/DisenoRespaldo";
 import { leerLista } from "../conjoint/leerLista";
 import type { DisenoLista } from "../conjoint/modeloLista";
 import { DisenoLista as DisenoListaPanel } from "../conjoint/DisenoLista";
@@ -34,6 +37,9 @@ export const focoVersiones = (pregunta: string) => `versiones:${pregunta}`;
 export const FOCO_NUEVO_LISTA = "nuevo:lista";
 /** Foco de un experimento de lista: puede haber varios, se distinguen por su prefijo. */
 export const focoLista = (prefijo: string) => `lista:${prefijo}`;
+export const FOCO_NUEVO_RESPALDO = "nuevo:respaldo";
+/** Foco de un experimento de respaldo: puede haber varios, se distinguen por su prefijo. */
+export const focoRespaldo = (prefijo: string) => `respaldo:${prefijo}`;
 
 export function PestanaExperimentos({ workbook, structure, selection, updateWorkbook, seleccionada, onSeleccionar, onEditar }: {
   workbook: XlsformEditorWorkbook;
@@ -49,17 +55,19 @@ export function PestanaExperimentos({ workbook, structure, selection, updateWork
   const lecturaV = useMemo(() => leerVinetas(workbook), [workbook]);
   const lecturasVs = useMemo(() => leerVersiones(workbook), [workbook]);
   const lecturasLs = useMemo(() => leerLista(workbook), [workbook]);
+  const lecturasRs = useMemo(() => leerRespaldo(workbook), [workbook]);
   const listas = useMemo(() => listasDe(workbook), [workbook]);
   const validos = [
-    FOCO_NUEVO_PARES, FOCO_NUEVO_VINETAS, FOCO_NUEVO_VERSIONES, FOCO_NUEVO_LISTA,
+    FOCO_NUEVO_PARES, FOCO_NUEVO_VINETAS, FOCO_NUEVO_VERSIONES, FOCO_NUEVO_LISTA, FOCO_NUEVO_RESPALDO,
     ...(lectura ? [FOCO_PARES] : []), ...(lecturaV ? [FOCO_VINETAS] : []),
     ...lecturasVs.map((l) => focoVersiones(l.diseno.pregunta)),
     ...lecturasLs.map((l) => focoLista(l.diseno.prefijo)),
+    ...lecturasRs.map((l) => focoRespaldo(l.diseno.prefijo)),
   ];
   const foco = seleccionada && validos.includes(seleccionada)
     ? seleccionada
-    : lectura ? FOCO_PARES : lecturaV ? FOCO_VINETAS : lecturasVs[0] ? focoVersiones(lecturasVs[0].diseno.pregunta) : lecturasLs[0] ? focoLista(lecturasLs[0].diseno.prefijo) : FOCO_NUEVO_PARES;
-  const cuantos = (lectura ? 1 : 0) + (lecturaV ? 1 : 0) + lecturasVs.length + lecturasLs.length;
+    : lectura ? FOCO_PARES : lecturaV ? FOCO_VINETAS : lecturasVs[0] ? focoVersiones(lecturasVs[0].diseno.pregunta) : lecturasLs[0] ? focoLista(lecturasLs[0].diseno.prefijo) : lecturasRs[0] ? focoRespaldo(lecturasRs[0].diseno.prefijo) : FOCO_NUEVO_PARES;
+  const cuantos = (lectura ? 1 : 0) + (lecturaV ? 1 : 0) + lecturasVs.length + lecturasLs.length + lecturasRs.length;
 
   const grupos: ReglaListaGrupo[] = [
     {
@@ -101,6 +109,14 @@ export function PestanaExperimentos({ workbook, structure, selection, updateWork
           resumen: `${l.diseno.controles.length} afirmaciones y 1 sensible`,
           aviso: !l.fiel,
         })),
+        ...lecturasRs.map((l) => ({
+          key: focoRespaldo(l.diseno.prefijo),
+          baseType: "note",
+          numero: "",
+          titulo: "Respaldo",
+          resumen: `${l.diseno.politicas.length} ${l.diseno.politicas.length === 1 ? "política" : "políticas"}, ${l.diseno.actores.length} ${l.diseno.actores.length === 1 ? "actor" : "actores"}`,
+          aviso: !l.fiel,
+        })),
       ],
     },
     {
@@ -129,6 +145,12 @@ export function PestanaExperimentos({ workbook, structure, selection, updateWork
         numero: "",
         titulo: "Lista",
         resumen: "Cuántas afirmaciones son ciertas, con y sin una sensible",
+      }, {
+        key: FOCO_NUEVO_RESPALDO,
+        baseType: "note",
+        numero: "",
+        titulo: "Respaldo",
+        resumen: "Las mismas políticas, con o sin el apoyo de un actor",
       }],
     },
   ];
@@ -173,10 +195,17 @@ export function PestanaExperimentos({ workbook, structure, selection, updateWork
     return escribir((draft) => (existente ? reemplazarLista(draft, existente, d) : insertarLista(draft, structure, destino, d)), focoLista(d.prefijo));
   };
   const esLista = foco === FOCO_NUEVO_LISTA || Boolean(lecturaLs);
+  const lecturaRs = lecturasRs.find((l) => focoRespaldo(l.diseno.prefijo) === foco) ?? null;
+  const aplicarRespaldo = (d: DisenoRespaldo): string[] => {
+    if (!structure) return ["El formulario todavía no está listo."];
+    const existente = lecturaRs;
+    return escribir((draft) => (existente ? reemplazarRespaldo(draft, existente, d) : insertarRespaldo(draft, structure, destino, d)), focoRespaldo(d.prefijo));
+  };
+  const esRespaldo = foco === FOCO_NUEVO_RESPALDO || Boolean(lecturaRs);
   const esVinetas = foco === FOCO_VINETAS || foco === FOCO_NUEVO_VINETAS;
   const existente = foco === FOCO_PARES ? lectura : null;
   const existenteV = foco === FOCO_VINETAS ? lecturaV : null;
-  const primeraFila = existente ? existente.pares[0]!.grupo : existenteV ? existenteV.vinetas[0]!.grupo : lecturaVs ? lecturaVs.pregunta : lecturaLs ? lecturaLs.conteo : null;
+  const primeraFila = existente ? existente.pares[0]!.grupo : existenteV ? existenteV.vinetas[0]!.grupo : lecturaVs ? lecturaVs.pregunta : lecturaLs ? lecturaLs.conteo : lecturaRs ? lecturaRs.sorteo[0]! : null;
   return (
     <PestanaReglas
       titulo="Experimentos"
@@ -193,7 +222,7 @@ export function PestanaExperimentos({ workbook, structure, selection, updateWork
     >
       <div className="xfp-encabezado">
         <span className="xfp-encabezado__ruta">{primeraFila != null ? "Experimento" : "Experimento nuevo"}</span>
-        <h2 className="xfp-encabezado__titulo">{esLista ? "Lista" : esVersiones ? "Versiones al azar" : esVinetas ? "Viñetas" : "Elección por pares"}</h2>
+        <h2 className="xfp-encabezado__titulo">{esRespaldo ? "Respaldo" : esLista ? "Lista" : esVersiones ? "Versiones al azar" : esVinetas ? "Viñetas" : "Elección por pares"}</h2>
         {primeraFila != null ? (
           <span className="xfp-encabezado__accion">
             <button type="button" className="xfp-boton" onClick={() => onEditar(primeraFila)}>
@@ -202,7 +231,14 @@ export function PestanaExperimentos({ workbook, structure, selection, updateWork
           </span>
         ) : null}
       </div>
-      {esLista ? (
+      {esRespaldo ? (
+        <DisenoRespaldoPanel
+          key={lecturaRs ? `respaldo-${lecturaRs.diseno.prefijo}-${lecturaRs.diseno.politicas.length}-${lecturaRs.diseno.actores.length}` : "nuevo-respaldo"}
+          prefijoSugerido={prefijoLibre(workbook, "rs")}
+          existente={lecturaRs}
+          onInsertar={aplicarRespaldo}
+        />
+      ) : esLista ? (
         <DisenoListaPanel
           key={lecturaLs ? `lista-${lecturaLs.diseno.prefijo}-${lecturaLs.diseno.controles.length}` : "nuevo-lista"}
           prefijoSugerido={prefijoLibre(workbook, "ls")}

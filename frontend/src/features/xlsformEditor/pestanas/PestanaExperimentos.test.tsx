@@ -13,6 +13,7 @@ import { generarConjoint, type DisenoConjoint } from "../conjoint/modeloConjoint
 import { generarVinetas, vinetasIniciales } from "../conjoint/modeloVinetas";
 import { generarVersiones } from "../conjoint/modeloVersiones";
 import { generarLista, listaInicial } from "../conjoint/modeloLista";
+import { generarRespaldo, respaldoInicial } from "../conjoint/modeloRespaldo";
 import { PestanaExperimentos } from "./PestanaExperimentos";
 
 const diseno: DisenoConjoint = {
@@ -87,6 +88,17 @@ describe("pestaña Experimentos", () => {
     const html = pintar(wb);
     expect(html).toContain("3 afirmaciones y 1 sensible");
     expect(html).toContain("Con la afirmación sensible, 50%");
+    expect(html).toContain("Aplicar cambios");
+  });
+
+  test("un experimento de respaldo se lista y abre su diseño, con lo que lee cada grupo (C15)", () => {
+    const wb = formulario(false);
+    const { survey, choices } = generarRespaldo(respaldoInicial("rs"));
+    survey.forEach((f, i) => insertRecord(wb.survey, i + 1, { ...f }));
+    choices.forEach((c, i) => insertRecord(wb.choices, i, { ...c }));
+    const html = pintar(wb);
+    expect(html).toContain("2 políticas, 1 actor");
+    expect(html).toContain("Una propuesta de las Fuerzas Armadas plantea que se amplíe el servicio militar voluntario.");
     expect(html).toContain("Aplicar cambios");
   });
 

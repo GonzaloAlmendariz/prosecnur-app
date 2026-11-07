@@ -172,13 +172,14 @@ import { deriveEditorHeaderStatus } from "./shell/editorHeaderStatus";
 import { contextoResumen } from "./resumen/contextoResumen";
 import { PestanaImpreso } from "./impreso/PestanaImpreso";
 import { usePanelDireccionable } from "../../lib/navegacion/paneles";
-import { FOCO_NUEVO_PARES, FOCO_PARES, FOCO_VINETAS, focoLista, focoVersiones, PestanaExperimentos } from "./pestanas/PestanaExperimentos";
+import { FOCO_NUEVO_PARES, FOCO_PARES, FOCO_VINETAS, focoLista, focoRespaldo, focoVersiones, PestanaExperimentos } from "./pestanas/PestanaExperimentos";
 import { conEjemploParaPapel } from "./cuestionario/ejemploSorteo";
 import { itemAltaConjoint } from "./conjoint/altaConjoint";
 import { leerConjoint } from "./conjoint/leerConjoint";
 import { leerVinetas } from "./conjoint/leerVinetas";
 import { leerVersiones } from "./conjoint/leerVersiones";
 import { leerLista } from "./conjoint/leerLista";
+import { leerRespaldo } from "./conjoint/leerRespaldo";
 import { esperarExportPapel, textoExportando } from "./shell/paperExportJob";
 import { ToastDeck, useToastDeck } from "./shell/ToastDeck";
 import { EditorCommandBar } from "./shell/EditorCommandBar";
@@ -934,13 +935,15 @@ export default function XlsformEditorPage() {
   const lecturaVinetas = useMemo(() => leerVinetas(workbook), [workbook]);
   const lecturasVersiones = useMemo(() => leerVersiones(workbook), [workbook]);
   const lecturasLista = useMemo(() => leerLista(workbook), [workbook]);
+  const lecturasRespaldo = useMemo(() => leerRespaldo(workbook), [workbook]);
   // Cálculos del sorteo de cada experimento: se pliegan en Estructura con su rótulo (C5, C10, C12, C14).
   const sorteoUnico = useMemo(() => {
     const m = new Map<number, string>();
     lecturasVersiones.forEach((l) => l.calculos.forEach((f) => m.set(f, "Sorteo de la versión")));
     lecturasLista.forEach((l) => l.filas.slice(0, 2).forEach((f) => m.set(f, "Sorteo del grupo")));
+    lecturasRespaldo.forEach((l) => l.sorteo.forEach((f) => m.set(f, "Sorteo del respaldo")));
     return m;
-  }, [lecturasVersiones, lecturasLista]);
+  }, [lecturasVersiones, lecturasLista, lecturasRespaldo]);
   const tareaDeSorteo = useMemo(
     () => (lecturaPares || lecturaVinetas || sorteoUnico.size
       ? (fila: number) => lecturaPares?.sorteo.get(fila) ?? lecturaVinetas?.sorteo.get(fila) ?? (sorteoUnico.has(fila) ? 1 : undefined)
@@ -962,8 +965,14 @@ export default function XlsformEditorPage() {
       m.set(l.control, "Lista del grupo de control");
       m.set(l.tratamiento, "Lista con la afirmación sensible");
     });
+    lecturasRespaldo.forEach((l) => l.politicas.forEach((p, k) => {
+      if (p.pagina != null) m.set(p.pagina, `Política ${k + 1}`);
+      m.set(p.politica, `Texto de la política ${k + 1}`);
+      m.set(p.texto, "Frase con o sin respaldo");
+      m.set(p.frase, `Frase de la política ${k + 1}`);
+    }));
     return m.size ? (fila: number) => m.get(fila) : undefined;
-  }, [lecturaPares, lecturaVinetas, lecturasVersiones, lecturasLista]);
+  }, [lecturaPares, lecturaVinetas, lecturasVersiones, lecturasLista, lecturasRespaldo]);
   // Cada experimento lleva su cabecera en Estructura (C7 pares, C11 viñetas).
   const experimentosEstructura = useMemo(() => {
     const out: { filas: Set<number>; titulo: string; resumen: string }[] = [];
@@ -985,8 +994,13 @@ export default function XlsformEditorPage() {
     for (const l of lecturasLista) {
       out.push({ filas: new Set(l.primerNivel), titulo: "Experimento de lista", resumen: `${l.diseno.controles.length} afirmaciones y 1 sensible` });
     }
+    for (const l of lecturasRespaldo) {
+      const p = l.diseno.politicas.length;
+      const a = l.diseno.actores.length;
+      out.push({ filas: new Set(l.primerNivel), titulo: "Experimento de respaldo", resumen: `${p} ${p === 1 ? "política" : "políticas"}, ${a} ${a === 1 ? "actor" : "actores"}` });
+    }
     return out;
-  }, [lecturaPares, lecturaVinetas, lecturasVersiones, lecturasLista]);
+  }, [lecturaPares, lecturaVinetas, lecturasVersiones, lecturasLista, lecturasRespaldo]);
 
   // Candidatos de matriz para el selector de exportación a PDF: runs contiguos
   // de select_one/select_multiple con misma lista dentro de la misma sección.
@@ -2856,6 +2870,11 @@ export default function XlsformEditorPage() {
                         onAbrirPares={(fila) => {
                           const vs = fila == null ? undefined : lecturasVersiones.find((l) => l.filas.includes(fila));
                           const ls = fila == null ? undefined : lecturasLista.find((l) => l.filas.includes(fila));
+                          const rs = fila == null ? undefined : lecturasRespaldo.find((l) => l.filas.includes(fila));
+                          if (rs) {
+                            pestanaEditor.irConFoco("experimentos", focoRespaldo(rs.diseno.prefijo));
+                            return;
+                          }
                           if (ls) {
                             pestanaEditor.irConFoco("experimentos", focoLista(ls.diseno.prefijo));
                             return;
