@@ -21,6 +21,8 @@
  * normal, en el rango de ColorBrewer BrBG y CARTO Earth. Sin dato, gris claro. */
 :root {
   --pulso-mapa-fondo: #fafbff;
+  /* Mar bajo el relieve sombreado (build_relieve.R): un celeste apenas tintado, para leer la costa. */
+  --pulso-mapa-mar: #e6edf5;
   --pulso-mapa-distrito: #e6eaf0;
   --pulso-mapa-distrito-borde: #bcc5d1;
   /* Manzanas en blanco con borde casi negro (pedido de Gonzalo, 1 nov): en gris sobre el

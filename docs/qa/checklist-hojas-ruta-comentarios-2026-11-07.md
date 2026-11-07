@@ -13,9 +13,10 @@ Doc vivo (gate 5 de CLAUDE.md). Un ítem por indicación; sólo Gonzalo da el lo
 | H7 | En la ciudad del estudio, con una capa por distrito, el distrito confirmado pinta su fondo y sus manzanas quedan grises encima | `HojasRutaMapaPage.tsx`: el lienzo recibía las manzanas de los confirmados también con la coropleta activa | Hecho y verificado en vivo: con una capa por distrito no se dibujan las manzanas y cada distrito confirmado muestra su color |
 | H8 | La ficha del distrito corta la cifra («152,828» contra el divisor) y puede verse más elegante | `mapa/mapaPage.css` (`.hr-ter-ficha-cifras`: columnas al ancho de su cifra), `mapa/nacional/nacional.css` (ficha flotante a la escala del título, ancho al contenido), `FichaDistritoNacional.tsx` (marca de color junto al NSE) | Hecho y verificado en vivo (Cieneguilla en Lima): cifras completas sin corte, NSE con su color y divisor |
 | H9 | Con una ciudad abierta, un clic fuera de sus distritos (el mar, el vacío) devuelve al Perú | Clic del atlas en `HojasRutaMapaPage.tsx` | Hecho y verificado en vivo: el clic fuera sólo cierra la ficha; de la ciudad se sale por la miga o «Todo el Perú» |
-| H10 | ¿Sería muy pesado añadir una capa de relieve 3D para dar contexto y que no se vea tan vacío? | Maqueta: `tmp/paletas-mapa/maqueta-relieve.png` (Copernicus DEM 90 m, sombreado multidireccional al 14 %, mar celeste). En la app: imagen por ciudad bajo los distritos | **Bloqueado: decisión de Gonzalo** sobre la maqueta (nivel del relieve) |
+| H10 | ¿Sería muy pesado añadir una capa de relieve 3D para dar contexto y que no se vea tan vacío? Luego: revisar todas las vistas con el terreno, y el mapa del Perú | `api/inst/hojas_ruta/build_relieve.R` → `frontend/public/relieve/*.webp` + `relieveIndice.json`; `mapa/lienzo/relieve.ts` (carga, composición con tokens, base y velo); `--pulso-mapa-mar`; cita en `lienzo/limites.ts` (`dibujarAtribucion`) | Hecho y verificado en vivo: recorrido por Perú, atlas (Lima, Trujillo), capas por distrito y por manzana, y las cuatro secciones (`tmp/paletas-mapa/recorrido-relieve.png`) |
 | H11 | El problema ahora es el rótulo de los nombres | `lienzo/capas.ts` (`dibujarNombresFuera`, `esOscuro`): tinta según el relleno (blanca sobre oscuro, oscura sobre claro), halo fino del color del distrito, peso medio; `territorio/capaDistritos.ts` (`rellenoDistrito`) | Hecho y verificado en vivo (atlas de Lima en las cuatro capas y acercado al centro) |
 | H12 | Probar cómo se ve con las otras vistas: viviendas, manzanas y a nivel distrito | Recorrido en `tmp/paletas-mapa/recorrido-capas.png`. Hallazgo corregido: con Viviendas o NSE por manzana el distrito llevaba su color de identidad (el verde de Ate) y competía con las manzanas; ahora queda en gris neutro (`HojasRutaMapaPage.tsx`, `capaContraste`) | Hecho y verificado en vivo (Ate con Manzanas, Viviendas y NSE, a escala de ciudad y de distrito) |
+| H13 | No debería poder alejarme tanto (mapa del Perú) | `HojasRutaMapaPage.tsx`: `limiteCamara` usa la caja del Perú cuando no hay ciudad abierta | Hecho y verificado en vivo: alejado al máximo, el Perú llena el alto del mapa y no sale de la pantalla al arrastrar |
 
 ## H1: diagnóstico y arreglo
 
@@ -107,3 +108,27 @@ ColorBrewer (Brewer et al., estudio de mapas de mortalidad), CARTOColors, Paul T
 - **Bordes blancos finos** entre distritos coloreados.
 - **Tonos de los distritos del estudio**: paleta «muted» de Paul Tol, categórica y apta para daltonismo, en el orden que
   maximiza la separación entre vecinos (ΔE 12,9 con daltonismo; 17,8 con visión normal).
+
+## H10: relieve
+
+- **Decisión de forma:** sombreado de relieve en 2D, no 3D real (inclinar el mapa y levantar el terreno exige cambiar el
+  motor del lienzo a WebGL). La maqueta (`tmp/paletas-mapa/maqueta-relieve.png`) fijó el nivel: la sombra más profunda
+  oscurece un 14 % y un velo de hasta 16 % se lee dentro de los distritos.
+- **Fuente:** Copernicus DEM GLO-90 (ESA), leído de su copia pública en AWS sin bajar hojas enteras: cada ciudad pide su
+  recorte y el Perú, la versión reducida que trae cada COG (222 hojas en 15 s). Se cita en el mapa junto a los límites;
+  el atlas no citaba nunca la fuente de los límites y ahora sí.
+- **Imágenes:** el Perú a ~1,6 km por píxel con el relieve exagerado ×6 y una por cada una de las 26 ciudades (cuadrado de
+  2,2 veces su lado mayor, mínimo 30 km, hasta 1600 px). 27 archivos WebP, 1,2 MB en total (Lima 411 KB). Gris = sombra,
+  alfa 0 = mar; los colores salen de los tokens al componer.
+- **En el lienzo:** el Perú siempre de fondo y encima la ciudad que se ve (la abierta en Territorio; la del estudio en las
+  demás secciones), con el borde difuminado. Test de contrato: `lienzo/relieve.contract.test.ts`.
+
+## H10: ajustes tras el recorrido
+
+- **Rectángulo gris en el Perú:** el sombreado oscurecía también el llano (la luz a 45° lo deja a ~70 %) y el mar se
+  cortaba en seco en el borde de la imagen. Ahora la sombra es relativa al llano (sólo oscurece la ladera en sombra), el
+  borde de toda imagen se difumina y la caja del Perú excede al país (con hojas al norte del ecuador).
+- **Caché del navegador:** el índice guarda una huella de cada imagen y va en la URL; al regenerar no se ve la vieja.
+- **Nombres de distritos partidos** (Moche, Salaverry): la tinta según el relleno sólo si el nombre cae dentro de su
+  distrito.
+- **A escala de calle** el relieve casi no se nota (va suavizado): no estorba a las manzanas.

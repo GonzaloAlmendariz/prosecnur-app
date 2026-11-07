@@ -36,6 +36,8 @@ export type CapaLienzo = "manzanas" | "viviendas" | "nse";
 
 export type ColoresLienzo = {
   fondo: string;
+  /** El mar bajo el relieve sombreado. */
+  mar: string;
   distrito: string;
   distritoBorde: string;
   manzana: string;
@@ -119,6 +121,7 @@ function leerColores(): ColoresLienzo {
   const v = (nombre: string) => css.getPropertyValue(nombre).trim();
   return {
     fondo: v("--pulso-mapa-fondo"),
+    mar: v("--pulso-mapa-mar"),
     distrito: v("--pulso-mapa-distrito"),
     distritoBorde: v("--pulso-mapa-distrito-borde"),
     manzana: v("--pulso-mapa-manzana"),

@@ -97,8 +97,12 @@ export function dibujarLimites(ctx: CanvasRenderingContext2D, u: UtilLienzo, l: 
 export const zonaControles = (w: number, h: number): [number, number, number, number] => [w - 236, h - 80, w, h];
 
 /** Nombres de departamento en versalitas tenues, sólo cuando se ve el país o una región. */
-export function dibujarNombresDepartamento(ctx: CanvasRenderingContext2D, u: UtilLienzo, l: LimitesPeru) {
-  if (u.camara.s >= ESCALA_NOMBRES_DEPARTAMENTO) return;
+export function dibujarNombresDepartamento(ctx: CanvasRenderingContext2D, u: UtilLienzo, l: LimitesPeru, fuenteExtra = "") {
+  if (u.camara.s >= ESCALA_NOMBRES_DEPARTAMENTO) {
+    // Sin límites a la vista (una ciudad en pantalla), igual se cita el relieve si se dibuja.
+    dibujarAtribucion(ctx, u, fuenteExtra);
+    return;
+  }
   ctx.save();
   ctx.font = "600 10px -apple-system, system-ui, sans-serif";
   ctx.textAlign = "center";
@@ -114,17 +118,28 @@ export function dibujarNombresDepartamento(ctx: CanvasRenderingContext2D, u: Uti
     if (x + mitad > zona[0] && y + 6 > zona[1]) continue;
     ctx.fillText(nombre, x, y);
   }
+  ctx.restore();
   // La licencia de las provincias (CC BY 3.0 IGO) pide citar la fuente donde se ven.
+  dibujarAtribucion(ctx, u, ["Límites: IGN vía OCHA, CC BY 3.0 IGO", fuenteExtra].filter(Boolean).join(". "));
+}
+
+/**
+ * Fuentes del mapa abajo a la derecha. Encima del grupo de zoom y la escala (≈ 48 px desde el borde con su
+ * sombra): a 54 px el texto quedaba bajo el borde de los controles y se leía «IGN vía OCHA» tapado. Con halo del
+ * fondo, como los rótulos: a 1024 cae sobre marcas de ciudad y nombres de departamento.
+ */
+export function dibujarAtribucion(ctx: CanvasRenderingContext2D, u: UtilLienzo, texto: string) {
+  if (!texto) return;
+  ctx.save();
   ctx.font = "500 9.5px -apple-system, system-ui, sans-serif";
   ctx.textAlign = "right";
+  ctx.textBaseline = "middle";
+  ctx.fillStyle = u.colores.suave;
   ctx.globalAlpha = 0.7;
-  // Encima del grupo de zoom y la escala (≈ 48 px desde el borde con su sombra): a 54 px el texto quedaba bajo
-  // el borde de los controles y se leía «IGN vía OCHA» tapado.
-  // Con halo del fondo, como los rótulos: a 1024 cae sobre marcas de ciudad y nombres de departamento.
   ctx.lineWidth = 3;
   ctx.lineJoin = "round";
   ctx.strokeStyle = u.colores.fondo;
-  ctx.strokeText("Límites: IGN vía OCHA, CC BY 3.0 IGO", u.tamano.w - 12, u.tamano.h - 66);
-  ctx.fillText("Límites: IGN vía OCHA, CC BY 3.0 IGO", u.tamano.w - 12, u.tamano.h - 66);
+  ctx.strokeText(texto, u.tamano.w - 12, u.tamano.h - 66);
+  ctx.fillText(texto, u.tamano.w - 12, u.tamano.h - 66);
   ctx.restore();
 }
