@@ -22,7 +22,7 @@ Decisiones de Gonzalo al empezar (2026-11-07):
 | 1 | Función pura de selección por regla (todas las de escala, N de mayor diferencia, distancia o Sin información, umbral bajo X, comunes entre públicos), con el texto de la regla para la nota | `api/R/graficos_regla_preguntas.R`, `graficos_regla_indicadores.R`, `POST /api/graficos/resumenes/regla` (8aed0ca4d) | Hecho en motor; falta verlo en la UI |
 | 2 | Lámina de resumen Fortalezas y alertas: especificación pura, lámina nativa, test | `p_fortalezas` (01caf81bf, 712d6e45d), render revisado | Hecho en motor; falta verlo en la UI |
 | 3 | Lámina de resumen Cobertura y participación: padrón y meta desde Cálculo de muestra o Monitoreo cuando exista | `p_cobertura`, `.graficos_padron_por_base`, `GET /api/graficos/resumenes/padron` (4fafa0817), render revisado contra Arte p. 2 | Hecho en motor; falta verlo en la UI |
-| 4 | Lámina de resumen Cierre con hallazgos: toma cifras de otras láminas, no recalcula | `p_slide_cierre_hallazgos` (a70a9369b); UI en curso | En curso |
+| 4 | Lámina de resumen Cierre con hallazgos: toma cifras de otras láminas, no recalcula | `p_slide_cierre_hallazgos` (a70a9369b), UI `laminas/cierreHallazgos/` (a96275795) | Hecho; falta QA visual y vista previa vacía |
 | 5 | Lámina de Tendencia | Fuera de este encargo (decisión 3) | Fuera |
 | 6 | Títulos sugeridos | No se hacen (decisión 2) | Fuera |
 | 7 | Selector por intención con miniaturas y la clase de cada tipo; «Ver por tipo de gráfico» como entrada secundaria | `laminas/selectores/intencionesContar.ts` (acdb1f589) | Hecho; falta QA visual |
