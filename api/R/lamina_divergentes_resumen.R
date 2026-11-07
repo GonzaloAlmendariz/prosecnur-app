@@ -113,6 +113,7 @@
   # La línea central va encima de los segmentos (separa los lados), de la primera a la última fila.
   .lam_caja(lz, xc - 0.008, y0 - 0.04, 0.016, n * fila + 0.08, azul, nombre = "divergentes:centro")
   doc <- .lam_agrupar(doc, lz, nombre = "prosecnur:grafico:divergentes")
-  doc <- .lam_pie(doc, base, folio)
+  # ADR 0135: con regla de preguntas, cómo se eligieron va tras la base; sin ella la nota no cambia.
+  doc <- .lam_pie(doc, if (is.null(espec$texto_regla)) base else .lam_unir_base(base, espec$texto_regla), folio)
   list(doc = por_lamina(doc), partes = 1L)
 }

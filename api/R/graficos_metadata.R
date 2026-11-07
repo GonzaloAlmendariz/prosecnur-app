@@ -36,6 +36,8 @@
 # "resumen_capitulos" → capítulos {titulo, filas: [{var, fila, rotulo}]} del resumen de diferencias
 # "hallazgos_capitulos" → capítulos {titulo, titular, cifras: [{var, fila, texto, comparacion}]} del resumen ejecutivo
 # "partes"           → filas {rotulo, codigos} de la pregunta elegida (líneas por nivel); conserva `y` y `color`
+# "regla_preguntas"  → regla {tipo, n, umbral, agregar, quitar} con que una lámina de resumen elige sus preguntas
+#                      (ADR 0135); el conteo en vivo sale de POST /api/graficos/resumenes/regla
 # "meta"             → objeto libre; casi nunca se expone en UI
 
 # ---- Grupos semánticos ----------------------------------------------------
@@ -1855,6 +1857,9 @@
            descripcion = "Pregunta de escala. Una barra por pregunta si eliges varias."),
       list(name = "vars", label = "Preguntas", tipo_input = "variables_list", grupo = "datos",
            descripcion = "Varias preguntas que comparten la misma escala; cada una es una barra."),
+      # ADR 0135: la lámina de resumen elige sus preguntas con una regla; sin regla, las declaradas.
+      list(name = "regla", label = "Regla de preguntas", tipo_input = "regla_preguntas", grupo = "datos",
+           descripcion = "Regla con que se eligen las preguntas de la escala con Sin información aparte: las de más Sin información, las extremas o a mano."),
       list(name = "direccion_escala", label = "Dirección de la escala", tipo_input = "choice", grupo = "datos",
            default = "negativo_positivo",
            choices = list(
@@ -2034,6 +2039,9 @@
       list(name = "corte", label = "Indicador", tipo_input = "codigos_list", grupo = "datos",
            descripcion = "Las respuestas que suman el porcentaje de cada punto (ej. Satisfecho y Muy satisfecho). Se calcula con los filtros y la ponderación activos."),
       list(name = "corte_etiqueta", label = "Nombre del indicador", tipo_input = "string", grupo = "datos"),
+      # ADR 0135: la lámina de resumen elige sus preguntas con una regla; sin regla, las declaradas.
+      list(name = "regla", label = "Regla de preguntas", tipo_input = "regla_preguntas", grupo = "datos",
+           descripcion = "Regla con que se eligen los temas del contraste de públicos: las comunes, las de mayor diferencia, las de diferencia mínima o a mano."),
       list(name = "orden", label = "Orden de las filas", tipo_input = "choice", grupo = "estilo",
            default = "brecha",
            choices = list(
@@ -2091,6 +2099,9 @@
       list(name = "corte", label = "Indicador", tipo_input = "codigos_list", grupo = "datos",
            descripcion = "Las respuestas que suman el porcentaje de cada punto (ej. De acuerdo y Totalmente de acuerdo)."),
       list(name = "corte_etiqueta", label = "Nombre del indicador", tipo_input = "string", grupo = "datos"),
+      # ADR 0135: la lámina de resumen elige sus preguntas con una regla; sin regla, las declaradas.
+      list(name = "regla", label = "Regla de preguntas", tipo_input = "regla_preguntas", grupo = "datos",
+           descripcion = "Regla con que se eligen las preguntas de cada público: todas, las comunes, las de mayor diferencia, las bajo un umbral o a mano."),
       list(name = "referencia", label = "Referencia (%)", tipo_input = "number", grupo = "valores",
            default = 60, min = 0, max = 100, step = 5, unidad = "%",
            descripcion = "La línea punteada y la columna «Bajo» de la tabla. Describe, no califica: no se rotula ningún tramo.")

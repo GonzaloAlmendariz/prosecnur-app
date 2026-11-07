@@ -991,6 +991,7 @@ errores_registrados <- function() {
     "E_REGLA_OP_X",                                          "reglas_custom_schema.R",            "400",
     "E_REGLA_OP_Y",                                          "reglas_custom_schema.R",            "400",
     "E_REGLA_OUTLIERS_K",                                    "reglas_custom_schema.R",            "400",
+    "E_REGLA_PREGUNTAS_INVALIDA",                            "graficos_regla_preguntas.R",        "400",
     "E_REGLA_RANGO_FECHA_INVERTIDO",                         "reglas_custom_schema.R",            "400",
     "E_REGLA_RANGO_FECHA_VACIO",                             "reglas_custom_schema.R",            "400",
     "E_REGLA_RANGO_INVERTIDO",                               "reglas_custom_schema.R",            "400",

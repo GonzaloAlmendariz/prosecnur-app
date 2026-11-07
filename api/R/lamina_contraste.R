@@ -174,7 +174,8 @@
   doc <- .lam_agrupar(doc, lz, nombre = "prosecnur:grafico:contraste")
   # Quién menos quién va en el pie, junto a la base: la columna no tiene ancho para decirlo.
   sentido <- if (k == 2L) paste0("Diferencia: ", espec$sentido_diferencia, ", en puntos") else "Diferencia: el grupo mayor menos el menor, en puntos"
-  doc <- .lam_pie(doc, .lam_unir_base(espec$nota_base, base, sentido), folio)
+  # ADR 0135: con regla de preguntas, cómo se eligieron va al final de la nota («Se muestran las 13 de mayor diferencia…»).
+  doc <- .lam_pie(doc, .lam_unir_base(espec$nota_base, base, sentido, espec$texto_regla), folio)
   list(doc = por_lamina(doc), partes = 1L)
 }
 
@@ -236,6 +237,6 @@
   }
   doc <- .lam_agrupar(doc, lz, nombre = "prosecnur:grafico:panorama")
   nota <- sprintf("Cada marca es una pregunta (%s)", espec$indicador %||% "Top Two Box")
-  doc <- .lam_pie(doc, .lam_unir_base(base, nota), folio)
+  doc <- .lam_pie(doc, .lam_unir_base(base, nota, espec$texto_regla), folio)   # ADR 0135: la regla, al final
   list(doc = por_lamina(doc), partes = 1L)
 }

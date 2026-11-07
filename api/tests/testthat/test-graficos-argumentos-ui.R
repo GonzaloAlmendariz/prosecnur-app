@@ -146,7 +146,9 @@ test_that("metadata de graficadores expone controles claros y sin duplicados", {
     #   `hallazgos_capitulos` — capítulos y hallazgos del resumen ejecutivo (ítem 2 de la v7.11 RV)
     "hallazgos_capitulos",
     #   `resumen_capitulos`   — capítulos y filas del resumen de diferencias (ítem 15 de la v7.23 RV)
-    "resumen_capitulos"
+    "resumen_capitulos",
+    #   `regla_preguntas`     — regla con que una lámina de resumen elige sus preguntas (ADR 0135)
+    "regla_preguntas"
   )
   ui_grupo_soportado <- c(
     "datos", "lectura", "valores", "leyenda", "espacio", "tabla",

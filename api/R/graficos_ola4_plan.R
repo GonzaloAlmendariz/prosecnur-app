@@ -19,6 +19,7 @@
 #' @param vars Preguntas que comparten escala; cada una es una barra.
 #' @param n_negativas Niveles que van a la izquierda del cero, contados desde el
 #'   primero de la escala.
+#' @param regla Cómo se eligen las preguntas entre las de `vars` (ADR 0135); sólo en el estilo resumen.
 #' @export
 p_barras_divergentes <- function(vars = NULL,
                                  var = NULL,
@@ -33,7 +34,8 @@ p_barras_divergentes <- function(vars = NULL,
                                  excluir_opciones = NULL,
                                  direccion_escala = c("negativo_positivo", "positivo_negativo"),
                                  estilo = NULL,
-                                 orden = NULL) {
+                                 orden = NULL,
+                                 regla = NULL) {
   direccion_escala <- match.arg(direccion_escala)
   refs <- as.character(unlist(vars %||% var %||% character(0)))
   refs <- refs[!is.na(refs) & nzchar(trimws(refs))]
@@ -65,7 +67,7 @@ p_barras_divergentes <- function(vars = NULL,
     filtros = .ppt_norm_filters(filtros)
   )
   class(el) <- c("ppt_element", "list")
-  el
+  .regla_preguntas_en_constructor(el, regla, "p_barras_divergentes()")   # ADR 0135
 }
 
 .ola4_metodologia_ctx <- function(ctx, ref) {
@@ -461,6 +463,7 @@ p_barras_divergentes <- function(vars = NULL,
 
 #' @keywords internal
 .render_barras_divergentes <- function(el, preset_args = list()) {
+  ap <- .regla_preguntas_aplicar_render(el, "barras divergentes"); el <- ap$el   # ADR 0135
   base_preset <- if (length(preset_args)) preset_args else .ola4_preset("barras_divergentes")
   args_usuario <- utils::modifyList(as.list(base_preset %||% list()),
                                     as.list(el$overrides %||% list()))
@@ -500,7 +503,7 @@ p_barras_divergentes <- function(vars = NULL,
   # overrides: hacerlo reintroduciria la reclasificacion por indices visibles.
   args$reparto <- tabla$reparto
   args <- .keep_formals(graficar_barras_divergentes, args, contexto = "graficar_barras_divergentes")
-  do.call(graficar_barras_divergentes, args)
+  .regla_preguntas_en_espec(do.call(graficar_barras_divergentes, args), ap$texto)
 }
 
 .ola4_fuentes_de_refs <- function(refs, contexto, tema) {
@@ -560,6 +563,8 @@ p_barras_divergentes <- function(vars = NULL,
 #' @param orden,mostrar_brecha,umbral_brecha_pct `NULL` no opina (O7c): rige el
 #'   preset del tipo y, sin él, el defecto de `graficar_dumbbell()` («brecha»,
 #'   `TRUE`, 0: los que tenía este constructor).
+#' @param regla Cómo se eligen los temas entre los de `vars` (ADR 0135); sólo en el estilo resumen. Un tema cuyas dos
+#'   referencias son `base$*` toma los pares del mismo nombre entre las dos bases.
 #' @export
 p_dumbbell <- function(vars,
                        corte,
@@ -578,11 +583,13 @@ p_dumbbell <- function(vars,
                        estilo = NULL,
                        universos = NULL,
                        separar_tras = NULL,
-                       base_en = NULL) {
+                       base_en = NULL,
+                       regla = NULL) {
   # G17: con `cruce` y `grupos` la brecha es entre dos grupos de una misma base (graficos_dumbbell_grupos.R).
   if (!is.null(cruce)) {
-    return(.p_dumbbell_grupos(vars, corte, corte_etiqueta, orden, mostrar_brecha, umbral_brecha_pct, titulo,
-                              overrides, base, filtros, etiqueta_brecha, cruce, grupos, estilo, universos, separar_tras, base_en))
+    el <- .p_dumbbell_grupos(vars, corte, corte_etiqueta, orden, mostrar_brecha, umbral_brecha_pct, titulo,
+                             overrides, base, filtros, etiqueta_brecha, cruce, grupos, estilo, universos, separar_tras, base_en)
+    return(.regla_preguntas_en_constructor(el, regla, "p_dumbbell()"))   # ADR 0135
   }
   vars <- .graf_aplicar_titulos_grupo(vars, titulos_grupo, "p_dumbbell()")
   if (!is.list(vars) || !length(vars)) {
@@ -641,7 +648,7 @@ p_dumbbell <- function(vars,
     filtros = .ppt_norm_filters(filtros)
   )
   class(el) <- c("ppt_element", "list")
-  el
+  .regla_preguntas_en_constructor(el, regla, "p_dumbbell()")   # ADR 0135
 }
 
 # O7c: el constructor escribía SIEMPRE `orden`, `mostrar_brecha` y `umbral_brecha_pct` con sus defectos, y como el
@@ -665,6 +672,7 @@ p_dumbbell <- function(vars,
     stop("dumbbell: el render no expone las fuentes del estudio.", call. = FALSE)
   }
   sources <- list(data_sources = data_sources, inst_sources = inst_sources)
+  ap <- .regla_preguntas_aplicar_render(el, "dumbbell", sources); el <- ap$el   # ADR 0135
   if (!is.null(el$cruce)) {
     temas <- .dumbbell_grupos_temas(el$vars, sources)
     datos <- .dumbbell_grupos_datos(temas, el$corte, el$cruce, el$grupos, sources, filtros = el$filtros %||% list())
@@ -688,7 +696,7 @@ p_dumbbell <- function(vars,
   # el padrón se empareja sin mayúsculas, así que «docentes: 123» sigue casando.
   if (identical(args$estilo, "resumen") && is.null(el$cruce)) levels(args$data$grupo) <- .radar_mb_capitalizar(levels(args$data$grupo))
   args <- .keep_formals(graficar_dumbbell, args, contexto = "graficar_dumbbell")
-  do.call(graficar_dumbbell, args)
+  .regla_preguntas_en_espec(do.call(graficar_dumbbell, args), ap$texto)
 }
 
 # --- Lollipop ---------------------------------------------------------------

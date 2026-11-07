@@ -105,6 +105,16 @@
   c(lo = lo, hi = hi, paso = 10)
 }
 
+#' Diferencia de cada tema entre sus grupos, sobre las cifras ya redondeadas (una fila por tema, una columna por grupo)
+#'
+#' Con dos grupos, el primero menos el segundo (con signo); con tres o más, el mayor menos el menor. La usan la
+#' lámina del contraste y la regla de preguntas (graficos_regla_preguntas.R), que toma su valor absoluto.
+#' @keywords internal
+.contraste_diferencia <- function(R) {
+  R <- as.matrix(R)
+  if (ncol(R) == 2L) R[, 1] - R[, 2] else apply(R, 1, max) - apply(R, 1, min)
+}
+
 #' Especificación del contraste de públicos (`contraste/1`)
 #'
 #' @param data Data frame tidy con una fila por (tema, grupo).
@@ -145,7 +155,7 @@
   if (!any(completo)) stop("Ningún tema tiene valor en todos los grupos: no hay contraste que dibujar.", call. = FALSE)
   temas <- temas[completo]; V <- V[completo, , drop = FALSE]; N <- N[completo, , drop = FALSE]
   R <- matrix(.pulso_round_half_up(V, dec), nrow(V))
-  dif <- if (k == 2L) R[, 1] - R[, 2] else apply(R, 1, max) - apply(R, 1, min)
+  dif <- .contraste_diferencia(R)
   # Los separadores se declaran en el orden de entrada y lo fijan.
   sep <- suppressWarnings(as.integer(unlist(separar_tras)))
   sep <- sort(unique(sep[is.finite(sep) & sep >= 1L & sep < length(temas)]))

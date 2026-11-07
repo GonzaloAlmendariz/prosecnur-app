@@ -16,6 +16,8 @@
 #' @param corte Códigos de la escala que suman el indicador («4,5»: Top Two Box).
 #' @param corte_etiqueta Nombre del indicador para el pie («Top Two Box»).
 #' @param referencia Porcentaje de la línea de referencia (60 por defecto); `NA` la apaga.
+#' @param regla Cómo se eligen las preguntas entre las de `vars` (ADR 0135, graficos_regla_preguntas.R): `NULL`
+#'   dibuja todas las declaradas, como siempre.
 #' @export
 p_panorama <- function(vars,
                        corte,
@@ -24,7 +26,8 @@ p_panorama <- function(vars,
                        titulo = NULL,
                        overrides = list(),
                        base = list(),
-                       filtros = list()) {
+                       filtros = list(),
+                       regla = NULL) {
   refs <- trimws(as.character(unlist(vars)))
   refs <- refs[!is.na(refs) & nzchar(refs)]
   if (!length(refs)) .plan_spec_abort("p_panorama(): declara en `vars` al menos una pregunta (o `base$*`).")
@@ -44,19 +47,14 @@ p_panorama <- function(vars,
     filtros = .ppt_norm_filters(filtros)
   )
   class(el) <- c("ppt_element", "list")
-  el
+  .regla_preguntas_en_constructor(el, regla, "p_panorama()", con_estilo = FALSE)   # ADR 0135
 }
 
-#' ¿La fila del instrumento es una pregunta de escala con el corte? `select_one` con todos los códigos y 4+ opciones
+#' ¿La fila del instrumento es una pregunta de escala con el corte? `select_one` plana con todos los códigos y 4+
+#' opciones SUSTANTIVAS (ADR 0135: «Sin información» no cuenta como un nivel de la escala; lo decide
+#' `.graficos_no_sustantivos`, el único detector). La definición vive en graficos_regla_indicadores.R.
 #' @keywords internal
-.panorama_es_escala <- function(inst, var, codigos) {
-  survey <- inst$survey
-  fila <- which(as.character(survey$name) == var)[1]
-  if (is.na(fila) || !grepl("^select_one(?:\\s|$)", trimws(as.character(survey$type[[fila]])), perl = TRUE)) return(FALSE)
-  if (!identical(.graficos_sig_diseno_de_fuente(inst, var), "independiente")) return(FALSE)
-  cods <- vapply(.equiv_escala_opciones(inst, var), function(o) as.character(o$codigo %||% "")[1], character(1))
-  length(cods) >= 4L && all(codigos %in% cods)
-}
+.panorama_es_escala <- function(inst, var, codigos) .regla_preguntas_es_escala(inst, var, codigos)
 
 #' Expande `base$*` a las preguntas de escala de esa base
 #' @keywords internal
@@ -108,7 +106,9 @@ p_panorama <- function(vars,
   data_sources <- dynGet("data_sources", ifnotfound = NULL)
   inst_sources <- dynGet("instrument_sources", ifnotfound = NULL)
   if (!length(data_sources) || !length(inst_sources)) stop("panorama: el render no expone las fuentes del estudio.", call. = FALSE)
-  datos <- .panorama_datos(el$vars, el$corte, list(data_sources = data_sources, inst_sources = inst_sources), filtros = el$filtros %||% list())
+  sources <- list(data_sources = data_sources, inst_sources = inst_sources)
+  ap <- .regla_preguntas_aplicar_render(el, "panorama", sources); el <- ap$el   # ADR 0135
+  datos <- .panorama_datos(el$vars, el$corte, sources, filtros = el$filtros %||% list())
   base_preset <- if (length(preset_args)) preset_args else .ola4_preset("panorama")
   args <- utils::modifyList(
     list(data = datos, var_publico = "publico", var_item = "item", var_valor = "valor",
@@ -117,5 +117,5 @@ p_panorama <- function(vars,
     utils::modifyList(as.list(base_preset %||% list()), as.list(el$overrides %||% list()))
   )
   args <- .keep_formals(graficar_panorama, args, contexto = "graficar_panorama")
-  do.call(graficar_panorama, args)
+  .regla_preguntas_en_espec(do.call(graficar_panorama, args), ap$texto)
 }
