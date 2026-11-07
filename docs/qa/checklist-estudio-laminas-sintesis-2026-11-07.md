@@ -22,18 +22,18 @@ Decisiones de Gonzalo al empezar (2026-11-07):
 | 1 | Función pura de selección por regla (todas las de escala, N de mayor diferencia, distancia o Sin información, umbral bajo X, comunes entre públicos), con el texto de la regla para la nota | `api/R/graficos_regla_preguntas.R`, `graficos_regla_indicadores.R`, `POST /api/graficos/resumenes/regla` (8aed0ca4d) | Hecho en motor; falta verlo en la UI |
 | 2 | Lámina de resumen Fortalezas y alertas: especificación pura, lámina nativa, test | `p_fortalezas` (01caf81bf, 712d6e45d), render revisado | Hecho en motor; falta verlo en la UI |
 | 3 | Lámina de resumen Cobertura y participación: padrón y meta desde Cálculo de muestra o Monitoreo cuando exista | `p_cobertura`, `.graficos_padron_por_base`, `GET /api/graficos/resumenes/padron` (4fafa0817), render revisado contra Arte p. 2 | Hecho en motor; falta verlo en la UI |
-| 4 | Lámina de resumen Cierre con hallazgos: toma cifras de otras láminas, no recalcula | `p_slide_cierre_hallazgos` (referencia viva) | En curso |
+| 4 | Lámina de resumen Cierre con hallazgos: toma cifras de otras láminas, no recalcula | `p_slide_cierre_hallazgos` (a70a9369b); UI en curso | En curso |
 | 5 | Lámina de Tendencia | Fuera de este encargo (decisión 3) | Fuera |
 | 6 | Títulos sugeridos | No se hacen (decisión 2) | Fuera |
 | 7 | Selector por intención con miniaturas y la clase de cada tipo; «Ver por tipo de gráfico» como entrada secundaria | `laminas/selectores/intencionesContar.ts` (acdb1f589) | Hecho; falta QA visual |
 | 8 | Inspector uniforme Datos, Cálculo, Aspecto: primero los del resumen, luego los de uso general; cada control con rótulo y «?» | `DatosGrafico.tsx`, `gruposTarjeta.ts` (e7cc5e4fe); quedan ayudas por pasar al «?» | Hecho en parte; falta QA visual |
 | 9 | Control de regla con conteo en vivo y ajuste a mano de la lista | `laminas/reglaPreguntas/` (703a4a64a) | Hecho; falta QA interactiva |
 | 10 | Grupos internos hasta cuatro, con padrón e interruptor de padrón confiable | `laminas/gruposPadron/` (4076c434b, e718eec9f); arg `universos_no_confiables` en motor en curso | Hecho en UI; falta QA visual |
-| 11 | Revisión del emparejado entre públicos: matriz de equivalencias, sugerido por texto para confirmar, sin par | `POST /api/graficos/resumenes/emparejado` (1e7571138); UI en curso | En curso |
+| 11 | Revisión del emparejado entre públicos: matriz de equivalencias, sugerido por texto para confirmar, sin par | `POST /api/graficos/resumenes/emparejado` (1e7571138), `laminas/emparejado/` (28699273d) | Hecho; falta QA visual |
 | 12 | Mazo «Resumen ejecutivo»: propone las láminas en orden con sus reglas; aceptar, editar o quitar | `laminas/mazoResumen/`, `panel=resumen-ejecutivo` (bea24a026) | Hecho; falta QA visual e interactiva |
 | 13 | Mejoras a la maqueta que aparezcan al construir, dichas a Gonzalo; si cambia, publicar y regenerar la copia local | Maqueta `graficos-sintesis` | Pendiente |
-| 14 | Renderizar láminas reales con las cifras de Arte y compararlas al lado del PDF | QA | Pendiente |
-| 15 | Armar el resumen desde cero con `/ver-ui` en acrconta y otro proyecto de referencia | QA | Pendiente |
+| 14 | Renderizar láminas reales con las cifras de Arte y compararlas al lado del PDF | QA en pila aislada con `Arte_v1-12` (copia) | En curso: cobertura igual al PDF (115/279/85); panorama difiere por preguntas demográficas que entran como escala (corrección en curso) |
+| 15 | Armar el resumen desde cero con `/ver-ui` en acrconta y otro proyecto de referencia | QA | En curso: mazo armado e insertado sobre Arte real; 13 hallazgos repartidos; falta acrconta |
 | 16 | `make gate-area`, `make gate-front AREA=graficos`, agente verificador | QA | Pendiente |
 
 Aprendido:
