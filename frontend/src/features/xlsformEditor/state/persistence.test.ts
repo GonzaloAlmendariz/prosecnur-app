@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, test, vi } from "vitest";
+import { savedAtMs } from "../../../api/xlsformEditor";
 import { apiXlsformFormSave, type ChoiceCodeMap, type SurveyMonkeyVisualLogicRule } from "../../../api/client";
 import type { XlsformEditorWorkbook } from "../types";
 import {
@@ -158,13 +159,14 @@ describe("SurveyMonkey logic persistence reconciliation", () => {
   });
 
   test("recupera la logica del .pulso cuando localStorage la perdio", () => {
-    const local = snapshot(workbook("local snapshot", {} as never), 100);
+    // Local más nuevo (edición sin subir) pero sin la lógica: se rellena del .pulso.
+    const local = snapshot(workbook("local snapshot", {} as never), 300);
     const remote = snapshot(workbook("remote pulso", logic()), 200);
 
     const out = reconcileSnapshotWithBackend(local, remote);
 
     expect(out?.workbook.survey.rows[0][2]).toBe("local snapshot");
-    expect(out?.savedAt).toBe(200);
+    expect(out?.savedAt).toBe(300);
     expect(out?.workbook.surveyMonkeyLogic?.advanced_rules).toHaveLength(1);
     expect(out?.workbook.surveyMonkeyLogic?.visual_rules).toHaveLength(1);
     expect(out?.workbook.surveyMonkeyLogic?.choice_code_maps?.[0].variable).toBe("p27");
@@ -417,6 +419,49 @@ describe("migrateLegacySingleForm", () => {
     const migrated = migrateLegacySingleForm("proj-vacio");
     expect(migrated.forms).toEqual([]);
     expect(migrated.activeFormId).toBeNull();
+  });
+});
+
+describe("reconcile: el .pulso actualizado fuera del navegador gana", () => {
+  test("si el backend guardó después que la copia local, abre el workbook del backend", () => {
+    // Copia local de autosave (333 filas) abierta por última vez en t=1000.
+    const local = snapshot(workbook("workbook viejo en localStorage"), 1_000);
+    // Otra sesión subió una versión nueva al .pulso vía API en t=2000.
+    const remote = snapshot(workbook("workbook nuevo del .pulso"), 2_000);
+
+    const out = reconcileSnapshotWithBackend(local, remote);
+
+    expect(out?.workbook.survey.rows[0][2]).toBe("workbook nuevo del .pulso");
+    expect(out?.savedAt).toBe(2_000);
+  });
+
+  test("si la copia local es más nueva (edición sin sincronizar), conserva lo local", () => {
+    const local = snapshot(workbook("edición local sin subir"), 3_000);
+    const remote = snapshot(workbook("versión anterior del .pulso"), 2_000);
+
+    const out = reconcileSnapshotWithBackend(local, remote);
+
+    expect(out?.workbook.survey.rows[0][2]).toBe("edición local sin subir");
+  });
+
+  test("cuando gana el backend no pierde la lógica de SurveyMonkey que sólo tenía lo local", () => {
+    const local = snapshot(workbook("local", logic()), 1_000);
+    const remote = snapshot(workbook("remoto", {} as never), 2_000);
+
+    const out = reconcileSnapshotWithBackend(local, remote);
+
+    expect(out?.workbook.survey.rows[0][2]).toBe("remoto");
+    expect(out?.workbook.surveyMonkeyLogic?.advanced_rules).toHaveLength(1);
+  });
+
+  test("el saved_at ISO que pone el servidor se lee como fecha, no como 0", () => {
+    // Sin saved_at del cliente, el backend sella `format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ")`.
+    expect(savedAtMs("2026-11-07T15:04:05Z")).toBe(Date.parse("2026-11-07T15:04:05Z"));
+    // El autosave del editor manda ms; R lo devuelve como número o como texto.
+    expect(savedAtMs(1_762_527_845_000)).toBe(1_762_527_845_000);
+    expect(savedAtMs("1762527845000")).toBe(1_762_527_845_000);
+    expect(savedAtMs("")).toBe(0);
+    expect(savedAtMs("no es fecha")).toBe(0);
   });
 });
 

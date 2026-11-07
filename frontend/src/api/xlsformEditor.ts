@@ -311,14 +311,26 @@ export function normalizeXlsformFormPublication(value: unknown): XlsformFormPubl
   };
 }
 
+/** `saved_at` del backend a milisegundos. Llega como número (lo que sella el
+ *  autosave del editor) o como ISO `"2026-11-07T15:04:05Z"` (lo que pone el
+ *  servidor cuando el cliente no lo manda: API, otra sesión, guardado de
+ *  revisión). Leer el ISO como 0 hacía que un formulario actualizado fuera del
+ *  navegador pareciera más viejo que la copia de localStorage. */
+export function savedAtMs(value: unknown): number {
+  if (typeof value === "number") return Number.isFinite(value) ? value : 0;
+  if (typeof value !== "string" || !value.trim()) return 0;
+  const asNumber = Number(value);
+  if (Number.isFinite(asNumber)) return asNumber;
+  const parsed = Date.parse(value);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
 export function normalizeFormLibraryEntry(value: unknown): FormLibraryEntry | null {
   if (!value || typeof value !== "object" || Array.isArray(value)) return null;
   const v = value as Record<string, unknown>;
   const id = typeof v.id === "string" ? v.id : "";
   if (!id) return null;
-  const savedAt = typeof v.saved_at === "number" && Number.isFinite(v.saved_at)
-    ? v.saved_at
-    : Number(v.saved_at) || 0;
+  const savedAt = savedAtMs(v.saved_at);
   return {
     id,
     name: typeof v.name === "string" && v.name.trim() ? v.name : "Formulario",
@@ -398,9 +410,7 @@ export async function apiXlsformFormGet(id: string): Promise<{
   const formRaw = (r.form ?? {}) as Record<string, unknown>;
   const workbook = normalizePersistedXlsformWorkbook(formRaw.workbook);
   if (!workbook) return { ok: true, form: null };
-  const savedAt = typeof formRaw.saved_at === "number" && Number.isFinite(formRaw.saved_at)
-    ? formRaw.saved_at
-    : Number(formRaw.saved_at) || 0;
+  const savedAt = savedAtMs(formRaw.saved_at);
   return {
     ok: true,
     form: {

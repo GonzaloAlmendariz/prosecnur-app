@@ -666,8 +666,19 @@ export function reconcileSnapshotWithBackend(
   if (!local) return remote;
   if (!remote) return local;
 
+  // El workbook lo decide quién guardó último. El autosave sella lo local y
+  // en el mismo flush sube al backend con un `saved_at` posterior, así que en
+  // el flujo normal el backend nunca es más viejo que lo local. Si lo es, es
+  // porque el formulario se actualizó fuera de este navegador (API, otra
+  // sesión, otra máquina) y la copia de localStorage quedó vieja: antes ganaba
+  // siempre lo local y el editor abría el workbook anterior con «Sin cambios».
+  // Lo local sólo gana cuando es más nuevo (una edición que no llegó a subir).
+  const remoteWins = remote.savedAt > local.savedAt;
+  const primary = remoteWins ? remote : local;
+  const secondary = remoteWins ? local : remote;
+
   const mergedMetadata: PersistedSnapshot = {
-    ...local,
+    ...primary,
     savedAt: Math.max(local.savedAt, remote.savedAt),
     source: remote.source ?? local.source,
     sourceName: remote.source?.original_name ?? remote.sourceName ?? local.sourceName,
@@ -675,27 +686,29 @@ export function reconcileSnapshotWithBackend(
     hallazgos: remote.hallazgos ?? local.hallazgos,
   };
 
-  const localLogic = cloneSurveyMonkeyLogic(local.workbook.surveyMonkeyLogic);
-  const remoteLogic = cloneSurveyMonkeyLogic(remote.workbook.surveyMonkeyLogic);
-  if (!remoteLogic || !workbookHasSurveyMonkeyLogic(remote.workbook)) return mergedMetadata;
+  // La lógica de SurveyMonkey nunca se pierde por la copia que gana: si a la
+  // ganadora le falta una pieza y la otra la tiene, se rellena desde la otra.
+  const primaryLogic = cloneSurveyMonkeyLogic(primary.workbook.surveyMonkeyLogic);
+  const secondaryLogic = cloneSurveyMonkeyLogic(secondary.workbook.surveyMonkeyLogic);
+  if (!secondaryLogic || !workbookHasSurveyMonkeyLogic(secondary.workbook)) return mergedMetadata;
 
-  const localHasLogic = workbookHasSurveyMonkeyLogic(local.workbook);
-  const mergedLogic: SurveyMonkeyLogic = localHasLogic && localLogic
+  const primaryHasLogic = workbookHasSurveyMonkeyLogic(primary.workbook);
+  const mergedLogic: SurveyMonkeyLogic = primaryHasLogic && primaryLogic
     ? {
-        rules: localLogic.advanced_rules.length ? localLogic.rules ?? localLogic.advanced_rules : remoteLogic.rules ?? remoteLogic.advanced_rules,
-        advanced_rules: localLogic.advanced_rules.length ? localLogic.advanced_rules : remoteLogic.advanced_rules,
-        visual_rules: localLogic.visual_rules.length ? localLogic.visual_rules : remoteLogic.visual_rules,
-        choice_order_overrides: Object.keys(localLogic.choice_order_overrides).length
-          ? localLogic.choice_order_overrides
-          : remoteLogic.choice_order_overrides,
-        choice_code_maps: (localLogic.choice_code_maps ?? []).length ? localLogic.choice_code_maps : remoteLogic.choice_code_maps,
+        rules: primaryLogic.advanced_rules.length ? primaryLogic.rules ?? primaryLogic.advanced_rules : secondaryLogic.rules ?? secondaryLogic.advanced_rules,
+        advanced_rules: primaryLogic.advanced_rules.length ? primaryLogic.advanced_rules : secondaryLogic.advanced_rules,
+        visual_rules: primaryLogic.visual_rules.length ? primaryLogic.visual_rules : secondaryLogic.visual_rules,
+        choice_order_overrides: Object.keys(primaryLogic.choice_order_overrides).length
+          ? primaryLogic.choice_order_overrides
+          : secondaryLogic.choice_order_overrides,
+        choice_code_maps: (primaryLogic.choice_code_maps ?? []).length ? primaryLogic.choice_code_maps : secondaryLogic.choice_code_maps,
       }
-    : remoteLogic;
+    : secondaryLogic;
 
   return {
     ...mergedMetadata,
     workbook: {
-      ...local.workbook,
+      ...primary.workbook,
       surveyMonkeyLogic: mergedLogic,
     },
   };
