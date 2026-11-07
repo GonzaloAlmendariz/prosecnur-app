@@ -11,7 +11,7 @@ guardado. Orden: censo → prototipo (artifact) → implementación.
 | 3 | Unificar el nombrado de los archivos | `Estudio_Entregable[_Base][_Detalle]_Fecha.ext`, rótulo por salida en el prototipo (vista «Nombre»); extiende `.export_filename()`. Decidido: palabras `Frecuencias_por_base`, tildes y ñ transliteradas, fecha `07_11_26` (la de `.export_filename()`) | decidido; espera implementación |
 | 4 | Unificar la ubicación del guardado | Decidido: `Entregables\<Módulo>\` junto al .pulso en escritorio, sin diálogo; descargas en navegador (vista «Ubicación») | decidido |
 | 5 | Prototipo como artifact | https://claude.ai/artifact/8S4BRaszzE1tChaRcAUVRk | publicado; espera revisión |
-| 6 | Implementar | Fases en la vista «Decisiones»: defectos → `entregable_registrar()` + ADR → Electron → `useGeneracion` → migración con ratchet | en curso: fase 1 hecha (`318e66b33`), fases 2 a 5 pendientes |
+| 6 | Implementar | Fases en la vista «Decisiones»: defectos → `entregable_registrar()` + ADR → Electron → `useGeneracion` → migración con ratchet | en curso: fase 1 (`318e66b33`) y fase 2 (`eecc17c8f`, ADR 0133) hechas; fases 3 a 5 pendientes |
 
 ## Fase 1: defectos (commit `318e66b33`)
 
@@ -31,6 +31,21 @@ guardado. Orden: censo → prototipo (artifact) → implementación.
 | Nombres iguales para contenidos distintos | rótulos por salida | pasa a la fase 2 |
 
 Gates: `test-descargas-entrega.R` 29 OK; gate R del área 1711 pass, 0 fail; 3 tests front nuevos 15 OK; `make gate-front` 743 OK; `tsc` limpio; auditoría sin hallazgos. Quedan 4 rojos que no son de esta fase (PulsoButton, StageStepper y PulsoSwitch por 2afac10cb y 7ba64a57b; `estadosAtadosAlMotor` por ea4473e15). Hallazgos para fases siguientes: el paquete de evidencia devuelve rutas absolutas del temporal de sesión, y el cuerpo de la petición elige el PDF que se copia al paquete (`monitoreo_router_publicacion.R` ~373).
+
+## Fase 2: un registro, un nombre y una carpeta (commit `eecc17c8f`, ADR 0133)
+
+| Pieza | Dónde vive | Estado |
+|---|---|---|
+| Registro único y catálogo por kind (124 kinds; 84 se copian, 40 no) | `api/R/entregables_registro.R`, `api/R/entregables_catalogo.R` | hecho |
+| Nombre `Estudio_Entregable[_Base][_Detalle]_dd_mm_yy.ext` | `entregable_nombre()`; `.export_filename()` delega | hecho |
+| Copia sin diálogo a `Entregables\<Módulo>\`, `_2` sin distinguir mayúsculas, ruta larga, modo público | `entregable_registrar()` | hecho; Windows real sin verificar |
+| Multibase: solo se copia el ZIP | `run_report_per_base`, `.zip_outputs` | hecho (decisión del lead) |
+| `save-to-project` limpia en vez de rechazar; `Entregables/<Módulo>`; `_2`; fin de `x.xlsx.xlsx` | `router_proyecto.R` | hecho |
+| ZIP de CSV y de Excel con nombres distintos | `.zip_outputs` por kind | hecho |
+| Analítica (sync y job) y Gráficos (PPT, Word, consolidado) devuelven `guardado_en` y no abren el diálogo | `entregable_respuesta()`; `useReporteRun`, `GenerateFooter`, `ExportarInformeMenu` | hecho; Electron y UI sin verificar |
+| Flujos que guardan a mano o no se ofrecen: Editor XLSForm, Correos, Subir Kobo, limpieza, piezas del handoff | catálogo con `guardar = FALSE` | transitorio hasta la fase 5 |
+
+Verificación: el verificador rechazó la primera entrega porque el informe compartido de Gráficos se copiaba y además abría el diálogo; se corrigió y se recomprobó (`test-entregables-respuesta.R` 51 OK, vitest de Gráficos 1988 OK). Gate R del área: 6587 pass, 0 fail, 0 rotas. Punta a punta en proceso con dos proyectos de referencia: nombre con el código del estudio, copia en `Entregables/Procesamiento`, `_2` en la segunda generación, nada en modo público, job de Cruces real con una sola copia. Pendiente: llamadores que aún pasan su propio nombre (`base_limpia_<base>`, correos, handoff) se migran en la fase 5.
 
 ## Notas
 
