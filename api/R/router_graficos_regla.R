@@ -17,6 +17,12 @@
 #   Propuesta de padrón y meta por base para la lámina de cobertura (graficos_padron_por_base.R). Sólo lectura: la UI
 #   la muestra y, al confirmarla, escribe `universos` y `metas` en el payload.
 
+#
+#   POST /api/graficos/resumenes/emparejado   {bases: [A, B], vars?, scope?}
+#     -> {ok, bases, preguntas: [{tema, base, var, etiqueta, estado, par?, sugerencias}]}
+#   Revisión del emparejado entre públicos (graficos_emparejado_sugerido.R, ADR 0135 §7). Sólo lectura: lee la matriz
+#   (`s$equivalencias_publicos`, filas sin `sugerida`) y propone por texto para las preguntas sin par.
+
 mount_graficos_regla <- function(pr) {
   pr |>
     plumber::pr_post("/api/graficos/resumenes/regla", wrap_endpoint(function(req, res, ...) {
@@ -31,6 +37,13 @@ mount_graficos_regla <- function(pr) {
       if (!is.list(args)) .regla_preguntas_falla("`args` debe ser un objeto.")
       fuentes <- .graficos_preview_fuentes(sid, parsed)
       .regla_preguntas_conteo(graficador, args, fuentes)
+    })) |>
+    plumber::pr_post("/api/graficos/resumenes/emparejado", wrap_endpoint(function(req, res, ...) {
+      sid <- session_header(req)
+      s <- session_get(sid)
+      parsed <- .graficos_preview_leer_body(req)
+      fuentes <- .graficos_preview_fuentes(sid, parsed)
+      .graficos_emparejado(s$equivalencias_publicos, fuentes, parsed[["bases"]], parsed[["vars"]])
     })) |>
     plumber::pr_get("/api/graficos/resumenes/padron", wrap_endpoint(function(req, res, ...) {
       sid <- session_header(req)

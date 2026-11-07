@@ -574,6 +574,7 @@ errores_registrados <- function() {
     "E_DISENO_BITACORA_ID",                                  "router_diseno_estudio.R",           "400",
     "E_DISENO_JSON",                                         "router_diseno_estudio.R",           "400",
     "E_DUPLICATE_SAME_PATH",                                 "router_proyecto.R",                 "400",
+    "E_EMPAREJADO_INVALIDO",                                 "graficos_emparejado_sugerido.R",    "400",
     "E_EMPTY_BODY",                                          "router_codificacion.R",             "400",
     "E_EMPTY_FILE",                                          "dashboard_source.R",                "400",
     "E_ENUMERATOR_CODES",                                    "router_monitoreo.R",                "400",
