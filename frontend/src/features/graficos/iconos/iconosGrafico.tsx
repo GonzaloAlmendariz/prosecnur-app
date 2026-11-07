@@ -118,6 +118,30 @@ const ICONOS: Readonly<Record<string, DibujoGrafico>> = {
       <Acento><Trazo d="M12.75 3V21" tono="pleno" /></Acento>
     </>
   ),
+  // Fortalezas y alertas (ADR 0135): las más altas a la izquierda, las más bajas a la derecha; la mayor en acento.
+  p_fortalezas: () => (
+    <>
+      <Acento><Bloque x={3} y={5.25} w={7.5} h={3} tono="pleno" /></Acento>
+      <Bloque x={3} y={10.5} w={6} h={3} />
+      <Bloque x={3} y={15.75} w={5.25} h={3} />
+      <Bloque x={13.5} y={5.25} w={3} h={3} />
+      <Bloque x={13.5} y={10.5} w={4.5} h={3} />
+      <Bloque x={13.5} y={15.75} w={5.25} h={3} />
+      <Trazo d="M12 3.75V20.25" />
+    </>
+  ),
+  // Cobertura y participación (ADR 0135): la cifra de casos a la izquierda y, por público, la tasa contra la meta.
+  p_cobertura: () => (
+    <>
+      <Acento><Bloque x={3} y={4.5} w={5.25} h={6} tono="pleno" /></Acento>
+      <Bloque x={3} y={13.5} w={5.25} h={6} />
+      <Trazo d="M11.25 3.75V20.25" />
+      <Bloque x={12} y={5.25} w={9} h={2.25} tono="pleno" />
+      <Bloque x={12} y={8.25} w={6} h={2.25} />
+      <Bloque x={12} y={14.25} w={8.25} h={2.25} tono="pleno" />
+      <Bloque x={12} y={17.25} w={6.75} h={2.25} />
+    </>
+  ),
   // Escala con Top Two Box (p78): filas de segmentos; el primero de cada fila en acento.
   p_barras_multiapiladas: () => {
     const filas: ReadonlyArray<readonly [number, number, number]> = [[4.5, 8.25, 4.5], [10.125, 5.25, 6.75], [15.75, 9, 3.75]];

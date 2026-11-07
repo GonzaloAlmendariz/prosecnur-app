@@ -67,6 +67,8 @@ export const CATALOGO_GRAFICOS: readonly TipoGraficoCatalogo[] = [
   { name: "p_cifra", familia_editor: "numeros", salida: "nativa", en_selector: true },
   { name: "p_dumbbell", familia_editor: "comparar", salida: "nativa", en_selector: true },
   { name: "p_panorama", familia_editor: "comparar", salida: "nativa", en_selector: true },
+  { name: "p_fortalezas", familia_editor: "comparar", salida: "nativa", en_selector: true },
+  { name: "p_cobertura", familia_editor: "comparar", salida: "nativa", en_selector: true },
   { name: "p_filtro_subpregunta", familia_editor: "categorias", salida: "nativa", en_selector: false },
   { name: "p_significancia_publicos", familia_editor: "comparar", salida: "nativa", en_selector: true },
   { name: "p_matriz_cuadrantes", familia_editor: "comparar", salida: "nativa", en_selector: true },

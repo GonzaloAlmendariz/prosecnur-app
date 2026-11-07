@@ -382,6 +382,54 @@ const GLIFOS: Readonly<Record<string, DibujoGlifo>> = {
       </>
     );
   },
+  // Fortalezas y alertas (ADR 0135): dos columnas de barras con su rótulo, las más altas y las más bajas.
+  p_fortalezas: () => {
+    const altas = [62, 54, 48, 42];
+    const bajas = [18, 24, 30, 36];
+    return (
+      <>
+        {altas.map((w, i) => {
+          const y = 16 + i * 18;
+          return (
+            <g key={`a${y}`}>
+              <Rotulo x={8} y={y + 1.5} w={14} />
+              <Barra x={8} y={y + 6} w={w * 0.85} h={6} t={i === 0 ? "p" : "a"} />
+            </g>
+          );
+        })}
+        <Trazo d="M80 10V82" ancho={1} t="n" />
+        {bajas.map((w, i) => {
+          const y = 16 + i * 18;
+          return (
+            <g key={`b${y}`}>
+              <Rotulo x={88} y={y + 1.5} w={14} />
+              <Barra x={88} y={y + 6} w={w * 0.85} h={6} t="n" />
+            </g>
+          );
+        })}
+      </>
+    );
+  },
+  // Cobertura y participación (ADR 0135): la cifra de cada público a la izquierda; a la derecha, la tasa y la meta.
+  p_cobertura: () => {
+    const filas: ReadonlyArray<readonly [number, number]> = [[58, 40], [64, 40], [64, 60]];
+    return (
+      <>
+        {filas.map(([tasa, meta], i) => {
+          const y = 14 + i * 26;
+          return (
+            <g key={y}>
+              <Barra x={8} y={y} w={22} h={12} t={i === 0 ? "p" : "a"} rx={2} />
+              <Rotulo x={36} y={y + 3} w={22} />
+              <Barra x={78} y={y} w={tasa} h={6} t="p" />
+              <Barra x={78} y={y + 8} w={meta} h={6} t="n" />
+            </g>
+          );
+        })}
+        <Trazo d="M76 10V86" ancho={1} t="n" />
+      </>
+    );
+  },
   // Escala por premisa, de la más intensa a SIN INF, con su columna Top Two Box (p78).
   // Con opciones (maqueta), la columna Top Two Box sólo si el gráfico la lleva, y la Bottom Two Box a su lado.
   p_barras_multiapiladas: (o) => {
